@@ -1,0 +1,268 @@
+<?php
+$SHOWERRORS = true;
+error_reporting($SHOWERRORS ? E_ALL : 0);
+ini_set('display_errors', $SHOWERRORS);
+ini_set('display_startup_errors', $SHOWERRORS);
+
+// Gherkin compiler
+//
+// Create a skeleton test for each feature in a module
+
+$path = '..'; // relative path from compiler to module directory
+
+$flnms = glob("$path/*.module");
+if (empty($flnms)) error('No features found. The gherkin directory should have the same parent as the features directory. The parent should contain the module file. See the file "howto.txt".');
+
+$MODULE = str_replace('.module', '', substr($flnms[0], 3));
+$test_dir = "$path/tests";
+if (!file_exists($test_dir)) mkdir($test_dir);
+
+$info_filename = "$path/$MODULE.info";
+$info = file_get_contents($info_filename) . "\n";
+
+$steps_filename = "$path/$MODULE.steps";
+$steps_text = file_exists($steps_filename) ? file_get_contents($steps_filename) : "<?php\n";
+
+/* $steps array
+ *
+ * Associative array of step function information, indexed by step function name
+ * Each step is in turn an associative array:
+ *   'original' is "new", "changed", or the original function header from the steps file
+ *   'english' is the english language description of the step
+ *   'to_replace' is the text to replace in the steps file when the callers change: from the first caller through the function name
+ *   'callers' array is the list of tests that use this specific step function
+ *   'arg_count' is the number of arguments (for new steps only)
+ */
+$steps = get_steps($steps_text);
+
+$features = findFiles($path, '/\.feature$/', TRUE);
+
+foreach ($features as $feature_filename) {
+  $test_filename = str_replace('features/', 'tests/', str_replace('.feature', '.test', $feature_filename));
+  $file_line = str_replace("$path/", '', "files[] = $test_filename\n");
+  if (strpos($info, $file_line) === FALSE) $info .= $file_line;
+  $test_data = do_feature($feature_filename, $steps);
+  $test_data['MODULE'] = $MODULE;
+  $test = file_get_contents('test_template.php');
+  foreach($test_data as $from => $to) $test = str_replace("%$from", $to, $test);
+  file_put_contents($test_filename, $test);
+  echo "Created: $test_filename<br>";
+}
+
+foreach ($steps as $function_name => $step) {
+  extract($step);
+  $replacement = replacement($callers, $function_name); // (replacement includes function's opening parenthesis)
+  if ($original == 'new') {
+    for ($arg_list = '', $i = 0; $i < $arg_count; $i++) {
+      $arg_list .= ($arg_list ? ', ' : '') . '$arg' . ($i + 1);
+    }
+    $steps_text .= "\n" // do not use <<<EOF here, because it results in extraneous EOLs
+    . "/*\n"
+    . " * $english\n"
+    . " *\n"
+    . " * in: {$replacement}$arg_list) {\n"
+    . "  global \$test_only;\n"
+    . "  todo;\n"
+    . "}\n";
+  } else {
+    $steps_text = str_replace($to_replace, $replacement, $steps_text);
+  }
+}
+
+file_put_contents($steps_filename, $steps_text);
+file_put_contents($info_filename, str_replace("\n\nfiles[]", "\nfiles[]", $info));
+
+echo "<br>Updated $steps_filename<br>Done. " . date('g:ia');
+
+// END of program
+
+/*
+ * Get the specific parameters for the feature's tests
+ *
+ * @param string $feature_filename
+ *   feature path and filename relative to module
+ *
+ * @param array $steps (by reference)
+ *   an associative array of empty step function objects, keyed by function name
+ *   returned: the original array, with unique new steps added (old steps are not duplicated)
+ *
+ * @return associative array:
+ *   GROUP: sub-project name (currently unused in template)
+ *   FEATURE_NAME: titlecase feature name, with no spaces
+ *   FEATURE_LONGNAME: feature name in normal english
+ *   FEATURE_HEADER: standard Gherkin feature header, formatted as a comment
+ *   TESTS: all the tests and steps
+ */
+function do_feature($feature_filename, &$steps) {
+  $GROUP = basename(dirname(dirname($feature_filename)));
+  $FEATURE_NAME = str_replace('.feature', '', basename($feature_filename));
+  $FEATURE_LONGNAME = $FEATURE_NAME; // default English description of feature, in case it's missing from feature file
+  $FEATURE_HEADER = '';
+  $TESTS = '';
+ 
+  $lines = explode("\n", file_get_contents($feature_filename));
+  $state = '';
+  $arg_patterns = '"(.*?)"|(-?[0-9]+(?:[\.,-][0-9]+)*)|(%[A-Z][A-Z0-9]+)';
+  $lead = '  '; // line leader (indentation for everything in class definition
+
+  while (!is_null($line = array_shift($lines))) {
+    $line = trim($line);
+    $any = preg_match('/^([A-Z]+)/i', $line, $matches);
+    $word1 = $word1_original = $any ? $matches[1] : '';
+    $tail = trim(substr($line, strlen($word1) + 1));
+    if ($word1 == 'And') $word1 = 'And__';
+    if ($word1 == 'When' or $word1 == 'Then') $word1 .= '_';
+
+    if ($word1 == 'Feature') {
+      $FEATURE_HEADER .= "//\n// $line\n";
+      $FEATURE_LONGNAME = $tail;
+    } elseif ($word1 == 'Scenario') {
+      $test_function = 'test' . (preg_replace("/[^A-Z]/i", '', ucwords($tail)));
+
+      if ($state != 'Feature') {
+        $TESTS .= "$lead}\n";
+      }
+      $TESTS .= "\n"
+        . "$lead// $line\n"
+        . "{$lead}public function $test_function() {\n"
+        . "$lead  scene_setup(\$this, __FUNCTION__);\n";
+    
+    } elseif (in_array($word1, array('Given', 'When_', 'Then_', 'And__'))) {
+      if ($multi = multiline($lines)) $tail .= ' "DATA';
+      $tail_escaped = str_replace("'", "\\'", $tail);
+      $TESTS .= "$lead  $word1('$tail_escaped'" . ($multi ? "\n" : ");\n");
+      if ($multi) {
+        $state = 'data';
+        $word1 = ''; // don't change state
+      };
+      $english = preg_replace("/$arg_patterns/i", '(ARG)', $tail);
+      $step_function = lcfirst(preg_replace("/$arg_patterns|[^A-Z]/i", '', ucwords($tail)));
+      if(isset($steps[$step_function])) {
+        if($steps[$step_function]['english'] != $english) {
+          error("<br>WARNING: You tried to redefine step function $step_function. Delete the old one first.");
+        }
+        if ($steps[$step_function]['original'] != 'new') $steps[$step_function]['original'] = 'changed';
+        if (!in_array($test_function, $steps[$step_function]['callers'])) {
+          $steps[$step_function]['callers'][] = $test_function;
+        }
+      } else {
+        $original = 'new';
+        $callers = array($test_function);
+        preg_match_all("/$arg_patterns/i", $tail, $matches);
+        $args = $matches[1];
+        $arg_count = count($args);
+        $steps[$step_function] = compact(explode(',', 'original,english,callers,arg_count'));
+      }
+    } elseif ($state == 'data') {
+      $line = str_replace("'", "\\'", $line);
+      $TESTS .= "    . PHP_EOL . '$line'\n";
+      if (!multiline($lines)) {
+        $TESTS .= "    . '\"');\n";
+        $state == '';
+      }
+    } else {
+      if ($state == 'Feature') {
+        $FEATURE_HEADER .= "//   $line\n";
+      } elseif ($state == 'Scenario') {
+        $TESTS .= "$lead *   $line\n";
+      }
+      $word1 = ''; // don't use this to set state
+    }
+    if ($word1) $state = $word1;
+  }
+
+  if ($state != '' and $state != 'Feature') $TESTS .= "$lead}\n"; // close the final test function definition
+
+  return compact(explode(',', 'INC_PATH,GROUP,FEATURE_NAME,FEATURE_LONGNAME,FEATURE_HEADER,TESTS'));
+}
+
+/*
+ * Find Files
+ *
+ * Return an array of files matching the given pattern.
+ *
+ * @param string $path
+ *   the directory to search
+ *
+ * @param string $pattern
+ *   return filenames matching this pattern
+ *
+ * @param array $result (optional)
+ *   partial results. if this array is supplied, then recurse subdirectories
+ *
+ * @return
+ *   an array of filenames, qualified by path (including the initial directory $path)
+ */
+function findFiles($path = '.', $pattern = '/./', $result = '') {
+  if ($recurse = $result ? TRUE : FALSE);
+  if (!is_array($result)) $result = array();
+  $prefix = $path . '/';
+  $dir = dir($path);
+
+  while ($filename = $dir->read()) {
+    if ($filename === '.' || $filename === '..') continue;
+    $filename = $prefix . $filename;
+    if (is_dir($filename) and $recurse) $result = findFiles($filename, $pattern, $result);
+    if (preg_match($pattern, $filename)){
+      $result[] = $filename;
+    }
+  }
+  return $result;
+}
+
+function error($error_message) {
+  die($error_message);
+}
+
+/*
+ * Get steps
+ *
+ * Given the text of the steps file, return an array of steps (see $steps)
+ *
+ */
+function get_steps($steps_text) {
+  $step_keys = explode(',', 'original,english,to_replace,callers,function_name');
+  $pattern = ''
+  . '^/\*$\s'
+  . '^ \* (.*?)$\s'
+  . '^ \*$\s'
+  . '^ \* in: ((.*?)$\s'
+  . '^ \*/$\s'
+  . '^function (.*?)\()';
+  preg_match_all("~$pattern~ms", $steps_text, $matches, PREG_SET_ORDER);
+  $steps = array();
+  foreach ($matches as $step) {
+    $step = array_combine($step_keys, $step);
+//    $step['callers'] = explode("\n *     ", $step['callers']); // add to the list, but don't delete
+    $step['callers'] = array(); // rebuild this list every time
+    $steps[$step['function_name']] = $step; // use the function name as the index for the step
+  }
+  return $steps;
+}
+
+/*
+ * Replacement text
+ *
+ * When updating and existing step function, replace the header with this.
+ * (guaranteed to be unique for each step)
+ */
+function replacement($callers, $function_name) {
+  $callers = join("\n *     ", $callers);
+  return "$callers\n */\nfunction $function_name(";
+}
+
+/*
+ * Multiline Argument
+ *
+ * See if the next few lines represent data records using the syntax:
+ *   | field1 | field2 | field3 |
+ *   | a1     | b1     | c1     |
+ *   | a2     | b2     | c2     |
+ * 
+ * @param array $lines: the remaining lines of the feature file
+ *
+ * @return TRUE if a multiline argument follows (else FALSE)
+ */
+function multiline($lines) {
+  return substr($line = trim(array_shift($lines)), 0, 1) == '|';
+}

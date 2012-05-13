@@ -1,0 +1,135 @@
+<?php
+
+/*
+ * phone (ARG) has no account
+ *
+ * in: testATotalNewbieCalls
+ */
+function phoneHasNoAccount($number) {
+  return (sms_user_get_uid($number) == '');
+}
+
+/*
+ * phone (ARG) says (ARG)
+ *
+ * in: testATotalNewbieCalls
+ *     testANamelessNewbieCalls
+ *     testTheNewbieGivesUsHisOrHerName
+ *     testTheNewbieGivesUsAnUnlikelyName
+ *     testTheNewbieGivesUsHisOrHerEmailAddress
+ *     testTheNewbieGivesABadEmailAddress
+ */
+function phoneSays($arg1, $arg2) {
+  global $test_only;
+  todo;
+}
+
+/*
+ * phone (ARG) has an account
+ *
+ * in: testATotalNewbieCalls
+ *     testANamelessNewbieCalls
+ */
+function phoneHasAnAccount($number) {
+  global $test_only;
+  if (sms_user_get_uid($number) != '') return TRUE;
+  if ($test_only) return FALSE;
+  return (rcredits_create_user($number) != '');
+}
+
+/*
+ * we say to phone (ARG) (ARG)
+ *
+ * in: testATotalNewbieCalls
+ *     testANamelessNewbieCalls
+ *     testTheNewbieGivesUsHisOrHerName
+ *     testTheNewbieGivesUsAnUnlikelyName
+ *     testTheNewbieGivesUsHisOrHerEmailAddress
+ *     testTheNewbieGivesABadEmailAddress
+ */
+function weSayToPhone($arg1, $arg2) {
+  global $test_only;
+  todo;
+}
+
+/*
+ * phone (ARG) has no name
+ *
+ * in: testANamelessNewbieCalls
+ */
+function phoneHasNoName($arg1) {
+  global $test_only;
+  todo;
+}
+
+/*
+ * we did not just ask phone (ARG) for a full name
+ *
+ * in: testANamelessNewbieCalls
+ */
+function weDidNotJustAskPhoneForAFullName($arg1) {
+  global $test_only;
+  todo;
+}
+
+/*
+ * we just asked phone (ARG) for a full name
+ *
+ * in: testTheNewbieGivesUsHisOrHerName
+ *     testTheNewbieGivesUsAnUnlikelyName
+ */
+function weJustAskedPhoneForAFullName($arg1) {
+  global $test_only;
+  todo;
+}
+
+/*
+ * phone (ARG) name is (ARG)
+ *
+ * in: testTheNewbieGivesUsHisOrHerName
+ */
+function phoneNameIs($arg1, $arg2) {
+  global $test_only;
+  todo;
+}
+
+/*
+ * we just asked phone (ARG) for an email address
+ *
+ * in: testTheNewbieGivesUsHisOrHerEmailAddress
+ *     testTheNewbieGivesABadEmailAddress
+ */
+function weJustAskedPhoneForAnEmailAddress($arg1) {
+  global $test_only;
+  todo;
+}
+
+/*
+ * community account has $(ARG)
+ *
+ * in: testTheNewbieGivesUsHisOrHerEmailAddress
+ */
+function communityAccountHas($arg1) {
+  global $test_only;
+  todo;
+}
+
+/*
+ * phone (ARG) email is (ARG)
+ *
+ * in: testTheNewbieGivesUsHisOrHerEmailAddress
+ */
+function phoneEmailIs($arg1, $arg2) {
+  global $test_only;
+  todo;
+}
+
+/*
+ * phone (ARG) has $(ARG)
+ *
+ * in: testTheNewbieGivesUsHisOrHerEmailAddress
+ */
+function phoneHas($arg1, $arg2) {
+  global $test_only;
+  todo;
+}

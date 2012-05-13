@@ -1,0 +1,33 @@
+; $Id:
+name = rCredits SMS interface
+description = Request exchanges, information, and other operations from your cell phone, using SMS
+package = rCredits
+core = "7.x"
+
+dependencies[] = mcapi
+dependencies[] = sms_user
+dependencies[] = rcredits
+files[] = rsms.module
+files[] = rsmsunit.test
+files[] = tests/OpenAnAccountForTheCaller.test
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

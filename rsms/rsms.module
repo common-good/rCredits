@@ -1,0 +1,443 @@
+<?php
+// $Id:
+
+/**
+ * @file
+ * rSMS (rCredits SMS)
+ *
+ * An interface module for the rCredits financial system.
+ */
+ 
+define('TRANSACTION_STATE_STRAW', -3); // add this to states defined in mcapi.module
+define('RCREDITS_COMMUNITY_UID', 4);
+
+$GLOBALS['SMS commands'] = ''; // defined in rsms_parse()
+$GLOBALS['SMS messages'] = array(
+  "account info" => t("Your balance is @balance. The current demand for rCredits is @demand."),
+  "what’s your name?" => t("To set up your rCredits account, we need your full name and email address. What’s your name?"),
+  "what's your email?" => t("Welcome to rCredits, @name. Last question: What is your email address?"),
+  "your account is ready" => t("Thank you! Your new balance is @balance."),
+  "what's your email really?" => t("Please type carefully. What is your email address?"),
+  "no SMS permission" => t('Alas, you do not have permission to use the rCredits SMS interface at this time.'),
+  "can't cash incentives" => t("You can spend your incentive rewards (@balance to date), but you can't cash them out. Your balance available to exchange for US Dollars is $0."),
+  "if you were active" => t("If you were an Active Participant in the rCredits system, your request would transfer @amount directly to your bank account. Alas, you are not yet an Active Participant."),
+  "transaction done" => t("@inaword: @amount @tofrom user#@other (@reward_type: @reward_amount). Your new balance is @balance (If  this had been a real transaction, your balance would be @amount @moreless). Transaction ID #@transaction_id"),
+  
+  // help messages
+  'help for payment' => t("Payment examples: 12.34 to 413.772.0000 | 12.34 to wgabcd for cash | 12.34 to jdough@example.com for wine and cheese (Include a description ONLY if it's \"cash\" or if you are providing real goods and services.)"),
+  'help for charge' => t("Charge examples: 12.34 from 413.772.0000 | 12.34 from wgabcd for cash | 12.34 from jdough@example.com for wine and cheese (Include a description ONLY if it's \"cash\" or if real goods and services are provided.)"),
+  'help for undo' => t("Examples: undo | undo to | undo 413.772.0000 | undo from wgabcd"),
+  'help for get' => t("Examples: get r 12.34 | get usd 12.34"),
+  'help for information' => t("Example: information (tells you your balance and the current demand for rCredits)"),
+  'help for help' => t('Examples: help @commands. For example, type "help undo".'),
+);
+
+/**
+ * implements hook_help
+ */
+function rsms_help($path) {
+  switch($path) {
+    case 'admin/mc/sms':
+      return t('Define the SMS syntax for recording exchanges');
+  }
+}
+
+/**
+ * implements hook_form_alter, to set focus
+ *
+ * Insert a snippet of javascript in the page footer, to set the focus automatically
+ * on the message field of the SMS simulation form.
+ */
+function rsms_form_alter(&$form, &$form_state, $form_id) {
+  if ($form_id == 'sms_devel_receive_form') {
+    drupal_add_js("document.getElementById('edit-message').focus();", array('type'=>'inline', 'scope'=>'footer'));  
+  }
+}
+
+/**
+ * implements hook_menu
+ * UNUSED
+ */
+function rsms_menu() {
+  $items['admin/accounting/sms'] = array(
+    'title' => 'SMS transactions',
+    'description' => 'Define the SMS syntax for recording exchanges',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('rsms_settings'),
+    'access arguments' => array('configure currencies'),
+    'weight' => 5,
+  );
+  return $items;
+}
+/*
+ * implements hook_permissions
+ */
+function rsms_permissions() {
+  return array(
+    'Transact via SMS' => array(
+      'title' => t('Transact via SMS'),
+      'description' => t("Transfer funds and get account information through the SMS Interface"),
+    )
+  );
+}
+
+/*
+ * implements mcapi_info_types
+ */
+function rsms_mcapi_info_types() {
+  return array('smsIn', 'smsOut', 'smsOther');
+}
+
+// delete this?
+function rsms_settings(){
+  $form['responses'] = array(
+    '#title' => t('SMS Settings'),
+    '#description' => t('You cannot change the SMS syntax here.'),
+    '#type' => 'fieldset',
+    '#weight' => -2
+  );
+  return system_settings_form($form);
+}
+
+/*
+ * SMS Incoming implements hook sms_incoming
+ *
+ * @param $op
+ *   'pre process', 'process', 'post process'
+ *
+ * @param string $number
+ *   the calling phone number
+ *
+ * @param string $message
+ *   the incoming message
+ */
+function rsms_sms_incoming($op, $number, $message) {
+  switch ($op) {
+    case 'pre process':
+      break;
+    case 'process':
+//      echo 'process'; rsms_send($number, 'sentmsg'); break;
+//	  $number = '4111111111'; // test unregistered phone number
+      rsms_log('in', $number, $message);
+      rsms_send($number, rsms_handle_call($number, $message));
+      break;
+    case 'post process':
+      break;
+  }
+}
+
+function rsms_send($number, $message) {
+  sms_send($number, $message);
+  rsms_log('out', $number, $message);
+}
+
+// Log (dirt simple for the moment)
+// This makes it easy for tests to see what was done
+function rsms_log($type='', $number='', $message='') {
+  $log_filename = 'rsms.log';
+  $log = file_exists($log_filename) ? unserialize(file_get_contents($log_filename)) : '';
+  if (!$type) return end($log);
+  $log[] = compact('type', 'number', 'message');
+  file_put_contents($log_filename, serialize($log));
+}  
+
+/*
+ * Handle Call
+ *
+ * Handle the incoming SMS message appropriately,
+ * including ALWAYS return a reply, to send to the caller.
+ *
+ * @param string $number
+ *   the calling phone number
+ *
+ * @param string $message
+ *   the incoming message
+ *
+ * @return string
+ *   what to reply to the caller
+ */
+function rsms_handle_call($number, $message) {
+  try {
+    $caller = rsms_validate_caller($number);
+    return rsms_parse($caller, $message);
+  }
+  catch (Exception $e) {
+    return $e->getMessage(); // cannot return $e->message directly (protected)
+  }
+}
+/*
+ * Validate Caller
+ *
+ * Look up the calling number in the database to see who's calling.
+ *
+ * @param string $number 
+ *   the calling phone number
+ *
+ * @return integer
+ *   the caller's record id
+ *
+ * @throws Exception
+ *   message is the error message to send the caller
+ */
+function rsms_validate_caller($number) {
+//throw new Exception('test');
+  $caller = sms_user_get_uid($number);
+  if (!$caller) { 
+    rcredits_create_user($number);
+  	throw new Exception(rsms_t("what’s your name?"));
+  }
+  if (!user_access('Transact via SMS', user_load($caller))) {
+    // send the user an email here?
+//    throw new Exception(''); // user does not have permission to use the rCredits SMS interface (due to misbehavior?), so don't waste a call?
+    throw new Exception(rsms_t('no SMS permission')); // be polite 
+  }
+  return $caller;
+}
+
+/*
+ * Parse (and do) the SMS
+ *
+ * Decide what syntax best matches the caller's message
+ * then call the command handler to handle it.
+ *
+ * @param integer $caller
+ *   the caller's record id
+ *
+ * @param string $message
+ *   the incoming message
+ *
+ * @return string
+ *   what to reply to the caller
+ *
+ * @todo
+ *   "who" identifiers chosen in the "name" command cannot be me, r, u, us, or usd.
+ */
+function rsms_parse($caller, $message) {
+  $message = trim($message);
+  $commands = array( // these get abbreviated first
+    'get' => array('get %rusd %amount', 'get %amount %rusd'), // best before pay, so that "g r 10" is interpreted as "get r" not "give who"
+    'payment' => array('(?:(?:payment|give|send) )?%amount to %who(?: for %what)?', '(?:to|payment|give|send) %who %amount(?: for %what)?'),
+    'charge' => array('(?:charge|invoice|take|chg)? %amount from %who(?: for %what)?', '(?:from|charge|invoice|chg) %who %amount(?: for %what)?'),
+    'undo' => array('undo', 'undo %tofrom', 'undo %who', 'undo %tofrom %who'),
+    'information' => array('information', 'balance'),
+    'help' => 'help(?: %command)?',
+  );
+  $GLOBALS['SMS commands'] = array_keys($commands);
+  $helper_words = explode(',', 'to,from,usd,balance,name,lost,be,give,send,invoice,take'); 
+
+  $tokens = array(
+    '%tofrom' => '(to|from)',
+    '%amount' => '([0-9]+(?:.[0-9][0-9])?)',
+    '%who' => '([^ ]+)',
+    '%what' =>  '(.+)',
+	'%rusd' => '(r|usd)',
+    '%currency' => '([a-z]+)',
+  );
+  $tokens['%command'] = '(' . join('|', $GLOBALS['SMS commands']) . ')';
+  $abbreviate = array_merge($GLOBALS['SMS commands'], $helper_words);
+  $intent = 'syntax'; // the caller's intended major command (for help, in case they get the syntax wrong)
+
+  foreach ($GLOBALS['SMS commands'] as $command) {
+    $syntaxes = is_array($commands[$command]) ? $commands[$command] : array($commands[$command]);
+    foreach($syntaxes as $syntax) {
+	  $pattern = str_replace(' ', ' +', trim($syntax)); // extra spaces are fine
+	  $pattern = strtr($pattern, $tokens);
+	  foreach ($abbreviate as $word) {
+	    $pattern = str_replace($word, rsms_abbreviator($word), $pattern);
+	  }
+	  
+	  // isolate major command, if possible, potentially for more accurate help
+	  $intent = rsms_intent($intent, $command, $pattern, $message);
+
+    $pattern = "/^$pattern$/i";
+    if (preg_match($pattern, $message, $matches)) {
+      array_shift($matches);
+      preg_match_all("/%[^ \(\)%]*/", $syntax, $keys);
+      $keys = str_replace('%', '', $keys[0]);
+      if (count($keys)) {
+        if (count($matches) < count($keys)) $matches[] = ''; // make the optional final argument null, if omitted
+            $values = array_combine($keys, $matches);
+        }
+        $values['message'] = $message; //for the log
+        return rsms_do($caller, $command, $values);
+      }
+    }
+  }
+
+  //send help if the message is not successfully parsed
+  return rsms_do($caller, 'help', array('command' => $intent, 'error' => t('Syntax error. ')));
+}
+
+/*
+ * Do: handle the parsed command.
+ *
+ * Call a function to handle the specific command
+ * and return an appropriate reply.
+ *
+ * @param $number
+ *   the phone number of the incoming SMS message
+ *
+ * @param $command
+ *   what command the caller sent us
+ *
+ * @param $values
+ *   either an associative array of arguments, indexed by token text (amount, who, etc.)
+ *   OR '' (the default)
+ *
+ * @return
+ *   the appropriate SMS reply
+ */
+function rsms_do($caller, $command, $values = '') {
+  $function = "rsms_do_$command";
+  return $function($caller, $values);
+}
+
+/*
+ * Help: give the caller a helpful message
+ *
+ * @param $caller
+ *   the record id of the person who sent us the SMS message
+ *
+ * @param $values
+ *   either an associative array of arguments:
+ *   - command (optional) is what the caller wants help on
+ *   - error (optional) an error message to precede the normal help message
+ *   OR the command itself (defaults to '')
+ *
+ * @return
+ *   the appropriate SMS reply
+ *
+ * @todo
+ *   1. Possibly customize the message for the caller (write a function for that).
+ *      For example, using a local phone number and local businesses in the examples.
+ *   2. The $error thing is kinda ugly. Neaten up maybe. (but IIABDFI?)
+ */
+function rsms_do_help($caller, $values = '') {
+  $GLOBALS['SMS messages']['help for help'] = str_replace('@commands', join(' | ', $GLOBALS['SMS commands']), $GLOBALS['SMS messages']['help for help']);
+  
+  if (is_array($values)) {
+    extract($values);
+    if (!isset($error)) $error = '';
+    if (!isset($command)) $command = '';
+  }
+  else {
+    $command = $values;
+    $error = t('Syntax error. ');
+  }
+
+  if (!$command) $command = 'help';
+
+  foreach($GLOBALS['SMS commands'] as $try) {
+    if (substr($try, 0, strlen($command)) == $command) {
+      // we might want to customize the messages here. 
+      return $error . $GLOBALS['SMS messages']["help for $try"];
+    }
+  }
+  return $error . $GLOBALS['SMS messages']['help for help'];
+}
+
+function rsms_t($message, $substitutions) {
+  return t($GLOBALS['SMS messages'][$message], $substitutions);
+}
+  
+function rsms_do_information($caller, $values) {
+  return rsms_t('account_info', rcredits_account_information($caller));
+}
+
+function rsms_do_get($caller, $values) {
+  extract($values);
+  $args = rcredits_account_information($caller);
+  $args['@amount'] = rcredits_amount($amount);
+  if ($rusd == 'r') {
+    return rsms_t("can't cash incentives", $args);
+  }
+  if ($rusd == 'usd') {
+    return rsms_t('if you were active', $args);
+  }
+  throw new Exception('do_get r|usd error');
+}
+
+function rsms_do_undo($caller, $values) {
+  return t('The undo feature is not yet available.');
+}
+
+function rsms_do_charge($caller, $values) {
+  return rsms_do_transfer($caller, $values, TRUE);
+}
+
+function rsms_do_payment($caller, $values) {
+  return rsms_do_transfer($caller, $values, FALSE);
+}
+
+function rsms_do_transfer($caller, $values, $isfrom) {
+//echo "caller=$caller isfrom=$isfrom"; print_r($values); die('here');
+  extract($values); // amount, who, and what
+
+  $other = _sms_validate_trader($who);
+  if (!$other) {
+    return t('Unknown user: @user ', array('@user' => $who)) . rsms_do_help($caller, $isfrom ? 'charge' : 'payment');
+  }
+  if (!user_access('transact', user_load($other))) {
+    return t('@name does not have permission to trade.', array('@name' => user_load($other)->name));
+  }
+
+  $payer = $isfrom ? $other : $caller;
+  $payee = $isfrom ? $caller : $other;
+
+  $rewards = array(FALSE => .05, TRUE => .10);
+  $reward_me = $amount * $rewards[$isfrom];
+  $reward_other = $amount * $rewards[!$isfrom]; // not yet used
+
+  try {
+    rcredits_transact($reward_me, rCredits_COMMUNITY_UID, $caller, $what); // credit sender with reward
+  }
+  catch (Exception $e) {
+    return $e->getMessage();
+  }
+  
+  $transaction_totals = transaction_totals($caller);
+  $args = array(
+    '@inaword' => $isfrom ? t('STRAW charge') : t('STRAW payment'), // RECEIVED and PAID, when not straw
+    '@amount' => rcredits_amount($amount),
+    '@tofrom' => $isfrom ? t('from') : t('to'),
+    '@reward_type' => $isfrom ? t('bonus') : t('rebate'),
+    '@reward_amount' => rcredits_amount($reward_me),
+    '@balance' => rcredits_amount($transaction_totals->balance),
+    '@moreless' => $isfrom ? t('more') : t('less'),
+    '@transaction_id' => 'ABC123',
+    '@other' => $other,
+  );
+  return rsms_t('transaction done', $args);
+}
+
+/* old fragment from help demo
+  $result = db_query("SELECT u.uid, u.name, u.mail FROM {sms_user} sms LEFT JOIN {users} u ON sms.uid = u.uid");
+  while ($account = db_fetch_array($result)) {
+    $items[] = implode(', ', $account);
+  }
+  $example = implode(',', $items);
+*/
+
+function rsms_abbreviator($word) {
+  $result = substr($word, 0, 1);
+  for ($i = 2; $i <= strlen($word); $i++) {
+    $result .= '|' . substr($word, 0, $i);
+  }
+  return "(?:$result)";
+}
+
+function rsms_intent($intent, $command, $pattern, $message) {
+  if ($command == 'payment' | $command == 'charge') {
+    $abbrev = rsms_abbreviator($command == 'charge' ? 'from' : 'to');
+    return preg_match("/ $abbrev /i", $message) ? $command : $intent;
+  }
+  $short_pattern = str_replace(')(', ')', '/^' . substr($pattern, 0, strpos("$pattern ", ' ')) . ' /i'); // )( happens in help command pattern
+  return preg_match($short_pattern, $message, $matches) ? $command : $intent;
+}
+
+/*
+ * this is for the demo only, should be in a separate module, really
+ */
+function rsms_form_sms_browser_gateway_incoming_form_alter(&$form, $form_state) {
+  $form['number']['#access'] = user_access('edit all exchanges');
+}

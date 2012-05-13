@@ -1,0 +1,123 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * rCredits
+ *
+ * A module for the rCredits financial system.
+ *
+ * This module implements the rCredits extensions to Community Accounting (mcapi).
+ */
+
+/**
+ * Implements hook_help().
+ */
+function rcredits_help($path, $arg) {
+  if ($path == 'admin/help#rcredits') {
+    return t('If you have trouble using RCredits software during the development phase, call William Spademan for help: wspademan@RCredits.org.');
+  }
+}
+
+/*
+ * Account Information
+ *
+ * @param int $account
+ *   uid of the account to return information for
+ *
+ * @return
+ *   associative array of account information (see keys in the return line below)
+ *   including the overall demand for rCredits
+ *   array keys all begin with '@', to make use with t() easy
+ */
+function rcredits_account_information($account) {
+  $totals = transaction_totals($account);
+  return array(
+    '@balance' => rsms_amount($totals->balance),
+    '@demand' => rsms_amount(25000),
+  );
+}
+
+function rcredits_create_user($number) {
+  $edit = array(
+    'name' => 'New User',
+    'pass' => 'password',
+    'mail' => "$number@example.com", // use a temporary email address unique to this phone number
+    'status' => 1,
+    'language' => 'en',
+    'init' => "$number@example.com",
+    'roles' => array(2 => 'authenticated user'),
+  );
+
+  $user = user_save(NULL, $edit);
+  // we need some extra fields set here, especially mobile number
+  return $user->uid;
+}
+
+/*
+ * check that the parsed trader is actually a user who is permitted to trade
+ * this is similar to a function in user_chooser (???)
+ */
+function _sms_validate_trader($val) {
+  $uid = db_select('users', 'u')
+  ->fields('u', array('uid'))
+  ->condition('uid', 0, '!=')
+  ->condition(db_or()
+    ->condition('uid', $val) // this should include just member id (not uid), phone (normalized), website (without www or http), and email
+    ->condition('name', $val)
+    ->condition('mail', $val)
+  )
+  ->execute()->fetchField();
+  if ($uid) return $uid;
+}
+
+/*
+ * Transact
+ *
+ * Record a transaction between two participants
+ *
+ * @todo
+ *   add needed fields to the transaction table, including whatfor
+ */
+function rcredits_transact($amount, $payer, $payee, $whatfor = '', $creator = '', $straw = FALSE) {
+  $state = $straw ? TRANSACTION_STATE_STRAW : TRANSACTION_STATE_FINISHED;
+
+  $transaction = new_transaction();
+  unset($transaction->xid);
+  $transaction->payer = $payer;
+  $transaction->payee = $payee;
+  $transaction->worth['und'][0]['currcode'] = key(currencies_load());
+//  $transaction->worth['und'][0]['currcode'] = isset($values['currency']) ? $values['currency'] : key(currencies_load());
+  $transaction->worth['und'][0]['quantity'] = $amount;
+  $transaction->description['und'][0]['value'] = $whatfor;
+  $transaction->state = $state;
+  $transaction->type = $creator == $payer ? 'smsOut' : ($creator == $payee ? 'smsIn' : 'smsOther');
+  $transaction->creator = $creator;
+  try {
+    $transaction = transaction_validate($transaction);
+    if($transaction->state != TRANSACTION_STATE_VALIDATED) {print_r($transaction); die();}
+  }
+  catch (Exception $e) {
+    throw $e;
+  }
+  $transaction->state = $state; // ws
+  return transaction_save($transaction);
+}
+
+/*
+ * Amount
+ *
+ * Format the given amount as currency.
+ *
+ * @param float $amount
+ *
+ * @param boolean $simplify
+ *   Omit the cents for whole dollar amounts
+ *
+ * @return
+ *   the formatted amount
+ */
+function rcredits_amount($amount, $simplify = TRUE) {
+  $amount = '$' . number_format($amount, 2);
+  return $simplify ? str_replace('.00', '', $amount) : $amount;
+}

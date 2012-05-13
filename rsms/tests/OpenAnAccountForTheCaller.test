@@ -1,0 +1,87 @@
+<?php
+//
+// Feature: Open an account for the caller
+//   AS a newbie
+//   I WANT to try rCredits
+//   SO I can decide whether I want to participate.
+//   
+
+require __DIR__ . '/../gherkin/test_defs.php';
+include __DIR__ . '/../rsms.steps';
+
+class rsmsOpenAnAccountForTheCaller extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
+  var $current_test;
+  const FEATURE_NAME = 'rSMS Test - OpenAnAccountForTheCaller';
+  const DESCRIPTION = 'Open an account for the caller';
+  const MODULE = 'rsms';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkin_guts($statement, $type), $statement, $this->current_test);
+  }
+  
+  public static function getInfo() {
+    return array('name' => self::FEATURE_NAME, 'description' => self::DESCRIPTION, 'group' => ucwords(self::MODULE));
+  }
+
+  public function setUp() { // especially, enable any modules required for the tests
+    parent::setUp(self::MODULE);
+  }
+
+  // Scenario: A total newbie calls
+  public function testATotalNewbieCalls() {
+    scene_setup($this, __FUNCTION__);
+    Given('phone %number1 has no account');
+    When_('phone %number1 says %whatever');
+    Then_('phone %number1 has an account');
+    And__('we say to phone %number1 "What\'s your name?"');
+  }
+
+  // Scenario: A nameless newbie calls
+  public function atestANamelessNewbieCalls() {
+    scene_setup($this, __FUNCTION__);
+    Given('phone %number1 has an account');
+    And__('phone %number1 has no name');
+    And__('we did not just ask phone %number1 for a full name');
+    When_('phone %number1 says %random');
+    Then_('we say to phone %number1 "What\'s your name?"');
+  }
+
+  // Scenario: The newbie gives us his or her name
+  public function atestTheNewbieGivesUsHisOrHerName() {
+    scene_setup($this, __FUNCTION__);
+    Given('we just asked phone %number1 for a full name');
+    When_('phone %number1 says "Jo Smith"');
+    Then_('phone %number1 name is "Jo Smith"');
+    And__('we say to phone %number1 "What\'s your email?"');
+  }
+
+  // Scenario: The newbie gives us an unlikely name
+  public function atestTheNewbieGivesUsAnUnlikelyName() {
+    scene_setup($this, __FUNCTION__);
+    Given('we just asked phone %number1 for a full name');
+    When_('phone %number1 says %random');
+    Then_('we say to phone %number1 "What\'s your name really?"');
+  }
+
+  // Scenario: The newbie gives us his or her email address
+  public function atestTheNewbieGivesUsHisOrHerEmailAddress() {
+    scene_setup($this, __FUNCTION__);
+    Given('we just asked phone %number1 for an email address');
+    And__('community account has $100');
+    When_('phone %number1 says "zot@email.com"');
+    Then_('phone %number1 email is "zot@email.com"');
+    And__('phone %number1 has $20');
+    And__('community account has $80');
+    And__('we say to phone %number1 "Your account is ready"');
+  }
+
+  // Scenario: The newbie gives a bad email address
+  public function atestTheNewbieGivesABadEmailAddress() {
+    scene_setup($this, __FUNCTION__);
+    Given('we just asked phone %number1 for an email address');
+    When_('phone %number1 says %random');
+    Then_('we say to phone %number1 "What\'s you email really?"');
+  }
+
+}
