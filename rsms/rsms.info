@@ -10,24 +10,3 @@ dependencies[] = rcredits
 files[] = rsms.module
 files[] = rsmsunit.test
 files[] = tests/OpenAnAccountForTheCaller.test
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

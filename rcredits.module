@@ -33,8 +33,8 @@ function rcredits_help($path, $arg) {
 function rcredits_account_information($account) {
   $totals = transaction_totals($account);
   return array(
-    '@balance' => rsms_amount($totals->balance),
-    '@demand' => rsms_amount(25000),
+    '@balance' => rcredits_amount($totals->balance),
+    '@demand' => rcredits_amount(25000),
   );
 }
 
@@ -121,3 +121,24 @@ function rcredits_amount($amount, $simplify = TRUE) {
   $amount = '$' . number_format($amount, 2);
   return $simplify ? str_replace('.00', '', $amount) : $amount;
 }
+
+/* 
+ * Log (dirt simple for the moment)
+ *
+ * Log the message and return it.
+ * This makes it easy for tests to see what was done
+ *
+ * @param string $type
+ *   type of log entry. If null (the default), don't log anything
+ */  
+function rcredits_log($type='', $message='', $number='') {
+  $log_filename = 'rcredits.log';
+//    $log = file_exists($log_filename) ? file_get_contents($log_filename) : '';
+//    file_put_contents($log_filename, $log . "$type, $number, $message\n");
+  $log = file_exists($log_filename) ? unserialize(file_get_contents($log_filename)) : '';
+  if ($type) {
+    $log[] = compact('type', 'number', 'message');
+    file_put_contents($log_filename, serialize($log) . "\n");
+  }
+  return end($log);
+}  

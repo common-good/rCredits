@@ -42,9 +42,7 @@ function phoneHasAnAccount($number) {
  *
  * in: testATotalNewbieCalls
  *     testANamelessNewbieCalls
- *     testTheNewbieGivesUsHisOrHerName
  *     testTheNewbieGivesUsAnUnlikelyName
- *     testTheNewbieGivesUsHisOrHerEmailAddress
  *     testTheNewbieGivesABadEmailAddress
  */
 function weSayToPhone($arg1, $arg2) {
@@ -94,6 +92,17 @@ function phoneNameIs($arg1, $arg2) {
 }
 
 /*
+ * we say to phone (ARG) (ARG) with subs: (ARG)
+ *
+ * in: testTheNewbieGivesUsHisOrHerName
+ *     testTheNewbieGivesUsHisOrHerEmailAddress
+ */
+function weSayToPhoneWithSubs($arg1, $arg2, $arg3) {
+  global $test_only;
+  todo;
+}
+
+/*
  * we just asked phone (ARG) for an email address
  *
  * in: testTheNewbieGivesUsHisOrHerEmailAddress
@@ -105,11 +114,11 @@ function weJustAskedPhoneForAnEmailAddress($arg1) {
 }
 
 /*
- * community account has $(ARG)
+ * community has r$(ARG)
  *
  * in: testTheNewbieGivesUsHisOrHerEmailAddress
  */
-function communityAccountHas($arg1) {
+function communityHasR($arg1) {
   global $test_only;
   todo;
 }
@@ -125,11 +134,11 @@ function phoneEmailIs($arg1, $arg2) {
 }
 
 /*
- * phone (ARG) has $(ARG)
+ * phone (ARG) has r$(ARG)
  *
  * in: testTheNewbieGivesUsHisOrHerEmailAddress
  */
-function phoneHas($arg1, $arg2) {
+function phoneHasR($arg1, $arg2) {
   global $test_only;
   todo;
 }

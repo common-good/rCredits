@@ -6,13 +6,13 @@
 //   SO I can decide whether I want to participate.
 //   
 
-require __DIR__ . '/../gherkin/test_defs.php';
-include __DIR__ . '/../rsms.steps';
+require dirname(__FILE__) . '/../gherkin/test_defs.php';
+include dirname(__FILE__) . '/../rsms.steps';
 
 class rsmsOpenAnAccountForTheCaller extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
   var $current_test;
-  const FEATURE_NAME = 'rSMS Test - OpenAnAccountForTheCaller';
+  const FEATURE_NAME = 'rsms Test - OpenAnAccountForTheCaller';
   const DESCRIPTION = 'Open an account for the caller';
   const MODULE = 'rsms';
 
@@ -53,7 +53,9 @@ class rsmsOpenAnAccountForTheCaller extends DrupalWebTestCase {
     Given('we just asked phone %number1 for a full name');
     When_('phone %number1 says "Jo Smith"');
     Then_('phone %number1 name is "Jo Smith"');
-    And__('we say to phone %number1 "What\'s your email?"');
+    And__('we say to phone %number1 "What\'s your email?" with subs: "DATA'
+    . '\\| @name     |'
+    . '\\| Jo Smith |"');
   }
 
   // Scenario: The newbie gives us an unlikely name
@@ -68,12 +70,14 @@ class rsmsOpenAnAccountForTheCaller extends DrupalWebTestCase {
   public function atestTheNewbieGivesUsHisOrHerEmailAddress() {
     scene_setup($this, __FUNCTION__);
     Given('we just asked phone %number1 for an email address');
-    And__('community account has $100');
+    And__('community has r$100');
     When_('phone %number1 says "zot@email.com"');
     Then_('phone %number1 email is "zot@email.com"');
-    And__('phone %number1 has $20');
-    And__('community account has $80');
-    And__('we say to phone %number1 "Your account is ready"');
+    And__('phone %number1 has r$20');
+    And__('community has r$80');
+    And__('we say to phone %number1 "Your account is ready" with subs: "DATA'
+    . '\\| @balance |'
+    . '\\| $20 |"');
   }
 
   // Scenario: The newbie gives a bad email address

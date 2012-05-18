@@ -1,5 +1,6 @@
 <?php
 
+define('GHERKIN_EOL', '\\\\'); // record delimiter in multiline arguments
 global $scene_test; // current scenario test object
 global $test_only; // step functions can create the asserted reality, except when called as "Then" (or "And")
 
@@ -91,7 +92,7 @@ function multiline_check($args) {
   for($i = 0; $i < count($args); $i++) $args[$i] = squeeze($args[$i], '"');
   if (substr($last = end($args), 0, 4) != 'DATA') return $args;
 
-  $data = explode(PHP_EOL, preg_replace('/ *\| */m', '|', $last));
+  $data = explode(GHERKIN_EOL, preg_replace('/ *\| */m', '|', $last));
   array_shift($data);
   $keys = explode('|', squeeze(array_shift($data), '|'));
   $result = array();
@@ -109,4 +110,17 @@ function squeeze($string, $char) {
   $first = substr($string, 0, 1);
   $last = substr($string, -1);
   return ($first == $char and $last == $char)? substr($string, 1, strlen($string) - 2) : $string;
+}
+
+/*
+ * Make a string's first character lowercase
+ *
+ * @param string $str
+ * @return string the resulting string.
+ */
+if(!function_exists('lcfirst')) {
+  function lcfirst($str) {
+    $str[0] = strtolower($str[0]);
+    return (string)$str;
+  }
 }

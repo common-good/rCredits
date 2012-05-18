@@ -21,7 +21,7 @@ Scenario: The newbie gives us his or her name
   Given we just asked phone %number1 for a full name
   When phone %number1 says "Jo Smith"
   Then phone %number1 name is "Jo Smith"
-  And we say to phone %number1 "What's your email?"
+  And we say to phone %number1 "What's your email?" with subs:
   | @name     |
   | Jo Smith |
   # Welcome to rCredits, Jo Smith. Last question: What is your email address?
@@ -34,12 +34,12 @@ Scenario: The newbie gives us an unlikely name
 
 Scenario: The newbie gives us his or her email address
   Given we just asked phone %number1 for an email address
-  And community account has $100
+  And community has r$100
   When phone %number1 says "zot@email.com"
   Then phone %number1 email is "zot@email.com"
-  And phone %number1 has $20
-  And community account has $80
-  And we say to phone %number1 "Your account is ready"
+  And phone %number1 has r$20
+  And community has r$80
+  And we say to phone %number1 "Your account is ready" with subs:
   | @balance |
   | $20 |
   # Thank you! Your new balance is $20.

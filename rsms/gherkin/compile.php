@@ -1,14 +1,13 @@
 <?php
 $SHOWERRORS = true;
-error_reporting($SHOWERRORS ? E_ALL : 0);
-ini_set('display_errors', $SHOWERRORS);
-ini_set('display_startup_errors', $SHOWERRORS);
+error_reporting($SHOWERRORS ? E_ALL : 0); ini_set('display_errors', $SHOWERRORS); ini_set('display_startup_errors', $SHOWERRORS);
 
 // Gherkin compiler
 //
 // Create a skeleton test for each feature in a module
 
 $path = '..'; // relative path from compiler to module directory
+$gEOL = '\\\\'; // end of line marker
 
 $flnms = glob("$path/*.module");
 if (empty($flnms)) error('No features found. The gherkin directory should have the same parent as the features directory. The parent should contain the module file. See the file "howto.txt".');
@@ -18,7 +17,7 @@ $test_dir = "$path/tests";
 if (!file_exists($test_dir)) mkdir($test_dir);
 
 $info_filename = "$path/$MODULE.info";
-$info = file_get_contents($info_filename) . "\n";
+$info = file_get_contents($info_filename);
 
 $steps_filename = "$path/$MODULE.steps";
 $steps_text = file_exists($steps_filename) ? file_get_contents($steps_filename) : "<?php\n";
@@ -70,7 +69,7 @@ foreach ($steps as $function_name => $step) {
 }
 
 file_put_contents($steps_filename, $steps_text);
-file_put_contents($info_filename, str_replace("\n\nfiles[]", "\nfiles[]", $info));
+file_put_contents($info_filename, $info);
 
 echo "<br>Updated $steps_filename<br>Done. " . date('g:ia');
 
@@ -128,18 +127,19 @@ function do_feature($feature_filename, &$steps) {
         . "$lead  scene_setup(\$this, __FUNCTION__);\n";
     
     } elseif (in_array($word1, array('Given', 'When_', 'Then_', 'And__'))) {
-      if ($multi = multiline($lines)) $tail .= ' "DATA';
-      $tail_escaped = str_replace("'", "\\'", $tail);
-      $TESTS .= "$lead  $word1('$tail_escaped'" . ($multi ? "\n" : ");\n");
-      if ($multi) {
-        $state = 'data';
-        $word1 = ''; // don't change state
-      };
-      $english = preg_replace("/$arg_patterns/i", '(ARG)', $tail);
-      $step_function = lcfirst(preg_replace("/$arg_patterns|[^A-Z]/i", '', ucwords($tail)));
+      $multiline_arg = multiline_arg($lines);
+      $tail_escaped = str_replace("'", "\\'", $tail) . $multiline_arg;
+      $tail .= str_replace("\\'", "'", $multiline_arg);
+      $TESTS .= "$lead  $word1('$tail_escaped');\n";
+
+      $english = preg_replace("/$arg_patterns/msi", '(ARG)', $tail);
+      $step_function = lcfirst(preg_replace("/$arg_patterns|[^A-Z]/msi", '', ucwords($tail)));
+
       if(isset($steps[$step_function])) {
-        if($steps[$step_function]['english'] != $english) {
-          error("<br>WARNING: You tried to redefine step function $step_function. Delete the old one first.");
+        $old_english = $steps[$step_function]['english'];
+        if($old_english != $english) {
+          echo "tail=$tail<br> func=$step_function!<br>";
+          error("<br>WARNING: You tried to redefine step function $step_function. Delete the old one first.<br>\nOld: $old_english<br>\nNew: $english<br>\n");
         }
         if ($steps[$step_function]['original'] != 'new') $steps[$step_function]['original'] = 'changed';
         if (!in_array($test_function, $steps[$step_function]['callers'])) {
@@ -148,17 +148,10 @@ function do_feature($feature_filename, &$steps) {
       } else {
         $original = 'new';
         $callers = array($test_function);
-        preg_match_all("/$arg_patterns/i", $tail, $matches);
+        preg_match_all("/$arg_patterns/msi", $tail, $matches);
         $args = $matches[1];
         $arg_count = count($args);
         $steps[$step_function] = compact(explode(',', 'original,english,callers,arg_count'));
-      }
-    } elseif ($state == 'data') {
-      $line = str_replace("'", "\\'", $line);
-      $TESTS .= "    . PHP_EOL . '$line'\n";
-      if (!multiline($lines)) {
-        $TESTS .= "    . '\"');\n";
-        $state == '';
       }
     } else {
       if ($state == 'Feature') {
@@ -261,8 +254,16 @@ function replacement($callers, $function_name) {
  * 
  * @param array $lines: the remaining lines of the feature file
  *
- * @return TRUE if a multiline argument follows (else FALSE)
+ * @return
+ *   the additional lines, if any, to add to the first
+ *   $lines (implicit) the remaing lines of the feature file
  */
-function multiline($lines) {
-  return substr($line = trim(array_shift($lines)), 0, 1) == '|';
+function multiline_arg(&$lines) {
+  global $gEOL;
+  $result = '';
+  while (substr(trim($lines[0]), 0, 1) == '|') {
+    $line = str_replace("'", "\\'", trim(array_shift($lines)));
+    $result .= "'\n    . '$gEOL$line";
+  }
+  return $result ? " \"DATA$result\"" : '';
 }
