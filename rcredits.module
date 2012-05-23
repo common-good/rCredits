@@ -39,19 +39,8 @@ function rcredits_account_information($account) {
 }
 
 function rcredits_create_user($number) {
-  $edit = array(
-    'name' => 'New User',
-    'pass' => 'password',
-    'mail' => "$number@example.com", // use a temporary email address unique to this phone number
-    'status' => 1,
-    'language' => 'en',
-    'init' => "$number@example.com",
-    'roles' => array(2 => 'authenticated user'),
-  );
-
-  $user = user_save(NULL, $edit);
-  // we need some extra fields set here, especially mobile number
-  return $user->uid;
+  $account = sms_user_register_new_user($number, '(message - unused)', array());
+  return $account->uid;
 }
 
 /*
@@ -130,6 +119,8 @@ function rcredits_amount($amount, $simplify = TRUE) {
  *
  * @param string $type
  *   type of log entry. If null (the default), don't log anything
+ *
+ * @return the log array
  */  
 function rcredits_log($type='', $message='', $number='') {
   $log_filename = 'rcredits.log';
@@ -137,8 +128,8 @@ function rcredits_log($type='', $message='', $number='') {
 //    file_put_contents($log_filename, $log . "$type, $number, $message\n");
   $log = file_exists($log_filename) ? unserialize(file_get_contents($log_filename)) : '';
   if ($type) {
-    $log[] = compact('type', 'number', 'message');
+    $log[] = compact('type', 'message', 'number');
     file_put_contents($log_filename, serialize($log) . "\n");
   }
-  return end($log);
+  return $log;
 }  

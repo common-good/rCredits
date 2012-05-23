@@ -19,9 +19,11 @@ function phoneHasNoAccount($number) {
  *     testTheNewbieGivesUsHisOrHerEmailAddress
  *     testTheNewbieGivesABadEmailAddress
  */
-function phoneSays($arg1, $arg2) {
+function phoneSays($number, $message) {
   global $test_only;
-  todo;
+  if ($test_only) error;
+  sms_incoming($number, $message, array('no logout' => TRUE));
+  return TRUE;
 }
 
 /*
@@ -45,9 +47,24 @@ function phoneHasAnAccount($number) {
  *     testTheNewbieGivesUsAnUnlikelyName
  *     testTheNewbieGivesABadEmailAddress
  */
-function weSayToPhone($arg1, $arg2) {
+function weSayToPhone($number, $message) {
+  return weSayToPhoneWithSubs($number, $message, array());
+}
+
+/*
+ * we say to phone (ARG) (ARG) with subs: (ARG)
+ *
+ * in: testTheNewbieGivesUsHisOrHerName
+ *     testTheNewbieGivesUsHisOrHerEmailAddress
+ */
+function weSayToPhoneWithSubs($number, $message, $subs) {
   global $test_only;
-  todo;
+  if (!$test_only) error;
+  $info = rcredits_log();
+  $type = 'SMSout';
+  $message = rsms_t($message, $subs);
+rcredits_log('debug',$message, serialize(compact('type', 'message', 'number')));
+  return in_array(compact('type', 'message', 'number'), $info);
 }
 
 /*
@@ -87,17 +104,6 @@ function weJustAskedPhoneForAFullName($arg1) {
  * in: testTheNewbieGivesUsHisOrHerName
  */
 function phoneNameIs($arg1, $arg2) {
-  global $test_only;
-  todo;
-}
-
-/*
- * we say to phone (ARG) (ARG) with subs: (ARG)
- *
- * in: testTheNewbieGivesUsHisOrHerName
- *     testTheNewbieGivesUsHisOrHerEmailAddress
- */
-function weSayToPhoneWithSubs($arg1, $arg2, $arg3) {
   global $test_only;
   todo;
 }

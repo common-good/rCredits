@@ -13,6 +13,35 @@ define('RCREDITS_COMMUNITY_UID', 4);
 
 require dirname(__FILE__) . '/SMScall.inc';
 
+$GLOBALS['SMS commands'] = ''; // defined in $this->parse()
+$GLOBALS['SMS messages'] = array(
+  // reports
+  "account info" => t("Your provisional balance is @balance (accurate only if your transactions as an Active Participant are like your INFO transactions). The current demand for rCredits is @demand."),
+  "your account is ready" => t("Thank you! Your new provisional balance is @balance."),
+  "if you were active" => t("If you were an Active Participant in the rCredits system, your request would transfer @amount directly to your bank account. Alas, you are not yet an Active Participant."),
+  "transaction done" => t("@inaword: @amount @tofrom user#@other (@reward_type: @reward_amount). Your new provisional balance is @balance (If this had been a real transaction, your balance would be @amount @moreless). Transaction ID #@transaction_id"),
+
+  // questions
+  "what's your name?" => t("To set up your rCredits account, we need your full name and email address. What's your name?"),
+  "what's your email?" => t("Welcome to rCredits, @name. Last question: What is your email address?"),
+  "what's your email really?" => t("Please type carefully. What is your email address?"),
+  
+  // help messages
+  'help for payment' => t("Payment examples: 12.34 to 413.772.0000 | 12.34 to wgabcd for cash | 12.34 to jdough@example.com for wine and cheese (Include a description ONLY if it's \"cash\" or if you are providing real goods and services.)"),
+  'help for charge' => t("Charge examples: 12.34 from 413.772.0000 | 12.34 from wgabcd for cash | 12.34 from jdough@example.com for wine and cheese (Include a description ONLY if it's \"cash\" or if real goods and services are provided.)"),
+  'help for undo' => t("Examples: undo | undo to | undo 413.772.0000 | undo from wgabcd"),
+  'help for get' => t("Examples: get r 12.34 | get usd 12.34"),
+  'help for information' => t("Example: information (tells you your balance and the current demand for rCredits)"),
+  'help for help' => t('Examples: @commands. For example, type "help undo".'),
+  
+  // error messages
+  'syntax' => t('Syntax error.'),
+  'no SMS permission' => t('Alas, you do not have permission to use the rCredits SMS interface at this time.'),
+  "can't cash incentives" => t("Once you are an active participant, you can spend your incentive rewards (@balance to date), but you can't cash them out. Your balance available to exchange for US Dollars is $0."),
+  'get r/usd' => t('You can get only "r" or "usd" (rCredits or US Dollars).'), // not yet used (maybe used when there is a third option)
+  'not a feature' => t('"@param" is not a feature.'),
+);
+
 /*
  * rSMS text
  *

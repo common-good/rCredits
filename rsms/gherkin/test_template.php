@@ -20,6 +20,8 @@ class %MODULE%FEATURE_NAME extends DrupalWebTestCase {
 
   public function setUp() { // especially, enable any modules required for the tests
     parent::setUp(self::MODULE);
+    $setup_filename = dirname(__FILE__) . '/../' . self::MODULE . '_setup.inc';
+    if (file_exists($setup_filename)) include $setup_filename;
   }
 %TESTS
 }

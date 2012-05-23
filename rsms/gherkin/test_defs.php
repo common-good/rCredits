@@ -71,8 +71,8 @@ function random_string($len = 0, $type = '?'){
  */
 function usual_subs() {
   return array(
-    '%number1' => random_string(0, '9'),
-    '%number2' => random_string(0, '9'),
+    '%number1' => random_string(32, '9'),
+    '%number2' => random_string(32, '9'),
     '%whatever' => random_string(),
     '%random' => random_string(),
   );
