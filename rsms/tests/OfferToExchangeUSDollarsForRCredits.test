@@ -1,0 +1,47 @@
+<?php
+//
+// Feature: Offer to exchange US Dollars for rCredits
+//   AS a member
+//   I WANT more rCredits than I have
+//   SO I can spend more rCredits or store them
+//   
+
+require dirname(__FILE__) . '/../gherkin/test_defs.php';
+include dirname(__FILE__) . '/../rsms.steps';
+
+class rsmsOfferToExchangeUSDollarsForRCredits extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
+  var $current_test;
+  const FEATURE_NAME = 'rsms Test - OfferToExchangeUSDollarsForRCredits';
+  const DESCRIPTION = 'Offer to exchange US Dollars for rCredits';
+  const MODULE = 'rsms';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkin_guts($statement, $type), $statement, $this->current_test);
+  }
+  
+  public static function getInfo() {
+    return array('name' => self::FEATURE_NAME, 'description' => self::DESCRIPTION, 'group' => ucwords(self::MODULE));
+  }
+
+  public function setUp() { // especially, enable any modules required for the tests
+    parent::setUp(self::MODULE);
+    $setup_filename = dirname(__FILE__) . '/../' . self::MODULE . '_setup.inc';
+    if (file_exists($setup_filename)) include $setup_filename;
+  }
+
+  // Scenario: Make or update an offer
+  public function testMakeOrUpdateAnOffer() {
+    scene_setup($this, __FUNCTION__);
+    Given('phone %number1 is a player');
+    And__('phone %number1 demand for rCredits is $100');
+    And__('the total demand for rCredits is $100,000');
+    When_('phone %number1 says "get r 123.45"');
+    Then_('phone %number1 demand for rCredits is $123.45');
+    And__('the total demand for rCredits is $100,023.45');
+    And__('we say to phone %number1 "your demand" with subs: "DATA'
+    . '\\| @demand |'
+    . '\\| $123.45 |"');
+  }
+
+}

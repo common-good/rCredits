@@ -1,0 +1,102 @@
+<?php
+//
+// Feature: Get help
+//   AS a caller
+//   I WANT helpful information
+//   SO I can use the rCredits SMS interface effectively
+//   
+
+require dirname(__FILE__) . '/../gherkin/test_defs.php';
+include dirname(__FILE__) . '/../rsms.steps';
+
+class rsmsGetHelp extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
+  var $current_test;
+  const FEATURE_NAME = 'rsms Test - GetHelp';
+  const DESCRIPTION = 'Get help';
+  const MODULE = 'rsms';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkin_guts($statement, $type), $statement, $this->current_test);
+  }
+  
+  public static function getInfo() {
+    return array('name' => self::FEATURE_NAME, 'description' => self::DESCRIPTION, 'group' => ucwords(self::MODULE));
+  }
+
+  public function setUp() { // especially, enable any modules required for the tests
+    parent::setUp(self::MODULE);
+    $setup_filename = dirname(__FILE__) . '/../' . self::MODULE . '_setup.inc';
+    if (file_exists($setup_filename)) include $setup_filename;
+  }
+
+  // Scenario: A caller wants help with a specific command
+  public function testACallerWantsHelpWithASpecificCommand() {
+    scene_setup($this, __FUNCTION__);
+    Given('phone %number1 is a player');
+    When_('phone %number1 says "help get"');
+    Then_('we say to phone %number1 "help for get"');
+  }
+
+  // Scenario: A caller wants to know what's available
+  public function notestACallerWantsToKnowWhatsAvailable() {
+    scene_setup($this, __FUNCTION__);
+    Given('phone %number1 is a player');
+    When_('phone %number1 says "help"');
+    Then_('we say to phone %number1 "help for help"');
+  }
+
+  // Scenario: A caller types an unrecognized command
+  public function notestACallerTypesAnUnrecognizedCommand() {
+    scene_setup($this, __FUNCTION__);
+    Given('phone %number1 is a player');
+    And__('we did not just ask %number1 for confirmation');
+    When_('phone %number1 says "something %random"');
+    Then_('we say to phone %number1 "Syntax error...|help for help"');
+  }
+
+  // Scenario: Caller gives wrong nonce
+  public function notestCallerGivesWrongNonce() {
+    scene_setup($this, __FUNCTION__);
+    Given('we just asked %number1 to confirm "get usd 123.45" with nonce "mango"');
+    When_('phone %number1 says "anything but a legal command"');
+    Then_('we say to phone %number1 "wrong nonce"');
+  }
+
+  // Scenario: A caller types the wrong number of arguments
+  public function notestACallerTypesTheWrongNumberOfArguments() {
+    scene_setup($this, __FUNCTION__);
+    Given('phone %number1 is a player');
+    When_('phone %number1 says "get r 100 with too many arguments"');
+    Then_('we say to phone %number1 "Syntax error...|help for get"');
+  }
+
+  // Scenario: A caller types a wrong argument
+  public function notestACallerTypesAWrongArgument() {
+    scene_setup($this, __FUNCTION__);
+    Given('phone %number1 is a player');
+    When_('phone %number1 says "get zot"');
+    Then_('we say to phone %number1 "Syntax error...|help for get"');
+  }
+
+  // Scenario: Amount is too big
+  public function notestAmountIsTooBig() {
+    scene_setup($this, __FUNCTION__);
+   *   # 6 digits or more?
+    Given('phone %number1 is a player');
+    When_('phone %number1 says "get r 100000"');
+    Then_('we say to phone %number1 "amount too big"');
+  }
+
+  // Scenario: Account does not exist
+  public function notestAccountDoesNotExist() {
+    scene_setup($this, __FUNCTION__);
+    Given('phone %number1 is a player');
+    And__('"neabcdef" is not an account id');
+    When_('phone %number1 says "100 to neabcdef"');
+    Then_('we say to phone %number1 "not an account id|help for to" with subs: "DATA'
+    . '\\| @id      |'
+    . '\\| neabcdef |"');
+  }
+
+}

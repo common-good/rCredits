@@ -1,0 +1,149 @@
+<?php
+//
+// Feature: Undo
+//   AS a player
+//   I WANT to undo a transaction recently completed on my account
+//   SO I can easily correct a mistake
+//   
+
+require dirname(__FILE__) . '/../gherkin/test_defs.php';
+include dirname(__FILE__) . '/../rsms.steps';
+
+class rsmsUndo extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
+  var $current_test;
+  const FEATURE_NAME = 'rsms Test - Undo';
+  const DESCRIPTION = 'Undo';
+  const MODULE = 'rsms';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkin_guts($statement, $type), $statement, $this->current_test);
+  }
+  
+  public static function getInfo() {
+    return array('name' => self::FEATURE_NAME, 'description' => self::DESCRIPTION, 'group' => ucwords(self::MODULE));
+  }
+
+  public function setUp() { // especially, enable any modules required for the tests
+    parent::setUp(self::MODULE);
+    $setup_filename = dirname(__FILE__) . '/../' . self::MODULE . '_setup.inc';
+    if (file_exists($setup_filename)) include $setup_filename;
+  }
+
+  // Scenario: Undo the last transaction
+  public function testUndoTheLastTransaction() {
+    scene_setup($this, __FUNCTION__);
+    Given('players: "DATA'
+    . '\\| @name      | @accountid| @cell    | @rebate |'
+    . '\\| Abe One    | neabcdea  | %number1 | 5       |'
+    . '\\| Bea Two    | neabcdeb  | %number2 | 5       |'
+    . '\\| Corner Pub | neabcdec  | %number3 | 5       |"');
+    And__('transactions: "DATA'
+    . '\\| @date     | @type   | @amount | @from    | @to      | @for         |'
+    . '\\| %today-4m | charge  | 11.11   | neabcdeb | neabcdea | cash         |'
+    . '\\| %today-3w | charge  | 22.22   | neabcdec | neabcdea | cash         |'
+    . '\\| %today-3d | payment | 33.33   | neabcdea | neabcdeb | cash         |'
+    . '\\| %today-2d | payment | 44.44   | neabcdeb | neabcdec | cash         |'
+    . '\\| %today-1d | payment | 55.55   | neabcdea | neabcdec | whatever5    |'
+    . '\\| %today-1d | rebate  | 2.78    | community| neabcdea | rebate on #4 |'
+    . '\\| %today-1d | bonus   | 5.56    | community| neabcdec | bonus on #3  |"');
+    When_('phone %number1 says "undo"');
+    Then_('we say to phone %number1 "confirm undo" with subs: "DATA'
+    . '\\| @date     | @type   | @amount | @tofrom | @who       | @for      |'
+    . '\\| %today-1d | payment | 55.55   | to      | Corner Pub | whatever5 |"');
+  }
+
+  // Scenario: Undo the last transaction with someone specific
+  public function notestUndoTheLastTransactionWithSomeoneSpecific() {
+    scene_setup($this, __FUNCTION__);
+    Given('players: "DATA'
+    . '\\| @name      | @accountid| @cell    | @rebate |'
+    . '\\| Abe One    | neabcdea  | %number1 | 5       |'
+    . '\\| Bea Two    | neabcdeb  | %number2 | 5       |'
+    . '\\| Corner Pub | neabcdec  | %number3 | 5       |"');
+    And__('transactions: "DATA'
+    . '\\| @date     | @type   | @amount | @from    | @to      | @for         |'
+    . '\\| %today-4m | charge  | 11.11   | neabcdeb | neabcdea | cash         |'
+    . '\\| %today-3w | charge  | 22.22   | neabcdec | neabcdea | cash         |'
+    . '\\| %today-3d | payment | 33.33   | neabcdea | neabcdeb | whatever3    |'
+    . '\\| %today-3d | rebate  | 1.67    | community| neabcdea | rebate on #3 |'
+    . '\\| %today-3d | bonus   | 3.33    | community| neabcdeb | bonus on #2  |'
+    . '\\| %today-2d | payment | 44.44   | neabcdeb | neabcdec | cash         |'
+    . '\\| %today-1d | payment | 55.55   | neabcdea | neabcdec | cash         |"');
+    When_('phone %number1 says "undo neabcdeb"');
+    Then_('we say to phone %number1 "confirm undo" with subs: "DATA'
+    . '\\| @date     | @type   | @amount | @tofrom | @who    | @for      |'
+    . '\\| %today-3d | payment | 33.33   | to      | Bea Two | whatever3 |"');
+  }
+
+  // Scenario: Undo the last transfer to me
+  public function notestUndoTheLastTransferToMe() {
+    scene_setup($this, __FUNCTION__);
+    Given('players: "DATA'
+    . '\\| @name      | @accountid| @cell    | @rebate |'
+    . '\\| Abe One    | neabcdea  | %number1 | 5       |'
+    . '\\| Bea Two    | neabcdeb  | %number2 | 5       |'
+    . '\\| Corner Pub | neabcdec  | %number3 | 5       |"');
+    And__('transactions: "DATA'
+    . '\\| @date     | @type   | @amount | @from    | @to      | @for         |'
+    . '\\| %today-4m | charge  | 11.11   | neabcdeb | neabcdea | cash         |'
+    . '\\| %today-3w | charge  | 22.22   | neabcdec | neabcdea | whatever2    |'
+    . '\\| %today-3w | rebate  | 1.11    | community| neabcdec | rebate on #1 |'
+    . '\\| %today-3w | bonus   | 2.22    | community| neabcdea | bonus on #2  |'
+    . '\\| %today-3d | payment | 33.33   | neabcdea | neabcdeb | cash         |'
+    . '\\| %today-2d | payment | 44.44   | neabcdeb | neabcdec | cash         |'
+    . '\\| %today-1d | payment | 55.55   | neabcdea | neabcdec | cash         |"');
+    When_('phone %number1 says "undo from"');
+    Then_('we say to phone %number1 "confirm undo" with subs: "DATA'
+    . '\\| @date     | @type   | @amount | @tofrom | @who       | @for      |'
+    . '\\| %today-3w | charge  | 22.22   | from    | Corner Pub | whatever2 |"');
+  }
+
+  // Scenario: Undo the last transfer from me to someone specific
+  public function notestUndoTheLastTransferFromMeToSomeoneSpecific() {
+    scene_setup($this, __FUNCTION__);
+    Given('players: "DATA'
+    . '\\| @name      | @accountid| @cell    | @rebate |'
+    . '\\| Abe One    | neabcdea  | %number1 | 5       |'
+    . '\\| Bea Two    | neabcdeb  | %number2 | 5       |'
+    . '\\| Corner Pub | neabcdec  | %number3 | 5       |"');
+    And__('transactions: "DATA'
+    . '\\| @date     | @type   | @amount | @from    | @to      | @for      |'
+    . '\\| %today-4m | charge  | 11.11   | neabcdeb | neabcdea | cash      |'
+    . '\\| %today-3w | charge  | 22.22   | neabcdec | neabcdea | cash      |'
+    . '\\| %today-3d | payment | 33.33   | neabcdea | neabcdeb | cash      |'
+    . '\\| %today-2d | payment | 44.44   | neabcdeb | neabcdec | cash      |'
+    . '\\| %today-1d | payment | 55.55   | neabcdea | neabcdec | cash      |"');
+    When_('phone %number1 says "undo to neabcdeb"');
+    Then_('we say to phone %number1 "confirm undo" with subs: "DATA'
+    . '\\| @date     | @type   | @amount | @tofrom | @who    | @for     |'
+    . '\\| %today-3d | charge  | 33.33   | to      | Bea Two | cash     |"');
+  }
+
+  // Scenario: The caller confirms undoing a charge
+  public function notestTheCallerConfirmsUndoingACharge() {
+    scene_setup($this, __FUNCTION__);
+    Given('players: "DATA'
+    . '\\| @name      | @accountid| @cell    | @rebate |'
+    . '\\| Abe One    | neabcdea  | %number1 | 5       |'
+    . '\\| Bea Two    | neabcdeb  | %number2 | 5       |'
+    . '\\| Corner Pub | neabcdec  | %number3 | 5       |"');
+    And__('transactions: "DATA'
+    . '\\| @date     | @type   | @amount | @from    | @to      | @for         |'
+    . '\\| %today-1d | payment | 100.00  | neabcdea | neabcdec | whatever     |'
+    . '\\| %today-1d | rebate  | 5.00    | community| neabcdea | rebate on #1 |'
+    . '\\| %today-1d | bonus   | 10.00   | community| neabcdec | bonus on #1  |"');
+    When_('phone %number1 confirms "undo 1"');
+    Then_('the community has Pr$0');
+    And__('phone %number3 has Pr$0');
+    And__('transactions: "DATA'
+    . '\\| @date  | @type   | @amount | @from    | @to      | @for       |'
+    . '\\| %today | payment | -100    | neabcdea | neabcdec | cancels #1 |'
+    . '\\| %today | rebate  | -5      | community| neabcdea | cancels #2 |'
+    . '\\| %today | bonus   | -10     | community| neabcdec | cancels #3 |"');
+    And__('we say to phone %number1 "report undo" with subs: "DATA'
+    . '\\| @old_id | @date     | @amount | @to_whom    | @from_whom | @balance | @transaction |'
+    . '\\| 1       | %today-1d | 100     | Corner Pub  | you        | 0        | 3            |"');
+  }
+
+}

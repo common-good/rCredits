@@ -8,26 +8,30 @@
  * An interface module for the rCredits financial system.
  */
  
-define('TRANSACTION_STATE_STRAW', -3); // add this to states defined in mcapi.module
-define('RCREDITS_COMMUNITY_UID', 4);
-
-require dirname(__FILE__) . '/SMScall.inc';
+//require dirname(__FILE__) . '/SMScall.inc';
+define('RSMS_PREFIX_TRIAL', 'rTRIAL - '); // the pre-launch trial
+define('RSMS_PREFIX_INACTIVE', 'rTRIAL - '); // pretend transactions by not-yet-active players (treat it as a trial run)
+define('RSMS_PREFIX_ASIF', 'rAS-IF - '); // pretend transactions by Active Participants
 
 $GLOBALS['SMS commands'] = ''; // defined in $this->parse()
 $GLOBALS['SMS messages'] = array(
   // reports
-  "account info" => t("Your provisional balance is @balance (accurate only if your transactions as an Active Participant are like your INFO transactions). The current demand for rCredits is @demand."),
-  "your account is ready" => t("Thank you! Your new provisional balance is @balance."),
-  "if you were active" => t("If you were an Active Participant in the rCredits system, your request would transfer @amount directly to your bank account. Alas, you are not yet an Active Participant."),
-  "transaction done" => t("@inaword: @amount @tofrom user#@other (@reward_type: @reward_amount). Your new provisional balance is @balance (If this had been a real transaction, your balance would be @amount @moreless). Transaction ID #@transaction_id"),
+  'account info' => t("Your balance is @balance. The current demand for rCredits is @demand."),
+  'your account is ready' => t('Thank you! Your Trial Run starting balance is @balance. Pretend to buy and sell, but be real. Do as you would expect to do in a typical month. That gives us the information we need, so that you can become an Active Participant. Type "help" to get started.'),
+//  'your account is ready' => t("Thank you! Your practice balance is @balance."),
+  'get usd' => t("APPROVED. @amount will be transferred directly to your bank account within 24 hours."),
+//  'get usd inactive' => t("If you were an Active Participant in the rCredits system, your request would transfer @amount directly to your bank account. Alas, you are not yet an Active Participant."),
+  'transaction done' => t("@inaword: @amount @tofrom user#@other (@reward_type: @reward_amount). Your new balance is @balance. Transaction #@xid"),
+//  'transaction done asif' => t("@inaword: @amount @tofrom user#@other (@reward_type: @reward_amount). Your new provisional balance is @balance (If this had been a real transaction, your balance would be @amount @moreless). Transaction ID #@xid"),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. What's your name?"),
   "what's your email?" => t("Welcome to rCredits, @name. Last question: What is your email address?"),
   "what's your email really?" => t("Please type carefully. What is your email address?"),
+  'please confirm' => t("To confirm, type @nonce."),
   
   // help messages
-  'help for payment' => t("Payment examples: 12.34 to 413.772.0000 | 12.34 to wgabcd for cash | 12.34 to jdough@example.com for wine and cheese (Include a description ONLY if it's \"cash\" or if you are providing real goods and services.)"),
+  'help for payment' => t("Payment examples: 12.34 to 413.772.0000 | 12.34 to .cornerstore | 12.34 to wgabcd for cash | 12.34 to jdough@example.com for wine and cheese (Include a description ONLY if it's \"cash\" or if you are providing real goods and services.)"),
   'help for charge' => t("Charge examples: 12.34 from 413.772.0000 | 12.34 from wgabcd for cash | 12.34 from jdough@example.com for wine and cheese (Include a description ONLY if it's \"cash\" or if real goods and services are provided.)"),
   'help for undo' => t("Examples: undo | undo to | undo 413.772.0000 | undo from wgabcd"),
   'help for get' => t("Examples: get r 12.34 | get usd 12.34"),
@@ -36,11 +40,15 @@ $GLOBALS['SMS messages'] = array(
   
   // error messages
   'syntax' => t('Syntax error.'),
-  'no SMS permission' => t('Alas, you do not have permission to use the rCredits SMS interface at this time.'),
-  "can't cash incentives" => t("Once you are an active participant, you can spend your incentive rewards (@balance to date), but you can't cash them out. Your balance available to exchange for US Dollars is $0."),
-  'get r/usd' => t('You can get only "r" or "usd" (rCredits or US Dollars).'), // not yet used (maybe used when there is a third option)
+//  'no SMS permission' => t('Alas, you do not have permission to use the rCredits SMS interface at this time.'), // UNUSED
+  "can't cash incentives" => t("You can spend your incentive rewards (@rewards to date), but you can't cash them out. Your balance available to exchange for US Dollars is @available."),
+//  "can't cash incentives" => t("Once you are an active participant, you can spend your incentive rewards (@balance to date), but you can't cash them out. Your balance available to exchange for US Dollars is $0."),
+//  'get r/usd' => t('You can get only "r" or "usd" (rCredits or US Dollars).'), // not yet used (maybe used when there is a third option)
   'not a feature' => t('"@param" is not a feature.'),
+  'wrong nonce' => t('That is not the expected confirmation response. Start over and try again.'),
 );
+
+$GLOBALS['SMS messages']['help for help no-error'] = t('Try something! ') . $GLOBALS['SMS messages']['help for help'];
 
 /*
  * rSMS text
@@ -65,16 +73,6 @@ function rsms_t($message, $substitutions = array()) {
 }
 
 /**
- * implements hook_help
- */
-function rsms_help($path) {
-  switch($path) {
-    case 'admin/mc/sms':
-      return t('Define the SMS syntax for recording exchanges');
-  }
-}
-
-/**
  * implements hook_form_alter, to set focus
  *
  * Insert a snippet of javascript in the page footer, to set the focus automatically
@@ -86,21 +84,6 @@ function rsms_form_alter(&$form, &$form_state, $form_id) {
   }
 }
 
-/**
- * implements hook_menu
- * UNUSED
- */
-function rsms_menu() {
-  $items['admin/accounting/sms'] = array(
-    'title' => 'SMS transactions',
-    'description' => 'Define the SMS syntax for recording exchanges',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('rsms_settings'),
-    'access arguments' => array('configure currencies'),
-    'weight' => 5,
-  );
-  return $items;
-}
 /*
  * implements hook_permissions
  */
@@ -111,13 +94,6 @@ function rsms_permission() {
       'description' => t("Transfer funds and get account information through the SMS Interface"),
     )
   );
-}
-
-/*
- * implements mcapi_info_types
- */
-function rsms_mcapi_info_types() {
-  return array('smsIn', 'smsOut', 'smsOther');
 }
 
 // delete this?
@@ -150,7 +126,7 @@ function rsms_sms_incoming($op, $number, $message) {
     case 'process':
 //	  $number = '4111111111'; // test unregistered phone number
       $call = new SMScall($number, $message);
-      $call->send($number, $call->handle_call());
+      $call->send($number, RSMS_PREFIX_TRIAL . $call->handle_call());
       break;
     case 'post process':
       break;

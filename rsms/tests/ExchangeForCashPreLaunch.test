@@ -1,0 +1,121 @@
+<?php
+//
+// Feature: Exchange for cash, pre-launch
+//   AS a player
+//   I WANT to simulate an exchange of rCredits from my account for someone's cash or vice versa
+//   SO I can understand better how that will work once I am an Active Participant
+//   
+
+require dirname(__FILE__) . '/../gherkin/test_defs.php';
+include dirname(__FILE__) . '/../rsms.steps';
+
+class rsmsExchangeForCashPreLaunch extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
+  var $current_test;
+  const FEATURE_NAME = 'rsms Test - ExchangeForCashPreLaunch';
+  const DESCRIPTION = 'Exchange for cash, pre-launch';
+  const MODULE = 'rsms';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkin_guts($statement, $type), $statement, $this->current_test);
+  }
+  
+  public static function getInfo() {
+    return array('name' => self::FEATURE_NAME, 'description' => self::DESCRIPTION, 'group' => ucwords(self::MODULE));
+  }
+
+  public function setUp() { // especially, enable any modules required for the tests
+    parent::setUp(self::MODULE);
+    $setup_filename = dirname(__FILE__) . '/../' . self::MODULE . '_setup.inc';
+    if (file_exists($setup_filename)) include $setup_filename;
+  }
+
+  // Scenario: The caller confirms a trade of rCredits for cash
+  public function testTheCallerConfirmsATradeOfRCreditsForCash() {
+    scene_setup($this, __FUNCTION__);
+    Given('players: "DATA'
+    . '\\| @name      | @memberid | @cell    | @rebate |'
+    . '\\| Abe One    | neabcdea  | %number1 | 5       |'
+    . '\\| Bea Two    | neabcdeb  | %number2 | 5       |'
+    . '\\| Corner Pub | neabcdec  | %number3 | 5       |"');
+    And__('transactions: "DATA'
+    . '\\| @date     | @type  | @amount | @from    | @to      | @for          |'
+    . '\\| %today-1d | signup | 250.00  | community| neabcdea | signup reward |"');
+    When_('phone %number1 confirms "100 to neabcdec for cash"');
+    Then_('the community has Pr$-250');
+    And__('phone %number3 has Pr$100');
+    And__('transactions: "DATA'
+    . '\\| @date  | @type   | @amount | @from    | @to      | @for |'
+    . '\\| %today | payment | 100     | neabcdea | neabcdec | cash |"');
+    And__('we say to phone %number1 "report cash trade" with subs: "DATA'
+    . '\\| @type      | @amount | @who       | @way            | @balance | @transaction |'
+    . '\\| You traded | 100     | Corner Pub | credit for cash | 150      | 2            |"');
+  }
+
+  // Scenario: The caller confirms a trade of cash for rCredits
+  public function notestTheCallerConfirmsATradeOfCashForRCredits() {
+    scene_setup($this, __FUNCTION__);
+    Given('players: "DATA'
+    . '\\| @name      | @memberid | @cell    | @rebate |'
+    . '\\| Abe One    | neabcdea  | %number1 | 5       |'
+    . '\\| Bea Two    | neabcdeb  | %number2 | 5       |'
+    . '\\| Corner Pub | neabcdec  | %number3 | 5       |"');
+    And__('transactions: "DATA'
+    . '\\| @date     | @type  | @amount | @from    | @to      | @for          |'
+    . '\\| %today-1d | signup | 250.00  | community| neabcdec | signup reward |"');
+    When_('phone %number1 confirms "100 from neabcdec for cash"');
+    Then_('the community has Pr$-250');
+    And__('phone %number3 has Pr$150');
+    And__('transactions: "DATA'
+    . '\\| @date  | @type   | @amount | @from    | @to      | @for |'
+    . '\\| %today | charge  | 100     | neabcdec | neabcdea | cash |"');
+    And__('we say to phone %number1 "report cash trade" with subs: "DATA'
+    . '\\| @type      | @amount | @who       | @way            | @balance | @transaction |'
+    . '\\| You traded | 100     | Corner Pub | cash for credit | 100      | 1            |"');
+  }
+
+  // Scenario: The caller confirms an implicit trade of rCredits for cash
+  public function notestTheCallerConfirmsAnImplicitTradeOfRCreditsForCash() {
+    scene_setup($this, __FUNCTION__);
+    Given('players: "DATA'
+    . '\\| @name      | @memberid | @cell    | @rebate |'
+    . '\\| Abe One    | neabcdea  | %number1 | 5       |'
+    . '\\| Bea Two    | neabcdeb  | %number2 | 5       |'
+    . '\\| Corner Pub | neabcdec  | %number3 | 5       |"');
+    And__('transactions: "DATA'
+    . '\\| @date     | @type  | @amount | @from    | @to      | @for          |'
+    . '\\| %today-1d | signup | 250.00  | community| neabcdea | signup reward |"');
+    When_('phone %number1 confirms "100 to neabcdec"');
+    Then_('the community has Pr$-250');
+    And__('phone %number3 has Pr$100');
+    And__('transactions: "DATA'
+    . '\\| @date  | @type   | @amount | @from    | @to      | @for |'
+    . '\\| %today | payment | 100     | neabcdea | neabcdec | cash |"');
+    And__('we say to phone %number1 "report cash trade" with subs: "DATA'
+    . '\\| @type    | @amount | @who       | @way                            | @balance | @transaction |'
+    . '\\| You gave | 100     | Corner Pub | (perhaps as a gift or for cash) | 150      | 2            |"');
+  }
+
+  // Scenario: The caller confirms an implicit trade with insufficient balance
+  public function notestTheCallerConfirmsAnImplicitTradeWithInsufficientBalance() {
+    scene_setup($this, __FUNCTION__);
+    Given('players: "DATA'
+    . '\\| @name      | @memberid | @cell    | @rebate |'
+    . '\\| Abe One    | neabcdea  | %number1 | 5       |'
+    . '\\| Bea Two    | neabcdeb  | %number2 | 5       |'
+    . '\\| Corner Pub | neabcdec  | %number3 | 5       |"');
+    And__('transactions: "DATA'
+    . '\\| @date     | @type  | @amount | @from    | @to      | @for          |'
+    . '\\| %today-1d | signup | 100.00  | community| neabcdea | signup reward |"');
+    When_('phone %number1 confirms "250 to neabcdec"');
+    Then_('the community has Pr$-115');
+    And__('phone %number3 has Pr$110');
+    And__('transactions: "DATA'
+    . '\\| @date  | @type   | @amount | @from    | @to      | @for |'
+    . '\\| %today | payment | 100     | neabcdea | neabcdec | cash |"');
+    And__('we say to phone %number1 "report cash trade" with subs: "DATA'
+    . '\\| @type                     | @amount | @who       | @way                            | @balance | @transaction |'
+    . '\\| PARTIAL SUCCESS. You gave | 100     | Corner Pub | (perhaps as a gift or for cash) | 0        | 2            |"');
+  }
+
+}

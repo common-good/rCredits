@@ -2,11 +2,23 @@
 name = rCredits SMS interface
 description = Request exchanges, information, and other operations from your cell phone, using SMS
 package = rCredits
-core = "7.x"
+core = 7.x
+php = 5.2
 
-dependencies[] = mcapi
 dependencies[] = sms_user
 dependencies[] = rcredits
 files[] = rsms.module
+files[] = SMScall.inc
 files[] = rsmsunit.test
 files[] = tests/OpenAnAccountForTheCaller.test
+files[] = tests/OpenAnAccountForTheOther.test
+files[] = tests/AbbreviationsWork.test
+files[] = tests/ExchangeRCreditsForUSDollars.test
+files[] = tests/GetHelp.test
+files[] = tests/GetInformation.test
+files[] = tests/InfoTransactionPreLaunch.test
+files[] = tests/OfferToExchangeUSDollarsForRCredits.test
+files[] = tests/TrackCommands.test
+files[] = tests/Undo.test
+files[] = tests/ExchangeForCashPreLaunch.test
+files[] = tests/TransactionPreLaunch.test

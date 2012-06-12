@@ -1,0 +1,85 @@
+<?php
+//
+// Feature: Open an account for the other party to a transaction
+//   AS a player
+//   I WANT to do an informational transaction with someone I sometimes pay or get paid by
+//   SO I will get a rebate or bonus
+//   
+
+require dirname(__FILE__) . '/../gherkin/test_defs.php';
+include dirname(__FILE__) . '/../rsms.steps';
+
+class rsmsOpenAnAccountForTheOther extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
+  var $current_test;
+  const FEATURE_NAME = 'rsms Test - OpenAnAccountForTheOther';
+  const DESCRIPTION = 'Open an account for the other party to a transaction';
+  const MODULE = 'rsms';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkin_guts($statement, $type), $statement, $this->current_test);
+  }
+  
+  public static function getInfo() {
+    return array('name' => self::FEATURE_NAME, 'description' => self::DESCRIPTION, 'group' => ucwords(self::MODULE));
+  }
+
+  public function setUp() { // especially, enable any modules required for the tests
+    parent::setUp(self::MODULE);
+    $setup_filename = dirname(__FILE__) . '/../' . self::MODULE . '_setup.inc';
+    if (file_exists($setup_filename)) include $setup_filename;
+  }
+
+  // Scenario: The caller asks to pay an identifiable total newbie by name
+  public function testTheCallerAsksToPayAnIdentifiableTotalNewbieByName() {
+    scene_setup($this, __FUNCTION__);
+    Given('players: "DATA'
+    . '\\| @name     | @memberid | @cell    |'
+    . '\\| Abe One   | neabcdea  | %number1 |"');
+    And__('local phonelist: "DATA'
+    . '\\| @name      | @phone  |'
+    . '\\| Bob\'s Gas  | %number2 |'
+    . '\\| Corner Pub | %number3 |"');
+    When_('phone %number1 says "123.00 to .cornerpub for groceries"');
+    Then_('phone %number3 has an account');
+    And__('we say to phone %number1 "confirm payment" with subs: "DATA'
+    . '\\| @name      | @amount | @for      |'
+    . '\\| Corner Pub | $123    | groceries |"');
+  }
+
+  // Scenario: The caller asks to pay a non-identifiable total newbie by phone
+  public function notestTheCallerAsksToPayANonidentifiableTotalNewbieByPhone() {
+    scene_setup($this, __FUNCTION__);
+   *   # or by email address or domain
+    Given('players: "DATA'
+    . '\\| @name     | @memberid | @cell    |'
+    . '\\| Abe One   | neabcdea  | %number1 |"');
+    And__('phone %number2 has no account');
+    And__('phone %number2 cannot be identified');
+    When_('phone %number1 says "123.00 to %number2 for groceries"');
+    Then_('we say to phone %number1 "whose phone?" with subs: "DATA'
+    . '\\| @number  |'
+    . '\\| %number2 |"');
+  }
+
+  // Scenario: The caller supplies a full name for the recipient, as requested
+  public function notestTheCallerSuppliesAFullNameForTheRecipientAsRequested() {
+    scene_setup($this, __FUNCTION__);
+    Given('players: "DATA'
+    . '\\| @name   | @memberid | @cell    | @rebate |'
+    . '\\| Abe One | neabcdea  | %number1 | 5       |'
+    . '\\| Bea Two | neabcdeb  | %number2 | 5       |'
+    . '\\| %random | neabcdec  | %number3 | 5       |"');
+    And__('we just asked phone %number1 for a full name for phone %number3');
+    And__('phone %number1 requested "100 to %number3 for groceries"');
+    And__('transactions: "DATA'
+    . '\\| @date     | @type  | @amount | @from    | @to      | @for          |'
+    . '\\| %today-1d | signup | 250.00  | community| neabcdea | signup reward |"');
+    When_('phone %number1 says "Corner Pub"');
+    Then_('phone %number3 account name is "Corner Pub"');
+    And__('we say to phone %number1 "report transaction" with subs: "DATA'
+    . '\\| @type | @tofrom | @amount | @who       | @for      | @reward_type | @reward_amount | @balance | @transaction |'
+    . '\\| paid  | to      | 100     | Corner Pub | groceries | rebate       | 5              | 155      | 2            |"');
+  }
+
+}

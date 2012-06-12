@@ -52,18 +52,18 @@ class rsmsOpenAnAccountForTheCaller extends DrupalWebTestCase {
   // Scenario: The newbie gives us his or her name
   public function notestTheNewbieGivesUsHisOrHerName() {
     scene_setup($this, __FUNCTION__);
-    Given('we just asked phone %number1 for a full name');
+    Given('we just asked phone %number1 for "name"');
     When_('phone %number1 says "Jo Smith"');
-    Then_('phone %number1 name is "Jo Smith"');
+    Then_('phone %number1 account name is "Jo Smith"');
     And__('we say to phone %number1 "what\'s your email?" with subs: "DATA'
-    . '\\| @name     |'
+    . '\\| @name    |'
     . '\\| Jo Smith |"');
   }
 
   // Scenario: The newbie gives us an unlikely name
   public function notestTheNewbieGivesUsAnUnlikelyName() {
     scene_setup($this, __FUNCTION__);
-    Given('we just asked phone %number1 for a full name');
+    Given('we just asked phone %number1 for "name"');
     When_('phone %number1 says %random');
     Then_('we say to phone %number1 "what\'s your name really?"');
   }
@@ -71,21 +71,21 @@ class rsmsOpenAnAccountForTheCaller extends DrupalWebTestCase {
   // Scenario: The newbie gives us his or her email address
   public function notestTheNewbieGivesUsHisOrHerEmailAddress() {
     scene_setup($this, __FUNCTION__);
-    Given('we just asked phone %number1 for an email address');
-    And__('community has r$100');
+    Given('we just asked phone %number1 for "email"');
+    And__('the community has Pr$-1000');
     When_('phone %number1 says "zot@email.com"');
     Then_('phone %number1 email is "zot@email.com"');
-    And__('phone %number1 has r$20');
-    And__('community has r$80');
+    And__('phone %number1 has Pr$250');
+    And__('the community has Pr$-1250');
     And__('we say to phone %number1 "your account is ready" with subs: "DATA'
     . '\\| @balance |'
-    . '\\| $20 |"');
+    . '\\| $250      |"');
   }
 
   // Scenario: The newbie gives a bad email address
   public function notestTheNewbieGivesABadEmailAddress() {
     scene_setup($this, __FUNCTION__);
-    Given('we just asked phone %number1 for an email address');
+    Given('we just asked phone %number1 for "email"');
     When_('phone %number1 says %random');
     Then_('we say to phone %number1 "what\'s you email really?"');
   }

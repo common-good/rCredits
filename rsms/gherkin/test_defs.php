@@ -18,7 +18,7 @@ function gherkin_guts($statement, $type) {
   if($type == 'Then_') $test_only = TRUE;
 
   $arg_patterns = '"(.*?)"|(-?[0-9]+(?:[\.,-][0-9]+)*)';
-  foreach ($scene_test->subs as $from => $to) if($from) $statement = str_replace($from, '"'.$to.'"', $statement);
+  foreach ($scene_test->subs as $from => $to) if ($from) $statement = str_replace($from, '"'.$to.'"', $statement); // if ($from) allows eg "5%"
   preg_match_all("/$arg_patterns/ms", $statement, $matches);
   $args = multiline_check($matches[0]); // phpbug: $matches[1] has null for numeric args (so the check removes quotes)
   $count = count($args);
@@ -70,12 +70,26 @@ function random_string($len = 0, $type = '?'){
  * These may or may not get used in any particular Scenario, but it is convenient to have them always available.
  */
 function usual_subs() {
-  return array(
-    '%number1' => random_string(32, '9'),
-    '%number2' => random_string(32, '9'),
+  $subs_filename = dirname(__FILE__) . '/../usual_subs.inc';
+  $date_format = 'm-d-Y';
+  
+  $result = array(
     '%whatever' => random_string(),
     '%random' => random_string(),
   );
+  for ($i = 1; $i <= 5; $i++) { // phone numbers
+    while (in_array($number = random_string(32, '9'), $result)) {
+      $result["%number$i"] = $number;
+    }
+  }
+  for ($i = 15; $i > 0; $i--) { // set up past dates highest first, eg to avoid missing the "5" in %today-15
+    $result["%today-{$i}d"] = date($date_format, strtotime("-$i days"));
+    $result["%today-{$i}w"] = date($date_format, strtotime("-$i weeks"));
+    $result["%today-{$i}m"] = date($date_format, strtotime("-$i mnths"));
+  }
+  $result['%today'] = date($date_format); // must be last
+  if (file_exists($subs_filename)) include $subs_filename; // a chance to add or replace the usual subs
+  return $result;
 }
 
 /*

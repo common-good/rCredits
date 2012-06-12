@@ -1,0 +1,51 @@
+<?php
+//
+// Feature: Abbreviations work
+//   AS a caller
+//   I WANT to type as little as possible
+//   SO I can get stuff done fast
+//   
+
+require dirname(__FILE__) . '/../gherkin/test_defs.php';
+include dirname(__FILE__) . '/../rsms.steps';
+
+class rsmsAbbreviationsWork extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
+  var $current_test;
+  const FEATURE_NAME = 'rsms Test - AbbreviationsWork';
+  const DESCRIPTION = 'Abbreviations work';
+  const MODULE = 'rsms';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkin_guts($statement, $type), $statement, $this->current_test);
+  }
+  
+  public static function getInfo() {
+    return array('name' => self::FEATURE_NAME, 'description' => self::DESCRIPTION, 'group' => ucwords(self::MODULE));
+  }
+
+  public function setUp() { // especially, enable any modules required for the tests
+    parent::setUp(self::MODULE);
+    $setup_filename = dirname(__FILE__) . '/../' . self::MODULE . '_setup.inc';
+    if (file_exists($setup_filename)) include $setup_filename;
+  }
+
+  // Scenario: A caller abbreviates command words
+  public function testACallerAbbreviatesCommandWords() {
+    scene_setup($this, __FUNCTION__);
+    Given('phone %number1 is a player');
+    When_('phone %number1 says "h g"');
+    Then_('we say to phone %number1 "help for get"');
+  }
+
+  // Scenario: A caller abbreviates command words
+  public function notestACallerAbbreviatesCommandWords() {
+    scene_setup($this, __FUNCTION__);
+    Given('phone %number1 is a player');
+    When_('phone %number1 says "12 f abcdef f apples"');
+    Then_('we say to phone %number1 "Don\'t abbreviate" with subs: "DATA'
+    . '\\| @word |'
+    . '\\| for   |"');
+  }
+
+}

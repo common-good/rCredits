@@ -18,34 +18,34 @@ Scenario: A nameless newbie calls
   Then we say to phone %number1 "what's your name?" 
 
 Scenario: The newbie gives us his or her name
-  Given we just asked phone %number1 for a full name
+  Given we just asked phone %number1 for "name"
   When phone %number1 says "Jo Smith"
-  Then phone %number1 name is "Jo Smith"
+  Then phone %number1 account name is "Jo Smith"
   And we say to phone %number1 "what's your email?" with subs:
-  | @name     |
+  | @name    |
   | Jo Smith |
   # Welcome to rCredits, Jo Smith. Last question: What is your email address?
 
 Scenario: The newbie gives us an unlikely name
-  Given we just asked phone %number1 for a full name
+  Given we just asked phone %number1 for "name"
   When phone %number1 says %random
   Then we say to phone %number1 "what's your name really?" 
   #To set up your rCredits account, we need your full name and email address. What's your name?
 
 Scenario: The newbie gives us his or her email address
-  Given we just asked phone %number1 for an email address
-  And community has r$100
+  Given we just asked phone %number1 for "email"
+  And the community has Pr$-1000
   When phone %number1 says "zot@email.com"
   Then phone %number1 email is "zot@email.com"
-  And phone %number1 has r$20
-  And community has r$80
+  And phone %number1 has Pr$250
+  And the community has Pr$-1250
   And we say to phone %number1 "your account is ready" with subs:
   | @balance |
-  | $20 |
-  # Thank you! Your new balance is $20.
+  | $250      |
+  # Thank you! Your new balance is $250.
 
 Scenario: The newbie gives a bad email address
-  Given we just asked phone %number1 for an email address
+  Given we just asked phone %number1 for "email"
   When phone %number1 says %random
   Then we say to phone %number1 "what's you email really?" 
   # Please type carefully. What is your email address?
