@@ -65,7 +65,7 @@ class SMScall {
   function validate_caller() {
   //throw new Exception('test');
     if (!($this->caller = sms_user_get_uid($this->number))) { 
-      rcredits_create_user($this->number);
+      sms_user_register_new_user($this->number, $this->message);
       throw new Exception(rsms_t("what's your name?"));
     }
     if (!user_access('Transact via SMS', user_load($this->caller))) {
@@ -223,40 +223,48 @@ class SMScall {
     extract($this->parameters, EXTR_PREFIX_ALL, 'my'); // amount, who, and what
 
     $type = $isfrom ? 'charge' : 'payment';
-    $other = _sms_validate_trader($my_who);
+    $other = rsms_validate_trader($my_who);
     if (!$other) {
       return t('Unknown user: @user ', array('@user' => $my_who)) . $this->do_help($type);
     }
     if (!user_access('transact', user_load($other))) {
-      return t('@name does not have permission to trade.', array('@name' => user_load($other)->name));
+//      return t('@name does not have permission to trade.', array('@name' => user_load($other)->name));
     }
 
     $payer = $isfrom ? $other : $this->caller;
     $payee = $isfrom ? $this->caller : $other;
     $amount = $my_amount;
     $for = $my_what;
-    $serial = '';
+    $serial = ''; // ask rcredits to choose a serial number
     
     try {
-      list ($xid, $reward_me) = rcredits_transact(compact('type', 'serial', 'amount', 'payer', 'payee', 'for')); // credit sender with reward
+      $txs = rcredits_transact(compact('type', 'serial', 'amount', 'payer', 'payee', 'for')); // credit sender with reward
     }
-    catch (Exception $e) {
-      return $e->getMessage();
-    }
+    catch (Exception $e) {return $e->getMessage();}
     
-    $transaction_totals = transaction_totals($this->caller);
+    $totals = transaction_totals($this->caller);
+    $tid = $totals->count - count($txs) + 1;
+    $other_name = user_load($other)->name;
+//    $other_name = ruser($other, 'account_name');
+    
+//    $reward_index = $isfrom ? 2 : 1;
+//    $reward = $txs[$reward_index]->worth['und'][0]['quantity'];
+    
     $args = array(
-      '@inaword' => $isfrom ? t('charged') : t('paid'),
+      '@type' => $isfrom ? t('charged') : t('paid'),
       '@amount' => rcredits_amount($my_amount),
       '@tofrom' => $isfrom ? t('from') : t('to'),
       '@reward_type' => $isfrom ? t('bonus') : t('rebate'),
-      '@reward_amount' => rcredits_amount($reward_me),
-      '@balance' => rcredits_amount($transaction_totals->balance),
-      '@moreless' => $isfrom ? t('more') : t('less'),
-      '@xid' => $xid,
-      '@other' => $other,
+      '@reward_amount' => rcredits_amount($amount * ($isfrom ? RCREDITS_BONUS : RCREDITS_REBATE)),
+      '@balance' => rcredits_amount($totals->balance),
+      '@tid' => $tid,
+      '@other' => $other_name,
     );
-    return rsms_t('transaction done', $args);
+    if (count($txs) > 1) return rsms_t('report transaction', $args);
+    
+    $args['@type'] = 'traded';
+    $args['@way'] = $isfrom ? 'cash for credit' : 'credit from cash';
+    return rsms_t('report exchange', $args);
   }
 
   function abbreviator($word) {

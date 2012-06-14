@@ -9,20 +9,21 @@
  */
  
 //require dirname(__FILE__) . '/SMScall.inc';
-define('RSMS_PREFIX_TRIAL', 'rTRIAL - '); // the pre-launch trial
-define('RSMS_PREFIX_INACTIVE', 'rTRIAL - '); // pretend transactions by not-yet-active players (treat it as a trial run)
-define('RSMS_PREFIX_ASIF', 'rAS-IF - '); // pretend transactions by Active Participants
+define('RSMS_PREFIX_TRIAL', 'TRIAL RUN - '); // the pre-launch trial
+define('RSMS_PREFIX_INACTIVE', 'TRIAL RUN - '); // pretend transactions by not-yet-active players (treat it as a trial run)
+define('RSMS_PREFIX_ASIF', 'PRETEND - '); // pretend transactions by Active Participants
 
 $GLOBALS['SMS commands'] = ''; // defined in $this->parse()
 $GLOBALS['SMS messages'] = array(
   // reports
   'account info' => t("Your balance is @balance. The current demand for rCredits is @demand."),
-  'your account is ready' => t('Thank you! Your Trial Run starting balance is @balance. Pretend to buy and sell, but be real. Do as you would expect to do in a typical month. That gives us the information we need, so that you can become an Active Participant. Type "help" to get started.'),
+  'your account is ready' => t('Thank you! Your Trial Run starting balance is @balance. Pretend to buy and sell, but be real. Do as you would expect to do in a typical month. That gives us the information we need, so that you can become an Active Participant. Type "help" to get started. And have fun.'),
 //  'your account is ready' => t("Thank you! Your practice balance is @balance."),
   'get usd' => t("APPROVED. @amount will be transferred directly to your bank account within 24 hours."),
 //  'get usd inactive' => t("If you were an Active Participant in the rCredits system, your request would transfer @amount directly to your bank account. Alas, you are not yet an Active Participant."),
-  'transaction done' => t("@inaword: @amount @tofrom user#@other (@reward_type: @reward_amount). Your new balance is @balance. Transaction #@xid"),
-//  'transaction done asif' => t("@inaword: @amount @tofrom user#@other (@reward_type: @reward_amount). Your new provisional balance is @balance (If this had been a real transaction, your balance would be @amount @moreless). Transaction ID #@xid"),
+  'report transaction' => t("You @type @other @amount (@reward_type: @reward_amount). Your new balance is @balance. Transaction #@tid"),
+//  'transaction done asif' => t("@type: @amount @tofrom user#@other (@reward_type: @reward_amount). Your new provisional balance is @balance (If this had been a real transaction, your balance would be @amount @moreless). Transaction ID #@xid"),
+  'report exchange' => t("You @type @other @amount @way. Your new balance is @balance. Transaction #@tid"),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. What's your name?"),
@@ -50,7 +51,7 @@ $GLOBALS['SMS messages'] = array(
 
 $GLOBALS['SMS messages']['help for help no-error'] = t('Try something! ') . $GLOBALS['SMS messages']['help for help'];
 
-/*
+/**
  * rSMS text
  *
  * Get the long version of the indicated message(s), make any substitutions,
@@ -84,7 +85,7 @@ function rsms_form_alter(&$form, &$form_state, $form_id) {
   }
 }
 
-/*
+/**
  * implements hook_permissions
  */
 function rsms_permission() {
@@ -107,7 +108,7 @@ function rsms_settings(){
   return system_settings_form($form);
 }
 
-/*
+/**
  * SMS Incoming implements hook sms_incoming
  *
  * @param $op
@@ -126,6 +127,7 @@ function rsms_sms_incoming($op, $number, $message) {
     case 'process':
 //	  $number = '4111111111'; // test unregistered phone number
       $call = new SMScall($number, $message);
+      print_r($call);
       $call->send($number, RSMS_PREFIX_TRIAL . $call->handle_call());
       break;
     case 'post process':
@@ -133,9 +135,27 @@ function rsms_sms_incoming($op, $number, $message) {
   }
 }
 
-/*
+/**
  * this is for the demo only, should be in a separate module, really
  */
 function rsms_form_sms_browser_gateway_incoming_form_alter(&$form, $form_state) {
   $form['number']['#access'] = user_access('edit all exchanges');
+}
+
+/**
+ * check that the parsed trader is actually a user who is permitted to trade
+ * this is similar to a function in user_chooser (???)
+ */
+function rsms_validate_trader($val) {
+  if (($uid = rcredits_account_by_id($val))) return $uid;
+  $uid = db_select('users', 'u')
+  ->fields('u', array('uid'))
+  ->condition('uid', 0, '!=')
+  ->condition(db_or() // for rsms this should include just account_id, mobile (normalized), website (without www or http), and email
+//    ->condition('account_id', $val) 
+    ->condition('name', $val)
+    ->condition('mail', $val)
+  )
+  ->execute()->fetchField();
+  if ($uid) return $uid;
 }

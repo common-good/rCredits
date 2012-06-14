@@ -19,8 +19,8 @@ Scenario: The caller confirms a trade of rCredits for cash
   | @date  | @type   | @amount | @from    | @to      | @for |
   | %today | payment | 100     | neabcdea | neabcdec | cash |
   And we say to phone %number1 "report cash trade" with subs:
-  | @type      | @amount | @who       | @way            | @balance | @transaction |
-  | You traded | 100     | Corner Pub | credit for cash | 150      | 2            |
+  | @type  | @amount | @who       | @way            | @balance | @transaction |
+  | traded | 100     | Corner Pub | credit for cash | 150      | 2            |
   # "You traded Corner Pub $100 credit for cash. Your new balance is $150. Transaction #2"
   
 Scenario: The caller confirms a trade of cash for rCredits
@@ -39,8 +39,8 @@ Scenario: The caller confirms a trade of cash for rCredits
   | @date  | @type   | @amount | @from    | @to      | @for |
   | %today | charge  | 100     | neabcdec | neabcdea | cash |
   And we say to phone %number1 "report cash trade" with subs:
-  | @type      | @amount | @who       | @way            | @balance | @transaction |
-  | You traded | 100     | Corner Pub | cash for credit | 100      | 1            |
+  | @type  | @amount | @who       | @way            | @balance | @transaction |
+  | traded | 100     | Corner Pub | cash for credit | 100      | 1            |
   # "You traded Corner Pub $100 cash for credit. Your new balance is $100. Transaction #1"
 
 Scenario: The caller confirms an implicit trade of rCredits for cash
@@ -59,8 +59,8 @@ Scenario: The caller confirms an implicit trade of rCredits for cash
   | @date  | @type   | @amount | @from    | @to      | @for |
   | %today | payment | 100     | neabcdea | neabcdec | cash |
   And we say to phone %number1 "report cash trade" with subs:
-  | @type    | @amount | @who       | @way                            | @balance | @transaction |
-  | You gave | 100     | Corner Pub | (perhaps as a gift or for cash) | 150      | 2            |
+  | @type | @amount | @who       | @way                                   | @balance | @transaction |
+  | gave  | 100     | Corner Pub | credit (perhaps as a gift or for cash) | 150      | 2            |
   # "You gave Corner Pub $100 credit (perhaps as a gift or for cash). Your new balance is $150. Transaction #2"
   
 Scenario: The caller confirms an implicit trade with insufficient balance
@@ -78,8 +78,8 @@ Scenario: The caller confirms an implicit trade with insufficient balance
   And transactions:
   | @date  | @type   | @amount | @from    | @to      | @for |
   | %today | payment | 100     | neabcdea | neabcdec | cash |
-  And we say to phone %number1 "report cash trade" with subs:
-  | @type                     | @amount | @who       | @way                            | @balance | @transaction |
-  | PARTIAL SUCCESS. You gave | 100     | Corner Pub | (perhaps as a gift or for cash) | 0        | 2            |
+  And we say to phone %number1 "partial | report cash trade" with subs:
+  | @type | @amount | @who       | @way                                   | @balance | @transaction |
+  | gave  | 100     | Corner Pub | credit (perhaps as a gift or for cash) | 0        | 2            |
   # "PARTIAL SUCCESS. You gave Corner Pub $100 credit (perhaps as a gift or for cash). Your new balance is $0. Transaction #2"
   
