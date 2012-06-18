@@ -1,14 +1,10 @@
-<?php
-
-// $Id$
-
+<?php // $Id$
 /**
  * @file
  * rCredits
  *
  * A module for the rCredits financial system.
- *
- * This module implements the rCredits extensions to Community Accounting (mcapi).
+ * This module implements rCredits as an extension to Community Accounting (mcapi).
  *
  * PURPOSE:
  * Specifically, this module keeps track of and manages the following:
@@ -36,16 +32,11 @@
  * separate modules handle the various transaction channels: rSMS, rSmartphone, rBrowser, etc.
  * rIssue handles credit issuance.
  * 
- * a companion module, rDemocracy, handles communal financial decision-making
+ * a companion module, rDemocracy, handles participatory financial decision-making
  */
 
-define('TRANSACTION_STATE_STRAW', -3); // add this to states defined in mcapi.module
-define('RCREDITS_COMMUNITY_ID', 'community');
-define('RCREDITS_INITIAL_DEMAND', 45000); // total demand for rCredits during TRIAL RUN
-define('RCREDITS_CURRENCY_CODE', 'Pr'); // Pretend rCredits, pre-launch
-define('RCREDITS_REBATE', 0.05);
-define('RCREDITS_BONUS', 0.10);
-define('RCREDITS_COMMUNITY_POSTAL_AREA', '01%'); // anyone with a postal code that matches this is in
+require_once 'rcredits.inc';
+use rCredits as r;
 
 /**
  * Implements hook_help().
@@ -64,73 +55,6 @@ function rcredits_mcapi_info_types() {
 }
 
 /**
- * Account Information
- *
- * @param int $who
- *   uid of the account to return information for
- *
- * @return
- *   associative array of account information (see keys in the return line below)
- *   including the overall demand for rCredits
- *   array keys all begin with '@', to make use with t() easy
- */
-function rcredits_account_info($who) {
-  $totals = transaction_totals($who);
-  return array(
-    '@balance' => rcredits_amount($totals->balance),
-//    '@rewards' => rcredits_amount($totals->rewards),
-//    '@available' => rcredits_amount($totals->available),
-//    '@unavailable' => rcredits_amount($totals->unavailable),
-//    '@todonate' => rcredits_amount($totals->todonate),
-    '@demand' => rcredits_amount(RCREDITS_TOTAL_DEMAND),
-  );
-}
-
-function rcredits_next_tid($who) {
-  $totals = transaction_totals($who);
-  return $totals->count + 1;
-}
-
-function rcredits_create_user($info) {
-  extract($info, EXTR_PREFIX_ALL, 'my');
-  if (isset($my_number)) {
-    $info['sms_user'] = array(
-      'number' => $my_number,
-      'status' => 0,
-      'code' => '',
-      'gateway' => '',
-    );
-  }
-
-  // If someone already has this email address, then use it instead of creating a new user.
-  if (isset($my_mail) and ($account = array_shift(user_load_multiple(array(), array('mail' => $my_mail))))) {
-    return user_save($account, $info);
-  }
-
-  $info['mail'] = $info['init'] = '';
-  $info['pass'] = user_password();
-//  $info['name'] = $my_name ?: substr(md5($number . strval(REQUEST_TIME)), 0, 10); // Pick a pseudo-random name for the user
-  $info['name'] = $my_name ? $my_name : substr(md5($number . strval(REQUEST_TIME)), 0, 10); // Pick a pseudo-random name for the user
-  $info['status'] = TRUE;
-  
-  return user_save(NULL, $info);
-}
-
-/**
- * Transact
- *
- * Record a transaction between two participants
- */
-function rcredits_transact($info) {
-  $tx = rcredits_transaction_setup($info);
-
-  try {
-    return transaction_insert_new($tx, TRUE);
-  }
-  catch (Exception $e) {throw $e;}
-}
-
-/**
  * Implements transactions_alter.
  *
  * Add rebate and bonus to the transaction set.
@@ -139,137 +63,21 @@ function rcredits_transactions_alter(&$txs) {
   extract((array) $txs[0], EXTR_PREFIX_ALL, 'my');
   
   if (($my_type != 'payment') and ($my_type != 'charge')) return;
-  if ($my_for == 'cash') return; // quit unless rebates and bonuses apply
+  if ($my_payer_for == 'cash') return; // quit unless rebates and bonuses apply
   
-  $serial = $my_serial; // this should be handled by mcapi
-  $payer = $creator = variable_get('RCREDITS_COMMUNITY_UID');
+  $payer = $creator = variable_get('rcredits_community_uid');
 
   $type = 'rebate';
-  $amount = $my_amount * RCREDITS_REBATE;
+  $amount = $my_worth['und'][0]['quantity'] * r\rebate($my_payer); // should look at user's rebate percent
   $payee = $my_payer;
-  $for = 'rebate on #' . (rcredits_next_tid($my_payer));
-  $txs[] = rcredits_transaction_setup(compact('type', 'serial', 'amount', 'payer', 'payee', 'for', 'creator'));
+//  $for = 'rebate on #' . (r\next_tid($my_payer));
+  $for = t('rebate');
+  $txs[] = r\transaction_setup(compact('type', 'amount', 'payer', 'payee', 'for', 'creator'));
 
   $type = 'bonus';
-  $amount = $my_amount * RCREDITS_BONUS;
+  $amount = $my_worth['und'][0]['quantity'] * r\bonus($my_payer); // should look at user's rebate percent
   $payee = $my_payee;
-  $for = 'bonus on #' . (rcredits_next_tid($my_payee));
-  $txs[] = rcredits_transaction_setup(compact('type', 'serial', 'amount', 'payer', 'payee', 'for', 'creator'));
-}
-
-/**
- * Transaction Setup
- *
- * Create a new transaction and set up all the important fields.
- */
-function rcredits_transaction_setup($info) {
-  extract($info, EXTR_PREFIX_ALL, 'my');
-
-  $tx = new_transaction();
-  unset($tx->xid);
-  $tx->payer = $my_payer;
-  $tx->payee = $my_payee;
-  $tx->worth['und'][0]['currcode'] = RCREDITS_CURRENCY_CODE;
-//  $tx->worth['und'][0]['currcode'] = isset($values['currency']) ? $values['currency'] : key(currencies_load());
-  $tx->worth['und'][0]['quantity'] = $my_amount;
-  
-  if ((strtolower($my_for) == 'cash') or ($my_for == '')) $my_for = 'cash';
-  $tx->payer_for['und'][0] = $my_for;
-  $tx->payee_for['und'][0] = $my_for;
-  $tx->state = TRANSACTION_STATE_FINISHED;
-  $tx->type = $my_type;
-  $tx->serial['und'][0] = $my_serial ? $my_serial : substr(md5(serialize($info) . strval(REQUEST_TIME)), 0, 32);
-  if (isset($my_creator)) $tx->creator = $my_creator; // defaults to current user
-  return $tx;
-}
-
-/**
- * Amount
- *
- * Format the given amount as currency.
- *
- * @param float $amount
- *
- * @param boolean $simplify
- *   Omit the cents for whole dollar amounts
- *
- * @return
- *   the formatted amount
- */
-function rcredits_amount($amount, $simplify = TRUE) {
-  $amount = '$' . number_format($amount, 2);
-  return $simplify ? str_replace('.00', '', $amount) : $amount;
-}
-
-/** 
- * Log (dirt simple for the moment)
- *
- * Log the message and return it.
- * This makes it easy for tests to see what was done
- *
- * @param string $type
- *   type of log entry. If null (the default), don't log anything
- *
- * @return the (possibly updated) log array
- */  
-function rcredits_log($type='', $message='', $number='', $nonce='') {
-  $log_filename = 'rcredits.log';
-//    $log = file_exists($log_filename) ? file_get_contents($log_filename) : '';
-//    file_put_contents($log_filename, $log . "$type, $number, $message\n");
-  $log = file_exists($log_filename) ? unserialize(file_get_contents($log_filename)) : '';
-  if ($type) {
-    $log[] = compact('type', 'message', 'number');
-    if ($nonce) {
-      $message = str_replace($nonce, '@nonce', $message); // also store without the nonce for testing, because the nonce is unpredictable
-      $log[] = compact('type', 'message', 'number');
-    }
-    file_put_contents($log_filename, serialize($log) . "\n");
-  }
-  return $log;
-}  
-
-function ruser($uid, $field_name='') {
-  $account = user_load($uid);
-  if (!$field_name) return $account;
-  $field = $account[$field_name];
-  return is_array($field) ? $field['und'][0] : $field;
-}
-
-function rtx($xid, $field_name='') {
-  $txs = transactions_load(array(), array('xid' => $xid));
-  $tx = array_shift($txs);
-  if (!$field_name) return $tx;
-  $field = $tx[$field_name];
-  return is_array($field) ? $field['und'][0] : $field;
-}
-
-/**
- * Account By ID
- *
- * Return the uid for the user with the given account id
- *
- * @todo: test this
- */
-function rcredits_account_by_id($account_id) {
-  $query = new EntityFieldQuery();
-  $query->entityCondition('entity_type', 'user')
-//  ->entityCondition('bundle', 'user')
-//  ->propertyCondition('status', 1)
-  ->fieldCondition('account_id', 'value', $account_id, '=');
-//  ->fieldCondition('field_photo', 'fid', 'NULL', '!=')
-//  ->fieldCondition('field_faculty_tag', 'tid', $value)
-//  ->fieldCondition('field_news_publishdate', 'value', $year. '%', 'like')
-//  ->range(0, 10)
-//  ->addMetaData('account', user_load(1)); // run the query as user 1
-
-  $result = $query->execute();
-  if (!isset($result['user'])) return NULL;
-  
-  $account = array_shift($result['user']);
-  return $account->uid;
-
-//  if (isset($result['node'])) {
-//    $news_items_nids = array_keys($result['node']);
-//    $news_items = entity_load('node', $news_items_nids);
-//  }
+//  $for = 'bonus on #' . (r\next_tid($my_payee));
+  $for = t('bonus');
+  $txs[] = r\transaction_setup(compact('type', 'amount', 'payer', 'payee', 'for', 'creator'));
 }

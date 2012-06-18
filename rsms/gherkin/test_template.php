@@ -1,7 +1,7 @@
 <?php
 %FEATURE_HEADER
-require dirname(__FILE__) . '/../gherkin/test_defs.php';
-include dirname(__FILE__) . '/../%MODULE.steps';
+require_once dirname(__FILE__) . '/../gherkin/test_defs.php';
+require_once dirname(__FILE__) . '/../%MODULE.steps';
 
 class %MODULE%FEATURE_NAME extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)

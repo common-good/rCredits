@@ -1,0 +1,182 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the rcredits module.
+ */
+
+/**
+ * Implement hook_install().
+ *
+ * Add custom data for the rcredits module.
+ *
+ * @todo
+ *   none of the custom fields gets initialized for Community. Why not?!
+ */
+function rcredits_install() {
+  make_text_field('First name');
+  make_text_field('Last name');
+  make_text_field('Phone', 3);
+  make_text_field('Postal code', 1, 20, 20);
+  make_text_field('Website', 3, 255);
+
+  // actually these are account fields, but in the user table for now
+  make_text_field('Account id', 1, 10);
+  make_text_field('Account name');
+  make_text_field('Rebate percent', 1, 10);
+  make_text_field('Demand', 1, 10);
+  
+  // actually these are mobile fields, but in the user table for now
+  make_text_field('todo', 1, 255);
+  make_text_field('nonce', 1, 10);
+  
+  make_text_field(array('For', 'payer_for'), 1, 60, 60, 'transaction'); 
+  make_text_field(array('For', 'payee_for'), 1, 60, 60, 'transaction'); 
+  
+//  variable_del('RCREDITS_COMMUNITY_UID');
+  if (!variable_get('RCREDITS_COMMUNITY_UID')) {
+    $info = array(
+      'name' => 'Community',
+      'account_name' => 'Community',
+      'account_id' => RCREDITS_COMMUNITY_ID,
+      'demand' => RCREDITS_INITIAL_DEMAND,
+      'rebate_percent' => 0,
+      'postal_code' => RCREDITS_COMMUNITY_POSTAL_AREA,
+    );
+    variable_set('RCREDITS_COMMUNITY_UID', rcredits_create_user($info));
+  }
+}
+
+function make_text_field($label, $cardinality = 1, $max_length = 60, $size = 60, $entity = 'user', $bundle = '') {
+  list ($label, $field_name) = is_array($label) ? $label : array($label, str_replace(' ', '_', strtolower($label)));
+//  print_r(field_info_field($field_name)); die($field_name);
+  if (field_info_field($field_name)) return; // don't recreate fields that exist
+  field_create_field(make_text_field_array($field_name, $cardinality, $max_length, $entity, $bundle));
+  field_create_instance(make_text_field_instance_array($label, $field_name, $size, $entity, $bundle));
+}
+
+function make_text_field_array($field_name, $cardinality = 1, $max_length = 60, $entity = 'user', $bundle = '') {
+  if (!$bundle) $bundle = $entity;
+  return array(
+    'translatable' => '0',
+    'entity_types' => array(),
+    'settings' => array(
+      'max_length' => $max_length,
+    ),
+    'storage' => array(
+      'type' => 'field_sql_storage',
+      'settings' => array(),
+      'module' => 'field_sql_storage',
+      'active' => '1',
+      'details' => array(
+        'sql' => array(
+/* (sadly, this fails)       
+          'FIELD_LOAD_CURRENT' => array(
+            "rcredits_$entity" => array(
+              'value' => $field_name,
+            ),
+          ),
+*/
+          'FIELD_LOAD_CURRENT' => array(
+            "field_data_$field_name" => array(
+              'value' => "{$field_name}_value",
+              'format' => "{$field_name}_format",
+            ),
+          ),
+          'FIELD_LOAD_REVISION' => array(
+            "field_revision_$field_name" => array(
+              'value' => "{$field_name}_value",
+              'format' => "{$field_name}_format",
+            ),
+          ),
+        ),
+      ),
+    ),
+    'foreign keys' => array(
+      'format' => array(
+        'table' => 'filter_format',
+        'columns' => array(
+          'format' => 'format',
+        ),
+      ),
+    ),
+    'indexes' => array(
+      'format' => array(
+        'format',
+      ),
+    ),
+    'field_name' => $field_name,
+    'type' => 'text',
+    'module' => 'text',
+    'active' => '1',
+    'locked' => '0',
+    'cardinality' => $cardinality,
+    'deleted' => '0',
+    'columns' => array(
+      'value' => array(
+        'type' => 'varchar',
+        'length' => $max_length,
+        'not null' => FALSE,
+      ),
+      'format' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ),
+    ),
+    'bundles' => array(
+      $bundle => array(
+        $entity,
+      ),
+    ),
+  );
+}
+
+/**
+ * Make Text Field Instance Array
+ *
+ * @todo add an $exceptions parm (just after label?), to adjust unusual fields.
+ */
+function make_text_field_instance_array($label, $field_name, $size = '60', $entity = 'user', $bundle = '') {
+<<<<<<< HEAD
+//  $bundle = $bundle ?: $entity;
+  $bundle = $bundle ? $bundle : $entity;
+=======
+  $bundle = $bundle ?: $entity;
+>>>>>>> origin/master
+  $user_register_form = $label == $field_name ? 0 : 1; // internal fields have no special label
+//  $display_weight = $weight - 7; // reason unknown
+  
+  return array(
+    'label' => $label,
+    'widget' => array(
+//      'weight' => $weight,
+      'type' => 'text_textfield',
+      'module' => 'text',
+      'active' => 1,
+      'settings' => array(
+        'size' => $size,
+      ),
+    ),
+    'settings' => array(
+      'text_processing' => '0',
+      'user_register_form' => $user_register_form,
+    ),
+    'display' => array(
+      'default' => array(
+        'label' => 'above',
+        'type' => 'text_default',
+        'settings' => array(),
+        'module' => 'text',
+//        'weight' => $display_weight,
+      ),
+    ),
+    'required' => 0,
+    'description' => '',
+    'field_name' => $field_name,
+    'entity_type' => $entity,
+    'bundle' => $bundle,
+    'deleted' => '0',
+    'default_value' => NULL,
+  );
+}

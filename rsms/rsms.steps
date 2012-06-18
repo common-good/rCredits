@@ -1,4 +1,20 @@
 <?php
+/**
+ * @file
+ * rSMS Steps
+ *
+ * Provide step functions for functional testing.
+ * This file is created automatically by the Gherkin compiler.
+ *
+ * Note, therefore, that most of this file might be changed automatically
+ * when you run the compiler again. This @file description will not be affected,
+ * but all of the function header comments are (re)generated automatically.
+ *
+ * Be assured however, that no functions will be deleted and the compiler will
+ * never delete or alter code within a function.
+ */
+use rCredits as r;
+require_once dirname(__FILE__) . '/../rcredits.inc';
 
 /**
  * phone (ARG) has no account
@@ -63,7 +79,7 @@ function phoneHasAnAccount($number) {
   global $test_only;
   if (sms_user_get_uid($number) != '') return TRUE;
   if ($test_only) return FALSE;
-  return (rcredits_create_user($number) != '');
+  return (r\create_user($number) != '');
 }
 
 /**
@@ -120,9 +136,9 @@ function weSayToPhone($number, $message) {
 function weSayToPhoneWithSubs($number, $message, $subs) {
   global $test_only;
   if (!$test_only) error;
-  $info = rcredits_log();
+  $info = r\r_log();
   $type = 'SMSout';
-  $message = rsms_t(RSMS_PREFIX_TRIAL . $message, $subs);
+  $message = RSMS_PREFIX . r\SMS\tt($message, $subs);
   return in_array(compact('type', 'message', 'number'), $info);
 }
 

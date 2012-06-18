@@ -6,8 +6,8 @@
 //   SO I can understand better how that will work once I am an Active Participant
 //   
 
-require dirname(__FILE__) . '/../gherkin/test_defs.php';
-include dirname(__FILE__) . '/../rsms.steps';
+//require dirname(__FILE__) . '/../gherkin/test_defs.php';
+//include dirname(__FILE__) . '/../rsms.steps';
 
 class rsmsExchangeForCashPreLaunch extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
@@ -48,8 +48,8 @@ class rsmsExchangeForCashPreLaunch extends DrupalWebTestCase {
     . '\\| @date  | @type   | @amount | @from    | @to      | @for |'
     . '\\| %today | payment | 100     | neabcdea | neabcdec | cash |"');
     And__('we say to phone %number1 "report cash trade" with subs: "DATA'
-    . '\\| @type      | @amount | @who       | @way            | @balance | @transaction |'
-    . '\\| You traded | 100     | Corner Pub | credit for cash | 150      | 2            |"');
+    . '\\| @type  | @amount | @who       | @way            | @balance | @transaction |'
+    . '\\| traded | 100     | Corner Pub | credit for cash | 150      | 2            |"');
   }
 
   // Scenario: The caller confirms a trade of cash for rCredits
@@ -70,8 +70,8 @@ class rsmsExchangeForCashPreLaunch extends DrupalWebTestCase {
     . '\\| @date  | @type   | @amount | @from    | @to      | @for |'
     . '\\| %today | charge  | 100     | neabcdec | neabcdea | cash |"');
     And__('we say to phone %number1 "report cash trade" with subs: "DATA'
-    . '\\| @type      | @amount | @who       | @way            | @balance | @transaction |'
-    . '\\| You traded | 100     | Corner Pub | cash for credit | 100      | 1            |"');
+    . '\\| @type  | @amount | @who       | @way            | @balance | @transaction |'
+    . '\\| traded | 100     | Corner Pub | cash for credit | 100      | 1            |"');
   }
 
   // Scenario: The caller confirms an implicit trade of rCredits for cash
@@ -92,8 +92,8 @@ class rsmsExchangeForCashPreLaunch extends DrupalWebTestCase {
     . '\\| @date  | @type   | @amount | @from    | @to      | @for |'
     . '\\| %today | payment | 100     | neabcdea | neabcdec | cash |"');
     And__('we say to phone %number1 "report cash trade" with subs: "DATA'
-    . '\\| @type    | @amount | @who       | @way                            | @balance | @transaction |'
-    . '\\| You gave | 100     | Corner Pub | (perhaps as a gift or for cash) | 150      | 2            |"');
+    . '\\| @type | @amount | @who       | @way                                   | @balance | @transaction |'
+    . '\\| gave  | 100     | Corner Pub | credit (perhaps as a gift or for cash) | 150      | 2            |"');
   }
 
   // Scenario: The caller confirms an implicit trade with insufficient balance
@@ -113,9 +113,9 @@ class rsmsExchangeForCashPreLaunch extends DrupalWebTestCase {
     And__('transactions: "DATA'
     . '\\| @date  | @type   | @amount | @from    | @to      | @for |'
     . '\\| %today | payment | 100     | neabcdea | neabcdec | cash |"');
-    And__('we say to phone %number1 "report cash trade" with subs: "DATA'
-    . '\\| @type                     | @amount | @who       | @way                            | @balance | @transaction |'
-    . '\\| PARTIAL SUCCESS. You gave | 100     | Corner Pub | (perhaps as a gift or for cash) | 0        | 2            |"');
+    And__('we say to phone %number1 "partial | report cash trade" with subs: "DATA'
+    . '\\| @type | @amount | @who       | @way                                   | @balance | @transaction |'
+    . '\\| gave  | 100     | Corner Pub | credit (perhaps as a gift or for cash) | 0        | 2            |"');
   }
 
 }

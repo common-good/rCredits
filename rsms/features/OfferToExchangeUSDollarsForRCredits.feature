@@ -11,6 +11,6 @@ Scenario: Make or update an offer
   Then phone %number1 demand for rCredits is $123.45
   And the total demand for rCredits is $100,023.45
   And we say to phone %number1 "your demand" with subs:
-  | @demand |
+  | @amount |
   | $123.45 |
   # "Your total request for rCredits is now $123.45"

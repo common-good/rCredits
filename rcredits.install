@@ -1,178 +1,64 @@
 <?php
-
 /**
  * @file
- * Install, update and uninstall functions for the rcredits module.
+ * Install, update and uninstall functions for the rCredits module.
  */
+
+use rCredits as r;
 
 /**
  * Implement hook_install().
  *
- * Add custom data for the rcredits module.
- *
- * @todo
- *   none of the custom fields gets initialized for Community. Why not?!
+ * Add custom data for the rCredits module.
  */
 function rcredits_install() {
-  make_text_field('First name');
-  make_text_field('Last name');
-  make_text_field('Phone', 3);
-  make_text_field('Postal code', 1, 20, 20);
-  make_text_field('Website', 3, 255);
-
-  // actually these are account fields, but in the user table for now
-  make_text_field('Account id', 1, 10);
-  make_text_field('Account name');
-  make_text_field('Rebate percent', 1, 10);
-  make_text_field('Demand', 1, 10);
+  r\make_fields();
+  r\make_currency();
   
-  // actually these are mobile fields, but in the user table for now
-  make_text_field('todo', 1, 255);
-  make_text_field('nonce', 1, 10);
-  
-  make_text_field(array('For', 'payer_for'), 1, 60, 60, 'transaction'); 
-  make_text_field(array('For', 'payee_for'), 1, 60, 60, 'transaction'); 
-  
-//  variable_del('RCREDITS_COMMUNITY_UID');
-  if (!variable_get('RCREDITS_COMMUNITY_UID')) {
-    $info = array(
-      'name' => 'Community',
-      'account_name' => 'Community',
-      'account_id' => RCREDITS_COMMUNITY_ID,
-      'demand' => RCREDITS_INITIAL_DEMAND,
-      'rebate_percent' => 0,
-      'postal_code' => RCREDITS_COMMUNITY_POSTAL_AREA,
-    );
-    variable_set('RCREDITS_COMMUNITY_UID', rcredits_create_user($info));
+  $name = RCREDITS_COMMUNITY_NAME;
+  $credit_id = RCREDITS_COMMUNITY_ID;
+  $credit_name = $name;
+  $postal_code = RCREDITS_COMMUNITY_POSTAL_AREA;
+  $demand = RCREDITS_INITIAL_DEMAND;
+  $rebate_percent = 0;
+  $info = compact(explode(' ', 'name credit_id credit_name postal_code demand rebate_percent'));
+  if ($uid = r\db_lookup('uid', 'users', "name = '$name'")) {
+    $account = user_load($uid);
+    user_save($account, $info);
+  } else {
+    $uid = r\create_user($info)->uid;
   }
-}
-
-function make_text_field($label, $cardinality = 1, $max_length = 60, $size = 60, $entity = 'user', $bundle = '') {
-  list ($label, $field_name) = is_array($label) ? $label : array($label, str_replace(' ', '_', strtolower($label)));
-//  print_r(field_info_field($field_name)); die($field_name);
-  if (field_info_field($field_name)) return; // don't recreate fields that exist
-  field_create_field(make_text_field_array($field_name, $cardinality, $max_length, $entity, $bundle));
-  field_create_instance(make_text_field_instance_array($label, $field_name, $size, $entity, $bundle));
-}
-
-function make_text_field_array($field_name, $cardinality = 1, $max_length = 60, $entity = 'user', $bundle = '') {
-  if (!$bundle) $bundle = $entity;
-  return array(
-    'translatable' => '0',
-    'entity_types' => array(),
-    'settings' => array(
-      'max_length' => $max_length,
-    ),
-    'storage' => array(
-      'type' => 'field_sql_storage',
-      'settings' => array(),
-      'module' => 'field_sql_storage',
-      'active' => '1',
-      'details' => array(
-        'sql' => array(
-/* (sadly, this fails)       
-          'FIELD_LOAD_CURRENT' => array(
-            "rcredits_$entity" => array(
-              'value' => $field_name,
-            ),
-          ),
-*/
-          'FIELD_LOAD_CURRENT' => array(
-            "field_data_$field_name" => array(
-              'value' => "{$field_name}_value",
-              'format' => "{$field_name}_format",
-            ),
-          ),
-          'FIELD_LOAD_REVISION' => array(
-            "field_revision_$field_name" => array(
-              'value' => "{$field_name}_value",
-              'format' => "{$field_name}_format",
-            ),
-          ),
-        ),
-      ),
-    ),
-    'foreign keys' => array(
-      'format' => array(
-        'table' => 'filter_format',
-        'columns' => array(
-          'format' => 'format',
-        ),
-      ),
-    ),
-    'indexes' => array(
-      'format' => array(
-        'format',
-      ),
-    ),
-    'field_name' => $field_name,
-    'type' => 'text',
-    'module' => 'text',
-    'active' => '1',
-    'locked' => '0',
-    'cardinality' => $cardinality,
-    'deleted' => '0',
-    'columns' => array(
-      'value' => array(
-        'type' => 'varchar',
-        'length' => $max_length,
-        'not null' => FALSE,
-      ),
-      'format' => array(
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => FALSE,
-      ),
-    ),
-    'bundles' => array(
-      $bundle => array(
-        $entity,
-      ),
-    ),
-  );
+  variable_set('rcredits_community_uid', $uid); // gets unset during uninstall
 }
 
 /**
- * Make Text Field Instance Array
- *
- * @todo add an $exceptions parm (just after label?), to adjust unusual fields.
+ * Implements hook_schema_alter().
  */
-function make_text_field_instance_array($label, $field_name, $size = '60', $entity = 'user', $bundle = '') {
-//  $bundle = $bundle ?: $entity;
-  $bundle = $bundle ? $bundle : $entity;
-  $user_register_form = $label == $field_name ? 0 : 1; // internal fields have no special label
-//  $display_weight = $weight - 7; // reason unknown
+function rcredits_schema_alter(&$schema) {
+  $users = $sms_user = $mcapi_transactions = array();
+
+  r\setup_field($schema, 'users', 'Phone', 'contact phone (no country code, no punctuation)', 'varchar 255', '', '000');
+  r\setup_field($schema, 'users', 'Postal code', 'contact postal code (no punctuation)', 'varchar 20');
+  r\setup_field($schema, 'users', 'Website', 'primary website', 'varchar 255');
+
+  // actually these are credit account fields, but in the user table for now
+  r\setup_field($schema, 'users', 'Credit name', 'name on the credit account (usually the individual or business name)', 'varchar 60');
+  r\setup_field($schema, 'users', 'Credit id', 'unique credit account identifier (8 characters for individuals)', 'varchar 9');
+  r\setup_field($schema, 'users', 'Rebate percent', 'current rebate percentage (sales bonus is double)', 'numeric', 5, '000', '4,3');
+  r\setup_field($schema, 'users', 'Demand', 'waiting to buy this much credit', 'numeric', 0, '000', '9,2');
   
-  return array(
-    'label' => $label,
-    'widget' => array(
-//      'weight' => $weight,
-      'type' => 'text_textfield',
-      'module' => 'text',
-      'active' => 1,
-      'settings' => array(
-        'size' => $size,
-      ),
-    ),
-    'settings' => array(
-      'text_processing' => '0',
-      'user_register_form' => $user_register_form,
-    ),
-    'display' => array(
-      'default' => array(
-        'label' => 'above',
-        'type' => 'text_default',
-        'settings' => array(),
-        'module' => 'text',
-//        'weight' => $display_weight,
-      ),
-    ),
-    'required' => 0,
-    'description' => '',
-    'field_name' => $field_name,
-    'entity_type' => $entity,
-    'bundle' => $bundle,
-    'deleted' => '0',
-    'default_value' => NULL,
-  );
+  r\setup_field($schema, 'sms_user', 'todo', 'waiting for confirmation to complete this operation', 'varchar 255');
+  r\setup_field($schema, 'sms_user', 'nonce', 'waiting for this nonce, for confirmation', 'varchar 10');
+  
+  r\setup_field($schema, 'mcapi_transactions', array('For', 'payer_for'), 'payer\'s description', 'varchar 60'); 
+  r\setup_field($schema, 'mcapi_transactions', array('For', 'payee_for'), 'payee\'s description', 'varchar 60'); 
+}
+ 
+/**
+ * Implements hook_uninstall().
+ */
+function rcredits_uninstall() {
+  require_once 'rcredits.inc'; // Drupal bug. Uninstall needs this explicit.
+  r\make_fields('UNMAKE');
+// (DON'T DELETE record!)  if ($who = variable_set('rcredits_community_uid')) db_query("DELETE FROM users WHERE uid = $who");
 }

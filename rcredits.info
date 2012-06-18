@@ -8,3 +8,4 @@ php = 5.2
 dependencies[] = mcapi
 files[] = rcredits.module
 files[] = rcredits.install
+files[] = rcredits.inc

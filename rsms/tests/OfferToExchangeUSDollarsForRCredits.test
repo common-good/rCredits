@@ -6,8 +6,8 @@
 //   SO I can spend more rCredits or store them
 //   
 
-require dirname(__FILE__) . '/../gherkin/test_defs.php';
-include dirname(__FILE__) . '/../rsms.steps';
+//require dirname(__FILE__) . '/../gherkin/test_defs.php';
+//include dirname(__FILE__) . '/../rsms.steps';
 
 class rsmsOfferToExchangeUSDollarsForRCredits extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
@@ -40,7 +40,7 @@ class rsmsOfferToExchangeUSDollarsForRCredits extends DrupalWebTestCase {
     Then_('phone %number1 demand for rCredits is $123.45');
     And__('the total demand for rCredits is $100,023.45');
     And__('we say to phone %number1 "your demand" with subs: "DATA'
-    . '\\| @demand |'
+    . '\\| @amount |'
     . '\\| $123.45 |"');
   }
 

@@ -23,7 +23,27 @@ $info_filename = "$path/$MODULE.info";
 $info = file_get_contents($info_filename);
 
 $steps_filename = "$path/$MODULE.steps";
-$steps_text = file_exists($steps_filename) ? file_get_contents($steps_filename) : '<' . "?php\n";
+$steps_header = '<' . <<<EOF
+?php
+/**
+ * @file
+ *  Steps
+ *
+ * Provide step functions for functional testing.
+ * This file is created automatically by the Gherkin compiler.
+ *
+ * Note, therefore, that most of this file might be changed automatically
+ * when you run the compiler again. This @file header will not be affected,
+ * but all of the function header comments are (re)generated automatically.
+ *
+ * Be assured that no functions will be deleted and the compiler will
+ * never alter code within a function.
+ *
+ * You may also add statements just below this header (for example "use" and "require_once").
+ */
+EOF;
+
+$steps_text = file_exists($steps_filename) ? file_get_contents($steps_filename) : $steps_header;
 
 /** $steps array
  *

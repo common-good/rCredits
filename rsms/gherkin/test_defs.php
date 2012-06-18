@@ -18,7 +18,9 @@ function gherkin_guts($statement, $type) {
   if($type == 'Then_') $test_only = TRUE;
 
   $arg_patterns = '"(.*?)"|(-?[0-9]+(?:[\.,-][0-9]+)*)';
-  foreach ($scene_test->subs as $from => $to) if ($from) $statement = str_replace($from, '"'.$to.'"', $statement); // if ($from) allows eg "5%"
+  foreach ($scene_test->subs as $from => $to) {
+    if ($from) $statement = str_replace($from, '"'.$to.'"', $statement); // if ($from) allows eg "5%"
+  }
   preg_match_all("/$arg_patterns/ms", $statement, $matches);
   $args = multiline_check($matches[0]); // phpbug: $matches[1] has null for numeric args (so the check removes quotes)
   $count = count($args);
@@ -35,7 +37,6 @@ function gherkin_guts($statement, $type) {
 
 function scene_setup($scene, $test) {
   global $scene_test;
-
   $scene_test = $scene;
   $scene_test->subs = usual_subs(); 
   $scene_test->current_test = $test;
@@ -78,9 +79,8 @@ function usual_subs() {
     '%random' => random_string(),
   );
   for ($i = 1; $i <= 5; $i++) { // phone numbers
-    while (in_array($number = random_string(32, '9'), $result)) {
-      $result["%number$i"] = $number;
-    }
+    while (in_array($number = random_string(32, '9'), $result)) {}
+    $result["%number$i"] = $number;
   }
   for ($i = 15; $i > 0; $i--) { // set up past dates highest first, eg to avoid missing the "5" in %today-15
     $result["%today-{$i}d"] = date($date_format, strtotime("-$i days"));
