@@ -6,6 +6,8 @@
 
 use rCredits as r;
 
+define('RCREDITS_TABLES', 'r_area_codes,r_credit_regions,r_credit_tails,r_nonces');
+
 /**
  * Implement hook_install().
  *
@@ -29,6 +31,16 @@ function rcredits_install() {
     $uid = r\create_user($info)->uid;
   }
   variable_set('rcredits_community_uid', $uid); // gets unset during uninstall
+
+  foreach (explode(',', RCREDITS_TABLES) as $table) {
+    $filename = __DIR__ . "/sql/$table";
+    $sql = file_get_contents("$filename-make.sql"); // read in a single CREATE TABLE (if exists) query
+	db_query($sql);
+    if (!r\db_lookup(1, "$table", 'TRUE') and file_exists("$filename-insert.sql")) {
+	  $sql = file_get_contents("$filename-insert.sql"); // read in a single multi-record INSERT query
+	  if (!db_query($sql)->rowCount()) die("Failed to insert records for $table.");
+	}
+  }
 }
 
 /**
@@ -38,20 +50,37 @@ function rcredits_schema_alter(&$schema) {
   $users = $sms_user = $mcapi_transactions = array();
 
   r\setup_field($schema, 'users', 'Phone', 'contact phone (no country code, no punctuation)', 'varchar 255', '', '000');
+  r\setup_field($schema, 'users', 'Fax', 'fax number (no country code, no punctuation)', 'varchar 255', '', '000');
+  r\setup_field($schema, 'users', 'Address', 'postal street address', 'varchar 60');
+  r\setup_field($schema, 'users', 'City', 'municipality', 'varchar 60');
+  r\setup_field($schema, 'users', 'State', 'two-letter state abbreviation', 'varchar 2');
   r\setup_field($schema, 'users', 'Postal code', 'contact postal code (no punctuation)', 'varchar 20');
   r\setup_field($schema, 'users', 'Website', 'primary website', 'varchar 255');
+  r\setup_field($schema, 'users', 'Categories', 'business categories', 'text medium', '', '100'); // serialized array
 
-  // actually these are credit account fields, but in the user table for now
-  r\setup_field($schema, 'users', 'Credit name', 'name on the credit account (usually the individual or business name)', 'varchar 60');
+  // actually these are credit account fields, but in the user table for now (any user with a credit id is a trading account)
+// NO  r\setup_field($schema, 'users', 'Credit name', 'name on the credit account (usually the individual or business name)', 'varchar 60');
   r\setup_field($schema, 'users', 'Credit id', 'unique credit account identifier (8 characters for individuals)', 'varchar 9');
-  r\setup_field($schema, 'users', 'Rebate percent', 'current rebate percentage (sales bonus is double)', 'numeric', 5, '000', '4,3');
-  r\setup_field($schema, 'users', 'Demand', 'waiting to buy this much credit', 'numeric', 0, '000', '9,2');
+  r\setup_field($schema, 'users', 'Rebate percent', 'current rebate percentage (sales bonus is double)', 'numeric 4,3', 5);
+  r\setup_field($schema, 'users', 'Demand', 'waiting to buy this much credit', 'numeric 9,2', 0);
+  r\setup_field($schema, 'users', 'Min balance', 'minimum balance (normally zero or less)', 'numeric 9,2', 0);
   
-  r\setup_field($schema, 'sms_user', 'todo', 'waiting for confirmation to complete this operation', 'varchar 255');
+  r\setup_field($schema, 'sms_user', 'todo', 'waiting for confirmation to complete this operation', 'text medium');
   r\setup_field($schema, 'sms_user', 'nonce', 'waiting for this nonce, for confirmation', 'varchar 10');
   
+  r\setup_field($schema, 'mcapi_transactions', 'Amount', 'transaction amount', 'numeric 18,9'); 
   r\setup_field($schema, 'mcapi_transactions', array('For', 'payer_for'), 'payer\'s description', 'varchar 60'); 
   r\setup_field($schema, 'mcapi_transactions', array('For', 'payee_for'), 'payee\'s description', 'varchar 60'); 
+/*  
+  r\setup_field($schema, 'r_area_codes', 'Area Code', 'telephone area code', 'char 3'); 
+  r\setup_field($schema, 'r_area_codes', 'Region', 'state, province, or territory', 'varchar 24'); 
+  
+  r\setup_field($schema, 'r_credit_regions', 'Region', 'state or province', 'char 2');
+  r\setup_field($schema, 'r_credit_regions', 'Credit Region', 'credit region id', 'char 2');
+  
+  r\setup_field($schema, 'r_credit_tails', 'Community', '4-character community identifier', 'char 4');
+  r\setup_field($schema, 'r_credit_tails', 'Tail', 'maximum credit id tail used so far', 'int medium', 0, '010');
+  */
 }
  
 /**
@@ -61,4 +90,6 @@ function rcredits_uninstall() {
   require_once 'rcredits.inc'; // Drupal bug. Uninstall needs this explicit.
   r\make_fields('UNMAKE');
 // (DON'T DELETE record!)  if ($who = variable_set('rcredits_community_uid')) db_query("DELETE FROM users WHERE uid = $who");
+
+  db_query('DROP TABLE IF EXISTS ' . RCREDITS_TABLES);
 }

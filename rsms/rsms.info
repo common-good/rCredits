@@ -7,6 +7,7 @@ php = 5.2
 
 dependencies[] = sms_user
 dependencies[] = rcredits
+files[] = rsms.install
 files[] = rsms.module
 files[] = rsms.inc
 files[] = rsms_call.inc

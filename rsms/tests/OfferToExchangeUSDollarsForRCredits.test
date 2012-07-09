@@ -6,8 +6,8 @@
 //   SO I can spend more rCredits or store them
 //   
 
-//require dirname(__FILE__) . '/../gherkin/test_defs.php';
-//include dirname(__FILE__) . '/../rsms.steps';
+require_once dirname(__FILE__) . '/../gherkin/test_defs.php';
+require_once dirname(__FILE__) . '/../rsms.steps';
 
 class rsmsOfferToExchangeUSDollarsForRCredits extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)

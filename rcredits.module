@@ -1,4 +1,4 @@
-<?php // $Id$
+<?php
 /**
  * @file
  * rCredits
@@ -39,6 +39,20 @@ require_once 'rcredits.inc';
 use rCredits as r;
 
 /**
+ * Implements hook_permission().
+ * Permission to transact through various interfaces is created here, 
+ * so that those permissions can be granted during installation of the corresponding submodules.
+ */
+function rcredits_permission() {
+  return array(
+    'transact via sms' => array(
+      'title' => t('Transact via SMS'),
+      'description' => t("Transfer funds and get account information through the SMS Interface"),
+    )
+  );
+}
+
+/**
  * Implements hook_help().
  */
 function rcredits_help($path, $arg) {
@@ -68,16 +82,14 @@ function rcredits_transactions_alter(&$txs) {
   $payer = $creator = variable_get('rcredits_community_uid');
 
   $type = 'rebate';
-  $amount = $my_worth['und'][0]['quantity'] * r\rebate($my_payer); // should look at user's rebate percent
+  $amount = $my_worth['und'][0]['quantity'] * r\rebate($my_payer);
   $payee = $my_payer;
-//  $for = 'rebate on #' . (r\next_tid($my_payer));
   $for = t('rebate');
   $txs[] = r\transaction_setup(compact('type', 'amount', 'payer', 'payee', 'for', 'creator'));
 
   $type = 'bonus';
-  $amount = $my_worth['und'][0]['quantity'] * r\bonus($my_payer); // should look at user's rebate percent
+  $amount = $my_worth['und'][0]['quantity'] * r\bonus($my_payer);
   $payee = $my_payee;
-//  $for = 'bonus on #' . (r\next_tid($my_payee));
   $for = t('bonus');
   $txs[] = r\transaction_setup(compact('type', 'amount', 'payer', 'payee', 'for', 'creator'));
 }

@@ -14,7 +14,7 @@
  * never delete or alter code within a function.
  */
 use rCredits as r;
-require_once dirname(__FILE__) . '/../rcredits.inc';
+require_once __DIR__ . '/../rcredits.inc';
 
 /**
  * phone (ARG) has no account
@@ -377,6 +377,489 @@ function theTotalDemandForRCreditsIs($arg1) {
  *     OfferToExchangeUSDollarsForRCredits - testMakeOrUpdateAnOffer
  */
 function phoneDemandForRCreditsIs($arg1, $arg2) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * phone (ARG) has no name
+ *
+ * in: OpenAnAccountForTheCaller - notestANamelessNewbieCalls
+ */
+function phoneHasNoName($arg1) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * we did not just ask phone (ARG) for a full name
+ *
+ * in: OpenAnAccountForTheCaller - notestANamelessNewbieCalls
+ */
+function weDidNotJustAskPhoneForAFullName($arg1) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * we just asked phone (ARG) for (ARG)
+ *
+ * in: OpenAnAccountForTheCaller - notestTheNewbieGivesUsHisOrHerName
+ *     OpenAnAccountForTheCaller - notestTheNewbieGivesUsAnUnlikelyName
+ *     OpenAnAccountForTheCaller - notestTheNewbieGivesUsHisOrHerEmailAddress
+ *     OpenAnAccountForTheCaller - notestTheNewbieGivesABadEmailAddress
+ */
+function weJustAskedPhoneFor($arg1, $arg2) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * phone (ARG) account name is (ARG)
+ *
+ * in: OpenAnAccountForTheCaller - notestTheNewbieGivesUsHisOrHerName
+ *     OpenAnAccountForTheOther - notestTheCallerSuppliesAFullNameForTheRecipientAsRequested
+ */
+function phoneAccountNameIs($arg1, $arg2) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * phone (ARG) email is (ARG)
+ *
+ * in: OpenAnAccountForTheCaller - notestTheNewbieGivesUsHisOrHerEmailAddress
+ */
+function phoneEmailIs($arg1, $arg2) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * local phonelist: (ARG)
+ *
+ * in: OpenAnAccountForTheOther - testTheCallerAsksToPayAnIdentifiableTotalNewbieByName
+ */
+function localPhonelist($arg1) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * phone (ARG) cannot be identified
+ *
+ * in: OpenAnAccountForTheOther - notestTheCallerAsksToPayANonidentifiableTotalNewbieByPhone
+ */
+function phoneCannotBeIdentified($arg1) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * we just asked phone (ARG) for a full name for phone (ARG)
+ *
+ * in: OpenAnAccountForTheOther - notestTheCallerSuppliesAFullNameForTheRecipientAsRequested
+ */
+function weJustAskedPhoneForAFullNameForPhone($arg1, $arg2) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * phone (ARG) requested (ARG)
+ *
+ * in: OpenAnAccountForTheOther - notestTheCallerSuppliesAFullNameForTheRecipientAsRequested
+ */
+function phoneRequested($arg1, $arg2) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * phone (ARG) (ARG) command use count is (ARG)
+ *
+ * in: TrackCommands - testACallerUsesACommandThatDoesNotRequireConfirmation
+ *     TrackCommands - testACallerUsesACommandThatDoesNotRequireConfirmation
+ *     TrackCommands - notestACallerUsesACommandThatDOESRequireConfirmation
+ *     TrackCommands - notestACallerUsesACommandThatDOESRequireConfirmation
+ *     TrackCommands - notestACallerUsesACommandThatDOESRequireConfirmation
+ *     TrackCommands - notestACallerUsesACommandThatDOESRequireConfirmation
+ */
+function phoneCommandUseCountIs($arg1, $arg2, $arg3) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * overall (ARG) command use count is (ARG)
+ *
+ * in: TrackCommands - testACallerUsesACommandThatDoesNotRequireConfirmation
+ *     TrackCommands - testACallerUsesACommandThatDoesNotRequireConfirmation
+ *     TrackCommands - notestACallerUsesACommandThatDOESRequireConfirmation
+ *     TrackCommands - notestACallerUsesACommandThatDOESRequireConfirmation
+ *     TrackCommands - notestACallerUsesACommandThatDOESRequireConfirmation
+ *     TrackCommands - notestACallerUsesACommandThatDOESRequireConfirmation
+ */
+function overallCommandUseCountIs($arg1, $arg2) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * phone (ARG) is a player
+ *
+ * in: AbbreviationsWork - testACallerAbbreviatesCommandWords
+ *     AbbreviationsWork - notestACallerAbbreviatesCommandWords
+ *     GetHelp - testACallerWantsHelpWithASpecificCommand
+ *     GetHelp - notestACallerWantsToKnowWhatsAvailable
+ *     GetHelp - notestACallerTypesAnUnrecognizedCommand
+ *     GetHelp - notestACallerTypesTheWrongNumberOfArguments
+ *     GetHelp - notestACallerTypesAWrongArgument
+ *     GetHelp - notestAmountIsTooBig
+ *     GetHelp - notestAccountDoesNotExist
+ *     GetInformation - testGettingInformation
+ *     GetInformation - notestGettingInformationLargerAmounts
+ *     OfferToExchangeUSDollarsForRCredits - testMakeOrUpdateAnOffer
+ *     TrackCommands - testACallerUsesACommandThatDoesNotRequireConfirmation
+ *     TrackCommands - notestACallerUsesACommandThatDOESRequireConfirmation
+ */
+function phoneIsAPlayer($arg1) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * phone (ARG) says (ARG)
+ *
+ * in: AbbreviationsWork - testACallerAbbreviatesCommandWords
+ *     AbbreviationsWork - notestACallerAbbreviatesCommandWords
+ *     ExchangeRCreditsForUSDollars - testTheCallerCanGetUSDollarsForRCredits
+ *     GetHelp - testACallerWantsHelpWithASpecificCommand
+ *     GetHelp - notestACallerWantsToKnowWhatsAvailable
+ *     GetHelp - notestACallerTypesAnUnrecognizedCommand
+ *     GetHelp - notestCallerGivesWrongNonce
+ *     GetHelp - notestACallerTypesTheWrongNumberOfArguments
+ *     GetHelp - notestACallerTypesAWrongArgument
+ *     GetHelp - notestAmountIsTooBig
+ *     GetHelp - notestAccountDoesNotExist
+ *     GetInformation - testGettingInformation
+ *     GetInformation - notestGettingInformationLargerAmounts
+ *     OfferToExchangeUSDollarsForRCredits - testMakeOrUpdateAnOffer
+ *     OpenAnAccountForTheCaller - testATotalNewbieCalls
+ *     OpenAnAccountForTheCaller - notestANamelessNewbieCalls
+ *     OpenAnAccountForTheCaller - notestTheNewbieGivesUsHisOrHerName
+ *     OpenAnAccountForTheCaller - notestTheNewbieGivesUsAnUnlikelyName
+ *     OpenAnAccountForTheCaller - notestTheNewbieGivesUsHisOrHerEmailAddress
+ *     OpenAnAccountForTheCaller - notestTheNewbieGivesABadEmailAddress
+ *     OpenAnAccountForTheOther - testTheCallerAsksToPayAnIdentifiableTotalNewbieByName
+ *     OpenAnAccountForTheOther - notestTheCallerAsksToPayANonidentifiableTotalNewbieByPhone
+ *     OpenAnAccountForTheOther - notestTheCallerSuppliesAFullNameForTheRecipientAsRequested
+ *     TrackCommands - testACallerUsesACommandThatDoesNotRequireConfirmation
+ *     TransactionPreLaunch - testTheCallerAsksToPayAMemberId
+ *     TransactionPreLaunch - notestTheCallerAsksToPayAPlayerByName
+ *     TransactionPreLaunch - notestTheCallerAsksToChargeAMemberId
+ *     Undo - testUndoTheLastTransaction
+ *     Undo - notestUndoTheLastTransactionWithSomeoneSpecific
+ *     Undo - notestUndoTheLastTransferToMe
+ *     Undo - notestUndoTheLastTransferFromMeToSomeoneSpecific
+ */
+function phoneSays($arg1, $arg2) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * we say to phone (ARG) (ARG)
+ *
+ * in: AbbreviationsWork - testACallerAbbreviatesCommandWords
+ *     GetHelp - testACallerWantsHelpWithASpecificCommand
+ *     GetHelp - notestACallerWantsToKnowWhatsAvailable
+ *     GetHelp - notestACallerTypesAnUnrecognizedCommand
+ *     GetHelp - notestCallerGivesWrongNonce
+ *     GetHelp - notestACallerTypesTheWrongNumberOfArguments
+ *     GetHelp - notestACallerTypesAWrongArgument
+ *     GetHelp - notestAmountIsTooBig
+ *     OpenAnAccountForTheCaller - testATotalNewbieCalls
+ *     OpenAnAccountForTheCaller - notestANamelessNewbieCalls
+ *     OpenAnAccountForTheCaller - notestTheNewbieGivesUsAnUnlikelyName
+ *     OpenAnAccountForTheCaller - notestTheNewbieGivesABadEmailAddress
+ */
+function weSayToPhone($arg1, $arg2) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * we say to phone (ARG) (ARG) with subs: (ARG)
+ *
+ * in: AbbreviationsWork - notestACallerAbbreviatesCommandWords
+ *     ExchangeForCashPreLaunch - testTheCallerConfirmsATradeOfRCreditsForCash
+ *     ExchangeForCashPreLaunch - notestTheCallerConfirmsATradeOfCashForRCredits
+ *     ExchangeForCashPreLaunch - notestTheCallerConfirmsAnImplicitTradeOfRCreditsForCash
+ *     ExchangeForCashPreLaunch - notestTheCallerConfirmsAnImplicitTradeWithInsufficientBalance
+ *     ExchangeRCreditsForUSDollars - testTheCallerCanGetUSDollarsForRCredits
+ *     ExchangeRCreditsForUSDollars - notestCallerConfirmsRequestForUSDollars
+ *     GetHelp - notestAccountDoesNotExist
+ *     GetInformation - testGettingInformation
+ *     GetInformation - notestGettingInformationLargerAmounts
+ *     OfferToExchangeUSDollarsForRCredits - testMakeOrUpdateAnOffer
+ *     OpenAnAccountForTheCaller - notestTheNewbieGivesUsHisOrHerName
+ *     OpenAnAccountForTheCaller - notestTheNewbieGivesUsHisOrHerEmailAddress
+ *     OpenAnAccountForTheOther - testTheCallerAsksToPayAnIdentifiableTotalNewbieByName
+ *     OpenAnAccountForTheOther - notestTheCallerAsksToPayANonidentifiableTotalNewbieByPhone
+ *     OpenAnAccountForTheOther - notestTheCallerSuppliesAFullNameForTheRecipientAsRequested
+ *     TransactionPreLaunch - testTheCallerAsksToPayAMemberId
+ *     TransactionPreLaunch - notestTheCallerAsksToPayAPlayerByName
+ *     TransactionPreLaunch - notestTheCallerAsksToChargeAMemberId
+ *     TransactionPreLaunch - notestTheCallerConfirmsAPayment
+ *     TransactionPreLaunch - notestTheCallerConfirmsACharge
+ *     TransactionPreLaunch - notestTheCallerConfirmsAPaymentWithInsufficientBalance
+ *     Undo - testUndoTheLastTransaction
+ *     Undo - notestUndoTheLastTransactionWithSomeoneSpecific
+ *     Undo - notestUndoTheLastTransferToMe
+ *     Undo - notestUndoTheLastTransferFromMeToSomeoneSpecific
+ *     Undo - notestTheCallerConfirmsUndoingACharge
+ */
+function weSayToPhoneWithSubs($arg1, $arg2, $arg3) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * players: (ARG)
+ *
+ * in: ExchangeForCashPreLaunch - testTheCallerConfirmsATradeOfRCreditsForCash
+ *     ExchangeForCashPreLaunch - notestTheCallerConfirmsATradeOfCashForRCredits
+ *     ExchangeForCashPreLaunch - notestTheCallerConfirmsAnImplicitTradeOfRCreditsForCash
+ *     ExchangeForCashPreLaunch - notestTheCallerConfirmsAnImplicitTradeWithInsufficientBalance
+ *     OpenAnAccountForTheOther - testTheCallerAsksToPayAnIdentifiableTotalNewbieByName
+ *     OpenAnAccountForTheOther - notestTheCallerAsksToPayANonidentifiableTotalNewbieByPhone
+ *     OpenAnAccountForTheOther - notestTheCallerSuppliesAFullNameForTheRecipientAsRequested
+ *     TransactionPreLaunch - testTheCallerAsksToPayAMemberId
+ *     TransactionPreLaunch - notestTheCallerAsksToPayAPlayerByName
+ *     TransactionPreLaunch - notestTheCallerAsksToChargeAMemberId
+ *     TransactionPreLaunch - notestTheCallerConfirmsAPayment
+ *     TransactionPreLaunch - notestTheCallerConfirmsACharge
+ *     TransactionPreLaunch - notestTheCallerConfirmsAPaymentWithInsufficientBalance
+ *     Undo - testUndoTheLastTransaction
+ *     Undo - notestUndoTheLastTransactionWithSomeoneSpecific
+ *     Undo - notestUndoTheLastTransferToMe
+ *     Undo - notestUndoTheLastTransferFromMeToSomeoneSpecific
+ *     Undo - notestTheCallerConfirmsUndoingACharge
+ */
+function players($arg1) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * transactions: (ARG)
+ *
+ * in: ExchangeForCashPreLaunch - testTheCallerConfirmsATradeOfRCreditsForCash
+ *     ExchangeForCashPreLaunch - testTheCallerConfirmsATradeOfRCreditsForCash
+ *     ExchangeForCashPreLaunch - notestTheCallerConfirmsATradeOfCashForRCredits
+ *     ExchangeForCashPreLaunch - notestTheCallerConfirmsATradeOfCashForRCredits
+ *     ExchangeForCashPreLaunch - notestTheCallerConfirmsAnImplicitTradeOfRCreditsForCash
+ *     ExchangeForCashPreLaunch - notestTheCallerConfirmsAnImplicitTradeOfRCreditsForCash
+ *     ExchangeForCashPreLaunch - notestTheCallerConfirmsAnImplicitTradeWithInsufficientBalance
+ *     ExchangeForCashPreLaunch - notestTheCallerConfirmsAnImplicitTradeWithInsufficientBalance
+ *     OpenAnAccountForTheOther - notestTheCallerSuppliesAFullNameForTheRecipientAsRequested
+ *     TransactionPreLaunch - notestTheCallerConfirmsAPayment
+ *     TransactionPreLaunch - notestTheCallerConfirmsAPayment
+ *     TransactionPreLaunch - notestTheCallerConfirmsACharge
+ *     TransactionPreLaunch - notestTheCallerConfirmsACharge
+ *     TransactionPreLaunch - notestTheCallerConfirmsAPaymentWithInsufficientBalance
+ *     TransactionPreLaunch - notestTheCallerConfirmsAPaymentWithInsufficientBalance
+ *     Undo - testUndoTheLastTransaction
+ *     Undo - notestUndoTheLastTransactionWithSomeoneSpecific
+ *     Undo - notestUndoTheLastTransferToMe
+ *     Undo - notestUndoTheLastTransferFromMeToSomeoneSpecific
+ *     Undo - notestTheCallerConfirmsUndoingACharge
+ *     Undo - notestTheCallerConfirmsUndoingACharge
+ */
+function transactions($arg1) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * phone (ARG) confirms (ARG)
+ *
+ * in: ExchangeForCashPreLaunch - testTheCallerConfirmsATradeOfRCreditsForCash
+ *     ExchangeForCashPreLaunch - notestTheCallerConfirmsATradeOfCashForRCredits
+ *     ExchangeForCashPreLaunch - notestTheCallerConfirmsAnImplicitTradeOfRCreditsForCash
+ *     ExchangeForCashPreLaunch - notestTheCallerConfirmsAnImplicitTradeWithInsufficientBalance
+ *     ExchangeRCreditsForUSDollars - notestCallerConfirmsRequestForUSDollars
+ *     TrackCommands - notestACallerUsesACommandThatDOESRequireConfirmation
+ *     TransactionPreLaunch - notestTheCallerConfirmsAPayment
+ *     TransactionPreLaunch - notestTheCallerConfirmsACharge
+ *     TransactionPreLaunch - notestTheCallerConfirmsAPaymentWithInsufficientBalance
+ *     Undo - notestTheCallerConfirmsUndoingACharge
+ */
+function phoneConfirms($arg1, $arg2) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * the community has Pr$(ARG)
+ *
+ * in: ExchangeForCashPreLaunch - testTheCallerConfirmsATradeOfRCreditsForCash
+ *     ExchangeForCashPreLaunch - notestTheCallerConfirmsATradeOfCashForRCredits
+ *     ExchangeForCashPreLaunch - notestTheCallerConfirmsAnImplicitTradeOfRCreditsForCash
+ *     ExchangeForCashPreLaunch - notestTheCallerConfirmsAnImplicitTradeWithInsufficientBalance
+ *     ExchangeRCreditsForUSDollars - notestCallerConfirmsRequestForUSDollars
+ *     ExchangeRCreditsForUSDollars - notestCallerConfirmsRequestForUSDollars
+ *     OpenAnAccountForTheCaller - notestTheNewbieGivesUsHisOrHerEmailAddress
+ *     OpenAnAccountForTheCaller - notestTheNewbieGivesUsHisOrHerEmailAddress
+ *     TransactionPreLaunch - notestTheCallerConfirmsAPayment
+ *     TransactionPreLaunch - notestTheCallerConfirmsACharge
+ *     TransactionPreLaunch - notestTheCallerConfirmsAPaymentWithInsufficientBalance
+ *     Undo - notestTheCallerConfirmsUndoingACharge
+ */
+function theCommunityHasPr($arg1) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * phone (ARG) has Pr$(ARG)
+ *
+ * in: ExchangeForCashPreLaunch - testTheCallerConfirmsATradeOfRCreditsForCash
+ *     ExchangeForCashPreLaunch - notestTheCallerConfirmsATradeOfCashForRCredits
+ *     ExchangeForCashPreLaunch - notestTheCallerConfirmsAnImplicitTradeOfRCreditsForCash
+ *     ExchangeForCashPreLaunch - notestTheCallerConfirmsAnImplicitTradeWithInsufficientBalance
+ *     ExchangeRCreditsForUSDollars - testTheCallerCanGetUSDollarsForRCredits
+ *     ExchangeRCreditsForUSDollars - notestCallerConfirmsRequestForUSDollars
+ *     GetInformation - testGettingInformation
+ *     GetInformation - notestGettingInformationLargerAmounts
+ *     OpenAnAccountForTheCaller - notestTheNewbieGivesUsHisOrHerEmailAddress
+ *     TransactionPreLaunch - notestTheCallerConfirmsAPayment
+ *     TransactionPreLaunch - notestTheCallerConfirmsACharge
+ *     TransactionPreLaunch - notestTheCallerConfirmsAPaymentWithInsufficientBalance
+ *     Undo - notestTheCallerConfirmsUndoingACharge
+ */
+function phoneHasPr($arg1, $arg2) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * phone (ARG) is set up for direct deposits
+ *
+ * in: ExchangeRCreditsForUSDollars - testTheCallerCanGetUSDollarsForRCredits
+ *     ExchangeRCreditsForUSDollars - notestCallerConfirmsRequestForUSDollars
+ */
+function phoneIsSetUpForDirectDeposits($arg1) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * the community has USD$(ARG)
+ *
+ * in: ExchangeRCreditsForUSDollars - notestCallerConfirmsRequestForUSDollars
+ *     ExchangeRCreditsForUSDollars - notestCallerConfirmsRequestForUSDollars
+ */
+function theCommunityHasUSD($arg1) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * we email to admin (ARG) with subs: (ARG)
+ *
+ * in: ExchangeRCreditsForUSDollars - notestCallerConfirmsRequestForUSDollars
+ */
+function weEmailToAdminWithSubs($arg1, $arg2) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * we did not just ask (ARG) for confirmation
+ *
+ * in: GetHelp - notestACallerTypesAnUnrecognizedCommand
+ */
+function weDidNotJustAskForConfirmation($arg1) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * we just asked (ARG) to confirm (ARG) with nonce (ARG)
+ *
+ * in: GetHelp - notestCallerGivesWrongNonce
+ */
+function weJustAskedToConfirmWithNonce($arg1, $arg2, $arg3) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * (ARG) is not an account id
+ *
+ * in: GetHelp - notestAccountDoesNotExist
+ */
+function isNotAnAccountId($arg1) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * phone (ARG) unavailable is $(ARG)
+ *
+ * in: GetInformation - testGettingInformation
+ *     GetInformation - notestGettingInformationLargerAmounts
+ */
+function phoneUnavailableIs($arg1, $arg2) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * the total demand for rCredits is $(ARG)
+ *
+ * in: GetInformation - testGettingInformation
+ *     GetInformation - notestGettingInformationLargerAmounts
+ *     OfferToExchangeUSDollarsForRCredits - testMakeOrUpdateAnOffer
+ *     OfferToExchangeUSDollarsForRCredits - testMakeOrUpdateAnOffer
+ */
+function theTotalDemandForRCreditsIs($arg1) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * phone (ARG) demand for rCredits is $(ARG)
+ *
+ * in: OfferToExchangeUSDollarsForRCredits - testMakeOrUpdateAnOffer
+ *     OfferToExchangeUSDollarsForRCredits - testMakeOrUpdateAnOffer
+ */
+function phoneDemandForRCreditsIs($arg1, $arg2) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * phone (ARG) has no account
+ *
+ * in: OpenAnAccountForTheCaller - testATotalNewbieCalls
+ *     OpenAnAccountForTheOther - notestTheCallerAsksToPayANonidentifiableTotalNewbieByPhone
+ */
+function phoneHasNoAccount($arg1) {
+  global $test_only;
+  todo;
+}
+
+/**
+ * phone (ARG) has an account
+ *
+ * in: OpenAnAccountForTheCaller - testATotalNewbieCalls
+ *     OpenAnAccountForTheCaller - notestANamelessNewbieCalls
+ *     OpenAnAccountForTheOther - testTheCallerAsksToPayAnIdentifiableTotalNewbieByName
+ */
+function phoneHasAnAccount($arg1) {
   global $test_only;
   todo;
 }

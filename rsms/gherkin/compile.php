@@ -253,7 +253,7 @@ function get_steps($steps_text) {
   $step_keys = explode(',', 'original,english,to_replace,callers,function_name');
   $pattern = ''
   . '^/\*\*$\s'
-  . '^ \* (.*?)$\s'
+  . '^ \* ([^\*]*?)$\s'
   . '^ \*$\s'
   . '^ \* in: ((.*?)$\s'
   . '^ \*/$\s'

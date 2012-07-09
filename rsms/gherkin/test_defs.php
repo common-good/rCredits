@@ -71,7 +71,7 @@ function random_string($len = 0, $type = '?'){
  * These may or may not get used in any particular Scenario, but it is convenient to have them always available.
  */
 function usual_subs() {
-  $subs_filename = dirname(__FILE__) . '/../usual_subs.inc';
+  $subs_filename = __DIR__ . '/../usual_subs.inc';
   $date_format = 'm-d-Y';
   
   $result = array(

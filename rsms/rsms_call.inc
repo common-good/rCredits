@@ -4,6 +4,9 @@ use \rCredits as r;
 /**
  * @file
  * rCredits SMS Call class
+ *
+ * This class includes functions that directly reference the call's parameters (message, number, etc).
+ * All other rSMS functions go in rsms.module or rsms.inc instead.
  */
  
 class call {
@@ -12,16 +15,19 @@ class call {
   var $caller;
   var $command;
   var $parameters;
+  var $confirmed;
 
+  /**
+   * Instantiate a call.
+   */
   function __construct($number, $message) {
     $this->number = $number;
-    $this->message = $message;
+    $this->message = trim($message);
+    $this->confirmed = FALSE;
     r\r_log('SMSin', $message, $number);
   }
 
   /**
-   * Handle Call
-   *
    * Handle the incoming SMS message appropriately,
    * including ALWAYS return a reply, to send to the caller.
    *
@@ -30,41 +36,52 @@ class call {
    */
   function handle_call() {
       try {
-        $this->validate_caller();
+        if($error_message = $this->validate_caller()) return $error_message;
         $this->parse();
       }
-      catch (\Exception $e) {
-        return $e->getMessage(); // cannot return $e->message directly (protected)
-      }
+      catch (\Exception $e) {return $e->getMessage();}
       return $this->rdo();
   }
   
   /**
-   * Validate Caller
-   *
    * Look up the calling number in the database to see who's calling.
    *
+   * If the caller does not have a record in our database, create one.
+   * If the record is not yet adequate, ask for more information.
+   * The caller is not validated unless we have a fullname and email address for him or her.
+   * @returns string: error message to send to the caller (null if success).
    * @throws \Exception
-   *   message is the error message to send the caller
+   *   Message is the error message to send the caller.
    */
   function validate_caller() {
-  //throw new \Exception('test');
-    if (!($this->caller = \sms_user_get_uid($this->number))) { 
-      \sms_user_register_new_user($this->number, $this->message);
-      todo($this->number, 'setup name');
-      throw new \Exception(tt("what's your name?"));
+    if (!($this->caller = \sms_user_get_uid($this->number))) $this->caller = create_account($this->number);
+    if (!$this->caller) die('missing uid');
+
+    $account = \user_load($this->caller);
+    $todo = todo($this->number);
+    if ($todo->todo == 'first call') {
+      todo($this->number, 'setup name', '');
+      return tt("what's your name?");
     }
-    if (!user_access('Transact via SMS', \user_load($this->caller))) {
+    if ($todo->todo == 'setup name' and is_temporary_name($account->name)) {
+      $name = setup_name($account, $this->message)->name;
+      todo($this->number, 'setup email', '');
+      $id = $account->credit_id;
+      return tt("what's your email?", compact('id', 'name'));
+    } elseif ($todo->todo == 'setup email' and !$account->mail) {
+      setup_email($account, $this->message);
+      todo($this->number, '', '');
+      $balance = r\format_amount(r\give_signup_incentive($this->caller));
+      return tt('your account is ready', compact('balance'));
+    } elseif (!\user_access('transact via sms', $account)) { // user does not have permission to use the rCredits SMS interface
       // send the user an email here?
-  //    throw new \Exception(''); // user does not have permission to use the rCredits SMS interface (due to misbehavior?), so don't waste a call?
-      throw new \Exception(tt('no SMS permission')); // be polite 
+      // throw new \Exception(''); // (due to misbehavior?), so don't waste a call?
+      return tt('no SMS permission'); // be polite 
     }
-    return $this;
+    return ''; // success
   }
 
   /**
-   * Parse the SMS
-   *
    * Decide what syntax best matches the caller's message.
    * Identify the command and its parameters
    *
@@ -76,51 +93,19 @@ class call {
    */
   function parse() {
     $message = trim($this->message);
-    $commands = array( // these get abbreviated first
-      'get' => array('get %rusd %amount', 'get %amount %rusd'), // best before pay, so that "g r 10" is interpreted as "get r" not "give who"
-      'payment' => array(
-        '(?:(?:payment|give|send) )?%amount to %who(?: for %what)?', 
-        '(?:to|payment|give|send) %who %amount(?: for %what)?',
-      ),
-      'charge' => array(
-        '(?:(?:charge|invoice|take|chg)? )?%amount from %who(?: for %what)?', 
-        '(?:from|charge|invoice|chg) %who %amount(?: for %what)?',
-      ),
-      'undo' => array(
-        '(?:undo|cancel)',
-        '(?:undo|cancel) %tofrom',
-        '(?:undo|cancel) %who',
-        '(?:undo|cancel) %tofrom %who',
-      ),
-      'information' => array('information', 'balance'),
-      'help' => 'help(?: %feature)?',
-    );
-    $GLOBALS['SMS commands'] = array_keys($commands);
-    $helper_words = explode(',', 'to,from,usd,balance,name,lost,be,give,send,invoice,take'); 
-
-    $tokens = array(
-      '%tofrom' => '(to|from)',
-      '%amount' => '([0-9]+(?:.[0-9][0-9]?)?)',
-      '%who' => '([^ ]+)',
-      '%what' =>  '(.+)',
-      '%rusd' => '(r|usd)',
-      '%currency' => '([a-z]+)',
-      '%feature' => '([^ ]+)',
-    );
-//    $tokens['%feature'] = '(' . join('|', $GLOBALS['SMS commands']) . ')';
-    $abbreviate = array_merge($GLOBALS['SMS commands'], $helper_words);
-    $intent = ''; // the caller's intended major command (for help, in case they get the syntax wrong)
-    foreach ($GLOBALS['SMS commands'] as $command) {
+    $commands = $GLOBALS['SMS commands'];
+    $intent = ''; // the caller's intended major command (for how, in case they get the syntax wrong)
+    foreach (array_keys($GLOBALS['SMS commands']) as $command) {
       $syntaxes = is_array($commands[$command]) ? $commands[$command] : array($commands[$command]);
       foreach($syntaxes as $syntax) {
         $pattern = str_replace(' ', ' +', trim($syntax)); // extra spaces are fine
-        $pattern = strtr($pattern, $tokens);
-        foreach ($abbreviate as $word) {
-          $pattern = str_replace($word, $this->abbreviator($word), $pattern);
+        $pattern = strtr($pattern, $GLOBALS['SMS command tokens']);
+        foreach ($GLOBALS['SMS reserved words'] as $word) {
+          $pattern = str_replace($word, abbreviator($word), $pattern);
         }
         
-        // isolate major command, if possible, potentially for more accurate help
-        $intent = $this->intent($intent, $command, $pattern, $message);
+        // isolate major command, if possible, potentially for more accurate how
+        $intent = intent($intent, $command, $pattern, $message);
 
         $pattern = "/^$pattern$/i";
         if (preg_match($pattern, $message, $matches)) {
@@ -137,13 +122,29 @@ class call {
       }
     }
 
-    //send help if the message is not successfully parsed
-    throw new \Exception(tt('syntax') . ' ' . $this->do_help($intent));
+    $todo = todo($this->number);
+    $unparseable = !$todo->nonce or strpos($message, ' '); // no nonce or not intended to be a nonce
+    if ($unparseable) throw new \Exception(tt('syntax') . ' ' . $this->do_how($intent));
+    if (strtoupper($message) != $todo->nonce) throw new \Exception(tt('wrong nonce'));
+
+    foreach (unserialize(stripslashes($todo->todo)) as $key => $value) $this->$key = $value;
+    $this->confirmed = TRUE;
+    todo($this->number, '', ''); // nonce is only good once
+    return $this;
   }
 
   /**
-   * Do: handle the parsed command.
-   *
+   * Ask for confirmation for the command.
+   * @parm string $type: what operation to confirm
+   * @parm array $info: associative array of parameters for the confirmation message
+   * @return string: the confirmation request
+   */
+  function confirm($type, $info) {
+    $info['nonce'] = todo($this->number, serialize(get_object_vars($this)));
+    return tt("confirm $type|please confirm", $info);
+  }
+  
+  /**
    * Call a function to handle the specific command
    * and return an appropriate reply.
    *
@@ -156,51 +157,50 @@ class call {
   }
 
   /**
-   * Do Help: give the caller a helpful message
+   * Give the caller a helpful message
    *
    * @param string $feature (optional)
    *   what the caller wants help on
-   *
    * @return
    *   the appropriate SMS reply
-   *
    * @todo
    *   1. Possibly customize the message for the caller (write a function for that).
    *      For example, using a local phone number and local businesses in the examples.
    */
-  function do_help($feature = '') {
+  function do_how($feature = '') {
     if (!$feature) {
       $feature = isset($this->parameters['feature']) ? $this->parameters['feature'] : '';
-      if (!$feature) $feature = 'help';
+      if (!$feature) $feature = 'how';
     }
-    $help_subs = array(
-      '@commands' => join(' | ', $GLOBALS['SMS commands']),
-      '@param' => $feature,
+    $how_subs = array(
+      'commands' => join(' | ', array_keys($GLOBALS['SMS commands'])),
+      'param' => $feature,
     );
 
-    foreach($GLOBALS['SMS commands'] as $try) {
+    foreach(array_keys($GLOBALS['SMS commands']) as $try) {
       if (substr($try, 0, strlen($feature)) == $feature) {
         // we might want to customize the messages here (see @todo above)
-        return tt("help for $try", $help_subs);
+        return tt("how to $try", $how_subs);
       }
     }
-    return tt('not a feature|help for help', $help_subs);
+    return tt('not a feature|how to how', $how_subs);
   }
 
   /**
-   * Do Information: Give the caller useful information.
+   * Give the caller useful information.
    */
   function do_information() {
     return tt('account info', r\credit_info($this->caller)->fancy);
   }
 
   /**
-   * Do Get: Help the caller exchange rCredits for US Dollars or vice versa.
+   * Help the caller exchange rCredits for US Dollars or vice versa.
    */
   function do_get() {
+    $dbtx = db_transaction();
     extract($this->parameters, EXTR_PREFIX_ALL, 'my');
     extract((array) r\credit_info($this->caller), EXTR_PREFIX_ALL, 'info');
-    $info_fancy['@amount'] = r\format_amount($my_amount);
+    $info_fancy['amount'] = r\format_amount($my_amount);
     if ($my_rusd == 'r') {
       r\demand($this->caller, $my_amount);
       return tt('your demand', $info_fancy);
@@ -212,112 +212,102 @@ class call {
       $payer = $creator = $this->caller;
       $payee = variable_get('rcredits_community_uid');
       $for = t('cash');
-      r\transact(compact('type', 'amount', 'payer', 'payee', 'for', 'creator'));
-      $info_fancy['@balance'] = r\format_amount($info_balance - $my_amount);
-      return tt('get usd', $info_fancy);
+      $info = compact('type', 'amount', 'payer', 'payee', 'for', 'creator');
+      r\transact($info);
+      $info_fancy['balance'] = r\format_amount($info_balance - $my_amount);
+      if ($this->confirmed) return tt('get usd', $info_fancy);
+      
+      $dbtx->rollback();
+      return $this->confirm('get usd', $info_fancy);
     }
     return tt('get r/usd error');
   }
 
   /**
-   * Do Undo: Undo a recent transaction by creating its opposite.
+   * Undo a recent transaction by creating its opposite.
    */
   function do_undo() {
     return t('The undo feature is not yet available.');
   }
 
   /**
-   * Do Charge: Give funds to the caller from someone else.
+   * Give funds to the caller from someone else.
    */
   function do_charge() {
     return $this->do_transfer(TRUE);
   }
 
   /**
-   * Do Payment: Give the caller's funds to someone else.
+   * Give the caller's funds to someone else.
    */
   function do_payment() {
     return $this->do_transfer(FALSE);
   }
 
   /**
-   * Do Transfer: Create a transaction for the caller.
+   * Create a transaction for the caller.
+   * @todo: handle overdrafts
    */
   function do_transfer($isfrom) {
+    $dbtx = db_transaction();
     extract($this->parameters, EXTR_PREFIX_ALL, 'my'); // amount, who, and what
 
-    $type = $isfrom ? 'charge' : 'payment';
-    $other = identify($my_who);
-    if (!$other) return t('Unknown user: "@user". ', array('@user' => $my_who)) . $this->do_help($type);
-    if (!user_access('transact', user_load($other))) {
-      return t('@name does not have permission to trade.', array('@name' => user_load($other)->name));
+    $other_number = preg_replace('/[\-\.]/', '', $my_who); // possible phone number for the other party
+    if (is_numeric($other_number) and strlen($other_number) == 10) $my_who = $other_number;
+    $type = $confirm_type = $isfrom ? 'charge' : 'payment';
+    $the_other = identify($my_who);
+    if (!$the_other and is_numeric($my_who) and strlen($my_who) == 10) $the_other = create_account($my_who);
+    if (!$the_other) return tt('unknown user', array('user' => $my_who));
+    if (!user_access('transact', user_load($the_other))) { // only if the other misbehaves
+      return t('@name does not have permission to trade.', array('@name' => user_load($the_other)->name));
     }
-    if ($other == $this->caller) return tt('no self-trading');
+    if ($the_other == $this->caller) return tt('no self-trading');
 
-    $payer = $isfrom ? $other : $this->caller;
-    $payee = $isfrom ? $this->caller : $other;
-    $amount = $my_amount;
+    $other = \user_load($the_other)->name;
     $for = $my_what;
+    $available = r\credit_info($isfrom ? $the_other : $this->caller)->available;
+    $amount = min($my_amount, $available);
+    $shortfall = $my_amount - $amount; // how much needs to be done in a separate currency
+    if ($shortfall) {
+      $short = r\format_amount($shortfall);
+      if (for_cash($for)) return tt($isfrom ? 'short cash from' : 'short cash to', compact('short', 'other')); // no partial cash trans
+      $shortfall = ceil($shortfall); // for shortfall on goods and services, shortfall should always be a round figure (no cents)
+      $amount = $my_amount - $shortfall;
+      $short = r\format_amount($shortfall);
+    }
     
+    $payer = $isfrom ? $the_other : $this->caller;
+    $payee = $isfrom ? $this->caller : $the_other;
+
     try {
-      $txs = r\transact(compact('type', 'amount', 'payer', 'payee', 'for')); // credit sender with reward
+      $txs = r\transact(compact('type', 'amount', 'payer', 'payee', 'for'));
     }
     catch (\Exception $e) {return $e->getMessage();}
     
     $totals = \transaction_totals($this->caller);
     $tid = r\tid_from_xid($this->caller, $txs[0]->xid);
-    $other_name = \user_load($other)->name;
     $reward_index = $isfrom ? 2 : 1;
     $reward = isset($txs[$reward_index]) ? $txs[$reward_index]->worth['und'][0]['quantity'] : 0;
     
-    $args = array(
-      '@type' => $isfrom ? t('charged') : t('paid'),
-      '@amount' => r\format_amount($my_amount),
-      '@tofrom' => $isfrom ? t('from') : t('to'),
-      '@reward_type' => $isfrom ? t('bonus') : t('rebate'),
-      '@reward_amount' => r\format_amount($reward),
-      '@balance' => r\format_amount($totals->balance),
-      '@tid' => $tid,
-      '@other' => $other_name,
-    );
-    if (count($txs) > 1) return tt('report transaction', $args);
+    $type = $isfrom ? t('charged') : t('paid');
+    $amount = r\format_amount($amount);
+    $tofrom = $isfrom ? t('from') : t('to');
+    $reward_type = $isfrom ? t('bonus') : t('rebate');
+    $reward_amount = r\format_amount($reward);
+    $balance = r\format_amount($totals->balance);
+    $args = compact(explode(' ', 'type amount tofrom reward_type reward_amount balance tid other short'));
     
-    $args['@type'] = 'traded';
-    $args['@way'] = $isfrom ? t('cash for credit') : t('credit for cash');
-    return tt('report exchange', $args);
-  }
+    if (!$this->confirmed) $dbtx->rollback();
 
-  function abbreviator($word) {
-    $result = substr($word, 0, 1);
-    for ($i = 2; $i <= strlen($word); $i++) {
-      $result .= '|' . substr($word, 0, $i);
+    if (!for_cash($for)) {
+      if ($this->confirmed) return tt($short ? 'report short transaction' : 'report transaction', $args);
+      if ($short) $args['amount'] = r\format_amount($my_amount); // restore original amount before getting confirmation
+      return $this->confirm($confirm_type, $args);
     }
-    return "(?:$result)";
-  }
-
-  function intent($intent, $command, $pattern, $message) {
-    if ($command == 'payment' | $command == 'charge') {
-      $abbrev = $this->abbreviator($command == 'charge' ? 'from' : 'to');
-      return preg_match("/ $abbrev /i", $message) ? $command : $intent;
-    }
-    $short_pattern = str_replace(')(', ')', '/^' . substr($pattern, 0, strpos("$pattern ", ' ')) . ' /i'); // )( happens in help command pattern
-    return preg_match($short_pattern, $message, $matches) ? $command : $intent;
-  }
-
-  /**
-   * Identify
-   *
-   * Figure out who the caller meant.
-   *
-   * @parm string $val: how the user referred to the trader
-   * @return: the trader's uid (NULL if not found)
-   */
-  function identify($val) {
-    $val = strtolower(str_replace("'", '', $val));
-    $sql = "SELECT u.uid FROM {users} u LEFT JOIN {sms_user} s ON u.uid = s.uid 
-            WHERE '$val' IN (LCASE(CONCAT('.', REPLACE(u.name, ' ', ''))), u.credit_id, s.number, LCASE(u.website), u.phone, LCASE(u.mail))";
-    $result = db_query($sql)->fetchCol();
-    return isset($result[0]) ? $result[0] : '';
+    
+    $args['type'] = 'traded';
+    $args['way'] = $isfrom ? t('cash for credit') : t('credit for cash');
+    return $this->confirmed ? tt('report exchange', $args) : $this->confirm($args['way'], $args);
   }
  
 } // end of SMS call class definition

@@ -6,8 +6,8 @@
 //   SO I can understand better how that will work once I am an Active Participant
 //   
 
-//require dirname(__FILE__) . '/../gherkin/test_defs.php';
-//include dirname(__FILE__) . '/../rsms.steps';
+require_once dirname(__FILE__) . '/../gherkin/test_defs.php';
+require_once dirname(__FILE__) . '/../rsms.steps';
 
 class rsmsExchangeForCashPreLaunch extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)

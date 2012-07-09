@@ -10,6 +10,7 @@ define('RCREDITS_REBATE', 0.05);
 define('RCREDITS_BONUS', 0.10);
 define('RCREDITS_COMMUNITY_POSTAL_AREA', '01%'); // anyone with a postal code that matches this is in
 define('RCREDITS_MAX_DEMAND', 1000000000);
+define('RCREDITS_STARTING_BALANCE', 250); // how much people start with in the TRIAL RUN
 
 /**
  * Make Fields
@@ -36,19 +37,24 @@ function make_fields($unmake = FALSE) {
 }
 
 /**
- * Setup Field
+ * Setup a schema field
  *
  * @parm string $type: data_type and size, separated by a space (a numeric size is interpreted as a string's maximum length)
  * @parm string of boolean $SUN: $serialize, $unsigned, $notnull (one binary digit for each)
  * @parm string $precision: precision and scale, separated by a comma
  *
- * @return array: the field schema (UNUSED?)
+ * @return array: the field's schema (UNUSED?)
  */
-function setup_field(&$schema, $table_name, $label, $description = '', $type = 'varchar 255', $default = '', $SUN = '000', $precision = ',') {
-  list ($label, $field_name) = is_array($label) ? $label : array($label, str_replace(' ', '_', strtolower($label)));
+function setup_field(&$schema, $table_name, $label, $description = '', $type = 'varchar 255', $default = '', $SUN = '000') {
   $size = '';
+  $precision = ',';
+
+  list ($label, $field_name) = is_array($label) ? $label : array($label, str_replace(' ', '_', strtolower($label)));
   if (strpos($type, ' ')) list ($type, $size) = explode(' ', $type);
-  if (is_numeric($size)) {
+  if ($type == 'numeric') {
+    $precision = $size;
+    $size = '';
+  } elseif (is_numeric($size)) {
     $length = $size;
     $size = '';
   }
@@ -61,20 +67,17 @@ function setup_field(&$schema, $table_name, $label, $description = '', $type = '
   }
   $scheme['not null'] = $notnull;
   $schema[$table_name]['fields'][$field_name] = $scheme;
-//  print_r($schema); die("\n\ntnm=$table_name");
   return $scheme;
 }
 
 /**
- * Make Currency
- *
  * Initialize the rCredits currency information
  *
  * @todo: get a standard schema from mcapi (ask Matthew)
  *   (mcapi_currency.inc is merely a stand-in)
  */
 function make_currency() {
-  require dirname(__FILE__) . '/mcapi_currency.inc';
+  require __DIR__ . '/mcapi_currency.inc';
   $currcode = RCREDITS_CURRENCY_CODE;
   if (db_lookup(1, 'mcapi_currencies', "currcode = '$currcode'")) return;
   $cur = mcapi\currency();
@@ -92,12 +95,24 @@ function make_currency() {
 }
 
 /**
- * Create User
+ * Create a user account for transactions and/or contact
  *
+ * @parm array $info associative array of fields and values
  * @return the user account object
  */
 function create_user($info) {
   extract($info, EXTR_PREFIX_ALL, 'my');
+
+  if (isset($my_mail) and \db_lookup(1, 'users', "mail = '$my_mail'")) {
+    throw new \Exception('duplicate email'); // throw array index to error message
+  }
+  
+  $info['mail'] = $info['init'] = '';
+  $info['pass'] = \user_password();
+  $info['name'] = isset($my_name) ? $my_name : substr(md5('zot' . strval(REQUEST_TIME)), 0, 10); // Pick a pseudo-random name for the user
+  $info['status'] = TRUE;
+  $info['is_new'] = TRUE;
+  
   if (isset($my_number)) {
     $info['sms_user'] = array(
       'number' => $my_number,
@@ -105,25 +120,15 @@ function create_user($info) {
       'code' => '',
       'gateway' => '',
     );
+    if (!isset($my_name)) $info['name'] = RSMS_TEMPORARY_ACCOUNT_PREFIX . str_replace('+1', '', $my_number); // unique temporary name
   }
 
-  // If someone already has this email address, then use it instead of creating a new user.
-  if (isset($my_mail) and ($account = array_shift(user_load_multiple(array(), array('mail' => $my_mail))))) {
-    return user_save((object) $account, $info);
-  }
-
-  $info['mail'] = $info['init'] = '';
-  $info['pass'] = user_password();
-//  $info['name'] = $my_name ?: substr(md5($number . strval(REQUEST_TIME)), 0, 10); // Pick a pseudo-random name for the user
-  $info['name'] = $my_name ? $my_name : substr(md5($number . strval(REQUEST_TIME)), 0, 10); // Pick a pseudo-random name for the user
-  $info['status'] = TRUE;
-  $info['is_new'] = TRUE;
-  return \user_save((object) $info);
+  $account = \user_save('', $info);
+  if (!$account) throw new \Exception('failed to save user record');
+  return $account;
 }
 
 /**
- * Transact
- *
  * Record a transaction between two participants
  */
 function transact($info) {
@@ -136,8 +141,6 @@ function transact($info) {
 }
 
 /**
- * Transaction Setup
- *
  * Create a new transaction and set up all the important fields.
  */
 function transaction_setup($info) {
@@ -147,6 +150,7 @@ function transaction_setup($info) {
   unset($tx->xid);
   $tx->payer = $my_payer;
   $tx->payee = $my_payee;
+  $tx->amount = $my_amount; // possible (simple) replacement for worth array
   $tx->worth['und'][0]['currcode'] = RCREDITS_CURRENCY_CODE;
 //  $tx->worth['und'][0]['currcode'] = isset($values['currency']) ? $values['currency'] : key(currencies_load());
   $tx->worth['und'][0]['quantity'] = $my_amount;
@@ -161,8 +165,21 @@ function transaction_setup($info) {
 }
 
 /**
- * Amount
- *
+ * Record an incentive transaction for signing up
+ * @parm int who: uid of the person signing up
+ * @return int: the incentive amount
+ */
+function give_signup_incentive($who) {
+  $type = 'signup';
+  $amount = RCREDITS_STARTING_BALANCE;
+  $payer = $creator = variable_get('rcredits_community_uid');;
+  $payee = $who;
+  $for = t('signup');
+  transact(compact('type', 'amount', 'payer', 'payee', 'for', 'creator'));
+  return $amount;
+}
+
+/**
  * Format the given amount as currency.
  *
  * @param float $amount
@@ -177,8 +194,6 @@ function format_amount($amount, $simplify = TRUE) {
 }
 
 /** 
- * Log (dirt simple for the moment)
- *
  * Log the message and return it.
  * This makes it easy for tests to see what was done
  *
@@ -204,7 +219,7 @@ function r_log($type='', $message='', $number='', $nonce='') {
 }  
 
 /**
- * Demand: Set or report how much rCredits the user wants to buy with US Dollars.
+ * Set or report how much rCredits the user wants to buy with US Dollars.
  *
  * @parm integer $who: uid of the user
  * @parm numeric $demand: the user's new demand amount (defaults to 0, meaning "just report")
@@ -213,13 +228,12 @@ function r_log($type='', $message='', $number='', $nonce='') {
 function demand($who, $demand = 0) {
   if (!$demand) return db_lookup('demand', 'users', "uid = $who");
   $demand = min(RCREDITS_MAX_DEMAND, $demand);
-  db_query("UPDATE users SET demand = $demand WHERE uid = $who");
+//  \db_query("UPDATE users SET demand = $demand WHERE uid = $who");
+  \db_update('users')->fields(compact('demand'))->condition('uid', $who, '=')->execute();
   return $demand;
 }
 
 /**
- * Credit Information
- *
  * @param int $who
  *   uid of the credit account to return information for
  *
@@ -227,9 +241,10 @@ function demand($who, $demand = 0) {
  *   standard object of credit account information (see keys in the return line below)
  *   with corresponding number-formatted information in ->fancy
  *   including the overall demand for rCredits
- *   array keys in ->fancy all begin with '@', to make use with t() easy
  */
 function credit_info($who) {
+  $sql = "SELECT credit_id AS id, min_balance FROM users WHERE uid = $who";
+  extract(db_query($sql)->fetchAssoc());
   $sql = "SELECT 
     SUM(IF(t.payer = $who, w.worth_quantity, 0)) AS gross_out, 
     SUM(IF(t.payee = $who, w.worth_quantity, 0)) AS gross_in,
@@ -239,21 +254,111 @@ function credit_info($who) {
   extract(db_query($sql)->fetchAssoc());
   $balance = $gross_in - $gross_out;
   $unavailable = 0; // for now
-  $available = $balance - $unavailable;
+  $available = ($balance - $min_balance) - $unavailable;
   $cashable = $balance - $rewards;
-  $demand = total_demand();
-  $result = compact(explode(' ', 'balance available unavailable rewards cashable demand'));
+  $total_demand = total_demand();
+  $result = compact(explode(' ', 'balance available unavailable rewards cashable total_demand min_balance id'));
   $fancy = array();
   foreach ($result as $key => $value) {
-    $fancy["@$key"] = format_amount($value);
+    $fancy[$key] = is_numeric($value) ? format_amount($value) : $value;
   }
   $result['fancy'] = $fancy;
   return (object) $result;
 }
 
 /**
- * DB Lookup
+ * Say whether the user name is valid.
+ */
+function valid_name($name) {
+  $words = substr_count($name, ' ') + 1;
+  return (preg_match("/[^A-Z\-\.,' ]/i", $name) or $words < 2 or $words > 4) ? FALSE : TRUE;
+}
+
+/**
+ * Create an appropriate credit id for the given phone number
  *
+ * Callers of this function should roll it back if the id does not get used.
+ * @parm string $cgc: what common good community the number's owner belongs to, if any
+ * @todo: Change this to add a credit_id to the already-saved account record. The credit_id field
+ *   should be UNIQUE INDEX'ed, so the UPDATE will fail in case of a collision (then just retry). 
+ *   The next appropriate id should be found by SELECT MAX WHERE credit_id LIKE '$ctty____'
+ *   (or '$ctty_____' -- 5-char tail for orgs), then convert to an integer and back to next id.
+ *   (no need for credit_tails table).
+ */
+function make_credit_id($number, $cgc = '') {
+  $area = substr($number, 0, 3);
+  $state = db_lookup('region', 'r_area_codes', "area_code='$area'");
+  $region = db_lookup('credit_region', 'r_credit_regions', "region='$state'");
+  if (strlen($number) != 10 or !$region) $region = 'Z9';
+//  $ctty = $area == '413' ? 'GF' : ($area == '860' ? 'NL' : 'AA'); // Greenfield, New London, or other
+  $ctty = $region . 'AA'; // until the person becomes a member of a specific community, give them a generic community
+  return $ctty . next_credit_id_tail($ctty);
+}
+
+/**
+ * Return the next credit id tail for the given community.
+ * Callers of this function should roll it back if the tail does not get used.
+ */
+function next_credit_id_tail($ctty, $retry = 0) {
+  $tail = db_lookup('tail', 'r_credit_tails', "community='$ctty'");
+  if ($tail === FALSE) {
+    $sql = "INSERT INTO r_credit_tails (community, tail) VALUES ('$ctty', 0);";
+    $count = \db_query($sql)->rowCount();
+    $tail = -1;
+  } else {
+    $sql = "UPDATE r_credit_tails SET tail=tail+1 WHERE community='$ctty' AND tail='$tail'";
+    $count = \db_query($sql)->rowCount();
+  }
+  if ($count) return n2a($tail + 1, 4);
+  if ($retry > 9) return '';
+  return next_credit_id_tail($ctty, $retry + 1);
+}
+
+/**
+ * Return an alphabetic representation of the given integer.
+ * A is the zero digit, B is 1, etc.
+ * @parm int $n: the integer to represent
+ * @parm int $len: the length of the string to return
+ * @parm int $base: the radix (defaults to 26).
+ */
+function n2a($n, $len, $base = 26) {
+  $result = '';
+  for ($i = 0; $i < $len; $i++) {
+    $digit = $n % $base;
+    $result = chr(ord("A") + $digit) . $result;
+    $n = (int) ($n / $base);
+  }
+  return $result;
+}
+
+/**
+ * Return the numeric equivalent of the given alphabetic string.
+ * @see n2a
+ */
+function a2n($string, $base = 26) {
+  $result = 0;
+  for ($i = 0; $i < strlen($string); $i++) {
+    $result = $result * $base + ord($string[$i]) - ord("A");
+  }
+  return $result;
+}
+
+/**
+ * Reset all rCredits data, to start development with a clean slate
+ */
+function reset() {
+  if(!($ctty_uid = variable_get('rcredits_community_uid'))) die("No community uid!");
+  $sqls = array(
+    'TRUNCATE TABLE mcapi_transactions',
+    'TRUNCATE TABLE field_data_worth',
+    'TRUNCATE TABLE field_revision_worth',
+    'TRUNCATE TABLE sms_user',
+    "DELETE FROM users WHERE uid > $ctty_uid",
+  );
+  foreach ($sqls as $sql) \db_query($sql);
+}
+
+/**
  * Look the field up in the table, returning the first record matching the criteria.
  */
 function db_lookup($field_name, $table_name, $criteria = '') {

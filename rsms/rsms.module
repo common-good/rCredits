@@ -7,9 +7,9 @@
  */
 
 use rCredits as r;
-require_once dirname(__FILE__) . '/../rcredits.inc';
-require_once dirname(__FILE__) . '/rsms.inc';
-require_once dirname(__FILE__) . '/rsms_call.inc';
+require_once __DIR__ . '/../rcredits.inc';
+require_once __DIR__ . '/rsms.inc';
+require_once __DIR__ . '/rsms_call.inc';
 
 /**
  * implements hook_form_alter, to set focus
@@ -21,18 +21,6 @@ function rsms_form_alter(&$form, &$form_state, $form_id) {
   if ($form_id == 'sms_devel_receive_form') {
     drupal_add_js("document.getElementById('edit-message').focus();", array('type'=>'inline', 'scope'=>'footer'));  
   }
-}
-
-/**
- * implements hook_permissions
- */
-function rsms_permission() {
-  return array(
-    'Transact via SMS' => array(
-      'title' => t('Transact via SMS'),
-      'description' => t("Transfer funds and get account information through the SMS Interface"),
-    )
-  );
 }
 
 /* probably delete this function
@@ -64,7 +52,6 @@ function rsms_sms_incoming($op, $number, $message) {
     case 'pre process':
       break;
     case 'process':
-//	  $number = '4111111111'; // test unregistered phone number
       $call = new r\SMS\call($number, $message);
       r\SMS\send($number, RSMS_PREFIX . $call->handle_call());
       break;
