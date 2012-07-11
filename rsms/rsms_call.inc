@@ -94,7 +94,7 @@ class call {
   function parse() {
     $message = trim($this->message);
     $commands = $GLOBALS['SMS commands'];
-    $intent = ''; // the caller's intended major command (for how, in case they get the syntax wrong)
+    $intent = ''; // the caller's intended major command (for helpme, in case they get the syntax wrong)
     foreach (array_keys($GLOBALS['SMS commands']) as $command) {
       $syntaxes = is_array($commands[$command]) ? $commands[$command] : array($commands[$command]);
       foreach($syntaxes as $syntax) {
@@ -104,7 +104,7 @@ class call {
           $pattern = str_replace($word, abbreviator($word), $pattern);
         }
         
-        // isolate major command, if possible, potentially for more accurate how
+        // isolate major command, if possible, potentially for more accurate help
         $intent = intent($intent, $command, $pattern, $message);
 
         $pattern = "/^$pattern$/i";
@@ -124,7 +124,7 @@ class call {
 
     $todo = todo($this->number);
     $unparseable = !$todo->nonce or strpos($message, ' '); // no nonce or not intended to be a nonce
-    if ($unparseable) throw new \Exception(tt('syntax') . ' ' . $this->do_how($intent));
+    if ($unparseable) throw new \Exception(tt('syntax') . ' ' . $this->do_helpme($intent));
     if (strtoupper($message) != $todo->nonce) throw new \Exception(tt('wrong nonce'));
 
     foreach (unserialize(stripslashes($todo->todo)) as $key => $value) $this->$key = $value;
@@ -157,6 +157,21 @@ class call {
   }
 
   /**
+   * Handle a user's request to receive no SMS messages from us (already handled by the gateway).
+   * Only two gateway commands get passed through to us: start and stop (help does not get passed through).
+   */
+  function do_stop() {
+    \user_role_revoke_permissions(DRUPAL_AUTHENTICATED_RID, array('receive sms'));
+  }
+
+  /**
+   * Handle a user's request to (again) accept SMS messages from us (already handled by the gateway).
+   */
+  function do_start() {
+    \user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array('receive sms'));
+  }
+
+  /**
    * Give the caller a helpful message
    *
    * @param string $feature (optional)
@@ -167,25 +182,34 @@ class call {
    *   1. Possibly customize the message for the caller (write a function for that).
    *      For example, using a local phone number and local businesses in the examples.
    */
-  function do_how($feature = '') {
+  function do_helpme($feature = '') {
     if (!$feature) {
       $feature = isset($this->parameters['feature']) ? $this->parameters['feature'] : '';
-      if (!$feature) $feature = 'how';
+      if (!$feature) $feature = 'helpme';
     }
-    $how_subs = array(
-      'commands' => join(' | ', array_keys($GLOBALS['SMS commands'])),
-      'param' => $feature,
-    );
 
     foreach(array_keys($GLOBALS['SMS commands']) as $try) {
-      if (substr($try, 0, strlen($feature)) == $feature) {
+      if (abbreviates($feature, $try)) {
         // we might want to customize the messages here (see @todo above)
-        return tt("how to $try", $how_subs);
+        todo($this->number, "help {$try}2", '');
+        return tt("help $try");
       }
     }
-    return tt('not a feature|how to how', $how_subs);
+    return tt('not a feature|help helpme', compact('feature'));
   }
 
+  /**
+   * Give additional help
+   */
+  function do_more() {
+    $todo = todo($this->number);
+    if (isset($GLOBALS['SMS help'][$todo->todo])) {
+      todo($this->number, $todo->todo . '2', '');
+      return tt($todo->todo);
+    }
+    return tt('help helpme');
+  }
+    
   /**
    * Give the caller useful information.
    */
@@ -224,7 +248,7 @@ class call {
   }
 
   /**
-   * Undo a recent transaction by creating its opposite.
+   * Undo a recent transaction by creating its opposite (using a negative amount).
    */
   function do_undo() {
     return t('The undo feature is not yet available.');
@@ -246,7 +270,8 @@ class call {
 
   /**
    * Create a transaction for the caller.
-   * @todo: handle overdrafts
+   * @todo: create account for the other party in any case other than when the caller uses a credit id
+   * (not just when the caller uses a phone number to identify the other)
    */
   function do_transfer($isfrom) {
     $dbtx = db_transaction();

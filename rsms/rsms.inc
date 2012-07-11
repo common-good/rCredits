@@ -17,7 +17,7 @@ define('RSMS_TEMPORARY_ACCOUNT_PREFIX', 'phone'); // user name is temporarily se
 $GLOBALS['SMS messages'] = array(
   // reports
   'account info' => t("Your balance for account @id is @balance, including @rewards of incentive rewards. Total demand for rCredits is @total_demand."),
-  'your account is ready' => t('Your starting balance is @balance. Pretend to buy and sell as you would in a typical month (we need that information). Have fun! Type "how" to get started.'),
+  'your account is ready' => t('Your starting balance is @balance. Pretend to buy and sell as you would in a typical month (we need that info). Have fun! Type "helpme" to get started.'),
 //  'your account is ready' => t("Thank you! Your practice balance is @balance."),
   'get usd' => t("Exchange approved. @amount will be transferred directly to your bank account within 24 hours. Your new balance is @balance."),
 //  'get usd inactive' => t("If you were an Active Participant in the rCredits system, your request would transfer @amount directly to your bank account. Alas, you are not yet an Active Participant."),
@@ -41,14 +41,6 @@ $GLOBALS['SMS messages'] = array(
   'confirm cash for credit' => t("Give @other @amount cash for rCredits?"),
   'please confirm' => t("To confirm, type @nonce."),
   
-  // how messages
-  'how to payment' => t("Payment examples: 12.34 to 413.772.0000 | .cornerstore | wgabcd | jd@example.com for labor (describe any real goods & services)"),
-  'how to charge' => t("Charge examples: 12.34 from 413.772.0000 | wgabcd | jdough@example.com for labor (describe any real goods & services)"),
-  'how to undo' => t("Examples: undo | undo to | undo 413.772.0000 | undo from wgabcd"),
-  'how to get' => t("Examples: get r 12.34 | get usd 12.34"),
-  'how to information' => t("Example: information (tells you your balance and the current demand for rCredits)"),
-  'how to how' => t('Examples: @commands. For example, type "how undo".'),
-  
   // error messages
   'syntax' => t('Syntax error.'),
   'duplicate name' => t('That name is already taken, in your region. Try again. Use a middle initial?'),
@@ -57,16 +49,31 @@ $GLOBALS['SMS messages'] = array(
   "can't cash incentives" => t("You can SPEND your incentive rewards (@rewards to date), but you can't cash them out. Your balance available to exchange for US Dollars is @cashable."),
 //  "can't cash incentives" => t("Once you are an active participant, you can spend your incentive rewards (@balance to date), but you can't cash them out. Your balance available to exchange for US Dollars is $0."),
 //  'get r/usd' => t('You can get only "r" or "usd" (rCredits or US Dollars).'), // not yet used (maybe used when there is a third option)
-  'not a feature' => t('"@param" is not a feature.'),
+  'not a feature' => t('"@feature" is not a feature.'),
   'wrong nonce' => t('That is not the expected confirmation response. Try again (start over).'),
   'no self-trading' => t("You can't exchange rCredits with yourself."),
   'duplicate email' => t("There is already an account with that email address. Visit rCredits.org to add this cell number to your account."),
-  'unknown user' => t('Unknown user: "@user". Type "how pay".'),
+  'unknown user' => t('Unknown user: "@user". Type "helpme pay".'),
   'short cash to' => t('You are r@short short, for that exchange.'),
   'short cash from' => t('@other does not have enough rCredits for that exchange.'),
 );
 
-$GLOBALS['SMS messages']['how to how no-error'] = t('Try something! ') . $GLOBALS['SMS messages']['how to how'];
+  // help messages (for use with the help command)
+$GLOBALS['SMS help'] = array(
+  'help payment' => t('To pay Jane Dough $30 for pie, type "30 to .janedough for pie" (notice the dot before the name). Type "more" for more options.'),
+  'help payment2' => t('You can also identify the recipient by phone, email, website, or account id. If you are just exchanging rCredits for cash, leave out the description.'),
+  'help charge' => t('To charge Food Corp $800 for labor, type "800 from .foodcorp for labor" (notice the dot before the name). Type "more" for more options.'),
+  'help charge2' => t('You can also identify the payer by phone, email, website, or account id. If you are just exchanging cash for rCredits, leave out the description.'),
+  'help undo' => t('To undo your most recent transaction, type "undo". Type "more" for more options, to undo your most recent transaction of a certain type.'),
+  'help undo2' => t('Examples: undo | undo .janedough | undo to | undo from | undo to .janedough | undo from .janedough -- Type "more" for more options.'),
+  'help undo22' => t('"undo .janedough" undoes your most recent transaction with Jane Dough. You can also identify her by phone number, email, website, or account id.'),
+  'help get' => t('To get $200 more in rCredits, type "get r 200". To send $50 in rCredits to your US bank account, type "get usd 50".'),
+  'help information' => t('Just type "info" (tells you your balance and the current demand for rCredits)'),
+  'help helpme' => t('Options: pay | charge | undo | info | get | helpme. For details, type "helpme pay" and so forth.'),
+);
+
+$GLOBALS['SMS messages']['help helpme no-error'] = t('Try something! ') . $GLOBALS['SMS help']['help helpme'];
+$GLOBALS['SMS messages'] = array_merge($GLOBALS['SMS messages'], $GLOBALS['SMS help']); 
 
 $GLOBALS['SMS commands'] = array( // these can be abbreviated by the caller
   'get' => array('get %rusd %amount', 'get %amount %rusd'), // best before pay, so that "g r 10" is interpreted as "get r" not "give who"
@@ -85,7 +92,8 @@ $GLOBALS['SMS commands'] = array( // these can be abbreviated by the caller
     '(?:undo|reverse|canc) %tofrom %who',
   ),
   'information' => array('information', 'balance'),
-  'how' => 'how(?: %feature)?',
+  'helpme' => 'helpme(?: %feature)?',
+  'more' => 'more', // continuation of help
   'stop' => 'stop|unsubscribe|cancel|quit', // passed from SMS Gateway
   'start' => 'start|yes', // passed from SMS Gateway
 );
@@ -102,21 +110,6 @@ $GLOBALS['SMS command tokens'] = array(
   '%currency' => '([a-z]+)',
   '%feature' => '([^ ]+)',
 );
-
-/**
- * Handle a user's request to receive no SMS messages from us (already handled by the gateway).
- * Only two gateway commands get passed through to us: start and stop (help does not get passed through).
- */
-function do_stop() {
-  user_role_revoke_permissions(DRUPAL_AUTHENTICATED_RID, array('receive sms'));
-}
-
-/**
- * Handle a user's request to (again) accept SMS messages from us (already handled by the gateway).
- */
-function do_start() {
-  user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array('receive sms'));
-}
 
 /**
  * Get the long version of the indicated message(s), make any substitutions,
@@ -143,9 +136,9 @@ function tt($message, $substitutions = array()) {
  * Send an SMS message to someone.
  */
 function send($number, $message0) {
-  $message = substr($message0, 0, 160);
+  $message = substr($message0, 0, 160-1); // minus one because Twilio splits messages 160 chars long (and may discard the first part)
   if ($message != $message0) $message0 .= ' -- TOO LONG! (strlen ' . strlen($message0) . ')';
-  if ($message != $message0) die ($message0); // debug
+  if (sms_devel_gateway()) if ($message != $message0) die ($message0); // debug
   \sms_send($number, $message);
   r\r_log('SMSout', $message0, $number, infer_nonce($message0));
 }
@@ -266,7 +259,7 @@ function intent($intent, $command, $pattern, $message) {
     $abbrev = abbreviator($command == 'charge' ? 'from' : 'to');
     return preg_match("/ $abbrev /i", $message) ? $command : $intent;
   }
-  $short_pattern = str_replace(')(', ')', '/^' . substr($pattern, 0, strpos("$pattern ", ' ')) . ' /i'); // )( happens in how command pattern
+  $short_pattern = str_replace(')(', ')', '/^' . substr($pattern, 0, strpos("$pattern ", ' ')) . ' /i'); // )( happens in helpme command pattern
   return preg_match($short_pattern, $message, $matches) ? $command : $intent;
 }
 
@@ -284,4 +277,11 @@ function identify($val) {
           WHERE '$val' IN (LCASE(CONCAT('.', REPLACE(u.name, ' ', ''))), u.credit_id, s.number, LCASE(u.website), u.phone, LCASE(u.mail))";
   $result = db_query($sql)->fetchCol();
   return isset($result[0]) ? $result[0] : '';
+}
+
+/**
+ * Say whether the first string is an abbreviation of the second.
+ */
+function abbreviates($s, $string) {
+  return (substr($string, 0, strlen($s)) == $s);
 }
