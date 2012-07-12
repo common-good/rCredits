@@ -57,8 +57,8 @@ Scenario: The caller confirms an informational payment
   | 2               | %today-1d | irebate  | 5.00    | 4     | 1   | rebate on #1 |
   | 3               | %today-1d | ibonus   | 10.00   | 4     | 3   | bonus on #1  |
   When phone %number1 confirms "123.45 to neabcdec for groceries"
-  Then the community has Pr$-33.52
-  And phone %number3 has Pr$22.35
+  Then the community has r$-33.52
+  And phone %number3 has r$22.35
   And transactions:
   | @transaction_id | @date  | @type    | @amount | @from | @to | @whatfor     |
   | 4               | %today | ipayment | 123.45  | 1     | 3   | whatever     |
@@ -81,8 +81,8 @@ Scenario: The caller confirms an informational charge
   | 2               | %today-1d | irebate  | 5.00    | 4     | 1   | rebate on #1 |
   | 3               | %today-1d | ibonus   | 100.00  | 4     | 3   | bonus on #1  |
   When phone %number1 confirms "123.45 from neabcdec for labor"
-  Then the community has Pr$-33.52
-  And phone %number3 has Pr$16.17
+  Then the community has r$-33.52
+  And phone %number3 has r$16.17
   And transactions:
   | @transaction_id | @date  | @type    | @amount | @from | @to | @whatfor     |
   | 4               | %today | icharge  | 123.45  | 1     | 3   | whatever     |

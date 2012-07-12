@@ -7,7 +7,7 @@ Scenario: Getting information
 # Leave the cents off balance and unavailable rather than adding ".00". 
 # Always round the demand to an integer. Round the demand down to three significant digits and use "million" once it passes a million.
   Given phone %number1 is a player
-  And phone %number1 has Pr$100
+  And phone %number1 has r$100
   And phone %number1 unavailable is $7.50
   And the total demand for rCredits is $26,987.56
   When phone %number1 says "information"
@@ -18,7 +18,7 @@ Scenario: Getting information
 
 Scenario: Getting information, larger amounts
   Given phone %number1 is a player
-  And phone %number1 has Pr$100,000.01
+  And phone %number1 has r$100,000.01
   And phone %number1 unavailable is $99,908.00
   And the total demand for rCredits is $1,226,987.25
   When phone %number1 says "information"

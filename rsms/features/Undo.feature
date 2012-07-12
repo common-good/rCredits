@@ -97,8 +97,8 @@ Scenario: The caller confirms undoing a charge
   | %today-1d | rebate  | 5.00    | community| neabcdea | rebate on #1 |
   | %today-1d | bonus   | 10.00   | community| neabcdec | bonus on #1  |
   When phone %number1 confirms "undo 1"
-  Then the community has Pr$0
-  And phone %number3 has Pr$0
+  Then the community has r$0
+  And phone %number3 has r$0
   And transactions:
   | @date  | @type   | @amount | @from    | @to      | @for       |
   | %today | payment | -100    | neabcdea | neabcdec | cancels #1 |

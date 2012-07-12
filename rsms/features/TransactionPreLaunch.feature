@@ -52,8 +52,8 @@ Scenario: The caller confirms a payment
   | @date     | @type  | @amount | @from    | @to      | @for          |
   | %today-1d | signup | 250.00  | community| neabcdea | signup reward |
   When phone %number1 confirms "100 to neabcdec for groceries"
-  Then the community has Pr$-265
-  And phone %number3 has Pr$110
+  Then the community has r$-265
+  And phone %number3 has r$110
   And transactions:
   | @date  | @type   | @amount | @from    | @to      | @for         |
   | %today | payment | 100     | neabcdea | neabcdec | groceries    |
@@ -74,8 +74,8 @@ Scenario: The caller confirms a charge
   | @date     | @type  | @amount | @from    | @to      | @for          |
   | %today-1d | signup | 250.00  | community| neabcdec | signup reward |
   When phone %number1 confirms "100 from neabcdec for labor"
-  Then the community has Pr$-265
-  And phone %number3 has Pr$155
+  Then the community has r$-265
+  And phone %number3 has r$155
   And transactions:
   | @date  | @type   | @amount | @from    | @to      | @for         |
   | %today | charge  | 100     | neabcdec | neabcdea | labor        |
@@ -96,8 +96,8 @@ Scenario: The caller confirms a payment with insufficient balance
   | @date     | @type  | @amount | @from    | @to      | @for          |
   | %today-1d | signup | 100.00  | community| neabcdea | signup reward |
   When phone %number1 confirms "250 to neabcdec for groceries"
-  Then the community has Pr$-115
-  And phone %number3 has Pr$110
+  Then the community has r$-115
+  And phone %number3 has r$110
   And transactions:
   | @date  | @type   | @amount | @from    | @to      | @for         |
   | %today | payment | 100     | neabcdea | neabcdec | groceries    |

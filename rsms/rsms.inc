@@ -18,7 +18,6 @@ $GLOBALS['SMS messages'] = array(
   // reports
   'account info' => t("Your balance for account @id is @balance, including @rewards of incentive rewards. Total demand for rCredits is @total_demand."),
   'your account is ready' => t('Your starting balance is @balance. Pretend to buy and sell as you would in a typical month (we need that info). Have fun! Type "helpme" to get started.'),
-//  'your account is ready' => t("Thank you! Your practice balance is @balance."),
   'get usd' => t("Exchange approved. @amount will be transferred directly to your bank account within 24 hours. Your new balance is @balance."),
 //  'get usd inactive' => t("If you were an Active Participant in the rCredits system, your request would transfer @amount directly to your bank account. Alas, you are not yet an Active Participant."),
   'report transaction' => t("You @type @other @amount (@reward_type: @reward_amount). Your new balance is @balance. Transaction #@tid"),
@@ -60,12 +59,12 @@ $GLOBALS['SMS messages'] = array(
 
   // help messages (for use with the help command)
 $GLOBALS['SMS help'] = array(
-  'help payment' => t('To pay Jane Dough $30 for pie, type "30 to .janedough for pie" (notice the dot before the name). Type "more" for more options.'),
+  'help payment' => t('To pay Jane Dough $30 for pie, type "30 to .janedough for pie" (with a dot before the name, no spaces). Type "more" for options.'),
   'help payment2' => t('You can also identify the recipient by phone, email, website, or account id. If you are just exchanging rCredits for cash, leave out the description.'),
-  'help charge' => t('To charge Food Corp $800 for labor, type "800 from .foodcorp for labor" (notice the dot before the name). Type "more" for more options.'),
+  'help charge' => t('To charge Food Corp $90 for labor, type "90 from .foodcorp for labor" (with a dot before the name, no spaces). Type "more" for options.'),
   'help charge2' => t('You can also identify the payer by phone, email, website, or account id. If you are just exchanging cash for rCredits, leave out the description.'),
-  'help undo' => t('To undo your most recent transaction, type "undo". Type "more" for more options, to undo your most recent transaction of a certain type.'),
-  'help undo2' => t('Examples: undo | undo .janedough | undo to | undo from | undo to .janedough | undo from .janedough -- Type "more" for more options.'),
+  'help undo' => t('To undo your most recent transaction, type "undo". Type "more" for options to undo your most recent transaction of a certain type.'),
+  'help undo2' => t('Examples: undo | undo .janedough | undo to | undo from | undo to .janedough | undo from .janedough -- Type "more" for details.'),
   'help undo22' => t('"undo .janedough" undoes your most recent transaction with Jane Dough. You can also identify her by phone number, email, website, or account id.'),
   'help get' => t('To get $200 more in rCredits, type "get r 200". To send $50 in rCredits to your US bank account, type "get usd 50".'),
   'help information' => t('Just type "info" (tells you your balance and the current demand for rCredits)'),
@@ -82,7 +81,7 @@ $GLOBALS['SMS commands'] = array( // these can be abbreviated by the caller
     '(?:to|payment|give|send) %who %amount(?: for %what)?',
   ),
   'charge' => array(
-    '(?:(?:charge|invoice|take|chg)? )?%amount from %who(?: for %what)?', 
+    '(?:(?:charge|invoice|take|chg) )?%amount from %who(?: for %what)?', 
     '(?:from|charge|invoice|chg) %who %amount(?: for %what)?',
   ),
   'undo' => array(
@@ -138,7 +137,7 @@ function tt($message, $substitutions = array()) {
 function send($number, $message0) {
   $message = substr($message0, 0, 160-1); // minus one because Twilio splits messages 160 chars long (and may discard the first part)
   if ($message != $message0) $message0 .= ' -- TOO LONG! (strlen ' . strlen($message0) . ')';
-  if (sms_devel_gateway()) if ($message != $message0) die ($message0); // debug
+  if (sms_devel_gateway()) if ($message != $message0) r\deb($message0); // debug
   \sms_send($number, $message);
   r\r_log('SMSout', $message0, $number, infer_nonce($message0));
 }
@@ -257,10 +256,11 @@ function for_cash($for) {
 function intent($intent, $command, $pattern, $message) {
   if ($command == 'payment' | $command == 'charge') {
     $abbrev = abbreviator($command == 'charge' ? 'from' : 'to');
-    return preg_match("/ $abbrev /i", $message) ? $command : $intent;
+    if (preg_match("/ $abbrev /i", $message)) return $command;
   }
-  $short_pattern = str_replace(')(', ')', '/^' . substr($pattern, 0, strpos("$pattern ", ' ')) . ' /i'); // )( happens in helpme command pattern
-  return preg_match($short_pattern, $message, $matches) ? $command : $intent;
+  $short_pattern = preg_replace('~\(\?\:|\)~', '', substr($pattern, 0, strpos("$pattern ", ' '))); // isolate command words
+r\deb("message=$message command=$command shpattern=$short_pattern");
+  return preg_match("/^$short_pattern /i", $message, $matches) ? $command : $intent;
 }
 
 /**

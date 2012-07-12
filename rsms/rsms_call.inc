@@ -14,7 +14,7 @@ class call {
   var $number;
   var $caller;
   var $command;
-  var $parameters;
+  var $parms;
   var $confirmed;
 
   /**
@@ -92,6 +92,9 @@ class call {
    *   "who" identifiers chosen in the "name" command cannot be me, r, u, us, or usd.
    */
   function parse() {
+    $todo = todo($this->number);
+    todo($this->number, '', ''); // todo and nonce are only good once
+
     $message = trim($this->message);
     $commands = $GLOBALS['SMS commands'];
     $intent = ''; // the caller's intended major command (for helpme, in case they get the syntax wrong)
@@ -106,7 +109,6 @@ class call {
         
         // isolate major command, if possible, potentially for more accurate help
         $intent = intent($intent, $command, $pattern, $message);
-
         $pattern = "/^$pattern$/i";
         if (preg_match($pattern, $message, $matches)) {
           array_shift($matches);
@@ -114,22 +116,21 @@ class call {
           $keys = str_replace('%', '', $keys[0]);
           if (count($keys)) {
             if (count($matches) < count($keys)) $matches[] = ''; // make the optional final argument null, if omitted
-            $this->parameters = array_combine($keys, $matches);
-          } else $this->parameters = array();
+            $this->parms = array_combine($keys, $matches);
+          } else $this->parms = array();
+          if ($command == 'more') $this->parms['todo'] = $todo->todo;
           $this->command = $command;
           return $this;
         }
       }
     }
 
-    $todo = todo($this->number);
     $unparseable = !$todo->nonce or strpos($message, ' '); // no nonce or not intended to be a nonce
     if ($unparseable) throw new \Exception(tt('syntax') . ' ' . $this->do_helpme($intent));
     if (strtoupper($message) != $todo->nonce) throw new \Exception(tt('wrong nonce'));
 
     foreach (unserialize(stripslashes($todo->todo)) as $key => $value) $this->$key = $value;
     $this->confirmed = TRUE;
-    todo($this->number, '', ''); // nonce is only good once
     return $this;
   }
 
@@ -184,7 +185,7 @@ class call {
    */
   function do_helpme($feature = '') {
     if (!$feature) {
-      $feature = isset($this->parameters['feature']) ? $this->parameters['feature'] : '';
+      $feature = isset($this->parms['feature']) ? $this->parms['feature'] : '';
       if (!$feature) $feature = 'helpme';
     }
 
@@ -200,12 +201,13 @@ class call {
 
   /**
    * Give additional help
+   * @parm string $
    */
   function do_more() {
-    $todo = todo($this->number);
-    if (isset($GLOBALS['SMS help'][$todo->todo])) {
-      todo($this->number, $todo->todo . '2', '');
-      return tt($todo->todo);
+    $todo = $this->parms['todo'];
+    if (isset($GLOBALS['SMS help'][$my_todo])) {
+      todo($this->number, $my_todo . '2', ''); // queue up tertiary help
+      return tt($my_todo);
     }
     return tt('help helpme');
   }
@@ -222,7 +224,7 @@ class call {
    */
   function do_get() {
     $dbtx = db_transaction();
-    extract($this->parameters, EXTR_PREFIX_ALL, 'my');
+    extract($this->parms, EXTR_PREFIX_ALL, 'my');
     extract((array) r\credit_info($this->caller), EXTR_PREFIX_ALL, 'info');
     $info_fancy['amount'] = r\format_amount($my_amount);
     if ($my_rusd == 'r') {
@@ -275,7 +277,7 @@ class call {
    */
   function do_transfer($isfrom) {
     $dbtx = db_transaction();
-    extract($this->parameters, EXTR_PREFIX_ALL, 'my'); // amount, who, and what
+    extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, and what
 
     $other_number = preg_replace('/[\-\.]/', '', $my_who); // possible phone number for the other party
     if (is_numeric($other_number) and strlen($other_number) == 10) $my_who = $other_number;

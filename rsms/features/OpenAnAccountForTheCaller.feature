@@ -34,11 +34,11 @@ Scenario: The newbie gives us an unlikely name
 
 Scenario: The newbie gives us his or her email address
   Given we just asked phone %number1 for "email"
-  And the community has Pr$-1000
+  And the community has r$-1000
   When phone %number1 says "zot@email.com"
   Then phone %number1 email is "zot@email.com"
-  And phone %number1 has Pr$250
-  And the community has Pr$-1250
+  And phone %number1 has r$250
+  And the community has r$-1250
   And we say to phone %number1 "your account is ready" with subs:
   | @balance |
   | $250      |
@@ -47,6 +47,6 @@ Scenario: The newbie gives us his or her email address
 Scenario: The newbie gives a bad email address
   Given we just asked phone %number1 for "email"
   When phone %number1 says %random
-  Then we say to phone %number1 "what's you email really?" 
+  Then we say to phone %number1 "what's your email really?" 
   # Please type carefully. What is your email address?
   

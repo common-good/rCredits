@@ -5,7 +5,7 @@ SO I can pay where rCredits are not yet accepted
 
 Scenario: The caller has not enough funds to exchange
   Given phone %number1 is a player
-  And phone %number1 has Pr$140
+  And phone %number1 has r$140
   And phone %number1 unavailable is $10
   And phone %number1 incentive rewards to date is $80
   When phone %number1 says "get usd 123.45"
@@ -16,7 +16,7 @@ Scenario: The caller has not enough funds to exchange
 
 Scenario: The caller is not set up for direct deposits
   Given phone %number1 is not set up for direct deposits
-  And phone %number1 has Pr$155
+  And phone %number1 has r$155
   And phone %number1 unavailable is $25
   And phone %number1 incentive rewards to date is $5
   When phone %number1 says "get usd 123.45"
@@ -29,7 +29,7 @@ Scenario: The caller has enough funds but is not yet active
   Given phone %number1 is set up for direct deposits
   And phone %number1 is a player
   And phone %number1 is not yet active
-  And phone %number1 has Pr$155
+  And phone %number1 has r$155
   And phone %number1 unavailable is $25
   And phone %number1 incentive rewards to date is $5
   When phone %number1 says "get usd 123.45"
@@ -41,7 +41,7 @@ Scenario: The caller has enough funds but is not yet active
 Scenario: The caller can get US Dollars for rCredits
   Given phone %number1 is a participant
   And phone %number1 is set up for direct deposits
-  And phone %number1 has Pr$150
+  And phone %number1 has r$150
   And phone %number1 unavailable is $20
   And phone %number1 incentive rewards to date is $5
   When phone %number1 says "get usd 123.45"
@@ -53,16 +53,16 @@ Scenario: The caller can get US Dollars for rCredits
 Scenario: Caller confirms request for US Dollars
   Given we just asked %number1 to confirm "get usd 123.45" with nonce "mango"
   And phone %number1 is set up for direct deposits
-  And phone %number1 has Pr$160
+  And phone %number1 has r$160
   And phone %number1 unavailable is $20
   And phone %number1 incentive rewards to date is $15
-  And the community has Pr$-10,000
+  And the community has r$-10,000
   And the community has USD$200
   When phone %number1 says "mango"
   Then we email to admin "send USD" with subs:
   | @phone   | @amount |
   | %number1 | $123.45 |
-  And the community has Pr$-9,876.55
+  And the community has r$-9,876.55
   And the community has USD$76.55
   And we say to phone %number1 "report got usd" with subs:
   | @amount |

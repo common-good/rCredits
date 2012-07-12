@@ -13,6 +13,13 @@ define('RCREDITS_MAX_DEMAND', 1000000000);
 define('RCREDITS_STARTING_BALANCE', 250); // how much people start with in the TRIAL RUN
 
 /**
+ * Show a debbugging statement (without a lot of typing)
+ */
+function deb($message) {
+  drupal_set_message($message, 'error');
+}
+
+/**
  * Make Fields
  *
  * Make (or unmake) database fields, according to the schema

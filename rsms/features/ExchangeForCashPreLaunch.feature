@@ -13,8 +13,8 @@ Scenario: The caller confirms a trade of rCredits for cash
   | @date     | @type  | @amount | @from    | @to      | @for          |
   | %today-1d | signup | 250.00  | community| neabcdea | signup reward |
   When phone %number1 confirms "100 to neabcdec for cash"
-  Then the community has Pr$-250
-  And phone %number3 has Pr$100
+  Then the community has r$-250
+  And phone %number3 has r$100
   And transactions:
   | @date  | @type   | @amount | @from    | @to      | @for |
   | %today | payment | 100     | neabcdea | neabcdec | cash |
@@ -33,8 +33,8 @@ Scenario: The caller confirms a trade of cash for rCredits
   | @date     | @type  | @amount | @from    | @to      | @for          |
   | %today-1d | signup | 250.00  | community| neabcdec | signup reward |
   When phone %number1 confirms "100 from neabcdec for cash"
-  Then the community has Pr$-250
-  And phone %number3 has Pr$150
+  Then the community has r$-250
+  And phone %number3 has r$150
   And transactions:
   | @date  | @type   | @amount | @from    | @to      | @for |
   | %today | charge  | 100     | neabcdec | neabcdea | cash |
@@ -53,8 +53,8 @@ Scenario: The caller confirms an implicit trade of rCredits for cash
   | @date     | @type  | @amount | @from    | @to      | @for          |
   | %today-1d | signup | 250.00  | community| neabcdea | signup reward |
   When phone %number1 confirms "100 to neabcdec"
-  Then the community has Pr$-250
-  And phone %number3 has Pr$100
+  Then the community has r$-250
+  And phone %number3 has r$100
   And transactions:
   | @date  | @type   | @amount | @from    | @to      | @for |
   | %today | payment | 100     | neabcdea | neabcdec | cash |
@@ -73,8 +73,8 @@ Scenario: The caller confirms an implicit trade with insufficient balance
   | @date     | @type  | @amount | @from    | @to      | @for          |
   | %today-1d | signup | 100.00  | community| neabcdea | signup reward |
   When phone %number1 confirms "250 to neabcdec"
-  Then the community has Pr$-115
-  And phone %number3 has Pr$110
+  Then the community has r$-115
+  And phone %number3 has r$110
   And transactions:
   | @date  | @type   | @amount | @from    | @to      | @for |
   | %today | payment | 100     | neabcdea | neabcdec | cash |
