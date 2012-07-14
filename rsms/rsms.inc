@@ -9,14 +9,14 @@ use \rCredits as r;
  * (anything that doesn't have to be in rsms.module and isn't appropriate to class call).
  */
 
-define('RSMS_PREFIX', '[TRIAL] '); // the pre-launch trial
+define('RSMS_PREFIX', 'PRETEND: '); // the pre-launch trial
 //define('RSMS_PREFIX_INACTIVE', '[TRIAL RUN] '); // pretend transactions by not-yet-active players (treat it as a trial run)
 //define('RSMS_PREFIX_ASIF', 'PRETEND - '); // pretend transactions by Active Participants
-define('RSMS_TEMPORARY_ACCOUNT_PREFIX', 'phone'); // user name is temporarily set to, for example, phone2345678901
 
 $GLOBALS['SMS messages'] = array(
   // reports
   'account info' => t("Your balance for account @id is @balance, including @rewards of incentive rewards. Total demand for rCredits is @total_demand."),
+//  'account info2' => t("More account info"), // not used yet
   'your account is ready' => t('Your starting balance is @balance. Pretend to buy and sell as you would in a typical month (we need that info). Have fun! Type "helpme" to get started.'),
   'get usd' => t("Exchange approved. @amount will be transferred directly to your bank account within 24 hours. Your new balance is @balance."),
 //  'get usd inactive' => t("If you were an Active Participant in the rCredits system, your request would transfer @amount directly to your bank account. Alas, you are not yet an Active Participant."),
@@ -33,7 +33,7 @@ $GLOBALS['SMS messages'] = array(
   "what's your email really?" => t("Please type carefully. What is your email address?"),
   
   // confirmations
-  'confirm get usd' => t("Give r@amount in exchange for us@amount?"),
+  'confirm get usd' => t("Trade r@amount for us@amount?"),
   'confirm payment' => t("Pay @other @amount for goods and services?"),
   'confirm charge' => t("Charge @other @amount for goods and services?"),
   'confirm credit for cash' => t("Give @other r@amount for cash?"),
@@ -41,7 +41,7 @@ $GLOBALS['SMS messages'] = array(
   'please confirm' => t("To confirm, type @nonce."),
   
   // error messages
-  'syntax' => t('Syntax error.'),
+  'syntax' => t('Wrong syntax!'),
   'duplicate name' => t('That name is already taken, in your region. Try again. Use a middle initial?'),
   'name too long' => t('That name is too long. Try again (keep it under 60 characters).'),
   //  'no SMS permission' => t('Alas, you do not have permission to use the rCredits SMS interface at this time.'), // UNUSED
@@ -52,9 +52,14 @@ $GLOBALS['SMS messages'] = array(
   'wrong nonce' => t('That is not the expected confirmation response. Try again (start over).'),
   'no self-trading' => t("You can't exchange rCredits with yourself."),
   'duplicate email' => t("There is already an account with that email address. Visit rCredits.org to add this cell number to your account."),
-  'unknown user' => t('Unknown user: "@user". Type "helpme pay".'),
+  'unknown user' => t('Unknown rTrader: "@who". Type "helpme pay".'),
+  'non trader' => t('@other does not an authorized rTrader.'),
+  'ambiguous other' => t('"@who" is associated with more than one rCredits account. You will need to identify them differently. Type "more" for options.'),
+  'ambiguous other2' => t('You can identify an rTrader by phone, email, website, account id, or .fullname (with a dot before the name, no spaces).'),
   'short cash to' => t('You are r@short short, for that exchange.'),
   'short cash from' => t('@other does not have enough rCredits for that exchange.'),
+  'broke to' => t('You are completely out of rCredits, so that transaction cannot be completed. Type "get r <amount>" to get more rCredits.'),
+  'broke from' => t('@other does not have enough rCredits for that transaction at this time. But your request has been noted.'),
 );
 
   // help messages (for use with the help command)
@@ -65,14 +70,15 @@ $GLOBALS['SMS help'] = array(
   'help charge2' => t('You can also identify the payer by phone, email, website, or account id. If you are just exchanging cash for rCredits, leave out the description.'),
   'help undo' => t('To undo your most recent transaction, type "undo". Type "more" for options to undo your most recent transaction of a certain type.'),
   'help undo2' => t('Examples: undo | undo .janedough | undo to | undo from | undo to .janedough | undo from .janedough -- Type "more" for details.'),
-  'help undo22' => t('"undo .janedough" undoes your most recent transaction with Jane Dough. You can also identify her by phone number, email, website, or account id.'),
+  'help undo22' => t('"undo .janedough" undoes your most recent transaction with Jane Dough. You can also identify her by phone, email, website, or account id.'),
   'help get' => t('To get $200 more in rCredits, type "get r 200". To send $50 in rCredits to your US bank account, type "get usd 50".'),
   'help information' => t('Just type "info" (tells you your balance and the current demand for rCredits)'),
   'help helpme' => t('Options: pay | charge | undo | info | get | helpme. For details, type "helpme pay" and so forth.'),
 );
 
-$GLOBALS['SMS messages']['help helpme no-error'] = t('Try something! ') . $GLOBALS['SMS help']['help helpme'];
 $GLOBALS['SMS messages'] = array_merge($GLOBALS['SMS messages'], $GLOBALS['SMS help']); 
+$GLOBALS['SMS messages']['help helpme no-error'] = t('Try something! ') . tt('help helpme');
+foreach (array('more', 'stop', 'start') as $one) $GLOBALS['SMS messages']["help $one"] = tt('help helpme');
 
 $GLOBALS['SMS commands'] = array( // these can be abbreviated by the caller
   'get' => array('get %rusd %amount', 'get %amount %rusd'), // best before pay, so that "g r 10" is interpreted as "get r" not "give who"
@@ -96,7 +102,7 @@ $GLOBALS['SMS commands'] = array( // these can be abbreviated by the caller
   'stop' => 'stop|unsubscribe|cancel|quit', // passed from SMS Gateway
   'start' => 'start|yes', // passed from SMS Gateway
 );
-$GLOBALS['SMS Gateway words'] = explode(',', 'stop,unsubscribe,cancel,quit,start,yes,help'); // "help" never reaches us
+$GLOBALS['SMS gateway words'] = explode(',', 'stop,unsubscribe,cancel,quit,start,yes,help'); // "help" never reaches us
 $GLOBALS['SMS reserved words'] = explode(',', 'to,from,usd,balance,name,lost,be,give,send,invoice,take');
 $GLOBALS['SMS reserved words'] = array_merge(array_keys($GLOBALS['SMS commands']), $GLOBALS['SMS reserved words']); 
 
@@ -135,6 +141,7 @@ function tt($message, $substitutions = array()) {
  * Send an SMS message to someone.
  */
 function send($number, $message0) {
+  $number = r\format_phone($number, '+n');
   $message = substr($message0, 0, 160-1); // minus one because Twilio splits messages 160 chars long (and may discard the first part)
   if ($message != $message0) $message0 .= ' -- TOO LONG! (strlen ' . strlen($message0) . ')';
   if (sms_devel_gateway()) if ($message != $message0) r\deb($message0); // debug
@@ -154,7 +161,7 @@ function infer_nonce($message) {
 /**
  * Remember what to do, once the user confirms.
  *
- * @parm string $number: the user's cell number
+ * @parm string $number: the user's cell number (in standard format +1dddddddddd)
  * @parm string $todo: what to do once the user responds with the expected nonce (defaults to nothing)
  * @parm string $nonce: what to store as the nonce (default to 'whatever', meaning pick one at random)
  *
@@ -194,14 +201,24 @@ function is_temporary_name($name) {
 }
 
 /**
- * Create a temporary account for the given cell phone number.
+ * Create a temporary account for the given user.
+ * @parm array $info: associative array of information about the user
+ *   'phone' is contact phone and/or cell phone (set both)
+ *   'email' is email address
+ *   'website' is website address
  */
-function create_account($number) {
+function create_account($info) {
+  extract($info, EXTR_PREFIX_ALL, 'my');
   try {
     $tx = \db_transaction();
-    $credit_id = r\make_credit_id($number);
-    $who = r\create_user(compact('number', 'credit_id'))->uid;
-    todo($number, 'first call', '');
+    foreach ($info as $one) if (identify($one)) die('creating duplicate user'); // remove this line soon
+    if (isset($my_phone)) {
+      $my_phone = r\format_phone($my_phone, '+n');
+      $info['credit_id'] = r\make_credit_id($my_phone);
+      $info['number'] = $my_phone;
+    }
+    $who = r\create_user($info)->uid;
+    if (isset($my_phone)) todo($my_phone, 'first call', '');
     return $who;
   } catch (\Exception $e) {
     $tx->rollback();
@@ -253,30 +270,46 @@ function for_cash($for) {
   return ($for == '' or substr(strtolower($for), 0, 4) == 'cash');
 }
 
+/**
+ * Return the command if it was intended by the given message.
+ * Otherwise return the standing intent.
+ *
+ * @parm string $intent: the standing intent (FALSE if none)
+ * @parm string $command: the command to test against the message
+ * @parm string $pattern: the command pattern(s) for the given command
+ * @parm string $message: the message to interpret
+ */
 function intent($intent, $command, $pattern, $message) {
   if ($command == 'payment' | $command == 'charge') {
     $abbrev = abbreviator($command == 'charge' ? 'from' : 'to');
-    if (preg_match("/ $abbrev /i", $message)) return $command;
+    if (preg_match("/(^| )$abbrev( |$)/i", $message)) return $command;
   }
   $short_pattern = preg_replace('~\(\?\:|\)~', '', substr($pattern, 0, strpos("$pattern ", ' '))); // isolate command words
-r\deb("message=$message command=$command shpattern=$short_pattern");
-  return preg_match("/^$short_pattern /i", $message, $matches) ? $command : $intent;
+  return preg_match("/^($short_pattern)( |$)/i", $message, $matches) ? $command : $intent;
 }
 
 /**
  * Figure out who the caller meant.
  *
- * @parm string $val: how the user referred to the trader
- * @return: the trader's uid (NULL if not found)
+ * @parm string $value: how the user referred to the trader
+ * @parm array (returned) $create_info: associative array of user field values
+ *   for creating a record if no matching user can be found (FALSE if no usable data)
+ * @return: the trader's uid (FALSE if not found, array of uids if several)
  */
-function identify($val) {
-  $val = strtolower(str_replace("'", '', $val));
-  if (is_numeric($val) and strlen($val) == 10) $val = '+1' . $val;
-  if (substr($val, 0, 4) == 'www.') $val = substr($val, 4);
+function identify($value, &$create_info = array()) {
+  if ($phone = r\format_phone($value, '+n')) $value = $phone;
+  if (substr($value, 0, 7) == 'http://') $value = substr($value, 7);
+  if (substr($value, 0, 4) == 'www.') $value = substr($value, 4);
+
+  $value = strtolower(str_replace("'", '', $value)); // avoid SQL errors
   $sql = "SELECT u.uid FROM {users} u LEFT JOIN {sms_user} s ON u.uid = s.uid 
-          WHERE '$val' IN (LCASE(CONCAT('.', REPLACE(u.name, ' ', ''))), u.credit_id, s.number, LCASE(u.website), u.phone, LCASE(u.mail))";
+          WHERE '$value' IN (LCASE(CONCAT('.', REPLACE(u.name, ' ', ''))), u.credit_id, s.number, LCASE(u.website), u.phone, LCASE(u.mail))";
   $result = db_query($sql)->fetchCol();
-  return isset($result[0]) ? $result[0] : '';
+  if (isset($result[0])) return count($result) > 1 ? $result : $result[0];
+
+  $key = $value == $phone ? 'phone' : (valid_email_address($value) ? 'email' : (r\valid_url("http://$value") ? 'website' : ''));
+  $create_info = $key ? array($key => $value) : FALSE;
+  return FALSE;
 }
 
 /**

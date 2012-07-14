@@ -6,8 +6,8 @@
 //   SO I can pay where rCredits are not yet accepted
 //   
 
-require_once dirname(__FILE__) . '/../gherkin/test_defs.php';
-require_once dirname(__FILE__) . '/../rsms.steps';
+require_once __DIR__ . '/../gherkin/test_defs.php';
+require_once __DIR__ . '/../rsms.steps';
 
 class rsmsExchangeRCreditsForUSDollars extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
@@ -26,7 +26,7 @@ class rsmsExchangeRCreditsForUSDollars extends DrupalWebTestCase {
 
   public function setUp() { // especially, enable any modules required for the tests
     parent::setUp(self::MODULE);
-    $setup_filename = dirname(__FILE__) . '/../' . self::MODULE . '_setup.inc';
+    $setup_filename = __DIR__ . '/../' . self::MODULE . '_setup.inc';
     if (file_exists($setup_filename)) include $setup_filename;
   }
 
@@ -35,7 +35,7 @@ class rsmsExchangeRCreditsForUSDollars extends DrupalWebTestCase {
     scene_setup($this, __FUNCTION__);
    *   #  Given phone %number1 is a participant
     Given('phone %number1 is set up for direct deposits');
-    And__('phone %number1 has Pr$150');
+    And__('phone %number1 has r$150');
     When_('phone %number1 says "get usd 123.45"');
     Then_('we say to phone %number1 "confirm get usd" with subs: "DATA'
     . '\\| @amount |'
@@ -46,14 +46,14 @@ class rsmsExchangeRCreditsForUSDollars extends DrupalWebTestCase {
   public function notestCallerConfirmsRequestForUSDollars() {
     scene_setup($this, __FUNCTION__);
     Given('phone %number1 is set up for direct deposits');
-    And__('phone %number1 has Pr$160');
-    And__('the community has Pr$-10,000');
+    And__('phone %number1 has r$160');
+    And__('the community has r$-10,000');
     And__('the community has USD$200');
     When_('phone %number1 confirms "get usd 123.45"');
     Then_('we email to admin "send USD" with subs: "DATA'
     . '\\| @phone   | @amount |'
     . '\\| %number1 | $123.45 |"');
-    And__('the community has Pr$-9,876.55');
+    And__('the community has r$-9,876.55');
     And__('the community has USD$76.55');
     And__('we say to phone %number1 "report got usd" with subs: "DATA'
     . '\\| @amount |'

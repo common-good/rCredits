@@ -6,13 +6,13 @@
 //   SO I can understand better how that will work once I am an Active Participant
 //   
 
-require_once dirname(__FILE__) . '/../gherkin/test_defs.php';
-require_once dirname(__FILE__) . '/../rsms.steps';
+require_once __DIR__ . '/../gherkin/test_defs.php';
+require_once __DIR__ . '/../rsms.steps';
 
-class rsmsExchangeForCashPreLaunch extends DrupalWebTestCase {
+class rsmsExchangeForCash extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
   var $current_test;
-  const FEATURE_NAME = 'rsms Test - ExchangeForCashPreLaunch';
+  const FEATURE_NAME = 'rsms Test - ExchangeForCash';
   const DESCRIPTION = 'Exchange for cash, pre-launch';
   const MODULE = 'rsms';
 
@@ -26,7 +26,7 @@ class rsmsExchangeForCashPreLaunch extends DrupalWebTestCase {
 
   public function setUp() { // especially, enable any modules required for the tests
     parent::setUp(self::MODULE);
-    $setup_filename = dirname(__FILE__) . '/../' . self::MODULE . '_setup.inc';
+    $setup_filename = __DIR__ . '/../' . self::MODULE . '_setup.inc';
     if (file_exists($setup_filename)) include $setup_filename;
   }
 
@@ -42,8 +42,8 @@ class rsmsExchangeForCashPreLaunch extends DrupalWebTestCase {
     . '\\| @date     | @type  | @amount | @from    | @to      | @for          |'
     . '\\| %today-1d | signup | 250.00  | community| neabcdea | signup reward |"');
     When_('phone %number1 confirms "100 to neabcdec for cash"');
-    Then_('the community has Pr$-250');
-    And__('phone %number3 has Pr$100');
+    Then_('the community has r$-250');
+    And__('phone %number3 has r$100');
     And__('transactions: "DATA'
     . '\\| @date  | @type   | @amount | @from    | @to      | @for |'
     . '\\| %today | payment | 100     | neabcdea | neabcdec | cash |"');
@@ -64,8 +64,8 @@ class rsmsExchangeForCashPreLaunch extends DrupalWebTestCase {
     . '\\| @date     | @type  | @amount | @from    | @to      | @for          |'
     . '\\| %today-1d | signup | 250.00  | community| neabcdec | signup reward |"');
     When_('phone %number1 confirms "100 from neabcdec for cash"');
-    Then_('the community has Pr$-250');
-    And__('phone %number3 has Pr$150');
+    Then_('the community has r$-250');
+    And__('phone %number3 has r$150');
     And__('transactions: "DATA'
     . '\\| @date  | @type   | @amount | @from    | @to      | @for |'
     . '\\| %today | charge  | 100     | neabcdec | neabcdea | cash |"');
@@ -86,8 +86,8 @@ class rsmsExchangeForCashPreLaunch extends DrupalWebTestCase {
     . '\\| @date     | @type  | @amount | @from    | @to      | @for          |'
     . '\\| %today-1d | signup | 250.00  | community| neabcdea | signup reward |"');
     When_('phone %number1 confirms "100 to neabcdec"');
-    Then_('the community has Pr$-250');
-    And__('phone %number3 has Pr$100');
+    Then_('the community has r$-250');
+    And__('phone %number3 has r$100');
     And__('transactions: "DATA'
     . '\\| @date  | @type   | @amount | @from    | @to      | @for |'
     . '\\| %today | payment | 100     | neabcdea | neabcdec | cash |"');
@@ -108,8 +108,8 @@ class rsmsExchangeForCashPreLaunch extends DrupalWebTestCase {
     . '\\| @date     | @type  | @amount | @from    | @to      | @for          |'
     . '\\| %today-1d | signup | 100.00  | community| neabcdea | signup reward |"');
     When_('phone %number1 confirms "250 to neabcdec"');
-    Then_('the community has Pr$-115');
-    And__('phone %number3 has Pr$110');
+    Then_('the community has r$-115');
+    And__('phone %number3 has r$110');
     And__('transactions: "DATA'
     . '\\| @date  | @type   | @amount | @from    | @to      | @for |'
     . '\\| %today | payment | 100     | neabcdea | neabcdec | cash |"');

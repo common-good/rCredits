@@ -16,7 +16,7 @@ define('RCREDITS_STARTING_BALANCE', 250); // how much people start with in the T
  * Show a debbugging statement (without a lot of typing)
  */
 function deb($message) {
-  drupal_set_message($message, 'error');
+  drupal_set_message(print_r($message, TRUE), 'error');
 }
 
 /**
@@ -105,32 +105,25 @@ function make_currency() {
  * Create a user account for transactions and/or contact
  *
  * @parm array $info associative array of fields and values
+ *   This function assumes that the info is not sufficient to identify an existing user
  * @return the user account object
  */
 function create_user($info) {
   extract($info, EXTR_PREFIX_ALL, 'my');
-
-  if (isset($my_mail) and \db_lookup(1, 'users', "mail = '$my_mail'")) {
-    throw new \Exception('duplicate email'); // throw array index to error message
-  }
   
-  $info['mail'] = $info['init'] = '';
+  $info['mail'] = $info['init'] = isset($my_email) ? $my_email : '';
   $info['pass'] = \user_password();
-  $info['name'] = isset($my_name) ? $my_name : substr(md5('zot' . strval(REQUEST_TIME)), 0, 10); // Pick a pseudo-random name for the user
+  $info['name'] = isset($my_name) ? $my_name : temp_name($info);
+  deb($info);
   $info['status'] = TRUE;
   $info['is_new'] = TRUE;
   
   if (isset($my_number)) {
-    $info['sms_user'] = array(
-      'number' => $my_number,
-      'status' => 0,
-      'code' => '',
-      'gateway' => '',
-    );
-    if (!isset($my_name)) $info['name'] = RSMS_TEMPORARY_ACCOUNT_PREFIX . str_replace('+1', '', $my_number); // unique temporary name
+    $number = format_phone($my_number, '+n');
+    $status = SMS_USER_CONFIRMED; // ws: for now, with everything through SMS, we want to be able to send to anyone
+    $info['sms_user'] = compact('number', 'status');
   }
-
-  $account = \user_save('', $info);
+  $account = \user_save(array(), $info);
   if (!$account) throw new \Exception('failed to save user record');
   return $account;
 }
@@ -226,6 +219,13 @@ function r_log($type='', $message='', $number='', $nonce='') {
 }  
 
 /**
+ * Output the log, human-readably
+ */
+function showlog() {
+  print_r(r_log());
+}
+
+/**
  * Set or report how much rCredits the user wants to buy with US Dollars.
  *
  * @parm integer $who: uid of the user
@@ -293,10 +293,12 @@ function valid_name($name) {
  *   (no need for credit_tails table).
  */
 function make_credit_id($number, $cgc = '') {
-  $area = substr($number, 0, 3);
-  $state = db_lookup('region', 'r_area_codes', "area_code='$area'");
-  $region = db_lookup('credit_region', 'r_credit_regions', "region='$state'");
-  if (strlen($number) != 10 or !$region) $region = 'Z9';
+  if ($number = format_phone($number, 'n')) {
+    $area = substr($number, 0, 3);
+    $state = db_lookup('region', 'r_area_codes', "area_code='$area'");
+    $region = db_lookup('credit_region', 'r_credit_regions', "region='$state'");
+    if (!$region) $region = 'Z9';
+  }
 //  $ctty = $area == '413' ? 'GF' : ($area == '860' ? 'NL' : 'AA'); // Greenfield, New London, or other
   $ctty = $region . 'AA'; // until the person becomes a member of a specific community, give them a generic community
   return $ctty . next_credit_id_tail($ctty);
@@ -351,6 +353,43 @@ function a2n($string, $base = 26) {
 }
 
 /**
+ * Return a unique temporary name related to the given uniquely identifying parmeters 
+ * in this order of preference: phone, email, website. If none, just pick a random string.
+ * @parm array $info: associative array of fields, each of which uniquely identifies a user.
+ */
+function temp_name($info) {
+  extract($info, EXTR_PREFIX_ALL, 'my');
+  $phone = isset($my_number) ? $my_number : (isset($my_phone) ? $my_phone : '');  
+  if ($phone) return 'phone ' . format_phone($phone, 'n');
+  if (isset($my_email)) return str_replace('@', ' AT ', str_replace('.', ' DOT ', $my_email));
+  if (isset($my_website)) return str_replace('.', ' DOT ', str_replace('/', ' SLASH ', $my_website));
+  return 'user ' . substr(md5('zot' . strval(REQUEST_TIME)), 0, 10); // pseudo random
+}
+
+/**
+ * Format the given phone number as wanted
+ * @parm string $phone
+ * @parm string $how: how to format it
+ *   '+n' +1dddddddddd
+ *   'n'  dddddddddd
+ *   '+'  (+1) ddd-ddd-dddd
+ *   ''   ddd-ddd-dddd (the default)
+ * @return the formatted phone number (FALSE if the $phone is not a phone number or $how is bad)
+ */
+function format_phone($phone, $how = '') {
+  $phone = (preg_replace('/[\(\) \-\.]/', '', $phone)); // possible phone number for the other party
+  if (substr($phone, 0, 2) == '+1') $phone = substr($phone, 2);
+//  if (!is_numeric($phone) or strlen($phone) != 10) return FALSE;
+  if (!is_numeric($phone)) return FALSE; // temporary for debugging
+  if ($how == 'n') return $phone;
+  if ($how == '+n') return '+1' . $phone;
+  $phone = substr($phone, 0, 3) . '-' . substr($phone, 3, 3) . '-' . substr($phone, 6);
+  if ($how == '') return $phone;
+  if ($how == '+') return '(+1) ' . $phone;
+  return FALSE;
+}
+
+/**
  * Reset all rCredits data, to start development with a clean slate
  */
 function reset() {
@@ -379,6 +418,9 @@ function db_lookup($field_name, $table_name, $criteria = '') {
  */
 function rebate($who) {return db_lookup('rebate_percent', 'users', "uid = $who")/100;}
 function bonus($who) {return 2 * rebate($who);}
+function user_field($who, $field_name) {return db_lookup($field_name, 'users', "uid = $who");}
 function uid_from_crid($credit_id) {return db_lookup('uid', 'users', "credit_id = '$credit_id'");}
 function tid_from_xid($who, $xid) {return db_lookup('COUNT(xid)', 'mcapi_transactions', "xid <= $xid");}
 function total_demand() {return db_lookup('SUM(demand)', 'users');}
+
+function valid_url($url) {return (\valid_url($url) and strpos($url, '.') and strpos($url, '@') === FALSE);}

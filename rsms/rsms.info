@@ -25,3 +25,5 @@ files[] = tests/OpenAnAccountForTheCaller.test
 ;files[] = tests/TrackCommands.test
 ;files[] = tests/TransactionPreLaunch.test
 ;files[] = tests/Undo.test
+files[] = tests/ExchangeForCash.test
+files[] = tests/Transaction.test

@@ -54,7 +54,7 @@ class call {
    *   Message is the error message to send the caller.
    */
   function validate_caller() {
-    if (!($this->caller = \sms_user_get_uid($this->number))) $this->caller = create_account($this->number);
+    if (!($this->caller = \sms_user_get_uid($this->number))) $this->caller = create_account(array('number' => $this->number));
     if (!$this->caller) die('missing uid');
 
     $account = \user_load($this->caller);
@@ -104,7 +104,7 @@ class call {
         $pattern = str_replace(' ', ' +', trim($syntax)); // extra spaces are fine
         $pattern = strtr($pattern, $GLOBALS['SMS command tokens']);
         foreach ($GLOBALS['SMS reserved words'] as $word) {
-          $pattern = str_replace($word, abbreviator($word), $pattern);
+          if (!in_array($word, $GLOBALS['SMS gateway words'])) $pattern = str_replace($word, abbreviator($word), $pattern);
         }
         
         // isolate major command, if possible, potentially for more accurate help
@@ -175,10 +175,8 @@ class call {
   /**
    * Give the caller a helpful message
    *
-   * @param string $feature (optional)
-   *   what the caller wants help on
-   * @return
-   *   the appropriate SMS reply
+   * @param string $feature (optional): what the caller wants help on
+   * @return: the appropriate SMS reply
    * @todo
    *   1. Possibly customize the message for the caller (write a function for that).
    *      For example, using a local phone number and local businesses in the examples.
@@ -201,13 +199,13 @@ class call {
 
   /**
    * Give additional help
-   * @parm string $
+   * @parm (implicit) string $this->parms['todo']: index to the additional help wanted
    */
   function do_more() {
     $todo = $this->parms['todo'];
-    if (isset($GLOBALS['SMS help'][$my_todo])) {
-      todo($this->number, $my_todo . '2', ''); // queue up tertiary help
-      return tt($my_todo);
+    if (isset($GLOBALS['SMS messages'][$todo])) {
+      todo($this->number, $todo . '2', ''); // queue up tertiary help
+      return tt($todo);
     }
     return tt('help helpme');
   }
@@ -216,6 +214,7 @@ class call {
    * Give the caller useful information.
    */
   function do_information() {
+//    todo($this->number, 'account info2', ''); // queue up more info (not used yet)
     return tt('account info', r\credit_info($this->caller)->fancy);
   }
 
@@ -231,22 +230,21 @@ class call {
       r\demand($this->caller, $my_amount);
       return tt('your demand', $info_fancy);
     }
-    if ($my_rusd == 'usd') {
-      if ($my_amount > $info_cashable) return tt("can't cash incentives", $info_fancy);
-      $type = 'payment';
-      $amount = $my_amount;
-      $payer = $creator = $this->caller;
-      $payee = variable_get('rcredits_community_uid');
-      $for = t('cash');
-      $info = compact('type', 'amount', 'payer', 'payee', 'for', 'creator');
-      r\transact($info);
-      $info_fancy['balance'] = r\format_amount($info_balance - $my_amount);
-      if ($this->confirmed) return tt('get usd', $info_fancy);
-      
-      $dbtx->rollback();
-      return $this->confirm('get usd', $info_fancy);
-    }
-    return tt('get r/usd error');
+
+    // usd
+    if ($my_amount > $info_cashable) return tt("can't cash incentives", $info_fancy);
+    $type = 'payment';
+    $amount = $my_amount;
+    $payer = $creator = $this->caller;
+    $payee = variable_get('rcredits_community_uid');
+    $for = t('cash');
+    $info = compact('type', 'amount', 'payer', 'payee', 'for', 'creator');
+    r\transact($info);
+    $info_fancy['balance'] = r\format_amount($info_balance - $my_amount);
+    if ($this->confirmed) return tt('get usd', $info_fancy);
+    
+    $dbtx->rollback();
+    return $this->confirm('get usd', $info_fancy);
   }
 
   /**
@@ -272,39 +270,37 @@ class call {
 
   /**
    * Create a transaction for the caller.
-   * @todo: create account for the other party in any case other than when the caller uses a credit id
-   * (not just when the caller uses a phone number to identify the other)
    */
   function do_transfer($isfrom) {
     $dbtx = db_transaction();
     extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, and what
 
-    $other_number = preg_replace('/[\-\.]/', '', $my_who); // possible phone number for the other party
-    if (is_numeric($other_number) and strlen($other_number) == 10) $my_who = $other_number;
     $type = $confirm_type = $isfrom ? 'charge' : 'payment';
-    $the_other = identify($my_who);
-    if (!$the_other and is_numeric($my_who) and strlen($my_who) == 10) $the_other = create_account($my_who);
-    if (!$the_other) return tt('unknown user', array('user' => $my_who));
-    if (!user_access('transact', user_load($the_other))) { // only if the other misbehaves
-      return t('@name does not have permission to trade.', array('@name' => user_load($the_other)->name));
-    }
-    if ($the_other == $this->caller) return tt('no self-trading');
+    $other_uid = identify($my_who, $create_info);
+    if (!$other_uid and !$create_info) return tt('unknown user', $this->parms);
+    if(is_array($other_uid)) return tt('ambiguous other', $this->parms);
+    if ($other_uid == $this->caller) return tt('no self-trading');
+    
+    if (!$other_uid) $other_uid = create_account($create_info);
+    $other_account = \user_load($other_uid);
+    $other = $other_account->name;
+    if (!\user_access('transact', $other_account)) return tt('non trader', compact('other'));
 
-    $other = \user_load($the_other)->name;
     $for = $my_what;
-    $available = r\credit_info($isfrom ? $the_other : $this->caller)->available;
+    $available = r\credit_info($isfrom ? $other_uid : $this->caller)->available;
     $amount = min($my_amount, $available);
     $shortfall = $my_amount - $amount; // how much needs to be done in a separate currency
-    if ($shortfall) {
-      $short = r\format_amount($shortfall);
+    $short = r\format_amount($shortfall);
+    if ($shortfall > 0) {
       if (for_cash($for)) return tt($isfrom ? 'short cash from' : 'short cash to', compact('short', 'other')); // no partial cash trans
-      $shortfall = ceil($shortfall); // for shortfall on goods and services, shortfall should always be a round figure (no cents)
+      if (ceil($shortfall) >= $my_amount) return tt($isfrom ? 'broke from' : 'broke to', compact('other'));
+      $shortfall = ceil($shortfall); // for goods and services, shortfall should be a round figure (no cents)
       $amount = $my_amount - $shortfall;
       $short = r\format_amount($shortfall);
     }
     
-    $payer = $isfrom ? $the_other : $this->caller;
-    $payee = $isfrom ? $this->caller : $the_other;
+    $payer = $isfrom ? $other_uid : $this->caller;
+    $payee = $isfrom ? $this->caller : $other_uid;
 
     try {
       $txs = r\transact(compact('type', 'amount', 'payer', 'payee', 'for'));
@@ -327,8 +323,8 @@ class call {
     if (!$this->confirmed) $dbtx->rollback();
 
     if (!for_cash($for)) {
-      if ($this->confirmed) return tt($short ? 'report short transaction' : 'report transaction', $args);
-      if ($short) $args['amount'] = r\format_amount($my_amount); // restore original amount before getting confirmation
+      if ($this->confirmed) return tt($shortfall > 0 ? 'report short transaction' : 'report transaction', $args);
+      if ($shortfall > 0) $args['amount'] = r\format_amount($my_amount); // restore original amount before getting confirmation
       return $this->confirm($confirm_type, $args);
     }
     

@@ -73,7 +73,7 @@ foreach ($features as $feature_filename) {
 
 foreach ($steps as $function_name => $step) {
   extract($step);
-  $replacement = replacement($callers, $function_name); // (replacement includes function's opening parenthesis)
+  $new_callers = replacement($callers, $test_only, $function_name); // (replacement includes function's opening parenthesis)
   if ($original == 'new') {
     for ($arg_list = '', $i = 0; $i < $arg_count; $i++) {
       $arg_list .= ($arg_list ? ', ' : '') . '$arg' . ($i + 1);
@@ -82,13 +82,13 @@ foreach ($steps as $function_name => $step) {
     . "/**\n"
     . " * $english\n"
     . " *\n"
-    . " * in: {$replacement}$arg_list) {\n"
+    . " * in: {$new_callers}$arg_list) {\n"
     . "  global \$test_only;\n"
     . "  todo;\n"
     . "}\n";
   } else {
-//  echo "to=$to_replace rep=$replacement<br>\n"; $prev = $steps_text;
-    $steps_text = str_replace($to_replace, $replacement, $steps_text);
+//  echo "to=$to_replace rep=$new_callers<br>\n"; $prev = $steps_text;
+    $steps_text = str_replace($to_replace, $new_callers, $steps_text);
 //    die ('same:' . ($prev == $steps_text));
   }
 }
@@ -138,8 +138,6 @@ function do_feature($feature_filename, &$steps) {
     $any = preg_match('/^([A-Z]+)/i', $line, $matches);
     $word1 = $word1_original = $any ? $matches[1] : '';
     $tail = trim(substr($line, strlen($word1) + 1));
-    if ($word1 == 'And') $word1 = 'And__';
-    if ($word1 == 'When' or $word1 == 'Then') $word1 .= '_';
 
     if ($word1 == 'Feature') {
       $FEATURE_HEADER .= "//\n// $line\n";
@@ -159,7 +157,10 @@ function do_feature($feature_filename, &$steps) {
         . "{$lead}public function $test_function() {\n"
         . "$lead  scene_setup(\$this, __FUNCTION__);\n";
     
-    } elseif (in_array($word1, array('Given', 'When_', 'Then_', 'And__'))) {
+    } elseif (in_array($word1, array('Given', 'When', 'Then', 'And'))) {
+      $is_then = ($word1 == 'Then' or ($word1 == 'And' and $state == 'Then'));
+      if ($word1 == 'And') $word1 = 'And__';
+      if ($word1 == 'When' or $word1 == 'Then') $word1 .= '_';
       $multiline_arg = multiline_arg($lines);
       $tail_escaped = str_replace("'", "\\'", $tail) . $multiline_arg;
       $tail .= str_replace("\\'", "'", $multiline_arg);
@@ -178,17 +179,25 @@ function do_feature($feature_filename, &$steps) {
           . "in Step: $line<br>\n"
           );
         }
-        if ($steps[$step_function]['original'] != 'new') $steps[$step_function]['original'] = 'changed';
-        if (!in_array($test_function, $steps[$step_function]['callers'])) {
-          $steps[$step_function]['callers'][] = $test_function_qualified;
+        
+        $stepfunc = $steps[$step_function];
+        if ($stepfunc['original'] != 'new') $stepfunc['original'] = 'changed';
+        if (!in_array($test_function, $stepfunc['callers'])) {
+          $stepfunc['callers'][] = $test_function_qualified;
+          $stepfunc['test_only'][$test_function_qualified] = ($is_then ? 'TEST' : 'MAKE');
+        } else {
+          $test_only_changes = $is_then ? array('MAKE' => 'BOTH') : array('TEST' => 'BOTH');
+          $stepfunc['test_only'][$test_function_qualified] = strtr($stepfunc['test_only'][$test_function_qualified], $test_only_changes);
         }
+        $steps[$step_function] = $stepfunc;
       } else {
         $original = 'new';
         $callers = array($test_function_qualified);
+        $test_only = array($test_function_qualified => ($is_then ? 'TEST' : 'MAKE'));
         preg_match_all("/$arg_patterns/msi", $tail, $matches);
         $args = $matches[1];
         $arg_count = count($args);
-        $steps[$step_function] = compact(explode(',', 'original,english,callers,arg_count'));
+        $steps[$step_function] = compact(explode(',', 'original,english,callers,test_only,arg_count'));
       }
     } else {
       if ($state == 'Feature') {
@@ -198,7 +207,7 @@ function do_feature($feature_filename, &$steps) {
       }
       $word1 = ''; // don't use this to set state
     }
-    if ($word1) $state = $word1;
+    if ($word1 and $word1_original != 'And') $state = $word1_original;
   }
 
   if ($state != '' and $state != 'Feature') $TESTS .= "$lead}\n"; // close the final test function definition
@@ -276,7 +285,8 @@ function get_steps($steps_text) {
  * When updating an existing step function, replace the header with this.
  * (guaranteed to be unique for each step)
  */
-function replacement($callers, $function_name) {
+function replacement($callers, $test_only, $function_name) {
+  foreach ($callers as $key => $func) $callers[$key] .= ' ' . $test_only[$func];
   $callers = join("\n *     ", $callers);
   return "$callers\n */\nfunction $function_name(";
 }

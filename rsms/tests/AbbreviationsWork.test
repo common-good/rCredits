@@ -6,8 +6,8 @@
 //   SO I can get stuff done fast
 //   
 
-require_once dirname(__FILE__) . '/../gherkin/test_defs.php';
-require_once dirname(__FILE__) . '/../rsms.steps';
+require_once __DIR__ . '/../gherkin/test_defs.php';
+require_once __DIR__ . '/../rsms.steps';
 
 class rsmsAbbreviationsWork extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
@@ -26,7 +26,7 @@ class rsmsAbbreviationsWork extends DrupalWebTestCase {
 
   public function setUp() { // especially, enable any modules required for the tests
     parent::setUp(self::MODULE);
-    $setup_filename = dirname(__FILE__) . '/../' . self::MODULE . '_setup.inc';
+    $setup_filename = __DIR__ . '/../' . self::MODULE . '_setup.inc';
     if (file_exists($setup_filename)) include $setup_filename;
   }
 
@@ -35,17 +35,15 @@ class rsmsAbbreviationsWork extends DrupalWebTestCase {
     scene_setup($this, __FUNCTION__);
     Given('phone %number1 is a player');
     When_('phone %number1 says "h g"');
-    Then_('we say to phone %number1 "help for get"');
+    Then_('we say to phone %number1 "help get"');
   }
 
-  // Scenario: A caller abbreviates command words
-  public function notestACallerAbbreviatesCommandWords() {
+  // Scenario: A caller abbreviates with wrong syntax
+  public function notestACallerAbbreviatesWithWrongSyntax() {
     scene_setup($this, __FUNCTION__);
     Given('phone %number1 is a player');
-    When_('phone %number1 says "12 f abcdef f apples"');
-    Then_('we say to phone %number1 "Don\'t abbreviate" with subs: "DATA'
-    . '\\| @word |'
-    . '\\| for   |"');
+    When_('phone %number1 says "12 f"');
+    Then_('we say to phone %number1 "syntax|help charge"');
   }
 
 }

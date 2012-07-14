@@ -6,8 +6,8 @@
 //   SO I can decide whether I want to participate.
 //   
 
-require_once dirname(__FILE__) . '/../gherkin/test_defs.php';
-require_once dirname(__FILE__) . '/../rsms.steps';
+require_once __DIR__ . '/../gherkin/test_defs.php';
+require_once __DIR__ . '/../rsms.steps';
 
 class rsmsOpenAnAccountForTheCaller extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
@@ -26,7 +26,7 @@ class rsmsOpenAnAccountForTheCaller extends DrupalWebTestCase {
 
   public function setUp() { // especially, enable any modules required for the tests
     parent::setUp(self::MODULE);
-    $setup_filename = dirname(__FILE__) . '/../' . self::MODULE . '_setup.inc';
+    $setup_filename = __DIR__ . '/../' . self::MODULE . '_setup.inc';
     if (file_exists($setup_filename)) include $setup_filename;
   }
 
@@ -72,11 +72,11 @@ class rsmsOpenAnAccountForTheCaller extends DrupalWebTestCase {
   public function notestTheNewbieGivesUsHisOrHerEmailAddress() {
     scene_setup($this, __FUNCTION__);
     Given('we just asked phone %number1 for "email"');
-    And__('the community has Pr$-1000');
+    And__('the community has r$-1000');
     When_('phone %number1 says "zot@email.com"');
     Then_('phone %number1 email is "zot@email.com"');
-    And__('phone %number1 has Pr$250');
-    And__('the community has Pr$-1250');
+    And__('phone %number1 has r$250');
+    And__('the community has r$-1250');
     And__('we say to phone %number1 "your account is ready" with subs: "DATA'
     . '\\| @balance |'
     . '\\| $250      |"');
@@ -87,7 +87,7 @@ class rsmsOpenAnAccountForTheCaller extends DrupalWebTestCase {
     scene_setup($this, __FUNCTION__);
     Given('we just asked phone %number1 for "email"');
     When_('phone %number1 says %random');
-    Then_('we say to phone %number1 "what\'s you email really?"');
+    Then_('we say to phone %number1 "what\'s your email really?"');
   }
 
 }

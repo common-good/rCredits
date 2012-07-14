@@ -11,8 +11,8 @@
 //   NOTE: the various forms of each command should be tracked separately, especially "to" or "from" (1) without "for", (2) with "for cash" and (3) with "for" something else.
 //   
 
-require_once dirname(__FILE__) . '/../gherkin/test_defs.php';
-require_once dirname(__FILE__) . '/../rsms.steps';
+require_once __DIR__ . '/../gherkin/test_defs.php';
+require_once __DIR__ . '/../rsms.steps';
 
 class rsmsTrackCommands extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
@@ -31,7 +31,7 @@ class rsmsTrackCommands extends DrupalWebTestCase {
 
   public function setUp() { // especially, enable any modules required for the tests
     parent::setUp(self::MODULE);
-    $setup_filename = dirname(__FILE__) . '/../' . self::MODULE . '_setup.inc';
+    $setup_filename = __DIR__ . '/../' . self::MODULE . '_setup.inc';
     if (file_exists($setup_filename)) include $setup_filename;
   }
 
