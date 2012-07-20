@@ -226,6 +226,69 @@ function showlog() {
 }
 
 /**
+ * Create a transaction
+ * @parm bool $tome: true if the money is going TO the initiating user
+ * @parm int $my_uid: user id of the initiating user
+ * @parm int $other_uid: user id of the other party
+ * @parm numeric $requested_amount: the transaction amount
+ * @parm string $for: description of the transaction's purpose (user input)
+ * @parm bool $confirmed: has this transaction been confirmed by the user? (default TRUE, used only for SMS interface)
+ * @return associative array: 
+ *    index: index to result message string (if success, the index begins with "report ")
+ *    parms: replacement parameters, specific to the message
+ *    confirm: boolean "this needs to be confirmed"
+ */
+function transfer($tome, $my_uid, $other_uid, $requested_amount, $for, $confirmed = TRUE) {
+  $type = $confirm_type = $tome ? 'charge' : 'payment';
+  $other = user_field('name', $other_uid);
+  $available = credit_info($tome ? $other_uid : $my_uid)->available;
+  $amount = min($requested_amount, $available);
+  $shortfall = $requested_amount - $amount; // how much needs to be done in a separate currency
+  $short = format_amount($shortfall);
+  if ($shortfall > 0) {
+    if (for_cash($for)) return array($tome ? 'short cash from' : 'short cash to', compact('short', 'other'), FALSE); // no partial cash trans
+    if (ceil($shortfall) >= $requested_amount) return array($tome ? 'broke from' : 'broke to', compact('other'), FALSE);
+    $shortfall = ceil($shortfall); // for goods and services, shortfall should be a round figure (no cents)
+    $amount = $requested_amount - $shortfall;
+    $short = format_amount($shortfall);
+  }
+  
+  $payer = $tome ? $other_uid : $my_uid;
+  $payee = $tome ? $my_uid : $other_uid;
+
+  $dbtx = db_transaction();
+  try {
+    $txs = transact(compact('type', 'amount', 'payer', 'payee', 'for'));
+  }
+  catch (\Exception $e) {return array($e->getMessage(), array(), FALSE);}
+  
+  $totals = \transaction_totals($my_uid);
+  $tid = tid_from_xid($my_uid, $txs[0]->xid);
+  $reward_index = $tome ? 2 : 1;
+  $reward = isset($txs[$reward_index]) ? $txs[$reward_index]->worth['und'][0]['quantity'] : 0;
+  
+  $type = $tome ? t('charged') : t('paid');
+  $amount = format_amount($amount);
+  $tofrom = $tome ? t('from') : t('to');
+  $reward_type = $tome ? t('bonus') : t('rebate');
+  $reward_amount = format_amount($reward);
+  $balance = format_amount($totals->balance);
+  $args = compact(explode(' ', 'type amount tofrom reward_type reward_amount balance tid other short'));
+  
+  if (!$confirmed) $dbtx->rollback();
+
+  if (!for_cash($for)) {
+    if ($confirmed) return array($shortfall > 0 ? 'report short transaction' : 'report transaction', $args, FALSE);
+    if ($shortfall > 0) $args['amount'] = format_amount($requested_amount); // restore original amount before getting confirmation
+    return array($confirm_type, $args, TRUE);
+  }
+  
+  $args['type'] = 'traded';
+  $args['way'] = $tome ? t('cash for credit') : t('credit for cash');
+  return array($confirmed ? 'report exchange' : $args['way'], $args, !$confirmed);
+}
+
+/**
  * Set or report how much rCredits the user wants to buy with US Dollars.
  *
  * @parm integer $who: uid of the user
@@ -313,19 +376,13 @@ function next_credit_id($ctty, $business = FALSE) {
   $tail = $next ? a2n(substr($next, 4)) : -1;
   return $ctty . n2a($tail + 1, 4);
 }
- /* $tail = db_lookup('tail', 'r_credit_tails', "community='$ctty'");
-  if ($tail === FALSE) {
-    $sql = "INSERT INTO r_credit_tails (community, tail) VALUES ('$ctty', 0);";
-    $count = \db_query($sql)->rowCount();
-    $tail = -1;
-  } else {
-    $sql = "UPDATE r_credit_tails SET tail=tail+1 WHERE community='$ctty' AND tail='$tail'";
-    $count = \db_query($sql)->rowCount();
-  }
-  if ($count) return n2a($tail + 1, 4);
-  if ($retry > 9) return '';
-  return next_credit_id($ctty, $retry + 1);
-}*/
+
+/**
+ * Say whether the transaction description implies a cash transaction.
+ */
+function for_cash($for) {
+  return ($for == '' or substr(strtolower($for), 0, 4) == 'cash');
+}
 
 /**
  * Return an alphabetic representation of the given integer.
@@ -358,8 +415,13 @@ function a2n($string, $base = 26) {
 
 /**
  * Return a unique temporary name related to the given uniquely identifying parmeters 
- * in this order of preference: phone, email, website. If none, just pick a random string.
+ * in this order of preference: 
+ *   phone: "phone dddddddddd"
+ *   email: "whatever AT domain DOT ext"
+ *   website: "domain DOT ext SLASH andsoforth"
+ * If none, just pick a 10-character random string
  * @parm array $info: associative array of fields, each of which uniquely identifies a user.
+ * @return string: the temporary name
  */
 function temp_name($info) {
   extract($info, EXTR_PREFIX_ALL, 'my');
@@ -422,7 +484,7 @@ function db_lookup($field_name, $table_name, $criteria = '') {
  */
 function rebate($who) {return db_lookup('rebate_percent', 'users', "uid = $who")/100;}
 function bonus($who) {return 2 * rebate($who);}
-function user_field($who, $field_name) {return db_lookup($field_name, 'users', "uid = $who");}
+function user_field($field_name, $who) {return db_lookup($field_name, 'users', "uid = $who");}
 function uid_from_crid($credit_id) {return db_lookup('uid', 'users', "credit_id = '$credit_id'");}
 function tid_from_xid($who, $xid) {return db_lookup('COUNT(xid)', 'mcapi_transactions', "xid <= $xid");}
 function total_demand() {return db_lookup('SUM(demand)', 'users');}

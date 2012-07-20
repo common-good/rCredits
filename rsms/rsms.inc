@@ -262,13 +262,6 @@ function abbreviator($word) {
 }
 
 /**
- * Say whether the transaction description implies a cash transaction.
- */
-function for_cash($for) {
-  return ($for == '' or substr(strtolower($for), 0, 4) == 'cash');
-}
-
-/**
  * Return the command if it was intended by the given message.
  * Otherwise return the standing intent.
  *

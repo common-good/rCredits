@@ -6,7 +6,7 @@
 
 use rCredits as r;
 
-define('RCREDITS_TABLES', 'r_area_codes,r_credit_regions,r_credit_tails,r_nonces');
+define('RCREDITS_TABLES', 'r_area_codes,r_credit_regions,r_nonces');
 
 /**
  * Implement hook_install().
