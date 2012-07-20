@@ -279,7 +279,6 @@ class call {
    *   rcredits.inc might return the status as a message index!
    */
   function do_transfer($isfrom) {
-    $dbtx = db_transaction();
     extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, and what
 
     $other_uid = identify($my_who, $create_info);
@@ -292,53 +291,8 @@ class call {
     $other = $other_account->name;
     if (!\user_access('transact', $other_account)) return tt('non trader', compact('other'));
 
-    return r\transfer($isfrom, $other_uid, $this->parms
-    $type = $confirm_type = $isfrom ? 'charge' : 'payment';
-    $for = $my_what;
-    $available = r\credit_info($isfrom ? $other_uid : $this->caller)->available;
-    $amount = min($my_amount, $available);
-    $shortfall = $my_amount - $amount; // how much needs to be done in a separate currency
-    $short = r\format_amount($shortfall);
-    if ($shortfall > 0) {
-      if (for_cash($for)) return tt($isfrom ? 'short cash from' : 'short cash to', compact('short', 'other')); // no partial cash trans
-      if (ceil($shortfall) >= $my_amount) return tt($isfrom ? 'broke from' : 'broke to', compact('other'));
-      $shortfall = ceil($shortfall); // for goods and services, shortfall should be a round figure (no cents)
-      $amount = $my_amount - $shortfall;
-      $short = r\format_amount($shortfall);
-    }
-    
-    $payer = $isfrom ? $other_uid : $this->caller;
-    $payee = $isfrom ? $this->caller : $other_uid;
-
-    try {
-      $txs = r\transact(compact('type', 'amount', 'payer', 'payee', 'for'));
-    }
-    catch (\Exception $e) {return $e->getMessage();}
-    
-    $totals = \transaction_totals($this->caller);
-    $tid = r\tid_from_xid($this->caller, $txs[0]->xid);
-    $reward_index = $isfrom ? 2 : 1;
-    $reward = isset($txs[$reward_index]) ? $txs[$reward_index]->worth['und'][0]['quantity'] : 0;
-    
-    $type = $isfrom ? t('charged') : t('paid');
-    $amount = r\format_amount($amount);
-    $tofrom = $isfrom ? t('from') : t('to');
-    $reward_type = $isfrom ? t('bonus') : t('rebate');
-    $reward_amount = r\format_amount($reward);
-    $balance = r\format_amount($totals->balance);
-    $args = compact(explode(' ', 'type amount tofrom reward_type reward_amount balance tid other short'));
-    
-    if (!$this->confirmed) $dbtx->rollback();
-
-    if (!for_cash($for)) {
-      if ($this->confirmed) return tt($shortfall > 0 ? 'report short transaction' : 'report transaction', $args);
-      if ($shortfall > 0) $args['amount'] = r\format_amount($my_amount); // restore original amount before getting confirmation
-      return $this->confirm($confirm_type, $args);
-    }
-    
-    $args['type'] = 'traded';
-    $args['way'] = $isfrom ? t('cash for credit') : t('credit for cash');
-    return $this->confirmed ? tt('report exchange', $args) : $this->confirm($args['way'], $args);
+    list ($message, $args, $confirm) = r\transfer($isfrom, $this->caller, $other_uid, $my_amount, $my_what, $this->confirmed);
+    return $confirm ? $this->confirm($message, $args) : tt($message, $args);
   }
- 
+  
 } // end of SMS call class definition
