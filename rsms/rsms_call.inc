@@ -250,6 +250,8 @@ class call {
 
   /**
    * Undo a recent transaction by creating its opposite (using a negative amount).
+   * If the last transaction is pending, we will simply change its state to
+   * cancelled.
    */
   function do_undo() {
     return t('The undo feature is not yet available.');
