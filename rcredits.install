@@ -63,12 +63,12 @@ function rcredits_schema_alter(&$schema) {
   r\setup_field($schema, 'users', 'Credit id', 'unique credit account identifier (8 characters for individuals)', 'varchar 9');
   r\setup_field($schema, 'users', 'Rebate percent', 'current rebate percentage (sales bonus is double)', 'numeric 4,3', 5);
   r\setup_field($schema, 'users', 'Demand', 'waiting to buy this much credit', 'numeric 9,2', 0);
-  r\setup_field($schema, 'users', 'Min balance', 'minimum balance (normally zero or less)', 'numeric 9,2', 0);
+  r\setup_field($schema, 'users', 'Min balance', 'minimum balance (normally zero or less)', 'numeric 9,2', RCREDITS_MIN_BALANCE);
   
   r\setup_field($schema, 'sms_user', 'todo', 'waiting for confirmation to complete this operation', 'text medium');
   r\setup_field($schema, 'sms_user', 'nonce', 'waiting for this nonce, for confirmation', 'varchar 10');
   
-  r\setup_field($schema, 'mcapi_transactions', 'Amount', 'transaction amount', 'numeric 18,9'); 
+  r\setup_field($schema, 'mcapi_transactions', 'Amount', 'transaction amount', 'float big'); 
   r\setup_field($schema, 'mcapi_transactions', array('For', 'payer_for'), 'payer\'s description', 'varchar 60'); 
   r\setup_field($schema, 'mcapi_transactions', array('For', 'payee_for'), 'payee\'s description', 'varchar 60'); 
 /*  
@@ -77,10 +77,7 @@ function rcredits_schema_alter(&$schema) {
   
   r\setup_field($schema, 'r_credit_regions', 'Region', 'state or province', 'char 2');
   r\setup_field($schema, 'r_credit_regions', 'Credit Region', 'credit region id', 'char 2');
-  
-  r\setup_field($schema, 'r_credit_tails', 'Community', '4-character community identifier', 'char 4');
-  r\setup_field($schema, 'r_credit_tails', 'Tail', 'maximum credit id tail used so far', 'int medium', 0, '010');
-  */
+    */
 }
  
 /**

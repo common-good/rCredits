@@ -279,7 +279,6 @@ class call {
     $dbtx = db_transaction();
     extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, and what
 
-    $type = $confirm_type = $isfrom ? 'charge' : 'payment';
     $other_uid = identify($my_who, $create_info);
     if (!$other_uid and !$create_info) return tt('unknown user', $this->parms);
     if(is_array($other_uid)) return tt('ambiguous other', $this->parms);
@@ -290,6 +289,8 @@ class call {
     $other = $other_account->name;
     if (!\user_access('transact', $other_account)) return tt('non trader', compact('other'));
 
+    return r\transfer($isfrom, $other_uid, $this->parms
+    $type = $confirm_type = $isfrom ? 'charge' : 'payment';
     $for = $my_what;
     $available = r\credit_info($isfrom ? $other_uid : $this->caller)->available;
     $amount = min($my_amount, $available);
