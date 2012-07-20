@@ -9,7 +9,7 @@ use \rCredits as r;
  * (anything that doesn't have to be in rsms.module and isn't appropriate to class call).
  */
 
-define('RSMS_PREFIX', 'PRETEND: '); // the pre-launch trial
+define('RSMS_PREFIX', 'AS IF: '); // the pre-launch trial
 //define('RSMS_PREFIX_INACTIVE', '[TRIAL RUN] '); // pretend transactions by not-yet-active players (treat it as a trial run)
 //define('RSMS_PREFIX_ASIF', 'PRETEND - '); // pretend transactions by Active Participants
 
@@ -65,9 +65,11 @@ $GLOBALS['SMS messages'] = array(
   // help messages (for use with the help command)
 $GLOBALS['SMS help'] = array(
   'help payment' => t('To pay Jane Dough $30 for pie, type "30 to .janedough for pie" (with a dot before the name, no spaces). Type "more" for options.'),
-  'help payment2' => t('You can also identify the recipient by phone, email, website, or account id. If you are just exchanging rCredits for cash, leave out the description.'),
+  'help payment2' => t('You can also identify the recipient by phone, email, website, or account id (withOUT a dot before any of these). Type "more" for more details.'),
+  'help payment22' => t('If you are just exchanging rCredits for cash, leave out the description. For example, type "43.12 to jdough@example.com".'),
   'help charge' => t('To charge Food Corp $90 for labor, type "90 from .foodcorp for labor" (with a dot before the name, no spaces). Type "more" for options.'),
-  'help charge2' => t('You can also identify the payer by phone, email, website, or account id. If you are just exchanging cash for rCredits, leave out the description.'),
+  'help charge2' => t('You can also identify the payer by phone, email, website, or account id (withOUT a dot before any of these). Type "more" for more details.'),
+  'help charge22' => t('If you are just exchanging cash for rCredits, leave out the description. For example, type "43.12 from 413-772-6666".'),
   'help undo' => t('To undo your most recent transaction, type "undo". Type "more" for options to undo your most recent transaction of a certain type.'),
   'help undo2' => t('Examples: undo | undo .janedough | undo to | undo from | undo to .janedough | undo from .janedough -- Type "more" for details.'),
   'help undo22' => t('"undo .janedough" undoes your most recent transaction with Jane Dough. You can also identify her by phone, email, website, or account id.'),
@@ -97,7 +99,7 @@ $GLOBALS['SMS commands'] = array( // these can be abbreviated by the caller
     '(?:undo|reverse|canc) %tofrom %who',
   ),
   'information' => array('information', 'balance'),
-  'helpme' => 'helpme(?: %feature)?',
+  'helpme' => '(?:help me|helpme)?(?: %feature)?',
   'more' => 'more', // continuation of help
   'stop' => 'stop|unsubscribe|cancel|quit', // passed from SMS Gateway
   'start' => 'start|yes', // passed from SMS Gateway
@@ -162,10 +164,10 @@ function infer_nonce($message) {
  * Remember what to do, once the user confirms.
  *
  * @parm string $number: the user's cell number (in standard format +1dddddddddd)
- * @parm string $todo: what to do once the user responds with the expected nonce (defaults to nothing)
- * @parm string $nonce: what to store as the nonce (default to 'whatever', meaning pick one at random)
+ * @parm string $todo: what to do once the user responds with the expected nonce (defaults to 'nothing')
+ * @parm string $nonce: what to store as the nonce (defaults to 'whatever', meaning pick one at random)
  *
- * @return object(nonce, todo) if $todo is null, else the nonce
+ * @return object(nonce, todo) if $todo is 'nothing', else the nonce
  */
 function todo($number, $todo = 'nothing', $nonce = 'whatever') {
   if ($todo == 'nothing') {
@@ -196,34 +198,30 @@ function nonce() {
  * Say whether the given account name is a temporary SMS account name.
  */
 function is_temporary_name($name) {
-  $len = strlen(RSMS_TEMPORARY_ACCOUNT_PREFIX);
-  return (substr($name, 0, $len) == RSMS_TEMPORARY_ACCOUNT_PREFIX and is_numeric(substr($name, $len)));
+  return preg_match('/^phone [0-9]*$| DOT /', $name); // temporary for debugging
+//  return preg_match('/^phone {[0-9], 10}$| DOT |/', $name);
 }
 
 /**
  * Create a temporary account for the given user.
  * @parm array $info: associative array of information about the user
- *   'phone' is contact phone and/or cell phone (set both)
+ *   'phone' is contact phone (in standard +ddddddddddd format)
+ *   'number' is cell phone (in standard +ddddddddddd format -- use for phone also)
  *   'email' is email address
  *   'website' is website address
+ * @return the uid of the new account
  */
 function create_account($info) {
   extract($info, EXTR_PREFIX_ALL, 'my');
-  try {
-    $tx = \db_transaction();
-    foreach ($info as $one) if (identify($one)) die('creating duplicate user'); // remove this line soon
-    if (isset($my_phone)) {
-      $my_phone = r\format_phone($my_phone, '+n');
-      $info['credit_id'] = r\make_credit_id($my_phone);
-      $info['number'] = $my_phone;
-    }
-    $who = r\create_user($info)->uid;
-    if (isset($my_phone)) todo($my_phone, 'first call', '');
-    return $who;
-  } catch (\Exception $e) {
-    $tx->rollback();
-    throw new \Exception(tt($e->getMessage()));
+  $tx = \db_transaction();
+  foreach ($info as $one) if (identify($one)) die('creating duplicate user'); // remove this line soon
+  if (isset($my_number) and !isset($my_phone)) $my_phone = $info['phone'] = $my_number;
+  $account = r\create_user($info);
+  if (isset($my_number)) {
+    r\make_credit_id($account); // no id unless user is a player
+// UNUSED    todo($my_number, 'first call', '');
   }
+  return $account->uid;
 }
 
 /**

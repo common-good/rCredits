@@ -82,14 +82,14 @@ function rcredits_transactions_alter(&$txs) {
   $payer = $creator = variable_get('rcredits_community_uid');
 
   $type = 'rebate';
-  $amount = $my_worth['und'][0]['quantity'] * r\rebate($my_payer);
   $payee = $my_payer;
+  $amount = $my_worth['und'][0]['quantity'] * r\rebate($payee);
   $for = t('rebate');
   $txs[] = r\transaction_setup(compact('type', 'amount', 'payer', 'payee', 'for', 'creator'));
 
   $type = 'bonus';
-  $amount = $my_worth['und'][0]['quantity'] * r\bonus($my_payer);
   $payee = $my_payee;
+  $amount = $my_worth['und'][0]['quantity'] * r\bonus($payee);
   $for = t('bonus');
   $txs[] = r\transaction_setup(compact('type', 'amount', 'payer', 'payee', 'for', 'creator'));
 }

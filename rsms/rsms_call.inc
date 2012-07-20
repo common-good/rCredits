@@ -59,16 +59,17 @@ class call {
 
     $account = \user_load($this->caller);
     $todo = todo($this->number);
-    if ($todo->todo == 'first call') {
-      todo($this->number, 'setup name', '');
-      return tt("what's your name?");
-    }
-    if ($todo->todo == 'setup name' and is_temporary_name($account->name)) {
+    if (is_object($todo)) $todo = $todo->todo;
+    if (is_temporary_name($account->name)) {
+      if($todo != 'setup name') {
+        todo($this->number, 'setup name', '');
+        return tt("what's your name?");
+      }
       $name = setup_name($account, $this->message)->name;
       todo($this->number, 'setup email', '');
       $id = $account->credit_id;
       return tt("what's your email?", compact('id', 'name'));
-    } elseif ($todo->todo == 'setup email' and !$account->mail) {
+    } elseif ($todo == 'setup email' and !$account->mail) {
       setup_email($account, $this->message);
       todo($this->number, '', '');
       $balance = r\format_amount(r\give_signup_incentive($this->caller));
@@ -270,6 +271,9 @@ class call {
 
   /**
    * Create a transaction for the caller.
+   * @todo: cast everything to integers
+   * @todo: move all this logic to rcredits.inc (pass relevant info, respond according to returned status)
+   *   rcredits.inc might return the status as a message index!
    */
   function do_transfer($isfrom) {
     $dbtx = db_transaction();

@@ -11,6 +11,7 @@ define('RCREDITS_BONUS', 0.10);
 define('RCREDITS_COMMUNITY_POSTAL_AREA', '01%'); // anyone with a postal code that matches this is in
 define('RCREDITS_MAX_DEMAND', 1000000000);
 define('RCREDITS_STARTING_BALANCE', 250); // how much people start with in the TRIAL RUN
+define('RCREDITS_MIN_BALANCE', -10000); // how low can user's balance go, by default (be generous in TRIAL RUN)
 
 /**
  * Show a debbugging statement (without a lot of typing)
@@ -114,7 +115,6 @@ function create_user($info) {
   $info['mail'] = $info['init'] = isset($my_email) ? $my_email : '';
   $info['pass'] = \user_password();
   $info['name'] = isset($my_name) ? $my_name : temp_name($info);
-  deb($info);
   $info['status'] = TRUE;
   $info['is_new'] = TRUE;
   
@@ -130,14 +130,14 @@ function create_user($info) {
 
 /**
  * Record a transaction between two participants
+ * @see also rcredits_transactions_alter()
  */
 function transact($info) {
   $tx = transaction_setup($info);
 
   try {
     return \transaction_insert_new($tx, TRUE);
-  }
-  catch (Exception $e) {throw $e;}
+  } catch (Exception $e) {throw $e;}
 }
 
 /**
@@ -282,34 +282,38 @@ function valid_name($name) {
 }
 
 /**
- * Create an appropriate credit id for the given phone number
- *
- * Callers of this function should roll it back if the id does not get used.
- * @parm string $cgc: what common good community the number's owner belongs to, if any
- * @todo: Change this to add a credit_id to the already-saved account record. The credit_id field
- *   should be UNIQUE INDEX'ed, so the UPDATE will fail in case of a collision (then just retry). 
- *   The next appropriate id should be found by SELECT MAX WHERE credit_id LIKE '$ctty____'
- *   (or '$ctty_____' -- 5-char tail for orgs), then convert to an integer and back to next id.
- *   (no need for credit_tails table).
+ * Create an appropriate credit id for the given account
  */
-function make_credit_id($number, $cgc = '') {
-  if ($number = format_phone($number, 'n')) {
-    $area = substr($number, 0, 3);
+function make_credit_id($account) {
+  if (isset($account->credit_id) and $account->credit_id) return;
+  if ($phone = format_phone($account->phone, 'n')) {
+    $area = substr($phone, 0, 3);
     $state = db_lookup('region', 'r_area_codes', "area_code='$area'");
     $region = db_lookup('credit_region', 'r_credit_regions', "region='$state'");
     if (!$region) $region = 'Z9';
   }
-//  $ctty = $area == '413' ? 'GF' : ($area == '860' ? 'NL' : 'AA'); // Greenfield, New London, or other
-  $ctty = $region . 'AA'; // until the person becomes a member of a specific community, give them a generic community
-  return $ctty . next_credit_id_tail($ctty);
+  $ctty = $region . 'AA'; // until the person becomes a member of a specific community, give them a generic community in their region
+
+  for ($try = 0; $try < 9; $try++) {
+    $credit_id = next_credit_id($ctty);
+    \user_save($account, compact('credit_id'));
+    if (!db_lookup('uid', 'users', "credit_id = '$credit_id' AND uid < " . $account->uid)) return;
+  }
+  die("Too many collisions in make_credit_id() -- ctty = $ctty");
 }
 
 /**
- * Return the next credit id tail for the given community.
- * Callers of this function should roll it back if the tail does not get used.
+ * Return the next credit id for the given community.
+ * @parm string $ctty: 4-character community header
+ * @parm bool $business: return a credit id for a business? (as opposed to for an individual)
  */
-function next_credit_id_tail($ctty, $retry = 0) {
-  $tail = db_lookup('tail', 'r_credit_tails', "community='$ctty'");
+function next_credit_id($ctty, $business = FALSE) {
+  $pattern = $business ? '_____' : '____';
+  $next = db_lookup('MAX(credit_id)', 'users', "credit_id LIKE '$ctty$pattern'");
+  $tail = $next ? a2n(substr($next, 4)) : -1;
+  return $ctty . n2a($tail + 1, 4);
+}
+ /* $tail = db_lookup('tail', 'r_credit_tails', "community='$ctty'");
   if ($tail === FALSE) {
     $sql = "INSERT INTO r_credit_tails (community, tail) VALUES ('$ctty', 0);";
     $count = \db_query($sql)->rowCount();
@@ -320,8 +324,8 @@ function next_credit_id_tail($ctty, $retry = 0) {
   }
   if ($count) return n2a($tail + 1, 4);
   if ($retry > 9) return '';
-  return next_credit_id_tail($ctty, $retry + 1);
-}
+  return next_credit_id($ctty, $retry + 1);
+}*/
 
 /**
  * Return an alphabetic representation of the given integer.
@@ -423,4 +427,4 @@ function uid_from_crid($credit_id) {return db_lookup('uid', 'users', "credit_id 
 function tid_from_xid($who, $xid) {return db_lookup('COUNT(xid)', 'mcapi_transactions', "xid <= $xid");}
 function total_demand() {return db_lookup('SUM(demand)', 'users');}
 
-function valid_url($url) {return (\valid_url($url) and strpos($url, '.') and strpos($url, '@') === FALSE);}
+function valid_url($url) {return (\valid_url($url) and preg_match('/^[A-Z0-9\-_]+\.[A-Z0-9\-_]+/i', $url) and strpos($url, '@') === FALSE);}
