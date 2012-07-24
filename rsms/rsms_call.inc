@@ -254,6 +254,7 @@ class call {
    * cancelled.
    */
   function do_undo() {
+    extract($this->parms, EXTR_PREFIX_ALL, 'my');	// who and/or tofrom
     return t('The undo feature is not yet available.');
   }
 
