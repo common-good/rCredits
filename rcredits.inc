@@ -133,6 +133,7 @@ function create_user($info) {
  * @see also rcredits_transactions_alter()
  */
 function transact($info) {
+//  foreach (array('creator', 'payer', 'payee') as $one) $info[$one. '_id'] = user_field('credit_id', $info[$one]);
   $tx = transaction_setup($info);
 
   try {
@@ -155,7 +156,6 @@ function transaction_setup($info) {
 //  $tx->worth['und'][0]['currcode'] = isset($values['currency']) ? $values['currency'] : key(currencies_load());
   $tx->worth['und'][0]['quantity'] = $my_amount;
   
-  if ((strtolower($my_for) == 'cash') or ($my_for == '')) $my_for = 'cash';
   $tx->payer_for = $my_for;
   $tx->payee_for = $my_for;
   $tx->state = \TRANSACTION_STATE_FINISHED;
@@ -175,7 +175,7 @@ function give_signup_incentive($who) {
   $payer = $creator = variable_get('rcredits_community_uid');;
   $payee = $who;
   $for = t('signup');
-  transact(compact('type', 'amount', 'payer', 'payee', 'for', 'creator'));
+  transact(compact(explode(' ', 'type amount payer payee for creator')));
   return $amount;
 }
 
@@ -233,32 +233,35 @@ function showlog() {
  * @parm numeric $requested_amount: the transaction amount
  * @parm string $for: description of the transaction's purpose (user input)
  * @parm bool $confirmed: has this transaction been confirmed by the user? (default TRUE, used only for SMS interface)
- * @return associative array: 
+ * @parm array $rewards: associative array of reward percentages, indexed by 'rebate' and 'bonus' (default empty means standard rewards)
+ * @return simple array: 
  *    index: index to result message string (if success, the index begins with "report ")
  *    parms: replacement parameters, specific to the message
  *    confirm: boolean "this needs to be confirmed"
  */
-function transfer($tome, $my_uid, $other_uid, $requested_amount, $for, $confirmed = TRUE) {
+function transfer($tome, $my_uid, $other_uid, $requested_amount, $for, $confirmed = TRUE, $rewards = array()) {
   $type = $confirm_type = $tome ? 'charge' : 'payment';
+  if ($for_cash = for_cash($for)) $for = 'cash';
   $other = user_field('name', $other_uid);
   $available = credit_info($tome ? $other_uid : $my_uid)->available;
   $amount = min($requested_amount, $available);
   $shortfall = $requested_amount - $amount; // how much needs to be done in a separate currency
   $short = format_amount($shortfall);
   if ($shortfall > 0) {
-    if (for_cash($for)) return array($tome ? 'short cash from' : 'short cash to', compact('short', 'other'), FALSE); // no partial cash trans
+    if ($for_cash) return array($tome ? 'short cash from' : 'short cash to', compact('short', 'other'), FALSE); // no partial cash trans
     if (ceil($shortfall) >= $requested_amount) return array($tome ? 'broke from' : 'broke to', compact('other'), FALSE);
     $shortfall = ceil($shortfall); // for goods and services, shortfall should be a round figure (no cents)
     $amount = $requested_amount - $shortfall;
     $short = format_amount($shortfall);
   }
   
-  $payer = $tome ? $other_uid : $my_uid;
-  $payee = $tome ? $my_uid : $other_uid;
+  list ($payer, $payee) = $tome ? array($other_uid, $my_uid) : array($my_uid, $other_uid);
+  list ($rebate, $bonus) = $for_cash ? array(0, 0) : array(r\rebate($payer), r\bonus($payee));
+  $data = empty($rewards) ? compact('rebate', 'bonus') : $rewards;
 
   $dbtx = db_transaction();
   try {
-    $txs = transact(compact('type', 'amount', 'payer', 'payee', 'for'));
+    $txs = transact(compact(explode(' ', 'type amount payer payee for data')));
   }
   catch (\Exception $e) {return array($e->getMessage(), array(), FALSE);}
   
@@ -277,7 +280,7 @@ function transfer($tome, $my_uid, $other_uid, $requested_amount, $for, $confirme
   
   if (!$confirmed) $dbtx->rollback();
 
-  if (!for_cash($for)) {
+  if (!$for_cash) {
     if ($confirmed) return array($shortfall > 0 ? 'report short transaction' : 'report transaction', $args, FALSE);
     if ($shortfall > 0) $args['amount'] = format_amount($requested_amount); // restore original amount before getting confirmation
     return array($confirm_type, $args, TRUE);
@@ -338,10 +341,14 @@ function credit_info($who) {
 
 /**
  * Say whether the user name is valid.
+ * @parm string $name: the name to test
+ * @parm boolean $picky: whether to allow only 2-4 word names (default TRUE)
  */
-function valid_name($name) {
+function valid_name($name, $picky = TRUE) {
   $words = substr_count($name, ' ') + 1;
-  return (preg_match("/[^A-Z\-\.,' ]/i", $name) or $words < 2 or $words > 4) ? FALSE : TRUE;
+  if (preg_match("/[^\w\-\.,' ]/iu", $name)) return FALSE; // allows unicode chars and common punctuation
+  if ($picky and ($words < 2 or $words > 4)) return FALSE;
+  return TRUE;
 }
 
 /**
@@ -381,7 +388,7 @@ function next_credit_id($ctty, $business = FALSE) {
  * Say whether the transaction description implies a cash transaction.
  */
 function for_cash($for) {
-  return ($for == '' or substr(strtolower($for), 0, 4) == 'cash');
+  return ($for == '' or preg_match('/cash( |$)/i', $for));
 }
 
 /**
@@ -473,10 +480,12 @@ function reset() {
 /**
  * Look the field up in the table, returning the first record matching the criteria.
  */
-function db_lookup($field_name, $table_name, $criteria = '') {
+function db_lookup($field_name, $table_name, $criteria = '', $subs = array()) {
   if ($criteria) $criteria = "WHERE $criteria";
   $sql = "SELECT $field_name FROM $table_name $criteria";
-  return \db_query($sql)->fetchField();
+  $new_subs = array();
+  if ($subs) foreach ($subs as $key => $value) $new_subs[':' . $key] = $value;
+  return \db_query($sql, $subs)->fetchField();
 }
 
 /**

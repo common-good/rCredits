@@ -214,7 +214,7 @@ function is_temporary_name($name) {
 function create_account($info) {
   extract($info, EXTR_PREFIX_ALL, 'my');
   $tx = \db_transaction();
-  foreach ($info as $one) if (identify($one)) die('creating duplicate user'); // remove this line soon
+  foreach ($info as $one) if (identify($one)) die('creating duplicate user'); // DEBUG remove this line soon
   if (isset($my_number) and !isset($my_phone)) $my_phone = $info['phone'] = $my_number;
   $account = r\create_user($info);
   if (isset($my_number)) {
@@ -226,16 +226,19 @@ function create_account($info) {
 
 /**
  * Add the cell owner's full name to the account.
- * @return object: the account
+ * @return the full name
  */
 function setup_name($account, $name) {
   $name = str_replace('  ', ' ', trim($name));
   if (strlen($name) > 60) throw new \Exception(tt('name too long'));
   if (strtolower($name) == $name or strtoupper($name) == $name) $name = ucwords($name);
   if (!r\valid_name($name)) throw new \Exception(tt("what's your name really?"));
-  if (r\db_lookup(1, 'users', "UPPER(name) = UPPER('$name')")) throw new \Exception(tt('duplicate name'));
-  $edit = compact('name');
-  return \user_save($account, $edit);
+  $full_name = $name;
+  $name = $short_name = strtolower(preg_replace('/\W/', '', iconv('UTF-8', 'ASCII//TRANSLIT', $full_name)));
+  if (r\db_lookup(1, 'users', "short_name = ':short_name'", compact('short_name'))) throw new \Exception(tt('duplicate name'));
+  r\deb('before save');
+  $edit = compact('name', 'short_name', 'full_name');
+  return \user_save($account, $edit)->full_name;
 }
 
 /**
@@ -294,7 +297,7 @@ function identify($value, &$create_info = array()) {
 
   $value = strtolower(str_replace("'", '', $value)); // avoid SQL errors
   $sql = "SELECT u.uid FROM {users} u LEFT JOIN {sms_user} s ON u.uid = s.uid 
-          WHERE '$value' IN (LCASE(CONCAT('.', REPLACE(u.name, ' ', ''))), u.credit_id, s.number, LCASE(u.website), u.phone, LCASE(u.mail))";
+          WHERE '$value' IN (CONCAT('.', u.short_name), u.credit_id, s.number, LCASE(u.website), u.phone, LCASE(u.mail))";
   $result = db_query($sql)->fetchCol();
   if (isset($result[0])) return count($result) > 1 ? $result : $result[0];
 

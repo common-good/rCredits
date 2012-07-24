@@ -48,7 +48,7 @@ class call {
    *
    * If the caller does not have a record in our database, create one.
    * If the record is not yet adequate, ask for more information.
-   * The caller is not validated unless we have a fullname and email address for him or her.
+   * The caller is not validated unless we have a full_name and email address for him or her.
    * @returns string: error message to send to the caller (null if success).
    * @throws \Exception
    *   Message is the error message to send the caller.
@@ -65,10 +65,10 @@ class call {
         todo($this->number, 'setup name', '');
         return tt("what's your name?");
       }
-      $name = setup_name($account, $this->message)->name;
+      $full_name = setup_name($account, $this->message);
       todo($this->number, 'setup email', '');
       $id = $account->credit_id;
-      return tt("what's your email?", compact('id', 'name'));
+      return tt("what's your email?", compact('id', 'full_name'));
     } elseif ($todo == 'setup email' and !$account->mail) {
       setup_email($account, $this->message);
       todo($this->number, '', '');
@@ -287,7 +287,7 @@ class call {
     
     if (!$other_uid) $other_uid = create_account($create_info);
     $other_account = \user_load($other_uid);
-    $other = $other_account->name;
+    $other = $other_account->full_name;
     if (!\user_access('transact', $other_account)) return tt('non trader', compact('other'));
 
     list ($message, $args, $confirm) = r\transfer($isfrom, $this->caller, $other_uid, $my_amount, $my_what, $this->confirmed);

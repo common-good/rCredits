@@ -49,29 +49,47 @@ function rcredits_install() {
 function rcredits_schema_alter(&$schema) {
   $users = $sms_user = $mcapi_transactions = array();
 
-  r\setup_field($schema, 'users', 'Phone', 'contact phone (no country code, no punctuation)', 'varchar 255', '', '000');
-  r\setup_field($schema, 'users', 'Fax', 'fax number (no country code, no punctuation)', 'varchar 255', '', '000');
+  r\setup_field($schema, 'users', 'Full name', 'full name of the individual or entity', 'varchar 60');
+  r\setup_field($schema, 'users', 'Short name', 'alphanumeric identifier with no spaces (internal)', 'varchar 60');
+  r\setup_field($schema, 'users', 'Phone', 'contact phone (no country code, no punctuation)', 'varchar 255');
+  r\setup_field($schema, 'users', 'Fax', 'fax number (no country code, no punctuation)', 'varchar 255');
   r\setup_field($schema, 'users', 'Address', 'postal street address', 'varchar 60');
   r\setup_field($schema, 'users', 'City', 'municipality', 'varchar 60');
-  r\setup_field($schema, 'users', 'State', 'two-letter state abbreviation', 'varchar 2');
+  r\setup_field($schema, 'users', 'State', 'two-letter state abbreviation', 'varchar 2'); // varchar because char is deprecated
   r\setup_field($schema, 'users', 'Postal code', 'contact postal code (no punctuation)', 'varchar 20');
+  r\setup_field($schema, 'users', 'Country', 'two-letter country code', 'varchar 2');
   r\setup_field($schema, 'users', 'Website', 'primary website', 'varchar 255');
   r\setup_field($schema, 'users', 'Categories', 'business categories', 'text medium', '', '100'); // serialized array
+  r\setup_field($schema, 'users', 'Is committed', 'signed the membership agreement and donated', 'int tiny', 0, '010');
+  r\setup_field($schema, 'users', 'Can vote', 'member is allowed to vote', 'int tiny', 0, '010');
+  r\setup_field($schema, 'users', 'Federal ID', 'social security number or employer id number, for reporting', 'varchar 9');
+  r\setup_field($schema, 'users', 'Notes', 'miscellaneous notes about the user or the account', 'text medium');
 
   // actually these are credit account fields, but in the user table for now (any user with a credit id is a trading account)
-// NO  r\setup_field($schema, 'users', 'Credit name', 'name on the credit account (usually the individual or business name)', 'varchar 60');
   r\setup_field($schema, 'users', 'Credit id', 'unique credit account identifier (8 characters for individuals)', 'varchar 9');
   r\setup_field($schema, 'users', 'Rebate percent', 'current rebate percentage (sales bonus is double)', 'numeric 4,3', 5);
   r\setup_field($schema, 'users', 'Demand', 'waiting to buy this much credit', 'numeric 9,2', 0);
   r\setup_field($schema, 'users', 'Min balance', 'minimum balance (normally zero or less)', 'numeric 9,2', RCREDITS_MIN_BALANCE);
+  r\setup_field($schema, 'users', 'Can trade', 'user is allowed to use rCredits for real', 'int tiny', 0, '010');
+  r\setup_field($schema, 'users', 'Can charge', 'user can charge customers without confirmation', 'int tiny', 0, '010');
+  r\setup_field($schema, 'users', 'Lost card', 'user lost the account id card', 'int tiny', 0, '010');
+  r\setup_field($schema, 'users', 'Bank account number', 'official currency international bank account number', 'varchar 34');
+  r\setup_field($schema, 'users', 'Bank account name', 'name on US$ bank account -- usually the same as name', 'varchar 60');
+  r\setup_field($schema, 'users', 'Bank account verified', 'user has proven ownership of account', 'int tiny', 0, '010');
   
   r\setup_field($schema, 'sms_user', 'todo', 'waiting for confirmation to complete this operation', 'text medium');
   r\setup_field($schema, 'sms_user', 'nonce', 'waiting for this nonce, for confirmation', 'varchar 10');
   
   r\setup_field($schema, 'mcapi_transactions', 'Amount', 'transaction amount', 'float big'); 
-  r\setup_field($schema, 'mcapi_transactions', array('For', 'payer_for'), 'payer\'s description', 'varchar 60'); 
-  r\setup_field($schema, 'mcapi_transactions', array('For', 'payee_for'), 'payee\'s description', 'varchar 60'); 
-/*  
+  r\setup_field($schema, 'mcapi_transactions', array('Description', 'payer_for'), "payer's description", 'varchar 60'); 
+  r\setup_field($schema, 'mcapi_transactions', array('Description', 'payee_for'), "payee's description", 'varchar 60'); 
+
+/*  r\setup_field($schema, 'mcapi_transactions', 'Payer ID', "payer's credit id", 'varchar 9');
+  r\setup_field($schema, 'mcapi_transactions', 'Payee ID', "payee's credit id", 'varchar 9');
+  r\setup_field($schema, 'mcapi_transactions', 'Creator ID', "creator's credit id", 'varchar 9');
+*/
+
+  /*  
   r\setup_field($schema, 'r_area_codes', 'Area Code', 'telephone area code', 'char 3'); 
   r\setup_field($schema, 'r_area_codes', 'Region', 'state, province, or territory', 'varchar 24'); 
   

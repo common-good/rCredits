@@ -71,7 +71,11 @@ function rcredits_mcapi_info_types() {
 /**
  * Implements transactions_alter.
  *
- * Add rebate and bonus to the transaction set.
+ * Add rebate and bonus to the transaction set, if appropriate.
+ * @todo: Note that the data field might also hold additional identification information about a nonlocal payer or payee.
+ *   If the mcapi intertrading module does not work for us, other servers could have a single UID on our system, so a
+ *   user doing business with someone in another region would generate a transaction between an individual and a server,
+ *   with credit_id for the individual in that other region stored in the data field. We do NOT need creator_id, payer_id, and payee_id.
  */
 function rcredits_transactions_alter(&$txs) {
   extract((array) $txs[0], EXTR_PREFIX_ALL, 'my');
@@ -79,17 +83,21 @@ function rcredits_transactions_alter(&$txs) {
   if (($my_type != 'payment') and ($my_type != 'charge')) return;
   if ($my_payer_for == 'cash') return; // quit unless rebates and bonuses apply
   
+  $fields = explode(' ', 'type amount payer payee for creator');
   $payer = $creator = variable_get('rcredits_community_uid');
+//  $payer_id = $creator_id = RCREDITS_COMMUNITY_ID;
 
   $type = 'rebate';
   $payee = $my_payer;
-  $amount = $my_worth['und'][0]['quantity'] * r\rebate($payee);
+//  $payee_id = $my_payer_id;
+  $amount = $my_amount * $my_data[$type]; // was $my_worth['und'][0]['quantity'] *
   $for = t('rebate');
-  $txs[] = r\transaction_setup(compact('type', 'amount', 'payer', 'payee', 'for', 'creator'));
+  $txs[] = r\transaction_setup(compact($fields));
 
   $type = 'bonus';
   $payee = $my_payee;
-  $amount = $my_worth['und'][0]['quantity'] * r\bonus($payee);
+//  $payee_id = $my_payee_id;
+  $amount = $my_amount * $my_data[$type];
   $for = t('bonus');
-  $txs[] = r\transaction_setup(compact('type', 'amount', 'payer', 'payee', 'for', 'creator'));
+  $txs[] = r\transaction_setup(compact($fields));
 }
