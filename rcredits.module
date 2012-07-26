@@ -90,14 +90,14 @@ function rcredits_transactions_alter(&$txs) {
   $type = 'rebate';
   $payee = $my_payer;
 //  $payee_id = $my_payer_id;
-  $amount = $my_amount * $my_data[$type]; // was $my_worth['und'][0]['quantity'] *
+  $amount = $my_amount * $my_extra[$type]; // was $my_worth['und'][0]['quantity'] *
   $for = t('rebate');
   $txs[] = r\transaction_setup(compact($fields));
 
   $type = 'bonus';
   $payee = $my_payee;
 //  $payee_id = $my_payee_id;
-  $amount = $my_amount * $my_data[$type];
+  $amount = $my_amount * $my_extra[$type];
   $for = t('bonus');
   $txs[] = r\transaction_setup(compact($fields));
 }

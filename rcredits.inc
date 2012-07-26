@@ -160,6 +160,7 @@ function transaction_setup($info) {
   $tx->payee_for = $my_for;
   $tx->state = \TRANSACTION_STATE_FINISHED;
   $tx->type = $my_type;
+  if (isset($my_data)) $tx->extra = $my_data;
   if (isset($my_creator)) $tx->creator = $my_creator; // defaults to current user
   return $tx;
 }
@@ -256,7 +257,7 @@ function transfer($tome, $my_uid, $other_uid, $requested_amount, $for, $confirme
   }
   
   list ($payer, $payee) = $tome ? array($other_uid, $my_uid) : array($my_uid, $other_uid);
-  list ($rebate, $bonus) = $for_cash ? array(0, 0) : array(r\rebate($payer), r\bonus($payee));
+  list ($rebate, $bonus) = $for_cash ? array(0, 0) : array(rebate($payer), bonus($payee));
   $data = empty($rewards) ? compact('rebate', 'bonus') : $rewards;
 
   $dbtx = db_transaction();
