@@ -252,10 +252,52 @@ class call {
    * Undo a recent transaction by creating its opposite (using a negative amount).
    * If the last transaction is pending, we will simply change its state to
    * cancelled.
+   * SELECT (*) FROM mcapi_transactions WHERE () ORDER BY xid DESC LIMIT 1
+   * WHERE payer=me / payee=me / payer=me OR payee=me
+   * AND payer=other OR payee=other
+   * AND type='payment'
    */
   function do_undo() {
     extract($this->parms, EXTR_PREFIX_ALL, 'my');	// who and/or tofrom
-    return t('The undo feature is not yet available.');
+
+    if (isset($my_tofrom)) {
+      $my_tofrom = lc($my_tofrom);
+      if ($my_tofrom === 'to')
+	$where = "payer={$this->caller}";
+	else $where = "payee={$this->caller}";
+    } else $where = "(payee={$this->caller} OR payer={$this->caller})";
+
+    if (isset($my_who)) {
+      $other_uid = identify($my_who, $create_info);
+      if (!$other_uid) return tt('unknown user', $this->parms);
+      if (is_array($other_uid)) return tt('ambiguous other', $this->parms);
+      if ($other_uid == $this->caller) return tt('no self-undo');
+      $where .= " AND ";
+      if (!isset($my_tofrom))
+	$where .= "(payee=$other_uid OR payer=$other_uid)";
+      elseif ($my_tofrom === 'to') $where .= "payee=$other_uid";
+      else $where .= "payer=$other_uid";
+    }
+
+    $sql = "SELECT * FROM mcapi_transactions WHERE ($where AND type='payment')"
+      . " ORDER BY xid DESC LIMIT 1";
+    $result = db_query($sql)->fetchAssoc();
+    if (! $result) return tt('undo no match');
+
+    $result['date'] = strftime('%m/%d/%Y',$result['created']);
+    if (! $this->confirmed) {
+      $this->parms['xid'] = $result['xid'];
+      return $this->confirm ('undo', $result);
+    } elseif ($result['xid'] != $my_xid) {
+      return tt('undo moving target');
+    // !!! Here we would test for pending transactions
+    } else {
+      $rewards = unserialize($result['data']);
+      list ($message, $args, $confirm) = r\transfer(FALSE, $result['payer'],
+	$result['payee'], -$result['amount'], 'undo '.$result['payer_for'],
+	TRUE, $rewards);
+    }
+    return tt('report undo', $result);
   }
 
   /**
