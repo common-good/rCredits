@@ -24,6 +24,7 @@ $GLOBALS['SMS messages'] = array(
   'report short transaction' => t("You @type @other @amount (@short remains to be paid). Your new balance is @balance. Transaction #@tid"),
 //  'transaction done asif' => t("@type: @amount @tofrom user#@other (@reward_type: @reward_amount). Your new provisional balance is @balance (If this had been a real transaction, your balance would be @amount @moreless). Transaction ID #@xid"),
   'report exchange' => t("You @type @other @amount @way. Your new balance is @balance. Transaction #@tid"),
+  'report undo' => t("You cancelled transfer of @amount from @payer to @payee on @date."),
   'your demand' => t("Your total request for rCredits is now @amount."),
 
   // questions
@@ -38,6 +39,7 @@ $GLOBALS['SMS messages'] = array(
   'confirm charge' => t("Charge @other @amount for goods and services?"),
   'confirm credit for cash' => t("Give @other r@amount for cash?"),
   'confirm cash for credit' => t("Give @other @amount cash for rCredits?"),
+  'confirm undo' => t("Undo transfer @amount from @payer to @payee on @date?"),
   'please confirm' => t("To confirm, type @nonce."),
   
   // error messages
@@ -51,6 +53,9 @@ $GLOBALS['SMS messages'] = array(
   'not a feature' => t('"@feature" is not a feature.'),
   'wrong nonce' => t('That is not the expected confirmation response. Try again (start over).'),
   'no self-trading' => t("You can't exchange rCredits with yourself."),
+  'no self-undo' => t("You can't undo transactions with yourself."),
+  'undo no match' => t("You have no matching transactions to undo."),
+  'undo moving target' => t("Can't undo: the last matching transaction has changed."),
   'duplicate email' => t("There is already an account with that email address. Visit rCredits.org to add this cell number to your account."),
   'unknown user' => t('Unknown rTrader: "@who". Type "helpme pay".'),
   'non trader' => t('@other does not an authorized rTrader.'),
