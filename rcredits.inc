@@ -287,6 +287,7 @@ function transaction_setup($info) {
   $tx->payee_for = $my_for;
   $tx->state = isset($my_state) ? $my_state : \TRANSACTION_STATE_FINISHED;
   $tx->type = $my_type;
+  if (isset($my_data)) $tx->extra = $my_data;
   if (isset($my_creator)) $tx->creator = $my_creator; // defaults to current user
   return $tx;
 }
@@ -350,6 +351,72 @@ function r_log($type='', $message='', $number='', $nonce='') {
  */
 function showlog() {
   print_r(r_log());
+}
+
+/**
+ * Create a transaction
+ * @parm bool $tome: true if the money is going TO the initiating user
+ * @parm int $my_uid: user id of the initiating user
+ * @parm int $other_uid: user id of the other party
+ * @parm numeric $requested_amount: the transaction amount
+ * @parm string $for: description of the transaction's purpose (user input)
+ * @parm bool $confirmed: has this transaction been confirmed by the user? (default TRUE, used only for SMS interface)
+ * @parm array $rewards: associative array of reward percentages, indexed by 'rebate' and 'bonus' (default empty means standard rewards)
+ * @return simple array: 
+ *    index: index to result message string (if success, the index begins with "report ")
+ *    parms: replacement parameters, specific to the message
+ *    confirm: boolean "this needs to be confirmed"
+ */
+function transfer($tome, $my_uid, $other_uid, $requested_amount, $for, $confirmed = TRUE, $rewards = array()) {
+  $type = $confirm_type = $tome ? 'charge' : 'payment';
+  if ($for_cash = for_cash($for)) $for = 'cash';
+  $other = user_field('name', $other_uid);
+  $available = credit_info($tome ? $other_uid : $my_uid)->available;
+  $amount = min($requested_amount, $available);
+  $shortfall = $requested_amount - $amount; // how much needs to be done in a separate currency
+  $short = format_amount($shortfall);
+  if ($shortfall > 0) {
+    if ($for_cash) return array($tome ? 'short cash from' : 'short cash to', compact('short', 'other'), FALSE); // no partial cash trans
+    if (ceil($shortfall) >= $requested_amount) return array($tome ? 'broke from' : 'broke to', compact('other'), FALSE);
+    $shortfall = ceil($shortfall); // for goods and services, shortfall should be a round figure (no cents)
+    $amount = $requested_amount - $shortfall;
+    $short = format_amount($shortfall);
+  }
+  
+  list ($payer, $payee) = $tome ? array($other_uid, $my_uid) : array($my_uid, $other_uid);
+  list ($rebate, $bonus) = $for_cash ? array(0, 0) : array(rebate($payer), bonus($payee));
+  $data = empty($rewards) ? compact('rebate', 'bonus') : $rewards;
+
+  $dbtx = db_transaction();
+  try {
+    $txs = transact(compact(explode(' ', 'type amount payer payee for data')));
+  }
+  catch (\Exception $e) {return array($e->getMessage(), array(), FALSE);}
+  
+  $totals = \transaction_totals($my_uid);
+  $tid = tid_from_xid($my_uid, $txs[0]->xid);
+  $reward_index = $tome ? 2 : 1;
+  $reward = isset($txs[$reward_index]) ? $txs[$reward_index]->worth['und'][0]['quantity'] : 0;
+  
+  $type = $tome ? t('charged') : t('paid');
+  $amount = format_amount($amount);
+  $tofrom = $tome ? t('from') : t('to');
+  $reward_type = $tome ? t('bonus') : t('rebate');
+  $reward_amount = format_amount($reward);
+  $balance = format_amount($totals->balance);
+  $args = compact(explode(' ', 'type amount tofrom reward_type reward_amount balance tid other short'));
+  
+  if (!$confirmed) $dbtx->rollback();
+
+  if (!$for_cash) {
+    if ($confirmed) return array($shortfall > 0 ? 'report short transaction' : 'report transaction', $args, FALSE);
+    if ($shortfall > 0) $args['amount'] = format_amount($requested_amount); // restore original amount before getting confirmation
+    return array($confirm_type, $args, TRUE);
+  }
+  
+  $args['type'] = 'traded';
+  $args['way'] = $tome ? t('cash for credit') : t('credit for cash');
+  return array($confirmed ? 'report exchange' : $args['way'], $args, !$confirmed);
 }
 
 /**
