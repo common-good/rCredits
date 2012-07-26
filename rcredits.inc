@@ -1,4 +1,22 @@
 <?php
+/**
+ * @file
+ * All of the business logic common to the various rCredits interfaces
+ * (SMS, web, smartphone, etc.)
+ * EXCEPT the Drupalish callbacks, which are in rcredits.module
+ *
+ * @todo
+ * - the undo feature
+ * - handling invoices (required confirmation of charges)
+ * - handling employees (virtual payments). This should probably be extended to suppliers too,
+ *   or maybe even to everyone. The idea is to pay someone virtually in rCredits by totally paying them
+ *   (either first or second) in US Dollars and (either second or first) having them buy back
+ *   the appropriate amount of rCredits. Probably the best way to do this is with a simple payment transaction
+ *   that requires confirmation by the payee (an "offer"). The payee cannot accept the offer without first paying
+ *   that amount to the Community in US Dollars (using billpay or Dwolla).
+ * - a way to track US Dollars payments (probably a separate transaction table us_transactions)
+ */
+ 
 namespace rCredits;
 
 //define('TRANSACTION_STATE_STRAW', -3); // add this to states defined in mcapi.module
@@ -12,6 +30,8 @@ define('RCREDITS_COMMUNITY_POSTAL_AREA', '01%'); // anyone with a postal code th
 define('RCREDITS_MAX_DEMAND', 1000000000);
 define('RCREDITS_STARTING_BALANCE', 250); // how much people start with in the TRIAL RUN
 define('RCREDITS_MIN_BALANCE', -10000); // how low can user's balance go, by default (be generous in TRIAL RUN)
+define('RCREDITS_TEMP_NAME_PREFIX', 'unknown ');
+define('TRANSACTION_STATE_PENDING', 3); // charged, waiting for confirmation
 
 /**
  * Show a debbugging statement (without a lot of typing)
@@ -24,21 +44,20 @@ function deb($message) {
  * Make Fields
  *
  * Make (or unmake) database fields, according to the schema
+ * @parm boolean $unmake: whether to unmake, rather than make
+ * @parm array $extras: associative array of table_name (only for unmaking)
  */
-function make_fields($unmake = FALSE) {
+function make_fields($unmake = FALSE, $extras = array()) {
   $schema = array();
   \rcredits_schema_alter($schema); // get the fields to add (or drop)
   foreach ($schema as $table_name => $one) {
+    if ($unmake and isset($extras[$table_name])) $one += $extras[$table_name];
     foreach ($one['fields'] as $field_name => $spec) {
-      $exists = \db_field_exists($table_name, $field_name);
-      if ($unmake) {
-        if($exists) \db_drop_field($table_name, $field_name);
+      if (\db_field_exists($table_name, $field_name)) {
+        if ($unmake) \db_drop_field($table_name, $field_name);
+        if (!$unmake) \db_change_field($table_name, $field_name, $field_name, $spec);
       } else {
-        if($exists) {
-          \db_change_field($table_name, $field_name, $field_name, $spec);
-        } else {
-          \db_add_field($table_name, $field_name, $spec);
-        }
+        if (!$unmake) \db_add_field($table_name, $field_name, $spec);
       }
     }
   }
@@ -58,7 +77,7 @@ function setup_field(&$schema, $table_name, $label, $description = '', $type = '
   $precision = ',';
 
   list ($label, $field_name) = is_array($label) ? $label : array($label, str_replace(' ', '_', strtolower($label)));
-  if (strpos($type, ' ')) list ($type, $size) = explode(' ', $type);
+  if (strpos($type, ' ')) list ($type, $size) = ray($type);
   if ($type == 'numeric') {
     $precision = $size;
     $size = '';
@@ -69,7 +88,7 @@ function setup_field(&$schema, $table_name, $label, $description = '', $type = '
   list ($serialize, $unsigned, $notnull) = str_split($SUN);
   list ($precision, $scale) = explode(',', $precision);
   
-  $scheme = compact(explode(' ', 'description type size length precision default scale serialize unsigned'));
+  $scheme = compact(ray('description type size length precision default scale serialize unsigned'));
   foreach ($scheme as $key => $value) {
     if ($value === '') unset($scheme[$key]);
   }
@@ -94,12 +113,19 @@ function make_currency() {
   $display = array('format' => '$@minus@integer.@subdivision', 'divisions' => 1);
   $zero = 1;
   $uid = 1;
-  $new = compact(explode(' ', 'info human_name display zero uid'));
+  $new = compact(ray('info human_name display zero uid'));
   $row = array(
     'currcode' => $currcode,
     'data' => (object) array_merge($cur, $new)
   );
   \drupal_write_record('mcapi_currencies', $row);
+}
+
+/**
+ * Add a single entry to the permission array for hook_permission()
+ */
+function permission(&$permissions, $title, $description) {
+  $permissions[strtolower($title)] = compact('title', 'description');
 }
 
 /**
@@ -129,8 +155,76 @@ function create_user($info) {
 }
 
 /**
+ * Create a transaction
+ * @parm bool $taking: true if the money is going TO the initiating user
+ * @parm int $my_uid: user id of the initiating user
+ * @parm int $other_uid: user id of the other party
+ * @parm numeric $requested_amount: the transaction amount
+ * @parm string $for: description of the transaction's purpose (user input)
+ * @parm bool $confirmed: has this transaction been confirmed by the user? (default TRUE, used only for SMS interface)
+ * @parm array $rewards: associative array of reward percentages, indexed by 'rebate' and 'bonus' (default empty means standard rewards)
+ * @return simple array: 
+ *    index: index to result message string (if success, the index begins with "report ")
+ *    parms: replacement parameters, specific to the message
+ *    confirm: boolean "this needs to be confirmed"
+ */
+function transfer($taking, $my_uid, $other_uid, $requested_amount, $for, $confirmed = TRUE, $rewards = array()) {
+  $type = $confirm_type = $taking ? 'charge' : 'payment';
+  $approved = $taking ? TRUE : access('charge others', $my_uid);
+  if ($for_cash = for_cash($for)) $for = 'cash';
+  $other = user_field('name', $other_uid);
+  $available = credit_info($taking ? $other_uid : $my_uid)->available;
+  $amount = min($requested_amount, $available);
+  $shortfall = $requested_amount - $amount; // how much needs to be done in a separate currency
+  $short = format_amount($shortfall);
+  if ($shortfall > 0 and $approved) {
+    if ($for_cash) return array($taking ? 'short cash from' : 'short cash to', compact('short', 'other'), FALSE); // no partial cash trans
+    if (ceil($shortfall) >= $requested_amount) return array($taking ? 'broke from' : 'broke to', compact('other'), FALSE);
+    $shortfall = ceil($shortfall); // for goods and services, shortfall should be a round figure (no cents)
+    $amount = $requested_amount - $shortfall;
+    $short = format_amount($shortfall);
+  }
+  
+  list ($payer, $payee) = $taking ? array($other_uid, $my_uid) : array($my_uid, $other_uid);
+  list ($rebate, $bonus) = $for_cash ? array(0, 0) : array(rebate($payer), bonus($payee));
+  $data = empty($rewards) ? compact('rebate', 'bonus') : $rewards;
+  $state = $approved ? TRANSACTION_STATE_FINISHED : TRANSACTION_STATE_PENDING;
+
+  $dbtx = db_transaction();
+  try {
+    $txs = transact(compact(ray('type amount payer payee for data state')));
+  }
+  catch (\Exception $e) {return array($e->getMessage(), array(), FALSE);}
+  
+  $totals = \transaction_totals($my_uid);
+  $tid = tid_from_xid($my_uid, $txs[0]->xid);
+  $reward_index = $taking ? 2 : 1;
+  $reward = isset($txs[$reward_index]) ? $txs[$reward_index]->worth['und'][0]['quantity'] : 0;
+  
+  $type = $taking ? t('charged') : t('paid');
+  $amount = format_amount($amount);
+  $tofrom = $taking ? t('from') : t('to');
+  $reward_type = $taking ? t('bonus') : t('rebate');
+  $reward_amount = format_amount($reward);
+  $balance = format_amount($totals->balance);
+  $args = compact(ray('type amount tofrom reward_type reward_amount balance tid other short'));
+  
+  if (!$confirmed) $dbtx->rollback();
+
+  if (!$for_cash) {
+    if ($confirmed) return array($shortfall > 0 ? 'report short transaction' : 'report transaction', $args, FALSE);
+    if ($shortfall > 0) $args['amount'] = format_amount($requested_amount); // restore original amount before getting confirmation
+    return array($confirm_type, $args, TRUE);
+  }
+  
+  $args['type'] = 'traded';
+  $args['way'] = $taking ? t('cash for credit') : t('credit for cash');
+  return array($confirmed ? 'report exchange' : $args['way'], $args, !$confirmed);
+}
+
+/**
  * Record a transaction between two participants
- * @see also rcredits_transactions_alter()
+ * @see also r\transaction_rewards() and r\transfer()
  */
 function transact($info) {
 //  foreach (array('creator', 'payer', 'payee') as $one) $info[$one. '_id'] = user_field('credit_id', $info[$one]);
@@ -139,6 +233,39 @@ function transact($info) {
   try {
     return \transaction_insert_new($tx, TRUE);
   } catch (Exception $e) {throw $e;}
+}
+
+/**
+ * Add rebate and bonus to the transaction set, if appropriate.
+ * @todo: Note that the data field might also hold additional identification information about a nonlocal payer or payee.
+ *   If the mcapi intertrading module does not work for us, other servers could have a single UID on our system, so a
+ *   user doing business with someone in another region would generate a transaction between an individual and a server,
+ *   with credit_id for the individual in that other region stored in the data field. 
+ *   We do NOT need creator_id, payer_id, and payee_id (right?).
+ */
+function transaction_rewards(&$txs) {
+  extract((array) $txs[0], EXTR_PREFIX_ALL, 'my');
+  
+  if (($my_type != 'payment') and ($my_type != 'charge')) return;
+  if ($my_payer_for == 'cash') return; // quit unless rebates and bonuses apply
+  
+  $fields = ray('type amount payer payee for creator');
+  $payer = $creator = variable_get('rcredits_community_uid');
+//  $payer_id = $creator_id = RCREDITS_COMMUNITY_ID;
+
+  $type = 'rebate';
+  $payee = $my_payer;
+//  $payee_id = $my_payer_id;
+  $amount = $my_amount * $my_data[$type]; // was $my_worth['und'][0]['quantity'] *
+  $for = t('rebate');
+  $txs[] = transaction_setup(compact($fields));
+
+  $type = 'bonus';
+  $payee = $my_payee;
+//  $payee_id = $my_payee_id;
+  $amount = $my_amount * $my_data[$type];
+  $for = t('bonus');
+  $txs[] = transaction_setup(compact($fields));
 }
 
 /**
@@ -158,7 +285,7 @@ function transaction_setup($info) {
   
   $tx->payer_for = $my_for;
   $tx->payee_for = $my_for;
-  $tx->state = \TRANSACTION_STATE_FINISHED;
+  $tx->state = isset($my_state) ? $my_state : \TRANSACTION_STATE_FINISHED;
   $tx->type = $my_type;
   if (isset($my_creator)) $tx->creator = $my_creator; // defaults to current user
   return $tx;
@@ -175,7 +302,7 @@ function give_signup_incentive($who) {
   $payer = $creator = variable_get('rcredits_community_uid');;
   $payee = $who;
   $for = t('signup');
-  transact(compact(explode(' ', 'type amount payer payee for creator')));
+  transact(compact(ray('type amount payer payee for creator')));
   return $amount;
 }
 
@@ -226,72 +353,6 @@ function showlog() {
 }
 
 /**
- * Create a transaction
- * @parm bool $tome: true if the money is going TO the initiating user
- * @parm int $my_uid: user id of the initiating user
- * @parm int $other_uid: user id of the other party
- * @parm numeric $requested_amount: the transaction amount
- * @parm string $for: description of the transaction's purpose (user input)
- * @parm bool $confirmed: has this transaction been confirmed by the user? (default TRUE, used only for SMS interface)
- * @parm array $rewards: associative array of reward percentages, indexed by 'rebate' and 'bonus' (default empty means standard rewards)
- * @return simple array: 
- *    index: index to result message string (if success, the index begins with "report ")
- *    parms: replacement parameters, specific to the message
- *    confirm: boolean "this needs to be confirmed"
- */
-function transfer($tome, $my_uid, $other_uid, $requested_amount, $for, $confirmed = TRUE, $rewards = array()) {
-  $type = $confirm_type = $tome ? 'charge' : 'payment';
-  if ($for_cash = for_cash($for)) $for = 'cash';
-  $other = user_field('name', $other_uid);
-  $available = credit_info($tome ? $other_uid : $my_uid)->available;
-  $amount = min($requested_amount, $available);
-  $shortfall = $requested_amount - $amount; // how much needs to be done in a separate currency
-  $short = format_amount($shortfall);
-  if ($shortfall > 0) {
-    if ($for_cash) return array($tome ? 'short cash from' : 'short cash to', compact('short', 'other'), FALSE); // no partial cash trans
-    if (ceil($shortfall) >= $requested_amount) return array($tome ? 'broke from' : 'broke to', compact('other'), FALSE);
-    $shortfall = ceil($shortfall); // for goods and services, shortfall should be a round figure (no cents)
-    $amount = $requested_amount - $shortfall;
-    $short = format_amount($shortfall);
-  }
-  
-  list ($payer, $payee) = $tome ? array($other_uid, $my_uid) : array($my_uid, $other_uid);
-  list ($rebate, $bonus) = $for_cash ? array(0, 0) : array(r\rebate($payer), r\bonus($payee));
-  $data = empty($rewards) ? compact('rebate', 'bonus') : $rewards;
-
-  $dbtx = db_transaction();
-  try {
-    $txs = transact(compact(explode(' ', 'type amount payer payee for data')));
-  }
-  catch (\Exception $e) {return array($e->getMessage(), array(), FALSE);}
-  
-  $totals = \transaction_totals($my_uid);
-  $tid = tid_from_xid($my_uid, $txs[0]->xid);
-  $reward_index = $tome ? 2 : 1;
-  $reward = isset($txs[$reward_index]) ? $txs[$reward_index]->worth['und'][0]['quantity'] : 0;
-  
-  $type = $tome ? t('charged') : t('paid');
-  $amount = format_amount($amount);
-  $tofrom = $tome ? t('from') : t('to');
-  $reward_type = $tome ? t('bonus') : t('rebate');
-  $reward_amount = format_amount($reward);
-  $balance = format_amount($totals->balance);
-  $args = compact(explode(' ', 'type amount tofrom reward_type reward_amount balance tid other short'));
-  
-  if (!$confirmed) $dbtx->rollback();
-
-  if (!$for_cash) {
-    if ($confirmed) return array($shortfall > 0 ? 'report short transaction' : 'report transaction', $args, FALSE);
-    if ($shortfall > 0) $args['amount'] = format_amount($requested_amount); // restore original amount before getting confirmation
-    return array($confirm_type, $args, TRUE);
-  }
-  
-  $args['type'] = 'traded';
-  $args['way'] = $tome ? t('cash for credit') : t('credit for cash');
-  return array($confirmed ? 'report exchange' : $args['way'], $args, !$confirmed);
-}
-
-/**
  * Set or report how much rCredits the user wants to buy with US Dollars.
  *
  * @parm integer $who: uid of the user
@@ -330,7 +391,7 @@ function credit_info($who) {
   $available = ($balance - $min_balance) - $unavailable;
   $cashable = $balance - $rewards;
   $total_demand = total_demand();
-  $result = compact(explode(' ', 'balance available unavailable rewards cashable total_demand min_balance id'));
+  $result = compact(ray('balance available unavailable rewards cashable total_demand min_balance id'));
   $fancy = array();
   foreach ($result as $key => $value) {
     $fancy[$key] = is_numeric($value) ? format_amount($value) : $value;
@@ -352,6 +413,26 @@ function valid_name($name, $picky = TRUE) {
 }
 
 /**
+ * Create a unique username for the given account, based on the given name.
+ */
+function make_username($account, $name) {
+  $original = $name;
+  for ($locktry = 0; ($locktry < 99) and !\lock_acquire(__FUNCTION__); $locktry++) \lock_wait();
+
+  for ($try = 1; $try < 99; $try++) {
+    if (!db_lookup(1, 'users', "name = :name", compact('name'))) {
+      \user_save($account, compact('name'));
+      \lock_release(__FUNCTION__);
+      return $name;
+    }
+    deb("Account with username $name already exists, retrying...");
+    $name = $original . $try;
+  }
+  \lock_release(__FUNCTION__);
+  die("Too many collisions in make_make_shortname) -- original = $original");
+}
+
+/**
  * Create an appropriate credit id for the given account
  */
 function make_credit_id($account) {
@@ -364,7 +445,7 @@ function make_credit_id($account) {
   }
   $ctty = $region . 'AA'; // until the person becomes a member of a specific community, give them a generic community in their region
 
-  for ($try = 0; $try < 9; $try++) {
+  for ($try = 0; $try < 99; $try++) {
     $credit_id = next_credit_id($ctty);
     \user_save($account, compact('credit_id'));
     if (!db_lookup('uid', 'users', "credit_id = '$credit_id' AND uid < " . $account->uid)) return;
@@ -423,20 +504,20 @@ function a2n($string, $base = 26) {
 /**
  * Return a unique temporary name related to the given uniquely identifying parmeters 
  * in this order of preference: 
- *   phone: "phone dddddddddd"
- *   email: "whatever AT domain DOT ext"
- *   website: "domain DOT ext SLASH andsoforth"
- * If none, just pick a 10-character random string
+ *   phone: "unknown phone dddddddddd"
+ *   email: "unknown whatever AT domain DOT ext"
+ *   UNUSED (because it's hard to verify): website: "unknown domain DOT ext SLASH andsoforth"
+ * If none, just pick a 10-character random string ("unknown 234h2khpsdf987")
  * @parm array $info: associative array of fields, each of which uniquely identifies a user.
  * @return string: the temporary name
  */
 function temp_name($info) {
   extract($info, EXTR_PREFIX_ALL, 'my');
-  $phone = isset($my_number) ? $my_number : (isset($my_phone) ? $my_phone : '');  
-  if ($phone) return 'phone ' . format_phone($phone, 'n');
-  if (isset($my_email)) return str_replace('@', ' AT ', str_replace('.', ' DOT ', $my_email));
-  if (isset($my_website)) return str_replace('.', ' DOT ', str_replace('/', ' SLASH ', $my_website));
-  return 'user ' . substr(md5('zot' . strval(REQUEST_TIME)), 0, 10); // pseudo random
+  $phone = isset($my_number) ? $my_number : (isset($my_phone) ? $my_phone : '');
+  if ($phone) return RCREDITS_TEMP_NAME_PREFIX . format_phone($phone, 'n');
+  if (isset($my_email)) return RCREDITS_TEMP_NAME_PREFIX . str_replace('@', ' AT ', str_replace('.', ' DOT ', $my_email));
+// NO  if (isset($my_website)) return RCREDITS_TEMP_NAME_PREFIX . str_replace('.', ' DOT ', str_replace('/', ' SLASH ', $my_website));
+  return RCREDITS_TEMP_NAME_PREFIX . substr(md5('zot' . strval(REQUEST_TIME)), 0, 10); // pseudo random
 }
 
 /**
@@ -485,12 +566,11 @@ function db_lookup($field_name, $table_name, $criteria = '', $subs = array()) {
   $sql = "SELECT $field_name FROM $table_name $criteria";
   $new_subs = array();
   if ($subs) foreach ($subs as $key => $value) $new_subs[':' . $key] = $value;
-  return \db_query($sql, $subs)->fetchField();
+//  deb($sql . print_r($new_subs, TRUE));
+  return \db_query($sql, $new_subs)->fetchField();
 }
 
-/**
- * Various handy functions based on simple calls to db_lookup()
- */
+// Single line functions that need no explanation
 function rebate($who) {return db_lookup('rebate_percent', 'users', "uid = $who")/100;}
 function bonus($who) {return 2 * rebate($who);}
 function user_field($field_name, $who) {return db_lookup($field_name, 'users', "uid = $who");}
@@ -499,3 +579,7 @@ function tid_from_xid($who, $xid) {return db_lookup('COUNT(xid)', 'mcapi_transac
 function total_demand() {return db_lookup('SUM(demand)', 'users');}
 
 function valid_url($url) {return (\valid_url($url) and preg_match('/^[A-Z0-9\-_]+\.[A-Z0-9\-_]+/i', $url) and strpos($url, '@') === FALSE);}
+function is_temp_name($name) {return abbreviates(RCREDITS_TEMP_NAME_PREFIX, $name);}
+function abbreviates($s, $string) {return (substr($string, 0, strlen($s)) == $s);}
+function ray($s) {return explode(' ', $s);}
+function access($access, $who) {return \user_access($access, \user_load($who));}

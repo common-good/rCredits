@@ -44,12 +44,16 @@ use rCredits as r;
  * so that those permissions can be granted during installation of the corresponding submodules.
  */
 function rcredits_permission() {
-  return array(
-    'transact via sms' => array(
-      'title' => t('Transact via SMS'),
-      'description' => t("Transfer funds and get account information through the SMS Interface"),
-    )
-  );
+  $permissions = array();
+  r\permission($permissions, 'Member', t('Has an account, can access the member area and do "As If" transactions'));
+  r\permission($permissions, 'Partner', t('Signed the membership agreement and donated'));
+  r\permission($permissions, 'Steward', t('Is allowed to vote and is responsible for stewarding the Common Good Community'));
+  r\permission($permissions, 'rTrader', t('Is allowed to use rCredits for real'));
+  r\permission($permissions, 'Charge others', t('Can charge customers without confirmation'));
+  r\permission($permissions, 'Transact via SMS', t('Transfer funds and get account information through the SMS Interface'));
+  r\permission($permissions, 'Transact via Web Browser', t('Transfer funds and get account information through the Web Browser Interface'));
+  r\permission($permissions, 'Transact via Smart Phone', t('Transfer funds and get account information through the Smart Interface'));
+  return $permissions;
 }
 
 /**
@@ -69,35 +73,8 @@ function rcredits_mcapi_info_types() {
 }
 
 /**
- * Implements transactions_alter.
- *
- * Add rebate and bonus to the transaction set, if appropriate.
- * @todo: Note that the data field might also hold additional identification information about a nonlocal payer or payee.
- *   If the mcapi intertrading module does not work for us, other servers could have a single UID on our system, so a
- *   user doing business with someone in another region would generate a transaction between an individual and a server,
- *   with credit_id for the individual in that other region stored in the data field. We do NOT need creator_id, payer_id, and payee_id.
+ * Implements transactions_alter().
  */
 function rcredits_transactions_alter(&$txs) {
-  extract((array) $txs[0], EXTR_PREFIX_ALL, 'my');
-  
-  if (($my_type != 'payment') and ($my_type != 'charge')) return;
-  if ($my_payer_for == 'cash') return; // quit unless rebates and bonuses apply
-  
-  $fields = explode(' ', 'type amount payer payee for creator');
-  $payer = $creator = variable_get('rcredits_community_uid');
-//  $payer_id = $creator_id = RCREDITS_COMMUNITY_ID;
-
-  $type = 'rebate';
-  $payee = $my_payer;
-//  $payee_id = $my_payer_id;
-  $amount = $my_amount * $my_data[$type]; // was $my_worth['und'][0]['quantity'] *
-  $for = t('rebate');
-  $txs[] = r\transaction_setup(compact($fields));
-
-  $type = 'bonus';
-  $payee = $my_payee;
-//  $payee_id = $my_payee_id;
-  $amount = $my_amount * $my_data[$type];
-  $for = t('bonus');
-  $txs[] = r\transaction_setup(compact($fields));
+  r\transaction_rewards($txs);
 }

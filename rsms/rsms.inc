@@ -55,7 +55,7 @@ $GLOBALS['SMS messages'] = array(
   'unknown user' => t('Unknown rTrader: "@who". Type "helpme pay".'),
   'non trader' => t('@other does not an authorized rTrader.'),
   'ambiguous other' => t('"@who" is associated with more than one rCredits account. You will need to identify them differently. Type "more" for options.'),
-  'ambiguous other2' => t('You can identify an rTrader by phone, email, website, account id, or .fullname (with a dot before the name, no spaces).'),
+  'ambiguous other2' => t('You can identify an rTrader by phone, email, account id, or .fullname (with a dot before the name, no spaces).'),
   'short cash to' => t('You are r@short short, for that exchange.'),
   'short cash from' => t('@other does not have enough rCredits for that exchange.'),
   'broke to' => t('You are completely out of rCredits, so that transaction cannot be completed. Type "get r <amount>" to get more rCredits.'),
@@ -65,14 +65,14 @@ $GLOBALS['SMS messages'] = array(
   // help messages (for use with the help command)
 $GLOBALS['SMS help'] = array(
   'help payment' => t('To pay Jane Dough $30 for pie, type "30 to .janedough for pie" (with a dot before the name, no spaces). Type "more" for options.'),
-  'help payment2' => t('You can also identify the recipient by phone, email, website, or account id (withOUT a dot before any of these). Type "more" for more details.'),
+  'help payment2' => t('You can also identify the recipient by phone, email, or account id (withOUT a dot before any of these). Type "more" for more details.'),
   'help payment22' => t('If you are just exchanging rCredits for cash, leave out the description. For example, type "43.12 to jdough@example.com".'),
   'help charge' => t('To charge Food Corp $90 for labor, type "90 from .foodcorp for labor" (with a dot before the name, no spaces). Type "more" for options.'),
-  'help charge2' => t('You can also identify the payer by phone, email, website, or account id (withOUT a dot before any of these). Type "more" for more details.'),
+  'help charge2' => t('You can also identify the payer by phone, email, or account id (withOUT a dot before any of these). Type "more" for more details.'),
   'help charge22' => t('If you are just exchanging cash for rCredits, leave out the description. For example, type "43.12 from 413-772-6666".'),
   'help undo' => t('To undo your most recent transaction, type "undo". Type "more" for options to undo your most recent transaction of a certain type.'),
   'help undo2' => t('Examples: undo | undo .janedough | undo to | undo from | undo to .janedough | undo from .janedough -- Type "more" for details.'),
-  'help undo22' => t('"undo .janedough" undoes your most recent transaction with Jane Dough. You can also identify her by phone, email, website, or account id.'),
+  'help undo22' => t('"undo .janedough" undoes your most recent transaction with Jane Dough. You can also identify her by phone, email, or account id.'),
   'help get' => t('To get $200 more in rCredits, type "get r 200". To send $50 in rCredits to your US bank account, type "get usd 50".'),
   'help information' => t('Just type "info" (tells you your balance and the current demand for rCredits)'),
   'help helpme' => t('Options: pay | charge | undo | info | get | helpme. For details, type "helpme pay" and so forth.'),
@@ -104,9 +104,9 @@ $GLOBALS['SMS commands'] = array( // these can be abbreviated by the caller
   'stop' => 'stop|unsubscribe|cancel|quit', // passed from SMS Gateway
   'start' => 'start|yes', // passed from SMS Gateway
 );
-$GLOBALS['SMS gateway words'] = explode(',', 'stop,unsubscribe,cancel,quit,start,yes,help'); // "help" never reaches us
-$GLOBALS['SMS reserved words'] = explode(',', 'to,from,usd,balance,name,lost,be,give,send,invoice,take');
-$GLOBALS['SMS reserved words'] = array_merge(array_keys($GLOBALS['SMS commands']), $GLOBALS['SMS reserved words']); 
+$GLOBALS['SMS gateway words'] = r\ray('stop unsubscribe cancel quit start yes help'); // "help" never reaches us
+$GLOBALS['SMS reserved words'] = r\ray('to from usd balance name lost be give send invoice take')
+                               + array_keys($GLOBALS['SMS commands']); 
 
 $GLOBALS['SMS command tokens'] = array(
   '%tofrom' => '(to|from)',
@@ -189,17 +189,10 @@ function nonce() {
   $offset = r\db_lookup('FLOOR(RAND() * COUNT(*))', 'r_nonces');
   $nonce = r\db_lookup('nonce', 'r_nonces', "1 LIMIT $offset, 1");
 
-  if (strpos('  ' . join(' ', $GLOBALS['SMS reserved words']), ' ' . $nonce)) return nonce(); // reserved word? try again
+  $impossible = join(' ', $GLOBALS['SMS reserved words'] + $GLOBALS['SMS gateway words']);
+  if (strpos(". $impossible ", " $nonce ")) return nonce(); // reserved word? try again
   if (strlen($nonce) > 6) return nonce(); // too long
   return $nonce;
-}
-
-/**
- * Say whether the given account name is a temporary SMS account name.
- */
-function is_temporary_name($name) {
-  return preg_match('/^phone [0-9]*$| DOT /', $name); // temporary for debugging
-//  return preg_match('/^phone {[0-9], 10}$| DOT |/', $name);
 }
 
 /**
@@ -208,7 +201,7 @@ function is_temporary_name($name) {
  *   'phone' is contact phone (in standard +ddddddddddd format)
  *   'number' is cell phone (in standard +ddddddddddd format -- use for phone also)
  *   'email' is email address
- *   'website' is website address
+ *   UNUSED (because it's hard to verify): 'website' is website address
  * @return the uid of the new account
  */
 function create_account($info) {
@@ -292,23 +285,17 @@ function intent($intent, $command, $pattern, $message) {
  */
 function identify($value, &$create_info = array()) {
   if ($phone = r\format_phone($value, '+n')) $value = $phone;
-  if (substr($value, 0, 7) == 'http://') $value = substr($value, 7);
-  if (substr($value, 0, 4) == 'www.') $value = substr($value, 4);
+//  if (substr($value, 0, 7) == 'http://') $value = substr($value, 7);
+//  if (substr($value, 0, 4) == 'www.') $value = substr($value, 4);
 
   $value = strtolower(str_replace("'", '', $value)); // avoid SQL errors
   $sql = "SELECT u.uid FROM {users} u LEFT JOIN {sms_user} s ON u.uid = s.uid 
-          WHERE '$value' IN (CONCAT('.', u.short_name), u.credit_id, s.number, LCASE(u.website), u.phone, LCASE(u.mail))";
+          WHERE '$value' IN (CONCAT('.', u.short_name), u.credit_id, s.number, u.phone, u.mail)";
   $result = db_query($sql)->fetchCol();
   if (isset($result[0])) return count($result) > 1 ? $result : $result[0];
 
-  $key = $value == $phone ? 'phone' : (valid_email_address($value) ? 'email' : (r\valid_url("http://$value") ? 'website' : ''));
+//  $key = $value == $phone ? 'phone' : (valid_email_address($value) ? 'email' : (r\valid_url("http://$value") ? 'website' : ''));
+  $key = $value == $phone ? 'phone' : (valid_email_address($value) ? 'email' : '');
   $create_info = $key ? array($key => $value) : FALSE;
   return FALSE;
-}
-
-/**
- * Say whether the first string is an abbreviation of the second.
- */
-function abbreviates($s, $string) {
-  return (substr($string, 0, strlen($s)) == $s);
 }

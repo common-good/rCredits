@@ -1,6 +1,6 @@
 ;$Id$
 name = RCredits
-description = Core transaction processing and SMS interface for the RCredits mutual credit system -- an extension of Matthew Slater's Community Accounting (Mutual Credit) module.
+description = Core transaction processing for the RCredits mutual credit system -- an extension of Matthew Slater's Community Accounting (Mutual Credit) module.
 package = rCredits
 core = 7.x
 php = 5.2

@@ -23,7 +23,7 @@ function rcredits_install() {
   $postal_code = RCREDITS_COMMUNITY_POSTAL_AREA;
   $demand = RCREDITS_INITIAL_DEMAND;
   $rebate_percent = 0;
-  $info = compact(explode(' ', 'name credit_id credit_name postal_code demand rebate_percent'));
+  $info = compact(r\ray('name credit_id credit_name postal_code demand rebate_percent'));
   if ($uid = r\db_lookup('uid', 'users', "name = '$name'")) {
     $account = user_load($uid);
     user_save($account, $info);
@@ -60,8 +60,6 @@ function rcredits_schema_alter(&$schema) {
   r\setup_field($schema, 'users', 'Country', 'two-letter country code', 'varchar 2');
   r\setup_field($schema, 'users', 'Website', 'primary website', 'varchar 255');
   r\setup_field($schema, 'users', 'Categories', 'business categories', 'text medium', '', '100'); // serialized array
-  r\setup_field($schema, 'users', 'Is committed', 'signed the membership agreement and donated', 'int tiny', 0, '010');
-  r\setup_field($schema, 'users', 'Can vote', 'member is allowed to vote', 'int tiny', 0, '010');
   r\setup_field($schema, 'users', 'Federal ID', 'social security number or employer id number, for reporting', 'varchar 9');
   r\setup_field($schema, 'users', 'Notes', 'miscellaneous notes about the user or the account', 'text medium');
 
@@ -70,8 +68,6 @@ function rcredits_schema_alter(&$schema) {
   r\setup_field($schema, 'users', 'Rebate percent', 'current rebate percentage (sales bonus is double)', 'numeric 4,3', 5);
   r\setup_field($schema, 'users', 'Demand', 'waiting to buy this much credit', 'numeric 9,2', 0);
   r\setup_field($schema, 'users', 'Min balance', 'minimum balance (normally zero or less)', 'numeric 9,2', RCREDITS_MIN_BALANCE);
-  r\setup_field($schema, 'users', 'Can trade', 'user is allowed to use rCredits for real', 'int tiny', 0, '010');
-  r\setup_field($schema, 'users', 'Can charge', 'user can charge customers without confirmation', 'int tiny', 0, '010');
   r\setup_field($schema, 'users', 'Lost card', 'user lost the account id card', 'int tiny', 0, '010');
   r\setup_field($schema, 'users', 'Bank account number', 'official currency international bank account number', 'varchar 34');
   r\setup_field($schema, 'users', 'Bank account name', 'name on US$ bank account -- usually the same as name', 'varchar 60');
@@ -81,6 +77,7 @@ function rcredits_schema_alter(&$schema) {
   r\setup_field($schema, 'sms_user', 'nonce', 'waiting for this nonce, for confirmation', 'varchar 10');
   
   r\setup_field($schema, 'mcapi_transactions', 'Amount', 'transaction amount', 'float big'); 
+  r\setup_field($schema, 'mcapi_transactions', 'Channel', 'through what medium was the transaction entered', 'varchar 5'); 
   r\setup_field($schema, 'mcapi_transactions', array('Description', 'payer_for'), "payer's description", 'varchar 60'); 
   r\setup_field($schema, 'mcapi_transactions', array('Description', 'payee_for'), "payee's description", 'varchar 60'); 
 
@@ -103,8 +100,11 @@ function rcredits_schema_alter(&$schema) {
  */
 function rcredits_uninstall() {
   require_once 'rcredits.inc'; // Drupal bug. Uninstall needs this explicit.
-  r\make_fields('UNMAKE');
+  $old_fields = array(
+    'users' => r\ray('first_name last_name credit_name can_charge can_vote can_trade is_committed'),
+  );
+  r\make_fields('UNMAKE', $old_fields);
 // (DON'T DELETE record!)  if ($who = variable_set('rcredits_community_uid')) db_query("DELETE FROM users WHERE uid = $who");
 
-  db_query('DROP TABLE IF EXISTS ' . RCREDITS_TABLES);
+  db_query('DROP TABLE IF EXISTS ' . RCREDITS_TABLES . ',r_credit_tails');
 }

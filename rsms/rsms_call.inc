@@ -60,7 +60,7 @@ class call {
     $account = \user_load($this->caller);
     $todo = todo($this->number);
     if (is_object($todo)) $todo = $todo->todo;
-    if (is_temporary_name($account->name)) {
+    if (r\is_temp_name($account->name)) {
       if($todo != 'setup name') {
         todo($this->number, 'setup name', '');
         return tt("what's your name?");
@@ -189,7 +189,7 @@ class call {
     }
 
     foreach(array_keys($GLOBALS['SMS commands']) as $try) {
-      if (abbreviates($feature, $try)) {
+      if (r\abbreviates($feature, $try)) {
         // we might want to customize the messages here (see @todo above)
         todo($this->number, "help {$try}2", '');
         return tt("help $try");
