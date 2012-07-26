@@ -187,12 +187,12 @@ function transfer($taking, $my_uid, $other_uid, $requested_amount, $for, $confir
   
   list ($payer, $payee) = $taking ? array($other_uid, $my_uid) : array($my_uid, $other_uid);
   list ($rebate, $bonus) = $for_cash ? array(0, 0) : array(rebate($payer), bonus($payee));
-  $data = empty($rewards) ? compact('rebate', 'bonus') : $rewards;
+  $extra = empty($rewards) ? compact('rebate', 'bonus') : $rewards;
   $state = $approved ? TRANSACTION_STATE_FINISHED : TRANSACTION_STATE_PENDING;
 
   $dbtx = db_transaction();
   try {
-    $txs = transact(compact(ray('type amount payer payee for data state')));
+    $txs = transact(compact(ray('type amount payer payee for extra state')));
   }
   catch (\Exception $e) {return array($e->getMessage(), array(), FALSE);}
   
@@ -237,7 +237,7 @@ function transact($info) {
 
 /**
  * Add rebate and bonus to the transaction set, if appropriate.
- * @todo: Note that the data field might also hold additional identification information about a nonlocal payer or payee.
+ * @todo: Note that the data (extra) field might also hold additional identification information about a nonlocal payer or payee.
  *   If the mcapi intertrading module does not work for us, other servers could have a single UID on our system, so a
  *   user doing business with someone in another region would generate a transaction between an individual and a server,
  *   with credit_id for the individual in that other region stored in the data field. 
@@ -256,14 +256,14 @@ function transaction_rewards(&$txs) {
   $type = 'rebate';
   $payee = $my_payer;
 //  $payee_id = $my_payer_id;
-  $amount = $my_amount * $my_data[$type]; // was $my_worth['und'][0]['quantity'] *
+  $amount = $my_amount * $my_extra[$type]; // was $my_worth['und'][0]['quantity'] *
   $for = t('rebate');
   $txs[] = transaction_setup(compact($fields));
 
   $type = 'bonus';
   $payee = $my_payee;
 //  $payee_id = $my_payee_id;
-  $amount = $my_amount * $my_data[$type];
+  $amount = $my_amount * $my_extra[$type];
   $for = t('bonus');
   $txs[] = transaction_setup(compact($fields));
 }
@@ -287,7 +287,7 @@ function transaction_setup($info) {
   $tx->payee_for = $my_for;
   $tx->state = isset($my_state) ? $my_state : \TRANSACTION_STATE_FINISHED;
   $tx->type = $my_type;
-  if (isset($my_data)) $tx->extra = $my_data;
+  if (isset($my_extra)) $tx->extra = $my_extra;
   if (isset($my_creator)) $tx->creator = $my_creator; // defaults to current user
   return $tx;
 }
@@ -385,11 +385,11 @@ function transfer($tome, $my_uid, $other_uid, $requested_amount, $for, $confirme
   
   list ($payer, $payee) = $tome ? array($other_uid, $my_uid) : array($my_uid, $other_uid);
   list ($rebate, $bonus) = $for_cash ? array(0, 0) : array(rebate($payer), bonus($payee));
-  $data = empty($rewards) ? compact('rebate', 'bonus') : $rewards;
+  $extra = empty($rewards) ? compact('rebate', 'bonus') : $rewards;
 
   $dbtx = db_transaction();
   try {
-    $txs = transact(compact(explode(' ', 'type amount payer payee for data')));
+    $txs = transact(compact(explode(' ', 'type amount payer payee for extra')));
   }
   catch (\Exception $e) {return array($e->getMessage(), array(), FALSE);}
   
