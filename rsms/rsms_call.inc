@@ -227,7 +227,7 @@ class call {
     extract($this->parms, EXTR_PREFIX_ALL, 'my');
     extract((array) r\credit_info($this->caller), EXTR_PREFIX_ALL, 'info');
     $info_fancy['amount'] = r\format_amount($my_amount);
-    if ($my_rusd == 'r') {
+    if (strtolower($my_rusd) == 'r') {
       r\demand($this->caller, $my_amount);
       return tt('your demand', $info_fancy);
     }
@@ -261,7 +261,7 @@ class call {
     extract($this->parms, EXTR_PREFIX_ALL, 'my');	// who and/or tofrom
 
     if (isset($my_tofrom)) {
-      $my_tofrom = lc($my_tofrom);
+      $my_tofrom = strtolower($my_tofrom);
       if ($my_tofrom === 'to') {
         $where = "payer={$this->caller}";
       } else $where = "payee={$this->caller}";
@@ -273,7 +273,7 @@ class call {
       if (is_array($other_uid)) return tt('ambiguous other', $this->parms);
       if ($other_uid == $this->caller) return tt('no self-undo');
       $where .= " AND ";
-      if (!isset($my_tofrom)) {
+      if (! isset($my_tofrom)) {
         $where .= "(payee=$other_uid OR payer=$other_uid)";
       } elseif ($my_tofrom === 'to') {
         $where .= "payee=$other_uid";
