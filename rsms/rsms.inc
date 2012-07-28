@@ -20,6 +20,8 @@ $GLOBALS['SMS messages'] = array(
   'your account is ready' => t('Your starting balance is @balance. Pretend to buy and sell as you would in a typical month (we need that info). Have fun! Type "helpme" to get started.'),
   'get usd' => t("Exchange approved. @amount will be transferred directly to your bank account within 24 hours. Your new balance is @balance."),
 //  'get usd inactive' => t("If you were an Active Participant in the rCredits system, your request would transfer @amount directly to your bank account. Alas, you are not yet an Active Participant."),
+
+  // reporting
   'report transaction' => t("You @type @other @amount (@reward_type: @reward_amount). Your new balance is @balance. Transaction #@tid"),
   'report short transaction' => t("You @type @other @amount (@short remains to be paid). Your new balance is @balance. Transaction #@tid"),
 //  'transaction done asif' => t("@type: @amount @tofrom user#@other (@reward_type: @reward_amount). Your new provisional balance is @balance (If this had been a real transaction, your balance would be @amount @moreless). Transaction ID #@xid"),
@@ -35,10 +37,11 @@ $GLOBALS['SMS messages'] = array(
   // confirmations
   'confirm get usd' => t("Trade r@amount for us@amount?"),
   'confirm payment' => t("Pay @other @amount for goods and services?"),
+  'confirm invoice' => t("Pay @other @amount for goods and services (invoice @date)?"),
   'confirm charge' => t("Charge @other @amount for goods and services?"),
   'confirm credit for cash' => t("Give @other r@amount for cash?"),
   'confirm cash for credit' => t("Give @other @amount cash for rCredits?"),
-  'confirm undo' => t("Undo transfer @amount from @payer to @payee on @date?"),
+  'confirm undo' => t("Undo @date transfer of @amount from @payer to @payee?"),
   'please confirm' => t("To confirm, type @nonce."),
   
   // error messages
@@ -52,7 +55,8 @@ $GLOBALS['SMS messages'] = array(
   'not a feature' => t('"@feature" is not a feature.'),
   'wrong nonce' => t('That is not the expected confirmation response. Try again (start over).'),
   'no self-trading' => t("You can't exchange rCredits with yourself."),
-  'no self-undo' => t("You can't undo transactions with yourself."),
+// not used  'no self-undo' => t("You can't undo transactions with yourself."),
+  'no matching invoice' => t("There is no such invoice to be paid."),
   'undo no match' => t("You have no matching transactions to undo."),
   'undo moving target' => t("Can't undo: the last matching transaction has changed."),
   'duplicate email' => t("There is already an account with that email address. Visit rCredits.org to add this cell number to your account."),
@@ -89,6 +93,8 @@ foreach (array('more', 'stop', 'start') as $one) $GLOBALS['SMS messages']["help 
 $GLOBALS['SMS commands'] = array( // these can be abbreviated by the caller
   'get' => array('get %rusd %amount', 'get %amount %rusd'), // best before pay, so that "g r 10" is interpreted as "get r" not "give who"
   'payment' => array(
+    '(?:pay|okay|approve)',
+    '(?:pay|okay|approve)(?: %who)',
     '(?:(?:payment|give|send) )?%amount to %who(?: for %what)?', 
     '(?:to|payment|give|send) %who %amount(?: for %what)?',
   ),
@@ -97,21 +103,31 @@ $GLOBALS['SMS commands'] = array( // these can be abbreviated by the caller
     '(?:from|charge|invoice|chg) %who %amount(?: for %what)?',
   ),
   'undo' => array(
-    '(?:undo|reverse|canc)', // can't use CANCEL because Twilio reserves it
-    '(?:undo|reverse|canc) %tofrom',
-    '(?:undo|reverse|canc) %who',
-    '(?:undo|reverse|canc) %tofrom %who',
+    '(?:undo|reverse|cancelit|contest|refuse|reject|deny)', // can't use CANCEL because Twilio reserves it
+    '(?:undo|reverse|cancelit|contest|refuse|reject|deny) %tofrom',
+    '(?:undo|reverse|cancelit|contest|refuse|reject|deny) %who',
+    '(?:undo|reverse|cancelit|contest|refuse|reject|deny) %tofrom %who',
   ),
   'information' => array('information', 'balance'),
+  // name
+  // be
+  // lost
   'helpme' => '(?:help me|helpme)?(?: %feature)?',
   'more' => 'more', // continuation of help
   'stop' => 'stop|unsubscribe|cancel|quit', // passed from SMS Gateway
   'start' => 'start|yes', // passed from SMS Gateway
 );
 $GLOBALS['SMS gateway words'] = r\ray('stop unsubscribe cancel quit start yes help'); // "help" never reaches us
-$GLOBALS['SMS reserved words'] = r\ray('to from usd balance name lost be give send invoice take')
-                               + array_keys($GLOBALS['SMS commands']); 
-
+$GLOBALS['SMS not a nonce'] = array_merge(
+  r\ray('char fro'), 
+  array_keys($GLOBALS['SMS commands']),
+  $GLOBALS['SMS gateway words']
+); 
+$GLOBALS['SMS reserved words'] = array_merge(
+  r\ray('pay okay approve reverse contest refuse reject deny to from balance give send invoice take as usd'), 
+  array_keys($GLOBALS['SMS commands']),
+  $GLOBALS['SMS gateway words']
+); 
 $GLOBALS['SMS command tokens'] = array(
   '%tofrom' => '(to|from)',
   '%amount' => '([0-9]+(?:.[0-9][0-9]?)?)',
@@ -193,7 +209,7 @@ function nonce() {
   $offset = r\db_lookup('FLOOR(RAND() * COUNT(*))', 'r_nonces');
   $nonce = r\db_lookup('nonce', 'r_nonces', "1 LIMIT $offset, 1");
 
-  $impossible = join(' ', $GLOBALS['SMS reserved words'] + $GLOBALS['SMS gateway words']);
+  $impossible = join(' ', $GLOBALS['SMS not a nonce']);
   if (strpos(". $impossible ", " $nonce ")) return nonce(); // reserved word? try again
   if (strlen($nonce) > 6) return nonce(); // too long
   return $nonce;
@@ -211,7 +227,6 @@ function nonce() {
 function create_account($info) {
   extract($info, EXTR_PREFIX_ALL, 'my');
   $tx = \db_transaction();
-  foreach ($info as $one) if (identify($one)) die('creating duplicate user'); // DEBUG remove this line soon
   if (isset($my_number) and !isset($my_phone)) $my_phone = $info['phone'] = $my_number;
   $account = r\create_user($info);
   if (isset($my_number)) {
@@ -276,29 +291,4 @@ function intent($intent, $command, $pattern, $message) {
   }
   $short_pattern = preg_replace('~\(\?\:|\)~', '', substr($pattern, 0, strpos("$pattern ", ' '))); // isolate command words
   return preg_match("/^($short_pattern)( |$)/i", $message, $matches) ? $command : $intent;
-}
-
-/**
- * Figure out who the caller meant.
- *
- * @parm string $value: how the user referred to the trader
- * @parm array (returned) $create_info: associative array of user field values
- *   for creating a record if no matching user can be found (FALSE if no usable data)
- * @return: the trader's uid (FALSE if not found, array of uids if several)
- */
-function identify($value, &$create_info = array()) {
-  if ($phone = r\format_phone($value, '+n')) $value = $phone;
-//  if (substr($value, 0, 7) == 'http://') $value = substr($value, 7);
-//  if (substr($value, 0, 4) == 'www.') $value = substr($value, 4);
-
-  $value = strtolower(str_replace("'", '', $value)); // avoid SQL errors
-  $sql = "SELECT u.uid FROM {users} u LEFT JOIN {sms_user} s ON u.uid = s.uid 
-          WHERE '$value' IN (CONCAT('.', u.short_name), u.credit_id, s.number, u.phone, u.mail)";
-  $result = db_query($sql)->fetchCol();
-  if (isset($result[0])) return count($result) > 1 ? $result : $result[0];
-
-//  $key = $value == $phone ? 'phone' : (valid_email_address($value) ? 'email' : (r\valid_url("http://$value") ? 'website' : ''));
-  $key = $value == $phone ? 'phone' : (valid_email_address($value) ? 'email' : '');
-  $create_info = $key ? array($key => $value) : FALSE;
-  return FALSE;
 }

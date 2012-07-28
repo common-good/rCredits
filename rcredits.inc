@@ -155,6 +155,28 @@ function create_user($info) {
 }
 
 /**
+ * Format and return args for reporting a transaction
+ * Not all returned args are used for any particular type of transaction.
+ */
+function tx_report_args($taking, $amount, $shortfall, $reward, $my_uid, $other_uid, $xid, $for_cash) {
+  $type = $for_cash ? 'traded' : ($taking ? t('charged') : t('paid'));
+  $amount = format_amount($amount);
+  $short = format_amount($shortfall);
+  $tofrom = $taking ? t('from') : t('to');
+  $reward_type = $taking ? t('bonus') : t('rebate');
+  $reward_amount = format_amount($reward);
+  $other = user_field('full_name', $other_uid);
+
+  $totals = \transaction_totals($my_uid);
+  $tid = tid_from_xid($my_uid, $xid);
+  $balance = format_amount($totals->balance);
+
+  $args['way'] = $taking ? t('cash for credit') : t('credit for cash');
+
+  return compact(ray('type amount tofrom reward_type reward_amount balance tid other short way'));
+}
+
+/**
  * Create a transaction
  * @parm bool $taking: true if the money is going TO the initiating user
  * @parm int $my_uid: user id of the initiating user
@@ -162,27 +184,28 @@ function create_user($info) {
  * @parm numeric $requested_amount: the transaction amount
  * @parm string $for: description of the transaction's purpose (user input)
  * @parm bool $confirmed: has this transaction been confirmed by the user? (default TRUE, used only for SMS interface)
+ * @parm int $xid: transaction id. If supplied, the caller is approving an invoice (so don't create a new transaction)
  * @parm array $rewards: associative array of reward percentages, indexed by 'rebate' and 'bonus' (default empty means standard rewards)
  * @return simple array: 
  *    index: index to result message string (if success, the index begins with "report ")
  *    parms: replacement parameters, specific to the message
  *    confirm: boolean "this needs to be confirmed"
  */
-function transfer($taking, $my_uid, $other_uid, $requested_amount, $for, $confirmed = TRUE, $rewards = array()) {
+function transfer($taking, $my_uid, $other_uid, $requested_amount, $for, $confirmed = TRUE, $xid = '', $rewards = array()) {
   $type = $confirm_type = $taking ? 'charge' : 'payment';
-  $approved = $taking ? TRUE : access('charge others', $my_uid);
+  $approved = $taking ? access('charge others', $my_uid) : TRUE;
   if ($for_cash = for_cash($for)) $for = 'cash';
-  $other = user_field('name', $other_uid);
+  
   $available = credit_info($taking ? $other_uid : $my_uid)->available;
   $amount = min($requested_amount, $available);
   $shortfall = $requested_amount - $amount; // how much needs to be done in a separate currency
-  $short = format_amount($shortfall);
   if ($shortfall > 0 and $approved) {
+    $short = format_amount($shortfall);
+    $other = user_field('full_name', $other_uid);
     if ($for_cash) return array($taking ? 'short cash from' : 'short cash to', compact('short', 'other'), FALSE); // no partial cash trans
     if (ceil($shortfall) >= $requested_amount) return array($taking ? 'broke from' : 'broke to', compact('other'), FALSE);
     $shortfall = ceil($shortfall); // for goods and services, shortfall should be a round figure (no cents)
     $amount = $requested_amount - $shortfall;
-    $short = format_amount($shortfall);
   }
   
   list ($payer, $payee) = $taking ? array($other_uid, $my_uid) : array($my_uid, $other_uid);
@@ -190,36 +213,26 @@ function transfer($taking, $my_uid, $other_uid, $requested_amount, $for, $confir
   $extra = empty($rewards) ? compact('rebate', 'bonus') : $rewards;
   $state = $approved ? TRANSACTION_STATE_FINISHED : TRANSACTION_STATE_PENDING;
 
-  $dbtx = db_transaction();
-  try {
-    $txs = transact(compact(ray('type amount payer payee for extra state')));
-  }
-  catch (\Exception $e) {return array($e->getMessage(), array(), FALSE);}
+  if (!$xid) {
+    $dbtx = db_transaction();
+    try {
+      $txs = transact(compact(ray('type amount payer payee for extra state')));
+      $xid = $txs[0]->xid;
+    }
+    catch (\Exception $e) {return array($e->getMessage(), array(), FALSE);}
+    if (!$confirmed) $dbtx->rollback();
+  } else set_tx_field('state', TRANSACTION_STATE_FINISHED, $xid);
   
-  $totals = \transaction_totals($my_uid);
-  $tid = tid_from_xid($my_uid, $txs[0]->xid);
   $reward_index = $taking ? 2 : 1;
   $reward = isset($txs[$reward_index]) ? $txs[$reward_index]->worth['und'][0]['quantity'] : 0;
-  
-  $type = $taking ? t('charged') : t('paid');
-  $amount = format_amount($amount);
-  $tofrom = $taking ? t('from') : t('to');
-  $reward_type = $taking ? t('bonus') : t('rebate');
-  $reward_amount = format_amount($reward);
-  $balance = format_amount($totals->balance);
-  $args = compact(ray('type amount tofrom reward_type reward_amount balance tid other short'));
-  
-  if (!$confirmed) $dbtx->rollback();
 
-  if (!$for_cash) {
-    if ($confirmed) return array($shortfall > 0 ? 'report short transaction' : 'report transaction', $args, FALSE);
-    if ($shortfall > 0) $args['amount'] = format_amount($requested_amount); // restore original amount before getting confirmation
-    return array($confirm_type, $args, TRUE);
-  }
+
+  $args = tx_report_args($taking, $amount, $shortfall, $reward, $my_uid, $other_uid, $xid, $for_cash);
+  if ($for_cash) return array($confirmed ? 'report exchange' : $args['way'], $args, !$confirmed);
   
-  $args['type'] = 'traded';
-  $args['way'] = $taking ? t('cash for credit') : t('credit for cash');
-  return array($confirmed ? 'report exchange' : $args['way'], $args, !$confirmed);
+  if ($confirmed) return array($shortfall > 0 ? 'report short transaction' : 'report transaction', $args, FALSE);
+  if ($shortfall > 0) $args['amount'] = format_amount($requested_amount); // restore original amount before getting confirmation
+  return array($confirm_type, $args, TRUE);
 }
 
 /**
@@ -229,7 +242,6 @@ function transfer($taking, $my_uid, $other_uid, $requested_amount, $for, $confir
 function transact($info) {
 //  foreach (array('creator', 'payer', 'payee') as $one) $info[$one. '_id'] = user_field('credit_id', $info[$one]);
   $tx = transaction_setup($info);
-
   try {
     return \transaction_insert_new($tx, TRUE);
   } catch (Exception $e) {throw $e;}
@@ -561,6 +573,7 @@ function reset() {
 
 /**
  * Look the field up in the table, returning the first record matching the criteria.
+ * @parms array $subs: optional substitutions -- keys will be prefixed by ':'
  */
 function db_lookup($field_name, $table_name, $criteria = '', $subs = array()) {
   if ($criteria) $criteria = "WHERE $criteria";
@@ -575,6 +588,8 @@ function db_lookup($field_name, $table_name, $criteria = '', $subs = array()) {
 function rebate($who) {return db_lookup('rebate_percent', 'users', "uid = $who")/100;}
 function bonus($who) {return 2 * rebate($who);}
 function user_field($field_name, $who) {return db_lookup($field_name, 'users', "uid = $who");}
+function set_user_field($field_name, $new_value, $who) {\db_update('users', array($field_name, $new_value))->condition('uid', $who);}
+function set_tx_field($field_name, $new_value, $xid) {\db_update('mcapi_transactions', array($field_name, $new_value))->condition('xid', $xid);}
 function uid_from_crid($credit_id) {return db_lookup('uid', 'users', "credit_id = '$credit_id'");}
 function tid_from_xid($who, $xid) {return db_lookup('COUNT(xid)', 'mcapi_transactions', "xid <= $xid");}
 function total_demand() {return db_lookup('SUM(demand)', 'users');}
