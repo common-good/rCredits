@@ -3,7 +3,7 @@ name = rCredits SMS interface
 description = Request exchanges, information, and other operations from your cell phone, using SMS
 package = rCredits
 core = 7.x
-php = 5.2
+php = 5.3
 
 dependencies[] = sms_user
 dependencies[] = rcredits

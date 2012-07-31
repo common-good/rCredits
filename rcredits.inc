@@ -171,7 +171,7 @@ function tx_report_args($taking, $amount, $shortfall, $reward, $my_uid, $other_u
   $tid = tid_from_xid($my_uid, $xid);
   $balance = format_amount($totals->balance);
 
-  $args['way'] = $taking ? t('cash for credit') : t('credit for cash');
+  $way = $taking ? t('cash for credit') : t('credit for cash');
 
   return compact(ray('type amount tofrom reward_type reward_amount balance tid other short way'));
 }
@@ -185,6 +185,7 @@ function tx_report_args($taking, $amount, $shortfall, $reward, $my_uid, $other_u
  * @parm string $for: description of the transaction's purpose (user input)
  * @parm bool $confirmed: has this transaction been confirmed by the user? (default TRUE, used only for SMS interface)
  * @parm int $xid: transaction id. If supplied, the caller is approving an invoice (so don't create a new transaction)
+ *   Note that this function is only called for approval if the transaction has already been confirmed.
  * @parm array $rewards: associative array of reward percentages, indexed by 'rebate' and 'bonus' (default empty means standard rewards)
  * @return simple array: 
  *    index: index to result message string (if success, the index begins with "report ")
@@ -193,15 +194,16 @@ function tx_report_args($taking, $amount, $shortfall, $reward, $my_uid, $other_u
  */
 function transfer($taking, $my_uid, $other_uid, $requested_amount, $for, $confirmed = TRUE, $xid = '', $rewards = array()) {
   $type = $confirm_type = $taking ? 'charge' : 'payment';
-  $approved = $taking ? access('charge others', $my_uid) : TRUE;
+  $preapproved = $taking ? access('charge others', $my_uid) : TRUE;
   if ($for_cash = for_cash($for)) $for = 'cash';
   
   $available = credit_info($taking ? $other_uid : $my_uid)->available;
   $amount = min($requested_amount, $available);
   $shortfall = $requested_amount - $amount; // how much needs to be done in a separate currency
-  if ($shortfall > 0 and $approved) {
+  if (($shortfall > 0) and $preapproved) {
     $short = format_amount($shortfall);
     $other = user_field('full_name', $other_uid);
+    if ($xid) return array('short invoice', compact('short', 'other'), FALSE); // no partial payment of invoice
     if ($for_cash) return array($taking ? 'short cash from' : 'short cash to', compact('short', 'other'), FALSE); // no partial cash trans
     if (ceil($shortfall) >= $requested_amount) return array($taking ? 'broke from' : 'broke to', compact('other'), FALSE);
     $shortfall = ceil($shortfall); // for goods and services, shortfall should be a round figure (no cents)
@@ -211,7 +213,7 @@ function transfer($taking, $my_uid, $other_uid, $requested_amount, $for, $confir
   list ($payer, $payee) = $taking ? array($other_uid, $my_uid) : array($my_uid, $other_uid);
   list ($rebate, $bonus) = $for_cash ? array(0, 0) : array(rebate($payer), bonus($payee));
   $extra = empty($rewards) ? compact('rebate', 'bonus') : $rewards;
-  $state = $approved ? TRANSACTION_STATE_FINISHED : TRANSACTION_STATE_PENDING;
+  $state = $preapproved ? TRANSACTION_STATE_FINISHED : TRANSACTION_STATE_PENDING;
 
   if (!$xid) {
     $dbtx = db_transaction();
@@ -221,6 +223,7 @@ function transfer($taking, $my_uid, $other_uid, $requested_amount, $for, $confir
     }
     catch (\Exception $e) {return array($e->getMessage(), array(), FALSE);}
     if (!$confirmed) $dbtx->rollback();
+//    else deb($txs); // DEBUG
   } else set_tx_field('state', TRANSACTION_STATE_FINISHED, $xid);
   
   $reward_index = $taking ? 2 : 1;
@@ -261,9 +264,10 @@ function transaction_rewards(&$txs) {
   if (($my_type != 'payment') and ($my_type != 'charge')) return;
   if ($my_payer_for == 'cash') return; // quit unless rebates and bonuses apply
   
-  $fields = ray('type amount payer payee for creator');
+  $fields = ray('type amount payer payee for creator state');
   $payer = $creator = variable_get('rcredits_community_uid');
 //  $payer_id = $creator_id = RCREDITS_COMMUNITY_ID;
+  $state = $my_state; // match rewards state to main transaction
 
   $type = 'rebate';
   $payee = $my_payer;
@@ -578,10 +582,34 @@ function reset() {
 function db_lookup($field_name, $table_name, $criteria = '', $subs = array()) {
   if ($criteria) $criteria = "WHERE $criteria";
   $sql = "SELECT $field_name FROM $table_name $criteria";
-  $new_subs = array();
-  if ($subs) foreach ($subs as $key => $value) $new_subs[':' . $key] = $value;
-//  deb($sql . print_r($new_subs, TRUE));
-  return \db_query($sql, $new_subs)->fetchField();
+  return \db_query($sql, prefix_keys($subs, ':'))->fetchField();
+}
+
+/**
+ * Return the array with its keys prefixed by the given string
+ */
+function prefix_keys($array, $prefix) {
+  if ($prefix == '') return $array;
+  $new_array = array();
+  foreach ($array as $key => $value) $new_array[$prefix . $key] = $value;
+  return $new_array;
+}
+
+/**
+ * Split the given string into an array
+ * delimited by space, comma, or semi-colon, followed by any number of spaces
+ * Entries containing a colon will be split into key and value.
+ */
+function ray($s) {
+  $simple = mb_split('\, *|; *| +', $s);
+  if (!strpos($s, ':')) return $simple;
+
+  $array = array();
+  foreach ($simple as $one) {
+    list ($key, $value) = explode(':', $one);
+    $array[$key] = $value;
+  }
+  return $array;
 }
 
 // Single line functions that need no explanation
@@ -597,5 +625,4 @@ function total_demand() {return db_lookup('SUM(demand)', 'users');}
 function valid_url($url) {return (\valid_url($url) and preg_match('/^[A-Z0-9\-_]+\.[A-Z0-9\-_]+/i', $url) and strpos($url, '@') === FALSE);}
 function is_temp_name($name) {return abbreviates(RCREDITS_TEMP_NAME_PREFIX, $name);}
 function abbreviates($s, $string) {return (substr($string, 0, strlen($s)) == $s);}
-function ray($s) {return explode(' ', $s);}
 function access($access, $who) {return \user_access($access, \user_load($who));}

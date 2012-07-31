@@ -109,7 +109,7 @@ class call {
           if (!in_array($word, $GLOBALS['SMS gateway words'])) $pattern = str_replace($word, abbreviator($word), $pattern);
         }
         $intent = intent($intent, $command, $pattern, $message); // isolate major command, if possible, potentially for more accurate help
-        $pattern = "/^$pattern$/i";
+        $pattern = "/^$pattern\$/i";
         if (preg_match($pattern, $message, $matches)) {
           array_shift($matches);
           preg_match_all("/%[^ \(\)%]*/", $syntax, $keys);

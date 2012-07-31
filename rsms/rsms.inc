@@ -66,6 +66,7 @@ $GLOBALS['SMS messages'] = array(
   'ambiguous other2' => t('You can identify an rTrader by phone, email, account id, or .fullname (with a dot before the name, no spaces).'),
   'short cash to' => t('You are r@short short, for that exchange.'),
   'short cash from' => t('@other does not have enough rCredits for that exchange.'),
+  'short invoice' => t('You are r@short short, to pay that invoice. Get more rCredits first, or undo the invoice and pay part in US Dollars.'),
   'broke to' => t('You are completely out of rCredits, so that transaction cannot be completed. Type "get r <amount>" to get more rCredits.'),
   'broke from' => t('@other does not have enough rCredits for that transaction at this time. But your request has been noted.'),
 );
@@ -93,8 +94,8 @@ foreach (array('more', 'stop', 'start') as $one) $GLOBALS['SMS messages']["help 
 $GLOBALS['SMS commands'] = array( // these can be abbreviated by the caller
   'get' => array('get %rusd %amount', 'get %amount %rusd'), // best before pay, so that "g r 10" is interpreted as "get r" not "give who"
   'payment' => array(
-    '(?:pay|okay|approve)',
-    '(?:pay|okay|approve)(?: %who)',
+    '(?:payment|okay|approve)',
+    '(?:payment|okay|approve)(?: %who)',
     '(?:(?:payment|give|send) )?%amount to %who(?: for %what)?', 
     '(?:to|payment|give|send) %who %amount(?: for %what)?',
   ),
@@ -103,10 +104,10 @@ $GLOBALS['SMS commands'] = array( // these can be abbreviated by the caller
     '(?:from|charge|invoice|chg) %who %amount(?: for %what)?',
   ),
   'undo' => array(
-    '(?:undo|reverse|cancelit|contest|refuse|reject|deny)', // can't use CANCEL because Twilio reserves it
-    '(?:undo|reverse|cancelit|contest|refuse|reject|deny) %tofrom',
-    '(?:undo|reverse|cancelit|contest|refuse|reject|deny) %who',
-    '(?:undo|reverse|cancelit|contest|refuse|reject|deny) %tofrom %who',
+    '(?:undo|reverse|cancelit|contest|refuse|reject|deny|dispute)', // can't use CANCEL because Twilio reserves it
+    '(?:undo|reverse|cancelit|contest|refuse|reject|deny|dispute) %tofrom',
+    '(?:undo|reverse|cancelit|contest|refuse|reject|deny|dispute) %who',
+    '(?:undo|reverse|cancelit|contest|refuse|reject|deny|dispute) %tofrom %who',
   ),
   'information' => array('information', 'balance'),
   // name
@@ -124,8 +125,8 @@ $GLOBALS['SMS not a nonce'] = array_merge(
   $GLOBALS['SMS gateway words']
 ); 
 $GLOBALS['SMS reserved words'] = array_merge(
-  r\ray('pay okay approve reverse contest refuse reject deny to from balance give send invoice take as usd'), 
   array_keys($GLOBALS['SMS commands']),
+  r\ray('okay approve reverse contest refuse reject deny to from balance give send invoice take as usd'), 
   $GLOBALS['SMS gateway words']
 ); 
 $GLOBALS['SMS command tokens'] = array(
@@ -148,13 +149,11 @@ $GLOBALS['SMS command tokens'] = array(
  *
  * @param array $substitutions (optional). '@' will be prepended to the keys.
  */   
-function tt($message, $substitutions = array()) {
-  $subs = array();
-  foreach ($substitutions as $key => $value) $subs["@$key"] = $value;
+function tt($message, $subs = array()) {
   $messages = explode('|', $message);
   $result = array();
   foreach ($messages as $message) {
-    $result[] = t($GLOBALS['SMS messages'][$message], $subs);
+    $result[] = t($GLOBALS['SMS messages'][$message], r\prefix_keys($subs, '@'));
   }
   return join(' ', $result);
 }

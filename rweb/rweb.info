@@ -1,0 +1,10 @@
+;$Id$
+name = rCredits Web Interface
+description = Web Browser Interface to the rCredits system.
+package = rCredits
+core = 7.x
+php = 5.3
+
+dependencies[] = rcredits
+files[] = rweb.module
+files[] = rweb.inc

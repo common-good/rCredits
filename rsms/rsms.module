@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * rSMS (rCredits SMS)
+ * rSMS (rCredits SMS Interface)
  *
  * An interface module for the rCredits financial system.
  */

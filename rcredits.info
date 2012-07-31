@@ -1,9 +1,9 @@
 ;$Id$
-name = RCredits
-description = Core transaction processing for the RCredits mutual credit system -- an extension of Matthew Slater's Community Accounting (Mutual Credit) module.
+name = rCredits
+description = Core transaction processing for the rCredits mutual credit system -- an extension of Matthew Slater's Community Accounting (Mutual Credit) module.
 package = rCredits
 core = 7.x
-php = 5.2
+php = 5.3
 
 dependencies[] = mcapi
 files[] = rcredits.module

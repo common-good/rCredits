@@ -1,0 +1,23 @@
+<?php
+/**
+ * @file
+ * rCredits Web Interface
+ *
+ * An interface module for the rCredits financial system.
+ */
+
+use rCredits as r;
+require_once __DIR__ . '/../rcredits.inc';
+require_once __DIR__ . '/rweb.inc';
+
+function rweb_block_info() {
+  return array(
+    'pay' => r\Web\block_def(t('Payment Block')), // second arg could be DRUPAL_NO_CACHE
+  );
+}
+
+function rweb_block_view($delta = '') {
+  switch($delta) {
+    case 'pay': return r\Web\block_view(NULL, drupal_get_form('rCredits\Web\pay_form')); // subject normally NULL
+  }
+}
