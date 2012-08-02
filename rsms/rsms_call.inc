@@ -265,6 +265,8 @@ class call {
    * SELECT (*) FROM mcapi_transactions WHERE () ORDER BY xid DESC LIMIT 1
    * WHERE payer=me / payee=me / payer=me OR payee=me
    * AND payer=other OR payee=other
+   *
+   * !!! to do: undo for charges and invoices, handle all transaction states
    */
   function do_undo() {
     extract($this->parms, EXTR_PREFIX_ALL, 'my');	// who and/or tofrom
