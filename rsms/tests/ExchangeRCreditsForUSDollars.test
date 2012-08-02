@@ -33,7 +33,6 @@ class rsmsExchangeRCreditsForUSDollars extends DrupalWebTestCase {
   // Scenario: The caller can get US Dollars for rCredits
   public function testTheCallerCanGetUSDollarsForRCredits() {
     scene_setup($this, __FUNCTION__);
-   *   #  Given phone %number1 is a participant
     Given('phone %number1 is set up for direct deposits');
     And__('phone %number1 has r$150');
     When_('phone %number1 says "get usd 123.45"');

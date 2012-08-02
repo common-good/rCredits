@@ -47,8 +47,6 @@ class rsmsTransaction extends DrupalWebTestCase {
   // Scenario: The caller asks to pay a player by name
   public function notestTheCallerAsksToPayAPlayerByName() {
     scene_setup($this, __FUNCTION__);
-   *   # or charge. Nickname matches the full name of a local business, organization, or individual account
-   *   # note the required dot (.) before the nickname.
     Given('players: "DATA'
     . '\\| @name      | @memberid | @cell    |'
     . '\\| Abe One    | neabcdea  | %number1 |'

@@ -10,14 +10,15 @@ use rCredits as r;
 require_once __DIR__ . '/../rcredits.inc';
 require_once __DIR__ . '/rweb.inc';
 
+define('RWEB_FORMS', 'account pay charge exchange manage');
+
 function rweb_block_info() {
-  return array(
-    'pay' => r\Web\block_def(t('Payment Block')), // second arg could be DRUPAL_NO_CACHE
-  );
+  $info = array();
+  foreach (r\ray(RWEB_FORMS) as $one) $info[$one] = r\Web\block_def(lcfirst($one) . ' Block');
+  return $info;
 }
 
 function rweb_block_view($delta = '') {
-  switch($delta) {
-    case 'pay': return r\Web\block_view(NULL, drupal_get_form('rCredits\Web\pay_form')); // subject normally NULL
-  }
+  if (!in_array($delta, r\ray(RWEB_FORMS))) return;
+  return r\Web\block_view(NULL, drupal_get_form("rCredits\\Web\\{$delta}_form"));
 }

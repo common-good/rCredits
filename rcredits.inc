@@ -7,7 +7,6 @@
  *
  * @todo
  * - the undo feature
- * - handling invoices (required confirmation of charges)
  * - handling employees (virtual payments). This should probably be extended to suppliers too,
  *   or maybe even to everyone. The idea is to pay someone virtually in rCredits by totally paying them
  *   (either first or second) in US Dollars and (either second or first) having them buy back
@@ -171,7 +170,7 @@ function tx_report_args($taking, $amount, $shortfall, $reward, $my_uid, $other_u
   $tid = tid_from_xid($my_uid, $xid);
   $balance = format_amount($totals->balance);
 
-  $way = $taking ? t('cash for credit') : t('credit for cash');
+  $way = $taking ? t('cash or credit (or nothing) for rCredits') : t('rCredits for cash or credit (or nothing)');
 
   return compact(ray('type amount tofrom reward_type reward_amount balance tid other short way'));
 }
@@ -191,6 +190,10 @@ function tx_report_args($taking, $amount, $shortfall, $reward, $my_uid, $other_u
  *    index: index to result message string (if success, the index begins with "report ")
  *    parms: replacement parameters, specific to the message
  *    confirm: boolean "this needs to be confirmed"
+ *
+ * Do something different, based on these boolean values: $taking (charge vs. payment), $preapproved (paying or authorized to charge), 
+ * $confirmed (user confirmed the transaction request), $xid (approving an invoice), $for_cash (the transaction is an exchange for USD),
+ * $shortfall (how inadequate the payer's balance is)
  */
 function transfer($taking, $my_uid, $other_uid, $requested_amount, $for, $confirmed = TRUE, $xid = '', $rewards = array()) {
   $type = $confirm_type = $taking ? 'charge' : 'payment';
@@ -199,8 +202,9 @@ function transfer($taking, $my_uid, $other_uid, $requested_amount, $for, $confir
   
   $available = credit_info($taking ? $other_uid : $my_uid)->available;
   $amount = min($requested_amount, $available);
-  $shortfall = $requested_amount - $amount; // how much needs to be done in a separate currency
-  if (($shortfall > 0) and $preapproved) {
+  $shortfall = max(0, $requested_amount - $amount); // how much needs to be done in a separate currency
+  if ($shortfall and $preapproved) {
+    $shortfall = max(.01, $shortfall); // don't report a tiny shortfall by rounding down to zero
     $short = format_amount($shortfall);
     $other = user_field('full_name', $other_uid);
     if ($xid) return array('short invoice', compact('short', 'other'), FALSE); // no partial payment of invoice
@@ -231,10 +235,16 @@ function transfer($taking, $my_uid, $other_uid, $requested_amount, $for, $confir
 
 
   $args = tx_report_args($taking, $amount, $shortfall, $reward, $my_uid, $other_uid, $xid, $for_cash);
-  if ($for_cash) return array($confirmed ? 'report exchange' : $args['way'], $args, !$confirmed);
+  if ($for_cash) {
+    $message = $confirmed ? (($taking and !$preapproved) ? 'report exchange invoice' : 'report exchange') : $args['way'];
+    return array($message, $args, !$confirmed);
+  }
   
-  if ($confirmed) return array($shortfall > 0 ? 'report short transaction' : 'report transaction', $args, FALSE);
-  if ($shortfall > 0) $args['amount'] = format_amount($requested_amount); // restore original amount before getting confirmation
+  if ($confirmed) {
+    $message = $shortfall ? 'report short transaction' : (($taking and !$preapproved) ? 'report invoice' : 'report transaction');
+    return array($message, $args, FALSE);
+  }
+  if ($shortfall) $args['amount'] = format_amount($requested_amount); // restore original amount before getting confirmation
   return array($confirm_type, $args, TRUE);
 }
 
@@ -486,7 +496,7 @@ function next_credit_id($ctty, $business = FALSE) {
  * Say whether the transaction description implies a cash transaction.
  */
 function for_cash($for) {
-  return ($for == '' or preg_match('/cash( |$)/i', $for));
+  return ($for == '' or preg_match('/(cash|credit|usd|gift)( |$)/i', $for));
 }
 
 /**
@@ -582,13 +592,13 @@ function reset() {
 function db_lookup($field_name, $table_name, $criteria = '', $subs = array()) {
   if ($criteria) $criteria = "WHERE $criteria";
   $sql = "SELECT $field_name FROM $table_name $criteria";
-  return \db_query($sql, prefix_keys($subs, ':'))->fetchField();
+  return \db_query($sql, prefix_keys(':', $subs))->fetchField();
 }
 
 /**
  * Return the array with its keys prefixed by the given string
  */
-function prefix_keys($array, $prefix) {
+function prefix_keys($prefix, $array) {
   if ($prefix == '') return $array;
   $new_array = array();
   foreach ($array as $key => $value) $new_array[$prefix . $key] = $value;
@@ -601,7 +611,8 @@ function prefix_keys($array, $prefix) {
  * Entries containing a colon will be split into key and value.
  */
 function ray($s) {
-  $simple = mb_split('\, *|; *| +', $s);
+  $pattern = strpos($s, ', ') ? '\, *' : (strpos($s, ';') ? '; *' : (strpos($s, ' ') ? ' +' : '\, *'));
+  $simple = mb_split($pattern, $s);
   if (!strpos($s, ':')) return $simple;
 
   $array = array();
@@ -616,9 +627,10 @@ function ray($s) {
 function rebate($who) {return db_lookup('rebate_percent', 'users', "uid = $who")/100;}
 function bonus($who) {return 2 * rebate($who);}
 function user_field($field_name, $who) {return db_lookup($field_name, 'users', "uid = $who");}
+function tx_field($field_name, $xid) {return db_lookup($field_name, 'mcapi_transactions', "xid = $xid");}
 function set_user_field($field_name, $new_value, $who) {\db_update('users', array($field_name, $new_value))->condition('uid', $who);}
 function set_tx_field($field_name, $new_value, $xid) {\db_update('mcapi_transactions', array($field_name, $new_value))->condition('xid', $xid);}
-function uid_from_crid($credit_id) {return db_lookup('uid', 'users', "credit_id = '$credit_id'");}
+function uid_from_crid($credit_id) {return db_lookup('uid', 'users', 'credit_id=:credit_id', compact('credit_id'));}
 function tid_from_xid($who, $xid) {return db_lookup('COUNT(xid)', 'mcapi_transactions', "xid <= $xid");}
 function total_demand() {return db_lookup('SUM(demand)', 'users');}
 

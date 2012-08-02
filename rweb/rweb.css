@@ -1,0 +1,23 @@
+div.block-rweb  {float:left;}
+#block-rweb-exchange {clear:left;}
+div.block-rweb form {width:350px; height:300px; border:1px solid black; margin-right:20px;}
+div.block-rweb form label {float:left; clear:left; width:65px; text-align:right; margin-right:5px;}
+div.block-rweb form div.form-item div.description {float:left; clear:left; margin:2px 0px 20px 70px;}
+
+div.block-rweb form div.form-type-item label {width:100%; margin-left:70px; text-align:left;}
+#rcreditswebmanage-form div.form-type-item label {margin-bottom:20px;}
+
+div.block-rweb form input[type="text"] {width:240px;}
+div.block-rweb form input[type="submit"] {text-align:left; margin-left:70px; margin-right:400px;}
+
+div.block-rweb form div.form-type-radio {display:inline;}
+div.block-rweb form input[type="radio"] {float:left; clear:none; display:inline; margin-left:0px; vertical-align:bottom;}
+div.block-rweb form div.form-type-radio label {float:left; clear:none; display:inline; width:100px; margin-left:3px; text-align:left; vertical-align:top;}
+div.block-rweb form div.form-type-radio label[for="edit-pay-type-0"] {width:80px;}
+div.block-rweb form div.form-type-radio label[for="edit-pay-type-1"] {width:30px;}
+
+/* Account Selector */
+div.block-rweb #rcreditswebaccount-form {height:50px;}
+#rcreditswebaccount-form div.form-type-item {display:none;}
+#rcreditswebaccount-form div.form-item-account-account label {width:150px;}
+#rcreditswebaccount-form div.form-item-account-account div.description {padding-left:85px;}

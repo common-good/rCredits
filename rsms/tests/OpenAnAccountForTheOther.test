@@ -50,7 +50,6 @@ class rsmsOpenAnAccountForTheOther extends DrupalWebTestCase {
   // Scenario: The caller asks to pay a non-identifiable total newbie by phone
   public function notestTheCallerAsksToPayANonidentifiableTotalNewbieByPhone() {
     scene_setup($this, __FUNCTION__);
-   *   # or by email address or domain
     Given('players: "DATA'
     . '\\| @name     | @memberid | @cell    |'
     . '\\| Abe One   | neabcdea  | %number1 |"');

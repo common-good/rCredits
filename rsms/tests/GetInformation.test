@@ -33,8 +33,6 @@ class rsmsGetInformation extends DrupalWebTestCase {
   // Scenario: Getting information
   public function testGettingInformation() {
     scene_setup($this, __FUNCTION__);
-   *   # Leave the cents off balance and unavailable rather than adding ".00".
-   *   # Always round the demand to an integer. Round the demand down to three significant digits and use "million" once it passes a million.
     Given('phone %number1 is a player');
     And__('phone %number1 has r$100');
     And__('phone %number1 unavailable is $7.50');

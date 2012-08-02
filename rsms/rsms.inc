@@ -23,10 +23,13 @@ $GLOBALS['SMS messages'] = array(
 
   // reporting
   'report transaction' => t("You @type @other @amount (@reward_type: @reward_amount). Your new balance is @balance. Transaction #@tid"),
+  'report invoice' => t("You @type @other @amount. Your balance is unchanged, pending payment. Pending Transaction #@tid"),
   'report short transaction' => t("You @type @other @amount (@short remains to be paid). Your new balance is @balance. Transaction #@tid"),
 //  'transaction done asif' => t("@type: @amount @tofrom user#@other (@reward_type: @reward_amount). Your new provisional balance is @balance (If this had been a real transaction, your balance would be @amount @moreless). Transaction ID #@xid"),
   'report exchange' => t("You @type @other @amount @way. Your new balance is @balance. Transaction #@tid"),
-  'report undo' => t("You cancelled transfer of @amount from @payer to @payee on @date."),  'your demand' => t("Your total request for rCredits is now @amount."),
+  'report exchange request' => t("You requested @amount from @other. Your balance is unchanged, pending approval. Pending Transaction #@tid"),
+  'report undo' => t("You cancelled transfer of @amount from @payer to @payee on @date."),
+  'your demand' => t("Your total request for rCredits is now @amount."),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. What's your name?"),
@@ -39,8 +42,8 @@ $GLOBALS['SMS messages'] = array(
   'confirm payment' => t("Pay @other @amount for goods and services?"),
   'confirm invoice' => t("Pay @other @amount for goods and services (invoice @date)?"),
   'confirm charge' => t("Charge @other @amount for goods and services?"),
-  'confirm credit for cash' => t("Give @other r@amount for cash?"),
-  'confirm cash for credit' => t("Give @other @amount cash for rCredits?"),
+  'confirm credit for cash' => t("Give @other r@amount for cash or credit (or nothing)?"),
+  'confirm cash for credit' => t("Give @other @amount cash or credit (or nothing) for rCredits?"),
   'confirm undo' => t("Undo @date transfer of @amount from @payer to @payee?"),
   'please confirm' => t("To confirm, type @nonce."),
   
@@ -61,7 +64,7 @@ $GLOBALS['SMS messages'] = array(
   'undo moving target' => t("Can't undo: the last matching transaction has changed."),
   'duplicate email' => t("There is already an account with that email address. Visit rCredits.org to add this cell number to your account."),
   'unknown user' => t('Unknown rTrader: "@who". Type "helpme pay".'),
-  'non trader' => t('@other does not an authorized rTrader.'),
+  'non trader' => t('@other is not an authorized rTrader.'),
   'ambiguous other' => t('"@who" is associated with more than one rCredits account. You will need to identify them differently. Type "more" for options.'),
   'ambiguous other2' => t('You can identify an rTrader by phone, email, account id, or .fullname (with a dot before the name, no spaces).'),
   'short cash to' => t('You are r@short short, for that exchange.'),
@@ -153,7 +156,7 @@ function tt($message, $subs = array()) {
   $messages = explode('|', $message);
   $result = array();
   foreach ($messages as $message) {
-    $result[] = t($GLOBALS['SMS messages'][$message], r\prefix_keys($subs, '@'));
+    $result[] = t($GLOBALS['SMS messages'][$message], r\prefix_keys('@', $subs));
   }
   return join(' ', $result);
 }

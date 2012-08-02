@@ -334,7 +334,7 @@ class call {
         $where .= " AND payee=$other_uid";
       }
     }
-    $sql = "SELECT xid FROM mcapi_transactions WHERE $where ORDER BY xid DESC LIMIT 1";
+    $sql = "SELECT * FROM mcapi_transactions WHERE $where ORDER BY xid DESC LIMIT 1";
     $result = db_query($sql, array(':state' => TRANSACTION_STATE_PENDING))->fetchAssoc();
     if (!$result) return tt('no matching invoice');
 
@@ -342,13 +342,13 @@ class call {
 
     if (!$this->confirmed) {
       $this->xid = $old_xid; // save for after possible confirmation
-      $other = r\user_field('full_name', $other_uid);
+      $other = r\user_field('full_name', $old_payee);
       $amount = r\format_amount($old_amount);
       $date = strftime('%m/%d/%Y',$result['created']);
-      return $this->confirm('invoice', compact(ray('other amount date')));
+      return $this->confirm('invoice', compact(r\ray('other amount date')));
     }
 
-    list ($message, $args, $confirm) = r\transfer(FALSE, $this->uid, $other_uid, $old_amount, $old_payee_for, TRUE, $old_xid);
+    list ($message, $args, $confirm) = r\transfer(FALSE, $this->uid, $old_payee, $old_amount, $old_payee_for, TRUE, $old_xid);
     return tt($message, $args);
   }
 

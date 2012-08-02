@@ -135,6 +135,7 @@ function do_feature($feature_filename, &$steps) {
 
   while (!is_null($line = array_shift($lines))) {
     $line = trim($line);
+    if (substr($line, 0, 1) == '#') continue; // ignore comment lines
     $any = preg_match('/^([A-Z]+)/i', $line, $matches);
     $word1 = $word1_original = $any ? $matches[1] : '';
     $tail = trim(substr($line, strlen($word1) + 1));

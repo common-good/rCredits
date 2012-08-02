@@ -82,7 +82,6 @@ class rsmsGetHelp extends DrupalWebTestCase {
   // Scenario: Amount is too big
   public function notestAmountIsTooBig() {
     scene_setup($this, __FUNCTION__);
-   *   # 6 digits or more?
     Given('phone %number1 is a player');
     When_('phone %number1 says "get r 100000"');
     Then_('we say to phone %number1 "amount too big"');
