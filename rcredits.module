@@ -61,7 +61,7 @@ function rcredits_permission() {
  */
 function rcredits_help($path, $arg) {
   if ($path == 'admin/help#rcredits') {
-    return t('If you have trouble using RCredits software during the development phase, call William Spademan for help: wspademan@RCredits.org.');
+    return t('If you have trouble using rCredits software during the development phase, call William Spademan for help: wspademan@RCredits.org.');
   }
 }
 

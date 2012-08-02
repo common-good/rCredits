@@ -27,7 +27,7 @@ $GLOBALS['SMS messages'] = array(
   'report short transaction' => t("You @type @other @amount (@short remains to be paid). Your new balance is @balance. Transaction #@tid"),
 //  'transaction done asif' => t("@type: @amount @tofrom user#@other (@reward_type: @reward_amount). Your new provisional balance is @balance (If this had been a real transaction, your balance would be @amount @moreless). Transaction ID #@xid"),
   'report exchange' => t("You @type @other @amount @way. Your new balance is @balance. Transaction #@tid"),
-  'report exchange request' => t("You requested @amount from @other. Your balance is unchanged, pending approval. Pending Transaction #@tid"),
+  'report exchange request' => t("You requested r@amount from @other. Your balance is unchanged, pending approval. Pending Transaction #@tid"),
   'report undo' => t("You cancelled transfer of @amount from @payer to @payee on @date."),
   'your demand' => t("Your total request for rCredits is now @amount."),
 
@@ -42,8 +42,8 @@ $GLOBALS['SMS messages'] = array(
   'confirm payment' => t("Pay @other @amount for goods and services?"),
   'confirm invoice' => t("Pay @other @amount for goods and services (invoice @date)?"),
   'confirm charge' => t("Charge @other @amount for goods and services?"),
-  'confirm credit for cash' => t("Give @other r@amount for cash or credit (or nothing)?"),
-  'confirm cash for credit' => t("Give @other @amount cash or credit (or nothing) for rCredits?"),
+  'confirm rCredits for cash' => t("Give @other r@amount for cash or credit (or nothing)?"),
+  'confirm cash for rCredits' => t("Give @other @amount cash or credit (or nothing) for rCredits?"),
   'confirm undo' => t("Undo @date transfer of @amount from @payer to @payee?"),
   'please confirm' => t("To confirm, type @nonce."),
   

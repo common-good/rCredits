@@ -27,13 +27,13 @@ function account_form($form, &$form_state) {
 function pay_form($form, &$form_state) {
   if ($confirm = sure_form($form_state)) return $confirm;
 
-  $form = r\prefix_keys('pay_', array(
+  $form = r\prefix_keys('payment_', array(
     'description' => form_field('item', t('Payment')),
     'amount' => form_field('textfield', '$', t('Amount to pay')),
     'who' => form_field('textfield', 'to:', t('Pay whom?')),
     'type' => form_field('radios', 'for:', '', array(), array(t('cash/credit'), t('gift'), t('goods & services'))),
     'what' => form_field('textfield', '...', t('Description of goods and services')),
-    'pay' => form_field('submit', NULL, t('Submit button'), 'Pay'),
+    'submit' => form_field('submit', NULL, t('Submit button'), 'Pay'),
   ));
   $form['#attached']['css'] = array(\drupal_get_path('module', 'rweb') . '/rweb.css');
   return $form;
@@ -45,7 +45,7 @@ function charge_form($form, &$form_state) {
     'amount' => form_field('textfield', '$', t('Amount to charge')),
     'who' => form_field('textfield', 'from:', t('Charge whom?')),
     'what' => form_field('textfield', 'for:', t('Description of goods and services')),
-    'charge' => form_field('submit', NULL, t('Submit button'), 'Charge'),
+    'submit' => form_field('submit', NULL, t('Submit button'), 'Charge'),
   ));
   $form['#attached']['css'] = array(\drupal_get_path('module', 'rweb') . '/rweb.css');
   return $form;
@@ -91,7 +91,7 @@ function pay_form_validate($form, &$form_state) {
     }
     return; // don't validate the confirmation button push
   }
-  $form_state['confirm'] = transfer(FALSE, $pay_who, $pay_amount, $pay_what, FALSE, 'pay');
+  $form_state['confirm'] = transfer('payment', $pay_who, $pay_amount, $pay_what, FALSE);
 }
 
 function pay_form_submit($form, &$form_state) {
@@ -101,21 +101,22 @@ function pay_form_submit($form, &$form_state) {
   }
 
   extract($form_state['values']); //, EXTR_PREFIX_ALL, 'my');
-  transfer(FALSE, $pay_who, $pay_amount, $pay_what, TRUE, 'pay');
+  transfer('payment', $pay_who, $pay_amount, $pay_what, TRUE);
 }
 
 /**
  * Transfer funds
  * @return confirmation message (NULL if confirmation not appropriate)
  */
-function transfer($taking, $who, $amount, $what, $confirmed, $prefix) {
+function transfer($type, $who, $amount, $what, $confirmed) {
   global $user;
-  if (!is_numeric($amount)) {\form_set_error($prefix . 'amount', t('Amount must be a number (no commas).')); return NULL;}
-  if (!($other_uid = r\uid_from_crid($who))) {\form_set_error($prefix . '_who', tt('unknown user', compact('who'))); return NULL;}
-  list ($message, $args, $confirm) = r\transfer(FALSE, $user->uid, $other_uid, $amount, $what, $confirmed);
+  if (!is_numeric($amount)) {\form_set_error($type . '_amount', t('Amount must be a number (no commas).')); return NULL;}
+  if (!($other_uid = r\uid_from_crid($who))) {\form_set_error($type . '_who', tt('unknown user', compact('who'))); return NULL;}
+
+  list ($message, $args, $confirm) = r\transfer($type, $user->uid, $other_uid, $amount, $what, $confirmed);
   if ($confirm) return tt('confirm ' . $message, $args);
   if (substr($message, 0, 6) == 'report') {\drupal_set_message(tt($message, $args)); return NULL;}
-  {\form_set_error($prefix . '_amount', tt($message, $args)); return NULL;}
+  {\form_set_error($type . '_amount', tt($message, $args)); return NULL;}
 }
 
 /**

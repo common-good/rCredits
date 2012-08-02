@@ -300,9 +300,9 @@ class call {
     // !!! Here we would test for pending transactions
     } else {
       $rewards = unserialize($result['data']);
-      list ($message, $args, $confirm) = r\transfer(FALSE, $result['payer'],
+      list ($message, $args, $confirm) = r\transfer('payment', $result['payer'],
         $result['payee'], -$result['amount'], 'undo '.$result['payer_for'],
-	      TRUE, '', $rewards);
+	      TRUE, $rewards);
     }
     return tt('report undo', $result);
   }
@@ -311,7 +311,7 @@ class call {
    * Give funds to the caller from someone else.
    */
   function do_charge() {
-    return $this->do_transfer(TRUE);
+    return $this->do_transfer('charge');
   }
 
   /**
@@ -323,7 +323,7 @@ class call {
    */
   function do_payment() {
     extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, what, and maybe xid
-    if (isset($my_amount)) return $this->do_transfer(FALSE); // complete syntax
+    if (isset($my_amount)) return $this->do_transfer('payment'); // complete syntax
     
     if ($this->confirmed and isset($my_xid)) {
       $where = "xid=$my_xid";
@@ -335,7 +335,7 @@ class call {
       }
     }
     $sql = "SELECT * FROM mcapi_transactions WHERE $where ORDER BY xid DESC LIMIT 1";
-    $result = db_query($sql, array(':state' => TRANSACTION_STATE_PENDING))->fetchAssoc();
+    $result = db_query($sql, array(':state' => TX_PENDING))->fetchAssoc();
     if (!$result) return tt('no matching invoice');
 
     extract($result, EXTR_PREFIX_ALL, 'old');
@@ -348,18 +348,23 @@ class call {
       return $this->confirm('invoice', compact(r\ray('other amount date')));
     }
 
-    list ($message, $args, $confirm) = r\transfer(FALSE, $this->uid, $old_payee, $old_amount, $old_payee_for, TRUE, $old_xid);
+    $dbtx = db_transaction();
+    list ($message, $args, $confirm) = r\transfer('invoice payment', $this->uid, $old_payee, $old_amount, $old_payee_for, TRUE);
+    if (isset($args['success'])) {
+      // FUNCTION ALWAYS FAILS r\set_tx_field('state', TX_DELETED, $old_xid);
+      \db_query('UPDATE mcapi_transactions SET state=:state WHERE serial=:serial', array(':state' => TX_DELETED, ':serial' => $old_serial));
+    } else $dbtx->rollback();
     return tt($message, $args);
   }
 
   /**
    * Create a transaction for the caller.
    */
-  function do_transfer($taking) {
+  function do_transfer($type) {
     extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, and what
 
     if (!is_numeric($other_uid = $this->identify($my_who, TRUE))) return $other_uid; // return if error
-    list ($message, $args, $confirm) = r\transfer($taking, $this->uid, $other_uid, $my_amount, $my_what, $this->confirmed);
+    list ($message, $args, $confirm) = r\transfer($type, $this->uid, $other_uid, $my_amount, $my_what, $this->confirmed);
     return $confirm ? $this->confirm($message, $args) : tt($message, $args);
   }
   

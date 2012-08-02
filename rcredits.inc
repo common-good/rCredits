@@ -14,11 +14,11 @@
  *   that requires confirmation by the payee (an "offer"). The payee cannot accept the offer without first paying
  *   that amount to the Community in US Dollars (using billpay or Dwolla).
  * - a way to track US Dollars payments (probably a separate transaction table us_transactions)
+ * - rewards in "extra" field get serialized to long strings of digits. Be more concise (store a int number of cents?).
  */
  
 namespace rCredits;
 
-//define('TRANSACTION_STATE_STRAW', -3); // add this to states defined in mcapi.module
 define('RCREDITS_COMMUNITY_NAME', 'Community');
 define('RCREDITS_COMMUNITY_ID', 'community');
 define('RCREDITS_INITIAL_DEMAND', 25000); // total escrowed rCredits during TRIAL RUN
@@ -30,7 +30,10 @@ define('RCREDITS_MAX_DEMAND', 1000000000);
 define('RCREDITS_STARTING_BALANCE', 250); // how much people start with in the TRIAL RUN
 define('RCREDITS_MIN_BALANCE', -10000); // how low can user's balance go, by default (be generous in TRIAL RUN)
 define('RCREDITS_TEMP_NAME_PREFIX', 'unknown ');
-define('TRANSACTION_STATE_PENDING', 3); // charged, waiting for confirmation
+
+define('TX_DONE', 1);
+define('TX_DELETED', -1);
+define('TX_PENDING', -3); // charged, waiting for confirmation
 
 /**
  * Show a debbugging statement (without a lot of typing)
@@ -170,21 +173,20 @@ function tx_report_args($taking, $amount, $shortfall, $reward, $my_uid, $other_u
   $tid = tid_from_xid($my_uid, $xid);
   $balance = format_amount($totals->balance);
 
-  $way = $taking ? t('cash or credit (or nothing) for rCredits') : t('rCredits for cash or credit (or nothing)');
-
-  return compact(ray('type amount tofrom reward_type reward_amount balance tid other short way'));
+  $way = $taking ? 'cash for rCredits' : 'rCredits for cash'; // use as both text and message index (might wanna separate out way_index)
+  $success = TRUE;
+  
+  return compact(ray('type amount tofrom reward_type reward_amount balance tid other short way success'));
 }
 
 /**
  * Create a transaction
- * @parm bool $taking: true if the money is going TO the initiating user
+ * @parm bool $type: payment, charge, or invoice payment
  * @parm int $my_uid: user id of the initiating user
  * @parm int $other_uid: user id of the other party
  * @parm numeric $requested_amount: the transaction amount
  * @parm string $for: description of the transaction's purpose (user input)
  * @parm bool $confirmed: has this transaction been confirmed by the user? (default TRUE, used only for SMS interface)
- * @parm int $xid: transaction id. If supplied, the caller is approving an invoice (so don't create a new transaction)
- *   Note that this function is only called for approval if the transaction has already been confirmed.
  * @parm array $rewards: associative array of reward percentages, indexed by 'rebate' and 'bonus' (default empty means standard rewards)
  * @return simple array: 
  *    index: index to result message string (if success, the index begins with "report ")
@@ -195,8 +197,10 @@ function tx_report_args($taking, $amount, $shortfall, $reward, $my_uid, $other_u
  * $confirmed (user confirmed the transaction request), $xid (approving an invoice), $for_cash (the transaction is an exchange for USD),
  * $shortfall (how inadequate the payer's balance is)
  */
-function transfer($taking, $my_uid, $other_uid, $requested_amount, $for, $confirmed = TRUE, $xid = '', $rewards = array()) {
-  $type = $confirm_type = $taking ? 'charge' : 'payment';
+function transfer($type, $my_uid, $other_uid, $requested_amount, $for, $confirmed = TRUE, $rewards = array()) {
+  $taking = ($type == 'charge');
+  if ($paying_invoice = ($type == 'invoice payment')) $type = 'payment';
+  $confirm_type = $type;
   $preapproved = $taking ? access('charge others', $my_uid) : TRUE;
   if ($for_cash = for_cash($for)) $for = 'cash';
   
@@ -207,7 +211,7 @@ function transfer($taking, $my_uid, $other_uid, $requested_amount, $for, $confir
     $shortfall = max(.01, $shortfall); // don't report a tiny shortfall by rounding down to zero
     $short = format_amount($shortfall);
     $other = user_field('full_name', $other_uid);
-    if ($xid) return array('short invoice', compact('short', 'other'), FALSE); // no partial payment of invoice
+    if ($paying_invoice) return array('short invoice', compact('short', 'other'), FALSE); // no partial payment of invoice
     if ($for_cash) return array($taking ? 'short cash from' : 'short cash to', compact('short', 'other'), FALSE); // no partial cash trans
     if (ceil($shortfall) >= $requested_amount) return array($taking ? 'broke from' : 'broke to', compact('other'), FALSE);
     $shortfall = ceil($shortfall); // for goods and services, shortfall should be a round figure (no cents)
@@ -217,9 +221,9 @@ function transfer($taking, $my_uid, $other_uid, $requested_amount, $for, $confir
   list ($payer, $payee) = $taking ? array($other_uid, $my_uid) : array($my_uid, $other_uid);
   list ($rebate, $bonus) = $for_cash ? array(0, 0) : array(rebate($payer), bonus($payee));
   $extra = empty($rewards) ? compact('rebate', 'bonus') : $rewards;
-  $state = $preapproved ? TRANSACTION_STATE_FINISHED : TRANSACTION_STATE_PENDING;
+  $state = $preapproved ? TX_DONE : TX_PENDING;
 
-  if (!$xid) {
+//  if (!$xid) {
     $dbtx = db_transaction();
     try {
       $txs = transact(compact(ray('type amount payer payee for extra state')));
@@ -228,15 +232,14 @@ function transfer($taking, $my_uid, $other_uid, $requested_amount, $for, $confir
     catch (\Exception $e) {return array($e->getMessage(), array(), FALSE);}
     if (!$confirmed) $dbtx->rollback();
 //    else deb($txs); // DEBUG
-  } else set_tx_field('state', TRANSACTION_STATE_FINISHED, $xid);
+//  } else set_tx_field('state', TRANSACTION_STATE_FINISHED, $xid);
   
   $reward_index = $taking ? 2 : 1;
   $reward = isset($txs[$reward_index]) ? $txs[$reward_index]->worth['und'][0]['quantity'] : 0;
 
-
   $args = tx_report_args($taking, $amount, $shortfall, $reward, $my_uid, $other_uid, $xid, $for_cash);
   if ($for_cash) {
-    $message = $confirmed ? (($taking and !$preapproved) ? 'report exchange invoice' : 'report exchange') : $args['way'];
+    $message = $confirmed ? (($taking and !$preapproved) ? 'report exchange request' : 'report exchange') : $args['way'];
     return array($message, $args, !$confirmed);
   }
   
@@ -311,7 +314,7 @@ function transaction_setup($info) {
   
   $tx->payer_for = $my_for;
   $tx->payee_for = $my_for;
-  $tx->state = isset($my_state) ? $my_state : \TRANSACTION_STATE_FINISHED;
+  $tx->state = isset($my_state) ? $my_state : \TX_DONE;
   $tx->type = $my_type;
   if (isset($my_extra)) $tx->extra = $my_extra;
   if (isset($my_creator)) $tx->creator = $my_creator; // defaults to current user
@@ -624,7 +627,7 @@ function ray($s) {
 }
 
 // Single line functions that need no explanation
-function rebate($who) {return db_lookup('rebate_percent', 'users', "uid = $who")/100;}
+function rebate($who) {return round(db_lookup('rebate_percent', 'users', "uid = $who")/100, 2);}
 function bonus($who) {return 2 * rebate($who);}
 function user_field($field_name, $who) {return db_lookup($field_name, 'users', "uid = $who");}
 function tx_field($field_name, $xid) {return db_lookup($field_name, 'mcapi_transactions', "xid = $xid");}
