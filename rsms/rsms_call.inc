@@ -279,7 +279,7 @@ class call {
     } else $where = "(payee={$this->uid} OR payer={$this->uid})";
 
     if (isset($my_who)) {
-      if (!is_numeric($other_uid = $this->identify($my_who))) return $other_uid; // return if error
+      if (!is_numeric($other_uid = $this->identify($my_who, $this->uid))) return $other_uid; // return if error
       $where .= " AND ";
       if (!isset($my_tofrom)) {
         $where .= "(payee=$other_uid OR payer=$other_uid)";
@@ -332,7 +332,7 @@ class call {
     } else {
       $where = "state=:state AND payer={$this->uid}";
       if (isset($my_who)) {
-        if (!is_numeric($other_uid = $this->identify($my_who))) return $other_uid; // return if error
+        if (!is_numeric($other_uid = $this->identify($my_who, $this->uid))) return $other_uid; // return if error
         $where .= " AND payee=$other_uid";
       }
     }
@@ -365,43 +365,9 @@ class call {
   function do_transfer($type) {
     extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, and what
 
-    if (!is_numeric($other_uid = $this->identify($my_who, TRUE))) return $other_uid; // return if error
+    if (!is_numeric($other_uid = r\identify($my_who, $this->uid, TRUE))) return $other_uid; // return if error
     list ($message, $args, $confirm) = r\transfer($type, $this->uid, $other_uid, $my_amount, $my_what, $this->confirmed);
     return $confirm ? $this->confirm($message, $args) : tt($message, $args);
   }
   
-  /**
-   * Figure out who the caller meant.
-   *
-   * @parm string $who: how the user referred to the trader
-   * @parm boolean $create: whether to create a record, if the other trader cannot be identified (default FALSE)
-   * @return: the trader's uid or a (non-numeric) error message
-   *   Note that an error will be returned if the other is not allowed to be a trader
-   */
-  function identify($who, $create = FALSE) {
-    if ($phone = r\format_phone($who, '+n')) $who = $phone;
-  //  if (substr($who, 0, 7) == 'http://') $who = substr($who, 7);
-  //  if (substr($who, 0, 4) == 'www.') $who = substr($who, 4);
-
-    $who = strtolower(str_replace("'", '', $who)); // avoid SQL errors
-    $sql = "SELECT u.uid FROM {users} u LEFT JOIN {sms_user} s ON u.uid = s.uid 
-            WHERE '$who' IN (CONCAT('.', u.short_name), u.credit_id, s.number, u.phone, u.mail)";
-    $result = db_query($sql)->fetchCol();
-    if(count($result) > 1) return tt('ambiguous other', compact('who'));
-    if (isset($result[0])) {
-      $other_uid = $result[0];
-      if ($other_uid == $this->uid) return tt('no self-trading');
-      $other_account = \user_load($other_uid);
-      $other = $other_account->full_name;
-      if (!\user_access('transact', $other_account)) return tt('non trader', compact('other'));
-
-      return $other_uid;
-    }
-    
-  //  $key = $who == $phone ? 'phone' : (valid_email_address($who) ? 'email' : (r\valid_url("http://$who") ? 'website' : ''));
-    $key = $who == $phone ? 'phone' : (valid_email_address($who) ? 'email' : '');
-    if ((!$key) or !$create) return tt('unknown user', compact('who'));
-    return create_account(array($key => $who));
-  }
-
 } // end of SMS call class definition

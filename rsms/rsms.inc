@@ -143,25 +143,6 @@ $GLOBALS['SMS command tokens'] = array(
 );
 
 /**
- * Get the long version of the indicated message(s), make any substitutions,
- * and return the result.
- *
- * @param string $message
- *   name of the message (index into $GLOBALS['SMS messages'])
- *   or a list of such message indices, separated by "|"
- *
- * @param array $substitutions (optional). '@' will be prepended to the keys.
- */   
-function tt($message, $subs = array()) {
-  $messages = explode('|', $message);
-  $result = array();
-  foreach ($messages as $message) {
-    $result[] = t($GLOBALS['SMS messages'][$message], r\prefix_keys('@', $subs));
-  }
-  return join(' ', $result);
-}
-
-/**
  * Send an SMS message to someone.
  */
 function send($number, $message0) {
@@ -294,3 +275,6 @@ function intent($intent, $command, $pattern, $message) {
   $short_pattern = preg_replace('~\(\?\:|\)~', '', substr($pattern, 0, strpos("$pattern ", ' '))); // isolate command words
   return preg_match("/^($short_pattern)( |$)/i", $message, $matches) ? $command : $intent;
 }
+
+// one-line functions that need no explanation
+function tt($message, $subs = array()) {return r\tt($message, $subs, 'SMS');}

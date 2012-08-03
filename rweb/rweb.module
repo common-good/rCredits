@@ -10,7 +10,7 @@ use rCredits as r;
 require_once __DIR__ . '/../rcredits.inc';
 require_once __DIR__ . '/rweb.inc';
 
-define('RWEB_FORMS', 'account pay charge exchange manage');
+define('RWEB_FORMS', 'account payment charge exchange manage');
 
 function rweb_block_info() {
   $info = array();

@@ -337,6 +337,41 @@ function give_signup_incentive($who) {
 }
 
 /**
+ * Figure out who the user meant.
+ *
+ * @parm string $who: how the user referred to the trader
+ * @parm numeric $my_uid
+ * @parm boolean $create: whether to create a record, if the other trader cannot be identified (default FALSE)
+ * @return: the other trader's uid or a (non-numeric) error message
+ *   Note that an error will be returned if the other is not allowed to be a trader
+ */
+function identify($who, $my_uid, $create = FALSE) {
+  if ($phone = format_phone($who, '+n')) $who = $phone;
+//  if (substr($who, 0, 7) == 'http://') $who = substr($who, 7);
+//  if (substr($who, 0, 4) == 'www.') $who = substr($who, 4);
+
+  $who = strtolower(str_replace("'", '', $who)); // avoid SQL errors
+  $sql = "SELECT u.uid FROM {users} u LEFT JOIN {sms_user} s ON u.uid = s.uid 
+          WHERE '$who' IN (CONCAT('.', u.short_name), u.credit_id, s.number, u.phone, u.mail)";
+  $result = db_query($sql)->fetchCol();
+  if(count($result) > 1) return tt('ambiguous other', compact('who'));
+  if (isset($result[0])) {
+    $other_uid = $result[0];
+    if ($other_uid == $my_uid) return tt('no self-trading');
+    $other_account = \user_load($other_uid);
+    $other = $other_account->full_name;
+    if (!\user_access('transact', $other_account)) return tt('non trader', compact('other'));
+
+    return $other_uid;
+  }
+  
+//  $key = $who == $phone ? 'phone' : (valid_email_address($who) ? 'email' : (r\valid_url("http://$who") ? 'website' : ''));
+  $key = $who == $phone ? 'phone' : (valid_email_address($who) ? 'email' : '');
+  if ((!$key) or !$create) return tt('unknown user', compact('who'));
+  return create_account(array($key => $who));
+}
+
+/**
  * Format the given amount as currency.
  *
  * @param float $amount
@@ -624,6 +659,30 @@ function ray($s) {
     $array[$key] = $value;
   }
   return $array;
+}
+
+/**
+ * Get the long version of the indicated message(s), make any substitutions,
+ * and return the result.
+ *
+ * @param string $message
+ *   name of the message (index into $GLOBALS['SMS messages'])
+ *   or a list of such message indices, separated by "|"
+ * @param array $substitutions (optional). '@' will be prepended to the keys.
+ * @param string $interface: which message set to use (SMS messages provide a fallback)
+ */   
+function tt($message, $subs = array(), $interface = 'SMS') {
+  $messages = explode('|', $message);
+  foreach ($messages as $i => $message) {
+    if (isset($GLOBALS["$interface messages"][$message])) {
+      $model = $GLOBALS["$interface messages"][$message];
+    } else {    
+      $model = $GLOBALS['SMS messages'][$message];
+      if ($p = strpos($model, '. Type ')) $model = substr($model, 0, $p + 1); // don't tell the user to type something unless it's SMS
+    }
+    $messages[$i] = strtr($model, prefix_keys('@', $subs));
+  }
+  return join(' ', $messages);
 }
 
 // Single line functions that need no explanation
