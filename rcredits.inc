@@ -20,20 +20,25 @@
 namespace rCredits;
 
 define('RCREDITS_COMMUNITY_NAME', 'Community');
-define('RCREDITS_COMMUNITY_ID', 'community');
+define('RCREDITS_COMMUNITY_ID', 'community'); // credit_id for the community account
+define('RCREDITS_COMMUNITY_POSTAL_AREA', '01%'); // anyone with a postal code that matches this is in
 define('RCREDITS_INITIAL_DEMAND', 25000); // total escrowed rCredits during TRIAL RUN
 define('RCREDITS_CURRENCY_CODE', 'r'); // Pretend rCredits, pre-launch
 define('RCREDITS_REBATE', 0.05);
 define('RCREDITS_BONUS', 0.10);
-define('RCREDITS_COMMUNITY_POSTAL_AREA', '01%'); // anyone with a postal code that matches this is in
-define('RCREDITS_MAX_DEMAND', 1000000000);
+define('RCREDITS_MAX_DEMAND', 1000000); // you can't ask for more rCredits than this
+define('RCREDITS_MIN_DEMAND', 100); // you can't buy less rCredits than this at a time
 define('RCREDITS_STARTING_BALANCE', 250); // how much people start with in the TRIAL RUN
 define('RCREDITS_MIN_BALANCE', -10000); // how low can user's balance go, by default (be generous in TRIAL RUN)
 define('RCREDITS_TEMP_NAME_PREFIX', 'unknown ');
 
+$GLOBALS['account types'] = array(t('personal'), t('commercial'), t('non-profit'));
+$GLOBALS['share permissions'] = array('can manage account', 'can read and create transactions', 'can read transactions', 'no access');
+
 define('TX_DONE', 1);
+define('TX_PENDING', 0); // charged, waiting for confirmation
 define('TX_DELETED', -1);
-define('TX_PENDING', -3); // charged, waiting for confirmation
+define('TX_DENIED', -2); // invoice disputed by payer
 
 /**
  * Show a debbugging statement (without a lot of typing)
@@ -79,7 +84,7 @@ function setup_field(&$schema, $table_name, $label, $description = '', $type = '
   $precision = ',';
 
   list ($label, $field_name) = is_array($label) ? $label : array($label, str_replace(' ', '_', strtolower($label)));
-  if (strpos($type, ' ')) list ($type, $size) = ray($type);
+  if (strpos($type, ' ')) list ($type, $size) = explode(' ', $type);
   if ($type == 'numeric') {
     $precision = $size;
     $size = '';
@@ -140,9 +145,9 @@ function permission(&$permissions, $title, $description) {
 function create_user($info) {
   extract($info, EXTR_PREFIX_ALL, 'my');
   
-  $info['mail'] = $info['init'] = isset($my_email) ? $my_email : '';
+  $info['mail'] = $info['init'] = @$my_email ?: '';
   $info['pass'] = \user_password();
-  $info['name'] = isset($my_name) ? $my_name : temp_name($info);
+  $info['name'] =  @$my_name ?: temp_name($info);
   $info['status'] = TRUE;
   $info['is_new'] = TRUE;
   
@@ -154,6 +159,52 @@ function create_user($info) {
   $account = \user_save(array(), $info);
   if (!$account) throw new \Exception('failed to save user record');
   return $account;
+}
+
+function get($currency, &$amount, $uid, $confirmed) {    
+  $amount = str_replace(',', '', $amount); // ignore commas
+  if (!is_numeric($amount)) return array('bad amount', '', FALSE);
+  $amount = min(RCREDITS_MAX_DEMAND, $amount);
+  $request = format_amount($amount);
+  $success = TRUE;
+  if ($currency == 'r') {
+// (catch this only when we can explain better)      if ($my_amount < RCREDITS_MIN_DEMAND) return tt('demand too small');
+    demand($uid, $amount);
+    return array('your demand', compact(ray('request success')), FALSE);
+  }
+ 
+  // usd
+  extract((array) credit_info($uid), EXTR_PREFIX_ALL, 'info');
+  if ($amount > $info_cashable) return array("can't cash incentives", $info_fancy, FALSE);
+  $type = 'payment';
+  $payer = $creator = $uid;
+  $payee = variable_get('rcredits_community_uid');
+  $for = t('cash');
+
+  $dbtx = db_transaction();
+  transact(compact(ray('type amount payer payee for creator')));
+  $balance = format_amount($info_balance - $amount);
+  $amount = format_amount($amount);
+  if ($confirmed) return array('report get usd', compact(ray('amount balance success')), FALSE);
+  
+  $dbtx->rollback();
+  return array('get usd', compact(ray('amount success')), TRUE);
+}
+
+function pay_invoice($xid) {
+  $sql = "SELECT * FROM mcapi_transactions WHERE xid = $xid AND state = :state LIMIT 1";
+  $result = db_query($sql, array(':state' => TX_PENDING))->fetchAssoc();
+  if (!$result) die('bad call to ' . __FUNCTION__);
+  extract($result, EXTR_PREFIX_ALL, 'old');
+
+  $dbtx = \db_transaction();
+  list ($message, $args, $confirm) = transfer('invoice payment', $old_payer, $old_payee, $old_amount, $old_payee_for, TRUE);
+  if (@$args['success']) {
+    // FUNCTION ALWAYS FAILS (why?) r\set_tx_field('state', TX_DELETED, $old_xid);
+    $subs = array(':state' => TX_DELETED, ':serial' => $old_serial);
+    \db_query('UPDATE mcapi_transactions SET state=:state WHERE serial=:serial', $subs);
+  } else $dbtx->rollback();
+  return array($message, $args);
 }
 
 /**
@@ -235,7 +286,7 @@ function transfer($type, $my_uid, $other_uid, $requested_amount, $for, $confirme
 //  } else set_tx_field('state', TRANSACTION_STATE_FINISHED, $xid);
   
   $reward_index = $taking ? 2 : 1;
-  $reward = isset($txs[$reward_index]) ? $txs[$reward_index]->worth['und'][0]['quantity'] : 0;
+  $reward = @$txs[$reward_index]->worth['und'][0]['quantity'] ?: 0;
 
   $args = tx_report_args($taking, $amount, $shortfall, $reward, $my_uid, $other_uid, $xid, $for_cash);
   if ($for_cash) {
@@ -309,12 +360,12 @@ function transaction_setup($info) {
   $tx->payee = $my_payee;
   $tx->amount = $my_amount; // possible (simple) replacement for worth array
   $tx->worth['und'][0]['currcode'] = RCREDITS_CURRENCY_CODE;
-//  $tx->worth['und'][0]['currcode'] = isset($values['currency']) ? $values['currency'] : key(currencies_load());
+//  $tx->worth['und'][0]['currcode'] = @$values['currency'] ?: key(currencies_load());
   $tx->worth['und'][0]['quantity'] = $my_amount;
   
   $tx->payer_for = $my_for;
   $tx->payee_for = $my_for;
-  $tx->state = isset($my_state) ? $my_state : \TX_DONE;
+  $tx->state = @$my_state ?: TX_DONE;
   $tx->type = $my_type;
   if (isset($my_extra)) $tx->extra = $my_extra;
   if (isset($my_creator)) $tx->creator = $my_creator; // defaults to current user
@@ -342,8 +393,9 @@ function give_signup_incentive($who) {
  * @parm string $who: how the user referred to the trader
  * @parm numeric $my_uid
  * @parm boolean $create: whether to create a record, if the other trader cannot be identified (default FALSE)
- * @return: the other trader's uid or a (non-numeric) error message
- *   Note that an error will be returned if the other is not allowed to be a trader
+ * @return one of the following:
+ *   the other trader's uid
+ *   an array of possible uids (if $who is ambiguous), with a simple error message as element 0
  */
 function identify($who, $my_uid, $create = FALSE) {
   if ($phone = format_phone($who, '+n')) $who = $phone;
@@ -354,7 +406,7 @@ function identify($who, $my_uid, $create = FALSE) {
   $sql = "SELECT u.uid FROM {users} u LEFT JOIN {sms_user} s ON u.uid = s.uid 
           WHERE '$who' IN (CONCAT('.', u.short_name), u.credit_id, s.number, u.phone, u.mail)";
   $result = db_query($sql)->fetchCol();
-  if(count($result) > 1) return tt('ambiguous other', compact('who'));
+  if(count($result) > 1) return array_unshift($result, tt('ambiguous other', compact('who')));
   if (isset($result[0])) {
     $other_uid = $result[0];
     if ($other_uid == $my_uid) return tt('no self-trading');
@@ -425,42 +477,43 @@ function showlog() {
  * @return the user's demand amount
  */
 function demand($who, $demand = 0) {
-  if (!$demand) return db_lookup('demand', 'users', "uid = $who");
+  if (!$demand) return user_field('demand', $who);
   $demand = min(RCREDITS_MAX_DEMAND, $demand);
-//  \db_query("UPDATE users SET demand = $demand WHERE uid = $who");
-  \db_update('users')->fields(compact('demand'))->condition('uid', $who, '=')->execute();
+  update_user(compact('demand'), $who);
   return $demand;
 }
 
 /**
- * @param int $who
- *   uid of the credit account to return information for
+ * Return information about the given account
+ * @param int $who: uid of the credit account to return information for
+ * @param boolean $state: TX_DONE (default) or TX_PENDING (return info about what kind of transactions)
+ * @param numeric $asof: last date to include (defaults to NULL, meaning unrestricted)
  *
  * @return
- *   standard object of credit account information (see keys in the return line below)
+ *   standard object of credit account information (see $result_keys, below)
  *   with corresponding number-formatted information in ->fancy
  *   including the overall demand for rCredits
  */
-function credit_info($who) {
+function credit_info($who, $state = TX_DONE, $asof = '') {
+  $result_keys = 'gross_in gross_out balance available unavailable rewards cashable total_demand min_balance id';
   $sql = "SELECT credit_id AS id, min_balance FROM users WHERE uid = $who";
-  extract(db_query($sql)->fetchAssoc());
+  extract(db_query($sql)->fetchAssoc()); // gets $id, $min_balance
   $sql = "SELECT 
     SUM(IF(t.payer = $who, w.worth_quantity, 0)) AS gross_out, 
     SUM(IF(t.payee = $who, w.worth_quantity, 0)) AS gross_in,
     SUM(IF(t.type NOT IN('payment', 'charge'), w.worth_quantity, 0)) AS rewards
     FROM mcapi_transactions t LEFT JOIN field_data_worth w ON w.entity_id = t.xid
-    WHERE bundle = 'transaction' AND (t.payer = $who OR t.payee = $who)";
+    WHERE bundle = 'transaction' AND (t.payer = $who OR t.payee = $who) AND t.state = $state";
+  if ($asof) $sql .= " AND t.created <= $asof";
   extract(db_query($sql)->fetchAssoc());
   $balance = $gross_in - $gross_out;
   $unavailable = 0; // for now
   $available = ($balance - $min_balance) - $unavailable;
   $cashable = $balance - $rewards;
   $total_demand = total_demand();
-  $result = compact(ray('balance available unavailable rewards cashable total_demand min_balance id'));
+  $result = compact(ray($result_keys));
   $fancy = array();
-  foreach ($result as $key => $value) {
-    $fancy[$key] = is_numeric($value) ? format_amount($value) : $value;
-  }
+  foreach ($result as $key => $value) $fancy[$key] = is_numeric($value) ? format_amount($value) : $value;
   $result['fancy'] = $fancy;
   return (object) $result;
 }
@@ -501,7 +554,7 @@ function make_username($account, $name) {
  * Create an appropriate credit id for the given account
  */
 function make_credit_id($account) {
-  if (isset($account->credit_id) and $account->credit_id) return;
+  if (@$account->credit_id) return;
   if ($phone = format_phone($account->phone, 'n')) {
     $area = substr($phone, 0, 3);
     $state = db_lookup('region', 'r_area_codes', "area_code='$area'");
@@ -578,7 +631,7 @@ function a2n($string, $base = 26) {
  */
 function temp_name($info) {
   extract($info, EXTR_PREFIX_ALL, 'my');
-  $phone = isset($my_number) ? $my_number : (isset($my_phone) ? $my_phone : '');
+  $phone = @$my_number ?: (@$my_phone ?: '');
   if ($phone) return RCREDITS_TEMP_NAME_PREFIX . format_phone($phone, 'n');
   if (isset($my_email)) return RCREDITS_TEMP_NAME_PREFIX . str_replace('@', ' AT ', str_replace('.', ' DOT ', $my_email));
 // NO  if (isset($my_website)) return RCREDITS_TEMP_NAME_PREFIX . str_replace('.', ' DOT ', str_replace('/', ' SLASH ', $my_website));
@@ -643,15 +696,20 @@ function prefix_keys($prefix, $array) {
   return $new_array;
 }
 
+function array_prefix($prefix, $array) {
+  foreach ($array as $key => $value) $array[$key] = $prefix . $value;
+  return $array;
+}
+
 /**
  * Split the given string into an array
- * delimited by space, comma, or semi-colon, followed by any number of spaces
- * Entries containing a colon will be split into key and value.
+ * delimited by space, comma, or semi-colon, followed by any number of spaces, or by a bar surrounded by optional spaces
+ * Entries in a comma-delimited list that contain a colon will be split into key and value.
  */
 function ray($s) {
-  $pattern = strpos($s, ', ') ? '\, *' : (strpos($s, ';') ? '; *' : (strpos($s, ' ') ? ' +' : '\, *'));
+  $pattern = strpos($s, '|') ? ' *\| *' : (strpos($s, ',') ? '\, *' : (strpos($s, ';') ? '; *' : (strpos($s, ' ') ? ' +' : '\, *')));
   $simple = mb_split($pattern, $s);
-  if (!strpos($s, ':')) return $simple;
+  if (strpos($s, '|') or !strpos($s, ',') or !strpos($s, ':')) return $simple;
 
   $array = array();
   foreach ($simple as $one) {
@@ -672,6 +730,7 @@ function ray($s) {
  * @param string $interface: which message set to use (SMS messages provide a fallback)
  */   
 function tt($message, $subs = array(), $interface = 'SMS') {
+  if (!$subs) $subs = array();
   $messages = explode('|', $message);
   foreach ($messages as $i => $message) {
     if (isset($GLOBALS["$interface messages"][$message])) {
@@ -685,15 +744,16 @@ function tt($message, $subs = array(), $interface = 'SMS') {
   return join(' ', $messages);
 }
 
+
 // Single line functions that need no explanation
 function rebate($who) {return round(db_lookup('rebate_percent', 'users', "uid = $who")/100, 2);}
 function bonus($who) {return 2 * rebate($who);}
 function user_field($field_name, $who) {return db_lookup($field_name, 'users', "uid = $who");}
+function update_user($info, $who) {return \db_update('users')->fields($info)->condition('uid', $who)->execute();}
 function tx_field($field_name, $xid) {return db_lookup($field_name, 'mcapi_transactions', "xid = $xid");}
-function set_user_field($field_name, $new_value, $who) {\db_update('users', array($field_name, $new_value))->condition('uid', $who);}
 function set_tx_field($field_name, $new_value, $xid) {\db_update('mcapi_transactions', array($field_name, $new_value))->condition('xid', $xid);}
 function uid_from_crid($credit_id) {return db_lookup('uid', 'users', 'credit_id=:credit_id', compact('credit_id'));}
-function tid_from_xid($who, $xid) {return db_lookup('COUNT(xid)', 'mcapi_transactions', "xid <= $xid");}
+function tid_from_xid($who, $xid) {return db_lookup('COUNT(xid)', 'mcapi_transactions', "xid <= $xid AND (type = 'payment' OR type = 'charge')");}
 function total_demand() {return db_lookup('SUM(demand)', 'users');}
 
 function valid_url($url) {return (\valid_url($url) and preg_match('/^[A-Z0-9\-_]+\.[A-Z0-9\-_]+/i', $url) and strpos($url, '@') === FALSE);}

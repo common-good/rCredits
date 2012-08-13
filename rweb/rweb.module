@@ -4,13 +4,17 @@
  * rCredits Web Interface
  *
  * An interface module for the rCredits financial system.
+ *
+ * Note: to display one of the blocks defined herein on a page, use
+ * echo render(module_invoke('rweb', 'block_view', 'blockname')); 
+ * (or simpler: echo render(rweb_block_view('blockname'));)
  */
 
 use rCredits as r;
 require_once __DIR__ . '/../rcredits.inc';
 require_once __DIR__ . '/rweb.inc';
 
-define('RWEB_FORMS', 'account payment charge exchange manage');
+define('RWEB_FORMS', 'account payment buy_now example_store charge exchange manage tx_period txs manage_account');
 
 function rweb_block_info() {
   $info = array();
@@ -20,5 +24,46 @@ function rweb_block_info() {
 
 function rweb_block_view($delta = '') {
   if (!in_array($delta, r\ray(RWEB_FORMS))) return;
-  return r\Web\block_view(NULL, drupal_get_form("rCredits\\Web\\{$delta}_form"));
+  return r\Web\block_view(NULL, drupal_get_form("rCredits\\Web\\{$delta}_form")); // no subject for blocks
+}
+
+/**
+ * Implements hook_menu().
+ */
+function rweb_menu() {
+  $items = array();
+  $items['members'] = array(
+    'title' => 'Members Section',
+    'type' => MENU_NORMAL_ITEM,
+    'page callback' => 'rCredits\\Web\\member_section',
+    'page arguments' => array(),
+    'access callback' => TRUE,
+    'menu_name' => 'main-menu', 
+  );
+  $items['members/dashboard'] = array(
+    'title' => 'Member Dashboard',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+  $items['members/manage-account'] = array(
+    'load arguments' => array('%map', '%index'), // sms_user module used this but it didn't help with showing tabs (%user_category fails)
+    'title' => 'Contact Info',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('rCredits\\Web\\contact_info_form'),
+    'access callback' => 'assert',
+    'access arguments' => array('TRUE'),
+    'weight' => 5,
+    'tab_parent' => 'members',
+    'type' => MENU_LOCAL_TASK,
+    'module' => 'rweb',
+    'file' => 'rweb.module',
+  );
+   $items['members/manage-sharing'] = array(
+    'title' => 'Manage Sharing',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('rCredits\\Web\\share_form'),
+    'access callback' => 'assert',
+    'access arguments' => array('TRUE'),
+    'type' => MENU_LOCAL_TASK,
+  );
+  return $items;
 }

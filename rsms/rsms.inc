@@ -9,27 +9,27 @@ use \rCredits as r;
  * (anything that doesn't have to be in rsms.module and isn't appropriate to class call).
  */
 
-define('RSMS_PREFIX', 'AS IF: '); // the pre-launch trial
+define('RSMS_PREFIX', 'TEST: '); // the pre-launch trial
 //define('RSMS_PREFIX_INACTIVE', '[TRIAL RUN] '); // pretend transactions by not-yet-active players (treat it as a trial run)
-//define('RSMS_PREFIX_ASIF', 'PRETEND - '); // pretend transactions by Active Participants
+//define('RSMS_PREFIX_ASIF', 'AS IF: '); // pretend transactions by Active Participants
 
 $GLOBALS['SMS messages'] = array(
   // reports
   'account info' => t("Your balance for account @id is @balance, including @rewards of incentive rewards. Total demand for rCredits is @total_demand."),
 //  'account info2' => t("More account info"), // not used yet
   'your account is ready' => t('Your starting balance is @balance. Pretend to buy and sell as you would in a typical month (we need that info). Have fun! Type "helpme" to get started.'),
-  'get usd' => t("Exchange approved. @amount will be transferred directly to your bank account within 24 hours. Your new balance is @balance."),
-//  'get usd inactive' => t("If you were an Active Participant in the rCredits system, your request would transfer @amount directly to your bank account. Alas, you are not yet an Active Participant."),
 
   // reporting
   'report transaction' => t("You @type @other @amount (@reward_type: @reward_amount). Your new balance is @balance. Transaction #@tid"),
-  'report invoice' => t("You @type @other @amount. Your balance is unchanged, pending payment. Pending Transaction #@tid"),
+  'report invoice' => t("You @type @other @amount. Your balance is unchanged, pending payment. Invoice #@tid"),
   'report short transaction' => t("You @type @other @amount (@short remains to be paid). Your new balance is @balance. Transaction #@tid"),
 //  'transaction done asif' => t("@type: @amount @tofrom user#@other (@reward_type: @reward_amount). Your new provisional balance is @balance (If this had been a real transaction, your balance would be @amount @moreless). Transaction ID #@xid"),
   'report exchange' => t("You @type @other @amount @way. Your new balance is @balance. Transaction #@tid"),
   'report exchange request' => t("You requested r@amount from @other. Your balance is unchanged, pending approval. Pending Transaction #@tid"),
   'report undo' => t("You cancelled transfer of @amount from @payer to @payee on @date."),
-  'your demand' => t("Your total request for rCredits is now @amount."),
+  'report get usd' => t("Exchange approved. @amount will be transferred directly to your bank account within 24 hours. Your new balance is @balance."),
+//  'get usd inactive' => t("If you were an Active Participant in the rCredits system, your request would transfer @amount directly to your bank account. Alas, you are not yet an Active Participant."),
+  'your demand' => t("Your total request for rCredits is now @request."),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. What's your name?"),
@@ -72,6 +72,7 @@ $GLOBALS['SMS messages'] = array(
   'short invoice' => t('You are r@short short, to pay that invoice. Get more rCredits first, or undo the invoice and pay part in US Dollars.'),
   'broke to' => t('You are completely out of rCredits, so that transaction cannot be completed. Type "get r <amount>" to get more rCredits.'),
   'broke from' => t('@other does not have enough rCredits for that transaction at this time. But your request has been noted.'),
+  'demand too small' => t('NOTE: The minimum amount of rCredits you can actually buy at a time is $@min.', array('@min' => RCREDITS_MIN_DEMAND)),
 );
 
   // help messages (for use with the help command)
@@ -91,8 +92,8 @@ $GLOBALS['SMS help'] = array(
 );
 
 $GLOBALS['SMS messages'] = array_merge($GLOBALS['SMS messages'], $GLOBALS['SMS help']); 
-$GLOBALS['SMS messages']['help helpme no-error'] = t('Try something! ') . tt('help helpme');
-foreach (array('more', 'stop', 'start') as $one) $GLOBALS['SMS messages']["help $one"] = tt('help helpme');
+$GLOBALS['SMS messages']['help helpme no-error'] = t('Try something! ') . $GLOBALS['SMS help']['help helpme'];
+foreach (array('more', 'stop', 'start') as $one) $GLOBALS['SMS messages']["help $one"] = $GLOBALS['SMS help']['help helpme'];
 
 $GLOBALS['SMS commands'] = array( // these can be abbreviated by the caller
   'get' => array('get %rusd %amount', 'get %amount %rusd'), // best before pay, so that "g r 10" is interpreted as "get r" not "give who"
@@ -160,7 +161,7 @@ function send($number, $message0) {
 function infer_nonce($message) {
   $pattern = tt('please confirm', array('nonce' => '([A-Z]*?)'));
   preg_match("`$pattern`", $message, $match);
-  return isset($match[1]) ? $match[1] : '';
+  return @$match[1];
 }
 
 /**

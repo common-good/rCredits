@@ -16,8 +16,8 @@ function currency() {
       'additional_settings__active_tab' => 'edit-currency-access',
     ),
     'currency_access' => array(
-      'membership' => 'user_access_transact',
-      'user_aggregated_view' => 'user_access_transact',
+      'membership' => 'mcapi_access_anyone',
+      'user_aggregated_view' => 'mcapi_access_anyone',
       'currency_aggregated_view' => 'mcapi_access_anyone',
       'undo' => 'user_access_manage_all_transactions',
     ),

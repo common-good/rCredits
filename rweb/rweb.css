@@ -1,22 +1,49 @@
-div.block-rweb  {float:left;}
-#block-rweb-exchange {clear:left;}
-div.block-rweb form {width:350px; height:300px; border:1px solid black; margin-right:20px;}
-div.block-rweb form label {float:left; clear:left; width:65px; text-align:right; margin-right:5px;}
-div.block-rweb form div.form-item div.description {float:left; clear:left; margin:2px 0px 20px 70px;}
+/* Standard Forms */
+form[class="rweb rblock"] {float:left; width:310px; height:290px; border:3px solid darkgray;}
 
-div.block-rweb form div.form-type-item label {width:100%; margin-left:70px; text-align:left;}
-#rcreditswebmanage-form div.form-type-item label {margin-bottom:20px;}
+form.rweb label {display:inline-block; width:40px; text-align:right; margin-right:0px;}
+form.rweb div.form-item div.description {display:block; margin:2px 0px 0px 45px;}
 
-div.block-rweb form input[type="text"] {width:240px;}
-div.block-rweb form input[type="submit"] {text-align:left; margin-left:70px; margin-right:400px;}
+form.rweb div.form-type-item label {width:100%; margin-left:45px; text-align:left;}
 
-div.block-rweb form div.form-type-radio {display:inline;}
-div.block-rweb form input[type="radio"] {float:left; clear:none; display:inline; margin-left:0px; vertical-align:bottom;}
-div.block-rweb form div.form-type-radio label {float:left; clear:none; display:inline; width:100px; margin-left:3px; text-align:left; vertical-align:top;}
-div.block-rweb form div.form-type-radio label[for="edit-payment-type-0"] {width:130px;}
+form.rweb input[type="text"] {width:240px;}
+form.rweb input[type="submit"] {text-align:left; margin-left:45px; margin-right:400px;}
+
+form.rweb div.form-type-radios {height:25px; margin:0px;}
+form.rweb div.form-radios {margin-left:45px; margin-bottom:0px;}
+form.rweb div.form-type-radio {display:inline-block;}
+form.rweb input[type="radio"] {display:inline-block; margin-left:0px; vertical-align:bottom;}
+form.rweb div.form-type-radio label {display:inline; width:100px; margin-left:3px; text-align:left; vertical-align:top;}
+
+/* customizations */
+#rcreditswebpayment-form, #rcreditswebexchange-form {margin-right:20px;}
+#rcreditswebexchange-form , #rcreditswebmanage-form {height:200px;}
+#rcreditswebexample-store-form input.form-submit, #rcreditswebexample-store-form input.form-submit:hover {background:none; border:0;}
+
+form.rweb div.form-type-radio label[for="edit-payment-goods-0"] {width:110px;}
+form.rweb div.form-type-radio label[for="edit-charge-goods-0"] {width:110px;}
 
 /* Account Selector */
-div.block-rweb #rcreditswebaccount-form {height:50px;}
-#rcreditswebaccount-form div.form-type-item {display:none;}
-#rcreditswebaccount-form div.form-item-account-account label {width:150px;}
-#rcreditswebaccount-form div.form-item-account-account div.description {padding-left:85px;}
+#rcreditswebaccount-form {display:inline-block; width:100%; height:65px; text-align:left;}
+#rcreditswebaccount-form div.form-item-account-account {display:inline-block;}
+/* #rcreditswebaccount-form div.form-item-account-account label {display:inline-block; width:130px;} for use with "Current Account:" */
+#rcreditswebaccount-form div.form-item-account-account div.description {padding-left:5px;} /* 5px more than label */
+#rcreditswebaccount-form div.form-type-item {display:none;} /* no title */
+#rcreditswebaccount-form  input[type="submit"] {vertical-align:top; margin:5px 0px 0px 10px;}
+
+/* Transaction Period Selector */
+#rcreditswebtx-period-form {display:inline-block; width:100%; height:45px; text-align:left;}
+#rcreditswebtx-period-form div.form-item-tx-period-period {display:inline-block;}
+#rcreditswebtx-period-form div.form-item-tx-period-period label {display:inline-block; width:215px;}
+#rcreditswebtx-period-form div.form-type-item {display:none;} /* no title */
+#rcreditswebtx-period-form  input[type="submit"] {vertical-align:top; margin:5px 0px 0px 10px;}
+
+/* Contact Info */
+#rcreditswebcontact-info-form label {width:100px;}
+#rcreditswebcontact-info-form div#edit-description label {margin-left:105px; width:100%;}
+#rcreditswebcontact-info-form div.form-item div.description {margin-left:105px;}
+#rcreditswebcontact-info-form input[type="submit"] {margin-left:105px;}
+
+/* Exchange form */
+input#edit-xch-getr, input#edit-xch-getusd {display:inline-block; margin-bottom:10px; margin-right:0px;}
+#rcreditswebexchange-form div#edit-xch-request label {font-weight:normal; margin:0px; text-align:center;}

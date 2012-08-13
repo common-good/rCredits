@@ -77,7 +77,7 @@ class call {
       return tt('your account is ready', compact('balance'));
     } elseif (!\user_access('transact via sms', $account)) { // user does not have permission to use the rCredits SMS interface
       // send the user an email here?
-      // throw new \Exception(''); // (due to misbehavior?), so don't waste a call?
+      // throw new \Exception('You do not have permission to use this system.'); // (due to misbehavior?), so don't waste a call?
       return tt('no SMS permission'); // be polite 
     }
     return ''; // success
@@ -182,10 +182,7 @@ class call {
    *      For example, using a local phone number and local businesses in the examples.
    */
   function do_helpme($feature = '') {
-    if (!$feature) {
-      $feature = isset($this->parms['feature']) ? $this->parms['feature'] : '';
-      if (!$feature) $feature = 'helpme';
-    }
+    if (!$feature) $feature = @$this->parms['feature'] ?: 'helpme';
 
     foreach(array_keys($GLOBALS['SMS commands']) as $try) {
       if (r\abbreviates($feature, $try)) {
@@ -222,29 +219,9 @@ class call {
    * Help the caller exchange rCredits for US Dollars or vice versa.
    */
   function do_get() {
-    $dbtx = db_transaction();
     extract($this->parms, EXTR_PREFIX_ALL, 'my');
-    extract((array) r\credit_info($this->uid), EXTR_PREFIX_ALL, 'info');
-    $info_fancy['amount'] = r\format_amount($my_amount);
-    if (strtolower($my_rusd) == 'r') {
-      r\demand($this->uid, $my_amount);
-      return tt('your demand', $info_fancy);
-    }
-
-    // usd
-    if ($my_amount > $info_cashable) return tt("can't cash incentives", $info_fancy);
-    $type = 'payment';
-    $amount = $my_amount;
-    $payer = $creator = $this->uid;
-    $payee = variable_get('rcredits_community_uid');
-    $for = t('cash');
-    $info = compact('type', 'amount', 'payer', 'payee', 'for', 'creator');
-    r\transact($info);
-    $info_fancy['balance'] = r\format_amount($info_balance - $my_amount);
-    if ($this->confirmed) return tt('get usd', $info_fancy);
-    
-    $dbtx->rollback();
-    return $this->confirm('get usd', $info_fancy);
+    list ($message, $args, $confirm) = r\get(strtolower($my_rusd), $my_amount, $this->uid, $this->confirmed);
+    return $confirm ? $this->confirm($message, $args) : tt($message, $args);
   }
 
   /**
@@ -257,7 +234,7 @@ class call {
    * Situations:
    *   I paid someone: create an opposite transaction (using a negative amount)
    *   I charged someone unilaterally: create an opposite transaction
-   *   I invoiced someone: change the transaction state to CANCELED
+   *   I invoiced someone and it's still pending: change the transaction state to CANCELED
    *   Someone paid me: create an opposite transaction
    *   Someone charged me unilaterally: change the transaction state to CONTESTED
    *   Someone invoiced me: change the transaction state to DENIED
@@ -279,7 +256,7 @@ class call {
     } else $where = "(payee={$this->uid} OR payer={$this->uid})";
 
     if (isset($my_who)) {
-      if (!is_numeric($other_uid = $this->identify($my_who, $this->uid))) return $other_uid; // return if error
+      if (is_array($other_uid = $this->identify($my_who, $this->uid))) return $other_uid[0]; // return if error
       $where .= " AND ";
       if (!isset($my_tofrom)) {
         $where .= "(payee=$other_uid OR payer=$other_uid)";
@@ -332,7 +309,7 @@ class call {
     } else {
       $where = "state=:state AND payer={$this->uid}";
       if (isset($my_who)) {
-        if (!is_numeric($other_uid = $this->identify($my_who, $this->uid))) return $other_uid; // return if error
+        if (is_array($other_uid = $this->identify($my_who, $this->uid))) return $other_uid[0]; // return if error
         $where .= " AND payee=$other_uid";
       }
     }
@@ -349,13 +326,8 @@ class call {
       $date = strftime('%m/%d/%Y',$result['created']);
       return $this->confirm('invoice', compact(r\ray('other amount date')));
     }
-
-    $dbtx = db_transaction();
-    list ($message, $args, $confirm) = r\transfer('invoice payment', $this->uid, $old_payee, $old_amount, $old_payee_for, TRUE);
-    if (isset($args['success'])) {
-      // FUNCTION ALWAYS FAILS r\set_tx_field('state', TX_DELETED, $old_xid);
-      \db_query('UPDATE mcapi_transactions SET state=:state WHERE serial=:serial', array(':state' => TX_DELETED, ':serial' => $old_serial));
-    } else $dbtx->rollback();
+    
+    list ($message, $args) = r\pay_invoice($old_xid);
     return tt($message, $args);
   }
 
@@ -365,7 +337,7 @@ class call {
   function do_transfer($type) {
     extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, and what
 
-    if (!is_numeric($other_uid = r\identify($my_who, $this->uid, TRUE))) return $other_uid; // return if error
+    if (is_array($other_uid = r\identify($my_who, $this->uid, TRUE))) return $other_uid[0]; // return if error
     list ($message, $args, $confirm) = r\transfer($type, $this->uid, $other_uid, $my_amount, $my_what, $this->confirmed);
     return $confirm ? $this->confirm($message, $args) : tt($message, $args);
   }
