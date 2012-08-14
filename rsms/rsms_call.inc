@@ -75,10 +75,11 @@ class call {
       todo($this->number, '', '');
       $balance = r\format_amount(r\give_signup_incentive($this->uid));
       return tt('your account is ready', compact('balance'));
-    } elseif (!\user_access('transact via sms', $account)) { // user does not have permission to use the rCredits SMS interface
+/*    } elseif (!\user_access('transact via sms', $account)) { // user does not have permission to use the rCredits SMS interface
       // send the user an email here?
       // throw new \Exception('You do not have permission to use this system.'); // (due to misbehavior?), so don't waste a call?
       return tt('no SMS permission'); // be polite 
+      */
     }
     return ''; // success
   }
@@ -256,7 +257,7 @@ class call {
     } else $where = "(payee={$this->uid} OR payer={$this->uid})";
 
     if (isset($my_who)) {
-      if (is_array($other_uid = $this->identify($my_who, $this->uid))) return $other_uid[0]; // return if error
+      if (is_array($other_uid = $this->identify($my_who, $this->uid))) return tt($other_uid); // return if error
       $where .= " AND ";
       if (!isset($my_tofrom)) {
         $where .= "(payee=$other_uid OR payer=$other_uid)";
@@ -309,7 +310,7 @@ class call {
     } else {
       $where = "state=:state AND payer={$this->uid}";
       if (isset($my_who)) {
-        if (is_array($other_uid = $this->identify($my_who, $this->uid))) return $other_uid[0]; // return if error
+        if (is_array($other_uid = $this->identify($my_who, $this->uid))) return tt($other_uid); // return if error
         $where .= " AND payee=$other_uid";
       }
     }
@@ -337,7 +338,7 @@ class call {
   function do_transfer($type) {
     extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, and what
 
-    if (is_array($other_uid = r\identify($my_who, $this->uid, TRUE))) return $other_uid[0]; // return if error
+    if (is_array($other_uid = r\identify($my_who, $this->uid, TRUE))) return tt($other_uid); // return if error
     list ($message, $args, $confirm) = r\transfer($type, $this->uid, $other_uid, $my_amount, $my_what, $this->confirmed);
     return $confirm ? $this->confirm($message, $args) : tt($message, $args);
   }

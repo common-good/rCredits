@@ -6,7 +6,7 @@
 
 use rCredits as r;
 
-define('RCREDITS_TABLES', 'r_area_codes,r_credit_regions,r_nonces,r_shared_accounts');
+define('RCREDITS_TABLES', 'r_area_codes,r_credit_regions,r_nonces'); // only the ones without schemas
 
 /**
  * Implement hook_install().
@@ -14,8 +14,10 @@ define('RCREDITS_TABLES', 'r_area_codes,r_credit_regions,r_nonces,r_shared_accou
  * Add custom data for the rCredits module.
  */
 function rcredits_install() {
+  user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array('member'));
+  
   r\make_fields();
-  r\make_currency();
+//  r\make_currency();
   
   $name = RCREDITS_COMMUNITY_NAME;
   $credit_id = RCREDITS_COMMUNITY_ID;
@@ -41,6 +43,25 @@ function rcredits_install() {
 	  if (!db_query($sql)->rowCount()) die("Failed to insert records for $table.");
 	}
   }
+}
+
+/**
+ * Implements hook_schema().
+ */
+function rcredits_schema() {
+  $schema['r_shared_accounts'] = array(
+    'description' => 'Who can manage which accounts, and how',
+	'primary key' => array('shared_uid', 'shared_with'),
+    'foreign keys' => array(
+	  'shared_uid' => array('table' => 'users', 'columns' => array('shared_uid' => 'shared_uid')),
+	  'shared_with' => array('table' => 'users', 'columns' => array('shared_with' => 'shared_with')),
+	),
+//	'indexes' => array('main' => array('shared_uid', 'shared_with')), // not needed (see primary key)
+  );
+  r\setup_field($schema, 'r_shared_accounts', 'Shared UID', 'uid of the account being shared', 'int 11');
+  r\setup_field($schema, 'r_shared_accounts', 'Shared with', 'uid of a user that has access to that account', 'int 11');
+  r\setup_field($schema, 'r_shared_accounts', 'Permission', 'what type of permission the shared_with user has on the shared_uid account', 'int tiny');
+  return $schema;
 }
 
 /**

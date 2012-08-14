@@ -31,39 +31,11 @@ function rweb_block_view($delta = '') {
  * Implements hook_menu().
  */
 function rweb_menu() {
-  $items = array();
-  $items['members'] = array(
-    'title' => 'Members Section',
-    'type' => MENU_NORMAL_ITEM,
-    'page callback' => 'rCredits\\Web\\member_section',
-    'page arguments' => array(),
-    'access callback' => TRUE,
-    'menu_name' => 'main-menu', 
+  return array(
+    'members' => r\Web\menu('Members Section', MENU_NORMAL_ITEM, 'member_section'),
+    'members/transact' => r\Web\menu('Transact', MENU_DEFAULT_LOCAL_TASK),
+    'members/contact-info' => r\Web\menu('Contact Info', MENU_LOCAL_TASK, 'show_form', array('contact_info')),
+    'members/sharing' => r\Web\menu('Sharing', MENU_LOCAL_TASK, 'show_form', array('share')),
+    'members/manage-transactions' => r\Web\menu('Manage Transactions', MENU_LOCAL_TASK, 'show_form', array('txs')),
   );
-  $items['members/dashboard'] = array(
-    'title' => 'Member Dashboard',
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-  );
-  $items['members/manage-account'] = array(
-    'load arguments' => array('%map', '%index'), // sms_user module used this but it didn't help with showing tabs (%user_category fails)
-    'title' => 'Contact Info',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('rCredits\\Web\\contact_info_form'),
-    'access callback' => 'assert',
-    'access arguments' => array('TRUE'),
-    'weight' => 5,
-    'tab_parent' => 'members',
-    'type' => MENU_LOCAL_TASK,
-    'module' => 'rweb',
-    'file' => 'rweb.module',
-  );
-   $items['members/manage-sharing'] = array(
-    'title' => 'Manage Sharing',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('rCredits\\Web\\share_form'),
-    'access callback' => 'assert',
-    'access arguments' => array('TRUE'),
-    'type' => MENU_LOCAL_TASK,
-  );
-  return $items;
 }

@@ -66,14 +66,14 @@ function rcredits_help($path, $arg) {
 }
 
 /**
- * Implements mcapi_info_types().
+ * Implements mcapi_info_types(). UNUSED
  */
 function rcredits_mcapi_info_types() {
   return array('payment', 'charge', 'rebate', 'bonus', 'inflation');
 }
 
 /**
- * Implements transactions_alter().
+ * Implements transactions_alter(). UNUSED
  */
 function rcredits_transactions_alter(&$txs) {
   r\transaction_rewards($txs);
