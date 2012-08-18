@@ -55,21 +55,21 @@ class call {
    *   Message is the error message to send the caller.
    */
   function validate_caller() {
-    if (!($this->uid = \sms_user_get_uid($this->number))) $this->uid = create_account(array('number' => $this->number));
+    if (!($this->uid = \sms_user_get_uid($this->number))) $this->uid = r\create_user(array('number' => $this->number));
     if (!$this->uid) die('missing uid');
 
     $account = \user_load($this->uid);
     $todo = todo($this->number);
     if (is_object($todo)) $todo = $todo->todo;
-    if (r\is_temp_name($account->name)) {
+    if (r\is_temp_account($account->uid)) {
       if($todo != 'setup name') {
         todo($this->number, 'setup name', '');
         return tt("what's your name?");
       }
-      $full_name = setup_name($account, $this->message);
+      $name = setup_name($account, $this->message); // actually full_name
       todo($this->number, 'setup email', '');
       $id = $account->credit_id;
-      return tt("what's your email?", compact('id', 'full_name'));
+      return tt("what's your email?", compact('id', 'name'));
     } elseif ($todo == 'setup email' and !$account->mail) {
       setup_email($account, $this->message);
       todo($this->number, '', '');
@@ -240,7 +240,7 @@ class call {
    *   Someone charged me unilaterally: change the transaction state to CONTESTED
    *   Someone invoiced me: change the transaction state to DENIED
    *
-   * SELECT (*) FROM mcapi_transactions WHERE () ORDER BY xid DESC LIMIT 1
+   * SELECT (*) FROM r_txs WHERE () ORDER BY xid DESC LIMIT 1
    * WHERE payer=me / payee=me / payer=me OR payee=me
    * AND payer=other OR payee=other
    *
@@ -266,7 +266,7 @@ class call {
       } else $where .= "payer=$other_uid";
     }
 
-    $sql = "SELECT * FROM mcapi_transactions WHERE $where ORDER BY xid DESC LIMIT 1";
+    $sql = "SELECT * FROM r_txs WHERE $where ORDER BY xid DESC LIMIT 1";
     $result = db_query($sql)->fetchAssoc();
     if (!$result) return tt('undo no match');
     $result['date'] = strftime('%m/%d/%Y',$result['created']);
@@ -300,6 +300,8 @@ class call {
    *   pay (pay the most recent invoice from anyone)
    *   pay who (pay the most recent invoice from someone)
    *   other syntaxes including who and amount (create a new transaction)
+   * @todo get the sql out of here (no reference to specific tables)
+   *   probably by $old = r\get_tx($info)
    */
   function do_payment() {
     extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, what, and maybe xid
@@ -314,7 +316,7 @@ class call {
         $where .= " AND payee=$other_uid";
       }
     }
-    $sql = "SELECT * FROM mcapi_transactions WHERE $where ORDER BY xid DESC LIMIT 1";
+    $sql = "SELECT * FROM r_txs WHERE $where ORDER BY xid DESC LIMIT 1"; 
     $result = db_query($sql, array(':state' => TX_PENDING))->fetchAssoc();
     if (!$result) return tt('no matching invoice');
 

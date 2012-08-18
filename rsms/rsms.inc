@@ -9,6 +9,11 @@ use \rCredits as r;
  * (anything that doesn't have to be in rsms.module and isn't appropriate to class call).
  */
 
+ini_set('session.cookie_lifetime', 0); // browser cookie deletion on browser close (this fails)
+ini_set('session.gc_maxlifetime', 600); // "600" = 10 minutes
+ini_set('session.gc_probability', 1); // these two lines
+ini_set('session.gc_divisor', 100); // together will make garbage collection run on 1% of the requests
+
 define('RSMS_PREFIX', 'TEST: '); // the pre-launch trial
 //define('RSMS_PREFIX_INACTIVE', '[TRIAL RUN] '); // pretend transactions by not-yet-active players (treat it as a trial run)
 //define('RSMS_PREFIX_ASIF', 'AS IF: '); // pretend transactions by Active Participants
@@ -17,7 +22,7 @@ $GLOBALS['SMS messages'] = array(
   // reports
   'account info' => t("Your balance for account @id is @balance, including @rewards of incentive rewards. Total demand for rCredits is @total_demand."),
 //  'account info2' => t("More account info"), // not used yet
-  'your account is ready' => t('Your starting balance is @balance. Pretend to buy and sell as you would in a typical month (we need that info). Have fun! Type "helpme" to get started.'),
+  'your account is ready' => t('Your starting balance is @balance. Pretend to buy and sell as you would in a typical month (we need that info). Have fun! Type "helpme" to get started.'), // separate out the last sentence
 
   // reporting
   'report transaction' => t("You @type @other @amount (@reward_type: @reward_amount). Your new balance is @balance. Transaction #@tid"),
@@ -46,6 +51,7 @@ $GLOBALS['SMS messages'] = array(
   'confirm cash for rCredits' => t("Give @other @amount cash or credit (or nothing) for rCredits?"),
   'confirm undo' => t("Undo @date transfer of @amount from @payer to @payee?"),
   'please confirm' => t("To confirm, type @nonce."),
+  'verification code' => 'Your verification code for using rCredits online is: @nonce', // used in rWeb
   
   // error messages
   'syntax' => t('Wrong syntax!'),
@@ -74,6 +80,8 @@ $GLOBALS['SMS messages'] = array(
   'broke to' => t('You are completely out of rCredits, so that transaction cannot be completed. Type "get r <amount>" to get more rCredits.'),
   'broke from' => t('@other does not have enough rCredits for that transaction at this time. But your request has been noted.'),
   'demand too small' => t('NOTE: The minimum amount of rCredits you can actually buy at a time is $@min.', array('@min' => RCREDITS_MIN_DEMAND)),
+  'no access get' => t('You do not have permission to exchange rCredits for US Dollars or vice-versa.'),
+  'no access create' => t('You do not have permission to create transactions.'),
 );
 
   // help messages (for use with the help command)
@@ -173,52 +181,27 @@ function infer_nonce($message) {
  * @parm string $nonce: what to store as the nonce (defaults to 'whatever', meaning pick one at random)
  *
  * @return object(nonce, todo) if $todo is 'nothing', else the nonce
+ * @todo: move this to rcredits.inc
  */
 function todo($number, $todo = 'nothing', $nonce = 'whatever') {
   if ($todo == 'nothing') {
     return (object) \db_query("SELECT nonce, todo FROM sms_user WHERE number = $number")->fetchAssoc();
   } else {
     $todo = addslashes($todo);
-    $nonce = $nonce == 'whatever' ? nonce() : $nonce;
+    $nonce = $nonce == 'whatever' ? r\nonce() : $nonce;
 // FAILS because of {}    \db_query("UPDATE sms_user SET nonce = '$nonce', todo = '$todo' WHERE number = $number");
-    \db_update('sms_user')->fields(compact('nonce', 'todo'))->condition('number', $number, '=')->execute();
+    \db_update('sms_user')->fields(compact('nonce', 'todo'))->condition('number', $number)->execute();
     return $nonce;
   }
 }
 
 /**
- * Return random uppercase dictionary word of 3-6 chars
- * The word will not be a valid command or command abbreviation.
+ * Add a cell phone to the given account.
+ * for now, with everything through SMS, we want to be able to send to anyone
  */
-function nonce() {
-  $offset = r\db_lookup('FLOOR(RAND() * COUNT(*))', 'r_nonces');
-  $nonce = r\db_lookup('nonce', 'r_nonces', "1 LIMIT $offset, 1");
-
-  $impossible = join(' ', $GLOBALS['SMS not a nonce']);
-  if (strpos(". $impossible ", " $nonce ")) return nonce(); // reserved word? try again
-  if (strlen($nonce) > 6) return nonce(); // too long
-  return $nonce;
-}
-
-/**
- * Create a temporary account for the given user.
- * @parm array $info: associative array of information about the user
- *   'phone' is contact phone (in standard +ddddddddddd format)
- *   'number' is cell phone (in standard +ddddddddddd format -- use for phone also)
- *   'email' is email address
- *   UNUSED (because it's hard to verify): 'website' is website address
- * @return the uid of the new account
- */
-function create_account($info) {
-  extract($info, EXTR_PREFIX_ALL, 'my');
-  $tx = \db_transaction();
-  if (isset($my_number) and !isset($my_phone)) $my_phone = $info['phone'] = $my_number;
-  $account = r\create_user($info);
-  if (isset($my_number)) {
-    r\make_credit_id($account); // no id unless user is a player
-// UNUSED    todo($my_number, 'first call', '');
-  }
-  return $account->uid;
+function create($number, $uid, $status = SMS_USER_CONFIRMED) {
+  $number = r\format_phone($number, '+n');
+  \drupal_write_record('sms_user', compact(r\ray('number uid status')));
 }
 
 /**
@@ -230,8 +213,7 @@ function setup_name($account, $name) {
   if (strlen($name) > 60) throw new \Exception(tt('name too long'));
   if (strtolower($name) == $name or strtoupper($name) == $name) $name = ucwords($name);
   if (!r\valid_name($name)) throw new \Exception(tt("what's your name really?"));
-  $full_name = $name;
-  $name = $short_name = strtolower(preg_replace('/\W/', '', iconv('UTF-8', 'ASCII//TRANSLIT', $full_name)));
+  $name = $short_name = r\short_name($full_name = $name);
   if (r\db_lookup(1, 'users', "short_name = ':short_name'", compact('short_name'))) throw new \Exception(tt('duplicate name'));
   $edit = compact('name', 'short_name', 'full_name');
   return \user_save($account, $edit)->full_name;

@@ -6,24 +6,32 @@
  * An interface module for the rCredits financial system.
  *
  * Note: to display one of the blocks defined herein on a page, use
- * echo render(module_invoke('rweb', 'block_view', 'blockname')); 
- * (or simpler: echo render(rweb_block_view('blockname'));)
+ * echo render(rweb_block_view('blockname'));)
  */
 
 use rCredits as r;
 require_once __DIR__ . '/../rcredits.inc';
 require_once __DIR__ . '/rweb.inc';
 
-define('RWEB_FORMS', 'account payment buy_now example_store charge exchange manage tx_period txs manage_account');
+//define('RWEB_BLOCKS', 'account payment buy_now example_store charge exchange manage tx_period txs manage_account');
+define('RWEB_BLOCKS', 'account');
 
+/**
+ * Implements hook_block_info().
+ * NOTE: specifying a region fails, so you have to do that in block administration (show the 'account' block in Header)
+ */
 function rweb_block_info() {
   $info = array();
-  foreach (r\ray(RWEB_FORMS) as $one) $info[$one] = r\Web\block_def(lcfirst($one) . ' Block');
+  foreach (r\ray(RWEB_BLOCKS) as $one) {
+    $def = array('info' => ucfirst($one) . ' Block');
+    if ($one == 'account') $def += array('region' => 'header', 'visibility' => BLOCK_VISIBILITY_LISTED, 'pages' => "members\nmembers/*");
+    $info[$one] = $def;
+  }
   return $info;
 }
 
 function rweb_block_view($delta = '') {
-  if (!in_array($delta, r\ray(RWEB_FORMS))) return;
+  if (!in_array($delta, r\ray(RWEB_BLOCKS))) return;
   return r\Web\block_view(NULL, drupal_get_form("rCredits\\Web\\{$delta}_form")); // no subject for blocks
 }
 
@@ -31,11 +39,20 @@ function rweb_block_view($delta = '') {
  * Implements hook_menu().
  */
 function rweb_menu() {
+  $anyone = array('access callback' => TRUE, 'access arguments' => NULL);
   return array(
-    'members' => r\Web\menu('Members Section', MENU_NORMAL_ITEM, 'member_section'),
-    'members/transact' => r\Web\menu('Transact', MENU_DEFAULT_LOCAL_TASK),
+    'handy' => r\Web\menu('Handy Links', MENU_NORMAL_ITEM, 'handy_links'),
+    'members' => r\Web\menu('Members Section', MENU_NORMAL_ITEM, 'show_form', array('tx')),
+    'members/transact' => r\Web\menu('Pay / Charge', MENU_DEFAULT_LOCAL_TASK),
     'members/contact-info' => r\Web\menu('Contact Info', MENU_LOCAL_TASK, 'show_form', array('contact_info')),
+    'members/cell-access' => r\Web\menu('Cell Access', MENU_LOCAL_TASK, 'show_form', array('cell')),
     'members/sharing' => r\Web\menu('Sharing', MENU_LOCAL_TASK, 'show_form', array('share')),
     'members/manage-transactions' => r\Web\menu('Manage Transactions', MENU_LOCAL_TASK, 'show_form', array('txs')),
+    'members/exchange' => r\Web\menu('Get r / USD', MENU_LOCAL_TASK, 'show_form', array('exchange')),
+    'example-store' => r\Web\menu('Example Store', MENU_NORMAL_ITEM, 'show_form', array('example_store'), $anyone),
+    'members/buy-now' => r\Web\menu('Buy Now', 0, 'show_form', array('buy_now')),
+    'rCredits/util' => r\Web\menu('Util', 0, 'rCredits\\Web\\util', array(2)),
   );
 }
+
+function rweb_form_user_register_form_alter(&$form, &$form_state, $form_id) {r\Web\register_form($form, $form_state);}

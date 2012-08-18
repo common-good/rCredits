@@ -6,7 +6,7 @@
 
 use rCredits as r;
 
-define('RCREDITS_TABLES', 'r_area_codes,r_credit_regions,r_nonces'); // only the ones without schemas
+define('RCREDITS_TABLES', 'r_area_codes,r_credit_regions,r_nonces,r_txs,r_shared_accounts');
 
 /**
  * Implement hook_install().
@@ -36,9 +36,8 @@ function rcredits_install() {
 
   foreach (explode(',', RCREDITS_TABLES) as $table) {
     $filename = __DIR__ . "/sql/$table";
-    $sql = file_get_contents("$filename-make.sql"); // read in a single CREATE TABLE (if exists) query
-	db_query($sql);
-    if (!r\db_lookup(1, "$table", 'TRUE') and file_exists("$filename-insert.sql")) {
+    if ($sql = @file_get_contents("$filename-make.sql")) db_query($sql); // read in a single CREATE TABLE (if exists) query
+    if (!@r\db_lookup(1, "$table", 'TRUE') and file_exists("$filename-insert.sql")) {
 	  $sql = file_get_contents("$filename-insert.sql"); // read in a single multi-record INSERT query
 	  if (!db_query($sql)->rowCount()) die("Failed to insert records for $table.");
 	}
@@ -49,14 +48,42 @@ function rcredits_install() {
  * Implements hook_schema().
  */
 function rcredits_schema() {
+  $schema['r_txs'] = array(
+    'description' => 'Record of all transactions in the region',
+	'primary key' => array('xid'),
+    'foreign keys' => array(
+	  'payer' => array('table' => 'users', 'columns' => array('payer' => 'uid')),
+	  'payee' => array('table' => 'users', 'columns' => array('payee' => 'uid')),
+	  'creator' => array('table' => 'users', 'columns' => array('creator' => 'uid')),
+	),
+    'indexes' => array(
+//	  'xid' => array('xid'), // not needed (see primary key)
+	  'payer' => array('payer'), // not needed (see primary key)
+	  'payee' => array('payee'), // not needed (see primary key)
+    ),
+  );
+  
+  r\setup_field($schema, 'r_txs', 'xid', 'the unique transaction ID', 'serial 11'); 
+  r\setup_field($schema, 'r_txs', 'serial', 'serial number of related transactions', 'int 11'); 
+  r\setup_field($schema, 'r_txs', 'Type', 'transaction type (payment, charge, etc.)', 'int tiny'); 
+  r\setup_field($schema, 'r_txs', 'Channel', 'through what medium was the transaction entered', 'int tiny'); 
+  r\setup_field($schema, 'r_txs', 'State', 'completed, pending, disputed, etc', 'int tiny'); 
+  r\setup_field($schema, 'r_txs', 'Payer', 'user id of the payer', 'int 11'); 
+  r\setup_field($schema, 'r_txs', 'Payee', 'user id of the payee', 'int 11'); 
+  r\setup_field($schema, 'r_txs', 'Amount', 'transaction amount', 'float big'); 
+  r\setup_field($schema, 'r_txs', array('Description', 'payer_for'), "payer's description", 'varchar 60'); 
+  r\setup_field($schema, 'r_txs', array('Description', 'payee_for'), "payee's description", 'varchar 60'); 
+  r\setup_field($schema, 'r_txs', 'Data', 'info stored elsewhere, duplicated here for convenience (serialized array)', 'text tiny'); 
+  r\setup_field($schema, 'r_txs', 'Creator', 'user id of the creator', 'int 11'); 
+  r\setup_field($schema, 'r_txs', 'Created', 'Unixtime transaction was created', 'int 11'); 
+
   $schema['r_shared_accounts'] = array(
     'description' => 'Who can manage which accounts, and how',
 	'primary key' => array('shared_uid', 'shared_with'),
     'foreign keys' => array(
-	  'shared_uid' => array('table' => 'users', 'columns' => array('shared_uid' => 'shared_uid')),
-	  'shared_with' => array('table' => 'users', 'columns' => array('shared_with' => 'shared_with')),
+	  'shared_uid' => array('table' => 'users', 'columns' => array('shared_uid' => 'uid')),
+	  'shared_with' => array('table' => 'users', 'columns' => array('shared_with' => 'uid')),
 	),
-//	'indexes' => array('main' => array('shared_uid', 'shared_with')), // not needed (see primary key)
   );
   r\setup_field($schema, 'r_shared_accounts', 'Shared UID', 'uid of the account being shared', 'int 11');
   r\setup_field($schema, 'r_shared_accounts', 'Shared with', 'uid of a user that has access to that account', 'int 11');
@@ -68,7 +95,7 @@ function rcredits_schema() {
  * Implements hook_schema_alter().
  */
 function rcredits_schema_alter(&$schema) {
-  $users = $sms_user = $mcapi_transactions = array();
+  $users = $sms_user = $r_txs = array();
 
   r\setup_field($schema, 'users', 'Account type', 'personal, commercial, or non-profit', 'int tiny');
   r\setup_field($schema, 'users', 'Federal ID', 'social security number or employer id number, for reporting', 'varchar 9');
@@ -99,23 +126,13 @@ function rcredits_schema_alter(&$schema) {
   r\setup_field($schema, 'sms_user', 'todo', 'waiting for confirmation to complete this operation', 'text medium');
   r\setup_field($schema, 'sms_user', 'nonce', 'waiting for this nonce, for confirmation', 'varchar 10');
   
-  r\setup_field($schema, 'mcapi_transactions', 'Amount', 'transaction amount', 'float big'); 
-  r\setup_field($schema, 'mcapi_transactions', 'Channel', 'through what medium was the transaction entered', 'varchar 5'); 
-  r\setup_field($schema, 'mcapi_transactions', array('Description', 'payer_for'), "payer's description", 'varchar 60'); 
-  r\setup_field($schema, 'mcapi_transactions', array('Description', 'payee_for'), "payee's description", 'varchar 60'); 
-
-/*  r\setup_field($schema, 'mcapi_transactions', 'Payer ID', "payer's credit id", 'varchar 9');
-  r\setup_field($schema, 'mcapi_transactions', 'Payee ID', "payee's credit id", 'varchar 9');
-  r\setup_field($schema, 'mcapi_transactions', 'Creator ID', "creator's credit id", 'varchar 9');
-*/
-
   /*  
   r\setup_field($schema, 'r_area_codes', 'Area Code', 'telephone area code', 'char 3'); 
   r\setup_field($schema, 'r_area_codes', 'Region', 'state, province, or territory', 'varchar 24'); 
   
   r\setup_field($schema, 'r_credit_regions', 'Region', 'state or province', 'char 2');
   r\setup_field($schema, 'r_credit_regions', 'Credit Region', 'credit region id', 'char 2');
-    */
+  */
 }
  
 /**
