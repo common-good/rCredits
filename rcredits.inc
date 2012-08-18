@@ -155,6 +155,14 @@ function create_user($info) {
   return $account->uid;
 }
 
+/**
+ * Undo the given transaction.
+ * @todo: write it.
+ */
+function undo_tx($xid) {
+  return array('undo incomplete', array());
+}
+
 function get($currency, &$amount, $uid, $confirmed) {    
   if (!access('can manage account')) return array('no access get', array(), FALSE);
   $amount = str_replace(',', '', $amount); // ignore commas

@@ -37,6 +37,7 @@ $GLOBALS['Web messages'] = array(
   'report delete cell' => t('Cell number @number has been removed from this account.'),
   'your account is ready' => t('<p></p><p>Welcome to rCredits! Your account id is @credit_id. Your starting balance is @balance.</p><p>After you confirm your email address (by clicking the link in the email we sent you), come back here and log in.</p><p>Pretend to buy and sell just as you would in a typical month. We need that information, to make sure that rCredits don\'t get stuck anywhere.</p><p>Experiment! Have fun! (and please let us know if you run into any glitches)'),
   'nothing selected' => t('You did not select anything'),
+  'undo incomplete' => t('The undo operation is not yet complete.'),
 );
 
 /*
@@ -489,7 +490,7 @@ function txs_form_submit($form, &$form_state) {
     }
     if ($tx_task == 'undo') {
       list ($message, $args) = r\undo_tx($xid);
-      say("tid|$message", $args);
+      say("tid|$message", $args + compact('tid'));
     }
     if ($tx_task == 'edit') {
       if ($my_state != TX_DONE and $my_payer != $myid) {
