@@ -35,8 +35,9 @@ $GLOBALS['SMS messages'] = array(
 //  'transaction done asif' => t("@type: @amount @tofrom user#@other (@reward_type: @reward_amount). Your new provisional balance is @balance (If this had been a real transaction, your balance would be @amount @moreless). Transaction ID #@xid"),
   'report exchange' => t("You @type @other @amount @way. Your new balance is @balance. Transaction #@tid"),
   'report exchange request' => t("You requested r@amount from @other. Your balance is unchanged, pending approval. Pending Transaction #@tid"),
-  'report undo' => t("You cancelled transfer of @amount from @payer to @payee on @date."),
-  'report get usd' => t("Exchange approved. @amount will be transferred directly to your bank account within 24 hours. Your new balance is @balance."),
+//  'report undo' => t("You cancelled transfer of @amount from @payer to @payee on @date."),
+  'report undo' => t("Transaction has been @action. "),
+  'report get usd' => t("Exchange approved. @request will be transferred directly to your bank account within 24 hours. Your new balance is @balance."),
 //  'get usd inactive' => t("If you were an Active Participant in the rCredits system, your request would transfer @amount directly to your bank account. Alas, you are not yet an Active Participant."),
   'your demand' => t("Your total request for rCredits is now @request."),
 
@@ -47,13 +48,13 @@ $GLOBALS['SMS messages'] = array(
   "what's your email really?" => t("Please type carefully. What is your email address?"),
   
   // confirmations
-  'confirm get usd' => t("Trade r@amount for us@amount?"),
+  'confirm get usd' => t("Trade r@request for us@request?"),
   'confirm payment' => t("Pay @other @amount for goods and services?"),
   'confirm invoice' => t("Pay @other @amount for goods and services (invoice @date)?"),
   'confirm charge' => t("Charge @other @amount for goods and services?"),
-  'confirm rCredits for cash' => t("Give @other r@amount for cash or credit (or nothing)?"),
-  'confirm cash for rCredits' => t("Give @other @amount cash or credit (or nothing) for rCredits?"),
-  'confirm undo' => t("Undo @date transfer of @amount from @payer to @payee?"),
+  'confirm rCredits for cash' => t("Give @other @amount in rCredits for cash or credit or the like?"),
+  'confirm cash for rCredits' => t("Give @other cash or credit or the like, in exchange for @amount in rCredits?"),
+  'confirm undo' => t("Undo @date transfer of @amount @tofrom @other?"),
   'please confirm' => t("To confirm, type @nonce."),
   'verification code' => 'Your verification code for using rCredits online is: @nonce', // used in rWeb
   
@@ -86,6 +87,8 @@ $GLOBALS['SMS messages'] = array(
   'demand too small' => t('NOTE: The minimum amount of rCredits you can actually buy at a time is $@min.', array('@min' => i\min_demand())),
   'no access get' => t('You do not have permission to exchange rCredits for US Dollars or vice-versa.'),
   'no access create' => t('You do not have permission to create transactions.'),
+  'negative transfer' => t('You may not transfer a negative amount.'),
+  'already undone' => t('Transaction is already undone.'),
 );
 
   // help messages (for use with the help command)

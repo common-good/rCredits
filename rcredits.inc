@@ -17,7 +17,25 @@
  *   that requires confirmation by the payee (an "offer"). The payee cannot accept the offer without first paying
  *   that amount to the Community in US Dollars (using billpay or Dwolla).
  * - a way to track US Dollars payments (probably a separate transaction table us_transactions)
- * - rewards in "data" field get serialized to long strings of digits. Be more concise (store a int number of cents?).
+ * - remove all direct db operations from interface modules (and their .inc files) -- use i\ and u\ there, but not r\
+ *
+ * - The data field in r_txs should also hold additional identification information about a nonlocal payer or payee.
+ *   If the mcapi intertrading module does not work for us, other servers could have a single UID on our system, so a
+ *   user doing business with someone in another region would generate a transaction between an individual and a server,
+ *   with credit_id for the individual in that other region stored in the data field. 
+ *   We do NOT need to store credit_id for creator, payer, and payee.
+ *
+ *   Specifically: when we in the ZZZZ community receive a transaction request using a credit_id, the first four characters are the "community" --
+ *   they tell us what database to hit. For example, if ZZZZYYYY pays AAAABBBB, we record a payment from ZZZZYYYY's uid to the uid of a user record *   with credit_id = "AAAA". The data field in the transaction gets $data['payee_id'] = 'AAAABBBB'. We send the request to AAAA's db and
+ *   expect a confirmation (if no confirmation, roll back the transaction and give an error message OR queue the request).
+ *
+ *   On the other side of things, when we receive a request from some other community for a transaction with one of our accounts
+ *   -- for example if we are the "ZZZZ" community, receiving a request from the "ABCD" community, for ABCDAAAA to pay ZZZZBBBB --
+ *   we record the payer as ABCD's uid and the payee as ZZZZBBBB's uid, with $data['payer_id'] = 'ABCDAAAA'.
+ *
+ *   Thus every inter-community transaction is stored in both communities. Both communities know their trade balance, which should be
+ *   public through a RESTful query. Intra-community transactions should also be stored twice -- ideally in member's devices. Smartphones and
+ *   desktop computers running an app should store all their own transactions. Encrypted backups of everything to the cloud too.
  */
  
 namespace rCredits; // typically abbreviated as "r"
@@ -40,13 +58,12 @@ define('RCREDITS_TEMP_NAME_PREFIX', 'unknown ');
 $GLOBALS['account types'] = array(t('personal'), t('commercial'), t('non-profit'));
 $GLOBALS['share permissions'] = array('no access', 'can read transactions', 'can create transactions', 'can manage account');
 
-// @todo: keep these TX_ constants away from the interfaces (so the core can be on a separate VPS)
-
 // Transaction states
-define('TX_DONE', 1);
-define('TX_PENDING', 0); // charged, waiting for confirmation
+define('TX_DENIED', -2); // invoice rejected by payer
 define('TX_DELETED', -1);
-define('TX_DENIED', -2); // invoice disputed by payer
+define('TX_PENDING', 0); // charged, waiting for confirmation
+define('TX_DONE', 1); // here and up, the transaction counts
+define('TX_CONTESTED', 2); // unilaterally charged, but contested by the payer (the charge stands, until settled)
 
 // Transaction channels
 define('TX_WEB', 0);
@@ -183,11 +200,6 @@ function tx_save($txs) {
 
 /**
  * Add rebate and bonus to the transaction set, if appropriate.
- * @todo: Note that the data field might also hold additional identification information about a nonlocal payer or payee.
- *   If the mcapi intertrading module does not work for us, other servers could have a single UID on our system, so a
- *   user doing business with someone in another region would generate a transaction between an individual and a server,
- *   with credit_id for the individual in that other region stored in the data field. 
- *   We do NOT need creator_id, payer_id, and payee_id (right?).
  */
 function transaction_rewards(&$txs) {
   extract($txs[0], EXTR_PREFIX_ALL, 'my');
@@ -229,7 +241,7 @@ function transaction_setup($info) {
   $serial = NULL; // always set equal to xid of main transaction after saving
   $data = serialize(@$data ?: array());
   
-  $payer_for = $payee_for = $for;
+  list($payer_for, $payee_for) = is_array($for) ? $for : array($for, $for);
   unset($info['for']);
 
   return array_merge($info, compact(u\ray('state creator created serial data payer_for payee_for')));
@@ -287,6 +299,15 @@ function temp_name($info) {
   return RCREDITS_TEMP_NAME_PREFIX . substr(md5('zot' . strval(REQUEST_TIME)), 0, 10); // pseudo random
 }
 
+function set_tx_state($new_value, $serial) {
+  return db_q("UPDATE r_txs SET state=:new_value WHERE serial=:serial", compact(u\ray('new_value serial')));
+}
+
+function set_tx_field($field_name, $new_value, $xid) {
+  return db_q("UPDATE r_txs SET $field_name=:new_value WHERE xid=:xid", compact(u\ray('new_value xid')));
+}
+//return \db_update('r_txs')->fields(array($field_name => $new_value))->condition('xid', $xid);
+
 /**
  * Reset all rCredits data, to start development with a clean slate
  */
@@ -321,9 +342,8 @@ function db_lookup($field_name, $table_name, $criteria = '1', $subs = array()) {
 // Single line functions that need no explanation
 function db_q($sql, $args = array()) {return \db_query($sql, u\prefix_keys(':', $args));}
 function rebate($who, $amount = 1) {return round($amount * db_lookup('rebate_percent', 'users', 'uid=:who', compact('who')) / 100, 2);}
-function bonus($who, $amount = 1) {return 2 * rebate($who, $amount);}
+function bonus($who, $amount = 1) {return rebate($who, 2 * $amount);}
 function update_user($info, $who) {return \db_update('users')->fields($info)->condition('uid', $who)->execute();}
 function tx_field($field_name, $xid) {return db_lookup($field_name, 'r_txs', 'xid=:xid', compact('xid'));}
-function set_tx_field($field_name, $new_value, $xid) {return \db_update('r_txs')->fields(array($field_name, $new_value))->condition('xid', $xid);}
 function uid_from_crid($credit_id) {return db_lookup('uid', 'users', 'credit_id=:credit_id', compact('credit_id'));}
 function total_demand() {return db_lookup('SUM(demand)', 'users');}

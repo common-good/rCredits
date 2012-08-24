@@ -5,7 +5,7 @@
  * This file may be both on the core VPS and the user interface VPS
  */
  
-namespace rCredits\Utilities;
+namespace rCredits\Utilities; // typically abbreviated as "u"
 use rCredits as r; // get rid of this
 
 /**
@@ -98,6 +98,7 @@ function short_name($full_name) {
  * Say whether the transaction description implies a cash transaction.
  */
 function for_cash($for) {
+  if (is_array($for)) return for_cash($for[0]) or for_cash($for[1]);
   return ($for == '' or preg_match('/(cash|credit|usd|gift)( |$)/i', $for));
 }
 

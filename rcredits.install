@@ -14,7 +14,6 @@ define('RCREDITS_TABLES', 'r_area_codes,r_credit_regions,r_nonces,r_txs,r_shared
  * Implement hook_install().
  *
  * Add custom data for the rCredits module.
- * @todo: get rid of i\create_user (prep for separate VPS)
  */
 function rcredits_install() {
   user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array('member'));
@@ -36,6 +35,7 @@ function rcredits_install() {
     $uid = i\create_user($info)->uid;
   }
   variable_set('rcredits_community_uid', $uid); // gets unset during uninstall
+  variable_set('date_default_timezone', 'America/New_York');
 
   foreach (explode(',', RCREDITS_TABLES) as $table) {
     $filename = __DIR__ . "/sql/$table";

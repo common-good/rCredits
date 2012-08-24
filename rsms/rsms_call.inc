@@ -181,8 +181,8 @@ class call {
    * @param string $feature (optional): what the caller wants help on
    * @return: the appropriate SMS reply
    * @todo
-   *   1. Possibly customize the message for the caller (write a function for that).
-   *      For example, using a local phone number and local businesses in the examples.
+   *   Possibly customize the message for the caller (write a function for that).
+   *   For example, using a local phone number and local businesses in the examples.
    */
   function do_helpme($feature = '') {
     if (!$feature) $feature = @$this->parms['feature'] ?: 'helpme';
@@ -234,58 +234,41 @@ class call {
    *   undo who (undo my last transaction with who) (see also "pay who")
    *   undo to|from (undo my last transaction to anyone or from anyone
    *   undo to|from who (undo my last transaction to someone or from someone)
-   * Situations:
-   *   I paid someone: create an opposite transaction (using a negative amount)
-   *   I charged someone unilaterally: create an opposite transaction
-   *   I invoiced someone and it's still pending: change the transaction state to CANCELED
-   *   Someone paid me: create an opposite transaction
-   *   Someone charged me unilaterally: change the transaction state to CONTESTED
-   *   Someone invoiced me: change the transaction state to DENIED
-   *
    * SELECT (*) FROM r_txs WHERE () ORDER BY xid DESC LIMIT 1
    * WHERE payer=me / payee=me / payer=me OR payee=me
    * AND payer=other OR payee=other
-   *
-   * !!! to do: undo for charges and invoices, handle all transaction states
    */
   function do_undo() {
     extract($this->parms, EXTR_PREFIX_ALL, 'my');	// who and/or tofrom
+    $my_uid = $this->uid;
 
+    if ($this->confirmed) {
+      list ($message, $args) = i\undo_tx($my_xid, $my_uid);
+      return tt($message, $args);
+    }
+    
     if (isset($my_tofrom)) {
       $my_tofrom = strtolower($my_tofrom);
-      if ($my_tofrom === 'to') {
-        $where = "payer={$this->uid}";
-      } else $where = "payee={$this->uid}";
-    } else $where = "(payee={$this->uid} OR payer={$this->uid})";
+      $where = $my_tofrom === 'to' ? 'payer=:my_uid' : 'payee=:my_uid';
+    } else $where = '(payee=:my_uid OR payer=:my_uid)';
 
     if (isset($my_who)) {
-      if (is_array($other_uid = $this->identify($my_who, $this->uid))) return tt($other_uid); // return if error
+      if (is_array($other_uid = i\identify($my_who, $my_uid))) return tt($other_uid); // return if error
       $where .= " AND ";
-      if (!isset($my_tofrom)) {
-        $where .= "(payee=$other_uid OR payer=$other_uid)";
-      } elseif ($my_tofrom === 'to') {
-        $where .= "payee=$other_uid";
-      } else $where .= "payer=$other_uid";
+      if (isset($my_tofrom)) {
+        $where .= $my_tofrom === 'to' ? 'payee=:other_uid' : 'payer=:other_uid';
+      } else $where .= '(payee=:other_uid OR payer=:other_uid)';
     }
 
-    $result = i\last_tx($where);
-    if (!$result) return tt('undo no match');
-    $result['date'] = strftime('%m/%d/%Y',$result['created']);
+    if (!($result = i\last_tx($where))) return tt('undo no match');
     extract($result, EXTR_PREFIX_ALL, 'old');
 
-    if (!$this->confirmed) {
-      $this->parms['xid'] = $result['xid'];
-      return $this->confirm('undo', $result);
-    } elseif ($result['xid'] != $my_xid) {
-      return tt('undo moving target');
-    // !!! Here we would test for pending transactions
-    } else {
-      $rewards = unserialize($result['data']);
-      list ($message, $args, $confirm) = i\transfer('payment', $result['payer'],
-        $result['payee'], -$result['amount'], 'undo '.$result['payer_for'],
-	      TRUE, $rewards);
-    }
-    return tt('report undo', $result);
+    $this->parms['xid'] = $old_xid;
+    $tofrom = $old_payer == $my_uid ? t('to') : t('from');
+    $other = i\user_field('full_name', $old_payer == $my_uid ? $old_payee : $old_payer);
+    $amount = u\format_amount($old_amount);
+    $date = strftime('%m/%d/%Y', $old_created);
+    return $this->confirm('undo', compact(u\ray('other amount date')));
   }
 
   /**
@@ -301,38 +284,31 @@ class call {
    *   pay (pay the most recent invoice from anyone)
    *   pay who (pay the most recent invoice from someone)
    *   other syntaxes including who and amount (create a new transaction)
-   * @todo get the sql out of here (no reference to specific tables)
-   *   probably by $old = i\get_tx($info)
    */
   function do_payment() {
     extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, what, and maybe xid
     if (isset($my_amount)) return $this->do_transfer('payment'); // complete syntax
     
-    if ($this->confirmed and isset($my_xid)) {
-      $where = "xid=$my_xid";
-    } else {
-      $tx_pending = TX_PENDING;
-      $where = "state=$tx_pending AND payer={$this->uid}";
-      if (isset($my_who)) {
-        if (is_array($other_uid = $this->identify($my_who, $this->uid))) return tt($other_uid); // return if error
-        $where .= " AND payee=$other_uid";
-      }
-    }
-    $result = i\last_tx($where);
-    if (!$result) return tt('no matching invoice');
-
-    extract($result, EXTR_PREFIX_ALL, 'old');
-
-    if (!$this->confirmed) {
-      $this->xid = $old_xid; // save for after possible confirmation
-      $other = i\user_field('full_name', $old_payee);
-      $amount = u\format_amount($old_amount);
-      $date = strftime('%m/%d/%Y',$result['created']);
-      return $this->confirm('invoice', compact(u\ray('other amount date')));
+    if ($this->confirmed) {
+      list ($message, $args) = i\pay_invoice($my_xid);
+      return tt($message, $args);
     }
     
-    list ($message, $args) = i\pay_invoice($old_xid);
-    return tt($message, $args);
+    $my_uid = $this->uid;
+    $pending = TX_PENDING;
+    $where = 'state=:pending AND payer=:my_uid';
+    if (isset($my_who)) {
+      if (is_array($other_uid = i\identify($my_who, $this->uid))) return tt($other_uid); // return if error
+      $where .= ' AND payee=:other_uid';
+    }
+    if(!($result = i\last_tx($where, compact(u\ray('my_xid pending my_uid other_uid'))))) return tt('no matching invoice');
+
+    extract($result, EXTR_PREFIX_ALL, 'old');
+    $this->xid = $old_xid; // save for after possible confirmation
+    $other = i\user_field('full_name', $old_payee);
+    $amount = u\format_amount($old_amount);
+    $date = strftime('%m/%d/%Y', $old_created);
+    return $this->confirm('invoice', compact(u\ray('other amount date')));
   }
 
   /**

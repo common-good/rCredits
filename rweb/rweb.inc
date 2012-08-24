@@ -14,7 +14,7 @@ use \rCredits as r; // get rid of this
  */
 
 $GLOBALS['Web messages'] = array(
-  'tid' => t('Transaction #@tid: '),
+  'atid' => t('#@atid: '), // avoid duplicate verbage, don't say "transaction #"
   'missing what' => t('For buying or selling actual goods and services, you must include a description. Otherwise select "cash/credit/gift/etc.". Rebates and bonuses are intended as rewards for productive economic activity in rCredits. Heads up: the rCredits software automatically detects and penalizes repeated attempts to "game" the system.'),
   'no txs' => t('There are no transactions in that period.'),
   'no shares' => t('This account is not yet shared with anyone.'),
@@ -141,8 +141,6 @@ function show_form($function, $arg1 = '') {
 /**
  * Account Selector form
  * appears above the whole Members Section
- * @todo: move query and updates to rcredits.inc or maybe rcredits-interface.inc (i\), which
- *   would define the entire interface to the rcredits core (ultimately to be moved to a separate VPS)
  */
 function account_form($form, &$form_state) {
   $myid = i\be_who();
@@ -210,41 +208,8 @@ function tx_form_submit($form, &$form_state) {
   if (!confirming_s($form_state)) transfer($form_state['values'], TRUE);
 }
 
-/*
-function payment_form($form, &$form_state) {
-  if ($confirm = sure_form($form_state)) return $confirm;
-
-  $form = u\prefix_keys('payment_', array(
-    'description' => form_field('item', t('Payment')),
-    'amount' => form_field('textfield', '$', t('Amount to pay')),
-    'who' => form_field('textfield', 'to:', t('Pay whom?')),
-    'goods' => form_field('radios', '', '', 
-//      dft(1) + array('attributes' => array('onchange' => "nixwhat('payment');")), 
-      dft(1) + attrib(array('onchange' => "nixwhat('payment');")), 
-      array(t('cash/credit/gift/etc.'), t('goods & services'))),
-    'what' => form_field('textfield', 'for:', t('Description of goods and services')),
-    'submit' => form_field('submit', NULL, t('Submit button'), 'Pay'),
-  ));
-  $form['#attributes']['class'] = 'rweb rblock';
-  return $form;
-}
-
-function payment_form_validate($form, &$form_state, $op = 'payment') {
-  if (confirming_v($form_state)) return;
-  if ($confirm = transfer($op, $form_state['values'], FALSE)) confirm($confirm, $form_state);
-}
-
-function payment_form_submit($form, &$form_state, $op = 'payment') {
-  if (!confirming_s($form_state)) transfer($op, $form_state['values'], TRUE);
-}
-*/
 /**
- * Buy Now
- * @todo: change css to hide "Buy Now" title
-foreach (array('', 'Contribution
-$title = isset($_POST['button']) ? $_POST['button'] : '';
-$title = (in_array(strtolower($title), rCredits\ray('Buy Now, Contribute, Donate, Buy, Pay')) ? ucwords($title) : 'Pay') . ' With rCredits';
-echo "<h1>$title</h1>\n";
+ * Pay with rCredits
  */
 function buy_now_form($form, &$form_state, $action = 'Payment', $verb = 'Pay') {
   global $user;
@@ -252,6 +217,8 @@ function buy_now_form($form, &$form_state, $action = 'Payment', $verb = 'Pay') {
   if (@$_SESSION['buy_now']) {
     extract(unserialize($_SESSION['buy_now']), EXTR_PREFIX_ALL, 'my'); // login_form() stores this
     // NO! Drupal calls form several times. Null it out in login instead. $_SESSION['buy_now'] = NULL;
+    $verbs = u\ray('Buy, Contribute, Donate, Pay');
+    if (in_array(ucwords($my_verb), $verbs)) $verb = ucwords($my_verb);
   }
  
   if ($confirm = sure_form($form_state)) return $confirm;
@@ -320,7 +287,6 @@ function charge_form_submit($form, &$form_state) {payment_form_submit($form, $fo
 /**
  * Exchange USD for rCredits or vice-versa
  * @todo: validate amount
- * @todo: handle submit
  */
 function exchange_form($form, &$form_state) {
   if ($confirm = sure_form($form_state)) return $confirm;
@@ -401,8 +367,8 @@ function txs_form($form, &$form_state, $edit_xid = '') {
   $can_create = i\access('can create transactions');
 
   $headers = u\ray('#,Date,Name,From you,To you,Status,Purpose,Rewards');
-  $states = array(TX_DONE => '&#10004;', TX_PENDING => 'ok?', TX_DENIED => 'disputed');
-  $colors = array(TX_DONE => 'green', TX_PENDING => 'orange', TX_DENIED => 'red');
+  $states = array(TX_DONE => '&#10004;', TX_PENDING => 'ok?', TX_DENIED => 'disputed', TX_CONTESTED => 'contested');
+  $colors = array('&#10004;' => 'green', 'ok?' => 'orange', 'pending' => 'darkgreen', 'disputed' => 'red', 'contested' => 'red');
   $sql = <<<EOF
     SELECT t.*,
       (SELECT full_name FROM users WHERE uid = IF(t.payer = $myid, t.payee, t.payer)) AS name,
@@ -410,11 +376,13 @@ function txs_form($form, &$form_state, $edit_xid = '') {
     FROM r_txs t 
     WHERE t.type NOT IN (:rebate, :bonus)
     AND $myid IN (t.payer, t.payee) 
-    AND (t.state IN(:done, :pending) OR (t.state = :denied AND t.payee = $myid))
+    AND (t.state IN(:done, :pending, :contested) OR (t.state = :denied AND t.payee = $myid))
     AND t.created >= $starting AND t.created <= $ending
     ORDER BY t.xid DESC
 EOF;
-  $tx_map = array('done' => TX_DONE, 'pending' => TX_PENDING, 'denied' => TX_DENIED, 'rebate' => TX_REBATE, 'bonus' => TX_BONUS);
+  $tx_map = array(
+    'done' => TX_DONE, 'pending' => TX_PENDING, 'denied' => TX_DENIED, 'rebate' => TX_REBATE, 'bonus' => TX_BONUS, 'contested' => TX_CONTESTED,
+  );
   $txs = r\db_q($sql, $tx_map);
   $list = array();
   while ($row = $txs->fetchAssoc()) {
@@ -427,8 +395,8 @@ EOF;
     $amount = number_format($one_amount, 2);
     if ($is_reward) list($amount, $reward) = array('', $amount); // show interest and signup bonus as rewards
     list ($from_you, $to_you) = $one_payer == $myid ? array($amount, '') : array('', $amount);
-    $state = ($one_state == TX_PENDING and $one_payee == $myid) ? 'pending' : $states[$one_state];
-    $color = $colors[$one_state];
+    $state = ($one_state == TX_PENDING and ($one_amount < 0 xor $one_payee == $myid)) ? 'pending' : $states[$one_state];
+    $color = $colors[$state];
     $state = "<span style='color:$color;'>$state</span>";
     if ($can_create and !$is_reward) $one_purpose = "<a href='manage-transactions/$one_xid'><img src='{$base_path}images/edit-icon.png' width=20 height=20 border=0 /></a> &nbsp; $one_purpose";
     $list["x$one_xid"] = array($tid, date('d-M', $one_created), $one_name, $from_you, $to_you, $state, $one_purpose, $reward);
@@ -480,25 +448,25 @@ function txs_form_submit($form, &$form_state) {
     $xid = substr($xid, 1); // ignore the leading 'x'
     $result = i\last_tx('xid=:xid', compact('xid'));
     extract($result, EXTR_PREFIX_ALL, 'my');
-    $tid = i\tid_from_xid($myid, $xid);
+    $atid = i\tid_from_xid($myid, $xid);
     $xname = "tx_transactions[x$xid]";
     if ($tx_task == 'ok') {
       if ($my_payer != $myid) {
-        say("tid|can't ok for other", compact('tid'), $xname);
+        say("atid|can't ok for other", compact('atid'), $xname);
       } elseif ($my_state != TX_PENDING) {
-        say("tid|can't ok if done", compact('tid'), $xname);
+        say("atid|can't ok if done", compact('atid'), $xname);
       } else {
         list ($message, $args) = i\pay_invoice($xid);
-        say("tid|$message", $args);
+        say("atid|$message", $args);
       }
     }
     if ($tx_task == 'undo') {
-      list ($message, $args) = i\undo_tx($xid);
-      say("tid|$message", $args + compact('tid'));
+      list ($message, $args) = i\undo_tx($xid, $myid);
+      say("atid|$message", array_merge($args, compact('atid')));
     }
     if ($tx_task == 'edit') {
       if ($my_state != TX_DONE and $my_payer != $myid) {
-        say("tid|can't change what", compact('tid'), $xname);
+        say("atid|can't change what", compact('atid'), $xname);
       } else \drupal_set_message('Editing descriptions is not yet possible');
     }
   }
@@ -534,8 +502,8 @@ function tx_edit_validate($form, &$form_state) {
 
 function tx_edit_submit($form, &$form_state) {
   extract($form_state['values']);
-  // FAILS (dunno why) r\set_tx_field($field, $purpose, $xid);
-  r\db_q("UPDATE r_txs SET $field=:purpose WHERE xid=:xid", compact('purpose', 'xid'));
+  r\set_tx_field($field, $purpose, $xid);
+  //r\db_q("UPDATE r_txs SET $field=:purpose WHERE xid=:xid", compact('purpose', 'xid'));
   drupal_goto('members/manage-transactions');
 }
 

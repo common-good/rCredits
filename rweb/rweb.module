@@ -54,7 +54,7 @@ function rweb_menu() {
     'members/manage-transactions' => rWeb\menu('Manage Transactions', MENU_LOCAL_TASK, 'show_form', array('txs',2), 'can read transactions'),
     'members/exchange' => rWeb\menu('Get rCredits / USD', MENU_LOCAL_TASK, 'show_form', array('exchange'), 'can create transactions'),
     'example-store' => rWeb\menu('Example Store', MENU_NORMAL_ITEM, 'show_form', array('example_store'), '', $anyone),
-    'members/buy-now' => rWeb\menu('Buy Now', 0, 'show_form', array('buy_now'), '', $anyone), // form will require login
+    'members/buy-now' => rWeb\menu('Pay With rCredits', 0, 'show_form', array('buy_now'), '', $anyone), // form will require login
     'rCredits/util' => rWeb\menu('Util', 0, 'rCredits\\Web\\util', array(2), 'administer site configuration'),
   );
   return $menu;

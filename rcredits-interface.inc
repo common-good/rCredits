@@ -22,7 +22,6 @@ use \rCredits\Utilities as u;
  *   UNUSED (because it's hard to verify): 'website' is website address
  *   (This function assumes that the info is not sufficient to identify an existing user)
  * @return the uid of the new account
- * @todo: get rid of call to r\SMS\... (prep for independent API)
  */
 function create_user($info) {
   extract($info, EXTR_PREFIX_ALL, 'my');
@@ -49,17 +48,57 @@ function create_user($info) {
 
 /**
  * Undo the given transaction.
- * @todo: write it.
+ * Situations:
+ *   Transaction PENDING or DENIED
+ *     I invoiced someone (or paid negative): change state to CANCELED
+ *     Someone invoiced me (or paid negative): change state to DENIED
+ *   Transaction DONE
+ *     I paid someone (or charged negative): create an opposite transaction (using a negative amount)
+ *     I charged someone (or paid negative): create an opposite transaction
+ *     Someone paid me (or charged negative): create an opposite transaction
+ *     Someone invoiced me (or paid negative) and I approved it: create an opposite transaction
+ *     Someone charged me (or paid negative) unilaterally: change the transaction state to CONTESTED (?)
  */
-function undo_tx($xid) {
-  return array('undo incomplete', array());
+function undo_tx($xid, $my_uid) {
+  extract(r\db_get_record('r_txs', 'xid=:xid', 'state, creator, amount, payer, payee, data', compact('xid')));
+  $tid = tid_from_xid($my_uid, $xid);
+  $tofrom = $payer == $my_uid ? t('to') : t('from');
+  $other_uid = $payer == $my_uid ? $payee : $payer;
+  $other = user_field('full_name', $other_uid);
+  $data = unserialize($data);
+  if (@$data['undone']) return array('already undone', compact('tid'));
+  
+  if ($state == TX_PENDING or $state == TX_DENIED) {
+    $new_state = ($amount < 0 xor $creator == $my_uid) ? TX_DELETED : TX_DENIED;
+    r\set_tx_state($new_state, $xid);
+    $action = $creator == $my_uid ? t('deleted') : t('marked "denied"');
+  } elseif ($creator != $my_uid and ($amount < 0 xor $payee == $my_uid) and access('can charge', $creator)) { // someone charged me unilaterally
+    r\set_tx_state(TX_CONTESTED, $xid);
+    $action = t('marked "contested"');
+  } else {
+    $type = $my_uid == $payer ? 'payment' : 'charge';
+    $what = array("undo #$tid", 'undo #' . tid_from_xid($other_uid, $xid));
+    if ($type == 'charge') $what = array($what[1], $what[0]);
+    list ($message, $args, $confirm) = transfer($type, $my_uid, $other_uid, -$amount, $what, TRUE, $data);
+    $data['undone'] = TRUE;
+    if (@$args['success']) {
+      r\set_tx_field('data', serialize($data), $xid);
+      $message = 'report undo|' . $message;
+      $args += array('action' => 'reversed');
+    }
+    return array($message, $args);
+  }
+
+  $amount = u\format_amount($amount);
+  return array("report undo", compact(u\ray('tid amount other tofrom action')));
 }
 
 function get($currency, &$amount, $uid, $confirmed) {    
   if (!access('can manage account')) return array('no access get', array(), FALSE);
   $amount = str_replace(',', '', $amount); // ignore commas
-  if (!is_numeric($amount)) return array('bad amount', '', FALSE);
-  $amount = min(RCREDITS_MAX_DEMAND, $amount);
+  if (!is_numeric($amount)) return array('bad amount', array(), FALSE);
+  if ($amount < 0) return array('negative transfer', array(), FALSE);
+  if ($currency == 'r') $amount = min(RCREDITS_MAX_DEMAND, $amount);
   $request = u\format_amount($amount);
   $success = TRUE;
   if ($currency == 'r') {
@@ -81,14 +120,17 @@ function get($currency, &$amount, $uid, $confirmed) {
   $dbtx = db_transaction();
   r\transact(compact(u\ray('type amount payer payee for creator')));
   $balance = u\format_amount($info_balance - $amount);
-  $amount = u\format_amount($amount);
-  if ($confirmed) return array('report get usd', compact(u\ray('amount balance success')), FALSE);
+  if ($confirmed) return array('report get usd', compact(u\ray('request balance success')), FALSE);
   
   $dbtx->rollback();
-  return array('confirm get usd', compact(u\ray('amount success')), TRUE);
+  return array('confirm get usd', compact(u\ray('request success')), TRUE);
   //*** End DBTX
 }
 
+/**
+ * Pay the given invoice
+ * @return array(string $message, array $args)
+ */
 function pay_invoice($xid) {
   if (!access('can create transactions')) return array('no access create', array());
   $state = TX_PENDING;
@@ -101,9 +143,7 @@ function pay_invoice($xid) {
   $dbtx = \db_transaction();
   list ($message, $args, $confirm) = transfer('invoice payment', $old_payer, $old_payee, $old_amount, $old_payee_for, TRUE);
   if (@$args['success']) {
-    // FUNCTION ALWAYS FAILS (why?) r\set_tx_field('state', TX_DELETED, $old_xid);
-    $state = TX_DELETED;
-    r\db_q('UPDATE r_txs SET state=:state WHERE serial=:serial', compact('state', 'old_serial'));
+    r\set_tx_state(TX_DELETED, $old_xid);
   } else $dbtx->rollback();
   
   unset($dbtx); // $dbtx->commit() is disallowed
@@ -117,9 +157,10 @@ function pay_invoice($xid) {
  * @param int $my_uid: user id of the initiating user
  * @param int $other_uid: user id of the other party
  * @param numeric $requested_amount: the transaction amount
- * @param string $for: description of the transaction's purpose (user input)
+ * @param string $for OR array($payer_for, $payee_for): description of the transaction's purpose (user input)
  * @param bool $confirmed: has this transaction been confirmed by the user? (default TRUE, used only for SMS interface)
  * @param array $rewards: associative array of reward percentages, indexed by 'rebate' and 'bonus' (default empty means standard rewards)
+ *    $rewards is for undoing ($amount should also be negative)
  * @return simple array: 
  *    index: index to result message string (if success, the index begins with "report ")
  *    parms: replacement parameters, specific to the message
@@ -128,6 +169,8 @@ function pay_invoice($xid) {
  * Do something different, based on these boolean values: $taking (charge vs. payment), $preapproved (paying or authorized to charge), 
  * $confirmed (user confirmed the transaction request), $xid (approving an invoice), $for_cash (the transaction is an exchange for USD),
  * $shortfall (how inadequate the payer's balance is)
+ * @todo: record cash flag in data (pass it explicitly to transact?). it comes back here in $rewards, for undo.
+ * @todo: giving wrong message on successful undo
  */
 function transfer($ttype, $my_uid, $other_uid, $requested_amount, $for, $confirmed = TRUE, $rewards = array()) {
   if (!access('can create transactions', $my_uid)) return array('no access create', array(), FALSE);
@@ -136,8 +179,10 @@ function transfer($ttype, $my_uid, $other_uid, $requested_amount, $for, $confirm
   $paying_invoice = ($ttype == 'invoice payment');
   $confirm_type = $ttype;
   $type = TX_TRANSFER;
-  $preapproved = $taking ? access('charge others', $my_uid) : TRUE;
-  if ($for_cash = u\for_cash($for)) $for = 'cash';
+  $preapproved = ($taking xor $requested_amount < 0) ? access('charge others', $my_uid) : TRUE;
+  if ($requested_amount < 0 and empty($rewards)) return array('negative transfer', array(), FALSE);
+  $for_cash = @$rewards['rebate'] ? ($rewards['rebate'] + $rewards['bonus'] == 0) : u\for_cash($for); // @$rewards['cash'] ?:
+  if ($for_cash and !is_array($for)) $for = 'cash';
   
   $available = credit_info($taking ? $other_uid : $my_uid)->available;
   $amount = min($requested_amount, $available);
@@ -276,7 +321,7 @@ function r_log($type='', $message='', $number='', $nonce='') {
 /**
  * Return information about the given account
  * @param int $who: uid of the credit account to return information for
- * @param boolean $state: TX_DONE (default) or TX_PENDING (return info about what kind of transactions)
+ * @param boolean $state: TX_DONE or TX_CONTESTED (default) or TX_PENDING (return info about what kind of transactions)
  * @param numeric $asof: last date to include (defaults to NULL, meaning unrestricted)
  *
  * @return
@@ -284,7 +329,8 @@ function r_log($type='', $message='', $number='', $nonce='') {
  *   with corresponding number-formatted information in ->fancy
  *   including the overall demand for rCredits
  */
-function credit_info($who, $state = TX_DONE, $asof = '') {
+function credit_info($who, $state = '', $asof = '') {
+  if (!$state) $state = TX_DONE . ',' . TX_CONTESTED;
   $result_keys = 'gross_in gross_out gross_in_proper balance available unavailable rewards cashable total_demand min_balance id';
   $sql = "SELECT credit_id AS id, min_balance FROM users WHERE uid=:who";
   extract(r\db_q($sql, compact('who'))->fetchAssoc()); // gets $id, $min_balance
@@ -295,7 +341,7 @@ function credit_info($who, $state = TX_DONE, $asof = '') {
     SUM(IF(t.payee=:who, t.amount, 0)) AS gross_in,
     SUM(IF(t.type=:transfer, 0, t.amount)) AS rewards
     FROM r_txs t
-    WHERE (t.payer=:who OR t.payee=:who) AND t.state=:state";
+    WHERE (t.payer=:who OR t.payee=:who) AND t.state IN(:state)";
   if ($asof) $sql .= " AND t.created<=:asof";
 
   extract(r\db_q($sql, compact(u\ray('who transfer state asof')))->fetchAssoc());
