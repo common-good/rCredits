@@ -1,6 +1,8 @@
 <?php
-namespace rCredits\SMS;
-use \rCredits as r;
+namespace rCredits\SMS; // typically abbreviated as "rSMS"
+use \rCredits\API as i;
+use \rCredits\Utilities as u;
+
 /**
  * @file
  * rCredits SMS Call class
@@ -25,7 +27,7 @@ class call {
     $this->number = $number;
     $this->message = trim($message);
     $this->confirmed = FALSE;
-    r\r_log('SMSin', $message, $number);
+    i\r_log('SMSin', $message, $number);
   }
 
   /**
@@ -55,25 +57,25 @@ class call {
    *   Message is the error message to send the caller.
    */
   function validate_caller() {
-    if (!($this->uid = \sms_user_get_uid($this->number))) $this->uid = r\create_user(array('number' => $this->number));
+    if (!($this->uid = \sms_user_get_uid($this->number))) $this->uid = i\create_user(array('number' => $this->number));
     if (!$this->uid) die('missing uid');
 
     $account = \user_load($this->uid);
-    $todo = todo($this->number);
+    $todo = i\todo($this->number);
     if (is_object($todo)) $todo = $todo->todo;
-    if (r\is_temp_account($account->uid)) {
+    if (i\is_temp_account($account->uid)) {
       if($todo != 'setup name') {
-        todo($this->number, 'setup name', '');
+        i\todo($this->number, 'setup name', '');
         return tt("what's your name?");
       }
       $name = setup_name($account, $this->message); // actually full_name
-      todo($this->number, 'setup email', '');
+      i\todo($this->number, 'setup email', '');
       $id = $account->credit_id;
       return tt("what's your email?", compact('id', 'name'));
     } elseif ($todo == 'setup email' and !$account->mail) {
       setup_email($account, $this->message);
-      todo($this->number, '', '');
-      $balance = r\format_amount(r\give_signup_incentive($this->uid));
+      i\todo($this->number, '', '');
+      $balance = u\format_amount(i\give_signup_incentive($this->uid));
       return tt('your account is ready', compact('balance'));
 /*    } elseif (!\user_access('transact via sms', $account)) { // user does not have permission to use the rCredits SMS interface
       // send the user an email here?
@@ -95,8 +97,8 @@ class call {
    *   "who" identifiers chosen in the "name" command cannot be me, r, u, us, or usd.
    */
   function parse() {
-    $todo = todo($this->number);
-    todo($this->number, '', ''); // todo and nonce are only good once
+    $todo = i\todo($this->number);
+    i\todo($this->number, '', ''); // todo and nonce are only good once
 
     $message = trim($this->message);
     $commands = $GLOBALS['SMS commands'];
@@ -142,7 +144,7 @@ class call {
    * @return string: the confirmation request
    */
   function confirm($type, $info) {
-    $info['nonce'] = todo($this->number, serialize(get_object_vars($this)));
+    $info['nonce'] = i\todo($this->number, serialize(get_object_vars($this)));
     return tt("confirm $type|please confirm", $info);
   }
   
@@ -186,9 +188,9 @@ class call {
     if (!$feature) $feature = @$this->parms['feature'] ?: 'helpme';
 
     foreach(array_keys($GLOBALS['SMS commands']) as $try) {
-      if (r\abbreviates($feature, $try)) {
+      if (u\abbreviates($feature, $try)) {
         // we might want to customize the messages here (see @todo above)
-        todo($this->number, "help {$try}2", '');
+        i\todo($this->number, "help {$try}2", '');
         return tt("help $try");
       }
     }
@@ -202,7 +204,7 @@ class call {
   function do_more() {
     $todo = $this->parms['todo'];
     if (isset($GLOBALS['SMS messages'][$todo])) {
-      todo($this->number, $todo . '2', ''); // queue up tertiary help
+      i\todo($this->number, $todo . '2', ''); // queue up tertiary help
       return tt($todo);
     }
     return tt('help helpme');
@@ -212,8 +214,8 @@ class call {
    * Give the caller useful information.
    */
   function do_information() {
-//    todo($this->number, 'account info2', ''); // queue up more info (not used yet)
-    return tt('account info', r\credit_info($this->uid)->fancy);
+//    i\todo($this->number, 'account info2', ''); // queue up more info (not used yet)
+    return tt('account info', i\credit_info($this->uid)->fancy);
   }
 
   /**
@@ -221,7 +223,7 @@ class call {
    */
   function do_get() {
     extract($this->parms, EXTR_PREFIX_ALL, 'my');
-    list ($message, $args, $confirm) = r\get(strtolower($my_rusd), $my_amount, $this->uid, $this->confirmed);
+    list ($message, $args, $confirm) = i\get(strtolower($my_rusd), $my_amount, $this->uid, $this->confirmed);
     return $confirm ? $this->confirm($message, $args) : tt($message, $args);
   }
 
@@ -266,8 +268,7 @@ class call {
       } else $where .= "payer=$other_uid";
     }
 
-    $sql = "SELECT * FROM r_txs WHERE $where ORDER BY xid DESC LIMIT 1";
-    $result = db_query($sql)->fetchAssoc();
+    $result = i\last_tx($where);
     if (!$result) return tt('undo no match');
     $result['date'] = strftime('%m/%d/%Y',$result['created']);
     extract($result, EXTR_PREFIX_ALL, 'old');
@@ -280,7 +281,7 @@ class call {
     // !!! Here we would test for pending transactions
     } else {
       $rewards = unserialize($result['data']);
-      list ($message, $args, $confirm) = r\transfer('payment', $result['payer'],
+      list ($message, $args, $confirm) = i\transfer('payment', $result['payer'],
         $result['payee'], -$result['amount'], 'undo '.$result['payer_for'],
 	      TRUE, $rewards);
     }
@@ -301,7 +302,7 @@ class call {
    *   pay who (pay the most recent invoice from someone)
    *   other syntaxes including who and amount (create a new transaction)
    * @todo get the sql out of here (no reference to specific tables)
-   *   probably by $old = r\get_tx($info)
+   *   probably by $old = i\get_tx($info)
    */
   function do_payment() {
     extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, what, and maybe xid
@@ -310,27 +311,27 @@ class call {
     if ($this->confirmed and isset($my_xid)) {
       $where = "xid=$my_xid";
     } else {
-      $where = "state=:state AND payer={$this->uid}";
+      $tx_pending = TX_PENDING;
+      $where = "state=$tx_pending AND payer={$this->uid}";
       if (isset($my_who)) {
         if (is_array($other_uid = $this->identify($my_who, $this->uid))) return tt($other_uid); // return if error
         $where .= " AND payee=$other_uid";
       }
     }
-    $sql = "SELECT * FROM r_txs WHERE $where ORDER BY xid DESC LIMIT 1"; 
-    $result = db_query($sql, array(':state' => TX_PENDING))->fetchAssoc();
+    $result = i\last_tx($where);
     if (!$result) return tt('no matching invoice');
 
     extract($result, EXTR_PREFIX_ALL, 'old');
 
     if (!$this->confirmed) {
       $this->xid = $old_xid; // save for after possible confirmation
-      $other = r\user_field('full_name', $old_payee);
-      $amount = r\format_amount($old_amount);
+      $other = i\user_field('full_name', $old_payee);
+      $amount = u\format_amount($old_amount);
       $date = strftime('%m/%d/%Y',$result['created']);
-      return $this->confirm('invoice', compact(r\ray('other amount date')));
+      return $this->confirm('invoice', compact(u\ray('other amount date')));
     }
     
-    list ($message, $args) = r\pay_invoice($old_xid);
+    list ($message, $args) = i\pay_invoice($old_xid);
     return tt($message, $args);
   }
 
@@ -340,8 +341,8 @@ class call {
   function do_transfer($type) {
     extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, and what
 
-    if (is_array($other_uid = r\identify($my_who, $this->uid, TRUE))) return tt($other_uid); // return if error
-    list ($message, $args, $confirm) = r\transfer($type, $this->uid, $other_uid, $my_amount, $my_what, $this->confirmed);
+    if (is_array($other_uid = i\identify($my_who, $this->uid, TRUE))) return tt($other_uid); // return if error
+    list ($message, $args, $confirm) = i\transfer($type, $this->uid, $other_uid, $my_amount, $my_what, $this->confirmed);
     return $confirm ? $this->confirm($message, $args) : tt($message, $args);
   }
   

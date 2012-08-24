@@ -55,7 +55,7 @@ form.labeled div.form-radios {margin-left:105px;}
 #rcreditswebtxs-form {display:inline-block; width:100%; height:45px; text-align:left;}
 #rcreditswebtxs-form div.form-item-tx-period {display:inline-block;}
 #rcreditswebtxs-form div.form-item-tx-task {display:inline-block;}
-#rcreditswebtxs-form div.form-type-select label {display:inline-block; width:225px;} 
+#rcreditswebtxs-form div.form-type-select label {display:inline-block; width:215px;} 
 #rcreditswebtxs-form  input[type="submit"] {margin:5px 0px 0px 10px;}
 
 #rcreditswebtxs-form col.tx-selector {width:10px;}
@@ -78,14 +78,14 @@ form.labeled div.form-radios {margin-left:105px;}
 
 /* Sharing form */
 #rcreditswebshare-form label {display:inline-block;}
-#rcreditswebshare-form div.form-item-change-permission label {width:290px; margin-left:0px;}
+#rcreditswebshare-form div.form-item-change-permission label {width:300px; margin-left:0px;}
 #rcreditswebshare-form div#edit-subtitle label span {font-weight:normal;}
 #rcreditswebshare-form div.form-item-change-permission {display:inline-block;}
 
 #rcreditswebshare-form input#edit-new-share {width:150px;}
 #rcreditswebshare-form div.form-item-new-share {display:inline-block;}
-#rcreditswebshare-form div.form-item-new-share label {width:265px;}
-#rcreditswebshare-form div.form-item-new-share div.description {margin-left:270px;}
+#rcreditswebshare-form div.form-item-new-share label {width:255px;}
+#rcreditswebshare-form div.form-item-new-share div.description {margin-left:260px;}
 #rcreditswebshare-form div.form-item-new-permission {display:inline-block; vertical-align:top;}
 
 /* Cell */

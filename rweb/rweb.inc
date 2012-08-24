@@ -1,6 +1,10 @@
 <?php
-namespace rCredits\Web;
-use \rCredits as r;
+namespace rCredits\Web; // typically abbreviated as "rWeb"
+use \rCredits\SMS as rSMS;
+use \rCredits\API as i;
+use \rCredits\Utilities as u;
+use \rCredits as r; // get rid of this
+
 /**
  * @file
  * rWeb include file
@@ -38,12 +42,13 @@ $GLOBALS['Web messages'] = array(
   'your account is ready' => t('<p></p><p>Welcome to rCredits! Your account id is @credit_id. Your starting balance is @balance.</p><p>After you confirm your email address (by clicking the link in the email we sent you), come back here and log in.</p><p>Pretend to buy and sell just as you would in a typical month. We need that information, to make sure that rCredits don\'t get stuck anywhere.</p><p>Experiment! Have fun! (and please let us know if you run into any glitches)'),
   'nothing selected' => t('You did not select anything'),
   'undo incomplete' => t('The undo operation is not yet complete.'),
+  'ambiguous other' => t('"@who" is associated with more than one rCredits account:<br>@list'),
 );
 
 /*
 function transact_page() {
   drupal_add_css(\drupal_get_path('module', 'rweb') . '/rweb.css', array('group' => CSS_THEME, 'weight' => -9));
-  foreach (r\ray('payment charge exchange') as $one) $$one = render(\rweb_block_view($one));
+  foreach (u\ray('payment charge exchange') as $one) $$one = render(\rweb_block_view($one));
   return array('#markup' => ('<div id="transact_page">' . $payment . $charge . $exchange . '</div>'));
 }
 */
@@ -64,11 +69,11 @@ function util($arg) {
       (10, $uid, 2),
       (2, $uid2, 2);
 EOF;
-    \db_query($sql);
-    r\give_signup_incentive($uid);
-    r\give_signup_incentive($uid2);
+    r\db_q($sql);
+    i\give_signup_incentive($uid);
+    i\give_signup_incentive($uid2);
   }
-  if ($arg == 'clear_sessions') \db_query('TRUNCATE table SESSIONS');
+  if ($arg == 'clear_sessions') r\db_q('TRUNCATE table SESSIONS');
   
   drupal_set_message("Doing rCredits Util '$arg'...");
   drupal_goto('handy');
@@ -113,10 +118,10 @@ EOF;
   return "<style>div.develw div {display:inline; margin-right:20px;}</style><div class='develw'>\n$result</div>";
 }
 
-function show_form($function) {
-  r\r_log('WEBout', "{$function}_form", r\be_who());
+function show_form($function, $arg1 = '') {
+  i\r_log('WEBout', "{$function}_form", i\be_who());
   drupal_add_css(\drupal_get_path('module', 'rweb') . '/rweb.css', array('group' => CSS_THEME, 'weight' => -9));
-  $form = drupal_get_form("rCredits\\Web\\{$function}_form");
+  $form = drupal_get_form("rCredits\\Web\\{$function}_form", $arg1);
 //  $form['#attached']['css'] = array(\drupal_get_path('module', 'rweb') . '/rweb.css');
   $form['#attributes']['class'][] = 'rweb';
 
@@ -140,42 +145,25 @@ function show_form($function) {
  *   would define the entire interface to the rcredits core (ultimately to be moved to a separate VPS)
  */
 function account_form($form, &$form_state) {
-  $myid = r\be_who();
+  $myid = i\be_who();
   
-  $result = db_query("SELECT shared_uid, permission FROM r_shared_accounts WHERE shared_with=" . $myid);
-  while ($row = $result->fetchAssoc()) $accounts[$row['shared_uid']] = $row['permission'];
-  if ($uids = @$_SESSION['account_choices']) {
-    foreach (unserialize($uids) as $uid => $permission) $accounts[$uid] = max(@$accounts[$uid], $permission); // add or upgrade
-  } else $accounts[$myid] = count($GLOBALS['share permissions']) - 1; // don't give current account all permission if it's a share
-  $_SESSION['account_choices'] = serialize($accounts);
-  if (!r\be_who()) r\be_who($myid);
-  
+  if (!($accounts = i\account_choices())) return FALSE;
   foreach ($accounts as $uid => $zot) {
-    $balance = r\format_amount(r\credit_info($uid)->balance);
-    $accounts[$uid] = r\user_field('full_name', $uid) . ": $balance";
+    $balance = u\format_amount(i\credit_info($uid)->balance);
+    $accounts[$uid] = i\user_field('full_name', $uid) . ": $balance";
   }
 
-  $credit_id = r\user_field('credit_id', $myid);
-  $full_name = r\user_field('full_name', $myid);
+  $credit_id = i\user_field('credit_id', $myid);
+  $full_name = i\user_field('full_name', $myid);
   $onchange = "this.form.submit();";
   $account = form_field('select', t('Account:'), t('(Select an account)'), 
     dft($myid) + attrib(compact('onchange')), $accounts);
   $one_account = form_field('item', t('Account') . ": <span>$full_name ($credit_id)</span>");
   $one_balance = form_field('item', t('Current Balance') . ": <span>$balance</span>");
   $submit = form_field('submit');
-  $form = count($accounts) == 1 ? compact(r\ray('one_account one_balance')) : r\prefix_keys('account_', compact(r\ray('account submit')));
+  $form = count($accounts) == 1 ? compact(u\ray('one_account one_balance')) : u\prefix_keys('account_', compact(u\ray('account submit')));
   
 //  $form['#attributes']['class'] = array('labeled');
-/*
-  $js = <<<EOF
-    function nixwhat(op) {
-      var c0=document.getElementById('edit-' + op + '-type-0');
-      jQuery('.form-item-' + op + '-what').css('visibility', c0.checked ? 'hidden' : 'visible');
-    }
-    nixwhat('payment');
-    nixwhat('charge');
-EOF;
-*/
   $js = <<<EOF
     function nixwhat() {
       var c0=document.getElementById('edit-goods-0');
@@ -189,7 +177,9 @@ EOF;
 
 function account_form_submit($form, &$form_state) {
   extract($form_state['values']);
-  r\be_who($account_account);
+  $old_uid = i\be_who();
+  i\be_who($account_account);
+  if (i\access('can create transactions', $old_uid) != i\access('can create transactions', $account_account)) menu_rebuild();
 }
 
 function tx_form($form, &$form_state) {
@@ -224,7 +214,7 @@ function tx_form_submit($form, &$form_state) {
 function payment_form($form, &$form_state) {
   if ($confirm = sure_form($form_state)) return $confirm;
 
-  $form = r\prefix_keys('payment_', array(
+  $form = u\prefix_keys('payment_', array(
     'description' => form_field('item', t('Payment')),
     'amount' => form_field('textfield', '$', t('Amount to pay')),
     'who' => form_field('textfield', 'to:', t('Pay whom?')),
@@ -250,19 +240,26 @@ function payment_form_submit($form, &$form_state, $op = 'payment') {
 */
 /**
  * Buy Now
+ * @todo: change css to hide "Buy Now" title
 foreach (array('', 'Contribution
 $title = isset($_POST['button']) ? $_POST['button'] : '';
 $title = (in_array(strtolower($title), rCredits\ray('Buy Now, Contribute, Donate, Buy, Pay')) ? ucwords($title) : 'Pay') . ' With rCredits';
 echo "<h1>$title</h1>\n";
  */
 function buy_now_form($form, &$form_state, $action = 'Payment', $verb = 'Pay') {
+  global $user;
+  if (!$user->uid) return array(form_field('item', t('Please log in, to pay with rCredits.')));
+  if (@$_SESSION['buy_now']) {
+    extract(unserialize($_SESSION['buy_now']), EXTR_PREFIX_ALL, 'my'); // login_form() stores this
+    // NO! Drupal calls form several times. Null it out in login instead. $_SESSION['buy_now'] = NULL;
+  }
+ 
   if ($confirm = sure_form($form_state)) return $confirm;
-  extract(plain($_POST), EXTR_PREFIX_ALL, 'my');
-  if (isset($my_what)) list ($my_amount, $my_company, $my_item) = array($my_amount, $my_who, $my_what);
+  if (isset($my_what)) list ($my_company, $my_item) = array($my_who, $my_what);
   if (!isset($my_amount)) $my_amount = $my_company = $my_item = ''; else $my_amount = @number_format($my_amount, 2);
 
   $disabled = array('disabled' => 1);
-  if (!($name = r\db_lookup('full_name', 'users', "credit_id='$my_company'"))) $name = 'Unregistered Company'; 
+  if (!($name = i\user_field('full_name', "credit_id='$my_company'"))) $name = 'Unregistered Company'; 
   $verblower = strtolower($verb);
   
   $form = array(
@@ -304,7 +301,7 @@ function example_store_form($form, &$form_state) {
 function charge_form($form, &$form_state) { // almost exactly like payment
   if ($confirm = sure_form($form_state)) return $confirm;
 
-  $form = r\prefix_keys('charge_', array(
+  $form = u\prefix_keys('charge_', array(
     'description' => form_field('item', t('Charge / Invoice')),
     'amount' => form_field('textfield', '$', t('Amount to charge')),
     'who' => form_field('textfield', 'from:', t('Charge whom?')),
@@ -328,14 +325,14 @@ function charge_form_submit($form, &$form_state) {payment_form_submit($form, $fo
 function exchange_form($form, &$form_state) {
   if ($confirm = sure_form($form_state)) return $confirm;
 
-  $myid = r\be_who();
+  $myid = i\be_who();
   if ($confirm = sure_form($form_state)) return $confirm; // confirm only getUSD
-  $request = r\format_amount(r\user_field('demand', $myid));
-  $demand = r\credit_info($myid)->fancy['total_demand'];
+  $request = u\format_amount(i\user_field('demand', $myid));
+  $demand = i\credit_info($myid)->fancy['total_demand'];
 
   $form = array(
     'description' => form_field('item', t('Get rCredits / USD')),
-    'request' => form_field('item', tt('request & demand', compact(r\ray('request demand')))),
+    'request' => form_field('item', tt('request & demand', compact(u\ray('request demand')))),
     'amount' => form_field('textfield', '$', t('Amount to exchange')),
 //    'way' => form_field('radios', 'trade:', '', array(), array(t('rCredit for cash'), t('cash for rCredits'))),
 //    'who' => form_field('textfield', 'to/from:', t('Exchange with whom?')),
@@ -350,10 +347,10 @@ function exchange_form($form, &$form_state) {
 function exchange_form_validate($form, &$form_state) {
   if (confirming_v($form_state)) return;
 
-  $myid = r\be_who();
+  $myid = i\be_who();
   extract($form_state['values']);
   if (blank_field(compact('amount'))) return;
-  list ($message, $args, $confirm) = r\get($op == 'Get rCredits' ? 'r' : 'usd', $amount, $myid, FALSE);
+  list ($message, $args, $confirm) = i\get($op == 'Get rCredits' ? 'r' : 'usd', $amount, $myid, FALSE);
   if ($confirm) return confirm(tt($message, $args), $form_state);
   if (!@$args['success']) say($message, $args, 'amount');
 }
@@ -361,18 +358,18 @@ function exchange_form_validate($form, &$form_state) {
 function exchange_form_submit($form, &$form_state) {
   if (confirming_s($form_state)) return;
 
-  $myid = r\be_who();
+  $myid = i\be_who();
   extract($form_state['values']);
-  list ($message, $args, $confirm) = r\get($op == 'Get rCredits' ? 'r' : 'usd', $amount, $myid, TRUE);
+  list ($message, $args, $confirm) = i\get($op == 'Get rCredits' ? 'r' : 'usd', $amount, $myid, TRUE);
   say($message, $args, @$args['success'] ? '' : 'amount'); // error or success
   if ($op == 'Get rCredits') {
-    if ($amount < RCREDITS_MIN_DEMAND) say('demand too small');
-    if (!user_access('Partner')) say('demand not yet');
+    if ($amount < i\min_demand()) say('demand too small');
+    if (!i\access('partner')) say('demand not yet');
   }
 }
 /*
 function manage_form($form, &$form_state) {
-  $form = r\prefix_keys('manage_', array(
+  $form = u\prefix_keys('manage_', array(
     'description' => form_field('item', t('Manage')),
     'transactions' => form_field('submit', '', t('Submit button'), 'Manage Transactions'),
     'account' => form_field('submit', '', t('Submit button'), 'Manage Account'),
@@ -392,61 +389,68 @@ function manage_form_submit($form, &$form_state) {
  * Manage Transactions
  * @todo put transaction query in rcredits.inc instead (no reference to specific tables here)
  */
-function txs_form($form, &$form_state) {
+function txs_form($form, &$form_state, $edit_xid = '') {
+  global $base_path;
   if ($confirm = sure_form($form_state)) return $confirm; // confirm only getUSD
+  if ($edit_xid) return tx_edit($edit_xid);
 
-  $myid = r\be_who();
+  $myid = i\be_who();
   extract(tx_days(), EXTR_PREFIX_ALL, 'tx');
   $ending = time();
   $starting = strtotime($tx_period == '0' ? '1jan' : ((1 - $tx_days[$tx_period]) . ' days'), $ending);
+  $can_create = i\access('can create transactions');
 
-  $headers = r\ray('#,Date,Name,From you,To you,Status,Purpose,Rewards');
+  $headers = u\ray('#,Date,Name,From you,To you,Status,Purpose,Rewards');
   $states = array(TX_DONE => '&#10004;', TX_PENDING => 'ok?', TX_DENIED => 'disputed');
-  $types = r\tx_types("'rebate', 'bonus'");
+  $colors = array(TX_DONE => 'green', TX_PENDING => 'orange', TX_DENIED => 'red');
   $sql = <<<EOF
     SELECT t.*,
       (SELECT full_name FROM users WHERE uid = IF(t.payer = $myid, t.payee, t.payer)) AS name,
       IF(t.payer = $myid, t.payer_for, t.payee_for) AS purpose
     FROM r_txs t 
-    WHERE t.type NOT IN($types)
+    WHERE t.type NOT IN (:rebate, :bonus)
     AND $myid IN (t.payer, t.payee) 
-    AND (t.state IN(:tx_done, :tx_pending) OR (t.state = :tx_denied AND t.payee = $myid))
+    AND (t.state IN(:done, :pending) OR (t.state = :denied AND t.payee = $myid))
     AND t.created >= $starting AND t.created <= $ending
     ORDER BY t.xid DESC
 EOF;
-  $txs = db_query($sql, array(':tx_done' => TX_DONE, ':tx_pending' => TX_PENDING, ':tx_denied' => TX_DENIED));
+  $tx_map = array('done' => TX_DONE, 'pending' => TX_PENDING, 'denied' => TX_DENIED, 'rebate' => TX_REBATE, 'bonus' => TX_BONUS);
+  $txs = r\db_q($sql, $tx_map);
   $list = array();
   while ($row = $txs->fetchAssoc()) {
     extract($row, EXTR_PREFIX_ALL, 'one');
-    $tid = r\tid_from_xid($myid, $one_xid);
+    $tid = i\tid_from_xid($myid, $one_xid);
     $data = unserialize($one_data);
-    $type = r\tx_type($one_type);
-    $reward = @$data[$type == 'payment' ? 'rebate' : 'bonus'];
-    $reward = $reward ? number_format($reward * $one_amount, 2) : '';
+    $is_reward = ($one_type != TX_TRANSFER);
+    $reward = @$data[$one_payer == $myid ? 'rebate' : 'bonus'];
+    $reward = $reward ? number_format($reward, 2) : '';
     $amount = number_format($one_amount, 2);
-    if ($type != 'payment' and $type != 'charge') list($amount, $reward) = array('', $amount); // show interest and signup bonus as rewards
+    if ($is_reward) list($amount, $reward) = array('', $amount); // show interest and signup bonus as rewards
     list ($from_you, $to_you) = $one_payer == $myid ? array($amount, '') : array('', $amount);
     $state = ($one_state == TX_PENDING and $one_payee == $myid) ? 'pending' : $states[$one_state];
+    $color = $colors[$one_state];
+    $state = "<span style='color:$color;'>$state</span>";
+    if ($can_create and !$is_reward) $one_purpose = "<a href='manage-transactions/$one_xid'><img src='{$base_path}images/edit-icon.png' width=20 height=20 border=0 /></a> &nbsp; $one_purpose";
     $list["x$one_xid"] = array($tid, date('d-M', $one_created), $one_name, $from_you, $to_you, $state, $one_purpose, $reward);
   }
 
   $cols = array(); // note: this all fails because Drupal does not recognize colgroups in tableselect, so pass it to show_form
-  foreach (r\array_prefix('tx-', array_merge(array('selector'), $headers)) as $class) { // Drupal will insert a selector column
+  foreach (u\array_prefix('tx-', array_merge(array('selector'), $headers)) as $class) { // Drupal will insert a selector column
     $class = str_replace(' ', '-', $class == 'tx-#' ? 'tx-tid' : strtolower($class));
     $cols[] = compact('class');
   }
   $tx_other = array('header' => $headers, 'multiple' => TRUE, 'empty' => tt('no txs')); // 'colgroups' => array($cols) fails
-  $tx_select = form_field('tableselect', '', '', $tx_other, $list);
   
-  $tasks = array('ok' => 'Approve', 'undo' => 'Dispute/Cancel/Undo', 'edit' => 'Edit description'); // could have used drupal_map_assoc
-  $form = r\prefix_keys('tx_', array(
+//  $tasks = array('ok' => 'Approve', 'undo' => 'Dispute/Cancel/Undo', 'edit' => 'Edit description'); // could have used drupal_map_assoc
+  $tasks = array('ok' => 'Approve', 'undo' => 'Dispute/Cancel/Undo'); // could have used drupal_map_assoc
+  $form = u\prefix_keys('tx_', array(
     'period' => form_field('select', t('Show transactions for the past'), '', dft($tx_period), $tx_days),
     'show' => form_field('submit', NULL, t('Submit button'), 'Show'),
 
     'summary' => form_field('markup', '', '', array('markup' => tx_summary($starting, $ending))),
-    'transactions' => $tx_select,
-    'task' => form_field('select', t('With the selected transactions:'), '', array(), $tasks),
-    'go' => form_field('submit', NULL, t('Submit button'), 'Go'),
+    'transactions' => form_field('tableselect', '', '', $tx_other, $list),
+    'task' => $can_create ? form_field('select', t('With the selected transactions:'), '', array(), $tasks) : NULL,
+    'go' => $can_create ? form_field('submit', NULL, t('Submit button'), 'Go') : NULL,
   ));
   $form['#colgroup'] = $cols; // pass this to show_form()
   return $form;
@@ -471,12 +475,12 @@ function txs_form_submit($form, &$form_state) {
   }
   
   // $op == 'Go' (fiddling with the old transactions)
-  $myid = r\be_who();
+  $myid = i\be_who();
   foreach ($tx_transactions as $key => $xid) if ($xid) {
     $xid = substr($xid, 1); // ignore the leading 'x'
-    $result = db_query("SELECT * FROM r_txs WHERE xid = $xid LIMIT 1")->fetchAssoc();
+    $result = i\last_tx('xid=:xid', compact('xid'));
     extract($result, EXTR_PREFIX_ALL, 'my');
-    $tid = r\tid_from_xid($myid, $xid);
+    $tid = i\tid_from_xid($myid, $xid);
     $xname = "tx_transactions[x$xid]";
     if ($tx_task == 'ok') {
       if ($my_payer != $myid) {
@@ -484,12 +488,12 @@ function txs_form_submit($form, &$form_state) {
       } elseif ($my_state != TX_PENDING) {
         say("tid|can't ok if done", compact('tid'), $xname);
       } else {
-        list ($message, $args) = r\pay_invoice($xid);
+        list ($message, $args) = i\pay_invoice($xid);
         say("tid|$message", $args);
       }
     }
     if ($tx_task == 'undo') {
-      list ($message, $args) = r\undo_tx($xid);
+      list ($message, $args) = i\undo_tx($xid);
       say("tid|$message", $args + compact('tid'));
     }
     if ($tx_task == 'edit') {
@@ -500,14 +504,49 @@ function txs_form_submit($form, &$form_state) {
   }
 }
 
+function tx_edit($xid) {
+  if (!i\access('can create transactions')) return FALSE;
+
+  $my_uid = i\be_who();
+  extract(r\db_get_record('r_txs', 'xid=:xid', '*', compact('xid')));
+  $amount = u\format_amount($amount);
+  $tofrom = $payer == $my_uid ? 'to' : 'from';
+  $who = i\user_field('full_name', $payer == $my_uid ? $payee : $payer);
+  $role = $payer == $my_uid ? 'payer' : 'payee';
+  $purpose = $payer == $my_uid ? $payer_for : $payee_for;
+  
+  $form = array(
+    'description' => form_field('item', t('Edit Description')),
+    'review' => form_field('item', "$amount $tofrom $who"),
+    'purpose' => form_field('textfield', t('Purpose'), '', dft($purpose)),
+    'go' => form_field('submit', NULL, t('Submit button'), 'Update'),
+    'xid' => form_field('hidden', '', '', $xid),
+    'field' => form_field('hidden', '', '', $role . '_for'),
+    
+    '#validate' => array('rCredits\\Web\\tx_edit_validate'),
+    '#submit' => array('rCredits\\Web\\tx_edit_submit'),
+  );
+  return $form;
+}
+
+function tx_edit_validate($form, &$form_state) {
+}
+
+function tx_edit_submit($form, &$form_state) {
+  extract($form_state['values']);
+  // FAILS (dunno why) r\set_tx_field($field, $purpose, $xid);
+  r\db_q("UPDATE r_txs SET $field=:purpose WHERE xid=:xid", compact('purpose', 'xid'));
+  drupal_goto('members/manage-transactions');
+}
+
 function tx_summary($starting, $ending) {
-  $myid = r\be_who();
+  $myid = i\be_who();
   $previous_ending = strtotime('-1 days', $starting);
-  extract($now_info = (array) r\credit_info($myid, TX_DONE, $ending), EXTR_PREFIX_ALL, 'now');
-  extract($pending_info = (array) r\credit_info($myid, TX_PENDING, $ending), EXTR_PREFIX_ALL, 'pending');
-  extract($old_info = (array) r\credit_info($myid, TX_DONE, $previous_ending), EXTR_PREFIX_ALL, 'old');
+  extract($now_info = (array) i\credit_info($myid, TX_DONE, $ending), EXTR_PREFIX_ALL, 'now');
+  extract($pending_info = (array) i\credit_info($myid, TX_PENDING, $ending), EXTR_PREFIX_ALL, 'pending');
+  extract($old_info = (array) i\credit_info($myid, TX_DONE, $previous_ending), EXTR_PREFIX_ALL, 'old');
   $dif = $pfancy = array();
-  foreach (r\ray('gross_in_proper gross_out rewards') as $key) {
+  foreach (u\ray('gross_in_proper gross_out rewards') as $key) {
     $dif[$key] = number_format($now_info[$key] - $old_info[$key], 2);
     $pfancy[$key] = number_format($pending_info[$key], 2);
   }
@@ -520,17 +559,17 @@ function tx_summary($starting, $ending) {
   $now_balance = '$' . number_format($now_balance, 2);
   $old_balance = '$' . number_format($old_balance, 2);
   
-  $classes = r\array_prefix('txsum-', r\ray('one tosign toyou fromsign fromyou rewardssign rewards balancesign balance'));
+  $classes = u\array_prefix('txsum-', u\ray('one tosign toyou fromsign fromyou rewardssign rewards balancesign balance'));
   $rows = array(
-    array('id' => 'txsum-dates', 'data' => r\ray("$starting,,,,,,,,$ending")),
-    array('id' => 'txsum-headers', 'data' => r\ray('Previous balance,,To You,,From You,,Rewards,,New balance')),
+    array('id' => 'txsum-dates', 'data' => u\ray("$starting,,,,,,,,$ending")),
+    array('id' => 'txsum-headers', 'data' => u\ray('Previous balance,,To You,,From You,,Rewards,,New balance')),
     array(
       'id' => 'txsum-now', 
-      'data' => r\ray("$old_balance | + | $dif_gross_in_proper | - | $dif_gross_out | + | $dif_rewards | = | $now_balance"),
+      'data' => u\ray("$old_balance | + | $dif_gross_in_proper | - | $dif_gross_out | + | $dif_rewards | = | $now_balance"),
     ),
     array(
       'id' => 'txsum-pending',
-      'data' => r\ray("<b>PENDING:</b> | + | $pfancy_gross_in_proper | - | $pfancy_gross_out | + | $pfancy_rewards | = | $pending_balance"),
+      'data' => u\ray("<b>PENDING:</b> | + | $pfancy_gross_in_proper | - | $pfancy_gross_out | + | $pfancy_rewards | = | $pending_balance"),
     ),
   );
   $attributes = array('id' => 'txsum');
@@ -538,7 +577,7 @@ function tx_summary($starting, $ending) {
   foreach ($classes as $class) $cols[] = compact('class');
   $colgroups = array($cols);
   $caption = $sticky = $empty = '';
-  return theme_table(compact(r\ray('header rows attributes caption colgroups sticky empty')));
+  return theme_table(compact(u\ray('header rows attributes caption colgroups sticky empty')));
 }
 
 /**
@@ -546,13 +585,13 @@ function tx_summary($starting, $ending) {
  *   if (is_null($choices = $element['#options'])) return '';
  */
 function contact_info_form($form, &$form_state) {
-  extract(plain((array) \user_load(r\be_who())), EXTR_PREFIX_ALL, 'my');
+  extract(plain((array) \user_load(i\be_who())), EXTR_PREFIX_ALL, 'my');
   
   $onchange = "print_state('edit-state',this.selectedIndex,'');";
   $form = array(
     'description' => form_field('item', t('Contact Information')),
     'full_name' => form_field('textfield', t('Full name:'), t('Your full legal name, properly capitalized'), dft($my_full_name)),
-    'phone' => form_field('textfield', t('Phone:'), t('Your primary phone (landline or cell)'), dft($my_phone ? r\format_phone($my_phone): '')),
+    'phone' => form_field('textfield', t('Phone:'), t('Your primary phone (landline or cell)'), dft($my_phone ? u\format_phone($my_phone): '')),
     'fax' => form_field('textfield', t('Fax:'), t(''), dft($my_fax)),
     'website' => form_field('textfield', t('Website:'), t(''), dft($my_website)),
     'country' => form_field('select', t('Country:'), t(''), dft($my_country) + attrib(compact('onchange'))),
@@ -573,15 +612,15 @@ function contact_info_form($form, &$form_state) {
 
 function contact_info_form_validate($form, &$form_state) {
   extract($info = plain($form_state['values']), EXTR_PREFIX_ALL, 'my');
-  if ($my_phone and !r\format_phone($my_phone, '+n')) say('bad phone', 'phone');
+  if ($my_phone and !u\format_phone($my_phone, '+n')) say('bad phone', 'phone');
 }
 
 function contact_info_form_submit($form, &$form_state) {
-  $account = \user_load(r\be_who());
+  $account = \user_load(i\be_who());
   extract($info = plain($form_state['values']), EXTR_PREFIX_ALL, 'my');
   $info['website'] = str_replace('http://', '', strtolower(@$my_website));
-  if ($my_phone) $info['phone'] = r\format_phone($my_phone, '+n');
-  $info['short_name'] = r\short_name($my_full_name);
+  if ($my_phone) $info['phone'] = u\format_phone($my_phone, '+n');
+  $info['short_name'] = u\short_name($my_full_name);
   user_save($account, $info);
 }
 
@@ -592,17 +631,17 @@ function no_selection($list) {
 
 function share_form($form, &$form_state) {
   if ($confirm = sure_form($form_state)) return $confirm; // confirm only getUSD
-  $my_uid = r\be_who();
-  $account_identifiers = r\account_name($my_uid);
-  $headers = r\ray('Account ID,Full name,Email,Permission');
+  $my_uid = i\be_who();
+  $account_identifiers = i\account_name($my_uid);
+  $headers = u\ray('Account ID,Full name,Email,Permission');
 
   $sql = <<<EOF
     SELECT u.name as username, credit_id, u.full_name, u.mail as email, s.shared_with, s.permission
     FROM r_shared_accounts s RIGHT JOIN users u ON u.uid = s.shared_with
-    WHERE s.shared_uid = $my_uid
+    WHERE s.shared_uid=:my_uid
     ORDER BY username
 EOF;
-  $result = db_query($sql);
+  $result = r\db_q($sql, compact('my_uid'));
   $list = array();
   while ($row = $result->fetchAssoc()) {
     extract($row);
@@ -626,31 +665,34 @@ EOF;
 
 function share_form_validate($form, &$form_state) {
   extract($form_state['values']);
-  if ($op == 'Go' and no_selection($shares)) return say('nothing selected');
+  if ($op == 'Go' and no_selection($shares)) {
+    if ($new_share) $op = 'Add'; else return say('nothing selected'); // user probably pressed Enter after specifying a new share
+  }
   if (confirming_v($form_state)) return;
   
   if ($op == 'Go') {
     $permission = $GLOBALS['share permissions'][$change_permission];
     confirm(tt('confirm share permission', compact('permission')), $form_state);
   } else { // $op == 'Add'
-    $myid = r\be_who();
+    $myid = i\be_who();
     if (blank_field(compact('new_share'))) return;
-    $uid = r\identify($new_share, $myid, FALSE, 'no self-sharing');
-    if (is_array($uid)) return say($uid, 'new_share');
-    if (r\db_lookup('1', 'r_shared_accounts', "shared_uid=$myid AND shared_with=$uid")) return say('already shared', 'new_share');
+    $uid = i\identify($new_share, $myid, FALSE, 'no self-sharing');
+    if (is_array($uid)) return say($uid, 'new_share'); // error returned by identify()
+    $alreay = r\db_lookup('1', 'r_shared_accounts', 'shared_uid=:myid AND shared_with=:uid', compact('myid', 'uid'));
+    if ($already) return say('already shared', 'new_share');
     $form_state['values']['shared_with'] = $uid; // save for submission handling
   }
 }
 
 function share_form_submit($form, &$form_state) {
   if (confirming_s($form_state)) return;
-  $shared_uid = r\be_who();
+  $shared_uid = i\be_who();
   
   extract($form_state['values']);
   if ($op == 'Add') {
     $permission = $new_permission;
-    $zot = \drupal_write_record('r_shared_accounts', compact(r\ray('shared_uid shared_with permission')));
-    $who = r\user_field('full_name', $shared_with);
+    $zot = \drupal_write_record('r_shared_accounts', compact(u\ray('shared_uid shared_with permission')));
+    $who = i\user_field('full_name', $shared_with);
     return say('report new share', compact('who'));
   }
   
@@ -658,19 +700,18 @@ function share_form_submit($form, &$form_state) {
   $permission = $GLOBALS['share permissions'][$change_permission];
   foreach ($shares as $key => $uid) if ($uid) {
     $shared_with = substr($uid, 1); // ignore the leading 'x'
-    $where = "WHERE shared_with=$shared_with AND shared_uid=$shared_uid LIMIT 1";
-    $sql = $change_permission ? "UPDATE r_shared_accounts SET permission=$change_permission $where" : "DELETE FROM r_shared_accounts $where";
-    \db_query($sql);
-    $account = r\user_field('full_name', $shared_with);
-    say('report share change', compact(r\ray('account permission')));
-//    $result = db_update('r_shared_accounts')->fields(compact('permission'))->condition('shared_with shared_by')))->fetchAssoc();
+    $where = "WHERE shared_with=:shared_with AND shared_uid=:shared_uid LIMIT 1";
+    $sql = $change_permission ? "UPDATE r_shared_accounts SET permission=:change_permission $where" : "DELETE FROM r_shared_accounts $where";
+    r\db_q($sql, compact(u\ray('shared_with shared_uid change_permission')));
+    $account = i\user_field('full_name', $shared_with);
+    say('report share change', compact(u\ray('account permission')));
   }
 }
 
 function cell_form($form, &$form_state) {
   if ($confirm = sure_form($form_state)) return $confirm; // confirm only deletion
   if (form_step($form_state, $info) == 'prove') {
-    $number = r\format_phone($form_state['storage']['values']['number']);
+    $number = u\format_phone($form_state['storage']['values']['number']);
     $form = array(
       'description' => form_field('item', t('Verify')),
       'subtext' => form_field('item', tt('verify cell', compact('number'))),
@@ -681,15 +722,15 @@ function cell_form($form, &$form_state) {
     return $form;
   }
 
-  $my_uid = r\be_who();
+  $my_uid = i\be_who();
   $headers = array('Cell Number');
 
-  $sql = "SELECT number FROM sms_user WHERE uid = $my_uid ORDER BY number";
-  $result = db_query($sql);
+  $sql = "SELECT number FROM sms_user WHERE uid=:my_uid ORDER BY number";
+  $result = r\db_q($sql, compact('my_uid'));
   $list = array();
   while ($row = $result->fetchAssoc()) {
     extract($row);
-    $list["x$number"] = array(r\format_phone($number));
+    $list["x$number"] = array(u\format_phone($number));
   }
 
   $form = array(
@@ -707,54 +748,57 @@ function cell_form_validate($form, &$form_state) {
   if (confirming_v($form_state)) return;
   extract($form_state['values']);
 
-  if ($op == 'Add') {
-    $myid = r\be_who();
-    if (blank_field(compact('number'))) return;
-    $number_internal = r\format_phone($number, '+n');
-    if (!$number_internal) return say('bad phone', 'number');
-    if ($result = r\db_get_record('sms_user', "number=$number_internal")) {
-      extract($result, EXTR_PREFIX_ALL, 'old');
-      if ($old_uid == $myid) return say('already cell', 'number');
-      extract(r\db_get_record('users', "uid=$old_uid", 'full_name, credit_id'));
-      $account = "$full_name ($credit_id)"; // maybe make the previous line and this a function
-      if (!r\is_temp_account($old_uid)) return say('cell taken', compact(r\ray('number account')), 'number');
-    }
-  } elseif ($op == 'Verify') {
+  if ($op == 'Verify') {
     if (strtoupper($code) == $_SESSION['nonce']) return;
     previous_state($form_state, 'bad nonce'); // can't just give error message, because then verification form persists
-  } else { // $op == remove
-    if (no_selection($cells)) return say('nothing selected');
+  } elseif ($op != 'Add') { // $op == remove
+    if (no_selection($cells)) {
+      if ($number) $op = 'Add'; else return say('nothing selected'); // user probably pressed Enter after specifying a new cell
+    }
     confirm(tt('confirm delete cell'), $form_state);
+  }
+
+  if ($op == 'Add') {
+    $myid = i\be_who();
+    if (blank_field(compact('number'))) return;
+    $number_internal = u\format_phone($number, '+n');
+    if (!$number_internal) return say('bad phone', 'number');
+    if ($result = r\db_get_record('sms_user', 'number=:number_internal', '*', compact('number_internal'))) {
+      extract($result, EXTR_PREFIX_ALL, 'old');
+      if ($old_uid == $myid) return say('already cell', 'number');
+      extract(r\db_get_record('users', 'uid=:old_uid', 'full_name, credit_id', compact('old_uid')));
+      $account = "$full_name ($credit_id)"; // maybe make the previous line and this a function
+      if (!i\is_temp_account($old_uid)) return say('cell taken', compact(u\ray('number account')), 'number');
+    }
   }
 }
 
 function cell_form_submit($form, &$form_state) {
   if (confirming_s($form_state)) return;
-  $uid = r\be_who();
+  $uid = i\be_who();
   
   extract($form_state['values']);
   if ($op == 'Add') {
     if ($info = previous_state($form_state)) return say($info, 'number'); // just returning from failed validation of step 2 ('prove')
-    $_SESSION['nonce'] = $nonce = r\nonce(); // don't use POST (user could peek)
-    r\SMS\send($number, tt('verification code', compact('nonce')));
+    $_SESSION['nonce'] = $nonce = u\nonce(); // don't use POST (user could peek)
+    rSMS\send($number, tt('verification code', compact('nonce')));
     return form_step($form_state, compact('number'), 'prove');
   }
 
   if ($op == 'Verify') {
     step_one($form_state); // no next step (back to original form)
     $status = SMS_USER_CONFIRMED;
-    $number = r\format_phone($number, '+n');
-    if ($old_uid = r\db_lookup('uid', 'sms_user', "number=$number")) {
-      r\merge_accounts($old_uid, r\be_who());
-    } else \drupal_write_record('sms_user', compact(r\ray('uid number status')));
+    $number = u\format_phone($number, '+n');
+    if ($old_uid = r\db_lookup('uid', 'sms_user', 'number=:number', compact('number'))) {
+      i\merge_accounts($old_uid, i\be_who());
+    } else \drupal_write_record('sms_user', compact(u\ray('uid number status')));
     return say('report new cell', compact('number'));
   }
     
   // $op == remove
   foreach ($cells as $key => $number) if ($number) {
     $number = substr($number, 1); // ignore the leading 'x'
-    $sql = "DELETE FROM sms_user WHERE number=$number LIMIT 1";
-    \db_query($sql);
+    r\db_q('DELETE FROM sms_user WHERE number=:number LIMIT 1', compact('number'));
     say('report delete cell', compact('number'));
   }
 }
@@ -978,7 +1022,7 @@ function register_form(&$form, &$form_state) {
   $required = array('required' => TRUE);
   $form += array(
     'full_name' => form_field('textfield', t('Full name:'), t('Your full legal name, properly capitalized'), $required),
-/*    'phone' => form_field('textfield', t('Phone:'), t('Your primary phone (landline or cell)'), dft($my_phone ? r\format_phone($my_phone): '')),
+/*    'phone' => form_field('textfield', t('Phone:'), t('Your primary phone (landline or cell)'), dft($my_phone ? u\format_phone($my_phone): '')),
     'fax' => form_field('textfield', t('Fax:'), t(''), dft($my_fax)),
     'website' => form_field('textfield', t('Website:'), t(''), dft($my_website)), */
     'country' => form_field('select', t('Country:'), t(''), dft($my_country) + attrib(compact('onchange'))),
@@ -1000,15 +1044,20 @@ function register_form(&$form, &$form_state) {
 
 function register_form_validate($form, &$form_state) {
   extract($form_state['values']);
-  $form_state['values']['short_name'] = r\short_name($full_name);
+  $form_state['values']['short_name'] = u\short_name($full_name);
 }
 
 function register_form_submit($form, &$form_state) {
   extract($form_state['values']);
 //  debug($form_state, '', 1);
-  $credit_id = r\make_credit_id($uid);
-  $balance = r\format_amount(r\give_signup_incentive($uid));
-  say('your account is ready', compact(r\ray('balance credit_id')));
+  $credit_id = i\make_credit_id($uid);
+  $balance = u\format_amount(i\give_signup_incentive($uid));
+  say('your account is ready', compact(u\ray('balance credit_id')));
+}
+
+function login_form(&$form, &$form_state) {
+  $_SESSION['account_choices'] = $_SESSION['being'] = NULL;
+  if (@$form_state['input']['amount']) $_SESSION['buy_now'] = serialize($form_state['input']);
 }
 
 /**
@@ -1058,7 +1107,7 @@ function sure_form(&$form_state, $title = 'Please Confirm') {
     'cancel' => form_field('submit', NULL, t("Don't do it"), 'Cancel'),
   );
   $form['#skip_duplicate_check'] = TRUE; // Confirm form fails duplication check, as the form values rarely change -- so skip it.
-  $form['#attributes'] = array('class' => r\ray('rweb confirmation'));
+  $form['#attributes'] = array('class' => u\ray('rweb confirmation'));
 
   drupal_add_js("document.getElementById('edit-confirm').focus();", array('type'=>'inline', 'scope'=>'footer'));  
 
@@ -1074,15 +1123,15 @@ function sure_form(&$form_state, $title = 'Please Confirm') {
 function transfer($info, $confirmed) {
   extract($info);
   $tx_type = $op == 'Pay' ? 'payment' : 'charge';
-  $myid = r\be_who();
-  if (blank_field(compact(r\ray('amount who')))) return NULL;
+  $myid = i\be_who();
+  if (blank_field(compact(u\ray('amount who')))) return NULL;
   if ($goods and trim($what) == '') return say('missing what', 'what');
   if (!$goods) $what = 'cash';
   $amount = str_replace(',', '', $amount); // ignore commas
   if (!is_numeric($amount)) return say('bad amount', 'amount');
-  if (is_array($other_uid = r\identify($who, $myid))) return say($other_uid[0], compact('who'), 'who');
+  if (is_array($other_uid = i\identify($who, $myid))) return say($other_uid[0], compact('who'), 'who');
 
-  list ($message, $args, $confirm) = r\transfer($tx_type, $myid, $other_uid, $amount, $what, $confirmed);
+  list ($message, $args, $confirm) = i\transfer($tx_type, $myid, $other_uid, $amount, $what, $confirmed);
   if ($confirm) return tt('confirm ' . $message, $args);
   if (@$args['success']) return say($message, $args);
   return say($message, $args, 'amount');
@@ -1096,33 +1145,32 @@ function transfer($info, $confirmed) {
  * @return confirmation message (FALSE if confirmation not appropriate -- Note that say() returns FALSE)
 
 function transfer($op, $info, $confirmed) {
-  $myid = r\be_who();
-  foreach (r\ray('who amount goods what') as $one) $$one = $info["{$op}_$one"];
-  if (blank_field(compact(r\ray('amount who')), $op . '_')) return NULL;
+  $myid = i\be_who();
+  foreach (u\ray('who amount goods what') as $one) $$one = $info["{$op}_$one"];
+  if (blank_field(compact(u\ray('amount who')), $op . '_')) return NULL;
   if ($goods and trim($what) == '') return say('missing what', $op . '_what');
   if (!$goods) $what = 'cash';
   $amount = str_replace(',', '', $amount); // ignore commas
   if (!is_numeric($amount)) return say('bad amount', $op . '_amount');
-  if (is_array($other_uid = r\identify($who, $myid))) return say($other_uid[0], compact('who'), $op . '_who');
+  if (is_array($other_uid = i\identify($who, $myid))) return say($other_uid[0], compact('who'), $op . '_who');
 
-  list ($message, $args, $confirm) = r\transfer($op, $myid, $other_uid, $amount, $what, $confirmed);
+  list ($message, $args, $confirm) = i\transfer($op, $myid, $other_uid, $amount, $what, $confirmed);
   if ($confirm) return tt('confirm ' . $message, $args);
   if (@$args['success']) return say($message, $args);
   return say($message, $args, $op . '_amount');
 }
 */
 
-function menu($title, $type, $function = NULL, $function_args = array(), $other = array()) {
+function menu($title, $type, $function = NULL, $function_args = array(), $access = 'member', $other = array()) {
   static $weight;
   if (function_exists($local_func = "\\rCredits\\Web\\$function")) $function = $local_func;
-
   return array_merge(array(
     'title' => $title,
     'type' => $type,
     'page callback' => $function,
     'page arguments' => $function_args,
-    'access callback' => 'user_access',
-    'access arguments' => array('member'),
+    'access callback' => 'rCredits\\API\\access',
+    'access arguments' => array($access),
     'weight' => @$weight - 1,
     'menu_name' => 'main-menu', 
     'module' => 'rweb',
@@ -1132,7 +1180,7 @@ function menu($title, $type, $function = NULL, $function_args = array(), $other 
 
 function form_field($type, $title = '', $description = '', $other = array(), $options = NULL, $ajax = array()) {
   if (!is_array($other)) $other = array(($type == 'item' ? 'markup' : 'value') => $other);
-  $field = r\prefix_keys('#', array_merge(compact(r\ray('type title description options')), $other));
+  $field = u\prefix_keys('#', array_merge(compact(u\ray('type title description options')), $other));
   return $field;
 }
 
@@ -1164,7 +1212,7 @@ function confirm($message, &$form_state) {$form_state['confirm'] = $message;}
  */
 function blank_field($fields, $prefix = '') {
   foreach ($fields as $key => $value) {
-    $prefixed = r\abbreviates($prefix, $key);
+    $prefixed = u\abbreviates($prefix, $key);
     $field = strtoupper($prefixed ? substr($key, strlen($prefix)) : $key);
     $actual_name = $prefixed ? $key : ($prefix . $key);
     if (trim($value) == '') {say('required field', compact('field'), $actual_name); return TRUE;}
@@ -1180,7 +1228,7 @@ function plain($array) {
 function tx_days() {
   $days = array('4' => '4 days', '30' => '30 days', '90' => '90 days', '180' => '6 months', '365' => '12 months', '0' => 'Year to date');
   $period = variable_get('rweb_tx_period', 30);
-  return compact(r\ray('days period'));
+  return compact(u\ray('days period'));
 }
 
 /**
@@ -1196,14 +1244,14 @@ function say($index, $args = array(), $error_field = '') {
   if (!is_array($args)) list ($args, $error_field) = array($error_field, $args); // allow either order, for easy 2-param calls
   $message = tt($index, $args);
   if ($error_field) \form_set_error($error_field, $message); else \drupal_set_message($message);
-  r\r_log('WEBout', $message, r\be_who());
+  i\r_log('WEBout', $message, i\be_who());
   return FALSE;
 }
 
 // one-line functions that need no explanation
-function tt($message, $subs = array()) {return r\tt($message, $subs, 'Web');}
-function block_def($info, $extra = array()) {return compact(r\ray('info cache'));} // also status, region, visibility, pages
-function block_view($subject, $content) {return compact(r\ray('subject content'));}
+function tt($message, $subs = array()) {return u\tt($message, $subs, 'Web');}
+function block_def($info, $extra = array()) {return compact(u\ray('info cache'));} // also status, region, visibility, pages
+function block_view($subject, $content) {return compact(u\ray('subject content'));}
 function disabled($value) {return array('value' => $value, 'disabled' => TRUE);}
 function dft($value) {return array('default_value' => $value);}
 function attrib($attribs) {return array('attributes' => $attribs);}

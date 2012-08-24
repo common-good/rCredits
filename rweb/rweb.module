@@ -9,7 +9,10 @@
  * echo render(rweb_block_view('blockname'));)
  */
 
-use rCredits as r;
+use \rCredits\Web as rWeb;
+use \rCredits\API as i;
+use \rCredits\Utilities as u;
+
 require_once __DIR__ . '/../rcredits.inc';
 require_once __DIR__ . '/rweb.inc';
 
@@ -22,7 +25,7 @@ define('RWEB_BLOCKS', 'account');
  */
 function rweb_block_info() {
   $info = array();
-  foreach (r\ray(RWEB_BLOCKS) as $one) {
+  foreach (u\ray(RWEB_BLOCKS) as $one) {
     $def = array('info' => ucfirst($one) . ' Block');
     if ($one == 'account') $def += array('region' => 'header', 'visibility' => BLOCK_VISIBILITY_LISTED, 'pages' => "members\nmembers/*");
     $info[$one] = $def;
@@ -31,8 +34,8 @@ function rweb_block_info() {
 }
 
 function rweb_block_view($delta = '') {
-  if (!in_array($delta, r\ray(RWEB_BLOCKS))) return;
-  return r\Web\block_view(NULL, drupal_get_form("rCredits\\Web\\{$delta}_form")); // no subject for blocks
+  if (!in_array($delta, u\ray(RWEB_BLOCKS))) return;
+  return rWeb\block_view(NULL, drupal_get_form("rCredits\\Web\\{$delta}_form")); // no subject for blocks
 }
 
 /**
@@ -40,19 +43,24 @@ function rweb_block_view($delta = '') {
  */
 function rweb_menu() {
   $anyone = array('access callback' => TRUE, 'access arguments' => NULL);
-  return array(
-    'handy' => r\Web\menu('Handy Links', MENU_NORMAL_ITEM, 'handy_links'),
-    'members' => r\Web\menu('Members Section', MENU_NORMAL_ITEM, 'show_form', array('tx')),
-    'members/transact' => r\Web\menu('Pay / Charge', MENU_DEFAULT_LOCAL_TASK),
-    'members/contact-info' => r\Web\menu('Contact Info', MENU_LOCAL_TASK, 'show_form', array('contact_info')),
-    'members/cell-access' => r\Web\menu('Cell Access', MENU_LOCAL_TASK, 'show_form', array('cell')),
-    'members/sharing' => r\Web\menu('Sharing', MENU_LOCAL_TASK, 'show_form', array('share')),
-    'members/manage-transactions' => r\Web\menu('Manage Transactions', MENU_LOCAL_TASK, 'show_form', array('txs')),
-    'members/exchange' => r\Web\menu('Get r / USD', MENU_LOCAL_TASK, 'show_form', array('exchange')),
-    'example-store' => r\Web\menu('Example Store', MENU_NORMAL_ITEM, 'show_form', array('example_store'), $anyone),
-    'members/buy-now' => r\Web\menu('Buy Now', 0, 'show_form', array('buy_now')),
-    'rCredits/util' => r\Web\menu('Util', 0, 'rCredits\\Web\\util', array(2)),
+  $can_create = i\access('can create transactions');
+  $menu = array(
+    'handy' => rWeb\menu('Handy Links', MENU_NORMAL_ITEM, 'handy_links', array(), 'administer site configuration'),
+    'members' => rWeb\menu($can_create ? 'Members Section' : 'Transactions', MENU_NORMAL_ITEM, 'show_form', array($can_create ? 'tx' : 'txs')),
+    'members/transact' => $can_create ? rWeb\menu('Pay / Charge', MENU_DEFAULT_LOCAL_TASK) : NULL,
+    'members/contact-info' => rWeb\menu('Contact Info', MENU_LOCAL_TASK, 'show_form', array('contact_info'), 'can manage account'),
+    'members/cell-access' => rWeb\menu('Cell Access', MENU_LOCAL_TASK, 'show_form', array('cell'), 'can manage account'),
+    'members/sharing' => rWeb\menu('Sharing', MENU_LOCAL_TASK, 'show_form', array('share'), 'can manage account'),
+    'members/manage-transactions' => rWeb\menu('Manage Transactions', MENU_LOCAL_TASK, 'show_form', array('txs',2), 'can read transactions'),
+    'members/exchange' => rWeb\menu('Get rCredits / USD', MENU_LOCAL_TASK, 'show_form', array('exchange'), 'can create transactions'),
+    'example-store' => rWeb\menu('Example Store', MENU_NORMAL_ITEM, 'show_form', array('example_store'), '', $anyone),
+    'members/buy-now' => rWeb\menu('Buy Now', 0, 'show_form', array('buy_now'), '', $anyone), // form will require login
+    'rCredits/util' => rWeb\menu('Util', 0, 'rCredits\\Web\\util', array(2), 'administer site configuration'),
   );
+  return $menu;
 }
 
-function rweb_form_user_register_form_alter(&$form, &$form_state, $form_id) {r\Web\register_form($form, $form_state);}
+function rweb_form_user_register_form_alter(&$form, &$form_state, $form_id) {rWeb\register_form($form, $form_state);}
+function rweb_form_user_login_block_alter(&$form, &$form_state, $form_id) {return rWeb\login_form($form, $form_state);}
+function rweb_form_user_login_form_alter(&$form, &$form_state, $form_id) {return rWeb\login_form($form, $form_state);}
+

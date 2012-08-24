@@ -8,4 +8,6 @@ php = 5.3
 dependencies[] = sms_user
 files[] = rcredits.module
 files[] = rcredits.install
+files[] = rcredits-util.inc
 files[] = rcredits.inc
+files[] = rcredits-interface.inc

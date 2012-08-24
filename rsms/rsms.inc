@@ -1,6 +1,10 @@
 <?php
-namespace rCredits\SMS;
-use \rCredits as r;
+namespace rCredits\SMS; // typically abbreviated as "rSMS"
+use \rCredits\API as i;
+use \rCredits\Utilities as u;
+require_once __DIR__ . '/../rcredits-interface.inc'; // Drupal bug (needs this explicit)
+require_once __DIR__ . '/../rcredits-util.inc';
+
 /**
  * @file
  * rSMS include file
@@ -79,7 +83,7 @@ $GLOBALS['SMS messages'] = array(
   'short invoice' => t('You are r@short short, to pay that invoice. Get more rCredits first, or undo the invoice and pay part in US Dollars.'),
   'broke to' => t('You are completely out of rCredits, so that transaction cannot be completed. Type "get r <amount>" to get more rCredits.'),
   'broke from' => t('@other does not have enough rCredits for that transaction at this time. But your request has been noted.'),
-  'demand too small' => t('NOTE: The minimum amount of rCredits you can actually buy at a time is $@min.', array('@min' => RCREDITS_MIN_DEMAND)),
+  'demand too small' => t('NOTE: The minimum amount of rCredits you can actually buy at a time is $@min.', array('@min' => i\min_demand())),
   'no access get' => t('You do not have permission to exchange rCredits for US Dollars or vice-versa.'),
   'no access create' => t('You do not have permission to create transactions.'),
 );
@@ -131,15 +135,15 @@ $GLOBALS['SMS commands'] = array( // these can be abbreviated by the caller
   'stop' => 'stop|unsubscribe|cancel|quit', // passed from SMS Gateway
   'start' => 'start|yes', // passed from SMS Gateway
 );
-$GLOBALS['SMS gateway words'] = r\ray('stop unsubscribe cancel quit start yes help'); // "help" never reaches us
+$GLOBALS['SMS gateway words'] = u\ray('stop unsubscribe cancel quit start yes help'); // "help" never reaches us
 $GLOBALS['SMS not a nonce'] = array_merge(
-  r\ray('char fro'), 
+  u\ray('char fro'), 
   array_keys($GLOBALS['SMS commands']),
   $GLOBALS['SMS gateway words']
 ); 
 $GLOBALS['SMS reserved words'] = array_merge(
   array_keys($GLOBALS['SMS commands']),
-  r\ray('okay approve reverse contest refuse reject deny to from balance give send invoice take as usd'), 
+  u\ray('okay approve reverse contest refuse reject deny to from balance give send invoice take as usd'), 
   $GLOBALS['SMS gateway words']
 ); 
 $GLOBALS['SMS command tokens'] = array(
@@ -156,12 +160,12 @@ $GLOBALS['SMS command tokens'] = array(
  * Send an SMS message to someone.
  */
 function send($number, $message0) {
-  $number = r\format_phone($number, '+n');
+  $number = u\format_phone($number, '+n');
   $message = substr($message0, 0, 160-1); // minus one because Twilio splits messages 160 chars long (and may discard the first part)
   if ($message != $message0) $message0 .= ' -- TOO LONG! (strlen ' . strlen($message0) . ')';
-  if (sms_devel_gateway()) if ($message != $message0) r\deb($message0); // debug
+  if (sms_devel_gateway()) if ($message != $message0) debug($message0); // debug
   \sms_send($number, $message);
-  r\r_log('SMSout', $message0, $number, infer_nonce($message0));
+  i\r_log('SMSout', $message0, $number, infer_nonce($message0));
 }
 
 /**
@@ -174,34 +178,12 @@ function infer_nonce($message) {
 }
 
 /**
- * Remember what to do, once the user confirms.
- *
- * @parm string $number: the user's cell number (in standard format +1dddddddddd)
- * @parm string $todo: what to do once the user responds with the expected nonce (defaults to 'nothing')
- * @parm string $nonce: what to store as the nonce (defaults to 'whatever', meaning pick one at random)
- *
- * @return object(nonce, todo) if $todo is 'nothing', else the nonce
- * @todo: move this to rcredits.inc
- */
-function todo($number, $todo = 'nothing', $nonce = 'whatever') {
-  if ($todo == 'nothing') {
-    return (object) \db_query("SELECT nonce, todo FROM sms_user WHERE number = $number")->fetchAssoc();
-  } else {
-    $todo = addslashes($todo);
-    $nonce = $nonce == 'whatever' ? r\nonce() : $nonce;
-// FAILS because of {}    \db_query("UPDATE sms_user SET nonce = '$nonce', todo = '$todo' WHERE number = $number");
-    \db_update('sms_user')->fields(compact('nonce', 'todo'))->condition('number', $number)->execute();
-    return $nonce;
-  }
-}
-
-/**
  * Add a cell phone to the given account.
  * for now, with everything through SMS, we want to be able to send to anyone
  */
 function create($number, $uid, $status = SMS_USER_CONFIRMED) {
-  $number = r\format_phone($number, '+n');
-  \drupal_write_record('sms_user', compact(r\ray('number uid status')));
+  $number = u\format_phone($number, '+n');
+  \drupal_write_record('sms_user', compact(u\ray('number uid status')));
 }
 
 /**
@@ -212,9 +194,9 @@ function setup_name($account, $name) {
   $name = str_replace('  ', ' ', trim($name));
   if (strlen($name) > 60) throw new \Exception(tt('name too long'));
   if (strtolower($name) == $name or strtoupper($name) == $name) $name = ucwords($name);
-  if (!r\valid_name($name)) throw new \Exception(tt("what's your name really?"));
-  $name = $short_name = r\short_name($full_name = $name);
-  if (r\db_lookup(1, 'users', "short_name = ':short_name'", compact('short_name'))) throw new \Exception(tt('duplicate name'));
+  if (!u\valid_name($name)) throw new \Exception(tt("what's your name really?"));
+  $name = $short_name = u\short_name($full_name = $name);
+  if (i\user_field(1, "short_name='$short_name'")) throw new \Exception(tt('duplicate name'));
   $edit = compact('name', 'short_name', 'full_name');
   return \user_save($account, $edit)->full_name;
 }
@@ -225,7 +207,7 @@ function setup_name($account, $name) {
  */
 function setup_email($account, $email) {
   if (!\valid_email_address($email)) throw new \Exception(tt("what's your email really?"));
-  if (r\db_lookup(1, 'users', "mail = '$email'")) throw new \Exception(tt('duplicate email'));
+  if (i\user_field(1, 'users', "mail = '$email'")) throw new \Exception(tt('duplicate email'));
   $edit = array(); // no edits yet
   $edit['mail'] = $edit['init'] = $email;
   return \user_save($account, $edit);
@@ -261,4 +243,4 @@ function intent($intent, $command, $pattern, $message) {
 }
 
 // one-line functions that need no explanation
-function tt($message, $subs = array()) {return r\tt($message, $subs, 'SMS');}
+function tt($message, $subs = array()) {return u\tt($message, $subs, 'SMS');}

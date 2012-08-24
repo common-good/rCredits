@@ -5,6 +5,8 @@
  */
 
 use rCredits as r;
+use r\Utilities as u;
+use r\API as i; // get rid of this (used just once)
 
 define('RCREDITS_TABLES', 'r_area_codes,r_credit_regions,r_nonces,r_txs,r_shared_accounts');
 
@@ -12,6 +14,7 @@ define('RCREDITS_TABLES', 'r_area_codes,r_credit_regions,r_nonces,r_txs,r_shared
  * Implement hook_install().
  *
  * Add custom data for the rCredits module.
+ * @todo: get rid of i\create_user (prep for separate VPS)
  */
 function rcredits_install() {
   user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array('member'));
@@ -25,12 +28,12 @@ function rcredits_install() {
   $postal_code = RCREDITS_COMMUNITY_POSTAL_AREA;
   $demand = RCREDITS_INITIAL_DEMAND;
   $rebate_percent = 0;
-  $info = compact(r\ray('name credit_id credit_name postal_code demand rebate_percent'));
-  if ($uid = r\db_lookup('uid', 'users', "name = '$name'")) {
+  $info = compact(u\ray('name credit_id credit_name postal_code demand rebate_percent'));
+  if ($uid = u\user_field('uid', "name = '$name'")) {
     $account = user_load($uid);
     user_save($account, $info);
   } else {
-    $uid = r\create_user($info)->uid;
+    $uid = i\create_user($info)->uid;
   }
   variable_set('rcredits_community_uid', $uid); // gets unset during uninstall
 
@@ -48,6 +51,9 @@ function rcredits_install() {
  * Implements hook_schema().
  */
 function rcredits_schema() {
+  require_once 'rcredits.inc'; // Drupal bug. hook_schema needs this explicit.
+  require_once 'rcredits-util.inc';
+
   $schema['r_txs'] = array(
     'description' => 'Record of all transactions in the region',
 	'primary key' => array('xid'),
@@ -64,8 +70,9 @@ function rcredits_schema() {
   );
   
   r\setup_field($schema, 'r_txs', 'xid', 'the unique transaction ID', 'serial 11'); 
-  r\setup_field($schema, 'r_txs', 'serial', 'serial number of related transactions', 'int 11'); 
-  r\setup_field($schema, 'r_txs', 'Type', 'transaction type (payment, charge, etc.)', 'int tiny'); 
+  r\setup_field($schema, 'r_txs', 'Serial', 'serial number of related transactions', 'int 11'); 
+  r\setup_field($schema, 'r_txs', 'Type', 'transaction type (transfer, rebate, etc.)', 'int tiny'); 
+//  r\setup_field($schema, 'r_txs', 'Is Reward', 'is this transaction an incentive reward?', 'int tiny'); 
   r\setup_field($schema, 'r_txs', 'Channel', 'through what medium was the transaction entered', 'int tiny'); 
   r\setup_field($schema, 'r_txs', 'State', 'completed, pending, disputed, etc', 'int tiny'); 
   r\setup_field($schema, 'r_txs', 'Payer', 'user id of the payer', 'int 11'); 
@@ -140,8 +147,10 @@ function rcredits_schema_alter(&$schema) {
  */
 function rcredits_uninstall() {
   require_once 'rcredits.inc'; // Drupal bug. Uninstall needs this explicit.
+  require_once 'rcredits-util.inc';
+
   $old_fields = array(
-    'users' => r\ray('first_name last_name credit_name can_charge can_vote can_trade is_committed'),
+    'users' => u\ray('first_name last_name credit_name can_charge can_vote can_trade is_committed'),
   );
   r\make_fields('UNMAKE', $old_fields);
 // (DON'T DELETE record!)  if ($who = variable_set('rcredits_community_uid')) db_query("DELETE FROM users WHERE uid = $who");
