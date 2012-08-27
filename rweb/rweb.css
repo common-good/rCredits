@@ -96,6 +96,9 @@ form.labeled div.form-radios {margin-left:105px;}
 /* Example Store */
 #rcreditswebexample-store-form input.form-submit, #rcreditswebexample-store-form input.form-submit:hover {background:none; border:0;}
 
+/* Pay with rCredits */
+#rcreditswebbuy-now-form div#edit-submit label {margin-left:100px; width:100%; color:blue;}
+
 /* Directory */
 /*#rcreditswebdirectory-form div.form-item-area {display:inline-block;}
 #rcreditswebdirectory-form input#edit-submit {margin-left:5px;}

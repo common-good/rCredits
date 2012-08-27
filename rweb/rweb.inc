@@ -214,18 +214,32 @@ function tx_form_submit($form, &$form_state) {
  * Pay with rCredits
  */
 function buy_now_form($form, &$form_state, $action = 'Payment', $verb = 'Pay') {
-  global $user;
-  if (!user_is_logged_in()) return array(form_field('item', t('Please log in, to pay with rCredits.')));
-
   if (!@$_SESSION['buy_now']) $_SESSION['buy_now'] = serialize($form_state['input']); // user is buying from his/her own store
+  if ($confirm = sure_form($form_state)) return $confirm;
   
   extract(unserialize($_SESSION['buy_now']), EXTR_PREFIX_ALL, 'my'); // login_form() stores this
   // NO! Drupal calls form several times. Null it out in login instead. $_SESSION['buy_now'] = NULL;
+
   $verbs = u\ray('Buy, Contribute, Donate, Pay');
   if (in_array(ucwords(@$my_verb), $verbs)) $verb = ucwords($my_verb);
 
- 
-  if ($confirm = sure_form($form_state)) return $confirm;
+//  $button = user_is_logged_in() ? form_field('submit', NULL, t('Submit button'), $verb)
+//    : form_field('item', t('Please log in, to pay with rCredits.'));
+
+// This doesn't quite work. Use the guts of _submit instead? (after setting $form_state['values'] to $form_state['input'])
+  if (user_is_logged_in()) {
+    $values = $form_state['input'] + array(
+      'amount' => $my_amount,
+      'op' => $verb,
+      'who' => $my_company,
+      'what' => $my_item,
+      'goods' => 1,
+    );
+    tx_form_submit($form, $ref = compact('values'));
+    drupal_goto('members'); // member page when done
+  } else $button = form_field('item', t('Please log in, to confirm this rCredits payment.'));
+//
+
   if (isset($my_what)) list ($my_company, $my_item) = array($my_who, $my_what);
   if (!isset($my_amount)) $my_amount = $my_company = $my_item = ''; else $my_amount = @number_format($my_amount, 2);
 
@@ -242,7 +256,7 @@ function buy_now_form($form, &$form_state, $action = 'Payment', $verb = 'Pay') {
     'xwhat' => form_field('textfield', 'for:', t('Description of goods and services'), disabled($my_item)),
     'what' => form_field('hidden', '', '', $my_item),
     'goods' => form_field('hidden', '', '', 1),
-    'submit' => form_field('submit', NULL, t('Submit button'), $verb),
+    'submit' => $button,
   );
 
   $form['#attributes']['class'] = array('labeled');
@@ -833,14 +847,20 @@ function login_form(&$form, &$form_state) {
 //  $uid = $user->uid;
 //  r\db_q('DELETE FROM sessions WHERE uid=:uid'
   if (@$form_state['input']['amount']) $_SESSION['buy_now'] = serialize($form_state['input']);
+  $form['#submit'][] = 'rCredits\\Web\\login_form_submit';
+}
+
+function login_form_submit($form, &$form_state) {
+  extract($form_state['values']);
+  i\r_log('WEBin', 'logging in as', $name);
 }
 
 function directory_form($form, &$form_state) {
   $my_uid = i\be_who();
   $which = @$_SESSION['directory_which'] ?: '';
-  $area = @$_SESSION['directory_area'] ?: substr(i\user_field('postal_code', $my_uid), 0, 3);
+  $area = isset($_SESSION['directory_area']) ? $_SESSION['directory_area'] : substr(i\user_field('postal_code', $my_uid), 0, 3);
   
-  $list = directory_list($which, $area);
+  $list = ($area !== FALSE or $which) ? directory_list($which, $area) : '';
   
   $form = array(
     'description' => form_field('item', t('Find businesses in your area')), // should be 'Find member businesses in your area'
