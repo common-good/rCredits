@@ -1,5 +1,6 @@
 /* Standard Forms */
 #page-wrapper, #footer-wrapper {background: white;} /* Drupal messes this up otherwise, in Bartik theme */
+#page-title {display: none;}
 
 form.rweb div#edit-description label {font-size:200%; color:darkgreen;}
 form.rweb div.form-item div.description {display:block; margin:2px 0px 0px 0px;}
@@ -94,3 +95,11 @@ form.labeled div.form-radios {margin-left:105px;}
 
 /* Example Store */
 #rcreditswebexample-store-form input.form-submit, #rcreditswebexample-store-form input.form-submit:hover {background:none; border:0;}
+
+/* Directory */
+/*#rcreditswebdirectory-form div.form-item-area {display:inline-block;}
+#rcreditswebdirectory-form input#edit-submit {margin-left:5px;}
+#rcreditswebdirectory-form div.form-item-area label {width:40px;}
+#rcreditswebdirectory-form div.form-item-area div.description {margin-left:45px;}
+*/
+#rcreditswebdirectory-form div#edit-item li {list-style-type:none;}

@@ -63,7 +63,7 @@ class call {
     $account = \user_load($this->uid);
     $todo = i\todo($this->number);
     if (is_object($todo)) $todo = $todo->todo;
-    if (i\is_temp_account($account->uid)) {
+    if (i\is_temp_name($account->name)) {
       if($todo != 'setup name') {
         i\todo($this->number, 'setup name', '');
         return tt("what's your name?");

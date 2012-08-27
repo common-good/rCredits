@@ -46,15 +46,17 @@ function rweb_menu() {
   $can_create = i\access('can create transactions');
   $menu = array(
     'handy' => rWeb\menu('Handy Links', MENU_NORMAL_ITEM, 'handy_links', array(), 'administer site configuration'),
-    'members' => rWeb\menu($can_create ? 'Members Section' : 'Transactions', MENU_NORMAL_ITEM, 'show_form', array($can_create ? 'tx' : 'txs')),
-    'members/transact' => $can_create ? rWeb\menu('Pay / Charge', MENU_DEFAULT_LOCAL_TASK) : NULL,
+//    'members' => rWeb\menu($can_create ? 'Members Section' : 'Transactions', MENU_NORMAL_ITEM, 'show_form', array($can_create ? 'tx' : 'txs', 2)),
+    'members' => rWeb\menu('Members Section', MENU_NORMAL_ITEM, 'show_form', array($can_create ? 'tx' : 'txs', 2)),
+    'members/transact' => rWeb\menu('Pay / Charge', MENU_DEFAULT_LOCAL_TASK, NULL, array('tx', 2), 'can create transactions'),
     'members/contact-info' => rWeb\menu('Contact Info', MENU_LOCAL_TASK, 'show_form', array('contact_info'), 'can manage account'),
     'members/cell-access' => rWeb\menu('Cell Access', MENU_LOCAL_TASK, 'show_form', array('cell'), 'can manage account'),
     'members/sharing' => rWeb\menu('Sharing', MENU_LOCAL_TASK, 'show_form', array('share'), 'can manage account'),
-    'members/manage-transactions' => rWeb\menu('Manage Transactions', MENU_LOCAL_TASK, 'show_form', array('txs',2), 'can read transactions'),
+    'members/transactions' => rWeb\menu('Transactions', MENU_LOCAL_TASK, 'show_form', array('txs',2), 'can read transactions'),
     'members/exchange' => rWeb\menu('Get rCredits / USD', MENU_LOCAL_TASK, 'show_form', array('exchange'), 'can create transactions'),
+    'members/directory' => rWeb\menu('Directory', MENU_LOCAL_TASK, 'show_form', array('directory'), 'can create transactions'),
     'example-store' => rWeb\menu('Example Store', MENU_NORMAL_ITEM, 'show_form', array('example_store'), '', $anyone),
-    'members/buy-now' => rWeb\menu('Pay With rCredits', 0, 'show_form', array('buy_now'), '', $anyone), // form will require login
+    'members/pay-with-rcredits' => rWeb\menu('Pay With rCredits', 0, 'show_form', array('buy_now'), '', $anyone), // form will require login
     'rCredits/util' => rWeb\menu('Util', 0, 'rCredits\\Web\\util', array(2), 'administer site configuration'),
   );
   return $menu;

@@ -1,4 +1,4 @@
-INSERT INTO `user` (name,address,city,state,postal_code,phone,fax,website,categories) VALUES
+INSERT INTO `companies` (full_name,address,city,state,postal_code,phone,fax,website,categories) VALUES
 ('Akey Insurance Agency, Inc.', '348 High Street', 'Greenfield', 'MA', '01301', '4137733488', '4137733489', 'akey-ins.com', 'a:1:{i:0;s:18:\"INSURANCE AGENCIES\";}'),
 ('Blackmer Insurance Agency, Inc.', '1147 Mohawk Trail', 'Shelburne', 'MA', '01370', '4136256527', '4136258210', 'http://www.blackmers.com', 'a:1:{i:0;s:18:\"INSURANCE AGENCIES\";}'),
 ('Cowan Auto Supply', '26 Clark Street', 'Greenfield', 'MA', '01301', '4137733667', '4137746226', '', 'a:1:{i:0;s:29:\"AUTOMOBILE - PARTS & SUPPLIES\";}'),
@@ -473,4 +473,4 @@ INSERT INTO `user` (name,address,city,state,postal_code,phone,fax,website,catego
 ('Elmer\'s Store', '396 Main Street', 'Ashfield', 'MA', '01330', '4136284003', '413', 'elmersstore.com', 'a:1:{i:0;s:19:\"RESTAURANTS & CAFES\";}'),
 ('The Lion House', '81 High Street', 'Greenfield', 'MA', '01301', '4137741732', '4137741732', 'http://greenfieldlionhouse.com', 'a:1:{i:0;s:43:\"HOTELS, BED & BREAKFASTS & VACATION RENTALS\";}'),
 ('WRSI  -  93.9 The River', '15 Hampton Avenue', 'Northampton', 'MA', '01060', '4135867400', '4135850927', 'wrsi.com', 'a:1:{i:0;s:14:\"RADIO STATIONS\";}'),
-('LOOT', '62 Avenue A', 'Turners Falls', 'MA', '01376', '4138639500', '', 'loottheshop.com', 'a:1:{i:0;s:15:\"SPECIALTY SHOPS\";}'),
+('LOOT', '62 Avenue A', 'Turners Falls', 'MA', '01376', '4138639500', '', 'loottheshop.com', 'a:1:{i:0;s:15:\"SPECIALTY SHOPS\";}');

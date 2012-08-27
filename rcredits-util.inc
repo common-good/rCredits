@@ -72,7 +72,7 @@ function valid_name($name, $picky = TRUE) {
 function country_abbrev($country) {
   global $base_path;
 //  include_once $base_path . 'inc/countries.php';
-  include_once __DIR__ . '/../../../../inc/countries.php';
+  include __DIR__ . '/../../../../inc/countries.php';
   return strlen($country) == 2 ? $countries[$country] : array_search($country, $countries);
 }
 
@@ -82,7 +82,7 @@ function country_abbrev($country) {
  */
 function state_abbrev($state) {
   global $base_path;
-  include_once __DIR__ . '/../../../../inc/states.php';
+  include __DIR__ . '/../../../../inc/states.php';
   return strlen($state) == 2 ? $states[$state] : array_search($state, $states);
 }
 
@@ -91,6 +91,9 @@ function state_abbrev($state) {
  * Calculate a short_name from the given full_name.
  */
 function short_name($full_name) {
+  $deletions = ray('Inc. LLC Co. P.C. Corp. LLP');
+  foreach ($deletions as $one) $full_name = str_replace(" $one", '', $full_name);
+  $full_name = str_replace('&', 'and', $full_name);
   return strtolower(preg_replace('/\W/', '', iconv('UTF-8', 'ASCII//TRANSLIT', $full_name)));
 }
 
@@ -142,15 +145,25 @@ function a2n($string, $base = 26) {
  * @return the formatted phone number (FALSE if the $phone is not a phone number or $how is bad)
  */
 function format_phone($phone, $how = '') {
-  $phone = (preg_replace('/[\(\) \-\.]/', '', $phone)); // possible phone number for the other party
-  if (substr($phone, 0, 2) == '+1') $phone = substr($phone, 2);
-//  if (!is_numeric($phone) or strlen($phone) != 10) return FALSE;
-  if (!is_numeric($phone)) return FALSE; // temporary for debugging
+  $foreign = ''; // set to 'n' format if the phone is outside US
+  $phone = (preg_replace('/[\(\) \-\.]/', '', $phone)); // ignore typical punctuation
+  if (substr($phone, 0, 2) == '+1') {
+    $phone = substr($phone, 2);
+    if (substr($phone, 0, 1) < 2) return FALSE; // US phone numbers cannot start with 0 or 1
+//    if (strlen($phone) != 10) return FALSE;  // temporarily disabled for debugging
+  } elseif (substr($phone, 0, 1) == '+') $foreign = substr($phone, 1);
+  
+  if (!is_numeric($phone)) return FALSE;
+
   if ($how == 'n') return $phone;
-  if ($how == '+n') return '+1' . $phone;
+  if ($how == '+n') return ($foreign ? "+$foreign" : "+1$phone");
   $phone = substr($phone, 0, 3) . '-' . substr($phone, 3, 3) . '-' . substr($phone, 6);
   if ($how == '') return $phone;
-  if ($how == '+') return '(+1) ' . $phone;
+  if ($how == '+') {
+    $len = substr($foreign, 0, 1) == '7' ? 1 // get length of country prefix
+      : (strpos('. 21 22 23 24 25 26 29 35 37 38 42 51 59 67 68 69 85 87 88 96 97 99 ', ' ' . substr($foreign, 0, 2) . ' ') ? 3 : 2);
+    return $foreign ? ('(+' . substr($foreign, 0, $len) . ') ' . substr($foreign, $len)) : "(+1) $phone";
+  }
   return FALSE;
 }
 
@@ -221,6 +234,36 @@ function nonce() {
   if (strpos(". $impossible ", " $nonce ")) return nonce(); // reserved word? try again
   if (strlen($nonce) > 6) return nonce(); // too long
   return $nonce;
+}
+
+function import_gfld() {
+  $result = \db_query("SELECT * FROM companies ORDER BY full_name");
+  while ($row = $result->fetchAssoc()) {
+    extract($row);
+    $short_name = short_name($full_name);
+    $phone = $phone ? "+1$phone" : NULL;
+    $fax = $fax ? "+1$fax" : NULL;
+    $state = state_abbrev($state);
+    $website = str_replace('https://', '', str_replace('http://', '', str_replace('www.', '', $website)));
+    $account_type = r\db_lookup(1, 'r_user_industries', "iid IN (121,61) AND uid=:uid", compact('uid')) ? 2 : 1;
+    $sql = "UPDATE companies SET phone=:phone, fax=:fax, status=1, website=:website, name=:short_name, short_name=:short_name, state=:state, country='United States', timezone='America/New_York', account_type=:account_type WHERE uid=:uid";
+    r\db_q($sql, compact(ray('short_name uid phone fax state website account_type')));
+/*
+    $cats = unserialize($categories);
+    foreach ($cats as $industry) {
+      $industry = ucwords(strtolower($industry));
+      if (!($iid = r\db_lookup('iid', 'r_industries', 'industry=:industry', compact('industry')))) {
+        $record = compact('industry');
+        db_query("INSERT INTO r_industries (industry) VALUES (:industry)", $record);
+//        db_insert('r_industries')->fields($record);
+//        debug(drupal_write_record('r_industries', $record));
+        $iid = $record['iid'];
+      }
+      db_query("INSERT INTO r_user_industries (iid, uid) VALUES (:iid, :uid)", prefix_keys(':', compact('iid', 'uid')));
+//      drupal_write_record('r_user_industries', compact(ray('iid uid')));
+    }
+    */
+  }
 }
 
 // Single line functions that need no explanation

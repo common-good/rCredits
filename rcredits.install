@@ -104,7 +104,7 @@ function rcredits_schema() {
 function rcredits_schema_alter(&$schema) {
   $users = $sms_user = $r_txs = array();
 
-  r\setup_field($schema, 'users', 'Account type', 'personal, commercial, or non-profit', 'int tiny');
+  r\setup_field($schema, 'users', 'Account type', 'personal, commercial, non-profit (or government)', 'int tiny');
   r\setup_field($schema, 'users', 'Federal ID', 'social security number or employer id number, for reporting', 'varchar 9');
   r\setup_field($schema, 'users', 'DOB', 'date of birth, founding, or incorporation', 'int 11');
   r\setup_field($schema, 'users', 'Full name', 'full name of the individual or entity', 'varchar 60');
@@ -117,7 +117,7 @@ function rcredits_schema_alter(&$schema) {
   r\setup_field($schema, 'users', 'Postal code', 'contact postal code (no punctuation)', 'varchar 20');
   r\setup_field($schema, 'users', 'Country', 'full country name', 'varchar 60');
   r\setup_field($schema, 'users', 'Website', 'primary website', 'varchar 255');
-  r\setup_field($schema, 'users', 'Categories', 'business categories', 'text medium', '', '100'); // serialized array
+//  r\setup_field($schema, 'users', 'Categories', 'business categories', 'text medium', '', '100'); // serialized array
   r\setup_field($schema, 'users', 'Notes', 'miscellaneous notes about the user or the account', 'text medium');
 
   // actually these are credit account fields, but in the user table for now (any user with a credit id is a trading account)

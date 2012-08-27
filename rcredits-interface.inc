@@ -264,11 +264,13 @@ function identify($who, $my_uid, $create = FALSE, $self_message = 'no self-tradi
 //  if (substr($who, 0, 7) == 'http://') $who = substr($who, 7);
 //  if (substr($who, 0, 4) == 'www.') $who = substr($who, 4);
 
-  $who = strtolower(str_replace("'", '', $who)); // avoid SQL errors
+  if (($short = u\short_name($who)) === '') $short = '-'; // abbreviations must not be null
+  
   $sql = "SELECT DISTINCT u.uid FROM {users} u LEFT JOIN {sms_user} s ON u.uid = s.uid 
           WHERE :who IN (CONCAT('.', u.short_name), u.credit_id, s.number, u.phone, u.mail) 
-          OR (MID(:who, 1, 1)='.' AND INSTR(u.short_name, MID(:who, 2)))";
-  $result = r\db_q($sql, compact('who'))->fetchCol();
+          OR (MID(:who, 1, 1)='.' AND INSTR(u.short_name, MID(:who, 2)))
+          OR INSTR(u.short_name, :short)";
+  $result = r\db_q($sql, compact(u\ray('who short')))->fetchCol();
   if(count($result) > 1) {
     $list = '';
     foreach ($result as $one) {
@@ -329,8 +331,8 @@ function r_log($type='', $message='', $number='', $nonce='') {
  *   with corresponding number-formatted information in ->fancy
  *   including the overall demand for rCredits
  */
-function credit_info($who, $state = '', $asof = '') {
-  if (!$state) $state = TX_DONE . ',' . TX_CONTESTED;
+function credit_info($who, $state = TX_DONE, $asof = '') {
+  if ($state == TX_DONE) $state = TX_DONE . ',' . TX_CONTESTED;
   $result_keys = 'gross_in gross_out gross_in_proper balance available unavailable rewards cashable total_demand min_balance id';
   $sql = "SELECT credit_id AS id, min_balance FROM users WHERE uid=:who";
   extract(r\db_q($sql, compact('who'))->fetchAssoc()); // gets $id, $min_balance
@@ -480,7 +482,6 @@ function todo($number, $todo = 'nothing', $nonce = 'whatever') {
   if ($todo == 'nothing') {
     return (object) r\db_q("SELECT nonce, todo FROM sms_user WHERE number=:number", compact('number'))->fetchAssoc();
   } else {
-    $todo = addslashes($todo);
     $nonce = $nonce == 'whatever' ? u\nonce() : $nonce;
     \db_update('sms_user')->fields(compact('nonce', 'todo'))->condition('number', $number)->execute();
     return $nonce;
@@ -517,3 +518,4 @@ function access($access, $uid = '') {
 function min_demand() {return RCREDITS_MIN_DEMAND;}
 function user_field($field_name, $who, $subs = array()) {return r\db_lookup($field_name, 'users', is_numeric($who) ? "uid=$who" : $who, $subs);}
 function is_temp_account($uid) {return !user_field('pass', $uid);}
+function is_temp_name($name) {return u\abbreviates(RCREDITS_TEMP_NAME_PREFIX, $name);}

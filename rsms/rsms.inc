@@ -210,7 +210,7 @@ function setup_name($account, $name) {
  */
 function setup_email($account, $email) {
   if (!\valid_email_address($email)) throw new \Exception(tt("what's your email really?"));
-  if (i\user_field(1, 'users', "mail = '$email'")) throw new \Exception(tt('duplicate email'));
+  if (i\user_field(1, "mail = '$email'")) throw new \Exception(tt('duplicate email'));
   $edit = array(); // no edits yet
   $edit['mail'] = $edit['init'] = $email;
   return \user_save($account, $edit);

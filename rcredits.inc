@@ -55,6 +55,9 @@ define('RCREDITS_STARTING_BALANCE', 250); // how much people start with in the T
 define('RCREDITS_MIN_BALANCE', -10000); // how low can user's balance go, by default (be generous in TRIAL RUN)
 define('RCREDITS_TEMP_NAME_PREFIX', 'unknown ');
 
+// Account types
+define('RCREDITS_PERSONAL', 0);
+
 $GLOBALS['account types'] = array(t('personal'), t('commercial'), t('non-profit'));
 $GLOBALS['share permissions'] = array('no access', 'can read transactions', 'can create transactions', 'can manage account');
 

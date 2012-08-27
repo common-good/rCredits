@@ -39,10 +39,11 @@ $GLOBALS['Web messages'] = array(
   'report new share' => t('You are now sharing this account with @who'),
   'report new cell' => t('Cell number @number is now connected to this account.'),
   'report delete cell' => t('Cell number @number has been removed from this account.'),
-  'your account is ready' => t('<p></p><p>Welcome to rCredits! Your account id is @credit_id. Your starting balance is @balance.</p><p>After you confirm your email address (by clicking the link in the email we sent you), come back here and log in.</p><p>Pretend to buy and sell just as you would in a typical month. We need that information, to make sure that rCredits don\'t get stuck anywhere.</p><p>Experiment! Have fun! (and please let us know if you run into any glitches)'),
+  'your account is ready' => t('<p></p><p>Welcome to rCredits! Your account id is @credit_id. Your starting balance is @balance.</p><p>After you confirm your email address (by clicking the link in the email we sent you), come back here and log in.</p><p>Pretend to buy and sell just as you would in a typical month. We need that information, to make sure everyone has plenty of places to receive and spend their rCredits.</p><p>Experiment! Have fun! (and please let us know if you run into any glitches)'),
   'nothing selected' => t('You did not select anything'),
   'undo incomplete' => t('The undo operation is not yet complete.'),
   'ambiguous other' => t('"@who" is associated with more than one rCredits account:<br>@list'),
+  'info saved' => t('Your information has been saved.'),
 );
 
 /*
@@ -60,10 +61,10 @@ function util($arg) {
     $uid2 = $uid + 1; $uid3 = $uid2 + 1;
     $pass = '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae';
     $sql = <<<EOF
-      INSERT INTO users (uid, name, pass, mail, short_name, full_name, credit_id, status) VALUES
-      ($uid, 'uten', '$pass', 'uten@ex.com', 'uten', 'U Ten', 'Z9AAAAAA', 1),
-      ($uid2, 'btwo', '$pass', 'btwo@ex.com', 'btwo', 'B Two', 'Z9AAAAAB', 1),
-      ($uid3, 'cstore', '$pass', 'cstore@ex.com', 'cornerstore', 'Corner Store', 'Z9AAAAAC', 1);
+      INSERT INTO users (uid, name, pass, mail, short_name, full_name, credit_id, status, postal_code) VALUES
+      ($uid, 'uten', '$pass', 'uten@ex.com', 'uten', 'U Ten', 'Z9AAAAAA', 1, '01301'),
+      ($uid2, 'btwo', '$pass', 'btwo@ex.com', 'btwo', 'B Two', 'Z9AAAAAB', 1, '01301'),
+      ($uid3, 'cstore', '$pass', 'cstore@ex.com', 'cornerstore', 'Corner Store', 'Z9AAAAAC', 1, '01301');
       
       INSERT INTO sms_user (number, uid, status) VALUES
       (10, $uid, 2),
@@ -180,13 +181,13 @@ function account_form_submit($form, &$form_state) {
   if (i\access('can create transactions', $old_uid) != i\access('can create transactions', $account_account)) menu_rebuild();
 }
 
-function tx_form($form, &$form_state) {
+function tx_form($form, &$form_state, $company = '') {
   if ($confirm = sure_form($form_state)) return $confirm;
 
   $form = array(
     'description' => form_field('item', t('Pay / Charge')),
     'amount' => form_field('textfield', '$', t('Amount to pay or charge')),
-    'who' => form_field('textfield', 'who:', t('Pay or charge whom?')),
+    'who' => form_field('textfield', 'who:', t('Pay or charge whom?'), dft($company)),
     'goods' => form_field('radios', '', '', 
 //      dft(1) + array('attributes' => array('onchange' => "nixwhat('payment');")), 
       dft(1) + attrib(array('onchange' => "nixwhat();")), 
@@ -196,6 +197,7 @@ function tx_form($form, &$form_state) {
     'charge' => form_field('submit', NULL, t('Submit button'), 'Charge'),
   );
   $form['#attributes']['class'] = array('labeled');
+  drupal_add_js("document.getElementById('edit-amount').focus();", array('type'=>'inline', 'scope'=>'footer'));  
   return $form;
 }
 
@@ -213,13 +215,15 @@ function tx_form_submit($form, &$form_state) {
  */
 function buy_now_form($form, &$form_state, $action = 'Payment', $verb = 'Pay') {
   global $user;
-  if (!$user->uid) return array(form_field('item', t('Please log in, to pay with rCredits.')));
-  if (@$_SESSION['buy_now']) {
-    extract(unserialize($_SESSION['buy_now']), EXTR_PREFIX_ALL, 'my'); // login_form() stores this
-    // NO! Drupal calls form several times. Null it out in login instead. $_SESSION['buy_now'] = NULL;
-    $verbs = u\ray('Buy, Contribute, Donate, Pay');
-    if (in_array(ucwords($my_verb), $verbs)) $verb = ucwords($my_verb);
-  }
+  if (!user_is_logged_in()) return array(form_field('item', t('Please log in, to pay with rCredits.')));
+
+  if (!@$_SESSION['buy_now']) $_SESSION['buy_now'] = serialize($form_state['input']); // user is buying from his/her own store
+  
+  extract(unserialize($_SESSION['buy_now']), EXTR_PREFIX_ALL, 'my'); // login_form() stores this
+  // NO! Drupal calls form several times. Null it out in login instead. $_SESSION['buy_now'] = NULL;
+  $verbs = u\ray('Buy, Contribute, Donate, Pay');
+  if (in_array(ucwords(@$my_verb), $verbs)) $verb = ucwords($my_verb);
+
  
   if ($confirm = sure_form($form_state)) return $confirm;
   if (isset($my_what)) list ($my_company, $my_item) = array($my_who, $my_what);
@@ -253,15 +257,16 @@ function buy_now_form_submit($form, &$form_state) {
 function example_store_form($form, &$form_state) {
   global $base_url;
   $form = array(
-    'description' => form_field('item', '<i>Corner Store\'s</i><br><b>Awesome Apple Pie<br><big>only $23</big></b>'),
+    'description' => form_field('item', '<i>Corner Store\'s</i><br><b><small>Awesome Apple Pie<br> &nbsp; &nbsp; &nbsp; &nbsp;only $23</small></b>'),
     'item' => form_field('hidden', '', '', 'Awesome Apple Pie'),
     'amount' => form_field('hidden', '', '', 23),
     'company' => form_field('hidden', '', '', 'Z9AAAAAC'), // (use Corner Store online)
+    'verb' => form_field('hidden', '', '', t('Pay')), // the default
     'code' => form_field('hidden', '', '', '29c8ad9f8d-908'),
     'submit' => form_field('image_button', NULL, t('Submit button'), array('src' => $base_url . '/images/rbutton-buynow.png')),
   );
   $form['#method'] = 'POST';
-  $form['#action'] = $base_url . '/members/buy-now';
+  $form['#action'] = $base_url . '/members/pay-with-rcredits';
   return $form;
 }
 
@@ -363,7 +368,7 @@ function txs_form($form, &$form_state, $edit_xid = '') {
   $myid = i\be_who();
   extract(tx_days(), EXTR_PREFIX_ALL, 'tx');
   $ending = time();
-  $starting = strtotime($tx_period == '0' ? '1jan' : ((1 - $tx_days[$tx_period]) . ' days'), $ending);
+  $starting = strtotime($tx_period == '-1' ? '1jan' : ((1 - $tx_days[$tx_period]) . ' days'), $ending);
   $can_create = i\access('can create transactions');
 
   $headers = u\ray('#,Date,Name,From you,To you,Status,Purpose,Rewards');
@@ -398,7 +403,7 @@ EOF;
     $state = ($one_state == TX_PENDING and ($one_amount < 0 xor $one_payee == $myid)) ? 'pending' : $states[$one_state];
     $color = $colors[$state];
     $state = "<span style='color:$color;'>$state</span>";
-    if ($can_create and !$is_reward) $one_purpose = "<a href='manage-transactions/$one_xid'><img src='{$base_path}images/edit-icon.png' width=20 height=20 border=0 /></a> &nbsp; $one_purpose";
+    if ($can_create and !$is_reward) $one_purpose = "<a href='transactions/$one_xid'><img src='{$base_path}images/edit-icon.png' width=20 height=20 border=0 /></a> &nbsp; $one_purpose";
     $list["x$one_xid"] = array($tid, date('d-M', $one_created), $one_name, $from_you, $to_you, $state, $one_purpose, $reward);
   }
 
@@ -437,7 +442,7 @@ function txs_form_submit($form, &$form_state) {
   extract($form_state['values']);
 
   if ($op == 'Show') { // changing the period to show
-    variable_set('rweb_tx_period', $tx_period);
+    $_SESSION['rweb_tx_period'] = $tx_period;
     $form_state['redirect'] = \current_path();
     return;
   }
@@ -504,7 +509,7 @@ function tx_edit_submit($form, &$form_state) {
   extract($form_state['values']);
   r\set_tx_field($field, $purpose, $xid);
   //r\db_q("UPDATE r_txs SET $field=:purpose WHERE xid=:xid", compact('purpose', 'xid'));
-  drupal_goto('members/manage-transactions');
+  drupal_goto('members/transactions');
 }
 
 function tx_summary($starting, $ending) {
@@ -579,8 +584,10 @@ function contact_info_form($form, &$form_state) {
 }
 
 function contact_info_form_validate($form, &$form_state) {
-  extract($info = plain($form_state['values']), EXTR_PREFIX_ALL, 'my');
-  if ($my_phone and !u\format_phone($my_phone, '+n')) say('bad phone', 'phone');
+  extract($form_state['values']);
+  if (blank_field(compact(u\ray('phone city address')))) return;
+  if ($phone and !u\format_phone($phone, '+n')) say('bad phone', 'phone');
+  if ($fax and !u\format_phone($fax, '+n')) say('bad phone', 'fax');
 }
 
 function contact_info_form_submit($form, &$form_state) {
@@ -590,6 +597,7 @@ function contact_info_form_submit($form, &$form_state) {
   if ($my_phone) $info['phone'] = u\format_phone($my_phone, '+n');
   $info['short_name'] = u\short_name($my_full_name);
   user_save($account, $info);
+  say('info saved');
 }
 
 function no_selection($list) {
@@ -597,6 +605,9 @@ function no_selection($list) {
   return TRUE;
 }
 
+/**
+ * Give someone access to the current account.
+ */
 function share_form($form, &$form_state) {
   if ($confirm = sure_form($form_state)) return $confirm; // confirm only getUSD
   $my_uid = i\be_who();
@@ -646,7 +657,7 @@ function share_form_validate($form, &$form_state) {
     if (blank_field(compact('new_share'))) return;
     $uid = i\identify($new_share, $myid, FALSE, 'no self-sharing');
     if (is_array($uid)) return say($uid, 'new_share'); // error returned by identify()
-    $alreay = r\db_lookup('1', 'r_shared_accounts', 'shared_uid=:myid AND shared_with=:uid', compact('myid', 'uid'));
+    $already = r\db_lookup('1', 'r_shared_accounts', 'shared_uid=:myid AND shared_with=:uid', compact('myid', 'uid'));
     if ($already) return say('already shared', 'new_share');
     $form_state['values']['shared_with'] = $uid; // save for submission handling
   }
@@ -669,8 +680,9 @@ function share_form_submit($form, &$form_state) {
   foreach ($shares as $key => $uid) if ($uid) {
     $shared_with = substr($uid, 1); // ignore the leading 'x'
     $where = "WHERE shared_with=:shared_with AND shared_uid=:shared_uid LIMIT 1";
-    $sql = $change_permission ? "UPDATE r_shared_accounts SET permission=:change_permission $where" : "DELETE FROM r_shared_accounts $where";
-    r\db_q($sql, compact(u\ray('shared_with shared_uid change_permission')));
+    if ($change_permission) {
+      r\db_q("UPDATE r_shared_accounts SET permission=:change_permission $where", compact(u\ray('shared_with shared_uid change_permission')));
+    } else r\db_q("DELETE FROM r_shared_accounts $where", compact(u\ray('shared_with shared_uid')));
     $account = i\user_field('full_name', $shared_with);
     say('report share change', compact(u\ray('account permission')));
   }
@@ -774,216 +786,8 @@ function cell_form_submit($form, &$form_state) {
 /**
  * Modify the user registration form.
  */
-/* Here's what it looks like before modifying:
-array (
-  'administer_users' => 
-  array (
-    '#type' => 'value',
-    '#value' => false,
-  ),
-  '#user' => 
-  stdClass::__set_state(array(
-     'uid' => 0,
-     'hostname' => '::1',
-     'roles' => 
-    array (
-      1 => 'anonymous user',
-    ),
-     'cache' => 0,
-  )),
-  '#user_category' => 'register',
-  '#attached' => 
-  array (
-    'library' => 
-    array (
-      0 => 
-      array (
-        0 => 'system',
-        1 => 'jquery.cookie',
-      ),
-    ),
-  ),
-  '#attributes' => 
-  array (
-    'class' => 
-    array (
-      0 => 'user-info-from-cookie',
-    ),
-  ),
-  '#validate' => 
-  array (
-    0 => 'user_account_form_validate',
-    1 => 'user_validate_picture',
-    2 => 'user_register_validate',
-  ),
-  'account' => 
-  array (
-    '#type' => 'container',
-    '#weight' => -10,
-    'name' => 
-    array (
-      '#type' => 'textfield',
-      '#title' => 'Username',
-      '#maxlength' => 60,
-      '#description' => 'Spaces are allowed; punctuation is not allowed except for periods, hyphens, apostrophes, and underscores.',
-      '#required' => true,
-      '#attributes' => 
-      array (
-        'class' => 
-        array (
-          0 => 'username',
-        ),
-      ),
-      '#default_value' => '',
-      '#access' => true,
-      '#weight' => -10,
-    ),
-    'mail' => 
-    array (
-      '#type' => 'textfield',
-      '#title' => 'E-mail address',
-      '#maxlength' => 254,
-      '#description' => 'A valid e-mail address. All e-mails from the system will be sent to this address. The e-mail address is not made public and will only be used if you wish to receive a new password or wish to receive certain news or notifications by e-mail.',
-      '#required' => true,
-      '#default_value' => '',
-    ),
-    'status' => 
-    array (
-      '#type' => 'radios',
-      '#title' => 'Status',
-      '#default_value' => true,
-      '#options' => 
-      array (
-        0 => 'Blocked',
-        1 => 'Active',
-      ),
-      '#access' => false,
-    ),
-    'roles' => 
-    array (
-      '#type' => 'checkboxes',
-      '#title' => 'Roles',
-      '#default_value' => 
-      array (
-      ),
-      '#options' => 
-      array (
-        3 => 'administrator',
-      ),
-      '#access' => false,
-      2 => 
-      array (
-        '#type' => 'checkbox',
-        '#title' => 'authenticated user',
-        '#default_value' => true,
-        '#disabled' => true,
-      ),
-    ),
-    'notify' => 
-    array (
-      '#type' => 'checkbox',
-      '#title' => 'Notify user of new account',
-      '#access' => false,
-    ),
-  ),
-  'signature_settings' => 
-  array (
-    '#type' => 'fieldset',
-    '#title' => 'Signature settings',
-    '#weight' => 1,
-    '#access' => false,
-    'signature' => 
-    array (
-      '#type' => 'text_format',
-      '#title' => 'Signature',
-      '#default_value' => '',
-      '#description' => 'Your signature will be publicly displayed at the end of your comments.',
-      '#format' => NULL,
-    ),
-  ),
-  'picture' => 
-  array (
-    '#type' => 'fieldset',
-    '#title' => 'Picture',
-    '#weight' => 1,
-    '#access' => false,
-    'picture' => 
-    array (
-      '#type' => 'value',
-      '#value' => NULL,
-    ),
-    'picture_current' => 
-    array (
-      '#markup' => '',
-    ),
-    'picture_delete' => 
-    array (
-      '#type' => 'checkbox',
-      '#title' => 'Delete picture',
-      '#access' => false,
-      '#description' => 'Check this box to delete your current picture.',
-    ),
-    'picture_upload' => 
-    array (
-      '#type' => 'file',
-      '#title' => 'Upload picture',
-      '#size' => 48,
-      '#description' => 'Your virtual face or picture. Pictures larger than 1024x1024 pixels will be scaled down. ',
-    ),
-  ),
-  '#parents' => 
-  array (
-  ),
-  '#pre_render' => 
-  array (
-    0 => '_field_extra_fields_pre_render',
-  ),
-  '#entity_type' => 'user',
-  '#bundle' => 'user',
-  'actions' => 
-  array (
-    '#type' => 'actions',
-    'submit' => 
-    array (
-      '#type' => 'submit',
-      '#value' => 'Create new account',
-    ),
-  ),
-  '#submit' => 
-  array (
-    0 => 'user_register_submit',
-  ),
-  '#form_id' => 'user_register_form',
-  '#type' => 'form',
-  '#build_id' => 'form-4h0aXkaHG7TOiMiI73zlMrbiMBEVrbn0dbbaUhMAJWQ',
-  'form_build_id' => 
-  array (
-    '#type' => 'hidden',
-    '#value' => 'form-4h0aXkaHG7TOiMiI73zlMrbiMBEVrbn0dbbaUhMAJWQ',
-    '#id' => 'form-4h0aXkaHG7TOiMiI73zlMrbiMBEVrbn0dbbaUhMAJWQ',
-    '#name' => 'form_build_id',
-  ),
-  'form_id' => 
-  array (
-    '#type' => 'hidden',
-    '#value' => 'user_register_form',
-    '#id' => 'edit-user-register-form',
-  ),
-  '#id' => 'user-register-form',
-  '#method' => 'post',
-  '#action' => '/devcore/user/register',
-  '#theme_wrappers' => 
-  array (
-    0 => 'form',
-  ),
-  '#tree' => false,
-  '#theme' => 
-  array (
-    0 => 'user_register_form',
-  ),
-)
-*/
 function register_form(&$form, &$form_state) {
+  $account_types = u\ray('Personal Commercial Non-profit/Government');
   $my_country = $my_state = '';
   extract($form_state['input'], EXTR_PREFIX_ALL, 'my'); // overwrites my_country and my_state with input values, on input error
   $onchange = "print_state('edit-state',this.selectedIndex,'');";
@@ -993,6 +797,7 @@ function register_form(&$form, &$form_state) {
 /*    'phone' => form_field('textfield', t('Phone:'), t('Your primary phone (landline or cell)'), dft($my_phone ? u\format_phone($my_phone): '')),
     'fax' => form_field('textfield', t('Fax:'), t(''), dft($my_fax)),
     'website' => form_field('textfield', t('Website:'), t(''), dft($my_website)), */
+    'account_type' => form_field('select', t('Account type:'), '', dft('Personal'), $account_types),
     'country' => form_field('select', t('Country:'), t(''), dft($my_country) + attrib(compact('onchange'))),
     'postal_code' => form_field('textfield', t('Postal code:'), t(''), $required),
     'state' => form_field('select', t('State:'), t(''), dft($my_state)),
@@ -1025,7 +830,73 @@ function register_form_submit($form, &$form_state) {
 
 function login_form(&$form, &$form_state) {
   $_SESSION['account_choices'] = $_SESSION['being'] = NULL;
+//  $uid = $user->uid;
+//  r\db_q('DELETE FROM sessions WHERE uid=:uid'
   if (@$form_state['input']['amount']) $_SESSION['buy_now'] = serialize($form_state['input']);
+}
+
+function directory_form($form, &$form_state) {
+  $my_uid = i\be_who();
+  $which = @$_SESSION['directory_which'] ?: '';
+  $area = @$_SESSION['directory_area'] ?: substr(i\user_field('postal_code', $my_uid), 0, 3);
+  
+  $list = directory_list($which, $area);
+  
+  $form = array(
+    'description' => form_field('item', t('Find businesses in your area')), // should be 'Find member businesses in your area'
+//    'subtitle' => form_field('item', t('for a country name or postal code...')),
+    'which' => form_field('textfield', t('Which:'), t('part of business name or industry type'), dft($which)),
+    'area' => form_field('textfield', t('Area:'), t('start of postal code or country name'), dft($area)),
+    'submit' => form_field('submit', NULL, t('Submit button'), t('Go')),
+    'item' => form_field('item', '', '', $list),
+  );
+
+  $form['#attributes']['class'] = array('labeled');
+  return $form;
+}
+
+function directory_form_validate($form, &$form_state) {
+}
+
+function directory_form_submit($form, &$form_state) {
+  extract($form_state['values']);
+  $_SESSION['directory_which'] = $which;
+  $_SESSION['directory_area'] = $area;
+}
+
+/**
+ * Return a formatted, categorized list of businesses
+ */
+function directory_list($which, $area) {
+  $field = is_numeric($area) ? 'postal_code' : 'country';
+  $which = "%$which%"; // allow abbreviations
+  $area .= '%';
+  $account_type = RCREDITS_PERSONAL;
+  $rows = array();
+  $sql = <<<EOF
+    SELECT DISTINCT i.industry, u.short_name, u.full_name FROM users u 
+    LEFT JOIN r_user_industries ui ON ui.uid=u.uid
+    LEFT JOIN r_industries i ON i.iid=ui.iid
+    WHERE account_type!=:account_type AND u.$field LIKE :area AND (u.full_name LIKE :which OR i.industry LIKE :which)
+    ORDER BY i.industry, u.full_name
+EOF;
+  $result = r\db_q($sql, compact(u\ray('area which account_type')));
+  while ($row = $result->fetchAssoc()) $rows[] = $row;
+  $cat = $headed = $list = '';
+  for ($i = 0; $i < count($rows); $i++) {
+    extract($rows[$i]);
+    if ($industry != $cat) { // new category
+      $cat = $industry;
+      $headed = (@$rows[$i+1]['industry'] == $industry); // header for 2 or more businesses in the same industry
+      $list .= $headed ? ($list ? '</ul>' : '') . "<ul><h2>$cat</h2>\n" : '<li>&nbsp;</li>';
+    }
+    $item = "<a href='transact/$short_name'>$full_name</a>";
+    if (!$headed) $item = "Other: $item <span>($industry)</span>";
+    $list .= "<li>$item</li>\n";
+  }
+  
+  if (strpos($list, '<ul>') !== FALSE) $list .= '</ul>';
+  return $list ?: t('There are no such businesses listed.');
 }
 
 /**
@@ -1194,8 +1065,8 @@ function plain($array) {
 }
 
 function tx_days() {
-  $days = array('4' => '4 days', '30' => '30 days', '90' => '90 days', '180' => '6 months', '365' => '12 months', '0' => 'Year to date');
-  $period = variable_get('rweb_tx_period', 30);
+  $days = array('4' => '4 days', '30' => '30 days', '90' => '90 days', '180' => '6 months', '365' => '12 months', '-1' => 'Year to date');
+  $period = @$_SESSION['rweb_tx_period'] ?: 30;
   return compact(u\ray('days period'));
 }
 
