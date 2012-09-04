@@ -10,4 +10,5 @@ files[] = rcredits.module
 files[] = rcredits.install
 files[] = rcredits-util.inc
 files[] = rcredits.inc
-files[] = rcredits-interface.inc
+files[] = rcredits-api.inc
+files[] = rcredits-circles.inc

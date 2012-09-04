@@ -1,8 +1,8 @@
 <?php
 namespace rCredits\SMS; // typically abbreviated as "rSMS"
-use \rCredits\API as i;
+use \rCredits\API as api;
 use \rCredits\Utilities as u;
-require_once __DIR__ . '/../rcredits-interface.inc'; // Drupal bug (needs this explicit)
+require_once __DIR__ . '/../rcredits-api.inc'; // Drupal bug (needs this explicit)
 require_once __DIR__ . '/../rcredits-util.inc';
 
 /**
@@ -42,7 +42,7 @@ $GLOBALS['SMS messages'] = array(
   'your demand' => t("Your total request for rCredits is now @request."),
 
   // questions
-  "what's your name?" => t("To set up your rCredits account, we need your full name and email address. What's your name?"),
+  "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),
   "what's your name really?" => t("Hmm. I don't know if I believe that. What's your name really?"),
   "what's your email?" => t("Welcome to rCredits, @name (account id @id). Last question: What's your email address?"),
   "what's your email really?" => t("Please type carefully. What is your email address?"),
@@ -84,7 +84,7 @@ $GLOBALS['SMS messages'] = array(
   'short invoice' => t('You are r@short short, to pay that invoice. Get more rCredits first, or undo the invoice and pay part in US Dollars.'),
   'broke to' => t('You are completely out of rCredits, so that transaction cannot be completed. Type "get r <amount>" to get more rCredits.'),
   'broke from' => t('@other does not have enough rCredits for that transaction at this time. But your request has been noted.'),
-  'demand too small' => t('NOTE: The minimum amount of rCredits you can actually buy at a time is $@min.', array('@min' => i\min_demand())),
+  'demand too small' => t('NOTE: The minimum amount of rCredits you can actually buy at a time is $@min.', array('@min' => RCREDITS_MIN_DEMAND)),
   'no access get' => t('You do not have permission to exchange rCredits for US Dollars or vice-versa.'),
   'no access create' => t('You do not have permission to create transactions.'),
   'negative transfer' => t('You may not transfer a negative amount.'),
@@ -162,13 +162,14 @@ $GLOBALS['SMS command tokens'] = array(
 /**
  * Send an SMS message to someone.
  */
-function send($number, $message0) {
+function send($number, $message) {
   $number = u\format_phone($number, '+n');
-  $message = substr($message0, 0, 160-1); // minus one because Twilio splits messages 160 chars long (and may discard the first part)
-  if ($message != $message0) $message0 .= ' -- TOO LONG! (strlen ' . strlen($message0) . ')';
-  if (sms_devel_gateway()) if ($message != $message0) debug($message0); // debug
-  \sms_send($number, $message);
-  i\r_log('SMSout', $message0, $number, infer_nonce($message0));
+  $msg = substr($message, 0, 160-1); // minus one because Twilio splits messages 160 chars long (and may discard the first part)
+  if ($msg != $message) $message .= ' -- TOO LONG! (strlen ' . strlen($message) . ')';
+  if (sms_devel_gateway()) if ($msg != $message) debug($message); // debug
+  \sms_send($number, $msg);
+  $nonce = infer_nonce($message);
+  u\log('rSMS', 'out', compact(u\ray('type message number nonce')));
 }
 
 /**
@@ -199,7 +200,7 @@ function setup_name($account, $name) {
   if (strtolower($name) == $name or strtoupper($name) == $name) $name = ucwords($name);
   if (!u\valid_name($name)) throw new \Exception(tt("what's your name really?"));
   $name = $short_name = u\short_name($full_name = $name);
-  if (i\user_field(1, "short_name='$short_name'")) throw new \Exception(tt('duplicate name'));
+  if (r\user_field(1, "short_name='$short_name'")) throw new \Exception(tt('duplicate name'));
   $edit = compact('name', 'short_name', 'full_name');
   return \user_save($account, $edit)->full_name;
 }
@@ -210,7 +211,7 @@ function setup_name($account, $name) {
  */
 function setup_email($account, $email) {
   if (!\valid_email_address($email)) throw new \Exception(tt("what's your email really?"));
-  if (i\user_field(1, "mail = '$email'")) throw new \Exception(tt('duplicate email'));
+  if (r\user_field(1, "mail = '$email'")) throw new \Exception(tt('duplicate email'));
   $edit = array(); // no edits yet
   $edit['mail'] = $edit['init'] = $email;
   return \user_save($account, $edit);

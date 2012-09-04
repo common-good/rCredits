@@ -4,10 +4,11 @@
  * rCredits utilities
  * This file may be both on the core VPS and the user interface VPS
  */
- 
+
 namespace rCredits\Utilities; // typically abbreviated as "u"
 use rCredits as r; // get rid of this
 
+// Some useful Drupal db methods: fetchAllKeyed(m, n), fetchAssoc and fetchAllAssoc(fld), fetchObject and fetchAll(), fetchCol(n), fetchField()
 /**
  * Split the given string into an array
  * delimited by space, comma, or semi-colon, followed by any number of spaces, or by a bar surrounded by optional spaces
@@ -236,6 +237,97 @@ function nonce() {
   return $nonce;
 }
 
+/**
+ * An HTTP REST requester
+ * modified from Wez Furlong's Generic REST Helper (http://wezfurlong.org/blog/2006/nov/http-post-from-php-without-curl/)
+
+Wez writes:
+PHP's HTTP wrapper will automatically fill out the Content-Length header based on the length of the $content that you pass in. It will also automatically set the Content-Type to application/x-www-form-urlencoded if you don't specify one in the $extra_headers.
+...
+Many web services offer a REST-ful interface for consuming their data, using GET requests for information retrieval and POST requests for making changes. Below you'll find a helper function that can very easily be used to consume a REST API.
+
+The $url parameter is the HTTP or HTTPS URL for the web service. $params is an associative array of form parameters to pass to the web service; they will be passed as _GET parameters for GET requests or _POST parameters for POST requests. The $method parameter can be GET or POST (and presumably any other valid HTTP REQUEST method, such as PUT or DELETE, although I haven't tried those and can't say whether they will work as expected). The $format parameter can be "json" or "xml" and will automatically return a decoded json or XML document, respectively.
+
+I've used simplexml here because it is... simple. You could very easily add a "dom" format to return the object using the richer and more complex DOM API instead.
+
+This function uses the ignore_errors context parameter. Without this set (the default is FALSE), PHP will treat 400 and 500 HTTP status codes as a failure to open the stream and won't return you any data. This is usually what you want when using fopen or file_get_contents, but REST services tend to set the HTTP status to indicate the error and will usually send back a payload that describes the error. We turn on ignore_errors so that we treat any returned payload as json or xml.
+
+When using POST with REST, take care: PHP's HTTP redirection handler will drop your POST payload if the endpoint issues a redirect. If you experience problems using POST with the function below, it might be due to redirects. Most of the POST calls I've run into issue redirects if the URL is missing a trailing '/' character. In other words, if you experience problems where it seems like your parameters are not being sent in, try appending a '/' to the end of the URL and try it again.
+ */
+function http_request($url, $params = FALSE, $extra_headers = array(), $method = 'POST', $format = 'json', $request_format = 'url') {
+  $ignore_errors = TRUE;
+  $headers = array('Content-Type' => $request_format == 'json' ? 'application/json' : 'application/x-www-form-urlencoded') + $extra_headers;
+  $header = '';
+  foreach ($headers as $key => $value) $header .= "$key: $value\n";
+  $http = compact(ray('method ignore_errors header'));
+
+  if ($params) {
+    if ($method == 'POST') {
+      $http['content'] = $request_format == 'json' ? json_encode($params) : http_build_query($params);
+    } else $url .= '?' . http_build_query($params);
+  }
+
+  $context = stream_context_create(compact('http'));
+  $fp = fopen($url, 'rb', FALSE, $context);
+  if (!$fp) {
+    $res = FALSE;
+  } else {
+    // If you're troubleshooting, uncomment the next line to see the HTTP response headers across all redirects:
+    // $meta = stream_get_meta_data($fp); var_dump($meta['wrapper_data']);
+    $res = stream_get_contents($fp);
+  }
+  if ($res === FALSE) throw new \Exception("$method $url failed: $php_errormsg");
+  
+  $result = $format == 'xml' ? simplexml_load_string($res) : json_decode($res);
+  if (is_null($result)) throw new \Exception("$method $url returned error: $res");
+  
+  return $result;
+}
+
+/** 
+ * Log the message and return it.
+ * This makes it easy for tests to see what was done
+ *
+ * @param string $log: which log (rCredits, rSMS, rWeb, etc.)
+ * @param string $type: type of log entry (if FALSE, don't log anything)
+ * @param array $info: the information to log
+ * @return the (possibly updated) log array
+ */  
+function log($log, $type = FALSE, $info = FALSE) {
+ //$type='', $message='', $number='', $nonce=''
+  $log_filename = "$log.log";
+//    $log = file_exists($log_filename) ? file_get_contents($log_filename) : '';
+//    file_put_contents($log_filename, $log . "$type, $number, $message\n");
+  $log = file_exists($log_filename) ? unserialize(file_get_contents($log_filename)) : '';
+  if ($type) {
+    extract($info, EXTR_PREFIX_ALL, 'my');
+    $info['type'] = $type;
+    $log[] = $info; //compact('type', 'message', 'number');
+    if (@$my_nonce and @$my_message) {
+      $info['message'] = str_replace($my_nonce, '@nonce', $my_message); // also store without the nonce for testing, because the nonce is unpredictable
+      $log[] = $info;
+    }
+    file_put_contents($log_filename, serialize($log)); //  . "\n"); ?
+  }
+  return $log;
+}  
+
+/**
+ * Return the account in use or specify which account to use.
+ * @param numeric $uid: uid of account to use
+ * @return numeric $cid: uid of account currently in use
+ * @todo: I think this never gets called except when setting. might wanna comment out the two cache lines
+ */
+function cid($uid = '') {
+  global $user, $userid, $cid;
+  if ($uid and !is_numeric($uid)) die("non-numeric uid: $uid");
+  if (!@$userid) $userid = $user->uid;
+  $cid = $uid ?: (@$_SESSION['rcredits_cid'] ?: $userid); // get
+  $_SESSION['rcredits_cid'] = $cid; // set
+  return $cid;
+}
+
+/*
 function import_gfld() {
   $result = \db_query("SELECT * FROM companies ORDER BY full_name");
   while ($row = $result->fetchAssoc()) {
@@ -248,7 +340,7 @@ function import_gfld() {
     $account_type = r\db_lookup(1, 'r_user_industries', "iid IN (121,61) AND uid=:uid", compact('uid')) ? 2 : 1;
     $sql = "UPDATE companies SET phone=:phone, fax=:fax, status=1, website=:website, name=:short_name, short_name=:short_name, state=:state, country='United States', timezone='America/New_York', account_type=:account_type WHERE uid=:uid";
     r\db_q($sql, compact(ray('short_name uid phone fax state website account_type')));
-/*
+
     $cats = unserialize($categories);
     foreach ($cats as $industry) {
       $industry = ucwords(strtolower($industry));
@@ -262,10 +354,11 @@ function import_gfld() {
       db_query("INSERT INTO r_user_industries (iid, uid) VALUES (:iid, :uid)", prefix_keys(':', compact('iid', 'uid')));
 //      drupal_write_record('r_user_industries', compact(ray('iid uid')));
     }
-    */
   }
 }
+*/
 
 // Single line functions that need no explanation
 function valid_url($url) {return (\valid_url($url) and preg_match('/^[A-Z0-9\-_]+\.[A-Z0-9\-_]+/i', $url) and strpos($url, '@') === FALSE);}
 function abbreviates($s, $string) {return (substr($string, 0, strlen($s)) == $s);}
+function prlog($log = 'rcredits') {print_r(log($log));}

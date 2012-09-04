@@ -2,12 +2,12 @@
 #page-wrapper, #footer-wrapper {background: white;} /* Drupal messes this up otherwise, in Bartik theme */
 #page-title {display: none;}
 
-form.rweb div#edit-description label {font-size:200%; color:darkgreen;}
+form.rweb div#edit-title label {font-size:200%; color:darkgreen;}
 form.rweb div.form-item div.description {display:block; margin:2px 0px 0px 0px;}
 form.rweb div.form-type-item label {text-align:left;}
 form.rweb div.form-type-textfield {display:inline-block; margin-right:0px;}
 form.rweb div.form-type-textfield label {display:inline-block;}
-form.rweb div#edit-subtext label {font-weight:normal;}
+form.rweb div#edit-subtext label {font-weight:normal; width:100%;}
 
 form.rweb input {vertical-align:top;}
 form.rweb input[type="text"] {width:240px;}
@@ -22,10 +22,12 @@ form.rweb div.form-type-radio label {display:inline; width:100px; margin-left:3p
 /* form.rweb.labeled (this fails for Chrome) */
 form.labeled div.form-type-textfield {display:block; margin-right:0px;}
 form.labeled label {display:inline-block; width:100px; text-align:right; margin-right:0px;} /* default label width */
-form.labeled div#edit-description label {margin-left:105px; width:100%;}
+form.labeled div#edit-title label {margin-left:105px; width:100%;}
 form.labeled div.form-item div.description {margin-left:105px;}
 form.labeled input[type="submit"] {margin-left:105px;}
 form.labeled div.form-radios {margin-left:105px;}
+
+form.labeled input.form-local, form.rweb input.form-local {margin:1px 2px 1px 2px; padding:2px; font-size:70%; color:darkgreen;}
 
 /* Account Selector */
 #rcreditswebaccount-form #edit-account-submit {display:none;} /* Drupal requires unused button to be there, so make it invisible */
@@ -43,7 +45,9 @@ form.labeled div.form-radios {margin-left:105px;}
 #rcreditswebexchange-form input#edit-getusd {margin-left:50px;}
 
 /* Transaction Summary Table */
-#txsum {width:550px; outline:2px solid darkgreen;}
+#txsum, #txsum-title, #txs-title {width:550px; margin:0px;} /* outline:2px solid darkgreen;} */
+#txsum-title, #txs-title {text-align:center; margin:0px; padding:0px; font-weight:bold; font-size:150%;}
+#txs-title {margin-top:30px;}
 #txsum td {text-align:right; border:0px;}
 #txsum tr#txsum-dates {background:none; line-height:.9; border:0px;}
 #txsum tr#txsum-headers {font-weight:bold; background:none; border-bottom:1px solid black;}
@@ -78,6 +82,7 @@ form.labeled div.form-radios {margin-left:105px;}
 #rcreditswebtxs-form td:first-child +td+td+td+td+td+td+td+td {text-align:right;} /* column 9 */
 
 /* Sharing form */
+#rcreditswebshare-form div {vertical-align:top;}
 #rcreditswebshare-form label {display:inline-block;}
 #rcreditswebshare-form div.form-item-change-permission label {width:290px; margin-left:0px;}
 #rcreditswebshare-form div#edit-subtitle label span {font-weight:normal;}
@@ -87,7 +92,7 @@ form.labeled div.form-radios {margin-left:105px;}
 #rcreditswebshare-form div.form-item-new-share {display:inline-block;}
 #rcreditswebshare-form div.form-item-new-share label {width:265px;}
 #rcreditswebshare-form div.form-item-new-share div.description {margin-left:270px;}
-#rcreditswebshare-form div.form-item-new-permission {display:inline-block; vertical-align:top;}
+#rcreditswebshare-form div.form-item-new-permission {display:inline-block;}
 
 /* Cell */
 #rcreditswebcell-form input#edit-delete {margin-right:100%;}
@@ -106,3 +111,11 @@ form.labeled div.form-radios {margin-left:105px;}
 #rcreditswebdirectory-form div.form-item-area div.description {margin-left:45px;}
 */
 #rcreditswebdirectory-form div#edit-item li {list-style-type:none;}
+
+/* Login */
+#user-login-form div#edit-tip label {font-weight:normal;}
+
+/* html.js input.form-autocomplete, */
+html.js input.form-autocomplete.throbbing {margin:0px; padding:0px; width:400px;}
+div#autocomplete  ul {clear:none; display:inline;}
+div#autocomplete  li {margin:0px; padding:0px; line-height:140%; background-color:lightyellow;}

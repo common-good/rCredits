@@ -5,11 +5,10 @@
  * (SMS, web, smartphone, etc.)
  * EXCEPT:
  *   - the Drupalish callbacks, which are in rcredits.module
- *   - application interfaces to the user interfaces, which are in rcredits-interface.inc (i)
+ *   - application interfaces to the user interfaces, which are in rcredits-api.inc (i)
  *   - utilities, which are in rcredits-util.inc (u)
  *
  * @todo
- * - the undo feature
  * - handling employees (virtual payments). This should probably be extended to suppliers too,
  *   or maybe even to everyone. The idea is to pay someone virtually in rCredits by totally paying them
  *   (either first or second) in US Dollars and (either second or first) having them buy back
@@ -17,7 +16,7 @@
  *   that requires confirmation by the payee (an "offer"). The payee cannot accept the offer without first paying
  *   that amount to the Community in US Dollars (using billpay or Dwolla).
  * - a way to track US Dollars payments (probably a separate transaction table us_transactions)
- * - remove all direct db operations from interface modules (and their .inc files) -- use i\ and u\ there, but not r\
+ * - remove all direct db operations from interface modules (and their .inc files) -- use api\ and u\ there, but not r\
  *
  * - The data field in r_txs should also hold additional identification information about a nonlocal payer or payee.
  *   If the mcapi intertrading module does not work for us, other servers could have a single UID on our system, so a
@@ -36,11 +35,18 @@
  *   Thus every inter-community transaction is stored in both communities. Both communities know their trade balance, which should be
  *   public through a RESTful query. Intra-community transactions should also be stored twice -- ideally in member's devices. Smartphones and
  *   desktop computers running an app should store all their own transactions. Encrypted backups of everything to the cloud too.
+ *
+ * @todo: use user_load or user_load_by_name or perhaps entity_load($entity_type, $ids = FALSE, $conditions = array(), $reset = FALSE) 
+ * consistently, to take advantage of caching (but test, to make sure it works for non-$user accounts)
+ *
+ * @todo: use name field for credit_id.
  */
  
 namespace rCredits; // typically abbreviated as "r"
 use \rCredits\Utilities as u;
-use \rCredits\API as i;
+use \rCredits\API as api;
+
+include_once __DIR__ . '/rcredits-circles.inc'; // treat this as an extension of this file, for testing
 
 define('RCREDITS_COMMUNITY_NAME', 'Community');
 define('RCREDITS_COMMUNITY_ID', 'community'); // credit_id for the community account
@@ -55,13 +61,15 @@ define('RCREDITS_STARTING_BALANCE', 250); // how much people start with in the T
 define('RCREDITS_MIN_BALANCE', -10000); // how low can user's balance go, by default (be generous in TRIAL RUN)
 define('RCREDITS_TEMP_NAME_PREFIX', 'unknown ');
 
+define('RCREDITS_ROLE_RTRADER', 4);
+
 // Account types
 define('RCREDITS_PERSONAL', 0);
 
 $GLOBALS['account types'] = array(t('personal'), t('commercial'), t('non-profit'));
 $GLOBALS['share permissions'] = array('no access', 'can read transactions', 'can create transactions', 'can manage account');
 
-// Transaction states
+// Transaction states (greater than 0 means it counts)
 define('TX_DENIED', -2); // invoice rejected by payer
 define('TX_DELETED', -1);
 define('TX_PENDING', 0); // charged, waiting for confirmation
@@ -69,10 +77,10 @@ define('TX_DONE', 1); // here and up, the transaction counts
 define('TX_CONTESTED', 2); // unilaterally charged, but contested by the payer (the charge stands, until settled)
 
 // Transaction channels
-define('TX_WEB', 0);
-define('TX_SMS', 1); 
-define('TX_SMART', 2); 
-define('TX_TOUCH', 3); // touch tone phone
+define('TX_WEB', 1);
+define('TX_SMS', 2); 
+define('TX_SMART', 3); 
+define('TX_TOUCH', 4); // touch tone phone
 
 // Transaction types
 define('TX_SIGNUP', 0); // signup incentive reward
@@ -106,6 +114,18 @@ function make_fields($unmake = FALSE, $extras = array()) {
   }
 }
 
+function setup_table($description, $fields, $primary_key, $foreign_keys = array(), $indexes = array()) {
+  $result = compact('description', 'fields', 'indexes') + array('foreign keys' => $foreign_keys);
+  return is_null($primary_key) ? $result : ($result + array('primary key' => (is_array($primary_key) ? $primary_key : array($primary_key))));
+}
+
+function foreign_key($local, $foreign = 'uid', $table = 'users') {
+  $columns = array($local => $foreign);
+  return array($local => compact('table', 'columns'));
+}
+
+function index($field) {return array($field => array($field));}
+
 /**
  * Setup a schema field
  *
@@ -115,11 +135,10 @@ function make_fields($unmake = FALSE, $extras = array()) {
  *
  * @return array: the field's schema (UNUSED?)
  */
-function setup_field(&$schema, $table_name, $label, $description = '', $type = 'varchar 255', $default = '', $SUN = '000') {
+function setup_field($description = '', $type = 'varchar 255', $default = '', $SUN = '000') {
   $size = '';
   $precision = ',';
 
-  list ($label, $field_name) = is_array($label) ? $label : array($label, str_replace(' ', '_', strtolower($label)));
   if (strpos($type, ' ')) list ($type, $size) = explode(' ', $type);
   if ($type == 'numeric') {
     $precision = $size;
@@ -129,14 +148,13 @@ function setup_field(&$schema, $table_name, $label, $description = '', $type = '
     $size = '';
   }
   list ($serialize, $unsigned, $notnull) = str_split($SUN);
-  list ($precision, $scale) = explode(',', $precision);
+  list ($precision, $scale) = explode(',', $precision); // don't use u\ray here
   
   $scheme = compact(u\ray('description type size length precision default scale serialize unsigned'));
-  foreach ($scheme as $key => $value) {
-    if ($value === '') unset($scheme[$key]);
-  }
+  foreach ($scheme as $key => $value) if ($value === '') unset($scheme[$key]);
+
   $scheme['not null'] = $notnull;
-  $schema[$table_name]['fields'][$field_name] = $scheme;
+//  ['fields'][$field_name] = $scheme;
   return $scheme;
 }
 
@@ -158,10 +176,10 @@ function tx_report_args($taking, $amount, $shortfall, $reward, $my_uid, $other_u
   $tofrom = $taking ? t('from') : t('to');
   $reward_type = $taking ? t('bonus') : t('rebate');
   $reward_amount = u\format_amount($reward);
-  $other = i\user_field('full_name', $other_uid);
+  $other = user_field('full_name', $other_uid);
 
-  $balance = i\credit_info($my_uid)->fancy['balance'];
-  $tid = i\tid_from_xid($my_uid, $xid);
+  $balance = api\credit_info($my_uid)->fancy['balance'];
+  $tid = api\tid_from_xid($my_uid, $xid);
 
   $way = $taking ? 'cash for rCredits' : 'rCredits for cash'; // use as both text and message index (might wanna separate out way_index)
   $success = TRUE;
@@ -212,7 +230,7 @@ function transaction_rewards(&$txs) {
   if ($my_payer_for == 'cash') return; // quit unless rebates and bonuses apply
   $rewards = unserialize($my_data);
   
-  $fields = u\ray('type amount payer payee for creator state');
+  $fields = u\ray('type amount payer payee for creator state channel');
   $payer = $creator = \variable_get('rcredits_community_uid');
 //  $payer_id = $creator_id = RCREDITS_COMMUNITY_ID;
   $state = $my_state; // match rewards state to main transaction
@@ -234,27 +252,26 @@ function transaction_rewards(&$txs) {
 
 /**
  * Create a new transaction and set up all the important fields.
+ * @todo: set real to unreal if either party is a non-rTrader (never change the value of real if it's passed, because it is an undo)
+ * @todo: don't give real rewards to the passive party in an ASIF transaction (look retroactively at creator)
+ * (and no reward transaction if they are an rTrader)
  */
 function transaction_setup($info) {
+  global $cid;
   extract($info);
 
   if (!isset($state)) $state = TX_DONE; // don't use @$my_state here (might be zero)
-  if (!@$my_creator) $creator = i\be_who();
+  if (!@$my_creator) $creator = $cid;
   $created = REQUEST_TIME;
   $serial = NULL; // always set equal to xid of main transaction after saving
   $data = serialize(@$data ?: array());
+  if (!isset($real)) $real = is_rTrader($payer) + 2 * is_rTrader($payee); // mark real versus AS IF transaction
+
   
   list($payer_for, $payee_for) = is_array($for) ? $for : array($for, $for);
   unset($info['for']);
 
-  return array_merge($info, compact(u\ray('state creator created serial data payer_for payee_for')));
-}
-
-/**
- * Output the log, human-readably
- */
-function showlog() {
-  print_r(i\r_log());
+  return array_merge($info, compact(u\ray('state creator created serial data payer_for payee_for channel')));
 }
 
 /**
@@ -265,7 +282,7 @@ function showlog() {
  * @return the user's demand amount
  */
 function demand($who, $demand = 0) {
-  if (!$demand) return i\user_field('demand', $who);
+  if (!$demand) return user_field('demand', $who);
   $demand = min(RCREDITS_MAX_DEMAND, $demand);
   update_user(compact('demand'), $who);
   return $demand;
@@ -326,20 +343,16 @@ function reset() {
 }
 
 /**
- * Return data from a single record
- * @params array $subs: optional substitutions -- keys will be prefixed by ':'
- */
-function db_get_record($table, $where, $fields = '*', $subs = array()) {
-  return db_q("SELECT $fields FROM $table WHERE $where LIMIT 1", $subs)->fetchAssoc();
-}
-
-/**
  * Look the field up in the table, returning the first record matching the criteria.
  * @params array $subs: optional substitutions -- keys will be prefixed by ':'
  */
 function db_lookup($field_name, $table_name, $criteria = '1', $subs = array()) {
-  $sql = "SELECT $field_name FROM $table_name WHERE $criteria";
+  $sql = "SELECT $field_name FROM $table_name WHERE $criteria LIMIT 1";
   return db_q($sql, $subs)->fetchField();
+}
+
+function user_field($field_name, $who, $subs = array()) {
+  return db_lookup($field_name, 'users', is_numeric($who) ? "uid=$who" : $who, $subs);
 }
 
 // Single line functions that need no explanation
@@ -350,3 +363,4 @@ function update_user($info, $who) {return \db_update('users')->fields($info)->co
 function tx_field($field_name, $xid) {return db_lookup($field_name, 'r_txs', 'xid=:xid', compact('xid'));}
 function uid_from_crid($credit_id) {return db_lookup('uid', 'users', 'credit_id=:credit_id', compact('credit_id'));}
 function total_demand() {return db_lookup('SUM(demand)', 'users');}
+function is_rTrader($uid) {return db_lookup(1, 'users_roles', 'uid=:uid AND rid=' . RCREDITS_ROLE_RTRADER, compact('uid'));}

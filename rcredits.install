@@ -5,10 +5,10 @@
  */
 
 use rCredits as r;
-use r\Utilities as u;
-use r\API as i; // get rid of this (used just once)
+use rCredits\Utilities as u;
+use \rCredits\InternalInterface as ii;
 
-define('RCREDITS_TABLES', 'r_area_codes,r_credit_regions,r_nonces,r_txs,r_shared_accounts');
+define('RCREDITS_TABLES', 'r_area_codes,r_credit_regions,r_nonces,r_txs,r_shared_accounts,role');
 
 /**
  * Implement hook_install().
@@ -28,12 +28,11 @@ function rcredits_install() {
   $demand = RCREDITS_INITIAL_DEMAND;
   $rebate_percent = 0;
   $info = compact(u\ray('name credit_id credit_name postal_code demand rebate_percent'));
-  if ($uid = u\user_field('uid', "name = '$name'")) {
-    $account = user_load($uid);
+  if ($account = user_load_by_name($name)) {
     user_save($account, $info);
-  } else {
-    $uid = i\create_user($info)->uid;
-  }
+    $uid = $account->uid;
+  } else $uid = api\create_user($info)->uid;
+
   variable_set('rcredits_community_uid', $uid); // gets unset during uninstall
   variable_set('date_default_timezone', 'America/New_York');
 
@@ -54,84 +53,46 @@ function rcredits_schema() {
   require_once 'rcredits.inc'; // Drupal bug. hook_schema needs this explicit.
   require_once 'rcredits-util.inc';
 
-  $schema['r_txs'] = array(
-    'description' => 'Record of all transactions in the region',
-	'primary key' => array('xid'),
-    'foreign keys' => array(
-	  'payer' => array('table' => 'users', 'columns' => array('payer' => 'uid')),
-	  'payee' => array('table' => 'users', 'columns' => array('payee' => 'uid')),
-	  'creator' => array('table' => 'users', 'columns' => array('creator' => 'uid')),
-	),
-    'indexes' => array(
-//	  'xid' => array('xid'), // not needed (see primary key)
-	  'payer' => array('payer'), // not needed (see primary key)
-	  'payee' => array('payee'), // not needed (see primary key)
-    ),
+  // table r_txs
+  $fields = array(
+    'xid' => r\setup_field('the unique transaction ID', 'serial 11'), 
+    'serial' => r\setup_field('serial number of related transactions', 'int 11'), 
+    'type' => r\setup_field('transaction type (transfer, rebate, etc.)', 'int tiny'), 
+    //  r\setup_field('Is Reward', 'is this transaction an incentive reward?', 'int tiny'), 
+    'channel' => r\setup_field('through what medium was the transaction entered', 'int tiny'), 
+    'state' => r\setup_field('completed, pending, disputed, etc', 'int tiny'), 
+    'real' => r\setup_field('transaction is real for 0=nobody 1=payer 2=payee 3=both', 'int tiny'), 
+    'payer' => r\setup_field('user id of the payer', 'int 11'), 
+    'payee' => r\setup_field('user id of the payee', 'int 11'), 
+    'amount' => r\setup_field('transaction amount', 'float big'), 
+    'payer_for' => r\setup_field("payer's description", 'varchar 60'), 
+    'payee_for' => r\setup_field("payee's description", 'varchar 60'), 
+    'data' => r\setup_field('info stored elsewhere, duplicated here for convenience (serialized array)', 'text tiny'), 
+    'creator' => r\setup_field('user id of the creator', 'int 11'), 
+    'created' => r\setup_field('Unixtime transaction was created', 'int 11'), 
   );
-  
-  r\setup_field($schema, 'r_txs', 'xid', 'the unique transaction ID', 'serial 11'); 
-  r\setup_field($schema, 'r_txs', 'Serial', 'serial number of related transactions', 'int 11'); 
-  r\setup_field($schema, 'r_txs', 'Type', 'transaction type (transfer, rebate, etc.)', 'int tiny'); 
-//  r\setup_field($schema, 'r_txs', 'Is Reward', 'is this transaction an incentive reward?', 'int tiny'); 
-  r\setup_field($schema, 'r_txs', 'Channel', 'through what medium was the transaction entered', 'int tiny'); 
-  r\setup_field($schema, 'r_txs', 'State', 'completed, pending, disputed, etc', 'int tiny'); 
-  r\setup_field($schema, 'r_txs', 'Payer', 'user id of the payer', 'int 11'); 
-  r\setup_field($schema, 'r_txs', 'Payee', 'user id of the payee', 'int 11'); 
-  r\setup_field($schema, 'r_txs', 'Amount', 'transaction amount', 'float big'); 
-  r\setup_field($schema, 'r_txs', array('Description', 'payer_for'), "payer's description", 'varchar 60'); 
-  r\setup_field($schema, 'r_txs', array('Description', 'payee_for'), "payee's description", 'varchar 60'); 
-  r\setup_field($schema, 'r_txs', 'Data', 'info stored elsewhere, duplicated here for convenience (serialized array)', 'text tiny'); 
-  r\setup_field($schema, 'r_txs', 'Creator', 'user id of the creator', 'int 11'); 
-  r\setup_field($schema, 'r_txs', 'Created', 'Unixtime transaction was created', 'int 11'); 
+  $foreign_keys = r\foreign_key('payer') + r\foreign_key('payee') + r\foreign_key('creator');
+  $indexes = r\index('payer') + r\index('payee');
+  $schema['r_txs'] = r\setup_table('Record of all transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
 
-  $schema['r_shared_accounts'] = array(
-    'description' => 'Who can manage which accounts, and how',
-	'primary key' => array('shared_uid', 'shared_with'),
-    'foreign keys' => array(
-	  'shared_uid' => array('table' => 'users', 'columns' => array('shared_uid' => 'uid')),
-	  'shared_with' => array('table' => 'users', 'columns' => array('shared_with' => 'uid')),
-	),
+  // table r_shared_accounts
+  $fields = array(
+    'shared_uid' => r\setup_field('uid of the account being shared', 'int 11'),
+    'shared_with' => r\setup_field('uid of a user that has access to that account', 'int 11'),
+    'permission' => r\setup_field('what type of permission the shared_with user has on the shared_uid account', 'int tiny'),
   );
-  r\setup_field($schema, 'r_shared_accounts', 'Shared UID', 'uid of the account being shared', 'int 11');
-  r\setup_field($schema, 'r_shared_accounts', 'Shared with', 'uid of a user that has access to that account', 'int 11');
-  r\setup_field($schema, 'r_shared_accounts', 'Permission', 'what type of permission the shared_with user has on the shared_uid account', 'int tiny');
-  return $schema;
-}
-
-/**
- * Implements hook_schema_alter().
- */
-function rcredits_schema_alter(&$schema) {
-  $users = $sms_user = $r_txs = array();
-
-  r\setup_field($schema, 'users', 'Account type', 'personal, commercial, non-profit (or government)', 'int tiny');
-  r\setup_field($schema, 'users', 'Federal ID', 'social security number or employer id number, for reporting', 'varchar 9');
-  r\setup_field($schema, 'users', 'DOB', 'date of birth, founding, or incorporation', 'int 11');
-  r\setup_field($schema, 'users', 'Full name', 'full name of the individual or entity', 'varchar 60');
-  r\setup_field($schema, 'users', 'Short name', 'alphanumeric identifier with no spaces (internal)', 'varchar 60');
-  r\setup_field($schema, 'users', 'Phone', 'contact phone (no country code, no punctuation)', 'varchar 255');
-  r\setup_field($schema, 'users', 'Fax', 'fax number (no country code, no punctuation)', 'varchar 255');
-  r\setup_field($schema, 'users', 'Address', 'postal street address', 'varchar 60');
-  r\setup_field($schema, 'users', 'City', 'municipality', 'varchar 60');
-  r\setup_field($schema, 'users', 'State', 'full state/province name', 'varchar 60'); // varchar because char is deprecated
-  r\setup_field($schema, 'users', 'Postal code', 'contact postal code (no punctuation)', 'varchar 20');
-  r\setup_field($schema, 'users', 'Country', 'full country name', 'varchar 60');
-  r\setup_field($schema, 'users', 'Website', 'primary website', 'varchar 255');
-//  r\setup_field($schema, 'users', 'Categories', 'business categories', 'text medium', '', '100'); // serialized array
-  r\setup_field($schema, 'users', 'Notes', 'miscellaneous notes about the user or the account', 'text medium');
-
-  // actually these are credit account fields, but in the user table for now (any user with a credit id is a trading account)
-  r\setup_field($schema, 'users', 'Credit id', 'unique credit account identifier (8 characters for individuals)', 'varchar 9');
-  r\setup_field($schema, 'users', 'Rebate percent', 'current rebate percentage (sales bonus is double)', 'numeric 4,3', 5);
-  r\setup_field($schema, 'users', 'Demand', 'waiting to buy this much credit', 'numeric 9,2', 0);
-  r\setup_field($schema, 'users', 'Min balance', 'minimum balance (normally zero or less)', 'numeric 9,2', RCREDITS_MIN_BALANCE);
-  r\setup_field($schema, 'users', 'Lost card', 'user lost the account id card', 'int tiny', 0, '010');
-  r\setup_field($schema, 'users', 'Bank account number', 'official currency international bank account number', 'varchar 34');
-  r\setup_field($schema, 'users', 'Bank account name', 'name on US$ bank account -- usually the same as name', 'varchar 60');
-  r\setup_field($schema, 'users', 'Bank account verified', 'user has proven ownership of account', 'int tiny', 0, '010');
+  $foreign_keys = r\foreign_key('shared_uid') + r\foreign_key('shared_with');
+  $indexes = r\index('shared_uid') + r\index('shared_with');
+  $schema['r_shared_accounts'] = r\setup_table('Who can manage which accounts, and how', $fields, NULL, $foreign_keys);
   
-  r\setup_field($schema, 'sms_user', 'todo', 'waiting for confirmation to complete this operation', 'text medium');
-  r\setup_field($schema, 'sms_user', 'nonce', 'waiting for this nonce, for confirmation', 'varchar 10');
+  // table r_employees
+  $fields = array(
+    'company' => r\setup_field('uid of company', 'int 11'),
+    'employee' => r\setup_field('uid of employee', 'int 11'),
+  );
+  $foreign_keys = r\foreign_key('company') + r\foreign_key('employee');
+  $indexes = r\index('company') + r\index('employee');
+  $schema['r_employees'] = r\setup_table('Who is employed by whom', $fields, NULL, $foreign_keys);
   
   /*  
   r\setup_field($schema, 'r_area_codes', 'Area Code', 'telephone area code', 'char 3'); 
@@ -140,12 +101,53 @@ function rcredits_schema_alter(&$schema) {
   r\setup_field($schema, 'r_credit_regions', 'Region', 'state or province', 'char 2');
   r\setup_field($schema, 'r_credit_regions', 'Credit Region', 'credit region id', 'char 2');
   */
+  
+  return $schema;
+}
+
+/**
+ * Implements hook_schema_alter().
+ */
+function rcredits_schema_alter(&$schema) {
+  $fields = array( // additional users fields
+    'account_type' => r\setup_field('personal, commercial, non-profit (or government)', 'int tiny'),
+    'federal_id' => r\setup_field('social security number or employer id number, for reporting', 'varchar 9'),
+    'full_name' => r\setup_field('full name of the individual or entity', 'varchar 60'),
+    'short_name' => r\setup_field('alphanumeric identifier with no spaces (internal)', 'varchar 60'),
+    'phone' => r\setup_field('contact phone (no country code, no punctuation)', 'varchar 255'),
+    'fax' => r\setup_field('fax number (no country code, no punctuation)', 'varchar 255'),
+    'address' => r\setup_field('postal street address', 'varchar 60'),
+    'city' => r\setup_field('municipality', 'varchar 60'),
+    'state' => r\setup_field('full state/province name', 'varchar 60'), // varchar because char is deprecated
+    'postal_code' => r\setup_field('contact postal code (no punctuation)', 'varchar 20'),
+    'country' => r\setup_field('full country name', 'varchar 60'),
+    'website' => r\setup_field('primary website', 'varchar 255'),
+    'description' => r\setup_field('markup text describing the company (unused for personal accounts)', 'text medium'),
+    'notes' => r\setup_field('miscellaneous notes about the user or the account', 'text medium'),
+    'dob' => r\setup_field('date of birth, founding, or incorporation', 'int 11'),
+    'credit_id' => r\setup_field('unique credit account identifier (8 characters for individuals)', 'varchar 9'),
+    'rebate_percent' => r\setup_field('current rebate percentage (sales bonus is double)', 'numeric 4,3', 5),
+    'demand' => r\setup_field('waiting to buy this much credit', 'numeric 9,2', 0),
+    'min_balance' => r\setup_field('minimum balance (normally zero or less)', 'numeric 9,2', RCREDITS_MIN_BALANCE),
+    'lost_card' => r\setup_field('user lost the account id card', 'int tiny', 0, '010'),
+    'bank_account_number' => r\setup_field('official currency international bank account number', 'varchar 34'),
+    'bank_account_name' => r\setup_field('name on US$ bank account -- usually the same as name', 'varchar 60'),
+    'bank_account_verified' => r\setup_field('user has proven ownership of account', 'int tiny', 0, '010'),
+  );
+  $schema['users']['fields'] = (@$schema['users']['fields'] ?: array()) + $fields;
+  
+  $fields = array( // additional sms_user fields  
+    'todo' => r\setup_field('waiting for confirmation to complete this operation', 'text medium'),
+    'nonce' => r\setup_field('waiting for this nonce, for confirmation', 'varchar 10'),
+  );
+  $schema['sms_user']['fields'] = (@$schema['sms_user']['fields'] ?: array()) + $fields;
 }
  
 /**
  * Implements hook_uninstall().
  */
 function rcredits_uninstall() {
+  return; // don't do this, for a while (maybe ever)
   require_once 'rcredits.inc'; // Drupal bug. Uninstall needs this explicit.
   require_once 'rcredits-util.inc';
 

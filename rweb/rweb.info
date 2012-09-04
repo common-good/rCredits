@@ -8,3 +8,4 @@ php = 5.3
 dependencies[] = rcredits
 files[] = rweb.module
 files[] = rweb.inc
+files[] = rweb-txs.inc
