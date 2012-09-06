@@ -56,13 +56,13 @@ function identify_rtraders(&$old_rtraders, &$candidates) {
  * @param numeric $target: how many new rTraders to return (approximately)
  */
 function new_rtraders($target) {
-  list($old_rtraders, $candidates) = identify_rtraders();
+  list ($old_rtraders, $candidates) = identify_rtraders();
   foreach ($candidates as $one => $customer_count) if ($customer_count < 3) unset($candidates[$one]); // not eligible
 }
 
 /**
  * Return the potential-new-rTrader score for all candidates.
- * Scores are calculated as the total number of rTraders or tentative rTraders the candidate "AS IF" bought goods and services from -- ever.
+ * Scores are calculated as the total number of rTraders or tentative rTraders the candidate "AS IF" bought goods and services from -- ever. Ironically, nobody gets points for actual transactions.
  * NOTE: Once rCredits is roaring, we may want to require repeated AS IFs and count only repeated purchases.
  *
  * @param array $rtraders: uid list of actual and tentative rTraders

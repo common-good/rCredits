@@ -139,7 +139,7 @@ function a2n($string, $base = 26) {
  * Format the given phone number as wanted
  * @param string $phone
  * @param string $how: how to format it
- *   '+n' +1dddddddddd
+ *   '+n' +1dddddddddd (AKA 'internal')
  *   'n'  dddddddddd
  *   '+'  (+1) ddd-ddd-dddd
  *   ''   ddd-ddd-dddd (the default)
@@ -157,7 +157,8 @@ function format_phone($phone, $how = '') {
   if (!is_numeric($phone)) return FALSE;
 
   if ($how == 'n') return $phone;
-  if ($how == '+n') return ($foreign ? "+$foreign" : "+1$phone");
+  if ($how == '+n' or $how == 'internal') return ($foreign ? "+$foreign" : "+1$phone");
+
   $phone = substr($phone, 0, 3) . '-' . substr($phone, 3, 3) . '-' . substr($phone, 6);
   if ($how == '') return $phone;
   if ($how == '+') {
@@ -322,8 +323,7 @@ function cid($uid = '') {
   global $user, $userid, $cid;
   if ($uid and !is_numeric($uid)) die("non-numeric uid: $uid");
   if (!@$userid) $userid = $user->uid;
-  $cid = $uid ?: (@$_SESSION['rcredits_cid'] ?: $userid); // get
-  $_SESSION['rcredits_cid'] = $cid; // set
+  return ($_SESSION['rcredits_cid'] = $cid = ($uid ?: (@$_SESSION['rcredits_cid'] ?: $userid)) + 0);
   return $cid;
 }
 
@@ -362,3 +362,4 @@ function import_gfld() {
 function valid_url($url) {return (\valid_url($url) and preg_match('/^[A-Z0-9\-_]+\.[A-Z0-9\-_]+/i', $url) and strpos($url, '@') === FALSE);}
 function abbreviates($s, $string) {return (substr($string, 0, strlen($s)) == $s);}
 function prlog($log = 'rcredits') {print_r(log($log));}
+function order($first_first, $choice1, $choice2) {return $first_first ? array($choice1, $choice2) : array($choice2, $choice1);}

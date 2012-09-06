@@ -17,7 +17,7 @@ require_once __DIR__ . '/../rcredits-api.inc';
 
 $GLOBALS['Web messages'] = array(
   'atid' => t('#@atid: '), // avoid duplicate verbage, don't say "transaction #"
-  'missing what' => t('For buying or selling actual goods and services, you must include a description. Otherwise select "cash/credit/gift/etc.". Rebates and bonuses are intended as rewards for productive economic activity in rCredits. Heads up: the rCredits software automatically detects and penalizes repeated attempts to "game" the system.'),
+  'missing what' => t('For buying or selling actual goods and services, you must include a description. Otherwise select "cash/loan/gift/etc.". Rebates and bonuses are intended as rewards for productive economic activity in rCredits. Heads up: the rCredits software automatically detects and penalizes repeated attempts to "game" the system.'),
   'no txs' => t('There are no transactions in that period.'),
   'no shares' => t('This account is not yet shared with anyone.'),
   'no cells' => t('This account has no related cell phones.'),
@@ -123,11 +123,11 @@ EOF;
   return "<style>div.develw div {display:inline; margin-right:20px;}</style><div class='develw'>\n$result</div>";
 }
 
-function show_form($function, $arg1 = '', $arg2 = '', $arg3 = '') {
+function show_form($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   global $cid;
-  u\log('rWeb', __FUNCTION__, compact(u\ray('function arg1 arg2 arg3')));
+  u\log('rWeb', __FUNCTION__, compact(u\ray('function arg1 arg2 arg3 arg4')));
   drupal_add_css(\drupal_get_path('module', 'rweb') . '/rweb.css', array('group' => CSS_THEME, 'weight' => -9));
-  $form = drupal_get_form("rCredits\\Web\\{$function}_form", $arg1, $arg2, $arg3);
+  $form = drupal_get_form("rCredits\\Web\\{$function}_form", $arg1, $arg2, $arg3, $arg4);
 //  $form['#attached']['css'] = array(\drupal_get_path('module', 'rweb') . '/rweb.css');
   $form['#attributes']['class'][] = 'rweb';
 
@@ -148,6 +148,7 @@ function show_form($function, $arg1 = '', $arg2 = '', $arg3 = '') {
  * Generate choices for a member autocomplete field
  * @param string $string: what the user has typed so far
  * @param string $type: 'payer' or 'payee' or '' (other), depending on the role of the user
+ * @todo: ditch this altogether or make it efficient with separate backend
  */
 function autocomplete_member($string = '', $type = '') {
   global $cid;
@@ -196,14 +197,6 @@ function account_form($form, &$form_state) {
   $form = count($choices) == 1 ? compact(u\ray('one_account one_balance')) : u\prefix_keys('account_', compact(u\ray('account submit')));
 
   //  $form['#attributes']['class'] = array('labeled');
-  $js = <<<EOF
-    function nixwhat() {
-      var c0=document.getElementById('edit-goods-0');
-      jQuery('.form-item-what').css('display', c0.checked ? 'none' : 'block');
-    }
-    nixwhat();
-EOF;
-  drupal_add_js($js, array('type'=>'inline', 'scope'=>'footer'));
   return $form;
 }
 
@@ -252,13 +245,24 @@ function tx_form($form, &$form_state, $type, $company = '') {
     'amount' => form_field('textfield', '$', t('Amount to ') . $type_low),
     'goods' => form_field('radios', '', '', 
       dft(1) + attrib(array('onchange' => "nixwhat();")), 
-      array(t('cash/credit/gift/etc.'), t('goods & services'))),
+      array(t('cash/loan/gift/etc.'), t('goods & services'))),
     'what' => form_field('textfield', 'for:', t('Description of goods and services')),
     $type_low => form_field('submit', NULL, t('Submit button'), $type),
 //    'charge' => form_field('submit', NULL, t('Submit button'), 'Charge'),
   );
   $form['#attributes']['class'] = array('labeled');
-  drupal_add_js("document.getElementById('edit-who').focus();", array('type'=>'inline', 'scope'=>'footer'));  
+
+  $js = <<<EOF
+    function nixwhat() {
+      var c0=document.getElementById('edit-goods-0');
+      jQuery('.form-item-what').css('display', c0.checked ? 'none' : 'block');
+    }
+    nixwhat();
+    document.getElementById('edit-who').focus();
+EOF;
+
+  drupal_add_js($js, array('type'=>'inline', 'scope'=>'footer'));
+  
   return $form;
 }
 
@@ -286,9 +290,9 @@ function buy_now_form($form, &$form_state, $action = 'Payment', $verb = 'Pay') {
   $verbs = u\ray('Buy, Contribute, Donate, Pay');
   if (in_array(ucwords(@$my_verb), $verbs)) $verb = ucwords($my_verb);
 
-//  $button = user_is_logged_in() ? form_field('submit', NULL, t('Submit button'), $verb)
-//    : form_field('item', t('Please log in, to pay with rCredits.'));
-
+  $button = user_is_logged_in() ? form_field('submit', NULL, t('Submit button'), $verb)
+    : form_field('item', t('Please log in, to pay with rCredits.'));
+/*
   if (user_is_logged_in()) {
     $values = $form_state['input'] + array(
       'amount' => $my_amount,
@@ -300,7 +304,7 @@ function buy_now_form($form, &$form_state, $action = 'Payment', $verb = 'Pay') {
     tx_form_submit($form, $ref = compact('values'));
     drupal_goto('members'); // member page when done
   } else $button = form_field('item', t('Please log in, to confirm this rCredits payment.'));
-
+*/
   if (isset($my_what)) list ($my_company, $my_item) = array($my_who, $my_what);
   if (!isset($my_amount)) $my_amount = $my_company = $my_item = ''; else $my_amount = @number_format($my_amount, 2);
 
@@ -329,6 +333,7 @@ function buy_now_form_submit($form, &$form_state) {
   drupal_goto('members'); // member page when done
 }
 
+/*
 function example_store_form($form, &$form_state) {
   if (user_is_logged_in()) return array('item' => form_field('item', t('You must log out, to test the Example Store')));
   
@@ -346,6 +351,7 @@ function example_store_form($form, &$form_state) {
   $form['#action'] = $base_url . '/members/pay-with-rcredits';
   return $form;
 }
+*/
 
 function charge_form($form, &$form_state) { // almost exactly like payment
   if ($confirm = sure_form($form_state)) return $confirm;
@@ -376,7 +382,7 @@ function exchange_form($form, &$form_state) {
 
   if ($confirm = sure_form($form_state)) return $confirm; // confirm only getUSD
   $request = u\format_amount(api\user_field('demand', $cid));
-  $demand = api\credit_info($cid)->fancy->total_demand;
+  $demand = api\credit_info($cid)->fancy['total_demand'];
 
   $form = array(
     'title' => form_field('item', t('Get rCredits / USD')),
@@ -420,6 +426,7 @@ function exchange_form_submit($form, &$form_state) {
  * @NOTE: The country and state drop down require a change in form.inc, line 2649:
  *   if (is_null($choices = $element['#options'])) return ''; (see form.inc.patch)
  * @todo: either check for plain text of be convinced it ain't necessary
+ * @todo: substitute get_record for user_load (throughout this module?) and save data in backend (same for login and register)
  */
 function contact_info_form($form, &$form_state) {
   global $cid;
@@ -559,6 +566,9 @@ function share_form_submit($form, &$form_state) {
   }
 }
 
+/**
+ * @todo: focus on code input
+ */
 function cell_form($form, &$form_state) {
   global $cid;
   if ($confirm = sure_form($form_state)) return $confirm; // confirm only deletion
@@ -606,28 +616,17 @@ function cell_form_validate($form, &$form_state) {
   } elseif ($op != 'Add') { // $op == remove
     if (no_selection($cells)) {
       if ($number) $op = 'Add'; else return say('nothing selected'); // user probably pressed Enter after specifying a new cell
-    }
-    confirm(tt('confirm delete cell'), $form_state);
+    } else confirm(tt('confirm delete cell'), $form_state);
   }
 
   if ($op == 'Add') {
     if (blank_field(compact('number'))) return;
-    $number_internal = u\format_phone($number, '+n');
-    if (!$number_internal) return say('bad phone', 'number');
-    if ($result = r\db_q('SELECT * FROM sms_user WHERE number=:number_internal', compact('number_internal'))->fetchAssoc()) {
-      extract($result, EXTR_PREFIX_ALL, 'old');
-      if ($old_uid == $cid) return say('already cell', 'number');
-      extract(r\db_q('SELECT full_name, credit_id FROM users WHERE uid=:old_uid', compact('old_uid'))->fetchAssoc());
-      $account = "$full_name ($credit_id)"; // maybe make the previous line and this a function
-      if (!api\is_temp_account($old_uid)) return say('cell taken', compact(u\ray('number account')), 'number');
-    }
+    say(api\add_cell($number, 'VALIDATE'), 'number');
   }
 }
 
 function cell_form_submit($form, &$form_state) {
-  global $cid;
   if (confirming_s($form_state)) return;
-  $uid = $cid;
   
   extract($form_state['values']);
   if ($op == 'Add') {
@@ -639,18 +638,11 @@ function cell_form_submit($form, &$form_state) {
 
   if ($op == 'Verify') {
     step_one($form_state); // no next step (back to original form)
-    $status = SMS_USER_CONFIRMED;
-    $number = u\format_phone($number, '+n');
-    if (!api\merge_check(compact('number'))) \drupal_write_record('sms_user', compact(u\ray('uid number status')));
-    return say('report new cell', compact('number'));
+    return say(api\add_cell($number));
   }
     
   // $op == remove
-  foreach ($cells as $key => $number) if ($number) {
-    $number = substr($number, 1); // ignore the leading 'x'
-    r\db_q('DELETE FROM sms_user WHERE number=:number LIMIT 1', compact('number'));
-    say('report delete cell', compact('number'));
-  }
+  foreach ($cells as $key => $number) if ($number) say(api\delete_cell(substr($number, 1))); // ignore the leading 'x'
 }
 
 /**
@@ -764,10 +756,8 @@ EOF;
       $headed = (@$rows[$i+1]['industry'] == $industry); // header for 2 or more businesses in the same industry
       $list .= $headed ? ($list ? '</ul>' : '') . "<ul><h2>$cat</h2>\n" : '<li>&nbsp;</li>';
     }
-    $pay = button('Pay');
-    $chg = button('Chg');
-    $pay = "<a href='pay/$short_name'>$pay</a>";
-    $chg = "<a href='charge/$short_name'>$chg</a>";
+    $pay = button('Pay', "pay/$short_name");
+    $chg = button('Chg', "charge/$short_name");
 //    if ($website) $full_name = "<a href='http://$website' target='_blank'>$full_name</a>";
     $full_name = "<a href='$base_url/member/$short_name' target='_blank'>$full_name</a>";
     $item = "$pay$chg$full_name";
@@ -832,9 +822,12 @@ function basic_account_info() {
   return form_field('item', "<a href='$base_url/user/$cid/edit'>$link_text</a>" . t(' (including email and profile picture)'));
 }
 
-function button($text, $type = 'local form-submit') {
+function button($text, $href = '', $title = '', $type = 'local form-submit') {
+  $title = htmlspecialchars($title);
   $markup = render($zot = array($text => form_field('button', '', '', array('value' => $text, 'button_type' => $type))));
-  return str_replace('"submit"', '"button"', $markup); // compensate for Drupal pigheadedness
+  $markup = str_replace('"submit"', '"button"', $markup); // compensate for Drupal pigheadedness
+  if ($href) $markup = "<a href='$href' title='$title'>$markup</a>";
+  return $markup;
 }
 
 /**
@@ -872,6 +865,23 @@ function previous_state(&$form_state, $message = '', $args = array()) {
 }
 
 /**
+ * Returns the answer to the question.
+ */
+function yes(&$form, &$form_state, $question = 'Please confirm') {
+  if ($state = @$form_state['yes']) {
+    extract($state, EXTR_PREFIX_ALL, 'yes');
+    $form = $yes_form;
+    $form_state = $yes_formstate;
+    $form_state['rebuild'] = true;
+    unset($form_state['yes']);
+    $form_state['process_input'] = TRUE;
+    return $yes_answer;
+  }
+  // current_path(), 
+//  $_SESSION['rcredits_yes'] = serialize(array($form, $form_state
+}
+
+/**
  * Replacement for \confirm_form
  */
 function sure_form(&$form_state, $title = 'Please Confirm') {
@@ -885,11 +895,24 @@ function sure_form(&$form_state, $title = 'Please Confirm') {
   );
   $form['#skip_duplicate_check'] = TRUE; // Confirm form fails duplication check, as the form values rarely change -- so skip it.
   $form['#attributes'] = array('class' => u\ray('rweb confirmation'));
+//  $form['#validate'] = 'rCredits\\Web\\sure_form_validate';
+//  $form['#submit'] = 'rCredits\\Web\\sure_form_submit';
+//  $form_state['rebuild'] = TRUE;
 
   drupal_add_js("document.getElementById('edit-confirm').focus();", array('type'=>'inline', 'scope'=>'footer'));  
 
   return $form;
 }
+
+/*function sure_form_validate($form, &$form_state) {
+die('here');
+  debug('valid');
+}
+
+function sure_form_submit($form, &$form_state) {
+die('there');
+  debug('submit');
+}*/
 
 /**
  * Transfer funds
@@ -901,7 +924,7 @@ function transfer($info, $confirmed) {
   global $cid;
   extract($info);
   $tx_type = $op == 'Pay' ? 'payment' : 'charge';
-  if (blank_field(compact(u\ray('amount who')))) return NULL;
+  if (blank_field(compact(u\ray('who amount')))) return NULL;
   if ($goods and trim($what) == '') return say('missing what', 'what');
   if (!$goods) $what = 'cash';
   $amount = str_replace(',', '', $amount); // ignore commas
@@ -944,8 +967,8 @@ function form_field($type, $title = '', $description = '', $other = array(), $op
  */
 function confirming_s(&$form_state) {return ($form_state['rebuild'] = isset($form_state['confirm']));}
 function confirming_v(&$form_state) {
-  extract($form_state['values']);
   if(@$form_state['confirm']) {
+    extract($form_state['values']);
     $form_state = $form_state['submitted_state'];
     if ($op == 'Cancel') {
       $form_state['rebuild'] = TRUE;
@@ -957,7 +980,7 @@ function confirming_v(&$form_state) {
   return FALSE;
 }
 
-function confirm($message, &$form_state) {$form_state['confirm'] = $message;}
+function confirm($message, &$form_state) {return ($form_state['confirm'] = $message);}
 
 /**
  * Complain about an input error if a required field is blank
@@ -977,6 +1000,7 @@ function blank_field($fields, $prefix = '') {
 /**
  * Display a drupal message (error or not)
  * Possible syntaxes:
+ *   say(NULL) [do nothing in this case]
  *   say('index', array(optional args), 'optional error field')
  *   say('index', 'error field')
  *   say(array(index, args), 'optional error field')
@@ -984,6 +1008,7 @@ function blank_field($fields, $prefix = '') {
  */
 function say($index, $args = array(), $error_field = '') {
   global $cid;
+  if (!@$index) return;
   if (is_array($index)) list ($index, $args, $error_field) = array($index[0], $index[1], $args); // error returned from a function
   if (!is_array($args)) list ($args, $error_field) = array($error_field, $args); // allow either order, for easy 2-param calls
   $message = tt($index, $args);

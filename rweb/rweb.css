@@ -62,23 +62,32 @@ form.labeled input.form-local, form.rweb input.form-local {margin:1px 2px 1px 2p
 #rcreditswebtxs-form div.form-item-tx-task {display:inline-block;}
 #rcreditswebtxs-form div.form-type-select label {display:inline-block; width:225px;} 
 #rcreditswebtxs-form  input[type="submit"] {margin:5px 0px 0px 10px;}
+#rcreditswebtxs-form div.txs-buttons div {display:inline-block; width:22px; text-align:center; vertical-align:middle;}
+#rcreditswebtxs-form div.txs-buttons div:first-child +div input {color:red; font-weight:bold;}
 
 #rcreditswebtxs-form col.tx-selector {width:10px;}
 #rcreditswebtxs-form col.tx-tid {width:50px; text-align:right;} /* for IE; text-align in <col> should have no effect according to CSS 2.1 */ 
 #rcreditswebtxs-form col.tx-date {width:60px;}
-#rcreditswebtxs-form col.tx-from-you {width:75px; text-align:right;}
-#rcreditswebtxs-form col.tx-to-you {width:75px; text-align:right;}
+#rcreditswebtxs-form col.tx-fromyou {width:75px; text-align:right;}
+#rcreditswebtxs-form col.tx-toyou {width:75px; text-align:right;}
 #rcreditswebtxs-form col.tx-status {width:75px;}
+#rcreditswebtxs-form col.tx-buttons {width:85px;}
 #rcreditswebtxs-form col.tx-rewards {width:75px; text-align:right;}
 
+#rcreditswebtxs-form th:first-child {text-align:right;} /* column 1 */
 #rcreditswebtxs-form th:first-child +th {text-align:right;} /* column 2 */
+#rcreditswebtxs-form th:first-child +th+th+th {text-align:right;} /* column 4 */
 #rcreditswebtxs-form th:first-child +th+th+th+th {text-align:right;} /* column 5 */
 #rcreditswebtxs-form th:first-child +th+th+th+th+th {text-align:right;} /* column 6 */
+/* #rcreditswebtxs-form th:first-child +th+th+th+th+th+th {text-align:right;} /* column 7 */
 #rcreditswebtxs-form th:first-child +th+th+th+th+th+th+th+th {text-align:right;} /* column 9 */
 
+#rcreditswebtxs-form td:first-child {text-align:right;} /* column 1 */
 #rcreditswebtxs-form td:first-child +td {text-align:right;} /* column 2 */
+#rcreditswebtxs-form td:first-child +td+td+td {text-align:right;} /* column 4 */
 #rcreditswebtxs-form td:first-child +td+td+td+td {text-align:right;} /* column 5 */
 #rcreditswebtxs-form td:first-child +td+td+td+td+td {text-align:right;} /* column 6 */
+/* #rcreditswebtxs-form td:first-child +td+td+td+td+td+td {text-align:right;} /* column 7 */
 #rcreditswebtxs-form td:first-child +td+td+td+td+td+td+td+td {text-align:right;} /* column 9 */
 
 /* Sharing form */

@@ -48,6 +48,7 @@ use \rCredits\API as api;
 
 include_once __DIR__ . '/rcredits-circles.inc'; // treat this as an extension of this file, for testing
 
+define('RCREDITS_SEPARATE_BACKEND', FALSE);
 define('RCREDITS_COMMUNITY_NAME', 'Community');
 define('RCREDITS_COMMUNITY_ID', 'community'); // credit_id for the community account
 define('RCREDITS_COMMUNITY_POSTAL_AREA', '01%'); // anyone with a postal code that matches this is in
@@ -184,7 +185,7 @@ function tx_report_args($taking, $amount, $shortfall, $reward, $my_uid, $other_u
   $way = $taking ? 'cash for rCredits' : 'rCredits for cash'; // use as both text and message index (might wanna separate out way_index)
   $success = TRUE;
   
-  return compact(u\ray('type amount tofrom reward_type reward_amount balance tid other short way success'));
+  return compact(u\ray('type amount tofrom reward_type reward_amount balance xid tid other short way success'));
 }
 
 /**
@@ -268,7 +269,7 @@ function transaction_setup($info) {
   if (!isset($real)) $real = is_rTrader($payer) + 2 * is_rTrader($payee); // mark real versus AS IF transaction
 
   
-  list($payer_for, $payee_for) = is_array($for) ? $for : array($for, $for);
+  list ($payer_for, $payee_for) = is_array($for) ? $for : array($for, $for);
   unset($info['for']);
 
   return array_merge($info, compact(u\ray('state creator created serial data payer_for payee_for channel')));
@@ -347,7 +348,8 @@ function reset() {
  * @params array $subs: optional substitutions -- keys will be prefixed by ':'
  */
 function db_lookup($field_name, $table_name, $criteria = '1', $subs = array()) {
-  $sql = "SELECT $field_name FROM $table_name WHERE $criteria LIMIT 1";
+  $sql = "SELECT $field_name FROM $table_name WHERE $criteria";
+  if (!strpos($criteria, ' LIMIT ')) $criteria .= ' LIMIT 1';
   return db_q($sql, $subs)->fetchField();
 }
 

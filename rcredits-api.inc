@@ -32,18 +32,21 @@ namespace rCredits\API; // typically abbreviated as "api"
 use \rCredits as r;
 use \rCredits\Utilities as u;
 
+define('RCREDITS_FIREWALL', 'lkj234lisufsd89072osi%!@J@$K'); // nobody can use the backend without knowing this code
+
 function api2($result) {die(json_encode($result));}
 function api_error($error) {api2(compact('error'));}
 
-function api() {
-  global $cid, $userid, $is_backend;
-  $is_backend = TRUE;
+function api($args = FALSE) {
+  global $cid, $userid, $firewall;
 
-  extract($_POST);
+  extract($args ?: $_POST);
+  if ($firewall != RCREDITS_FIREWALL) api_error('firewall system failure'); // give hackers some satisfaction
+
   $account = \user_load(@$userid);
   u\log('rAPI', 'in', $_POST);
-  if (@!$password) api_error('missing password');
-  if (@$account->pass != $password) api_error('bad login');
+  if (@!$password) api_error('login error');
+  if (@$account->pass != $password) api_error('bad login'); // make these two error messages distinct but obscure
 
   switch ($op) {
     case 'create_user': api2(create_user($info));
@@ -52,6 +55,10 @@ function api() {
     case 'pay_invoice': api2(pay_invoice($xid, $channel));
     case 'transfer': api2(transfer($ttype, $channel, $other_uid, $requested_amount, $for, $confirmed, $rewards));
     case 'give_signup_incentive': api2(give_signup_incentive($who, $channel));
+
+    case 'add_cell': api2(add_cell($number, $validate));
+    case 'delete_cell': api2(delete_cell($number));
+    
     case 'identify': api2(identify($who, $cid, $create, $self_message));
     case 'credit_info': api2(credit_info($who, $state, $asof));
     case 'make_username': api2(make_username($account, $name));
@@ -113,50 +120,66 @@ function create_user($info) {
  * Undo the given transaction.
  * Situations:
  *   Transaction PENDING or DENIED
- *     I invoiced someone (or paid negative): change state to CANCELED
- *     Someone invoiced me (or paid negative): change state to DENIED
+ *     I invoiced someone: change state to CANCELED
+ *     Someone invoiced me: change state to DENIED
  *   Transaction DONE
- *     I paid someone (or charged negative): create an opposite transaction (using a negative amount)
- *     I charged someone (or paid negative): create an opposite transaction
- *     Someone paid me (or charged negative): create an opposite transaction
- *     Someone invoiced me (or paid negative) and I approved it: create an opposite transaction
- *     Someone charged me (or paid negative) unilaterally: change the transaction state to CONTESTED (?)
+ *     I paid someone: create an opposite transaction (with reverse rewards)
+ *     I charged someone: create an opposite transaction
+ *     Someone paid me: create an opposite transaction
+ *     Someone invoiced me and I approved it: create an opposite transaction
+ *     Someone charged me unilaterally: change the transaction state to CONTESTED (?)
  * @param int $channel: through what medium was the transaction requested (web, SMS, etc.).
  */
 function undo_tx($xid, $cid, $channel) {
   if (is_frontend()) return (array) backend('undo_tx', compact(u\ray('xid cid channel')));
   
   extract(r\db_q('SELECT state, creator, amount, payer, payee, data FROM r_txs WHERE xid=:xid', compact('xid'))->fetchAssoc());
-  $tid = tid_from_xid($cid, $xid);
+  $old_tid = tid_from_xid($cid, $xid);
   $tofrom = $payer == $cid ? t('to') : t('from');
   $other_uid = $payer == $cid ? $payee : $payer;
   $other = user_field('full_name', $other_uid);
-  $data = unserialize($data);
-  if (@$data['undone']) return array('already undone', compact('tid'));
+  $old_data = $data = unserialize($data);
+  if (@$data['undone']) return array('already undone', compact('old_tid'));
   
   if ($state == TX_PENDING or $state == TX_DENIED) {
-    $new_state = ($amount < 0 xor $creator == $cid) ? TX_DELETED : TX_DENIED;
+//    $new_state = ($amount < 0 xor $creator == $cid) ? TX_DELETED : TX_DENIED;
+    $new_state = $creator == $cid ? TX_DELETED : TX_DENIED;
     r\set_tx_state($new_state, $xid);
     $action = $creator == $cid ? t('deleted') : t('marked "denied"');
-  } elseif ($creator != $cid and ($amount < 0 xor $payee == $cid) and access('charge others', $creator)) { // someone charged me unilaterally
+//  } elseif ($creator != $cid and ($amount < 0 xor $payee == $cid) and access('charge others', $creator)) { // someone charged me unilaterally
+  } elseif ($creator != $cid and $payee == $cid and access('charge others', $creator)) { // someone charged me unilaterally
     r\set_tx_state(TX_CONTESTED, $xid);
     $action = t('marked "contested"');
   } else {
-    $type = $cid == $payer ? 'payment' : 'charge';
-    $what = array("undo #$tid", 'undo #' . tid_from_xid($other_uid, $xid));
-    if ($type == 'charge') $what = array($what[1], $what[0]);
-    list ($message, $args, $confirm) = transfer($type, $channel, $other_uid, -$amount, $what, TRUE, $data);
-    $data['undone'] = TRUE;
+    $type = $cid == $payee ? 'payment' : 'charge';
+    $my_note = "reverses #$old_tid";
+    $other_note = str_replace($old_tid, tid_from_xid($other_uid, $xid), $my_note);
+    $what = u\order($type == 'payment', $my_note, $other_note);
+    list ($data['rebate'], $data['bonus']) = array(-$data['bonus'], -$data['rebate']);
+    list ($message, $args, $confirm) = transfer($type, $channel, $other_uid, $amount, $what, TRUE, $data);
     if (@$args['success']) {
-      r\set_tx_field('data', serialize($data), $xid);
+      $old_data['undone'] = TRUE;
+      $old_data = serialize($old_data);
+      list ($new_tid, $other_tid) = array($args['tid'], tid_from_xid($other_uid, $args['xid']));
+      $my_note = "(reversed by #$new_tid) ";
+      $other_note = str_replace($new_tid, $other_tid, $my_note);
+      list ($payer_note, $payee_note) = u\order($type == 'payment', $other_note, $my_note);
+      $sql = <<<EOF
+        UPDATE r_txs SET 
+          payer_for=CONCAT(:payer_note, payer_for), 
+          payee_for=CONCAT(:payee_note, payee_for),
+          data=:old_data
+        WHERE xid=:xid
+EOF;
+      r\db_q($sql, compact(u\ray('payer_note payee_note xid old_data')));
       $message = 'report undo|' . $message;
-      $args += array('action' => 'reversed');
+      $args += array('action' => t('reversed'));
     }
     return array($message, $args);
   }
 
   $amount = u\format_amount($amount);
-  return array("report undo", compact(u\ray('tid amount other tofrom action')));
+  return array("report undo", compact(u\ray('old_tid new_tid amount other tofrom action')));
 }
 
 /**
@@ -257,8 +280,10 @@ function transfer($ttype, $channel, $other_uid, $requested_amount, $for, $confir
   $paying_invoice = ($ttype == 'invoice payment');
   $confirm_type = $ttype;
   $type = TX_TRANSFER;
-  $preapproved = ($taking xor $requested_amount < 0) ? access('charge others', $cid) : TRUE;
-  if ($requested_amount < 0 and empty($rewards)) return array('negative transfer', array(), FALSE);
+//  $preapproved = ($taking xor $requested_amount < 0) ? access('charge others', $cid) : TRUE;
+  $preapproved = $taking ? access('charge others', $cid) : TRUE;
+//  if ($requested_amount < 0 and empty($rewards)) return array('negative transfer', array(), FALSE);
+  if ($requested_amount < 0) return array('negative transfer', array(), FALSE);
   $for_cash = @$rewards['rebate'] ? ($rewards['rebate'] + $rewards['bonus'] == 0) : u\for_cash($for); // @$rewards['cash'] ?:
   if ($for_cash and !is_array($for)) $for = 'cash';
   
@@ -309,7 +334,6 @@ function transfer($ttype, $channel, $other_uid, $requested_amount, $for, $confir
   return array($confirm_type, $args, TRUE);
 }
 
-
 /**
  * Record an incentive transaction for signing up
  * @param int who: uid of the person signing up
@@ -326,6 +350,47 @@ function give_signup_incentive($who, $channel) {
   $for = t('signup');
   r\transact(compact(u\ray('type amount payer payee for creator channel')));
   return $amount;
+}
+
+/**
+ * @return FALSE if success; else array($error_message, $subs)
+ */
+function add_cell($number, $validate = FALSE) {
+  if (is_frontend()) return backend('add_cell', compact(u\ray('number validate')));
+
+  global $cid;
+  $number_internal = u\format_phone($number, '+n');
+  $number_pretty = u\format_phone($number);
+  $subs = compact('number'); // original format
+
+  if ($validate) {
+    if (!$number_pretty) return array('bad phone', $subs);
+    if ($result = r\db_q('SELECT * FROM sms_user WHERE number=:number_internal', compact('number_internal'))->fetchAssoc()) {
+      extract($result, EXTR_PREFIX_ALL, 'old');
+      if ($old_uid == $cid) return array('already cell', $subs);
+      //extract(r\db_q('SELECT full_name, credit_id FROM users WHERE uid=:old_uid', compact('old_uid'))->fetchAssoc());
+      extract(user_field('full_name,credit_id', $old_uid));
+      $account = "$full_name ($credit_id)"; // maybe make the previous line and this a function
+      if (!is_temp_account($old_uid)) return array('cell taken', compact(u\ray('number account')));
+    }
+    return NULL;
+  }
+  
+  $uid = $cid;
+  $status = SMS_USER_CONFIRMED;
+  $number = $number_internal;
+  debug(!merge_check(compact('number')));
+  if (!merge_check(compact('number'))) \drupal_write_record('sms_user', compact(u\ray('uid number status')));
+  $number = $number_pretty;
+  return array('report new cell', compact('number'));
+}
+
+function delete_cell($number) {
+  if (is_frontend()) return backend('delete_cell', compact(u\ray('number')));
+  $number = u\format_phone($number, '+n'); // internal format
+  r\db_q('DELETE FROM sms_user WHERE number=:number LIMIT 1', compact('number'));
+  $number = u\format_phone($number); // pretty format
+  return array('report delete cell', compact('number'));
 }
 
 /**
@@ -393,7 +458,10 @@ function identify($who, $cid, $create = FALSE, $self_message = 'no self-trading'
  *   including the overall demand for rCredits
  */
 function credit_info($who, $state = TX_DONE, $asof = '') {
-  if (is_frontend()) return backend('credit_info', compact(u\ray('who state asof')));
+  if (is_frontend()) {
+    $info = backend('credit_info', compact(u\ray('who state asof')));
+    $info->fancy = (array) $info->fancy; // backend turns the whole shebang into an object
+  }
   
   if ($state == TX_DONE) $state = TX_DONE . ',' . TX_CONTESTED;
   $result_keys = 'gross_in gross_out gross_in_proper balance available unavailable rewards cashable total_demand min_balance id';
@@ -446,6 +514,10 @@ die('UNUSED');
   die("Too many collisions in make_make_shortname) -- original = $original");
 }
 
+/**
+ * Find and merge into the current account any temporary accounts with the same shortname or specified criteria
+ * @return int: the number of accounts that were merged.
+ */
 function merge_check($info) {
   if (is_frontend()) return backend('merge_check', compact(u\ray('info')));
   
@@ -460,14 +532,17 @@ function merge_check($info) {
   if (@$fax) $where .= ' OR u.fax=:fax';
   $sql = "SELECT DISTINCT u.uid FROM users u LEFT JOIN sms_user sms ON sms.uid=u.uid WHERE (NOT u.pass) AND ($where)";
   $result = r\db_q($sql, $info);
-  while ($row = $result->fetchAssoc()) merge_accounts($row['uid'], $cid);
-  return !empty($result);
+  $found = 0;
+  while ($row = $result->fetchAssoc()) $found += merge_accounts($row['uid'], $cid);
+  return $found;
 }
 
 /**
  * Merge a temporary ("old") account into a permanent ("new") account.
  * @todo: handle resultant self-transactions
  * @todo: write old uids to a separate table (maybe just uid and credit_id)
+ * @todo: handle shared accounts
+ * @return 1 (for counting how many were merged)
  */
 function merge_accounts($old_uid, $new_uid) {
   if (is_frontend()) return backend('merge_accounts', compact(u\ray('old_uid new_uid')));
@@ -492,6 +567,7 @@ function merge_accounts($old_uid, $new_uid) {
   r\db_q("UPDATE r_user_industries SET uid=:new_uid WHERE uid=:old_uid", $subs);
   r\db_q("UPDATE users SET uid=IF(uid>0,-uid,uid), status=0 WHERE uid=:old_uid", compact('old_uid'));
   /*** End DBTX ***/ unset($dbtx);
+  return 1;
 }
 
 /**
@@ -571,8 +647,8 @@ function todo($number, $todo = 'nothing', $nonce = 'whatever') {
  * @param string $where: the criteria (defaults to 1 = none)
  * @param array $subs: optional substitutions (will be prefixed with colons)
  */
-function last_tx($where = 1, $subs = array()) {
-  if (is_frontend()) return backend('last_tx', compact(u\ray('where subs')));
+function last_tx($where = 1, $subs = array(), $cache = FALSE) {
+  if (is_frontend()) return backend('last_tx', compact(u\ray('where subs')), $cache);
   
   $sql = "SELECT * FROM r_txs WHERE $where ORDER BY xid DESC LIMIT 1"; 
   return r\db_q($sql, $subs)->fetchAssoc();
@@ -598,7 +674,7 @@ function account_name($uid) {
  */
 function accesses($uid = '') {  
   global $userid, $cid;
-  if (!$uid) $uid = @$cid + 0; // must precede backend caching
+  if (!$uid) $uid = u\cid() + 0; // must precede backend caching
   if (is_frontend()) return backend('accesses', compact(u\ray('uid')), TRUE);
   
   $role_perms = (\user_role_permissions(\user_load($uid)->roles)); // Drupal permissions
@@ -610,14 +686,14 @@ function accesses($uid = '') {
   $crit = 'shared_with=:userid AND shared_uid=:uid';
   $can = $uid == $userid ? count($cans) - 1 : r\db_lookup('permission', 'r_shared_accounts', $crit, compact('uid', 'userid'));
   for ($i = 1; $i <= $can; $i++) $perms[] = $cans[$i];
-  
+
   return $perms;
 }
 
 /**
  * @return array of record objects
  */
-function get_records($table, $criteria, $subs, $cache = FALSE) {
+function get_records($table, $criteria, $subs, $fields = '*', $cache = FALSE) {
 /*  $sql = <<<EOF
     SELECT COLUMN_NAME FROM information_schema.COLUMNS
     WHERE TABLE_SCHEMA=:db AND TABLE_NAME=:table AND COLUMN_KEY='PRI'
@@ -627,14 +703,15 @@ EOF;
 //  if (!$cache) die('no cache get_records');
   if (is_frontend()) return (array) backend('get_records', compact(u\ray('table criteria subs')), $cache);
   
-  return r\db_q("SELECT * FROM $table WHERE $criteria", $subs)->fetchAll(); // fetchAll means fetchAllObject
+  return r\db_q("SELECT $fields FROM $table WHERE $criteria", $subs)->fetchAll(); // fetchAll means fetchAllObject
 }
 
 function is_temp_account($uid) {return is_frontend() ? backend('is_temp_account', compact(u\ray('uid'))) : !user_field('pass', $uid);}
 function is_temp_name($name) {return is_frontend() ? backend('is_temp_name', compact(u\ray('name'))) : u\abbreviates(RCREDITS_TEMP_NAME_PREFIX, $name);}
 
 function testbe($function = '', $arg1 = '', $arg2 = '', $arg3 = '') {
-  global $testing_backend;
+  global $testing_backend, $firewall;
+  $firewall = RCREDITS_FIREWALL; // this is not currently necessary
   if (!$function) return $testing_backend;
   $function = "rCredits\\API\\$function";
   $testing_backend = TRUE;
@@ -646,12 +723,13 @@ function testbe($function = '', $arg1 = '', $arg2 = '', $arg3 = '') {
  * @todo: also check the rSMS path (another backend)
  */
 function is_frontend() {
+  if (!RCREDITS_SEPARATE_BACKEND) return FALSE; // disable separation of frontend and backend
   return (!testbe() and (strpos($_SERVER['REQUEST_URI'], 'rCredits/api') === FALSE));
   // (FAILS in menu system of backend) global $is_backend; return !@$is_backend;
 }
 
 function backend($op, $info = array(), $cache = FALSE) {
-  global $base_url, $userid, $cid;
+  global $base_url, $userid, $cid, $firewall;
   if (!is_frontend()) die('backend recursion');
   if (!user_is_logged_in()) return FALSE; // probably checking permission
 //  if ($op == 'get_records' and !$cache) die(print_r(debug_backtrace(), 1));
@@ -665,10 +743,11 @@ function backend($op, $info = array(), $cache = FALSE) {
 //  debug($skey . $result);
   debug("cache:$cache $op: " . json_encode($info) . ($cache ? " result:$result" : ''));
 //  debug($result);
-  $password = \user_load($userid)->pass; 
-  $info += compact(u\ray('op userid password cid')); // operation, credentials, and account
+  $password = \user_load($userid)->pass;
+  $firewall = RCREDITS_FIREWALL;
+  $info += compact(u\ray('op userid password cid firewall')); // operation, credentials, and account
   $host = strpos($base_url, 'localhost/') !== FALSE ? 'http://localhost/devcore' : 'http://devcore.rcredits.org';
-  $api_result = u\http_request("$host/rCredits/api/", $info);
+  $api_result = RCREDITS_SEPARATE_BACKEND ? u\http_request("$host/rCredits/api/", $info) : api($info);
 //debug($api_result);
   u\log('rAPI', 'out', $info + compact('api_result'));
   if ($cache) $_SESSION[$skey] = serialize($api_result);
@@ -678,13 +757,18 @@ function backend($op, $info = array(), $cache = FALSE) {
 
 // Shortcut functions
 
+/**
+ * @return:
+ *   data from the field, if a single field is requested
+ *   an associative array of the field data, if more than one field is requested
+ */
 function user_field($field_name, $who = FALSE, $subs = array()) {
   if (!$who) $who = u\cid();
-  $result = get_records('users', is_numeric($who) ? "uid=$who" : $who, $subs, TRUE);
+  $result = get_records('users', is_numeric($who) ? "uid=$who" : $who, $subs, $field_name, TRUE);
   if (count($result) < 1) return FALSE;
   if (count($result) > 1) die("ambiguous user in user_field: $who");
   if (!is_object($result[0])) die('bad object array in user_field: ' . print_r($result, 1));
-  return $result[0]->$field_name;
+  return strpos($field_name, ',') ? ((array) $result[0]) : $result[0]->$field_name;
 //  return r\db_lookup($field_name, 'users', is_numeric($who) ? "uid=$who" : $who, $subs);
 }
 
@@ -698,3 +782,4 @@ function user_field($field_name, $who = FALSE, $subs = array()) {
  * @return boolean: TRUE if the user has the permission
  */
 function access($access, $uid = '') {return in_array($access, accesses($uid));}
+
