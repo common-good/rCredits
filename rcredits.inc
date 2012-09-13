@@ -39,7 +39,8 @@
  * @todo: use user_load or user_load_by_name or perhaps entity_load($entity_type, $ids = FALSE, $conditions = array(), $reset = FALSE) 
  * consistently, to take advantage of caching (but test, to make sure it works for non-$user accounts)
  *
- * @todo: use name field for credit_id.
+ * @todo: settle how credit id is handled. Probably have a single region per server, so uid and region id together are the uid
+ * @todo: Finish separating backend. Front end should have no registered users.
  */
  
 namespace rCredits; // typically abbreviated as "r"
@@ -48,34 +49,43 @@ use \rCredits\API as api;
 
 include_once __DIR__ . '/rcredits-circles.inc'; // treat this as an extension of this file, for testing
 
-define('RCREDITS_SEPARATE_BACKEND', FALSE);
-define('RCREDITS_COMMUNITY_NAME', 'Community');
-define('RCREDITS_COMMUNITY_ID', 'community'); // credit_id for the community account
-define('RCREDITS_COMMUNITY_POSTAL_AREA', '01%'); // anyone with a postal code that matches this is in
-define('RCREDITS_INITIAL_DEMAND', 25000); // total escrowed rCredits during TRIAL RUN
-//define('RCREDITS_CURRENCY_CODE', 'r'); // Pretend rCredits, pre-launch
-define('RCREDITS_REBATE', 0.05);
-define('RCREDITS_BONUS', 0.10);
-define('RCREDITS_MAX_DEMAND', 1000000); // you can't ask for more rCredits than this
-define('RCREDITS_MIN_DEMAND', 100); // you can't buy less rCredits than this at a time
-define('RCREDITS_STARTING_BALANCE', 250); // how much people start with in the TRIAL RUN
-define('RCREDITS_MIN_BALANCE', -10000); // how low can user's balance go, by default (be generous in TRIAL RUN)
-define('RCREDITS_TEMP_NAME_PREFIX', 'unknown ');
+define('R_SEPARATE_BACKEND', FALSE);
+define('R_COMMUNITY_NAME', 'Community');
+define('R_COMMUNITY_ID', 'community'); // credit_id for the community account
+define('R_COMMUNITY_POSTAL_AREA', '01%'); // anyone with a postal code that matches this is in
+define('R_INITIAL_DEMAND', 25000); // total escrowed rCredits during TRIAL RUN
+define('R_REBATE', 0.05);
+define('R_BONUS', 0.10);
+define('R_MAX_DEMAND', 1000000); // you can't ask for more rCredits than this
+define('R_MIN_DEMAND', 100); // you can't buy less rCredits than this at a time
+define('R_STARTING_BALANCE', 250); // how much people start with in the TRIAL RUN
+define('R_MIN_BALANCE', -10000); // how low can user's balance go, by default (be generous in TRIAL RUN)
+define('R_TEMP_NAME_PREFIX', 'unknown ');
 
-define('RCREDITS_ROLE_RTRADER', 4);
+// Filenames
+define('R_TEMPLATE_DIR', '/templates');
+define('R_EMAIL_FRAME', '/email-frame.html');
+
+// Roles
+define('R_ROLE_RTRADER', 4);
+
+// Bank account states
+define('R_BANK_VERIFIED', 1); // we have proof that the user owns the bank account
 
 // Account types
-define('RCREDITS_PERSONAL', 0);
+define('R_PERSONAL', 0);
 
 $GLOBALS['account types'] = array(t('personal'), t('commercial'), t('non-profit'));
 $GLOBALS['share permissions'] = array('no access', 'can read transactions', 'can create transactions', 'can manage account');
 
-// Transaction states (greater than 0 means it counts)
-define('TX_DENIED', -2); // invoice rejected by payer
-define('TX_DELETED', -1);
-define('TX_PENDING', 0); // charged, waiting for confirmation
+// Transaction states
+define('TX_STATES', 'deleted done pending disputed denied');
+
+define('TX_DELETED', 0);
 define('TX_DONE', 1); // here and up, the transaction counts
-define('TX_CONTESTED', 2); // unilaterally charged, but contested by the payer (the charge stands, until settled)
+define('TX_PENDING', 2); // charged, waiting for confirmation
+define('TX_DISPUTED', 3); // unilaterally charged, but disputed by the payer (the charge stands, until settled)
+define('TX_DENIED', 4); // invoice rejected by payer
 
 // Transaction channels
 define('TX_WEB', 1);
@@ -91,6 +101,12 @@ define('TX_REBATE', 3);
 define('TX_BONUS', 4);
 
 define('TX_COUNTABLE', 2); // higher numbers don't show on list, so they don't get transaction numbers (tid's)
+
+$GLOBALS['email_subjects'] = array(
+  'new-invoice' => t('rCredits INVOICE from {PAYEE_NAME}'),
+  'invoice-denied' => t('rCredits Invoice DENIED by {PAYER_NAME}'),
+  'charge-disputed' => t('rCredits Charge DISPUTED by {PAYER_NAME}'),
+);
 
 /**
  * Make Fields
@@ -170,8 +186,9 @@ function permission(&$permissions, $title, $description) {
  * Format and return args for reporting a transaction
  * Not all returned args are used for any particular type of transaction.
  */
-function tx_report_args($taking, $amount, $shortfall, $reward, $my_uid, $other_uid, $xid, $for_cash) {
-  $type = $for_cash ? 'traded' : ($taking ? t('charged') : t('paid'));
+function tx_report_args($taking, $amount, $shortfall, $reward, $other_uid, $xid, $goods) {
+  global $cid;
+  $type = $goods ? ($taking ? t('charged') : t('paid')) : 'traded';
   $amount = u\format_amount($amount);
   $short = u\format_amount($shortfall);
   $tofrom = $taking ? t('from') : t('to');
@@ -179,8 +196,8 @@ function tx_report_args($taking, $amount, $shortfall, $reward, $my_uid, $other_u
   $reward_amount = u\format_amount($reward);
   $other = user_field('full_name', $other_uid);
 
-  $balance = api\credit_info($my_uid)->fancy['balance'];
-  $tid = api\tid_from_xid($my_uid, $xid);
+  $balance = api\credit_info($cid)->fancy['balance'];
+  $tid = api\xid2tid($xid);
 
   $way = $taking ? 'cash for rCredits' : 'rCredits for cash'; // use as both text and message index (might wanna separate out way_index)
   $success = TRUE;
@@ -200,21 +217,23 @@ function transact($info) {
 
 /**
  * Save the transaction set
+ * @todo: don't give real rewards to the passive party in an ASIF transaction (look retroactively at creator)
  */
 function tx_save($txs) {
+  extract($txs[0], EXTR_PREFIX_ALL, 'my');
   //*** Begin DBTX
   $dbtx = db_transaction();
+  $table = t_table(is_rTrader($my_payer) and is_rTrader($my_payee));
   foreach ($txs as $key => $zot) { // $zot is unused
     $txs[$key]['serial'] = @$serial; // set serial for dependent transactions
-//    $txs[$key]['type'] = tx_type($txs[$key]['type']); // translate from string to numeric at the last moment
-    \drupal_write_record('r_txs', $txs[$key]); // pass actual array element, to get xids
+    \drupal_write_record($table, $txs[$key]); // pass actual array element, to get xids
     if ($key == 0) {
       $txs[$key]['serial'] = $serial = $txs[0]['xid']; // set serial for main transaction
-      db_q('UPDATE r_txs SET serial=:serial WHERE xid=:serial', compact('serial'));
+      db_q("UPDATE $table SET serial=:serial WHERE xid=:serial", compact('serial'));
     }
   }
 
-  unset($dbtx); // $dbtx->commit() is disallowed
+  unset($dbtx); // commit ($dbtx->commit() is disallowed)
   //*** End DBTX
   
   return $txs;
@@ -228,12 +247,12 @@ function transaction_rewards(&$txs) {
   
 //  if (($my_type != 'payment') and ($my_type != 'charge')) return;
   if ($my_type != TX_TRANSFER) return;
-  if ($my_payer_for == 'cash') return; // quit unless rebates and bonuses apply
+  if (!$my_goods) return; // quit unless rebates and bonuses apply
   $rewards = unserialize($my_data);
   
   $fields = u\ray('type amount payer payee for creator state channel');
   $payer = $creator = \variable_get('rcredits_community_uid');
-//  $payer_id = $creator_id = RCREDITS_COMMUNITY_ID;
+//  $payer_id = $creator_id = R_COMMUNITY_ID;
   $state = $my_state; // match rewards state to main transaction
 
   $type = TX_REBATE;
@@ -253,9 +272,6 @@ function transaction_rewards(&$txs) {
 
 /**
  * Create a new transaction and set up all the important fields.
- * @todo: set real to unreal if either party is a non-rTrader (never change the value of real if it's passed, because it is an undo)
- * @todo: don't give real rewards to the passive party in an ASIF transaction (look retroactively at creator)
- * (and no reward transaction if they are an rTrader)
  */
 function transaction_setup($info) {
   global $cid;
@@ -266,8 +282,7 @@ function transaction_setup($info) {
   $created = REQUEST_TIME;
   $serial = NULL; // always set equal to xid of main transaction after saving
   $data = serialize(@$data ?: array());
-  if (!isset($real)) $real = is_rTrader($payer) + 2 * is_rTrader($payee); // mark real versus AS IF transaction
-
+// (use r_asif instead) if (!isset($real)) $real = is_rTrader($payer) + 2 * is_rTrader($payee); // mark real versus AS IF 
   
   list ($payer_for, $payee_for) = is_array($for) ? $for : array($for, $for);
   unset($info['for']);
@@ -284,7 +299,7 @@ function transaction_setup($info) {
  */
 function demand($who, $demand = 0) {
   if (!$demand) return user_field('demand', $who);
-  $demand = min(RCREDITS_MAX_DEMAND, $demand);
+  $demand = min(R_MAX_DEMAND, $demand);
   update_user(compact('demand'), $who);
   return $demand;
 }
@@ -302,6 +317,22 @@ function next_credit_id($ctty, $business = FALSE) {
 }
 
 /**
+ * Notify the specified user, according to their preferences
+ */
+function notify($uid, $message_index, $info) {
+  $account = \user_load($uid);
+  extract((array) $account, EXTR_PREFIX_ALL, 'my');
+  $standard_fields = array(
+    'uid' => $uid,
+    'full_name' => $my_full_name,
+  );
+  
+  $subs = array();
+  foreach ($info + $standard_fields as $key => $value) $subs['{' . strtoupper($key) . '}'] = $value;
+  drupal_mail('rcredits', $message_index, $my_mail, user_preferred_language($account), $subs);
+}
+
+/**
  * Return a unique temporary name related to the given uniquely identifying parmeters 
  * in this order of preference: 
  *   phone: "unknown phone dddddddddd"
@@ -314,20 +345,55 @@ function next_credit_id($ctty, $business = FALSE) {
 function temp_name($info) {
   extract($info, EXTR_PREFIX_ALL, 'my');
   $phone = @$my_number ?: (@$my_phone ?: '');
-  if ($phone) return RCREDITS_TEMP_NAME_PREFIX . u\format_phone($phone, 'n');
-  if (isset($my_email)) return RCREDITS_TEMP_NAME_PREFIX . str_replace('@', ' AT ', str_replace('.', ' DOT ', $my_email));
-// NO  if (isset($my_website)) return RCREDITS_TEMP_NAME_PREFIX . str_replace('.', ' DOT ', str_replace('/', ' SLASH ', $my_website));
-  return RCREDITS_TEMP_NAME_PREFIX . substr(md5('zot' . strval(REQUEST_TIME)), 0, 10); // pseudo random
+  if ($phone) return R_TEMP_NAME_PREFIX . u\format_phone($phone, 'n');
+  if (isset($my_email)) return R_TEMP_NAME_PREFIX . str_replace('@', ' AT ', str_replace('.', ' DOT ', $my_email));
+// NO  if (isset($my_website)) return R_TEMP_NAME_PREFIX . str_replace('.', ' DOT ', str_replace('/', ' SLASH ', $my_website));
+  return R_TEMP_NAME_PREFIX . substr(md5('zot' . strval(REQUEST_TIME)), 0, 10); // pseudo random
 }
 
-function set_tx_state($new_value, $serial) {
-  return db_q("UPDATE r_txs SET state=:new_value WHERE serial=:serial", compact(u\ray('new_value serial')));
-}
-
-function set_tx_field($field_name, $new_value, $xid) {
-  return db_q("UPDATE r_txs SET $field_name=:new_value WHERE xid=:xid", compact(u\ray('new_value xid')));
+/**
+ * Set a transaction field for the current user.
+ */
+function set_tx_field($field_name, $new_value, $xid, $field = 'xid') {
+  global $cid;
+  $table = t_table();
+  $sql = "UPDATE $table SET $field_name=:new_value WHERE $field=:xid and $cid in (payer, payee)";
+  return db_q($sql, compact(u\ray('new_value xid')));
 }
 //return \db_update('r_txs')->fields(array($field_name => $new_value))->condition('xid', $xid);
+
+/**
+ * Merge a temporary ("old") account into the current account (a permanent ("new") account).
+ * @todo: handle resultant self-transactions
+ * @todo: write old uids to a separate table (maybe just uid and credit_id)
+ * @todo: handle shared accounts
+ * @return 1 (for counting how many were merged)
+ */
+function merge_accounts($old_uid) {
+  global $cid;
+  $new_uid = $cid;
+  if (!api\is_temp_account($old_uid)) return; // don't merge non-temp account
+  if (!api\access('can manage account')) die("unauthorized merge_accounts: $new_uid into $old_uid");
+//  if (!is_temp_name(user_field('name', $old_uid))) die('merging non-temp account');
+  // there are no other records for temporary accounts, than those below
+
+  $new = \user_load($new_uid);
+  $old = \user_load($old_uid);
+  $update = array();
+  foreach (u\ray('phone fax website address') as $one) if ($old->$one and !$new->$one) $update[$one] = $old->$one;
+  
+  /*** Begin DBTX ***/
+  $dbtx = \db_transaction();
+  \user_save($new, $update);
+  $subs = compact('new_uid', 'old_uid');
+  db_q("UPDATE r_asif SET payer=:new_uid WHERE payer=:old_uid", $subs);
+  db_q("UPDATE r_asif SET payee=:new_uid WHERE payee=:old_uid", $subs);
+  db_q("UPDATE sms_user SET uid=:new_uid WHERE uid=:old_uid", $subs);
+  db_q("UPDATE r_user_industries SET uid=:new_uid WHERE uid=:old_uid", $subs);
+  db_q("UPDATE users SET uid=IF(uid>0,-uid,uid), status=0 WHERE uid=:old_uid", compact('old_uid'));
+  /*** End DBTX ***/ unset($dbtx);
+  return 1;
+}
 
 /**
  * Reset all rCredits data, to start development with a clean slate
@@ -336,11 +402,25 @@ function reset() {
   if(!($ctty_uid = \variable_get('rcredits_community_uid'))) die("No community uid!");
   $sqls = array(
     'TRUNCATE TABLE r_txs',
+    'TRUNCATE TABLE r_asif',
     'TRUNCATE TABLE sms_user',
     "DELETE FROM users WHERE uid > $ctty_uid",
     'TRUNCATE TABLE sessions',
   );
   foreach ($sqls as $sql) \db_query($sql);
+}
+
+/**
+ * Return the real or ASIF transaction table name
+ * @param int/boolean $real:
+ *   0 or 1  - return the asif or real table name respectively
+ *   > 1     - $real is a uid. return the real table name if the user is an rTrader, otherwise the asif table name
+ *   omitted - as for > 1, with the current user's uid
+ */
+function t_table($real = FALSE) {
+  global $cid;
+  if (!$real) $real = $cid;
+  return ($real > 1 ? is_rTrader($real) : $real) ? 'r_txs' : 'r_asif';
 }
 
 /**
@@ -358,11 +438,12 @@ function user_field($field_name, $who, $subs = array()) {
 }
 
 // Single line functions that need no explanation
-function db_q($sql, $args = array()) {return \db_query($sql, u\prefix_keys(':', $args));}
+function db_q($sql, $args = array()) {return \db_query(u\get_constants($sql), u\prefix_keys(':', $args));}
 function rebate($who, $amount = 1) {return round($amount * db_lookup('rebate_percent', 'users', 'uid=:who', compact('who')) / 100, 2);}
 function bonus($who, $amount = 1) {return rebate($who, 2 * $amount);}
 function update_user($info, $who) {return \db_update('users')->fields($info)->condition('uid', $who)->execute();}
-function tx_field($field_name, $xid) {return db_lookup($field_name, 'r_txs', 'xid=:xid', compact('xid'));}
+// UNUSED function tx_field($field_name, $xid, $real) {return db_lookup($field_name, t_table($real), 'xid=:xid', compact('xid'));}
+function set_tx_state($new_value, $serial) {set_tx_field('state', $new_value, $serial, 'serial');}
 function uid_from_crid($credit_id) {return db_lookup('uid', 'users', 'credit_id=:credit_id', compact('credit_id'));}
 function total_demand() {return db_lookup('SUM(demand)', 'users');}
-function is_rTrader($uid) {return db_lookup(1, 'users_roles', 'uid=:uid AND rid=' . RCREDITS_ROLE_RTRADER, compact('uid'));}
+function is_rTrader($uid) {return db_lookup(1, 'users_roles', 'uid=:uid AND rid=' . R_ROLE_RTRADER, compact('uid'));}

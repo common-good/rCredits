@@ -49,11 +49,11 @@ function rcredits_permission() {
   r\permission($permissions, 'Member', t('Has an account, can access the member area and do "As If" transactions'));
   r\permission($permissions, 'Partner', t('Signed the membership agreement and donated'));
   r\permission($permissions, 'Steward', t('Is allowed to vote and is responsible for stewarding the Common Good Community'));
-  r\permission($permissions, 'rTrader', t('Is allowed to use rCredits for real'));
+// make this a role  r\permission($permissions, 'rTrader', t('Is allowed to use rCredits for real'));
   r\permission($permissions, 'Charge others', t('Can charge customers without confirmation'));
-  r\permission($permissions, 'Transact via SMS', t('Transfer funds and get account information through the SMS Interface'));
-  r\permission($permissions, 'Transact via Web Browser', t('Transfer funds and get account information through the Web Browser Interface'));
-  r\permission($permissions, 'Transact via Smart Phone', t('Transfer funds and get account information through the Smart Interface'));
+//  r\permission($permissions, 'Transact via SMS', t('Transfer funds and get account information through the SMS Interface'));
+//  r\permission($permissions, 'Transact via Web Browser', t('Transfer funds and get account information through the Web Browser Interface'));
+//  r\permission($permissions, 'Transact via Smart Phone', t('Transfer funds and get account information through the Smart Interface'));
   return $permissions;
 }
 
@@ -66,3 +66,32 @@ function rcredits_help($path, $arg) {
   }
 }
 
+/**
+ * Implements hook_mail().
+ */
+function rcredits_im_send($key, &$message, $subs) {
+  return FALSE; // can't send IMs yet
+
+  $message['send'] = FALSE; // disable emailing, since we sent it my IM instead
+  return TRUE;
+} 
+
+/**
+ * Implements hook_mail().
+ */
+function rcredits_mail($key, &$message, $subs) {
+    $language = $message['language'];
+//    $data['user'] = \user_load($cid);
+//    user_mail_tokens($variables, $data, compact('language')); // adds links for password reset and account cancelation
+    
+    if (rcredits_im_send($key, $message, $subs)) return; // If we can send by instant-message, do not send by email.
+    $langcode = $language->language;
+    $message['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed'; // default is plain text
+    $message['subject'] = strtr($GLOBALS['email_subjects'][$key], $subs);
+    $guts = strtr(file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html"), $subs);
+    $message['body'][] = str_replace('{BODY}', $guts, file_get_contents(__DIR__ . R_TEMPLATE_DIR . R_EMAIL_FRAME));
+
+//    $message['subject'] = t('Notification from !site', $variables, compact('langcode'));
+//    $message['body'][] = t("Dear !username\n\nThere is new content available on the site.", $variables, compact('langcode'));
+    
+}

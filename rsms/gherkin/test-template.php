@@ -1,6 +1,6 @@
 <?php
 %FEATURE_HEADER
-require_once __DIR__ . '/../gherkin/test_defs.php';
+require_once __DIR__ . '/../gherkin/test-defs.php';
 require_once __DIR__ . '/../%MODULE.steps';
 
 class %MODULE%FEATURE_NAME extends DrupalWebTestCase {
@@ -20,7 +20,7 @@ class %MODULE%FEATURE_NAME extends DrupalWebTestCase {
 
   public function setUp() { // especially, enable any modules required for the tests
     parent::setUp(self::MODULE);
-    $setup_filename = __DIR__ . '/../' . self::MODULE . '_setup.inc';
+    $setup_filename = __DIR__ . '/../' . self::MODULE . '-setup.inc';
     if (file_exists($setup_filename)) include $setup_filename;
   }
 %TESTS

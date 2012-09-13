@@ -8,7 +8,7 @@ use rCredits as r;
 use rCredits\Utilities as u;
 use \rCredits\InternalInterface as ii;
 
-define('RCREDITS_TABLES', 'r_area_codes,r_credit_regions,r_nonces,r_txs,r_shared_accounts,role');
+define('R_TABLES', 'r_area_codes,r_credit_regions,r_nonces,r_txs,r_asif,r_shared_accounts');
 
 /**
  * Implement hook_install().
@@ -21,11 +21,11 @@ function rcredits_install() {
   r\make_fields();
 //  r\make_currency();
   
-  $name = RCREDITS_COMMUNITY_NAME;
-  $credit_id = RCREDITS_COMMUNITY_ID;
+  $name = R_COMMUNITY_NAME;
+  $credit_id = R_COMMUNITY_ID;
   $credit_name = $name;
-  $postal_code = RCREDITS_COMMUNITY_POSTAL_AREA;
-  $demand = RCREDITS_INITIAL_DEMAND;
+  $postal_code = R_COMMUNITY_POSTAL_AREA;
+  $demand = R_INITIAL_DEMAND;
   $rebate_percent = 0;
   $info = compact(u\ray('name credit_id credit_name postal_code demand rebate_percent'));
   if ($account = user_load_by_name($name)) {
@@ -35,14 +35,16 @@ function rcredits_install() {
 
   variable_set('rcredits_community_uid', $uid); // gets unset during uninstall
   variable_set('date_default_timezone', 'America/New_York');
+// NO. This creates a navigation column.  variable_set('site_frontpage', 'charge');
 
-  foreach (explode(',', RCREDITS_TABLES) as $table) {
+  $tables = explode(',', R_TABLES . ',role'); // we also add records to some standard Drupal tables
+  foreach ($tables as $table) {
     $filename = __DIR__ . "/sql/$table";
     if ($sql = @file_get_contents("$filename-make.sql")) db_query($sql); // read in a single CREATE TABLE (if exists) query
     if (!@r\db_lookup(1, "$table", 'TRUE') and file_exists("$filename-insert.sql")) {
-	  $sql = file_get_contents("$filename-insert.sql"); // read in a single multi-record INSERT query
-	  if (!db_query($sql)->rowCount()) die("Failed to insert records for $table.");
-	}
+      $sql = file_get_contents("$filename-insert.sql"); // read in a single multi-record INSERT query
+      if (!db_query($sql)->rowCount()) die("Failed to insert records for $table.");
+	  }
   }
 }
 
@@ -53,15 +55,14 @@ function rcredits_schema() {
   require_once 'rcredits.inc'; // Drupal bug. hook_schema needs this explicit.
   require_once 'rcredits-util.inc';
 
-  // table r_txs
+  // table r_txs (and r_asif)
   $fields = array(
     'xid' => r\setup_field('the unique transaction ID', 'serial 11'), 
     'serial' => r\setup_field('serial number of related transactions', 'int 11'), 
     'type' => r\setup_field('transaction type (transfer, rebate, etc.)', 'int tiny'), 
-    //  r\setup_field('Is Reward', 'is this transaction an incentive reward?', 'int tiny'), 
+    'goods' => r\setup_field('is this transfer and exchange for real goods and services?', 'int tiny'), 
     'channel' => r\setup_field('through what medium was the transaction entered', 'int tiny'), 
     'state' => r\setup_field('completed, pending, disputed, etc', 'int tiny'), 
-    'real' => r\setup_field('transaction is real for 0=nobody 1=payer 2=payee 3=both', 'int tiny'), 
     'payer' => r\setup_field('user id of the payer', 'int 11'), 
     'payee' => r\setup_field('user id of the payee', 'int 11'), 
     'amount' => r\setup_field('transaction amount', 'float big'), 
@@ -73,7 +74,8 @@ function rcredits_schema() {
   );
   $foreign_keys = r\foreign_key('payer') + r\foreign_key('payee') + r\foreign_key('creator');
   $indexes = r\index('payer') + r\index('payee');
-  $schema['r_txs'] = r\setup_table('Record of all transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
+  $schema['r_txs'] = r\setup_table('Record of all rCredits transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
+  $schema['r_asif'] = r\setup_table('Record of pretend (asif) transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
 
   // table r_shared_accounts
   $fields = array(
@@ -83,16 +85,35 @@ function rcredits_schema() {
   );
   $foreign_keys = r\foreign_key('shared_uid') + r\foreign_key('shared_with');
   $indexes = r\index('shared_uid') + r\index('shared_with');
-  $schema['r_shared_accounts'] = r\setup_table('Who can manage which accounts, and how', $fields, NULL, $foreign_keys);
+  $schema['r_shared_accounts'] = r\setup_table('Who can manage which accounts, and how', $fields, NULL, $foreign_keys, $indexes);
   
-  // table r_employees
+  // table r_employs
   $fields = array(
     'company' => r\setup_field('uid of company', 'int 11'),
     'employee' => r\setup_field('uid of employee', 'int 11'),
   );
   $foreign_keys = r\foreign_key('company') + r\foreign_key('employee');
   $indexes = r\index('company') + r\index('employee');
-  $schema['r_employees'] = r\setup_table('Who is employed by whom', $fields, NULL, $foreign_keys);
+  $schema['r_employs'] = r\setup_table('Who is employed by whom', $fields, NULL, $foreign_keys, $indexes);
+
+  // table r_employs_temp (same as r_employs, but with extra fields -- used for candidates in rcredits-circles.inc)
+  $fields = array(
+    'ignore' => r\setup_field('temporarily omit this record from consideration', 'int tiny'),
+    'employee_is_rtrader' => r\setup_field('this employee is an rTrader', 'int tiny'),
+    'score' => r\setup_field('how good is this candidate', 'int 11'),
+  );
+  $schema['r_employs_temp'] = $schema['r_employs'];
+  $schema['r_employs_temp']['fields'] += $fields;
+  
+  // table r_scores
+  $fields = array(
+    'company' => r\setup_field('uid of company', 'int 11'),
+    'count' => r\setup_field('for the rTraders that have this many places to buy with rCredits', 'int 11'),
+    'score' => r\setup_field('this many of those rTraders would buy from this company', 'int 11'),
+  );
+  $foreign_keys = r\foreign_key('company');
+  $indexes = r\index('company');
+  $schema['r_scores'] = r\setup_table('Best companies to promote to rTrader in the current round', $fields, NULL, $foreign_keys, $indexes);
   
   /*  
   r\setup_field($schema, 'r_area_codes', 'Area Code', 'telephone area code', 'char 3'); 
@@ -128,11 +149,12 @@ function rcredits_schema_alter(&$schema) {
     'credit_id' => r\setup_field('unique credit account identifier (8 characters for individuals)', 'varchar 9'),
     'rebate_percent' => r\setup_field('current rebate percentage (sales bonus is double)', 'numeric 4,3', 5),
     'demand' => r\setup_field('waiting to buy this much credit', 'numeric 9,2', 0),
-    'min_balance' => r\setup_field('minimum balance (normally zero or less)', 'numeric 9,2', RCREDITS_MIN_BALANCE),
+    'min_balance' => r\setup_field('minimum balance (normally zero or less)', 'numeric 9,2', R_MIN_BALANCE),
     'lost_card' => r\setup_field('user lost the account id card', 'int tiny', 0, '010'),
+//    'nym' => r\setup_field('unique identifier for cryptographic signing', 'text tiny'), 
+    'bank_account_name' => r\setup_field('name on US$ bank account -- usually the same as full_name', 'varchar 60'),
     'bank_account_number' => r\setup_field('official currency international bank account number', 'varchar 34'),
-    'bank_account_name' => r\setup_field('name on US$ bank account -- usually the same as name', 'varchar 60'),
-    'bank_account_verified' => r\setup_field('user has proven ownership of account', 'int tiny', 0, '010'),
+    'bank_account_status' => r\setup_field('account ownership verified, closed, etc.', 'int tiny', 0, '010'),
   );
   $schema['users']['fields'] = (@$schema['users']['fields'] ?: array()) + $fields;
   
@@ -157,5 +179,5 @@ function rcredits_uninstall() {
   r\make_fields('UNMAKE', $old_fields);
 // (DON'T DELETE record!)  if ($who = variable_set('rcredits_community_uid')) db_query("DELETE FROM users WHERE uid = $who");
 
-  db_query('DROP TABLE IF EXISTS ' . RCREDITS_TABLES . ',r_credit_tails');
+  db_query('DROP TABLE IF EXISTS ' . R_TABLES . ',r_credit_tails');
 }

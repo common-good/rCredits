@@ -21,11 +21,13 @@ form.rweb div.form-type-radio label {display:inline; width:100px; margin-left:3p
 /* Labeled Forms (each field is preceded by a short label and the fields line up)
 /* form.rweb.labeled (this fails for Chrome) */
 form.labeled div.form-type-textfield {display:block; margin-right:0px;}
-form.labeled label {display:inline-block; width:100px; text-align:right; margin-right:0px;} /* default label width */
-form.labeled div#edit-title label {margin-left:105px; width:100%;}
-form.labeled div.form-item div.description {margin-left:105px;}
-form.labeled input[type="submit"] {margin-left:105px;}
-form.labeled div.form-radios {margin-left:105px;}
+form.labeled label {display:inline-block; width:130px; text-align:right; margin-right:0px;} /* default label width */
+form.labeled div#edit-title label {margin-left:135px; width:100%;}
+form.labeled div.form-item div.description {margin-left:135px;}
+form.labeled input[type="submit"] {margin-left:135px;}
+form.labeled div.form-radios {margin-left:135px;}
+form.labeled div.labeled-block {display:inline-block; vertical-align:top;}
+form.labeled div#edit-subtext {margin-left:135px;}
 
 form.labeled input.form-local, form.rweb input.form-local {margin:1px 2px 1px 2px; padding:2px; font-size:70%; color:darkgreen;}
 
@@ -41,7 +43,7 @@ form.labeled input.form-local, form.rweb input.form-local {margin:1px 2px 1px 2p
 /* Transact form (labeled) */
 
 /* Exchange form (labeled) */
-#rcreditswebexchange-form div#edit-request label {font-weight:normal; text-align:left; margin-left:100px; width:100%}
+/* #rcreditswebexchange-form div#edit-request label {font-weight:normal; text-align:left; margin-left:100px; width:100%} */
 #rcreditswebexchange-form input#edit-getusd {margin-left:50px;}
 
 /* Transaction Summary Table */
@@ -128,3 +130,6 @@ form.labeled input.form-local, form.rweb input.form-local {margin:1px 2px 1px 2p
 html.js input.form-autocomplete.throbbing {margin:0px; padding:0px; width:400px;}
 div#autocomplete  ul {clear:none; display:inline;}
 div#autocomplete  li {margin:0px; padding:0px; line-height:140%; background-color:lightyellow;}
+
+/* Home */
+#rcreditswebhome-form div#next-steps {width:500px;}

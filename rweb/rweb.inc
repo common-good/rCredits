@@ -17,7 +17,7 @@ require_once __DIR__ . '/../rcredits-api.inc';
 
 $GLOBALS['Web messages'] = array(
   'atid' => t('#@atid: '), // avoid duplicate verbage, don't say "transaction #"
-  'missing what' => t('For buying or selling actual goods and services, you must include a description. Otherwise select "cash/loan/gift/etc.". Rebates and bonuses are intended as rewards for productive economic activity in rCredits. Heads up: the rCredits software automatically detects and penalizes repeated attempts to "game" the system.'),
+  'missing what' => t('For buying or selling actual goods and services, you must include a description. Otherwise select "cash/loan/etc.". Rebates and bonuses are intended as rewards for productive economic activity in rCredits. Note: for everyone\'s protection, the rCredits software automatically detects and penalizes attempts to "game" the system.'),
   'no txs' => t('There are no transactions in that period.'),
   'no shares' => t('This account is not yet shared with anyone.'),
   'no cells' => t('This account has no related cell phones.'),
@@ -25,8 +25,10 @@ $GLOBALS['Web messages'] = array(
   "can't ok for other" => t('You can okay only transactions that are waiting for YOU to okay them.'),
   "can't ok if done" => t('There is no need to okay an already-completed transaction.'),
   'required field' => t('@field must not be blank.'),
+  'bad name' => t('That is not a plausible name.'),
   'bad phone' => t('That is not a proper phone number.'),
   'bad amount' => t('Amount must be a number.'),
+  'bad account number' => t('The account number must be three or more digits'),
   'bad nonce' => t('That is not the right verification code. Try again (start over).'),
   'op canceled' => t('Operation Canceled.'),
   'request & demand' => t('Your standing request for rCredits is <b>@request</b><br>Total demand for rCredits overall is <b>@demand</b>'),
@@ -36,12 +38,13 @@ $GLOBALS['Web messages'] = array(
   'already shared' => t('You are already sharing with that account. If you want to change the permissions, check the box next to that account, choose the new permissions, and click "Go".'),
   'already cell' => t('That cell phone (@number) is already connected to this account.'),
   'cell taken' => t('A cell phone can be connected to only one account. You are already using that cell phone (@number) in connection with account "@account". If you really want to switch that phone to this account, you must first sign in to the other account and release it.'),
+  'bad routing number' => t('US bank routing numbers are 9 digits. Use the number on the lower left edge of your checks.'),
   'verify cell' => t('We sent a verification code to your cell phone (@number).<br>Please type that code in the box below.'),
   'report share change' => t('Sharing permission for account @account has been changed to "@permission".'),
   'report new share' => t('You are now sharing this account with @who'),
   'report new cell' => t('Cell number @number is now connected to this account.'),
   'report delete cell' => t('Cell number @number has been removed from this account.'),
-  'your account is ready' => t('<p></p><p>Welcome to rCredits! Your account id is @credit_id. Your starting balance is @balance.</p><p>After you confirm your email address (by clicking the link in the email we sent you), come back here and log in.</p><p>Pretend to buy and sell just as you would in a typical month. We need that information, to make sure everyone has plenty of places to receive and spend their rCredits.</p><p>Experiment! Have fun! (and please let us know if you run into any glitches)'),
+  'your account is ready' => t('<p></p><p>Welcome to rCredits! Your account ID is @credit_id. Your starting balance is @balance.</p><p>After you confirm your email address (by clicking the link in the email we sent you), come back here and log in.</p><p>Pretend to buy and sell just as you would in a typical month. We need that information, to make sure everyone has plenty of places to receive and spend their rCredits.</p><p>Experiment! Have fun! (and please let us know if you run into any glitches)'),
   'nothing selected' => t('You did not select anything'),
   'undo incomplete' => t('The undo operation is not yet complete.'),
   'ambiguous other' => t('"@who" might mean any of these rCredits accounts (be more specific):<br>@list'),
@@ -77,7 +80,6 @@ EOF;
     api\give_signup_incentive($uid2, TX_WEB);
   }
   if ($arg == 'clear_sessions') r\db_q('TRUNCATE table SESSIONS');
-  if ($arg == 'rebuild_menus') menu_rebuild();
   
   drupal_set_message("Doing rCredits Util '$arg'...");
   drupal_goto('handy');
@@ -93,7 +95,6 @@ function handy_links() {
     'deletetests.php|Delete old tests|Delete old tests',
     'rCredits/util/reset|Reset rCredits|',
     'rCredits/util/clear_sessions|Clear Sessions|',
-    'rCredits/util/rebuild_menus|Rebuild Menus|',
     
     'devel/settings|Helper functions, pages, and blocks to assist Drupal developers. The devel blocks can be managed via the block administration page.|Devel settings',
     'devel/cache/clear?destination=node|Clear the CSS cache and all database cache tables which store page, node, theme and variable caches.|Empty cache',
@@ -145,31 +146,97 @@ function show_form($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
 }
 
 /**
+ * Modal window closer
+ */
+function close_form() {
+  $js = 'window.opener = bottom; window.close();';
+  drupal_add_js($js, array('type'=>'inline', 'scope'=>'footer'));
+  return '';
+}
+
+/**
  * Generate choices for a member autocomplete field
  * @param string $string: what the user has typed so far
- * @param string $type: 'payer' or 'payee' or '' (other), depending on the role of the user
- * @todo: ditch this altogether or make it efficient with separate backend
+ * @param string $role: 'payer' or 'payee' or '' (other), depending on the role of the user
+ * @todo: ditch this altogether or make it efficient with separate rcredits backend (put it in the api)
+ *    maybe even use .htaccess to redirect the autocomplete URL to the backend? privacy is not crucial here
  */
-function autocomplete_member($string = '', $type = '') {
+function autocomplete_member($string = '', $role = '') {
   global $cid;
   if (!$string) return;
   $string = str_replace(' ', '%', \db_like(" $string "));
 
+  $table = r\t_table();
   $where = '(u.full_name LIKE :string OR u.mail LIKE :string)';
-  if ($type) {
-    $other_type = $type == 'payer' ? 'payee' : 'payer';
-    $join = "LEFT JOIN r_txs t ON t.$other_type=u.uid";
-    $where .= " AND (t.xid IS NULL OR t.$type=:cid) ORDER BY t.created DESC";
+  if ($role) {
+    $other = $role == 'payer' ? 'payee' : 'payer';
+    $join = "LEFT JOIN $table t ON t.$other=u.uid";
+    $where .= " AND (t.xid IS NULL OR t.$role=$cid) ORDER BY t.created DESC";
   } else $join = '';
-  $sql = "SELECT DISTINCT HIGH_PRIORITY u.full_name, u.mail AS email FROM users u $join WHERE $where LIMIT 10";
-  $result = r\db_q($sql, compact(u\ray($type ? 'cid string' : 'string')));
+  $sql = "SELECT DISTINCT HIGH_PRIORITY u.uid, u.full_name, u.mail AS email FROM users u $join WHERE $where LIMIT 10";
+
+  $result = r\db_q($sql, compact('string'));
   $matches = array();
   while ($row = $result->fetchAssoc()) {
     extract($row);
+    if ($uid == variable_get('rcredits_community_uid')) continue; // never list the community itself
     if ($email) $email = " ($email)";
     $matches[$full_name] = check_plain("$full_name$email");
   }
   drupal_json_output($matches);
+}
+
+function home_form($form, &$form_state) {
+  global $cid;
+
+  $account = \user_load($cid);
+  $is_company = api\access('company');
+  
+  $stagelist = 'rTrader Steward Partner Member';
+  if ($is_company) $stagelist = str_replace('Steward ', '', $stagelist);
+  $stages = u\ray($stagelist);
+  foreach ($stages as $stage) if (api\access($stage)) break;
+
+  $rTrader = 'authorized to use rCredits "for real"';
+  if (!$is_company) $Steward = "a responsible voter, stewarding your community's finances";
+  $Partner = 'a committed financial partner in the rCredits system';
+  $Member = 'signed up to do rCredits "As If" transactions, for real credit';
+  $details = compact($stages);
+  foreach ($details as $key => $value) $details[$key] = "<em>$key</em> - $value<br>\n";
+
+  extract($details);
+  $Partner = $Member . $Partner;
+  if (!$is_company) $Steward = $Partner . @$Steward;
+  $rTrader = ($is_company ? $Partner : $Steward) . $rTrader;
+  $now = compact($stages);
+  foreach ($now as $key => $value) $now[$key] = "<div id='overview-stage' class='labeled-block'>$value</div>\n";
+
+  extract($details);
+  $Member = $Partner . @$Steward . $rTrader;
+  $Partner = @$Steward . $rTrader;
+  if (!$is_company) $Steward = $rTrader;
+  $rTrader = '';
+  $future = compact($stages);
+  foreach ($future as $key => $value) $future[$key] = "<div id='overview-future' class='labeled-block'>$value</div>\n";
+  
+  extract(api\credit_info()->fancy, EXTR_PREFIX_ALL, 'my');
+  
+  $form = array(
+    'title' => form_field('item', t('Overview of Your rCredits Account')),
+    'subtext' => basic_account_info(),
+    'account_name' => form_field('item', t('Account Name:'), '', $account->full_name),
+    'account_id' => form_field('item', t('Account ID:'), '', $account->credit_id),
+    'account_type' => form_field('item', t('Account type:'), '', $GLOBALS['account types'][$account->account_type+0]), // +0 for admin
+    'stage' => form_field('item', t('You are:'), '', $now[$stage]),
+    'future' => $future[$stage] ? form_field('item', t('Future milestones:'), '', $future[$stage]) : NULL,
+    'steps' => form_field('item', t('Next Steps:'), '', t('<div id="next-steps" class="labeled-block"><ol><li>Do at least three realistic "As-If" payments to participating businesses, so the system knows where you will be able to spend your rCredits.</li><li>Do at least one As-If charge, so the system knows where you will get your rCredits.</li><li>Try some of the other rCredits features.</li><li>Read or talk to other participants until you are confident that you understand how rCredits works.</li></ol></div>')),
+    'balance' => form_field('item', t('Balance:'), '', $my_balance),
+    'credit_limit' => form_field('item', t('Credit limit:'), '(this is how far in debt you can go &mdash; for up to 30 days)', u\format_amount(-$account->min_balance)),
+    'rewards_to_date' => form_field('item', t('Rewards to date:'), '', $my_rewards),
+  );
+
+  $form['#attributes']['class'] = array('labeled');
+  return $form;
 }
 
 /**
@@ -178,7 +245,6 @@ function autocomplete_member($string = '', $type = '') {
  */
 function account_form($form, &$form_state) {
   global $cid;
-  
   if (!($accounts = api\account_choices())) return FALSE;
   $choices = array();
   foreach ($accounts as $uid => $zot) {
@@ -205,9 +271,13 @@ function account_form_submit($form, &$form_state) {
   extract($form_state['values']);
   $old_uid = $cid;
   u\cid($account_account);
-  if (api\access('can create transactions', $old_uid) != api\access('can create transactions', $account_account)) menu_rebuild();
+  $_SESSION['rcredits_cid'] = $cid; // this gets checked ONLY in rweb_access()
+//  if (api\access('can create transactions', $old_uid) != api\access('can create transactions', $account_account)) menu_rebuild();
 }
 
+/**
+ * Display the member company's profile (no editable fields here)
+ */
 function profile_form($form, &$form_state, $company) {
   $uid = api\user_field('uid', 'short_name=:company', compact('company'));
   $account = \user_load($uid);
@@ -234,6 +304,9 @@ EOF;
   return $form;
 }
 
+/**
+ * Get a transaction request (pay or charge) and process it)
+ */
 function tx_form($form, &$form_state, $type, $company = '') {
   if ($confirm = sure_form($form_state)) return $confirm;
   $type_low = strtolower($type);
@@ -241,12 +314,12 @@ function tx_form($form, &$form_state, $type, $company = '') {
   
   $form = array(
     'title' => form_field('item', $type),
-    'who' => form_field('textfield', 'who:', $type . t(' whom? (name, id, email, or phone)'), dft($company) + autocomplete("member/$role")),
-    'amount' => form_field('textfield', '$', t('Amount to ') . $type_low),
+    'who' => form_field('textfield', $type . ' whom:', t('Type a name, id, email, or phone'), dft($company) + autocomplete("member/$role")),
+    'amount' => form_field('textfield', 'Amount: $', t('Amount to ') . $type_low),
     'goods' => form_field('radios', '', '', 
       dft(1) + attrib(array('onchange' => "nixwhat();")), 
-      array(t('cash/loan/gift/etc.'), t('goods & services'))),
-    'what' => form_field('textfield', 'for:', t('Description of goods and services')),
+      array(t('cash/loan/etc.'), t('goods & services'))),
+    'what' => form_field('textfield', 'Purpose:', t('Description of goods and services')),
     $type_low => form_field('submit', NULL, t('Submit button'), $type),
 //    'charge' => form_field('submit', NULL, t('Submit button'), 'Charge'),
   );
@@ -274,53 +347,50 @@ function tx_form_validate($form, &$form_state) {
 function tx_form_submit($form, &$form_state) {
   if (confirming_s($form_state)) return;
   transfer($form_state['values'], TRUE);
-  drupal_goto(strpos(@$form['#action'], 'members/pay') ? 'members/pay' : 'members/charge');
+  drupal_goto(strpos(@$form['#action'], 'pay') ? 'pay' : 'charge');
 }
 
 /**
- * Pay with rCredits
+ * Pay with rCredits, arriving from some other site.
  */
 function buy_now_form($form, &$form_state, $action = 'Payment', $verb = 'Pay') {
-  if (!@$_SESSION['rcredits_external_input']) $_SESSION['rcredits_external_input'] = serialize($form_state['input']); // user is buying from his/her own store
-  if ($confirm = sure_form($form_state)) return $confirm;
-  
-  extract(unserialize($_SESSION['rcredits_external_input']), EXTR_PREFIX_ALL, 'my'); // login_form() stores this
-  // NO! Drupal calls form several times. Null it out in login instead. $_SESSION['rcredits_external_input'] = NULL;
+  $in = @$form_state['input'] ?: @$_SESSION['rcredits_external_input'];
+  extract($in, EXTR_PREFIX_ALL, 'my'); // get input from outside site or (stored) from login
+  if (@$my_external_input) extract(unserialize($my_external_input), EXTR_PREFIX_ALL, 'my');
 
   $verbs = u\ray('Buy, Contribute, Donate, Pay');
   if (in_array(ucwords(@$my_verb), $verbs)) $verb = ucwords($my_verb);
 
   $button = user_is_logged_in() ? form_field('submit', NULL, t('Submit button'), $verb)
     : form_field('item', t('Please log in, to pay with rCredits.'));
-/*
-  if (user_is_logged_in()) {
-    $values = $form_state['input'] + array(
-      'amount' => $my_amount,
-      'op' => $verb,
-      'who' => $my_company,
-      'what' => $my_item,
-      'goods' => 1,
-    );
-    tx_form_submit($form, $ref = compact('values'));
-    drupal_goto('members'); // member page when done
-  } else $button = form_field('item', t('Please log in, to confirm this rCredits payment.'));
-*/
+
   if (isset($my_what)) list ($my_company, $my_item) = array($my_who, $my_what);
   if (!isset($my_amount)) $my_amount = $my_company = $my_item = ''; else $my_amount = @number_format($my_amount, 2);
 
   $disabled = array('disabled' => 1);
   if (!($name = api\user_field('full_name', "credit_id='$my_company'"))) $name = 'Unregistered Company'; 
   $verblower = strtolower($verb);
+
+  $who = $my_company;
+  $amount = $my_amount;
+  $what = $my_item;
+  $goods = TRUE;
   
+  if (!@$form_state['input']) {
+    $op = 'Pay';
+    transfer(compact(u\ray('op who amount goods what')), TRUE);
+    return array(form_field('item', "Transaction completed. <a href=''>Click here</a> to return to the $name website."));
+  }
+
   $form = array(
     'title' => form_field('item', t("Confirm $action")),
     'xwho' => form_field('textfield', 'to:', t('Pay whom?'), disabled($name)),
-    'who' => form_field('hidden', $my_company),
-    'xamount' => form_field('textfield', '$', t("Amount to $verblower"), disabled($my_amount)),
-    'amount' => form_field('hidden', $my_amount),
-    'xwhat' => form_field('textfield', 'for:', t('Description of goods and services'), disabled($my_item)),
-    'what' => form_field('hidden', $my_item),
-    'goods' => form_field('hidden', 1),
+    'who' => form_field('hidden', $who),
+    'xamount' => form_field('textfield', '$', t("Amount to $verblower"), disabled($amount)),
+    'amount' => form_field('hidden', $amount),
+    'xwhat' => form_field('textfield', 'for:', t('Description of goods and services'), disabled($what)),
+    'what' => form_field('hidden', $what),
+    'goods' => form_field('hidden', $goods),
     'submit' => $button,
   );
 
@@ -329,8 +399,9 @@ function buy_now_form($form, &$form_state, $action = 'Payment', $verb = 'Pay') {
 }
 
 function buy_now_form_submit($form, &$form_state) {
-  tx_form_submit($form, $form_state);
-  drupal_goto('members'); // member page when done
+
+//  tx_form_submit($form, $form_state);
+//  drupal_goto('charge'); // member page when done
 }
 
 /*
@@ -348,11 +419,11 @@ function example_store_form($form, &$form_state) {
     'submit' => form_field('image_button', NULL, t('Submit button'), array('src' => $base_url . '/images/rbutton-buynow.png')),
   );
   $form['#method'] = 'POST';
-  $form['#action'] = $base_url . '/members/pay-with-rcredits';
+  $form['#action'] = $base_url . '/pay-with-rcredits';
   return $form;
 }
 */
-
+/*
 function charge_form($form, &$form_state) { // almost exactly like payment
   if ($confirm = sure_form($form_state)) return $confirm;
 
@@ -371,6 +442,7 @@ function charge_form($form, &$form_state) { // almost exactly like payment
 
 function charge_form_validate($form, &$form_state) {payment_form_validate($form, $form_state, 'charge');}
 function charge_form_submit($form, &$form_state) {payment_form_submit($form, $form_state, 'charge');}
+*/
 
 /**
  * Exchange USD for rCredits or vice-versa
@@ -378,16 +450,14 @@ function charge_form_submit($form, &$form_state) {payment_form_submit($form, $fo
  */
 function exchange_form($form, &$form_state) {
   global $cid;
-  if ($confirm = sure_form($form_state)) return $confirm;
-
   if ($confirm = sure_form($form_state)) return $confirm; // confirm only getUSD
   $request = u\format_amount(api\user_field('demand', $cid));
   $demand = api\credit_info($cid)->fancy['total_demand'];
 
   $form = array(
     'title' => form_field('item', t('Get rCredits / USD')),
-    'request' => form_field('item', tt('request & demand', compact(u\ray('request demand')))),
-    'amount' => form_field('textfield', '$', t('Amount to exchange')),
+    'subtext' => form_field('item', tt('request & demand', compact(u\ray('request demand')))),
+    'amount' => form_field('textfield', t('Amount:'), t('Amount to exchange (r$ or us$)')),
 //    'way' => form_field('radios', 'trade:', '', array(), array(t('rCredit for cash'), t('cash for rCredits'))),
 //    'who' => form_field('textfield', 'to/from:', t('Exchange with whom?')),
     'getr' => form_field('submit', '', t('Submit button'), 'Get rCredits'),
@@ -417,21 +487,18 @@ function exchange_form_submit($form, &$form_state) {
   list ($message, $args, $confirm) = api\get($op == 'Get rCredits' ? 'r' : 'usd', $amount, $cid, TRUE, TX_WEB);
   say($message, $args, @$args['success'] ? '' : 'amount'); // error or success
   if ($op == 'Get rCredits') {
-    if ($amount < RCREDITS_MIN_DEMAND) say('demand too small');
+    if ($amount < R_MIN_DEMAND) say('demand too small');
     if (!api\access('partner')) say('demand not yet');
   }
 }
 
 /**
- * @NOTE: The country and state drop down require a change in form.inc, line 2649:
- *   if (is_null($choices = $element['#options'])) return ''; (see form.inc.patch)
- * @todo: either check for plain text of be convinced it ain't necessary
+ * @NOTE: The country and state drop down require a change in form.inc (see form.inc.patch)
  * @todo: substitute get_record for user_load (throughout this module?) and save data in backend (same for login and register)
  */
 function contact_info_form($form, &$form_state) {
   global $cid;
-  api\merge_check(compact(u\ray('short_name website phone fax'))); // check before and after
-//  extract(check((array) \user_load($cid)), EXTR_PREFIX_ALL, 'my');
+// WHY?  api\merge_check(compact(u\ray('short_name website phone fax'))); // check before and after
   extract((array) \user_load($cid), EXTR_PREFIX_ALL, 'my'); // can't easily check for plain because roles and sms_user are arrays
 
   $onchange = "print_state('edit-state',this.selectedIndex,'');";
@@ -468,7 +535,7 @@ function contact_info_form_validate($form, &$form_state) {
 function contact_info_form_submit($form, &$form_state) {
   global $cid;
   $account = \user_load($cid);
-  extract($info = check($form_state['values']), EXTR_PREFIX_ALL, 'my');
+  extract($info = $form_state['values'], EXTR_PREFIX_ALL, 'my');
   $info['website'] = str_replace('http://', '', strtolower(@$my_website));
   if ($my_phone) $info['phone'] = u\format_phone($my_phone, '+n');
   $info['short_name'] = u\short_name($my_full_name);
@@ -480,6 +547,48 @@ function contact_info_form_submit($form, &$form_state) {
 function no_selection($list) {
   foreach ($list as $one) if ($one) return FALSE;
   return TRUE;
+}
+
+function bank_form($form, &$form_state) {
+  global $cid;
+  extract((array) \user_load($cid), EXTR_PREFIX_ALL, 'my'); // can't easily check for plain because roles and sms_user are arrays
+
+  if (!$my_bank_account_name) $my_bank_account_name = $my_full_name;
+  
+  $form = array();
+  if (api\user_field('country') == 'United States') {
+    $my_routing_number = substr($my_bank_account_number, 4, 9); // chop of USkk
+    $my_bank_account_number = substr($my_bank_account_number, 4 + 9); // everything after the routing number
+    $routing_number = form_field('textfield', t('Routing number:'), t('What is the 9-digit routing number (type carefully)'), dft($my_routing_number) + required());
+  } else $routing_number = NULL;
+  
+  $form = array(
+    'title' => form_field('item', t('Bank Information')),
+//    'subtext' => ,
+    'bank_account_name' => form_field('textfield', t('Account name:'), t('What is the name on this bank account?'), dft($my_bank_account_name) + required()),
+    'routing_number' => $routing_number,
+    'bank_account_number' => form_field('textfield', t('Account number:'), t('What is the account number? (be sure to get this right)'), dft($my_bank_account_number) + required()),
+    'submit' => form_field('submit', NULL, t('Submit button'), 'Submit'),
+  );
+
+  $form['#attributes']['class'] = array('labeled');
+  return $form;
+}
+
+function bank_form_validate($form, &$form_state) {
+  extract(u\trim_all($form_state['values']));
+  if (!u\valid_name($bank_account_name, FALSE, FALSE)) say('bad name', 'bank_account_name');
+  if (!preg_match('/^(|[0-9]{9})$/', $routing_number)) say('bad routing number', 'routing_number');
+  if (!preg_match('/^[0-9]{3,20}$/', $bank_account_number)) say('bad account number', 'bank_account_number');
+}
+
+function bank_form_submit($form, &$form_state) {
+  global $cid;
+  extract($form_state['values']);
+  $account = \user_load($cid);
+  if ($account->country == 'United States') $bank_account_number = "USkk$routing_number$bank_account_number";
+  user_save($account, compact(u\ray('bank_account_name bank_account_number')));
+  say('info saved');
 }
 
 /**
@@ -532,7 +641,7 @@ function share_form_validate($form, &$form_state) {
     confirm(tt('confirm share permission', compact('permission')), $form_state);
   } else { // $op == 'Add'
     if (blank_field(compact('new_share'))) return;
-    $uid = api\identify($new_share, $cid, FALSE, 'no self-sharing');
+    $uid = api\identify($new_share, FALSE, 'no self-sharing');
     if (is_array($uid)) return say($uid, 'new_share'); // error returned by identify()
     $already = r\db_lookup('1', 'r_shared_accounts', 'shared_uid=:cid AND shared_with=:uid', compact('cid', 'uid'));
     if ($already) return say('already shared', 'new_share');
@@ -689,15 +798,27 @@ function register_form_submit($form, &$form_state) {
   say('your account is ready', compact(u\ray('balance credit_id')));
 }
 
-function login_form(&$form, &$form_state) {
-//  $_SESSION['rcredits_account_choices'] = NULL;
-//  if (@$form_state['input']['amount']) $_SESSION['rcredits_external_input'] = ;
+/**
+ * Modify the login form.
+ * @see also login_followup, below (called from rweb_user_login()).
+ */
+function login_alter(&$form, &$form_state) {
   $form['tip'] = form_field('item', t('<b>NOTE: </b>If you already created an account using cell texting and have never yet logged in here, start by requesting a "new password" for your email address.'));
-
-  $form['external_input'] = form_field('hidden', serialize($form_state['input']));
+  $form['external_input'] = form_field('hidden', serialize($form_state['input'])); // pass this to rweb_user_login
 //  $form['#submit'][] = 'rCredits\\Web\\login_form_submit';
   $form['#attached']['css'][] = \drupal_get_path('module', 'rweb') . '/rweb.css';
 
+}
+
+function login_followup($edit) {
+  global $userid, $user;
+  extract($edit['values']);
+
+  foreach ($_SESSION as $key => $value) if (u\abbreviates('rcredits_', $key)) unset($_SESSION[$key]);
+  $_SESSION['rcredits_external_input'] = @unserialize($external_input);
+  u\cid(); // set up current account (always start with primary)
+  @$_SESSION['rcredits_cid'] = $cid; // this is also set in account_form, but checked ONLY in rweb_access()
+  u\log('rWeb', 'login', compact(u\ray('name userid')));
 }
 
 function directory_form($form, &$form_state) {
@@ -737,16 +858,15 @@ function directory_list($which, $region) {
   $field = is_numeric($region) ? 'postal_code' : 'country';
   $which = str_replace(' ', '%', \db_like(" $which ")); // allow abbreviations of each word
   $region = \db_like($region) . '%';
-  $account_type = RCREDITS_PERSONAL;
   $rows = array();
   $sql = <<<EOF
     SELECT DISTINCT i.industry, u.short_name, u.full_name, u.website FROM users u 
     LEFT JOIN r_user_industries ui ON ui.uid=u.uid
     LEFT JOIN r_industries i ON i.iid=ui.iid
-    WHERE account_type!=:account_type AND u.$field LIKE :region AND (u.full_name LIKE :which OR i.industry LIKE :which)
+    WHERE account_type!=:R_PERSONAL AND u.$field LIKE :region AND (u.full_name LIKE :which OR i.industry LIKE :which)
     ORDER BY i.industry, u.full_name
 EOF;
-  $result = r\db_q($sql, compact(u\ray('region which account_type')));
+  $result = r\db_q($sql, compact(u\ray('region which')));
   while ($row = $result->fetchAssoc()) $rows[] = $row;
   $cat = $headed = $list = '';
   for ($i = 0; $i < count($rows); $i++) {
@@ -773,7 +893,8 @@ function company_form($form, &$form_state) {
   global $cid;
 //  extract((array) \user_load($cid), EXTR_PREFIX_ALL, 'my');
 //  $my_description = \check_markup(\user_load($cid)->description);
-  $my_description = \user_load($cid)->description;
+  $account = \user_load($cid);
+  $my_description = $account->description;
   
   $cats = r\db_q('SELECT iid, industry FROM r_industries ORDER BY industry')->fetchAllKeyed();
   $my_cats = r\db_q('SELECT iid FROM r_user_industries WHERE uid=:cid', compact('cid'))->fetchCol();
@@ -783,6 +904,7 @@ function company_form($form, &$form_state) {
   $form = array(
     'title' => form_field('item', t('Company Information')),
     'subtext' => basic_account_info(),
+    'name' => form_field('item', t('Company name:'), '', $account->full_name),
     'categories' => form_field('select', t('Categories:'), t('Hold down the Ctrl key to select more than one'), $multiple + dft($my_cats), $cats),
     'description' => form_field('text_format', t('Description (What does this company do?)'), t(''), $filtered_html + dft($my_description)),
     'submit' => form_field('submit', NULL, t('Submit button'), t('Submit')),
@@ -865,20 +987,52 @@ function previous_state(&$form_state, $message = '', $args = array()) {
 }
 
 /**
- * Returns the answer to the question.
- */
-function yes(&$form, &$form_state, $question = 'Please confirm') {
-  if ($state = @$form_state['yes']) {
-    extract($state, EXTR_PREFIX_ALL, 'yes');
-    $form = $yes_form;
-    $form_state = $yes_formstate;
-    $form_state['rebuild'] = true;
-    unset($form_state['yes']);
-    $form_state['process_input'] = TRUE;
-    return $yes_answer;
-  }
-  // current_path(), 
-//  $_SESSION['rcredits_yes'] = serialize(array($form, $form_state
+ * Asks the user to confirm, calls the caller with the answer.
+
+function ok_form($form, &$form_state) {
+  //extract($form_state['input'], EXTR_PREFIX_ALL, 'in');
+  extract(form_args('ok'), EXTR_PREFIX_ALL, 'in');
+  $form = array(
+    'title' => form_field('item', @$in_title),
+    'question' => form_field('item', @$in_question),
+    'confirm' => form_field('submit', NULL, t('Go ahead'), 'Okay'),
+    'cancel' => form_field('submit', NULL, t("Don't do it"), 'Cancel'),
+
+    'return_to' => form_field('hidden', @$in_return_to),
+    'return_with' => form_field('hidden', @$in_return_with),
+
+    '#skip_duplicate_check' => TRUE, // Confirm form fails duplication check, as the form values rarely change -- so skip it.
+    '#attributes' => array('class' => u\ray('rweb confirmation')),
+  );
+
+  drupal_add_js("document.getElementById('edit-confirm').focus();", array('type'=>'inline', 'scope'=>'footer'));  
+
+  return $form;
+}
+
+function ok_form_submit($form, &$form_state) {
+  extract($form_state['values']);
+  $ok = ($op == 'Okay');
+  return_from_detour($return_to, compact('ok', 'return_with'));
+}
+
+function get_ok($question = '', $title = '', $args = FALSE) {detour('ok', compact(u\ray('question title args')));}
+
+function got_ok() {}
+*/
+
+function detour($detour_to, $args = array(), $return_to = '') {
+  if (!$return_to) $return_to = current_path();
+  if ($return_to != 'none') $args += compact('return_to');
+  form_args($detour_to, $args);
+  drupal_goto($detour_to);
+}
+
+function return_from_detour($return_to, $args = '') {if ($return_to) detour($return_to, $args, 'none');}
+
+function form_args($function, $args = '') {
+  if (!$args) return @$_SESSION['rcredits_form_args']['function'] == $function ? $_SESSION['rcredits_form_args'] : array();
+  $_SESSION['rcredits_form_args'] = $args + compact('function');
 }
 
 /**
@@ -904,16 +1058,6 @@ function sure_form(&$form_state, $title = 'Please Confirm') {
   return $form;
 }
 
-/*function sure_form_validate($form, &$form_state) {
-die('here');
-  debug('valid');
-}
-
-function sure_form_submit($form, &$form_state) {
-die('there');
-  debug('submit');
-}*/
-
 /**
  * Transfer funds
  * @param array $info: associative array indexed by field names (op, who, amount, goods, and what)
@@ -926,10 +1070,10 @@ function transfer($info, $confirmed) {
   $tx_type = $op == 'Pay' ? 'payment' : 'charge';
   if (blank_field(compact(u\ray('who amount')))) return NULL;
   if ($goods and trim($what) == '') return say('missing what', 'what');
-  if (!$goods) $what = 'cash';
+  if (!$goods) $what = 'cash'; // tell api\transfer it's not for goods (should be the only place this string occurs)
   $amount = str_replace(',', '', $amount); // ignore commas
   if (!is_numeric($amount)) return say('bad amount', 'amount');
-  if (is_array($other_uid = api\identify($who, $cid, TRUE))) return say($other_uid, 'who');
+  if (is_array($other_uid = api\identify($who, TRUE))) return say($other_uid, 'who');
 
   list ($message, $args, $confirm) = api\transfer($tx_type, TX_WEB, $other_uid, $amount, $what, $confirmed);
   if ($confirm) return tt('confirm ' . $message, $args);
@@ -938,16 +1082,23 @@ function transfer($info, $confirmed) {
 }
 
 function menu($title, $type, $function = NULL, $function_args = array(), $access = 'member', $other = array()) {
-  static $weight;
+  global $menu_weight;
+  $menu_weight += !@$menu_weight ?: 1;
+  
   if (function_exists($local_func = "\\rCredits\\Web\\$function")) $function = $local_func;
+  if ($function == 'drupal_get_form') {
+    $form_func = $function_args[0];
+    if (function_exists($form_func = "\\rCredits\\Web\\{$form_func}_form")) $function_args[0] = $form_func;
+  }
   return array_merge(array(
     'title' => $title,
     'type' => $type,
     'page callback' => $function,
     'page arguments' => $function_args,
-    'access callback' => 'rCredits\\API\\access',
+//    'access callback' => TRUE,
+    'access callback' => 'rCredits\\Web\\web_access', // don't use api\access directly (rweb needs to remember $cid)
     'access arguments' => array($access),
-    'weight' => @$weight - 1,
+    'weight' => @$menu_weight - 1,
     'menu_name' => 'main-menu', 
     'module' => 'rweb',
     'file' => 'rweb.inc',
@@ -1017,6 +1168,11 @@ function say($index, $args = array(), $error_field = '') {
   return FALSE;
 }
 
+function web_access($access, $uid = '') {
+  u\cid(@$_SESSION['rcredits_cid']); // remember who we are (the only reason for this function)
+  return api\access($access, $uid);
+}
+
 // one-line functions that need no explanation
 function tt($message, $subs = array()) {return u\tt($message, $subs, 'Web');}
 function block_def($info, $extra = array()) {return compact(u\ray('info cache'));} // also status, region, visibility, pages
@@ -1026,4 +1182,4 @@ function dft($value) {return array('default_value' => $value);}
 function attrib($attribs) {return array('attributes' => $attribs);}
 function autocomplete($path) {return array('autocomplete_path' => "autocomplete/$path");}
 function required() {return array('required' => TRUE);}
-function check($array, $type = 'plain') {return array_map("check_$type", $array);} // Check an array for plain or markup.
+// UNUSED function check($array, $type = 'plain') {return array_map("check_$type", $array);} // Check an array for plain or markup.

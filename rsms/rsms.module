@@ -9,7 +9,7 @@
 use rCredits as r;
 require_once __DIR__ . '/../rcredits.inc';
 require_once __DIR__ . '/rsms.inc';
-require_once __DIR__ . '/rsms_call.inc';
+require_once __DIR__ . '/rsms-call.inc';
 
 /**
  * implements hook_form_alter, to set focus
@@ -22,18 +22,6 @@ function rsms_form_alter(&$form, &$form_state, $form_id) {
     drupal_add_js("document.getElementById('edit-message').focus();", array('type'=>'inline', 'scope'=>'footer'));  
   }
 }
-
-/* probably delete this function
-function rsms_settings(){
-  $form['responses'] = array(
-    '#title' => t('SMS Settings'),
-    '#description' => t('You cannot change the SMS syntax here.'),
-    '#type' => 'fieldset',
-    '#weight' => -2
-  );
-  return system_settings_form($form);
-}
-*/
 
 /**
  * SMS Incoming implements hook sms_incoming

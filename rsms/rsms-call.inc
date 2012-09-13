@@ -14,7 +14,7 @@ use \rCredits\Utilities as u;
 class call {
   var $message; // the text message received
   var $number; // calling phone number
-  var $uid; // record id of caller's record in user table
+  var $uid; // record id of caller's record in user table (duplicates $cid)
   var $xid; // record id of transaction, related to an operation awaiting confirmation
   var $command; // the major command operation (as parsed)
   var $parms; // parameters to the command (as parsed)
@@ -38,12 +38,12 @@ class call {
    *   what to reply to the caller
    */
   function handle_call() {
-      try {
-        if($error_message = $this->validate_caller()) return $error_message;
-        $this->parse();
-      }
-      catch (\Exception $e) {return $e->getMessage();}
-      return $this->rdo();
+    try {
+      if($error_message = $this->validate_caller()) return $error_message;
+      $this->parse();
+    }
+    catch (\Exception $e) {return $e->getMessage();}
+    return $this->rdo();
   }
   
   /**
@@ -57,10 +57,9 @@ class call {
    *   Message is the error message to send the caller.
    */
   function validate_caller() {
-    global $userid;
     if (!($this->uid = \sms_user_get_uid($this->number))) $this->uid = api\create_user(array('number' => $this->number));
     if (!$this->uid) die('missing uid');
-    u\cid($userid = $this->uid);
+    u\cid($this->uid); // set $cid and $userid
     
     $account = \user_load($this->uid);
     $todo = api\todo($this->number);
@@ -236,16 +235,16 @@ class call {
    *   undo who (undo my last transaction with who) (see also "pay who")
    *   undo to|from (undo my last transaction to anyone or from anyone
    *   undo to|from who (undo my last transaction to someone or from someone)
-   * SELECT (*) FROM r_txs WHERE () ORDER BY xid DESC LIMIT 1
+   * SELECT transactions ORDER BY xid DESC LIMIT 1
    * WHERE payer=me / payee=me / payer=me OR payee=me
    * AND payer=other OR payee=other
    */
   function do_undo() {
+    global $cid;
     extract($this->parms, EXTR_PREFIX_ALL, 'my');	// who and/or tofrom
-    $cid = $this->uid;
 
     if ($this->confirmed) {
-      list ($message, $args) = api\undo_tx($my_xid, $cid, TX_SMS);
+      list ($message, $args) = api\undo_tx($my_xid, TX_SMS);
       return tt($message, $args);
     }
     
@@ -255,7 +254,7 @@ class call {
     } else $where = '(payee=:cid OR payer=:cid)';
 
     if (isset($my_who)) {
-      if (is_array($other_uid = api\identify($my_who, $cid))) return tt($other_uid); // return if error
+      if (is_array($other_uid = api\identify($my_who))) return tt($other_uid); // return if error
       $where .= " AND ";
       if (isset($my_tofrom)) {
         $where .= $my_tofrom === 'to' ? 'payee=:other_uid' : 'payer=:other_uid';
@@ -288,6 +287,7 @@ class call {
    *   other syntaxes including who and amount (create a new transaction)
    */
   function do_payment() {
+    global $cid;
     extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, what, and maybe xid
     if (isset($my_amount)) return $this->do_transfer('payment'); // complete syntax
     
@@ -296,11 +296,10 @@ class call {
       return tt($message, $args);
     }
     
-    $cid = $this->uid;
     $pending = TX_PENDING;
     $where = 'state=:pending AND payer=:cid';
     if (isset($my_who)) {
-      if (is_array($other_uid = api\identify($my_who, $this->uid))) return tt($other_uid); // return if error
+      if (is_array($other_uid = api\identify($my_who))) return tt($other_uid); // return if error
       $where .= ' AND payee=:other_uid';
     }
     if(!($result = api\last_tx($where, compact(u\ray('my_xid pending cid other_uid'))))) return tt('no matching invoice');
@@ -319,7 +318,7 @@ class call {
   function do_transfer($type) {
     extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, and what
 
-    if (is_array($other_uid = api\identify($my_who, $this->uid, TRUE))) return tt($other_uid); // return if error
+    if (is_array($other_uid = api\identify($my_who, TRUE))) return tt($other_uid); // return if error
     list ($message, $args, $confirm) = api\transfer($type, TX_SMS, $other_uid, $my_amount, $my_what, $this->confirmed);
     return $confirm ? $this->confirm($message, $args) : tt($message, $args);
   }

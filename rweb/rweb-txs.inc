@@ -7,12 +7,11 @@ use \rCredits as r; // get rid of this
 
 /**
  * @file
- * Form for managing transactions, and related functions
+ * Forms for managing transactions, and related functions
  */
 
 /**
- * Manage Transactions
- * @todo put transaction query in rcredits.inc instead (no reference to specific tables here)
+ * List Transactions
  */
 function txs_form($form, &$form_state, $tx_period = '', $do = '', $xid = '') {
   global $cid;
@@ -23,7 +22,7 @@ function txs_form($form, &$form_state, $tx_period = '', $do = '', $xid = '') {
   if ($do == 'ok' or $do == 'no') {
     if ($confirm_form = tx_confirm($do, $xid, $form_state)) return $confirm_form;
     if (!$form_state['rebuild']) tx_okorno($do, $xid); // don't do anything if canceling
-    drupal_goto("members/transactions/$tx_period"); // back to the normal form
+    drupal_goto("transactions/$tx_period"); // back to the normal form
   }
 
   if (!$tx_period) $tx_period = 30;
@@ -32,28 +31,14 @@ function txs_form($form, &$form_state, $tx_period = '', $do = '', $xid = '') {
   $starting = strtotime($tx_period == '-1' ? '1jan' : ((1 - $tx_days[$tx_period]) . ' days'), $ending);
   $can_create = api\access('can create transactions');
 
-  $states = array(TX_DONE => '&#10004;', TX_PENDING => 'ok?', TX_DENIED => 'denied', TX_CONTESTED => 'contested');
-  $colors = array('&#10004;' => 'green', 'ok?' => 'orange', 'pending' => 'darkgreen', 'denied' => 'red', 'contested' => 'red');
-  $sql = <<<EOF
-    SELECT t.*,
-      (SELECT full_name FROM users WHERE uid = IF(t.payer = $cid, t.payee, t.payer)) AS name,
-      IF(t.payer = $cid, t.payer_for, t.payee_for) AS purpose
-    FROM r_txs t 
-    WHERE t.type NOT IN (:rebate, :bonus)
-    AND $cid IN (t.payer, t.payee) 
-    AND (t.state IN(:done, :pending, :contested) OR (t.state = :denied AND t.payee = $cid))
-    AND t.created >= $starting AND t.created <= $ending
-    ORDER BY t.xid DESC
-EOF;
-//    AND ((t.state IN(:done, :pending, :contested) OR (t.state = :denied AND t.payee = $cid)) XOR t.amount < 0)
-  $tx_map = array(
-    'done' => TX_DONE, 'pending' => TX_PENDING, 'denied' => TX_DENIED, 'rebate' => TX_REBATE, 'bonus' => TX_BONUS, 'contested' => TX_CONTESTED,
-  );
-  $txs = r\db_q($sql, $tx_map);
+  $states = array(TX_DONE => '&#10004;', TX_PENDING => 'ok?', TX_DENIED => 'denied', TX_DISPUTED => 'disputed');
+  $colors = array('&#10004;' => 'green', 'ok?' => 'orange', 'pending' => 'darkgreen', 'denied' => 'red', 'disputed' => 'red');
+
+  $records = api\my_transactions($starting, $ending); // we use $rows for another purpose, below
   $rows = array();
-  while ($row = $txs->fetchAssoc()) {
-    extract($row, EXTR_PREFIX_ALL, 'one');
-    $tid = api\tid_from_xid($cid, $one_xid);
+  foreach ($records as $record) {
+    extract($record, EXTR_PREFIX_ALL, 'one');
+    $tid = api\xid2tid($one_xid);
     $data = unserialize($one_data);
     $is_reward = ($one_type != TX_TRANSFER);
     $reward = @$data[$one_payer == $cid ? 'rebate' : 'bonus'];
@@ -65,10 +50,10 @@ EOF;
     $state = ($one_state == TX_PENDING and $one_payee == $cid) ? 'pending' : $states[$one_state];
     $color = $colors[$state];
     $state = "<span style='color:$color;'>$state</span>";
-//    $button1 = (($one_payer == $cid xor $one_amount < 0) and $one_state == TX_PENDING) ? button('OK', "$base_path/members/transactions/$tx_period/ok/$one_xid", 'Approve') : '';
-    $button1 = ($one_payer == $cid and $one_state == TX_PENDING) ? button('OK', "$base_path/members/transactions/$tx_period/ok/$one_xid", 'Approve') : '';
-    $button2 = (!$is_reward and !@$data['undone']) ? button(' X ', "$base_path/members/transactions/$tx_period/no/$one_xid", 'Dispute/Cancel/Undo') : '';
-    $button3 = ($can_create and !$is_reward) ? "<a href='$base_path/members/transactions/$tx_period/edit/$one_xid' title='Edit Purpose'><img src='{$base_path}images/edit-icon.png' width=20 height=20 border=0 /></a>" : '';
+//    $button1 = (($one_payer == $cid xor $one_amount < 0) and $one_state == TX_PENDING) ? button('OK', "$base_path/transactions/$tx_period/ok/$one_xid", 'Approve') : '';
+    $button1 = ($one_payer == $cid and $one_state == TX_PENDING) ? button('OK', "$base_path/transactions/$tx_period/ok/$one_xid", tx_action('ok')) : '';
+    $button2 = (!$is_reward and !@$data['undone']) ? button(' X ', "$base_path/transactions/$tx_period/no/$one_xid", tx_action('no', $one_state, $one_creator)) : '';
+    $button3 = ($can_create and !$is_reward) ? "<a href='$base_path/transactions/$tx_period/edit/$one_xid' title='Edit Purpose'><img src='{$base_path}images/edit-icon.png' width=20 height=20 border=0 /></a>" : '';
     $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
     $rows[] = array($tid, date('d-M', $one_created), $one_name, $from_you, $to_you, $state, $buttons, $one_purpose, $reward);
   }
@@ -95,11 +80,29 @@ EOF;
 }
 
 function tx_confirm($do, $xid, &$form_state) {
-  $verb = $do == 'ok' ? 'Approve' : 'Dispute/Cancel/Undo';
+  global $cid;
   if (confirming_v($form_state)) return FALSE;
   extract(tx_details($xid), EXTR_PREFIX_ALL, 'my');
-  confirm("Are you sure you want to $verb this transaction?<br>($my_summary)", $form_state); // sets 'confirm'
+  $action = tx_action($do, $my_state, $my_creator);
+  confirm("Are you sure you want to $action?<br>($my_summary)", $form_state); // sets 'confirm'
   return sure_form($form_state);
+}
+
+/**
+ * Return the action option for a transaction
+ * @param string $do: which major type of action ('ok' or 'no')
+ * @param int $state: the current transaction state
+ * @param int $creator: uid of the transaction creator
+ * @return string: how to describe the ok or no
+ * NOTE: $state and $creator are unused for 'ok'
+ */
+function tx_action($do, $state = '', $creator = '') {
+  global $cid;
+  return ( $do == 'ok' ? t('Approve this charge')
+       : ( $state != TX_PENDING ? t('Reverse this transaction')
+       : ( $creator == $cid ? t('Cancel this invoice')
+       : ( t('Dispute this charge')
+         ))));
 }
 
 function txs_form_validate($form, &$form_state) {
@@ -118,7 +121,7 @@ function txs_form_submit($form, &$form_state) {
   if (confirming_s($form_state)) return;
   extract($form_state['values']);
   if ($op == 'Show') { // changing the period to show
-    $form_state['redirect'] = "members/transactions/$tx_period"; //\current_path();
+    $form_state['redirect'] = "transactions/$tx_period"; //\current_path();
     return;
   }
 }
@@ -127,7 +130,7 @@ function tx_okorno($tx_task, $xid) {
   global $cid;
   $result = api\last_tx('xid=:xid', compact('xid'), TRUE);
   extract($result, EXTR_PREFIX_ALL, 'my');
-  $atid = api\tid_from_xid($cid, $xid);
+  $atid = api\xid2tid($xid);
   $xname = "tx_transactions[x$xid]";
   if ($tx_task == 'ok') {
     if ($my_payer != $cid) {
@@ -140,7 +143,7 @@ function tx_okorno($tx_task, $xid) {
     }
   }
   if ($tx_task == 'no') {
-    list ($message, $args) = api\undo_tx($xid, $cid, TX_WEB);
+    list ($message, $args) = api\undo_tx($xid, TX_WEB);
     say("atid|$message", array_merge($args, compact('atid')));
   }
 /*  if ($tx_task == 'edit') {
@@ -150,21 +153,20 @@ function tx_okorno($tx_task, $xid) {
   }*/
 }
 
-function tx_details($xid, $uid = '') {
+function tx_details($xid) {
   global $cid;
-  if (!$uid) $uid = $cid;
+  $uid = $cid; // this could be expanded later to handle other users
   
   extract(api\last_tx('xid=:xid', compact('xid'), TRUE));
-//  extract(r\db_q('SELECT * FROM r_txs WHERE xid=:xid', compact('xid'))->fetchAssoc());
   $amount = u\format_amount($amount);
   $tofrom = $payer == $uid ? 'to' : 'from';
   $who = api\user_field('full_name', $payer == $uid ? $payee : $payer);
   $role = $payer == $uid ? 'payer' : 'payee';
   $purpose = $payer == $uid ? $payer_for : $payee_for;
-  $tid = api\tid_from_xid($uid, $xid);
+  $tid = api\xid2tid($xid, $uid);
   $created = date('m-d-Y', $created);
   $summary = "Transaction #$tid: $amount $tofrom $who for \"$purpose\" on $created";
-  return compact(u\ray('amount tofrom who role purpose tid created summary'));
+  return compact(u\ray('amount tofrom who role purpose tid creator created summary state'));
 }
 
 function tx_edit($xid) {
@@ -192,8 +194,7 @@ function tx_edit_validate($form, &$form_state) {
 function tx_edit_submit($form, &$form_state) {
   extract($form_state['values']);
   r\set_tx_field($field, $purpose, $xid);
-  //r\db_q("UPDATE r_txs SET $field=:purpose WHERE xid=:xid", compact('purpose', 'xid'));
-  $form_state['redirect'] = 'members/transactions';
+  $form_state['redirect'] = 'transactions';
 }
 
 function tx_bal($bal, $plus = '', $minus = '- ') {return ($bal < 0 ? $minus : $plus) . '$' . number_format(abs($bal), 2);}

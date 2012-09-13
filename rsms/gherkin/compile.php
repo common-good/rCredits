@@ -65,7 +65,7 @@ foreach ($features as $feature_filename) {
   if (strpos($info, $file_line) === FALSE) $info .= $file_line;
   $test_data = do_feature($feature_filename, $steps);
   $test_data['MODULE'] = $MODULE;
-  $test = file_get_contents('test_template.php');
+  $test = file_get_contents('test-template.php');
   foreach($test_data as $from => $to) $test = str_replace("%$from", $to, $test);
   file_put_contents($test_filename, $test);
   echo "Created: $test_filename<br>";

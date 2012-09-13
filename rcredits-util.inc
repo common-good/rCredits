@@ -58,9 +58,11 @@ function format_amount($amount, $simplify = TRUE) {
  * @param string $name: the name to test
  * @param boolean $picky: whether to allow only 2-4 word names (default TRUE)
  */
-function valid_name($name, $picky = TRUE) {
+function valid_name($name, $individual = TRUE, $picky = TRUE) {
+  $name = trim($name);
   $words = substr_count($name, ' ') + 1;
-  if (preg_match("/[^\w\-\.,' ]/iu", $name)) return FALSE; // allows unicode chars and common punctuation
+  $pattern = $individual ? "[^\w\-\.,' ]" : '[^\w~!@#\$%\^&\*\(\)\-=\+\\\\;:\'",<\.>/\? ]';
+  if (preg_match("`$pattern`iu", $name)) return FALSE; // allows unicode chars and common punctuation
   if ($picky and ($words < 2 or $words > 4)) return FALSE;
   return TRUE;
 }
@@ -103,7 +105,7 @@ function short_name($full_name) {
  */
 function for_cash($for) {
   if (is_array($for)) return for_cash($for[0]) or for_cash($for[1]);
-  return ($for == '' or preg_match('/(cash|credit|usd|gift)( |$)/i', $for));
+  return ($for == '' or preg_match('/^(cash|usd|loan)(\W|$)/i', $for)); // empty or a non-goods word at the beginning
 }
 
 /**
@@ -285,6 +287,19 @@ function http_request($url, $params = FALSE, $extra_headers = array(), $method =
   return $result;
 }
 
+/**
+ * Translate constant parameters in a string.
+ * For example, "SELECT * FROM table WHERE zot IN (:R_THIS, :R_THAT)" fills in the constants.
+ * @param string $string: the string to fix
+ * @return string: the string with constant names replaced by their values
+ */
+function get_constants($string) {
+  preg_match_all('/:([A-Z_]+)/ms', $string, $matches);
+  $map = array();
+  foreach ($matches[1] as $one) $map[":$one"] = constant($one);
+  return strtr($string, $map);
+}
+
 /** 
  * Log the message and return it.
  * This makes it easy for tests to see what was done
@@ -316,15 +331,15 @@ function log($log, $type = FALSE, $info = FALSE) {
 /**
  * Return the account in use or specify which account to use.
  * @param numeric $uid: uid of account to use
- * @return numeric $cid: uid of account currently in use
- * @todo: I think this never gets called except when setting. might wanna comment out the two cache lines
+ * @return FALSE (use this just to set the global. NO SESSION VARIABLE!) 
+ *     (NOT numeric $cid: uid of account currently in use)
  */
 function cid($uid = '') {
   global $user, $userid, $cid;
   if ($uid and !is_numeric($uid)) die("non-numeric uid: $uid");
   if (!@$userid) $userid = $user->uid;
-  return ($_SESSION['rcredits_cid'] = $cid = ($uid ?: (@$_SESSION['rcredits_cid'] ?: $userid)) + 0);
-  return $cid;
+  $cid = ($uid ?: $userid) + 0;
+  return FALSE;
 }
 
 /*
@@ -358,8 +373,14 @@ function import_gfld() {
 }
 */
 
+function trim_all(&$array) {
+  foreach ($array as $key => $value) $array[$key] = trim($value);
+  return $array;
+}
+
 // Single line functions that need no explanation
 function valid_url($url) {return (\valid_url($url) and preg_match('/^[A-Z0-9\-_]+\.[A-Z0-9\-_]+/i', $url) and strpos($url, '@') === FALSE);}
 function abbreviates($s, $string) {return (substr($string, 0, strlen($s)) == $s);}
 function prlog($log = 'rcredits') {print_r(log($log));}
 function order($first_first, $choice1, $choice2) {return $first_first ? array($choice1, $choice2) : array($choice2, $choice1);}
+function wargs($s, $args, $prefix = '') {return strtr($s, prefix_keys($prefix, $args));} // for debugging
