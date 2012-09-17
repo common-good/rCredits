@@ -6,7 +6,7 @@
 
 use rCredits as r;
 use rCredits\Utilities as u;
-use \rCredits\InternalInterface as ii;
+use rCredits\API as api;
 
 define('R_TABLES', 'r_area_codes,r_credit_regions,r_nonces,r_txs,r_asif,r_shared_accounts');
 
@@ -21,13 +21,14 @@ function rcredits_install() {
   r\make_fields();
 //  r\make_currency();
   
-  $name = R_COMMUNITY_NAME;
-  $credit_id = R_COMMUNITY_ID;
-  $credit_name = $name;
+  $full_name = R_COMMUNITY_NAME;
+//  $credit_id = R_COMMUNITY_ID;
   $postal_code = R_COMMUNITY_POSTAL_AREA;
   $demand = R_INITIAL_DEMAND;
   $rebate_percent = 0;
-  $info = compact(u\ray('name credit_id credit_name postal_code demand rebate_percent'));
+  $name = $short_name = 'community';
+  $info = compact(u\ray('full_name short_name postal_code demand rebate_percent'));
+
   if ($account = user_load_by_name($name)) {
     user_save($account, $info);
     $uid = $account->uid;
@@ -146,7 +147,7 @@ function rcredits_schema_alter(&$schema) {
     'description' => r\setup_field('markup text describing the company (unused for personal accounts)', 'text medium'),
     'notes' => r\setup_field('miscellaneous notes about the user or the account', 'text medium'),
     'dob' => r\setup_field('date of birth, founding, or incorporation', 'int 11'),
-    'credit_id' => r\setup_field('unique credit account identifier (8 characters for individuals)', 'varchar 9'),
+//    'credit_id' => r\setup_field('unique credit account identifier (8 characters for individuals)', 'varchar 9'),
     'rebate_percent' => r\setup_field('current rebate percentage (sales bonus is double)', 'numeric 4,3', 5),
     'demand' => r\setup_field('waiting to buy this much credit', 'numeric 9,2', 0),
     'min_balance' => r\setup_field('minimum balance (normally zero or less)', 'numeric 9,2', R_MIN_BALANCE),

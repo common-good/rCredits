@@ -25,7 +25,8 @@
  * The Back End will accept web requests only from the right IP.
  * Eventually the Back End will listen only on a certain port (not 80).
  *
- * No Drupal login is required in Back End. (just pass credit_id and user_id,password)
+ * No Drupal login is required in Back End. (just pass qid(cid) and qid(user_id),password)
+ * All uids are passed as qids (qid = r\qid(uid) = R_COMMUNITY_ID . n2a(uid))
  */
 
 namespace rCredits\API; // typically abbreviated as "api"
@@ -41,8 +42,13 @@ function api($args = FALSE) {
   global $cid, $userid, $firewall;
 
   extract($args ?: $_POST);
-  if ($firewall != R_FIREWALL) api_error('firewall system failure'); // give hackers some satisfaction
-
+  if ($firewall != R_FIREWALL) api_error('firewall system failure'); // give hackers some satisfaction by saying 'failure'
+  $cid = r\qid($cid);
+  $userid = r\qid($userid);
+  if (!$cid or !$userid) api_error('user validation error');
+  $crit = 'shared_uid=:cid AND share_with=:userid';
+  if ($cid != $userid and !r\db_lookup(1, 'r_shared_accounts', $crit, compact('cid', 'userid'))) api_error('sharing error');
+  
   $account = \user_load(@$userid);
   u\log('rAPI', 'in', $_POST);
   if (@!$password) api_error('login error');
@@ -54,7 +60,7 @@ function api($args = FALSE) {
     case 'undo_tx': api2(undo_tx($xid, $channel));
     case 'get': api2(get($currency, $amount, $uid, $confirmed, $channel));
     case 'pay_invoice': api2(pay_invoice($xid, $channel));
-    case 'transfer': api2(transfer($ttype, $channel, $other_uid, $requested_amount, $for, $confirmed, $rewards));
+    case 'transfer': api2(transfer($ttype, $channel, r\qid($other_uid), $requested_amount, $for, $confirmed, $rewards));
     case 'give_signup_incentive': api2(give_signup_incentive($who, $channel));
 
     case 'add_cell': api2(add_cell($number, $validate));
@@ -64,7 +70,7 @@ function api($args = FALSE) {
     case 'credit_info': api2(credit_info($uid, $state, $asof));
     case 'make_username': api2(make_username($account, $name));
     case 'merge_check': api2(merge_check($info));
-    case 'make_credit_id': api2(make_credit_id($uid));
+//    case 'make_credit_id': api2(make_credit_id($uid));
     case 'account_choices': api2(account_choices());
     case 'todo': api2(todo($number, $todo, $nonce));
     case 'last_tx': api2(last_tx($where, $subs = array()));
@@ -100,14 +106,16 @@ function create_user($info) {
   
   $info['mail'] = $info['init'] = @$my_email ?: '';
 // Don't create a password (that's how we know it's a temporary account) $info['pass'] = \user_password();
-  $info['name'] =  @$my_name ?: r\temp_name($info);
+  $info['full_name'] = @$my_full_name ?: '';
+  $info['short_name'] = $short_name = ($my_short_name ?: (@$my_full_name ? u\short_name($full_name) : ''));
+  $info['name'] =  @$my_name ?: (@$short_name ?: r\temp_name($info));
   $info['status'] = TRUE;
   $info['is_new'] = TRUE;
 
   //*** Begin DBTX
   $dbtx = db_transaction();
   $account = \user_save(array(), $info);
-  make_credit_id($account->uid); // this is done separately, to assure uniqueness
+//  make_credit_id($account->uid); // this is done separately, to assure uniqueness
   if (isset($my_number)) r\SMS\create($my_number, $account->uid, SMS_USER_CONFIRMED);
   unset($dbtx);
   //*** End DBTX
@@ -366,13 +374,13 @@ function transfer($ttype, $channel, $other_uid, $requested_amount, $for, $confir
 
   $args = r\tx_report_args($taking, $amount, $shortfall, $reward, $other_uid, $xid, $goods);
   if (!$goods) {
-    $message = $confirmed ? (($taking and !$preapproved) ? 'report exchange request' : 'report exchange') : $args['way'];
+    $message = !$confirmed ? 'exchange' : ($preapproved ? 'report exchange' : 'report exchange request');
     return array($message, $args, !$confirmed);
   }
   
   if ($confirmed) {
-    $message = $shortfall ? 'report short transaction' : (($taking and !$preapproved) ? 'report invoice' : 'report transaction');
-    if (!$shortfall and $taking and !$preapproved) {
+    $message = $shortfall ? 'report short transaction' : ($preapproved ? 'report transaction' : 'report invoice');
+    if (!$shortfall and !$preapproved) {
       $payee_name = user_field('full_name'); // my name, for message to payer
       r\notify($other_uid, 'new-invoice', $txs[0] + compact('payee_name'));
     }
@@ -417,8 +425,9 @@ function add_cell($number, $validate = FALSE) {
       extract($result, EXTR_PREFIX_ALL, 'old');
       if ($old_uid == $cid) return array('already cell', $subs);
       //extract(r\db_q('SELECT full_name, credit_id FROM users WHERE uid=:old_uid', compact('old_uid'))->fetchAssoc());
-      extract(user_field('full_name,credit_id', $old_uid));
-      $account = "$full_name ($credit_id)"; // maybe make the previous line and this a function
+      extract(user_field('full_name', $old_uid));
+      $qid = r\qid($old_uid);
+      $account = "$full_name ($qid)"; // maybe make the previous line and this a function
       if (!is_temp_account($old_uid)) return array('cell taken', compact(u\ray('number account')));
     }
     return NULL;
@@ -464,22 +473,34 @@ function identify($who, $create = FALSE, $self_message = 'no self-trading') {
 //  if (substr($who, 0, 4) == 'www.') $who = substr($who, 4);
 
   if (($short = u\short_name($who)) === '') $short = '-'; // abbreviations must not be null
+  if ($uid = r\qid($who)) return $uid == $cid ? array($self_message, array(), array($uid)) : $uid; // is it a qid?
   
-  $sql = "SELECT DISTINCT u.uid FROM {users} u LEFT JOIN {sms_user} s ON u.uid = s.uid 
-          WHERE :who IN (CONCAT('.', u.short_name), u.credit_id, s.number, u.phone, u.mail) 
-          OR (MID(:who, 1, 1)='.' AND INSTR(u.short_name, MID(:who, 2)))
-          OR INSTR(u.short_name, :short)";
-  $result = r\db_q($sql, compact(u\ray('who short')))->fetchCol();
+  $sql = <<<EOF
+    SELECT DISTINCT u.uid, u.full_name FROM {users} u LEFT JOIN {sms_user} s ON u.uid = s.uid 
+    WHERE :who IN (CONCAT('.', u.short_name), s.number, u.phone, u.mail) 
+    OR (MID(:who, 1, 1)='.' AND INSTR(u.short_name, MID(:who, 2)))
+    OR INSTR(u.short_name, :short)
+    ORDER BY u.full_name
+EOF;
+
+  $result = r\db_q($sql, compact(u\ray('who short')))->fetchAllAssoc('uid', \PDO::FETCH_ASSOC);
   if(count($result) > 1) {
     $list = '';
     foreach ($result as $one) {
-      extract(r\db_q("SELECT credit_id, full_name FROM users WHERE uid=:one", compact('one'))->fetchAssoc(), EXTR_PREFIX_ALL, 'my');
-      $list .= " &nbsp; &nbsp; &nbsp; &nbsp; $my_credit_id &nbsp;$my_full_name<br>";
+      extract($one); // get uid and full_name
+      $qid = r\qid($uid);
+      if ($qid != $cid) {
+        $list .= " &nbsp; &nbsp; &nbsp; &nbsp; $qid &nbsp;$full_name<br>";
+      } elseif (count($result) == 2) {
+        unset($result[$uid]);
+        return key($result);
+      }
     }
     return array('ambiguous other', compact(u\ray('who list')), $result);
   }
   if (isset($result[0])) {
-    $other_uid = $result[0];
+  debug($result);
+    $other_uid = $result[0]['uid'];
     if ($other_uid == $cid) return array($self_message, array(), $result);
     $other_account = \user_load($other_uid);
     $other = $other_account->full_name;
@@ -506,17 +527,17 @@ function identify($who, $create = FALSE, $self_message = 'no self-trading') {
  *   including the overall demand for rCredits
  */
 function credit_info($uid = '', $state = TX_DONE, $asof = '') {
-  global $cid;
-  if (!$uid) $uid = $cid;
+  if (!$uid) $uid = u\cid();
   
   if (is_frontend()) {
     $info = backend('credit_info', compact(u\ray('uid state asof')));
     $info->fancy = (array) $info->fancy; // backend turns the uidle shebang into an object
   }
   $table = r\t_table($uid);
-  $result_keys = 'gross_in gross_out gross_in_proper balance available unavailable rewards cashable total_demand min_balance id';
-  $sql = "SELECT credit_id AS id, min_balance FROM users WHERE uid=:uid";
-  extract(r\db_q($sql, compact('uid'))->fetchAssoc()); // gets $id, $min_balance
+  $result_keys = 'gross_in gross_out gross_in_proper balance available unavailable rewards cashable total_demand min_balance qid';
+  $sql = "SELECT min_balance FROM users WHERE uid=:uid";
+  extract(r\db_q($sql, compact('uid'))->fetchAssoc()); // gets $min_balance
+  $qid = r\qid($uid);
 
   if ($state == TX_DONE) $state = TX_DONE . ',' . TX_DISPUTED;
   $sql = <<<EOF
@@ -592,6 +613,7 @@ function merge_check($info) {
  * Create an appropriate credit id for the given account
  * @return the credit id (FALSE if failure)
  */
+/*
 function make_credit_id($uid) {
   if (is_frontend()) return backend('make_credit_id', compact(u\ray('uid')));
   
@@ -620,6 +642,7 @@ function make_credit_id($uid) {
   }
   die("Too many collisions in make_credit_id() -- ctty = $ctty");
 }
+*/
 
 /**
  * Return a list of account choices for the current user (NOT the current credit account)
@@ -685,7 +708,8 @@ function account_name($uid) {
   if (is_frontend()) return backend('account_name', compact(u\ray('uid')));
   
   extract((array) \user_load($uid), EXTR_PREFIX_ALL, 'my');
-  return @$my_credit_id ? ": $my_full_name ($my_credit_id) $my_mail" : ": $my_mail";
+  $qid = r\qid($uid);
+  return ": $my_full_name ($qid) $my_mail";
 }
 
 /**

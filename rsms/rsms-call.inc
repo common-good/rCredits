@@ -71,8 +71,8 @@ class call {
       }
       $name = setup_name($account, $this->message); // actually full_name
       api\todo($this->number, 'setup email', '');
-      $id = $account->credit_id;
-      return tt("what's your email?", compact('id', 'name'));
+      $qid = r\qid(); //$account->credit_id;
+      return tt("what's your email?", compact('qid', 'name'));
     } elseif ($todo == 'setup email' and !$account->mail) {
       setup_email($account, $this->message);
       api\todo($this->number, '', '');

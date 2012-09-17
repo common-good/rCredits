@@ -24,7 +24,7 @@ define('RSMS_PREFIX', 'TEST: '); // the pre-launch trial
 
 $GLOBALS['SMS messages'] = array(
   // reports
-  'account info' => t("Your balance for account @id is @balance, including @rewards of incentive rewards. Total demand for rCredits is @total_demand."),
+  'account info' => t("Your balance for account @qid is @balance, including @rewards of incentive rewards. Total demand for rCredits is @total_demand."),
 //  'account info2' => t("More account info"), // not used yet
   'your account is ready' => t('Your starting balance is @balance. Pretend to buy and sell as you would in a typical month (we need that info). Have fun! Type "helpme" to get started.'), // separate out the last sentence
 
@@ -33,7 +33,7 @@ $GLOBALS['SMS messages'] = array(
   'report invoice' => t("You @type @other @amount. Your balance is unchanged, pending payment. Invoice #@tid"),
   'report short transaction' => t("You @type @other @amount (@short remains to be paid). Your new balance is @balance. Transaction #@tid"),
 //  'transaction done asif' => t("@type: @amount @tofrom user#@other (@reward_type: @reward_amount). Your new provisional balance is @balance (If this had been a real transaction, your balance would be @amount @moreless). Transaction ID #@xid"),
-  'report exchange' => t("You @type @other @amount @way. Your new balance is @balance. Transaction #@tid"),
+  'report exchange' => t("You @type @other r@amount for cash/loan/gift/etc. Your new balance is @balance. Transaction #@tid"),
   'report exchange request' => t("You requested r@amount from @other. Your balance is unchanged, pending approval. Pending Transaction #@tid"),
 //  'report undo' => t("You cancelled transfer of @amount from @payer to @payee on @date."),
   'report undo' => t("Transaction has been @action. "),
@@ -44,7 +44,7 @@ $GLOBALS['SMS messages'] = array(
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),
   "what's your name really?" => t("Hmm. I don't know if I believe that. What's your name really?"),
-  "what's your email?" => t("Welcome to rCredits, @name (account ID @id). Last question: What's your email address?"),
+  "what's your email?" => t("Welcome to rCredits, @name (account ID @qid). Last question: What's your email address?"),
   "what's your email really?" => t("Please type carefully. What is your email address?"),
   
   // confirmations
@@ -52,8 +52,7 @@ $GLOBALS['SMS messages'] = array(
   'confirm payment' => t("Pay @other @amount for goods and services?"),
   'confirm invoice' => t("Pay @other @amount for goods and services (invoice @date)?"),
   'confirm charge' => t("Charge @other @amount for goods and services?"),
-  'confirm rCredits for cash' => t("Give @other @amount in rCredits for cash/loan/etc?"),
-  'confirm cash for rCredits' => t("Give @other cash/loan/etc, in exchange for @amount in rCredits?"),
+  'confirm exchange' => t("Okay to @type @other @amount in rCredits (not for goods or services)?"),
   'confirm undo' => t("Undo @date transfer of @amount @tofrom @other?"),
   'please confirm' => t("To confirm, type @nonce."),
   'verification code' => 'Your verification code for using rCredits online is: @nonce', // used in rWeb

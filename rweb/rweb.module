@@ -54,7 +54,6 @@ function rweb_menu() {
   $modal = array('modal' => TRUE);
   
   $can_create = api\access('can create transactions');
-  debug($can_create);
   $menu = array(
 //    'members' => rWeb\menu($can_create ? 'Members Section' : 'Transactions', MENU_NORMAL_ITEM, 'show_form', array($can_create ? 'tx' : 'txs', 2)),
 //    'members' => rWeb\menu('Members Section', MENU_NORMAL_ITEM, 'show_form', array($can_create ? 'tx' : 'txs', 'Charge', 2)),
@@ -73,7 +72,7 @@ function rweb_menu() {
     'pay-with-rcredits' => rWeb\menu('Pay With rCredits', MENU_CALLBACK, 'show_form', array('buy_now'), '', $anyone), // form will require login
 
 //    'example-store' => rWeb\menu('Example Store', MENU_NORMAL_ITEM, 'show_form', array('example_store'), '', $anyone),
-    'member' => rWeb\menu('Company Profile', MENU_CALLBACK, 'show_form', array('profile'), 'company'),
+    'member' => rWeb\menu('Company Profile', MENU_CALLBACK, 'show_form', array('profile'), '', $anyone),
     'rCredits/util' => rWeb\menu('Util', MENU_CALLBACK, 'rCredits\\Web\\util', array(2), 'administer site configuration'),
     'autocomplete/member' => rWeb\menu('Identify Member', MENU_CALLBACK, 'rCredits\\Web\\autocomplete_member', array(3), 'can create transactions'),
     'ok' => rWeb\menu('Please Confirm', MENU_CALLBACK, 'show_form', array('ok'), '', $anyone + $modal),

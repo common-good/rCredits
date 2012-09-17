@@ -14,6 +14,7 @@
  * never delete or alter code within a function.
  */
 use rCredits as r;
+use rCredits\Utilities as u;
 require_once __DIR__ . '/../rcredits.inc';
 
 /**
@@ -136,7 +137,7 @@ function weSayToPhone($number, $message) {
 function weSayToPhoneWithSubs($number, $message, $subs) {
   global $test_only;
   if (!$test_only) error;
-  $info = r\r_log();
+  $info = u\log();
   $type = 'SMSout';
   $message = RSMS_PREFIX . r\SMS\tt($message, $subs);
   return in_array(compact('type', 'message', 'number'), $info);

@@ -133,3 +133,9 @@ div#autocomplete  li {margin:0px; padding:0px; line-height:140%; background-colo
 
 /* Home */
 #rcreditswebhome-form div#next-steps {width:500px;}
+
+/* Profile */
+#rcreditswebprofile-form {font-family:Arial;}
+#rcreditswebprofile-form div.user-picture img {float:left; margin-right:20px;}
+#rcreditswebprofile-form div#member-contact {float:left; clear:right; min-width:150px; font-weight:normal;}
+#rcreditswebprofile-form div#member-description {float:left; margin-top:20px; max-width:350px; font-weight:normal;}

@@ -52,7 +52,7 @@ function txs_form($form, &$form_state, $tx_period = '', $do = '', $xid = '') {
     $state = "<span style='color:$color;'>$state</span>";
 //    $button1 = (($one_payer == $cid xor $one_amount < 0) and $one_state == TX_PENDING) ? button('OK', "$base_path/transactions/$tx_period/ok/$one_xid", 'Approve') : '';
     $button1 = ($one_payer == $cid and $one_state == TX_PENDING) ? button('OK', "$base_path/transactions/$tx_period/ok/$one_xid", tx_action('ok')) : '';
-    $button2 = (!$is_reward and !@$data['undone']) ? button(' X ', "$base_path/transactions/$tx_period/no/$one_xid", tx_action('no', $one_state, $one_creator)) : '';
+    $button2 = (!$is_reward and !@$data['undone']) ? button(' X ', "$base_path/transactions/$tx_period/no/$one_xid", tx_action('no', $one_state, $one_payee == $cid)) : '';
     $button3 = ($can_create and !$is_reward) ? "<a href='$base_path/transactions/$tx_period/edit/$one_xid' title='Edit Purpose'><img src='{$base_path}images/edit-icon.png' width=20 height=20 border=0 /></a>" : '';
     $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
     $rows[] = array($tid, date('d-M', $one_created), $one_name, $from_you, $to_you, $state, $buttons, $one_purpose, $reward);
@@ -83,7 +83,7 @@ function tx_confirm($do, $xid, &$form_state) {
   global $cid;
   if (confirming_v($form_state)) return FALSE;
   extract(tx_details($xid), EXTR_PREFIX_ALL, 'my');
-  $action = tx_action($do, $my_state, $my_creator);
+  $action = tx_action($do, $my_state, $my_payee == $cid);
   confirm("Are you sure you want to $action?<br>($my_summary)", $form_state); // sets 'confirm'
   return sure_form($form_state);
 }
@@ -92,17 +92,18 @@ function tx_confirm($do, $xid, &$form_state) {
  * Return the action option for a transaction
  * @param string $do: which major type of action ('ok' or 'no')
  * @param int $state: the current transaction state
- * @param int $creator: uid of the transaction creator
+ * @param bool $is_payee: user is the payee
  * @return string: how to describe the ok or no
- * NOTE: $state and $creator are unused for 'ok'
+ * NOTE: $state and $is_payee are unused for 'ok'
  */
-function tx_action($do, $state = '', $creator = '') {
-  global $cid;
-  return ( $do == 'ok' ? t('Approve this charge')
-       : ( $state != TX_PENDING ? t('Reverse this transaction')
-       : ( $creator == $cid ? t('Cancel this invoice')
-       : ( t('Dispute this charge')
-         ))));
+function tx_action($do, $state = '', $is_payee = '') {
+  if ($do == 'ok') return t('Approve this charge');
+  
+  if ($is_payee) {
+    if ($state == TX_DISPUTED) return t('Reverse this transaction'); // let the customer win
+    if ($state == TX_PENDING) return t('Cancel this invoice');
+    return t('Reverse this transaction'); // let the customer win
+  } else return t('Dispute this charge');
 }
 
 function txs_form_validate($form, &$form_state) {

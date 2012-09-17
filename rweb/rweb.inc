@@ -44,7 +44,7 @@ $GLOBALS['Web messages'] = array(
   'report new share' => t('You are now sharing this account with @who'),
   'report new cell' => t('Cell number @number is now connected to this account.'),
   'report delete cell' => t('Cell number @number has been removed from this account.'),
-  'your account is ready' => t('<p></p><p>Welcome to rCredits! Your account ID is @credit_id. Your starting balance is @balance.</p><p>After you confirm your email address (by clicking the link in the email we sent you), come back here and log in.</p><p>Pretend to buy and sell just as you would in a typical month. We need that information, to make sure everyone has plenty of places to receive and spend their rCredits.</p><p>Experiment! Have fun! (and please let us know if you run into any glitches)'),
+  'your account is ready' => t('<p></p><p>Welcome to rCredits! Your account ID is @qid. Your starting balance is @balance.</p><p>After you confirm your email address (by clicking the link in the email we sent you), come back here and log in.</p><p>Pretend to buy and sell just as you would in a typical month. We need that information, to make sure everyone has plenty of places to receive and spend their rCredits.</p><p>Experiment! Have fun! (and please let us know if you run into any glitches)'),
   'nothing selected' => t('You did not select anything'),
   'undo incomplete' => t('The undo operation is not yet complete.'),
   'ambiguous other' => t('"@who" might mean any of these rCredits accounts (be more specific):<br>@list'),
@@ -66,10 +66,10 @@ function util($arg) {
     $uid2 = $uid + 1; $uid3 = $uid2 + 1;
     $pass = '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae';
     $sql = <<<EOF
-      INSERT INTO users (uid, name, pass, mail, short_name, full_name, credit_id, status, postal_code) VALUES
-      ($uid, 'uten', '$pass', 'uten@ex.com', 'uten', 'U Ten', 'Z9AAAAAA', 1, '01301'),
-      ($uid2, 'btwo', '$pass', 'btwo@ex.com', 'btwo', 'B Two', 'Z9AAAAAB', 1, '01301'),
-      ($uid3, 'cstore', '$pass', 'cstore@ex.com', 'cornerstore', 'Corner Store', 'Z9AAAAAC', 1, '01301');
+      INSERT INTO users (uid, name, pass, mail, short_name, full_name, status, postal_code) VALUES
+      ($uid, 'uten', '$pass', 'uten@ex.com', 'uten', 'U Ten', 1, '01301'),
+      ($uid2, 'btwo', '$pass', 'btwo@ex.com', 'btwo', 'B Two', 1, '01301'),
+      ($uid3, 'cstore', '$pass', 'cstore@ex.com', 'cornerstore', 'Corner Store', 1, '01301');
       
       INSERT INTO sms_user (number, uid, status) VALUES
       (10, $uid, 2),
@@ -225,11 +225,11 @@ function home_form($form, &$form_state) {
     'title' => form_field('item', t('Overview of Your rCredits Account')),
     'subtext' => basic_account_info(),
     'account_name' => form_field('item', t('Account Name:'), '', $account->full_name),
-    'account_id' => form_field('item', t('Account ID:'), '', $account->credit_id),
+    'account_id' => form_field('item', t('Account ID:'), '', r\qid()),
     'account_type' => form_field('item', t('Account type:'), '', $GLOBALS['account types'][$account->account_type+0]), // +0 for admin
     'stage' => form_field('item', t('You are:'), '', $now[$stage]),
     'future' => $future[$stage] ? form_field('item', t('Future milestones:'), '', $future[$stage]) : NULL,
-    'steps' => form_field('item', t('Next Steps:'), '', t('<div id="next-steps" class="labeled-block"><ol><li>Do at least three realistic "As-If" payments to participating businesses, so the system knows where you will be able to spend your rCredits.</li><li>Do at least one As-If charge, so the system knows where you will get your rCredits.</li><li>Try some of the other rCredits features.</li><li>Read or talk to other participants until you are confident that you understand how rCredits works.</li></ol></div>')),
+    'steps' => form_field('item', t('Next Steps:'), '', t('<div id="next-steps" class="labeled-block"><ol><li>Do at least three realistic "As-If" Payments to participating businesses, so the system knows where you will be able to spend your rCredits.</li><li>Do at least one As-If Charge, so the system knows where you will get your rCredits.</li><li>Try some of the other rCredits features.</li><li>Read or talk to other participants until you are confident that you understand how rCredits works.</li></ol></div>')),
     'balance' => form_field('item', t('Balance:'), '', $my_balance),
     'credit_limit' => form_field('item', t('Credit limit:'), '(this is how far in debt you can go &mdash; for up to 30 days)', u\format_amount(-$account->min_balance)),
     'rewards_to_date' => form_field('item', t('Rewards to date:'), '', $my_rewards),
@@ -252,12 +252,12 @@ function account_form($form, &$form_state) {
     $choices[$uid] = api\user_field('full_name', $uid) . ": $balance";
   }
 
-  $credit_id = api\user_field('credit_id', $cid);
+  $qid = r\qid(); // $credit_id = api\user_field('credit_id', $cid);
   $full_name = api\user_field('full_name', $cid);
   $onchange = "this.form.submit();";
   $account = form_field('select', t('Account:'), t('(Select an account)'), 
     dft($cid) + attrib(compact('onchange')), $choices);
-  $one_account = form_field('item', t('Account') . ": <span>$full_name ($credit_id)</span>");
+  $one_account = form_field('item', t('Account') . ": <span>$full_name ($qid)</span>");
   $one_balance = form_field('item', t('Current Balance') . ": <span>$balance</span>");
   $submit = form_field('submit');
   $form = count($choices) == 1 ? compact(u\ray('one_account one_balance')) : u\prefix_keys('account_', compact(u\ray('account submit')));
@@ -267,11 +267,10 @@ function account_form($form, &$form_state) {
 }
 
 function account_form_submit($form, &$form_state) {
-  global $cid;
+//  global $cid;
   extract($form_state['values']);
-  $old_uid = $cid;
-  u\cid($account_account);
-  $_SESSION['rcredits_cid'] = $cid; // this gets checked ONLY in rweb_access()
+//  $old_uid = $cid;
+  $_SESSION['rcredits_cid'] = u\cid($account_account); // this gets checked ONLY in rweb_access()
 //  if (api\access('can create transactions', $old_uid) != api\access('can create transactions', $account_account)) menu_rebuild();
 }
 
@@ -282,18 +281,19 @@ function profile_form($form, &$form_state, $company) {
   $uid = api\user_field('uid', 'short_name=:company', compact('company'));
   $account = \user_load($uid);
   extract((array) $account);
-  $pic = str_replace('styles/thumbnail/public/', '', theme('user_picture', compact('account')));
+  $pic = profile_picture($uid, TRUE);
   $country = u\country_abbrev($country);
   if ($website) $website = "<a href='http://$website' target='_blank'>$website</a>";
   if ($phone) $phone = 'Phone: ' . u\format_phone($phone, '+');
-  if ($fax) $fax = ($phone ? ' * ' : '') . 'Fax: ' . u\format_phone($fax, '+');
+  if ($fax) $fax = ($phone ? '&nbsp; * &nbsp;' : '') . 'Fax: ' . u\format_phone($fax, '+');
   $markup = <<<EOF
   <div id='member-picture'>$pic</div>
   <div id='member-contact'>
   <h2>$full_name</h2>
-  $address, $city, $state $postal_code $country<br><br>
+  $address<br>
+  $city, $state $postal_code $country<br><br>
   $phone$fax<br>
-  $website<br>
+  $website<br><br>
   </div>
   <div id='member-description'>$description</div>
 EOF;
@@ -302,6 +302,26 @@ EOF;
     'all' => form_field('item', $markup),
   );
   return $form;
+}
+
+function profile_picture($uid, $with_markup = FALSE) {
+  global $userid;
+  $account = \user_load($uid);
+  $data = $account->data;
+  $markup = str_replace('styles/thumbnail/public/', '', \theme('user_picture', compact('account')));
+  if ($markup) {
+    $a = explode('"', $markup);
+    $url = $a[api\access('administrator', $userid) ? 7 : 3]; // Drupal probably has an easier way to do this
+  } else $url = is_array($data) ? @$data['picture'] : '';
+  
+  if (!$with_markup or !$url) return $url;
+  $info = @getimagesize($url);
+  list ($width, $height) = is_array($info) ? $info : array(1, 0);
+  $new_height = min($height * 2, 800 * $height / $width, 400);
+  if (!$new_height) $new_height = 400; // in case getimagesize fails
+  $new_width = $height ? round($width * $new_height / $height, 0) : '';
+  $subs = compact(u\ray('new_width new_height url'));
+  return strtr('<div class="user-picture"><img src="url" width="new_width" height="new_height" alt="profile picture" /></div>', $subs);
 }
 
 /**
@@ -368,7 +388,8 @@ function buy_now_form($form, &$form_state, $action = 'Payment', $verb = 'Pay') {
   if (!isset($my_amount)) $my_amount = $my_company = $my_item = ''; else $my_amount = @number_format($my_amount, 2);
 
   $disabled = array('disabled' => 1);
-  if (!($name = api\user_field('full_name', "credit_id='$my_company'"))) $name = 'Unregistered Company'; 
+  $uid = r\qid($my_company);
+  $name = $uid ? api\user_field('full_name', $uid) : 'Unregistered Company'; 
   $verblower = strtolower($verb);
 
   $who = $my_company;
@@ -601,7 +622,7 @@ function share_form($form, &$form_state) {
   $headers = u\ray('Account ID,Full name,Email,Permission');
 
   $sql = <<<EOF
-    SELECT u.name as username, credit_id, u.full_name, u.mail as email, s.shared_with, s.permission
+    SELECT u.uid, u.name as username, u.full_name, u.mail as email, s.shared_with, s.permission
     FROM r_shared_accounts s RIGHT JOIN users u ON u.uid = s.shared_with
     WHERE s.shared_uid=:cid
     ORDER BY username
@@ -611,7 +632,8 @@ EOF;
   while ($row = $result->fetchAssoc()) {
     extract($row);
     $permission = $GLOBALS['share permissions'][$permission]; // explicit
-    $list["x$shared_with"] = array($credit_id, $full_name, $email, $permission);
+    $qid = r\qid($uid);
+    $list["x$shared_with"] = array($qid, $full_name, $email, $permission);
   }
 
   $form = array(
@@ -792,10 +814,10 @@ function register_form_validate($form, &$form_state) {
 
 function register_form_submit($form, &$form_state) {
   extract($form_state['values']);
-  $credit_id = api\make_credit_id($uid);
+  $qid = r\qid($uid); // api\make_credit_id($uid);
 // this fails because account is not saved yet  api\merge_check(compact(u\ray('email short_name'))); // email fails anyway because it's not unique
   $balance = u\format_amount(api\give_signup_incentive($uid), TX_WEB);
-  say('your account is ready', compact(u\ray('balance credit_id')));
+  say('your account is ready', compact(u\ray('balance qid')));
 }
 
 /**
@@ -832,7 +854,7 @@ function directory_form($form, &$form_state) {
     'title' => form_field('item', t('Find businesses in your region')), // should be 'Find member businesses in your region'
 //    'subtext' => form_field('item', t('for a country name or postal code...')),
     'which' => form_field('textfield', t('Search for:'), t('Type part of business name or industry category'), dft($which)),
-    'region' => form_field('textfield', t('Region:'), t('Type the start of your postal code or country name'), dft($region)),
+    'region' => form_field('textfield', t('Where:'), t('Type the start of your postal code or country name'), dft($region)),
     'submit' => form_field('submit', NULL, t('Submit button'), t('Go')),
     'item' => form_field('item', '', '', $list),
   );
@@ -846,8 +868,8 @@ function directory_form_validate($form, &$form_state) {
 
 function directory_form_submit($form, &$form_state) {
   extract($form_state['values']);
-  $_SESSION['rcredits_which_companies'] = $which;
-  $_SESSION['rcredits_region'] = $region;
+  $_SESSION['rcredits_which_companies'] = trim($which);
+  $_SESSION['rcredits_region'] = trim($region);
 }
 
 /**
@@ -879,7 +901,7 @@ EOF;
     $pay = button('Pay', "pay/$short_name");
     $chg = button('Chg', "charge/$short_name");
 //    if ($website) $full_name = "<a href='http://$website' target='_blank'>$full_name</a>";
-    $full_name = "<a href='$base_url/member/$short_name' target='_blank'>$full_name</a>";
+    $full_name = "<a href='$base_url/member/$short_name'>$full_name</a>";
     $item = "$pay$chg$full_name";
     if (!$headed) $item = "Other: $item <span>($industry)</span>";
     $list .= "<li>$item</li>\n";

@@ -10,8 +10,8 @@
 function rsms_install() {
   $rsms_permissions = array(
     'receive sms',
-    'edit own sms number',
-    'transact via sms',
+//    'edit own sms number',
+//    'transact via sms',
   );
   user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, $rsms_permissions);
   

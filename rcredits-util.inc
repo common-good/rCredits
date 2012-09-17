@@ -130,6 +130,7 @@ function n2a($n, $len, $base = 26) {
  * @see n2a
  */
 function a2n($string, $base = 26) {
+  $string = strtoupper($string);
   $result = 0;
   for ($i = 0; $i < strlen($string); $i++) {
     $result = $result * $base + ord($string[$i]) - ord("A");
@@ -143,11 +144,12 @@ function a2n($string, $base = 26) {
  * @param string $how: how to format it
  *   '+n' +1dddddddddd (AKA 'internal')
  *   'n'  dddddddddd
- *   '+'  (+1) ddd-ddd-dddd
- *   ''   ddd-ddd-dddd (the default)
+ *   '+'  +1 ddd ddd dddd (the international standard with spaces added)
+ *   ''   +1 ddd.ddd.dddd (the default)
  * @return the formatted phone number (FALSE if the $phone is not a phone number or $how is bad)
  */
 function format_phone($phone, $how = '') {
+  $sep = '.'; // digit group separator
   $foreign = ''; // set to 'n' format if the phone is outside US
   $phone = (preg_replace('/[\(\) \-\.]/', '', $phone)); // ignore typical punctuation
   if (substr($phone, 0, 2) == '+1') {
@@ -161,12 +163,12 @@ function format_phone($phone, $how = '') {
   if ($how == 'n') return $phone;
   if ($how == '+n' or $how == 'internal') return ($foreign ? "+$foreign" : "+1$phone");
 
-  $phone = substr($phone, 0, 3) . '-' . substr($phone, 3, 3) . '-' . substr($phone, 6);
-  if ($how == '') return $phone;
-  if ($how == '+') {
+  $phone = substr($phone, 0, 3) . $sep . substr($phone, 3, 3) . $sep . substr($phone, 6);
+//  if ($how == '') return $phone;
+  if ($how == '+' or $how == '') {
     $len = substr($foreign, 0, 1) == '7' ? 1 // get length of country prefix
       : (strpos('. 21 22 23 24 25 26 29 35 37 38 42 51 59 67 68 69 85 87 88 96 97 99 ', ' ' . substr($foreign, 0, 2) . ' ') ? 3 : 2);
-    return $foreign ? ('(+' . substr($foreign, 0, $len) . ') ' . substr($foreign, $len)) : "(+1) $phone";
+    return $foreign ? ('+' . substr($foreign, 0, $len) . ' ' . substr($foreign, $len)) : "+1 $phone";
   }
   return FALSE;
 }
@@ -329,17 +331,20 @@ function log($log, $type = FALSE, $info = FALSE) {
 }  
 
 /**
- * Return the account in use or specify which account to use.
- * @param numeric $uid: uid of account to use
- * @return FALSE (use this just to set the global. NO SESSION VARIABLE!) 
- *     (NOT numeric $cid: uid of account currently in use)
+ * Return the account in use and maybe specify which account to use.
+ * @param numeric $uid: uid of account to use (default just return the current value)
+ * @return numeric $cid: uid of account currently in use)
+ * NOTE: do NOT set up cid unless specifically requests, leaving caller responsible for storing and retrieving
+ * from a SESSION variable.
  */
-function cid($uid = '') {
+function cid($uid = 'get') {
   global $user, $userid, $cid;
-  if ($uid and !is_numeric($uid)) die("non-numeric uid: $uid");
-  if (!@$userid) $userid = $user->uid;
-  $cid = ($uid ?: $userid) + 0;
-  return FALSE;
+  if ($uid != 'get') {
+    if (!@$userid) $userid = $user->uid;
+    $cid = $uid ?: $userid;
+  }
+  assert (is_numeric($cid) and $cid > 0);
+  return $cid + 0;
 }
 
 /*
@@ -373,6 +378,62 @@ function import_gfld() {
 }
 */
 
+function gzdecode($data){
+    $g=tempnam('./','gz');
+    file_put_contents($g,$data);
+    ob_start();
+    readgzfile($g);
+    $d=ob_get_clean();
+    unlink($g);
+    return $d;
+}
+
+function get_company_pictures() {
+  $result = r\db_q("SELECT uid,website,data,description FROM users WHERE website<>''");
+  while ($row = $result->fetchAssoc()) {
+    extract($row);
+    if (strlen($website) < 4) {debug($uid); continue;}
+    $homepage = 'http://' . $website;
+    $s = file_get_contents($homepage);
+    if (!$s) $s = file_get_contents($homepage = ('http://www.' . $website));
+    if (!$s) {debug("Can't open $homepage"); continue;}
+    
+    if (!$description) {
+      $got = preg_match('/<meta\s+name\s*=\s*[\'"]description[\'"]\s+content\s*=\s*[\'"](.*?)[\'"]/msi', $s, $matches);
+      if (!$got) {
+        $s = gzdecode($s);
+        if (!preg_match('/<meta\s+name\s*=\s*[\'"]description[\'"]\s+content\s*=\s*[\'"](.*?)[\'"]/msi', $s, $matches)) continue;
+      }
+      $description = htmlspecialchars_decode(@$matches[1]);
+      if ($description) r\db_q('UPDATE users SET description=:description WHERE uid=:uid', compact(ray('description uid')));
+    }
+
+    if (strlen($data) > 3) continue;    
+    preg_match_all('/<img\s.*?src\s*?=\s*?[\'"](.*?)[\'"]/ism', $s, $matches);
+    $biggest = 0; $best = '';
+    foreach ($matches[1] as $one) {
+      if (!stripos($one, '.jpg') and !stripos($one, '.png')) continue;
+      if (strpos($one, 'http:') === FALSE) $one = "$homepage/$one";
+      if (($len = fsize($one)) > @$biggest) list ($biggest, $best) = array($len, $one);
+      if ($biggest > 50000) break;
+    }
+    if (@$biggest) {
+      $picture = $best;
+      $info = getimagesize($picture);
+      list ($width, $height) = is_array($info) ? $info : array(0, 0);
+      $data = serialize(compact(ray('picture width height')));
+      r\db_q('UPDATE users SET data=:data WHERE uid=:uid', compact(ray('data uid')));
+    }
+  }
+  debug('done');
+}
+
+function fsize($url) {
+  if ($size = @filesize($url)) return $size;
+  $s = file_get_contents($url);
+  return strlen($s);
+}
+
 function trim_all(&$array) {
   foreach ($array as $key => $value) $array[$key] = trim($value);
   return $array;
@@ -384,3 +445,4 @@ function abbreviates($s, $string) {return (substr($string, 0, strlen($s)) == $s)
 function prlog($log = 'rcredits') {print_r(log($log));}
 function order($first_first, $choice1, $choice2) {return $first_first ? array($choice1, $choice2) : array($choice2, $choice1);}
 function wargs($s, $args, $prefix = '') {return strtr($s, prefix_keys($prefix, $args));} // for debugging
+

@@ -8,6 +8,11 @@
  *   - application interfaces to the user interfaces, which are in rcredits-api.inc (i)
  *   - utilities, which are in rcredits-util.inc (u)
  *
+ * Some coding conventions:
+ *   uid is a user id
+ *   xid is a transaction id
+ *   qid is an account id = R_COMMUNITY_ID . n2a(uid)
+ *
  * @todo
  * - handling employees (virtual payments). This should probably be extended to suppliers too,
  *   or maybe even to everyone. The idea is to pay someone virtually in rCredits by totally paying them
@@ -21,11 +26,11 @@
  * - The data field in r_txs should also hold additional identification information about a nonlocal payer or payee.
  *   If the mcapi intertrading module does not work for us, other servers could have a single UID on our system, so a
  *   user doing business with someone in another region would generate a transaction between an individual and a server,
- *   with credit_id for the individual in that other region stored in the data field. 
- *   We do NOT need to store credit_id for creator, payer, and payee.
+ *   with qid for the individual in that other region stored in the data field. 
+ *   We do NOT need to store qid for creator, payer, and payee.
  *
- *   Specifically: when we in the ZZZZ community receive a transaction request using a credit_id, the first four characters are the "community" --
- *   they tell us what database to hit. For example, if ZZZZYYYY pays AAAABBBB, we record a payment from ZZZZYYYY's uid to the uid of a user record *   with credit_id = "AAAA". The data field in the transaction gets $data['payee_id'] = 'AAAABBBB'. We send the request to AAAA's db and
+ *   Specifically: when we in the ZZZZ community receive a transaction request using a qid, the first four characters are the "community" --
+ *   they tell us what database to hit. For example, if ZZZZYYYY pays AAAABBBB, we record a payment from ZZZZYYYY's uid to the uid of a user record *   with qid = "AAAA". The data field in the transaction gets $data['payee_id'] = 'AAAABBBB'. We send the request to AAAA's db and
  *   expect a confirmation (if no confirmation, roll back the transaction and give an error message OR queue the request).
  *
  *   On the other side of things, when we receive a request from some other community for a transaction with one of our accounts
@@ -41,6 +46,9 @@
  *
  * @todo: settle how credit id is handled. Probably have a single region per server, so uid and region id together are the uid
  * @todo: Finish separating backend. Front end should have no registered users.
+ * @todo: throughout, do something better than die()
+ * @todo: use popups for some things
+ * @todo: allow companies to select what categories they are in
  */
  
 namespace rCredits; // typically abbreviated as "r"
@@ -50,16 +58,17 @@ use \rCredits\API as api;
 include_once __DIR__ . '/rcredits-circles.inc'; // treat this as an extension of this file, for testing
 
 define('R_SEPARATE_BACKEND', FALSE);
-define('R_COMMUNITY_NAME', 'Community');
-define('R_COMMUNITY_ID', 'community'); // credit_id for the community account
+define('R_COMMUNITY_NAME', 'Pioneer Valley rCredits Community');
+define('R_COMMUNITY_ID', 'NEAA'); // qid header for this community's server
+// (you don't get an ID card unless you are in this geographic area)
 define('R_COMMUNITY_POSTAL_AREA', '01%'); // anyone with a postal code that matches this is in
 define('R_INITIAL_DEMAND', 25000); // total escrowed rCredits during TRIAL RUN
 define('R_REBATE', 0.05);
 define('R_BONUS', 0.10);
 define('R_MAX_DEMAND', 1000000); // you can't ask for more rCredits than this
-define('R_MIN_DEMAND', 100); // you can't buy less rCredits than this at a time
+define('R_MIN_DEMAND', 10); // you can't buy less rCredits than this at a time
 define('R_STARTING_BALANCE', 250); // how much people start with in the TRIAL RUN
-define('R_MIN_BALANCE', -10000); // how low can user's balance go, by default (be generous in TRIAL RUN)
+define('R_MIN_BALANCE', -1000); // how low can user's balance go, by default (be generous in TRIAL RUN)
 define('R_TEMP_NAME_PREFIX', 'unknown ');
 
 // Filenames
@@ -187,8 +196,7 @@ function permission(&$permissions, $title, $description) {
  * Not all returned args are used for any particular type of transaction.
  */
 function tx_report_args($taking, $amount, $shortfall, $reward, $other_uid, $xid, $goods) {
-  global $cid;
-  $type = $goods ? ($taking ? t('charged') : t('paid')) : 'traded';
+  $type = $taking ? t('charged') : ($goods ? t('paid') : t('gave'));
   $amount = u\format_amount($amount);
   $short = u\format_amount($shortfall);
   $tofrom = $taking ? t('from') : t('to');
@@ -196,13 +204,12 @@ function tx_report_args($taking, $amount, $shortfall, $reward, $other_uid, $xid,
   $reward_amount = u\format_amount($reward);
   $other = user_field('full_name', $other_uid);
 
-  $balance = api\credit_info($cid)->fancy['balance'];
+  $balance = api\credit_info(u\cid())->fancy['balance'];
   $tid = api\xid2tid($xid);
 
-  $way = $taking ? 'cash for rCredits' : 'rCredits for cash'; // use as both text and message index (might wanna separate out way_index)
   $success = TRUE;
   
-  return compact(u\ray('type amount tofrom reward_type reward_amount balance xid tid other short way success'));
+  return compact(u\ray('type amount tofrom reward_type reward_amount balance xid tid other short success'));
 }
 
 /**
@@ -274,11 +281,10 @@ function transaction_rewards(&$txs) {
  * Create a new transaction and set up all the important fields.
  */
 function transaction_setup($info) {
-  global $cid;
   extract($info);
 
   if (!isset($state)) $state = TX_DONE; // don't use @$my_state here (might be zero)
-  if (!@$my_creator) $creator = $cid;
+  if (!@$my_creator) $creator = u\cid();
   $created = REQUEST_TIME;
   $serial = NULL; // always set equal to xid of main transaction after saving
   $data = serialize(@$data ?: array());
@@ -309,12 +315,14 @@ function demand($who, $demand = 0) {
  * @param string $ctty: 4-character community header
  * @param bool $business: return a credit id for a business? (as opposed to for an individual)
  */
+/*
 function next_credit_id($ctty, $business = FALSE) {
   $pattern = $business ? '_____' : '____';
   $next = db_lookup('MAX(credit_id)', 'users', "credit_id LIKE '$ctty$pattern'");
   $tail = $next ? u\a2n(substr($next, 4)) : -1;
   return $ctty . u\n2a($tail + 1, 4);
 }
+*/
 
 /**
  * Notify the specified user, according to their preferences
@@ -364,14 +372,10 @@ function set_tx_field($field_name, $new_value, $xid, $field = 'xid') {
 
 /**
  * Merge a temporary ("old") account into the current account (a permanent ("new") account).
- * @todo: handle resultant self-transactions
- * @todo: write old uids to a separate table (maybe just uid and credit_id)
- * @todo: handle shared accounts
  * @return 1 (for counting how many were merged)
  */
 function merge_accounts($old_uid) {
-  global $cid;
-  $new_uid = $cid;
+  $new_uid = u\cid();
   if (!api\is_temp_account($old_uid)) return; // don't merge non-temp account
   if (!api\access('can manage account')) die("unauthorized merge_accounts: $new_uid into $old_uid");
 //  if (!is_temp_name(user_field('name', $old_uid))) die('merging non-temp account');
@@ -385,14 +389,20 @@ function merge_accounts($old_uid) {
   /*** Begin DBTX ***/
   $dbtx = \db_transaction();
   \user_save($new, $update);
-  $subs = compact('new_uid', 'old_uid');
-  db_q("UPDATE r_asif SET payer=:new_uid WHERE payer=:old_uid", $subs);
-  db_q("UPDATE r_asif SET payee=:new_uid WHERE payee=:old_uid", $subs);
-  db_q("UPDATE sms_user SET uid=:new_uid WHERE uid=:old_uid", $subs);
-  db_q("UPDATE r_user_industries SET uid=:new_uid WHERE uid=:old_uid", $subs);
-  db_q("UPDATE users SET uid=IF(uid>0,-uid,uid), status=0 WHERE uid=:old_uid", compact('old_uid'));
-  /*** End DBTX ***/ unset($dbtx);
+  $sql = <<<EOF
+    UPDATE r_asif SET payer=:new_uid WHERE payer=:old_uid
+    UPDATE r_asif SET payee=:new_uid WHERE payee=:old_uid
+    DELETE FROM r_asif a LEFT JOIN r_asif b ON b.serial=a.serial WHERE b.payer=b.payee
+    DELETE FROM r_asif WHERE payer=payee
+    UPDATE sms_user SET uid=:new_uid WHERE uid=:old_uid
+    UPDATE r_user_industries SET uid=:new_uid WHERE uid=:old_uid
+    DELETE FROM users WHERE uid=:old_uid
+EOF;
+  db_q($sql, compact('new_uid', 'old_uid'));
+  unset($dbtx);
+  /*** End DBTX ***/
   return 1;
+//  db_q("UPDATE users SET uid=IF(uid>0,-uid,uid), status=0 WHERE uid=:old_uid", compact('old_uid'));
 }
 
 /**
@@ -417,9 +427,8 @@ function reset() {
  *   > 1     - $real is a uid. return the real table name if the user is an rTrader, otherwise the asif table name
  *   omitted - as for > 1, with the current user's uid
  */
-function t_table($real = FALSE) {
-  global $cid;
-  if (!$real) $real = $cid;
+function t_table($real = 'cid') {
+  if ($real == 'cid') $real = u\cid();
   return ($real > 1 ? is_rTrader($real) : $real) ? 'r_txs' : 'r_asif';
 }
 
@@ -437,6 +446,20 @@ function user_field($field_name, $who, $subs = array()) {
   return db_lookup($field_name, 'users', is_numeric($who) ? "uid=$who" : $who, $subs);
 }
 
+/**
+ * Return a qid for the uid or vice versa
+ * @param mixed $uid: the uid if numeric, otherwise the qid
+ * @return FALSE if the uid or qid cannot be converted, otherwise the converted id
+ */
+function qid($uid = '') {
+  if (!$uid) $uid = u\cid();
+  if (is_numeric($uid)) return R_COMMUNITY_ID . u\n2a($uid, 4); 
+
+  $qid = strtoupper($uid);
+  if (substr($qid, 0, 4) != R_COMMUNITY_ID) return FALSE;
+  return u\a2n(substr($qid, 4));
+}
+
 // Single line functions that need no explanation
 function db_q($sql, $args = array()) {return \db_query(u\get_constants($sql), u\prefix_keys(':', $args));}
 function rebate($who, $amount = 1) {return round($amount * db_lookup('rebate_percent', 'users', 'uid=:who', compact('who')) / 100, 2);}
@@ -444,6 +467,7 @@ function bonus($who, $amount = 1) {return rebate($who, 2 * $amount);}
 function update_user($info, $who) {return \db_update('users')->fields($info)->condition('uid', $who)->execute();}
 // UNUSED function tx_field($field_name, $xid, $real) {return db_lookup($field_name, t_table($real), 'xid=:xid', compact('xid'));}
 function set_tx_state($new_value, $serial) {set_tx_field('state', $new_value, $serial, 'serial');}
-function uid_from_crid($credit_id) {return db_lookup('uid', 'users', 'credit_id=:credit_id', compact('credit_id'));}
+function uid_from_crid($qid) {return db_lookup('uid', 'users', 'qid=:qid', compact('qid'));}
 function total_demand() {return db_lookup('SUM(demand)', 'users');}
 function is_rTrader($uid) {return db_lookup(1, 'users_roles', 'uid=:uid AND rid=' . R_ROLE_RTRADER, compact('uid'));}
+
