@@ -8,7 +8,7 @@ use rCredits as r;
 use rCredits\Utilities as u;
 use rCredits\API as api;
 
-define('R_TABLES', 'r_area_codes,r_credit_regions,r_nonces,r_txs,r_asif,r_shared_accounts');
+define('R_TABLES', 'r_area_codes,r_credit_regions,r_nonces,r_txs,r_asif,r_shared_accounts,r_industries,r_user_industries');
 
 /**
  * Implement hook_install().

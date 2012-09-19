@@ -44,11 +44,10 @@
  * @todo: use user_load or user_load_by_name or perhaps entity_load($entity_type, $ids = FALSE, $conditions = array(), $reset = FALSE) 
  * consistently, to take advantage of caching (but test, to make sure it works for non-$user accounts)
  *
- * @todo: settle how credit id is handled. Probably have a single region per server, so uid and region id together are the uid
  * @todo: Finish separating backend. Front end should have no registered users.
  * @todo: throughout, do something better than die()
  * @todo: use popups for some things
- * @todo: allow companies to select what categories they are in
+ * @todo: rebates and bonuses only when the two parties are in the same community (rewards for buy local)
  */
  
 namespace rCredits; // typically abbreviated as "r"
@@ -433,7 +432,8 @@ function reset() {
  * @return: the real table name if the one user or both users (if specified) are rTraders, otherwise the asif table name
  */
 function t_table($uid1 = 'cid', $uid2 = '') {
-  if ($uid1 == 'cid') if (($uid1 = u\cid()) == 1) $uid1 = FALSE;
+  if ($uid1 == 'cid') $uid1 = u\cid();
+  if ($uid1 == 1) $uid1 = FALSE; // administrator cannot do real transactions
   $real = $uid1 <= 1 ? $uid1 : (is_rTrader($uid1) and ($uid2 ? is_rTrader($uid2) : TRUE));
   return $real ? 'r_txs' : 'r_asif';
 }
@@ -459,6 +459,7 @@ function user_field($field_name, $who, $subs = array()) {
  */
 function qid($uid = '') {
   if (!$uid) $uid = u\cid();
+  if (!$uid) return FALSE; // don't convert 0
   if (is_numeric($uid)) return R_COMMUNITY_ID . u\n2a($uid, 4); 
 
   $qid = strtoupper($uid);

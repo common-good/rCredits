@@ -29,12 +29,14 @@ $GLOBALS['Web messages'] = array(
   
   // errors
   'missing what' => t('For buying or selling actual goods and services, you must include a description. Otherwise select "cash/loan/etc.". Rebates and bonuses are intended as rewards for productive economic activity in rCredits. Note: for everyone\'s protection, the rCredits software automatically detects and penalizes attempts to "game" the system.'),
+  'missing field' => t('Missing a required field: @field'),
   'no txs' => t('There are no transactions in that period.'),
   'no shares' => t('This account is not yet shared with anyone.'),
   'no cells' => t('This account has no related cell phones.'),
   'required field' => t('@field must not be blank.'),
   'bad name' => t('That is not a plausible name.'),
   'bad phone' => t('That is not a proper phone number.'),
+  'bad account id' => t('That is not a proper account ID.'),
   'bad amount' => t('Amount must be a number.'),
   'bad account number' => t('The account number must be three or more digits'),
   'bad nonce' => t('That is not the right verification code. Try again (start over).'),
@@ -79,7 +81,9 @@ EOF;
     r\db_q($sql);
     api\give_signup_incentive($uid, TX_WEB);
     api\give_signup_incentive($uid2, TX_WEB);
+    r\db_q(file_get_contents(__DIR__ . '\..\sql\r_companies-insert.sql'));
   }
+  
   if ($arg == 'clear_sessions') r\db_q('TRUNCATE table SESSIONS');
   
   drupal_set_message("Doing rCredits Util '$arg'...");
@@ -127,6 +131,7 @@ EOF;
 
 function show_form($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   global $cid;
+  if (!$cid) u\cid('', TX_WEB); // in case of forms that require no permissions
   u\log('rWeb', __FUNCTION__, compact(u\ray('function arg1 arg2 arg3 arg4')));
   drupal_add_css(\drupal_get_path('module', 'rweb') . '/rweb.css', array('group' => CSS_THEME, 'weight' => -9));
   $form = drupal_get_form("rCredits\\Web\\{$function}_form", $arg1, $arg2, $arg3, $arg4);
@@ -376,39 +381,46 @@ function tx_form_submit($form, &$form_state) {
 
 /**
  * Pay with rCredits, arriving from some other site.
+ * @todo: handle <user logged in> better
  */
-function buy_now_form($form, &$form_state, $action = 'Payment', $verb = 'Pay') {
-  $in = @$form_state['input'] ?: @$_SESSION['rcredits_external_input'];
+function buy_now_form($form, &$form_state) {
+  $in = @$form_state['input'] ?: (@$_SESSION['rcredits_external_input'] ?: $_GET); // $_GET is always an array here
   extract($in, EXTR_PREFIX_ALL, 'my'); // get input from outside site or (stored) from login
   if (@$my_external_input) extract(unserialize($my_external_input), EXTR_PREFIX_ALL, 'my');
-
-  $verbs = u\ray('Buy, Contribute, Donate, Pay');
-  if (in_array(ucwords(@$my_verb), $verbs)) $verb = ucwords($my_verb);
-
-  $button = user_is_logged_in() ? form_field('submit', NULL, t('Submit button'), $verb)
-    : form_field('item', t('Please log in, to pay with rCredits.'));
-
-  if (isset($my_what)) list ($my_company, $my_item) = array($my_who, $my_what);
-  if (!isset($my_amount)) $my_amount = $my_company = $my_item = ''; else $my_amount = @number_format($my_amount, 2);
-
-  $disabled = array('disabled' => 1);
-  $uid = r\qid($my_company);
-  $name = $uid ? api\user_field('full_name', $uid) : 'Unregistered Company'; 
-  $verblower = strtolower($verb);
-
-  $who = $my_company;
-  $amount = $my_amount;
-  $what = $my_item;
-  $goods = TRUE;
+  $confirmed = @$my_confirmed ?: (!@$form_state['input'] and user_is_logged_in());
   
-  if (!@$form_state['input']) {
-    $op = 'Pay';
+  if (!$confirmed) {
+    foreach (u\ray('amount company item code') as $field) {
+      $my_field = "my_$field";
+      if (!@$$my_field) return say('missing field', compact('field'), $field); // handle hackers gracefully
+    }
+    if (!is_numeric($my_amount)) return say('bad amount', 'amount');
+    if (!($uid = r\qid(@$my_company))) return say('bad account id', 'company');
+//  print_r("confirmed=$confirmed uid=$uid company=$my_company logged=".user_is_logged_in());
+    $name = api\user_field('full_name', $uid); 
+
+    $verbs = u\ray('Contribute, Donate, Pay');
+    $verb = in_array(ucwords(@$my_verb), $verbs) ? ucwords($my_verb) : 'Pay';
+
+    $button = user_is_logged_in() ? form_field('submit', NULL, t('Submit button'), $verb)
+      : form_field('item', t('By typing your username and password, you agree to pay with rCredits, as detailed above.'));
+
+    $my_amount = @number_format($my_amount, 2);
+    $disabled = array('disabled' => 1);
+    $verblower = strtolower($verb);
+  }
+  
+  list ($op, $amount, $goods) = array('Pay', $my_amount, TRUE);
+  list ($who, $what) = @$my_confirmed ? array($my_who, $my_what) : array($my_company, $my_item);
+
+  if (@$confirmed) {
     transfer(compact(u\ray('op who amount goods what')), TRUE);
-    return array(form_field('item', "Transaction completed. <a href=''>Click here</a> to return to the $name website."));
+    if (u\valid_url(@$my_return_to)) return array(form_field('item', "<a href='$my_return_to'>Click here</a> to return to the $name website."));
+    drupal_goto('');
   }
 
   $form = array(
-    'title' => form_field('item', t("Confirm $action")),
+    'title' => form_field('item', t('Confirm Payment')),
     'xwho' => form_field('textfield', 'to:', t('Pay whom?'), disabled($name)),
     'who' => form_field('hidden', $who),
     'xamount' => form_field('textfield', '$', t("Amount to $verblower"), disabled($amount)),
@@ -416,6 +428,8 @@ function buy_now_form($form, &$form_state, $action = 'Payment', $verb = 'Pay') {
     'xwhat' => form_field('textfield', 'for:', t('Description of goods and services'), disabled($what)),
     'what' => form_field('hidden', $what),
     'goods' => form_field('hidden', $goods),
+    'return_to' => form_field('hidden', @$my_return_to),
+    'confirmed' => form_field('hidden', TRUE),
     'submit' => $button,
   );
 
@@ -759,6 +773,7 @@ function cell_form_validate($form, &$form_state) {
 
   if ($op == 'Add') {
     if (blank_field(compact('number'))) return;
+    $form_state['values']['op'] = $op; // make it stick if user pressed Enter
     say(api\add_cell($number, 'VALIDATE'), 'number');
   }
 }
@@ -776,7 +791,8 @@ function cell_form_submit($form, &$form_state) {
 
   if ($op == 'Verify') {
     step_one($form_state); // no next step (back to original form)
-    return say(api\add_cell($number));
+    say(api\add_cell($number));
+    drupal_goto('cell-access');
   }
     
   // $op == remove

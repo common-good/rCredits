@@ -349,15 +349,15 @@ function transfer($ttype, $uid, $requested_amount, $for, $confirmed = TRUE, $rew
   if (is_array($ttype)) extract($ttype);
   
   global $cid;
-  if (!access('can create transactions', $cid)) return array('no access create', array(), FALSE);
+  if (!access('can create transactions')) return array('no access create', array(), FALSE);
   $real = @$rewards['xid'] < 0 ? FALSE : (r\is_rTrader() and r\is_rTrader($uid));
   $taking = ($ttype == 'charge');
 //  if ($paying_invoice = ($ttype == 'invoice payment')) $ttype = 'payment';
   $paying_invoice = ($ttype == 'invoice payment');
   $confirm_type = $ttype;
   $type = TX_TRANSFER;
-//  $preapproved = ($taking xor $requested_amount < 0) ? access('charge others', $cid) : TRUE;
-  $preapproved = $taking ? access('charge others', $cid) : TRUE;
+//  $preapproved = ($taking xor $requested_amount < 0) ? access('charge others') : TRUE;
+  $preapproved = $taking ? access('charge others') : TRUE;
 //  if ($requested_amount < 0 and empty($rewards)) return array('negative transfer', array(), FALSE);
   if ($requested_amount < 0) return array('negative transfer', array(), FALSE);
   $goods = (@$rewards['rebate'] or @$rewards['bonus']) ?: !u\for_cash($for);
@@ -459,7 +459,7 @@ function add_cell($number, $validate = FALSE) {
   $uid = $cid;
   $status = SMS_USER_CONFIRMED;
   $number = $number_internal;
-  debug(!merge_check(compact('number')));
+//  debug(!merge_check(compact('number')));
   if (!merge_check(compact('number'))) \drupal_write_record('sms_user', compact(u\ray('uid number status')));
   $account = \user_load($uid);
   if (!$account->phone) \user_save($account, array('phone' => $number)); // use it as contact phone, if none yet
@@ -847,7 +847,7 @@ function backend($op, $info = array(), $cache = FALSE) {
   $skey = "rcredits_{$op}_{$userid}_{$cid}_" . base64_encode(serialize($info)); // htmlspecialchars prevents session key failure (PHP bug?)
   if ($cache and (($result = @$_SESSION[$skey]) !== NULL)) return $result;
 //  debug($skey . $result);
-  debug("cache:$cache $op: " . json_encode($info) . ($cache ? " result:$result" : ''));
+//  debug("cache:$cache $op: " . json_encode($info) . ($cache ? " result:$result" : ''));
 //  debug($result);
   $password = \user_load($userid)->pass;
   $firewall = R_FIREWALL;

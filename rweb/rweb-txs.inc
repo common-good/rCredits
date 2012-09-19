@@ -31,7 +31,7 @@ function txs_form($form, &$form_state, $period = '', $do = '') {
 
   $tx_days = array('4' => '4 days', '30' => '30 days', '90' => '90 days', '180' => '6 months', '365' => '12 months', '-1' => 'Year to date');
   $ending = time();
-  $starting = strtotime($period == '-1' ? '1jan' : ((1 - $tx_days[$period]) . ' days'), $ending);
+  $starting = strtotime($period == '-1' ? '1jan' : ((1 - @$tx_days[$period]) . ' days'), $ending);
   $can_create = api\access('can create transactions');
 
   $states = array(TX_DONE => '&#10004;', TX_PENDING => 'ok?', TX_DENIED => 'denied', TX_DISPUTED => 'disputed');
@@ -56,7 +56,7 @@ function txs_form($form, &$form_state, $period = '', $do = '') {
 //    $button1 = (($one_payer == $cid xor $one_amount < 0) and $one_state == TX_PENDING) ? button('OK', "$base_path/transactions/$period/ok/$one_xid", 'Approve') : '';
     $button1 = ($one_payer == $cid and $one_state == TX_PENDING) ? button('OK', "$base_path/transactions/$real-$period/ok=$one_xid", tx_action('ok')) : '';
     $button2 = (!$is_reward and !@$data['undone']) ? button(' X ', "$base_path/transactions/$real-$period/no=$one_xid", tx_action('no', $one_state, $one_payee == $cid)) : '';
-    $button3 = ($can_create and !$is_reward) ? "<a href='$base_path/transactions/$real-$period/edit=$one_xid' title='Edit Purpose'><img src='{$base_path}images/edit-icon.png' width=20 height=20 border=0 /></a>" : '';
+    $button3 = ($can_create and !$is_reward) ? "<a href='$base_path/transactions/$real-$period/edit=$one_xid' title='Edit Purpose'><img src='{$base_path}images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
     $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
     $rows[] = array($tid, date('d-M', $one_created), $one_name, $from_you, $to_you, $state, $buttons, $one_purpose, $reward);
   }
@@ -88,7 +88,6 @@ function tx_confirm($do, $xid, &$form_state) {
   global $cid;
   if (confirming_v($form_state)) return FALSE;
   if (!($details = tx_details($xid))) return FALSE; // bail on hack attempt
-  debug($details);
   extract($details, EXTR_PREFIX_ALL, 'my');
   $action = tx_action($do, $my_state, $my_payee == $cid);
   confirm("Are you sure you want to $action?<br>($my_summary)", $form_state); // sets 'confirm'

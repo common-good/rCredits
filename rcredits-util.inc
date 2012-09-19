@@ -215,7 +215,7 @@ function diff($a, $b) {
 function tt($message, $subs = array(), $interface = 'SMS') {
   if (is_array($message)) list ($message, $subs) = $message;
   if (!$subs) $subs = array();
-  if (strpos($message, '@asif') !== FALSE and !isset($subs['asif'])) $subs['asif'] = r\is_rTrader() ? '' : R_ASIF_TEXT;
+  if (strpos($message, '@asif') !== FALSE and isset($subs['asif'])) $subs['asif'] = r\is_rTrader() ? '' : R_ASIF_TEXT;
   $messages = explode('|', $message);
   foreach ($messages as $i => $message) {
     if (isset($GLOBALS["$interface messages"][$message])) {
@@ -391,6 +391,7 @@ function gzdecode($data){
     return $d;
 }
 
+// rCredits\Utilities\get_company_pictures();
 function get_company_pictures() {
   $result = r\db_q("SELECT uid,website,data,description FROM users WHERE website<>''");
   while ($row = $result->fetchAssoc()) {
@@ -404,6 +405,7 @@ function get_company_pictures() {
     if (!$description) {
       $got = preg_match('/<meta\s+name\s*=\s*[\'"]description[\'"]\s+content\s*=\s*[\'"](.*?)[\'"]/msi', $s, $matches);
       if (!$got) {
+        echo "$homepage<br>"; // in case it dies
         $s = gzdecode($s);
         if (!preg_match('/<meta\s+name\s*=\s*[\'"]description[\'"]\s+content\s*=\s*[\'"](.*?)[\'"]/msi', $s, $matches)) continue;
       }
@@ -417,13 +419,14 @@ function get_company_pictures() {
     foreach ($matches[1] as $one) {
       if (!stripos($one, '.jpg') and !stripos($one, '.png')) continue;
       if (strpos($one, 'http:') === FALSE) $one = "$homepage/$one";
-      if (($len = fsize($one)) > @$biggest) list ($biggest, $best) = array($len, $one);
-      if ($biggest > 50000) break;
+      $info = getimagesize($one);
+      list ($width, $height) = is_array($info) ? $info : array(0, 0);
+//      if (($len = fsize($one)) > @$biggest) list ($biggest, $best) = array($len, $one);
+      if (($len = $width * $height) > @$biggest) list ($biggest, $best) = array($len, $one);
+      if ($biggest > 50000 and $width > 100 and $height > 100 and $width*$height > 20000) break;
     }
     if (@$biggest) {
       $picture = $best;
-      $info = getimagesize($picture);
-      list ($width, $height) = is_array($info) ? $info : array(0, 0);
       $data = serialize(compact(ray('picture width height')));
       r\db_q('UPDATE users SET data=:data WHERE uid=:uid', compact(ray('data uid')));
     }
