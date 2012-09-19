@@ -210,10 +210,12 @@ function diff($a, $b) {
  *   or a two-element array: array(message, subs)
  * @param array $subs (optional). '@' will be prepended to the keys.
  * @param string $interface: which message set to use (SMS messages provide a fallback)
+ * @todo get the r\'s out of this utilities file OR stop trying to separate u\ from r\
  */   
 function tt($message, $subs = array(), $interface = 'SMS') {
   if (is_array($message)) list ($message, $subs) = $message;
   if (!$subs) $subs = array();
+  if (strpos($message, '@asif') !== FALSE and !isset($subs['asif'])) $subs['asif'] = r\is_rTrader() ? '' : R_ASIF_TEXT;
   $messages = explode('|', $message);
   foreach ($messages as $i => $message) {
     if (isset($GLOBALS["$interface messages"][$message])) {
@@ -333,17 +335,18 @@ function log($log, $type = FALSE, $info = FALSE) {
 /**
  * Return the account in use and maybe specify which account to use.
  * @param numeric $uid: uid of account to use (default just return the current value)
- * @return numeric $cid: uid of account currently in use)
+ * @param numeric $whence: channel through which we are setting up the account (optional)
+ * @return numeric $cid: uid of account currently in use (may be zero, if not logged in)
  * NOTE: do NOT set up cid unless specifically requests, leaving caller responsible for storing and retrieving
  * from a SESSION variable.
  */
-function cid($uid = 'get') {
-  global $user, $userid, $cid;
+function cid($uid = 'get', $whence = '') {
+  global $user, $userid, $cid, $channel;
   if ($uid != 'get') {
     if (!@$userid) $userid = $user->uid;
     $cid = $uid ?: $userid;
+    if ($whence) $channel = $whence;
   }
-  assert (is_numeric($cid) and $cid > 0);
   return $cid + 0;
 }
 

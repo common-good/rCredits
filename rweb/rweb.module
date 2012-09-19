@@ -58,7 +58,7 @@ function rweb_menu() {
 //    'members' => rWeb\menu($can_create ? 'Members Section' : 'Transactions', MENU_NORMAL_ITEM, 'show_form', array($can_create ? 'tx' : 'txs', 2)),
 //    'members' => rWeb\menu('Members Section', MENU_NORMAL_ITEM, 'show_form', array($can_create ? 'tx' : 'txs', 'Charge', 2)),
     'node' => rWeb\menu('Homey', MENU_CALLBACK, 'show_form', array('home'), 'can read transactions'),
-    'transactions' => rWeb\menu('Transactions', MENU_NORMAL_ITEM, 'show_form', array('txs', 1, 2, 3), 'can read transactions'),
+    'transactions' => rWeb\menu('Transactions', MENU_NORMAL_ITEM, 'show_form', array('txs', 1, 2), 'can read transactions'),
     'charge' => rWeb\menu('Charge', MENU_NORMAL_ITEM, 'show_form', array('tx', 'Charge', 1), 'can create transactions'),
     'pay' => rWeb\menu('Pay', MENU_NORMAL_ITEM, 'show_form', array('tx', 'Pay', 1), 'can create transactions'),
     'exchange' => rWeb\menu('Get rCredits / USD', MENU_NORMAL_ITEM, 'show_form', array('exchange'), 'can create transactions'),

@@ -15,7 +15,7 @@ class call {
   var $message; // the text message received
   var $number; // calling phone number
   var $uid; // record id of caller's record in user table (duplicates $cid)
-  var $xid; // record id of transaction, related to an operation awaiting confirmation
+  var $xid; // record id of transaction, related to an operation awaiting confirmation (negative for asif transactions)
   var $command; // the major command operation (as parsed)
   var $parms; // parameters to the command (as parsed)
   var $confirmed; // whether the operation has been confirmed
@@ -59,7 +59,7 @@ class call {
   function validate_caller() {
     if (!($this->uid = \sms_user_get_uid($this->number))) $this->uid = api\create_user(array('number' => $this->number));
     if (!$this->uid) die('missing uid');
-    u\cid($this->uid); // set $cid and $userid
+    u\cid($this->uid, TX_SMS); // set $userid, $cid, and $channel
     
     $account = \user_load($this->uid);
     $todo = api\todo($this->number);
@@ -216,7 +216,7 @@ class call {
    */
   function do_information() {
 //    api\todo($this->number, 'account info2', ''); // queue up more info (not used yet)
-    return tt('account info', api\credit_info($this->uid)->fancy);
+    return tt('account info', api\credit_info()->fancy);
   }
 
   /**
@@ -309,7 +309,7 @@ class call {
     $other = r\user_field('full_name', $old_payee);
     $amount = u\format_amount($old_amount);
     $date = strftime('%m/%d/%Y', $old_created);
-    return $this->confirm('invoice', compact(u\ray('other amount date')));
+    return $this->confirm('pay invoice', compact(u\ray('other amount date')));
   }
 
   /**
@@ -319,7 +319,7 @@ class call {
     extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, and what
 
     if (is_array($other_uid = api\identify($my_who, TRUE))) return tt($other_uid); // return if error
-    list ($message, $args, $confirm) = api\transfer($type, TX_SMS, $other_uid, $my_amount, $my_what, $this->confirmed);
+    list ($message, $args, $confirm) = api\transfer($type, $other_uid, $my_amount, $my_what, $this->confirmed);
     return $confirm ? $this->confirm($message, $args) : tt($message, $args);
   }
   

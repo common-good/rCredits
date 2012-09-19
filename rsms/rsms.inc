@@ -24,21 +24,20 @@ define('RSMS_PREFIX', 'TEST: '); // the pre-launch trial
 
 $GLOBALS['SMS messages'] = array(
   // reports
-  'account info' => t("Your balance for account @qid is @balance, including @rewards of incentive rewards. Total demand for rCredits is @total_demand."),
+  'account info' => t("Your@asif balance for account @qid is @balance, including @rewards of incentive rewards. Total demand for rCredits is @total_demand."),
 //  'account info2' => t("More account info"), // not used yet
   'your account is ready' => t('Your starting balance is @balance. Pretend to buy and sell as you would in a typical month (we need that info). Have fun! Type "helpme" to get started.'), // separate out the last sentence
 
   // reporting
-  'report transaction' => t("You @type @other @amount (@reward_type: @reward_amount). Your new balance is @balance. Transaction #@tid"),
-  'report invoice' => t("You @type @other @amount. Your balance is unchanged, pending payment. Invoice #@tid"),
-  'report short transaction' => t("You @type @other @amount (@short remains to be paid). Your new balance is @balance. Transaction #@tid"),
+  'report transaction' => t("You@asif @type @other @amount (@reward_type: @reward_amount). Your new balance is @balance. Transaction #@tid"),
+  'report invoice' => t("You@asif @type @other @amount. Your balance is unchanged, pending payment. Invoice #@tid"),
+  'report short transaction' => t("You@asif @type @other @amount (@short remains to be paid). Your new balance is @balance. Transaction #@tid"),
 //  'transaction done asif' => t("@type: @amount @tofrom user#@other (@reward_type: @reward_amount). Your new provisional balance is @balance (If this had been a real transaction, your balance would be @amount @moreless). Transaction ID #@xid"),
-  'report exchange' => t("You @type @other r@amount for cash/loan/gift/etc. Your new balance is @balance. Transaction #@tid"),
-  'report exchange request' => t("You requested r@amount from @other. Your balance is unchanged, pending approval. Pending Transaction #@tid"),
-//  'report undo' => t("You cancelled transfer of @amount from @payer to @payee on @date."),
-  'report undo' => t("Transaction has been @action. "),
-  'report get usd' => t("Exchange approved. @request will be transferred directly to your bank account within 24 hours. Your new balance is @balance."),
-//  'get usd inactive' => t("If you were an Active Participant in the rCredits system, your request would transfer @amount directly to your bank account. Alas, you are not yet an Active Participant."),
+  'report exchange' => t("You@asif @type @other r@amount for cash/loan/gift/etc. Your new balance is @balance. Transaction #@tid"),
+  'report exchange request' => t("You@asif requested r@amount from @other. Your balance is unchanged, pending approval. Invoice transaction #@tid"),
+  'report undo' => t("@asif Transaction has been @action. "),
+  'report get usd' => t("@Exchange approved. @request will be transferred directly to your bank account within 24 hours. Your new balance is @balance."),
+  'get usd inactive' => t("If you were an Active Participant in the rCredits system, your request would transfer @amount directly to your bank account. Alas, you are not yet an Active Participant."),
   'your demand' => t("Your total request for rCredits is now @request."),
 
   // questions
@@ -48,12 +47,12 @@ $GLOBALS['SMS messages'] = array(
   "what's your email really?" => t("Please type carefully. What is your email address?"),
   
   // confirmations
-  'confirm get usd' => t("Trade r@request for us@request?"),
-  'confirm payment' => t("Pay @other @amount for goods and services?"),
-  'confirm invoice' => t("Pay @other @amount for goods and services (invoice @date)?"),
-  'confirm charge' => t("Charge @other @amount for goods and services?"),
-  'confirm exchange' => t("Okay to @type @other @amount in rCredits (not for goods or services)?"),
-  'confirm undo' => t("Undo @date transfer of @amount @tofrom @other?"),
+  'confirm get usd' => t("@asif Trade r@request for us@request?"),
+  'confirm payment' => t("@asif Pay @other @amount for goods and services?"),
+  'confirm pay invoice' => t("@asif Pay @other @amount for goods and services (invoice @date)?"),
+  'confirm charge' => t("@asif Charge @other @amount for goods and services?"),
+  'confirm exchange' => t("Okay to@asif @type @other @amount in rCredits (not for goods or services)?"),
+  'confirm undo' => t("Undo @date@asif transfer of @amount @tofrom @other?"),
   'please confirm' => t("To confirm, type @nonce."),
   'verification code' => 'Your verification code for using rCredits online is: @nonce', // used in rWeb
   
@@ -65,6 +64,7 @@ $GLOBALS['SMS messages'] = array(
   "can't cash incentives" => t("You can SPEND your incentive rewards (@rewards to date), but you can't cash them out. Your balance available to exchange for US Dollars is @cashable."),
 //  "can't cash incentives" => t("Once you are an active participant, you can spend your incentive rewards (@balance to date), but you can't cash them out. Your balance available to exchange for US Dollars is $0."),
 //  'get r/usd' => t('You can get only "r" or "usd" (rCredits or US Dollars).'), // not yet used (maybe used when there is a third option)
+  "can't pay asif invoice" => t('You cannot pay an "As-If" invoice, once both parties are rTraders.'),
   'not a feature' => t('"@feature" is not a feature.'),
   'wrong nonce' => t('That is not the expected confirmation response. Try again (start over).'),
   'no self-trading' => t("You can't exchange rCredits with yourself."),

@@ -10,7 +10,7 @@
  *
  * Some coding conventions:
  *   uid is a user id
- *   xid is a transaction id
+ *   xid is a transaction id, negative for asif transactions (set when transacting, simulated negative in r\db_q())
  *   qid is an account id = R_COMMUNITY_ID . n2a(uid)
  *
  * @todo
@@ -70,6 +70,7 @@ define('R_MIN_DEMAND', 10); // you can't buy less rCredits than this at a time
 define('R_STARTING_BALANCE', 250); // how much people start with in the TRIAL RUN
 define('R_MIN_BALANCE', -1000); // how low can user's balance go, by default (be generous in TRIAL RUN)
 define('R_TEMP_NAME_PREFIX', 'unknown ');
+define('R_ASIF_TEXT', ' "AS-IF"'); // how to identify "As If" transactions
 
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
@@ -204,12 +205,14 @@ function tx_report_args($taking, $amount, $shortfall, $reward, $other_uid, $xid,
   $reward_amount = u\format_amount($reward);
   $other = user_field('full_name', $other_uid);
 
-  $balance = api\credit_info(u\cid())->fancy['balance'];
+  $real = ($xid > 0);
+  $asif = $real ? '' : R_ASIF_TEXT;
+  $balance = api\credit_info(compact('real'))->fancy['balance'];
   $tid = api\xid2tid($xid);
-
+  
   $success = TRUE;
   
-  return compact(u\ray('type amount tofrom reward_type reward_amount balance xid tid other short success'));
+  return compact(u\ray('type amount tofrom reward_type reward_amount balance xid tid other short success asif'));
 }
 
 /**
@@ -230,7 +233,8 @@ function tx_save($txs) {
   extract($txs[0], EXTR_PREFIX_ALL, 'my');
   //*** Begin DBTX
   $dbtx = db_transaction();
-  $table = t_table(is_rTrader($my_payer) and is_rTrader($my_payee));
+  $table = t_table($my_payer, $my_payee);
+  if (@$my_data['xid'] < 0) $table = 'r_asif'; // special case for undoing an asif, even though both parties are now rTraders
   foreach ($txs as $key => $zot) { // $zot is unused
     $txs[$key]['serial'] = @$serial; // set serial for dependent transactions
     \drupal_write_record($table, $txs[$key]); // pass actual array element, to get xids
@@ -242,7 +246,8 @@ function tx_save($txs) {
 
   unset($dbtx); // commit ($dbtx->commit() is disallowed)
   //*** End DBTX
-  
+
+  if ($table == 'r_asif') $txs[0]['xid'] *= -1; // flag unreality  
   return $txs;
 }
 
@@ -257,7 +262,7 @@ function transaction_rewards(&$txs) {
   if (!$my_goods) return; // quit unless rebates and bonuses apply
   $rewards = unserialize($my_data);
   
-  $fields = u\ray('type amount payer payee for creator state channel');
+  $fields = u\ray('type amount payer payee for creator state');
   $payer = $creator = \variable_get('rcredits_community_uid');
 //  $payer_id = $creator_id = R_COMMUNITY_ID;
   $state = $my_state; // match rewards state to main transaction
@@ -281,6 +286,7 @@ function transaction_rewards(&$txs) {
  * Create a new transaction and set up all the important fields.
  */
 function transaction_setup($info) {
+  global $channel; // through what medium was the transaction requested (web, SMS, etc.).
   extract($info);
 
   if (!isset($state)) $state = TX_DONE; // don't use @$my_state here (might be zero)
@@ -364,8 +370,7 @@ function temp_name($info) {
  */
 function set_tx_field($field_name, $new_value, $xid, $field = 'xid') {
   global $cid;
-  $table = t_table();
-  $sql = "UPDATE $table SET $field_name=:new_value WHERE $field=:xid and $cid in (payer, payee)";
+  $sql = "UPDATE r_txs SET $field_name=:new_value WHERE $field=:xid and $cid in (payer, payee)";
   return db_q($sql, compact(u\ray('new_value xid')));
 }
 //return \db_update('r_txs')->fields(array($field_name => $new_value))->condition('xid', $xid);
@@ -422,14 +427,15 @@ function reset() {
 
 /**
  * Return the real or ASIF transaction table name
- * @param int/boolean $real:
- *   0 or 1  - return the asif or real table name respectively
- *   > 1     - $real is a uid. return the real table name if the user is an rTrader, otherwise the asif table name
- *   omitted - as for > 1, with the current user's uid
+ * @param int $uid1: uid of first member (DEFAULTs to cid)
+ *   OR boolean $uid1: TRUE if real (NOTE that the administrator account (uid=1) cannot do real transactions)
+ * @param int $uid2: uid of second member (DEFAULTs to none)
+ * @return: the real table name if the one user or both users (if specified) are rTraders, otherwise the asif table name
  */
-function t_table($real = 'cid') {
-  if ($real == 'cid') $real = u\cid();
-  return ($real > 1 ? is_rTrader($real) : $real) ? 'r_txs' : 'r_asif';
+function t_table($uid1 = 'cid', $uid2 = '') {
+  if ($uid1 == 'cid') if (($uid1 = u\cid()) == 1) $uid1 = FALSE;
+  $real = $uid1 <= 1 ? $uid1 : (is_rTrader($uid1) and ($uid2 ? is_rTrader($uid2) : TRUE));
+  return $real ? 'r_txs' : 'r_asif';
 }
 
 /**
@@ -460,8 +466,20 @@ function qid($uid = '') {
   return u\a2n(substr($qid, 4));
 }
 
+function is_rTrader($uid = '') {
+  if (!$uid) $uid = u\cid();
+  return db_lookup(1, 'users_roles', 'uid=:uid AND rid=' . R_ROLE_RTRADER, compact('uid'));
+}
+
+function db_q($sql, $args = array()) {
+  if (@$args['xid'] < 0) {
+    $sql = str_replace('r_txs', 'r_asif', $sql);
+    $args['xid'] *= -1;
+  }
+  return \db_query(u\get_constants($sql), u\prefix_keys(':', $args));
+}
+
 // Single line functions that need no explanation
-function db_q($sql, $args = array()) {return \db_query(u\get_constants($sql), u\prefix_keys(':', $args));}
 function rebate($who, $amount = 1) {return round($amount * db_lookup('rebate_percent', 'users', 'uid=:who', compact('who')) / 100, 2);}
 function bonus($who, $amount = 1) {return rebate($who, 2 * $amount);}
 function update_user($info, $who) {return \db_update('users')->fields($info)->condition('uid', $who)->execute();}
@@ -469,5 +487,4 @@ function update_user($info, $who) {return \db_update('users')->fields($info)->co
 function set_tx_state($new_value, $serial) {set_tx_field('state', $new_value, $serial, 'serial');}
 function uid_from_crid($qid) {return db_lookup('uid', 'users', 'qid=:qid', compact('qid'));}
 function total_demand() {return db_lookup('SUM(demand)', 'users');}
-function is_rTrader($uid) {return db_lookup(1, 'users_roles', 'uid=:uid AND rid=' . R_ROLE_RTRADER, compact('uid'));}
 

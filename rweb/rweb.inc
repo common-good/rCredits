@@ -16,14 +16,22 @@ require_once __DIR__ . '/../rcredits-api.inc';
  */
 
 $GLOBALS['Web messages'] = array(
-  'atid' => t('#@atid: '), // avoid duplicate verbage, don't say "transaction #"
+//  'atid' => t('#@atid: '), // avoid duplicate verbage, don't say "transaction #"
+
+  // reports
+  'report share change' => t('Sharing permission for account "@account_name" has been changed to "@permission".'),
+  'report new share' => t('You are now sharing this account with @who'),
+  'report new cell' => t('Cell number @number is now connected to this account.'),
+  'report delete cell' => t('Cell number @number has been removed from this account.'),
+  'your account is ready' => t('<p></p><p>Welcome to rCredits! Your account ID is @qid. Your@asif starting balance is @balance.</p><p>After you confirm your email address (by clicking the link in the email we sent you), come back here and log in.</p><p>Pretend to buy and sell just as you would in a typical month. We need that information, to make sure everyone has plenty of places to receive and spend their rCredits.</p><p>Experiment! Have fun! (and please let us know if you run into any glitches)'),
+  'info saved' => t('Your information has been saved.'),
+  'verify cell' => t('We sent a verification code to your cell phone (@number).<br>Please type that code in the box below.'),
+  
+  // errors
   'missing what' => t('For buying or selling actual goods and services, you must include a description. Otherwise select "cash/loan/etc.". Rebates and bonuses are intended as rewards for productive economic activity in rCredits. Note: for everyone\'s protection, the rCredits software automatically detects and penalizes attempts to "game" the system.'),
   'no txs' => t('There are no transactions in that period.'),
   'no shares' => t('This account is not yet shared with anyone.'),
   'no cells' => t('This account has no related cell phones.'),
-  "can't change what" => t('You can edit the description of the transaction only if you created it or the transaction is completed.'),
-  "can't ok for other" => t('You can okay only transactions that are waiting for YOU to okay them.'),
-  "can't ok if done" => t('There is no need to okay an already-completed transaction.'),
   'required field' => t('@field must not be blank.'),
   'bad name' => t('That is not a plausible name.'),
   'bad phone' => t('That is not a proper phone number.'),
@@ -37,18 +45,11 @@ $GLOBALS['Web messages'] = array(
   'confirm delete cell' => t('Are you sure you want to remove the selected cell phones from this account?'),
   'already shared' => t('You are already sharing with that account. If you want to change the permissions, check the box next to that account, choose the new permissions, and click "Go".'),
   'already cell' => t('That cell phone (@number) is already connected to this account.'),
-  'cell taken' => t('A cell phone can be connected to only one account. You are already using that cell phone (@number) in connection with account "@account". If you really want to switch that phone to this account, you must first sign in to the other account and release it.'),
+  'cell taken' => t('A cell phone can be connected to only one account. You are already using that cell phone (@number) in connection with account "@account_name". If you really want to switch that phone to this account, you must first sign in to the other account and release it.'),
   'bad routing number' => t('US bank routing numbers are 9 digits. Use the number on the lower left edge of your checks.'),
-  'verify cell' => t('We sent a verification code to your cell phone (@number).<br>Please type that code in the box below.'),
-  'report share change' => t('Sharing permission for account @account has been changed to "@permission".'),
-  'report new share' => t('You are now sharing this account with @who'),
-  'report new cell' => t('Cell number @number is now connected to this account.'),
-  'report delete cell' => t('Cell number @number has been removed from this account.'),
-  'your account is ready' => t('<p></p><p>Welcome to rCredits! Your account ID is @qid. Your starting balance is @balance.</p><p>After you confirm your email address (by clicking the link in the email we sent you), come back here and log in.</p><p>Pretend to buy and sell just as you would in a typical month. We need that information, to make sure everyone has plenty of places to receive and spend their rCredits.</p><p>Experiment! Have fun! (and please let us know if you run into any glitches)'),
   'nothing selected' => t('You did not select anything'),
   'undo incomplete' => t('The undo operation is not yet complete.'),
   'ambiguous other' => t('"@who" might mean any of these rCredits accounts (be more specific):<br>@list'),
-  'info saved' => t('Your information has been saved.'),
 );
 
 /*
@@ -160,14 +161,17 @@ function close_form() {
  * @param string $role: 'payer' or 'payee' or '' (other), depending on the role of the user
  * @todo: ditch this altogether or make it efficient with separate rcredits backend (put it in the api)
  *    maybe even use .htaccess to redirect the autocomplete URL to the backend? privacy is not crucial here
+ * @todo: fix Drupal bug which gets Ajax error on any input that matches (.*)/?.([^\.]|\..)
  */
 function autocomplete_member($string = '', $role = '') {
   global $cid;
+//  return drupal_json_output(array('zot' => "str=$string"));
   if (!$string) return;
-  $string = str_replace(' ', '%', \db_like(" $string "));
-
+//  $string = str_replace(' ', '%', \db_like(" $string "));
+  $string = '%' . u\short_name($string) . '%';
+  
   $table = r\t_table();
-  $where = '(u.full_name LIKE :string OR u.mail LIKE :string)';
+  $where = '(u.short_name LIKE :string OR u.mail LIKE :string)';
   if ($role) {
     $other = $role == 'payer' ? 'payee' : 'payer';
     $join = "LEFT JOIN $table t ON t.$other=u.uid";
@@ -248,7 +252,7 @@ function account_form($form, &$form_state) {
   if (!($accounts = api\account_choices())) return FALSE;
   $choices = array();
   foreach ($accounts as $uid => $zot) {
-    $balance = u\format_amount(api\credit_info($uid)->balance);
+    $balance = u\format_amount(api\credit_info(compact('uid'))->balance);
     $choices[$uid] = api\user_field('full_name', $uid) . ": $balance";
   }
 
@@ -473,7 +477,7 @@ function exchange_form($form, &$form_state) {
   global $cid;
   if ($confirm = sure_form($form_state)) return $confirm; // confirm only getUSD
   $request = u\format_amount(api\user_field('demand', $cid));
-  $demand = api\credit_info($cid)->fancy['total_demand'];
+  $demand = api\credit_info()->fancy['total_demand'];
 
   $form = array(
     'title' => form_field('item', t('Get rCredits / USD')),
@@ -519,7 +523,7 @@ function exchange_form_submit($form, &$form_state) {
  */
 function contact_info_form($form, &$form_state) {
   global $cid;
-// WHY?  api\merge_check(compact(u\ray('short_name website phone fax'))); // check before and after
+  api\merge_check(compact(u\ray('short_name website phone fax'))); // check before and after
   extract((array) \user_load($cid), EXTR_PREFIX_ALL, 'my'); // can't easily check for plain because roles and sms_user are arrays
 
   $onchange = "print_state('edit-state',this.selectedIndex,'');";
@@ -530,11 +534,9 @@ function contact_info_form($form, &$form_state) {
     'phone' => form_field('textfield', t('Phone:'), t('Your primary phone (landline or cell)'), dft($my_phone ? u\format_phone($my_phone): '') + required()),
     'fax' => form_field('textfield', t('Fax:'), t(''), dft($my_fax)),
     'website' => form_field('textfield', t('Website:'), t(''), dft($my_website)),
-    'country' => form_field('select', t('Country:'), t(''), dft($my_country)+ required() + attrib(compact('onchange'))),
-//      array('#SKIP_CHECK' => TRUE)),
+    'country' => form_field('select', t('Country:'), t(''), dft($my_country) + attrib(compact('onchange'))), // can't use required() here
     'postal_code' => form_field('textfield', t('Postal code:'), t(''), dft($my_postal_code)+ required()),
-    'state' => form_field('select', t('State:'), t(''), dft($my_state)+ required()),
-//      array('#SKIP_CHECK' => TRUE)),
+    'state' => form_field('select', t('State:'), t(''), dft($my_state)), // can't use required() here
     'city' => form_field('textfield', t('City:'), t(''), dft($my_city)+ required()),
     'address' => form_field('textfield', t('Address:'), t('Mailing address'), dft($my_address)+ required()),
     'submit' => form_field('submit', NULL, t('Submit button'), 'Submit'),
@@ -570,6 +572,11 @@ function no_selection($list) {
   return TRUE;
 }
 
+/**
+ * Get the bank account info
+ * @todo: store two verification EFT deposit amounts in bank_account_status as 1000*one+two
+ * (if status > 100, it's waiting for verification)
+ */
 function bank_form($form, &$form_state) {
   global $cid;
   extract((array) \user_load($cid), EXTR_PREFIX_ALL, 'my'); // can't easily check for plain because roles and sms_user are arrays
@@ -692,8 +699,8 @@ function share_form_submit($form, &$form_state) {
     if ($change_permission) {
       r\db_q("UPDATE r_shared_accounts SET permission=:change_permission $where", compact(u\ray('shared_with shared_uid change_permission')));
     } else r\db_q("DELETE FROM r_shared_accounts $where", compact(u\ray('shared_with shared_uid')));
-    $account = api\user_field('full_name', $shared_with);
-    say('report share change', compact(u\ray('account permission')));
+    $account_name = api\user_field('full_name', $shared_with);
+    say('report share change', compact(u\ray('account_name permission')));
   }
 }
 
@@ -838,7 +845,7 @@ function login_followup($edit) {
 
   foreach ($_SESSION as $key => $value) if (u\abbreviates('rcredits_', $key)) unset($_SESSION[$key]);
   $_SESSION['rcredits_external_input'] = @unserialize($external_input);
-  u\cid(); // set up current account (always start with primary)
+  u\cid($user->uid, TX_WEB); // set up current account (always start with primary)
   @$_SESSION['rcredits_cid'] = $cid; // this is also set in account_form, but checked ONLY in rweb_access()
   u\log('rWeb', 'login', compact(u\ray('name userid')));
 }
@@ -1097,7 +1104,7 @@ function transfer($info, $confirmed) {
   if (!is_numeric($amount)) return say('bad amount', 'amount');
   if (is_array($other_uid = api\identify($who, TRUE))) return say($other_uid, 'who');
 
-  list ($message, $args, $confirm) = api\transfer($tx_type, TX_WEB, $other_uid, $amount, $what, $confirmed);
+  list ($message, $args, $confirm) = api\transfer($tx_type, $other_uid, $amount, $what, $confirmed);
   if ($confirm) return tt('confirm ' . $message, $args);
   if (@$args['success']) return say($message, $args);
   return say($message, $args, 'amount');
@@ -1191,7 +1198,7 @@ function say($index, $args = array(), $error_field = '') {
 }
 
 function web_access($access, $uid = '') {
-  u\cid(@$_SESSION['rcredits_cid']); // remember who we are (the only reason for this function)
+  u\cid(@$_SESSION['rcredits_cid'], TX_WEB); // remember who we are (the only reason for this function)
   return api\access($access, $uid);
 }
 
