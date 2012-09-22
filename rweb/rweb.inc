@@ -51,18 +51,20 @@ $GLOBALS['Web messages'] = array(
   'bad routing number' => t('US bank routing numbers are 9 digits. Use the number on the lower left edge of your checks.'),
   'nothing selected' => t('You did not select anything'),
   'undo incomplete' => t('The undo operation is not yet complete.'),
-  'ambiguous other' => t('"@who" might mean any of these rCredits accounts (be more specific):<br>@list'),
+  'ambiguous other' => t('"@who" might mean any of these rCredits accounts. Click on the one you want.'),
 );
 
-/*
-function transact_page() {
-  drupal_add_css(\drupal_get_path('module', 'rweb') . '/rweb.css', array('group' => CSS_THEME, 'weight' => -9));
-  foreach (u\ray('payment charge exchange') as $one) $$one = render(\rweb_block_view($one));
-  return array('#markup' => ('<div id="transact_page">' . $payment . $charge . $exchange . '</div>'));
+function modal_form($form, &$form_state) {
+  $form = array(
+    'one' => form_field('textfield', 'prompt', 'help text', 'default'),
+    'submit' => form_field('submit', '', '', 'Go!'),
+  );
+  
+  return $form;
 }
-*/
 
 function util($arg) {
+  if ($arg == 'modal') drupal_goto('modal');
   if ($arg == 'reset') {
     r\reset();
     $uid = variable_get('rcredits_community_uid') + 1;
@@ -94,6 +96,7 @@ function handy_links() {
   global $base_path;
 
   $links = array(
+    'rCredits/util/modal|Test modal form|',
     'admin/smsframework/devel|Simulate an SMS transaction|Simulate SMS',
     'admin/config/development/testing|Test|Test',
     'sites/all/modules/rcredits/rsms/gherkin/compile.php|Compile tests|Compile tests',
@@ -137,7 +140,7 @@ function show_form($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   $form = drupal_get_form("rCredits\\Web\\{$function}_form", $arg1, $arg2, $arg3, $arg4);
 //  $form['#attached']['css'] = array(\drupal_get_path('module', 'rweb') . '/rweb.css');
   $form['#attributes']['class'][] = 'rweb';
-
+  if (!@$form['confirm']) $form += which(); // add the popup form, if any
   if ($colgroup = @$form['#colgroup']) {
     unset($form['#colgroup']);
     $markup = '';
@@ -149,6 +152,52 @@ function show_form($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     $markup = "<colgroup>\n$markup</colgroup>\n";
     return str_replace('<thead>', $markup . '<thead>', render($form)); // shore up Drupal lack of colgroups in tableselect
   } else return render($form);
+}
+
+/**
+ * Offer choices for user to choose from
+ * This form is called only as a detour from another form. 
+ * It could be presented as an overlay, using leanmodal.
+ *
+function which_form($form, &$form_state) {
+  if (svar('detour_via') != 'which') return NULL;
+  extract('detour_args', EXTR_PREFIX_ALL, 'my');
+  $onchange = "this.form.elements[$my_which_field].value=this.options[this.selectedIndex].text; this.form.submit();";
+  $title = form_field('item', t('Which one do you mean?'),
+  $choice = form_field('select', '', '', attrib(compact('onchange')), $my_choices);
+*/
+
+/**
+ * Offer choices for user to choose from
+ * 1. If called with all arguments, the arguments are stored in svar('pop') and the form is reloaded
+ * 2. If called as which('info'), this function returns $info from svar('pop')
+ * 3. If called with NO arguments, this function returns a fieldset to insert as a popup layover div into
+ * the form awaiting the choice. Clicking on a choice fills in the missing value and submits the form.
+ * This function expects svar('pop') to contain:
+ *   $form: the form name
+ *   $choices: an array of choices
+ *   $result_field: name of field that gets the choice
+ *   $question: the question to ask
+ */
+function which($choices = '', $result_field = '', $info = '', $question = 'Which one?') {
+  $form = basename(current_path());
+  
+  if (is_array($choices)) {
+    svar('pop', compact(u\ray('form choices result_field info question')));
+    drupal_goto($form); // reload page
+  }
+
+  if (!is_array($pop = svar('pop'))) return array();
+  extract(svar('pop'), EXTR_PREFIX_ALL, 'pop');
+  if ($form != $pop_form) return array();
+  if ($choices == 'info') return $pop_info;
+  svar('pop', NULL);
+  
+  $onchange = "this.form.elements['$pop_result_field'].value=this.options[this.selectedIndex].text; this.form.submit();";
+  $subtext = form_field('item', $pop_question);
+  $choice = form_field('select', '', '', attrib(compact('onchange') + array('size' => 12)), $pop_choices);
+  $popup = form_field('fieldset', t('Which One?'), '', array('id' => 'popup')) + compact(u\ray('subtext choice'));
+  return compact('popup'); // later return a fieldset
 }
 
 /**
@@ -279,7 +328,7 @@ function account_form_submit($form, &$form_state) {
 //  global $cid;
   extract($form_state['values']);
 //  $old_uid = $cid;
-  $_SESSION['rcredits_cid'] = u\cid($account_account); // this gets checked ONLY in rweb_access()
+  svar('cid', u\cid($account_account)); // this gets checked ONLY in rweb_access()
 //  if (api\access('can create transactions', $old_uid) != api\access('can create transactions', $account_account)) menu_rebuild();
 }
 
@@ -295,16 +344,27 @@ function profile_form($form, &$form_state, $company) {
   if ($website) $website = "<a href='http://$website' target='_blank'>$website</a>";
   if ($phone) $phone = 'Phone: ' . u\format_phone($phone, '+');
   if ($fax) $fax = ($phone ? '&nbsp; * &nbsp;' : '') . 'Fax: ' . u\format_phone($fax, '+');
+  $sql = <<<EOF
+    SELECT i.iid, i.industry FROM r_industries i 
+    INNER JOIN r_user_industries ui ON ui.iid=i.iid 
+    WHERE ui.uid=:uid ORDER BY i.industry
+EOF;
+  $cats = r\db_q($sql, compact('uid'))->fetchAllKeyed();
+  $cats = empty($cats) ? '' : ('<h3>Categories:</h3>' . join('<br>', $cats));
+
   $markup = <<<EOF
   <div id='member-picture'>$pic</div>
-  <div id='member-contact'>
-  <h2>$full_name</h2>
-  $address<br>
-  $city, $state $postal_code $country<br><br>
-  $phone$fax<br>
-  $website<br><br>
+  <div id='member-details'>
+    <div id='member-contact'>
+    <h2>$full_name</h2>
+    $address<br>
+    $city, $state $postal_code $country<br><br>
+    $phone$fax<br>
+    $website<br><br>
+    </div>
+    <div id='member-description'>$description</div>
+    <div id='member-categories'>$cats</div>
   </div>
-  <div id='member-description'>$description</div>
 EOF;
 
   $form = array(
@@ -338,17 +398,20 @@ function profile_picture($uid, $with_markup = FALSE) {
  */
 function tx_form($form, &$form_state, $type, $company = '') {
   if ($confirm = sure_form($form_state)) return $confirm;
+  if ($info = which('info')) extract($info, EXTR_PREFIX_ALL, 'my');
   $type_low = strtolower($type);
   $role = $type == 'Pay' ? 'payer' : 'payee';
+  //$onchange = "nixwhat();";
   
   $form = array(
     'title' => form_field('item', $type),
-    'who' => form_field('textfield', $type . ' whom:', t('Type a name, id, email, or phone'), dft($company) + autocomplete("member/$role")),
-    'amount' => form_field('textfield', 'Amount: $', t('Amount to ') . $type_low),
+    'who' => form_field('textfield', $type . ' whom:', t('Type a name, id, email, or phone'), dft(@$my_who ?: $company) + autocomplete("member/$role")),
+    'amount' => form_field('textfield', 'Amount: $', t('Amount to ') . $type_low, dft(@$my_amount)),
     'goods' => form_field('radios', '', '', 
-      dft(1) + attrib(array('onchange' => "nixwhat();")), 
+      dft(isset($my_goods) ? $my_goods : 1) + attrib(compact('onchange')), 
       array(t('cash/loan/etc.'), t('goods & services'))),
-    'what' => form_field('textfield', 'Purpose:', t('Description of goods and services')),
+    'what' => form_field('textfield', 'Purpose:', t('Description of goods and services or purpose'), dft(@$my_what)),
+//    'what' => form_field('textfield', 'Purpose:', t(''), dft(@$my_what)),
     $type_low => form_field('submit', NULL, t('Submit button'), $type),
 //    'charge' => form_field('submit', NULL, t('Submit button'), 'Charge'),
   );
@@ -359,7 +422,7 @@ function tx_form($form, &$form_state, $type, $company = '') {
       var c0=document.getElementById('edit-goods-0');
       jQuery('.form-item-what').css('display', c0.checked ? 'none' : 'block');
     }
-    nixwhat();
+//    nixwhat();
     document.getElementById('edit-who').focus();
 EOF;
 
@@ -384,7 +447,7 @@ function tx_form_submit($form, &$form_state) {
  * @todo: handle <user logged in> better
  */
 function buy_now_form($form, &$form_state) {
-  $in = @$form_state['input'] ?: (@$_SESSION['rcredits_external_input'] ?: $_GET); // $_GET is always an array here
+  $in = @$form_state['input'] ?: (svar('external_input') ?: $_GET); // $_GET is always an array here
   extract($in, EXTR_PREFIX_ALL, 'my'); // get input from outside site or (stored) from login
   if (@$my_external_input) extract(unserialize($my_external_input), EXTR_PREFIX_ALL, 'my');
   $confirmed = @$my_confirmed ?: (!@$form_state['input'] and user_is_logged_in());
@@ -763,7 +826,7 @@ function cell_form_validate($form, &$form_state) {
   extract($form_state['values']);
 
   if ($op == 'Verify') {
-    if (strtoupper($code) == $_SESSION['rcredits_nonce']) return;
+    if (strtoupper($code) == svar('nonce')) return;
     previous_state($form_state, 'bad nonce'); // can't just give error message, because then verification form persists
   } elseif ($op != 'Add') { // $op == remove
     if (no_selection($cells)) {
@@ -784,7 +847,7 @@ function cell_form_submit($form, &$form_state) {
   extract($form_state['values']);
   if ($op == 'Add') {
     if ($info = previous_state($form_state)) return say($info, 'number'); // just returning from failed validation of step 2 ('prove')
-    $_SESSION['rcredits_nonce'] = $nonce = u\nonce(); // don't use POST (user could peek)
+    svar('nonce', $nonce = u\nonce()); // don't use POST (user could peek)
     rSMS\send($number, tt('verification code', compact('nonce')));
     return form_step($form_state, compact('number'), 'prove');
   }
@@ -860,16 +923,16 @@ function login_followup($edit) {
   extract($edit['values']);
 
   foreach ($_SESSION as $key => $value) if (u\abbreviates('rcredits_', $key)) unset($_SESSION[$key]);
-  $_SESSION['rcredits_external_input'] = @unserialize($external_input);
+  svar('external_input', @unserialize($external_input));
   u\cid($user->uid, TX_WEB); // set up current account (always start with primary)
-  @$_SESSION['rcredits_cid'] = $cid; // this is also set in account_form, but checked ONLY in rweb_access()
+  svar('cid', $cid); // this is also set in account_form, but checked ONLY in rweb_access()
   u\log('rWeb', 'login', compact(u\ray('name userid')));
 }
 
 function directory_form($form, &$form_state) {
   global $cid;
-  $which = @$_SESSION['rcredits_which_companies'] ?: '';
-  $region = isset($_SESSION['rcredits_region']) ? $_SESSION['rcredits_region'] : substr(api\user_field('postal_code', $cid), 0, 3);
+  $which = svar('which_companies') ?: '';
+  $region = svar('region') ?: substr(api\user_field('postal_code', $cid), 0, 3);
   
   $list = ($region !== FALSE or $which) ? directory_list($which, $region) : '';
   
@@ -891,8 +954,8 @@ function directory_form_validate($form, &$form_state) {
 
 function directory_form_submit($form, &$form_state) {
   extract($form_state['values']);
-  $_SESSION['rcredits_which_companies'] = trim($which);
-  $_SESSION['rcredits_region'] = trim($region);
+  svar('which_companies', trim($which));
+  svar('region', trim($region));
 }
 
 /**
@@ -1043,7 +1106,7 @@ function ok_form($form, &$form_state) {
     'confirm' => form_field('submit', NULL, t('Go ahead'), 'Okay'),
     'cancel' => form_field('submit', NULL, t("Don't do it"), 'Cancel'),
 
-    'return_to' => form_field('hidden', @$in_return_to),
+    'detour_to' => form_field('hidden', @$in_detour_to),
     'return_with' => form_field('hidden', @$in_return_with),
 
     '#skip_duplicate_check' => TRUE, // Confirm form fails duplication check, as the form values rarely change -- so skip it.
@@ -1058,27 +1121,28 @@ function ok_form($form, &$form_state) {
 function ok_form_submit($form, &$form_state) {
   extract($form_state['values']);
   $ok = ($op == 'Okay');
-  return_from_detour($return_to, compact('ok', 'return_with'));
+  return_from_detour($detour_to, compact('ok', 'return_with'));
 }
 
 function get_ok($question = '', $title = '', $args = FALSE) {detour('ok', compact(u\ray('question title args')));}
 
 function got_ok() {}
 */
-
-function detour($detour_to, $args = array(), $return_to = '') {
-  if (!$return_to) $return_to = current_path();
-  if ($return_to != 'none') $args += compact('return_to');
-  form_args($detour_to, $args);
-  drupal_goto($detour_to);
+/*
+function detour($detour_via, $args = array(), $detour_to = '') {
+  if (!$detour_to) $detour_to = current_path();
+  if ($detour_to != 'none') $args += compact('detour_to');
+  form_args($detour_via, $args);
+  drupal_goto($detour_via);
 }
 
-function return_from_detour($return_to, $args = '') {if ($return_to) detour($return_to, $args, 'none');}
+function return_from_detour($detour_to, $args = '') {if ($detour_to) detour($detour_to, $args, 'none');}
 
 function form_args($function, $args = '') {
-  if (!$args) return @$_SESSION['rcredits_form_args']['function'] == $function ? $_SESSION['rcredits_form_args'] : array();
-  $_SESSION['rcredits_form_args'] = $args + compact('function');
+  if (!$args) return svar('form_args']['function'] == $function ? svar('form_args'] : array();
+  svar('form_args'] = $args + compact('function');
 }
+*/
 
 /**
  * Replacement for \confirm_form
@@ -1102,7 +1166,21 @@ function sure_form(&$form_state, $title = 'Please Confirm') {
 
   return $form;
 }
-
+/*
+function detour($detour_via, $detour_args, $whence = '', $modal = TRUE) {
+  svar('detour_via', $detour_via);
+  svar('detour_args', $args);
+  svar('whence', $whence ?: current_path());
+//  drupal_goto($modal ? $whence : $detour_via); // modal forms pop up over the reloaded current form
+  drupal_goto($detour_via); // no modal forms yet
+}
+*/
+function svar($name) {
+  $name = 'rcredits_' . $name;
+  $args = func_get_args();
+  if (count($args) == 1) return @$_SESSION[$name]; else $_SESSION[$name] = $args[1];
+}
+  
 /**
  * Transfer funds
  * @param array $info: associative array indexed by field names (op, who, amount, goods, and what)
@@ -1118,7 +1196,10 @@ function transfer($info, $confirmed) {
   if (!$goods) $what = 'cash'; // tell api\transfer it's not for goods (should be the only place this string occurs)
   $amount = str_replace(',', '', $amount); // ignore commas
   if (!is_numeric($amount)) return say('bad amount', 'amount');
-  if (is_array($other_uid = api\identify($who, TRUE))) return say($other_uid, 'who');
+  if (is_array($result = api\identify($who, TRUE))) {
+    list ($message, $args, $choices) = $result;
+    if (empty($choices)) return say($result, 'who'); else which($choices, 'who', $info, tt($message, $args));
+  } else $other_uid = $result;
 
   list ($message, $args, $confirm) = api\transfer($tx_type, $other_uid, $amount, $what, $confirmed);
   if ($confirm) return tt('confirm ' . $message, $args);
@@ -1214,7 +1295,7 @@ function say($index, $args = array(), $error_field = '') {
 }
 
 function web_access($access, $uid = '') {
-  u\cid(@$_SESSION['rcredits_cid'], TX_WEB); // remember who we are (the only reason for this function)
+  u\cid(svar('cid'), TX_WEB); // remember who we are (the only reason for this function)
   return api\access($access, $uid);
 }
 

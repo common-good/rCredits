@@ -126,16 +126,32 @@ form.labeled input.form-local, form.rweb input.form-local {margin:1px 2px 1px 2p
 /* Login */
 #user-login-form div#edit-tip label {font-weight:normal;}
 
-/* html.js input.form-autocomplete, */
-html.js input.form-autocomplete.throbbing {margin:0px; padding:0px; width:400px;}
+/* Autocomplete */
+/*html.js input.form-autocomplete.throbbing {margin:0px; padding:0px; width:400px;}*/
 div#autocomplete  ul {clear:none; display:inline;}
 div#autocomplete  li {margin:0px; padding:0px; line-height:140%; background-color:lightyellow;}
+div#content {display:block;} /* keeps autocomplete from getting placed in a wacky position */
 
 /* Home */
 #rcreditswebhome-form div#next-steps {width:500px;}
 
 /* Profile */
 #rcreditswebprofile-form {font-family:Arial;}
-#rcreditswebprofile-form div.user-picture img {float:left; margin-right:20px;}
-#rcreditswebprofile-form div#member-contact {float:left; clear:right; min-width:150px; font-weight:normal;}
-#rcreditswebprofile-form div#member-description {float:left; margin-top:20px; max-width:350px; font-weight:normal;}
+#rcreditswebprofile-form div#member-picture {float:left; margin-right:20px;}
+#rcreditswebprofile-form div#member-details {float:left; min-width:200px; max-width:300px; font-weight:normal;}
+
+/* Popups */
+fieldset#popup {
+    position: absolute;
+    z-index:100;
+    top: 30px;
+    left: 450px;
+    width: 404px;
+	height: 300px;
+	padding-bottom: 2px;
+    background: #FFF;
+    border-radius: 5px; -moz-border-radius: 5px; -webkit-border-radius: 5px;
+    box-shadow: 0px 0px 4px rgba(0,0,0,0.7); -webkit-box-shadow: 0 0 4px rgba(0,0,0,0.7); -moz-box-shadow: 0 0px 4px rgba(0,0,0,0.7);
+}
+fieldset#popup label {font-weight:normal; width:100%;}
+fieldset#popup select {width:380px; overflow:scroll;}

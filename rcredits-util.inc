@@ -393,19 +393,21 @@ function gzdecode($data){
 
 // rCredits\Utilities\get_company_pictures();
 function get_company_pictures() {
-  $result = r\db_q("SELECT uid,website,data,description FROM users WHERE website<>''");
+  $result = r\db_q("SELECT uid,website,data,description FROM users WHERE uid>552 AND website<>'' ORDER BY uid");
   while ($row = $result->fetchAssoc()) {
     extract($row);
+    if (in_array($uid, array(549, 551, 552))) continue; // these apparently kill it
+    echo "$uid<br>"; // in case it dies
+
     if (strlen($website) < 4) {debug($uid); continue;}
     $homepage = 'http://' . $website;
-    $s = file_get_contents($homepage);
-    if (!$s) $s = file_get_contents($homepage = ('http://www.' . $website));
+    $s = @file_get_contents($homepage);
+    if (!$s) $s = @file_get_contents($homepage = ('http://www.' . $website));
     if (!$s) {debug("Can't open $homepage"); continue;}
     
     if (!$description) {
       $got = preg_match('/<meta\s+name\s*=\s*[\'"]description[\'"]\s+content\s*=\s*[\'"](.*?)[\'"]/msi', $s, $matches);
       if (!$got) {
-        echo "$homepage<br>"; // in case it dies
         $s = gzdecode($s);
         if (!preg_match('/<meta\s+name\s*=\s*[\'"]description[\'"]\s+content\s*=\s*[\'"](.*?)[\'"]/msi', $s, $matches)) continue;
       }
@@ -419,7 +421,7 @@ function get_company_pictures() {
     foreach ($matches[1] as $one) {
       if (!stripos($one, '.jpg') and !stripos($one, '.png')) continue;
       if (strpos($one, 'http:') === FALSE) $one = "$homepage/$one";
-      $info = getimagesize($one);
+      $info = @getimagesize($one);
       list ($width, $height) = is_array($info) ? $info : array(0, 0);
 //      if (($len = fsize($one)) > @$biggest) list ($biggest, $best) = array($len, $one);
       if (($len = $width * $height) > @$biggest) list ($biggest, $best) = array($len, $one);

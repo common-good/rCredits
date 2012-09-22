@@ -80,6 +80,8 @@ function rweb_menu() {
     
     'handy' => rWeb\menu('Handy Links', MENU_NORMAL_ITEM, 'handy_links', array(), 'administer site configuration'),
     'rCredits/api' => rWeb\menu('API', 0, 'rCredits\\API\\api', array(), '', $anyone),
+    
+    'modal' => rWeb\menu('Modal Test', MENU_CALLBACK, 'drupal_get_form', array('rCredits\\Web\\modal_form'), '', $anyone + $modal),
   );
   
   return $menu;

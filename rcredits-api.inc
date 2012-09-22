@@ -486,7 +486,7 @@ function delete_cell($number) {
  * @param string $self_message: index to error message for identifying oneself
  * @return one of the following:
  *   the other trader's uid
- *   an array whose elemnts are: an error index, an array of substitutions, an array of possible uids (0 or more)
+ *   an array of: an error index, an array of substitutions, an array of possible full_names (0 or more), indexed by uid
  */
 function identify($who, $create = FALSE, $self_message = 'no self-trading') {
   global $cid;
@@ -501,7 +501,7 @@ function identify($who, $create = FALSE, $self_message = 'no self-trading') {
 //  if (substr($who, 0, 4) == 'www.') $who = substr($who, 4);
 
   if (($short = u\short_name($who)) === '') $short = '-'; // abbreviations must not be null
-  if ($uid = r\qid($who)) return $uid == $cid ? array($self_message, array(), array($uid)) : $uid; // is it a qid?
+  if ($uid = r\qid($who)) return $uid == $cid ? array($self_message, array(), array($uid)) : $uid; // qids are easy
   
   $sql = <<<EOF
     SELECT DISTINCT u.uid, u.full_name FROM {users} u LEFT JOIN {sms_user} s ON u.uid = s.uid 
@@ -510,24 +510,20 @@ function identify($who, $create = FALSE, $self_message = 'no self-trading') {
     ORDER BY u.full_name
 EOF;
 
-  $result = r\db_q($sql, compact(u\ray('who short')))->fetchAllAssoc('uid', \PDO::FETCH_ASSOC);
-  $list = '';
-  foreach ($result as $uid => $one) {
+  $result = r\db_q($sql, compact(u\ray('who short')))->fetchAllKeyed(0, 1);
+//  $list = '';
+  foreach ($result as $uid => $full_name) {
     if ($uid != $cid) { // not self
-      extract($one); // get full_name (and uid again)
-      $qid = r\qid($uid);
-      $list .= " &nbsp; &nbsp; &nbsp; &nbsp; $qid &nbsp;$full_name<br>";
+//      $list .= " &nbsp; &nbsp; &nbsp; &nbsp; $full_name<br>";
     } elseif (count($result) == 1) { // self is the only result
       return array($self_message, array(), array()); 
     } else unset($result[$uid]); // self is one of many results, so ignore it
   }
 
-  if(count($result) > 1) return array('ambiguous other', compact(u\ray('who list')), array_keys($result));
+  if(count($result) > 1) return array('ambiguous other', compact(u\ray('who')), $result);
   if(count($result) == 1) {
-    foreach ($result as $uid => $one) { // just one
-      $other = $one['full_name'];
-      return (access('member', $uid)) ? $uid : array('non trader', compact('other'), array($uid));
-    }
+    foreach ($result as $uid => $other); // get the one entry
+    return (access('member', $uid)) ? $uid : array('non trader', compact('other'), $result);
   }
 
 //  $key = $who == $phone ? 'phone' : (valid_email_address($who) ? 'email' : (r\valid_url("http://$who") ? 'website' : ''));
@@ -844,8 +840,8 @@ function backend($op, $info = array(), $cache = FALSE) {
   if (empty($info)) $cache = TRUE;
 //  $cache = FALSE; // debug
 //  debug("cache=$cache cachekey=rcredits_$op$cid:" . serialize($info));
-  $skey = "rcredits_{$op}_{$userid}_{$cid}_" . base64_encode(serialize($info)); // htmlspecialchars prevents session key failure (PHP bug?)
-  if ($cache and (($result = @$_SESSION[$skey]) !== NULL)) return $result;
+  $skey = "{$op}_{$userid}_{$cid}_" . base64_encode(serialize($info)); // htmlspecialchars prevents session key failure (PHP bug?)
+  if ($cache and (($result = r\Web\svar($skey)) !== NULL)) return $result;
 //  debug($skey . $result);
 //  debug("cache:$cache $op: " . json_encode($info) . ($cache ? " result:$result" : ''));
 //  debug($result);
@@ -858,8 +854,7 @@ function backend($op, $info = array(), $cache = FALSE) {
   $api_result = R_SEPARATE_BACKEND ? u\http_request("$host/rCredits/api/", $info) : api($info);
 //debug($api_result);
   u\log('rAPI', 'out', $info + compact('api_result'));
-  if ($cache) $_SESSION[$skey] = $api_result;
-//  if ($cache) debug($_SESSION["rcredits_$op$cid:" . $info]);
+  if ($cache) r\Web\svar($skey, $api_result);
   return $api_result;
 }
 

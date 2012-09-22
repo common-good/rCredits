@@ -11,9 +11,9 @@
  * Some coding conventions:
  *   uid is a user id
  *   xid is a transaction id, negative for asif transactions (set when transacting, simulated negative in r\db_q())
- *   qid is an account id = R_COMMUNITY_ID . n2a(uid)
+ *   qid is an account id = R_COMMUNITY_ID . n2a(uid, 4)
  *
- * @todo
+  * @todo
  * - handling employees (virtual payments). This should probably be extended to suppliers too,
  *   or maybe even to everyone. The idea is to pay someone virtually in rCredits by totally paying them
  *   (either first or second) in US Dollars and (either second or first) having them buy back
@@ -29,9 +29,11 @@
  *   with qid for the individual in that other region stored in the data field. 
  *   We do NOT need to store qid for creator, payer, and payee.
  *
- *   Specifically: when we in the ZZZZ community receive a transaction request using a qid, the first four characters are the "community" --
- *   they tell us what database to hit. For example, if ZZZZYYYY pays AAAABBBB, we record a payment from ZZZZYYYY's uid to the uid of a user record *   with qid = "AAAA". The data field in the transaction gets $data['payee_id'] = 'AAAABBBB'. We send the request to AAAA's db and
- *   expect a confirmation (if no confirmation, roll back the transaction and give an error message OR queue the request).
+ *   Specifically: when we in the AAAA community receive a transaction request using a qid, the first four characters are the "community" --
+ *   they tell us what database to hit. For example, if AAAA.AAAB pays ZZZZ.AAAC, we record a payment from AAAA.AAAB's uid (1)
+ *   to ZZZZ's uid. The data field in the transaction gets $data['external_payee'] = ZZZZ.AAAC's uid on the ZZZZ server (2).
+ *   We send the request to ZZZZ's server and expect a confirmation 
+ *   (if no confirmation, roll back the transaction and give an error message OR queue the request).
  *
  *   On the other side of things, when we receive a request from some other community for a transaction with one of our accounts
  *   -- for example if we are the "ZZZZ" community, receiving a request from the "ABCD" community, for ABCDAAAA to pay ZZZZBBBB --
