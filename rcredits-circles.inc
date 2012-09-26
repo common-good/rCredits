@@ -55,8 +55,11 @@ define('R_MAX_SCORE', 12); // any more places to spend is effectively the same: 
 
 /**
  * Bump members up to rTrader status, as appropriate.
+ * @todo: do something with the results of identify_rtraders (show some statistics?)
  */
 function grow() {
+  list ($old_rtraders, $candidates) = identify_rtraders();
+  $baseline = scores($old_rtraders, 'out', TRUE); // score the existing group (for statistics only)
   $new_rtraders = best_new_rtraders(100);
   
   foreach ($new_rtraders as $uid) { 
@@ -66,11 +69,16 @@ function grow() {
 
 /**
  * Return a list of rTraders and a list of non-rTraders
+ * @todo: include individuals with income in candidates -- get this from r_asif
  */
 function identify_rtraders($old_rtraders, $candidates) {
   $old_rtraders = db_q('SELECT DISTINCT uid FROM users_roles WHERE rid=:R_ROLE_RTRADER', compact('rid'))->fetchCol();
 //  $candidates = db_q('SELECT u.uid FROM users u LEFT JOIN users_roles r ON r.uid=u.uid WHERE r.rid IS NULL')->fetchCol();
-  $sql = 'SELECT u.company FROM r_employs e LEFT JOIN users_roles r ON r.uid=e.company WHERE NOT (r.rid<=>:R_ROLE_RTRADER)';
+  $sql = <<<EOF
+    SELECT e.main_uid AS company 
+    FROM r_relations e LEFT JOIN users_roles r ON r.uid=e.company 
+    WHERE e.is_employee NOT (r.rid<=>:R_ROLE_RTRADER)
+EOF;
   $candidates = db_q($sql)->fetchCol();
   return array($old_rtraders, $candidates);
 }
@@ -79,18 +87,17 @@ function identify_rtraders($old_rtraders, $candidates) {
  * Return an array of uids for the best new rTraders
  * @param numeric $target: how many new rTraders to return (approximately)
  * @todo: add clumping (described above). Perhaps by creating a second employs table for just the candidate businesses and clumps
+ * @todo: also copy non-company earners to the temp table (get from r_asif)
  */
 function best_new_rtraders($target) {
-  list ($old_rtraders, $candidates) = identify_rtraders();
-  $baseline = scores($old_rtraders, 'out', TRUE); // score the existing group (for statistics only)
 
   $sql = <<<EOF
     TRUNCATE r_employs_temp;
     INSERT INTO r_employs_temp
-    SELECT e.*, (s.rid<=>:R_ROLE_RTRADER) AS employee_is_rtrader 
-    FROM (r_employs e LEFT JOIN users_roles r ON r.uid=e.company) 
-    LEFT JOIN users_roles s ON s.uid=e.employee
-    WHERE NOT (r.rid<=>:R_ROLE_RTRADER)
+    SELECT e.relid AS eid, e.main_uid AS company, e.individual_uid AS employee, (s.rid<=>:R_ROLE_RTRADER) AS employee_is_rtrader 
+    FROM (r_relations e LEFT JOIN users_roles r ON r.uid=e.main_uid) 
+    LEFT JOIN users_roles s ON s.uid=e.individual_uid
+    WHERE e.is_employee AND NOT (r.rid<=>:R_ROLE_RTRADER)
 EOF;
   r\do_q($sql); // copy only the non-rTrader company records to temp table
   
@@ -210,7 +217,7 @@ function scoresOLD($candidates, $inout = 'out', $real = FALSE, $rtraders = '') {
   // NOTE: word has it SELECT COUNT(field) or SUM(field) FROM (SELECT DISTINCT) is faster than COUNT(DISTINCT field)
   $countable_sql = <<<EOF
     SELECT DISTINCT IF(e.company IS NULL, t.payer, e.company) AS payer, 
-    FROM $table t LEFT JOIN r_employs e ON e.employee=t.payer
+    FROM $table t LEFT JOIN r_relations e ON e.employee=t.payer
     WHERE t.payer IN ($candidates) 
       AND t.payee IN ($rtraders) 
       AND t.goods

@@ -53,35 +53,36 @@ function rweb_menu() {
   $anyone = array('access callback' => TRUE, 'access arguments' => NULL);
   $modal = array('modal' => TRUE);
   
-  $can_create = api\access('can create transactions');
+//  $can_create = api\access('create transactions');
   $menu = array(
 //    'members' => rWeb\menu($can_create ? 'Members Section' : 'Transactions', MENU_NORMAL_ITEM, 'show_form', array($can_create ? 'tx' : 'txs', 2)),
 //    'members' => rWeb\menu('Members Section', MENU_NORMAL_ITEM, 'show_form', array($can_create ? 'tx' : 'txs', 'Charge', 2)),
-    'node' => rWeb\menu('Homey', MENU_CALLBACK, 'show_form', array('home'), 'can read transactions'),
-    'transactions' => rWeb\menu('Transactions', MENU_NORMAL_ITEM, 'show_form', array('txs', 1, 2), 'can read transactions'),
-    'charge' => rWeb\menu('Charge', MENU_NORMAL_ITEM, 'show_form', array('tx', 'Charge', 1), 'can create transactions'),
-    'pay' => rWeb\menu('Pay', MENU_NORMAL_ITEM, 'show_form', array('tx', 'Pay', 1), 'can create transactions'),
-    'exchange' => rWeb\menu('Get rCredits / USD', MENU_NORMAL_ITEM, 'show_form', array('exchange'), 'can create transactions'),
-    'directory' => rWeb\menu('Directory', MENU_NORMAL_ITEM, 'show_form', array('directory'), 'can create transactions'),
-    'cell-access' => rWeb\menu('Cell Access', MENU_NORMAL_ITEM, 'show_form', array('cell'), 'can manage account'),
-    'sharing' => rWeb\menu('Sharing', MENU_NORMAL_ITEM, 'show_form', array('share'), 'can manage account'),
+    'node' => rWeb\menu('Homey', MENU_CALLBACK, 'show_form', array('home'), 'read transactions'),
+    'transactions' => rWeb\menu('Transactions', MENU_NORMAL_ITEM, 'show_form', array('txs', 1, 2), 'read transactions'),
+    'charge' => rWeb\menu('Charge', MENU_NORMAL_ITEM, 'show_form', array('tx', 'Charge', 1), 'sell'),
+    'pay' => rWeb\menu('Pay', MENU_NORMAL_ITEM, 'show_form', array('tx', 'Pay', 1), 'buy and sell'),
+    'exchange' => rWeb\menu('Get rCredits / USD', MENU_NORMAL_ITEM, 'show_form', array('exchange'), 'manage account'),
+    'directory' => rWeb\menu('Directory', MENU_NORMAL_ITEM, 'show_form', array('directory'), 'sell'),
+    'cell-access' => rWeb\menu('Cell Access', MENU_NORMAL_ITEM, 'show_form', array('cell'), 'manage account'),
+//    'relations' => rWeb\menu('Relations', MENU_NORMAL_ITEM, 'show_form', array('relations'), 'manage account'),
     'company-info' => rWeb\menu('Company Info', MENU_NORMAL_ITEM, 'show_form', array('company'), 'company'),
-    'bank-info' => rWeb\menu('Bank Info', MENU_NORMAL_ITEM, 'show_form', array('bank'), 'can manage account'),
-    'contact-info' => rWeb\menu('Contact Info', MENU_NORMAL_ITEM, 'show_form', array('contact_info'), 'can manage account'),
+    'bank-info' => rWeb\menu('Bank Info', MENU_NORMAL_ITEM, 'show_form', array('bank'), 'manage account'),
+    'contact-info' => rWeb\menu('Contact Info', MENU_NORMAL_ITEM, 'show_form', array('contact_info'), 'manage account'),
 
     'pay-with-rcredits' => rWeb\menu('Pay With rCredits', MENU_CALLBACK, 'show_form', array('buy_now'), '', $anyone), // form will require login
 
 //    'example-store' => rWeb\menu('Example Store', MENU_NORMAL_ITEM, 'show_form', array('example_store'), '', $anyone),
     'member' => rWeb\menu('Company Profile', MENU_CALLBACK, 'show_form', array('profile'), '', $anyone),
     'rCredits/util' => rWeb\menu('Util', MENU_CALLBACK, 'rCredits\\Web\\util', array(2), 'administer site configuration'),
-    'autocomplete/member' => rWeb\menu('Identify Member', MENU_CALLBACK, 'rCredits\\Web\\autocomplete_member', array(3), 'can create transactions'),
-    'ok' => rWeb\menu('Please Confirm', MENU_CALLBACK, 'show_form', array('ok'), '', $anyone + $modal),
-    'close-window' => rWeb\menu('Close Window', MENU_CALLBACK, 'show_form', array('close')),
+    'autocomplete' => rWeb\menu('Identify', MENU_CALLBACK, 'rCredits\\Web\\auto', array(2), '', $anyone),
+//    'ok' => rWeb\menu('Please Confirm', MENU_CALLBACK, 'show_form', array('ok'), '', $anyone + $modal),
+//    'close-window' => rWeb\menu('Close Window', MENU_CALLBACK, 'show_form', array('close')),
     
     'handy' => rWeb\menu('Handy Links', MENU_NORMAL_ITEM, 'handy_links', array(), 'administer site configuration'),
-    'rCredits/api' => rWeb\menu('API', 0, 'rCredits\\API\\api', array(), '', $anyone),
+    'rCredits/backend' => rWeb\menu('API', 0, 'rCredits\\API\\backend', array(), '', $anyone),
+    'api' => rWeb\menu('API', 0, 'rCredits\\API\\smart_api', array(), '', $anyone),
     
-    'modal' => rWeb\menu('Modal Test', MENU_CALLBACK, 'drupal_get_form', array('rCredits\\Web\\modal_form'), '', $anyone + $modal),
+//    'modal' => rWeb\menu('Modal Test', MENU_CALLBACK, 'drupal_get_form', array('rCredits\\Web\\modal_form'), '', $anyone + $modal),
   );
   
   return $menu;

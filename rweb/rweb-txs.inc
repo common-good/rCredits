@@ -32,7 +32,8 @@ function txs_form($form, &$form_state, $period = '', $do = '') {
   $tx_days = array('4' => '4 days', '30' => '30 days', '90' => '90 days', '180' => '6 months', '365' => '12 months', '-1' => 'Year to date');
   $ending = time();
   $starting = strtotime($period == '-1' ? '1jan' : ((1 - @$tx_days[$period]) . ' days'), $ending);
-  $can_create = api\access('can create transactions');
+  $can_sell = api\access('sell');
+  $can_buy = api\access('buy and sell');
 
   $states = array(TX_DONE => '&#10004;', TX_PENDING => 'ok?', TX_DENIED => 'denied', TX_DISPUTED => 'disputed');
   $colors = array('&#10004;' => 'green', 'ok?' => 'orange', 'pending' => 'darkgreen', 'denied' => 'red', 'disputed' => 'red');
@@ -44,19 +45,20 @@ function txs_form($form, &$form_state, $period = '', $do = '') {
     $tid = api\xid2tid($one_xid);
     $data = unserialize($one_data);
     $is_reward = ($one_type != TX_TRANSFER);
-    $reward = @$data[$one_payer == $cid ? 'rebate' : 'bonus'];
+    $taking = ($one_payee == $cid);
+    $reward = @$data[$taking ? 'bonus' : 'rebate'];
     $reward = $reward ? number_format($reward, 2) : '';
     $amount = number_format($one_amount, 2);
     if ($is_reward) list ($amount, $reward) = array('', $amount); // show interest and signup bonus as rewards
-    list ($from_you, $to_you) = $one_payer == $cid ? array($amount, '') : array('', $amount);
+    list ($to_you, $from_you) = $taking ? array($amount, '') : array('', $amount);
 //    $state = ($one_state == TX_PENDING and ($one_amount < 0 xor $one_payee == $cid)) ? 'pending' : $states[$one_state];
     $state = ($one_state == TX_PENDING and $one_payee == $cid) ? 'pending' : $states[$one_state];
     $color = $colors[$state];
     $state = "<span style='color:$color;'>$state</span>";
 //    $button1 = (($one_payer == $cid xor $one_amount < 0) and $one_state == TX_PENDING) ? button('OK', "$base_path/transactions/$period/ok/$one_xid", 'Approve') : '';
-    $button1 = ($one_payer == $cid and $one_state == TX_PENDING) ? button('OK', "$base_path/transactions/$real-$period/ok=$one_xid", tx_action('ok')) : '';
-    $button2 = (!$is_reward and !@$data['undone']) ? button(' X ', "$base_path/transactions/$real-$period/no=$one_xid", tx_action('no', $one_state, $one_payee == $cid)) : '';
-    $button3 = ($can_create and !$is_reward) ? "<a href='$base_path/transactions/$real-$period/edit=$one_xid' title='Edit Purpose'><img src='{$base_path}images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
+    $button1 = (!$taking and $one_state == TX_PENDING) ? button('OK', "$base_path/transactions/$real-$period/ok=$one_xid", tx_action('ok')) : '';
+    $button2 = (!$is_reward and !@$data['undone']) ? button(' X ', "$base_path/transactions/$real-$period/no=$one_xid", tx_action('no', $one_state, $taking)) : '';
+    $button3 = (($taking ? $can_sell : $can_buy) and !$is_reward) ? "<a href='$base_path/transactions/$real-$period/edit=$one_xid' title='Edit Purpose'><img src='{$base_path}images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
     $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
     $rows[] = array($tid, date('d-M', $one_created), $one_name, $from_you, $to_you, $state, $buttons, $one_purpose, $reward);
   }
@@ -157,7 +159,8 @@ function tx_details($xid) {
   if (!($result = api\last_tx('xid=:xid', compact('xid'), TRUE))) return FALSE; // bail on hack attempt
   extract($result);
   $amount = u\format_amount($amount);
-  $tofrom = $payer == $uid ? 'to' : 'from';
+  $taking = ($payee == $uid);
+  $tofrom = $taking ? 'from' : 'to';
   $other_uid = $payer == $uid ? $payee : $payer;
   $who = api\user_field('full_name', $other_uid);
   $role = $payer == $uid ? 'payer' : 'payee';
@@ -165,14 +168,14 @@ function tx_details($xid) {
   $tid = api\xid2tid($xid, $uid);
   $created = date('m-d-Y', $created);
   $summary = "Transaction #$tid: $amount $tofrom $who for \"$purpose\" on $created";
-  return compact(u\ray('amount tofrom who payee role purpose tid creator created summary state'));
+  return compact(u\ray('amount tofrom taking who payee role purpose tid creator created summary state'));
 }
 
 function tx_edit($xid) {
-  if (!api\access('can create transactions')) return FALSE;
-
   if (!($details = tx_details($xid))) return FALSE; // bail on hack attempt
   extract($details, EXTR_PREFIX_ALL, 'my');
+  
+  if (!api\access($taking ? 'sell' : 'buy and sell')) return FALSE;
   
   $form = array(
     'title' => form_field('item', t('Edit Description')),

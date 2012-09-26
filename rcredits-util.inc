@@ -93,11 +93,11 @@ function state_abbrev($state) {
 /**
  * Calculate a short_name from the given full_name.
  */
-function short_name($full_name) {
+function short_name($full_name, $filler = '') {
   $deletions = ray('Inc. LLC Co. P.C. Corp. LLP');
   foreach ($deletions as $one) $full_name = str_replace(" $one", '', $full_name);
   $full_name = str_replace('&', 'and', $full_name);
-  return strtolower(preg_replace('/\W/', '', iconv('UTF-8', 'ASCII//TRANSLIT', $full_name)));
+  return strtolower(preg_replace('/\W/', $filler, iconv('UTF-8', 'ASCII//TRANSLIT', $full_name)));
 }
 
 /**

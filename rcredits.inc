@@ -11,23 +11,28 @@
  * Some coding conventions:
  *   uid is a user id
  *   xid is a transaction id, negative for asif transactions (set when transacting, simulated negative in r\db_q())
- *   qid is an account id = R_COMMUNITY_ID . n2a(uid, 4)
+ *   qid is an account id = XXX.YYYYY or XXX:ZZZZZ
+ *     where XXX is R_SERVER_ID
+ *         YYYYY is n2a(uid, 5)
+ *         ZZZZZ is n2a(eid, 5) (for an individual representing a company)
  *
-  * @todo
+ * @todo: creator_agent (usually = creator. creator = other community, for any transaction created from outside)
+ * @todo: data changes(date, agent, changetype, oldvalue) (this gives a complete history of the transaction)
+ * @todo
  * - handling employees (virtual payments). This should probably be extended to suppliers too,
  *   or maybe even to everyone. The idea is to pay someone virtually in rCredits by totally paying them
  *   (either first or second) in US Dollars and (either second or first) having them buy back
  *   the appropriate amount of rCredits. Probably the best way to do this is with a simple payment transaction
  *   that requires confirmation by the payee (an "offer"). The payee cannot accept the offer without first paying
  *   that amount to the Community in US Dollars (using billpay or Dwolla).
- * - a way to track US Dollars payments (probably a separate transaction table us_transactions)
+ * - NO a way to track US Dollars payments (probably a separate transaction table us_transactions)
  * - remove all direct db operations from interface modules (and their .inc files) -- use api\ and u\ there, but not r\
  *
  * - The data field in r_txs should also hold additional identification information about a nonlocal payer or payee.
  *   If the mcapi intertrading module does not work for us, other servers could have a single UID on our system, so a
  *   user doing business with someone in another region would generate a transaction between an individual and a server,
  *   with qid for the individual in that other region stored in the data field. 
- *   We do NOT need to store qid for creator, payer, and payee.
+ *   We do NOT need to store qid for creator, payer, and payee (just uid).
  *
  *   Specifically: when we in the AAAA community receive a transaction request using a qid, the first four characters are the "community" --
  *   they tell us what database to hit. For example, if AAAA.AAAB pays ZZZZ.AAAC, we record a payment from AAAA.AAAB's uid (1)
@@ -36,8 +41,8 @@
  *   (if no confirmation, roll back the transaction and give an error message OR queue the request).
  *
  *   On the other side of things, when we receive a request from some other community for a transaction with one of our accounts
- *   -- for example if we are the "ZZZZ" community, receiving a request from the "ABCD" community, for ABCDAAAA to pay ZZZZBBBB --
- *   we record the payer as ABCD's uid and the payee as ZZZZBBBB's uid, with $data['payer_id'] = 'ABCDAAAA'.
+ *   -- for example if we are the "ZZZ" community, receiving a request from the "ABC" community, for ABC.AAAAA to pay ZZZ.BBBBB --
+ *   we record the payer as ABC's uid and the payee as ZZZ.BBBBB's uid, with $data['payer_id'] = 'ABC.AAAAA'.
  *
  *   Thus every inter-community transaction is stored in both communities. Both communities know their trade balance, which should be
  *   public through a RESTful query. Intra-community transactions should also be stored twice -- ideally in member's devices. Smartphones and
@@ -56,20 +61,10 @@ namespace rCredits; // typically abbreviated as "r"
 use \rCredits\Utilities as u;
 use \rCredits\API as api;
 
+include_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
 include_once __DIR__ . '/rcredits-circles.inc'; // treat this as an extension of this file, for testing
 
 define('R_SEPARATE_BACKEND', FALSE);
-define('R_COMMUNITY_NAME', 'Pioneer Valley rCredits Community');
-define('R_COMMUNITY_ID', 'NEAA'); // qid header for this community's server
-// (you don't get an ID card unless you are in this geographic area)
-define('R_COMMUNITY_POSTAL_AREA', '01%'); // anyone with a postal code that matches this is in
-define('R_INITIAL_DEMAND', 25000); // total escrowed rCredits during TRIAL RUN
-define('R_REBATE', 0.05);
-define('R_BONUS', 0.10);
-define('R_MAX_DEMAND', 1000000); // you can't ask for more rCredits than this
-define('R_MIN_DEMAND', 10); // you can't buy less rCredits than this at a time
-define('R_STARTING_BALANCE', 250); // how much people start with in the TRIAL RUN
-define('R_MIN_BALANCE', -1000); // how low can user's balance go, by default (be generous in TRIAL RUN)
 define('R_TEMP_NAME_PREFIX', 'unknown ');
 define('R_ASIF_TEXT', ' "AS-IF"'); // how to identify "As If" transactions
 
@@ -87,7 +82,7 @@ define('R_BANK_VERIFIED', 1); // we have proof that the user owns the bank accou
 define('R_PERSONAL', 0);
 
 $GLOBALS['account types'] = array(t('personal'), t('commercial'), t('non-profit'));
-$GLOBALS['share permissions'] = array('no access', 'can read transactions', 'can create transactions', 'can manage account');
+$GLOBALS['share permissions'] = array('no access', 'read transactions', 'sell', 'buy and sell', 'manage account');
 
 // Transaction states
 define('TX_STATES', 'deleted done pending disputed denied');
@@ -265,7 +260,7 @@ function transaction_rewards(&$txs) {
   
   $fields = u\ray('type amount payer payee for creator state');
   $payer = $creator = \variable_get('rcredits_community_uid');
-//  $payer_id = $creator_id = R_COMMUNITY_ID;
+//  $payer_id = $creator_id = R_SERVER_ID;
   $state = $my_state; // match rewards state to main transaction
 
   $type = TX_REBATE;
@@ -383,7 +378,7 @@ function set_tx_field($field_name, $new_value, $xid, $field = 'xid') {
 function merge_accounts($old_uid) {
   $new_uid = u\cid();
   if (!api\is_temp_account($old_uid)) return; // don't merge non-temp account
-  if (!api\access('can manage account')) die("unauthorized merge_accounts: $new_uid into $old_uid");
+  if (!api\access('manage account')) die("unauthorized merge_accounts: $new_uid into $old_uid");
 //  if (!is_temp_name(user_field('name', $old_uid))) die('merging non-temp account');
   // there are no other records for temporary accounts, than those below
 
@@ -447,7 +442,8 @@ function t_table($uid1 = 'cid', $uid2 = '') {
 function db_lookup($field_name, $table_name, $criteria = '1', $subs = array()) {
   $sql = "SELECT $field_name FROM $table_name WHERE $criteria";
   if (!strpos($criteria, ' LIMIT ')) $criteria .= ' LIMIT 1';
-  return db_q($sql, $subs)->fetchField();
+  $result = db_q($sql, $subs);
+  return strpos($field_name, ',') ? $result->fetchAssoc() : $result->fetchField();
 }
 
 function user_field($field_name, $who, $subs = array()) {
@@ -456,17 +452,33 @@ function user_field($field_name, $who, $subs = array()) {
 
 /**
  * Return a qid for the uid or vice versa
- * @param mixed $uid: the uid if numeric, otherwise the qid
- * @return FALSE if the uid or qid cannot be converted, otherwise the converted id
+ * @param mixed $uid:
+ *   positive integer: the uid
+ *   negative integer: the relid, negated
+ *   XXX.XXXXX: an account qid
+ *   XXX:XXXXX: a relationship qid (the colon can also be presented as "deux points" -- "..")
+ * @return FALSE if the uid or qid cannot be converted, otherwise:
+ *   if the uid is integer >0: XXX.XXXXX
+ *   if the uid is integer <0: XXX:XXXXX
+ *   if the qid is XXX.XXXXX: the converted id
+ *   if the qid is XXX:XXXXX: array(company uid, employee/rep uid)
  */
 function qid($uid = '') {
   if (!$uid) $uid = u\cid();
   if (!$uid) return FALSE; // don't convert 0
-  if (is_numeric($uid)) return R_COMMUNITY_ID . u\n2a($uid, 4); 
+  if (is_numeric($uid)) return R_SERVER_ID . ($uid < 0 ? (':' . u\n2a(-$uid, 5)) : ('.' . u\n2a($uid, 5))); 
 
-  $qid = strtoupper($uid);
-  if (substr($qid, 0, 4) != R_COMMUNITY_ID) return FALSE;
-  return u\a2n(substr($qid, 4));
+  $uid = str_replace('..', ':', $uid); // allow a horizontal colon
+  if (strlen($uid) != 9) return FALSE;
+  $type = substr($uid, 3, 1); // get punctuation
+  list ($region, $iid) = explode($type, $uid); // separate into region and individual account uid or relation id
+  if ($region != R_SERVER_ID) return FALSE;
+  $id = u\a2n($iid);
+  if ($type == ':') {
+    $id *= -1;
+    return @array_values(db_lookup('main_uid, individual_uid', 'r_relations', 'relid=:id', compact('id')));
+  } elseif ($type == '.') return $id;
+  return FALSE;
 }
 
 function is_rTrader($uid = '') {

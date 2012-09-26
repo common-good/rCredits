@@ -8,7 +8,7 @@ use rCredits as r;
 use rCredits\Utilities as u;
 use rCredits\API as api;
 
-define('R_TABLES', 'r_area_codes,r_credit_regions,r_nonces,r_txs,r_asif,r_shared_accounts,r_industries,r_user_industries');
+define('R_TABLES', 'r_area_codes,r_credit_regions,r_nonces,r_txs,r_asif,r_relations,r_industries,r_user_industries');
 
 /**
  * Implement hook_install().
@@ -21,9 +21,9 @@ function rcredits_install() {
   r\make_fields();
 //  r\make_currency();
   
-  $full_name = R_COMMUNITY_NAME;
-//  $credit_id = R_COMMUNITY_ID;
-  $postal_code = R_COMMUNITY_POSTAL_AREA;
+  $full_name = R_REGION_NAME;
+//  $credit_id = R_SERVER_ID;
+  $postal_code = R_REGION_POSTAL_AREA;
   $demand = R_INITIAL_DEMAND;
   $rebate_percent = 0;
   $name = $short_name = 'community';
@@ -78,34 +78,38 @@ function rcredits_schema() {
   $schema['r_txs'] = r\setup_table('Record of all rCredits transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
   $schema['r_asif'] = r\setup_table('Record of pretend (asif) transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
 
-  // table r_shared_accounts
+  // table r_relations
   $fields = array(
-    'shared_uid' => r\setup_field('uid of the account being shared', 'int 11'),
-    'shared_with' => r\setup_field('uid of a user that has access to that account', 'int 11'),
-    'permission' => r\setup_field('what type of permission the shared_with user has on the shared_uid account', 'int tiny'),
+    'relid' => r\setup_field('relationship record id', 'serial 11'),
+    'main_uid' => r\setup_field('uid of the account being shared', 'int 11'),
+    'individual_uid' => r\setup_field('uid of a user that has access to that account', 'int 11'),
+    'permission' => r\setup_field('what type of permission the individual has on the main account', 'int tiny'),
+    'is_employee' => r\setup_field('is this person an employee', 'int tiny'),
+    'is_owner' => r\setup_field('is this person an owner (or part owner)', 'int tiny'),
   );
-  $foreign_keys = r\foreign_key('shared_uid') + r\foreign_key('shared_with');
-  $indexes = r\index('shared_uid') + r\index('shared_with');
-  $schema['r_shared_accounts'] = r\setup_table('Who can manage which accounts, and how', $fields, NULL, $foreign_keys, $indexes);
-  
-  // table r_employs
-  $fields = array(
-    'company' => r\setup_field('uid of company', 'int 11'),
-    'employee' => r\setup_field('uid of employee', 'int 11'),
-  );
-  $foreign_keys = r\foreign_key('company') + r\foreign_key('employee');
-  $indexes = r\index('company') + r\index('employee');
-  $schema['r_employs'] = r\setup_table('Who is employed by whom', $fields, NULL, $foreign_keys, $indexes);
-
-  // table r_employs_temp (same as r_employs, but with extra fields -- used for candidates in rcredits-circles.inc)
+  $foreign_keys = r\foreign_key('main_uid') + r\foreign_key('individual_uid');
+  $indexes = r\index('main_uid') + r\index('individual_uid');
+  $schema['r_relations'] = r\setup_table('Who can manage which accounts, and how', $fields, 'relid', $foreign_keys, $indexes);
+    
+  // table r_employs_temp (same as r_relations, but with extra fields -- used for candidates in rcredits-circles.inc)
   $fields = array(
     'ignore' => r\setup_field('temporarily omit this record from consideration', 'int tiny'),
     'employee_is_rtrader' => r\setup_field('this employee is an rTrader', 'int tiny'),
     'score' => r\setup_field('how good is this candidate', 'int 11'),
   );
-  $schema['r_employs_temp'] = $schema['r_employs'];
+  $schema['r_employs_temp'] = $schema['r_relations'];
   $schema['r_employs_temp']['fields'] += $fields;
   
+  // table r_smarts
+  $fields = array(
+    'code' => r\setup_field('permanent secret identifier for the device', 'varchar 255'),
+    'uid' => r\setup_field('uid of the smart device owner', 'int 11'),
+    'device' => r\setup_field('human-readable identifier for the smart device', 'varchar 60'),
+  );
+  $foreign_keys = r\foreign_key('uid');
+  $indexes = r\index('uid');
+  $schema['r_smarts'] = r\setup_table('Who owns what smart device', $fields, 'code', $foreign_keys, $indexes);
+
   // table r_scores
   $fields = array(
     'company' => r\setup_field('uid of company', 'int 11'),
@@ -158,6 +162,8 @@ function rcredits_schema_alter(&$schema) {
     'bank_account_status' => r\setup_field('account ownership verified, closed, etc.', 'int tiny', 0, '010'),
   );
   $schema['users']['fields'] = (@$schema['users']['fields'] ?: array()) + $fields;
+  $schema['users']['indexes'] += r\index('short_name');
+
   
   $fields = array( // additional sms_user fields  
     'todo' => r\setup_field('waiting for confirmation to complete this operation', 'text medium'),

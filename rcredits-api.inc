@@ -26,38 +26,193 @@
  * Eventually the Back End will listen only on a certain port (not 80).
  *
  * No Drupal login is required in Back End. (just pass qid(cid) and qid(user_id),password)
- * All uids are passed as qids (qid = r\qid(uid) = R_COMMUNITY_ID . n2a(uid))
+ * All uids are passed as qids (qid = r\qid(uid) = R_SERVER_ID . n2a(uid))
  */
 
 namespace rCredits\API; // typically abbreviated as "api"
 use \rCredits as r;
 use \rCredits\Utilities as u;
 
-define('R_FIREWALL', 'lkj234lisufsd89072osi%!@J@$K'); // nobody can use the backend without knowing this code
+function api2($op, $args, $success = 1) {
+  $op = 'rCredits\\API\\' . $op;
+  if (function_exists($op)) api_out($op($args) + compact('success')); else api_error('unknown op');
+}
 
-function api2($result) {die(json_encode($result));}
-function api_error($error) {api2(compact('error'));}
+function api_error($message, $success = 0) {api_out(compact('success', 'message'));}
 
-function api($args = FALSE) {
+function api_out($args) {
+  u\log('rAPI', 'out', $args);
+  exit(json_encode($args));
+}
+
+/**
+ * Make sure the current user ($userid) can at least read transactions for the specified account
+ */
+function be_check($uid) {
+  global $userid;
+  $crit = 'main_uid=:uid AND individual_uid=:userid';
+  if (!($uid == $userid or r\db_lookup(1, 'r_relations', $crit, compact('uid', 'userid')))) api_error('sharing error');
+}
+
+/**
+ * Receive and process a REST request from a smart device
+ * @param array $args: an associative array that normally includes:
+ *   op: what to do (determines what function to call)
+ *   my_id: qid supplied by user once, in First Time request (used to set $cid)
+ *   code: permanent code the we sent to the device in First Time response (used to set $userid)
+ *     if $op = 'first_time', expect $password instead
+ *   account_id: the qid for the other party, if any 
+ *     This gets passed to the specific op functions as $uid or ($company_id and $rep_id)
+ * @return (normally by calling either api_error or api2):
+ *   $success=1 if api2 is called, otherwise 0 ($op = 'photo' is an exception; see below)
+ *   $message: an error message or help message to display on the device; or not set
+ */
+function smart_api() {
+  global $cid, $userid;
+  u\log('rSmart', 'in', $_POST);
+  if (!(@$args = (array) json_decode($_POST['json']))) api_error('no json');
+  extract($args, EXTR_PREFIX_ALL, 'q');
+  if (@$q_op != 'first_time') {
+    if (!@$q_code) api_error('no code given');
+    if (!($userid = r\db_lookup('uid', 'r_smarts', 'code=:q_code', compact('q_code')))) api_error('unknown device');
+    be_check($cid = r\qid(@$q_my_id));
+  }
+  $op = 'smart_' . @$q_op;
+  if (@$q_account_id) {
+    $uid = r\qid($q_account_id);
+    if (!$uid) api_error('bad account_id');
+    if (is_array($uid)) {
+      list ($company_uid, $rep_uid) = $uid;
+      unset($uid);
+    }
+    $args += compact(u\ray('uid company_uid rep_uid'));
+  }
+  api2($op, $args);
+}
+
+/*
+ * Requesting a permanent code from the server.
+ * @param array $args:
+ *   password: the user's Drupal account password
+ * @return:
+ *   code (permanent code for app to prove the identity of the device)
+ *   update_link (URL of updated app; not set if no update is available)
+
+$my_id = 'NEAAAAAD';
+$password = '123';
+$op = 'first_time';
+$a = compact('my_id', 'password');
+echo rCredits\API\api2('smart_first_time', $a);
+{"code":"$S$Ds0Myu\/J4z5bCNH324tF50qZnFMLIcv469.sjY7fJrUHMhFQ4K6L","success":1}
+*/
+function smart_first_time($args) {
+  require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
+  extract($args, EXTR_PREFIX_ALL, 'q');
+//  if (!($account = \user_load_by_name(@$q_my_id))) api_error('unknown user');
+  if (!($account = \user_load(r\qid(@$q_my_id)))) api_error('unknown user');
+  if (@!$q_password) api_error('login error');
+  if (!user_check_password($q_password, $account)) api_error('bad login'); // make these two error messages distinct but obscure
+  $code = user_hash_password(uniqid($q_my_id, TRUE));
+  $uid = $account->uid;
+  $device = t('Smart Device');
+  \drupal_write_record('r_smarts', compact(u\ray('uid code device'))); // no way to tell if it's the same device as others
+  if (rand() < getrandmax() / 2) $update_link = 'http://rCredits.org/files/smart.apk';
+  return compact(u\ray('code update_link'));
+}
+
+/*
+ * Identify the scanned QR code.
+ * @param array $args: (none)
+ * @return:
+ *   update_link (URL of updated app; not set if no update is available)
+ 
+$my_id = 'NEW.AAAAD';
+$code = "$S$Ds0Myu\/J4z5bCNH324tF50qZnFMLIcv469.sjY7fJrUHMhFQ4K6L";
+$a = compact('my_id', 'code');
+echo rCredits\API\api2('smart_startup', $a);
+*/
+function smart_startup($args) {
+  if (rand() < getrandmax() / 2) $update_link = 'http://rCredits.org/files/smart.apk';
+  return compact('update_link');
+}
+
+/*
+ * Identify the other party.
+ * @param array $args: uid or (company_id and rep_id)
+ * @return:
+ *   full_name: the individual's name
+ *   company_name: the company name (if any)
+ *   location: the location of the company if it's a company, otherwise of the individual (typically city, state)
+ *   other_balance: the current balance of the company if it's a company, otherwise of the individual
+ */
+function smart_identify($args) {
+  extract($args, EXTR_PREFIX_ALL, 'q');
+  $full_name = \user_load(@$q_uid ?: $q_rep_uid)->full_name; // the account-holder or rep's name
+  $uid = @$q_uid ?: $q_company_uid;
+  $account = \user_load($uid); // the individual or company account
+  $country = $account->country;
+  $location = $account->city . ', ' . ($country == 'United States' ? u\state_abbrev($account->state) : $country);
+  if (@$q_company_uid) $company_name = user_field('full_name', $q_company_uid);
+  $other_balance = credit_info(compact('uid'))->balance;
+  return compact(u\ray('full_name location company_name other_balance'));
+}
+
+/*
+ * Get an individual's photo.
+ * @param array $args:
+ *   account_id: the qid for an individual or company and rep
+ * @return:
+ *   just the photo data (no json)
+ */
+function smart_photo($args) {
+  extract($args, EXTR_PREFIX_ALL, 'q');
+  $pic_filename = profile_picture(@$q_uid ?: $q_rep_id);
+  $pic = file_get_contents($pic_filename);
+  exit($pic);
+}
+
+/*
+ * Request a transaction.
+ * @param array $args:
+ *   account_id: the qid for an individual or company and rep
+ *   type: “charge” or “payment”
+ *   amount: numeric dollar amount
+ *   goods: true unless user checks “cash, loan, etc.”
+ *   purpose: description of goods and services
+ * @return:
+ *   tx_id: transaction ID number, if success, otherwise empty string
+ *   my_balance: device owner's new balance
+ *   other_balance: the new balance of the company if it's a company, otherwise of the individual
+ */
+function smart_transact($args) {
+  extract($args, EXTR_PREFIX_ALL, 'q');
+  if (!$q_goods) $q_purpose = 'cash'; // tell transfer no rewards
+  $uid = @$q_uid ?: @$q_company_uid;
+  list ($index, $subs, $zot) = transfer($q_type, $uid, $q_amount, $q_purpose, TRUE);
+  $tx_id = r\qid($subs['xid']); // return the transaction id as a qid (globally unique transaction id) (: means As-If)
+  $real = $subs['real'];
+  $my_balance = credit_info(compact('real'))->balance;
+  $other_balance = credit_info(compact('real', 'uid'))->balance;
+  return compact(u\ray('tx_id my_balance other_balance'));
+}
+
+/**
+ * Receive and process a REST request from the website frontend
+ */
+function backend2($args = FALSE) {
   global $cid, $userid, $firewall;
 
   if (!$args) $args = $_POST;
   extract($args);
-  if ($firewall != R_FIREWALL) api_error('firewall system failure'); // give hackers some satisfaction by saying 'failure'
-  $cid = r\qid($cid); unset($args['cid']);
-  $userid = r\qid($userid); unset($args['userid']);
-  if (!$cid or !$userid) api_error('user validation error');
-  $crit = 'shared_uid=:cid AND share_with=:userid';
-  if ($cid != $userid and !r\db_lookup(1, 'r_shared_accounts', $crit, compact('cid', 'userid'))) api_error('sharing error');
-  if (isset($uid)) $args['uid'] = $uid = r\qid($uid);
-  
-  $account = \user_load(@$userid);
-  u\log('rAPI', 'in', $_POST);
-  if (@!$password) api_error('login error');
-  if (@$account->pass != $password) api_error('bad login'); // make these two error messages distinct but obscure
+  $cid = r\qid(@$my_id ?: @$cid); unset($args['cid']); // unset because it is passed as a global, not as an arg
+  $userid = r\qid(@$userid); unset($args['userid']); // unset because it is passed as a global, not as an arg
 
-  if (!function_exists($op) or strpos($op, '\\')) api2('unknown op');
-  api2($op($args));
+  if (@$firewall != R_FIREWALL) api_error('firewall system failure'); // give hackers some satisfaction by saying 'failure'
+  if (!$cid or !$userid) api_error('user validation error');
+  be_check($cid);
+  
+//  if (isset($uid)) $args['uid'] = $uid = r\qid($uid);
+  api2($op, $args);
   /*
   switch ($op) {
     case 'create_user': api2(create_user($info));
@@ -264,7 +419,7 @@ function get($currency, &$amount, $confirmed) {
   if (is_frontend()) return (array) backend('get', compact(u\ray('currency amount confirmed')));
   if (is_array($currency)) extract($currency);
   
-  if (!access('can manage account')) return array('no access get', array(), FALSE);
+  if (!access('manage account')) return array('no access get', array(), FALSE);
   $amount = str_replace(',', '', $amount); // ignore commas
   if (!is_numeric($amount)) return array('bad amount', array(), FALSE);
   if ($amount < 0) return array('negative transfer', array(), FALSE);
@@ -308,7 +463,7 @@ function pay_invoice($xid) {
   if (is_frontend()) return (array) backend('pay_invoice', compact(u\ray('xid')));
   if (is_array($xid)) extract($xid);
 
-  if (!access('can create transactions')) return array('no access create', array());
+  if (!access('buy and sell')) return array('no buy and sell', array());
   $state = TX_PENDING;
   $result = last_tx('xid=:xid AND state=:state', compact('xid', 'state'));
   extract($result, EXTR_PREFIX_ALL, 'old');
@@ -328,13 +483,15 @@ function pay_invoice($xid) {
 
 /**
  * Create a transaction
- * @param bool $ttype: payment, charge, or invoice payment
+ * @param string $ttype: payment, charge, or invoice payment
  * @param int $other_uid: user id of the other party
  * @param numeric $requested_amount: the transaction amount
  * @param string $for OR array($payer_for, $payee_for): description of the transaction's purpose (user input)
  * @param bool $confirmed: has this transaction been confirmed by the user? (default TRUE, used only for SMS interface)
- * @param array $rewards: associative array of reward percentages, indexed by 'rebate' and 'bonus' (default empty means standard rewards)
- *    $rewards is for undoing ($amount should also be negative)
+ * @param array $rewards: associative array of info about the transaction this request is reversing (if any), indexed by:
+ *   'rebate': the rebate amount for this request (should be negative the original bonus amount)
+ *   'bonus': the bonus amount (should be negative the original rebate amount)
+ *   'xid': the record id of the transaction to reverse (negative if that transaction was As-If)
  * @return simple array: 
  *    index: index to result message string (if success, the index begins with "report ")
  *    parms: replacement parameters, specific to the message
@@ -349,9 +506,10 @@ function transfer($ttype, $uid, $requested_amount, $for, $confirmed = TRUE, $rew
   if (is_array($ttype)) extract($ttype);
   
   global $cid;
-  if (!access('can create transactions')) return array('no access create', array(), FALSE);
   $real = @$rewards['xid'] < 0 ? FALSE : (r\is_rTrader() and r\is_rTrader($uid));
   $taking = ($ttype == 'charge');
+  $access = $taking ? 'sell' : 'buy and sell';
+  if (!access($access)) return array("no $access", array(), FALSE);
 //  if ($paying_invoice = ($ttype == 'invoice payment')) $ttype = 'payment';
   $paying_invoice = ($ttype == 'invoice payment');
   $confirm_type = $ttype;
@@ -497,6 +655,7 @@ function identify($who, $create = FALSE, $self_message = 'no self-trading') {
   if (is_array($who)) extract($who);
 
   if ($phone = u\format_phone($who, '+n')) $who = $phone;
+  if (substr($who, 0, 1) == '.' or substr($who, 0, 1) == ':') $who = R_SERVER_ID . $who; // allow abbreviations within this region
 //  if (substr($who, 0, 7) == 'http://') $who = substr($who, 7);
 //  if (substr($who, 0, 4) == 'www.') $who = substr($who, 4);
 
@@ -673,8 +832,8 @@ function make_credit_id($uid) {
  * Return a list of account choices for the current user (NOT the current credit account)
  * @return an array of account names, indexed by uid (FALSE if none)
  * @todo: recurse, to include access to the accounts that the shared accounts have access to
- *   maybe like this: SELECT shared_uid, MAX(permission) WHERE shared_with=:userid 
- *     OR shared_with IN (SELECT shared_uid FROM r_shared_accounts WHERE shared_with=:userid) GROUP BY shared_uid
+ *   maybe like this: SELECT main_uid, MAX(permission) WHERE individual_uid=:userid 
+ *     OR individual_uid IN (SELECT main_uid FROM r_relations WHERE individual_uid=:userid) GROUP BY main_uid
  */
 function account_choices() {
   if (is_frontend()) return (array) backend('account_choices');
@@ -683,7 +842,7 @@ function account_choices() {
   if (!$userid) return FALSE;
   $primary = array((string) $userid => (count($GLOBALS['share permissions']) - 1)); // max access for primary user account
 
-  $result = r\db_q("SELECT shared_uid, permission FROM r_shared_accounts WHERE shared_with=:userid", compact('userid'));
+  $result = r\db_q("SELECT main_uid, permission FROM r_relations WHERE individual_uid=:userid", compact('userid'));
   return $primary + $result->fetchAllKeyed(0, 1);
 }
 
@@ -775,8 +934,8 @@ function accesses($uid = '') {
   if (\user_load($uid)->account_type != R_PERSONAL) $perms[] = 'company'; // ad hoc permissions
 
   $cans = $GLOBALS['share permissions'];
-  $crit = 'shared_with=:userid AND shared_uid=:uid';
-  $can = $uid == $userid ? count($cans) - 1 : r\db_lookup('permission', 'r_shared_accounts', $crit, compact('uid', 'userid'));
+  $crit = 'individual_uid=:userid AND main_uid=:uid';
+  $can = $uid == $userid ? count($cans) - 1 : r\db_lookup('permission', 'r_relations', $crit, compact('uid', 'userid'));
   for ($i = 1; $i <= $can; $i++) $perms[] = $cans[$i];
 
   return $perms;
@@ -847,11 +1006,11 @@ function backend($op, $info = array(), $cache = FALSE) {
 //  debug($result);
   $password = \user_load($userid)->pass;
   $firewall = R_FIREWALL;
-  foreach ($info as $key => $value) if (strpos($key, 'uid') !== FALSE) $info[$key] = r\qid($value); // convert to qid
-  $basic = array('userid' => r\qid($userid), 'cid' => r\qid($cid));
-  $info += compact(u\ray('op password firewall') + $basic); // operation, credentials, and account
+//  foreach ($info as $key => $value) if (strpos($key, 'uid') !== FALSE) $info[$key] = r\qid($value); // convert to qid
+//  $basic = array('userid' => r\qid($userid), 'cid' => r\qid($cid));
+  $info += compact(u\ray('cid userid op password firewall')); // operation, credentials, and account
   $host = strpos($base_url, 'localhost/') !== FALSE ? 'http://localhost/devcore' : 'http://devcore.rcredits.org';
-  $api_result = R_SEPARATE_BACKEND ? u\http_request("$host/rCredits/api/", $info) : api($info);
+  $api_result = R_SEPARATE_BACKEND ? u\http_request("$host/rCredits/api/", $info) : backend2($info);
 //debug($api_result);
   u\log('rAPI', 'out', $info + compact('api_result'));
   if ($cache) r\Web\svar($skey, $api_result);
@@ -880,7 +1039,7 @@ function user_field($field_name, $who = FALSE, $subs = array()) {
  * Say whether the account has the specified permission
  * @param string $access: the queried permission. This could be any of three types:
  *   a standard Drupal permission, queryable through user_access()
- *   a shared account permission, stored in r_shared_accounts (cached in $_SESSION['rcredits_account_choices'], but we're not trusting that)
+ *   a shared account permission, stored in r_relations (cached in $_SESSION['rcredits_account_choices'], but we're not trusting that)
  *   an ad hoc permission handled directly by this function
  * @param numeric $uid: uid of the account to ask about (defaults to '', meaning the current account)
  * @return boolean: TRUE if the user has the permission

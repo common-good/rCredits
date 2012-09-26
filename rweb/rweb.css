@@ -104,6 +104,7 @@ form.labeled input.form-local, form.rweb input.form-local {margin:1px 2px 1px 2p
 #rcreditswebshare-form div.form-item-new-share label {width:265px;}
 #rcreditswebshare-form div.form-item-new-share div.description {margin-left:270px;}
 #rcreditswebshare-form div.form-item-new-permission {display:inline-block;}
+#rcreditswebshare-form #account-label {font-weight:bold;}
 
 /* Cell */
 #rcreditswebcell-form input#edit-delete {margin-right:100%;}
