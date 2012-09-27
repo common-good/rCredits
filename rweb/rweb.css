@@ -2,10 +2,13 @@
 #page-wrapper, #footer-wrapper {background: white;} /* Drupal messes this up otherwise, in Bartik theme */
 #page-title {display: none;}
 
+form.rweb {font-family:Arial;}
+form.rweb div.invisible {display:none;}
+
 form.rweb div#edit-title label {font-size:200%; color:darkgreen;}
 form.rweb div.form-item div.description {display:block; margin:2px 0px 0px 0px;}
 form.rweb div.form-type-item label {text-align:left;}
-form.rweb div.form-type-textfield {display:inline-block; margin-right:0px;}
+form.rweb div.form-type-textfield {display:inline-block; margin-right:0px; vertical-align:top;}
 form.rweb div.form-type-textfield label {display:inline-block;}
 form.rweb div#edit-subtext label {font-weight:normal; width:100%;}
 
@@ -29,7 +32,10 @@ form.labeled div.form-radios {margin-left:135px;}
 form.labeled div.labeled-block {display:inline-block; vertical-align:top;}
 form.labeled div#edit-subtext {margin-left:135px;}
 
-form.labeled input.form-local, form.rweb input.form-local {margin:1px 2px 1px 2px; padding:2px; font-size:70%; color:darkgreen;}
+form.labeled .form-local, form.rweb .form-local {margin:1px 2px 1px 2px; padding:2px; font-size:70%; color:darkgreen;}
+
+form.rweb  .form-yes {color:green;}
+form.rweb  .form-no {color:red;}
 
 /* Account Selector */
 #rcreditswebaccount-form #edit-account-submit {display:none;} /* Drupal requires unused button to be there, so make it invisible */
@@ -92,19 +98,11 @@ form.labeled input.form-local, form.rweb input.form-local {margin:1px 2px 1px 2p
 /* #rcreditswebtxs-form td:first-child +td+td+td+td+td+td {text-align:right;} /* column 7 */
 #rcreditswebtxs-form td:first-child +td+td+td+td+td+td+td+td {text-align:right;} /* column 9 */
 
-/* Sharing form */
-#rcreditswebshare-form div {vertical-align:top;}
-#rcreditswebshare-form label {display:inline-block;}
-#rcreditswebshare-form div.form-item-change-permission label {width:290px; margin-left:0px;}
-#rcreditswebshare-form div#edit-subtitle label span {font-weight:normal;}
-#rcreditswebshare-form div.form-item-change-permission {display:inline-block;}
-
-#rcreditswebshare-form input#edit-new-share {width:150px;}
-#rcreditswebshare-form div.form-item-new-share {display:inline-block;}
-#rcreditswebshare-form div.form-item-new-share label {width:265px;}
-#rcreditswebshare-form div.form-item-new-share div.description {margin-left:270px;}
-#rcreditswebshare-form div.form-item-new-permission {display:inline-block;}
-#rcreditswebshare-form #account-label {font-weight:bold;}
+/* Relation form */
+#rcreditswebrelations-form div.form-item-new-person {display:inline-block;}
+#rcreditswebrelations-form div.form-item-new-person label {width:105px;}
+#rcreditswebrelations-form div.form-item-new-person div.description {margin-left:110px;}
+#rcreditswebrelations-form #account-label {font-weight:bold;}
 
 /* Cell */
 #rcreditswebcell-form input#edit-delete {margin-right:100%;}
@@ -117,6 +115,7 @@ form.labeled input.form-local, form.rweb input.form-local {margin:1px 2px 1px 2p
 #rcreditswebbuy-now-form div#edit-submit label {margin-left:100px; width:100%; color:blue;}
 
 /* Directory */
+#rcreditswebdirectory-form #edit-title label {margin-left:0px;}
 /*#rcreditswebdirectory-form div.form-item-area {display:inline-block;}
 #rcreditswebdirectory-form input#edit-submit {margin-left:5px;}
 #rcreditswebdirectory-form div.form-item-area label {width:40px;}

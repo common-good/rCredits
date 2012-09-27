@@ -208,7 +208,7 @@ function tx_report_args($taking, $amount, $shortfall, $reward, $other_uid, $xid,
   
   $success = TRUE;
   
-  return compact(u\ray('type amount tofrom reward_type reward_amount balance xid tid other short success asif'));
+  return compact(u\ray('type amount tofrom reward_type reward_amount balance xid tid other_uid other short success asif'));
 }
 
 /**
@@ -230,7 +230,7 @@ function tx_save($txs) {
   //*** Begin DBTX
   $dbtx = db_transaction();
   $table = t_table($my_payer, $my_payee);
-  if (@$my_data['xid'] < 0) $table = 'r_asif'; // special case for undoing an asif, even though both parties are now rTraders
+  if (@$my_data['xid'] < 0) $table = t_table(0); // special case for undoing an asif, even though both parties are now rTraders
   foreach ($txs as $key => $zot) { // $zot is unused
     $txs[$key]['serial'] = @$serial; // set serial for dependent transactions
     \drupal_write_record($table, $txs[$key]); // pass actual array element, to get xids
@@ -243,7 +243,7 @@ function tx_save($txs) {
   unset($dbtx); // commit ($dbtx->commit() is disallowed)
   //*** End DBTX
 
-  if ($table == 'r_asif') $txs[0]['xid'] *= -1; // flag unreality  
+  if ($table == t_table(0)) $txs[0]['xid'] *= -1; // flag unreality  
   return $txs;
 }
 
@@ -293,9 +293,10 @@ function transaction_setup($info) {
 // (use r_asif instead) if (!isset($real)) $real = is_rTrader($payer) + 2 * is_rTrader($payee); // mark real versus AS IF 
   
   list ($payer_for, $payee_for) = is_array($for) ? $for : array($for, $for);
+  @$goods += 0; // avoid NULL
   unset($info['for']);
 
-  return array_merge($info, compact(u\ray('state creator created serial data payer_for payee_for channel')));
+  return array_merge($info, compact(u\ray('state creator created serial data payer_for payee_for channel goods')));
 }
 
 /**
@@ -422,6 +423,21 @@ function reset() {
 }
 
 /**
+ * Format old transaction info (for confirmation)
+ */
+function tx_args($info) {
+  global $cid;
+  extract($info, EXTR_PREFIX_ALL, 'old');
+
+  $tofrom = $old_payer == $cid ? t('to') : t('from');
+  $other = user_field('full_name', $old_payer == $cid ? $old_payee : $old_payer);
+  $amount = u\format_amount($old_amount);
+  $date = strftime('%m/%d/%Y', $old_created);
+  $real = ($old_xid > 0);
+  return compact(u\ray('tofrom other amount date real'));
+}
+
+/**
  * Return the real or ASIF transaction table name
  * @param int $uid1: uid of first member (DEFAULTs to cid)
  *   OR boolean $uid1: TRUE if real (NOTE that the administrator account (uid=1) cannot do real transactions)
@@ -429,8 +445,10 @@ function reset() {
  * @return: the real table name if the one user or both users (if specified) are rTraders, otherwise the asif table name
  */
 function t_table($uid1 = 'cid', $uid2 = '') {
-  if ($uid1 == 'cid') $uid1 = u\cid();
-  if ($uid1 == 1) $uid1 = FALSE; // administrator cannot do real transactions
+  if ($uid1 == 'cid') {
+    $uid1 = u\cid();
+    if ($uid1 == 1) $uid1 = FALSE; // administrator cannot do real transactions
+  }
   $real = $uid1 <= 1 ? $uid1 : (is_rTrader($uid1) and ($uid2 ? is_rTrader($uid2) : TRUE));
   return $real ? 'r_txs' : 'r_asif';
 }
@@ -457,13 +475,14 @@ function user_field($field_name, $who, $subs = array()) {
  *   negative integer: the relid, negated
  *   XXX.XXXXX: an account qid
  *   XXX:XXXXX: a relationship qid (the colon can also be presented as "deux points" -- "..")
+ * @param bool $colon_return_array: return an array if $uid has a colon in it, otherwise return a negative number (probably an xid)
  * @return FALSE if the uid or qid cannot be converted, otherwise:
  *   if the uid is integer >0: XXX.XXXXX
  *   if the uid is integer <0: XXX:XXXXX
  *   if the qid is XXX.XXXXX: the converted id
- *   if the qid is XXX:XXXXX: array(company uid, employee/rep uid)
+ *   if the qid is XXX:XXXXX: array(company uid, employee/rep uid OR a negative number (if $colon_return_array is FALSE)
  */
-function qid($uid = '') {
+function qid($uid = '', $colon_return_array = TRUE) {
   if (!$uid) $uid = u\cid();
   if (!$uid) return FALSE; // don't convert 0
   if (is_numeric($uid)) return R_SERVER_ID . ($uid < 0 ? (':' . u\n2a(-$uid, 5)) : ('.' . u\n2a($uid, 5))); 
@@ -474,10 +493,8 @@ function qid($uid = '') {
   list ($region, $iid) = explode($type, $uid); // separate into region and individual account uid or relation id
   if ($region != R_SERVER_ID) return FALSE;
   $id = u\a2n($iid);
-  if ($type == ':') {
-    $id *= -1;
-    return @array_values(db_lookup('main_uid, individual_uid', 'r_relations', 'relid=:id', compact('id')));
-  } elseif ($type == '.') return $id;
+  if ($type == '.') return $id;
+  if ($type == ':') return $colon_return_array ? @array_values(db_lookup('main_uid, individual_uid', 'r_relations', 'relid=:id', compact('id'))) : -$id;
   return FALSE;
 }
 
@@ -488,7 +505,7 @@ function is_rTrader($uid = '') {
 
 function db_q($sql, $args = array()) {
   if (@$args['xid'] < 0) {
-    $sql = str_replace('r_txs', 'r_asif', $sql);
+    $sql = str_replace(t_table(1), t_table(0), $sql);
     $args['xid'] *= -1;
   }
   return \db_query(u\get_constants($sql), u\prefix_keys(':', $args));

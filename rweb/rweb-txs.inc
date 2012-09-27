@@ -51,14 +51,12 @@ function txs_form($form, &$form_state, $period = '', $do = '') {
     $amount = number_format($one_amount, 2);
     if ($is_reward) list ($amount, $reward) = array('', $amount); // show interest and signup bonus as rewards
     list ($to_you, $from_you) = $taking ? array($amount, '') : array('', $amount);
-//    $state = ($one_state == TX_PENDING and ($one_amount < 0 xor $one_payee == $cid)) ? 'pending' : $states[$one_state];
     $state = ($one_state == TX_PENDING and $one_payee == $cid) ? 'pending' : $states[$one_state];
     $color = $colors[$state];
     $state = "<span style='color:$color;'>$state</span>";
-//    $button1 = (($one_payer == $cid xor $one_amount < 0) and $one_state == TX_PENDING) ? button('OK', "$base_path/transactions/$period/ok/$one_xid", 'Approve') : '';
-    $button1 = (!$taking and $one_state == TX_PENDING) ? button('OK', "$base_path/transactions/$real-$period/ok=$one_xid", tx_action('ok')) : '';
-    $button2 = (!$is_reward and !@$data['undone']) ? button(' X ', "$base_path/transactions/$real-$period/no=$one_xid", tx_action('no', $one_state, $taking)) : '';
-    $button3 = (($taking ? $can_sell : $can_buy) and !$is_reward) ? "<a href='$base_path/transactions/$real-$period/edit=$one_xid' title='Edit Purpose'><img src='{$base_path}images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
+    $button1 = (!$taking and $one_state == TX_PENDING) ? button('OK', "{$base_path}transactions/$real-$period/ok=$one_xid", tx_action('ok')) : '';
+    $button2 = (!$is_reward and !@$data['undone']) ? button(' X ', "{$base_path}transactions/$real-$period/no=$one_xid", tx_action('no', $one_state, $taking)) : '';
+    $button3 = (($taking ? $can_sell : $can_buy) and !$is_reward) ? "<a href='{$base_path}transactions/$real-$period/edit=$one_xid' title='Edit Purpose'><img src='{$base_path}images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
     $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
     $rows[] = array($tid, date('d-M', $one_created), $one_name, $from_you, $to_you, $state, $buttons, $one_purpose, $reward);
   }

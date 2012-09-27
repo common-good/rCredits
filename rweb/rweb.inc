@@ -17,10 +17,10 @@ require_once __DIR__ . '/../rcredits-api.inc';
 
 define('R_TOGGLE_JS', '
   function toggle(field) {
-    var yes=$("#" + field).value;
-    $("#" + field).value = !yes;
-    $("#" + field + "-YES").css("display", yes ? "none" : "inline-block");
-    $("#" + field + "-NO").css("display", !yes ? "none" : "inline-block");
+    field = "#" + field;
+    jQuery(field + "-YES").toggle();
+    jQuery(field + "-NO").toggle();
+    jQuery(field).val(jQuery(field + "-YES").is(":visible"));
   }
 ');
 
@@ -28,8 +28,7 @@ $GLOBALS['Web messages'] = array(
 //  'atid' => t('#@atid: '), // avoid duplicate verbage, don't say "transaction #"
 
   // reports
-  'report share change' => t('Sharing permission for account "@account_name" has been changed to "@permission".'),
-  'report new share' => t('You are now sharing this account with @who'),
+  'report new relation' => t('@who is now related to this account. You will need to adjust the permissions or other settings.'),
   'report new cell' => t('Cell number @number is now connected to this account.'),
   'report delete cell' => t('Cell number @number has been removed from this account.'),
   'your account is ready' => t('<p></p><p>Welcome to rCredits! Your account ID is @qid. Your@asif starting balance is @balance.</p><p>After you confirm your email address (by clicking the link in the email we sent you), come back here and log in.</p><p>Pretend to buy and sell just as you would in a typical month. We need that information, to make sure everyone has plenty of places to receive and spend their rCredits.</p><p>Experiment! Have fun! (and please let us know if you run into any glitches)'),
@@ -40,7 +39,7 @@ $GLOBALS['Web messages'] = array(
   'missing what' => t('For buying or selling actual goods and services, you must include a description. Otherwise select "cash/loan/etc.". Rebates and bonuses are intended as rewards for productive economic activity in rCredits. Note: for everyone\'s protection, the rCredits software automatically detects and penalizes attempts to "game" the system.'),
   'missing field' => t('Missing a required field: @field'),
   'no txs' => t('There are no transactions in that period.'),
-  'no shares' => t('This account is not yet shared with anyone.'),
+  'no relations' => t('There are not yet any relations for this account.'),
   'no cells' => t('This account has no related cell phones.'),
   'required field' => t('@field must not be blank.'),
   'bad name' => t('That is not a plausible name.'),
@@ -53,9 +52,8 @@ $GLOBALS['Web messages'] = array(
   'op canceled' => t('Operation Canceled.'),
   'request & demand' => t('Your standing request for rCredits is <b>@request</b><br>Total demand for rCredits overall is <b>@demand</b>'),
   'demand not yet' => t('You will be notified when there are some rCredits for you to buy with US Dollars.'),
-  'confirm share permission' => t('Are you sure you want to change the selected shares to "@permission"?'),
   'confirm delete cell' => t('Are you sure you want to remove the selected cell phones from this account?'),
-  'already shared' => t('You are already sharing with that account. If you want to change the permissions, check the box next to that account, choose the new permissions, and click "Go".'),
+  'already related' => t('That person is already related to this account. If you want to change the settings, find this person in the list and change the settings on that row.'),
   'already cell' => t('That cell phone (@number) is already connected to this account.'),
   'cell taken' => t('A cell phone can be connected to only one account. You are already using that cell phone (@number) in connection with account "@account_name". If you really want to switch that phone to this account, you must first sign in to the other account and release it.'),
   'bad routing number' => t('US bank routing numbers are 9 digits. Use the number on the lower left edge of your checks.'),
@@ -726,102 +724,118 @@ function bank_form_submit($form, &$form_state) {
 /**
  * Give someone access to the current account or mark them as an employee or owner.
  */
-function relation_form($form, &$form_state) {
+function relations_form($form, &$form_state) {
   global $cid;
   if ($confirm = sure_form($form_state)) return $confirm; // confirm only getUSD
   $account_identifiers = api\account_name($cid);
-  $header = u\ray('Person,Permission,Employee?,Owner?');
-//  $actions = $GLOBALS['share permissions']
+  $header = u\ray('Person,Employee?,Owner?,Permission');
+  $classes = u\array_prefix('rel-', u\ray('person employee owner permission'));
   
   $sql = <<<EOF
-    SELECT s.relid, u.name as username, u.full_name, s.permission, s.is_employee, s.is_owner
+    SELECT s.relid, u.full_name, s.permission, s.is_employee, s.is_owner
     FROM r_relations s RIGHT JOIN users u ON u.uid = s.individual_uid
     WHERE s.main_uid=:cid
-    ORDER BY username
+    ORDER BY u.full_name
 EOF;
   $result = r\db_q($sql, compact('cid'));
   $rows = array();
   while ($row = $result->fetchAssoc()) {
     extract($row);
-    $permission = ''; // dropdown($permission, $GLOBALS['share permissions'], $relid);
-//    $qid = r\qid($uid);
-    $rows["x$relid"] = array($full_name, $permission, toggle($is_employee, $relid), toggle($is_owner, $relid));
+    $original[$relid] = compact(u\ray('permission is_employee is_owner full_name'));
+    $permission = dropdown('permission', $permission, $GLOBALS['share permissions'], $relid);
+    $rows[] = array($full_name, toggle('is_employee', $is_employee, $relid), toggle('is_owner', $is_owner, $relid), $permission);
   }
-
-  $help = t("Use this form to mark someone as an employee or owner or to give someone access to this account.<br><br>For example, for a company account, you will want to give access to the employees who are authorized to buy or sell on behalf of the company. Then you will know who is responsible for any particular transaction.<br><br>Similarly, for your personal account, you may want to give \"read\" access to your accountant.<br><br>Individuals marked as employees are the ones who will get paid in rCredits when you use the Pay form to pay \"employees\".");
+  $form_state['original_settings'] = $original;
+  
+  $help = t("Use this form to mark someone as an employee or owner or to give someone access to this account. Individuals marked as employees are the ones who will get paid in rCredits when you use the Pay form to pay \"employees\".<br><br>For example, you might authorize some employees to buy or sell for your company. The system will track who does what. Or you might give your accountant \"read\" permission.");
   $subtext = '<span id="account-label">' . t('Current Account') . "</span></b><span id='account-identifiers'>$account_identifiers</span><br><br>$help";
 
   $attributes = array('id' => 'relations');
   $cols = array();
   foreach ($classes as $class) $cols[] = compact('class');
   $colgroups = array($cols);
-  $caption = $sticky = $empty = '';
-  $table = theme_table(compact(u\ray('header rows attributes caption colgroups sticky empty')));
+  $caption = $sticky = '';
+  $empty = tt('no relations');
+  $list = theme_table(compact(u\ray('header rows attributes caption colgroups sticky empty')));
   
   $form = array(
     'title' => form_field('item', t('Relations')),
     'subtext' => form_field('item', $subtext),
-//    'shares' => form_field('tableselect', '', '', array('header' => $headers, 'multiple' => TRUE, 'empty' => tt('no shares')), $list),
-    'change' => form_field('select', t('Change settings for the selected individuals:'), '', array(), $actions),
-    'go' => form_field('submit', NULL, t('Submit button'), 'Go'),
-
-    'new_share' => form_field('textfield', t('Share this account with another user:'), t("name, id, email, or phone"), autocomplete('')),
-    'new_permission' => form_field('select', '', '', dft(count($GLOBALS['share permissions']) - 1), $GLOBALS['share permissions']),
-    'new_go' => form_field('submit', NULL, t('Submit button'), 'Add'),
+    'new_person' => form_field('textfield', t('Add Someone:'), t("name, id, email, or phone"), autocomplete('')),
+    'list' => form_field('item', '', '', array('markup' => $list)),
+//    'new_permission' => form_field('select', '', '', dft(count($GLOBALS['share permissions']) - 1), $GLOBALS['share permissions']),
+    'go' => form_field('submit', NULL, t('Submit button'), 'Save Changes'),
   );
+
   drupal_add_js(R_TOGGLE_JS, array('type'=>'inline', 'scope'=>'footer'));
   return $form;
 }
 
-function toggle($name, $yes, $id) {
+function dropdown($name, $value, $options, $id) {
+  $name = "$name-$id";
+  return render($zot = array("$name-$id" => form_field('select', '', '', compact('value') + attrib(compact('name')), $options)));
+}
+
+function toggle($field, $value, $id) {
   $path = current_path();
-  $field_name = "$name-$id";
-  $hidden = array($field_name => form_field('hidden', '', '', $yes, array('id' => $field_name)));
-  $field = \render($hidden);
-  $b1 = button(' X ', "javascript:toggle('$field_name');", t('Change to "NO"'), 'local');
-  $b2 = button(' &#10004; ', "javascript:toggle('$field_name');", t('Change to "YES"'), 'local');
-  if (!$yes) list ($b1, $b2) = array($b2, $b1);
+  $name = $id = "$field-$id";
+  $input = \render($zot = array($id => form_field('hidden', '', '', attrib(compact(u\ray('id name value'))))));
+  $b1 = button(' - ', "toggle('$id');", t('Change to NO'), 'form-no');
+  $b2 = button(' + ', "toggle('$id');", t('Change to YES'), 'form-yes');
+  list ($yesvis, $novis) = $value ? array('visible', 'invisible') : array('invisible', 'visible');
   return <<<EOF
-    <div id='$field_name-YES' style='display:inline-block;'>$b1</div>
-    <div id='$field_name-NO' style='display:none;'>$b2</div>
+    <div class="$field-buttons">
+    <div id="$id-YES" class="$yesvis form-yes">Yes $b1</div>
+    <div id="$id-NO" class="$novis form-no">No &nbsp;$b2</div>
+    $input
+    </div>
 EOF;
 }
 
-function relation_form_validate($form, &$form_state) {
+function relations_form_validate($form, &$form_state) {
   global $cid;
   extract($form_state['values']);
-  if ($op == 'Go' and no_selection($shares)) {
-    if ($new_share) $op = 'Add'; else return say('nothing selected'); // user probably pressed Enter after specifying a new share
-  }
   if (confirming_v($form_state)) return;
   
-  if ($op == 'Go') {
-    $permission = $GLOBALS['share permissions'][$change_permission];
-    confirm(tt('confirm share permission', compact('permission')), $form_state);
-  } else { // $op == 'Add'
-    if (blank_field(compact('new_share'))) return;
-    $uid = api\identify($new_share, FALSE, 'no self-sharing');
-    if (is_array($uid)) return say($uid, 'new_share'); // error returned by identify()
+  if (@$new_person) {
+    $uid = api\identify($new_person, FALSE, 'no self-relation');
+    if (is_array($uid)) return say($uid, 'new_person'); // error returned by identify()
+    if (api\access('company', $uid)) return say('no company relations', 'new_person');
     $already = r\db_lookup('1', 'r_relations', 'main_uid=:cid AND individual_uid=:uid', compact('cid', 'uid'));
-    if ($already) return say('already shared', 'new_share');
+    if ($already) return say('already related', 'new_person');
     $form_state['values']['individual_uid'] = $uid; // save for submission handling
   }
+//  }
 }
 
-function relation_form_submit($form, &$form_state) {
+function relations_form_submit($form, &$form_state) {
   global $cid;
   if (confirming_s($form_state)) return;
   $main_uid = $cid;
   
   extract($form_state['values']);
-  if ($op == 'Add') {
-    $permission = $new_permission;
+  $original = $form_state['original_settings'];
+
+  if (@$individual_uid) {
+    $permission = 0; // default to no permissions
     $zot = \drupal_write_record('r_relations', compact(u\ray('main_uid individual_uid permission')));
     $who = api\user_field('full_name', $individual_uid);
-    return say('report new share', compact('who'));
+    say('report new relation', compact('who'));
   }
+
+  $changes = array();
+  foreach ($_POST as $key => $value) { // Drupal doesn't pass along our hidden inputs, so get them directly from $_POST
+    if (!strpos($key, '-')) continue;
+    list ($key, $relid) = explode('-', $key); // eg split permission-2 
+    if (!in_array($key, u\ray('permission is_employee is_owner'))) return NULL; // hack attempt?
+    if ($value != @$original[$relid][$key]) {
+      $changes[$relid][$key] = strtr($value, array('true' => 1, 'false' => 0));
+      $changes[$relid]['full_name'] = $original[$relid]['full_name']; // save for update reporting
+    }
+  }
+  if (!empty($changes)) \drupal_set_message(api\update_relations($changes));
   
-  // $op == 'Go'
+/*
   $permission = $GLOBALS['share permissions'][$change_permission];
   foreach ($shares as $key => $uid) if ($uid) {
     $individual_uid = substr($uid, 1); // ignore the leading 'x'
@@ -831,7 +845,7 @@ function relation_form_submit($form, &$form_state) {
     } else r\db_q("DELETE FROM r_relations $where", compact(u\ray('individual_uid main_uid')));
     $account_name = api\user_field('full_name', $individual_uid);
     say('report share change', compact(u\ray('account_name permission')));
-  }
+  }*/
 }
 
 /**
@@ -919,7 +933,8 @@ function cell_form_submit($form, &$form_state) {
  * Modify the user registration form.
  */
 function register_form(&$form, &$form_state) {
-  $account_types = u\ray('Personal Commercial Non-profit/Government');
+  $account_types = u\ray('Personal,Commercial,Public Non-profit/Government');
+  $account_type_help = t('NOTE: If you choose "@commercial" or "@nonprofit", your contact information and photo will be public.', array('@commercial' => $account_types[1], '@nonprofit' => $account_types[2]));
   $my_country = $my_state = '';
   extract($form_state['input'], EXTR_PREFIX_ALL, 'my'); // overwrites my_country and my_state with input values, on input error
   $onchange = "print_state('edit-state',this.selectedIndex,'');";
@@ -928,7 +943,7 @@ function register_form(&$form, &$form_state) {
 /*    'phone' => form_field('textfield', t('Phone:'), t('Your primary phone (landline or cell)'), dft($my_phone ? u\format_phone($my_phone): '')),
     'fax' => form_field('textfield', t('Fax:'), t(''), dft($my_fax)),
     'website' => form_field('textfield', t('Website:'), t(''), dft($my_website)), */
-    'account_type' => form_field('select', t('Account type:'), '', dft('Personal'), $account_types),
+    'account_type' => form_field('select', t('Account type:'), $account_type_help, dft('Personal'), $account_types),
     'country' => form_field('select', t('Country:'), t(''), dft($my_country) + attrib(compact('onchange'))),
     'postal_code' => form_field('textfield', t('Postal code:'), t(''), required()),
     'state' => form_field('select', t('State:'), t(''), dft($my_state)),
@@ -991,10 +1006,10 @@ function directory_form($form, &$form_state) {
   $list = ($region !== FALSE or $which) ? directory_list($which, $region) : '';
   
   $form = array(
-    'title' => form_field('item', t('Find businesses in your region')), // should be 'Find member businesses in your region'
+    'title' => form_field('item', t('Find companies in your region')), // should be 'Find member businesses in your region'
 //    'subtext' => form_field('item', t('for a country name or postal code...')),
-    'which' => form_field('textfield', t('Search for:'), t('Type part of business name or industry category'), dft($which) + autocomplete('industry')),
-    'region' => form_field('textfield', t('Where:'), t('Type the start of your postal code or country name'), dft($region)),
+    'which' => form_field('textfield', t('Search for:'), t('Type part of company name or industry category'), dft($which) + autocomplete('industry')),
+    'region' => form_field('textfield', t('Where:'), t('Type the first few characters of your postal code'), dft($region)), // or country name
     'submit' => form_field('submit', NULL, t('Submit button'), t('Go')),
     'item' => form_field('item', '', '', $list),
   );
@@ -1018,6 +1033,7 @@ function directory_form_submit($form, &$form_state) {
 function directory_list($which, $region) {
   global $base_url;
   $field = is_numeric($region) ? 'postal_code' : 'country';
+  $which = u\ignore_suffix($which, 'ants ant ian es ers ing er or ion s');
   $which = str_replace(' ', '%', \db_like(" $which ")); // allow abbreviations of each word
   $region = \db_like($region) . '%';
   $rows = array();
@@ -1038,11 +1054,11 @@ EOF;
       $headed = (@$rows[$i+1]['industry'] == $industry); // header for 2 or more businesses in the same industry
       $list .= $headed ? ($list ? '</ul>' : '') . "<ul><h2>$cat</h2>\n" : '<li>&nbsp;</li>';
     }
-    $pay = button('Pay', "pay/$short_name");
-    $chg = button('Chg', "charge/$short_name");
+    $pay = button('pay', "pay/$short_name");
+    $chg = button('chg', "charge/$short_name");
 //    if ($website) $full_name = "<a href='http://$website' target='_blank'>$full_name</a>";
     $full_name = "<a href='$base_url/member/$short_name'>$full_name</a>";
-    $item = "$pay$chg$full_name";
+    $item = "$pay$chg $full_name";
     if (!$headed) $item = "Other: $item <span>($industry)</span>";
     $list .= "<li>$item</li>\n";
   }
@@ -1106,11 +1122,17 @@ function basic_account_info() {
   return form_field('item', "<a href='$base_url/user/$cid/edit'>$link_text</a>" . t(' (including email and profile picture)'));
 }
 
-function button($text, $href = '', $title = '', $type = 'local form-submit') {
+function button($text, $href = '', $title = '', $type = '') {
   $title = htmlspecialchars($title);
+  $type = 'local form-submit' . ($type ? " $type" : ''); // Drupal prefixes this with 'form-'
   $markup = render($zot = array($text => form_field('button', '', '', array('value' => $text, 'button_type' => $type))));
   $markup = str_replace('"submit"', '"button"', $markup); // compensate for Drupal pigheadedness
-  if ($href) $markup = "<a href='$href' title='$title'>$markup</a>";
+  if ($href) {
+    if (strpos($href, 'http://') !== FALSE or substr($href, 0, 1) == '/') $href = "document.location.href='$href';";
+    $name = 'name="op"';
+    $markup = str_replace($name, ($type == 'local' ? '' : "$name ") . "onclick=\"$href\"", $markup);
+//  if ($href) $markup = "<a href=\"$href\" title=\"$title\">$markup</a>";
+  }
   return $markup;
 }
 
@@ -1220,6 +1242,7 @@ function sure_form(&$form_state, $title = 'Please Confirm') {
 
   return $form;
 }
+
 /*
 function detour($detour_via, $detour_args, $whence = '', $modal = TRUE) {
   svar('detour_via', $detour_via);
@@ -1349,8 +1372,14 @@ function say($index, $args = array(), $error_field = '') {
 }
 
 function web_access($access, $uid = '') {
+//return FALSE; // debug
   u\cid(svar('cid'), TX_WEB); // remember who we are (the only reason for this function)
   return api\access($access, $uid);
+}
+
+function cid($uid = 'get', $whence = '') {
+//  global $cid; $cid = 1;
+  return $cid + 0;
 }
 
 // one-line functions that need no explanation

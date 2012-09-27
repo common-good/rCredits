@@ -76,7 +76,7 @@ class call {
     } elseif ($todo == 'setup email' and !$account->mail) {
       setup_email($account, $this->message);
       api\todo($this->number, '', '');
-      $balance = u\format_amount(api\give_signup_incentive($this->uid), TX_SMS);
+      $balance = u\format_amount(api\give_signup_incentive($this->uid));
       return tt('your account is ready', compact('balance'));
 /*    } elseif (!\user_access('transact via sms', $account)) { // user does not have permission to use the rCredits SMS interface
       // send the user an email here?
@@ -224,7 +224,7 @@ class call {
    */
   function do_get() {
     extract($this->parms, EXTR_PREFIX_ALL, 'my');
-    list ($message, $args, $confirm) = api\get(strtolower($my_rusd), $my_amount, $this->uid, $this->confirmed, TX_SMS);
+    list ($message, $args, $confirm) = api\get(strtolower($my_rusd), $my_amount, $this->uid, $this->confirmed);
     return $confirm ? $this->confirm($message, $args) : tt($message, $args);
   }
 
@@ -244,7 +244,7 @@ class call {
     extract($this->parms, EXTR_PREFIX_ALL, 'my');	// who and/or tofrom
 
     if ($this->confirmed) {
-      list ($message, $args) = api\undo_tx($my_xid, TX_SMS);
+      list ($message, $args) = api\undo_tx($my_xid);
       return tt($message, $args);
     }
     
@@ -261,15 +261,9 @@ class call {
       } else $where .= '(payee=:other_uid OR payer=:other_uid)';
     }
 
-    if (!($result = api\last_tx($where))) return tt('undo no match');
-    extract($result, EXTR_PREFIX_ALL, 'old');
-
-    $this->parms['xid'] = $old_xid;
-    $tofrom = $old_payer == $cid ? t('to') : t('from');
-    $other = r\user_field('full_name', $old_payer == $cid ? $old_payee : $old_payer);
-    $amount = u\format_amount($old_amount);
-    $date = strftime('%m/%d/%Y', $old_created);
-    return $this->confirm('undo', compact(u\ray('other amount date')));
+    if (!($result = api\last_tx($where, compact(u\ray('cid other_uid'))))) return tt('undo no match');
+    $this->parms['xid'] = $result['xid'];
+    return $this->confirm('undo', r\tx_args($result));
   }
 
   /**
@@ -292,26 +286,20 @@ class call {
     if (isset($my_amount)) return $this->do_transfer('payment'); // complete syntax
     
     if ($this->confirmed) {
-      list ($message, $args) = api\pay_invoice($my_xid, TX_SMS);
+      list ($message, $args) = api\pay_invoice($my_xid);
       return tt($message, $args);
     }
     
-    $pending = TX_PENDING;
-    $where = 'state=:pending AND payer=:cid';
+    $where = 'state=:TX_PENDING AND payer=:cid';
     if (isset($my_who)) {
       if (is_array($other_uid = api\identify($my_who))) return tt($other_uid); // return if error
       $where .= ' AND payee=:other_uid';
     }
-    if(!($result = api\last_tx($where, compact(u\ray('my_xid pending cid other_uid'))))) return tt('no matching invoice');
-
-    extract($result, EXTR_PREFIX_ALL, 'old');
-    $this->xid = $old_xid; // save for after possible confirmation
-    $other = r\user_field('full_name', $old_payee);
-    $amount = u\format_amount($old_amount);
-    $date = strftime('%m/%d/%Y', $old_created);
-    return $this->confirm('pay invoice', compact(u\ray('other amount date')));
+    if(!($result = api\last_tx($where, compact(u\ray('cid other_uid'))))) return tt('no matching invoice');
+    $this->parms['xid'] = $result['xid'];
+    return $this->confirm('pay invoice', r\tx_args($result));
   }
-
+  
   /**
    * Create a transaction for the caller.
    */

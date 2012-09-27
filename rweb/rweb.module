@@ -50,6 +50,7 @@ function rweb_block_view($delta = '') {
  * Implements hook_menu().
  */
 function rweb_menu() {
+  global $cid;
   $anyone = array('access callback' => TRUE, 'access arguments' => NULL);
   $modal = array('modal' => TRUE);
   
@@ -64,7 +65,7 @@ function rweb_menu() {
     'exchange' => rWeb\menu('Get rCredits / USD', MENU_NORMAL_ITEM, 'show_form', array('exchange'), 'manage account'),
     'directory' => rWeb\menu('Directory', MENU_NORMAL_ITEM, 'show_form', array('directory'), 'sell'),
     'cell-access' => rWeb\menu('Cell Access', MENU_NORMAL_ITEM, 'show_form', array('cell'), 'manage account'),
-//    'relations' => rWeb\menu('Relations', MENU_NORMAL_ITEM, 'show_form', array('relations'), 'manage account'),
+    'relations' => rWeb\menu('Relations', MENU_NORMAL_ITEM, 'show_form', array('relations'), 'manage account'),
     'company-info' => rWeb\menu('Company Info', MENU_NORMAL_ITEM, 'show_form', array('company'), 'company'),
     'bank-info' => rWeb\menu('Bank Info', MENU_NORMAL_ITEM, 'show_form', array('bank'), 'manage account'),
     'contact-info' => rWeb\menu('Contact Info', MENU_NORMAL_ITEM, 'show_form', array('contact_info'), 'manage account'),

@@ -68,7 +68,8 @@ $GLOBALS['SMS messages'] = array(
   'not a feature' => t('"@feature" is not a feature.'),
   'wrong nonce' => t('That is not the expected confirmation response. Try again (start over).'),
   'no self-trading' => t("You can't exchange rCredits with yourself."),
-  'no self-sharing' => t("You can't share an account with itself."),
+  'no self-relation' => t("You can't relate yourself to your own account."),
+  'no company relations' => t("Only individuals can be related to this account."),
 // not used  'no self-undo' => t("You can't undo transactions with yourself."),
   'no matching invoice' => t("There is no such invoice to be paid."),
   'undo no match' => t("You have no matching transactions to undo."),
@@ -135,7 +136,7 @@ $GLOBALS['SMS commands'] = array( // these can be abbreviated by the caller
   'information' => array('information', 'balance'),
   // name
   // be
-  // lost
+  // lost (only need this for phone)
   'helpme' => '(?:help me|helpme)?(?: %feature)?',
   'more' => 'more', // continuation of help
   'stop' => 'stop|unsubscribe|cancel|quit', // passed from SMS Gateway

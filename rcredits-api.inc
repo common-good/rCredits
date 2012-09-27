@@ -35,7 +35,7 @@ use \rCredits\Utilities as u;
 
 function api2($op, $args, $success = 1) {
   $op = 'rCredits\\API\\' . $op;
-  if (function_exists($op)) api_out($op($args) + compact('success')); else api_error('unknown op');
+  if (function_exists($op)) api_out(compact('success') + $op($args)); else api_error('unknown op'); // args can override success
 }
 
 function api_error($message, $success = 0) {api_out(compact('success', 'message'));}
@@ -68,10 +68,12 @@ function be_check($uid) {
  *   $message: an error message or help message to display on the device; or not set
  */
 function smart_api() {
-  global $cid, $userid;
+  global $cid, $userid, $channel;
+  $channel = TX_SMART;
   u\log('rSmart', 'in', $_POST);
   if (!(@$args = (array) json_decode($_POST['json']))) api_error('no json');
   extract($args, EXTR_PREFIX_ALL, 'q');
+  if (@$q_op != 'reset') // DEBUG
   if (@$q_op != 'first_time') {
     if (!@$q_code) api_error('no code given');
     if (!($userid = r\db_lookup('uid', 'r_smarts', 'code=:q_code', compact('q_code')))) api_error('unknown device');
@@ -88,6 +90,11 @@ function smart_api() {
     $args += compact(u\ray('uid company_uid rep_uid'));
   }
   api2($op, $args);
+}
+
+function smart_reset($args) {
+  r\db_q('DELETE FROM r_smarts WHERE 1');
+  return array();
 }
 
 /*
@@ -112,7 +119,7 @@ function smart_first_time($args) {
   if (!($account = \user_load(r\qid(@$q_my_id)))) api_error('unknown user');
   if (@!$q_password) api_error('login error');
   if (!user_check_password($q_password, $account)) api_error('bad login'); // make these two error messages distinct but obscure
-  $code = user_hash_password(uniqid($q_my_id, TRUE));
+  $code = user_hash_password(uniqid($q_my_id, TRUE)) . '/'; // add a slash to make sure slashes get handled properly
   $uid = $account->uid;
   $device = t('Smart Device');
   \drupal_write_record('r_smarts', compact(u\ray('uid code device'))); // no way to tell if it's the same device as others
@@ -146,9 +153,11 @@ function smart_startup($args) {
  *   other_balance: the current balance of the company if it's a company, otherwise of the individual
  */
 function smart_identify($args) {
+  global $cid;
   extract($args, EXTR_PREFIX_ALL, 'q');
   $full_name = \user_load(@$q_uid ?: $q_rep_uid)->full_name; // the account-holder or rep's name
   $uid = @$q_uid ?: $q_company_uid;
+  if ($uid == $cid) api_error(r\Web\tt('no self-trading'));
   $account = \user_load($uid); // the individual or company account
   $country = $account->country;
   $location = $account->city . ', ' . ($country == 'United States' ? u\state_abbrev($account->state) : $country);
@@ -166,7 +175,7 @@ function smart_identify($args) {
  */
 function smart_photo($args) {
   extract($args, EXTR_PREFIX_ALL, 'q');
-  $pic_filename = profile_picture(@$q_uid ?: $q_rep_id);
+  $pic_filename = r\Web\profile_picture(@$q_uid ?: $q_rep_id);
   $pic = file_get_contents($pic_filename);
   exit($pic);
 }
@@ -190,10 +199,44 @@ function smart_transact($args) {
   $uid = @$q_uid ?: @$q_company_uid;
   list ($index, $subs, $zot) = transfer($q_type, $uid, $q_amount, $q_purpose, TRUE);
   $tx_id = r\qid($subs['xid']); // return the transaction id as a qid (globally unique transaction id) (: means As-If)
-  $real = $subs['real'];
+  list ($my_balance, $other_balance) = smart_balances($uid, $subs['real']);
+  $message = r\Web\tt($index, $subs);
+  //if (!@$subs['success'])
+  return compact(u\ray('tx_id my_balance other_balance message'));
+}
+
+function smart_balances($uid, $real) {
   $my_balance = credit_info(compact('real'))->balance;
   $other_balance = credit_info(compact('real', 'uid'))->balance;
-  return compact(u\ray('tx_id my_balance other_balance'));
+  return array($my_balance, $other_balance);
+}
+
+/*
+ * Undo the specified transaction (perhaps tentatively)
+ * @param array $args:
+ *   account_id: the qid for an individual or company and rep
+ *   tx_id: qid of the transaction to undo
+ *   confirmed: TRUE if user has already okayed this undo
+ * @return (only if confirmed is TRUE):
+ *   tx_id: qid of offsetting transaction, if any (which could in turn be undone). Undefined if failure. 
+ *     Otherwise, tx_id not set means transaction was simply deleted, so there is no longer any transaction that can be undone.)
+ *   my_balance: device owner's new balance
+ *   other_balance: the new balance of the company if it's a company, otherwise of the individual
+ */
+function smart_undo($args) {
+  extract($args, EXTR_PREFIX_ALL, 'q');
+  $xid = r\qid($q_tx_id, FALSE);
+  if ($q_confirmed) {
+    list ($message, $args) = undo_tx($xid);
+    $message = r\Web\tt($message, $args);
+    if (!@$args['success']) api_error($message);
+    if ($new_xid = @$args['xid']) $tx_id = r\qid($new_xid);
+    list ($my_balance, $other_balance) = smart_balances($args['other_uid'], $xid > 0);
+  } else {
+    if (!($result = last_tx('xid=:xid', compact('xid')))) api_error(r\Web\tt('undo no match'));
+    $message = r\Web\tt('confirm undo', r\tx_args($result));
+  }
+  return compact(u\ray('message tx_id my_balance other_balance'));
 }
 
 /**
@@ -330,6 +373,36 @@ EOF;
 }
 
 /**
+ * Update relations
+ * @param array $updates: list of records to update, indexed by relid
+ *   each element is an associative array of new values, keyed by field name
+ *   if a record is to be updated to all zeros, it is simply deleted.
+ * @return string: a report of what got updated
+ */
+function update_relations($updates) {
+  $report = '';
+  foreach ($updates as $relid => $data) {
+    $full_name = $data['full_name'];
+    unset($data['full_name']); // don't try to sum full_name
+    $changes = '';
+    $relid_sub = $subs = compact('relid');
+//    $full_name = r\db_lookup('u.full_name', 'r_relations r INNER JOIN users u ON r.individual_uid=u.uid', $crit, $relid_sub);
+    foreach ($data as $field => $value) {
+      $changes .= ($changes ? ',' : '') . "$field=:$field";
+      $subs += array($field => $value);
+    }
+    $crit = 'relid=:relid';
+    r\db_q("UPDATE r_relations SET $changes WHERE $crit", $subs);
+
+    if (!array_sum($data) and !r\db_lookup('permission+is_employee+is_owner', 'r_relations', $crit, $relid_sub)) {
+      r\db_q("DELETE FROM r_relations WHERE $crit", $relid_sub);
+      $report .= t('Deleted relation with full_name<br>', compact('full_name'));
+    } else $report .= t('Updated settings for full_name<br>', compact('full_name'));
+  }
+  return $report;
+}
+
+/**
  * Undo the given transaction.
  * Situations:
  *   Transaction PENDING or DENIED
@@ -351,7 +424,7 @@ function undo_tx($xid, $real = 'bug') {
   
   $fields = 'state, creator, amount, payer, payee, data';
   $old_record = last_tx('xid=:xid', compact('xid'));
-  if (empty($old_record)) return array('no such tx', array()); // $cid IN is a double check (might be an xid in r_asif)
+  if (empty($old_record)) return array('no such tx', array());
   extract($old_record);
   $old_tid = xid2tid($xid);
   $tofrom = $payer == $cid ? t('to') : t('from');
@@ -404,7 +477,7 @@ EOF;
   }
 
   $amount = u\format_amount($amount);
-  return array("report undo", compact(u\ray('old_tid new_tid amount other tofrom action')));
+  return array("report undo", compact(u\ray('old_tid new_tid amount other tofrom action other_uid')));
 }
 
 /**
@@ -484,7 +557,7 @@ function pay_invoice($xid) {
 /**
  * Create a transaction
  * @param string $ttype: payment, charge, or invoice payment
- * @param int $other_uid: user id of the other party
+ * @param int $other_uid: user id or (if negative) relid of the other party
  * @param numeric $requested_amount: the transaction amount
  * @param string $for OR array($payer_for, $payee_for): description of the transaction's purpose (user input)
  * @param bool $confirmed: has this transaction been confirmed by the user? (default TRUE, used only for SMS interface)
@@ -506,6 +579,7 @@ function transfer($ttype, $uid, $requested_amount, $for, $confirmed = TRUE, $rew
   if (is_array($ttype)) extract($ttype);
   
   global $cid;
+  if ($uid == $cid) return array('no self-trading', array(), FALSE);
   $real = @$rewards['xid'] < 0 ? FALSE : (r\is_rTrader() and r\is_rTrader($uid));
   $taking = ($ttype == 'charge');
   $access = $taking ? 'sell' : 'buy and sell';
@@ -881,7 +955,7 @@ function last_tx($where = 1, $subs = array(), $cache = FALSE) {
   $table = r\t_table();
   $sql = "SELECT * FROM $table WHERE $cid IN (payer, payee) AND ($where) ORDER BY xid DESC LIMIT 1"; // make sure it's for $cid
   $result = r\db_q($sql, $subs)->fetchAssoc();
-  if ($result and $table == 'r_asif') $result['xid'] *= -1; // flag unrealness
+  if ($result and $table == r\t_table(0)) $result['xid'] *= -1; // flag unrealness
   return $result;
 }
 
@@ -905,7 +979,8 @@ function account_name($uid) {
   
   extract((array) \user_load($uid), EXTR_PREFIX_ALL, 'my');
   $qid = r\qid($uid);
-  return ": $my_full_name ($qid) $my_mail";
+//  return ": $my_full_name ($qid) $my_mail";
+  return ": $my_full_name ($qid)";
 }
 
 /**

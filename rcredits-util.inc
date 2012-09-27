@@ -215,7 +215,6 @@ function diff($a, $b) {
 function tt($message, $subs = array(), $interface = 'SMS') {
   if (is_array($message)) list ($message, $subs) = $message;
   if (!$subs) $subs = array();
-  if (strpos($message, '@asif') !== FALSE and isset($subs['asif'])) $subs['asif'] = r\is_rTrader() ? '' : R_ASIF_TEXT;
   $messages = explode('|', $message);
   foreach ($messages as $i => $message) {
     if (isset($GLOBALS["$interface messages"][$message])) {
@@ -223,6 +222,10 @@ function tt($message, $subs = array(), $interface = 'SMS') {
     } else {    
       $model = $GLOBALS['SMS messages'][$message];
       if ($p = strpos($model, '. Type ')) $model = substr($model, 0, $p + 1); // don't tell the user to type something unless it's SMS
+    }
+    if (strpos($model, '@asif') !== FALSE and !@$subs['asif']) {
+      $real = isset($subs['real']) ? $subs['real'] : r\is_rTrader();
+      $subs['asif'] = $real ? '' : R_ASIF_TEXT;
     }
     $messages[$i] = strtr($model, prefix_keys('@', $subs));
   }
@@ -242,6 +245,12 @@ function nonce() {
   if (strpos(". $impossible ", " $nonce ")) return nonce(); // reserved word? try again
   if (strlen($nonce) > 6) return nonce(); // too long
   return $nonce;
+}
+
+function ignore_suffix($s, $suffixes) {
+  $suffixes = preg_replace('/\W+/', ' ', $suffixes);
+  $pattern = str_replace(' ', ' |', trim($suffixes));
+  return trim(preg_replace("`([^ ])($pattern )`sim", '$1 ', " $s "));
 }
 
 /**
@@ -339,6 +348,7 @@ function log($log, $type = FALSE, $info = FALSE) {
  * @return numeric $cid: uid of account currently in use (may be zero, if not logged in)
  * NOTE: do NOT set up cid unless specifically requests, leaving caller responsible for storing and retrieving
  * from a SESSION variable.
+ * @NOTE: this function sometimes drives a PHP bug that causes a system error (collision with global $cid?)
  */
 function cid($uid = 'get', $whence = '') {
   global $user, $userid, $cid, $channel;
