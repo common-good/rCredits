@@ -81,7 +81,7 @@ function rcredits_im_send($key, &$message, $subs) {
  */
 function rcredits_mail($key, &$message, $subs) {
     $language = $message['language'];
-//    $data['user'] = \user_load($cid);
+//    $data['user'] = \user_load($cuid);
 //    user_mail_tokens($variables, $data, compact('language')); // adds links for password reset and account cancelation
     
     if (rcredits_im_send($key, $message, $subs)) return; // If we can send by instant-message, do not send by email.

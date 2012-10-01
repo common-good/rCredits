@@ -113,11 +113,12 @@ function for_cash($for) {
  * A is the zero digit, B is 1, etc.
  * @param int $n: the integer to represent
  * @param int $len: the length of the string to return
+ *   <=0 means length >=-$len
  * @param int $base: the radix (defaults to 26).
  */
 function n2a($n, $len, $base = 26) {
   $result = '';
-  for ($i = 0; $i < $len; $i++) {
+  for ($i = 0; ($len > 0 ? ($i < $len) : ($n > 0 or $i < -$len)); $i++) {
     $digit = $n % $base;
     $result = chr(ord("A") + $digit) . $result;
     $n = (int) ($n / $base);
@@ -313,6 +314,71 @@ function get_constants($string) {
   return strtr($string, $map);
 }
 
+/**
+ * Assert an expectation or check parameters for validity
+ * Throw an Exception if the expectation is not met.
+ * call by:
+ *   expect($assertion, $message, $return)
+ *   expect($args, $types, $return) OR
+ * @param boolean $assertion: a statement to assert
+ * @param string $message: message to display if assertion is FALSE
+ *
+ * @param array $args: associative array of variables, indexed by variable name, for which to check types
+ * @param string $types: a corresponding space-delimited array of expected types, 
+ *   each of which may in turn be a list of types delimited by '&' or a list of such lists as options, delimited by '|'.
+ *
+ * @param bool $return: return the error message rather than throwing it
+ * @return string (if $return is TRUE): an error message or '' (no error)
+ */
+function expect($assertion, $message = '', $return = FALSE) {
+  if (is_array($assertion)) {
+    list ($args, $types) = array($assertion, $message); // for clarity
+//    expect(compact(ray('args types')), 'assoc string'); // can't do this because infinite recursion
+    $types = array_combine(array_keys($args), explode(' ', $types)); // not ray() here, $types may have '|'
+    foreach ($args as $key => $value) if ($error = expect1($key, $value, $types[$key], $return)) return $error;
+  } elseif (!$assertion) {
+    if ($return) return $message; else throw new \Exception($message);
+//    expect(compact(ray('assertion message')), 'bool string&notempty'); // can't do this because infinite recursion
+  }
+  return '';
+}  
+
+function expect1($arg, $value, $type, $return) {
+//  expect(compact(ray('arg type')), 'name string'); // can't do this because infinite recursion
+
+  $msg = "Expected $arg ('$value') to be type '$type'.";
+  if (strpos($type, '|')) {
+    foreach (explode('|', $type) as $one) if (expect1($arg, $value, $one, TRUE) == '') return '';
+    expect(FALSE, $msg);
+  }
+  if (strpos($type, '&')) {
+    foreach (explode('&', $type) as $one) if ($error = expect1($arg, $value, $one, $return)) return $error;
+    return '';
+  }
+  
+  switch ($type) {
+    case 'array': return expect(is_array($value), $msg, $return);
+    case 'assoc': 
+      expect(is_array($value), $msg, $return);
+      foreach ($value as $key => $one) expect1("$arg key", $key, 'name', $return);
+      return;
+    case 'bool': return expect(is_bool($value), $msg, $return);
+    case 'email': return expect(valid_email_address($value), $msg, $return);
+    case 'empty': return expect(empty($value), $msg, $return);
+    case 'float': return expect(is_float($value), $msg, $return); // don't use is_float()?
+    case 'id': return expect(is_id($value), $msg, $return);
+    case 'int': return expect(my_int($value), $msg, $return); // don't use is_int()
+    case 'name': return expect(preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $value), $msg, $return);
+    case 'notempty': return expect(!empty($value), $msg, $return);
+    case 'notnull': return expect(!is_null($value), $msg, $return);
+    case 'qid': return expect(is_qid($value), $msg, $return);
+    case 'rid': return expect(is_rid($value), $msg, $return);
+    case 'string': return expect(is_string($value), $msg, $return);
+    case 'zid': return expect(my_int($value) and $value !== 0, $msg, $return);
+  }
+  throw new \Exception('bad type: ' . $msg);
+}
+
 /** 
  * Log the message and return it.
  * This makes it easy for tests to see what was done
@@ -322,7 +388,8 @@ function get_constants($string) {
  * @param array $info: the information to log
  * @return the (possibly updated) log array
  */  
-function log($log, $type = FALSE, $info = FALSE) {
+function log($type = FALSE, $info = FALSE) {
+  global $channel; $log = $channel;
  //$type='', $message='', $number='', $nonce=''
   $log_filename = "$log.log";
 //    $log = file_exists($log_filename) ? file_get_contents($log_filename) : '';
@@ -340,25 +407,6 @@ function log($log, $type = FALSE, $info = FALSE) {
   }
   return $log;
 }  
-
-/**
- * Return the account in use and maybe specify which account to use.
- * @param numeric $uid: uid of account to use (default just return the current value)
- * @param numeric $whence: channel through which we are setting up the account (optional)
- * @return numeric $cid: uid of account currently in use (may be zero, if not logged in)
- * NOTE: do NOT set up cid unless specifically requests, leaving caller responsible for storing and retrieving
- * from a SESSION variable.
- * @NOTE: this function sometimes drives a PHP bug that causes a system error (collision with global $cid?)
- */
-function cid($uid = 'get', $whence = '') {
-  global $user, $userid, $cid, $channel;
-  if ($uid != 'get') {
-    if (!@$userid) $userid = $user->uid;
-    $cid = $uid ?: $userid;
-    if ($whence) $channel = $whence;
-  }
-  return $cid + 0;
-}
 
 /*
 function import_gfld() {
@@ -463,4 +511,7 @@ function abbreviates($s, $string) {return (substr($string, 0, strlen($s)) == $s)
 function prlog($log = 'rcredits') {print_r(log($log));}
 function order($first_first, $choice1, $choice2) {return $first_first ? array($choice1, $choice2) : array($choice2, $choice1);}
 function wargs($s, $args, $prefix = '') {return strtr($s, prefix_keys($prefix, $args));} // for debugging
-
+function my_int($n) {return (is_numeric($n) and $n == (int) $n);}
+function is_id($id) {return (my_int($id) and $id > 0);}
+function is_rid($rid) {return (is_array($rid) and array_keys($rid) == array(0, 1) and is_id($rid[0]) and is_id($rid[1]));}
+function is_qid($qid) {return preg_match('/^[A-Z]{3}(\.|\:)[A-Z]+$/', $qid);}

@@ -1,0 +1,38 @@
+--- 0autocomplete.js	2012-04-26 06:41:32.000000000 -0400
++++ autocomplete.js	2012-09-29 13:17:27.932750500 -0400
+@@ -193,7 +193,7 @@
+   $(this.popup).css({
+     top: parseInt(position.top + this.input.offsetHeight, 10) + 'px',
+     left: parseInt(position.left, 10) + 'px',
+-    width: $input.innerWidth() + 'px',
++    width: 2 * $input.innerWidth() + 'px',
+     display: 'none'
+   });
+   $input.before(this.popup);
+@@ -269,11 +269,7 @@
+   this.searchString = searchString;
+ 
+   // See if this string needs to be searched for anyway.
+-  searchString = searchString.replace(/^\s+|\s+$/, '');
+-  if (searchString.length <= 0 ||
+-    searchString.charAt(searchString.length - 1) == ',') {
+-    return;
+-  }
++  if (searchString.charAt(searchString.length - 1).match(/\W/)) return; // (patch by CGF) ignore punctuation
+ 
+   // See if this key has been searched for before.
+   if (this.cache[searchString]) {
+@@ -287,11 +283,10 @@
+   this.timer = setTimeout(function () {
+     db.owner.setStatus('begin');
+ 
+-    // Ajax GET request for autocompletion. We use Drupal.encodePath instead of
+-    // encodeURIComponent to allow autocomplete search terms to contain slashes.
++    // Ajax GET request for autocompletion. 
+     $.ajax({
+       type: 'GET',
+-      url: db.uri + '/' + Drupal.encodePath(searchString),
++      url: db.uri + '/' + encodeURIComponent(searchString.replace(/\W/g, ' ')), // (patch by CGF) treat all punctuation like a space
+       dataType: 'json',
+       success: function (matches) {
+         if (typeof matches.status == 'undefined' || matches.status != 0) {

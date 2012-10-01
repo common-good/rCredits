@@ -26,8 +26,8 @@ function rcredits_install() {
   $postal_code = R_REGION_POSTAL_AREA;
   $demand = R_INITIAL_DEMAND;
   $rebate_percent = 0;
-  $name = $short_name = 'community';
-  $info = compact(u\ray('full_name short_name postal_code demand rebate_percent'));
+  $name = 'community';
+  $info = compact(u\ray('full_name postal_code demand rebate_percent'));
 
   if ($account = user_load_by_name($name)) {
     user_save($account, $info);
@@ -59,37 +59,39 @@ function rcredits_schema() {
   // table r_txs (and r_asif)
   $fields = array(
     'xid' => r\setup_field('the unique transaction ID', 'serial 11'), 
-    'serial' => r\setup_field('serial number of related transactions', 'int 11'), 
+    'serial' => r\setup_field('serial number of related transactions (=xid of first transaction in the group)', 'int 11'), 
     'type' => r\setup_field('transaction type (transfer, rebate, etc.)', 'int tiny'), 
+    'taking' => r\setup_field('was the transaction initiated by the payee', 'int tiny'), 
     'goods' => r\setup_field('is this transfer and exchange for real goods and services?', 'int tiny'), 
-    'channel' => r\setup_field('through what medium was the transaction entered', 'int tiny'), 
     'state' => r\setup_field('completed, pending, disputed, etc', 'int tiny'), 
+    'amount' => r\setup_field('transaction amount', 'float big'), 
     'payer' => r\setup_field('user id of the payer', 'int 11'), 
     'payee' => r\setup_field('user id of the payee', 'int 11'), 
-    'amount' => r\setup_field('transaction amount', 'float big'), 
+    'payer_agent' => r\setup_field("user id of payer's agent (who approved this transaction for the payer)", 'int 11'), 
+    'payee_agent' => r\setup_field("user id of payee's agent (who approved this transaction for the payee)", 'int 11'), 
     'payer_for' => r\setup_field("payer's description", 'varchar 60'), 
     'payee_for' => r\setup_field("payee's description", 'varchar 60'), 
     'data' => r\setup_field('info stored elsewhere, duplicated here for convenience (serialized array)', 'text tiny'), 
-    'creator' => r\setup_field('user id of the creator', 'int 11'), 
+    'channel' => r\setup_field('through what medium was the transaction entered', 'int tiny'), 
     'created' => r\setup_field('Unixtime transaction was created', 'int 11'), 
   );
-  $foreign_keys = r\foreign_key('payer') + r\foreign_key('payee') + r\foreign_key('creator');
-  $indexes = r\index('payer') + r\index('payee');
+  $foreign_keys = r\foreign_key('payer') + r\foreign_key('payee') + r\foreign_key('payer_agent') + r\foreign_key('payee_agent');
+  $indexes = r\index('payer') + r\index('payee'); // also serial/type/taking/goods/state/payer_agent/payee_agent/channel/created?
   $schema['r_txs'] = r\setup_table('Record of all rCredits transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
   $schema['r_asif'] = r\setup_table('Record of pretend (asif) transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
 
   // table r_relations
   $fields = array(
-    'relid' => r\setup_field('relationship record id', 'serial 11'),
+    'reid' => r\setup_field('relationship record id', 'serial 11'),
     'main_uid' => r\setup_field('uid of the account to which others are related', 'int 11'),
-    'individual_uid' => r\setup_field('uid of a user related to that account', 'int 11'),
+    'agent_uid' => r\setup_field('uid of a user related to that account', 'int 11'),
     'permission' => r\setup_field('what type of permission the individual has on the main account', 'int tiny'),
     'is_employee' => r\setup_field('is this person an employee', 'int tiny'),
     'is_owner' => r\setup_field('is this person an owner (or part owner)', 'int tiny'),
   );
-  $foreign_keys = r\foreign_key('main_uid') + r\foreign_key('individual_uid');
-  $indexes = r\index('main_uid') + r\index('individual_uid');
-  $schema['r_relations'] = r\setup_table('Who can manage which accounts, and how', $fields, 'relid', $foreign_keys, $indexes);
+  $foreign_keys = r\foreign_key('main_uid') + r\foreign_key('agent_uid');
+  $indexes = r\index('main_uid') + r\index('agent_uid');
+  $schema['r_relations'] = r\setup_table('Who can manage which accounts, and how', $fields, 'reid', $foreign_keys, $indexes);
     
   // table r_employs_temp (same as r_relations, but with extra fields -- used for candidates in rcredits-circles.inc)
   $fields = array(
@@ -137,9 +139,9 @@ function rcredits_schema() {
 function rcredits_schema_alter(&$schema) {
   $fields = array( // additional users fields
     'account_type' => r\setup_field('personal, commercial, non-profit (or government)', 'int tiny'),
+    'community_uid' => r\setup_field("uid of this account's Common Good Community", 'int tiny'),
     'federal_id' => r\setup_field('social security number or employer id number, for reporting', 'varchar 9'),
     'full_name' => r\setup_field('full name of the individual or entity', 'varchar 60'),
-    'short_name' => r\setup_field('alphanumeric identifier with no spaces (internal)', 'varchar 60'),
     'phone' => r\setup_field('contact phone (no country code, no punctuation)', 'varchar 255'),
     'fax' => r\setup_field('fax number (no country code, no punctuation)', 'varchar 255'),
     'address' => r\setup_field('postal street address', 'varchar 60'),
@@ -160,7 +162,7 @@ function rcredits_schema_alter(&$schema) {
     'bank_account_status' => r\setup_field('account ownership verified, closed, etc.', 'int tiny', 0, '010'),
   );
   $schema['users']['fields'] = (@$schema['users']['fields'] ?: array()) + $fields;
-  $schema['users']['indexes'] = (@$schema['users']['indexes'] ?: array()) + r\index('short_name');
+// kills Drupal: $schema['users']['fields']['data']['description'] = 'incidental data (a serialized array of name value pairs)';
 
   
   $fields = array( // additional sms_user fields  

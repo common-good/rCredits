@@ -72,7 +72,7 @@ function grow() {
  * @todo: include individuals with income in candidates -- get this from r_asif
  */
 function identify_rtraders($old_rtraders, $candidates) {
-  $old_rtraders = db_q('SELECT DISTINCT uid FROM users_roles WHERE rid=:R_ROLE_RTRADER', compact('rid'))->fetchCol();
+  $old_rtraders = db_q('SELECT DISTINCT uid FROM users_roles WHERE rid=:R_ROLE_RTRADER')->fetchCol();
 //  $candidates = db_q('SELECT u.uid FROM users u LEFT JOIN users_roles r ON r.uid=u.uid WHERE r.rid IS NULL')->fetchCol();
   $sql = <<<EOF
     SELECT e.main_uid AS company 
@@ -94,9 +94,9 @@ function best_new_rtraders($target) {
   $sql = <<<EOF
     TRUNCATE r_employs_temp;
     INSERT INTO r_employs_temp
-    SELECT e.relid AS eid, e.main_uid AS company, e.individual_uid AS employee, (s.rid<=>:R_ROLE_RTRADER) AS employee_is_rtrader 
+    SELECT e.reid AS eid, e.main_uid AS company, e.agent_uid AS employee, (s.rid<=>:R_ROLE_RTRADER) AS employee_is_rtrader 
     FROM (r_relations e LEFT JOIN users_roles r ON r.uid=e.main_uid) 
-    LEFT JOIN users_roles s ON s.uid=e.individual_uid
+    LEFT JOIN users_roles s ON s.uid=e.agent_uid
     WHERE e.is_employee AND NOT (r.rid<=>:R_ROLE_RTRADER)
 EOF;
   r\do_q($sql); // copy only the non-rTrader company records to temp table

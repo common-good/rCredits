@@ -32,7 +32,7 @@ $GLOBALS['SMS messages'] = array(
   'report transaction' => t("You@asif @type @other @amount (@reward_type: @reward_amount). Your new balance is @balance. Transaction #@tid"),
   'report invoice' => t("You@asif @type @other @amount. Your balance is unchanged, pending payment. Invoice #@tid"),
   'report short transaction' => t("You@asif @type @other @amount (@short remains to be paid). Your new balance is @balance. Transaction #@tid"),
-//  'transaction done asif' => t("@type: @amount @tofrom user#@other (@reward_type: @reward_amount). Your new provisional balance is @balance (If this had been a real transaction, your balance would be @amount @moreless). Transaction ID #@xid"),
+//  'transaction done asif' => t("@type: @amount @tofrom user#@other (@reward_type: @reward_amount). Your new provisional balance is @balance (If this had been a real transaction, your balance would be @amount @moreless). Transaction ID #@tid"),
   'report exchange' => t("You@asif @type @other r@amount for cash/loan/gift/etc. Your new balance is @balance. Transaction #@tid"),
   'report exchange request' => t("You@asif requested r@amount from @other. Your balance is unchanged, pending approval. Invoice transaction #@tid"),
   'report undo' => t("@asif Transaction has been @action. "),
@@ -79,6 +79,7 @@ $GLOBALS['SMS messages'] = array(
   'non trader' => t('@other is not an authorized rTrader.'),
   'ambiguous other' => t('"@who" is associated with more than one rCredits account. You will need to identify them differently. Type "more" for options.'),
   'ambiguous other2' => t('You can identify an rTrader by phone, email, account ID, or .fullname (with a dot before the name, no spaces).'),
+  'what relationship' => t('You forgot to say whether you are an employee, owner, or both.'),
   'short cash to' => t('You are r@short short, for that exchange.'),
   'short cash from' => t('@other does not have enough rCredits for that exchange.'),
   'short invoice' => t('You are r@short short, to pay that invoice. Get more rCredits first, or undo the invoice and pay part in US Dollars.'),
@@ -89,6 +90,8 @@ $GLOBALS['SMS messages'] = array(
 //  'no access create' => t('You do not have permission to create transactions.'),
   'no sell' => t('You do not have permission to make sales for this account.'),
   'no buy and sell' => t('You do not have permission to make purchases for this account.'),
+  'other no sell' => t('That person does not have permission to make sales for that account.'),
+  'other no buy and sell' => t('That person does not have permission to make purchases for that account.'),
   'negative transfer' => t('You may not transfer a negative amount.'),
   'already undone' => t('Transaction is already undone.'),
   'no such tx' => t('That transaction does not exist.'),
@@ -173,7 +176,7 @@ function send($number, $message) {
   if (sms_devel_gateway()) if ($msg != $message) debug($message); // debug
   \sms_send($number, $msg);
   $nonce = infer_nonce($message);
-  u\log('rSMS', 'out', compact(u\ray('type message number nonce')));
+  u\log('out', compact(u\ray('type message number nonce')));
 }
 
 /**
@@ -198,14 +201,14 @@ function create($number, $uid, $status = SMS_USER_CONFIRMED) {
  * Add the cell owner's full name to the account.
  * @return the full name
  */
-function setup_name($account, $name) {
-  $name = str_replace('  ', ' ', trim($name));
-  if (strlen($name) > 60) throw new \Exception(tt('name too long'));
-  if (strtolower($name) == $name or strtoupper($name) == $name) $name = ucwords($name);
-  if (!u\valid_name($name)) throw new \Exception(tt("what's your name really?"));
-  $name = $short_name = u\short_name($full_name = $name);
-  if (r\user_field(1, "short_name='$short_name'")) throw new \Exception(tt('duplicate name'));
-  $edit = compact('name', 'short_name', 'full_name');
+function setup_name($account, $full_name) {
+  $full_name = str_replace('  ', ' ', trim($full_name));
+  if (strlen($full_name) > 60) throw new \Exception(tt('name too long'));
+  if (strtolower($full_name) == $full_name or strtoupper($full_name) == $full_name) $full_name = ucwords($full_name);
+  if (!u\valid_name($full_name)) throw new \Exception(tt("what's your name really?"));
+  $name = u\short_name($full_name);
+  if (r\user_field(1, 'name=:name', compact('name'))) throw new \Exception(tt('duplicate name'));
+  $edit = compact('name', 'full_name');
   return \user_save($account, $edit)->full_name;
 }
 
@@ -250,5 +253,16 @@ function intent($intent, $command, $pattern, $message) {
   return preg_match("/^($short_pattern)( |$)/i", $message, $matches) ? $command : $intent;
 }
 
-// one-line functions that need no explanation
+/**
+ * Return a message.
+ * Call by:
+ *   tt($array); OR
+ *   tt($message); OR tt($message, $subs);
+ * @param array $array: array($message, $subs)
+ * @param string $message: index to message to display
+ * @param array $subs: associative array of substitutions (@ will be prepended to each key)
+ * return string: the message after any substitutions
+ */
 function tt($message, $subs = array()) {return u\tt($message, $subs, 'SMS');}
+
+// one-line functions that need no explanation

@@ -16,8 +16,8 @@ use \rCredits\Utilities as u;
 require_once __DIR__ . '/../rcredits.inc';
 require_once __DIR__ . '/rweb.inc';
 
-//define('RWEB_BLOCKS', 'account payment buy_now example_store charge exchange manage tx_period txs manage_account');
-define('RWEB_BLOCKS', 'account');
+//define('RWEB_BLOCKS', 'accounts payment buy_now example_store charge exchange manage tx_period txs manage_account');
+define('RWEB_BLOCKS', 'accounts');
 
 /**
  * Implements hook_block_info().
@@ -26,7 +26,7 @@ function rweb_block_info() {
   $info = array();
   foreach (u\ray(RWEB_BLOCKS) as $one) {
     $def = array('info' => ucfirst($one) . ' Block');
-    if ($one == 'account') {
+    if ($one == 'accounts') {
       $region = 'header';
 //      $visibility = BLOCK_VISIBILITY_LISTED;
 //      $pages = "members\nmembers/*";
@@ -42,15 +42,13 @@ function rweb_block_info() {
  * Implements hook_block_view().
  */
 function rweb_block_view($delta = '') {
-  if (!in_array($delta, u\ray(RWEB_BLOCKS))) return;
-  return rWeb\block_view(NULL, drupal_get_form("rCredits\\Web\\{$delta}_form")); // no subject for blocks
+  if (in_array($delta, u\ray(RWEB_BLOCKS))) return rWeb\block_view(NULL, rWeb\show_form($delta)); // no subject for blocks
 }
 
 /**
  * Implements hook_menu().
  */
 function rweb_menu() {
-  global $cid;
   $anyone = array('access callback' => TRUE, 'access arguments' => NULL);
   $modal = array('modal' => TRUE);
   
@@ -69,18 +67,18 @@ function rweb_menu() {
     'company-info' => rWeb\menu('Company Info', MENU_NORMAL_ITEM, 'show_form', array('company'), 'company'),
     'bank-info' => rWeb\menu('Bank Info', MENU_NORMAL_ITEM, 'show_form', array('bank'), 'manage account'),
     'contact-info' => rWeb\menu('Contact Info', MENU_NORMAL_ITEM, 'show_form', array('contact_info'), 'manage account'),
+    'account' => rWeb\menu('Account Info', MENU_NORMAL_ITEM, 'show_form', array('account'), 'manage account'),
 
     'pay-with-rcredits' => rWeb\menu('Pay With rCredits', MENU_CALLBACK, 'show_form', array('buy_now'), '', $anyone), // form will require login
 
 //    'example-store' => rWeb\menu('Example Store', MENU_NORMAL_ITEM, 'show_form', array('example_store'), '', $anyone),
     'member' => rWeb\menu('Company Profile', MENU_CALLBACK, 'show_form', array('profile'), '', $anyone),
     'rCredits/util' => rWeb\menu('Util', MENU_CALLBACK, 'rCredits\\Web\\util', array(2), 'administer site configuration'),
-    'autocomplete' => rWeb\menu('Identify', MENU_CALLBACK, 'rCredits\\Web\\auto', array(2), '', $anyone),
+    'autocomplete' => rWeb\menu('Identify', MENU_CALLBACK, 'rCredits\\Web\\auto', array(1, 2, 3), '', $anyone),
 //    'ok' => rWeb\menu('Please Confirm', MENU_CALLBACK, 'show_form', array('ok'), '', $anyone + $modal),
-//    'close-window' => rWeb\menu('Close Window', MENU_CALLBACK, 'show_form', array('close')),
     
     'handy' => rWeb\menu('Handy Links', MENU_NORMAL_ITEM, 'handy_links', array(), 'administer site configuration'),
-    'rCredits/backend' => rWeb\menu('API', 0, 'rCredits\\API\\backend', array(), '', $anyone),
+    'rCredits/backend' => rWeb\menu('API', 0, 'rCredits\\API\\backend2', array(), '', $anyone),
     'api' => rWeb\menu('API', 0, 'rCredits\\API\\smart_api', array(), '', $anyone),
     
 //    'modal' => rWeb\menu('Modal Test', MENU_CALLBACK, 'drupal_get_form', array('rCredits\\Web\\modal_form'), '', $anyone + $modal),

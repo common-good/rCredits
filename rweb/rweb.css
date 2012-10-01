@@ -15,6 +15,7 @@ form.rweb div#edit-subtext label {font-weight:normal; width:100%;}
 form.rweb input {vertical-align:top;}
 form.rweb input[type="text"] {width:240px;}
 
+
 form.rweb div.form-type-radios {height:25px; margin:0px;}
 form.rweb div.form-radios {margin-bottom:0px;}
 form.rweb div.form-type-radio {display:inline-block;}
@@ -37,12 +38,34 @@ form.labeled .form-local, form.rweb .form-local {margin:1px 2px 1px 2px; padding
 form.rweb  .form-yes {color:green;}
 form.rweb  .form-no {color:red;}
 
-/* Account Selector */
-#rcreditswebaccount-form #edit-account-submit {display:none;} /* Drupal requires unused button to be there, so make it invisible */
-/* #rcreditswebaccount-form div.form-type-item {display:none;} /* no title */
-#rcreditswebaccount-form  input[type="submit"] {margin:5px 0px 0px 10px;}
+/* Login */
+form#user-login-form input#edit-name {width:150px;}
+form#user-login-form input#edit-pass {width:150px;}
+#user-login-form div#edit-tip label {font-weight:normal;}
 
-#rcreditswebaccount-form  div#edit-account-current-balance label {font-weight:normal;} /* when there is just one account */
+/* Register */
+form#user-register-form div#edit-company-text label {font-weight:normal; width:100%;}
+form#user-register-form div.form-checkboxes div {display:inline-block;}
+
+form#user-register-form div.form-checkboxes {margin-left:135px;}
+form#user-register-form div.form-type-checkbox {display:inline-block;}
+form#user-register-form div.form-type-checkbox input {display:inline-block; margin-left:0px; vertical-align:bottom;}
+form#user-register-form div.form-type-checkbox label {display:inline; width:100px; margin-left:3px; text-align:left; vertical-align:top;}
+
+/* Account Info */
+form#rcreditswebaccount-form div.form-type-textfield label {display:block;}
+form#rcreditswebaccount-form div.form-radios {display:block;}
+form#rcreditswebaccount-form div.form-item-roles {margin-top:30px;}
+
+/*form#rcreditswebaccount-form div.form-type-radio {display:block;}
+form#rcreditswebaccount-form div.form-type-radio input {display:block;}
+form#rcreditswebaccount-form div.form-type-radio label {display:block;}*/
+
+/* Accounts Selector */
+#rcreditswebaccounts-form #edit-account-submit {display:none;} /* Drupal requires unused button to be there, so make it invisible */
+/* #rcreditswebaccount-form div.form-type-item {display:none;} /* no title */
+#rcreditswebaccounts-form  #edit-account-submit {margin:5px 0px 0px 10px;}
+#rcreditswebaccounts-form  div#edit-account-current-balance label {font-weight:normal;} /* when there is just one account */
 
 /* Contact Info (labeled) */
 
@@ -122,9 +145,6 @@ form.rweb  .form-no {color:red;}
 #rcreditswebdirectory-form div.form-item-area div.description {margin-left:45px;}
 */
 #rcreditswebdirectory-form div#edit-item li {list-style-type:none;}
-
-/* Login */
-#user-login-form div#edit-tip label {font-weight:normal;}
 
 /* Autocomplete */
 /*html.js input.form-autocomplete.throbbing {margin:0px; padding:0px; width:400px;}*/

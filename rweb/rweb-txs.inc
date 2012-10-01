@@ -14,18 +14,18 @@ use \rCredits as r; // get rid of this
  * List Transactions
  */
 function txs_form($form, &$form_state, $period = '', $do = '') {
-  global $cid;
+  $cuid = r\cuid();
   global $base_path;
 
   list ($real, $period) = $period ? explode('-', $period) : array(r\is_rTrader(), 30);
   if ($real and !r\is_rTrader()) $real = FALSE;
-  if ($do) list ($do, $xid) = explode('=', $do);
+  if ($do) list ($do, $zxid) = explode('=', $do);
 
   //  if ($confirm = sure_form($form_state)) return $confirm;
-  if ($do == 'edit') return tx_edit($xid);
+  if ($do == 'edit') return tx_edit($zxid);
   if ($do == 'ok' or $do == 'no') {
-    if ($confirm_form = tx_confirm($do, $xid, $form_state)) return $confirm_form;
-    if (!$form_state['rebuild']) tx_okorno($do, $xid); // don't do anything if canceling
+    if ($confirm_form = tx_confirm($do, $zxid, $form_state)) return $confirm_form;
+    if (!$form_state['rebuild']) tx_okorno($do, $zxid); // don't do anything if canceling
     drupal_goto("transactions/$real-$period"); // back to the normal form
   }
 
@@ -42,21 +42,21 @@ function txs_form($form, &$form_state, $period = '', $do = '') {
   $rows = array();
   foreach ($records as $record) {
     extract($record, EXTR_PREFIX_ALL, 'one');
-    $tid = api\xid2tid($one_xid);
+    $tid = api\zxid2tid($one_zxid);
     $data = unserialize($one_data);
     $is_reward = ($one_type != TX_TRANSFER);
-    $taking = ($one_payee == $cid);
+    $taking = ($one_payee == $cuid);
     $reward = @$data[$taking ? 'bonus' : 'rebate'];
     $reward = $reward ? number_format($reward, 2) : '';
     $amount = number_format($one_amount, 2);
     if ($is_reward) list ($amount, $reward) = array('', $amount); // show interest and signup bonus as rewards
     list ($to_you, $from_you) = $taking ? array($amount, '') : array('', $amount);
-    $state = ($one_state == TX_PENDING and $one_payee == $cid) ? 'pending' : $states[$one_state];
+    $state = ($one_state == TX_PENDING and $one_payee == $cuid) ? 'pending' : $states[$one_state];
     $color = $colors[$state];
     $state = "<span style='color:$color;'>$state</span>";
-    $button1 = (!$taking and $one_state == TX_PENDING) ? button('OK', "{$base_path}transactions/$real-$period/ok=$one_xid", tx_action('ok')) : '';
-    $button2 = (!$is_reward and !@$data['undone']) ? button(' X ', "{$base_path}transactions/$real-$period/no=$one_xid", tx_action('no', $one_state, $taking)) : '';
-    $button3 = (($taking ? $can_sell : $can_buy) and !$is_reward) ? "<a href='{$base_path}transactions/$real-$period/edit=$one_xid' title='Edit Purpose'><img src='{$base_path}images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
+    $button1 = (!$taking and $one_state == TX_PENDING) ? button('OK', "{$base_path}transactions/$real-$period/ok=$one_zxid", tx_action('ok')) : '';
+    $button2 = (!$is_reward and !@$data['undone']) ? button(' X ', "{$base_path}transactions/$real-$period/no=$one_zxid", tx_action('no', $one_state, $taking)) : '';
+    $button3 = (($taking ? $can_sell : $can_buy) and !$is_reward) ? "<a href='{$base_path}transactions/$real-$period/edit=$one_zxid' title='Edit Purpose'><img src='{$base_path}images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
     $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
     $rows[] = array($tid, date('d-M', $one_created), $one_name, $from_you, $to_you, $state, $buttons, $one_purpose, $reward);
   }
@@ -84,12 +84,12 @@ function txs_form($form, &$form_state, $period = '', $do = '') {
   return $form;
 }
 
-function tx_confirm($do, $xid, &$form_state) {
-  global $cid;
+function tx_confirm($do, $zxid, &$form_state) {
+  $cuid = r\cuid();
   if (confirming_v($form_state)) return FALSE;
-  if (!($details = tx_details($xid))) return FALSE; // bail on hack attempt
+  if (!($details = tx_details($zxid))) return FALSE; // bail on hack attempt
   extract($details, EXTR_PREFIX_ALL, 'my');
-  $action = tx_action($do, $my_state, $my_payee == $cid);
+  $action = tx_action($do, $my_state, $my_payee == $cuid);
   confirm("Are you sure you want to $action?<br>($my_summary)", $form_state); // sets 'confirm'
   return sure_form($form_state);
 }
@@ -129,32 +129,32 @@ function txs_form_submit($form, &$form_state) {
   if ($op == 'Show') $form_state['redirect'] = "transactions/$tx_real-$tx_period";
 }
 
-function tx_okorno($tx_task, $xid) {
-  global $cid;
-  if (!($result = api\last_tx('xid=:xid', compact('xid'), TRUE))) return FALSE; // bail on hack attempt
+function tx_okorno($tx_task, $zxid) {
+  $cuid = r\cuid();
+  if (!($result = api\last_tx('xid=:zxid', compact('zxid'), TRUE))) return FALSE; // bail on hack attempt
   extract($result, EXTR_PREFIX_ALL, 'my');
-//  $atid = api\xid2tid($xid);
-//  $xname = "tx_transactions[x$xid]";
+//  $atid = api\zxid2tid($zxid);
+//  $xname = "tx_transactions[x$zxid]";
   if ($tx_task == 'ok') {
-    assert($my_payer == $cid);
+    assert($my_payer == $cuid);
     assert($my_state == TX_PENDING);
-    list ($message, $args) = api\pay_invoice($xid, TX_WEB);
+    list ($message, $args) = api\pay_invoice($zxid);
     say($message, $args);
   }
   if ($tx_task == 'no') {
-    list ($message, $args) = api\undo_tx($xid, TX_WEB);
+    list ($message, $args) = api\undo_tx($zxid);
     say($message, array_merge($args));
   }
 /*  if ($tx_task == 'edit') {
-    if ($my_state != TX_DONE and $my_payer != $cid) {
+    if ($my_state != TX_DONE and $my_payer != $cuid) {
       say("atid|can't change what", compact('atid'), $xname);
     } else \drupal_set_message('Editing descriptions is not yet possible');
   }*/
 }
 
-function tx_details($xid) {
-  $uid = u\cid(); // this could be expanded later to handle other users
-  if (!($result = api\last_tx('xid=:xid', compact('xid'), TRUE))) return FALSE; // bail on hack attempt
+function tx_details($zxid) {
+  $uid = r\cuid(); // this could be expanded later to handle other users
+  if (!($result = api\last_tx('xid=:zxid', compact('zxid'), TRUE))) return FALSE; // bail on hack attempt
   extract($result);
   $amount = u\format_amount($amount);
   $taking = ($payee == $uid);
@@ -163,24 +163,24 @@ function tx_details($xid) {
   $who = api\user_field('full_name', $other_uid);
   $role = $payer == $uid ? 'payer' : 'payee';
   $purpose = $payer == $uid ? $payer_for : $payee_for;
-  $tid = api\xid2tid($xid, $uid);
+  $tid = api\zxid2tid($zxid, $uid);
   $created = date('m-d-Y', $created);
   $summary = "Transaction #$tid: $amount $tofrom $who for \"$purpose\" on $created";
-  return compact(u\ray('amount tofrom taking who payee role purpose tid creator created summary state'));
+  return compact(u\ray('amount tofrom taking who payee role purpose tid created summary state'));
 }
 
-function tx_edit($xid) {
-  if (!($details = tx_details($xid))) return FALSE; // bail on hack attempt
+function tx_edit($zxid) {
+  if (!($details = tx_details($zxid))) return FALSE; // bail on hack attempt
   extract($details, EXTR_PREFIX_ALL, 'my');
   
-  if (!api\access($taking ? 'sell' : 'buy and sell')) return FALSE;
+  if (!api\access($my_taking ? 'sell' : 'buy and sell')) return FALSE;
   
   $form = array(
     'title' => form_field('item', t('Edit Description')),
 //    'review' => form_field('item', $tx_summary),
     'purpose' => form_field('textfield', t('Purpose'), '', dft($my_purpose)),
     'go' => form_field('submit', NULL, t('Submit button'), 'Update'),
-    'xid' => form_field('hidden', $xid),
+    'zxid' => form_field('hidden', $zxid),
     'field' => form_field('hidden', $my_role . '_for'),
     
     '#validate' => array('rCredits\\Web\\tx_edit_validate'),
@@ -194,14 +194,14 @@ function tx_edit_validate($form, &$form_state) {
 
 function tx_edit_submit($form, &$form_state) {
   extract($form_state['values']);
-  r\set_tx_field($field, $purpose, $xid);
+  r\set_tx_field($field, $purpose, $zxid);
   $form_state['redirect'] = 'transactions';
 }
 
 function tx_bal($bal, $plus = '', $minus = '- ') {return ($bal < 0 ? $minus : $plus) . '$' . number_format(abs($bal), 2);}
 
 function tx_summary($starting, $ending) {
-  global $cid;
+  $cuid = r\cuid();
   $previous_ending = strtotime('-1 days', $starting);
   extract($now_info = (array) api\credit_info(array('asof' => $ending)), EXTR_PREFIX_ALL, 'now');
   extract($pending_info = (array) api\credit_info(array('state' => TX_PENDING, 'asof' => $ending)), EXTR_PREFIX_ALL, 'pending');
