@@ -21,20 +21,11 @@ function rcredits_install() {
   r\make_fields();
 //  r\make_currency();
   
-  $full_name = R_REGION_NAME;
-//  $credit_id = R_SERVER_ID;
-  $postal_code = R_REGION_POSTAL_AREA;
-  $demand = R_INITIAL_DEMAND;
-  $rebate_percent = 0;
-  $name = 'community';
-  $info = compact(u\ray('full_name postal_code demand rebate_percent'));
-
-  if ($account = user_load_by_name($name)) {
-    user_save($account, $info);
-    $uid = $account->uid;
-  } else $uid = api\create_user($info)->uid;
-
-  variable_set('rcredits_community_uid', $uid); // gets unset during uninstall
+  $uid = r\server_uid();
+  $keys = u\ray('uid community_uid name full_name postal_code country demand rebate_percent');
+  $values = array($uid, $uid, R_SERVER_ID . '.', R_REGION_NAME, R_REGION_POSTAL_AREA, R_COUNTRY, R_INITIAL_DEMAND, 0);
+  $info = array_combine($keys, $values);
+  if (!api\user_field(1, $uid)) drupal_write_record('users', $info);
   variable_set('date_default_timezone', 'America/New_York');
 // NO. This creates a navigation column.  variable_set('site_frontpage', 'charge');
 
@@ -139,7 +130,7 @@ function rcredits_schema() {
 function rcredits_schema_alter(&$schema) {
   $fields = array( // additional users fields
     'account_type' => r\setup_field('personal, commercial, non-profit (or government)', 'int tiny'),
-    'community_uid' => r\setup_field("uid of this account's Common Good Community", 'int tiny'),
+    'community_uid' => r\setup_field("uid of this account's Common Good Community", 'int 11'),
     'federal_id' => r\setup_field('social security number or employer id number, for reporting', 'varchar 9'),
     'full_name' => r\setup_field('full name of the individual or entity', 'varchar 60'),
     'phone' => r\setup_field('contact phone (no country code, no punctuation)', 'varchar 255'),
@@ -162,6 +153,7 @@ function rcredits_schema_alter(&$schema) {
     'bank_account_status' => r\setup_field('account ownership verified, closed, etc.', 'int tiny', 0, '010'),
   );
   $schema['users']['fields'] = (@$schema['users']['fields'] ?: array()) + $fields;
+  $schema['users']['fields']['uid'] = r\setup_field('Unique user ID', 'int 11'); // not unsigned
 // kills Drupal: $schema['users']['fields']['data']['description'] = 'incidental data (a serialized array of name value pairs)';
 
   

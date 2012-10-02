@@ -184,7 +184,7 @@ function prefix_keys($prefix, $array) {
   return $new_array;
 }
 
-function array_prefix($prefix, $array) {
+function prefix_values($prefix, $array) {
   foreach ($array as $key => $value) $array[$key] = $prefix . $value;
   return $array;
 }
@@ -318,8 +318,8 @@ function get_constants($string) {
  * Assert an expectation or check parameters for validity
  * Throw an Exception if the expectation is not met.
  * call by:
- *   expect($assertion, $message, $return)
- *   expect($args, $types, $return) OR
+ *   expect($assertion, $message, $ret)
+ *   expect($args, $types, $ret) OR
  * @param boolean $assertion: a statement to assert
  * @param string $message: message to display if assertion is FALSE
  *
@@ -327,23 +327,24 @@ function get_constants($string) {
  * @param string $types: a corresponding space-delimited array of expected types, 
  *   each of which may in turn be a list of types delimited by '&' or a list of such lists as options, delimited by '|'.
  *
- * @param bool $return: return the error message rather than throwing it
- * @return string (if $return is TRUE): an error message or '' (no error)
+ * @param bool $ret: return the error message rather than throwing it
+ * @return string (if $ret is TRUE): an error message or '' (no error)
  */
-function expect($assertion, $message = '', $return = FALSE) {
+function expect($assertion, $message = '', $ret = FALSE) {
   if (is_array($assertion)) {
     list ($args, $types) = array($assertion, $message); // for clarity
 //    expect(compact(ray('args types')), 'assoc string'); // can't do this because infinite recursion
+//if (strpos($types, '|')) {debug(array_keys($args)); debug($types);}
     $types = array_combine(array_keys($args), explode(' ', $types)); // not ray() here, $types may have '|'
-    foreach ($args as $key => $value) if ($error = expect1($key, $value, $types[$key], $return)) return $error;
+    foreach ($args as $key => $value) if ($error = expect1($key, $value, $types[$key], $ret)) return $error;
   } elseif (!$assertion) {
-    if ($return) return $message; else throw new \Exception($message);
+    if ($ret) return $message; else throw new \Exception($message);
 //    expect(compact(ray('assertion message')), 'bool string&notempty'); // can't do this because infinite recursion
   }
-  return '';
+  return ''; // no error
 }  
 
-function expect1($arg, $value, $type, $return) {
+function expect1($arg, $value, $type, $ret) {
 //  expect(compact(ray('arg type')), 'name string'); // can't do this because infinite recursion
 
   $msg = "Expected $arg ('$value') to be type '$type'.";
@@ -352,32 +353,35 @@ function expect1($arg, $value, $type, $return) {
     expect(FALSE, $msg);
   }
   if (strpos($type, '&')) {
-    foreach (explode('&', $type) as $one) if ($error = expect1($arg, $value, $one, $return)) return $error;
-    return '';
+    foreach (explode('&', $type) as $one) if ($error = expect1($arg, $value, $one, $ret)) return $error;
+    return ''; // no error
   }
   
   switch ($type) {
-    case 'array': return expect(is_array($value), $msg, $return);
+    case 'array': return expect(is_array($value), $msg, $ret);
     case 'assoc': 
-      expect(is_array($value), $msg, $return);
-      foreach ($value as $key => $one) expect1("$arg key", $key, 'name', $return);
+      expect(is_array($value), $msg, $ret);
+      foreach ($value as $key => $one) expect1("$arg key", $key, 'name', $ret);
       return;
-    case 'bool': return expect(is_bool($value), $msg, $return);
-    case 'email': return expect(valid_email_address($value), $msg, $return);
-    case 'empty': return expect(empty($value), $msg, $return);
-    case 'float': return expect(is_float($value), $msg, $return); // don't use is_float()?
-    case 'id': return expect(is_id($value), $msg, $return);
-    case 'int': return expect(my_int($value), $msg, $return); // don't use is_int()
-    case 'name': return expect(preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $value), $msg, $return);
-    case 'notempty': return expect(!empty($value), $msg, $return);
-    case 'notnull': return expect(!is_null($value), $msg, $return);
-    case 'qid': return expect(is_qid($value), $msg, $return);
-    case 'rid': return expect(is_rid($value), $msg, $return);
-    case 'string': return expect(is_string($value), $msg, $return);
-    case 'zid': return expect(my_int($value) and $value !== 0, $msg, $return);
+    case 'bool': return expect(is_bool($value), $msg, $ret);
+    case 'email': return expect(valid_email_address($value), $msg, $ret);
+    case 'empty': return expect(empty($value), $msg, $ret);
+    case 'float': return expect(my_float($value), $msg, $ret); // don't use is_float()?
+    case 'id': return expect(is_id($value), $msg, $ret);
+    case 'int': return expect(my_int($value), $msg, $ret); // don't use is_int()
+    case 'name': return expect(preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $value), $msg, $ret);
+    case 'notempty': return expect(!empty($value), $msg, $ret);
+    case 'notnull': return expect(!is_null($value), $msg, $ret);
+    case 'qid': return expect(is_qid($value), $msg, $ret);
+    case 'ruid': return expect(is_ruid($value), $msg, $ret);
+    case 'string': return expect(is_string($value), $msg, $ret);
+    case 'zid': return expect(is_zid($value), $msg, $ret);
   }
-  throw new \Exception('bad type: ' . $msg);
+  throw new \Exception("bad type \"$type\" ($msg)");
 }
+
+//function gripe($msg) {throw new \Exception($msg);}
+//function gripe($msg) {throw new \Exception(serialize(debug_backtrace()));}
 
 /** 
  * Log the message and return it.
@@ -512,6 +516,8 @@ function prlog($log = 'rcredits') {print_r(log($log));}
 function order($first_first, $choice1, $choice2) {return $first_first ? array($choice1, $choice2) : array($choice2, $choice1);}
 function wargs($s, $args, $prefix = '') {return strtr($s, prefix_keys($prefix, $args));} // for debugging
 function my_int($n) {return (is_numeric($n) and $n == (int) $n);}
+function my_float($n) {return (is_numeric($n) and $n == (float) $n);}
 function is_id($id) {return (my_int($id) and $id > 0);}
-function is_rid($rid) {return (is_array($rid) and array_keys($rid) == array(0, 1) and is_id($rid[0]) and is_id($rid[1]));}
+function is_ruid($ruid) {return (is_array($ruid) and array_keys($ruid) == array(0, 1, 2) and is_zid($ruid[0]) and is_zid($ruid[1]) and is_zid($ruid[2]));}
 function is_qid($qid) {return preg_match('/^[A-Z]{3}(\.|\:|\.\.)[A-Z]+$/', $qid);}
+function is_zid($zid) {return (my_int($zid) and $zid !== 0);}

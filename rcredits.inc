@@ -40,9 +40,9 @@
  *   the appropriate amount of rCredits. Probably the best way to do this is with a simple payment transaction
  *   that requires confirmation by the payee (an "offer"). The payee cannot accept the offer without first paying
  *   that amount to the Community in US Dollars (using billpay or Dwolla).
- * @todo: run acceptance tests without drupal's interface (use u\expect())
- * @todo: don't require email address for SMS signups, set name properly
- * @todo: add community field to users (uid of user's CGC)
+ * @todo: we also need some kind of confirmation on foreign transactions (from the other server)
+ * @todo: run acceptance tests without drupal's interface? (use u\expect())
+ * @todo: don't require email address for SMS signups, set name properly [NOT YET. JUST LEAVE IT.]
  * @todo: store country code rather than country, and state code rather than state
  * @todo: store city code (rather than city), with a code for "other" -- store other in data or r_other (same for country/state)
  * @todo: tx data changes(date, agent, field, oldvalue) (this gives a complete history of the transaction)
@@ -213,17 +213,33 @@ function permission(&$permissions, $title, $description) {
 }
 
 /**
+ * Format old transaction info (for confirmation)
+ */
+function tx_args($info) {
+  $cuid = cuid();
+  extract($info, EXTR_PREFIX_ALL, 'old');
+
+  $tofrom = $old_payer == $cuid ? t('to') : t('from');
+  $other = user_field('full_name', $old_payer == $cuid ? $old_payee : $old_payer);
+  $amount = u\format_amount($old_amount);
+  $date = strftime('%m/%d/%Y', $old_created);
+  $real = ($old_zxid > 0);
+  return compact(u\ray('tofrom other amount date real'));
+}
+
+/**
  * Format and return args for reporting a transaction
  * Not all returned args are used for any particular type of transaction.
  */
-function tx_report_args($taking, $amount, $shortfall, $reward, $other_uid, $zxid, $goods) {
+function tx_report_args($taking, $amount, $shortfall, $reward, $other_uid, $zxid, $goods, $foreign) {
   $type = $taking ? t('charged') : ($goods ? t('paid') : t('gave'));
+  $confirm_type = $taking ? t('charge') : ($goods ? t('pay') : t('give'));
   $amount = u\format_amount($amount);
   $short = u\format_amount($shortfall);
   $tofrom = $taking ? t('from') : t('to');
   $reward_type = $taking ? t('bonus') : t('rebate');
   $reward_amount = u\format_amount($reward);
-  $other = user_field('full_name', $other_uid);
+  $other = user_field('full_name', $foreign ? $foreign['foreign_uid'] : $other_uid);
 
   $real = ($zxid > 0);
   $asif = $real ? '' : R_ASIF_TEXT;
@@ -232,7 +248,7 @@ function tx_report_args($taking, $amount, $shortfall, $reward, $other_uid, $zxid
   
   $success = TRUE;
   
-  return compact(u\ray('type amount tofrom reward_type reward_amount balance zxid tid other_uid other short success asif'));
+  return compact(u\ray('type confirm_type amount tofrom reward_type reward_amount balance zxid tid other_uid other short success asif'));
 }
 
 /**
@@ -281,20 +297,21 @@ function transaction_rewards(&$txs) {
   if ($my_type != TX_TRANSFER) return;
   if (!$my_goods) return; // quit unless rebates and bonuses apply
   if (owning($my_payer, $my_payee)) return; // no rewards for transactions between owner and owned
+  $rewards = unserialize($my_data);
   
-  $txs[] = tx_reward_setup(TX_REBATE, $my_payer, $my_state);
-  $txs[] = tx_reward_setup(TX_BONUS, $my_payee, $my_state);
+  $txs[] = tx_reward_setup(TX_REBATE, $my_payer, $my_state, $rewards);
+  $txs[] = tx_reward_setup(TX_BONUS, $my_payee, $my_state, $rewards);
 }
 
-function tx_reward_setup($type, $payee, $state) {
-  $payer = $payer_agent = $payee_agent = community($payee);
+function tx_reward_setup($type, $payee, $state, $rewards) {
+  $payer = $payer_agent = $payee_agent = api\user_field('community_uid', $payee);
   if ($payer == $payee) return NULL; // payee is a community, so no rewards
 
   $taking = FALSE;
-  $rewards = unserialize($my_data);
+  $goods = FALSE;
   $amount = $rewards[$type == TX_REBATE ? 'rebate' : 'bonus'];
   $for = $type == TX_REBATE ? t('rebate') : t('bonus');
-  return compact(u\ray('type amount payer payee payer_agent payee_agent for taking state'));
+  return transaction_setup(compact(u\ray('type amount goods payer payee payer_agent payee_agent for taking state')));
 }
 
 /**
@@ -309,19 +326,19 @@ function tx_reward_setup($type, $payee, $state) {
  * @return the array, with some extra field information added
  */
 function transaction_setup($info) {
-  global $channel, $auid; // through what medium was the transaction requested (web, SMS, etc.).
-  extract($info);
+  global $channel; // through what medium was the transaction requested (web, SMS, etc.).
+  extract($info, EXTR_PREFIX_ALL, 'my');
+  $required_params = compact(u\prefix_values('my_', u\ray('amount payer payee payer_agent payee_agent taking for goods')));
+  u\expect($required_params, 'float zid zid zid zid bool string|notempty bool');
 
-  if (!isset($state)) $state = TX_DONE;
+  $state = $my_state ?: TX_DONE;
   $created = REQUEST_TIME;
   $serial = NULL; // always set equal to xid of main transaction after saving
-  $data = serialize(@$data ?: array());
   
-  list ($payer_for, $payee_for) = is_array($for) ? $for : array($for, $for);
-  @$goods += 0; // avoid NULL
+  list ($payer_for, $payee_for) = is_array($my_for) ? $my_for : array($my_for, $my_for);
   unset($info['for']);
 
-  return array_merge($info, compact(u\ray('state taking created serial data payer_for payee_for channel goods')));
+  return array_merge($info, compact(u\ray('state created serial payer_for payee_for channel')));
 }
 
 /**
@@ -454,30 +471,17 @@ EOF;
  * Reset all rCredits data, to start development with a clean slate
  */
 function reset() {
-  u\expect($ctty_uid = \variable_get('rcredits_community_uid'), "No community uid!");
+//  $ctty_uid = r\server_uid();
   $sqls = array(
     'TRUNCATE TABLE r_txs',
     'TRUNCATE TABLE r_asif',
     'TRUNCATE TABLE sms_user',
-    "DELETE FROM users WHERE uid > $ctty_uid",
+//    "DELETE FROM users WHERE uid > $ctty_uid",
     'TRUNCATE TABLE sessions',
   );
   foreach ($sqls as $sql) \db_query($sql);
-}
-
-/**
- * Format old transaction info (for confirmation)
- */
-function tx_args($info) {
-  $cuid = cuid();
-  extract($info, EXTR_PREFIX_ALL, 'old');
-
-  $tofrom = $old_payer == $cuid ? t('to') : t('from');
-  $other = user_field('full_name', $old_payer == $cuid ? $old_payee : $old_payer);
-  $amount = u\format_amount($old_amount);
-  $date = strftime('%m/%d/%Y', $old_created);
-  $real = ($old_zxid > 0);
-  return compact(u\ray('tofrom other amount date real'));
+  \rebuild_menus();
+  drupal_goto('devel/cache/clear?destination=node');
 }
 
 /**
@@ -517,7 +521,7 @@ function user_field($field_name, $who, $subs = array()) {
  * @return the qid, FALSE if wrong format
  */
 function qid($zid = '', $region_id = R_SERVER_ID, $min_len = 1) {
-  if (!u\is_zid($id)) return FALSE;
+  if (!u\is_zid($zid)) return FALSE;
   return $region_id . ($zid < 0 ? (':' . u\n2a(-$zid, -$min_len)) : ('.' . u\n2a($zid, -$min_len)));
 }
 
@@ -541,19 +545,23 @@ function cuid() {global $cuid; return @$cuid + 0;} // current account (may be ze
  * Convert ruid to quid
  * Call by:
  *   quid()
+ *   quid(uid) == quid(uid, uid)
  *   quid(ruid)
  *   quid(uid, agent_uid) -- region_uid defaults to current region
  *   quid(uid, agent_uid, region_uid) -- these are the elements of an ruid array
  * @param ruid $ruid: the ruid to convert (DEFAULT $cruid -- the current account and agent)
  * @return the corresponding quid
  */
-function quid($id = '', $agent_uid = '', $region_uid = '') {
+function quid($ruid = '', $agent_uid = '', $region_uid = '') {
   global $cruid;
   if ($agent_uid) {
-    $uid = $id;
+    $uid = $ruid;
     if (!$region_uid) $region_uid = server_uid();
-  } else list ($uid, $agent_uid, $region_uid) = $ruid ?: $cruid;
-  return qid($uid == $agent_uid ? $uid : -reid($uid, $agent_uid), n2a($region_uid, 3), 3);
+  } else list ($uid, $agent_uid, $region_uid) = 
+      ( is_array($ruid) ? $ruid 
+    : ( ($uid = $ruid) ? array($uid, $uid, server_uid()) 
+    : ( $cruid )));
+  return qid($uid == $agent_uid ? $uid : -reid($uid, $agent_uid), u\n2a(-$region_uid, 3), 3);
 }
 
 /**
@@ -605,13 +613,15 @@ function owning($uid1, $uid2) {
   return $uid1 == $uid2 ?: db_lookup(1, 'r_relations', $crit, compact('uid1', 'uid2'));
 }
 
-function community_uid($postal_code) {
-  $crit = 'country=:my_country AND :postal_code RLIKE postal_code AND uid=community_uid';
-  return r\user_field('uid', 'users', $crit, compact(u\ray('my_country my_postal_code')));
+function community_uid($postal_code = '') {
+  $crit = "country=':R_COUNTRY' AND :postal_code RLIKE postal_code AND uid=community_uid";
+  return api\user_field('uid', $crit, compact(u\ray('postal_code'))) ?: server_uid();
 }
 
-function community($uid) {return db_lookup('community_uid', 'users', 'uid=:uid', compact('uid'));}
-function is_foreign($uid) {return ($uid < 0 and preg_match('/[A-Z]{3}\./', api\user_field('name', $uid)));}
+function is_foreign($uid) {
+  $name = api\user_field('name', $uid);
+  return $name == (R_SERVER_ID . '.') ? FALSE : ($uid < 0 and preg_match('/[A-Z]{3}\./', $name));
+}
 
 function is_rTrader($uid = '') {
   if (!$uid) $uid = cuid();
@@ -644,5 +654,5 @@ function update_user($info, $who) {return \db_update('users')->fields($info)->co
 function set_tx_state($new_value, $zserial) {set_tx_field('state', $new_value, $zserial, 'serial');}
 function uid_from_crid($qid) {return db_lookup('uid', 'users', 'qid=:qid', compact('qid'));}
 function total_demand() {return db_lookup('SUM(demand)', 'users');}
-function server_uid($region_id = '') {return u\a2n($region_id ?: R_SERVER_ID);}
-function reid($main_uid, $agent_uid) {return db_lookup(1, 'main_uid=:main_uid AND agent_uid=:agent_uid', compact(u\ray('main_uid agent_uid')));}
+function server_uid($region_id = '') {return -u\a2n($region_id ?: R_SERVER_ID);}
+function reid($main_uid, $agent_uid) {return db_lookup(1, 'r_relations', 'main_uid=:main_uid AND agent_uid=:agent_uid', compact(u\ray('main_uid agent_uid')));}

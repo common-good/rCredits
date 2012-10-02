@@ -18,7 +18,7 @@ ini_set('session.gc_maxlifetime', 600); // "600" = 10 minutes
 ini_set('session.gc_probability', 1); // these two lines
 ini_set('session.gc_divisor', 100); // together will make garbage collection run on 1% of the requests
 
-define('RSMS_PREFIX', 'TEST: '); // the pre-launch trial
+define('RSMS_PREFIX', 'r: '); // identify us
 //define('RSMS_PREFIX_INACTIVE', '[TRIAL RUN] '); // pretend transactions by not-yet-active players (treat it as a trial run)
 //define('RSMS_PREFIX_ASIF', 'AS IF: '); // pretend transactions by Active Participants
 
@@ -51,7 +51,7 @@ $GLOBALS['SMS messages'] = array(
   'confirm payment' => t("@asif Pay @other @amount for goods and services?"),
   'confirm pay invoice' => t("@asif Pay @other @amount for goods and services (invoice @date)?"),
   'confirm charge' => t("@asif Charge @other @amount for goods and services?"),
-  'confirm exchange' => t("Okay to@asif @type @other @amount in rCredits (not for goods or services)?"),
+  'confirm exchange' => t("Okay to@asif @confirm_type @other @amount in rCredits (not for goods or services)?"),
   'confirm undo' => t("Undo @date@asif transfer of @amount @tofrom @other?"),
   'please confirm' => t("To confirm, type @nonce."),
   'verification code' => 'Your verification code for using rCredits online is: @nonce', // used in rWeb
@@ -78,7 +78,7 @@ $GLOBALS['SMS messages'] = array(
   'unknown user' => t('Unknown rTrader: "@who" (they need to sign up before we can recognize them). Type "helpme pay".'),
   'non trader' => t('@other is not an authorized rTrader.'),
   'ambiguous other' => t('"@who" is associated with more than one rCredits account. You will need to identify them differently. Type "more" for options.'),
-  'ambiguous other2' => t('You can identify an rTrader by phone, email, account ID, or .fullname (with a dot before the name, no spaces).'),
+  'ambiguous other2' => t('You can identify an rTrader by phone, email, fullname (no punctuation or spaces), or account ID.'),
   'what relationship' => t('You forgot to say whether you are an employee, owner, or both.'),
   'short cash to' => t('You are r@short short, for that exchange.'),
   'short cash from' => t('@other does not have enough rCredits for that exchange.'),
@@ -100,15 +100,15 @@ $GLOBALS['SMS messages'] = array(
 
   // help messages (for use with the help command)
 $GLOBALS['SMS help'] = array(
-  'help payment' => t('To pay Jane Dough $30 for pie, type "30 to .janedough for pie" (with a dot before the name, no spaces). Type "more" for options.'),
-  'help payment2' => t('You can also identify the recipient by phone, email, or account ID (withOUT a dot before any of these). Type "more" for more details.'),
+  'help payment' => t('To pay Jane Dough $30 for pie, type "30 to janedough for pie" (no spaces in janedough). Type "more" for options.'),
+  'help payment2' => t('You can also identify the recipient by phone, email, or account ID (with or without the first three letters). Type "more" for more details.'),
   'help payment22' => t('If you are just exchanging rCredits for cash, leave out the description. For example, type "43.12 to jdough@example.com".'),
-  'help charge' => t('To charge Food Corp $90 for labor, type "90 from .foodcorp for labor" (with a dot before the name, no spaces). Type "more" for options.'),
-  'help charge2' => t('You can also identify the payer by phone, email, or account ID (withOUT a dot before any of these). Type "more" for more details.'),
+  'help charge' => t('To charge Food Corp $90 for labor, type "90 from foodcorp for labor" (no spaces in foodcorp). Type "more" for options.'),
+  'help charge2' => t('You can also identify the payer by phone, email, or account ID (with or without the first three letters). Type "more" for more details.'),
   'help charge22' => t('If you are just exchanging cash for rCredits, leave out the description. For example, type "43.12 from 413-772-6666".'),
   'help undo' => t('To undo your most recent transaction, type "undo". Type "more" for options to undo your most recent transaction of a certain type.'),
-  'help undo2' => t('Examples: undo | undo .janedough | undo to | undo from | undo to .janedough | undo from .janedough -- Type "more" for details.'),
-  'help undo22' => t('"undo .janedough" undoes your most recent transaction with Jane Dough. You can also identify her by phone, email, or account ID.'),
+  'help undo2' => t('Examples: undo | undo janedough | undo to | undo from | undo to janedough | undo from janedough -- Type "more" for details.'),
+  'help undo22' => t('"undo janedough" undoes your most recent transaction with Jane Dough. You can also identify her by phone, email, or account ID.'),
   'help get' => t('To get $200 more in rCredits, type "get r 200". To send $50 in rCredits to your US bank account, type "get usd 50".'),
   'help information' => t('Just type "info" (tells you your balance and the current demand for rCredits)'),
   'help helpme' => t('Options: pay | charge | undo | info | get | helpme. For details, type "helpme pay" and so forth.'),
@@ -170,11 +170,11 @@ $GLOBALS['SMS command tokens'] = array(
  * Send an SMS message to someone.
  */
 function send($number, $message) {
+  global $sms_devel;
   $number = u\format_phone($number, '+n');
   $msg = substr($message, 0, 160-1); // minus one because Twilio splits messages 160 chars long (and may discard the first part)
   if ($msg != $message) $message .= ' -- TOO LONG! (strlen ' . strlen($message) . ')';
-  if (sms_devel_gateway()) if ($msg != $message) debug($message); // debug
-  \sms_send($number, $msg);
+  if (@$sms_devel) drupal_set_message("To $number: $message"); else \sms_send($number, $msg);
   $nonce = infer_nonce($message);
   u\log('out', compact(u\ray('type message number nonce')));
 }
@@ -207,7 +207,7 @@ function setup_name($account, $full_name) {
   if (strtolower($full_name) == $full_name or strtoupper($full_name) == $full_name) $full_name = ucwords($full_name);
   if (!u\valid_name($full_name)) throw new rSMSexception(tt("what's your name really?"));
   $name = u\short_name($full_name);
-  if (r\user_field(1, 'name=:name', compact('name'))) throw new rSMSexception(tt('duplicate name'));
+  if (api\user_field(1, 'name=:name', compact('name'))) throw new rSMSexception(tt('duplicate name'));
   $edit = compact('name', 'full_name');
   return \user_save($account, $edit)->full_name;
 }
@@ -218,7 +218,7 @@ function setup_name($account, $full_name) {
  */
 function setup_email($account, $email) {
   if (!\valid_email_address($email)) throw new rSMSexception(tt("what's your email really?"));
-  if (r\user_field(1, "mail = '$email'")) throw new rSMSexception(tt('duplicate email'));
+  if (api\user_field(1, "mail = '$email'")) throw new rSMSexception(tt('duplicate email'));
   $edit = array(); // no edits yet
   $edit['mail'] = $edit['init'] = $email;
   return \user_save($account, $edit);

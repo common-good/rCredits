@@ -1,5 +1,6 @@
 <?php
 namespace rCredits\SMS; // typically abbreviated as "rSMS"
+use \rCredits as r;
 use \rCredits\API as api;
 use \rCredits\Utilities as u;
 
@@ -62,7 +63,7 @@ class call {
   function validate_caller() {
     global $cuid, $auid;
     if (!($this->uid = \sms_user_get_uid($this->number))) $this->uid = api\create_user(array('number' => $this->number));
-    u\expect(u\id_id($this->uid), 'missing uid');
+    u\expect(u\is_id($this->uid), 'missing uid');
     $cuid = $auid = $this->uid;
     
     $account = \user_load($this->uid);
@@ -258,7 +259,7 @@ class call {
     } else $where = '(payee=:cuid OR payer=:cuid)';
 
     if (isset($my_who)) {
-      if (is_array($other_uid = api\identify($my_who))) return tt($other_uid); // return if error
+      if (!u\is_ruid($other_uid = api\identify($my_who))) return tt($other_uid); // return if error
       $where .= " AND ";
       if (isset($my_tofrom)) {
         $where .= $my_tofrom === 'to' ? 'payee=:other_uid' : 'payer=:other_uid';
@@ -296,7 +297,7 @@ class call {
     
     $where = 'state=:TX_PENDING AND payer=:cuid';
     if (isset($my_who)) {
-      if (is_array($other_uid = api\identify($my_who))) return tt($other_uid); // return if error
+      if (!u\is_ruid($other_uid = api\identify($my_who))) return tt($other_uid); // return if error
       $where .= ' AND payee=:other_uid';
     }
     if(!($result = api\last_tx($where, compact(u\ray('cuid other_uid'))))) return tt('no matching invoice');
@@ -310,7 +311,7 @@ class call {
   function do_transfer($type) {
     extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, and what
 
-    if (u\is_rid($other_ruid = api\identify($my_who, TRUE))) return tt($other_ruid); // return the array if error
+    if (!u\is_ruid($other_ruid = api\identify($my_who, TRUE))) return tt($other_ruid); // return the array if error
     list ($message, $args, $confirm) = api\transfer($type, $other_ruid, $my_amount, $my_what, $this->confirmed);
     return $confirm ? $this->confirm($message, $args) : tt($message, $args);
   }

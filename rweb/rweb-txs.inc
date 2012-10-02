@@ -62,7 +62,7 @@ function txs_form($form, &$form_state, $period = '', $do = '') {
   }
 
   $title = "<div id='txs-title'>TRANSACTIONS</div>";
-  $classes = u\array_prefix('tx-', u\ray('tid date name fromyou toyou state buttons purpose reward'));
+  $classes = u\prefix_values('tx-', u\ray('tid date name fromyou toyou state buttons purpose reward'));
   $attributes = array('id' => 'txlist');
   $header = u\ray('#,Date,Name,From you,To you,Status,,Purpose,Rewards');
   $cols = array();
@@ -221,7 +221,7 @@ function tx_summary($starting, $ending) {
   $old_balance = tx_bal($old_balance);
   $summary_title = "<div id='txsum-title'>SUMMARY</div>";
   
-  $classes = u\array_prefix('txsum-', u\ray('one tosign toyou fromsign fromyou rewardssign rewards balancesign balance'));
+  $classes = u\prefix_values('txsum-', u\ray('one tosign toyou fromsign fromyou rewardssign rewards balancesign balance'));
   $rows = array(
     array('id' => 'txsum-dates', 'data' => u\ray("$starting,,,,,,,,$ending")),
     array('id' => 'txsum-headers', 'data' => u\ray('Starting balance,,To You,,From You,,Rewards,,Ending balance')),

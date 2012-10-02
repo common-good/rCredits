@@ -75,7 +75,7 @@ function util($arg) {
   if ($arg == 'modal') drupal_goto('modal');
   if ($arg == 'reset') {
     r\reset();
-    $uid = variable_get('rcredits_community_uid') + 1;
+/*    $uid = variable_get('rcredits_community_uid') + 1;
     $uid2 = $uid + 1; $uid3 = $uid2 + 1;
     $pass = '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae';
     $sql = <<<EOF
@@ -92,6 +92,7 @@ EOF;
     api\give_signup_incentive($uid);
     api\give_signup_incentive($uid2);
     r\db_q(file_get_contents(__DIR__ . '\..\sql\r_companies-insert.sql'));
+*/
   }
   
   if ($arg == 'clear_sessions') r\db_q('TRUNCATE table SESSIONS');
@@ -105,7 +106,7 @@ function handy_links() {
 
   $links = array(
     'rCredits/util/modal|Test modal form|',
-    'admin/smsframework/devel|Simulate an SMS transaction|Simulate SMS',
+    'sms|Simulate an SMS transaction|Simulate SMS',
     'admin/config/development/testing|Test|Test',
     'sites/all/modules/rcredits/rsms/gherkin/compile.php|Compile tests|Compile tests',
     'deletetests.php|Delete old tests|Delete old tests',
@@ -143,16 +144,45 @@ EOF;
 /**
  * Top level exception handler for rWeb
  * Jump to default member page and display an error message.
+ 
+     [0] => Array
+        (
+            [file] => C:\Documents\www\devcore\sites\all\modules\rcredits\rcredits-util.inc
+            [line] => 339
+            [function] => rCredits\Utilities\gripe
+            [args] => Array
+                (
+                    [0] => ambiguous user in user_field: 3
+                )
+
+        )
  */
 function exception_handler($e) {
-  list ($msg, $line, $file) = array($e->getMessage(), $e->getLine(), $e->getFile());
-//  drupal_set_message("<b>Exception:</b> The rCredits System has detected an unusual problem. If your activity was interrupted, please feel free to try again." , $e->getMessage(), 'error');
-  drupal_set_message("<b>Exception:</b> The rCredits System has detected an unusual problem. If your activity was interrupted, please feel free to try again. ($msg, line $line in $file", 'error');
+  list ($msg, $line0, $file0, $trace) = array($e->getMessage(), $e->getLine(), $e->getFile(), $e->getTrace());
+  $file0 = basename($file0);
+  $trace_msg = '';
+  for ($i = 0; $i < 11; $i++) {
+    $line = $file = '';
+    extract($trace[$i]); // (file, line, function, args) OR just (function, args)
+    $line = @$line ?: '';
+    $file = basename(@$file);
+    $function = basename($function);
+    $args = preg_replace('/Array\s+\(/sm', 'Array', print_r($args, 1));
+    $args = substr($args, 6); // discard the gratuitous "Array" at the start
+    $args = preg_replace('/$\s*\)$\s$/sm', '', $args);
+    $args = '    ' . str_replace("\n", "<br>\n    ", $args);
+    $args = str_replace('  ', ' &nbsp;', $args);
+    $trace_msg .= "<br>\n- $line in $function ($file) with:<br>\n$args";
+  }
+//    $trace = str_replace('<!--', '<! --', print_r($trace, 1));
+//    $trace_msg .= "<!--$trace-->"; // source will contain the whole trace
+  $msg = "<b>Exception:</b> The rCredits System has detected an unusual problem. If your activity was interrupted, please feel free to try again.<br>\n($msg)<br>\n- $line0 ($file0)" . $trace_msg;
+  drupal_set_message($msg, 'error');
   drupal_goto('');
 }
 
 function show_form($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
-//  set_exception_handler('rCredits\\Web\\exception_handler');
+  set_exception_handler('rCredits\\Web\\exception_handler');
   try {
     setup_globals(); // in case it's an anonymous form, so web_access doesn't have a chance to set up
     u\log(__FUNCTION__, compact(u\ray('function arg1 arg2 arg3 arg4')));
@@ -290,7 +320,6 @@ EOF;
 
 function home_form($form, &$form_state) {
   $cuid = r\cuid();
-
   $account = \user_load($cuid);
   $is_company = api\access('company');
   $name = $account->name;
@@ -323,12 +352,12 @@ function home_form($form, &$form_state) {
   foreach ($future as $key => $value) $future[$key] = "<div id='overview-future' class='labeled-block'>$value</div>\n";
   
   extract(api\credit_info()->fancy, EXTR_PREFIX_ALL, 'my');
-  
+
   $form = array(
     'title' => form_field('item', t('Overview of Your rCredits Account')),
 //    'subtext' => basic_account_info(),
     'account_name' => form_field('item', t('Account Name:'), '', $account->full_name . " ($name)"),
-    'account_id' => form_field('item', t('Account ID:'), '', r\quid()),
+    'account_id' => form_field('item', t('Account ID:'), '', r\quid($cuid) . ' (' . R_REGION_NAME . ')'), // $cuid NOT $cruid or omitted
     'account_type' => form_field('item', t('Account type:'), '', $GLOBALS['account types'][$account->account_type+0]), // +0 for admin
     'stage' => form_field('item', t('You are:'), '', $now[$stage]),
     'future' => $future[$stage] ? form_field('item', t('Future milestones:'), '', $future[$stage]) : NULL,
@@ -343,8 +372,9 @@ function home_form($form, &$form_state) {
 }
 
 function account_form($form, &$form_state) {
-  global $user;
-  $form['#user'] = $user;
+  global $cuid;
+  
+  $form['#user'] = \user_load($cuid);
   user_account_form($form, $form_state);
   system_user_timezone($form, $form_state);
   unset($form['account']['name']);
@@ -356,7 +386,14 @@ function account_form($form, &$form_state) {
   $form['account']['roles']['#weight'] = 6;
   $form['account']['title'] = form_field('item', t('Account Information'), '', array('weight' => -99));
   $form['submit'] = form_field('submit', '', '', array('value' => t('Save'), 'weight' => 99));
+  $form['#user_category'] = 'account';
   return $form;
+}
+
+function account_form_submit($form, &$form_state) {
+  global $cuid;
+  $account = \user_load($cuid);
+  \user_save($account, $form_state['values']);
 }
 
 /**
@@ -728,7 +765,7 @@ function relations_form($form, &$form_state) {
   if ($confirm = sure_form($form_state)) return $confirm; // confirm only getUSD
   $account_identifiers = api\account_name($cuid);
   $header = u\ray('Person,Employee?,Owner?,Permission');
-  $classes = u\array_prefix('rel-', u\ray('person employee owner permission'));
+  $classes = u\prefix_values('rel-', u\ray('person employee owner permission'));
   
   $sql = <<<EOF
     SELECT s.reid, u.full_name, s.permission, s.is_employee, s.is_owner
@@ -1207,6 +1244,27 @@ function button($text, $href = '', $title = '', $type = '') {
   return $markup;
 }
 
+function sms_form($form, &$form_state) {
+  $title = form_field('item', t('Test SMS'));
+  $my_number = variable_get('last SMS number used');
+  $number = form_field('textfield', t('From (number): '), '', dft($my_number));
+  $message = form_field('textfield', t('Message: '));
+  $submit = form_field('submit', '', '', t('Send it!'));
+
+  drupal_add_js("document.getElementById('edit-message').focus();", array('type'=>'inline', 'scope'=>'footer'));  
+  $form = compact(u\ray('title number message submit'));
+  $form['#attributes']['class'] = array('labeled');
+  return $form;  
+}
+
+function sms_form_submit($form, $form_state) {
+  global $sms_devel; $sms_devel = TRUE;
+  extract($form_state['values'], EXTR_PREFIX_ALL, 'my');
+  $my_number = u\format_phone($my_number, '+n');
+  variable_set('last SMS number used', $my_number);
+  \rsms_sms_incoming('process', $my_number, $my_message);
+}
+
 /**
  * Set or report next step in form's workflow
  * Syntax:
@@ -1342,7 +1400,7 @@ function svar($name) {
  *   no return (refreshes page) if ambiguous
  */
 function whois($who, $field_name, $info, $create = TRUE, $self_message = 'no self-trading') {
-  if (!u\is_rid($result = api\identify($who, $create, $self_message))) {
+  if (!u\is_ruid($result = api\identify($who, $create, $self_message))) {
     list ($message, $args, $choices) = $result;
     if (empty($choices)) return say($result, $field_name); else which($choices, $field_name, $info, tt($message, $args));
   } else return $result;

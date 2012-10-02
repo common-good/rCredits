@@ -9,7 +9,8 @@ define('R_SERVER_ID', 'NEW'); // qid header for this region's server (New Englan
 // other 3rd letters: M=ME H=NH V=VT C=CT R=RI P=PA Y=NY A=NYC (apple) B=Boston
 
 // (you don't get an ID card unless you are in this geographic area)
-define('R_REGION_POSTAL_AREA', '01%'); // anyone with a postal code that matches this is in
+define('R_REGION_POSTAL_AREA', '^01.*'); // anyone with a postal code that matches this regular expression is in the region
+define('R_COUNTRY', 'United States');
 define('R_INITIAL_DEMAND', 25000); // total escrowed rCredits during TRIAL RUN
 define('R_REBATE', 0.05);
 define('R_BONUS', 0.10);

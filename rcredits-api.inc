@@ -265,10 +265,11 @@ function create_user($info) {
   $info['mail'] = $info['init'] = @$my_email ?: '';
 // Don't create a password (that's how we know it's a temporary account) $info['pass'] = \user_password();
   $info['full_name'] = @$my_full_name ?: '';
-  $short_name = @$my_full_name ? u\short_name($full_name) : '';
+  $short_name = @$my_full_name ? u\short_name($my_full_name) : '';
   $info['name'] =  @$my_name ?: (@$short_name ?: r\temp_name($info));
   $info['status'] = TRUE;
   $info['is_new'] = TRUE;
+  $info['community_uid'] = r\community_uid(@$my_postal_code);
 
   //*** Begin DBTX
   $dbtx = db_transaction();
@@ -390,7 +391,7 @@ function undo_tx($zxid, $real = 'bug') {
   $other_uid = $other_ruid[0];
   if (r\is_foreign($other_uid)) {
     $other_ruid = array($data['foreign_uid'], $data['foreign_agent'], $other_uid); // foreign region
-  } else $other_ruid[] = R_SERVER_ID; // local region
+  } else $other_ruid[] = r\server_uid(); // local region
     
   if ($old_state == TX_PENDING or $old_state == TX_DENIED) { // it's an invoice - cancel simply by changing the transaction state
 // function undo_invoice($zxid, $old_record, $other_uid, $by_me) // return $action
@@ -421,7 +422,7 @@ function undo_tx($zxid, $real = 'bug') {
  */
 function reverse($zxid, $amount, $other_ruid, $data, $old_tid, $to_me) {
   global $auid;
-  u\expect(compact(u\ray('zxid amount other_ruid data old_tid to_me')), 'zid float rid assoc id bool');
+  u\expect(compact(u\ray('zxid amount other_ruid data old_tid to_me')), 'zid float ruid assoc id bool');
   $old_data = $data; // remember original data from transaction we're reversing
   $type = $to_me ? 'payment' : 'charge';
   $my_note = "reverses #$old_tid";
@@ -434,7 +435,7 @@ function reverse($zxid, $amount, $other_ruid, $data, $old_tid, $to_me) {
   if (@$args['success']) {
     list ($new_tid, $new_zxid) = array($args['tid'], $args['zxid']);
     u\expect($new_zxid * $zxid > 0, 'reverse: wrong reality');
-    $other_tid = zxid2tid($new_zxid, $other_uid);
+    $other_tid = zxid2tid($new_zxid, $other_ruid[0]);
     $old_data['undone'] = TRUE;
     $old_data['changes'][] = array(time(), $auid, 'undo', $new_zxid);
     $old_data = serialize($old_data);
@@ -489,7 +490,7 @@ function get($currency, &$amount, $confirmed) {
   
   $type = TX_TRANSFER;
   $payer = $cuid;
-  $payee = $payer_agent = $payee_agent = r\community($payer);
+  $payee = $payer_agent = $payee_agent = user_field('community_uid', $payer);
 
   $taking = FALSE;
   $for = t('USD');
@@ -557,7 +558,7 @@ function transfer($ttype, $ruid, $requested_amount, $for, $confirmed = TRUE, $re
   if (is_array($ttype)) extract($ttype); // called from api or backend
   global $cuid, $auid;
   
-  u\expect(compact(u\ray('ttype quid request_amount confirmed rewards')), 'string qid float bool assoc');
+  u\expect(compact(u\ray('ttype ruid requested_amount confirmed rewards')), 'string ruid float bool assoc');
   list ($uid, $agent_uid, $region_uid) = $ruid;
   if (r\is_foreign($region_uid)) { // other is from elsewhere
     list ($foreign_uid, $foreign_agent) = $ruid;
@@ -601,11 +602,12 @@ function transfer($ttype, $ruid, $requested_amount, $for, $confirmed = TRUE, $re
   $bonus = $goods ? ('' . r\bonus($payee, $amount)) : '0';
   $data = empty($rewards) ? compact('rebate', 'bonus') : $rewards;
   if (@$foreign) $data += $foreign;
+  $data = serialize($data);
   $state = $preapproved ? TX_DONE : TX_PENDING;
 
   //*** Begin DBTX
   $dbtx = db_transaction();
-  $txs = r\transact(compact(u\ray('type amount payer payee payer_agent payee_agent for data state goods')));
+  $txs = r\transact(compact(u\ray('type taking amount payer payee payer_agent payee_agent for data state goods')));
   $zxid = $txs[0]['zxid'];
   if (!$confirmed) $dbtx->rollback();
   unset($dbtx); // $dbtx->commit() is disallowed
@@ -614,7 +616,7 @@ function transfer($ttype, $ruid, $requested_amount, $for, $confirmed = TRUE, $re
   $reward_index = $taking ? 2 : 1;
   $reward = @$txs[$reward_index]['amount'] ?: 0;
 
-  $args = r\tx_report_args($taking, $amount, $shortfall, $reward, $uid, $zxid, $goods);
+  $args = r\tx_report_args($taking, $amount, $shortfall, $reward, $uid, $zxid, $goods, @$foreign);
   if (!$goods) {
     $message = !$confirmed ? 'exchange' : ($preapproved ? 'report exchange' : 'report exchange request');
     return array($message, $args, !$confirmed);
@@ -643,8 +645,8 @@ function give_signup_incentive($uid) {
 
   $type = TX_SIGNUP;
   $amount = R_STARTING_BALANCE;
-  $payer = $payer_agent = $payee_agent = \variable_get('rcredits_community_uid');;
   $payee = $uid;
+  $payer = $payer_agent = $payee_agent = user_field('community_uid', $payee);
   $taking = FALSE;
   $goods = FALSE;
   $for = t('signup');
@@ -706,7 +708,7 @@ function delete_cell($number) {
  * @return one of the following:
  *   the other trader's ruid = array(uid, agent_uid, region_uid)
  *   array(error index, array of substitutions, array of possible full_names (0 or more) indexed by uid)
- *   (the caller can test which type of return, with "if (is_rid($returned_value))
+ *   (the caller can test which type of return, with "if (is_ruid($returned_value))
  */
 function identify($who, $create = FALSE, $self_message = 'no self-trading') {
   $cuid = r\cuid();
@@ -744,7 +746,7 @@ EOF;
   if(count($result) > 1) return array('ambiguous other', compact(u\ray('who')), $result);
   if(count($result) == 1) {
     foreach ($result as $uid => $other); // get the one entry
-    return array($uid, $uid, server_uid());
+    return array($uid, $uid, r\server_uid());
 //    return (access('member', $uid)) ? array($uid, $uid) : array('non trader', compact('other'), $result);
   }
 
@@ -768,6 +770,7 @@ EOF;
  *   including the overall demand for rCredits
  */
 function credit_info($args = array()) {
+  global $cuid;
   if (is_frontend()) {
     $info = backend('credit_info', $args);
     $info->fancy = (array) $info->fancy; // backend turns the whole shebang into an object
@@ -778,9 +781,10 @@ function credit_info($args = array()) {
   if (!@$state) $state = ':TX_DONE,:TX_DISPUTED';
   if (!@$real) $real = r\is_rTrader($uid);
   if (!@$asof) $asof = '';
+  $quid = r\quid($cuid, $cuid);
   
   $table = r\zxs((bool) $real);
-  $result_keys = 'gross_in gross_out gross_in_proper balance available unavailable rewards cashable total_demand min_balance qid';
+  $result_keys = 'gross_in gross_out gross_in_proper balance available unavailable rewards cashable total_demand min_balance quid';
   $sql = "SELECT min_balance FROM users WHERE uid=:uid";
   extract(r\db_q($sql, compact('uid'))->fetchAssoc()); // gets $min_balance
 
@@ -932,8 +936,10 @@ function todo($number, $todo = 'nothing', $nonce = 'whatever') {
 
 /**
  * Return the last transaction meeting the given criteria, for the current user.
+ * Rebates, bonuses, and deleted transactions are ignored
  * @param string $where: the criteria (defaults to 1 = any)
  * @param array $subs: optional substitutions (will be prefixed with colons)
+ * @return associative array: the old transaction record
  */
 function last_tx($where = 1, $subs = array(), $cache = FALSE) {
   $cuid = r\cuid();
@@ -941,7 +947,8 @@ function last_tx($where = 1, $subs = array(), $cache = FALSE) {
   if (is_array($where)) extract($where); // called from api or backend
 
 //  $table = r\zxs();
-  $sql = "SELECT * FROM {zxs} WHERE $cuid IN (payer, payee) AND ($where) ORDER BY zxid DESC LIMIT 1"; // make sure it's for $cuid
+  $basic = "$cuid IN (payer, payee) AND type NOT IN (:TX_DELETED, :TX_REBATE, :TX_BONUS)";
+  $sql = "SELECT * FROM {zxs} WHERE ($basic) AND ($where) ORDER BY zxid DESC LIMIT 1"; // make sure it's for $cuid
   if ($result = r\db_q($sql, $subs)->fetchAssoc()) {
     $result['zxid'] = r\zxid($result['xid'], r\zxs());
     unset($result['xid']);
@@ -984,9 +991,10 @@ function accesses($ruid = '') {
     $result = backend('accesses', compact(u\ray('ruid')), (bool) $ruid);
     return is_array($result) ? $result : array();
   }
-  if (is_array($ruid) and !u\is_rid($ruid)) extract($ruid); // called from api or backend
+  if (is_array($ruid) and !u\is_ruid($ruid)) extract($ruid); // called from api or backend
 
-  list ($main_uid, $agent_uid, $region_uid) = $ruid;
+  if (!$cruid) return array(); // no access for ANYONE, if anonymous user
+  list ($main_uid, $agent_uid, $region_uid) = $ruid ?: $cruid;
   if (!$main_uid or !$agent_uid) return array(); // anonymous user has no access
 
   $perms = array();
@@ -1094,7 +1102,7 @@ function user_field($field_name, $who = FALSE, $subs = array()) {
   if (!$who) $who = r\cuid();
   $result = get_records('users', is_numeric($who) ? "uid=$who" : $who, $subs, $field_name, TRUE);
   if (count($result) < 1) return FALSE;
-  u\expect(count($result) > 1, "ambiguous user in user_field: $who");
+  u\expect(count($result) == 1, "ambiguous user in user_field: $who");
   u\expect(is_object($result[0]), 'bad object array in user_field: ' . print_r($result, 1));
   return strpos($field_name, ',') ? ((array) $result[0]) : $result[0]->$field_name;
 //  return r\db_lookup($field_name, 'users', is_numeric($who) ? "uid=$who" : $who, $subs);
@@ -1110,6 +1118,6 @@ function user_field($field_name, $who = FALSE, $subs = array()) {
  * @return boolean: TRUE if the user has the permission
  */
 function access($access, $ruid = '') {
-  u\expect(compact(u\ray('access ruid')), 'string&notempty rid|empty');
+  u\expect(compact(u\ray('access ruid')), 'string&notempty ruid|empty');
   return in_array($access, accesses($ruid));
 }
