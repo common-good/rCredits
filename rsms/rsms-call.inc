@@ -10,7 +10,9 @@ use \rCredits\Utilities as u;
  * This class includes functions that directly reference the call's parameters (message, number, etc).
  * All other rSMS functions go in rsms.module or rsms.inc instead.
  */
- 
+
+class rSMSexception extends \Exception {} // so we can use \Exception for real errors
+
 class call {
   var $message; // the text message received
   var $number; // calling phone number
@@ -43,7 +45,7 @@ class call {
       if($error_message = $this->validate_caller()) return $error_message;
       $this->parse();
     }
-    catch (\Exception $e) {return $e->getMessage();}
+    catch (rSMSexception $e) {return $e->getMessage();}
     return $this->rdo();
   }
   
@@ -54,13 +56,14 @@ class call {
    * If the record is not yet adequate, ask for more information.
    * The caller is not validated unless we have a full_name and email address for him or her.
    * @returns string: error message to send to the caller (null if success).
-   * @throws \Exception
+   * @throws rSMSexception
    *   Message is the error message to send the caller.
    */
   function validate_caller() {
+    global $cuid, $auid;
     if (!($this->uid = \sms_user_get_uid($this->number))) $this->uid = api\create_user(array('number' => $this->number));
-    if (!$this->uid) die('missing uid');
-    r\cuid($this->uid); // setup $auid and $cuid
+    u\expect(u\id_id($this->uid), 'missing uid');
+    $cuid = $auid = $this->uid;
     
     $account = \user_load($this->uid);
     $todo = api\todo($this->number);
@@ -72,8 +75,8 @@ class call {
       }
       $name = setup_name($account, $this->message); // actually full_name
       api\todo($this->number, 'setup email', '');
-      $qid = r\quid(); //$account->credit_id;
-      return tt("what's your email?", compact('qid', 'name'));
+      $quid = r\quid(); //$account->credit_id;
+      return tt("what's your email?", compact('quid', 'name'));
     } elseif ($todo == 'setup email' and !$account->mail) {
       setup_email($account, $this->message);
       api\todo($this->number, '', '');
@@ -81,7 +84,7 @@ class call {
       return tt('your account is ready', compact('balance'));
 /*    } elseif (!\user_access('transact via sms', $account)) { // user does not have permission to use the rCredits SMS interface
       // send the user an email here?
-      // throw new \Exception('You do not have permission to use this system.'); // (due to misbehavior?), so don't waste a call?
+      // throw new rSMSexception('You do not have permission to use this system.'); // (due to misbehavior?), so don't waste a call?
       return tt('no SMS permission'); // be polite 
       */
     }
@@ -131,8 +134,8 @@ class call {
     }
 
     $unparseable = !$todo->nonce or strpos($message, ' '); // no nonce or not intended to be a nonce
-    if ($unparseable) throw new \Exception(tt('syntax') . ' ' . $this->do_helpme($intent));
-    if (strtoupper($message) != $todo->nonce) throw new \Exception(tt('wrong nonce'));
+    if ($unparseable) throw new rSMSexception(tt('syntax') . ' ' . $this->do_helpme($intent));
+    if (strtoupper($message) != $todo->nonce) throw new rSMSexception(tt('wrong nonce'));
 
     foreach (unserialize(stripslashes($todo->todo)) as $key => $value) $this->$key = $value;
     $this->confirmed = TRUE;

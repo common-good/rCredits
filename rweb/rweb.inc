@@ -435,13 +435,12 @@ EOF;
 }
 
 function profile_picture($uid, $with_markup = FALSE) {
-  global $auid;
   $account = \user_load($uid);
   $data = $account->data;
   $markup = str_replace('styles/thumbnail/public/', '', \theme('user_picture', compact('account')));
   if ($markup) {
     $a = explode('"', $markup);
-    $url = $a[api\access('administrator', $auid) ? 7 : 3]; // Drupal probably has an easier way to do this
+    $url = $a[api\access('administrator') ? 7 : 3]; // Drupal probably has an easier way to do this
   } else $url = is_array($data) ? @$data['picture'] : '';
   
   if (!$with_markup or !$url) return $url;
@@ -522,7 +521,7 @@ function buy_now_form($form, &$form_state) {
       if (!@$$my_field) return say('missing field', compact('field'), $field); // handle hackers gracefully
     }
     if (!is_numeric($my_amount)) return say('bad amount', 'amount');
-    if (!($uid = r\quid(@$my_company))) return say('bad account id', 'company');
+    if (!($ruid = r\ruid(@$my_company))) return say('bad account id', 'company');
 //  print_r("confirmed=$confirmed uid=$uid company=$my_company logged=".user_is_logged_in());
     $name = api\user_field('full_name', $uid); 
 
@@ -798,8 +797,8 @@ function relations_form_validate($form, &$form_state) {
   if (confirming_v($form_state)) return;
   
   if (@$new_person) {
-    list ($uid, $agent_uid_UNUSED) = whois($new_person, 'new_person', $form_state['values'], FALSE, 'no self-relation');
-    if (api\access('company', $uid)) return say('no company relations', 'new_person');
+    list ($uid) = $ruid = whois($new_person, 'new_person', $form_state['values'], FALSE, 'no self-relation');
+    if (api\access('company', $ruid)) return say('no company relations', 'new_person');
     $already = r\db_lookup('1', 'r_relations', 'main_uid=:cuid AND agent_uid=:uid', compact('cuid', 'uid'));
     if ($already) return say('already related', 'new_person');
     $form_state['values']['agent_uid'] = $uid; // save for submission handling
@@ -972,6 +971,7 @@ function register_form(&$form, &$form_state) {
 
 function register_form_validate($form, &$form_state) {
   extract($form_state['values'], EXTR_PREFIX_ALL, 'my');
+
   if ($my_company) {
     extract($my_company_options); // just is_employee and is_owner
     if (!($is_employee or $is_owner)) return say('what relationship', 'company');
@@ -979,6 +979,7 @@ function register_form_validate($form, &$form_state) {
     $form_state['values']['data'] = serialize(compact(u\ray('company is_employee is_owner')));
   }
   $form_state['values']['name'] = u\short_name($my_full_name);
+  $form_state['values']['community_uid'] = r\community_uid($my_postal_code);
 }
 
 function register_form_submit($form, &$form_state) {
@@ -987,13 +988,13 @@ function register_form_submit($form, &$form_state) {
   if ($my_company) {
     extract($my_company_options, EXTR_PREFIX_ALL, 'my');
     $company_uid = whois($my_company, 'company', $form_state['values']);
-    if (!r\zuid($company_uid, $my_uid)) {
+    if (!r\reid($company_uid, $my_uid)) {
       list ($main_uid, $agent_uid, $is_owner) = array($company_uid, $my_uid, $my_is_owner);
       \drupal_write_record('r_relations', compact(u\ray('main_uid agent_uid is_owner'))); // leave it to the owner to mark is_employee
     }
   }
-// this fails because account is not saved yet:  api\merge_check(compact(u\ray('email short_name'))); // email fails anyway because it's not unique
-  $quid = r\quid($my_uid);
+// merge fails because account is not saved yet:  api\merge_check(compact(u\ray('email short_name'))); // email fails anyway because it's not unique
+  $quid = r\quid($my_uid, $my_uid);
   $balance = u\format_amount(api\give_signup_incentive($my_uid));
   say('your account is ready', compact(u\ray('balance quid')));
 }
@@ -1032,10 +1033,10 @@ function login_extra_validate($form, &$form_state) {
     $form_state['flood_control_triggered'] = 'ip';
     return;
   }
-  $name = $my_name;
-  $crit = is_numeric($uid = r\quid($my_name)) ? 'uid=:uid' : ':name IN (name,mail)';
-  $fields = api\user_field('uid,name', $crit, compact(is_numeric($uid) ? 'uid' : 'name'));
-  if ($fields) extract($fields);
+  $ruid = r\ruid($my_name); // try to interpret it as a qid
+  $crit =  $ruid ? ('uid=' . $ruid[0]) : ':my_name IN (name,mail)';
+  $fields = api\user_field('uid,name AS my_name', $crit, $ruid ? NULL : compact('my_name'));
+  if ($fields) extract($fields); // uid and my_name (replacing earlier my_name)
   if ($uid) {
     $failed_login_identifier_uid_only = variable_get('user_failed_login_identifier_uid_only', FALSE);
     $failed_login_user_limit = variable_get('user_failed_login_user_limit', 5);
@@ -1049,7 +1050,7 @@ function login_extra_validate($form, &$form_state) {
       return;
     }
   }
-  $form_state['uid'] = user_authenticate($name, $my_pass);
+  $form_state['uid'] = user_authenticate($my_name, $my_pass);
 }
 
 function login_followup($edit) {
@@ -1457,16 +1458,19 @@ function say($index, $args = array(), $error_field = '') {
 }
 
 function setup_globals() {
-  global $cuid, $auid, $czuid, $user, $channel;
+  global $cuid, $auid, $cruid, $user, $channel;
   $auid = @$user->uid;
   $cuid = svar('cuid') ?: $auid;
-  $czuid = r\zuid($cuid, $auid);
+  $cruid = array($cuid, $auid, r\server_uid());
   $channel = TX_WEB;
 }
 
-function web_access($access, $zuid = '') {
+/**
+ * $ruid is currently unused
+ */
+function web_access($access, $ruid = '') {
   setup_globals(); // remember who we are (the only reason for this function)
-  return api\access($access, $zuid);
+  return api\access($access, $ruid);
 }
 
 // one-line functions that need no explanation

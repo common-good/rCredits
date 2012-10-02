@@ -24,7 +24,7 @@ define('RSMS_PREFIX', 'TEST: '); // the pre-launch trial
 
 $GLOBALS['SMS messages'] = array(
   // reports
-  'account info' => t("Your@asif balance for account @qid is @balance, including @rewards of incentive rewards. Total demand for rCredits is @total_demand."),
+  'account info' => t("Your@asif balance for account @quid is @balance, including @rewards of incentive rewards. Total demand for rCredits is @total_demand."),
 //  'account info2' => t("More account info"), // not used yet
   'your account is ready' => t('Your starting balance is @balance. Pretend to buy and sell as you would in a typical month (we need that info). Have fun! Type "helpme" to get started.'), // separate out the last sentence
 
@@ -43,7 +43,7 @@ $GLOBALS['SMS messages'] = array(
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),
   "what's your name really?" => t("Hmm. I don't know if I believe that. What's your name really?"),
-  "what's your email?" => t("Welcome to rCredits, @name (account ID @qid). Last question: What's your email address?"),
+  "what's your email?" => t("Welcome to rCredits, @name (account ID @quid). Last question: What's your email address?"),
   "what's your email really?" => t("Please type carefully. What is your email address?"),
   
   // confirmations
@@ -203,11 +203,11 @@ function create($number, $uid, $status = SMS_USER_CONFIRMED) {
  */
 function setup_name($account, $full_name) {
   $full_name = str_replace('  ', ' ', trim($full_name));
-  if (strlen($full_name) > 60) throw new \Exception(tt('name too long'));
+  if (strlen($full_name) > 60) throw new rSMSexception(tt('name too long'));
   if (strtolower($full_name) == $full_name or strtoupper($full_name) == $full_name) $full_name = ucwords($full_name);
-  if (!u\valid_name($full_name)) throw new \Exception(tt("what's your name really?"));
+  if (!u\valid_name($full_name)) throw new rSMSexception(tt("what's your name really?"));
   $name = u\short_name($full_name);
-  if (r\user_field(1, 'name=:name', compact('name'))) throw new \Exception(tt('duplicate name'));
+  if (r\user_field(1, 'name=:name', compact('name'))) throw new rSMSexception(tt('duplicate name'));
   $edit = compact('name', 'full_name');
   return \user_save($account, $edit)->full_name;
 }
@@ -217,8 +217,8 @@ function setup_name($account, $full_name) {
  * @return object: the account
  */
 function setup_email($account, $email) {
-  if (!\valid_email_address($email)) throw new \Exception(tt("what's your email really?"));
-  if (r\user_field(1, "mail = '$email'")) throw new \Exception(tt('duplicate email'));
+  if (!\valid_email_address($email)) throw new rSMSexception(tt("what's your email really?"));
+  if (r\user_field(1, "mail = '$email'")) throw new rSMSexception(tt('duplicate email'));
   $edit = array(); // no edits yet
   $edit['mail'] = $edit['init'] = $email;
   return \user_save($account, $edit);

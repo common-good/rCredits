@@ -9,29 +9,29 @@
  *   - utilities, which are in rcredits-util.inc (u)
  *
  * Some coding conventions:
- *  reid: a relation id (transient, never stored in any other table)
- *   uid: an account id         zuid: a (signed) account id (positive: uid, <0: -rid)
- *   xid: a transaction id      zxid: a (signed) transaction id (>0: xid in r_txs (real), <0: -xid in r_asif)
- *     All transaction database operations are performed by db_q() on a virtual table {txs} with key zxid.
- *  ruid: an array of the two uids represented by a zuid
+ *   qid: a mostly-alphabetic representation of an azid, eg "XXX.YYYY..." used externally for REST and SMS queries.
+ *     XXX (3 letters) represents the region's uid, YYYY... (some number of letters) represents a record ID
+ *     the separator can be a colon instead of period, giving YYYY... a different meaning
+ *     The region (XXX) can be omitted in SMS identifiers (eg "200 to .ABCDE for pie")
+ *     For each region that exists, we have a user record with uid < 0, with name = region name followed by period (eg ABC.)
  *
+ *   zid: a signed id (non-zero) -- meaning of negative value varies
+ *  azid: array(zid, region_uid), where region_uid is the uid of the server
+ *  reid: a relation id (transient, never stored in any other table)
+ *   uid: an account id
+ *   xid: a transaction id
+ *     All transaction database operations are performed by db_q() on a virtual table {txs} with key zxid.
+ *  zxid: a (signed) transaction id (>0: xid in r_txs (real), <0: -xid in r_asif)
+ *  ruid: an array of the three uids representing a quid: [main_uid, agent_uid, region_uid]  
+ *
+ *  qxid: a qid (8 characters or more) reprersenting a zxid (: means a negative zxid)
+ *  quid: a qid (7 characters or more) representing a uid acting as its own agent (. separator) OR an reid (: separator)
+ *
+ * Globals:
  *   cuid: current account id  
  *   auid: the user's logged-in account id (agent uid)
- *  czuid: the zuid for cuid + auid
+ *  cruid: the user's current ruid
  *
- *   a "q" id is a mostly-alphabetic representation of a signed id (zuid or zxid) plus the server id. 
- *   It is used externally for REST and SMS queries. The qid takes two forms:
- *     XXX.YYYY... or XXX:ZZZZ... where
- *       XXX is R_SERVER_ID (the region)
- *       YYYY... is n2a(id) for a positive id
- *       ZZZZ... is n2a(-id) for a negative id
- *   The region (XXX) can be omitted in SMS identifiers (eg "200 to .ABCDE for pie")
- *   quids are (at least) 7 characters (3, 1, 3)
- *   qxids are (at least) 8 characters (3, 1, 4)
- *
- * @todo: pass ruids and record that info in transactions as agent (done, but test it!!)
- * @todo: throughout, do something better than die()
- * @todo: rebates and bonuses only when the two parties are in the same community (rewards for buy local)
  * @todo: separate smart api to its own module
  * @todo
  * - handling employees (virtual payments). This should probably be extended to suppliers too,
@@ -76,6 +76,9 @@
  *   Thus every inter-community transaction is stored in both communities. Both communities know their trade balance, which should be
  *   public through a RESTful query. Intra-community transactions should also be stored twice -- ideally in member's devices. Smartphones and
  *   desktop computers running an app should store all their own transactions. Encrypted backups of everything to the cloud too.
+ *
+ * Other thoughts:
+ *   Joining by dumb cellphone is for play only. Accounts and transactions created that way get deleted after a week of inactivity.
  */
  
 namespace rCredits; // typically abbreviated as "r"
@@ -252,7 +255,8 @@ function tx_save($txs) {
   $dbtx = db_transaction();
   $table = zxs($my_payer, $my_payee);
   if (@$my_data['zxid'] < 0) $table = zxs(FALSE); // special case for undoing an asif, even though both parties are now rTraders
-  foreach ($txs as $key => $zot) { // $zot is unused
+  foreach ($txs as $key => $one) {
+    if (empty($one)) continue; // skipping rebate or bonus
     $txs[$key]['serial'] = @$serial; // set serial for dependent transactions
     \drupal_write_record($table, $txs[$key]); // pass actual array element, to get xid
     if ($key == 0) {
@@ -277,33 +281,28 @@ function transaction_rewards(&$txs) {
   if ($my_type != TX_TRANSFER) return;
   if (!$my_goods) return; // quit unless rebates and bonuses apply
   if (owning($my_payer, $my_payee)) return; // no rewards for transactions between owner and owned
-  $rewards = unserialize($my_data);
   
-  // set up fields common to both rebate and bonus
-  $fields = u\ray('type amount payer payee payer_agent payee_agent for creator state');
-  $payer = $payer_agent = $payee_agent = \variable_get('rcredits_community_uid');
-  $state = $my_state; // match rewards state to main transaction
+  $txs[] = tx_reward_setup(TX_REBATE, $my_payer, $my_state);
+  $txs[] = tx_reward_setup(TX_BONUS, $my_payee, $my_state);
+}
+
+function tx_reward_setup($type, $payee, $state) {
+  $payer = $payer_agent = $payee_agent = community($payee);
+  if ($payer == $payee) return NULL; // payee is a community, so no rewards
+
   $taking = FALSE;
-
-  $type = TX_REBATE;
-  $payee = $my_payer;
-  $amount = $rewards['rebate'];
-  $for = t('rebate');
-  $txs[] = transaction_setup(compact($fields));
-
-  $type = TX_BONUS;
-  $payee = $my_payee;
-  $amount = $rewards['bonus'];
-  $for = t('bonus');
-  $txs[] = transaction_setup(compact($fields));
+  $rewards = unserialize($my_data);
+  $amount = $rewards[$type == TX_REBATE ? 'rebate' : 'bonus'];
+  $for = $type == TX_REBATE ? t('rebate') : t('bonus');
+  return compact(u\ray('type amount payer payee payer_agent payee_agent for taking state'));
 }
 
 /**
  * Create a new transaction and set up all the important fields.
  * @param array $info: an associative array of transaction info. The following elements are required:
  *   amount: how much to transfer
- *   payer: zuid of the payer and payer_agent
- *   payee: zuid of the payee and payee_agent
+ *   payer, payee: uids
+ *   payer_agent, payee_agent: uids
  *   taking (bool): did the payee initiate the transaction
  *   for: purpose of the transaction
  *   goods (bool): is the transfer in exchange for goods and services
@@ -398,7 +397,7 @@ function set_tx_field($field_name, $new_value, $zxid, $all_related = FALSE) {
   global $cuid, $auid;
   u\expect(compact(u\ray('field_name zxid all_related')), 'name zid bool');
   
-  list ($xid, $table) = zxid($zxid);
+  list ($xid, $table) = azxid($zxid);
   $crit = "xid=:xid and $cuid in (payer, payee)"; // "$cuid in" is a security measure
   list ($old_value, $data) = array_values(db_lookup("$field_name,data", $table, $crit, compact(u\ray('xid'))));
   $data = unserialize($data);
@@ -423,7 +422,7 @@ function set_tx_field($field_name, $new_value, $zxid, $all_related = FALSE) {
 function merge_accounts($old_uid) {
   $new_uid = cuid();
   if (!api\is_temp_account($old_uid)) return; // don't merge non-temp account
-  if (!api\access('manage account')) die("unauthorized merge_accounts: $new_uid into $old_uid");
+  u\expect(api\access('manage account'), "unauthorized merge_accounts: $new_uid into $old_uid");
 //  if (!is_temp_name(user_field('name', $old_uid))) die('merging non-temp account');
   // there are no other records for temporary accounts, than those below
 
@@ -455,7 +454,7 @@ EOF;
  * Reset all rCredits data, to start development with a clean slate
  */
 function reset() {
-  if(!($ctty_uid = \variable_get('rcredits_community_uid'))) die("No community uid!");
+  u\expect($ctty_uid = \variable_get('rcredits_community_uid'), "No community uid!");
   $sqls = array(
     'TRUNCATE TABLE r_txs',
     'TRUNCATE TABLE r_asif',
@@ -511,37 +510,72 @@ function user_field($field_name, $who, $subs = array()) {
 }
 
 /**
- * Return a qid for the id or vice versa
- * @param mixed $id:
- *   positive integer: return XXX.YYYY...
- *   negative integer: return XXX:YYYY...
- *   XXX.YYYY...: return a positive integer
- *   XXX:YYYY...: return a negative integer (the colon can also be presented as "deux points" -- "..")
- *   (XXX is the 3-character server ID and defaults to the current server, the Ys are letters)
- * @param int $len: minimum length of the YYYY... part
- * @return FALSE if zero, empty, or wrong format -- otherwise as above
+ * Return a qid for the zid
+ * @param $zid: a zid
+ * @param string $region_id: the 3-character regional server ID (defaults to this server)
+ * @param int $min_len: minimum length of the part of the qid after the "." or ":"
+ * @return the qid, FALSE if wrong format
  */
-function qid($id = '', $len = 0) {
-  if (!@$id) return FALSE; // don't convert 0, empty, or NULL
-  if (is_numeric($id)) return R_SERVER_ID . ($id < 0 ? (':' . u\n2a(-$id, -$len)) : ('.' . u\n2a($id, -$len))); 
-
-  if (!u\is_qid($id)) return FALSE;
-  $qid = str_replace('..', ':', $id); // allow a horizontal colon
-  $type = strpos($qid, '.') === FALSE ? ':' : '.';
-  list ($region, $iid) = explode($type, $qid, 2); // separate into region and individual id
-  if ($region != R_SERVER_ID) return FALSE; // for now only one server
-  if (strlen($iid) < $len) return FALSE;
-
-  $id = u\a2n($iid);
-  if ($type == '.') return $id;
-  if ($type == ':') return -$id;
-  return FALSE;
+function qid($zid = '', $region_id = R_SERVER_ID, $min_len = 1) {
+  if (!u\is_zid($id)) return FALSE;
+  return $region_id . ($zid < 0 ? (':' . u\n2a(-$zid, -$min_len)) : ('.' . u\n2a($zid, -$min_len)));
 }
 
+/**
+ * Return an azid and region for the qid
+ * @return [zid, region_uid]
+ */
+function azid($qid) {
+  if (!u\is_qid($qid)) return FALSE;
+  $qid = str_replace('..', ':', $qid); // allow a horizontal colon
+  $type = strpos($qid, '.') === FALSE ? ':' : '.';
+  list ($region_id, $iid) = explode($type, $qid, 2); // separate into region and individual id
+  
+  $id = u\a2n($iid);
+  return array($type == '.' ? $id : -$id, server_uid($region_id ?: R_SERVER_ID));
+}
+  
 function cuid() {global $cuid; return @$cuid + 0;} // current account (may be zero, if not logged in)
 
-function quid($id = '') {return qid($id ?: zuid(), 3);} // Convert zuid to quid or vice versa
-function qxid($id) {return quid($id, FALSE, 4);} // Convert zxid to qxid or vice versa
+/**
+ * Convert ruid to quid
+ * Call by:
+ *   quid()
+ *   quid(ruid)
+ *   quid(uid, agent_uid) -- region_uid defaults to current region
+ *   quid(uid, agent_uid, region_uid) -- these are the elements of an ruid array
+ * @param ruid $ruid: the ruid to convert (DEFAULT $cruid -- the current account and agent)
+ * @return the corresponding quid
+ */
+function quid($id = '', $agent_uid = '', $region_uid = '') {
+  global $cruid;
+  if ($agent_uid) {
+    $uid = $id;
+    if (!$region_uid) $region_uid = server_uid();
+  } else list ($uid, $agent_uid, $region_uid) = $ruid ?: $cruid;
+  return qid($uid == $agent_uid ? $uid : -reid($uid, $agent_uid), n2a($region_uid, 3), 3);
+}
+
+/**
+ * Convert quid to ruid
+ * @param quid $quid: the quid to convert (DEFAULT current acount and agent's quid)
+ * @return the corresponding ruid (FALSE if wrong format)
+ */
+function ruid($quid = '', $no_abbrev = TRUE) {
+  global $cuid, $auid;
+  if (!$quid) return array($cuid, $auid, server_uid());
+  if (!u\is_qid($quid) and !$no_abbrev) $quid = R_SERVER_ID . $quid;
+  if (!u\is_qid($quid)) return FALSE;
+
+  list ($zuid, $region_uid) = azid($quid);
+  $result = (($reid = -$zuid) > 0) ?
+      array_values(db_lookup('main_uid,agent_uid', 'r_relations', 'reid=:reid', compact('reid')))
+    : array($zuid, $zuid);
+  $result[] = $region_uid;
+  return $result;
+}
+
+function qxid($zxid, $region_id = R_SERVER_ID) {return qid($zxid, $region_id = R_SERVER_ID, 4);} // Convert zxid to qxid
 
 /**
  * Convert a zuid to uid and agent uid or vice-versa
@@ -549,21 +583,19 @@ function qxid($id) {return quid($id, FALSE, 4);} // Convert zxid to qxid or vice
  * zuid($zuid) returns and rid = array($uid, $agent_uid)
  * zuid($uid, $agent_uid) returns $zuid ($uid if $uid==$agent_uid, else -$reid)
  * @return as above; FALSE if no such
- */
+ */ /*
 function zuid($id = '', $agent_uid = '') {
   global $czuid;
   if (!$id) return $czuid;
   if (!$agent_uid) return ($reid = -$id) > 0 ? array_values(db_lookup('main_uid,agent_uid', 'r_relations', 'reid=:reid', compact('reid'))) : array($id, $id);
   return $id == $agent_uid ? $id : -db_lookup('reid', 'r_relations', 'main_uid=:id AND agent_uid=:agent_uid', compact(u\ray('id agent_uid')));
-}
+} */
 
 /**
  * Convert a zxid to xid and table or vice-versa
  */
-function zxid($id, $table = '') {
-  if ($table) return $table == zxs(TRUE) ? $id : -$id;
-  if (!$table) return $id > 0 ? array($id, zxs(TRUE)) : array(-$id, zxs(FALSE));
-}
+function zxid($xid, $table) {return $table == zxs(TRUE) ? $xid : -$xid;}
+function azxid($zxid) {return $zxid > 0 ? array($zxid, zxs(TRUE)) : array(-$zxid, zxs(FALSE));}
 
 /**
  * Say whether one of the accounts owns the other.
@@ -572,6 +604,14 @@ function owning($uid1, $uid2) {
   $crit = 'is_owner AND ((main_uid=:uid1 AND agent_uid=:uid2) OR (main_uid=:uid2 AND agent_uid=:uid1))';
   return $uid1 == $uid2 ?: db_lookup(1, 'r_relations', $crit, compact('uid1', 'uid2'));
 }
+
+function community_uid($postal_code) {
+  $crit = 'country=:my_country AND :postal_code RLIKE postal_code AND uid=community_uid';
+  return r\user_field('uid', 'users', $crit, compact(u\ray('my_country my_postal_code')));
+}
+
+function community($uid) {return db_lookup('community_uid', 'users', 'uid=:uid', compact('uid'));}
+function is_foreign($uid) {return ($uid < 0 and preg_match('/[A-Z]{3}\./', api\user_field('name', $uid)));}
 
 function is_rTrader($uid = '') {
   if (!$uid) $uid = cuid();
@@ -585,7 +625,7 @@ function db_q($sql, $args = array()) {
   if (strpos($sql, '{zxs}')) {
     extract($args, EXTR_PREFIX_ALL, 'my');
     if (@$my_zxid) {
-      list ($args['xid'], $table) = zxid($my_zxid);
+      list ($args['xid'], $table) = azxid($my_zxid);
       unset($args['zxid']);
     } else {
       $table = zxs((bool) (isset($my_real) ? $my_real : is_rTrader()));
@@ -604,4 +644,5 @@ function update_user($info, $who) {return \db_update('users')->fields($info)->co
 function set_tx_state($new_value, $zserial) {set_tx_field('state', $new_value, $zserial, 'serial');}
 function uid_from_crid($qid) {return db_lookup('uid', 'users', 'qid=:qid', compact('qid'));}
 function total_demand() {return db_lookup('SUM(demand)', 'users');}
-
+function server_uid($region_id = '') {return u\a2n($region_id ?: R_SERVER_ID);}
+function reid($main_uid, $agent_uid) {return db_lookup(1, 'main_uid=:main_uid AND agent_uid=:agent_uid', compact(u\ray('main_uid agent_uid')));}

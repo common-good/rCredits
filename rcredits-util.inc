@@ -514,4 +514,4 @@ function wargs($s, $args, $prefix = '') {return strtr($s, prefix_keys($prefix, $
 function my_int($n) {return (is_numeric($n) and $n == (int) $n);}
 function is_id($id) {return (my_int($id) and $id > 0);}
 function is_rid($rid) {return (is_array($rid) and array_keys($rid) == array(0, 1) and is_id($rid[0]) and is_id($rid[1]));}
-function is_qid($qid) {return preg_match('/^[A-Z]{3}(\.|\:)[A-Z]+$/', $qid);}
+function is_qid($qid) {return preg_match('/^[A-Z]{3}(\.|\:|\.\.)[A-Z]+$/', $qid);}

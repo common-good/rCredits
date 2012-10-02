@@ -46,29 +46,21 @@ function api_out($args) {
 }
 
 /**
- * Make sure the current user ($auid) can at least read transactions for the specified account
- */
-function be_check($uid) {
-  global $auid;
-  $crit = 'main_uid=:uid AND agent_uid=:auid';
-  if (!($uid == $auid or r\db_lookup(1, 'r_relations', $crit, compact('uid', 'auid')))) api_error('sharing error');
-}
-
-/**
  * Receive and process a REST request from a smart device
  * @param array $args: an associative array that normally includes:
  *   op: what to do (determines what function to call)
- *   my_id: qid supplied by user once, in First Time request (used to set $cuid)
- *   code: permanent code the we sent to the device in First Time response (used to set $auid)
+ *   my_id: agent qid
+ *   code: permanent code that we sent to the device in First Time response (used to set $cuid)
+ *     for now, user cannot change the active account, just the agent (eg sales clerks)
  *     if $op = 'first_time', expect $password instead
  *   account_id: the qid for the other party, if any 
- *     This gets passed to the specific op functions as $ruid = array($uid, $agent_uid)
+ *     This gets passed to the specific op functions as $ruid = array($uid, $agent_uid, $region_uid)
  * @return (normally by calling either api_error or api2):
  *   $success=1 if api2 is called, otherwise 0 ($op = 'photo' is an exception; see below)
  *   $message: an error message or help message to display on the device; or not set
  */
 function smart_api() {
-  global $auid, $cuid, $channel;
+  global $auid, $cuid, $cruid, $channel;
   $channel = TX_SMART;
   u\log('in', $_POST);
   if (!(@$args = (array) json_decode($_POST['json']))) api_error('no json');
@@ -77,14 +69,18 @@ function smart_api() {
   if (@$q_op != 'first_time') {
     if (!@$q_code) api_error('no code given');
     if (!($cuid = r\db_lookup('uid', 'r_smarts', 'code=:q_code', compact('q_code')))) api_error('unknown device');
-    be_check($auid = r\quid(@$q_my_id)); // make sure agent has permission
+    $cruid = r\ruid(@$q_my_id);
+    if (!@$cruid) api_error('bad id');
+    list ($auid, $auid, $region_uid) = $cruid;
+    if ($region_uid != r\server_uid()) api_error('wrong server');
+    if (!r\has_agent($cuid, $auid)) api_error('You do not have permission to use that account.'); // make sure agent has permission
   }
   $op = 'smart_' . @$q_op;
   if (@$q_account_id) {
-    $zuid = r\quid($q_account_id);
-    if (!$zuid) api_error('bad account_id');
-    list ($uid, $agent_uid) = $ruid = zuid($zuid);
-    $args += compact(u\ray('ruid uid agent_uid'));
+    $ruid = r\ruid($q_account_id);
+    if (!$ruid) api_error('bad account_id');
+    list ($uid, $agent_uid, $region_uid) = $ruid;
+    $args += compact(u\ray('ruid uid agent_uid region_uid'));
   }
   api2($op, $args);
 }
@@ -97,6 +93,7 @@ function smart_reset($args) {
 /*
  * Requesting a permanent code from the server.
  * @param array $args:
+ *   my_id
  *   password: the user's Drupal account password
  * @return:
  *   code: permanent code for app to prove the identity of the device
@@ -107,11 +104,13 @@ function smart_first_time($args) {
   require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
   extract($args, EXTR_PREFIX_ALL, 'q');
 //  if (!($account = \user_load_by_name(@$q_my_id))) api_error('unknown user');
-  if (!($account = \user_load(r\quid(@$q_my_id)))) api_error('unknown user');
+  if (!($ruid = r\ruid(@$q_my_id))) api_error('bad id');
+  $uid = $ruid[0];
+  if (!($account = \user_load($uid))) api_error('unknown user');
   if (@!$q_password) api_error('login error');
   if (!user_check_password($q_password, $account)) api_error('bad login'); // make these two error messages distinct but obscure
   $code = user_hash_password(uniquid($q_my_id, TRUE)) . '/'; // add a slash to make sure slashes get handled properly
-  $uid = $account->uid;
+  $owner_id = r\quid($uid, $uid);
   $device = t('Smart Device');
   \drupal_write_record('r_smarts', compact(u\ray('uid code device'))); // no way to tell if it's the same device as others
   return compact(u\ray('code owner_id')) + smart_startup($args);
@@ -231,16 +230,17 @@ function smart_undo($params) {
  * Receive and process a REST request from the website frontend
  */
 function backend2($args = FALSE) {
-  global $auid, $cuid, $firewall;
+  global $auid, $cuid, $cruid, $firewall;
 
   if (!$args) $args = $_POST;
   extract($args); // $cuid, $auid, $firewall (those first three are all extracted into globals), $my_id, $op
-  $cuid = r\quid(@$my_id ?: r\cuid()); unset($args['cuid']); // unset because it is passed as a global, not as an arg
-  $auid = r\quid(@$auid); unset($args['auid']); // unset because it is passed as a global, not as an arg
+  if (@$my_id) list ($cuid, $auid) = $cruid = r\ruid($my_id);
+  unset($args['cuid']); // unset because it is passed as a global, not as an arg
+  unset($args['auid']); // unset because it is passed as a global, not as an arg
 
   if (@$firewall != R_FIREWALL) api_error('firewall system failure'); // give hackers some satisfaction by saying 'failure'
   if (!$cuid or !$auid) api_error('user validation error');
-  be_check($cuid);
+  if (!r\has_agent($cuid, $auid)) api_error('sharing error');
   api2($op, $args);
 }
 
@@ -385,11 +385,13 @@ function undo_tx($zxid, $real = 'bug') {
   $old_tid = zxid2tid($zxid);
   $data = unserialize($old_data);
   if (@$data['undone']) return array('already undone', compact('old_tid'));
-  $other_ruid = $old_payer == $cuid ? array($old_payee, $old_payee_agent) : array($old_payer, $old_payer_agent);
-  $other_uid = $other_ruid[0];
+  $other_ruid = $old_payer == $cuid ? array($old_payee, $old_payee_agent) : array($old_payer, $old_payer_agent); // needs region still
   $to_me = ($old_payee == $cuid);  
-//  $by_me = ($taking xor !$to_me);
-  
+  $other_uid = $other_ruid[0];
+  if (r\is_foreign($other_uid)) {
+    $other_ruid = array($data['foreign_uid'], $data['foreign_agent'], $other_uid); // foreign region
+  } else $other_ruid[] = R_SERVER_ID; // local region
+    
   if ($old_state == TX_PENDING or $old_state == TX_DENIED) { // it's an invoice - cancel simply by changing the transaction state
 // function undo_invoice($zxid, $old_record, $other_uid, $by_me) // return $action
     if ($to_me) {
@@ -400,7 +402,7 @@ function undo_tx($zxid, $real = 'bug') {
       r\notify($other_uid, 'invoice-denied', $old_record + compact('payer_name'));
     }
     r\set_tx_state($new_state, $zxid);
-  } elseif (!$to_me and $old_taking and access('charge others', $old_payee)) { // someone charged me unilaterally
+  } elseif (!$to_me and $old_taking and access('charge others', $other_ruid)) { // someone charged me unilaterally
 // function dispute($zxid, $old_record, $other_uid)
     r\set_tx_state(TX_DISPUTED, $zxid); // mark it disputed
     $action = t('marked "disputed"');
@@ -487,14 +489,15 @@ function get($currency, &$amount, $confirmed) {
   
   $type = TX_TRANSFER;
   $payer = $cuid;
-  $payee = variable_get('rcredits_community_uid');
+  $payee = $payer_agent = $payee_agent = r\community($payer);
+
   $taking = FALSE;
   $for = t('USD');
   $goods = FALSE;
 
   //*** Begin DBTX
   $dbtx = db_transaction();
-  r\transact(compact(u\ray('type amount payer payee for taking goods')));
+  r\transact(compact(u\ray('type amount payer payee payer_agent payee_agent for taking goods')));
   $balance = u\format_amount($info_balance - $amount);
   if ($confirmed) return array('report get usd', compact(u\ray('request balance success')), FALSE);
   
@@ -532,7 +535,7 @@ function pay_invoice($zxid) {
 /**
  * Create a transaction
  * @param string $ttype: payment, charge, or invoice payment
- * @param array $ruid: array(main_uid, agent_uid)
+ * @param array $ruid: external account id for other party, in array form
  * @param numeric $requested_amount: the transaction amount
  * @param string $for OR array($payer_for, $payee_for): description of the transaction's purpose (user input)
  * @param bool $confirmed: has this transaction been confirmed by the user? (default TRUE, used only for SMS interface)
@@ -554,7 +557,13 @@ function transfer($ttype, $ruid, $requested_amount, $for, $confirmed = TRUE, $re
   if (is_array($ttype)) extract($ttype); // called from api or backend
   global $cuid, $auid;
   
-  list ($uid, $agent_uid) = $ruid;
+  u\expect(compact(u\ray('ttype quid request_amount confirmed rewards')), 'string qid float bool assoc');
+  list ($uid, $agent_uid, $region_uid) = $ruid;
+  if (r\is_foreign($region_uid)) { // other is from elsewhere
+    list ($foreign_uid, $foreign_agent) = $ruid;
+    $foreign = compact(u\ray('foreign_id')); // save for $data
+    $uid = $agent_uid = $region_uid;
+  } 
   if ($uid == $cuid) return array('no self-trading', array(), FALSE);
   $real = @$rewards['zxid'] < 0 ? FALSE : (r\is_rTrader() and r\is_rTrader($uid));
   $taking = ($ttype == 'charge');
@@ -591,6 +600,7 @@ function transfer($ttype, $ruid, $requested_amount, $for, $confirmed = TRUE, $re
   $rebate = $goods ? ('' . r\rebate($payer, $amount)) : '0'; // force string, to avoid long serializations
   $bonus = $goods ? ('' . r\bonus($payee, $amount)) : '0';
   $data = empty($rewards) ? compact('rebate', 'bonus') : $rewards;
+  if (@$foreign) $data += $foreign;
   $state = $preapproved ? TX_DONE : TX_PENDING;
 
   //*** Begin DBTX
@@ -633,12 +643,12 @@ function give_signup_incentive($uid) {
 
   $type = TX_SIGNUP;
   $amount = R_STARTING_BALANCE;
-  $payer = \variable_get('rcredits_community_uid');;
+  $payer = $payer_agent = $payee_agent = \variable_get('rcredits_community_uid');;
   $payee = $uid;
   $taking = FALSE;
   $goods = FALSE;
   $for = t('signup');
-  r\transact(compact(u\ray('type amount payer payee for taking goods')));
+  r\transact(compact(u\ray('type amount payer payee payer_agent payee_agent for taking goods')));
   return $amount;
 }
 
@@ -659,10 +669,7 @@ function add_cell($number, $validate = FALSE) {
     if ($result = r\db_q('SELECT * FROM sms_user WHERE number=:number_internal', compact('number_internal'))->fetchAssoc()) {
       extract($result, EXTR_PREFIX_ALL, 'old');
       if ($old_uid == $cuid) return array('already cell', $subs);
-      //extract(r\db_q('SELECT full_name, credit_id FROM users WHERE uid=:old_uid', compact('old_uid'))->fetchAssoc());
-      extract(user_field('full_name', $old_uid));
-      $qid = r\quid($old_uid);
-      $account_name = "$full_name ($qid)"; // maybe make the previous line and this a function
+      $account_name = account_name($old_uid);
       if (!is_temp_account($old_uid)) return array('cell taken', compact(u\ray('number account_name')));
     }
     return NULL;
@@ -697,7 +704,7 @@ function delete_cell($number) {
  *   If true, the other trader will be created only if specified by email or phone
  * @param string $self_message: index to error message for identifying oneself
  * @return one of the following:
- *   the other trader's ruid = array(uid, agent_uid)
+ *   the other trader's ruid = array(uid, agent_uid, region_uid)
  *   array(error index, array of substitutions, array of possible full_names (0 or more) indexed by uid)
  *   (the caller can test which type of return, with "if (is_rid($returned_value))
  */
@@ -715,7 +722,7 @@ function identify($who, $create = FALSE, $self_message = 'no self-trading') {
 //  if (substr($who, 0, 4) == 'www.') $who = substr($who, 4);
 
   if (($short = u\short_name($who)) === '') $short = '-'; // abbreviations must not be null
-  if ($zuid = r\quid(strtoupper($who))) return $zuid == $cuid ? array($self_message, array(), array()) : r\zuid($zuid); // qids are easy
+  if ($ruid = r\ruid(strtoupper($who), FALSE)) return $ruid[0] == $cuid ? array($self_message, array(), array()) : $ruid; // qids are easy
   
   $sql = <<<EOF
     SELECT DISTINCT u.uid, u.full_name FROM {users} u LEFT JOIN {sms_user} s ON u.uid = s.uid 
@@ -737,7 +744,8 @@ EOF;
   if(count($result) > 1) return array('ambiguous other', compact(u\ray('who')), $result);
   if(count($result) == 1) {
     foreach ($result as $uid => $other); // get the one entry
-    return (access('member', $uid)) ? array($uid, $uid) : array('non trader', compact('other'), $result);
+    return array($uid, $uid, server_uid());
+//    return (access('member', $uid)) ? array($uid, $uid) : array('non trader', compact('other'), $result);
   }
 
 //  $key = $who == $phone ? 'phone' : (valid_email_address($who) ? 'email' : (r\valid_url("http://$who") ? 'website' : ''));
@@ -747,7 +755,7 @@ EOF;
 }
 
 /**
- * Return financial information about the given account
+ * Return financial information about the given account on this server
  * param array $args: associative array of non-default options:
  *  uid: uid for the account to return information for (DEFAULTS to cuid)
  *  state: string list of transaction states to return (DEFAULT ':TX_DONE,:TX_DISPUTED')
@@ -764,7 +772,7 @@ function credit_info($args = array()) {
     $info = backend('credit_info', $args);
     $info->fancy = (array) $info->fancy; // backend turns the whole shebang into an object
   }
-  extract($args);
+  extract($args); // uid, state, real, asof
 
   if (!@$uid) $uid = r\cuid();
   if (!@$state) $state = ':TX_DONE,:TX_DISPUTED';
@@ -775,7 +783,6 @@ function credit_info($args = array()) {
   $result_keys = 'gross_in gross_out gross_in_proper balance available unavailable rewards cashable total_demand min_balance qid';
   $sql = "SELECT min_balance FROM users WHERE uid=:uid";
   extract(r\db_q($sql, compact('uid'))->fetchAssoc()); // gets $min_balance
-  $qid = r\quid($uid);
 
   $sql = <<<EOF
     SELECT 
@@ -961,32 +968,33 @@ function account_name($uid) {
   if (is_array($uid)) extract($uid); // called from api or backend
   
   extract((array) \user_load($uid), EXTR_PREFIX_ALL, 'my');
-  $qid = r\quid($uid);
+  $quid = r\quid($uid, $uid);
 //  return ": $my_full_name ($qid) $my_mail";
-  return ": $my_full_name ($qid)";
+  return ": $my_full_name ($quid)";
 }
 
 /**
  * Return all the permissions for the specified account
- * @param mixed $zuid: rid or zuid of the account/agent to ask about (defaults to current account)
+ * @param array $ruid: ruid of the account/agent to ask about (defaults to current account)
  * @return simple array of that account's permissions
  */
-function accesses($zuid = '') {  
-  global $czuid;
+function accesses($ruid = '') {  
+  global $cruid;
   if (is_frontend()) {
-    $result = backend('accesses', compact(u\ray('zuid')), $zuid);
+    $result = backend('accesses', compact(u\ray('ruid')), (bool) $ruid);
     return is_array($result) ? $result : array();
   }
-  if (is_array($zuid) and !u\is_rid($zuid)) extract($zuid); // called from api or backend
+  if (is_array($ruid) and !u\is_rid($ruid)) extract($ruid); // called from api or backend
 
-  $a = u\is_rid($zuid) ? $zuid : r\zuid($zuid ?: $czuid);
-  if ($a) list ($main_uid, $agent_uid) = $a; else return array(); // anonymous user has no access
+  list ($main_uid, $agent_uid, $region_uid) = $ruid;
+  if (!$main_uid or !$agent_uid) return array(); // anonymous user has no access
 
   $perms = array();
   $role_perms = (\user_role_permissions(\user_load($main_uid)->roles)); // Drupal permissions for the company
 //  $perms[] = array_values(\user_load($agent_uid)->roles); // include things like administrator and rTrader
   foreach ($role_perms as $key => $value) $perms += array_keys($role_perms[$key]);
 
+  if (in_array('administrator', array_values(\user_load($agent_uid)->roles))) $perms[] = 'administrator'; // agent not main
   if (r\is_rTrader($main_uid)) $perms[] = 'rTrader';
   if (\user_load($main_uid)->account_type != R_PERSONAL) $perms[] = 'company'; // ad hoc permissions
 
@@ -1048,11 +1056,11 @@ function is_frontend() {
 
 function backend($op, $info = array(), $cache = FALSE) {
   global $base_url, $auid, $cuid, $firewall;
-  if (!is_frontend()) die('backend recursion');
+  u\expect(is_frontend(), 'backend recursion');
   if (!user_is_logged_in()) return FALSE; // probably checking permission
 //  if ($op == 'get_records' and !$cache) die(print_r(debug_backtrace(), 1));
 
-  if (!@$cuid) die('no cuid in backend!');
+  u\expect(@$cuid, 'no cuid in backend!');
   if (empty($info)) $cache = TRUE;
 //  $cache = FALSE; // debug
 //  debug("cache=$cache cachekey=rcredits_$op$cuid:" . serialize($info));
@@ -1086,8 +1094,8 @@ function user_field($field_name, $who = FALSE, $subs = array()) {
   if (!$who) $who = r\cuid();
   $result = get_records('users', is_numeric($who) ? "uid=$who" : $who, $subs, $field_name, TRUE);
   if (count($result) < 1) return FALSE;
-  if (count($result) > 1) die("ambiguous user in user_field: $who");
-  if (!is_object($result[0])) die('bad object array in user_field: ' . print_r($result, 1));
+  u\expect(count($result) > 1, "ambiguous user in user_field: $who");
+  u\expect(is_object($result[0]), 'bad object array in user_field: ' . print_r($result, 1));
   return strpos($field_name, ',') ? ((array) $result[0]) : $result[0]->$field_name;
 //  return r\db_lookup($field_name, 'users', is_numeric($who) ? "uid=$who" : $who, $subs);
 }
@@ -1098,10 +1106,10 @@ function user_field($field_name, $who = FALSE, $subs = array()) {
  *   a standard Drupal permission, queryable through user_access()
  *   a shared account permission, stored in r_relations (cached in $_SESSION['rcredits_account_choices'], but we're not trusting that)
  *   an ad hoc permission handled directly by this function
- * @param mixed $zuid: rid or zuid of the account to ask about (defaults to czuid, meaning the current account)
+ * @param $ruid: ruid of the account to ask about (defaults to cruid, meaning the current account)
  * @return boolean: TRUE if the user has the permission
  */
-function access($access, $zuid = '') {
-  u\expect(compact(u\ray('access zuid')), 'string&notempty zid|rid|empty');
-  return in_array($access, accesses($zuid));
+function access($access, $ruid = '') {
+  u\expect(compact(u\ray('access ruid')), 'string&notempty rid|empty');
+  return in_array($access, accesses($ruid));
 }
