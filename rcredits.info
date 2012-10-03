@@ -5,9 +5,9 @@ package = rCredits
 core = 7.x
 php = 5.3
 
-dependencies[] = sms_user
 files[] = rcredits.module
 files[] = rcredits.install
+files[] = rcredits-settings.inc
 files[] = rcredits-util.inc
 files[] = rcredits.inc
 files[] = rcredits-api.inc

@@ -6,7 +6,7 @@
 
 /**
  * Implement hook_install().
- */
+ *//*
 function rsms_install() {
   $rsms_permissions = array(
     'receive sms',
@@ -18,3 +18,4 @@ function rsms_install() {
   variable_set('user_register', 1); // means automatically register users by SMS
 }
 
+*/

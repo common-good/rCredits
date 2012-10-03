@@ -29,6 +29,10 @@ function rcredits_install() {
   variable_set('date_default_timezone', 'America/New_York');
 // NO. This creates a navigation column.  variable_set('site_frontpage', 'charge');
 
+  $current = variable_get('mail_system', array('default-system' => 'DefaultMailSystem'));
+  variable_set('mail_system', array_merge($current, array('rcredits' => 'rcreditsMailSystem')));
+
+
   $tables = explode(',', R_TABLES . ',role'); // we also add records to some standard Drupal tables
   foreach ($tables as $table) {
     $filename = __DIR__ . "/sql/$table";
@@ -47,6 +51,18 @@ function rcredits_schema() {
   require_once 'rcredits.inc'; // Drupal bug. hook_schema needs this explicit.
   require_once 'rcredits-util.inc';
 
+  // table r_sms 
+  $fields = array(
+    'number' => r\setup_field('international phone number (eg +12223334444)', 'varchar 16'),
+    'uid' => r\setup_field('uid of cell phone owner (one owner per number)', 'int 11'),
+    'status' => r\setup_field('phone status', 'int tiny'),
+    'todo' => r\setup_field('waiting for confirmation to complete this operation', 'text medium'),
+    'nonce' => r\setup_field('waiting for this nonce, for confirmation', 'varchar 10'),
+  );
+  $foreign_keys = r\foreign_key('uid');
+  $indexes = r\index('uid');
+  $schema['r_sms'] = r\setup_table('SMS cell numbers corresponding to user accounts', $fields, 'number', $foreign_keys, $indexes);
+  
   // table r_txs (and r_asif)
   $fields = array(
     'xid' => r\setup_field('the unique transaction ID', 'serial 11'), 
@@ -155,13 +171,6 @@ function rcredits_schema_alter(&$schema) {
   $schema['users']['fields'] = (@$schema['users']['fields'] ?: array()) + $fields;
   $schema['users']['fields']['uid'] = r\setup_field('Unique user ID', 'int 11'); // not unsigned
 // kills Drupal: $schema['users']['fields']['data']['description'] = 'incidental data (a serialized array of name value pairs)';
-
-  
-  $fields = array( // additional sms_user fields  
-    'todo' => r\setup_field('waiting for confirmation to complete this operation', 'text medium'),
-    'nonce' => r\setup_field('waiting for this nonce, for confirmation', 'varchar 10'),
-  );
-  $schema['sms_user']['fields'] = (@$schema['sms_user']['fields'] ?: array()) + $fields;
 }
  
 /**

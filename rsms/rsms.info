@@ -5,7 +5,6 @@ package = rCredits
 core = 7.x
 php = 5.3
 
-dependencies[] = sms_user
 dependencies[] = rcredits
 files[] = rsms.install
 files[] = rsms.module

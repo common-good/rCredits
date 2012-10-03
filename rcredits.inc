@@ -270,7 +270,7 @@ function tx_save($txs) {
   //*** Begin DBTX
   $dbtx = db_transaction();
   $table = zxs($my_payer, $my_payee);
-  if (@$my_data['zxid'] < 0) $table = zxs(FALSE); // special case for undoing an asif, even though both parties are now rTraders
+  if (@$my_data['zxid'] < 0) $table = zxs(FALSE/2); // special case for undoing an asif, even though both parties are now rTraders
   foreach ($txs as $key => $one) {
     if (empty($one)) continue; // skipping rebate or bonus
     $txs[$key]['serial'] = @$serial; // set serial for dependent transactions
@@ -331,7 +331,7 @@ function transaction_setup($info) {
   $required_params = compact(u\prefix_values('my_', u\ray('amount payer payee payer_agent payee_agent taking for goods')));
   u\expect($required_params, 'float zid zid zid zid bool string|notempty bool');
 
-  $state = $my_state ?: TX_DONE;
+  $state = @$my_state ?: TX_DONE;
   $created = REQUEST_TIME;
   $serial = NULL; // always set equal to xid of main transaction after saving
   
@@ -378,7 +378,7 @@ function notify($uid, $message_index, $info) {
     'uid' => $uid,
     'full_name' => $my_full_name,
   );
-  
+
   $subs = array();
   foreach ($info + $standard_fields as $key => $value) $subs['{' . strtoupper($key) . '}'] = $value;
   drupal_mail('rcredits', $message_index, $my_mail, user_preferred_language($account), $subs);
@@ -456,7 +456,7 @@ function merge_accounts($old_uid) {
     UPDATE r_asif SET payee=:new_uid WHERE payee=:old_uid
     DELETE FROM r_asif a LEFT JOIN r_asif b ON b.serial=a.serial WHERE b.payer=b.payee
     DELETE FROM r_asif WHERE payer=payee
-    UPDATE sms_user SET uid=:new_uid WHERE uid=:old_uid
+    UPDATE r_sms SET uid=:new_uid WHERE uid=:old_uid
     UPDATE r_user_industries SET uid=:new_uid WHERE uid=:old_uid
     DELETE FROM users WHERE uid=:old_uid
 EOF;
@@ -475,7 +475,7 @@ function reset() {
   $sqls = array(
     'TRUNCATE TABLE r_txs',
     'TRUNCATE TABLE r_asif',
-    'TRUNCATE TABLE sms_user',
+    'TRUNCATE TABLE r_sms',
 //    "DELETE FROM users WHERE uid > $ctty_uid",
     'TRUNCATE TABLE sessions',
   );
@@ -487,14 +487,14 @@ function reset() {
 /**
  * Return the real or ASIF transaction table name
  * @param int $uid1: uid of first member (DEFAULTs to cuid)
- *   OR boolean $uid1: TRUE if real
+ *   OR boolean/2 $uid1: TRUE/2 if real (call with boolean/2 to allow administrator to do asif transactions)
  * @param int $uid2: uid of second member (DEFAULTs to cuid)
  * @return: the real table name if the one user or both users (if specified) are rTraders, otherwise the asif table name
  */
 function zxs($uid1 = 'cuid', $uid2 = '') {
   global $cuid;
-  if ($uid1 == 'cuid') $uid1 = (int) $cuid;
-  $real = is_bool($uid1) ? $uid1 : (is_rTrader($uid1) and is_rTrader($uid2));
+  if ($uid1 == 'cuid') $uid1 = $cuid;
+  $real = ($uid1 >= 0 and $uid1 < 1) ? (2 * $uid1) : (is_rTrader($uid1) and is_rTrader($uid2)); // $real < 1 means boolean
   return $real ? 'r_txs' : 'r_asif';
 }
 
@@ -602,8 +602,8 @@ function zuid($id = '', $agent_uid = '') {
 /**
  * Convert a zxid to xid and table or vice-versa
  */
-function zxid($xid, $table) {return $table == zxs(TRUE) ? $xid : -$xid;}
-function azxid($zxid) {return $zxid > 0 ? array($zxid, zxs(TRUE)) : array(-$zxid, zxs(FALSE));}
+function zxid($xid, $table) {return $table == zxs(TRUE/2) ? $xid : -$xid;}
+function azxid($zxid) {return $zxid > 0 ? array($zxid, zxs(TRUE/2)) : array(-$zxid, zxs(FALSE/2));}
 
 /**
  * Say whether one of the accounts owns the other.
@@ -638,7 +638,7 @@ function db_q($sql, $args = array()) {
       list ($args['xid'], $table) = azxid($my_zxid);
       unset($args['zxid']);
     } else {
-      $table = zxs((bool) (isset($my_real) ? $my_real : is_rTrader()));
+      $table = zxs((isset($my_real) ? $my_real : is_rTrader())/2);
       unset($args['real']);
     }
     $sql = strtr($sql, array('{zxs}' => $table, 'zxid' => 'xid'));
@@ -650,9 +650,10 @@ function db_q($sql, $args = array()) {
 function rebate($who, $amount = 1) {return round($amount * db_lookup('rebate_percent', 'users', 'uid=:who', compact('who')) / 100, 2);}
 function bonus($who, $amount = 1) {return rebate($who, 2 * $amount);}
 function update_user($info, $who) {return \db_update('users')->fields($info)->condition('uid', $who)->execute();}
-// UNUSED tx_field($field_name, $xid, $real) {return db_lookup($field_name, zxs((bool) $real), 'xid=:xid', compact('xid'));}
+// UNUSED tx_field($field_name, $xid, $real) {return db_lookup($field_name, zxs($real/2), 'xid=:xid', compact('xid'));}
 function set_tx_state($new_value, $zserial) {set_tx_field('state', $new_value, $zserial, 'serial');}
 function uid_from_crid($qid) {return db_lookup('uid', 'users', 'qid=:qid', compact('qid'));}
 function total_demand() {return db_lookup('SUM(demand)', 'users');}
 function server_uid($region_id = '') {return -u\a2n($region_id ?: R_SERVER_ID);}
-function reid($main_uid, $agent_uid) {return db_lookup(1, 'r_relations', 'main_uid=:main_uid AND agent_uid=:agent_uid', compact(u\ray('main_uid agent_uid')));}
+function reid($main_uid, $agent_uid) {return db_lookup('reid', 'r_relations', 'main_uid=:main_uid AND agent_uid=:agent_uid', compact(u\ray('main_uid agent_uid')));}
+function ok_agent($uid, $agent_uid) {return ($uid == $agent_uid or r\reid($uid, $agent_uid));}

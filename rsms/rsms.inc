@@ -11,12 +11,40 @@ require_once __DIR__ . '/../rcredits-util.inc';
  *
  * Utilities and definitions for the rSMS module
  * (anything that doesn't have to be in rsms.module and isn't appropriate to class call).
+ *
+ if ($account->sms_user[0]['status'] == SMS_USER_CONFIRMED) {
+ sms_send($account->sms_user[0]['number'], $message, $account->sms_user[0]['gateway']);
+ 
+       if ($account = sms_user_authenticate($number)) {
+        $metadata = array(
+          'login' => !sms_devel_gateway(),
+          'number' => $number,
+          'message' => $message,
+          'options' => $options,
+        );
+        sms_user_login_metadata($account->uid, $metadata);
+        $edit = array();
+        if (!sms_devel_gateway()) user_module_invoke('login', $edit, $account); // ws: avoid login when using sms devel
+      } elseif (variable_get('sms_user_registration_enabled', 0) && $number) {
+        if ($account = sms_user_register_new_user($number, $message, $options)) {
+          // Send the new user the registration message if one exists.
+          if ($message = variable_get('sms_user_new_account_message', '')) {
+            sms_user_send($account->uid, $message); // just calls sms_send
+          }
+          
+              watchdog('sms', '%name was authenticated using SMS.', array('%name' => $user->name));
+
  */
 
 ini_set('session.cookie_lifetime', 0); // browser cookie deletion on browser close (this fails)
 ini_set('session.gc_maxlifetime', 600); // "600" = 10 minutes
 ini_set('session.gc_probability', 1); // these two lines
 ini_set('session.gc_divisor', 100); // together will make garbage collection run on 1% of the requests
+
+// Statuses
+define('SMS_NO', 0); // not verified
+define('SMS_OK', 1); // verified
+define('SMS_LOST', 2); // user lost phone (NOT YET USED)
 
 define('RSMS_PREFIX', 'r: '); // identify us
 //define('RSMS_PREFIX_INACTIVE', '[TRIAL RUN] '); // pretend transactions by not-yet-active players (treat it as a trial run)
@@ -192,9 +220,9 @@ function infer_nonce($message) {
  * Add a cell phone to the given account.
  * for now, with everything through SMS, we want to be able to send to anyone
  */
-function create($number, $uid, $status = SMS_USER_CONFIRMED) {
+function create($number, $uid, $status = SMS_OK) {
   $number = u\format_phone($number, '+n');
-  \drupal_write_record('sms_user', compact(u\ray('number uid status')));
+  \drupal_write_record('r_sms', compact(u\ray('number uid status')));
 }
 
 /**

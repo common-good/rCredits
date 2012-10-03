@@ -224,7 +224,7 @@ function tt($message, $subs = array(), $interface = 'SMS') {
       $model = $GLOBALS['SMS messages'][$message];
       if ($p = strpos($model, '. Type ')) $model = substr($model, 0, $p + 1); // don't tell the user to type something unless it's SMS
     }
-    if (strpos($model, '@asif') !== FALSE and !@$subs['asif']) {
+    if (strpos($model, '@asif') !== FALSE and !isset($subs['asif'])) {
       $real = isset($subs['real']) ? $subs['real'] : r\is_rTrader();
       $subs['asif'] = $real ? '' : R_ASIF_TEXT;
     }
@@ -455,10 +455,10 @@ function gzdecode($data){
 
 // rCredits\Utilities\get_company_pictures();
 function get_company_pictures() {
-  $result = r\db_q("SELECT uid,website,data,description FROM users WHERE uid>552 AND website<>'' ORDER BY uid");
+  $result = r\db_q("SELECT uid,website,data,description FROM users WHERE uid>791 AND website<>'' ORDER BY uid");
   while ($row = $result->fetchAssoc()) {
     extract($row);
-    if (in_array($uid, array(549, 551, 552))) continue; // these apparently kill it
+    if (in_array($uid, array(549, 551, 552, 779, 791))) continue; // these apparently kill it
     echo "$uid<br>"; // in case it dies
 
     if (strlen($website) < 4) {debug($uid); continue;}

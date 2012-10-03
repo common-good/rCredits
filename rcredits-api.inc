@@ -73,9 +73,10 @@ function smart_api() {
     if (!@$cruid) api_error('bad id');
     list ($auid, $auid, $region_uid) = $cruid;
     if ($region_uid != r\server_uid()) api_error('wrong server');
-    if (!r\has_agent($cuid, $auid)) api_error('You do not have permission to use that account.'); // make sure agent has permission
+    if (!r\ok_agent($cuid, $auid)) api_error('You do not have permission to use that account.'); // make sure agent has permission
   }
   $op = 'smart_' . @$q_op;
+
   if (@$q_account_id) {
     $ruid = r\ruid($q_account_id);
     if (!$ruid) api_error('bad account_id');
@@ -109,7 +110,7 @@ function smart_first_time($args) {
   if (!($account = \user_load($uid))) api_error('unknown user');
   if (@!$q_password) api_error('login error');
   if (!user_check_password($q_password, $account)) api_error('bad login'); // make these two error messages distinct but obscure
-  $code = user_hash_password(uniquid($q_my_id, TRUE)) . '/'; // add a slash to make sure slashes get handled properly
+  $code = user_hash_password(uniqid($q_my_id, TRUE)) . '/'; // add a slash to make sure slashes get handled properly
   $owner_id = r\quid($uid, $uid);
   $device = t('Smart Device');
   \drupal_write_record('r_smarts', compact(u\ray('uid code device'))); // no way to tell if it's the same device as others
@@ -212,7 +213,10 @@ function smart_balances($uid, $real) {
  */
 function smart_undo($params) {
   extract($params, EXTR_PREFIX_ALL, 'q');
-  $zxid = r\qxid($q_tx_id);
+  
+  list ($zxid, $region_uid) = r\azid($q_tx_id);
+  if ($region_uid != r\server_uid()) api_error('That is not a transaction on this server.');
+  
   if ($q_confirmed) {
     list ($message, $args) = undo_tx($zxid);
     $message = r\Web\tt($message, $args);
@@ -240,7 +244,7 @@ function backend2($args = FALSE) {
 
   if (@$firewall != R_FIREWALL) api_error('firewall system failure'); // give hackers some satisfaction by saying 'failure'
   if (!$cuid or !$auid) api_error('user validation error');
-  if (!r\has_agent($cuid, $auid)) api_error('sharing error');
+  if (!r\ok_agent($cuid, $auid)) api_error('sharing error');
   api2($op, $args);
 }
 
@@ -275,7 +279,7 @@ function create_user($info) {
   $dbtx = db_transaction();
   $account = \user_save(array(), $info);
 //  make_credit_id($account->uid); // this is done separately, to assure uniqueness
-  if (isset($my_number)) r\SMS\create($my_number, $account->uid, SMS_USER_CONFIRMED);
+  if (isset($my_number)) r\SMS\create($my_number, $account->uid);
   unset($dbtx);
   //*** End DBTX
 
@@ -302,7 +306,7 @@ function my_transactions($args) {
   if (is_frontend()) return backend(__FUNCTION__, $args);
   extract($args);
   
-  $table = r\zxs((bool) $real);
+  $table = r\zxs($real/2);
   $omit_bonuses = @$include_bonuses ? '' : 'WHERE t.type NOT IN (:TX_REBATE, :TX_BONUS)';
   
   $sql = <<<EOF
@@ -379,7 +383,6 @@ function undo_tx($zxid, $real = 'bug') {
   $cuid = r\cuid();
   if (is_frontend()) return (array) backend('undo_tx', compact(u\ray('zxid')));
   if (is_array($zxid)) extract($zxid); // called from api or backend
-  
   $old_record = last_tx('xid=:zxid', compact('zxid'));
   if (empty($old_record)) return array('no such tx', array());
   extract($old_record, EXTR_PREFIX_ALL, 'old');
@@ -389,6 +392,7 @@ function undo_tx($zxid, $real = 'bug') {
   $other_ruid = $old_payer == $cuid ? array($old_payee, $old_payee_agent) : array($old_payer, $old_payer_agent); // needs region still
   $to_me = ($old_payee == $cuid);  
   $other_uid = $other_ruid[0];
+
   if (r\is_foreign($other_uid)) {
     $other_ruid = array($data['foreign_uid'], $data['foreign_agent'], $other_uid); // foreign region
   } else $other_ruid[] = r\server_uid(); // local region
@@ -422,7 +426,7 @@ function undo_tx($zxid, $real = 'bug') {
  */
 function reverse($zxid, $amount, $other_ruid, $data, $old_tid, $to_me) {
   global $auid;
-  u\expect(compact(u\ray('zxid amount other_ruid data old_tid to_me')), 'zid float ruid assoc id bool');
+  u\expect(compact(u\ray('zxid amount other_ruid data old_tid to_me')), 'zid float ruid assoc string bool');
   $old_data = $data; // remember original data from transaction we're reversing
   $type = $to_me ? 'payment' : 'charge';
   $my_note = "reverses #$old_tid";
@@ -626,7 +630,8 @@ function transfer($ttype, $ruid, $requested_amount, $for, $confirmed = TRUE, $re
     $message = $shortfall ? 'report short transaction' : ($preapproved ? 'report transaction' : 'report invoice');
     if (!$shortfall and !$preapproved) {
       $payee_name = user_field('full_name'); // my name, for message to payer
-      r\notify($uid, 'new-invoice', $txs[0] + compact('payee_name'));
+      $date = date('d-M-Y');
+      r\notify($uid, 'new-invoice', $txs[0] + compact(u\ray('payee_name date purpose')));
     }
     return array($message, $args, FALSE);
   }
@@ -668,7 +673,7 @@ function add_cell($number, $validate = FALSE) {
 
   if ($validate) {
     if (!$number_pretty) return array('bad phone', $subs);
-    if ($result = r\db_q('SELECT * FROM sms_user WHERE number=:number_internal', compact('number_internal'))->fetchAssoc()) {
+    if ($result = r\db_q('SELECT * FROM r_sms WHERE number=:number_internal', compact('number_internal'))->fetchAssoc()) {
       extract($result, EXTR_PREFIX_ALL, 'old');
       if ($old_uid == $cuid) return array('already cell', $subs);
       $account_name = account_name($old_uid);
@@ -678,10 +683,9 @@ function add_cell($number, $validate = FALSE) {
   }
   
   $uid = $cuid;
-  $status = SMS_USER_CONFIRMED;
+  $status = SMS_OK;
   $number = $number_internal;
-//  debug(!merge_check(compact('number')));
-  if (!merge_check(compact('number'))) \drupal_write_record('sms_user', compact(u\ray('uid number status')));
+  if (!merge_check(compact('number'))) \drupal_write_record('r_sms', compact(u\ray('uid number status')));
   $account = \user_load($uid);
   if (!$account->phone) \user_save($account, array('phone' => $number)); // use it as contact phone, if none yet
   $number = $number_pretty;
@@ -693,7 +697,7 @@ function delete_cell($number) {
   if (is_array($number)) extract($number); // called from api or backend
 
   $number = u\format_phone($number, '+n'); // internal format
-  r\db_q('DELETE FROM sms_user WHERE number=:number LIMIT 1', compact('number'));
+  r\db_q('DELETE FROM r_sms WHERE number=:number LIMIT 1', compact('number'));
   $number = u\format_phone($number); // pretty format
   return array('report delete cell', compact('number'));
 }
@@ -727,7 +731,7 @@ function identify($who, $create = FALSE, $self_message = 'no self-trading') {
   if ($ruid = r\ruid(strtoupper($who), FALSE)) return $ruid[0] == $cuid ? array($self_message, array(), array()) : $ruid; // qids are easy
   
   $sql = <<<EOF
-    SELECT DISTINCT u.uid, u.full_name FROM {users} u LEFT JOIN {sms_user} s ON u.uid = s.uid 
+    SELECT DISTINCT u.uid, u.full_name FROM {users} u LEFT JOIN {r_sms} s ON u.uid = s.uid 
     WHERE :who IN (s.number, u.phone, u.mail) 
     OR INSTR(u.name, :short)
     ORDER BY u.full_name
@@ -783,7 +787,7 @@ function credit_info($args = array()) {
   if (!@$asof) $asof = '';
   $quid = r\quid($cuid, $cuid);
   
-  $table = r\zxs((bool) $real);
+  $table = r\zxs($real/2);
   $result_keys = 'gross_in gross_out gross_in_proper balance available unavailable rewards cashable total_demand min_balance quid';
   $sql = "SELECT min_balance FROM users WHERE uid=:uid";
   extract(r\db_q($sql, compact('uid'))->fetchAssoc()); // gets $min_balance
@@ -852,7 +856,7 @@ function merge_check($info) {
   if (@$my_website) $where .= ' OR u.website=:website';
   if (@$my_phone) $where .= ' OR u.phone=:phone';
   if (@$my_fax) $where .= ' OR u.fax=:fax';
-  $sql = "SELECT DISTINCT u.uid FROM users u LEFT JOIN sms_user sms ON sms.uid=u.uid WHERE (NOT u.pass) AND ($where)";
+  $sql = "SELECT DISTINCT u.uid FROM users u LEFT JOIN r_sms sms ON sms.uid=u.uid WHERE (NOT u.pass) AND ($where)";
   $result = r\db_q($sql, $info);
   $found = 0;
   while ($row = $result->fetchAssoc()) $found += r\merge_accounts($row['uid']);
@@ -926,10 +930,10 @@ function todo($number, $todo = 'nothing', $nonce = 'whatever') {
   if (is_array($number)) extract($number); // called from api or backend
   
   if ($todo == 'nothing') {
-    return (object) r\db_q("SELECT nonce, todo FROM sms_user WHERE number=:number", compact('number'))->fetchAssoc();
+    return (object) r\db_lookup('nonce,todo', 'r_sms', 'number=:number', compact('number'));
   } else {
     $nonce = $nonce == 'whatever' ? u\nonce() : $nonce;
-    \db_update('sms_user')->fields(compact('nonce', 'todo'))->condition('number', $number)->execute();
+    \db_update('r_sms')->fields(compact('nonce', 'todo'))->condition('number', $number)->execute();
     return $nonce;
   }
 }

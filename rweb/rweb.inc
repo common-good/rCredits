@@ -84,7 +84,7 @@ function util($arg) {
       ($uid2, 'btwo', '$pass', 'btwo@ex.com', 'B Two', 1, '01301'),
       ($uid3, 'cornerstore', '$pass', 'cstore@ex.com', 'Corner Store', 1, '01301');
       
-      INSERT INTO sms_user (number, uid, status) VALUES
+      INSERT INTO r_sms (number, uid, status) VALUES
       (10, $uid, 2),
       (2, $uid2, 2);
 EOF;
@@ -312,7 +312,8 @@ EOF;
   while ($row = $result->fetchAssoc()) {
     extract($row);
     if ($display == R_REGION_NAME) continue; // never list the community itself
-    $email = @$email ? " ($email)" : '';
+//    $email = @$email ? " ($email)" : '';
+    $email = ''; // never show email
     $matches[$display] = check_plain("$display$email");
   }
   drupal_json_output($matches);
@@ -660,7 +661,7 @@ function exchange_form_submit($form, &$form_state) {
 function contact_info_form($form, &$form_state) {
   $cuid = r\cuid();
   api\merge_check(compact(u\ray('name website phone fax'))); // check before and after
-  extract((array) \user_load($cuid), EXTR_PREFIX_ALL, 'my'); // can't easily check for plain because roles and sms_user are arrays
+  extract((array) \user_load($cuid), EXTR_PREFIX_ALL, 'my'); // can't easily check for plain because roles is an array
   $full_name_desc = t('Your full legal name, properly capitalized');
   if (api\access('company')) $full_name_desc .= '<br>' . t('(If you change this, your short identifier and rCredits webpage URL will also change.');
   
@@ -717,7 +718,7 @@ function no_selection($list) {
  */
 function bank_form($form, &$form_state) {
   $cuid = r\cuid();
-  extract((array) \user_load($cuid), EXTR_PREFIX_ALL, 'my'); // can't easily check for plain because roles and sms_user are arrays
+  extract((array) \user_load($cuid), EXTR_PREFIX_ALL, 'my'); // can't easily check for plain because roles is an array
 
   if (!$my_bank_account_name) $my_bank_account_name = $my_full_name;
   
@@ -903,7 +904,7 @@ function cell_form($form, &$form_state) {
 
   $headers = array('Cell Number');
 
-  $sql = "SELECT number FROM sms_user WHERE uid=:cuid ORDER BY number";
+  $sql = "SELECT number FROM r_sms WHERE uid=:cuid ORDER BY number";
   $result = r\db_q($sql, compact('cuid'));
   $list = array();
   while ($row = $result->fetchAssoc()) {

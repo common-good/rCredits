@@ -36,8 +36,16 @@
  */
 
 require_once 'rcredits.inc';
+require_once 'rcredits-api.inc';
 use rCredits as r;
 use r\Utilities as u;
+
+class rcreditsMailSystem extends DefaultMailSystem {
+  public function format(array $message) {
+    $message['body'] = drupal_wrap_mail(join("\n\n", $message['body']));
+    return $message;
+  }
+}
 
 /**
  * Implements hook_permission().

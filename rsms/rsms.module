@@ -12,18 +12,6 @@ require_once __DIR__ . '/rsms.inc';
 require_once __DIR__ . '/rsms-call.inc';
 
 /**
- * implements hook_form_alter, to set focus
- *
- * Insert a snippet of javascript in the page footer, to set the focus automatically
- * on the message field of the SMS simulation form.
- */
-function rsms_form_alter(&$form, &$form_state, $form_id) {
-  if ($form_id == 'sms_devel_receive_form') {
-    drupal_add_js("document.getElementById('edit-message').focus();", array('type'=>'inline', 'scope'=>'footer'));  
-  }
-}
-
-/**
  * SMS Incoming implements hook sms_incoming
  *
  * @param $op

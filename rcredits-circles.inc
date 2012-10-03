@@ -44,7 +44,7 @@
  *     They don't get any rebates until they have a way to receive rCredits as payment. 
  *   D. Once a Common Good Community is 2/3 rTraders, everybody in that community gets in automatically (regardless of the target).
  *
- * @todo: null out sms_user todo when someone becomes an rTrader
+ * @todo: null out r_sms todo when someone becomes an rTrader
  */
 
 namespace rCredits; // typically abbreviated as "r"

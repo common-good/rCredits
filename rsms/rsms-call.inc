@@ -51,6 +51,13 @@ class call {
   }
   
   /**
+   * Get a users record ID for the phone number
+   */
+  function get_uid($number) {
+    return r\db_lookup('uid', 'r_sms', 'number=:number', compact('number'));
+  }
+  
+  /**
    * Look up the calling number in the database to see who's calling.
    *
    * If the caller does not have a record in our database, create one.
@@ -62,25 +69,25 @@ class call {
    */
   function validate_caller() {
     global $cuid, $auid;
-    if (!($this->uid = \sms_user_get_uid($this->number))) $this->uid = api\create_user(array('number' => $this->number));
+    $number = $this->number;
+    if (!($this->uid = $this->get_uid($number))) $cuid = $auid = $this->uid = api\create_user(compact('number'));
     u\expect(u\is_id($this->uid), 'missing uid');
-    $cuid = $auid = $this->uid;
     
     $account = \user_load($this->uid);
-    $todo = api\todo($this->number);
+    $todo = api\todo($number);
     if (is_object($todo)) $todo = $todo->todo;
     if (api\is_temp_name($account->name)) {
       if($todo != 'setup name') {
-        api\todo($this->number, 'setup name', '');
+        api\todo($number, 'setup name', '');
         return tt("what's your name?");
       }
       $name = setup_name($account, $this->message); // actually full_name
-      api\todo($this->number, 'setup email', '');
+      api\todo($number, 'setup email', '');
       $quid = r\quid(); //$account->credit_id;
       return tt("what's your email?", compact('quid', 'name'));
     } elseif ($todo == 'setup email' and !$account->mail) {
       setup_email($account, $this->message);
-      api\todo($this->number, '', '');
+      api\todo($number, '', '');
       $balance = u\format_amount(api\give_signup_incentive($this->uid));
       return tt('your account is ready', compact('balance'));
 /*    } elseif (!\user_access('transact via sms', $account)) { // user does not have permission to use the rCredits SMS interface
@@ -95,12 +102,8 @@ class call {
   /**
    * Decuide what syntax best matches the caller's message.
    * Identify the command and its parameters
-   *
-   * @throws
-   *   error message to reply to the caller if message cannot be completely parsed
-   *
-   * @todo
-   *   "who" identifiers chosen in the "name" command cannot be me, r, u, us, or usd.
+   * @throws error message to reply to the caller if message cannot be completely parsed
+   * @todo: "who" identifiers chosen in the "name" command cannot be me, r, u, us, or usd.
    */
   function parse() {
     $todo = api\todo($this->number);
@@ -171,15 +174,13 @@ class call {
    * Only two gateway commands get passed through to us: start and stop (help does not get passed through).
    */
   function do_stop() {
-    \user_role_revoke_permissions(DRUPAL_AUTHENTICATED_RID, array('receive sms'));
+    api\delete_cell($this->number);
   }
 
   /**
    * Handle a user's request to (again) accept SMS messages from us (already handled by the gateway).
    */
-  function do_start() {
-    \user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array('receive sms'));
-  }
+  function do_start() {}
 
   /**
    * Give the caller a helpful message
