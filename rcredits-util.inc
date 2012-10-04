@@ -178,6 +178,7 @@ function format_phone($phone, $how = '') {
  * Return the array with its keys prefixed by the given string
  */
 function prefix_keys($prefix, $array) {
+  expect(compact('prefix', 'array'), 'string array');
   if ($prefix == '') return $array;
   $new_array = array();
   foreach ($array as $key => $value) $new_array[$prefix . $key] = $value;

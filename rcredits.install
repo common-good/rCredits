@@ -78,7 +78,7 @@ function rcredits_schema() {
     'payee_agent' => r\setup_field("user id of payee's agent (who approved this transaction for the payee)", 'int 11'), 
     'payer_for' => r\setup_field("payer's description", 'varchar 60'), 
     'payee_for' => r\setup_field("payee's description", 'varchar 60'), 
-    'data' => r\setup_field('info stored elsewhere, duplicated here for convenience (serialized array)', 'text tiny'), 
+    'data' => r\setup_field('info stored elsewhere, duplicated here for convenience (serialized array)', 'text big'), 
     'channel' => r\setup_field('through what medium was the transaction entered', 'int tiny'), 
     'created' => r\setup_field('Unixtime transaction was created', 'int 11'), 
   );

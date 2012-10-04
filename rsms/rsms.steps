@@ -15,6 +15,9 @@
  */
 use rCredits as r;
 use rCredits\Utilities as u;
+use \rCredits\SMS as rSMS;
+use \rCredits\API as api;
+
 require_once __DIR__ . '/../rcredits.inc';
 
 /**
@@ -78,7 +81,7 @@ function phoneSays($number, $message) {
  */
 function phoneHasAnAccount($number) {
   global $test_only;
-//  if (sms_user_get_uid($number) != '') return TRUE;
+  if (api\user_field(1, r\db_lookup('uid', 'r_sms', 'number=:number', compact('number')))) return TRUE;
   if ($test_only) return FALSE;
 //  return (r\create_user($number) != '');
 }

@@ -57,12 +57,12 @@ $GLOBALS['SMS messages'] = array(
   'your account is ready' => t('Your starting balance is @balance. Pretend to buy and sell as you would in a typical month (we need that info). Have fun! Type "helpme" to get started.'), // separate out the last sentence
 
   // reporting
-  'report transaction' => t("You@asif @type @other @amount (@reward_type: @reward_amount). Your new balance is @balance. Transaction #@tid"),
-  'report invoice' => t("You@asif @type @other @amount. Your balance is unchanged, pending payment. Invoice #@tid"),
-  'report short transaction' => t("You@asif @type @other @amount (@short remains to be paid). Your new balance is @balance. Transaction #@tid"),
-//  'transaction done asif' => t("@type: @amount @tofrom user#@other (@reward_type: @reward_amount). Your new provisional balance is @balance (If this had been a real transaction, your balance would be @amount @moreless). Transaction ID #@tid"),
-  'report exchange' => t("You@asif @type @other r@amount for cash/loan/gift/etc. Your new balance is @balance. Transaction #@tid"),
-  'report exchange request' => t("You@asif requested r@amount from @other. Your balance is unchanged, pending approval. Invoice transaction #@tid"),
+  'report transaction' => t("You@asif @action @other_name @amount (@reward_type: @reward_amount). Your new balance is @balance. Transaction #@tid"),
+  'report invoice' => t("You@asif @action @other_name @amount. Your balance is unchanged, pending payment. Invoice #@tid"),
+  'report short transaction' => t("You@asif @action @other_name @amount (@short remains to be paid). Your new balance is @balance. Transaction #@tid"),
+//  'transaction done asif' => t("@action: @amount @tofrom user#@other_name (@reward_type: @reward_amount). Your new provisional balance is @balance (If this had been a real transaction, your balance would be @amount @moreless). Transaction ID #@tid"),
+  'report exchange' => t("You@asif @action @other_name r@amount for cash/loan/gift/etc. Your new balance is @balance. Transaction #@tid"),
+  'report exchange request' => t("You@asif requested r@amount from @other_name. Your balance is unchanged, pending approval. Invoice transaction #@tid"),
   'report undo' => t("@asif Transaction has been @action. "),
   'report get usd' => t("@Exchange approved. @request will be transferred directly to your bank account within 24 hours. Your new balance is @balance."),
   'get usd inactive' => t("If you were an Active Participant in the rCredits system, your request would transfer @amount directly to your bank account. Alas, you are not yet an Active Participant."),
@@ -76,16 +76,17 @@ $GLOBALS['SMS messages'] = array(
   
   // confirmations
   'confirm get usd' => t("@asif Trade r@request for us@request?"),
-  'confirm payment' => t("@asif Pay @other @amount for goods and services?"),
-  'confirm pay invoice' => t("@asif Pay @other @amount for goods and services (invoice @date)?"),
-  'confirm charge' => t("@asif Charge @other @amount for goods and services?"),
-  'confirm exchange' => t("Okay to@asif @confirm_type @other @amount in rCredits (not for goods or services)?"),
-  'confirm undo' => t("Undo @date@asif transfer of @amount @tofrom @other?"),
+  'confirm payment' => t("@asif Pay @other_name @amount for goods and services?"),
+  'confirm pay invoice' => t("@asif Pay @other_name @amount for goods and services (invoice @date)?"),
+  'confirm charge' => t("@asif Charge @other_name @amount for goods and services?"),
+  'confirm exchange' => t("Okay to@asif @confirm_action @other_name @amount in rCredits (not for goods or services)?"),
+  'confirm undo' => t("Undo @date@asif transfer of @amount @tofrom @other_name?"),
   'please confirm' => t("To confirm, type @nonce."),
   'verification code' => 'Your verification code for using rCredits online is: @nonce', // used in rWeb
   
   // error messages
   'syntax' => t('Wrong syntax!'),
+  'already started' => t('You are already an rCredits member. For help, type "help me".'),
   'duplicate name' => t('That name is already taken, in your region. Try again. Use a middle initial?'),
   'name too long' => t('That name is too long. Try again (keep it under 60 characters).'),
   'no SMS permission' => t('Alas, you do not have permission to use the rCredits SMS interface at this time.'), // UNUSED
@@ -104,15 +105,15 @@ $GLOBALS['SMS messages'] = array(
   'undo moving target' => t("Can't undo: the last matching transaction has changed."),
   'duplicate email' => t("There is already an account with that email address. Visit rCredits.org to add this cell number to your account."),
   'unknown user' => t('Unknown rTrader: "@who" (they need to sign up before we can recognize them). Type "helpme pay".'),
-  'non trader' => t('@other is not an authorized rTrader.'),
+  'non trader' => t('@other_name is not an authorized rTrader.'),
   'ambiguous other' => t('"@who" is associated with more than one rCredits account. You will need to identify them differently. Type "more" for options.'),
   'ambiguous other2' => t('You can identify an rTrader by phone, email, fullname (no punctuation or spaces), or account ID.'),
   'what relationship' => t('You forgot to say whether you are an employee, owner, or both.'),
   'short cash to' => t('You are r@short short, for that exchange.'),
-  'short cash from' => t('@other does not have enough rCredits for that exchange.'),
+  'short cash from' => t('@other_name does not have enough rCredits for that exchange.'),
   'short invoice' => t('You are r@short short, to pay that invoice. Get more rCredits first, or undo the invoice and pay part in US Dollars.'),
   'broke to' => t('You are completely out of rCredits, so that transaction cannot be completed. Type "get r <amount>" to get more rCredits.'),
-  'broke from' => t('@other does not have enough rCredits for that transaction at this time. But your request has been noted.'),
+  'broke from' => t('@other_name does not have enough rCredits for that transaction at this time. But your request has been noted.'),
   'demand too small' => t('NOTE: The minimum amount of rCredits you can actually buy at a time is $@min.', array('@min' => R_MIN_DEMAND)),
   'no access get' => t('You do not have permission to exchange rCredits for US Dollars or vice-versa.'),
 //  'no access create' => t('You do not have permission to create transactions.'),

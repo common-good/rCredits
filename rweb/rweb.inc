@@ -282,11 +282,18 @@ function auto($role = '', $cuid = 0, $string = '') {
   
   if (u\abbreviates('paye', $role)) {
     $other = $role == 'payer' ? 'payee' : 'payer';
+/*     AND (t.$role IS NULL OR t.$role=:cuid) ORDER BY t.created DESC, u.full_name
     $selection = <<<EOF
       u.uid, u.full_name AS display, u.mail AS email 
       FROM users u LEFT JOIN {zxs} t ON t.$other=u.uid 
       WHERE (u.name LIKE :string OR u.mail LIKE :string)
-      AND (t.$role IS NULL OR t.$role=:cuid) ORDER BY t.created DESC, u.full_name
+      AND (t.$role IS NULL OR :cuid IN (t.payer, t.payee))
+      ORDER BY t.created DESC, u.full_name
+*/
+    $selection = <<<EOF
+      u.uid, u.full_name AS display, u.mail AS email 
+      FROM users u WHERE (u.name LIKE :string OR u.mail LIKE :string)
+      ORDER BY u.full_name
 EOF;
     $sub_vars .= ' cuid';
   } elseif ($role == 'industry') {
@@ -676,8 +683,8 @@ function contact_info_form($form, &$form_state) {
     'country' => form_field('select', t('Country:'), t(''), dft($my_country) + attrib(compact('onchange'))), // can't use required() here
     'postal_code' => form_field('textfield', t('Postal code:'), t(''), dft($my_postal_code)+ required()),
     'state' => form_field('select', t('State:'), t(''), dft($my_state)), // can't use required() here
-    'city' => form_field('textfield', t('City:'), t(''), dft($my_city)+ required()),
-    'address' => form_field('textfield', t('Address:'), t('Mailing address'), dft($my_address)+ required()),
+    'city' => form_field('textfield', t('City:'), t(''), dft($my_city) + required()),
+    'address' => form_field('textfield', t('Address:'), t('Mailing address'), dft($my_address) + required()),
     'submit' => form_field('submit', NULL, t('Submit button'), 'Submit'),
   );
 
@@ -975,23 +982,30 @@ function register_form(&$form, &$form_state) {
   $my_country = $my_state = '';
   extract($form_state['input'], EXTR_PREFIX_ALL, 'my'); // overwrites my_country and my_state with input values, on input error
   $onchange = "print_state('edit-state',this.selectedIndex,'');";
+  $country_attrib = attrib(compact('onchange'));
   $company_options = array('is_employee' => t('employee'), 'is_owner' => t('owner'));
-
+  $onchange = "var info = jQuery('#company_info'); if(jQuery('#edit-account-type').val() == 0) info.show(); else info.hide();";
+  $account_type_attrib = attrib(compact('onchange'));
+  
+  $company_info = array(
+    'company_text' => form_field('item', t('Are you an owner or employee of a local company (or of any participating rCredits company)?')),
+    'company' => form_field('textfield', t('Company: '), t(''), autocomplete('company')),
+    'company_options' => form_field('checkboxes', '', '', '', $company_options),
+  );
+  
   $form += array(
     'title' => form_field('item', t('Sign up for rCredits'),'', weight(-99)),
     'full_name' => form_field('textfield', t('Full name:'), t('Your full legal name, properly capitalized'), required() + weight(-98)),
 /*    'phone' => form_field('textfield', t('Phone:'), t('Your primary phone (landline or cell)'), dft($my_phone ? u\format_phone($my_phone): '')),
     'fax' => form_field('textfield', t('Fax:'), t(''), dft($my_fax)),
     'website' => form_field('textfield', t('Website:'), t(''), dft($my_website)), */
-    'country' => form_field('select', t('Country:'), t(''), dft($my_country) + attrib(compact('onchange'))),
+    'country' => form_field('select', t('Country:'), t(''), dft($my_country) + $country_attrib),
     'postal_code' => form_field('textfield', t('Postal code:'), t(''), required()),
     'state' => form_field('select', t('State:'), t(''), dft($my_state)),
     'city' => form_field('textfield', t('City:'), t(''), required()),
-    'account_type' => form_field('select', t('Account type:'), $account_type_help, dft('Personal'), $account_types),  
-    'company_text' => form_field('item', '<hr>' . t('Are you an owner or employee of a local company (or of any participating rCredits company)?')),
-    'company' => form_field('textfield', t('Company:'), t(''), autocomplete('company')),
-    'company_options' => form_field('checkboxes', '', '', '', $company_options),
-    
+    'account_type' => form_field('select', t('Account type:'), $account_type_help, dft('Personal') + $account_type_attrib, $account_types),  
+    'company_info' => form_field('fieldset', '', '', array('id' => 'company_info')) + $company_info,
+
 /*    'address' => form_field('textfield', t('Address:'), t('Mailing address'), dft($my_address)),
     'submit' => form_field('submit', NULL, t('Submit button'), 'Submit'), */
   );
@@ -1016,7 +1030,14 @@ function register_form_validate($form, &$form_state) {
     $company = $my_company;
     $form_state['values']['data'] = serialize(compact(u\ray('company is_employee is_owner')));
   }
-  $form_state['values']['name'] = u\short_name($my_full_name);
+  
+  $name = $name0 = u\short_name($my_full_name);
+  for ($i = 2; ; $i++) {
+    if (!api\user_field(1, 'name=:name', compact('name'))) break;
+    $name = $name0 . $i;
+  }
+  
+  $form_state['values']['name'] = $name;
   $form_state['values']['community_uid'] = r\community_uid($my_postal_code);
 }
 
@@ -1071,38 +1092,36 @@ function login_extra_validate($form, &$form_state) {
     $form_state['flood_control_triggered'] = 'ip';
     return;
   }
-  $ruid = r\ruid($my_name); // try to interpret it as a qid
+  $ruid = r\ruid(strtoupper($my_name)); // try to interpret it as a qid
   $crit =  $ruid ? ('uid=' . $ruid[0]) : ':my_name IN (name,mail)';
-  $fields = api\user_field('uid,name AS my_name', $crit, $ruid ? NULL : compact('my_name'));
-  if ($fields) extract($fields); // uid and my_name (replacing earlier my_name)
-  if ($uid) {
-    $failed_login_identifier_uid_only = variable_get('user_failed_login_identifier_uid_only', FALSE);
-    $failed_login_user_limit = variable_get('user_failed_login_user_limit', 5);
-    $failed_login_user_window = variable_get('user_failed_login_user_window', 21600);
-    
-    $identifier = $failed_login_identifier_uid_only ? $uid : $uid . '-' . ip_address();
-    $form_state['flood_control_user_identifier'] = $identifier;
+  if (!($fields = api\user_field('uid,name AS my_name', $crit, $ruid ? array() : compact('my_name')))) return; // not a user
+  
+  extract($fields); // uid and my_name (replacing earlier my_name)
+  $failed_login_identifier_uid_only = variable_get('user_failed_login_identifier_uid_only', FALSE);
+  $failed_login_user_limit = variable_get('user_failed_login_user_limit', 5);
+  $failed_login_user_window = variable_get('user_failed_login_user_window', 21600);
+  
+  $identifier = $failed_login_identifier_uid_only ? $uid : $uid . '-' . ip_address();
+  $form_state['flood_control_user_identifier'] = $identifier;
 
-    if (!flood_is_allowed('failed_login_attempt_user', $failed_login_user_limit, $failed_login_user_window, $identifier)) {
-      $form_state['flood_control_triggered'] = 'user';
-      return;
-    }
+  if (!flood_is_allowed('failed_login_attempt_user', $failed_login_user_limit, $failed_login_user_window, $identifier)) {
+    $form_state['flood_control_triggered'] = 'user';
+    return;
   }
+
   $form_state['uid'] = user_authenticate($my_name, $my_pass);
 }
 
 function login_followup($edit) {
-  global $cuid, $user;
-
-  extract($edit['values'], EXTR_PREFIX_ALL, 'my');
+  global $user;
 
   foreach ($_SESSION as $key => $value) if (u\abbreviates('rcredits_', $key)) unset($_SESSION[$key]);
   svar('external_input', @unserialize($my_external_input)); // save params from external online merchant
 
-  svar('cuid', $cuid = $auid = $user->uid);
+  $name = @$edit['values']['name'];
+  svar('cuid', $uid = $user->uid);
   setup_globals();
-  $name = $my_name;
-  u\log('login', compact(u\ray('name auid')));
+  u\log('login', compact(u\ray('name uid')));
 }
 
 function directory_form($form, &$form_state) {

@@ -81,7 +81,7 @@ function smart_api() {
     $ruid = r\ruid($q_account_id);
     if (!$ruid) api_error('bad account_id');
     list ($uid, $agent_uid, $region_uid) = $ruid;
-    $args += compact(u\ray('ruid uid agent_uid region_uid'));
+    $args = array_merge($args, compact(u\ray('ruid uid agent_uid region_uid'))); // use array_merge (not +) to assure overwrite
   }
   api2($op, $args);
 }
@@ -225,7 +225,7 @@ function smart_undo($params) {
     list ($my_balance, $other_balance) = smart_balances($args['other_uid'], $zxid > 0);
   } else {
     if (!($result = last_tx('xid=:zxid', compact('zxid')))) api_error(r\Web\tt('undo no match'));
-    $message = r\Web\tt('confirm undo', r\tx_args($result));
+    $message = r\Web\tt('confirm undo', r\tx_report_args($result));
   }
   return compact(u\ray('message tx_id my_balance other_balance'));
 }
@@ -403,16 +403,14 @@ function undo_tx($zxid, $real = 'bug') {
       list ($new_state, $action) = array(TX_DELETED, t('deleted')); // abandon the attempt to invoice
     } else {
       list ($new_state, $action) = array(TX_DENIED, t('marked "denied"'));
-      $payer_name = user_field('full_name'); // my name, for message to payee
-      r\notify($other_uid, 'invoice-denied', $old_record + compact('payer_name'));
+      r\notify($other_uid, 'invoice-denied', r\tx_report_args($old_record));
     }
     r\set_tx_state($new_state, $zxid);
   } elseif (!$to_me and $old_taking and access('charge others', $other_ruid)) { // someone charged me unilaterally
 // function dispute($zxid, $old_record, $other_uid)
     r\set_tx_state(TX_DISPUTED, $zxid); // mark it disputed
     $action = t('marked "disputed"');
-    $payer_name = user_field('full_name'); // my name, for message to payee
-    r\notify($other_uid, 'charge-disputed', $old_record + compact('payer_name'));
+    r\notify($other_uid, 'charge-disputed', r\tx_report_args($old_record));
   } else return reverse($zxid, $old_amount, $other_ruid, $data, $old_tid, $to_me); // create an offsetting transaction
 
   $amount = u\format_amount($old_amount);
@@ -455,7 +453,7 @@ function reverse($zxid, $amount, $other_ruid, $data, $old_tid, $to_me) {
 EOF;
     r\db_q($sql, compact(u\ray('payer_note payee_note zxid old_data')));
     $message = 'report undo|' . $message;
-    $args += array('action' => t('reversed'));
+    $args['action'] = t('reversed'); // overwrites what transfer() returned
   }
   
   return array($message, $args);
@@ -521,19 +519,13 @@ function pay_invoice($zxid) {
 
   if (!access('buy and sell')) return array('no buy and sell', array());
   $state = TX_PENDING;
-  $result = last_tx('xid=:zxid AND state=:state', compact('zxid', 'state'));
+  if (!($result = last_tx('xid=:zxid AND state=:state', compact('zxid', 'state')))) return array('no such tx', array());
   extract($result, EXTR_PREFIX_ALL, 'old');
   if ($old_zxid < 0 and (r\is_rTrader($old_payer) and r\is_rTrader($old_payee))) return array("can't pay asif invoice");
-
-  //*** Begin DBTX
-  $dbtx = \db_transaction();
-  list ($message, $args, $confirm) = transfer('invoice payment', array($old_payee, $old_payee_agent), $old_amount, $old_payee_for, TRUE);
-  if (@$args['success']) {
-    r\set_tx_state(TX_DELETED, $old_zxid);
-  } else $dbtx->rollback();
+  $ruid = array($old_payee, $old_payee_agent, $old_payee < 0 ? $old_payee : r\server_uid());
   
-  unset($dbtx); // $dbtx->commit() is disallowed
-  //*** End DBTX
+  $zxid = $old_zxid;
+  list ($message, $args, $confirm) = transfer('invoice payment', $ruid, $old_amount, $old_payee_for, TRUE, compact('zxid'));
   return array($message, $args);
 }
 
@@ -592,10 +584,10 @@ function transfer($ttype, $ruid, $requested_amount, $for, $confirmed = TRUE, $re
   if ($shortfall and $preapproved) {
     $shortfall = max(.01, $shortfall); // don't report a tiny shortfall by rounding down to zero
     $short = u\format_amount($shortfall);
-    $other = user_field('full_name', $uid);
-    if ($paying_invoice) return array('short invoice', compact('short', 'other'), FALSE); // no partial payment of invoice
-    if (!$goods) return array($taking ? 'short cash from' : 'short cash to', compact('short', 'other'), FALSE); // no partial cash trans
-    if (ceil($shortfall) >= $requested_amount) return array($taking ? 'broke from' : 'broke to', compact('other'), FALSE);
+    $other_name = user_field('full_name', $uid);
+    if ($paying_invoice) return array('short invoice', compact('short', 'other_name'), FALSE); // no partial payment of invoice
+    if (!$goods) return array($taking ? 'short cash from' : 'short cash to', compact('short', 'other_name'), FALSE); // no partial cash trans
+    if (ceil($shortfall) >= $requested_amount) return array($taking ? 'broke from' : 'broke to', compact('other_name'), FALSE);
     $shortfall = ceil($shortfall); // for goods and services, shortfall should be a round figure (no cents)
     $amount = $requested_amount - $shortfall;
   }
@@ -604,7 +596,7 @@ function transfer($ttype, $ruid, $requested_amount, $for, $confirmed = TRUE, $re
   list ($payer_agent, $payee_agent) = u\order($taking, $agent_uid, $auid);
   $rebate = $goods ? ('' . r\rebate($payer, $amount)) : '0'; // force string, to avoid long serializations
   $bonus = $goods ? ('' . r\bonus($payee, $amount)) : '0';
-  $data = empty($rewards) ? compact('rebate', 'bonus') : $rewards;
+  $data = isset($rewards['rebate']) ? $rewards : compact('rebate', 'bonus');
   if (@$foreign) $data += $foreign;
   $data = serialize($data);
   $state = $preapproved ? TX_DONE : TX_PENDING;
@@ -613,6 +605,7 @@ function transfer($ttype, $ruid, $requested_amount, $for, $confirmed = TRUE, $re
   $dbtx = db_transaction();
   $txs = r\transact(compact(u\ray('type taking amount payer payee payer_agent payee_agent for data state goods')));
   $zxid = $txs[0]['zxid'];
+  if ($paying_invoice) r\set_tx_state(TX_DELETED, $rewards['zxid']); // delete the invoice (this replaces it)
   if (!$confirmed) $dbtx->rollback();
   unset($dbtx); // $dbtx->commit() is disallowed
   //*** End DBTX
@@ -620,7 +613,7 @@ function transfer($ttype, $ruid, $requested_amount, $for, $confirmed = TRUE, $re
   $reward_index = $taking ? 2 : 1;
   $reward = @$txs[$reward_index]['amount'] ?: 0;
 
-  $args = r\tx_report_args($taking, $amount, $shortfall, $reward, $uid, $zxid, $goods, @$foreign);
+  $args = r\tx_report_args($txs[0], 1, $shortfall);
   if (!$goods) {
     $message = !$confirmed ? 'exchange' : ($preapproved ? 'report exchange' : 'report exchange request');
     return array($message, $args, !$confirmed);
@@ -628,15 +621,11 @@ function transfer($ttype, $ruid, $requested_amount, $for, $confirmed = TRUE, $re
   
   if ($confirmed) {
     $message = $shortfall ? 'report short transaction' : ($preapproved ? 'report transaction' : 'report invoice');
-    if (!$shortfall and !$preapproved) {
-      $payee_name = user_field('full_name'); // my name, for message to payer
-      $date = date('d-M-Y');
-      r\notify($uid, 'new-invoice', $txs[0] + compact(u\ray('payee_name date purpose')));
-    }
+    if (!$shortfall and !$preapproved) r\notify($uid, 'new-invoice', $args);
     return array($message, $args, FALSE);
   }
   if ($shortfall) $args['amount'] = u\format_amount($requested_amount); // restore original amount before getting confirmation
-  return array($confirm_type, $args, TRUE);
+  return array($confirm_type, $args, TRUE); // to be confirmed
 }
 
 /**

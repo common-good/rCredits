@@ -32,6 +32,9 @@
  *   auid: the user's logged-in account id (agent uid)
  *  cruid: the user's current ruid
  *
+ * @todo: change quid/ruid and zxid to classes (qa and zx). maybe also qzx extends zx (->exo)
+ *    so: $qa->uid, agent, region, exo, nm (full name of foreigner)
+ *   and: $zx->xid, table, real
  * @todo: separate smart api to its own module
  * @todo
  * - handling employees (virtual payments). This should probably be extended to suppliers too,
@@ -133,9 +136,9 @@ define('TX_BONUS', 4);
 define('TX_COUNTABLE', 2); // higher numbers don't show on list, so they don't get transaction numbers (tid's)
 
 $GLOBALS['email_subjects'] = array(
-  'new-invoice' => t('rCredits INVOICE from {PAYEE_NAME}'),
-  'invoice-denied' => t('rCredits Invoice DENIED by {PAYER_NAME}'),
-  'charge-disputed' => t('rCredits Charge DISPUTED by {PAYER_NAME}'),
+  'new-invoice' => t('rCredits INVOICE from {OTHER_NAME}'),
+  'invoice-denied' => t('rCredits Invoice DENIED by {OTHER_NAME}'),
+  'charge-disputed' => t('rCredits Charge DISPUTED by {OTHER_NAME}'),
 );
 
 /**
@@ -213,42 +216,43 @@ function permission(&$permissions, $title, $description) {
 }
 
 /**
- * Format old transaction info (for confirmation)
- */
-function tx_args($info) {
-  $cuid = cuid();
-  extract($info, EXTR_PREFIX_ALL, 'old');
-
-  $tofrom = $old_payer == $cuid ? t('to') : t('from');
-  $other = user_field('full_name', $old_payer == $cuid ? $old_payee : $old_payer);
-  $amount = u\format_amount($old_amount);
-  $date = strftime('%m/%d/%Y', $old_created);
-  $real = ($old_zxid > 0);
-  return compact(u\ray('tofrom other amount date real'));
-}
-
-/**
- * Format and return args for reporting a transaction
+ * Format and return args for reporting a transaction (old or new)
  * Not all returned args are used for any particular type of transaction.
+ * @param array $tx: the transaction array (including zxid)
+ * @param int $get_balance: 0=don't get any balances, 1=get my balance and tid, 2=get other party's balance and tid also
+ * @param float $shortfall: how much short my balance is, for a transaction (if any)
  */
-function tx_report_args($taking, $amount, $shortfall, $reward, $other_uid, $zxid, $goods, $foreign) {
-  $type = $taking ? t('charged') : ($goods ? t('paid') : t('gave'));
-  $confirm_type = $taking ? t('charge') : ($goods ? t('pay') : t('give'));
+function tx_report_args($tx, $get_balance = 0, $shortfall = 0) {
+  global $cuid;
+//function tx_report_args($taking, $amount, $shortfall, $reward, $other_uid, $zxid, $goods, $foreign) {
+  extract($tx);
+  if ($data) extract(unserialize($data), EXTR_PREFIX_ALL, 'data');
+  
+  $to_me = ($payee == $cuid);
+  $tofrom = $to_me ? t('to') : t('from');
+
+  $uid = $other_uid = $to_me ? $payer : $payee;
+  $action = $taking ? t('charged') : ($goods ? t('paid') : t('gave'));
+  $confirm_action = $taking ? t('charge') : ($goods ? t('pay') : t('give'));
   $amount = u\format_amount($amount);
   $short = u\format_amount($shortfall);
-  $tofrom = $taking ? t('from') : t('to');
-  $reward_type = $taking ? t('bonus') : t('rebate');
-  $reward_amount = u\format_amount($reward);
-  $other = user_field('full_name', $foreign ? $foreign['foreign_uid'] : $other_uid);
+  if (@$data_bonus) $reward_type = $taking ? t('bonus') : t('rebate');
+  $reward_amount = u\format_amount($to_me ? @$data_bonus : @$data_rebate);
+  $other_name = user_field('full_name', @$data_foreign_uid ?: $other_uid);
+  $date = strftime('%d-%b-%Y', $created);
 
   $real = ($zxid > 0);
   $asif = $real ? '' : R_ASIF_TEXT;
-  $balance = api\credit_info(compact('real'))->fancy['balance'];
-  $tid = api\zxid2tid($zxid);
+  if ($get_balance > 0) {
+    list ($tid, $balance) = array(api\zxid2tid($zxid), api\credit_info(compact('real'))->fancy['balance']);
+    if ($get_balance > 1) {
+      list ($other_tid, $other_balance) = array(api\zxid2tid($zxid, $other_uid), api\credit_info(compact('real', 'uid'))->fancy['balance']);
+    }
+  }
   
   $success = TRUE;
   
-  return compact(u\ray('type confirm_type amount tofrom reward_type reward_amount balance zxid tid other_uid other short success asif'));
+  return array_merge($tx, compact(u\ray('date zxid action real asif confirm_action amount tofrom reward_type reward_amount balance other_balance tid other_tid other_uid other_name short success')));
 }
 
 /**
@@ -376,7 +380,7 @@ function notify($uid, $message_index, $info) {
   extract((array) $account, EXTR_PREFIX_ALL, 'my');
   $standard_fields = array(
     'uid' => $uid,
-    'full_name' => $my_full_name,
+    'full_name' => @$my_full_name ?: t('rCredits Member'),
   );
 
   $subs = array();
@@ -420,16 +424,15 @@ function set_tx_field($field_name, $new_value, $zxid, $all_related = FALSE) {
   $data = unserialize($data);
   $data['changes'][] = array(time(), $auid, $field_name, $old_value);
   $data = serialize($data);
-  $sql = "UPDATE $table SET $field_name=:new_value,data=:data WHERE $crit";
-  if ($all_related) { // gotta do the auxiliary records separately so as not to affect their data field
-    $sql .= ';' . str_replace(',data=:data', '', str_replace('xid=:xid', 'serial=:xid', $sql));
-  }
+  $sql = "UPDATE $table SET $field_name=:new_value, data=:data WHERE $crit";
+  $sql2 = str_replace(', data=:data', '', str_replace('xid=:xid', 'serial=:xid', $sql));
+  
   /*** Begin DBTX ***/
   $dbtx = \db_transaction();
-  $result = db_q($sql, compact(u\ray('new_value data xid')));
+  db_q($sql, compact(u\ray('new_value data xid')));
+  if ($all_related) db_q($sql2, compact(u\ray('new_value xid'))); // gotta do the auxiliary records separately so as not to affect their data field (separate query, to avoid "unbuffered query" error -- known Drupal bug)
   unset($dbtx);
   /*** End DBTX ***/
-  return $result;
 }
 
 /**
@@ -632,6 +635,7 @@ function is_rTrader($uid = '') {
  * @todo: maybe move the processing of zxs to a wrapper function db_txq() that also does postprocessing on fetchAssoc()
  */
 function db_q($sql, $args = array()) {
+if (strpos($sql, ';')) {print_r($sql); debug($sql);}
   if (strpos($sql, '{zxs}')) {
     extract($args, EXTR_PREFIX_ALL, 'my');
     if (@$my_zxid) {
@@ -651,7 +655,7 @@ function rebate($who, $amount = 1) {return round($amount * db_lookup('rebate_per
 function bonus($who, $amount = 1) {return rebate($who, 2 * $amount);}
 function update_user($info, $who) {return \db_update('users')->fields($info)->condition('uid', $who)->execute();}
 // UNUSED tx_field($field_name, $xid, $real) {return db_lookup($field_name, zxs($real/2), 'xid=:xid', compact('xid'));}
-function set_tx_state($new_value, $zserial) {set_tx_field('state', $new_value, $zserial, 'serial');}
+function set_tx_state($new_value, $zserial) {set_tx_field('state', $new_value, $zserial, TRUE);}
 function uid_from_crid($qid) {return db_lookup('uid', 'users', 'qid=:qid', compact('qid'));}
 function total_demand() {return db_lookup('SUM(demand)', 'users');}
 function server_uid($region_id = '') {return -u\a2n($region_id ?: R_SERVER_ID);}

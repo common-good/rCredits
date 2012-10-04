@@ -180,7 +180,9 @@ class call {
   /**
    * Handle a user's request to (again) accept SMS messages from us (already handled by the gateway).
    */
-  function do_start() {}
+  function do_start() {
+    return tt('already started');
+  }
 
   /**
    * Give the caller a helpful message
@@ -269,7 +271,7 @@ class call {
 
     if (!($result = api\last_tx($where, compact(u\ray('cuid other_uid'))))) return tt('undo no match');
     $this->parms['zxid'] = $result['zxid'];
-    return $this->confirm('undo', r\tx_args($result));
+    return $this->confirm('undo', r\tx_report_args($result, FALSE));
   }
 
   /**
@@ -303,7 +305,7 @@ class call {
     }
     if(!($result = api\last_tx($where, compact(u\ray('cuid other_uid'))))) return tt('no matching invoice');
     $this->parms['zxid'] = $result['zxid'];
-    return $this->confirm('pay invoice', r\tx_args($result));
+    return $this->confirm('pay invoice', r\tx_report_args($result));
   }
   
   /**
