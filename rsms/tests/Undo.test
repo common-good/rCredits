@@ -28,6 +28,7 @@ class rsmsUndo extends DrupalWebTestCase {
     parent::setUp(self::MODULE);
     $setup_filename = __DIR__ . '/../' . self::MODULE . '-setup.inc';
     if (file_exists($setup_filename)) include $setup_filename;
+
   }
 
   // Scenario: Undo the last transaction
@@ -54,7 +55,7 @@ class rsmsUndo extends DrupalWebTestCase {
   }
 
   // Scenario: Undo the last transaction with someone specific
-  public function notestUndoTheLastTransactionWithSomeoneSpecific() {
+  public function testUndoTheLastTransactionWithSomeoneSpecific() {
     scene_setup($this, __FUNCTION__);
     Given('players: "DATA'
     . '\\| @name      | @accountid| @cell    | @rebate |'
@@ -77,7 +78,7 @@ class rsmsUndo extends DrupalWebTestCase {
   }
 
   // Scenario: Undo the last transfer to me
-  public function notestUndoTheLastTransferToMe() {
+  public function testUndoTheLastTransferToMe() {
     scene_setup($this, __FUNCTION__);
     Given('players: "DATA'
     . '\\| @name      | @accountid| @cell    | @rebate |'
@@ -100,7 +101,7 @@ class rsmsUndo extends DrupalWebTestCase {
   }
 
   // Scenario: Undo the last transfer from me to someone specific
-  public function notestUndoTheLastTransferFromMeToSomeoneSpecific() {
+  public function testUndoTheLastTransferFromMeToSomeoneSpecific() {
     scene_setup($this, __FUNCTION__);
     Given('players: "DATA'
     . '\\| @name      | @accountid| @cell    | @rebate |'
@@ -121,7 +122,7 @@ class rsmsUndo extends DrupalWebTestCase {
   }
 
   // Scenario: The caller confirms undoing a charge
-  public function notestTheCallerConfirmsUndoingACharge() {
+  public function testTheCallerConfirmsUndoingACharge() {
     scene_setup($this, __FUNCTION__);
     Given('players: "DATA'
     . '\\| @name      | @accountid| @cell    | @rebate |'

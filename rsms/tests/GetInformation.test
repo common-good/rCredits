@@ -28,6 +28,7 @@ class rsmsGetInformation extends DrupalWebTestCase {
     parent::setUp(self::MODULE);
     $setup_filename = __DIR__ . '/../' . self::MODULE . '-setup.inc';
     if (file_exists($setup_filename)) include $setup_filename;
+
   }
 
   // Scenario: Getting information
@@ -44,7 +45,7 @@ class rsmsGetInformation extends DrupalWebTestCase {
   }
 
   // Scenario: Getting information, larger amounts
-  public function notestGettingInformationLargerAmounts() {
+  public function testGettingInformationLargerAmounts() {
     scene_setup($this, __FUNCTION__);
     Given('phone %number1 is a player');
     And__('phone %number1 has r$100,000.01');

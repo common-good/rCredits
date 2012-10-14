@@ -22,6 +22,7 @@ class %MODULE%FEATURE_NAME extends DrupalWebTestCase {
     parent::setUp(self::MODULE);
     $setup_filename = __DIR__ . '/../' . self::MODULE . '-setup.inc';
     if (file_exists($setup_filename)) include $setup_filename;
+%SETUP_LINES
   }
 %TESTS
 }

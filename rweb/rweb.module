@@ -11,7 +11,7 @@
 
 use \rCredits\Web as rWeb;
 use \rCredits\API as api;
-use \rCredits\Utilities as u;
+use \rCredits\Util as u;
 
 require_once __DIR__ . '/../rcredits.inc';
 require_once __DIR__ . '/rweb.inc';
@@ -73,7 +73,7 @@ function rweb_menu() {
 
 //    'example-store' => rWeb\menu('Example Store', MENU_NORMAL_ITEM, 'show_form', array('example_store'), '', $anyone),
     'member' => rWeb\menu('Company Profile', MENU_CALLBACK, 'show_form', array('profile'), '', $anyone),
-    'rCredits/util' => rWeb\menu('Util', MENU_CALLBACK, 'rCredits\\Web\\util', array(2), 'administer site configuration'),
+    'rCredits/util' => rWeb\menu('Util', MENU_CALLBACK, 'rCredits\\Web\\util', array(2), 'administrator'),
     'autocomplete' => rWeb\menu('Identify', MENU_CALLBACK, 'rCredits\\Web\\auto', array(1, 2, 3), '', $anyone),
 //    'ok' => rWeb\menu('Please Confirm', MENU_CALLBACK, 'show_form', array('ok'), '', $anyone + $modal),
     

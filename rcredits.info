@@ -12,3 +12,4 @@ files[] = rcredits-util.inc
 files[] = rcredits.inc
 files[] = rcredits-api.inc
 files[] = rcredits-circles.inc
+files[] = mr.class

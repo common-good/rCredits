@@ -33,6 +33,7 @@ class rsmsTrackCommands extends DrupalWebTestCase {
     parent::setUp(self::MODULE);
     $setup_filename = __DIR__ . '/../' . self::MODULE . '-setup.inc';
     if (file_exists($setup_filename)) include $setup_filename;
+
   }
 
   // Scenario: A caller uses a command that does not require confirmation
@@ -47,7 +48,7 @@ class rsmsTrackCommands extends DrupalWebTestCase {
   }
 
   // Scenario: A caller uses a command that DOES require confirmation
-  public function notestACallerUsesACommandThatDOESRequireConfirmation() {
+  public function testACallerUsesACommandThatDOESRequireConfirmation() {
     scene_setup($this, __FUNCTION__);
     Given('phone %number1 is a player');
     And__('phone %number1 "to" command use count is 5');

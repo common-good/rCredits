@@ -2,7 +2,7 @@
 namespace rCredits\Web; // typically abbreviated as "rWeb"
 use \rCredits\SMS as rSMS;
 use \rCredits\API as api;
-use \rCredits\Utilities as u;
+use \rCredits\Util as u;
 use \rCredits as r; // get rid of this
 
 /**
@@ -45,18 +45,20 @@ function txs_form($form, &$form_state, $period = '', $do = '') {
     $tid = api\zxid2tid($one_zxid);
     $data = unserialize($one_data);
     $is_reward = ($one_type != TX_TRANSFER);
-    $taking = ($one_payee == $cuid);
-    $reward = @$data[$taking ? 'bonus' : 'rebate'];
+    $to_me = ($one_payee == $cuid);
+    $by_me = ($one_taking == $to_me);
+    $reward = @$data[$one_taking ? 'bonus' : 'rebate'];
     $reward = $reward ? number_format($reward, 2) : '';
     $amount = number_format($one_amount, 2);
     if ($is_reward) list ($amount, $reward) = array('', $amount); // show interest and signup bonus as rewards
-    list ($to_you, $from_you) = $taking ? array($amount, '') : array('', $amount);
-    $state = ($one_state == TX_PENDING and $one_payee == $cuid) ? 'pending' : $states[$one_state];
+    list ($to_you, $from_you) = $to_me ? array($amount, '') : array('', $amount);
+    $state = ($one_state == TX_PENDING and $by_me) ? 'pending' : $states[$one_state];
+//    debug("taking=$one_taking to=$to_me by=$by_me state=$state");
     $color = $colors[$state];
     $state = "<span style='color:$color;'>$state</span>";
-    $button1 = (!$taking and $one_state == TX_PENDING) ? button('OK', "{$base_path}transactions/$real-$period/ok=$one_zxid", tx_action('ok')) : '';
-    $button2 = (!$is_reward and !@$data['undone']) ? button(' X ', "{$base_path}transactions/$real-$period/no=$one_zxid", tx_action('no', $one_state, $taking)) : '';
-    $button3 = (($taking ? $can_sell : $can_buy) and !$is_reward) ? "<a href='{$base_path}transactions/$real-$period/edit=$one_zxid' title='Edit Purpose'><img src='{$base_path}images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
+    $button1 = (!$by_me and $one_state == TX_PENDING) ? button('OK', "{$base_path}transactions/$real-$period/ok=$one_zxid", tx_action('ok', $one_state, $to_me, $by_me)) : '';
+    $button2 = (!$is_reward and !@$data['undone']) ? button(' X ', "{$base_path}transactions/$real-$period/no=$one_zxid", tx_action('no', $one_state, $to_me, $by_me)) : '';
+    $button3 = (($one_taking ? $can_sell : $can_buy) and !$is_reward) ? "<a href='{$base_path}transactions/$real-$period/edit=$one_zxid' title='Edit Purpose'><img src='{$base_path}images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
     $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
     $rows[] = array($tid, date('d-M', $one_created), $one_name, $from_you, $to_you, $state, $buttons, $one_purpose, $reward);
   }
@@ -87,29 +89,33 @@ function txs_form($form, &$form_state, $period = '', $do = '') {
 function tx_confirm($do, $zxid, &$form_state) {
   $cuid = r\cuid();
   if (confirming_v($form_state)) return FALSE;
-  if (!($details = tx_details($zxid))) return FALSE; // bail on hack attempt
-  extract($details, EXTR_PREFIX_ALL, 'my');
-  $action = tx_action($do, $my_state, $my_payee == $cuid);
+  if (!($details = api\last_tx('xid=:zxid', compact('zxid'), TRUE))) return FALSE; // bail on hack attempt
+  extract(r\tx_report_args($details), EXTR_PREFIX_ALL, 'my');
+  $action = tx_action($do, $my_state, $my_to_me, $my_by_me);
   confirm("Are you sure you want to $action?<br>($my_summary)", $form_state); // sets 'confirm'
   return sure_form($form_state);
 }
 
 /**
  * Return the action option for a transaction
+ * (This has to match what api\undo_tx() actually does.)
  * @param string $do: which major type of action ('ok' or 'no')
  * @param int $state: the current transaction state
- * @param bool $is_payee: user is the payee
+ * @param bool $to_me: user is the payee
+ * @param bool $by_me: user originated the transaction
  * @return string: how to describe the ok or no
- * NOTE: $state and $is_payee are unused for 'ok'
  */
-function tx_action($do, $state = '', $is_payee = '') {
-  if ($do == 'ok') return t('Approve this charge');
+function tx_action($do, $state, $to_me, $by_me) {
+  if ($do == 'ok') return $to_me ? t('ACCEPT this payment') : t('APPROVE this charge');
   
-  if ($is_payee) {
-    if ($state == TX_DISPUTED) return t('Reverse this transaction'); // let the customer win
-    if ($state == TX_PENDING) return t('Cancel this invoice');
-    return t('Reverse this transaction'); // let the customer win
-  } else return t('Dispute this charge');
+  if ($to_me) {
+    if ($state == TX_DISPUTED) return t('REVERSE this disputed transaction'); // let the customer win
+    if ($state == TX_PENDING) return $by_me ? t('CANCEL this invoice') : t('REFUSE this payment');
+    return t('REVERSE this charge'); // let the customer win
+  } else {
+    if ($state == TX_PENDING) return $by_me ? t('CANCEL this payment') : t('DECLINE to pay this invoice');
+    return $by_me ? t('REVERSE this payment') : t('DISPUTE this charge');
+  }
 }
 
 function txs_form_validate($form, &$form_state) {
@@ -136,49 +142,31 @@ function tx_okorno($tx_task, $zxid) {
 //  $atid = api\zxid2tid($zxid);
 //  $xname = "tx_transactions[x$zxid]";
   if ($tx_task == 'ok') {
-    assert($my_payer == $cuid);
-    assert($my_state == TX_PENDING);
-    list ($message, $args) = api\pay_invoice($zxid);
-    say($message, $args);
+// (no. allow pay-all and external transaction confirmation)    assert($my_payer == $cuid);
+    u\expect($my_state == TX_PENDING);
+    if ($my_to_me) {
+      r\set_tx_state(TX_DONE, $zxid); // accept the payment
+    } else {
+      list ($message, $args) = api\pay_invoice($zxid);
+      say($message, $args);
+    }
   }
   if ($tx_task == 'no') {
     list ($message, $args) = api\undo_tx($zxid);
-    say($message, array_merge($args));
+    say($message, $args);
   }
-/*  if ($tx_task == 'edit') {
-    if ($my_state != TX_DONE and $my_payer != $cuid) {
-      say("atid|can't change what", compact('atid'), $xname);
-    } else \drupal_set_message('Editing descriptions is not yet possible');
-  }*/
-}
-
-function tx_details($zxid) {
-  $uid = r\cuid(); // this could be expanded later to handle other users
-  if (!($result = api\last_tx('xid=:zxid', compact('zxid'), TRUE))) return FALSE; // bail on hack attempt
-  extract($result);
-  $amount = u\format_amount($amount);
-  $taking = ($payee == $uid);
-  $tofrom = $taking ? 'from' : 'to';
-  $other_uid = $payer == $uid ? $payee : $payer;
-  $who = api\user_field('full_name', $other_uid);
-  $role = $payer == $uid ? 'payer' : 'payee';
-  $purpose = $payer == $uid ? $payer_for : $payee_for;
-  $tid = api\zxid2tid($zxid, $uid);
-  $created = date('m-d-Y', $created);
-  $summary = "Transaction #$tid: $amount $tofrom $who for \"$purpose\" on $created";
-  return compact(u\ray('amount tofrom taking who payee role purpose tid created summary state'));
 }
 
 function tx_edit($zxid) {
-  if (!($details = tx_details($zxid))) return FALSE; // bail on hack attempt
-  extract($details, EXTR_PREFIX_ALL, 'my');
+  if (!($details = api\last_tx('xid=:zxid', compact('zxid'), TRUE))) return FALSE; // bail on hack attempt
+  extract(tx_report_args($details), EXTR_PREFIX_ALL, 'my');
   
   if (!api\access($my_taking ? 'sell' : 'buy and sell')) return FALSE;
   
   $form = array(
     'title' => form_field('item', t('Edit Description')),
 //    'review' => form_field('item', $tx_summary),
-    'purpose' => form_field('textfield', t('Purpose'), '', dft($my_purpose)),
+    'purpose' => form_field('textfield', t('Purpose'), '', dft($my_my_purpose)),
     'go' => form_field('submit', NULL, t('Submit button'), 'Update'),
     'zxid' => form_field('hidden', $zxid),
     'field' => form_field('hidden', $my_role . '_for'),

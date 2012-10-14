@@ -2,7 +2,7 @@
 namespace rCredits\SMS; // typically abbreviated as "rSMS"
 use \rCredits as r;
 use \rCredits\API as api;
-use \rCredits\Utilities as u;
+use \rCredits\Util as u;
 
 /**
  * @file
@@ -27,11 +27,13 @@ class call {
    * Instantiate a call.
    */
   function __construct($number, $message) {
-    global $channel; $channel = TX_SMS;
-    $this->number = $number;
+    global $channel, $rSMS_number; 
+    $channel = TX_SMS;
+    $rSMS_number = $this->number = $number = u\format_phone($number, '+n');
+    u\expect(compact(u\ray('number message')), 'string&notempty string&notempty');
     $this->message = trim($message);
     $this->confirmed = FALSE;
-    u\log('in', compact(u\ray('type message number')));
+    u\log('in', compact(u\ray('message number')));
   }
 
   /**
@@ -51,13 +53,6 @@ class call {
   }
   
   /**
-   * Get a users record ID for the phone number
-   */
-  function get_uid($number) {
-    return r\db_lookup('uid', 'r_sms', 'number=:number', compact('number'));
-  }
-  
-  /**
    * Look up the calling number in the database to see who's calling.
    *
    * If the caller does not have a record in our database, create one.
@@ -68,14 +63,14 @@ class call {
    *   Message is the error message to send the caller.
    */
   function validate_caller() {
-    global $cuid, $auid;
+    global $cuid, $auid, $cruid;
     $number = $this->number;
-    if (!($this->uid = $this->get_uid($number))) $cuid = $auid = $this->uid = api\create_user(compact('number'));
+    $cuid = $auid = $this->uid = uid($number) ?: api\create_user(compact('number'));
+    $cruid = array($cuid, $auid, r\server_uid());
     u\expect(u\is_id($this->uid), 'missing uid');
     
     $account = \user_load($this->uid);
-    $todo = api\todo($number);
-    if (is_object($todo)) $todo = $todo->todo;
+    $todo = @api\todo($number)->todo;
     if (api\is_temp_name($account->name)) {
       if($todo != 'setup name') {
         api\todo($number, 'setup name', '');
@@ -293,11 +288,13 @@ class call {
     extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, what, and maybe zxid
     if (isset($my_amount)) return $this->do_transfer('payment'); // complete syntax
     
+    // confirmed invoice payment
     if ($this->confirmed) {
       list ($message, $args) = api\pay_invoice($my_zxid);
       return tt($message, $args);
     }
     
+    // unconfirmed invoice payment
     $where = 'state=:TX_PENDING AND payer=:cuid';
     if (isset($my_who)) {
       if (!u\is_ruid($other_uid = api\identify($my_who))) return tt($other_uid); // return if error
@@ -314,7 +311,8 @@ class call {
   function do_transfer($type) {
     extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, and what
 
-    if (!u\is_ruid($other_ruid = api\identify($my_who, TRUE))) return tt($other_ruid); // return the array if error
+    $other_ruid = api\identify($my_who, FALSE, $type == 'payment');
+    if ($other_ruid != 'ALL' and !u\is_ruid($other_ruid)) return tt($other_ruid); // return the array if error
     list ($message, $args, $confirm) = api\transfer($type, $other_ruid, $my_amount, $my_what, $this->confirmed);
     return $confirm ? $this->confirm($message, $args) : tt($message, $args);
   }

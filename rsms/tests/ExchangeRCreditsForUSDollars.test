@@ -28,6 +28,7 @@ class rsmsExchangeRCreditsForUSDollars extends DrupalWebTestCase {
     parent::setUp(self::MODULE);
     $setup_filename = __DIR__ . '/../' . self::MODULE . '-setup.inc';
     if (file_exists($setup_filename)) include $setup_filename;
+
   }
 
   // Scenario: The caller can get US Dollars for rCredits
@@ -42,7 +43,7 @@ class rsmsExchangeRCreditsForUSDollars extends DrupalWebTestCase {
   }
 
   // Scenario: Caller confirms request for US Dollars
-  public function notestCallerConfirmsRequestForUSDollars() {
+  public function testCallerConfirmsRequestForUSDollars() {
     scene_setup($this, __FUNCTION__);
     Given('phone %number1 is set up for direct deposits');
     And__('phone %number1 has r$160');

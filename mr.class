@@ -1,0 +1,79 @@
+<?php
+namespace rCredits;
+use \rCredits\API as api;
+use \rCredits\Utilities as u;
+
+/**
+ * @file
+ * rCredits Member class
+ */
+
+class mr {
+  var $uid; // the member's account uid
+  var $region; // the member's region uid
+  var $record; // the member's account record
+  
+  /**
+   * Instantiate a member.
+   * @param int $uid: the member's uid
+   * @param int $region: the member's region uid (defaults to current server)
+   * @param assoc $info: the member's account record (considered partial until ->uid is there)
+   */
+  function __construct($uid, $region = '', $info = array()) {
+    u\expect(compact('uid'), 'id');
+    list ($this->uid, $this->region) = array($uid, $region ?: server_uid());
+    $this->record = (array) $info;
+  }    
+
+  public function __get($field) {
+    if (!@$this->record[$field] and !@$this->record['uid']) { // don't read if we have partial data (typically full_name)
+      if ($this->region != server_uid()) { // foreign
+        // contact other server here, for the record
+      } else $this->record = \user_load($this->uid); // domestic
+    }
+    u\expect(array_key_exists($field, $this->record));
+    return $this->record[$field];
+  }
+  
+  public function exo() {return qid($this->uid, u\n2a(-$this->region, 3), 3);}
+}
+
+/**
+ * @file
+ * rCredits Member Agent class
+ * UNFINISHED
+ */
+
+class mra extends mr {
+  var $agent; // the agent's id on agent's server ( > 0 if the agent is local to that server) -- usually $agent_id == $mr->uid
+//  var $agent_region; // agent's region
+//  var $agent_name; // agent's full name, if we have it
+//  var $reid; // relations table record id, if the member is local AND the agent is not the member
+  
+  /**
+   * Instantiate a member agent.
+   * Call by:
+   *   new mra(uid, region, agent_uid, agent_region)? OR
+   *   new mra(uid, agent_uid) OR
+   *   new mra(mr, agent_uid) OR
+   *   new mra(qid)
+   */
+  function __construct($uid, $agent = '') {
+    if (!$agent) { // must be a qid
+      if (!u\is_qid($quid = $uid)) return;
+      if (!($ruid = ruid($quid))) return;
+      list ($uid, $agent, $region) = $ruid;
+//      parent::__construct($uid, $region);
+    } else {
+      if (is_object($uid)) {
+        $mr = $uid;
+        list ($uid, $region) = array($mr->uid, $mr->region);
+      } else $region = '';
+    }
+    if ($agent != $uid and !reid($uid, $agent)) return; // agent not permitted
+    parent::__construct($uid, $region);
+    if (@$mr) $this->record = $mr->record;
+    $this->agent = $agent;
+  }
+    //  public function exo() {return qid(
+}

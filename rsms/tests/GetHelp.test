@@ -28,72 +28,73 @@ class rsmsGetHelp extends DrupalWebTestCase {
     parent::setUp(self::MODULE);
     $setup_filename = __DIR__ . '/../' . self::MODULE . '-setup.inc';
     if (file_exists($setup_filename)) include $setup_filename;
+
   }
 
   // Scenario: A caller wants help with a specific command
   public function testACallerWantsHelpWithASpecificCommand() {
     scene_setup($this, __FUNCTION__);
-    Given('phone %number1 is a player');
+    Given('phone %number1 is a member');
     When_('phone %number1 says "help get"');
-    Then_('we say to phone %number1 "help for get"');
+    Then_('we say to phone %number1 "help get"');
   }
 
   // Scenario: A caller wants to know what's available
-  public function notestACallerWantsToKnowWhatsAvailable() {
+  public function testACallerWantsToKnowWhatsAvailable() {
     scene_setup($this, __FUNCTION__);
-    Given('phone %number1 is a player');
+    Given('phone %number1 is a member');
     When_('phone %number1 says "help"');
-    Then_('we say to phone %number1 "help for help"');
+    Then_('we say to phone %number1 "help helpme"');
   }
 
   // Scenario: A caller types an unrecognized command
-  public function notestACallerTypesAnUnrecognizedCommand() {
+  public function testACallerTypesAnUnrecognizedCommand() {
     scene_setup($this, __FUNCTION__);
-    Given('phone %number1 is a player');
-    And__('we did not just ask %number1 for confirmation');
-    When_('phone %number1 says "something %random"');
-    Then_('we say to phone %number1 "Syntax error...|help for help"');
+    Given('phone %number1 is a member');
+    And__('the expected nonce for phone %number1 is ""');
+    When_('phone %number1 says %whatever');
+    Then_('we say to phone %number1 "syntax|help helpme"');
   }
 
   // Scenario: Caller gives wrong nonce
-  public function notestCallerGivesWrongNonce() {
+  public function testCallerGivesWrongNonce() {
     scene_setup($this, __FUNCTION__);
-    Given('we just asked %number1 to confirm "get usd 123.45" with nonce "mango"');
+    Given('the expected nonce for phone %number1 is "mango"');
     When_('phone %number1 says "anything but a legal command"');
     Then_('we say to phone %number1 "wrong nonce"');
   }
 
   // Scenario: A caller types the wrong number of arguments
-  public function notestACallerTypesTheWrongNumberOfArguments() {
+  public function testACallerTypesTheWrongNumberOfArguments() {
     scene_setup($this, __FUNCTION__);
-    Given('phone %number1 is a player');
+    Given('phone %number1 is a member');
     When_('phone %number1 says "get r 100 with too many arguments"');
-    Then_('we say to phone %number1 "Syntax error...|help for get"');
+    Then_('we say to phone %number1 "syntax|help get"');
   }
 
   // Scenario: A caller types a wrong argument
-  public function notestACallerTypesAWrongArgument() {
+  public function testACallerTypesAWrongArgument() {
     scene_setup($this, __FUNCTION__);
-    Given('phone %number1 is a player');
+    Given('phone %number1 is a member');
     When_('phone %number1 says "get zot"');
-    Then_('we say to phone %number1 "Syntax error...|help for get"');
+    Then_('we say to phone %number1 "syntax|help get"');
   }
 
   // Scenario: Amount is too big
-  public function notestAmountIsTooBig() {
+  public function testAmountIsTooBig() {
     scene_setup($this, __FUNCTION__);
-    Given('phone %number1 is a player');
+    Given('phone %number1 is a member');
     When_('phone %number1 says "get r 100000"');
     Then_('we say to phone %number1 "amount too big"');
   }
 
   // Scenario: Account does not exist
-  public function notestAccountDoesNotExist() {
+  public function testAccountDoesNotExist() {
     scene_setup($this, __FUNCTION__);
-    Given('phone %number1 is a player');
+    Given('phone %number1 is a member');
     And__('"neabcdef" is not an account id');
     When_('phone %number1 says "100 to neabcdef"');
-    Then_('we say to phone %number1 "not an account id|help for to" with subs: "DATA'
+    Then_('we say to phone %number1 "not an account id|help to" with subs: "DATA'
     . '\\| @id      |'
     . '\\| neabcdef |"');
   }

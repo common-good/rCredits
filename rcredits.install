@@ -5,7 +5,7 @@
  */
 
 use rCredits as r;
-use rCredits\Utilities as u;
+use rCredits\Util as u;
 use rCredits\API as api;
 
 define('R_TABLES', 'r_area_codes,r_credit_regions,r_nonces,r_txs,r_asif,r_relations,r_industries,r_user_industries');
@@ -16,7 +16,7 @@ define('R_TABLES', 'r_area_codes,r_credit_regions,r_nonces,r_txs,r_asif,r_relati
  * Add custom data for the rCredits module.
  */
 function rcredits_install() {
-  user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array('member'));
+//  user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array('member'));
   
   r\make_fields();
 //  r\make_currency();
@@ -25,13 +25,12 @@ function rcredits_install() {
   $keys = u\ray('uid community_uid name full_name postal_code country demand rebate_percent');
   $values = array($uid, $uid, R_SERVER_ID . '.', R_REGION_NAME, R_REGION_POSTAL_AREA, R_COUNTRY, R_INITIAL_DEMAND, 0);
   $info = array_combine($keys, $values);
-  if (!api\user_field(1, $uid)) drupal_write_record('users', $info);
+  if (!r\user_field(1, $uid)) drupal_write_record('users', $info);
   variable_set('date_default_timezone', 'America/New_York');
 // NO. This creates a navigation column.  variable_set('site_frontpage', 'charge');
 
   $current = variable_get('mail_system', array('default-system' => 'DefaultMailSystem'));
   variable_set('mail_system', array_merge($current, array('rcredits' => 'rcreditsMailSystem')));
-
 
   $tables = explode(',', R_TABLES . ',role'); // we also add records to some standard Drupal tables
   foreach ($tables as $table) {
@@ -87,14 +86,42 @@ function rcredits_schema() {
   $schema['r_txs'] = r\setup_table('Record of all rCredits transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
   $schema['r_asif'] = r\setup_table('Record of pretend (asif) transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
 
+  // table r_donations
+  $fields = array(
+    'donid' => r\setup_field('donation record id', 'serial 11'),
+    'created' => r\setup_field('date/time of donation', 'int 11'),
+    'uid' => r\setup_field('uid of account that made the donation', 'int 11'),
+    'amount' => r\setup_field('amount of donation', 'float medium'),
+    'type' => r\setup_field('donation type (cc, check, cash, rCredits pledge, rCredits)', 'int tiny'),
+    'how_often' => r\setup_field('recurring how often (Y, Q, M, 1)', 'varchar 1'), // this is for information only
+    'check_number' => r\setup_field('check number, if any', 'varchar 60'),
+    'received' => r\setup_field('date actually received', 'int 11'),
+  );
+  $foreign_keys = r\foreign_key('uid');
+  $indexes = r\index('uid');
+  $schema['r_donations'] = r\setup_table('Donation details (for rCredits "Partners")', $fields, 'donid', $foreign_keys, $indexes);
+
+  // table r_log
+  $fields = array(
+    'logid' => r\setup_field('log record id', 'serial 11'),
+    'time' => r\setup_field('date/time logged', 'int 11'),
+    'channel' => r\setup_field('logged from what interface module', 'int tiny'),
+    'type' => r\setup_field('what type of log entry', 'varchar 60'),
+    'info' => r\setup_field('arbitrary serialized data', 'text medium'),
+    'nonce' => r\setup_field('related nonce if any', 'varchar 10'),
+  );
+  $schema['r_log'] = r\setup_table('Development and error log', $fields, 'logid');
+  
   // table r_relations
   $fields = array(
     'reid' => r\setup_field('relationship record id', 'serial 11'),
     'main_uid' => r\setup_field('uid of the account to which others are related', 'int 11'),
     'agent_uid' => r\setup_field('uid of a user related to that account', 'int 11'),
-    'permission' => r\setup_field('what type of permission the individual has on the main account', 'int tiny'),
-    'is_employee' => r\setup_field('is this person an employee', 'int tiny'),
-    'is_owner' => r\setup_field('is this person an owner (or part owner)', 'int tiny'),
+    'agent_region' => r\setup_field('uid of the agent\'s region', 'int 11'),
+    'agent_name' => r\setup_field('full name of the agent, if not from this region', 'int 11'),
+    'permission' => r\setup_field('what type of permission the agent has on the main account', 'int tiny'),
+    'is_employee' => r\setup_field('is this agent an employee', 'int tiny'),
+    'is_owner' => r\setup_field('is this agent an owner (or part owner)', 'int tiny'),
   );
   $foreign_keys = r\foreign_key('main_uid') + r\foreign_key('agent_uid');
   $indexes = r\index('main_uid') + r\index('agent_uid');
@@ -114,6 +141,7 @@ function rcredits_schema() {
     'code' => r\setup_field('permanent secret identifier for the device', 'varchar 255'),
     'uid' => r\setup_field('uid of the smart device owner', 'int 11'),
     'device' => r\setup_field('human-readable identifier for the smart device', 'varchar 60'),
+    'accessed' => r\setup_field('date/time last used', 'int 11'), // for deletion after several months
   );
   $foreign_keys = r\foreign_key('uid');
   $indexes = r\index('uid');
@@ -146,6 +174,7 @@ function rcredits_schema() {
 function rcredits_schema_alter(&$schema) {
   $fields = array( // additional users fields
     'account_type' => r\setup_field('personal, commercial, non-profit (or government)', 'int tiny'),
+    'flags' => r\setup_field('permissions and boolean state flags', 'int big', 0, '010'),
     'community_uid' => r\setup_field("uid of this account's Common Good Community", 'int 11'),
     'federal_id' => r\setup_field('social security number or employer id number, for reporting', 'varchar 9'),
     'full_name' => r\setup_field('full name of the individual or entity', 'varchar 60'),

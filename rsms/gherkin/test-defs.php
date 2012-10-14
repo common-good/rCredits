@@ -1,6 +1,6 @@
 <?php
 
-define('GHERKIN_EOL', '\\\\'); // record delimiter in multiline arguments
+define('GHERKIN_EOL', '\\'); // record delimiter in multiline arguments
 global $scene_test; // current scenario test object
 global $test_only; // step functions can create the asserted reality, except when called as "Then" (or "And")
 
@@ -17,21 +17,19 @@ function gherkin_guts($statement, $type) {
   if($type == 'Given' or $type == 'When_') $test_only = FALSE;
   if($type == 'Then_') $test_only = TRUE;
 
-  $arg_patterns = '"(.*?)"|(-?[0-9]+(?:[\.,-][0-9]+)*)';
-  foreach ($scene_test->subs as $from => $to) {
-    if ($from) $statement = str_replace($from, '"'.$to.'"', $statement); // if ($from) allows eg "5%"
-  }
+  $arg_patterns = '"(.*?)"|([\-\+]?[0-9]+(?:[\.\,\-][0-9]+)*)';
+  $statement = get_constants(strtr($statement, $scene_test->subs));
   preg_match_all("/$arg_patterns/ms", $statement, $matches);
   $args = multiline_check($matches[0]); // phpbug: $matches[1] has null for numeric args (so the check removes quotes)
   $count = count($args);
   $function = lcfirst(preg_replace("/$arg_patterns|[^A-Z]/ims", '', ucwords($statement)));
-
   switch ($count) {
     case 0: return $function();
     case 1: return $function($args[0]);
     case 2: return $function($args[0], $args[1]);
     case 3: return $function($args[0], $args[1], $args[2]);
     case 4: return $function($args[0], $args[1], $args[2], $args[3]);
+    default: die("Too many args ($count) in statement: $statement");
   }
 }
 
@@ -42,7 +40,7 @@ function scene_setup($scene, $test) {
   $scene_test->current_test = $test;
 }
 
-/*
+/**
  * Random String Generator
  *
  * int $len: length of string to generate (0 = random 1->50)
@@ -64,7 +62,7 @@ function random_string($len = 0, $type = '?'){
   return($s); //  return str_shuffle($s); ?
 }
 
-/*
+/**
  * The Usual Subtitutions
  *
  * Set some common parameters that will remain constant throughout the Scenario
@@ -75,11 +73,11 @@ function usual_subs() {
   $date_format = 'm-d-Y';
   
   $result = array(
-    '%whatever' => random_string(),
-    '%random' => random_string(),
+    '%whatever' => '"' . random_string() . '"',
+    '%random' => '"' . random_string() . '"',
   );
   for ($i = 1; $i <= 5; $i++) { // phone numbers
-    while (in_array($number = random_string(32, '9'), $result)) {}
+    while (in_array($number = '+1' . rand(2, 9) . random_string(9, '9'), $result)) {} // US phone
     $result["%number$i"] = $number;
   }
   for ($i = 15; $i > 0; $i--) { // set up past dates highest first, eg to avoid missing the "5" in %today-15
@@ -92,7 +90,7 @@ function usual_subs() {
   return $result;
 }
 
-/*
+/**
  * Multi-line check
  *
  * If the final argument is a string representing a Gherkin multi-line definition of records,
@@ -105,17 +103,19 @@ function usual_subs() {
 function multiline_check($args) {
   for($i = 0; $i < count($args); $i++) $args[$i] = squeeze($args[$i], '"');
   if (substr($last = end($args), 0, 4) != 'DATA') return $args;
-
   $data = explode(GHERKIN_EOL, preg_replace('/ *\| */m', '|', $last));
   array_shift($data);
   $keys = explode('|', squeeze(array_shift($data), '|'));
   $result = array();
-  foreach ($data as $line) $result[] = array_combine($keys, explode('|', squeeze($line, '|')));
+  foreach ($data as $line) {
+    if (function_exists('multiline_tweak')) multiline_tweak($line);
+    $result[] = array_combine($keys, explode('|', squeeze($line, '|')));
+  }
   $args[count($args) - 1] = $result;
   return $args;
 }
 
-/*
+/**
  * Squeeze a string
  *
  * If the first and last char of $string is $char, shrink the string by one char at both ends.
@@ -126,7 +126,7 @@ function squeeze($string, $char) {
   return ($first == $char and $last == $char)? substr($string, 1, strlen($string) - 2) : $string;
 }
 
-/*
+/**
  * Make a string's first character lowercase
  *
  * @param string $str
@@ -137,4 +137,17 @@ if(!function_exists('lcfirst')) {
     $str[0] = strtolower($str[0]);
     return (string)$str;
   }
+}
+
+/**
+ * Translate constant parameters in a string.
+ * @param string $string: the string to fix
+ * @return string: the string with constant names (preceded by %) replaced by their values
+ * Constants must be uppercase and underscores (for example, if A_TIGER is defined as 1, %A_TIGER gets replaced with "1")
+ */
+function get_constants($string) {
+  preg_match_all("/%([A-Z_]+)/ms", $string, $matches);
+  $map = array();
+  foreach ($matches[1] as $one) $map["%$one"] = constant($one);
+  return strtr($string, $map);
 }

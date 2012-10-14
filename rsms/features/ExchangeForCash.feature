@@ -1,85 +1,59 @@
-Feature: Exchange for cash, pre-launch
+Feature: Exchange for cash
 AS a player
-I WANT to simulate an exchange of rCredits from my account for someone's cash or vice versa
-SO I can understand better how that will work once I am an Active Participant
+I WANT to exchange rCredits for someone's cash or vice versa
+SO I can buy the things I want, locally and elsewhere
+
+Setup:
+  Given members:
+  | id   | full_name  | phone  | rebate |
+  | .ZZA | Abe One    | +20001 | 5      |
+  | .ZZB | Bea Two    | +20002 | 5      |
+  | .ZZC | Corner Pub | +20003 | 5      |
+  # later and elsewhere: name, email, country, minimum, community
+  And transactions: 
+  | date      | type       | amount | from      | to   | for    |
+  | %today-1d | %TX_SIGNUP | 250    | community | .ZZA | signup |
+  | %today-1d | %TX_SIGNUP | 250    | community | .ZZB | signup |
+  | %today-1d | %TX_SIGNUP | 250    | community | .ZZC | signup |
 
 Scenario: The caller confirms a trade of rCredits for cash
-  Given players:
-  | @name      | @memberid | @cell    | @rebate |
-  | Abe One    | neabcdea  | %number1 | 5       |
-  | Bea Two    | neabcdeb  | %number2 | 5       |
-  | Corner Pub | neabcdec  | %number3 | 5       |
-  And transactions: 
-  | @date     | @type  | @amount | @from    | @to      | @for          |
-  | %today-1d | signup | 250.00  | community| neabcdea | signup reward |
-  When phone %number1 confirms "100 to neabcdec for cash"
-  Then the community has r$-250
-  And phone %number3 has r$100
-  And transactions:
-  | @date  | @type   | @amount | @from    | @to      | @for |
-  | %today | payment | 100     | neabcdea | neabcdec | cash |
-  And we say to phone %number1 "report cash trade" with subs:
-  | @type  | @amount | @who       | @way            | @balance | @transaction |
-  | traded | 100     | Corner Pub | credit for cash | 150      | 2            |
-  # "You traded Corner Pub $100 credit for cash. Your new balance is $150. Transaction #2"
-  
-Scenario: The caller confirms a trade of cash for rCredits
-  Given players:
-  | @name      | @memberid | @cell    | @rebate |
-  | Abe One    | neabcdea  | %number1 | 5       |
-  | Bea Two    | neabcdeb  | %number2 | 5       |
-  | Corner Pub | neabcdec  | %number3 | 5       |
-  And transactions: 
-  | @date     | @type  | @amount | @from    | @to      | @for          |
-  | %today-1d | signup | 250.00  | community| neabcdec | signup reward |
-  When phone %number1 confirms "100 from neabcdec for cash"
-  Then the community has r$-250
-  And phone %number3 has r$150
-  And transactions:
-  | @date  | @type   | @amount | @from    | @to      | @for |
-  | %today | charge  | 100     | neabcdec | neabcdea | cash |
-  And we say to phone %number1 "report cash trade" with subs:
-  | @type  | @amount | @who       | @way            | @balance | @transaction |
-  | traded | 100     | Corner Pub | cash for credit | 100      | 1            |
-  # "You traded Corner Pub $100 cash for credit. Your new balance is $100. Transaction #1"
+  When phone +20001 confirms "100 to .ZZC for cash"
+  Then the community has r$-750
+  And phone +20003 has r$350
+  And phone +20001 has r$150
+  And we say to phone +20001 "report exchange" with subs:
+  | action | other_name | amount | balance | tid |
+  | gave   | Corner Pub | $100   | $150    | 2   |
+  # "You gave Corner Pub $100 cash/loan/etc. Your new balance is $150. Transaction #2"
 
 Scenario: The caller confirms an implicit trade of rCredits for cash
-  Given players:
-  | @name      | @memberid | @cell    | @rebate |
-  | Abe One    | neabcdea  | %number1 | 5       |
-  | Bea Two    | neabcdeb  | %number2 | 5       |
-  | Corner Pub | neabcdec  | %number3 | 5       |
-  And transactions: 
-  | @date     | @type  | @amount | @from    | @to      | @for          |
-  | %today-1d | signup | 250.00  | community| neabcdea | signup reward |
-  When phone %number1 confirms "100 to neabcdec"
-  Then the community has r$-250
-  And phone %number3 has r$100
-  And transactions:
-  | @date  | @type   | @amount | @from    | @to      | @for |
-  | %today | payment | 100     | neabcdea | neabcdec | cash |
-  And we say to phone %number1 "report cash trade" with subs:
-  | @type | @amount | @who       | @way                                   | @balance | @transaction |
-  | gave  | 100     | Corner Pub | credit (perhaps as a gift or for cash) | 150      | 2            |
-  # "You gave Corner Pub $100 credit (perhaps as a gift or for cash). Your new balance is $150. Transaction #2"
-  
-Scenario: The caller confirms an implicit trade with insufficient balance
-  Given players:
-  | @name      | @memberid | @cell    | @rebate |
-  | Abe One    | neabcdea  | %number1 | 5       |
-  | Bea Two    | neabcdeb  | %number2 | 5       |
-  | Corner Pub | neabcdec  | %number3 | 5       |
-  And transactions: 
-  | @date     | @type  | @amount | @from    | @to      | @for          |
-  | %today-1d | signup | 100.00  | community| neabcdea | signup reward |
-  When phone %number1 confirms "250 to neabcdec"
-  Then the community has r$-115
-  And phone %number3 has r$110
-  And transactions:
-  | @date  | @type   | @amount | @from    | @to      | @for |
-  | %today | payment | 100     | neabcdea | neabcdec | cash |
-  And we say to phone %number1 "partial | report cash trade" with subs:
-  | @type | @amount | @who       | @way                                   | @balance | @transaction |
-  | gave  | 100     | Corner Pub | credit (perhaps as a gift or for cash) | 0        | 2            |
-  # "PARTIAL SUCCESS. You gave Corner Pub $100 credit (perhaps as a gift or for cash). Your new balance is $0. Transaction #2"
+  When phone +20001 confirms "100 to .ZZC"
+  Then phone +20003 has r$350
+  And phone +20001 has r$150
+
+Scenario: The caller confirms a request to trade cash for rCredits
+  When phone +20003 confirms "100 from .ZZA for cash"
+  Then phone +20003 has r$250
+  And phone +20001 has r$250
+  And we say to phone +20003 "report exchange request" with subs:
+  | action  | other_name | amount | tid |
+  | charged | Abe One    | $100   | 2   |
+  # "You requested $100 from Abe One for cash/loan/etc. Your balance is unchanged, pending approval. Invoice transaction #2"
+
+Scenario: The caller confirms a unilateral trade of cash for rCredits
+  Given phone +20003 can charge unilaterally
+  When phone +20003 confirms "100 from .ZZA for cash"
+  Then phone +20003 has r$350
+  And phone +20001 has r$150
+  And we say to phone +20003 "report exchange" with subs:
+  | action  | other_name | amount | balance | tid |
+  | charged | Abe One    | $100   | $350    | 2   |
+  # "You charged Abe One $100 cash/loan/etc. Your new balance is $350. Transaction #2"
+
+Scenario: The caller requests an implicit trade with insufficient balance
+  When phone +20001 says "300 to .ZZC"
+  Then we say to phone +20001 "short cash to" with subs:
+  | short |
+  | $50   |
+  # "You are $50 short for that exchange."
   

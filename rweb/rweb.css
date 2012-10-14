@@ -15,7 +15,6 @@ form.rweb div#edit-subtext label {font-weight:normal; width:100%;}
 form.rweb input {vertical-align:top;}
 form.rweb input[type="text"] {width:240px;}
 
-
 form.rweb div.form-type-radios {height:25px; margin:0px;}
 form.rweb div.form-radios {margin-bottom:0px;}
 form.rweb div.form-type-radio {display:inline-block;}
@@ -25,13 +24,19 @@ form.rweb div.form-type-radio label {display:inline; width:100px; margin-left:3p
 /* Labeled Forms (each field is preceded by a short label and the fields line up)
 /* form.rweb.labeled (this fails for Chrome) */
 form.labeled div.form-type-textfield {display:block; margin-right:0px;}
-form.labeled label {display:inline-block; width:130px; text-align:right; margin-right:0px;} /* default label width */
-form.labeled div#edit-title label {margin-left:135px; width:100%;}
-form.labeled div.form-item div.description {margin-left:135px;}
-form.labeled input[type="submit"] {margin-left:135px;}
-form.labeled div.form-radios {margin-left:135px;}
+form.labeled label, form.labeled div.form-type-item label {display:inline-block; width:130px; text-align:right; margin-right:0px;} /* default label width */
+form.labeled div#edit-title label,
+form.labeled div.form-item div.description,
+form.labeled div.description,
+form.labeled input.form-submit,
+form.labeled div.form-radios,
+form.labeled div#edit-subtext,
+form.labeled fieldset {margin-left:135px;}
+
+form.labeled div.description {font-size:.85em}
+form.labeled div#edit-title label {text-align:left; vertical-align:top; width:100%;}
 form.labeled div.labeled-block {display:inline-block; vertical-align:top;}
-form.labeled div#edit-subtext {margin-left:135px;}
+form.labeled div.form-textarea-wrapper {display:inline-block;}
 
 form.labeled .form-local, form.rweb .form-local {margin:1px 2px 1px 2px; padding:2px; font-size:70%; color:darkgreen;}
 
@@ -51,6 +56,18 @@ form#user-register-form div.form-checkboxes {margin-left:135px;}
 form#user-register-form div.form-type-checkbox {display:inline-block;}
 form#user-register-form div.form-type-checkbox input {display:inline-block; margin-left:0px; vertical-align:bottom;}
 form#user-register-form div.form-type-checkbox label {display:inline; width:100px; margin-left:3px; text-align:left; vertical-align:top;}
+
+/* Company Info */
+form#rcreditswebcompany-form fieldset#edit-description-format,
+form#rcreditswebcompany-form fieldset#edit-description-format div.fieldset-wrapper {
+  margin-top:0px; 
+  background-color:lightblue;
+}
+form#rcreditswebcompany-form textarea {height:60px; width:100%; border-color:lightblue;}
+form#rcreditswebcompany-form div.form-textarea-wrapper {width:796px;}
+form#rcreditswebcompany-form input#edit-submit {margin-top:20px; display:inline-block;}
+form#rcreditswebcompany-form div#edit-afterlinks {display:inline-block; width:400px;}
+form#rcreditswebcompany-form div#edit-afterlinks label {width:100%; margin-top:20px; text-align:left;}
 
 /* Account Info */
 form#rcreditswebaccount-form div.form-type-textfield label {display:block;}

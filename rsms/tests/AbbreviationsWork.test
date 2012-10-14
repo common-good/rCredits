@@ -28,20 +28,21 @@ class rsmsAbbreviationsWork extends DrupalWebTestCase {
     parent::setUp(self::MODULE);
     $setup_filename = __DIR__ . '/../' . self::MODULE . '-setup.inc';
     if (file_exists($setup_filename)) include $setup_filename;
+
   }
 
   // Scenario: A caller abbreviates command words
   public function testACallerAbbreviatesCommandWords() {
     scene_setup($this, __FUNCTION__);
-    Given('phone %number1 is a player');
+    Given('phone %number1 is a member');
     When_('phone %number1 says "h g"');
     Then_('we say to phone %number1 "help get"');
   }
 
   // Scenario: A caller abbreviates with wrong syntax
-  public function notestACallerAbbreviatesWithWrongSyntax() {
+  public function testACallerAbbreviatesWithWrongSyntax() {
     scene_setup($this, __FUNCTION__);
-    Given('phone %number1 is a player');
+    Given('phone %number1 is a member');
     When_('phone %number1 says "12 f"');
     Then_('we say to phone %number1 "syntax|help charge"');
   }

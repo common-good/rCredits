@@ -38,7 +38,7 @@
 require_once 'rcredits.inc';
 require_once 'rcredits-api.inc';
 use rCredits as r;
-use r\Utilities as u;
+use rCredits\Util as u;
 
 class rcreditsMailSystem extends DefaultMailSystem {
   public function format(array $message) {
@@ -47,11 +47,60 @@ class rcreditsMailSystem extends DefaultMailSystem {
   }
 }
 
+
+/**
+ * Top level exception handler (not a hook)
+ * Log the error and follow up according to channel.
+ *   Web: Jump to default member page and display a complete error message.
+ *   SMS: Give a short apology.
+ *   Smart: Give a short apology.
+ *   Uninitialized: print the full error information and die
+ */
+function rcredits_exception_handler($e) {
+  global $channel, $rSMS_number;
+  list ($msg, $line0, $file0, $trace) = array($e->getMessage(), $e->getLine(), $e->getFile(), $e->getTrace());
+  $file0 = basename($file0);
+  $trace_msg = '';
+  for ($i = 0; $i < 11; $i++) {
+    $line = $file = '';
+    extract($trace[$i]); // (file, line, function, args) OR just (function, args)
+    $line = @$line ?: '';
+    $file = basename(@$file);
+    $function = basename($function);
+    $args = preg_replace('/Array\s+\(/sm', 'Array', print_r($args, 1));
+    $args = substr($args, 6); // discard the gratuitous "Array" at the start
+    $args = preg_replace('/$\s*\)$\s$/sm', '', $args);
+    $args = '    ' . str_replace("\n", "<br>\n    ", $args);
+    $args = str_replace('  ', ' &nbsp;', $args);
+    $trace_msg .= "<br>\n- $line in $file, calling $function() with:<br>\n$args";
+  }
+//    $trace = str_replace('<!--', '<! --', print_r($trace, 1));
+//    $trace_msg .= "<!--$trace-->"; // source will contain the whole trace
+  $short_msg = "<b>Exception:</b> The rCredits System has detected an unusual problem. If your activity was interrupted, please feel free to try again.";
+  $msg = "$short_msg<br>\n($msg)<br>\n- $line0 ($file0)" . $trace_msg;
+  $message = str_replace('&nbsp;', '', str_replace('<br>', '', $msg));
+  u\log('error', compact(u\ray('channel message')));
+  
+  switch (@$channel) {
+    case TX_WEB:
+      drupal_set_message($msg, 'error');
+      drupal_goto('');
+    case TX_SMS: if (@$rSMS_number) \sms_send($rSMS_number, $short_msg); break;
+    case TX_SMART: api\api_error($short_msg);
+    default: die(print_r($msg, 1));
+  }
+}
+
+/**
+ * Implements hook_boot().
+ */
+function rcredits_boot() {set_exception_handler('rcredits_exception_handler');}
+
 /**
  * Implements hook_permission().
  * Permission to transact through various interfaces is created here, 
  * so that those permissions can be granted during installation of the corresponding submodules.
- */
+ *
 function rcredits_permission() {
   $permissions = array();
   r\permission($permissions, 'Member', t('Has an account, can access the member area and do "As If" transactions'));
@@ -64,6 +113,7 @@ function rcredits_permission() {
 //  r\permission($permissions, 'Transact via Smart Phone', t('Transfer funds and get account information through the Smart Interface'));
   return $permissions;
 }
+*/
 
 /**
  * Implements hook_help().

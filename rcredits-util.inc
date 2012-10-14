@@ -5,7 +5,7 @@
  * This file may be both on the core VPS and the user interface VPS
  */
 
-namespace rCredits\Utilities; // typically abbreviated as "u"
+namespace rCredits\Util; // typically abbreviated as "u"
 use rCredits as r; // get rid of this
 
 // Some useful Drupal db methods: fetchAllKeyed(m, n), fetchAssoc and fetchAllAssoc(fld), fetchObject and fetchAll(), fetchCol(n), fetchField()
@@ -158,7 +158,7 @@ function format_phone($phone, $how = '') {
     if (substr($phone, 0, 1) < 2) return FALSE; // US phone numbers cannot start with 0 or 1
 //    if (strlen($phone) != 10) return FALSE;  // temporarily disabled for debugging
   } elseif (substr($phone, 0, 1) == '+') $foreign = substr($phone, 1);
-  
+
   if (!is_numeric($phone)) return FALSE;
 
   if ($how == 'n') return $phone;
@@ -308,10 +308,10 @@ function http_request($url, $params = FALSE, $extra_headers = array(), $method =
  * @param string $string: the string to fix
  * @return string: the string with constant names replaced by their values
  */
-function get_constants($string) {
-  preg_match_all('/:([A-Z_]+)/ms', $string, $matches);
+function get_constants($string, $prefix = ':') {
+  preg_match_all("/\\$prefix([A-Z_]+)/ms", $string, $matches);
   $map = array();
-  foreach ($matches[1] as $one) $map[":$one"] = constant($one);
+  foreach ($matches[1] as $one) $map["$prefix$one"] = constant($one);
   return strtr($string, $map);
 }
 
@@ -348,7 +348,7 @@ function expect($assertion, $message = '', $ret = FALSE) {
 function expect1($arg, $value, $type, $ret) {
 //  expect(compact(ray('arg type')), 'name string'); // can't do this because infinite recursion
 
-  $msg = "Expected $arg ('$value') to be type '$type'.";
+  $msg = "Expected \$$arg ('$value') to be type '$type'.";
   if (strpos($type, '|')) {
     foreach (explode('|', $type) as $one) if (expect1($arg, $value, $one, TRUE) == '') return '';
     expect(FALSE, $msg);
@@ -385,24 +385,32 @@ function expect1($arg, $value, $type, $ret) {
 //function gripe($msg) {throw new \Exception(serialize(debug_backtrace()));}
 
 /** 
- * Log the message and return it.
+ * Log the info in both the log file and database.
  * This makes it easy for tests to see what was done
  *
- * @param string $log: which log (rCredits, rSMS, rWeb, etc.)
  * @param string $type: type of log entry (if FALSE, don't log anything)
  * @param array $info: the information to log
- * @return the (possibly updated) log array
+ * @param string $nonce: the related nonce if any
  */  
-function log($type = FALSE, $info = FALSE) {
-  global $channel; $log = $channel;
- //$type='', $message='', $number='', $nonce=''
-  $log_filename = "$log.log";
-//    $log = file_exists($log_filename) ? file_get_contents($log_filename) : '';
-//    file_put_contents($log_filename, $log . "$type, $number, $message\n");
+function log($type, $info, $nonce = '') {
+  global $channel;
+  $log_filename = 'rcredits.log';
+  $date = date('m-d-Y');
+  $channels = ray(TX_CHANNELS); 
+  $channel_name = $channels[$channel];
+  $info = json_encode($info);
+  file_put_contents($log_filename, "$date ($channel_name) $type: $info\n", FILE_APPEND);
+  $time = time();
+  if ($nonce and @$info['message']) $info['message'] = str_replace($nonce, '@nonce', $info['message']); // make it easy to match
+  drupal_write_record('r_log', compact(ray('time channel type info nonce')));
+  
+  /*
+  $channels = ray(TX_CHANNELS);
+  $log_filename = $channels[$channel] . '.log';
   $log = file_exists($log_filename) ? unserialize(file_get_contents($log_filename)) : '';
   if ($type) {
     extract($info, EXTR_PREFIX_ALL, 'my');
-    $info['type'] = $type;
+    $info = compact('type') + $info;
     $log[] = $info; //compact('type', 'message', 'number');
     if (@$my_nonce and @$my_message) {
       $info['message'] = str_replace($my_nonce, '@nonce', $my_message); // also store without the nonce for testing, because the nonce is unpredictable
@@ -410,8 +418,25 @@ function log($type = FALSE, $info = FALSE) {
     }
     file_put_contents($log_filename, serialize($log)); //  . "\n"); ?
   }
-  return $log;
+  return $log; */
 }  
+
+/**
+ * Change something to the proper case, unless it is already right.
+ * @param mixed $what: a string or array of strings to fix
+ * @param string $proper: the PHP function to use, to fix the case
+ * @return: the argument with case fixed (the argument itself is changed directly also)
+ */
+function normalize_case(&$what, $proper = 'ucwords') {
+  if (is_array($what)) {
+    foreach ($what as $key => $value) normalize_case($what[$key]);
+    return $what;
+  }
+  $upper = strtoupper($what);
+  $lower = strtolower($what);
+  if ($proper = 'ucwords' and $what != strtolower($what) and $what != strtoupper($what)) return $what; // already mixed case
+  return ($what = $proper($what));
+}
 
 /*
 function import_gfld() {
@@ -454,7 +479,7 @@ function gzdecode($data){
     return $d;
 }
 
-// rCredits\Utilities\get_company_pictures();
+// rCredits\Util\get_company_pictures();
 function get_company_pictures() {
   $result = r\db_q("SELECT uid,website,data,description FROM users WHERE uid>791 AND website<>'' ORDER BY uid");
   while ($row = $result->fetchAssoc()) {

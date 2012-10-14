@@ -1,7 +1,8 @@
 <?php
 namespace rCredits\SMS; // typically abbreviated as "rSMS"
-use \rCredits\API as api;
-use \rCredits\Utilities as u;
+use rCredits as r;
+use rCredits\API as api;
+use rCredits\Util as u;
 require_once __DIR__ . '/../rcredits-api.inc'; // Drupal bug (needs this explicit)
 require_once __DIR__ . '/../rcredits-util.inc';
 
@@ -63,6 +64,7 @@ $GLOBALS['SMS messages'] = array(
 //  'transaction done asif' => t("@action: @amount @tofrom user#@other_name (@reward_type: @reward_amount). Your new provisional balance is @balance (If this had been a real transaction, your balance would be @amount @moreless). Transaction ID #@tid"),
   'report exchange' => t("You@asif @action @other_name r@amount for cash/loan/gift/etc. Your new balance is @balance. Transaction #@tid"),
   'report exchange request' => t("You@asif requested r@amount from @other_name. Your balance is unchanged, pending approval. Invoice transaction #@tid"),
+  'paid employees' => t('You distributed @total to @successes of @employee_count employees. See your transactions page for details.'),
   'report undo' => t("@asif Transaction has been @action. "),
   'report get usd' => t("@Exchange approved. @request will be transferred directly to your bank account within 24 hours. Your new balance is @balance."),
   'get usd inactive' => t("If you were an Active Participant in the rCredits system, your request would transfer @amount directly to your bank account. Alas, you are not yet an Active Participant."),
@@ -77,10 +79,11 @@ $GLOBALS['SMS messages'] = array(
   // confirmations
   'confirm get usd' => t("@asif Trade r@request for us@request?"),
   'confirm payment' => t("@asif Pay @other_name @amount for goods and services?"),
-  'confirm pay invoice' => t("@asif Pay @other_name @amount for goods and services (invoice @date)?"),
+  'confirm pay invoice' => t("@asif Pay @other_name @amount for goods and services (invoice @created)?"),
   'confirm charge' => t("@asif Charge @other_name @amount for goods and services?"),
   'confirm exchange' => t("Okay to@asif @confirm_action @other_name @amount in rCredits (not for goods or services)?"),
-  'confirm undo' => t("Undo @date@asif transfer of @amount @tofrom @other_name?"),
+  'confirm pay employees' => t('Pay @employee_count employees @amount each (a total of @total)?'),
+  'confirm undo' => t("Undo @created@asif transfer of @amount @tofrom @other_name?"),
   'please confirm' => t("To confirm, type @nonce."),
   'verification code' => 'Your verification code for using rCredits online is: @nonce', // used in rWeb
   
@@ -111,7 +114,7 @@ $GLOBALS['SMS messages'] = array(
   'what relationship' => t('You forgot to say whether you are an employee, owner, or both.'),
   'short cash to' => t('You are r@short short, for that exchange.'),
   'short cash from' => t('@other_name does not have enough rCredits for that exchange.'),
-  'short invoice' => t('You are r@short short, to pay that invoice. Get more rCredits first, or undo the invoice and pay part in US Dollars.'),
+  'short payment' => t('You are r@short short, for that payment. Get more rCredits first, or pay less.'),
   'broke to' => t('You are completely out of rCredits, so that transaction cannot be completed. Type "get r <amount>" to get more rCredits.'),
   'broke from' => t('@other_name does not have enough rCredits for that transaction at this time. But your request has been noted.'),
   'demand too small' => t('NOTE: The minimum amount of rCredits you can actually buy at a time is $@min.', array('@min' => R_MIN_DEMAND)),
@@ -125,6 +128,8 @@ $GLOBALS['SMS messages'] = array(
   'already undone' => t('Transaction is already undone.'),
   'no such tx' => t('That transaction does not exist.'),
   'bank unverified' => t('You cannot exchange rCredits for US Dollars until your bank account has been verified.'),
+  'no ALL' => t('This action is not allowed for "ALL" (meaning all employees)'),
+  'no employees' => t('There are no employees for this account.'),
 );
 
   // help messages (for use with the help command)
@@ -205,7 +210,7 @@ function send($number, $message) {
   if ($msg != $message) $message .= ' -- TOO LONG! (strlen ' . strlen($message) . ')';
   if (@$sms_devel) drupal_set_message("To $number: $message"); else \sms_send($number, $msg);
   $nonce = infer_nonce($message);
-  u\log('out', compact(u\ray('type message number nonce')));
+  u\log('out', compact(u\ray('message number')), $nonce);
 }
 
 /**
@@ -233,10 +238,10 @@ function create($number, $uid, $status = SMS_OK) {
 function setup_name($account, $full_name) {
   $full_name = str_replace('  ', ' ', trim($full_name));
   if (strlen($full_name) > 60) throw new rSMSexception(tt('name too long'));
-  if (strtolower($full_name) == $full_name or strtoupper($full_name) == $full_name) $full_name = ucwords($full_name);
   if (!u\valid_name($full_name)) throw new rSMSexception(tt("what's your name really?"));
-  $name = u\short_name($full_name);
-  if (api\user_field(1, 'name=:name', compact('name'))) throw new rSMSexception(tt('duplicate name'));
+  u\normalize_case($full_name);
+  $name = r\unique_name($full_name);
+//  if (r\user_field(1, 'name=:name', compact('name'))) throw new rSMSexception(tt('duplicate name'));
   $edit = compact('name', 'full_name');
   return \user_save($account, $edit)->full_name;
 }
@@ -247,7 +252,7 @@ function setup_name($account, $full_name) {
  */
 function setup_email($account, $email) {
   if (!\valid_email_address($email)) throw new rSMSexception(tt("what's your email really?"));
-  if (api\user_field(1, "mail = '$email'")) throw new rSMSexception(tt('duplicate email'));
+  if (r\user_field(1, "mail = '$email'")) throw new rSMSexception(tt('duplicate email'));
   $edit = array(); // no edits yet
   $edit['mail'] = $edit['init'] = $email;
   return \user_save($account, $edit);
@@ -295,3 +300,4 @@ function intent($intent, $command, $pattern, $message) {
 function tt($message, $subs = array()) {return u\tt($message, $subs, 'SMS');}
 
 // one-line functions that need no explanation
+function uid($number) {return (int) r\db_lookup('uid', 'r_sms', 'number=:number', compact('number'));}
