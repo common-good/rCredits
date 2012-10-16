@@ -39,7 +39,7 @@ class rsmsTrackCommands extends DrupalWebTestCase {
   // Scenario: A caller uses a command that does not require confirmation
   public function testACallerUsesACommandThatDoesNotRequireConfirmation() {
     scene_setup($this, __FUNCTION__);
-    Given('phone %number1 is a player');
+    Given('phone %number1 is a member');
     And__('phone %number1 "info" command use count is 5');
     And__('overall "info" command use count is 100');
     When_('phone %number1 says "info"');
@@ -50,7 +50,7 @@ class rsmsTrackCommands extends DrupalWebTestCase {
   // Scenario: A caller uses a command that DOES require confirmation
   public function testACallerUsesACommandThatDOESRequireConfirmation() {
     scene_setup($this, __FUNCTION__);
-    Given('phone %number1 is a player');
+    Given('phone %number1 is a member');
     And__('phone %number1 "to" command use count is 5');
     And__('phone %number1 "cash" command use count is 2');
     And__('overall "to" command use count is 100');

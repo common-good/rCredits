@@ -70,7 +70,7 @@ function rcredits_schema() {
     'taking' => r\setup_field('was the transaction initiated by the payee', 'int tiny'), 
     'goods' => r\setup_field('is this transfer and exchange for real goods and services?', 'int tiny'), 
     'state' => r\setup_field('completed, pending, disputed, etc', 'int tiny'), 
-    'amount' => r\setup_field('transaction amount', 'float big'), 
+    'amount' => r\setup_field('transaction amount', 'numeric 11,2'), 
     'payer' => r\setup_field('user id of the payer', 'int 11'), 
     'payee' => r\setup_field('user id of the payee', 'int 11'), 
     'payer_agent' => r\setup_field("user id of payer's agent (who approved this transaction for the payer)", 'int 11'), 
@@ -91,7 +91,7 @@ function rcredits_schema() {
     'donid' => r\setup_field('donation record id', 'serial 11'),
     'created' => r\setup_field('date/time of donation', 'int 11'),
     'uid' => r\setup_field('uid of account that made the donation', 'int 11'),
-    'amount' => r\setup_field('amount of donation', 'float medium'),
+    'amount' => r\setup_field('amount of donation', 'numeric 11,2'),
     'type' => r\setup_field('donation type (cc, check, cash, rCredits pledge, rCredits)', 'int tiny'),
     'how_often' => r\setup_field('recurring how often (Y, Q, M, 1)', 'varchar 1'), // this is for information only
     'check_number' => r\setup_field('check number, if any', 'varchar 60'),
@@ -107,10 +107,14 @@ function rcredits_schema() {
     'time' => r\setup_field('date/time logged', 'int 11'),
     'channel' => r\setup_field('logged from what interface module', 'int tiny'),
     'type' => r\setup_field('what type of log entry', 'varchar 60'),
+    'cuid' => r\setup_field('current account uid', 'int 11'),
+    'auid' => r\setup_field('agent account uid', 'int 11'),
     'info' => r\setup_field('arbitrary serialized data', 'text medium'),
-    'nonce' => r\setup_field('related nonce if any', 'varchar 10'),
+    'special' => r\setup_field('special value if any', 'varchar 20'), // eg cell number or nonce
   );
-  $schema['r_log'] = r\setup_table('Development and error log', $fields, 'logid');
+  $foreign_keys = r\foreign_key('cuid') + r\foreign_key('auid');
+  $indexes = r\index('type') + r\index('channel') + r\index('cuid') + r\index('auid');  
+  $schema['r_log'] = r\setup_table('Development and error log', $fields, 'logid', $foreign_keys, $indexes);
   
   // table r_relations
   $fields = array(
@@ -146,11 +150,21 @@ function rcredits_schema() {
   $foreign_keys = r\foreign_key('uid');
   $indexes = r\index('uid');
   $schema['r_smarts'] = r\setup_table('Who owns what smart device', $fields, 'code', $foreign_keys, $indexes);
-
+/*
+  // table r_counts
+  $fields = array(
+    'type' => r\setup_field('what is being counted', 'varchar 255'),
+    'channel' => r\setup_field('through what channel did it happen', 'int 11'),
+    'real' => r\setup_field('is it for real (or just asif)', 'int tiny'),
+    'count' => r\setup_field('the count', 'int big', 0),
+  );
+  $schema['r_counts'] = r\setup_table('How many this and that overall, through the various channels', $fields, array('type', 'channel'));
+*/
+  
   // table r_scores
   $fields = array(
     'company' => r\setup_field('uid of company', 'int 11'),
-    'count' => r\setup_field('for the rTraders that have this many places to buy with rCredits', 'int 11'),
+    'count' => r\setup_field('for the rTraders that have this many places to buy with rCredits', 'int 11', 0),
     'score' => r\setup_field('this many of those rTraders would buy from this company', 'int 11'),
   );
   $foreign_keys = r\foreign_key('company');
@@ -190,7 +204,8 @@ function rcredits_schema_alter(&$schema) {
     'notes' => r\setup_field('miscellaneous notes about the user or the account', 'text medium'),
     'dob' => r\setup_field('date of birth, founding, or incorporation', 'int 11'),
     'rebate_percent' => r\setup_field('current rebate percentage (sales bonus is double)', 'numeric 4,3', 5),
-    'demand' => r\setup_field('waiting to buy this much credit', 'numeric 9,2', 0),
+    'demand' => r\setup_field('waiting to buy this much credit', 'numeric 11,2', 0),
+    'counts' => r\setup_field('counts of command use, etc.', 'int big', 0),
     'min_balance' => r\setup_field('minimum balance (normally zero or less)', 'numeric 9,2', R_MIN_BALANCE),
 // separate table for this? 'nym' => r\setup_field('unique identifier for cryptographic signing', 'text tiny'), 
     'bank_account_name' => r\setup_field('name on US$ bank account -- usually the same as full_name', 'varchar 60'),

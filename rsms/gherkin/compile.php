@@ -74,8 +74,8 @@ foreach ($features as $feature_filename) {
 }
 
 foreach ($steps as $function_name => $step) {
-  extract($step); // original, english, to_replace, callers, test_only, function_name
-  $new_callers = replacement($callers, $test_only, $function_name); // (replacement includes function's opening parenthesis)
+  extract($step); // original, english, to_replace, callers, TMB, function_name
+  $new_callers = replacement($callers, $TMB, $function_name); // (replacement includes function's opening parenthesis)
   if ($original == 'new') {
     for ($arg_list = '', $i = 0; $i < $arg_count; $i++) {
       $arg_list .= ($arg_list ? ', ' : '') . '$arg' . ($i + 1);
@@ -85,7 +85,7 @@ foreach ($steps as $function_name => $step) {
     . " * $english\n"
     . " *\n"
     . " * in: {$new_callers}$arg_list) {\n"
-    . "  global \$test_only;\n"
+    . "  global \$testOnly;\n"
     . "  todo;\n"
     . "}\n";
   } else $steps_text = str_replace($to_replace, $new_callers, $steps_text);
@@ -145,7 +145,7 @@ function do_feature($feature_filename, &$steps) {
       
     } elseif ($word1 == 'Setup') {
       expect($state == 'Feature', 'Setup section must follow the Feature header.');
-      $SETUP_LINES = "\n$lead  scene_setup(\$this, __FUNCTION__);\n";
+      $SETUP_LINES = "\n$lead  sceneSetup(\$this, __FUNCTION__);\n";
       $test_function = 'featureSetup';
       
     } elseif ($word1 == 'Scenario') {
@@ -156,7 +156,7 @@ function do_feature($feature_filename, &$steps) {
       $TESTS .= "\n"
         . "$lead// $line\n"
         . "{$lead}public function $test_function() {\n"
-        . "$lead  scene_setup(\$this, __FUNCTION__);\n";
+        . "$lead  sceneSetup(\$this, __FUNCTION__);\n";
       $no_scenario_yet = FALSE;
     
     } elseif (in_array($word1, array('Given', 'When', 'Then', 'And'))) {
@@ -166,6 +166,7 @@ function do_feature($feature_filename, &$steps) {
       $multiline_arg = multiline_arg($lines);
       $tail_escaped = str_replace("'", "\\'", $tail) . $multiline_arg;
       $tail .= str_replace("\\'", "'", $multiline_arg);
+//      print_r(compact('multiline_arg','tail_escaped','tail'));
       $phrase = "$lead  $word1('$tail_escaped');\n";
       if ($no_scenario_yet) $SETUP_LINES .= $phrase; else $TESTS .= $phrase;
 
@@ -258,8 +259,8 @@ function get_steps($steps_text) {
  * When updating an existing step function, replace the header with this.
  * (guaranteed to be unique for each step)
  */
-function replacement($callers, $test_only, $function_name) {
-  foreach ($callers as $key => $func) $callers[$key] .= ' ' . $test_only[$func];
+function replacement($callers, $TMB, $function_name) {
+  foreach ($callers as $key => $func) $callers[$key] .= ' ' . $TMB[$func];
   $callers = join("\n *     ", $callers);
   return "$callers\n */\nfunction $function_name(";
 }
@@ -291,12 +292,12 @@ function multiline_arg(&$lines) {
 function new_step_function($original, $test_function_qualified, $english, $is_then, $tail) {
   global $arg_patterns;
   $callers = array($test_function_qualified);
-  $test_only = array($test_function_qualified => ($is_then ? 'TEST' : 'MAKE'));
+  $TMB = array($test_function_qualified => ($is_then ? 'TEST' : 'MAKE'));
   preg_match_all("/$arg_patterns/ms", $tail, $matches);
 //  print_r(compact('arg_patterns', 'tail', 'matches')); die();
 //  expect(@$matches[1], "Test function \"$test_function_qualified\" has no args.");
   $arg_count = @$matches[1] ? count($matches[1]) : 0;
-  return compact(ray('original,english,callers,test_only,arg_count'));
+  return compact(ray('original,english,callers,TMB,arg_count'));
 }
 
 function fix_step_function($func_array, $test_function, $test_function_qualified, $english, $is_then, $tail, $err_args) {
@@ -314,12 +315,14 @@ function fix_step_function($func_array, $test_function, $test_function_qualified
   );
   
   if ($func_array['original'] != 'new') $func_array['original'] = 'changed';
-  if (!in_array($test_function, $func_array['callers'])) {
+  if (!in_array($test_function_qualified, $func_array['callers'])) {
     $func_array['callers'][] = $test_function_qualified;
-    $func_array['test_only'][$test_function_qualified] = ($is_then ? 'TEST' : 'MAKE');
+    $func_array['TMB'][$test_function_qualified] = ($is_then ? 'TEST' : 'MAKE');
   } else {
-    $test_only_changes = $is_then ? array('MAKE' => 'BOTH') : array('TEST' => 'BOTH');
-    $func_array['test_only'][$test_function_qualified] = strtr($func_array['test_only'][$test_function_qualified], $test_only_changes);
+    $TMB_changes = $is_then ? array('MAKE' => 'BOTH') : array('TEST' => 'BOTH');
+    //print_r(compact('TMB_changes','is_then','test_function_qualified') + array('zot'=>$func_array['TMB'][$test_function_qualified]));
+    $func_array['TMB'][$test_function_qualified] = strtr($func_array['TMB'][$test_function_qualified], $TMB_changes);
+    //print_r(compact('TMB_changes','is_then','test_function_qualified') + array('zot'=>$func_array['TMB'][$test_function_qualified])); die();
   }
   return $func_array;
 }

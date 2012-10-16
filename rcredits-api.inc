@@ -42,7 +42,7 @@ function api_error($message, $success = 0) {api_out(compact('success', 'message'
 
 function api_out($args) {
   u\log('out', $args);
-  exit(json_encode($args));
+  exit(json_encode2($args, JSON_UNESCAPED_SLASHES));
 }
 
 /**
@@ -185,7 +185,7 @@ function smart_photo($args) {
 function smart_transact($args) {
   extract($args, EXTR_PREFIX_ALL, 'q');
   if (!$q_goods) $q_purpose = 'cash'; // tell transfer no rewards
-  list ($index, $subs, $zot) = transfer($q_type, $q_ruid, $q_amount, $q_purpose, TRUE);
+  list ($index, $subs, $zot) = transfer($q_type, $q_ruid, $q_amount, $q_purpose, $q_goods, TRUE);
   $tx_id = r\qxid($subs['zxid']); // return the transaction id as a qid (globally unique transaction id) (':' means As-If)
   list ($my_balance, $other_balance) = smart_balances($q_uid, $subs['real']);
   $message = r\Web\tt($index, $subs);
@@ -403,41 +403,44 @@ function undo_tx($zxid, $real = 'bug') {
     : ($old_to_me ? array($old_payer, $old_payer_agent, r\server_uid()) : array($old_payee, $old_payee_agent, r\server_uid()) );  // local region
 
   if ($old_state == TX_PENDING or $old_state == TX_DENIED) { // it's an invoice - cancel simply by changing the transaction state
-// function undo_invoice($zxid, $old_record, $old_other_uid, $by_me) // return $action
+// function undo_invoice($zxid, $old_record, $old_other_uid, $by_me) // return $solution
     if ($old_by_me) {
-      list ($new_state, $action) = array(TX_DELETED, t('deleted')); // abandon the attempt to invoice
+      list ($new_state, $solution) = array(TX_DELETED, t('deleted')); // abandon the attempt to invoice
     } else {
-      list ($new_state, $action) = array(TX_DENIED, t('marked "denied"'));
+      list ($new_state, $solution) = array(TX_DENIED, t('marked "denied"'));
       r\notify($old_other_uid, $old_to_me ? 'payment-denied' : 'invoice-denied', r\tx_report_args($old_record));
     }
     r\set_tx_state($new_state, $zxid);
   } elseif (!$old_to_me and !$old_by_me) { // someone charged (either unilaterally or I approved it)
 // function dispute($zxid, $old_record, $old_other_uid)
     r\set_tx_state(TX_DISPUTED, $zxid); // mark it disputed
-    $action = t('marked "disputed"');
+    $solution = t('marked "disputed"');
     r\notify($old_other_uid, 'charge-disputed', r\tx_report_args($old_record));
-  } else return reverse($zxid, $old_amount, $other_ruid, $data, $old_tid, $old_to_me); // create an offsetting transaction
+  } else return reverse($zxid, $old_amount, $other_ruid, $data, $old_goods, $old_tid, $old_to_me); // create an offsetting transaction
 
   $amount = u\format_amount($old_amount);
   $tofrom = !$old_to_me ? t('to') : t('from');
   $other = r\user_field('full_name', $old_other_uid);
-  return array("report undo", compact(u\ray('old_tid new_tid amount other tofrom action old_other_uid')));
+  return array("report undo", compact(u\ray('old_tid new_tid amount other tofrom solution old_other_uid')));
 }
 
 /**
  * Create an offsetting transaction.
  */
-function reverse($zxid, $amount, $other_ruid, $data, $old_tid, $to_me) {
+function reverse($zxid, $amount, $other_ruid, $data, $old_goods, $old_tid, $to_me) {
+//    print_r(compact(u\ray('zxid amount other_ruid data old_tid to_me'))); die();
+  u\expect(compact(u\ray('zxid amount other_ruid data old_tid to_me')), 'zid float ruid assoc|empty string bool');
+
   global $auid;
-  u\expect(compact(u\ray('zxid amount other_ruid data old_tid to_me')), 'zid float ruid assoc string bool');
+  if (!is_array($data)) $data = array();
   $old_data = $data; // remember original data from transaction we're reversing
   $type = $to_me ? 'payment' : 'charge';
   $my_note = "reverses #$old_tid";
   $other_note = str_replace($old_tid, zxid2tid($zxid, $other_ruid[0]), $my_note);
   $what = u\order($type == 'payment', $my_note, $other_note);
-  list ($data['rebate'], $data['bonus']) = array(-$data['bonus'], -$data['rebate']);
+  if (@$data['rebate'] or @$data['bonus']) list ($data['rebate'], $data['bonus']) = array(-$data['bonus'], -$data['rebate']);
   $data['zxid'] = $zxid; // remember what we're reversing (especially to get the realness right)
-  list ($message, $args, $confirm) = transfer($type, $other_ruid, $amount, $what, TRUE, $data);
+  list ($message, $args, $confirm) = transfer($type, $other_ruid, $amount, $what, $old_goods, TRUE, $data);
 
   if (@$args['success']) {
     list ($new_tid, $new_zxid) = array($args['tid'], $args['zxid']);
@@ -458,7 +461,7 @@ function reverse($zxid, $amount, $other_ruid, $data, $old_tid, $to_me) {
 EOF;
     r\db_q($sql, compact(u\ray('payer_note payee_note zxid old_data')));
     $message = 'report undo|' . $message;
-// (no. don't want to overwrite transfer's word)    $args['action'] = t('reversed'); // overwrites what transfer() returned
+    $args['solution'] = 'reversed';
   }
   
   return array($message, $args);
@@ -480,7 +483,8 @@ function get($currency, &$amount, $confirmed) {
   $amount = str_replace(',', '', $amount); // ignore commas
   if (!is_numeric($amount)) return array('bad amount', array(), FALSE);
   if ($amount < 0) return array('negative transfer', array(), FALSE);
-  if ($currency == 'r') $amount = min(R_MAX_DEMAND, $amount);
+  if ($amount > R_MAX_AMOUNT) return array('amount too big', array(), FALSE);
+  if ($currency == 'r') $amount = min(R_MAX_AMOUNT, $amount);
   $request = u\format_amount($amount);
   $success = TRUE;
   if ($currency == 'r') {
@@ -528,7 +532,7 @@ function pay_invoice($zxid) {
   $ruid = array($old_payee, $old_payee_agent, $old_payee < 0 ? $old_payee : r\server_uid());
   
   /*** Begin DBTX ***/ $dbtx = db_transaction();
-  list ($message, $args, $confirm) = transfer('invoice payment', $ruid, $old_amount, $old_payee_for, TRUE, compact('zxid'));
+  list ($message, $args, $confirm) = transfer('invoice payment', $ruid, $old_amount, $old_payee_for, $old_goods, TRUE, compact('zxid'));
   if (@$args['success']) r\set_tx_state(TX_DELETED, $zxid); // delete the invoice
   /*** End DBTX ***/ unset($dbtx); // $dbtx->commit() is disallowed
 
@@ -542,6 +546,7 @@ function pay_invoice($zxid) {
  *   OR 'ALL' (paying employees)
  * @param numeric $requested_amount: the transaction amount
  * @param string $for OR array($payer_for, $payee_for): description of the transaction's purpose (user input)
+ * @param bool $goods: is this for real goods and services
  * @param bool $confirmed: has this transaction been confirmed by the user? (default TRUE, used only for SMS interface)
  * @param array $data: associative array of info about the transaction this request is reversing (if any), indexed by any of:
  *   'rebate': the rebate amount for this request (should be negative the original bonus amount)
@@ -559,7 +564,7 @@ function pay_invoice($zxid) {
  * $confirmed (user confirmed the transaction request), $paying_invoice, $goods (the transaction is an exchange for real stuff),
  * $shortfall (how inadequate the payer's balance is)
  */
-function transfer($ttype, $ruid, $requested_amount, $for, $confirmed = TRUE, $data = array()) {
+function transfer($ttype, $ruid, $requested_amount, $for, $goods, $confirmed = TRUE, $data = array()) {
   if (is_frontend()) return (array) backend('transfer', compact(u\ray('ttype ruid requested_amount for confirmed data')));
   if (is_array($ttype)) extract($ttype); // called from api or backend
   global $cuid, $auid;
@@ -593,12 +598,9 @@ function transfer($ttype, $ruid, $requested_amount, $for, $confirmed = TRUE, $da
   $state = ($preapproved and !@$data['pay_all'])? TX_DONE : TX_PENDING;
   $real = (!(@$data['zxid'] < 0) and r\is_rTrader() and r\is_rTrader($uid));
   
-  // Figure out whether it's for actual goods and services
-  $goods = (@$data['rebate'] or @$data['bonus']) ?: !u\for_cash($for);
-  if (!$goods and !is_array($for)) $for = t('cash/loan/etc.');
-
   // Check the amount and calculate any balance shortfall
   if ($requested_amount < 0) return array('negative transfer', array(), FALSE);
+  if ($requested_amount > R_MAX_AMOUNT) return array('amount too big', array(), FALSE);
 
   if ($shortfall = r\shortfall($taking ? $uid : $cuid, $requested_amount, $preapproved, $real)) {
     $short = u\format_amount($shortfall);
@@ -731,7 +733,10 @@ function identify($who, $create = FALSE, $allow_ALL = FALSE, $self_message = 'no
   if (strpos('.:', substr($quid, 0, 1)) !== FALSE) { // allow abbreviations within this region
     list($quid) = explode(' ', R_SERVER_ID . $quid, 2); // take just the first word, in case this is from a list showing QUID and FULL_NAME
   }
-  if ($ruid = r\ruid($quid, FALSE)) return $ruid[0] == $cuid ? array($self_message, array(), array()) : $ruid; // qids are easy
+  if ($ruid = r\ruid($quid, FALSE)) {
+    if (!r\user_field(1, $ruid[0])) return array('unknown user', compact('who'), array());
+    return $ruid[0] == $cuid ? array($self_message, array(), array()) : $ruid; // qids are easy
+  }
 
   if (($short = u\short_name($who)) === '') $short = '-'; // abbreviations must not be null
   
@@ -741,7 +746,7 @@ function identify($who, $create = FALSE, $allow_ALL = FALSE, $self_message = 'no
     OR INSTR(u.name, :short)
     ORDER BY u.full_name
 EOF;
-
+//debug(compact('sql', 'who', 'phone', 'short'));
   $result = r\db_q($sql, compact(u\ray('who short')))->fetchAllKeyed(0, 1);
 //  $list = '';
   foreach ($result as $uid => $full_name) {
@@ -815,6 +820,7 @@ EOF;
   $result = compact(u\ray($result_keys));
   $fancy = array();
   foreach ($result as $key => $value) $fancy[$key] = is_numeric($value ?: 0) ? u\format_amount($value) : $value;
+  if ($total_demand >= 1000000) $fancy['total_demand'] = '$' . number_format(($total_demand - 9999) / 1000000, 2) . ' million';
   $result['fancy'] = $fancy;
   return (object) $result;
 }
@@ -947,7 +953,7 @@ function todo($number, $todo = 'nothing', $nonce = 'whatever') {
  * Rebates, bonuses, and deleted transactions are ignored
  * @param string $where: the criteria (defaults to 1 = any)
  * @param array $subs: optional substitutions (will be prefixed with colons)
- * @return associative array: the old transaction record
+ * @return associative array: the old transaction record (FALSE if none)
  */
 function last_tx($where = 1, $subs = array(), $cache = FALSE) {
   $cuid = r\cuid();
@@ -956,13 +962,12 @@ function last_tx($where = 1, $subs = array(), $cache = FALSE) {
 
   $basic = "$cuid IN (payer, payee) AND type NOT IN (:TX_DELETED, :TX_REBATE, :TX_BONUS)";
   $sql = "SELECT * FROM {zxs} WHERE ($basic) AND ($where) ORDER BY zxid DESC LIMIT 1"; // make sure it's for $cuid
-  if ($result = r\db_q($sql, $subs)->fetchAssoc()) {
-    $to_me = ($result['payee'] == $cuid);
-    $by_me = ($result['taking'] == $to_me);
-    $other_uid = $result[$to_me ? 'payer' : 'payee'];
-    $zxid = r\zxid($result['xid'], r\zxs());
-    unset($result['xid']);
-  }
+  if (!($result = r\db_q($sql, $subs)->fetchAssoc())) return FALSE;
+  $to_me = ($result['payee'] == $cuid);
+  $by_me = ($result['taking'] == $to_me);
+  $other_uid = $result[$to_me ? 'payer' : 'payee'];
+  $zxid = r\zxid($result['xid'], r\zxs());
+  unset($result['xid']);
   return $result + compact(u\ray('by_me to_me other_uid zxid'));
 }
 
@@ -1007,6 +1012,7 @@ function accesses($ruid = '') {
   if (!$cruid) return array(); // no access for ANYONE, if anonymous user
   list ($main_uid, $agent_uid, $region_uid) = u\is_id($ruid) ? array($ruid, $ruid, r\server_uid()) : ($ruid ?: $cruid);
   if (!$main_uid or !$agent_uid) return array(); // anonymous user has no access
+  if (!($account = \user_load($main_uid))) return array(); // no access for unknown account
 
   /*
   $perms = array();
@@ -1014,8 +1020,7 @@ function accesses($ruid = '') {
 //  $perms[] = array_values(\user_load($agent_uid)->roles); // include things like administrator and rTrader
   foreach ($role_perms as $key => $value) $perms += array_keys($role_perms[$key]);
 */
-
-  $account = \user_load($main_uid);
+  
   if (in_array('administrator', array_values(\user_load($agent_uid)->roles))) $perms[] = 'administrator'; // agent not main
   if ($account->flags & BIT_PARTNER) $perms[] = 'Partner';
   if ($account->flags & BIT_STEWARD) $perms[] = 'Steward';
@@ -1092,7 +1097,7 @@ function backend($op, $info = array(), $cache = FALSE) {
   $skey = "{$op}_{$auid}_{$cuid}_" . base64_encode(serialize($info)); // htmlspecialchars prevents session key failure (PHP bug?)
   if ($cache and (($result = r\Web\svar($skey)) !== NULL)) return $result;
 //  debug($skey . $result);
-//  debug("cache:$cache $op: " . json_encode($info) . ($cache ? " result:$result" : ''));
+//  debug("cache:$cache $op: " . json_encode2($info) . ($cache ? " result:$result" : ''));
 //  debug($result);
   $password = \user_load($auid)->pass;
   $firewall = R_FIREWALL;

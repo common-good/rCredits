@@ -11,13 +11,13 @@ require_once __DIR__ . '/../rsms.steps';
 
 class rsmsOfferToExchangeUSDollarsForRCredits extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
-  var $current_test;
+  var $currentTest;
   const FEATURE_NAME = 'rsms Test - OfferToExchangeUSDollarsForRCredits';
   const DESCRIPTION = 'Offer to exchange US Dollars for rCredits';
   const MODULE = 'rsms';
 
   public function gherkin($statement, $type) {
-    $this->assertTrue(gherkin_guts($statement, $type), $statement, $this->current_test);
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);
   }
   
   public static function getInfo() {
@@ -33,15 +33,15 @@ class rsmsOfferToExchangeUSDollarsForRCredits extends DrupalWebTestCase {
 
   // Scenario: Make or update an offer
   public function testMakeOrUpdateAnOffer() {
-    scene_setup($this, __FUNCTION__);
-    Given('phone %number1 is a player');
+    sceneSetup($this, __FUNCTION__);
+    Given('phone %number1 is a member');
     And__('phone %number1 demand for rCredits is $100');
     And__('the total demand for rCredits is $100,000');
     When_('phone %number1 says "get r 123.45"');
     Then_('phone %number1 demand for rCredits is $123.45');
     And__('the total demand for rCredits is $100,023.45');
     And__('we say to phone %number1 "your demand" with subs: "DATA'
-    . '\\| @amount |'
+    . '\\| request |'
     . '\\| $123.45 |"');
   }
 

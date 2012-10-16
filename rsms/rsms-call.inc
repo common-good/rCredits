@@ -33,7 +33,7 @@ class call {
     u\expect(compact(u\ray('number message')), 'string&notempty string&notempty');
     $this->message = trim($message);
     $this->confirmed = FALSE;
-    u\log('in', compact(u\ray('message number')));
+    u\log('in', compact('message'), $number);
   }
 
   /**
@@ -257,7 +257,8 @@ class call {
     } else $where = '(payee=:cuid OR payer=:cuid)';
 
     if (isset($my_who)) {
-      if (!u\is_ruid($other_uid = api\identify($my_who))) return tt($other_uid); // return if error
+      if (!u\is_ruid($other_ruid = api\identify($my_who))) return tt($other_ruid); // return if error
+      $other_uid = $other_ruid[0];
       $where .= " AND ";
       if (isset($my_tofrom)) {
         $where .= $my_tofrom === 'to' ? 'payee=:other_uid' : 'payer=:other_uid';
@@ -297,7 +298,8 @@ class call {
     // unconfirmed invoice payment
     $where = 'state=:TX_PENDING AND payer=:cuid';
     if (isset($my_who)) {
-      if (!u\is_ruid($other_uid = api\identify($my_who))) return tt($other_uid); // return if error
+      if (!u\is_ruid($other_ruid = api\identify($my_who))) return tt($other_ruid); // return if error
+      $other_uid = $other_ruid[0];
       $where .= ' AND payee=:other_uid';
     }
     if(!($result = api\last_tx($where, compact(u\ray('cuid other_uid'))))) return tt('no matching invoice');
@@ -313,7 +315,8 @@ class call {
 
     $other_ruid = api\identify($my_who, FALSE, $type == 'payment');
     if ($other_ruid != 'ALL' and !u\is_ruid($other_ruid)) return tt($other_ruid); // return the array if error
-    list ($message, $args, $confirm) = api\transfer($type, $other_ruid, $my_amount, $my_what, $this->confirmed);
+
+    list ($message, $args, $confirm) = api\transfer($type, $other_ruid, $my_amount, $my_what, !u\for_cash($my_what), $this->confirmed);
     return $confirm ? $this->confirm($message, $args) : tt($message, $args);
   }
   

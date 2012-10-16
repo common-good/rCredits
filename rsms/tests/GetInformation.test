@@ -11,13 +11,13 @@ require_once __DIR__ . '/../rsms.steps';
 
 class rsmsGetInformation extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
-  var $current_test;
+  var $currentTest;
   const FEATURE_NAME = 'rsms Test - GetInformation';
   const DESCRIPTION = 'Get information about account balance and system health';
   const MODULE = 'rsms';
 
   public function gherkin($statement, $type) {
-    $this->assertTrue(gherkin_guts($statement, $type), $statement, $this->current_test);
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);
   }
   
   public static function getInfo() {
@@ -33,28 +33,26 @@ class rsmsGetInformation extends DrupalWebTestCase {
 
   // Scenario: Getting information
   public function testGettingInformation() {
-    scene_setup($this, __FUNCTION__);
-    Given('phone %number1 is a player');
-    And__('phone %number1 has r$100');
-    And__('phone %number1 unavailable is $7.50');
+    sceneSetup($this, __FUNCTION__);
+    Given('phone %number1 is member "NEW.ZZB"');
+    And__('phone %number1 has r$200 including rewards of $2.50');
     And__('the total demand for rCredits is $26,987.56');
     When_('phone %number1 says "information"');
     Then_('we say to phone %number1 "account info" with subs: "DATA'
-    . '\\| @balance | @unavailable | @demand    |'
-    . '\\| $100     | $7.50        | $26,987.56 |"');
+    . '\\| quid    | balance | rewards | total_demand |'
+    . '\\| NEW.ZZB | $200    | $2.50   | $26,987.56   |"');
   }
 
   // Scenario: Getting information, larger amounts
   public function testGettingInformationLargerAmounts() {
-    scene_setup($this, __FUNCTION__);
-    Given('phone %number1 is a player');
-    And__('phone %number1 has r$100,000.01');
-    And__('phone %number1 unavailable is $99,908.00');
+    sceneSetup($this, __FUNCTION__);
+    Given('phone %number1 is member "NEW.ZZB"');
+    And__('phone %number1 has r$100,000.01 including rewards of $99,908.00');
     And__('the total demand for rCredits is $1,226,987.25');
     When_('phone %number1 says "information"');
     Then_('we say to phone %number1 "account info" with subs: "DATA'
-    . '\\| @balance    | @unavailable | @demand       |'
-    . '\\| $100,000.01 | $99,908      | $1.22 million |"');
+    . '\\| quid    | balance     | rewards  | total_demand  |'
+    . '\\| NEW.ZZB | $100,000.01 | $99,908  | $1.22 million |"');
   }
 
 }

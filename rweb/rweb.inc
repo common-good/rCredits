@@ -147,7 +147,7 @@ EOF;
 function show_form($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   try {
     setup_globals(); // in case it's an anonymous form, so web_access doesn't have a chance to set up
-    u\log(__FUNCTION__, compact(u\ray('function arg1 arg2 arg3 arg4')));
+    if ($function != 'accounts') u\log("show $function", compact(u\ray('arg1 arg2 arg3 arg4')));
     drupal_add_css(\drupal_get_path('module', 'rweb') . '/rweb.css', array('group' => CSS_THEME) + weight(-9));
     $form_name = substr($function, 0, 1) == '\\' ? $function : "rCredits\\Web\\{$function}_form";
     $form = drupal_get_form($form_name, $arg1, $arg2, $arg3, $arg4);
@@ -1076,7 +1076,7 @@ function login_followup($edit) {
   $name = @$edit['values']['name'];
   svar('cuid', $uid = $user->uid);
   setup_globals();
-  u\log('login', compact(u\ray('name uid')));
+  u\log('login', compact('name'), $uid);
 }
 
 function directory_form($form, &$form_state) {
@@ -1405,7 +1405,7 @@ function transfer($info, $confirmed) {
   $amount = str_replace(',', '', $amount); // ignore commas
   if (!is_numeric($amount)) return say('bad amount', 'amount');
   if (!($other_ruid = whois($who, 'who', $info, TRUE, $tx_type == 'payment'))) return FALSE; // allow "ALL"
-  list ($message, $args, $confirm) = api\transfer($tx_type, $other_ruid, $amount, $purpose, $confirmed);
+  list ($message, $args, $confirm) = api\transfer($tx_type, $other_ruid, $amount, $purpose, !u\for_cash($purpose), $confirmed);
   if ($confirm) return tt('confirm ' . $message, $args);
   if (@$args['success']) return say($message, $args);
   return say($message, $args, 'amount');
@@ -1488,13 +1488,12 @@ function blank_field($fields, $prefix = '') {
  * @return FALSE (transfer() depends on this)
  */
 function say($index, $args = array(), $error_field = '') {
-  $cuid = r\cuid();
   if (!@$index) return;
   if (is_array($index)) list ($index, $args, $error_field) = array($index[0], $index[1], $args); // error returned from a function
   if (!is_array($args)) list ($args, $error_field) = array($error_field, $args); // allow either order, for easy 2-param calls
   $message = tt($index, $args);
   if ($error_field) \form_set_error($error_field, $message); else \drupal_set_message($message);
-  u\log(__FUNCTION__, compact(u\ray('type cuid message')));
+  u\log($error_field ? 'say' : 'say error', compact('message'));
   return FALSE;
 }
 

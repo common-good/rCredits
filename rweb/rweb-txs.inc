@@ -60,7 +60,7 @@ function txs_form($form, &$form_state, $period = '', $do = '') {
     $button2 = (!$is_reward and !@$data['undone']) ? button(' X ', "{$base_path}transactions/$real-$period/no=$one_zxid", tx_action('no', $one_state, $to_me, $by_me)) : '';
     $button3 = (($one_taking ? $can_sell : $can_buy) and !$is_reward) ? "<a href='{$base_path}transactions/$real-$period/edit=$one_zxid' title='Edit Purpose'><img src='{$base_path}images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
     $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
-    $rows[] = array($tid, date('d-M', $one_created), $one_name, $from_you, $to_you, $state, $buttons, $one_purpose, $reward);
+    $rows[] = array($tid, strftime('%d-%b', $one_created), $one_name, $from_you, $to_you, $state, $buttons, $one_purpose, $reward);
   }
 
   $title = "<div id='txs-title'>TRANSACTIONS</div>";
@@ -202,8 +202,8 @@ function tx_summary($starting, $ending) {
   extract($dif, EXTR_PREFIX_ALL, 'dif');
   extract($pfancy, EXTR_PREFIX_ALL, 'pfancy');
   
-  $starting = date('d-M-Y', $starting);
-  $ending = date('d-M-Y', $ending);
+  $starting = strftime('%d-%b-%Y', $starting);
+  $ending = strftime('%d-%b-%Y', $ending);
   $pending_balance = tx_bal($pending_gross_in_proper - $pending_gross_out + $pending_rewards);
   $now_balance = tx_bal($now_balance);
   $old_balance = tx_bal($old_balance);

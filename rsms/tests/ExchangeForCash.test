@@ -11,13 +11,13 @@ require_once __DIR__ . '/../rsms.steps';
 
 class rsmsExchangeForCash extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
-  var $current_test;
+  var $currentTest;
   const FEATURE_NAME = 'rsms Test - ExchangeForCash';
   const DESCRIPTION = 'Exchange for cash';
   const MODULE = 'rsms';
 
   public function gherkin($statement, $type) {
-    $this->assertTrue(gherkin_guts($statement, $type), $statement, $this->current_test);
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);
   }
   
   public static function getInfo() {
@@ -29,23 +29,23 @@ class rsmsExchangeForCash extends DrupalWebTestCase {
     $setup_filename = __DIR__ . '/../' . self::MODULE . '-setup.inc';
     if (file_exists($setup_filename)) include $setup_filename;
 
-    scene_setup($this, __FUNCTION__);
+    sceneSetup($this, __FUNCTION__);
     Given('members: "DATA'
-    . '\\| id   | full_name  | phone  | rebate |'
-    . '\\| .ZZA | Abe One    | +20001 | 5      |'
-    . '\\| .ZZB | Bea Two    | +20002 | 5      |'
-    . '\\| .ZZC | Corner Pub | +20003 | 5      |"');
+    . '\\| id   | full_name  | phone  |'
+    . '\\| .ZZA | Abe One    | +20001 |'
+    . '\\| .ZZB | Bea Two    | +20002 |'
+    . '\\| .ZZC | Corner Pub | +20003 |"');
     And__('transactions: "DATA'
-    . '\\| date      | type       | amount | from      | to   | for    |'
-    . '\\| %today-1d | %TX_SIGNUP | 250    | community | .ZZA | signup |'
-    . '\\| %today-1d | %TX_SIGNUP | 250    | community | .ZZB | signup |'
-    . '\\| %today-1d | %TX_SIGNUP | 250    | community | .ZZC | signup |"');
+    . '\\| created   | type       | amount | from      | to   | purpose |'
+    . '\\| %today-1d | %TX_SIGNUP | 250    | community | .ZZA | signup  |'
+    . '\\| %today-1d | %TX_SIGNUP | 250    | community | .ZZB | signup  |'
+    . '\\| %today-1d | %TX_SIGNUP | 250    | community | .ZZC | signup  |"');
 
   }
 
   // Scenario: The caller confirms a trade of rCredits for cash
   public function testTheCallerConfirmsATradeOfRCreditsForCash() {
-    scene_setup($this, __FUNCTION__);
+    sceneSetup($this, __FUNCTION__);
     When_('phone +20001 confirms "100 to .ZZC for cash"');
     Then_('the community has r$-750');
     And__('phone +20003 has r$350');
@@ -57,7 +57,7 @@ class rsmsExchangeForCash extends DrupalWebTestCase {
 
   // Scenario: The caller confirms an implicit trade of rCredits for cash
   public function testTheCallerConfirmsAnImplicitTradeOfRCreditsForCash() {
-    scene_setup($this, __FUNCTION__);
+    sceneSetup($this, __FUNCTION__);
     When_('phone +20001 confirms "100 to .ZZC"');
     Then_('phone +20003 has r$350');
     And__('phone +20001 has r$150');
@@ -65,7 +65,7 @@ class rsmsExchangeForCash extends DrupalWebTestCase {
 
   // Scenario: The caller confirms a request to trade cash for rCredits
   public function testTheCallerConfirmsARequestToTradeCashForRCredits() {
-    scene_setup($this, __FUNCTION__);
+    sceneSetup($this, __FUNCTION__);
     When_('phone +20003 confirms "100 from .ZZA for cash"');
     Then_('phone +20003 has r$250');
     And__('phone +20001 has r$250');
@@ -76,7 +76,7 @@ class rsmsExchangeForCash extends DrupalWebTestCase {
 
   // Scenario: The caller confirms a unilateral trade of cash for rCredits
   public function testTheCallerConfirmsAUnilateralTradeOfCashForRCredits() {
-    scene_setup($this, __FUNCTION__);
+    sceneSetup($this, __FUNCTION__);
     Given('phone +20003 can charge unilaterally');
     When_('phone +20003 confirms "100 from .ZZA for cash"');
     Then_('phone +20003 has r$350');
@@ -88,7 +88,7 @@ class rsmsExchangeForCash extends DrupalWebTestCase {
 
   // Scenario: The caller requests an implicit trade with insufficient balance
   public function testTheCallerRequestsAnImplicitTradeWithInsufficientBalance() {
-    scene_setup($this, __FUNCTION__);
+    sceneSetup($this, __FUNCTION__);
     When_('phone +20001 says "300 to .ZZC"');
     Then_('we say to phone +20001 "short cash to" with subs: "DATA'
     . '\\| short |'

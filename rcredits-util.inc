@@ -281,7 +281,7 @@ function http_request($url, $params = FALSE, $extra_headers = array(), $method =
 
   if ($params) {
     if ($method == 'POST') {
-      $http['content'] = $request_format == 'json' ? json_encode($params) : http_build_query($params);
+      $http['content'] = $request_format == 'json' ? json_encode2($params, JSON_UNESCAPED_SLASHES) : http_build_query($params);
     } else $url .= '?' . http_build_query($params);
   }
 
@@ -361,7 +361,7 @@ function expect1($arg, $value, $type, $ret) {
   switch ($type) {
     case 'array': return expect(is_array($value), $msg, $ret);
     case 'assoc': 
-      expect(is_array($value), $msg, $ret);
+      if ($msg2 = expect(is_array($value), $msg, $ret)) return $msg2;
       foreach ($value as $key => $one) expect1("$arg key", $key, 'name', $ret);
       return;
     case 'bool': return expect(is_bool($value), $msg, $ret);
@@ -390,19 +390,23 @@ function expect1($arg, $value, $type, $ret) {
  *
  * @param string $type: type of log entry (if FALSE, don't log anything)
  * @param array $info: the information to log
- * @param string $nonce: the related nonce if any
+ * @param string $special: a special value if any (for example the nonce)
+ * @return the log record id (for exception handler and shutdown function)
  */  
-function log($type, $info, $nonce = '') {
-  global $channel;
+function log($type, $info, $special = '') {
+  global $channel, $cuid, $auid;
   $log_filename = 'rcredits.log';
-  $date = date('m-d-Y');
+  $date = strftime('%d-%b-%Y', time());
   $channels = ray(TX_CHANNELS); 
   $channel_name = $channels[$channel];
-  $info = json_encode($info);
+  if (is_nonce($special) and @$info['message']) $info['message'] = str_replace($special, '@nonce', $info['message']); // make it easy to match
+
+  $info = json_encode2($info, JSON_UNESCAPED_SLASHES);
   file_put_contents($log_filename, "$date ($channel_name) $type: $info\n", FILE_APPEND);
   $time = time();
-  if ($nonce and @$info['message']) $info['message'] = str_replace($nonce, '@nonce', $info['message']); // make it easy to match
-  drupal_write_record('r_log', compact(ray('time channel type info nonce')));
+  $record = compact(ray('time channel type cuid auid info special'));
+  drupal_write_record('r_log', $record);
+  return $record['logid'];
   
   /*
   $channels = ray(TX_CHANNELS);
@@ -547,3 +551,4 @@ function is_id($id) {return (my_int($id) and $id > 0);}
 function is_ruid($ruid) {return (is_array($ruid) and array_keys($ruid) == array(0, 1, 2) and is_zid($ruid[0]) and is_zid($ruid[1]) and is_zid($ruid[2]));}
 function is_qid($qid) {return preg_match('/^[A-Z]{3}(\.|\:|\.\.)[A-Z]+$/', $qid);}
 function is_zid($zid) {return (my_int($zid) and $zid !== 0);}
+function is_nonce($nonce) {return preg_match('/^[A-Z]{3,}$/', $nonce);}

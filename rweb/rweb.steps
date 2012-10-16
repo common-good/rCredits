@@ -1,0 +1,23 @@
+<?php
+/**
+ * @file
+ * rWeb Steps
+ *
+ * Provide step functions for functional testing.
+ * This file is created automatically by the Gherkin compiler.
+ *
+ * Note, therefore, that most of this file might be changed automatically
+ * when you run the compiler again. This @file description will not be affected,
+ * but all of the function header comments are (re)generated automatically.
+ *
+ * Be assured however, that no functions will be deleted and the compiler will
+ * never delete or alter code within a function.
+ */
+use rCredits as r;
+use rCredits\Testing as t;
+use rCredits\Util as u;
+use \rCredits\SMS as rSMS;
+use \rCredits\API as api;
+
+require_once __DIR__ . '/../rcredits.inc';
+require_once __DIR__ . '/../rcredits-testing.inc';

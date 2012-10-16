@@ -58,6 +58,8 @@ class rcreditsMailSystem extends DefaultMailSystem {
  */
 function rcredits_exception_handler($e) {
   global $channel, $rSMS_number;
+  global $R_FATAL_ERROR;
+  
   list ($msg, $line0, $file0, $trace) = array($e->getMessage(), $e->getLine(), $e->getFile(), $e->getTrace());
   $file0 = basename($file0);
   $trace_msg = '';
@@ -76,25 +78,37 @@ function rcredits_exception_handler($e) {
   }
 //    $trace = str_replace('<!--', '<! --', print_r($trace, 1));
 //    $trace_msg .= "<!--$trace-->"; // source will contain the whole trace
-  $short_msg = "<b>Exception:</b> The rCredits System has detected an unusual problem. If your activity was interrupted, please feel free to try again.";
+  $short_msg = "<b>Exception:</b> The rCredits System has detected an unusual problem. If your activity was interrupted, please feel free to try again.<br>\n";
   $msg = "$short_msg<br>\n($msg)<br>\n- $line0 ($file0)" . $trace_msg;
   $message = str_replace('&nbsp;', '', str_replace('<br>', '', $msg));
-  u\log('error', compact(u\ray('channel message')));
-  
+  $R_FATAL_ERROR = u\log('FATAL', compact('message'));
+  if (TESTING) print_r($msg, 1); // do this in any case (doesn't show up unless interface fails)
+
   switch (@$channel) {
     case TX_WEB:
-      drupal_set_message($msg, 'error');
-      drupal_goto('');
+      drupal_set_message($msg, 'error'); // this fails
+      drupal_goto('error/' . $R_FATAL_ERROR); // this fails -- use shutdown function to show error page (getting message from log)
     case TX_SMS: if (@$rSMS_number) \sms_send($rSMS_number, $short_msg); break;
     case TX_SMART: api\api_error($short_msg);
-    default: die(print_r($msg, 1));
+    default: die('with no channel'); // definitely do the print_r first
   }
 }
 
 /**
  * Implements hook_boot().
  */
-function rcredits_boot() {set_exception_handler('rcredits_exception_handler');}
+function rcredits_boot() {
+  drupal_register_shutdown_function('rcredits_shutdown');
+  set_exception_handler('rcredits_exception_handler');
+}
+
+/**
+ * Shutdown function to redirect to error page, if there is an error.
+ */
+function rcredits_shutdown() {
+  global $R_FATAL_ERROR;
+  if (@$R_FATAL_ERROR) \drupal_goto('error/' . $R_FATAL_ERROR);
+}
 
 /**
  * Implements hook_permission().
@@ -137,20 +151,30 @@ function rcredits_im_send($key, &$message, $subs) {
 /**
  * Implements hook_mail().
  */
-function rcredits_mail($key, &$message, $subs) {
-    $language = $message['language'];
+function rcredits_mail($key, &$msg_array, $subs) {
+    $language = $msg_array['language'];
 //    $data['user'] = \user_load($cuid);
 //    user_mail_tokens($variables, $data, compact('language')); // adds links for password reset and account cancelation
     
-    if (rcredits_im_send($key, $message, $subs)) return; // If we can send by instant-message, do not send by email.
+    if (rcredits_im_send($key, $msg_array, $subs)) return; // If we can send by instant-message, do not send by email.
     $langcode = $language->language;
-    $message['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed'; // default is plain text
-    $message['subject'] = strtr($GLOBALS['email_subjects'][$key], $subs);
-    $guts = file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");
-    $msg = str_replace('{BODY}', $guts, file_get_contents(__DIR__ . R_TEMPLATE_DIR . R_EMAIL_FRAME));
-    $message['body'][] = strtr($msg, $subs);
-//debug($message['body']);
-//    $message['subject'] = t('Notification from !site', $variables, compact('langcode'));
-//    $message['body'][] = t("Dear !username\n\nThere is new content available on the site.", $variables, compact('langcode'));
+    $msg_array['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed'; // default is plain text
+    $msg_array['subject'] = $subject = strtr($GLOBALS['email_subjects'][$key], $subs);
+    $msg_array['body'][] = $message = strtr(r\email_body($key), $subs);
+    $message = str_replace("\n", '~', $message); // easier reading for log
+//    debug($message);
+    $email = $subs['{EMAIL}'];
+    u\log('email', compact(u\ray('key email subject message')));
+
+//    $msg_array['subject'] = t('Notification from !site', $variables, compact('langcode'));
+//    $msg_array['body'][] = t("Dear !username\n\nThere is new content available on the site.", $variables, compact('langcode'));
     
+}
+
+define('JSON_UNESCAPED_SLASHES', '');
+function json_encode2($s, $zot) { // fudge or pre PHP-5.4 (delete this when we upgrade)
+  $standin = '!##$%!';
+  $s = str_replace('/', $standin, $s);
+  $s = json_encode($s);
+  return str_replace($standin, '/', $s);
 }

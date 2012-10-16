@@ -9,7 +9,7 @@ SO I can tell how much the various commands are used And can detect anomalies
 NOTE: the various forms of each command should be tracked separately, especially "to" or "from" (1) without "for", (2) with "for cash" and (3) with "for" something else.
 
 Scenario: A caller uses a command that does not require confirmation
-  Given phone %number1 is a player
+  Given phone %number1 is a member
   And phone %number1 "info" command use count is 5
   And overall "info" command use count is 100
   When phone %number1 says "info"
@@ -17,7 +17,7 @@ Scenario: A caller uses a command that does not require confirmation
   And overall "info" command use count is 101
 
 Scenario: A caller uses a command that DOES require confirmation
-  Given phone %number1 is a player
+  Given phone %number1 is a member
   And phone %number1 "to" command use count is 5
   And phone %number1 "cash" command use count is 2
   And overall "to" command use count is 100

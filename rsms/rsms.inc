@@ -60,12 +60,12 @@ $GLOBALS['SMS messages'] = array(
   // reporting
   'report transaction' => t("You@asif @action @other_name @amount (@reward_type: @reward_amount). Your new balance is @balance. Transaction #@tid"),
   'report invoice' => t("You@asif @action @other_name @amount. Your balance is unchanged, pending payment. Invoice #@tid"),
-  'report short transaction' => t("You@asif @action @other_name @amount (@short remains to be paid). Your new balance is @balance. Transaction #@tid"),
+  'report short transaction' => t("SPLIT! You@asif @action @other_name @amount (@short remains to be paid). Your new balance is @balance. Transaction #@tid"),
 //  'transaction done asif' => t("@action: @amount @tofrom user#@other_name (@reward_type: @reward_amount). Your new provisional balance is @balance (If this had been a real transaction, your balance would be @amount @moreless). Transaction ID #@tid"),
   'report exchange' => t("You@asif @action @other_name r@amount for cash/loan/gift/etc. Your new balance is @balance. Transaction #@tid"),
   'report exchange request' => t("You@asif requested r@amount from @other_name. Your balance is unchanged, pending approval. Invoice transaction #@tid"),
   'paid employees' => t('You distributed @total to @successes of @employee_count employees. See your transactions page for details.'),
-  'report undo' => t("@asif Transaction has been @action. "),
+  'report undo' => t("@asif Transaction has been @solution."),
   'report get usd' => t("@Exchange approved. @request will be transferred directly to your bank account within 24 hours. Your new balance is @balance."),
   'get usd inactive' => t("If you were an Active Participant in the rCredits system, your request would transfer @amount directly to your bank account. Alas, you are not yet an Active Participant."),
   'your demand' => t("Your total request for rCredits is now @request."),
@@ -125,6 +125,7 @@ $GLOBALS['SMS messages'] = array(
   'other no sell' => t('That person does not have permission to make sales for that account.'),
   'other no buy and sell' => t('That person does not have permission to make purchases for that account.'),
   'negative transfer' => t('You may not transfer a negative amount.'),
+  'amount too big' => t('Transactions larger than $@max are not permitted at this time.', array('@max' => R_MAX_AMOUNT)),
   'already undone' => t('Transaction is already undone.'),
   'no such tx' => t('That transaction does not exist.'),
   'bank unverified' => t('You cannot exchange rCredits for US Dollars until your bank account has been verified.'),
@@ -210,14 +211,14 @@ function send($number, $message) {
   if ($msg != $message) $message .= ' -- TOO LONG! (strlen ' . strlen($message) . ')';
   if (@$sms_devel) drupal_set_message("To $number: $message"); else \sms_send($number, $msg);
   $nonce = infer_nonce($message);
-  u\log('out', compact(u\ray('message number')), $nonce);
+  u\log('out', compact(u\ray('number message')), $nonce);
 }
 
 /**
  * Return the nonce (if any) from within the given message.
  */
 function infer_nonce($message) {
-  $pattern = tt('please confirm', array('nonce' => '([A-Z]*?)'));
+  $pattern = tt('please confirm', array('nonce' => '([A-Z]*)'));
   preg_match("`$pattern`", $message, $match);
   return @$match[1];
 }

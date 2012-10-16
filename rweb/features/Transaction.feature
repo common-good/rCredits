@@ -16,11 +16,14 @@ Setup:
   | %today-1d | %TX_SIGNUP | 250    | community | .ZZB | signup  |
   | %today-1d | %TX_SIGNUP | 250    | community | .ZZC | signup  |
 
-Scenario: The caller asks to pay a member id
-  When phone +20001 says "123.45 to .ZZB for pie"
-  Then we say to phone +20001 "confirm payment|please confirm" with subs:
+Scenario: The member asks to pay a member id
+  When member .ZZA submits "tx" with fields:
+  | 
+  Then we show "confirm payment|please confirm" with subs:
   | amount  | other_name |
   | $123.45 | Bea Two    |
+  And we say "dflkj"
+  or And we say error "dfk"
   # "Pay Bea Two $123.45 for goods and services? Type MANGO to confirm."
 
 Scenario: The caller asks to pay a player by name

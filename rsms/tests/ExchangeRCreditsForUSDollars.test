@@ -11,13 +11,13 @@ require_once __DIR__ . '/../rsms.steps';
 
 class rsmsExchangeRCreditsForUSDollars extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
-  var $current_test;
+  var $currentTest;
   const FEATURE_NAME = 'rsms Test - ExchangeRCreditsForUSDollars';
   const DESCRIPTION = 'Exchange rCredits for US Dollars';
   const MODULE = 'rsms';
 
   public function gherkin($statement, $type) {
-    $this->assertTrue(gherkin_guts($statement, $type), $statement, $this->current_test);
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);
   }
   
   public static function getInfo() {
@@ -33,7 +33,7 @@ class rsmsExchangeRCreditsForUSDollars extends DrupalWebTestCase {
 
   // Scenario: The caller can get US Dollars for rCredits
   public function testTheCallerCanGetUSDollarsForRCredits() {
-    scene_setup($this, __FUNCTION__);
+    sceneSetup($this, __FUNCTION__);
     Given('phone %number1 is set up for direct deposits');
     And__('phone %number1 has r$150');
     When_('phone %number1 says "get usd 123.45"');
@@ -44,7 +44,7 @@ class rsmsExchangeRCreditsForUSDollars extends DrupalWebTestCase {
 
   // Scenario: Caller confirms request for US Dollars
   public function testCallerConfirmsRequestForUSDollars() {
-    scene_setup($this, __FUNCTION__);
+    sceneSetup($this, __FUNCTION__);
     Given('phone %number1 is set up for direct deposits');
     And__('phone %number1 has r$160');
     And__('the community has r$-10,000');

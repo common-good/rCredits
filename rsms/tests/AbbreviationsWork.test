@@ -11,13 +11,13 @@ require_once __DIR__ . '/../rsms.steps';
 
 class rsmsAbbreviationsWork extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
-  var $current_test;
+  var $currentTest;
   const FEATURE_NAME = 'rsms Test - AbbreviationsWork';
   const DESCRIPTION = 'Abbreviations work';
   const MODULE = 'rsms';
 
   public function gherkin($statement, $type) {
-    $this->assertTrue(gherkin_guts($statement, $type), $statement, $this->current_test);
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);
   }
   
   public static function getInfo() {
@@ -33,7 +33,7 @@ class rsmsAbbreviationsWork extends DrupalWebTestCase {
 
   // Scenario: A caller abbreviates command words
   public function testACallerAbbreviatesCommandWords() {
-    scene_setup($this, __FUNCTION__);
+    sceneSetup($this, __FUNCTION__);
     Given('phone %number1 is a member');
     When_('phone %number1 says "h g"');
     Then_('we say to phone %number1 "help get"');
@@ -41,7 +41,7 @@ class rsmsAbbreviationsWork extends DrupalWebTestCase {
 
   // Scenario: A caller abbreviates with wrong syntax
   public function testACallerAbbreviatesWithWrongSyntax() {
-    scene_setup($this, __FUNCTION__);
+    sceneSetup($this, __FUNCTION__);
     Given('phone %number1 is a member');
     When_('phone %number1 says "12 f"');
     Then_('we say to phone %number1 "syntax|help charge"');

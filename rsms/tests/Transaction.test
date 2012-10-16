@@ -11,13 +11,13 @@ require_once __DIR__ . '/../rsms.steps';
 
 class rsmsTransaction extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
-  var $current_test;
+  var $currentTest;
   const FEATURE_NAME = 'rsms Test - Transaction';
   const DESCRIPTION = 'Transaction pre-launch';
   const MODULE = 'rsms';
 
   public function gherkin($statement, $type) {
-    $this->assertTrue(gherkin_guts($statement, $type), $statement, $this->current_test);
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);
   }
   
   public static function getInfo() {
@@ -29,120 +29,135 @@ class rsmsTransaction extends DrupalWebTestCase {
     $setup_filename = __DIR__ . '/../' . self::MODULE . '-setup.inc';
     if (file_exists($setup_filename)) include $setup_filename;
 
+    sceneSetup($this, __FUNCTION__);
+    Given('members: "DATA'
+    . '\\| id   | full_name  | phone  | email         |'
+    . '\\| .ZZA | Abe One    | +20001 | a@example.com |'
+    . '\\| .ZZB | Bea Two    | +20002 | b@example.com |'
+    . '\\| .ZZC | Corner Pub | +20003 | c@example.com |"');
+    And__('transactions: "DATA'
+    . '\\| created   | type       | amount | from      | to   | purpose |'
+    . '\\| %today-1d | %TX_SIGNUP | 250    | community | .ZZA | signup  |'
+    . '\\| %today-1d | %TX_SIGNUP | 250    | community | .ZZB | signup  |'
+    . '\\| %today-1d | %TX_SIGNUP | 250    | community | .ZZC | signup  |"');
+
   }
 
   // Scenario: The caller asks to pay a member id
   public function testTheCallerAsksToPayAMemberId() {
-    scene_setup($this, __FUNCTION__);
-    Given('players: "DATA'
-    . '\\| @name      | @memberid | @cell    |'
-    . '\\| Abe One    | neabcdea  | %number1 |'
-    . '\\| Bea Two    | neabcdeb  | %number2 |'
-    . '\\| Corner Pub | neabcdec  | %number3 |"');
-    When_('phone %number1 says "123.45 to neabcdeb for pie"');
-    Then_('we say to phone %number1 "confirm transaction" with subs: "DATA'
-    . '\\| @type | @amount | @who    | @for |'
-    . '\\| Pay   | 123.45  | Bea Two | pie  |"');
+    sceneSetup($this, __FUNCTION__);
+    When_('phone +20001 says "123.45 to .ZZB for pie"');
+    Then_('we say to phone +20001 "confirm payment|please confirm" with subs: "DATA'
+    . '\\| amount  | other_name |'
+    . '\\| $123.45 | Bea Two    |"');
   }
 
   // Scenario: The caller asks to pay a player by name
   public function testTheCallerAsksToPayAPlayerByName() {
-    scene_setup($this, __FUNCTION__);
-    Given('players: "DATA'
-    . '\\| @name      | @memberid | @cell    |'
-    . '\\| Abe One    | neabcdea  | %number1 |'
-    . '\\| Bea Two    | neabcdeb  | %number2 |'
-    . '\\| Corner Pub | neabcdec  | %number3 |"');
-    When_('phone %number1 says "123.45 to .cornerpub for groceries"');
-    Then_('we say to phone %number1 "confirm transaction" with subs: "DATA'
-    . '\\| @type | @amount | @who       | @whatfor           |'
-    . '\\| Pay   | 123.45  | Corner Pub | goods and services |"');
+    sceneSetup($this, __FUNCTION__);
+    When_('phone +20001 says "123.45 to cornerpub for groceries"');
+    Then_('we say to phone +20001 "confirm payment|please confirm" with subs: "DATA'
+    . '\\| amount  | other_name |'
+    . '\\| $123.45 | Corner Pub |"');
   }
 
   // Scenario: The caller asks to charge a member id
   public function testTheCallerAsksToChargeAMemberId() {
-    scene_setup($this, __FUNCTION__);
-    Given('players: "DATA'
-    . '\\| @name      | @memberid | @cell    |'
-    . '\\| Abe One    | neabcdea  | %number1 |'
-    . '\\| Bea Two    | neabcdeb  | %number2 |'
-    . '\\| Corner Pub | neabcdec  | %number3 |"');
-    When_('phone %number1 says "123.45 from neabcdec for labor"');
-    Then_('we say to phone %number1 "confirm transaction" with subs: "DATA'
-    . '\\| @type  | @amount | @who       | @for  |'
-    . '\\| Charge | 123.45  | Corner Pub | labor |"');
+    sceneSetup($this, __FUNCTION__);
+    When_('phone +20001 says "123.45 from .ZZC for labor"');
+    Then_('we say to phone +20001 "confirm charge|please confirm" with subs: "DATA'
+    . '\\| amount  | other_name |'
+    . '\\| $123.45 | Corner Pub |"');
   }
 
   // Scenario: The caller confirms a payment
   public function testTheCallerConfirmsAPayment() {
-    scene_setup($this, __FUNCTION__);
-    Given('players: "DATA'
-    . '\\| @name      | @memberid | @cell    | @rebate |'
-    . '\\| Abe One    | neabcdea  | %number1 | 5       |'
-    . '\\| Bea Two    | neabcdeb  | %number2 | 5       |'
-    . '\\| Corner Pub | neabcdec  | %number3 | 5       |"');
-    And__('transactions: "DATA'
-    . '\\| @date     | @type  | @amount | @from    | @to      | @for          |'
-    . '\\| %today-1d | signup | 250.00  | community| neabcdea | signup reward |"');
-    When_('phone %number1 confirms "100 to neabcdec for groceries"');
-    Then_('the community has r$-265');
-    And__('phone %number3 has r$110');
-    And__('transactions: "DATA'
-    . '\\| @date  | @type   | @amount | @from    | @to      | @for         |'
-    . '\\| %today | payment | 100     | neabcdea | neabcdec | groceries    |'
-    . '\\| %today | rebate  | 5       | community| neabcdea | rebate on #2 |'
-    . '\\| %today | bonus   | 10      | community| neabcdec | bonus on #1  |"');
-    And__('we say to phone %number1 "report transaction" with subs: "DATA'
-    . '\\| @type | @tofrom | @amount | @who       | @for      | @reward_type | @reward_amount | @balance | @transaction |'
-    . '\\| paid  | to      | 100     | Corner Pub | groceries | rebate       | 5              | 155      | 2            |"');
+    sceneSetup($this, __FUNCTION__);
+    When_('phone +20001 confirms "100 to .ZZC for groceries"');
+    Then_('the community has r$-765');
+    And__('phone +20003 has r$360');
+    And__('we say to phone +20001 "report transaction" with subs: "DATA'
+    . '\\| action | other_name | amount | reward_type | reward_amount | balance | tid |'
+    . '\\| paid   | Corner Pub | $100   | rebate      | $5            | $155    | 2   |"');
   }
 
-  // Scenario: The caller confirms a charge
-  public function testTheCallerConfirmsACharge() {
-    scene_setup($this, __FUNCTION__);
-    Given('players: "DATA'
-    . '\\| @name      | @memberid | @cell    | @rebate |'
-    . '\\| Abe One    | neabcdea  | %number1 | 5       |'
-    . '\\| Bea Two    | neabcdeb  | %number2 | 5       |'
-    . '\\| Corner Pub | neabcdec  | %number3 | 5       |"');
-    And__('transactions: "DATA'
-    . '\\| @date     | @type  | @amount | @from    | @to      | @for          |'
-    . '\\| %today-1d | signup | 250.00  | community| neabcdec | signup reward |"');
-    When_('phone %number1 confirms "100 from neabcdec for labor"');
-    Then_('the community has r$-265');
-    And__('phone %number3 has r$155');
-    And__('transactions: "DATA'
-    . '\\| @date  | @type   | @amount | @from    | @to      | @for         |'
-    . '\\| %today | charge  | 100     | neabcdec | neabcdea | labor        |'
-    . '\\| %today | rebate  | 5       | community| neabcdec | rebate on #2 |'
-    . '\\| %today | bonus   | 10      | community| neabcdea | bonus on #1  |"');
-    And__('we say to phone %number1 "report transaction" with subs: "DATA'
-    . '\\| @type   | @tofrom | @amount | @who       | @for  | @reward_type | @reward_amount | @balance | @transaction |'
-    . '\\| charged | from    | 100     | Corner Pub | labor | bonus        | 10             | 110      | 1            |"');
+  // Scenario: The caller confirms a request to charge
+  public function testTheCallerConfirmsARequestToCharge() {
+    sceneSetup($this, __FUNCTION__);
+    When_('phone +20001 confirms "100 from .ZZC for labor"');
+    Then_('phone +20003 has r$250');
+    And__('phone +20001 has r$250');
+    And__('we say to phone +20001 "report invoice" with subs: "DATA'
+    . '\\| action  | other_name | amount | tid |'
+    . '\\| charged | Corner Pub | $100   | 2   |"');
+    And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
+    . '\\| created | full_name  | other_name | amount | purpose |'
+    . '\\| %today  | Corner Pub | Abe One    | $100   | labor   |"');
+  }
+
+  // Scenario: The caller confirms a unilateral charge
+  public function testTheCallerConfirmsAUnilateralCharge() {
+    sceneSetup($this, __FUNCTION__);
+    Given('phone +20001 can charge unilaterally');
+    When_('phone +20001 confirms "100 from .ZZC for labor"');
+    Then_('the community has r$-765');
+    And__('phone +20003 has r$155');
+    And__('we say to phone +20001 "report transaction" with subs: "DATA'
+    . '\\| action  | other_name | amount | reward_type | reward_amount | balance | tid |'
+    . '\\| charged | Corner Pub | $100   | bonus       | $10           | $360    | 2   |"');
+    And__('we email "new-charge" to member "c@example.com" with subs: "DATA'
+    . '\\| created | full_name  | other_name | amount | purpose |'
+    . '\\| %today  | Corner Pub | Abe One    | $100   | labor   |"');
   }
 
   // Scenario: The caller confirms a payment with insufficient balance
   public function testTheCallerConfirmsAPaymentWithInsufficientBalance() {
-    scene_setup($this, __FUNCTION__);
-    Given('players: "DATA'
-    . '\\| @name      | @memberid | @cell    | @rebate |'
-    . '\\| Abe One    | neabcdea  | %number1 | 5       |'
-    . '\\| Bea Two    | neabcdeb  | %number2 | 5       |'
-    . '\\| Corner Pub | neabcdec  | %number3 | 5       |"');
-    And__('transactions: "DATA'
-    . '\\| @date     | @type  | @amount | @from    | @to      | @for          |'
-    . '\\| %today-1d | signup | 100.00  | community| neabcdea | signup reward |"');
-    When_('phone %number1 confirms "250 to neabcdec for groceries"');
-    Then_('the community has r$-115');
-    And__('phone %number3 has r$110');
-    And__('transactions: "DATA'
-    . '\\| @date  | @type   | @amount | @from    | @to      | @for         |'
-    . '\\| %today | payment | 100     | neabcdea | neabcdec | groceries    |'
-    . '\\| %today | rebate  | 5       | community| neabcdea | rebate on #2 |'
-    . '\\| %today | bonus   | 10      | community| neabcdec | bonus on #1  |"');
-    And__('we say to phone %number1 "report transaction short" with subs: "DATA'
-    . '\\| @type | @tofrom | @amount | @who       | @for      | @reward_type | @reward_amount | @balance | @transaction |'
-    . '\\| paid  | to      | 100     | Corner Pub | groceries | rebate       | 5              | 155      | 2            |"');
+    sceneSetup($this, __FUNCTION__);
+    When_('phone +20001 confirms "300 to .ZZC for groceries"');
+    Then_('the community has r$-787.50');
+    And__('phone +20003 has r$525');
+    And__('we say to phone +20001 "report short transaction" with subs: "DATA'
+    . '\\| action | other_name | amount | short | balance | tid |'
+    . '\\| paid   | Corner Pub | $250   | $50   | $12.50  | 2   |"');
+  }
+
+  // Scenario: The caller asks to pay the latest invoice
+  public function testTheCallerAsksToPayTheLatestInvoice() {
+    sceneSetup($this, __FUNCTION__);
+    Given('transactions: "DATA'
+    . '\\| created   | state       | amount | from | to   | purpose| taking |'
+    . '\\| %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  | 1      |"');
+    When_('phone +20003 says "pay"');
+    Then_('we say to phone +20003 "confirm pay invoice|please confirm" with subs: "DATA'
+    . '\\| amount | other_name | created   |'
+    . '\\| $100   | Abe One    | %today-3d |"');
+  }
+
+  // Scenario: The caller confirms payment of the latest invoice
+  public function testTheCallerConfirmsPaymentOfTheLatestInvoice() {
+    sceneSetup($this, __FUNCTION__);
+    Given('transactions: "DATA'
+    . '\\| created   | state       | amount | from | to   | purpose| taking |'
+    . '\\| %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  | 1      |"');
+    When_('phone +20003 confirms "pay"');
+    Then_('the community has r$-765');
+    And__('phone +20001 has r$360');
+    And__('we say to phone +20003 "report transaction" with subs: "DATA'
+    . '\\| action| other_name | amount | reward_type | reward_amount | balance | tid |'
+    . '\\| paid  | Abe One    | $100   | rebate      | $5            | $155    | 3   |"');
+  }
+
+  // Scenario: The caller asks to pay the latest invoice from a particular member
+  public function testTheCallerAsksToPayTheLatestInvoiceFromAParticularMember() {
+    sceneSetup($this, __FUNCTION__);
+    Given('transactions: "DATA'
+    . '\\| created   | state       | amount | from | to   | purpose| taking |'
+    . '\\| %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  | 1      |'
+    . '\\| %today-1d | %TX_PENDING | 100    | .ZZC | .ZZB | labor  | 1      |"');
+    When_('phone +20003 says "pay .ZZA"');
+    Then_('we say to phone +20003 "confirm pay invoice|please confirm" with subs: "DATA'
+    . '\\| amount | other_name | created   |'
+    . '\\| $100   | Abe One    | %today-3d |"');
   }
 
 }

@@ -101,7 +101,7 @@ define('R_ASIF_TEXT', ' "AS-IF"'); // how to identify "As If" transactions
 
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
-define('R_EMAIL_FRAME', '/email-frame.html');
+define('R_EMAIL_FRAME', 'email-frame');
 
 // Roles
 define('R_ROLE_RTRADER', 4);
@@ -150,6 +150,7 @@ $GLOBALS['email_subjects'] = array(
   'new-invoice' => t('rCredits INVOICE from {OTHER_NAME}'),
   'new-charge' => t('rCredits CHARGE from {OTHER_NAME}'),
   'invoice-denied' => t('rCredits Invoice DENIED by {OTHER_NAME}'),
+  'payment-denied' => t('rCredits Payment REJECTED by {OTHER_NAME}'),
   'charge-disputed' => t('rCredits Charge DISPUTED by {OTHER_NAME}'),
 );
 
@@ -230,18 +231,20 @@ function permission(&$permissions, $title, $description) {
 /**
  * Format and return args for reporting a transaction (old or new)
  * Not all returned args are used for any particular type of transaction.
+ * Note that templates and tests depend on the names of some of these fields
  * @param array $tx: the transaction array (including zxid)
  * @param int $get_balance: 0=don't get any balances, 1=get my balance and tid, 2=get other party's balance and tid also
  * @param float $shortfall: how much short my balance is, for a transaction (if any)
+ * @return assoc array of args
  */
 function tx_report_args($tx, $get_balance = 0, $shortfall = 0) {
   global $cuid;
-  extract($tx);
-  if ($data) extract(unserialize($data), EXTR_PREFIX_ALL, 'data');
+  extract($tx); // any or all standard transaction fields
+  if ($data) if ($data = unserialize($data)) extract($data, EXTR_PREFIX_ALL, 'data');
   
   $to_me = ($payee == $cuid);
   $role = $to_me ? 'payee' : 'payer';
-  list ($my_purpose, $other_purpose) = u\order($to_me, $payee_for, $payer_for);
+  list ($purpose, $other_purpose) = u\order($to_me, $payee_for, $payer_for);
   $tofrom = $to_me ? t('from') : t('to');
   $uid = $other_uid = $to_me ? $payer : $payee;
   $action = $taking ? t('charged') : ($goods ? t('paid') : t('gave'));
@@ -263,9 +266,9 @@ function tx_report_args($tx, $get_balance = 0, $shortfall = 0) {
     }
   }
   
-  $summary = "$asif $summary_word of $amount $tofrom $other_name for \"$my_purpose\" on $created";
+  $summary = "$asif $summary_word of $amount $tofrom $other_name for \"$purpose\" on $created";
   $success = TRUE;
-  return array_merge($tx, compact(u\ray('created zxid action real role my_purpose other_purpose to_me asif confirm_action amount tofrom reward_type reward_amount balance other_balance tid other_tid other_uid other_name short summary success')));
+  return array_merge($tx, compact(u\ray('created zxid action real role purpose other_purpose to_me asif confirm_action amount tofrom reward_type reward_amount balance other_balance tid other_tid other_uid other_name short summary success')));
 }
 
 /**
@@ -366,7 +369,7 @@ function transaction_setup($info) {
  */
 function demand($who, $demand = 0) {
   if (!$demand) return user_field('demand', $who);
-  $demand = min(R_MAX_DEMAND, $demand);
+  $demand = min(R_MAX_AMOUNT, $demand);
   update_user(compact('demand'), $who);
   return $demand;
 }
@@ -404,7 +407,7 @@ function pay_employees($amount0, $for, $confirmed) {
   $results = array();
   $successes = 0;
   foreach ($employees as $ruid) {
-    $results[] = list ($message, $args, $confirm) = api\transfer('payment', $ruid, $amount_unformatted, $for, TRUE, compact('pay_all'));
+    $results[] = list ($message, $args, $confirm) = api\transfer('payment', $ruid, $amount_unformatted, $for, !u\for_cash($for), TRUE, compact('pay_all'));
     if ($args['success']) $successes++;
   }
   $success = ($successes > 0);
@@ -434,10 +437,12 @@ function notify($uid, $message_index, $info) {
   $standard_fields = array(
     'uid' => $uid,
     'full_name' => @$my_full_name ?: t('rCredits Member'),
+    'email' => $my_mail, // testing uses this
   );
-
+  if ($uid != cuid()) $standard_fields['other_name'] = user_field('full_name'); // this comes in backwards if notifying elseone
+  
   $subs = array();
-  foreach ($info + $standard_fields as $key => $value) $subs['{' . strtoupper($key) . '}'] = $value;
+  foreach (array_merge($info, $standard_fields) as $key => $value) $subs['{' . strtoupper($key) . '}'] = $value;
   drupal_mail('rcredits', $message_index, $my_mail, user_preferred_language($account), $subs);
 }
 
@@ -733,7 +738,7 @@ function user_field($field_name, $who = 'none', $subs = array()) {
 /**
  * @todo: maybe move the processing of zxs to a wrapper function db_txq() that also does postprocessing on fetchAssoc()
  */
-function db_q($sql, $subs = array()) {
+function db_q($sql, $subs = array(), $die = FALSE) {
   u\expect(compact(u\ray('sql subs')), 'notempty assoc');
   if (strpos($sql, '{zxs}')) {
     extract($subs, EXTR_PREFIX_ALL, 'my');
@@ -748,6 +753,7 @@ function db_q($sql, $subs = array()) {
   }
 //  debug(u\get_constants($sql));
 //  debug($subs);
+  if ($die) die(u\get_constants($sql) . ' ' . print_r(u\prefix_keys(':', $subs), 1));
   return \db_query(u\get_constants($sql), u\prefix_keys(':', $subs));
 }
 
@@ -762,6 +768,14 @@ function has_bit($bit, $uid = '') {
   return (bool) ($account->flags & $bit);
 }
 
+function error($logid) {
+  $info = db_lookup('info', 'r_log', 'logid=:logid', compact('logid'));
+  if ($info) $info = json_decode($info); else $info = 'unknown error';
+  print_r($info);
+//  drupal_set_message(print_r($info, 1), 'error');
+//  drupal_goto('');
+}
+
 // Single line functions that need no explanation
 function rebate($uid, $amount = 1) {return round($amount * user_field('rebate_percent', $uid) / 100, 2);}
 function bonus($uid, $amount = 1) {return rebate($uid, 2 * $amount);}
@@ -774,3 +788,5 @@ function server_uid($region_id = '') {return -u\a2n($region_id ?: R_SERVER_ID);}
 function reid($main_uid, $agent_uid) {return db_lookup('reid', 'r_relations', 'main_uid=:main_uid AND agent_uid=:agent_uid', compact(u\ray('main_uid agent_uid')));}
 function ok_agent($uid, $agent_uid) {return ($uid == $agent_uid or r\reid($uid, $agent_uid));}
 function is_rTrader($uid = '') {return (user_field('flags', $uid ?: cuid()) & BIT_RTRADER);}
+function email_template($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}
+function email_body($key) {return str_replace('{BODY}', email_template($key), email_template(R_EMAIL_FRAME));}

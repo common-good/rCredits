@@ -29,7 +29,7 @@ function rsms_sms_incoming($op, $number, $message) {
       break;
     case 'process':
       $call = new r\SMS\call($number, $message);
-      r\SMS\send($number, RSMS_PREFIX . $call->handle_call());
+      r\SMS\send($number, RSMS_PREFIX . trim($call->handle_call()));
       break;
     case 'post process':
       break;

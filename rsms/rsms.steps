@@ -37,13 +37,12 @@ function phoneHasNoAccount($number) {
  * in: AbbreviationsWork - testACallerAbbreviatesCommandWords MAKE
  *     AbbreviationsWork - testACallerAbbreviatesWithWrongSyntax MAKE
  *     ExchangeForCash - testTheCallerRequestsAnImplicitTradeWithInsufficientBalance MAKE
- *     ExchangeRCreditsForUSDollars - testTheCallerCanGetUSDollarsForRCredits MAKE
  *     GetHelp - testACallerWantsHelpWithASpecificCommand MAKE
  *     GetHelp - testACallerWantsToKnowWhatsAvailable MAKE
  *     GetHelp - testACallerTypesAnUnrecognizedCommand MAKE
- *     GetHelp - testCallerGivesWrongNonce MAKE
+ *     GetHelp - testCallerGivesTheWrongNonce MAKE
  *     GetHelp - testACallerTypesTheWrongNumberOfArguments MAKE
- *     GetHelp - testACallerTypesAWrongArgument MAKE
+ *     GetHelp - testCallerTypesAWrongArgument MAKE
  *     GetHelp - testAmountIsTooBig MAKE
  *     GetHelp - testAccountDoesNotExist MAKE
  *     GetInformation - testGettingInformation MAKE
@@ -55,18 +54,19 @@ function phoneHasNoAccount($number) {
  *     OpenAnAccountForTheCaller - testTheNewbieGivesUsAnUnlikelyName MAKE
  *     OpenAnAccountForTheCaller - testTheNewbieGivesUsHisOrHerEmailAddress MAKE
  *     OpenAnAccountForTheCaller - testTheNewbieGivesABadEmailAddress MAKE
- *     TrackCommands - testACallerUsesACommandThatDoesNotRequireConfirmation MAKE
  *     Transaction - testTheCallerAsksToPayAMemberId MAKE
  *     Transaction - testTheCallerAsksToPayAPlayerByName MAKE
  *     Transaction - testTheCallerAsksToChargeAMemberId MAKE
+ *     Transaction - testTheCallerAsksToPayTheLatestInvoice MAKE
+ *     Transaction - testTheCallerAsksToPayTheLatestInvoiceFromAParticularMember MAKE
  *     Undo - testUndoTheLastTransaction MAKE
  *     Undo - testUndoTheLastTransactionWithSomeoneSpecific MAKE
  *     Undo - testUndoTheLastTransferToMe MAKE
- *     Undo - testUndoTheLastTransferFromMeToSomeoneSpecific MAKE
+ *     Undo - testUndoTheLastTransferToMeFromSomeoneSpecific MAKE
  */
 function phoneSays($number, $message) {
-  global $test_only;
-  if ($test_only) error;
+  global $testOnly;
+  u\expect(!$testOnly);
   sms_incoming($number, $message, array('no logout' => TRUE));
   return TRUE;
 }
@@ -78,9 +78,9 @@ function phoneSays($number, $message) {
  *     OpenAnAccountForTheCaller - testANamelessNewbieCalls MAKE
  */
 function phoneHasAnAccount($number) {
-  global $test_only;
+  global $testOnly;
   if (!phoneHasNoAccount($number)) return TRUE;
-  if ($test_only) return FALSE;
+  if ($testOnly) return FALSE;
   return (api\create_user(compact('number')) != '');
 }
 
@@ -92,9 +92,9 @@ function phoneHasAnAccount($number) {
  *     GetHelp - testACallerWantsHelpWithASpecificCommand TEST
  *     GetHelp - testACallerWantsToKnowWhatsAvailable TEST
  *     GetHelp - testACallerTypesAnUnrecognizedCommand TEST
- *     GetHelp - testCallerGivesWrongNonce TEST
+ *     GetHelp - testCallerGivesTheWrongNonce TEST
  *     GetHelp - testACallerTypesTheWrongNumberOfArguments TEST
- *     GetHelp - testACallerTypesAWrongArgument TEST
+ *     GetHelp - testCallerTypesAWrongArgument TEST
  *     GetHelp - testAmountIsTooBig TEST
  *     OpenAnAccountForTheCaller - testATotalNewbieCalls TEST
  *     OpenAnAccountForTheCaller - testANamelessNewbieCalls TEST
@@ -112,8 +112,6 @@ function weSayToPhone($number, $message) {
  *     ExchangeForCash - testTheCallerConfirmsARequestToTradeCashForRCredits TEST
  *     ExchangeForCash - testTheCallerConfirmsAUnilateralTradeOfCashForRCredits TEST
  *     ExchangeForCash - testTheCallerRequestsAnImplicitTradeWithInsufficientBalance TEST
- *     ExchangeRCreditsForUSDollars - testTheCallerCanGetUSDollarsForRCredits TEST
- *     ExchangeRCreditsForUSDollars - testCallerConfirmsRequestForUSDollars TEST
  *     GetHelp - testAccountDoesNotExist TEST
  *     GetInformation - testGettingInformation TEST
  *     GetInformation - testGettingInformationLargerAmounts TEST
@@ -124,24 +122,42 @@ function weSayToPhone($number, $message) {
  *     Transaction - testTheCallerAsksToPayAPlayerByName TEST
  *     Transaction - testTheCallerAsksToChargeAMemberId TEST
  *     Transaction - testTheCallerConfirmsAPayment TEST
- *     Transaction - testTheCallerConfirmsACharge TEST
+ *     Transaction - testTheCallerConfirmsARequestToCharge TEST
+ *     Transaction - testTheCallerConfirmsAUnilateralCharge TEST
  *     Transaction - testTheCallerConfirmsAPaymentWithInsufficientBalance TEST
+ *     Transaction - testTheCallerAsksToPayTheLatestInvoice TEST
+ *     Transaction - testTheCallerConfirmsPaymentOfTheLatestInvoice TEST
+ *     Transaction - testTheCallerAsksToPayTheLatestInvoiceFromAParticularMember TEST
  *     Undo - testUndoTheLastTransaction TEST
  *     Undo - testUndoTheLastTransactionWithSomeoneSpecific TEST
  *     Undo - testUndoTheLastTransferToMe TEST
- *     Undo - testUndoTheLastTransferFromMeToSomeoneSpecific TEST
+ *     Undo - testUndoTheLastTransferToMeFromSomeoneSpecific TEST
  *     Undo - testTheCallerConfirmsUndoingACharge TEST
+ *     Undo - testTheCallerConfirmsUndoingAPayment MAKE
+ *     Undo - testTheCallerRefusesToPayTheLatestInvoice TEST
+ *     Undo - testTheCallerRefusesAPendingPayment TEST
  */
 function weSayToPhoneWithSubs($number, $message, $subs) {
-  global $test_only;
-  u\expect($test_only, 'should be test_only');
+  global $testOnly;
+//  debug(array(r\SMS\tt($message), r\SMS\tt($message, $subs[0]), $subs));
+  return t\findMessage( 'out', compact('number'), RSMS_PREFIX . trim(r\SMS\tt($message, @$subs[0])));
+}
 
-  $type = 'out';
-  $message = RSMS_PREFIX . r\SMS\tt($message, @$subs[0]);
-  if (!TEST_REAL) $message = str_replace('ransaction #', 'ransaction #a', str_replace('@asif', R_ASIF_TEXT, $message));
-  debug($message);
-  $info = json_encode(compact(u\ray('message number')));
-  return r\db_lookup(1, 'r_log', 'type=:type AND channel=:TX_SMS AND info=:info', compact(u\ray('type info')));
+/**
+ * we email (ARG) to member (ARG) with subs: (ARG)
+ *
+ * in: Transaction - testTheCallerConfirmsARequestToCharge TEST
+ *     Transaction - testTheCallerConfirmsAUnilateralCharge TEST
+ *     Undo - testTheCallerRefusesToPayTheLatestInvoice TEST
+ *     Undo - testTheCallerRefusesAPendingPayment TEST
+ */
+function weEmailToMemberWithSubs($key, $email, $subs0) {
+  global $testOnly;
+  $subs = array();
+  foreach ($subs0[0] as $k => $value) $subs['{' . strtoupper($k) . '}'] = $value;
+  $message = strtr(r\email_body($key), $subs);
+  $subject = strtr($GLOBALS['email_subjects'][$key], $subs);
+  return t\findMessage('email', compact(u\ray('key email')), $message, $subject);
 }
 
 /**
@@ -150,7 +166,7 @@ function weSayToPhoneWithSubs($number, $message, $subs) {
  * in: OpenAnAccountForTheCaller - testANamelessNewbieCalls MAKE
  */
 function phoneHasNoName($number) {
-  global $test_only;
+  global $testOnly;
   return u\abbreviates('unknown ', r\user_field('name', rSMS\uid($number)));
 }
 
@@ -160,8 +176,8 @@ function phoneHasNoName($number) {
  * in: OpenAnAccountForTheCaller - testANamelessNewbieCalls MAKE
  */
 function phoneIsNotWaitingTo($number, $todo) {
-  global $test_only;
-  if ($test_only) return phoneIsWaitingTo($number, $todo);
+  global $testOnly;
+  if ($testOnly) return phoneIsWaitingTo($number, $todo);
   phoneIsWaitingTo($number, 'something else');
   return TRUE;
 }
@@ -170,18 +186,14 @@ function phoneIsNotWaitingTo($number, $todo) {
  * phone (ARG) is waiting to (ARG)
  *
  * in: OpenAnAccountForTheCaller - testANamelessNewbieCalls TEST
- *     OpenAnAccountForTheCaller - testTheNewbieGivesUsHisOrHerName TEST
- *     OpenAnAccountForTheCaller - testTheNewbieGivesUsHisOrHerName TEST
- *     OpenAnAccountForTheCaller - testTheNewbieGivesUsAnUnlikelyName TEST
- *     OpenAnAccountForTheCaller - testTheNewbieGivesUsAnUnlikelyName TEST
- *     OpenAnAccountForTheCaller - testTheNewbieGivesUsHisOrHerEmailAddress TEST
- *     OpenAnAccountForTheCaller - testTheNewbieGivesUsHisOrHerEmailAddress TEST
- *     OpenAnAccountForTheCaller - testTheNewbieGivesABadEmailAddress TEST
- *     OpenAnAccountForTheCaller - testTheNewbieGivesABadEmailAddress TEST
+ *     OpenAnAccountForTheCaller - testTheNewbieGivesUsHisOrHerName BOTH
+ *     OpenAnAccountForTheCaller - testTheNewbieGivesUsAnUnlikelyName BOTH
+ *     OpenAnAccountForTheCaller - testTheNewbieGivesUsHisOrHerEmailAddress BOTH
+ *     OpenAnAccountForTheCaller - testTheNewbieGivesABadEmailAddress BOTH
  */
 function phoneIsWaitingTo($number, $todo, $recalled = FALSE) {
-  global $test_only;
-  if (($is = (r\db_lookup('todo', 'r_sms', 'number=:number', compact('number')) == $todo)) or $test_only or $recalled) return $is;
+  global $testOnly;
+  if (($is = (r\db_lookup('todo', 'r_sms', 'number=:number', compact('number')) == $todo)) or $testOnly or $recalled) return $is;
   if ($todo == 'setup name') {
     phoneSays($number, 'whatever'); // set up the account
   } elseif ($todo == 'setup email') {
@@ -197,7 +209,7 @@ function phoneIsWaitingTo($number, $todo, $recalled = FALSE) {
  * in: OpenAnAccountForTheCaller - testTheNewbieGivesUsHisOrHerName TEST
  */
 function phoneAccountNameIs($number, $name) {
-  global $test_only;
+  global $testOnly;
   return (r\user_field('full_name', rSMS\uid($number)) == $name);
 }
 
@@ -207,7 +219,7 @@ function phoneAccountNameIs($number, $name) {
  * in: OpenAnAccountForTheCaller - testTheNewbieGivesUsHisOrHerEmailAddress TEST
  */
 function phoneEmailIs($number, $email) {
-  global $test_only;
+  global $testOnly;
   return (r\user_field('mail', rSMS\uid($number)) == $email);
 }
 
@@ -215,42 +227,62 @@ function phoneEmailIs($number, $email) {
  * phone (ARG) has r$(ARG)
  *
  * in: ExchangeForCash - testTheCallerConfirmsATradeOfRCreditsForCash TEST
- *     ExchangeForCash - testTheCallerConfirmsATradeOfRCreditsForCash TEST
- *     ExchangeForCash - testTheCallerConfirmsAnImplicitTradeOfRCreditsForCash TEST
  *     ExchangeForCash - testTheCallerConfirmsAnImplicitTradeOfRCreditsForCash TEST
  *     ExchangeForCash - testTheCallerConfirmsARequestToTradeCashForRCredits TEST
- *     ExchangeForCash - testTheCallerConfirmsARequestToTradeCashForRCredits TEST
  *     ExchangeForCash - testTheCallerConfirmsAUnilateralTradeOfCashForRCredits TEST
- *     ExchangeForCash - testTheCallerConfirmsAUnilateralTradeOfCashForRCredits TEST
- *     ExchangeRCreditsForUSDollars - testTheCallerCanGetUSDollarsForRCredits MAKE
- *     ExchangeRCreditsForUSDollars - testCallerConfirmsRequestForUSDollars MAKE
- *     GetInformation - testGettingInformation MAKE
- *     GetInformation - testGettingInformationLargerAmounts MAKE
  *     OpenAnAccountForTheCaller - testTheNewbieGivesUsHisOrHerEmailAddress TEST
  *     Transaction - testTheCallerConfirmsAPayment TEST
- *     Transaction - testTheCallerConfirmsACharge TEST
+ *     Transaction - testTheCallerConfirmsARequestToCharge TEST
+ *     Transaction - testTheCallerConfirmsAUnilateralCharge TEST
  *     Transaction - testTheCallerConfirmsAPaymentWithInsufficientBalance TEST
+ *     Transaction - testTheCallerConfirmsPaymentOfTheLatestInvoice TEST
+ *     Undo - featureSetup TEST
  *     Undo - testTheCallerConfirmsUndoingACharge TEST
  */
 function phoneHasR($number, $amount) {
-  global $test_only;
-  return t\uidHasR(rSMS\uid($number), $amount);
+  global $testOnly;
+//  debug(t\uidHasR(rSMS\uid($number))->balance);
+  if ($testOnly) return t\eq(t\uidHasR(rSMS\uid($number))->balance, $amount);
+  return FALSE;
+}
+
+/**
+ * phone (ARG) has r$(ARG) including rewards of $(ARG)
+ *
+ * in: GetInformation - testGettingInformation MAKE
+ *     GetInformation - testGettingInformationLargerAmounts MAKE
+ */
+function phoneHasRIncludingRewardsOf($number, $bal, $rewards) {
+  global $testOnly;
+  $uid = rSMS\uid($number);
+  $info = t\uidHasR($uid);
+  list ($old_bal, $old_rewards) = array($info->balance, $info->rewards);
+
+  list ($amount, $from, $to, $type) = array($rewards - $info->rewards, 'community', $uid, TX_SIGNUP);
+  t\makeTransaction(compact(u\ray('amount from to type')));
+  
+  $id = $other = '.ZZM';
+  t\makeAccount(compact('id'));
+  list ($amount, $from, $to) = array($bal - ($info->balance + $rewards - $info->rewards), $other, $uid);
+  t\makeTransaction(compact(u\ray('amount from to')));
+  return TRUE;
 }
 
 /**
  * the community has r$(ARG)
  *
  * in: ExchangeForCash - testTheCallerConfirmsATradeOfRCreditsForCash TEST
- *     ExchangeRCreditsForUSDollars - testCallerConfirmsRequestForUSDollars TEST
- *     ExchangeRCreditsForUSDollars - testCallerConfirmsRequestForUSDollars TEST
  *     Transaction - testTheCallerConfirmsAPayment TEST
- *     Transaction - testTheCallerConfirmsACharge TEST
+ *     Transaction - testTheCallerConfirmsAUnilateralCharge TEST
  *     Transaction - testTheCallerConfirmsAPaymentWithInsufficientBalance TEST
+ *     Transaction - testTheCallerConfirmsPaymentOfTheLatestInvoice TEST
+ *     Undo - featureSetup TEST
  *     Undo - testTheCallerConfirmsUndoingACharge TEST
  */
 function theCommunityHasR($amount) {
-  global $test_only;
-  return t\uidHasR(r\server_uid(), $amount);
+  global $testOnly;
+//  debug(t\uidHasR(r\server_uid())->balance);
+  return t\eq(t\uidHasR(r\server_uid())->balance, $amount);
 }
 
 /**
@@ -261,16 +293,27 @@ function theCommunityHasR($amount) {
  *     GetHelp - testACallerWantsHelpWithASpecificCommand MAKE
  *     GetHelp - testACallerWantsToKnowWhatsAvailable MAKE
  *     GetHelp - testACallerTypesAnUnrecognizedCommand MAKE
+ *     GetHelp - testCallerGivesTheWrongNonce MAKE
  *     GetHelp - testACallerTypesTheWrongNumberOfArguments MAKE
- *     GetHelp - testACallerTypesAWrongArgument MAKE
+ *     GetHelp - testCallerTypesAWrongArgument MAKE
  *     GetHelp - testAmountIsTooBig MAKE
  *     GetHelp - testAccountDoesNotExist MAKE
+ *     OfferToExchangeUSDollarsForRCredits - testMakeOrUpdateAnOffer MAKE
  */
 function phoneIsAMember($number) {
-  global $test_only;
-  phoneSays($number, 'whatever'); // set up the account
-  phoneSays($number, 'Firstname Lastname'); // grab the name
-  phoneSays($number, 'flast@example.com'); // grab the email
+  global $testOnly;
+  return phoneIsMember($number);
+}
+
+/**
+ * phone (ARG) is member (ARG)
+ *
+ * in: GetInformation - testGettingInformation MAKE
+ *     GetInformation - testGettingInformationLargerAmounts MAKE
+ */
+function phoneIsMember($number, $id = NULL) {
+  global $testOnly;
+  t\makeAccount(compact('number', 'id'));
   return TRUE;
 }
 
@@ -278,9 +321,11 @@ function phoneIsAMember($number) {
  * members: (ARG)
  *
  * in: ExchangeForCash - featureSetup MAKE
+ *     Transaction - featureSetup MAKE
+ *     Undo - featureSetup MAKE
  */
 function members($list) {
-  global $test_only;
+  global $testOnly;
   foreach ($list as $one) t\makeAccount($one);
   return TRUE;
 }
@@ -289,21 +334,16 @@ function members($list) {
  * transactions: (ARG)
  *
  * in: ExchangeForCash - featureSetup MAKE
- *     Transaction - testTheCallerConfirmsAPayment TEST
- *     Transaction - testTheCallerConfirmsAPayment TEST
- *     Transaction - testTheCallerConfirmsACharge TEST
- *     Transaction - testTheCallerConfirmsACharge TEST
- *     Transaction - testTheCallerConfirmsAPaymentWithInsufficientBalance TEST
- *     Transaction - testTheCallerConfirmsAPaymentWithInsufficientBalance TEST
- *     Undo - testUndoTheLastTransaction MAKE
- *     Undo - testUndoTheLastTransactionWithSomeoneSpecific MAKE
- *     Undo - testUndoTheLastTransferToMe MAKE
- *     Undo - testUndoTheLastTransferFromMeToSomeoneSpecific MAKE
- *     Undo - testTheCallerConfirmsUndoingACharge TEST
- *     Undo - testTheCallerConfirmsUndoingACharge TEST
+ *     Transaction - featureSetup MAKE
+ *     Transaction - testTheCallerAsksToPayTheLatestInvoice MAKE
+ *     Transaction - testTheCallerConfirmsPaymentOfTheLatestInvoice MAKE
+ *     Transaction - testTheCallerAsksToPayTheLatestInvoiceFromAParticularMember MAKE
+ *     Undo - featureSetup MAKE
+ *     Undo - testTheCallerRefusesToPayTheLatestInvoice MAKE
+ *     Undo - testTheCallerRefusesAPendingPayment MAKE
  */
 function transactions($list) {
-  global $test_only;
+  global $testOnly;
   foreach ($list as $one) t\makeTransaction($one);
   return TRUE;
 }
@@ -315,15 +355,18 @@ function transactions($list) {
  *     ExchangeForCash - testTheCallerConfirmsAnImplicitTradeOfRCreditsForCash MAKE
  *     ExchangeForCash - testTheCallerConfirmsARequestToTradeCashForRCredits MAKE
  *     ExchangeForCash - testTheCallerConfirmsAUnilateralTradeOfCashForRCredits MAKE
- *     ExchangeRCreditsForUSDollars - testCallerConfirmsRequestForUSDollars MAKE
- *     TrackCommands - testACallerUsesACommandThatDOESRequireConfirmation MAKE
  *     Transaction - testTheCallerConfirmsAPayment MAKE
- *     Transaction - testTheCallerConfirmsACharge MAKE
+ *     Transaction - testTheCallerConfirmsARequestToCharge MAKE
+ *     Transaction - testTheCallerConfirmsAUnilateralCharge MAKE
  *     Transaction - testTheCallerConfirmsAPaymentWithInsufficientBalance MAKE
+ *     Transaction - testTheCallerConfirmsPaymentOfTheLatestInvoice MAKE
  *     Undo - testTheCallerConfirmsUndoingACharge MAKE
+ *     Undo - testTheCallerConfirmsUndoingAPayment MAKE
+ *     Undo - testTheCallerRefusesToPayTheLatestInvoice MAKE
+ *     Undo - testTheCallerRefusesAPendingPayment MAKE
  */
 function phoneConfirms($number, $request) {
-  global $test_only;
+  global $testOnly;
   phoneSays($number, $request);
   if (!($nonce = api\todo($number)->nonce)) return FALSE; // (null kills phoneSays)
   phoneSays($number, $nonce);
@@ -334,57 +377,35 @@ function phoneConfirms($number, $request) {
  * phone (ARG) can charge unilaterally
  *
  * in: ExchangeForCash - testTheCallerConfirmsAUnilateralTradeOfCashForRCredits MAKE
+ *     Transaction - testTheCallerConfirmsAUnilateralCharge MAKE
  */
 function phoneCanChargeUnilaterally($number) {
-  global $test_only;
+  global $testOnly;
   $uid = r\SMS\uid($number);
-  if ($test_only) return api\access('charge others', $uid);
+  if ($testOnly) return api\access('charge others', $uid);
 
   r\set_bit(BIT_CHARGE, $uid);
   return TRUE;
 }
 
 /**
- * phone (ARG) is set up for direct deposits
- *
- * in: ExchangeRCreditsForUSDollars - testTheCallerCanGetUSDollarsForRCredits MAKE
- *     ExchangeRCreditsForUSDollars - testCallerConfirmsRequestForUSDollars MAKE
- */
-function phoneIsSetUpForDirectDeposits($arg1) {
-  global $test_only;
-  todo;
-}
-
-/**
- * the community has USD$(ARG)
- *
- * in: ExchangeRCreditsForUSDollars - testCallerConfirmsRequestForUSDollars TEST
- *     ExchangeRCreditsForUSDollars - testCallerConfirmsRequestForUSDollars TEST
- */
-function theCommunityHasUSD($arg1) {
-  global $test_only;
-  todo;
-}
-
-/**
- * we email to admin (ARG) with subs: (ARG)
- *
- * in: ExchangeRCreditsForUSDollars - testCallerConfirmsRequestForUSDollars TEST
- */
-function weEmailToAdminWithSubs($arg1, $arg2) {
-  global $test_only;
-  todo;
-}
-
-/**
  * the expected nonce for phone (ARG) is (ARG)
  *
  * in: GetHelp - testACallerTypesAnUnrecognizedCommand MAKE
- *     GetHelp - testCallerGivesWrongNonce MAKE
+ *     GetHelp - testCallerGivesTheWrongNonce MAKE
  */
 function theExpectedNonceForPhoneIs($number, $nonce) {
-  global $test_only;
-  api\todo($number, $nonce ? 'whatever' : '', $nonce);
+  global $testOnly;
+  $old = api\todo($number);
+  $same = ($old->nonce == $nonce);
+  if ($testOnly or $same) return $same;
+  
+  if ($nonce and !$old->nonce) {
+    phoneIsAMember($number2 = randomPhone(), 'Firstname2 theExpectedNonceForPhoneIs');
+    phoneSays($number, "10 to $number2");
+    $old = api\todo($number);
+  }
+  api\todo($number, $nonce ? $old->todo : '', $nonce);
   return TRUE;
 }
 
@@ -393,34 +414,9 @@ function theExpectedNonceForPhoneIs($number, $nonce) {
  *
  * in: GetHelp - testAccountDoesNotExist MAKE
  */
-function isNotAnAccountId($arg1) {
-  global $test_only;
-  todo;
-}
-
-/**
- * phone (ARG) is a player
- *
- * in: GetInformation - testGettingInformation MAKE
- *     GetInformation - testGettingInformationLargerAmounts MAKE
- *     OfferToExchangeUSDollarsForRCredits - testMakeOrUpdateAnOffer MAKE
- *     TrackCommands - testACallerUsesACommandThatDoesNotRequireConfirmation MAKE
- *     TrackCommands - testACallerUsesACommandThatDOESRequireConfirmation MAKE
- */
-function phoneIsAPlayer($arg1) {
-  global $test_only;
-  todo;
-}
-
-/**
- * phone (ARG) unavailable is $(ARG)
- *
- * in: GetInformation - testGettingInformation MAKE
- *     GetInformation - testGettingInformationLargerAmounts MAKE
- */
-function phoneUnavailableIs($arg1, $arg2) {
-  global $test_only;
-  todo;
+function isNotAnAccountId($id) {
+  global $testOnly;
+  return !r\user_field(1, t\uid($id)); // whether making or not (never delete an account)
 }
 
 /**
@@ -428,71 +424,32 @@ function phoneUnavailableIs($arg1, $arg2) {
  *
  * in: GetInformation - testGettingInformation MAKE
  *     GetInformation - testGettingInformationLargerAmounts MAKE
- *     OfferToExchangeUSDollarsForRCredits - testMakeOrUpdateAnOffer TEST
- *     OfferToExchangeUSDollarsForRCredits - testMakeOrUpdateAnOffer TEST
+ *     OfferToExchangeUSDollarsForRCredits - testMakeOrUpdateAnOffer BOTH
  */
-function theTotalDemandForRCreditsIs($arg1) {
-  global $test_only;
-  todo;
+function theTotalDemandForRCreditsIs($amount) {
+  global $testOnly;
+  $old = r\total_demand();
+  $same = t\eq($old, $amount);
+  if ($testOnly or $same) return $same;
+  
+  $uid = t\makeAccount();
+  $demand = $amount - $old;
+//  debug(compact('demand', 'old', 'amount'));
+  \drupal_write_record('users', compact('demand', 'uid'), 'uid');
+  return TRUE;
 }
 
 /**
  * phone (ARG) demand for rCredits is $(ARG)
  *
- * in: OfferToExchangeUSDollarsForRCredits - testMakeOrUpdateAnOffer TEST
- *     OfferToExchangeUSDollarsForRCredits - testMakeOrUpdateAnOffer TEST
+ * in: OfferToExchangeUSDollarsForRCredits - testMakeOrUpdateAnOffer BOTH
  */
-function phoneDemandForRCreditsIs($arg1, $arg2) {
-  global $test_only;
-  todo;
-}
-
-/**
- * phone (ARG) (ARG) command use count is (ARG)
- *
- * in: TrackCommands - testACallerUsesACommandThatDoesNotRequireConfirmation TEST
- *     TrackCommands - testACallerUsesACommandThatDoesNotRequireConfirmation TEST
- *     TrackCommands - testACallerUsesACommandThatDOESRequireConfirmation TEST
- *     TrackCommands - testACallerUsesACommandThatDOESRequireConfirmation TEST
- *     TrackCommands - testACallerUsesACommandThatDOESRequireConfirmation TEST
- *     TrackCommands - testACallerUsesACommandThatDOESRequireConfirmation TEST
- */
-function phoneCommandUseCountIs($arg1, $arg2, $arg3) {
-  global $test_only;
-  todo;
-}
-
-/**
- * overall (ARG) command use count is (ARG)
- *
- * in: TrackCommands - testACallerUsesACommandThatDoesNotRequireConfirmation TEST
- *     TrackCommands - testACallerUsesACommandThatDoesNotRequireConfirmation TEST
- *     TrackCommands - testACallerUsesACommandThatDOESRequireConfirmation TEST
- *     TrackCommands - testACallerUsesACommandThatDOESRequireConfirmation TEST
- *     TrackCommands - testACallerUsesACommandThatDOESRequireConfirmation TEST
- *     TrackCommands - testACallerUsesACommandThatDOESRequireConfirmation TEST
- */
-function overallCommandUseCountIs($arg1, $arg2) {
-  global $test_only;
-  todo;
-}
-
-/**
- * players: (ARG)
- *
- * in: Transaction - testTheCallerAsksToPayAMemberId MAKE
- *     Transaction - testTheCallerAsksToPayAPlayerByName MAKE
- *     Transaction - testTheCallerAsksToChargeAMemberId MAKE
- *     Transaction - testTheCallerConfirmsAPayment MAKE
- *     Transaction - testTheCallerConfirmsACharge MAKE
- *     Transaction - testTheCallerConfirmsAPaymentWithInsufficientBalance MAKE
- *     Undo - testUndoTheLastTransaction MAKE
- *     Undo - testUndoTheLastTransactionWithSomeoneSpecific MAKE
- *     Undo - testUndoTheLastTransferToMe MAKE
- *     Undo - testUndoTheLastTransferFromMeToSomeoneSpecific MAKE
- *     Undo - testTheCallerConfirmsUndoingACharge MAKE
- */
-function players($arg1) {
-  global $test_only;
-  todo;
+function phoneDemandForRCreditsIs($number, $demand) {
+  global $testOnly;
+  $uid = r\SMS\uid($number);
+  if ($testOnly) return t\eq(r\user_field('demand', $uid), $demand);
+  \drupal_write_record('users', compact('uid', 'demand'), 'uid');
+//  debug(r\user_field('demand', $uid));
+//  debug(compact('number','demand','uid'));
+  return TRUE;  
 }

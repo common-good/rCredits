@@ -6,11 +6,13 @@ error_reporting($SHOWERRORS ? E_ALL : 0); ini_set('display_errors', $SHOWERRORS)
 //
 // Create a skeleton test for each feature in a module
 
-$first_scenario_only = TRUE; // activate just the first scenario for each feature, to save time testing
+// activate just the first scenario for each feature, to save time testing
 // When ready, textedit replace "function notest" with "function test" in the .test file
+$first_scenario_only = FALSE;
 
 $path = '..'; // relative path from compiler to module directory
 $gEOL = '\\\\'; // end of line marker
+$arg_patterns = '"(.*?)"|([\-\+]?[0-9]+(?:[\.\,\-][0-9]+)*)|(%[a-z][A-Za-z0-9]+)'; // what forms the step arguments can take
 
 $flnms = glob("$path/*.module");
 if (empty($flnms)) error('No features found. The gherkin directory should have the same parent as the features directory. The parent should contain the module file. See the file "howto.txt".');
@@ -66,14 +68,14 @@ foreach ($features as $feature_filename) {
   $test_data = do_feature($feature_filename, $steps);
   $test_data['MODULE'] = $MODULE;
   $test = file_get_contents('test-template.php');
-  foreach($test_data as $from => $to) $test = str_replace("%$from", $to, $test);
+  $test = strtr2($test, $test_data);
   file_put_contents($test_filename, $test);
   echo "Created: $test_filename<br>";
 }
 
 foreach ($steps as $function_name => $step) {
-  extract($step);
-  $new_callers = replacement($callers, $test_only, $function_name); // (replacement includes function's opening parenthesis)
+  extract($step); // original, english, to_replace, callers, TMB, function_name
+  $new_callers = replacement($callers, $TMB, $function_name); // (replacement includes function's opening parenthesis)
   if ($original == 'new') {
     for ($arg_list = '', $i = 0; $i < $arg_count; $i++) {
       $arg_list .= ($arg_list ? ', ' : '') . '$arg' . ($i + 1);
@@ -83,14 +85,10 @@ foreach ($steps as $function_name => $step) {
     . " * $english\n"
     . " *\n"
     . " * in: {$new_callers}$arg_list) {\n"
-    . "  global \$test_only;\n"
+    . "  global \$testOnly;\n"
     . "  todo;\n"
     . "}\n";
-  } else {
-//  echo "to=$to_replace rep=$new_callers<br>\n"; $prev = $steps_text;
-    $steps_text = str_replace($to_replace, $new_callers, $steps_text);
-//    die ('same:' . ($prev == $steps_text));
-  }
+  } else $steps_text = str_replace($to_replace, $new_callers, $steps_text);
 }
 
 file_put_contents($steps_filename, $steps_text);
@@ -120,18 +118,18 @@ echo "<br>Updated $steps_filename<br>Done. " . date('g:ia');
  *   TESTS: all the tests and steps
  */
 function do_feature($feature_filename, &$steps) {
-  global $first_scenario_only;
+  global $first_scenario_only, $arg_patterns;
   $GROUP = basename(dirname(dirname($feature_filename)));
   $FEATURE_NAME = str_replace('.feature', '', basename($feature_filename));
   $FEATURE_LONGNAME = $FEATURE_NAME; // default English description of feature, in case it's missing from feature file
   $FEATURE_HEADER = '';
   $TESTS = '';
+  $SETUP_LINES = '';
  
   $lines = explode("\n", file_get_contents($feature_filename));
   $state = '';
-  $arg_patterns = '"(.*?)"|(-?[0-9]+(?:[\.,-][0-9]+)*)|(%[A-Z][A-Z0-9]+)';
   $lead = '  '; // line leader (indentation for everything in class definition
-  $is_first_scenario = TRUE;
+  $no_scenario_yet = TRUE;
 
   while (!is_null($line = array_shift($lines))) {
     $line = trim($line);
@@ -143,20 +141,23 @@ function do_feature($feature_filename, &$steps) {
     if ($word1 == 'Feature') {
       $FEATURE_HEADER .= "//\n// $line\n";
       $FEATURE_LONGNAME = $tail;
-      $is_first_scenario = TRUE;
+      $no_scenario_yet = TRUE;
+      
+    } elseif ($word1 == 'Setup') {
+      expect($state == 'Feature', 'Setup section must follow the Feature header.');
+      $SETUP_LINES = "\n$lead  sceneSetup(\$this, __FUNCTION__);\n";
+      $test_function = 'featureSetup';
+      
     } elseif ($word1 == 'Scenario') {
       $test_function = 'test' . (preg_replace("/[^A-Z]/i", '', ucwords($tail)));
-      if ($first_scenario_only and !$is_first_scenario) $test_function = 'no' . $test_function;
-      $test_function_qualified = "$FEATURE_NAME - $test_function";
-      $is_first_scenario = FALSE; // won't be first next time
+      if ($first_scenario_only and !$no_scenario_yet) $test_function = 'no' . $test_function;
 
-      if ($state != 'Feature') {
-        $TESTS .= "$lead}\n";
-      }
+      if (!$no_scenario_yet) $TESTS .= "$lead}\n"; // finish previous Scenario function
       $TESTS .= "\n"
         . "$lead// $line\n"
         . "{$lead}public function $test_function() {\n"
-        . "$lead  scene_setup(\$this, __FUNCTION__);\n";
+        . "$lead  sceneSetup(\$this, __FUNCTION__);\n";
+      $no_scenario_yet = FALSE;
     
     } elseif (in_array($word1, array('Given', 'When', 'Then', 'And'))) {
       $is_then = ($word1 == 'Then' or ($word1 == 'And' and $state == 'Then'));
@@ -165,44 +166,21 @@ function do_feature($feature_filename, &$steps) {
       $multiline_arg = multiline_arg($lines);
       $tail_escaped = str_replace("'", "\\'", $tail) . $multiline_arg;
       $tail .= str_replace("\\'", "'", $multiline_arg);
-      $TESTS .= "$lead  $word1('$tail_escaped');\n";
+//      print_r(compact('multiline_arg','tail_escaped','tail'));
+      $phrase = "$lead  $word1('$tail_escaped');\n";
+      if ($no_scenario_yet) $SETUP_LINES .= $phrase; else $TESTS .= $phrase;
 
-      $english = preg_replace("/$arg_patterns/msi", '(ARG)', $tail);
+      $english = preg_replace("/$arg_patterns/ms", '(ARG)', $tail);
       $step_function = lcfirst(preg_replace("/$arg_patterns|[^A-Z]/msi", '', ucwords($tail)));
 
-      if(isset($steps[$step_function])) {
-        $old_english = $steps[$step_function]['english'];
-        if($old_english != $english) {
-          error("<br>WARNING: You tried to redefine step function $step_function. "
-          . "Delete the old one first.<br>\nOld: $old_english<br>\nNew: $english<br>\n"
-          . "in Feature: $FEATURE_LONGNAME<br>\n"
-          . "in Scenario: $test_function<br>\n"
-          . "in Step: $line<br>\n"
-          );
-        }
-        
-        $stepfunc = $steps[$step_function];
-        if ($stepfunc['original'] != 'new') $stepfunc['original'] = 'changed';
-        if (!in_array($test_function, $stepfunc['callers'])) {
-          $stepfunc['callers'][] = $test_function_qualified;
-          $stepfunc['test_only'][$test_function_qualified] = ($is_then ? 'TEST' : 'MAKE');
-        } else {
-          $test_only_changes = $is_then ? array('MAKE' => 'BOTH') : array('TEST' => 'BOTH');
-          $stepfunc['test_only'][$test_function_qualified] = strtr($stepfunc['test_only'][$test_function_qualified], $test_only_changes);
-        }
-        $steps[$step_function] = $stepfunc;
-      } else {
-        $original = 'new';
-        $callers = array($test_function_qualified);
-        $test_only = array($test_function_qualified => ($is_then ? 'TEST' : 'MAKE'));
-        preg_match_all("/$arg_patterns/msi", $tail, $matches);
-        $args = $matches[1];
-        $arg_count = count($args);
-        $steps[$step_function] = compact(explode(',', 'original,english,callers,test_only,arg_count'));
-      }
-    } else {
+      $test_function_qualified = "$FEATURE_NAME - $test_function";
+      $err_args = compact(ray('step_function,FEATURE_LONGNAME,line')); // for error reporting, just in case 
+      $steps[$step_function] = fix_step_function(@$steps[$step_function], $test_function, $test_function_qualified, $english, $is_then, $tail, $err_args);
+      
+    } else { // not a significant word
       if ($state == 'Feature') {
         $FEATURE_HEADER .= "//   $line\n";
+      } elseif ($state == 'Setup') {
       } elseif ($state == 'Scenario') {
         $TESTS .= "$lead *   $line\n";
       }
@@ -211,9 +189,9 @@ function do_feature($feature_filename, &$steps) {
     if ($word1 and $word1_original != 'And') $state = $word1_original;
   }
 
-  if ($state != '' and $state != 'Feature') $TESTS .= "$lead}\n"; // close the final test function definition
+  if ($state != '' and !$no_scenario_yet) $TESTS .= "$lead}\n"; // close the final test function definition
 
-  return compact(explode(',', 'INC_PATH,GROUP,FEATURE_NAME,FEATURE_LONGNAME,FEATURE_HEADER,TESTS'));
+  return compact(ray('INC_PATH,GROUP,FEATURE_NAME,FEATURE_LONGNAME,FEATURE_HEADER,SETUP_LINES,TESTS'));
 }
 
 /**
@@ -239,7 +217,7 @@ function findFiles($path = '.', $pattern = '/./', $result = '') {
   $dir = dir($path);
   
   while ($filename = $dir->read()) {
-    if ($filename === '.' || $filename === '..') continue;
+    if ($filename === '.' or $filename === '..') continue;
     $filename = $prefix . $filename;
     if (is_dir($filename) and $recurse) $result = findFiles($filename, $pattern, $result);
     if (preg_match($pattern, $filename)){
@@ -249,10 +227,6 @@ function findFiles($path = '.', $pattern = '/./', $result = '') {
   return $result;
 }
 
-function error($error_message) {
-  die($error_message);
-}
-
 /**
  * Get steps
  *
@@ -260,7 +234,7 @@ function error($error_message) {
  *
  */
 function get_steps($steps_text) {
-  $step_keys = explode(',', 'original,english,to_replace,callers,function_name');
+  $step_keys = ray('original,english,to_replace,callers,function_name');
   $pattern = ''
   . '^/\*\*$\s'
   . '^ \* ([^\*]*?)$\s'
@@ -276,7 +250,6 @@ function get_steps($steps_text) {
     $step['callers'] = array(); // rebuild this list every time
     $steps[$step['function_name']] = $step; // use the function name as the index for the step
   }
-//  print_r($matches); die();
   return $steps;
 }
 
@@ -286,8 +259,8 @@ function get_steps($steps_text) {
  * When updating an existing step function, replace the header with this.
  * (guaranteed to be unique for each step)
  */
-function replacement($callers, $test_only, $function_name) {
-  foreach ($callers as $key => $func) $callers[$key] .= ' ' . $test_only[$func];
+function replacement($callers, $TMB, $function_name) {
+  foreach ($callers as $key => $func) $callers[$key] .= ' ' . $TMB[$func];
   $callers = join("\n *     ", $callers);
   return "$callers\n */\nfunction $function_name(";
 }
@@ -315,3 +288,51 @@ function multiline_arg(&$lines) {
   }
   return $result ? " \"DATA$result\"" : '';
 }
+
+function new_step_function($original, $test_function_qualified, $english, $is_then, $tail) {
+  global $arg_patterns;
+  $callers = array($test_function_qualified);
+  $TMB = array($test_function_qualified => ($is_then ? 'TEST' : 'MAKE'));
+  preg_match_all("/$arg_patterns/ms", $tail, $matches);
+//  print_r(compact('arg_patterns', 'tail', 'matches')); die();
+//  expect(@$matches[1], "Test function \"$test_function_qualified\" has no args.");
+  $arg_count = @$matches[1] ? count($matches[1]) : 0;
+  return compact(ray('original,english,callers,TMB,arg_count'));
+}
+
+function fix_step_function($func_array, $test_function, $test_function_qualified, $english, $is_then, $tail, $err_args) {
+  if (!$func_array) return new_step_function('new', $test_function_qualified, $english, $is_then, $tail);
+  
+  if(($old_english = @$func_array['english']) != $english) error(
+    "<br>WARNING: You tried to redefine step function \"!step_function\". "
+    . "Delete the old one first.<br>\n"
+    . "Old: $old_english<br>\n"
+    . "New: $english<br>\n"
+    . "  in Feature: !FEATURE_LONGNAME<br>\n"
+    . "  in Scenario: $test_function<br>\n"
+    . "  in Step: !line<br>\n", 
+    $err_args
+  );
+  
+  if ($func_array['original'] != 'new') $func_array['original'] = 'changed';
+  if (!in_array($test_function_qualified, $func_array['callers'])) {
+    $func_array['callers'][] = $test_function_qualified;
+    $func_array['TMB'][$test_function_qualified] = ($is_then ? 'TEST' : 'MAKE');
+  } else {
+    $TMB_changes = $is_then ? array('MAKE' => 'BOTH') : array('TEST' => 'BOTH');
+    //print_r(compact('TMB_changes','is_then','test_function_qualified') + array('zot'=>$func_array['TMB'][$test_function_qualified]));
+    $func_array['TMB'][$test_function_qualified] = strtr($func_array['TMB'][$test_function_qualified], $TMB_changes);
+    //print_r(compact('TMB_changes','is_then','test_function_qualified') + array('zot'=>$func_array['TMB'][$test_function_qualified])); die();
+  }
+  return $func_array;
+}
+
+function ray($s) {return explode(',', $s);}
+
+function strtr2($string, $subs, $prefix = '%') {
+  foreach($subs as $from => $to) $string = str_replace("$prefix$from", $to, $string);
+  return $string;
+}
+
+function error($message, $subs = array()) {die(strtr2("\n\n$message", $subs, '!'));}
+function expect($bool, $message) {if(!$bool) error($message);}
