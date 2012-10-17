@@ -1,4 +1,4 @@
-Feature: Transaction pre-launch
+Feature: Transact pre-launch
 AS a player
 I WANT to simulate a transfer of rCredits from my account to someone else's or vice versa
 SO I will get a rebate or bonus that I can spend once I am an active participant
@@ -9,7 +9,11 @@ Setup:
   | .ZZA | Abe One    | +20001 | a@example.com |
   | .ZZB | Bea Two    | +20002 | b@example.com |
   | .ZZC | Corner Pub | +20003 | c@example.com |
-  # later and elsewhere: name, email, country, minimum, community
+  # later and elsewhere: name, country, minimum, community
+  And relations:
+  | id   | main | agent | permission   |
+  | :ZZA | .ZZC | .ZZB  | buy and sell |
+  | :ZZB | .ZZC | .ZZA  | sell         |
   And transactions: 
   | created   | type       | amount | from      | to   | purpose |
   | %today-1d | %TX_SIGNUP | 250    | community | .ZZA | signup  |
@@ -112,3 +116,9 @@ Scenario: The caller asks to pay the latest invoice from a particular member
   | amount | other_name | created   |
   | $100   | Abe One    | %today-3d |
   # "Pay Abe One $100 for goods and services (invoice 14-May-2013)? Type MANGO to confirm."
+
+Scenario: The caller asks to pay a company agent
+  When phone +20001 confirms "123.45 to :ZZA for pie"
+  Then we say to phone +20001 "confirm payment|please confirm" with subs:
+  | amount  | other_name |
+  | $123.45 | Corner Pub |

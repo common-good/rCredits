@@ -80,7 +80,7 @@ function rweb_menu() {
     'sms' => rWeb\menu('Test SMS', MENU_NORMAL_ITEM, 'show_form', array('sms'), 'administrator'),
     'handy' => rWeb\menu('Handy Links', MENU_NORMAL_ITEM, 'handy_links', array(), 'administrator'),
     'rCredits/backend' => rWeb\menu('API', 0, 'rCredits\\API\\backend2', array(), '', $anyone),
-    'api' => rWeb\menu('API', 0, 'rCredits\\API\\smart_api', array(), '', $anyone),
+    'api' => rWeb\menu('API', 0, 'rCredits\\Smart\\api', array(), '', $anyone),
     'error' => rWeb\menu('System Error', 0, 'rCredits\\error', array(1), '', $anyone),
     
 //    'modal' => rWeb\menu('Modal Test', MENU_CALLBACK, 'drupal_get_form', array('rCredits\\Web\\modal_form'), '', $anyone + $modal),

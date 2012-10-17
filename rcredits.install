@@ -121,13 +121,13 @@ function rcredits_schema() {
     'reid' => r\setup_field('relationship record id', 'serial 11'),
     'main_uid' => r\setup_field('uid of the account to which others are related', 'int 11'),
     'agent_uid' => r\setup_field('uid of a user related to that account', 'int 11'),
-    'agent_region' => r\setup_field('uid of the agent\'s region', 'int 11'),
-    'agent_name' => r\setup_field('full name of the agent, if not from this region', 'int 11'),
+    'foreign_uid' => r\setup_field('uid of the foreign main account or foreign agent in their own region (main_uid or agent_uid is then the region)', 'int 11'),
+    'foreign_name' => r\setup_field('full name of the foreign main account or foreign agent', 'varchar 60'),
     'permission' => r\setup_field('what type of permission the agent has on the main account', 'int tiny'),
     'is_employee' => r\setup_field('is this agent an employee', 'int tiny'),
     'is_owner' => r\setup_field('is this agent an owner (or part owner)', 'int tiny'),
   );
-  $foreign_keys = r\foreign_key('main_uid') + r\foreign_key('agent_uid');
+  $foreign_keys = r\foreign_key('main_uid') + r\foreign_key('agent_uid') + r\foreign_key('foreign_uid');
   $indexes = r\index('main_uid') + r\index('agent_uid');
   $schema['r_relations'] = r\setup_table('Who can manage which accounts, and how', $fields, 'reid', $foreign_keys, $indexes);
     

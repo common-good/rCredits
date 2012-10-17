@@ -28,6 +28,30 @@ function ray($s) {
 }
 
 /**
+ * Return an associative array built from the arguments.
+ * Call by:
+ *   ass(keys, value1, value2, ...)
+ * @param string $keys: space-delimited list of identifier names
+ * @return assoc array whose keys and values are as listed
+ */
+function ass($keys, $value1) {
+  $args = func_get_args();
+  $keys = array_shift($args);
+  debug(compact('keys','args'));
+  return array_combine(ray($keys), $args);
+}
+
+/* this is probably a bad idea
+function preK($prefix, $s) {
+  if (is_array($s)) {
+    $new = array();
+    foreach ($s as $key => $value) $new[$prefix . ucwords($key)] = $value;
+    return $new;
+  } else return $prefix . ucwords($s);
+}
+*/
+
+/**
  * Interpret the given transaction type
  * @param mixed $type: a number or string indicating the transaction type
  * @return a corresponding string or number (whatever the $type isn't)
@@ -205,24 +229,25 @@ function diff($a, $b) {
 /**
  * Get the long version of the indicated message(s), make any substitutions,
  * and return the result.
+ * Channel determines which message set to use (SMS messages provide a fallback)
  *
  * @param string $message
- *   name of the message (index into $GLOBALS['SMS messages'])
+ *   name of the message (index into $GLOBALS[TX_SMS . ' messages'])
  *   or a list of such message indices, separated by "|"
  *   or a two-element array: array(message, subs)
  * @param array $subs (optional). '@' will be prepended to the keys.
- * @param string $interface: which message set to use (SMS messages provide a fallback)
  * @todo get the r\'s out of this utilities file OR stop trying to separate u\ from r\
  */   
-function tt($message, $subs = array(), $interface = 'SMS') {
+function tt($message, $subs = array()) {
+  global $channel;
   if (is_array($message)) list ($message, $subs) = $message;
   if (!$subs) $subs = array();
   $messages = explode('|', $message);
   foreach ($messages as $i => $message) {
-    if (isset($GLOBALS["$interface messages"][$message])) {
-      $model = $GLOBALS["$interface messages"][$message];
-    } else {    
-      $model = $GLOBALS['SMS messages'][$message];
+    if (isset($GLOBALS["$channel messages"][$message])) {
+      $model = $GLOBALS["$channel messages"][$message];
+    } else { // channel is not SMS, but use SMS message as fallback 
+      $model = $GLOBALS[TX_SMS . ' messages'][$message];
       if ($p = strpos($model, '. Type ')) $model = substr($model, 0, $p + 1); // don't tell the user to type something unless it's SMS
     }
     if (strpos($model, '@asif') !== FALSE and !isset($subs['asif'])) {
@@ -348,7 +373,7 @@ function expect($assertion, $message = '', $ret = FALSE) {
 function expect1($arg, $value, $type, $ret) {
 //  expect(compact(ray('arg type')), 'name string'); // can't do this because infinite recursion
 
-  $msg = "Expected \$$arg ('$value') to be type '$type'.";
+  $msg = "Expected \$$arg ('" . print_r($value, 1) . "') to be type '$type'.";
   if (strpos($type, '|')) {
     foreach (explode('|', $type) as $one) if (expect1($arg, $value, $one, TRUE) == '') return '';
     expect(FALSE, $msg);
@@ -370,13 +395,14 @@ function expect1($arg, $value, $type, $ret) {
     case 'float': return expect(my_float($value), $msg, $ret); // don't use is_float()?
     case 'id': return expect(is_id($value), $msg, $ret);
     case 'int': return expect(my_int($value), $msg, $ret); // don't use is_int()
-    case 'name': return expect(preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $value), $msg, $ret);
+    case 'name': return expect(is_name($value), $msg, $ret);
     case 'notempty': return expect(!empty($value), $msg, $ret);
     case 'notnull': return expect(!is_null($value), $msg, $ret);
     case 'qid': return expect(is_qid($value), $msg, $ret);
     case 'ruid': return expect(is_ruid($value), $msg, $ret);
     case 'string': return expect(is_string($value), $msg, $ret);
     case 'zid': return expect(is_zid($value), $msg, $ret);
+    default: return expect(is_object($value) and get_class($value) == "rCredits\\$type", $msg, $ret);
   }
   throw new \Exception("bad type \"$type\" ($msg)");
 }
@@ -552,3 +578,5 @@ function is_ruid($ruid) {return (is_array($ruid) and array_keys($ruid) == array(
 function is_qid($qid) {return preg_match('/^[A-Z]{3}(\.|\:|\.\.)[A-Z]+$/', $qid);}
 function is_zid($zid) {return (my_int($zid) and $zid !== 0);}
 function is_nonce($nonce) {return preg_match('/^[A-Z]{3,}$/', $nonce);}
+function is_name($value) {return preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $value);}
+function is_acct($acct) {return (is_object($acct) and get_class($acct) == 'rCredits\acct');}

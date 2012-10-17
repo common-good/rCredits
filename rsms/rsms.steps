@@ -54,11 +54,11 @@ function phoneHasNoAccount($number) {
  *     OpenAnAccountForTheCaller - testTheNewbieGivesUsAnUnlikelyName MAKE
  *     OpenAnAccountForTheCaller - testTheNewbieGivesUsHisOrHerEmailAddress MAKE
  *     OpenAnAccountForTheCaller - testTheNewbieGivesABadEmailAddress MAKE
- *     Transaction - testTheCallerAsksToPayAMemberId MAKE
- *     Transaction - testTheCallerAsksToPayAPlayerByName MAKE
- *     Transaction - testTheCallerAsksToChargeAMemberId MAKE
- *     Transaction - testTheCallerAsksToPayTheLatestInvoice MAKE
- *     Transaction - testTheCallerAsksToPayTheLatestInvoiceFromAParticularMember MAKE
+ *     Transact - testTheCallerAsksToPayAMemberId MAKE
+ *     Transact - testTheCallerAsksToPayAPlayerByName MAKE
+ *     Transact - testTheCallerAsksToChargeAMemberId MAKE
+ *     Transact - testTheCallerAsksToPayTheLatestInvoice MAKE
+ *     Transact - testTheCallerAsksToPayTheLatestInvoiceFromAParticularMember MAKE
  *     Undo - testUndoTheLastTransaction MAKE
  *     Undo - testUndoTheLastTransactionWithSomeoneSpecific MAKE
  *     Undo - testUndoTheLastTransferToMe MAKE
@@ -118,16 +118,17 @@ function weSayToPhone($number, $message) {
  *     OfferToExchangeUSDollarsForRCredits - testMakeOrUpdateAnOffer TEST
  *     OpenAnAccountForTheCaller - testTheNewbieGivesUsHisOrHerName TEST
  *     OpenAnAccountForTheCaller - testTheNewbieGivesUsHisOrHerEmailAddress TEST
- *     Transaction - testTheCallerAsksToPayAMemberId TEST
- *     Transaction - testTheCallerAsksToPayAPlayerByName TEST
- *     Transaction - testTheCallerAsksToChargeAMemberId TEST
- *     Transaction - testTheCallerConfirmsAPayment TEST
- *     Transaction - testTheCallerConfirmsARequestToCharge TEST
- *     Transaction - testTheCallerConfirmsAUnilateralCharge TEST
- *     Transaction - testTheCallerConfirmsAPaymentWithInsufficientBalance TEST
- *     Transaction - testTheCallerAsksToPayTheLatestInvoice TEST
- *     Transaction - testTheCallerConfirmsPaymentOfTheLatestInvoice TEST
- *     Transaction - testTheCallerAsksToPayTheLatestInvoiceFromAParticularMember TEST
+ *     Transact - testTheCallerAsksToPayAMemberId TEST
+ *     Transact - testTheCallerAsksToPayAPlayerByName TEST
+ *     Transact - testTheCallerAsksToChargeAMemberId TEST
+ *     Transact - testTheCallerConfirmsAPayment TEST
+ *     Transact - testTheCallerConfirmsARequestToCharge TEST
+ *     Transact - testTheCallerConfirmsAUnilateralCharge TEST
+ *     Transact - testTheCallerConfirmsAPaymentWithInsufficientBalance TEST
+ *     Transact - testTheCallerAsksToPayTheLatestInvoice TEST
+ *     Transact - testTheCallerConfirmsPaymentOfTheLatestInvoice TEST
+ *     Transact - testTheCallerAsksToPayTheLatestInvoiceFromAParticularMember TEST
+ *     Transact - testTheCallerAsksToPayACompanyAgent TEST
  *     Undo - testUndoTheLastTransaction TEST
  *     Undo - testUndoTheLastTransactionWithSomeoneSpecific TEST
  *     Undo - testUndoTheLastTransferToMe TEST
@@ -146,8 +147,8 @@ function weSayToPhoneWithSubs($number, $message, $subs) {
 /**
  * we email (ARG) to member (ARG) with subs: (ARG)
  *
- * in: Transaction - testTheCallerConfirmsARequestToCharge TEST
- *     Transaction - testTheCallerConfirmsAUnilateralCharge TEST
+ * in: Transact - testTheCallerConfirmsARequestToCharge TEST
+ *     Transact - testTheCallerConfirmsAUnilateralCharge TEST
  *     Undo - testTheCallerRefusesToPayTheLatestInvoice TEST
  *     Undo - testTheCallerRefusesAPendingPayment TEST
  */
@@ -231,11 +232,11 @@ function phoneEmailIs($number, $email) {
  *     ExchangeForCash - testTheCallerConfirmsARequestToTradeCashForRCredits TEST
  *     ExchangeForCash - testTheCallerConfirmsAUnilateralTradeOfCashForRCredits TEST
  *     OpenAnAccountForTheCaller - testTheNewbieGivesUsHisOrHerEmailAddress TEST
- *     Transaction - testTheCallerConfirmsAPayment TEST
- *     Transaction - testTheCallerConfirmsARequestToCharge TEST
- *     Transaction - testTheCallerConfirmsAUnilateralCharge TEST
- *     Transaction - testTheCallerConfirmsAPaymentWithInsufficientBalance TEST
- *     Transaction - testTheCallerConfirmsPaymentOfTheLatestInvoice TEST
+ *     Transact - testTheCallerConfirmsAPayment TEST
+ *     Transact - testTheCallerConfirmsARequestToCharge TEST
+ *     Transact - testTheCallerConfirmsAUnilateralCharge TEST
+ *     Transact - testTheCallerConfirmsAPaymentWithInsufficientBalance TEST
+ *     Transact - testTheCallerConfirmsPaymentOfTheLatestInvoice TEST
  *     Undo - featureSetup TEST
  *     Undo - testTheCallerConfirmsUndoingACharge TEST
  */
@@ -272,10 +273,10 @@ function phoneHasRIncludingRewardsOf($number, $bal, $rewards) {
  * the community has r$(ARG)
  *
  * in: ExchangeForCash - testTheCallerConfirmsATradeOfRCreditsForCash TEST
- *     Transaction - testTheCallerConfirmsAPayment TEST
- *     Transaction - testTheCallerConfirmsAUnilateralCharge TEST
- *     Transaction - testTheCallerConfirmsAPaymentWithInsufficientBalance TEST
- *     Transaction - testTheCallerConfirmsPaymentOfTheLatestInvoice TEST
+ *     Transact - testTheCallerConfirmsAPayment TEST
+ *     Transact - testTheCallerConfirmsAUnilateralCharge TEST
+ *     Transact - testTheCallerConfirmsAPaymentWithInsufficientBalance TEST
+ *     Transact - testTheCallerConfirmsPaymentOfTheLatestInvoice TEST
  *     Undo - featureSetup TEST
  *     Undo - testTheCallerConfirmsUndoingACharge TEST
  */
@@ -321,7 +322,7 @@ function phoneIsMember($number, $id = NULL) {
  * members: (ARG)
  *
  * in: ExchangeForCash - featureSetup MAKE
- *     Transaction - featureSetup MAKE
+ *     Transact - featureSetup MAKE
  *     Undo - featureSetup MAKE
  */
 function members($list) {
@@ -334,10 +335,10 @@ function members($list) {
  * transactions: (ARG)
  *
  * in: ExchangeForCash - featureSetup MAKE
- *     Transaction - featureSetup MAKE
- *     Transaction - testTheCallerAsksToPayTheLatestInvoice MAKE
- *     Transaction - testTheCallerConfirmsPaymentOfTheLatestInvoice MAKE
- *     Transaction - testTheCallerAsksToPayTheLatestInvoiceFromAParticularMember MAKE
+ *     Transact - featureSetup MAKE
+ *     Transact - testTheCallerAsksToPayTheLatestInvoice MAKE
+ *     Transact - testTheCallerConfirmsPaymentOfTheLatestInvoice MAKE
+ *     Transact - testTheCallerAsksToPayTheLatestInvoiceFromAParticularMember MAKE
  *     Undo - featureSetup MAKE
  *     Undo - testTheCallerRefusesToPayTheLatestInvoice MAKE
  *     Undo - testTheCallerRefusesAPendingPayment MAKE
@@ -355,11 +356,12 @@ function transactions($list) {
  *     ExchangeForCash - testTheCallerConfirmsAnImplicitTradeOfRCreditsForCash MAKE
  *     ExchangeForCash - testTheCallerConfirmsARequestToTradeCashForRCredits MAKE
  *     ExchangeForCash - testTheCallerConfirmsAUnilateralTradeOfCashForRCredits MAKE
- *     Transaction - testTheCallerConfirmsAPayment MAKE
- *     Transaction - testTheCallerConfirmsARequestToCharge MAKE
- *     Transaction - testTheCallerConfirmsAUnilateralCharge MAKE
- *     Transaction - testTheCallerConfirmsAPaymentWithInsufficientBalance MAKE
- *     Transaction - testTheCallerConfirmsPaymentOfTheLatestInvoice MAKE
+ *     Transact - testTheCallerConfirmsAPayment MAKE
+ *     Transact - testTheCallerConfirmsARequestToCharge MAKE
+ *     Transact - testTheCallerConfirmsAUnilateralCharge MAKE
+ *     Transact - testTheCallerConfirmsAPaymentWithInsufficientBalance MAKE
+ *     Transact - testTheCallerConfirmsPaymentOfTheLatestInvoice MAKE
+ *     Transact - testTheCallerAsksToPayACompanyAgent MAKE
  *     Undo - testTheCallerConfirmsUndoingACharge MAKE
  *     Undo - testTheCallerConfirmsUndoingAPayment MAKE
  *     Undo - testTheCallerRefusesToPayTheLatestInvoice MAKE
@@ -377,7 +379,7 @@ function phoneConfirms($number, $request) {
  * phone (ARG) can charge unilaterally
  *
  * in: ExchangeForCash - testTheCallerConfirmsAUnilateralTradeOfCashForRCredits MAKE
- *     Transaction - testTheCallerConfirmsAUnilateralCharge MAKE
+ *     Transact - testTheCallerConfirmsAUnilateralCharge MAKE
  */
 function phoneCanChargeUnilaterally($number) {
   global $testOnly;
@@ -452,4 +454,15 @@ function phoneDemandForRCreditsIs($number, $demand) {
 //  debug(r\user_field('demand', $uid));
 //  debug(compact('number','demand','uid'));
   return TRUE;  
+}
+
+/**
+ * relations: (ARG)
+ *
+ * in: Transact - featureSetup MAKE
+ */
+function relations($relations) {
+  global $testOnly;
+  foreach ($relations as $one) t\makeRelation($one);
+  return TRUE;
 }

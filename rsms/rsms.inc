@@ -51,7 +51,7 @@ define('RSMS_PREFIX', 'r: '); // identify us
 //define('RSMS_PREFIX_INACTIVE', '[TRIAL RUN] '); // pretend transactions by not-yet-active players (treat it as a trial run)
 //define('RSMS_PREFIX_ASIF', 'AS IF: '); // pretend transactions by Active Participants
 
-$GLOBALS['SMS messages'] = array(
+$GLOBALS[TX_SMS . ' messages'] = array(
   // reports
   'account info' => t("Your@asif balance for account @quid is @balance, including @rewards of incentive rewards. Total demand for rCredits is @total_demand."),
 //  'account info2' => t("More account info"), // not used yet
@@ -149,9 +149,9 @@ $GLOBALS['SMS help'] = array(
   'help helpme' => t('Options: pay | charge | undo | info | get | helpme. For details, type "helpme pay" and so forth.'),
 );
 
-$GLOBALS['SMS messages'] = array_merge($GLOBALS['SMS messages'], $GLOBALS['SMS help']); 
-$GLOBALS['SMS messages']['help helpme no-error'] = t('Try something! ') . $GLOBALS['SMS help']['help helpme'];
-foreach (array('more', 'stop', 'start') as $one) $GLOBALS['SMS messages']["help $one"] = $GLOBALS['SMS help']['help helpme'];
+$GLOBALS[TX_SMS . ' messages'] = array_merge($GLOBALS[TX_SMS . ' messages'], $GLOBALS['SMS help']); 
+$GLOBALS[TX_SMS . ' messages']['help helpme no-error'] = t('Try something! ') . $GLOBALS['SMS help']['help helpme'];
+foreach (array('more', 'stop', 'start') as $one) $GLOBALS[TX_SMS . ' messages']["help $one"] = $GLOBALS['SMS help']['help helpme'];
 
 $GLOBALS['SMS commands'] = array( // these can be abbreviated by the caller
   'get' => array('get %rusd %amount', 'get %amount %rusd'), // best before pay, so that "g r 10" is interpreted as "get r" not "give who"
@@ -298,7 +298,7 @@ function intent($intent, $command, $pattern, $message) {
  * @param array $subs: associative array of substitutions (@ will be prepended to each key)
  * return string: the message after any substitutions
  */
-function tt($message, $subs = array()) {return u\tt($message, $subs, 'SMS');}
+function tt($message, $subs = array()) {return u\tt($message, $subs);}
 
 // one-line functions that need no explanation
 function uid($number) {return (int) r\db_lookup('uid', 'r_sms', 'number=:number', compact('number'));}

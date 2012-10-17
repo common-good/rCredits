@@ -33,203 +33,6 @@ namespace rCredits\API; // typically abbreviated as "api"
 use \rCredits as r;
 use \rCredits\Util as u;
 
-function api2($op, $args, $success = 1) {
-  $op = 'rCredits\\API\\' . $op;
-  if (function_exists($op)) api_out(compact('success') + $op($args)); else api_error('unknown op'); // args can override success
-}
-
-function api_error($message, $success = 0) {api_out(compact('success', 'message'));}
-
-function api_out($args) {
-  u\log('out', $args);
-  exit(json_encode2($args, JSON_UNESCAPED_SLASHES));
-}
-
-/**
- * Receive and process a REST request from a smart device
- * @param array $args: an associative array that normally includes:
- *   op: what to do (determines what function to call)
- *   my_id: agent qid
- *   code: permanent code that we sent to the device in First Time response (used to set $cuid)
- *     for now, user cannot change the active account, just the agent (eg sales clerks)
- *     if $op = 'first_time', expect $password instead
- *   account_id: the qid for the other party, if any 
- *     This gets passed to the specific op functions as $ruid = array($uid, $agent_uid, $region_uid)
- * @return (normally by calling either api_error or api2):
- *   $success=1 if api2 is called, otherwise 0 ($op = 'photo' is an exception; see below)
- *   $message: an error message or help message to display on the device; or not set
- */
-function smart_api() {
-  global $auid, $cuid, $cruid, $channel;
-  $channel = TX_SMART;
-  u\log('in', $_POST);
-  if (!(@$args = (array) json_decode($_POST['json']))) api_error('no json');
-  extract($args, EXTR_PREFIX_ALL, 'q');
-  if (@$q_op != 'reset') // DEBUG
-  if (@$q_op != 'first_time') {
-    if (!@$q_code) api_error('no code given');
-    if (!($cuid = r\db_lookup('uid', 'r_smarts', 'code=:q_code', compact('q_code')))) api_error('unknown device');
-    $cruid = r\ruid(@$q_my_id);
-    if (!@$cruid) api_error('bad id');
-    list ($auid, $auid, $region_uid) = $cruid;
-    if ($region_uid != r\server_uid()) api_error('wrong server');
-    if (!r\ok_agent($cuid, $auid)) api_error('You do not have permission to use that account.'); // make sure agent has permission
-  }
-  $op = 'smart_' . @$q_op;
-
-  if (@$q_account_id) {
-    $ruid = r\ruid($q_account_id);
-    if (!$ruid) api_error('bad account_id');
-    list ($uid, $agent_uid, $region_uid) = $ruid;
-    $args = array_merge($args, compact(u\ray('ruid uid agent_uid region_uid'))); // use array_merge (not +) to assure overwrite
-  }
-  api2($op, $args);
-}
-
-function smart_reset($args) {
-  r\db_q('DELETE FROM r_smarts WHERE 1');
-  return array();
-}
-
-/*
- * Requesting a permanent code from the server.
- * @param array $args:
- *   my_id
- *   password: the user's Drupal account password
- * @return:
- *   code: permanent code for app to prove the identity of the device
- *   owner_id: the device owner's account ID
- *   update_link: URL of updated app; not set if no update is available
- */
-function smart_first_time($args) {
-  require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
-  extract($args, EXTR_PREFIX_ALL, 'q');
-//  if (!($account = \user_load_by_name(@$q_my_id))) api_error('unknown user');
-  if (!($ruid = r\ruid(@$q_my_id))) api_error('bad id');
-  $uid = $ruid[0];
-  if (!($account = \user_load($uid))) api_error('unknown user');
-  if (@!$q_password) api_error('login error');
-  if (!user_check_password($q_password, $account)) api_error('bad login'); // make these two error messages distinct but obscure
-  $code = user_hash_password(uniqid($q_my_id, TRUE)) . '/'; // add a slash to make sure slashes get handled properly
-  $owner_id = r\quid($uid, $uid);
-  $device = t('Smart Device');
-  \drupal_write_record('r_smarts', compact(u\ray('uid code device'))); // no way to tell if it's the same device as others
-  return compact(u\ray('code owner_id')) + smart_startup($args);
-}
-
-/*
- * Identify the scanned QR code.
- * @param array $args: (none)
- * @return:
- *   update_link (URL of updated app; not set if no update is available)
- */
-function smart_startup($args) {
-  if (rand() < getrandmax() / 2) $update_link = 'http://rCredits.org/files/smart.apk';
-  $allow_change_account = 0;
-  $allow_change_agent = TRUE;
-  $require_agent = access('company');
-  return compact('update_link allow_change_account allow_change_agent require_agent');
-}
-
-/*
- * Identify the other party.
- * @param array $args:
- *   account_id (converted to ruid): the qid for an individual or company and rep
- * @return:
- *   full_name: the individual's name
- *   company_name: the company name (if any)
- *   location: the location of the company if it's a company, otherwise of the individual (typically city, state)
- *   other_balance: the current balance of the company if it's a company, otherwise of the individual
- */
-function smart_identify($args) {
-  $cuid = r\cuid();
-  extract($args, EXTR_PREFIX_ALL, 'q');
-  $full_name = \user_load($q_uid)->full_name;
-  if ($q_uid == $cuid) api_error(r\Web\tt('no self-trading'));
-  $account = \user_load($q_uid); // the individual or company account
-  $country = $account->country;
-  $location = $account->city . ', ' . ($country == 'United States' ? u\state_abbrev($account->state) : $country);
-  if (@$q_company_uid) $company_name = r\user_field('full_name', $q_company_uid);
-  $uid = $q_uid;
-  $other_balance = credit_info(compact('uid'))->balance;
-  return compact(u\ray('full_name location company_name other_balance'));
-}
-
-/*
- * Get an individual's photo.
- * @param array $args:
- *   account_id (converted to ruid): the qid for an individual or company and rep
- * @return:
- *   just the photo data (no json)
- */
-function smart_photo($args) {
-  extract($args, EXTR_PREFIX_ALL, 'q');
-  $pic_filename = r\Web\profile_picture(@$q_uid);
-  $pic = file_get_contents($pic_filename);
-  exit($pic);
-}
-
-/*
- * Request a transaction.
- * @param array $args:
- *   account_id (converted to uid or company_uid & rep_id): the qid for an individual or company and rep
- *   type: “charge” or “payment”
- *   amount: numeric dollar amount
- *   goods: true unless user checks “cash, loan, etc.”
- *   purpose: description of goods and services
- * @return:
- *   tx_id: transaction ID number, if success, otherwise empty string
- *   my_balance: device owner's new balance
- *   other_balance: the new balance of the company if it's a company, otherwise of the individual
- */
-function smart_transact($args) {
-  extract($args, EXTR_PREFIX_ALL, 'q');
-  if (!$q_goods) $q_purpose = 'cash'; // tell transfer no rewards
-  list ($index, $subs, $zot) = transfer($q_type, $q_ruid, $q_amount, $q_purpose, $q_goods, TRUE);
-  $tx_id = r\qxid($subs['zxid']); // return the transaction id as a qid (globally unique transaction id) (':' means As-If)
-  list ($my_balance, $other_balance) = smart_balances($q_uid, $subs['real']);
-  $message = r\Web\tt($index, $subs);
-  //if (!@$subs['success'])
-  return compact(u\ray('tx_id my_balance other_balance message'));
-}
-
-function smart_balances($uid, $real) {
-  $my_balance = credit_info(compact('real'))->balance;
-  if (access('charge others')) $other_balance = credit_info(compact('real', 'uid'))->balance;
-  return array($my_balance, $other_balance);
-}
-
-/*
- * Undo the specified transaction (perhaps tentatively)
- * @param array $args:
- *   account_id: the qid for an individual or company and rep
- *   tx_id: qid of the transaction to undo
- *   confirmed: TRUE if user has already okayed this undo
- * @return (only if confirmed is TRUE):
- *   tx_id: qid of offsetting transaction, if any (which could in turn be undone). Undefined if failure. 
- *     Otherwise, tx_id not set means transaction was simply deleted, so there is no longer any transaction that can be undone.)
- *   my_balance: device owner's new balance
- *   other_balance: the new balance of the company if it's a company, otherwise of the individual
- */
-function smart_undo($params) {
-  extract($params, EXTR_PREFIX_ALL, 'q');
-  
-  list ($zxid, $region_uid) = r\azid($q_tx_id);
-  if ($region_uid != r\server_uid()) api_error('That is not a transaction on this server.');
-  
-  if ($q_confirmed) {
-    list ($message, $args) = undo_tx($zxid);
-    $message = r\Web\tt($message, $args);
-    if (!@$args['success']) api_error($message);
-    if ($new_zxid = @$args['zxid']) $tx_id = r\qxid($new_zxid); // get offsetting transaction id, if any (otherwise state changed)
-    list ($my_balance, $other_balance) = smart_balances($args['other_uid'], $zxid > 0);
-  } else {
-    if (!($result = last_tx('xid=:zxid', compact('zxid')))) api_error(r\Web\tt('undo no match'));
-    $message = r\Web\tt('confirm undo', r\tx_report_args($result));
-  }
-  return compact(u\ray('message tx_id my_balance other_balance'));
-}
-
 /**
  * Receive and process a REST request from the website frontend
  */
@@ -257,7 +60,7 @@ function backend2($args = FALSE) {
  *   'email' is email address
  *   UNUSED (because it's hard to verify): 'website' is website address
  *   (This function assumes that the info is not sufficient to identify an existing user)
- * @return the uid of the new account
+ * @return acct: the new acct
  */
 function create_user($info) {
   if (is_frontend()) return backend('create_user', $info);
@@ -275,16 +78,14 @@ function create_user($info) {
   $info['is_new'] = TRUE;
   $info['community_uid'] = r\community_uid(@$my_postal_code);
 
-  //*** Begin DBTX
-  $dbtx = db_transaction();
+  /*** Begin DBTX ***/ $dbtx = db_transaction();
   $account = \user_save(array(), $info);
 //  make_credit_id($account->uid); // this is done separately, to assure uniqueness
   if (isset($my_number)) r\SMS\create($my_number, $account->uid);
-  unset($dbtx);
-  //*** End DBTX
+  /*** End DBTX ***/ unset($dbtx);
 
   if (!$account) throw new \Exception('failed to save user record');
-  return $account->uid;
+  return new acct($account->uid, '', (array) $account);
 }
 
 /**
@@ -398,10 +199,12 @@ function undo_tx($zxid, $real = 'bug') {
   $data = unserialize($old_data);
   if (@$data['undone']) return array('already undone', compact('old_tid'));
 
+  $acct = $old_to_me ? r\tx2acct($old_payer, $old_payer_agent, $data) : r\tx2acct($old_payee, $old_payee_agent, $data);
+/*
   $other_ruid = r\is_foreign($old_other_uid) ?
       array($data['foreign_uid'], $data['foreign_agent'], $old_other_uid) // foreign region
     : ($old_to_me ? array($old_payer, $old_payer_agent, r\server_uid()) : array($old_payee, $old_payee_agent, r\server_uid()) );  // local region
-
+*/
   if ($old_state == TX_PENDING or $old_state == TX_DENIED) { // it's an invoice - cancel simply by changing the transaction state
 // function undo_invoice($zxid, $old_record, $old_other_uid, $by_me) // return $solution
     if ($old_by_me) {
@@ -416,7 +219,7 @@ function undo_tx($zxid, $real = 'bug') {
     r\set_tx_state(TX_DISPUTED, $zxid); // mark it disputed
     $solution = t('marked "disputed"');
     r\notify($old_other_uid, 'charge-disputed', r\tx_report_args($old_record));
-  } else return reverse($zxid, $old_amount, $other_ruid, $data, $old_goods, $old_tid, $old_to_me); // create an offsetting transaction
+  } else return reverse($zxid, $old_amount, $acct, $data, $old_goods, $old_tid, $old_to_me); // create an offsetting transaction
 
   $amount = u\format_amount($old_amount);
   $tofrom = !$old_to_me ? t('to') : t('from');
@@ -427,25 +230,25 @@ function undo_tx($zxid, $real = 'bug') {
 /**
  * Create an offsetting transaction.
  */
-function reverse($zxid, $amount, $other_ruid, $data, $old_goods, $old_tid, $to_me) {
-//    print_r(compact(u\ray('zxid amount other_ruid data old_tid to_me'))); die();
-  u\expect(compact(u\ray('zxid amount other_ruid data old_tid to_me')), 'zid float ruid assoc|empty string bool');
+function reverse($zxid, $amount, $acct, $data, $old_goods, $old_tid, $to_me) {
+//    print_r(compact(u\ray('zxid amount acct data old_tid to_me'))); die();
+  u\expect(compact(u\ray('zxid amount acct data old_tid to_me')), 'zid float acct assoc|empty string bool');
 
   global $auid;
   if (!is_array($data)) $data = array();
   $old_data = $data; // remember original data from transaction we're reversing
   $type = $to_me ? 'payment' : 'charge';
   $my_note = "reverses #$old_tid";
-  $other_note = str_replace($old_tid, zxid2tid($zxid, $other_ruid[0]), $my_note);
+  $other_note = str_replace($old_tid, zxid2tid($zxid, $acct->id), $my_note);
   $what = u\order($type == 'payment', $my_note, $other_note);
   if (@$data['rebate'] or @$data['bonus']) list ($data['rebate'], $data['bonus']) = array(-$data['bonus'], -$data['rebate']);
   $data['zxid'] = $zxid; // remember what we're reversing (especially to get the realness right)
-  list ($message, $args, $confirm) = transfer($type, $other_ruid, $amount, $what, $old_goods, TRUE, $data);
+  list ($message, $args, $confirm) = transfer($type, $acct, $amount, $what, $old_goods, TRUE, $data);
 
   if (@$args['success']) {
     list ($new_tid, $new_zxid) = array($args['tid'], $args['zxid']);
     u\expect($new_zxid * $zxid > 0, 'reverse: wrong reality');
-    $other_tid = zxid2tid($new_zxid, $other_ruid[0]);
+    $other_tid = zxid2tid($new_zxid, $acct->id);
     $old_data['undone'] = TRUE;
     $old_data['changes'][] = array(time(), $auid, 'undo', $new_zxid);
     $old_data = serialize($old_data);
@@ -529,10 +332,11 @@ function pay_invoice($zxid) {
   if (!($result = last_tx('xid=:zxid AND state=:TX_PENDING', compact('zxid')))) return array('no such tx', array());
   extract($result, EXTR_PREFIX_ALL, 'old');
 // (not needed)  if ($zxid < 0 and (r\is_rTrader($old_payer) and r\is_rTrader($old_payee))) return array("can't pay asif invoice");
-  $ruid = array($old_payee, $old_payee_agent, $old_payee < 0 ? $old_payee : r\server_uid());
+//  $ruid = array($old_payee, $old_payee_agent, $old_payee < 0 ? $old_payee : r\server_uid());
+  $acct = new r\acct($old_payee, $old_payee_agent);
   
   /*** Begin DBTX ***/ $dbtx = db_transaction();
-  list ($message, $args, $confirm) = transfer('invoice payment', $ruid, $old_amount, $old_payee_for, $old_goods, TRUE, compact('zxid'));
+  list ($message, $args, $confirm) = transfer('invoice payment', $acct, $old_amount, $old_payee_for, $old_goods, TRUE, compact('zxid'));
   if (@$args['success']) r\set_tx_state(TX_DELETED, $zxid); // delete the invoice
   /*** End DBTX ***/ unset($dbtx); // $dbtx->commit() is disallowed
 
@@ -542,7 +346,7 @@ function pay_invoice($zxid) {
 /**
  * Create a transaction
  * @param string $ttype: payment, charge, or invoice payment
- * @param array $ruid: external account id for other party, in array form
+ * @param array $acct: acct object for the other party
  *   OR 'ALL' (paying employees)
  * @param numeric $requested_amount: the transaction amount
  * @param string $for OR array($payer_for, $payee_for): description of the transaction's purpose (user input)
@@ -564,28 +368,25 @@ function pay_invoice($zxid) {
  * $confirmed (user confirmed the transaction request), $paying_invoice, $goods (the transaction is an exchange for real stuff),
  * $shortfall (how inadequate the payer's balance is)
  */
-function transfer($ttype, $ruid, $requested_amount, $for, $goods, $confirmed = TRUE, $data = array()) {
-  if (is_frontend()) return (array) backend('transfer', compact(u\ray('ttype ruid requested_amount for confirmed data')));
+function transfer($ttype, $acct, $requested_amount, $for, $goods, $confirmed = TRUE, $data = array()) {
+  if (is_frontend()) return (array) backend('transfer', compact(u\ray('ttype acct requested_amount for confirmed data')));
   if (is_array($ttype)) extract($ttype); // called from api or backend
   global $cuid, $auid;
 
-  if ($ruid == 'ALL') return $ttype == 'payment' ? r\pay_employees($requested_amount, $for, $confirmed) : array('no ALL', array(), FALSE);
+  if ($acct == 'ALL') return $ttype == 'payment' ? r\pay_employees($requested_amount, $for, $confirmed) : array('no ALL', array(), FALSE);
   
   $taking = ($ttype == 'charge');
 
   // Check permissions
-  u\expect(compact(u\ray('ttype ruid requested_amount confirmed data')), 'string ruid float bool assoc');
+  u\expect(compact(u\ray('ttype acct requested_amount confirmed data')), 'string acct float bool assoc');
   list ($my_access, $other_access) = u\order($taking, 'sell', 'buy and sell');
   if (!access($my_access)) return array("no $my_access", array(), FALSE);
-  if (!access($other_access, $ruid)) return array("other no $other_access", array(), FALSE);
+  if (!access($other_access, $acct)) return array("other no $other_access", array(), FALSE);
 
   // Interpret ruid (who's buying or selling)
-  list ($uid, $agent_uid, $region_uid) = $ruid;
-  if (r\is_foreign($region_uid)) { // other is from elsewhere
-    list ($foreign_uid, $foreign_agent) = $ruid;
-    $foreign = compact(u\ray('foreign_id')); // save for $data
-    $uid = $agent_uid = $region_uid;
-  } 
+  list ($uid, $foreign_uid) = tx_person($acct->id, $acct->region);
+  list ($agent_uid, $foreign_agent) = tx_person($acct->agent, $acct->agentRegion);
+  $foreign = compact($foreign_uid ? 'foreign_uid' : '', $foreign_agent ? 'foreign_agent' : '');
   if ($uid == $cuid) return array('no self-trading', array(), FALSE);
   list ($payer, $payee) = u\order($taking, $uid, $cuid);
   list ($payer_agent, $payee_agent) = u\order($taking, $agent_uid, $auid);
@@ -615,7 +416,7 @@ function transfer($ttype, $ruid, $requested_amount, $for, $goods, $confirmed = T
   $rebate = $goods ? ('' . r\rebate($payer, $amount)) : '0'; // force string, to avoid long serializations
   $bonus = $goods ? ('' . r\bonus($payee, $amount)) : '0';
   if (!isset($data['rebate'])) $data += compact('rebate', 'bonus');
-  if (@$foreign) $data += $foreign;
+  $data += $foreign;
   unset($data['preapproved']); // probably don't need this (but keep zxid of related transaction, if any)
   $data = serialize($data);
 
@@ -640,6 +441,8 @@ function transfer($ttype, $ruid, $requested_amount, $for, $goods, $confirmed = T
   if ($shortfall) $args['amount'] = u\format_amount($requested_amount); // restore original amount before getting confirmation
   return array($confirm_type, $args, TRUE); // to be confirmed
 }
+
+function tx_person($id, $region) {return r\is_foreign($region) ? array($region, $id) : array($id, NULL);}
 
 /**
  * Record an incentive transaction for signing up
@@ -713,14 +516,14 @@ function delete_cell($number) {
  * @param string $self_message: index to error message for identifying oneself
  * @return one of the following:
  *   'ALL', if the user typed "all"
- *   the other trader's ruid = array(uid, agent_uid, region_uid)
+ *   the other trader's acct
  *   array(error index, array of substitutions, array of possible full_names (0 or more) indexed by uid)
- *   (the caller can test which type of return, with "if (is_ruid($returned_value))
+ *   (the caller can test which type of return, with "if (is_acct($returned_value))
  */
 function identify($who, $create = FALSE, $allow_ALL = FALSE, $self_message = 'no self-trading') {
   if (is_frontend()) {
     $result = backend('identify', compact(u\ray('who create self_message')));
-    return is_object($result) ? ((array) $result) : $result;
+    return u\is_acct($result) ? $result : ((array) $result);
   }
   if (is_array($who)) extract($who); // called from api or backend
 
@@ -735,7 +538,7 @@ function identify($who, $create = FALSE, $allow_ALL = FALSE, $self_message = 'no
   }
   if ($ruid = r\ruid($quid, FALSE)) {
     if (!r\user_field(1, $ruid[0])) return array('unknown user', compact('who'), array());
-    return $ruid[0] == $cuid ? array($self_message, array(), array()) : $ruid; // qids are easy
+    return $ruid[0] == $cuid ? array($self_message, array(), array()) : new r\acct($quid); // qids are easy
   }
 
   if (($short = u\short_name($who)) === '') $short = '-'; // abbreviations must not be null
@@ -760,7 +563,7 @@ EOF;
   if(count($result) > 1) return array('ambiguous other', compact(u\ray('who')), $result);
   if(count($result) == 1) {
     foreach ($result as $uid => $other); // get the one entry
-    return array($uid, $uid, r\server_uid());
+    return new r\acct($uid);
 //    return (access('member', $uid)) ? array($uid, $uid) : array('non trader', compact('other'), $result);
   }
 
@@ -997,25 +800,31 @@ function account_name($uid) {
 
 /**
  * Return all the permissions for the specified account
- * @param array $ruid: ruid of the account/agent to ask about (defaults to current account)
+ * @param array $acct: acct object for the other party
+ *   OR ruid of the account/agent to ask about (defaults to current account)
  *   OR a simple uid on the current server
  * @return simple array of that account's permissions
  */
-function accesses($ruid = '') {  
+function accesses($acct = '') {  
   global $cruid;
   if (is_frontend()) {
-    $result = backend('accesses', compact(u\ray('ruid')), (bool) $ruid);
+    $result = backend('accesses', compact(u\ray('acct')), (bool) $acct);
     return is_array($result) ? $result : array();
   }
-  if (is_array($ruid) and !u\is_ruid($ruid)) extract($ruid); // called from api or backend
+  if (is_array($acct) and !u\is_ruid($acct)) extract($acct); // called from api or backend
 
   if (!$cruid) return array(); // no access for ANYONE, if anonymous user
-  list ($main_uid, $agent_uid, $region_uid) = u\is_id($ruid) ? array($ruid, $ruid, r\server_uid()) : ($ruid ?: $cruid);
+  list ($main_uid, $agent_uid, $region_uid) = 
+      (u\is_id($acct) ? array($acct, $acct, r\server_uid()) 
+    : (u\is_acct($acct) ? array($acct->id, $acct->agent, $acct->region)
+    : (u\is_ruid($acct) ? $acct
+    : ($cruid
+  ))));
   if (!$main_uid or !$agent_uid) return array(); // anonymous user has no access
   if (!($account = \user_load($main_uid))) return array(); // no access for unknown account
 
-  /*
   $perms = array();
+  /*
   $role_perms = (\user_role_permissions(\user_load($main_uid)->roles)); // Drupal permissions for the company
 //  $perms[] = array_values(\user_load($agent_uid)->roles); // include things like administrator and rTrader
   foreach ($role_perms as $key => $value) $perms += array_keys($role_perms[$key]);
@@ -1120,11 +929,12 @@ function backend($op, $info = array(), $cache = FALSE) {
  *   a standard Drupal permission, queryable through user_access()
  *   a shared account permission, stored in r_relations (cached in $_SESSION['rcredits_account_choices'], but we're not trusting that)
  *   an ad hoc permission handled directly by this function
- * @param $ruid: ruid of the account to ask about (defaults to cruid, meaning the current account)
+ * @param array $acct: acct object for the other party
+ *   OR ruid of the account to ask about (defaults to cruid, meaning the current account)
  *   OR a simple uid on the current server
  * @return boolean: TRUE if the user has the permission
  */
-function access($access, $ruid = '') {
-  u\expect(compact(u\ray('access ruid')), 'string&notempty ruid|empty|id');
-  return in_array($access, accesses($ruid));
+function access($access, $acct = '') {
+  u\expect(compact(u\ray('access acct')), 'string&notempty acct|acct|empty|id');
+  return in_array($access, accesses($acct));
 }

@@ -92,7 +92,7 @@ use \rCredits\Util as u;
 use \rCredits\API as api;
 
 include_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
-include_once __DIR__ . '/mr.class';
+include_once __DIR__ . '/acct.class';
 include_once __DIR__ . '/rcredits-circles.inc'; // treat this as an extension of this file, for testing
 
 define('R_SEPARATE_BACKEND', FALSE);
@@ -406,8 +406,8 @@ function pay_employees($amount0, $for, $confirmed) {
   $pay_all = TRUE;
   $results = array();
   $successes = 0;
-  foreach ($employees as $ruid) {
-    $results[] = list ($message, $args, $confirm) = api\transfer('payment', $ruid, $amount_unformatted, $for, !u\for_cash($for), TRUE, compact('pay_all'));
+  foreach ($employees as $acct) {
+    $results[] = list ($message, $args, $confirm) = api\transfer('payment', $acct, $amount_unformatted, $for, !u\for_cash($for), TRUE, compact('pay_all'));
     if ($args['success']) $successes++;
   }
   $success = ($successes > 0);
@@ -532,7 +532,7 @@ EOF;
  * Reset all rCredits data, to start development with a clean slate
  */
 function reset() {
-//  $ctty_uid = r\server_uid();
+//  $ctty_uid = server_uid();
   $sqls = array(
     'TRUNCATE TABLE r_txs',
     'TRUNCATE TABLE r_asif',
@@ -625,7 +625,7 @@ function quid($ruid = '', $agent_uid = '', $region_uid = '') {
 /**
  * Convert quid to ruid
  * @param quid $quid: the quid to convert (DEFAULT current acount and agent's quid)
- * @return the corresponding ruid (FALSE if wrong format)
+ * @return the corresponding ruid = [uid, agent, region] (FALSE if wrong format)
  */
 function ruid($quid = '', $no_abbrev = TRUE) {
   global $cuid, $auid;
@@ -663,6 +663,11 @@ function zuid($id = '', $agent_uid = '') {
 function zxid($xid, $table) {return $table == zxs(TRUE/2) ? $xid : -$xid;}
 function azxid($zxid) {return $zxid > 0 ? array($zxid, zxs(TRUE/2)) : array(-$zxid, zxs(FALSE/2));}
 
+function tx2acct($id, $agent, $data) {
+  if (is_array($data)) extract($data); // foreign_uid and/or foreign_agent (or neither)
+  return new acct(@$foreign_uid ? qid($foreign_uid, $id) : $id, @$foreign_agent ? qid($foreign_agent, $agent) : $agent);
+}
+
 /**
  * Say whether one of the accounts owns the other.
  */
@@ -693,14 +698,17 @@ function unique_name($full_name) {
 }
 
 /**
- * Return a list of employee ruids for the current account.
+ * Return a list of employee accts for the current account.
  */
 function employees() {
   global $cuid;
-  $result = db_q('SELECT agent_uid, agent_region FROM r_relations WHERE main_uid=:cuid AND is_employee', compact('cuid'));
-  $ruids = array();
-  foreach ($result as $key => $one) $ruids[] = array($one->agent_uid, $one->agent_uid, $one->agent_region);
-  return $ruids;
+  $result = db_q('SELECT agent_uid, foreign_uid FROM r_relations WHERE main_uid=:cuid AND is_employee', compact('cuid'));
+  $accts = array();
+  foreach ($result as $key => $one) {
+    extract((array) $one); // agent_uid, foreign_uid
+    $accts[] = $agent_uid > 0 ? new acct($agent_uid) : new acct(qid($foreign_uid, $agent_uid));
+  }
+  return $accts;
 }
 
 /**
@@ -786,7 +794,7 @@ function uid_from_crid($qid) {return db_lookup('uid', 'users', 'qid=:qid', compa
 function total_demand() {return db_lookup('SUM(demand)', 'users');}
 function server_uid($region_id = '') {return -u\a2n($region_id ?: R_SERVER_ID);}
 function reid($main_uid, $agent_uid) {return db_lookup('reid', 'r_relations', 'main_uid=:main_uid AND agent_uid=:agent_uid', compact(u\ray('main_uid agent_uid')));}
-function ok_agent($uid, $agent_uid) {return ($uid == $agent_uid or r\reid($uid, $agent_uid));}
+function ok_agent($uid, $agent_uid) {return ($uid == $agent_uid or reid($uid, $agent_uid));}
 function is_rTrader($uid = '') {return (user_field('flags', $uid ?: cuid()) & BIT_RTRADER);}
 function email_template($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}
 function email_body($key) {return str_replace('{BODY}', email_template($key), email_template(R_EMAIL_FRAME));}

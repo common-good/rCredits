@@ -24,7 +24,7 @@ define('R_TOGGLE_JS', '
   }
 ');
 
-$GLOBALS['Web messages'] = array(
+$GLOBALS[TX_WEB . ' messages'] = array(
 //  'atid' => t('#@atid: '), // avoid duplicate verbage, don't say "transaction #"
 
   // reports
@@ -148,10 +148,10 @@ function show_form($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   try {
     setup_globals(); // in case it's an anonymous form, so web_access doesn't have a chance to set up
     if ($function != 'accounts') u\log("show $function", compact(u\ray('arg1 arg2 arg3 arg4')));
-    drupal_add_css(\drupal_get_path('module', 'rweb') . '/rweb.css', array('group' => CSS_THEME) + weight(-9));
+    drupal_add_css(\drupal_get_path('module', 'rweb') . '/rWeb.css', array('group' => CSS_THEME) + weight(-9));
     $form_name = substr($function, 0, 1) == '\\' ? $function : "rCredits\\Web\\{$function}_form";
     $form = drupal_get_form($form_name, $arg1, $arg2, $arg3, $arg4);
-  //  $form['#attached']['css'] = array(\drupal_get_path('module', 'rweb') . '/rweb.css');
+  //  $form['#attached']['css'] = array(\drupal_get_path('module', 'rweb') . '/rWeb.css');
     $form['#attributes']['class'][] = 'rweb';
     if (!@$form['confirm']) $form += which(); // add the popup form, if any
     if ($colgroup = @$form['#colgroup']) {
@@ -816,8 +816,7 @@ function relations_form_submit($form, &$form_state) {
 
   if (@$agent_uid) {
     $permission = 0; // default to no permissions
-    $agent_region = r\server_uid();
-    $zot = \drupal_write_record('r_relations', compact(u\ray('main_uid agent_uid permission agent_region')));
+    $zot = \drupal_write_record('r_relations', compact(u\ray('main_uid agent_uid permission')));
     $who = r\user_field('full_name', $agent_uid);
     say('report new relation', compact('who'));
   }
@@ -966,7 +965,7 @@ function register_form(&$form, &$form_state) {
     'submit' => form_field('submit', NULL, t('Submit button'), 'Submit'), */
   );
 
-  drupal_add_css(\drupal_get_path('module', 'rweb') . '/rweb.css', array('group' => CSS_THEME) + weight(-9));
+  drupal_add_css(\drupal_get_path('module', 'rweb') . '/rWeb.css', array('group' => CSS_THEME) + weight(-9));
   drupal_add_js('inc/countries.js', array('type'=>'file', 'scope'=>'header'));
   drupal_add_js("print_country(\"edit-country\", \"$my_country\", \"$my_state\");", array('type'=>'inline', 'scope'=>'footer'));
 
@@ -1003,7 +1002,7 @@ function register_form_submit($form, &$form_state) {
     extract($my_company_options, EXTR_PREFIX_ALL, 'my');
     $company_uid = whois($my_company, 'company', $form_state['values']);
     if (!r\reid($company_uid, $my_uid)) {
-      list ($main_uid, $agent_uid, $is_owner, $agent_region) = array($company_uid, $my_uid, $my_is_owner, r\server_uid());
+      list ($main_uid, $agent_uid, $is_owner) = array($company_uid, $my_uid, $my_is_owner);
       \drupal_write_record('r_relations', compact(u\ray('main_uid agent_uid is_owner agent_region'))); // leave it to the owner to mark is_employee
     }
   }
@@ -1029,7 +1028,7 @@ function login_alter(&$form, &$form_state) {
   $form['name']['#title'] = t('Username/Email/ID');
   
   $form['#attributes']['class'][] = 'rweb';
-  $form['#attached']['css'][] = \drupal_get_path('module', 'rweb') . '/rweb.css';
+  $form['#attached']['css'][] = \drupal_get_path('module', 'rweb') . '/rWeb.css';
 }
 
 /**
@@ -1382,7 +1381,7 @@ function svar($name) {
  */
 function whois($who, $field_name, $info, $create = TRUE, $allow_ALL, $self_message = 'no self-trading') {
   $result = api\identify($who, $create, $allow_ALL, $self_message);
-  if ($result == 'ALL' or u\is_ruid($result)) return $result;
+  if ($result == 'ALL' or u\is_acct($result)) return $result;
 
   list ($message, $args, $choices) = $result;
   foreach ($choices as $uid => $full_name) $choices[$uid] = substr(r\quid($uid), 3) . '   ' . $full_name;
@@ -1404,8 +1403,8 @@ function transfer($info, $confirmed) {
   if (!$goods) $purpose = 'cash'; // tell api\transfer it's not for goods (should be the only place this string occurs)
   $amount = str_replace(',', '', $amount); // ignore commas
   if (!is_numeric($amount)) return say('bad amount', 'amount');
-  if (!($other_ruid = whois($who, 'who', $info, TRUE, $tx_type == 'payment'))) return FALSE; // allow "ALL"
-  list ($message, $args, $confirm) = api\transfer($tx_type, $other_ruid, $amount, $purpose, !u\for_cash($purpose), $confirmed);
+  if (!($acct = whois($who, 'who', $info, TRUE, $tx_type == 'payment'))) return FALSE; // allow "ALL"
+  list ($message, $args, $confirm) = api\transfer($tx_type, $acct, $amount, $purpose, !u\for_cash($purpose), $confirmed);
   if ($confirm) return tt('confirm ' . $message, $args);
   if (@$args['success']) return say($message, $args);
   return say($message, $args, 'amount');
@@ -1514,7 +1513,7 @@ function web_access($access, $ruid = '') {
 }
 
 // one-line functions that need no explanation
-function tt($message, $subs = array()) {return u\tt($message, $subs, 'Web');}
+function tt($message, $subs = array()) {return u\tt($message, $subs);}
 function block_def($info, $extra = array()) {return compact(u\ray('info cache'));} // also status, region, visibility, pages
 function block_view($subject, $content) {return compact(u\ray('subject content'));}
 

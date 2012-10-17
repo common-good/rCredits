@@ -1,41 +1,49 @@
 <?php
 namespace rCredits;
 use \rCredits\API as api;
-use \rCredits\Utilities as u;
+use \rCredits\Util as u;
 
 /**
  * @file
- * rCredits Member class
+ * rCredits Account class
  */
 
-class mr {
-  var $uid; // the member's account uid
-  var $region; // the member's region uid
-  var $record; // the member's account record
+class acct {
+  var $id; // the account's record id
+  var $region; // the account region's record id
+  var $agent; // record id (in the agent's regional server) of whoever is acting on behalf of the account
+  var $agentRegion; // record id of agent's region (on this server)
+  var $record; // the account record
   
   /**
-   * Instantiate a member.
-   * @param int $uid: the member's uid
-   * @param int $region: the member's region uid (defaults to current server)
-   * @param assoc $info: the member's account record (considered partial until ->uid is there)
+   * Instantiate an account.
+   * @param id/qid $id: the account's record id (can this be a community?) OR
+   * @param id/qid $agent: the agent's record id on this server OR the foreign agent's qid
+   * @param assoc $info: the member's account record (considered partial until ->id is there)
    */
-  function __construct($uid, $region = '', $info = array()) {
-    u\expect(compact('uid'), 'id');
-    list ($this->uid, $this->region) = array($uid, $region ?: server_uid());
+  function __construct($id, $agent = '', $info = array()) {
+    u\expect(compact(u\ray('id agent')), 'id|qid empty|id|qid');
+    list ($this->id, $this->agent, $this->region) = u\is_id($id) ? array($id, $agent, server_uid()) : ruid($id);
+    if ($agent) u\expect($this->id == $this->agent, 'agent already specified in qid');
+    if (u\is_qid($agent)) {
+      list ($this->agent, $zot, $this->agentRegion) = ruid($agent);
+      u\expect($this->agent == $zot, 'agent agent not allowed');
+    } else $this->agentRegion = server_uid();
+    
     $this->record = (array) $info;
   }    
 
   public function __get($field) {
-    if (!@$this->record[$field] and !@$this->record['uid']) { // don't read if we have partial data (typically full_name)
+    if (!@$this->record[$field] and !@$this->record['id']) { // don't read if we have partial data (typically full_name)
       if ($this->region != server_uid()) { // foreign
         // contact other server here, for the record
-      } else $this->record = \user_load($this->uid); // domestic
+      } else $this->record = \user_load($this->id); // domestic
     }
     u\expect(array_key_exists($field, $this->record));
     return $this->record[$field];
   }
   
-  public function exo() {return qid($this->uid, u\n2a(-$this->region, 3), 3);}
+  public function exo() {return qid($this->id, u\n2a(-$this->region, 3), 3);}
 }
 
 /**
@@ -44,7 +52,7 @@ class mr {
  * UNFINISHED
  */
 
-class mra extends mr {
+class mra extends acct {
   var $agent; // the agent's id on agent's server ( > 0 if the agent is local to that server) -- usually $agent_id == $mr->uid
 //  var $agent_region; // agent's region
 //  var $agent_name; // agent's full name, if we have it

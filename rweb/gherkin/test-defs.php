@@ -76,10 +76,14 @@ function usualSubs() {
   $subs_filename = __DIR__ . '/../usualSubs.inc';
   $date_format = '%d-%b-%Y';
   
-  $result = array(
-    '%whatever' => '"' . randomString() . '"',
-    '%random' => '"' . randomString() . '"',
-  );
+  $result = array();
+  $randoms = array('%whatever', '%random');
+  for ($i = 1; $i <= 3; $i++) {
+    $ramdoms[] = "%whatever$i";
+    $ramdoms[] = "%random$i";
+  }
+  foreach ($randoms as $key) $result[$key] = '"' . randomString() . '"';
+  
   for ($i = 1; $i <= 5; $i++) { // phone numbers
     while (in_array($number = randomPhone(), $result)) {} // US phone
     $result["%number$i"] = $number;
