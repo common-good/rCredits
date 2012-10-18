@@ -63,7 +63,7 @@ function grow() {
   $new_rtraders = best_new_rtraders(100);
   
   foreach ($new_rtraders as $uid) { 
-    debug(r\user_field('full_name', $uid));
+    debug(r\user_field('full_name', $uid)); // keep this for now
   }
 }
 

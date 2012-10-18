@@ -32,7 +32,7 @@ class rSMSOpenAnAccountForTheCaller extends DrupalWebTestCase {
   }
 
   // Scenario: A total newbie calls
-  public function notestATotalNewbieCalls() {
+  public function testATotalNewbieCalls() {
     sceneSetup($this, __FUNCTION__);
     Given('phone %number1 has no account');
     When_('phone %number1 says %whatever');
@@ -41,7 +41,7 @@ class rSMSOpenAnAccountForTheCaller extends DrupalWebTestCase {
   }
 
   // Scenario: A nameless newbie calls
-  public function notestANamelessNewbieCalls() {
+  public function testANamelessNewbieCalls() {
     sceneSetup($this, __FUNCTION__);
     Given('phone %number1 has an account');
     And__('phone %number1 has no name');
@@ -56,24 +56,24 @@ class rSMSOpenAnAccountForTheCaller extends DrupalWebTestCase {
     sceneSetup($this, __FUNCTION__);
     Given('phone %number1 is waiting to "setup name"');
     When_('phone %number1 says "Jo Smith"');
-  /*  Then_('phone %number1 account name is "Jo Smith"');
+    Then_('phone %number1 account name is "Jo Smith"');
     And__('we say to phone %number1 "what\'s your email?" with subs: "DATA'
     . '\\| full_name | quid       |'
-    . '\\| Jo Smith  | @last_quid |"');
-    And__('phone %number1 is waiting to "setup email"');*/
+    . '\\| Jo Smith  | %last_quid |"');
+    And__('phone %number1 is waiting to "setup email"');
   }
 
   // Scenario: The newbie gives us an unlikely name
   public function testTheNewbieGivesUsAnUnlikelyName() {
     sceneSetup($this, __FUNCTION__);
     Given('phone %number1 is waiting to "setup name"');
-//    When_('phone %number1 says %random');
-  //  Then_('we say to phone %number1 "what\'s your name really?"');
-    //And__('phone %number1 is waiting to "setup name"');
+    When_('phone %number1 says %random');
+    Then_('we say to phone %number1 "what\'s your name really?"');
+    And__('phone %number1 is waiting to "setup name"');
   }
 
   // Scenario: The newbie gives us his or her email address
-  public function bitestTheNewbieGivesUsHisOrHerEmailAddress() {
+  public function testTheNewbieGivesUsHisOrHerEmailAddress() {
     sceneSetup($this, __FUNCTION__);
     Given('phone %number1 is waiting to "setup email"');
     When_('phone %number1 says " zot@email.com "');
@@ -86,7 +86,7 @@ class rSMSOpenAnAccountForTheCaller extends DrupalWebTestCase {
   }
 
   // Scenario: The newbie gives a bad email address
-  public function bitestTheNewbieGivesABadEmailAddress() {
+  public function testTheNewbieGivesABadEmailAddress() {
     sceneSetup($this, __FUNCTION__);
     Given('phone %number1 is waiting to "setup email"');
     When_('phone %number1 says %random');

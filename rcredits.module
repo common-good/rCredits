@@ -82,7 +82,7 @@ function rCredits_exception_handler($e) {
   $msg = "$short_msg<br>\n($msg)<br>\n- $line0 ($file0)" . $trace_msg;
   $message = str_replace('&nbsp;', '', str_replace('<br>', '', $msg));
   $R_FATAL_ERROR = u\log('FATAL', compact('message'));
-  if (TESTING) print_r($msg, 1); // do this in any case (doesn't show up unless interface fails)
+  if (@TESTING) print_r($msg, 1); // do this in any case (doesn't show up unless interface fails)
 
   switch (@$channel) {
     case TX_WEB:
@@ -162,7 +162,7 @@ function rCredits_mail($key, &$msg_array, $subs) {
     $msg_array['subject'] = $subject = strtr($GLOBALS['email_subjects'][$key], $subs);
     $msg_array['body'][] = $message = strtr(r\email_body($key), $subs);
     $message = str_replace("\n", '~', $message); // easier reading for log
-//    debug($message);
+    if (@TESTING) debug($message);
     $email = $subs['{EMAIL}'];
     u\log('email', compact(u\ray('key email subject message')));
 

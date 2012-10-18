@@ -31,7 +31,7 @@ class acct {
    */
   public static function ok($id, $agent0='', &$error='', $test = TRUE) {
   if ($test) {echo(print_r(compact('id','agent0'),1)); }
-    if ($error = u\expect(compact(u\ray('id agent0')), 'id|qid empty|id|qid', $test)) {echo(print_r(compact('id','agent0'),1)); die("error=$error id=$id agent0=$agent0 test=$test");}
+//    if ($error = u\expect(compact(u\ray('id agent0')), 'id|qid empty|id|qid', $test)) {echo(print_r(compact('id','agent0'),1)); die("error=$error id=$id agent0=$agent0 test=$test");}
     if ($error = u\expect(compact(u\ray('id agent0')), 'id|qid empty|id|qid', $test)) return FALSE;
     list ($id, $agent, $region) = u\is_id($id) ? array($id, $agent0, server_uid()) : ruid($id);
     if ($agent0) {
@@ -45,14 +45,17 @@ class acct {
   }
   
   public function __get($field) {
-//    if (!@$this->record[$field] and !@$this->record['id']) { // don't read if we have partial data (typically full_name)
       if ($this->region != server_uid()) { // foreign
         // contact other server here, for the record
-      } else self::$records[$this->id] = \user_load($this->id); // domestic (use Drupal's caching)
-//    }
+      } else {
+        $records = api\get_records('users', "uid=$this->id LIMIT 1"); // domestic (don't use Drupal's caching)
+        self::$records[$this->id] = $records[0];
+      }
     u\expect(array_key_exists($field, self::$records[$this->id]));
     return self::$records[$this->id]->$field;
   }
+  
+  public static function _clear() {self::$records = array();}
   
   public function update($info) {
     if (!@self::$records[$this->id]->uid) self::$records[$this->id] = \user_load($this->id);

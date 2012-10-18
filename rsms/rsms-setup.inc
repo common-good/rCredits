@@ -22,8 +22,8 @@ r\db_q('DELETE FROM r_txs WHERE payer>1000 or payee>1000');
 r\db_q('DELETE FROM r_relations WHERE main_uid>1000');
 
 if (!function_exists('multiline_tweak')) {function multiline_tweak(&$line) {
-  $line = str_replace('@last_quid', r\quid(r\db_lookup('MAX(uid)', 'users', 1)), $line);
+  $line = str_replace('%last_quid', r\quid(r\db_lookup('MAX(uid)', 'users', 1)), $line);
 }}
 
-
-
+r\acct::_clear(); // empty the acct cache
+global $cuid, $cacct; unset($cuid); unset($cacct);

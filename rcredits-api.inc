@@ -110,7 +110,6 @@ function create_user($info) {
   $info['community_uid'] = r\community_uid(@$my_postal_code);
 
   /*** Begin DBTX ***/ $dbtx = db_transaction();
-//  $account = \user_save(array(), $info);
   for ($i = 0; $i < 20; $i++) { // limit the retries
     $info['uid'] = r\db_lookup('MAX(uid)', 'users', 1) + 1;
     if (drupal_write_record('users', $info)) break;
@@ -118,6 +117,7 @@ function create_user($info) {
   if ($i == 20) throw new \Exception('failed to save user record');
   if (isset($my_number)) r\SMS\create($my_number, $info['uid']);
   /*** End DBTX ***/ unset($dbtx);
+
   return r\acct::ok($info['uid']) ? new r\acct($info['uid'], '', $info) : FALSE;
 }
 
@@ -874,7 +874,7 @@ function accesses($acct = '') {
 /**
  * @return array of record objects
  */
-function get_records($table, $criteria, $subs, $fields = '*', $cache = FALSE) {
+function get_records($table, $criteria, $subs = array(), $fields = '*', $cache = FALSE) {
 /*  $sql = <<<EOF
     SELECT COLUMN_NAME FROM information_schema.COLUMNS
     WHERE TABLE_SCHEMA=:db AND TABLE_NAME=:table AND COLUMN_KEY='PRI'

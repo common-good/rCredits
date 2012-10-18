@@ -117,7 +117,7 @@ function findMessage($type, $fields, $message, $subject = '') {
   $crit = "channel=:TX_SMS AND type=:type AND cuid=:cuid AND auid=:auid ORDER BY logid DESC";
 //  if (strpos($message, '@nonce')) $message = str_replace('@nonce', r\db_lookup('special', 'r_log', $crit, compact('type')), $message);
   $message = str_replace("\n", '~', $message);
-  debug($message);
+  debug($message); // keep this
   $info = json_encode2($fields + compact(u\ray($subject ? 'subject message' : 'message')), JSON_UNESCAPED_SLASHES);
   //debug("info=:info AND $crit"); debug(compact(u\ray('info type cuid auid')));
   return r\db_lookup(1, 'r_log', "info=:info AND $crit", compact(u\ray('info type cuid auid')));

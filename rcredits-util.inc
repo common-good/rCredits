@@ -37,7 +37,6 @@ function ray($s) {
 function ass($keys, $value1) {
   $args = func_get_args();
   $keys = array_shift($args);
-  debug(compact('keys','args'));
   return array_combine(ray($keys), $args);
 }
 
@@ -518,11 +517,11 @@ function get_company_pictures() {
     if (in_array($uid, array(549, 551, 552, 779, 791))) continue; // these apparently kill it
     echo "$uid<br>"; // in case it dies
 
-    if (strlen($website) < 4) {debug($uid); continue;}
+    if (strlen($website) < 4) {debug($uid); continue;} // keep this
     $homepage = 'http://' . $website;
     $s = @file_get_contents($homepage);
     if (!$s) $s = @file_get_contents($homepage = ('http://www.' . $website));
-    if (!$s) {debug("Can't open $homepage"); continue;}
+    if (!$s) {debug("Can't open $homepage"); continue;} // keep this
     
     if (!$description) {
       $got = preg_match('/<meta\s+name\s*=\s*[\'"]description[\'"]\s+content\s*=\s*[\'"](.*?)[\'"]/msi', $s, $matches);
@@ -552,7 +551,7 @@ function get_company_pictures() {
       r\db_q('UPDATE users SET data=:data WHERE uid=:uid', compact(ray('data uid')));
     }
   }
-  debug('done');
+  debug('done'); // keep this
 }
 
 function fsize($url) {

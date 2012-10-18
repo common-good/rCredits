@@ -1,7 +1,7 @@
 <?php
 use rCredits\Util as u;
 
-define('TESTING', TRUE); // where is this checked?
+define('TESTING', TRUE); // use this to activate extra debugging statements (if (@TESTING))
 $module = $_SERVER['QUERY_STRING'];
 
 $modules = $module ? array($module) : array('rSMS', 'rSmart', 'rWeb');
@@ -18,11 +18,10 @@ function doModule($module) {
   $path = __DIR__ . "/$module"; // relative path from compiler to module directory
   // OpenAnAccountForTheCaller AbbreviationsWork ExchangeForCash GetHelp GetInformation Transact Undo OfferToExchangeUSDollarsForRCredits
   $tests = str_replace("$path/features/", '', str_replace('.feature', '', findFiles("$path/features", '/.*\.feature/')));
-  $tests = array('OpenAnAccountForTheCaller'); // uncomment to run just one feature (test set)
-//  $oneScene = 'testTheNewbieGivesUsAnUnlikelyName'; // uncomment to run just one test scenario
+//  $tests = array('Undo'); // uncomment to run just one feature (test set)
+//  $oneScene = 'testTheCallerRefusesAPendingPayment'; // uncomment to run just one test scenario
 
   foreach ($tests as $test) dotest($module, $test);
-  debug ($noALL);
   debug("MODULE $module: OK:$ok NO:$no");
 }  
 
@@ -42,7 +41,10 @@ function dotest($module, $test) {
 //    echo "<br>\r\n$one<br>\r\n";
     $t->setUp();
     $t->$one(); // run one test
-    debug($results);
+    
+    // Display results intermixed with debugging output, if any (so don't collect results before displaying)
+    $results[0] .= " [$module] $test";
+    debug(join(PHP_EOL, $results));
   }
   $user = $temp_user;
 }
@@ -90,7 +92,8 @@ class DrupalWebTestCase {
 //    $step = preg_replace('/ *\| */', '|', $step);
     $step = str_replace('\\', "\n     ", $step);
     $step = str_replace("''", '"', $step);
-    $results[] = $result = ($bool ? 'OK' : 'NO') . ": [$test] $step";
+    $where = $test == 'Setup' ? "[$test] " : '';
+    $results[] = $result = ($bool ? 'OK' : 'NO') . ": $where$step";
     if ($bool) {
       $ok++; $okALL++;
     } else {
