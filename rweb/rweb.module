@@ -6,15 +6,15 @@
  * An interface module for the rCredits financial system.
  *
  * Note: to display one of the blocks defined herein on a page, use
- * echo render(rweb_block_view('blockname'));)
+ * echo render(rWeb_block_view('blockname'));)
  */
 
 use \rCredits\Web as rWeb;
 use \rCredits\API as api;
 use \rCredits\Util as u;
 
-require_once __DIR__ . '/../rcredits.inc';
-require_once __DIR__ . '/rweb.inc';
+require_once __DIR__ . '/../rCredits.inc';
+require_once __DIR__ . '/rWeb.inc';
 
 //define('RWEB_BLOCKS', 'accounts payment buy_now example_store charge exchange manage tx_period txs manage_account');
 define('RWEB_BLOCKS', 'accounts');
@@ -22,7 +22,7 @@ define('RWEB_BLOCKS', 'accounts');
 /**
  * Implements hook_block_info().
  */
-function rweb_block_info() {
+function rWeb_block_info() {
   $info = array();
   foreach (u\ray(RWEB_BLOCKS) as $one) {
     $def = array('info' => ucfirst($one) . ' Block');
@@ -41,14 +41,14 @@ function rweb_block_info() {
 /**
  * Implements hook_block_view().
  */
-function rweb_block_view($delta = '') {
+function rWeb_block_view($delta = '') {
   if (in_array($delta, u\ray(RWEB_BLOCKS))) return rWeb\block_view(NULL, rWeb\show_form($delta)); // no subject for blocks
 }
 
 /**
  * Implements hook_menu().
  */
-function rweb_menu() {
+function rWeb_menu() {
   $anyone = array('access callback' => TRUE, 'access arguments' => NULL);
   $modal = array('modal' => TRUE);
   
@@ -89,7 +89,7 @@ function rweb_menu() {
   return $menu;
 }
 
-function rweb_form_user_register_form_alter(&$form, &$form_state, $form_id) {rWeb\register_form($form, $form_state);}
-function rweb_form_user_login_block_alter(&$form, &$form_state, $form_id) {return rWeb\login_alter($form, $form_state);}
-function rweb_form_user_login_form_alter(&$form, &$form_state, $form_id) {return rWeb\login_alter($form, $form_state);}
-function rweb_user_login(&$edit, $account) {rWeb\login_followup($edit);} // Implements hook_user_login().
+function rWeb_form_user_register_form_alter(&$form, &$form_state, $form_id) {rWeb\register_form($form, $form_state);}
+function rWeb_form_user_login_block_alter(&$form, &$form_state, $form_id) {return rWeb\login_alter($form, $form_state);}
+function rWeb_form_user_login_form_alter(&$form, &$form_state, $form_id) {return rWeb\login_alter($form, $form_state);}
+function rWeb_user_login(&$edit, $account) {rWeb\login_followup($edit);} // Implements hook_user_login().

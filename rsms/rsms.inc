@@ -3,8 +3,8 @@ namespace rCredits\SMS; // typically abbreviated as "rSMS"
 use rCredits as r;
 use rCredits\API as api;
 use rCredits\Util as u;
-require_once __DIR__ . '/../rcredits-api.inc'; // Drupal bug (needs this explicit)
-require_once __DIR__ . '/../rcredits-util.inc';
+require_once __DIR__ . '/../rCredits-api.inc'; // Drupal bug (needs this explicit)
+require_once __DIR__ . '/../rCredits-util.inc';
 
 /**
  * @file
@@ -73,7 +73,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),
   "what's your name really?" => t("Hmm. I don't know if I believe that. What's your name really?"),
-  "what's your email?" => t("Welcome to rCredits, @name (account ID @quid). Last question: What's your email address?"),
+  "what's your email?" => t("Welcome to rCredits, @full_name (account ID @quid). Last question: What's your email address?"),
   "what's your email really?" => t("Please type carefully. What is your email address?"),
   
   // confirmations
@@ -236,27 +236,26 @@ function create($number, $uid, $status = SMS_OK) {
  * Add the cell owner's full name to the account.
  * @return the full name
  */
-function setup_name($account, $full_name) {
+function setup_name($acct, $full_name) {
   $full_name = str_replace('  ', ' ', trim($full_name));
   if (strlen($full_name) > 60) throw new rSMSexception(tt('name too long'));
   if (!u\valid_name($full_name)) throw new rSMSexception(tt("what's your name really?"));
   u\normalize_case($full_name);
   $name = r\unique_name($full_name);
 //  if (r\user_field(1, 'name=:name', compact('name'))) throw new rSMSexception(tt('duplicate name'));
-  $edit = compact('name', 'full_name');
-  return \user_save($account, $edit)->full_name;
+  $acct->update(compact('name', 'full_name'));
+  return $full_name;
 }
 
 /**
  * Add the caller's email to the account.
  * @return object: the account
  */
-function setup_email($account, $email) {
+function setup_email($acct, $email) {
   if (!\valid_email_address($email)) throw new rSMSexception(tt("what's your email really?"));
-  if (r\user_field(1, "mail = '$email'")) throw new rSMSexception(tt('duplicate email'));
-  $edit = array(); // no edits yet
-  $edit['mail'] = $edit['init'] = $email;
-  return \user_save($account, $edit);
+  if (r\user_field(1, 'mail=:email', compact('email'))) throw new rSMSexception(tt('duplicate email'));
+  $mail = $init = $email;
+  return $acct->update(compact('mail', 'init'));
 }
 
 /**

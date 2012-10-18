@@ -1,20 +1,20 @@
 <?php
 //
-// Feature: Transact pre-launch
-//   AS a player
-//   I WANT to simulate a transfer of rCredits from my account to someone else's or vice versa
+// Feature: Transact
+//   AS a member
+//   I WANT to transfer rCredits from my account to someone else's or vice versa
 //   SO I will get a rebate or bonus that I can spend once I am an active participant
 //   
 
-require_once __DIR__ . '/../gherkin/test-defs.php';
-require_once __DIR__ . '/../rsms.steps';
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rSMS.steps';
 
-class rsmsTransact extends DrupalWebTestCase {
+class rSMSTransact extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
   var $currentTest;
-  const FEATURE_NAME = 'rsms Test - Transact';
-  const DESCRIPTION = 'Transact pre-launch';
-  const MODULE = 'rsms';
+  const FEATURE_NAME = 'rSMS Test - Transact';
+  const DESCRIPTION = 'Transact';
+  const MODULE = 'rSMS';
 
   public function gherkin($statement, $type) {
     $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);
@@ -37,8 +37,8 @@ class rsmsTransact extends DrupalWebTestCase {
     . '\\| .ZZC | Corner Pub | +20003 | c@example.com |"');
     And__('relations: "DATA'
     . '\\| id   | main | agent | permission   |'
-    . '\\| :AAB | .ZZC | .ZZB  | buy and sell |'
-    . '\\| :AAC | .ZZC | .ZZA  | sell         |"');
+    . '\\| :ZZA | .ZZC | .ZZB  | buy and sell |'
+    . '\\| :ZZB | .ZZC | .ZZA  | sell         |"');
     And__('transactions: "DATA'
     . '\\| created   | type       | amount | from      | to   | purpose |'
     . '\\| %today-1d | %TX_SIGNUP | 250    | community | .ZZA | signup  |'
@@ -167,7 +167,7 @@ class rsmsTransact extends DrupalWebTestCase {
   // Scenario: The caller asks to pay a company agent
   public function testTheCallerAsksToPayACompanyAgent() {
     sceneSetup($this, __FUNCTION__);
-    When_('phone +20001 confirms "123.45 to :AAB for pie"');
+    When_('phone +20001 confirms "123.45 to :ZZA for pie"');
     Then_('we say to phone +20001 "confirm payment|please confirm" with subs: "DATA'
     . '\\| amount  | other_name |'
     . '\\| $123.45 | Corner Pub |"');

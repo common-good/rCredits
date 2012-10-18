@@ -7,9 +7,9 @@
  */
 
 use rCredits as r;
-require_once __DIR__ . '/../rcredits.inc';
-require_once __DIR__ . '/rsms.inc';
-require_once __DIR__ . '/rsms-call.inc';
+require_once __DIR__ . '/../rCredits.inc';
+require_once __DIR__ . '/rSMS.inc';
+require_once __DIR__ . '/rSMS-call.inc';
 
 /**
  * SMS Incoming implements hook sms_incoming
@@ -23,7 +23,7 @@ require_once __DIR__ . '/rsms-call.inc';
  * @param string $message
  *   the incoming message
  */
-function rsms_sms_incoming($op, $number, $message) {
+function rSMS_sms_incoming($op, $number, $message) {
   switch ($op) {
     case 'pre process':
       break;

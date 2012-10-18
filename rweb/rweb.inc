@@ -4,8 +4,8 @@ use \rCredits\SMS as rSMS;
 use \rCredits\API as api;
 use \rCredits\Util as u;
 use \rCredits as r; // get rid of this
-include_once __DIR__ . '/rweb-txs.inc'; // treat this as an extension of this file, just to make menu ['file'] consistent
-require_once __DIR__ . '/../rcredits-api.inc';
+include_once __DIR__ . '/rWeb-txs.inc'; // treat this as an extension of this file, just to make menu ['file'] consistent
+require_once __DIR__ . '/../rCredits-api.inc';
 
 /**
  * @file
@@ -78,7 +78,7 @@ function util($arg) {
   }
   if ($arg == 'reset') {
     r\reset();
-/*    $uid = variable_get('rcredits_community_uid') + 1;
+/*    $uid = variable_get('rCredits_community_uid') + 1;
     $uid2 = $uid + 1; $uid3 = $uid2 + 1;
     $pass = '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae';
     $sql = <<<EOF
@@ -108,7 +108,9 @@ function handy_links() {
   global $base_path;
 
   $links = array(
-    'rCredits/util/test|SimpleTest Direct|',
+    'rCredits/util/test?rSMS|Test rSMS|',
+    'rCredits/util/test?rSmart|Test rSmart|',
+    'rCredits/util/test?rWeb|Test rWeb|',
     'sms|Simulate an SMS transaction|Simulate SMS',
     'admin/config/development/testing|Test|Test',
     'sites/all/modules/rcredits/rsms/gherkin/compile.php|Compile tests|Compile tests',
@@ -230,7 +232,7 @@ function close_form() {
  * @param string $string: what the user has typed so far
  * @param string $role: 'payer', 'payee', 'industry', 'company', or '' (other), depending on the role of the user
  * @param int $cuid: the current account (globals and session variables are inappropriate here)
- * @todo: ditch this altogether or make it efficient with separate rcredits backend (put it in the api)
+ * @todo: ditch this altogether or make it efficient with separate rCredits backend (put it in the api)
  *    maybe even use .htaccess to redirect the autocomplete URL to the backend? privacy is not crucial here
  * @todo: fix Drupal bug which gets Ajax error on any input that matches (.*)/?.([^\.]|\..)
  */
@@ -294,7 +296,7 @@ function home_form($form, &$form_state) {
   $stagelist = 'rTrader Steward Partner Member';
   if ($is_company) $stagelist = str_replace('Steward ', '', $stagelist);
   $stages = u\ray($stagelist);
-  foreach ($stages as $stage) if (api\access($stage)) break;
+  foreach ($stages as $stage) if (api\access(strtolower($stage))) break;
 
   $rTrader = 'authorized to use rCredits "for real"';
   if (!$is_company) $Steward = "a responsible voter, stewarding your community's finances";
@@ -358,9 +360,7 @@ function account_form($form, &$form_state) {
 }
 
 function account_form_submit($form, &$form_state) {
-  global $cuid;
-  $account = \user_load($cuid);
-  \user_save($account, $form_state['values']);
+  r\user_update($form_state['values']);
 }
 
 /**
@@ -657,13 +657,12 @@ function contact_info_form_validate($form, &$form_state) {
 }
 
 function contact_info_form_submit($form, &$form_state) {
-  $cuid = r\cuid();
-  $account = \user_load($cuid);
+  global $cacct;
   extract($info = $form_state['values'], EXTR_PREFIX_ALL, 'my');
   $info['website'] = str_replace('http://', '', strtolower(@$my_website));
   if ($my_phone) $info['phone'] = u\format_phone($my_phone, '+n');
   $info['name'] = u\short_name($my_full_name);
-  user_save($account, $info);
+  r\user_update($info);
   api\merge_check(compact(u\ray('name website phone fax'))); // check before and after
   say('info saved');
 }
@@ -712,11 +711,10 @@ function bank_form_validate($form, &$form_state) {
 }
 
 function bank_form_submit($form, &$form_state) {
-  $cuid = r\cuid();
+  global $cacct;
   extract($form_state['values']);
-  $account = \user_load($cuid);
-  if ($account->country == 'United States') $bank_account_number = "USkk$routing_number$bank_account_number";
-  user_save($account, compact(u\ray('bank_account_name bank_account_number')));
+  if ($cacct->country == 'United States') $bank_account_number = "USkk$routing_number$bank_account_number";
+  r\user_update(compact(u\ray('bank_account_name bank_account_number')));
   say('info saved');
 }
 
@@ -797,8 +795,9 @@ function relations_form_validate($form, &$form_state) {
   if (confirming_v($form_state)) return;
   
   if (@$new_person) {
-    list ($uid) = $ruid = whois($new_person, 'new_person', $form_state['values'], FALSE, FALSE, 'no self-relation');
-    if (api\access('company', $ruid)) return say('no company relations', 'new_person');
+    $acct = whois($new_person, 'new_person', $form_state['values'], FALSE, FALSE, 'no self-relation');
+    if (api\access('company', $acct)) return say('no company relations', 'new_person');
+    $uid = $acct->id;
     $already = r\db_lookup('1', 'r_relations', 'main_uid=:cuid AND agent_uid=:uid', compact('cuid', 'uid'));
     if ($already) return say('already related', 'new_person');
     $form_state['values']['agent_uid'] = $uid; // save for submission handling
@@ -1000,10 +999,10 @@ function register_form_submit($form, &$form_state) {
   
   if ($my_company) {
     extract($my_company_options, EXTR_PREFIX_ALL, 'my');
-    $company_uid = whois($my_company, 'company', $form_state['values']);
-    if (!r\reid($company_uid, $my_uid)) {
-      list ($main_uid, $agent_uid, $is_owner) = array($company_uid, $my_uid, $my_is_owner);
-      \drupal_write_record('r_relations', compact(u\ray('main_uid agent_uid is_owner agent_region'))); // leave it to the owner to mark is_employee
+    $companyAcct = whois($my_company, 'company', $form_state['values']);
+    if (!r\reid($companyAcct->id, $my_uid)) {
+      list ($main_uid, $agent_uid, $is_owner) = array($companyAcct->id, $my_uid, $my_is_owner);
+      \drupal_write_record('r_relations', compact(u\ray('main_uid agent_uid is_owner'))); // leave it to the owner to mark is_employee
     }
   }
 // merge fails because account is not saved yet:  api\merge_check(compact(u\ray('email short_name'))); // email fails anyway because it's not unique
@@ -1014,11 +1013,11 @@ function register_form_submit($form, &$form_state) {
 
 /**
  * Modify the login form.
- * @see also login_followup, below (called from rweb_user_login()).
+ * @see also login_followup, below (called from rWeb_user_login()).
  */
 function login_alter(&$form, &$form_state) {
   $form['tip'] = form_field('item', t('<b>NOTE: </b>If you already created an account using cell texting and have never yet logged in here, start by requesting a "new password" for your email address.'));
-  $form['external_input'] = form_field('hidden', serialize($form_state['input'])); // pass this to rweb_user_login
+  $form['external_input'] = form_field('hidden', serialize($form_state['input'])); // pass this to rWeb_user_login
 //  $form['#submit'][] = 'rCredits\\Web\\login_form_submit';
 
   $i = array_search('user_login_authenticate_validate', $form['#validate']);
@@ -1069,7 +1068,7 @@ function login_extra_validate($form, &$form_state) {
 function login_followup($edit) {
   global $user;
 
-  foreach ($_SESSION as $key => $value) if (u\abbreviates('rcredits_', $key)) unset($_SESSION[$key]);
+  foreach ($_SESSION as $key => $value) if (u\abbreviates('rCredits_', $key)) unset($_SESSION[$key]);
   svar('external_input', @unserialize($my_external_input)); // save params from external online merchant
 
   $name = @$edit['values']['name'];
@@ -1186,8 +1185,7 @@ function company_form_submit($form, &$form_state) {
   extract($form_state['values']);
 //  $description = \check_markup($description['value']);
   $description = $description['value'];
-  $account = \user_load($cuid);
-  \user_save($account, compact('description'));
+  r\user_update(compact('description'));
 
   //*** Begin DBTX
   $dbtx = db_transaction();
@@ -1241,7 +1239,7 @@ function sms_form_submit($form, $form_state) {
   extract($form_state['values'], EXTR_PREFIX_ALL, 'my');
   $my_number = u\format_phone($my_number, '+n');
   variable_set('last SMS number used', $my_number);
-  \rsms_sms_incoming('process', $my_number, $my_message);
+  \rSMS_sms_incoming('process', $my_number, $my_message);
 }
 
 /**
@@ -1361,7 +1359,7 @@ function detour($detour_via, $detour_args, $whence = '', $modal = TRUE) {
 }
 */
 function svar($name) {
-  $name = 'rcredits_' . $name;
+  $name = 'rCredits_' . $name;
   $args = func_get_args();
   if (count($args) == 1) return @$_SESSION[$name]; else $_SESSION[$name] = $args[1];
 }
@@ -1376,7 +1374,7 @@ function svar($name) {
  * @param string $self_message: index to error message to give if user self-refers
  * @return:
  *   NULL if there is an error
- *   int uid of the identified person
+ *   acct of the identified person
  *   no return (refreshes page) if ambiguous
  */
 function whois($who, $field_name, $info, $create = TRUE, $allow_ALL, $self_message = 'no self-trading') {
@@ -1497,19 +1495,16 @@ function say($index, $args = array(), $error_field = '') {
 }
 
 function setup_globals() {
-  global $cuid, $auid, $cruid, $user, $channel;
-  $auid = @$user->uid;
-  $cuid = svar('cuid') ?: $auid;
-  $cruid = array($cuid, $auid, r\server_uid());
+  global $cuid, $cacct, $user, $channel;
+  $agent = @$user->uid;
+  $cuid = svar('cuid') ?: $agent;
+  $cacct = $cuid ? new r\acct($cuid, $agent) : FALSE;
   $channel = TX_WEB;
 }
 
-/**
- * $ruid is currently unused
- */
-function web_access($access, $ruid = '') {
+function web_access($access) {
   setup_globals(); // remember who we are (the only reason for this function)
-  return api\access($access, $ruid);
+  return api\access($access);
 }
 
 // one-line functions that need no explanation

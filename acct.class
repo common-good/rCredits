@@ -13,7 +13,7 @@ class acct {
   var $region; // the account region's record id
   var $agent; // record id (in the agent's regional server) of whoever is acting on behalf of the account
   var $agentRegion; // record id of agent's region (on this server)
-  var $record; // the account record
+  private static $records = array(); // account records for all acct objects, indexed by id
   
   /**
    * Instantiate an account.
@@ -22,66 +22,53 @@ class acct {
    * @param assoc $info: the member's account record (considered partial until ->id is there)
    */
   function __construct($id, $agent = '', $info = array()) {
-    u\expect(compact(u\ray('id agent')), 'id|qid empty|id|qid');
-    list ($this->id, $this->agent, $this->region) = u\is_id($id) ? array($id, $agent, server_uid()) : ruid($id);
-    if ($agent) u\expect($this->id == $this->agent, 'agent already specified in qid');
-    if (u\is_qid($agent)) {
-      list ($this->agent, $zot, $this->agentRegion) = ruid($agent);
-      u\expect($this->agent == $zot, 'agent agent not allowed');
-    } else $this->agentRegion = server_uid();
-    
-    $this->record = (array) $info;
+    list($this->id, $this->agent, $this->region, $this->agentRegion) = acct::ok($id, $agent, $zot, FALSE);
+    self::$records[$this->id] = (object) $info;
   }    
 
+  /**
+   * Setup acct variables, returning FALSE on error.
+   */
+  public static function ok($id, $agent0='', &$error='', $test = TRUE) {
+  if ($test) {echo(print_r(compact('id','agent0'),1)); }
+    if ($error = u\expect(compact(u\ray('id agent0')), 'id|qid empty|id|qid', $test)) {echo(print_r(compact('id','agent0'),1)); die("error=$error id=$id agent0=$agent0 test=$test");}
+    if ($error = u\expect(compact(u\ray('id agent0')), 'id|qid empty|id|qid', $test)) return FALSE;
+    list ($id, $agent, $region) = u\is_id($id) ? array($id, $agent0, server_uid()) : ruid($id);
+    if ($agent0) {
+      if ($error = u\expect(($id == $agent), 'agent already specified in qid', $test)) return FALSE;
+    } else $agent = $id; // proSe (account is acting on its own behalf)
+    if (u\is_qid($agent0)) {
+      list ($agent, $zot, $agentRegion) = ruid($agent0);
+      if ($error = u\expect($agent == $zot, 'agent agent not allowed', $test)) return FALSE;
+    } else $agentRegion = server_uid();
+    return array($id, $agent, $region, $agentRegion);
+  }
+  
   public function __get($field) {
-    if (!@$this->record[$field] and !@$this->record['id']) { // don't read if we have partial data (typically full_name)
+//    if (!@$this->record[$field] and !@$this->record['id']) { // don't read if we have partial data (typically full_name)
       if ($this->region != server_uid()) { // foreign
         // contact other server here, for the record
-      } else $this->record = \user_load($this->id); // domestic
-    }
-    u\expect(array_key_exists($field, $this->record));
-    return $this->record[$field];
+      } else self::$records[$this->id] = \user_load($this->id); // domestic (use Drupal's caching)
+//    }
+    u\expect(array_key_exists($field, self::$records[$this->id]));
+    return self::$records[$this->id]->$field;
   }
   
+  public function update($info) {
+    if (!@self::$records[$this->id]->uid) self::$records[$this->id] = \user_load($this->id);
+    foreach ($info as $field => $value) {
+      if ($field != 'uid') self::$records[$this->id]->$field = $value;
+    }
+    $info['uid'] = $this->id;
+    return \drupal_write_record('users', $info, 'uid');
+  }
+  
+  public function proSe() {return ($this->id == $this->agent);}  
   public function exo() {return qid($this->id, u\n2a(-$this->region, 3), 3);}
-}
-
-/**
- * @file
- * rCredits Member Agent class
- * UNFINISHED
- */
-
-class mra extends acct {
-  var $agent; // the agent's id on agent's server ( > 0 if the agent is local to that server) -- usually $agent_id == $mr->uid
-//  var $agent_region; // agent's region
-//  var $agent_name; // agent's full name, if we have it
-//  var $reid; // relations table record id, if the member is local AND the agent is not the member
+  function hasBit($bit) {return (bool) ($this->flags & $bit);}
   
-  /**
-   * Instantiate a member agent.
-   * Call by:
-   *   new mra(uid, region, agent_uid, agent_region)? OR
-   *   new mra(uid, agent_uid) OR
-   *   new mra(mr, agent_uid) OR
-   *   new mra(qid)
-   */
-  function __construct($uid, $agent = '') {
-    if (!$agent) { // must be a qid
-      if (!u\is_qid($quid = $uid)) return;
-      if (!($ruid = ruid($quid))) return;
-      list ($uid, $agent, $region) = $ruid;
-//      parent::__construct($uid, $region);
-    } else {
-      if (is_object($uid)) {
-        $mr = $uid;
-        list ($uid, $region) = array($mr->uid, $mr->region);
-      } else $region = '';
-    }
-    if ($agent != $uid and !reid($uid, $agent)) return; // agent not permitted
-    parent::__construct($uid, $region);
-    if (@$mr) $this->record = $mr->record;
-    $this->agent = $agent;
+  public function setBit($bit) {
+    $flags = ($this->flags | $bit);
+    $this->update(compact('flags'));
   }
-    //  public function exo() {return qid(
 }

@@ -7,13 +7,13 @@
 /**
  * Implement hook_install().
  *//*
-function rsms_install() {
-  $rsms_permissions = array(
+function rSMS_install() {
+  $rSMS_permissions = array(
     'receive sms',
 //    'edit own sms number',
 //    'transact via sms',
   );
-  user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, $rsms_permissions);
+  user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, $rSMS_permissions);
   
   variable_set('user_register', 1); // means automatically register users by SMS
 }

@@ -79,7 +79,7 @@ function makeRelation($info) {
   $main = new r\acct(fullQid($my_main));
   $agent = new r\acct(fullQid($my_agent));
   u\expect(!r\is_foreign($main->region) or !r\is_foreign($agent->region));
-  u\expect($main->id == $main->agent and $agent->id == $agent->agent);
+  u\expect($main->proSe() and $agent->proSe());
   list ($main_uid, $agent_uid) = array($main->id, $agent->id);
   if (r\is_foreign($main->region)) list ($main_uid, $foreign_uid) = array($main->region, $main->id);
   if (r\is_foreign($agent->region)) list ($agent_uid, $foreign_uid) = array($agent->region, $agent->id);
@@ -107,12 +107,13 @@ function uid($id) {
 }
 
 function findMessage($type, $fields, $message, $subject = '') {
-  global $cuid, $auid;
+  global $cuid, $cacct;
   if (!TEST_REAL) {
     $map = array('ransaction #' => 'ransaction #a', 'nvoice #' => 'nvoice #a', '@asif' => R_ASIF_TEXT, '{ASIF}' => R_ASIF_TEXT);
     $message = strtr($message, $map);
     $subject = strtr($subject, $map);
   }
+  $auid = $cacct->agent;
   $crit = "channel=:TX_SMS AND type=:type AND cuid=:cuid AND auid=:auid ORDER BY logid DESC";
 //  if (strpos($message, '@nonce')) $message = str_replace('@nonce', r\db_lookup('special', 'r_log', $crit, compact('type')), $message);
   $message = str_replace("\n", '~', $message);

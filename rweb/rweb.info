@@ -5,7 +5,7 @@ package = rCredits
 core = 7.x
 php = 5.3
 
-dependencies[] = rcredits
-files[] = rweb.module
-files[] = rweb.inc
-files[] = rweb-txs.inc
+dependencies[] = rCredits
+files[] = rWeb.module
+files[] = rWeb.inc
+files[] = rWeb-txs.inc

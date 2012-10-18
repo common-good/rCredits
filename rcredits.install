@@ -15,7 +15,7 @@ define('R_TABLES', 'r_area_codes,r_credit_regions,r_nonces,r_txs,r_asif,r_relati
  *
  * Add custom data for the rCredits module.
  */
-function rcredits_install() {
+function rCredits_install() {
 //  user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array('member'));
   
   r\make_fields();
@@ -30,7 +30,7 @@ function rcredits_install() {
 // NO. This creates a navigation column.  variable_set('site_frontpage', 'charge');
 
   $current = variable_get('mail_system', array('default-system' => 'DefaultMailSystem'));
-  variable_set('mail_system', array_merge($current, array('rcredits' => 'rcreditsMailSystem')));
+  variable_set('mail_system', array_merge($current, array('rCredits' => 'rCreditsMailSystem')));
 
   $tables = explode(',', R_TABLES . ',role'); // we also add records to some standard Drupal tables
   foreach ($tables as $table) {
@@ -46,9 +46,9 @@ function rcredits_install() {
 /**
  * Implements hook_schema().
  */
-function rcredits_schema() {
-  require_once 'rcredits.inc'; // Drupal bug. hook_schema needs this explicit.
-  require_once 'rcredits-util.inc';
+function rCredits_schema() {
+  require_once 'rCredits.inc'; // Drupal bug. hook_schema needs this explicit.
+  require_once 'rCredits-util.inc';
 
   // table r_sms 
   $fields = array(
@@ -185,7 +185,7 @@ function rcredits_schema() {
 /**
  * Implements hook_schema_alter().
  */
-function rcredits_schema_alter(&$schema) {
+function rCredits_schema_alter(&$schema) {
   $fields = array( // additional users fields
     'account_type' => r\setup_field('personal, commercial, non-profit (or government)', 'int tiny'),
     'flags' => r\setup_field('permissions and boolean state flags', 'int big', 0, '010'),
@@ -221,16 +221,16 @@ function rcredits_schema_alter(&$schema) {
  * Implements hook_uninstall().
  * Best not to use anything much here from other files.
  */
-function rcredits_uninstall() {
+function rCredits_uninstall() {
   return; // don't do this, for a while (maybe ever)
-  require_once 'rcredits.inc'; // Drupal bug. Uninstall needs this explicit.
-  require_once 'rcredits-util.inc';
+  require_once 'rCredits.inc'; // Drupal bug. Uninstall needs this explicit.
+  require_once 'rCredits-util.inc';
 
   $old_fields = array(
     'users' => explode(' ', 'first_name last_name credit_name can_charge can_vote can_trade is_committed'),
   );
   r\make_fields('UNMAKE', $old_fields);
-// (DON'T DELETE record!)  if ($who = variable_set('rcredits_community_uid')) db_query("DELETE FROM users WHERE uid = $who");
+// (DON'T DELETE record!)  if ($who = variable_set('rCredits_community_uid')) db_query("DELETE FROM users WHERE uid = $who");
 
   db_query('DROP TABLE IF EXISTS ' . R_TABLES . ',r_credit_tails');
 }

@@ -1,6 +1,7 @@
-Feature: Transact pre-launch
-AS a player
-I WANT to simulate a transfer of rCredits from my account to someone else's or vice versa
+
+Feature: Transact
+AS a member
+I WANT to transfer rCredits from my account to someone else's or vice versa
 SO I will get a rebate or bonus that I can spend once I am an active participant
 
 Setup:

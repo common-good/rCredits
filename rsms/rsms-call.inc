@@ -34,6 +34,7 @@ class call {
     $this->message = trim($message);
     $this->confirmed = FALSE;
     u\log('in', compact('message'), $number);
+//    die('in new call ' . print_r($this, 1));
   }
 
   /**
@@ -63,29 +64,32 @@ class call {
    *   Message is the error message to send the caller.
    */
   function validate_caller() {
-    global $cuid, $auid, $cruid;
+    global $cuid, $cacct;
     $number = $this->number;
-    $cuid = $auid = $this->uid = uid($number) ?: api\create_user(compact('number'));
-    $cruid = array($cuid, $auid, r\server_uid());
-    u\expect(u\is_id($this->uid), 'missing uid');
+    $cuid = $this->uid = uid($number);
+    if (!$cuid) {
+      u\expect($cacct = api\create_user(compact('number')), 'missing uid');
+      $cuid = $cacct->id;
+    } else $cacct = new r\acct($cuid);
+    u\expect(u\is_acct($cacct), 'notacct');
+    u\expect(is_object($cacct),'notanobj');
     
-    $account = \user_load($this->uid);
     $todo = @api\todo($number)->todo;
-    if (api\is_temp_name($account->name)) {
+    if (api\is_temp_name($cacct->name)) {
       if($todo != 'setup name') {
         api\todo($number, 'setup name', '');
         return tt("what's your name?");
       }
-      $name = setup_name($account, $this->message); // actually full_name
+      $full_name = setup_name($cacct, $this->message);
       api\todo($number, 'setup email', '');
-      $quid = r\quid(); //$account->credit_id;
-      return tt("what's your email?", compact('quid', 'name'));
-    } elseif ($todo == 'setup email' and !$account->mail) {
-      setup_email($account, $this->message);
+      $quid = r\quid(); //$cacct->credit_id;
+      return tt("what's your email?", compact('quid', 'full_name'));
+    } elseif ($todo == 'setup email' and !$cacct->mail) {
+      setup_email($cacct, $this->message);
       api\todo($number, '', '');
       $balance = u\format_amount(api\give_signup_incentive($this->uid));
       return tt('your account is ready', compact('balance'));
-/*    } elseif (!\user_access('transact via sms', $account)) { // user does not have permission to use the rCredits SMS interface
+/*    } elseif (!\user_access('transact via sms', $cacct)) { // user does not have permission to use the rCredits SMS interface
       // send the user an email here?
       // throw new rSMSexception('You do not have permission to use this system.'); // (due to misbehavior?), so don't waste a call?
       return tt('no SMS permission'); // be polite 

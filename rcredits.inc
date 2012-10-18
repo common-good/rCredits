@@ -4,9 +4,9 @@
  * All of the business logic common to the various rCredits interfaces
  * (SMS, web, smartphone, etc.)
  * EXCEPT:
- *   - the Drupalish callbacks, which are in rcredits.module
- *   - application interfaces to the user interfaces, which are in rcredits-api.inc (i)
- *   - utilities, which are in rcredits-util.inc (u)
+ *   - the Drupalish callbacks, which are in rCredits.module
+ *   - application interfaces to the user interfaces, which are in rCredits-api.inc (i)
+ *   - utilities, which are in rCredits-util.inc (u)
  *
  * Some coding conventions:
  *   qid: a mostly-alphabetic representation of an azid, eg "XXX.YYYY..." used externally for REST and SMS queries.
@@ -31,8 +31,7 @@
  *
  * Globals:
  *   cuid: current account id  
- *   auid: the user's logged-in account id (agent uid)
- *  cruid: the user's current ruid
+ *   cacct: the current account
  *
  * @todo: change quid/ruid and zxid to classes (qa and zx). maybe also qzx extends zx (->exo)
  *    so: $qa->uid, agent, region, exo, nm (full name of foreigner)
@@ -91,9 +90,9 @@ namespace rCredits; // typically abbreviated as "r"
 use \rCredits\Util as u;
 use \rCredits\API as api;
 
-include_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
+include_once __DIR__ . '/rCredits-settings.inc'; // secret settings for this community's rCredits server
 include_once __DIR__ . '/acct.class';
-include_once __DIR__ . '/rcredits-circles.inc'; // treat this as an extension of this file, for testing
+include_once __DIR__ . '/rCredits-circles.inc'; // treat this as an extension of this file, for testing
 
 define('R_SEPARATE_BACKEND', FALSE);
 define('R_TEMP_NAME_PREFIX', 'unknown ');
@@ -163,7 +162,7 @@ $GLOBALS['email_subjects'] = array(
  */
 function make_fields($unmake = FALSE, $extras = array()) {
   $schema = array();
-  \rcredits_schema_alter($schema); // get the fields to add (or drop)
+  \rCredits_schema_alter($schema); // get the fields to add (or drop)
   foreach ($schema as $table_name => $one) {
     if ($unmake and isset($extras[$table_name])) $one += $extras[$table_name];
     foreach ($one['fields'] as $field_name => $spec) {
@@ -367,10 +366,10 @@ function transaction_setup($info) {
  * @param numeric $demand: the user's new demand amount (defaults to 0, meaning "just report")
  * @return the user's demand amount
  */
-function demand($who, $demand = 0) {
-  if (!$demand) return user_field('demand', $who);
+function demand($uid, $demand = 0) {
+  if (!$demand) return user_field('demand', $uid);
   $demand = min(R_MAX_AMOUNT, $demand);
-  update_user(compact('demand'), $who);
+  user_update(compact('demand'), $uid);
   return $demand;
 }
 
@@ -443,7 +442,7 @@ function notify($uid, $message_index, $info) {
   
   $subs = array();
   foreach (array_merge($info, $standard_fields) as $key => $value) $subs['{' . strtoupper($key) . '}'] = $value;
-  drupal_mail('rcredits', $message_index, $my_mail, user_preferred_language($account), $subs);
+  drupal_mail('rCredits', $message_index, $my_mail, user_preferred_language($account), $subs);
 }
 
 /**
@@ -473,14 +472,14 @@ function temp_name($info) {
  * @param bool $all_related: set all related transactions too (default FALSE)
  */
 function set_tx_field($field_name, $new_value, $zxid, $all_related = FALSE) {
-  global $cuid, $auid;
+  global $cuid, $cacct;
   u\expect(compact(u\ray('field_name zxid all_related')), 'name zid bool');
   
   list ($xid, $table) = azxid($zxid);
   $crit = "xid=:xid and $cuid in (payer, payee)"; // "$cuid in" is a security measure
   list ($old_value, $data) = array_values(db_lookup("$field_name,data", $table, $crit, compact(u\ray('xid'))));
   $data = unserialize($data);
-  $data['changes'][] = array(time(), $auid, $field_name, $old_value);
+  $data['changes'][] = array(time(), $cacct->agent, $field_name, $old_value);
   $data = serialize($data);
   $sql = "UPDATE $table SET $field_name=:new_value, data=:data WHERE $crit";
   $sql2 = str_replace(', data=:data', '', str_replace('xid=:xid', 'serial=:xid', $sql));
@@ -509,9 +508,8 @@ function merge_accounts($old_uid) {
   $update = array();
   foreach (u\ray('phone fax website address') as $one) if ($old->$one and !$new->$one) $update[$one] = $old->$one;
   
-  /*** Begin DBTX ***/
-  $dbtx = \db_transaction();
-  \user_save($new, $update);
+  /*** Begin DBTX ***/ $dbtx = \db_transaction();
+  user_update($update, $new_uid);
   $sql = <<<EOF
     UPDATE r_asif SET payer=:new_uid WHERE payer=:old_uid
     UPDATE r_asif SET payee=:new_uid WHERE payee=:old_uid
@@ -522,8 +520,7 @@ function merge_accounts($old_uid) {
     DELETE FROM users WHERE uid=:old_uid
 EOF;
   db_q($sql, compact('new_uid', 'old_uid'));
-  unset($dbtx);
-  /*** End DBTX ***/
+  /*** End DBTX ***/ unset($dbtx);
   return 1;
 //  db_q("UPDATE users SET uid=IF(uid>0,-uid,uid), status=0 WHERE uid=:old_uid", compact('old_uid'));
 }
@@ -607,18 +604,18 @@ function cuid() {global $cuid; return @$cuid + 0;} // current account (may be ze
  *   quid(ruid)
  *   quid(uid, agent_uid) -- region_uid defaults to current region
  *   quid(uid, agent_uid, region_uid) -- these are the elements of an ruid array
- * @param ruid $ruid: the ruid to convert (DEFAULT $cruid -- the current account and agent)
+ * @param ruid $ruid: the ruid to convert (DEFAULT current account)
  * @return the corresponding quid
  */
 function quid($ruid = '', $agent_uid = '', $region_uid = '') {
-  global $cruid;
+  global $cacct;
   if ($agent_uid) {
     $uid = $ruid;
     if (!$region_uid) $region_uid = server_uid();
   } else list ($uid, $agent_uid, $region_uid) = 
       ( is_array($ruid) ? $ruid 
     : ( ($uid = $ruid) ? array($uid, $uid, server_uid()) 
-    : ( $cruid )));
+    : ( array($cacct->id, $cacct->agent, $cacct->region) )));
   return qid($uid == $agent_uid ? $uid : -reid($uid, $agent_uid), u\n2a(-$region_uid, 3), 3);
 }
 
@@ -628,7 +625,8 @@ function quid($ruid = '', $agent_uid = '', $region_uid = '') {
  * @return the corresponding ruid = [uid, agent, region] (FALSE if wrong format)
  */
 function ruid($quid = '', $no_abbrev = TRUE) {
-  global $cuid, $auid;
+  global $cuid, $cacct;
+  $auid = $cacct->agent;
   if (!$quid) return array($cuid, $auid, server_uid());
   if (!u\is_qid($quid) and !$no_abbrev) $quid = R_SERVER_ID . $quid;
   if (!u\is_qid($quid)) return FALSE;
@@ -739,6 +737,12 @@ function user_field($field_name, $who = 'none', $subs = array()) {
   return strpos($field_name, ',') ? ((array) $result[0]) : $result[0]->$field_name;
 }
 
+function user_update($info, $uid = '') {
+  global $cuid, $cacct;
+  $info['uid'] = $uid ?: $cuid;
+  return ($uid == $cuid) ? $cacct->update($info) : \drupal_write_record('users', $info, 'uid');
+}
+
 /*function user_field($field_name, $who, $subs = array()) {
   return db_lookup($field_name, 'users', is_numeric($who) ? "uid=$who" : $who, $subs);
 }*/
@@ -765,17 +769,6 @@ function db_q($sql, $subs = array(), $die = FALSE) {
   return \db_query(u\get_constants($sql), u\prefix_keys(':', $subs));
 }
 
-function set_bit($bit, $uid = '') {
-  $account = \user_load($uid ?: cuid());
-  $flags = ($account->flags | $bit);
-  \user_save($account, compact('flags'));
-}
-
-function has_bit($bit, $uid = '') {
-  $account = \user_load($uid ?: cuid());
-  return (bool) ($account->flags & $bit);
-}
-
 function error($logid) {
   $info = db_lookup('info', 'r_log', 'logid=:logid', compact('logid'));
   if ($info) $info = json_decode($info); else $info = 'unknown error';
@@ -787,7 +780,6 @@ function error($logid) {
 // Single line functions that need no explanation
 function rebate($uid, $amount = 1) {return round($amount * user_field('rebate_percent', $uid) / 100, 2);}
 function bonus($uid, $amount = 1) {return rebate($uid, 2 * $amount);}
-function update_user($info, $who) {return \db_update('users')->fields($info)->condition('uid', $who)->execute();}
 // UNUSED tx_field($field_name, $xid, $real) {return db_lookup($field_name, zxs($real/2), 'xid=:xid', compact('xid'));}
 function set_tx_state($new_value, $zserial) {set_tx_field('state', $new_value, $zserial, TRUE);}
 function uid_from_crid($qid) {return db_lookup('uid', 'users', 'qid=:qid', compact('qid'));}

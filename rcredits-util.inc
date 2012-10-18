@@ -420,8 +420,9 @@ function expect1($arg, $value, $type, $ret) {
  * @return the log record id (for exception handler and shutdown function)
  */  
 function log($type, $info, $special = '') {
-  global $channel, $cuid, $auid;
-  $log_filename = 'rcredits.log';
+  global $channel, $cuid, $cacct;
+  $auid = $cacct->agent;
+  $log_filename = 'rCredits.log';
   $date = strftime('%d-%b-%Y', time());
   $channels = ray(TX_CHANNELS); 
   $channel_name = $channels[$channel];
@@ -568,7 +569,7 @@ function trim_all(&$array) {
 // Single line functions that need no explanation
 function valid_url($url) {return (\valid_url($url) and preg_match('/^[A-Z0-9\-_]+\.[A-Z0-9\-_]+/i', $url) and strpos($url, '@') === FALSE);}
 function abbreviates($s, $string) {return (substr($string, 0, strlen($s)) == $s);}
-function prlog($log = 'rcredits') {print_r(log($log));}
+function prlog($log = 'rCredits') {print_r(log($log));}
 function order($first_first, $choice1, $choice2) {return $first_first ? array($choice1, $choice2) : array($choice2, $choice1);}
 function wargs($s, $args, $prefix = '') {return strtr($s, prefix_keys($prefix, $args));} // for debugging
 function my_int($n) {return (is_numeric($n) and $n == (int) $n);}

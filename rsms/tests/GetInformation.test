@@ -6,15 +6,15 @@
 //   SO I can make sound decisions about how much to pay and receive using the rCredits system
 //   
 
-require_once __DIR__ . '/../gherkin/test-defs.php';
-require_once __DIR__ . '/../rsms.steps';
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rSMS.steps';
 
-class rsmsGetInformation extends DrupalWebTestCase {
+class rSMSGetInformation extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
   var $currentTest;
-  const FEATURE_NAME = 'rsms Test - GetInformation';
+  const FEATURE_NAME = 'rSMS Test - GetInformation';
   const DESCRIPTION = 'Get information about account balance and system health';
-  const MODULE = 'rsms';
+  const MODULE = 'rSMS';
 
   public function gherkin($statement, $type) {
     $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);

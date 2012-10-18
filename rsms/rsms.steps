@@ -19,8 +19,8 @@ use rCredits\Util as u;
 use \rCredits\SMS as rSMS;
 use \rCredits\API as api;
 
-require_once __DIR__ . '/../rcredits.inc';
-require_once __DIR__ . '/../rcredits-testing.inc';
+require_once __DIR__ . '/../rCredits.inc';
+require_once __DIR__ . '/../rCredits-testing.inc';
 
 /**
  * phone (ARG) has no account
@@ -81,7 +81,7 @@ function phoneHasAnAccount($number) {
   global $testOnly;
   if (!phoneHasNoAccount($number)) return TRUE;
   if ($testOnly) return FALSE;
-  return (api\create_user(compact('number')) != '');
+  return ((bool) api\create_user(compact('number')));
 }
 
 /**
@@ -194,7 +194,8 @@ function phoneIsNotWaitingTo($number, $todo) {
  */
 function phoneIsWaitingTo($number, $todo, $recalled = FALSE) {
   global $testOnly;
-  if (($is = (r\db_lookup('todo', 'r_sms', 'number=:number', compact('number')) == $todo)) or $testOnly or $recalled) return $is;
+  $is = (r\db_lookup('todo', 'r_sms', 'number=:number', compact('number')) == $todo);
+  if ($is or $testOnly or $recalled) return $is;
   if ($todo == 'setup name') {
     phoneSays($number, 'whatever'); // set up the account
   } elseif ($todo == 'setup email') {
@@ -383,10 +384,10 @@ function phoneConfirms($number, $request) {
  */
 function phoneCanChargeUnilaterally($number) {
   global $testOnly;
-  $uid = r\SMS\uid($number);
-  if ($testOnly) return api\access('charge others', $uid);
+  $acct = new r\acct(r\SMS\uid($number));
+  if ($testOnly) return api\access('charge others', $acct);
 
-  r\set_bit(BIT_CHARGE, $uid);
+  $acct->setBit(BIT_CHARGE);
   return TRUE;
 }
 

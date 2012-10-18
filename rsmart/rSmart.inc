@@ -9,38 +9,6 @@ use \rCredits as r;
 use \rCredits\Util as u;
 use \rCredits\API as api;
 
-define('REAL', @$_SERVER['SystemRoot'] != 'C:\\Windows');
-define('API_URL', REAL ? 'http://devcore.rcredits.org/api' : 'http://localhost/devcore/api');
-
-function send($data) {
-  $ch = curl_init();
-  curl_setopt($ch, CURLOPT_URL, API_URL);
-  curl_setopt($ch, CURLOPT_POST, 1); //post the data
-  curl_setopt($ch, CURLOPT_POSTFIELDS, prep($data));
-  curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); //enable RETURN_TRANSFER so curl_exec() returns result of the request
-  $result = curl_exec($ch);
-  curl_close($ch);
-  echo $result;
-  exit();
-}
-
-function prep($data) {
-  global $my_id, $code;
-  return array('json' => json_encode(compact('my_id', 'code') + $data));
-}
-
-function api2($op, $args, $success = 1) {
-  $op = 'rCredits\\Smart\\' . $op;
-  if (function_exists($op)) apiOut(compact('success') + $op($args)); else apiError('unknown op'); // args can override success
-}
-
-function apiError($message, $success = 0) {apiOut(compact('success', 'message'));}
-
-function apiOut($args) {
-  u\log('out', $args);
-  exit(json_encode2($args, JSON_UNESCAPED_SLASHES));
-}
-
 /**
  * Receive and process a REST request from a smart device
  * @param array $args: an associative array that normally includes:
@@ -56,7 +24,7 @@ function apiOut($args) {
  *   $message: an error message or help message to display on the device; or not set
  */
 function api() {
-  global $auid, $cuid, $cruid, $channel;
+  global $cuid, $cacct, $channel;
   $channel = TX_SMART;
   u\log('in', $_POST);
   if (!(@$args = (array) json_decode($_POST['json']))) apiError('no json');
@@ -66,24 +34,27 @@ function api() {
     if (!@$q_code) apiError('no code given');
     if (!($cuid = r\db_lookup('uid', 'r_smarts', 'code=:q_code', compact('q_code')))) apiError('unknown device');
     if (!is_qid($q_my_id)) apiError('bad id format');
-    if (!($cruid = r\ruid($q_my_id))) apiError('bad id');
-    if ($cruid[0] != $cruid[1]) apiError('agent agent not allowed'); // avoid errors in r\acct
-    $acct = new r\acct($cuid, $q_my_id);
+//    if (!($cruid = r\ruid($q_my_id))) apiError('bad id');
+//    if ($cruid[0] != $cruid[1]) apiError('agent agent not allowed'); // avoid errors in r\acct
+    if (!r\acct::ok($cuid, $q_my_id, $error)) apiError($error); // avoid errors in r\acct
+    $cacct = new r\acct($cuid, $q_my_id);
     
 //    $cruid = r\ruid(@$q_my_id);
 //    if (!@$cruid) apiError('bad id');
-    list ($auid, $auid, $region_uid) = $cruid;
-    if ($region_uid != r\server_uid()) apiError('wrong server');
-    if (!r\ok_agent($cuid, $auid)) apiError('You do not have permission to use that account.'); // make sure agent has permission
+//    list ($auid, $auid, $region_uid) = $cruid;
+    if ($cacct->region != r\server_uid()) apiError('wrong server');
+    if ($cacct->agentRegion != r\server_uid()) apiError('wrong server for agent');
+    if (!r\ok_agent($cuid, $cacct->agent)) apiError('You do not have permission to use that account.'); // make sure agent has permission
   }
 
-  if (@$q_account_id) {
+  if (u\is_qid(@$q_account_id)) {
+    
     $ruid = r\ruid($q_account_id);
     if (!$ruid) apiError('bad account_id');
     list ($uid, $agent_uid, $region_uid) = $ruid;
-    $args = array_merge($args, compact(u\ray('ruid acct uid agent_uid region_uid'))); // use array_merge (not +) to assure overwrite
+    $args = array_merge($args, compact(u\ray('ruid uid agent_uid region_uid'))); // use array_merge (not +) to assure overwrite
   }
-  api2(@$q_op, $args);
+  api2(@$q_op, $args, 'Smart');
 }
 
 function reset($args) {

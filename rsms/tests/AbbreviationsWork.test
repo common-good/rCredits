@@ -6,15 +6,15 @@
 //   SO I can get stuff done fast
 //   
 
-require_once __DIR__ . '/../gherkin/test-defs.php';
-require_once __DIR__ . '/../rsms.steps';
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rSMS.steps';
 
-class rsmsAbbreviationsWork extends DrupalWebTestCase {
+class rSMSAbbreviationsWork extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
   var $currentTest;
-  const FEATURE_NAME = 'rsms Test - AbbreviationsWork';
+  const FEATURE_NAME = 'rSMS Test - AbbreviationsWork';
   const DESCRIPTION = 'Abbreviations work';
-  const MODULE = 'rsms';
+  const MODULE = 'rSMS';
 
   public function gherkin($statement, $type) {
     $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);

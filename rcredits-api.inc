@@ -33,17 +33,48 @@ namespace rCredits\API; // typically abbreviated as "api"
 use \rCredits as r;
 use \rCredits\Util as u;
 
+define('REAL', @$_SERVER['SystemRoot'] != 'C:\\Windows');
+define('API_URL', REAL ? 'http://devcore.rcredits.org/api' : 'http://localhost/devcore/api');
+
+function send($data) {
+  $ch = curl_init();
+  curl_setopt($ch, CURLOPT_URL, API_URL);
+  curl_setopt($ch, CURLOPT_POST, 1); //post the data
+  curl_setopt($ch, CURLOPT_POSTFIELDS, prep($data));
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); //enable RETURN_TRANSFER so curl_exec() returns result of the request
+  $result = curl_exec($ch);
+  curl_close($ch);
+  echo $result;
+  exit();
+}
+
+function prep($data) {
+  global $my_id, $code;
+  return array('json' => json_encode(compact('my_id', 'code') + $data));
+}
+
+function api2($op, $args, $interface = 'API', $success = 1) {
+  $op = "rCredits\\$interface\\$op";
+  if (function_exists($op)) apiOut(compact('success') + $op($args)); else apiError('unknown op'); // args can override success
+}
+
+function apiError($message, $success = 0) {apiOut(compact('success', 'message'));}
+
+function apiOut($args) {
+  u\log('out', $args);
+  exit(json_encode2($args, JSON_UNESCAPED_SLASHES));
+}
+
 /**
  * Receive and process a REST request from the website frontend
  */
 function backend2($args = FALSE) {
-  global $auid, $cuid, $cruid, $firewall;
+  global $cuid, $cacct, $firewall;
 
   if (!$args) $args = $_POST;
-  extract($args); // $cuid, $auid, $firewall (those first three are all extracted into globals), $my_id, $op
-  if (@$my_id) list ($cuid, $auid) = $cruid = r\ruid($my_id);
+  extract($args); // $cuid, $firewall (those first two are extracted into globals), $auid, $my_id, $op
+  $cacct = @$my_id ? new r\acct($my_id) : new r\acct($cuid, $auid);
   unset($args['cuid']); // unset because it is passed as a global, not as an arg
-  unset($args['auid']); // unset because it is passed as a global, not as an arg
 
   if (@$firewall != R_FIREWALL) api_error('firewall system failure'); // give hackers some satisfaction by saying 'failure'
   if (!$cuid or !$auid) api_error('user validation error');
@@ -79,13 +110,15 @@ function create_user($info) {
   $info['community_uid'] = r\community_uid(@$my_postal_code);
 
   /*** Begin DBTX ***/ $dbtx = db_transaction();
-  $account = \user_save(array(), $info);
-//  make_credit_id($account->uid); // this is done separately, to assure uniqueness
-  if (isset($my_number)) r\SMS\create($my_number, $account->uid);
+//  $account = \user_save(array(), $info);
+  for ($i = 0; $i < 20; $i++) { // limit the retries
+    $info['uid'] = r\db_lookup('MAX(uid)', 'users', 1) + 1;
+    if (drupal_write_record('users', $info)) break;
+  }
+  if ($i == 20) throw new \Exception('failed to save user record');
+  if (isset($my_number)) r\SMS\create($my_number, $info['uid']);
   /*** End DBTX ***/ unset($dbtx);
-
-  if (!$account) throw new \Exception('failed to save user record');
-  return new acct($account->uid, '', (array) $account);
+  return r\acct::ok($info['uid']) ? new r\acct($info['uid'], '', $info) : FALSE;
 }
 
 /**
@@ -234,7 +267,7 @@ function reverse($zxid, $amount, $acct, $data, $old_goods, $old_tid, $to_me) {
 //    print_r(compact(u\ray('zxid amount acct data old_tid to_me'))); die();
   u\expect(compact(u\ray('zxid amount acct data old_tid to_me')), 'zid float acct assoc|empty string bool');
 
-  global $auid;
+  global $cacct;
   if (!is_array($data)) $data = array();
   $old_data = $data; // remember original data from transaction we're reversing
   $type = $to_me ? 'payment' : 'charge';
@@ -250,7 +283,7 @@ function reverse($zxid, $amount, $acct, $data, $old_goods, $old_tid, $to_me) {
     u\expect($new_zxid * $zxid > 0, 'reverse: wrong reality');
     $other_tid = zxid2tid($new_zxid, $acct->id);
     $old_data['undone'] = TRUE;
-    $old_data['changes'][] = array(time(), $auid, 'undo', $new_zxid);
+    $old_data['changes'][] = array(time(), $cacct->agent, 'undo', $new_zxid);
     $old_data = serialize($old_data);
     $my_note = "(reversed by #$new_tid) ";
     $other_note = str_replace($new_tid, $other_tid, $my_note);
@@ -371,7 +404,7 @@ function pay_invoice($zxid) {
 function transfer($ttype, $acct, $requested_amount, $for, $goods, $confirmed = TRUE, $data = array()) {
   if (is_frontend()) return (array) backend('transfer', compact(u\ray('ttype acct requested_amount for confirmed data')));
   if (is_array($ttype)) extract($ttype); // called from api or backend
-  global $cuid, $auid;
+  global $cuid, $cacct;
 
   if ($acct == 'ALL') return $ttype == 'payment' ? r\pay_employees($requested_amount, $for, $confirmed) : array('no ALL', array(), FALSE);
   
@@ -389,7 +422,7 @@ function transfer($ttype, $acct, $requested_amount, $for, $goods, $confirmed = T
   $foreign = compact($foreign_uid ? 'foreign_uid' : '', $foreign_agent ? 'foreign_agent' : '');
   if ($uid == $cuid) return array('no self-trading', array(), FALSE);
   list ($payer, $payee) = u\order($taking, $uid, $cuid);
-  list ($payer_agent, $payee_agent) = u\order($taking, $agent_uid, $auid);
+  list ($payer_agent, $payee_agent) = u\order($taking, $agent_uid, $cacct->agent);
 
   // Sort out what type of transfer this is
   $paying_invoice = ($ttype == 'invoice payment');
@@ -413,6 +446,7 @@ function transfer($ttype, $acct, $requested_amount, $for, $goods, $confirmed = T
   $amount = $requested_amount - $shortfall;
   
   // Figure rewards and other extra info
+  if (!$for) $for = $goods ? 'goods and services' : 'cash/loan/etc.';
   $rebate = $goods ? ('' . r\rebate($payer, $amount)) : '0'; // force string, to avoid long serializations
   $bonus = $goods ? ('' . r\bonus($payee, $amount)) : '0';
   if (!isset($data['rebate'])) $data += compact('rebate', 'bonus');
@@ -467,10 +501,10 @@ function give_signup_incentive($uid) {
  * @return FALSE if success; else array($error_message, $subs)
  */
 function add_cell($number, $validate = FALSE) {
+  global $cuid, $cacct;
   if (is_frontend()) return backend('add_cell', compact(u\ray('number validate')));
   if (is_array($number)) extract($number); // called from api or backend
 
-  $cuid = r\cuid();
   $number_internal = u\format_phone($number, '+n');
   $number_pretty = u\format_phone($number);
   $subs = compact('number'); // original format
@@ -490,8 +524,7 @@ function add_cell($number, $validate = FALSE) {
   $status = SMS_OK;
   $number = $number_internal;
   if (!merge_check(compact('number'))) \drupal_write_record('r_sms', compact(u\ray('uid number status')));
-  $account = \user_load($uid);
-  if (!$account->phone) \user_save($account, array('phone' => $number)); // use it as contact phone, if none yet
+  if (!$cacct->phone) r\user_update(array('phone' => $number)); // use it as contact phone, if none yet
   $number = $number_pretty;
   return array('report new cell', compact('number'));
 }
@@ -564,7 +597,6 @@ EOF;
   if(count($result) == 1) {
     foreach ($result as $uid => $other); // get the one entry
     return new r\acct($uid);
-//    return (access('member', $uid)) ? array($uid, $uid) : array('non trader', compact('other'), $result);
   }
 
 //  $key = $who == $phone ? 'phone' : (valid_email_address($who) ? 'email' : (r\valid_url("http://$who") ? 'website' : ''));
@@ -720,8 +752,9 @@ function make_credit_id($uid) {
 function account_choices() {
   if (is_frontend()) return (array) backend('account_choices');
   
-  global $auid;
-  if (!$auid) return FALSE;
+  global $cacct;
+  if (!$cacct) return FALSE;
+  $auid = $cacct->agent;
   $primary = array((string) $auid => (count($GLOBALS['share permissions']) - 1)); // max access for primary user account
 
   $result = r\db_q("SELECT main_uid, permission FROM r_relations WHERE agent_uid=:auid", compact('auid'));
@@ -801,28 +834,19 @@ function account_name($uid) {
 /**
  * Return all the permissions for the specified account
  * @param array $acct: acct object for the other party
- *   OR ruid of the account/agent to ask about (defaults to current account)
- *   OR a simple uid on the current server
+ *   OR a qid or simple uid on the current server
  * @return simple array of that account's permissions
  */
 function accesses($acct = '') {  
-  global $cruid;
+  global $cuid, $cacct;
   if (is_frontend()) {
     $result = backend('accesses', compact(u\ray('acct')), (bool) $acct);
     return is_array($result) ? $result : array();
   }
-  if (is_array($acct) and !u\is_ruid($acct)) extract($acct); // called from api or backend
+  if (is_array($acct)) extract($acct); // called from api or backend
 
-  if (!$cruid) return array(); // no access for ANYONE, if anonymous user
-  list ($main_uid, $agent_uid, $region_uid) = 
-      (u\is_id($acct) ? array($acct, $acct, r\server_uid()) 
-    : (u\is_acct($acct) ? array($acct->id, $acct->agent, $acct->region)
-    : (u\is_ruid($acct) ? $acct
-    : ($cruid
-  ))));
-  if (!$main_uid or !$agent_uid) return array(); // anonymous user has no access
-  if (!($account = \user_load($main_uid))) return array(); // no access for unknown account
-
+  if (!$cuid) return array(); // no access for ANYONE, if anonymous user
+  if (!u\is_acct($acct)) $acct = $acct ? new r\acct($acct) : $cacct;
   $perms = array();
   /*
   $role_perms = (\user_role_permissions(\user_load($main_uid)->roles)); // Drupal permissions for the company
@@ -830,16 +854,18 @@ function accesses($acct = '') {
   foreach ($role_perms as $key => $value) $perms += array_keys($role_perms[$key]);
 */
   
-  if (in_array('administrator', array_values(\user_load($agent_uid)->roles))) $perms[] = 'administrator'; // agent not main
-  if ($account->flags & BIT_PARTNER) $perms[] = 'Partner';
-  if ($account->flags & BIT_STEWARD) $perms[] = 'Steward';
-  if ($account->flags & BIT_RTRADER) $perms[] = 'rTrader';
-  if ($account->flags & BIT_CHARGE) $perms[] = 'charge others';
-  if ($account->account_type != R_PERSONAL) $perms[] = 'company'; // ad hoc permissions
+  if (in_array('administrator', array_values(\user_load($acct->agent)->roles))) $perms[] = 'administrator'; // agent not main
+  if ($cacct->hasBit(BIT_PARTNER)) $perms[] = 'partner';
+  if ($cacct->hasBit(BIT_STEWARD)) $perms[] = 'steward';
+  if ($cacct->hasBit(BIT_RTRADER)) $perms[] = 'rtrader';
+  if ($cacct->hasBit(BIT_CHARGE)) $perms[] = 'charge others';
+  if ($cacct->account_type != R_PERSONAL) $perms[] = 'company'; // ad hoc permissions
 
   $cans = $GLOBALS['share permissions'];
-  $crit = 'agent_uid=:agent_uid AND main_uid=:main_uid';
-  $can = $main_uid == $agent_uid ? count($cans) - 1 : r\db_lookup('permission', 'r_relations', $crit, compact('main_uid', 'agent_uid'));
+  if (!$acct->proSe()) {
+    extract((array) $acct, EXTR_PREFIX_ALL, 'my'); // especially id and agent
+    $can = r\db_lookup('permission', 'r_relations', 'main_uid=:my_id AND agent_uid=:my_agent', compact('my_id', 'my_agent'));
+  } else $can = count($cans) - 1;
   for ($i = 1; $i <= $can; $i++) $perms[] = $cans[$i];
 
   return $perms;
@@ -894,15 +920,17 @@ function is_frontend() {
 }
 
 function backend($op, $info = array(), $cache = FALSE) {
-  global $base_url, $auid, $cuid, $firewall;
+  global $base_url, $cuid, $cacct, $firewall;
   u\expect(is_frontend(), 'backend recursion');
   if (!user_is_logged_in()) return FALSE; // probably checking permission
 //  if ($op == 'get_records' and !$cache) die(print_r(debug_backtrace(), 1));
 
   u\expect(@$cuid, 'no cuid in backend!');
   if (empty($info)) $cache = TRUE;
+  
+  $auid = $cacct->agent;
 //  $cache = FALSE; // debug
-//  debug("cache=$cache cachekey=rcredits_$op$cuid:" . serialize($info));
+//  debug("cache=$cache cachekey=rCredits_$op$cuid:" . serialize($info));
   $skey = "{$op}_{$auid}_{$cuid}_" . base64_encode(serialize($info)); // htmlspecialchars prevents session key failure (PHP bug?)
   if ($cache and (($result = r\Web\svar($skey)) !== NULL)) return $result;
 //  debug($skey . $result);
@@ -927,14 +955,13 @@ function backend($op, $info = array(), $cache = FALSE) {
  * Say whether the account has the specified permission
  * @param string $access: the queried permission. This could be any of three types:
  *   a standard Drupal permission, queryable through user_access()
- *   a shared account permission, stored in r_relations (cached in $_SESSION['rcredits_account_choices'], but we're not trusting that)
+ *   a shared account permission, stored in r_relations (cached in $_SESSION['rCredits_account_choices'], but we're not trusting that)
  *   an ad hoc permission handled directly by this function
- * @param array $acct: acct object for the other party
- *   OR ruid of the account to ask about (defaults to cruid, meaning the current account)
+ * @param array $acct: acct object for the other party (DEFAULT current account)
  *   OR a simple uid on the current server
  * @return boolean: TRUE if the user has the permission
  */
 function access($access, $acct = '') {
-  u\expect(compact(u\ray('access acct')), 'string&notempty acct|acct|empty|id');
+  u\expect(compact(u\ray('access acct')), 'string&notempty acct|empty|id|qid');
   return in_array($access, accesses($acct));
 }
