@@ -16,7 +16,6 @@
 use rCredits as r;
 use rCredits\Testing as t;
 use rCredits\Util as u;
-use \rCredits\SMS as rSMS;
 use \rCredits\API as api;
 
 require_once __DIR__ . '/../rCredits.inc';
@@ -28,7 +27,8 @@ require_once __DIR__ . '/../rCredits-testing.inc';
  * in: OpenAnAccountForTheCaller - testATotalNewbieCalls MAKE
  */
 function phoneHasNoAccount($number) {
-  return !r\user_field(1, rSMS\uid($number));
+  global $testOnly; if ($testOnly) return FALSE;
+  return !r\acct(r\SMS\uid($number));
 }
 
 /**
@@ -65,8 +65,7 @@ function phoneHasNoAccount($number) {
  *     Undo - testUndoTheLastTransferToMeFromSomeoneSpecific MAKE
  */
 function phoneSays($number, $message) {
-  global $testOnly;
-  u\expect(!$testOnly);
+  global $testOnly; if ($testOnly) return FALSE;
   sms_incoming($number, $message, array('no logout' => TRUE));
   return TRUE;
 }
@@ -81,7 +80,7 @@ function phoneHasAnAccount($number) {
   global $testOnly;
   if (!phoneHasNoAccount($number)) return TRUE;
   if ($testOnly) return FALSE;
-  return ((bool) api\create_user(compact('number')));
+  return (bool) new r\acct(compact('number'));
 }
 
 /**
@@ -141,7 +140,7 @@ function weSayToPhone($number, $message) {
 function weSayToPhoneWithSubs($number, $message, $subs) {
   global $testOnly;
 //  debug(array(r\SMS\tt($message), r\SMS\tt($message, $subs[0]), $subs));
-  return t\findMessage( 'out', compact('number'), RSMS_PREFIX . trim(r\SMS\tt($message, @$subs[0])));
+  return t\findMessage('out', compact('number'), RSMS_PREFIX . trim(r\SMS\tt($message, @$subs[0])));
 }
 
 /**
@@ -167,8 +166,8 @@ function weEmailToMemberWithSubs($key, $email, $subs0) {
  * in: OpenAnAccountForTheCaller - testANamelessNewbieCalls MAKE
  */
 function phoneHasNoName($number) {
-  global $testOnly;
-  return u\abbreviates('unknown ', r\user_field('name', rSMS\uid($number)));
+  global $testOnly; if ($testOnly) return FALSE;
+  return u\abbreviates('unknown ', r\user_field('name', r\SMS\uid($number)));
 }
 
 /**
@@ -194,7 +193,8 @@ function phoneIsNotWaitingTo($number, $todo) {
  */
 function phoneIsWaitingTo($number, $todo, $recalled = FALSE) {
   global $testOnly;
-  $is = (r\db_lookup('todo', 'r_sms', 'number=:number', compact('number')) == $todo);
+  $actualTodo = api\todo($number);
+  $is = (@$actualTodo->todo == $todo);
   if ($is or $testOnly or $recalled) return $is;
   if ($todo == 'setup name') {
     phoneSays($number, 'whatever'); // set up the account
@@ -212,7 +212,7 @@ function phoneIsWaitingTo($number, $todo, $recalled = FALSE) {
  */
 function phoneAccountNameIs($number, $name) {
   global $testOnly;
-  return (r\user_field('full_name', rSMS\uid($number)) == $name);
+  return (r\user_field('full_name', r\SMS\uid($number)) == $name);
 }
 
 /**
@@ -222,7 +222,7 @@ function phoneAccountNameIs($number, $name) {
  */
 function phoneEmailIs($number, $email) {
   global $testOnly;
-  return (r\user_field('mail', rSMS\uid($number)) == $email);
+  return (r\user_field('mail', r\SMS\uid($number)) == $email);
 }
 
 /**
@@ -243,8 +243,8 @@ function phoneEmailIs($number, $email) {
  */
 function phoneHasR($number, $amount) {
   global $testOnly;
-//  debug(t\uidHasR(rSMS\uid($number))->balance);
-  if ($testOnly) return t\eq(t\uidHasR(rSMS\uid($number))->balance, $amount);
+//  debug(t\uidHasR(r\SMS\uid($number))->balance);
+  if ($testOnly) return t\eq(t\uidHasR(r\SMS\uid($number))->balance, $amount);
   return FALSE;
 }
 
@@ -255,8 +255,8 @@ function phoneHasR($number, $amount) {
  *     GetInformation - testGettingInformationLargerAmounts MAKE
  */
 function phoneHasRIncludingRewardsOf($number, $bal, $rewards) {
-  global $testOnly;
-  $uid = rSMS\uid($number);
+  global $testOnly; if ($testOnly) return FALSE;
+  $uid = r\SMS\uid($number);
   $info = t\uidHasR($uid);
   list ($old_bal, $old_rewards) = array($info->balance, $info->rewards);
 
@@ -264,7 +264,7 @@ function phoneHasRIncludingRewardsOf($number, $bal, $rewards) {
   t\makeTransaction(compact(u\ray('amount from to type')));
   
   $id = $other = '.ZZM';
-  t\makeAccount(compact('id'));
+  if (!t\makeAccount(compact('id'))) return FALSE;
   list ($amount, $from, $to) = array($bal - ($info->balance + $rewards - $info->rewards), $other, $uid);
   t\makeTransaction(compact(u\ray('amount from to')));
   return TRUE;
@@ -303,7 +303,7 @@ function theCommunityHasR($amount) {
  *     OfferToExchangeUSDollarsForRCredits - testMakeOrUpdateAnOffer MAKE
  */
 function phoneIsAMember($number) {
-  global $testOnly;
+  global $testOnly; if ($testOnly) return FALSE;
   return phoneIsMember($number);
 }
 
@@ -314,9 +314,8 @@ function phoneIsAMember($number) {
  *     GetInformation - testGettingInformationLargerAmounts MAKE
  */
 function phoneIsMember($number, $id = NULL) {
-  global $testOnly;
-  t\makeAccount(compact('number', 'id'));
-  return TRUE;
+  global $testOnly; if ($testOnly) return FALSE;
+  return t\makeAccount(compact('number', 'id'));
 }
 
 /**
@@ -327,8 +326,11 @@ function phoneIsMember($number, $id = NULL) {
  *     Undo - featureSetup MAKE
  */
 function members($list) {
-  global $testOnly;
-  foreach ($list as $one) t\makeAccount($one);
+  global $testOnly; if ($testOnly) return FALSE;
+  foreach ($list as $one) {
+    $one['number'] = $one['cell'];
+    if (!t\makeAccount($one)) return FALSE;
+  }
   return TRUE;
 }
 
@@ -345,8 +347,8 @@ function members($list) {
  *     Undo - testTheCallerRefusesAPendingPayment MAKE
  */
 function transactions($list) {
-  global $testOnly;
-  foreach ($list as $one) t\makeTransaction($one);
+  global $testOnly; if ($testOnly) return FALSE;
+  foreach ($list as $one) if (!t\makeTransaction($one)) return FALSE;
   return TRUE;
 }
 
@@ -369,8 +371,10 @@ function transactions($list) {
  *     Undo - testTheCallerRefusesAPendingPayment MAKE
  */
 function phoneConfirms($number, $request) {
-  global $testOnly;
+  global $testOnly; if ($testOnly) return FALSE;
   phoneSays($number, $request);
+//  debug(api\todo($number));
+//  if (!($nonce = api\todo($number)->nonce)) debug(print_r(compact('number','request','nonce'), 1));
   if (!($nonce = api\todo($number)->nonce)) return FALSE; // (null kills phoneSays)
   phoneSays($number, $nonce);
   return TRUE;
@@ -384,9 +388,8 @@ function phoneConfirms($number, $request) {
  */
 function phoneCanChargeUnilaterally($number) {
   global $testOnly;
-  $acct = new r\acct(r\SMS\uid($number));
-  if ($testOnly) return api\access('charge others', $acct);
-
+  if (!($acct = r\acct(r\SMS\uid($number)))) return FALSE;
+  if ($testOnly) return $acct->hasBit(BIT_CHARGE);
   $acct->setBit(BIT_CHARGE);
   return TRUE;
 }
@@ -418,8 +421,8 @@ function theExpectedNonceForPhoneIs($number, $nonce) {
  * in: GetHelp - testAccountDoesNotExist MAKE
  */
 function isNotAnAccountId($id) {
-  global $testOnly;
-  return !r\user_field(1, t\uid($id)); // whether making or not (never delete an account)
+  global $testOnly; if ($testOnly) return FALSE;
+  return !r\acct(t\uid($id)); // whether making or not (never delete an account)
 }
 
 /**
@@ -435,10 +438,10 @@ function theTotalDemandForRCreditsIs($amount) {
   $same = t\eq($old, $amount);
   if ($testOnly or $same) return $same;
   
-  $uid = t\makeAccount();
+  if (!($uid = t\makeAccount())) return FALSE;
   $demand = $amount - $old;
 //  debug(compact('demand', 'old', 'amount'));
-  \drupal_write_record('users', compact('demand', 'uid'), 'uid');
+  r\user_update(compact('demand'), $uid);
   return TRUE;
 }
 
@@ -451,7 +454,7 @@ function phoneDemandForRCreditsIs($number, $demand) {
   global $testOnly;
   $uid = r\SMS\uid($number);
   if ($testOnly) return t\eq(r\user_field('demand', $uid), $demand);
-  \drupal_write_record('users', compact('uid', 'demand'), 'uid');
+  r\user_update(compact('demand'), $uid);
 //  debug(r\user_field('demand', $uid));
 //  debug(compact('number','demand','uid'));
   return TRUE;  
@@ -463,7 +466,7 @@ function phoneDemandForRCreditsIs($number, $demand) {
  * in: Transact - featureSetup MAKE
  */
 function relations($relations) {
-  global $testOnly;
-  foreach ($relations as $one) t\makeRelation($one);
+  global $testOnly; if ($testOnly) return FALSE;
+  foreach ($relations as $one) if (!t\makeRelation($one)) return FALSE;
   return TRUE;
 }

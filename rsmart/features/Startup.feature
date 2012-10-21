@@ -3,6 +3,10 @@ As a member
 I WANT to run the rCredits mobile app on my device
 SO I can use it to buy and sell with rCredits.
 
+# Terminology in these Features:
+# "I": the device holder (not necessarily the owner)
+# "the system": the rCredits system
+
 Setup:
   Given members:
   | id      | full_name  | phone  | email         |

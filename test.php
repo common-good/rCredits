@@ -1,7 +1,7 @@
 <?php
 use rCredits\Util as u;
 
-define('TESTING', TRUE); // use this to activate extra debugging statements (if (@TESTING))
+define('TESTING', TRUE); // use this to activate extra debugging statements (if (defined('TESTING')))
 $module = $_SERVER['QUERY_STRING'];
 
 $modules = $module ? array($module) : array('rSMS', 'rSmart', 'rWeb');
@@ -18,8 +18,8 @@ function doModule($module) {
   $path = __DIR__ . "/$module"; // relative path from compiler to module directory
   // OpenAnAccountForTheCaller AbbreviationsWork ExchangeForCash GetHelp GetInformation Transact Undo OfferToExchangeUSDollarsForRCredits
   $tests = str_replace("$path/features/", '', str_replace('.feature', '', findFiles("$path/features", '/.*\.feature/')));
-//  $tests = array('Undo'); // uncomment to run just one feature (test set)
-//  $oneScene = 'testTheCallerRefusesAPendingPayment'; // uncomment to run just one test scenario
+//  $tests = array('Transact'); // uncomment to run just one feature (test set)
+//  $oneScene = 'testTheCallerConfirmsAPayment'; // uncomment to run just one test scenario
 
   foreach ($tests as $test) dotest($module, $test);
   debug("MODULE $module: OK:$ok NO:$no");
@@ -43,7 +43,7 @@ function dotest($module, $test) {
     $t->$one(); // run one test
     
     // Display results intermixed with debugging output, if any (so don't collect results before displaying)
-    $results[0] .= " [$module] $test";
+    $results[0] .= " [$test] $one";
     debug(join(PHP_EOL, $results));
   }
   $user = $temp_user;
@@ -72,7 +72,7 @@ function findFiles($path = '.', $pattern = '/./', $result = '') {
   $dir = dir($path);
   
   while ($filename = $dir->read()) {
-    if ($filename === '.' or $filename === '..') continue;
+    if ($filename == '.' or $filename == '..') continue;
     $filename = "$path/$filename";
     if (is_dir($filename) and $recurse) $result = findFiles($filename, $pattern, $result);
     if (preg_match($pattern, $filename)){

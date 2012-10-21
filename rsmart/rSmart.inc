@@ -4,57 +4,51 @@
  * Smart phone interface to the rCredits system.
  */
 
-namespace rCredits\Smart; // typically abbreviated as "smart"
+namespace rCredits\Smart;
 use \rCredits as r;
 use \rCredits\Util as u;
 use \rCredits\API as api;
 
 /**
  * Receive and process a REST request from a smart device
- * @param array $args: an associative array that normally includes:
+ * @param assoc $args: an associative array (defaults $_POST) of a json-encoded assoc that normally includes:
  *   op: what to do (determines what function to call)
  *   my_id: agent qid
  *   code: permanent code that we sent to the device in First Time response (used to set $cuid)
  *     for now, user cannot change the active account, just the agent (eg sales clerks)
  *     if $op = 'first_time', expect $password instead
  *   account_id: the qid for the other party, if any 
- *     This gets passed to the specific op functions as $ruid = array($uid, $agent_uid, $region_uid)
- * @return (normally by calling either apiError or api2):
- *   $success=1 if api2 is called, otherwise 0 ($op = 'photo' is an exception; see below)
+ *     This gets passed to the specific op functions as $acct
+ * @return (normally by calling either api\error or doOp):
+ *   $success=1 if doOp is called, otherwise 0 ($op = 'photo' is an exception; see below)
  *   $message: an error message or help message to display on the device; or not set
  */
-function api() {
-  global $cuid, $cacct, $channel;
+function api($args = FALSE) {
+  global $cuid, $channel;
   $channel = TX_SMART;
-  u\log('in', $_POST);
-  if (!(@$args = (array) json_decode($_POST['json']))) apiError('no json');
+  if (!$args) $args = $_POST;
+  u\log('in', $args);
+  if (!(@$args = (array) json_decode($args['json']))) return api\error('no json');
   extract($args, EXTR_PREFIX_ALL, 'q');
   if (@$q_op != 'reset') // DEBUG
   if (@$q_op != 'first_time') {
-    if (!@$q_code) apiError('no code given');
-    if (!($cuid = r\db_lookup('uid', 'r_smarts', 'code=:q_code', compact('q_code')))) apiError('unknown device');
-    if (!is_qid($q_my_id)) apiError('bad id format');
-//    if (!($cruid = r\ruid($q_my_id))) apiError('bad id');
-//    if ($cruid[0] != $cruid[1]) apiError('agent agent not allowed'); // avoid errors in r\acct
-    if (!r\acct::ok($cuid, $q_my_id, $error)) apiError($error); // avoid errors in r\acct
-    $cacct = new r\acct($cuid, $q_my_id);
-    
-//    $cruid = r\ruid(@$q_my_id);
-//    if (!@$cruid) apiError('bad id');
-//    list ($auid, $auid, $region_uid) = $cruid;
-    if ($cacct->region != r\server_uid()) apiError('wrong server');
-    if ($cacct->agentRegion != r\server_uid()) apiError('wrong server for agent');
-    if (!r\ok_agent($cuid, $cacct->agent)) apiError('You do not have permission to use that account.'); // make sure agent has permission
+    if (!@$q_code) return api\error('no code given');
+    if (!($cuid = r\dbLookup('uid', 'r_smarts', 'code=:q_code', compact('q_code')))) return api\error('unknown device');
+    if (!u\is_qid($q_my_id)) return api\error('bad id format');
+    if (!($cacct = r\acct($cuid, $q_my_id, $error))) return api\error($error);
+    if ($cacct->region != r\server_uid()) return api\error('wrong server');
+    if ($cacct->agentRegion != r\server_uid()) return api\error('wrong server for agent');
+    if (!r\ok_agent($cuid, $cacct->agent)) return api\error('no permission'); // make sure agent has permission
+    $args['cacct'] = $cacct;
   }
 
   if (u\is_qid(@$q_account_id)) {
-    
-    $ruid = r\ruid($q_account_id);
-    if (!$ruid) apiError('bad account_id');
-    list ($uid, $agent_uid, $region_uid) = $ruid;
-    $args = array_merge($args, compact(u\ray('ruid uid agent_uid region_uid'))); // use array_merge (not +) to assure overwrite
+    if (!($acct = r\acct($q_account_id, '', $error))) return api\error($error);
+//    list ($uid, $agent_uid, $region_uid) = $acct->UAR();
+    $args['acct'] = $acct;
+//    $args = array_merge($args, compact('acct')); // use array_merge (not +) to assure overwrite
   }
-  api2(@$q_op, $args, 'Smart');
+  return api\doOp(@$q_op, $args, 'Smart');
 }
 
 function reset($args) {
@@ -75,16 +69,12 @@ function reset($args) {
 function first_time($args) {
   require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
   extract($args, EXTR_PREFIX_ALL, 'q');
-//  if (!($account = \user_load_by_name(@$q_my_id))) apiError('unknown user');
-  if (!($ruid = r\ruid(@$q_my_id))) apiError('bad id');
-  $uid = $ruid[0];
-  if (!($account = \user_load($uid))) apiError('unknown user');
-  if (@!$q_password) apiError('login error');
-  if (!user_check_password($q_password, $account)) apiError('bad login'); // make these two error messages distinct but obscure
-  $code = user_hash_password(uniqid($q_my_id, TRUE)) . '/'; // add a slash to make sure slashes get handled properly
-  $owner_id = r\quid($uid, $uid);
-  $device = t('Smart Device');
-  \drupal_write_record('r_smarts', compact(u\ray('uid code device'))); // no way to tell if it's the same device as others
+  if (!u\is_qid(@$q_my_id)) return api\error('bad id');
+  if (!($cacct = r\acct(@$q_my_id))) return api\error('unknown user');
+  if (@!$q_password) return api\error('login error');
+  if (!user_check_password($q_password, $cacct->account())) return api\error('bad login'); // make these two error messages distinct but obscure
+  if (!($code = makeDevice(t('Smart Device'), $cacct))) return api\error("can't save device info");
+  $owner_id = $cacct->qid;
   return compact(u\ray('code owner_id')) + startup($args);
 }
 
@@ -105,7 +95,7 @@ function startup($args) {
 /*
  * Identify the other party.
  * @param array $args:
- *   account_id (converted to ruid): the qid for an individual or company and rep
+ *   account_id: the qid for an individual or company and rep
  * @return:
  *   full_name: the individual's name
  *   company_name: the company name (if any)
@@ -115,13 +105,13 @@ function startup($args) {
 function identify($args) {
   $cuid = r\cuid();
   extract($args, EXTR_PREFIX_ALL, 'q');
-  $full_name = \user_load($q_uid)->full_name;
-  if ($q_uid == $cuid) apiError(r\Web\tt('no self-trading'));
-  $account = \user_load($q_uid); // the individual or company account
-  $country = $account->country;
-  $location = $account->city . ', ' . ($country == 'United States' ? u\state_abbrev($account->state) : $country);
-  if (@$q_company_uid) $company_name = r\user_field('full_name', $q_company_uid);
-  $uid = $q_uid;
+  $full_name = $q_acct->full_name;
+  if ($q_acct->id == $cuid) return api\error(r\Web\tt('no self-trading'));
+  $country = $q_acct->country;
+//  $location = $q_acct->city . ', ' . ($country == 'United States' ? u\state_abbrev($q_acct->state) : $country);
+  $location = $q_acct->city . ', ' . $q_acct->state . ($country == 'United States' ? '' : ", $country");
+  if (!$q_acct->proSe()) list ($company_name, $full_name) = array($full_name, r\acct($q_acct->agent)->full_name);
+  $uid = $q_acct->id;
   if (api\access('charge others')) $other_balance = api\credit_info(compact('uid'))->balance;
   return compact(u\ray('full_name location company_name other_balance'));
 }
@@ -135,9 +125,15 @@ function identify($args) {
  */
 function photo($args) {
   extract($args, EXTR_PREFIX_ALL, 'q');
-  $pic_filename = r\Web\profile_picture(@$q_uid);
-  $pic = file_get_contents($pic_filename);
-  exit($pic);
+  $pic_filename = r\Web\profile_picture(@$q_acct->id);
+  $pic = $pic_filename ? file_get_contents($pic_filename) : '';
+
+  $len = strlen($pic);
+  $len = ($len > 500) ? '>500' : "=$len";
+  $message = "picture file, length$len";
+  u\log('out', compact('message'));
+
+  if (defined('TESTING')) {debug($message); return $message;} else exit($pic);
 }
 
 /*
@@ -158,7 +154,7 @@ function transact($args) {
   if (!$q_goods) $q_purpose = 'cash'; // tell transfer no rewards
   list ($index, $subs, $zot) = api\transfer($q_type, $q_acct, $q_amount, $q_purpose, $q_goods, TRUE);
   $tx_id = r\qxid($subs['zxid']); // return the transaction id as a qid (globally unique transaction id) (':' means As-If)
-  list ($my_balance, $other_balance) = balances($q_uid, $subs['real']);
+  extract(balances($q_acct->id, $subs['real'])); // my_balance, other_balance
   $message = r\Web\tt($index, $subs);
   //if (!@$subs['success'])
   return compact(u\ray('tx_id my_balance other_balance message'));
@@ -167,7 +163,7 @@ function transact($args) {
 function balances($uid, $real) {
   $my_balance = api\credit_info(compact('real'))->balance;
   if (api\access('charge others')) $other_balance = api\credit_info(compact('real', 'uid'))->balance;
-  return array($my_balance, $other_balance);
+  return compact('my_balance', 'other_balance');
 }
 
 /*
@@ -186,17 +182,24 @@ function undo($params) {
   extract($params, EXTR_PREFIX_ALL, 'q');
   
   list ($zxid, $region_uid) = r\azid($q_tx_id);
-  if ($region_uid != r\server_uid()) apiError('That is not a transaction on this server.');
+  if ($region_uid != r\server_uid()) return api\error('That is not a transaction on this server.');
   
   if ($q_confirmed) {
     list ($message, $args) = api\undo_tx($zxid);
     $message = r\Web\tt($message, $args);
-    if (!@$args['success']) apiError($message);
+    if (!@$args['success']) return api\error($message);
     if ($new_zxid = @$args['zxid']) $tx_id = r\qxid($new_zxid); // get offsetting transaction id, if any (otherwise state changed)
-    list ($my_balance, $other_balance) = balances($args['other_uid'], $zxid > 0);
+    $balances = balances($args['other_uid'], $zxid > 0);
   } else {
-    if (!($result = api\last_tx('xid=:zxid', compact('zxid')))) apiError(r\Web\tt('undo no match'));
+    if (!($result = api\last_tx('xid=:zxid', compact('zxid')))) return api\error(r\Web\tt('undo no match'));
     $message = r\Web\tt('confirm undo', r\tx_report_args($result));
+    $balances = array();
   }
-  return compact(u\ray('message tx_id my_balance other_balance'));
+  return compact(u\ray('message tx_id')) + $balances;
+}
+
+function makeDevice($device, $acct, $code = '') {
+  $uid = $acct->id;
+  $code = $code ?: user_hash_password(uniqid($acct->qid, TRUE) . time()) . '/'; // add a slash to make sure slashes get handled properly
+  return @\drupal_write_record('r_smarts', compact(u\ray('uid code device'))) ? $code : FALSE; // no way to tell if it's the same device as others
 }

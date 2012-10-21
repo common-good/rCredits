@@ -264,8 +264,8 @@ function tt($message, $subs = array()) {
  * @todo: get these r\'s out of here.
  */
 function nonce() {
-  $offset = r\db_lookup('FLOOR(RAND() * COUNT(*))', 'r_nonces');
-  $nonce = r\db_lookup('nonce', 'r_nonces', "1 LIMIT $offset, 1");
+  $offset = r\dbLookup('FLOOR(RAND() * COUNT(*))', 'r_nonces');
+  $nonce = r\dbLookup('nonce', 'r_nonces', "1 LIMIT $offset, 1");
 
   $impossible = join(' ', $GLOBALS['SMS not a nonce']);
   if (strpos(". $impossible ", " $nonce ")) return nonce(); // reserved word? try again
@@ -398,7 +398,7 @@ function expect1($arg, $value, $type, $ret) {
     case 'notempty': return expect(!empty($value), $msg, $ret);
     case 'notnull': return expect(!is_null($value), $msg, $ret);
     case 'qid': return expect(is_qid($value), $msg, $ret);
-    case 'ruid': return expect(is_ruid($value), $msg, $ret);
+//    case 'ruid': return expect(is_ruid($value), $msg, $ret);
     case 'string': return expect(is_string($value), $msg, $ret);
     case 'zid': return expect(is_zid($value), $msg, $ret);
     default: return expect(is_object($value) and get_class($value) == "rCredits\\$type", $msg, $ret);
@@ -419,36 +419,22 @@ function expect1($arg, $value, $type, $ret) {
  * @return the log record id (for exception handler and shutdown function)
  */  
 function log($type, $info, $special = '') {
-  global $channel, $cuid, $cacct;
-  $auid = $cacct->agent;
-  $log_filename = 'rCredits.log';
+  global $channel, $cuid;
+  $agent = @r\acct()->agent;
+  $log_filename = @$channel ? "$channel.log" : 'rCredits.log';
   $date = strftime('%d-%b-%Y', time());
   $channels = ray(TX_CHANNELS); 
-  $channel_name = $channels[$channel];
+  $channel_name = $channels[@$channel];
   if (is_nonce($special) and @$info['message']) $info['message'] = str_replace($special, '@nonce', $info['message']); // make it easy to match
 
+  unset($info['code']); // don't make code and password any more accessible than they are
+  unset($info['password']);
   $info = json_encode2($info, JSON_UNESCAPED_SLASHES);
   file_put_contents($log_filename, "$date ($channel_name) $type: $info\n", FILE_APPEND);
   $time = time();
-  $record = compact(ray('time channel type cuid auid info special'));
+  $record = compact(ray('time channel type cuid agent info special'));
   drupal_write_record('r_log', $record);
   return $record['logid'];
-  
-  /*
-  $channels = ray(TX_CHANNELS);
-  $log_filename = $channels[$channel] . '.log';
-  $log = file_exists($log_filename) ? unserialize(file_get_contents($log_filename)) : '';
-  if ($type) {
-    extract($info, EXTR_PREFIX_ALL, 'my');
-    $info = compact('type') + $info;
-    $log[] = $info; //compact('type', 'message', 'number');
-    if (@$my_nonce and @$my_message) {
-      $info['message'] = str_replace($my_nonce, '@nonce', $my_message); // also store without the nonce for testing, because the nonce is unpredictable
-      $log[] = $info;
-    }
-    file_put_contents($log_filename, serialize($log)); //  . "\n"); ?
-  }
-  return $log; */
 }  
 
 /**
@@ -478,14 +464,14 @@ function import_gfld() {
     $fax = $fax ? "+1$fax" : NULL;
     $state = state_abbrev($state);
     $website = str_replace('https://', '', str_replace('http://', '', str_replace('www.', '', $website)));
-    $account_type = r\db_lookup(1, 'r_user_industries', "iid IN (121,61) AND uid=:uid", compact('uid')) ? 2 : 1;
+    $account_type = r\dbLookup(1, 'r_user_industries', "iid IN (121,61) AND uid=:uid", compact('uid')) ? 2 : 1;
     $sql = "UPDATE companies SET phone=:phone, fax=:fax, status=1, website=:website, name=:short_name, short_name=:short_name, state=:state, country='United States', timezone='America/New_York', account_type=:account_type WHERE uid=:uid";
     r\db_q($sql, compact(ray('short_name uid phone fax state website account_type')));
 
     $cats = unserialize($categories);
     foreach ($cats as $industry) {
       $industry = ucwords(strtolower($industry));
-      if (!($iid = r\db_lookup('iid', 'r_industries', 'industry=:industry', compact('industry')))) {
+      if (!($iid = r\dbLookup('iid', 'r_industries', 'industry=:industry', compact('industry')))) {
         $record = compact('industry');
         db_query("INSERT INTO r_industries (industry) VALUES (:industry)", $record);
 //        db_insert('r_industries')->fields($record);
@@ -574,9 +560,10 @@ function wargs($s, $args, $prefix = '') {return strtr($s, prefix_keys($prefix, $
 function my_int($n) {return (is_numeric($n) and $n == (int) $n);}
 function my_float($n) {return (is_numeric($n) and $n == (float) $n);}
 function is_id($id) {return (my_int($id) and $id > 0);}
-function is_ruid($ruid) {return (is_array($ruid) and array_keys($ruid) == array(0, 1, 2) and is_zid($ruid[0]) and is_zid($ruid[1]) and is_zid($ruid[2]));}
+//function is_ruid($ruid) {return (is_array($ruid) and array_keys($ruid) == array(0, 1, 2) and is_zid($ruid[0]) and is_zid($ruid[1]) and is_zid($ruid[2]));}
 function is_qid($qid) {return preg_match('/^[A-Z]{3}(\.|\:|\.\.)[A-Z]+$/', $qid);}
 function is_zid($zid) {return (my_int($zid) and $zid !== 0);}
 function is_nonce($nonce) {return preg_match('/^[A-Z]{3,}$/', $nonce);}
 function is_name($value) {return preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $value);}
 function is_acct($acct) {return (is_object($acct) and get_class($acct) == 'rCredits\acct');}
+function hug($s, $arms = '()') {return substr($arms, 0, 1) . $s . substr($arms, -1, 1);}

@@ -29,9 +29,9 @@ Scenario: Member asks us to identify a QR
   Given member "NEW.ZZA" has initialized a device whose code is %whatever1
   When member "NEW.ZZA" asks device %whatever1 to identify QR "NEW.ZZB" 
   Then we respond with:
-  | success | full_name | location    | company_name | message |
-  | 1       | Bea Two   | Btown, Utah |              |         |
-#op=”identify”
+  | success | full_name | location    |
+  | 1       | Bea Two   | Btown, Utah |
+#op="identify"
 #other_balance (current balance for the identified person)
 
 Scenario: Member asks us to identify the member's own QR
@@ -45,28 +45,28 @@ Scenario: Member asks us to identify a foreign QR
   Given member "NEW.ZZA" has initialized a device whose code is %whatever1
   When member "NEW.ZZA" asks device %whatever1 to identify QR "NEW.ZZC" 
   Then we respond with:
-  | success | full_name  | location             | company_name | message |
-  | 1       | Corner Pub | Ctown, Corse, France |              |         |
+  | success | full_name  | location             |
+  | 1       | Corner Pub | Ctown, Corse, France |
   
 Scenario: Member asks us to identify a QR and member can show balances
   Given member "NEW.ZZA" has initialized a device whose code is %whatever1
   And member "NEW.ZZA" can show balances
   When member "NEW.ZZA" asks device %whatever1 to identify QR "NEW.ZZB" 
   Then we respond with:
-  | success | full_name | location    | company_name | message | other_balance |
-  | 1       | Bea Two   | Btown, Utah |              |         | $250          |
+  | success | full_name | location    | other_balance |
+  | 1       | Bea Two   | Btown, Utah | 250           |
 
 Scenario: Member asks us to identify a QR for a company agent
   Given member "NEW.ZZA" has initialized a device whose code is %whatever1
   When member "NEW.ZZA" asks device %whatever1 to identify QR "NEW:ZZA"
   Then we respond with:
-  | success | full_name | location             | company_name | message |
-  | 1       | Bea Two   | Ctown, Corse, France | Corner Pub   |         |
+  | success | full_name | location             | company_name |
+  | 1       | Bea Two   | Ctown, Corse, France | Corner Pub   |
 
 Scenario: Device asks for picture to go with QR
   Given member "NEW.ZZA" has initialized a device whose code is %whatever1
   When member "NEW.ZZA" asks device %whatever1 for a picture of member "NEW.ZZB"
   Then we respond with a picture of member "NEW.ZZB"
-#op=”photo”
+#op="photo"
 Response: (Content-Type will probably be image/png, rather than application/whatever)
 just the picture file

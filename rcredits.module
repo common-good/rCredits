@@ -82,7 +82,7 @@ function rCredits_exception_handler($e) {
   $msg = "$short_msg<br>\n($msg)<br>\n- $line0 ($file0)" . $trace_msg;
   $message = str_replace('&nbsp;', '', str_replace('<br>', '', $msg));
   $R_FATAL_ERROR = u\log('FATAL', compact('message'));
-  if (@TESTING) print_r($msg, 1); // do this in any case (doesn't show up unless interface fails)
+  if (defined('TESTING')) print_r($msg, 1); // do this in any case (doesn't show up unless interface fails)
 
   switch (@$channel) {
     case TX_WEB:
@@ -153,7 +153,7 @@ function rCredits_im_send($key, &$message, $subs) {
  */
 function rCredits_mail($key, &$msg_array, $subs) {
     $language = $msg_array['language'];
-//    $data['user'] = \user_load($cuid);
+//    $data['user'] = r\acct()->account();
 //    user_mail_tokens($variables, $data, compact('language')); // adds links for password reset and account cancelation
     
     if (rCredits_im_send($key, $msg_array, $subs)) return; // If we can send by instant-message, do not send by email.
@@ -162,7 +162,7 @@ function rCredits_mail($key, &$msg_array, $subs) {
     $msg_array['subject'] = $subject = strtr($GLOBALS['email_subjects'][$key], $subs);
     $msg_array['body'][] = $message = strtr(r\email_body($key), $subs);
     $message = str_replace("\n", '~', $message); // easier reading for log
-    if (@TESTING) debug($message);
+    if (defined('TESTING')) debug($message);
     $email = $subs['{EMAIL}'];
     u\log('email', compact(u\ray('key email subject message')));
 
@@ -171,10 +171,21 @@ function rCredits_mail($key, &$msg_array, $subs) {
     
 }
 
+/*************/
+
 define('JSON_UNESCAPED_SLASHES', '');
-function json_encode2($s, $zot) { // fudge or pre PHP-5.4 (delete this when we upgrade)
+function json_encode2($s, $zot) { // fudge or pre PHP-5.4 (delete this and change to json_encode (no 2) when we upgrade)
   $standin = '!##$%!';
   $s = str_replace('/', $standin, $s);
   $s = json_encode($s);
   return str_replace($standin, '/', $s);
 }
+
+/**
+ * Add a single entry to the permission array for hook_permission()
+ */
+/*
+function permission(&$permissions, $title, $description) {
+  $permissions[strtolower($title)] = compact('title', 'description');
+}
+*/

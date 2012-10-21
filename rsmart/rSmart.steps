@@ -21,3 +21,156 @@ use \rCredits\API as api;
 
 require_once __DIR__ . '/../rcredits.inc';
 require_once __DIR__ . '/../rcredits-testing.inc';
+require_once __DIR__ . '/../rSmart/rSmart.inc';
+
+/**
+ * members: (ARG)
+ *
+ * in: IdentifyQR - featureSetup MAKE
+ *     Startup - featureSetup MAKE
+ */
+function members($list) {
+  global $testOnly; if ($testOnly) return FALSE;
+  foreach ($list as $one) if (!t\makeAccount($one)) return FALSE;
+  return TRUE;
+}
+
+/**
+ * relations: (ARG)
+ *
+ * in: IdentifyQR - featureSetup MAKE
+ */
+function relations($relations) {
+  global $testOnly; if ($testOnly) return FALSE;
+  foreach ($relations as $one) if (!t\makeRelation($one)) return FALSE;
+  return TRUE;
+}
+
+/**
+ * transactions: (ARG)
+ *
+ * in: IdentifyQR - featureSetup MAKE
+ */
+function transactions($list) {
+  global $testOnly; if ($testOnly) return FALSE;
+  foreach ($list as $one) if (!t\makeTransaction($one)) return FALSE;
+  return TRUE;
+}
+
+/**
+ * member (ARG) has initialized a device whose code is (ARG)
+ *
+ * in: IdentifyQR - testMemberAsksUsToIdentifyAQR MAKE
+ *     IdentifyQR - testMemberAsksUsToIdentifyTheMembersOwnQR MAKE
+ *     IdentifyQR - testMemberAsksUsToIdentifyAForeignQR MAKE
+ *     IdentifyQR - testMemberAsksUsToIdentifyAQRAndMemberCanShowBalances MAKE
+ *     IdentifyQR - testMemberAsksUsToIdentifyAQRForACompanyAgent MAKE
+ *     IdentifyQR - testDeviceAsksForPictureToGoWithQR MAKE
+ *     Startup - testMemberRerunsTheApp MAKE
+ */
+function memberHasInitializedADeviceWhoseCodeIs($id, $code) {
+  global $testOnly; if ($testOnly) return FALSE;
+  return r\Smart\makeDevice(t('Test Device'), r\acct($id), $code);
+}
+
+/**
+ * member (ARG) asks device (ARG) to identify QR (ARG)
+ *
+ * in: IdentifyQR - testMemberAsksUsToIdentifyAQR MAKE
+ *     IdentifyQR - testMemberAsksUsToIdentifyTheMembersOwnQR MAKE
+ *     IdentifyQR - testMemberAsksUsToIdentifyAForeignQR MAKE
+ *     IdentifyQR - testMemberAsksUsToIdentifyAQRAndMemberCanShowBalances MAKE
+ *     IdentifyQR - testMemberAsksUsToIdentifyAQRForACompanyAgent MAKE
+ */
+function memberAsksDeviceToIdentifyQR($my_id, $code, $account_id) {
+  global $testOnly; if ($testOnly) return FALSE;
+  return t\hitServer('identify', $my_id, $code, $account_id);
+}
+
+/**
+ * we respond with: (ARG)
+ *
+ * in: IdentifyQR - testMemberAsksUsToIdentifyAQR TEST
+ *     IdentifyQR - testMemberAsksUsToIdentifyTheMembersOwnQR TEST
+ *     IdentifyQR - testMemberAsksUsToIdentifyAForeignQR TEST
+ *     IdentifyQR - testMemberAsksUsToIdentifyAQRAndMemberCanShowBalances TEST
+ *     IdentifyQR - testMemberAsksUsToIdentifyAQRForACompanyAgent TEST
+ *     Startup - testMemberLogsInSuccessfullyToInitializeDevice TEST
+ *     Startup - testMemberInitializesWithAnIllformedId TEST
+ *     Startup - testDeviceOwnerIsNotAMember TEST
+ *     Startup - testMemberTypesTheWrongPassword TEST
+ *     Startup - testMemberRerunsTheApp TEST
+ */
+function weRespondWith($args) {
+  global $testOnly;
+  $args = $args[0];
+  $message = @$args['message'];
+  $message = @$GLOBALS['API messages'][$message] ?: (@$GLOBALS[TX_SMS .' messages'][$message] ?: $message);
+  if ($message) $args['message'] = $message;
+  return t\findMessage('out', $args, $message);
+}
+
+/**
+ * member (ARG) can show balances
+ *
+ * in: IdentifyQR - testMemberAsksUsToIdentifyAQRAndMemberCanShowBalances MAKE
+ */
+function memberCanShowBalances($id) {
+  global $testOnly; if ($testOnly) return FALSE;
+  if ($testOnly) return FALSE;
+  r\acct($id)->setBit(BIT_CHARGE);
+  return TRUE;
+}
+
+/**
+ * member (ARG) asks device (ARG) for a picture of member (ARG)
+ *
+ * in: IdentifyQR - testDeviceAsksForPictureToGoWithQR MAKE
+ */
+function memberAsksDeviceForAPictureOfMember($my_id, $code, $account_id) {
+  global $testOnly; if ($testOnly) return FALSE;
+  return t\hitServer('photo', $my_id, $code, $account_id);
+}
+
+/**
+ * we respond with a picture of member (ARG)
+ *
+ * in: IdentifyQR - testDeviceAsksForPictureToGoWithQR TEST
+ */
+function weRespondWithAPictureOfMember($response) {
+  global $testOnly;
+  return ($response == 'picture file, length>500');
+}
+
+/**
+ * member NEW.ZZA password is (ARG)
+ *
+ * in: Startup - testMemberLogsInSuccessfullyToInitializeDevice MAKE
+ */
+function memberNEWZZAPasswordIs($arg1) {
+  global $testOnly; if ($testOnly) return FALSE;
+  todo;
+}
+
+/**
+ * member initializes the device as member (ARG) with password (ARG)
+ *
+ * in: Startup - testMemberLogsInSuccessfullyToInitializeDevice MAKE
+ *     Startup - testMemberInitializesWithAnIllformedId MAKE
+ *     Startup - testDeviceOwnerIsNotAMember MAKE
+ *     Startup - testMemberTypesTheWrongPassword MAKE
+ */
+function memberInitializesTheDeviceAsMemberWithPassword($arg1, $arg2) {
+  global $testOnly; if ($testOnly) return FALSE;
+  todo;
+}
+
+/**
+ * the app starts up as member (ARG) and code (ARG)
+ *
+ * in: Startup - testMemberRerunsTheApp MAKE
+ */
+function theAppStartsUpAsMemberAndCode($arg1, $arg2) {
+  global $testOnly; if ($testOnly) return FALSE;
+  todo;
+}

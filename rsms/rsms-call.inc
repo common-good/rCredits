@@ -17,7 +17,8 @@ class rSMSexception extends \Exception {} // so we can use \Exception for real e
 class call {
   var $message; // the text message received
   var $number; // calling phone number
-  var $uid; // record id of caller's record in user table (duplicates $cuid)
+  var $uid; // record id of caller's record in user table (duplicates $cuid and can probably be eliminated, but look carefully
+    // at storing $this for todo and retrieving
   var $zxid; // record id of transaction, related to an operation awaiting confirmation (negative for asif transactions)
   var $command; // the major command operation (as parsed)
   var $parms; // parameters to the command (as parsed)
@@ -64,15 +65,14 @@ class call {
    *   Message is the error message to send the caller.
    */
   function validate_caller() {
-    global $cuid, $cacct;
+    global $cuid;
     $number = $this->number;
     $cuid = $this->uid = uid($number);
     if (!$cuid) {
-      u\expect($cacct = api\create_user(compact('number')), 'missing uid');
+      $cacct = new r\acct(compact('number')); // this will crash if someone (VERY) quickly calls again from the same number
       $cuid = $cacct->id;
-    } else $cacct = new r\acct($cuid);
-    u\expect(u\is_acct($cacct), 'notacct');
-    u\expect(is_object($cacct),'notanobj');
+    } else $cacct = r\acct($cuid);
+    u\expect($cacct, 'failed to get acct');
     
     $todo = @api\todo($number)->todo;
     if (api\is_temp_name($cacct->name)) {
@@ -89,7 +89,7 @@ class call {
       api\todo($number, '', '');
       $balance = u\format_amount(api\give_signup_incentive($this->uid));
       return tt('your account is ready', compact('balance'));
-/*    } elseif (!\user_access('transact via sms', $cacct)) { // user does not have permission to use the rCredits SMS interface
+/*    } elseif (!\user_access('transact via sms')) { // user does not have permission to use the rCredits SMS interface
       // send the user an email here?
       // throw new rSMSexception('You do not have permission to use this system.'); // (due to misbehavior?), so don't waste a call?
       return tt('no SMS permission'); // be polite 

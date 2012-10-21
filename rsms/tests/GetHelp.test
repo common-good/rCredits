@@ -26,7 +26,7 @@ class rSMSGetHelp extends DrupalWebTestCase {
 
   public function setUp() { // especially, enable any modules required for the tests
     parent::setUp(self::MODULE);
-    $setup_filename = __DIR__ . '/../' . self::MODULE . '-setup.inc';
+    $setup_filename = __DIR__ . '/../' . self::MODULE . '-testSetup.inc';
     if (file_exists($setup_filename)) include $setup_filename;
 
   }

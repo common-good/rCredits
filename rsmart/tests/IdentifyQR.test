@@ -1,0 +1,114 @@
+<?php
+//
+// Feature: Identify QR
+//   AS an individual or company member
+//   I WANT to identify another member's QR code
+//   SO I can safely pay or charge them.
+//   
+//   AND
+//   
+//   I WANT to see the server's picture of a potential customer
+//   SO I can verify the customer's identity visually
+//   
+
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rSmart.steps';
+
+class rSmartIdentifyQR extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
+  var $currentTest;
+  const FEATURE_NAME = 'rSmart Test - IdentifyQR';
+  const DESCRIPTION = 'Identify QR';
+  const MODULE = 'rSmart';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);
+  }
+  
+  public static function getInfo() {
+    return array('name' => self::FEATURE_NAME, 'description' => self::DESCRIPTION, 'group' => ucwords(self::MODULE));
+  }
+
+  public function setUp() { // especially, enable any modules required for the tests
+    parent::setUp(self::MODULE);
+    $setup_filename = __DIR__ . '/../' . self::MODULE . '-testSetup.inc';
+    if (file_exists($setup_filename)) include $setup_filename;
+
+    sceneSetup($this, __FUNCTION__);
+    Given('members: "DATA'
+    . '\\| id      | full_name  | phone  | email         | city  | state  | country       |'
+    . '\\| NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | Alaska | United States |'
+    . '\\| NEW.ZZB | Bea Two    | +20002 | b@example.com | Btown | Utah   | United States |'
+    . '\\| NEW.ZZC | Corner Pub | +20003 | c@example.com | Ctown | Corse  | France        |"');
+    And__('relations: "DATA'
+    . '\\| id      | main    | agent   | permissions  |'
+    . '\\| NEW:ZZA | NEW.ZZC | NEW.ZZB | buy and sell |'
+    . '\\| NEW:ZZB | NEW.ZZC | NEW.ZZA | sell         |"');
+    And__('transactions: "DATA'
+    . '\\| created   | type       | amount | from      | to      | purpose | taking |'
+    . '\\| %today-6m | %TX_SIGNUP | 250    | community | NEW.ZZA | signup  | 0      |'
+    . '\\| %today-6m | %TX_SIGNUP | 250    | community | NEW.ZZB | signup  | 0      |'
+    . '\\| %today-6m | %TX_SIGNUP | 250    | community | NEW.ZZC | signup  | 0      |"');
+
+  }
+
+  // Scenario: Member asks us to identify a QR
+  public function testMemberAsksUsToIdentifyAQR() {
+    sceneSetup($this, __FUNCTION__);
+    Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
+    When_('member "NEW.ZZA" asks device %whatever1 to identify QR "NEW.ZZB"');
+    Then_('we respond with: "DATA'
+    . '\\| success | full_name | location    |'
+    . '\\| 1       | Bea Two   | Btown, Utah |"');
+  }
+
+  // Scenario: Member asks us to identify the member's own QR
+  public function testMemberAsksUsToIdentifyTheMembersOwnQR() {
+    sceneSetup($this, __FUNCTION__);
+    Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
+    When_('member "NEW.ZZA" asks device %whatever1 to identify QR "NEW.ZZA"');
+    Then_('we respond with: "DATA'
+    . '\\| success | message         |'
+    . '\\| 0       | no self-trading |"');
+  }
+
+  // Scenario: Member asks us to identify a foreign QR
+  public function testMemberAsksUsToIdentifyAForeignQR() {
+    sceneSetup($this, __FUNCTION__);
+    Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
+    When_('member "NEW.ZZA" asks device %whatever1 to identify QR "NEW.ZZC"');
+    Then_('we respond with: "DATA'
+    . '\\| success | full_name  | location             |'
+    . '\\| 1       | Corner Pub | Ctown, Corse, France |"');
+  }
+
+  // Scenario: Member asks us to identify a QR and member can show balances
+  public function testMemberAsksUsToIdentifyAQRAndMemberCanShowBalances() {
+    sceneSetup($this, __FUNCTION__);
+    Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
+    And__('member "NEW.ZZA" can show balances');
+    When_('member "NEW.ZZA" asks device %whatever1 to identify QR "NEW.ZZB"');
+    Then_('we respond with: "DATA'
+    . '\\| success | full_name | location    | other_balance |'
+    . '\\| 1       | Bea Two   | Btown, Utah | 250           |"');
+  }
+
+  // Scenario: Member asks us to identify a QR for a company agent
+  public function testMemberAsksUsToIdentifyAQRForACompanyAgent() {
+    sceneSetup($this, __FUNCTION__);
+    Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
+    When_('member "NEW.ZZA" asks device %whatever1 to identify QR "NEW:ZZA"');
+    Then_('we respond with: "DATA'
+    . '\\| success | full_name | location             | company_name |'
+    . '\\| 1       | Bea Two   | Ctown, Corse, France | Corner Pub   |"');
+  }
+
+  // Scenario: Device asks for picture to go with QR
+  public function testDeviceAsksForPictureToGoWithQR() {
+    sceneSetup($this, __FUNCTION__);
+    Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
+    When_('member "NEW.ZZA" asks device %whatever1 for a picture of member "NEW.ZZB"');
+    Then_('we respond with a picture of member "NEW.ZZB"');
+  }
+
+}

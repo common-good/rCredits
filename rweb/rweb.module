@@ -15,6 +15,7 @@ use \rCredits\Util as u;
 
 require_once __DIR__ . '/../rCredits.inc';
 require_once __DIR__ . '/rWeb.inc';
+require_once __DIR__ . '/../rSmart/rSmart.inc';
 
 //define('RWEB_BLOCKS', 'accounts payment buy_now example_store charge exchange manage tx_period txs manage_account');
 define('RWEB_BLOCKS', 'accounts');
@@ -73,12 +74,12 @@ function rWeb_menu() {
 
 //    'example-store' => rWeb\menu('Example Store', MENU_NORMAL_ITEM, 'show_form', array('example_store'), '', $anyone),
     'member' => rWeb\menu('Company Profile', MENU_CALLBACK, 'show_form', array('profile'), '', $anyone),
-    'rCredits/util' => rWeb\menu('Util', MENU_CALLBACK, 'rCredits\\Web\\util', array(2), 'administrator'),
+    'rCredits/util' => rWeb\menu('Util', MENU_CALLBACK, 'rCredits\\Web\\util', array(2), 'admin'),
     'autocomplete' => rWeb\menu('Identify', MENU_CALLBACK, 'rCredits\\Web\\auto', array(1, 2, 3), '', $anyone),
 //    'ok' => rWeb\menu('Please Confirm', MENU_CALLBACK, 'show_form', array('ok'), '', $anyone + $modal),
     
-    'sms' => rWeb\menu('Test SMS', MENU_NORMAL_ITEM, 'show_form', array('sms'), 'administrator'),
-    'handy' => rWeb\menu('Handy Links', MENU_NORMAL_ITEM, 'handy_links', array(), 'administrator'),
+    'sms' => rWeb\menu('Test SMS', MENU_NORMAL_ITEM, 'show_form', array('sms'), 'admin'),
+    'handy' => rWeb\menu('Handy Links', MENU_NORMAL_ITEM, 'handy_links', array(), 'admin'),
     'rCredits/backend' => rWeb\menu('API', 0, 'rCredits\\API\\backend2', array(), '', $anyone),
     'api' => rWeb\menu('API', 0, 'rCredits\\Smart\\api', array(), '', $anyone),
     'error' => rWeb\menu('System Error', 0, 'rCredits\\error', array(1), '', $anyone),

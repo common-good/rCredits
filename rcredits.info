@@ -7,9 +7,11 @@ php = 5.3
 
 files[] = rCredits.module
 files[] = rCredits.install
+files[] = rCredits-install.inc
 files[] = rCredits-settings.inc
 files[] = rCredits-util.inc
 files[] = rCredits.inc
 files[] = rCredits-api.inc
 files[] = rCredits-circles.inc
+files[] = rSmart/rSmart.inc
 

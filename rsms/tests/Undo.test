@@ -26,12 +26,12 @@ class rSMSUndo extends DrupalWebTestCase {
 
   public function setUp() { // especially, enable any modules required for the tests
     parent::setUp(self::MODULE);
-    $setup_filename = __DIR__ . '/../' . self::MODULE . '-setup.inc';
+    $setup_filename = __DIR__ . '/../' . self::MODULE . '-testSetup.inc';
     if (file_exists($setup_filename)) include $setup_filename;
 
     sceneSetup($this, __FUNCTION__);
     Given('members: "DATA'
-    . '\\| id   | full_name  | phone  | email         |'
+    . '\\| id   | full_name  | cell   | email         |'
     . '\\| .ZZA | Abe One    | +20001 | a@example.com |'
     . '\\| .ZZB | Bea Two    | +20002 | b@example.com |'
     . '\\| .ZZC | Corner Pub | +20003 | c@example.com |"');

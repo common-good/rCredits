@@ -229,7 +229,8 @@ function infer_nonce($message) {
  */
 function create($number, $uid, $status = SMS_OK) {
   $number = u\format_phone($number, '+n');
-  \drupal_write_record('r_sms', compact(u\ray('number uid status')));
+//  debug("creating SMS record for number $number, uid $uid");
+  return \drupal_write_record('r_sms', compact(u\ray('number uid status')));
 }
 
 /**
@@ -300,4 +301,4 @@ function intent($intent, $command, $pattern, $message) {
 function tt($message, $subs = array()) {return u\tt($message, $subs);}
 
 // one-line functions that need no explanation
-function uid($number) {return (int) r\db_lookup('uid', 'r_sms', 'number=:number', compact('number'));}
+function uid($number) {return (int) r\dbLookup('uid', 'r_sms', 'number=:number', compact('number'));}

@@ -13,65 +13,145 @@ class acct {
   var $region; // the account region's record id
   var $agent; // record id (in the agent's regional server) of whoever is acting on behalf of the account
   var $agentRegion; // record id of agent's region (on this server)
-  private static $records = array(); // account records for all acct objects, indexed by id
+  var $qid; // nearly alphabetic representation of id, agent, and region for external queries
+  var $agentQid; // same for agent
+  private static $records = FALSE; // account records for all acct objects, indexed by id
   
   /**
-   * Instantiate an account.
-   * @param id/qid $id: the account's record id (can this be a community?) OR
-   * @param id/qid $agent: the agent's record id on this server OR the foreign agent's qid
-   * @param assoc $info: the member's account record (considered partial until ->id is there)
+   * Instantiate (create or retrieve) a member account for transactions and/or contact
+   * Call by:
+   *   new acct(info) OR
+   *   acct(uid, agent) (see the acct() function below)
+   * @param assoc $info: initial field values for the account, to be created and saved in the database, including at least one of the following:
+   *   'uid' the record id
+   *   'phone' is contact phone (in standard +ddddddddddd format) OR
+   *   'number' is cell phone (in standard +ddddddddddd format -- use for phone also) OR
+   *   'email' is email address
+   *   UNUSED (because it's hard to verify): 'website' is website address
+   *   (This function assumes that the info is not sufficient to identify an existing user)
+   * @param id/qid $id: the account's record id (can this be a community?) (DEFAULT to cuid)
+   * @param id/qid $agent: the agent's record id on this server OR the foreign agent's qid (DEFAULT to same as $id)
    */
-  function __construct($id, $agent = '', $info = array()) {
-    list($this->id, $this->agent, $this->region, $this->agentRegion) = acct::ok($id, $agent, $zot, FALSE);
-    self::$records[$this->id] = (object) $info;
+  function __construct($id = array(), $agent = '', $info = array()) {
+    if (!is_array($info = $id)) { // referring to existing db record
+      list($this->id, $this->agent, $this->region, $this->agentRegion) = acct::ok($id, $agent, $zot, FALSE);
+    } else { // create new db record
+      extract($info, EXTR_PREFIX_ALL, 'my');   
+      if (isset($my_number) and !isset($my_phone)) $my_phone = $my_number;
+      if (isset($my_phone)) $info['phone'] = u\format_phone($my_phone);
+      
+      $info['mail'] = $info['init'] = @$my_email ?: '';
+    // Don't create a password (that's how we know it's a temporary account) $info['pass'] = \user_password();
+      $info['full_name'] = @$my_full_name ?: '';
+      $short_name = @$my_full_name ? u\short_name($my_full_name) : '';
+      $info['name'] =  @$my_name ?: (@$short_name ?: temp_name($info));
+      $info['status'] = TRUE;
+      $info['is_new'] = TRUE;
+      $info['community_uid'] = server_uid(); // $community_uid(@$my_postal_code); // defaults to current server
+
+      /*** Begin DBTX ***/ $dbtx = db_transaction();
+      if (!($uid = @$info['uid'])) {
+        for ($try = 0; $try < 20; $try++) { // limit the retries
+          $uid = $info['uid'] = self::nextId();
+          if (\drupal_write_record('users', $info)) break;
+        }
+      } elseif (!\drupal_write_record('users', $info)) $try == 20;
+      u\expect(@$try < 20, 'failed to save user record');
+      if (isset($my_number)) u\expect(SMS\create($my_number, $uid), 'Unable to create SMS record.');
+      /*** End DBTX ***/ unset($dbtx);
+
+      $region = server_uid();
+      list($this->id, $this->agent, $this->region, $this->agentRegion) = array($uid, $uid, $region, $region);
+      self::$records[$this->id] = (object) $info;
+    }
+    $this->qid = qid($this->id, u\n2a(-$this->region, 3), 3);
+    $this->agentQid = qid($this->agent, u\n2a(-$this->agentRegion, 3), 3);
   }    
 
   /**
    * Setup acct variables, returning FALSE on error.
    */
   public static function ok($id, $agent0='', &$error='', $test = TRUE) {
-  if ($test) {echo(print_r(compact('id','agent0'),1)); }
-//    if ($error = u\expect(compact(u\ray('id agent0')), 'id|qid empty|id|qid', $test)) {echo(print_r(compact('id','agent0'),1)); die("error=$error id=$id agent0=$agent0 test=$test");}
-    if ($error = u\expect(compact(u\ray('id agent0')), 'id|qid empty|id|qid', $test)) return FALSE;
-    list ($id, $agent, $region) = u\is_id($id) ? array($id, $agent0, server_uid()) : ruid($id);
-    if ($agent0) {
-      if ($error = u\expect(($id == $agent), 'agent already specified in qid', $test)) return FALSE;
-    } else $agent = $id; // proSe (account is acting on its own behalf)
+    if ($error = u\expect(compact(u\ray('id agent0')), 'zid|qid|assoc empty|id|qid', $test)) return FALSE;
+    if ($error = u\expect((bool) $id, 'null uid in new acct()', $test)) return FALSE;
+    if ($error = u\expect(!(strpos($id, ':') and $agent0), 'agent already specified in qid', $test)) return FALSE;
+    list ($id, $agent, $region) = u\is_id($id) ? array($id, $agent0 ?: $id, server_uid()) : UAR($id); // handle
+    
     if (u\is_qid($agent0)) {
-      list ($agent, $zot, $agentRegion) = ruid($agent0);
+      list ($agent, $zot, $agentRegion) = UAR($agent0);
       if ($error = u\expect($agent == $zot, 'agent agent not allowed', $test)) return FALSE;
     } else $agentRegion = server_uid();
+
+    $record = self::getRecord($id, $region);
+    if ($error = u\expect($record, "Account record $id does not exist in the database.", $test)) return FALSE;
+    self::$records[$id] = $record;
+    u\expect($id and $agent and $region and $agentRegion, "Missing acct property: [$id, $agent, $region, $agentRegion]");
     return array($id, $agent, $region, $agentRegion);
   }
   
-  public function __get($field) {
-      if ($this->region != server_uid()) { // foreign
-        // contact other server here, for the record
-      } else {
-        $records = api\get_records('users', "uid=$this->id LIMIT 1"); // domestic (don't use Drupal's caching)
-        self::$records[$this->id] = $records[0];
-      }
-    u\expect(array_key_exists($field, self::$records[$this->id]));
-    return self::$records[$this->id]->$field;
+  private function getRecord($id, $region) {
+    if (@self::$records[$id] and !property_exists(self::$records[$id], 'flags')) die("No flags field in record $id: " . print_r(self::$records, 1));
+    if (@self::$records[$id]) return self::$records[$id];
+    if ($region != server_uid()) { // foreign
+      // contact other server here, for the record
+    } else {
+      $records = api\get_records('users', "uid=:id LIMIT 1", compact('id')); // domestic (don't use Drupal's caching)
+      return $records ? $records[0] : FALSE;
+    }
   }
-  
+
+  public function __get($field) {
+    u\expect((bool) self::$records, "Record has not been set up for uid $this->id");
+//    u\expect(property_exists(self::$records[$this->id], $field), "bad field for uid $this->id: $field" . print_r(self::$records[$this->id], 1));
+    return @self::$records[$this->id]->$field;
+  }
+  public function account() {return self::$records[$this->id];}
+
   public static function _clear() {self::$records = array();}
+  public static function nextId() {return max(defined('TESTING') ? 1000 : -9999999, dbLookup('MAX(uid)', 'users', 1)) + 1;}
   
   public function update($info) {
-    if (!@self::$records[$this->id]->uid) self::$records[$this->id] = \user_load($this->id);
+    //if (!@self::$records[$this->id]->uid) self::$records[$this->id] = \user_load($this->id);
     foreach ($info as $field => $value) {
       if ($field != 'uid') self::$records[$this->id]->$field = $value;
     }
-    $info['uid'] = $this->id;
+    $info['uid'] = $this->id; // make sure drupal gets this
     return \drupal_write_record('users', $info, 'uid');
   }
   
   public function proSe() {return ($this->id == $this->agent);}  
-  public function exo() {return qid($this->id, u\n2a(-$this->region, 3), 3);}
   function hasBit($bit) {return (bool) ($this->flags & $bit);}
   
   public function setBit($bit) {
     $flags = ($this->flags | $bit);
     $this->update(compact('flags'));
   }
+}
+
+/**
+ * Convert quid to UAR
+ * @param quid $quid: the quid to convert (DEFAULT current acount and agent's quid)
+ * @return the corresponding UAR = [uid, agent, region] (FALSE if wrong format)
+ */
+
+function UAR($quid = '', $no_abbrev = TRUE) {
+  global $cuid;
+  if (!$quid) return array($cuid, acct()->agent, server_uid());
+  if (!u\is_qid($quid) and !$no_abbrev) $quid = R_SERVER_ID . $quid;
+  if (!u\is_qid($quid)) return FALSE;
+
+  list ($zuid, $region_uid) = azid($quid);
+  if (($reid = -$zuid) > 0) {
+    if (!($record = dbLookup('main_uid,agent_uid', 'r_relations', 'reid=:reid', compact('reid')))) return FALSE;
+    $result = array_values($record);
+  } else $result = array($zuid, $zuid);
+  $result[] = $region_uid;
+  return $result;
+}
+
+function acct($uid = '', $agent = '', &$error = '') {
+  global $cuid;
+  if (!($uid = $uid ?: @$cuid)) {$error = 'There is no current account.'; return FALSE;}
+  if (!acct::ok($uid, $agent, $error)) return FALSE;
+  return new acct($uid, $agent);
 }

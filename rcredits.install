@@ -8,6 +8,8 @@ use rCredits as r;
 use rCredits\Util as u;
 use rCredits\API as api;
 
+include_once __DIR__ . '/rCredits-install.inc'; // treat this as an extension of this file
+
 define('R_TABLES', 'r_area_codes,r_credit_regions,r_nonces,r_txs,r_asif,r_relations,r_industries,r_user_industries');
 
 /**
@@ -16,16 +18,13 @@ define('R_TABLES', 'r_area_codes,r_credit_regions,r_nonces,r_txs,r_asif,r_relati
  * Add custom data for the rCredits module.
  */
 function rCredits_install() {
-//  user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array('member'));
-  
   r\make_fields();
-//  r\make_currency();
   
   $uid = r\server_uid();
   $keys = u\ray('uid community_uid name full_name postal_code country demand rebate_percent');
   $values = array($uid, $uid, R_SERVER_ID . '.', R_REGION_NAME, R_REGION_POSTAL_AREA, R_COUNTRY, R_INITIAL_DEMAND, 0);
   $info = array_combine($keys, $values);
-  if (!r\user_field(1, $uid)) drupal_write_record('users', $info);
+  if (!r\dbLookup(1, 'users', 'uid=:uid', compact('uid'))) new r\acct($info); // create the server record if it doesn't exist yet (don't use r\acct() here)
   variable_set('date_default_timezone', 'America/New_York');
 // NO. This creates a navigation column.  variable_set('site_frontpage', 'charge');
 
@@ -36,7 +35,7 @@ function rCredits_install() {
   foreach ($tables as $table) {
     $filename = __DIR__ . "/sql/$table";
     if ($sql = @file_get_contents("$filename-make.sql")) db_query($sql); // read in a single CREATE TABLE (if exists) query
-    if (!@r\db_lookup(1, "$table", 'TRUE') and file_exists("$filename-insert.sql")) {
+    if (!@r\dbLookup(1, "$table", 'TRUE') and file_exists("$filename-insert.sql")) {
       $sql = file_get_contents("$filename-insert.sql"); // read in a single multi-record INSERT query
       if (!db_query($sql)->rowCount()) die("Failed to insert records for $table.");
 	  }
@@ -108,12 +107,12 @@ function rCredits_schema() {
     'channel' => r\setup_field('logged from what interface module', 'int tiny'),
     'type' => r\setup_field('what type of log entry', 'varchar 60'),
     'cuid' => r\setup_field('current account uid', 'int 11'),
-    'auid' => r\setup_field('agent account uid', 'int 11'),
+    'agent' => r\setup_field('agent account uid', 'int 11'),
     'info' => r\setup_field('arbitrary serialized data', 'text medium'),
     'special' => r\setup_field('special value if any', 'varchar 20'), // eg cell number or nonce
   );
-  $foreign_keys = r\foreign_key('cuid') + r\foreign_key('auid');
-  $indexes = r\index('type') + r\index('channel') + r\index('cuid') + r\index('auid');  
+  $foreign_keys = r\foreign_key('cuid') + r\foreign_key('agent');
+  $indexes = r\index('type') + r\index('channel') + r\index('cuid') + r\index('agent');  
   $schema['r_log'] = r\setup_table('Development and error log', $fields, 'logid', $foreign_keys, $indexes);
   
   // table r_relations

@@ -36,6 +36,10 @@ use \rCredits\Util as u;
 define('REAL', @$_SERVER['SystemRoot'] != 'C:\\Windows');
 define('API_URL', REAL ? 'http://devcore.rcredits.org/api' : 'http://localhost/devcore/api');
 
+$GLOBALS['API messages'] = array(
+  'no permission' => t('You do not have permission to use that account.'),
+);
+
 function send($data) {
   $ch = curl_init();
   curl_setopt($ch, CURLOPT_URL, API_URL);
@@ -53,72 +57,42 @@ function prep($data) {
   return array('json' => json_encode(compact('my_id', 'code') + $data));
 }
 
-function api2($op, $args, $interface = 'API', $success = 1) {
-  $op = "rCredits\\$interface\\$op";
-  if (function_exists($op)) apiOut(compact('success') + $op($args)); else apiError('unknown op'); // args can override success
+function doOp($op0, $args, $interface = 'API', $success = 1) {
+  $op = "rCredits\\$interface\\$op0";
+  $message = $result = function_exists($op) ? $op($args) : error('unknown op');
+  if (!is_array($result)) $result = compact('message');
+  return ($op0 == 'photo' or (!is_array($message) and strpos($message, '"success":"0"'))) ?
+      $message 
+    : apiOut(compact('success') + $result); // args can override success
 }
 
-function apiError($message, $success = 0) {apiOut(compact('success', 'message'));}
+function error($message, $success = 0) {
+  $message = @$GLOBALS['API messages'][$message] ?: (@$GLOBALS['SMS messages'][$message] ?: $message);
+  return apiOut(compact('success', 'message'));
+}
 
 function apiOut($args) {
+  $result = json_encode2($args, JSON_UNESCAPED_SLASHES);
+  unset($args['code']);
   u\log('out', $args);
-  exit(json_encode2($args, JSON_UNESCAPED_SLASHES));
+  if (defined('TESTING')) {debug($result); return $result;}
+  exit($result);
 }
 
 /**
  * Receive and process a REST request from the website frontend
  */
 function backend2($args = FALSE) {
-  global $cuid, $cacct, $firewall;
+  global $cuid, $firewall;
 
   if (!$args) $args = $_POST;
-  extract($args); // $cuid, $firewall (those first two are extracted into globals), $auid, $my_id, $op
-  $cacct = @$my_id ? new r\acct($my_id) : new r\acct($cuid, $auid);
+  extract($args); // $cuid, $firewall (those first two are extracted into globals), $agent, $my_id, $op
   unset($args['cuid']); // unset because it is passed as a global, not as an arg
 
-  if (@$firewall != R_FIREWALL) api_error('firewall system failure'); // give hackers some satisfaction by saying 'failure'
-  if (!$cuid or !$auid) api_error('user validation error');
-  if (!r\ok_agent($cuid, $auid)) api_error('sharing error');
-  api2($op, $args);
-}
-
-/**
- * Create a user account for transactions and/or contact
- *
- * @parm array $info: associative array of information about the user
- *   'phone' is contact phone (in standard +ddddddddddd format)
- *   'number' is cell phone (in standard +ddddddddddd format -- use for phone also)
- *   'email' is email address
- *   UNUSED (because it's hard to verify): 'website' is website address
- *   (This function assumes that the info is not sufficient to identify an existing user)
- * @return acct: the new acct
- */
-function create_user($info) {
-  if (is_frontend()) return backend('create_user', $info);
-  extract($info, EXTR_PREFIX_ALL, 'my');
-  
-  if (isset($my_number) and !isset($my_phone)) $my_phone = $my_number;
-  if (isset($my_phone)) $info['phone'] = u\format_phone($my_phone);
-  
-  $info['mail'] = $info['init'] = @$my_email ?: '';
-// Don't create a password (that's how we know it's a temporary account) $info['pass'] = \user_password();
-  $info['full_name'] = @$my_full_name ?: '';
-  $short_name = @$my_full_name ? u\short_name($my_full_name) : '';
-  $info['name'] =  @$my_name ?: (@$short_name ?: r\temp_name($info));
-  $info['status'] = TRUE;
-  $info['is_new'] = TRUE;
-  $info['community_uid'] = r\community_uid(@$my_postal_code);
-
-  /*** Begin DBTX ***/ $dbtx = db_transaction();
-  for ($i = 0; $i < 20; $i++) { // limit the retries
-    $info['uid'] = r\db_lookup('MAX(uid)', 'users', 1) + 1;
-    if (drupal_write_record('users', $info)) break;
-  }
-  if ($i == 20) throw new \Exception('failed to save user record');
-  if (isset($my_number)) r\SMS\create($my_number, $info['uid']);
-  /*** End DBTX ***/ unset($dbtx);
-
-  return r\acct::ok($info['uid']) ? new r\acct($info['uid'], '', $info) : FALSE;
+  if (@$firewall != R_FIREWALL) error('firewall system failure'); // give hackers some satisfaction by saying 'failure'
+  if (!$cuid or !$agent) error('user validation error');
+  if (!r\ok_agent($cuid, $agent)) error('sharing error');
+  doOp($op, $args);
 }
 
 /**
@@ -182,7 +156,7 @@ function update_relations($updates) {
     unset($data['full_name']); // don't try to sum full_name
     $changes = '';
     $reid_sub = $subs = compact('reid');
-//    $full_name = r\db_lookup('u.full_name', 'r_relations r INNER JOIN users u ON r.agent_uid=u.uid', $crit, $reid_sub);
+//    $full_name = r\dbLookup('u.full_name', 'r_relations r INNER JOIN users u ON r.agent_uid=u.uid', $crit, $reid_sub);
     foreach ($data as $field => $value) {
       $changes .= ($changes ? ',' : '') . "$field=:$field";
       $subs += array($field => $value);
@@ -190,7 +164,7 @@ function update_relations($updates) {
     $crit = 'reid=:reid';
     r\db_q("UPDATE r_relations SET $changes WHERE $crit", $subs);
 
-    if (!array_sum($data) and !r\db_lookup('permission+is_employee+is_owner', 'r_relations', $crit, $reid_sub)) {
+    if (!array_sum($data) and !r\dbLookup('permission+is_employee+is_owner', 'r_relations', $crit, $reid_sub)) {
       r\db_q("DELETE FROM r_relations WHERE $crit", $reid_sub);
       $report .= t('Deleted relation with full_name<br>', compact('full_name'));
     } else $report .= t('Updated settings for full_name<br>', compact('full_name'));
@@ -267,7 +241,6 @@ function reverse($zxid, $amount, $acct, $data, $old_goods, $old_tid, $to_me) {
 //    print_r(compact(u\ray('zxid amount acct data old_tid to_me'))); die();
   u\expect(compact(u\ray('zxid amount acct data old_tid to_me')), 'zid float acct assoc|empty string bool');
 
-  global $cacct;
   if (!is_array($data)) $data = array();
   $old_data = $data; // remember original data from transaction we're reversing
   $type = $to_me ? 'payment' : 'charge';
@@ -283,7 +256,7 @@ function reverse($zxid, $amount, $acct, $data, $old_goods, $old_tid, $to_me) {
     u\expect($new_zxid * $zxid > 0, 'reverse: wrong reality');
     $other_tid = zxid2tid($new_zxid, $acct->id);
     $old_data['undone'] = TRUE;
-    $old_data['changes'][] = array(time(), $cacct->agent, 'undo', $new_zxid);
+    $old_data['changes'][] = array(time(), r\acct()->agent, 'undo', $new_zxid);
     $old_data = serialize($old_data);
     $my_note = "(reversed by #$new_tid) ";
     $other_note = str_replace($new_tid, $other_tid, $my_note);
@@ -365,8 +338,7 @@ function pay_invoice($zxid) {
   if (!($result = last_tx('xid=:zxid AND state=:TX_PENDING', compact('zxid')))) return array('no such tx', array());
   extract($result, EXTR_PREFIX_ALL, 'old');
 // (not needed)  if ($zxid < 0 and (r\is_rTrader($old_payer) and r\is_rTrader($old_payee))) return array("can't pay asif invoice");
-//  $ruid = array($old_payee, $old_payee_agent, $old_payee < 0 ? $old_payee : r\server_uid());
-  $acct = new r\acct($old_payee, $old_payee_agent);
+  $acct = r\acct($old_payee, $old_payee_agent);
   
   /*** Begin DBTX ***/ $dbtx = db_transaction();
   list ($message, $args, $confirm) = transfer('invoice payment', $acct, $old_amount, $old_payee_for, $old_goods, TRUE, compact('zxid'));
@@ -404,7 +376,7 @@ function pay_invoice($zxid) {
 function transfer($ttype, $acct, $requested_amount, $for, $goods, $confirmed = TRUE, $data = array()) {
   if (is_frontend()) return (array) backend('transfer', compact(u\ray('ttype acct requested_amount for confirmed data')));
   if (is_array($ttype)) extract($ttype); // called from api or backend
-  global $cuid, $cacct;
+  global $cuid;
 
   if ($acct == 'ALL') return $ttype == 'payment' ? r\pay_employees($requested_amount, $for, $confirmed) : array('no ALL', array(), FALSE);
   
@@ -415,14 +387,14 @@ function transfer($ttype, $acct, $requested_amount, $for, $goods, $confirmed = T
   list ($my_access, $other_access) = u\order($taking, 'sell', 'buy and sell');
   if (!access($my_access)) return array("no $my_access", array(), FALSE);
   if (!access($other_access, $acct)) return array("other no $other_access", array(), FALSE);
-
-  // Interpret ruid (who's buying or selling)
+  
+  // Analyze who's buying or selling
   list ($uid, $foreign_uid) = tx_person($acct->id, $acct->region);
   list ($agent_uid, $foreign_agent) = tx_person($acct->agent, $acct->agentRegion);
   $foreign = compact($foreign_uid ? 'foreign_uid' : '', $foreign_agent ? 'foreign_agent' : '');
   if ($uid == $cuid) return array('no self-trading', array(), FALSE);
   list ($payer, $payee) = u\order($taking, $uid, $cuid);
-  list ($payer_agent, $payee_agent) = u\order($taking, $agent_uid, $cacct->agent);
+  list ($payer_agent, $payee_agent) = u\order($taking, $agent_uid, r\acct()->agent);
 
   // Sort out what type of transfer this is
   $paying_invoice = ($ttype == 'invoice payment');
@@ -468,7 +440,7 @@ function transfer($ttype, $acct, $requested_amount, $for, $goods, $confirmed = T
   }
   
   if ($confirmed) {
-    if ($taking) r\notify($uid, $preapproved ? 'new-invoice' : 'new-charge', $args);
+    if ($taking) r\notify($uid, $preapproved ? 'new-charge' : 'new-invoice', $args);
     $message = $shortfall ? 'report short transaction' : ($preapproved ? 'report transaction' : 'report invoice');
     return array($message, $args, FALSE);
   }
@@ -501,7 +473,7 @@ function give_signup_incentive($uid) {
  * @return FALSE if success; else array($error_message, $subs)
  */
 function add_cell($number, $validate = FALSE) {
-  global $cuid, $cacct;
+  global $cuid;
   if (is_frontend()) return backend('add_cell', compact(u\ray('number validate')));
   if (is_array($number)) extract($number); // called from api or backend
 
@@ -524,7 +496,7 @@ function add_cell($number, $validate = FALSE) {
   $status = SMS_OK;
   $number = $number_internal;
   if (!merge_check(compact('number'))) \drupal_write_record('r_sms', compact(u\ray('uid number status')));
-  if (!$cacct->phone) r\user_update(array('phone' => $number)); // use it as contact phone, if none yet
+  if (!r\acct()->phone) r\user_update(array('phone' => $number)); // use it as contact phone, if none yet
   $number = $number_pretty;
   return array('report new cell', compact('number'));
 }
@@ -569,9 +541,11 @@ function identify($who, $create = FALSE, $allow_ALL = FALSE, $self_message = 'no
   if (strpos('.:', substr($quid, 0, 1)) !== FALSE) { // allow abbreviations within this region
     list($quid) = explode(' ', R_SERVER_ID . $quid, 2); // take just the first word, in case this is from a list showing QUID and FULL_NAME
   }
-  if ($ruid = r\ruid($quid, FALSE)) {
-    if (!r\user_field(1, $ruid[0])) return array('unknown user', compact('who'), array());
-    return $ruid[0] == $cuid ? array($self_message, array(), array()) : new r\acct($quid); // qids are easy
+
+  if (u\is_qid($quid)) {
+    if (!($acct = r\acct($quid))) return array('unknown user', compact('who'), array());
+    if ($acct->id == $cuid) return array($self_message, array(), array());
+    return $acct; // qids are easy
   }
 
   if (($short = u\short_name($who)) === '') $short = '-'; // abbreviations must not be null
@@ -596,13 +570,13 @@ EOF;
   if(count($result) > 1) return array('ambiguous other', compact(u\ray('who')), $result);
   if(count($result) == 1) {
     foreach ($result as $uid => $other); // get the one entry
-    return new r\acct($uid);
+    return r\acct($uid);
   }
 
 //  $key = $who == $phone ? 'phone' : (valid_email_address($who) ? 'email' : (r\valid_url("http://$who") ? 'website' : ''));
   $key = $who == $phone ? 'phone' : (\valid_email_address($who) ? 'email' : '');
   if ((!$key) or !$create) return array('unknown user', compact('who'), array());
-  return create_user(array($key => $who));
+  return new r\acct(array($key => $who));
 }
 
 /**
@@ -661,31 +635,6 @@ EOF;
 }
 
 /**
- * Create a unique username for the given account, based on the given name.
- */
- /*
-function make_username($account, $name) {
-die('UNUSED');
-  if (is_frontend()) return backend('make_username', compact(u\ray('account name')));
-
-  $original = $name;
-  for ($locktry = 0; ($locktry < 99) and !\lock_acquire(__FUNCTION__); $locktry++) \lock_wait();
-
-  for ($try = 1; $try < 99; $try++) {
-    if (!db_lookup(1, 'users', "name=:name", compact('name'))) {
-      \user_save($account, compact('name'));
-      \lock_release(__FUNCTION__);
-      return $name;
-    }
-    deb("Account with username $name already exists, retrying...");
-    $name = $original . $try;
-  }
-  \lock_release(__FUNCTION__);
-  die("Too many collisions in make_make_shortname) -- original = $original");
-}
-*/
-
-/**
  * Find and merge into the current account any temporary accounts with the same shortname or specified criteria
  * @return int: the number of accounts that were merged.
  */
@@ -708,56 +657,20 @@ function merge_check($info) {
 }
 
 /**
- * Create an appropriate credit id for the given account
- * @return the credit id (FALSE if failure)
- */
-/*
-function make_credit_id($uid) {
-  if (is_frontend()) return backend('make_credit_id', compact(u\ray('uid')));
-  
-  $account = \user_load($uid);
-  if (@$account->credit_id) return $account->credit_id;
-  if ($state = $account->state) { // true for web interface, not for SMS
-    $country = $account->country;
-    if ($country == 'United States') $state = u\state_abbrev($state);
-  } else { // SMS, not web
-    $phone = u\format_phone($account->phone, 'n');
-    $area = substr($phone, 0, 3);
-    $state = r\db_lookup('region', 'r_area_codes', 'area_code=:area', compact('area'));
-    $country = 'United States';
-  }
-  if ($country == 'United States') {
-    $region = r\db_lookup('credit_region', 'r_credit_regions', 'region=:state', compact('state'));
-  } else $region = u\country_abbrev($country);
-  
-  if (!@$region) $region = 'Z9';
-  $ctty = $region . 'AA'; // until the person becomes a member of a specific community, give them a generic community in their region
-
-  for ($try = 0; $try < 99; $try++) {
-    $credit_id = r\next_credit_id($ctty);
-    \user_save($account, compact('credit_id'));
-    if (!r\db_lookup('uid', 'users', 'credit_id=:credit_id AND uid<:uid', compact('credit_id', 'uid'))) return $credit_id;
-  }
-  die("Too many collisions in make_credit_id() -- ctty = $ctty");
-}
-*/
-
-/**
  * Return a list of account choices for the current user (NOT the current credit account)
  * @return an array of account names, indexed by uid (FALSE if none)
  * @todo: recurse, to include access to the accounts that the shared accounts have access to
- *   maybe like this: SELECT main_uid, MAX(permission) WHERE agent_uid=:auid 
- *     OR agent_uid IN (SELECT main_uid FROM r_relations WHERE agent_uid=:auid) GROUP BY main_uid
+ *   maybe like this: SELECT main_uid, MAX(permission) WHERE agent_uid=:agent 
+ *     OR agent_uid IN (SELECT main_uid FROM r_relations WHERE agent_uid=:agent) GROUP BY main_uid
  */
 function account_choices() {
   if (is_frontend()) return (array) backend('account_choices');
   
-  global $cacct;
-  if (!$cacct) return FALSE;
-  $auid = $cacct->agent;
-  $primary = array((string) $auid => (count($GLOBALS['share permissions']) - 1)); // max access for primary user account
+  if (!($cacct = r\acct())) return FALSE;
+  $agent = $cacct->agent;
+  $primary = array((string) $agent => (count($GLOBALS['share permissions']) - 1)); // max access for primary user account
 
-  $result = r\db_q("SELECT main_uid, permission FROM r_relations WHERE agent_uid=:auid", compact('auid'));
+  $result = r\db_q("SELECT main_uid, permission FROM r_relations WHERE agent_uid=:agent", compact('agent'));
   return $primary + $result->fetchAllKeyed(0, 1);
 }
 
@@ -775,7 +688,7 @@ function todo($number, $todo = 'nothing', $nonce = 'whatever') {
   if (is_array($number)) extract($number); // called from api or backend
   
   if ($todo == 'nothing') {
-    return (object) r\db_lookup('nonce,todo', 'r_sms', 'number=:number', compact('number'));
+    return (object) r\dbLookup('nonce,todo', 'r_sms', 'number=:number', compact('number'));
   } else {
     $nonce = $nonce == 'whatever' ? u\nonce() : $nonce;
     \db_update('r_sms')->fields(compact('nonce', 'todo'))->condition('number', $number)->execute();
@@ -818,17 +731,15 @@ function zxid2tid($zxid, $uid = '') {
   if (is_frontend()) return backend('zxid2tid', compact(u\ray('zxid uid')));
   if (is_array($zxid)) extract($zxid); // called from api or backend
 
-  return ($zxid < 0 ? 'a' : '') . r\db_lookup('COUNT(xid)', '{zxs}', "(payer=:uid OR payee=:uid) AND xid<=:zxid AND type<=" . TX_COUNTABLE, compact('uid', 'zxid'));
+  return ($zxid < 0 ? 'a' : '') . r\dbLookup('COUNT(xid)', '{zxs}', "(payer=:uid OR payee=:uid) AND xid<=:zxid AND type<=" . TX_COUNTABLE, compact('uid', 'zxid'));
 }
 
 function account_name($uid) {
   if (is_frontend()) return backend('account_name', compact(u\ray('uid')));
   if (is_array($uid)) extract($uid); // called from api or backend
   
-  extract((array) \user_load($uid), EXTR_PREFIX_ALL, 'my');
-  $quid = r\quid($uid, $uid);
-//  return ": $my_full_name ($qid) $my_mail";
-  return ": $my_full_name ($quid)";
+  $acct = r\acct($uid);
+  return $acct->full_name . ' ' . u\hug($acct->qid);
 }
 
 /**
@@ -836,9 +747,10 @@ function account_name($uid) {
  * @param array $acct: acct object for the other party
  *   OR a qid or simple uid on the current server
  * @return simple array of that account's permissions
+ * @todo: move this to acct class
  */
 function accesses($acct = '') {  
-  global $cuid, $cacct;
+  global $cuid;
   if (is_frontend()) {
     $result = backend('accesses', compact(u\ray('acct')), (bool) $acct);
     return is_array($result) ? $result : array();
@@ -846,25 +758,22 @@ function accesses($acct = '') {
   if (is_array($acct)) extract($acct); // called from api or backend
 
   if (!$cuid) return array(); // no access for ANYONE, if anonymous user
-  if (!u\is_acct($acct)) $acct = $acct ? new r\acct($acct) : $cacct;
+  if (!$acct) $acct = $cuid;
+  if (!u\is_acct($acct)) {$uid = $acct; $acct = r\acct($uid);}
+  if (!$acct) return array();
   $perms = array();
-  /*
-  $role_perms = (\user_role_permissions(\user_load($main_uid)->roles)); // Drupal permissions for the company
-//  $perms[] = array_values(\user_load($agent_uid)->roles); // include things like administrator and rTrader
-  foreach ($role_perms as $key => $value) $perms += array_keys($role_perms[$key]);
-*/
-  
-  if (in_array('administrator', array_values(\user_load($acct->agent)->roles))) $perms[] = 'administrator'; // agent not main
-  if ($cacct->hasBit(BIT_PARTNER)) $perms[] = 'partner';
-  if ($cacct->hasBit(BIT_STEWARD)) $perms[] = 'steward';
-  if ($cacct->hasBit(BIT_RTRADER)) $perms[] = 'rtrader';
-  if ($cacct->hasBit(BIT_CHARGE)) $perms[] = 'charge others';
-  if ($cacct->account_type != R_PERSONAL) $perms[] = 'company'; // ad hoc permissions
+
+  if ($acct->hasBit(BIT_ADMIN) or $acct->id == 1) $perms[] = 'admin';
+  if ($acct->hasBit(BIT_PARTNER)) $perms[] = 'partner';
+  if ($acct->hasBit(BIT_STEWARD)) $perms[] = 'steward';
+  if ($acct->hasBit(BIT_RTRADER)) $perms[] = 'rtrader';
+  if ($acct->hasBit(BIT_CHARGE)) $perms[] = 'charge others';
+  if ($acct->account_type != R_PERSONAL) $perms[] = 'company'; // ad hoc permissions
 
   $cans = $GLOBALS['share permissions'];
   if (!$acct->proSe()) {
     extract((array) $acct, EXTR_PREFIX_ALL, 'my'); // especially id and agent
-    $can = r\db_lookup('permission', 'r_relations', 'main_uid=:my_id AND agent_uid=:my_agent', compact('my_id', 'my_agent'));
+    $can = r\dbLookup('permission', 'r_relations', 'main_uid=:my_id AND agent_uid=:my_agent', compact('my_id', 'my_agent'));
   } else $can = count($cans) - 1;
   for ($i = 1; $i <= $can; $i++) $perms[] = $cans[$i];
 
@@ -885,6 +794,7 @@ EOF;
   if (is_frontend()) return (array) backend('get_records', compact(u\ray('table criteria subs fields')), $cache);
   if (is_array($table)) extract($table); // called from api or backend
   
+//  echo " SELECT $fields FROM $table WHERE $criteria ";
   return r\db_q("SELECT $fields FROM $table WHERE $criteria", $subs)->fetchAll(); // fetchAll means fetchAllObject
 }
 
@@ -920,7 +830,7 @@ function is_frontend() {
 }
 
 function backend($op, $info = array(), $cache = FALSE) {
-  global $base_url, $cuid, $cacct, $firewall;
+  global $base_url, $cuid, $firewall;
   u\expect(is_frontend(), 'backend recursion');
   if (!user_is_logged_in()) return FALSE; // probably checking permission
 //  if ($op == 'get_records' and !$cache) die(print_r(debug_backtrace(), 1));
@@ -928,19 +838,19 @@ function backend($op, $info = array(), $cache = FALSE) {
   u\expect(@$cuid, 'no cuid in backend!');
   if (empty($info)) $cache = TRUE;
   
-  $auid = $cacct->agent;
+  $agent = r\acct()->agent;
 //  $cache = FALSE; // debug
 //  debug("cache=$cache cachekey=rCredits_$op$cuid:" . serialize($info));
-  $skey = "{$op}_{$auid}_{$cuid}_" . base64_encode(serialize($info)); // htmlspecialchars prevents session key failure (PHP bug?)
+  $skey = "{$op}_{$agent}_{$cuid}_" . base64_encode(serialize($info)); // htmlspecialchars prevents session key failure (PHP bug?)
   if ($cache and (($result = r\Web\svar($skey)) !== NULL)) return $result;
 //  debug($skey . $result);
 //  debug("cache:$cache $op: " . json_encode2($info) . ($cache ? " result:$result" : ''));
 //  debug($result);
-  $password = \user_load($auid)->pass;
+  $password = r\acct($agent)->pass;
   $firewall = R_FIREWALL;
 //  foreach ($info as $key => $value) if (strpos($key, 'uid') !== FALSE) $info[$key] = r\quid($value); // convert to qid
-//  $basic = array('auid' => r\quid($auid), 'cuid' => r\quid($cuid));
-  $info += compact(u\ray('cuid auid op password firewall')); // operation, credentials, and account
+//  $basic = array('agent' => r\quid($agent), 'cuid' => r\quid($cuid));
+  $info += compact(u\ray('cuid agent op password firewall')); // operation, credentials, and account
   $host = strpos($base_url, 'localhost/') !== FALSE ? 'http://localhost/devcore' : 'http://devcore.rcredits.org';
   $api_result = R_SEPARATE_BACKEND ? u\http_request("$host/rCredits/api/", $info) : backend2($info);
 //debug($api_result);

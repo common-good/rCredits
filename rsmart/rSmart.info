@@ -1,0 +1,13 @@
+;$Id$
+name = rCredits Smart Device Interface
+description = Smart device Interface to the rCredits system.
+package = rCredits
+core = 7.x
+php = 5.3
+
+dependencies[] = rCredits
+files[] = rSmart.module
+files[] = rSmart.inc
+files[] = tests/IdentifyQR.test
+files[] = tests/Startup.test
+files[] = tests/Transact.test

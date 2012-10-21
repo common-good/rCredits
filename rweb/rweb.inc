@@ -105,12 +105,17 @@ EOF;
 }
 
 function handy_links() {
-  global $base_path;
+  global $base_path, $base_url, $base_root;
+
+  $test_path = "$base_url/sites/all/modules";
 
   $links = array(
     'rCredits/util/test?rSMS|Test rSMS|',
     'rCredits/util/test?rSmart|Test rSmart|',
     'rCredits/util/test?rWeb|Test rWeb|',
+    "$test_path/gherkin/compile.php?rCredits/rSMS|Compile rSMS|",
+    "$test_path/gherkin/compile.php?rCredits/rSmart|Compile rSmart|",
+    "$test_path/gherkin/compile.php?rCredits/rWeb|Compile rWeb|",
     'sms|Simulate an SMS transaction|Simulate SMS',
     'admin/config/development/testing|Test|Test',
     'sites/all/modules/rcredits/rsms/gherkin/compile.php|Compile tests|Compile tests',
@@ -139,8 +144,9 @@ function handy_links() {
   foreach ($links as $link) {
     list ($url, $title, $label) = explode('|', $link);
     if (!$label) $label = $title;
+    if (!u\abbreviates('http://', $url)) $url = $base_path . $url;
     $result .= <<<EOF
-<div><a href="{$base_path}$url" title="$title">$label</a></div>
+<div><a href="$url" title="$title">$label</a></div>
 EOF;
   }
   return "<style>div.develw div {display:inline; margin-right:20px;}</style><div class='develw'>\n$result</div>";
@@ -288,10 +294,9 @@ EOF;
 }
 
 function home_form($form, &$form_state) {
-  $cuid = r\cuid();
-  $account = \user_load($cuid);
+  $cacct = r\acct();
   $is_company = api\access('company');
-  $name = $account->name;
+  $name = $cacct->name;
   
   $stagelist = 'rTrader Steward Partner Member';
   if ($is_company) $stagelist = str_replace('Steward ', '', $stagelist);
@@ -325,14 +330,14 @@ function home_form($form, &$form_state) {
   $form = array(
     'title' => form_field('item', t('Overview of Your rCredits Account')),
 //    'subtext' => basic_account_info(),
-    'account_name' => form_field('item', t('Account Name:'), '', $account->full_name . " ($name)"),
-    'account_id' => form_field('item', t('Account ID:'), '', r\quid($cuid) . ' (' . R_REGION_NAME . ')'), // $cuid NOT $cruid or omitted
-    'account_type' => form_field('item', t('Account type:'), '', $GLOBALS['account types'][$account->account_type+0]), // +0 for admin
+    'account_name' => form_field('item', t('Account Name:'), '', $cacct->full_name . ' ' . u\hug($name)),
+    'account_id' => form_field('item', t('Account ID:'), '', $cacct->qid . ' ' . u\hug(R_REGION_NAME)),
+    'account_type' => form_field('item', t('Account type:'), '', $GLOBALS['account types'][$cacct->account_type+0]), // +0 for admin
     'stage' => form_field('item', t('You are:'), '', $now[$stage]),
     'future' => $future[$stage] ? form_field('item', t('Future milestones:'), '', $future[$stage]) : NULL,
     'steps' => form_field('item', t('Next Steps:'), '', t('<div id="next-steps" class="labeled-block"><ol><li>Do at least three realistic "As-If" Payments to participating businesses, so the system knows where you will be able to spend your rCredits.</li><li>Do at least one As-If Charge, so the system knows where you will get your rCredits.</li><li>Try some of the other rCredits features.</li><li>Read or talk to other participants until you are confident that you understand how rCredits works.</li></ol></div>')),
     'balance' => form_field('item', t('Balance:'), '', $my_balance),
-    'credit_limit' => form_field('item', t('Credit limit:'), '(this is how far in debt you can go &mdash; for up to 30 days)', u\format_amount(-$account->min_balance)),
+    'credit_limit' => form_field('item', t('Credit limit:'), '(this is how far in debt you can go &mdash; for up to 30 days)', u\format_amount(-$cacct->min_balance)),
     'rewards_to_date' => form_field('item', t('Rewards to date:'), '', $my_rewards),
   );
 
@@ -341,11 +346,10 @@ function home_form($form, &$form_state) {
 }
 
 function account_form($form, &$form_state) {
-  global $cuid;
-  
-  $form['#user'] = \user_load($cuid);
+  $form['#user'] = r\acct()->account();
   user_account_form($form, $form_state);
   system_user_timezone($form, $form_state);
+
   unset($form['account']['name']);
   $form['account']['mail']['#description'] = t('All emails from the system will be sent to this address. The email address is not made public');
   $form['account']['pass']['#description'] = t('Enter your new password in both fields above.<br>To change your email address or password, enter your current password below.');
@@ -354,6 +358,7 @@ function account_form($form, &$form_state) {
   $form['account']['status']['#weight'] = 5;
   $form['account']['roles']['#weight'] = 6;
   $form['account']['title'] = form_field('item', t('Account Information'), '', array('weight' => -99));
+  
   $form['submit'] = form_field('submit', '', '', array('value' => t('Save'), 'weight' => 99));
   $form['#user_category'] = 'account';
   return $form;
@@ -402,13 +407,15 @@ function accounts_form_submit($form, &$form_state) {
  */
 function profile_form($form, &$form_state, $company) {
   $uid = r\user_field('uid', 'name=:company', compact('company'));
-  if (!$uid or \user_load($uid)->account_type == R_PERSONAL) return say('no such company', 'zot');
-  extract((array) \user_load($uid));
+  $acct = r\acct($uid);
+  if (!$uid or $acct->account_type == R_PERSONAL) return say('no such company', 'zot');
+  extract((array) $acct->account(), EXTR_PREFIX_ALL, 'my');
+
   $pic = profile_picture($uid, TRUE);
-  $country = u\country_abbrev($country);
-  if ($website) $website = "<a href='http://$website' target='_blank'>$website</a>";
-  if ($phone) $phone = 'Phone: ' . u\format_phone($phone, '+');
-  if ($fax) $fax = ($phone ? '&nbsp; * &nbsp;' : '') . 'Fax: ' . u\format_phone($fax, '+');
+  $country = u\country_abbrev($my_country);
+  $website = $my_website ? "<a href='http://$website' target='_blank'>$my_website</a>" : '';
+  $phone = $my_phone ? 'Phone: ' . u\format_phone($my_phone, '+') : '';
+  $fax = $my_fax ? (($phone ? '&nbsp; * &nbsp;' : '') . 'Fax: ' . u\format_phone($my_fax, '+')) : '';
   $sql = <<<EOF
     SELECT i.iid, i.industry FROM r_industries i 
     INNER JOIN r_user_industries ui ON ui.iid=i.iid 
@@ -421,13 +428,13 @@ EOF;
   <div id='member-picture'>$pic</div>
   <div id='member-details'>
     <div id='member-contact'>
-    <h2>$full_name</h2>
-    $address<br>
-    $city, $state $postal_code $country<br><br>
+    <h2>$my_full_name</h2>
+    $my_address<br>
+    $my_city, $my_state $my_postal_code $country<br><br>
     $phone$fax<br>
     $website<br><br>
     </div>
-    <div id='member-description'>$description</div>
+    <div id='member-description'>$my_description</div>
     <div id='member-categories'>$cats</div>
   </div>
 EOF;
@@ -439,8 +446,9 @@ EOF;
 }
 
 function profile_picture($uid, $with_markup = FALSE) {
-  $account = \user_load($uid);
-  $data = $account->data;
+  $acct = r\acct($uid);
+  $data = $acct->data;
+  $account = $acct->account();
   $markup = str_replace('styles/thumbnail/public/', '', \theme('user_picture', compact('account')));
   if ($markup) {
     $a = explode('"', $markup);
@@ -521,9 +529,9 @@ function buy_now_form($form, &$form_state) {
       if (!@$$my_field) return say('missing field', compact('field'), $field); // handle hackers gracefully
     }
     if (!is_numeric($my_amount)) return say('bad amount', 'amount');
-    if (!($ruid = r\ruid(@$my_company))) return say('bad account id', 'company');
-//  print_r("confirmed=$confirmed uid=$uid company=$my_company logged=".user_is_logged_in());
-    $name = r\user_field('full_name', $uid); 
+    if (!u\is_qid(@$my_company) or !($acct = r\acct($my_company))) return say('bad account id', 'company'); // qid?
+    
+    $company_name = $acct->full_name; 
 
     $verbs = u\ray('Contribute, Donate, Pay');
     $verb = in_array(ucwords(@$my_verb), $verbs) ? ucwords($my_verb) : 'Pay';
@@ -541,13 +549,13 @@ function buy_now_form($form, &$form_state) {
 
   if (@$confirmed) {
     transfer(compact(u\ray('op who amount goods what')), TRUE);
-    if (u\valid_url(@$my_return_to)) return array(form_field('item', "<a href='$my_return_to'>Click here</a> to return to the $name website."));
+    if (u\valid_url(@$my_return_to)) return array(form_field('item', "<a href='$my_return_to'>Click here</a> to return to the $company_name website."));
     drupal_goto('');
   }
 
   $form = array(
     'title' => form_field('item', t('Confirm Payment')),
-    'xwho' => form_field('textfield', 'to:', t('Pay whom?'), disabled($name)),
+    'xwho' => form_field('textfield', 'to:', t('Pay whom?'), disabled($company_name)),
     'who' => form_field('hidden', $who),
     'xamount' => form_field('textfield', '$', t("Amount to $verblower"), disabled($amount)),
     'amount' => form_field('hidden', $amount),
@@ -618,12 +626,10 @@ function exchange_form_submit($form, &$form_state) {
 
 /**
  * @NOTE: The country and state drop down require a change in form.inc (see form.inc.patch)
- * @todo: substitute get_record for user_load (throughout this module?) and save data in backend (same for login and register)
  */
 function contact_info_form($form, &$form_state) {
-  $cuid = r\cuid();
   api\merge_check(compact(u\ray('name website phone fax'))); // check before and after
-  extract((array) \user_load($cuid), EXTR_PREFIX_ALL, 'my'); // can't easily check for plain because roles is an array
+  extract((array) r\acct()->account(), EXTR_PREFIX_ALL, 'my'); // can't easily check for plain because roles is an array
   $full_name_desc = t('Your full legal name, properly capitalized');
   if (api\access('company')) $full_name_desc .= '<br>' . t('(If you change this, your short identifier and rCredits webpage URL will also change.');
   
@@ -657,7 +663,6 @@ function contact_info_form_validate($form, &$form_state) {
 }
 
 function contact_info_form_submit($form, &$form_state) {
-  global $cacct;
   extract($info = $form_state['values'], EXTR_PREFIX_ALL, 'my');
   $info['website'] = str_replace('http://', '', strtolower(@$my_website));
   if ($my_phone) $info['phone'] = u\format_phone($my_phone, '+n');
@@ -678,13 +683,12 @@ function no_selection($list) {
  * (if status > 100, it's waiting for verification)
  */
 function bank_form($form, &$form_state) {
-  $cuid = r\cuid();
-  extract((array) \user_load($cuid), EXTR_PREFIX_ALL, 'my'); // can't easily check for plain because roles is an array
+  extract((array) r\acct()->account(), EXTR_PREFIX_ALL, 'my'); // can't easily check for plain because roles is an array
 
   if (!$my_bank_account_name) $my_bank_account_name = $my_full_name;
   
   $form = array();
-  if (r\user_field('country') == 'United States') {
+  if ($my_country == 'United States') {
     $my_routing_number = substr($my_bank_account_number, 4, 9); // chop of USkk
     $my_bank_account_number = substr($my_bank_account_number, 4 + 9); // everything after the routing number
     $routing_number = form_field('textfield', t('Routing number:'), t('What is the 9-digit routing number (type carefully)'), dft($my_routing_number) + required());
@@ -711,9 +715,8 @@ function bank_form_validate($form, &$form_state) {
 }
 
 function bank_form_submit($form, &$form_state) {
-  global $cacct;
   extract($form_state['values']);
-  if ($cacct->country == 'United States') $bank_account_number = "USkk$routing_number$bank_account_number";
+  if (r\acct()->country == 'United States') $bank_account_number = "USkk$routing_number$bank_account_number";
   r\user_update(compact(u\ray('bank_account_name bank_account_number')));
   say('info saved');
 }
@@ -745,7 +748,7 @@ EOF;
   $form_state['original_settings'] = $original;
   
   $help = t("Use this form to mark someone as an employee or owner or to give someone access to this account. Individuals marked as employees are the ones who will get paid in rCredits when you use the Pay form to pay \"all\".<br><br>For example, you might authorize some employees to buy or sell for your company. The system will track who does what. Or you might give your accountant \"read\" permission.");
-  $subtext = '<span id="account-label">' . t('Current Account') . "</span></b><span id='account-identifiers'>$account_identifiers</span><br><br>$help";
+  $subtext = '<span id="account-label">' . t('Current Account') . ":</span> <span id='account-identifiers'>$account_identifiers</span><br><br>$help";
 
   $attributes = array('id' => 'relations');
   $cols = array();
@@ -798,7 +801,7 @@ function relations_form_validate($form, &$form_state) {
     $acct = whois($new_person, 'new_person', $form_state['values'], FALSE, FALSE, 'no self-relation');
     if (api\access('company', $acct)) return say('no company relations', 'new_person');
     $uid = $acct->id;
-    $already = r\db_lookup('1', 'r_relations', 'main_uid=:cuid AND agent_uid=:uid', compact('cuid', 'uid'));
+    $already = r\dbLookup('1', 'r_relations', 'main_uid=:cuid AND agent_uid=:uid', compact('cuid', 'uid'));
     if ($already) return say('already related', 'new_person');
     $form_state['values']['agent_uid'] = $uid; // save for submission handling
   }
@@ -1045,16 +1048,17 @@ function login_extra_validate($form, &$form_state) {
     $form_state['flood_control_triggered'] = 'ip';
     return;
   }
-  $ruid = r\ruid(strtoupper($my_name)); // try to interpret it as a qid
-  $crit =  $ruid ? ('uid=' . $ruid[0]) : ':my_name IN (name,mail)';
-  if (!($fields = r\user_field('uid,name AS my_name', $crit, $ruid ? array() : compact('my_name')))) return; // not a user
+  $cacct = u\is_qid(strtoupper($my_name)) ? r\acct(strtoupper($my_name)) : FALSE; // try to interpret it as a qid
+  $crit =  $cacct ? ('uid=' . $cacct->id) : ':my_name IN (name,mail)';
+  $subs = $cacct ? array() : compact('my_name');
+  if (!($fields = r\user_field('uid,name', $crit, $subs))) return; // not a user
   
-  extract($fields); // uid and my_name (replacing earlier my_name)
+  extract($fields, EXTR_PREFIX_ALL, 'my'); // uid and my_name (replacing earlier my_name)
   $failed_login_identifier_uid_only = variable_get('user_failed_login_identifier_uid_only', FALSE);
   $failed_login_user_limit = variable_get('user_failed_login_user_limit', 5);
   $failed_login_user_window = variable_get('user_failed_login_user_window', 21600);
   
-  $identifier = $failed_login_identifier_uid_only ? $uid : $uid . '-' . ip_address();
+  $identifier = $failed_login_identifier_uid_only ? $my_uid : $my_uid . '-' . ip_address();
   $form_state['flood_control_user_identifier'] = $identifier;
 
   if (!flood_is_allowed('failed_login_attempt_user', $failed_login_user_limit, $failed_login_user_window, $identifier)) {
@@ -1147,24 +1151,22 @@ EOF;
 }
 
 function company_form($form, &$form_state) {
-  $cuid = r\cuid();
-//  extract((array) \user_load($cuid), EXTR_PREFIX_ALL, 'my');
-//  $my_description = \check_markup(\user_load($cuid)->description);
-  $account = \user_load($cuid);
-  $my_description = $account->description;
+  global $cuid;
+  $cacct = r\acct();
+  $my_description = $cacct->description;
   
   $cats = r\db_q('SELECT iid, industry FROM r_industries ORDER BY industry')->fetchAllKeyed();
   $my_cats = r\db_q('SELECT iid FROM r_user_industries WHERE uid=:cuid', compact('cuid'))->fetchCol();
   $multiple = array('multiple' => TRUE);
   $filtered_html = array('format' => 'filtered_html');
   $afterlinks = <<<EOF
-  <a id='show-webpage' href="member/$account->name" target="_blank">Show my public rCredits web page</a> (in a new window)
+  <a id='show-webpage' href="member/$cacct->name" target="_blank">Show my public rCredits web page</a> (in a new window)
 EOF;
   
   $form = array(
     'title' => form_field('item', t('Company Information')),
 //    'subtext' => basic_account_info(),
-    'name' => form_field('item', t('Company name:'), '', $account->full_name),
+    'name' => form_field('item', t('Company name:'), '', $cacct->full_name),
     'categories' => form_field('select', t('Categories:'), t('Hold down the Ctrl key to select more than one'), $multiple + dft($my_cats), $cats),
     'description' => form_field('text_format', t('Description:'), t('What does this company do?'), $filtered_html + dft($my_description)),
     'submit' => form_field('submit', NULL, t('Submit button'), t('Submit')),
@@ -1495,10 +1497,10 @@ function say($index, $args = array(), $error_field = '') {
 }
 
 function setup_globals() {
-  global $cuid, $cacct, $user, $channel;
+  global $cuid, $user, $channel;
   $agent = @$user->uid;
   $cuid = svar('cuid') ?: $agent;
-  $cacct = $cuid ? new r\acct($cuid, $agent) : FALSE;
+  r\acct($cuid, $agent); // set the agent
   $channel = TX_WEB;
 }
 

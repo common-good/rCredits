@@ -5,7 +5,7 @@ SO I can easily correct a mistake
 
 Setup:
   Given members:
-  | id   | full_name  | phone  | email         |
+  | id   | full_name  | cell   | email         |
   | .ZZA | Abe One    | +20001 | a@example.com |
   | .ZZB | Bea Two    | +20002 | b@example.com |
   | .ZZC | Corner Pub | +20003 | c@example.com |
