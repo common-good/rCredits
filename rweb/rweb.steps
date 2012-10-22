@@ -16,8 +16,7 @@
 use rCredits as r;
 use rCredits\Testing as t;
 use rCredits\Util as u;
-use \rCredits\SMS as rSMS;
-use \rCredits\API as api;
+use rCredits\API as api;
 
-require_once __DIR__ . '/../rCredits.inc';
-require_once __DIR__ . '/../rCredits-testing.inc';
+require_once __DIR__ . '/../rcredits.inc';
+require_once __DIR__ . '/../rcredits-testing.inc';

@@ -1,8 +1,8 @@
 <?php
-namespace rCredits\SMS; // typically abbreviated as "rSMS"
-use \rCredits as r;
-use \rCredits\API as api;
-use \rCredits\Util as u;
+namespace rCredits\SMS;
+use rCredits as r;
+use rCredits\API as api;
+use rCredits\Util as u;
 
 /**
  * @file
@@ -28,9 +28,9 @@ class call {
    * Instantiate a call.
    */
   function __construct($number, $message) {
-    global $channel, $rSMS_number; 
+    global $channel, $rsms_number; 
     $channel = TX_SMS;
-    $rSMS_number = $this->number = $number = u\format_phone($number, '+n');
+    $rsms_number = $this->number = $number = u\format_phone($number, '+n');
     u\expect(compact(u\ray('number message')), 'string&notempty string&notempty');
     $this->message = trim($message);
     $this->confirmed = FALSE;

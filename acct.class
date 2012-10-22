@@ -1,7 +1,7 @@
 <?php
 namespace rCredits;
-use \rCredits\API as api;
-use \rCredits\Util as u;
+use rCredits\API as api;
+use rCredits\Util as u;
 
 /**
  * @file

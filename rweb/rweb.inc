@@ -1,11 +1,10 @@
 <?php
-namespace rCredits\Web; // typically abbreviated as "rWeb"
-use \rCredits\SMS as rSMS;
-use \rCredits\API as api;
-use \rCredits\Util as u;
-use \rCredits as r; // get rid of this
-include_once __DIR__ . '/rWeb-txs.inc'; // treat this as an extension of this file, just to make menu ['file'] consistent
-require_once __DIR__ . '/../rCredits-api.inc';
+namespace rCredits\Web;
+use rCredits\API as api;
+use rCredits\Util as u;
+use rCredits as r;
+include_once __DIR__ . '/rweb-txs.inc'; // treat this as an extension of this file, just to make menu ['file'] consistent
+require_once __DIR__ . '/../rcredits-api.inc';
 
 /**
  * @file
@@ -78,7 +77,7 @@ function util($arg) {
   }
   if ($arg == 'reset') {
     r\reset();
-/*    $uid = variable_get('rCredits_community_uid') + 1;
+/*    $uid = variable_get('rcredits_community_uid') + 1;
     $uid2 = $uid + 1; $uid3 = $uid2 + 1;
     $pass = '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae';
     $sql = <<<EOF
@@ -110,18 +109,17 @@ function handy_links() {
   $test_path = "$base_url/sites/all/modules";
 
   $links = array(
-    'rCredits/util/test?rSMS|Test rSMS|',
-    'rCredits/util/test?rSmart|Test rSmart|',
-    'rCredits/util/test?rWeb|Test rWeb|',
-    "$test_path/gherkin/compile.php?rCredits/rSMS|Compile rSMS|",
-    "$test_path/gherkin/compile.php?rCredits/rSmart|Compile rSmart|",
-    "$test_path/gherkin/compile.php?rCredits/rWeb|Compile rWeb|",
+    'rcredits/util/test?rSMS|Test rSMS|',
+    'rcredits/util/test?rSmart|Test rSmart|',
+    'rcredits/util/test?rWeb|Test rWeb|',
+    "$test_path/gherkin/compile.php?rcredits/rsms|Compile rSMS|",
+    "$test_path/gherkin/compile.php?rcredits/rsmart|Compile rSmart|",
+    "$test_path/gherkin/compile.php?rcredits/rweb|Compile rWeb|",
     'sms|Simulate an SMS transaction|Simulate SMS',
     'admin/config/development/testing|Test|Test',
-    'sites/all/modules/rcredits/rsms/gherkin/compile.php|Compile tests|Compile tests',
     'deletetests.php|Delete old tests|Delete old tests',
-    'rCredits/util/reset|Reset rCredits|',
-    'rCredits/util/clear_sessions|Clear Sessions|',
+    'rcredits/util/reset|Reset rCredits|',
+    'rcredits/util/clear_sessions|Clear Sessions|',
     
     'devel/settings|Helper functions, pages, and blocks to assist Drupal developers. The devel blocks can be managed via the block administration page.|Devel settings',
     'devel/cache/clear?destination=node|Clear the CSS cache and all database cache tables which store page, node, theme and variable caches.|Empty cache',
@@ -156,10 +154,10 @@ function show_form($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   try {
     setup_globals(); // in case it's an anonymous form, so web_access doesn't have a chance to set up
     if ($function != 'accounts') u\log("show $function", compact(u\ray('arg1 arg2 arg3 arg4')));
-    drupal_add_css(\drupal_get_path('module', 'rweb') . '/rWeb.css', array('group' => CSS_THEME) + weight(-9));
+    drupal_add_css(\drupal_get_path('module', 'rweb') . '/rweb.css', array('group' => CSS_THEME) + weight(-9));
     $form_name = substr($function, 0, 1) == '\\' ? $function : "rCredits\\Web\\{$function}_form";
     $form = drupal_get_form($form_name, $arg1, $arg2, $arg3, $arg4);
-  //  $form['#attached']['css'] = array(\drupal_get_path('module', 'rweb') . '/rWeb.css');
+  //  $form['#attached']['css'] = array(\drupal_get_path('module', 'rweb') . '/rweb.css');
     $form['#attributes']['class'][] = 'rweb';
     if (!@$form['confirm']) $form += which(); // add the popup form, if any
     if ($colgroup = @$form['#colgroup']) {
@@ -915,7 +913,7 @@ function cell_form_submit($form, &$form_state) {
   if ($op == 'Add') {
     if ($info = previous_state($form_state)) return say($info, 'number'); // just returning from failed validation of step 2 ('prove')
     svar('nonce', $nonce = u\nonce()); // don't use POST (user could peek)
-    rSMS\send($number, tt('verification code', compact('nonce')));
+    r\SMS\send($number, tt('verification code', compact('nonce')));
     return form_step($form_state, compact('number'), 'prove');
   }
 
@@ -967,7 +965,7 @@ function register_form(&$form, &$form_state) {
     'submit' => form_field('submit', NULL, t('Submit button'), 'Submit'), */
   );
 
-  drupal_add_css(\drupal_get_path('module', 'rweb') . '/rWeb.css', array('group' => CSS_THEME) + weight(-9));
+  drupal_add_css(\drupal_get_path('module', 'rweb') . '/rweb.css', array('group' => CSS_THEME) + weight(-9));
   drupal_add_js('inc/countries.js', array('type'=>'file', 'scope'=>'header'));
   drupal_add_js("print_country(\"edit-country\", \"$my_country\", \"$my_state\");", array('type'=>'inline', 'scope'=>'footer'));
 
@@ -1016,11 +1014,11 @@ function register_form_submit($form, &$form_state) {
 
 /**
  * Modify the login form.
- * @see also login_followup, below (called from rWeb_user_login()).
+ * @see also login_followup, below (called from rweb_user_login()).
  */
 function login_alter(&$form, &$form_state) {
   $form['tip'] = form_field('item', t('<b>NOTE: </b>If you already created an account using cell texting and have never yet logged in here, start by requesting a "new password" for your email address.'));
-  $form['external_input'] = form_field('hidden', serialize($form_state['input'])); // pass this to rWeb_user_login
+  $form['external_input'] = form_field('hidden', serialize($form_state['input'])); // pass this to rweb_user_login
 //  $form['#submit'][] = 'rCredits\\Web\\login_form_submit';
 
   $i = array_search('user_login_authenticate_validate', $form['#validate']);
@@ -1030,7 +1028,7 @@ function login_alter(&$form, &$form_state) {
   $form['name']['#title'] = t('Username/Email/ID');
   
   $form['#attributes']['class'][] = 'rweb';
-  $form['#attached']['css'][] = \drupal_get_path('module', 'rweb') . '/rWeb.css';
+  $form['#attached']['css'][] = \drupal_get_path('module', 'rweb') . '/rweb.css';
 }
 
 /**
@@ -1072,7 +1070,7 @@ function login_extra_validate($form, &$form_state) {
 function login_followup($edit) {
   global $user;
 
-  foreach ($_SESSION as $key => $value) if (u\abbreviates('rCredits_', $key)) unset($_SESSION[$key]);
+  foreach ($_SESSION as $key => $value) if (u\abbreviates('rcredits_', $key)) unset($_SESSION[$key]);
   svar('external_input', @unserialize($my_external_input)); // save params from external online merchant
 
   $name = @$edit['values']['name'];
@@ -1241,7 +1239,7 @@ function sms_form_submit($form, $form_state) {
   extract($form_state['values'], EXTR_PREFIX_ALL, 'my');
   $my_number = u\format_phone($my_number, '+n');
   variable_set('last SMS number used', $my_number);
-  \rSMS_sms_incoming('process', $my_number, $my_message);
+  \rsms_sms_incoming('process', $my_number, $my_message);
 }
 
 /**
@@ -1361,7 +1359,7 @@ function detour($detour_via, $detour_args, $whence = '', $modal = TRUE) {
 }
 */
 function svar($name) {
-  $name = 'rCredits_' . $name;
+  $name = 'rcredits_' . $name;
   $args = func_get_args();
   if (count($args) == 1) return @$_SESSION[$name]; else $_SESSION[$name] = $args[1];
 }
@@ -1414,10 +1412,10 @@ function menu($title, $type, $function = NULL, $function_args = array(), $access
   global $menu_weight;
   $menu_weight += !@$menu_weight ?: 1;
   
-  if (function_exists($local_func = "\\rCredits\\Web\\$function")) $function = $local_func;
+  if (function_exists($local_func = "rCredits\\Web\\$function")) $function = $local_func;
   if ($function == 'drupal_get_form') {
     $form_func = $function_args[0];
-    if (function_exists($form_func = "\\rCredits\\Web\\{$form_func}_form")) $function_args[0] = $form_func;
+    if (function_exists($form_func = "rCredits\\Web\\{$form_func}_form")) $function_args[0] = $form_func;
   }
   return array_merge(array(
     'title' => $title,

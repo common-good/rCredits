@@ -5,7 +5,7 @@ use rCredits\Util as u;
 
 /**
  * @file
- * Extra (non-hook) functions for rCredits.install
+ * Extra (non-hook) functions for rcredits.install
  */
 
 /**
@@ -17,7 +17,7 @@ use rCredits\Util as u;
  */
 function make_fields($unmake = FALSE, $extras = array()) {
   $schema = array();
-  \rCredits_schema_alter($schema); // get the fields to add (or drop)
+  \rcredits_schema_alter($schema); // get the fields to add (or drop)
   foreach ($schema as $table_name => $one) {
     if ($unmake and isset($extras[$table_name])) $one += $extras[$table_name];
     foreach ($one['fields'] as $field_name => $spec) {

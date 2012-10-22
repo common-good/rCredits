@@ -1,9 +1,8 @@
 <?php
 namespace rCredits\Web; // typically abbreviated as "rWeb"
-use \rCredits\SMS as rSMS;
-use \rCredits\API as api;
-use \rCredits\Util as u;
-use \rCredits as r; // get rid of this
+use rCredits\API as api;
+use rCredits\Util as u;
+use rCredits as r;
 
 /**
  * @file

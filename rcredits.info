@@ -5,13 +5,13 @@ package = rCredits
 core = 7.x
 php = 5.3
 
-files[] = rCredits.module
-files[] = rCredits.install
-files[] = rCredits-install.inc
-files[] = rCredits-settings.inc
-files[] = rCredits-util.inc
-files[] = rCredits.inc
-files[] = rCredits-api.inc
-files[] = rCredits-circles.inc
-files[] = rSmart/rSmart.inc
+files[] = rcredits.module
+files[] = rcredits.install
+files[] = rcredits-install.inc
+files[] = rcredits-settings.inc
+files[] = rcredits-util.inc
+files[] = rcredits.inc
+files[] = rcredits-api.inc
+files[] = rcredits-circles.inc
+
 

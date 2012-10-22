@@ -421,10 +421,10 @@ function expect1($arg, $value, $type, $ret) {
 function log($type, $info, $special = '') {
   global $channel, $cuid;
   $agent = @r\acct()->agent;
-  $log_filename = @$channel ? "$channel.log" : 'rCredits.log';
+  $log_filename = @$channel ? "$channel.log" : 'rcredits.log';
   $date = strftime('%d-%b-%Y', time());
   $channels = ray(TX_CHANNELS); 
-  $channel_name = $channels[@$channel];
+  $channel_name = @$channel ? $channels[$channel] : 'none';
   if (is_nonce($special) and @$info['message']) $info['message'] = str_replace($special, '@nonce', $info['message']); // make it easy to match
 
   unset($info['code']); // don't make code and password any more accessible than they are

@@ -8,7 +8,7 @@ use rCredits as r;
 use rCredits\Util as u;
 use rCredits\API as api;
 
-include_once __DIR__ . '/rCredits-install.inc'; // treat this as an extension of this file
+include_once __DIR__ . '/rcredits-install.inc'; // treat this as an extension of this file
 
 define('R_TABLES', 'r_area_codes,r_credit_regions,r_nonces,r_txs,r_asif,r_relations,r_industries,r_user_industries');
 
@@ -17,7 +17,7 @@ define('R_TABLES', 'r_area_codes,r_credit_regions,r_nonces,r_txs,r_asif,r_relati
  *
  * Add custom data for the rCredits module.
  */
-function rCredits_install() {
+function rcredits_install() {
   r\make_fields();
   
   $uid = r\server_uid();
@@ -45,9 +45,9 @@ function rCredits_install() {
 /**
  * Implements hook_schema().
  */
-function rCredits_schema() {
-  require_once 'rCredits.inc'; // Drupal bug. hook_schema needs this explicit.
-  require_once 'rCredits-util.inc';
+function rcredits_schema() {
+  require_once 'rcredits.inc'; // Drupal bug. hook_schema needs this explicit.
+  require_once 'rcredits-util.inc';
 
   // table r_sms 
   $fields = array(
@@ -184,7 +184,7 @@ function rCredits_schema() {
 /**
  * Implements hook_schema_alter().
  */
-function rCredits_schema_alter(&$schema) {
+function rcredits_schema_alter(&$schema) {
   $fields = array( // additional users fields
     'account_type' => r\setup_field('personal, commercial, non-profit (or government)', 'int tiny'),
     'flags' => r\setup_field('permissions and boolean state flags', 'int big', 0, '010'),
@@ -220,16 +220,16 @@ function rCredits_schema_alter(&$schema) {
  * Implements hook_uninstall().
  * Best not to use anything much here from other files.
  */
-function rCredits_uninstall() {
+function rcredits_uninstall() {
   return; // don't do this, for a while (maybe ever)
-  require_once 'rCredits.inc'; // Drupal bug. Uninstall needs this explicit.
-  require_once 'rCredits-util.inc';
+  require_once 'rcredits.inc'; // Drupal bug. Uninstall needs this explicit.
+  require_once 'rcredits-util.inc';
 
   $old_fields = array(
     'users' => explode(' ', 'first_name last_name credit_name can_charge can_vote can_trade is_committed'),
   );
   r\make_fields('UNMAKE', $old_fields);
-// (DON'T DELETE record!)  if ($who = variable_set('rCredits_community_uid')) db_query("DELETE FROM users WHERE uid = $who");
+// (DON'T DELETE record!)  if ($who = variable_set('rcredits_community_uid')) db_query("DELETE FROM users WHERE uid = $who");
 
   db_query('DROP TABLE IF EXISTS ' . R_TABLES . ',r_credit_tails');
 }

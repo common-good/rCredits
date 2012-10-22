@@ -16,12 +16,11 @@
 use rCredits as r;
 use rCredits\Testing as t;
 use rCredits\Util as u;
-use \rCredits\SMS as rSMS;
-use \rCredits\API as api;
+use rCredits\API as api;
 
 require_once __DIR__ . '/../rcredits.inc';
 require_once __DIR__ . '/../rcredits-testing.inc';
-require_once __DIR__ . '/../rSmart/rSmart.inc';
+require_once __DIR__ . '/../rsmart/rsmart.inc';
 
 /**
  * members: (ARG)
@@ -137,9 +136,12 @@ function memberAsksDeviceForAPictureOfMember($my_id, $code, $account_id) {
  *
  * in: IdentifyQR - testDeviceAsksForPictureToGoWithQR TEST
  */
-function weRespondWithAPictureOfMember($response) {
+function weRespondWithAPictureOfMember($id) {
   global $testOnly;
-  return ($response == 'picture file, length>500');
+  $pic_filename = r\Web\profile_picture(@$q_acct->id);
+  $pic = $pic_filename ? file_get_contents($pic_filename) : '';
+  $message = substr($pic, 0, 500);
+  return t\findMessage('out', $args, $message);
 }
 
 /**

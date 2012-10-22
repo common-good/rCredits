@@ -30,11 +30,11 @@
  */
 
 namespace rCredits\API; // typically abbreviated as "api"
-use \rCredits as r;
-use \rCredits\Util as u;
+use rCredits as r;
+use rCredits\Util as u;
 
 define('REAL', @$_SERVER['SystemRoot'] != 'C:\\Windows');
-define('API_URL', REAL ? 'http://devcore.rcredits.org/api' : 'http://localhost/devcore/api');
+define('API_URL', REAL ? 'http://devcore.rCredits.org/api' : 'http://localhost/devcore/api');
 
 $GLOBALS['API messages'] = array(
   'no permission' => t('You do not have permission to use that account.'),
@@ -825,7 +825,7 @@ function testbe($function = '', $arg1 = '', $arg2 = '', $arg3 = '') {
  */
 function is_frontend() {
   if (!R_SEPARATE_BACKEND) return FALSE; // disable separation of frontend and backend
-  return (!testbe() and (strpos($_SERVER['REQUEST_URI'], 'rCredits/api') === FALSE));
+  return (!testbe() and (strpos($_SERVER['REQUEST_URI'], 'rcredits/api') === FALSE));
   // (FAILS in menu system of backend) global $is_backend; return !@$is_backend;
 }
 
@@ -840,7 +840,7 @@ function backend($op, $info = array(), $cache = FALSE) {
   
   $agent = r\acct()->agent;
 //  $cache = FALSE; // debug
-//  debug("cache=$cache cachekey=rCredits_$op$cuid:" . serialize($info));
+//  debug("cache=$cache cachekey=rcredits_$op$cuid:" . serialize($info));
   $skey = "{$op}_{$agent}_{$cuid}_" . base64_encode(serialize($info)); // htmlspecialchars prevents session key failure (PHP bug?)
   if ($cache and (($result = r\Web\svar($skey)) !== NULL)) return $result;
 //  debug($skey . $result);
@@ -851,8 +851,8 @@ function backend($op, $info = array(), $cache = FALSE) {
 //  foreach ($info as $key => $value) if (strpos($key, 'uid') !== FALSE) $info[$key] = r\quid($value); // convert to qid
 //  $basic = array('agent' => r\quid($agent), 'cuid' => r\quid($cuid));
   $info += compact(u\ray('cuid agent op password firewall')); // operation, credentials, and account
-  $host = strpos($base_url, 'localhost/') !== FALSE ? 'http://localhost/devcore' : 'http://devcore.rcredits.org';
-  $api_result = R_SEPARATE_BACKEND ? u\http_request("$host/rCredits/api/", $info) : backend2($info);
+  $host = strpos($base_url, 'localhost/') !== FALSE ? 'http://localhost/devcore' : 'http://devcore.rCredits.org';
+  $api_result = R_SEPARATE_BACKEND ? u\http_request("$hostrcredits/api/", $info) : backend2($info);
 //debug($api_result);
   u\log('out', $info + compact('api_result'));
   if ($cache) r\Web\svar($skey, $api_result);
@@ -865,7 +865,7 @@ function backend($op, $info = array(), $cache = FALSE) {
  * Say whether the account has the specified permission
  * @param string $access: the queried permission. This could be any of three types:
  *   a standard Drupal permission, queryable through user_access()
- *   a shared account permission, stored in r_relations (cached in $_SESSION['rCredits_account_choices'], but we're not trusting that)
+ *   a shared account permission, stored in r_relations (cached in $_SESSION['rcredits_account_choices'], but we're not trusting that)
  *   an ad hoc permission handled directly by this function
  * @param array $acct: acct object for the other party (DEFAULT current account)
  *   OR a simple uid on the current server

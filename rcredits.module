@@ -35,12 +35,12 @@
  * a companion module, rDemocracy, handles participatory financial decision-making
  */
 
-require_once 'rCredits.inc';
-require_once 'rCredits-api.inc';
+require_once 'rcredits.inc';
+require_once 'rcredits-api.inc';
 use rCredits as r;
 use rCredits\Util as u;
 
-class rcreditsMailSystem extends DefaultMailSystem {
+class rCreditsMailSystem extends DefaultMailSystem {
   public function format(array $message) {
     $message['body'] = drupal_wrap_mail(join("\n\n", $message['body']));
     return $message;
@@ -56,8 +56,8 @@ class rcreditsMailSystem extends DefaultMailSystem {
  *   Smart: Give a short apology.
  *   Uninitialized: print the full error information and die
  */
-function rCredits_exception_handler($e) {
-  global $channel, $rSMS_number;
+function rcredits_exception_handler($e) {
+  global $channel, $rsms_number;
   global $R_FATAL_ERROR;
   
   list ($msg, $line0, $file0, $trace) = array($e->getMessage(), $e->getLine(), $e->getFile(), $e->getTrace());
@@ -88,7 +88,7 @@ function rCredits_exception_handler($e) {
     case TX_WEB:
       drupal_set_message($msg, 'error'); // this fails
       drupal_goto('error/' . $R_FATAL_ERROR); // this fails -- use shutdown function to show error page (getting message from log)
-    case TX_SMS: if (@$rSMS_number) \sms_send($rSMS_number, $short_msg); break;
+    case TX_SMS: if (@$rsms_number) \sms_send($rsms_number, $short_msg); break;
     case TX_SMART: api\api_error($short_msg);
     default: die('with no channel'); // definitely do the print_r first
   }
@@ -97,15 +97,15 @@ function rCredits_exception_handler($e) {
 /**
  * Implements hook_boot().
  */
-function rCredits_boot() {
-  drupal_register_shutdown_function('rCredits_shutdown');
-  set_exception_handler('rCredits_exception_handler');
+function rcredits_boot() {
+  drupal_register_shutdown_function('rcredits_shutdown');
+  set_exception_handler('rcredits_exception_handler');
 }
 
 /**
  * Shutdown function to redirect to error page, if there is an error.
  */
-function rCredits_shutdown() {
+function rcredits_shutdown() {
   global $R_FATAL_ERROR;
   if (@$R_FATAL_ERROR) \drupal_goto('error/' . $R_FATAL_ERROR);
 }
@@ -115,7 +115,7 @@ function rCredits_shutdown() {
  * Permission to transact through various interfaces is created here, 
  * so that those permissions can be granted during installation of the corresponding submodules.
  *
-function rCredits_permission() {
+function rcredits_permission() {
   $permissions = array();
   r\permission($permissions, 'Member', t('Has an account, can access the member area and do "As If" transactions'));
   r\permission($permissions, 'Partner', t('Signed the membership agreement and donated'));
@@ -132,7 +132,7 @@ function rCredits_permission() {
 /**
  * Implements hook_help().
  */
-function rCredits_help($path, $arg) {
+function rcredits_help($path, $arg) {
   if ($path == 'admin/help#rCredits') {
     return t('If you have trouble using rCredits software during the development phase, call William Spademan for help: wspademan@RCredits.org.');
   }
@@ -141,7 +141,7 @@ function rCredits_help($path, $arg) {
 /**
  * Implements hook_mail().
  */
-function rCredits_im_send($key, &$message, $subs) {
+function rcredits_im_send($key, &$message, $subs) {
   return FALSE; // can't send IMs yet
 
   $message['send'] = FALSE; // disable emailing, since we sent it my IM instead
@@ -151,12 +151,12 @@ function rCredits_im_send($key, &$message, $subs) {
 /**
  * Implements hook_mail().
  */
-function rCredits_mail($key, &$msg_array, $subs) {
+function rcredits_mail($key, &$msg_array, $subs) {
     $language = $msg_array['language'];
 //    $data['user'] = r\acct()->account();
 //    user_mail_tokens($variables, $data, compact('language')); // adds links for password reset and account cancelation
     
-    if (rCredits_im_send($key, $msg_array, $subs)) return; // If we can send by instant-message, do not send by email.
+    if (rcredits_im_send($key, $msg_array, $subs)) return; // If we can send by instant-message, do not send by email.
     $langcode = $language->language;
     $msg_array['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed'; // default is plain text
     $msg_array['subject'] = $subject = strtr($GLOBALS['email_subjects'][$key], $subs);

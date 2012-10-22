@@ -4,9 +4,9 @@
  * All of the business logic common to the various rCredits interfaces
  * (SMS, web, smartphone, etc.)
  * EXCEPT:
- *   - the Drupalish callbacks, which are in rCredits.module
- *   - application interfaces to the user interfaces, which are in rCredits-api.inc (i)
- *   - utilities, which are in rCredits-util.inc (u)
+ *   - the Drupalish callbacks, which are in rcredits.module
+ *   - application interfaces to the user interfaces, which are in rcredits-api.inc (i)
+ *   - utilities, which are in rcredits-util.inc (u)
  *
  * Some coding conventions:
  *   qid: a mostly-alphabetic representation of an azid, eg "XXX.YYYY..." used externally for REST and SMS queries.
@@ -79,12 +79,12 @@
  */
  
 namespace rCredits; // typically abbreviated as "r"
-use \rCredits\Util as u;
-use \rCredits\API as api;
+use rCredits\Util as u;
+use rCredits\API as api;
 
-include_once __DIR__ . '/rCredits-settings.inc'; // secret settings for this community's rCredits server
+include_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
 include_once __DIR__ . '/acct.class';
-include_once __DIR__ . '/rCredits-circles.inc'; // treat this as an extension of this file, for testing
+include_once __DIR__ . '/rcredits-circles.inc'; // treat this as an extension of this file, for testing
 
 define('R_SEPARATE_BACKEND', FALSE);
 define('R_TEMP_NAME_PREFIX', 'unknown ');

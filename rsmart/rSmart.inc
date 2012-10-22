@@ -5,9 +5,9 @@
  */
 
 namespace rCredits\Smart;
-use \rCredits as r;
-use \rCredits\Util as u;
-use \rCredits\API as api;
+use rCredits as r;
+use rCredits\Util as u;
+use rCredits\API as api;
 
 /**
  * Receive and process a REST request from a smart device
@@ -85,7 +85,7 @@ function first_time($args) {
  *   update_link (URL of updated app; not set if no update is available)
  */
 function startup($args) {
-  if (rand() < getrandmax() / 2) $update_link = 'http://rCredits.org/files/smart.apk';
+  if (rand() < getrandmax() / 2) $update_link = 'http:/rCredits.org/files/smart.apk';
   $allow_change_account = 0;
   $allow_change_agent = TRUE;
   $require_agent = api\access('company');
@@ -127,10 +127,7 @@ function photo($args) {
   extract($args, EXTR_PREFIX_ALL, 'q');
   $pic_filename = r\Web\profile_picture(@$q_acct->id);
   $pic = $pic_filename ? file_get_contents($pic_filename) : '';
-
-  $len = strlen($pic);
-  $len = ($len > 500) ? '>500' : "=$len";
-  $message = "picture file, length$len";
+  $message = substr($pic, 0, 500);
   u\log('out', compact('message'));
 
   if (defined('TESTING')) {debug($message); return $message;} else exit($pic);

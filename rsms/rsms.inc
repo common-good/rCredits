@@ -1,10 +1,10 @@
 <?php
-namespace rCredits\SMS; // typically abbreviated as "rSMS"
+namespace rCredits\SMS;
 use rCredits as r;
 use rCredits\API as api;
 use rCredits\Util as u;
-require_once __DIR__ . '/../rCredits-api.inc'; // Drupal bug (needs this explicit)
-require_once __DIR__ . '/../rCredits-util.inc';
+require_once __DIR__ . '/../rcredits-api.inc'; // Drupal bug (needs this explicit)
+require_once __DIR__ . '/../rcredits-util.inc';
 
 /**
  * @file

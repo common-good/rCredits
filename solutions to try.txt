@@ -1,0 +1,13 @@
+When things go inexplicably amuck in Drupal 
+-- especially if it works offline but not on the production server, try these solutions:
+
+top tag is <?php not <?
+no bottom tag
+lowercase all drupal functions, module function, and filenames (and all references to them)
+do menu_rebuild()
+reinstall
+clear cache
+delete all records from sessions
+delete custom files and let the install process re-create them
+delete relevant records from system table, menu_router, menu_links,
+show source

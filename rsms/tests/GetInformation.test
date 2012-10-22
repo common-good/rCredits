@@ -7,14 +7,14 @@
 //   
 
 require_once __DIR__ . '/../../../gherkin/test-defs.php';
-require_once __DIR__ . '/../rSMS.steps';
+require_once __DIR__ . '/../rsms.steps';
 
-class rSMSGetInformation extends DrupalWebTestCase {
+class rsmsGetInformation extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
   var $currentTest;
-  const FEATURE_NAME = 'rSMS Test - GetInformation';
+  const FEATURE_NAME = 'rsms Test - GetInformation';
   const DESCRIPTION = 'Get information about account balance and system health';
-  const MODULE = 'rSMS';
+  const MODULE = 'rsms';
 
   public function gherkin($statement, $type) {
     $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);

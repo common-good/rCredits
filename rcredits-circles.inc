@@ -48,7 +48,7 @@
  */
 
 namespace rCredits; // typically abbreviated as "r"
-use \rCredits\API as api;
+use rCredits\API as api;
 
 define('R_MIN_BUYS', 3); // you can't be an rTrader unless you have at least this many places to spend
 define('R_MAX_SCORE', 12); // any more places to spend is effectively the same: enough

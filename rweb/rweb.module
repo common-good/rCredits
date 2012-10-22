@@ -6,16 +6,16 @@
  * An interface module for the rCredits financial system.
  *
  * Note: to display one of the blocks defined herein on a page, use
- * echo render(rWeb_block_view('blockname'));)
+ * echo render(rweb_block_view('blockname'));)
  */
 
-use \rCredits\Web as rWeb;
-use \rCredits\API as api;
-use \rCredits\Util as u;
+use rCredits as r;
+use rCredits\API as api;
+use rCredits\Util as u;
 
-require_once __DIR__ . '/../rCredits.inc';
-require_once __DIR__ . '/rWeb.inc';
-require_once __DIR__ . '/../rSmart/rSmart.inc';
+require_once __DIR__ . '/../rcredits.inc';
+require_once __DIR__ . '/rweb.inc';
+require_once __DIR__ . '/../rsmart/rsmart.inc'; // for smart api menu entry
 
 //define('RWEB_BLOCKS', 'accounts payment buy_now example_store charge exchange manage tx_period txs manage_account');
 define('RWEB_BLOCKS', 'accounts');
@@ -23,7 +23,7 @@ define('RWEB_BLOCKS', 'accounts');
 /**
  * Implements hook_block_info().
  */
-function rWeb_block_info() {
+function rweb_block_info() {
   $info = array();
   foreach (u\ray(RWEB_BLOCKS) as $one) {
     $def = array('info' => ucfirst($one) . ' Block');
@@ -42,55 +42,55 @@ function rWeb_block_info() {
 /**
  * Implements hook_block_view().
  */
-function rWeb_block_view($delta = '') {
-  if (in_array($delta, u\ray(RWEB_BLOCKS))) return rWeb\block_view(NULL, rWeb\show_form($delta)); // no subject for blocks
+function rweb_block_view($delta = '') {
+  if (in_array($delta, u\ray(RWEB_BLOCKS))) return r\Web\block_view(NULL, r\Web\show_form($delta)); // no subject for blocks
 }
 
 /**
  * Implements hook_menu().
  */
-function rWeb_menu() {
+function rweb_menu() {
   $anyone = array('access callback' => TRUE, 'access arguments' => NULL);
+  $smart = array('module' => 'rsmart', 'file' => 'rsmart.inc');
   $modal = array('modal' => TRUE);
   
 //  $can_create = api\access('create transactions');
   $menu = array(
-//    'members' => rWeb\menu($can_create ? 'Members Section' : 'Transactions', MENU_NORMAL_ITEM, 'show_form', array($can_create ? 'tx' : 'txs', 2)),
-//    'members' => rWeb\menu('Members Section', MENU_NORMAL_ITEM, 'show_form', array($can_create ? 'tx' : 'txs', 'Charge', 2)),
-    'node' => rWeb\menu('Homey', MENU_CALLBACK, 'show_form', array('home'), 'read transactions'),
-    'transactions' => rWeb\menu('Transactions', MENU_NORMAL_ITEM, 'show_form', array('txs', 1, 2), 'read transactions'),
-    'charge' => rWeb\menu('Charge', MENU_NORMAL_ITEM, 'show_form', array('tx', 'Charge', 1), 'sell'),
-    'pay' => rWeb\menu('Pay', MENU_NORMAL_ITEM, 'show_form', array('tx', 'Pay', 1), 'buy and sell'),
-    'exchange' => rWeb\menu('Get rCredits / USD', MENU_NORMAL_ITEM, 'show_form', array('exchange'), 'manage account'),
-    'directory' => rWeb\menu('Directory', MENU_NORMAL_ITEM, 'show_form', array('directory'), 'sell'),
-    'cell-access' => rWeb\menu('Cell Access', MENU_NORMAL_ITEM, 'show_form', array('cell'), 'manage account'),
-    'relations' => rWeb\menu('Relations', MENU_NORMAL_ITEM, 'show_form', array('relations'), 'manage account'),
-    'company-info' => rWeb\menu('Company Info', MENU_NORMAL_ITEM, 'show_form', array('company'), 'company'),
-    'bank-info' => rWeb\menu('Bank Info', MENU_NORMAL_ITEM, 'show_form', array('bank'), 'manage account'),
-    'contact-info' => rWeb\menu('Contact Info', MENU_NORMAL_ITEM, 'show_form', array('contact_info'), 'manage account'),
-    'account' => rWeb\menu('Account Info', MENU_NORMAL_ITEM, 'show_form', array('account'), 'manage account'),
+//    'members' => r\Web\menu($can_create ? 'Members Section' : 'Transactions', MENU_NORMAL_ITEM, 'show_form', array($can_create ? 'tx' : 'txs', 2)),
+//    'members' => r\Web\menu('Members Section', MENU_NORMAL_ITEM, 'show_form', array($can_create ? 'tx' : 'txs', 'Charge', 2)),
+    'node' => r\Web\menu('Homey', MENU_CALLBACK, 'show_form', array('home'), 'read transactions'),
+    'transactions' => r\Web\menu('Transactions', MENU_NORMAL_ITEM, 'show_form', array('txs', 1, 2), 'read transactions'),
+    'charge' => r\Web\menu('Charge', MENU_NORMAL_ITEM, 'show_form', array('tx', 'Charge', 1), 'sell'),
+    'pay' => r\Web\menu('Pay', MENU_NORMAL_ITEM, 'show_form', array('tx', 'Pay', 1), 'buy and sell'),
+    'exchange' => r\Web\menu('Get rCredits / USD', MENU_NORMAL_ITEM, 'show_form', array('exchange'), 'manage account'),
+    'directory' => r\Web\menu('Directory', MENU_NORMAL_ITEM, 'show_form', array('directory'), 'sell'),
+    'cell-access' => r\Web\menu('Cell Access', MENU_NORMAL_ITEM, 'show_form', array('cell'), 'manage account'),
+    'relations' => r\Web\menu('Relations', MENU_NORMAL_ITEM, 'show_form', array('relations'), 'manage account'),
+    'company-info' => r\Web\menu('Company Info', MENU_NORMAL_ITEM, 'show_form', array('company'), 'company'),
+    'bank-info' => r\Web\menu('Bank Info', MENU_NORMAL_ITEM, 'show_form', array('bank'), 'manage account'),
+    'contact-info' => r\Web\menu('Contact Info', MENU_NORMAL_ITEM, 'show_form', array('contact_info'), 'manage account'),
+    'account' => r\Web\menu('Account Info', MENU_NORMAL_ITEM, 'show_form', array('account'), 'manage account'),
 
-    'pay-with-rcredits' => rWeb\menu('Pay With rCredits', MENU_CALLBACK, 'show_form', array('buy_now'), '', $anyone), // form will require login
+    'pay-with-rcredits' => r\Web\menu('Pay With rCredits', MENU_CALLBACK, 'show_form', array('buy_now'), '', $anyone), // form will require login
 
-//    'example-store' => rWeb\menu('Example Store', MENU_NORMAL_ITEM, 'show_form', array('example_store'), '', $anyone),
-    'member' => rWeb\menu('Company Profile', MENU_CALLBACK, 'show_form', array('profile'), '', $anyone),
-    'rCredits/util' => rWeb\menu('Util', MENU_CALLBACK, 'rCredits\\Web\\util', array(2), 'admin'),
-    'autocomplete' => rWeb\menu('Identify', MENU_CALLBACK, 'rCredits\\Web\\auto', array(1, 2, 3), '', $anyone),
-//    'ok' => rWeb\menu('Please Confirm', MENU_CALLBACK, 'show_form', array('ok'), '', $anyone + $modal),
+//    'example-store' => r\Web\menu('Example Store', MENU_NORMAL_ITEM, 'show_form', array('example_store'), '', $anyone),
+    'member' => r\Web\menu('Company Profile', MENU_CALLBACK, 'show_form', array('profile'), '', $anyone),
+    'rcredits/util' => r\Web\menu('Util', MENU_CALLBACK, 'rCredits\\Web\\util', array(2), 'admin'),
+    'autocomplete' => r\Web\menu('Identify', MENU_CALLBACK, 'rCredits\\Web\\auto', array(1, 2, 3), '', $anyone),
+//    'ok' => r\Web\menu('Please Confirm', MENU_CALLBACK, 'show_form', array('ok'), '', $anyone + $modal),
     
-    'sms' => rWeb\menu('Test SMS', MENU_NORMAL_ITEM, 'show_form', array('sms'), 'admin'),
-    'handy' => rWeb\menu('Handy Links', MENU_NORMAL_ITEM, 'handy_links', array(), 'admin'),
-    'rCredits/backend' => rWeb\menu('API', 0, 'rCredits\\API\\backend2', array(), '', $anyone),
-    'api' => rWeb\menu('API', 0, 'rCredits\\Smart\\api', array(), '', $anyone),
-    'error' => rWeb\menu('System Error', 0, 'rCredits\\error', array(1), '', $anyone),
+    'sms' => r\Web\menu('Test SMS', MENU_NORMAL_ITEM, 'show_form', array('sms'), 'admin'),
+    'handy' => r\Web\menu('Handy Links', MENU_NORMAL_ITEM, 'handy_links', array(), 'admin'),
+    'rcredits/backend' => r\Web\menu('API', 0, 'rCredits\\API\\backend2', array(), '', $anyone),
+    'api' => r\Web\menu('API', 0, 'rCredits\\Smart\\api', array(), '', $anyone),
+    'error' => r\Web\menu('System Error', 0, 'rCredits\\error', array(1), '', $anyone),
     
-//    'modal' => rWeb\menu('Modal Test', MENU_CALLBACK, 'drupal_get_form', array('rCredits\\Web\\modal_form'), '', $anyone + $modal),
+//    'modal' => r\Web\menu('Modal Test', MENU_CALLBACK, 'drupal_get_form', array('rCredits\\Web\\modal_form'), '', $anyone + $modal),
   );
-  
   return $menu;
 }
 
-function rWeb_form_user_register_form_alter(&$form, &$form_state, $form_id) {rWeb\register_form($form, $form_state);}
-function rWeb_form_user_login_block_alter(&$form, &$form_state, $form_id) {return rWeb\login_alter($form, $form_state);}
-function rWeb_form_user_login_form_alter(&$form, &$form_state, $form_id) {return rWeb\login_alter($form, $form_state);}
-function rWeb_user_login(&$edit, $account) {rWeb\login_followup($edit);} // Implements hook_user_login().
+function rweb_form_user_register_form_alter(&$form, &$form_state, $form_id) {r\Web\register_form($form, $form_state);}
+function rweb_form_user_login_block_alter(&$form, &$form_state, $form_id) {return r\Web\login_alter($form, $form_state);}
+function rweb_form_user_login_form_alter(&$form, &$form_state, $form_id) {return r\Web\login_alter($form, $form_state);}
+function rweb_user_login(&$edit, $account) {r\Web\login_followup($edit);} // Implements hook_user_login().

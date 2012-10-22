@@ -4,7 +4,7 @@ use rCredits\Util as u;
 define('TESTING', TRUE); // use this to activate extra debugging statements (if (defined('TESTING')))
 $module = $_SERVER['QUERY_STRING'];
 
-$modules = $module ? array($module) : array('rSMS', 'rSmart', 'rWeb');
+$modules = $module ? array($module) : array('rsms', 'rsmart', 'rweb');
 
 global $okALL, $noALL;
 $okALL = $noALL = 0; // overall results counters
