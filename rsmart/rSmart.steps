@@ -27,6 +27,7 @@ require_once __DIR__ . '/../rsmart/rsmart.inc';
  *
  * in: IdentifyQR - featureSetup MAKE
  *     Startup - featureSetup MAKE
+ *     TransactMemberToMember - featureSetup MAKE
  */
 function members($list) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -38,6 +39,7 @@ function members($list) {
  * relations: (ARG)
  *
  * in: IdentifyQR - featureSetup MAKE
+ *     TransactMemberToMember - featureSetup MAKE
  */
 function relations($relations) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -49,6 +51,7 @@ function relations($relations) {
  * transactions: (ARG)
  *
  * in: IdentifyQR - featureSetup MAKE
+ *     TransactMemberToMember - featureSetup MAKE
  */
 function transactions($list) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -64,7 +67,8 @@ function transactions($list) {
  *     IdentifyQR - testMemberAsksUsToIdentifyAForeignQR MAKE
  *     IdentifyQR - testMemberAsksUsToIdentifyAQRAndMemberCanShowBalances MAKE
  *     IdentifyQR - testMemberAsksUsToIdentifyAQRForACompanyAgent MAKE
- *     IdentifyQR - testDeviceAsksForPictureToGoWithQR MAKE
+ *     IdentifyQR - testDeviceAsksForAPictureToGoWithTheQR MAKE
+ *     IdentifyQR - testDeviceAsksForAPictureButThereIsntOne MAKE
  *     Startup - testMemberRerunsTheApp MAKE
  */
 function memberHasInitializedADeviceWhoseCodeIs($id, $code) {
@@ -124,7 +128,8 @@ function memberCanShowBalances($id) {
 /**
  * member (ARG) asks device (ARG) for a picture of member (ARG)
  *
- * in: IdentifyQR - testDeviceAsksForPictureToGoWithQR MAKE
+ * in: IdentifyQR - testDeviceAsksForAPictureToGoWithTheQR MAKE
+ *     IdentifyQR - testDeviceAsksForAPictureButThereIsntOne MAKE
  */
 function memberAsksDeviceForAPictureOfMember($my_id, $code, $account_id) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -132,26 +137,47 @@ function memberAsksDeviceForAPictureOfMember($my_id, $code, $account_id) {
 }
 
 /**
- * we respond with a picture of member (ARG)
+ * member (ARG) has picture (ARG)
  *
- * in: IdentifyQR - testDeviceAsksForPictureToGoWithQR TEST
+ * in: IdentifyQR - testDeviceAsksForAPictureToGoWithTheQR MAKE
  */
-function weRespondWithAPictureOfMember($id) {
-  global $testOnly;
-  $pic_filename = r\Web\profile_picture(@$q_acct->id);
-  $pic = $pic_filename ? file_get_contents($pic_filename) : '';
-  $message = substr($pic, 0, 500);
-  return t\findMessage('out', $args, $message);
+function memberHasPicture($id, $picture) {
+  global $testOnly; if ($testOnly) return FALSE;
+  return t\makePicture($picture, r\acct($id));
 }
 
 /**
- * member NEW.ZZA password is (ARG)
+ * we respond to member (ARG) with picture (ARG)
+ *
+ * in: IdentifyQR - testDeviceAsksForAPictureToGoWithTheQR TEST
+ *     IdentifyQR - testDeviceAsksForAPictureButThereIsntOne TEST
+ */
+function weRespondToMemberWithPicture($id, $picture) {
+  global $testOnly;
+  $message = bin2hex(substr(t\getPicture($picture), 0, 50));
+  return t\findMessage('out', compact('message'), $message);
+}
+
+/**
+ * member (ARG) has no picture
+ *
+ * in: IdentifyQR - testDeviceAsksForAPictureButThereIsntOne MAKE
+ */
+function memberHasNoPicture($id) {
+  global $testOnly;
+  return (!r\acct($id)->picture);
+}
+
+/**
+ * member (ARG) password is (ARG)
  *
  * in: Startup - testMemberLogsInSuccessfullyToInitializeDevice MAKE
  */
-function memberNEWZZAPasswordIs($arg1) {
+function memberPasswordIs($id, $password) {
   global $testOnly; if ($testOnly) return FALSE;
-  todo;
+  require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
+  $password = \user_hash_password(trim($password));
+  return r\acct($id)->update(compact('password'));
 }
 
 /**
@@ -162,9 +188,9 @@ function memberNEWZZAPasswordIs($arg1) {
  *     Startup - testDeviceOwnerIsNotAMember MAKE
  *     Startup - testMemberTypesTheWrongPassword MAKE
  */
-function memberInitializesTheDeviceAsMemberWithPassword($arg1, $arg2) {
+function memberInitializesTheDeviceAsMemberWithPassword($my_id, $password) {
   global $testOnly; if ($testOnly) return FALSE;
-  todo;
+  return t\hitServer('first_time', $my_id, '', '', compact('password'));
 }
 
 /**
@@ -174,5 +200,80 @@ function memberInitializesTheDeviceAsMemberWithPassword($arg1, $arg2) {
  */
 function theAppStartsUpAsMemberAndCode($arg1, $arg2) {
   global $testOnly; if ($testOnly) return FALSE;
+  todo;
+}
+
+/**
+ * devices: (ARG)
+ *
+ * in: TransactMemberToMember - featureSetup MAKE
+ */
+function devices($arg1) {
+  global $testOnly;
+  todo;
+}
+
+/**
+ * balances: (ARG)
+ *
+ * in: TransactMemberToMember - featureSetup TEST
+ *     TransactMemberToMember - testAMemberAsksToChargeAnotherMember TEST
+ *     TransactMemberToMember - testAMemberAsksToPayAnotherMember TEST
+ *     TransactMemberToMember - testAMemberAsksToChargeAnotherMemberUnilaterally TEST
+ *     TransactMemberToMember - testAMemberAsksToChargeAotherMemberUnilaterallyWithInsufficientBalance TEST
+ *     TransactMemberToMember - testAMemberAsksToPayAotherMemberWithInsufficientBalance TEST
+ */
+function balances($arg1) {
+  global $testOnly;
+  todo;
+}
+
+/**
+ * member (ARG) asks device (ARG) to do this: (ARG) (ARG) $(ARG) ((ARG): (ARG))
+ *
+ * in: TransactMemberToMember - testAMemberAsksToChargeAnotherMember MAKE
+ *     TransactMemberToMember - testAMemberAsksToPayAnotherMember MAKE
+ *     TransactMemberToMember - testAMemberAsksToChargeAnotherMemberUnilaterally MAKE
+ *     TransactMemberToMember - testAMemberAsksToChargeAotherMemberUnilaterallyWithInsufficientBalance MAKE
+ *     TransactMemberToMember - testAMemberAsksToPayAotherMemberWithInsufficientBalance MAKE
+ */
+function memberAsksDeviceToDoThis($arg1, $arg2, $arg3, $arg4, $arg5, $arg6, $arg7) {
+  global $testOnly;
+  todo;
+}
+
+/**
+ * we respond success (ARG) tx_id (ARG) my_balance (ARG) other_balance (ARG) and message (ARG) with subs: (ARG)
+ *
+ * in: TransactMemberToMember - testAMemberAsksToChargeAnotherMember TEST
+ *     TransactMemberToMember - testAMemberAsksToPayAnotherMember TEST
+ *     TransactMemberToMember - testAMemberAsksToChargeAnotherMemberUnilaterally TEST
+ *     TransactMemberToMember - testAMemberAsksToChargeAotherMemberUnilaterallyWithInsufficientBalance TEST
+ *     TransactMemberToMember - testAMemberAsksToPayAotherMemberWithInsufficientBalance TEST
+ */
+function weRespondSuccessTxidMybalanceOtherbalanceAndMessageWithSubs($arg1, $arg2, $arg3, $arg4, $arg5, $arg6) {
+  global $testOnly;
+  todo;
+}
+
+/**
+ * we email (ARG) to member (ARG) with subs: (ARG)
+ *
+ * in: TransactMemberToMember - testAMemberAsksToChargeAnotherMember TEST
+ *     TransactMemberToMember - testAMemberAsksToChargeAnotherMemberUnilaterally TEST
+ */
+function weEmailToMemberWithSubs($arg1, $arg2, $arg3) {
+  global $testOnly;
+  todo;
+}
+
+/**
+ * member (ARG) can charge unilaterally
+ *
+ * in: TransactMemberToMember - testAMemberAsksToChargeAnotherMemberUnilaterally MAKE
+ *     TransactMemberToMember - testAMemberAsksToChargeAotherMemberUnilaterallyWithInsufficientBalance MAKE
+ */
+function memberCanChargeUnilaterally($arg1) {
+  global $testOnly;
   todo;
 }

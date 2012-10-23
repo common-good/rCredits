@@ -16,9 +16,10 @@ function doModule($module) {
   $ok = $no = 0; // results counters
 
   $path = __DIR__ . "/$module"; // relative path from compiler to module directory
-  // OpenAnAccountForTheCaller AbbreviationsWork ExchangeForCash GetHelp GetInformation Transact Undo OfferToExchangeUSDollarsForRCredits
+  // SMS: OpenAnAccountForTheCaller AbbreviationsWork ExchangeForCash GetHelp GetInformation Transact Undo OfferToExchangeUSDollarsForRCredits
+  // Smart: Startup IdentifyQR TransactMemberToMember TransactMemberToAgent TransactAgentToMember TransactAgentToAgent Undo
   $tests = str_replace("$path/features/", '', str_replace('.feature', '', findFiles("$path/features", '/.*\.feature/')));
-//  $tests = array('Transact'); // uncomment to run just one feature (test set)
+  $tests = array('Startup'); // uncomment to run just one feature (test set)
 //  $oneScene = 'testTheCallerConfirmsAPayment'; // uncomment to run just one test scenario
 
   foreach ($tests as $test) dotest($module, $test);

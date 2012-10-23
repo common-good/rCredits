@@ -13,13 +13,18 @@
 //$this->drupalLogin($caller);
 
 use rCredits as r;
+global $picturePath; 
+list ($picturePath) = explode('sites', __DIR__);
+$picturePath .= 'sites/default/files/pictures';
 
 global $sms_devel; $sms_devel = TRUE;
 r\db_q('DELETE FROM users WHERE uid>1000');
-r\db_q('DELETE FROM r_sms WHERE uid>1000');
-r\db_q('DELETE FROM r_asif WHERE payer>1000 or payee>1000');
-r\db_q('DELETE FROM r_txs WHERE payer>1000 or payee>1000');
-r\db_q('DELETE FROM r_relations WHERE main_uid>1000');
+r\db_q('DELETE FROM r_sms');
+r\db_q('DELETE FROM r_asif');
+r\db_q('DELETE FROM r_txs');
+//r\db_q('DELETE FROM r_smarts WHERE uid>1000');
+r\db_q('DELETE FROM file_managed WHERE uid>1000');
+r\db_q('DELETE FROM r_relations');
 
 if (!function_exists('multiline_tweak')) {function multiline_tweak(&$line) {
   $line = str_replace('%last_quid', r\quid(r\acct::nextId() - 1), $line);

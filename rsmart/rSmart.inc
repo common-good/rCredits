@@ -40,6 +40,8 @@ function api($args = FALSE) {
     if ($cacct->agentRegion != r\server_uid()) return api\error('wrong server for agent');
     if (!r\ok_agent($cuid, $cacct->agent)) return api\error('no permission'); // make sure agent has permission
     $args['cacct'] = $cacct;
+    $edit = array('code' => $q_code, 'accessed' => time());
+    \drupal_write_record('r_smarts', $edit, 'code'); // so we can drop the deadwood
   }
 
   if (u\is_qid(@$q_account_id)) {
@@ -124,10 +126,13 @@ function identify($args) {
  *   just the photo data (no json)
  */
 function photo($args) {
+  global $base_url;
   extract($args, EXTR_PREFIX_ALL, 'q');
   $pic_filename = r\Web\profile_picture(@$q_acct->id);
-  $pic = $pic_filename ? file_get_contents($pic_filename) : '';
-  $message = substr($pic, 0, 500);
+  $default = "$base_url/sites/default/files/pictures/no-photo-available.jpg";
+  $pic = file_get_contents($pic_filename ?: $default);
+  if (!$pic) $pic = file_get_contents($default);
+  $message = bin2hex(substr($pic, 0, 50));
   u\log('out', compact('message'));
 
   if (defined('TESTING')) {debug($message); return $message;} else exit($pic);
@@ -198,5 +203,7 @@ function undo($params) {
 function makeDevice($device, $acct, $code = '') {
   $uid = $acct->id;
   $code = $code ?: user_hash_password(uniqid($acct->qid, TRUE) . time()) . '/'; // add a slash to make sure slashes get handled properly
-  return @\drupal_write_record('r_smarts', compact(u\ray('uid code device'))) ? $code : FALSE; // no way to tell if it's the same device as others
+  $accessed = time();
+  $info = compact(u\ray('uid code device $accessed'));
+  return @\drupal_write_record('r_smarts', $info) ? $code : FALSE; // no way to tell if it's the same device as others
 }

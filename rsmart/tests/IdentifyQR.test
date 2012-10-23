@@ -12,14 +12,14 @@
 //   
 
 require_once __DIR__ . '/../../../gherkin/test-defs.php';
-require_once __DIR__ . '/../rSmart.steps';
+require_once __DIR__ . '/../rsmart.steps';
 
-class rSmartIdentifyQR extends DrupalWebTestCase {
+class rsmartIdentifyQR extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
   var $currentTest;
-  const FEATURE_NAME = 'rSmart Test - IdentifyQR';
+  const FEATURE_NAME = 'rsmart Test - IdentifyQR';
   const DESCRIPTION = 'Identify QR';
-  const MODULE = 'rSmart';
+  const MODULE = 'rsmart';
 
   public function gherkin($statement, $type) {
     $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);
@@ -103,12 +103,22 @@ class rSmartIdentifyQR extends DrupalWebTestCase {
     . '\\| 1       | Bea Two   | Ctown, Corse, France | Corner Pub   |"');
   }
 
-  // Scenario: Device asks for picture to go with QR
-  public function testDeviceAsksForPictureToGoWithQR() {
+  // Scenario: Device asks for a picture to go with the QR
+  public function testDeviceAsksForAPictureToGoWithTheQR() {
     sceneSetup($this, __FUNCTION__);
     Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
+    And__('member "NEW.ZZB" has picture %picture1');
     When_('member "NEW.ZZA" asks device %whatever1 for a picture of member "NEW.ZZB"');
-    Then_('we respond with a picture of member "NEW.ZZB"');
+    Then_('we respond to member "NEW.ZZA" with picture %picture1');
+  }
+
+  // Scenario: Device asks for a picture but there isn't one
+  public function testDeviceAsksForAPictureButThereIsntOne() {
+    sceneSetup($this, __FUNCTION__);
+    Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
+    And__('member "NEW.ZZB" has no picture');
+    When_('member "NEW.ZZA" asks device %whatever1 for a picture of member "NEW.ZZB"');
+    Then_('we respond to member "NEW.ZZA" with picture "no-photo-available"');
   }
 
 }

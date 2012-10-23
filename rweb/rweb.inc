@@ -359,11 +359,26 @@ function account_form($form, &$form_state) {
   
   $form['submit'] = form_field('submit', '', '', array('value' => t('Save'), 'weight' => 99));
   $form['#user_category'] = 'account';
+  u\expect($form['#validate'][0] == 'user_account_form_validate', 'wrong account form validator');
+  $form['#validate'][0] = 'rCredits\\Web\\account_form_validate'; // use ours instead
+  
   return $form;
 }
 
+/**
+ * Replacement for user_account_form_validate()
+ * (because we want to allow the same email for several accounts)
+ */
+function account_form_validate($form, &$form_state) {
+  $mail = trim($form_state['values']['mail']);
+  form_set_value($form['account']['mail'], $mail, $form_state);
+  if ($error = user_validate_mail($mail)) form_set_error('mail', $error);
+}
+
 function account_form_submit($form, &$form_state) {
-  r\user_update($form_state['values']);
+  $account = r\acct()->account();
+  \user_save($account, $form_state['values']);
+  r\acct()->reread();
 }
 
 /**
@@ -444,13 +459,14 @@ EOF;
 }
 
 function profile_picture($uid, $with_markup = FALSE) {
+  global $user; $user = r\acct()->account(); // keeps \theme from dying
   $acct = r\acct($uid);
   $data = $acct->data;
   $account = $acct->account();
   $markup = str_replace('styles/thumbnail/public/', '', \theme('user_picture', compact('account')));
   if ($markup) {
     $a = explode('"', $markup);
-    $url = $a[api\access('administrator') ? 7 : 3]; // Drupal probably has an easier way to do this
+    if (strpos($url = $a[3], 'http://') === FALSE) $url = $a[7]; 
   } else $url = is_array($data) ? @$data['picture'] : '';
   
   if (!$with_markup or !$url) return $url;
@@ -816,7 +832,8 @@ function relations_form_submit($form, &$form_state) {
 
   if (@$agent_uid) {
     $permission = 0; // default to no permissions
-    $zot = \drupal_write_record('r_relations', compact(u\ray('main_uid agent_uid permission')));
+    $info = compact(u\ray('main_uid agent_uid permission'));
+    $zot = \drupal_write_record('r_relations', $info);
     $who = r\user_field('full_name', $agent_uid);
     say('report new relation', compact('who'));
   }
@@ -1003,7 +1020,8 @@ function register_form_submit($form, &$form_state) {
     $companyAcct = whois($my_company, 'company', $form_state['values']);
     if (!r\reid($companyAcct->id, $my_uid)) {
       list ($main_uid, $agent_uid, $is_owner) = array($companyAcct->id, $my_uid, $my_is_owner);
-      \drupal_write_record('r_relations', compact(u\ray('main_uid agent_uid is_owner'))); // leave it to the owner to mark is_employee
+      $info = compact(u\ray('main_uid agent_uid is_owner'));
+      \drupal_write_record('r_relations', $info); // leave it to the owner to mark is_employee
     }
   }
 // merge fails because account is not saved yet:  api\merge_check(compact(u\ray('email short_name'))); // email fails anyway because it's not unique

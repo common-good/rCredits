@@ -47,6 +47,7 @@ class acct {
       $info['name'] =  @$my_name ?: (@$short_name ?: temp_name($info));
       $info['status'] = TRUE;
       $info['is_new'] = TRUE;
+      $info['roles'] = 0; // this keeps Drupal happy in user.module
       $info['community_uid'] = server_uid(); // $community_uid(@$my_postal_code); // defaults to current server
 
       /*** Begin DBTX ***/ $dbtx = db_transaction();
@@ -89,9 +90,9 @@ class acct {
     return array($id, $agent, $region, $agentRegion);
   }
   
-  private function getRecord($id, $region) {
+  private function getRecord($id, $region, $reread = FALSE) {
     if (@self::$records[$id] and !property_exists(self::$records[$id], 'flags')) die("No flags field in record $id: " . print_r(self::$records, 1));
-    if (@self::$records[$id]) return self::$records[$id];
+    if (@self::$records[$id] and !$reread) return self::$records[$id];
     if ($region != server_uid()) { // foreign
       // contact other server here, for the record
     } else {
@@ -100,6 +101,8 @@ class acct {
     }
   }
 
+  public function reread() {self::getRecord($this->id, $this->region, TRUE);}
+  
   public function __get($field) {
     u\expect((bool) self::$records, "Record has not been set up for uid $this->id");
 //    u\expect(property_exists(self::$records[$this->id], $field), "bad field for uid $this->id: $field" . print_r(self::$records[$this->id], 1));
@@ -116,6 +119,7 @@ class acct {
       if ($field != 'uid') self::$records[$this->id]->$field = $value;
     }
     $info['uid'] = $this->id; // make sure drupal gets this
+    debug($info);
     return \drupal_write_record('users', $info, 'uid');
   }
   

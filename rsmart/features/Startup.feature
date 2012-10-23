@@ -13,8 +13,8 @@ Setup:
   | NEW.ZZA | Abe One    | +20001 | a@example.com |
 
 Scenario: Member logs in successfully to initialize device
-  Given member NEW.ZZA password is %whatever1
-  When member initializes the device as member "new.zza" with password %whatever1
+  Given member "NEW.ZZA" password is %whatever1
+  When member initializes the device as member "NEW.ZZA" with password %whatever1
   Then we respond with:
   | success | owner_id | message    | code     |
   | 1       | NEW.ZZA  | first time | whatever |
@@ -31,13 +31,13 @@ Scenario: Member initializes with an ill-formed id
   | 0       | bad id  |
 
 Scenario: Device owner is not a member
-  When member initializes the device as member "new.zzz" with password %whatever1
+  When member initializes the device as member "NEW.ZZZ" with password %whatever1
   Then we respond with:
   | success | message      |
   | 0       | unknown user |
   
 Scenario: Member types the wrong password
-  When member initializes the device as member "new.zza" with password %whatever
+  When member initializes the device as member "NEW.ZZA" with password %whatever
   Then we respond with:
   | success | message   |
   | 0       | bad login |

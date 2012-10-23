@@ -10,8 +10,8 @@ SO I can verify the customer's identity visually
 
 Setup:
   Given members:
-  | id      | full_name  | phone  | email         | city  | state  | country       | picture |
-  | NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | Alaska | United States | 
+  | id      | full_name  | phone  | email         | city  | state  | country       |
+  | NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | Alaska | United States |
   | NEW.ZZB | Bea Two    | +20002 | b@example.com | Btown | Utah   | United States |
   | NEW.ZZC | Corner Pub | +20003 | c@example.com | Ctown | Corse  | France        |
   And relations:
@@ -63,10 +63,17 @@ Scenario: Member asks us to identify a QR for a company agent
   | success | full_name | location             | company_name |
   | 1       | Bea Two   | Ctown, Corse, France | Corner Pub   |
 
-Scenario: Device asks for picture to go with QR
+Scenario: Device asks for a picture to go with the QR
   Given member "NEW.ZZA" has initialized a device whose code is %whatever1
+  And member "NEW.ZZB" has picture %picture1
   When member "NEW.ZZA" asks device %whatever1 for a picture of member "NEW.ZZB"
-  Then we respond with a picture of member "NEW.ZZB"
+  Then we respond to member "NEW.ZZA" with picture %picture1
 #op="photo"
-Response: (Content-Type will probably be image/png, rather than application/whatever)
-just the picture file
+Response: just the picture file (Content-Type will probably be image/png, rather than application/whatever)
+
+Scenario: Device asks for a picture but there isn't one
+  Given member "NEW.ZZA" has initialized a device whose code is %whatever1
+  And member "NEW.ZZB" has no picture
+  When member "NEW.ZZA" asks device %whatever1 for a picture of member "NEW.ZZB"
+  Then we respond to member "NEW.ZZA" with picture "no-photo-available"
+

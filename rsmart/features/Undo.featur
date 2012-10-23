@@ -1,7 +1,33 @@
-Feature: Transact
-AS a member
-I WANT to transfer rCredits to or from another member
-SO I can buy and sell stuff.
+Feature: Undo
+AS a player
+I WANT to undo a transaction recently completed on my account
+SO I can easily correct a mistake
+
+Setup:
+  Given members:
+  | id   | full_name  | cell   | email         |
+  | .ZZA | Abe One    | +20001 | a@example.com |
+  | .ZZB | Bea Two    | +20002 | b@example.com |
+  | .ZZC | Corner Pub | +20003 | c@example.com |
+  And transactions: 
+  | created   | type         | amount | from      | to   | purpose      | taking |
+  | %today-6m | %TX_SIGNUP   | 250    | community | .ZZA | signup       | 0      |
+  | %today-6m | %TX_SIGNUP   | 250    | community | .ZZB | signup       | 0      |
+  | %today-6m | %TX_SIGNUP   | 250    | community | .ZZC | signup       | 0      |
+  | %today-4m | %TX_TRANSFER | 11.11  | .ZZB      | .ZZA | cash for me  | 1      |
+  | %today-3w | %TX_TRANSFER | 22.22  | .ZZC      | .ZZA | usd          | 1      |
+  | %today-3d | %TX_TRANSFER | 33.33  | .ZZA      | .ZZB | whatever43   | 0      |
+  | %today-3d | %TX_REBATE   | 1.67   | community | .ZZA | rebate on #4 | 0      |
+  | %today-3d | %TX_BONUS    | 3.33   | community | .ZZB | bonus on #3  | 0      |
+  | %today-2d | %TX_TRANSFER | 44.44  | .ZZB      | .ZZC | cash         | 0      |
+  | %today-1d | %TX_TRANSFER | 55.55  | .ZZA      | .ZZC | whatever43   | 0      |
+  | %today-1d | %TX_REBATE   | 2.78   | community | .ZZA | rebate on #5 | 0      |
+  | %today-1d | %TX_BONUS    | 5.56   | community | .ZZC | bonus on #4  | 0      |
+  Then the community has r$-763.34
+  And phone +20001 has r$198.90
+  And phone +20002 has r$231.11
+  And phone +20003 has r$333.33
+
 
 Setup:
   Given members:
@@ -9,6 +35,10 @@ Setup:
   | NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | Alaska | United States |
   | NEW.ZZB | Bea Two    | +20002 | b@example.com | Btown | Utah   | United States |
   | NEW.ZZC | Corner Pub | +20003 | c@example.com | Ctown | Corse  | France        |
+  And devices:
+  | id      | code  |
+  | NEW.ZZA | codeA |
+  | NEW.ZZC | codeC |
   And relations:
   | id      | main    | agent   | permission   |
   | NEW:ZZA | NEW.ZZC | NEW.ZZB | buy and sell |
@@ -19,31 +49,7 @@ Setup:
   | %today-6m | %TX_SIGNUP | 250    | community | NEW.ZZB | signup  | 0      |
   | %today-6m | %TX_SIGNUP | 250    | community | NEW.ZZC | signup  | 0      |
 
-Scenario: 
-
-
-
-
-
-Transact (differences from Normal Startup are highlighted)
-Request: 
-my_id (account ID of agent -- defaults to owner_id)
-code (permanent code received in First Time response)
-op=”transact”
-type (“charge” or “pay”)
-
-account_id (value of scanned QR code)
-
-amount (numeric dollar amount)
-goods=TRUE or FALSE (true unless user checks “cash, loan, etc.”)
-purpose (description of goods and services)
-Response: 
-success=TRUE or FALSE
-message (error message or success message)
-tx_id (transaction ID number, if success, otherwise empty string)
-my_balance (user’s new balance)
-other_balance (new balance for the other party -- do not show the “Show Customer Balance” button if this is omitted)
-
+Scenario: A member asks to charge another member
 Undo - needing confirmation (differences from Normal Startup are highlighted)
 Request: 
 my_id (account ID of agent -- defaults to owner_id)
@@ -70,4 +76,3 @@ message (error message or success message)
 tx_id (ID number of offsetting transaction, if any (which could in turn be undone). tx_id not set means transaction was simply deleted, so there is no longer any transaction that can be undone.)
 my_balance (user’s new balance)
 other_balance (new balance for the other party -- do not show the “Show Customer Balance” button if this is omitted)
-

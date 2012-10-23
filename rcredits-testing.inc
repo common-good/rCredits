@@ -28,9 +28,13 @@ function makeAccount($info = array()) {
   $mail = @$my_email ?: "$name@example.com";
   $flags = isset($my_flags) ? $my_flags : (TEST_REAL ? BIT_RTRADER : 0);
   $community_uid = @$my_community_uid ?: r\server_uid();
+  
   $info = array_merge($info, compact(u\ray('uid rebate_percent name full_name mail community_uid')));
-  $acct = new r\acct($info);
-  return $acct ? $uid : FALSE;
+  if (!($acct = new r\acct($info))) return FALSE;
+  
+  if (@$my_picture) if (!makePicture($my_picture, $acct)) return FALSE;
+
+  return $uid;
 }
 
 /**
@@ -115,10 +119,28 @@ function findMessage($type, $fields, $message, $subject = '') {
 //  if (strpos($message, '@nonce')) $message = str_replace('@nonce', r\dbLookup('special', 'r_log', $crit, compact('type')), $message);
   $message = str_replace("\n", '~', $message);
   debug($message ?: (@$fields['message'] ?: $fields)); // keep this
-  $extras = ($subject ? 'subject ' : '') . ($message ? 'message' : '');
-  $info = json_encode2($fields + compact(u\ray($extras)), JSON_UNESCAPED_SLASHES);
+  if ($extras = ($subject ? 'subject ' : '') . ($message ? 'message' : '')) $fields += compact(u\ray($extras));
+  
+  $info = json_encode2($fields, JSON_UNESCAPED_SLASHES);
   //debug("info=:info AND $crit"); debug(compact(u\ray('info type cuid agent')));
   return r\dbLookup(1, 'r_log', "info=:info AND $crit", compact(u\ray('info type cuid agent channel')));
+}
+
+function makePicture($picture, $acct) {
+  $filename = "$picture.jpg";
+  $uri = "public://pictures/$filename";
+  $filemime = 'image/jpeg';
+  $status = 1;
+  $picture = $uid = $fid = $acct->id;
+  $info = compact(u\ray('fid uid filename uri filemime status'));
+  if (!\drupal_write_record('file_managed', $info)) return FALSE;
+  if (!$acct->update(compact('picture'))) return FALSE;
+  return TRUE;
+}
+
+function getPicture($picture) {
+  global $picturePath;
+  return file_get_contents("$picturePath/$picture.jpg");
 }
 
 function hitServer($op, $my_id, $code = '', $account_id = '', $extra = array()) {

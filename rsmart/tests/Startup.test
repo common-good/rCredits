@@ -8,14 +8,14 @@
 //   
 
 require_once __DIR__ . '/../../../gherkin/test-defs.php';
-require_once __DIR__ . '/../rSmart.steps';
+require_once __DIR__ . '/../rsmart.steps';
 
-class rSmartStartup extends DrupalWebTestCase {
+class rsmartStartup extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
   var $currentTest;
-  const FEATURE_NAME = 'rSmart Test - Startup';
+  const FEATURE_NAME = 'rsmart Test - Startup';
   const DESCRIPTION = 'Start up';
-  const MODULE = 'rSmart';
+  const MODULE = 'rsmart';
 
   public function gherkin($statement, $type) {
     $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);
@@ -40,11 +40,12 @@ class rSmartStartup extends DrupalWebTestCase {
   // Scenario: Member logs in successfully to initialize device
   public function testMemberLogsInSuccessfullyToInitializeDevice() {
     sceneSetup($this, __FUNCTION__);
-    Given('member NEW.ZZA password is %whatever1');
-    When_('member initializes the device as member "new.zza" with password %whatever1');
+    Given('member "NEW.ZZA" password is %whatever1');
+    When_('member initializes the device as member "NEW.ZZA" with password %whatever1');
     Then_('we respond with: "DATA'
     . '\\| success | owner_id | message    | code     |'
     . '\\| 1       | NEW.ZZA  | first time | whatever |"');
+die('in startup test');
   }
 
   // Scenario: Member initializes with an ill-formed id
@@ -59,7 +60,7 @@ class rSmartStartup extends DrupalWebTestCase {
   // Scenario: Device owner is not a member
   public function testDeviceOwnerIsNotAMember() {
     sceneSetup($this, __FUNCTION__);
-    When_('member initializes the device as member "new.zzz" with password %whatever1');
+    When_('member initializes the device as member "NEW.ZZZ" with password %whatever1');
     Then_('we respond with: "DATA'
     . '\\| success | message      |'
     . '\\| 0       | unknown user |"');
@@ -68,7 +69,7 @@ class rSmartStartup extends DrupalWebTestCase {
   // Scenario: Member types the wrong password
   public function testMemberTypesTheWrongPassword() {
     sceneSetup($this, __FUNCTION__);
-    When_('member initializes the device as member "new.zza" with password %whatever');
+    When_('member initializes the device as member "NEW.ZZA" with password %whatever');
     Then_('we respond with: "DATA'
     . '\\| success | message   |'
     . '\\| 0       | bad login |"');

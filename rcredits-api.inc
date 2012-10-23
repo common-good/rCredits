@@ -495,7 +495,8 @@ function add_cell($number, $validate = FALSE) {
   $uid = $cuid;
   $status = SMS_OK;
   $number = $number_internal;
-  if (!merge_check(compact('number'))) \drupal_write_record('r_sms', compact(u\ray('uid number status')));
+  $info = compact(u\ray('uid number status'));
+  if (!merge_check(compact('number'))) \drupal_write_record('r_sms', $info);
   if (!r\acct()->phone) r\user_update(array('phone' => $number)); // use it as contact phone, if none yet
   $number = $number_pretty;
   return array('report new cell', compact('number'));

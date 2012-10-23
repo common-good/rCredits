@@ -230,7 +230,8 @@ function infer_nonce($message) {
 function create($number, $uid, $status = SMS_OK) {
   $number = u\format_phone($number, '+n');
 //  debug("creating SMS record for number $number, uid $uid");
-  return \drupal_write_record('r_sms', compact(u\ray('number uid status')));
+  $info = compact(u\ray('number uid status'));
+  return \drupal_write_record('r_sms', $info);
 }
 
 /**

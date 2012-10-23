@@ -1,4 +1,3 @@
-
 Feature: Transact
 AS a member
 I WANT to transfer rCredits from my account to someone else's or vice versa
@@ -58,7 +57,7 @@ Scenario: The caller confirms a request to charge
   And we say to phone +20001 "report invoice" with subs:
   | action  | other_name | amount | tid |
   | charged | Corner Pub | $100   | 2   |
-  # "You charged Corner Pub $100 (bonus: $10). Your new balance is $110. Invoice #2"
+  # "You charged Corner Pub $100 (bonus: $10). Your balance is unchanged, pending payment. Invoice #2"
   And we email "new-invoice" to member "c@example.com" with subs:
   | created | full_name  | other_name | amount | purpose |
   | %today  | Corner Pub | Abe One    | $100   | labor   |
