@@ -228,10 +228,10 @@ function diff($a, $b) {
 /**
  * Get the long version of the indicated message(s), make any substitutions,
  * and return the result.
- * Channel determines which message set to use (SMS messages provide a fallback)
+ * Channel determines which message set to use (each simpler channel provides a fallback)
  *
  * @param string $message
- *   name of the message (index into $GLOBALS[TX_SMS . ' messages'])
+ *   name of the message (index into $GLOBALS[channel# . ' messages'])
  *   or a list of such message indices, separated by "|"
  *   or a two-element array: array(message, subs)
  * @param array $subs (optional). '@' will be prepended to the keys.
@@ -242,18 +242,22 @@ function tt($message, $subs = array()) {
   if (is_array($message)) list ($message, $subs) = $message;
   if (!$subs) $subs = array();
   $messages = explode('|', $message);
+  $channels = ray(TX_CHANNELS);
   foreach ($messages as $i => $message) {
-    if (isset($GLOBALS["$channel messages"][$message])) {
-      $model = $GLOBALS["$channel messages"][$message];
-    } else { // channel is not SMS, but use SMS message as fallback 
-      $model = $GLOBALS[TX_SMS . ' messages'][$message];
-      if ($p = strpos($model, '. Type ')) $model = substr($model, 0, $p + 1); // don't tell the user to type something unless it's SMS
+    $model = $message; // the default
+    for ($ch = $channel ?: (count($channels) - 1); $ch > 0; $ch--) {
+      if ($model = @$GLOBALS["$channel messages"][$message]) {
+        if ($ch == TX_SMS) {
+          if($p = strpos($model, '. Type ')) $model = substr($model, 0, $p + 1); // don't tell the user to type something unless it's SMS
+        }
+        if (strpos($model, '@asif') !== FALSE and !isset($subs['asif'])) {
+          $real = isset($subs['real']) ? $subs['real'] : r\is_rTrader();
+          $subs['asif'] = $real ? '' : R_ASIF_TEXT;
+        }
+      }
     }
-    if (strpos($model, '@asif') !== FALSE and !isset($subs['asif'])) {
-      $real = isset($subs['real']) ? $subs['real'] : r\is_rTrader();
-      $subs['asif'] = $real ? '' : R_ASIF_TEXT;
-    }
-    $messages[$i] = strtr($model, prefix_keys('@', $subs));
+// NO (use raw message instead)   expect(@$model, "missing message '$message'"); 
+    if (@$model) $messages[$i] = strtr($model, prefix_keys('@', $subs));
   }
   return join(' ', $messages);
 }
@@ -426,9 +430,8 @@ function log($type, $info, $special = '') {
   $channels = ray(TX_CHANNELS); 
   $channel_name = @$channel ? $channels[$channel] : 'none';
   if (is_nonce($special) and @$info['message']) $info['message'] = str_replace($special, '@nonce', $info['message']); // make it easy to match
-
-  unset($info['code']); // don't make code and password any more accessible than they are
-  unset($info['password']);
+  if (@$info['code']) $info['code'] = '(the code)'; // don't make code and password any more accessible than they are
+  if (@$info['password']) $info['password'] = '(the password)';
   $info = json_encode2($info, JSON_UNESCAPED_SLASHES);
   file_put_contents($log_filename, "$date ($channel_name) $type: $info\n", FILE_APPEND);
   $time = time();

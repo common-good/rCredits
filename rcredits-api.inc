@@ -36,10 +36,6 @@ use rCredits\Util as u;
 define('REAL', @$_SERVER['SystemRoot'] != 'C:\\Windows');
 define('API_URL', REAL ? 'http://devcore.rCredits.org/api' : 'http://localhost/devcore/api');
 
-$GLOBALS['API messages'] = array(
-  'no permission' => t('You do not have permission to use that account.'),
-);
-
 function send($data) {
   $ch = curl_init();
   curl_setopt($ch, CURLOPT_URL, API_URL);
@@ -67,13 +63,12 @@ function doOp($op0, $args, $interface = 'API', $success = 1) {
 }
 
 function error($message, $success = 0) {
-  $message = @$GLOBALS['API messages'][$message] ?: (@$GLOBALS['SMS messages'][$message] ?: $message);
+  $message = u\tt($message);
   return apiOut(compact('success', 'message'));
 }
 
 function apiOut($args) {
   $result = json_encode2($args, JSON_UNESCAPED_SLASHES);
-  unset($args['code']);
   u\log('out', $args);
   if (defined('TESTING')) {debug($result); return $result;}
   exit($result);

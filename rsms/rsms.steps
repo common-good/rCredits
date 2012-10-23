@@ -151,13 +151,9 @@ function weSayToPhoneWithSubs($number, $message, $subs) {
  *     Undo - testTheCallerRefusesToPayTheLatestInvoice TEST
  *     Undo - testTheCallerRefusesAPendingPayment TEST
  */
-function weEmailToMemberWithSubs($key, $email, $subs0) {
+function weEmailToMemberWithSubs($key, $email, $subs) {
   global $testOnly;
-  $subs = array();
-  foreach ($subs0[0] as $k => $value) $subs['{' . strtoupper($k) . '}'] = $value;
-  $message = strtr(r\email_body($key), $subs);
-  $subject = strtr($GLOBALS['email_subjects'][$key], $subs);
-  return t\findMessage('email', compact(u\ray('key email')), $message, $subject);
+  return t\findEmail($key, $email, $subs);
 }
 
 /**
@@ -243,8 +239,8 @@ function phoneEmailIs($number, $email) {
  */
 function phoneHasR($number, $amount) {
   global $testOnly;
-//  debug(t\uidHasR(r\SMS\uid($number))->balance);
-  if ($testOnly) return t\eq(t\uidHasR(r\SMS\uid($number))->balance, $amount);
+//  debug(t\uidCredit(r\SMS\uid($number))->balance);
+  if ($testOnly) return t\eq(t\uidCredit(r\SMS\uid($number))->balance, $amount);
   return FALSE;
 }
 
@@ -257,7 +253,7 @@ function phoneHasR($number, $amount) {
 function phoneHasRIncludingRewardsOf($number, $bal, $rewards) {
   global $testOnly; if ($testOnly) return FALSE;
   $uid = r\SMS\uid($number);
-  $info = t\uidHasR($uid);
+  $info = t\uidCredit($uid);
   list ($old_bal, $old_rewards) = array($info->balance, $info->rewards);
 
   list ($amount, $from, $to, $type) = array($rewards - $info->rewards, 'community', $uid, TX_SIGNUP);
@@ -283,8 +279,8 @@ function phoneHasRIncludingRewardsOf($number, $bal, $rewards) {
  */
 function theCommunityHasR($amount) {
   global $testOnly;
-//  debug(t\uidHasR(r\server_uid())->balance);
-  return t\eq(t\uidHasR(r\server_uid())->balance, $amount);
+//  debug(t\uidCredit(r\server_uid())->balance);
+  return t\eq(t\uidCredit(r\server_uid())->balance, $amount);
 }
 
 /**
@@ -390,8 +386,7 @@ function phoneCanChargeUnilaterally($number) {
   global $testOnly;
   if (!($acct = r\acct(r\SMS\uid($number)))) return FALSE;
   if ($testOnly) return $acct->hasBit(BIT_CHARGE);
-  $acct->setBit(BIT_CHARGE);
-  return TRUE;
+  return $acct->setBit(BIT_CHARGE);
 }
 
 /**

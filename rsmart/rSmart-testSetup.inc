@@ -19,12 +19,12 @@ $picturePath .= 'sites/default/files/pictures';
 
 global $sms_devel; $sms_devel = TRUE;
 r\db_q('DELETE FROM users WHERE uid>1000');
-r\db_q('DELETE FROM r_sms');
-r\db_q('DELETE FROM r_asif');
-r\db_q('DELETE FROM r_txs');
-//r\db_q('DELETE FROM r_smarts WHERE uid>1000');
+r\db_q('TRUNCATE r_sms');
+r\db_q('TRUNCATE r_asif');
+r\db_q('TRUNCATE r_txs');
+r\db_q('DELETE FROM r_smarts WHERE uid>1000');
 r\db_q('DELETE FROM file_managed WHERE uid>1000');
-r\db_q('DELETE FROM r_relations');
+r\db_q('TRUNCATE r_relations');
 
 if (!function_exists('multiline_tweak')) {function multiline_tweak(&$line) {
   $line = str_replace('%last_quid', r\quid(r\acct::nextId() - 1), $line);

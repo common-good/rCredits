@@ -16,8 +16,8 @@ Scenario: Member logs in successfully to initialize device
   Given member "NEW.ZZA" password is %whatever1
   When member initializes the device as member "NEW.ZZA" with password %whatever1
   Then we respond with:
-  | success | owner_id | message    | code     |
-  | 1       | NEW.ZZA  | first time | whatever |
+  | success | owner_id | code       | message    |
+  | 1       | NEW.ZZA  | (the code) | first time |
 #op="first_time"
 #update_link (URL of updated app or null if no update is available)
 #allow_change_account=TRUE or FALSE
@@ -47,7 +47,7 @@ Scenario: Member reruns the app
   When the app starts up as member "NEW.ZZA" and code %whatever1
   Then we respond with:
   | success | message |
-  | TRUE    |         |
+  | 1       |         |
 #op=”startup”
 #update_link (URL of updated app or null if no update is available)
 #allow_change_account=TRUE or FALSE

@@ -43,9 +43,8 @@ class rsmartStartup extends DrupalWebTestCase {
     Given('member "NEW.ZZA" password is %whatever1');
     When_('member initializes the device as member "NEW.ZZA" with password %whatever1');
     Then_('we respond with: "DATA'
-    . '\\| success | owner_id | message    | code     |'
-    . '\\| 1       | NEW.ZZA  | first time | whatever |"');
-die('in startup test');
+    . '\\| success | owner_id | code       | message    |'
+    . '\\| 1       | NEW.ZZA  | (the code) | first time |"');
   }
 
   // Scenario: Member initializes with an ill-formed id
@@ -82,7 +81,7 @@ die('in startup test');
     When_('the app starts up as member "NEW.ZZA" and code %whatever1');
     Then_('we respond with: "DATA'
     . '\\| success | message |'
-    . '\\| TRUE    |         |"');
+    . '\\| 1       |         |"');
   }
 
 }

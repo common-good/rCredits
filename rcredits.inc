@@ -122,12 +122,12 @@ define('TX_PENDING', 2); // charged, waiting for confirmation
 define('TX_DISPUTED', 3); // unilaterally charged, but disputed by the payer (the charge stands, until settled)
 define('TX_DENIED', 4); // invoice rejected by the non-originator
 
-// Transaction channels
-define('TX_WEB', 1);
-define('TX_SMS', 2); 
-define('TX_SMART', 3); 
+// Transaction channels (roughly in order of simplicity and generality of messages)
+define('TX_SMS', 1); 
+define('TX_WEB', 2);
+define('TX_SMART', 3); // smart phone or other computer-like device
 define('TX_TOUCH', 4); // touch tone phone
-define('TX_CHANNELS', 'None Web SMS Smart Touch');
+define('TX_CHANNELS', 'None SMS Web Smart Touch');
 
 // Transaction types
 define('TX_SIGNUP', 0); // signup incentive reward

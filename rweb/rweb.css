@@ -73,6 +73,8 @@ form#rcreditswebcompany-form div#edit-afterlinks label {width:100%; margin-top:2
 form#rcreditswebaccount-form div.form-type-textfield label {display:block;}
 form#rcreditswebaccount-form div.form-radios {display:block;}
 form#rcreditswebaccount-form div.form-item-roles {margin-top:30px;}
+form#rcreditswebaccount-form div.form-item-pass-pass1 {display:inline-block;}
+form#rcreditswebaccount-form div.form-item-pass-pass2 {display:inline-block; clear:right; margin-left:20px;}
 
 /*form#rcreditswebaccount-form div.form-type-radio {display:block;}
 form#rcreditswebaccount-form div.form-type-radio input {display:block;}

@@ -119,7 +119,6 @@ class acct {
       if ($field != 'uid') self::$records[$this->id]->$field = $value;
     }
     $info['uid'] = $this->id; // make sure drupal gets this
-    debug($info);
     return \drupal_write_record('users', $info, 'uid');
   }
   
@@ -128,7 +127,7 @@ class acct {
   
   public function setBit($bit) {
     $flags = ($this->flags | $bit);
-    $this->update(compact('flags'));
+    return $this->update(compact('flags'));
   }
 }
 

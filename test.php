@@ -19,7 +19,7 @@ function doModule($module) {
   // SMS: OpenAnAccountForTheCaller AbbreviationsWork ExchangeForCash GetHelp GetInformation Transact Undo OfferToExchangeUSDollarsForRCredits
   // Smart: Startup IdentifyQR TransactMemberToMember TransactMemberToAgent TransactAgentToMember TransactAgentToAgent Undo
   $tests = str_replace("$path/features/", '', str_replace('.feature', '', findFiles("$path/features", '/.*\.feature/')));
-  $tests = array('Startup'); // uncomment to run just one feature (test set)
+//  $tests = array('TransactMemberToMember'); // uncomment to run just one feature (test set)
 //  $oneScene = 'testTheCallerConfirmsAPayment'; // uncomment to run just one test scenario
 
   foreach ($tests as $test) dotest($module, $test);

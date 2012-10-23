@@ -94,3 +94,7 @@ function rweb_form_user_register_form_alter(&$form, &$form_state, $form_id) {r\W
 function rweb_form_user_login_block_alter(&$form, &$form_state, $form_id) {return r\Web\login_alter($form, $form_state);}
 function rweb_form_user_login_form_alter(&$form, &$form_state, $form_id) {return r\Web\login_alter($form, $form_state);}
 function rweb_user_login(&$edit, $account) {r\Web\login_followup($edit);} // Implements hook_user_login().
+
+/*function rweb_form_user_profile_form_alter(&$form, &$form_state, $form_id) {
+  $form['account']['pass']['#process'] = array('expand_password_confirm', 'yourmodule_password_confirm');
+}*/

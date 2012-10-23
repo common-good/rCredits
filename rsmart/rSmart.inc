@@ -9,6 +9,11 @@ use rCredits as r;
 use rCredits\Util as u;
 use rCredits\API as api;
 
+$GLOBALS[TX_SMART . ' messages'] = array(
+  'no permission' => t('You do not have permission to use that account.'),
+  'first time' => t('You have successfully registered this device for use with rCredits!'),
+);
+
 /**
  * Receive and process a REST request from a smart device
  * @param assoc $args: an associative array (defaults $_POST) of a json-encoded assoc that normally includes:
@@ -77,7 +82,8 @@ function first_time($args) {
   if (!user_check_password($q_password, $cacct->account())) return api\error('bad login'); // make these two error messages distinct but obscure
   if (!($code = makeDevice(t('Smart Device'), $cacct))) return api\error("can't save device info");
   $owner_id = $cacct->qid;
-  return compact(u\ray('code owner_id')) + startup($args);
+  $message = u\tt('first time');
+  return compact(u\ray('owner_id code message')) + startup(); // testing counts on this arg order
 }
 
 /*
@@ -86,12 +92,12 @@ function first_time($args) {
  * @return:
  *   update_link (URL of updated app; not set if no update is available)
  */
-function startup($args) {
+function startup($args = '') {
   if (rand() < getrandmax() / 2) $update_link = 'http:/rCredits.org/files/smart.apk';
   $allow_change_account = 0;
   $allow_change_agent = TRUE;
   $require_agent = api\access('company');
-  return compact('update_link allow_change_account allow_change_agent require_agent');
+  return compact('update_link allow_change_account allow_change_agent require_agent'); // standard fields to return on startup);
 }
 
 /*
@@ -108,7 +114,7 @@ function identify($args) {
   $cuid = r\cuid();
   extract($args, EXTR_PREFIX_ALL, 'q');
   $full_name = $q_acct->full_name;
-  if ($q_acct->id == $cuid) return api\error(r\Web\tt('no self-trading'));
+  if ($q_acct->id == $cuid) return api\error(u\tt('no self-trading'));
   $country = $q_acct->country;
 //  $location = $q_acct->city . ', ' . ($country == 'United States' ? u\state_abbrev($q_acct->state) : $country);
   $location = $q_acct->city . ', ' . $q_acct->state . ($country == 'United States' ? '' : ", $country");
@@ -157,7 +163,7 @@ function transact($args) {
   list ($index, $subs, $zot) = api\transfer($q_type, $q_acct, $q_amount, $q_purpose, $q_goods, TRUE);
   $tx_id = r\qxid($subs['zxid']); // return the transaction id as a qid (globally unique transaction id) (':' means As-If)
   extract(balances($q_acct->id, $subs['real'])); // my_balance, other_balance
-  $message = r\Web\tt($index, $subs);
+  $message = u\tt($index, $subs);
   //if (!@$subs['success'])
   return compact(u\ray('tx_id my_balance other_balance message'));
 }
@@ -188,22 +194,23 @@ function undo($params) {
   
   if ($q_confirmed) {
     list ($message, $args) = api\undo_tx($zxid);
-    $message = r\Web\tt($message, $args);
+    $message = u\tt($message, $args);
     if (!@$args['success']) return api\error($message);
     if ($new_zxid = @$args['zxid']) $tx_id = r\qxid($new_zxid); // get offsetting transaction id, if any (otherwise state changed)
     $balances = balances($args['other_uid'], $zxid > 0);
   } else {
-    if (!($result = api\last_tx('xid=:zxid', compact('zxid')))) return api\error(r\Web\tt('undo no match'));
-    $message = r\Web\tt('confirm undo', r\tx_report_args($result));
+    if (!($result = api\last_tx('xid=:zxid', compact('zxid')))) return api\error(u\tt('undo no match'));
+    $message = u\tt('confirm undo', r\tx_report_args($result));
     $balances = array();
   }
   return compact(u\ray('message tx_id')) + $balances;
 }
 
 function makeDevice($device, $acct, $code = '') {
+  u\expect(compact('device', 'acct'), 'string&notempty acct');
   $uid = $acct->id;
   $code = $code ?: user_hash_password(uniqid($acct->qid, TRUE) . time()) . '/'; // add a slash to make sure slashes get handled properly
   $accessed = time();
-  $info = compact(u\ray('uid code device $accessed'));
+  $info = compact(u\ray('uid code device accessed'));
   return @\drupal_write_record('r_smarts', $info) ? $code : FALSE; // no way to tell if it's the same device as others
 }

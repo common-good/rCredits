@@ -153,7 +153,7 @@ EOF;
 function show_form($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   try {
     setup_globals(); // in case it's an anonymous form, so web_access doesn't have a chance to set up
-    if ($function != 'accounts') u\log("show $function", compact(u\ray('arg1 arg2 arg3 arg4')));
+    if ($function != 'accounts' and $function != 'home') u\log("show $function", compact(u\ray('arg1 arg2 arg3 arg4')));
     drupal_add_css(\drupal_get_path('module', 'rweb') . '/rweb.css', array('group' => CSS_THEME) + weight(-9));
     $form_name = substr($function, 0, 1) == '\\' ? $function : "rCredits\\Web\\{$function}_form";
     $form = drupal_get_form($form_name, $arg1, $arg2, $arg3, $arg4);
@@ -350,19 +350,28 @@ function account_form($form, &$form_state) {
 
   unset($form['account']['name']);
   $form['account']['mail']['#description'] = t('All emails from the system will be sent to this address. The email address is not made public');
-  $form['account']['pass']['#description'] = t('Enter your new password in both fields above.<br>To change your email address or password, enter your current password below.');
+  $form['account']['pass']['#description'] = t('Enter your new password in both fields above.<br>To change your email address and/or password, enter your current password below.');
+  $form['account']['pass']['#process'] = array('form_process_password_confirm', 'rCredits\\Web\\password_confirm');
   $form['account']['current_pass']['#description'] = '';
   $form['account']['current_pass']['#weight'] = 4;
   $form['account']['status']['#weight'] = 5;
   $form['account']['roles']['#weight'] = 6;
   $form['account']['title'] = form_field('item', t('Account Information'), '', array('weight' => -99));
-  
   $form['submit'] = form_field('submit', '', '', array('value' => t('Save'), 'weight' => 99));
   $form['#user_category'] = 'account';
   u\expect($form['#validate'][0] == 'user_account_form_validate', 'wrong account form validator');
   $form['#validate'][0] = 'rCredits\\Web\\account_form_validate'; // use ours instead
   
   return $form;
+}
+
+/**
+ * Implements expand_password_confirm.
+ */
+function password_confirm($element) {
+  $element['pass1']['#title'] = t("New Password (if any)");
+  $element['pass2']['#title'] = t("Confirm New Password");
+  return $element;
 }
 
 /**
@@ -1003,6 +1012,7 @@ function register_form_validate($form, &$form_state) {
     $data = serialize(compact(u\ray('company is_employee is_owner')));
   }
   
+  if ($error = user_validate_name($my_full_name)) return say(str_replace('The username', 'That name', $error));
   $name = $name0 = r\unique_name($my_full_name);
 //  $name = $name0 = u\short_name($my_full_name);
 //  if (r\user_field(1, 'name=:name', compact('name'))) return say('duplicate name'); // require unique full_name

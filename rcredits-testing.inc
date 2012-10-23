@@ -92,8 +92,12 @@ function makeRelation($info) {
   $info += compact(u\ray('reid main_uid agent_uid foreign_uid'));
   return \drupal_write_record('r_relations', $info);
 }
-  
-function uidHasR($uid) {
+
+/**
+ * Return the credit info for the given uid.
+ * To get just the balance, use uidCredit(uid)->balance
+ */
+function uidCredit($uid) {
   $real = TEST_REAL;
   return api\credit_info(compact('uid', 'real'));
 }
@@ -107,23 +111,36 @@ function uid($id) {
   ));
 }
 
-function findMessage($type, $fields, $message, $subject = '') {
+function findMessage($type, $fields, $message = '', $subject = '', $subs = array()) {
   global $cuid, $channel;
-  if (!TEST_REAL) {
-    $map = array('ransaction #' => 'ransaction #a', 'nvoice #' => 'nvoice #a', '@asif' => R_ASIF_TEXT, '{ASIF}' => R_ASIF_TEXT);
-    $message = strtr($message, $map);
-    $subject = strtr($subject, $map);
-  }
+
+  extract($fields, EXTR_PREFIX_ALL, 'my');
+  if ($message = ($message ?: @$fields['message'])) {
+    if ($channel != TX_SMS and strlen($message < 30)) $message = u\tt($message, $subs);
+    $message = str_replace(PHP_EOL, '~', $message);
+    if (!TEST_REAL) {
+      $map = array('ransaction #' => 'ransaction #a', 'nvoice #' => 'nvoice #a', '@asif' => R_ASIF_TEXT, '{ASIF}' => R_ASIF_TEXT);
+      $message = strtr($message, $map);
+      $subject = strtr($subject, $map);
+    }
+    if ($subject) $fields['subject'] = $subject;
+    $fields['message'] = $message;
+  } else unset($fields['message']); // empty message in features means NO message
   $agent = r\acct()->agent;
   $crit = "channel=:channel AND type=:type AND cuid=:cuid AND agent=:agent ORDER BY logid DESC";
-//  if (strpos($message, '@nonce')) $message = str_replace('@nonce', r\dbLookup('special', 'r_log', $crit, compact('type')), $message);
-  $message = str_replace("\n", '~', $message);
-  debug($message ?: (@$fields['message'] ?: $fields)); // keep this
-  if ($extras = ($subject ? 'subject ' : '') . ($message ? 'message' : '')) $fields += compact(u\ray($extras));
   
   $info = json_encode2($fields, JSON_UNESCAPED_SLASHES);
+  debug($info); // keep this
   //debug("info=:info AND $crit"); debug(compact(u\ray('info type cuid agent')));
   return r\dbLookup(1, 'r_log', "info=:info AND $crit", compact(u\ray('info type cuid agent channel')));
+}
+
+function findEmail($key, $email, $subs0) {
+  $subs = array();
+  foreach ($subs0[0] as $k => $value) $subs[u\hug(strtoupper($k), '{}')] = $value;
+  $message = strtr(r\email_body($key), $subs);
+  $subject = strtr($GLOBALS['email_subjects'][$key], $subs);
+  return findMessage('email', compact(u\ray('key email')), $message, $subject);
 }
 
 function makePicture($picture, $acct) {
@@ -146,13 +163,15 @@ function getPicture($picture) {
 function hitServer($op, $my_id, $code = '', $account_id = '', $extra = array()) {
   if (!$code) unset($code);
   if (!$account_id) unset($account_id);
-  $json = json_encode2(compact(u\ray('op my_id code account_id') + $extra), JSON_UNESCAPED_SLASHES);
+  $json = json_encode2(compact(u\ray('op my_id code account_id')) + $extra, JSON_UNESCAPED_SLASHES);
+  debug($json); // keep this
   r\Smart\api(compact('json'));
 //  api\send($json); // remember the server's response (this is the real test, once most bugs are gone)
   return TRUE;
 }
 
 function eq($a, $b) {
+print_r(compact('a','b'));
   $result = (($a - $b) * ($a - $b) < .001);
   if (!$result) debug("unequal: a=$a b=$b");
   return $result;

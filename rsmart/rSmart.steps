@@ -107,10 +107,7 @@ function memberAsksDeviceToIdentifyQR($my_id, $code, $account_id) {
 function weRespondWith($args) {
   global $testOnly;
   $args = $args[0];
-  $message = @$args['message'];
-  $message = @$GLOBALS['API messages'][$message] ?: (@$GLOBALS[TX_SMS .' messages'][$message] ?: $message);
-  if ($message) $args['message'] = $message;
-  return t\findMessage('out', $args, $message);
+  return t\findMessage('out', $args);
 }
 
 /**
@@ -155,7 +152,7 @@ function memberHasPicture($id, $picture) {
 function weRespondToMemberWithPicture($id, $picture) {
   global $testOnly;
   $message = bin2hex(substr(t\getPicture($picture), 0, 50));
-  return t\findMessage('out', compact('message'), $message);
+  return t\findMessage('out', compact('message'));
 }
 
 /**
@@ -173,11 +170,11 @@ function memberHasNoPicture($id) {
  *
  * in: Startup - testMemberLogsInSuccessfullyToInitializeDevice MAKE
  */
-function memberPasswordIs($id, $password) {
+function memberPasswordIs($id, $pass) {
   global $testOnly; if ($testOnly) return FALSE;
   require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
-  $password = \user_hash_password(trim($password));
-  return r\acct($id)->update(compact('password'));
+  $pass = \user_hash_password(trim($pass));
+  return r\acct($id)->update(compact('pass'));
 }
 
 /**
@@ -198,9 +195,9 @@ function memberInitializesTheDeviceAsMemberWithPassword($my_id, $password) {
  *
  * in: Startup - testMemberRerunsTheApp MAKE
  */
-function theAppStartsUpAsMemberAndCode($arg1, $arg2) {
+function theAppStartsUpAsMemberAndCode($my_id, $code) {
   global $testOnly; if ($testOnly) return FALSE;
-  todo;
+  return t\hitServer('startup', $my_id, $code);
 }
 
 /**
@@ -208,9 +205,10 @@ function theAppStartsUpAsMemberAndCode($arg1, $arg2) {
  *
  * in: TransactMemberToMember - featureSetup MAKE
  */
-function devices($arg1) {
-  global $testOnly;
-  todo;
+function devices($list) {
+  global $testOnly; if ($testOnly) return FALSE;
+  foreach ($list as $one) if (!r\Smart\makeDevice('Test Device', r\acct($one['id']), $one['code'])) return FALSE;
+  return TRUE;
 }
 
 /**
@@ -223,9 +221,10 @@ function devices($arg1) {
  *     TransactMemberToMember - testAMemberAsksToChargeAotherMemberUnilaterallyWithInsufficientBalance TEST
  *     TransactMemberToMember - testAMemberAsksToPayAotherMemberWithInsufficientBalance TEST
  */
-function balances($arg1) {
+function balances($list) {
   global $testOnly;
-  todo;
+  foreach ($list as $one) if (!t\eq(t\uidCredit(t\uid($one['id']))->balance, $one['balance'])) return FALSE;
+  return TRUE;
 }
 
 /**
@@ -237,9 +236,10 @@ function balances($arg1) {
  *     TransactMemberToMember - testAMemberAsksToChargeAotherMemberUnilaterallyWithInsufficientBalance MAKE
  *     TransactMemberToMember - testAMemberAsksToPayAotherMemberWithInsufficientBalance MAKE
  */
-function memberAsksDeviceToDoThis($arg1, $arg2, $arg3, $arg4, $arg5, $arg6, $arg7) {
-  global $testOnly;
-  todo;
+function memberAsksDeviceToDoThis($my_id, $code, $type, $account_id, $amount, $goods, $purpose) {
+  global $testOnly; if ($testOnly) return FALSE;
+  $goods = ($goods == 'goods');
+  return t\hitServer('transact', $my_id, $code, $account_id, compact(u\ray('type amount goods purpose')));
 }
 
 /**
@@ -251,9 +251,11 @@ function memberAsksDeviceToDoThis($arg1, $arg2, $arg3, $arg4, $arg5, $arg6, $arg
  *     TransactMemberToMember - testAMemberAsksToChargeAotherMemberUnilaterallyWithInsufficientBalance TEST
  *     TransactMemberToMember - testAMemberAsksToPayAotherMemberWithInsufficientBalance TEST
  */
-function weRespondSuccessTxidMybalanceOtherbalanceAndMessageWithSubs($arg1, $arg2, $arg3, $arg4, $arg5, $arg6) {
+function weRespondSuccessTxidMybalanceOtherbalanceAndMessageWithSubs($success, $tx_id, $my_balance, $other_balance, $message, $subs) {
   global $testOnly;
-  todo;
+  $tx_id = r\qxid(TEST_REAL ? $tx_id : -$tx_id);
+  if ($other_balance === '') unset($other_balance);
+  return t\findMessage('out', compact(u\ray('success tx_id my_balance other_balance')), $message, '', $subs);
 }
 
 /**
@@ -262,9 +264,9 @@ function weRespondSuccessTxidMybalanceOtherbalanceAndMessageWithSubs($arg1, $arg
  * in: TransactMemberToMember - testAMemberAsksToChargeAnotherMember TEST
  *     TransactMemberToMember - testAMemberAsksToChargeAnotherMemberUnilaterally TEST
  */
-function weEmailToMemberWithSubs($arg1, $arg2, $arg3) {
+function weEmailToMemberWithSubs($key, $email, $subs) {
   global $testOnly;
-  todo;
+  return t\findEmail($key, $email, $subs);
 }
 
 /**
@@ -273,7 +275,7 @@ function weEmailToMemberWithSubs($arg1, $arg2, $arg3) {
  * in: TransactMemberToMember - testAMemberAsksToChargeAnotherMemberUnilaterally MAKE
  *     TransactMemberToMember - testAMemberAsksToChargeAotherMemberUnilaterallyWithInsufficientBalance MAKE
  */
-function memberCanChargeUnilaterally($arg1) {
-  global $testOnly;
-  todo;
+function memberCanChargeUnilaterally($id) {
+  global $testOnly; if ($testOnly) return FALSE;
+  return r\acct($id)->setBit(BIT_CHARGE);
 }
