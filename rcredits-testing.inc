@@ -79,8 +79,10 @@ function makeRelation($info) {
   $reid = u\a2n(substr($my_id, -3));
   $main = r\acct(fullQid($my_main));
   $agent = r\acct(fullQid($my_agent));
-  u\expect(!r\is_foreign($main->region) or !r\is_foreign($agent->region));
-  u\expect($main->proSe() and $agent->proSe());
+  u\EXPECT((bool) $main, 'main is not an id');
+  u\EXPECT((bool) $agent, 'agent is not an id');
+  u\EXPECT(!r\is_foreign($main->region) or !r\is_foreign($agent->region));
+  u\EXPECT($main->proSe() and $agent->proSe());
   list ($main_uid, $agent_uid) = array($main->id, $agent->id);
   if (r\is_foreign($main->region)) list ($main_uid, $foreign_uid) = array($main->region, $main->id);
   if (r\is_foreign($agent->region)) list ($agent_uid, $foreign_uid) = array($agent->region, $agent->id);
@@ -112,8 +114,9 @@ function uid($id) {
 }
 
 function findMessage($type, $fields, $message = '', $subject = '', $subs = array()) {
-  global $cuid, $channel;
+  global $channel;
 
+  $cuid = r\acct()->id;
   extract($fields, EXTR_PREFIX_ALL, 'my');
   if ($message = ($message ?: @$fields['message'])) {
     if ($channel != TX_SMS and strlen($message < 30)) $message = u\tt($message, $subs);

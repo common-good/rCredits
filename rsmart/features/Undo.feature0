@@ -1,0 +1,76 @@
+Feature: Undo
+AS a player
+I WANT to undo a transaction recently completed on my account
+SO I can easily correct a mistake
+
+Setup:
+  Given members:
+  | id      | full_name  | phone  | email         | city  | state  | country       | 
+  | NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | Alaska | United States |
+  | NEW.ZZB | Bea Two    | +20002 | b@example.com | Btown | Utah   | United States |
+  | NEW.ZZC | Corner Pub | +20003 | c@example.com | Ctown | Corse  | France        |
+  And devices:
+  | id      | code  |
+  | NEW.ZZA | codeA |
+  | NEW.ZZB | codeB |
+  | NEW.ZZC | codeC |
+  And relations:
+  | id      | main    | agent   | permission   |
+  | NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell |
+  | NEW:ZZB | NEW.ZZB | NEW.ZZA |              |
+  | NEW:ZZC | NEW.ZZC | NEW.ZZB | buy and sell |
+  | NEW:ZZD | NEW.ZZC | NEW.ZZA | sell         |
+  And transactions: 
+  | created   | type         | amount | from      | to      | purpose      | taking |
+  | %today-6m | %TX_SIGNUP   |    250 | community | NEW.ZZA | signup       | 0      |
+  | %today-6m | %TX_SIGNUP   |    250 | community | NEW.ZZB | signup       | 0      |
+  | %today-6m | %TX_SIGNUP   |    250 | community | NEW.ZZC | signup       | 0      |
+  | %today-4m | %TX_TRANSFER |  11.11 | NEW.ZZB   | NEW.ZZA | cash for me  | 1      |
+  | %today-3w | %TX_TRANSFER |  22.22 | NEW.ZZC   | NEW.ZZA | usd          | 1      |
+  | %today-3d | %TX_TRANSFER |  33.33 | NEW.ZZA   | NEW.ZZB | whatever43   | 0      |
+  | %today-3d | %TX_REBATE   |   1.67 | community | NEW.ZZA | rebate on #4 | 0      |
+  | %today-3d | %TX_BONUS    |   3.33 | community | NEW.ZZB | bonus on #3  | 0      |
+  | %today-2d | %TX_TRANSFER |  44.44 | NEW.ZZB   | NEW.ZZC | cash         | 0      |
+  | %today-1d | %TX_TRANSFER |  55.55 | NEW.ZZA   | NEW.ZZC | whatever43   | 0      |
+  | %today-1d | %TX_REBATE   |   2.78 | community | NEW.ZZA | rebate on #5 | 0      |
+  | %today-1d | %TX_BONUS    |   5.56 | community | NEW.ZZC | bonus on #4  | 0      |
+  Then balances:
+  | id        | balance |
+  | community | -763.34 |
+  | NEW.ZZA   |  198.90 |
+  | NEW.ZZB   |  231.11 |
+  | NEW.ZZC   |  333.33 |
+
+Scenario: A member asks to undo the last transaction
+  When member "NEW.ZZA" asks device "codeA" to undo, "not yet" confirmed
+  Then we respond with success 1 message "confirm undo" and subs:
+  | created   | amount | tofrom  | other_name | purpose    |
+  | %today-1d | $55.55 | to      | Corner Pub | whatever43 |
+  # "Undo 01-02-2012 payment of $55.55 to Corner Pub for whatever?"
+
+Undo - needing confirmation (differences from Normal Startup are highlighted)
+Request: 
+my_id (account ID of agent -- defaults to owner_id)
+code (permanent code received in First Time response)
+
+op=”undo”
+tx_id (ID number of transaction to undo)
+
+confirmed=FALSE
+Response: 
+success=TRUE or FALSE
+message (error message or message requesting confirmation)
+
+Undo - definitive (differences from Normal Startup are highlighted)
+Request: 
+my_id (account ID of agent -- defaults to owner_id)
+code (permanent code received in First Time response)
+op=”undo”
+confirmed=TRUE
+ tx_id (ID number of transaction to undo)
+Response: 
+success=TRUE or FALSE
+message (error message or success message)
+tx_id (ID number of offsetting transaction, if any (which could in turn be undone). tx_id not set means transaction was simply deleted, so there is no longer any transaction that can be undone.)
+my_balance (user’s new balance)
+other_balance (new balance for the other party -- do not show the “Show Customer Balance” button if this is omitted)

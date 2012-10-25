@@ -12,22 +12,23 @@ foreach($modules as $module) doModule($module);
 debug("OVERALL: OK:$okALL NO:$noALL");
 
 function doModule($module) {
-  global $ok, $no, $okALL, $noALL, $oneScene;
+  global $ok, $no, $okALL, $noALL, $oneScene, $oneVariant;
   $ok = $no = 0; // results counters
 
   $path = __DIR__ . "/$module"; // relative path from compiler to module directory
   // SMS: OpenAnAccountForTheCaller AbbreviationsWork ExchangeForCash GetHelp GetInformation Transact Undo OfferToExchangeUSDollarsForRCredits
   // Smart: Startup IdentifyQR TransactMemberToMember TransactMemberToAgent TransactAgentToMember TransactAgentToAgent Undo
   $tests = str_replace("$path/features/", '', str_replace('.feature', '', findFiles("$path/features", '/.*\.feature/')));
-//  $tests = array('TransactMemberToMember'); // uncomment to run just one feature (test set)
-//  $oneScene = 'testTheCallerConfirmsAPayment'; // uncomment to run just one test scenario
+  $tests = array('TransactMemberToMember'); // uncomment to run just one feature (test set)
+//  $oneScene = 'testMemMemSellerAgentLacksPermissionToBuy0'; // uncomment to run just one test scenario
+//  $oneVariant = 0; // uncomment to focus on a single variant (usually 0)
 
   foreach ($tests as $test) dotest($module, $test);
   debug("MODULE $module: OK:$ok NO:$no");
 }  
 
 function dotest($module, $test) {
-  global $results, $summary, $user, $oneScene;
+  global $results, $summary, $user, $oneScene, $oneVariant;
   include ($test_filename = __DIR__ . "/$module/tests/$test.test");
   
   $temp_user = $user; $user = array();
@@ -38,6 +39,8 @@ function dotest($module, $test) {
   preg_match_all('/function (test.*?)\(/sm', $s, $matches);
   $scenes = @$oneScene ? array($oneScene) : $matches[1];
   foreach ($scenes as $one) {
+    if (isset($oneVariant)) if (substr($one, -1) != $oneVariant) continue;
+
     $results = array('PASS!');
 //    echo "<br>\r\n$one<br>\r\n";
     $t->setUp();

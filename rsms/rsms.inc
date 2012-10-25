@@ -107,7 +107,8 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'undo no match' => t("You have no matching transactions to undo."),
   'undo moving target' => t("Can't undo: the last matching transaction has changed."),
   'duplicate email' => t("There is already an account with that email address. Visit rCredits.org to add this cell number to your account."),
-  'unknown user' => t('Unknown rTrader: "@who" (they need to sign up before we can recognize them). Type "helpme pay".'),
+  'unknown member' => t('Unknown member: "@who" (they need to sign up before we can recognize them). Type "helpme pay".'),
+  'not an account' => t('That account does not exist.'), // this is usually a system error (or REST error)
   'non trader' => t('@other_name is not an authorized rTrader.'),
   'ambiguous other' => t('"@who" is associated with more than one rCredits account. You will need to identify them differently. Type "more" for options.'),
   'ambiguous other2' => t('You can identify an rTrader by phone, email, fullname (no punctuation or spaces), or account ID.'),
@@ -124,7 +125,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'no buy and sell' => t('You do not have permission to make purchases for this account.'),
   'other no sell' => t('That person does not have permission to make sales for that account.'),
   'other no buy and sell' => t('That person does not have permission to make purchases for that account.'),
-  'negative transfer' => t('You may not transfer a negative amount.'),
+  'nonpositive transfer' => t('You may not transfer a negative amount.'),
   'amount too big' => t('Transactions larger than $@max are not permitted at this time.', array('@max' => R_MAX_AMOUNT)),
   'already undone' => t('Transaction is already undone.'),
   'no such tx' => t('That transaction does not exist.'),
@@ -226,8 +227,13 @@ function infer_nonce($message) {
 /**
  * Add a cell phone to the given account.
  * for now, with everything through SMS, we want to be able to send to anyone
+ * @param string $number: phone number
+ * @param int $uid: account record id
+ * @param int $status: cell phone status (DEFAULTS to active)
+ * @return bool success
  */
 function create($number, $uid, $status = SMS_OK) {
+  u\EXPECT(compact(u\ray('number uid status')), 'string&notempty id int');
   $number = u\format_phone($number, '+n');
 //  debug("creating SMS record for number $number, uid $uid");
   $info = compact(u\ray('number uid status'));

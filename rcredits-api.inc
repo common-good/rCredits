@@ -57,9 +57,11 @@ function doOp($op0, $args, $interface = 'API', $success = 1) {
   $op = "rCredits\\$interface\\$op0";
   $message = $result = function_exists($op) ? $op($args) : error('unknown op');
   if (!is_array($result)) $result = compact('message');
+  debug(array_merge(compact('success'), $result));
+  debug(compact('op0','args','message', 'interface'));
   return ($op0 == 'photo' or (!is_array($message) and strpos($message, '"success":"0"'))) ?
       $message 
-    : apiOut(compact('success') + $result); // args can override success
+    : apiOut(array_merge(compact('success'), $result)); // args can override success
 }
 
 function error($message, $success = 0) {
@@ -78,16 +80,18 @@ function apiOut($args) {
  * Receive and process a REST request from the website frontend
  */
 function backend2($args = FALSE) {
-  global $cuid, $firewall;
+  global $firewall; // is this useful?
 
   if (!$args) $args = $_POST;
-  extract($args); // $cuid, $firewall (those first two are extracted into globals), $agent, $my_id, $op
-  unset($args['cuid']); // unset because it is passed as a global, not as an arg
+  extract($args, EXTR_PREFIX_ALL, 'my'); // $cuid, $firewall, $agent, $my_id, $op
+  unset($args['cuid']); // unset because it is passed as part of r\acct(), not as an arg
 
-  if (@$firewall != R_FIREWALL) error('firewall system failure'); // give hackers some satisfaction by saying 'failure'
-  if (!$cuid or !$agent) error('user validation error');
-  if (!r\ok_agent($cuid, $agent)) error('sharing error');
-  doOp($op, $args);
+  if (@$my_firewall != R_FIREWALL) error('firewall system failure'); // give hackers some satisfaction by saying 'failure'
+  $firewall = $my_firewall; // is this useful?
+  if (!@$my_cuid or !@$my_agent) error('user validation error');
+  if (!r\ok_agent($my_cuid, $my_agent)) error('sharing error');
+  r\acct($my_cuid, $my_agent);
+  doOp($my_op, $args);
 }
 
 /**
@@ -104,7 +108,7 @@ function backend2($args = FALSE) {
  * other than rebates and bonuses are included (even those will be included if the 'include_bonuses' option is set).
  */
 function my_transactions($args) {
-  $cuid = r\cuid();
+  $cuid = r\acct()->id;
   
   if (is_frontend()) return backend(__FUNCTION__, $args);
   extract($args);
@@ -190,7 +194,7 @@ function update_relations($updates) {
  * @param boolean $real: is the transaction real, that is to be undone
  */
 function undo_tx($zxid, $real = 'bug') {
-  $cuid = r\cuid();
+  $cuid = r\acct()->id;
   if (is_frontend()) return (array) backend('undo_tx', compact(u\ray('zxid')));
   if (is_array($zxid)) extract($zxid); // called from api or backend
 
@@ -234,7 +238,7 @@ function undo_tx($zxid, $real = 'bug') {
  */
 function reverse($zxid, $amount, $acct, $data, $old_goods, $old_tid, $to_me) {
 //    print_r(compact(u\ray('zxid amount acct data old_tid to_me'))); die();
-  u\expect(compact(u\ray('zxid amount acct data old_tid to_me')), 'zid float acct assoc|empty string bool');
+  u\EXPECT(compact(u\ray('zxid amount acct data old_tid to_me')), 'zid float acct assoc|empty string bool');
 
   if (!is_array($data)) $data = array();
   $old_data = $data; // remember original data from transaction we're reversing
@@ -248,7 +252,7 @@ function reverse($zxid, $amount, $acct, $data, $old_goods, $old_tid, $to_me) {
 
   if (@$args['success']) {
     list ($new_tid, $new_zxid) = array($args['tid'], $args['zxid']);
-    u\expect($new_zxid * $zxid > 0, 'reverse: wrong reality');
+    u\EXPECT($new_zxid * $zxid > 0, 'reverse: wrong reality');
     $other_tid = zxid2tid($new_zxid, $acct->id);
     $old_data['undone'] = TRUE;
     $old_data['changes'][] = array(time(), r\acct()->agent, 'undo', $new_zxid);
@@ -279,7 +283,7 @@ EOF;
  * @return array(message index, subs, needs confirmation)
  */
 function get($currency, &$amount, $confirmed) {
-  $cuid = r\cuid();
+  $cuid = r\acct()->id;
   if (is_frontend()) return (array) backend('get', compact(u\ray('currency amount confirmed')));
   if (is_array($currency)) extract($currency); // called from api or backend
   
@@ -371,14 +375,15 @@ function pay_invoice($zxid) {
 function transfer($ttype, $acct, $requested_amount, $for, $goods, $confirmed = TRUE, $data = array()) {
   if (is_frontend()) return (array) backend('transfer', compact(u\ray('ttype acct requested_amount for confirmed data')));
   if (is_array($ttype)) extract($ttype); // called from api or backend
-  global $cuid;
 
+  u\EXPECT(in_array($ttype, array('payment', 'charge', 'invoice payment')), 'bad transaction type');
   if ($acct == 'ALL') return $ttype == 'payment' ? r\pay_employees($requested_amount, $for, $confirmed) : array('no ALL', array(), FALSE);
   
+  $cuid = r\acct()->id;
   $taking = ($ttype == 'charge');
 
   // Check permissions
-  u\expect(compact(u\ray('ttype acct requested_amount confirmed data')), 'string acct float bool assoc');
+  u\EXPECT(compact(u\ray('ttype acct requested_amount confirmed data')), 'string acct float bool assoc');
   list ($my_access, $other_access) = u\order($taking, 'sell', 'buy and sell');
   if (!access($my_access)) return array("no $my_access", array(), FALSE);
   if (!access($other_access, $acct)) return array("other no $other_access", array(), FALSE);
@@ -400,7 +405,7 @@ function transfer($ttype, $acct, $requested_amount, $for, $goods, $confirmed = T
   $real = (!(@$data['zxid'] < 0) and r\is_rTrader() and r\is_rTrader($uid));
   
   // Check the amount and calculate any balance shortfall
-  if ($requested_amount < 0) return array('negative transfer', array(), FALSE);
+  if ($requested_amount <= 0) return array('nonpositive transfer', array(), FALSE);
   if ($requested_amount > R_MAX_AMOUNT) return array('amount too big', array(), FALSE);
 
   if ($shortfall = r\shortfall($taking ? $uid : $cuid, $requested_amount, $preapproved, $real)) {
@@ -468,7 +473,7 @@ function give_signup_incentive($uid) {
  * @return FALSE if success; else array($error_message, $subs)
  */
 function add_cell($number, $validate = FALSE) {
-  global $cuid;
+  $cuid = r\acct()->id;
   if (is_frontend()) return backend('add_cell', compact(u\ray('number validate')));
   if (is_array($number)) extract($number); // called from api or backend
 
@@ -529,7 +534,7 @@ function identify($who, $create = FALSE, $allow_ALL = FALSE, $self_message = 'no
   if (is_array($who)) extract($who); // called from api or backend
 
   if (($all = trim(strtoupper($who))) == 'ALL') return $allow_ALL ? $all : array('no ALL', array(), array());
-  $cuid = r\cuid();
+  $cuid = r\acct()->id;
 
   if ($phone = u\format_phone($who, '+n')) $who = $phone;
   
@@ -539,7 +544,7 @@ function identify($who, $create = FALSE, $allow_ALL = FALSE, $self_message = 'no
   }
 
   if (u\is_qid($quid)) {
-    if (!($acct = r\acct($quid))) return array('unknown user', compact('who'), array());
+    if (!($acct = r\acct($quid))) return array('unknown member', compact('who'), array());
     if ($acct->id == $cuid) return array($self_message, array(), array());
     return $acct; // qids are easy
   }
@@ -571,7 +576,7 @@ EOF;
 
 //  $key = $who == $phone ? 'phone' : (valid_email_address($who) ? 'email' : (r\valid_url("http://$who") ? 'website' : ''));
   $key = $who == $phone ? 'phone' : (\valid_email_address($who) ? 'email' : '');
-  if ((!$key) or !$create) return array('unknown user', compact('who'), array());
+  if ((!$key) or !$create) return array('unknown member', compact('who'), array());
   return new r\acct(array($key => $who));
 }
 
@@ -589,13 +594,13 @@ EOF;
  *   including the overall demand for rCredits
  */
 function credit_info($args = array()) {
-  global $cuid;
   if (is_frontend()) {
     $info = backend('credit_info', $args);
     $info->fancy = (array) $info->fancy; // backend turns the whole shebang into an object
   }
   extract($args, EXTR_PREFIX_ALL, 'my'); // uid, state, real, asof
 
+  $cuid = r\acct()->id;
   $uid = @$my_uid ?: $cuid;
   $state = @$my_state ?: ':TX_DONE,:TX_DISPUTED';
   $real = isset($my_real) ? $my_real : r\is_rTrader($uid);
@@ -688,7 +693,7 @@ function todo($number, $todo = 'nothing', $nonce = 'whatever') {
   } else {
     $nonce = $nonce == 'whatever' ? u\nonce() : $nonce;
     \db_update('r_sms')->fields(compact('nonce', 'todo'))->condition('number', $number)->execute();
-    u\expect(todo($number)->nonce == $nonce, 'setting nonce failed');
+    u\EXPECT(todo($number)->nonce == $nonce, 'setting nonce failed');
     return $nonce;
   }
 }
@@ -701,7 +706,7 @@ function todo($number, $todo = 'nothing', $nonce = 'whatever') {
  * @return associative array: the old transaction record (FALSE if none)
  */
 function last_tx($where = 1, $subs = array(), $cache = FALSE) {
-  $cuid = r\cuid();
+  $cuid = r\acct()->id;
   if (is_frontend()) return backend('last_tx', compact(u\ray('where subs')), $cache);
   if (is_array($where)) extract($where); // called from api or backend
 
@@ -719,11 +724,11 @@ function last_tx($where = 1, $subs = array(), $cache = FALSE) {
 /**
  * Return the user's sequential transaction number
  * @param int $zxid: the transaction record number (negative for asif)
- * @param int $uid: the user's uid (DEFAULTs to cuid)
+ * @param int $uid: the user's uid (DEFAULTs to current account)
  * @return string: the user's transaction number, preceded by "a" for asif transactions
  */
 function zxid2tid($zxid, $uid = '') {
-  if (!$uid) $uid = r\cuid();
+  if (!$uid) $uid = r\acct()->id;
   if (is_frontend()) return backend('zxid2tid', compact(u\ray('zxid uid')));
   if (is_array($zxid)) extract($zxid); // called from api or backend
 
@@ -746,15 +751,14 @@ function account_name($uid) {
  * @todo: move this to acct class
  */
 function accesses($acct = '') {  
-  global $cuid;
   if (is_frontend()) {
     $result = backend('accesses', compact(u\ray('acct')), (bool) $acct);
     return is_array($result) ? $result : array();
   }
   if (is_array($acct)) extract($acct); // called from api or backend
 
-  if (!$cuid) return array(); // no access for ANYONE, if anonymous user
-  if (!$acct) $acct = $cuid;
+  if (!($cacct = r\acct())) return array(); // no access for ANYONE, if anonymous user
+  if (!$acct) $acct = $cacct;
   if (!u\is_acct($acct)) {$uid = $acct; $acct = r\acct($uid);}
   if (!$acct) return array();
   $perms = array();
@@ -826,12 +830,13 @@ function is_frontend() {
 }
 
 function backend($op, $info = array(), $cache = FALSE) {
-  global $base_url, $cuid, $firewall;
-  u\expect(is_frontend(), 'backend recursion');
+  global $base_url, $firewall;
+  u\EXPECT(is_frontend(), 'backend recursion');
   if (!user_is_logged_in()) return FALSE; // probably checking permission
 //  if ($op == 'get_records' and !$cache) die(print_r(debug_backtrace(), 1));
 
-  u\expect(@$cuid, 'no cuid in backend!');
+  $cuid = r\acct()->id;
+  u\EXPECT(@$cuid, 'no cuid in backend!');
   if (empty($info)) $cache = TRUE;
   
   $agent = r\acct()->agent;
@@ -868,6 +873,6 @@ function backend($op, $info = array(), $cache = FALSE) {
  * @return boolean: TRUE if the user has the permission
  */
 function access($access, $acct = '') {
-  u\expect(compact(u\ray('access acct')), 'string&notempty acct|empty|id|qid');
+  u\EXPECT(compact(u\ray('access acct')), 'string&notempty acct|empty|id|qid');
   return in_array($access, accesses($acct));
 }

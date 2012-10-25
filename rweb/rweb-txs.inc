@@ -13,7 +13,7 @@ use rCredits as r;
  * List Transactions
  */
 function txs_form($form, &$form_state, $period = '', $do = '') {
-  $cuid = r\cuid();
+  $cuid = r\acct()->id;
   global $base_path;
 
   list ($real, $period) = $period ? explode('-', $period) : array(r\is_rTrader(), 30);
@@ -86,7 +86,7 @@ function txs_form($form, &$form_state, $period = '', $do = '') {
 }
 
 function tx_confirm($do, $zxid, &$form_state) {
-  $cuid = r\cuid();
+  $cuid = r\acct()->id;
   if (confirming_v($form_state)) return FALSE;
   if (!($details = api\last_tx('xid=:zxid', compact('zxid'), TRUE))) return FALSE; // bail on hack attempt
   extract(r\tx_report_args($details), EXTR_PREFIX_ALL, 'my');
@@ -135,14 +135,14 @@ function txs_form_submit($form, &$form_state) {
 }
 
 function tx_okorno($tx_task, $zxid) {
-  $cuid = r\cuid();
+  $cuid = r\acct()->id;
   if (!($result = api\last_tx('xid=:zxid', compact('zxid'), TRUE))) return FALSE; // bail on hack attempt
   extract($result, EXTR_PREFIX_ALL, 'my');
 //  $atid = api\zxid2tid($zxid);
 //  $xname = "tx_transactions[x$zxid]";
   if ($tx_task == 'ok') {
 // (no. allow pay-all and external transaction confirmation)    assert($my_payer == $cuid);
-    u\expect($my_state == TX_PENDING);
+    u\EXPECT($my_state == TX_PENDING);
     if ($my_to_me) {
       r\set_tx_state(TX_DONE, $zxid); // accept the payment
     } else {
@@ -188,7 +188,7 @@ function tx_edit_submit($form, &$form_state) {
 function tx_bal($bal, $plus = '', $minus = '- ') {return ($bal < 0 ? $minus : $plus) . '$' . number_format(abs($bal), 2);}
 
 function tx_summary($starting, $ending) {
-  $cuid = r\cuid();
+  $cuid = r\acct()->id;
   $previous_ending = strtotime('-1 days', $starting);
   extract($now_info = (array) api\credit_info(array('asof' => $ending)), EXTR_PREFIX_ALL, 'now');
   extract($pending_info = (array) api\credit_info(array('state' => TX_PENDING, 'asof' => $ending)), EXTR_PREFIX_ALL, 'pending');

@@ -31,4 +31,3 @@ if (!function_exists('multiline_tweak')) {function multiline_tweak(&$line) {
 }}
 
 r\acct::_clear(); // empty the acct cache
-global $cuid; unset($cuid);

@@ -17,7 +17,7 @@ class rSMSexception extends \Exception {} // so we can use \Exception for real e
 class call {
   var $message; // the text message received
   var $number; // calling phone number
-  var $uid; // record id of caller's record in user table (duplicates $cuid and can probably be eliminated, but look carefully
+  var $uid; // record id of caller's record in user table (duplicates $cacct->id and can probably be eliminated, but look carefully
     // at storing $this for todo and retrieving
   var $zxid; // record id of transaction, related to an operation awaiting confirmation (negative for asif transactions)
   var $command; // the major command operation (as parsed)
@@ -31,7 +31,7 @@ class call {
     global $channel, $rsms_number; 
     $channel = TX_SMS;
     $rsms_number = $this->number = $number = u\format_phone($number, '+n');
-    u\expect(compact(u\ray('number message')), 'string&notempty string&notempty');
+    u\EXPECT(compact(u\ray('number message')), 'string&notempty string&notempty');
     $this->message = trim($message);
     $this->confirmed = FALSE;
     u\log('in', compact('message'), $number);
@@ -65,14 +65,14 @@ class call {
    *   Message is the error message to send the caller.
    */
   function validate_caller() {
-    global $cuid;
     $number = $this->number;
     $cuid = $this->uid = uid($number);
     if (!$cuid) {
-      $cacct = new r\acct(compact('number')); // this will crash if someone (VERY) quickly calls again from the same number
+      $cacct = r\acct(compact('number')); // this will crash if someone (VERY) quickly calls again from the same number
       $cuid = $cacct->id;
     } else $cacct = r\acct($cuid);
-    u\expect($cacct, 'failed to get acct');
+    u\EXPECT($cacct, 'failed to get acct');
+    r\acct::setDefault($cacct);
     
     $todo = @api\todo($number)->todo;
     if (api\is_temp_name($cacct->name)) {
@@ -99,7 +99,7 @@ class call {
   }
 
   /**
-   * Decuide what syntax best matches the caller's message.
+   * Decide what syntax best matches the caller's message.
    * Identify the command and its parameters
    * @throws error message to reply to the caller if message cannot be completely parsed
    * @todo: "who" identifiers chosen in the "name" command cannot be me, r, u, us, or usd.
@@ -247,7 +247,7 @@ class call {
    * AND payer=other OR payee=other
    */
   function do_undo() {
-    $cuid = r\cuid();
+    $cuid = r\acct()->id;
     extract($this->parms, EXTR_PREFIX_ALL, 'my');	// who and/or tofrom
 
     if ($this->confirmed) {
@@ -289,7 +289,7 @@ class call {
    *   other syntaxes including who and amount (create a new transaction)
    */
   function do_payment() {
-    $cuid = r\cuid();
+    $cuid = r\acct()->id;
     extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, what, and maybe zxid
     if (isset($my_amount)) return $this->do_transfer('payment'); // complete syntax
     

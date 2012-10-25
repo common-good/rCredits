@@ -38,11 +38,14 @@ class rsmartTransactMemberToMember extends DrupalWebTestCase {
     And__('devices: "DATA'
     . '\\| id      | code  |'
     . '\\| NEW.ZZA | codeA |'
+    . '\\| NEW.ZZB | codeB |'
     . '\\| NEW.ZZC | codeC |"');
     And__('relations: "DATA'
     . '\\| id      | main    | agent   | permission   |'
-    . '\\| NEW:ZZA | NEW.ZZC | NEW.ZZB | buy and sell |'
-    . '\\| NEW:ZZB | NEW.ZZC | NEW.ZZA | sell         |"');
+    . '\\| NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell |'
+    . '\\| NEW:ZZB | NEW.ZZB | NEW.ZZA |              |'
+    . '\\| NEW:ZZC | NEW.ZZC | NEW.ZZB | buy and sell |'
+    . '\\| NEW:ZZD | NEW.ZZC | NEW.ZZA | sell         |"');
     And__('transactions: "DATA'
     . '\\| created   | type       | amount | from      | to      | purpose | taking |'
     . '\\| %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |'
@@ -58,7 +61,7 @@ class rsmartTransactMemberToMember extends DrupalWebTestCase {
   }
 
   // Scenario: A member asks to charge another member
-  public function testAMemberAsksToChargeAnotherMember() {
+  public function testAMemberAsksToChargeAnotherMember0() {
     sceneSetup($this, __FUNCTION__);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "charge" "NEW.ZZC" $100 ("goods": "labor")');
     Then_('we respond success 1 tx_id 4 my_balance 250 other_balance "" and message "report invoice" with subs: "DATA'
@@ -75,7 +78,7 @@ class rsmartTransactMemberToMember extends DrupalWebTestCase {
   }
 
   // Scenario: A member asks to pay another member
-  public function testAMemberAsksToPayAnotherMember() {
+  public function testAMemberAsksToPayAnotherMember0() {
     sceneSetup($this, __FUNCTION__);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $100 ("goods": "groceries")');
     Then_('we respond success 1 tx_id 4 my_balance 155 other_balance "" and message "report transaction" with subs: "DATA'
@@ -89,7 +92,7 @@ class rsmartTransactMemberToMember extends DrupalWebTestCase {
   }
 
   // Scenario: A member asks to charge another member unilaterally
-  public function testAMemberAsksToChargeAnotherMemberUnilaterally() {
+  public function testAMemberAsksToChargeAnotherMemberUnilaterally0() {
     sceneSetup($this, __FUNCTION__);
     Given('member "NEW.ZZC" can charge unilaterally');
     When_('member "NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $100 ("goods": "groceries")');
@@ -106,8 +109,8 @@ class rsmartTransactMemberToMember extends DrupalWebTestCase {
     . '\\| NEW.ZZC   |     360 |"');
   }
 
-  // Scenario: A member asks to charge aother member unilaterally, with insufficient balance
-  public function testAMemberAsksToChargeAotherMemberUnilaterallyWithInsufficientBalance() {
+  // Scenario: A member asks to charge another member unilaterally, with insufficient balance
+  public function testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance0() {
     sceneSetup($this, __FUNCTION__);
     Given('member "NEW.ZZC" can charge unilaterally');
     When_('member "NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $300 ("goods": "groceries")');
@@ -121,8 +124,8 @@ class rsmartTransactMemberToMember extends DrupalWebTestCase {
     . '\\| NEW.ZZC   |  525.00 |"');
   }
 
-  // Scenario: A member asks to pay aother member, with insufficient balance
-  public function testAMemberAsksToPayAotherMemberWithInsufficientBalance() {
+  // Scenario: A member asks to pay another member, with insufficient balance
+  public function testAMemberAsksToPayAnotherMemberWithInsufficientBalance0() {
     sceneSetup($this, __FUNCTION__);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $300 ("goods": "groceries")');
     Then_('we respond success 1 tx_id 4 my_balance 12.5 other_balance "" and message "report short transaction" with subs: "DATA'
@@ -133,6 +136,672 @@ class rsmartTransactMemberToMember extends DrupalWebTestCase {
     . '\\| community | -787.50 |'
     . '\\| NEW.ZZA   |   12.50 |'
     . '\\| NEW.ZZC   |  525.00 |"');
+  }
+
+  // Scenario: A member asks to pay self
+  public function testAMemberAsksToPaySelf0() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZA" $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message         |'
+    . '\\| 0       | no self-trading |"');
+  }
+
+  // Scenario: Device gives no account id
+  public function testDeviceGivesNoAccountId0() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "" $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message            |'
+    . '\\| 0       | missing account id |"');
+  }
+
+  // Scenario: Device gives bad account id
+  public function testDeviceGivesBadAccountId0() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" %whatever $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message        |'
+    . '\\| 0       | bad account id |"');
+  }
+
+  // Scenario: Device gives no amount
+  public function testDeviceGivesNoAmount0() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $"" ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message        |'
+    . '\\| 0       | missing amount |"');
+  }
+
+  // Scenario: Device gives bad amount
+  public function testDeviceGivesBadAmount0() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $%whatever ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message    |'
+    . '\\| 0       | bad amount |"');
+  }
+
+  // Scenario: Device gives nonpositive amount
+  public function testDeviceGivesNonpositiveAmount0() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $-100 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message    |'
+    . '\\| 0       | nonpositive transfer |"');
+  }
+
+  // Scenario: Device gives too big an amount
+  public function testDeviceGivesTooBigAnAmount0() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $10,000,000 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message    |'
+    . '\\| 0       | nonpositive transfer |"');
+  }
+
+  // Scenario: Device gives no type
+  public function testDeviceGivesNoType0() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "" "NEW.ZZC" $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message                  |'
+    . '\\| 0       | missing transaction type |"');
+  }
+
+  // Scenario: Device gives bad type
+  public function testDeviceGivesBadType0() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZA" asks device "codeA" to do this: %whatever "NEW.ZZC" $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message |'
+    . '\\| 0       | bad transaction type |"');
+  }
+
+  // Scenario: Device gives no purpose for goods and services
+  public function testDeviceGivesNoPurposeForGoodsAndServices0() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $300 ("goods": "")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message         |'
+    . '\\| 0       | missing purpose |"');
+  }
+
+  // Scenario: Seller agent lacks permission to buy
+  public function testSellerAgentLacksPermissionToBuy0() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member " NEW.ZZA " asks device "codeC" to do this: "pay" "NEW.ZZB" $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message         |'
+    . '\\| 0       | no buy and sell |"');
+  }
+
+  // Scenario: Seller agent lacks permission to sell
+  public function testSellerAgentLacksPermissionToSell0() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member " NEW.ZZA " asks device "codeB" to do this: "charge" "NEW.ZZC" $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message |'
+    . '\\| 0       | no sell |"');
+  }
+
+  // Scenario: A member asks to charge another member
+  public function testAMemberAsksToChargeAnotherMember1() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "charge" "NEW.ZZC" $100 ("goods": "labor")');
+    Then_('we respond success 1 tx_id 4 my_balance 250 other_balance "" and message "report invoice" with subs: "DATA'
+    . '\\| action  | other_name | amount | tid |'
+    . '\\| charged | Corner Pub | $100   | 2   |"');
+    And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
+    . '\\| created | full_name  | other_name | amount | purpose |'
+    . '\\| %today  | Corner Pub | Abe One    | $100   | labor   |"');
+    And__('balances: "DATA'
+    . '\\| id        | balance |'
+    . '\\| community |    -750 |'
+    . '\\| NEW.ZZA   |     250 |'
+    . '\\| NEW.ZZC   |     250 |"');
+  }
+
+  // Scenario: A member asks to pay another member
+  public function testAMemberAsksToPayAnotherMember1() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW.ZZC" $100 ("goods": "groceries")');
+    Then_('we respond success 1 tx_id 4 my_balance 155 other_balance "" and message "report transaction" with subs: "DATA'
+    . '\\| action | other_name | amount | reward_type | reward_amount | balance | tid |'
+    . '\\| paid   | Corner Pub | $100   | rebate      | $5            | $155    | 2   |"');
+    And__('balances: "DATA'
+    . '\\| id        | balance |'
+    . '\\| community |    -765 |'
+    . '\\| NEW.ZZA   |     155 |'
+    . '\\| NEW.ZZC   |     360 |"');
+  }
+
+  // Scenario: A member asks to charge another member unilaterally
+  public function testAMemberAsksToChargeAnotherMemberUnilaterally1() {
+    sceneSetup($this, __FUNCTION__);
+    Given('member "NEW.ZZC" can charge unilaterally');
+    When_('member "NEW.ZZB" asks device "codeC" to do this: "charge" "NEW.ZZA" $100 ("goods": "groceries")');
+    Then_('we respond success 1 tx_id 4 my_balance 360 other_balance 155 and message "report transaction" with subs: "DATA'
+    . '\\| action  | other_name | amount | reward_type | reward_amount | balance | tid |'
+    . '\\| charged | Abe One    | $100   | bonus       | $10           | $360    | 2   |"');
+    And__('we email "new-charge" to member "a@example.com" with subs: "DATA'
+    . '\\| created | full_name | other_name | amount | purpose   |'
+    . '\\| %today  | Abe One   | Corner Pub | $100   | groceries |"');
+    And__('balances: "DATA'
+    . '\\| id        | balance |'
+    . '\\| community |    -765 |'
+    . '\\| NEW.ZZA   |     155 |'
+    . '\\| NEW.ZZC   |     360 |"');
+  }
+
+  // Scenario: A member asks to charge another member unilaterally, with insufficient balance
+  public function testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance1() {
+    sceneSetup($this, __FUNCTION__);
+    Given('member "NEW.ZZC" can charge unilaterally');
+    When_('member "NEW.ZZB" asks device "codeC" to do this: "charge" "NEW.ZZA" $300 ("goods": "groceries")');
+    Then_('we respond success 1 tx_id 4 my_balance 525 other_balance 12.5 and message "report short transaction" with subs: "DATA'
+    . '\\| action  | other_name | amount | short | balance | tid |'
+    . '\\| charged | Abe One    | $250   | $50   | $525    | 2   |"');
+    And__('balances: "DATA'
+    . '\\| id        | balance |'
+    . '\\| community | -787.50 |'
+    . '\\| NEW.ZZA   |   12.50 |'
+    . '\\| NEW.ZZC   |  525.00 |"');
+  }
+
+  // Scenario: A member asks to pay another member, with insufficient balance
+  public function testAMemberAsksToPayAnotherMemberWithInsufficientBalance1() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW.ZZC" $300 ("goods": "groceries")');
+    Then_('we respond success 1 tx_id 4 my_balance 12.5 other_balance "" and message "report short transaction" with subs: "DATA'
+    . '\\| action | other_name | amount | short | balance | tid |'
+    . '\\| paid   | Corner Pub | $250   | $50   | $12.50  | 2   |"');
+    And__('balances: "DATA'
+    . '\\| id        | balance |'
+    . '\\| community | -787.50 |'
+    . '\\| NEW.ZZA   |   12.50 |'
+    . '\\| NEW.ZZC   |  525.00 |"');
+  }
+
+  // Scenario: A member asks to pay self
+  public function testAMemberAsksToPaySelf1() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW.ZZA" $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message         |'
+    . '\\| 0       | no self-trading |"');
+  }
+
+  // Scenario: Device gives no account id
+  public function testDeviceGivesNoAccountId1() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "" $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message            |'
+    . '\\| 0       | missing account id |"');
+  }
+
+  // Scenario: Device gives bad account id
+  public function testDeviceGivesBadAccountId1() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" %whatever $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message        |'
+    . '\\| 0       | bad account id |"');
+  }
+
+  // Scenario: Device gives no amount
+  public function testDeviceGivesNoAmount1() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW.ZZC" $"" ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message        |'
+    . '\\| 0       | missing amount |"');
+  }
+
+  // Scenario: Device gives bad amount
+  public function testDeviceGivesBadAmount1() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW.ZZC" $%whatever ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message    |'
+    . '\\| 0       | bad amount |"');
+  }
+
+  // Scenario: Device gives nonpositive amount
+  public function testDeviceGivesNonpositiveAmount1() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW.ZZC" $-100 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message    |'
+    . '\\| 0       | nonpositive transfer |"');
+  }
+
+  // Scenario: Device gives too big an amount
+  public function testDeviceGivesTooBigAnAmount1() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW.ZZC" $10,000,000 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message    |'
+    . '\\| 0       | nonpositive transfer |"');
+  }
+
+  // Scenario: Device gives no type
+  public function testDeviceGivesNoType1() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "" "NEW.ZZC" $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message                  |'
+    . '\\| 0       | missing transaction type |"');
+  }
+
+  // Scenario: Device gives bad type
+  public function testDeviceGivesBadType1() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZB" asks device "codeA" to do this: %whatever "NEW.ZZC" $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message |'
+    . '\\| 0       | bad transaction type |"');
+  }
+
+  // Scenario: Device gives no purpose for goods and services
+  public function testDeviceGivesNoPurposeForGoodsAndServices1() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW.ZZC" $300 ("goods": "")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message         |'
+    . '\\| 0       | missing purpose |"');
+  }
+
+  // Scenario: Seller agent lacks permission to buy
+  public function testSellerAgentLacksPermissionToBuy1() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member " NEW.ZZA " asks device "codeC" to do this: "pay" "NEW.ZZB" $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message         |'
+    . '\\| 0       | no buy and sell |"');
+  }
+
+  // Scenario: Seller agent lacks permission to sell
+  public function testSellerAgentLacksPermissionToSell1() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member " NEW.ZZA " asks device "codeB" to do this: "charge" "NEW.ZZC" $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message |'
+    . '\\| 0       | no sell |"');
+  }
+
+  // Scenario: A member asks to charge another member
+  public function testAMemberAsksToChargeAnotherMember2() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "charge" "NEW:ZZC" $100 ("goods": "labor")');
+    Then_('we respond success 1 tx_id 4 my_balance 250 other_balance "" and message "report invoice" with subs: "DATA'
+    . '\\| action  | other_name | amount | tid |'
+    . '\\| charged | Corner Pub | $100   | 2   |"');
+    And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
+    . '\\| created | full_name  | other_name | amount | purpose |'
+    . '\\| %today  | Corner Pub | Abe One    | $100   | labor   |"');
+    And__('balances: "DATA'
+    . '\\| id        | balance |'
+    . '\\| community |    -750 |'
+    . '\\| NEW.ZZA   |     250 |'
+    . '\\| NEW.ZZC   |     250 |"');
+  }
+
+  // Scenario: A member asks to pay another member
+  public function testAMemberAsksToPayAnotherMember2() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZC" $100 ("goods": "groceries")');
+    Then_('we respond success 1 tx_id 4 my_balance 155 other_balance "" and message "report transaction" with subs: "DATA'
+    . '\\| action | other_name | amount | reward_type | reward_amount | balance | tid |'
+    . '\\| paid   | Corner Pub | $100   | rebate      | $5            | $155    | 2   |"');
+    And__('balances: "DATA'
+    . '\\| id        | balance |'
+    . '\\| community |    -765 |'
+    . '\\| NEW.ZZA   |     155 |'
+    . '\\| NEW.ZZC   |     360 |"');
+  }
+
+  // Scenario: A member asks to charge another member unilaterally
+  public function testAMemberAsksToChargeAnotherMemberUnilaterally2() {
+    sceneSetup($this, __FUNCTION__);
+    Given('member "NEW.ZZC" can charge unilaterally');
+    When_('member "NEW.ZZC" asks device "codeC" to do this: "charge" "NEW:ZZA" $100 ("goods": "groceries")');
+    Then_('we respond success 1 tx_id 4 my_balance 360 other_balance 155 and message "report transaction" with subs: "DATA'
+    . '\\| action  | other_name | amount | reward_type | reward_amount | balance | tid |'
+    . '\\| charged | Abe One    | $100   | bonus       | $10           | $360    | 2   |"');
+    And__('we email "new-charge" to member "a@example.com" with subs: "DATA'
+    . '\\| created | full_name | other_name | amount | purpose   |'
+    . '\\| %today  | Abe One   | Corner Pub | $100   | groceries |"');
+    And__('balances: "DATA'
+    . '\\| id        | balance |'
+    . '\\| community |    -765 |'
+    . '\\| NEW.ZZA   |     155 |'
+    . '\\| NEW.ZZC   |     360 |"');
+  }
+
+  // Scenario: A member asks to charge another member unilaterally, with insufficient balance
+  public function testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance2() {
+    sceneSetup($this, __FUNCTION__);
+    Given('member "NEW.ZZC" can charge unilaterally');
+    When_('member "NEW.ZZC" asks device "codeC" to do this: "charge" "NEW:ZZA" $300 ("goods": "groceries")');
+    Then_('we respond success 1 tx_id 4 my_balance 525 other_balance 12.5 and message "report short transaction" with subs: "DATA'
+    . '\\| action  | other_name | amount | short | balance | tid |'
+    . '\\| charged | Abe One    | $250   | $50   | $525    | 2   |"');
+    And__('balances: "DATA'
+    . '\\| id        | balance |'
+    . '\\| community | -787.50 |'
+    . '\\| NEW.ZZA   |   12.50 |'
+    . '\\| NEW.ZZC   |  525.00 |"');
+  }
+
+  // Scenario: A member asks to pay another member, with insufficient balance
+  public function testAMemberAsksToPayAnotherMemberWithInsufficientBalance2() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZC" $300 ("goods": "groceries")');
+    Then_('we respond success 1 tx_id 4 my_balance 12.5 other_balance "" and message "report short transaction" with subs: "DATA'
+    . '\\| action | other_name | amount | short | balance | tid |'
+    . '\\| paid   | Corner Pub | $250   | $50   | $12.50  | 2   |"');
+    And__('balances: "DATA'
+    . '\\| id        | balance |'
+    . '\\| community | -787.50 |'
+    . '\\| NEW.ZZA   |   12.50 |'
+    . '\\| NEW.ZZC   |  525.00 |"');
+  }
+
+  // Scenario: A member asks to pay self
+  public function testAMemberAsksToPaySelf2() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZA" $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message         |'
+    . '\\| 0       | no self-trading |"');
+  }
+
+  // Scenario: Device gives no account id
+  public function testDeviceGivesNoAccountId2() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "" $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message            |'
+    . '\\| 0       | missing account id |"');
+  }
+
+  // Scenario: Device gives bad account id
+  public function testDeviceGivesBadAccountId2() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" %whatever $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message        |'
+    . '\\| 0       | bad account id |"');
+  }
+
+  // Scenario: Device gives no amount
+  public function testDeviceGivesNoAmount2() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZC" $"" ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message        |'
+    . '\\| 0       | missing amount |"');
+  }
+
+  // Scenario: Device gives bad amount
+  public function testDeviceGivesBadAmount2() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZC" $%whatever ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message    |'
+    . '\\| 0       | bad amount |"');
+  }
+
+  // Scenario: Device gives nonpositive amount
+  public function testDeviceGivesNonpositiveAmount2() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZC" $-100 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message    |'
+    . '\\| 0       | nonpositive transfer |"');
+  }
+
+  // Scenario: Device gives too big an amount
+  public function testDeviceGivesTooBigAnAmount2() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZC" $10,000,000 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message    |'
+    . '\\| 0       | nonpositive transfer |"');
+  }
+
+  // Scenario: Device gives no type
+  public function testDeviceGivesNoType2() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "" "NEW:ZZC" $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message                  |'
+    . '\\| 0       | missing transaction type |"');
+  }
+
+  // Scenario: Device gives bad type
+  public function testDeviceGivesBadType2() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZA" asks device "codeA" to do this: %whatever "NEW:ZZC" $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message |'
+    . '\\| 0       | bad transaction type |"');
+  }
+
+  // Scenario: Device gives no purpose for goods and services
+  public function testDeviceGivesNoPurposeForGoodsAndServices2() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZC" $300 ("goods": "")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message         |'
+    . '\\| 0       | missing purpose |"');
+  }
+
+  // Scenario: Seller agent lacks permission to buy
+  public function testSellerAgentLacksPermissionToBuy2() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member " NEW.ZZA " asks device "codeC" to do this: "pay" "NEW.ZZB" $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message         |'
+    . '\\| 0       | no buy and sell |"');
+  }
+
+  // Scenario: Seller agent lacks permission to sell
+  public function testSellerAgentLacksPermissionToSell2() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member " NEW.ZZA " asks device "codeB" to do this: "charge" "NEW:ZZC" $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message |'
+    . '\\| 0       | no sell |"');
+  }
+
+  // Scenario: A member asks to charge another member
+  public function testAMemberAsksToChargeAnotherMember3() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "charge" "NEW:ZZC" $100 ("goods": "labor")');
+    Then_('we respond success 1 tx_id 4 my_balance 250 other_balance "" and message "report invoice" with subs: "DATA'
+    . '\\| action  | other_name | amount | tid |'
+    . '\\| charged | Corner Pub | $100   | 2   |"');
+    And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
+    . '\\| created | full_name  | other_name | amount | purpose |'
+    . '\\| %today  | Corner Pub | Abe One    | $100   | labor   |"');
+    And__('balances: "DATA'
+    . '\\| id        | balance |'
+    . '\\| community |    -750 |'
+    . '\\| NEW.ZZA   |     250 |'
+    . '\\| NEW.ZZC   |     250 |"');
+  }
+
+  // Scenario: A member asks to pay another member
+  public function testAMemberAsksToPayAnotherMember3() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW:ZZC" $100 ("goods": "groceries")');
+    Then_('we respond success 1 tx_id 4 my_balance 155 other_balance "" and message "report transaction" with subs: "DATA'
+    . '\\| action | other_name | amount | reward_type | reward_amount | balance | tid |'
+    . '\\| paid   | Corner Pub | $100   | rebate      | $5            | $155    | 2   |"');
+    And__('balances: "DATA'
+    . '\\| id        | balance |'
+    . '\\| community |    -765 |'
+    . '\\| NEW.ZZA   |     155 |'
+    . '\\| NEW.ZZC   |     360 |"');
+  }
+
+  // Scenario: A member asks to charge another member unilaterally
+  public function testAMemberAsksToChargeAnotherMemberUnilaterally3() {
+    sceneSetup($this, __FUNCTION__);
+    Given('member "NEW.ZZC" can charge unilaterally');
+    When_('member "NEW.ZZB" asks device "codeC" to do this: "charge" "NEW:ZZA" $100 ("goods": "groceries")');
+    Then_('we respond success 1 tx_id 4 my_balance 360 other_balance 155 and message "report transaction" with subs: "DATA'
+    . '\\| action  | other_name | amount | reward_type | reward_amount | balance | tid |'
+    . '\\| charged | Abe One    | $100   | bonus       | $10           | $360    | 2   |"');
+    And__('we email "new-charge" to member "a@example.com" with subs: "DATA'
+    . '\\| created | full_name | other_name | amount | purpose   |'
+    . '\\| %today  | Abe One   | Corner Pub | $100   | groceries |"');
+    And__('balances: "DATA'
+    . '\\| id        | balance |'
+    . '\\| community |    -765 |'
+    . '\\| NEW.ZZA   |     155 |'
+    . '\\| NEW.ZZC   |     360 |"');
+  }
+
+  // Scenario: A member asks to charge another member unilaterally, with insufficient balance
+  public function testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance3() {
+    sceneSetup($this, __FUNCTION__);
+    Given('member "NEW.ZZC" can charge unilaterally');
+    When_('member "NEW.ZZB" asks device "codeC" to do this: "charge" "NEW:ZZA" $300 ("goods": "groceries")');
+    Then_('we respond success 1 tx_id 4 my_balance 525 other_balance 12.5 and message "report short transaction" with subs: "DATA'
+    . '\\| action  | other_name | amount | short | balance | tid |'
+    . '\\| charged | Abe One    | $250   | $50   | $525    | 2   |"');
+    And__('balances: "DATA'
+    . '\\| id        | balance |'
+    . '\\| community | -787.50 |'
+    . '\\| NEW.ZZA   |   12.50 |'
+    . '\\| NEW.ZZC   |  525.00 |"');
+  }
+
+  // Scenario: A member asks to pay another member, with insufficient balance
+  public function testAMemberAsksToPayAnotherMemberWithInsufficientBalance3() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW:ZZC" $300 ("goods": "groceries")');
+    Then_('we respond success 1 tx_id 4 my_balance 12.5 other_balance "" and message "report short transaction" with subs: "DATA'
+    . '\\| action | other_name | amount | short | balance | tid |'
+    . '\\| paid   | Corner Pub | $250   | $50   | $12.50  | 2   |"');
+    And__('balances: "DATA'
+    . '\\| id        | balance |'
+    . '\\| community | -787.50 |'
+    . '\\| NEW.ZZA   |   12.50 |'
+    . '\\| NEW.ZZC   |  525.00 |"');
+  }
+
+  // Scenario: A member asks to pay self
+  public function testAMemberAsksToPaySelf3() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW:ZZA" $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message         |'
+    . '\\| 0       | no self-trading |"');
+  }
+
+  // Scenario: Device gives no account id
+  public function testDeviceGivesNoAccountId3() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "" $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message            |'
+    . '\\| 0       | missing account id |"');
+  }
+
+  // Scenario: Device gives bad account id
+  public function testDeviceGivesBadAccountId3() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" %whatever $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message        |'
+    . '\\| 0       | bad account id |"');
+  }
+
+  // Scenario: Device gives no amount
+  public function testDeviceGivesNoAmount3() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW:ZZC" $"" ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message        |'
+    . '\\| 0       | missing amount |"');
+  }
+
+  // Scenario: Device gives bad amount
+  public function testDeviceGivesBadAmount3() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW:ZZC" $%whatever ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message    |'
+    . '\\| 0       | bad amount |"');
+  }
+
+  // Scenario: Device gives nonpositive amount
+  public function testDeviceGivesNonpositiveAmount3() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW:ZZC" $-100 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message    |'
+    . '\\| 0       | nonpositive transfer |"');
+  }
+
+  // Scenario: Device gives too big an amount
+  public function testDeviceGivesTooBigAnAmount3() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW:ZZC" $10,000,000 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message    |'
+    . '\\| 0       | nonpositive transfer |"');
+  }
+
+  // Scenario: Device gives no type
+  public function testDeviceGivesNoType3() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "" "NEW:ZZC" $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message                  |'
+    . '\\| 0       | missing transaction type |"');
+  }
+
+  // Scenario: Device gives bad type
+  public function testDeviceGivesBadType3() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZB" asks device "codeA" to do this: %whatever "NEW:ZZC" $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message |'
+    . '\\| 0       | bad transaction type |"');
+  }
+
+  // Scenario: Device gives no purpose for goods and services
+  public function testDeviceGivesNoPurposeForGoodsAndServices3() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW:ZZC" $300 ("goods": "")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message         |'
+    . '\\| 0       | missing purpose |"');
+  }
+
+  // Scenario: Seller agent lacks permission to buy
+  public function testSellerAgentLacksPermissionToBuy3() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member " NEW.ZZA " asks device "codeC" to do this: "pay" "NEW.ZZB" $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message         |'
+    . '\\| 0       | no buy and sell |"');
+  }
+
+  // Scenario: Seller agent lacks permission to sell
+  public function testSellerAgentLacksPermissionToSell3() {
+    sceneSetup($this, __FUNCTION__);
+    When_('member " NEW.ZZA " asks device "codeB" to do this: "charge" "NEW:ZZC" $300 ("goods": "groceries")');
+    Then_('we respond with: "DATA'
+    . '\\| success | message |'
+    . '\\| 0       | no sell |"');
   }
 
 }

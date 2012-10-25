@@ -29,18 +29,19 @@ $GLOBALS[TX_SMART . ' messages'] = array(
  *   $message: an error message or help message to display on the device; or not set
  */
 function api($args = FALSE) {
-  global $cuid, $channel;
-  $channel = TX_SMART;
+  global $channel; $channel = TX_SMART;
   if (!$args) $args = $_POST;
   u\log('in', $args);
   if (!(@$args = (array) json_decode($args['json']))) return api\error('no json');
+  foreach ($args as $key => $value) $args[$key] = trim($value); // allow some sloppy spaces around each arg
   extract($args, EXTR_PREFIX_ALL, 'q');
   if (@$q_op != 'reset') // DEBUG
   if (@$q_op != 'first_time') {
     if (!@$q_code) return api\error('no code given');
-    if (!($cuid = r\dbLookup('uid', 'r_smarts', 'code=:q_code', compact('q_code')))) return api\error('unknown device');
     if (!u\is_qid($q_my_id)) return api\error('bad id format');
+    if (!($cuid = r\dbLookup('uid', 'r_smarts', 'code=:q_code', compact('q_code')))) return api\error('unknown device');
     if (!($cacct = r\acct($cuid, $q_my_id, $error))) return api\error($error);
+    r\acct::setDefault($cacct);
     if ($cacct->region != r\server_uid()) return api\error('wrong server');
     if ($cacct->agentRegion != r\server_uid()) return api\error('wrong server for agent');
     if (!r\ok_agent($cuid, $cacct->agent)) return api\error('no permission'); // make sure agent has permission
@@ -77,7 +78,7 @@ function first_time($args) {
   require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
   extract($args, EXTR_PREFIX_ALL, 'q');
   if (!u\is_qid(@$q_my_id)) return api\error('bad id');
-  if (!($cacct = r\acct(@$q_my_id))) return api\error('unknown user');
+  if (!($cacct = r\acct(@$q_my_id))) return api\error('unknown member');
   if (@!$q_password) return api\error('login error');
   if (!user_check_password($q_password, $cacct->account())) return api\error('bad login'); // make these two error messages distinct but obscure
   if (!($code = makeDevice(t('Smart Device'), $cacct))) return api\error("can't save device info");
@@ -111,10 +112,10 @@ function startup($args = '') {
  *   other_balance: the current balance of the company if it's a company, otherwise of the individual
  */
 function identify($args) {
-  $cuid = r\cuid();
+  $cuid = r\acct()->id;
   extract($args, EXTR_PREFIX_ALL, 'q');
   $full_name = $q_acct->full_name;
-  if ($q_acct->id == $cuid) return api\error(u\tt('no self-trading'));
+  if ($q_acct->id == $cuid) return api\error('no self-trading');
   $country = $q_acct->country;
 //  $location = $q_acct->city . ', ' . ($country == 'United States' ? u\state_abbrev($q_acct->state) : $country);
   $location = $q_acct->city . ', ' . $q_acct->state . ($country == 'United States' ? '' : ", $country");
@@ -159,13 +160,24 @@ function photo($args) {
  */
 function transact($args) {
   extract($args, EXTR_PREFIX_ALL, 'q');
-  if (!$q_goods) $q_purpose = 'cash'; // tell transfer no rewards
+  if (!@$q_type) return api\error('missing transaction type');
+  if ($q_type != 'pay' and $q_type != 'charge') return api\error('bad transaction type');
+  if (!@$q_account_id) return api\error('missing account id');
+  if (!@$q_acct) return api\error('bad account id');
+  if (!@$q_amount) return api\error('missing amount');
+  if (!is_numeric($q_amount)) return api\error('bad amount');
+  if (@$q_goods and !@$q_purpose) return api\error('missing purpose');
+
+  if ($q_type == 'pay') $q_type = 'payment'; // this is what api\transfer() expects
   list ($index, $subs, $zot) = api\transfer($q_type, $q_acct, $q_amount, $q_purpose, $q_goods, TRUE);
-  $tx_id = r\qxid($subs['zxid']); // return the transaction id as a qid (globally unique transaction id) (':' means As-If)
-  extract(balances($q_acct->id, $subs['real'])); // my_balance, other_balance
+  $success = @$subs['success'] + 0;
+  if ($success) {
+    $tx_id = r\qxid($subs['zxid']); // return the transaction id as a qid (globally unique transaction id) (':' means As-If)
+    extract(balances($q_acct->id, $subs['real'])); // my_balance, other_balance
+  }
   $message = u\tt($index, $subs);
   //if (!@$subs['success'])
-  return compact(u\ray('tx_id my_balance other_balance message'));
+  return compact(u\ray('success tx_id my_balance other_balance message'));
 }
 
 function balances($uid, $real) {
@@ -207,7 +219,7 @@ function undo($params) {
 }
 
 function makeDevice($device, $acct, $code = '') {
-  u\expect(compact('device', 'acct'), 'string&notempty acct');
+  u\EXPECT(compact('device', 'acct'), 'string&notempty acct');
   $uid = $acct->id;
   $code = $code ?: user_hash_password(uniqid($acct->qid, TRUE) . time()) . '/'; // add a slash to make sure slashes get handled properly
   $accessed = time();

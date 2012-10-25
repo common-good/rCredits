@@ -39,6 +39,7 @@ function members($list) {
  * relations: (ARG)
  *
  * in: IdentifyQR - featureSetup MAKE
+ *     Startup - featureSetup MAKE
  *     TransactMemberToMember - featureSetup MAKE
  */
 function relations($relations) {
@@ -103,6 +104,24 @@ function memberAsksDeviceToIdentifyQR($my_id, $code, $account_id) {
  *     Startup - testDeviceOwnerIsNotAMember TEST
  *     Startup - testMemberTypesTheWrongPassword TEST
  *     Startup - testMemberRerunsTheApp TEST
+ *     Startup - testDeviceRequestsABadOp TEST
+ *     Startup - testDeviceGivesNoMemberId TEST
+ *     Startup - testDeviceGivesBadMemberId TEST
+ *     Startup - testDeviceGivesNoCode TEST
+ *     Startup - testDeviceGivesABadCode TEST
+ *     Startup - testAgentDoesNotHavePermission TEST
+ *     TransactMemberToMember - testAMemberAsksToPaySelf TEST
+ *     TransactMemberToMember - testDeviceGivesNoAccountId TEST
+ *     TransactMemberToMember - testDeviceGivesBadAccountId TEST
+ *     TransactMemberToMember - testDeviceGivesNoAmount TEST
+ *     TransactMemberToMember - testDeviceGivesBadAmount TEST
+ *     TransactMemberToMember - testDeviceGivesNonpositiveAmount TEST
+ *     TransactMemberToMember - testDeviceGivesTooBigAnAmount TEST
+ *     TransactMemberToMember - testDeviceGivesNoType TEST
+ *     TransactMemberToMember - testDeviceGivesBadType TEST
+ *     TransactMemberToMember - testDeviceGivesNoPurposeForGoodsAndServices TEST
+ *     TransactMemberToMember - testSellerAgentLacksPermissionToBuy TEST
+ *     TransactMemberToMember - testSellerAgentLacksPermissionToSell TEST
  */
 function weRespondWith($args) {
   global $testOnly;
@@ -194,6 +213,11 @@ function memberInitializesTheDeviceAsMemberWithPassword($my_id, $password) {
  * the app starts up as member (ARG) and code (ARG)
  *
  * in: Startup - testMemberRerunsTheApp MAKE
+ *     Startup - testDeviceGivesNoMemberId MAKE
+ *     Startup - testDeviceGivesBadMemberId MAKE
+ *     Startup - testDeviceGivesNoCode MAKE
+ *     Startup - testDeviceGivesABadCode MAKE
+ *     Startup - testAgentDoesNotHavePermission MAKE
  */
 function theAppStartsUpAsMemberAndCode($my_id, $code) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -203,7 +227,8 @@ function theAppStartsUpAsMemberAndCode($my_id, $code) {
 /**
  * devices: (ARG)
  *
- * in: TransactMemberToMember - featureSetup MAKE
+ * in: Startup - featureSetup MAKE
+ *     TransactMemberToMember - featureSetup MAKE
  */
 function devices($list) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -215,11 +240,11 @@ function devices($list) {
  * balances: (ARG)
  *
  * in: TransactMemberToMember - featureSetup TEST
- *     TransactMemberToMember - testAMemberAsksToChargeAnotherMember TEST
- *     TransactMemberToMember - testAMemberAsksToPayAnotherMember TEST
- *     TransactMemberToMember - testAMemberAsksToChargeAnotherMemberUnilaterally TEST
- *     TransactMemberToMember - testAMemberAsksToChargeAotherMemberUnilaterallyWithInsufficientBalance TEST
- *     TransactMemberToMember - testAMemberAsksToPayAotherMemberWithInsufficientBalance TEST
+ *     TransactMemberToMember - testAMemberAsksToChargeAnotherMember MAKE
+ *     TransactMemberToMember - testAMemberAsksToPayAnotherMember MAKE
+ *     TransactMemberToMember - testAMemberAsksToChargeAnotherMemberUnilaterally MAKE
+ *     TransactMemberToMember - testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance MAKE
+ *     TransactMemberToMember - testAMemberAsksToPayAnotherMemberWithInsufficientBalance MAKE
  */
 function balances($list) {
   global $testOnly;
@@ -233,8 +258,20 @@ function balances($list) {
  * in: TransactMemberToMember - testAMemberAsksToChargeAnotherMember MAKE
  *     TransactMemberToMember - testAMemberAsksToPayAnotherMember MAKE
  *     TransactMemberToMember - testAMemberAsksToChargeAnotherMemberUnilaterally MAKE
- *     TransactMemberToMember - testAMemberAsksToChargeAotherMemberUnilaterallyWithInsufficientBalance MAKE
- *     TransactMemberToMember - testAMemberAsksToPayAotherMemberWithInsufficientBalance MAKE
+ *     TransactMemberToMember - testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance MAKE
+ *     TransactMemberToMember - testAMemberAsksToPayAnotherMemberWithInsufficientBalance MAKE
+ *     TransactMemberToMember - testAMemberAsksToPaySelf MAKE
+ *     TransactMemberToMember - testDeviceGivesNoAccountId MAKE
+ *     TransactMemberToMember - testDeviceGivesBadAccountId MAKE
+ *     TransactMemberToMember - testDeviceGivesNoAmount MAKE
+ *     TransactMemberToMember - testDeviceGivesBadAmount MAKE
+ *     TransactMemberToMember - testDeviceGivesNonpositiveAmount MAKE
+ *     TransactMemberToMember - testDeviceGivesTooBigAnAmount MAKE
+ *     TransactMemberToMember - testDeviceGivesNoType MAKE
+ *     TransactMemberToMember - testDeviceGivesBadType MAKE
+ *     TransactMemberToMember - testDeviceGivesNoPurposeForGoodsAndServices MAKE
+ *     TransactMemberToMember - testSellerAgentLacksPermissionToBuy MAKE
+ *     TransactMemberToMember - testSellerAgentLacksPermissionToSell MAKE
  */
 function memberAsksDeviceToDoThis($my_id, $code, $type, $account_id, $amount, $goods, $purpose) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -248,8 +285,8 @@ function memberAsksDeviceToDoThis($my_id, $code, $type, $account_id, $amount, $g
  * in: TransactMemberToMember - testAMemberAsksToChargeAnotherMember TEST
  *     TransactMemberToMember - testAMemberAsksToPayAnotherMember TEST
  *     TransactMemberToMember - testAMemberAsksToChargeAnotherMemberUnilaterally TEST
- *     TransactMemberToMember - testAMemberAsksToChargeAotherMemberUnilaterallyWithInsufficientBalance TEST
- *     TransactMemberToMember - testAMemberAsksToPayAotherMemberWithInsufficientBalance TEST
+ *     TransactMemberToMember - testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance TEST
+ *     TransactMemberToMember - testAMemberAsksToPayAnotherMemberWithInsufficientBalance TEST
  */
 function weRespondSuccessTxidMybalanceOtherbalanceAndMessageWithSubs($success, $tx_id, $my_balance, $other_balance, $message, $subs) {
   global $testOnly;
@@ -261,8 +298,8 @@ function weRespondSuccessTxidMybalanceOtherbalanceAndMessageWithSubs($success, $
 /**
  * we email (ARG) to member (ARG) with subs: (ARG)
  *
- * in: TransactMemberToMember - testAMemberAsksToChargeAnotherMember TEST
- *     TransactMemberToMember - testAMemberAsksToChargeAnotherMemberUnilaterally TEST
+ * in: TransactMemberToMember - testAMemberAsksToChargeAnotherMember MAKE
+ *     TransactMemberToMember - testAMemberAsksToChargeAnotherMemberUnilaterally MAKE
  */
 function weEmailToMemberWithSubs($key, $email, $subs) {
   global $testOnly;
@@ -273,9 +310,19 @@ function weEmailToMemberWithSubs($key, $email, $subs) {
  * member (ARG) can charge unilaterally
  *
  * in: TransactMemberToMember - testAMemberAsksToChargeAnotherMemberUnilaterally MAKE
- *     TransactMemberToMember - testAMemberAsksToChargeAotherMemberUnilaterallyWithInsufficientBalance MAKE
+ *     TransactMemberToMember - testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance MAKE
  */
 function memberCanChargeUnilaterally($id) {
   global $testOnly; if ($testOnly) return FALSE;
   return r\acct($id)->setBit(BIT_CHARGE);
+}
+
+/**
+ * the app requests op (ARG) as member (ARG) and code (ARG)
+ *
+ * in: Startup - testDeviceRequestsABadOp MAKE
+ */
+function theAppRequestsOpAsMemberAndCode($arg1, $arg2, $arg3) {
+  global $testOnly;
+  todo;
 }

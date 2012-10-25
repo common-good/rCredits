@@ -52,7 +52,7 @@ use rCredits\API as api;
 
 define('R_MIN_BUYS', 3); // you can't be an rTrader unless you have at least this many places to spend
 define('R_MAX_SCORE', 12); // any more places to spend is effectively the same: enough
-
+define('IS_RTRADER', '(u.flags&' . BIT_RTRADER . ')');
 /**
  * Bump members up to rTrader status, as appropriate.
  * @todo: do something with the results of identify_rtraders (show some statistics?)
@@ -72,14 +72,8 @@ function grow() {
  * @todo: include individuals with income in candidates -- get this from r_asif
  */
 function identify_rtraders($old_rtraders, $candidates) {
-  $old_rtraders = db_q('SELECT DISTINCT uid FROM users_roles WHERE rid=:R_ROLE_RTRADER')->fetchCol();
-//  $candidates = db_q('SELECT u.uid FROM users u LEFT JOIN users_roles r ON r.uid=u.uid WHERE r.rid IS NULL')->fetchCol();
-  $sql = <<<EOF
-    SELECT e.main_uid AS company 
-    FROM r_relations e LEFT JOIN users_roles r ON r.uid=e.company 
-    WHERE e.is_employee NOT (r.rid<=>:R_ROLE_RTRADER)
-EOF;
-  $candidates = db_q($sql)->fetchCol();
+  $old_rtraders = db_q('SELECT u.uid FROM users u WHERE :IS_RTRADER')->fetchCol();
+  $candidates = db_q('SELECT u.uid FROM users u WHERE u.account_type<>:R_PERSONAL AND NOT :IS_RTRADER')->fetchCol();
   return array($old_rtraders, $candidates);
 }
 
@@ -90,15 +84,24 @@ EOF;
  * @todo: also copy non-company earners to the temp table (get from r_asif)
  */
 function best_new_rtraders($target) {
-
+  // NEW (10/24/2012)
+  // Create a table of candidates
+  $sql = <<<EOF
+    TRUNCATE r_candidates
+    INSERT INTO r_candidates
+    SELECT u.uid, (u.account_type<>:R_PERSONAL) AS is_company
+    FROM users u
+    WHERE NOT :IS_RTRADER
+EOF;
+    /*
   $sql = <<<EOF
     TRUNCATE r_employs_temp;
     INSERT INTO r_employs_temp
     SELECT e.reid AS eid, e.main_uid AS company, e.agent_uid AS employee, (s.rid<=>:R_ROLE_RTRADER) AS employee_is_rtrader 
-    FROM (r_relations e LEFT JOIN users_roles r ON r.uid=e.main_uid) 
-    LEFT JOIN users_roles s ON s.uid=e.agent_uid
-    WHERE e.is_employee AND NOT (r.rid<=>:R_ROLE_RTRADER)
+    FROM (r_relations e LEFT JOIN users u ON u.uid=e.main_uid) 
+    WHERE e.is_employee AND NOT :IS_RTRADER
 EOF;
+*/
   r\do_q($sql); // copy only the non-rTrader company records to temp table
   
   // handle clumps here
@@ -122,6 +125,7 @@ EOF;
 }
 
 function promote($uid) {
+// remember to delete the promoted candidates from r_candidates
   $results = r\do_q("SELECT employee FROM r_employs_temp WHERE company=$uid")->fetchColumn();
   $results[] = $uid;
   $nubes = count($results);
@@ -136,32 +140,48 @@ function promote($uid) {
  * Score
  */
 function scores() {
+  // First add unemployed people to r_employs_temp (eg people with rental income) -- treat them as self-employed
+  // Count number of rTrader places that each candidate ASIF buys (to eliminate those that buy from too few places)
+  // Include pending ASIF transactions because that gives the information about intent
+  $count_sql = <<<EOF
+    SELECT COUNT(DISTINCT a.payee)
+    FROM (r_asif a INNER JOIN r_candidates c ON c.uid=a.payer)
+    LEFT JOIN users u ON u.uid=a.payee
+    GROUP BY c.uid
+    WHERE a.goods
+    AND a.state IN (:TX_DONE, :TX_PENDING)
+    AND :IS_RTRADER
+EOF;
+/*
   $count_sql = <<<EOF
     SELECT COUNT(DISTINCT a.payee)
     FROM (r_asif a INNER JOIN r_employs_temp e ON e.employee=a.payer)
-    INNER JOIN users_roles r ON r.uid=a.payee
+    LEFT JOIN users u ON u.uid=a.payee
     GROUP BY e.employee
     WHERE a.type=:TX_TRANSFER 
     AND a.goods
     AND a.state IN (:TX_DONE, :TX_PENDING)
     AND NOT e.employee_is_rtrader
-    AND r.rid=:R_ROLE_RTRADER
+    AND :IS_RTRADER
 EOF;
+*/
   r\do_q("UPDATE r_employs_temp SET ignore=IF(($count_sql) < :R_MIN_BUYS, 1, 0)"); // mark ineligible non-rTrader employees
 
+  // Eliminate companies that buy from too few places
   $eligible_employees_sql = 'SELECT employee FROM r_employs_temp f WHERE f.company=e.company AND NOT ignore';
   $count_sql = <<<EOF
-    SELECT e.company, COUNT(DISTINCT a.payee) as count
+    SELECT COUNT(DISTINCT a.payee) as count
     FROM (r_asif a INNER JOIN r_employs_temp e ON e.company=a.payer)
-    INNER JOIN users_roles r ON r.uid=a.payee
+    INNER JOIN users u ON u.uid=a.payee
     GROUP BY e.company
     WHERE a.type=:TX_TRANSFER 
     AND a.goods
     AND a.state IN (:TX_DONE, :TX_PENDING)
-    AND (r.rid=:R_ROLE_RTRADER OR a.payee IN ($eligible_employees_sql)
+    AND (:IS_RTRADER OR a.payee IN ($eligible_employees_sql)
 EOF;
   r\do_q("UPDATE r_employs_temp SET ignore=1 WHERE ($count_sql) < :R_MIN_BUYS"); // mark ineligible companies
   
+  // Find out how many places each rTrader can ALREADY spend
   // might want to INSERT these into a temp table for efficiency (rather than reusing the SQL, below)
   $rTrader_scores_sql = <<<EOF
     SELECT t.payer, MIN(:R_MAX_SCORE, COUNT(DISTINCT t.payee)) as count
@@ -174,6 +194,8 @@ EOF;
 //  sort($baseline); // worst score first (that's the one we most want to improve)
   $base_score = score($baseline); // probably no use for this but good for statistics
   
+  // For each number of places that rTraders already spend (3, 4, etc):
+  // For each candidate, count the number of rTraders in that spending group that would buy from them
   $sql = <<<EOF
     TRUNCATE r_scores;
     INSERT INTO r_scores
@@ -188,6 +210,9 @@ EOF;
     AND NOT e.ignore
 EOF;
 
+  // Score each candidate, giving the most points for benefiting the low-count rTrader groups
+  // That is, give the highest score to the candidate companies that would provide the most opportunity to spend,
+  // to the rTraders who currently have the fewest places to spend
   $total_score = 'SUM(score * POWER(:R_MAX_SCORE, :R_MAX_SCORE/2 - count))';
   $sql = "SELECT company, $total_score AS total_score FROM r_scores GROUP BY company ORDER BY total_score DESC";
   return r\do_q($sql)->fetchAllKeyed(0, 1); // total score for each company

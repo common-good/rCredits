@@ -29,10 +29,6 @@
  *  qxid: a qid (8 characters or more) reprersenting a zxid (: means a negative zxid)
  *  quid: a qid (7 characters or more) representing a uid acting as its own agent (. separator) OR an reid (: separator)
  *
- * Globals:
- *   cuid: current account id  
- *   cacct: the current account
- *
  * @todo: change zxid to a class. $tx->xid, table, real
  * @todo
  * - handling employees (virtual payments). This should probably be extended to suppliers too,
@@ -81,10 +77,6 @@
 namespace rCredits; // typically abbreviated as "r"
 use rCredits\Util as u;
 use rCredits\API as api;
-
-include_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
-include_once __DIR__ . '/acct.class';
-include_once __DIR__ . '/rcredits-circles.inc'; // treat this as an extension of this file, for testing
 
 define('R_SEPARATE_BACKEND', FALSE);
 define('R_TEMP_NAME_PREFIX', 'unknown ');
@@ -146,6 +138,10 @@ $GLOBALS['email_subjects'] = array(
   'charge-disputed' => t('rCredits Charge DISPUTED by {OTHER_NAME}'),
 );
 
+include_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
+include_once __DIR__ . '/acct.class';
+include_once __DIR__ . '/rcredits-circles.inc'; // treat this as an extension of this file, for testing
+
 /**
  * Format and return args for reporting a transaction (old or new)
  * Not all returned args are used for any particular type of transaction.
@@ -156,11 +152,10 @@ $GLOBALS['email_subjects'] = array(
  * @return assoc array of args
  */
 function tx_report_args($tx, $get_balance = 0, $shortfall = 0) {
-  global $cuid;
   extract($tx); // any or all standard transaction fields
   if ($data) if ($data = unserialize($data)) extract($data, EXTR_PREFIX_ALL, 'data');
   
-  $to_me = ($payee == $cuid);
+  $to_me = ($payee == acct()->id);
   $role = $to_me ? 'payee' : 'payer';
   list ($purpose, $other_purpose) = u\order($to_me, $payee_for, $payer_for);
   $tofrom = $to_me ? t('from') : t('to');
@@ -266,7 +261,7 @@ function transaction_setup($info) {
   global $channel; // through what medium was the transaction requested (web, SMS, etc.).
   extract($info, EXTR_PREFIX_ALL, 'my');
   $required_params = compact(u\prefix_values('my_', u\ray('amount payer payee payer_agent payee_agent for taking')));
-  u\expect($required_params, 'float zid zid zid zid notempty bool');
+  u\EXPECT($required_params, 'float zid zid zid zid notempty bool');
 
   if (!isset($my_state)) $state = TX_DONE;
   if (!isset($my_goods)) $goods = FALSE; // set TRUE only in api\transfer()
@@ -309,10 +304,9 @@ function shortfall($uid, $requested_amount, $preapproved, $real) {
 }
 
 function pay_employees($amount0, $for, $confirmed) {
-  global $cuid;
   $employees = employees();
   if (empty($employees)) return array('no employees', array(), array());
-  if ($shortfall = shortfall($cuid, $amount0, TRUE, is_rTrader())) {
+  if ($shortfall = shortfall(acct()->id, $amount0, TRUE, is_rTrader())) {
      $short = u\format_amount($shortfall);
      return array('short payment', compact('short'), FALSE); // no partial payment of employees
   }
@@ -343,7 +337,7 @@ function notify($uid, $message_index, $info) {
     'full_name' => @$my_full_name ?: t('rCredits Member'),
     'email' => $my_mail, // testing uses this
   );
-  if ($uid != cuid()) $standard_fields['other_name'] = user_field('full_name'); // this comes in backwards if notifying elseone
+  if ($uid != acct()->id) $standard_fields['other_name'] = user_field('full_name'); // this comes in backwards if notifying elseone
   
   $subs = array();
   foreach (array_merge($info, $standard_fields) as $key => $value) $subs['{' . strtoupper($key) . '}'] = $value;
@@ -377,8 +371,8 @@ function temp_name($info) {
  * @param bool $all_related: set all related transactions too (default FALSE)
  */
 function set_tx_field($field_name, $new_value, $zxid, $all_related = FALSE) {
-  global $cuid;
-  u\expect(compact(u\ray('field_name zxid all_related')), 'name zid bool');
+  $cuid = acct()->id;
+  u\EXPECT(compact(u\ray('field_name zxid all_related')), 'name zid bool');
   
   list ($xid, $table) = azxid($zxid);
   $crit = "xid=:xid and $cuid in (payer, payee)"; // "$cuid in" is a security measure
@@ -402,9 +396,9 @@ function set_tx_field($field_name, $new_value, $zxid, $all_related = FALSE) {
  * @return 1 (for counting how many were merged)
  */
 function merge_accounts($old_uid) {
-  $new_uid = cuid();
+  $new_uid = acct()->id;
   if (!api\is_temp_account($old_uid)) return; // don't merge non-temp account
-  u\expect(api\access('manage account'), "unauthorized merge_accounts: $new_uid into $old_uid");
+  u\EXPECT(api\access('manage account'), "unauthorized merge_accounts: $new_uid into $old_uid");
 //  if (!is_temp_name(user_field('name', $old_uid))) die('merging non-temp account');
   // there are no other records for temporary accounts, than those below
 
@@ -455,8 +449,7 @@ function reset() {
  * @return: the real table name if the one user or both users (if specified) are rTraders, otherwise the asif table name
  */
 function zxs($uid1 = 'cuid', $uid2 = '') {
-  global $cuid;
-  if ($uid1 == 'cuid') $uid1 = $cuid;
+  if ($uid1 == 'cuid') $uid1 = acct()->id;
   $real = ($uid1 >= 0 and $uid1 < 1) ? (2 * $uid1) : (is_rTrader($uid1) and is_rTrader($uid2)); // $real < 1 means boolean
   return $real ? 'r_txs' : 'r_asif';
 }
@@ -466,7 +459,7 @@ function zxs($uid1 = 'cuid', $uid2 = '') {
  * @params array $subs: optional substitutions -- keys will be prefixed by ':'
  */
 function dbLookup($field_name, $table_name, $criteria = '1', $subs = array()) {
-  u\expect(compact(u\ray('field_name table_name criteria subs')), 'notempty notempty notempty assoc');
+  u\EXPECT(compact(u\ray('field_name table_name criteria subs')), 'notempty notempty notempty assoc');
   $sql = "SELECT $field_name FROM $table_name WHERE $criteria";
   if (!strpos($criteria, ' LIMIT ')) $criteria .= ' LIMIT 1';
   $result = db_q($sql, $subs);
@@ -499,8 +492,6 @@ function azid($qid) {
   return array($type == '.' ? $id : -$id, server_uid($region_id ?: R_SERVER_ID));
 }
   
-function cuid() {global $cuid; return @$cuid + 0;} // current account (may be zero, if not logged in)
-
 /**
  * Convert ruid to quid
  * Call by:
@@ -585,7 +576,7 @@ function unique_name($full_name) {
  * Return a list of employee accts for the current account.
  */
 function employees() {
-  global $cuid;
+  $cuid = acct()->id;
   $result = db_q('SELECT agent_uid, foreign_uid FROM r_relations WHERE main_uid=:cuid AND is_employee', compact('cuid'));
   $accts = array();
   foreach ($result as $key => $one) {
@@ -602,8 +593,7 @@ function employees() {
  *   an associative array of the field data, if more than one field is requested
  */
 function user_field($field, $who = 'none', $subs = array()) {
-  global $cuid;
-  if ($who == 'none') $who = $cuid;
+  if ($who == 'none') $who = acct()->id;
   if (!$who) return FALSE;
   if (is_numeric($uid = $who) and !strpos($field, '(')) { // handle numbered accounts efficiently
     if (!($acct = acct($uid))) return FALSE;
@@ -619,8 +609,8 @@ function user_field($field, $who = 'none', $subs = array()) {
 //  debug(compact(u\ray('field who subs')));
   $result = api\get_records('users', is_numeric($who) ? "uid=$who" : $who, $subs, $field, TRUE);
   if (count($result) < 1) return FALSE;
-  u\expect(count($result) == 1, "ambiguous user in user_field(): $who");
-  u\expect(is_object($result[0]), 'bad object array in user_field(): ' . print_r($result, 1));
+  u\EXPECT(count($result) == 1, "ambiguous user in user_field(): $who");
+  u\EXPECT(is_object($result[0]), 'bad object array in user_field(): ' . print_r($result, 1));
   return strpos($field, ',') ? ((array) $result[0]) : $result[0]->$field;
 }
 
@@ -637,7 +627,7 @@ function user_update($info, $uid = '') {
  * @todo: maybe move the processing of zxs to a wrapper function db_txq() that also does postprocessing on fetchAssoc()
  */
 function db_q($sql, $subs = array(), $die = FALSE) {
-  u\expect(compact(u\ray('sql subs')), 'notempty assoc');
+  u\EXPECT(compact(u\ray('sql subs')), 'notempty assoc');
   if (strpos($sql, '{zxs}')) {
     extract($subs, EXTR_PREFIX_ALL, 'my');
     if (@$my_zxid) {
@@ -673,6 +663,6 @@ function total_demand() {return dbLookup('SUM(demand)', 'users');}
 function server_uid($region_id = '') {return -u\a2n($region_id ?: R_SERVER_ID);}
 function reid($main_uid, $agent_uid) {return dbLookup('reid', 'r_relations', 'main_uid=:main_uid AND agent_uid=:agent_uid', compact(u\ray('main_uid agent_uid')));}
 function ok_agent($uid, $agent_uid) {return ($uid == $agent_uid or reid($uid, $agent_uid));}
-function is_rTrader($uid = '') {return (user_field('flags', $uid ?: cuid()) & BIT_RTRADER);}
+function is_rTrader($uid = '') {return (user_field('flags', $uid ?: acct()->id) & BIT_RTRADER);}
 function email_template($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}
 function email_body($key) {return str_replace('{BODY}', email_template($key), email_template(R_EMAIL_FRAME));}

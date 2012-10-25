@@ -1,0 +1,42 @@
+Feature: Errors
+AS a member or a device
+I WANT to be protected from goofups
+SO I can buy and sell stuff securely.
+
+Setup:
+  Given members:
+  | id      | full_name  | phone  | email         | city  | state  | country       | 
+  | NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | Alaska | United States |
+  | NEW.ZZB | Bea Two    | +20002 | b@example.com | Btown | Utah   | United States |
+  | NEW.ZZC | Corner Pub | +20003 | c@example.com | Ctown | Corse  | France        |
+  And devices:
+  | id      | code  |
+  | NEW.ZZA | codeA |
+  | NEW.ZZC | codeC |
+  And relations:
+  | id      | main    | agent   | permission   |
+  | NEW:ZZA | NEW.ZZC | NEW.ZZB | buy and sell |
+  | NEW:ZZB | NEW.ZZC | NEW.ZZA | sell         |
+  And transactions: 
+  | created   | type       | amount | from      | to      | purpose | taking |
+  | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |
+  | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZB | signup  | 0      |
+  | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZC | signup  | 0      |
+  Then balances:
+  | id        | balance |
+  | community |    -750 |
+  | NEW.ZZA   |     250 |
+  | NEW.ZZB   |     250 |
+  | NEW.ZZC   |     250 |
+
+Scenario: Bad op
+Scenario: Bad 
+Scenario: Bad op
+Scenario: Bad op
+Scenario: Bad op
+Scenario: Bad op
+Scenario: Bad op
+Scenario: Bad op
+Scenario: Bad op
+Scenario: Bad op
+Scenario: Bad op

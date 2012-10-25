@@ -201,7 +201,7 @@ function format_phone($phone, $how = '') {
  * Return the array with its keys prefixed by the given string
  */
 function prefix_keys($prefix, $array) {
-  expect(compact('prefix', 'array'), 'string array');
+  EXPECT(compact('prefix', 'array'), 'string array');
   if ($prefix == '') return $array;
   $new_array = array();
   foreach ($array as $key => $value) $new_array[$prefix . $key] = $value;
@@ -256,7 +256,7 @@ function tt($message, $subs = array()) {
         }
       }
     }
-// NO (use raw message instead)   expect(@$model, "missing message '$message'"); 
+// NO (use raw message instead)   EXPECT(@$model, "missing message '$message'"); 
     if (@$model) $messages[$i] = strtr($model, prefix_keys('@', $subs));
   }
   return join(' ', $messages);
@@ -347,8 +347,8 @@ function get_constants($string, $prefix = ':') {
  * Assert an expectation or check parameters for validity
  * Throw an Exception if the expectation is not met.
  * call by:
- *   expect($assertion, $message, $ret)
- *   expect($args, $types, $ret) OR
+ *   EXPECT($assertion, $message, $ret)
+ *   EXPECT($args, $types, $ret) OR
  * @param boolean $assertion: a statement to assert
  * @param string $message: message to display if assertion is FALSE
  *
@@ -358,28 +358,32 @@ function get_constants($string, $prefix = ':') {
  *
  * @param bool $ret: return the error message rather than throwing it
  * @return string (if $ret is TRUE): an error message or '' (no error)
+ * This function name is capitalized so that it stands apart from the actual code.
+ * Best practice: don't put any functional code in the EXPECT call (eg don't do EXPECT($i = function($blue)) )
  */
-function expect($assertion, $message = '', $ret = FALSE) {
+function EXPECT($assertion, $message = '', $ret = FALSE) {
   if (is_array($assertion)) {
     list ($args, $types) = array($assertion, $message); // for clarity
-//    expect(compact(ray('args types')), 'assoc string'); // can't do this because infinite recursion
+//    EXPECT(compact(ray('args types')), 'assoc string'); // can't do this because infinite recursion
 //if (strpos($types, '|')) {debug(array_keys($args)); debug($types);}
+//    EXPECT(count($args) != count($types = explode(' ', $types)), 'wrong number of types expected'); // infinite recursion
+//    if(count($args) != count($types = explode(' ', $types))) die('wrong number of types expected: ' . print_r(debug_backtrace(), 1));
     $types = array_combine(array_keys($args), explode(' ', $types)); // not ray() here, $types may have '|'
     foreach ($args as $key => $value) if ($error = expect1($key, $value, $types[$key], $ret)) return $error;
   } elseif (!$assertion) {
     if ($ret) return $message; else throw new \Exception($message);
-//    expect(compact(ray('assertion message')), 'bool string&notempty'); // can't do this because infinite recursion
+//    EXPECT(compact(ray('assertion message')), 'bool string&notempty'); // can't do this because infinite recursion
   }
   return ''; // no error
 }  
 
 function expect1($arg, $value, $type, $ret) {
-//  expect(compact(ray('arg type')), 'name string'); // can't do this because infinite recursion
+//  EXPECT(compact(ray('arg type')), 'name string'); // can't do this because infinite recursion
 
   $msg = "Expected \$$arg ('" . print_r($value, 1) . "') to be type '$type'.";
   if (strpos($type, '|')) {
     foreach (explode('|', $type) as $one) if (expect1($arg, $value, $one, TRUE) == '') return '';
-    expect(FALSE, $msg);
+    EXPECT(FALSE, $msg);
   }
   if (strpos($type, '&')) {
     foreach (explode('&', $type) as $one) if ($error = expect1($arg, $value, $one, $ret)) return $error;
@@ -387,25 +391,25 @@ function expect1($arg, $value, $type, $ret) {
   }
   
   switch ($type) {
-    case 'array': return expect(is_array($value), $msg, $ret);
+    case 'array': return EXPECT(is_array($value), $msg, $ret);
     case 'assoc': 
-      if ($msg2 = expect(is_array($value), $msg, $ret)) return $msg2;
+      if ($msg2 = EXPECT(is_array($value), $msg, $ret)) return $msg2;
       foreach ($value as $key => $one) expect1("$arg key", $key, 'name', $ret);
       return;
-    case 'bool': return expect(is_bool($value), $msg, $ret);
-    case 'email': return expect(valid_email_address($value), $msg, $ret);
-    case 'empty': return expect(empty($value), $msg, $ret);
-    case 'float': return expect(my_float($value), $msg, $ret); // don't use is_float()?
-    case 'id': return expect(is_id($value), $msg, $ret);
-    case 'int': return expect(my_int($value), $msg, $ret); // don't use is_int()
-    case 'name': return expect(is_name($value), $msg, $ret);
-    case 'notempty': return expect(!empty($value), $msg, $ret);
-    case 'notnull': return expect(!is_null($value), $msg, $ret);
-    case 'qid': return expect(is_qid($value), $msg, $ret);
-//    case 'ruid': return expect(is_ruid($value), $msg, $ret);
-    case 'string': return expect(is_string($value), $msg, $ret);
-    case 'zid': return expect(is_zid($value), $msg, $ret);
-    default: return expect(is_object($value) and get_class($value) == "rCredits\\$type", $msg, $ret);
+    case 'bool': return EXPECT(is_bool($value), $msg, $ret);
+    case 'email': return EXPECT(valid_email_address($value), $msg, $ret);
+    case 'empty': return EXPECT(empty($value), $msg, $ret);
+    case 'float': return EXPECT(my_float($value), $msg, $ret); // don't use is_float()?
+    case 'id': return EXPECT(is_id($value), $msg, $ret);
+    case 'int': return EXPECT(my_int($value), $msg, $ret); // don't use is_int()
+    case 'name': return EXPECT(is_name($value), $msg, $ret);
+    case 'notempty': return EXPECT(!empty($value), $msg, $ret);
+    case 'notnull': return EXPECT(!is_null($value), $msg, $ret);
+    case 'qid': return EXPECT(is_qid($value), $msg, $ret);
+//    case 'ruid': return EXPECT(is_ruid($value), $msg, $ret);
+    case 'string': return EXPECT(is_string($value), $msg, $ret);
+    case 'zid': return EXPECT(is_zid($value), $msg, $ret);
+    default: return EXPECT(is_object($value) and get_class($value) == "rCredits\\$type", $msg, $ret);
   }
   throw new \Exception("bad type \"$type\" ($msg)");
 }
@@ -423,7 +427,8 @@ function expect1($arg, $value, $type, $ret) {
  * @return the log record id (for exception handler and shutdown function)
  */  
 function log($type, $info, $special = '') {
-  global $channel, $cuid;
+  global $channel;
+  $cuid = @r\acct()->id;
   $agent = @r\acct()->agent;
   $log_filename = @$channel ? "$channel.log" : 'rcredits.log';
   $date = strftime('%d-%b-%Y', time());

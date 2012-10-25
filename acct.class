@@ -57,8 +57,11 @@ class acct {
           if (\drupal_write_record('users', $info)) break;
         }
       } elseif (!\drupal_write_record('users', $info)) $try == 20;
-      u\expect(@$try < 20, 'failed to save user record');
-      if (isset($my_number)) u\expect(SMS\create($my_number, $uid), 'Unable to create SMS record.');
+      u\EXPECT(@$try < 20, 'failed to save user record');
+      if (isset($my_number)) {
+        $success = SMS\create($my_number, $uid);
+        u\EXPECT($success, 'Unable to create SMS record.');
+      }
       /*** End DBTX ***/ unset($dbtx);
 
       $region = server_uid();
@@ -72,21 +75,21 @@ class acct {
   /**
    * Setup acct variables, returning FALSE on error.
    */
-  public static function ok($id, $agent0='', &$error='', $test = TRUE) {
-    if ($error = u\expect(compact(u\ray('id agent0')), 'zid|qid|assoc empty|id|qid', $test)) return FALSE;
-    if ($error = u\expect((bool) $id, 'null uid in new acct()', $test)) return FALSE;
-    if ($error = u\expect(!(strpos($id, ':') and $agent0), 'agent already specified in qid', $test)) return FALSE;
-    list ($id, $agent, $region) = u\is_id($id) ? array($id, $agent0 ?: $id, server_uid()) : UAR($id); // handle
-    
+  public static function ok($id0, $agent0='', &$error='', $test = TRUE) {
+    if ($error = u\EXPECT(compact(u\ray('id0 agent0')), 'zid|qid|assoc empty|id|qid', $test)) return FALSE;
+    if ($error = u\EXPECT((bool) $id0, 'null uid in new acct()', $test)) return FALSE;
+    if ($error = u\EXPECT(!(strpos($id0, ':') and $agent0), 'agent already specified in qid', $test)) return FALSE;
+    list ($id, $agent, $region) = u\is_id($id0) ? array($id0, $agent0 ?: $id0, server_uid()) : UAR($id0); // handle
+
     if (u\is_qid($agent0)) {
       list ($agent, $zot, $agentRegion) = UAR($agent0);
-      if ($error = u\expect($agent == $zot, 'agent agent not allowed', $test)) return FALSE;
+      if ($error = u\EXPECT($agent == $zot, 'agent agent not allowed', $test)) return FALSE;
     } else $agentRegion = server_uid();
 
     $record = self::getRecord($id, $region);
-    if ($error = u\expect($record, "Account record $id does not exist in the database.", $test)) return FALSE;
+    if ($error = u\EXPECT($record, u\tt('not an account'), $test)) return FALSE;
     self::$records[$id] = $record;
-    u\expect($id and $agent and $region and $agentRegion, "Missing acct property: [$id, $agent, $region, $agentRegion]");
+    u\EXPECT($id and $agent and $region and $agentRegion, "Missing acct property: [$id, $agent, $region, $agentRegion]");
     return array($id, $agent, $region, $agentRegion);
   }
   
@@ -104,8 +107,8 @@ class acct {
   public function reread() {self::getRecord($this->id, $this->region, TRUE);}
   
   public function __get($field) {
-    u\expect((bool) self::$records, "Record has not been set up for uid $this->id");
-//    u\expect(property_exists(self::$records[$this->id], $field), "bad field for uid $this->id: $field" . print_r(self::$records[$this->id], 1));
+    u\EXPECT((bool) self::$records, "Record has not been set up for uid $this->id");
+//    u\EXPECT(property_exists(self::$records[$this->id], $field), "bad field for uid $this->id: $field" . print_r(self::$records[$this->id], 1));
     return @self::$records[$this->id]->$field;
   }
   public function account() {return self::$records[$this->id];}
@@ -129,6 +132,7 @@ class acct {
     $flags = ($this->flags | $bit);
     return $this->update(compact('flags'));
   }
+  public static function setDefault($acct) {global $cacct; $cacct = $acct;}
 }
 
 /**
@@ -138,8 +142,7 @@ class acct {
  */
 
 function UAR($quid = '', $no_abbrev = TRUE) {
-  global $cuid;
-  if (!$quid) return array($cuid, acct()->agent, server_uid());
+  if (!$quid) return array(acct()->id, acct()->agent, server_uid());
   if (!u\is_qid($quid) and !$no_abbrev) $quid = R_SERVER_ID . $quid;
   if (!u\is_qid($quid)) return FALSE;
 
@@ -153,8 +156,11 @@ function UAR($quid = '', $no_abbrev = TRUE) {
 }
 
 function acct($uid = '', $agent = '', &$error = '') {
-  global $cuid;
-  if (!($uid = $uid ?: @$cuid)) {$error = 'There is no current account.'; return FALSE;}
+  global $cacct; // use this ONLY in this class file
+  if (!$uid) {
+    if (!$cacct) {$error = 'There is no current account.'; return FALSE;}
+    return $cacct;
+  }
   if (!acct::ok($uid, $agent, $error)) return FALSE;
   return new acct($uid, $agent);
 }

@@ -112,9 +112,9 @@ function handy_links() {
     'rcredits/util/test?rSMS|Test rSMS|',
     'rcredits/util/test?rSmart|Test rSmart|',
     'rcredits/util/test?rWeb|Test rWeb|',
-    "$test_path/gherkin/compile.php?rcredits/rsms|Compile rSMS|",
-    "$test_path/gherkin/compile.php?rcredits/rsmart|Compile rSmart|",
-    "$test_path/gherkin/compile.php?rcredits/rweb|Compile rWeb|",
+    "$test_path/gherkin/compile.php?module=rcredits/rsms&return=1|Compile rSMS|",
+    "$test_path/gherkin/compile.php?module=rcredits/rsmart&return=1|Compile rSmart|",
+    "$test_path/gherkin/compile.php?module=rcredits/rweb&return=1|Compile rWeb|",
     'sms|Simulate an SMS transaction|Simulate SMS',
     'admin/config/development/testing|Test|Test',
     'deletetests.php|Delete old tests|Delete old tests',
@@ -359,7 +359,7 @@ function account_form($form, &$form_state) {
   $form['account']['title'] = form_field('item', t('Account Information'), '', array('weight' => -99));
   $form['submit'] = form_field('submit', '', '', array('value' => t('Save'), 'weight' => 99));
   $form['#user_category'] = 'account';
-  u\expect($form['#validate'][0] == 'user_account_form_validate', 'wrong account form validator');
+  u\EXPECT($form['#validate'][0] == 'user_account_form_validate', 'wrong account form validator');
   $form['#validate'][0] = 'rCredits\\Web\\account_form_validate'; // use ours instead
   
   return $form;
@@ -395,7 +395,7 @@ function account_form_submit($form, &$form_state) {
  * appears above the whole Members Section
  */
 function accounts_form($form, &$form_state) {
-  $cuid = r\cuid();
+  $cuid = r\acct()->id;
   if (!($accounts = api\account_choices())) return FALSE;
   $choices = array();
   foreach ($accounts as $uid => $zot) {
@@ -419,9 +419,7 @@ function accounts_form($form, &$form_state) {
 
 function accounts_form_submit($form, &$form_state) {
   extract($form_state['values']);
-//  $old_uid = r\cuid();
   svar('cuid', $account_account); // this gets checked ONLY in setup_globals()
-//  if (api\access('can create transactions', $old_uid) != api\access('can create transactions', $account_account)) menu_rebuild();
 }
 
 /**
@@ -604,7 +602,7 @@ function buy_now_form_submit($form, &$form_state) {
  * @todo: validate amount
  */
 function exchange_form($form, &$form_state) {
-  $cuid = r\cuid();
+  $cuid = r\acct()->id;
   if ($confirm = sure_form($form_state)) return $confirm; // confirm only getUSD
   $request = u\format_amount(r\user_field('demand', $cuid));
   $demand = api\credit_info()->fancy['total_demand'];
@@ -624,7 +622,7 @@ function exchange_form($form, &$form_state) {
 }
 
 function exchange_form_validate($form, &$form_state) {
-  $cuid = r\cuid();
+  $cuid = r\acct()->id;
   if (confirming_v($form_state)) return;
 
   extract($form_state['values']);
@@ -635,7 +633,7 @@ function exchange_form_validate($form, &$form_state) {
 }
 
 function exchange_form_submit($form, &$form_state) {
-  $cuid = r\cuid();
+  $cuid = r\acct()->id;
   if (confirming_s($form_state)) return;
 
   extract($form_state['values']);
@@ -748,7 +746,7 @@ function bank_form_submit($form, &$form_state) {
  * Give someone access to the current account or mark them as an employee or owner.
  */
 function relations_form($form, &$form_state) {
-  $cuid = r\cuid();
+  $cuid = r\acct()->id;
   if ($confirm = sure_form($form_state)) return $confirm; // confirm only getUSD
   $account_identifiers = api\account_name($cuid);
   $header = u\ray('Person,Employee?,Owner?,Permission');
@@ -816,7 +814,7 @@ EOF;
 }
 
 function relations_form_validate($form, &$form_state) {
-  $cuid = r\cuid();
+  $cuid = r\acct()->id;
   extract($form_state['values']);
   if (confirming_v($form_state)) return;
   
@@ -832,9 +830,8 @@ function relations_form_validate($form, &$form_state) {
 }
 
 function relations_form_submit($form, &$form_state) {
-  $cuid = r\cuid();
+  $main_uid = r\acct()->id;
   if (confirming_s($form_state)) return;
-  $main_uid = $cuid;
   
   extract($form_state['values']);
   $original = $form_state['original_settings'];
@@ -858,25 +855,13 @@ function relations_form_submit($form, &$form_state) {
     }
   }
   if (!empty($changes)) \drupal_set_message(api\update_relations($changes));
-  
-/*
-  $permission = $GLOBALS['share permissions'][$change_permission];
-  foreach ($shares as $key => $uid) if ($uid) {
-    $agent_uid = substr($uid, 1); // ignore the leading 'x'
-    $where = "WHERE agent_uid=:agent_uid AND main_uid=:main_uid LIMIT 1";
-    if ($change_permission) {
-      r\db_q("UPDATE r_relations SET permission=:change_permission $where", compact(u\ray('agent_uid main_uid change_permission')));
-    } else r\db_q("DELETE FROM r_relations $where", compact(u\ray('agent_uid main_uid')));
-    $account_name = r\user_field('full_name', $agent_uid);
-    say('report share change', compact(u\ray('account_name permission')));
-  }*/
 }
 
 /**
  * @todo: focus on code input
  */
 function cell_form($form, &$form_state) {
-  $cuid = r\cuid();
+  $cuid = r\acct()->id;
   if ($confirm = sure_form($form_state)) return $confirm; // confirm only deletion
   if (form_step($form_state, $info) == 'prove') {
     $number = u\format_phone($form_state['storage']['values']['number']);
@@ -912,7 +897,7 @@ function cell_form($form, &$form_state) {
 }
 
 function cell_form_validate($form, &$form_state) {
-  $cuid = r\cuid();
+  $cuid = r\acct()->id;
   if (confirming_v($form_state)) return;
   extract($form_state['values']);
 
@@ -1108,7 +1093,7 @@ function login_followup($edit) {
 }
 
 function directory_form($form, &$form_state) {
-  $cuid = r\cuid();
+  $cuid = r\acct()->id;
   $which = svar('which_companies') ?: '';
   $region = svar('region') ?: substr(r\user_field('postal_code', $cuid), 0, 3);
   
@@ -1177,8 +1162,8 @@ EOF;
 }
 
 function company_form($form, &$form_state) {
-  global $cuid;
   $cacct = r\acct();
+  $cuid = $cacct->id;
   $my_description = $cacct->description;
   
   $cats = r\db_q('SELECT iid, industry FROM r_industries ORDER BY industry')->fetchAllKeyed();
@@ -1209,7 +1194,7 @@ function company_form_validate($form, &$form_state) {
 }
 
 function company_form_submit($form, &$form_state) {
-  $cuid = r\cuid();
+  $cuid = r\acct()->id;
   extract($form_state['values']);
 //  $description = \check_markup($description['value']);
   $description = $description['value'];
@@ -1225,15 +1210,6 @@ function company_form_submit($form, &$form_state) {
   //*** End DBTX
   say('info saved');
 }
-
-/*
-function basic_account_info() {
-  $cuid = r\cuid();
-  global $base_url;
-  $link_text = t('Click here to edit your Basic Account Info');
-  return form_field('item', "<a href='$base_url/user/$cuid/edit'>$link_text</a>" . t(' (including email and profile picture)'));
-}
-*/
 
 function button($text, $href = '', $title = '', $type = '') {
   $title = htmlspecialchars($title);
@@ -1421,7 +1397,7 @@ function whois($who, $field_name, $info, $create = TRUE, $allow_ALL, $self_messa
  * @return confirmation message (FALSE if confirmation not appropriate -- Note that say() returns FALSE)
  */
 function transfer($info, $confirmed) {
-  $cuid = r\cuid();
+  $cuid = r\acct()->id;
   extract($info);
   $tx_type = $op == 'Pay' ? 'payment' : 'charge';
   if (blank_field(compact(u\ray('who amount')))) return FALSE;
@@ -1523,10 +1499,11 @@ function say($index, $args = array(), $error_field = '') {
 }
 
 function setup_globals() {
-  global $cuid, $user, $channel;
+  global $user, $channel;
+  if (@$channel) return; // already setup
   $agent = @$user->uid;
   $cuid = svar('cuid') ?: $agent;
-  r\acct($cuid, $agent); // set the agent
+  r\acct::setDefault(r\acct($cuid, $agent)); // set default for r\acct()
   $channel = TX_WEB;
 }
 
@@ -1544,6 +1521,6 @@ function disabled($value) {return array('value' => $value, 'disabled' => TRUE);}
 function dft($default_value) {return compact('default_value');}
 function weight($weight) {return compact('weight');}
 function attrib($attribs) {return array('attributes' => $attribs);}
-function autocomplete($path) {return array('autocomplete_path' => "autocomplete/$path/" . r\cuid());}
+function autocomplete($path) {return array('autocomplete_path' => "autocomplete/$path/" . r\acct()->id);}
 function required() {return array('required' => TRUE);}
 // UNUSED function check($array, $type = 'plain') {return array_map("check_$type", $array);} // Check an array for plain or markup.

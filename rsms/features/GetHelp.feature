@@ -47,6 +47,6 @@ Scenario: Account does not exist
   Given phone %number1 is a member
   And ".ZZZ" is not an account id
   When phone %number1 says "100 to .ZZZ"
-  Then we say to phone %number1 "unknown user" with subs:
+  Then we say to phone %number1 "unknown member" with subs:
   | who  |
   | .ZZZ |

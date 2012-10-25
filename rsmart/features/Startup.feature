@@ -11,6 +11,14 @@ Setup:
   Given members:
   | id      | full_name  | phone  | email         |
   | NEW.ZZA | Abe One    | +20001 | a@example.com |
+  | NEW.ZZB | Bea Two    | +20002 | b@example.com |
+  | NEW.ZZC | Corner Pub | +20003 | c@example.com |
+  And devices:
+  | id      | code  |
+  | NEW.ZZA | codeA |
+  And relations:
+  | id      | main    | agent   | permissions  |
+  | NEW:ZZA | NEW.ZZC | NEW.ZZB |              |
 
 Scenario: Member logs in successfully to initialize device
   Given member "NEW.ZZA" password is %whatever1
@@ -34,10 +42,10 @@ Scenario: Device owner is not a member
   When member initializes the device as member "NEW.ZZZ" with password %whatever1
   Then we respond with:
   | success | message      |
-  | 0       | unknown user |
+  | 0       | unknown member |
   
 Scenario: Member types the wrong password
-  When member initializes the device as member "NEW.ZZA" with password %whatever
+  When member initializes the device as member "NEW.ZZA" with password %random
   Then we respond with:
   | success | message   |
   | 0       | bad login |
@@ -53,3 +61,39 @@ Scenario: Member reruns the app
 #allow_change_account=TRUE or FALSE
 #allow_change_agent=TRUE or FALSE
 #require_agent=TRUE or FALSE
+
+Scenario: Device requests a bad op
+  When the app requests op %random as member "NEW.ZZA" and code "codeA"
+  Then we respond with:
+  | success | message    |
+  | 0       | unknown op |
+
+Scenario: Device gives no member id
+  When the app starts up as member "" and code "codeA"
+  Then we respond with:
+  | success | message       |
+  | 0       | bad id format |
+  
+Scenario: Device gives bad member id
+  When the app starts up as member %random and code "codeA"
+  Then we respond with:
+  | success | message        |
+  | 0       | not an account |
+  
+Scenario: Device gives no code
+  When the app starts up as member "NEW.ZZA" and code ""
+  Then we respond with:
+  | success | message |
+  | 0       | no code |
+  
+Scenario: Device gives a bad code
+  When the app starts up as member "NEW.ZZA" and code %random
+  Then we respond with:
+  | success | message        |
+  | 0       | unknown device |
+
+Scenario: Agent does not have permission
+  When the app starts up as member "NEW:ZZA" and code "codeA"
+  Then we respond with:
+  | success | message       |
+  | 0       | no permission |
