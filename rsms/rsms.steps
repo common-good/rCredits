@@ -22,6 +22,32 @@ require_once __DIR__ . '/../rcredits.inc';
 require_once __DIR__ . '/../rcredits-testing.inc';
 
 /**
+ * Add additional setup for any or all features or tests
+ * The feature object contains information about the current feature and test, etc.
+ */
+function extra_setup($feature) {
+global $sms_devel; $sms_devel = TRUE;
+r\db_q('DELETE FROM users WHERE uid>1000');
+r\db_q('DELETE FROM r_sms');
+r\db_q('DELETE FROM r_asif');
+r\db_q('DELETE FROM r_txs');
+r\db_q('DELETE FROM r_relations');
+
+if (!function_exists('multiline_tweak')) {function multiline_tweak(&$line) {
+  $line = str_replace('%last_quid', r\quid(r\acct::nextId() - 1), $line);
+}}
+
+r\acct::_clear(); // empty the acct cache
+}
+
+/**
+ * Modify the standard list of magic substitutions (the %parameters)
+ */
+function extra_subs(&$subs) {
+//  $subs['%replace_this'] = 'with this';
+}
+
+/**
  * phone (ARG) has no account
  *
  * in: OpenAnAccountForTheCaller - testATotalNewbieCalls MAKE

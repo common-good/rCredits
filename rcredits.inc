@@ -29,6 +29,8 @@
  *  qxid: a qid (8 characters or more) reprersenting a zxid (: means a negative zxid)
  *  quid: a qid (7 characters or more) representing a uid acting as its own agent (. separator) OR an reid (: separator)
  *
+ * @todo: on successful web request for rCredits, say you will have to Dwolla us $20, to actually be added to the waiting list.
+ * @todo: allow surrounding spaces on all web input, leading dollar signs in amounts.
  * @todo: change zxid to a class. $tx->xid, table, real
  * @todo
  * - handling employees (virtual payments). This should probably be extended to suppliers too,
@@ -94,11 +96,13 @@ define('R_BANK_VERIFIED', 1); // we have proof that the user owns the bank accou
 
 // Account types
 define('R_PERSONAL', 0);
-
 $GLOBALS['account types'] = array(t('personal'), t('commercial'), t('non-profit'));
+
+// Relationship permissions
+define('BIT_SELL', 2);
 $GLOBALS['share permissions'] = array('no access', 'read transactions', 'sell', 'buy and sell', 'manage account');
 
-// Permissions and flags
+// Permissions and flags (flags field in account record)
 define('BIT_PARTNER', 1); // signed the membership agreement and donated
 define('BIT_STEWARD', 2); // is allowed to vote and is responsible for stewarding the Common Good Community
 define('BIT_RTRADER', 4); // is allowed to use rCredits for real
@@ -109,7 +113,7 @@ define('BIT_ADMIN', 32768); // is an administrator (not yet implemented)
 define('TX_STATES', 'deleted done pending disputed denied');
 
 define('TX_DELETED', 0);
-define('TX_DONE', 1); // here and up, the transaction counts
+define('TX_DONE', 1);
 define('TX_PENDING', 2); // charged, waiting for confirmation
 define('TX_DISPUTED', 3); // unilaterally charged, but disputed by the payer (the charge stands, until settled)
 define('TX_DENIED', 4); // invoice rejected by the non-originator
@@ -624,6 +628,25 @@ function user_update($info, $uid = '') {
 }
 
 /**
+ * Return the relationship record id for the given account and agent
+ * but only if the specified permission applies
+ * @param int $main_uid: the account id
+ * @param int $agent_uid: the agent account id
+ * @param int/string $permission: the minimum numeric permission OR "owner" OR "employee"
+ * @return int: the record id in r_relations
+ */
+function reid($main_uid, $agent_uid, $permission = '') {
+  $permission = 
+      (is_numeric($permission) ? " AND permission>=$permission"
+    : ($permission ? " AND is_$permission"
+    : ('')));
+    
+  $crit = 'main_uid=:main_uid AND agent_uid=:agent_uid' . $permission;
+  debug(compact('main_uid','agent_uid','permission','crit'));
+  return dbLookup('reid', 'r_relations', $crit, compact(u\ray('main_uid agent_uid')));
+}
+
+/**
  * @todo: maybe move the processing of zxs to a wrapper function db_txq() that also does postprocessing on fetchAssoc()
  */
 function db_q($sql, $subs = array(), $die = FALSE) {
@@ -661,7 +684,6 @@ function bonus($uid, $amount = 1) {return rebate($uid, 2 * $amount);}
 function set_tx_state($new_value, $zserial) {set_tx_field('state', $new_value, $zserial, TRUE);}
 function total_demand() {return dbLookup('SUM(demand)', 'users');}
 function server_uid($region_id = '') {return -u\a2n($region_id ?: R_SERVER_ID);}
-function reid($main_uid, $agent_uid) {return dbLookup('reid', 'r_relations', 'main_uid=:main_uid AND agent_uid=:agent_uid', compact(u\ray('main_uid agent_uid')));}
 function ok_agent($uid, $agent_uid) {return ($uid == $agent_uid or reid($uid, $agent_uid));}
 function is_rTrader($uid = '') {return (user_field('flags', $uid ?: acct()->id) & BIT_RTRADER);}
 function email_template($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}

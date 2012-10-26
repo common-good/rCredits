@@ -14,15 +14,3 @@
 
 use rCredits as r;
 
-global $sms_devel; $sms_devel = TRUE;
-r\db_q('DELETE FROM users WHERE uid>1000');
-r\db_q('DELETE FROM r_sms');
-r\db_q('DELETE FROM r_asif');
-r\db_q('DELETE FROM r_txs');
-r\db_q('DELETE FROM r_relations');
-
-if (!function_exists('multiline_tweak')) {function multiline_tweak(&$line) {
-  $line = str_replace('%last_quid', r\quid(r\acct::nextId() - 1), $line);
-}}
-
-r\acct::_clear(); // empty the acct cache

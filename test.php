@@ -17,9 +17,9 @@ function doModule($module) {
 
   $path = __DIR__ . "/$module"; // relative path from compiler to module directory
   // SMS: OpenAnAccountForTheCaller AbbreviationsWork ExchangeForCash GetHelp GetInformation Transact Undo OfferToExchangeUSDollarsForRCredits
-  // Smart: Startup IdentifyQR TransactMemberToMember TransactMemberToAgent TransactAgentToMember TransactAgentToAgent Undo
+  // Smart: Startup IdentifyQR Transact UndoCompleted
   $tests = str_replace("$path/features/", '', str_replace('.feature', '', findFiles("$path/features", '/.*\.feature/')));
-  $tests = array('TransactMemberToMember'); // uncomment to run just one feature (test set)
+  $tests = array('Startup'); // uncomment to run just one feature (test set)
 //  $oneScene = 'testMemMemSellerAgentLacksPermissionToBuy0'; // uncomment to run just one test scenario
 //  $oneVariant = 0; // uncomment to focus on a single variant (usually 0)
 

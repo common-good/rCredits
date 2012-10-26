@@ -1,0 +1,113 @@
+<?php
+//
+// Feature: Undo Completed Transaction
+//   AS a player
+//   I WANT to undo a transaction recently completed on my account
+//   SO I can easily correct a mistake
+//   
+//   Summary:
+//   A member asks to undo a completed payment
+//   A member confirms request to undo a completed payment
+//   A member asks to undo a completed charge
+//   A member confirms request to undo a completed charge
+//   A member asks to undo a completed cash payment
+//   A member confirms request to undo a completed cash payment
+//   A member asks to undo a completed cash charge
+//   A member confirms request to undo a completed cash charge
+//   
+//   
+
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rsmart.steps';
+
+class rsmartUndoCompleted extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
+  var $currentTest;
+  var $variant;
+  const SHORT_NAME = 'UndoCompleted';
+  const FEATURE_NAME = 'rsmart Test - UndoCompleted';
+  const DESCRIPTION = 'Undo Completed Transaction';
+  const MODULE = 'rsmart';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);
+  }
+  
+  public static function getInfo() {
+    return array(
+      'short_name' => self::SHORT_NAME,
+      'name' => self::FEATURE_NAME,
+      'description' => self::DESCRIPTION,
+      'group' => ucwords(self::MODULE)
+    );
+  }
+
+  public function setUp() { // especially, enable any modules required for the tests
+    parent::setUp(self::MODULE);
+    if (function_exists('extra_setup')) extra_setup($this); // defined in rsmart.steps
+    sceneSetup($this, __FUNCTION__);
+
+    switch ($this->variant) {
+    default: // fall through to case(0)
+    case(0):
+    Given('members: "DATA'
+    . '\\| id      | full_name  | phone  | email         | city  | state  | country       |'
+    . '\\| NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | Alaska | United States |'
+    . '\\| NEW.ZZB | Bea Two    | +20002 | b@example.com | Btown | Utah   | United States |'
+    . '\\| NEW.ZZC | Corner Pub | +20003 | c@example.com | Ctown | Corse  | France        |"');
+    And__('devices: "DATA'
+    . '\\| id      | code  |'
+    . '\\| NEW.ZZA | codeA |'
+    . '\\| NEW.ZZB | codeB |'
+    . '\\| NEW.ZZC | codeC |"');
+    And__('relations: "DATA'
+    . '\\| id      | main    | agent   | permission   |'
+    . '\\| NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell |'
+    . '\\| NEW:ZZB | NEW.ZZB | NEW.ZZA |              |'
+    . '\\| NEW:ZZC | NEW.ZZC | NEW.ZZB | buy and sell |'
+    . '\\| NEW:ZZD | NEW.ZZC | NEW.ZZA | sell         |"');
+    And__('transactions: "DATA'
+    . '\\| tx_id    | created   | type         | state       | amount | from      | to      | purpose      | taking |'
+    . '\\| NEW.AAAB | %today-7m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZA | signup       | 0      |'
+    . '\\| NEW.AAAC | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZB | signup       | 0      |'
+    . '\\| NEW.AAAD | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZC | signup       | 0      |'
+    . '\\| NEW.AAAE | %today-2m | %TX_TRANSFER | %TX_DONE    |  11.11 | NEW.ZZB   | NEW.ZZA | cash taken   | 1      |'
+    . '\\| NEW.AAAF | %today-3w | %TX_TRANSFER | %TX_DONE    |  22.22 | NEW.ZZC   | NEW.ZZA | usd taken    | 1      |'
+    . '\\| NEW.AAAG | %today-3d | %TX_TRANSFER | %TX_DONE    |  33.33 | NEW.ZZA   | NEW.ZZB | whatever43   | 0      |'
+    . '\\| NEW.AAAH | %today-3d | %TX_REBATE   | %TX_DONE    |   1.67 | community | NEW.ZZA | rebate on #4 | 0      |'
+    . '\\| NEW.AAAI | %today-3d | %TX_BONUS    | %TX_DONE    |   3.33 | community | NEW.ZZB | bonus on #3  | 0      |'
+    . '\\| NEW.AAAJ | %today-2d | %TX_TRANSFER | %TX_DONE    |  44.44 | NEW.ZZB   | NEW.ZZC | cash given   | 0      |'
+    . '\\| NEW.AAAK | %today-1d | %TX_TRANSFER | %TX_DONE    |  55.55 | NEW.ZZA   | NEW.ZZC | whatever54   | 0      |'
+    . '\\| NEW.AAAL | %today-1d | %TX_REBATE   | %TX_DONE    |   2.78 | community | NEW.ZZA | rebate on #5 | 0      |'
+    . '\\| NEW.AAAM | %today-1d | %TX_BONUS    | %TX_DONE    |   5.56 | community | NEW.ZZC | bonus on #4  | 0      |"');
+    Then_('balances: "DATA'
+    . '\\| id        | balance |'
+    . '\\| community | -763.34 |'
+    . '\\| NEW.ZZA   |  198.90 |'
+    . '\\| NEW.ZZB   |  231.11 |'
+    . '\\| NEW.ZZC   |  333.33 |"');
+    break;
+
+
+    }
+  }
+
+  // Scenario: A member asks to undo a completed payment
+  public function testAMemberAsksToUndoACompletedPayment0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAN", with the request "unconfirmed"');
+    Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
+    . '\\| created   | amount | tofrom  | other_name | purpose    |'
+    . '\\| %today-1d | $55.55 | to      | Corner Pub | whatever43 |"');
+  }
+
+  // Scenario: A member confirms request to undo a completed payment
+  public function testAMemberConfirmsRequestToUndoACompletedPayment0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "", with the request "confirmed"');
+    Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
+    . '\\| created   | amount | tofrom  | other_name | purpose    |'
+    . '\\| %today-1d | $55.55 | to      | Corner Pub | whatever43 |"');
+  }
+
+}

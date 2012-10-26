@@ -93,6 +93,9 @@ form#rcreditswebaccount-form div.form-type-radio label {display:block;}*/
 /* Exchange form (labeled) */
 /* #rcreditswebexchange-form div#edit-request label {font-weight:normal; text-align:left; margin-left:100px; width:100%} */
 #rcreditswebexchange-form input#edit-getusd {margin-left:50px;}
+#rcreditswebexchange-form div#edit-subtext {margin-left:0px; width:450px;}
+#rcreditswebexchange-form div#edit-subtext div.r-explain {text-align:left; margin-left:80px;}
+#rcreditswebexchange-form div#edit-subtext div.r-amounts {text-align:right; margin-right:70px;}
 
 /* Transaction Summary Table */
 #txsum, #txsum-title, #txs-title {width:550px; margin:0px;} /* outline:2px solid darkgreen;} */

@@ -1,16 +1,9 @@
-Feature: Transact Pro Se
+Feature: Transact
 AS a member
-I WANT to (acting on my own behalf) transfer rCredits to or from another member (acting on their own behalf)
+I WANT to transfer rCredits to or from another member (acting on their own behalf)
 SO I can buy and sell stuff.
-# We will need additional feature files for agent to member, member to agent, and agent to agent
-# We will eventually need separate feature files for neighbor (member of different community within the region) to member, etc.
+# We will eventually need variants or separate feature files for neighbor (member of different community within the region) to member, etc.
 # And foreigner (member on a different server) to member, etc.
-
-Variants:
-  | "NEW.ZZA" asks device "codeA" | "NEW.ZZC" asks device "codeC" | "NEW.ZZA" $ | "NEW.ZZC" $ |
-  | "NEW.ZZB" asks device "codeA" | "NEW.ZZB" asks device "codeC" | "NEW.ZZA" $ | "NEW.ZZC" $ |
-  | "NEW.ZZA" asks device "codeA" | "NEW.ZZC" asks device "codeC" | "NEW:ZZA" $ | "NEW:ZZC" $ |
-  | "NEW.ZZB" asks device "codeA" | "NEW.ZZB" asks device "codeC" | "NEW:ZZA" $ | "NEW:ZZC" $ |
 
 Setup:
   Given members:
@@ -40,6 +33,12 @@ Setup:
   | NEW.ZZA   |     250 |
   | NEW.ZZB   |     250 |
   | NEW.ZZC   |     250 |
+
+Variants:
+  | "NEW.ZZA" asks device "codeA" | "NEW.ZZC" asks device "codeC" | "NEW.ZZA" $ | "NEW.ZZC" $ | # member to member (pro se) |
+  | "NEW.ZZB" asks device "codeA" | "NEW.ZZB" asks device "codeC" | "NEW.ZZA" $ | "NEW.ZZC" $ | # agent to member           |
+  | "NEW.ZZA" asks device "codeA" | "NEW.ZZC" asks device "codeC" | "NEW:ZZA" $ | "NEW:ZZC" $ | # member to agent           |
+  | "NEW.ZZB" asks device "codeA" | "NEW.ZZB" asks device "codeC" | "NEW:ZZA" $ | "NEW:ZZC" $ | # agent to agent            |
 
 Scenario: A member asks to charge another member
   When member "NEW.ZZA" asks device "codeA" to do this: "charge" "NEW.ZZC" $100 ("goods": "labor")

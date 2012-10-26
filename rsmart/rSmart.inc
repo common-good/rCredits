@@ -44,7 +44,8 @@ function api($args = FALSE) {
     r\acct::setDefault($cacct);
     if ($cacct->region != r\server_uid()) return api\error('wrong server');
     if ($cacct->agentRegion != r\server_uid()) return api\error('wrong server for agent');
-    if (!r\ok_agent($cuid, $cacct->agent)) return api\error('no permission'); // make sure agent has permission
+    debug(BIT_SELL);
+    if (!r\ok_agent($cuid, $cacct->agent, BIT_SELL)) return api\error('no permission'); // make sure agent has at least sell permission
     $args['cacct'] = $cacct;
     $edit = array('code' => $q_code, 'accessed' => time());
     \drupal_write_record('r_smarts', $edit, 'code'); // so we can drop the deadwood

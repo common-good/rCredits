@@ -49,7 +49,7 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'bad nonce' => t('That is not the right verification code. Try again (start over).'),
   'no such company' => t('There is no such company.'),
   'op canceled' => t('Operation Canceled.'),
-  'request & demand' => t('Your standing request for rCredits is <b>@request</b><br>Total demand for rCredits overall is <b>@demand</b>'),
+  'request & demand' => t('<div class="r-explain">There is a waiting list, to get more rCredits. You will receive an email when your turn comes around.<br><br>Meanwhile, you can get $20 worth of rCredits, as an advance.</div><br><div class="r-amounts">Your current order for rCredits is <b>@request</b><br>Total demand for rCredits overall is <b>@demand</b></div>'),
   'demand not yet' => t('You will be notified when there are some rCredits for you to buy with US Dollars.'),
   'confirm delete cell' => t('Are you sure you want to remove the selected cell phones from this account?'),
   'already related' => t('That person is already related to this account. If you want to change the settings, find this person in the list and change the settings on that row.'),

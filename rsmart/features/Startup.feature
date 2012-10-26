@@ -18,7 +18,7 @@ Setup:
   | NEW.ZZA | codeA |
   And relations:
   | id      | main    | agent   | permissions  |
-  | NEW:ZZA | NEW.ZZC | NEW.ZZB |              |
+  | NEW:ZZA | NEW.ZZA | NEW.ZZB |              |
 
 Scenario: Member logs in successfully to initialize device
   Given member "NEW.ZZA" password is %whatever1
@@ -41,7 +41,7 @@ Scenario: Member initializes with an ill-formed id
 Scenario: Device owner is not a member
   When member initializes the device as member "NEW.ZZZ" with password %whatever1
   Then we respond with:
-  | success | message      |
+  | success | message        |
   | 0       | unknown member |
   
 Scenario: Member types the wrong password
@@ -77,14 +77,14 @@ Scenario: Device gives no member id
 Scenario: Device gives bad member id
   When the app starts up as member %random and code "codeA"
   Then we respond with:
-  | success | message        |
-  | 0       | not an account |
+  | success | message       |
+  | 0       | bad id format |
   
 Scenario: Device gives no code
   When the app starts up as member "NEW.ZZA" and code ""
   Then we respond with:
-  | success | message |
-  | 0       | no code |
+  | success | message       |
+  | 0       | no code given |
   
 Scenario: Device gives a bad code
   When the app starts up as member "NEW.ZZA" and code %random
@@ -93,7 +93,7 @@ Scenario: Device gives a bad code
   | 0       | unknown device |
 
 Scenario: Agent does not have permission
-  When the app starts up as member "NEW:ZZA" and code "codeA"
+  When the app starts up as member "NEW.ZZB" and code "codeA"
   Then we respond with:
   | success | message       |
   | 0       | no permission |

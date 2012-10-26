@@ -12,3 +12,6 @@ files[] = tests/IdentifyQR.test
 files[] = tests/Startup.test
 files[] = tests/Transact.test
 files[] = tests/TransactMemberToMember.test
+files[] = tests/Undo.test
+files[] = tests/UndoCompleted.test
+files[] = tests/UndoPending.test
