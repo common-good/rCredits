@@ -4,14 +4,15 @@
 //   AS a newbie
 //   I WANT to try rCredits
 //   SO I can decide whether I want to participate.
-//   
 
 require_once __DIR__ . '/../../../gherkin/test-defs.php';
 require_once __DIR__ . '/../rsms.steps';
 
 class rsmsOpenAnAccountForTheCaller extends DrupalWebTestCase {
-  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
   var $currentTest;
+  var $variant;
+  const SHORT_NAME = 'OpenAnAccountForTheCaller';
   const FEATURE_NAME = 'rsms Test - OpenAnAccountForTheCaller';
   const DESCRIPTION = 'Open an account for the caller';
   const MODULE = 'rsms';
@@ -21,77 +22,23 @@ class rsmsOpenAnAccountForTheCaller extends DrupalWebTestCase {
   }
   
   public static function getInfo() {
-    return array('name' => self::FEATURE_NAME, 'description' => self::DESCRIPTION, 'group' => ucwords(self::MODULE));
+    return array(
+      'short_name' => self::SHORT_NAME,
+      'name' => self::FEATURE_NAME,
+      'description' => self::DESCRIPTION,
+      'group' => ucwords(self::MODULE)
+    );
   }
 
   public function setUp() { // especially, enable any modules required for the tests
     parent::setUp(self::MODULE);
-    $setup_filename = __DIR__ . '/../' . self::MODULE . '-testSetup.inc';
-    if (file_exists($setup_filename)) include $setup_filename;
-
-  }
-
-  // Scenario: A total newbie calls
-  public function testATotalNewbieCalls() {
+    if (function_exists('extra_setup')) extra_setup($this); // defined in rsms.steps
     sceneSetup($this, __FUNCTION__);
-    Given('phone %number1 has no account');
-    When_('phone %number1 says %whatever');
-    Then_('phone %number1 has an account');
-    And__('we say to phone %number1 "what\'s your name?"');
-  }
 
-  // Scenario: A nameless newbie calls
-  public function testANamelessNewbieCalls() {
-    sceneSetup($this, __FUNCTION__);
-    Given('phone %number1 has an account');
-    And__('phone %number1 has no name');
-    And__('phone %number1 is not waiting to "setup name"');
-    When_('phone %number1 says %random');
-    Then_('we say to phone %number1 "what\'s your name?"');
-    And__('phone %number1 is waiting to "setup name"');
-  }
+    switch ($this->variant) {
+    default: // fall through to case(0)
 
-  // Scenario: The newbie gives us his or her name
-  public function testTheNewbieGivesUsHisOrHerName() {
-    sceneSetup($this, __FUNCTION__);
-    Given('phone %number1 is waiting to "setup name"');
-    When_('phone %number1 says "Jo Smith"');
-    Then_('phone %number1 account name is "Jo Smith"');
-    And__('we say to phone %number1 "what\'s your email?" with subs: "DATA'
-    . '\\| full_name | quid       |'
-    . '\\| Jo Smith  | %last_quid |"');
-    And__('phone %number1 is waiting to "setup email"');
-  }
-
-  // Scenario: The newbie gives us an unlikely name
-  public function testTheNewbieGivesUsAnUnlikelyName() {
-    sceneSetup($this, __FUNCTION__);
-    Given('phone %number1 is waiting to "setup name"');
-    When_('phone %number1 says %random');
-    Then_('we say to phone %number1 "what\'s your name really?"');
-    And__('phone %number1 is waiting to "setup name"');
-  }
-
-  // Scenario: The newbie gives us his or her email address
-  public function testTheNewbieGivesUsHisOrHerEmailAddress() {
-    sceneSetup($this, __FUNCTION__);
-    Given('phone %number1 is waiting to "setup email"');
-    When_('phone %number1 says " zot@email.com "');
-    Then_('phone %number1 email is "zot@email.com"');
-    And__('phone %number1 has r$250');
-    And__('we say to phone %number1 "your account is ready" with subs: "DATA'
-    . '\\| balance |'
-    . '\\| $250    |"');
-    And__('phone %number1 is waiting to ""');
-  }
-
-  // Scenario: The newbie gives a bad email address
-  public function testTheNewbieGivesABadEmailAddress() {
-    sceneSetup($this, __FUNCTION__);
-    Given('phone %number1 is waiting to "setup email"');
-    When_('phone %number1 says %random');
-    Then_('we say to phone %number1 "what\'s your email really?"');
-    And__('phone %number1 is waiting to "setup email"');
+    }
   }
 
 }

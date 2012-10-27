@@ -15,3 +15,4 @@ files[] = tests/TransactMemberToMember.test
 files[] = tests/Undo.test
 files[] = tests/UndoCompleted.test
 files[] = tests/UndoPending.test
+files[] = tests/UndoAttack.test

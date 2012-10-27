@@ -23,10 +23,10 @@ Setup:
   | NEW:ZZC | NEW.ZZC | NEW.ZZB | buy and sell |
   | NEW:ZZD | NEW.ZZC | NEW.ZZA | sell         |
   And transactions: 
-  | created   | type       | amount | from      | to      | purpose | taking |
-  | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |
-  | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZB | signup  | 0      |
-  | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZC | signup  | 0      |
+  | tx_id    | created   | type       | amount | from      | to      | purpose | taking |
+  | NEW.AAAB | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |
+  | NEW.AAAC | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZB | signup  | 0      |
+  | NEW.AAAD | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZC | signup  | 0      |
   Then balances:
   | id        | balance |
   | community |    -750 |
@@ -43,13 +43,13 @@ Variants:
 Scenario: A member asks to charge another member
   When member "NEW.ZZA" asks device "codeA" to do this: "charge" "NEW.ZZC" $100 ("goods": "labor")
   # cash exchange would be ("cash": "")
-  Then we respond success 1 tx_id 4 my_balance 250 other_balance "" and message "report invoice" with subs:
+  Then we respond success 1 tx_id "NEW.AAAE" my_balance 250 other_balance "" and message "report invoice" with subs:
   | action  | other_name | amount | tid |
   | charged | Corner Pub | $100   | 2   |
   # "You charged Corner Pub $100 (bonus: $10). Your balance is unchanged, pending payment. Invoice #2"
   And we email "new-invoice" to member "c@example.com" with subs:
-  | created | full_name  | other_name | amount | purpose |
-  | %today  | Corner Pub | Abe One    | $100   | labor   |
+  | created | full_name  | other_name | amount | payer_purpose |
+  | %today  | Corner Pub | Abe One    | $100   | labor         |
   And balances:
   | id        | balance |
   | community |    -750 |
@@ -58,10 +58,13 @@ Scenario: A member asks to charge another member
 
 Scenario: A member asks to pay another member
   When member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $100 ("goods": "groceries")
-  Then we respond success 1 tx_id 4 my_balance 155 other_balance "" and message "report transaction" with subs:
+  Then we respond success 1 tx_id "NEW.AAAE" my_balance 155 other_balance "" and message "report transaction" with subs:
   | action | other_name | amount | reward_type | reward_amount | balance | tid |
   | paid   | Corner Pub | $100   | rebate      | $5            | $155    | 2   |
   # "You paid Corner Pub $100 (rebate: $5). Your new balance is $155. Transaction #2"
+  And we email "new-payment" to member "c@example.com" with subs:
+  | created | full_name  | other_name | amount | payee_purpose   |
+  | %today  | Corner Pub | Abe One    | $100   | groceries       |
   And balances:
   | id        | balance |
   | community |    -765 |
@@ -86,13 +89,13 @@ Scenario: A member asks to pay another member
 Scenario: A member asks to charge another member unilaterally
   Given member "NEW.ZZC" can charge unilaterally
   When member "NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $100 ("goods": "groceries")
-  Then we respond success 1 tx_id 4 my_balance 360 other_balance 155 and message "report transaction" with subs:
+  Then we respond success 1 tx_id "NEW.AAAE" my_balance 360 other_balance 155 and message "report transaction" with subs:
   | action  | other_name | amount | reward_type | reward_amount | balance | tid |
   | charged | Abe One    | $100   | bonus       | $10           | $360    | 2   |
   # "You charged Corner Pub $100 (bonus: $10). Your new balance is $360. Transaction #2"
   And we email "new-charge" to member "a@example.com" with subs:
-  | created | full_name | other_name | amount | purpose   |
-  | %today  | Abe One   | Corner Pub | $100   | groceries |
+  | created | full_name | other_name | amount | payer_purpose   |
+  | %today  | Abe One   | Corner Pub | $100   | groceries       |
   And balances:
   | id        | balance |
   | community |    -765 |
@@ -102,7 +105,7 @@ Scenario: A member asks to charge another member unilaterally
 Scenario: A member asks to charge another member unilaterally, with insufficient balance
   Given member "NEW.ZZC" can charge unilaterally
   When member "NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $300 ("goods": "groceries")
-  Then we respond success 1 tx_id 4 my_balance 525 other_balance 12.5 and message "report short transaction" with subs:
+  Then we respond success 1 tx_id "NEW.AAAE" my_balance 525 other_balance 12.5 and message "report short transaction" with subs:
   | action  | other_name | amount | short | balance | tid |
   | charged | Abe One    | $250   | $50   | $525    | 2   |
   # "SPLIT TRANSACTION! You paid Corner Pub $250 (rebate: $12.50). You will need to use US Dollars for the remaining $50. Your new balance is $12.50. Transaction #2"
@@ -114,7 +117,7 @@ Scenario: A member asks to charge another member unilaterally, with insufficient
 
 Scenario: A member asks to pay another member, with insufficient balance
   When member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $300 ("goods": "groceries")
-  Then we respond success 1 tx_id 4 my_balance 12.5 other_balance "" and message "report short transaction" with subs:
+  Then we respond success 1 tx_id "NEW.AAAE" my_balance 12.5 other_balance "" and message "report short transaction" with subs:
   | action | other_name | amount | short | balance | tid |
   | paid   | Corner Pub | $250   | $50   | $12.50  | 2   |
   # "SPLIT TRANSACTION! You paid Corner Pub $250 (rebate: $12.50). You will need to use US Dollars for the remaining $50. Your new balance is $12.50. Transaction #2"
@@ -184,7 +187,7 @@ Scenario: Device gives no purpose for goods and services
   | success | message         |
   | 0       | missing purpose |
 
-Scenario: Seller agent lacks permission to buy
+Scenario: Buyer agent lacks permission to buy
   When member " NEW.ZZA " asks device "codeC" to do this: "pay" "NEW.ZZB" $300 ("goods": "groceries")
   Then we respond with:
   | success | message         |

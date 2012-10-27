@@ -270,14 +270,13 @@ EOF;
     } else $soundex = '';
     $string = u\short_name(" $string0 ", '%');
     $selection = <<<EOF
-      full_name AS display FROM users WHERE account_type!=:R_PERSONAL AND name LIKE :string
-      UNION SELECT industry AS display FROM r_industries 
-      WHERE (industry LIKE :string $soundex)
+      industry AS display FROM r_industries WHERE (industry LIKE :string $soundex)
+      UNION SELECT full_name AS display FROM users WHERE (account_type!=:R_PERSONAL AND name LIKE :string)
 EOF;
   } elseif ($role == 'company') {
     $selection = 'full_name AS display FROM users WHERE (account_type!=:R_PERSONAL AND name LIKE :string)';
   } else $selection = 'full_name AS display FROM users WHERE name LIKE :string';
-  $sql = "SELECT DISTINCT HIGH_PRIORITY $selection AND uid > 0 ORDER BY display LIMIT 10"; // omit communities and regions
+  $sql = "SELECT DISTINCT HIGH_PRIORITY $selection AND uid >= 0 ORDER BY display LIMIT 10"; // omit communities and regions
 //return drupal_json_output(array('zot' => $sql));
 
   $result = r\db_q($sql, compact(u\ray($sub_vars)));
@@ -1103,7 +1102,7 @@ function directory_form($form, &$form_state) {
     'title' => form_field('item', t('Find companies in your region')), // should be 'Find member businesses in your region'
 //    'subtext' => form_field('item', t('for a country name or postal code...')),
     'which' => form_field('textfield', t('Search for:'), t('Type part of company name or industry category'), dft($which) + autocomplete('industry')),
-    'region' => form_field('textfield', t('Where:'), t('Type the first few characters of your postal code'), dft($region)), // or country name
+    'region' => form_field('textfield', t('Where:'), t('Type the first few characters of your postal code<br>Try 013, to see the list for Greenfield, MA.'), dft($region)), // or country name
     'submit' => form_field('submit', NULL, t('Submit button'), t('Go')),
     'item' => form_field('item', '', '', $list),
   );
@@ -1132,17 +1131,17 @@ function directory_list($which, $region) {
   $region = \db_like($region) . '%';
   $rows = array();
   $sql = <<<EOF
-    SELECT DISTINCT i.industry, u.name AS short_name, u.full_name, u.website FROM users u 
+    SELECT DISTINCT IFNULL(i.industry, '~Other') AS industry, u.name AS short_name, u.full_name, u.website FROM users u 
     LEFT JOIN r_user_industries ui ON ui.uid=u.uid
     LEFT JOIN r_industries i ON i.iid=ui.iid
     WHERE account_type!=:R_PERSONAL AND u.$field LIKE :region AND (u.full_name LIKE :which OR i.industry LIKE :which)
-    ORDER BY i.industry, u.full_name
+    ORDER BY industry, u.full_name
 EOF;
   $result = r\db_q($sql, compact(u\ray('region which')));
   while ($row = $result->fetchAssoc()) $rows[] = $row;
   $cat = $headed = $list = '';
   for ($i = 0; $i < count($rows); $i++) {
-    extract($rows[$i]);
+    extract($rows[$i]); // industry, short_name, full_name, website
     if ($industry != $cat) { // new category
       $cat = $industry;
       $headed = (@$rows[$i+1]['industry'] == $industry); // header for 2 or more businesses in the same industry
@@ -1153,7 +1152,7 @@ EOF;
 //    if ($website) $full_name = "<a href='http://$website' target='_blank'>$full_name</a>";
     $full_name = "<a href='$base_url/member/$short_name'>$full_name</a>";
     $item = "$pay$chg $full_name";
-    if (!$headed) $item = "Other: $item <span>($industry)</span>";
+    if (!$headed) $item = "- $item <span>($industry)</span>";
     $list .= "<li>$item</li>\n";
   }
   

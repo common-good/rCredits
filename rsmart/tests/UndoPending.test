@@ -4,7 +4,6 @@
 //   AS a player
 //   I WANT to undo a transaction recently completed on my account
 //   SO I can easily correct a mistake
-//   
 //   Summary:
 //   A member asks to undo a completed payment
 //   A member confirms request to undo a completed payment
@@ -14,7 +13,6 @@
 //   A member confirms request to undo a completed cash payment
 //   A member asks to undo a completed cash charge
 //   A member confirms request to undo a completed cash charge
-//   
 
 require_once __DIR__ . '/../../../gherkin/test-defs.php';
 require_once __DIR__ . '/../rsmart.steps';
@@ -43,7 +41,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
 
   public function setUp() { // especially, enable any modules required for the tests
     parent::setUp(self::MODULE);
-    if (function_exists('extra_setup')) extra_setup($this); // defined in rsmart.steps
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rsmart.steps
     sceneSetup($this, __FUNCTION__);
 
     switch ($this->variant) {
@@ -100,7 +98,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
   }
 
   // Scenario: A member asks to undo a completed payment
-  public function testAMemberAsksToUndoACompletedPayment0() {
+  public function testAMemberAsksToUndoACompletedPayment_0() {
     sceneSetup($this, __FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAN", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
@@ -109,7 +107,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
   }
 
   // Scenario: A member confirms request to undo a completed payment
-  public function testAMemberConfirmsRequestToUndoACompletedPayment0() {
+  public function testAMemberConfirmsRequestToUndoACompletedPayment_0() {
     sceneSetup($this, __FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction "", with the request "confirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'

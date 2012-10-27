@@ -44,7 +44,6 @@ function api($args = FALSE) {
     r\acct::setDefault($cacct);
     if ($cacct->region != r\server_uid()) return api\error('wrong server');
     if ($cacct->agentRegion != r\server_uid()) return api\error('wrong server for agent');
-    debug(BIT_SELL);
     if (!r\ok_agent($cuid, $cacct->agent, BIT_SELL)) return api\error('no permission'); // make sure agent has at least sell permission
     $args['cacct'] = $cacct;
     $edit = array('code' => $q_code, 'accessed' => time());
@@ -60,10 +59,10 @@ function api($args = FALSE) {
   return api\doOp(@$q_op, $args, 'Smart');
 }
 
-function reset($args) {
+/*function reset($args) {
   r\db_q('DELETE FROM r_smarts WHERE 1');
   return array();
-}
+}*/
 
 /*
  * Requesting a permanent code from the server.
@@ -171,14 +170,11 @@ function transact($args) {
 
   if ($q_type == 'pay') $q_type = 'payment'; // this is what api\transfer() expects
   list ($index, $subs, $zot) = api\transfer($q_type, $q_acct, $q_amount, $q_purpose, $q_goods, TRUE);
-  $success = @$subs['success'] + 0;
-  if ($success) {
-    $tx_id = r\qxid($subs['zxid']); // return the transaction id as a qid (globally unique transaction id) (':' means As-If)
-    extract(balances($q_acct->id, $subs['real'])); // my_balance, other_balance
-  }
+  if (!@$subs['success']) return api\error($index, $subs);
+  $tx_id = r\qxid($subs['zxid']); // return the transaction id as a qid (globally unique transaction id) (':' means As-If)
   $message = u\tt($index, $subs);
-  //if (!@$subs['success'])
-  return compact(u\ray('success tx_id my_balance other_balance message'));
+  $balances = balances($q_acct->id, $subs['real']); // my_balance, other_balance
+  return compact(u\ray('message tx_id')) + $balances;
 }
 
 function balances($uid, $real) {
@@ -207,16 +203,17 @@ function undo($params) {
   
   if ($q_confirmed) {
     list ($message, $args) = api\undo_tx($zxid);
+    debug($message);
     $message = u\tt($message, $args);
+    debug($message);
     if (!@$args['success']) return api\error($message);
     if ($new_zxid = @$args['zxid']) $tx_id = r\qxid($new_zxid); // get offsetting transaction id, if any (otherwise state changed)
     $balances = balances($args['other_uid'], $zxid > 0);
   } else {
     if (!($result = api\last_tx('xid=:zxid', compact('zxid')))) return api\error(u\tt('undo no match'));
     $message = u\tt('confirm undo', r\tx_report_args($result));
-    $balances = array();
   }
-  return compact(u\ray('message tx_id')) + $balances;
+  return compact(u\ray('message tx_id')) + (@$balances ?: array());
 }
 
 function makeDevice($device, $acct, $code = '') {

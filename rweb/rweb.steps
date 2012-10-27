@@ -25,13 +25,30 @@ require_once __DIR__ . '/../rcredits-testing.inc';
  * Add additional setup for any or all features or tests
  * The feature object contains information about the current feature and test, etc.
  */
-function extra_setup($feature) {
-// if ($feature->SHORT_NAME == 'Zot' and $feature->currentTest == 'ZotifyIt' and $feature->variant == 3) echo 'checkpoint';
+function extraSetup($feature) {
+  global $picturePath; 
+  list ($picturePath) = explode('sites', __DIR__);
+  $picturePath .= 'sites/default/files/pictures';
+
+  global $sms_devel; $sms_devel = TRUE;
+  r\db_q('DELETE FROM users WHERE uid>1000');
+  r\db_q('TRUNCATE r_sms');
+  r\db_q('TRUNCATE r_asif');
+  r\db_q('TRUNCATE r_txs');
+  r\db_q('DELETE FROM r_smarts WHERE uid>1000');
+  r\db_q('DELETE FROM file_managed WHERE uid>1000');
+  r\db_q('TRUNCATE r_relations');
+
+  if (!function_exists('multiline_tweak')) {function multiline_tweak(&$line) {
+    $line = str_replace('%last_quid', r\quid(r\acct::nextId() - 1), $line);
+  }}
+
+  r\acct::_clear(); // empty the acct cache
 }
 
 /**
  * Modify the standard list of magic substitutions (the %parameters)
  */
-function extra_subs(&$subs) {
+function extraSubs(&$subs) {
 //  $subs['%replace_this'] = 'with this';
 }

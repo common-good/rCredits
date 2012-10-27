@@ -57,15 +57,13 @@ function doOp($op0, $args, $interface = 'API', $success = 1) {
   $op = "rCredits\\$interface\\$op0";
   $message = $result = function_exists($op) ? $op($args) : error('unknown op');
   if (!is_array($result)) $result = compact('message');
-  debug(array_merge(compact('success'), $result));
-  debug(compact('op0','args','message', 'interface'));
   return ($op0 == 'photo' or (!is_array($message) and strpos($message, '"success":"0"'))) ?
       $message 
     : apiOut(array_merge(compact('success'), $result)); // args can override success
 }
 
-function error($message, $success = 0) {
-  $message = u\tt($message);
+function error($message, $subs = '', $success = 0) {
+  $message = u\tt($message, $subs);
   return apiOut(compact('success', 'message'));
 }
 
@@ -349,7 +347,7 @@ function pay_invoice($zxid) {
 
 /**
  * Create a transaction
- * @param string $ttype: payment, charge, or invoice payment
+ * @param string $ttype: payment, charge, invoice payment, or employee payment
  * @param array $acct: acct object for the other party
  *   OR 'ALL' (paying employees)
  * @param numeric $requested_amount: the transaction amount
@@ -376,7 +374,7 @@ function transfer($ttype, $acct, $requested_amount, $for, $goods, $confirmed = T
   if (is_frontend()) return (array) backend('transfer', compact(u\ray('ttype acct requested_amount for confirmed data')));
   if (is_array($ttype)) extract($ttype); // called from api or backend
 
-  u\EXPECT(in_array($ttype, array('payment', 'charge', 'invoice payment')), 'bad transaction type');
+  u\EXPECT(in_array($ttype, u\ray('payment,charge,invoice payment,employee payment')), 'bad transaction type');
   if ($acct == 'ALL') return $ttype == 'payment' ? r\pay_employees($requested_amount, $for, $confirmed) : array('no ALL', array(), FALSE);
   
   $cuid = r\acct()->id;
@@ -440,7 +438,9 @@ function transfer($ttype, $acct, $requested_amount, $for, $goods, $confirmed = T
   }
   
   if ($confirmed) {
-    if ($taking) r\notify($uid, $preapproved ? 'new-charge' : 'new-invoice', $args);
+    $notice = $taking ? ($preapproved ? 'new-charge' : 'new-invoice')
+      : ($ttype == 'employee payment' ? 'employee-payment' : 'new-payment');
+    r\notify($uid, $notice, $args);
     $message = $shortfall ? 'report short transaction' : ($preapproved ? 'report transaction' : 'report invoice');
     return array($message, $args, FALSE);
   }

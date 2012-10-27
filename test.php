@@ -17,37 +17,37 @@ function doModule($module) {
 
   $path = __DIR__ . "/$module"; // relative path from compiler to module directory
   // SMS: OpenAnAccountForTheCaller AbbreviationsWork ExchangeForCash GetHelp GetInformation Transact Undo OfferToExchangeUSDollarsForRCredits
-  // Smart: Startup IdentifyQR Transact UndoCompleted
-  $tests = str_replace("$path/features/", '', str_replace('.feature', '', findFiles("$path/features", '/.*\.feature/')));
-  $tests = array('Startup'); // uncomment to run just one feature (test set)
+  // Smart: Startup IdentifyQR Transact UndoCompleted UndoAttack
+  $features = str_replace("$path/features/", '', str_replace('.feature', '', findFiles("$path/features", '/.*\.feature/')));
+
+  $features = array('UndoAttack'); // uncomment to run just one feature (test set)
 //  $oneScene = 'testMemMemSellerAgentLacksPermissionToBuy0'; // uncomment to run just one test scenario
 //  $oneVariant = 0; // uncomment to focus on a single variant (usually 0)
 
-  foreach ($tests as $test) dotest($module, $test);
+  foreach ($features as $feature) dotest($module, $feature);
   debug("MODULE $module: OK:$ok NO:$no");
 }  
 
-function dotest($module, $test) {
+function dotest($module, $feature) {
   global $results, $summary, $user, $oneScene, $oneVariant;
-  include ($test_filename = __DIR__ . "/$module/tests/$test.test");
+  include ($feature_filename = __DIR__ . "/$module/tests/$feature.test");
   
   $temp_user = $user; $user = array();
-  $classname = $module . $test;
-//  $t = new rsmsOpenAnAccountForTheCaller();
+  $classname = $module . $feature;
   $t = new $classname();
-  $s = file_get_contents($test_filename);
+  $s = file_get_contents($feature_filename);
   preg_match_all('/function (test.*?)\(/sm', $s, $matches);
   $scenes = @$oneScene ? array($oneScene) : $matches[1];
   foreach ($scenes as $one) {
-    if (isset($oneVariant)) if (substr($one, -1) != $oneVariant) continue;
+    list ($scene, $variant) = explode('_', $one);
+    if (isset($oneVariant)) if ($variant != $oneVariant) continue;
 
     $results = array('PASS!');
-//    echo "<br>\r\n$one<br>\r\n";
     $t->setUp();
     $t->$one(); // run one test
     
     // Display results intermixed with debugging output, if any (so don't collect results before displaying)
-    $results[0] .= " [$test] $one";
+    $results[0] .= " [$feature] $scene";
     debug(join(PHP_EOL, $results));
   }
   $user = $temp_user;
@@ -92,11 +92,11 @@ class DrupalWebTestCase {
     global $results, $summary;
     global $ok, $no, $okALL, $noALL;
     $trace = debug_backtrace();
-    list ($zot, $step, $test) = $trace[0]['args'];
+    list ($zot, $step, $feature) = $trace[0]['args'];
 //    $step = preg_replace('/ *\| */', '|', $step);
     $step = str_replace('\\', "\n     ", $step);
     $step = str_replace("''", '"', $step);
-    $where = $test == 'Setup' ? "[$test] " : '';
+    $where = $feature == 'Setup' ? "[$feature] " : '';
     $results[] = $result = ($bool ? 'OK' : 'NO') . ": $where$step";
     if ($bool) {
       $ok++; $okALL++;

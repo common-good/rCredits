@@ -4,12 +4,9 @@
 //   AS an individual or company member
 //   I WANT to identify another member's QR code
 //   SO I can safely pay or charge them.
-//   
 //   AND
-//   
 //   I WANT to see the server's picture of a potential customer
 //   SO I can verify the customer's identity visually
-//   
 
 require_once __DIR__ . '/../../../gherkin/test-defs.php';
 require_once __DIR__ . '/../rsmart.steps';
@@ -38,7 +35,7 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
 
   public function setUp() { // especially, enable any modules required for the tests
     parent::setUp(self::MODULE);
-    if (function_exists('extra_setup')) extra_setup($this); // defined in rsmart.steps
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rsmart.steps
     sceneSetup($this, __FUNCTION__);
 
     switch ($this->variant) {
@@ -65,7 +62,7 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
   }
 
   // Scenario: Member asks us to identify a QR
-  public function testMemberAsksUsToIdentifyAQR0() {
+  public function testMemberAsksUsToIdentifyAQR_0() {
     sceneSetup($this, __FUNCTION__, 0);
     Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
     When_('member "NEW.ZZA" asks device %whatever1 to identify QR "NEW.ZZB"');
@@ -75,7 +72,7 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
   }
 
   // Scenario: Member asks us to identify the member's own QR
-  public function testMemberAsksUsToIdentifyTheMembersOwnQR0() {
+  public function testMemberAsksUsToIdentifyTheMembersOwnQR_0() {
     sceneSetup($this, __FUNCTION__, 0);
     Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
     When_('member "NEW.ZZA" asks device %whatever1 to identify QR "NEW.ZZA"');
@@ -85,7 +82,7 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
   }
 
   // Scenario: Member asks us to identify a foreign QR
-  public function testMemberAsksUsToIdentifyAForeignQR0() {
+  public function testMemberAsksUsToIdentifyAForeignQR_0() {
     sceneSetup($this, __FUNCTION__, 0);
     Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
     When_('member "NEW.ZZA" asks device %whatever1 to identify QR "NEW.ZZC"');
@@ -95,7 +92,7 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
   }
 
   // Scenario: Member asks us to identify a QR and member can show balances
-  public function testMemberAsksUsToIdentifyAQRAndMemberCanShowBalances0() {
+  public function testMemberAsksUsToIdentifyAQRAndMemberCanShowBalances_0() {
     sceneSetup($this, __FUNCTION__, 0);
     Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
     And__('member "NEW.ZZA" can show balances');
@@ -106,7 +103,7 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
   }
 
   // Scenario: Member asks us to identify a QR for a company agent
-  public function testMemberAsksUsToIdentifyAQRForACompanyAgent0() {
+  public function testMemberAsksUsToIdentifyAQRForACompanyAgent_0() {
     sceneSetup($this, __FUNCTION__, 0);
     Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
     When_('member "NEW.ZZA" asks device %whatever1 to identify QR "NEW:ZZA"');
@@ -116,7 +113,7 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
   }
 
   // Scenario: Device asks for a picture to go with the QR
-  public function testDeviceAsksForAPictureToGoWithTheQR0() {
+  public function testDeviceAsksForAPictureToGoWithTheQR_0() {
     sceneSetup($this, __FUNCTION__, 0);
     Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
     And__('member "NEW.ZZB" has picture %picture1');
@@ -125,7 +122,7 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
   }
 
   // Scenario: Device asks for a picture but there isn't one
-  public function testDeviceAsksForAPictureButThereIsntOne0() {
+  public function testDeviceAsksForAPictureButThereIsntOne_0() {
     sceneSetup($this, __FUNCTION__, 0);
     Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
     And__('member "NEW.ZZB" has no picture');

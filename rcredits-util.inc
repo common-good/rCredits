@@ -245,8 +245,8 @@ function tt($message, $subs = array()) {
   $channels = ray(TX_CHANNELS);
   foreach ($messages as $i => $message) {
     $model = $message; // the default
-    for ($ch = $channel ?: (count($channels) - 1); $ch > 0; $ch--) {
-      if ($model = @$GLOBALS["$channel messages"][$message]) {
+    for ($ch = ($channel ?: (count($channels) - 1)); $ch > 0; $ch--) {
+      if ($model = @$GLOBALS["$ch messages"][$message]) {
         if ($ch == TX_SMS) {
           if($p = strpos($model, '. Type ')) $model = substr($model, 0, $p + 1); // don't tell the user to type something unless it's SMS
         }
@@ -254,6 +254,7 @@ function tt($message, $subs = array()) {
           $real = isset($subs['real']) ? $subs['real'] : r\is_rTrader();
           $subs['asif'] = $real ? '' : R_ASIF_TEXT;
         }
+        break;
       }
     }
 // NO (use raw message instead)   EXPECT(@$model, "missing message '$message'"); 

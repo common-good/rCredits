@@ -116,6 +116,7 @@ function uid($id) {
 function findMessage($type, $fields, $message = '', $subject = '', $subs = array()) {
   global $channel;
 
+  $subs = @$subs[0] ?: @$subs;
   $cuid = r\acct()->id;
   extract($fields, EXTR_PREFIX_ALL, 'my');
   if ($message = ($message ?: @$fields['message'])) {
@@ -138,11 +139,15 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
   return r\dbLookup(1, 'r_log', "info=:info AND $crit", compact(u\ray('info type cuid agent channel')));
 }
 
-function findEmail($key, $email, $subs0) {
-  $subs = array();
-  foreach ($subs0[0] as $k => $value) $subs[u\hug(strtoupper($k), '{}')] = $value;
-  $message = strtr(r\email_body($key), $subs);
-  $subject = strtr($GLOBALS['email_subjects'][$key], $subs);
+function findEmail($key, $email, $subs) {
+  $subs = $subs[0];
+  foreach (array('payer', 'payee') as $role) {
+    if (($purpose = @$subs[$role . '_purpose']) and !TEST_REAL) $subs[$role . '_purpose'] = str_replace('#', '#a', $purpose);
+  }
+  $esubs = array();
+  foreach ($subs as $k => $value) $esubs[u\hug(strtoupper($k), '{}')] = $value;
+  $message = strtr(r\email_body($key), $esubs);
+  $subject = strtr($GLOBALS['email_subjects'][$key], $esubs);
   return findMessage('email', compact(u\ray('key email')), $message, $subject);
 }
 

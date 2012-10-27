@@ -137,6 +137,7 @@ define('TX_COUNTABLE', 2); // higher numbers don't show on list, so they don't g
 $GLOBALS['email_subjects'] = array(
   'new-invoice' => t('rCredits INVOICE from {OTHER_NAME}'),
   'new-charge' => t('rCredits CHARGE from {OTHER_NAME}'),
+  'new-payment' => t('rCredits PAYMENT from {OTHER_NAME}'),
   'invoice-denied' => t('rCredits Invoice DENIED by {OTHER_NAME}'),
   'payment-denied' => t('rCredits Payment REJECTED by {OTHER_NAME}'),
   'charge-disputed' => t('rCredits Charge DISPUTED by {OTHER_NAME}'),
@@ -162,6 +163,7 @@ function tx_report_args($tx, $get_balance = 0, $shortfall = 0) {
   $to_me = ($payee == acct()->id);
   $role = $to_me ? 'payee' : 'payer';
   list ($purpose, $other_purpose) = u\order($to_me, $payee_for, $payer_for);
+  list ($payer_purpose, $payee_purpose) = array($payer_for, $payee_for); // clearer names, for substitutions
   $tofrom = $to_me ? t('from') : t('to');
   $uid = $other_uid = $to_me ? $payer : $payee;
   $action = $taking ? t('charged') : ($goods ? t('paid') : t('gave'));
@@ -185,7 +187,7 @@ function tx_report_args($tx, $get_balance = 0, $shortfall = 0) {
   
   $summary = "$asif $summary_word of $amount $tofrom $other_name for \"$purpose\" on $created";
   $success = TRUE;
-  return array_merge($tx, compact(u\ray('created zxid action real role purpose other_purpose to_me asif confirm_action amount tofrom reward_type reward_amount balance other_balance tid other_tid other_uid other_name short summary success')));
+  return array_merge($tx, compact(u\ray('created zxid action real role payer_purpose payee_purpose purpose other_purpose to_me asif confirm_action amount tofrom reward_type reward_amount balance other_balance tid other_tid other_uid other_name short summary success')));
 }
 
 /**
@@ -636,6 +638,7 @@ function user_update($info, $uid = '') {
  * @return int: the record id in r_relations
  */
 function reid($main_uid, $agent_uid, $permission = '') {
+debug("per=$permission isnum=".is_numeric($permission));
   $permission = 
       (is_numeric($permission) ? " AND permission>=$permission"
     : ($permission ? " AND is_$permission"
@@ -684,7 +687,7 @@ function bonus($uid, $amount = 1) {return rebate($uid, 2 * $amount);}
 function set_tx_state($new_value, $zserial) {set_tx_field('state', $new_value, $zserial, TRUE);}
 function total_demand() {return dbLookup('SUM(demand)', 'users');}
 function server_uid($region_id = '') {return -u\a2n($region_id ?: R_SERVER_ID);}
-function ok_agent($uid, $agent_uid) {return ($uid == $agent_uid or reid($uid, $agent_uid));}
+function ok_agent($uid, $agent_uid, $permission = '') {return ($uid == $agent_uid or reid($uid, $agent_uid, $permission));}
 function is_rTrader($uid = '') {return (user_field('flags', $uid ?: acct()->id) & BIT_RTRADER);}
 function email_template($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}
 function email_body($key) {return str_replace('{BODY}', email_template($key), email_template(R_EMAIL_FRAME));}

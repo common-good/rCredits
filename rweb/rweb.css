@@ -161,9 +161,10 @@ form#rcreditswebaccount-form div.form-type-radio label {display:block;}*/
 
 /* Directory */
 #rcreditswebdirectory-form #edit-title label {margin-left:0px;}
-/*#rcreditswebdirectory-form div.form-item-area {display:inline-block;}
-#rcreditswebdirectory-form input#edit-submit {margin-left:5px;}
-#rcreditswebdirectory-form div.form-item-area label {width:40px;}
+/*#rcreditswebdirectory-form div.form-item-area {display:inline-block;} */
+#rcreditswebdirectory-form input.form-submit {margin-left:5px;}
+#rcreditswebdirectory-form input#edit-submit {margin-left:135px;}
+/*#rcreditswebdirectory-form div.form-item-area label {width:40px;}
 #rcreditswebdirectory-form div.form-item-area div.description {margin-left:45px;}
 */
 #rcreditswebdirectory-form div#edit-item li {list-style-type:none;}

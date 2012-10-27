@@ -87,7 +87,7 @@ class acct {
     } else $agentRegion = server_uid();
 
     $record = self::getRecord($id, $region);
-    if ($error = u\EXPECT($record, u\tt('not an account'), $test)) return FALSE;
+    if ($error = u\EXPECT($record, 'That account does not exist.', $test)) return FALSE; // don't use tt() here (many calls)
     self::$records[$id] = $record;
     u\EXPECT($id and $agent and $region and $agentRegion, "Missing acct property: [$id, $agent, $region, $agentRegion]");
     return array($id, $agent, $region, $agentRegion);

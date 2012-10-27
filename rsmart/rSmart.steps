@@ -27,7 +27,7 @@ require_once __DIR__ . '/../rsmart/rsmart.inc';
  * Add additional setup for any or all features or tests
  * The feature object contains information about the current feature and test, etc.
  */
-function extra_setup($feature) {
+function extraSetup($feature) {
   global $picturePath; 
   list ($picturePath) = explode('sites', __DIR__);
   $picturePath .= 'sites/default/files/pictures';
@@ -51,7 +51,7 @@ function extra_setup($feature) {
 /**
  * Modify the standard list of magic substitutions (the %parameters)
  */
-function extra_subs(&$subs) {
+function extraSubs(&$subs) {
 //  $subs['%replace_this'] = 'with this';
 }
 
@@ -60,7 +60,7 @@ function extra_subs(&$subs) {
  *
  * in: IdentifyQR - featureSetup MAKE
  *     Startup - featureSetup MAKE
- *     Transact - featureSetup MAKE
+ *     UndoAttack - featureSetup MAKE
  *     UndoCompleted - featureSetup MAKE
  *     UndoPending - featureSetup MAKE
  */
@@ -75,7 +75,7 @@ function members($list) {
  *
  * in: IdentifyQR - featureSetup MAKE
  *     Startup - featureSetup MAKE
- *     Transact - featureSetup MAKE
+ *     UndoAttack - featureSetup MAKE
  *     UndoCompleted - featureSetup MAKE
  *     UndoPending - featureSetup MAKE
  */
@@ -89,7 +89,7 @@ function relations($relations) {
  * transactions: (ARG)
  *
  * in: IdentifyQR - featureSetup MAKE
- *     Transact - featureSetup MAKE
+ *     UndoAttack - featureSetup MAKE
  *     UndoCompleted - featureSetup MAKE
  *     UndoPending - featureSetup MAKE
  */
@@ -159,12 +159,19 @@ function memberAsksDeviceToIdentifyQR($my_id, $code, $account_id) {
  *     Transact - testDeviceGivesNoType TEST
  *     Transact - testDeviceGivesBadType TEST
  *     Transact - testDeviceGivesNoPurposeForGoodsAndServices TEST
- *     Transact - testSellerAgentLacksPermissionToBuy TEST
+ *     Transact - testBuyerAgentLacksPermissionToBuy TEST
  *     Transact - testSellerAgentLacksPermissionToSell TEST
+ *     UndoAttack - testDeviceGivesNoTransactionId TEST
+ *     UndoAttack - testDeviceGivesBadTransactionId TEST
+ *     UndoAttack - testDeviceGivesNonexistentTransactionId TEST
+ *     UndoAttack - testDeviceGivesNoConfirmationStatus TEST
+ *     UndoAttack - testDeviceGivesBadConfirmationStatus TEST
+ *     UndoAttack - testMemberAsksToUndoSomeoneElsesTransaction TEST
+ *     UndoAttack - testBuyerAgentLacksPermissionToReverseSale TEST
+ *     UndoAttack - testSellerAgentLacksPermissionToReversePurchase TEST
  */
 function weRespondWith($args) {
   global $testOnly;
-  $args = $args[0];
   return t\findMessage('out', $args);
 }
 
@@ -267,7 +274,7 @@ function theAppStartsUpAsMemberAndCode($my_id, $code) {
  * devices: (ARG)
  *
  * in: Startup - featureSetup MAKE
- *     Transact - featureSetup MAKE
+ *     UndoAttack - featureSetup MAKE
  *     UndoCompleted - featureSetup MAKE
  *     UndoPending - featureSetup MAKE
  */
@@ -280,13 +287,19 @@ function devices($list) {
 /**
  * balances: (ARG)
  *
- * in: Transact - featureSetup TEST
- *     Transact - testAMemberAsksToChargeAnotherMember MAKE
+ * in: Transact - testAMemberAsksToChargeAnotherMember MAKE
  *     Transact - testAMemberAsksToPayAnotherMember MAKE
  *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterally MAKE
  *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance MAKE
  *     Transact - testAMemberAsksToPayAnotherMemberWithInsufficientBalance MAKE
  *     UndoCompleted - featureSetup TEST
+ *     UndoCompleted - testAMemberAsksToUndoACompletedPayment MAKE
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPayment MAKE
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterally MAKE
+ *     UndoCompleted - testAMemberAsksToUndoACompletedPaymentWithInsufficientBalance MAKE
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPaymentWithInsufficientBalance MAKE
+ *     UndoCompleted - testAMemberAsksToUndoACompletedChargeUnilaterallyWithInsufficientBalance MAKE
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedChargeUnilaterallyWithInsufficientBalance MAKE
  *     UndoPending - featureSetup TEST
  */
 function balances($list) {
@@ -313,7 +326,7 @@ function balances($list) {
  *     Transact - testDeviceGivesNoType MAKE
  *     Transact - testDeviceGivesBadType MAKE
  *     Transact - testDeviceGivesNoPurposeForGoodsAndServices MAKE
- *     Transact - testSellerAgentLacksPermissionToBuy MAKE
+ *     Transact - testBuyerAgentLacksPermissionToBuy MAKE
  *     Transact - testSellerAgentLacksPermissionToSell MAKE
  */
 function memberAsksDeviceToDoThis($my_id, $code, $type, $account_id, $amount, $goods, $purpose) {
@@ -330,19 +343,29 @@ function memberAsksDeviceToDoThis($my_id, $code, $type, $account_id, $amount, $g
  *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterally TEST
  *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance TEST
  *     Transact - testAMemberAsksToPayAnotherMemberWithInsufficientBalance TEST
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPayment TEST
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterally TEST
+ *     UndoCompleted - testAMemberAsksToUndoACompletedPaymentWithInsufficientBalance TEST
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPaymentWithInsufficientBalance TEST
+ *     UndoCompleted - testAMemberAsksToUndoACompletedChargeUnilaterallyWithInsufficientBalance TEST
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedChargeUnilaterallyWithInsufficientBalance TEST
  */
 function weRespondSuccessTxidMybalanceOtherbalanceAndMessageWithSubs($success, $tx_id, $my_balance, $other_balance, $message, $subs) {
   global $testOnly;
-  $tx_id = r\qxid(TEST_REAL ? $tx_id : -$tx_id);
+//  $tx_id = r\qxid(TEST_REAL ? $tx_id : -$tx_id);
+  if (!TEST_REAL) $tx_id = str_replace('.', ':', $tx_id);
   if ($other_balance === '') unset($other_balance);
-  return t\findMessage('out', compact(u\ray('success tx_id my_balance other_balance')), $message, '', $subs);
+  return t\findMessage('out', compact(u\ray('success message tx_id my_balance other_balance')), $message, '', $subs);
 }
 
 /**
  * we email (ARG) to member (ARG) with subs: (ARG)
  *
  * in: Transact - testAMemberAsksToChargeAnotherMember MAKE
+ *     Transact - testAMemberAsksToPayAnotherMember MAKE
  *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterally MAKE
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPayment MAKE
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterally MAKE
  */
 function weEmailToMemberWithSubs($key, $email, $subs) {
   global $testOnly;
@@ -354,6 +377,9 @@ function weEmailToMemberWithSubs($key, $email, $subs) {
  *
  * in: Transact - testAMemberAsksToChargeAnotherMemberUnilaterally MAKE
  *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance MAKE
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterally MAKE
+ *     UndoCompleted - testAMemberAsksToUndoACompletedChargeUnilaterallyWithInsufficientBalance MAKE
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedChargeUnilaterallyWithInsufficientBalance MAKE
  */
 function memberCanChargeUnilaterally($id) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -373,25 +399,39 @@ function theAppRequestsOpAsMemberAndCode($op, $my_id, $code) {
 /**
  * member (ARG) asks device (ARG) to undo transaction (ARG), with the request (ARG)
  *
- * in: UndoCompleted - testAMemberAsksToUndoACompletedPayment MAKE
+ * in: UndoAttack - testDeviceGivesNoTransactionId MAKE
+ *     UndoAttack - testDeviceGivesBadTransactionId MAKE
+ *     UndoAttack - testDeviceGivesNonexistentTransactionId MAKE
+ *     UndoAttack - testDeviceGivesNoConfirmationStatus MAKE
+ *     UndoAttack - testDeviceGivesBadConfirmationStatus MAKE
+ *     UndoAttack - testMemberAsksToUndoSomeoneElsesTransaction MAKE
+ *     UndoAttack - testBuyerAgentLacksPermissionToReverseSale MAKE
+ *     UndoAttack - testSellerAgentLacksPermissionToReversePurchase MAKE
+ *     UndoCompleted - testAMemberAsksToUndoACompletedPayment MAKE
  *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPayment MAKE
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterally MAKE
+ *     UndoCompleted - testAMemberAsksToUndoACompletedPaymentWithInsufficientBalance MAKE
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPaymentWithInsufficientBalance MAKE
+ *     UndoCompleted - testAMemberAsksToUndoACompletedChargeUnilaterallyWithInsufficientBalance MAKE
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedChargeUnilaterallyWithInsufficientBalance MAKE
  *     UndoPending - testAMemberAsksToUndoACompletedPayment MAKE
  *     UndoPending - testAMemberConfirmsRequestToUndoACompletedPayment MAKE
  */
-function memberAsksDeviceToUndoTransactionWithTheRequest($arg1, $arg2, $arg3, $arg4) {
-  global $testOnly;
-  todo;
+function memberAsksDeviceToUndoTransactionWithTheRequest($my_id, $code, $tx_id, $confirmed) {
+  global $testOnly; if ($testOnly) return FALSE;
+  if (!TEST_REAL) $tx_id = str_replace('.', ':', $tx_id);
+  $confirmed = $confirmed == 'confirmed' ? 1 : 0;
+  return t\hitServer('undo', $my_id, $code, '', compact('tx_id', 'confirmed'));
 }
 
 /**
  * we respond with success (ARG), message (ARG), and subs: (ARG)
  *
  * in: UndoCompleted - testAMemberAsksToUndoACompletedPayment TEST
- *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPayment TEST
  *     UndoPending - testAMemberAsksToUndoACompletedPayment TEST
  *     UndoPending - testAMemberConfirmsRequestToUndoACompletedPayment TEST
  */
-function weRespondWithSuccessMessageAndSubs($arg1, $arg2, $arg3) {
+function weRespondWithSuccessMessageAndSubs($success, $message, $subs) {
   global $testOnly;
-  todo;
+  return t\findMessage('out', compact('success'), $message, '', $subs);
 }

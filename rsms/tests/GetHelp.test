@@ -4,14 +4,15 @@
 //   AS a caller
 //   I WANT helpful information
 //   SO I can use the rCredits SMS interface effectively
-//   
 
 require_once __DIR__ . '/../../../gherkin/test-defs.php';
 require_once __DIR__ . '/../rsms.steps';
 
 class rsmsGetHelp extends DrupalWebTestCase {
-  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
   var $currentTest;
+  var $variant;
+  const SHORT_NAME = 'GetHelp';
   const FEATURE_NAME = 'rsms Test - GetHelp';
   const DESCRIPTION = 'Get help';
   const MODULE = 'rsms';
@@ -21,83 +22,23 @@ class rsmsGetHelp extends DrupalWebTestCase {
   }
   
   public static function getInfo() {
-    return array('name' => self::FEATURE_NAME, 'description' => self::DESCRIPTION, 'group' => ucwords(self::MODULE));
+    return array(
+      'short_name' => self::SHORT_NAME,
+      'name' => self::FEATURE_NAME,
+      'description' => self::DESCRIPTION,
+      'group' => ucwords(self::MODULE)
+    );
   }
 
   public function setUp() { // especially, enable any modules required for the tests
     parent::setUp(self::MODULE);
-    $setup_filename = __DIR__ . '/../' . self::MODULE . '-testSetup.inc';
-    if (file_exists($setup_filename)) include $setup_filename;
-
-  }
-
-  // Scenario: A caller wants help with a specific command
-  public function testACallerWantsHelpWithASpecificCommand() {
+    if (function_exists('extra_setup')) extra_setup($this); // defined in rsms.steps
     sceneSetup($this, __FUNCTION__);
-    Given('phone %number1 is a member');
-    When_('phone %number1 says "help get"');
-    Then_('we say to phone %number1 "help get"');
-  }
 
-  // Scenario: A caller wants to know what's available
-  public function testACallerWantsToKnowWhatsAvailable() {
-    sceneSetup($this, __FUNCTION__);
-    Given('phone %number1 is a member');
-    When_('phone %number1 says "help"');
-    Then_('we say to phone %number1 "help helpme"');
-  }
+    switch ($this->variant) {
+    default: // fall through to case(0)
 
-  // Scenario: A caller types an unrecognized command
-  public function testACallerTypesAnUnrecognizedCommand() {
-    sceneSetup($this, __FUNCTION__);
-    Given('phone %number1 is a member');
-    And__('the expected nonce for phone %number1 is ""');
-    When_('phone %number1 says %whatever');
-    Then_('we say to phone %number1 "syntax|help helpme"');
-  }
-
-  // Scenario: Caller gives the wrong nonce
-  public function testCallerGivesTheWrongNonce() {
-    sceneSetup($this, __FUNCTION__);
-    Given('phone %number1 is a member');
-    And__('the expected nonce for phone %number1 is "mango"');
-    When_('phone %number1 says "anySingleWordOtherThanALegalCommand"');
-    Then_('we say to phone %number1 "wrong nonce"');
-  }
-
-  // Scenario: A caller types the wrong number of arguments
-  public function testACallerTypesTheWrongNumberOfArguments() {
-    sceneSetup($this, __FUNCTION__);
-    Given('phone %number1 is a member');
-    When_('phone %number1 says "get r 100 with too many arguments"');
-    Then_('we say to phone %number1 "syntax|help get"');
-  }
-
-  // Scenario: Caller types a wrong argument
-  public function testCallerTypesAWrongArgument() {
-    sceneSetup($this, __FUNCTION__);
-    Given('phone %number1 is a member');
-    When_('phone %number1 says "get zot"');
-    Then_('we say to phone %number1 "syntax|help get"');
-  }
-
-  // Scenario: Amount is too big
-  public function testAmountIsTooBig() {
-    sceneSetup($this, __FUNCTION__);
-    Given('phone %number1 is a member');
-    When_('phone %number1 says "get r 1%R_MAX_AMOUNT"');
-    Then_('we say to phone %number1 "amount too big"');
-  }
-
-  // Scenario: Account does not exist
-  public function testAccountDoesNotExist() {
-    sceneSetup($this, __FUNCTION__);
-    Given('phone %number1 is a member');
-    And__('".ZZZ" is not an account id');
-    When_('phone %number1 says "100 to .ZZZ"');
-    Then_('we say to phone %number1 "unknown member" with subs: "DATA'
-    . '\\| who  |'
-    . '\\| .ZZZ |"');
+    }
   }
 
 }

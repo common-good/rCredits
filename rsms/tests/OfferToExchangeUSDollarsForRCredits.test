@@ -4,14 +4,15 @@
 //   AS a member
 //   I WANT more rCredits than I have
 //   SO I can spend more rCredits or store them
-//   
 
 require_once __DIR__ . '/../../../gherkin/test-defs.php';
 require_once __DIR__ . '/../rsms.steps';
 
 class rsmsOfferToExchangeUSDollarsForRCredits extends DrupalWebTestCase {
-  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %number1 becomes some random number)
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
   var $currentTest;
+  var $variant;
+  const SHORT_NAME = 'OfferToExchangeUSDollarsForRCredits';
   const FEATURE_NAME = 'rsms Test - OfferToExchangeUSDollarsForRCredits';
   const DESCRIPTION = 'Offer to exchange US Dollars for rCredits';
   const MODULE = 'rsms';
@@ -21,28 +22,23 @@ class rsmsOfferToExchangeUSDollarsForRCredits extends DrupalWebTestCase {
   }
   
   public static function getInfo() {
-    return array('name' => self::FEATURE_NAME, 'description' => self::DESCRIPTION, 'group' => ucwords(self::MODULE));
+    return array(
+      'short_name' => self::SHORT_NAME,
+      'name' => self::FEATURE_NAME,
+      'description' => self::DESCRIPTION,
+      'group' => ucwords(self::MODULE)
+    );
   }
 
   public function setUp() { // especially, enable any modules required for the tests
     parent::setUp(self::MODULE);
-    $setup_filename = __DIR__ . '/../' . self::MODULE . '-testSetup.inc';
-    if (file_exists($setup_filename)) include $setup_filename;
-
-  }
-
-  // Scenario: Make or update an offer
-  public function testMakeOrUpdateAnOffer() {
+    if (function_exists('extra_setup')) extra_setup($this); // defined in rsms.steps
     sceneSetup($this, __FUNCTION__);
-    Given('phone %number1 is a member');
-    And__('phone %number1 demand for rCredits is $100');
-    And__('the total demand for rCredits is $100,000');
-    When_('phone %number1 says "get r 123.45"');
-    Then_('phone %number1 demand for rCredits is $123.45');
-    And__('the total demand for rCredits is $100,023.45');
-    And__('we say to phone %number1 "your demand" with subs: "DATA'
-    . '\\| request |'
-    . '\\| $123.45 |"');
+
+    switch ($this->variant) {
+    default: // fall through to case(0)
+
+    }
   }
 
 }
