@@ -77,7 +77,7 @@ function util($arg) {
   }
   if ($arg == 'reset') {
     r\reset();
-/*    $uid = variable_get('rcredits_community_uid') + 1;
+/*    $uid = variable_get('rcredits_communityUid') + 1;
     $uid2 = $uid + 1; $uid3 = $uid2 + 1;
     $pass = '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae';
     $sql = <<<EOF
@@ -90,14 +90,14 @@ function util($arg) {
       (10, $uid, 2),
       (2, $uid2, 2);
 EOF;
-    r\db_q($sql);
+    r\dbQ($sql);
     api\give_signup_incentive($uid);
     api\give_signup_incentive($uid2);
-    r\db_q(file_get_contents(__DIR__ . '\..\sql\r_companies-insert.sql'));
+    r\dbQ(file_get_contents(__DIR__ . '\..\sql\r_companies-insert.sql'));
 */
   }
   
-  if ($arg == 'clear_sessions') r\db_q('TRUNCATE table SESSIONS');
+  if ($arg == 'clear_sessions') r\dbQ('TRUNCATE table SESSIONS');
   
   drupal_set_message("Doing rCredits Util '$arg'...");
   drupal_goto('handy');
@@ -244,7 +244,7 @@ function auto($role = '', $cuid = 0, $string = '') {
 //  return drupal_json_output(array('zot' => "role=$role cuid=$cuid string=$string"));
   if (!$string) return;
   $string0 = $string;
-  $string = '%' . u\short_name($string, '%') . '%';
+  $string = '%' . u\shortName($string, '%') . '%';
 //  $string = str_replace(' ', '%', \db_like(" $string "));
   $sub_vars = 'string';
   
@@ -268,7 +268,7 @@ EOF;
       $soundex = soundex($string0) . '%';
       $soundex = " OR SOUNDEX(industry) LIKE '$soundex'";
     } else $soundex = '';
-    $string = u\short_name(" $string0 ", '%');
+    $string = u\shortName(" $string0 ", '%');
     $selection = <<<EOF
       industry AS display FROM r_industries WHERE (industry LIKE :string $soundex)
       UNION SELECT full_name AS display FROM users WHERE (account_type!=:R_PERSONAL AND name LIKE :string)
@@ -279,7 +279,7 @@ EOF;
   $sql = "SELECT DISTINCT HIGH_PRIORITY $selection AND uid >= 0 ORDER BY display LIMIT 10"; // omit communities and regions
 //return drupal_json_output(array('zot' => $sql));
 
-  $result = r\db_q($sql, compact(u\ray($sub_vars)));
+  $result = r\dbQ($sql, compact(u\ray($sub_vars)));
   $matches = array();
   while ($row = $result->fetchAssoc()) {
     extract($row); // ($uid), $display
@@ -322,7 +322,7 @@ function home_form($form, &$form_state) {
   $future = compact($stages);
   foreach ($future as $key => $value) $future[$key] = "<div id='overview-future' class='labeled-block'>$value</div>\n";
   
-  extract(api\credit_info()->fancy, EXTR_PREFIX_ALL, 'my');
+  extract(api\creditInfo()->fancy, EXTR_PREFIX_ALL, 'my');
 
   $form = array(
     'title' => form_field('item', t('Overview of Your rCredits Account')),
@@ -334,7 +334,7 @@ function home_form($form, &$form_state) {
     'future' => $future[$stage] ? form_field('item', t('Future milestones:'), '', $future[$stage]) : NULL,
     'steps' => form_field('item', t('Next Steps:'), '', t('<div id="next-steps" class="labeled-block"><ol><li>Do at least three realistic "As-If" Payments to participating businesses, so the system knows where you will be able to spend your rCredits.</li><li>Do at least one As-If Charge, so the system knows where you will get your rCredits.</li><li>Try some of the other rCredits features.</li><li>Read or talk to other participants until you are confident that you understand how rCredits works.</li></ol></div>')),
     'balance' => form_field('item', t('Balance:'), '', $my_balance),
-    'credit_limit' => form_field('item', t('Credit limit:'), '(this is how far in debt you can go &mdash; for up to 30 days)', u\format_amount(-$cacct->min_balance)),
+    'credit_limit' => form_field('item', t('Credit limit:'), '(this is how far in debt you can go &mdash; for up to 30 days)', u\formatAmount(-$cacct->min_balance)),
     'rewards_to_date' => form_field('item', t('Rewards to date:'), '', $my_rewards),
   );
 
@@ -398,19 +398,19 @@ function accounts_form($form, &$form_state) {
   if (!($accounts = api\account_choices())) return FALSE;
   $choices = array();
   foreach ($accounts as $uid => $zot) {
-    $balance = u\format_amount(api\credit_info(compact('uid'))->balance);
-    $choices[$uid] = r\user_field('full_name', $uid) . ": $balance";
+    $balance = u\formatAmount(api\creditInfo(compact('uid'))->balance);
+    $choices[$uid] = r\userField('full_name', $uid) . ": $balance";
   }
 
-  $qid = r\quid(); // $credit_id = r\user_field('credit_id', $cuid);
-  $full_name = r\user_field('full_name', $cuid);
+  $qid = r\quid(); // $credit_id = r\userField('credit_id', $cuid);
+  $full_name = r\userField('full_name', $cuid);
   $onchange = "this.form.submit();";
   $account = form_field('select', t('Account:'), t('(Select an account)'), 
     dft($cuid) + attrib(compact('onchange')), $choices);
   $one_account = form_field('item', t('Account') . ": <span>$full_name ($qid)</span>");
   $one_balance = form_field('item', t('Current Balance') . ": <span>$balance</span>");
   $submit = form_field('submit');
-  $form = count($choices) == 1 ? compact(u\ray('one_account one_balance')) : u\prefix_keys('account_', compact(u\ray('account submit')));
+  $form = count($choices) == 1 ? compact(u\ray('one_account one_balance')) : u\prefixKeys('account_', compact(u\ray('account submit')));
 
   //  $form['#attributes']['class'] = array('labeled');
   return $form;
@@ -425,22 +425,22 @@ function accounts_form_submit($form, &$form_state) {
  * Display the member company's profile (no editable fields here)
  */
 function profile_form($form, &$form_state, $company) {
-  $uid = r\user_field('uid', 'name=:company', compact('company'));
+  $uid = r\userField('uid', 'name=:company', compact('company'));
   $acct = r\acct($uid);
   if (!$uid or $acct->account_type == R_PERSONAL) return say('no such company', 'zot');
   extract((array) $acct->account(), EXTR_PREFIX_ALL, 'my');
 
   $pic = profile_picture($uid, TRUE);
-  $country = u\country_abbrev($my_country);
+  $country = u\countryAbbrev($my_country);
   $website = $my_website ? "<a href='http://$website' target='_blank'>$my_website</a>" : '';
-  $phone = $my_phone ? 'Phone: ' . u\format_phone($my_phone, '+') : '';
-  $fax = $my_fax ? (($phone ? '&nbsp; * &nbsp;' : '') . 'Fax: ' . u\format_phone($my_fax, '+')) : '';
+  $phone = $my_phone ? 'Phone: ' . u\formatPhone($my_phone, '+') : '';
+  $fax = $my_fax ? (($phone ? '&nbsp; * &nbsp;' : '') . 'Fax: ' . u\formatPhone($my_fax, '+')) : '';
   $sql = <<<EOF
     SELECT i.iid, i.industry FROM r_industries i 
     INNER JOIN r_user_industries ui ON ui.iid=i.iid 
     WHERE ui.uid=:uid ORDER BY i.industry
 EOF;
-  $cats = r\db_q($sql, compact('uid'))->fetchAllKeyed();
+  $cats = r\dbQ($sql, compact('uid'))->fetchAllKeyed();
   $cats = empty($cats) ? '' : ('<h3>Categories:</h3>' . join('<br>', $cats));
 
   $markup = <<<EOF
@@ -549,7 +549,7 @@ function buy_now_form($form, &$form_state) {
       if (!@$$my_field) return say('missing field', compact('field'), $field); // handle hackers gracefully
     }
     if (!is_numeric($my_amount)) return say('bad amount', 'amount');
-    if (!u\is_qid(@$my_company) or !($acct = r\acct($my_company))) return say('bad account id', 'company'); // qid?
+    if (!u\isQid(@$my_company) or !($acct = r\acct($my_company))) return say('bad account id', 'company'); // qid?
     
     $company_name = $acct->full_name; 
 
@@ -603,8 +603,8 @@ function buy_now_form_submit($form, &$form_state) {
 function exchange_form($form, &$form_state) {
   $cuid = r\acct()->id;
   if ($confirm = sure_form($form_state)) return $confirm; // confirm only getUSD
-  $request = u\format_amount(r\user_field('demand', $cuid));
-  $demand = api\credit_info()->fancy['total_demand'];
+  $request = u\formatAmount(r\userField('demand', $cuid));
+  $demand = api\creditInfo()->fancy['total_demand'];
 
   $form = array(
     'title' => form_field('item', t('Get rCredits / USD')),
@@ -658,7 +658,7 @@ function contact_info_form($form, &$form_state) {
     'title' => form_field('item', t('Contact Information')),
 //    'subtext' => basic_account_info(),
     'full_name' => form_field('textfield', t('Full name:'), $full_name_desc, dft($my_full_name) + required()),
-    'phone' => form_field('textfield', t('Phone:'), t('Your primary phone (landline or cell)'), dft($my_phone ? u\format_phone($my_phone): '') + required()),
+    'phone' => form_field('textfield', t('Phone:'), t('Your primary phone (landline or cell)'), dft($my_phone ? u\formatPhone($my_phone): '') + required()),
     'fax' => form_field('textfield', t('Fax:'), t(''), dft($my_fax)),
     'website' => form_field('textfield', t('Website:'), t(''), dft($my_website)),
     'country' => form_field('select', t('Country:'), t(''), dft($my_country) + attrib(compact('onchange'))), // can't use required() here
@@ -678,16 +678,16 @@ function contact_info_form($form, &$form_state) {
 function contact_info_form_validate($form, &$form_state) {
   extract($form_state['values']);
   if (blank_field(compact(u\ray('phone city address')))) return;
-  if ($phone and !u\format_phone($phone, '+n')) say('bad phone', 'phone');
-  if ($fax and !u\format_phone($fax, '+n')) say('bad phone', 'fax');
+  if ($phone and !u\formatPhone($phone, '+n')) say('bad phone', 'phone');
+  if ($fax and !u\formatPhone($fax, '+n')) say('bad phone', 'fax');
 }
 
 function contact_info_form_submit($form, &$form_state) {
   extract($info = $form_state['values'], EXTR_PREFIX_ALL, 'my');
   $info['website'] = str_replace('http://', '', strtolower(@$my_website));
-  if ($my_phone) $info['phone'] = u\format_phone($my_phone, '+n');
-  $info['name'] = u\short_name($my_full_name);
-  r\user_update($info);
+  if ($my_phone) $info['phone'] = u\formatPhone($my_phone, '+n');
+  $info['name'] = u\shortName($my_full_name);
+  r\userUpdate($info);
   api\merge_check(compact(u\ray('name website phone fax'))); // check before and after
   say('info saved');
 }
@@ -728,8 +728,8 @@ function bank_form($form, &$form_state) {
 }
 
 function bank_form_validate($form, &$form_state) {
-  extract(u\trim_all($form_state['values']));
-  if (!u\valid_name($bank_account_name, FALSE, FALSE)) say('bad name', 'bank_account_name');
+  extract(u\trimAll($form_state['values']));
+  if (!u\validName($bank_account_name, FALSE, FALSE)) say('bad name', 'bank_account_name');
   if (!preg_match('/^(|[0-9]{9})$/', $routing_number)) say('bad routing number', 'routing_number');
   if (!preg_match('/^[0-9]{3,20}$/', $bank_account_number)) say('bad account number', 'bank_account_number');
 }
@@ -737,7 +737,7 @@ function bank_form_validate($form, &$form_state) {
 function bank_form_submit($form, &$form_state) {
   extract($form_state['values']);
   if (r\acct()->country == 'United States') $bank_account_number = "USkk$routing_number$bank_account_number";
-  r\user_update(compact(u\ray('bank_account_name bank_account_number')));
+  r\userUpdate(compact(u\ray('bank_account_name bank_account_number')));
   say('info saved');
 }
 
@@ -749,7 +749,7 @@ function relations_form($form, &$form_state) {
   if ($confirm = sure_form($form_state)) return $confirm; // confirm only getUSD
   $account_identifiers = api\account_name($cuid);
   $header = u\ray('Person,Employee?,Owner?,Permission');
-  $classes = u\prefix_values('rel-', u\ray('person employee owner permission'));
+  $classes = u\prefixValues('rel-', u\ray('person employee owner permission'));
   
   $sql = <<<EOF
     SELECT s.reid, u.full_name, s.permission, s.is_employee, s.is_owner
@@ -757,7 +757,7 @@ function relations_form($form, &$form_state) {
     WHERE s.main_uid=:cuid
     ORDER BY u.full_name
 EOF;
-  $result = r\db_q($sql, compact('cuid'));
+  $result = r\dbQ($sql, compact('cuid'));
   $rows = $original = array();
   while ($row = $result->fetchAssoc()) {
     extract($row);
@@ -839,7 +839,7 @@ function relations_form_submit($form, &$form_state) {
     $permission = 0; // default to no permissions
     $info = compact(u\ray('main_uid agent_uid permission'));
     $zot = \drupal_write_record('r_relations', $info);
-    $who = r\user_field('full_name', $agent_uid);
+    $who = r\userField('full_name', $agent_uid);
     say('report new relation', compact('who'));
   }
 
@@ -863,7 +863,7 @@ function cell_form($form, &$form_state) {
   $cuid = r\acct()->id;
   if ($confirm = sure_form($form_state)) return $confirm; // confirm only deletion
   if (form_step($form_state, $info) == 'prove') {
-    $number = u\format_phone($form_state['storage']['values']['number']);
+    $number = u\formatPhone($form_state['storage']['values']['number']);
     $form = array(
       'title' => form_field('item', t('Verify')),
       'subtext' => form_field('item', tt('verify cell', compact('number'))),
@@ -877,11 +877,11 @@ function cell_form($form, &$form_state) {
   $headers = array('Cell Number');
 
   $sql = "SELECT number FROM r_sms WHERE uid=:cuid ORDER BY number";
-  $result = r\db_q($sql, compact('cuid'));
+  $result = r\dbQ($sql, compact('cuid'));
   $list = array();
   while ($row = $result->fetchAssoc()) {
     extract($row);
-    $list["x$number"] = array(u\format_phone($number));
+    $list["x$number"] = array(u\formatPhone($number));
   }
 
   $form = array(
@@ -961,7 +961,7 @@ function register_form(&$form, &$form_state) {
   $form += array(
     'title' => form_field('item', t('Sign up for rCredits'),'', weight(-99)),
     'full_name' => form_field('textfield', t('Full name:'), t('Your full legal name, properly capitalized'), required() + weight(-98)),
-/*    'phone' => form_field('textfield', t('Phone:'), t('Your primary phone (landline or cell)'), dft($my_phone ? u\format_phone($my_phone): '')),
+/*    'phone' => form_field('textfield', t('Phone:'), t('Your primary phone (landline or cell)'), dft($my_phone ? u\formatPhone($my_phone): '')),
     'fax' => form_field('textfield', t('Fax:'), t(''), dft($my_fax)),
     'website' => form_field('textfield', t('Website:'), t(''), dft($my_website)), */
     'country' => form_field('select', t('Country:'), t(''), dft($my_country) + $country_attrib),
@@ -997,13 +997,13 @@ function register_form_validate($form, &$form_state) {
   }
   
   if ($error = user_validate_name($my_full_name)) return say(str_replace('The username', 'That name', $error));
-  $name = $name0 = r\unique_name($my_full_name);
-//  $name = $name0 = u\short_name($my_full_name);
-//  if (r\user_field(1, 'name=:name', compact('name'))) return say('duplicate name'); // require unique full_name
+  $name = $name0 = r\uniqueName($my_full_name);
+//  $name = $name0 = u\shortName($my_full_name);
+//  if (r\userField(1, 'name=:name', compact('name'))) return say('duplicate name'); // require unique full_name
 
-  u\normalize_case(u\ray('full_name city address'));
-  $community_uid = r\community_uid($my_postal_code);
-  $form_state['values'] = array_merge($values, compact(u\ray('name data community_uid')));
+  u\normalizeCase(u\ray('full_name city address'));
+  $communityUid = r\communityUid($my_postal_code);
+  $form_state['values'] = array_merge($values, compact(u\ray('name data communityUid')));
 }
 
 function register_form_submit($form, &$form_state) {
@@ -1020,7 +1020,7 @@ function register_form_submit($form, &$form_state) {
   }
 // merge fails because account is not saved yet:  api\merge_check(compact(u\ray('email short_name'))); // email fails anyway because it's not unique
   $quid = r\quid($my_uid, $my_uid);
-  $balance = u\format_amount(api\give_signup_incentive($my_uid));
+  $balance = u\formatAmount(api\give_signup_incentive($my_uid));
   say('your account is ready', compact(u\ray('balance quid')));
 }
 
@@ -1058,10 +1058,10 @@ function login_extra_validate($form, &$form_state) {
     $form_state['flood_control_triggered'] = 'ip';
     return;
   }
-  $cacct = u\is_qid(strtoupper($my_name)) ? r\acct(strtoupper($my_name)) : FALSE; // try to interpret it as a qid
+  $cacct = u\isQid(strtoupper($my_name)) ? r\acct(strtoupper($my_name)) : FALSE; // try to interpret it as a qid
   $crit =  $cacct ? ('uid=' . $cacct->id) : ':my_name IN (name,mail)';
   $subs = $cacct ? array() : compact('my_name');
-  if (!($fields = r\user_field('uid,name', $crit, $subs))) return; // not a user
+  if (!($fields = r\userField('uid,name', $crit, $subs))) return; // not a user
   
   extract($fields, EXTR_PREFIX_ALL, 'my'); // uid and my_name (replacing earlier my_name)
   $failed_login_identifier_uid_only = variable_get('user_failed_login_identifier_uid_only', FALSE);
@@ -1094,7 +1094,7 @@ function login_followup($edit) {
 function directory_form($form, &$form_state) {
   $cuid = r\acct()->id;
   $which = svar('which_companies') ?: '';
-  $region = svar('region') ?: substr(r\user_field('postal_code', $cuid), 0, 3);
+  $region = svar('region') ?: substr(r\userField('postal_code', $cuid), 0, 3);
   
   $list = ($region !== FALSE or $which) ? directory_list($which, $region) : '';
   
@@ -1126,7 +1126,7 @@ function directory_form_submit($form, &$form_state) {
 function directory_list($which, $region) {
   global $base_url;
   $field = is_numeric($region) ? 'postal_code' : 'country';
-  $which = u\ignore_suffix($which, 'ants ant ian es ers ing er or ion s');
+  $which = u\ignoreSuffix($which, 'ants ant ian es ers ing er or ion s');
   $which = str_replace(' ', '%', \db_like(" $which ")); // allow abbreviations of each word
   $region = \db_like($region) . '%';
   $rows = array();
@@ -1137,7 +1137,7 @@ function directory_list($which, $region) {
     WHERE account_type!=:R_PERSONAL AND u.$field LIKE :region AND (u.full_name LIKE :which OR i.industry LIKE :which)
     ORDER BY industry, u.full_name
 EOF;
-  $result = r\db_q($sql, compact(u\ray('region which')));
+  $result = r\dbQ($sql, compact(u\ray('region which')));
   while ($row = $result->fetchAssoc()) $rows[] = $row;
   $cat = $headed = $list = '';
   for ($i = 0; $i < count($rows); $i++) {
@@ -1165,8 +1165,8 @@ function company_form($form, &$form_state) {
   $cuid = $cacct->id;
   $my_description = $cacct->description;
   
-  $cats = r\db_q('SELECT iid, industry FROM r_industries ORDER BY industry')->fetchAllKeyed();
-  $my_cats = r\db_q('SELECT iid FROM r_user_industries WHERE uid=:cuid', compact('cuid'))->fetchCol();
+  $cats = r\dbQ('SELECT iid, industry FROM r_industries ORDER BY industry')->fetchAllKeyed();
+  $my_cats = r\dbQ('SELECT iid FROM r_user_industries WHERE uid=:cuid', compact('cuid'))->fetchCol();
   $multiple = array('multiple' => TRUE);
   $filtered_html = array('format' => 'filtered_html');
   $afterlinks = <<<EOF
@@ -1197,13 +1197,13 @@ function company_form_submit($form, &$form_state) {
   extract($form_state['values']);
 //  $description = \check_markup($description['value']);
   $description = $description['value'];
-  r\user_update(compact('description'));
+  r\userUpdate(compact('description'));
 
   //*** Begin DBTX
   $dbtx = db_transaction();
-  r\db_q('DELETE FROM r_user_industries WHERE uid=:cuid', compact('cuid')); // out with the old
+  r\dbQ('DELETE FROM r_user_industries WHERE uid=:cuid', compact('cuid')); // out with the old
   foreach ($categories as $iid) {
-    r\db_q("INSERT INTO r_user_industries (uid, iid) VALUES (:cuid, :iid)", compact('cuid', 'iid')); // in with the new
+    r\dbQ("INSERT INTO r_user_industries (uid, iid) VALUES (:cuid, :iid)", compact('cuid', 'iid')); // in with the new
   }
   unset($dbtx);
   //*** End DBTX
@@ -1240,7 +1240,7 @@ function sms_form($form, &$form_state) {
 function sms_form_submit($form, $form_state) {
   global $sms_devel; $sms_devel = TRUE;
   extract($form_state['values'], EXTR_PREFIX_ALL, 'my');
-  $my_number = u\format_phone($my_number, '+n');
+  $my_number = u\formatPhone($my_number, '+n');
   variable_set('last SMS number used', $my_number);
   \rsms_sms_incoming('process', $my_number, $my_message);
 }
@@ -1382,7 +1382,7 @@ function svar($name) {
  */
 function whois($who, $field_name, $info, $create = TRUE, $allow_ALL, $self_message = 'no self-trading') {
   $result = api\identify($who, $create, $allow_ALL, $self_message);
-  if ($result == 'ALL' or u\is_acct($result)) return $result;
+  if ($result == 'ALL' or u\isAcct($result)) return $result;
 
   list ($message, $args, $choices) = $result;
   foreach ($choices as $uid => $full_name) $choices[$uid] = substr(r\quid($uid), 3) . '   ' . $full_name;
@@ -1405,7 +1405,7 @@ function transfer($info, $confirmed) {
   $amount = str_replace(',', '', $amount); // ignore commas
   if (!is_numeric($amount)) return say('bad amount', 'amount');
   if (!($acct = whois($who, 'who', $info, TRUE, $tx_type == 'payment'))) return FALSE; // allow "ALL"
-  list ($message, $args, $confirm) = api\transfer($tx_type, $acct, $amount, $purpose, !u\for_cash($purpose), $confirmed);
+  list ($message, $args, $confirm) = api\transfer($tx_type, $acct, $amount, $purpose, !u\forCash($purpose), $confirmed);
   if ($confirm) return tt('confirm ' . $message, $args);
   if (@$args['success']) return say($message, $args);
   return say($message, $args, 'amount');
@@ -1438,7 +1438,7 @@ function menu($title, $type, $function = NULL, $function_args = array(), $access
 function form_field($type, $title = '', $description = '', $other = array(), $options = NULL, $ajax = array()) {
   if (!is_array($other)) $other = array(($type == 'item' ? 'markup' : 'value') => $other);
   if (empty($other) and ($type == 'item' or $type == 'hidden')) $other['value'] = $title;
-  $field = u\prefix_keys('#', array_merge(compact(u\ray('type title description options')), $other));
+  $field = u\prefixKeys('#', array_merge(compact(u\ray('type title description options')), $other));
   return $field;
 }
 

@@ -1,5 +1,5 @@
 Feature: Undo Completed Transaction
-AS a player
+AS a member
 I WANT to undo a transaction recently completed on my account
 SO I can easily correct a mistake
 
@@ -22,6 +22,10 @@ Summary:
 #  | %TX_DONE     |
 #  | %TX_DISPUTED |
 
+#Variants: given/taken
+#  | 00000 |
+#  | 1     |
+
 Setup:
   Given members:
   | id      | full_name  | phone  | email         | city  | state  | country       | 
@@ -41,18 +45,18 @@ Setup:
   | NEW:ZZD | NEW.ZZC | NEW.ZZA | sell         |
   And transactions: 
   | tx_id    | created   | type         | state       | amount | from      | to      | purpose      | taking |
-  | NEW.AAAB | %today-7m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZA | signup       | 0      |
-  | NEW.AAAC | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZB | signup       | 0      |
-  | NEW.AAAD | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZC | signup       | 0      |
-  | NEW.AAAE | %today-2m | %TX_TRANSFER | %TX_DONE    |     10 | NEW.ZZB   | NEW.ZZA | cash taken   | 1      |
-  | NEW.AAAF | %today-3w | %TX_TRANSFER | %TX_DONE    |     20 | NEW.ZZC   | NEW.ZZA | usd taken    | 1      |
-  | NEW.AAAG | %today-3d | %TX_TRANSFER | %TX_DONE    |     40 | NEW.ZZA   | NEW.ZZB | whatever43   | 0      |
-  | NEW.AAAH | %today-3d | %TX_REBATE   | %TX_DONE    |      2 | community | NEW.ZZA | rebate on #4 | 0      |
-  | NEW.AAAI | %today-3d | %TX_BONUS    | %TX_DONE    |      4 | community | NEW.ZZB | bonus on #3  | 0      |
-  | NEW.AAAJ | %today-2d | %TX_TRANSFER | %TX_DONE    |      5 | NEW.ZZB   | NEW.ZZC | cash given   | 0      |
-  | NEW.AAAK | %today-1d | %TX_TRANSFER | %TX_DONE    |     80 | NEW.ZZA   | NEW.ZZC | whatever54   | 0      |
-  | NEW.AAAL | %today-1d | %TX_REBATE   | %TX_DONE    |      4 | community | NEW.ZZA | rebate on #5 | 0      |
-  | NEW.AAAM | %today-1d | %TX_BONUS    | %TX_DONE    |      8 | community | NEW.ZZC | bonus on #4  | 0      |
+  | NEW.AAAB | %today-7m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZA | signup       | 000000 |
+  | NEW.AAAC | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZB | signup       | 000000 |
+  | NEW.AAAD | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZC | signup       | 000000 |
+  | NEW.AAAE | %today-2m | %TX_TRANSFER | %TX_DONE    |     10 | NEW.ZZB   | NEW.ZZA | cash E       | 000000 |
+  | NEW.AAAF | %today-3w | %TX_TRANSFER | %TX_DONE    |     20 | NEW.ZZC   | NEW.ZZA | usd F        | 000000 |
+  | NEW.AAAG | %today-3d | %TX_TRANSFER | %TX_DONE    |     40 | NEW.ZZA   | NEW.ZZB | whatever43   | 000000 |
+  | NEW.AAAH | %today-3d | %TX_REBATE   | %TX_DONE    |      2 | community | NEW.ZZA | rebate on #4 | 000000 |
+  | NEW.AAAI | %today-3d | %TX_BONUS    | %TX_DONE    |      4 | community | NEW.ZZB | bonus on #3  | 000000 |
+  | NEW.AAAJ | %today-2d | %TX_TRANSFER | %TX_DONE    |      5 | NEW.ZZB   | NEW.ZZC | cash J       | 000000 |
+  | NEW.AAAK | %today-1d | %TX_TRANSFER | %TX_DONE    |     80 | NEW.ZZA   | NEW.ZZC | whatever54   | 000000 |
+  | NEW.AAAL | %today-1d | %TX_REBATE   | %TX_DONE    |      4 | community | NEW.ZZA | rebate on #5 | 000000 |
+  | NEW.AAAM | %today-1d | %TX_BONUS    | %TX_DONE    |      8 | community | NEW.ZZC | bonus on #4  | 000000 |
   Then balances:
   | id        | balance |
   | community |    -768 |
@@ -60,7 +64,7 @@ Setup:
   | NEW.ZZB   |     279 |
   | NEW.ZZC   |     323 |
 
-#Variants:
+#Variants: with/without an agent
 #  | "NEW.ZZA" asks device "codeA" | "NEW.ZZC" asks device "codeC" | "NEW.ZZA" $ | "NEW.ZZC" $ | # member to member (pro se) |
 #  | "NEW.ZZB" asks device "codeA" | "NEW.ZZB" asks device "codeC" | "NEW.ZZA" $ | "NEW.ZZC" $ | # agent to member           |
 #  | "NEW.ZZA" asks device "codeA" | "NEW.ZZC" asks device "codeC" | "NEW:ZZA" $ | "NEW:ZZC" $ | # member to agent           |
@@ -91,7 +95,6 @@ Scenario: A member confirms request to undo a completed payment
   Then we respond success 1 tx_id "NEW.AAAN" my_balance 166 other_balance "" and message "report undo|report invoice" with subs:
   | solution | action  | other_name | amount | tid |
   | reversed | charged | Corner Pub | $80    | 6   |
-  # "Undo 01-02-2012 payment of $55.55 to Corner Pub for whatever?"
   And we email "new-invoice" to member "c@example.com" with subs:
   | created | full_name  | other_name | amount | payer_purpose |
   | %today  | Corner Pub | Abe One    | $80    | reverses #4   |
@@ -113,19 +116,74 @@ Scenario: A member confirms request to undo a completed payment
 #other_balance (new balance for the other party -- do not show the “Show Customer Balance” button if this is omitted)
 
 Scenario: A member asks to undo a completed charge
-Scenario: A member confirms request to undo a completed charge
-Scenario: A member asks to undo a completed cash payment
-Scenario: A member confirms request to undo a completed cash payment
-Scenario: A member asks to undo a completed cash charge
-Scenario: A member confirms request to undo a completed cash charge
+  When member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAK", with the request "unconfirmed"
+  Then we respond with success 1, message "confirm undo", and subs:
+  | created   | amount | tofrom  | other_name | purpose    |
+  | %today-1d | $80    | from    | Abe One    | whatever54 |
   
+Scenario: A member confirms request to undo a completed charge
+  When member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAK", with the request "confirmed"
+  Then we respond success 1 tx_id "NEW.AAAN" my_balance 235 other_balance "" and message "report undo|report transaction" with subs:
+  | solution | action | other_name | amount | tid | reward_type | reward_amount | balance |
+  | reversed | paid   | Abe One    | $80    | 5   | rebate      | $-8           | $235    |
+  And we email "new-payment" to member "a@example.com" with subs:
+  | created | full_name | other_name | amount | payee_purpose |
+  | %today  | Abe One   | Corner Pub | $80    | reverses #5   |
+  And balances:
+  | id        | balance |
+  | community |    -756 |
+  | NEW.ZZA   |     242 |
+  | NEW.ZZB   |     279 |
+  | NEW.ZZC   |     235 |
+
+Scenario: A member asks to undo a completed cash payment
+  When member "NEW.ZZB" asks device "codeB" to undo transaction "NEW.AAAJ", with the request "unconfirmed"
+  Then we respond with success 1, message "confirm undo", and subs:
+  | created   | amount | tofrom | other_name | purpose |
+  | %today-2d | $5     | to     | Corner Pub | cash J  |
+
+Scenario: A member confirms request to undo a completed cash payment
+  When member "NEW.ZZB" asks device "codeB" to undo transaction "NEW.AAAJ", with the request "confirmed"
+  Then we respond success 1 tx_id "NEW.AAAN" my_balance 279 other_balance "" and message "report undo|report exchange request" with subs:
+  | solution | action  | other_name | amount | tid |
+  | reversed | charged | Corner Pub | $5     | 5   |
+  And we email "new-invoice" to member "c@example.com" with subs:
+  | created | full_name  | other_name | amount | payer_purpose |
+  | %today  | Corner Pub | Bea Two    | $5     | reverses #3   |
+  And balances:
+  | id        | balance |
+  | community |    -768 |
+  | NEW.ZZA   |     166 |
+  | NEW.ZZB   |     279 |
+  | NEW.ZZC   |     323 |
+
+Scenario: A member asks to undo a completed cash charge
+  When member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAJ", with the request "unconfirmed"
+  Then we respond with success 1, message "confirm undo", and subs:
+  | created   | amount | tofrom | other_name | purpose |
+  | %today-2d | $5     | from   | Bea Two    | cash J  |
+  
+Scenario: A member confirms request to undo a completed cash charge
+  When member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAJ", with the request "confirmed"
+  Then we respond success 1 tx_id "NEW.AAAN" my_balance 318 other_balance "" and message "report undo|report exchange" with subs:
+  | solution | action | other_name | amount | tid | balance |
+  | reversed | gave   | Bea Two    | $5     | 5   | $318    |
+  And we email "new-payment" to member "b@example.com" with subs:
+  | created | full_name  | other_name | amount | payee_purpose |
+  | %today  | Bea Two    | Corner Pub | $5     | reverses #4   |
+  And balances:
+  | id        | balance |
+  | community |    -768 |
+  | NEW.ZZA   |     166 |
+  | NEW.ZZB   |     284 |
+  | NEW.ZZC   |     318 |
+
 Scenario: A member confirms request to undo a completed payment unilaterally
   Given member "NEW.ZZA" can charge unilaterally
   When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAK", with the request "confirmed"
   Then we respond success 1 tx_id "NEW.AAAN" my_balance 242 other_balance 235 and message "report undo|report transaction" with subs:
   | solution | action  | other_name | amount | reward_type | reward_amount | balance | tid |
   | reversed | charged | Corner Pub | $80    | bonus       | $-4           | $242    | 6   |
-  # "Undo 01-02-2012 payment of $55.55 to Corner Pub for whatever?"
   And we email "new-charge" to member "c@example.com" with subs:
   | created | full_name  | other_name | amount | payer_purpose |
   | %today  | Corner Pub | Abe One    | $80    | reverses #4   |
@@ -135,53 +193,3 @@ Scenario: A member confirms request to undo a completed payment unilaterally
   | NEW.ZZA   |     242 |
   | NEW.ZZB   |     279 |
   | NEW.ZZC   |     235 |
-  
-Scenario: A member asks to undo a completed payment, with insufficient balance
-  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAB", with the request "unconfirmed"
-  Then we respond success 1 tx_id "NEW.AAAE" my_balance 525 other_balance 12.5 and message "report short transaction" with subs:
-  | action  | other_name | amount | short | balance | tid |
-  | charged | Abe One    | $250   | $50   | $525    | 2   |
-  # "SPLIT TRANSACTION! You paid Corner Pub $250 (rebate: $12.50). You will need to use US Dollars for the remaining $50. Your new balance is $12.50. Transaction #2"
-  And balances:
-  | id        | balance |
-  | community | -787.50 |
-  | NEW.ZZA   |   12.50 |
-  | NEW.ZZC   |  525.00 |
-
-Scenario: A member confirms request to undo a completed payment, with insufficient balance
-  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAB", with the request "confirmed"
-  Then we respond success 1 tx_id "NEW.AAAE" my_balance 525 other_balance 12.5 and message "report short transaction" with subs:
-  | action  | other_name | amount | short | balance | tid |
-  | charged | Abe One    | $250   | $50   | $525    | 2   |
-  # "SPLIT TRANSACTION! You paid Corner Pub $250 (rebate: $12.50). You will need to use US Dollars for the remaining $50. Your new balance is $12.50. Transaction #2"
-  And balances:
-  | id        | balance |
-  | community | -787.50 |
-  | NEW.ZZA   |   12.50 |
-  | NEW.ZZC   |  525.00 |
-
-Scenario: A member asks to undo a completed charge unilaterally, with insufficient balance
-  Given member "NEW.ZZA" can charge unilaterally
-  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAB", with the request "unconfirmed"
-  Then we respond success 1 tx_id "NEW.AAAE" my_balance 12.5 other_balance "" and message "report short transaction" with subs:
-  | action | other_name | amount | short | balance | tid |
-  | paid   | Corner Pub | $250   | $50   | $12.50  | 2   |
-  # "SPLIT TRANSACTION! You paid Corner Pub $250 (rebate: $12.50). You will need to use US Dollars for the remaining $50. Your new balance is $12.50. Transaction #2"
-  And balances:
-  | id        | balance |
-  | community | -787.50 |
-  | NEW.ZZA   |   12.50 |
-  | NEW.ZZC   |  525.00 |
-
-Scenario: A member confirms request to undo a completed charge unilaterally, with insufficient balance
-  Given member "NEW.ZZA" can charge unilaterally
-  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAB", with the request "confirmed"
-  Then we respond success 1 tx_id "NEW.AAAE" my_balance 12.5 other_balance "" and message "report short transaction" with subs:
-  | action | other_name | amount | short | balance | tid |
-  | paid   | Corner Pub | $250   | $50   | $12.50  | 2   |
-  # "SPLIT TRANSACTION! You paid Corner Pub $250 (rebate: $12.50). You will need to use US Dollars for the remaining $50. Your new balance is $12.50. Transaction #2"
-  And balances:
-  | id        | balance |
-  | community | -787.50 |
-  | NEW.ZZA   |   12.50 |
-  | NEW.ZZC   |  525.00 |

@@ -207,7 +207,7 @@ $GLOBALS['SMS command tokens'] = array(
  */
 function send($number, $message) {
   global $sms_devel;
-  $number = u\format_phone($number, '+n');
+  $number = u\formatPhone($number, '+n');
   $msg = substr($message, 0, 160-1); // minus one because Twilio splits messages 160 chars long (and may discard the first part)
   if ($msg != $message) $message .= ' -- TOO LONG! (strlen ' . strlen($message) . ')';
   if (@$sms_devel) drupal_set_message("To $number: $message"); else \sms_send($number, $msg);
@@ -234,7 +234,7 @@ function infer_nonce($message) {
  */
 function create($number, $uid, $status = SMS_OK) {
   u\EXPECT(compact(u\ray('number uid status')), 'string&notempty id int');
-  $number = u\format_phone($number, '+n');
+  $number = u\formatPhone($number, '+n');
 //  debug("creating SMS record for number $number, uid $uid");
   $info = compact(u\ray('number uid status'));
   return \drupal_write_record('r_sms', $info);
@@ -247,10 +247,10 @@ function create($number, $uid, $status = SMS_OK) {
 function setup_name($acct, $full_name) {
   $full_name = str_replace('  ', ' ', trim($full_name));
   if (strlen($full_name) > 60) throw new rSMSexception(tt('name too long'));
-  if (!u\valid_name($full_name)) throw new rSMSexception(tt("what's your name really?"));
-  u\normalize_case($full_name);
-  $name = r\unique_name($full_name);
-//  if (r\user_field(1, 'name=:name', compact('name'))) throw new rSMSexception(tt('duplicate name'));
+  if (!u\validName($full_name)) throw new rSMSexception(tt("what's your name really?"));
+  u\normalizeCase($full_name);
+  $name = r\uniqueName($full_name);
+//  if (r\userField(1, 'name=:name', compact('name'))) throw new rSMSexception(tt('duplicate name'));
   $acct->update(compact('name', 'full_name'));
   return $full_name;
 }
@@ -261,7 +261,7 @@ function setup_name($acct, $full_name) {
  */
 function setup_email($acct, $email) {
   if (!\valid_email_address($email)) throw new rSMSexception(tt("what's your email really?"));
-  if (r\user_field(1, 'mail=:email', compact('email'))) throw new rSMSexception(tt('duplicate email'));
+  if (r\userField(1, 'mail=:email', compact('email'))) throw new rSMSexception(tt('duplicate email'));
   $mail = $init = $email;
   return $acct->update(compact('mail', 'init'));
 }

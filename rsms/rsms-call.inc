@@ -30,7 +30,7 @@ class call {
   function __construct($number, $message) {
     global $channel, $rsms_number; 
     $channel = TX_SMS;
-    $rsms_number = $this->number = $number = u\format_phone($number, '+n');
+    $rsms_number = $this->number = $number = u\formatPhone($number, '+n');
     u\EXPECT(compact(u\ray('number message')), 'string&notempty string&notempty');
     $this->message = trim($message);
     $this->confirmed = FALSE;
@@ -75,7 +75,7 @@ class call {
     r\acct::setDefault($cacct);
     
     $todo = @api\todo($number)->todo;
-    if (api\is_temp_name($cacct->name)) {
+    if (api\is_tempName($cacct->name)) {
       if($todo != 'setup name') {
         api\todo($number, 'setup name', '');
         return tt("what's your name?");
@@ -87,7 +87,7 @@ class call {
     } elseif ($todo == 'setup email' and !$cacct->mail) {
       setup_email($cacct, $this->message);
       api\todo($number, '', '');
-      $balance = u\format_amount(api\give_signup_incentive($this->uid));
+      $balance = u\formatAmount(api\give_signup_incentive($this->uid));
       return tt('your account is ready', compact('balance'));
 /*    } elseif (!\user_access('transact via sms')) { // user does not have permission to use the rCredits SMS interface
       // send the user an email here?
@@ -223,7 +223,7 @@ class call {
    */
   function do_information() {
 //    api\todo($this->number, 'account info2', ''); // queue up more info (not used yet)
-    return tt('account info', api\credit_info()->fancy);
+    return tt('account info', api\creditInfo()->fancy);
   }
 
   /**
@@ -251,7 +251,7 @@ class call {
     extract($this->parms, EXTR_PREFIX_ALL, 'my');	// who and/or tofrom
 
     if ($this->confirmed) {
-      list ($message, $args) = api\undo_tx($my_zxid);
+      list ($message, $args) = api\undoTx($my_zxid);
       return tt($message, $args);
     }
     
@@ -261,7 +261,7 @@ class call {
     } else $where = '(payee=:cuid OR payer=:cuid)';
 
     if (isset($my_who)) {
-      if (!u\is_acct($acct = api\identify($my_who))) return tt($acct); // return if error
+      if (!u\isAcct($acct = api\identify($my_who))) return tt($acct); // return if error
       $other_uid = $acct->id;
       $where .= " AND ";
       if (isset($my_tofrom)) {
@@ -269,9 +269,10 @@ class call {
       } else $where .= '(payee=:other_uid OR payer=:other_uid)';
     }
 
-    if (!($result = api\last_tx($where, compact(u\ray('cuid other_uid'))))) return tt('undo no match');
-    $this->parms['zxid'] = $result['zxid'];
-    return $this->confirm('undo', r\tx_report_args($result, FALSE));
+    $oldRecord = api\lastTx($where, compact(u\ray('cuid other_uid')));
+    if ($error = r\nonoUndo($oldRecord, $subs)) return array($error, $subs);
+    $this->parms['zxid'] = $oldRecord['zxid'];
+    return $this->confirm('undo', r\txReportArgs($oldRecord, FALSE));
   }
 
   /**
@@ -302,13 +303,13 @@ class call {
     // unconfirmed invoice payment
     $where = 'state=:TX_PENDING AND payer=:cuid';
     if (isset($my_who)) {
-      if (!u\is_acct($acct = api\identify($my_who))) return tt($acct); // return if error
+      if (!u\isAcct($acct = api\identify($my_who))) return tt($acct); // return if error
       $other_uid = $acct->id;
       $where .= ' AND payee=:other_uid';
     }
-    if(!($result = api\last_tx($where, compact(u\ray('cuid other_uid'))))) return tt('no matching invoice');
+    if(!($result = api\lastTx($where, compact(u\ray('cuid other_uid'))))) return tt('no matching invoice');
     $this->parms['zxid'] = $result['zxid'];
-    return $this->confirm('pay invoice', r\tx_report_args($result));
+    return $this->confirm('pay invoice', r\txReportArgs($result));
   }
   
   /**
@@ -318,9 +319,9 @@ class call {
     extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, and what
 
     $acct = api\identify($my_who, FALSE, $type == 'payment');
-    if ($acct != 'ALL' and !u\is_acct($acct)) return tt($acct); // return the array if error
+    if ($acct != 'ALL' and !u\isAcct($acct)) return tt($acct); // return the array if error
 
-    list ($message, $args, $confirm) = api\transfer($type, $acct, $my_amount, $my_what, !u\for_cash($my_what), $this->confirmed);
+    list ($message, $args, $confirm) = api\transfer($type, $acct, $my_amount, $my_what, !u\forCash($my_what), $this->confirmed);
     return $confirm ? $this->confirm($message, $args) : tt($message, $args);
   }
   

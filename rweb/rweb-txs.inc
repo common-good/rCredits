@@ -16,8 +16,8 @@ function txs_form($form, &$form_state, $period = '', $do = '') {
   $cuid = r\acct()->id;
   global $base_path;
 
-  list ($real, $period) = $period ? explode('-', $period) : array(r\is_rTrader(), 30);
-  if ($real and !r\is_rTrader()) $real = FALSE;
+  list ($real, $period) = $period ? explode('-', $period) : array(r\isRTrader(), 30);
+  if ($real and !r\isRTrader()) $real = FALSE;
   if ($do) list ($do, $zxid) = explode('=', $do);
 
   //  if ($confirm = sure_form($form_state)) return $confirm;
@@ -63,7 +63,7 @@ function txs_form($form, &$form_state, $period = '', $do = '') {
   }
 
   $title = "<div id='txs-title'>TRANSACTIONS</div>";
-  $classes = u\prefix_values('tx-', u\ray('tid date name fromyou toyou state buttons purpose reward'));
+  $classes = u\prefixValues('tx-', u\ray('tid date name fromyou toyou state buttons purpose reward'));
   $attributes = array('id' => 'txlist');
   $header = u\ray('#,Date,Name,From you,To you,Status,,Purpose,Rewards');
   $cols = array();
@@ -73,10 +73,10 @@ function txs_form($form, &$form_state, $period = '', $do = '') {
   $empty = tt('no txs');
   $list = theme_table(compact(u\ray('header rows attributes caption colgroups sticky empty')));
 
-  $form = u\prefix_keys('tx_', array(
+  $form = u\prefixKeys('tx_', array(
     'period' => form_field('select', t('Show transactions for the past'), '', dft($period), $tx_days),
-    'real' => !r\is_rTrader() ? form_field('hidden', FALSE) 
-      : form_field('radios', t('Show:'), '', dft($real) + array(u\get_constants(t('Show :R_ASIF_TEXT Transactions')), t('Show Real Transactions'))),
+    'real' => !r\isRTrader() ? form_field('hidden', FALSE) 
+      : form_field('radios', t('Show:'), '', dft($real) + array(u\getConstants(t('Show :R_ASIF_TEXT Transactions')), t('Show Real Transactions'))),
     'show' => form_field('submit', NULL, t('Submit button'), 'Show'),
     'do' => form_field('hidden', $do),
     'summary' => form_field('markup', '', '', array('markup' => tx_summary($starting, $ending))),
@@ -88,8 +88,8 @@ function txs_form($form, &$form_state, $period = '', $do = '') {
 function tx_confirm($do, $zxid, &$form_state) {
   $cuid = r\acct()->id;
   if (confirming_v($form_state)) return FALSE;
-  if (!($details = api\last_tx('xid=:zxid', compact('zxid'), TRUE))) return FALSE; // bail on hack attempt
-  extract(r\tx_report_args($details), EXTR_PREFIX_ALL, 'my');
+  if (!($details = api\lastTx('xid=:zxid', compact('zxid'), TRUE))) return FALSE; // bail on hack attempt
+  extract(r\txReportArgs($details), EXTR_PREFIX_ALL, 'my');
   $action = tx_action($do, $my_state, $my_to_me, $my_by_me);
   confirm("Are you sure you want to $action?<br>($my_summary)", $form_state); // sets 'confirm'
   return sure_form($form_state);
@@ -97,7 +97,7 @@ function tx_confirm($do, $zxid, &$form_state) {
 
 /**
  * Return the action option for a transaction
- * (This has to match what api\undo_tx() actually does.)
+ * (This has to match what api\undoTx() actually does.)
  * @param string $do: which major type of action ('ok' or 'no')
  * @param int $state: the current transaction state
  * @param bool $to_me: user is the payee
@@ -136,7 +136,7 @@ function txs_form_submit($form, &$form_state) {
 
 function tx_okorno($tx_task, $zxid) {
   $cuid = r\acct()->id;
-  if (!($result = api\last_tx('xid=:zxid', compact('zxid'), TRUE))) return FALSE; // bail on hack attempt
+  if (!($result = api\lastTx('xid=:zxid', compact('zxid'), TRUE))) return FALSE; // bail on hack attempt
   extract($result, EXTR_PREFIX_ALL, 'my');
 //  $atid = api\zxid2tid($zxid);
 //  $xname = "tx_transactions[x$zxid]";
@@ -144,21 +144,21 @@ function tx_okorno($tx_task, $zxid) {
 // (no. allow pay-all and external transaction confirmation)    assert($my_payer == $cuid);
     u\EXPECT($my_state == TX_PENDING);
     if ($my_to_me) {
-      r\set_tx_state(TX_DONE, $zxid); // accept the payment
+      r\setTxState(TX_DONE, $zxid); // accept the payment
     } else {
       list ($message, $args) = api\pay_invoice($zxid);
       say($message, $args);
     }
   }
   if ($tx_task == 'no') {
-    list ($message, $args) = api\undo_tx($zxid);
+    list ($message, $args) = api\undoTx($zxid);
     say($message, $args);
   }
 }
 
 function tx_edit($zxid) {
-  if (!($details = api\last_tx('xid=:zxid', compact('zxid'), TRUE))) return FALSE; // bail on hack attempt
-  extract(tx_report_args($details), EXTR_PREFIX_ALL, 'my');
+  if (!($details = api\lastTx('xid=:zxid', compact('zxid'), TRUE))) return FALSE; // bail on hack attempt
+  extract(txReportArgs($details), EXTR_PREFIX_ALL, 'my');
   
   if (!api\access($my_taking ? 'sell' : 'buy and sell')) return FALSE;
   
@@ -181,7 +181,7 @@ function tx_edit_validate($form, &$form_state) {
 
 function tx_edit_submit($form, &$form_state) {
   extract($form_state['values']);
-  r\set_tx_field($field, $purpose, $zxid);
+  r\setTxField($field, $purpose, $zxid);
   $form_state['redirect'] = 'transactions';
 }
 
@@ -190,9 +190,9 @@ function tx_bal($bal, $plus = '', $minus = '- ') {return ($bal < 0 ? $minus : $p
 function tx_summary($starting, $ending) {
   $cuid = r\acct()->id;
   $previous_ending = strtotime('-1 days', $starting);
-  extract($now_info = (array) api\credit_info(array('asof' => $ending)), EXTR_PREFIX_ALL, 'now');
-  extract($pending_info = (array) api\credit_info(array('state' => TX_PENDING, 'asof' => $ending)), EXTR_PREFIX_ALL, 'pending');
-  extract($old_info = (array) api\credit_info(array('asof' => $previous_ending)), EXTR_PREFIX_ALL, 'old');
+  extract($now_info = (array) api\creditInfo(array('asof' => $ending)), EXTR_PREFIX_ALL, 'now');
+  extract($pending_info = (array) api\creditInfo(array('state' => TX_PENDING, 'asof' => $ending)), EXTR_PREFIX_ALL, 'pending');
+  extract($old_info = (array) api\creditInfo(array('asof' => $previous_ending)), EXTR_PREFIX_ALL, 'old');
   $dif = $pfancy = array();
   foreach (u\ray('gross_in_proper gross_out rewards') as $key) {
     $dif[$key] = number_format($now_info[$key] - $old_info[$key], 2);
@@ -208,7 +208,7 @@ function tx_summary($starting, $ending) {
   $old_balance = tx_bal($old_balance);
   $summary_title = "<div id='txsum-title'>SUMMARY</div>";
   
-  $classes = u\prefix_values('txsum-', u\ray('one tosign toyou fromsign fromyou rewardssign rewards balancesign balance'));
+  $classes = u\prefixValues('txsum-', u\ray('one tosign toyou fromsign fromyou rewardssign rewards balancesign balance'));
   $rows = array(
     array('id' => 'txsum-dates', 'data' => u\ray("$starting,,,,,,,,$ending")),
     array('id' => 'txsum-headers', 'data' => u\ray('Starting balance,,To You,,From You,,Rewards,,Ending balance')),

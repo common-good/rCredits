@@ -27,11 +27,11 @@ require_once __DIR__ . '/../rcredits-testing.inc';
  */
 function extraSetup($feature) {
 global $sms_devel; $sms_devel = TRUE;
-r\db_q('DELETE FROM users WHERE uid>1000');
-r\db_q('DELETE FROM r_sms');
-r\db_q('DELETE FROM r_asif');
-r\db_q('DELETE FROM r_txs');
-r\db_q('DELETE FROM r_relations');
+r\dbQ('DELETE FROM users WHERE uid>1000');
+r\dbQ('DELETE FROM r_sms');
+r\dbQ('DELETE FROM r_asif');
+r\dbQ('DELETE FROM r_txs');
+r\dbQ('DELETE FROM r_relations');
 
 if (!function_exists('multiline_tweak')) {function multiline_tweak(&$line) {
   $line = str_replace('%last_quid', r\quid(r\acct::nextId() - 1), $line);
@@ -117,7 +117,7 @@ function weEmailToMemberWithSubs($key, $email, $subs) {
  */
 function phoneHasNoName($number) {
   global $testOnly; if ($testOnly) return FALSE;
-  return u\abbreviates('unknown ', r\user_field('name', r\SMS\uid($number)));
+  return u\abbreviates('unknown ', r\userField('name', r\SMS\uid($number)));
 }
 
 /**
@@ -158,7 +158,7 @@ function phoneIsWaitingTo($number, $todo, $recalled = FALSE) {
  */
 function phoneAccountNameIs($number, $name) {
   global $testOnly;
-  return (r\user_field('full_name', r\SMS\uid($number)) == $name);
+  return (r\userField('full_name', r\SMS\uid($number)) == $name);
 }
 
 /**
@@ -168,7 +168,7 @@ function phoneAccountNameIs($number, $name) {
  */
 function phoneEmailIs($number, $email) {
   global $testOnly;
-  return (r\user_field('mail', r\SMS\uid($number)) == $email);
+  return (r\userField('mail', r\SMS\uid($number)) == $email);
 }
 
 /**
@@ -211,8 +211,8 @@ function phoneHasRIncludingRewardsOf($number, $bal, $rewards) {
  */
 function theCommunityHasR($amount) {
   global $testOnly;
-//  debug(t\uidCredit(r\server_uid())->balance);
-  return t\eq(t\uidCredit(r\server_uid())->balance, $amount);
+//  debug(t\uidCredit(r\serverUid())->balance);
+  return t\eq(t\uidCredit(r\serverUid())->balance, $amount);
 }
 
 /**
@@ -324,14 +324,14 @@ function isNotAnAccountId($id) {
  */
 function theTotalDemandForRCreditsIs($amount) {
   global $testOnly;
-  $old = r\total_demand();
+  $old = r\totalDemand();
   $same = t\eq($old, $amount);
   if ($testOnly or $same) return $same;
   
   if (!($uid = t\makeAccount())) return FALSE;
   $demand = $amount - $old;
 //  debug(compact('demand', 'old', 'amount'));
-  r\user_update(compact('demand'), $uid);
+  r\userUpdate(compact('demand'), $uid);
   return TRUE;
 }
 
@@ -343,9 +343,9 @@ function theTotalDemandForRCreditsIs($amount) {
 function phoneDemandForRCreditsIs($number, $demand) {
   global $testOnly;
   $uid = r\SMS\uid($number);
-  if ($testOnly) return t\eq(r\user_field('demand', $uid), $demand);
-  r\user_update(compact('demand'), $uid);
-//  debug(r\user_field('demand', $uid));
+  if ($testOnly) return t\eq(r\userField('demand', $uid), $demand);
+  r\userUpdate(compact('demand'), $uid);
+//  debug(r\userField('demand', $uid));
 //  debug(compact('number','demand','uid'));
   return TRUE;  
 }

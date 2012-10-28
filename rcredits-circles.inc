@@ -52,7 +52,7 @@ use rCredits\API as api;
 
 define('R_MIN_BUYS', 3); // you can't be an rTrader unless you have at least this many places to spend
 define('R_MAX_SCORE', 12); // any more places to spend is effectively the same: enough
-define('IS_RTRADER', '(u.flags&' . BIT_RTRADER . ')');
+define('isRTrader', '(u.flags&' . BIT_RTRADER . ')');
 /**
  * Bump members up to rTrader status, as appropriate.
  * @todo: do something with the results of identify_rtraders (show some statistics?)
@@ -63,7 +63,7 @@ function grow() {
   $new_rtraders = best_new_rtraders(100);
   
   foreach ($new_rtraders as $uid) { 
-    debug(r\user_field('full_name', $uid)); // keep this for now
+    debug(r\userField('full_name', $uid)); // keep this for now
   }
 }
 
@@ -72,8 +72,8 @@ function grow() {
  * @todo: include individuals with income in candidates -- get this from r_asif
  */
 function identify_rtraders($old_rtraders, $candidates) {
-  $old_rtraders = db_q('SELECT u.uid FROM users u WHERE :IS_RTRADER')->fetchCol();
-  $candidates = db_q('SELECT u.uid FROM users u WHERE u.account_type<>:R_PERSONAL AND NOT :IS_RTRADER')->fetchCol();
+  $old_rtraders = dbQ('SELECT u.uid FROM users u WHERE :isRTrader')->fetchCol();
+  $candidates = dbQ('SELECT u.uid FROM users u WHERE u.account_type<>:R_PERSONAL AND NOT :isRTrader')->fetchCol();
   return array($old_rtraders, $candidates);
 }
 
@@ -91,15 +91,15 @@ function best_new_rtraders($target) {
     INSERT INTO r_candidates
     SELECT u.uid, (u.account_type<>:R_PERSONAL) AS is_company
     FROM users u
-    WHERE NOT :IS_RTRADER
+    WHERE NOT :isRTrader
 EOF;
     /*
   $sql = <<<EOF
     TRUNCATE r_employs_temp;
     INSERT INTO r_employs_temp
-    SELECT e.reid AS eid, e.main_uid AS company, e.agent_uid AS employee, (s.rid<=>:R_ROLE_RTRADER) AS employee_is_rtrader 
+    SELECT e.reid AS eid, e.main_uid AS company, e.agent_uid AS employee, (s.rid<=>:R_ROLE_RTRADER) AS employee_isRTrader 
     FROM (r_relations e LEFT JOIN users u ON u.uid=e.main_uid) 
-    WHERE e.is_employee AND NOT :IS_RTRADER
+    WHERE e.is_employee AND NOT :isRTrader
 EOF;
 */
   r\do_q($sql); // copy only the non-rTrader company records to temp table
@@ -150,7 +150,7 @@ function scores() {
     GROUP BY c.uid
     WHERE a.goods
     AND a.state IN (:TX_DONE, :TX_PENDING)
-    AND :IS_RTRADER
+    AND :isRTrader
 EOF;
 /*
   $count_sql = <<<EOF
@@ -161,8 +161,8 @@ EOF;
     WHERE a.type=:TX_TRANSFER 
     AND a.goods
     AND a.state IN (:TX_DONE, :TX_PENDING)
-    AND NOT e.employee_is_rtrader
-    AND :IS_RTRADER
+    AND NOT e.employee_isRTrader
+    AND :isRTrader
 EOF;
 */
   r\do_q("UPDATE r_employs_temp SET ignore=IF(($count_sql) < :R_MIN_BUYS, 1, 0)"); // mark ineligible non-rTrader employees
@@ -177,7 +177,7 @@ EOF;
     WHERE a.type=:TX_TRANSFER 
     AND a.goods
     AND a.state IN (:TX_DONE, :TX_PENDING)
-    AND (:IS_RTRADER OR a.payee IN ($eligible_employees_sql)
+    AND (:isRTrader OR a.payee IN ($eligible_employees_sql)
 EOF;
   r\do_q("UPDATE r_employs_temp SET ignore=1 WHERE ($count_sql) < :R_MIN_BUYS"); // mark ineligible companies
   
@@ -252,7 +252,7 @@ EOF;
   $sql = "SELECT t2.payee, COUNT(*) AS count FROM ($countable_sql) t2 GROUP BY t2.payee";
   if ($inout == 'in') $sql = strtr($sql, array('payee' => 'PAYER', 'payer' => 'payee', 'PAYER' => 'payer')); // payer <-> payee
 
-  $result = db_q($sql)->fetchAllKeyed(0, 1);
+  $result = dbQ($sql)->fetchAllKeyed(0, 1);
   sort($result); // put the worst first (returns TRUE on success)
   return $result;
 }

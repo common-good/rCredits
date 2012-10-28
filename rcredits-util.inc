@@ -71,7 +71,7 @@ function tx_types($string) {return strtr($string, array_flip(ray(TX_TYPES)));} /
  * @return
  *   the formatted amount
  */
-function format_amount($amount, $simplify = TRUE) {
+function formatAmount($amount, $simplify = TRUE) {
   $amount = '$' . number_format($amount, 2);
   return $simplify ? str_replace('.00', '', $amount) : $amount;
 }
@@ -81,7 +81,7 @@ function format_amount($amount, $simplify = TRUE) {
  * @param string $name: the name to test
  * @param boolean $picky: whether to allow only 2-4 word names (default TRUE)
  */
-function valid_name($name, $individual = TRUE, $picky = TRUE) {
+function validName($name, $individual = TRUE, $picky = TRUE) {
   $name = trim($name);
   $words = substr_count($name, ' ') + 1;
   $pattern = $individual ? "[^\w\-\.,' ]" : '[^\w~!@#\$%\^&\*\(\)\-=\+\\\\;:\'",<\.>/\? ]';
@@ -95,7 +95,7 @@ function valid_name($name, $individual = TRUE, $picky = TRUE) {
  * See the latest data on Wikipedia.
  * @todo: get this in agreement with countries.js (sorted by country name)
  */
-function country_abbrev($country) {
+function countryAbbrev($country) {
   global $base_path;
 //  include_once $base_path . 'inc/countries.php';
   include __DIR__ . '/../../../../inc/countries.php';
@@ -106,7 +106,7 @@ function country_abbrev($country) {
  * Return the standard 2-letter abbreviation for the (US) state or vice versa
  * @todo: add Canadian provinces
  */
-function state_abbrev($state) {
+function stateAbbrev($state) {
   global $base_path;
   include __DIR__ . '/../../../../inc/states.php';
   return strlen($state) == 2 ? $states[$state] : array_search($state, $states);
@@ -116,7 +116,7 @@ function state_abbrev($state) {
 /**
  * Calculate a short_name from the given full_name.
  */
-function short_name($full_name, $filler = '') {
+function shortName($full_name, $filler = '') {
   $deletions = ray('Inc. LLC Co. P.C. Corp. LLP');
   foreach ($deletions as $one) $full_name = str_replace(" $one", '', $full_name);
   $full_name = str_replace('&', 'and', $full_name);
@@ -126,8 +126,8 @@ function short_name($full_name, $filler = '') {
 /**
  * Say whether the transaction description implies a cash transaction.
  */
-function for_cash($for) {
-  if (is_array($for)) return for_cash($for[0]) or for_cash($for[1]);
+function forCash($for) {
+  if (is_array($for)) return forCash($for[0]) or forCash($for[1]);
   return ($for == '' or preg_match('/^(cash|usd|loan)(\W|$)/i', $for)); // empty or a non-goods word at the beginning
 }
 
@@ -172,7 +172,7 @@ function a2n($string, $base = 26) {
  *   ''   +1 ddd.ddd.dddd (the default)
  * @return the formatted phone number (FALSE if the $phone is not a phone number or $how is bad)
  */
-function format_phone($phone, $how = '') {
+function formatPhone($phone, $how = '') {
   $sep = '.'; // digit group separator
   $foreign = ''; // set to 'n' format if the phone is outside US
   $phone = (preg_replace('/[\(\) \-\.]/', '', $phone)); // ignore typical punctuation
@@ -200,7 +200,7 @@ function format_phone($phone, $how = '') {
 /**
  * Return the array with its keys prefixed by the given string
  */
-function prefix_keys($prefix, $array) {
+function prefixKeys($prefix, $array) {
   EXPECT(compact('prefix', 'array'), 'string array');
   if ($prefix == '') return $array;
   $new_array = array();
@@ -208,7 +208,7 @@ function prefix_keys($prefix, $array) {
   return $new_array;
 }
 
-function prefix_values($prefix, $array) {
+function prefixValues($prefix, $array) {
   foreach ($array as $key => $value) $array[$key] = $prefix . $value;
   return $array;
 }
@@ -251,14 +251,14 @@ function tt($message, $subs = array()) {
           if($p = strpos($model, '. Type ')) $model = substr($model, 0, $p + 1); // don't tell the user to type something unless it's SMS
         }
         if (strpos($model, '@asif') !== FALSE and !isset($subs['asif'])) {
-          $real = isset($subs['real']) ? $subs['real'] : r\is_rTrader();
+          $real = isset($subs['real']) ? $subs['real'] : r\isRTrader();
           $subs['asif'] = $real ? '' : R_ASIF_TEXT;
         }
         break;
       }
     }
 // NO (use raw message instead)   EXPECT(@$model, "missing message '$message'"); 
-    if (@$model) $messages[$i] = strtr($model, prefix_keys('@', $subs));
+    if (@$model) $messages[$i] = strtr($model, prefixKeys('@', $subs));
   }
   return join(' ', $messages);
 }
@@ -278,7 +278,7 @@ function nonce() {
   return $nonce;
 }
 
-function ignore_suffix($s, $suffixes) {
+function ignoreSuffix($s, $suffixes) {
   $suffixes = preg_replace('/\W+/', ' ', $suffixes);
   $pattern = str_replace(' ', ' |', trim($suffixes));
   return trim(preg_replace("`([^ ])($pattern )`sim", '$1 ', " $s "));
@@ -301,7 +301,7 @@ This function uses the ignore_errors context parameter. Without this set (the de
 
 When using POST with REST, take care: PHP's HTTP redirection handler will drop your POST payload if the endpoint issues a redirect. If you experience problems using POST with the function below, it might be due to redirects. Most of the POST calls I've run into issue redirects if the URL is missing a trailing '/' character. In other words, if you experience problems where it seems like your parameters are not being sent in, try appending a '/' to the end of the URL and try it again.
  */
-function http_request($url, $params = FALSE, $extra_headers = array(), $method = 'POST', $format = 'json', $request_format = 'url') {
+function httpRequest($url, $params = FALSE, $extra_headers = array(), $method = 'POST', $format = 'json', $request_format = 'url') {
   $ignore_errors = TRUE;
   $headers = array('Content-Type' => $request_format == 'json' ? 'application/json' : 'application/x-www-form-urlencoded') + $extra_headers;
   $header = '';
@@ -337,7 +337,7 @@ function http_request($url, $params = FALSE, $extra_headers = array(), $method =
  * @param string $string: the string to fix
  * @return string: the string with constant names replaced by their values
  */
-function get_constants($string, $prefix = ':') {
+function getConstants($string, $prefix = ':') {
   preg_match_all("/\\$prefix([A-Z_]+)/ms", $string, $matches);
   $map = array();
   foreach ($matches[1] as $one) $map["$prefix$one"] = constant($one);
@@ -400,16 +400,16 @@ function expect1($arg, $value, $type, $ret) {
     case 'bool': return EXPECT(is_bool($value), $msg, $ret);
     case 'email': return EXPECT(valid_email_address($value), $msg, $ret);
     case 'empty': return EXPECT(empty($value), $msg, $ret);
-    case 'float': return EXPECT(my_float($value), $msg, $ret); // don't use is_float()?
-    case 'id': return EXPECT(is_id($value), $msg, $ret);
-    case 'int': return EXPECT(my_int($value), $msg, $ret); // don't use is_int()
-    case 'name': return EXPECT(is_name($value), $msg, $ret);
+    case 'float': return EXPECT(myFloat($value), $msg, $ret); // don't use is_float()?
+    case 'id': return EXPECT(isId($value), $msg, $ret);
+    case 'int': return EXPECT(myInt($value), $msg, $ret); // don't use is_int()
+    case 'name': return EXPECT(isName($value), $msg, $ret);
     case 'notempty': return EXPECT(!empty($value), $msg, $ret);
     case 'notnull': return EXPECT(!is_null($value), $msg, $ret);
-    case 'qid': return EXPECT(is_qid($value), $msg, $ret);
+    case 'qid': return EXPECT(isQid($value), $msg, $ret);
 //    case 'ruid': return EXPECT(is_ruid($value), $msg, $ret);
     case 'string': return EXPECT(is_string($value), $msg, $ret);
-    case 'zid': return EXPECT(is_zid($value), $msg, $ret);
+    case 'zid': return EXPECT(isZid($value), $msg, $ret);
     default: return EXPECT(is_object($value) and get_class($value) == "rCredits\\$type", $msg, $ret);
   }
   throw new \Exception("bad type \"$type\" ($msg)");
@@ -435,7 +435,7 @@ function log($type, $info, $special = '') {
   $date = strftime('%d-%b-%Y', time());
   $channels = ray(TX_CHANNELS); 
   $channel_name = @$channel ? $channels[$channel] : 'none';
-  if (is_nonce($special) and @$info['message']) $info['message'] = str_replace($special, '@nonce', $info['message']); // make it easy to match
+  if (isNonce($special) and @$info['message']) $info['message'] = str_replace($special, '@nonce', $info['message']); // make it easy to match
   if (@$info['code']) $info['code'] = '(the code)'; // don't make code and password any more accessible than they are
   if (@$info['password']) $info['password'] = '(the password)';
   $info = json_encode2($info, JSON_UNESCAPED_SLASHES);
@@ -452,9 +452,9 @@ function log($type, $info, $special = '') {
  * @param string $proper: the PHP function to use, to fix the case
  * @return: the argument with case fixed (the argument itself is changed directly also)
  */
-function normalize_case(&$what, $proper = 'ucwords') {
+function normalizeCase(&$what, $proper = 'ucwords') {
   if (is_array($what)) {
-    foreach ($what as $key => $value) normalize_case($what[$key]);
+    foreach ($what as $key => $value) normalizeCase($what[$key]);
     return $what;
   }
   $upper = strtoupper($what);
@@ -468,14 +468,14 @@ function import_gfld() {
   $result = \db_query("SELECT * FROM companies ORDER BY full_name");
   while ($row = $result->fetchAssoc()) {
     extract($row);
-    $short_name = short_name($full_name);
+    $short_name = shortName($full_name);
     $phone = $phone ? "+1$phone" : NULL;
     $fax = $fax ? "+1$fax" : NULL;
-    $state = state_abbrev($state);
+    $state = stateAbbrev($state);
     $website = str_replace('https://', '', str_replace('http://', '', str_replace('www.', '', $website)));
     $account_type = r\dbLookup(1, 'r_user_industries', "iid IN (121,61) AND uid=:uid", compact('uid')) ? 2 : 1;
     $sql = "UPDATE companies SET phone=:phone, fax=:fax, status=1, website=:website, name=:short_name, short_name=:short_name, state=:state, country='United States', timezone='America/New_York', account_type=:account_type WHERE uid=:uid";
-    r\db_q($sql, compact(ray('short_name uid phone fax state website account_type')));
+    r\dbQ($sql, compact(ray('short_name uid phone fax state website account_type')));
 
     $cats = unserialize($categories);
     foreach ($cats as $industry) {
@@ -487,7 +487,7 @@ function import_gfld() {
 //        debug(drupal_write_record('r_industries', $record));
         $iid = $record['iid'];
       }
-      db_query("INSERT INTO r_user_industries (iid, uid) VALUES (:iid, :uid)", prefix_keys(':', compact('iid', 'uid')));
+      db_query("INSERT INTO r_user_industries (iid, uid) VALUES (:iid, :uid)", prefixKeys(':', compact('iid', 'uid')));
 //      drupal_write_record('r_user_industries', compact(ray('iid uid')));
     }
   }
@@ -506,7 +506,7 @@ function gzdecode($data){
 
 // rCredits\Util\get_company_pictures();
 function get_company_pictures() {
-  $result = r\db_q("SELECT uid,website,data,description FROM users WHERE uid>791 AND website<>'' ORDER BY uid");
+  $result = r\dbQ("SELECT uid,website,data,description FROM users WHERE uid>791 AND website<>'' ORDER BY uid");
   while ($row = $result->fetchAssoc()) {
     extract($row);
     if (in_array($uid, array(549, 551, 552, 779, 791))) continue; // these apparently kill it
@@ -525,7 +525,7 @@ function get_company_pictures() {
         if (!preg_match('/<meta\s+name\s*=\s*[\'"]description[\'"]\s+content\s*=\s*[\'"](.*?)[\'"]/msi', $s, $matches)) continue;
       }
       $description = htmlspecialchars_decode(@$matches[1]);
-      if ($description) r\db_q('UPDATE users SET description=:description WHERE uid=:uid', compact(ray('description uid')));
+      if ($description) r\dbQ('UPDATE users SET description=:description WHERE uid=:uid', compact(ray('description uid')));
     }
 
     if (strlen($data) > 3) continue;    
@@ -543,7 +543,7 @@ function get_company_pictures() {
     if (@$biggest) {
       $picture = $best;
       $data = serialize(compact(ray('picture width height')));
-      r\db_q('UPDATE users SET data=:data WHERE uid=:uid', compact(ray('data uid')));
+      r\dbQ('UPDATE users SET data=:data WHERE uid=:uid', compact(ray('data uid')));
     }
   }
   debug('done'); // keep this
@@ -555,7 +555,7 @@ function fsize($url) {
   return strlen($s);
 }
 
-function trim_all(&$array) {
+function trimAll(&$array) {
   foreach ($array as $key => $value) $array[$key] = trim($value);
   return $array;
 }
@@ -565,14 +565,14 @@ function valid_url($url) {return (\valid_url($url) and preg_match('/^[A-Z0-9\-_]
 function abbreviates($s, $string) {return (substr($string, 0, strlen($s)) == $s);}
 function prlog($log = 'rCredits') {print_r(log($log));}
 function order($first_first, $choice1, $choice2) {return $first_first ? array($choice1, $choice2) : array($choice2, $choice1);}
-function wargs($s, $args, $prefix = '') {return strtr($s, prefix_keys($prefix, $args));} // for debugging
-function my_int($n) {return (is_numeric($n) and $n == (int) $n);}
-function my_float($n) {return (is_numeric($n) and $n == (float) $n);}
-function is_id($id) {return (my_int($id) and $id > 0);}
-//function is_ruid($ruid) {return (is_array($ruid) and array_keys($ruid) == array(0, 1, 2) and is_zid($ruid[0]) and is_zid($ruid[1]) and is_zid($ruid[2]));}
-function is_qid($qid) {return preg_match('/^[A-Z]{3}(\.|\:|\.\.)[A-Z]+$/', $qid);}
-function is_zid($zid) {return (my_int($zid) and $zid !== 0);}
-function is_nonce($nonce) {return preg_match('/^[A-Z]{3,}$/', $nonce);}
-function is_name($value) {return preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $value);}
-function is_acct($acct) {return (is_object($acct) and get_class($acct) == 'rCredits\acct');}
+function wargs($s, $args, $prefix = '') {return strtr($s, prefixKeys($prefix, $args));} // for debugging
+function myInt($n) {return (is_numeric($n) and $n == (int) $n);}
+function myFloat($n) {return (is_numeric($n) and $n == (float) $n);}
+function isId($id) {return (myInt($id) and $id > 0);}
+//function is_ruid($ruid) {return (is_array($ruid) and array_keys($ruid) == array(0, 1, 2) and isZid($ruid[0]) and isZid($ruid[1]) and isZid($ruid[2]));}
+function isQid($qid) {return preg_match('/^[A-Z]{3}(\.|\:|\.\.)[A-Z]+$/', $qid);}
+function isZid($zid) {return (myInt($zid) and $zid !== 0);}
+function isNonce($nonce) {return preg_match('/^[A-Z]{3,}$/', $nonce);}
+function isName($value) {return preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $value);}
+function isAcct($acct) {return (is_object($acct) and get_class($acct) == 'rCredits\acct');}
 function hug($s, $arms = '()') {return substr($arms, 0, 1) . $s . substr($arms, -1, 1);}

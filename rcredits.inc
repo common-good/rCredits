@@ -22,7 +22,7 @@
  *  reid: a relation id (transient, never stored in any other table)
  *   uid: an account id
  *   xid: a transaction id
- *     All transaction database operations are performed by db_q() on a virtual table {txs} with key zxid.
+ *     All transaction database operations are performed by dbQ() on a virtual table {txs} with key zxid.
  *  zxid: a (signed) transaction id (>0: xid in r_txs (real), <0: -xid in r_asif)
  *  ruid: an array of the three uids representing a quid: [main_uid, agent_uid, region_uid]  
  *
@@ -99,6 +99,7 @@ define('R_PERSONAL', 0);
 $GLOBALS['account types'] = array(t('personal'), t('commercial'), t('non-profit'));
 
 // Relationship permissions
+define('BIT_READ', 1);
 define('BIT_SELL', 2);
 $GLOBALS['share permissions'] = array('no access', 'read transactions', 'sell', 'buy and sell', 'manage account');
 
@@ -156,7 +157,7 @@ include_once __DIR__ . '/rcredits-circles.inc'; // treat this as an extension of
  * @param float $shortfall: how much short my balance is, for a transaction (if any)
  * @return assoc array of args
  */
-function tx_report_args($tx, $get_balance = 0, $shortfall = 0) {
+function txReportArgs($tx, $get_balance = 0, $shortfall = 0) {
   extract($tx); // any or all standard transaction fields
   if ($data) if ($data = unserialize($data)) extract($data, EXTR_PREFIX_ALL, 'data');
   
@@ -169,19 +170,19 @@ function tx_report_args($tx, $get_balance = 0, $shortfall = 0) {
   $action = $taking ? t('charged') : ($goods ? t('paid') : t('gave'));
   $confirm_action = $taking ? t('charge') : ($goods ? t('pay') : t('give'));
   $summary_word = $taking ? t('Charge') : t('Payment');
-  $amount = u\format_amount($amount);
-  $short = u\format_amount($shortfall);
+  $amount = u\formatAmount($amount);
+  $short = u\formatAmount($shortfall);
   if (@$data_bonus) $reward_type = $taking ? t('bonus') : t('rebate');
-  $reward_amount = u\format_amount($to_me ? @$data_bonus : @$data_rebate);
-  $other_name = user_field('full_name', @$data_foreign_uid ?: $other_uid);
+  $reward_amount = u\formatAmount($to_me ? @$data_bonus : @$data_rebate);
+  $other_name = userField('full_name', @$data_foreign_uid ?: $other_uid);
   $created = strftime('%d-%b-%Y', $created);
 
   $real = ($zxid > 0);
   $asif = $real ? '' : R_ASIF_TEXT;
   if ($get_balance > 0) {
-    list ($tid, $balance) = array(api\zxid2tid($zxid), api\credit_info(compact('real'))->fancy['balance']);
+    list ($tid, $balance) = array(api\zxid2tid($zxid), api\creditInfo(compact('real'))->fancy['balance']);
     if ($get_balance > 1) {
-      list ($other_tid, $other_balance) = array(api\zxid2tid($zxid, $other_uid), api\credit_info(compact('real', 'uid'))->fancy['balance']);
+      list ($other_tid, $other_balance) = array(api\zxid2tid($zxid, $other_uid), api\creditInfo(compact('real', 'uid'))->fancy['balance']);
     }
   }
   
@@ -192,19 +193,19 @@ function tx_report_args($tx, $get_balance = 0, $shortfall = 0) {
 
 /**
  * Record a transaction between two participants
- * @see also transaction_setup(), r\transaction_rewards(), and api\transfer()
+ * @see also transactionSetup(), r\transactionRewards(), and api\transfer()
  */
 function transact($info) {
-  $txs = array(transaction_setup($info));
-  transaction_rewards($txs);
-  return tx_save($txs);
+  $txs = array(transactionSetup($info));
+  transactionRewards($txs);
+  return txSave($txs);
 }
 
 /**
  * Save the transaction set
  * @todo: don't give real rewards to the passive party in an ASIF transaction (look retroactively)
  */
-function tx_save($txs) {
+function txSave($txs) {
   extract($txs[0], EXTR_PREFIX_ALL, 'my');
   //*** Begin DBTX
   $dbtx = db_transaction();
@@ -216,7 +217,7 @@ function tx_save($txs) {
     \drupal_write_record($table, $txs[$key]); // pass actual array element, to get xid
     if ($key == 0) {
       $txs[$key]['serial'] = $serial = $txs[0]['xid']; // set serial for main transaction
-      db_q("UPDATE $table SET serial=:serial WHERE xid=:serial", compact('serial'));
+      dbQ("UPDATE $table SET serial=:serial WHERE xid=:serial", compact('serial'));
     }
   }
 
@@ -230,7 +231,7 @@ function tx_save($txs) {
 /**
  * Add rebate and bonus to the transaction set, if appropriate.
  */
-function transaction_rewards(&$txs) {
+function transactionRewards(&$txs) {
   extract($txs[0], EXTR_PREFIX_ALL, 'my');
   
   if ($my_type != TX_TRANSFER) return;
@@ -238,19 +239,19 @@ function transaction_rewards(&$txs) {
   if (owning($my_payer, $my_payee)) return; // no rewards for transactions between owner and owned
   $rewards = unserialize($my_data);
   
-  $txs[] = tx_reward_setup(TX_REBATE, $my_payer, $my_state, $rewards);
-  $txs[] = tx_reward_setup(TX_BONUS, $my_payee, $my_state, $rewards);
+  $txs[] = txRewardSetup(TX_REBATE, $my_payer, $my_state, $rewards);
+  $txs[] = txRewardSetup(TX_BONUS, $my_payee, $my_state, $rewards);
 }
 
-function tx_reward_setup($type, $payee, $state, $rewards) {
-  $payer = $payer_agent = $payee_agent = user_field('community_uid', $payee);
+function txRewardSetup($type, $payee, $state, $rewards) {
+  $payer = $payer_agent = $payee_agent = userField('communityUid', $payee);
   if ($payer == $payee) return NULL; // payee is a community, so no rewards
 
   $taking = FALSE;
   $goods = FALSE;
   $amount = $rewards[$type == TX_REBATE ? 'rebate' : 'bonus'];
   $for = $type == TX_REBATE ? t('rebate') : t('bonus');
-  return transaction_setup(compact(u\ray('type amount goods payer payee payer_agent payee_agent for taking state')));
+  return transactionSetup(compact(u\ray('type amount goods payer payee payer_agent payee_agent for taking state')));
 }
 
 /**
@@ -263,10 +264,10 @@ function tx_reward_setup($type, $payee, $state, $rewards) {
  *   taking (bool): did the payee initiate the transaction
  * @return the array, with some extra field information added
  */
-function transaction_setup($info) {
+function transactionSetup($info) {
   global $channel; // through what medium was the transaction requested (web, SMS, etc.).
   extract($info, EXTR_PREFIX_ALL, 'my');
-  $required_params = compact(u\prefix_values('my_', u\ray('amount payer payee payer_agent payee_agent for taking')));
+  $required_params = compact(u\prefixValues('my_', u\ray('amount payer payee payer_agent payee_agent for taking')));
   u\EXPECT($required_params, 'float zid zid zid zid notempty bool');
 
   if (!isset($my_state)) $state = TX_DONE;
@@ -287,9 +288,9 @@ function transaction_setup($info) {
  * @return the user's demand amount
  */
 function demand($uid, $demand = 0) {
-  if (!$demand) return user_field('demand', $uid);
+  if (!$demand) return userField('demand', $uid);
   $demand = min(R_MAX_AMOUNT, $demand);
-  user_update(compact('demand'), $uid);
+  userUpdate(compact('demand'), $uid);
   return $demand;
 }
 
@@ -298,34 +299,34 @@ function demand($uid, $demand = 0) {
  */
 function shortfall($uid, $requested_amount, $preapproved, $real) {
   if (!$preapproved) return 0; // if this is just an invoice, funds don't have to be there yet (no shortfall)
-  $available = api\credit_info(compact('uid', 'real'))->available;
+  $available = api\creditInfo(compact('uid', 'real'))->available;
   $amount = min($requested_amount, $available);
   $shortfall = max(0, $requested_amount - $amount); // how much needs to be done in a separate currency
   if ($shortfall) {
     $shortfall = max(.01, $shortfall); // don't report a tiny shortfall by rounding down to zero
-    $short = u\format_amount($shortfall);
+    $short = u\formatAmount($shortfall);
     $shortfall = ceil($shortfall); // shortfall should be a round figure (no cents)
   }
   return $shortfall;
 }
 
-function pay_employees($amount0, $for, $confirmed) {
+function payEmployees($amount0, $for, $confirmed) {
   $employees = employees();
   if (empty($employees)) return array('no employees', array(), array());
-  if ($shortfall = shortfall(acct()->id, $amount0, TRUE, is_rTrader())) {
-     $short = u\format_amount($shortfall);
+  if ($shortfall = shortfall(acct()->id, $amount0, TRUE, isRTrader())) {
+     $short = u\formatAmount($shortfall);
      return array('short payment', compact('short'), FALSE); // no partial payment of employees
   }
   $employee_count = count($employees);
   $amount_unformatted = round($amount0 / $employee_count, 2);
-  $total = u\format_amount($amount_unformatted * $employee_count);
-  $amount = u\format_amount($amount_unformatted);
+  $total = u\formatAmount($amount_unformatted * $employee_count);
+  $amount = u\formatAmount($amount_unformatted);
   if (!$confirmed) return array('pay employees', compact(u\ray('employee_count amount total')), TRUE);
   $pay_all = TRUE;
   $results = array();
   $successes = 0;
   foreach ($employees as $acct) {
-    $results[] = list ($message, $args, $confirm) = api\transfer('payment', $acct, $amount_unformatted, $for, !u\for_cash($for), TRUE, compact('pay_all'));
+    $results[] = list ($message, $args, $confirm) = api\transfer('payment', $acct, $amount_unformatted, $for, !u\forCash($for), TRUE, compact('pay_all'));
     if ($args['success']) $successes++;
   }
   $success = ($successes > 0);
@@ -343,7 +344,7 @@ function notify($uid, $message_index, $info) {
     'full_name' => @$my_full_name ?: t('rCredits Member'),
     'email' => $my_mail, // testing uses this
   );
-  if ($uid != acct()->id) $standard_fields['other_name'] = user_field('full_name'); // this comes in backwards if notifying elseone
+  if ($uid != acct()->id) $standard_fields['other_name'] = userField('full_name'); // this comes in backwards if notifying elseone
   
   $subs = array();
   foreach (array_merge($info, $standard_fields) as $key => $value) $subs['{' . strtoupper($key) . '}'] = $value;
@@ -360,10 +361,10 @@ function notify($uid, $message_index, $info) {
  * @param array $info: associative array of fields, each of which uniquely identifies a user.
  * @return string: the temporary name
  */
-function temp_name($info) {
+function tempName($info) {
   extract($info, EXTR_PREFIX_ALL, 'my');
   $phone = @$my_number ?: (@$my_phone ?: '');
-  if ($phone) return R_TEMP_NAME_PREFIX . u\format_phone($phone, 'n');
+  if ($phone) return R_TEMP_NAME_PREFIX . u\formatPhone($phone, 'n');
   if (isset($my_email)) return R_TEMP_NAME_PREFIX . str_replace('@', ' AT ', str_replace('.', ' DOT ', $my_email));
 // NO  if (isset($my_website)) return R_TEMP_NAME_PREFIX . str_replace('.', ' DOT ', str_replace('/', ' SLASH ', $my_website));
   return R_TEMP_NAME_PREFIX . substr(md5('zot' . strval(REQUEST_TIME)), 0, 10); // pseudo random
@@ -376,7 +377,7 @@ function temp_name($info) {
  * @param int $zxid: transaction id & table
  * @param bool $all_related: set all related transactions too (default FALSE)
  */
-function set_tx_field($field_name, $new_value, $zxid, $all_related = FALSE) {
+function setTxField($field_name, $new_value, $zxid, $all_related = FALSE) {
   $cuid = acct()->id;
   u\EXPECT(compact(u\ray('field_name zxid all_related')), 'name zid bool');
   
@@ -391,8 +392,8 @@ function set_tx_field($field_name, $new_value, $zxid, $all_related = FALSE) {
   
   /*** Begin DBTX ***/
   $dbtx = \db_transaction();
-  db_q($sql, compact(u\ray('new_value data xid')));
-  if ($all_related) db_q($sql2, compact(u\ray('new_value xid'))); // gotta do the auxiliary records separately so as not to affect their data field (separate query, to avoid "unbuffered query" error -- known Drupal bug)
+  dbQ($sql, compact(u\ray('new_value data xid')));
+  if ($all_related) dbQ($sql2, compact(u\ray('new_value xid'))); // gotta do the auxiliary records separately so as not to affect their data field (separate query, to avoid "unbuffered query" error -- known Drupal bug)
   unset($dbtx);
   /*** End DBTX ***/
 }
@@ -401,11 +402,11 @@ function set_tx_field($field_name, $new_value, $zxid, $all_related = FALSE) {
  * Merge a temporary ("old") account into the current account (a permanent ("new") account).
  * @return 1 (for counting how many were merged)
  */
-function merge_accounts($old_uid) {
+function mergeAccounts($old_uid) {
   $new_uid = acct()->id;
-  if (!api\is_temp_account($old_uid)) return; // don't merge non-temp account
-  u\EXPECT(api\access('manage account'), "unauthorized merge_accounts: $new_uid into $old_uid");
-//  if (!is_temp_name(user_field('name', $old_uid))) die('merging non-temp account');
+  if (!api\isTempAccount($old_uid)) return; // don't merge non-temp account
+  u\EXPECT(api\access('manage account'), "unauthorized mergeAccounts: $new_uid into $old_uid");
+//  if (!is_tempName(userField('name', $old_uid))) die('merging non-temp account');
   // there are no other records for temporary accounts, than those below
 
   $new = acct($new_uid);
@@ -414,7 +415,7 @@ function merge_accounts($old_uid) {
   foreach (u\ray('phone fax website address') as $one) if ($old->$one and !$new->$one) $update[$one] = $old->$one;
   
   /*** Begin DBTX ***/ $dbtx = \db_transaction();
-  user_update($update, $new_uid);
+  userUpdate($update, $new_uid);
   $sql = <<<EOF
     UPDATE r_asif SET payer=:new_uid WHERE payer=:old_uid
     UPDATE r_asif SET payee=:new_uid WHERE payee=:old_uid
@@ -424,17 +425,17 @@ function merge_accounts($old_uid) {
     UPDATE r_user_industries SET uid=:new_uid WHERE uid=:old_uid
     DELETE FROM users WHERE uid=:old_uid
 EOF;
-  db_q($sql, compact('new_uid', 'old_uid'));
+  dbQ($sql, compact('new_uid', 'old_uid'));
   /*** End DBTX ***/ unset($dbtx);
   return 1;
-//  db_q("UPDATE users SET uid=IF(uid>0,-uid,uid), status=0 WHERE uid=:old_uid", compact('old_uid'));
+//  dbQ("UPDATE users SET uid=IF(uid>0,-uid,uid), status=0 WHERE uid=:old_uid", compact('old_uid'));
 }
 
 /**
  * Reset all rCredits data, to start development with a clean slate
  */
 function reset() {
-//  $ctty_uid = server_uid();
+//  $ctty_uid = serverUid();
   $sqls = array(
     'TRUNCATE TABLE r_txs',
     'TRUNCATE TABLE r_asif',
@@ -456,7 +457,7 @@ function reset() {
  */
 function zxs($uid1 = 'cuid', $uid2 = '') {
   if ($uid1 == 'cuid') $uid1 = acct()->id;
-  $real = ($uid1 >= 0 and $uid1 < 1) ? (2 * $uid1) : (is_rTrader($uid1) and is_rTrader($uid2)); // $real < 1 means boolean
+  $real = ($uid1 >= 0 and $uid1 < 1) ? (2 * $uid1) : (isRTrader($uid1) and isRTrader($uid2)); // $real < 1 means boolean
   return $real ? 'r_txs' : 'r_asif';
 }
 
@@ -468,7 +469,7 @@ function dbLookup($field_name, $table_name, $criteria = '1', $subs = array()) {
   u\EXPECT(compact(u\ray('field_name table_name criteria subs')), 'notempty notempty notempty assoc');
   $sql = "SELECT $field_name FROM $table_name WHERE $criteria";
   if (!strpos($criteria, ' LIMIT ')) $criteria .= ' LIMIT 1';
-  $result = db_q($sql, $subs);
+  $result = dbQ($sql, $subs);
   return strpos($field_name, ',') ? $result->fetchAssoc() : $result->fetchField();
 }
 
@@ -480,7 +481,7 @@ function dbLookup($field_name, $table_name, $criteria = '1', $subs = array()) {
  * @return the qid, FALSE if wrong format
  */
 function qid($zid = '', $region_id = R_SERVER_ID, $min_len = 1) {
-  if (!u\is_zid($zid)) return FALSE;
+  if (!u\isZid($zid)) return FALSE;
   return $region_id . ($zid < 0 ? (':' . u\n2a(-$zid, -$min_len)) : ('.' . u\n2a($zid, -$min_len)));
 }
 
@@ -489,13 +490,13 @@ function qid($zid = '', $region_id = R_SERVER_ID, $min_len = 1) {
  * @return [zid, region_uid]
  */
 function azid($qid) {
-  if (!u\is_qid($qid)) return FALSE;
+  if (!u\isQid($qid)) return FALSE;
   $qid = str_replace('..', ':', $qid); // allow a horizontal colon
   $type = strpos($qid, '.') === FALSE ? ':' : '.';
   list ($region_id, $iid) = explode($type, $qid, 2); // separate into region and individual id
   
   $id = u\a2n($iid);
-  return array($type == '.' ? $id : -$id, server_uid($region_id ?: R_SERVER_ID));
+  return array($type == '.' ? $id : -$id, serverUid($region_id ?: R_SERVER_ID));
 }
   
 /**
@@ -513,10 +514,10 @@ function quid($ruid = '', $agent_uid = '', $region_uid = '') {
   $cacct = acct();
   if ($agent_uid) {
     $uid = $ruid;
-    if (!$region_uid) $region_uid = server_uid();
+    if (!$region_uid) $region_uid = serverUid();
   } else list ($uid, $agent_uid, $region_uid) = 
       ( is_array($ruid) ? $ruid 
-    : ( ($uid = $ruid) ? array($uid, $uid, server_uid()) 
+    : ( ($uid = $ruid) ? array($uid, $uid, serverUid()) 
     : ( array($cacct->id, $cacct->agent, $cacct->region) )));
   return qid($uid == $agent_uid ? $uid : -reid($uid, $agent_uid), u\n2a(-$region_uid, 3), 3);
 }
@@ -543,9 +544,41 @@ function zuid($id = '', $agent_uid = '') {
 function zxid($xid, $table) {return $table == zxs(TRUE/2) ? $xid : -$xid;}
 function azxid($zxid) {return $zxid > 0 ? array($zxid, zxs(TRUE/2)) : array(-$zxid, zxs(FALSE/2));}
 
-function tx2acct($id, $agent, $data) {
+/**
+ * Interpret transaction record fields as an acct object
+ * @param int/array $id: the account id or [id, agent, data]
+ * @param int $agent: account id of the transaction agent
+ * @param assoc $data: extra info from the transaction, including info about foreign parties to the transaction
+ * @return acct
+ */
+function tx2acct($id, $agent = '', $data = '') {
+  if (is_array($id)) list ($id, $agent, $data) = $id;
   if (is_array($data)) extract($data); // foreign_uid and/or foreign_agent (or neither)
   return acct(@$foreign_uid ? qid($foreign_uid, $id) : $id, @$foreign_agent ? qid($foreign_agent, $agent) : $agent);
+}
+
+/**
+ * Determine whether the record can be undone
+ * @param assoc $oldRecord: the transaction record or NULL (to make it easy when last_tx found no matching transaction)
+ * @param assoc $subs: (RETURNED) necessary substitutions, if any
+ * @return string: the error message (FALSE if the current agent CAN undo it on behalf of the current account)
+ */
+function nonoUndo($oldRecord, &$subs = array()) {
+  if (!@$oldRecord) return 'undo no match';
+  $cacct = acct();
+  extract($oldRecord, EXTR_PREFIX_ALL, 'old');
+  $data = unserialize($old_data);
+  if (@$data['undone']) {
+    $subs = array($old_tid => zxid2tid($old_zxid));
+    return 'already undone';
+  }
+
+  $acct = tx2acct($old_to_me ? array($old_payee, $old_payee_agent, $data) : array($old_payer, $old_payer_agent, $data));
+  if ($cacct->agent != $acct->agent) {
+    $perm = $old_taking ? 'buy and sell' : 'sell';
+    if (!api\access($perm, acct($acct->id, $cacct->agent))) return 'no ' . $perm;
+  }
+  return FALSE;
 }
 
 /**
@@ -556,24 +589,24 @@ function owning($uid1, $uid2) {
   return $uid1 == $uid2 ?: dbLookup(1, 'r_relations', $crit, compact('uid1', 'uid2'));
 }
 
-function community_uid($postal_code = '') {
-  if (!$postal_code) return server_uid();
-  $crit = "country=':R_COUNTRY' AND :postal_code RLIKE postal_code AND uid=community_uid";
-  return user_field('uid', $crit, compact(u\ray('postal_code'))) ?: server_uid();
+function communityUid($postal_code = '') {
+  if (!$postal_code) return serverUid();
+  $crit = "country=':R_COUNTRY' AND :postal_code RLIKE postal_code AND uid=communityUid";
+  return userField('uid', $crit, compact(u\ray('postal_code'))) ?: serverUid();
 }
 
-function is_foreign($uid) {
-  $name = user_field('name', $uid);
+function isForeign($uid) {
+  $name = userField('name', $uid);
   return $name == (R_SERVER_ID . '.') ? FALSE : ($uid < 0 and preg_match('/[A-Z]{3}\./', $name));
 }
 
 /**
  * Given a full name, make a username and add digits until it is unique.
  */
-function unique_name($full_name) {
-  $name = $name0 = u\short_name($full_name);
+function uniqueName($full_name) {
+  $name = $name0 = u\shortName($full_name);
   for ($i = 2; ; $i++) {
-    if (!user_field(1, 'name=:name', compact('name'))) return $name;
+    if (!userField(1, 'name=:name', compact('name'))) return $name;
     $name = $name0 . $i;
   }
 }
@@ -583,7 +616,7 @@ function unique_name($full_name) {
  */
 function employees() {
   $cuid = acct()->id;
-  $result = db_q('SELECT agent_uid, foreign_uid FROM r_relations WHERE main_uid=:cuid AND is_employee', compact('cuid'));
+  $result = dbQ('SELECT agent_uid, foreign_uid FROM r_relations WHERE main_uid=:cuid AND is_employee', compact('cuid'));
   $accts = array();
   foreach ($result as $key => $one) {
     extract((array) $one); // agent_uid, foreign_uid
@@ -598,7 +631,7 @@ function employees() {
  *   data from the field, if a single field is requested
  *   an associative array of the field data, if more than one field is requested
  */
-function user_field($field, $who = 'none', $subs = array()) {
+function userField($field, $who = 'none', $subs = array()) {
   if ($who == 'none') $who = acct()->id;
   if (!$who) return FALSE;
   if (is_numeric($uid = $who) and !strpos($field, '(')) { // handle numbered accounts efficiently
@@ -615,12 +648,12 @@ function user_field($field, $who = 'none', $subs = array()) {
 //  debug(compact(u\ray('field who subs')));
   $result = api\get_records('users', is_numeric($who) ? "uid=$who" : $who, $subs, $field, TRUE);
   if (count($result) < 1) return FALSE;
-  u\EXPECT(count($result) == 1, "ambiguous user in user_field(): $who");
-  u\EXPECT(is_object($result[0]), 'bad object array in user_field(): ' . print_r($result, 1));
+  u\EXPECT(count($result) == 1, "ambiguous user in userField(): $who");
+  u\EXPECT(is_object($result[0]), 'bad object array in userField(): ' . print_r($result, 1));
   return strpos($field, ',') ? ((array) $result[0]) : $result[0]->$field;
 }
 
-function user_update($info, $uid = '') {
+function userUpdate($info, $uid = '') {
   if ($acct = acct($uid)) {
     $acct->update($info); 
   } else {
@@ -638,21 +671,19 @@ function user_update($info, $uid = '') {
  * @return int: the record id in r_relations
  */
 function reid($main_uid, $agent_uid, $permission = '') {
-debug("per=$permission isnum=".is_numeric($permission));
   $permission = 
       (is_numeric($permission) ? " AND permission>=$permission"
     : ($permission ? " AND is_$permission"
     : ('')));
     
   $crit = 'main_uid=:main_uid AND agent_uid=:agent_uid' . $permission;
-  debug(compact('main_uid','agent_uid','permission','crit'));
   return dbLookup('reid', 'r_relations', $crit, compact(u\ray('main_uid agent_uid')));
 }
 
 /**
  * @todo: maybe move the processing of zxs to a wrapper function db_txq() that also does postprocessing on fetchAssoc()
  */
-function db_q($sql, $subs = array(), $die = FALSE) {
+function dbQ($sql, $subs = array(), $die = FALSE) {
   u\EXPECT(compact(u\ray('sql subs')), 'notempty assoc');
   if (strpos($sql, '{zxs}')) {
     extract($subs, EXTR_PREFIX_ALL, 'my');
@@ -660,16 +691,16 @@ function db_q($sql, $subs = array(), $die = FALSE) {
       list ($subs['xid'], $table) = azxid($my_zxid);
       unset($subs['zxid']);
     } else {
-      $table = zxs((isset($my_real) ? $my_real : is_rTrader())/2);
+      $table = zxs((isset($my_real) ? $my_real : isRTrader())/2);
       unset($subs['real']);
     }
     $sql = strtr($sql, array('{zxs}' => $table, 'zxid' => 'xid'));
   }
-//  debug(u\get_constants($sql));
+//  debug(u\getConstants($sql));
 //  debug($subs);
 //  if ($die)
- //if (@$subs['info']) {print_r(u\get_constants($sql) . ' ' . print_r(u\prefix_keys(':', $subs), 1)); die();}
-  return \db_query(u\get_constants($sql), u\prefix_keys(':', $subs));
+ //if (@$subs['info']) {print_r(u\getConstants($sql) . ' ' . print_r(u\prefixKeys(':', $subs), 1)); die();}
+  return \db_query(u\getConstants($sql), u\prefixKeys(':', $subs));
 }
 
 function error($logid) {
@@ -681,13 +712,13 @@ function error($logid) {
 }
 
 // Single line functions that need no explanation
-function rebate($uid, $amount = 1) {return round($amount * user_field('rebate_percent', $uid) / 100, 2);}
+function rebate($uid, $amount = 1) {return round($amount * userField('rebate_percent', $uid) / 100, 2);}
 function bonus($uid, $amount = 1) {return rebate($uid, 2 * $amount);}
 // UNUSED tx_field($field_name, $xid, $real) {return dbLookup($field_name, zxs($real/2), 'xid=:xid', compact('xid'));}
-function set_tx_state($new_value, $zserial) {set_tx_field('state', $new_value, $zserial, TRUE);}
-function total_demand() {return dbLookup('SUM(demand)', 'users');}
-function server_uid($region_id = '') {return -u\a2n($region_id ?: R_SERVER_ID);}
-function ok_agent($uid, $agent_uid, $permission = '') {return ($uid == $agent_uid or reid($uid, $agent_uid, $permission));}
-function is_rTrader($uid = '') {return (user_field('flags', $uid ?: acct()->id) & BIT_RTRADER);}
-function email_template($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}
-function email_body($key) {return str_replace('{BODY}', email_template($key), email_template(R_EMAIL_FRAME));}
+function setTxState($new_value, $zserial) {setTxField('state', $new_value, $zserial, TRUE);}
+function totalDemand() {return dbLookup('SUM(demand)', 'users');}
+function serverUid($region_id = '') {return -u\a2n($region_id ?: R_SERVER_ID);}
+function okAgent($uid, $agent_uid, $permission = '') {return ($uid == $agent_uid or reid($uid, $agent_uid, $permission));}
+function isRTrader($uid = '') {return (userField('flags', $uid ?: acct()->id) & BIT_RTRADER);}
+function emailTemplate($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}
+function emailBody($key) {return str_replace('{BODY}', emailTemplate($key), emailTemplate(R_EMAIL_FRAME));}

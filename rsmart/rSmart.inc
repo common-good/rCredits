@@ -38,19 +38,19 @@ function api($args = FALSE) {
   if (@$q_op != 'reset') // DEBUG
   if (@$q_op != 'first_time') {
     if (!@$q_code) return api\error('no code given');
-    if (!u\is_qid($q_my_id)) return api\error('bad id format');
+    if (!u\isQid($q_my_id)) return api\error('bad id format');
     if (!($cuid = r\dbLookup('uid', 'r_smarts', 'code=:q_code', compact('q_code')))) return api\error('unknown device');
     if (!($cacct = r\acct($cuid, $q_my_id, $error))) return api\error($error);
     r\acct::setDefault($cacct);
-    if ($cacct->region != r\server_uid()) return api\error('wrong server');
-    if ($cacct->agentRegion != r\server_uid()) return api\error('wrong server for agent');
-    if (!r\ok_agent($cuid, $cacct->agent, BIT_SELL)) return api\error('no permission'); // make sure agent has at least sell permission
+    if ($cacct->region != r\serverUid()) return api\error('wrong server');
+    if ($cacct->agentRegion != r\serverUid()) return api\error('wrong server for agent');
+    if (!r\okAgent($cuid, $cacct->agent, BIT_READ)) return api\error('no permission'); // make sure agent has at least read permission
     $args['cacct'] = $cacct;
     $edit = array('code' => $q_code, 'accessed' => time());
     \drupal_write_record('r_smarts', $edit, 'code'); // so we can drop the deadwood
   }
 
-  if (u\is_qid(@$q_account_id)) {
+  if (u\isQid(@$q_account_id)) {
     if (!($acct = r\acct($q_account_id, '', $error))) return api\error($error);
 //    list ($uid, $agent_uid, $region_uid) = $acct->UAR();
     $args['acct'] = $acct;
@@ -60,7 +60,7 @@ function api($args = FALSE) {
 }
 
 /*function reset($args) {
-  r\db_q('DELETE FROM r_smarts WHERE 1');
+  r\dbQ('DELETE FROM r_smarts WHERE 1');
   return array();
 }*/
 
@@ -77,7 +77,7 @@ function api($args = FALSE) {
 function first_time($args) {
   require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
   extract($args, EXTR_PREFIX_ALL, 'q');
-  if (!u\is_qid(@$q_my_id)) return api\error('bad id');
+  if (!u\isQid(@$q_my_id)) return api\error('bad id');
   if (!($cacct = r\acct(@$q_my_id))) return api\error('unknown member');
   if (@!$q_password) return api\error('login error');
   if (!user_check_password($q_password, $cacct->account())) return api\error('bad login'); // make these two error messages distinct but obscure
@@ -117,11 +117,11 @@ function identify($args) {
   $full_name = $q_acct->full_name;
   if ($q_acct->id == $cuid) return api\error('no self-trading');
   $country = $q_acct->country;
-//  $location = $q_acct->city . ', ' . ($country == 'United States' ? u\state_abbrev($q_acct->state) : $country);
+//  $location = $q_acct->city . ', ' . ($country == 'United States' ? u\stateAbbrev($q_acct->state) : $country);
   $location = $q_acct->city . ', ' . $q_acct->state . ($country == 'United States' ? '' : ", $country");
   if (!$q_acct->proSe()) list ($company_name, $full_name) = array($full_name, r\acct($q_acct->agent)->full_name);
   $uid = $q_acct->id;
-  if (api\access('charge others')) $other_balance = api\credit_info(compact('uid'))->balance;
+  if (api\access('charge others')) $other_balance = api\creditInfo(compact('uid'))->balance;
   return compact(u\ray('full_name location company_name other_balance'));
 }
 
@@ -178,8 +178,8 @@ function transact($args) {
 }
 
 function balances($uid, $real) {
-  $my_balance = api\credit_info(compact('real'))->balance;
-  if (api\access('charge others')) $other_balance = api\credit_info(compact('real', 'uid'))->balance;
+  $my_balance = api\creditInfo(compact('real'))->balance;
+  if (api\access('charge others')) $other_balance = api\creditInfo(compact('real', 'uid'))->balance;
   return compact('my_balance', 'other_balance');
 }
 
@@ -198,20 +198,23 @@ function balances($uid, $real) {
 function undo($params) {
   extract($params, EXTR_PREFIX_ALL, 'q');
   
+  if (!@$q_tx_id) return api\error('missing transaction id');
+  if (!u\isQid(@$q_tx_id)) return api\error('bad transaction id');
   list ($zxid, $region_uid) = r\azid($q_tx_id);
-  if ($region_uid != r\server_uid()) return api\error('That is not a transaction on this server.');
+  if ($region_uid != r\serverUid()) return api\error('That is not a transaction on this server.');
+  
+  if (@$q_confirmed !== '1' and @$q_confirmed !== '0') return api\error('bad confirmation status');
   
   if ($q_confirmed) {
-    list ($message, $args) = api\undo_tx($zxid);
-    debug($message);
+    list ($message, $args) = api\undoTx($zxid);
     $message = u\tt($message, $args);
-    debug($message);
     if (!@$args['success']) return api\error($message);
     if ($new_zxid = @$args['zxid']) $tx_id = r\qxid($new_zxid); // get offsetting transaction id, if any (otherwise state changed)
     $balances = balances($args['other_uid'], $zxid > 0);
   } else {
-    if (!($result = api\last_tx('xid=:zxid', compact('zxid')))) return api\error(u\tt('undo no match'));
-    $message = u\tt('confirm undo', r\tx_report_args($result));
+    $oldRecord = api\lastTx('xid=:zxid', compact('zxid'));
+    if ($error = r\nonoUndo($oldRecord, $subs)) return api\error($error, $subs); // check nono before confirm AND here
+    $message = u\tt('confirm undo', r\txReportArgs($oldRecord));
   }
   return compact(u\ray('message tx_id')) + (@$balances ?: array());
 }

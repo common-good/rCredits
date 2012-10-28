@@ -38,17 +38,17 @@ class acct {
     } else { // create new db record
       extract($info, EXTR_PREFIX_ALL, 'my');   
       if (isset($my_number) and !isset($my_phone)) $my_phone = $my_number;
-      if (isset($my_phone)) $info['phone'] = u\format_phone($my_phone);
+      if (isset($my_phone)) $info['phone'] = u\formatPhone($my_phone);
       
       $info['mail'] = $info['init'] = @$my_email ?: '';
     // Don't create a password (that's how we know it's a temporary account) $info['pass'] = \user_password();
       $info['full_name'] = @$my_full_name ?: '';
-      $short_name = @$my_full_name ? u\short_name($my_full_name) : '';
-      $info['name'] =  @$my_name ?: (@$short_name ?: temp_name($info));
+      $short_name = @$my_full_name ? u\shortName($my_full_name) : '';
+      $info['name'] =  @$my_name ?: (@$short_name ?: tempName($info));
       $info['status'] = TRUE;
       $info['is_new'] = TRUE;
       $info['roles'] = 0; // this keeps Drupal happy in user.module
-      $info['community_uid'] = server_uid(); // $community_uid(@$my_postal_code); // defaults to current server
+      $info['communityUid'] = serverUid(); // $communityUid(@$my_postal_code); // defaults to current server
 
       /*** Begin DBTX ***/ $dbtx = db_transaction();
       if (!($uid = @$info['uid'])) {
@@ -64,7 +64,7 @@ class acct {
       }
       /*** End DBTX ***/ unset($dbtx);
 
-      $region = server_uid();
+      $region = serverUid();
       list($this->id, $this->agent, $this->region, $this->agentRegion) = array($uid, $uid, $region, $region);
       self::$records[$this->id] = (object) $info;
     }
@@ -79,12 +79,12 @@ class acct {
     if ($error = u\EXPECT(compact(u\ray('id0 agent0')), 'zid|qid|assoc empty|id|qid', $test)) return FALSE;
     if ($error = u\EXPECT((bool) $id0, 'null uid in new acct()', $test)) return FALSE;
     if ($error = u\EXPECT(!(strpos($id0, ':') and $agent0), 'agent already specified in qid', $test)) return FALSE;
-    list ($id, $agent, $region) = u\is_id($id0) ? array($id0, $agent0 ?: $id0, server_uid()) : UAR($id0); // handle
+    list ($id, $agent, $region) = u\isId($id0) ? array($id0, $agent0 ?: $id0, serverUid()) : UAR($id0); // handle
 
-    if (u\is_qid($agent0)) {
+    if (u\isQid($agent0)) {
       list ($agent, $zot, $agentRegion) = UAR($agent0);
       if ($error = u\EXPECT($agent == $zot, 'agent agent not allowed', $test)) return FALSE;
-    } else $agentRegion = server_uid();
+    } else $agentRegion = serverUid();
 
     $record = self::getRecord($id, $region);
     if ($error = u\EXPECT($record, 'That account does not exist.', $test)) return FALSE; // don't use tt() here (many calls)
@@ -96,7 +96,7 @@ class acct {
   private function getRecord($id, $region, $reread = FALSE) {
     if (@self::$records[$id] and !property_exists(self::$records[$id], 'flags')) die("No flags field in record $id: " . print_r(self::$records, 1));
     if (@self::$records[$id] and !$reread) return self::$records[$id];
-    if ($region != server_uid()) { // foreign
+    if ($region != serverUid()) { // foreign
       // contact other server here, for the record
     } else {
       $records = api\get_records('users', "uid=:id LIMIT 1", compact('id')); // domestic (don't use Drupal's caching)
@@ -142,9 +142,9 @@ class acct {
  */
 
 function UAR($quid = '', $no_abbrev = TRUE) {
-  if (!$quid) return array(acct()->id, acct()->agent, server_uid());
-  if (!u\is_qid($quid) and !$no_abbrev) $quid = R_SERVER_ID . $quid;
-  if (!u\is_qid($quid)) return FALSE;
+  if (!$quid) return array(acct()->id, acct()->agent, serverUid());
+  if (!u\isQid($quid) and !$no_abbrev) $quid = R_SERVER_ID . $quid;
+  if (!u\isQid($quid)) return FALSE;
 
   list ($zuid, $region_uid) = azid($quid);
   if (($reid = -$zuid) > 0) {

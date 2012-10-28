@@ -20,8 +20,8 @@ define('R_TABLES', 'r_area_codes,r_credit_regions,r_nonces,r_txs,r_asif,r_relati
 function rcredits_install() {
   r\make_fields();
   
-  $uid = r\server_uid();
-  $keys = u\ray('uid community_uid name full_name postal_code country demand rebate_percent');
+  $uid = r\serverUid();
+  $keys = u\ray('uid communityUid name full_name postal_code country demand rebate_percent');
   $values = array($uid, $uid, R_SERVER_ID . '.', R_REGION_NAME, R_REGION_POSTAL_AREA, R_COUNTRY, R_INITIAL_DEMAND, 0);
   $info = array_combine($keys, $values);
   if (!r\dbLookup(1, 'users', 'uid=:uid', compact('uid'))) new r\acct($info); // create the server record if it doesn't exist yet (don't use r\acct() here)
@@ -133,7 +133,7 @@ function rcredits_schema() {
   // table r_employs_temp (same as r_relations, but with extra fields -- used for candidates in rcredits-circles.inc)
   $fields = array(
     'ignore' => r\setup_field('temporarily omit this record from consideration', 'int tiny'),
-    'employee_is_rtrader' => r\setup_field('this employee is an rTrader', 'int tiny'),
+    'employee_isRTrader' => r\setup_field('this employee is an rTrader', 'int tiny'),
     'score' => r\setup_field('how good is this candidate', 'int 11'),
   );
   $schema['r_employs_temp'] = $schema['r_relations'];
@@ -188,7 +188,7 @@ function rcredits_schema_alter(&$schema) {
   $fields = array( // additional users fields
     'account_type' => r\setup_field('personal, commercial, non-profit (or government)', 'int tiny'),
     'flags' => r\setup_field('permissions and boolean state flags', 'int big', 0, '010'),
-    'community_uid' => r\setup_field("uid of this account's Common Good Community", 'int 11'),
+    'communityUid' => r\setup_field("uid of this account's Common Good Community", 'int 11'),
     'federal_id' => r\setup_field('social security number or employer id number, for reporting', 'varchar 9'),
     'full_name' => r\setup_field('full name of the individual or entity', 'varchar 60'),
     'phone' => r\setup_field('contact phone (no country code, no punctuation)', 'varchar 255'),
@@ -229,7 +229,7 @@ function rcredits_uninstall() {
     'users' => explode(' ', 'first_name last_name credit_name can_charge can_vote can_trade is_committed'),
   );
   r\make_fields('UNMAKE', $old_fields);
-// (DON'T DELETE record!)  if ($who = variable_set('rcredits_community_uid')) db_query("DELETE FROM users WHERE uid = $who");
+// (DON'T DELETE record!)  if ($who = variable_set('rcredits_communityUid')) db_query("DELETE FROM users WHERE uid = $who");
 
   db_query('DROP TABLE IF EXISTS ' . R_TABLES . ',r_credit_tails');
 }

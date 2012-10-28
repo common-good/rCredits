@@ -33,13 +33,13 @@ function extraSetup($feature) {
   $picturePath .= 'sites/default/files/pictures';
 
   global $sms_devel; $sms_devel = TRUE;
-  r\db_q('DELETE FROM users WHERE uid>1000');
-  r\db_q('TRUNCATE r_sms');
-  r\db_q('TRUNCATE r_asif');
-  r\db_q('TRUNCATE r_txs');
-  r\db_q('DELETE FROM r_smarts WHERE uid>1000');
-  r\db_q('DELETE FROM file_managed WHERE uid>1000');
-  r\db_q('TRUNCATE r_relations');
+  r\dbQ('DELETE FROM users WHERE uid>1000');
+  r\dbQ('TRUNCATE r_sms');
+  r\dbQ('TRUNCATE r_asif');
+  r\dbQ('TRUNCATE r_txs');
+  r\dbQ('DELETE FROM r_smarts WHERE uid>1000');
+  r\dbQ('DELETE FROM file_managed WHERE uid>1000');
+  r\dbQ('TRUNCATE r_relations');
 
   if (!function_exists('multiline_tweak')) {function multiline_tweak(&$line) {
     $line = str_replace('%last_quid', r\quid(r\acct::nextId() - 1), $line);
@@ -59,7 +59,9 @@ function extraSubs(&$subs) {
  * members: (ARG)
  *
  * in: IdentifyQR - featureSetup MAKE
+ *     Insufficient - featureSetup MAKE
  *     Startup - featureSetup MAKE
+ *     Transact - featureSetup MAKE
  *     UndoAttack - featureSetup MAKE
  *     UndoCompleted - featureSetup MAKE
  *     UndoPending - featureSetup MAKE
@@ -74,7 +76,9 @@ function members($list) {
  * relations: (ARG)
  *
  * in: IdentifyQR - featureSetup MAKE
+ *     Insufficient - featureSetup MAKE
  *     Startup - featureSetup MAKE
+ *     Transact - featureSetup MAKE
  *     UndoAttack - featureSetup MAKE
  *     UndoCompleted - featureSetup MAKE
  *     UndoPending - featureSetup MAKE
@@ -89,6 +93,8 @@ function relations($relations) {
  * transactions: (ARG)
  *
  * in: IdentifyQR - featureSetup MAKE
+ *     Insufficient - featureSetup MAKE
+ *     Transact - featureSetup MAKE
  *     UndoAttack - featureSetup MAKE
  *     UndoCompleted - featureSetup MAKE
  *     UndoPending - featureSetup MAKE
@@ -273,7 +279,9 @@ function theAppStartsUpAsMemberAndCode($my_id, $code) {
 /**
  * devices: (ARG)
  *
- * in: Startup - featureSetup MAKE
+ * in: Insufficient - featureSetup MAKE
+ *     Startup - featureSetup MAKE
+ *     Transact - featureSetup MAKE
  *     UndoAttack - featureSetup MAKE
  *     UndoCompleted - featureSetup MAKE
  *     UndoPending - featureSetup MAKE
@@ -287,7 +295,15 @@ function devices($list) {
 /**
  * balances: (ARG)
  *
- * in: Transact - testAMemberAsksToChargeAnotherMember MAKE
+ * in: Insufficient - featureSetup TEST
+ *     Insufficient - testAMemberAsksToUndoACompletedPaymentWithInsufficientBalance MAKE
+ *     Insufficient - testAMemberConfirmsRequestToUndoACompletedPaymentWithInsufficientBalance MAKE
+ *     Insufficient - testAMemberAsksToUndoACompletedPaymentUnilaterallyWithInsufficientBalance MAKE
+ *     Insufficient - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterallyWithInsufficientBalance MAKE
+ *     Insufficient - testAMemberAsksToUndoACompletedChargeWithInsufficientBalance MAKE
+ *     Insufficient - testAMemberConfirmsRequestToUndoACompletedChargeWithInsufficientBalance MAKE
+ *     Transact - featureSetup TEST
+ *     Transact - testAMemberAsksToChargeAnotherMember MAKE
  *     Transact - testAMemberAsksToPayAnotherMember MAKE
  *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterally MAKE
  *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance MAKE
@@ -295,11 +311,10 @@ function devices($list) {
  *     UndoCompleted - featureSetup TEST
  *     UndoCompleted - testAMemberAsksToUndoACompletedPayment MAKE
  *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPayment MAKE
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCharge MAKE
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCashPayment MAKE
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCashCharge MAKE
  *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterally MAKE
- *     UndoCompleted - testAMemberAsksToUndoACompletedPaymentWithInsufficientBalance MAKE
- *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPaymentWithInsufficientBalance MAKE
- *     UndoCompleted - testAMemberAsksToUndoACompletedChargeUnilaterallyWithInsufficientBalance MAKE
- *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedChargeUnilaterallyWithInsufficientBalance MAKE
  *     UndoPending - featureSetup TEST
  */
 function balances($list) {
@@ -338,17 +353,21 @@ function memberAsksDeviceToDoThis($my_id, $code, $type, $account_id, $amount, $g
 /**
  * we respond success (ARG) tx_id (ARG) my_balance (ARG) other_balance (ARG) and message (ARG) with subs: (ARG)
  *
- * in: Transact - testAMemberAsksToChargeAnotherMember TEST
+ * in: Insufficient - testAMemberConfirmsRequestToUndoACompletedPaymentWithInsufficientBalance TEST
+ *     Insufficient - testAMemberAsksToUndoACompletedPaymentUnilaterallyWithInsufficientBalance TEST
+ *     Insufficient - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterallyWithInsufficientBalance TEST
+ *     Insufficient - testAMemberAsksToUndoACompletedChargeWithInsufficientBalance TEST
+ *     Insufficient - testAMemberConfirmsRequestToUndoACompletedChargeWithInsufficientBalance TEST
+ *     Transact - testAMemberAsksToChargeAnotherMember TEST
  *     Transact - testAMemberAsksToPayAnotherMember TEST
  *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterally TEST
  *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance TEST
  *     Transact - testAMemberAsksToPayAnotherMemberWithInsufficientBalance TEST
  *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPayment TEST
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCharge TEST
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCashPayment TEST
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCashCharge TEST
  *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterally TEST
- *     UndoCompleted - testAMemberAsksToUndoACompletedPaymentWithInsufficientBalance TEST
- *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPaymentWithInsufficientBalance TEST
- *     UndoCompleted - testAMemberAsksToUndoACompletedChargeUnilaterallyWithInsufficientBalance TEST
- *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedChargeUnilaterallyWithInsufficientBalance TEST
  */
 function weRespondSuccessTxidMybalanceOtherbalanceAndMessageWithSubs($success, $tx_id, $my_balance, $other_balance, $message, $subs) {
   global $testOnly;
@@ -361,10 +380,14 @@ function weRespondSuccessTxidMybalanceOtherbalanceAndMessageWithSubs($success, $
 /**
  * we email (ARG) to member (ARG) with subs: (ARG)
  *
- * in: Transact - testAMemberAsksToChargeAnotherMember MAKE
+ * in: Insufficient - testAMemberConfirmsRequestToUndoACompletedPaymentWithInsufficientBalance MAKE
+ *     Transact - testAMemberAsksToChargeAnotherMember MAKE
  *     Transact - testAMemberAsksToPayAnotherMember MAKE
  *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterally MAKE
  *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPayment MAKE
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCharge MAKE
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCashPayment MAKE
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCashCharge MAKE
  *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterally MAKE
  */
 function weEmailToMemberWithSubs($key, $email, $subs) {
@@ -375,11 +398,11 @@ function weEmailToMemberWithSubs($key, $email, $subs) {
 /**
  * member (ARG) can charge unilaterally
  *
- * in: Transact - testAMemberAsksToChargeAnotherMemberUnilaterally MAKE
+ * in: Insufficient - testAMemberAsksToUndoACompletedPaymentUnilaterallyWithInsufficientBalance MAKE
+ *     Insufficient - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterallyWithInsufficientBalance MAKE
+ *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterally MAKE
  *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance MAKE
  *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterally MAKE
- *     UndoCompleted - testAMemberAsksToUndoACompletedChargeUnilaterallyWithInsufficientBalance MAKE
- *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedChargeUnilaterallyWithInsufficientBalance MAKE
  */
 function memberCanChargeUnilaterally($id) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -399,7 +422,13 @@ function theAppRequestsOpAsMemberAndCode($op, $my_id, $code) {
 /**
  * member (ARG) asks device (ARG) to undo transaction (ARG), with the request (ARG)
  *
- * in: UndoAttack - testDeviceGivesNoTransactionId MAKE
+ * in: Insufficient - testAMemberAsksToUndoACompletedPaymentWithInsufficientBalance MAKE
+ *     Insufficient - testAMemberConfirmsRequestToUndoACompletedPaymentWithInsufficientBalance MAKE
+ *     Insufficient - testAMemberAsksToUndoACompletedPaymentUnilaterallyWithInsufficientBalance MAKE
+ *     Insufficient - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterallyWithInsufficientBalance MAKE
+ *     Insufficient - testAMemberAsksToUndoACompletedChargeWithInsufficientBalance MAKE
+ *     Insufficient - testAMemberConfirmsRequestToUndoACompletedChargeWithInsufficientBalance MAKE
+ *     UndoAttack - testDeviceGivesNoTransactionId MAKE
  *     UndoAttack - testDeviceGivesBadTransactionId MAKE
  *     UndoAttack - testDeviceGivesNonexistentTransactionId MAKE
  *     UndoAttack - testDeviceGivesNoConfirmationStatus MAKE
@@ -409,25 +438,31 @@ function theAppRequestsOpAsMemberAndCode($op, $my_id, $code) {
  *     UndoAttack - testSellerAgentLacksPermissionToReversePurchase MAKE
  *     UndoCompleted - testAMemberAsksToUndoACompletedPayment MAKE
  *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPayment MAKE
+ *     UndoCompleted - testAMemberAsksToUndoACompletedCharge MAKE
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCharge MAKE
+ *     UndoCompleted - testAMemberAsksToUndoACompletedCashPayment MAKE
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCashPayment MAKE
+ *     UndoCompleted - testAMemberAsksToUndoACompletedCashCharge MAKE
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCashCharge MAKE
  *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterally MAKE
- *     UndoCompleted - testAMemberAsksToUndoACompletedPaymentWithInsufficientBalance MAKE
- *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPaymentWithInsufficientBalance MAKE
- *     UndoCompleted - testAMemberAsksToUndoACompletedChargeUnilaterallyWithInsufficientBalance MAKE
- *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedChargeUnilaterallyWithInsufficientBalance MAKE
  *     UndoPending - testAMemberAsksToUndoACompletedPayment MAKE
  *     UndoPending - testAMemberConfirmsRequestToUndoACompletedPayment MAKE
  */
 function memberAsksDeviceToUndoTransactionWithTheRequest($my_id, $code, $tx_id, $confirmed) {
   global $testOnly; if ($testOnly) return FALSE;
   if (!TEST_REAL) $tx_id = str_replace('.', ':', $tx_id);
-  $confirmed = $confirmed == 'confirmed' ? 1 : 0;
+  $confirmed = $confirmed == 'confirmed' ? 1 : ($confirmed == 'unconfirmed' ? 0 : $confirmed);
   return t\hitServer('undo', $my_id, $code, '', compact('tx_id', 'confirmed'));
 }
 
 /**
  * we respond with success (ARG), message (ARG), and subs: (ARG)
  *
- * in: UndoCompleted - testAMemberAsksToUndoACompletedPayment TEST
+ * in: Insufficient - testAMemberAsksToUndoACompletedPaymentWithInsufficientBalance TEST
+ *     UndoCompleted - testAMemberAsksToUndoACompletedPayment TEST
+ *     UndoCompleted - testAMemberAsksToUndoACompletedCharge TEST
+ *     UndoCompleted - testAMemberAsksToUndoACompletedCashPayment TEST
+ *     UndoCompleted - testAMemberAsksToUndoACompletedCashCharge TEST
  *     UndoPending - testAMemberAsksToUndoACompletedPayment TEST
  *     UndoPending - testAMemberConfirmsRequestToUndoACompletedPayment TEST
  */
