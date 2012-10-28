@@ -73,7 +73,7 @@ function modal_form($form, &$form_state) {
 function util($arg) {
   if ($arg == 'modal') drupal_goto('modal');
   if ($arg == 'test') {
-    include __DIR__ . '/../test.php';
+    include __DIR__ . '/../../gherkin/test.php';
   }
   if ($arg == 'reset') {
     r\reset();
@@ -109,9 +109,9 @@ function handy_links() {
   $test_path = "$base_url/sites/all/modules";
 
   $links = array(
-    'rcredits/util/test?rSMS|Test rSMS|',
-    'rcredits/util/test?rSmart|Test rSmart|',
-    'rcredits/util/test?rWeb|Test rWeb|',
+    'rcredits/util/test?rcredits/rsms|Test rSMS|',
+    'rcredits/util/test?rcredits/rsmart|Test rSmart|',
+    'rcredits/util/test?rcredits/rweb|Test rWeb|',
     "$test_path/gherkin/compile.php?module=rcredits/rsms&return=1|Compile rSMS|",
     "$test_path/gherkin/compile.php?module=rcredits/rsmart&return=1|Compile rSmart|",
     "$test_path/gherkin/compile.php?module=rcredits/rweb&return=1|Compile rWeb|",
