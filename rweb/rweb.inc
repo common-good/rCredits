@@ -1148,8 +1148,7 @@ EOF;
       $list .= $headed ? ($list ? '</ul>' : '') . "<ul><h2>$cat</h2>\n" : '<li>&nbsp;</li>';
     }
     $pay = api\access('buy and sell') ? button('pay', "pay/$short_name") : '';
-    $pay = api\access('sell') ? $chg = button('chg', "charge/$short_name") : '';
-//    if ($website) $full_name = "<a href='http://$website' target='_blank'>$full_name</a>";
+    $chg = api\access('sell') ? button('chg', "charge/$short_name") : '';
     $full_name = "<a href='$base_url/member/$short_name'>$full_name</a>";
     $item = "$pay$chg $full_name";
     if (!$headed) $item = "- $item <span>($industry)</span>";

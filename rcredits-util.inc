@@ -560,6 +560,16 @@ function trimAll(&$array) {
   return $array;
 }
 
+/**
+ * ret<X>
+ * A collection of functions to return the argument when it passes a certain test.
+ * Espectially for use with PHP's ?: structure, like this:
+ *   return retNum($input) ?: 'not a number';
+ * @return the argument if it passes the test, otherwise FALSE
+ */
+ 
+function retNum($s) {return is_numeric($s) ? $s : FALSE;}
+
 // Single line functions that need no explanation
 function valid_url($url) {return (\valid_url($url) and preg_match('/^[A-Z0-9\-_]+\.[A-Z0-9\-_]+/i', $url) and strpos($url, '@') === FALSE);}
 function abbreviates($s, $string) {return (substr($string, 0, strlen($s)) == $s);}
