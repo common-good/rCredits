@@ -27,9 +27,9 @@ function makeAccount($info = array()) {
   $name = u\shortName($full_name);
   $mail = @$my_email ?: "$name@example.com";
   $flags = isset($my_flags) ? $my_flags : (TEST_REAL ? BIT_RTRADER : 0);
-  $communityUid = @$my_communityUid ?: r\serverUid();
+  $community_uid = @$my_communityUid ?: r\serverUid();
   
-  $info = array_merge($info, compact(u\ray('uid rebate_percent name full_name mail communityUid')));
+  $info = array_merge($info, compact(u\ray('uid rebate_percent name full_name mail community_uid')));
   if (!($acct = new r\acct($info))) return FALSE;
   
   if (@$my_picture) if (!makePicture($my_picture, $acct)) return FALSE;

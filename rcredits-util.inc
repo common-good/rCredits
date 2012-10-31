@@ -213,6 +213,12 @@ function prefixValues($prefix, $array) {
   return $array;
 }
 
+function changeKey($oldKey, $newKey, &$array) {
+  $array[$newKey] = $array[$oldKey];
+  unset($array[$oldKey]);
+  return $array;
+}
+
 /**
  * Return the difference between two arrays (better than array_diff_assoc)
  */
@@ -569,6 +575,7 @@ function trimAll(&$array) {
  */
  
 function retNum($s) {return is_numeric($s) ? $s : FALSE;}
+function retNotEqual($s, $value) {return $s != $value ? $s : FALSE;}
 
 // Single line functions that need no explanation
 function valid_url($url) {return (\valid_url($url) and preg_match('/^[A-Z0-9\-_]+\.[A-Z0-9\-_]+/i', $url) and strpos($url, '@') === FALSE);}

@@ -1,0 +1,156 @@
+<?php
+//
+// Feature: Undo
+//   AS a player
+//   I WANT to undo a transaction recently completed on my account
+//   SO I can easily correct a mistake
+
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rweb.steps';
+
+class rwebUndo extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
+  var $currentTest;
+  var $variant;
+  const SHORT_NAME = 'Undo';
+  const FEATURE_NAME = 'rweb Test - Undo';
+  const DESCRIPTION = 'Undo';
+  const MODULE = 'rweb';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);
+  }
+  
+  public static function getInfo() {
+    return array(
+      'short_name' => self::SHORT_NAME,
+      'name' => self::FEATURE_NAME,
+      'description' => self::DESCRIPTION,
+      'group' => ucwords(self::MODULE)
+    );
+  }
+
+  public function setUp() { // especially, enable any modules required for the tests
+    parent::setUp(self::MODULE);
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rweb.steps
+    sceneSetup($this, __FUNCTION__);
+
+    switch ($this->variant) {
+    default: // fall through to case(0)
+    case(0):
+    Given('members: "DATA'
+    . '\\| id   | full_name  | phone  | email         |'
+    . '\\| .ZZA | Abe One    | +20001 | a@example.com |'
+    . '\\| .ZZB | Bea Two    | +20002 | b@example.com |'
+    . '\\| .ZZC | Corner Pub | +20003 | c@example.com |"');
+    And__('transactions: "DATA'
+    . '\\| created   | type         | amount | from      | to   | purpose      | taking |'
+    . '\\| %today-6m | %TX_SIGNUP   | 250    | community | .ZZA | signup       | 0      |'
+    . '\\| %today-6m | %TX_SIGNUP   | 250    | community | .ZZB | signup       | 0      |'
+    . '\\| %today-6m | %TX_SIGNUP   | 250    | community | .ZZC | signup       | 0      |'
+    . '\\| %today-4m | %TX_TRANSFER | 11.11  | .ZZB      | .ZZA | cash for me  | 1      |'
+    . '\\| %today-3w | %TX_TRANSFER | 22.22  | .ZZC      | .ZZA | usd          | 1      |'
+    . '\\| %today-3d | %TX_TRANSFER | 33.33  | .ZZA      | .ZZB | whatever43   | 0      |'
+    . '\\| %today-3d | %TX_REBATE   | 1.67   | community | .ZZA | rebate on #4 | 0      |'
+    . '\\| %today-3d | %TX_BONUS    | 3.33   | community | .ZZB | bonus on #3  | 0      |'
+    . '\\| %today-2d | %TX_TRANSFER | 44.44  | .ZZB      | .ZZC | cash         | 0      |'
+    . '\\| %today-1d | %TX_TRANSFER | 55.55  | .ZZA      | .ZZC | whatever43   | 0      |'
+    . '\\| %today-1d | %TX_REBATE   | 2.78   | community | .ZZA | rebate on #5 | 0      |'
+    . '\\| %today-1d | %TX_BONUS    | 5.56   | community | .ZZC | bonus on #4  | 0      |"');
+    Then_('the community has r$-763.34');
+    And__('phone +20001 has r$198.90');
+    And__('phone +20002 has r$231.11');
+    And__('phone +20003 has r$333.33');
+    break;
+
+
+    }
+  }
+
+  // Scenario: Undo the last transaction
+  public function testUndoTheLastTransaction_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    When_('phone +20001 says "undo"');
+    Then_('we say to phone +20001 "confirm undo|please confirm" with subs: "DATA'
+    . '\\| created   | amount | tofrom  | other_name | purpose    |'
+    . '\\| %today-1d | $55.55 | to      | Corner Pub | whatever54 |"');
+  }
+
+  // Scenario: Undo the last transaction with someone specific
+  public function testUndoTheLastTransactionWithSomeoneSpecific_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    When_('phone +20001 says "undo .ZZB"');
+    Then_('we say to phone +20001 "confirm undo|please confirm" with subs: "DATA'
+    . '\\| created   | amount | tofrom  | other_name | purpose    |'
+    . '\\| %today-3d | $33.33 | to      | Bea Two    | whatever43 |"');
+  }
+
+  // Scenario: Undo the last transfer to me
+  public function testUndoTheLastTransferToMe_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    When_('phone +20001 says "undo from"');
+    Then_('we say to phone +20001 "confirm undo|please confirm" with subs: "DATA'
+    . '\\| created   | amount | tofrom  | other_name | purpose    |'
+    . '\\| %today-3w | $22.22 | from    | Corner Pub | usd        |"');
+  }
+
+  // Scenario: Undo the last transfer to me from someone specific
+  public function testUndoTheLastTransferToMeFromSomeoneSpecific_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    When_('phone +20001 says "undo from .ZZB"');
+    Then_('we say to phone +20001 "confirm undo|please confirm" with subs: "DATA'
+    . '\\| created   | amount | tofrom | other_name | purpose     |'
+    . '\\| %today-4m | $11.11 | from   | Bea Two    | cash for me |"');
+  }
+
+  // Scenario: The caller confirms undoing a charge
+  public function testTheCallerConfirmsUndoingACharge_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    When_('phone +20001 confirms "undo from .ZZB"');
+    Then_('the community has r$-763.34');
+    And__('phone +20002 has r$242.22');
+    And__('we say to phone +20001 "report undo|report exchange" with subs: "DATA'
+    . '\\| solution | action | other_name | amount | balance | tid |'
+    . '\\| reversed | gave   | Bea Two    | $11.11 | $187.79 | 6   |"');
+  }
+
+  // Scenario: The caller confirms undoing a payment
+  public function testTheCallerConfirmsUndoingAPayment_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    When_('phone +20001 confirms "undo to .ZZB"');
+    And__('we say to phone +20001 "report undo|report invoice" with subs: "DATA'
+    . '\\| solution | action  | other_name | amount | tid |'
+    . '\\| reversed | charged | Bea Two    | $33.33 | 6   |"');
+  }
+
+  // Scenario: The caller refuses to pay the latest invoice
+  public function testTheCallerRefusesToPayTheLatestInvoice_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    Given('transactions: "DATA'
+    . '\\| created   | state       | amount | from | to   | purpose  | taking |'
+    . '\\| %today    | %TX_PENDING | 100    | .ZZA | .ZZB | cleaning | 1      |"');
+    When_('phone +20001 confirms "undo"');
+    Then_('we say to phone +20001 "report undo" with subs: "DATA'
+    . '\\| solution          |'
+    . '\\| marked \'\'denied\'\' |"');
+    And__('we email "invoice-denied" to member "b@example.com" with subs: "DATA'
+    . '\\| created | full_name | other_name | amount | purpose  |'
+    . '\\| %today  | Bea Two   | Abe One    | $100   | cleaning |"');
+  }
+
+  // Scenario: The caller refuses a pending payment
+  public function testTheCallerRefusesAPendingPayment_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    Given('transactions: "DATA'
+    . '\\| created   | state       | amount | from | to   | purpose | taking |'
+    . '\\| %today    | %TX_PENDING | 100    | .ZZC | .ZZA | wages   | 0      |"');
+    When_('phone +20001 confirms "undo from .ZZC"');
+    Then_('we say to phone +20001 "report undo" with subs: "DATA'
+    . '\\| solution          |'
+    . '\\| marked \'\'denied\'\' |"');
+    And__('we email "payment-denied" to member "c@example.com" with subs: "DATA'
+    . '\\| created | full_name  | other_name | amount | purpose |'
+    . '\\| %today  | Corner Pub | Abe One    | $100   | wages   |"');
+  }
+
+}

@@ -38,6 +38,7 @@ function extraSetup($feature) {
   r\dbQ('DELETE FROM r_smarts WHERE uid>1000');
   r\dbQ('DELETE FROM file_managed WHERE uid>1000');
   r\dbQ('TRUNCATE r_relations');
+  r\dbQ('TRUNCATE r_log'); // so we don't find results from the wrong test
 
   if (!function_exists('multiline_tweak')) {function multiline_tweak(&$line) {
     $line = str_replace('%last_quid', r\quid(r\acct::nextId() - 1), $line);
@@ -51,4 +52,102 @@ function extraSetup($feature) {
  */
 function extraSubs(&$subs) {
 //  $subs['%replace_this'] = 'with this';
+}
+
+/**
+ * the user completes form (ARG) with values: (ARG)
+ *
+ * in: Signup - testANewbieRegisters MAKE
+ *     Signup - testAMemberRegistersAgain MAKE
+ */
+function aMemberCompletesFormWithValues($formName, $values) {
+  global $testOnly; if ($testOnly) return FALSE;
+
+  $form = r\Web\show_form(u\retNotEqual($formName, 'register') ?: '\\user_register_form');
+  $form_state['values'] = u\changeKey('email', 'mail', $values[0]);
+//  if (!@$form['validate']
+  foreach ($form['#validate'] as $one) {
+    $one($form, $form_state);
+    if (drupal_get_message('error', FALSE)) return TRUE;
+  }
+  foreach ($form_state['#submit'] as $one) $one($form, $form_state);
+  return TRUE;
+}
+
+/*
+  $form_state = array();
+ * $form_state['values']['mail'] = 'robouser@example.com';
+ * $form_state['values']['pass']['pass1'] = 'password';
+ * $form_state['values']['pass']['pass2'] = 'password';
+ * $form_state['values']['op'] = t('Create new account');
+ * drupal_form_submit('user_register_form', $form_state);
+ * @endcode
+ 
+ function drupal_get_form($form_id) {
+  $form_state = array();
+
+  $args = func_get_args();
+  // Remove $form_id from the arguments.
+  array_shift($args);
+  $form_state['build_info']['args'] = $args;
+
+  return drupal_build_form($form_id, $form_state);
+}
+ */
+
+/**
+ * members: (ARG)
+ *
+ * in: Signup - testANewbieRegisters TEST
+ *     Signup - testAMemberRegistersAgain MAKE
+ */
+function members($list) {
+  global $testOnly; if ($testOnly) return FALSE;
+  foreach ($list as $one) if (!t\makeAccount($one)) return FALSE;
+  return TRUE;
+}
+
+/**
+ * we say (ARG): (ARG) with subs: (ARG)
+ *
+ * in: Signup - testANewbieRegisters TEST
+ *     Signup - testAMemberRegistersAgain TEST
+ */
+function weSayWithSubs($type, $index, $subs) {
+  global $testOnly;
+  $subs = $subs[0];
+  $msg = u\tt($index, $subs);
+  $msgs = drupal_get_messages($type ?: NULL, FALSE);
+  return (bool) array_search($msg, $msgs);
+}
+
+/**
+ * we show (ARG) with subs: (ARG)
+ *
+ * in: Signup - testANewbieRegisters TEST
+ */
+function weShowWithSubs($page, $subs) {
+  global $testOnly;
+  todo;
+}
+
+/**
+ * we email (ARG) to member (ARG) with subs: (ARG)
+ *
+ * in: Signup - testANewbieRegisters TEST
+ */
+function weEmailToMemberWithSubs($key, $email, $subs) {
+  global $testOnly;
+  return t\findEmail($key, $email, $subs);
+}
+
+
+/**
+ * we show (ARG)
+ *
+ * in: Signup - testAMemberRegistersAgain TEST
+ */
+function weShow($arg1) {
+  global $testOnly;
+  todo;
 }

@@ -9,9 +9,13 @@ use rCredits as r;
 use rCredits\Util as u;
 use rCredits\API as api;
 
+define('R_QR_HEADER', 'HTTP://RC2.ME/I/'); // for transient QR IDs
+
 $GLOBALS[TX_SMART . ' messages'] = array(
   'no permission' => t('You do not have permission to use that account.'),
   'first time' => t('You have successfully registered this device for use with rCredits!'),
+  'agent changed' => t('Agent has been successfully changed to @agent_name.'),
+  'account changed' => t('Account has been successfully changed to @account_name.'),
 );
 
 /**
@@ -39,19 +43,27 @@ function api($args = FALSE) {
   if (@$q_op != 'first_time') {
     if (!@$q_code) return api\error('no code given');
     if (!u\isQid($q_my_id)) return api\error('bad id format');
-    if (!($cuid = r\dbLookup('uid', 'r_smarts', 'code=:q_code', compact('q_code')))) return api\error('unknown device');
-    if (!($cacct = r\acct($cuid, $q_my_id, $error))) return api\error($error);
+    if (!($smartInfo = r\dbLookup('uid,transient_id,accessed', 'r_smarts', 'code=:q_code', compact('q_code')))) return api\error('unknown device');
+    $args += $smartInfo;
+    extract($smartInfo, EXTR_PREFIX_ALL, 'q');
+    if (!u\isQid($q_current_account)) return api\error('bad id format');
+    if (!($cacct = r\acct($current_account, $q_my_id, $error))) return api\error($error);
     r\acct::setDefault($cacct);
     if ($cacct->region != r\serverUid()) return api\error('wrong server');
     if ($cacct->agentRegion != r\serverUid()) return api\error('wrong server for agent');
-    if (!r\okAgent($cuid, $cacct->agent, BIT_READ)) return api\error('no permission'); // make sure agent has at least read permission
+    if (!r\okAgent($cacct-id, $q_ownerUid, BIT_READ)) return api\error('no permission'); // make sure owner has at least read permission
+    if (!r\okAgent($cacct-id, $cacct->agent, BIT_READ)) return api\error('no permission'); // make sure agent has at least read permission
     $args['cacct'] = $cacct;
     $edit = array('code' => $q_code, 'accessed' => time());
-    \drupal_write_record('r_smarts', $edit, 'code'); // so we can drop the deadwood
+    \drupal_write_record('r_smarts', $edit, 'code'); // remember time last accessed so we can drop the deadwood
   }
 
-  if (u\isQid(@$q_account_id)) {
-    if (!($acct = r\acct($q_account_id, '', $error))) return api\error($error);
+  if ($q_account_id) {
+    if (!u\isQid($account_id = basename(@$q_account_id))) return api\error('bad id format');
+    if ($account_id != $q_account_id) { // this is a transient id scanned from the other party's smart device
+      $transient_id = basename(dirname($q_account));
+      
+    if (!($acct = r\acct($account_id, '', $error))) return api\error($error);
 //    list ($uid, $agent_uid, $region_uid) = $acct->UAR();
     $args['acct'] = $acct;
 //    $args = array_merge($args, compact('acct')); // use array_merge (not +) to assure overwrite
@@ -82,7 +94,7 @@ function first_time($args) {
   if (@!$q_password) return api\error('login error');
   if (!user_check_password($q_password, $cacct->account())) return api\error('bad login'); // make these two error messages distinct but obscure
   if (!($code = makeDevice(t('Smart Device'), $cacct))) return api\error("can't save device info");
-  $owner_id = $cacct->qid;
+  $owner_id = $cacct->mainQid;
   $message = u\tt('first time');
   return compact(u\ray('owner_id code message')) + startup(); // testing counts on this arg order
 }
@@ -219,10 +231,31 @@ function undo($params) {
   return compact(u\ray('message tx_id')) + (@$balances ?: array());
 }
 
+function change_agent($params) {
+  $agent_name = r\acct($params['cacct']->agent)->full_name;
+  $message = u\tt('agent changed', compact('agent_name'));
+  return compact('message');
+}
+
+function change_account($params) {
+  $account_name = $params['cacct']->full_name;
+  $message = u\tt('account changed', compact('account_name'));
+  return compact('message');
+}
+
+function display_id($params) {
+  $transient_id = R_QR_HEADER . u\n2a(mt_rand(), 20) . '/' . $params['cacct']->qid();
+  $message = '';
+  $code = $params['code'];
+  $info = compact('code', 'transient_id')
+  \drupal_write_record('r_smarts', $info, 'code'); // remember what id to accept (briefly)
+  return compact('message', 'transient_id');
+}
+
 function makeDevice($device, $acct, $code = '') {
   u\EXPECT(compact('device', 'acct'), 'string&notempty acct');
   $uid = $acct->id;
-  $code = $code ?: user_hash_password(uniqid($acct->qid, TRUE) . time()) . '/'; // add a slash to make sure slashes get handled properly
+  $code = $code ?: user_hash_password(uniqid($acct->mainQid, TRUE) . time()) . '/'; // add a slash to make sure slashes get handled properly
   $accessed = time();
   $info = compact(u\ray('uid code device accessed'));
   return @\drupal_write_record('r_smarts', $info) ? $code : FALSE; // no way to tell if it's the same device as others

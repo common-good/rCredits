@@ -173,6 +173,21 @@ function rcredits_mail($key, &$msg_array, $subs) {
     
 }
 
+/**
+ * Implements hook_page_alter().
+ * Used in testing.
+  0 => '#show_messages',
+  1 => '#theme',
+  2 => '#theme_wrappers',
+  3 => '#type',
+  4 => 'content',
+  5 => 'page_top',
+  6 => '#post_render',
+ */
+function rcredits_page_alter($page) {
+  //debug($page['#type']);
+  //debug(strip_tags($page['content']['system_main']['main']['#markup']));
+}
 /*************/
 
 define('JSON_UNESCAPED_SLASHES', '');

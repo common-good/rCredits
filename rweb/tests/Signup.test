@@ -1,0 +1,79 @@
+<?php
+//
+// Feature: A user signs up for rCredits
+//   AS a newbie
+//   I WANT to get access to the rCredits Participants section
+//   SO I can start pretending
+
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rweb.steps';
+
+class rwebSignup extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
+  var $currentTest;
+  var $variant;
+  const SHORT_NAME = 'Signup';
+  const FEATURE_NAME = 'rweb Test - Signup';
+  const DESCRIPTION = 'A user signs up for rCredits';
+  const MODULE = 'rweb';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);
+  }
+  
+  public static function getInfo() {
+    return array(
+      'short_name' => self::SHORT_NAME,
+      'name' => self::FEATURE_NAME,
+      'description' => self::DESCRIPTION,
+      'group' => ucwords(self::MODULE)
+    );
+  }
+
+  public function setUp() { // especially, enable any modules required for the tests
+    parent::setUp(self::MODULE);
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rweb.steps
+    sceneSetup($this, __FUNCTION__);
+
+    switch ($this->variant) {
+    default: // fall through to case(0)
+
+    }
+  }
+
+  // Scenario: A newbie registers
+  public function testANewbieRegisters_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    When_('the user completes form "register" with values: "DATA'
+    . '\\| full_name | email         | country       | postal_code | state         | city    | account_type |'
+    . '\\| Abe One   | a@example.com | United States | 01001       | Massachusetts | Amherst | personal     |"');
+    Then_('members: "DATA'
+    . '\\| id      | full_name | email         | country       | postal_code | state         | city    | account_type |'
+    . '\\| NEW.ZZA | Abe One   | a@example.com | United States | 01001       | Massachusetts | Amherst | personal     |"');
+    And__('we say "status": "your account is ready" with subs: "DATA'
+    . '\\| quid    | balance |'
+    . '\\| NEW.ZZA | $250    |"');
+    And__('we show "dashboard" with subs: "DATA'
+    . '\\| quid    |'
+    . '\\| NEW.ZZA |"');
+    And__('we email "welcome" to member "aone@example.com" with subs: "DATA'
+    . '\\| name   |'
+    . '\\| abeone |"');
+  }
+
+  // Scenario: A member registers again
+  public function testAMemberRegistersAgain_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    Given('members: "DATA'
+    . '\\| id      | full_name  | phone  | email         | city  | state  | country       |'
+    . '\\| NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | Alaska | United States |"');
+    When_('the user completes form "register" with values: "DATA'
+    . '\\| full_name | email         | country       | postal_code | state         | city    | account_type |'
+    . '\\| Abe One   | a@example.com | United States | 01001       | Massachusetts | Amherst | personal     |"');
+    Then_('we say "error": "already a member" with subs: "DATA'
+    . '\\| quid    |'
+    . '\\| NEW.ZZA |"');
+    And__('we show "login"');
+  }
+
+}

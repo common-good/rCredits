@@ -13,8 +13,8 @@ class acct {
   var $region; // the account region's record id
   var $agent; // record id (in the agent's regional server) of whoever is acting on behalf of the account
   var $agentRegion; // record id of agent's region (on this server)
-  var $qid; // nearly alphabetic representation of id, agent, and region for external queries
-  var $agentQid; // same for agent
+  var $mainQid; // nearly alphabetic representation of id, id, and region for external queries
+  var $agentQid; // same for agent (for combined qid for main account and agent, use acct()->qid())
   private static $records = FALSE; // account records for all acct objects, indexed by id
   
   /**
@@ -68,7 +68,7 @@ class acct {
       list($this->id, $this->agent, $this->region, $this->agentRegion) = array($uid, $uid, $region, $region);
       self::$records[$this->id] = (object) $info;
     }
-    $this->qid = qid($this->id, u\n2a(-$this->region, 3), 3);
+    $this->mainQid = qid($this->id, u\n2a(-$this->region, 3), 3);
     $this->agentQid = qid($this->agent, u\n2a(-$this->agentRegion, 3), 3);
   }    
 
@@ -126,7 +126,8 @@ class acct {
   }
   
   public function proSe() {return ($this->id == $this->agent);}  
-  function hasBit($bit) {return (bool) ($this->flags & $bit);}
+  public function qid() {return $this->proSe() ? $this->mainQid : r\quid($this->id, $this->agent, $this->region);}
+  public function hasBit($bit) {return (bool) ($this->flags & $bit);}
   
   public function setBit($bit) {
     $flags = ($this->flags | $bit);

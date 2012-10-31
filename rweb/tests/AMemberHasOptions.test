@@ -1,0 +1,108 @@
+<?php
+//
+// Feature: A member has options
+//   AS a member
+//   I WANT to see and select from my options
+//   SO I can easily participate and manage my participation
+
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rweb.steps';
+
+class rwebAMemberHasOptions extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
+  var $currentTest;
+  var $variant;
+  const SHORT_NAME = 'AMemberHasOptions';
+  const FEATURE_NAME = 'rweb Test - AMemberHasOptions';
+  const DESCRIPTION = 'A member has options';
+  const MODULE = 'rweb';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);
+  }
+  
+  public static function getInfo() {
+    return array(
+      'short_name' => self::SHORT_NAME,
+      'name' => self::FEATURE_NAME,
+      'description' => self::DESCRIPTION,
+      'group' => ucwords(self::MODULE)
+    );
+  }
+
+  public function setUp() { // especially, enable any modules required for the tests
+    parent::setUp(self::MODULE);
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rweb.steps
+    sceneSetup($this, __FUNCTION__);
+
+    switch ($this->variant) {
+    default: // fall through to case(0)
+
+    }
+  }
+
+  // Scenario: User logs in
+  public function testUserLogsIn_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    Given('user @email1 has a confirmed account');
+    When_('user @email1 submits username and password');
+    Then_('we say ‘choose’ with options: "DATA'
+    . '\\| option |'
+    . '\\| pay |'
+    . '\\| charge |'
+    . '\\| cash exchange |'
+    . '\\| manage account |"');
+  }
+
+  // Scenario: User chooses to manage account
+  public function testUserChoosesToManageAccount_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    Given('user @email1 is logged in');
+    When_('user @email1 clicks ‘manage account’');
+    Then_('we say ‘choose’ with options: "DATA'
+    . '\\| option |'
+    . '\\| get r |'
+    . '\\| get usd |'
+    . '\\| review transactions |'
+    . '\\| manage nicknames |'
+    . '\\| account settings |'
+    . '\\| choose a different account to manage (if you have more than one) |"');
+  }
+
+  // Scenario: User chooses to pay someone
+  public function testUserChoosesToPaySomeone_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    Given('user @email1 is logged in');
+    When_('user @email1 clicks ‘pay’');
+    Then_('we ask for: "DATA'
+    . '\\| field |'
+    . '\\| amount |'
+    . '\\| other |'
+    . '\\| what |"');
+  }
+
+  // Scenario: User chooses to charge someone
+  public function testUserChoosesToChargeSomeone_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    Given('user @email1 is logged in');
+    When_('user @email1 clicks ‘charge’');
+    Then_('we ask for: "DATA'
+    . '\\| field |'
+    . '\\| amount |'
+    . '\\| other |'
+    . '\\| what |"');
+  }
+
+  // Scenario: User chooses to do a cash exchange
+  public function testUserChoosesToDoACashExchange_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    Given('user @email1 is logged in');
+    When_('user @email1 clicks ‘cash exchange’');
+    Then_('we ask for: "DATA'
+    . '\\| field |'
+    . '\\| amount |'
+    . '\\| other |'
+    . '\\| way |"');
+  }
+
+}

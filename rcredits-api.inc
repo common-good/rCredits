@@ -303,7 +303,7 @@ function get($currency, &$amount, $confirmed) {
   
   $type = TX_TRANSFER;
   $payer = $cuid;
-  $payee = $payer_agent = $payee_agent = r\userField('communityUid', $payer);
+  $payee = $payer_agent = $payee_agent = r\userField('community_uid', $payer);
 
   $taking = FALSE;
   $for = t('USD');
@@ -456,7 +456,7 @@ function give_signup_incentive($uid) {
   $type = TX_SIGNUP;
   $amount = R_STARTING_BALANCE;
   $payee = $uid;
-  $payer = $payer_agent = $payee_agent = r\userField('communityUid', $payee);
+  $payer = $payer_agent = $payee_agent = r\userField('community_uid', $payee);
   $taking = FALSE;
   $for = t('signup');
   r\transact(compact(u\ray('type amount payer payee payer_agent payee_agent for taking')));
@@ -734,7 +734,7 @@ function account_name($uid) {
   if (is_array($uid)) extract($uid); // called from api or backend
   
   $acct = r\acct($uid);
-  return $acct->full_name . ' ' . u\hug($acct->qid);
+  return $acct->full_name . ' ' . u\hug($acct->mainQid);
 }
 
 /**

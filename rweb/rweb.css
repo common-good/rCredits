@@ -56,6 +56,8 @@ form#user-register-form div.form-checkboxes {margin-left:135px;}
 form#user-register-form div.form-type-checkbox {display:inline-block;}
 form#user-register-form div.form-type-checkbox input {display:inline-block; margin-left:0px; vertical-align:bottom;}
 form#user-register-form div.form-type-checkbox label {display:inline; width:100px; margin-left:3px; text-align:left; vertical-align:top;}
+form#user-register-form  fieldset.form-wrapper {margin-left:0px;}
+form#user-register-form  div#edit-company-text label {text-align:left;}
 
 /* Company Info */
 form#rcreditswebcompany-form fieldset#edit-description-format,
@@ -89,6 +91,9 @@ form#rcreditswebaccount-form div.form-type-radio label {display:block;}*/
 /* Contact Info (labeled) */
 
 /* Transact form (labeled) */
+#rcreditswebtx-form.confirmation div.user-picture {float:left; margin-right:20px;}
+#rcreditswebtx-form.confirmation div#id-other {float:left; clear:right; min-width:200px; max-width:300px; font-weight:normal; font-size:20px;}
+#rcreditswebtx-form.confirmation div#id-name {margin-top:50px;}
 
 /* Exchange form (labeled) */
 /* #rcreditswebexchange-form div#edit-request label {font-weight:normal; text-align:left; margin-left:100px; width:100%} */
@@ -180,7 +185,7 @@ div#content {display:block;} /* keeps autocomplete from getting placed in a wack
 
 /* Profile */
 #rcreditswebprofile-form {font-family:Arial;}
-#rcreditswebprofile-form div#member-picture {float:left; margin-right:20px;}
+#rcreditswebprofile-form div.user-picture {float:left; margin-right:20px;}
 #rcreditswebprofile-form div#member-details {float:left; min-width:200px; max-width:300px; font-weight:normal;}
 
 /* Popups */

@@ -30,7 +30,7 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'report new relation' => t('@who is now related to this account. You will need to adjust the permissions or other settings.'),
   'report new cell' => t('Cell number @number is now connected to this account.'),
   'report delete cell' => t('Cell number @number has been removed from this account.'),
-  'your account is ready' => t('<p></p><p>Welcome to rCredits! Your account ID is @quid. Your@asif starting balance is @balance.</p><p>After you confirm your email address (by clicking the link in the email we sent you), come back here and log in. Pretend to buy and sell just as you would in a typical month. We need that information, to make sure everyone has plenty of places to receive and spend their rCredits.</p><p>Experiment! Have fun! (and please let us know if you run into any glitches)'),
+  'your account is ready' => t('<p></p><p>Welcome to rCredits! Your account ID is @quid. Your@asif starting balance is @balance.</p><p>After you confirm your email address (by clicking the link in the email we sent you), come back here and log in. Pretend to buy and sell just as you would in a typical month. We need that information, to make sure everyone has plenty of places to receive and spend their rCredits.</p><p>Experiment! Have fun!'),
   'info saved' => t('Your information has been saved.'),
   'verify cell' => t('We sent a verification code to your cell phone (@number).<br>Please type that code in the box below.'),
   
@@ -155,8 +155,8 @@ function show_form($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     setup_globals(); // in case it's an anonymous form, so web_access doesn't have a chance to set up
     if ($function != 'accounts' and $function != 'home') u\log("show $function", compact(u\ray('arg1 arg2 arg3 arg4')));
     drupal_add_css(\drupal_get_path('module', 'rweb') . '/rweb.css', array('group' => CSS_THEME) + weight(-9));
-    $form_name = substr($function, 0, 1) == '\\' ? $function : "rCredits\\Web\\{$function}_form";
-    $form = drupal_get_form($form_name, $arg1, $arg2, $arg3, $arg4);
+    $formName = substr($function, 0, 1) == '\\' ? $function : "rCredits\\Web\\{$function}_form";
+    $form = drupal_get_form($formName, $arg1, $arg2, $arg3, $arg4);
   //  $form['#attached']['css'] = array(\drupal_get_path('module', 'rweb') . '/rweb.css');
     $form['#attributes']['class'][] = 'rweb';
     if (!@$form['confirm']) $form += which(); // add the popup form, if any
@@ -180,8 +180,8 @@ function show_form($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
  * 2. If called as which('info'), this function returns $info from svar('pop')
  * 3. If called with NO arguments (from show_form()), this function returns a fieldset to insert as a popup layover div into
  * the form awaiting the choice. Clicking on a choice fills in the missing value and submits the form.
- * For #3, we expect svar('pop') to contain: $form_name, $choices, $result_field, and $question
- *   $form_name: the form name
+ * For #3, we expect svar('pop') to contain: $formName, $choices, $result_field, and $question
+ *   $formName: the form name
  *   $choices: an array of choices
  * @param array $choices: associative array of things to choose from
  * @param string $result_field: name of field that gets the choice
@@ -189,16 +189,16 @@ function show_form($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
  * @param string $question: the question to ask
  */
 function which($choices = '', $result_field = '', $info = '', $question = 'Which one?') {
-  $form_name = current_path();
+  $formName = current_path();
   
   if (is_array($choices)) { // called with all args (#1)
-    svar('pop', compact(u\ray('form_name choices result_field info question')));
-    drupal_goto($form_name); // reload page
+    svar('pop', compact(u\ray('formName choices result_field info question')));
+    drupal_goto($formName); // reload page
   }
 
   if (!is_array($pop = svar('pop'))) return array();
   extract(svar('pop'), EXTR_PREFIX_ALL, 'pop');
-  if ($form_name != $pop_form_name) return array();
+  if ($formName != $pop_formName) return array();
   if ($choices == 'info') return $pop_info; // called as which('info') (#2)
   if ($choices) return array();
   
@@ -328,7 +328,7 @@ function home_form($form, &$form_state) {
     'title' => form_field('item', t('Overview of Your rCredits Account')),
 //    'subtext' => basic_account_info(),
     'account_name' => form_field('item', t('Account Name:'), '', $cacct->full_name . ' ' . u\hug($name)),
-    'account_id' => form_field('item', t('Account ID:'), '', $cacct->qid . ' ' . u\hug(R_REGION_NAME)),
+    'account_id' => form_field('item', t('Account ID:'), '', $cacct->mainQid . ' ' . u\hug(R_REGION_NAME)),
     'account_type' => form_field('item', t('Account type:'), '', $GLOBALS['account types'][$cacct->account_type+0]), // +0 for admin
     'stage' => form_field('item', t('You are:'), '', $now[$stage]),
     'future' => $future[$stage] ? form_field('item', t('Future milestones:'), '', $future[$stage]) : NULL,
@@ -432,7 +432,7 @@ function profile_form($form, &$form_state, $company) {
 
   $pic = profile_picture($uid, TRUE);
   $country = u\countryAbbrev($my_country);
-  $website = $my_website ? "<a href='http://$website' target='_blank'>$my_website</a>" : '';
+  $website = $my_website ? "<a href='http://$my_website' target='_blank'>$my_website</a>" : '';
   $phone = $my_phone ? 'Phone: ' . u\formatPhone($my_phone, '+') : '';
   $fax = $my_fax ? (($phone ? '&nbsp; * &nbsp;' : '') . 'Fax: ' . u\formatPhone($my_fax, '+')) : '';
   $sql = <<<EOF
@@ -444,7 +444,7 @@ EOF;
   $cats = empty($cats) ? '' : ('<h3>Categories:</h3>' . join('<br>', $cats));
 
   $markup = <<<EOF
-  <div id='member-picture'>$pic</div>
+  $pic
   <div id='member-details'>
     <div id='member-contact'>
     <h2>$my_full_name</h2>
@@ -467,14 +467,14 @@ EOF;
 function profile_picture($uid, $with_markup = FALSE) {
   global $user; $user = r\acct()->account(); // keeps \theme from dying
   $acct = r\acct($uid);
-  $data = $acct->data;
+  $data = @unserialize($acct->data);
   $account = $acct->account();
   $markup = str_replace('styles/thumbnail/public/', '', \theme('user_picture', compact('account')));
   if ($markup) {
     $a = explode('"', $markup);
     if (strpos($url = $a[3], 'http://') === FALSE) $url = $a[7]; 
   } else $url = is_array($data) ? @$data['picture'] : '';
-  
+  debug($url);
   if (!$with_markup or !$url) return $url;
   $info = @getimagesize($url);
   list ($width, $height) = is_array($info) ? $info : array(1, 0);
@@ -953,7 +953,7 @@ function register_form(&$form, &$form_state) {
   $account_type_attrib = attrib(compact('onchange'));
   
   $company_info = array(
-    'company_text' => form_field('item', t('Are you an owner or employee of a local company (or of any participating rCredits company)?')),
+    'company_text' => form_field('item', t('Are you an owner and/or employee of a local company (or of any participating rCredits company)? Otherwise leave it blank.')),
     'company' => form_field('textfield', t('Company: '), t(''), autocomplete('company')),
     'company_options' => form_field('checkboxes', '', '', '', $company_options),
   );
@@ -1002,8 +1002,8 @@ function register_form_validate($form, &$form_state) {
 //  if (r\userField(1, 'name=:name', compact('name'))) return say('duplicate name'); // require unique full_name
 
   u\normalizeCase(u\ray('full_name city address'));
-  $communityUid = r\communityUid($my_postal_code);
-  $form_state['values'] = array_merge($values, compact(u\ray('name data communityUid')));
+  $community_uid = r\communityUid($my_postal_code);
+  $form_state['values'] = array_merge($values, compact(u\ray('name data community_uid')));
 }
 
 function register_form_submit($form, &$form_state) {
@@ -1245,6 +1245,25 @@ function sms_form_submit($form, $form_state) {
 }
 
 /**
+ * Return markup to identify the agent of the given account.
+ */
+function identifiers($acct) {
+  list ($agent, $company) = $acct->proSe() ? array($acct, '') : array(r\acct($acct->agent), $acct->full_name);
+  $location = $acct->city . ', ' . $acct->state . ($acct->country == 'United States' ? '' : ", $acct->country");
+  $pic = profile_picture($agent->id, TRUE);
+  return <<<EOF
+    <div class="clearfix">
+    $pic
+    <div id="id-other">
+      <div id="id-name">$agent->full_name</div>
+      <div id="id-company">$company</div>
+      <div id="id-location">$location</div>
+    </div>
+    </div>
+EOF;
+}
+
+/**
  * Set or report next step in form's workflow
  * Syntax:
  *   form_step($form_state, $info, 'id of next step') -- sets the next step
@@ -1405,7 +1424,7 @@ function transfer($info, $confirmed) {
   if (!is_numeric($amount)) return say('bad amount', 'amount');
   if (!($acct = whois($who, 'who', $info, TRUE, $tx_type == 'payment'))) return FALSE; // allow "ALL"
   list ($message, $args, $confirm) = api\transfer($tx_type, $acct, $amount, $purpose, !u\forCash($purpose), $confirmed);
-  if ($confirm) return tt('confirm ' . $message, $args);
+  if ($confirm) return identifiers($acct) . tt('confirm ' . $message, $args);
   if (@$args['success']) return say($message, $args);
   return say($message, $args, 'amount');
 }
@@ -1519,6 +1538,6 @@ function disabled($value) {return array('value' => $value, 'disabled' => TRUE);}
 function dft($default_value) {return compact('default_value');}
 function weight($weight) {return compact('weight');}
 function attrib($attribs) {return array('attributes' => $attribs);}
-function autocomplete($path) {return array('autocomplete_path' => "autocomplete/$path/" . r\acct()->id);}
+function autocomplete($path) {return array('autocomplete_path' => "autocomplete/$path/" . @r\acct()->id);}
 function required() {return array('required' => TRUE);}
 // UNUSED function check($array, $type = 'plain') {return array_map("check_$type", $array);} // Check an array for plain or markup.

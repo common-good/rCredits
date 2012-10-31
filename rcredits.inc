@@ -244,7 +244,7 @@ function transactionRewards(&$txs) {
 }
 
 function txRewardSetup($type, $payee, $state, $rewards) {
-  $payer = $payer_agent = $payee_agent = userField('communityUid', $payee);
+  $payer = $payer_agent = $payee_agent = userField('community_uid', $payee);
   if ($payer == $payee) return NULL; // payee is a community, so no rewards
 
   $taking = FALSE;
@@ -591,7 +591,7 @@ function owning($uid1, $uid2) {
 
 function communityUid($postal_code = '') {
   if (!$postal_code) return serverUid();
-  $crit = "country=':R_COUNTRY' AND :postal_code RLIKE postal_code AND uid=communityUid";
+  $crit = "country=':R_COUNTRY' AND :postal_code RLIKE postal_code AND uid=community_uid";
   return userField('uid', $crit, compact(u\ray('postal_code'))) ?: serverUid();
 }
 
