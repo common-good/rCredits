@@ -14,6 +14,9 @@ Setup:
   | NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | Alaska | United States |
   | NEW.ZZB | Bea Two    | +20002 | b@example.com | Btown | Utah   | United States |
   | NEW.ZZC | Corner Pub | +20003 | c@example.com | Ctown | Corse  | France        |
+  And devices:
+  | id      | code  |
+  | NEW.ZZA | codeA |
   And relations:
   | id      | main    | agent   | permissions  |
   | NEW:ZZA | NEW.ZZC | NEW.ZZB | buy and sell |
@@ -26,8 +29,7 @@ Setup:
 
 Scenario: Member asks us to identify a QR
 # Actually the member asks to pay or charge. That process begins with identification of the other party's QR.
-  Given member "NEW.ZZA" has initialized a device whose code is %whatever1
-  When member "NEW.ZZA" asks device %whatever1 to identify QR "NEW.ZZB" 
+  When member "NEW.ZZA" asks device "codeA" to identify QR "NEW.ZZB" 
   Then we respond with:
   | success | full_name | location    |
   | 1       | Bea Two   | Btown, Utah |
@@ -35,45 +37,39 @@ Scenario: Member asks us to identify a QR
 #other_balance (current balance for the identified person)
 
 Scenario: Member asks us to identify the member's own QR
-  Given member "NEW.ZZA" has initialized a device whose code is %whatever1
-  When member "NEW.ZZA" asks device %whatever1 to identify QR "NEW.ZZA" 
+  When member "NEW.ZZA" asks device "codeA" to identify QR "NEW.ZZA" 
   Then we respond with:
   | success | message         |
   | 0       | no self-trading |
 
 Scenario: Member asks us to identify a foreign QR
-  Given member "NEW.ZZA" has initialized a device whose code is %whatever1
-  When member "NEW.ZZA" asks device %whatever1 to identify QR "NEW.ZZC" 
+  When member "NEW.ZZA" asks device "codeA" to identify QR "NEW.ZZC" 
   Then we respond with:
   | success | full_name  | location             |
   | 1       | Corner Pub | Ctown, Corse, France |
   
 Scenario: Member asks us to identify a QR and member can show balances
-  Given member "NEW.ZZA" has initialized a device whose code is %whatever1
-  And member "NEW.ZZA" can show balances
-  When member "NEW.ZZA" asks device %whatever1 to identify QR "NEW.ZZB" 
+  Given member "NEW.ZZA" can charge unilaterally
+  When member "NEW.ZZA" asks device "codeA" to identify QR "NEW.ZZB" 
   Then we respond with:
   | success | full_name | location    | other_balance |
   | 1       | Bea Two   | Btown, Utah | 250           |
 
 Scenario: Member asks us to identify a QR for a company agent
-  Given member "NEW.ZZA" has initialized a device whose code is %whatever1
-  When member "NEW.ZZA" asks device %whatever1 to identify QR "NEW:ZZA"
+  When member "NEW.ZZA" asks device "codeA" to identify QR "NEW:ZZA"
   Then we respond with:
   | success | full_name | location             | company_name |
   | 1       | Bea Two   | Ctown, Corse, France | Corner Pub   |
 
 Scenario: Device asks for a picture to go with the QR
-  Given member "NEW.ZZA" has initialized a device whose code is %whatever1
-  And member "NEW.ZZB" has picture %picture1
-  When member "NEW.ZZA" asks device %whatever1 for a picture of member "NEW.ZZB"
+  Given member "NEW.ZZB" has picture %picture1
+  When member "NEW.ZZA" asks device "codeA" for a picture of member "NEW.ZZB"
   Then we respond to member "NEW.ZZA" with picture %picture1
 #op="photo"
 Response: just the picture file (Content-Type will probably be image/png, rather than application/whatever)
 
 Scenario: Device asks for a picture but there isn't one
-  Given member "NEW.ZZA" has initialized a device whose code is %whatever1
-  And member "NEW.ZZB" has no picture
-  When member "NEW.ZZA" asks device %whatever1 for a picture of member "NEW.ZZB"
+  Given member "NEW.ZZB" has no picture
+  When member "NEW.ZZA" asks device "codeA" for a picture of member "NEW.ZZB"
   Then we respond to member "NEW.ZZA" with picture "no-photo-available"
 

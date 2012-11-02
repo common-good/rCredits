@@ -35,7 +35,7 @@ function extraSetup($feature) {
   r\dbQ('TRUNCATE r_sms');
   r\dbQ('TRUNCATE r_asif');
   r\dbQ('TRUNCATE r_txs');
-  r\dbQ('DELETE FROM r_smarts WHERE uid>1000');
+  r\dbQ('DELETE FROM r_smarts WHERE owner>1000');
   r\dbQ('DELETE FROM file_managed WHERE uid>1000');
   r\dbQ('TRUNCATE r_relations');
   r\dbQ('TRUNCATE r_log'); // so we don't find results from the wrong test

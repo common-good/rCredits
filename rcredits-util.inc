@@ -63,6 +63,17 @@ function tx_types($string) {return strtr($string, array_flip(ray(TX_TYPES)));} /
 */
 
 /**
+ * Return just the specified key/value pairs from the given array.
+ * Typical use: extract(just('key2 key4 key 7', $info));
+ * If a key did not exist in the original array, it will no be in the returned array either.
+ */
+function just($these, $array) {
+  $result = array();
+  foreach (ray($these) as $one) if (isset($array[$one])) $result[$one] = $array[$one];
+  return $result;
+}
+
+/**
  * Format the given amount as currency.
  *
  * @param float $amount
@@ -390,7 +401,7 @@ function expect1($arg, $value, $type, $ret) {
   $msg = "Expected \$$arg ('" . print_r($value, 1) . "') to be type '$type'.";
   if (strpos($type, '|')) {
     foreach (explode('|', $type) as $one) if (expect1($arg, $value, $one, TRUE) == '') return '';
-    EXPECT(FALSE, $msg);
+    EXPECT(FALSE, $msg, $ret);
   }
   if (strpos($type, '&')) {
     foreach (explode('&', $type) as $one) if ($error = expect1($arg, $value, $one, $ret)) return $error;

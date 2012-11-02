@@ -79,7 +79,7 @@ function rweb_menu() {
     'autocomplete' => r\Web\menu('Identify', MENU_CALLBACK, 'rCredits\\Web\\auto', array(1, 2, 3), '', $anyone),
 //    'ok' => r\Web\menu('Please Confirm', MENU_CALLBACK, 'show_form', array('ok'), '', $anyone + $modal),
     
-    'sms' => r\Web\menu('Test SMS', MENU_NORMAL_ITEM, 'show_form', array('sms'), 'admin'),
+    'sms' => r\Web\menu('Test SMS', MENU_NORMAL_ITEM, 'show_form', array('sms'), '', $anyone), // should be 'admin' not '',...
     'handy' => r\Web\menu('Handy Links', MENU_NORMAL_ITEM, 'handy_links', array(), 'admin'),
     'rcredits/backend' => r\Web\menu('API', 0, 'rCredits\\API\\backend2', array(), '', $anyone),
     'api' => r\Web\menu('API', 0, 'rCredits\\Smart\\api', array(), '', $anyone),

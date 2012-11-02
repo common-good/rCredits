@@ -3,10 +3,6 @@ As a member
 I WANT to run the rCredits mobile app on my device
 SO I can use it to buy and sell with rCredits.
 
-# Terminology in these Features:
-# "I": the device holder (not necessarily the owner)
-# "the system": the rCredits system
-
 Setup:
   Given members:
   | id      | full_name  | phone  | email         |
@@ -24,13 +20,14 @@ Scenario: Member logs in successfully to initialize device
   Given member "NEW.ZZA" password is %whatever1
   When member initializes the device as member "NEW.ZZA" with password %whatever1
   Then we respond with:
-  | success | owner_id | code       | message    |
-  | 1       | NEW.ZZA  | (the code) | first time |
+  | success | message    | code       | my_id   | account_name | allow_change_account | allow_change_agent | require_agent | show_buttons |
+  | 1       | first time | (the code) | NEW.ZZA | Abe One      | 0                    | 1                  | 0             | 3             |
 #op="first_time"
 #update_link (URL of updated app or null if no update is available)
 #allow_change_account=TRUE or FALSE
 #allow_change_agent=TRUE or FALSE
 #require_agent=TRUE or FALSE
+#show_buttons=0, 1, 2, or 3
 
 Scenario: Member initializes with an ill-formed id
   When member initializes the device as member %random with password %whatever
@@ -54,8 +51,8 @@ Scenario: Member reruns the app
   Given member "NEW.ZZA" has initialized a device whose code is %whatever1
   When the app starts up as member "NEW.ZZA" and code %whatever1
   Then we respond with:
-  | success | message |
-  | 1       |         |
+  | success | message    | my_id   | account_name | allow_change_account | allow_change_agent | require_agent | show_buttons |
+  | 1       |            | NEW.ZZA | Abe One      | 0                    | 1                  | 0             | 3             |
 #op=”startup”
 #update_link (URL of updated app or null if no update is available)
 #allow_change_account=TRUE or FALSE
@@ -68,18 +65,6 @@ Scenario: Device requests a bad op
   | success | message    |
   | 0       | unknown op |
 
-Scenario: Device gives no member id
-  When the app starts up as member "" and code "codeA"
-  Then we respond with:
-  | success | message       |
-  | 0       | bad id format |
-  
-Scenario: Device gives bad member id
-  When the app starts up as member %random and code "codeA"
-  Then we respond with:
-  | success | message       |
-  | 0       | bad id format |
-  
 Scenario: Device gives no code
   When the app starts up as member "NEW.ZZA" and code ""
   Then we respond with:

@@ -5,13 +5,13 @@ SO I can use rCredits as much as possible
 
 Summary:
   
-#Variants:
-#  | %TX_DONE     |
-#  | %TX_DISPUTED |
+Variants:
+  | %TX_DONE     |
+  | %TX_DISPUTED |
 
 #Variants: given/taken
-#  | 00000 |
-#  | 1     |
+  | 00000 |
+  | 1     |
 
 Setup:
   Given members:
@@ -68,11 +68,11 @@ Scenario: A member asks to undo a completed payment, with insufficient balance
 
 Scenario: A member confirms request to undo a completed payment, with insufficient balance
   When member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "confirmed"
-  Then we respond success 1 tx_id "NEW.AAAL" my_balance 525 other_balance 12.5 and message "report undo|report invoice" with subs:
-  | action  | other_name | amount | balance | tid |
-  | charged | Abe One    | $100   | $525    | 3   |
+  Then we respond success 1 tx_id "NEW.AAAL" my_balance 155 other_balance "" and message "report undo|report invoice" with subs:
+  | solution | action  | other_name | amount | balance | tid |
+  | reversed | charged | Abe One    | $100   | $525    | 3   |
   And we email "new-invoice" to member "a@example.com" with subs:
-  | created | full_name  | other_name | amount | payee_purpose |
+  | created | full_name  | other_name | amount | payer_purpose |
   | %today  | Abe One    | Corner Pub | $100   | reverses #3   |
   And balances:
   | id        | balance |
@@ -81,51 +81,57 @@ Scenario: A member confirms request to undo a completed payment, with insufficie
   | NEW.ZZC   |     155 |
 
 Scenario: A member asks to undo a completed payment unilaterally, with insufficient balance
-  Given member "NEW.ZZA" can charge unilaterally
-  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAB", with the request "unconfirmed"
-  Then we respond success 1 tx_id "NEW.AAAE" my_balance 12.5 other_balance "" and message "report short transaction" with subs:
-  | action | other_name | amount | short | balance | tid |
-  | paid   | Corner Pub | $250   | $50   | $12.50  | 2   |
+  Given member "NEW.ZZC" can charge unilaterally
+  When member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "unconfirmed"
+  Then we respond with success 1, message "confirm undo", and subs:
+  | created   | amount | tofrom  | other_name | purpose |
+  | %today-3d | $100   | to      | Abe One    | labor H |
   # "SPLIT TRANSACTION! You paid Corner Pub $250 (rebate: $12.50). You will need to use US Dollars for the remaining $50. Your new balance is $12.50. Transaction #2"
   And balances:
   | id        | balance |
-  | community | -787.50 |
-  | NEW.ZZA   |   12.50 |
-  | NEW.ZZC   |  525.00 |
+  | community |    -795 |
+  | NEW.ZZA   |      70 |
+  | NEW.ZZB   |     570 |
+  | NEW.ZZC   |     155 |
 
 Scenario: A member confirms request to undo a completed payment unilaterally, with insufficient balance
-  Given member "NEW.ZZA" can charge unilaterally
-  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAB", with the request "confirmed"
-  Then we respond success 1 tx_id "NEW.AAAE" my_balance 12.5 other_balance "" and message "report short transaction" with subs:
-  | action | other_name | amount | short | balance | tid |
-  | paid   | Corner Pub | $250   | $50   | $12.50  | 2   |
+  Given member "NEW.ZZC" can charge unilaterally
+  When member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "confirmed"
+  Then we respond success 1 tx_id "NEW.AAAL" my_balance 210 other_balance 0 and message "report undo|report short transaction" with subs:
+  | solution | action  | other_name | amount | balance | tid | short |
+  | reversed | charged | Abe One    | $60    | $210    | 3   | $40   |
+  And we email "new-charge" to member "a@example.com" with subs:
+  | created | full_name  | other_name | amount | payer_purpose |
+  | %today  | Abe One    | Corner Pub | $60    | reverses #3   |
   # "SPLIT TRANSACTION! You paid Corner Pub $250 (rebate: $12.50). You will need to use US Dollars for the remaining $50. Your new balance is $12.50. Transaction #2"
   And balances:
   | id        | balance |
-  | community | -787.50 |
-  | NEW.ZZA   |   12.50 |
-  | NEW.ZZC   |  525.00 |
+  | community | -780 |
+  | NEW.ZZA   |    0 |
+  | NEW.ZZC   |  210 |
 
 Scenario: A member asks to undo a completed charge, with insufficient balance
-  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAE", with the request "unconfirmed"
-  Then we respond success 1 tx_id "NEW.AAAE" my_balance 12.5 other_balance "" and message "report short transaction" with subs:
-  | action | other_name | amount | short | balance | tid |
-  | paid   | Corner Pub | $250   | $50   | $12.50  | 2   |
-  # "SPLIT TRANSACTION! You paid Corner Pub $250 (rebate: $12.50). You will need to use US Dollars for the remaining $50. Your new balance is $12.50. Transaction #2"
+  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "unconfirmed"
+  Then we respond with success 1, message "confirm undo", and subs:
+  | created   | amount | tofrom  | other_name | purpose |
+  | %today-3d | $100   | from    | Corner Pub | labor H |
   And balances:
   | id        | balance |
-  | community | -787.50 |
-  | NEW.ZZA   |   12.50 |
-  | NEW.ZZC   |  525.00 |
+  | community |    -795 |
+  | NEW.ZZA   |      70 |
+  | NEW.ZZB   |     570 |
+  | NEW.ZZC   |     155 |
 
 Scenario: A member confirms request to undo a completed charge, with insufficient balance
-  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAE", with the request "confirmed"
-  Then we respond success 1 tx_id "NEW.AAAE" my_balance 12.5 other_balance "" and message "report short transaction" with subs:
-  | action | other_name | amount | short | balance | tid |
-  | paid   | Corner Pub | $250   | $50   | $12.50  | 2   |
-  # "SPLIT TRANSACTION! You paid Corner Pub $250 (rebate: $12.50). You will need to use US Dollars for the remaining $50. Your new balance is $12.50. Transaction #2"
+  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "confirmed"
+  Then we respond success 1 tx_id "NEW.AAAL" my_balance 0 other_balance "" and message "report undo|report short transaction" with subs:
+  | solution | action| other_name | amount | balance | tid | short |
+  | reversed | paid  | Corner Pub | $60    | $0      | 5   | $40   |
+  And we email "new-payment" to member "c@example.com" with subs:
+  | created | full_name  | other_name | amount | payee_purpose |
+  | %today  | Corner Pub | Abe One    | $60    | reverses #2   |
   And balances:
   | id        | balance |
-  | community | -787.50 |
-  | NEW.ZZA   |   12.50 |
-  | NEW.ZZC   |  525.00 |
+  | community | -780 |
+  | NEW.ZZA   |    0 |
+  | NEW.ZZC   |  210 |

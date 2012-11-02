@@ -109,9 +109,7 @@ function handy_links() {
   $test_path = "$base_url/sites/all/modules";
 
   $links = array(
-    'rcredits/util/test?rcredits/rsms|Test rSMS|',
-    'rcredits/util/test?rcredits/rsmart|Test rSmart|',
-    'rcredits/util/test?rcredits/rweb|Test rWeb|',
+    'rcredits/util/test?menu=1|Test Menu|',
     "$test_path/gherkin/compile.php?module=rcredits/rsms&return=1|Compile rSMS|",
     "$test_path/gherkin/compile.php?module=rcredits/rsmart&return=1|Compile rSmart|",
     "$test_path/gherkin/compile.php?module=rcredits/rweb&return=1|Compile rWeb|",
@@ -394,7 +392,7 @@ function account_form_submit($form, &$form_state) {
  * appears above the whole Members Section
  */
 function accounts_form($form, &$form_state) {
-  $cuid = r\acct()->id;
+  if (!($cuid = @r\acct()->id)) return NULL; // no account selector before login
   if (!($accounts = api\account_choices())) return FALSE;
   $choices = array();
   foreach ($accounts as $uid => $zot) {
@@ -474,7 +472,6 @@ function profile_picture($uid, $with_markup = FALSE) {
     $a = explode('"', $markup);
     if (strpos($url = $a[3], 'http://') === FALSE) $url = $a[7]; 
   } else $url = is_array($data) ? @$data['picture'] : '';
-  debug($url);
   if (!$with_markup or !$url) return $url;
   $info = @getimagesize($url);
   list ($width, $height) = is_array($info) ? $info : array(1, 0);

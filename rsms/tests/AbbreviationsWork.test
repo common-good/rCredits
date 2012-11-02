@@ -32,13 +32,29 @@ class rsmsAbbreviationsWork extends DrupalWebTestCase {
 
   public function setUp() { // especially, enable any modules required for the tests
     parent::setUp(self::MODULE);
-    if (function_exists('extra_setup')) extra_setup($this); // defined in rsms.steps
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rsms.steps
     sceneSetup($this, __FUNCTION__);
 
     switch ($this->variant) {
     default: // fall through to case(0)
 
     }
+  }
+
+  // Scenario: A caller abbreviates command words
+  public function testACallerAbbreviatesCommandWords_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    Given('phone %number1 is a member');
+    When_('phone %number1 says "h g"');
+    Then_('we say to phone %number1 "help get"');
+  }
+
+  // Scenario: A caller abbreviates with wrong syntax
+  public function testACallerAbbreviatesWithWrongSyntax_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    Given('phone %number1 is a member');
+    When_('phone %number1 says "12 f"');
+    Then_('we say to phone %number1 "syntax|help charge"');
   }
 
 }

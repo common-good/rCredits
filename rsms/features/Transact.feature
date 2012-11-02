@@ -59,8 +59,8 @@ Scenario: The caller confirms a request to charge
   | charged | Corner Pub | $100   | 2   |
   # "You charged Corner Pub $100 (bonus: $10). Your balance is unchanged, pending payment. Invoice #2"
   And we email "new-invoice" to member "c@example.com" with subs:
-  | created | full_name  | other_name | amount | purpose |
-  | %today  | Corner Pub | Abe One    | $100   | labor   |
+  | created | full_name  | other_name | amount | payer_purpose |
+  | %today  | Corner Pub | Abe One    | $100   | labor         |
 
 Scenario: The caller confirms a unilateral charge
   Given phone +20001 can charge unilaterally
@@ -72,8 +72,8 @@ Scenario: The caller confirms a unilateral charge
   | charged | Corner Pub | $100   | bonus       | $10           | $360    | 2   |
   # "You charged Corner Pub $100 (bonus: $10). Your new balance is $110. Transaction #1"
   And we email "new-charge" to member "c@example.com" with subs:
-  | created | full_name  | other_name | amount | purpose |
-  | %today  | Corner Pub | Abe One    | $100   | labor   |
+  | created | full_name  | other_name | amount | payer_purpose |
+  | %today  | Corner Pub | Abe One    | $100   | labor         |
 
 Scenario: The caller confirms a payment with insufficient balance
   When phone +20001 confirms "300 to .ZZC for groceries"

@@ -1,5 +1,5 @@
 Feature: Undo
-AS a player
+AS a member
 I WANT to undo a transaction recently completed on my account
 SO I can easily correct a mistake
 
@@ -81,8 +81,8 @@ Scenario: The caller refuses to pay the latest invoice
   | solution          |
   | marked ''denied'' |
   And we email "invoice-denied" to member "b@example.com" with subs:
-  | created | full_name | other_name | amount | purpose  |
-  | %today  | Bea Two   | Abe One    | $100   | cleaning |
+  | created | full_name | other_name | amount | payee_purpose  |
+  | %today  | Bea Two   | Abe One    | $100   | cleaning       |
 
 Scenario: The caller refuses a pending payment
   Given transactions:
@@ -93,5 +93,5 @@ Scenario: The caller refuses a pending payment
   | solution          |
   | marked ''denied'' |
   And we email "payment-denied" to member "c@example.com" with subs:
-  | created | full_name  | other_name | amount | purpose |
-  | %today  | Corner Pub | Abe One    | $100   | wages   |
+  | created | full_name  | other_name | amount | payer_purpose |
+  | %today  | Corner Pub | Abe One    | $100   | wages         |

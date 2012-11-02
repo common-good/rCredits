@@ -37,7 +37,7 @@ function extraSetup($feature) {
   r\dbQ('TRUNCATE r_sms');
   r\dbQ('TRUNCATE r_asif');
   r\dbQ('TRUNCATE r_txs');
-  r\dbQ('DELETE FROM r_smarts WHERE uid>1000');
+  r\dbQ('DELETE FROM r_smarts WHERE owner>1000');
   r\dbQ('DELETE FROM file_managed WHERE uid>1000');
   r\dbQ('TRUNCATE r_relations');
   r\dbQ('TRUNCATE r_log'); // so we don't find results from the wrong test
@@ -59,7 +59,8 @@ function extraSubs(&$subs) {
 /**
  * members: (ARG)
  *
- * in: IdentifyQR - featureSetup MAKE
+ * in: Change - featureSetup MAKE
+ *     IdentifyQR - featureSetup MAKE
  *     Insufficient - featureSetup MAKE
  *     Startup - featureSetup MAKE
  *     Transact - featureSetup MAKE
@@ -76,7 +77,8 @@ function members($list) {
 /**
  * relations: (ARG)
  *
- * in: IdentifyQR - featureSetup MAKE
+ * in: Change - featureSetup MAKE
+ *     IdentifyQR - featureSetup MAKE
  *     Insufficient - featureSetup MAKE
  *     Startup - featureSetup MAKE
  *     Transact - featureSetup MAKE
@@ -109,14 +111,7 @@ function transactions($list) {
 /**
  * member (ARG) has initialized a device whose code is (ARG)
  *
- * in: IdentifyQR - testMemberAsksUsToIdentifyAQR MAKE
- *     IdentifyQR - testMemberAsksUsToIdentifyTheMembersOwnQR MAKE
- *     IdentifyQR - testMemberAsksUsToIdentifyAForeignQR MAKE
- *     IdentifyQR - testMemberAsksUsToIdentifyAQRAndMemberCanShowBalances MAKE
- *     IdentifyQR - testMemberAsksUsToIdentifyAQRForACompanyAgent MAKE
- *     IdentifyQR - testDeviceAsksForAPictureToGoWithTheQR MAKE
- *     IdentifyQR - testDeviceAsksForAPictureButThereIsntOne MAKE
- *     Startup - testMemberRerunsTheApp MAKE
+ * in: Startup - testMemberRerunsTheApp MAKE
  */
 function memberHasInitializedADeviceWhoseCodeIs($id, $code) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -132,9 +127,9 @@ function memberHasInitializedADeviceWhoseCodeIs($id, $code) {
  *     IdentifyQR - testMemberAsksUsToIdentifyAQRAndMemberCanShowBalances MAKE
  *     IdentifyQR - testMemberAsksUsToIdentifyAQRForACompanyAgent MAKE
  */
-function memberAsksDeviceToIdentifyQR($my_id, $code, $account_id) {
+function memberAsksDeviceToIdentifyQR($agent, $code, $account_id) {
   global $testOnly; if ($testOnly) return FALSE;
-  return t\hitServer('identify', $my_id, $code, $account_id);
+  return t\hitServer('identify', $agent, $code, $account_id);
 }
 
 /**
@@ -151,8 +146,6 @@ function memberAsksDeviceToIdentifyQR($my_id, $code, $account_id) {
  *     Startup - testMemberTypesTheWrongPassword TEST
  *     Startup - testMemberRerunsTheApp TEST
  *     Startup - testDeviceRequestsABadOp TEST
- *     Startup - testDeviceGivesNoMemberId TEST
- *     Startup - testDeviceGivesBadMemberId TEST
  *     Startup - testDeviceGivesNoCode TEST
  *     Startup - testDeviceGivesABadCode TEST
  *     Startup - testAgentDoesNotHavePermission TEST
@@ -183,26 +176,14 @@ function weRespondWith($args) {
 }
 
 /**
- * member (ARG) can show balances
- *
- * in: IdentifyQR - testMemberAsksUsToIdentifyAQRAndMemberCanShowBalances MAKE
- */
-function memberCanShowBalances($id) {
-  global $testOnly; if ($testOnly) return FALSE;
-  if ($testOnly) return FALSE;
-  r\acct($id)->setBit(BIT_CHARGE);
-  return TRUE;
-}
-
-/**
  * member (ARG) asks device (ARG) for a picture of member (ARG)
  *
  * in: IdentifyQR - testDeviceAsksForAPictureToGoWithTheQR MAKE
  *     IdentifyQR - testDeviceAsksForAPictureButThereIsntOne MAKE
  */
-function memberAsksDeviceForAPictureOfMember($my_id, $code, $account_id) {
+function memberAsksDeviceForAPictureOfMember($agent, $code, $account_id) {
   global $testOnly; if ($testOnly) return FALSE;
-  return t\hitServer('photo', $my_id, $code, $account_id);
+  return t\hitServer('photo', $agent, $code, $account_id);
 }
 
 /**
@@ -257,30 +238,30 @@ function memberPasswordIs($id, $pass) {
  *     Startup - testDeviceOwnerIsNotAMember MAKE
  *     Startup - testMemberTypesTheWrongPassword MAKE
  */
-function memberInitializesTheDeviceAsMemberWithPassword($my_id, $password) {
+function memberInitializesTheDeviceAsMemberWithPassword($agent, $password) {
   global $testOnly; if ($testOnly) return FALSE;
-  return t\hitServer('first_time', $my_id, '', '', compact('password'));
+  return t\hitServer('first_time', $agent, '', '', compact('password'));
 }
 
 /**
  * the app starts up as member (ARG) and code (ARG)
  *
  * in: Startup - testMemberRerunsTheApp MAKE
- *     Startup - testDeviceGivesNoMemberId MAKE
- *     Startup - testDeviceGivesBadMemberId MAKE
  *     Startup - testDeviceGivesNoCode MAKE
  *     Startup - testDeviceGivesABadCode MAKE
  *     Startup - testAgentDoesNotHavePermission MAKE
  */
-function theAppStartsUpAsMemberAndCode($my_id, $code) {
+function theAppStartsUpAsMemberAndCode($agent, $code) {
   global $testOnly; if ($testOnly) return FALSE;
-  return t\hitServer('startup', $my_id, $code);
+  return t\hitServer('startup', $agent, $code);
 }
 
 /**
  * devices: (ARG)
  *
- * in: Insufficient - featureSetup MAKE
+ * in: Change - featureSetup MAKE
+ *     IdentifyQR - featureSetup MAKE
+ *     Insufficient - featureSetup MAKE
  *     Startup - featureSetup MAKE
  *     Transact - featureSetup MAKE
  *     UndoAttack - featureSetup MAKE
@@ -297,26 +278,28 @@ function devices($list) {
  * balances: (ARG)
  *
  * in: Insufficient - featureSetup TEST
- *     Insufficient - testAMemberAsksToUndoACompletedPaymentWithInsufficientBalance MAKE
- *     Insufficient - testAMemberConfirmsRequestToUndoACompletedPaymentWithInsufficientBalance MAKE
- *     Insufficient - testAMemberAsksToUndoACompletedPaymentUnilaterallyWithInsufficientBalance MAKE
- *     Insufficient - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterallyWithInsufficientBalance MAKE
- *     Insufficient - testAMemberAsksToUndoACompletedChargeWithInsufficientBalance MAKE
- *     Insufficient - testAMemberConfirmsRequestToUndoACompletedChargeWithInsufficientBalance MAKE
+ *     Insufficient - testAMemberAsksToUndoACompletedPaymentWithInsufficientBalance TEST
+ *     Insufficient - testAMemberConfirmsRequestToUndoACompletedPaymentWithInsufficientBalance TEST
+ *     Insufficient - testAMemberAsksToUndoACompletedPaymentUnilaterallyWithInsufficientBalance TEST
+ *     Insufficient - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterallyWithInsufficientBalance TEST
+ *     Insufficient - testAMemberAsksToUndoACompletedChargeWithInsufficientBalance TEST
+ *     Insufficient - testAMemberConfirmsRequestToUndoACompletedChargeWithInsufficientBalance TEST
  *     Transact - featureSetup TEST
- *     Transact - testAMemberAsksToChargeAnotherMember MAKE
- *     Transact - testAMemberAsksToPayAnotherMember MAKE
- *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterally MAKE
- *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance MAKE
- *     Transact - testAMemberAsksToPayAnotherMemberWithInsufficientBalance MAKE
+ *     Transact - testAMemberAsksToChargeAnotherMember TEST
+ *     Transact - testAMemberAsksToPayAnotherMember TEST
+ *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterally TEST
+ *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance TEST
+ *     Transact - testAMemberAsksToPayAnotherMemberWithInsufficientBalance TEST
  *     UndoCompleted - featureSetup TEST
- *     UndoCompleted - testAMemberAsksToUndoACompletedPayment MAKE
- *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPayment MAKE
- *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCharge MAKE
- *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCashPayment MAKE
- *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCashCharge MAKE
- *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterally MAKE
+ *     UndoCompleted - testAMemberAsksToUndoACompletedPayment TEST
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPayment TEST
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCharge TEST
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCashPayment TEST
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCashCharge TEST
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterally TEST
  *     UndoPending - featureSetup TEST
+ *     UndoPending - testAMemberAsksToRefusePayment TEST
+ *     UndoPending - testAMemberConfirmsRequestToRefusePayment TEST
  */
 function balances($list) {
   global $testOnly;
@@ -345,19 +328,17 @@ function balances($list) {
  *     Transact - testBuyerAgentLacksPermissionToBuy MAKE
  *     Transact - testSellerAgentLacksPermissionToSell MAKE
  */
-function memberAsksDeviceToDoThis($my_id, $code, $type, $account_id, $amount, $goods, $purpose) {
+function memberAsksDeviceToDoThis($agent, $code, $type, $account_id, $amount, $goods, $purpose) {
   global $testOnly; if ($testOnly) return FALSE;
   $goods = ($goods == 'goods');
-  return t\hitServer('transact', $my_id, $code, $account_id, compact(u\ray('type amount goods purpose')));
+  return t\hitServer('transact', $agent, $code, $account_id, compact(u\ray('type amount goods purpose')));
 }
 
 /**
  * we respond success (ARG) tx_id (ARG) my_balance (ARG) other_balance (ARG) and message (ARG) with subs: (ARG)
  *
  * in: Insufficient - testAMemberConfirmsRequestToUndoACompletedPaymentWithInsufficientBalance TEST
- *     Insufficient - testAMemberAsksToUndoACompletedPaymentUnilaterallyWithInsufficientBalance TEST
  *     Insufficient - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterallyWithInsufficientBalance TEST
- *     Insufficient - testAMemberAsksToUndoACompletedChargeWithInsufficientBalance TEST
  *     Insufficient - testAMemberConfirmsRequestToUndoACompletedChargeWithInsufficientBalance TEST
  *     Transact - testAMemberAsksToChargeAnotherMember TEST
  *     Transact - testAMemberAsksToPayAnotherMember TEST
@@ -369,6 +350,7 @@ function memberAsksDeviceToDoThis($my_id, $code, $type, $account_id, $amount, $g
  *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCashPayment TEST
  *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCashCharge TEST
  *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterally TEST
+ *     UndoPending - testAMemberConfirmsRequestToRefusePayment TEST
  */
 function weRespondSuccessTxidMybalanceOtherbalanceAndMessageWithSubs($success, $tx_id, $my_balance, $other_balance, $message, $subs) {
   global $testOnly;
@@ -381,15 +363,18 @@ function weRespondSuccessTxidMybalanceOtherbalanceAndMessageWithSubs($success, $
 /**
  * we email (ARG) to member (ARG) with subs: (ARG)
  *
- * in: Insufficient - testAMemberConfirmsRequestToUndoACompletedPaymentWithInsufficientBalance MAKE
- *     Transact - testAMemberAsksToChargeAnotherMember MAKE
- *     Transact - testAMemberAsksToPayAnotherMember MAKE
- *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterally MAKE
- *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPayment MAKE
- *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCharge MAKE
- *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCashPayment MAKE
- *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCashCharge MAKE
- *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterally MAKE
+ * in: Insufficient - testAMemberConfirmsRequestToUndoACompletedPaymentWithInsufficientBalance TEST
+ *     Insufficient - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterallyWithInsufficientBalance TEST
+ *     Insufficient - testAMemberConfirmsRequestToUndoACompletedChargeWithInsufficientBalance TEST
+ *     Transact - testAMemberAsksToChargeAnotherMember TEST
+ *     Transact - testAMemberAsksToPayAnotherMember TEST
+ *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterally TEST
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPayment TEST
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCharge TEST
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCashPayment TEST
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCashCharge TEST
+ *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterally TEST
+ *     UndoPending - testAMemberConfirmsRequestToRefusePayment TEST
  */
 function weEmailToMemberWithSubs($key, $email, $subs) {
   global $testOnly;
@@ -399,7 +384,8 @@ function weEmailToMemberWithSubs($key, $email, $subs) {
 /**
  * member (ARG) can charge unilaterally
  *
- * in: Insufficient - testAMemberAsksToUndoACompletedPaymentUnilaterallyWithInsufficientBalance MAKE
+ * in: IdentifyQR - testMemberAsksUsToIdentifyAQRAndMemberCanShowBalances MAKE
+ *     Insufficient - testAMemberAsksToUndoACompletedPaymentUnilaterallyWithInsufficientBalance MAKE
  *     Insufficient - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterallyWithInsufficientBalance MAKE
  *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterally MAKE
  *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance MAKE
@@ -415,9 +401,9 @@ function memberCanChargeUnilaterally($id) {
  *
  * in: Startup - testDeviceRequestsABadOp MAKE
  */
-function theAppRequestsOpAsMemberAndCode($op, $my_id, $code) {
+function theAppRequestsOpAsMemberAndCode($op, $agent, $code) {
   global $testOnly; if ($testOnly) return FALSE;
-  return t\hitServer($op, $my_id, $code);
+  return t\hitServer($op, $agent, $code);
 }
 
 /**
@@ -446,28 +432,90 @@ function theAppRequestsOpAsMemberAndCode($op, $my_id, $code) {
  *     UndoCompleted - testAMemberAsksToUndoACompletedCashCharge MAKE
  *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCashCharge MAKE
  *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterally MAKE
- *     UndoPending - testAMemberAsksToUndoACompletedPayment MAKE
- *     UndoPending - testAMemberConfirmsRequestToUndoACompletedPayment MAKE
+ *     UndoPending - testAMemberAsksToRefusePayment MAKE
+ *     UndoPending - testAMemberConfirmsRequestToRefusePayment MAKE
  */
-function memberAsksDeviceToUndoTransactionWithTheRequest($my_id, $code, $tx_id, $confirmed) {
+function memberAsksDeviceToUndoTransactionWithTheRequest($agent, $code, $tx_id, $confirmed) {
   global $testOnly; if ($testOnly) return FALSE;
   if (!TEST_REAL) $tx_id = str_replace('.', ':', $tx_id);
   $confirmed = $confirmed == 'confirmed' ? 1 : ($confirmed == 'unconfirmed' ? 0 : $confirmed);
-  return t\hitServer('undo', $my_id, $code, '', compact('tx_id', 'confirmed'));
+  return t\hitServer('undo', $agent, $code, '', compact('tx_id', 'confirmed'));
 }
 
 /**
  * we respond with success (ARG), message (ARG), and subs: (ARG)
  *
  * in: Insufficient - testAMemberAsksToUndoACompletedPaymentWithInsufficientBalance TEST
+ *     Insufficient - testAMemberAsksToUndoACompletedPaymentUnilaterallyWithInsufficientBalance TEST
+ *     Insufficient - testAMemberAsksToUndoACompletedChargeWithInsufficientBalance TEST
  *     UndoCompleted - testAMemberAsksToUndoACompletedPayment TEST
  *     UndoCompleted - testAMemberAsksToUndoACompletedCharge TEST
  *     UndoCompleted - testAMemberAsksToUndoACompletedCashPayment TEST
  *     UndoCompleted - testAMemberAsksToUndoACompletedCashCharge TEST
- *     UndoPending - testAMemberAsksToUndoACompletedPayment TEST
- *     UndoPending - testAMemberConfirmsRequestToUndoACompletedPayment TEST
+ *     UndoPending - testAMemberAsksToRefusePayment TEST
  */
 function weRespondWithSuccessMessageAndSubs($success, $message, $subs) {
   global $testOnly;
   return t\findMessage('out', compact('success'), $message, '', $subs);
+}
+
+/**
+ * device (ARG) account is (ARG) and agent is (ARG)
+ *
+ * in: Change - testAMemberChangesAgent MAKE
+ *     Change - testAMemberChangesAccount MAKE
+ *     Change - testAMemberChangesToDifferentAccountANDAgent MAKE
+ *     Change - testAMemberChangesAgentBackToDefaultAccount MAKE
+ *     Change - testAMemberChangesAccountBackToTheDefaultAccount MAKE
+ *     Change - testAMemberChangesAgentToSameAsCurrentNondefaultAccount MAKE
+ *     Change - testAMemberChangesAccountToSameAsCurrentNondefaultAgent MAKE
+ */
+function deviceAccountIsAndAgentIs($code, $id, $agent) {
+  global $testOnly; if ($testOnly) return FALSE;
+  global $testMyIDs; 
+  return ($testMyIDs[$code] = r\acct($id, $agent)->qid()); // remember my_id for next steps
+}
+
+/**
+ * a member asks device (ARG) to change (ARG) to (ARG)
+ *
+ * in: Change - testAMemberChangesAgent MAKE
+ *     Change - testAMemberChangesAccount MAKE
+ *     Change - testAMemberChangesToDifferentAccountANDAgent MAKE
+ *     Change - testAMemberChangesAgentBackToDefaultAccount MAKE
+ *     Change - testAMemberChangesAccountBackToTheDefaultAccount MAKE
+ *     Change - testAMemberChangesAgentToSameAsCurrentNondefaultAccount MAKE
+ *     Change - testAMemberChangesAccountToSameAsCurrentNondefaultAgent MAKE
+ */
+function aMemberAsksDeviceToChangeTo($code, $what, $account_id) {
+  global $testOnly; if ($testOnly) return FALSE;
+  global $testMyIDs; 
+  return t\hitServer('change', @$testMyIDs[$code], $code, $account_id, compact('what'));
+}
+
+/**
+ * we respond success (ARG), my_id (ARG), account_name (ARG), show_buttons (ARG), and message (ARG), with subs: (ARG)
+ *
+ * in: Change - testAMemberChangesAgent TEST
+ *     Change - testAMemberChangesAccount TEST
+ *     Change - testAMemberChangesToDifferentAccountANDAgent TEST
+ *     Change - testAMemberChangesAgentBackToDefaultAccount TEST
+ *     Change - testAMemberChangesAccountBackToTheDefaultAccount TEST
+ *     Change - testAMemberChangesAgentToSameAsCurrentNondefaultAccount TEST
+ *     Change - testAMemberChangesAccountToSameAsCurrentNondefaultAgent TEST
+ */
+function weRespondSuccessMyidAccountnameShowbuttonsAndMessageWithSubs($success, $my_id, $account_name, $show_buttons, $message, $subs) {
+  global $testOnly;
+  $account_name = str_replace('~', "\n", $account_name); // replace stand-in for EOL
+  return t\findMessage('out', compact(u\ray('success message my_id account_name show_buttons')), $message, '', $subs);
+}
+
+/**
+ * device (ARG) account is (ARG)NEW.ZZB"
+ *
+ * in: 
+ */
+function deviceAccountIsNEWZZB($arg1, $arg2) {
+  global $testOnly;
+  todo;
 }

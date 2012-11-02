@@ -2,6 +2,35 @@
 /**
  * @file
  * Smart phone interface to the rCredits system.
+ *
+ * Coding conventions:
+ *   $cacct is the current account
+ *   $acct is some other account
+ *
+ * @todo:
+ 
+ On my cheap tablet (Allwinner 7401), which does not have a rear-facing camera, the app uses the front-facing camera.  The app displays the camera output fine (albeit with the incorrect aspect ratio).  But is unable to read QR codes at all, even though the yellow dots indicate that the corners are being correctly detected.
+
+However if I first flip/mirror the QR code, then the app has no problems reading the QR code.
+
+I am guessing that the front-facing camera on this device flips the image causing QR codes to be read incorrectly.  I am unsure whether other devices also flip the front-facing camera image.
+Comment 1 by project member srowen, Aug 15, 2012
+A correctly-behaved Android device will feed image data fro the front camera to the app as it sees it -- as from the perspective of someone facing you. The image it flings onto a SurfaceView during preview is, however, flipped over to make it act like a mirror, which is more intuitive.
+
+From a sample size of 4 devices I've used directly, that's how they all seem to work too.
+
+You are right that a flipped-over QR code can't be decoded, but this particular problem is a problem with the device, yes.
+
+I am guessing this won't be the last device with an issue like this. One I own has a different problem, reporting the front camera orientation incorrectly. I'll keep this open as a placeholder to maybe implement an advanced setting to re-flip the image data for a device like this.
+Summary: Add workaround for devices that flip over image data
+Labels: Type-Enhancement
+Comment 2 by mes...@gmail.com, Aug 15, 2012
+Awesome, I look forward to it.
+Comment 3 by project member srowen, Oct 24 (5 days ago)
+I think this is a niche enough issue that I don't want to implement a whole new setting for it, and I think Daniel would feel even more strongly on that point. However there is in the code base a fairly easy change to flip over the image data. You can hard-code it or add a setting into your own build.
+
+Find where PlanarYUVLuminanceSource is instantiated in CameraManager. Its last parameter is "false". Just change it to "true" and it will flip over the image.
+
  */
 
 namespace rCredits\Smart;
@@ -10,12 +39,14 @@ use rCredits\Util as u;
 use rCredits\API as api;
 
 define('R_QR_HEADER', 'HTTP://RC2.ME/I/'); // for transient QR IDs
+define('R_TRANSIENCE', 60); // number of seconds for device's QR to be valid
 
 $GLOBALS[TX_SMART . ' messages'] = array(
   'no permission' => t('You do not have permission to use that account.'),
   'first time' => t('You have successfully registered this device for use with rCredits!'),
-  'agent changed' => t('Agent has been successfully changed to @agent_name.'),
-  'account changed' => t('Account has been successfully changed to @account_name.'),
+  'changed agent' => t('You successfully changed the agent to @agent_name.'),
+  'changed account' => t('You successfully changed the account to @account_name.'),
+  'bad transient id' => t('That QR code is out of date. Try again?'),
 );
 
 /**
@@ -23,9 +54,9 @@ $GLOBALS[TX_SMART . ' messages'] = array(
  * @param assoc $args: an associative array (defaults $_POST) of a json-encoded assoc that normally includes:
  *   op: what to do (determines what function to call)
  *   my_id: agent qid
- *   code: permanent code that we sent to the device in First Time response (used to set $cuid)
- *     for now, user cannot change the active account, just the agent (eg sales clerks)
+ *   code: permanent code that we sent to the device in First Time response (used to set default $cuid)
  *     if $op = 'first_time', expect $password instead
+ *   position: (optional) latitude,longitude,elevation (from the device's GPS)
  *   account_id: the qid for the other party, if any 
  *     This gets passed to the specific op functions as $acct
  * @return (normally by calling either api\error or doOp):
@@ -39,35 +70,38 @@ function api($args = FALSE) {
   if (!(@$args = (array) json_decode($args['json']))) return api\error('no json');
   foreach ($args as $key => $value) $args[$key] = trim($value); // allow some sloppy spaces around each arg
   extract($args, EXTR_PREFIX_ALL, 'q');
+  
+  // standard error checking and setup, except for first time
   if (@$q_op != 'reset') // DEBUG
   if (@$q_op != 'first_time') {
     if (!@$q_code) return api\error('no code given');
-    if (!u\isQid($q_my_id)) return api\error('bad id format');
-    if (!($smartInfo = r\dbLookup('uid,transient_id,accessed', 'r_smarts', 'code=:q_code', compact('q_code')))) return api\error('unknown device');
-    $args += $smartInfo;
+    if (!($smartInfo = r\dbLookup('owner,default_agent,transient_id,accessed', 'r_smarts', 'code=:q_code', compact('q_code')))) return api\error('unknown device');
+    $args += $smartInfo; // pass these on to the op function
     extract($smartInfo, EXTR_PREFIX_ALL, 'q');
-    if (!u\isQid($q_current_account)) return api\error('bad id format');
-    if (!($cacct = r\acct($current_account, $q_my_id, $error))) return api\error($error);
-    r\acct::setDefault($cacct);
+    r\acct::setDefault(r\acct($q_owner)); // set current account temporarily to owner, so that error log has it right
+    if (!u\isQid($q_my_id)) return api\error('bad id format');
+    if (!($cacct = r\acct($q_my_id, '', $error))) return api\error($error);
     if ($cacct->region != r\serverUid()) return api\error('wrong server');
     if ($cacct->agentRegion != r\serverUid()) return api\error('wrong server for agent');
-    if (!r\okAgent($cacct-id, $q_ownerUid, BIT_READ)) return api\error('no permission'); // make sure owner has at least read permission
-    if (!r\okAgent($cacct-id, $cacct->agent, BIT_READ)) return api\error('no permission'); // make sure agent has at least read permission
+    if (buttons($cacct, $q_owner) < 0) return api\error('no permission');
+    r\acct::setDefault($cacct);
     $args['cacct'] = $cacct;
     $edit = array('code' => $q_code, 'accessed' => time());
     \drupal_write_record('r_smarts', $edit, 'code'); // remember time last accessed so we can drop the deadwood
   }
 
-  if ($q_account_id) {
-    if (!u\isQid($account_id = basename(@$q_account_id))) return api\error('bad id format');
+  // handle scanned QR, if any
+  if (@$q_account_id) {
+    if (!u\isQid($account_id = basename(@$q_account_id))) return api\error('bad account id');
     if ($account_id != $q_account_id) { // this is a transient id scanned from the other party's smart device
-      $transient_id = basename(dirname($q_account));
-      
+      $transient_id = basename(dirname($q_account_id));
+      $recent = time() - R_TRANSIENCE;
+      if (dbLookup('transient_id', 'r_smarts', 'code=:code AND accessed>=:recent') != $transient_id) return api\error('bad transient id');
+    }
     if (!($acct = r\acct($account_id, '', $error))) return api\error($error);
-//    list ($uid, $agent_uid, $region_uid) = $acct->UAR();
     $args['acct'] = $acct;
-//    $args = array_merge($args, compact('acct')); // use array_merge (not +) to assure overwrite
   }
+  
   return api\doOp(@$q_op, $args, 'Smart');
 }
 
@@ -88,15 +122,18 @@ function api($args = FALSE) {
  */
 function first_time($args) {
   require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
-  extract($args, EXTR_PREFIX_ALL, 'q');
-  if (!u\isQid(@$q_my_id)) return api\error('bad id');
-  if (!($cacct = r\acct(@$q_my_id))) return api\error('unknown member');
-  if (@!$q_password) return api\error('login error');
-  if (!user_check_password($q_password, $cacct->account())) return api\error('bad login'); // make these two error messages distinct but obscure
+  extract(u\just('my_id password', $args));
+  if (!u\isQid(@$my_id)) return api\error('bad id');
+  if (!($cacct = r\acct(@$my_id))) return api\error('unknown member');
+  if (!$cacct->proSe()) $cacct = r\acct($cacct->id); // use the pure account
+  r\acct::setDefault($cacct);
+  $args['cacct'] = $cacct;
+  if (@!$password) return api\error('login error');
+  if (!user_check_password($password, $cacct->account())) return api\error('bad login'); // make these two error messages distinct but obscure
   if (!($code = makeDevice(t('Smart Device'), $cacct))) return api\error("can't save device info");
-  $owner_id = $cacct->mainQid;
   $message = u\tt('first time');
-  return compact(u\ray('owner_id code message')) + startup(); // testing counts on this arg order
+  // also update_link allow_change_account allow_change_agent
+  return compact('message', 'code') + startup($args); // testing counts on this arg order
 }
 
 /*
@@ -106,11 +143,15 @@ function first_time($args) {
  *   update_link (URL of updated app; not set if no update is available)
  */
 function startup($args = '') {
-  if (rand() < getrandmax() / 2) $update_link = 'http:/rCredits.org/files/smart.apk';
+  extract(u\just('cacct', $args));
+//  if (rand() < getrandmax() / 2) $update_link = 'http:/rCredits.org/files/smart.apk';
+  $my_id = $cacct->qid();
+  $account_name = $cacct->full_name;
   $allow_change_account = 0;
-  $allow_change_agent = TRUE;
-  $require_agent = api\access('company');
-  return compact('update_link allow_change_account allow_change_agent require_agent'); // standard fields to return on startup);
+  $allow_change_agent = 1;
+  $require_agent = api\access('company') ? 1 : 0;
+  $show_buttons = buttons($cacct);
+  return compact(u\ray('my_id account_name update_link allow_change_account allow_change_agent require_agent show_buttons')); // standard fields to return on startup);
 }
 
 /*
@@ -125,14 +166,15 @@ function startup($args = '') {
  */
 function identify($args) {
   $cuid = r\acct()->id;
-  extract($args, EXTR_PREFIX_ALL, 'q');
-  $full_name = $q_acct->full_name;
-  if ($q_acct->id == $cuid) return api\error('no self-trading');
-  $country = $q_acct->country;
-//  $location = $q_acct->city . ', ' . ($country == 'United States' ? u\stateAbbrev($q_acct->state) : $country);
-  $location = $q_acct->city . ', ' . $q_acct->state . ($country == 'United States' ? '' : ", $country");
-  if (!$q_acct->proSe()) list ($company_name, $full_name) = array($full_name, r\acct($q_acct->agent)->full_name);
-  $uid = $q_acct->id;
+  extract(u\just('acct', $args));
+  if (!@$acct) return api\error('missing acct');
+  $full_name = $acct->full_name;
+  if ($acct->id == $cuid) return api\error('no self-trading');
+  $country = $acct->country;
+//  $location = $acct->city . ', ' . ($country == 'United States' ? u\stateAbbrev($acct->state) : $country);
+  $location = $acct->city . ', ' . $acct->state . ($country == 'United States' ? '' : ", $country");
+  if (!$acct->proSe()) list ($company_name, $full_name) = array($full_name, r\acct($acct->agent)->full_name);
+  $uid = $acct->id;
   if (api\access('charge others')) $other_balance = api\creditInfo(compact('uid'))->balance;
   return compact(u\ray('full_name location company_name other_balance'));
 }
@@ -146,8 +188,8 @@ function identify($args) {
  */
 function photo($args) {
   global $base_url;
-  extract($args, EXTR_PREFIX_ALL, 'q');
-  $pic_filename = r\Web\profile_picture(@$q_acct->id);
+  extract(u\just('acct', $args));
+  $pic_filename = r\Web\profile_picture(@$acct->id);
   $default = "$base_url/sites/default/files/pictures/no-photo-available.jpg";
   $pic = file_get_contents($pic_filename ?: $default);
   if (!$pic) $pic = file_get_contents($default);
@@ -175,7 +217,6 @@ function transact($args) {
   if (!@$q_type) return api\error('missing transaction type');
   if ($q_type != 'pay' and $q_type != 'charge') return api\error('bad transaction type');
   if (!@$q_account_id) return api\error('missing account id');
-  if (!@$q_acct) return api\error('bad account id');
   if (!@$q_amount) return api\error('missing amount');
   if (!is_numeric($q_amount)) return api\error('bad amount');
   if (@$q_goods and !@$q_purpose) return api\error('missing purpose');
@@ -187,12 +228,6 @@ function transact($args) {
   $message = u\tt($index, $subs);
   $balances = balances($q_acct->id, $subs['real']); // my_balance, other_balance
   return compact(u\ray('message tx_id')) + $balances;
-}
-
-function balances($uid, $real) {
-  $my_balance = api\creditInfo(compact('real'))->balance;
-  if (api\access('charge others')) $other_balance = api\creditInfo(compact('real', 'uid'))->balance;
-  return compact('my_balance', 'other_balance');
 }
 
 /*
@@ -208,16 +243,16 @@ function balances($uid, $real) {
  *   other_balance: the new balance of the company if it's a company, otherwise of the individual
  */
 function undo($params) {
-  extract($params, EXTR_PREFIX_ALL, 'q');
+  extract(u\just('tx_id confirmed', $params));
   
-  if (!@$q_tx_id) return api\error('missing transaction id');
-  if (!u\isQid(@$q_tx_id)) return api\error('bad transaction id');
-  list ($zxid, $region_uid) = r\azid($q_tx_id);
-  if ($region_uid != r\serverUid()) return api\error('That is not a transaction on this server.');
+  if (!@$tx_id) return api\error('missing transaction id');
+  if (!u\isQid(@$tx_id)) return api\error('bad transaction id');
+  list ($zxid, $regionUid) = r\azid($tx_id);
+  if ($regionUid != r\serverUid()) return api\error('That is not a transaction on this server.');
+  if (@$confirmed !== '1' and @$confirmed !== '0') return api\error('bad confirmation status');
   
-  if (@$q_confirmed !== '1' and @$q_confirmed !== '0') return api\error('bad confirmation status');
-  
-  if ($q_confirmed) {
+  unset($tx_id); // done with the old transaction id
+  if ($confirmed) {
     list ($message, $args) = api\undoTx($zxid);
     $message = u\tt($message, $args);
     if (!@$args['success']) return api\error($message);
@@ -231,32 +266,56 @@ function undo($params) {
   return compact(u\ray('message tx_id')) + (@$balances ?: array());
 }
 
-function change_agent($params) {
-  $agent_name = r\acct($params['cacct']->agent)->full_name;
-  $message = u\tt('agent changed', compact('agent_name'));
-  return compact('message');
-}
+function change($params) {
+  extract(u\just('cacct acct what', $params));
+  if (!in_array($what, u\ray('agent account'))) return api\error('bad what');
+  if ($acct->proSe()) $acct = $what == 'agent' ? r\acct($cacct->id, $acct->id) : r\acct($acct->id, $cacct->agent);
+  if (($show_buttons = buttons($acct, $params['owner'])) < 0) return api\error('no permission');
 
-function change_account($params) {
-  $account_name = $params['cacct']->full_name;
-  $message = u\tt('account changed', compact('account_name'));
-  return compact('message');
+  $account_name = $acct->full_name;
+  $agent_name = r\acct($acct->agent)->full_name;
+  $message = u\tt('changed ' . $what, compact(u\ray('what agent_name account_name')));
+
+  $my_id = $acct->qid();
+  $account_name .= ($acct->proSe() ? '' : "\nAgent: $agent_name");
+  return compact(u\ray('message my_id account_name show_buttons'));
 }
 
 function display_id($params) {
-  $transient_id = R_QR_HEADER . u\n2a(mt_rand(), 20) . '/' . $params['cacct']->qid();
+  extract(u\just('cacct code', $params));
+  $transient_id = R_QR_HEADER . u\n2a(mt_rand(), 20) . '/' . $cacct->qid();
+  $edit = compact('code', 'transient_id');
+  \drupal_write_record('r_smarts', $edit, 'code'); // remember what id to accept (briefly)
   $message = '';
-  $code = $params['code'];
-  $info = compact('code', 'transient_id')
-  \drupal_write_record('r_smarts', $info, 'code'); // remember what id to accept (briefly)
   return compact('message', 'transient_id');
 }
 
 function makeDevice($device, $acct, $code = '') {
   u\EXPECT(compact('device', 'acct'), 'string&notempty acct');
-  $uid = $acct->id;
+  $owner = $acct->id;
   $code = $code ?: user_hash_password(uniqid($acct->mainQid, TRUE) . time()) . '/'; // add a slash to make sure slashes get handled properly
   $accessed = time();
-  $info = compact(u\ray('uid code device accessed'));
+  $info = compact(u\ray('owner code device accessed'));
   return @\drupal_write_record('r_smarts', $info) ? $code : FALSE; // no way to tell if it's the same device as others
 }
+
+function agentButtons($acct) {
+  return $acct->agentCan(PERM_BUY) ? 3
+      : ($acct->agentCan(PERM_SELL) ? 1 
+      : ($acct->agentCan(PERM_READ) ? 0
+      : (-1 )));
+}
+
+function buttons($acct, $owner) {return min(agentButtons(r\acct($acct->id, $owner)), agentButtons($acct));}
+  
+function accountName($acct) {
+  $agentName = $acct->proSe() ? '' : "\nAgent: " . r\acct($acct->agent)->full_name; 
+  return $acct->full_name . $agentName;
+}
+
+function balances($uid, $real) {
+  $my_balance = api\creditInfo(compact('real'))->balance;
+  if (api\access('charge others')) $other_balance = api\creditInfo(compact('real', 'uid'))->balance;
+  return compact('my_balance', 'other_balance');
+}
+

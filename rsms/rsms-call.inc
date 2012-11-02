@@ -68,9 +68,10 @@ class call {
     $number = $this->number;
     $cuid = $this->uid = uid($number);
     if (!$cuid) {
-      $cacct = r\acct(compact('number')); // this will crash if someone (VERY) quickly calls again from the same number
+      $cacct = new r\acct(compact('number')); // this will crash if someone (VERY) quickly calls again from the same number
       $cuid = $cacct->id;
     } else $cacct = r\acct($cuid);
+//    print_r(compact('number','cuid','cacct')); die();
     u\EXPECT($cacct, 'failed to get acct');
     r\acct::setDefault($cacct);
     

@@ -142,12 +142,14 @@ function rcredits_schema() {
   // table r_smarts
   $fields = array(
     'code' => r\setup_field('permanent secret identifier for the device', 'varchar 255'),
-    'uid' => r\setup_field('uid of the smart device owner', 'int 11'),
+    'owner' => r\setup_field('uid of the smart device owner', 'int 11'),
+    'default_agent' => r\setup_field('uid of the default user of the device', 'int 11'),
     'device' => r\setup_field('human-readable identifier for the smart device', 'varchar 60'),
-    'accessed' => r\setup_field('date/time last used', 'int 11'), // for deletion after several months
+    'transient_id' => r\setup_field('once-use identifier displayed on the device as a QR for the current account/agent', 'varchar 255'),
+    'accessed' => r\setup_field('date/time last used', 'int 11'), // to trigger deletion after several months
   );
-  $foreign_keys = r\foreign_key('uid');
-  $indexes = r\index('uid');
+  $foreign_keys = r\foreign_key('owner') + r\foreign_key('default_agent');
+  $indexes = r\index('owner');
   $schema['r_smarts'] = r\setup_table('Who owns what smart device', $fields, 'code', $foreign_keys, $indexes);
 /*
   // table r_counts

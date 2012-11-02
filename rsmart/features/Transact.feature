@@ -17,11 +17,11 @@ Setup:
   | NEW.ZZB | codeB |
   | NEW.ZZC | codeC |
   And relations:
-  | id      | main    | agent   | permission   |
-  | NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell |
-  | NEW:ZZB | NEW.ZZB | NEW.ZZA |              |
-  | NEW:ZZC | NEW.ZZC | NEW.ZZB | buy and sell |
-  | NEW:ZZD | NEW.ZZC | NEW.ZZA | sell         |
+  | id      | main    | agent   | permission        |
+  | NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |
+  | NEW:ZZB | NEW.ZZB | NEW.ZZA | read transactions |
+  | NEW:ZZC | NEW.ZZC | NEW.ZZB | buy and sell      |
+  | NEW:ZZD | NEW.ZZC | NEW.ZZA | sell              |
   And transactions: 
   | tx_id    | created   | type       | amount | from      | to      | purpose | taking |
   | NEW.AAAB | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |
@@ -167,7 +167,7 @@ Scenario: Device gives too big an amount
   When member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $10,000,000 ("goods": "groceries")
   Then we respond with:
   | success | message    |
-  | 0       | nonpositive transfer |
+  | 0       | amount too big |
 
 Scenario: Device gives no type
   When member "NEW.ZZA" asks device "codeA" to do this: "" "NEW.ZZC" $300 ("goods": "groceries")

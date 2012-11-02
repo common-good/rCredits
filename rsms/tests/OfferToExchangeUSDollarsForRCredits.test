@@ -32,13 +32,27 @@ class rsmsOfferToExchangeUSDollarsForRCredits extends DrupalWebTestCase {
 
   public function setUp() { // especially, enable any modules required for the tests
     parent::setUp(self::MODULE);
-    if (function_exists('extra_setup')) extra_setup($this); // defined in rsms.steps
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rsms.steps
     sceneSetup($this, __FUNCTION__);
 
     switch ($this->variant) {
     default: // fall through to case(0)
 
     }
+  }
+
+  // Scenario: Make or update an offer
+  public function testMakeOrUpdateAnOffer_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    Given('phone %number1 is a member');
+    And__('phone %number1 demand for rCredits is $100');
+    And__('the total demand for rCredits is $100,000');
+    When_('phone %number1 says "get r 123.45"');
+    Then_('phone %number1 demand for rCredits is $123.45');
+    And__('the total demand for rCredits is $100,023.45');
+    And__('we say to phone %number1 "your demand" with subs: "DATA'
+    . '\\| request |'
+    . '\\| $123.45 |"');
   }
 
 }

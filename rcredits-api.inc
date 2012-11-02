@@ -55,6 +55,7 @@ function prep($data) {
 }
 
 function doOp($op0, $args, $interface = 'API', $success = 1) {
+  if (!@$op0) return error('no op');
   $op = "rCredits\\$interface\\$op0";
   $message = $result = function_exists($op) ? $op($args) : error('unknown op');
   if (!is_array($result)) $result = compact('message');
@@ -88,7 +89,7 @@ function backend2($args = FALSE) {
   if (@$my_firewall != R_FIREWALL) error('firewall system failure'); // give hackers some satisfaction by saying 'failure'
   $firewall = $my_firewall; // is this useful?
   if (!@$my_cuid or !@$my_agent) error('user validation error');
-  if (!r\okAgent($my_cuid, $my_agent)) error('sharing error');
+  if (!r\agentCan($my_cuid, $my_agent)) error('sharing error');
   r\acct($my_cuid, $my_agent);
   doOp($my_op, $args);
 }
@@ -346,7 +347,7 @@ function pay_invoice($zxid) {
  * @param string $ttype: payment, charge, invoice payment, or employee payment
  * @param array $acct: acct object for the other party
  *   OR 'ALL' (paying employees)
- * @param numeric $requested_amount: the transaction amount
+ * @param numeric $requestAmount: the transaction amount
  * @param string $for OR array($payer_for, $payee_for): description of the transaction's purpose (user input)
  * @param bool $goods: is this for real goods and services
  * @param bool $confirmed: has this transaction been confirmed by the user? (default TRUE, used only for SMS interface)
@@ -366,18 +367,17 @@ function pay_invoice($zxid) {
  * $confirmed (user confirmed the transaction request), $paying_invoice, $goods (the transaction is an exchange for real stuff),
  * $shortfall (how inadequate the payer's balance is)
  */
-function transfer($ttype, $acct, $requested_amount, $for, $goods, $confirmed = TRUE, $data = array()) {
-  if (isFrontend()) return (array) backend('transfer', compact(u\ray('ttype acct requested_amount for confirmed data')));
+function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE, $data = array()) {
+  if (isFrontend()) return (array) backend('transfer', compact(u\ray('ttype acct requestAmount for confirmed data')));
   if (is_array($ttype)) extract($ttype); // called from api or backend
 
   u\EXPECT(in_array($ttype, u\ray('payment,charge,invoice payment,employee payment')), 'bad transaction type');
-  if ($acct == 'ALL') return $ttype == 'payment' ? r\payEmployees($requested_amount, $for, $confirmed) : array('no ALL', array(), FALSE);
-  
+  if ($acct == 'ALL') return $ttype == 'payment' ? r\payEmployees($requestAmount, $for, $confirmed) : array('no ALL', array(), FALSE);
   $cuid = r\acct()->id;
   $taking = ($ttype == 'charge');
 
   // Check permissions
-  u\EXPECT(compact(u\ray('ttype acct requested_amount confirmed data')), 'string acct float bool assoc');
+  u\EXPECT(compact(u\ray('ttype acct requestAmount confirmed data')), 'string acct float bool assoc');
   list ($my_access, $other_access) = u\order($taking, 'sell', 'buy and sell');
   if (!access($my_access)) return array("no $my_access", array(), FALSE);
   if (!access($other_access, $acct)) return array("other no $other_access", array(), FALSE);
@@ -398,22 +398,23 @@ function transfer($ttype, $acct, $requested_amount, $for, $goods, $confirmed = T
   $real = (!(@$data['zxid'] < 0) and r\isRTrader() and r\isRTrader($uid));
   
   // Check the amount and calculate any balance shortfall
-  if ($requested_amount <= 0) return array('nonpositive transfer', array(), FALSE);
-  if ($requested_amount > R_MAX_AMOUNT) return array('amount too big', array(), FALSE);
+  if ($requestAmount <= 0) return array('nonpositive transfer', array(), FALSE);
+  if ($requestAmount > R_MAX_AMOUNT) return array('amount too big', array(), FALSE);
 
-  if ($shortfall = r\shortfall($taking ? $uid : $cuid, $requested_amount, $preapproved, $real)) {
+  $totalHit = $requestAmount - @$data['rebate']; // leave room for reversing rewards (minus a negative)
+  if ($shortfall = r\shortfall($taking ? $uid : $cuid, $totalHit, $preapproved, $real)) {
     $short = u\formatAmount($shortfall);
     $other_name = r\userField('full_name', $uid);
     if ($paying_invoice) return array('short payment', compact('short'), FALSE); // no partial payment of invoice
     if (!$goods) return array($taking ? 'short cash from' : 'short cash to', compact('short', 'other_name'), FALSE); // no partial cash trans
-    if ($shortfall >= $requested_amount) return array($taking ? 'broke from' : 'broke to', compact('other_name'), FALSE);
+    if ($shortfall >= $requestAmount) return array($taking ? 'broke from' : 'broke to', compact('other_name'), FALSE);
   }
-  $amount = $requested_amount - $shortfall;
+  $amount = $requestAmount - $shortfall;
   
   // Figure rewards and other extra info
   if (!$for) $for = $goods ? 'goods and services' : 'cash/loan/etc.';
-  $rebate = $goods ? ('' . r\rebate($payer, $amount)) : '0'; // force string, to avoid long serializations
-  $bonus = $goods ? ('' . r\bonus($payee, $amount)) : '0';
+  $rebate = (string) ($goods ? r\rebate($payer, $amount) : 0); // force string, to avoid long serializations
+  $bonus = (string) ($goods ? r\bonus($payee, $amount) : 0);
   if (!isset($data['rebate'])) $data += compact('rebate', 'bonus');
   $data += $foreign;
   unset($data['preapproved']); // probably don't need this (but keep zxid of related transaction, if any)
@@ -436,8 +437,8 @@ function transfer($ttype, $acct, $requested_amount, $for, $goods, $confirmed = T
         ($shortfall ? 'report short transaction' : ($preapproved ? 'report transaction' : 'report invoice'))
       : ($preapproved ? 'report exchange' : 'report exchange request'); // no possible shortfall on confirmed cash exchange (see above)
   } else {
-    $message = $goods ? 'exchange' : $ttype;
-    if ($shortfall) $args['amount'] = u\formatAmount($requested_amount); // restore original amount before getting confirmation
+    $message = $goods ? $ttype : 'exchange';
+    if ($shortfall) $args['amount'] = u\formatAmount($requestAmount); // restore original amount before getting confirmation
   }
   return array($message, $args, !$confirmed);
 }

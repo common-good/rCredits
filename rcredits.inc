@@ -8,7 +8,14 @@
  *   - application interfaces to the user interfaces, which are in rcredits-api.inc (i)
  *   - utilities, which are in rcredits-util.inc (u)
  *
- * Some coding conventions:
+ * Some coding conventions and strategies:
+ *   - Use camelCase for variables and function names, except where otherwise required by Drupal.
+ *   - Use all lowercase and underscores for filenames, database fields, and api variables.
+ *   - Keep the code as short as possible without losing clarity.
+ *   - In particular, avoid redundant structures by creating small, low-level functions.
+ *   - Make the tools easy to use -- that is, allow variations in number and type of arguments if that is convenient.
+ *   - Avoid high-level Drupal functions -- for example don't use Views, Fields, and complex modules.
+ *
  *   qid: a mostly-alphabetic representation of an azid, eg "XXX.YYYY..." used externally for REST and SMS queries.
  *     XXX (3 letters) represents the region's uid, YYYY... (some number of letters) represents a record ID
  *     the separator can be a colon instead of period, giving YYYY... a different meaning
@@ -18,13 +25,13 @@
  *     but could have a qid with a hyphen, like AAA-BBB, if needed.)
  *
  *   zid: a signed id (non-zero) -- meaning of negative value varies
- *  azid: array(zid, region_uid), where region_uid is the uid of the server
+ *  azid: array(zid, regionUid), where regionUid is the uid of the server
  *  reid: a relation id (transient, never stored in any other table)
  *   uid: an account id
  *   xid: a transaction id
  *     All transaction database operations are performed by dbQ() on a virtual table {txs} with key zxid.
  *  zxid: a (signed) transaction id (>0: xid in r_txs (real), <0: -xid in r_asif)
- *  ruid: an array of the three uids representing a quid: [main_uid, agent_uid, region_uid]  
+ *  ruid: an array of the three uids representing a quid: [main_uid, agent_uid, regionUid]  
  *
  *  qxid: a qid (8 characters or more) reprersenting a zxid (: means a negative zxid)
  *  quid: a qid (7 characters or more) representing a uid acting as its own agent (. separator) OR an reid (: separator)
@@ -99,8 +106,10 @@ define('R_PERSONAL', 0);
 $GLOBALS['account types'] = array(t('personal'), t('commercial'), t('non-profit'));
 
 // Relationship permissions
-define('BIT_READ', 1);
-define('BIT_SELL', 2);
+define('PERM_READ', 1); // used in calls to acct::agentCan()
+define('PERM_SELL', 2);
+define('PERM_BUY', 3);
+define('PERM_MANAGE', 4);
 $GLOBALS['share permissions'] = array('no access', 'read transactions', 'sell', 'buy and sell', 'manage account');
 
 // Permissions and flags (flags field in account record)
@@ -297,11 +306,11 @@ function demand($uid, $demand = 0) {
 /**
  * Calculate how much too little the payer has
  */
-function shortfall($uid, $requested_amount, $preapproved, $real) {
+function shortfall($uid, $requestAmount, $preapproved, $real) {
   if (!$preapproved) return 0; // if this is just an invoice, funds don't have to be there yet (no shortfall)
   $available = api\creditInfo(compact('uid', 'real'))->available;
-  $amount = min($requested_amount, $available);
-  $shortfall = max(0, $requested_amount - $amount); // how much needs to be done in a separate currency
+  $amount = min($requestAmount, $available);
+  $shortfall = max(0, $requestAmount - $amount); // how much needs to be done in a separate currency
   if ($shortfall) {
     $shortfall = max(.01, $shortfall); // don't report a tiny shortfall by rounding down to zero
     $short = u\formatAmount($shortfall);
@@ -487,7 +496,7 @@ function qid($zid = '', $region_id = R_SERVER_ID, $min_len = 1) {
 
 /**
  * Return an azid and region for the qid
- * @return [zid, region_uid]
+ * @return [zid, regionUid]
  */
 function azid($qid) {
   if (!u\isQid($qid)) return FALSE;
@@ -505,21 +514,21 @@ function azid($qid) {
  *   quid()
  *   quid(uid) == quid(uid, uid)
  *   quid(ruid)
- *   quid(uid, agent_uid) -- region_uid defaults to current region
- *   quid(uid, agent_uid, region_uid) -- these are the elements of an ruid array
+ *   quid(uid, agent_uid) -- regionUid defaults to current region
+ *   quid(uid, agent_uid, regionUid) -- these are the elements of an ruid array
  * @param ruid $ruid: the ruid to convert (DEFAULT current account)
  * @return the corresponding quid
  */
-function quid($ruid = '', $agent_uid = '', $region_uid = '') {
+function quid($ruid = '', $agent_uid = '', $regionUid = '') {
   $cacct = acct();
   if ($agent_uid) {
     $uid = $ruid;
-    if (!$region_uid) $region_uid = serverUid();
-  } else list ($uid, $agent_uid, $region_uid) = 
+    if (!$regionUid) $regionUid = serverUid();
+  } else list ($uid, $agent_uid, $regionUid) = 
       ( is_array($ruid) ? $ruid 
     : ( ($uid = $ruid) ? array($uid, $uid, serverUid()) 
     : ( array($cacct->id, $cacct->agent, $cacct->region) )));
-  return qid($uid == $agent_uid ? $uid : -reid($uid, $agent_uid), u\n2a(-$region_uid, 3), 3);
+  return qid($uid == $agent_uid ? $uid : -reid($uid, $agent_uid), u\n2a(-$regionUid, 3), 3);
 }
 
 function qxid($zxid, $region_id = R_SERVER_ID) {return qid($zxid, $region_id = R_SERVER_ID, 4);} // Convert zxid to qxid
@@ -718,7 +727,6 @@ function bonus($uid, $amount = 1) {return rebate($uid, 2 * $amount);}
 function setTxState($new_value, $zserial) {setTxField('state', $new_value, $zserial, TRUE);}
 function totalDemand() {return dbLookup('SUM(demand)', 'users');}
 function serverUid($region_id = '') {return -u\a2n($region_id ?: R_SERVER_ID);}
-function okAgent($uid, $agent_uid, $permission = '') {return ($uid == $agent_uid or reid($uid, $agent_uid, $permission));}
 function isRTrader($uid = '') {return (userField('flags', $uid ?: acct()->id) & BIT_RTRADER);}
 function emailTemplate($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}
 function emailBody($key) {return str_replace('{BODY}', emailTemplate($key), emailTemplate(R_EMAIL_FRAME));}

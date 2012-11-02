@@ -168,9 +168,16 @@ function getPicture($picture) {
   return file_get_contents("$picturePath/$picture.jpg");
 }
 
-function hitServer($op, $my_id, $code = '', $account_id = '', $extra = array()) {
+function hitServer($op, $agent, $code = '', $account_id = '', $extra = array()) {
   if (!$code) unset($code);
-  if (!$account_id) unset($account_id);
+  if (!$account_id) unset($account_id); else $account_id = trim($account_id);
+  $agent = trim($agent);
+  if (strpos($agent, ':') or !@$code) {
+    $my_id = $agent;
+  } else {
+    $acct = r\acct(r\dbLookup('owner', 'r_smarts', 'code=:code', compact('code')), $agent);
+    $my_id = $acct ? $acct->qid() : $agent; // accommodate bad agents
+  }
   $json = json_encode2(compact(u\ray('op my_id code account_id')) + $extra, JSON_UNESCAPED_SLASHES);
   \drupal_set_message(color($json, 'input')); // keep this
   r\Smart\api(compact('json'));

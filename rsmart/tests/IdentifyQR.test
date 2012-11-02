@@ -46,6 +46,9 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
     . '\\| NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | Alaska | United States |'
     . '\\| NEW.ZZB | Bea Two    | +20002 | b@example.com | Btown | Utah   | United States |'
     . '\\| NEW.ZZC | Corner Pub | +20003 | c@example.com | Ctown | Corse  | France        |"');
+    And__('devices: "DATA'
+    . '\\| id      | code  |'
+    . '\\| NEW.ZZA | codeA |"');
     And__('relations: "DATA'
     . '\\| id      | main    | agent   | permissions  |'
     . '\\| NEW:ZZA | NEW.ZZC | NEW.ZZB | buy and sell |'
@@ -64,8 +67,7 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
   // Scenario: Member asks us to identify a QR
   public function testMemberAsksUsToIdentifyAQR_0() {
     sceneSetup($this, __FUNCTION__, 0);
-    Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
-    When_('member "NEW.ZZA" asks device %whatever1 to identify QR "NEW.ZZB"');
+    When_('member "NEW.ZZA" asks device "codeA" to identify QR "NEW.ZZB"');
     Then_('we respond with: "DATA'
     . '\\| success | full_name | location    |'
     . '\\| 1       | Bea Two   | Btown, Utah |"');
@@ -74,8 +76,7 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
   // Scenario: Member asks us to identify the member's own QR
   public function testMemberAsksUsToIdentifyTheMembersOwnQR_0() {
     sceneSetup($this, __FUNCTION__, 0);
-    Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
-    When_('member "NEW.ZZA" asks device %whatever1 to identify QR "NEW.ZZA"');
+    When_('member "NEW.ZZA" asks device "codeA" to identify QR "NEW.ZZA"');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
     . '\\| 0       | no self-trading |"');
@@ -84,8 +85,7 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
   // Scenario: Member asks us to identify a foreign QR
   public function testMemberAsksUsToIdentifyAForeignQR_0() {
     sceneSetup($this, __FUNCTION__, 0);
-    Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
-    When_('member "NEW.ZZA" asks device %whatever1 to identify QR "NEW.ZZC"');
+    When_('member "NEW.ZZA" asks device "codeA" to identify QR "NEW.ZZC"');
     Then_('we respond with: "DATA'
     . '\\| success | full_name  | location             |'
     . '\\| 1       | Corner Pub | Ctown, Corse, France |"');
@@ -94,9 +94,8 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
   // Scenario: Member asks us to identify a QR and member can show balances
   public function testMemberAsksUsToIdentifyAQRAndMemberCanShowBalances_0() {
     sceneSetup($this, __FUNCTION__, 0);
-    Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
-    And__('member "NEW.ZZA" can show balances');
-    When_('member "NEW.ZZA" asks device %whatever1 to identify QR "NEW.ZZB"');
+    Given('member "NEW.ZZA" can charge unilaterally');
+    When_('member "NEW.ZZA" asks device "codeA" to identify QR "NEW.ZZB"');
     Then_('we respond with: "DATA'
     . '\\| success | full_name | location    | other_balance |'
     . '\\| 1       | Bea Two   | Btown, Utah | 250           |"');
@@ -105,8 +104,7 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
   // Scenario: Member asks us to identify a QR for a company agent
   public function testMemberAsksUsToIdentifyAQRForACompanyAgent_0() {
     sceneSetup($this, __FUNCTION__, 0);
-    Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
-    When_('member "NEW.ZZA" asks device %whatever1 to identify QR "NEW:ZZA"');
+    When_('member "NEW.ZZA" asks device "codeA" to identify QR "NEW:ZZA"');
     Then_('we respond with: "DATA'
     . '\\| success | full_name | location             | company_name |'
     . '\\| 1       | Bea Two   | Ctown, Corse, France | Corner Pub   |"');
@@ -115,18 +113,16 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
   // Scenario: Device asks for a picture to go with the QR
   public function testDeviceAsksForAPictureToGoWithTheQR_0() {
     sceneSetup($this, __FUNCTION__, 0);
-    Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
-    And__('member "NEW.ZZB" has picture %picture1');
-    When_('member "NEW.ZZA" asks device %whatever1 for a picture of member "NEW.ZZB"');
+    Given('member "NEW.ZZB" has picture %picture1');
+    When_('member "NEW.ZZA" asks device "codeA" for a picture of member "NEW.ZZB"');
     Then_('we respond to member "NEW.ZZA" with picture %picture1');
   }
 
   // Scenario: Device asks for a picture but there isn't one
   public function testDeviceAsksForAPictureButThereIsntOne_0() {
     sceneSetup($this, __FUNCTION__, 0);
-    Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
-    And__('member "NEW.ZZB" has no picture');
-    When_('member "NEW.ZZA" asks device %whatever1 for a picture of member "NEW.ZZB"');
+    Given('member "NEW.ZZB" has no picture');
+    When_('member "NEW.ZZA" asks device "codeA" for a picture of member "NEW.ZZB"');
     Then_('we respond to member "NEW.ZZA" with picture "no-photo-available"');
   }
 

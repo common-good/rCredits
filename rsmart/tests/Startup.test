@@ -61,8 +61,8 @@ class rsmartStartup extends DrupalWebTestCase {
     Given('member "NEW.ZZA" password is %whatever1');
     When_('member initializes the device as member "NEW.ZZA" with password %whatever1');
     Then_('we respond with: "DATA'
-    . '\\| success | owner_id | code       | message    |'
-    . '\\| 1       | NEW.ZZA  | (the code) | first time |"');
+    . '\\| success | message    | code       | my_id   | account_name | allow_change_account | allow_change_agent | require_agent | show_buttons |'
+    . '\\| 1       | first time | (the code) | NEW.ZZA | Abe One      | 0                    | 1                  | 0             | 3             |"');
   }
 
   // Scenario: Member initializes with an ill-formed id
@@ -98,8 +98,8 @@ class rsmartStartup extends DrupalWebTestCase {
     Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
     When_('the app starts up as member "NEW.ZZA" and code %whatever1');
     Then_('we respond with: "DATA'
-    . '\\| success | message |'
-    . '\\| 1       |         |"');
+    . '\\| success | message    | my_id   | account_name | allow_change_account | allow_change_agent | require_agent | show_buttons |'
+    . '\\| 1       |            | NEW.ZZA | Abe One      | 0                    | 1                  | 0             | 3             |"');
   }
 
   // Scenario: Device requests a bad op
@@ -109,24 +109,6 @@ class rsmartStartup extends DrupalWebTestCase {
     Then_('we respond with: "DATA'
     . '\\| success | message    |'
     . '\\| 0       | unknown op |"');
-  }
-
-  // Scenario: Device gives no member id
-  public function testDeviceGivesNoMemberId_0() {
-    sceneSetup($this, __FUNCTION__, 0);
-    When_('the app starts up as member "" and code "codeA"');
-    Then_('we respond with: "DATA'
-    . '\\| success | message       |'
-    . '\\| 0       | bad id format |"');
-  }
-
-  // Scenario: Device gives bad member id
-  public function testDeviceGivesBadMemberId_0() {
-    sceneSetup($this, __FUNCTION__, 0);
-    When_('the app starts up as member %random and code "codeA"');
-    Then_('we respond with: "DATA'
-    . '\\| success | message       |'
-    . '\\| 0       | bad id format |"');
   }
 
   // Scenario: Device gives no code
