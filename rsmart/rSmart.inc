@@ -9,6 +9,7 @@
  *
  * @todo:
  
+ http://code.google.com/p/zxing/issues/detail?id=1337
  On my cheap tablet (Allwinner 7401), which does not have a rear-facing camera, the app uses the front-facing camera.  The app displays the camera output fine (albeit with the incorrect aspect ratio).  But is unable to read QR codes at all, even though the yellow dots indicate that the corners are being correctly detected.
 
 However if I first flip/mirror the QR code, then the app has no problems reading the QR code.

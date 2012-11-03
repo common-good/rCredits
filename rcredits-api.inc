@@ -72,7 +72,7 @@ function error($message, $subs = '', $success = 0) {
 function apiOut($args) {
   $result = json_encode2($args, JSON_UNESCAPED_SLASHES);
   u\log('out', $args);
-  if (defined('TESTING')) {\drupal_set_message(t\color($args, 'output')); return $result;}
+  if (defined('TESTING')) {t\testOutput($args, 'output'); return $result;}
   exit($result);
 }
 

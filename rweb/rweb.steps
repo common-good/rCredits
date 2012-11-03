@@ -55,23 +55,46 @@ function extraSubs(&$subs) {
 }
 
 /**
- * the user completes form (ARG) with values: (ARG)
+ * member (ARG) completes form (ARG) with values: (ARG)
  *
- * in: Signup - testANewbieRegisters MAKE
- *     Signup - testAMemberRegistersAgain MAKE
+ * in: Transact - testAMemberAsksToChargeAnotherMember MAKE
+ */
+function memberCompletesFormWithValues($id, $formName, $values, $confirmed = FALSE) {
+  global $testOnly; if ($testOnly) return FALSE;
+  global $testConfirmation; // confirmation message output, if any
+
+  t\logIn($id);
+  $form = r\Web\show_form($formName);
+  $form_state['values'] = @$values[0]['email'] ? u\changeKey('email', 'mail', $values[0]) : $values[0];
+
+  if (!$confirmed) foreach (t\postProcess($form, 'tx', 'validate') as $one) {
+    $one($form, $form_state);
+    if (\drupal_get_messages('error', FALSE)) return FALSE;
+  }
+  $testConfirmation = @$form_state['confirm'];
+  if ($i = strpos($testConfirmation, '<hr>')) $testConfirmation = substr($testConfirmation, $i + 4);
+
+  foreach (t\postProcess($form, 'tx', 'submit') as $one) $one($form, $form_state);
+  return TRUE;
+}
+
+/**
+ * member (ARG) confirms form (ARG) with values: (ARG)
+ *
+ * in: Transact - testAMemberConfirmsRequestToChargeAnotherMember MAKE
+ */
+function memberConfirmsFormWithValues($id, $formName, $values) {
+  global $testOnly; if ($testOnly) return FALSE;
+  return memberCompletesFormWithValues($id, $formName, $values, TRUE);
+}
+
+/**
+ * a member completes form (ARG) with values: (ARG)
+ *
+ * in: 
  */
 function aMemberCompletesFormWithValues($formName, $values) {
-  global $testOnly; if ($testOnly) return FALSE;
 
-  $form = r\Web\show_form(u\retNotEqual($formName, 'register') ?: '\\user_register_form');
-  $form_state['values'] = u\changeKey('email', 'mail', $values[0]);
-//  if (!@$form['validate']
-  foreach ($form['#validate'] as $one) {
-    $one($form, $form_state);
-    if (drupal_get_message('error', FALSE)) return TRUE;
-  }
-  foreach ($form_state['#submit'] as $one) $one($form, $form_state);
-  return TRUE;
 }
 
 /*
@@ -98,8 +121,7 @@ function aMemberCompletesFormWithValues($formName, $values) {
 /**
  * members: (ARG)
  *
- * in: Signup - testANewbieRegisters TEST
- *     Signup - testAMemberRegistersAgain MAKE
+ * in: Transact - featureSetup MAKE
  */
 function members($list) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -108,46 +130,96 @@ function members($list) {
 }
 
 /**
+ * transactions: (ARG)
+ *
+ * in: Transact - featureSetup MAKE
+ *     Transact - testAMemberConfirmsRequestToChargeAnotherMember TEST
+ */
+function transactions($list) {
+  global $testOnly; 
+
+  $function = $testOnly ? 'rCredits\\Testing\\verifyTx' : 'rCredits\\Testing\\makeTransaction';
+  foreach ($list as $one) if (!$function($one)) return FALSE;
+  return TRUE;
+}
+
+/**
  * we say (ARG): (ARG) with subs: (ARG)
  *
- * in: Signup - testANewbieRegisters TEST
- *     Signup - testAMemberRegistersAgain TEST
+ * in: Transact - testAMemberConfirmsRequestToChargeAnotherMember TEST
  */
 function weSayWithSubs($type, $index, $subs) {
   global $testOnly;
-  $subs = $subs[0];
-  $msg = u\tt($index, $subs);
+
+  $msg = t\realFix(u\tt($index, $subs[0]));
   $msgs = drupal_get_messages($type ?: NULL, FALSE);
-  return (bool) array_search($msg, $msgs);
+  $result = (array_search($msg, $msgs[$type]) !== FALSE);
+  t\testOutput($msg, 'output');
+  return $result;
 }
 
 /**
  * we show (ARG) with subs: (ARG)
  *
- * in: Signup - testANewbieRegisters TEST
+ * in: Transact - testAMemberAsksToChargeAnotherMember TEST
+ *     Transact - testAMemberConfirmsRequestToChargeAnotherMember TEST
  */
 function weShowWithSubs($page, $subs) {
   global $testOnly;
-  todo;
+  global $testConfirmation; // confirmation message output, if any
+  global $formOutput; // for testing
+  
+  $subs = $subs[0];
+  if (u\abbreviates('confirm', $page)) {
+    $wanted = u\tt($page, $subs);
+    t\testOutput($wanted, 'screen');
+    debug('in swshowsubs confirm...');
+    return ($wanted == $testConfirmation);
+  }
+  $form = strtr(t\strip(r\Web\show_form($page, @$subs['arg1'], @$subs['arg2'])), $subs);
+  t\testOutput($form, 'screen');
+  return ($form == $formOutput);
 }
 
 /**
  * we email (ARG) to member (ARG) with subs: (ARG)
  *
- * in: Signup - testANewbieRegisters TEST
+ * in: Transact - testAMemberConfirmsRequestToChargeAnotherMember TEST
  */
 function weEmailToMemberWithSubs($key, $email, $subs) {
   global $testOnly;
   return t\findEmail($key, $email, $subs);
 }
 
-
 /**
  * we show (ARG)
  *
- * in: Signup - testAMemberRegistersAgain TEST
+ * in: 
  */
 function weShow($arg1) {
   global $testOnly;
   todo;
+}
+
+/**
+ * relations: (ARG)
+ *
+ * in: Transact - featureSetup MAKE
+ */
+function relations($relations) {
+  global $testOnly; if ($testOnly) return FALSE;
+  foreach ($relations as $one) if (!t\makeRelation($one)) return FALSE;
+  return TRUE;
+}
+
+/**
+ * balances: (ARG)
+ *
+ * in: Transact - featureSetup TEST
+ *     Transact - testAMemberConfirmsRequestToChargeAnotherMember TEST
+ */
+function balances($list) {
+  global $testOnly;
+  foreach ($list as $one) if (!t\eq(t\uidCredit(t\uid($one['id']))->balance, $one['balance'])) return FALSE;
+  return TRUE;
 }

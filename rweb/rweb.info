@@ -18,3 +18,4 @@ files[] = tests/OpenAnAccountForTheCaller.test
 files[] = tests/Signup.test
 files[] = tests/Transaction.test
 files[] = tests/Undo.test
+files[] = tests/Transact.test

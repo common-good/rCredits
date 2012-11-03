@@ -3,8 +3,11 @@ namespace rCredits\Web;
 use rCredits\API as api;
 use rCredits\Util as u;
 use rCredits as r;
+use rCredits\Testing as t;
+
 include_once __DIR__ . '/rweb-txs.inc'; // treat this as an extension of this file, just to make menu ['file'] consistent
 require_once __DIR__ . '/../rcredits-api.inc';
+require_once __DIR__ . '/../rcredits-testing.inc'; // else fails in show_form()
 
 /**
  * @file
@@ -149,6 +152,7 @@ EOF;
 }
 
 function show_form($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
+  global $formOutput; // for testing
   try {
     setup_globals(); // in case it's an anonymous form, so web_access doesn't have a chance to set up
     if ($function != 'accounts' and $function != 'home') u\log("show $function", compact(u\ray('arg1 arg2 arg3 arg4')));
@@ -158,6 +162,8 @@ function show_form($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   //  $form['#attached']['css'] = array(\drupal_get_path('module', 'rweb') . '/rweb.css');
     $form['#attributes']['class'][] = 'rweb';
     if (!@$form['confirm']) $form += which(); // add the popup form, if any
+    $rent = render($form);
+    t\testOutput($formOutput = t\strip($rent), 'screen');
     if ($colgroup = @$form['#colgroup']) {
       unset($form['#colgroup']);
       $markup = '';
@@ -167,8 +173,8 @@ function show_form($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
         $markup .= "<col $guts>\n";
       }
       $markup = "<colgroup>\n$markup</colgroup>\n";
-      return str_replace('<thead>', $markup . '<thead>', render($form)); // shore up Drupal lack of colgroups in tableselect
-    } else return render($form);
+      return str_replace('<thead>', $markup . '<thead>', $rent); // shore up Drupal lack of colgroups in tableselect
+    } else return $rent;
   } catch(u\fit $e) {r\Web\exception_handler($e);}
 }
 
@@ -191,7 +197,7 @@ function which($choices = '', $result_field = '', $info = '', $question = 'Which
   
   if (is_array($choices)) { // called with all args (#1)
     svar('pop', compact(u\ray('formName choices result_field info question')));
-    drupal_goto($formName); // reload page
+    r\go($formName); // reload page
   }
 
   if (!is_array($pop = svar('pop'))) return array();
@@ -527,7 +533,7 @@ function tx_form_validate($form, &$form_state) {
 function tx_form_submit($form, &$form_state) {
   if (confirming_s($form_state)) return;
   transfer($form_state['values'], TRUE); // op who amount goods what
-  drupal_goto(strpos(@$form['#action'], 'pay') ? 'pay' : 'charge');
+  r\go(strpos(@$form['#action'], 'pay') ? 'pay' : 'charge');
 }
 
 /**
@@ -567,7 +573,7 @@ function buy_now_form($form, &$form_state) {
   if (@$confirmed) {
     transfer(compact(u\ray('op who amount goods what')), TRUE);
     if (u\valid_url(@$my_return_to)) return array(form_field('item', "<a href='$my_return_to'>Click here</a> to return to the $company_name website."));
-    drupal_goto('');
+    r\go('');
   }
 
   $form = array(
@@ -927,7 +933,7 @@ function cell_form_submit($form, &$form_state) {
   if ($op == 'Verify') {
     step_one($form_state); // no next step (back to original form)
     say(api\add_cell($number));
-    drupal_goto('cell-access');
+    r\go('cell-access');
   }
     
   // $op == remove
@@ -1256,7 +1262,7 @@ function identifiers($acct) {
       <div id="id-company">$company</div>
       <div id="id-location">$location</div>
     </div>
-    </div>
+    </div><hr>
 EOF;
 }
 
@@ -1476,7 +1482,10 @@ function confirming_v(&$form_state) {
   return FALSE;
 }
 
-function confirm($message, &$form_state) {return ($form_state['confirm'] = $message);}
+function confirm($message, &$form_state) {
+  t\testOutput(preg_replace('/\s*$\s*/sm', PHP_EOL, strip_tags($message)), 'screen');
+  return ($form_state['confirm'] = $message);
+}
 
 /**
  * Complain about an input error if a required field is blank

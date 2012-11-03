@@ -25,7 +25,7 @@ function txs_form($form, &$form_state, $period = '', $do = '') {
   if ($do == 'ok' or $do == 'no') {
     if ($confirm_form = tx_confirm($do, $zxid, $form_state)) return $confirm_form;
     if (!$form_state['rebuild']) tx_okorno($do, $zxid); // don't do anything if canceling
-    drupal_goto("transactions/$real-$period"); // back to the normal form
+    r\go("transactions/$real-$period"); // back to the normal form
   }
 
   $tx_days = array('4' => '4 days', '30' => '30 days', '90' => '90 days', '180' => '6 months', '365' => '12 months', '-1' => 'Year to date');

@@ -40,29 +40,36 @@ function makeAccount($info = array()) {
 /**
  * Fabricate bogus transactions.
  * Minimum parameters: amount, from, to
+ * @return:
+ *   if called with $infoOnly TRUE, return assoc with the information actually written (called from verifyTx())
+ *   otherwise return TRUE
  */
-function makeTransaction($info, $real = TEST_REAL) {
+function makeTransaction($info, $infoOnly = FALSE, $real = TEST_REAL) {
   global $channel;
   extract($info, EXTR_PREFIX_ALL, 'my');
 
-  $type = TX_TRANSFER; // the default
+  if (@$my_tx_id) $xid = u\a2n(substr($my_tx_id, 4));
+  $type = isset($my_type) ? $my_type : TX_TRANSFER;
   $state = TX_DONE;
-  $created = @$my_created ? strtotime($my_created) : time();  unset($info['created']);
+  $created = @$my_created ? strtotime($my_created) : time();
   
   $payer = uid($my_from);
-  $payer_agent = uid(@$my_from_agent ?: $my_from);
+  $payer_agent = uid(@$my_from_agent ?: ($type == TX_TRANSFER ? $my_from : r\communityUid()));
   $payee = uid($my_to); 
-  $payee_agent = uid(@$my_to_agent ?: $my_to);
+  $payee_agent = uid(@$my_to_agent ?: ($type == TX_TRANSFER ? $my_to : r\communityUid()));
   $payer_for = @$my_purpose ?: 'cash';
   $payee_for = @$my_purpose ?: 'cash';
-  $goods = u\forCash($payer_for) ? 0 : 1;
+  $goods = @$my_goods ?: (($type != TX_TRANSFER or u\forCash($payer_for)) ? 0 : 1);
   $taking = ($my_from == 'community' or @$my_type == 'payment') ? 0 : 1;
   if ($goods) {
     $rebate = r\rebate($payer, $my_amount);
     $bonus = r\bonus($payee, $my_amount);
     $data = serialize(compact(u\ray('rebate bonus')));
   }
-  $info += compact(u\ray('created payer payer_agent payee payee_agent payer_for payee_for type channel goods taking state data'));
+  foreach (u\ray('created from to purpose tx_id') as $one) unset($info[$one]);
+  $info += compact(u\ray('xid created payer payer_agent payee payee_agent payer_for payee_for type channel goods taking state data'));
+  if ($infoOnly) return $info;
+  
   \drupal_write_record($real ? 'r_txs' : 'r_asif', $info);
   $serial = $xid = $info['xid'];
   r\dbQ('UPDATE {zxs} SET serial=:serial WHERE xid=:xid', compact(u\ray('serial xid real')));
@@ -122,14 +129,8 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
   extract($fields, EXTR_PREFIX_ALL, 'my');
   if ($message = ($message ?: @$fields['message'])) {
     if ($channel != TX_SMS and strlen($message < 30)) $message = u\tt($message, $subs);
-    $message = str_replace("\r\n", '', $message);
-    if (!TEST_REAL) {
-      $map = array('ransaction #' => 'ransaction #a', 'nvoice #' => 'nvoice #a', '@asif' => R_ASIF_TEXT, '{ASIF}' => R_ASIF_TEXT);
-      $message = strtr($message, $map);
-      $subject = strtr($subject, $map);
-    }
-    if ($subject) $fields['subject'] = $subject;
-    $fields['message'] = $message;
+    $fields['message'] = str_replace("\r\n", '', realFix($message));
+    if ($subject) $fields['subject'] = realFix($subject);
   } else unset($fields['message']); // empty message in features means NO message
   $agent = r\acct()->agent;
   \drupal_set_message(color($fields, @$subject ? 'email' : 'output')); // keep this
@@ -148,7 +149,7 @@ function findEmail($key, $email, $subs) {
   foreach ($subs as $k => $value) $esubs[u\hug(strtoupper($k), '{}')] = $value;
   $message = strtr(r\emailBody($key), $esubs);
   $subject = strtr($GLOBALS['email_subjects'][$key], $esubs);
-  return findMessage('email', compact(u\ray('key email')), $message, $subject);
+  return findMessage('email', compact(u\ray('key email subject')), $message, $subject);
 }
 
 function makePicture($picture, $acct) {
@@ -185,6 +186,33 @@ function hitServer($op, $agent, $code = '', $account_id = '', $extra = array()) 
   return TRUE;
 }
 
+function logIn($id) {r\acct::setDefault(r\acct($id));}
+
+function verifyTx($info) {
+  $info2 = makeTransaction($info, TRUE);
+  if (!TEST_REAL) $info2['real'] = 0;
+  return verifyRecord('{zxs}', $info2);
+}
+           
+function verifyRecord($table, $info) {
+  unset($info['data']);
+  unset($info['created']);
+  foreach ($info as $key => $value) if (!($table == '{zxs}' and $key == 'real')) $crit[] = "$key=:$key";
+  $crit = join(' AND ', $crit);
+  return r\dbLookup(1, $table, $crit, $info);
+}
+
+function postProcess($form, $formName, $type) {
+  $functions = @$form["#$type"];
+  if (!@$functions or ((string) $functions) == '<') {
+    $function = "rCredits\\Web\\{$formName}_form_$type";
+    $functions = function_exists($function) ? array($function) : array();
+  }
+  return $functions;
+}
+
+function strip($form) {return preg_replace('/\s*$\s*/sm', PHP_EOL, strip_tags($form));}
+
 function eq($a, $b) {
   print_r(compact('a','b')); // keep for now
   $result = (($a - $b) * ($a - $b) < .001);
@@ -197,13 +225,24 @@ function fullQid($q) {
   return ($c1 == '.' or $c1 == ':') ? (R_SERVER_ID . $q) : $q;
 }
 
+function realFix($msg) {
+  $map = array('ransaction #' => 'ransaction #a', 'nvoice #' => 'nvoice #a', '@asif' => R_ASIF_TEXT, '{ASIF}' => R_ASIF_TEXT);
+  return TEST_REAL ? $msg : strtr($msg, $map);
+}
+
+/**
+ * @param mixed $msg: what to give a background color to (can be any data type)
+ */
 function color($msg, $color) {
   $colors = array(
     'email' => 'lightblue',
     'input' => 'orange',
     'output' => 'thistle',
+    'screen' => 'burlywood',
   );
   $color = @$colors[$color] ?: $color;
   $msg = print_r($msg, 1);
   return "<pre style='background-color:$color;'>$msg</pre>";
 }
+
+function testOutput($msg, $color) {if (defined('TESTING')) \drupal_set_message(color($msg, $color));}

@@ -44,7 +44,7 @@ class rwebSignup extends DrupalWebTestCase {
   // Scenario: A newbie registers
   public function testANewbieRegisters_0() {
     sceneSetup($this, __FUNCTION__, 0);
-    When_('the user completes form "register" with values: "DATA'
+    When_('a member completes form "register" with values: "DATA'
     . '\\| full_name | email         | country       | postal_code | state         | city    | account_type |'
     . '\\| Abe One   | a@example.com | United States | 01001       | Massachusetts | Amherst | personal     |"');
     Then_('members: "DATA'
@@ -56,9 +56,9 @@ class rwebSignup extends DrupalWebTestCase {
     And__('we show "dashboard" with subs: "DATA'
     . '\\| quid    |'
     . '\\| NEW.ZZA |"');
-    And__('we email "welcome" to member "aone@example.com" with subs: "DATA'
-    . '\\| name   |'
-    . '\\| abeone |"');
+    And__('we email "welcome" to member "a@example.com" with subs: "DATA'
+    . '\\| full_name | name   | quid    |'
+    . '\\| Abe One   | abeone | NEW.ZZA |"');
   }
 
   // Scenario: A member registers again
@@ -67,7 +67,7 @@ class rwebSignup extends DrupalWebTestCase {
     Given('members: "DATA'
     . '\\| id      | full_name  | phone  | email         | city  | state  | country       |'
     . '\\| NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | Alaska | United States |"');
-    When_('the user completes form "register" with values: "DATA'
+    When_('a member completes form "register" with values: "DATA'
     . '\\| full_name | email         | country       | postal_code | state         | city    | account_type |'
     . '\\| Abe One   | a@example.com | United States | 01001       | Massachusetts | Amherst | personal     |"');
     Then_('we say "error": "already a member" with subs: "DATA'

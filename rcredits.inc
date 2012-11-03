@@ -459,13 +459,13 @@ function reset() {
 
 /**
  * Return the real or ASIF transaction table name
- * @param int $uid1: uid of first member (DEFAULTs to cuid)
+ * @param int $uid1: uid of first member (DEFAULTs to current)
  *   OR boolean/2 $uid1: TRUE/2 if real (call with boolean/2 to allow administrator to do asif transactions)
- * @param int $uid2: uid of second member (DEFAULTs to cuid)
+ * @param int $uid2: uid of second member (DEFAULTs to current)
  * @return: the real table name if the one user or both users (if specified) are rTraders, otherwise the asif table name
  */
-function zxs($uid1 = 'cuid', $uid2 = '') {
-  if ($uid1 == 'cuid') $uid1 = acct()->id;
+function zxs($uid1 = 'current', $uid2 = '') {
+  if ($uid1 == 'current') $uid1 = acct()->id;
   $real = ($uid1 >= 0 and $uid1 < 1) ? (2 * $uid1) : (isRTrader($uid1) and isRTrader($uid2)); // $real < 1 means boolean
   return $real ? 'r_txs' : 'r_asif';
 }
@@ -689,20 +689,24 @@ function reid($main_uid, $agent_uid, $permission = '') {
   return dbLookup('reid', 'r_relations', $crit, compact(u\ray('main_uid agent_uid')));
 }
 
+function go($page) {
+  if ($page == 'pay' or $page == 'charge') list ($page, $arg1) = array('tx', $page); else $arg1 = '';
+  if (defined('TESTING')) return Web\show_form($page, $arg1);
+  \drupal_goto($page);
+}
+
 /**
  * @todo: maybe move the processing of zxs to a wrapper function db_txq() that also does postprocessing on fetchAssoc()
  */
 function dbQ($sql, $subs = array(), $die = FALSE) {
   u\EXPECT(compact(u\ray('sql subs')), 'notempty assoc');
   if (strpos($sql, '{zxs}')) {
-    extract($subs, EXTR_PREFIX_ALL, 'my');
-    if (@$my_zxid) {
-      list ($subs['xid'], $table) = azxid($my_zxid);
-      unset($subs['zxid']);
-    } else {
-      $table = zxs((isset($my_real) ? $my_real : isRTrader())/2);
-      unset($subs['real']);
-    }
+    extract(u\just('zxid real', $subs));
+    if (@$zxid) {
+      list ($subs['xid'], $table) = azxid($zxid);
+    } else $table = zxs((isset($real) ? $real : isRTrader())/2);
+    unset($subs['zxid']);
+    unset($subs['real']);
     $sql = strtr($sql, array('{zxs}' => $table, 'zxid' => 'xid'));
   }
 //  debug(u\getConstants($sql));
