@@ -128,8 +128,8 @@ class acct {
   public function qid() {return $this->proSe() ? $this->mainQid : quid($this->id, $this->agent, $this->region);}
   public function hasBit($bit) {return (bool) ($this->flags & $bit);}
   
-  public function setBit($bit) {
-    $flags = ($this->flags | $bit);
+  public function setBit($bit, $on = TRUE) {
+    $flags = $on ? ($this->flags | $bit) : ($this->flags & ~$bit);
     return $this->update(compact('flags'));
   }
   public static function setDefault($acct) {global $cacct; $cacct = $acct;}

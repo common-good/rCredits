@@ -42,7 +42,7 @@ function makeAccount($info = array()) {
  * Minimum parameters: amount, from, to
  * @return:
  *   if called with $infoOnly TRUE, return assoc with the information actually written (called from verifyTx())
- *   otherwise return TRUE
+ *   otherwise return serial (treated as TRUE in test steps)
  */
 function makeTransaction($info, $infoOnly = FALSE, $real = TEST_REAL) {
   global $channel;
@@ -71,9 +71,11 @@ function makeTransaction($info, $infoOnly = FALSE, $real = TEST_REAL) {
   if ($infoOnly) return $info;
   
   \drupal_write_record($real ? 'r_txs' : 'r_asif', $info);
-  $serial = $xid = $info['xid'];
-  r\dbQ('UPDATE {zxs} SET serial=:serial WHERE xid=:xid', compact(u\ray('serial xid real')));
-  return TRUE;
+  if (!@$my_serial) {
+    $serial = $xid = $info['xid'];
+    r\dbQ('UPDATE {zxs} SET serial=:serial WHERE xid=:xid', compact(u\ray('serial xid real')));
+  } else $serial = $my_serial;
+  return $serial;
 }
 
 /**
@@ -148,7 +150,7 @@ function findEmail($key, $email, $subs) {
   $esubs = array();
   foreach ($subs as $k => $value) $esubs[u\hug(strtoupper($k), '{}')] = $value;
   $message = strtr(r\emailBody($key), $esubs);
-  $subject = strtr($GLOBALS['email_subjects'][$key], $esubs);
+  $subject = strtr($GLOBALS['emailSubjects'][$key], $esubs);
   return findMessage('email', compact(u\ray('key email subject')), $message, $subject);
 }
 

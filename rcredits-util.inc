@@ -66,9 +66,13 @@ function tx_types($string) {return strtr($string, array_flip(ray(TX_TYPES)));} /
  * Return just the specified key/value pairs from the given array.
  * Typical use: extract(just('key2 key4 key 7', $info));
  * If a key did not exist in the original array, it will no be in the returned array either.
+ * @param string $these: space-delimited array of field names
+ * @param array/object $array: which values to return
+ * @return array of the results
  */
 function just($these, $array) {
   $result = array();
+  $array = (array) $array; // in case it was an object
   foreach (ray($these) as $one) if (isset($array[$one])) $result[$one] = $array[$one];
   return $result;
 }
@@ -355,7 +359,7 @@ function httpRequest($url, $params = FALSE, $extra_headers = array(), $method = 
  * @return string: the string with constant names replaced by their values
  */
 function getConstants($string, $prefix = ':') {
-  preg_match_all("/\\$prefix([A-Z_]+)/ms", $string, $matches);
+  preg_match_all("/\\$prefix([A-Z_][A-Z0-9_]*)/ms", $string, $matches);
   $map = array();
   foreach ($matches[1] as $one) $map["$prefix$one"] = constant($one);
   return strtr($string, $map);

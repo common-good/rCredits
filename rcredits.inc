@@ -103,6 +103,8 @@ define('R_BANK_VERIFIED', 1); // we have proof that the user owns the bank accou
 
 // Account types
 define('R_PERSONAL', 0);
+define('R_COMMERCIAL', 1);
+define('R_NONPROFIT', 2);
 $GLOBALS['account types'] = array(t('personal'), t('commercial'), t('non-profit'));
 
 // Relationship permissions
@@ -112,11 +114,16 @@ define('PERM_BUY', 3);
 define('PERM_MANAGE', 4);
 $GLOBALS['share permissions'] = array('no access', 'read transactions', 'sell', 'buy and sell', 'manage account');
 
-// Permissions and flags (flags field in account record)
+// Permissions, options, and flags (flags field in account record)
 define('BIT_PARTNER', 1); // signed the membership agreement and donated
 define('BIT_STEWARD', 2); // is allowed to vote and is responsible for stewarding the Common Good Community
 define('BIT_RTRADER', 4); // is allowed to use rCredits for real
 define('BIT_CHARGE', 8); // can charge customers without confirmation
+define('BIT_VIRTUAL_EMPLOYEES', 16); // pay employees virtually
+define('BIT_VIRTUAL_ALL', 32); // pay everyone virtually
+define('BIT_SECRET_BAL', 64); // don't let merchants tell me my balance on request
+define('BIT_NOTIFY_EMAIL', 128); // notifications by email
+define('BIT_NOTIFY_SMS', 256); // notifications by SMS
 define('BIT_ADMIN', 32768); // is an administrator (not yet implemented)
 
 // Transaction states
@@ -144,7 +151,7 @@ define('TX_BONUS', 4);
 
 define('TX_COUNTABLE', 2); // higher numbers don't show on list, so they don't get transaction numbers (tid's)
 
-$GLOBALS['email_subjects'] = array(
+$GLOBALS['emailSubjects'] = array(
   'new-invoice' => t('rCredits INVOICE from {OTHER_NAME}'),
   'new-charge' => t('rCredits CHARGE from {OTHER_NAME}'),
   'new-payment' => t('rCredits PAYMENT from {OTHER_NAME}'),
@@ -345,19 +352,27 @@ function payEmployees($amount0, $for, $confirmed) {
 /**
  * Notify the specified user, according to their preferences
  */
-function notify($uid, $message_index, $info) {
-  $account = acct($uid)->account();
-  extract((array) $account, EXTR_PREFIX_ALL, 'my');
+function notify($uid, $index, $info) {
+  $acct = acct($uid);
+  extract(u\just('full_name mail', $account = $acct->account()));
   $standard_fields = array(
     'uid' => $uid,
-    'full_name' => @$my_full_name ?: t('rCredits Member'),
-    'email' => $my_mail, // testing uses this
+    'full_name' => @$full_name ?: t('rCredits Member'),
+    'email' => $mail, // testing uses this
   );
-  if ($uid != acct()->id) $standard_fields['other_name'] = userField('full_name'); // this comes in backwards if notifying elseone
   
+  $info = array_merge($info, $standard_fields);
+  if ($uid != acct()->id) $info['other_name'] = userField('full_name'); // this comes in backwards if notifying elseone
+
   $subs = array();
-  foreach (array_merge($info, $standard_fields) as $key => $value) $subs['{' . strtoupper($key) . '}'] = $value;
-  drupal_mail('rCredits', $message_index, $my_mail, user_preferred_language($account), $subs);
+  if ($acct->hasBit(BIT_NOTIFY_EMAIL)) {
+    foreach ($info as $key => $value) $subs['{' . strtoupper($key) . '}'] = $value;
+    drupal_mail('rCredits', $index, $mail, user_preferred_language($account), $subs);
+  }
+  if ($acct->hasBit(BIT_NOTIFY_SMS)) {
+    $number = dbLookup('number', 'r_sms', 'uid=:uid AND status=:SMS_PRIMARY', compact('uid'));
+    if ($number) SMS\send($number, u\tt($index, $info, TX_SMS));
+  }
 }
 
 /**
@@ -465,7 +480,7 @@ function reset() {
  * @return: the real table name if the one user or both users (if specified) are rTraders, otherwise the asif table name
  */
 function zxs($uid1 = 'current', $uid2 = '') {
-  if ($uid1 == 'current') $uid1 = acct()->id;
+  if (((string) $uid1) == 'current') $uid1 = acct()->id;
   $real = ($uid1 >= 0 and $uid1 < 1) ? (2 * $uid1) : (isRTrader($uid1) and isRTrader($uid2)); // $real < 1 means boolean
   return $real ? 'r_txs' : 'r_asif';
 }
@@ -690,8 +705,8 @@ function reid($main_uid, $agent_uid, $permission = '') {
 }
 
 function go($page) {
-  if ($page == 'pay' or $page == 'charge') list ($page, $arg1) = array('tx', $page); else $arg1 = '';
-  if (defined('TESTING')) return Web\show_form($page, $arg1);
+  list ($form, $arg1) = ($page == 'pay' or $page == 'charge') ? array('tx', $page) : array($page, '');
+  if (defined('TESTING')) return Web\show_form($form, $arg1);
   \drupal_goto($page);
 }
 

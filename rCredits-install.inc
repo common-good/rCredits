@@ -31,12 +31,12 @@ function make_fields($unmake = FALSE, $extras = array()) {
   }
 }
 
-function setup_table($description, $fields, $primary_key, $foreign_keys = array(), $indexes = array()) {
+function setupTable($description, $fields, $primary_key, $foreign_keys = array(), $indexes = array()) {
   $result = compact('description', 'fields', 'indexes') + array('foreign keys' => $foreign_keys);
   return is_null($primary_key) ? $result : ($result + array('primary key' => (is_array($primary_key) ? $primary_key : array($primary_key))));
 }
 
-function foreign_key($local, $foreign = 'uid', $table = 'users') {
+function foreignKey($local, $foreign = 'uid', $table = 'users') {
   $columns = array($local => $foreign);
   return array($local => compact('table', 'columns'));
 }
@@ -52,7 +52,7 @@ function index($field) {return array($field => array($field));}
  *
  * @return array: the field's schema (UNUSED?)
  */
-function setup_field($description = '', $type = 'varchar 255', $default = '', $SUN = '000') {
+function setupField($description = '', $type = 'varchar 255', $default = '', $SUN = '000') {
   $size = '';
   $precision = ',';
 

@@ -47,63 +47,55 @@
  * @todo: null out r_sms todo when someone becomes an rTrader
  */
 
-namespace rCredits; // typically abbreviated as "r"
+namespace rCredits\Admin;
+use rCredits as r;
 use rCredits\API as api;
+use rCredits\Testing as t;
+use rCredits\Util as u;
 
-define('R_MIN_BUYS', 3); // you can't be an rTrader unless you have at least this many places to spend
+define('R_MIN_BUYS', 2); // you can't be an rTrader unless you have at least this many places to spend
 define('R_MAX_SCORE', 12); // any more places to spend is effectively the same: enough
-define('isRTrader', '(u.flags&' . BIT_RTRADER . ')');
+define('IS_RTRADER', '(u.flags&' . BIT_RTRADER . ')');
+
+define('UID1', 476); // these are the contiguously numbered records we have at the moment
+define('UID9', 950);
+
 /**
  * Bump members up to rTrader status, as appropriate.
- * @todo: do something with the results of identify_rtraders (show some statistics?)
+ * @todo: do something with the results of identifyCandidates (show some statistics?)
  */
 function grow() {
-  list ($old_rtraders, $candidates) = identify_rtraders();
-  $baseline = scores($old_rtraders, 'out', TRUE); // score the existing group (for statistics only)
-  $new_rtraders = best_new_rtraders(100);
+  makeRandomIndividuals(); // DEBUG
+  makeRandomRelations(); // DEBUG
+  makeRandomRTraders(); // DEBUG
+  makeRandomTransactions(); // DEBUG
+//  $oldRTraders = r\dbQ('SELECT u.uid FROM users u WHERE :IS_RTRADER')->fetchCol();
+//  $baseline = scores($oldRTraders, 'out', TRUE); // score the existing group (for statistics only)
+
+  $newRTraders = bestNewRTraders(10);
   
-  foreach ($new_rtraders as $uid) { 
+  foreach ($newRTraders as $uid) { 
     debug(r\userField('full_name', $uid)); // keep this for now
   }
-}
-
-/**
- * Return a list of rTraders and a list of non-rTraders
- * @todo: include individuals with income in candidates -- get this from r_asif
- */
-function identify_rtraders($old_rtraders, $candidates) {
-  $old_rtraders = dbQ('SELECT u.uid FROM users u WHERE :isRTrader')->fetchCol();
-  $candidates = dbQ('SELECT u.uid FROM users u WHERE u.account_type<>:R_PERSONAL AND NOT :isRTrader')->fetchCol();
-  return array($old_rtraders, $candidates);
 }
 
 /**
  * Return an array of uids for the best new rTraders
  * @param numeric $target: how many new rTraders to return (approximately)
  * @todo: add clumping (described above). Perhaps by creating a second employs table for just the candidate businesses and clumps
- * @todo: also copy non-company earners to the temp table (get from r_asif)
  */
-function best_new_rtraders($target) {
+function bestNewRTraders($target = 100) {
   // NEW (10/24/2012)
   // Create a table of candidates
   $sql = <<<EOF
-    TRUNCATE r_candidates
-    INSERT INTO r_candidates
+    TRUNCATE r_candidates;
+    INSERT INTO r_candidates (uid, is_company)
     SELECT u.uid, (u.account_type<>:R_PERSONAL) AS is_company
     FROM users u
-    WHERE NOT :isRTrader
+    WHERE u.uid > 1 AND NOT :IS_RTRADER
 EOF;
-    /*
-  $sql = <<<EOF
-    TRUNCATE r_employs_temp;
-    INSERT INTO r_employs_temp
-    SELECT e.reid AS eid, e.main_uid AS company, e.agent_uid AS employee, (s.rid<=>:R_ROLE_RTRADER) AS employee_isRTrader 
-    FROM (r_relations e LEFT JOIN users u ON u.uid=e.main_uid) 
-    WHERE e.is_employee AND NOT :isRTrader
-EOF;
-*/
-  r\do_q($sql); // copy only the non-rTrader company records to temp table
-  
+  r\dbQ($sql); // include both individuals and companies (we don't currently use is_company)
+
   // handle clumps here
  
   $previous_nubes = -1;
@@ -111,7 +103,7 @@ EOF;
   while ($nubes > $previous_nubes and $nubes < $target) { // until we reach the target number or no viable candidates
     $best = scores(); // get the best scores
     foreach ($best as $uid => $score) { 
-      if ($score < R_MIN_BUYS) break; // not good enough
+      if ($score < R_MIN_BUYS * R_MAX_SCORE ^ (-R_MAX_SCORE/2)) break; // not good enough (less than R_MIN_BUYS from the least important rTraders)
       $previous_nubes = $nubes;
       $nubes += promote($uid); // bring them in one by one (with all eligible employees) 
       if ($nubes >= $target) break;
@@ -119,20 +111,21 @@ EOF;
   }
 
 /*
-  $candidates = scores($candidates, 'out', FALSE, array_merge($candidates, $old_rtraders)); // 
+  $candidates = scores($candidates, 'out', FALSE, array_merge($candidates, $oldRTraders)); // 
   foreach ($candidates as $one => $customer_count) if ($customer_count < R_MIN_BUYS) unset($candidates[$one]); // not eligible
   */
 }
 
 function promote($uid) {
 // remember to delete the promoted candidates from r_candidates
-  $results = r\do_q("SELECT employee FROM r_employs_temp WHERE company=$uid")->fetchColumn();
+  $results = r\doQ("SELECT employee FROM r_candidates WHERE company=$uid")->fetchColumn();
   $results[] = $uid;
+  foreach ($results as $one) r\acct($one)->setBit(BIT_RTRADER);
+  $list = join(', ', $results);
+  r\dbQ('DELETE from r_candidates WHERE uid IN (:list)', compact('list'));
+  
   $nubes = count($results);
-  $role = ',' . R_MIN_BUYS;
-  $results = join($role . '),(', $results) . $role;
-  $nubes = 0;
-  r\do_q("INSERT INTO users_roles (uid, rid) VALUES ($results)");
+  debug("New rTraders for uid $uid ($nubes): $list");
   return $nubes;
 }
 
@@ -140,82 +133,99 @@ function promote($uid) {
  * Score
  */
 function scores() {
-  // First add unemployed people to r_employs_temp (eg people with rental income) -- treat them as self-employed
+
+  r\dbQ('UPDATE r_candidates SET `ignore`=0 WHERE 1'); // in case we call this function on its own (testing)
+
+  // First add unemployed people to r_candidates (eg people with rental income) -- treat them as self-employed
   // Count number of rTrader places that each candidate ASIF buys (to eliminate those that buy from too few places)
   // Include pending ASIF transactions because that gives the information about intent
-  $count_sql = <<<EOF
-    SELECT COUNT(DISTINCT a.payee)
+  $countSQL = <<<EOF
+    DROP TEMPORARY TABLE IF EXISTS r_temp;
+    CREATE TEMPORARY TABLE r_temp
+    SELECT c.uid, COUNT(DISTINCT a.payee) AS count
     FROM (r_asif a INNER JOIN r_candidates c ON c.uid=a.payer)
     LEFT JOIN users u ON u.uid=a.payee
-    GROUP BY c.uid
     WHERE a.goods
     AND a.state IN (:TX_DONE, :TX_PENDING)
-    AND :isRTrader
+    AND u.account_type=:R_PERSONAL
+    AND :IS_RTRADER
+    GROUP BY c.uid
 EOF;
-/*
-  $count_sql = <<<EOF
-    SELECT COUNT(DISTINCT a.payee)
-    FROM (r_asif a INNER JOIN r_employs_temp e ON e.employee=a.payer)
-    LEFT JOIN users u ON u.uid=a.payee
-    GROUP BY e.employee
-    WHERE a.type=:TX_TRANSFER 
-    AND a.goods
-    AND a.state IN (:TX_DONE, :TX_PENDING)
-    AND NOT e.employee_isRTrader
-    AND :isRTrader
-EOF;
-*/
-  r\do_q("UPDATE r_employs_temp SET ignore=IF(($count_sql) < :R_MIN_BUYS, 1, 0)"); // mark ineligible non-rTrader employees
 
-  // Eliminate companies that buy from too few places
-  $eligible_employees_sql = 'SELECT employee FROM r_employs_temp f WHERE f.company=e.company AND NOT ignore';
-  $count_sql = <<<EOF
-    SELECT COUNT(DISTINCT a.payee) as count
-    FROM (r_asif a INNER JOIN r_employs_temp e ON e.company=a.payer)
+  $ignoreSQL = 'UPDATE r_candidates c INNER JOIN r_temp tmp ON tmp.uid=c.uid SET c.ignore=1 WHERE tmp.count<:R_MIN_BUYS';
+
+  r\dbQ($countSQL);
+  if (\db_table_exists('r_temp')) r\dbQ($ignoreSQL); // mark ineligible individual candidates
+// FAILS  r\dbQ("UPDATE r_candidates SET `ignore`=1 WHERE ($countSQL) < :R_MIN_BUYS"); // mark ineligible individual candidates
+
+  // Eliminate candidate companies that buy from too few places (including their candidate employees)
+  $eligibleEmployeesSQL =<<<EOF
+    SELECT r.agent_uid AS employee 
+    FROM r_candidates d 
+    INNER JOIN r_relations r ON d.uid=r.main_uid
+    WHERE d.uid=c.uid AND NOT `ignore`
+EOF;
+
+  $countSQL = <<<EOF
+    DROP TEMPORARY TABLE IF EXISTS r_temp;
+    CREATE TEMPORARY TABLE r_temp
+    SELECT c.uid, COUNT(DISTINCT a.payee) as count
+    FROM (r_asif a INNER JOIN r_candidates c ON c.uid=a.payer)
     INNER JOIN users u ON u.uid=a.payee
-    GROUP BY e.company
     WHERE a.type=:TX_TRANSFER 
     AND a.goods
     AND a.state IN (:TX_DONE, :TX_PENDING)
-    AND (:isRTrader OR a.payee IN ($eligible_employees_sql)
+    AND u.account_type<>:R_PERSONAL
+    AND (:IS_RTRADER OR a.payee IN ($eligibleEmployeesSQL))
+    GROUP BY c.uid
 EOF;
-  r\do_q("UPDATE r_employs_temp SET ignore=1 WHERE ($count_sql) < :R_MIN_BUYS"); // mark ineligible companies
-  
+  r\dbQ($countSQL);
+  if (\db_table_exists('r_temp')) r\dbQ($ignoreSQL); // mark ineligible companies
+// FAILS  r\dbQ("UPDATE r_candidates SET `ignore`=1 WHERE ($countSQL) < :R_MIN_BUYS"); // mark ineligible companies
+
   // Find out how many places each rTrader can ALREADY spend
   // might want to INSERT these into a temp table for efficiency (rather than reusing the SQL, below)
-  $rTrader_scores_sql = <<<EOF
-    SELECT t.payer, MIN(:R_MAX_SCORE, COUNT(DISTINCT t.payee)) as count
-    FROM r_txs t GROUP BY t.payer
+// FAILS    SELECT t.payer, MIN(:R_MAX_SCORE, COUNT(DISTINCT t.payee)) as count
+  $rTraderScoresSQL = <<<EOF
+    DROP TABLE IF EXISTS r_temp;
+    CREATE TABLE r_temp
+    SELECT t.payer, LEAST(:R_MAX_SCORE, COUNT(DISTINCT t.payee)) as count
+    FROM r_txs t
     WHERE t.type=:TX_TRANSFER
     AND t.goods
     AND t.state IN (:TX_DONE, :TX_PENDING)
+    GROUP BY t.payer
 EOF;
-  $baseline = r\do_q($rTrader_scores_sql)->fetchAllKeyed(0, 1); // each rTrader already buys from how many
+  r\dbQ($rTraderScoresSQL); // each rTrader already buys from how many
+
+//  $baseline = r\dbQ('SELECT * FROM r_temp')->fetchAllKeyed(0, 1); // each rTrader already buys from how many
+//  $baseline = r\dbQ($rTraderScoresSQL)->fetchAllKeyed(0, 1); // each rTrader already buys from how many
 //  sort($baseline); // worst score first (that's the one we most want to improve)
-  $base_score = score($baseline); // probably no use for this but good for statistics
-  
+//  $base_score = score($baseline); // probably no use for this but good for statistics
+
   // For each number of places that rTraders already spend (3, 4, etc):
   // For each candidate, count the number of rTraders in that spending group that would buy from them
   $sql = <<<EOF
     TRUNCATE r_scores;
     INSERT INTO r_scores
-    SELECT e.company, r.count, COUNT(DISTINCT r.payer) AS score
-    FROM ($rTrader_scores_sql) r
-    INNER JOIN r_asif a ON a.payer=r.payer
-    INNER JOIN r_employs_temp e ON e.company=a.payee
-    GROUP BY r.count, e.company
+    SELECT c.uid, tmp.count, COUNT(DISTINCT tmp.payer) AS score
+    FROM r_temp tmp
+    INNER JOIN r_asif a ON a.payer=tmp.payer
+    INNER JOIN r_candidates c ON c.uid=a.payee
     WHERE a.type=:TX_TRANSFER 
     AND a.goods
     AND a.state IN (:TX_DONE, :TX_PENDING)
-    AND NOT e.ignore
+    AND NOT c.ignore
+    GROUP BY tmp.count, c.uid
 EOF;
+  r\dbQ($sql);
 
   // Score each candidate, giving the most points for benefiting the low-count rTrader groups
   // That is, give the highest score to the candidate companies that would provide the most opportunity to spend,
   // to the rTraders who currently have the fewest places to spend
   $total_score = 'SUM(score * POWER(:R_MAX_SCORE, :R_MAX_SCORE/2 - count))';
   $sql = "SELECT company, $total_score AS total_score FROM r_scores GROUP BY company ORDER BY total_score DESC";
-  return r\do_q($sql)->fetchAllKeyed(0, 1); // total score for each company
+  return r\dbQ($sql)->fetchAllKeyed(0, 1); // total score for each company
 }
 
 /**
@@ -232,6 +242,7 @@ EOF;
  * @todo: if $rtraders is specified, do IN (SELECT...) rather than IN (<list>) or maybe pass the query as the param.
  * test with: $a = array(129, 130); print_r(rCredits\scores($a, 1));
  */
+ /*
 function scoresOLD($candidates, $inout = 'out', $real = FALSE, $rtraders = '') {
   $candidates = join(',', $candidates);
   $date_range = '1'; // all transactions ever, for now
@@ -256,6 +267,7 @@ EOF;
   sort($result); // put the worst first (returns TRUE on success)
   return $result;
 }
+*/
 
 /**
  * Say whether the first array is less than the second.
@@ -271,4 +283,58 @@ function array_lt($a, $b) {
     if (@$a[$i] != @$b[$i]) return (@$a[$i] < @$b[$i]);
   }
   return FALSE; // arrays are equal
+}
+
+function makeRandomIndividuals() {
+  for ($uid = UID1; $uid <= UID9; $uid++) {
+    $account_type = rand(1, 4) == 2 ? R_COMMERCIAL : R_PERSONAL;
+    \drupal_write_record('users', compact('uid', 'account_type'), 'uid');
+  }
+}
+
+function makeRandomRelations() {
+  r\dbQ('TRUNCATE r_relations');
+  $companies = (array) r\dbQ('SELECT uid FROM users WHERE uid BETWEEN :UID1 AND :UID9 AND account_type=:R_COMMERCIAL')->fetchCol();
+  for ($agent_uid = UID1; $agent_uid <= UID9; $agent_uid++) {
+    if (!in_array($agent_uid, $companies)) {
+      $main_uid = $companies[rand(0, count($companies) - 1)];
+      $is_employee = TRUE;
+      \drupal_write_record('r_relations', compact(u\ray('main_uid agent_uid is_employee')));
+    }
+  }
+}
+
+function makeRandomRTraders($target = 100) {
+  for ($uid = UID1; $uid <= UID9; $uid++) r\acct($uid)->setBit(BIT_RTRADER, 0);
+
+  for ($uid = 0; $uid < $target; $uid++) {
+    while (TRUE) {
+      $acct = r\acct(rand(UID1, UID9));
+      if ($acct and !$acct->hasBit(BIT_RTRADER)) break;
+    }
+    $acct->setBit(BIT_RTRADER);
+  }
+}
+
+function makeRandomTransactions($count = 5000) {
+  r\dbQ('TRUNCATE r_asif');
+  r\dbQ('TRUNCATE r_txs');
+  for ($i = 1; $i < $count; $i++) {
+    $amount = rand(10,200);
+    $to = $from = $payer = rand(UID1, UID9);
+    while ($to == $from) $to = $payee = rand(UID1, UID9);
+    $taking = rand(0, 1);
+    $state = rand(1, 12) == 6 ? TX_PENDING : TX_DONE;
+    $goods = rand(1, 20) == 10 ? 0 : 1;
+    $purpose = $goods ? 'stuff' : 'cash';
+    $real = (r\isRTrader($payer) and r\isRTrader($payee));
+    $serial = t\makeTransaction(compact(u\ray('amount to from purpose taking state goods')), FALSE, $real);
+    if ($goods) {
+      list ($goods, $purpose, $from) = array(0, 'reward', r\communityUid());
+      list ($amount, $to) = array(round(.05 * $amount, 2), $payer);
+      t\makeTransaction(compact(u\ray('serial amount to from purpose taking state goods')), FALSE, $real);
+      list ($amount, $to) = array((int) (2 * $amount), $payee);
+      t\makeTransaction(compact(u\ray('serial amount to from purpose taking state goods')), FALSE, $real);
+    }
+  }
 }

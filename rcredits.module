@@ -160,7 +160,7 @@ function rcredits_mail($key, &$msg_array, $subs) {
     if (rcredits_im_send($key, $msg_array, $subs)) return; // If we can send by instant-message, do not send by email.
     $langcode = $language->language;
     $msg_array['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed'; // default is plain text
-    $msg_array['subject'] = $subject = strtr($GLOBALS['email_subjects'][$key], $subs);
+    $msg_array['subject'] = $subject = strtr($GLOBALS['emailSubjects'][$key], $subs);
     $msg_array['body'][] = $message = strtr(r\emailBody($key), $subs);
     $message = str_replace("\r\n", '', $message); // easier reading for log and tests
     $email = $subs['{EMAIL}'];

@@ -132,6 +132,7 @@ function first_time($args) {
   if (@!$password) return api\error('login error');
   if (!user_check_password($password, $cacct->account())) return api\error('bad login'); // make these two error messages distinct but obscure
   if (!($code = makeDevice(t('Smart Device'), $cacct))) return api\error("can't save device info");
+  $args['owner'] = $cacct->id;
   $message = u\tt('first time');
   // also update_link allow_change_account allow_change_agent
   return compact('message', 'code') + startup($args); // testing counts on this arg order
@@ -144,14 +145,14 @@ function first_time($args) {
  *   update_link (URL of updated app; not set if no update is available)
  */
 function startup($args = '') {
-  extract(u\just('cacct', $args));
+  extract(u\just('cacct owner', $args));
 //  if (rand() < getrandmax() / 2) $update_link = 'http:/rCredits.org/files/smart.apk';
   $my_id = $cacct->qid();
   $account_name = $cacct->full_name;
   $allow_change_account = 0;
   $allow_change_agent = 1;
   $require_agent = api\access('company') ? 1 : 0;
-  $show_buttons = buttons($cacct);
+  $show_buttons = buttons($cacct, $owner);
   return compact(u\ray('my_id account_name update_link allow_change_account allow_change_agent require_agent show_buttons')); // standard fields to return on startup);
 }
 
@@ -316,7 +317,7 @@ function accountName($acct) {
 
 function balances($uid, $real) {
   $my_balance = api\creditInfo(compact('real'))->balance;
-  if (api\access('charge others')) $other_balance = api\creditInfo(compact('real', 'uid'))->balance;
+  if (api\access('charge others') and !r\acct($uid)->hasBit(BIT_SECRET_BAL)) $other_balance = api\creditInfo(compact('real', 'uid'))->balance;
   return compact('my_balance', 'other_balance');
 }
 

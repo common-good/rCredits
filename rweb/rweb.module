@@ -70,6 +70,7 @@ function rweb_menu() {
     'bank-info' => r\Web\menu('Bank Info', MENU_NORMAL_ITEM, 'show_form', array('bank'), 'manage account'),
     'contact-info' => r\Web\menu('Contact Info', MENU_NORMAL_ITEM, 'show_form', array('contact_info'), 'manage account'),
     'account' => r\Web\menu('Account Info', MENU_NORMAL_ITEM, 'show_form', array('account'), 'manage account'),
+    'options' => r\Web\menu('Options', MENU_NORMAL_ITEM, 'show_form', array('options'), 'manage account'),
 
     'pay-with-rcredits' => r\Web\menu('Pay With rCredits', MENU_CALLBACK, 'show_form', array('buy_now'), '', $anyone), // form will require login
 

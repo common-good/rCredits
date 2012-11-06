@@ -43,9 +43,10 @@ ini_set('session.gc_probability', 1); // these two lines
 ini_set('session.gc_divisor', 100); // together will make garbage collection run on 1% of the requests
 
 // Statuses
-define('SMS_NO', 0); // not verified
-define('SMS_OK', 1); // verified
-define('SMS_LOST', 2); // user lost phone (NOT YET USED)
+define('SMS_NO', 0); // not verified (maybe lost?)
+define('SMS_PRIMARY', 1); // primary cell phone for notifications, etc. (and verified)
+define('SMS_OK', 2); // verified
+define('SMS_LOST', 9); // user lost phone (NOT YET USED)
 
 define('RSMS_PREFIX', 'r: '); // identify us
 //define('RSMS_PREFIX_INACTIVE', '[TRIAL RUN] '); // pretend transactions by not-yet-active players (treat it as a trial run)
@@ -65,6 +66,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'report exchange' => t("You@asif @action @other_name r@amount for cash/loan/gift/etc. Your new balance is @balance. Transaction #@tid"),
   'report exchange request' => t("You@asif requested r@amount from @other_name. Your balance is unchanged, pending approval. Invoice transaction #@tid"),
   'paid employees' => t('You distributed @total to @successes of @employee_count employees. See your transactions page for details.'),
+  'new-payment' => t('You have received an@asif offer of @amount from @other_name for @purpose. Type "accept" or "undo".'),
   'report undo' => t("@asif Transaction has been @solution."),
   'report get usd' => t("@Exchange approved. @request will be transferred directly to your bank account within 24 hours. Your new balance is @balance."),
   'get usd inactive' => t("If you were an Active Participant in the rCredits system, your request would transfer @amount directly to your bank account. Alas, you are not yet an Active Participant."),
@@ -89,6 +91,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   
   // error messages
   'syntax' => t('Wrong syntax!'),
+  'nyi' => t('That feature is not yet available.'),
   'already started' => t('You are already an rCredits member. For help, type "help me".'),
   'duplicate name' => t('That name is already taken, in your region. Try again. Use a middle initial?'),
   'name too long' => t('That name is too long. Try again (keep it under 60 characters).'),
@@ -156,6 +159,7 @@ foreach (array('more', 'stop', 'start') as $one) $GLOBALS[TX_SMS . ' messages'][
 
 $GLOBALS['SMS commands'] = array( // these can be abbreviated by the caller
   'get' => array('get %rusd %amount', 'get %amount %rusd'), // best before pay, so that "g r 10" is interpreted as "get r" not "give who"
+  'be' => array('(?:as|be) %who'),
   'payment' => array(
     '(?:payment|okay|approve)',
     '(?:payment|okay|approve)(?: %who)',
@@ -174,7 +178,6 @@ $GLOBALS['SMS commands'] = array( // these can be abbreviated by the caller
   ),
   'information' => array('information', 'balance'),
   // name
-  // be
   // lost (only need this for phone)
   'helpme' => '(?:help me|helpme)?(?: %feature)?',
   'more' => 'more', // continuation of help
@@ -232,7 +235,7 @@ function infer_nonce($message) {
  * @param int $status: cell phone status (DEFAULTS to active)
  * @return bool success
  */
-function create($number, $uid, $status = SMS_OK) {
+function create($number, $uid, $status = SMS_PRIMARY) {
   u\EXPECT(compact(u\ray('number uid status')), 'string&notempty id int');
   $number = u\formatPhone($number, '+n');
 //  debug("creating SMS record for number $number, uid $uid");

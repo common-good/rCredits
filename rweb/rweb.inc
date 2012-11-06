@@ -62,6 +62,7 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'nothing selected' => t('You did not select anything'),
   'undo incomplete' => t('The undo operation is not yet complete.'),
   'ambiguous other' => t('"@who" might mean any of these rCredits accounts. Click on the one you want.'),
+  'options saved' => t('Your options have been saved'),
 );
 
 function modal_form($form, &$form_state) {
@@ -1241,10 +1242,42 @@ function sms_form($form, &$form_state) {
 
 function sms_form_submit($form, $form_state) {
   global $sms_devel; $sms_devel = TRUE;
-  extract($form_state['values'], EXTR_PREFIX_ALL, 'my');
-  $my_number = u\formatPhone($my_number, '+n');
-  variable_set('last SMS number used', $my_number);
-  \rsms_sms_incoming('process', $my_number, $my_message);
+  extract(u\just('number message', $form_state['values']));
+  $number = u\formatPhone($number, '+n');
+  variable_set('last SMS number used', $number);
+  \rsms_sms_incoming('process', $number, $message);
+}
+
+function options_form($form, &$form_state) {
+  $cacct = r\acct();
+  $title = form_field('item', t('Account Options'));
+  $notify_bys = array(t('no notifications'), t('by email'), t('by SMS'), t('by both email and SMS'));
+  $dft = $cacct->hasBit(BIT_NOTIFY_EMAIL) + 2 * $cacct->hasBit(BIT_NOTIFY_SMS);
+  $post_render = array('rCredits\\Web\fixupRadios'); // $class = array('clearfix');
+  $notify_by = form_field('radios', t('Notifications:'), t('How do you want to be notified about new charges to your account, short-term opportunities, and the like?'), dft($dft) + compact('post_render'), $notify_bys);
+  $explain_virtual = t('When you pay people, do you want to pay them directly in rCredits or do you want to pay them in US Dollars, then give them the automatic option to buy their share of rCredits from you with US Dollars. The second way lets you use your current payroll system without any change. You still get the 5% rebate, minus 25 cents for each payment. For example, on a $100 payment, you get a net rebate of $5.00 - 0.25 = $4.75.');
+  $pay_hows = array(t('everyone directly'), t('employees virtually'), t('everyone virtually'));
+  $dft = $cacct->hasBit(BIT_VIRTUAL_ALL) ? 2 : ($cacct->hasBit(BIT_VIRTUAL_EMPLOYEES) ? 1 : 0);
+  $pay_how = form_field('radios', t('Pay people how:'), $explain_virtual, dft($dft) + compact('post_render'), $pay_hows);
+  $secret_bal = form_field('checkbox', t('Secret Balance:'), t("Don't let qualified merchants tell me my balance, when I ask."), $cacct->hasBit(BIT_SECRET_BAL));
+  $submit = form_field('submit', '', '', t('Update options'));
+  
+  $form = compact(u\ray('title pay_how notify_by secret_bal submit'));
+  $form['#attributes']['class'] = array('labeled');
+  return $form;  
+}
+
+function options_form_submit($form, $form_state) {
+  $cacct = r\acct();
+  extract(u\just('pay_how', $form_state['values']));
+  $cacct->setBit(BIT_VIRTUAL_ALL, $pay_how == 2);
+  $cacct->setBit(BIT_VIRTUAL_EMPLOYEES, $pay_how == 1);
+  say('options saved');
+}
+
+function fixupRadios($content, $element) {
+//  return str_replace('class="', 'class="clearfix ', $content);
+  return $content;
 }
 
 /**

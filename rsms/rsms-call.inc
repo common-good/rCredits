@@ -228,6 +228,13 @@ class call {
   }
 
   /**
+   * Handle a user's request to use the phone for someone else's account (Until the user types "be me").
+   */
+  function do_be() {
+    return tt('nyi');
+  }
+  
+  /**
    * Help the caller exchange rCredits for US Dollars or vice versa.
    */
   function do_get() {

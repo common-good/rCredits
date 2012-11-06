@@ -488,7 +488,7 @@ function add_cell($number, $validate = FALSE) {
   }
   
   $uid = $cuid;
-  $status = SMS_OK;
+  $status = SMS_PRIMARY;
   $number = $number_internal;
   $info = compact(u\ray('uid number status'));
   if (!merge_check(compact('number'))) \drupal_write_record('r_sms', $info);
