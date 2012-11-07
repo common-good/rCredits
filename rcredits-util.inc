@@ -258,18 +258,20 @@ function diff($a, $b) {
  * @param array $subs (optional). '@' will be prepended to the keys.
  * @todo get the r\'s out of this utilities file OR stop trying to separate u\ from r\
  */   
-function tt($message, $subs = array()) {
+function tt($message, $subs = array(), $adhocChannel = '') {
   global $channel;
+  
+  if (!$adhocChannel) $adhocChannel = $channel;
   if (is_array($message)) list ($message, $subs) = $message;
   if (!$subs) $subs = array();
   $messages = explode('|', $message);
   $channels = ray(TX_CHANNELS);
   foreach ($messages as $i => $message) {
     $model = $message; // the default
-    for ($ch = ($channel ?: (count($channels) - 1)); $ch > 0; $ch--) {
+    for ($ch = ($adhocChannel ?: (count($channels) - 1)); $ch > 0; $ch--) {
       if ($model = @$GLOBALS["$ch messages"][$message]) {
-        if ($ch == TX_SMS) {
-          if($p = strpos($model, '. Type ')) $model = substr($model, 0, $p + 1); // don't tell the user to type something unless it's SMS
+        if($p = strpos($model, '. Type ')) {
+          if ($channel != TX_SMS and $adhocChannel != TX_SMS) $model = substr($model, 0, $p + 1); // don't tell the user to type something unless it's SMS
         }
         if (strpos($model, '@asif') !== FALSE and !isset($subs['asif'])) {
           $real = isset($subs['real']) ? $subs['real'] : r\isRTrader();
@@ -402,7 +404,7 @@ function EXPECT($assertion, $message = '', $ret = FALSE) {
 function expect1($arg, $value, $type, $ret) {
 //  EXPECT(compact(ray('arg type')), 'name string'); // can't do this because infinite recursion
 
-  $msg = "Expected \$$arg ('" . print_r($value, 1) . "') to be type '$type'.";
+  $msg = "Expected \$$arg ('" . print_r($value, 1) . "') to be type '$type'."; // standard err message (keep this)
   if (strpos($type, '|')) {
     foreach (explode('|', $type) as $one) if (expect1($arg, $value, $one, TRUE) == '') return '';
     EXPECT(FALSE, $msg, $ret);
@@ -448,8 +450,10 @@ function expect1($arg, $value, $type, $ret) {
  * @param string $special: a special value if any (for example the nonce)
  * @return the log record id (for exception handler and shutdown function)
  */  
-function log($type, $info, $special = '') {
+function log($type, $info, $special = '', $adhocChannel = '') {
   global $channel;
+
+  if ($adhocChannel and $adhocChannel != $channel and !$special) $special = "via ch$adhocChannel";
   $cuid = @r\acct()->id;
   $agent = @r\acct()->agent;
   $log_filename = @$channel ? "$channel.log" : 'rcredits.log';
@@ -595,7 +599,7 @@ function retNotEqual($s, $value) {return $s != $value ? $s : FALSE;}
 // Single line functions that need no explanation
 function valid_url($url) {return (\valid_url($url) and preg_match('/^[A-Z0-9\-_]+\.[A-Z0-9\-_]+/i', $url) and strpos($url, '@') === FALSE);}
 function abbreviates($s, $string) {return (substr($string, 0, strlen($s)) == $s);}
-function prlog($log = 'rCredits') {print_r(log($log));}
+function prlog($log = 'rCredits') {print_r(log($log));} // keep this
 function order($first_first, $choice1, $choice2) {return $first_first ? array($choice1, $choice2) : array($choice2, $choice1);}
 function wargs($s, $args, $prefix = '') {return strtr($s, prefixKeys($prefix, $args));} // for debugging
 function myInt($n) {return (is_numeric($n) and $n == (int) $n);}

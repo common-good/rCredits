@@ -155,8 +155,10 @@ EOF;
 function show_form($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   global $formOutput; // for testing
   try {
-    setup_globals(); // in case it's an anonymous form, so web_access doesn't have a chance to set up
-    if ($function != 'accounts' and $function != 'home') u\log("show $function", compact(u\ray('arg1 arg2 arg3 arg4')));
+    setupGlobals(); // in case it's an anonymous form, so web_access doesn't have a chance to set up
+    
+    $args = 'arg1' . ($arg2 !== '' ? ' arg2' : '') . ($arg3 !== '' ? ' arg3' : '') . ($arg4 !== '' ? ' arg4' : '');
+    if ($function != 'accounts' and $function != 'home') u\log("show $function", compact(u\ray($args)));
     drupal_add_css(\drupal_get_path('module', 'rweb') . '/rweb.css', array('group' => CSS_THEME) + weight(-9));
     $formName = substr($function, 0, 1) == '\\' ? $function : "rCredits\\Web\\{$function}_form";
     $form = drupal_get_form($formName, $arg1, $arg2, $arg3, $arg4);
@@ -295,10 +297,9 @@ EOF;
   drupal_json_output($matches);
 }
 
-function home_form($form, &$form_state) {
+function membership_form($form, &$form_state) {
   $cacct = r\acct();
   $is_company = api\access('company');
-  $name = $cacct->name;
   
   $stagelist = 'rTrader Steward Partner Member';
   if ($is_company) $stagelist = str_replace('Steward ', '', $stagelist);
@@ -326,6 +327,19 @@ function home_form($form, &$form_state) {
   $rTrader = '';
   $future = compact($stages);
   foreach ($future as $key => $value) $future[$key] = "<div id='overview-future' class='labeled-block'>$value</div>\n";
+
+  $title = form_field('item', t('Membership Status'));
+  $stage_now = form_field('item', t('You are:'), '', $now[$stage]);
+  $future = $future[$stage] ? form_field('item', t('Future milestones:'), '', $future[$stage]) : NULL;
+  $steps = form_field('item', t('Next Steps:'), '', t('<div id="next-steps" class="labeled-block"><ol><li>Do at least three realistic "As-If" Payments to participating businesses, so the system knows where you will be able to spend your rCredits.</li><li>Do at least one As-If Charge, so the system knows where you will get your rCredits.</li><li>Try some of the other rCredits features.</li><li>Read or talk to other participants until you are confident that you understand how rCredits works.</li></ol></div>'));
+  $form = compact(u\ray('title stage_now future steps'));
+  $form['#attributes']['class'] = array('labeled');
+  return $form;
+}
+
+function home_form($form, &$form_state) {
+  $cacct = r\acct();
+  $name = $cacct->name;
   
   extract(api\creditInfo()->fancy, EXTR_PREFIX_ALL, 'my');
 
@@ -335,10 +349,7 @@ function home_form($form, &$form_state) {
     'account_name' => form_field('item', t('Account Name:'), '', $cacct->full_name . ' ' . u\hug($name)),
     'account_id' => form_field('item', t('Account ID:'), '', $cacct->mainQid . ' ' . u\hug(R_REGION_NAME)),
     'account_type' => form_field('item', t('Account type:'), '', $GLOBALS['account types'][$cacct->account_type+0]), // +0 for admin
-    'stage' => form_field('item', t('You are:'), '', $now[$stage]),
-    'future' => $future[$stage] ? form_field('item', t('Future milestones:'), '', $future[$stage]) : NULL,
-    'steps' => form_field('item', t('Next Steps:'), '', t('<div id="next-steps" class="labeled-block"><ol><li>Do at least three realistic "As-If" Payments to participating businesses, so the system knows where you will be able to spend your rCredits.</li><li>Do at least one As-If Charge, so the system knows where you will get your rCredits.</li><li>Try some of the other rCredits features.</li><li>Read or talk to other participants until you are confident that you understand how rCredits works.</li></ol></div>')),
-    'balance' => form_field('item', t('Balance:'), '', $my_balance),
+    'balance' => form_field('item', t('Balance:'), '', $my_balance . (r\isRTrader() ? '' : R_ASIF_TEXT)),
     'credit_limit' => form_field('item', t('Credit limit:'), '(this is how far in debt you can go &mdash; for up to 30 days)', u\formatAmount(-$cacct->min_balance)),
     'rewards_to_date' => form_field('item', t('Rewards to date:'), '', $my_rewards),
   );
@@ -423,7 +434,7 @@ function accounts_form($form, &$form_state) {
 
 function accounts_form_submit($form, &$form_state) {
   extract($form_state['values']);
-  svar('cuid', $account_account); // this gets checked ONLY in setup_globals()
+  svar('cuid', $account_account); // this gets checked ONLY in setupGlobals()
 }
 
 /**
@@ -934,7 +945,7 @@ function cell_form_submit($form, &$form_state) {
   if ($op == 'Verify') {
     step_one($form_state); // no next step (back to original form)
     say(api\add_cell($number));
-    r\go('cell-access');
+    r\go('account/cell-access');
   }
     
   // $op == remove
@@ -1091,7 +1102,7 @@ function login_followup($edit) {
 
   $name = @$edit['values']['name'];
   svar('cuid', $uid = $user->uid);
-  setup_globals();
+  setupGlobals();
   u\log('login', compact('name'), $uid);
 }
 
@@ -1260,6 +1271,7 @@ function options_form($form, &$form_state) {
   $dft = $cacct->hasBit(BIT_VIRTUAL_ALL) ? 2 : ($cacct->hasBit(BIT_VIRTUAL_EMPLOYEES) ? 1 : 0);
   $pay_how = form_field('radios', t('Pay people how:'), $explain_virtual, dft($dft) + compact('post_render'), $pay_hows);
   $secret_bal = form_field('checkbox', t('Secret Balance:'), t("Don't let qualified merchants tell me my balance, when I ask."), $cacct->hasBit(BIT_SECRET_BAL));
+  // Double confirmation: by SMS, by email, either. require extra confirmation of crucial account changes
   $submit = form_field('submit', '', '', t('Update options'));
   
   $form = compact(u\ray('title pay_how notify_by secret_bal submit'));
@@ -1269,9 +1281,11 @@ function options_form($form, &$form_state) {
 
 function options_form_submit($form, $form_state) {
   $cacct = r\acct();
-  extract(u\just('pay_how', $form_state['values']));
+  extract(u\just('pay_how notify_by', $form_state['values']));
   $cacct->setBit(BIT_VIRTUAL_ALL, $pay_how == 2);
   $cacct->setBit(BIT_VIRTUAL_EMPLOYEES, $pay_how == 1);
+  $cacct->setBit(BIT_NOTIFY_EMAIL, $notify_by & 1);
+  $cacct->setBit(BIT_NOTIFY_SMS, $notify_by & 2);
   say('options saved');
 }
 
@@ -1550,11 +1564,11 @@ function say($index, $args = array(), $error_field = '') {
   if (!is_array($args)) list ($args, $error_field) = array($error_field, $args); // allow either order, for easy 2-param calls
   $message = tt($index, $args);
   if ($error_field) \form_set_error($error_field, $message); else \drupal_set_message($message);
-  u\log($error_field ? 'say' : 'say error', compact('message'));
+  u\log($error_field ? 'say error' : 'say', compact('message'));
   return FALSE;
 }
 
-function setup_globals() {
+function setupGlobals() {
   global $user, $channel;
   if (@$channel) return; // already setup
   $agent = @$user->uid;
@@ -1563,15 +1577,27 @@ function setup_globals() {
   $channel = TX_WEB;
 }
 
+function userMenuItem($router_path, $link_title) {
+  $menu_name = 'user-menu';
+  $link_path = $router_path;
+  if (r\dbLookup(1, '{menu_links}', 'menu_name=:menu_name AND link_path=:link_path', compact('menu_name', 'link_path'))) return; // done
+  $module = 'menu';
+  $customized = TRUE;
+  $depth = 1;
+  $mlid = 0;
+  $item = compact(u\ray('mlid menu_name router_path link_path link_title module customized depth'));
+  menu_link_save($item);
+}
+ 
 function web_access($access) {
-  setup_globals(); // remember who we are (the only reason for this function)
+  setupGlobals(); // remember who we are (the only reason for this function)
   return api\access($access);
 }
 
 // one-line functions that need no explanation
 function tt($message, $subs = array()) {return u\tt($message, $subs);}
-function block_def($info, $extra = array()) {return compact(u\ray('info cache'));} // also status, region, visibility, pages
-function block_view($subject, $content) {return compact(u\ray('subject content'));}
+//function block_def($info, $extra = array()) {return compact(u\ray('info cache'));} // also status, region, visibility, pages
+function blockView($subject, $content) {return compact(u\ray('subject content'));}
 
 function disabled($value) {return array('value' => $value, 'disabled' => TRUE);}
 function dft($default_value) {return compact('default_value');}

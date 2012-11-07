@@ -132,4 +132,34 @@ class rsmartChange extends DrupalWebTestCase {
     . '\\| account | Bea Two      |"');
   }
 
+  // Scenario: A member omits the account_id
+  public function testAMemberOmitsTheAccountid_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    Given('device "codeC" account is "NEW.ZZA" and agent is "NEW.ZZB"');
+    When_('a member asks device "codeC" to change "account" to ""');
+    Then_('we respond with: "DATA'
+    . '\\| success | message            |'
+    . '\\| 0       | missing account_id |"');
+  }
+
+  // Scenario: A member omits the type of change
+  public function testAMemberOmitsTheTypeOfChange_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    Given('device "codeC" account is "NEW.ZZA" and agent is "NEW.ZZB"');
+    When_('a member asks device "codeC" to change "" to "NEW.ZZB"');
+    Then_('we respond with: "DATA'
+    . '\\| success | message  |'
+    . '\\| 0       | bad what |"');
+  }
+
+  // Scenario: A member types a bad type of change
+  public function testAMemberTypesABadTypeOfChange_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    Given('device "codeC" account is "NEW.ZZA" and agent is "NEW.ZZB"');
+    When_('a member asks device "codeC" to change %random to "NEW.ZZB"');
+    Then_('we respond with: "DATA'
+    . '\\| success | message  |'
+    . '\\| 0       | bad what |"');
+  }
+
 }

@@ -48,6 +48,7 @@ class acct {
       $info['status'] = TRUE;
       $info['is_new'] = TRUE;
       $info['roles'] = 0; // this keeps Drupal happy in user.module
+      $info['flags'] = BIT_DEFAULTS;
       $info['community_uid'] = $region = serverUid(); // $communityUid(@$my_postal_code); // defaults to current server
 
       /*** Begin DBTX ***/ $dbtx = db_transaction();
@@ -93,7 +94,7 @@ class acct {
   }
   
   private function getRecord($id, $region, $reread = FALSE) {
-    if (@self::$records[$id] and !property_exists(self::$records[$id], 'flags')) die("No flags field in record $id: " . print_r(self::$records, 1));
+    if (@self::$records[$id] and !property_exists(self::$records[$id], 'flags')) die("No flags field in record $id: " . print_r(self::$records, 1)); // keep this
     if (@self::$records[$id] and !$reread) return self::$records[$id];
     if ($region != serverUid()) { // foreign
       // contact other server here, for the record

@@ -78,3 +78,24 @@ Scenario: A member changes account to same as current non-default agent
   Then we respond success 1, my_id "NEW.ZZB", account_name "Bea Two", show_buttons 1, and message "changed account", with subs:
   | what    | account_name |
   | account | Bea Two      |
+
+Scenario: A member omits the account_id
+  Given device "codeC" account is "NEW.ZZA" and agent is "NEW.ZZB"
+  When a member asks device "codeC" to change "account" to ""
+  Then we respond with:
+  | success | message            |
+  | 0       | missing account_id |
+
+Scenario: A member omits the type of change
+  Given device "codeC" account is "NEW.ZZA" and agent is "NEW.ZZB"
+  When a member asks device "codeC" to change "" to "NEW.ZZB"
+  Then we respond with:
+  | success | message  |
+  | 0       | bad what |
+
+Scenario: A member types a bad type of change
+  Given device "codeC" account is "NEW.ZZA" and agent is "NEW.ZZB"
+  When a member asks device "codeC" to change %random to "NEW.ZZB"
+  Then we respond with:
+  | success | message  |
+  | 0       | bad what |

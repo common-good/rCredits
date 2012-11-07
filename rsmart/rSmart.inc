@@ -270,6 +270,7 @@ function undo($params) {
 
 function change($params) {
   extract(u\just('cacct acct what', $params));
+  if (!@$acct) return api\error('missing account_id');
   if (!in_array($what, u\ray('agent account'))) return api\error('bad what');
   if ($acct->proSe()) $acct = $what == 'agent' ? r\acct($cacct->id, $acct->id) : r\acct($acct->id, $cacct->agent);
   if (($show_buttons = buttons($acct, $params['owner'])) < 0) return api\error('no permission');

@@ -2,6 +2,8 @@
 #page-wrapper, #footer-wrapper {background: white;} /* Drupal messes this up otherwise, in Bartik theme */
 #page-title {display: none;}
 
+/* ul#main-menu-links li.first {display:none;} Use this to suppress spurious "Home" tab, but better to delete it in menu_links */
+
 form.rweb {font-family:Arial;}
 form.rweb div.invisible {display:none;}
 
@@ -180,8 +182,11 @@ div#autocomplete  ul {clear:none; display:inline;}
 div#autocomplete  li {margin:0px; padding:0px; line-height:140%; background-color:lightyellow;}
 div#content {display:block;} /* keeps autocomplete from getting placed in a wacky position */
 
-/* Home */
-#rcreditswebhome-form div#next-steps {width:500px;}
+/* Membership */
+#rcreditswebmembership-form div#next-steps {width:500px; margin:-13px;}
+
+/* Home / Summary */
+#rcreditswebhome-form div#edit-credit-limit div.description {display:inline-block; margin-left:5px;}
 
 /* Profile */
 #rcreditswebprofile-form {font-family:Arial;}

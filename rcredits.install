@@ -26,6 +26,7 @@ function rcredits_install() {
   $info = array_combine($keys, $values);
   if (!r\dbLookup(1, 'users', 'uid=:uid', compact('uid'))) new r\acct($info); // create the server record if it doesn't exist yet (don't use r\acct() here)
   variable_set('date_default_timezone', 'America/New_York');
+  variable_set('site_frontpage', 'summary');
 // NO. This creates a navigation column.  variable_set('site_frontpage', 'charge');
 
   $current = variable_get('mail_system', array('default-system' => 'DefaultMailSystem'));

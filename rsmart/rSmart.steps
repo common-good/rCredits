@@ -63,7 +63,6 @@ function extraSubs(&$subs) {
  *     IdentifyQR - featureSetup MAKE
  *     Insufficient - featureSetup MAKE
  *     Startup - featureSetup MAKE
- *     Transact - featureSetup MAKE
  *     UndoAttack - featureSetup MAKE
  *     UndoCompleted - featureSetup MAKE
  *     UndoPending - featureSetup MAKE
@@ -81,7 +80,6 @@ function members($list) {
  *     IdentifyQR - featureSetup MAKE
  *     Insufficient - featureSetup MAKE
  *     Startup - featureSetup MAKE
- *     Transact - featureSetup MAKE
  *     UndoAttack - featureSetup MAKE
  *     UndoCompleted - featureSetup MAKE
  *     UndoPending - featureSetup MAKE
@@ -97,7 +95,6 @@ function relations($relations) {
  *
  * in: IdentifyQR - featureSetup MAKE
  *     Insufficient - featureSetup MAKE
- *     Transact - featureSetup MAKE
  *     UndoAttack - featureSetup MAKE
  *     UndoCompleted - featureSetup MAKE
  *     UndoPending - featureSetup MAKE
@@ -135,7 +132,10 @@ function memberAsksDeviceToIdentifyQR($agent, $code, $account_id) {
 /**
  * we respond with: (ARG)
  *
- * in: IdentifyQR - testMemberAsksUsToIdentifyAQR TEST
+ * in: Change - testAMemberOmitsTheAccountid TEST
+ *     Change - testAMemberOmitsTheTypeOfChange TEST
+ *     Change - testAMemberTypesABadTypeOfChange TEST
+ *     IdentifyQR - testMemberAsksUsToIdentifyAQR TEST
  *     IdentifyQR - testMemberAsksUsToIdentifyTheMembersOwnQR TEST
  *     IdentifyQR - testMemberAsksUsToIdentifyAForeignQR TEST
  *     IdentifyQR - testMemberAsksUsToIdentifyAQRAndMemberCanShowBalances TEST
@@ -149,18 +149,6 @@ function memberAsksDeviceToIdentifyQR($agent, $code, $account_id) {
  *     Startup - testDeviceGivesNoCode TEST
  *     Startup - testDeviceGivesABadCode TEST
  *     Startup - testAgentDoesNotHavePermission TEST
- *     Transact - testAMemberAsksToPaySelf TEST
- *     Transact - testDeviceGivesNoAccountId TEST
- *     Transact - testDeviceGivesBadAccountId TEST
- *     Transact - testDeviceGivesNoAmount TEST
- *     Transact - testDeviceGivesBadAmount TEST
- *     Transact - testDeviceGivesNonpositiveAmount TEST
- *     Transact - testDeviceGivesTooBigAnAmount TEST
- *     Transact - testDeviceGivesNoType TEST
- *     Transact - testDeviceGivesBadType TEST
- *     Transact - testDeviceGivesNoPurposeForGoodsAndServices TEST
- *     Transact - testBuyerAgentLacksPermissionToBuy TEST
- *     Transact - testSellerAgentLacksPermissionToSell TEST
  *     UndoAttack - testDeviceGivesNoTransactionId TEST
  *     UndoAttack - testDeviceGivesBadTransactionId TEST
  *     UndoAttack - testDeviceGivesNonexistentTransactionId TEST
@@ -263,7 +251,6 @@ function theAppStartsUpAsMemberAndCode($agent, $code) {
  *     IdentifyQR - featureSetup MAKE
  *     Insufficient - featureSetup MAKE
  *     Startup - featureSetup MAKE
- *     Transact - featureSetup MAKE
  *     UndoAttack - featureSetup MAKE
  *     UndoCompleted - featureSetup MAKE
  *     UndoPending - featureSetup MAKE
@@ -284,12 +271,6 @@ function devices($list) {
  *     Insufficient - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterallyWithInsufficientBalance TEST
  *     Insufficient - testAMemberAsksToUndoACompletedChargeWithInsufficientBalance TEST
  *     Insufficient - testAMemberConfirmsRequestToUndoACompletedChargeWithInsufficientBalance TEST
- *     Transact - featureSetup TEST
- *     Transact - testAMemberAsksToChargeAnotherMember TEST
- *     Transact - testAMemberAsksToPayAnotherMember TEST
- *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterally TEST
- *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance TEST
- *     Transact - testAMemberAsksToPayAnotherMemberWithInsufficientBalance TEST
  *     UndoCompleted - featureSetup TEST
  *     UndoCompleted - testAMemberAsksToUndoACompletedPayment TEST
  *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPayment TEST
@@ -310,23 +291,7 @@ function balances($list) {
 /**
  * member (ARG) asks device (ARG) to do this: (ARG) (ARG) $(ARG) ((ARG): (ARG))
  *
- * in: Transact - testAMemberAsksToChargeAnotherMember MAKE
- *     Transact - testAMemberAsksToPayAnotherMember MAKE
- *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterally MAKE
- *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance MAKE
- *     Transact - testAMemberAsksToPayAnotherMemberWithInsufficientBalance MAKE
- *     Transact - testAMemberAsksToPaySelf MAKE
- *     Transact - testDeviceGivesNoAccountId MAKE
- *     Transact - testDeviceGivesBadAccountId MAKE
- *     Transact - testDeviceGivesNoAmount MAKE
- *     Transact - testDeviceGivesBadAmount MAKE
- *     Transact - testDeviceGivesNonpositiveAmount MAKE
- *     Transact - testDeviceGivesTooBigAnAmount MAKE
- *     Transact - testDeviceGivesNoType MAKE
- *     Transact - testDeviceGivesBadType MAKE
- *     Transact - testDeviceGivesNoPurposeForGoodsAndServices MAKE
- *     Transact - testBuyerAgentLacksPermissionToBuy MAKE
- *     Transact - testSellerAgentLacksPermissionToSell MAKE
+ * in: 
  */
 function memberAsksDeviceToDoThis($agent, $code, $type, $account_id, $amount, $goods, $purpose) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -340,11 +305,6 @@ function memberAsksDeviceToDoThis($agent, $code, $type, $account_id, $amount, $g
  * in: Insufficient - testAMemberConfirmsRequestToUndoACompletedPaymentWithInsufficientBalance TEST
  *     Insufficient - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterallyWithInsufficientBalance TEST
  *     Insufficient - testAMemberConfirmsRequestToUndoACompletedChargeWithInsufficientBalance TEST
- *     Transact - testAMemberAsksToChargeAnotherMember TEST
- *     Transact - testAMemberAsksToPayAnotherMember TEST
- *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterally TEST
- *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance TEST
- *     Transact - testAMemberAsksToPayAnotherMemberWithInsufficientBalance TEST
  *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPayment TEST
  *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCharge TEST
  *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCashPayment TEST
@@ -366,9 +326,6 @@ function weRespondSuccessTxidMybalanceOtherbalanceAndMessageWithSubs($success, $
  * in: Insufficient - testAMemberConfirmsRequestToUndoACompletedPaymentWithInsufficientBalance TEST
  *     Insufficient - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterallyWithInsufficientBalance TEST
  *     Insufficient - testAMemberConfirmsRequestToUndoACompletedChargeWithInsufficientBalance TEST
- *     Transact - testAMemberAsksToChargeAnotherMember TEST
- *     Transact - testAMemberAsksToPayAnotherMember TEST
- *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterally TEST
  *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPayment TEST
  *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCharge TEST
  *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedCashPayment TEST
@@ -387,8 +344,6 @@ function weEmailToMemberWithSubs($key, $email, $subs) {
  * in: IdentifyQR - testMemberAsksUsToIdentifyAQRAndMemberCanShowBalances MAKE
  *     Insufficient - testAMemberAsksToUndoACompletedPaymentUnilaterallyWithInsufficientBalance MAKE
  *     Insufficient - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterallyWithInsufficientBalance MAKE
- *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterally MAKE
- *     Transact - testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance MAKE
  *     UndoCompleted - testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterally MAKE
  */
 function memberCanChargeUnilaterally($id) {
@@ -469,6 +424,9 @@ function weRespondWithSuccessMessageAndSubs($success, $message, $subs) {
  *     Change - testAMemberChangesAccountBackToTheDefaultAccount MAKE
  *     Change - testAMemberChangesAgentToSameAsCurrentNondefaultAccount MAKE
  *     Change - testAMemberChangesAccountToSameAsCurrentNondefaultAgent MAKE
+ *     Change - testAMemberOmitsTheAccountid MAKE
+ *     Change - testAMemberOmitsTheTypeOfChange MAKE
+ *     Change - testAMemberTypesABadTypeOfChange MAKE
  */
 function deviceAccountIsAndAgentIs($code, $id, $agent) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -486,6 +444,9 @@ function deviceAccountIsAndAgentIs($code, $id, $agent) {
  *     Change - testAMemberChangesAccountBackToTheDefaultAccount MAKE
  *     Change - testAMemberChangesAgentToSameAsCurrentNondefaultAccount MAKE
  *     Change - testAMemberChangesAccountToSameAsCurrentNondefaultAgent MAKE
+ *     Change - testAMemberOmitsTheAccountid MAKE
+ *     Change - testAMemberOmitsTheTypeOfChange MAKE
+ *     Change - testAMemberTypesABadTypeOfChange MAKE
  */
 function aMemberAsksDeviceToChangeTo($code, $what, $account_id) {
   global $testOnly; if ($testOnly) return FALSE;

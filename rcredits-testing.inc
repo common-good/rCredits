@@ -17,7 +17,7 @@ define('TEST_REAL', FALSE);
  * @return uid
  */
 function makeAccount($info = array()) {
-  if (!is_array($info)) {print_r($info); die(print_r(debug_backtrace(), 1)); }
+  if (!is_array($info)) {print_r($info); die(print_r(debug_backtrace(), 1)); } // keep for now
   extract($info, EXTR_PREFIX_ALL, 'my');
 
   if (!@$my_id) $my_id = r\acct::nextId(); // default to first available number
@@ -26,10 +26,10 @@ function makeAccount($info = array()) {
   $full_name = @$my_full_name ?: ('makeAccount ' . randomString(20, 'A'));
   $name = u\shortName($full_name);
   $mail = @$my_email ?: "$name@example.com";
-  $flags = isset($my_flags) ? $my_flags : (TEST_REAL ? BIT_RTRADER : 0);
+  $flags = isset($my_flags) ? $my_flags : (BIT_DEFAULTS | (TEST_REAL ? BIT_RTRADER : 0));
   $community_uid = @$my_communityUid ?: r\serverUid();
   
-  $info = array_merge($info, compact(u\ray('uid rebate_percent name full_name mail community_uid')));
+  $info = array_merge($info, compact(u\ray('uid flags rebate_percent name full_name mail community_uid')));
   if (!($acct = new r\acct($info))) return FALSE;
   
   if (@$my_picture) if (!makePicture($my_picture, $acct)) return FALSE;
@@ -243,7 +243,7 @@ function color($msg, $color) {
     'screen' => 'burlywood',
   );
   $color = @$colors[$color] ?: $color;
-  $msg = print_r($msg, 1);
+  $msg = print_r($msg, 1); // keep this
   return "<pre style='background-color:$color;'>$msg</pre>";
 }
 

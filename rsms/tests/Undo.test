@@ -1,7 +1,7 @@
 <?php
 //
 // Feature: Undo
-//   AS a player
+//   AS a member
 //   I WANT to undo a transaction recently completed on my account
 //   SO I can easily correct a mistake
 
@@ -148,7 +148,7 @@ class rsmsUndo extends DrupalWebTestCase {
     Then_('we say to phone +20001 "report undo" with subs: "DATA'
     . '\\| solution          |'
     . '\\| marked \'\'denied\'\' |"');
-    And__('we email "payment-denied" to member "c@example.com" with subs: "DATA'
+    And__('we email "payment-refused" to member "c@example.com" with subs: "DATA'
     . '\\| created | full_name  | other_name | amount | payer_purpose |'
     . '\\| %today  | Corner Pub | Abe One    | $100   | wages         |"');
   }

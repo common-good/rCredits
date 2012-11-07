@@ -70,7 +70,7 @@ function rcredits_exception_handler($e) {
     $line = @$line ?: '';
     $file = basename(@$file);
     $function = basename($function);
-    $args = preg_replace('/Array\s+\(/sm', 'Array', print_r($args, 1));
+    $args = preg_replace('/Array\s+\(/sm', 'Array', print_r($args, 1)); // keep
     $args = substr($args, 6); // discard the gratuitous "Array" at the start
     $args = preg_replace('/$\s*\)$\s$/sm', '', $args);
     $args = '    ' . str_replace("\n", "<br>\n    ", $args);

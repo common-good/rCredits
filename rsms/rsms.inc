@@ -60,13 +60,20 @@ $GLOBALS[TX_SMS . ' messages'] = array(
 
   // reporting
   'report transaction' => t("You@asif @action @other_name @amount (@reward_type: @reward_amount). Your new balance is @balance. Transaction #@tid"),
+  'report virtual' => t("You@asif offered @other_name @amount (@reward_type: @reward_amount). Your balance is unchanged, pending acceptance. Transaction #@tid"),
   'report invoice' => t("You@asif @action @other_name @amount. Your balance is unchanged, pending payment. Invoice #@tid"),
   'report short transaction' => t("SPLIT! You@asif @action @other_name @amount (@short remains to be paid). Your new balance is @balance. Transaction #@tid"),
 //  'transaction done asif' => t("@action: @amount @tofrom user#@other_name (@reward_type: @reward_amount). Your new provisional balance is @balance (If this had been a real transaction, your balance would be @amount @moreless). Transaction ID #@tid"),
   'report exchange' => t("You@asif @action @other_name r@amount for cash/loan/gift/etc. Your new balance is @balance. Transaction #@tid"),
   'report exchange request' => t("You@asif requested r@amount from @other_name. Your balance is unchanged, pending approval. Invoice transaction #@tid"),
   'paid employees' => t('You distributed @total to @successes of @employee_count employees. See your transactions page for details.'),
-  'new-payment' => t('You have received an@asif offer of @amount from @other_name for @purpose. Type "accept" or "undo".'),
+  'new-invoice' => t('@other_name@asif requests @amount for @payer_purpose. Type "pay" or "undo".'),
+  'new-offer' => t('@other_name is@asif offering you a virtual payment of @amount for @payee_purpose. Type "accept" or "undo".'),
+  'new-charge' => t('@other_name has@asif charged you @amount for @payer_purpose.'),
+  'new-payment' => t('@other_name has@asif paid you @amount for @payee_purpose.'),
+  'charge-disputed' => t('@other_name disputes a @created@asif charge of @amount for @payee_purpose.'),
+  'invoice-denied' => t('@other_name has declined to pay your @created@asif invoice of @amount for @payee_purpose.'),
+  'payment-refused' => t('@other_name has declined to accept your @created@asif offer of @amount for @payer_purpose.'),
   'report undo' => t("@asif Transaction has been @solution."),
   'report get usd' => t("@Exchange approved. @request will be transferred directly to your bank account within 24 hours. Your new balance is @balance."),
   'get usd inactive' => t("If you were an Active Participant in the rCredits system, your request would transfer @amount directly to your bank account. Alas, you are not yet an Active Participant."),
@@ -215,7 +222,7 @@ function send($number, $message) {
   if ($msg != $message) $message .= ' -- TOO LONG! (strlen ' . strlen($message) . ')';
   if (@$sms_devel) drupal_set_message("To $number: $message"); else \sms_send($number, $msg);
   $nonce = infer_nonce($message);
-  u\log('out', compact(u\ray('number message')), $nonce);
+  u\log('out', compact(u\ray('number message')), $nonce, TX_SMS); // "via chTX_SMS" in case called from another interface
 }
 
 /**
@@ -308,7 +315,7 @@ function intent($intent, $command, $pattern, $message) {
  * @param array $subs: associative array of substitutions (@ will be prepended to each key)
  * return string: the message after any substitutions
  */
-function tt($message, $subs = array()) {return u\tt($message, $subs);}
+function tt($message, $subs = array()) {return u\tt($message, $subs, TX_SMS);} // TX_SMS in case called from another interface
 
 // one-line functions that need no explanation
 function uid($number) {return (int) r\dbLookup('uid', 'r_sms', 'number=:number', compact('number'));}

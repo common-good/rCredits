@@ -173,7 +173,6 @@ function weShowWithSubs($page, $subs) {
   if (u\abbreviates('confirm', $page)) {
     $wanted = u\tt($page, $subs);
     t\testOutput($wanted, 'screen');
-    debug('in swshowsubs confirm...');
     return ($wanted == $testConfirmation);
   }
   $form = strtr(t\strip(r\Web\show_form($page, @$subs['arg1'], @$subs['arg2'])), $subs);

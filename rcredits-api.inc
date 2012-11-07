@@ -209,7 +209,7 @@ function undoTx($zxid) {
       list ($new_state, $solution) = array(TX_DELETED, t('deleted')); // abandon the attempt to invoice
     } else {
       list ($new_state, $solution) = array(TX_DENIED, t('marked "denied"'));
-      r\notify($old_other_uid, $old_to_me ? 'payment-denied' : 'invoice-denied', r\txReportArgs($oldRecord));
+      r\notify($old_other_uid, $old_to_me ? 'payment-refused' : 'invoice-denied', r\txReportArgs($oldRecord));
     }
     r\setTxState($new_state, $zxid);
   } elseif (!$old_to_me and !$old_by_me) { // someone charged (either unilaterally or I approved it)
@@ -344,7 +344,7 @@ function pay_invoice($zxid) {
 
 /**
  * Create a transaction
- * @param string $ttype: payment, charge, invoice payment, or employee payment
+ * @param string $ttype: payment, charge, or invoice payment
  * @param array $acct: acct object for the other party
  *   OR 'ALL' (paying employees)
  * @param numeric $requestAmount: the transaction amount
@@ -371,9 +371,10 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   if (isFrontend()) return (array) backend('transfer', compact(u\ray('ttype acct requestAmount for confirmed data')));
   if (is_array($ttype)) extract($ttype); // called from api or backend
 
-  u\EXPECT(in_array($ttype, u\ray('payment,charge,invoice payment,employee payment')), 'bad transaction type');
+  u\EXPECT(in_array($ttype, u\ray('payment,charge,invoice payment')), 'bad transaction type');
   if ($acct == 'ALL') return $ttype == 'payment' ? r\payEmployees($requestAmount, $for, $confirmed) : array('no ALL', array(), FALSE);
-  $cuid = r\acct()->id;
+  $cacct = r\acct();
+  $cuid = $cacct->id;
   $taking = ($ttype == 'charge');
 
   // Check permissions
@@ -394,7 +395,9 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   $paying_invoice = ($ttype == 'invoice payment');
   $type = TX_TRANSFER;
   $preapproved = (@$data['preapproved'] or !$taking or access('charge others')); // paying OR permitted to charge unilaterally
-  $state = ($preapproved and !@$data['pay_all'])? TX_DONE : TX_PENDING;
+//  $state = ($preapproved and !@$data['pay_all'])? TX_DONE : TX_PENDING;
+  $virtual = ($goods and !$taking and ($cacct->hasBit(BIT_VIRTUAL_ALL) or ($cacct->hasBit(BIT_VIRTUAL_EMPLOYEES) and r\isEmployee($uid))));
+  $state = ($preapproved and !$virtual)? TX_DONE : TX_PENDING;
   $real = (!(@$data['zxid'] < 0) and r\isRTrader() and r\isRTrader($uid));
   
   // Check the amount and calculate any balance shortfall
@@ -431,10 +434,12 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   
   if ($confirmed) { // notify other party by email about any confirmed transaction
     $notice = $taking ? ($preapproved ? 'new-charge' : 'new-invoice')
-      : ($ttype == 'employee payment' ? 'employee-payment' : 'new-payment');
+      : ($virtual ? 'new-offer' : 'new-payment');
     r\notify($uid, $notice, $args);
     $message = $goods ?
-        ($shortfall ? 'report short transaction' : ($preapproved ? 'report transaction' : 'report invoice'))
+        ($shortfall ? 'report short transaction' 
+          : ($preapproved ? ($virtual ? 'report virtual' : 'report transaction')
+          : 'report invoice'))
       : ($preapproved ? 'report exchange' : 'report exchange request'); // no possible shortfall on confirmed cash exchange (see above)
   } else {
     $message = $goods ? $ttype : 'exchange';

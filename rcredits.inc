@@ -125,6 +125,7 @@ define('BIT_SECRET_BAL', 64); // don't let merchants tell me my balance on reque
 define('BIT_NOTIFY_EMAIL', 128); // notifications by email
 define('BIT_NOTIFY_SMS', 256); // notifications by SMS
 define('BIT_ADMIN', 32768); // is an administrator (not yet implemented)
+define('BIT_DEFAULTS', BIT_NOTIFY_EMAIL | 0); // what bits to set when creating a new account
 
 // Transaction states
 define('TX_STATES', 'deleted done pending disputed denied');
@@ -155,8 +156,9 @@ $GLOBALS['emailSubjects'] = array(
   'new-invoice' => t('rCredits INVOICE from {OTHER_NAME}'),
   'new-charge' => t('rCredits CHARGE from {OTHER_NAME}'),
   'new-payment' => t('rCredits PAYMENT from {OTHER_NAME}'),
+  'new-offer' => t('rCredits PAYMENT OFFER from {OTHER_NAME}'),
   'invoice-denied' => t('rCredits Invoice DENIED by {OTHER_NAME}'),
-  'payment-denied' => t('rCredits Payment REJECTED by {OTHER_NAME}'),
+  'payment-refused' => t('rCredits Payment REJECTED by {OTHER_NAME}'),
   'charge-disputed' => t('rCredits Charge DISPUTED by {OTHER_NAME}'),
 );
 
@@ -412,7 +414,8 @@ function setTxField($field_name, $new_value, $zxid, $all_related = FALSE) {
   $data['changes'][] = array(time(), acct()->agent, $field_name, $old_value);
   $data = serialize($data);
   $sql = "UPDATE $table SET $field_name=:new_value, data=:data WHERE $crit";
-  $sql2 = str_replace(', data=:data', '', str_replace('xid=:xid', 'serial=:xid', $sql));
+  $sql2 = "UPDATE $table SET $field_name=:new_value WHERE serial=:xid AND type<>:TX_TRANSFER";
+//  $sql2 = str_replace(', data=:data', '', str_replace('xid=:xid', 'serial=:xid', $sql));
   
   /*** Begin DBTX ***/
   $dbtx = \db_transaction();
@@ -613,6 +616,16 @@ function owning($uid1, $uid2) {
   return $uid1 == $uid2 ?: dbLookup(1, 'r_relations', $crit, compact('uid1', 'uid2'));
 }
 
+/**
+ * Say whether the first account is an employee of the second
+ * @param int $company: defaults to current uid
+ */
+function isEmployee($uid, $company = '') {
+  if (!$company) $company = acct()->id;
+  $crit = 'main_uid=:company AND agent_uid=:uid';
+  return dbLookup(1, 'r_relations', $crit, compact('company', 'uid'));
+}
+
 function communityUid($postal_code = '') {
   if (!$postal_code) return serverUid();
   $crit = "country=':R_COUNTRY' AND :postal_code RLIKE postal_code AND uid=community_uid";
@@ -673,7 +686,7 @@ function userField($field, $who = 'none', $subs = array()) {
   $result = api\get_records('users', is_numeric($who) ? "uid=$who" : $who, $subs, $field, TRUE);
   if (count($result) < 1) return FALSE;
   u\EXPECT(count($result) == 1, "ambiguous user in userField(): $who");
-  u\EXPECT(is_object($result[0]), 'bad object array in userField(): ' . print_r($result, 1));
+  u\EXPECT(is_object($result[0]), 'bad object array in userField(): ' . print_r($result, 1)); // keep this
   return strpos($field, ',') ? ((array) $result[0]) : $result[0]->$field;
 }
 
@@ -734,7 +747,7 @@ function dbQ($sql, $subs = array(), $die = FALSE) {
 function error($logid) {
   $info = dbLookup('info', 'r_log', 'logid=:logid', compact('logid'));
   if ($info) $info = json_decode($info); else $info = 'unknown error';
-  print_r($info);
+  print_r($info); // keep this for now
 //  drupal_set_message(print_r($info, 1), 'error');
 //  drupal_goto('');
 }

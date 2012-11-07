@@ -134,7 +134,7 @@ function promote($uid) {
  */
 function scores() {
 
-  r\dbQ('UPDATE r_candidates SET `ignore`=0 WHERE 1'); // in case we call this function on its own (testing)
+  r\dbQ('UPDATE r_candidates SET `ignore`=0 WHERE 1'); // this function gets called repeatedly, so we need to reset
 
   // First add unemployed people to r_candidates (eg people with rental income) -- treat them as self-employed
   // Count number of rTrader places that each candidate ASIF buys (to eliminate those that buy from too few places)
