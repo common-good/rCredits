@@ -171,15 +171,36 @@ function getPicture($picture) {
   return file_get_contents("$picturePath/$picture.jpg");
 }
 
+function lastMinuteSubs(&$string) {
+  if (u\abbreviates('%dmy', $string)) return subAgo($string, '%d-%b-%Y');
+  if (u\abbreviates('%dm', $string)) return subAgo($string, '%d-%b');
+  if ($string == '%chk') return ($string = '&#10004;');
+  if ($string == '%ctty') return ($string = R_REGION_NAME);
+}
+  
+  
+function subAgo(&$string, $fmt) {
+  if (!strpos($string, '-')) $string .= '-0d';
+  $lastC = substr($string, strlen($string) - 1);
+  list ($a, $b) = explode('-', $string);
+  $bPreC = substr($b, 0, strlen($b) - 1);
+  $periods = array('d' => 'days', 'w' => 'weeks', 'm' => 'months', 'y' => 'years');
+  $period = $periods[$lastC];
+//  debug(compact(u\ray('string fmt lastC a b bPreC period')));
+  return ($string = strftime($fmt, strtotime("$bPreC $period ago")));
+}
+
 function hitServer($op, $agent, $code = '', $account_id = '', $extra = array()) {
   if (!$code) unset($code);
   if (!$account_id) unset($account_id); else $account_id = trim($account_id);
-  $agent = trim($agent);
-  if (strpos($agent, ':') or !@$code) {
-    $my_id = $agent;
-  } else {
-    $acct = r\acct(r\dbLookup('owner', 'r_smarts', 'code=:code', compact('code')), $agent);
-    $my_id = $acct ? $acct->qid() : $agent; // accommodate bad agents
+  if ($op != 'startup') { // startup RETURNS my_id rather than asking for it
+    $agent = trim($agent);
+    if (strpos($agent, ':') or !@$code) {
+      $my_id = $agent;
+    } else {
+      $acct = r\acct(r\dbLookup('owner', 'r_smarts', 'code=:code', compact('code')), $agent);
+      $my_id = $acct ? $acct->qid() : $agent; // accommodate bad agents
+    }
   }
   $json = json_encode2(compact(u\ray('op my_id code account_id')) + $extra, JSON_UNESCAPED_SLASHES);
   \drupal_set_message(color($json, 'input')); // keep this
@@ -213,7 +234,11 @@ function postProcess($form, $formName, $type) {
   return $functions;
 }
 
-function strip($form) {return preg_replace('/\s*$\s*/sm', PHP_EOL, strip_tags($form));}
+function strip($form) {
+  $form = preg_replace('/<input[^>]* value=" *(.*?) *".*?>/', '$1', $form);
+  $form = preg_replace('/> *</', '> <', $form); // make sure there's exactly one space between things
+  return preg_replace('/\s*$\s*/sm', PHP_EOL, strip_tags($form));
+}
 
 function eq($a, $b) {
   print_r(compact('a','b')); // keep for now

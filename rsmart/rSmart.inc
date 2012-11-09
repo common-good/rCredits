@@ -80,8 +80,10 @@ function api($args = FALSE) {
     $args += $smartInfo; // pass these on to the op function
     extract($smartInfo, EXTR_PREFIX_ALL, 'q');
     r\acct::setDefault(r\acct($q_owner)); // set current account temporarily to owner, so that error log has it right
-    if (!u\isQid($q_my_id)) return api\error('bad id format');
-    if (!($cacct = r\acct($q_my_id, '', $error))) return api\error($error);
+    if (@$q_op != 'startup') { // no my_id on startup (it gets returned instead)
+      if (!u\isQid($q_my_id)) return api\error('bad id format');
+      if (!($cacct = r\acct($q_my_id, '', $error))) return api\error($error);
+    } else if (!($cacct = r\acct($q_owner))) return api\error('bad code owner'); // this should never happen
     if ($cacct->region != r\serverUid()) return api\error('wrong server');
     if ($cacct->agentRegion != r\serverUid()) return api\error('wrong server for agent');
     if (buttons($cacct, $q_owner) < 0) return api\error('no permission');

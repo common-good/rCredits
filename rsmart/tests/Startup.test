@@ -96,7 +96,7 @@ class rsmartStartup extends DrupalWebTestCase {
   public function testMemberRerunsTheApp_0() {
     sceneSetup($this, __FUNCTION__, 0);
     Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
-    When_('the app starts up as member "NEW.ZZA" and code %whatever1');
+    When_('the app starts up as code %whatever1');
     Then_('we respond with: "DATA'
     . '\\| success | message    | my_id   | account_name | allow_change_account | allow_change_agent | require_agent | show_buttons |'
     . '\\| 1       |            | NEW.ZZA | Abe One      | 0                    | 1                  | 0             | 3             |"');
@@ -114,7 +114,7 @@ class rsmartStartup extends DrupalWebTestCase {
   // Scenario: Device gives no code
   public function testDeviceGivesNoCode_0() {
     sceneSetup($this, __FUNCTION__, 0);
-    When_('the app starts up as member "NEW.ZZA" and code ""');
+    When_('the app starts up as code ""');
     Then_('we respond with: "DATA'
     . '\\| success | message       |'
     . '\\| 0       | no code given |"');
@@ -123,19 +123,10 @@ class rsmartStartup extends DrupalWebTestCase {
   // Scenario: Device gives a bad code
   public function testDeviceGivesABadCode_0() {
     sceneSetup($this, __FUNCTION__, 0);
-    When_('the app starts up as member "NEW.ZZA" and code %random');
+    When_('the app starts up as code %random');
     Then_('we respond with: "DATA'
     . '\\| success | message        |'
     . '\\| 0       | unknown device |"');
-  }
-
-  // Scenario: Agent does not have permission
-  public function testAgentDoesNotHavePermission_0() {
-    sceneSetup($this, __FUNCTION__, 0);
-    When_('the app starts up as member "NEW.ZZB" and code "codeA"');
-    Then_('we respond with: "DATA'
-    . '\\| success | message       |'
-    . '\\| 0       | no permission |"');
   }
 
 }

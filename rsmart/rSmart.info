@@ -18,3 +18,4 @@ files[] = tests/UndoPending.test
 files[] = tests/UndoAttack.test
 files[] = tests/Insufficient.test
 files[] = tests/Change.test
+files[] = tests/adhoc.test

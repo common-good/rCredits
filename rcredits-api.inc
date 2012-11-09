@@ -350,14 +350,14 @@ function pay_invoice($zxid) {
  * @param numeric $requestAmount: the transaction amount
  * @param string $for OR array($payer_for, $payee_for): description of the transaction's purpose (user input)
  * @param bool $goods: is this for real goods and services
- * @param bool $confirmed: has this transaction been confirmed by the user? (default TRUE, used only for SMS interface)
+ * @param bool $confirmed: has this transaction been confirmed by the user? (default TRUE)
  * @param array $data: associative array of info about the transaction this request is reversing (if any), indexed by any of:
  *   'rebate': the rebate amount for this request (should be negative the original bonus amount)
  *   'bonus': the bonus amount (should be negative the original rebate amount) [rebate and bonus are always both set or neither]
  *   'zxid': the signed transaction id of the related transaction (invoice or transaction being undone)
  *   'preapproved': the transaction is prapproved (from some other region)
  *   'pay_all': the transaction is part of a "pay all" (bulk employee payment)
- * @param bool $force_asif: make this an As-If transaction, even if both parties are rTraders
+// * @param bool $force_asif: make this an As-If transaction, even if both parties are rTraders
  * @return simple array: 
  *    index: index to result message string (if success, the index begins with "report ")
  *    parms: replacement parameters, specific to the message
@@ -451,20 +451,27 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
 function txPerson($id, $region) {return r\isForeign($region) ? array($region, $id) : array($id, NULL);}
 
 /**
- * Record an incentive transaction for signing up
- * @param int uid: uid of the person signing up
- * @return int: the incentive amount
+ * Record a transfer to or from the community.
+ * @param int $uid: uid of the account to credit or debit
+ * @param int $type: what type of transfer (defaults to signup)
+ * @param int $amount: how much to transfer
+ * @param bool $forReal: actually do it? (otherwise just see if it can be done)
+ * @return int: the incentive amount (FALSE if the current account does not have permission to do this)
  */
-function give_signup_incentive($uid) {
-  if (isFrontend()) return backend('give_signup_incentive', compact(u\ray('uid')));
+function fund($uid, $type = TX_SIGNUP, $amount = R_STARTING_BALANCE, $forReal = TRUE) {
+  if (isFrontend()) return backend('fund', compact(u\ray('uid type amount')));
   if (is_array($uid)) extract($uid); // called from api or backend
 
-  $type = TX_SIGNUP;
-  $amount = R_STARTING_BALANCE;
-  $payee = $uid;
-  $payer = $payer_agent = $payee_agent = r\userField('community_uid', $payee);
-  $taking = FALSE;
-  $for = t('signup');
+  $cacct = r\acct();
+  $ctty = r\userField('community_uid', $payee);
+  if ($type > TX_AUTOMATIC and $ctty != $cacct->id) return FALSE; // incentives given only automatically or by community agent
+  if (!$forReal) return TRUE;
+  
+  $payee_agent = $payee = $uid;
+  $payer = $ctty;
+  $payer_agent = $cacct->id < 0 ? $cacct->agent : $ctty;
+  $taking = ($type >= TX_FINE);
+  $for = $tx_types($type);
   r\transact(compact(u\ray('type amount payer payee payer_agent payee_agent for taking')));
   return $amount;
 }
@@ -477,28 +484,28 @@ function add_cell($number, $validate = FALSE) {
   if (isFrontend()) return backend('add_cell', compact(u\ray('number validate')));
   if (is_array($number)) extract($number); // called from api or backend
 
-  $number_internal = u\formatPhone($number, '+n');
-  $number_pretty = u\formatPhone($number);
+  $numberInternal = u\formatPhone($number, '+n');
+  $numberPretty = u\formatPhone($number);
   $subs = compact('number'); // original format
 
   if ($validate) {
-    if (!$number_pretty) return array('bad phone', $subs);
-    if ($result = r\dbQ('SELECT * FROM r_sms WHERE number=:number_internal', compact('number_internal'))->fetchAssoc()) {
+    if (!$numberPretty) return array('bad phone', $subs);
+    if ($result = r\dbQ('SELECT * FROM r_sms WHERE number=:numberInternal', compact('numberInternal'))->fetchAssoc()) {
       extract($result, EXTR_PREFIX_ALL, 'old');
       if ($old_uid == $cuid) return array('already cell', $subs);
-      $account_name = account_name($old_uid);
-      if (!isTempAccount($old_uid)) return array('cell taken', compact(u\ray('number account_name')));
+      $accountName = account_name($old_uid);
+      if (!isTempAccount($old_uid)) return array('cell taken', compact(u\ray('number accountName')));
     }
     return NULL;
   }
   
   $uid = $cuid;
   $status = SMS_PRIMARY;
-  $number = $number_internal;
+  $number = $numberInternal;
   $info = compact(u\ray('uid number status'));
   if (!merge_check(compact('number'))) \drupal_write_record('r_sms', $info);
   if (!r\acct()->phone) r\userUpdate(array('phone' => $number)); // use it as contact phone, if none yet
-  $number = $number_pretty;
+  $number = $numberPretty;
   return array('report new cell', compact('number'));
 }
 
@@ -731,8 +738,9 @@ function zxid2tid($zxid, $uid = '') {
   if (!$uid) $uid = r\acct()->id;
   if (isFrontend()) return backend('zxid2tid', compact(u\ray('zxid uid')));
   if (is_array($zxid)) extract($zxid); // called from api or backend
-
-  return ($zxid < 0 ? 'a' : '') . r\dbLookup('COUNT(xid)', '{zxs}', "(payer=:uid OR payee=:uid) AND xid<=:zxid AND type<=" . TX_COUNTABLE, compact('uid', 'zxid'));
+  
+  $crit =  ":uid IN (payer, payee) AND xid<=:zxid AND type NOT IN (:TX_REBATE, :TX_BONUS)";
+  return ($zxid < 0 ? 'a' : '') . r\dbLookup('COUNT(xid)', '{zxs}', $crit, compact('uid', 'zxid'));
 }
 
 function account_name($uid) {

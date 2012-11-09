@@ -45,6 +45,12 @@
  *   D. Once a Common Good Community is 2/3 rTraders, everybody in that community gets in automatically (regardless of the target).
  *
  * @todo: null out r_sms todo when someone becomes an rTrader
+ * @todo: optionally make the list of predicted new rTraders without touching their rTrader bit, 
+ *   so we can see how it's going halfway through the month.
+ * @todo: candidates are only companies and individual Partners/Stewards
+ * @todo: clumps
+ * @todo: handle foreign relations (need to know whether the foreign employees are rTraders/Stewards/Partners)
+ * @todo: handle foreign payees. need to know whether each one is an rTrader? maybe just assume they are or assume they aren't
  */
 
 namespace rCredits\Admin;
@@ -74,7 +80,7 @@ function grow() {
 
   $newRTraders = bestNewRTraders(10);
   
-  foreach ($newRTraders as $uid) { 
+  foreach ($newRTraders as $uid => $score) { 
     debug(r\userField('full_name', $uid)); // keep this for now
   }
 }
@@ -82,7 +88,7 @@ function grow() {
 /**
  * Return an array of uids for the best new rTraders
  * @param numeric $target: how many new rTraders to return (approximately)
- * @todo: add clumping (described above). Perhaps by creating a second employs table for just the candidate businesses and clumps
+ * @todo: add clumping (described above). Perhaps by creating a second candidates table for just the candidate businesses and clumps
  */
 function bestNewRTraders($target = 100) {
   // NEW (10/24/2012)
@@ -97,35 +103,33 @@ EOF;
   r\dbQ($sql); // include both individuals and companies (we don't currently use is_company)
 
   // handle clumps here
- 
-  $previous_nubes = -1;
-  $nubes = 0;
-  while ($nubes > $previous_nubes and $nubes < $target) { // until we reach the target number or no viable candidates
-    $best = scores(); // get the best scores
-    foreach ($best as $uid => $score) { 
-      if ($score < R_MIN_BUYS * R_MAX_SCORE ^ (-R_MAX_SCORE/2)) break; // not good enough (less than R_MIN_BUYS from the least important rTraders)
-      $previous_nubes = $nubes;
-      $nubes += promote($uid); // bring them in one by one (with all eligible employees) 
-      if ($nubes >= $target) break;
-    }
+  $minScore = R_MIN_BUYS * pow(R_MAX_SCORE, -R_MAX_SCORE/2);
+  $nubes = array();
+  while (count($nubes) < $target) { // until we reach the target number or no viable candidates
+    $best = scores(); // get the best scores, best first
+    list ($uid, $score) = $best; // take just the first
+    if ($score < $minScore) break; // not good enough (less than R_MIN_BUYS from the least important rTraders)
+    $nubes += promote($uid, $score); // bring them in one by one (along with all eligible employees) 
   }
-
-/*
-  $candidates = scores($candidates, 'out', FALSE, array_merge($candidates, $oldRTraders)); // 
-  foreach ($candidates as $one => $customer_count) if ($customer_count < R_MIN_BUYS) unset($candidates[$one]); // not eligible
-  */
+  return $nubes;
 }
+//    foreach ($best as $uid => $score) { // do this only if scoring take a very long time
+//      if (count($nubes) >= $target) break;
 
-function promote($uid) {
-// remember to delete the promoted candidates from r_candidates
-  $results = r\doQ("SELECT employee FROM r_candidates WHERE company=$uid")->fetchColumn();
-  $results[] = $uid;
-  foreach ($results as $one) r\acct($one)->setBit(BIT_RTRADER);
-  $list = join(', ', $results);
+function promote($uid, $score) {
+  $sql = <<<EOF
+    SELECT r.agent_uid FROM r_relations r
+    INNER join r_candidates c ON c.uid=r.agent_uid
+    WHERE r.main_uid=:uid AND NOT c.ignore
+EOF;
+  $nubes = r\dbQ($sql, compact('uid'))->fetchCol();
+  $nubes[] = $uid;
+  foreach ($nubes as $one) r\acct($one)->setBit(BIT_RTRADER);
+  $list = join(', ', $nubes);
   r\dbQ('DELETE from r_candidates WHERE uid IN (:list)', compact('list'));
   
-  $nubes = count($results);
-  debug("New rTraders for uid $uid ($nubes): $list");
+  $score = number_format($score, 0);
+  debug("New rTraders (score: $score): $list");
   return $nubes;
 }
 
@@ -187,8 +191,8 @@ EOF;
   // might want to INSERT these into a temp table for efficiency (rather than reusing the SQL, below)
 // FAILS    SELECT t.payer, MIN(:R_MAX_SCORE, COUNT(DISTINCT t.payee)) as count
   $rTraderScoresSQL = <<<EOF
-    DROP TABLE IF EXISTS r_temp;
-    CREATE TABLE r_temp
+    DROP TEMPORARY TABLE IF EXISTS r_temp;
+    CREATE TEMPORARY TABLE r_temp
     SELECT t.payer, LEAST(:R_MAX_SCORE, COUNT(DISTINCT t.payee)) as count
     FROM r_txs t
     WHERE t.type=:TX_TRANSFER
@@ -223,8 +227,8 @@ EOF;
   // Score each candidate, giving the most points for benefiting the low-count rTrader groups
   // That is, give the highest score to the candidate companies that would provide the most opportunity to spend,
   // to the rTraders who currently have the fewest places to spend
-  $total_score = 'SUM(score * POWER(:R_MAX_SCORE, :R_MAX_SCORE/2 - count))';
-  $sql = "SELECT company, $total_score AS total_score FROM r_scores GROUP BY company ORDER BY total_score DESC";
+  $totalScore = 'SUM(score * POWER(:R_MAX_SCORE, :R_MAX_SCORE/2 - count))';
+  $sql = "SELECT company, $totalScore AS totalScore FROM r_scores GROUP BY company ORDER BY totalScore DESC";
   return r\dbQ($sql)->fetchAllKeyed(0, 1); // total score for each company
 }
 

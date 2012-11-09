@@ -57,8 +57,6 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'account info' => t("Your@asif balance for account @quid is @balance, including @rewards of incentive rewards. Total demand for rCredits is @total_demand."),
 //  'account info2' => t("More account info"), // not used yet
   'your account is ready' => t('Your starting balance is @balance. Pretend to buy and sell as you would in a typical month (we need that info). Have fun! Type "helpme" to get started.'), // separate out the last sentence
-
-  // reporting
   'report transaction' => t("You@asif @action @other_name @amount (@reward_type: @reward_amount). Your new balance is @balance. Transaction #@tid"),
   'report virtual' => t("You@asif offered @other_name @amount (@reward_type: @reward_amount). Your balance is unchanged, pending acceptance. Transaction #@tid"),
   'report invoice' => t("You@asif @action @other_name @amount. Your balance is unchanged, pending payment. Invoice #@tid"),
@@ -66,6 +64,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
 //  'transaction done asif' => t("@action: @amount @tofrom user#@other_name (@reward_type: @reward_amount). Your new provisional balance is @balance (If this had been a real transaction, your balance would be @amount @moreless). Transaction ID #@tid"),
   'report exchange' => t("You@asif @action @other_name r@amount for cash/loan/gift/etc. Your new balance is @balance. Transaction #@tid"),
   'report exchange request' => t("You@asif requested r@amount from @other_name. Your balance is unchanged, pending approval. Invoice transaction #@tid"),
+  'report funding' => t("You successfully@asif @action @amount to @other_name."),
   'paid employees' => t('You distributed @total to @successes of @employee_count employees. See your transactions page for details.'),
   'new-invoice' => t('@other_name@asif requests @amount for @payer_purpose. Type "pay" or "undo".'),
   'new-offer' => t('@other_name is@asif offering you a virtual payment of @amount for @payee_purpose. Type "accept" or "undo".'),
@@ -111,6 +110,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'wrong nonce' => t('That is not the expected confirmation response. Try again (start over).'),
   'no self-trading' => t("You can't exchange rCredits with yourself."),
   'no self-relation' => t("You can't relate yourself to your own account."),
+  'funding error' => t("You do not have permission to fund that person."),
   'no company relations' => t("Only individuals can be related to this account."),
 // not used  'no self-undo' => t("You can't undo transactions with yourself."),
   'no matching invoice' => t("There is no such invoice to be paid."),

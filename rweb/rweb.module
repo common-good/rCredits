@@ -61,10 +61,10 @@ function rweb_menu() {
   $modal = array('modal' => TRUE);
   
   $menu = array(
-    'summary' => r\Web\menu(t('Summary'), MENU_NORMAL_ITEM, 'show_form', array('home'), 'read transactions'),
-    'transactions' => r\Web\menu(t('Transactions'), MENU_NORMAL_ITEM, 'show_form', array('txs', 1, 2), 'read transactions'),
-    'charge' => r\Web\menu(t('Charge'), MENU_NORMAL_ITEM, 'show_form', array('tx', 'Charge', 1), 'sell'),
-    'pay' => r\Web\menu(t('Pay'), MENU_NORMAL_ITEM, 'show_form', array('tx', 'Pay', 1), 'buy and sell'),
+    'summary' => r\Web\menu(t('Summary'), MENU_NORMAL_ITEM, 'show_form', array('summary'), 'read transactions'),
+    'transactions' => r\Web\menu(t('Transactions'), MENU_NORMAL_ITEM, 'show_form', array('txs', 1), 'read transactions'),
+    'charge' => r\Web\menu(t('Charge'), MENU_NORMAL_ITEM, 'show_form', array('tx'), 'sell'),
+    'pay' => r\Web\menu(t('Pay'), MENU_NORMAL_ITEM, 'show_form', array('tx', 1), 'buy and sell'),
     'exchange' => r\Web\menu(t('Get rCredits / USD'), MENU_NORMAL_ITEM, 'show_form', array('exchange'), 'manage account'),
     'directory' => r\Web\menu(t('Find Businesses'), MENU_NORMAL_ITEM, 'show_form', array('directory'), 'sell'),
 
@@ -79,6 +79,12 @@ function rweb_menu() {
     'company-info' => r\Web\menu(t('Company Info'), MENU_LOCAL_TASK, 'show_form', array('company'), 'company'),
     'account/options' => r\Web\menu(t('Account Options'), MENU_LOCAL_TASK, 'show_form', array('options'), 'manage account'),
     'account/bank-info' => r\Web\menu(t('Bank Info'), MENU_LOCAL_TASK, 'show_form', array('bank'), 'manage account'),
+
+    'radmin' => r\Web\menu(t('Community Overview'), MENU_CALLBACK, 'show_form', array('account'), 'community admin'),
+    'radmin/overview' => r\Web\menu('Community Overview', MENU_DEFAULT_LOCAL_TASK, 'show_form', array('account'), 'community admin'),
+    'radmin/grant' => r\Web\menu(t('Grant'), MENU_NORMAL_ITEM, 'show_form', array('tx'), 'community admin'),
+    'radmin/loan' => r\Web\menu(t('Loan'), MENU_NORMAL_ITEM, 'show_form', array('tx'), 'community admin'),
+    'radmin/fine' => r\Web\menu(t('Fine'), MENU_NORMAL_ITEM, 'show_form', array('tx'), 'community admin'),
 
     'membership' => r\Web\menu(t('Membership Status'), MENU_CALLBACK, 'show_form', array('membership'), 'manage account'),
 

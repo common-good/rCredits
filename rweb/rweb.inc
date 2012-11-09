@@ -95,8 +95,8 @@ function util($arg) {
       (2, $uid2, 2);
 EOF;
     r\dbQ($sql);
-    api\give_signup_incentive($uid);
-    api\give_signup_incentive($uid2);
+    api\fund($uid, TX_SIGNUP);
+    api\fund($uid2, TX_SIGNUP);
     r\dbQ(file_get_contents(__DIR__ . '\..\sql\r_companies-insert.sql'));
 */
   }
@@ -298,16 +298,15 @@ EOF;
 }
 
 function membership_form($form, &$form_state) {
-  $cacct = r\acct();
-  $is_company = api\access('company');
+  if (!($cacct = r\acct())) return NULL;
+  $acct = r\acct($cacct->agent); // this form is for people, not accounts
   
   $stagelist = 'rTrader Steward Partner Member';
-  if ($is_company) $stagelist = str_replace('Steward ', '', $stagelist);
   $stages = u\ray($stagelist);
   foreach ($stages as $stage) if (api\access(strtolower($stage))) break;
 
   $rTrader = 'authorized to use rCredits "for real"';
-  if (!$is_company) $Steward = "a responsible voter, stewarding your community's finances";
+  $Steward = "a responsible voter, stewarding your community's finances";
   $Partner = 'a committed financial partner in the rCredits system';
   $Member = 'signed up to do rCredits "As If" transactions, for real credit';
   $details = compact($stages);
@@ -315,15 +314,15 @@ function membership_form($form, &$form_state) {
 
   extract($details);
   $Partner = $Member . $Partner;
-  if (!$is_company) $Steward = $Partner . @$Steward;
-  $rTrader = ($is_company ? $Partner : $Steward) . $rTrader;
+  $Steward = $Partner . $Steward;
+  $rTrader = $Steward . $rTrader;
   $now = compact($stages);
   foreach ($now as $key => $value) $now[$key] = "<div id='overview-stage' class='labeled-block'>$value</div>\n";
 
   extract($details);
-  $Member = $Partner . @$Steward . $rTrader;
-  $Partner = @$Steward . $rTrader;
-  if (!$is_company) $Steward = $rTrader;
+  $Member = $Partner . $Steward . $rTrader;
+  $Partner = $Steward . $rTrader;
+  $Steward = $rTrader;
   $rTrader = '';
   $future = compact($stages);
   foreach ($future as $key => $value) $future[$key] = "<div id='overview-future' class='labeled-block'>$value</div>\n";
@@ -337,17 +336,22 @@ function membership_form($form, &$form_state) {
   return $form;
 }
 
-function home_form($form, &$form_state) {
-  $cacct = r\acct();
-  $name = $cacct->name;
-  
+function summary_form($form, &$form_state) {
   extract(api\creditInfo()->fancy, EXTR_PREFIX_ALL, 'my');
 
+  $cacct = r\acct();
+  $name = $cacct->name;
+  $isUS = ($cacct->country == 'United States');
+  $state = $isUS ? u\stateAbbrev($cacct->state) : $cacct->state;
+  $address = "$cacct->address, $cacct->city, $state $cacct->postal_code" . ($isUS ? '' : strtoupper(", $cacct->country"));
+  $address = preg_replace('/ *\,+ */', ', ', $address);
+
   $form = array(
-    'title' => form_field('item', t('Overview of Your rCredits Account')),
+    'title' => form_field('item', t('Account Summary')),
 //    'subtext' => basic_account_info(),
-    'account_name' => form_field('item', t('Account Name:'), '', $cacct->full_name . ' ' . u\hug($name)),
     'account_id' => form_field('item', t('Account ID:'), '', $cacct->mainQid . ' ' . u\hug(R_REGION_NAME)),
+    'account_name' => form_field('item', t('Name:'), '', $cacct->full_name . ' ' . u\hug($name)),
+    'address' => form_field('item', '&nbsp;', '', $address),
     'account_type' => form_field('item', t('Account type:'), '', $GLOBALS['account types'][$cacct->account_type+0]), // +0 for admin
     'balance' => form_field('item', t('Balance:'), '', $my_balance . (r\isRTrader() ? '' : R_ASIF_TEXT)),
     'credit_limit' => form_field('item', t('Credit limit:'), '(this is how far in debt you can go &mdash; for up to 30 days)', u\formatAmount(-$cacct->min_balance)),
@@ -502,23 +506,30 @@ function profile_picture($uid, $with_markup = FALSE) {
 
 /**
  * Get a transaction request (pay or charge) and process it)
+ * @param string $company: qid of company to pay (from web store)
  */
-function tx_form($form, &$form_state, $type, $company = '') {
-  if ($confirm = sure_form($form_state)) return $confirm;
-  $type_low = strtolower($type);
-  $role = $type == 'Pay' ? 'payer' : 'payee';
+function tx_form($form, &$form_state, $company = '') {
+  if ($confirm = sureForm($form_state)) return $confirm;
+  $type = basename(current_path());
+  $role = in_array($type, u\ray('charge fine')) ? 'payee' : 'payer';
+  $cash = in_array($type, u\ray('fine grant loan'));
+  if ($type != 'pay') $company = '';
   //$onchange = "nixwhat();";
-  $onchange = "if(this.value.toUpperCase() == 'ALL') jQuery('#edit-purpose').val('payroll');";
   $radios = array(t('cash/loan/etc.'), t('goods & services'));
   
-  $form = array(
-    'title' => form_field('item', $type),
-    'who' => form_field('textfield', $type . ' whom:', t('Type a name, id, email, or phone'), dft($company) + autocomplete($role) + attrib(compact('onchange'))),
-    'amount' => form_field('textfield', 'Amount: $', t('Amount to ') . $type_low),
-    'goods' => form_field('radios', '', '', dft(1), $radios), //  + attrib(compact('onchange'))
-    'purpose' => form_field('textfield', 'Purpose:', t('Description of goods and services or purpose')),
-    $type_low => form_field('submit', NULL, t('Submit button'), $type),
-  );
+  // set up form fields
+  $title = form_field('item', ucwords($type));
+  $whoLabel = ($type == 'loan' ? 'Lend to' : ucwords($type)) . ' whom:';
+
+  $onchange = $cash ? '' : "if(this.value.toUpperCase() == 'ALL') jQuery('#edit-purpose').val('payroll');";
+  $who = form_field('textfield', $whoLabel, t('Type a name, id, email, or phone'), dft($company) + autocomplete($role) + attrib(compact('onchange')));
+
+  $amount = form_field('textfield', 'Amount: $', t('Amount to ') . $type);
+  $goods = form_field('radios', '', '', dft(1), $radios); //  + attrib(compact('onchange'))
+  $purpose = form_field('textfield', 'Purpose:', t('Description of goods and services or purpose'));
+  $$type = form_field('submit', NULL, t('Submit button'), ucwords($type));
+
+  $form = compact(u\ray("title who amount goods purpose $type"));
   $form['#attributes']['class'] = array('labeled');
   
 /*
@@ -545,7 +556,7 @@ function tx_form_validate($form, &$form_state) {
 function tx_form_submit($form, &$form_state) {
   if (confirming_s($form_state)) return;
   transfer($form_state['values'], TRUE); // op who amount goods what
-  r\go(strpos(@$form['#action'], 'pay') ? 'pay' : 'charge');
+  r\go(current_path());
 }
 
 /**
@@ -617,7 +628,7 @@ function buy_now_form_submit($form, &$form_state) {
  */
 function exchange_form($form, &$form_state) {
   $cuid = r\acct()->id;
-  if ($confirm = sure_form($form_state)) return $confirm; // confirm only getUSD
+  if ($confirm = sureForm($form_state)) return $confirm; // confirm only getUSD
   $request = u\formatAmount(r\userField('demand', $cuid));
   $demand = api\creditInfo()->fancy['total_demand'];
 
@@ -761,7 +772,7 @@ function bank_form_submit($form, &$form_state) {
  */
 function relations_form($form, &$form_state) {
   $cuid = r\acct()->id;
-  if ($confirm = sure_form($form_state)) return $confirm; // confirm only getUSD
+  if ($confirm = sureForm($form_state)) return $confirm; // confirm only getUSD
   $account_identifiers = api\account_name($cuid);
   $header = u\ray('Person,Employee?,Owner?,Permission');
   $classes = u\prefixValues('rel-', u\ray('person employee owner permission'));
@@ -876,7 +887,7 @@ function relations_form_submit($form, &$form_state) {
  */
 function cell_form($form, &$form_state) {
   $cuid = r\acct()->id;
-  if ($confirm = sure_form($form_state)) return $confirm; // confirm only deletion
+  if ($confirm = sureForm($form_state)) return $confirm; // confirm only deletion
   if (form_step($form_state, $info) == 'prove') {
     $number = u\formatPhone($form_state['storage']['values']['number']);
     $form = array(
@@ -1035,7 +1046,7 @@ function register_form_submit($form, &$form_state) {
   }
 // merge fails because account is not saved yet:  api\merge_check(compact(u\ray('email short_name'))); // email fails anyway because it's not unique
   $quid = r\quid($my_uid, $my_uid);
-  $balance = u\formatAmount(api\give_signup_incentive($my_uid));
+  $balance = u\formatAmount(api\fund($my_uid, TX_SIGNUP));
   say('your account is ready', compact(u\ray('balance quid')));
 }
 
@@ -1400,7 +1411,7 @@ function form_args($function, $args = '') {
 /**
  * Replacement for \confirm_form
  */
-function sure_form(&$form_state, $title = 'Please Confirm') {
+function sureForm(&$form_state, $title = 'Please Confirm') {
   if (!isset($form_state['confirm'])) return FALSE;
   
   $form = array(
@@ -1411,8 +1422,8 @@ function sure_form(&$form_state, $title = 'Please Confirm') {
   );
   $form['#skip_duplicate_check'] = TRUE; // Confirm form fails duplication check, as the form values rarely change -- so skip it.
   $form['#attributes'] = array('class' => u\ray('rweb confirmation'));
-//  $form['#validate'] = 'rCredits\\Web\\sure_form_validate';
-//  $form['#submit'] = 'rCredits\\Web\\sure_form_submit';
+//  $form['#validate'] = 'rCredits\\Web\\sureForm_validate';
+//  $form['#submit'] = 'rCredits\\Web\\sureForm_submit';
 //  $form_state['rebuild'] = TRUE;
 
   drupal_add_js("document.getElementById('edit-confirm').focus();", array('type'=>'inline', 'scope'=>'footer'));  
@@ -1466,19 +1477,41 @@ function whois($who, $field_name, $info, $create = TRUE, $allow_ALL, $self_messa
 function transfer($info, $confirmed) {
   $cuid = r\acct()->id;
   extract($info);
-  $tx_type = $op == 'Pay' ? 'payment' : 'charge';
+  $txType = $op == 'Pay' ? 'payment' : strtolower($op);
   if (blank_field(compact(u\ray('who amount')))) return FALSE;
   if ($goods and trim($purpose) == '') return say('missing purpose', 'purpose');
   if (!$goods) $purpose = 'cash'; // tell api\transfer it's not for goods (should be the only place this string occurs)
   $amount = str_replace(',', '', $amount); // ignore commas
   if (!is_numeric($amount)) return say('bad amount', 'amount');
-  if (!($acct = whois($who, 'who', $info, TRUE, $tx_type == 'payment'))) return FALSE; // allow "ALL"
-  list ($message, $args, $confirm) = api\transfer($tx_type, $acct, $amount, $purpose, !u\forCash($purpose), $confirmed);
+  if (!($acct = whois($who, 'who', $info, TRUE, $txType == 'payment'))) return FALSE; // allow "ALL"
+  list ($message, $args, $confirm) = in_array($txType, array('payment', 'charge')) ?
+       api\transfer($txType, $acct, $amount, $purpose, !u\forCash($purpose), $confirmed)
+     : communityTransfer($txType, $acct, $amount, $confirmed);
   if ($confirm) return identifiers($acct) . tt('confirm ' . $message, $args);
   if (@$args['success']) return say($message, $args);
   return say($message, $args, 'amount');
 }
 
+/**
+ * Record a transfer to or from the community.
+ * @param int $type: what type of transfer
+ * @param acct $acct: the account to credit or debit
+ * @param int $amount: how much to transfer
+ * @param bool $confirmed: has this transaction been confirmed by the user?
+ * @return simple array: 
+ *    index: index to result message string (if success, the index begins with "report ")
+ *    parms: replacement parameters, specific to the message
+ *    confirm: boolean "this needs to be confirmed"
+ */
+function communityTransfer($type, $acct, $amount, $confirmed) {
+  $success = (bool) api\fund($acct->id, $amount, constant(strtoupper("TX_$type")), $confirmed);
+  $message = $success ? 'report funding' : 'funding error';
+  $action = ucwords($type) . 'ed';
+  $other_name = r\userField('full_name', $acct->id);
+  $amount = u\formatNumber($amount);
+  return array($message, compact(u\ray('success action amount other_name')), $success and !$confirmed);
+}  
+    
 function menu($title, $type, $function = NULL, $function_args = array(), $access = 'member', $other = array()) {
   global $menu_weight;
   $menu_weight += !@$menu_weight ?: 1;

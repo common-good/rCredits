@@ -185,8 +185,8 @@ div#content {display:block;} /* keeps autocomplete from getting placed in a wack
 /* Membership */
 #rcreditswebmembership-form div#next-steps {width:500px; margin:-13px;}
 
-/* Home / Summary */
-#rcreditswebhome-form div#edit-credit-limit div.description {display:inline-block; margin-left:5px;}
+/* Summary */
+#rcreditswebsummary-form div#edit-credit-limit div.description {display:inline-block; margin-left:5px;}
 
 /* Profile */
 #rcreditswebprofile-form {font-family:Arial;}

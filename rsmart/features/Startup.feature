@@ -49,7 +49,7 @@ Scenario: Member types the wrong password
 
 Scenario: Member reruns the app
   Given member "NEW.ZZA" has initialized a device whose code is %whatever1
-  When the app starts up as member "NEW.ZZA" and code %whatever1
+  When the app starts up as code %whatever1
   Then we respond with:
   | success | message    | my_id   | account_name | allow_change_account | allow_change_agent | require_agent | show_buttons |
   | 1       |            | NEW.ZZA | Abe One      | 0                    | 1                  | 0             | 3             |
@@ -66,19 +66,13 @@ Scenario: Device requests a bad op
   | 0       | unknown op |
 
 Scenario: Device gives no code
-  When the app starts up as member "NEW.ZZA" and code ""
+  When the app starts up as code ""
   Then we respond with:
   | success | message       |
   | 0       | no code given |
   
 Scenario: Device gives a bad code
-  When the app starts up as member "NEW.ZZA" and code %random
+  When the app starts up as code %random
   Then we respond with:
   | success | message        |
   | 0       | unknown device |
-
-Scenario: Agent does not have permission
-  When the app starts up as member "NEW.ZZB" and code "codeA"
-  Then we respond with:
-  | success | message       |
-  | 0       | no permission |

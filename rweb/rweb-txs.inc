@@ -12,25 +12,32 @@ use rCredits as r;
 /**
  * List Transactions
  */
-function txs_form($form, &$form_state, $period = '', $do = '') {
+function txs_form($form, &$form_state, $args = '') {
   $cuid = r\acct()->id;
   global $base_path;
 
-  list ($real, $period) = $period ? explode('-', $period) : array(r\isRTrader(), 30);
-  if ($real and !r\isRTrader()) $real = FALSE;
+  $args = explode('&', $args);
+  foreach ($args as $one) list ($keys[], $values[]) = explode('=', "$one=");
+  extract(u\just('real period do zxid', array_combine($keys, $values)));
+  
+  $real = r\isRTrader() ? ((bool) retSet($real) ?: TRUE) : FALSE;
+  $period = (int) (@$period ?: 30);
+  $do = in_array(@$do, u\ray('ok no edit')) ? $do : '';
+  $zxid = (int) (@$zxid ?: 0);
   if ($do) list ($do, $zxid) = explode('=', $do);
-
+//debug(compact(u\ray('args real period do zxid')));
   //  if ($confirm = sure_form($form_state)) return $confirm;
   if ($do == 'edit') return tx_edit($zxid);
   if ($do == 'ok' or $do == 'no') {
     if ($confirm_form = tx_confirm($do, $zxid, $form_state)) return $confirm_form;
     if (!$form_state['rebuild']) tx_okorno($do, $zxid); // don't do anything if canceling
-    r\go("transactions/$real-$period"); // back to the normal form
+    r\go("transactions/real=$real&period=$period"); // back to the normal form
   }
 
   $tx_days = array('4' => '4 days', '30' => '30 days', '90' => '90 days', '180' => '6 months', '365' => '12 months', '-1' => 'Year to date');
+  $ago = @$tx_days[$period] ?: ($period . ' days');
   $ending = time();
-  $starting = strtotime($period == '-1' ? '1jan' : ((1 - @$tx_days[$period]) . ' days'), $ending);
+  $starting = strtotime($period == '-1' ? '1jan' : "$ago ago", $ending);
   $can_sell = api\access('sell');
   $can_buy = api\access('buy and sell');
 
@@ -46,18 +53,18 @@ function txs_form($form, &$form_state, $period = '', $do = '') {
     $is_reward = ($one_type != TX_TRANSFER);
     $to_me = ($one_payee == $cuid);
     $by_me = ($one_taking == $to_me);
-    $reward = @$data[$one_taking ? 'bonus' : 'rebate'];
+    $reward = @$data[$to_me ? 'bonus' : 'rebate'];
     $reward = $reward ? number_format($reward, 2) : '';
     $amount = number_format($one_amount, 2);
-    if ($is_reward) list ($amount, $reward) = array('', $amount); // show interest and signup bonus as rewards
+    if ($is_reward) list ($amount, $reward) = array('', $amount); // show inflation, grants, fines, and signup bonus as rewards
     list ($to_you, $from_you) = $to_me ? array($amount, '') : array('', $amount);
     $state = ($one_state == TX_PENDING and $by_me) ? 'pending' : $states[$one_state];
 //    debug("taking=$one_taking to=$to_me by=$by_me state=$state");
     $color = $colors[$state];
     $state = "<span style='color:$color;'>$state</span>";
-    $button1 = (!$by_me and $one_state == TX_PENDING) ? button('OK', "{$base_path}transactions/$real-$period/ok=$one_zxid", tx_action('ok', $one_state, $to_me, $by_me)) : '';
-    $button2 = (!$is_reward and !@$data['undone']) ? button(' X ', "{$base_path}transactions/$real-$period/no=$one_zxid", tx_action('no', $one_state, $to_me, $by_me)) : '';
-    $button3 = (($one_taking ? $can_sell : $can_buy) and !$is_reward) ? "<a href='{$base_path}transactions/$real-$period/edit=$one_zxid' title='Edit Purpose'><img src='{$base_path}images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
+    $button1 = (!$by_me and $one_state == TX_PENDING) ? button('OK', "{$base_path}transactions/real=$real&period=$period&do=ok&zxid=$one_zxid", tx_action('ok', $one_state, $to_me, $by_me)) : '';
+    $button2 = (!$is_reward and !@$data['undone']) ? button(' X ', "{$base_path}transactions/real=$real&period=$period&do=no&zxid=$one_zxid", tx_action('no', $one_state, $to_me, $by_me)) : '';
+    $button3 = (($one_taking ? $can_sell : $can_buy) and !$is_reward) ? "<a href='{$base_path}transactions/real=$real&period=$period&do=edit&zxid=$one_zxid' title='Edit Purpose'><img src='{$base_path}images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
     $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
     $rows[] = array($tid, strftime('%d-%b', $one_created), $one_name, $from_you, $to_you, $state, $buttons, $one_purpose, $reward);
   }
@@ -203,7 +210,7 @@ function tx_summary($starting, $ending) {
   
   $starting = strftime('%d-%b-%Y', $starting);
   $ending = strftime('%d-%b-%Y', $ending);
-  $pending_balance = tx_bal($pending_gross_in_proper - $pending_gross_out + $pending_rewards);
+  $pending_balance = tx_bal($pending_gross_in_proper - $pending_gross_out + $pending_rewards, '+ ');
   $now_balance = tx_bal($now_balance);
   $old_balance = tx_bal($old_balance);
   $summary_title = "<div id='txsum-title'>SUMMARY</div>";

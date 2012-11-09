@@ -146,11 +146,19 @@ define('TX_CHANNELS', 'None SMS Web Smart Touch');
 // Transaction types
 define('TX_SIGNUP', 0); // signup incentive reward
 define('TX_TRANSFER', 1); // normal fund transfer (usually for actual goods and services)
-define('TX_INFLATION', 2); // reward to conpensate for inflation
-define('TX_REBATE', 3);
-define('TX_BONUS', 4);
+define('TX_REBATE', 2);
+define('TX_BONUS', 3);
+define('TX_RESERVED4', 4); // not currently used
+define('TX_AUTOMATIC', 4); // highest numbered automatic
 
-define('TX_COUNTABLE', 2); // higher numbers don't show on list, so they don't get transaction numbers (tid's)
+define('TX_INFLATION', 5); // reward to conpensate for inflation
+define('TX_GRANT', 6);
+define('TX_LOAN', 7);
+define('TX_RESERVED8', 8); // not currently used
+define('TX_FINE', 9);
+$GLOBALS['txTypes'] = array(
+  t('signup'), t('transfer'), t('rebate'), t('bonus'), '', t('inflation'), t('grant'), t('loan'), '', t('fine'),
+);
 
 $GLOBALS['emailSubjects'] = array(
   'new-invoice' => t('rCredits INVOICE from {OTHER_NAME}'),

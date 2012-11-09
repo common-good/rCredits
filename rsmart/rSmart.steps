@@ -59,7 +59,8 @@ function extraSubs(&$subs) {
 /**
  * members: (ARG)
  *
- * in: Change - featureSetup MAKE
+ * in: adhoc - featureSetup MAKE
+ *     Change - featureSetup MAKE
  *     IdentifyQR - featureSetup MAKE
  *     Insufficient - featureSetup MAKE
  *     Startup - featureSetup MAKE
@@ -76,7 +77,8 @@ function members($list) {
 /**
  * relations: (ARG)
  *
- * in: Change - featureSetup MAKE
+ * in: adhoc - featureSetup MAKE
+ *     Change - featureSetup MAKE
  *     IdentifyQR - featureSetup MAKE
  *     Insufficient - featureSetup MAKE
  *     Startup - featureSetup MAKE
@@ -148,7 +150,6 @@ function memberAsksDeviceToIdentifyQR($agent, $code, $account_id) {
  *     Startup - testDeviceRequestsABadOp TEST
  *     Startup - testDeviceGivesNoCode TEST
  *     Startup - testDeviceGivesABadCode TEST
- *     Startup - testAgentDoesNotHavePermission TEST
  *     UndoAttack - testDeviceGivesNoTransactionId TEST
  *     UndoAttack - testDeviceGivesBadTransactionId TEST
  *     UndoAttack - testDeviceGivesNonexistentTransactionId TEST
@@ -232,22 +233,22 @@ function memberInitializesTheDeviceAsMemberWithPassword($agent, $password) {
 }
 
 /**
- * the app starts up as member (ARG) and code (ARG)
+ * the app starts up as code (ARG)
  *
  * in: Startup - testMemberRerunsTheApp MAKE
  *     Startup - testDeviceGivesNoCode MAKE
  *     Startup - testDeviceGivesABadCode MAKE
- *     Startup - testAgentDoesNotHavePermission MAKE
  */
-function theAppStartsUpAsMemberAndCode($agent, $code) {
+function theAppStartsUpAsCode($code) {
   global $testOnly; if ($testOnly) return FALSE;
-  return t\hitServer('startup', $agent, $code);
+  return t\hitServer('startup', NULL, $code);
 }
 
 /**
  * devices: (ARG)
  *
- * in: Change - featureSetup MAKE
+ * in: adhoc - featureSetup MAKE
+ *     Change - featureSetup MAKE
  *     IdentifyQR - featureSetup MAKE
  *     Insufficient - featureSetup MAKE
  *     Startup - featureSetup MAKE
@@ -417,7 +418,8 @@ function weRespondWithSuccessMessageAndSubs($success, $message, $subs) {
 /**
  * device (ARG) account is (ARG) and agent is (ARG)
  *
- * in: Change - testAMemberChangesAgent MAKE
+ * in: adhoc - testAMemberChangesAccount MAKE
+ *     Change - testAMemberChangesAgent MAKE
  *     Change - testAMemberChangesAccount MAKE
  *     Change - testAMemberChangesToDifferentAccountANDAgent MAKE
  *     Change - testAMemberChangesAgentBackToDefaultAccount MAKE
@@ -437,7 +439,8 @@ function deviceAccountIsAndAgentIs($code, $id, $agent) {
 /**
  * a member asks device (ARG) to change (ARG) to (ARG)
  *
- * in: Change - testAMemberChangesAgent MAKE
+ * in: adhoc - testAMemberChangesAccount MAKE
+ *     Change - testAMemberChangesAgent MAKE
  *     Change - testAMemberChangesAccount MAKE
  *     Change - testAMemberChangesToDifferentAccountANDAgent MAKE
  *     Change - testAMemberChangesAgentBackToDefaultAccount MAKE
@@ -457,7 +460,8 @@ function aMemberAsksDeviceToChangeTo($code, $what, $account_id) {
 /**
  * we respond success (ARG), my_id (ARG), account_name (ARG), show_buttons (ARG), and message (ARG), with subs: (ARG)
  *
- * in: Change - testAMemberChangesAgent TEST
+ * in: adhoc - testAMemberChangesAccount TEST
+ *     Change - testAMemberChangesAgent TEST
  *     Change - testAMemberChangesAccount TEST
  *     Change - testAMemberChangesToDifferentAccountANDAgent TEST
  *     Change - testAMemberChangesAgentBackToDefaultAccount TEST

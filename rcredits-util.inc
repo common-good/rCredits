@@ -595,6 +595,7 @@ function trimAll(&$array) {
  
 function retNum($s) {return is_numeric($s) ? $s : FALSE;}
 function retNotEqual($s, $value) {return $s != $value ? $s : FALSE;}
+function retSet($s) {return isset($s) ? $s : FALSE;}
 
 // Single line functions that need no explanation
 function valid_url($url) {return (\valid_url($url) and preg_match('/^[A-Z0-9\-_]+\.[A-Z0-9\-_]+/i', $url) and strpos($url, '@') === FALSE);}

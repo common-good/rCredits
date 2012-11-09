@@ -68,4 +68,35 @@ Scenario: A member confirms request to charge another member
   | NEW.ZZB   |     250 |
   | NEW.ZZC   |     250 |
 
+Scenario: A member asks to pay another member
+  When member "NEW.ZZA" completes form "tx" with values:
+  | op  | who     | amount | goods | purpose |
+  | Pay | Bea Two | 100    | 1     | labor   |
+  Then we show "confirm payment" with subs:
+  | amount | other_name |
+  | $100   | Bea Two    |
   
+Scenario: A member confirms request to pay another member
+  When member "NEW.ZZA" confirms form "tx" with values:
+  | op  | who     | amount | goods | purpose |
+  | Pay | Bea Two | 100    | 1     | labor   |
+  Then we say "status": "report transaction" with subs:
+  | action | other_name | amount | tid | reward_type | reward_amount | balance |
+  | paid   | Bea Two    | $100   | 2   | rebate      | $5            | $155    |
+  And we email "new-payment" to member "b@example.com" with subs:
+  | created | full_name | other_name | amount | payee_purpose |
+  | %today  | Bea Two   | Abe One    | $100   | labor         |
+  And we show "tx" with subs:
+  | arg1 |
+  | pay  |
+  And transactions:
+  | tx_id    | created   | type      | state    | amount | from      | to      | purpose | taking |
+  | NEW.AAAE | %today | %TX_TRANSFER | %TX_DONE |    100 | NEW.ZZA   | NEW.ZZB | labor   | 0      |
+  | NEW.AAAF | %today | %TX_REBATE   | %TX_DONE |      5 | community | NEW.ZZA | rebate  | 0      |
+  | NEW.AAAG | %today | %TX_BONUS    | %TX_DONE |     10 | community | NEW.ZZB | bonus   | 0      |
+  And balances:
+  | id        | balance |
+  | community |    -765 |
+  | NEW.ZZA   |     155 |
+  | NEW.ZZB   |     360 |
+  | NEW.ZZC   |     250 |

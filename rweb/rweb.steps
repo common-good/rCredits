@@ -58,9 +58,11 @@ function extraSubs(&$subs) {
  * member (ARG) completes form (ARG) with values: (ARG)
  *
  * in: Transact - testAMemberAsksToChargeAnotherMember MAKE
+ *     Transact - testAMemberAsksToPayAnotherMember MAKE
  */
 function memberCompletesFormWithValues($id, $formName, $values, $confirmed = FALSE) {
-  global $testOnly; if ($testOnly) return FALSE;
+global $testOnly; debug(compact(u\ray('id formName values confirmed testOnly')));
+//  global $testOnly; if ($testOnly) return FALSE;
   global $testConfirmation; // confirmation message output, if any
 
   t\logIn($id);
@@ -69,7 +71,11 @@ function memberCompletesFormWithValues($id, $formName, $values, $confirmed = FAL
 
   if (!$confirmed) foreach (t\postProcess($form, 'tx', 'validate') as $one) {
     $one($form, $form_state);
-    if (\drupal_get_messages('error', FALSE)) return FALSE;
+    if ($errors = \drupal_get_messages('error', FALSE)) {
+      $errors = $errors['error']; // the only entry in the array
+      if (u\abbreviates('Unable to send e-mail', @$errors[0])) array_shift($errors); // ignore this offline
+      if (!empty($errors)) return FALSE;
+    }
   }
   $testConfirmation = @$form_state['confirm'];
   if ($i = strpos($testConfirmation, '<hr>')) $testConfirmation = substr($testConfirmation, $i + 4);
@@ -82,6 +88,7 @@ function memberCompletesFormWithValues($id, $formName, $values, $confirmed = FAL
  * member (ARG) confirms form (ARG) with values: (ARG)
  *
  * in: Transact - testAMemberConfirmsRequestToChargeAnotherMember MAKE
+ *     Transact - testAMemberConfirmsRequestToPayAnotherMember MAKE
  */
 function memberConfirmsFormWithValues($id, $formName, $values) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -121,7 +128,9 @@ function aMemberCompletesFormWithValues($formName, $values) {
 /**
  * members: (ARG)
  *
- * in: Transact - featureSetup MAKE
+ * in: Summary - featureSetup MAKE
+ *     Transact - featureSetup MAKE
+ *     Transactions - featureSetup MAKE
  */
 function members($list) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -132,8 +141,11 @@ function members($list) {
 /**
  * transactions: (ARG)
  *
- * in: Transact - featureSetup MAKE
+ * in: Summary - featureSetup MAKE
+ *     Transact - featureSetup MAKE
  *     Transact - testAMemberConfirmsRequestToChargeAnotherMember TEST
+ *     Transact - testAMemberConfirmsRequestToPayAnotherMember TEST
+ *     Transactions - featureSetup MAKE
  */
 function transactions($list) {
   global $testOnly; 
@@ -147,6 +159,7 @@ function transactions($list) {
  * we say (ARG): (ARG) with subs: (ARG)
  *
  * in: Transact - testAMemberConfirmsRequestToChargeAnotherMember TEST
+ *     Transact - testAMemberConfirmsRequestToPayAnotherMember TEST
  */
 function weSayWithSubs($type, $index, $subs) {
   global $testOnly;
@@ -163,6 +176,8 @@ function weSayWithSubs($type, $index, $subs) {
  *
  * in: Transact - testAMemberAsksToChargeAnotherMember TEST
  *     Transact - testAMemberConfirmsRequestToChargeAnotherMember TEST
+ *     Transact - testAMemberAsksToPayAnotherMember TEST
+ *     Transact - testAMemberConfirmsRequestToPayAnotherMember TEST
  */
 function weShowWithSubs($page, $subs) {
   global $testOnly;
@@ -184,6 +199,7 @@ function weShowWithSubs($page, $subs) {
  * we email (ARG) to member (ARG) with subs: (ARG)
  *
  * in: Transact - testAMemberConfirmsRequestToChargeAnotherMember TEST
+ *     Transact - testAMemberConfirmsRequestToPayAnotherMember TEST
  */
 function weEmailToMemberWithSubs($key, $email, $subs) {
   global $testOnly;
@@ -203,7 +219,9 @@ function weShow($arg1) {
 /**
  * relations: (ARG)
  *
- * in: Transact - featureSetup MAKE
+ * in: Summary - featureSetup MAKE
+ *     Transact - featureSetup MAKE
+ *     Transactions - featureSetup MAKE
  */
 function relations($relations) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -214,11 +232,60 @@ function relations($relations) {
 /**
  * balances: (ARG)
  *
- * in: Transact - featureSetup TEST
+ * in: Summary - featureSetup TEST
+ *     Transact - featureSetup TEST
  *     Transact - testAMemberConfirmsRequestToChargeAnotherMember TEST
+ *     Transact - testAMemberConfirmsRequestToPayAnotherMember TEST
+ *     Transactions - featureSetup TEST
  */
 function balances($list) {
   global $testOnly;
   foreach ($list as $one) if (!t\eq(t\uidCredit(t\uid($one['id']))->balance, $one['balance'])) return FALSE;
   return TRUE;
 }
+
+/**
+ * member (ARG) visits page (ARG) with options (ARG)
+ *
+ * in: Summary - testAMemberClicksOnTheSummaryTab MAKE
+ *     Summary - testAForeignRTraderClicksOnTheSummaryTab MAKE
+ *     Transactions - testAMemberLooksAtTransactionsForThePastYear MAKE
+ *     Transactions - testAMemberLooksAtTransactionsForThePastFewDays MAKE
+ */
+function memberVisitsPageWithOptions($id, $page, $options) {
+  global $testOnly; if ($testOnly) return FALSE;
+
+  $cacct = r\acct(); // save, so we can restore it
+  r\acct::setDefault(r\acct($id));
+  global $formShown; $formShown = t\strip(r\Web\show_form($page, $options));
+  r\acct::setDefault($cacct);
+  return TRUE;
+}
+
+/**
+ * we show page (ARG) with: (ARG)
+ *
+ * in: Summary - testAMemberClicksOnTheSummaryTab TEST
+ *     Summary - testAForeignRTraderClicksOnTheSummaryTab TEST
+ *     Transactions - testAMemberLooksAtTransactionsForThePastYear TEST
+ *     Transactions - testAMemberLooksAtTransactionsForThePastFewDays TEST
+ */
+function weShowPageWith($page, $content) {
+  global $testOnly, $formShown;
+  $xi = $i = 0;
+  foreach ($content as $fields) {
+    foreach ($fields as $key => $one) if (strpos($one, '%') !== FALSE) t\lastMinuteSubs($fields[$key]);
+    debug($fields); // keep this
+    foreach ($fields as $key => $one) {
+      if ($key == 'tid' and substr($one, 0, 1) != 'a' and !TEST_REAL) $one = 'a' . $one;
+      if ($one !== '') $i = strpos($formShown, $one, $xi = $i);
+      if ($i === FALSE) {
+        debug(substr($formShown, $xi));
+        debug(compact('xi','one'));
+        return FALSE;
+      } else $i++;
+    }
+  }
+  return TRUE;
+}
+

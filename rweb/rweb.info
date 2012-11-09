@@ -19,3 +19,5 @@ files[] = tests/Signup.test
 files[] = tests/Transaction.test
 files[] = tests/Undo.test
 files[] = tests/Transact.test
+files[] = tests/Summary.test
+files[] = tests/Transactions.test

@@ -105,4 +105,43 @@ class rwebTransact extends DrupalWebTestCase {
     . '\\| NEW.ZZC   |     250 |"');
   }
 
+  // Scenario: A member asks to pay another member
+  public function testAMemberAsksToPayAnotherMember_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    When_('member "NEW.ZZA" completes form "tx" with values: "DATA'
+    . '\\| op  | who     | amount | goods | purpose |'
+    . '\\| Pay | Bea Two | 100    | 1     | labor   |"');
+    Then_('we show "confirm payment" with subs: "DATA'
+    . '\\| amount | other_name |'
+    . '\\| $100   | Bea Two    |"');
+  }
+
+  // Scenario: A member confirms request to pay another member
+  public function testAMemberConfirmsRequestToPayAnotherMember_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    When_('member "NEW.ZZA" confirms form "tx" with values: "DATA'
+    . '\\| op  | who     | amount | goods | purpose |'
+    . '\\| Pay | Bea Two | 100    | 1     | labor   |"');
+    Then_('we say "status": "report transaction" with subs: "DATA'
+    . '\\| action | other_name | amount | tid | reward_type | reward_amount | balance |'
+    . '\\| paid   | Bea Two    | $100   | 2   | rebate      | $5            | $155    |"');
+    And__('we email "new-payment" to member "b@example.com" with subs: "DATA'
+    . '\\| created | full_name | other_name | amount | payee_purpose |'
+    . '\\| %today  | Bea Two   | Abe One    | $100   | labor         |"');
+    And__('we show "tx" with subs: "DATA'
+    . '\\| arg1 |'
+    . '\\| pay  |"');
+    And__('transactions: "DATA'
+    . '\\| tx_id    | created   | type      | state    | amount | from      | to      | purpose | taking |'
+    . '\\| NEW.AAAE | %today | %TX_TRANSFER | %TX_DONE |    100 | NEW.ZZA   | NEW.ZZB | labor   | 0      |'
+    . '\\| NEW.AAAF | %today | %TX_REBATE   | %TX_DONE |      5 | community | NEW.ZZA | rebate  | 0      |'
+    . '\\| NEW.AAAG | %today | %TX_BONUS    | %TX_DONE |     10 | community | NEW.ZZB | bonus   | 0      |"');
+    And__('balances: "DATA'
+    . '\\| id        | balance |'
+    . '\\| community |    -765 |'
+    . '\\| NEW.ZZA   |     155 |'
+    . '\\| NEW.ZZB   |     360 |'
+    . '\\| NEW.ZZC   |     250 |"');
+  }
+
 }

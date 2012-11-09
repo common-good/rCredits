@@ -88,7 +88,7 @@ class call {
     } elseif ($todo == 'setup email' and !$cacct->mail) {
       setup_email($cacct, $this->message);
       api\todo($number, '', '');
-      $balance = u\formatAmount(api\give_signup_incentive($this->uid));
+      $balance = u\formatAmount(api\fund($this->uid, TX_SIGNUP));
       return tt('your account is ready', compact('balance'));
 /*    } elseif (!\user_access('transact via sms')) { // user does not have permission to use the rCredits SMS interface
       // send the user an email here?
