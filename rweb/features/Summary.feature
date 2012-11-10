@@ -5,10 +5,11 @@ SO I know where it stands.
 
 Setup:
   Given members:
-  | id      | full_name  | phone  | address | city  | state  | postal_code | country       | min_balance | account_type  | flags         |
-  | NEW.ZZA | Abe One    | +20001 | POB 1   | Atown | Alaska | 01000       | United States | -100        | %R_PERSONAL   | %BIT_DEFAULTS |
-  | NEW.ZZB | Bea Two    | +20002 | POB 2   | Btown | Utah   | 02000       | United States | -200        | %R_PERSONAL   | %BIT_PARTNER  |
-  | NEW.ZZC | Corner Pub | +20003 | POB 3   | Ctown | Corse  |             | France        | -300        | %R_COMMERCIAL | %BIT_RTRADER  |
+  | id      | full_name  | address | city  | state  | postal_code | country       | min_balance | account_type  | flags       |
+  | NEW.ZZA | Abe One    | POB 1   | Atown | Alaska | 01000       | United States | -100      | %R_PERSONAL   | %BIT_DEFAULTS |
+  | NEW.ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000       | United States | -200      | %R_PERSONAL   | %BIT_PARTNER  |
+  | NEW.ZZC | Corner Pub | POB 3   | Ctown | Corse  |             | France        | -300      | %R_COMMERCIAL | %BIT_RTRADER  |
+
   And relations:
   | id      | main    | agent   | permission        |
   | NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |

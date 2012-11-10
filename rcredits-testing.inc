@@ -28,6 +28,7 @@ function makeAccount($info = array()) {
   $mail = @$my_email ?: "$name@example.com";
   $flags = isset($my_flags) ? $my_flags : (BIT_DEFAULTS | (TEST_REAL ? BIT_RTRADER : 0));
   $community_uid = @$my_communityUid ?: r\serverUid();
+  u\EXPECT(!empty($community_uid), 'empty community uid');
   
   $info = array_merge($info, compact(u\ray('uid flags rebate_percent name full_name mail community_uid')));
   if (!($acct = new r\acct($info))) return FALSE;
@@ -241,8 +242,8 @@ function strip($form) {
 }
 
 function eq($a, $b) {
-  print_r(compact('a','b')); // keep for now
   $result = (($a - $b) * ($a - $b) < .001);
+  if (!$result) print_r(compact('a','b')); // keep for now
   if (!$result) \drupal_set_message(color("unequal: a=$a b=$b", 'error')); // keep for now
   return $result;
 }

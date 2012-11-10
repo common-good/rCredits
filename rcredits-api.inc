@@ -118,12 +118,12 @@ function my_transactions($args) {
   
   $sql = <<<EOF
     SELECT t.*,
-      (SELECT full_name FROM users WHERE uid = IF(t.payer = $cuid, t.payee, t.payer)) AS name,
-      IF(t.payer = $cuid, t.payer_for, t.payee_for) AS purpose
+      (SELECT full_name FROM users WHERE uid=IF(t.payer=$cuid, t.payee, t.payer)) AS name,
+      IF(t.payer=$cuid, t.payer_for, t.payee_for) AS purpose
     FROM $table t 
     $omit_bonuses
     AND $cuid IN (t.payer, t.payee) 
-    AND (t.state IN(:TX_DONE, :TX_PENDING, :TX_DISPUTED) OR (t.state = :TX_DENIED AND t.payee = $cuid))
+    AND (t.state IN(:TX_DONE, :TX_PENDING, :TX_DISPUTED) OR (t.state=:TX_DENIED AND t.payee=$cuid))
     AND t.created>=:starting AND t.created<=:ending
     ORDER BY t.xid DESC
 EOF;
@@ -207,9 +207,10 @@ function undoTx($zxid) {
 // function undo_invoice($zxid, $oldRecord, $old_other_uid, $by_me) // return $solution
     if ($old_by_me) {
       list ($new_state, $solution) = array(TX_DELETED, t('deleted')); // abandon the attempt to invoice
+      r\notify($old_other_uid, $old_to_me ? 'invoice-canceled' : 'offer-canceled', r\txReportArgs($oldRecord));
     } else {
       list ($new_state, $solution) = array(TX_DENIED, t('marked "denied"'));
-      r\notify($old_other_uid, $old_to_me ? 'payment-refused' : 'invoice-denied', r\txReportArgs($oldRecord));
+      r\notify($old_other_uid, $old_to_me ? 'offer-refused' : 'invoice-denied', r\txReportArgs($oldRecord));
     }
     r\setTxState($new_state, $zxid);
   } elseif (!$old_to_me and !$old_by_me) { // someone charged (either unilaterally or I approved it)
@@ -224,8 +225,10 @@ function undoTx($zxid) {
 
   $amount = u\formatAmount($old_amount);
   $tofrom = !$old_to_me ? t('to') : t('from');
-  $other = r\userField('full_name', $old_other_uid);
-  return array("report undo", compact(u\ray('old_tid new_tid amount other tofrom solution old_other_uid')));
+  $other_uid = $old_other_uid;
+  $other = r\userField('full_name', $other_uid);
+  $success = TRUE;
+  return array("report undo", compact(u\ray('success old_tid new_tid amount other tofrom solution other_uid')));
 }
 
 /**
@@ -462,16 +465,16 @@ function fund($uid, $type = TX_SIGNUP, $amount = R_STARTING_BALANCE, $forReal = 
   if (isFrontend()) return backend('fund', compact(u\ray('uid type amount')));
   if (is_array($uid)) extract($uid); // called from api or backend
 
+  $payee_agent = $payee = $uid;
   $cacct = r\acct();
   $ctty = r\userField('community_uid', $payee);
   if ($type > TX_AUTOMATIC and $ctty != $cacct->id) return FALSE; // incentives given only automatically or by community agent
   if (!$forReal) return TRUE;
   
-  $payee_agent = $payee = $uid;
   $payer = $ctty;
   $payer_agent = $cacct->id < 0 ? $cacct->agent : $ctty;
   $taking = ($type >= TX_FINE);
-  $for = $tx_types($type);
+  $for = $GLOBALS['txTypes'][$type];
   r\transact(compact(u\ray('type amount payer payee payer_agent payee_agent for taking')));
   return $amount;
 }

@@ -18,13 +18,13 @@ Summary:
   A member asks to undo a completed charge unilaterally, with insufficient balance  
   A member confirms request to undo a completed charge unilaterally, with insufficient balance  
   
-#Variants:
-#  | %TX_DONE     |
-#  | %TX_DISPUTED |
+Variants:
+  | %TX_DONE     |
+  | %TX_DISPUTED |
 
-#Variants: given/taken
-#  | 00000 |
-#  | 1     |
+Variants: given/taken
+  | 00000 |
+  | 1     |
 
 Setup:
   Given members:

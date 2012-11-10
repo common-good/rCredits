@@ -92,6 +92,6 @@ Scenario: The caller refuses a pending payment
   Then we say to phone +20001 "report undo" with subs:
   | solution          |
   | marked ''denied'' |
-  And we email "payment-refused" to member "c@example.com" with subs:
+  And we email "offer-refused" to member "c@example.com" with subs:
   | created | full_name  | other_name | amount | payer_purpose |
   | %today  | Corner Pub | Abe One    | $100   | wages         |

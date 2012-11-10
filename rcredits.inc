@@ -161,13 +161,17 @@ $GLOBALS['txTypes'] = array(
 );
 
 $GLOBALS['emailSubjects'] = array(
-  'new-invoice' => t('rCredits INVOICE from {OTHER_NAME}'),
-  'new-charge' => t('rCredits CHARGE from {OTHER_NAME}'),
   'new-payment' => t('rCredits PAYMENT from {OTHER_NAME}'),
-  'new-offer' => t('rCredits PAYMENT OFFER from {OTHER_NAME}'),
-  'invoice-denied' => t('rCredits Invoice DENIED by {OTHER_NAME}'),
-  'payment-refused' => t('rCredits Payment REJECTED by {OTHER_NAME}'),
+  'new-charge' => t('rCredits CHARGE from {OTHER_NAME}'),
   'charge-disputed' => t('rCredits Charge DISPUTED by {OTHER_NAME}'),
+
+  'new-invoice' => t('rCredits INVOICE from {OTHER_NAME}'),
+  'invoice-denied' => t('rCredits Invoice DENIED by {OTHER_NAME}'),
+  'invoice-canceled' => t('rCredits Invoice CANCELED by {OTHER_NAME}'),
+
+  'new-offer' => t('rCredits PAYMENT OFFER from {OTHER_NAME}'),
+  'offer-refused' => t('rCredits Payment REJECTED by {OTHER_NAME}'),
+  'offer-canceled' => t('rCredits Invoice CANCELED by {OTHER_NAME}'),
 );
 
 include_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
@@ -175,7 +179,7 @@ include_once __DIR__ . '/acct.class';
 include_once __DIR__ . '/rcredits-circles.inc'; // treat this as an extension of this file, for testing
 
 /**
- * Format and return args for reporting a transaction (old or new)
+ * Format and return args for reporting a transaction (old or new) to the current account.
  * Not all returned args are used for any particular type of transaction.
  * Note that templates and tests depend on the names of some of these fields
  * @param array $tx: the transaction array (including zxid)

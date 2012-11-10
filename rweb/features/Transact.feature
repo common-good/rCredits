@@ -7,10 +7,11 @@ SO I can buy and sell stuff.
 
 Setup:
   Given members:
-  | id      | full_name  | phone  | email         | city  | state  | country       | 
-  | NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | Alaska | United States |
-  | NEW.ZZB | Bea Two    | +20002 | b@example.com | Btown | Utah   | United States |
-  | NEW.ZZC | Corner Pub | +20003 | c@example.com | Ctown | Corse  | France        |
+  | id      | full_name  | address | city  | state  | postal_code | country       | email | account_type  | flags       |
+  | NEW.ZZA | Abe One    | POB 1   | Atown | Alaska | 01000   | United States | a@example.com | %R_PERSONAL   | %BIT_DEFAULTS |
+  | NEW.ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000   | United States | b@example.com | %R_PERSONAL   | %BIT_PARTNER  |
+  | NEW.ZZC | Corner Pub | POB 3   | Ctown | Corse  |         | France        | c@example.com | %R_COMMERCIAL | %BIT_RTRADER  |
+
   And relations:
   | id      | main    | agent   | permission        |
   | NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |
@@ -29,11 +30,9 @@ Setup:
   | NEW.ZZB   |     250 |
   | NEW.ZZC   |     250 |
 
-#Variants: with/without an agent
-#  | "NEW.ZZA" asks device "codeA" | "NEW.ZZC" asks device "codeC" | "NEW.ZZA" $ | "NEW.ZZC" $ | # member to member (pro se) |
-#  | "NEW.ZZB" asks device "codeA" | "NEW.ZZB" asks device "codeC" | "NEW.ZZA" $ | "NEW.ZZC" $ | # agent to member           |
-#  | "NEW.ZZA" asks device "codeA" | "NEW.ZZC" asks device "codeC" | "NEW:ZZA" $ | "NEW:ZZC" $ | # member to agent           |
-#  | "NEW.ZZB" asks device "codeA" | "NEW.ZZB" asks device "codeC" | "NEW:ZZA" $ | "NEW:ZZC" $ | # agent to agent            |
+# (rightly fails, so do this in a separate feature) Variants: with/without an agent
+#  | "NEW.ZZA" | # member to member (pro se) |
+#  | "NEW:ZZA" | # agent to member           |
 
 Scenario: A member asks to charge another member
   When member "NEW.ZZA" completes form "tx" with values:

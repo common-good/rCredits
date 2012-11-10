@@ -5,9 +5,9 @@ SO I can resolve a confict with another member or correct a mistake
 
 Summary:
 
-#Variants:
-#  | %TX_PENDING |
-#  | %TX_REFUSED |
+Variants:
+  | %TX_PENDING | %TX_DONE     |
+  | %TX_DENIED  | %TX_DISPUTED |
 
 Setup:
   Given members:
@@ -46,11 +46,11 @@ Setup:
   | NEW.ZZB   |  250 |
   | NEW.ZZC   |  250 |
 
-Scenario: A member asks to refuse payment
-  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAE", with the request "unconfirmed"
+Scenario: A member asks to refuse to pay invoice
+  When member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "unconfirmed"
   Then we respond with success 1, message "confirm undo", and subs:
   | created   | amount | tofrom  | other_name | purpose |
-  | %today-3w | $100   | to      | Bea Two    | pie E   |
+  | %today-2w | $100   | to      | Abe One    | labor H |
   And balances:
   | id        | balance |
   | community | -750 |
@@ -58,18 +58,74 @@ Scenario: A member asks to refuse payment
   | NEW.ZZB   |  250 |
   | NEW.ZZC   |  250 |
   
-Scenario: A member confirms request to refuse payment
+Scenario: A member confirms request to refuse to pay invoice
+  When member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "confirmed"
+  Then we respond success 1 tx_id "" my_balance 250 other_balance "" and message "report undo" with subs:
+  | solution          |
+  | marked ''denied'' |
+  And we email "invoice-denied" to member "a@example.com" with subs:
+  | created    | full_name | other_name | amount | payee_purpose |
+  | %today-2w  | Abe One   | Corner Pub | $100   | labor H       |
+  And balances:
+  | id        | balance |
+  | community | -750 |
+  | NEW.ZZA   |  250 |
+  | NEW.ZZB   |  250 |
+  | NEW.ZZC   |  250 |
+
+Scenario: A member asks to refuse payment offer
+  When member "NEW.ZZB" asks device "codeB" to undo transaction "NEW.AAAE", with the request "unconfirmed"
+  Then we respond with success 1, message "confirm undo", and subs:
+  | created   | amount | tofrom  | other_name | purpose |
+  | %today-3w | $100   | from    | Abe One    | pie E   |
+  And balances:
+  | id        | balance |
+  | community | -750 |
+  | NEW.ZZA   |  250 |
+  | NEW.ZZB   |  250 |
+  | NEW.ZZC   |  250 |
+  
+Scenario: A member confirms request to refuse payment offer
+  When member "NEW.ZZB" asks device "codeB" to undo transaction "NEW.AAAE", with the request "confirmed"
+  Then we respond success 1 tx_id "" my_balance 250 other_balance "" and message "report undo" with subs:
+  | solution          |
+  | marked ''denied'' |
+  And we email "offer-refused" to member "a@example.com" with subs:
+  | created   | full_name | other_name | amount | payer_purpose |
+  | %today-3w | Abe One   | Bea Two    | $100   | pie E         |
+  And balances:
+  | id        | balance |
+  | community | -750 |
+  | NEW.ZZA   |  250 |
+  | NEW.ZZB   |  250 |
+  | NEW.ZZC   |  250 |
+
+Scenario: A member asks to cancel an invoice
+  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "unconfirmed"
+  Then we respond with success 1, message "confirm undo", and subs:
+  | created   | amount | tofrom | other_name | purpose |
+  | %today-2w | $100   | from   | Corner Pub | labor H |
+
+Scenario: A member confirms request to cancel an invoice
+  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "confirmed"
+  Then we respond success 1 tx_id "" my_balance 250 other_balance "" and message "report undo" with subs:
+  | solution |
+  | deleted  |
+  And we email "invoice-canceled" to member "c@example.com" with subs:
+  | created   | full_name  | other_name | amount | payer_purpose |
+  | %today-2w | Corner Pub | Abe One    | $100   | labor H       |
+  
+Scenario: A member asks to cancel an offer
+  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAE", with the request "unconfirmed"
+  Then we respond with success 1, message "confirm undo", and subs:
+  | created   | amount | tofrom | other_name | purpose |
+  | %today-3w | $100   | to     | Bea Two    | pie E |
+
+Scenario: A member confirms request to cancel an offer
   When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAE", with the request "confirmed"
-  Then we respond success 1 tx_id "NEW.AAAM" my_balance 235 other_balance "" and message "report undo" with subs:
-  | solution | action | other_name | amount | tid | reward_type | reward_amount | balance |
-  | reversed | paid   | Abe One    | $80    | 5   | rebate      | $-8           | $235    |
-  And we email "new-payment" to member "a@example.com" with subs:
-  | created | full_name | other_name | amount | payee_purpose |
-  | %today  | Abe One   | Corner Pub | $80    | reverses #5   |
-  And balances:
-  | id        | balance |
-  | community | -750 |
-  | NEW.ZZA   |  250 |
-  | NEW.ZZB   |  250 |
-  | NEW.ZZC   |  250 |
-  
+  Then we respond success 1 tx_id "" my_balance 250 other_balance "" and message "report undo" with subs:
+  | solution |
+  | deleted  |
+  And we email "offer-canceled" to member "b@example.com" with subs:
+  | created   | full_name | other_name | amount | payee_purpose |
+  | %today-3w | Bea Two   | Abe One    | $100   | pie E       |

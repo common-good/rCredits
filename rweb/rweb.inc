@@ -556,7 +556,7 @@ function tx_form_validate($form, &$form_state) {
 function tx_form_submit($form, &$form_state) {
   if (confirming_s($form_state)) return;
   transfer($form_state['values'], TRUE); // op who amount goods what
-  r\go(current_path());
+  if (!defined('TESTING')) r\go(current_path());
 }
 
 /**

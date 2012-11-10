@@ -74,6 +74,7 @@ global $testOnly; debug(compact(u\ray('id formName values confirmed testOnly')))
     if ($errors = \drupal_get_messages('error', FALSE)) {
       $errors = $errors['error']; // the only entry in the array
       if (u\abbreviates('Unable to send e-mail', @$errors[0])) array_shift($errors); // ignore this offline
+      if (!empty($errors)) debug(compact(u\ray('id formName values confirmed one errors')));
       if (!empty($errors)) return FALSE;
     }
   }
@@ -146,6 +147,7 @@ function members($list) {
  *     Transact - testAMemberConfirmsRequestToChargeAnotherMember TEST
  *     Transact - testAMemberConfirmsRequestToPayAnotherMember TEST
  *     Transactions - featureSetup MAKE
+ *     Transactions - testTransactionsWithOtherStatesShowUpProperly MAKE
  */
 function transactions($list) {
   global $testOnly; 
@@ -237,6 +239,7 @@ function relations($relations) {
  *     Transact - testAMemberConfirmsRequestToChargeAnotherMember TEST
  *     Transact - testAMemberConfirmsRequestToPayAnotherMember TEST
  *     Transactions - featureSetup TEST
+ *     Transactions - testTransactionsWithOtherStatesShowUpProperly TEST
  */
 function balances($list) {
   global $testOnly;
@@ -251,6 +254,7 @@ function balances($list) {
  *     Summary - testAForeignRTraderClicksOnTheSummaryTab MAKE
  *     Transactions - testAMemberLooksAtTransactionsForThePastYear MAKE
  *     Transactions - testAMemberLooksAtTransactionsForThePastFewDays MAKE
+ *     Transactions - testTransactionsWithOtherStatesShowUpProperly MAKE
  */
 function memberVisitsPageWithOptions($id, $page, $options) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -269,19 +273,20 @@ function memberVisitsPageWithOptions($id, $page, $options) {
  *     Summary - testAForeignRTraderClicksOnTheSummaryTab TEST
  *     Transactions - testAMemberLooksAtTransactionsForThePastYear TEST
  *     Transactions - testAMemberLooksAtTransactionsForThePastFewDays TEST
+ *     Transactions - testTransactionsWithOtherStatesShowUpProperly TEST
  */
-function weShowPageWith($page, $content) {
+function weShowPageWith($page, $content, $showDebugs = TRUE) {
   global $testOnly, $formShown;
   $xi = $i = 0;
   foreach ($content as $fields) {
     foreach ($fields as $key => $one) if (strpos($one, '%') !== FALSE) t\lastMinuteSubs($fields[$key]);
-    debug($fields); // keep this
+    if ($showDebugs) debug($fields); // keep this
     foreach ($fields as $key => $one) {
       if ($key == 'tid' and substr($one, 0, 1) != 'a' and !TEST_REAL) $one = 'a' . $one;
       if ($one !== '') $i = strpos($formShown, $one, $xi = $i);
       if ($i === FALSE) {
-        debug(substr($formShown, $xi));
-        debug(compact('xi','one'));
+        if ($showDebugs) debug(substr($formShown, $xi));
+        if ($showDebugs) debug(compact('xi','one'));
         return FALSE;
       } else $i++;
     }
@@ -289,3 +294,16 @@ function weShowPageWith($page, $content) {
   return TRUE;
 }
 
+
+/**
+ * we show page (ARG) without: (ARG)
+ *
+ * in: Transactions - testAMemberLooksAtTransactionsForThePastYear TEST
+ *     Transactions - testAMemberLooksAtTransactionsForThePastFewDays TEST
+ *     Transactions - testTransactionsWithOtherStatesShowUpProperly TEST
+ */
+function weShowPageWithout($page, $content) {
+  global $testOnly;
+  foreach ($content as $one) if (weShowPageWith($page, array($one), FALSE)) return FALSE;
+  return TRUE;
+}
