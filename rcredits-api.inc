@@ -286,7 +286,7 @@ function get($currency, &$amount, $confirmed) {
   if (is_array($currency)) extract($currency); // called from api or backend
   
   if (!access('manage account')) return array('no access get', array(), FALSE);
-  $amount = str_replace(',', '', $amount); // ignore commas
+  $amount = str_replace(',', '', trim($amount)); // ignore commas
   if (!is_numeric($amount)) return array('bad amount', array(), FALSE);
   if ($amount < 0) return array('negative transfer', array(), FALSE);
   if ($amount > R_MAX_AMOUNT) return array('amount too big', array(), FALSE);
@@ -543,7 +543,8 @@ function identify($who, $create = FALSE, $allow_ALL = FALSE, $self_message = 'no
   }
   if (is_array($who)) extract($who); // called from api or backend
 
-  if (($all = trim(strtoupper($who))) == 'ALL') return $allow_ALL ? $all : array('no ALL', array(), array());
+  $who = trim($who);
+  if (($all = strtoupper($who)) == 'ALL') return $allow_ALL ? $all : array('no ALL', array(), array());
   $cuid = r\acct()->id;
 
   if ($phone = u\formatPhone($who, '+n')) $who = $phone;

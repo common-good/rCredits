@@ -12,6 +12,7 @@ use rCredits\API as api;
  * Implement hook_install().
  */
 function rweb_install() {
+  r\Web\userMenuItem('help', 'Help');
   r\Web\userMenuItem('membership', 'Membership Status');
   r\Web\userMenuItem('account', 'Account Settings');
   r\dbQ("UPDATE {menu_links} SET hidden=1 WHERE menu_name='user-menu' AND link_path='user'");

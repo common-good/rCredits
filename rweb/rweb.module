@@ -61,12 +61,14 @@ function rweb_menu() {
   $modal = array('modal' => TRUE);
   
   $menu = array(
+    'help' => r\Web\menu(t('Help'), MENU_CALLBACK, 'show_form', array('help', 1), '', $anyone),
     'summary' => r\Web\menu(t('Summary'), MENU_NORMAL_ITEM, 'show_form', array('summary'), 'read transactions'),
     'transactions' => r\Web\menu(t('Transactions'), MENU_NORMAL_ITEM, 'show_form', array('txs', 1), 'read transactions'),
     'charge' => r\Web\menu(t('Charge'), MENU_NORMAL_ITEM, 'show_form', array('tx'), 'sell'),
     'pay' => r\Web\menu(t('Pay'), MENU_NORMAL_ITEM, 'show_form', array('tx', 1), 'buy and sell'),
     'exchange' => r\Web\menu(t('Get rCredits / USD'), MENU_NORMAL_ITEM, 'show_form', array('exchange'), 'manage account'),
-    'directory' => r\Web\menu(t('Find Businesses'), MENU_NORMAL_ITEM, 'show_form', array('directory'), 'sell'),
+    'directory' => r\Web\menu(t('Find Companies'), MENU_NORMAL_ITEM, 'show_form', array('directory'), 'sell'),
+    'Temporary-Member-ID-Card' => r\Web\menu(t('Print Temporary Member ID Card'), MENU_CALLBACK, 'member_id', array(1),  'sell'),
 
     'sms' => r\Web\menu('Test SMS', MENU_NORMAL_ITEM, 'show_form', array('sms'), '', $anyone), // should be 'admin' not '',...
     'handy' => r\Web\menu('Handy Links', MENU_NORMAL_ITEM, 'handy_links', array(), 'admin'),
@@ -76,9 +78,9 @@ function rweb_menu() {
     'account/cell-access' => r\Web\menu(t('Cell Phone Access'), MENU_LOCAL_TASK, 'show_form', array('cell'), 'manage account'),
     'account/relations' => r\Web\menu(t('Relations'), MENU_LOCAL_TASK, 'show_form', array('relations'), 'manage account'),
     'account/contact-info' => r\Web\menu(t('Contact Information'), MENU_LOCAL_TASK, 'show_form', array('contact_info'), 'manage account'),
-    'company-info' => r\Web\menu(t('Company Info'), MENU_LOCAL_TASK, 'show_form', array('company'), 'company'),
+    'account/company-info' => r\Web\menu(t('Company Info'), MENU_LOCAL_TASK, 'show_form', array('company'), 'company'),
     'account/options' => r\Web\menu(t('Account Options'), MENU_LOCAL_TASK, 'show_form', array('options'), 'manage account'),
-    'account/bank-info' => r\Web\menu(t('Bank Info'), MENU_LOCAL_TASK, 'show_form', array('bank'), 'manage account'),
+//    'account/bank-info' => r\Web\menu(t('Bank Info'), MENU_LOCAL_TASK, 'show_form', array('bank'), 'manage account'),
 
     'radmin' => r\Web\menu(t('Community Overview'), MENU_CALLBACK, 'show_form', array('account'), 'community admin'),
     'radmin/overview' => r\Web\menu('Community Overview', MENU_DEFAULT_LOCAL_TASK, 'show_form', array('account'), 'community admin'),

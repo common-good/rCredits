@@ -7,7 +7,9 @@
 form.rweb {font-family:Arial;}
 form.rweb div.invisible {display:none;}
 
+form.rweb div#edit-title {margin-bottom:0px;}
 form.rweb div#edit-title label {font-size:200%; color:darkgreen;}
+form.rweb div#help-link label {font-size:80%; text-align:left; padding-left:23px; background-image:url(../../../../../images/icons/question-mark.gif); background-repeat:no-repeat; height:20px;}
 form.rweb div.form-item div.description {display:block; clear:both; margin:2px 0px 0px 0px;}
 form.rweb div.form-type-item label {text-align:left;}
 form.rweb div.form-type-textfield {display:inline-block; margin-right:0px; vertical-align:top;}
@@ -28,12 +30,12 @@ form.rweb div.form-type-radio label {display:inline; width:100px; margin-left:3p
 form.labeled div.form-type-textfield {display:block; margin-right:0px;}
 form.labeled label, form.labeled div.form-type-item label {display:inline-block; width:130px; text-align:right; margin-right:0px;} /* default label width */
 form.labeled div#edit-title label,
+form.labeled div#help-link,
 form.labeled div.form-item div.description,
 form.labeled div.description,
 form.labeled input.form-submit,
 form.labeled div.form-radios,
-form.labeled div#edit-subtext,
-form.labeled fieldset {margin-left:135px;}
+form.labeled div#edit-subtext {margin-left:135px;}
 
 form.labeled div.description {font-size:.85em}
 form.labeled div#edit-title label {text-align:left; vertical-align:top; width:100%;}
@@ -187,6 +189,10 @@ div#content {display:block;} /* keeps autocomplete from getting placed in a wack
 
 /* Summary */
 #rcreditswebsummary-form div#edit-credit-limit div.description {display:inline-block; margin-left:5px;}
+#rcreditswebsummary-form div#edit-account-id {margin-bottom:0px;}
+#rcreditswebsummary-form div#edit-card a {font-size:80%;}
+#rcreditswebsummary-form div#edit-cardc {font-size:80%;}
+#rcreditswebsummary-form div#edit-account-name {margin-bottom:0px;}
 
 /* Profile */
 #rcreditswebprofile-form {font-family:Arial;}
@@ -202,17 +208,20 @@ div#content {display:block;} /* keeps autocomplete from getting placed in a wack
 #rcreditsweboptions-form div.form-item-secret-bal div.description {display:inline-block; margin-left:23px;}
 
 /* Popups */
-fieldset#popup {
+fieldset#popup, fieldset#help {
     position: absolute;
     z-index:100;
-    top: 30px;
-    left: 450px;
-    width: 404px;
+    top: 0px;
+    left: 300px;
+    width: 500px;
 	height: 300px;
 	padding-bottom: 2px;
     background: #FFF;
     border-radius: 5px; -moz-border-radius: 5px; -webkit-border-radius: 5px;
     box-shadow: 0px 0px 4px rgba(0,0,0,0.7); -webkit-box-shadow: 0 0 4px rgba(0,0,0,0.7); -moz-box-shadow: 0 0px 4px rgba(0,0,0,0.7);
 }
-fieldset#popup label {font-weight:normal; width:100%;}
-fieldset#popup select {width:380px; overflow:scroll;}
+fieldset#popup label {text-align:left; font-weight:normal; width:100%;}
+fieldset#popup select {width:480px; overflow:auto;}
+fieldset#help {left:450px; height:420px; display:none;}
+fieldset#help div#help-close {float:right; width:26px; height:26px; position:absolute; z-index:99; top:-12px; left:470px;}
+fieldset#help div#help-close label {margin-left:0px; width:26px;}

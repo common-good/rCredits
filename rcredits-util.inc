@@ -51,18 +51,6 @@ function preK($prefix, $s) {
 */
 
 /**
- * Interpret the given transaction type
- * @param mixed $type: a number or string indicating the transaction type
- * @return a corresponding string or number (whatever the $type isn't)
-
-function tx_type($type) {
-  $types = ray(TX_TYPES);
-  return ($type = (is_numeric($type)) ? $types[$type] : array_search($type, $types));
-}
-function tx_types($string) {return strtr($string, array_flip(ray(TX_TYPES)));} // just string, just one way, for now
-*/
-
-/**
  * Return just the specified key/value pairs from the given array.
  * Typical use: extract(just('key2 key4 key 7', $info));
  * If a key did not exist in the original array, it will no be in the returned array either.

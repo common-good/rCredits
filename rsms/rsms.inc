@@ -140,8 +140,8 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'already undone' => t('Transaction is already undone.'),
   'no such tx' => t('That transaction does not exist.'),
   'bank unverified' => t('You cannot exchange rCredits for US Dollars until your bank account has been verified.'),
-  'no ALL' => t('This action is not allowed for "ALL" (meaning all employees)'),
-  'no employees' => t('There are no employees for this account.'),
+  'no ALL' => t('"ALL" (meaning all employees) is not allowed here.'),
+  'no employees' => t('There are no employees related to this account.'),
 );
 
   // help messages (for use with the help command)

@@ -4,7 +4,7 @@
  * Secret rCredits Settings for this rCredits server
  */
 
-define('R_REGION_NAME', 'Western Massachusetts rCredits Region');
+define('R_REGION_NAME', 'Western Massachusetts Region');
 define('R_SERVER_ID', 'NEW'); // qid header for this region's server (New England / Western MA)
 // other 3rd letters: M=ME H=NH V=VT C=CT R=RI P=PA Y=NY A=NYC (apple) B=Boston
 

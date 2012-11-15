@@ -14,7 +14,7 @@ use rCredits as r;
  */
 function txs_form($form, &$form_state, $args = '') {
   $cuid = r\acct()->id;
-  global $base_path;
+  global $base_url;
 
   $args = explode('&', $args);
   foreach ($args as $one) list ($keys[], $values[]) = explode('=', "$one=");
@@ -63,9 +63,9 @@ function txs_form($form, &$form_state, $args = '') {
 //    debug("taking=$one_taking to=$to_me by=$by_me state=$state");
     $color = $colors[$state];
     $state = "<span style='color:$color;'>$state</span>";
-    $button1 = (!$by_me and $one_state == TX_PENDING) ? button('OK', "{$base_path}transactions/real=$real&period=$period&do=ok&zxid=$one_zxid", tx_action('ok', $one_state, $to_me, $by_me)) : '';
-    $button2 = (!$is_reward and !@$data['undone']) ? button(' X ', "{$base_path}transactions/real=$real&period=$period&do=no&zxid=$one_zxid", tx_action('no', $one_state, $to_me, $by_me)) : '';
-    $button3 = (($one_taking ? $can_sell : $can_buy) and !$is_reward) ? "<a href='{$base_path}transactions/real=$real&period=$period&do=edit&zxid=$one_zxid' title='Edit Purpose'><img src='{$base_path}images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
+    $button1 = (!$by_me and $one_state == TX_PENDING) ? button('OK', "$base_url/transactions/real=$real&period=$period&do=ok&zxid=$one_zxid", tx_action('ok', $one_state, $to_me, $by_me)) : '';
+    $button2 = (!$is_reward and !@$data['undone']) ? button(' X ', "$base_url/transactions/real=$real&period=$period&do=no&zxid=$one_zxid", tx_action('no', $one_state, $to_me, $by_me)) : '';
+    $button3 = (($one_taking ? $can_sell : $can_buy) and !$is_reward) ? "<a href='$$base_url/transactions/real=$real&period=$period&do=edit&zxid=$one_zxid' title='Edit Purpose'><img src='$base_url/images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
     $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
     $rows[] = array($tid, strftime('%d-%b', $one_created), $one_name, $from_you, $to_you, $state, $buttons, $one_purpose, $reward);
   }
@@ -82,13 +82,13 @@ function txs_form($form, &$form_state, $args = '') {
   $list = theme_table(compact(u\ray('header rows attributes caption colgroups sticky empty')));
 
   $form = u\prefixKeys('tx_', array(
-    'period' => form_field('select', t('Show transactions for the past'), '', dft($period), $tx_days),
-    'real' => !r\isRTrader() ? form_field('hidden', FALSE) 
-      : form_field('radios', t('Show:'), '', dft($real) + array(u\getConstants(t('Show :R_ASIF_TEXT Transactions')), t('Show Real Transactions'))),
-    'show' => form_field('submit', NULL, t('Submit button'), 'Show'),
-    'do' => form_field('hidden', $do),
-    'summary' => form_field('markup', '', '', array('markup' => tx_summary($starting, $ending))),
-    'transactions' => form_field('markup', '', '', array('markup' => $title . $list . '<br>&nbsp;')),
+    'period' => formField('select', t('Show transactions for the past'), '', dft($period), $tx_days),
+    'real' => !r\isRTrader() ? formField('hidden', FALSE) 
+      : formField('radios', t('Show:'), '', dft($real) + array(u\getConstants(t('Show :R_ASIF_TEXT Transactions')), t('Show Real Transactions'))),
+    'show' => formField('submit', NULL, t('Submit button'), 'Show'),
+    'do' => formField('hidden', $do),
+    'summary' => formField('markup', '', '', array('markup' => tx_summary($starting, $ending))),
+    'transactions' => formField('markup', '', '', array('markup' => $title . $list . '<br>&nbsp;')),
   ));
   return $form;
 }
@@ -171,12 +171,12 @@ function tx_edit($zxid) {
   if (!api\access($my_taking ? 'sell' : 'buy and sell')) return FALSE;
   
   $form = array(
-    'title' => form_field('item', t('Edit Description')),
-//    'review' => form_field('item', $tx_summary),
-    'purpose' => form_field('textfield', t('Purpose'), '', dft($my_my_purpose)),
-    'go' => form_field('submit', NULL, t('Submit button'), 'Update'),
-    'zxid' => form_field('hidden', $zxid),
-    'field' => form_field('hidden', $my_role . '_for'),
+    'title' => formField('item', t('Edit Description')),
+//    'review' => formField('item', $tx_summary),
+    'purpose' => formField('textfield', t('Purpose'), '', dft($my_my_purpose)),
+    'go' => formField('submit', NULL, t('Submit button'), 'Update'),
+    'zxid' => formField('hidden', $zxid),
+    'field' => formField('hidden', $my_role . '_for'),
     
     '#validate' => array('rCredits\\Web\\tx_edit_validate'),
     '#submit' => array('rCredits\\Web\\tx_edit_submit'),

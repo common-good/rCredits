@@ -10,12 +10,13 @@
  *
  * Some coding conventions and strategies:
  *   - Use camelCase for variables and function names, except where otherwise required by Drupal.
- *   - Use all lowercase and underscores for filenames, database fields, and api variables.
+ *   - Use all_lowercase_and_underscores for filenames, database fields, and api variables.
  *   - Keep the code as short as possible without losing clarity.
  *   - In particular, avoid redundant structures by creating small, low-level functions.
  *   - Make the tools easy to use -- that is, allow variations in number and type of arguments if that is convenient.
  *   - Avoid high-level Drupal functions -- for example don't use Views, Fields, and complex modules.
  *
+ * Special rCredits datatypes
  *   qid: a mostly-alphabetic representation of an azid, eg "XXX.YYYY..." used externally for REST and SMS queries.
  *     XXX (3 letters) represents the region's uid, YYYY... (some number of letters) represents a record ID
  *     the separator can be a colon instead of period, giving YYYY... a different meaning
@@ -37,7 +38,7 @@
  *  quid: a qid (7 characters or more) representing a uid acting as its own agent (. separator) OR an reid (: separator)
  *
  * @todo: on successful web request for rCredits, say you will have to Dwolla us $20, to actually be added to the waiting list.
- * @todo: allow surrounding spaces on all web input, leading dollar signs in amounts.
+ * @todo: allow surrounding spaces on all web input, leading dollar signs in amounts. Test.
  * @todo: change zxid to a class. $tx->xid, table, real
  * @todo
  * - handling employees (virtual payments). This should probably be extended to suppliers too,
@@ -50,8 +51,6 @@
  * @todo: don't require email address for SMS signups, set name properly [NOT YET. JUST LEAVE IT.]
  * @todo: store country code rather than country, and state code rather than state
  * @todo: store city code (rather than city), with a code for "other" -- store other in data or r_other (same for country/state)
- * @todo: tx data changes(date, agent, field, oldvalue) (this gives a complete history of the transaction)
- *     (prefixes added to the payer_for or payee_for fields when changing state will not be included in changes)
  * @todo: reporting for a community or server (a form that anyone can use)
  * @todo: download transactions in standard formats
  * @todo: Finish separating backend. Front end should have no registered users. This should wait until after launch.
@@ -80,7 +79,7 @@
  *   desktop computers running an app should store all their own transactions. Encrypted backups of everything to the cloud too.
  *
  * Other thoughts:
- *   Joining by dumb cellphone is for play only. Accounts and transactions created that way get deleted after a week of inactivity.
+ *   Joining by dumb cellphone is for play only. Accounts and transactions created that way should get deleted after a week of inactivity.
  */
  
 namespace rCredits; // typically abbreviated as "r"
@@ -340,23 +339,24 @@ function shortfall($uid, $requestAmount, $preapproved, $real) {
   return $shortfall;
 }
 
+/**
+ * Pay each employee the amount
+ */
 function payEmployees($amount0, $for, $confirmed) {
   $employees = employees();
-  if (empty($employees)) return array('no employees', array(), array());
-  if ($shortfall = shortfall(acct()->id, $amount0, TRUE, isRTrader())) {
+  if (!($employee_count = count($employees))) return array('no employees', array(), array());
+  if ($shortfall = shortfall(acct()->id, $amount0 * $employee_count, TRUE, isRTrader())) {
      $short = u\formatAmount($shortfall);
      return array('short payment', compact('short'), FALSE); // no partial payment of employees
   }
-  $employee_count = count($employees);
-  $amount_unformatted = round($amount0 / $employee_count, 2);
-  $total = u\formatAmount($amount_unformatted * $employee_count);
-  $amount = u\formatAmount($amount_unformatted);
+  $total = u\formatAmount($amount0 * $employee_count);
+  $amount = u\formatAmount($amount0);
   if (!$confirmed) return array('pay employees', compact(u\ray('employee_count amount total')), TRUE);
   $pay_all = TRUE;
   $results = array();
   $successes = 0;
   foreach ($employees as $acct) {
-    $results[] = list ($message, $args, $confirm) = api\transfer('payment', $acct, $amount_unformatted, $for, !u\forCash($for), TRUE, compact('pay_all'));
+    $results[] = list ($message, $args, $confirm) = api\transfer('payment', $acct, $amount0, $for, !u\forCash($for), TRUE, compact('pay_all'));
     if ($args['success']) $successes++;
   }
   $success = ($successes > 0);
@@ -414,6 +414,8 @@ function tempName($info) {
  * @param mixed $new_value: what to update it to
  * @param int $zxid: transaction id & table
  * @param bool $all_related: set all related transactions too (default FALSE)
+ * NOTE: tx data changes(date, agent, field, oldvalue) (this gives a complete history of the transaction)
+ *     (prefixes added to the payer_for or payee_for fields when changing state will not be included in changes)
  */
 function setTxField($field_name, $new_value, $zxid, $all_related = FALSE) {
   $cuid = acct()->id;
