@@ -40,7 +40,7 @@ EOF
       <li><b>Membership Status</b> tells you where you are in the process of becoming an "rTrader" -- an active participant in the rCredits system. This section will give you links to your next steps.</li>
       <li><b>Account</b> shows the balance in your current account. If you have access to more than one account (that is, if some other account names you in the Relations section), then use this dropdown list to select an account to manage.</li>
       <li><b>Help</b> is this page.</li>
-      <li><b>Log out</b> protects you account from unauthorized passersby.</li>
+      <li><b>Log out</b> protects your account from unauthorized passersby.</li>
     </ul>
 EOF
     ),
@@ -78,7 +78,7 @@ EOF
     ),
     'account' => t(<<<EOF
       <p><b>Current password:</b> To change your email address or password, you must supply your current password, as a security precaution.</p>
-      <p><b>Picture:</b> For an individual account you will need to upload a clear photo of your face, for identification. This is the photo that will appear on your Member ID card. Ideally, the picture should be no wider than it is tall. (otherwise it looks peculiar on ther ID card). If you choose too skinny a picture, though, the bottom will get cropped off.</p>
+      <p><b>Picture:</b> For an individual account you will need to upload a clear photo of your face, for identification. This is the photo that will appear on your Member ID card. Ideally, the picture should be no wider than it is tall. (otherwise it looks peculiar on their ID card). If you choose too skinny a picture, though, the bottom will get cropped off.</p>
       $companyAccount
 EOF
     ),
@@ -87,7 +87,7 @@ EOF
 EOF
     ),
     'relations' => t(<<<EOF
-      <p>Connect individual rCredits participants to your account -- either as owners, employees, or others, with limited or full access to the account. This is especially useful for authorizing sales clerks or setting up joint accounts. For companies, the best practice is to use the account ONLY through and individual agent account, so that you always know who did what.</p>
+      <p>Connect individual rCredits participants to your account -- either as owners, employees, or others, with limited or full access to the account. This is especially useful for authorizing sales clerks or setting up joint accounts. For companies, the best practice is to use the account ONLY through an individual agent account, so that you always know who did what.</p>
       <p>To change the setting in the Employee? or Owner? column, click on + or -. The permissions you select in the Permission column will limit what the person can do with this account.</p>
       <p>If you give the person at least "Sell" permission (and save the record), you can click on a link in the final column, to print a Temporary Member ID Card for them to use on behalf of this account.</p>
       <p>Remember to click on "Save Changes".</p>

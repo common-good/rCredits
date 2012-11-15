@@ -172,7 +172,7 @@ function show_form($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     if ($function != 'help') if (($i = array_search('title', array_keys($form))) !== FALSE or $function == 'txs') {
       if ($function == 'txs') $i = -1; // no title on Transactions page, so insert at beginning
       $extras = array('#id' => 'help-link', '#weight' => @$form['title']['#weight']);
-      $help_link = formField('item', t('<a>help with this page</a>')) + $extras; // add a help link just under the title
+      $help_link = formField('item', t('<a>Help with this page</a>')) + $extras; // add a help link just under the title
       $form = array_slice($form, 0, $i+1) + compact('help_link') + array_slice($form, $i+1) + help($function, @$form['#attributes']['class'][0]);
       drupal_add_js(R_TOGGLE_JS, array('type'=>'inline', 'scope'=>'footer'));
 //      debug($form);
@@ -1355,8 +1355,8 @@ function fixupRadios($content, $element) {
  * @todo: add "temp" in lower right corner
  */
 function member_id($uid = '') {
-  require_once("tcpdf/config/lang/eng.php");
-  require_once("tcpdf/tcpdf.php");
+  require_once(__DIR__ . "/../../tcpdf/config/lang/eng.php");
+  require_once(__DIR__ . "/../../tcpdf/tcpdf.php");
   define('PHOTO_MAX', 40); // maximum height and width of photo
 
   $cacct = r\acct();
