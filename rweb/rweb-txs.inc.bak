@@ -139,7 +139,7 @@ function txs_form_validate($form, &$form_state) {
 function txs_form_submit($form, &$form_state) {
   if (confirming_s($form_state)) return;
   extract($form_state['values']);
-  if ($op == 'Show') $form_state['redirect'] = "transactions/real=$tx_real&period=$tx_period";
+  if ($op == 'Show') $form_state['redirect'] = "transactions/$tx_real-$tx_period";
 }
 
 function tx_okorno($tx_task, $zxid) {

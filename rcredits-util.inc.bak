@@ -90,6 +90,7 @@ function validName($name, $individual = TRUE, $picky = TRUE) {
   $pattern = $individual ? "[^\w\-\.,' ]" : '[^\w~!@#\$%\^&\*\(\)\-=\+\\\\;:\'",<\.>/\? ]';
   if (preg_match("`$pattern`iu", $name)) return FALSE; // allows unicode chars and common punctuation
   if (isQid(strtoupper($name))) return FALSE; // never allow a QID as a name
+  debug($name);
   if ($picky and ($words < 2 or $words > 4)) return FALSE;
   return TRUE;
 }

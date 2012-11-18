@@ -14,7 +14,7 @@ form.rweb div.form-item div.description {display:block; clear:both; margin:2px 0
 form.rweb div.form-type-item label {text-align:left;}
 form.rweb div.form-type-textfield {display:inline-block; margin-right:0px; vertical-align:top;}
 form.rweb div.form-type-textfield label {display:inline-block;}
-form.rweb div#edit-subtext label {font-weight:normal; width:100%; text-align:left;}
+form.rweb div#edit-subtext label {font-weight:normal; width:100%;}
 
 form.rweb input {vertical-align:top;}
 form.rweb input[type="text"] {width:240px;}

@@ -94,7 +94,7 @@ EOF
       <p>To remove someone from the list, make them not an employee, not an owner, and no permissions (if they are already that way, you will have to change something and change it back).</p>
 EOF
     ),
-    'contact' => t(<<<EOF
+    'contact_info' => t(<<<EOF
       <p><b>Full name:</b> If you change the name on the account, you will need to buy a new member ID card (or cards) and your account will be disabled until you supply new proof of identity. For companies, your automatic rCredits website address will also change.</p>
       <p><b>Postal code:</b> Your postal code determines what rCredits "Common Good Community" you are in.</p>
       <p><b>All other settings on this page</b> are private for individual accounts, public for company accounts.</p>

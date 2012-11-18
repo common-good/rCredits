@@ -775,17 +775,16 @@ function contact_form_submit($form, &$form_state) {
  */
 function draft_form($form, &$form_state, $argString = '') {
   parse_str($argString, $args);
-  extract(u\just('who return', $args));
+  extract(u\just('who phone return', $args));
   $full_name_desc = t('Their full legal name, properly capitalized');
   unset($args['who']); unset($args['return']); // be neat
-  if (!($phone = u\formatPhone($who))) $full_name = $who;
   
   $form = array(
     'title' => formField('item', t('Draft a Potential New rCredits Member')),
     'subtext' => formField('item', t('Complete both fields and click on "Submit" OR click on any tab to cancel.')),
 //    'subtext' => basic_account_info(),
-    'full_name' => formField('textfield', t('Full name:'), $full_name_desc, dft(@$full_name) + required()),
-    'phone' => formField('textfield', t('Phone:'), t('Their primary phone (landline or cell)'), dft($phone) + required()),
+    'full_name' => formField('textfield', t('Full name:'), $full_name_desc, dft(@$who) + required()),
+    'phone' => formField('textfield', t('Phone:'), t('Their primary phone (landline or cell)'), dft(@$phone ? u\formatPhone($phone): '') + required()),
     'argString' => formField('hidden', http_build_query($args)),
     'return' => formField('hidden', $return),
     'submit' => formField('submit', NULL, t('Submit button'), 'Submit'),

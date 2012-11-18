@@ -526,24 +526,23 @@ function delete_cell($number) {
  * Figure out who the user meant.
  *
  * @param string $who: how the user referred to the trader
+ * @param boolean $create: whether to create a record, if the other trader cannot be identified (default FALSE)
+ *   If true, the other trader will be created only if specified by email or phone
  * @param boolean $allow_ALL: all $who to be "all" (meaning all employees)
  * @param string $self_message: index to error message for identifying oneself
- * UNUSED @param boolean $create: whether to create a record, if the other trader cannot be identified (default FALSE)
- *   If true, the other trader will be created only if specified by email or phone
  * @return one of the following:
  *   'ALL', if the user typed "all"
  *   the other trader's acct
  *   array(error index, array of substitutions, array of possible full_names (0 or more) indexed by uid)
  *   (the caller can test which type of return, with "if (isAcct($returned_value))
  */
-function identify($who, $allow_ALL = FALSE, $self_message = 'no self-trading') {
+function identify($who, $create = FALSE, $allow_ALL = FALSE, $self_message = 'no self-trading') {
   if (isFrontend()) {
-    $result = backend('identify', compact(u\ray('who allow_ALL self_message')));
+    $result = backend('identify', compact(u\ray('who create self_message')));
     return u\isAcct($result) ? $result : ((array) $result);
   }
   if (is_array($who)) extract($who); // called from api or backend
 
-  $create = FALSE; // not currently used
   $who = trim($who);
   if (($all = strtoupper($who)) == 'ALL') return $allow_ALL ? $all : array('no ALL', array(), array());
   $cuid = r\acct()->id;

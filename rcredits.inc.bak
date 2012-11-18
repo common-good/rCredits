@@ -735,14 +735,14 @@ function reid($main_uid, $agent_uid, $permission = '') {
 /**
  * Go to the specified page
  * Accommodate testing, if that's what's happening.
- * Drupal urlencodes the parameters (= and &), so the target page will have to sort that out. (can't use Header() here)
+ * Use straight PHP redirect rather than drupal_goto, because Drupal encodes the parameters (= and &)
  */
 function go($page) {
   if (defined('TESTING')) {
     list ($form, $arg1) = ($page == 'pay' or $page == 'charge') ? array('tx', $page) : array($page, '');
     return Web\show_form($form, $arg1);
   }
-  \drupal_goto($page);
+  header("Location: $page");
 }
 
 /**

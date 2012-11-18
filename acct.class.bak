@@ -38,7 +38,7 @@ class acct {
     } else { // create new db record
       extract($info, EXTR_PREFIX_ALL, 'my');   
       if (isset($my_number) and !isset($my_phone)) $my_phone = $my_number;
-      if (isset($my_phone)) $info['phone'] = u\formatPhone($my_phone, '+n');
+      if (isset($my_phone)) $info['phone'] = u\formatPhone($my_phone);
       
       $info['mail'] = $info['init'] = @$my_email ?: '';
     // Don't create a password (that's how we know it's a temporary account) $info['pass'] = \user_password();

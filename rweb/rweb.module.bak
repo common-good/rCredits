@@ -69,7 +69,7 @@ function rweb_menu() {
     'exchange' => r\Web\menu(t('Get rCredits / USD'), MENU_NORMAL_ITEM, 'show_form', array('exchange'), 'manage account'),
     'directory' => r\Web\menu(t('Find Companies'), MENU_NORMAL_ITEM, 'show_form', array('directory'), 'sell'),
     'Temporary-Member-ID-Card' => r\Web\menu(t('Print Temporary Member ID Card'), MENU_CALLBACK, 'member_id', array(1),  'sell'),
-    'draft' => r\Web\menu(t('Draft into Database'), MENU_CALLBACK, 'show_form', array('draft', 1), 'sell'),
+    'draft' => r\Web\menu(t('Draft into Database'), MENU_CALLBACK, 'show_form', array('draft'), 'sell'),
     
     'sms' => r\Web\menu('Test SMS', MENU_NORMAL_ITEM, 'show_form', array('sms'), '', $anyone), // should be 'admin' not '',...
     'handy' => r\Web\menu('Handy Links', MENU_NORMAL_ITEM, 'handy_links', array(), 'admin'),

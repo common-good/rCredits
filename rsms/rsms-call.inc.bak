@@ -326,7 +326,7 @@ class call {
   function do_transfer($type) {
     extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, and what
 
-    $acct = api\identify($my_who, $type == 'payment');
+    $acct = api\identify($my_who, FALSE, $type == 'payment');
     if ($acct != 'ALL' and !u\isAcct($acct)) return tt($acct); // return the array if error
 
     list ($message, $args, $confirm) = api\transfer($type, $acct, $my_amount, $my_what, !u\forCash($my_what), $this->confirmed);
