@@ -43,7 +43,6 @@ function txs_form($form, &$form_state, $argString = '') {
 
   $states = array(TX_DONE => '&#10004;', TX_PENDING => 'ok?', TX_DENIED => 'denied', TX_DISPUTED => 'disputed');
   $colors = array('&#10004;' => 'green', 'ok?' => 'orange', 'pending' => 'darkgreen', 'denied' => 'red', 'disputed' => 'red');
-  $none = '<span class="none">--</span>'; // let the tests see it
 
   $records = api\my_transactions(compact(u\ray('starting ending real'))); // we use $rows for another purpose, below
   $rows = array();
@@ -55,10 +54,10 @@ function txs_form($form, &$form_state, $argString = '') {
     $to_me = ($one_payee == $cuid);
     $by_me = ($one_taking == $to_me);
     $reward = @$data[$to_me ? 'bonus' : 'rebate'];
-    $reward = $reward ? number_format($reward, 2) : $none;
+    $reward = $reward ? number_format($reward, 2) : R_NONE;
     $amount = number_format($one_amount, 2);
-    if ($is_reward) list ($amount, $reward) = array($none, $amount); // show inflation, grants, fines, and signup bonus as rewards
-    list ($to_you, $from_you) = $to_me ? array($amount, $none) : array($none, $amount);
+    if ($is_reward) list ($amount, $reward) = array(R_NONE, $amount); // show inflation, grants, fines, and signup bonus as rewards
+    list ($to_you, $from_you) = $to_me ? array($amount, R_NONE) : array(R_NONE, $amount);
     $state = ($one_state == TX_PENDING and $by_me) ? 'pending' : $states[$one_state];
 //    debug("taking=$one_taking to=$to_me by=$by_me state=$state");
     $color = $colors[$state];

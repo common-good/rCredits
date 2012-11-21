@@ -17,6 +17,8 @@ require_once __DIR__ . '/../rcredits-testing.inc'; // else fails in show_form()
  * (anything that doesn't have to be in rweb.module)
  */
 
+define('R_NONE', '<span class="none">--</span>'); // let the tests see null values
+
 define('R_TOGGLE_JS', '
   function toggle(field) {
     field = "#" + field;
@@ -897,28 +899,28 @@ EOF;
     $raws0[$reid] = $row; // original data from table
     $isAgent = ($cuid != $main_uid);
     $combo = ($isAgent and @$previousAgent == $main_uid); // related both ways
-    $otherIsPerson = r\acct($agent_uid)->account_type == R_PERSONAL;
-    $idLink = (!$isAgent and $employee_ok and $permission >= PERM_SELL) ? "<a target=\"_blank\" href=\"$base_url/Temporary-Member-ID-Card/$agent_uid\">print Temporary ID Card</a>" : '';
+    $otherIsPerson = r\acct($isAgent ? $main_uid : $agent_uid)->account_type == R_PERSONAL;
+    $idLink = (!$isAgent and $otherIsPerson and $employee_ok and $permission >= PERM_SELL) ? "<a target=\"_blank\" href=\"$base_url/Temporary-Member-ID-Card/$agent_uid\">print Temporary ID Card</a>" : R_NONE;
 
     $id = (count($rows) - ($combo ? 1 : 0)) . "-$reid"; // "row-reid"
     $discrepant = ($employer_ok xor $employee_ok); // exactly one has claimed the relation
     list ($employee_ok, $employer_ok) = array($employee_ok and $isAgent, $employer_ok and !$isAgent);
     $isEmployer = toggle('employee_ok', $employee_ok, $id, $isAgent and $discrepant);
-    $isEmployee = $otherIsPerson ? toggle('employer_ok', $employer_ok, $id, !$isAgent and $discrepant) : '';
-    $isOwner = toggle('is_owner', $is_owner, $id);
-    $perm = dropdown(compact('permission'), $GLOBALS['share permissions'], $id);
+    $isEmployee = $otherIsPerson ? toggle('employer_ok', $employer_ok, $id, !$isAgent and $discrepant) : R_NONE;
+    $isOwner = toggle('is_owner', $is_owner and !$isAgent, $id);
+    $perm = dropdown('permission', $isAgent ? 0 : $permission, $GLOBALS['share permissions'], $id);
 
     if ($combo) { // employee record preceded by other record for same entity
       $thisRow = array_pop($rows); // throw out everything (everything but $isEmployer), use previous record data
-      $thisRow[1] = $isEmployer;
+      if ($isPerson) $thisRow[1] = $isEmployer;
       $thisRaw = array_pop($raws);
       $thisRaw['employee_ok'] = $employee_ok;
     } else {
       $thisRow = array($full_name, $isEmployer, $isEmployee, $isOwner, $perm, $idLink);
       $thisRaw = compact(u\ray('employee_ok employer_ok permission is_owner'));
+      if (!$isPerson) array_splice($thisRow, 1, 1); // companies can't be employees
     }
     
-    if (!$isPerson) $thisRow = array_splice($thisRow, 1, 1); // companies can't be employees
     $rows[] = $thisRow;
     $raws[] = $thisRaw;
     $previousAgent = $agent_uid;
@@ -949,8 +951,7 @@ EOF;
   return $form;
 }
 
-function dropdown($param, $options, $id) {
-  $name = key($param); $value = $param[$name];
+function dropdown($name, $value, $options, $id) {
   $name = "$name-$id";
   return render($zot = array("$name-$id" => formField('select', '', '', compact('value') + attrib(compact('name')), $options)));
 }

@@ -25,12 +25,13 @@ function makeAccount($info = array()) {
   $rebate_percent = isset($my_rebate) ? $my_rebate: (R_REBATE * 100); 
   $full_name = @$my_full_name ?: ('makeAccount ' . randomString(20, 'A'));
   $name = u\shortName($full_name);
+  $pass = @$my_password ?: '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae'; // default to 123
   $mail = @$my_email ?: "$name@example.com";
   $flags = isset($my_flags) ? $my_flags : (BIT_DEFAULTS | (TEST_REAL ? BIT_RTRADER : 0));
   $community_uid = @$my_communityUid ?: r\serverUid();
   u\EXPECT(!empty($community_uid), 'empty community uid');
   
-  $info = array_merge($info, compact(u\ray('uid flags rebate_percent name full_name mail community_uid')));
+  $info = array_merge($info, compact(u\ray('uid flags rebate_percent name pass full_name mail community_uid')));
   if (!($acct = new r\acct($info))) return FALSE;
   
   if (@$my_picture) if (!makePicture($my_picture, $acct)) return FALSE;
@@ -86,7 +87,7 @@ function makeTransaction($info, $infoOnly = FALSE, $real = TEST_REAL) {
 function makeRelation($info) {
   extract($info, EXTR_PREFIX_ALL, 'my');
   
-  $reid = u\a2n(substr($my_id, -3));
+  $reid = u\retNum($my_id) ?: u\a2n(substr($my_id, -3));
   $main = r\acct(fullQid($my_main));
   $agent = r\acct(fullQid($my_agent));
   u\EXPECT((bool) $main, 'main is not an id');
@@ -240,8 +241,12 @@ function postProcess($form, $formName, $type) {
 }
 
 function strip($form) {
-  $form = preg_replace('/<input[^>]* value=" *(.*?) *".*?>/', '$1', $form);
-  $form = preg_replace('/> *</', '> <', $form); // make sure there's exactly one space between things
+  $form = preg_replace('~<fieldset id="help".*?</fieldset>~sm', '', $form); // remove help div
+  $form = preg_replace('~<div[^>]*class="invisible.*?</div>~sm', '', $form); // remove invisible divs (not nested)
+  $form = preg_replace('~<option value="[^"]*">.*?</option>~sm', '', $form); // remove unselected options
+  $form = preg_replace('~<input type="hidden".*?/>~sm', '', $form); // remove hidden inputs
+  $form = preg_replace('/<input[^>]* value=" *(.*?) *".*?>/sm', '$1', $form); // show button labels
+  $form = preg_replace('/> *</sm', '> <', $form); // make sure there's exactly one space between things
   return preg_replace('/\s*$\s*/sm', PHP_EOL, strip_tags($form));
 }
 
@@ -265,8 +270,9 @@ function realFix($msg) {
 /**
  * @param mixed $msg: what to give a background color to (can be any data type)
  */
-function color($msg, $color) {
+function color($msg, $color = 'normal') {
   $colors = array(
+    'normal' => 'ivory',
     'email' => 'lightblue',
     'input' => 'orange',
     'output' => 'thistle',
@@ -277,4 +283,4 @@ function color($msg, $color) {
   return "<pre style='background-color:$color;'>$msg</pre>";
 }
 
-function testOutput($msg, $color) {if (defined('TESTING')) \drupal_set_message(color($msg, $color));}
+function testOutput($msg, $color = 'normal') {if (defined('TESTING')) \drupal_set_message(color($msg, $color));}

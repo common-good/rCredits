@@ -10,7 +10,8 @@ use rCredits\API as api;
 
 include_once __DIR__ . '/rcredits-install.inc'; // treat this as an extension of this file
 
-define('R_TABLES', 'r_area_codes,r_credit_regions,r_nonces,r_txs,r_asif,r_relations,r_industries,r_user_industries');
+define('R_TABLES', 'r_areas,r_regions,r_nonces,r_txs,r_asif,r_relations,r_industries,r_user_industries');
+define('R_PRESERVE', 'r_asif r_txs r_relations r_smarts r_sms r_donations'); // tables whose data must be preserved when reinstalling
 
 /**
  * Implement hook_install().
@@ -41,6 +42,13 @@ function rcredits_install() {
       $sql = file_get_contents("$filename-insert.sql"); // read in a single multi-record INSERT query
       if (!db_query($sql)->rowCount()) die("Failed to insert records for $table.");
 	  }
+  }
+  
+  $key = \variable_get('rcredits_preserve');
+  foreach (u\ray(R_PRESERVE) as $table) {
+    if (r\dbLookup(1, $table)) {
+      \drupal_set_message("Table $table is already populated -- severe error in reinstallation. If you proceed, <b style='background-color:yellow; font-size:300%;'>BE CAREFUL!</b>", 'error');
+    } else \db_query("DROP TABLE $table; RENAME TABLE $table$key TO $table");
   }
 }
 
@@ -187,11 +195,11 @@ function rcredits_schema() {
   $schema['r_scores'] = r\setupTable('Best companies to promote to rTrader in the current round', $fields, NULL, $foreign_keys, $indexes);
   
   /*  
-  r\setupField($schema, 'r_area_codes', 'Area Code', 'telephone area code', 'char 3'); 
-  r\setupField($schema, 'r_area_codes', 'Region', 'state, province, or territory', 'varchar 24'); 
+  r\setupField($schema, 'r_areas', 'Area Code', 'telephone area code', 'char 3'); 
+  r\setupField($schema, 'r_areas', 'Region', 'state, province, or territory', 'varchar 24'); 
   
-  r\setupField($schema, 'r_credit_regions', 'Region', 'state or province', 'char 2');
-  r\setupField($schema, 'r_credit_regions', 'Credit Region', 'credit region id', 'char 2');
+  r\setupField($schema, 'r_regions', 'Region', 'state or province', 'char 2');
+  r\setupField($schema, 'r_regions', 'Credit Region', 'credit region id', 'char 2');
   */
   
   return $schema;
@@ -237,15 +245,13 @@ function rcredits_schema_alter(&$schema) {
  * Best not to use anything much here from other files.
  */
 function rcredits_uninstall() {
-  return; // don't do this, for a while (maybe ever)
   require_once 'rcredits.inc'; // Drupal bug. Uninstall needs this explicit.
   require_once 'rcredits-util.inc';
 
-  $old_fields = array(
-    'users' => explode(' ', 'first_name last_name credit_name can_charge can_vote can_trade is_committed'),
-  );
-  r\make_fields('UNMAKE', $old_fields);
-// (DON'T DELETE record!)  if ($who = variable_set('rcredits_communityUid')) db_query("DELETE FROM users WHERE uid = $who");
+  \variable_set('rcredits_preserve', $key = time());
+  foreach (u\ray(R_PRESERVE) as $table) \db_query("RENAME TABLE $table TO $table$key");
+//  r\make_fields('UNMAKE', $old_fields);
+// (DON'T DELETE record!)  r\dbQ('DELETE FROM users WHERE uid=:ctty', compact('ctty' => r\communityUid()));
 
-  db_query('DROP TABLE IF EXISTS ' . R_TABLES . ',r_credit_tails');
+// (DON'T DELETE TABLES!) db_query('DROP TABLE IF EXISTS ' . R_TABLES);
 }

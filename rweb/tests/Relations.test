@@ -1,9 +1,9 @@
 <?php
 //
-// Feature: Transact
+// Feature: Relations
 //   AS a member
-//   I WANT to transfer rCredits to or from another member (acting on their own behalf)
-//   SO I can buy and sell stuff.
+//   I WANT to manage my account's relations with other rCredits accounts
+//   SO I can buy and sell stuff on behalf of other accounts, and they on mine.
 
 require_once __DIR__ . '/../../../gherkin/test-defs.php';
 require_once __DIR__ . '/../rweb.steps';
@@ -14,7 +14,7 @@ class rwebRelations extends DrupalWebTestCase {
   var $variant;
   const SHORT_NAME = 'Relations';
   const FEATURE_NAME = 'rweb Test - Relations';
-  const DESCRIPTION = 'Transact';
+  const DESCRIPTION = 'Relations';
   const MODULE = 'rweb';
 
   public function gherkin($statement, $type) {
@@ -39,109 +39,149 @@ class rwebRelations extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id      | full_name  | address | city  | state  | postal_code | country       | email | account_type  | flags       |'
-    . '\\| NEW.ZZA | Abe One    | POB 1   | Atown | Alaska | 01000   | United States | a@example.com | %R_PERSONAL   | %BIT_DEFAULTS |'
-    . '\\| NEW.ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000   | United States | b@example.com | %R_PERSONAL   | %BIT_PARTNER  |'
-    . '\\| NEW.ZZC | Corner Pub | POB 3   | Ctown | Corse  |         | France        | c@example.com | %R_COMMERCIAL | %BIT_RTRADER  |"');
-    And__('relations: "DATA'
-    . '\\| id      | main    | agent   | permission        |'
-    . '\\| NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |'
-    . '\\| NEW:ZZB | NEW.ZZB | NEW.ZZA | read transactions |'
-    . '\\| NEW:ZZC | NEW.ZZC | NEW.ZZB | buy and sell      |'
-    . '\\| NEW:ZZD | NEW.ZZC | NEW.ZZA | sell              |"');
+    . '\\| id   | full_name  | account_type  | flags         |'
+    . '\\| .ZZA | Abe One    | %R_PERSONAL   | %BIT_DEFAULTS |'
+    . '\\| .ZZB | Bea Two    | %R_PERSONAL   | %BIT_PARTNER  |'
+    . '\\| .ZZC | Corner Pub | %R_COMMERCIAL | %BIT_RTRADER  |"');
     And__('transactions: "DATA'
-    . '\\| tx_id    | created   | type       | amount | from      | to      | purpose | taking |'
-    . '\\| NEW.AAAB | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |'
-    . '\\| NEW.AAAC | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZB | signup  | 0      |'
-    . '\\| NEW.AAAD | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZC | signup  | 0      |"');
+    . '\\| tx_id | created   | type       | amount | from      | to   | purpose | taking |'
+    . '\\| .AAAB | %today-6m | %TX_SIGNUP |    250 | community | .ZZA | signup  | 0      |'
+    . '\\| .AAAC | %today-6m | %TX_SIGNUP |    250 | community | .ZZB | signup  | 0      |'
+    . '\\| .AAAD | %today-6m | %TX_SIGNUP |    250 | community | .ZZC | signup  | 0      |"');
     Then_('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -750 |'
-    . '\\| NEW.ZZA   |     250 |'
-    . '\\| NEW.ZZB   |     250 |'
-    . '\\| NEW.ZZC   |     250 |"');
+    . '\\| .ZZA      |     250 |'
+    . '\\| .ZZB      |     250 |'
+    . '\\| .ZZC      |     250 |"');
     break;
 
 
     }
   }
 
-  // Scenario: A member asks to charge another member
-  public function testAMemberAsksToChargeAnotherMember_0() {
+  // Scenario: Member has an employee, confirmed
+  public function testMemberHasAnEmployeeConfirmed_0() {
     sceneSetup($this, __FUNCTION__, 0);
-    When_('member "NEW.ZZA" completes form "tx" with values: "DATA'
-    . '\\| op     | who     | amount | goods | purpose |'
-    . '\\| Charge | Bea Two | 100    | 1     | labor   |"');
-    Then_('we show "confirm charge" with subs: "DATA'
-    . '\\| amount | other_name |'
-    . '\\| $100   | Bea Two    |"');
+    Given('relations: "DATA'
+    . '\\| id | main | agent | permission | employer_ok | employee_ok | is_owner |'
+    . '\\| 1  | .ZZA | .ZZB  | sell       | 1           | 1           | 1        |"');
+    When_('member ".ZZA" visits page "relations"');
+    Then_('we show page "relations" with: "DATA'
+    . '\\| Person  | Is employer? | Is employee? | Is owner? | Permission | Print id                |'
+    . '\\| Person  | Is employer? | Is employee? | Is owner? | Permission |                         |'
+    . '\\| Bea Two | No           | Yes          | Yes       | sell       | print Temporary ID Card |"');
   }
 
-  // Scenario: A member confirms request to charge another member
-  public function testAMemberConfirmsRequestToChargeAnotherMember_0() {
+  // Scenario: Member has an employee, unconfirmed
+  public function testMemberHasAnEmployeeUnconfirmed_0() {
     sceneSetup($this, __FUNCTION__, 0);
-    When_('member "NEW.ZZA" confirms form "tx" with values: "DATA'
-    . '\\| op     | who     | amount | goods | purpose |'
-    . '\\| Charge | Bea Two | 100    | 1     | labor   |"');
-    Then_('we say "status": "report invoice" with subs: "DATA'
-    . '\\| action  | other_name | amount | tid |'
-    . '\\| charged | Bea Two    | $100   | 2   |"');
-    And__('we email "new-invoice" to member "b@example.com" with subs: "DATA'
-    . '\\| created | full_name | other_name | amount | payer_purpose |'
-    . '\\| %today  | Bea Two   | Abe One    | $100   | labor         |"');
-    And__('we show "tx" with subs: "DATA'
-    . '\\| arg1   |'
-    . '\\| charge |"');
-    And__('transactions: "DATA'
-    . '\\| tx_id    | created   | type      | state       | amount | from      | to      | purpose | taking |'
-    . '\\| NEW.AAAE | %today | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZB   | NEW.ZZA | labor   | 1      |'
-    . '\\| NEW.AAAF | %today | %TX_REBATE   | %TX_PENDING |      5 | community | NEW.ZZB | rebate  | 0      |'
-    . '\\| NEW.AAAG | %today | %TX_BONUS    | %TX_PENDING |     10 | community | NEW.ZZA | bonus   | 0      |"');
-    And__('balances: "DATA'
-    . '\\| id        | balance |'
-    . '\\| community |    -750 |'
-    . '\\| NEW.ZZA   |     250 |'
-    . '\\| NEW.ZZB   |     250 |'
-    . '\\| NEW.ZZC   |     250 |"');
+    Given('relations: "DATA'
+    . '\\| id | main | agent | permission   | employer_ok | employee_ok | is_owner |'
+    . '\\| 1  | .ZZA | .ZZB  | buy and sell | 1           | 0           | 0        |"');
+    When_('member ".ZZA" visits page "relations"');
+    Then_('we show page "relations" with: "DATA'
+    . '\\| Person  | Is employer? | Is employee? | Is owner? | Permission   | Print ID |'
+    . '\\| Bea Two | No           | Yes          | No        | buy and sell |          |"');
   }
 
-  // Scenario: A member asks to pay another member
-  public function testAMemberAsksToPayAnotherMember_0() {
+  // Scenario: Member has an employee, claimed
+  public function testMemberHasAnEmployeeClaimed_0() {
     sceneSetup($this, __FUNCTION__, 0);
-    When_('member "NEW.ZZA" completes form "tx" with values: "DATA'
-    . '\\| op  | who     | amount | goods | purpose |'
-    . '\\| Pay | Bea Two | 100    | 1     | labor   |"');
-    Then_('we show "confirm payment" with subs: "DATA'
-    . '\\| amount | other_name |'
-    . '\\| $100   | Bea Two    |"');
+    Given('relations: "DATA'
+    . '\\| id | main | agent | permission | employer_ok | employee_ok | is_owner |'
+    . '\\| 1  | .ZZA | .ZZB  | sell       | 0           | 1           | 0        |"');
+    When_('member ".ZZA" visits page "relations"');
+    Then_('we show page "relations" with: "DATA'
+    . '\\| Person  | Is employer? | Is employee? | Is owner? | Permission | Print ID |'
+    . '\\| Bea Two | No           | No           | No        | sell       |          |"');
   }
 
-  // Scenario: A member confirms request to pay another member
-  public function testAMemberConfirmsRequestToPayAnotherMember_0() {
+  // Scenario: Employee can only read
+  public function testEmployeeCanOnlyRead_0() {
     sceneSetup($this, __FUNCTION__, 0);
-    When_('member "NEW.ZZA" confirms form "tx" with values: "DATA'
-    . '\\| op  | who     | amount | goods | purpose |'
-    . '\\| Pay | Bea Two | 100    | 1     | labor   |"');
-    Then_('we say "status": "report transaction" with subs: "DATA'
-    . '\\| action | other_name | amount | tid | reward_type | reward_amount | balance |'
-    . '\\| paid   | Bea Two    | $100   | 2   | rebate      | $5            | $155    |"');
-    And__('we email "new-payment" to member "b@example.com" with subs: "DATA'
-    . '\\| created | full_name | other_name | amount | payee_purpose |'
-    . '\\| %today  | Bea Two   | Abe One    | $100   | labor         |"');
-    And__('we show "tx" with subs: "DATA'
-    . '\\| arg1 |'
-    . '\\| pay  |"');
-    And__('transactions: "DATA'
-    . '\\| tx_id    | created   | type      | state    | amount | from      | to      | purpose | taking |'
-    . '\\| NEW.AAAE | %today | %TX_TRANSFER | %TX_DONE |    100 | NEW.ZZA   | NEW.ZZB | labor   | 0      |'
-    . '\\| NEW.AAAF | %today | %TX_REBATE   | %TX_DONE |      5 | community | NEW.ZZA | rebate  | 0      |'
-    . '\\| NEW.AAAG | %today | %TX_BONUS    | %TX_DONE |     10 | community | NEW.ZZB | bonus   | 0      |"');
-    And__('balances: "DATA'
-    . '\\| id        | balance |'
-    . '\\| community |    -765 |'
-    . '\\| NEW.ZZA   |     155 |'
-    . '\\| NEW.ZZB   |     360 |'
-    . '\\| NEW.ZZC   |     250 |"');
+    Given('relations: "DATA'
+    . '\\| id | main | agent | permission        | employer_ok | employee_ok | is_owner |'
+    . '\\| 1  | .ZZA | .ZZB  | read transactions | 1           | 1           | 1        |"');
+    When_('member ".ZZA" visits page "relations"');
+    Then_('we show page "relations" with: "DATA'
+    . '\\| Person  | Is employer? | Is employee? | Is owner? | Permission        | Print ID |'
+    . '\\| Bea Two | No           | Yes          | Yes       | read transactions |          |"');
+  }
+
+  // Scenario: Member has an employer
+  public function testMemberHasAnEmployer_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    Given('relations: "DATA'
+    . '\\| id | main | agent | permission | employer_ok | employee_ok | is_owner |'
+    . '\\| 1  | .ZZB | .ZZA  | sell       | 1           | 1           | 1        |"');
+    When_('member ".ZZA" visits page "relations"');
+    Then_('we show page "relations" with: "DATA'
+    . '\\| Person  | Is employer? | Is employee? | Is owner? | Permission | Print ID |'
+    . '\\| Bea Two | Yes          | No           | No        | no access  | --       |"');
+  }
+
+  // Scenario: Member has access to employee account
+  public function testMemberHasAccessToEmployeeAccount_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    Given('relations: "DATA'
+    . '\\| id | main | agent | permission | employer_ok | employee_ok | is_owner |'
+    . '\\| 1  | .ZZA | .ZZB  | no access  | 1           | 1           | 1        |'
+    . '\\| 2  | .ZZB | .ZZA  | sell       | 0           | 0           | 0        |"');
+    When_('member ".ZZA" visits page "relations"');
+    Then_('we show page "relations" with: "DATA'
+    . '\\| Person  | Is employer? | Is employee? | Is owner? | Permission | Print ID |'
+    . '\\| Bea Two | No           | Yes          | Yes       | no access  | --       |"');
+    When_('member ".ZZB" visits page "relations"');
+    Then_('we show page "relations" with: "DATA'
+    . '\\| Person  | Is employer? | Is employee? | Is owner? | Permission | Print ID |'
+    . '\\| Abe One | Yes          | No           | No        | sell       | --       |"');
+  }
+
+  // Scenario: Member company has relations
+  public function testMemberCompanyHasRelations_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    Given('relations: "DATA'
+    . '\\| id | main | agent | permission | employer_ok | employee_ok | is_owner |'
+    . '\\| 1  | .ZZC | .ZZA  | sell       | 1           | 1           | 1        |"');
+    When_('member ".ZZC" visits page "relations"');
+    Then_('we show page "relations" with: "DATA'
+    . '\\| Person  | Is employee? | Is owner? | Permission | Print ID                |'
+    . '\\| Abe One | Yes          | Yes       | sell       | print Temporary ID Card |"');
+    And__('we show page "relations" without: "DATA'
+    . '\\| Header       |'
+    . '\\| Is employer? |"');
+    When_('member ".ZZA" visits page "relations"');
+    Then_('we show page "relations" with: "DATA'
+    . '\\| Person     | Is employer? | Is employee? | Is owner? | Permission | Print ID |'
+    . '\\| Corner Pub | Yes          | --           | No        | no access  | --       |"');
+  }
+
+  // Scenario: It's complicated
+  public function testItsComplicated_0() {
+    sceneSetup($this, __FUNCTION__, 0);
+    Given('relations: "DATA'
+    . '\\| id | main | agent | permission     | employer_ok | employee_ok | is_owner |'
+    . '\\| 1  | .ZZA | .ZZB  | sell           | 1           | 0           | 1        |'
+    . '\\| 2  | .ZZB | .ZZA  | no access      | 0           | 1           | 0        |'
+    . '\\| 3  | .ZZA | .ZZC  | buy and sell   | 0           | 1           | 0        |'
+    . '\\| 4  | .ZZC | .ZZA  | manage account | 1           | 0           | 0        |"');
+    When_('member ".ZZA" visits page "relations"');
+    Then_('we show page "relations" with: "DATA'
+    . '\\| Person     | Is employer? | Is employee? | Is owner? | Permission   | Print ID |'
+    . '\\| Bea Two    | Yes          | Yes          | Yes       | sell         | --       |'
+    . '\\| Corner Pub | No           | --           | No        | buy and sell | --       |"');
+    When_('member ".ZZB" visits page "relations"');
+    Then_('we show page "relations" with: "DATA'
+    . '\\| Person  | Is employer? | Is employee? | Is owner? | Permission | Print ID |'
+    . '\\| Abe One | No           | No           | No        | no access  | --       |"');
+    When_('member ".ZZC" visits page "relations"');
+    Then_('we show page "relations" with: "DATA'
+    . '\\| Person  | Is employee? | Is owner? | Permission     | Print ID |'
+    . '\\| Abe One | Yes          | No        | manage account | --       |"');
+    And__('we show page "relations" without: "DATA'
+    . '\\| Header       |'
+    . '\\| Is employer? |"');
   }
 
 }

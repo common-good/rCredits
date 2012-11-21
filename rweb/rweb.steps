@@ -57,9 +57,7 @@ function extraSubs(&$subs) {
 /**
  * member (ARG) completes form (ARG) with values: (ARG)
  *
- * in: Relations - testAMemberAsksToChargeAnotherMember MAKE
- *     Relations - testAMemberAsksToPayAnotherMember MAKE
- *     Transact - testAMemberAsksToChargeAnotherMember MAKE
+ * in: Transact - testAMemberAsksToChargeAnotherMember MAKE
  *     Transact - testAMemberAsksToPayAnotherMember MAKE
  */
 function memberCompletesFormWithValues($id, $formName, $values, $confirmed = FALSE) {
@@ -90,9 +88,7 @@ global $testOnly; debug(compact(u\ray('id formName values confirmed testOnly')))
 /**
  * member (ARG) confirms form (ARG) with values: (ARG)
  *
- * in: Relations - testAMemberConfirmsRequestToChargeAnotherMember MAKE
- *     Relations - testAMemberConfirmsRequestToPayAnotherMember MAKE
- *     Transact - testAMemberConfirmsRequestToChargeAnotherMember MAKE
+ * in: Transact - testAMemberConfirmsRequestToChargeAnotherMember MAKE
  *     Transact - testAMemberConfirmsRequestToPayAnotherMember MAKE
  */
 function memberConfirmsFormWithValues($id, $formName, $values) {
@@ -148,8 +144,6 @@ function members($list) {
  * transactions: (ARG)
  *
  * in: Relations - featureSetup MAKE
- *     Relations - testAMemberConfirmsRequestToChargeAnotherMember TEST
- *     Relations - testAMemberConfirmsRequestToPayAnotherMember TEST
  *     Summary - featureSetup MAKE
  *     Transact - featureSetup MAKE
  *     Transact - testAMemberConfirmsRequestToChargeAnotherMember TEST
@@ -168,9 +162,7 @@ function transactions($list) {
 /**
  * we say (ARG): (ARG) with subs: (ARG)
  *
- * in: Relations - testAMemberConfirmsRequestToChargeAnotherMember TEST
- *     Relations - testAMemberConfirmsRequestToPayAnotherMember TEST
- *     Transact - testAMemberConfirmsRequestToChargeAnotherMember TEST
+ * in: Transact - testAMemberConfirmsRequestToChargeAnotherMember TEST
  *     Transact - testAMemberConfirmsRequestToPayAnotherMember TEST
  */
 function weSayWithSubs($type, $index, $subs) {
@@ -186,11 +178,7 @@ function weSayWithSubs($type, $index, $subs) {
 /**
  * we show (ARG) with subs: (ARG)
  *
- * in: Relations - testAMemberAsksToChargeAnotherMember TEST
- *     Relations - testAMemberConfirmsRequestToChargeAnotherMember TEST
- *     Relations - testAMemberAsksToPayAnotherMember TEST
- *     Relations - testAMemberConfirmsRequestToPayAnotherMember TEST
- *     Transact - testAMemberAsksToChargeAnotherMember TEST
+ * in: Transact - testAMemberAsksToChargeAnotherMember TEST
  *     Transact - testAMemberConfirmsRequestToChargeAnotherMember TEST
  *     Transact - testAMemberAsksToPayAnotherMember TEST
  *     Transact - testAMemberConfirmsRequestToPayAnotherMember TEST
@@ -214,9 +202,7 @@ function weShowWithSubs($page, $subs) {
 /**
  * we email (ARG) to member (ARG) with subs: (ARG)
  *
- * in: Relations - testAMemberConfirmsRequestToChargeAnotherMember TEST
- *     Relations - testAMemberConfirmsRequestToPayAnotherMember TEST
- *     Transact - testAMemberConfirmsRequestToChargeAnotherMember TEST
+ * in: Transact - testAMemberConfirmsRequestToChargeAnotherMember TEST
  *     Transact - testAMemberConfirmsRequestToPayAnotherMember TEST
  */
 function weEmailToMemberWithSubs($key, $email, $subs) {
@@ -237,7 +223,14 @@ function weShow($arg1) {
 /**
  * relations: (ARG)
  *
- * in: Relations - featureSetup MAKE
+ * in: Relations - testMemberHasAnEmployeeConfirmed MAKE
+ *     Relations - testMemberHasAnEmployeeUnconfirmed MAKE
+ *     Relations - testMemberHasAnEmployeeClaimed MAKE
+ *     Relations - testEmployeeCanOnlyRead MAKE
+ *     Relations - testMemberHasAnEmployer MAKE
+ *     Relations - testMemberHasAccessToEmployeeAccount MAKE
+ *     Relations - testMemberCompanyHasRelations MAKE
+ *     Relations - testItsComplicated MAKE
  *     Summary - featureSetup MAKE
  *     Transact - featureSetup MAKE
  *     Transactions - featureSetup MAKE
@@ -252,8 +245,6 @@ function relations($relations) {
  * balances: (ARG)
  *
  * in: Relations - featureSetup TEST
- *     Relations - testAMemberConfirmsRequestToChargeAnotherMember TEST
- *     Relations - testAMemberConfirmsRequestToPayAnotherMember TEST
  *     Summary - featureSetup TEST
  *     Transact - featureSetup TEST
  *     Transact - testAMemberConfirmsRequestToChargeAnotherMember TEST
@@ -265,6 +256,23 @@ function balances($list) {
   global $testOnly;
   foreach ($list as $one) if (!t\eq(t\uidCredit(t\uid($one['id']))->balance, $one['balance'])) return FALSE;
   return TRUE;
+}
+
+/**
+ * member (ARG) visits page (ARG)
+ *
+ * in: Relations - testMemberHasAnEmployeeConfirmed MAKE
+ *     Relations - testMemberHasAnEmployeeUnconfirmed MAKE
+ *     Relations - testMemberHasAnEmployeeClaimed MAKE
+ *     Relations - testEmployeeCanOnlyRead MAKE
+ *     Relations - testMemberHasAnEmployer MAKE
+ *     Relations - testMemberHasAccessToEmployeeAccount MAKE
+ *     Relations - testMemberCompanyHasRelations MAKE
+ *     Relations - testItsComplicated MAKE
+ */
+function memberVisitsPage($id, $page) {
+  global $testOnly; if ($testOnly) return FALSE;
+  return memberVisitsPageWithOptions($id, $page, '');
 }
 
 /**
@@ -280,7 +288,7 @@ function memberVisitsPageWithOptions($id, $page, $options) {
   global $testOnly; if ($testOnly) return FALSE;
 
   $cacct = r\acct(); // save, so we can restore it
-  r\acct::setDefault(r\acct($id));
+  r\acct::setDefault(r\acct(t\fullQid($id)));
   global $formShown; $formShown = t\strip(r\Web\show_form($page, $options));
   r\acct::setDefault($cacct);
   return TRUE;
@@ -289,7 +297,15 @@ function memberVisitsPageWithOptions($id, $page, $options) {
 /**
  * we show page (ARG) with: (ARG)
  *
- * in: Summary - testAMemberClicksOnTheSummaryTab TEST
+ * in: Relations - testMemberHasAnEmployeeConfirmed TEST
+ *     Relations - testMemberHasAnEmployeeUnconfirmed TEST
+ *     Relations - testMemberHasAnEmployeeClaimed TEST
+ *     Relations - testEmployeeCanOnlyRead TEST
+ *     Relations - testMemberHasAnEmployer TEST
+ *     Relations - testMemberHasAccessToEmployeeAccount TEST
+ *     Relations - testMemberCompanyHasRelations TEST
+ *     Relations - testItsComplicated TEST
+ *     Summary - testAMemberClicksOnTheSummaryTab TEST
  *     Summary - testAForeignRTraderClicksOnTheSummaryTab TEST
  *     Transactions - testAMemberLooksAtTransactionsForThePastYear TEST
  *     Transactions - testAMemberLooksAtTransactionsForThePastFewDays TEST
@@ -305,8 +321,8 @@ function weShowPageWith($page, $content, $showDebugs = TRUE) {
       if ($key == 'tid' and substr($one, 0, 1) != 'a' and !TEST_REAL) $one = 'a' . $one;
       if ($one !== '') $i = strpos($formShown, $one, $xi = $i);
       if ($i === FALSE) {
-        if ($showDebugs) debug(substr($formShown, $xi));
-        if ($showDebugs) debug(compact('xi','one'));
+        if ($showDebugs) t\testOutput(substr($formShown, 0, $xi) . ' <b style="font-size:200%;">[OK until here]</b> ' . substr($formShown, $xi));
+        if ($showDebugs) t\testOutput(compact('xi','one'));
         return FALSE;
       } else $i++;
     }
@@ -318,7 +334,9 @@ function weShowPageWith($page, $content, $showDebugs = TRUE) {
 /**
  * we show page (ARG) without: (ARG)
  *
- * in: Transactions - testAMemberLooksAtTransactionsForThePastYear TEST
+ * in: Relations - testMemberCompanyHasRelations TEST
+ *     Relations - testItsComplicated TEST
+ *     Transactions - testAMemberLooksAtTransactionsForThePastYear TEST
  *     Transactions - testAMemberLooksAtTransactionsForThePastFewDays TEST
  *     Transactions - testTransactionsWithOtherStatesShowUpProperly TEST
  */
