@@ -95,6 +95,21 @@ function validName($name, $individual = TRUE, $picky = TRUE) {
 }
 
 /**
+ * Return the rough location of the entity with the given account (city, state, non-US country).
+ */
+function location($acct, $complete = FALSE) {
+  $isUS = ($acct->country == R_COUNTRY);
+  
+  $result = array();
+  if ($complete) $result[] = $acct->address;
+  $result[] = $acct->city;
+  $result[] = ($isUS ? stateAbbrev($acct->state) : $acct->state) . (($complete and $acct->postal_code) ? ' ' . $acct->postal_code : '');
+  if (!$isUS) $result[] = strtoupper($acct->country);
+  foreach ($result as $key => $value) if ($value === '') unset($result[$key]);
+  return join(', ', $result);
+}
+
+/**
  * Return the standard 2-letter abbreviation for the country or vice versa
  * See the latest data on Wikipedia.
  * @todo: get this in agreement with countries.js (sorted by country name)
@@ -182,11 +197,11 @@ function formatPhone($phone, $how = '') {
   $phone = (preg_replace('/[\(\) \-\.]/', '', $phone)); // ignore typical punctuation
   if (substr($phone, 0, 2) == '+1') {
     $phone = substr($phone, 2);
-    if (substr($phone, 0, 1) < 2) return FALSE; // US phone numbers cannot start with 0 or 1
-//    if (strlen($phone) != 10) return FALSE;  // temporarily disabled for debugging
   } elseif (substr($phone, 0, 1) == '+') $foreign = substr($phone, 1);
 
   if (!is_numeric($phone)) return FALSE;
+  if (!$foreign and substr($phone, 0, 1) < 2) return FALSE; // US phone numbers cannot start with 0 or 1
+  if (!$foreign and strlen($phone) != 10) return FALSE;
 
   if ($how == 'n') return $phone;
   if ($how == '+n' or $how == 'internal') return ($foreign ? "+$foreign" : "+1$phone");

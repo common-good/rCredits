@@ -75,7 +75,7 @@ global $testOnly; debug(compact(u\ray('id formName values confirmed testOnly')))
     $one($form, $form_state);
     if ($errors = \drupal_get_messages('error', FALSE)) {
       $errors = $errors['error']; // the only entry in the array
-      while (u\abbreviates('Unable to send e-mail', @$errors[0])) array_shift($errors); // ignore this offline
+      if (u\abbreviates('Unable to send e-mail', @$errors[0])) array_shift($errors); // ignore this offline
       if (!empty($errors)) debug(compact(u\ray('id formName values confirmed one errors')));
       if (!empty($errors)) return FALSE;
     }

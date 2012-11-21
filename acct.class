@@ -42,9 +42,9 @@ class acct {
       
       $info['mail'] = $info['init'] = @$my_email ?: '';
     // Don't create a password (that's how we know it's a temporary account) $info['pass'] = \user_password();
-      $info['full_name'] = @$my_full_name ?: '';
       $short_name = @$my_full_name ? u\shortName($my_full_name) : '';
       $info['name'] =  @$my_name ?: (@$short_name ?: tempName($info));
+      $info['full_name'] = @$my_full_name ?: $info['name'];
       $info['status'] = TRUE;
       $info['is_new'] = TRUE;
       $info['roles'] = 0; // this keeps Drupal happy in user.module

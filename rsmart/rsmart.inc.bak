@@ -174,7 +174,9 @@ function identify($args) {
   if (!@$acct) return api\error('missing acct');
   $full_name = $acct->full_name;
   if ($acct->id == $cuid) return api\error('no self-trading');
-  $location = u\location($acct);
+  $country = $acct->country;
+//  $location = $acct->city . ', ' . ($country == R_COUNTRY ? u\stateAbbrev($acct->state) : $country);
+  $location = $acct->city . ', ' . $acct->state . ($country == R_COUNTRY ? '' : ", $country");
   if (!$acct->proSe()) list ($company_name, $full_name) = array($full_name, r\acct($acct->agent)->full_name);
   $uid = $acct->id;
   if (api\access('charge others')) $other_balance = api\creditInfo(compact('uid'))->balance;

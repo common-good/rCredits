@@ -302,8 +302,8 @@ function makeRandomRelations() {
   for ($agent_uid = UID1; $agent_uid <= UID9; $agent_uid++) {
     if (!in_array($agent_uid, $companies)) {
       $main_uid = $companies[rand(0, count($companies) - 1)];
-      $employer_ok = $employee_ok = TRUE;
-      \drupal_write_record('r_relations', compact(u\ray('main_uid agent_uid $employer_ok employee_ok')));
+      $employee_ok = TRUE;
+      \drupal_write_record('r_relations', compact(u\ray('main_uid agent_uid employee_ok')));
     }
   }
 }

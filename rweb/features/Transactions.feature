@@ -44,7 +44,6 @@ Setup:
   | NEW.ZZB   |     279 |
   | NEW.ZZC   |     323 |
 
-
 Scenario: A member looks at transactions for the past year
   When member "NEW.ZZA" visits page "txs" with options "period=365"
   Then we show page "txs" with:

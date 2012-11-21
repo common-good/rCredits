@@ -77,6 +77,8 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'report get usd' => t("@Exchange approved. @request will be transferred directly to your bank account within 24 hours. Your new balance is @balance."),
   'get usd inactive' => t("If you were an Active Participant in the rCredits system, your request would transfer @amount directly to your bank account. Alas, you are not yet an Active Participant."),
   'your demand' => t("Your total request for rCredits is now @request."),
+  'updated relation' => t('Updated settings for @full_name'),
+  'deleted relation' => t('Deleted relation with @full_name'),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),
@@ -114,7 +116,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'funding error' => t("You do not have permission to fund that person."),
   'no company relations' => t("Only individuals can be related to this account."),
 // not used  'no self-undo' => t("You can't undo transactions with yourself."),
-  'no matching invoice' => t("There is no such invoice to be paid. Type "helpme pay".'),
+  'no matching invoice' => t('There is no such invoice to be paid. Type "helpme pay".'),
   'undo no match' => t("You have no matching transactions to undo."),
   'undo moving target' => t("Can't undo: the last matching transaction has changed."),
   'duplicate email' => t("There is already an account with that email address. Visit rCredits.org to add this cell number to your account."),

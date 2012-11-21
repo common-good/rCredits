@@ -153,17 +153,21 @@ form#rcreditswebaccount-form div.form-type-radio label {display:block;}*/
 #rcreditswebtxs-form td:first-child +td+td+td+td+td+td+td+td {text-align:right;} /* column 9 */
 
 /* Relation form */
+/*#rcreditswebrelations-form div#edit-subtext label {width:450px;}*/
+
 #rcreditswebrelations-form div.form-item-new-person {display:inline-block;}
 #rcreditswebrelations-form div.form-item-new-person label {width:105px;}
 #rcreditswebrelations-form div.form-item-new-person div.description {margin-left:110px;}
 #rcreditswebrelations-form #account-label {font-weight:bold;}
 
-#rcreditswebrelations-form {max-width:800px;}
+/*#rcreditswebrelations-form {max-width:800px;} */
 #rcreditswebrelations-form col.rel-person {width:auto;}
-#rcreditswebrelations-form col.rel-employee {width:62px;}
-#rcreditswebrelations-form col.rel-owner{width:45px;}
+#rcreditswebrelations-form col.rel-employer {width:94px;}
+#rcreditswebrelations-form col.rel-employee {width:96px;}
+#rcreditswebrelations-form col.rel-owner{width:76px;}
 #rcreditswebrelations-form col.rel-permission {width:145px;}
 #rcreditswebrelations-form col.rel-link {width:200px;}
+#rcreditswebrelations-form div.highlight input {background-image:url(../../../../../images/buttons/buttons-highlight.png);}
 
 /* Cell */
 #rcreditswebcell-form input#edit-delete {margin-right:100%;}

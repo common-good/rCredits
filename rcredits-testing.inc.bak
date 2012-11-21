@@ -133,7 +133,7 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
   if ($message = ($message ?: @$fields['message'])) {
     if ($channel != TX_SMS and strlen($message < 30)) $message = u\tt($message, $subs);
     $fields['message'] = realFix($message);
-    if ($subject) { // must be email
+    if ($subject) {
       $fields['message'] = str_replace("\r\n", '', $fields['message']);
       $fields['subject'] = realFix($subject);
     }

@@ -26,18 +26,19 @@
  *     but could have a qid with a hyphen, like AAA-BBB, if needed.)
  *
  *   zid: a signed id (non-zero) -- meaning of negative value varies
- *  azid: array(zid, regionUid), where regionUid is the uid of the server
+ *  azid: array(zid, regionUid), where regionUid is the uid of the server (used only twice. phase it out?)
  *  reid: a relation id (transient, never stored in any other table)
  *   uid: an account id
  *   xid: a transaction id
  *     All transaction database operations are performed by dbQ() on a virtual table {txs} with key zxid.
  *  zxid: a (signed) transaction id (>0: xid in r_txs (real), <0: -xid in r_asif)
- *  ruid: an array of the three uids representing a quid: [main_uid, agent_uid, regionUid]  
+ *  ruid: an array of the three uids representing a quid: [main_uid, agent_uid, regionUid] (phase this out) 
  *
  *  qxid: a qid (8 characters or more) reprersenting a zxid (: means a negative zxid)
  *  quid: a qid (7 characters or more) representing a uid acting as its own agent (. separator) OR an reid (: separator)
  *
  * @todo: on successful web request for rCredits, say you will have to Dwolla us $20, to actually be added to the waiting list.
+ * @todo: allow same email address for multiple accounts
  * @todo: allow surrounding spaces on all web input, leading dollar signs in amounts. Test.
  * @todo: change zxid to a class. $tx->xid, table, real
  * @todo
@@ -55,6 +56,7 @@
  * @todo: download transactions in standard formats
  * @todo: Finish separating backend. Front end should have no registered users. This should wait until after launch.
  * @todo: use popups for some things
+ * @todo: make help divs draggable
  * @todo
  * - remove all direct db operations from interface modules (and their .inc files) -- use api\ and u\ there, but not r\
  *
@@ -623,6 +625,26 @@ function nonoUndo($oldRecord, &$subs = array()) {
 }
 
 /**
+ * Create or update a reverse relation record for the given main_uid and agent_uid
+ * if any of the given fields is positive
+ * @param int $agent_uid: the main_uid (switching to agent)
+ * @param int $main_uid: the agent_uid (switching to main)
+ * @param assoc $data: (byRef) array of field values
+ *   Returned with all fields listed in $fields unset (if any of those fields has a positive value)
+ * @param string $fields: space-delimited list of fields to check
+ * @return (none)
+ */
+function reverseRelations($agent_uid, $main_uid, &$data, $fields) {
+  foreach (u\ray($fields) as $field) if (@$data[$field]) $stay = TRUE;
+  if (!@$stay) return;
+  $subs = compact('main_uid', 'agent_uid');
+  $reid = dbLookup('reid', 'r_relations', 'main_uid=:main_uid AND agent_uid=:agent_uid', $subs);
+  $subs += u\just($fields, $data) + ($reid ? compact('reid') : array());
+  \drupal_write_record('r_relations', $subs, $reid ? 'reid' : array());
+  foreach (u\ray($fields) as $field) unset($data[$field]); // don't get these fields mixed in with the reverse record
+}
+
+/**
  * Say whether one of the accounts owns the other.
  */
 function owning($uid1, $uid2) {
@@ -636,7 +658,7 @@ function owning($uid1, $uid2) {
  */
 function isEmployee($uid, $company = '') {
   if (!$company) $company = acct()->id;
-  $crit = 'main_uid=:company AND agent_uid=:uid';
+  $crit = 'main_uid=:company AND agent_uid=:uid AND employer_ok AND employee_ok';
   return dbLookup(1, 'r_relations', $crit, compact('company', 'uid'));
 }
 
@@ -667,7 +689,7 @@ function uniqueName($full_name) {
  */
 function employees() {
   $cuid = acct()->id;
-  $result = dbQ('SELECT agent_uid, foreign_uid FROM r_relations WHERE main_uid=:cuid AND is_employee', compact('cuid'));
+  $result = dbQ('SELECT agent_uid, foreign_uid FROM r_relations WHERE main_uid=:cuid AND employer_ok AND employee_ok', compact('cuid'));
   $accts = array();
   foreach ($result as $key => $one) {
     extract((array) $one); // agent_uid, foreign_uid
@@ -735,14 +757,14 @@ function reid($main_uid, $agent_uid, $permission = '') {
 /**
  * Go to the specified page
  * Accommodate testing, if that's what's happening.
- * Use straight PHP redirect rather than drupal_goto, because Drupal encodes the parameters (= and &)
+ * Drupal urlencodes the parameters (= and &), so the target page will have to sort that out. (can't use Header() here)
  */
 function go($page) {
   if (defined('TESTING')) {
     list ($form, $arg1) = ($page == 'pay' or $page == 'charge') ? array('tx', $page) : array($page, '');
     return Web\show_form($form, $arg1);
   }
-  header("Location: $page");
+  \drupal_goto($page);
 }
 
 /**

@@ -69,8 +69,8 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
     sceneSetup($this, __FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to identify QR "NEW.ZZB"');
     Then_('we respond with: "DATA'
-    . '\\| success | full_name | location    |'
-    . '\\| 1       | Bea Two   | Btown, Utah |"');
+    . '\\| success | full_name | location  |'
+    . '\\| 1       | Bea Two   | Btown, UT |"');
   }
 
   // Scenario: Member asks us to identify the member's own QR
@@ -97,8 +97,8 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
     Given('member "NEW.ZZA" can charge unilaterally');
     When_('member "NEW.ZZA" asks device "codeA" to identify QR "NEW.ZZB"');
     Then_('we respond with: "DATA'
-    . '\\| success | full_name | location    | other_balance |'
-    . '\\| 1       | Bea Two   | Btown, Utah | 250           |"');
+    . '\\| success | full_name | location  | other_balance |'
+    . '\\| 1       | Bea Two   | Btown, UT | 250           |"');
   }
 
   // Scenario: Member asks us to identify a QR for a company agent

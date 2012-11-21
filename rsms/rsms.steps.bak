@@ -189,7 +189,7 @@ function weEmailToMemberWithSubs($key, $email, $subs) {
  */
 function phoneHasNoName($number) {
   global $testOnly; if ($testOnly) return FALSE;
-  return api\is_tempName(r\userField('name', r\SMS\uid($number)));
+  return u\abbreviates('unknown ', r\userField('name', r\SMS\uid($number)));
 }
 
 /**

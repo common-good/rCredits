@@ -31,8 +31,8 @@ Scenario: Member asks us to identify a QR
 # Actually the member asks to pay or charge. That process begins with identification of the other party's QR.
   When member "NEW.ZZA" asks device "codeA" to identify QR "NEW.ZZB" 
   Then we respond with:
-  | success | full_name | location  |
-  | 1       | Bea Two   | Btown, UT |
+  | success | full_name | location    |
+  | 1       | Bea Two   | Btown, Utah |
 #op="identify"
 #other_balance (current balance for the identified person)
 
@@ -52,8 +52,8 @@ Scenario: Member asks us to identify a QR and member can show balances
   Given member "NEW.ZZA" can charge unilaterally
   When member "NEW.ZZA" asks device "codeA" to identify QR "NEW.ZZB" 
   Then we respond with:
-  | success | full_name | location  | other_balance |
-  | 1       | Bea Two   | Btown, UT | 250           |
+  | success | full_name | location    | other_balance |
+  | 1       | Bea Two   | Btown, Utah | 250           |
 
 Scenario: Member asks us to identify a QR for a company agent
   When member "NEW.ZZA" asks device "codeA" to identify QR "NEW:ZZA"

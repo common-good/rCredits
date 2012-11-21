@@ -43,7 +43,8 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'ok to continue' => t('You may now continue what you were originally doing.'),
   
   // errors
-  'missing purpose' => t('For buying or selling actual goods and services, you must include a description. Otherwise select "cash/loan/etc.". Rebates and bonuses are intended as rewards for productive economic activity in rCredits. Note: for everyone\'s protection, the rCredits software automatically detects and penalizes attempts to "game" the system.'),
+  'missing purpose' => t('<p>For buying or selling actual goods and services, you must include a description. Otherwise select "cash/loan/etc.". Rebates and bonuses are intended as rewards for productive economic activity in rCredits.</p>
+    <p>For everyone\'s protection, the rCredits software automatically detects and penalizes attempts to "game" the system.</p>'),
   'missing field' => t('Missing a required field: @field'),
   'no txs' => t('There are no transactions in that period.'),
   'no relations' => t('There are not yet any relations for this account.'),
@@ -379,10 +380,7 @@ function summary_form($form, &$form_state) {
 
   $cacct = r\acct();
   $name = $cacct->name;
-  $isUS = ($cacct->country == 'United States');
-  $state = $isUS ? u\stateAbbrev($cacct->state) : $cacct->state;
-  $address = "$cacct->address, $cacct->city, $state $cacct->postal_code" . ($isUS ? '' : strtoupper(", $cacct->country"));
-  $address = preg_replace('/ *\,+ */', ', ', $address);
+  $address = u\location($cacct);
 
   $title = formField('item', t('Account Summary'));
 //  'subtext = basic_account_info();
@@ -604,7 +602,8 @@ function tx_form_validate($form, &$form_state) {
 function tx_form_submit($form, &$form_state) {
   if (confirming_s($form_state)) return;
   transfer($form_state['values'], TRUE); // op who amount goods what
-  if (!defined('TESTING')) r\go(current_path());
+  $form_state['redirect'] = current_path(); // clean out the fields
+//  if (!defined('TESTING')) r\go(current_path());
 }
 
 /**
@@ -775,16 +774,17 @@ function contact_form_submit($form, &$form_state) {
  */
 function draft_form($form, &$form_state, $argString = '') {
   parse_str($argString, $args);
-  extract(u\just('who phone return', $args));
+  extract(u\just('who return', $args));
   $full_name_desc = t('Their full legal name, properly capitalized');
   unset($args['who']); unset($args['return']); // be neat
+  if (!($phone = u\formatPhone($who))) $full_name = $who;
   
   $form = array(
     'title' => formField('item', t('Draft a Potential New rCredits Member')),
     'subtext' => formField('item', t('Complete both fields and click on "Submit" OR click on any tab to cancel.')),
 //    'subtext' => basic_account_info(),
-    'full_name' => formField('textfield', t('Full name:'), $full_name_desc, dft(@$who) + required()),
-    'phone' => formField('textfield', t('Phone:'), t('Their primary phone (landline or cell)'), dft(@$phone ? u\formatPhone($phone): '') + required()),
+    'full_name' => formField('textfield', t('Full name:'), $full_name_desc, dft(@$full_name) + required()),
+    'phone' => formField('textfield', t('Phone:'), t('Their primary phone (landline or cell)'), dft($phone) + required()),
     'argString' => formField('hidden', http_build_query($args)),
     'return' => formField('hidden', $return),
     'submit' => formField('submit', NULL, t('Submit button'), 'Submit'),
@@ -812,7 +812,7 @@ function draft_form_submit($form, &$form_state) {
   $acct = new r\acct($info);
   say('info saved|ok to continue');
   $return = str_replace('%_%', '/', $return); // undo original Drupal-anomaly workaround
-  r\go("$return/who=$name&$argString");
+  $form_state['redirect'] = "$return/who=$name&$argString";
 }
 
 function no_selection($list) {
@@ -831,7 +831,7 @@ function bank_form($form, &$form_state) {
   if (!$my_bank_account_name) $my_bank_account_name = $my_full_name;
   
   $form = array();
-  if ($my_country == 'United States') {
+  if ($my_country == R_COUNTRY) {
     $my_routing_number = substr($my_bank_account_number, 4, 9); // chop of USkk
     $my_bank_account_number = substr($my_bank_account_number, 4 + 9); // everything after the routing number
     $routing_number = formField('textfield', t('Routing number:'), t('What is the 9-digit routing number (type carefully)'), dft($my_routing_number) + required());
@@ -859,7 +859,7 @@ function bank_form_validate($form, &$form_state) {
 
 function bank_form_submit($form, &$form_state) {
   extract($form_state['values']);
-  if (r\acct()->country == 'United States') $bank_account_number = "USkk$routing_number$bank_account_number";
+  if (r\acct()->country == R_COUNTRY) $bank_account_number = "USkk$routing_number$bank_account_number";
   r\userUpdate(compact(u\ray('bank_account_name bank_account_number')));
   say('info saved');
 }
@@ -870,30 +870,62 @@ function bank_form_submit($form, &$form_state) {
  */
 function relations_form($form, &$form_state) {
   global $base_url;
-  $cuid = r\acct()->id;
+  $cacct = r\acct();
+  $cuid = $cacct->id;
+  $isPerson = ($cacct->account_type == R_PERSONAL);
   if ($confirm = sureForm($form_state)) return $confirm; // confirm only getUSD
   $account_identifiers = api\account_name($cuid);
-  $header = u\ray('Person,Employee?,Owner?,Permission,');
-  $classes = u\prefixValues('rel-', u\ray('person employee owner permission link'));
+  $header = u\ray('Person,Is employer?,Is employee?,Is owner?,Permission,');
+  $classes = u\prefixValues('rel-', u\ray('person employer employee owner permission link'));
+  if (!$isPerson) {
+    unset($header[1]);
+    unset($classes[1]);
+  }
   
   $sql = <<<EOF
-    SELECT s.reid, s.agent_uid, u.full_name, s.permission, s.is_employee, s.is_owner
-    FROM r_relations s RIGHT JOIN users u ON u.uid = s.agent_uid
-    WHERE s.main_uid=:cuid
-    ORDER BY u.full_name
+    SELECT DISTINCT s.reid, s.main_uid, s.agent_uid, IF(:cuid=s.main_uid, v.full_name, u.full_name) AS full_name,
+      s.permission, s.employer_ok, s.employee_ok, s.is_owner
+    FROM (r_relations s RIGHT JOIN users u ON u.uid = s.main_uid)
+      RIGHT JOIN users v ON v.uid = s.agent_uid
+    WHERE s.main_uid=:cuid OR (s.agent_uid=:cuid AND (s.employee_ok OR s.employer_ok))
+    ORDER BY full_name, IF(:cuid=s.main_uid, s.agent_uid, s.main_uid), (:cuid=s.agent_uid)
 EOF;
   $result = r\dbQ($sql, compact('cuid'));
-  $rows = $original = array();
+  $rows = $raws0 = $raws = array();
   while ($row = $result->fetchAssoc()) {
     extract($row);
-    $original[$reid] = compact(u\ray('permission is_employee is_owner full_name'));
-    $idLink = $permission < PERM_SELL ? '' : "<a target=\"_blank\" href=\"$base_url/Temporary-Member-ID-Card/$agent_uid\">print Temporary Member ID Card</a>";
-    $permission = dropdown('permission', $permission, $GLOBALS['share permissions'], $reid);
-    $rows[] = array($full_name, toggle('is_employee', $is_employee, $reid), toggle('is_owner', $is_owner, $reid), $permission, $idLink);
+    $raws0[$reid] = $row; // original data from table
+    $isAgent = ($cuid != $main_uid);
+    $combo = ($isAgent and @$previousAgent == $main_uid); // related both ways
+    $otherIsPerson = r\acct($agent_uid)->account_type == R_PERSONAL;
+    $idLink = (!$isAgent and $employee_ok and $permission >= PERM_SELL) ? "<a target=\"_blank\" href=\"$base_url/Temporary-Member-ID-Card/$agent_uid\">print Temporary ID Card</a>" : '';
+
+    $id = (count($rows) - ($combo ? 1 : 0)) . "-$reid"; // "row-reid"
+    $discrepant = ($employer_ok xor $employee_ok); // exactly one has claimed the relation
+    list ($employee_ok, $employer_ok) = array($employee_ok and $isAgent, $employer_ok and !$isAgent);
+    $isEmployer = toggle('employee_ok', $employee_ok, $id, $isAgent and $discrepant);
+    $isEmployee = $otherIsPerson ? toggle('employer_ok', $employer_ok, $id, !$isAgent and $discrepant) : '';
+    $isOwner = toggle('is_owner', $is_owner, $id);
+    $perm = dropdown(compact('permission'), $GLOBALS['share permissions'], $id);
+
+    if ($combo) { // employee record preceded by other record for same entity
+      $thisRow = array_pop($rows); // throw out everything (everything but $isEmployer), use previous record data
+      $thisRow[1] = $isEmployer;
+      $thisRaw = array_pop($raws);
+      $thisRaw['employee_ok'] = $employee_ok;
+    } else {
+      $thisRow = array($full_name, $isEmployer, $isEmployee, $isOwner, $perm, $idLink);
+      $thisRaw = compact(u\ray('employee_ok employer_ok permission is_owner'));
+    }
+    
+    if (!$isPerson) $thisRow = array_splice($thisRow, 1, 1); // companies can't be employees
+    $rows[] = $thisRow;
+    $raws[] = $thisRaw;
+    $previousAgent = $agent_uid;
   }
-  $form_state['original_settings'] = $original;
+  $form_state['original_settings'] = compact('raws0', 'raws');
   
-  $help = t("Use this form to mark someone as an employee or owner or to give someone access to this account. Individuals marked as employees are the ones who will get paid in rCredits when you use the Pay form to pay \"all\".<br><br>For example, you might authorize some employees to buy or sell for your company. The system will track who does what. Or you might give your accountant \"read\" permission.");
+  $help = t("Use this form to mark someone as an employee or owner or to give someone access to this account. Individuals marked as employees are the ones who will get paid in rCredits when you use the Pay form to pay \"all\". For example, you might authorize some employees to buy or sell for your company. The system will track who does what. Or you might give your accountant \"read\" permission. Yellow highlights show settings that need to be confirmed -- either by you or by the other party.");
   $subtext = '<span id="account-label">' . t('Current Account') . ":</span> <span id='account-identifiers'>$account_identifiers</span><br><br>$help";
 
   $attributes = array('id' => 'relations');
@@ -917,20 +949,26 @@ EOF;
   return $form;
 }
 
-function dropdown($name, $value, $options, $id) {
+function dropdown($param, $options, $id) {
+  $name = key($param); $value = $param[$name];
   $name = "$name-$id";
   return render($zot = array("$name-$id" => formField('select', '', '', compact('value') + attrib(compact('name')), $options)));
 }
 
-function toggle($field, $value, $id) {
+function toggle($field, $value, $id, $highlight = 'never') {
   $path = current_path();
   $name = $id = "$field-$id";
   $input = \render($zot = array($id => formField('hidden', '', '', attrib(compact(u\ray('id name value'))))));
   $b1 = button(' - ', "toggle('$id');", t('Change to NO'), 'form-no');
   $b2 = button(' + ', "toggle('$id');", t('Change to YES'), 'form-yes');
-  list ($yesvis, $novis) = $value ? array('visible', 'invisible') : array('invisible', 'visible');
+
+  if ('never' != (string) $highlight) {
+    list ($visHigh, $invisHigh) = u\order($highlight, ' highlight', '');
+  } else $highlight = $visHigh = $invisHigh = '';
+
+  list ($yesvis, $novis) = u\order($value, "visible$visHigh", "invisible$invisHigh");
   return <<<EOF
-    <div class="$field-buttons">
+    <div class="$field-buttons$highlight">
     <div id="$id-YES" class="$yesvis form-yes">Yes $b1</div>
     <div id="$id-NO" class="$novis form-no">No &nbsp;$b2</div>
     $input
@@ -939,47 +977,53 @@ EOF;
 }
 
 function relations_form_validate($form, &$form_state) {
+  if (confirming_v($form_state)) return;
   $cuid = r\acct()->id;
   extract($form_state['values']);
-  if (confirming_v($form_state)) return;
   
   if (@$new_person) {
     $acct = whois($new_person, 'new_person', $form_state['values'], FALSE, 'no self-relation');
-    if (api\access('company', $acct)) return say('no company relations', 'new_person');
+//    if (api\access('company', $acct)) return say('no company relations', 'new_person');
     $uid = $acct->id;
     $already = r\dbLookup('1', 'r_relations', 'main_uid=:cuid AND agent_uid=:uid', compact('cuid', 'uid'));
     if ($already) return say('already related', 'new_person');
     $form_state['values']['agent_uid'] = $uid; // save for submission handling
   }
-//  }
 }
 
 function relations_form_submit($form, &$form_state) {
-  $main_uid = r\acct()->id;
   if (confirming_s($form_state)) return;
   
-  extract($form_state['values']);
-  $original = $form_state['original_settings'];
+  $cuid = r\acct()->id;
 
-  if (@$agent_uid) {
+  if ($agent_uid = @$form_state['values']['agent_uid']) { // adding a new relation
+    $main_uid = $cuid;
     $permission = 0; // default to no permissions
     $info = compact(u\ray('main_uid agent_uid permission'));
     $zot = \drupal_write_record('r_relations', $info);
-    $who = r\userField('full_name', $agent_uid);
+    $who = r\acct($agent_uid)->full_name;
     say('report new relation', compact('who'));
   }
 
   $changes = array();
-  foreach ($_POST as $key => $value) { // Drupal doesn't pass along our hidden inputs, so get them directly from $_POST
+  extract(u\just('raws0 raws', $form_state['original_settings']));
+//  debug(compact('raws0','raws'));
+  
+  // Drupal doesn't pass along our hidden inputs, so get them directly from $_POST ...
+  foreach ($_POST as $key => $value) { // ... api\update_relations will have to check permissions and data carefully
     if (!strpos($key, '-')) continue;
-    list ($key, $reid) = explode('-', $key); // eg split permission-2 
-    if (!in_array($key, u\ray('permission is_employee is_owner'))) return NULL; // hack attempt?
-    if ($value != @$original[$reid][$key]) {
-      $changes[$reid][$key] = strtr($value, array('true' => 1, 'false' => 0));
-      $changes[$reid]['full_name'] = $original[$reid]['full_name']; // save for update reporting
+    list ($key, $rawnum, $reid) = explode('-', $key); // eg split permission-2-37
+    if (!in_array($key, array_keys($raws))) return 'bad field in relations'; // hack attempt?
+
+    $value = (int) strtr($value, array('true' => 1, 'false' => 0));
+    if ($value != (int) $raws[$rawnum][$key]) { // changed?
+//      debug("key=$key reid=$reid value=$value orig=".$raws[$rawnum][$key]);
+      $changes[$reid][$key] = $value;
+      $changes[$reid]['original'] = @$raws0[$reid]; // save for update reporting and permission-checking
     }
   }
-  if (!empty($changes)) \drupal_set_message(api\update_relations($changes));
+//  if (!empty($changes)) \drupal_set_message(api\update_relations($changes));
+  if (!empty($changes)) say(api\update_relations($changes));
 }
 
 /**
@@ -1056,11 +1100,12 @@ function cell_form_submit($form, &$form_state) {
   if ($op == 'Verify') {
     step_one($form_state); // no next step (back to original form)
     say(api\add_cell($number));
-    r\go('account/cell-access');
+    $form_state['redirect'] = 'account/cell-access';
   }
     
-  // $op == remove
-  foreach ($cells as $key => $number) if ($number) say(api\delete_cell(substr($number, 1))); // ignore the leading 'x'
+  if ($op == 'Remove') {
+    foreach ($cells as $key => $number) if ($number) say(api\delete_cell(substr($number, 1))); // ignore the leading 'x'
+  }
 }
 
 /**
@@ -1074,7 +1119,7 @@ function register_form(&$form, &$form_state) {
   extract($form_state['input'], EXTR_PREFIX_ALL, 'my'); // overwrites my_country and my_state with input values, on input error
   $onchange = "print_state('edit-state',this.selectedIndex,'');";
   $country_attrib = attrib(compact('onchange'));
-  $company_options = array('is_employee' => t('employee'), 'is_owner' => t('owner'));
+  $company_options = array('employee_ok' => t('employee'), 'is_owner' => t('owner'));
   $onchange = "var info = jQuery('#company_info'); if(jQuery('#edit-account-type').val() == 0) info.show(); else info.hide();";
   $account_type_attrib = attrib(compact('onchange'));
   
@@ -1113,40 +1158,40 @@ function register_form(&$form, &$form_state) {
 }
 
 function register_form_validate($form, &$form_state) {
-  extract($values = $form_state['values'], EXTR_PREFIX_ALL, 'my');
+  extract(u\just('company company_options full_name postal_code', $values = u\trimAll($form_state['values'])));
 
-  if ($my_company) {
-    extract($my_company_options); // just is_employee and is_owner
-    if (!($is_employee or $is_owner)) return say('what relationship', 'company');
-    $company = $my_company;
-    $data = serialize(compact(u\ray('company is_employee is_owner')));
+  if ($company) {
+    extract(u\just('employee_ok is_owner', $company_options));
+    if (!($employee_ok or $is_owner)) return say('what relationship', 'company');
+    $company = $company;
+    $data = serialize(compact(u\ray('company employee_ok is_owner')));
   }
   
-  if ($error = user_validate_name($my_full_name)) return say(str_replace('The username', 'That name', $error));
-  $name = $name0 = r\uniqueName($my_full_name);
-//  $name = $name0 = u\shortName($my_full_name);
+  if ($error = user_validate_name($full_name)) return say(str_replace('The username', 'That name', $error), 'full_name');
+  $name = $name0 = r\uniqueName($full_name);
+//  $name = $name0 = u\shortName($full_name);
 //  if (r\userField(1, 'name=:name', compact('name'))) return say('duplicate name'); // require unique full_name
 
   u\normalizeCase(u\ray('full_name city address'));
-  $community_uid = r\communityUid($my_postal_code);
+  $community_uid = r\communityUid($postal_code);
   $form_state['values'] = array_merge($values, compact(u\ray('name data community_uid')));
 }
 
 function register_form_submit($form, &$form_state) {
-  extract($form_state['values'], EXTR_PREFIX_ALL, 'my');
+  extract(u\just('company company_options uid', $form_state['values']));
   
-  if ($my_company) {
-    extract($my_company_options, EXTR_PREFIX_ALL, 'my');
-    $companyAcct = whois($my_company, 'company', $form_state['values']);
-    if (!r\reid($companyAcct->id, $my_uid)) {
-      list ($main_uid, $agent_uid, $is_owner) = array($companyAcct->id, $my_uid, $my_is_owner);
-      $info = compact(u\ray('main_uid agent_uid is_owner'));
-      \drupal_write_record('r_relations', $info); // leave it to the owner to mark is_employee
+  if ($company) {
+    extract(u\just('is_owner employee_ok', $company_options));
+    $companyAcct = whois($company, 'company', $form_state['values']);
+    if (!r\reid($companyAcct->id, $uid)) {
+      list ($main_uid, $agent_uid, $is_owner) = array($companyAcct->id, $uid, $is_owner);
+      $info = compact(u\ray('main_uid agent_uid employee_ok is_owner'));
+      \drupal_write_record('r_relations', $info);
     }
   }
 // merge fails because account is not saved yet:  api\merge_check(compact(u\ray('email short_name'))); // email fails anyway because it's not unique
-  $quid = r\quid($my_uid, $my_uid);
-  $balance = u\formatAmount(api\fund($my_uid, TX_SIGNUP));
+  $quid = r\quid($uid, $uid);
+  $balance = u\formatAmount(api\fund($uid, TX_SIGNUP));
   say('your account is ready', compact(u\ray('balance quid')));
 }
 
@@ -1449,7 +1494,7 @@ function member_id($uid = '') {
   // Image params: $file, $x='', $y='', $w=0, $h=0, $type='', $link='', $align='', $resize=false, $dpi=300, $palign='', $ismask=false, $imgmask=false, $border=0, $fitbox=false, $hidden=false, $fitonpage=false, $alt=false, $altimgs=array())
   $pdf->Image('images/idcard/frame.jpg', 5, 5, 101, 64, '', '', '', true, 150, '', false, false, 0, false, false, false);
   $pdf->Image($photo, 10, 10, $photoW, $photoH, '', './account', '', true, 150, '', false, false, 0, false, false, false);
-  $pdf->write2DBarcode($qid, 'DATAMATRIX', 53, 25, 25, 25, $style, 'N');
+  $pdf->write2DBarcode("HTTP://RC2.ME/I/$qid", 'QRCODE,Q', 53, 25, 25, 25, $style, 'N'); // L,M,Q,H are low-high error-correction
   $pdf->Image('images/rlogo150.png', 85, 25, 14.93, 20, '', '', '', true, 150, '', false, false, 0, false, false, false);
 
   $html = strtr('<span style="font-size:22px;">Member ID<br><span style="font-size:38px; color:darkred;">@CODE</span><br>@REGION</span>', array('@CODE' => $qid, '@REGION' => R_REGION_NAME));
@@ -1469,7 +1514,7 @@ function member_id($uid = '') {
  */
 function identifiers($acct) {
   list ($agent, $company) = $acct->proSe() ? array($acct, '') : array(r\acct($acct->agent), $acct->full_name);
-  $location = $acct->city . ', ' . $acct->state . ($acct->country == 'United States' ? '' : ", $acct->country");
+  $location = u\location($acct);
   $pic = profile_picture($agent->id, TRUE);
   return <<<EOF
     <div class="clearfix">
