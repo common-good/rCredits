@@ -16,7 +16,7 @@
 use rCredits as r;
 use rCredits\Testing as t;
 use rCredits\Util as u;
-use rCredits\API as api;
+use rCredits\Backend as be;
 
 require_once __DIR__ . '/../rcredits.inc';
 require_once __DIR__ . '/../rcredits-testing.inc';
@@ -189,7 +189,7 @@ function weEmailToMemberWithSubs($key, $email, $subs) {
  */
 function phoneHasNoName($number) {
   global $testOnly; if ($testOnly) return FALSE;
-  return api\is_tempName(r\userField('name', r\SMS\uid($number)));
+  return be\isTempName(r\userField('name', r\SMS\uid($number)));
 }
 
 /**
@@ -215,7 +215,7 @@ function phoneIsNotWaitingTo($number, $todo) {
  */
 function phoneIsWaitingTo($number, $todo, $recalled = FALSE) {
   global $testOnly;
-  $actualTodo = api\todo($number);
+  $actualTodo = be\todo($number);
   $is = (@$actualTodo->todo == $todo);
   if ($is or $testOnly or $recalled) return $is;
   if ($todo == 'setup name') {
@@ -395,9 +395,9 @@ function transactions($list) {
 function phoneConfirms($number, $request) {
   global $testOnly; if ($testOnly) return FALSE;
   phoneSays($number, $request);
-//  debug(api\todo($number));
-//  if (!($nonce = api\todo($number)->nonce)) debug(print_r(compact('number','request','nonce'), 1));
-  if (!($nonce = api\todo($number)->nonce)) return FALSE; // (null kills phoneSays)
+//  debug(be\todo($number));
+//  if (!($nonce = be\todo($number)->nonce)) debug(print_r(compact('number','request','nonce'), 1));
+  if (!($nonce = be\todo($number)->nonce)) return FALSE; // (null kills phoneSays)
   phoneSays($number, $nonce);
   return TRUE;
 }
@@ -423,16 +423,16 @@ function phoneCanChargeUnilaterally($number) {
  */
 function theExpectedNonceForPhoneIs($number, $nonce) {
   global $testOnly;
-  $old = api\todo($number);
+  $old = be\todo($number);
   $same = ($old->nonce == $nonce);
   if ($testOnly or $same) return $same;
   
   if ($nonce and !$old->nonce) {
     phoneIsAMember($number2 = randomPhone(), 'Firstname2 theExpectedNonceForPhoneIs');
     phoneSays($number, "10 to $number2");
-    $old = api\todo($number);
+    $old = be\todo($number);
   }
-  api\todo($number, $nonce ? $old->todo : '', $nonce);
+  be\todo($number, $nonce ? $old->todo : '', $nonce);
   return TRUE;
 }
 

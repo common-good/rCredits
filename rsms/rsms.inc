@@ -1,7 +1,7 @@
 <?php
 namespace rCredits\SMS;
 use rCredits as r;
-use rCredits\API as api;
+use rCredits\Backend as be;
 use rCredits\Util as u;
 require_once __DIR__ . '/../rcredits-api.inc'; // Drupal bug (needs this explicit)
 require_once __DIR__ . '/../rcredits-util.inc';

@@ -7,86 +7,11 @@
  *   - the Drupalish callbacks, which are in rcredits.module
  *   - application interfaces to the user interfaces, which are in rcredits-api.inc (i)
  *   - utilities, which are in rcredits-util.inc (u)
- *
- * Some coding conventions and strategies:
- *   - Use camelCase for variables and function names, except where otherwise required by Drupal.
- *   - Use all_lowercase_and_underscores for filenames, database fields, and api variables.
- *   - Keep the code as short as possible without losing clarity.
- *   - In particular, avoid redundant structures by creating small, low-level functions.
- *   - Make the tools easy to use -- that is, allow variations in number and type of arguments if that is convenient.
- *   - Avoid high-level Drupal functions -- for example don't use Views, Fields, and complex modules.
- *
- * Special rCredits datatypes
- *   qid: a mostly-alphabetic representation of an azid, eg "XXX.YYYY..." used externally for REST and SMS queries.
- *     XXX (3 letters) represents the region's uid, YYYY... (some number of letters) represents a record ID
- *     the separator can be a colon instead of period, giving YYYY... a different meaning
- *     The region (XXX) can be omitted in SMS identifiers (eg "200 to .ABCDE for pie")
- *     For each region that exists, we have a user record with uid < 0, with name = region name followed by period (eg ABC.)
- *     (Communities within the region also have negative uids, descending from -1,000,000, and do not need qids,
- *     but could have a qid with a hyphen, like AAA-BBB, if needed.)
- *
- *   zid: a signed id (non-zero) -- meaning of negative value varies
- *  azid: array(zid, regionUid), where regionUid is the uid of the server (used only twice. phase it out?)
- *  reid: a relation id (transient, never stored in any other table)
- *   uid: an account id
- *   xid: a transaction id
- *     All transaction database operations are performed by dbQ() on a virtual table {txs} with key zxid.
- *  zxid: a (signed) transaction id (>0: xid in r_txs (real), <0: -xid in r_asif)
- *  ruid: an array of the three uids representing a quid: [main_uid, agent_uid, regionUid] (phase this out) 
- *
- *  qxid: a qid (8 characters or more) reprersenting a zxid (: means a negative zxid)
- *  quid: a qid (7 characters or more) representing a uid acting as its own agent (. separator) OR an reid (: separator)
- *
- * @todo: on successful web request for rCredits, say you will have to Dwolla us $20, to actually be added to the waiting list.
- * @todo: allow same email address for multiple accounts
- * @todo: allow surrounding spaces on all web input, leading dollar signs in amounts. Test.
- * @todo: change zxid to a class. $tx->xid, table, real
- * @todo
- * - handling employees (virtual payments). This should probably be extended to suppliers too,
- *   or maybe even to everyone. The idea is to pay someone virtually in rCredits by totally paying them
- *   (either first or second) in US Dollars and (either second or first) having them buy back
- *   the appropriate amount of rCredits. Probably the best way to do this is with a simple payment transaction
- *   that requires confirmation by the payee (an "offer"). The payee cannot accept the offer without first paying
- *   that amount to the Community in US Dollars (using billpay or Dwolla). [need to integrate with Dwolla, otherwise done.]
- * @todo: we also need some kind of confirmation on foreign transactions (from the other server)
- * @todo: don't require email address for SMS signups, set name properly [NOT YET. JUST LEAVE IT.]
- * @todo: store country code rather than country, and state code rather than state
- * @todo: store city code (rather than city), with a code for "other" -- store other in data or r_other (same for country/state)
- * @todo: reporting for a community or server (a form that anyone can use)
- * @todo: download transactions in standard formats
- * @todo: Finish separating backend. Front end should have no registered users. This should wait until after launch.
- * @todo: use popups for some things
- * @todo: make help divs draggable
- * @todo
- * - remove all direct db operations from interface modules (and their .inc files) -- use api\ and u\ there, but not r\
- *
- * Notes on transaction record system:
- *   Other servers have a single negative (<0) UID on our system, so a
- *   user doing business with someone in another region would generate a transaction between an individual and a server,
- *   with qid for the individual in that other region stored in the data field. 
- *   Servers and communities have negative uids. Servers have their qid in the name field followed by a dot, eg "NEW.".
- *
- *   Specifically: when we on the AAA regional server receive a transaction request using a qid, the first four characters are the "region" --
- *   they tell us what database to hit. For example, if AAA.AAAB pays ZZZ.AAAC, we record a payment from AAA.AAAB's uid (1)
- *   to ZZZ's uid. The data field in the transaction gets $data['foreign_uid'] = ZZZ.AAAC's uid on the ZZZ server (2).
- *   We send the request to ZZZ's server and expect a confirmation 
- *   (if no confirmation, roll back the transaction and give an error message OR queue the request).
- *
- *   On the other side of things, when we receive a request from some other community for a transaction with one of our accounts
- *   -- for example if we are the "ZZZ" community, receiving a request from the "ABC" community, for ABC.AAAAA to pay ZZZ.BBBBB --
- *   we record the payer as ABC's uid and the payee as ZZZ.BBBBB's uid, with $data['payer_id'] = 'ABC.AAAAA'.
- *
- *   Thus every inter-community transaction is stored in both communities. Both communities know their trade balance, which should be
- *   public through a RESTful query. Intra-community transactions should also be stored twice -- ideally in member's devices. Smartphones and
- *   desktop computers running an app should store all their own transactions. Encrypted backups of everything to the cloud too.
- *
- * Other thoughts:
- *   Joining by dumb cellphone is for play only. Accounts and transactions created that way should get deleted after a week of inactivity.
  */
  
 namespace rCredits; // typically abbreviated as "r"
 use rCredits\Util as u;
-use rCredits\API as api;
+use rCredits\Backend as be;
 
 define('R_VERSION', '0.1b'); // software version
 define('R_SEPARATE_BACKEND', FALSE);
@@ -212,9 +137,9 @@ function txReportArgs($tx, $get_balance = 0, $shortfall = 0) {
   $real = ($zxid > 0);
   $asif = $real ? '' : R_ASIF_TEXT;
   if ($get_balance > 0) {
-    list ($tid, $balance) = array(api\zxid2tid($zxid), api\creditInfo(compact('real'))->fancy['balance']);
+    list ($tid, $balance) = array(be\zxid2tid($zxid), be\creditInfo(compact('real'))->fancy['balance']);
     if ($get_balance > 1) {
-      list ($other_tid, $other_balance) = array(api\zxid2tid($zxid, $other_uid), api\creditInfo(compact('real', 'uid'))->fancy['balance']);
+      list ($other_tid, $other_balance) = array(be\zxid2tid($zxid, $other_uid), be\creditInfo(compact('real', 'uid'))->fancy['balance']);
     }
   }
   
@@ -225,7 +150,7 @@ function txReportArgs($tx, $get_balance = 0, $shortfall = 0) {
 
 /**
  * Record a transaction between two participants
- * @see also transactionSetup(), r\transactionRewards(), and api\transfer()
+ * @see also transactionSetup(), r\transactionRewards(), and be\transfer()
  */
 function transact($info) {
   $txs = array(transactionSetup($info));
@@ -303,7 +228,7 @@ function transactionSetup($info) {
   u\EXPECT($required_params, 'float zid zid zid zid notempty bool');
 
   if (!isset($my_state)) $state = TX_DONE;
-  if (!isset($my_goods)) $goods = FALSE; // set TRUE only in api\transfer()
+  if (!isset($my_goods)) $goods = FALSE; // set TRUE only in be\transfer()
   $created = REQUEST_TIME;
   $serial = NULL; // always set equal to xid of main transaction after saving
   
@@ -331,7 +256,7 @@ function demand($uid, $demand = 0) {
  */
 function shortfall($uid, $requestAmount, $preapproved, $real) {
   if (!$preapproved) return 0; // if this is just an invoice, funds don't have to be there yet (no shortfall)
-  $available = api\creditInfo(compact('uid', 'real'))->available;
+  $available = be\creditInfo(compact('uid', 'real'))->available;
   $amount = min($requestAmount, $available);
   $shortfall = max(0, $requestAmount - $amount); // how much needs to be done in a separate currency
   if ($shortfall) {
@@ -359,7 +284,7 @@ function payEmployees($amount0, $for, $confirmed) {
   $results = array();
   $successes = 0;
   foreach ($employees as $acct) {
-    $results[] = list ($message, $args, $confirm) = api\transfer('payment', $acct, $amount0, $for, !u\forCash($for), TRUE, compact('pay_all'));
+    $results[] = list ($message, $args, $confirm) = be\transfer('payment', $acct, $amount0, $for, !u\forCash($for), TRUE, compact('pay_all'));
     if ($args['success']) $successes++;
   }
   $success = ($successes > 0);
@@ -448,9 +373,9 @@ function setTxField($field_name, $new_value, $zxid, $all_related = FALSE) {
  */
 function mergeAccounts($old_uid) {
   $new_uid = acct()->id;
-  if (!api\isTempAccount($old_uid)) return; // don't merge non-temp account
-  u\EXPECT(api\access('manage account'), "unauthorized mergeAccounts: $new_uid into $old_uid");
-//  if (!is_tempName(userField('name', $old_uid))) die('merging non-temp account');
+  if (!be\isTempAccount($old_uid)) return; // don't merge non-temp account
+  u\EXPECT(be\access('manage account'), "unauthorized mergeAccounts: $new_uid into $old_uid");
+//  if (!isTempName(userField('name', $old_uid))) die('merging non-temp account');
   // there are no other records for temporary accounts, than those below
 
   $new = acct($new_uid);
@@ -461,13 +386,13 @@ function mergeAccounts($old_uid) {
   /*** Begin DBTX ***/ $dbtx = \db_transaction();
   userUpdate($update, $new_uid);
   $sql = <<<EOF
-    UPDATE r_asif SET payer=:new_uid WHERE payer=:old_uid
-    UPDATE r_asif SET payee=:new_uid WHERE payee=:old_uid
-    DELETE FROM r_asif a LEFT JOIN r_asif b ON b.serial=a.serial WHERE b.payer=b.payee
-    DELETE FROM r_asif WHERE payer=payee
-    UPDATE r_sms SET uid=:new_uid WHERE uid=:old_uid
-    UPDATE r_user_industries SET uid=:new_uid WHERE uid=:old_uid
-    DELETE FROM users WHERE uid=:old_uid
+    UPDATE r_asif SET payer=:new_uid WHERE payer=:old_uid;
+    UPDATE r_asif SET payee=:new_uid WHERE payee=:old_uid;
+    DELETE FROM r_asif a LEFT JOIN r_asif b ON b.serial=a.serial WHERE b.payer=b.payee;
+    DELETE FROM r_asif WHERE payer=payee;
+    UPDATE r_sms SET uid=:new_uid WHERE uid=:old_uid;
+    UPDATE r_user_industries SET uid=:new_uid WHERE uid=:old_uid;
+    DELETE FROM users WHERE uid=:old_uid;
 EOF;
   dbQ($sql, compact('new_uid', 'old_uid'));
   /*** End DBTX ***/ unset($dbtx);
@@ -620,7 +545,7 @@ function nonoUndo($oldRecord, &$subs = array()) {
   $acct = tx2acct($old_to_me ? array($old_payee, $old_payee_agent, $data) : array($old_payer, $old_payer_agent, $data));
   if ($cacct->agent != $acct->agent) {
     $perm = $old_taking ? 'buy and sell' : 'sell';
-    if (!api\access($perm, acct($acct->id, $cacct->agent))) return 'no ' . $perm;
+    if (!be\access($perm, acct($acct->id, $cacct->agent))) return 'no ' . $perm;
   }
   return FALSE;
 }
@@ -686,6 +611,15 @@ function uniqueName($full_name) {
 }
 
 /**
+ * Return the uid for the given qid or (short) name.
+ * @return the uid (FALSE if unsuccessful)
+ */
+function loginString($id) {
+  if ($acct = acct(strtoupper($id))) return $acct->id; // try to interpret it as a qid
+  return userField('uid', 'name=:id', compact('id'));
+}
+  
+/**
  * Return a list of employee accts for the current account.
  */
 function employees() {
@@ -697,6 +631,11 @@ function employees() {
     $accts[] = $agent_uid > 0 ? acct($agent_uid) : acct(qid($foreign_uid, $agent_uid));
   }
   return $accts;
+}
+
+function isRTrader($uid = '') {
+  if (!$uid and !($cacct = acct())) return FALSE;
+  return (userField('flags', $uid ?: $cacct->id) & BIT_RTRADER);
 }
 
 /**
@@ -720,7 +659,7 @@ function userField($field, $who = 'none', $subs = array()) {
     } else return $acct->$field;
   }
 //  debug(compact(u\ray('field who subs')));
-  $result = api\get_records('users', is_numeric($who) ? "uid=$who" : $who, $subs, $field, TRUE);
+  $result = be\getRecords('users', is_numeric($who) ? "uid=$who" : $who, $subs, $field, TRUE);
   if (count($result) < 1) return FALSE;
   u\EXPECT(count($result) == 1, "ambiguous user in userField(): $who");
   u\EXPECT(is_object($result[0]), 'bad object array in userField(): ' . print_r($result, 1)); // keep this
@@ -804,6 +743,5 @@ function bonus($uid, $amount = 1) {return rebate($uid, 2 * $amount);}
 function setTxState($new_value, $zserial) {setTxField('state', $new_value, $zserial, TRUE);}
 function totalDemand() {return dbLookup('SUM(demand)', 'users');}
 function serverUid($region_id = '') {return -u\a2n($region_id ?: R_SERVER_ID);}
-function isRTrader($uid = '') {return (userField('flags', $uid ?: acct()->id) & BIT_RTRADER);}
 function emailTemplate($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}
 function emailBody($key) {return str_replace('{BODY}', emailTemplate($key), emailTemplate(R_EMAIL_FRAME));}

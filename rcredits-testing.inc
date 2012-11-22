@@ -7,7 +7,7 @@
 namespace rCredits\Testing;
 use rCredits as r;
 use rCredits\Util as u;
-use rCredits\API as api;
+use rCredits\Backend as be;
 
 define('TEST_REAL', FALSE);
 
@@ -112,7 +112,7 @@ function makeRelation($info) {
  */
 function uidCredit($uid) {
   $real = TEST_REAL;
-  return api\creditInfo(compact('uid', 'real'));
+  return be\creditInfo(compact('uid', 'real'));
 }
 
 function uid($id) {
@@ -143,7 +143,7 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
   \drupal_set_message(color(array('EXPECT' => '') + $fields, @$subject ? 'email' : 'output')); // keep this
   $info = json_encode2($fields, JSON_UNESCAPED_SLASHES);
   $crit = "channel=:channel AND type=:type AND cuid=:cuid AND agent=:agent ORDER BY logid DESC";
-  debug(compact(u\ray('info type cuid agent channel')), '', 1);
+//  debug(compact(u\ray('info type cuid agent channel')), '', 1);
   //debug("info=:info AND $crit"); debug(compact(u\ray('info type cuid agent')));
   return r\dbLookup(1, 'r_log', "info=:info AND $crit", compact(u\ray('info type cuid agent channel')));
 }
@@ -211,7 +211,7 @@ function hitServer($op, $agent, $code = '', $account_id = '', $extra = array()) 
   $json = json_encode2(compact(u\ray('op my_id code account_id')) + $extra, JSON_UNESCAPED_SLASHES);
   \drupal_set_message(color($json, 'input')); // keep this
   r\Smart\api(compact('json'));
-//  api\send($json); // remember the server's response (this is the real test, once most bugs are gone)
+//  be\send($json); // remember the server's response (this is the real test, once most bugs are gone)
   return TRUE;
 }
 
@@ -234,7 +234,7 @@ function verifyRecord($table, $info) {
 function postProcess($form, $formName, $type) {
   $functions = @$form["#$type"];
   if (!@$functions or ((string) $functions) == '<') {
-    $function = "rCredits\\Web\\{$formName}_form_$type";
+    $function = "rCredits\\Web\\form{$formName}_$type";
     $functions = function_exists($function) ? array($function) : array();
   }
   return $functions;

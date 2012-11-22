@@ -17,7 +17,7 @@
 use rCredits as r;
 use rCredits\Testing as t;
 use rCredits\Util as u;
-use rCredits\API as api;
+use rCredits\Backend as be;
 
 require_once __DIR__ . '/../rcredits.inc';
 require_once __DIR__ . '/../rcredits-testing.inc';

@@ -5,9 +5,10 @@ use rCredits as r;
 function helpText($page) {
   global $base_url;
   $cacct = r\acct();
+  $acctName = @$cacct->name; // @ is for SMS testing (when not signed in)
 
-  $companySummary = ($cacct->account_type == R_PERSONAL or !$cacct->proSe())? '' : t('<p>You cannot print a Member ID Card for the company, because ID cards are for individuals, not companies. However, in the <a href="$base_url/account/relations">Account Relations</a> section you can print an ID card for each person authorized to buy and/or sell on behalf of the company.</p>');
-  $companyAccount = ($cacct->account_type == R_PERSONAL) ? '' : t(<<<EOF
+  $companySummary = (@$cacct->account_type == R_PERSONAL or !@$cacct->proSe())? '' : t('<p>You cannot print a Member ID Card for the company, because ID cards are for individuals, not companies. However, in the <a href="$base_url/account/relations">Account Relations</a> section you can print an ID card for each person authorized to buy and/or sell on behalf of the company.</p>');
+  $companyAccount = (@$cacct->account_type == R_PERSONAL) ? '' : t(<<<EOF
   <p>For companies, upload a picture to represent your business. This picture will appear on your automatic rCredits webpage: <a target="_blank" href="$base_url/member/$cacct->name">devcore.rCredits.org/member/$cacct->name</a> -- so choose wisely. See also the <a href="$base_url/account/company-info">Company Info</a> form.</p>
 EOF
   );
@@ -101,7 +102,7 @@ EOF
 EOF
     ),
     'company' => t(<<<EOF
-      <p>All of the information from this form goes on your automatic <a target="_blank" href="$base_url/member/$cacct->name">rCredits webpage</a>, along with your company name and profile picture. Your email address will not be included unless you put it in the description explicitly. Click on the link, to see the results.</p>
+      <p>All of the information from this form goes on your automatic <a target="_blank" href="$base_url/member/$acctName">rCredits webpage</a>, along with your company name and profile picture. Your email address will not be included unless you put it in the description explicitly. Click on the link, to see the results.</p>
 EOF
     ),
     'options' => t(<<<EOF

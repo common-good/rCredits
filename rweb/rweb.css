@@ -48,63 +48,67 @@ form.rweb  .form-yes {color:green;}
 form.rweb  .form-no {color:red;}
 
 /* Login */
-form#user-login-form input#edit-name {width:150px;}
-form#user-login-form input#edit-pass {width:150px;}
+#user-login div#edit-tip label {font-weight:normal; width:100%;}
+
+/* Login block */
+#user-login-form input#edit-name {width:150px;}
+#user-login-form input#edit-pass {width:150px;}
 #user-login-form div#edit-tip label {font-weight:normal;}
 
-/* Register */
-form#user-register-form div#edit-company-text label {font-weight:normal; width:100%;}
-form#user-register-form div.form-checkboxes div {display:inline-block;}
 
-form#user-register-form div.form-checkboxes {margin-left:135px;}
-form#user-register-form div.form-type-checkbox {display:inline-block;}
-form#user-register-form div.form-type-checkbox input {display:inline-block; margin-left:0px; vertical-align:bottom;}
-form#user-register-form div.form-type-checkbox label {display:inline; width:100px; margin-left:3px; text-align:left; vertical-align:top;}
-form#user-register-form  fieldset.form-wrapper {margin-left:0px;}
-form#user-register-form  div#edit-company-text label {text-align:left;}
+/* Register */
+#user-register-form div#edit-company-text label {font-weight:normal; width:100%;}
+#user-register-form div.form-checkboxes div {display:inline-block;}
+
+#user-register-form div.form-checkboxes {margin-left:135px;}
+#user-register-form div.form-type-checkbox {display:inline-block;}
+#user-register-form div.form-type-checkbox input {display:inline-block; margin-left:0px; vertical-align:bottom;}
+#user-register-form div.form-type-checkbox label {display:inline; width:100px; margin-left:3px; text-align:left; vertical-align:top;}
+#user-register-form  fieldset.form-wrapper {margin-left:0px;}
+#user-register-form  div#edit-company-text label {text-align:left;}
 
 /* Company Info */
-form#rcreditswebcompany-form fieldset#edit-description-format,
-form#rcreditswebcompany-form fieldset#edit-description-format div.fieldset-wrapper {
+#rcreditswebformcompany fieldset#edit-description-format,
+#rcreditswebformcompany fieldset#edit-description-format div.fieldset-wrapper {
   margin-top:0px; 
   background-color:lightblue;
 }
-form#rcreditswebcompany-form textarea {height:60px; width:100%; border-color:lightblue;}
-form#rcreditswebcompany-form div.form-textarea-wrapper {width:796px;}
-form#rcreditswebcompany-form input#edit-submit {margin-top:20px; display:inline-block;}
-form#rcreditswebcompany-form div#edit-afterlinks {display:inline-block; width:400px;}
-form#rcreditswebcompany-form div#edit-afterlinks label {width:100%; margin-top:20px; text-align:left;}
+#rcreditswebformcompany textarea {height:60px; width:100%; border-color:lightblue;}
+#rcreditswebformcompany div.form-textarea-wrapper {width:796px;}
+#rcreditswebformcompany input#edit-submit {margin-top:20px; display:inline-block;}
+#rcreditswebformcompany div#edit-afterlinks {display:inline-block; width:400px;}
+#rcreditswebformcompany div#edit-afterlinks label {width:100%; margin-top:20px; text-align:left;}
 
 /* Account Info */
-form#rcreditswebaccount-form div.form-type-textfield label {display:block;}
-form#rcreditswebaccount-form div.form-radios {display:block;}
-form#rcreditswebaccount-form div.form-item-roles {margin-top:30px;}
-form#rcreditswebaccount-form div.form-item-pass-pass1 {display:inline-block;}
-form#rcreditswebaccount-form div.form-item-pass-pass2 {display:inline-block; clear:right; margin-left:20px;}
+#rcreditswebformaccount div.form-type-textfield label {display:block;}
+#rcreditswebformaccount div.form-radios {display:block;}
+#rcreditswebformaccount div.form-item-roles {margin-top:30px;}
+#rcreditswebformaccount div.form-item-pass-pass1 {display:inline-block;}
+#rcreditswebformaccount div.form-item-pass-pass2 {display:inline-block; clear:right; margin-left:20px;}
 
-/*form#rcreditswebaccount-form div.form-type-radio {display:block;}
-form#rcreditswebaccount-form div.form-type-radio input {display:block;}
-form#rcreditswebaccount-form div.form-type-radio label {display:block;}*/
+/*#rcreditswebformaccount div.form-type-radio {display:block;}
+#rcreditswebformaccount div.form-type-radio input {display:block;}
+#rcreditswebformaccount div.form-type-radio label {display:block;}*/
 
 /* Accounts Selector */
-#rcreditswebaccounts-form #edit-account-submit {display:none;} /* Drupal requires unused button to be there, so make it invisible */
-/* #rcreditswebaccount-form div.form-type-item {display:none;} /* no title */
-#rcreditswebaccounts-form  #edit-account-submit {margin:5px 0px 0px 10px;}
-#rcreditswebaccounts-form  div#edit-account-current-balance label {font-weight:normal;} /* when there is just one account */
+#rcreditswebformaccounts #edit-account-submit {display:none;} /* Drupal requires unused button to be there, so make it invisible */
+/* #rcreditswebformaccount div.form-type-item {display:none;} /* no title */
+#rcreditswebformaccounts  #edit-account-submit {margin:5px 0px 0px 10px;}
+#rcreditswebformaccounts  div#edit-account-current-balance label {font-weight:normal;} /* when there is just one account */
 
 /* Contact Info (labeled) */
 
 /* Transact form (labeled) */
-#rcreditswebtx-form.confirmation div.user-picture {float:left; margin-right:20px;}
-#rcreditswebtx-form.confirmation div#id-other {float:left; clear:right; min-width:200px; max-width:300px; font-weight:normal; font-size:20px;}
-#rcreditswebtx-form.confirmation div#id-name {margin-top:50px;}
+#rcreditswebformtx.confirmation div.user-picture {float:left; margin-right:20px;}
+#rcreditswebformtx.confirmation div#id-other {float:left; clear:right; min-width:200px; max-width:300px; font-weight:normal; font-size:20px;}
+#rcreditswebformtx.confirmation div#id-name {margin-top:50px;}
 
 /* Exchange form (labeled) */
-/* #rcreditswebexchange-form div#edit-request label {font-weight:normal; text-align:left; margin-left:100px; width:100%} */
-#rcreditswebexchange-form input#edit-getusd {margin-left:50px;}
-#rcreditswebexchange-form div#edit-subtext {margin-left:0px; width:450px;}
-#rcreditswebexchange-form div#edit-subtext div.r-explain {text-align:left; margin-left:80px;}
-#rcreditswebexchange-form div#edit-subtext div.r-amounts {text-align:right; margin-right:70px;}
+/* #rcreditswebformexchange div#edit-request label {font-weight:normal; text-align:left; margin-left:100px; width:100%} */
+#rcreditswebformexchange input#edit-getusd {margin-left:50px;}
+#rcreditswebformexchange div#edit-subtext {margin-left:0px; width:450px;}
+#rcreditswebformexchange div#edit-subtext div.r-explain {text-align:left; margin-left:80px;}
+#rcreditswebformexchange div#edit-subtext div.r-amounts {text-align:right; margin-right:70px;}
 
 /* Transaction Summary Table */
 #txsum, #txsum-title, #txs-title {width:550px; margin:0px;} /* outline:2px solid darkgreen;} */
@@ -119,75 +123,75 @@ form#rcreditswebaccount-form div.form-type-radio label {display:block;}*/
 #txsum col.txsum-toyou, #txsum col.txsum-fromyou, #txsum col.txsum-rewards {width:75px;}
 
 /* Transactions */
-#rcreditswebtxs-form {display:inline-block; width:100%; height:45px; text-align:left;}
-#rcreditswebtxs-form div.form-item-tx-period {display:inline-block;}
-#rcreditswebtxs-form div.form-item-tx-task {display:inline-block;}
-#rcreditswebtxs-form div.form-type-select label {display:inline-block; width:225px;} 
-#rcreditswebtxs-form  input[type="submit"] {margin:5px 0px 0px 10px;}
-#rcreditswebtxs-form div.txs-buttons div {display:inline-block; width:22px; text-align:center; vertical-align:middle;}
-#rcreditswebtxs-form div.txs-buttons div:first-child +div input {color:red; font-weight:bold;}
+#rcreditswebformtxs {display:inline-block; width:100%; height:45px; text-align:left;}
+#rcreditswebformtxs div.form-item-tx-period {display:inline-block;}
+#rcreditswebformtxs div.form-item-tx-task {display:inline-block;}
+#rcreditswebformtxs div.form-type-select label {display:inline-block; width:225px;} 
+#rcreditswebformtxs  input[type="submit"] {margin:5px 0px 0px 10px;}
+#rcreditswebformtxs div.txs-buttons div {display:inline-block; width:22px; text-align:center; vertical-align:middle;}
+#rcreditswebformtxs div.txs-buttons div:first-child +div input {color:red; font-weight:bold;}
 
-#rcreditswebtxs-form col.tx-selector {width:10px;}
-#rcreditswebtxs-form col.tx-tid {width:50px; text-align:right;} /* for IE; text-align in <col> should have no effect according to CSS 2.1 */ 
-#rcreditswebtxs-form col.tx-date {width:60px;}
-#rcreditswebtxs-form col.tx-fromyou {width:75px; text-align:right;}
-#rcreditswebtxs-form col.tx-toyou {width:75px; text-align:right;}
-#rcreditswebtxs-form col.tx-status {width:75px;}
-#rcreditswebtxs-form col.tx-buttons {width:85px;}
-#rcreditswebtxs-form col.tx-rewards {width:75px; text-align:right;}
+#rcreditswebformtxs col.tx-selector {width:10px;}
+#rcreditswebformtxs col.tx-tid {width:50px; text-align:right;} /* for IE; text-align in <col> should have no effect according to CSS 2.1 */ 
+#rcreditswebformtxs col.tx-date {width:60px;}
+#rcreditswebformtxs col.tx-fromyou {width:75px; text-align:right;}
+#rcreditswebformtxs col.tx-toyou {width:75px; text-align:right;}
+#rcreditswebformtxs col.tx-status {width:75px;}
+#rcreditswebformtxs col.tx-buttons {width:85px;}
+#rcreditswebformtxs col.tx-rewards {width:75px; text-align:right;}
 
-#rcreditswebtxs-form th:first-child {text-align:right;} /* column 1 */
-#rcreditswebtxs-form th:first-child +th {text-align:right;} /* column 2 */
-#rcreditswebtxs-form th:first-child +th+th+th {text-align:right;} /* column 4 */
-#rcreditswebtxs-form th:first-child +th+th+th+th {text-align:right;} /* column 5 */
-#rcreditswebtxs-form th:first-child +th+th+th+th+th {text-align:right;} /* column 6 */
-/* #rcreditswebtxs-form th:first-child +th+th+th+th+th+th {text-align:right;} /* column 7 */
-#rcreditswebtxs-form th:first-child +th+th+th+th+th+th+th+th {text-align:right;} /* column 9 */
+#rcreditswebformtxs th:first-child {text-align:right;} /* column 1 */
+#rcreditswebformtxs th:first-child +th {text-align:right;} /* column 2 */
+#rcreditswebformtxs th:first-child +th+th+th {text-align:right;} /* column 4 */
+#rcreditswebformtxs th:first-child +th+th+th+th {text-align:right;} /* column 5 */
+#rcreditswebformtxs th:first-child +th+th+th+th+th {text-align:right;} /* column 6 */
+/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th {text-align:right;} /* column 7 */
+#rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th {text-align:right;} /* column 9 */
 
-#rcreditswebtxs-form td:first-child {text-align:right;} /* column 1 */
-#rcreditswebtxs-form td:first-child +td {text-align:right;} /* column 2 */
-#rcreditswebtxs-form td:first-child +td+td+td {text-align:right;} /* column 4 */
-#rcreditswebtxs-form td:first-child +td+td+td+td {text-align:right;} /* column 5 */
-#rcreditswebtxs-form td:first-child +td+td+td+td+td {text-align:right;} /* column 6 */
-/* #rcreditswebtxs-form td:first-child +td+td+td+td+td+td {text-align:right;} /* column 7 */
-#rcreditswebtxs-form td:first-child +td+td+td+td+td+td+td+td {text-align:right;} /* column 9 */
+#rcreditswebformtxs td:first-child {text-align:right;} /* column 1 */
+#rcreditswebformtxs td:first-child +td {text-align:right;} /* column 2 */
+#rcreditswebformtxs td:first-child +td+td+td {text-align:right;} /* column 4 */
+#rcreditswebformtxs td:first-child +td+td+td+td {text-align:right;} /* column 5 */
+#rcreditswebformtxs td:first-child +td+td+td+td+td {text-align:right;} /* column 6 */
+/* #rcreditswebformtxs td:first-child +td+td+td+td+td+td {text-align:right;} /* column 7 */
+#rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td {text-align:right;} /* column 9 */
 
 /* Relation form */
-/*#rcreditswebrelations-form div#edit-subtext label {width:450px;}*/
+/*#rcreditswebformrelations div#edit-subtext label {width:450px;}*/
 
-#rcreditswebrelations-form div.form-item-new-person {display:inline-block;}
-#rcreditswebrelations-form div.form-item-new-person label {width:105px;}
-#rcreditswebrelations-form div.form-item-new-person div.description {margin-left:110px;}
-#rcreditswebrelations-form #account-label {font-weight:bold;}
+#rcreditswebformrelations div.form-item-new-person {display:inline-block;}
+#rcreditswebformrelations div.form-item-new-person label {width:105px;}
+#rcreditswebformrelations div.form-item-new-person div.description {margin-left:110px;}
+#rcreditswebformrelations #account-label {font-weight:bold;}
 
-/*#rcreditswebrelations-form {max-width:800px;} */
-#rcreditswebrelations-form col.rel-person {width:auto;}
-#rcreditswebrelations-form col.rel-employer {width:94px;}
-#rcreditswebrelations-form col.rel-employee {width:96px;}
-#rcreditswebrelations-form col.rel-owner{width:76px;}
-#rcreditswebrelations-form col.rel-permission {width:145px;}
-#rcreditswebrelations-form col.rel-link {width:200px;}
-#rcreditswebrelations-form div.highlight input {background-image:url(../../../../../images/buttons/buttons-highlight.png);}
+/*#rcreditswebformrelations {max-width:800px;} */
+#rcreditswebformrelations col.rel-person {width:auto;}
+#rcreditswebformrelations col.rel-employer {width:94px;}
+#rcreditswebformrelations col.rel-employee {width:96px;}
+#rcreditswebformrelations col.rel-owner{width:76px;}
+#rcreditswebformrelations col.rel-permission {width:145px;}
+#rcreditswebformrelations col.rel-link {width:200px;}
+#rcreditswebformrelations div.highlight input {background-image:url(../../../../../images/buttons/buttons-highlight.png);}
 
 /* Cell */
-#rcreditswebcell-form input#edit-delete {margin-right:100%;}
-#rcreditswebcell-form table.table-select-processed {width:300px;}
+#rcreditswebformcell input#edit-delete {margin-right:100%;}
+#rcreditswebformcell table.table-select-processed {width:300px;}
 
 /* Example Store */
 #rcreditswebexample-store-form input.form-submit, #rcreditswebexample-store-form input.form-submit:hover {background:none; border:0;}
 
 /* Pay with rcredits */
-#rcreditswebbuy-now-form div#edit-submit label {margin-left:100px; width:100%; color:blue;}
+#rcreditswebformbuy div#edit-submit label {margin-left:100px; width:100%; color:blue;}
 
 /* Directory */
-#rcreditswebdirectory-form #edit-title label {margin-left:0px;}
-/*#rcreditswebdirectory-form div.form-item-area {display:inline-block;} */
-#rcreditswebdirectory-form input.form-submit {margin-left:5px;}
-#rcreditswebdirectory-form input#edit-submit {margin-left:135px;}
-/*#rcreditswebdirectory-form div.form-item-area label {width:40px;}
-#rcreditswebdirectory-form div.form-item-area div.description {margin-left:45px;}
+#rcreditswebformdirectory #edit-title label {margin-left:0px;}
+/*#rcreditswebformdirectory div.form-item-area {display:inline-block;} */
+#rcreditswebformdirectory input.form-submit {margin-left:5px;}
+#rcreditswebformdirectory input#edit-submit {margin-left:135px;}
+/*#rcreditswebformdirectory div.form-item-area label {width:40px;}
+#rcreditswebformdirectory div.form-item-area div.description {margin-left:45px;}
 */
-#rcreditswebdirectory-form div#edit-item li {list-style-type:none;}
+#rcreditswebformdirectory div#edit-item li {list-style-type:none;}
 
 /* Autocomplete */
 /*html.js input.form-autocomplete.throbbing {margin:0px; padding:0px; width:400px;}*/
@@ -196,27 +200,27 @@ div#autocomplete  li {margin:0px; padding:0px; line-height:140%; background-colo
 div#content {display:block;} /* keeps autocomplete from getting placed in a wacky position */
 
 /* Membership */
-#rcreditswebmembership-form div#next-steps {width:500px; margin:-13px;}
+#rcreditswebformmembership div#next-steps {width:500px; margin:-13px;}
 
 /* Summary */
-#rcreditswebsummary-form div#edit-credit-limit div.description {display:inline-block; margin-left:5px;}
-#rcreditswebsummary-form div#edit-account-id {margin-bottom:0px;}
-#rcreditswebsummary-form div#edit-card a {font-size:80%;}
-#rcreditswebsummary-form div#edit-cardc {font-size:80%;}
-#rcreditswebsummary-form div#edit-account-name {margin-bottom:0px;}
+#rcreditswebformsummary div#edit-credit-limit div.description {display:inline-block; margin-left:5px;}
+#rcreditswebformsummary div#edit-account-id {margin-bottom:0px;}
+#rcreditswebformsummary div#edit-card a {font-size:80%;}
+#rcreditswebformsummary div#edit-cardc {font-size:80%;}
+#rcreditswebformsummary div#edit-account-name {margin-bottom:0px;}
 
 /* Profile */
-#rcreditswebprofile-form {font-family:Arial;}
-#rcreditswebprofile-form div.user-picture {float:left; margin-right:20px;}
-#rcreditswebprofile-form div#member-details {float:left; min-width:200px; max-width:300px; font-weight:normal;}
+#rcreditswebformprofile {font-family:Arial;}
+#rcreditswebformprofile div.user-picture {float:left; margin-right:20px;}
+#rcreditswebformprofile div#member-details {float:left; min-width:200px; max-width:300px; font-weight:normal;}
 
 /* Options */
-#rcreditsweboptions-form  div.form-radios {margin-left:0px; display:inline-block;}
-#rcreditsweboptions-form div.form-item-notify-by {margin-top:40px;}
-#rcreditsweboptions-form div.form-item-secret-bal {margin-top:80px;}
-#rcreditsweboptions-form div.form-item-secret-bal input {margin-left:135px;}
-#rcreditsweboptions-form div.form-item-secret-bal label {margin-left:-154px; font-weight:bold;}
-#rcreditsweboptions-form div.form-item-secret-bal div.description {display:inline-block; margin-left:23px;}
+#rcreditswebformoptions  div.form-radios {margin-left:0px; display:inline-block;}
+#rcreditswebformoptions div.form-item-notify-by {margin-top:40px;}
+#rcreditswebformoptions div.form-item-secret-bal {margin-top:80px;}
+#rcreditswebformoptions div.form-item-secret-bal input {margin-left:135px;}
+#rcreditswebformoptions div.form-item-secret-bal label {margin-left:-154px; font-weight:bold;}
+#rcreditswebformoptions div.form-item-secret-bal div.description {display:inline-block; margin-left:23px;}
 
 /* Popups */
 fieldset#popup, fieldset#help {

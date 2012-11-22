@@ -37,7 +37,7 @@ Find where PlanarYUVLuminanceSource is instantiated in CameraManager. Its last p
 namespace rCredits\Smart;
 use rCredits as r;
 use rCredits\Util as u;
-use rCredits\API as api;
+use rCredits\Backend as be;
 
 define('R_QR_HEADER', 'HTTP://RC2.ME/I/'); // for transient QR IDs
 define('R_TRANSIENCE', 60); // number of seconds for device's QR to be valid
@@ -60,7 +60,7 @@ $GLOBALS[TX_SMART . ' messages'] = array(
  *   position: (optional) latitude,longitude,elevation (from the device's GPS)
  *   account_id: the qid for the other party, if any 
  *     This gets passed to the specific op functions as $acct
- * @return (normally by calling either api\error or doOp):
+ * @return (normally by calling either be\error or doOp):
  *   $success=1 if doOp is called, otherwise 0 ($op = 'photo' is an exception; see below)
  *   $message: an error message or help message to display on the device; or not set
  */
@@ -68,25 +68,25 @@ function api($args = FALSE) {
   global $channel; $channel = TX_SMART;
   if (!$args) $args = $_POST;
   u\log('in', $args);
-  if (!(@$args = (array) json_decode($args['json']))) return api\error('no json');
+  if (!(@$args = (array) json_decode($args['json']))) return be\error('no json');
   foreach ($args as $key => $value) $args[$key] = trim($value); // allow some sloppy spaces around each arg
   extract($args, EXTR_PREFIX_ALL, 'q');
   
   // standard error checking and setup, except for first time
   if (@$q_op != 'reset') // DEBUG
   if (@$q_op != 'first_time') {
-    if (!@$q_code) return api\error('no code given');
-    if (!($smartInfo = r\dbLookup('owner,default_agent,transient_id,accessed', 'r_smarts', 'code=:q_code', compact('q_code')))) return api\error('unknown device');
+    if (!@$q_code) return be\error('no code given');
+    if (!($smartInfo = r\dbLookup('owner,default_agent,transient_id,accessed', 'r_smarts', 'code=:q_code', compact('q_code')))) return be\error('unknown device');
     $args += $smartInfo; // pass these on to the op function
     extract($smartInfo, EXTR_PREFIX_ALL, 'q');
     r\acct::setDefault(r\acct($q_owner)); // set current account temporarily to owner, so that error log has it right
     if (@$q_op != 'startup') { // no my_id on startup (it gets returned instead)
-      if (!u\isQid($q_my_id)) return api\error('bad id format');
-      if (!($cacct = r\acct($q_my_id, '', $error))) return api\error($error);
-    } else if (!($cacct = r\acct($q_owner))) return api\error('bad code owner'); // this should never happen
-    if ($cacct->region != r\serverUid()) return api\error('wrong server');
-    if ($cacct->agentRegion != r\serverUid()) return api\error('wrong server for agent');
-    if (buttons($cacct, $q_owner) < 0) return api\error('no permission');
+      if (!u\isQid($q_my_id)) return be\error('bad id format');
+      if (!($cacct = r\acct($q_my_id, '', $error))) return be\error($error);
+    } else if (!($cacct = r\acct($q_owner))) return be\error('bad code owner'); // this should never happen
+    if ($cacct->region != r\serverUid()) return be\error('wrong server');
+    if ($cacct->agentRegion != r\serverUid()) return be\error('wrong server for agent');
+    if (buttons($cacct, $q_owner) < 0) return be\error('no permission');
     r\acct::setDefault($cacct);
     $args['cacct'] = $cacct;
     $edit = array('code' => $q_code, 'accessed' => time());
@@ -95,17 +95,17 @@ function api($args = FALSE) {
 
   // handle scanned QR, if any
   if (@$q_account_id) {
-    if (!u\isQid($account_id = basename(@$q_account_id))) return api\error('bad account id');
+    if (!u\isQid($account_id = basename(@$q_account_id))) return be\error('bad account id');
     if ($account_id != $q_account_id) { // this is a transient id scanned from the other party's smart device
       $transient_id = basename(dirname($q_account_id));
       $recent = time() - R_TRANSIENCE;
-      if (dbLookup('transient_id', 'r_smarts', 'code=:code AND accessed>=:recent') != $transient_id) return api\error('bad transient id');
+      if (dbLookup('transient_id', 'r_smarts', 'code=:code AND accessed>=:recent') != $transient_id) return be\error('bad transient id');
     }
-    if (!($acct = r\acct($account_id, '', $error))) return api\error($error);
+    if (!($acct = r\acct($account_id, '', $error))) return be\error($error);
     $args['acct'] = $acct;
   }
   
-  return api\doOp(@$q_op, $args, 'Smart');
+  return be\doOp(@$q_op, $args, 'Smart');
 }
 
 /*function reset($args) {
@@ -126,14 +126,14 @@ function api($args = FALSE) {
 function first_time($args) {
   require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
   extract(u\just('my_id password', $args));
-  if (!u\isQid(@$my_id)) return api\error('bad id');
-  if (!($cacct = r\acct(@$my_id))) return api\error('unknown member');
+  if (!u\isQid(@$my_id)) return be\error('bad id');
+  if (!($cacct = r\acct(@$my_id))) return be\error('unknown member');
   if (!$cacct->proSe()) $cacct = r\acct($cacct->id); // use the pure account
   r\acct::setDefault($cacct);
   $args['cacct'] = $cacct;
-  if (@!$password) return api\error('login error');
-  if (!user_check_password($password, $cacct->account())) return api\error('bad login'); // make these two error messages distinct but obscure
-  if (!($code = makeDevice(t('Smart Device'), $cacct))) return api\error("can't save device info");
+  if (@!$password) return be\error('login error');
+  if (!user_check_password($password, $cacct->account())) return be\error('bad login'); // make these two error messages distinct but obscure
+  if (!($code = makeDevice(t('Smart Device'), $cacct))) return be\error("can't save device info");
   $args['owner'] = $cacct->id;
   $message = u\tt('first time');
   // also update_link allow_change_account allow_change_agent
@@ -153,7 +153,7 @@ function startup($args = '') {
   $account_name = $cacct->full_name;
   $allow_change_account = 0;
   $allow_change_agent = 1;
-  $require_agent = api\access('company') ? 1 : 0;
+  $require_agent = be\access('company') ? 1 : 0;
   $show_buttons = buttons($cacct, $owner);
   return compact(u\ray('my_id account_name update_link allow_change_account allow_change_agent require_agent show_buttons')); // standard fields to return on startup);
 }
@@ -171,13 +171,13 @@ function startup($args = '') {
 function identify($args) {
   $cuid = r\acct()->id;
   extract(u\just('acct', $args));
-  if (!@$acct) return api\error('missing acct');
+  if (!@$acct) return be\error('missing acct');
   $full_name = $acct->full_name;
-  if ($acct->id == $cuid) return api\error('no self-trading');
+  if ($acct->id == $cuid) return be\error('no self-trading');
   $location = u\location($acct);
   if (!$acct->proSe()) list ($company_name, $full_name) = array($full_name, r\acct($acct->agent)->full_name);
   $uid = $acct->id;
-  if (api\access('charge others')) $other_balance = api\creditInfo(compact('uid'))->balance;
+  if (be\access('charge others')) $other_balance = be\creditInfo(compact('uid'))->balance;
   return compact(u\ray('full_name location company_name other_balance'));
 }
 
@@ -216,16 +216,16 @@ function photo($args) {
  */
 function transact($args) {
   extract($args, EXTR_PREFIX_ALL, 'q');
-  if (!@$q_type) return api\error('missing transaction type');
-  if ($q_type != 'pay' and $q_type != 'charge') return api\error('bad transaction type');
-  if (!@$q_account_id) return api\error('missing account id');
-  if (!@$q_amount) return api\error('missing amount');
-  if (!is_numeric($q_amount)) return api\error('bad amount');
-  if (@$q_goods and !@$q_purpose) return api\error('missing purpose');
+  if (!@$q_type) return be\error('missing transaction type');
+  if ($q_type != 'pay' and $q_type != 'charge') return be\error('bad transaction type');
+  if (!@$q_account_id) return be\error('missing account id');
+  if (!@$q_amount) return be\error('missing amount');
+  if (!is_numeric($q_amount)) return be\error('bad amount');
+  if (@$q_goods and !@$q_purpose) return be\error('missing purpose');
 
-  if ($q_type == 'pay') $q_type = 'payment'; // this is what api\transfer() expects
-  list ($index, $subs, $zot) = api\transfer($q_type, $q_acct, $q_amount, $q_purpose, $q_goods, TRUE);
-  if (!@$subs['success']) return api\error($index, $subs);
+  if ($q_type == 'pay') $q_type = 'payment'; // this is what be\transfer() expects
+  list ($index, $subs, $zot) = be\transfer($q_type, $q_acct, $q_amount, $q_purpose, $q_goods, TRUE);
+  if (!@$subs['success']) return be\error($index, $subs);
   $tx_id = r\qxid($subs['zxid']); // return the transaction id as a qid (globally unique transaction id) (':' means As-If)
   $message = u\tt($index, $subs);
   $balances = balances($q_acct->id, $subs['real']); // my_balance, other_balance
@@ -247,22 +247,22 @@ function transact($args) {
 function undo($params) {
   extract(u\just('tx_id confirmed', $params));
   
-  if (!@$tx_id) return api\error('missing transaction id');
-  if (!u\isQid(@$tx_id)) return api\error('bad transaction id');
+  if (!@$tx_id) return be\error('missing transaction id');
+  if (!u\isQid(@$tx_id)) return be\error('bad transaction id');
   list ($zxid, $regionUid) = r\azid($tx_id);
-  if ($regionUid != r\serverUid()) return api\error('That is not a transaction on this server.');
-  if (@$confirmed !== '1' and @$confirmed !== '0') return api\error('bad confirmation status');
+  if ($regionUid != r\serverUid()) return be\error('That is not a transaction on this server.');
+  if (@$confirmed !== '1' and @$confirmed !== '0') return be\error('bad confirmation status');
   
   unset($tx_id); // done with the old transaction id
   if ($confirmed) {
-    list ($message, $args) = api\undoTx($zxid);
+    list ($message, $args) = be\undoTx($zxid);
     $message = u\tt($message, $args);
-    if (!@$args['success']) return api\error($message);
+    if (!@$args['success']) return be\error($message);
     if ($new_zxid = @$args['zxid']) $tx_id = r\qxid($new_zxid); // get offsetting transaction id, if any (otherwise state changed)
     $balances = balances($args['other_uid'], $zxid > 0);
   } else {
-    $oldRecord = api\lastTx('xid=:zxid', compact('zxid'));
-    if ($error = r\nonoUndo($oldRecord, $subs)) return api\error($error, $subs); // check nono before confirm AND here
+    $oldRecord = be\lastTx('xid=:zxid', compact('zxid'));
+    if ($error = r\nonoUndo($oldRecord, $subs)) return be\error($error, $subs); // check nono before confirm AND here
     $message = u\tt('confirm undo', r\txReportArgs($oldRecord));
   }
   return compact(u\ray('message tx_id')) + (@$balances ?: array());
@@ -270,10 +270,10 @@ function undo($params) {
 
 function change($params) {
   extract(u\just('cacct acct what', $params));
-  if (!@$acct) return api\error('missing account_id');
-  if (!in_array($what, u\ray('agent account'))) return api\error('bad what');
+  if (!@$acct) return be\error('missing account_id');
+  if (!in_array($what, u\ray('agent account'))) return be\error('bad what');
   if ($acct->proSe()) $acct = $what == 'agent' ? r\acct($cacct->id, $acct->id) : r\acct($acct->id, $cacct->agent);
-  if (($show_buttons = buttons($acct, $params['owner'])) < 0) return api\error('no permission');
+  if (($show_buttons = buttons($acct, $params['owner'])) < 0) return be\error('no permission');
 
   $account_name = $acct->full_name;
   $agent_name = r\acct($acct->agent)->full_name;
@@ -317,8 +317,8 @@ function accountName($acct) {
 }
 
 function balances($uid, $real) {
-  $my_balance = api\creditInfo(compact('real'))->balance;
-  if (api\access('charge others') and !r\acct($uid)->hasBit(BIT_SECRET_BAL)) $other_balance = api\creditInfo(compact('real', 'uid'))->balance;
+  $my_balance = be\creditInfo(compact('real'))->balance;
+  if (be\access('charge others') and !r\acct($uid)->hasBit(BIT_SECRET_BAL)) $other_balance = be\creditInfo(compact('real', 'uid'))->balance;
   return compact('my_balance', 'other_balance');
 }
 

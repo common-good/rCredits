@@ -585,7 +585,7 @@ function fsize($url) {
 }
 
 function trimAll(&$array) {
-  foreach ($array as $key => $value) $array[$key] = trim($value);
+  foreach ($array as $key => $value) if (is_string($value)) $array[$key] = trim($value);
   return $array;
 }
 

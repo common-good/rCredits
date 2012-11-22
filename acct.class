@@ -1,6 +1,6 @@
 <?php
 namespace rCredits;
-use rCredits\API as api;
+use rCredits\Backend as be;
 use rCredits\Util as u;
 
 /**
@@ -99,7 +99,7 @@ class acct {
     if ($region != serverUid()) { // foreign
       // contact other server here, for the record
     } else {
-      $records = api\get_records('users', "uid=:id LIMIT 1", compact('id')); // domestic (don't use Drupal's caching)
+      $records = be\getRecords('users', "uid=:id LIMIT 1", compact('id')); // domestic (don't use Drupal's caching)
       return $records ? $records[0] : FALSE;
     }
   }
@@ -111,7 +111,7 @@ class acct {
 //    u\EXPECT(property_exists(self::$records[$this->id], $field), "bad field for uid $this->id: $field" . print_r(self::$records[$this->id], 1));
     return @self::$records[$this->id]->$field;
   }
-  public function account() {return self::$records[$this->id];}
+  public function account() {return @self::$records[$this->id];}
 
   public static function _clear() {self::$records = array();}
   public static function nextId() {return max(defined('TESTING') ? 1000 : -9999999, dbLookup('MAX(uid)', 'users', 1)) + 1;}
@@ -133,7 +133,10 @@ class acct {
     $flags = $on ? ($this->flags | $bit) : ($this->flags & ~$bit);
     return $this->update(compact('flags'));
   }
-  public static function setDefault($acct) {global $cacct; $cacct = $acct;}
+  public static function setDefault($acct) {
+    global $cacct; $cacct = $acct;
+    global $user; if (!@$user) $user = $cacct->account(); // probably needed only for rWeb login form testing
+  }
   
   public function agentCan($permission = '') {
     return ($this->id == $this->agent or reid($this->id, $this->agent, $permission));

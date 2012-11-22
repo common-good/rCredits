@@ -55,7 +55,7 @@
 
 namespace rCredits\Admin;
 use rCredits as r;
-use rCredits\API as api;
+use rCredits\Backend as be;
 use rCredits\Testing as t;
 use rCredits\Util as u;
 

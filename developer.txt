@@ -1,0 +1,75 @@
+
+Some coding conventions and strategies:
+  - Use camelCase for variables and function names, except where otherwise required by Drupal.
+  - Use all_lowercase_and_underscores for filenames, database fields, and api variables.
+  - Keep the code as short as possible without losing clarity.
+  - In particular, avoid redundant structures by creating small, low-level functions.
+  - Make the tools easy to use -- that is, allow variations in number and type of arguments if that is convenient.
+  - Avoid high-level Drupal functions -- for example don't use Views, Fields, and complex modules.
+
+Special rCredits datatypes
+  qid: a mostly-alphabetic representation of an azid, eg "XXX.YYYY..." used externally for REST and SMS queries.
+    XXX (3 letters) represents the region's uid, YYYY... (some number of letters) represents a record ID
+    the separator can be a colon instead of period, giving YYYY... a different meaning
+    The region (XXX) can be omitted in SMS identifiers (eg "200 to .ABCDE for pie")
+    For each region that exists, we have a user record with uid < 0, with name = region name followed by period (eg ABC.)
+    (Communities within the region also have negative uids, descending from -1,000,000, and do not need qids,
+    but could have a qid with a hyphen, like AAA-BBB, if needed.)
+
+  zid: a signed id (non-zero) -- meaning of negative value varies
+ azid: array(zid, regionUid), where regionUid is the uid of the server (used only twice. phase it out?)
+ reid: a relation id (transient, never stored in any other table)
+  uid: an account id
+  xid: a transaction id
+    All transaction database operations are performed by dbQ() on a virtual table {txs} with key zxid.
+ zxid: a (signed) transaction id (>0: xid in r_txs (real), <0: -xid in r_asif)
+ ruid: an array of the three uids representing a quid: [main_uid, agent_uid, regionUid] (phase this out) 
+
+ qxid: a qid (8 characters or more) reprersenting a zxid (: means a negative zxid)
+ quid: a qid (7 characters or more) representing a uid acting as its own agent (. separator) OR an reid (: separator)
+
+@todo: on successful web request for rCredits, say you will have to Dwolla us $20, to actually be added to the waiting list.
+@todo: allow same email address for multiple accounts
+@todo: allow surrounding spaces on all web input, leading dollar signs in amounts. Test.
+@todo: change zxid to a class. $tx->xid, table, real
+@todo
+- handling employees (virtual payments). This should probably be extended to suppliers too,
+  or maybe even to everyone. The idea is to pay someone virtually in rCredits by totally paying them
+  (either first or second) in US Dollars and (either second or first) having them buy back
+  the appropriate amount of rCredits. Probably the best way to do this is with a simple payment transaction
+  that requires confirmation by the payee (an "offer"). The payee cannot accept the offer without first paying
+  that amount to the Community in US Dollars (using billpay or Dwolla). [need to integrate with Dwolla, otherwise done.]
+@todo: we also need some kind of confirmation on foreign transactions (from the other server)
+@todo: don't require email address for SMS signups, set name properly [NOT YET. JUST LEAVE IT.]
+@todo: store country code rather than country, and state code rather than state
+@todo: store city code (rather than city), with a code for "other" -- store other in data or r_other (same for country/state)
+@todo: reporting for a community or server (a form that anyone can use)
+@todo: download transactions in standard formats
+@todo: Finish separating backend. Front end should have no registered users. This should wait until after launch.
+@todo: use popups for some things
+@todo: make help divs draggable
+@todo
+- remove all direct db operations from interface modules (and their .inc files) -- use api\ and u\ there, but not r\
+
+Notes on transaction record system:
+  Other servers have a single negative (<0) UID on our system, so a
+  user doing business with someone in another region would generate a transaction between an individual and a server,
+  with qid for the individual in that other region stored in the data field. 
+  Servers and communities have negative uids. Servers have their qid in the name field followed by a dot, eg "NEW.".
+
+  Specifically: when we on the AAA regional server receive a transaction request using a qid, the first four characters are the "region" --
+  they tell us what database to hit. For example, if AAA.AAAB pays ZZZ.AAAC, we record a payment from AAA.AAAB's uid (1)
+  to ZZZ's uid. The data field in the transaction gets $data['foreign_uid'] = ZZZ.AAAC's uid on the ZZZ server (2).
+  We send the request to ZZZ's server and expect a confirmation 
+  (if no confirmation, roll back the transaction and give an error message OR queue the request).
+
+  On the other side of things, when we receive a request from some other community for a transaction with one of our accounts
+  -- for example if we are the "ZZZ" community, receiving a request from the "ABC" community, for ABC.AAAAA to pay ZZZ.BBBBB --
+  we record the payer as ABC's uid and the payee as ZZZ.BBBBB's uid, with $data['payer_id'] = 'ABC.AAAAA'.
+
+  Thus every inter-community transaction is stored in both communities. Both communities know their trade balance, which should be
+  public through a RESTful query. Intra-community transactions should also be stored twice -- ideally in member's devices. Smartphones and
+  desktop computers running an app should store all their own transactions. Encrypted backups of everything to the cloud too.
+
+Other thoughts:
+  Joining by dumb cellphone is for play only. Accounts and transactions created that way should get deleted after a week of inactivity.

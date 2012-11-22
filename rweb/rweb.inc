@@ -1,6 +1,6 @@
 <?php
 namespace rCredits\Web;
-use rCredits\API as api;
+use rCredits\Backend as be;
 use rCredits\Util as u;
 use rCredits as r;
 use rCredits\Testing as t;
@@ -43,6 +43,7 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'verify cell' => t('We sent a verification code to your cell phone (@number).<br>Please type that code in the box below.'),
   'options saved' => t('Your options have been saved'),
   'ok to continue' => t('You may now continue what you were originally doing.'),
+  'password reset' => t('Your new password has been emailed to you.'),
   
   // errors
   'missing purpose' => t('<p>For buying or selling actual goods and services, you must include a description. Otherwise select "cash/loan/etc.". Rebates and bonuses are intended as rewards for productive economic activity in rCredits.</p>
@@ -53,6 +54,7 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'no cells' => t('This account has no related cell phones.'),
   'required field' => t('@field must not be blank.'),
   'bad name' => t('That is not a plausible name.'),
+  'bad login' => t('That account does not exist. Check your typing?'),
   'bad phone' => t('That is not a proper phone number.'),
   'bad account id' => t('That is not a proper account ID.'),
   'bad amount' => t('Amount must be a number.'),
@@ -74,7 +76,7 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'similar found' => t('Do you mean @other_name (@phone)? If so, <a href="@draft_link">click here</a>. Otherwise, click on any tab to cancel.'),
 );
 
-function modal_form($form, &$form_state) {
+function modal_form($form, &$sta) {
   $form = array(
     'one' => formField('textfield', 'prompt', 'help text', 'default'),
     'submit' => formField('submit', '', '', 'Go!'),
@@ -104,8 +106,8 @@ function util($arg) {
       (2, $uid2, 2);
 EOF;
     r\dbQ($sql);
-    api\fund($uid, TX_SIGNUP);
-    api\fund($uid2, TX_SIGNUP);
+    be\fund($uid, TX_SIGNUP);
+    be\fund($uid2, TX_SIGNUP);
     r\dbQ(file_get_contents(__DIR__ . '\..\sql\r_companies-insert.sql'));
 */
   }
@@ -169,7 +171,7 @@ function show_form($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     $args = 'arg1' . ($arg2 !== '' ? ' arg2' : '') . ($arg3 !== '' ? ' arg3' : '') . ($arg4 !== '' ? ' arg4' : '');
     if ($function != 'accounts' and $function != 'home') u\log("show $function", compact(u\ray($args)));
     drupal_add_css(\drupal_get_path('module', 'rweb') . '/rweb.css', array('group' => CSS_THEME) + weight(-9));
-    $formName = substr($function, 0, 1) == '\\' ? $function : "rCredits\\Web\\{$function}_form";
+    $formName = substr($function, 0, 1) == '\\' ? $function : "rCredits\\Web\\form$function";
     $form = drupal_get_form($formName, $arg1, $arg2, $arg3, $arg4);
   //  $form['#attached']['css'] = array(\drupal_get_path('module', 'rweb') . '/rweb.css');
     $form['#attributes']['class'][] = 'rweb';
@@ -250,12 +252,13 @@ function keep_values(&$form) {
 
 /**
  * Modal window closer
- */
+ *//*
 function close_form() {
   $js = 'window.opener = bottom; window.close();';
   drupal_add_js($js, array('type'=>'inline', 'scope'=>'footer'));
   return '';
 }
+*/
 
 /**
  * Generate choices for a member autocomplete field
@@ -316,7 +319,7 @@ EOF;
   drupal_json_output($matches);
 }
 
-function help_form($form, &$form_state, $what = '') {
+function formHelp($form, &$sta, $what = '') {
   require_once __DIR__ . '/rweb-help.inc';
   $title = formField('item', $what ? t('Help for ') . ucwords($what) : t('General Help'));
   $text = formField('item', '', '', helpText($what ?: 'general'));
@@ -337,13 +340,13 @@ function help($page, $class = '') {
   return compact('help');
 }
 
-function membership_form($form, &$form_state) {
+function formMembership($form, &$sta) {
   if (!($cacct = r\acct())) return NULL;
   $acct = r\acct($cacct->agent); // this form is for people, not accounts
   
   $stagelist = 'rTrader Steward Partner Member';
   $stages = u\ray($stagelist);
-  foreach ($stages as $stage) if (api\access(strtolower($stage))) break;
+  foreach ($stages as $stage) if (be\access(strtolower($stage))) break;
 
   $rTrader = 'authorized to use rCredits "for real"';
   $Steward = "a responsible voter, stewarding your community's finances";
@@ -376,9 +379,13 @@ function membership_form($form, &$form_state) {
   return $form;
 }
 
-function summary_form($form, &$form_state) {
+function formUser($form, &$sta) {return \user_login($form, $sta);} // called from r\go() in formSummary
+
+function formSummary($form, &$sta) {
   global $base_url;
-  extract(api\creditInfo()->fancy, EXTR_PREFIX_ALL, 'my');
+  if (!defined('TESTING')) if (!be\access('manage account')) r\go('user'); // haven't figured a way to test this yet
+  
+  extract(be\creditInfo()->fancy, EXTR_PREFIX_ALL, 'my');
 
   $cacct = r\acct();
   $name = $cacct->name;
@@ -402,10 +409,10 @@ function summary_form($form, &$form_state) {
   return $form;
 }
 
-function account_form($form, &$form_state) {
+function formAccount($form, &$sta) {
   $form['#user'] = r\acct()->account();
-  user_account_form($form, $form_state);
-  system_user_timezone($form, $form_state);
+  user_account_form($form, $sta);
+  system_user_timezone($form, $sta);
 
   $form['title'] = formField('item', t('Account Information'), '', array('weight' => -99));
 //  $form = array_unshift($form, formField('item', t('Account Information'))); // at the beginning, so help link can follow
@@ -420,7 +427,7 @@ function account_form($form, &$form_state) {
   $form['submit'] = formField('submit', '', '', array('value' => t('Save'), 'weight' => 99));
   $form['#user_category'] = 'account';
   u\EXPECT($form['#validate'][0] == 'user_account_form_validate', 'wrong account form validator');
-  $form['#validate'][0] = 'rCredits\\Web\\account_form_validate'; // use ours instead
+  $form['#validate'][0] = 'rCredits\\Web\\formAccount_validate'; // use ours instead
   
   return $form;
 }
@@ -435,18 +442,18 @@ function password_confirm($element) {
 }
 
 /**
- * Replacement for user_account_form_validate()
+ * Replacement for user_formAccount_validate()
  * (because we want to allow the same email for several accounts)
  */
-function account_form_validate($form, &$form_state) {
-  $mail = trim($form_state['values']['mail']);
-  form_set_value($form['account']['mail'], $mail, $form_state);
+function formAccount_validate($form, &$sta) {
+  $mail = trim($sta['values']['mail']);
+  form_set_value($form['account']['mail'], $mail, $sta);
   if ($error = user_validate_mail($mail)) form_set_error('mail', $error);
 }
 
-function account_form_submit($form, &$form_state) {
+function formAccount_submit($form, &$sta) {
   $account = r\acct()->account();
-  \user_save($account, $form_state['values']);
+  \user_save($account, $sta['values']);
   r\acct()->reread();
 }
 
@@ -454,12 +461,12 @@ function account_form_submit($form, &$form_state) {
  * Account Selector form
  * appears above the whole Members Section
  */
-function accounts_form($form, &$form_state) {
+function formAccounts($form, &$sta) {
   if (!($cuid = @r\acct()->id)) return NULL; // no account selector before login
-  if (!($accounts = api\account_choices())) return FALSE;
+  if (!($accounts = be\accountChoices())) return FALSE;
   $choices = array();
   foreach ($accounts as $uid => $zot) {
-    $balance = u\formatAmount(api\creditInfo(compact('uid'))->balance);
+    $balance = u\formatAmount(be\creditInfo(compact('uid'))->balance);
     $choices[$uid] = r\userField('full_name', $uid) . ": $balance";
   }
 
@@ -477,15 +484,15 @@ function accounts_form($form, &$form_state) {
   return $form;
 }
 
-function accounts_form_submit($form, &$form_state) {
-  extract($form_state['values']);
+function formAccounts_submit($form, &$sta) {
+  extract($sta['values']);
   svar('cuid', $account_account); // this gets checked ONLY in setupGlobals()
 }
 
 /**
  * Display the member company's profile (no editable fields here)
  */
-function profile_form($form, &$form_state, $company) {
+function formProfile($form, &$sta, $company) {
   $uid = r\userField('uid', 'name=:company', compact('company'));
   $acct = r\acct($uid);
   if (!$uid or $acct->account_type == R_PERSONAL) return say('no such company', 'zot');
@@ -552,8 +559,8 @@ function profile_picture($uid, $with_markup = FALSE) {
  * Get a transaction request (usually pay or charge) and process it
  * @param string $argString: all or some parameters for the form (when called from directory or draft form)
  */
-function tx_form($form, &$form_state, $argString = '') {
-  if ($confirm = sureForm($form_state)) return $confirm;
+function formTx($form, &$sta, $argString = '') {
+  if ($confirm = sureForm($sta)) return $confirm;
   
   parse_str(strpos($argString, urlencode('=')) ? urldecode($argString) : $argString, $args);
   extract(u\just('who amount goods purpose', $args));
@@ -596,15 +603,15 @@ EOF;
   return keep_values($form); // get defaults from which('info')
 }
 
-function tx_form_validate($form, &$form_state) {
-  if (confirming_v($form_state)) return;
-  if ($confirm = transfer($form_state['values'], FALSE)) confirm($confirm, $form_state); // op who amount goods what
+function formTx_validate($form, &$sta) {
+  if (confirming_v($sta)) return;
+  if ($confirm = transfer($sta['values'], FALSE)) confirm($confirm, $sta); // op who amount goods what
 }
 
-function tx_form_submit($form, &$form_state) {
-  if (confirming_s($form_state)) return;
-  transfer($form_state['values'], TRUE); // op who amount goods what
-  $form_state['redirect'] = current_path(); // clean out the fields
+function formTx_submit($form, &$sta) {
+  if (confirming_s($sta)) return;
+  transfer($sta['values'], TRUE); // op who amount goods what
+  $sta['redirect'] = current_path(); // clean out the fields
 //  if (!defined('TESTING')) r\go(current_path());
 }
 
@@ -612,11 +619,11 @@ function tx_form_submit($form, &$form_state) {
  * Pay with rCredits, arriving from some other site.
  * @todo: handle <user logged in> better
  */
-function buy_now_form($form, &$form_state) {
-  $in = @$form_state['input'] ?: (svar('external_input') ?: $_GET); // $_GET is always an array here
+function formBuy($form, &$sta) {
+  $in = @$sta['input'] ?: (svar('external_input') ?: $_GET); // $_GET is always an array here
   extract($in, EXTR_PREFIX_ALL, 'my'); // get input from outside site or (stored) from login
   if (@$my_external_input) extract(unserialize($my_external_input), EXTR_PREFIX_ALL, 'my');
-  $confirmed = @$my_confirmed ?: (!@$form_state['input'] and user_is_logged_in());
+  $confirmed = @$my_confirmed ?: (!@$sta['input'] and user_is_logged_in());
   
   if (!$confirmed) {
     foreach (u\ray('amount company item code') as $field) {
@@ -666,8 +673,8 @@ function buy_now_form($form, &$form_state) {
   return $form;
 }
 
-function buy_now_form_submit($form, &$form_state) {
-//  tx_form_submit($form, $form_state);
+function formBuy_submit($form, &$sta) {
+//  formTx_submit($form, $sta);
 //  drupal_goto('charge'); // member page when done
 }
 
@@ -675,11 +682,11 @@ function buy_now_form_submit($form, &$form_state) {
  * Exchange USD for rCredits or vice-versa
  * @todo: validate amount
  */
-function exchange_form($form, &$form_state) {
+function formExchange($form, &$sta) {
   $cuid = r\acct()->id;
-  if ($confirm = sureForm($form_state)) return $confirm; // confirm only getUSD
+  if ($confirm = sureForm($sta)) return $confirm; // confirm only getUSD
   $request = u\formatAmount(r\userField('demand', $cuid));
-  $demand = api\creditInfo()->fancy['total_demand'];
+  $demand = be\creditInfo()->fancy['total_demand'];
 
   $form = array(
     'title' => formField('item', t('Get rCredits / USD')),
@@ -695,38 +702,38 @@ function exchange_form($form, &$form_state) {
   return $form;
 }
 
-function exchange_form_validate($form, &$form_state) {
+function formExchange_validate($form, &$sta) {
   $cuid = r\acct()->id;
-  if (confirming_v($form_state)) return;
+  if (confirming_v($sta)) return;
 
-  extract($form_state['values']);
+  extract($sta['values']);
   if (blank_field(compact('amount'))) return;
-  list ($message, $args, $confirm) = api\get($op == 'Get rCredits' ? 'r' : 'usd', $amount, $cuid, FALSE);
-  if ($confirm) return confirm(tt($message, $args), $form_state);
+  list ($message, $args, $confirm) = be\get($op == 'Get rCredits' ? 'r' : 'usd', $amount, $cuid, FALSE);
+  if ($confirm) return confirm(tt($message, $args), $sta);
   if (!@$args['success']) say($message, $args, 'amount');
 }
 
-function exchange_form_submit($form, &$form_state) {
+function formExchange_submit($form, &$sta) {
   $cuid = r\acct()->id;
-  if (confirming_s($form_state)) return;
+  if (confirming_s($sta)) return;
 
-  extract($form_state['values']);
-  list ($message, $args, $confirm) = api\get($op == 'Get rCredits' ? 'r' : 'usd', $amount, $cuid, TRUE);
+  extract($sta['values']);
+  list ($message, $args, $confirm) = be\get($op == 'Get rCredits' ? 'r' : 'usd', $amount, $cuid, TRUE);
   say($message, $args, @$args['success'] ? '' : 'amount'); // error or success
   if ($op == 'Get rCredits') {
     if ($amount < R_MIN_DEMAND) say('demand too small');
-    if (!api\access('partner')) say('demand not yet');
+    if (!be\access('partner')) say('demand not yet');
   }
 }
 
 /**
  * @NOTE: The country and state drop down require a change in form.inc (see form.inc.patch)
  */
-function contact_form($form, &$form_state) {
-  api\merge_check(compact(u\ray('name website phone fax'))); // check before and after
+function formContact($form, &$sta) {
+  be\mergeCheck(compact(u\ray('name website phone fax'))); // check before and after
   extract((array) r\acct()->account(), EXTR_PREFIX_ALL, 'my');
   $full_name_desc = t('Your full legal name, properly capitalized');
-  if (api\access('company')) $full_name_desc .= '<br>' . t('(If you change this, your short identifier and rCredits webpage URL will also change.');
+  if (be\access('company')) $full_name_desc .= '<br>' . t('(If you change this, your short identifier and rCredits webpage URL will also change.');
   
   $onchange = "print_state('edit-state',this.selectedIndex,'');";
   $form = array(
@@ -750,23 +757,23 @@ function contact_form($form, &$form_state) {
   return $form;
 }
 
-function contact_form_validate($form, &$form_state) {
-  extract(u\just('phone fax city address full_name', u\trimAll($form_state['values']))); // trim ALL values, for later
+function formContact_validate($form, &$sta) {
+  extract(u\just('phone fax city address full_name', u\trimAll($sta['values']))); // trim ALL values, for later
 //  if (blank_field(compact(u\ray('phone city address')))) return;
-  if ($phone and !($phone = u\formatPhone($phone, '+n'))) say('bad phone', 'phone'); else $form_state['values']['phone'] = $phone;
-  if ($fax and !($fax = u\formatPhone($fax, '+n'))) say('bad phone', 'fax'); else $form_state['values']['fax'] = $fax;
+  if ($phone and !($phone = u\formatPhone($phone, '+n'))) say('bad phone', 'phone'); else $sta['values']['phone'] = $phone;
+  if ($fax and !($fax = u\formatPhone($fax, '+n'))) say('bad phone', 'fax'); else $sta['values']['fax'] = $fax;
   if (($shortName = u\shortName($full_name)) == r\acct()->name) {
-    $form_state['values']['name'] = $shortName;
+    $sta['values']['name'] = $shortName;
   } elseif (($other = r\userField('uid', 'name=:shortName', compact('shortName')))) {
     say('shortname taken', compact('shortName'), 'full_name');
   }
 }
 
-function contact_form_submit($form, &$form_state) {
-  extract(u\just('name website phone fax', $info = $form_state['values']));
+function formContact_submit($form, &$sta) {
+  extract(u\just('name website phone fax', $info = $sta['values']));
   $info['website'] = str_replace('http://', '', strtolower(@$website));
   r\userUpdate($info);
-  api\merge_check(compact(u\ray('name website phone fax'))); // check before and after
+  be\mergeCheck(compact(u\ray('name website phone fax'))); // check before and after
   say('info saved');
 }
 
@@ -774,7 +781,7 @@ function contact_form_submit($form, &$form_state) {
  * Draft an individual or company into the database.
  * Called when a member tries to pay or charge a non-member.
  */
-function draft_form($form, &$form_state, $argString = '') {
+function formDraft($form, &$sta, $argString = '') {
   parse_str($argString, $args);
   extract(u\just('who return', $args));
   $full_name_desc = t('Their full legal name, properly capitalized');
@@ -796,25 +803,25 @@ function draft_form($form, &$form_state, $argString = '') {
   return $form;
 }
 
-function draft_form_validate($form, &$form_state) {
+function formDraft_validate($form, &$sta) {
   global $base_url;
-  extract(u\just('full_name phone argString return', u\trimAll($form_state['values']))); // (trim ALL values for later)
-  if ($phone and !($phone = u\formatPhone($phone, '+n'))) say('bad phone', 'phone'); else $form_state['values']['phone'] = $phone;
+  extract(u\just('full_name phone argString return', u\trimAll($sta['values']))); // (trim ALL values for later)
+  if ($phone and !($phone = u\formatPhone($phone, '+n'))) say('bad phone', 'phone'); else $sta['values']['phone'] = $phone;
   if (!u\validName($full_name, FALSE, FALSE)) say('bad name', 'name');
-  $form_state['values']['full_name'] = u\normalizeCase($full_name);
+  $sta['values']['full_name'] = u\normalizeCase($full_name);
   $shortName = u\shortName($full_name);
   if (($other_name = r\userField('full_name', 'name=:shortName or phone=:phone', compact('shortName', 'phone')))) {
     $draft_link = "$base_url/$return/who=$other_name&$argString";
     say('similar found', compact(u\ray('other_name phone draft_link')), u\shortName($other_name) == $shortName ? 'full_name' : 'phone');
-  } else $form_state['values']['name'] = $shortName;
+  } else $sta['values']['name'] = $shortName;
 }
 
-function draft_form_submit($form, &$form_state) {
-  extract(u\just('argString return name', $info = $form_state['values']));
+function formDraft_submit($form, &$sta) {
+  extract(u\just('argString return name', $info = $sta['values']));
   $acct = new r\acct($info);
   say('info saved|ok to continue');
   $return = str_replace('%_%', '/', $return); // undo original Drupal-anomaly workaround
-  $form_state['redirect'] = "$return/who=$name&$argString";
+  $sta['redirect'] = "$return/who=$name&$argString";
 }
 
 function no_selection($list) {
@@ -827,7 +834,7 @@ function no_selection($list) {
  * @todo: store two verification EFT deposit amounts in bank_account_status as 1000*one+two
  * (if status > 100, it's waiting for verification)
  */
-function bank_form($form, &$form_state) {
+function formBank($form, &$sta) {
   extract((array) r\acct()->account(), EXTR_PREFIX_ALL, 'my');
 
   if (!$my_bank_account_name) $my_bank_account_name = $my_full_name;
@@ -852,15 +859,15 @@ function bank_form($form, &$form_state) {
   return $form;
 }
 
-function bank_form_validate($form, &$form_state) {
-  extract(u\trimAll($form_state['values']));
+function formBank_validate($form, &$sta) {
+  extract(u\trimAll($sta['values']));
   if (!u\validName($bank_account_name, FALSE, FALSE)) say('bad name', 'bank_account_name');
   if (!preg_match('/^(|[0-9]{9})$/', $routing_number)) say('bad routing number', 'routing_number');
   if (!preg_match('/^[0-9]{3,20}$/', $bank_account_number)) say('bad account number', 'bank_account_number');
 }
 
-function bank_form_submit($form, &$form_state) {
-  extract($form_state['values']);
+function formBank_submit($form, &$sta) {
+  extract($sta['values']);
   if (r\acct()->country == R_COUNTRY) $bank_account_number = "USkk$routing_number$bank_account_number";
   r\userUpdate(compact(u\ray('bank_account_name bank_account_number')));
   say('info saved');
@@ -870,13 +877,13 @@ function bank_form_submit($form, &$form_state) {
  * Give someone access to the current account or mark them as an employee or owner.
  * @todo: make temp id card a popup like in summary
  */
-function relations_form($form, &$form_state) {
+function formRelations($form, &$sta) {
   global $base_url;
   $cacct = r\acct();
   $cuid = $cacct->id;
   $isPerson = ($cacct->account_type == R_PERSONAL);
-  if ($confirm = sureForm($form_state)) return $confirm; // confirm only getUSD
-  $account_identifiers = api\account_name($cuid);
+  if ($confirm = sureForm($sta)) return $confirm; // confirm only getUSD
+  $account_identifiers = be\accountName($cuid);
   $header = u\ray('Person,Is employer?,Is employee?,Is owner?,Permission,');
   $classes = u\prefixValues('rel-', u\ray('person employer employee owner permission link'));
   if (!$isPerson) {
@@ -925,7 +932,7 @@ EOF;
     $raws[] = $thisRaw;
     $previousAgent = $agent_uid;
   }
-  $form_state['original_settings'] = compact('raws0', 'raws');
+  $sta['original_settings'] = compact('raws0', 'raws');
   
   $help = t("Use this form to mark someone as an employee or owner or to give someone access to this account. Individuals marked as employees are the ones who will get paid in rCredits when you use the Pay form to pay \"all\". For example, you might authorize some employees to buy or sell for your company. The system will track who does what. Or you might give your accountant \"read\" permission. Yellow highlights show settings that need to be confirmed -- either by you or by the other party.");
   $subtext = '<span id="account-label">' . t('Current Account') . ":</span> <span id='account-identifiers'>$account_identifiers</span><br><br>$help";
@@ -977,27 +984,27 @@ function toggle($field, $value, $id, $highlight = 'never') {
 EOF;
 }
 
-function relations_form_validate($form, &$form_state) {
-  if (confirming_v($form_state)) return;
+function formRelations_validate($form, &$sta) {
+  if (confirming_v($sta)) return;
   $cuid = r\acct()->id;
-  extract($form_state['values']);
+  extract($sta['values']);
   
   if (@$new_person) {
-    $acct = whois($new_person, 'new_person', $form_state['values'], FALSE, 'no self-relation');
-//    if (api\access('company', $acct)) return say('no company relations', 'new_person');
+    $acct = whois($new_person, 'new_person', $sta['values'], FALSE, 'no self-relation');
+//    if (be\access('company', $acct)) return say('no company relations', 'new_person');
     $uid = $acct->id;
     $already = r\dbLookup('1', 'r_relations', 'main_uid=:cuid AND agent_uid=:uid', compact('cuid', 'uid'));
     if ($already) return say('already related', 'new_person');
-    $form_state['values']['agent_uid'] = $uid; // save for submission handling
+    $sta['values']['agent_uid'] = $uid; // save for submission handling
   }
 }
 
-function relations_form_submit($form, &$form_state) {
-  if (confirming_s($form_state)) return;
+function formRelations_submit($form, &$sta) {
+  if (confirming_s($sta)) return;
   
   $cuid = r\acct()->id;
 
-  if ($agent_uid = @$form_state['values']['agent_uid']) { // adding a new relation
+  if ($agent_uid = @$sta['values']['agent_uid']) { // adding a new relation
     $main_uid = $cuid;
     $permission = 0; // default to no permissions
     $info = compact(u\ray('main_uid agent_uid permission'));
@@ -1007,11 +1014,11 @@ function relations_form_submit($form, &$form_state) {
   }
 
   $changes = array();
-  extract(u\just('raws0 raws', $form_state['original_settings']));
+  extract(u\just('raws0 raws', $sta['original_settings']));
 //  debug(compact('raws0','raws'));
   
   // Drupal doesn't pass along our hidden inputs, so get them directly from $_POST ...
-  foreach ($_POST as $key => $value) { // ... api\update_relations will have to check permissions and data carefully
+  foreach ($_POST as $key => $value) { // ... be\updateRelations will have to check permissions and data carefully
     if (!strpos($key, '-')) continue;
     list ($key, $rawnum, $reid) = explode('-', $key); // eg split permission-2-37
     if (!in_array($key, array_keys($raws))) return 'bad field in relations'; // hack attempt?
@@ -1023,18 +1030,18 @@ function relations_form_submit($form, &$form_state) {
       $changes[$reid]['original'] = @$raws0[$reid]; // save for update reporting and permission-checking
     }
   }
-//  if (!empty($changes)) \drupal_set_message(api\update_relations($changes));
-  if (!empty($changes)) say(api\update_relations($changes));
+//  if (!empty($changes)) \drupal_set_message(be\updateRelations($changes));
+  if (!empty($changes)) say(be\updateRelations($changes));
 }
 
 /**
  * @todo: focus on code input
  */
-function cell_form($form, &$form_state) {
+function formCell($form, &$sta) {
   $cuid = r\acct()->id;
-  if ($confirm = sureForm($form_state)) return $confirm; // confirm only deletion
-  if (form_step($form_state, $info) == 'prove') {
-    $number = u\formatPhone($form_state['storage']['values']['number']);
+  if ($confirm = sureForm($sta)) return $confirm; // confirm only deletion
+  if (form_step($sta, $info) == 'prove') {
+    $number = u\formatPhone($sta['storage']['values']['number']);
     $form = array(
       'title' => formField('item', t('Verify')),
       'subtext' => formField('item', tt('verify cell', compact('number'))),
@@ -1066,58 +1073,58 @@ function cell_form($form, &$form_state) {
   return $form;
 }
 
-function cell_form_validate($form, &$form_state) {
+function formCell_validate($form, &$sta) {
   $cuid = r\acct()->id;
-  if (confirming_v($form_state)) return;
-  extract($form_state['values']);
+  if (confirming_v($sta)) return;
+  extract($sta['values']);
 
   if ($op == 'Verify') {
     if (strtoupper($code) == svar('nonce')) return;
-    previous_state($form_state, 'bad nonce'); // can't just give error message, because then verification form persists
+    previous_state($sta, 'bad nonce'); // can't just give error message, because then verification form persists
   } elseif ($op != 'Add') { // $op == remove
     if (no_selection($cells)) {
       if ($number) $op = 'Add'; else return say('nothing selected'); // user probably pressed Enter after specifying a new cell
-    } else confirm(tt('confirm delete cell'), $form_state);
+    } else confirm(tt('confirm delete cell'), $sta);
   }
 
   if ($op == 'Add') {
     if (blank_field(compact('number'))) return;
-    $form_state['values']['op'] = $op; // make it stick if user pressed Enter
-    say(api\add_cell($number, 'VALIDATE'), 'number');
+    $sta['values']['op'] = $op; // make it stick if user pressed Enter
+    say(be\addCell($number, 'VALIDATE'), 'number');
   }
 }
 
-function cell_form_submit($form, &$form_state) {
-  if (confirming_s($form_state)) return;
+function formCell_submit($form, &$sta) {
+  if (confirming_s($sta)) return;
   
-  extract($form_state['values']);
+  extract($sta['values']);
   if ($op == 'Add') {
-    if ($info = previous_state($form_state)) return say($info, 'number'); // just returning from failed validation of step 2 ('prove')
+    if ($info = previous_state($sta)) return say($info, 'number'); // just returning from failed validation of step 2 ('prove')
     svar('nonce', $nonce = u\nonce()); // don't use POST (user could peek)
     r\SMS\send($number, tt('verification code', compact('nonce')));
-    return form_step($form_state, compact('number'), 'prove');
+    return form_step($sta, compact('number'), 'prove');
   }
 
   if ($op == 'Verify') {
-    step_one($form_state); // no next step (back to original form)
-    say(api\add_cell($number));
-    $form_state['redirect'] = 'account/cell-access';
+    step_one($sta); // no next step (back to original form)
+    say(be\addCell($number));
+    $sta['redirect'] = 'account/cell-access';
   }
     
   if ($op == 'Remove') {
-    foreach ($cells as $key => $number) if ($number) say(api\delete_cell(substr($number, 1))); // ignore the leading 'x'
+    foreach ($cells as $key => $number) if ($number) say(be\deleteCell(substr($number, 1))); // ignore the leading 'x'
   }
 }
 
 /**
  * Modify the user registration form.
  */
-function register_form(&$form, &$form_state) {
+function formRegister(&$form, &$sta) {
   unset($form['account']['name']);
   $account_types = u\ray('Personal,Commercial,Public Non-profit/Government');
   $account_type_help = t('NOTE: If you choose "@commercial" or "@nonprofit", your contact information and photo will be public.', array('@commercial' => $account_types[1], '@nonprofit' => $account_types[2]));
   $my_country = $my_state = '';
-  extract($form_state['input'], EXTR_PREFIX_ALL, 'my'); // overwrites my_country and my_state with input values, on input error
+  extract($sta['input'], EXTR_PREFIX_ALL, 'my'); // overwrites my_country and my_state with input values, on input error
   $onchange = "print_state('edit-state',this.selectedIndex,'');";
   $country_attrib = attrib(compact('onchange'));
   $company_options = array('employee_ok' => t('employee'), 'is_owner' => t('owner'));
@@ -1153,13 +1160,15 @@ function register_form(&$form, &$form_state) {
 
   $form['#attributes']['class'][] = 'labeled';
   $form['#attributes']['class'][] = 'rweb';
-  $form['#validate'][] = 'rCredits\\Web\\register_form_validate';
-  $form['#submit'][] = 'rCredits\\Web\\register_form_submit';
+  $form['#validate'][] = 'rCredits\\Web\\formRegister_validate';
+  $form['#submit'][] = 'rCredits\\Web\\formRegister_submit';
+  $sta['no_cache'] = TRUE; // otherwise the javascript-populated dropdowns get lost
+
   keep_values($form);
 }
 
-function register_form_validate($form, &$form_state) {
-  extract(u\just('company company_options full_name postal_code', $values = u\trimAll($form_state['values'])));
+function formRegister_validate($form, &$sta) {
+  extract(u\just('company company_options full_name postal_code', $values = u\trimAll($sta['values'])));
 
   if ($company) {
     extract(u\just('employee_ok is_owner', $company_options));
@@ -1175,43 +1184,55 @@ function register_form_validate($form, &$form_state) {
 
   u\normalizeCase(u\ray('full_name city address'));
   $community_uid = r\communityUid($postal_code);
-  $form_state['values'] = array_merge($values, compact(u\ray('name data community_uid')));
+  $sta['values'] = array_merge($values, compact(u\ray('name data community_uid')));
 }
 
-function register_form_submit($form, &$form_state) {
-  extract(u\just('company company_options uid', $form_state['values']));
+function formRegister_submit($form, &$sta) {
+  global $user;
+  extract(u\just('company company_options uid name', $sta['values']));
   
   if ($company) {
     extract(u\just('is_owner employee_ok', $company_options));
-    $companyAcct = whois($company, 'company', $form_state['values']);
+    $companyAcct = whois($company, 'company', $sta['values']);
     if (!r\reid($companyAcct->id, $uid)) {
       list ($main_uid, $agent_uid, $is_owner) = array($companyAcct->id, $uid, $is_owner);
       $info = compact(u\ray('main_uid agent_uid employee_ok is_owner'));
       \drupal_write_record('r_relations', $info);
     }
   }
-// merge fails because account is not saved yet:  api\merge_check(compact(u\ray('email short_name'))); // email fails anyway because it's not unique
+// merge fails because account is not saved yet:  be\mergeCheck(compact(u\ray('email short_name'))); // email fails anyway because it's not unique
   $quid = r\quid($uid, $uid);
-  $balance = u\formatAmount(api\fund($uid, TX_SIGNUP));
+  $balance = u\formatAmount(be\fund($uid, TX_SIGNUP));
+  if (@$_SESSION['messages']['status'][0] == t('A welcome message with further instructions has been sent to your e-mail address.')) unset($_SESSION['messages']['status']);
   say('your account is ready', compact(u\ray('balance quid')));
 }
 
 /**
  * Modify the login form.
- * @see also login_followup, below (called from rweb_user_login()).
+ * @see also loginFollowup, below (called from rweb_user_login()).
+ * @param bool $regular: is this the full-page login form (default TRUE) -- otherwise the narrower login block
  */
-function login_alter(&$form, &$form_state) {
-  $form['tip'] = formField('item', t('<b>NOTE: </b>If you already created an account using cell texting and have never yet logged in here, start by requesting a "new password" for your email address.'));
-  $form['external_input'] = formField('hidden', serialize($form_state['input'])); // pass this to rweb_user_login
+function loginAlter(&$form, &$sta, $regular = TRUE) {
+
+  if ($regular) {
+    $title = formField('item', t('Members Section'));
+    $subtext = formField('item', t('Welcome to the rCredits Members Section!'));
+    array_unshift($form, compact(u\ray('title subtext')));
+    $form['tip'] = formField('item', t('<b>NOTE: </b>If you already created an account using cell texting and have never yet logged in here, start by requesting a "new password" for your email address.'));
+    $form['name']['#description'] = t('Enter your username (usually your legal name without spaces or punctuation) OR your rCredits account ID.');
+  }
+  
+  $form['external_input'] = formField('hidden', serialize($sta['input'])); // pass this to rweb_user_login
 //  $form['#submit'][] = 'rCredits\\Web\\login_form_submit';
 
   $i = array_search('user_login_authenticate_validate', $form['#validate']);
   assert($i !== FALSE);
   $form['#validate'][$i] = 'rCredits\\Web\\login_extra_validate'; // our replacement function
   
-  $form['name']['#title'] = t('Username/Email/ID');
+  $form['name']['#title'] = t('Username/ID:');
+  $form['pass']['#title'] = t('Password:');
   
-  $form['#attributes']['class'][] = 'rweb';
+  $form['#attributes']['class'][] = $regular ? 'rweb labeled' : 'rweb';
   $form['#attached']['css'][] = \drupal_get_path('module', 'rweb') . '/rweb.css';
 }
 
@@ -1219,39 +1240,37 @@ function login_alter(&$form, &$form_state) {
  * Replacement for user_login_authenticate_validate()
  * See the original function for explanation of flood control.
  * Accept name (short name), email, or account id, with password.
- * Sets $form_state['uid'] to signify successful authentication.
+ * Sets $sta['uid'] to signify successful authentication.
  */
-function login_extra_validate($form, &$form_state) {
-  extract($form_state['values'], EXTR_PREFIX_ALL, 'my');
-  if (!$my_name or empty($my_pass)) return;
+function login_extra_validate($form, &$sta) {
+  extract(u\just('name pass', $sta['values']));
+  if (!$name or empty($pass)) return;
+
   $failed_login_ip_limit = variable_get('user_failed_login_ip_limit', 50);
   $failed_login_ip_window = variable_get('user_failed_login_ip_window', 3600);
   if (!flood_is_allowed('failed_login_attempt_ip', $failed_login_ip_limit, $failed_login_ip_window)) {
-    $form_state['flood_control_triggered'] = 'ip';
+    $sta['flood_control_triggered'] = 'ip';
     return;
   }
-  $cacct = u\isQid(strtoupper($my_name)) ? r\acct(strtoupper($my_name)) : FALSE; // try to interpret it as a qid
-  $crit =  $cacct ? ('uid=' . $cacct->id) : ':my_name IN (name,mail)';
-  $subs = $cacct ? array() : compact('my_name');
-  if (!($fields = r\userField('uid,name', $crit, $subs))) return; // not a user
+  if (!($uid = r\loginString($name))) return; // not a user
+  $name = r\acct($uid)->name;
   
-  extract($fields, EXTR_PREFIX_ALL, 'my'); // uid and my_name (replacing earlier my_name)
   $failed_login_identifier_uid_only = variable_get('user_failed_login_identifier_uid_only', FALSE);
   $failed_login_user_limit = variable_get('user_failed_login_user_limit', 5);
   $failed_login_user_window = variable_get('user_failed_login_user_window', 21600);
   
-  $identifier = $failed_login_identifier_uid_only ? $my_uid : $my_uid . '-' . ip_address();
-  $form_state['flood_control_user_identifier'] = $identifier;
+  $identifier = $failed_login_identifier_uid_only ? $uid : $uid . '-' . ip_address();
+  $sta['flood_control_user_identifier'] = $identifier;
 
   if (!flood_is_allowed('failed_login_attempt_user', $failed_login_user_limit, $failed_login_user_window, $identifier)) {
-    $form_state['flood_control_triggered'] = 'user';
+    $sta['flood_control_triggered'] = 'user';
     return;
   }
 
-  $form_state['uid'] = user_authenticate($my_name, $my_pass);
+  $sta['uid'] = user_authenticate($name, $pass);
 }
 
-function login_followup($edit) {
+function loginFollowup($edit) {
   global $user;
 
   foreach ($_SESSION as $key => $value) if (u\abbreviates('rcredits_', $key)) unset($_SESSION[$key]);
@@ -1263,7 +1282,19 @@ function login_followup($edit) {
   u\log('login', compact('name'), $uid);
 }
 
-function directory_form($form, &$form_state) {
+function passAlter(&$form, $sta) {
+  $form['name']['#title'] = 'Username or Account ID:';
+  $form['#validate'] = array('rCredits\\Web\\pass_validate');
+}
+
+function pass_validate(&$form, &$sta) {
+  if (!($uid = r\loginString($sta['values']['name']))) return say('bad login', 'name');
+  form_set_value(array('#parents' => array('account')), r\acct($uid)->account(), $sta);
+  say('password reset');
+}
+
+
+function formDirectory($form, &$sta) {
   $cuid = r\acct()->id;
   $which = svar('which_companies') ?: '';
   $region = svar('region') ?: substr(r\userField('postal_code', $cuid), 0, 3);
@@ -1283,11 +1314,11 @@ function directory_form($form, &$form_state) {
   return $form;
 }
 
-function directory_form_validate($form, &$form_state) {
+function formDirectory_validate($form, &$sta) {
 }
 
-function directory_form_submit($form, &$form_state) {
-  extract($form_state['values']);
+function formDirectory_submit($form, &$sta) {
+  extract($sta['values']);
   svar('which_companies', trim($which));
   svar('region', trim($region));
 }
@@ -1319,8 +1350,8 @@ EOF;
       $headed = (@$rows[$i+1]['industry'] == $industry); // header for 2 or more businesses in the same industry
       $list .= $headed ? ($list ? '</ul>' : '') . "<ul><h2>$cat</h2>\n" : '<li>&nbsp;</li>';
     }
-    $pay = api\access('buy and sell') ? button('pay', "$base_url/pay/who=$short_name") : '';
-    $chg = api\access('sell') ? button('chg', "$base_url/charge/who=$short_name") : '';
+    $pay = be\access('buy and sell') ? button('pay', "$base_url/pay/who=$short_name") : '';
+    $chg = be\access('sell') ? button('chg', "$base_url/charge/who=$short_name") : '';
     $full_name = "<a href='$base_url/member/$short_name'>$full_name</a>";
     $item = "$pay$chg $full_name";
     if (!$headed) $item = "- $item <span>($industry)</span>";
@@ -1331,7 +1362,7 @@ EOF;
   return $list ?: t('There are no such businesses listed.');
 }
 
-function company_form($form, &$form_state) {
+function formCompany($form, &$sta) {
   global $base_url;
   $cacct = r\acct();
   $cuid = $cacct->id;
@@ -1360,13 +1391,13 @@ EOF;
   return $form;
 }
 
-function company_form_validate($form, &$form_state) {
-//  extract($form_state['values']);
+function formCompany_validate($form, &$sta) {
+//  extract($sta['values']);
 }
 
-function company_form_submit($form, &$form_state) {
+function formCompany_submit($form, &$sta) {
   $cuid = r\acct()->id;
-  extract(u\trimAll($form_state['values']));
+  extract(u\trimAll($sta['values']));
 //  $description = \check_markup($description['value']);
   $description = $description['value'];
   r\userUpdate(compact('description'));
@@ -1396,7 +1427,7 @@ function button($text, $href = '', $title = '', $type = '') {
   return $markup;
 }
 
-function sms_form($form, &$form_state) {
+function formSMS($form, &$sta) {
   $title = formField('item', t('Test SMS'));
   $my_number = svar('lastSMS');
   $number = formField('textfield', t('From (number): '), '', dft($my_number));
@@ -1409,15 +1440,15 @@ function sms_form($form, &$form_state) {
   return $form;  
 }
 
-function sms_form_submit($form, $form_state) {
+function formSMS_submit($form, $sta) {
   global $sms_devel; $sms_devel = TRUE;
-  extract(u\just('number message', $form_state['values']));
+  extract(u\just('number message', $sta['values']));
   $number = u\formatPhone($number, '+n');
   svar('lastSMS', $number);
   \rsms_sms_incoming('process', $number, $message);
 }
 
-function options_form($form, &$form_state) {
+function formOptions($form, &$sta) {
   $cacct = r\acct();
   $title = formField('item', t('Account Options'));
   $notify_bys = array(t('no notifications'), t('by email'), t('by SMS'), t('by both email and SMS'));
@@ -1437,9 +1468,9 @@ function options_form($form, &$form_state) {
   return $form;  
 }
 
-function options_form_submit($form, $form_state) {
+function formOptions_submit($form, $sta) {
   $cacct = r\acct();
-  extract(u\just('pay_how notify_by', $form_state['values']));
+  extract(u\just('pay_how notify_by', $sta['values']));
   $cacct->setBit(BIT_VIRTUAL_ALL, $pay_how == 2);
   $cacct->setBit(BIT_VIRTUAL_EMPLOYEES, $pay_how == 1);
   $cacct->setBit(BIT_NOTIFY_EMAIL, $notify_by & 1);
@@ -1532,42 +1563,42 @@ EOF;
 /**
  * Set or report next step in form's workflow
  * Syntax:
- *   form_step($form_state, $info, 'id of next step') -- sets the next step
- *   form_step($form_state, $zot, NULL) -- sets the next step to none
- *   form_step($form_state, $info) -- gets the name of the next step and (in $info) any parameters
+ *   form_step($sta, $info, 'id of next step') -- sets the next step
+ *   form_step($sta, $zot, NULL) -- sets the next step to none
+ *   form_step($sta, $info) -- gets the name of the next step and (in $info) any parameters
  * @param string $next_step: a step id ('' means ignore argument, NULL means no next step)
  * @param array $info: associative array of parameters to next step (passed or returned)
  * @return string: the next step ('' if none)
  * @see also step_one() and previous_state()
  */
-function form_step(&$form_state, &$info = NULL, $next_step = '') {
+function form_step(&$sta, &$info = NULL, $next_step = '') {
   if (is_null($next_step)) { // set the next step (and args) to none
-    $form_state['storage'] = NULL;
-    $form_state['rebuild'] = TRUE;
+    $sta['storage'] = NULL;
+    $sta['rebuild'] = TRUE;
   } elseif ($next_step) { // set the next step (and args)
-    $form_state['storage']['previous'][$next_step] = $form_state;
-    $form_state['storage']['step'] = $next_step;
-    $form_state['storage']['values'] = $info;
-    $form_state['rebuild'] = TRUE;
-  } else $info = @$form_state['storage']['values']; // return args
+    $sta['storage']['previous'][$next_step] = $sta;
+    $sta['storage']['step'] = $next_step;
+    $sta['storage']['values'] = $info;
+    $sta['rebuild'] = TRUE;
+  } else $info = @$sta['storage']['values']; // return args
   
-  return @$form_state['storage']['step']; // return the next step
+  return @$sta['storage']['step']; // return the next step
 }
 
-function step_one(&$form_state) {form_step($form_state, $zot, NULL);}
+function step_one(&$sta) {form_step($sta, $zot, NULL);}
 
-function previous_state(&$form_state, $message = '', $args = array()) {
+function previous_state(&$sta, $message = '', $args = array()) {
   if ($message) {
-    $form_state = $form_state['storage']['previous'][$form_state['storage']['step']];
-    $form_state['storage']['say'] = array($message, $args);
-  } else return @$form_state['storage']['say'] ?: '';
+    $sta = $sta['storage']['previous'][$sta['storage']['step']];
+    $sta['storage']['say'] = array($message, $args);
+  } else return @$sta['storage']['say'] ?: '';
 }
 
 /**
  * Asks the user to confirm, calls the caller with the answer.
 
-function ok_form($form, &$form_state) {
-  //extract($form_state['input'], EXTR_PREFIX_ALL, 'in');
+function ok_form($form, &$sta) {
+  //extract($sta['input'], EXTR_PREFIX_ALL, 'in');
   extract(form_args('ok'), EXTR_PREFIX_ALL, 'in');
   $form = array(
     'title' => formField('item', @$in_title),
@@ -1587,8 +1618,8 @@ function ok_form($form, &$form_state) {
   return $form;
 }
 
-function ok_form_submit($form, &$form_state) {
-  extract($form_state['values']);
+function ok_form_submit($form, &$sta) {
+  extract($sta['values']);
   $ok = ($op == 'Okay');
   return_from_detour($detour_to, compact('ok', 'return_with'));
 }
@@ -1616,12 +1647,12 @@ function form_args($function, $args = '') {
 /**
  * Replacement for \confirm_form
  */
-function sureForm(&$form_state, $title = 'Please Confirm') {
-  if (!isset($form_state['confirm'])) return FALSE;
+function sureForm(&$sta, $title = 'Please Confirm') {
+  if (!isset($sta['confirm'])) return FALSE;
   
   $form = array(
     'title' => formField('item', $title),
-    'question' => formField('item', $form_state['confirm']),
+    'question' => formField('item', $sta['confirm']),
     'confirm' => formField('submit', NULL, t('Go ahead'), 'Okay'),
     'cancel' => formField('submit', NULL, t("Don't do it"), 'Cancel'),
   );
@@ -1629,7 +1660,7 @@ function sureForm(&$form_state, $title = 'Please Confirm') {
   $form['#attributes'] = array('class' => u\ray('rweb confirmation'));
 //  $form['#validate'] = 'rCredits\\Web\\sureForm_validate';
 //  $form['#submit'] = 'rCredits\\Web\\sureForm_submit';
-//  $form_state['rebuild'] = TRUE;
+//  $sta['rebuild'] = TRUE;
 
   drupal_add_js("document.getElementById('edit-confirm').focus();", array('type'=>'inline', 'scope'=>'footer'));  
 
@@ -1671,7 +1702,7 @@ function svar($name) {
  */
 function whois($who, $field_name, $info, $allow_ALL = FALSE, $selfMsg = 'no self-trading') {
   global $base_url;
-  $result = api\identify($who, $allow_ALL, $selfMsg);
+  $result = be\identify($who, $allow_ALL, $selfMsg);
   if ($result == 'ALL' or u\isAcct($result)) return $result;
 
   list ($msg, $args, $choices) = $result;
@@ -1695,12 +1726,12 @@ function transfer($info, $confirmed) {
   $txType = $op == 'Pay' ? 'payment' : strtolower($op);
   if (blank_field(compact(u\ray('who amount')))) return FALSE;
   if ($goods and trim($purpose) == '') return say('missing purpose', 'purpose');
-  if (!$goods) $purpose = 'cash'; // tell api\transfer it's not for goods (should be the only place this string occurs)
+  if (!$goods) $purpose = 'cash'; // tell be\transfer it's not for goods (should be the only place this string occurs)
   $amount = str_replace(',', '', trim($amount)); // ignore commas
   if (!is_numeric($amount)) return say('bad amount', 'amount');
   if (!($acct = whois($who, 'who', $info, $txType == 'payment'))) return FALSE; // (allow "ALL" for payment)
   list ($msg, $args, $confirm) = in_array($txType, array('payment', 'charge')) ?
-       api\transfer($txType, $acct, $amount, $purpose, !u\forCash($purpose), $confirmed)
+       be\transfer($txType, $acct, $amount, $purpose, !u\forCash($purpose), $confirmed)
      : communityTransfer($txType, $acct, $amount, $confirmed);
   if ($confirm) return identifiers($acct) . tt('confirm ' . $msg, $args);
   if (@$args['success']) return say($msg, $args);
@@ -1719,7 +1750,7 @@ function transfer($info, $confirmed) {
  *    confirm: boolean "this needs to be confirmed"
  */
 function communityTransfer($type, $acct, $amount, $confirmed) {
-  $success = (bool) api\fund($acct->id, constant(strtoupper("TX_$type")), $amount, $confirmed);
+  $success = (bool) be\fund($acct->id, constant(strtoupper("TX_$type")), $amount, $confirmed);
   $msg = $success ? ($confirmed ? 'report funding' : 'funding') : 'funding error';
   $confirm_action = ucwords($type);
   $action = $confirm_action . 'ed';
@@ -1733,17 +1764,13 @@ function menu($title, $type, $function = NULL, $function_args = array(), $access
   $menu_weight += !@$menu_weight ?: 1;
   
   if (function_exists($local_func = "rCredits\\Web\\$function")) $function = $local_func;
-  if ($function == 'drupal_get_form') {
-    $form_func = $function_args[0];
-    if (function_exists($form_func = "rCredits\\Web\\{$form_func}_form")) $function_args[0] = $form_func;
-  }
   return array_merge(array(
     'title' => $title,
     'type' => $type,
     'page callback' => $function,
     'page arguments' => $function_args,
 //    'access callback' => TRUE,
-    'access callback' => 'rCredits\\Web\\web_access', // don't use api\access directly (rweb needs to remember $cuid)
+    'access callback' => 'rCredits\\Web\\web_access', // don't use be\access directly (rweb needs to remember $cuid)
     'access arguments' => array($access),
     'weight' => @$menu_weight - 1,
     'menu_name' => 'main-menu', 
@@ -1763,24 +1790,24 @@ function formField($type, $title = '', $description = '', $other = array(), $opt
  * Say whether user has submitted the confirmation form (as opposed to the primary form)
  * The "v" verion is called from _validate, the "s" version from _submit.
  */
-function confirming_s(&$form_state) {return ($form_state['rebuild'] = isset($form_state['confirm']));}
-function confirming_v(&$form_state) {
-  if(@$form_state['confirm']) {
-    extract($form_state['values']);
-    $form_state = $form_state['submitted_state'];
+function confirming_s(&$sta) {return ($sta['rebuild'] = isset($sta['confirm']));}
+function confirming_v(&$sta) {
+  if(@$sta['confirm']) {
+    extract($sta['values']);
+    $sta = $sta['submitted_state'];
     if ($op == 'Cancel') {
-      $form_state['rebuild'] = TRUE;
+      $sta['rebuild'] = TRUE;
       say('op canceled'); // not an error message, else confirmation form persists
     }
     return TRUE;
   }
-  $form_state['submitted_state'] = $form_state;
+  $sta['submitted_state'] = $sta;
   return FALSE;
 }
 
-function confirm($msg, &$form_state) {
+function confirm($msg, &$sta) {
   t\testOutput(preg_replace('/\s*$\s*/sm', PHP_EOL, strip_tags($msg)), 'screen');
-  return ($form_state['confirm'] = $msg);
+  return ($sta['confirm'] = $msg);
 }
 
 /**
@@ -1840,7 +1867,7 @@ function userMenuItem($router_path, $link_title) {
  
 function web_access($access) {
   setupGlobals(); // remember who we are (the only reason for this function)
-  return api\access($access);
+  return be\access($access);
 }
 
 // one-line functions that need no explanation

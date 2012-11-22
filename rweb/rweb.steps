@@ -16,7 +16,7 @@
 use rCredits as r;
 use rCredits\Testing as t;
 use rCredits\Util as u;
-use rCredits\API as api;
+use rCredits\Backend as be;
 
 require_once __DIR__ . '/../rcredits.inc';
 require_once __DIR__ . '/../rcredits-testing.inc';
@@ -61,16 +61,16 @@ function extraSubs(&$subs) {
  *     Transact - testAMemberAsksToPayAnotherMember MAKE
  */
 function memberCompletesFormWithValues($id, $formName, $values, $confirmed = FALSE) {
-global $testOnly; debug(compact(u\ray('id formName values confirmed testOnly')));
+  global $testOnly; //debug(compact(u\ray('id formName values confirmed testOnly')));
 //  global $testOnly; if ($testOnly) return FALSE;
   global $testConfirmation; // confirmation message output, if any
 
   t\logIn($id);
   $form = r\Web\show_form($formName);
-  $form_state['values'] = @$values[0]['email'] ? u\changeKey('email', 'mail', $values[0]) : $values[0];
+  $sta['values'] = @$values[0]['email'] ? u\changeKey('email', 'mail', $values[0]) : $values[0];
 
-  if (!$confirmed) foreach (t\postProcess($form, 'tx', 'validate') as $one) {
-    $one($form, $form_state);
+  if (!$confirmed) foreach (t\postProcess($form, 'Tx', 'validate') as $one) {
+    $one($form, $sta);
     if ($errors = \drupal_get_messages('error', FALSE)) {
       $errors = $errors['error']; // the only entry in the array
       while (u\abbreviates('Unable to send e-mail', @$errors[0])) array_shift($errors); // ignore this offline
@@ -78,10 +78,10 @@ global $testOnly; debug(compact(u\ray('id formName values confirmed testOnly')))
       if (!empty($errors)) return FALSE;
     }
   }
-  $testConfirmation = @$form_state['confirm'];
+  $testConfirmation = @$sta['confirm'];
   if ($i = strpos($testConfirmation, '<hr>')) $testConfirmation = substr($testConfirmation, $i + 4);
 
-  foreach (t\postProcess($form, 'tx', 'submit') as $one) $one($form, $form_state);
+  foreach (t\postProcess($form, 'tx', 'submit') as $one) $one($form, $sta);
   return TRUE;
 }
 
@@ -106,23 +106,23 @@ function aMemberCompletesFormWithValues($formName, $values) {
 }
 
 /*
-  $form_state = array();
- * $form_state['values']['mail'] = 'robouser@example.com';
- * $form_state['values']['pass']['pass1'] = 'password';
- * $form_state['values']['pass']['pass2'] = 'password';
- * $form_state['values']['op'] = t('Create new account');
- * drupal_form_submit('user_register_form', $form_state);
+  $sta = array();
+ * $sta['values']['mail'] = 'robouser@example.com';
+ * $sta['values']['pass']['pass1'] = 'password';
+ * $sta['values']['pass']['pass2'] = 'password';
+ * $sta['values']['op'] = t('Create new account');
+ * drupal_form_submit('user_register_form', $sta);
  * @endcode
  
  function drupal_get_form($form_id) {
-  $form_state = array();
+  $sta = array();
 
   $args = func_get_args();
   // Remove $form_id from the arguments.
   array_shift($args);
-  $form_state['build_info']['args'] = $args;
+  $sta['build_info']['args'] = $args;
 
-  return drupal_build_form($form_id, $form_state);
+  return drupal_build_form($form_id, $sta);
 }
  */
 
@@ -191,7 +191,7 @@ function weShowWithSubs($page, $subs) {
   $subs = $subs[0];
   if (u\abbreviates('confirm', $page)) {
     $wanted = u\tt($page, $subs);
-    t\testOutput($wanted, 'screen');
+    t\testOutput("<b>WANTED: </b>$wanted", 'screen');
     return ($wanted == $testConfirmation);
   }
   $form = strtr(t\strip(r\Web\show_form($page, @$subs['arg1'], @$subs['arg2'])), $subs);

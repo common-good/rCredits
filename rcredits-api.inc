@@ -27,9 +27,11 @@
  *
  * No Drupal login is required in Back End. (just pass quid(cuid) and quid(user_id),password)
  * All uids are passed as qids (qid = r\quid(uid) = R_SERVER_ID . n2a(uid))
+ *
+ * @todo: either make a backend or don't. Another way to look at it is to isolate the Web frontend, since rSmart and rSMS are already pretty secure and separate. May want to separate lowish-level db functions as db\ (or not).
  */
 
-namespace rCredits\API; // typically abbreviated as "api"
+namespace rCredits\Backend; // typically abbreviated as "be"
 use rCredits as r;
 use rCredits\Util as u;
 use rCredits\Testing as t;
@@ -107,7 +109,7 @@ function backend2($args = FALSE) {
  * NOTE: Denied invoices are included only for the payee, otherwise all complete or tentative transactions
  * other than rebates and bonuses are included (even those will be included if the 'include_bonuses' option is set).
  */
-function my_transactions($args) {
+function myTransactions($args) {
   $cuid = r\acct()->id;
   
   if (isFrontend()) return backend(__FUNCTION__, $args);
@@ -149,7 +151,7 @@ EOF;
  * @return string: a report of what got updated
  * Permissions and employer_ok cannot be updated by the agent and employee_ok cannot be updated by the employer
  */
-function update_relations($updates) {
+function updateRelations($updates) {
 //debug($updates);
   $cuid = r\acct()->id;
   $report = '';
@@ -340,8 +342,8 @@ function get($currency, &$amount, $confirmed) {
  * Pay the given invoice
  * @return array(string $message, array $args)
  */
-function pay_invoice($zxid) {
-  if (isFrontend()) return (array) backend('pay_invoice', compact(u\ray('zxid')));
+function payInvoice($zxid) {
+  if (isFrontend()) return (array) backend('payInvoice', compact(u\ray('zxid')));
   if (is_array($zxid)) extract($zxid); // called from api or backend
 
   if (!access('buy and sell')) return array('no buy and sell', array());
@@ -479,13 +481,13 @@ function fund($uid, $type = TX_SIGNUP, $amount = R_STARTING_BALANCE, $confirmed 
   if (is_array($uid)) extract($uid); // called from api or backend
 
   $payee_agent = $payee = $uid;
-  $cacct = r\acct();
+  $cacct = r\acct(); // null, if just registering
   $ctty = r\userField('community_uid', $payee);
   if ($type > TX_AUTOMATIC and !access('community admin')) return FALSE; // incentives given only automatically or by community agent
   if (!$confirmed) return TRUE;
   
   $payer = $ctty;
-  $payer_agent = $cacct->id < 0 ? $cacct->agent : $ctty;
+  $payer_agent = @$cacct->id < 0 ? $cacct->agent : $ctty;
   $taking = ($type >= TX_FINE);
   $for = $GLOBALS['txTypes'][$type];
   r\transact(compact(u\ray('type amount payer payee payer_agent payee_agent for taking')));
@@ -495,9 +497,9 @@ function fund($uid, $type = TX_SIGNUP, $amount = R_STARTING_BALANCE, $confirmed 
 /**
  * @return FALSE if success; else array($error_message, $subs)
  */
-function add_cell($number, $validate = FALSE) {
+function addCell($number, $validate = FALSE) {
   $cuid = r\acct()->id;
-  if (isFrontend()) return backend('add_cell', compact(u\ray('number validate')));
+  if (isFrontend()) return backend('addCell', compact(u\ray('number validate')));
   if (is_array($number)) extract($number); // called from api or backend
 
   $numberInternal = u\formatPhone($number, '+n');
@@ -509,7 +511,7 @@ function add_cell($number, $validate = FALSE) {
     if ($result = r\dbQ('SELECT * FROM r_sms WHERE number=:numberInternal', compact('numberInternal'))->fetchAssoc()) {
       extract($result, EXTR_PREFIX_ALL, 'old');
       if ($old_uid == $cuid) return array('already cell', $subs);
-      $accountName = account_name($old_uid);
+      $accountName = accountName($old_uid);
       if (!isTempAccount($old_uid)) return array('cell taken', compact(u\ray('number accountName')));
     }
     return NULL;
@@ -519,14 +521,14 @@ function add_cell($number, $validate = FALSE) {
   $status = SMS_PRIMARY;
   $number = $numberInternal;
   $info = compact(u\ray('uid number status'));
-  if (!merge_check(compact('number'))) \drupal_write_record('r_sms', $info);
+  if (!mergeCheck(compact('number'))) \drupal_write_record('r_sms', $info);
   if (!r\acct()->phone) r\userUpdate(array('phone' => $number)); // use it as contact phone, if none yet
   $number = $numberPretty;
   return array('report new cell', compact('number'));
 }
 
-function delete_cell($number) {
-  if (isFrontend()) return backend('delete_cell', compact(u\ray('number')));
+function deleteCell($number) {
+  if (isFrontend()) return backend('deleteCell', compact(u\ray('number')));
   if (is_array($number)) extract($number); // called from api or backend
 
   $number = u\formatPhone($number, '+n'); // internal format
@@ -664,19 +666,20 @@ EOF;
  * Find and merge into the current account any temporary accounts with the same shortname or specified criteria
  * @return int: the number of accounts that were merged.
  */
-function merge_check($info) {
-  if (isFrontend()) return backend('merge_check', $info);
+function mergeCheck($info) {
+  if (isFrontend()) return backend('mergeCheck', $info);
   
+  $cuid = r\acct()->id;
   $info['name'] = r\userField('name');
   extract($info, EXTR_PREFIX_ALL, 'my');
   
   $where = 'name=:name';
-  if (@$my_number) $where .= ' OR sms.number=:number';
-  if (@$my_website) $where .= ' OR u.website=:website';
-  if (@$my_phone) $where .= ' OR u.phone=:phone';
-  if (@$my_fax) $where .= ' OR u.fax=:fax';
-  $sql = "SELECT DISTINCT u.uid FROM users u LEFT JOIN r_sms sms ON sms.uid=u.uid WHERE (NOT u.pass) AND ($where)";
-  $result = r\dbQ($sql, $info);
+  if (isset($my_number)) $where .= ' OR sms.number=:number';
+  if (isset($my_website)) $where .= ' OR u.website=:website';
+  if (isset($my_phone)) $where .= ' OR u.phone=:phone';
+  if (isset($my_fax)) $where .= ' OR u.fax=:fax';
+  $sql = "SELECT DISTINCT u.uid FROM users u LEFT JOIN r_sms sms ON sms.uid=u.uid WHERE u.uid<>:cuid AND (NOT u.pass) AND ($where)";
+  $result = r\dbQ($sql, $info + compact('cuid'));
   $found = 0;
   while ($row = $result->fetchAssoc()) $found += r\mergeAccounts($row['uid']);
   return $found;
@@ -689,8 +692,8 @@ function merge_check($info) {
  *   maybe like this: SELECT main_uid, MAX(permission) WHERE agent_uid=:agent 
  *     OR agent_uid IN (SELECT main_uid FROM r_relations WHERE agent_uid=:agent) GROUP BY main_uid
  */
-function account_choices() {
-  if (isFrontend()) return (array) backend('account_choices');
+function accountChoices() {
+  if (isFrontend()) return (array) backend('accountChoices');
   
   if (!($cacct = r\acct())) return FALSE;
   $agent = $cacct->agent;
@@ -761,8 +764,8 @@ function zxid2tid($zxid, $uid = '') {
   return ($zxid < 0 ? 'a' : '') . r\dbLookup('COUNT(xid)', '{zxs}', $crit, compact('uid', 'zxid'));
 }
 
-function account_name($uid) {
-  if (isFrontend()) return backend('account_name', compact(u\ray('uid')));
+function accountName($uid) {
+  if (isFrontend()) return backend('accountName', compact(u\ray('uid')));
   if (is_array($uid)) extract($uid); // called from api or backend
   
   $acct = r\acct($uid);
@@ -807,22 +810,21 @@ function accesses($acct = '') {
   if ($acct->hasBit(BIT_CHARGE)) $perms[] = 'charge others';
   if ($acct->account_type != R_PERSONAL) $perms[] = 'company'; // ad hoc permissions
 
-
   return $perms;
 }
 
 /**
  * @return array of record objects
  */
-function get_records($table, $criteria, $subs = array(), $fields = '*', $cache = FALSE) {
+function getRecords($table, $criteria, $subs = array(), $fields = '*', $cache = FALSE) {
 /*  $sql = <<<EOF
     SELECT COLUMN_NAME FROM information_schema.COLUMNS
     WHERE TABLE_SCHEMA=:db AND TABLE_NAME=:table AND COLUMN_KEY='PRI'
 EOF;
   $db = 'devcore'; // @todo: get proper db name
   $key = r\dbQ($sql, compact('table', 'db')); */
-//  if (!$cache) die('no cache get_records');
-  if (isFrontend()) return (array) backend('get_records', compact(u\ray('table criteria subs fields')), $cache);
+//  if (!$cache) die('no cache getRecords');
+  if (isFrontend()) return (array) backend('getRecords', compact(u\ray('table criteria subs fields')), $cache);
   if (is_array($table)) extract($table); // called from api or backend
   
 //  echo " SELECT $fields FROM $table WHERE $criteria ";
@@ -835,7 +837,7 @@ function isTempAccount($uid) {
   return !r\userField('pass', $uid);
 }
 
-function is_tempName($name) {
+function isTempName($name) {
   if (isFrontend()) return backend('is_temp_name', compact(u\ray('name')));
   if (is_array($name)) extract($name); // called from api or backend
   return u\abbreviates(R_TEMP_NAME_PREFIX, $name);
@@ -845,7 +847,7 @@ function testbe($function = '', $arg1 = '', $arg2 = '', $arg3 = '') {
   global $testing_backend, $firewall;
   $firewall = R_FIREWALL; // this is not currently necessary
   if (!$function) return $testing_backend;
-  $function = "rCredits\\API\\$function";
+  $function = "rCredits\\be\\$function";
   $testing_backend = TRUE;
   debug($function($arg1, $arg2, $arg3)); // keep this
 }
@@ -864,7 +866,7 @@ function backend($op, $info = array(), $cache = FALSE) {
   global $base_url, $firewall;
   u\EXPECT(isFrontend(), 'backend recursion');
   if (!user_is_logged_in()) return FALSE; // probably checking permission
-//  if ($op == 'get_records' and !$cache) die(print_r(debug_backtrace(), 1));
+//  if ($op == 'getRecords' and !$cache) die(print_r(debug_backtrace(), 1));
 
   $cuid = r\acct()->id;
   u\EXPECT(@$cuid, 'no cuid in backend!');
@@ -897,7 +899,7 @@ function backend($op, $info = array(), $cache = FALSE) {
  * Say whether the account has the specified permission
  * @param string $access: the queried permission. This could be any of three types:
  *   a standard Drupal permission, queryable through user_access()
- *   a shared account permission, stored in r_relations (cached in $_SESSION['rcredits_account_choices'], but we're not trusting that)
+ *   a shared account permission, stored in r_relations (cached in $_SESSION['rcredits_accountChoices'], but we're not trusting that)
  *   an ad hoc permission handled directly by this function
  * @param array $acct: acct object for the other party (DEFAULT current account)
  *   OR a simple uid on the current server

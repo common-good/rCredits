@@ -90,7 +90,7 @@ function rcredits_exception_handler($e) {
       drupal_set_message($msg, 'error'); // this fails
       drupal_goto('error/' . $R_FATAL_ERROR); // this fails -- use shutdown function to show error page (getting message from log)
     case TX_SMS: if (@$rsms_number) \sms_send($rsms_number, $short_msg); break;
-    case TX_SMART: api\api_error($short_msg);
+    case TX_SMART: be\api_error($short_msg);
     default: die('with no channel'); // definitely do the print_r first
   }
 }

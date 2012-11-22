@@ -6,7 +6,7 @@
 
 use rCredits as r;
 use rCredits\Util as u;
-use rCredits\API as api;
+use rCredits\Backend as be;
 
 /**
  * Implement hook_install().
