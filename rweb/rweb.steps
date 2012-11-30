@@ -66,7 +66,7 @@ function memberCompletesFormWithValues($id, $formName, $values, $confirmed = FAL
   global $testConfirmation; // confirmation message output, if any
 
   t\logIn($id);
-  $form = r\Web\show_form($formName);
+  $form = r\Web\showForm($formName);
   $sta['values'] = @$values[0]['email'] ? u\changeKey('email', 'mail', $values[0]) : $values[0];
 
   if (!$confirmed) foreach (t\postProcess($form, 'Tx', 'validate') as $one) {
@@ -194,7 +194,7 @@ function weShowWithSubs($page, $subs) {
     t\testOutput("<b>WANTED: </b>$wanted", 'screen');
     return ($wanted == $testConfirmation);
   }
-  $form = strtr(t\strip(r\Web\show_form($page, @$subs['arg1'], @$subs['arg2'])), $subs);
+  $form = strtr(t\strip(r\Web\showForm($page, @$subs['arg1'], @$subs['arg2'])), $subs);
   t\testOutput($form, 'screen');
   return ($form == $formOutput);
 }
@@ -289,7 +289,7 @@ function memberVisitsPageWithOptions($id, $page, $options) {
 
   $cacct = r\acct(); // save, so we can restore it
   r\acct::setDefault(r\acct(t\fullQid($id)));
-  global $formShown; $formShown = t\strip(r\Web\show_form($page, $options));
+  global $formShown; $formShown = t\strip(r\Web\showForm($page, $options));
   r\acct::setDefault($cacct);
   return TRUE;
 }

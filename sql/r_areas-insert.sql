@@ -1,4 +1,4 @@
-INSERT INTO `r_area_codes` (`area_code`, `region`) VALUES
+INSERT INTO `r_areas` (`area_code`, `region`) VALUES
 ('201', 'NJ'),
 ('202', 'DC'),
 ('203', 'CT'),

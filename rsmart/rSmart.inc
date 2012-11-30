@@ -184,7 +184,7 @@ function identify($args) {
 /*
  * Get an individual's photo.
  * @param array $args:
- *   account_id (converted to ruid): the qid for an individual or company and rep
+ *   acct: the qid for an individual or company and rep
  * @return:
  *   just the photo data (no json)
  */
@@ -249,7 +249,7 @@ function undo($params) {
   
   if (!@$tx_id) return be\error('missing transaction id');
   if (!u\isQid(@$tx_id)) return be\error('bad transaction id');
-  list ($zxid, $regionUid) = r\azid($tx_id);
+  list ($zxid, $regionUid) = r\unQid($tx_id);
   if ($regionUid != r\serverUid()) return be\error('That is not a transaction on this server.');
   if (@$confirmed !== '1' and @$confirmed !== '0') return be\error('bad confirmation status');
   

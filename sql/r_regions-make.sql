@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS `r_credit_regions` (
+CREATE TABLE IF NOT EXISTS `r_regions` (
   `region` char(2) COLLATE utf8_unicode_ci NOT NULL COMMENT 'state or province',
   `credit_region` char(2) COLLATE utf8_unicode_ci NOT NULL COMMENT 'credit region id',
   PRIMARY KEY (`region`),

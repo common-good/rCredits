@@ -3,6 +3,7 @@
 #page-title {display: none;}
 
 /* ul#main-menu-links li.first {display:none;} Use this to suppress spurious "Home" tab, but better to delete it in menu_links */
+div#secondary-menu li.menu-2 {display:none;} /* Drupal recreates and unhides this if we try to delete it or hide it */
 
 form.rweb {font-family:Arial;}
 form.rweb div.invisible {display:none;}

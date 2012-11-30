@@ -338,25 +338,25 @@ function tempName($info) {
 
 /**
  * Set a transaction field for the current user.
- * @param string $field_name: the field to update
+ * @param string $fieldName: the field to update
  * @param mixed $new_value: what to update it to
  * @param int $zxid: transaction id & table
  * @param bool $all_related: set all related transactions too (default FALSE)
  * NOTE: tx data changes(date, agent, field, oldvalue) (this gives a complete history of the transaction)
  *     (prefixes added to the payer_for or payee_for fields when changing state will not be included in changes)
  */
-function setTxField($field_name, $new_value, $zxid, $all_related = FALSE) {
+function setTxField($fieldName, $new_value, $zxid, $all_related = FALSE) {
   $cuid = acct()->id;
-  u\EXPECT(compact(u\ray('field_name zxid all_related')), 'name zid bool');
+  u\EXPECT(compact(u\ray('fieldName zxid all_related')), 'name zid bool');
   
   list ($xid, $table) = azxid($zxid);
   $crit = "xid=:xid and $cuid in (payer, payee)"; // "$cuid in" is a security measure
-  list ($old_value, $data) = array_values(dbLookup("$field_name,data", $table, $crit, compact(u\ray('xid'))));
+  list ($old_value, $data) = array_values(dbLookup("$fieldName,data", $table, $crit, compact(u\ray('xid'))));
   $data = unserialize($data);
-  $data['changes'][] = array(time(), acct()->agent, $field_name, $old_value);
+  $data['changes'][] = array(time(), acct()->agent, $fieldName, $old_value);
   $data = serialize($data);
-  $sql = "UPDATE $table SET $field_name=:new_value, data=:data WHERE $crit";
-  $sql2 = "UPDATE $table SET $field_name=:new_value WHERE serial=:xid AND type<>:TX_TRANSFER";
+  $sql = "UPDATE $table SET $fieldName=:new_value, data=:data WHERE $crit";
+  $sql2 = "UPDATE $table SET $fieldName=:new_value WHERE serial=:xid AND type<>:TX_TRANSFER";
 //  $sql2 = str_replace(', data=:data', '', str_replace('xid=:xid', 'serial=:xid', $sql));
   
   /*** Begin DBTX ***/
@@ -434,78 +434,61 @@ function zxs($uid1 = 'current', $uid2 = '') {
  * Look the field up in the table, returning the first record matching the criteria.
  * @params array $subs: optional substitutions -- keys will be prefixed by ':'
  */
-function dbLookup($field_name, $table_name, $criteria = '1', $subs = array()) {
-  u\EXPECT(compact(u\ray('field_name table_name criteria subs')), 'notempty notempty notempty assoc');
-  $sql = "SELECT $field_name FROM $table_name WHERE $criteria";
+function dbLookup($fieldName, $table_name, $criteria = '1', $subs = array()) {
+  u\EXPECT(compact(u\ray('fieldName table_name criteria subs')), 'notempty notempty notempty assoc');
+  $sql = "SELECT $fieldName FROM $table_name WHERE $criteria";
   if (!strpos($criteria, ' LIMIT ')) $criteria .= ' LIMIT 1';
   $result = dbQ($sql, $subs);
-  return strpos($field_name, ',') ? $result->fetchAssoc() : $result->fetchField();
+  return strpos($fieldName, ',') ? $result->fetchAssoc() : $result->fetchField();
 }
 
 /**
  * Return a qid for the zid
  * @param $zid: a zid
- * @param string $region_id: the 3-character regional server ID (defaults to this server)
+ * @param string $regionID: the 3-character regional server ID (defaults to this server)
  * @param int $min_len: minimum length of the part of the qid after the "." or ":"
  * @return the qid, FALSE if wrong format
  */
-function qid($zid = '', $region_id = R_SERVER_ID, $min_len = 1) {
+function qid($zid = '', $regionID = R_SERVER_ID, $min_len = 1) {
   if (!u\isZid($zid)) return FALSE;
-  return $region_id . ($zid < 0 ? (':' . u\n2a(-$zid, -$min_len)) : ('.' . u\n2a($zid, -$min_len)));
+  return $regionID . ($zid < 0 ? (':' . u\n2a(-$zid, -$min_len)) : ('.' . u\n2a($zid, -$min_len)));
 }
 
 /**
- * Return an azid and region for the qid
+ * Return a zid and region for the qid
  * @return [zid, regionUid]
  */
-function azid($qid) {
+function unQid($qid) {
   if (!u\isQid($qid)) return FALSE;
-  $qid = str_replace('..', ':', $qid); // allow a horizontal colon
-  $type = strpos($qid, '.') === FALSE ? ':' : '.';
-  list ($region_id, $iid) = explode($type, $qid, 2); // separate into region and individual id
+  list ($regionID, $type, $iid) = preg_split('/(\.+|=|:)/', $qid, 0, PREG_SPLIT_DELIM_CAPTURE); // allow a horizontal colon
   
   $id = u\a2n($iid);
-  return array($type == '.' ? $id : -$id, serverUid($region_id ?: R_SERVER_ID));
+  return array($type == '.' ? $id : -$id, serverUid($regionID ?: R_SERVER_ID));
 }
   
 /**
- * Convert ruid to quid
+ * Convert uids to quid
  * Call by:
  *   quid()
  *   quid(uid) == quid(uid, uid)
- *   quid(ruid)
- *   quid(uid, agent_uid) -- regionUid defaults to current region
- *   quid(uid, agent_uid, regionUid) -- these are the elements of an ruid array
- * @param ruid $ruid: the ruid to convert (DEFAULT current account)
+ *   quid(uid, agentUid)
+ *   quid(uid, agentUid, regionUid)
+ * @param int uid: record id of the account (defaults to current account)
+ * @param int agentUid: uid of agent (defaults to uid)
+ * @param int $regionUid: uid of the region (always negative, defaults to current region)
  * @return the corresponding quid
  */
-function quid($ruid = '', $agent_uid = '', $regionUid = '') {
+function quid($uid = '', $agentUid = '', $regionUid = '') {
   $cacct = acct();
-  if ($agent_uid) {
-    $uid = $ruid;
+  if ($agentUid) {
     if (!$regionUid) $regionUid = serverUid();
-  } else list ($uid, $agent_uid, $regionUid) = 
-      ( is_array($ruid) ? $ruid 
-    : ( ($uid = $ruid) ? array($uid, $uid, serverUid()) 
-    : ( array($cacct->id, $cacct->agent, $cacct->region) )));
-  return qid($uid == $agent_uid ? $uid : -reid($uid, $agent_uid), u\n2a(-$regionUid, 3), 3);
+  } else list ($uid, $agentUid, $regionUid) = 
+    $uid ? array($uid, $uid, serverUid()) 
+         : array($cacct->id, $cacct->agent, $cacct->region);
+  return qid($uid == $agentUid ? $uid : -reid($uid, $agentUid), u\n2a(-$regionUid, 3), 3);
 }
 
-function qxid($zxid, $region_id = R_SERVER_ID) {return qid($zxid, $region_id = R_SERVER_ID, 4);} // Convert zxid to qxid
-
-/**
- * Convert a zuid to uid and agent uid or vice-versa
- * zuid() returns $czuid
- * zuid($zuid) returns and rid = array($uid, $agent_uid)
- * zuid($uid, $agent_uid) returns $zuid ($uid if $uid==$agent_uid, else -$reid)
- * @return as above; FALSE if no such
- */ /*
-function zuid($id = '', $agent_uid = '') {
-  global $czuid;
-  if (!$id) return $czuid;
-  if (!$agent_uid) return ($reid = -$id) > 0 ? array_values(dbLookup('main_uid,agent_uid', 'r_relations', 'reid=:reid', compact('reid'))) : array($id, $id);
-  return $id == $agent_uid ? $id : -dbLookup('reid', 'r_relations', 'main_uid=:id AND agent_uid=:agent_uid', compact(u\ray('id agent_uid')));
-} */
+function qxid($zxid, $regionID = R_SERVER_ID) {return qid($zxid, $regionID = R_SERVER_ID, 4);} // Convert zxid to qxid
 
 /**
  * Convert a zxid to xid and table or vice-versa
@@ -702,7 +685,7 @@ function reid($main_uid, $agent_uid, $permission = '') {
 function go($page) {
   if (defined('TESTING')) {
     list ($form, $arg1) = ($page == 'pay' or $page == 'charge') ? array('tx', $page) : array($page, '');
-    return Web\show_form($form, $arg1);
+    return Web\showForm($form, $arg1);
   }
   \drupal_goto($page);
 }
@@ -739,9 +722,9 @@ function error($logid) {
 // Single line functions that need no explanation
 function rebate($uid, $amount = 1) {return round($amount * userField('rebate_percent', $uid) / 100, 2);}
 function bonus($uid, $amount = 1) {return rebate($uid, 2 * $amount);}
-// UNUSED tx_field($field_name, $xid, $real) {return dbLookup($field_name, zxs($real/2), 'xid=:xid', compact('xid'));}
+// UNUSED tx_field($fieldName, $xid, $real) {return dbLookup($fieldName, zxs($real/2), 'xid=:xid', compact('xid'));}
 function setTxState($new_value, $zserial) {setTxField('state', $new_value, $zserial, TRUE);}
 function totalDemand() {return dbLookup('SUM(demand)', 'users');}
-function serverUid($region_id = '') {return -u\a2n($region_id ?: R_SERVER_ID);}
+function serverUid($regionID = '') {return -u\a2n($regionID ?: R_SERVER_ID);}
 function emailTemplate($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}
 function emailBody($key) {return str_replace('{BODY}', emailTemplate($key), emailTemplate(R_EMAIL_FRAME));}

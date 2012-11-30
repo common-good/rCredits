@@ -28,7 +28,9 @@ function rcredits_install() {
   if (!r\dbLookup(1, 'users', 'uid=:uid', compact('uid'))) new r\acct($info); // create the server record if it doesn't exist yet (don't use r\acct() here)
   variable_set('date_default_timezone', 'America/New_York');
   variable_set('site_frontpage', 'summary');
-  variable_set('site_name', 'rCredits ' . R_VERSION);
+  variable_set('site_name', 'rCredits Members Site' . R_VERSION);
+  variable_set('user_register', USER_REGISTER_VISITORS); // let visitors register themselves
+
 // NO. This creates a navigation column.  variable_set('site_frontpage', 'charge');
 
   $current = variable_get('mail_system', array('default-system' => 'DefaultMailSystem'));
@@ -43,6 +45,8 @@ function rcredits_install() {
       if (!db_query($sql)->rowCount()) die("Failed to insert records for $table.");
 	  }
   }
+  db_query("DELETE from menu_links WHERE menu_name='main-menu' AND link_title='Home'"); // this is replaced by "Summary"
+// this fails  db_query("UPDATE menu_links SET hidden=1 WHERE menu_name='navigation'"); // don't want these either
   
   $key = \variable_get('rcredits_preserve');
   foreach (u\ray(R_PRESERVE) as $table) {

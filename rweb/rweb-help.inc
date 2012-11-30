@@ -50,44 +50,44 @@ EOF
         <p>Download the app from <a href="http://rCredits.org/rc.apk">rCredits.org/rc.apk</a>, install, run. Try all the buttons.</p>
 EOF
     ),
-    'sms' => t('The Text Message Interface is intended to be easy enough that you can just muddle your way through the first time. Give it a shot. You can even <i>sign up</i> with Text Messaging. Send your texts to +1 413.285.2867 OR use the Test SMS form to simulate sending a text.'),
+    'sms' => t("The Text Message Interface is intended to be easy enough that you can just muddle your way through the first time. Give it a shot. You can even <i>sign up</i> with Text Messaging. Send your texts to +1 413.285.2867 OR use the <a href=\"$base_url/sms\">Test SMS form</a> to simulate sending a text."),
 
-    'summary' => t(<<<EOF
+    'Summary' => t(<<<EOF
       <p>This page shows an overview of your rCredits account.</p>
       <p><b>Account ID</b> has two parts. The part before the period is a 3-character identifier for your region. The region name is shown in parentheses after your account ID. The part after the period uniquely identifies your account, within your region. If you have several accounts, this part will be different for each one.</p>
       <p>If you are acting as an agent for someone else's account -- for example if you are a sales clerk for a department store -- the period will be a colon instead. Your ID Card will show your picture, with the company name under yours. The second part of the account ID (and the scannable code) will identify both you and the company.</p>
       $companySummary
 EOF
     ),
-    'txs' => t(<<<EOF
+    'Txs' => t(<<<EOF
       <p>Select the period you want to see transactions for. Both the Summary and Transactions sections will reflect just the transactions in that period. However, the "Pending" line will reflect all your not-yet-accepted invoices and offers EVER. The Ending balance in the Summary is always your current balance.</p>
       <p>Transactions numbers begin with "a" because they are "AS-IF" transactions.</p>
       <p>If the status is "pending", either you or the other party will need to click on "OK" to complete the deal. Click on the "X" to reject an invoice, dispute a charge, reject an offer, or cancel or undo something you did. Click on the pencil to edit the description. The description is just for you -- the other party will not see it.</p>
       <p>The Rewards column shows how much rCredits were added to your account as a reward for joining or for buying or selling real goods and services. Loans, exchanges for US Dollars, and other purely financial deals do not earn rewards.</p>
 EOF
     ),
-    'tx' => t(<<<EOF
+    'Tx' => t(<<<EOF
       <p><b>Whom:</b> Type all or part of the full name of the account you want to pay or charge. You can leave out the punctuation, spaces, and capitals. Or you can type their phone number or email address or their account ID. Note that a period in the account ID (a regular account) is different from a colon (an agent acting on behalf of an account). If you have employees you can say pay "ALL", to pay each employee the same amount.</p>
       <p><b>Amount:</b> The amount of the transaction, measured in dollars, to be paid in rCredits.</p>
       <p><b>Purpose:</b> If this is a purely financial transaction, click on "cash/loan/etc". Otherwise, a description is required (for purchases and sales of real goods and services). Donations to nonprofit organizations count as purchases of real services -- services to society. For loans, cash exchanges, and other money deals, you can leave the purpose blank -- your statements will call the purpose "cash".</p>
 EOF
     ),
-    'directory' => t(<<<EOF
+    'Directory' => t(<<<EOF
       <p>Once we begin for real, this is where you can find out who takes rCredits for what you want. Meanwhile, most businesses in Greenfield, Massachusetts (postal code 01301 -- our launch site) are already listed, for your convenience. Feel free to do "AS-IF" transactions with the ones you plan to buy from or sell to. Click on a business name to see its automatic rCredits webpage. (The photos were captured robotically from the internet, so some are less than perfect.)</p>
       <p>You can limit the results to a specific industry or a specific business by typing all or part of the industry or business name. Currently, if you limit the results geographically, there won't be any results unless you happen to live in the United States "01" postal code region.</p>
 EOF
     ),
-    'account' => t(<<<EOF
+    'Account' => t(<<<EOF
       <p><b>Current password:</b> To change your email address or password, you must supply your current password, as a security precaution.</p>
       <p><b>Picture:</b> For an individual account you will need to upload a clear photo of your face, for identification. This is the photo that will appear on your Member ID card. Ideally, the picture should be no wider than it is tall. (otherwise it looks peculiar on their ID card). If you choose too skinny a picture, though, the bottom will get cropped off.</p>
       $companyAccount
 EOF
     ),
-    'cell' => t(<<<EOF
+    'Cell' => t(<<<EOF
       <p>Add one or more cell phones to your account so you can use Text Messaging to buy and sell things with rCredits. The form will send a secret word to your phone, which you can then enter here to confirm the connection.</p>
 EOF
     ),
-    'relations' => t(<<<EOF
+    'Relations' => t(<<<EOF
       <p>Connect individual rCredits participants to your account -- either as owners, employees, or others, with limited or full access to the account. This is especially useful for authorizing sales clerks or setting up joint accounts. For companies, the best practice is to use the account ONLY through an individual agent account, so that you always know who did what.</p>
       <p>To change the setting in the Employee? or Owner? column, click on + or -. The permissions you select in the Permission column will limit what the person can do with this account.</p>
       <p>If you give the person at least "Sell" permission (and save the record), you can click on a link in the final column, to print a Temporary Member ID Card for them to use on behalf of this account.</p>
@@ -95,21 +95,21 @@ EOF
       <p>To remove someone from the list, make them not an employee, not an owner, and no permissions (if they are already that way, you will have to change something and change it back).</p>
 EOF
     ),
-    'contact' => t(<<<EOF
+    'Contact' => t(<<<EOF
       <p><b>Full name:</b> If you change the name on the account, you will need to buy a new member ID card (or cards) and your account will be disabled until you supply new proof of identity. For companies, your automatic rCredits website address will also change.</p>
       <p><b>Postal code:</b> Your postal code determines what rCredits "Common Good Community" you are in.</p>
       <p><b>All other settings on this page</b> are private for individual accounts, public for company accounts.</p>
 EOF
     ),
-    'company' => t(<<<EOF
+    'Company' => t(<<<EOF
       <p>All of the information from this form goes on your automatic <a target="_blank" href="$base_url/member/$acctName">rCredits webpage</a>, along with your company name and profile picture. Your email address will not be included unless you put it in the description explicitly. Click on the link, to see the results.</p>
 EOF
     ),
-    'options' => t(<<<EOF
+    'Options' => t(<<<EOF
       <p>These settings are, by default, what most people prefer. Feel free to adjust them to your taste. You can always come back and change them again later.</p>
       <p>If there are settings you would like to see here -- that is, things you want to work differently -- please let us know. We expect to offer many additional options over the next few months.</p>
 EOF
     ),
   );
-  return @$helps[$page] ?: t("This feature is pretty intuitive. Give it a try, then call us if you can't figure it out.");
+  return @$helps[$page] ?: tt('no help', compact('page'));
 }

@@ -43,7 +43,7 @@ function rweb_block_info() {
  * Implements hook_block_view().
  */
 function rweb_block_view($delta = '') {
-  if (in_array($delta, u\ray(RWEB_BLOCKS))) return r\Web\blockView(NULL, r\Web\show_form($delta)); // no subject for blocks
+  if (in_array($delta, u\ray(RWEB_BLOCKS))) return r\Web\blockView(NULL, r\Web\showForm($delta)); // no subject for blocks
 }
 
 /**
@@ -61,37 +61,38 @@ function rweb_menu() {
   $modal = array('modal' => TRUE);
   
   $menu = array(
-    'help' => r\Web\menu(t('Help'), MENU_CALLBACK, 'show_form', array('Help', 1), '', $anyone),
-    'summary' => r\Web\menu(t('Summary'), MENU_NORMAL_ITEM, 'show_form', array('Summary'), '', $anyone),
-    'transactions' => r\Web\menu(t('Transactions'), MENU_NORMAL_ITEM, 'show_form', array('Txs', 1), 'read transactions'),
-    'charge' => r\Web\menu(t('Charge'), MENU_NORMAL_ITEM, 'show_form', array('Tx'), 'sell'),
-    'pay' => r\Web\menu(t('Pay'), MENU_NORMAL_ITEM, 'show_form', array('tx', 1), 'buy and sell'),
-    'exchange' => r\Web\menu(t('Get rCredits / USD'), MENU_NORMAL_ITEM, 'show_form', array('Exchange'), 'manage account'),
-    'directory' => r\Web\menu(t('Find Companies'), MENU_NORMAL_ITEM, 'show_form', array('Directory'), 'sell'),
-    'Temporary-Member-ID-Card' => r\Web\menu(t('Print Temporary Member ID Card'), MENU_CALLBACK, 'member_id', array(1),  'sell'),
-    'draft' => r\Web\menu(t('Draft into Database'), MENU_CALLBACK, 'show_form', array('Draft', 1), 'sell'),
+    'help' => r\Web\menu(t('Help'), MENU_CALLBACK, 'showForm', array('Help', 1), '', $anyone),
+    'summary' => r\Web\menu(t('Summary'), MENU_NORMAL_ITEM, 'showForm', array('Summary'), '', $anyone),
+    'transactions' => r\Web\menu(t('Transactions'), MENU_NORMAL_ITEM, 'showForm', array('Txs', 1), 'read transactions'),
+    'charge' => r\Web\menu(t('Charge'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), 'sell'),
+    'pay' => r\Web\menu(t('Pay'), MENU_NORMAL_ITEM, 'showForm', array('Tx', 1), 'buy and sell'),
+    'exchange' => r\Web\menu(t('Get rCredits / USD'), MENU_NORMAL_ITEM, 'showForm', array('Exchange'), 'manage account'),
+    'directory' => r\Web\menu(t('Find Companies'), MENU_NORMAL_ITEM, 'showForm', array('Directory'), 'sell'),
+    'Temporary-Member-ID-Card' => r\Web\menu(t('Print Temporary Member ID Card'), MENU_CALLBACK, 'memberID', array(1),  'sell'),
+    'draft' => r\Web\menu(t('Draft into Database'), MENU_CALLBACK, 'showForm', array('Draft', 1), 'sell'),
     
-    'sms' => r\Web\menu('Test SMS', MENU_CALLBACK, 'show_form', array('SMS'), '', $anyone), // should be 'admin' not '',...
+    'I' => r\Web\menu('Scanned QR', MENU_CALLBACK, 'showForm', array('I'), '', $anyone),
+    'sms' => r\Web\menu('Test SMS', MENU_CALLBACK, 'showForm', array('SMS'), '', $anyone), // should be 'admin' not '',...
     'handy' => r\Web\menu('Handy Links', MENU_NORMAL_ITEM, 'handy_links', array(), 'admin'),
 
-    'account' => r\Web\menu(t('Basic Account Settings'), MENU_CALLBACK, 'show_form', array('Account'), 'manage account'),
-    'account/overview' => r\Web\menu('Basic Account Settings', MENU_DEFAULT_LOCAL_TASK, 'show_form', array('Account'), 'manage account'),
-    'account/cell' => r\Web\menu(t('Cell Phone Access'), MENU_LOCAL_TASK, 'show_form', array('Cell'), 'manage account'),
-    'account/relations' => r\Web\menu(t('Relations'), MENU_LOCAL_TASK, 'show_form', array('Relations'), 'manage account'),
-    'account/contact' => r\Web\menu(t('Contact Information'), MENU_LOCAL_TASK, 'show_form', array('Contact'), 'manage account'),
-    'account/company' => r\Web\menu(t('Company Info'), MENU_LOCAL_TASK, 'show_form', array('Company'), 'company'),
-    'account/options' => r\Web\menu(t('Account Options'), MENU_LOCAL_TASK, 'show_form', array('Options'), 'manage account'),
-//    'account/bank-info' => r\Web\menu(t('Bank Info'), MENU_LOCAL_TASK, 'show_form', array('Bank'), 'manage account'),
+    'account' => r\Web\menu(t('Basic Account Settings'), MENU_CALLBACK, 'showForm', array('Account'), 'manage account'),
+    'account/overview' => r\Web\menu('Basic Account Settings', MENU_DEFAULT_LOCAL_TASK, 'showForm', array('Account'), 'manage account'),
+    'account/cell' => r\Web\menu(t('Cell Phone Access'), MENU_LOCAL_TASK, 'showForm', array('Cell'), 'manage account'),
+    'account/relations' => r\Web\menu(t('Relations'), MENU_LOCAL_TASK, 'showForm', array('Relations'), 'manage account'),
+    'account/contact' => r\Web\menu(t('Contact Information'), MENU_LOCAL_TASK, 'showForm', array('Contact'), 'manage account'),
+    'account/company' => r\Web\menu(t('Company Info'), MENU_LOCAL_TASK, 'showForm', array('Company'), 'company'),
+    'account/options' => r\Web\menu(t('Account Options'), MENU_LOCAL_TASK, 'showForm', array('Options'), 'manage account'),
+//    'account/bank-info' => r\Web\menu(t('Bank Info'), MENU_LOCAL_TASK, 'showForm', array('Bank'), 'manage account'),
 
-    'radmin' => r\Web\menu(t('Community Overview'), MENU_CALLBACK, 'show_form', array('Account'), 'community admin'),
-    'radmin/overview' => r\Web\menu('Community Overview', MENU_DEFAULT_LOCAL_TASK, 'show_form', array('Account'), 'community admin'),
-    'radmin/grant' => r\Web\menu(t('Grant'), MENU_NORMAL_ITEM, 'show_form', array('Tx'), 'community admin'),
-    'radmin/loan' => r\Web\menu(t('Loan'), MENU_NORMAL_ITEM, 'show_form', array('Tx'), 'community admin'),
-    'radmin/fine' => r\Web\menu(t('Fine'), MENU_NORMAL_ITEM, 'show_form', array('Tx'), 'community admin'),
+    'radmin' => r\Web\menu(t('Community Overview'), MENU_CALLBACK, 'showForm', array('Account'), 'community admin'),
+    'radmin/overview' => r\Web\menu('Community Overview', MENU_DEFAULT_LOCAL_TASK, 'showForm', array('Account'), 'community admin'),
+    'radmin/grant' => r\Web\menu(t('Grant'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), 'community admin'),
+    'radmin/loan' => r\Web\menu(t('Loan'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), 'community admin'),
+    'radmin/fine' => r\Web\menu(t('Fine'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), 'community admin'),
 
-    'membership' => r\Web\menu(t('Membership Status'), MENU_CALLBACK, 'show_form', array('Membership'), 'manage account'),
+    'membership' => r\Web\menu(t('Membership Status'), MENU_CALLBACK, 'showForm', array('Membership'), 'manage account'),
 
-    'member' => r\Web\menu('Company Profile', MENU_CALLBACK, 'show_form', array('Profile'), '', $anyone),
+    'member' => r\Web\menu('Company Profile', MENU_CALLBACK, 'showForm', array('Profile'), '', $anyone),
     'rcredits/util' => r\Web\menu('Util', MENU_CALLBACK, 'rCredits\\Web\\util', array(2), 'admin'),
     'autocomplete' => r\Web\menu('Identify', MENU_CALLBACK, 'rCredits\\Web\\auto', array(1, 2, 3), '', $anyone),
 
@@ -99,11 +100,11 @@ function rweb_menu() {
     'api' => r\Web\menu('API', 0, 'rCredits\\Smart\\api', array(), '', $anyone),
     'error' => r\Web\menu('System Error', 0, 'rCredits\\error', array(1), '', $anyone),
     
-    'pay-with-rcredits' => r\Web\menu('Pay With rCredits', MENU_CALLBACK, 'show_form', array('Buy'), '', $anyone), // form will require login
+    'pay-with-rcredits' => r\Web\menu('Pay With rCredits', MENU_CALLBACK, 'showForm', array('Buy'), '', $anyone), // form will require login
 
-//    'example-store' => r\Web\menu('Example Store', MENU_NORMAL_ITEM, 'show_form', array('example_store'), '', $anyone),
+//    'example-store' => r\Web\menu('Example Store', MENU_NORMAL_ITEM, 'showForm', array('example_store'), '', $anyone),
 //    'modal' => r\Web\menu('Modal Test', MENU_CALLBACK, 'drupal_get_form', array('rCredits\\Web\\modal_form'), '', $anyone + $modal),
-//    'ok' => r\Web\menu('Please Confirm', MENU_CALLBACK, 'show_form', array('ok'), '', $anyone + $modal),
+//    'ok' => r\Web\menu('Please Confirm', MENU_CALLBACK, 'showForm', array('ok'), '', $anyone + $modal),
   );
   return $menu;
 }
@@ -112,11 +113,20 @@ function rweb_menu_alter(&$items) {
   unset($items['node']);
 }
 
-function rweb_form_alter(&$form, &$sta, $form_id) {if ($form_id == 'user_login') return r\Web\loginAlter($form, $sta);}
+function rweb_form_alter(&$form, &$sta, $form_id) {
+//debug($form);
+//debug($sta);
+//debug($form_id);
+//debug($_SERVER);
+  if ($form_id == 'user_pass_reset') return r\Web\resetAlter($form, $sta);
+  if ($form_id == 'user_login') return r\Web\loginAlter($form, $sta);
+  if (basename($_SERVER['REQUEST_URI']) == 'user' and user_is_logged_in()) r\go('');
+}
+
 function rweb_form_user_register_form_alter(&$form, &$sta, $form_id) {r\Web\formRegister($form, $sta);}
 function rweb_form_user_login_block_alter(&$form, &$sta, $form_id) {return r\Web\loginAlter($form, $sta, FALSE);}
 function rweb_form_user_login_form_alter(&$form, &$sta, $form_id) {return r\Web\loginAlter($form, $sta);}
-function rweb_user_login(&$edit, $account) {r\Web\loginFollowup($edit);} // Implements hook_user_login().
+function rweb_user_login(&$edit, $account) {r\Web\loginFollowup($edit, $account);} // Implements hook_user_login().
 function rweb_form_user_pass_alter(&$form, &$sta) {return r\Web\passAlter($form, $sta);}
 
 /*function rweb_form_user_profile_form_alter(&$form, &$sta, $form_id) {

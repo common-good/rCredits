@@ -127,6 +127,7 @@ class acct {
   
   public function proSe() {return ($this->id == $this->agent);}  
   public function qid() {return $this->proSe() ? $this->mainQid : quid($this->id, $this->agent, $this->region);}
+  public function isCompany() {return (@$this->account_type != R_PERSONAL);}
   public function hasBit($bit) {return (bool) ($this->flags & $bit);}
   
   public function setBit($bit, $on = TRUE) {
@@ -154,7 +155,7 @@ function UAR($quid = '', $no_abbrev = TRUE) {
   if (!u\isQid($quid) and !$no_abbrev) $quid = R_SERVER_ID . $quid;
   if (!u\isQid($quid)) return FALSE;
 
-  list ($zuid, $regionUid) = azid($quid);
+  list ($zuid, $regionUid) = unQid($quid);
   if (($reid = -$zuid) > 0) {
     if (!($record = dbLookup('main_uid,agent_uid', 'r_relations', 'reid=:reid', compact('reid')))) return FALSE;
     $result = array_values($record);

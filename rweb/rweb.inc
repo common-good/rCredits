@@ -7,7 +7,7 @@ use rCredits\Testing as t;
 
 include_once __DIR__ . '/rweb-txs.inc'; // treat this as an extension of this file, just to make menu ['file'] consistent
 require_once __DIR__ . '/../rcredits-api.inc';
-require_once __DIR__ . '/../rcredits-testing.inc'; // else fails in show_form()
+require_once __DIR__ . '/../rcredits-testing.inc'; // else fails in showForm()
 
 /**
  * @file
@@ -74,8 +74,11 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'unknown member' => t('"@who" has not yet signed up for rCredits. <a href="@draft_link">Click here</a> to add them to the database.'),
   'ambiguous other' => t('"@who" might mean any of these rCredits accounts.<br>Click on the one you want or, if you don\'t see them listed, <a href="@draft_link">Click here</a> to add them to the database.'),
   'similar found' => t('Do you mean @other_name (@phone)? If so, <a href="@draft_link">click here</a>. Otherwise, click on any tab to cancel.'),
+  'get app' => t('To scan Account ID cards with a smartphone, you need the app! You can download the Android app <a href="http://rCredits.org/rc.apk">here</a>. The iphone version is in the works (check again in January).'),
+  'no help' => t('There is no written help available for this page. Give it a try! If you are still puzzled, please feel free to give us a call at @R_ORG_PHONE. Or send your question by <a href="mailto:@R_ORG_EMAIL?subject=help with rCredits Members Site, @page page" target="_blank">email</a>.'),
 );
 
+/*
 function modal_form($form, &$sta) {
   $form = array(
     'one' => formField('textfield', 'prompt', 'help text', 'default'),
@@ -84,9 +87,10 @@ function modal_form($form, &$sta) {
   
   return $form;
 }
+*/
 
 function util($arg) {
-  if ($arg == 'modal') drupal_goto('modal');
+//  if ($arg == 'modal') drupal_goto('modal');
   if ($arg == 'test') {
     include __DIR__ . '/../../gherkin/test.php';
   }
@@ -125,13 +129,11 @@ function handy_links() {
 
   $links = array(
     'rcredits/util/test?menu=1|Test Menu|',
-    "$test_path/gherkin/compile.php?module=rcredits/rsms&return=1|Compile rSMS|",
-    "$test_path/gherkin/compile.php?module=rcredits/rsmart&return=1|Compile rSmart|",
-    "$test_path/gherkin/compile.php?module=rcredits/rweb&return=1|Compile rWeb|",
+//    "$test_path/gherkin/compile.php?module=rcredits/rsms&return=1|Compile rSMS|",
     'sms|Simulate an SMS transaction|Simulate SMS',
-    'admin/config/development/testing|Test|Test',
-    'deletetests.php|Delete old tests|Delete old tests',
-    'rcredits/util/reset|Reset rCredits|',
+//    'admin/config/development/testing|Test|Test',
+//    'deletetests.php|Delete old tests|Delete old tests',
+//    'rcredits/util/reset|Reset rCredits|',
     'rcredits/util/clear_sessions|Clear Sessions|',
     
     'devel/settings|Helper functions, pages, and blocks to assist Drupal developers. The devel blocks can be managed via the block administration page.|Devel settings',
@@ -145,7 +147,7 @@ function handy_links() {
     'devel/phpinfo|View your server&#039;s PHP configuration|PHPinfo()',
     'devel/menu/reset?destination=node|Rebuild menu based on hook_menu() and revert any custom changes. All menu items return to their default settings.|Rebuild menus',
     'devel/reinstall?destination=node|Run hook_uninstall() and then hook_install() for a given module.|Reinstall modules',
-    'devel/run-cron|Run cron|Run cron',
+//    'devel/run-cron|Run cron|Run cron',
     'devel/session|List the contents of SESSION.|Session viewer',
     'devel/theme/registry|View a list of available theme functions across the whole site.|Theme registry',
     'devel/variable?destination=node|Edit and delete site variables.|Variable editor',
@@ -163,7 +165,7 @@ EOF;
   return "<style>div.develw div {display:inline; margin-right:20px;}</style><div class='develw'>\n$result</div>";
 }
 
-function show_form($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
+function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   global $formOutput; // for testing
   try {
     setupGlobals(); // in case it's an anonymous form, so web_access doesn't have a chance to set up
@@ -177,8 +179,8 @@ function show_form($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     $form['#attributes']['class'][] = 'rweb';
     if (!@$form['confirm']) $form += which(); // add the choices popup form, if any
 
-    if ($function != 'help') if (($i = array_search('title', array_keys($form))) !== FALSE or $function == 'txs') {
-      if ($function == 'txs') $i = -1; // no title on Transactions page, so insert at beginning
+    if ($function != 'help') if (($i = array_search('title', array_keys($form))) !== FALSE or $function == 'Txs') {
+      if ($function == 'Txs') $i = -1; // no title on Transactions page, so insert at beginning
       $extras = array('#id' => 'help-link', '#weight' => @$form['title']['#weight']);
       $help_link = formField('item', t('<a>Help with this page</a>')) + $extras; // add a help link just under the title
       $form = array_slice($form, 0, $i+1) + compact('help_link') + array_slice($form, $i+1) + help($function, @$form['#attributes']['class'][0]);
@@ -206,7 +208,7 @@ function show_form($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
  * Offer choices for user to choose from
  * 1. If called with all arguments, the arguments are stored in svar('pop') and the form is reloaded
  * 2. If called as which('info'), this function returns $info from svar('pop')
- * 3. If called with NO arguments (from show_form()), this function returns a fieldset to insert as a popup layover div into
+ * 3. If called with NO arguments (from showForm()), this function returns a fieldset to insert as a popup layover div into
  * the form awaiting the choice. Clicking on a choice fills in the missing value and submits the form.
  * For #3, we expect svar('pop') to contain: $formName, $choices, $result_field, and $question
  *   $formName: the form name
@@ -383,7 +385,7 @@ function formUser($form, &$sta) {return \user_login($form, $sta);} // called fro
 
 function formSummary($form, &$sta) {
   global $base_url;
-  if (!defined('TESTING')) if (!be\access('manage account')) r\go('user'); // haven't figured a way to test this yet
+  if (!defined('TESTING')) if (!be\access('read transactions')) r\go('user'); // haven't figured a way to test this yet
   
   extract(be\creditInfo()->fancy, EXTR_PREFIX_ALL, 'my');
 
@@ -394,9 +396,9 @@ function formSummary($form, &$sta) {
   $title = formField('item', t('Account Summary'));
 //  'subtext = basic_account_info();
   $account_id = formField('item', t('Account ID:'), '', $cacct->mainQid . ' ' . u\hug(R_REGION_NAME));
-  if ($cacct->account_type == R_PERSONAL or !$cacct->proSe()) {
+  if (!$cacct->isCompany() or !$cacct->proSe()) {
     $card = formField('item', '&nbsp;', '', t('<a>Print Temporary ID Card</a>'));
-  } else $cardC = formField('item', '&nbsp;', '', t('To print temporary ID cards for employees or other agents, visit the <a href="$base_url/account/relations">Account Relations</a> page.'));
+  } else $cardC = formField('item', '&nbsp;', '', t("To print temporary ID cards for employees or other agents, visit the <a href=\"$base_url/account/relations\">Account Relations</a> page."));
   $account_name = formField('item', t('Name:'), '', $cacct->full_name . ' ' . u\hug($name));
   $address = formField('item', '&nbsp;', '', $address);
   $account_type = formField('item', t('Account type:'), '', $GLOBALS['account types'][$cacct->account_type+0]); // +0 for admin
@@ -414,8 +416,7 @@ function formAccount($form, &$sta) {
   user_account_form($form, $sta);
   system_user_timezone($form, $sta);
 
-  $form['title'] = formField('item', t('Account Information'), '', array('weight' => -99));
-//  $form = array_unshift($form, formField('item', t('Account Information'))); // at the beginning, so help link can follow
+  $form['title'] = formField('item', t('Account Information'), '', weight(-99));
   unset($form['account']['name']);
   $form['account']['mail']['#description'] = t('All emails from the system will be sent to this address. The email address is not made public.');
   $form['account']['pass']['#description'] = t('Enter your new password in both fields above.<br>To change your email address and/or password, enter your current password below.');
@@ -424,7 +425,7 @@ function formAccount($form, &$sta) {
   $form['account']['current_pass']['#weight'] = 4;
   $form['account']['status']['#weight'] = 5;
   $form['account']['roles']['#weight'] = 6;
-  $form['submit'] = formField('submit', '', '', array('value' => t('Save'), 'weight' => 99));
+  $form['submit'] = formField('submit', '', '', array('value' => t('Save')) + weight(99));
   $form['#user_category'] = 'account';
   u\EXPECT($form['#validate'][0] == 'user_account_form_validate', 'wrong account form validator');
   $form['#validate'][0] = 'rCredits\\Web\\formAccount_validate'; // use ours instead
@@ -495,7 +496,7 @@ function formAccounts_submit($form, &$sta) {
 function formProfile($form, &$sta, $company) {
   $uid = r\userField('uid', 'name=:company', compact('company'));
   $acct = r\acct($uid);
-  if (!$uid or $acct->account_type == R_PERSONAL) return say('no such company', 'zot');
+  if (!$uid or !$acct->isCompany()) return say('no such company', 'zot');
   extract((array) $acct->account(), EXTR_PREFIX_ALL, 'my');
 
   $pic = profile_picture($uid, TRUE);
@@ -567,7 +568,7 @@ function formTx($form, &$sta, $argString = '') {
   $type = $argString === '' ? basename(current_path()) : basename(dirname(current_path()));
   $role = in_array($type, u\ray('charge fine')) ? 'payee' : 'payer';
   $cash = in_array($type, u\ray('fine grant loan'));
-  $focus = @$who ? 'edit-amount' : 'edit-who' ;
+  focusOn(@$who ? 'amount' : 'who');
 
   //$onchange = "nixwhat();";
   $radios = array(t('cash/loan/etc.'), t('goods & services'));
@@ -597,8 +598,6 @@ function formTx($form, &$sta, $argString = '') {
     document.getElementById('edit-who').focus();
 EOF;
 */
-  $js = "document.getElementById('$focus').focus();";
-  drupal_add_js($js, array('type'=>'inline', 'scope'=>'footer'));
   
   return keep_values($form); // get defaults from which('info')
 }
@@ -754,6 +753,7 @@ function formContact($form, &$sta) {
   $form['#attributes']['class'] = array('labeled');
   drupal_add_js('inc/countries.js', array('type'=>'file', 'scope'=>'header'));
   drupal_add_js("print_country('edit-country', \"$my_country\", \"$my_state\");", array('type'=>'inline', 'scope'=>'footer'));
+  focusOn('full_name');
   return $form;
 }
 
@@ -881,7 +881,7 @@ function formRelations($form, &$sta) {
   global $base_url;
   $cacct = r\acct();
   $cuid = $cacct->id;
-  $isPerson = ($cacct->account_type == R_PERSONAL);
+  $isPerson = !$cacct->isCompany();
   if ($confirm = sureForm($sta)) return $confirm; // confirm only getUSD
   $account_identifiers = be\accountName($cuid);
   $header = u\ray('Person,Is employer?,Is employee?,Is owner?,Permission,');
@@ -906,7 +906,7 @@ EOF;
     $raws0[$reid] = $row; // original data from table
     $isAgent = ($cuid != $main_uid);
     $combo = ($isAgent and @$previousAgent == $main_uid); // related both ways
-    $otherIsPerson = r\acct($isAgent ? $main_uid : $agent_uid)->account_type == R_PERSONAL;
+    $otherIsPerson = !r\acct($isAgent ? $main_uid : $agent_uid)->isCompany();
     $idLink = (!$isAgent and $otherIsPerson and $employee_ok and $permission >= PERM_SELL) ? "<a target=\"_blank\" href=\"$base_url/Temporary-Member-ID-Card/$agent_uid\">print Temporary ID Card</a>" : R_NONE;
 
     $id = (count($rows) - ($combo ? 1 : 0)) . "-$reid"; // "row-reid"
@@ -914,8 +914,10 @@ EOF;
     list ($employee_ok, $employer_ok) = array($employee_ok and $isAgent, $employer_ok and !$isAgent);
     $isEmployer = toggle('employee_ok', $employee_ok, $id, $isAgent and $discrepant);
     $isEmployee = $otherIsPerson ? toggle('employer_ok', $employer_ok, $id, !$isAgent and $discrepant) : R_NONE;
-    $isOwner = toggle('is_owner', $is_owner and !$isAgent, $id);
-    $perm = dropdown('permission', $isAgent ? 0 : $permission, $GLOBALS['share permissions'], $id);
+    $is_owner = ($is_owner and !$isAgent);
+    $isOwner = toggle('is_owner', $is_owner, $id);
+    $permission = $isAgent ? 0 : $permission;
+    $perm = dropdown('permission', $permission, $GLOBALS['share permissions'], $id);
 
     if ($combo) { // employee record preceded by other record for same entity
       $thisRow = array_pop($rows); // throw out everything (everything but $isEmployer), use previous record data
@@ -925,6 +927,7 @@ EOF;
     } else {
       $thisRow = array($full_name, $isEmployer, $isEmployee, $isOwner, $perm, $idLink);
       $thisRaw = compact(u\ray('employee_ok employer_ok permission is_owner'));
+      debug($thisRaw);
       if (!$isPerson) array_splice($thisRow, 1, 1); // companies can't be employees
     }
     
@@ -1025,7 +1028,7 @@ function formRelations_submit($form, &$sta) {
 
     $value = (int) strtr($value, array('true' => 1, 'false' => 0));
     if ($value != (int) $raws[$rawnum][$key]) { // changed?
-//      debug("key=$key reid=$reid value=$value orig=".$raws[$rawnum][$key]);
+      debug("key=$key reid=$reid rawnum=$rawnum value=$value orig=".$raws[$rawnum][$key]);
       $changes[$reid][$key] = $value;
       $changes[$reid]['original'] = @$raws0[$reid]; // save for update reporting and permission-checking
     }
@@ -1163,7 +1166,8 @@ function formRegister(&$form, &$sta) {
   $form['#validate'][] = 'rCredits\\Web\\formRegister_validate';
   $form['#submit'][] = 'rCredits\\Web\\formRegister_submit';
   $sta['no_cache'] = TRUE; // otherwise the javascript-populated dropdowns get lost
-
+  focusOn('full_name');
+  
   keep_values($form);
 }
 
@@ -1208,6 +1212,27 @@ function formRegister_submit($form, &$sta) {
 }
 
 /**
+ * Modify the password reset form.
+ */
+function resetAlter(&$form, &$sta) {
+  $form['title'] = formField('item', t('First Time Login'), '', weight(-99));
+  $form['message']['#markup'] = str_replace('</p><p>' . t('Click on this button to log in to the site and change your password.'), t(' Choose a new password, then click on the button to log in.'), $form['message']['#markup']);
+  $form['account']['pass'] = formField('password_confirm', '', t('Enter your new password in both fields.'));
+  $form['actions']['submit'] = formField('submit', '', '', array('value' => t('Login'))); // + weight(99));
+  $form['#submit'][] = 'rCredits\\Web\\resetSubmit';
+  $form['#attributes']['class'][] = 'rweb';
+  focusOn('pass-pass1'); // note that password field gets expanded to two fields, of which pass1 is the first
+}
+
+function resetSubmit(&$form, &$sta) {
+  svar('resetPass', $sta['values']['pass']);
+//  $uid = $sta['buid_info']['args'][0];
+//  r\acct($uid)->update(compact('pass'));
+//  debug($form);
+//  debug($sta);
+}
+
+/**
  * Modify the login form.
  * @see also loginFollowup, below (called from rweb_user_login()).
  * @param bool $regular: is this the full-page login form (default TRUE) -- otherwise the narrower login block
@@ -1215,8 +1240,8 @@ function formRegister_submit($form, &$sta) {
 function loginAlter(&$form, &$sta, $regular = TRUE) {
 
   if ($regular) {
-    $title = formField('item', t('Members Section'));
-    $subtext = formField('item', t('Welcome to the rCredits Members Section!'));
+    $title = formField('item', t('rCredits Member Login'));
+    $subtext = formField('item', t('Welcome! If you have not yet signed up for rCredits, click on "Create New Account".'));
     array_unshift($form, compact(u\ray('title subtext')));
     $form['tip'] = formField('item', t('<b>NOTE: </b>If you already created an account using cell texting and have never yet logged in here, start by requesting a "new password" for your email address.'));
     $form['name']['#description'] = t('Enter your username (usually your legal name without spaces or punctuation) OR your rCredits account ID.');
@@ -1234,12 +1259,13 @@ function loginAlter(&$form, &$sta, $regular = TRUE) {
   
   $form['#attributes']['class'][] = $regular ? 'rweb labeled' : 'rweb';
   $form['#attached']['css'][] = \drupal_get_path('module', 'rweb') . '/rweb.css';
+  focusOn('name');
 }
 
 /**
  * Replacement for user_login_authenticate_validate()
  * See the original function for explanation of flood control.
- * Accept name (short name), email, or account id, with password.
+ * Accept name (short name) or account id, with password.
  * Sets $sta['uid'] to signify successful authentication.
  */
 function login_extra_validate($form, &$sta) {
@@ -1270,21 +1296,35 @@ function login_extra_validate($form, &$sta) {
   $sta['uid'] = user_authenticate($name, $pass);
 }
 
-function loginFollowup($edit) {
-  global $user;
+function loginFollowup($edit, $account) {
+  $resetPass = svar('resetPass');
 
   foreach ($_SESSION as $key => $value) if (u\abbreviates('rcredits_', $key)) unset($_SESSION[$key]);
   svar('external_input', @unserialize($my_external_input)); // save params from external online merchant
 
   $name = @$edit['values']['name'];
-  svar('cuid', $uid = $user->uid);
+  svar('cuid', $uid = $account->uid);
+  if ($uid and $resetPass) {
+    require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
+    $pass = \user_hash_password(trim($resetPass));
+    r\acct($uid)->update(compact('pass'));
+  }
   setupGlobals();
   u\log('login', compact('name'), $uid);
+  /*
+  if ($resetting) { // 
+    $token = drupal_hash_base64(drupal_random_bytes(55));
+    $_SESSION['pass_reset_' . $user->uid] = $token;
+    drupal_goto('account', array('query' => array('pass-reset-token' => $token)));
+  } else 
+  */
+  r\go(''); // go to default page unless resetting password (then let 
 }
 
 function passAlter(&$form, $sta) {
   $form['name']['#title'] = 'Username or Account ID:';
   $form['#validate'] = array('rCredits\\Web\\pass_validate');
+  focusOn('name');
 }
 
 function pass_validate(&$form, &$sta) {
@@ -1427,6 +1467,22 @@ function button($text, $href = '', $title = '', $type = '') {
   return $markup;
 }
 
+/**
+ * Show a page when someone scans an account ID QR.
+ * Cases:
+ *   Using Account ID card as a business card -- show the company's rCredits webpage
+ *   Curious or trying to use the app -- say a bit about rCredits and how to get the app and how to sign up / sign in.
+ *   Charging / Paying with Webcam (signed in) -- show pic and name, and ask whether to charge or pay
+ */
+function formI($form, &$sta, $who) {
+  if (!($acct = r\acct($who))) return r\go(''); // not a real code -- just go to home page
+  if ($acct->isCompany()) return formProfile($form, $sta, $acct->name);
+  if ($cacct = r\acct()); // charging/paying with WebCam
+  
+  say('get app');
+  r\go('');
+}
+
 function formSMS($form, &$sta) {
   $title = formField('item', t('Test SMS'));
   $my_number = svar('lastSMS');
@@ -1434,7 +1490,7 @@ function formSMS($form, &$sta) {
   $message = formField('textfield', t('Message: '));
   $submit = formField('submit', '', '', t('Send it!'));
 
-  drupal_add_js("document.getElementById('edit-message').focus();", array('type'=>'inline', 'scope'=>'footer'));  
+  focusOn('message');
   $form = compact(u\ray('title number message submit'));
   $form['#attributes']['class'] = array('labeled');
   return $form;  
@@ -1487,7 +1543,7 @@ function fixupRadios($content, $element) {
  * Print a temporary member ID card
  * @todo: add "temp" in lower right corner
  */
-function member_id($uid = '') {
+function memberID($uid = '') {
   require_once(__DIR__ . "/../../tcpdf/config/lang/eng.php");
   require_once(__DIR__ . "/../../tcpdf/tcpdf.php");
   define('PHOTO_MAX', 40); // maximum height and width of photo
@@ -1502,7 +1558,7 @@ function member_id($uid = '') {
     $full_name = "$agent_name<br>$full_name";
     $nameSize = '36px';
   } else $nameSize = '60px';
-  $qid = $acct->qid();
+  $qid = str_replace(':', '=', $acct->qid()); // "=" to avoid GoDaddy's 'Bad Request' death redirecting RC2.ME with a ":" qid
   if(!($photo = profile_picture($acct->agent))) $photo = 'images/no-photo-available.gif';
 
   $info = @getimagesize($photo);
@@ -1662,7 +1718,7 @@ function sureForm(&$sta, $title = 'Please Confirm') {
 //  $form['#submit'] = 'rCredits\\Web\\sureForm_submit';
 //  $sta['rebuild'] = TRUE;
 
-  drupal_add_js("document.getElementById('edit-confirm').focus();", array('type'=>'inline', 'scope'=>'footer'));  
+  focusOn('confirm');
 
   return $form;
 }
@@ -1863,6 +1919,11 @@ function userMenuItem($router_path, $link_title) {
   $mlid = 0;
   $item = compact(u\ray('mlid menu_name router_path link_path link_title module customized depth'));
   menu_link_save($item);
+}
+
+function focusOn($focusFieldName) {
+  $focusFieldName = str_replace('_', '-', $focusFieldName);
+  drupal_add_js("document.getElementById('edit-$focusFieldName').focus();", array('type'=>'inline', 'scope'=>'footer'));
 }
  
 function web_access($access) {

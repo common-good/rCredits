@@ -1,4 +1,4 @@
-INSERT INTO `r_credit_regions` (`region`, `credit_region`) VALUES
+INSERT INTO `r_regions` (`region`, `credit_region`) VALUES
 ('AZ', 'AZ'),
 ('CA', 'CA'),
 ('NC', 'CL'),

@@ -7,6 +7,8 @@
 define('R_REGION_NAME', 'Western Massachusetts Region');
 define('R_SERVER_ID', 'NEW'); // qid header for this region's server (New England / Western MA)
 // other 3rd letters: M=ME H=NH V=VT C=CT R=RI P=PA Y=NY A=NYC (apple) B=Boston
+define('R_ORG_PHONE', '413-628-3336');
+define('R_ORG_EMAIL', 'info@rCredits.org');
 
 // (you don't get an ID card unless you are in this geographic area)
 define('R_REGION_POSTAL_AREA', '^01.*'); // anyone with a postal code that matches this regular expression is in the region

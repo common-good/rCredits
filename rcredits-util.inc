@@ -101,7 +101,7 @@ function location($acct, $complete = FALSE) {
   $isUS = ($acct->country == R_COUNTRY);
   
   $result = array();
-  if ($complete) $result[] = $acct->address;
+  if ($complete) $result[] = (string) $acct->address; // (string) in case address is NULL
   $result[] = $acct->city;
   $result[] = ($isUS ? stateAbbrev($acct->state) : $acct->state) . (($complete and $acct->postal_code) ? ' ' . $acct->postal_code : '');
   if (!$isUS) $result[] = strtoupper($acct->country);
@@ -285,7 +285,7 @@ function tt($message, $subs = array(), $adhocChannel = '') {
       }
     }
 // NO (use raw message instead)   EXPECT(@$model, "missing message '$message'"); 
-    if (@$model) $messages[$i] = strtr($model, prefixKeys('@', $subs));
+    if (@$model) $messages[$i] = getConstants(strtr($model, prefixKeys('@', $subs)), '@');
   }
   return join(' ', $messages);
 }
@@ -434,7 +434,6 @@ function expect1($arg, $value, $type, $ret) {
     case 'notempty': return EXPECT(!empty($value), $msg, $ret);
     case 'notnull': return EXPECT(!is_null($value), $msg, $ret);
     case 'qid': return EXPECT(isQid($value), $msg, $ret);
-//    case 'ruid': return EXPECT(is_ruid($value), $msg, $ret);
     case 'string': return EXPECT(is_string($value), $msg, $ret);
     case 'zid': return EXPECT(isZid($value), $msg, $ret);
     default: return EXPECT(is_object($value) and get_class($value) == "rCredits\\$type", $msg, $ret);
@@ -611,7 +610,7 @@ function myInt($n) {return (is_numeric($n) and $n == (int) $n);}
 function myFloat($n) {return (is_numeric($n) and $n == (float) $n);}
 function isId($id) {return (myInt($id) and $id > 0);}
 //function is_ruid($ruid) {return (is_array($ruid) and array_keys($ruid) == array(0, 1, 2) and isZid($ruid[0]) and isZid($ruid[1]) and isZid($ruid[2]));}
-function isQid($qid) {return preg_match('/^[A-Z]{3}(\.|\:|\.\.)[A-Z]+$/', $qid);}
+function isQid($qid) {return preg_match('/^[A-Z]{3}(\.|:|=|\.\.)[A-Z]+$/', $qid);}
 function isZid($zid) {return (myInt($zid) and $zid !== 0);}
 function isNonce($nonce) {return preg_match('/^[A-Z]{3,}$/', $nonce);}
 function isName($value) {return preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $value);}
