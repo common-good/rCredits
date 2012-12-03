@@ -65,7 +65,7 @@ Scenario: The caller confirms an informational payment
   | 5               | %today | irebate  | 6.17    | 4     | 1   | rebate on #4 |
   | 6               | %today | ibonus   | 12.35   | 4     | 3   | bonus on #4  |
   And we say to phone %number1 "report transaction" with subs:
-  | @type   | @tofrom | @amount | @who       | @whatfor           | @reward_type | @reward_amount | @balance | @transaction | moreless | unavailable |
+  | @type   | @tofrom | @amount | @who       | @whatfor           | @rewardType | @rewardAmount | @balance | @transaction | moreless | unavailable |
   | Payment | to      | 123.45  | Corner Pub | goods and services | rebate       | 6.17           | 11.17    | 3            | less     | 11.17       |
   # "INFO Payment: $123.45 to Corner Pub (rebate: $6.17). Your new balance is $11.17, including $11.17 not yet available. (If this were an ACTUAL Payment, your balance would be $123.45 less.) Transaction #3"
 Scenario: The caller confirms an informational charge
@@ -89,6 +89,6 @@ Scenario: The caller confirms an informational charge
   | 5               | %today | irebate  | 6.17    | 4     | 3   | rebate on #4 |
   | 6               | %today | ibonus   | 12.35   | 4     | 1   | bonus on #4  |
   And we say to phone %number1 "report transaction" with subs:
-  | @type   | @tofrom | @amount | @who       | @whatfor | @reward_type | @reward_amount | @balance | @transaction | more | unavailable |
+  | @type   | @tofrom | @amount | @who       | @whatfor | @rewardType | @rewardAmount | @balance | @transaction | more | unavailable |
   | Charge  | from    | 123.45  | Corner Pub | labor    | bonus        | 12.35          | 17.35    | 2            | more | 17.35       |
   # "INFO Charge: $123.45 from Corner Pub (bonus: $12.35. Your new balance is $17.35, including $17.35 not yet available. (If this were an ACTUAL Payment, your balance would be $123.45 more.) Transaction #2"

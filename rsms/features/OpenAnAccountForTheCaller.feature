@@ -23,8 +23,8 @@ Scenario: The newbie gives us his or her name
   When phone %number1 says "Jo Smith"
   Then phone %number1 account name is "Jo Smith"
   And we say to phone %number1 "what's your email?" with subs:
-  | full_name | quid       |
-  | Jo Smith  | %last_quid |
+  | fullName | quid       |
+  | Jo Smith | %last_quid |
   And phone %number1 is waiting to "setup email"
   # Welcome to rCredits, Jo Smith. Last question: What is your email address?
 

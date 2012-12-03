@@ -51,19 +51,19 @@ function formTxs($form, &$sta, $argString = '') {
     $tid = be\zxid2tid($one_zxid);
     $data = unserialize($one_data);
     $is_reward = ($one_type != TX_TRANSFER);
-    $to_me = ($one_payee == $cuid);
-    $by_me = ($one_taking == $to_me);
-    $reward = @$data[$to_me ? 'bonus' : 'rebate'];
+    $toMe = ($one_payee == $cuid);
+    $by_me = ($one_taking == $toMe);
+    $reward = @$data[$toMe ? 'bonus' : 'rebate'];
     $reward = $reward ? number_format($reward, 2) : R_NONE;
     $amount = number_format($one_amount, 2);
     if ($is_reward) list ($amount, $reward) = array(R_NONE, $amount); // show inflation, grants, fines, and signup bonus as rewards
-    list ($to_you, $from_you) = $to_me ? array($amount, R_NONE) : array(R_NONE, $amount);
+    list ($to_you, $from_you) = $toMe ? array($amount, R_NONE) : array(R_NONE, $amount);
     $state = ($one_state == TX_PENDING and $by_me) ? 'pending' : $states[$one_state];
-//    debug("taking=$one_taking to=$to_me by=$by_me state=$state");
+//    debug("taking=$one_taking to=$toMe by=$by_me state=$state");
     $color = $colors[$state];
     $state = "<span style='color:$color;'>$state</span>";
-    $button1 = (!$by_me and $one_state == TX_PENDING) ? button('OK', "$base_url/transactions/real=$real&period=$period&do=ok&zxid=$one_zxid", tx_action('ok', $one_state, $to_me, $by_me)) : '';
-    $button2 = (!$is_reward and !@$data['undone']) ? button(' X ', "$base_url/transactions/real=$real&period=$period&do=no&zxid=$one_zxid", tx_action('no', $one_state, $to_me, $by_me)) : '';
+    $button1 = (!$by_me and $one_state == TX_PENDING) ? button('OK', "$base_url/transactions/real=$real&period=$period&do=ok&zxid=$one_zxid", tx_action('ok', $one_state, $toMe, $by_me)) : '';
+    $button2 = (!$is_reward and !@$data['undone']) ? button(' X ', "$base_url/transactions/real=$real&period=$period&do=no&zxid=$one_zxid", tx_action('no', $one_state, $toMe, $by_me)) : '';
     $button3 = (($one_taking ? $can_sell : $can_buy) and !$is_reward) ? "<a href='$base_url/transactions/real=$real&period=$period&do=edit&zxid=$one_zxid' title='Edit Purpose'><img src='$base_url/images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
     $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
     $rows[] = array($tid, strftime('%d-%b', $one_created), $one_name, $from_you, $to_you, $state, $buttons, $one_purpose, $reward);
@@ -97,7 +97,7 @@ function txConfirm($do, $zxid, &$sta) {
   if (confirming_v($sta)) return FALSE;
   if (!($details = be\lastTx('xid=:zxid', compact('zxid'), TRUE))) return FALSE; // bail on hack attempt
   extract(r\txReportArgs($details), EXTR_PREFIX_ALL, 'my');
-  $action = tx_action($do, $my_state, $my_to_me, $my_by_me);
+  $action = tx_action($do, $my_state, $my_toMe, $my_by_me);
   confirm("Are you sure you want to $action?<br>($my_summary)", $sta); // sets 'confirm'
   return sureForm($sta);
 }
@@ -107,14 +107,14 @@ function txConfirm($do, $zxid, &$sta) {
  * (This has to match what be\undoTx() actually does.)
  * @param string $do: which major type of action ('ok' or 'no')
  * @param int $state: the current transaction state
- * @param bool $to_me: user is the payee
+ * @param bool $toMe: user is the payee
  * @param bool $by_me: user originated the transaction
  * @return string: how to describe the ok or no
  */
-function tx_action($do, $state, $to_me, $by_me) {
-  if ($do == 'ok') return $to_me ? t('ACCEPT this payment') : t('APPROVE this charge');
+function tx_action($do, $state, $toMe, $by_me) {
+  if ($do == 'ok') return $toMe ? t('ACCEPT this payment') : t('APPROVE this charge');
   
-  if ($to_me) {
+  if ($toMe) {
     if ($state == TX_DISPUTED) return t('REVERSE this disputed transaction'); // let the customer win
     if ($state == TX_PENDING) return $by_me ? t('CANCEL this invoice') : t('REFUSE this payment');
     return t('REVERSE this charge'); // let the customer win
@@ -150,7 +150,7 @@ function txOKorNO($tx_task, $zxid) {
   if ($tx_task == 'ok') {
 // (no. allow pay-all and external transaction confirmation)    assert($my_payer == $cuid);
     u\EXPECT($my_state == TX_PENDING);
-    if ($my_to_me) {
+    if ($my_toMe) {
       r\setTxState(TX_DONE, $zxid); // accept the payment
     } else {
       list ($message, $args) = be\payInvoice($zxid);
@@ -201,7 +201,7 @@ function tx_summary($starting, $ending) {
   extract($pending_info = (array) be\creditInfo(array('state' => TX_PENDING, 'asof' => $ending)), EXTR_PREFIX_ALL, 'pending');
   extract($old_info = (array) be\creditInfo(array('asof' => $previous_ending)), EXTR_PREFIX_ALL, 'old');
   $dif = $pfancy = array();
-  foreach (u\ray('gross_in_proper gross_out rewards') as $key) {
+  foreach (u\ray('grossInProper grossOut rewards') as $key) {
     $dif[$key] = number_format($now_info[$key] - $old_info[$key], 2);
     $pfancy[$key] = number_format($pending_info[$key], 2);
   }
@@ -210,7 +210,7 @@ function tx_summary($starting, $ending) {
   
   $starting = strftime('%d-%b-%Y', $starting);
   $ending = strftime('%d-%b-%Y', $ending);
-  $pending_balance = txBal($pending_gross_in_proper - $pending_gross_out + $pending_rewards, '+ ');
+  $pending_balance = txBal($pending_grossInProper - $pending_grossOut + $pending_rewards, '+ ');
   $now_balance = txBal($now_balance);
   $old_balance = txBal($old_balance);
   $summary_title = "<div id='txsum-title'>SUMMARY</div>";
@@ -221,11 +221,11 @@ function tx_summary($starting, $ending) {
     array('id' => 'txsum-headers', 'data' => u\ray('Starting balance,,To You,,From You,,Rewards,,Ending balance')),
     array(
       'id' => 'txsum-now', 
-      'data' => u\ray("$old_balance | + | $dif_gross_in_proper | - | $dif_gross_out | + | $dif_rewards | = | $now_balance"),
+      'data' => u\ray("$old_balance | + | $dif_grossInProper | - | $dif_grossOut | + | $dif_rewards | = | $now_balance"),
     ),
     array(
       'id' => 'txsum-pending',
-      'data' => u\ray("<b>PENDING:</b> | + | $pfancy_gross_in_proper | - | $pfancy_gross_out | + | $pfancy_rewards | = | $pending_balance"),
+      'data' => u\ray("<b>PENDING:</b> | + | $pfancy_grossInProper | - | $pfancy_grossOut | + | $pfancy_rewards | = | $pending_balance"),
     ),
   );
   $attributes = array('id' => 'txsum');

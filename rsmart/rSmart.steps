@@ -540,13 +540,3 @@ function weRespondSuccessMyidAccountnameShowbuttonsAndMessageWithSubs($success, 
   $account_name = str_replace('~', "\n", $account_name); // replace stand-in for EOL
   return t\findMessage('out', compact(u\ray('success message my_id account_name show_buttons')), $message, '', $subs);
 }
-
-/**
- * device (ARG) account is (ARG)NEW.ZZB"
- *
- * in: 
- */
-function deviceAccountIsNEWZZB($arg1, $arg2) {
-  global $testOnly;
-  todo;
-}

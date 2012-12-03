@@ -45,8 +45,8 @@ define('R_TRANSIENCE', 60); // number of seconds for device's QR to be valid
 $GLOBALS[TX_SMART . ' messages'] = array(
   'no permission' => t('You do not have permission to use that account.'),
   'first time' => t('You have successfully registered this device for use with rCredits!'),
-  'changed agent' => t('You successfully changed the agent to @agent_name.'),
-  'changed account' => t('You successfully changed the account to @account_name.'),
+  'changed agent' => t('You successfully changed the agent to @agentName.'),
+  'changed account' => t('You successfully changed the account to @accountName.'),
   'bad transient id' => t('That QR code is out of date. Try again?'),
 );
 
@@ -259,7 +259,7 @@ function undo($params) {
     $message = u\tt($message, $args);
     if (!@$args['success']) return be\error($message);
     if ($new_zxid = @$args['zxid']) $tx_id = r\qxid($new_zxid); // get offsetting transaction id, if any (otherwise state changed)
-    $balances = balances($args['other_uid'], $zxid > 0);
+    $balances = balances($args['otherUid'], $zxid > 0);
   } else {
     $oldRecord = be\lastTx('xid=:zxid', compact('zxid'));
     if ($error = r\nonoUndo($oldRecord, $subs)) return be\error($error, $subs); // check nono before confirm AND here
@@ -275,12 +275,12 @@ function change($params) {
   if ($acct->proSe()) $acct = $what == 'agent' ? r\acct($cacct->id, $acct->id) : r\acct($acct->id, $cacct->agent);
   if (($show_buttons = buttons($acct, $params['owner'])) < 0) return be\error('no permission');
 
-  $account_name = $acct->full_name;
-  $agent_name = r\acct($acct->agent)->full_name;
-  $message = u\tt('changed ' . $what, compact(u\ray('what agent_name account_name')));
+  $account_name = $accountName = $acct->full_name;
+  $agentName = r\acct($acct->agent)->full_name;
+  $message = u\tt('changed ' . $what, compact(u\ray('what agentName accountName')));
 
   $my_id = $acct->qid();
-  $account_name .= ($acct->proSe() ? '' : "\nAgent: $agent_name");
+  $account_name .= ($acct->proSe() ? '' : "\nAgent: $agentName");
   return compact(u\ray('message my_id account_name show_buttons'));
 }
 

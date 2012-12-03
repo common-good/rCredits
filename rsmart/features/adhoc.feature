@@ -29,5 +29,5 @@ Scenario: A member changes account
   Given device "codeA" account is "NEW.ZZB" and agent is "NEW.ZZA"
   When a member asks device "codeA" to change "account" to "NEW.ZZC"
   Then we respond success 1, my_id "NEW:ZZC", account_name "Corner Pub~Agent: Abe One", show_buttons 0, and message "changed account", with subs:
-  | what    | account_name |
-  | account | Corner Pub   |
+  | what    | accountName |
+  | account | Corner Pub  |

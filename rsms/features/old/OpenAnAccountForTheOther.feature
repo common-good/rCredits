@@ -45,6 +45,6 @@ Scenario: The caller supplies a full name for the recipient, as requested
   When phone %number1 says "Corner Pub"
   Then phone %number3 account name is "Corner Pub"
   And we say to phone %number1 "report transaction" with subs:
-  | @type | @tofrom | @amount | @who       | @for      | @reward_type | @reward_amount | @balance | @transaction |
+  | @type | @tofrom | @amount | @who       | @for      | @rewardType | @rewardAmount | @balance | @transaction |
   | paid  | to      | 100     | Corner Pub | groceries | rebate       | 5              | 155      | 2            |
   # "You paid Corner Pub $100 (rebate: $5). Your new balance is $155. Transaction #2"

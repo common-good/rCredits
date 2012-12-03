@@ -13,7 +13,7 @@ namespace rCredits; // typically abbreviated as "r"
 use rCredits\Util as u;
 use rCredits\Backend as be;
 
-define('R_VERSION', '0.1b'); // software version
+define('R_VERSION', '0.1c'); // software version
 define('R_SEPARATE_BACKEND', FALSE);
 define('R_TEMP_NAME_PREFIX', 'unknown ');
 define('R_ASIF_TEXT', ' "AS-IF"'); // how to identify "As If" transactions
@@ -88,17 +88,17 @@ $GLOBALS['txTypes'] = array(
 );
 
 $GLOBALS['emailSubjects'] = array(
-  'new-payment' => t('rCredits PAYMENT from {OTHER_NAME}'),
-  'new-charge' => t('rCredits CHARGE from {OTHER_NAME}'),
-  'charge-disputed' => t('rCredits Charge DISPUTED by {OTHER_NAME}'),
+  'new-payment' => t('rCredits PAYMENT from {otherName}'),
+  'new-charge' => t('rCredits CHARGE from {otherName}'),
+  'charge-disputed' => t('rCredits Charge DISPUTED by {otherName}'),
 
-  'new-invoice' => t('rCredits INVOICE from {OTHER_NAME}'),
-  'invoice-denied' => t('rCredits Invoice DENIED by {OTHER_NAME}'),
-  'invoice-canceled' => t('rCredits Invoice CANCELED by {OTHER_NAME}'),
+  'new-invoice' => t('rCredits INVOICE from {otherName}'),
+  'invoice-denied' => t('rCredits Invoice DENIED by {otherName}'),
+  'invoice-canceled' => t('rCredits Invoice CANCELED by {otherName}'),
 
-  'new-offer' => t('rCredits PAYMENT OFFER from {OTHER_NAME}'),
-  'offer-refused' => t('rCredits Payment REJECTED by {OTHER_NAME}'),
-  'offer-canceled' => t('rCredits Invoice CANCELED by {OTHER_NAME}'),
+  'new-offer' => t('rCredits PAYMENT OFFER from {otherName}'),
+  'offer-refused' => t('rCredits Payment REJECTED by {otherName}'),
+  'offer-canceled' => t('rCredits Invoice CANCELED by {otherName}'),
 );
 
 include_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
@@ -110,42 +110,42 @@ include_once __DIR__ . '/rcredits-circles.inc'; // treat this as an extension of
  * Not all returned args are used for any particular type of transaction.
  * Note that templates and tests depend on the names of some of these fields
  * @param array $tx: the transaction array (including zxid)
- * @param int $get_balance: 0=don't get any balances, 1=get my balance and tid, 2=get other party's balance and tid also
+ * @param int $getBalance: 0=don't get any balances, 1=get my balance and tid, 2=get other party's balance and tid also
  * @param float $shortfall: how much short my balance is, for a transaction (if any)
  * @return assoc array of args
  */
-function txReportArgs($tx, $get_balance = 0, $shortfall = 0) {
+function txReportArgs($tx, $getBalance = 0, $shortfall = 0) {
   extract($tx); // any or all standard transaction fields
   if ($data) if ($data = unserialize($data)) extract($data, EXTR_PREFIX_ALL, 'data');
   
-  $to_me = ($payee == acct()->id);
-  $role = $to_me ? 'payee' : 'payer';
-  list ($purpose, $other_purpose) = u\order($to_me, $payee_for, $payer_for);
-  list ($payer_purpose, $payee_purpose) = array($payer_for, $payee_for); // clearer names, for substitutions
-  $tofrom = $to_me ? t('from') : t('to');
-  $uid = $other_uid = $to_me ? $payer : $payee;
+  $toMe = ($payee == acct()->id);
+  $role = $toMe ? 'payee' : 'payer';
+  list ($purpose, $otherPurpose) = u\order($toMe, $payee_for, $payer_for);
+  list ($payerPurpose, $payeePurpose) = array($payer_for, $payee_for); // clearer names, for substitutions
+  $tofrom = $toMe ? t('from') : t('to');
+  $uid = $otherUid = ($toMe ? $payer : $payee);
   $action = $taking ? t('charged') : ($goods ? t('paid') : t('gave'));
-  $confirm_action = $taking ? t('charge') : ($goods ? t('pay') : t('give'));
+  $confirmAction = $taking ? t('charge') : ($goods ? t('pay') : t('give'));
   $summary_word = $taking ? t('Charge') : t('Payment');
   $amount = u\formatAmount($amount);
   $short = u\formatAmount($shortfall);
-  if (@$data_bonus) $reward_type = $taking ? t('bonus') : t('rebate');
-  $reward_amount = u\formatAmount($to_me ? @$data_bonus : @$data_rebate);
-  $other_name = userField('full_name', @$data_foreign_uid ?: $other_uid);
+  if (@$data_bonus) $rewardType = $taking ? t('bonus') : t('rebate');
+  $rewardAmount = u\formatAmount($toMe ? @$data_bonus : @$data_rebate);
+  $otherName = userField('full_name', @$data_foreign_uid ?: $otherUid);
   $created = strftime('%d-%b-%Y', $created);
 
   $real = ($zxid > 0);
   $asif = $real ? '' : R_ASIF_TEXT;
-  if ($get_balance > 0) {
+  if ($getBalance > 0) {
     list ($tid, $balance) = array(be\zxid2tid($zxid), be\creditInfo(compact('real'))->fancy['balance']);
-    if ($get_balance > 1) {
-      list ($other_tid, $other_balance) = array(be\zxid2tid($zxid, $other_uid), be\creditInfo(compact('real', 'uid'))->fancy['balance']);
+    if ($getBalance > 1) {
+      list ($otherTid, $otherBalance) = array(be\zxid2tid($zxid, $otherUid), be\creditInfo(compact('real', 'uid'))->fancy['balance']);
     }
   }
   
-  $summary = "$asif $summary_word of $amount $tofrom $other_name for \"$purpose\" on $created";
+  $summary = "$asif $summary_word of $amount $tofrom $otherName for \"$purpose\" on $created";
   $success = TRUE;
-  return array_merge($tx, compact(u\ray('created zxid action real role payer_purpose payee_purpose purpose other_purpose to_me asif confirm_action amount tofrom reward_type reward_amount balance other_balance tid other_tid other_uid other_name short summary success')));
+  return array_merge($tx, compact(u\ray('created zxid action real role payerPurpose payeePurpose purpose otherPurpose toMe asif confirmAction amount tofrom rewardType rewardAmount balance otherBalance tid otherTid otherUid otherName short summary success')));
 }
 
 /**
@@ -272,14 +272,14 @@ function shortfall($uid, $requestAmount, $preapproved, $real) {
  */
 function payEmployees($amount0, $for, $confirmed) {
   $employees = employees();
-  if (!($employee_count = count($employees))) return array('no employees', array(), array());
-  if ($shortfall = shortfall(acct()->id, $amount0 * $employee_count, TRUE, isRTrader())) {
+  if (!($employeeCount = count($employees))) return array('no employees', array(), array());
+  if ($shortfall = shortfall(acct()->id, $amount0 * $employeeCount, TRUE, isRTrader())) {
      $short = u\formatAmount($shortfall);
      return array('short payment', compact('short'), FALSE); // no partial payment of employees
   }
-  $total = u\formatAmount($amount0 * $employee_count);
+  $total = u\formatAmount($amount0 * $employeeCount);
   $amount = u\formatAmount($amount0);
-  if (!$confirmed) return array('pay employees', compact(u\ray('employee_count amount total')), TRUE);
+  if (!$confirmed) return array('pay employees', compact(u\ray('employeeCount amount total')), TRUE);
   $pay_all = TRUE;
   $results = array();
   $successes = 0;
@@ -288,32 +288,44 @@ function payEmployees($amount0, $for, $confirmed) {
     if ($args['success']) $successes++;
   }
   $success = ($successes > 0);
-  return array('paid employees', compact(u\ray('total successes employee_count results success')), FALSE);
+  return array('paid employees', compact(u\ray('total successes employeeCount results success')), FALSE);
 }
  
 /**
  * Notify the specified user, according to their preferences
  */
 function notify($uid, $index, $info) {
+  global $channel;
   $acct = acct($uid);
   extract(u\just('full_name mail', $account = $acct->account()));
+  $fullName = @$full_name ?: t('rCredits Member');
   $standard_fields = array(
     'uid' => $uid,
-    'full_name' => @$full_name ?: t('rCredits Member'),
+    'fullName' => $fullName,
     'email' => $mail, // testing uses this
   );
   
   $info = array_merge($info, $standard_fields);
-  if ($uid != acct()->id) $info['other_name'] = userField('full_name'); // this comes in backwards if notifying elseone
+  if ($uid != acct()->id) $info['otherName'] = acct()->full_name; // this comes in backwards if notifying elseone
 
   $subs = array();
-  if ($acct->hasBit(BIT_NOTIFY_EMAIL)) {
-    foreach ($info as $key => $value) $subs['{' . strtoupper($key) . '}'] = $value;
-    drupal_mail('rCredits', $index, $mail, user_preferred_language($account), $subs);
+  if (!strlen($acct->pass)) {
+    $error = u\tt('no asif notify', compact('fullName'));
+  } else {
+    if ($acct->hasBit(BIT_NOTIFY_EMAIL) and !empty($mail)) {
+      foreach ($info as $key => $value) $subs['{' . $key . '}'] = $value;
+      $mailed = drupal_mail('rCredits', $index, $mail, user_preferred_language($account), $subs);
+    }
+    if ($acct->hasBit(BIT_NOTIFY_SMS)) {
+      $number = dbLookup('number', 'r_sms', 'uid=:uid AND status=:SMS_PRIMARY', compact('uid'));
+      if ($number) $smsed = SMS\send($number, u\tt($index, $info, TX_SMS));
+    }
+    if (!@$mailed and !@$smsed) $error = u\tt('cannot contact', compact('fullName'));
   }
-  if ($acct->hasBit(BIT_NOTIFY_SMS)) {
-    $number = dbLookup('number', 'r_sms', 'uid=:uid AND status=:SMS_PRIMARY', compact('uid'));
-    if ($number) SMS\send($number, u\tt($index, $info, TX_SMS));
+  if (@$error) {
+    if ($channel == TX_WEB) drupal_set_message($error, 'error');
+    if ($channel == TX_SMS) { } // dunno how to handle this (send a second message?)
+    if ($channel == TX_SMART) { } // dunno how to handle this, but easier than SMS
   }
 }
 
@@ -371,33 +383,33 @@ function setTxField($fieldName, $new_value, $zxid, $all_related = FALSE) {
  * Merge a temporary ("old") account into the current account (a permanent ("new") account).
  * @return 1 (for counting how many were merged)
  */
-function mergeAccounts($old_uid) {
-  $new_uid = acct()->id;
-  if (!be\isTempAccount($old_uid)) return; // don't merge non-temp account
-  u\EXPECT(be\access('manage account'), "unauthorized mergeAccounts: $new_uid into $old_uid");
-//  if (!isTempName(userField('name', $old_uid))) die('merging non-temp account');
+function mergeAccounts($oldUid) {
+  $newUid = acct()->id;
+  if (!be\isTempAccount($oldUid)) return; // don't merge non-temp account
+  u\EXPECT(be\access('manage account'), "unauthorized mergeAccounts: $newUid into $oldUid");
+//  if (!isTempName(userField('name', $oldUid))) die('merging non-temp account');
   // there are no other records for temporary accounts, than those below
 
-  $new = acct($new_uid);
-  $old = acct($old_uid);
+  $new = acct($newUid);
+  $old = acct($oldUid);
   $update = array();
   foreach (u\ray('phone fax website address') as $one) if ($old->$one and !$new->$one) $update[$one] = $old->$one;
   
   /*** Begin DBTX ***/ $dbtx = \db_transaction();
-  userUpdate($update, $new_uid);
+  userUpdate($update, $newUid);
   $sql = <<<EOF
-    UPDATE r_asif SET payer=:new_uid WHERE payer=:old_uid;
-    UPDATE r_asif SET payee=:new_uid WHERE payee=:old_uid;
+    UPDATE r_asif SET payer=:newUid WHERE payer=:oldUid;
+    UPDATE r_asif SET payee=:newUid WHERE payee=:oldUid;
     DELETE FROM r_asif a LEFT JOIN r_asif b ON b.serial=a.serial WHERE b.payer=b.payee;
     DELETE FROM r_asif WHERE payer=payee;
-    UPDATE r_sms SET uid=:new_uid WHERE uid=:old_uid;
-    UPDATE r_user_industries SET uid=:new_uid WHERE uid=:old_uid;
-    DELETE FROM users WHERE uid=:old_uid;
+    UPDATE r_sms SET uid=:newUid WHERE uid=:oldUid;
+    UPDATE r_user_industries SET uid=:newUid WHERE uid=:oldUid;
+    DELETE FROM users WHERE uid=:oldUid;
 EOF;
-  dbQ($sql, compact('new_uid', 'old_uid'));
+  dbQ($sql, compact('newUid', 'oldUid'));
   /*** End DBTX ***/ unset($dbtx);
   return 1;
-//  dbQ("UPDATE users SET uid=IF(uid>0,-uid,uid), status=0 WHERE uid=:old_uid", compact('old_uid'));
+//  dbQ("UPDATE users SET uid=IF(uid>0,-uid,uid), status=0 WHERE uid=:oldUid", compact('oldUid'));
 }
 
 /**
@@ -525,7 +537,7 @@ function nonoUndo($oldRecord, &$subs = array()) {
     return 'already undone';
   }
 
-  $acct = tx2acct($old_to_me ? array($old_payee, $old_payee_agent, $data) : array($old_payer, $old_payer_agent, $data));
+  $acct = tx2acct($old_toMe ? array($old_payee, $old_payee_agent, $data) : array($old_payer, $old_payer_agent, $data));
   if ($cacct->agent != $acct->agent) {
     $perm = $old_taking ? 'buy and sell' : 'sell';
     if (!be\access($perm, acct($acct->id, $cacct->agent))) return 'no ' . $perm;

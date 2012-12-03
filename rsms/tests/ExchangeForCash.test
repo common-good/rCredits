@@ -62,7 +62,7 @@ class rsmsExchangeForCash extends DrupalWebTestCase {
     And__('phone +20003 has r$350');
     And__('phone +20001 has r$150');
     And__('we say to phone +20001 "report exchange" with subs: "DATA'
-    . '\\| action | other_name | amount | balance | tid |'
+    . '\\| action | otherName | amount | balance | tid |'
     . '\\| gave   | Corner Pub | $100   | $150    | 2   |"');
   }
 
@@ -81,7 +81,7 @@ class rsmsExchangeForCash extends DrupalWebTestCase {
     Then_('phone +20003 has r$250');
     And__('phone +20001 has r$250');
     And__('we say to phone +20003 "report exchange request" with subs: "DATA'
-    . '\\| action  | other_name | amount | tid |'
+    . '\\| action  | otherName | amount | tid |'
     . '\\| charged | Abe One    | $100   | 2   |"');
   }
 
@@ -93,7 +93,7 @@ class rsmsExchangeForCash extends DrupalWebTestCase {
     Then_('phone +20003 has r$350');
     And__('phone +20001 has r$150');
     And__('we say to phone +20003 "report exchange" with subs: "DATA'
-    . '\\| action  | other_name | amount | balance | tid |'
+    . '\\| action  | otherName | amount | balance | tid |'
     . '\\| charged | Abe One    | $100   | $350    | 2   |"');
   }
 

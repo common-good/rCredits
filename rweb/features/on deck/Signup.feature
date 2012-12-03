@@ -18,8 +18,8 @@ Scenario: A newbie registers
   | quid    |
   | NEW.ZZA |
   And we email "welcome" to member "a@example.com" with subs:
-  | full_name | name   | quid    |
-  | Abe One   | abeone | NEW.ZZA |
+  | fullName | name   | quid    |
+  | Abe One  | abeone | NEW.ZZA |
 #Formatting and links are ignored
 
 Scenario: A member registers again

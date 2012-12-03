@@ -19,7 +19,8 @@ B. Coding style and strategies:
     . A simple else can immediately follow the closing brace of the if part. For example: } else zot();
     . Simple, single-line functions can go all on one line, without a documentation header.
   - Use camelCase for all internal variables and function names.
-  - Use all_lowercase_and_underscores for filenames, database fields, message text replacements, API paramaters, and other public/external identifiers.
+  - Use lowercase-and-hyphens for filenames and URLs.
+  - Use lowercase_and_underscores for database fields, API paramaters, and other public/external identifiers.
   - Keep the code as short as possible without losing clarity.
   - In particular, avoid redundant code patterns by creating small, low-level functions.
   - Make the tools easy to use -- that is, allow variations in number and type of arguments if that is convenient for the caller.

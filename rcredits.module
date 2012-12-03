@@ -151,6 +151,7 @@ function rcredits_im_send($key, &$message, $subs) {
 
 /**
  * Implements hook_mail().
+ * @see also: r\notify()
  */
 function rcredits_mail($key, &$msg_array, $subs) {
     $language = $msg_array['language'];
@@ -163,7 +164,7 @@ function rcredits_mail($key, &$msg_array, $subs) {
     $msg_array['subject'] = $subject = strtr($GLOBALS['emailSubjects'][$key], $subs);
     $msg_array['body'][] = $message = strtr(r\emailBody($key), $subs);
     $message = str_replace("\r\n", '', $message); // easier reading for log and tests
-    $email = $subs['{EMAIL}'];
+    $email = $subs['{email}'];
     $fields = compact(u\ray('key email subject message'));
     if (defined('TESTING')) \drupal_set_message(t\color($fields, 'email')); // keep this
     u\log('email', $fields);

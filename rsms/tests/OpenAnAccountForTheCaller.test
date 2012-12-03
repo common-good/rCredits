@@ -68,8 +68,8 @@ class rsmsOpenAnAccountForTheCaller extends DrupalWebTestCase {
     When_('phone %number1 says "Jo Smith"');
     Then_('phone %number1 account name is "Jo Smith"');
     And__('we say to phone %number1 "what\'s your email?" with subs: "DATA'
-    . '\\| full_name | quid       |'
-    . '\\| Jo Smith  | %last_quid |"');
+    . '\\| fullName | quid       |'
+    . '\\| Jo Smith | %last_quid |"');
     And__('phone %number1 is waiting to "setup email"');
   }
 

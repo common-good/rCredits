@@ -180,7 +180,8 @@ function updateRelations($updates) {
       $pot = '(:main_uid, :agent_uid)';
       if (!r\dbLookup(1, 'r_relations', "main_uid IN $pot AND agent_uid IN $pot", compact('main_uid', 'agent_uid'))) $msg = 'deleted relation';
     }
-    $report .= u\tt($msg, compact('full_name')) . '<br>';
+    $otherName = $full_name;
+    $report .= u\tt($msg, compact('otherName')) . '<br>';
   }
   return $report;
 }
@@ -218,43 +219,43 @@ function undoTx($zxid) {
   $data = unserialize($old_data);
 
   if ($old_state == TX_PENDING or $old_state == TX_DENIED) { // it's an invoice - cancel simply by changing the transaction state
-// function undo_invoice($zxid, $oldRecord, $old_other_uid, $by_me) // return $solution
+// function undo_invoice($zxid, $oldRecord, $old_otherUid, $by_me) // return $solution
     if ($old_by_me) {
       list ($new_state, $solution) = array(TX_DELETED, t('deleted')); // abandon the attempt to invoice
-      r\notify($old_other_uid, $old_to_me ? 'invoice-canceled' : 'offer-canceled', r\txReportArgs($oldRecord));
+      r\notify($old_otherUid, $old_toMe ? 'invoice-canceled' : 'offer-canceled', r\txReportArgs($oldRecord));
     } else {
       list ($new_state, $solution) = array(TX_DENIED, t('marked "denied"'));
-      r\notify($old_other_uid, $old_to_me ? 'offer-refused' : 'invoice-denied', r\txReportArgs($oldRecord));
+      r\notify($old_otherUid, $old_toMe ? 'offer-refused' : 'invoice-denied', r\txReportArgs($oldRecord));
     }
     r\setTxState($new_state, $zxid);
-  } elseif (!$old_to_me and !$old_by_me) { // someone charged (either unilaterally or I approved it)
-// function dispute($zxid, $oldRecord, $old_other_uid)
+  } elseif (!$old_toMe and !$old_by_me) { // someone charged (either unilaterally or I approved it)
+// function dispute($zxid, $oldRecord, $old_otherUid)
     r\setTxState(TX_DISPUTED, $zxid); // mark it disputed
     $solution = t('marked "disputed"');
-    r\notify($old_other_uid, 'charge-disputed', r\txReportArgs($oldRecord));
+    r\notify($old_otherUid, 'charge-disputed', r\txReportArgs($oldRecord));
   } else {
-    $otherAcct = r\tx2acct($old_to_me ? array($old_payer, $old_payer_agent, $data) : array($old_payee, $old_payee_agent, $data));
-    return reverse($zxid, $old_amount, $otherAcct, $data, $old_goods, $old_tid, $old_to_me); // create an offsetting transaction
+    $otherAcct = r\tx2acct($old_toMe ? array($old_payer, $old_payer_agent, $data) : array($old_payee, $old_payee_agent, $data));
+    return reverse($zxid, $old_amount, $otherAcct, $data, $old_goods, $old_tid, $old_toMe); // create an offsetting transaction
   }
 
   $amount = u\formatAmount($old_amount);
-  $tofrom = !$old_to_me ? t('to') : t('from');
-  $other_uid = $old_other_uid;
-  $other = r\userField('full_name', $other_uid);
+  $tofrom = !$old_toMe ? t('to') : t('from');
+  $otherUid = $old_otherUid;
+  $other = r\userField('full_name', $otherUid);
   $success = TRUE;
-  return array("report undo", compact(u\ray('success old_tid new_tid amount other tofrom solution other_uid')));
+  return array("report undo", compact(u\ray('success old_tid new_tid amount other tofrom solution otherUid')));
 }
 
 /**
  * Create an offsetting transaction.
  */
-function reverse($zxid, $amount, $acct, $data, $old_goods, $old_tid, $to_me) {
-//    print_r(compact(u\ray('zxid amount acct data old_tid to_me'))); die();
-  u\EXPECT(compact(u\ray('zxid amount acct data old_tid to_me')), 'zid float acct assoc|empty string bool');
+function reverse($zxid, $amount, $acct, $data, $old_goods, $old_tid, $toMe) {
+//    print_r(compact(u\ray('zxid amount acct data old_tid toMe'))); die();
+  u\EXPECT(compact(u\ray('zxid amount acct data old_tid toMe')), 'zid float acct assoc|empty string bool');
 
   if (!is_array($data)) $data = array();
   $old_data = $data; // remember original data from transaction we're reversing
-  $type = $to_me ? 'payment' : 'charge';
+  $type = $toMe ? 'payment' : 'charge';
   $my_note = "reverses #$old_tid";
   $other_note = str_replace($old_tid, zxid2tid($zxid, $acct->id), $my_note);
   $what = u\order($type == 'payment', $my_note, $other_note);
@@ -265,12 +266,12 @@ function reverse($zxid, $amount, $acct, $data, $old_goods, $old_tid, $to_me) {
   if (@$args['success']) {
     list ($new_tid, $new_zxid) = array($args['tid'], $args['zxid']);
     u\EXPECT($new_zxid * $zxid > 0, 'reverse: wrong reality');
-    $other_tid = zxid2tid($new_zxid, $acct->id);
+    $otherTid = zxid2tid($new_zxid, $acct->id);
     $old_data['undone'] = TRUE;
     $old_data['changes'][] = array(time(), r\acct()->agent, 'undo', $new_zxid);
     $old_data = serialize($old_data);
     $my_note = "(reversed by #$new_tid) ";
-    $other_note = str_replace($new_tid, $other_tid, $my_note);
+    $other_note = str_replace($new_tid, $otherTid, $my_note);
     list ($payer_note, $payee_note) = u\order($type == 'payment', $other_note, $my_note);
     $sql = <<<EOF
       UPDATE {zxs} SET 
@@ -425,10 +426,10 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   $totalHit = $requestAmount - @$data['rebate']; // leave room for reversing rewards (minus a negative)
   if ($shortfall = r\shortfall($taking ? $uid : $cuid, $totalHit, $preapproved, $real)) {
     $short = u\formatAmount($shortfall);
-    $other_name = r\userField('full_name', $uid);
+    $otherName = r\userField('full_name', $uid);
     if ($paying_invoice) return array('short payment', compact('short'), FALSE); // no partial payment of invoice
-    if (!$goods) return array($taking ? 'short cash from' : 'short cash to', compact('short', 'other_name'), FALSE); // no partial cash trans
-    if ($shortfall >= $requestAmount) return array($taking ? 'broke from' : 'broke to', compact('other_name'), FALSE);
+    if (!$goods) return array($taking ? 'short cash from' : 'short cash to', compact('short', 'otherName'), FALSE); // no partial cash trans
+    if ($shortfall >= $requestAmount) return array($taking ? 'broke from' : 'broke to', compact('otherName'), FALSE);
   }
   $amount = $requestAmount - $shortfall;
   
@@ -634,13 +635,13 @@ function creditInfo($args = array()) {
   $asof = @$my_asof ?: '';
   $quid = r\quid($cuid, $cuid);
   
-  $result_keys = 'gross_in gross_out gross_in_proper balance available unavailable rewards cashable total_demand min_balance quid';
-  $min_balance = r\userField('min_balance', $uid);
+  $result_keys = 'grossIn grossOut grossInProper balance available unavailable rewards cashable totalDemand minBalance quid';
+  $minBalance = r\userField('min_balance', $uid);
 
   $sql = <<<EOF
     SELECT 
-    SUM(IF(t.payer=:uid, t.amount, 0)) AS gross_out, 
-    SUM(IF(t.payee=:uid, t.amount, 0)) AS gross_in,
+    SUM(IF(t.payer=:uid, t.amount, 0)) AS grossOut, 
+    SUM(IF(t.payee=:uid, t.amount, 0)) AS grossIn,
     SUM(IF(t.type=:TX_TRANSFER, 0, t.amount)) AS rewards
     FROM {zxs} t
     WHERE (t.payer=:uid OR t.payee=:uid) AND t.state IN($state)
@@ -648,16 +649,16 @@ EOF;
   if ($asof) $sql .= " AND t.created<=:asof";
 
   extract(r\dbQ($sql, compact(u\ray('uid asof real')))->fetchAssoc());
-  $gross_in_proper = $gross_in - $rewards;
-  $balance = $gross_in - $gross_out;
+  $grossInProper = $grossIn - $rewards;
+  $balance = $grossIn - $grossOut;
   $unavailable = 0; // for now
-  $available = ($balance - $min_balance) - $unavailable;
+  $available = ($balance - $minBalance) - $unavailable;
   $cashable = $balance - $rewards;
-  $total_demand = r\totalDemand();
+  $totalDemand = r\totalDemand();
   $result = compact(u\ray($result_keys));
   $fancy = array();
   foreach ($result as $key => $value) $fancy[$key] = is_numeric($value ?: 0) ? u\formatAmount($value) : $value;
-  if ($total_demand >= 1000000) $fancy['total_demand'] = '$' . number_format(($total_demand - 9999) / 1000000, 2) . ' million';
+  if ($totalDemand >= 1000000) $fancy['totalDemand'] = '$' . number_format(($totalDemand - 9999) / 1000000, 2) . ' million';
   $result['fancy'] = $fancy;
   return (object) $result;
 }
@@ -674,10 +675,10 @@ function mergeCheck($info) {
   extract($info, EXTR_PREFIX_ALL, 'my');
   
   $where = 'name=:name';
-  if (isset($my_number)) $where .= ' OR sms.number=:number';
-  if (isset($my_website)) $where .= ' OR u.website=:website';
-  if (isset($my_phone)) $where .= ' OR u.phone=:phone';
-  if (isset($my_fax)) $where .= ' OR u.fax=:fax';
+  foreach (u\ray('number website phone fax') as $field) {
+    if (@$info[$field]) $where .= " OR u.$field=:$field"; else unset($info[$field]);
+  }
+  $where = str_replace('u.number', 'sms.number', $where);
   $sql = "SELECT DISTINCT u.uid FROM users u LEFT JOIN r_sms sms ON sms.uid=u.uid WHERE u.uid<>:cuid AND (NOT u.pass) AND ($where)";
   $result = r\dbQ($sql, $info + compact('cuid'));
   $found = 0;
@@ -741,12 +742,12 @@ function lastTx($where = 1, $subs = array(), $cache = FALSE) {
   $basic = "$cuid IN (payer, payee) AND type NOT IN (:TX_DELETED, :TX_REBATE, :TX_BONUS)";
   $sql = "SELECT * FROM {zxs} WHERE ($basic) AND ($where) ORDER BY zxid DESC LIMIT 1"; // make sure it's for $cuid
   if (!($result = r\dbQ($sql, $subs)->fetchAssoc())) return FALSE;
-  $to_me = ($result['payee'] == $cuid);
-  $by_me = ($result['taking'] == $to_me);
-  $other_uid = $result[$to_me ? 'payer' : 'payee'];
+  $toMe = ($result['payee'] == $cuid);
+  $by_me = ($result['taking'] == $toMe);
+  $otherUid = $result[$toMe ? 'payer' : 'payee'];
   $zxid = r\zxid($result['xid'], r\zxs());
   unset($result['xid']);
-  return $result + compact(u\ray('by_me to_me other_uid zxid'));
+  return $result + compact(u\ray('by_me toMe otherUid zxid'));
 }
 
 /**

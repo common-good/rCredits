@@ -49,7 +49,7 @@ Setup:
 Scenario: A member asks to refuse to pay invoice
   When member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "unconfirmed"
   Then we respond with success 1, message "confirm undo", and subs:
-  | created   | amount | tofrom  | other_name | purpose |
+  | created   | amount | tofrom  | otherName | purpose |
   | %today-2w | $100   | to      | Abe One    | labor H |
   And balances:
   | id        | balance |
@@ -64,8 +64,8 @@ Scenario: A member confirms request to refuse to pay invoice
   | solution          |
   | marked ''denied'' |
   And we email "invoice-denied" to member "a@example.com" with subs:
-  | created    | full_name | other_name | amount | payee_purpose |
-  | %today-2w  | Abe One   | Corner Pub | $100   | labor H       |
+  | created    | fullName | otherName | amount | payeePurpose |
+  | %today-2w  | Abe One  | Corner Pub | $100   | labor H       |
   And balances:
   | id        | balance |
   | community | -750 |
@@ -76,7 +76,7 @@ Scenario: A member confirms request to refuse to pay invoice
 Scenario: A member asks to refuse payment offer
   When member "NEW.ZZB" asks device "codeB" to undo transaction "NEW.AAAE", with the request "unconfirmed"
   Then we respond with success 1, message "confirm undo", and subs:
-  | created   | amount | tofrom  | other_name | purpose |
+  | created   | amount | tofrom  | otherName | purpose |
   | %today-3w | $100   | from    | Abe One    | pie E   |
   And balances:
   | id        | balance |
@@ -91,8 +91,8 @@ Scenario: A member confirms request to refuse payment offer
   | solution          |
   | marked ''denied'' |
   And we email "offer-refused" to member "a@example.com" with subs:
-  | created   | full_name | other_name | amount | payer_purpose |
-  | %today-3w | Abe One   | Bea Two    | $100   | pie E         |
+  | created   | fullName | otherName | amount | payerPurpose |
+  | %today-3w | Abe One  | Bea Two    | $100   | pie E         |
   And balances:
   | id        | balance |
   | community | -750 |
@@ -103,7 +103,7 @@ Scenario: A member confirms request to refuse payment offer
 Scenario: A member asks to cancel an invoice
   When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "unconfirmed"
   Then we respond with success 1, message "confirm undo", and subs:
-  | created   | amount | tofrom | other_name | purpose |
+  | created   | amount | tofrom | otherName | purpose |
   | %today-2w | $100   | from   | Corner Pub | labor H |
 
 Scenario: A member confirms request to cancel an invoice
@@ -112,13 +112,13 @@ Scenario: A member confirms request to cancel an invoice
   | solution |
   | deleted  |
   And we email "invoice-canceled" to member "c@example.com" with subs:
-  | created   | full_name  | other_name | amount | payer_purpose |
+  | created   | fullName   | otherName | amount | payerPurpose |
   | %today-2w | Corner Pub | Abe One    | $100   | labor H       |
   
 Scenario: A member asks to cancel an offer
   When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAE", with the request "unconfirmed"
   Then we respond with success 1, message "confirm undo", and subs:
-  | created   | amount | tofrom | other_name | purpose |
+  | created   | amount | tofrom | otherName | purpose |
   | %today-3w | $100   | to     | Bea Two    | pie E |
 
 Scenario: A member confirms request to cancel an offer
@@ -127,5 +127,5 @@ Scenario: A member confirms request to cancel an offer
   | solution |
   | deleted  |
   And we email "offer-canceled" to member "b@example.com" with subs:
-  | created   | full_name | other_name | amount | payee_purpose |
-  | %today-3w | Bea Two   | Abe One    | $100   | pie E       |
+  | created   | fullName | otherName | amount | payeePurpose |
+  | %today-3w | Bea Two  | Abe One    | $100   | pie E       |

@@ -10,8 +10,8 @@ Scenario: The caller has not enough funds to exchange
   And phone %number1 incentive rewards to date is $80
   When phone %number1 says "get usd 123.45"
   Then we say to phone %number1 "can't cash out incentives" with subs:
-  | @incentives_to_date | @available_balance |
-  | $80                 | $50                |
+  | @incentivesToDate | @availableBalance |
+  | $80               | $50               |
   # "You cannot cash out your incentive rewards ($80 to date). Your balance available to exchange for US Dollars is $50."
 
 Scenario: The caller is not set up for direct deposits

@@ -44,11 +44,11 @@ Scenario: A member asks to charge another member
   When member "NEW.ZZA" asks device "codeA" to do this: "charge" "NEW.ZZC" $100 ("goods": "labor")
   # cash exchange would be ("cash": "")
   Then we respond success 1 tx_id "NEW.AAAE" my_balance 250 other_balance "" and message "report invoice" with subs:
-  | action  | other_name | amount | tid |
+  | action  | otherName | amount | tid |
   | charged | Corner Pub | $100   | 2   |
   # "You charged Corner Pub $100 (bonus: $10). Your balance is unchanged, pending payment. Invoice #2"
   And we email "new-invoice" to member "c@example.com" with subs:
-  | created | full_name  | other_name | amount | payer_purpose |
+  | created | fullName   | otherName | amount | payerPurpose |
   | %today  | Corner Pub | Abe One    | $100   | labor         |
   And balances:
   | id        | balance |
@@ -59,11 +59,11 @@ Scenario: A member asks to charge another member
 Scenario: A member asks to pay another member
   When member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $100 ("goods": "groceries")
   Then we respond success 1 tx_id "NEW.AAAE" my_balance 155 other_balance "" and message "report transaction" with subs:
-  | action | other_name | amount | reward_type | reward_amount | balance | tid |
+  | action | otherName | amount | rewardType | rewardAmount | balance | tid |
   | paid   | Corner Pub | $100   | rebate      | $5            | $155    | 2   |
   # "You paid Corner Pub $100 (rebate: $5). Your new balance is $155. Transaction #2"
   And we email "new-payment" to member "c@example.com" with subs:
-  | created | full_name  | other_name | amount | payee_purpose   |
+  | created | fullName   | otherName | amount | payeePurpose   |
   | %today  | Corner Pub | Abe One    | $100   | groceries       |
   And balances:
   | id        | balance |
@@ -90,11 +90,11 @@ Scenario: A member asks to charge another member unilaterally
   Given member "NEW.ZZC" can charge unilaterally
   When member "NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $100 ("goods": "groceries")
   Then we respond success 1 tx_id "NEW.AAAE" my_balance 360 other_balance 155 and message "report transaction" with subs:
-  | action  | other_name | amount | reward_type | reward_amount | balance | tid |
+  | action  | otherName | amount | rewardType | rewardAmount | balance | tid |
   | charged | Abe One    | $100   | bonus       | $10           | $360    | 2   |
   # "You charged Corner Pub $100 (bonus: $10). Your new balance is $360. Transaction #2"
   And we email "new-charge" to member "a@example.com" with subs:
-  | created | full_name | other_name | amount | payer_purpose   |
+  | created | fullName  | otherName | amount | payerPurpose   |
   | %today  | Abe One   | Corner Pub | $100   | groceries       |
   And balances:
   | id        | balance |
@@ -106,7 +106,7 @@ Scenario: A member asks to charge another member unilaterally, with insufficient
   Given member "NEW.ZZC" can charge unilaterally
   When member "NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $300 ("goods": "groceries")
   Then we respond success 1 tx_id "NEW.AAAE" my_balance 525 other_balance 12.5 and message "report short transaction" with subs:
-  | action  | other_name | amount | short | balance | tid |
+  | action  | otherName | amount | short | balance | tid |
   | charged | Abe One    | $250   | $50   | $525    | 2   |
   # "SPLIT TRANSACTION! You paid Corner Pub $250 (rebate: $12.50). You will need to use US Dollars for the remaining $50. Your new balance is $12.50. Transaction #2"
   And balances:
@@ -118,7 +118,7 @@ Scenario: A member asks to charge another member unilaterally, with insufficient
 Scenario: A member asks to pay another member, with insufficient balance
   When member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $300 ("goods": "groceries")
   Then we respond success 1 tx_id "NEW.AAAE" my_balance 12.5 other_balance "" and message "report short transaction" with subs:
-  | action | other_name | amount | short | balance | tid |
+  | action | otherName | amount | short | balance | tid |
   | paid   | Corner Pub | $250   | $50   | $12.50  | 2   |
   # "SPLIT TRANSACTION! You paid Corner Pub $250 (rebate: $12.50). You will need to use US Dollars for the remaining $50. Your new balance is $12.50. Transaction #2"
   And balances:

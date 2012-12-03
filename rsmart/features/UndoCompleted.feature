@@ -73,7 +73,7 @@ Setup:
 Scenario: A member asks to undo a completed payment
   When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAK", with the request "unconfirmed"
   Then we respond with success 1, message "confirm undo", and subs:
-  | created   | amount | tofrom  | other_name | purpose    |
+  | created   | amount | tofrom  | otherName | purpose    |
   | %today-1d | $80    | to      | Corner Pub | whatever54 |
   # "Undo 01-02-2012 payment of $80 to Corner Pub for whatever?"
   And balances:
@@ -93,11 +93,11 @@ Scenario: A member asks to undo a completed payment
 Scenario: A member confirms request to undo a completed payment
   When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAK", with the request "confirmed"
   Then we respond success 1 tx_id "NEW.AAAN" my_balance 166 other_balance "" and message "report undo|report invoice" with subs:
-  | solution | action  | other_name | amount | tid |
+  | solution | action  | otherName | amount | tid |
   | reversed | charged | Corner Pub | $80    | 6   |
   And we email "new-invoice" to member "c@example.com" with subs:
-  | created | full_name  | other_name | amount | payer_purpose |
-  | %today  | Corner Pub | Abe One    | $80    | reverses #4   |
+  | created | fullName   | otherName | amount | payerPurpose |
+  | %today  | Corner Pub | Abe One   | $80    | reverses #4  |
   And balances:
   | id        | balance |
   | community |    -768 |
@@ -118,17 +118,17 @@ Scenario: A member confirms request to undo a completed payment
 Scenario: A member asks to undo a completed charge
   When member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAK", with the request "unconfirmed"
   Then we respond with success 1, message "confirm undo", and subs:
-  | created   | amount | tofrom  | other_name | purpose    |
-  | %today-1d | $80    | from    | Abe One    | whatever54 |
+  | created   | amount | tofrom  | otherName | purpose    |
+  | %today-1d | $80    | from    | Abe One   | whatever54 |
   
 Scenario: A member confirms request to undo a completed charge
   When member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAK", with the request "confirmed"
   Then we respond success 1 tx_id "NEW.AAAN" my_balance 235 other_balance "" and message "report undo|report transaction" with subs:
-  | solution | action | other_name | amount | tid | reward_type | reward_amount | balance |
+  | solution | action | otherName | amount | tid | rewardType | rewardAmount | balance |
   | reversed | paid   | Abe One    | $80    | 5   | rebate      | $-8           | $235    |
   And we email "new-payment" to member "a@example.com" with subs:
-  | created | full_name | other_name | amount | payee_purpose |
-  | %today  | Abe One   | Corner Pub | $80    | reverses #5   |
+  | created | fullName | otherName  | amount | payeePurpose |
+  | %today  | Abe One  | Corner Pub | $80    | reverses #5  |
   And balances:
   | id        | balance |
   | community |    -756 |
@@ -139,17 +139,17 @@ Scenario: A member confirms request to undo a completed charge
 Scenario: A member asks to undo a completed cash payment
   When member "NEW.ZZB" asks device "codeB" to undo transaction "NEW.AAAJ", with the request "unconfirmed"
   Then we respond with success 1, message "confirm undo", and subs:
-  | created   | amount | tofrom | other_name | purpose |
+  | created   | amount | tofrom | otherName  | purpose |
   | %today-2d | $5     | to     | Corner Pub | cash J  |
 
 Scenario: A member confirms request to undo a completed cash payment
   When member "NEW.ZZB" asks device "codeB" to undo transaction "NEW.AAAJ", with the request "confirmed"
   Then we respond success 1 tx_id "NEW.AAAN" my_balance 279 other_balance "" and message "report undo|report exchange request" with subs:
-  | solution | action  | other_name | amount | tid |
+  | solution | action  | otherName | amount | tid |
   | reversed | charged | Corner Pub | $5     | 5   |
   And we email "new-invoice" to member "c@example.com" with subs:
-  | created | full_name  | other_name | amount | payer_purpose |
-  | %today  | Corner Pub | Bea Two    | $5     | reverses #3   |
+  | created | fullName   | otherName | amount | payerPurpose |
+  | %today  | Corner Pub | Bea Two   | $5     | reverses #3  |
   And balances:
   | id        | balance |
   | community |    -768 |
@@ -160,17 +160,17 @@ Scenario: A member confirms request to undo a completed cash payment
 Scenario: A member asks to undo a completed cash charge
   When member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAJ", with the request "unconfirmed"
   Then we respond with success 1, message "confirm undo", and subs:
-  | created   | amount | tofrom | other_name | purpose |
+  | created   | amount | tofrom | otherName | purpose |
   | %today-2d | $5     | from   | Bea Two    | cash J  |
   
 Scenario: A member confirms request to undo a completed cash charge
   When member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAJ", with the request "confirmed"
   Then we respond success 1 tx_id "NEW.AAAN" my_balance 318 other_balance "" and message "report undo|report exchange" with subs:
-  | solution | action | other_name | amount | tid | balance |
-  | reversed | gave   | Bea Two    | $5     | 5   | $318    |
+  | solution | action | otherName | amount | tid | balance |
+  | reversed | gave   | Bea Two   | $5     | 5   | $318    |
   And we email "new-payment" to member "b@example.com" with subs:
-  | created | full_name  | other_name | amount | payee_purpose |
-  | %today  | Bea Two    | Corner Pub | $5     | reverses #4   |
+  | created | fullName | otherName  | amount | payeePurpose |
+  | %today  | Bea Two  | Corner Pub | $5     | reverses #4  |
   And balances:
   | id        | balance |
   | community |    -768 |
@@ -182,11 +182,11 @@ Scenario: A member confirms request to undo a completed payment unilaterally
   Given member "NEW.ZZA" can charge unilaterally
   When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAK", with the request "confirmed"
   Then we respond success 1 tx_id "NEW.AAAN" my_balance 242 other_balance 235 and message "report undo|report transaction" with subs:
-  | solution | action  | other_name | amount | reward_type | reward_amount | balance | tid |
-  | reversed | charged | Corner Pub | $80    | bonus       | $-4           | $242    | 6   |
+  | solution | action  | otherName  | amount | rewardType | rewardAmount | balance | tid |
+  | reversed | charged | Corner Pub | $80    | bonus      | $-4          | $242    | 6   |
   And we email "new-charge" to member "c@example.com" with subs:
-  | created | full_name  | other_name | amount | payer_purpose |
-  | %today  | Corner Pub | Abe One    | $80    | reverses #4   |
+  | created | fullName   | otherName | amount | payerPurpose |
+  | %today  | Corner Pub | Abe One   | $80    | reverses #4  |
   And balances:
   | id        | balance |
   | community |    -756 |

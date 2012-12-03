@@ -31,28 +31,28 @@ Setup:
 Scenario: Undo the last transaction
   When phone +20001 says "undo"
   Then we say to phone +20001 "confirm undo|please confirm" with subs:
-  | created   | amount | tofrom  | other_name | purpose    |
+  | created   | amount | tofrom  | otherName | purpose    |
   | %today-1d | $55.55 | to      | Corner Pub | whatever54 |
   # "Undo 01-02-2012 payment of $55.55 to Corner Pub for whatever?"
 
 Scenario: Undo the last transaction with someone specific
   When phone +20001 says "undo .ZZB"
   Then we say to phone +20001 "confirm undo|please confirm" with subs:
-  | created   | amount | tofrom  | other_name | purpose    |
+  | created   | amount | tofrom  | otherName | purpose    |
   | %today-3d | $33.33 | to      | Bea Two    | whatever43 |
   # "Undo 05-17-2012 payment of 33.33 to Bea Two?"
 
 Scenario: Undo the last transfer to me
   When phone +20001 says "undo from"
   Then we say to phone +20001 "confirm undo|please confirm" with subs:
-  | created   | amount | tofrom  | other_name | purpose    |
+  | created   | amount | tofrom  | otherName | purpose    |
   | %today-3w | $22.22 | from    | Corner Pub | usd        |
   # "Undo 01-03-2012 charge of 22.22 from Corner Pub?"
 
 Scenario: Undo the last transfer to me from someone specific
   When phone +20001 says "undo from .ZZB"
   Then we say to phone +20001 "confirm undo|please confirm" with subs:
-  | created   | amount | tofrom | other_name | purpose     |
+  | created   | amount | tofrom | otherName | purpose     |
   | %today-4m | $11.11 | from   | Bea Two    | cash for me |
   # "Undo 01-03-2012 charge of 33.33 to Bea?"
 
@@ -61,14 +61,14 @@ Scenario: The caller confirms undoing a charge
   Then the community has r$-763.34
   And phone +20002 has r$242.22
   And we say to phone +20001 "report undo|report exchange" with subs:
-  | solution | action | other_name | amount | balance | tid |
+  | solution | action | otherName | amount | balance | tid |
   | reversed | gave   | Bea Two    | $11.11 | $187.79 | 6   |
   # "You gave Corner Pub $100 cash/loan/etc. Your new balance is $150. Transaction #2"
 
 Scenario: The caller confirms undoing a payment
   When phone +20001 confirms "undo to .ZZB"
   And we say to phone +20001 "report undo|report invoice" with subs:
-  | solution | action  | other_name | amount | tid |
+  | solution | action  | otherName | amount | tid |
   | reversed | charged | Bea Two    | $33.33 | 6   |
   # "You gave Corner Pub $100 cash/loan/etc. Your new balance is $150. Transaction #2"
 
@@ -81,8 +81,8 @@ Scenario: The caller refuses to pay the latest invoice
   | solution          |
   | marked ''denied'' |
   And we email "invoice-denied" to member "b@example.com" with subs:
-  | created | full_name | other_name | amount | payee_purpose  |
-  | %today  | Bea Two   | Abe One    | $100   | cleaning       |
+  | created | fullName | otherName | amount | payeePurpose  |
+  | %today  | Bea Two  | Abe One    | $100   | cleaning       |
 
 Scenario: The caller refuses a pending payment
   Given transactions:
@@ -93,5 +93,5 @@ Scenario: The caller refuses a pending payment
   | solution          |
   | marked ''denied'' |
   And we email "offer-refused" to member "c@example.com" with subs:
-  | created | full_name  | other_name | amount | payer_purpose |
+  | created | fullName   | otherName | amount | payerPurpose |
   | %today  | Corner Pub | Abe One    | $100   | wages         |

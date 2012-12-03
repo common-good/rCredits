@@ -8,6 +8,7 @@ use rCredits\Testing as t;
 include_once __DIR__ . '/rweb-txs.inc'; // treat this as an extension of this file, just to make menu ['file'] consistent
 require_once __DIR__ . '/../rcredits-api.inc';
 require_once __DIR__ . '/../rcredits-testing.inc'; // else fails in showForm()
+define('isDEV', @$_SERVER['WINDIR']); // developing on Windows (unlike production server)
 
 /**
  * @file
@@ -67,13 +68,13 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'confirm delete cell' => t('Are you sure you want to remove the selected cell phones from this account?'),
   'already related' => t('That person is already related to this account. If you want to change the settings, find this person in the list and change the settings on that row.'),
   'already cell' => t('That cell phone (@number) is already connected to this account.'),
-  'cell taken' => t('A cell phone can be connected to only one account. You are already using that cell phone (@number) in connection with account "@account_name". If you really want to switch that phone to this account, you must first sign in to the other account and release it.'),
+  'cell taken' => t('A cell phone can be connected to only one account. You are already using that cell phone (@number) in connection with account "@accountName". If you really want to switch that phone to this account, you must first sign in to the other account and release it.'),
   'bad routing number' => t('US bank routing numbers are 9 digits. Use the number on the lower left edge of your checks.'),
   'nothing selected' => t('You did not select anything'),
   'undo incomplete' => t('The undo operation is not yet complete.'),
-  'unknown member' => t('"@who" has not yet signed up for rCredits. <a href="@draft_link">Click here</a> to add them to the database.'),
-  'ambiguous other' => t('"@who" might mean any of these rCredits accounts.<br>Click on the one you want or, if you don\'t see them listed, <a href="@draft_link">Click here</a> to add them to the database.'),
-  'similar found' => t('Do you mean @other_name (@phone)? If so, <a href="@draft_link">click here</a>. Otherwise, click on any tab to cancel.'),
+  'unknown member' => t('"@who" has not yet signed up for rCredits. <a href="@draftLink">Click here</a> to add them to the database.'),
+  'ambiguous other' => t('"@who" might mean any of these rCredits accounts.<br>Click on the one you want or, if you don\'t see them listed, <a href="@draftLink">Click here</a> to add them to the database.'),
+  'similar found' => t('Do you mean @otherName (@phone)? If so, <a href="@draftLink">click here</a>. Otherwise, click on any tab to cancel.'),
   'get app' => t('To scan Account ID cards with a smartphone, you need the app! You can download the Android app <a href="http://rCredits.org/rc.apk">here</a>. The iphone version is in the works (check again in January).'),
   'no help' => t('There is no written help available for this page. Give it a try! If you are still puzzled, please feel free to give us a call at @R_ORG_PHONE. Or send your question by <a href="mailto:@R_ORG_EMAIL?subject=help with rCredits Members Site, @page page" target="_blank">email</a>.'),
 );
@@ -399,14 +400,14 @@ function formSummary($form, &$sta) {
   if (!$cacct->isCompany() or !$cacct->proSe()) {
     $card = formField('item', '&nbsp;', '', t('<a>Print Temporary ID Card</a>'));
   } else $cardC = formField('item', '&nbsp;', '', t("To print temporary ID cards for employees or other agents, visit the <a href=\"$base_url/account/relations\">Account Relations</a> page."));
-  $account_name = formField('item', t('Name:'), '', $cacct->full_name . ' ' . u\hug($name));
+  $accountName = formField('item', t('Name:'), '', $cacct->full_name . ' ' . u\hug($name));
   $address = formField('item', '&nbsp;', '', $address);
   $account_type = formField('item', t('Account type:'), '', $GLOBALS['account types'][$cacct->account_type+0]); // +0 for admin
   $balance = formField('item', t('Balance:'), '', $my_balance . (r\isRTrader() ? '' : R_ASIF_TEXT));
   $credit_limit = formField('item', t('Credit limit:'), '(this is how far in debt you can go &mdash; for up to 30 days)', u\formatAmount(-$cacct->min_balance));
   $rewards_to_date = formField('item', t('Rewards to date:'), '', $my_rewards);
 
-  $form = compact(u\ray('title account_id card cardC account_name address account_type balance credit_limit rewards_to_date'));
+  $form = compact(u\ray('title account_id card cardC accountName address account_type balance credit_limit rewards_to_date'));
   $form['#attributes']['class'] = array('labeled');
   return $form;
 }
@@ -685,7 +686,7 @@ function formExchange($form, &$sta) {
   $cuid = r\acct()->id;
   if ($confirm = sureForm($sta)) return $confirm; // confirm only getUSD
   $request = u\formatAmount(r\userField('demand', $cuid));
-  $demand = be\creditInfo()->fancy['total_demand'];
+  $demand = be\creditInfo()->fancy['totalDemand'];
 
   $form = array(
     'title' => formField('item', t('Get rCredits / USD')),
@@ -754,18 +755,26 @@ function formContact($form, &$sta) {
   drupal_add_js('inc/countries.js', array('type'=>'file', 'scope'=>'header'));
   drupal_add_js("print_country('edit-country', \"$my_country\", \"$my_state\");", array('type'=>'inline', 'scope'=>'footer'));
   focusOn('full_name');
+
   return $form;
 }
 
 function formContact_validate($form, &$sta) {
-  extract(u\just('phone fax city address full_name', u\trimAll($sta['values']))); // trim ALL values, for later
+  $cuid = r\acct()->id;
+  extract(u\just('phone fax city address full_name country state', u\trimAll($sta['values']))); // trim ALL values, for later
 //  if (blank_field(compact(u\ray('phone city address')))) return;
+
+  // add dropdowns, just in case there is an error
+  drupal_add_js('inc/countries.js', array('type'=>'file', 'scope'=>'header'));
+  drupal_add_js("print_country('edit-country', \"$country\", \"$state\");", array('type'=>'inline', 'scope'=>'footer'));
+
   if ($phone and !($phone = u\formatPhone($phone, '+n'))) say('bad phone', 'phone'); else $sta['values']['phone'] = $phone;
   if ($fax and !($fax = u\formatPhone($fax, '+n'))) say('bad phone', 'fax'); else $sta['values']['fax'] = $fax;
-  if (($shortName = u\shortName($full_name)) == r\acct()->name) {
+  if ($full_name != r\acct()->full_name) {
+    $shortName = u\shortName($full_name);
+    $otherName = r\userField('full_name', 'name=:shortName AND uid<>:cuid', compact('shortName', 'cuid'));
+    if ($otherName) return say('shortname taken', compact('otherName'), 'full_name');
     $sta['values']['name'] = $shortName;
-  } elseif (($other = r\userField('uid', 'name=:shortName', compact('shortName')))) {
-    say('shortname taken', compact('shortName'), 'full_name');
   }
 }
 
@@ -810,9 +819,9 @@ function formDraft_validate($form, &$sta) {
   if (!u\validName($full_name, FALSE, FALSE)) say('bad name', 'name');
   $sta['values']['full_name'] = u\normalizeCase($full_name);
   $shortName = u\shortName($full_name);
-  if (($other_name = r\userField('full_name', 'name=:shortName or phone=:phone', compact('shortName', 'phone')))) {
-    $draft_link = "$base_url/$return/who=$other_name&$argString";
-    say('similar found', compact(u\ray('other_name phone draft_link')), u\shortName($other_name) == $shortName ? 'full_name' : 'phone');
+  if (($otherName = r\userField('full_name', 'name=:shortName or phone=:phone', compact('shortName', 'phone')))) {
+    $draftLink = "$base_url/$return/who=$otherName&$argString";
+    say('similar found', compact(u\ray('otherName phone draftLink')), u\shortName($otherName) == $shortName ? 'full_name' : 'phone');
   } else $sta['values']['name'] = $shortName;
 }
 
@@ -837,7 +846,7 @@ function no_selection($list) {
 function formBank($form, &$sta) {
   extract((array) r\acct()->account(), EXTR_PREFIX_ALL, 'my');
 
-  if (!$my_bank_account_name) $my_bank_account_name = $my_full_name;
+  if (!$my_bank_accountName) $my_bank_accountName = $my_full_name;
   
   $form = array();
   if ($my_country == R_COUNTRY) {
@@ -849,7 +858,7 @@ function formBank($form, &$sta) {
   $form = array(
     'title' => formField('item', t('Bank Information')),
 //    'subtext' => ,
-    'bank_account_name' => formField('textfield', t('Account name:'), t('What is the name on this bank account?'), dft($my_bank_account_name) + required()),
+    'bank_accountName' => formField('textfield', t('Account name:'), t('What is the name on this bank account?'), dft($my_bank_accountName) + required()),
     'routing_number' => $routing_number,
     'bank_account_number' => formField('textfield', t('Account number:'), t('What is the account number? (be sure to get this right)'), dft($my_bank_account_number) + required()),
     'submit' => formField('submit', NULL, t('Submit button'), 'Submit'),
@@ -861,7 +870,7 @@ function formBank($form, &$sta) {
 
 function formBank_validate($form, &$sta) {
   extract(u\trimAll($sta['values']));
-  if (!u\validName($bank_account_name, FALSE, FALSE)) say('bad name', 'bank_account_name');
+  if (!u\validName($bank_accountName, FALSE, FALSE)) say('bad name', 'bank_accountName');
   if (!preg_match('/^(|[0-9]{9})$/', $routing_number)) say('bad routing number', 'routing_number');
   if (!preg_match('/^[0-9]{3,20}$/', $bank_account_number)) say('bad account number', 'bank_account_number');
 }
@@ -869,7 +878,7 @@ function formBank_validate($form, &$sta) {
 function formBank_submit($form, &$sta) {
   extract($sta['values']);
   if (r\acct()->country == R_COUNTRY) $bank_account_number = "USkk$routing_number$bank_account_number";
-  r\userUpdate(compact(u\ray('bank_account_name bank_account_number')));
+  r\userUpdate(compact(u\ray('bank_accountName bank_account_number')));
   say('info saved');
 }
 
@@ -1105,6 +1114,7 @@ function formCell_submit($form, &$sta) {
     if ($info = previous_state($sta)) return say($info, 'number'); // just returning from failed validation of step 2 ('prove')
     svar('nonce', $nonce = u\nonce()); // don't use POST (user could peek)
     r\SMS\send($number, tt('verification code', compact('nonce')));
+    if (isDEV) debug("nonce is $nonce"); // tell developer what code to type
     return form_step($sta, compact('number'), 'prove');
   }
 
@@ -1178,7 +1188,7 @@ function formRegister_validate($form, &$sta) {
     extract(u\just('employee_ok is_owner', $company_options));
     if (!($employee_ok or $is_owner)) return say('what relationship', 'company');
     $company = $company;
-    $data = serialize(compact(u\ray('company employee_ok is_owner')));
+    $data = compact(u\ray('company employee_ok is_owner'));
   }
   
   if ($error = user_validate_name($full_name)) return say(str_replace('The username', 'That name', $error), 'full_name');
@@ -1192,19 +1202,21 @@ function formRegister_validate($form, &$sta) {
 }
 
 function formRegister_submit($form, &$sta) {
-  global $user;
   extract(u\just('company company_options uid name', $sta['values']));
-  
+  setupGlobals($uid); // some rcredits functions need to know who we are
+
+/* This doesn't work yet, so it is disabled  
   if ($company) {
     extract(u\just('is_owner employee_ok', $company_options));
     $companyAcct = whois($company, 'company', $sta['values']);
-    if (!r\reid($companyAcct->id, $uid)) {
+    if (@$companyAcct and !r\reid($companyAcct->id, $uid)) {
       list ($main_uid, $agent_uid, $is_owner) = array($companyAcct->id, $uid, $is_owner);
       $info = compact(u\ray('main_uid agent_uid employee_ok is_owner'));
       \drupal_write_record('r_relations', $info);
     }
   }
-// merge fails because account is not saved yet:  be\mergeCheck(compact(u\ray('email short_name'))); // email fails anyway because it's not unique
+*/
+// merge fails because account is not saved yet:  be\mergeCheck(compact(u\ray('email short_name')));
   $quid = r\quid($uid, $uid);
   $balance = u\formatAmount(be\fund($uid, TX_SIGNUP));
   if (@$_SESSION['messages']['status'][0] == t('A welcome message with further instructions has been sent to your e-mail address.')) unset($_SESSION['messages']['status']);
@@ -1765,7 +1777,7 @@ function whois($who, $field_name, $info, $allow_ALL = FALSE, $selfMsg = 'no self
   foreach (u\ray('form_build_id form_token form_id op') as $one) unset($info[$one]); // just for neatness
   if (u\abbreviates('who=', $last = basename($return = \current_path()))) $return = dirname($return);
   $info['return'] = str_replace('/', '%_%', $return); // even urlencoded slashes confuse Drupal
-  $args['draft_link'] = "$base_url/draft/" . http_build_query($info);
+  $args['draftLink'] = "$base_url/draft/" . http_build_query($info);
   foreach ($choices as $uid => $full_name) $choices[$uid] = substr(r\quid($uid), 3) . '   ' . $full_name;
   if (empty($choices)) return say($msg, $args, $field_name); else which($choices, $field_name, $info, tt($msg, $args));
 }
@@ -1808,11 +1820,11 @@ function transfer($info, $confirmed) {
 function communityTransfer($type, $acct, $amount, $confirmed) {
   $success = (bool) be\fund($acct->id, constant(strtoupper("TX_$type")), $amount, $confirmed);
   $msg = $success ? ($confirmed ? 'report funding' : 'funding') : 'funding error';
-  $confirm_action = ucwords($type);
-  $action = $confirm_action . 'ed';
-  $other_name = r\userField('full_name', $acct->id);
+  $confirmAction = ucwords($type);
+  $action = $confirmAction . 'ed';
+  $otherName = r\userField('full_name', $acct->id);
   $amount = u\formatAmount($amount);
-  return array($msg, compact(u\ray('success action confirm_action amount other_name')), $success and !$confirmed);
+  return array($msg, compact(u\ray('success action confirmAction amount otherName')), $success and !$confirmed);
 }  
     
 function menu($title, $type, $function = NULL, $function_args = array(), $access = 'member', $other = array()) {
@@ -1900,10 +1912,10 @@ function say($index, $args = array(), $error_field = '') {
   return FALSE;
 }
 
-function setupGlobals() {
+function setupGlobals($agent = '') {
   global $user, $channel;
   if (@$channel) return; // already setup
-  $agent = @$user->uid;
+  if (!$agent) $agent = @$user->uid; // register_submit supplies agent (no one else does)
   $cuid = svar('cuid') ?: $agent;
   r\acct::setDefault(r\acct($cuid, $agent)); // set default for r\acct()
   $channel = TX_WEB;

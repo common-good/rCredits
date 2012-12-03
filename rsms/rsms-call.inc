@@ -59,7 +59,7 @@ class call {
    *
    * If the caller does not have a record in our database, create one.
    * If the record is not yet adequate, ask for more information.
-   * The caller is not validated unless we have a full_name and email address for him or her.
+   * The caller is not validated unless we have a name and email address for him or her.
    * @returns string: error message to send to the caller (null if success).
    * @throws rSMSexception
    *   Message is the error message to send the caller.
@@ -81,10 +81,10 @@ class call {
         be\todo($number, 'setup name', '');
         return tt("what's your name?");
       }
-      $full_name = setup_name($cacct, $this->message);
+      $fullName = setup_name($cacct, $this->message);
       be\todo($number, 'setup email', '');
       $quid = r\quid(); //$cacct->credit_id;
-      return tt("what's your email?", compact('quid', 'full_name'));
+      return tt("what's your email?", compact('quid', 'fullName'));
     } elseif ($todo == 'setup email' and !$cacct->mail) {
       setup_email($cacct, $this->message);
       be\todo($number, '', '');
@@ -270,14 +270,14 @@ class call {
 
     if (isset($my_who)) {
       if (!u\isAcct($acct = be\identify($my_who))) return tt($acct); // return if error
-      $other_uid = $acct->id;
+      $otherUid = $acct->id;
       $where .= " AND ";
       if (isset($my_tofrom)) {
-        $where .= $my_tofrom === 'to' ? 'payee=:other_uid' : 'payer=:other_uid';
-      } else $where .= '(payee=:other_uid OR payer=:other_uid)';
+        $where .= $my_tofrom === 'to' ? 'payee=:otherUid' : 'payer=:otherUid';
+      } else $where .= '(payee=:otherUid OR payer=:otherUid)';
     }
 
-    $oldRecord = be\lastTx($where, compact(u\ray('cuid other_uid')));
+    $oldRecord = be\lastTx($where, compact(u\ray('cuid otherUid')));
     if ($error = r\nonoUndo($oldRecord, $subs)) return array($error, $subs);
     $this->parms['zxid'] = $oldRecord['zxid'];
     return $this->confirm('undo', r\txReportArgs($oldRecord, FALSE));
@@ -312,10 +312,10 @@ class call {
     $where = 'state=:TX_PENDING AND payer=:cuid';
     if (isset($my_who)) {
       if (!u\isAcct($acct = be\identify($my_who))) return tt($acct); // return if error
-      $other_uid = $acct->id;
-      $where .= ' AND payee=:other_uid';
+      $otherUid = $acct->id;
+      $where .= ' AND payee=:otherUid';
     }
-    if(!($result = be\lastTx($where, compact(u\ray('cuid other_uid'))))) return tt('no matching invoice');
+    if(!($result = be\lastTx($where, compact(u\ray('cuid otherUid'))))) return tt('no matching invoice');
     $this->parms['zxid'] = $result['zxid'];
     return $this->confirm('pay invoice', r\txReportArgs($result));
   }

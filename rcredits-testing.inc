@@ -130,7 +130,6 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
   $fields = @$fields[0] ?: $fields;
   $subs = @$subs[0] ?: @$subs;
   $cuid = r\acct()->id;
-  extract($fields, EXTR_PREFIX_ALL, 'my');
   if ($message = ($message ?: @$fields['message'])) {
     if ($channel != TX_SMS and strlen($message < 30)) $message = u\tt($message, $subs);
     $fields['message'] = realFix($message);
@@ -150,11 +149,11 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
 
 function findEmail($key, $email, $subs) {
   $subs = $subs[0];
-  foreach (array('payer', 'payee') as $role) {
-    if (($purpose = @$subs[$role . '_purpose']) and !TEST_REAL) $subs[$role . '_purpose'] = str_replace('#', '#a', $purpose);
+  foreach (array('payerpurpose', 'payeepurpose') as $field) {
+    if (($purpose = @$subs[$field]) and !TEST_REAL) $subs[$field] = str_replace('#', '#a', $purpose);
   }
   $esubs = array();
-  foreach ($subs as $k => $value) $esubs[u\hug(strtoupper($k), '{}')] = $value;
+  foreach ($subs as $k => $value) $esubs['{' . $k . '}'] = $value;
   $message = strtr(r\emailBody($key), $esubs);
   $subject = strtr($GLOBALS['emailSubjects'][$key], $esubs);
   return findMessage('email', compact(u\ray('key email subject')), $message, $subject);
@@ -263,7 +262,13 @@ function fullQid($q) {
 }
 
 function realFix($msg) {
-  $map = array('ransaction #' => 'ransaction #a', 'nvoice #' => 'nvoice #a', '@asif' => R_ASIF_TEXT, '{ASIF}' => R_ASIF_TEXT);
+  $map = array(
+    'ransaction #' => 'ransaction #a', 
+    'reverses #' => 'reverses #a', 
+    'nvoice #' => 'nvoice #a', 
+    '@asif' => R_ASIF_TEXT, 
+    '{asif}' => R_ASIF_TEXT,
+  );
   return TEST_REAL ? $msg : strtr($msg, $map);
 }
 

@@ -73,7 +73,7 @@ class rwebTransact extends DrupalWebTestCase {
     . '\\| op     | who     | amount | goods | purpose |'
     . '\\| Charge | Bea Two | 100    | 1     | labor   |"');
     Then_('we show "confirm charge" with subs: "DATA'
-    . '\\| amount | other_name |'
+    . '\\| amount | otherName |'
     . '\\| $100   | Bea Two    |"');
   }
 
@@ -84,11 +84,11 @@ class rwebTransact extends DrupalWebTestCase {
     . '\\| op     | who     | amount | goods | purpose |'
     . '\\| Charge | Bea Two | 100    | 1     | labor   |"');
     Then_('we say "status": "report invoice" with subs: "DATA'
-    . '\\| action  | other_name | amount | tid |'
+    . '\\| action  | otherName | amount | tid |'
     . '\\| charged | Bea Two    | $100   | 2   |"');
     And__('we email "new-invoice" to member "b@example.com" with subs: "DATA'
-    . '\\| created | full_name | other_name | amount | payer_purpose |'
-    . '\\| %today  | Bea Two   | Abe One    | $100   | labor         |"');
+    . '\\| created | fullName | otherName | amount | payerPurpose |'
+    . '\\| %today  | Bea Two  | Abe One    | $100   | labor         |"');
     And__('we show "tx" with subs: "DATA'
     . '\\| arg1   |'
     . '\\| charge |"');
@@ -112,7 +112,7 @@ class rwebTransact extends DrupalWebTestCase {
     . '\\| op  | who     | amount | goods | purpose |'
     . '\\| Pay | Bea Two | 100    | 1     | labor   |"');
     Then_('we show "confirm payment" with subs: "DATA'
-    . '\\| amount | other_name |'
+    . '\\| amount | otherName |'
     . '\\| $100   | Bea Two    |"');
   }
 
@@ -123,11 +123,11 @@ class rwebTransact extends DrupalWebTestCase {
     . '\\| op  | who     | amount | goods | purpose |'
     . '\\| Pay | Bea Two | 100    | 1     | labor   |"');
     Then_('we say "status": "report transaction" with subs: "DATA'
-    . '\\| action | other_name | amount | tid | reward_type | reward_amount | balance |'
+    . '\\| action | otherName | amount | tid | rewardType | rewardAmount | balance |'
     . '\\| paid   | Bea Two    | $100   | 2   | rebate      | $5            | $155    |"');
     And__('we email "new-payment" to member "b@example.com" with subs: "DATA'
-    . '\\| created | full_name | other_name | amount | payee_purpose |'
-    . '\\| %today  | Bea Two   | Abe One    | $100   | labor         |"');
+    . '\\| created | fullName | otherName | amount | payeePurpose |'
+    . '\\| %today  | Bea Two  | Abe One    | $100   | labor         |"');
     And__('we show "tx" with subs: "DATA'
     . '\\| arg1 |'
     . '\\| pay  |"');

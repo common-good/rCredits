@@ -39,7 +39,7 @@ Scenario: A member asks to charge another member
   | op     | who     | amount | goods | purpose |
   | Charge | Bea Two | 100    | 1     | labor   |
   Then we show "confirm charge" with subs:
-  | amount | other_name |
+  | amount | otherName |
   | $100   | Bea Two    |
   
 Scenario: A member confirms request to charge another member
@@ -47,11 +47,11 @@ Scenario: A member confirms request to charge another member
   | op     | who     | amount | goods | purpose |
   | Charge | Bea Two | 100    | 1     | labor   |
   Then we say "status": "report invoice" with subs:
-  | action  | other_name | amount | tid |
+  | action  | otherName | amount | tid |
   | charged | Bea Two    | $100   | 2   |
   And we email "new-invoice" to member "b@example.com" with subs:
-  | created | full_name | other_name | amount | payer_purpose |
-  | %today  | Bea Two   | Abe One    | $100   | labor         |
+  | created | fullName | otherName | amount | payerPurpose |
+  | %today  | Bea Two  | Abe One    | $100   | labor         |
   And we show "tx" with subs:
   | arg1   |
   | charge |
@@ -72,7 +72,7 @@ Scenario: A member asks to pay another member
   | op  | who     | amount | goods | purpose |
   | Pay | Bea Two | 100    | 1     | labor   |
   Then we show "confirm payment" with subs:
-  | amount | other_name |
+  | amount | otherName |
   | $100   | Bea Two    |
   
 Scenario: A member confirms request to pay another member
@@ -80,11 +80,11 @@ Scenario: A member confirms request to pay another member
   | op  | who     | amount | goods | purpose |
   | Pay | Bea Two | 100    | 1     | labor   |
   Then we say "status": "report transaction" with subs:
-  | action | other_name | amount | tid | reward_type | reward_amount | balance |
+  | action | otherName | amount | tid | rewardType | rewardAmount | balance |
   | paid   | Bea Two    | $100   | 2   | rebate      | $5            | $155    |
   And we email "new-payment" to member "b@example.com" with subs:
-  | created | full_name | other_name | amount | payee_purpose |
-  | %today  | Bea Two   | Abe One    | $100   | labor         |
+  | created | fullName | otherName | amount | payeePurpose |
+  | %today  | Bea Two  | Abe One    | $100   | labor         |
   And we show "tx" with subs:
   | arg1 |
   | pay  |

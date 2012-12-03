@@ -63,7 +63,7 @@ class rsmsTransact extends DrupalWebTestCase {
     sceneSetup($this, __FUNCTION__, 0);
     When_('phone +20001 says "123.45 to .ZZB for pie"');
     Then_('we say to phone +20001 "confirm payment|please confirm" with subs: "DATA'
-    . '\\| amount  | other_name |'
+    . '\\| amount  | otherName |'
     . '\\| $123.45 | Bea Two    |"');
   }
 
@@ -72,7 +72,7 @@ class rsmsTransact extends DrupalWebTestCase {
     sceneSetup($this, __FUNCTION__, 0);
     When_('phone +20001 says "123.45 to cornerpub for groceries"');
     Then_('we say to phone +20001 "confirm payment|please confirm" with subs: "DATA'
-    . '\\| amount  | other_name |'
+    . '\\| amount  | otherName |'
     . '\\| $123.45 | Corner Pub |"');
   }
 
@@ -81,7 +81,7 @@ class rsmsTransact extends DrupalWebTestCase {
     sceneSetup($this, __FUNCTION__, 0);
     When_('phone +20001 says "123.45 from .ZZC for labor"');
     Then_('we say to phone +20001 "confirm charge|please confirm" with subs: "DATA'
-    . '\\| amount  | other_name |'
+    . '\\| amount  | otherName |'
     . '\\| $123.45 | Corner Pub |"');
   }
 
@@ -92,7 +92,7 @@ class rsmsTransact extends DrupalWebTestCase {
     Then_('the community has r$-765');
     And__('phone +20003 has r$360');
     And__('we say to phone +20001 "report transaction" with subs: "DATA'
-    . '\\| action | other_name | amount | reward_type | reward_amount | balance | tid |'
+    . '\\| action | otherName | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| paid   | Corner Pub | $100   | rebate      | $5            | $155    | 2   |"');
   }
 
@@ -103,10 +103,10 @@ class rsmsTransact extends DrupalWebTestCase {
     Then_('phone +20003 has r$250');
     And__('phone +20001 has r$250');
     And__('we say to phone +20001 "report invoice" with subs: "DATA'
-    . '\\| action  | other_name | amount | tid |'
+    . '\\| action  | otherName | amount | tid |'
     . '\\| charged | Corner Pub | $100   | 2   |"');
     And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
-    . '\\| created | full_name  | other_name | amount | payer_purpose |'
+    . '\\| created | fullName   | otherName | amount | payerPurpose |'
     . '\\| %today  | Corner Pub | Abe One    | $100   | labor         |"');
   }
 
@@ -118,10 +118,10 @@ class rsmsTransact extends DrupalWebTestCase {
     Then_('the community has r$-765');
     And__('phone +20003 has r$155');
     And__('we say to phone +20001 "report transaction" with subs: "DATA'
-    . '\\| action  | other_name | amount | reward_type | reward_amount | balance | tid |'
+    . '\\| action  | otherName | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| charged | Corner Pub | $100   | bonus       | $10           | $360    | 2   |"');
     And__('we email "new-charge" to member "c@example.com" with subs: "DATA'
-    . '\\| created | full_name  | other_name | amount | payer_purpose |'
+    . '\\| created | fullName   | otherName | amount | payerPurpose |'
     . '\\| %today  | Corner Pub | Abe One    | $100   | labor         |"');
   }
 
@@ -132,7 +132,7 @@ class rsmsTransact extends DrupalWebTestCase {
     Then_('the community has r$-787.50');
     And__('phone +20003 has r$525');
     And__('we say to phone +20001 "report short transaction" with subs: "DATA'
-    . '\\| action | other_name | amount | short | balance | tid |'
+    . '\\| action | otherName | amount | short | balance | tid |'
     . '\\| paid   | Corner Pub | $250   | $50   | $12.50  | 2   |"');
   }
 
@@ -144,7 +144,7 @@ class rsmsTransact extends DrupalWebTestCase {
     . '\\| %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  | 1      |"');
     When_('phone +20003 says "pay"');
     Then_('we say to phone +20003 "confirm pay invoice|please confirm" with subs: "DATA'
-    . '\\| amount | other_name | created   |'
+    . '\\| amount | otherName | created   |'
     . '\\| $100   | Abe One    | %today-3d |"');
   }
 
@@ -158,7 +158,7 @@ class rsmsTransact extends DrupalWebTestCase {
     Then_('the community has r$-765');
     And__('phone +20001 has r$360');
     And__('we say to phone +20003 "report transaction" with subs: "DATA'
-    . '\\| action| other_name | amount | reward_type | reward_amount | balance | tid |'
+    . '\\| action| otherName | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| paid  | Abe One    | $100   | rebate      | $5            | $155    | 3   |"');
   }
 
@@ -171,7 +171,7 @@ class rsmsTransact extends DrupalWebTestCase {
     . '\\| %today-1d | %TX_PENDING | 100    | .ZZC | .ZZB | labor  | 1      |"');
     When_('phone +20003 says "pay .ZZA"');
     Then_('we say to phone +20003 "confirm pay invoice|please confirm" with subs: "DATA'
-    . '\\| amount | other_name | created   |'
+    . '\\| amount | otherName | created   |'
     . '\\| $100   | Abe One    | %today-3d |"');
   }
 
@@ -180,7 +180,7 @@ class rsmsTransact extends DrupalWebTestCase {
     sceneSetup($this, __FUNCTION__, 0);
     When_('phone +20001 confirms "123.45 to :ZZA for pie"');
     Then_('we say to phone +20001 "confirm payment|please confirm" with subs: "DATA'
-    . '\\| amount  | other_name |'
+    . '\\| amount  | otherName |'
     . '\\| $123.45 | Corner Pub |"');
   }
 

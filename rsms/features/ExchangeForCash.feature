@@ -22,7 +22,7 @@ Scenario: The caller confirms a trade of rCredits for cash
   And phone +20003 has r$350
   And phone +20001 has r$150
   And we say to phone +20001 "report exchange" with subs:
-  | action | other_name | amount | balance | tid |
+  | action | otherName | amount | balance | tid |
   | gave   | Corner Pub | $100   | $150    | 2   |
   # "You gave Corner Pub $100 cash/loan/etc. Your new balance is $150. Transaction #2"
 
@@ -36,7 +36,7 @@ Scenario: The caller confirms a request to trade cash for rCredits
   Then phone +20003 has r$250
   And phone +20001 has r$250
   And we say to phone +20003 "report exchange request" with subs:
-  | action  | other_name | amount | tid |
+  | action  | otherName | amount | tid |
   | charged | Abe One    | $100   | 2   |
   # "You requested $100 from Abe One for cash/loan/etc. Your balance is unchanged, pending approval. Invoice transaction #2"
 
@@ -46,7 +46,7 @@ Scenario: The caller confirms a unilateral trade of cash for rCredits
   Then phone +20003 has r$350
   And phone +20001 has r$150
   And we say to phone +20003 "report exchange" with subs:
-  | action  | other_name | amount | balance | tid |
+  | action  | otherName | amount | balance | tid |
   | charged | Abe One    | $100   | $350    | 2   |
   # "You charged Abe One $100 cash/loan/etc. Your new balance is $350. Transaction #2"
 
