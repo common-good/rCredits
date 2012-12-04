@@ -161,7 +161,7 @@ Scenario: Device gives nonpositive amount
   When member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $-100 ("goods": "groceries")
   Then we respond with:
   | success | message    |
-  | 0       | nonpositive transfer |
+  | 0       | nonpositive amount |
 
 Scenario: Device gives too big an amount
   When member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $10,000,000 ("goods": "groceries")

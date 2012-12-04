@@ -65,6 +65,19 @@ function just($these, $array) {
   return $result;
 }
 
+function badAmount(&$amount, $noZero = FALSE) {
+  $amount = preg_replace('/[ \,]/', '', $amount); // ignore spaces and commas
+  if (substr($amount, 0, 1) == '$') $amount = substr($amount, 1);
+  if (!is_numeric($amount)) return 'bad amount';
+
+  $dotPos = strpos($amount, '.');
+  if ($dotPos !== FALSE and strlen($amount) > $dotPos + 3) return 'fractional cents';
+  if ($amount > R_MAX_AMOUNT) return 'amount too big';
+  if ($noZero and $amount <= 0) return 'nonpositive amount';
+  if ($amount < 0) return 'negative amount';
+  return FALSE;
+}
+
 /**
  * Format the given amount as currency.
  *

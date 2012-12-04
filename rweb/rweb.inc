@@ -45,7 +45,9 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'options saved' => t('Your options have been saved'),
   'ok to continue' => t('You may now continue what you were originally doing.'),
   'password reset' => t('Your new password has been emailed to you.'),
-  
+  'changed agent' => t('You successfully changed the agent to @agentName.'),
+  'changed account' => t('You successfully changed the account to @accountName.'),
+ 
   // errors
   'missing purpose' => t('<p>For buying or selling actual goods and services, you must include a description. Otherwise select "cash/loan/etc.". Rebates and bonuses are intended as rewards for productive economic activity in rCredits.</p>
     <p>For everyone\'s protection, the rCredits software automatically detects and penalizes attempts to "game" the system.</p>'),
@@ -58,12 +60,11 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'bad login' => t('That account does not exist. Check your typing?'),
   'bad phone' => t('That is not a proper phone number.'),
   'bad account id' => t('That is not a proper account ID.'),
-  'bad amount' => t('Amount must be a number.'),
   'bad account number' => t('The account number must be three or more digits'),
   'bad nonce' => t('That is not the right verification code. Try again (start over).'),
   'no such company' => t('There is no such company.'),
   'op canceled' => t('Operation Canceled.'),
-  'request & demand' => t('<div class="r-explain">There is a waiting list, to get more rCredits. You will receive an email when your turn comes around.</div><br><div class="r-amounts">Your current order for rCredits is <b>@request</b><br>Total demand for rCredits overall is <b>@demand</b></div>'),
+  'request & demand' => t('<div class="r-explain">There is a waiting list, to get more rCredits. You will receive an email when your turn comes around.</div><br><div class="r-amounts">Your total request for rCredits is <b>@request</b><br>Total demand for rCredits overall is <b>@demand</b></div>'),
   'demand not yet' => t('You will be notified when there are some rCredits for you to buy with US Dollars.'),
   'confirm delete cell' => t('Are you sure you want to remove the selected cell phones from this account?'),
   'already related' => t('That person is already related to this account. If you want to change the settings, find this person in the list and change the settings on that row.'),
@@ -77,6 +78,9 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'similar found' => t('Do you mean @otherName (@phone)? If so, <a href="@draftLink">click here</a>. Otherwise, click on any tab to cancel.'),
   'get app' => t('To scan Account ID cards with a smartphone, you need the app! You can download the Android app <a href="http://rCredits.org/rc.apk">here</a>. The iphone version is in the works (check again in January).'),
   'no help' => t('There is no written help available for this page. Give it a try! If you are still puzzled, please feel free to give us a call at @R_ORG_PHONE. Or send your question by <a href="mailto:@R_ORG_EMAIL?subject=help with rCredits Members Site, @page page" target="_blank">email</a>.'),
+  'no permission' => t('You do not have permission to use that account.'),
+  'bad transient id' => t('That QR code is out of date. Try again?'),
+
 );
 
 /*
@@ -488,6 +492,8 @@ function formAccounts($form, &$sta) {
 
 function formAccounts_submit($form, &$sta) {
   extract($sta['values']);
+  $cacct = r\acct();
+  if (!r\acct($account_account, $cacct->agent)->agentCan(PERM_READ)) r\go('user/logout');
   svar('cuid', $account_account); // this gets checked ONLY in setupGlobals()
 }
 
@@ -691,7 +697,7 @@ function formExchange($form, &$sta) {
   $form = array(
     'title' => formField('item', t('Get rCredits / USD')),
     'subtext' => formField('item', tt('request & demand', compact(u\ray('request demand')))),
-    'amount' => formField('textfield', t('Amount:'), t('Amount to exchange (r$ or us$)')),
+    'amount' => formField('textfield', t('Amount:'), t('Amount to exchange (r$ or us$)'), required()),
 //    'way' => formField('radios', 'trade:', '', array(), array(t('rCredit for cash'), t('cash for rCredits'))),
 //    'who' => formField('textfield', 'to/from:', t('Exchange with whom?')),
     'getr' => formField('submit', '', t('Submit button'), 'Get rCredits'),
@@ -707,7 +713,7 @@ function formExchange_validate($form, &$sta) {
   if (confirming_v($sta)) return;
 
   extract($sta['values']);
-  if (blank_field(compact('amount'))) return;
+//  if (blank_field(compact('amount'))) return;
   list ($message, $args, $confirm) = be\get($op == 'Get rCredits' ? 'r' : 'usd', $amount, $cuid, FALSE);
   if ($confirm) return confirm(tt($message, $args), $sta);
   if (!@$args['success']) say($message, $args, 'amount');
@@ -720,7 +726,7 @@ function formExchange_submit($form, &$sta) {
   extract($sta['values']);
   list ($message, $args, $confirm) = be\get($op == 'Get rCredits' ? 'r' : 'usd', $amount, $cuid, TRUE);
   say($message, $args, @$args['success'] ? '' : 'amount'); // error or success
-  if ($op == 'Get rCredits') {
+  if ($op == 'Get rCredits' and $amount != 0) {
     if ($amount < R_MIN_DEMAND) say('demand too small');
     if (!be\access('partner')) say('demand not yet');
   }
@@ -936,7 +942,6 @@ EOF;
     } else {
       $thisRow = array($full_name, $isEmployer, $isEmployee, $isOwner, $perm, $idLink);
       $thisRaw = compact(u\ray('employee_ok employer_ok permission is_owner'));
-      debug($thisRaw);
       if (!$isPerson) array_splice($thisRow, 1, 1); // companies can't be employees
     }
     
@@ -946,7 +951,7 @@ EOF;
   }
   $sta['original_settings'] = compact('raws0', 'raws');
   
-  $help = t("Use this form to mark someone as an employee or owner or to give someone access to this account. Individuals marked as employees are the ones who will get paid in rCredits when you use the Pay form to pay \"all\". For example, you might authorize some employees to buy or sell for your company. The system will track who does what. Or you might give your accountant \"read\" permission. Yellow highlights show settings that need to be confirmed -- either by you or by the other party.");
+  $help = t("Use this form to mark someone as an employee or owner or to give someone access to this account. Individuals marked as employees are the ones who will get paid in rCredits when you use the Pay form to pay \"all\". For example, you might authorize some employees to buy or sell for your company. The system will track who does what. Or you might give your accountant \"read\" permission. Yellow highlights show settings that need to be confirmed &mdash; either by you or by the other party.");
   $subtext = '<span id="account-label">' . t('Current Account') . ":</span> <span id='account-identifiers'>$account_identifiers</span><br><br>$help";
 
   $attributes = array('id' => 'relations');
@@ -1037,7 +1042,7 @@ function formRelations_submit($form, &$sta) {
 
     $value = (int) strtr($value, array('true' => 1, 'false' => 0));
     if ($value != (int) $raws[$rawnum][$key]) { // changed?
-      debug("key=$key reid=$reid rawnum=$rawnum value=$value orig=".$raws[$rawnum][$key]);
+//      debug("key=$key reid=$reid rawnum=$rawnum value=$value orig=".$raws[$rawnum][$key]);
       $changes[$reid][$key] = $value;
       $changes[$reid]['original'] = @$raws0[$reid]; // save for update reporting and permission-checking
     }
@@ -1147,6 +1152,7 @@ function formRegister(&$form, &$sta) {
   $company_info = array(
     'company_text' => formField('item', t('Are you an owner and/or employee of a local company (or of any participating rCredits company)? Otherwise leave it blank.')),
     'company' => formField('textfield', t('Company: '), t(''), autocomplete('company')),
+    'company_phone' => formField('textfield', t('Company phone:'), t('What is the company\'s primary phone number?')),
     'company_options' => formField('checkboxes', '', '', '', $company_options),
   );
   
@@ -1182,9 +1188,11 @@ function formRegister(&$form, &$sta) {
 }
 
 function formRegister_validate($form, &$sta) {
-  extract(u\just('company company_options full_name postal_code', $values = u\trimAll($sta['values'])));
+  extract(u\just('company company_phone company_options full_name postal_code', $values = u\trimAll($sta['values'])));
 
   if ($company) {
+    if (!($companyPhone = u\formatPhone($company_phone, '+n'))) return say('bad company phone', compact('companyPhone'), 'company_phone');
+    $sta['company_phone'] = $companyPhone;
     extract(u\just('employee_ok is_owner', $company_options));
     if (!($employee_ok or $is_owner)) return say('what relationship', 'company');
     $company = $company;
@@ -1202,21 +1210,27 @@ function formRegister_validate($form, &$sta) {
 }
 
 function formRegister_submit($form, &$sta) {
-  extract(u\just('company company_options uid name', $sta['values']));
+  extract(u\just('company company_options company_phone uid name', $sta['values']));
   setupGlobals($uid); // some rcredits functions need to know who we are
 
-/* This doesn't work yet, so it is disabled  
   if ($company) {
     extract(u\just('is_owner employee_ok', $company_options));
-    $companyAcct = whois($company, 'company', $sta['values']);
-    if (@$companyAcct and !r\reid($companyAcct->id, $uid)) {
-      list ($main_uid, $agent_uid, $is_owner) = array($companyAcct->id, $uid, $is_owner);
+    // (can't use whois to create record because user is logged out) $companyAcct = whois($company, 'company', $sta['values']);
+    $companyShortName = u\shortName($company);
+    $companyUid = r\dbLookup('uid', 'users', 'phone=:company_phone', compact('company_phone'));
+    if (!$companyUid) $companyUid = r\dbLookup('uid', 'users', 'name=:companyShortName', compact('companyShortName'));
+    if (!$companyUid) { // company account doesn't exist, so create it
+      $companyAcct = new r\acct(array('full_name' => $company, 'phone' => $company_phone));
+      $companyUid = $companyAcct->id;
+    }
+    if (!r\reid($companyUid, $uid)) {
+      list ($main_uid, $agent_uid, $is_owner) = array($companyUid, $uid, $is_owner);
       $info = compact(u\ray('main_uid agent_uid employee_ok is_owner'));
       \drupal_write_record('r_relations', $info);
     }
   }
-*/
-// merge fails because account is not saved yet:  be\mergeCheck(compact(u\ray('email short_name')));
+
+  // merge fails because account is not saved yet:  be\mergeCheck(compact(u\ray('email short_name')));
   $quid = r\quid($uid, $uid);
   $balance = u\formatAmount(be\fund($uid, TX_SIGNUP));
   if (@$_SESSION['messages']['status'][0] == t('A welcome message with further instructions has been sent to your e-mail address.')) unset($_SESSION['messages']['status']);
@@ -1351,7 +1365,7 @@ function formDirectory($form, &$sta) {
   $which = svar('which_companies') ?: '';
   $region = svar('region') ?: substr(r\userField('postal_code', $cuid), 0, 3);
   
-  $list = ($region !== FALSE or $which) ? directory_list($which, $region) : '';
+  $list = ($region !== FALSE or $which) ? directoryList($which, $region) : '';
   
   $form = array(
     'title' => formField('item', t('Find companies in your region')), // should be 'Find member businesses in your region'
@@ -1378,15 +1392,17 @@ function formDirectory_submit($form, &$sta) {
 /**
  * Return a formatted, categorized list of businesses
  */
-function directory_list($which, $region) {
+function directoryList($which, $region) {
   global $base_url;
+  list ($symbolMember, $symbolRTrader, $symbolNonMember) = array('m', 'R', '-');
   $field = is_numeric($region) ? 'postal_code' : 'country';
   $which = u\ignoreSuffix($which, 'ants ant ian es ers ing er or ion s');
   $which = str_replace(' ', '%', \db_like(" $which ")); // allow abbreviations of each word
   $region = \db_like($region) . '%';
   $rows = array();
   $sql = <<<EOF
-    SELECT DISTINCT IFNULL(i.industry, '~Other') AS industry, u.name AS short_name, u.full_name, u.website FROM users u 
+    SELECT DISTINCT u.uid, IFNULL(i.industry, '~Other') AS industry, u.name AS short_name, u.full_name, u.website 
+    FROM users u 
     LEFT JOIN r_user_industries ui ON ui.uid=u.uid
     LEFT JOIN r_industries i ON i.iid=ui.iid
     WHERE account_type!=:R_PERSONAL AND u.$field LIKE :region AND (u.full_name LIKE :which OR i.industry LIKE :which)
@@ -1396,22 +1412,30 @@ EOF;
   while ($row = $result->fetchAssoc()) $rows[] = $row;
   $cat = $headed = $list = '';
   for ($i = 0; $i < count($rows); $i++) {
-    extract($rows[$i]); // industry, short_name, full_name, website
+    extract($rows[$i]); // uid, industry, short_name, full_name, website
     if ($industry != $cat) { // new category
       $cat = $industry;
       $headed = (@$rows[$i+1]['industry'] == $industry); // header for 2 or more businesses in the same industry
+      $headed = TRUE; // always show the category (but keep the option to disable this choice)
       $list .= $headed ? ($list ? '</ul>' : '') . "<ul><h2>$cat</h2>\n" : '<li>&nbsp;</li>';
     }
+    $acct = r\acct($uid);
+    $type = $acct->pass ? (r\isRTrader($uid) ? $symbolRTrader : $symbolMember) : $symbolNonMember;
+    $class = strtr($type, array($symbolRTrader => 'rtrader', $symbolMember => 'member', $symbolNonMember => 'nonmember'));
     $pay = be\access('buy and sell') ? button('pay', "$base_url/pay/who=$short_name") : '';
     $chg = be\access('sell') ? button('chg', "$base_url/charge/who=$short_name") : '';
     $full_name = "<a href='$base_url/member/$short_name'>$full_name</a>";
-    $item = "$pay$chg $full_name";
+    $item = "<b class=\"$class\">$type</b> $pay$chg $full_name";
     if (!$headed) $item = "- $item <span>($industry)</span>";
     $list .= "<li>$item</li>\n";
   }
   
+  $key = $list ? ('<b class="member">' . $symbolMember . '</b> = ' . t('member')
+       . ' &nbsp; <b class="rtrader">' . $symbolRTrader . '</b> = ' . t('accepts real rCredits')
+       . ' &nbsp; <b class="nonmember">' . $symbolNonMember . '</b> = ' . t('not yet signed up'))
+       : t('There are no such businesses listed.');
   if (strpos($list, '<ul>') !== FALSE) $list .= '</ul>';
-  return $list ?: t('There are no such businesses listed.');
+  return "<ul id=\"key\">$key</ul>$list"; // ul so key gets indented like the rest
 }
 
 function formCompany($form, &$sta) {
@@ -1488,11 +1512,51 @@ function button($text, $href = '', $title = '', $type = '') {
  */
 function formI($form, &$sta, $who) {
   if (!($acct = r\acct($who))) return r\go(''); // not a real code -- just go to home page
-  if ($acct->isCompany()) return formProfile($form, $sta, $acct->name);
-  if ($cacct = r\acct()); // charging/paying with WebCam
+  if (!($cacct = r\acct()) or !be\access('sell')) {
+    if ($acct->isCompany()) return formProfile($form, $sta, $acct->name);
+    say('get app');
+    r\go('');
+  }
   
-  say('get app');
-  r\go('');
+  // charging/paying/etc. with WebCam or QRDroid on smartphone
+  list ($myId, $myAgent) = array($cacct->id, $cacct->agent);
+  list ($theId, $theAgent) = array($acct->id, $acct->agent);
+  $title = formField('item', t('Scanned QR'));
+  $the_id = formField('hidden', $theId);
+  $the_agent = formField('hidden', $theAgent);
+
+  if ($theId == $myId) {
+    say('no self-trading', array(), 'error');
+  } else {
+    $charge = formField('submit', '', '', t('Charge'));
+    if (be\access('buy and sell')) $pay = formField('submit', '', '', t('Pay'));
+
+      if (r\dbLookup(1, 'r_relations', 'main_uid=:myId AND agent_uid=:theAgent AND permission>=:PERM_READ', compact('myId',
+    'theAgent'))) {
+      $change_agent = formField('submit', '', '', t('Change Agent'));
+    }
+    if (r\dbLookup(1, 'r_relations', 'main_uid=:theId AND agent_uid=:myAgent AND permission>=:PERM_READ', compact('theId', 'myAgent'))) {
+      $change_account = formField('submit', '', '', t('Change Account'));
+    }
+  }
+  $form = compact(u\ray('title the_id the_agent charge pay change_agent change_account'));
+  return $form;
+}
+
+function formI_submit($form, &$sta) {
+  extract(u\just('op the_id the_agent', $sta['values']));
+  $cuid = r\acct()->id;
+  $acct = r\acct($the_id, $the_agent);
+  $shortName = $acct->name;
+  if ($op == 'Charge') r\go("charge/who=$shortName");
+  if ($op == 'Pay') r\go("pay/who=$shortName");
+  if ($op == 'Change Agent') r\go("user/logout/who=$shortName");
+  if ($op == 'Change Account') {
+    if (!r\acct($the_id, $cuid)->agentCan(PERM_READ)) r\go('user/logout'); // hack
+    svar('cuid', $the_id);
+    $accountName = $acct->full_name;
+    say('changed account', compact('accountName'));
+  }
 }
 
 function formSMS($form, &$sta) {
@@ -1615,7 +1679,7 @@ function memberID($uid = '') {
 function identifiers($acct) {
   list ($agent, $company) = $acct->proSe() ? array($acct, '') : array(r\acct($acct->agent), $acct->full_name);
   $location = u\location($acct);
-  $pic = profile_picture($agent->id, TRUE);
+  $pic = be\access('charge others') ? profile_picture($agent->id, TRUE) : '';
   return <<<EOF
     <div class="clearfix">
     $pic
@@ -1795,8 +1859,7 @@ function transfer($info, $confirmed) {
   if (blank_field(compact(u\ray('who amount')))) return FALSE;
   if ($goods and trim($purpose) == '') return say('missing purpose', 'purpose');
   if (!$goods) $purpose = 'cash'; // tell be\transfer it's not for goods (should be the only place this string occurs)
-  $amount = str_replace(',', '', trim($amount)); // ignore commas
-  if (!is_numeric($amount)) return say('bad amount', 'amount');
+  if ($error = u\badAmount($amount)) return say($error, 'amount');
   if (!($acct = whois($who, 'who', $info, $txType == 'payment'))) return FALSE; // (allow "ALL" for payment)
   list ($msg, $args, $confirm) = in_array($txType, array('payment', 'charge')) ?
        be\transfer($txType, $acct, $amount, $purpose, !u\forCash($purpose), $confirmed)

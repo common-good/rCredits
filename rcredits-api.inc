@@ -302,11 +302,7 @@ function get($currency, &$amount, $confirmed) {
   if (is_array($currency)) extract($currency); // called from api or backend
   
   if (!access('manage account')) return array('no access get', array(), FALSE);
-  $amount = str_replace(',', '', trim($amount)); // ignore commas
-  if (!is_numeric($amount)) return array('bad amount', array(), FALSE);
-  if ($amount < 0) return array('negative transfer', array(), FALSE);
-  if ($amount > R_MAX_AMOUNT) return array('amount too big', array(), FALSE);
-  if ($currency == 'r') $amount = min(R_MAX_AMOUNT, $amount);
+  if ($error = u\badAmount($amount, $currency == 'usd')) return array($error, array(), FALSE); // allow zero for rCredits request
   $request = u\formatAmount($amount);
   $success = TRUE;
   if ($currency == 'r') {
@@ -397,7 +393,7 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   $taking = ($ttype == 'charge');
 
   // Check permissions
-  u\EXPECT(compact(u\ray('ttype acct requestAmount confirmed data')), 'string acct float bool assoc');
+  u\EXPECT(compact(u\ray('ttype acct confirmed data')), 'string acct bool assoc');
   list ($my_access, $other_access) = u\order($taking, 'sell', 'buy and sell');
   if (!access($my_access)) return array("no $my_access", array(), FALSE);
   if (!access($other_access, $acct)) return array("other no $other_access", array(), FALSE);
@@ -420,9 +416,7 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   $real = (!(@$data['zxid'] < 0) and r\isRTrader() and r\isRTrader($uid));
   
   // Check the amount and calculate any balance shortfall
-  if ($requestAmount <= 0) return array('nonpositive transfer', array(), FALSE);
-  if ($requestAmount > R_MAX_AMOUNT) return array('amount too big', array(), FALSE);
-
+  if ($error = u\badAmount($requestAmount, TRUE)) return array($error, array(), FALSE);
   $totalHit = $requestAmount - @$data['rebate']; // leave room for reversing rewards (minus a negative)
   if ($shortfall = r\shortfall($taking ? $uid : $cuid, $totalHit, $preapproved, $real)) {
     $short = u\formatAmount($shortfall);
@@ -793,10 +787,10 @@ function accesses($acct = '') {
   if (!$acct) return array();
   $perms = array();
 
+  list ($id, $agent) = array($acct->id, $acct->agent);
   $cans = $GLOBALS['share permissions'];
   if (!$acct->proSe()) {
-    extract((array) $acct, EXTR_PREFIX_ALL, 'my'); // especially id and agent
-    $can = r\dbLookup('permission', 'r_relations', 'main_uid=:my_id AND agent_uid=:my_agent', compact('my_id', 'my_agent'));
+    $can = r\dbLookup('permission', 'r_relations', 'main_uid=:id AND agent_uid=:agent', compact('id', 'agent'));
   } else $can = count($cans) - 1;
   for ($i = 1; $i <= $can; $i++) $perms[] = $cans[$i];
 

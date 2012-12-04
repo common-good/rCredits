@@ -115,7 +115,10 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'no buy and sell' => t('You do not have permission to make purchases for this account.'),
   'other no sell' => t('That person does not have permission to make sales for that account.'),
   'other no buy and sell' => t('That person does not have permission to make purchases for that account.'),
-  'nonpositive transfer' => t('You may not transfer a negative amount.'),
+  'bad amount' => t('The amount must be a number.'),
+  'nonpositive amount' => t('The amount must be a positive number.'),
+  'negative amount' => t('The amount cannot be negative.'),
+  'fractional cents' => t('The amount must be a whole number of cents.'),
   'amount too big' => t('Transactions larger than $@max are not permitted at this time.', array('@max' => R_MAX_AMOUNT)),
   'already undone' => t('Transaction is already undone.'),
   'no such tx' => t('That transaction does not exist.'),
@@ -136,7 +139,7 @@ $GLOBALS['SMS help'] = array(
   'help charge2' => t('You can also identify the payer by phone, email, or account ID (with or without the first three letters). Type "more" for more details.'),
   'help charge22' => t('If you are just exchanging cash for rCredits, leave out the description. For example, type "43.12 from 413-772-6666".'),
   'help undo' => t('To undo your most recent transaction, type "undo". Type "more" for options to undo your most recent transaction of a certain type.'),
-  'help undo2' => t('Examples: undo | undo janedough | undo to | undo from | undo to janedough | undo from janedough -- Type "more" for details.'),
+  'help undo2' => t('Examples: undo | undo janedough | undo to | undo from | undo to janedough | undo from janedough — Type "more" for details.'),
   'help undo22' => t('"undo janedough" undoes your most recent transaction with Jane Dough. You can also identify her by phone, email, or account ID.'),
   'help get' => t('To get $200 more in rCredits, type "get r 200". To send $50 in rCredits to your US bank account, type "get usd 50".'),
   'help information' => t('Just type "info" (tells you your balance and the current demand for rCredits)'),
@@ -202,7 +205,7 @@ function send($number, $message) {
   global $sms_devel;
   $number = u\formatPhone($number, '+n');
   $msg = substr($message, 0, 160-1); // minus one because Twilio splits messages 160 chars long (and may discard the first part)
-  if ($msg != $message) $message .= ' -- TOO LONG! (strlen ' . strlen($message) . ')';
+  if ($msg != $message) $message .= ' — TOO LONG! (strlen ' . strlen($message) . ')';
   if (@$sms_devel) drupal_set_message("To $number: $message"); else \sms_send($number, $msg);
   $nonce = infer_nonce($message);
   u\log('out', compact(u\ray('number message')), $nonce, TX_SMS); // "via chTX_SMS" in case called from another interface

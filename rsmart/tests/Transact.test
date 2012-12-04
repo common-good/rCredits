@@ -203,7 +203,7 @@ class rsmartTransact extends DrupalWebTestCase {
     When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $-100 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message    |'
-    . '\\| 0       | nonpositive transfer |"');
+    . '\\| 0       | nonpositive amount |"');
   }
 
   // Scenario: Device gives too big an amount
@@ -392,7 +392,7 @@ class rsmartTransact extends DrupalWebTestCase {
     When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW.ZZC" $-100 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message    |'
-    . '\\| 0       | nonpositive transfer |"');
+    . '\\| 0       | nonpositive amount |"');
   }
 
   // Scenario: Device gives too big an amount
@@ -581,7 +581,7 @@ class rsmartTransact extends DrupalWebTestCase {
     When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZC" $-100 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message    |'
-    . '\\| 0       | nonpositive transfer |"');
+    . '\\| 0       | nonpositive amount |"');
   }
 
   // Scenario: Device gives too big an amount
@@ -770,7 +770,7 @@ class rsmartTransact extends DrupalWebTestCase {
     When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW:ZZC" $-100 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message    |'
-    . '\\| 0       | nonpositive transfer |"');
+    . '\\| 0       | nonpositive amount |"');
   }
 
   // Scenario: Device gives too big an amount

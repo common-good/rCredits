@@ -244,8 +244,8 @@ function transactionSetup($info) {
  * @param numeric $demand: the user's new demand amount (defaults to 0, meaning "just report")
  * @return the user's demand amount
  */
-function demand($uid, $demand = 0) {
-  if (!$demand) return userField('demand', $uid);
+function demand($uid, $demand = FALSE) {
+  if ($demand === FALSE) return userField('demand', $uid);
   $demand = min(R_MAX_AMOUNT, $demand);
   userUpdate(compact('demand'), $uid);
   return $demand;
@@ -310,7 +310,7 @@ function notify($uid, $index, $info) {
 
   $subs = array();
   if (!strlen($acct->pass)) {
-    $error = u\tt('no asif notify', compact('fullName'));
+    $warning = u\tt('no asif notify', compact('fullName'));
   } else {
     if ($acct->hasBit(BIT_NOTIFY_EMAIL) and !empty($mail)) {
       foreach ($info as $key => $value) $subs['{' . $key . '}'] = $value;
@@ -320,10 +320,11 @@ function notify($uid, $index, $info) {
       $number = dbLookup('number', 'r_sms', 'uid=:uid AND status=:SMS_PRIMARY', compact('uid'));
       if ($number) $smsed = SMS\send($number, u\tt($index, $info, TX_SMS));
     }
-    if (!@$mailed and !@$smsed) $error = u\tt('cannot contact', compact('fullName'));
+    $notification = str_replace('-', ' ', $index);
+    if (!@$mailed and !@$smsed and $index != 'new-payment') $warning = u\tt('cannot contact', compact('fullName', 'notification'));
   }
-  if (@$error) {
-    if ($channel == TX_WEB) drupal_set_message($error, 'error');
+  if (@$warning) {
+    if ($channel == TX_WEB) Web\say($warning);
     if ($channel == TX_SMS) { } // dunno how to handle this (send a second message?)
     if ($channel == TX_SMART) { } // dunno how to handle this, but easier than SMS
   }

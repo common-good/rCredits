@@ -193,6 +193,9 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformdirectory div.form-item-area div.description {margin-left:45px;}
 */
 #rcreditswebformdirectory div#edit-item li {list-style-type:none;}
+#rcreditswebformdirectory b.member {color:darkblue;;}
+#rcreditswebformdirectory b.rtrader {color:green;}
+#rcreditswebformdirectory b.nonmember {color:black; font-weight:normal;}
 
 /* Autocomplete */
 /*html.js input.form-autocomplete.throbbing {margin:0px; padding:0px; width:400px;}*/
