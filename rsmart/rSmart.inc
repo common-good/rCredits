@@ -43,11 +43,7 @@ define('R_QR_HEADER', 'HTTP://RC2.ME/I/'); // for transient QR IDs
 define('R_TRANSIENCE', 60); // number of seconds for device's QR to be valid
 
 $GLOBALS[TX_SMART . ' messages'] = array(
-  'no permission' => t('You do not have permission to use that account.'),
   'first time' => t('You have successfully registered this device for use with rCredits!'),
-  'changed agent' => t('You successfully changed the agent to @agentName.'),
-  'changed account' => t('You successfully changed the account to @accountName.'),
-  'bad transient id' => t('That QR code is out of date. Try again?'),
 );
 
 /**
@@ -220,7 +216,7 @@ function transact($args) {
   if ($q_type != 'pay' and $q_type != 'charge') return be\error('bad transaction type');
   if (!@$q_account_id) return be\error('missing account id');
   if (!@$q_amount) return be\error('missing amount');
-  if (!is_numeric($q_amount)) return be\error('bad amount');
+  if ($error = u\badAmount($q_amount, TRUE)) return be\error($error);
   if (@$q_goods and !@$q_purpose) return be\error('missing purpose');
 
   if ($q_type == 'pay') $q_type = 'payment'; // this is what be\transfer() expects
