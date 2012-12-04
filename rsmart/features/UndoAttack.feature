@@ -87,7 +87,7 @@ Scenario: Buyer agent lacks permission to reverse sale
   When member "NEW.ZZA" asks device "codeC" to undo transaction "NEW.AAAE", with the request "unconfirmed"
   Then we respond with:
   | success | message         |
-  | 0       | no buy and sell |
+  | 0       | no buy          |
 
 Scenario: Seller agent lacks permission to reverse purchase
   When member "NEW.ZZA" asks device "codeB" to undo transaction "NEW.AAAD", with the request "unconfirmed"

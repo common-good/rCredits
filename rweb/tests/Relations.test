@@ -69,7 +69,6 @@ class rwebRelations extends DrupalWebTestCase {
     When_('member ".ZZA" visits page "relations"');
     Then_('we show page "relations" with: "DATA'
     . '\\| Person  | Is employer? | Is employee? | Is owner? | Permission | Print id                |'
-    . '\\| Person  | Is employer? | Is employee? | Is owner? | Permission |                         |'
     . '\\| Bea Two | No           | Yes          | Yes       | sell       | print Temporary ID Card |"');
   }
 

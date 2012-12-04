@@ -5,7 +5,7 @@
  * (SMS, web, smartphone, etc.)
  * EXCEPT:
  *   - the Drupalish callbacks, which are in rcredits.module
- *   - application interfaces to the user interfaces, which are in rcredits-api.inc (i)
+ *   - application interfaces to the user interfaces, which are in rcredits-backend.inc (i)
  *   - utilities, which are in rcredits-util.inc (u)
  */
  
@@ -34,18 +34,28 @@ define('R_COMMERCIAL', 1);
 define('R_NONPROFIT', 2);
 $GLOBALS['account types'] = array(t('personal'), t('commercial'), t('non-profit'));
 
-// Relationship permissions
-define('PERM_READ', 1); // used in calls to acct::agentCan()
+// Relationship permissions used in calls to acct::can()
+define('PERM_RELATED', 0); // has a relationship record
+define('PERM_READ', 1);
 define('PERM_SELL', 2);
 define('PERM_BUY', 3);
-define('PERM_MANAGE', 4);
-$GLOBALS['share permissions'] = array('no access', 'read transactions', 'sell', 'buy and sell', 'manage account');
+define('PERM_RESERVED4', 4);
+define('PERM_MANAGE', 5);
+
+define('PERM_COMPANY', 7);
+$GLOBALS['share permissions'] = array('no access', 'read transactions', 'sell', 'buy and sell', 'other', 'manage account');
+define('PERM_CHARGE', 8);
+define('PERM_PARTNER', 11); // signed the membership agreement and donated
+define('PERM_STEWARD', 12); // is allowed to vote and is responsible for stewarding the Common Good Community
+define('PERM_RTRADER', 14); // is allowed to use rCredits for real
+define('PERM_CTTY_ADMIN', 99);
+define('PERM_ADMIN', 100);
 
 // Permissions, options, and flags (flags field in account record)
 define('BIT_PARTNER', 1); // signed the membership agreement and donated
 define('BIT_STEWARD', 2); // is allowed to vote and is responsible for stewarding the Common Good Community
 define('BIT_RTRADER', 4); // is allowed to use rCredits for real
-define('BIT_CHARGE', 8); // can charge customers without confirmation
+define('BIT_CHARGE', 8); // can charge customers without confirmation (treat this like a permission)
 define('BIT_VIRTUAL_EMPLOYEES', 16); // pay employees virtually
 define('BIT_VIRTUAL_ALL', 32); // pay everyone virtually
 define('BIT_SECRET_BAL', 64); // don't let merchants tell me my balance on request
@@ -363,12 +373,12 @@ function setTxField($fieldName, $new_value, $zxid, $all_related = FALSE) {
   u\EXPECT(compact(u\ray('fieldName zxid all_related')), 'name zid bool');
   
   list ($xid, $table) = azxid($zxid);
-  $crit = "xid=:xid and $cuid in (payer, payee)"; // "$cuid in" is a security measure
-  list ($old_value, $data) = array_values(dbLookup("$fieldName,data", $table, $crit, compact(u\ray('xid'))));
+  $where = "xid=:xid and $cuid in (payer, payee)"; // "$cuid in" is a security measure
+  list ($old_value, $data) = array_values(dbLookup("$fieldName,data", $table, $where, compact(u\ray('xid'))));
   $data = unserialize($data);
   $data['changes'][] = array(time(), acct()->agent, $fieldName, $old_value);
   $data = serialize($data);
-  $sql = "UPDATE $table SET $fieldName=:new_value, data=:data WHERE $crit";
+  $sql = "UPDATE $table SET $fieldName=:new_value, data=:data WHERE $where";
   $sql2 = "UPDATE $table SET $fieldName=:new_value WHERE serial=:xid AND type<>:TX_TRANSFER";
 //  $sql2 = str_replace(', data=:data', '', str_replace('xid=:xid', 'serial=:xid', $sql));
   
@@ -387,7 +397,7 @@ function setTxField($fieldName, $new_value, $zxid, $all_related = FALSE) {
 function mergeAccounts($oldUid) {
   $newUid = acct()->id;
   if (!be\isTempAccount($oldUid)) return; // don't merge non-temp account
-  u\EXPECT(be\access('manage account'), "unauthorized mergeAccounts: $newUid into $oldUid");
+//  u\EXPECT(be\access('manage account'), "unauthorized mergeAccounts: $newUid into $oldUid");
 //  if (!isTempName(userField('name', $oldUid))) die('merging non-temp account');
   // there are no other records for temporary accounts, than those below
 
@@ -447,10 +457,10 @@ function zxs($uid1 = 'current', $uid2 = '') {
  * Look the field up in the table, returning the first record matching the criteria.
  * @params array $subs: optional substitutions -- keys will be prefixed by ':'
  */
-function dbLookup($fieldName, $table_name, $criteria = '1', $subs = array()) {
-  u\EXPECT(compact(u\ray('fieldName table_name criteria subs')), 'notempty notempty notempty assoc');
-  $sql = "SELECT $fieldName FROM $table_name WHERE $criteria";
-  if (!strpos($criteria, ' LIMIT ')) $criteria .= ' LIMIT 1';
+function dbLookup($fieldName, $table_name, $where = '1', $subs = array()) {
+  u\EXPECT(compact(u\ray('fieldName table_name where subs')), 'notempty notempty notempty assoc');
+  $sql = "SELECT $fieldName FROM $table_name WHERE $where";
+  if (!strpos($where, ' LIMIT ')) $where .= ' LIMIT 1';
   $result = dbQ($sql, $subs);
   return strpos($fieldName, ',') ? $result->fetchAssoc() : $result->fetchField();
 }
@@ -498,7 +508,7 @@ function quid($uid = '', $agentUid = '', $regionUid = '') {
   } else list ($uid, $agentUid, $regionUid) = 
     $uid ? array($uid, $uid, serverUid()) 
          : array($cacct->id, $cacct->agent, $cacct->region);
-  return qid($uid == $agentUid ? $uid : -reid($uid, $agentUid), u\n2a(-$regionUid, 3), 3);
+  return qid($uid == $agentUid ? $uid : -relation('reid', $uid, $agentUid), u\n2a(-$regionUid, 3), 3);
 }
 
 function qxid($zxid, $regionID = R_SERVER_ID) {return qid($zxid, $regionID = R_SERVER_ID, 4);} // Convert zxid to qxid
@@ -540,8 +550,8 @@ function nonoUndo($oldRecord, &$subs = array()) {
 
   $acct = tx2acct($old_toMe ? array($old_payee, $old_payee_agent, $data) : array($old_payer, $old_payer_agent, $data));
   if ($cacct->agent != $acct->agent) {
-    $perm = $old_taking ? 'buy and sell' : 'sell';
-    if (!be\access($perm, acct($acct->id, $cacct->agent))) return 'no ' . $perm;
+    $perm = $old_taking ? PERM_BUY : PERM_SELL;
+    if (!acct($acct->id, $cacct->agent)->can($perm)) return $old_taking ? 'no buy' : 'no sell';
   }
   return FALSE;
 }
@@ -559,9 +569,8 @@ function nonoUndo($oldRecord, &$subs = array()) {
 function reverseRelations($agent_uid, $main_uid, &$data, $fields) {
   foreach (u\ray($fields) as $field) if (@$data[$field]) $stay = TRUE;
   if (!@$stay) return;
-  $subs = compact('main_uid', 'agent_uid');
-  $reid = dbLookup('reid', 'r_relations', 'main_uid=:main_uid AND agent_uid=:agent_uid', $subs);
-  $subs += u\just($fields, $data) + ($reid ? compact('reid') : array());
+  $subs = compact('main_uid', 'agent_uid') + u\just($fields, $data);
+  if ($reid = relation('reid', $main_uid, $agent_uid)) $subs += compact('reid');
   \drupal_write_record('r_relations', $subs, $reid ? 'reid' : array());
   foreach (u\ray($fields) as $field) unset($data[$field]); // don't get these fields mixed in with the reverse record
 }
@@ -570,8 +579,8 @@ function reverseRelations($agent_uid, $main_uid, &$data, $fields) {
  * Say whether one of the accounts owns the other.
  */
 function owning($uid1, $uid2) {
-  $crit = 'is_owner AND ((main_uid=:uid1 AND agent_uid=:uid2) OR (main_uid=:uid2 AND agent_uid=:uid1))';
-  return $uid1 == $uid2 ?: dbLookup(1, 'r_relations', $crit, compact('uid1', 'uid2'));
+  $where = 'is_owner AND ((main_uid=:uid1 AND agent_uid=:uid2) OR (main_uid=:uid2 AND agent_uid=:uid1))';
+  return $uid1 == $uid2 ?: relation(1, $where, compact('uid1', 'uid2'));
 }
 
 /**
@@ -580,14 +589,13 @@ function owning($uid1, $uid2) {
  */
 function isEmployee($uid, $company = '') {
   if (!$company) $company = acct()->id;
-  $crit = 'main_uid=:company AND agent_uid=:uid AND employer_ok AND employee_ok';
-  return dbLookup(1, 'r_relations', $crit, compact('company', 'uid'));
+  return relation(1, $company, $uid, 'employer_ok AND employee_ok');
 }
 
 function communityUid($postal_code = '') {
   if (!$postal_code) return serverUid();
-  $crit = "country=':R_COUNTRY' AND :postal_code RLIKE postal_code AND uid=community_uid";
-  return userField('uid', $crit, compact(u\ray('postal_code'))) ?: serverUid();
+  $where = "country=':R_COUNTRY' AND :postal_code RLIKE postal_code AND uid=community_uid";
+  return userField('uid', $where, compact(u\ray('postal_code'))) ?: serverUid();
 }
 
 function isForeign($uid) {
@@ -662,6 +670,20 @@ function userField($field, $who = 'none', $subs = array()) {
   return strpos($field, ',') ? ((array) $result[0]) : $result[0]->$field;
 }
 
+/**
+ * Return the field or fields from the relations table, for the given id and agent.
+ * Call by:
+ *   relation(field, id, agent, where, subs) OR
+ *   relation(field, where, subs)
+ */
+function relation($field, $id, $agent = array(), $where = '1', $subs = array()) {
+  if (is_numeric($id)) {
+     $where = "main_uid=:id AND agent_uid=:agent AND ($where)";
+     $subs += compact('id', 'agent');
+  } else list ($where, $subs) = array($id, $agent); // called with alternate form
+  return dbLookup($field, 'r_relations', $where, $subs);
+}
+
 function userUpdate($info, $uid = '') {
   if ($acct = acct($uid)) {
     $acct->update($info); 
@@ -670,24 +692,6 @@ function userUpdate($info, $uid = '') {
     $info['uid'] = $uid;
     \drupal_write_record('users', $info, 'uid');
   }
-}
-
-/**
- * Return the relationship record id for the given account and agent
- * but only if the specified permission applies
- * @param int $main_uid: the account id
- * @param int $agent_uid: the agent account id
- * @param int/string $permission: the minimum numeric permission OR "owner" OR "employee"
- * @return int: the record id in r_relations
- */
-function reid($main_uid, $agent_uid, $permission = '') {
-  $permission = 
-      (is_numeric($permission) ? " AND permission>=$permission"
-    : ($permission ? " AND is_$permission"
-    : ('')));
-    
-  $crit = 'main_uid=:main_uid AND agent_uid=:agent_uid' . $permission;
-  return dbLookup('reid', 'r_relations', $crit, compact(u\ray('main_uid agent_uid')));
 }
 
 /**

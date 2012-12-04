@@ -91,8 +91,9 @@ function backend2($args = FALSE) {
   if (@$my_firewall != R_FIREWALL) error('firewall system failure'); // give hackers some satisfaction by saying 'failure'
   $firewall = $my_firewall; // is this useful?
   if (!@$my_cuid or !@$my_agent) error('user validation error');
-  if (!r\agentCan($my_cuid, $my_agent)) error('sharing error');
-  r\acct($my_cuid, $my_agent);
+  $cacct = r\acct($my_cuid, $my_agent);
+  if (!$cacct->can()) error('sharing error');
+  r\acct::setDefault($cacct);
   doOp($my_op, $args);
 }
 
@@ -171,14 +172,14 @@ function updateRelations($updates) {
       $changes .= ($changes ? ',' : '') . "$field=:$field";
       $subs += array($field => $value);
     }
-    $crit = 'reid=:reid';
-    if (!empty($data)) r\dbQ("UPDATE r_relations SET $changes WHERE $crit", $subs);
+    $where = 'reid=:reid';
+    if (!empty($data)) r\dbQ("UPDATE r_relations SET $changes WHERE $where", $subs);
 
     $msg = 'updated relation';
-    if (!r\dbLookup('permission>0 OR employer_ok OR employee_ok OR is_owner', 'r_relations', $crit, $reidSub)) {
-      r\dbQ("DELETE FROM r_relations WHERE $crit", $reidSub);
+    if (!r\relation('permission>0 OR employer_ok OR employee_ok OR is_owner', $where, $reidSub)) {
+      r\dbQ("DELETE FROM r_relations WHERE $where", $reidSub);
       $pot = '(:main_uid, :agent_uid)';
-      if (!r\dbLookup(1, 'r_relations', "main_uid IN $pot AND agent_uid IN $pot", compact('main_uid', 'agent_uid'))) $msg = 'deleted relation';
+      if (!r\relation(1, "main_uid IN $pot AND agent_uid IN $pot", compact('main_uid', 'agent_uid'))) $msg = 'deleted relation';
     }
     $otherName = $full_name;
     $report .= u\tt($msg, compact('otherName')) . '<br>';
@@ -297,11 +298,12 @@ EOF;
  * @todo: require Dwolla account, rather than bank account
  */
 function get($currency, &$amount, $confirmed) {
-  $cuid = r\acct()->id;
+  $cacct = r\acct();
+  $cuid = $cacct->id;
   if (isFrontend()) return (array) backend('get', compact(u\ray('currency amount confirmed')));
   if (is_array($currency)) extract($currency); // called from api or backend
   
-  if (!access('manage account')) return array('no access get', array(), FALSE);
+  if (!$cacct->can(PERM_MANAGE)) return array('no access get', array(), FALSE);
   if ($error = u\badAmount($amount, $currency == 'usd')) return array($error, array(), FALSE); // allow zero for rCredits request
   $request = u\formatAmount($amount);
   $success = TRUE;
@@ -343,7 +345,7 @@ function payInvoice($zxid) {
   if (isFrontend()) return (array) backend('payInvoice', compact(u\ray('zxid')));
   if (is_array($zxid)) extract($zxid); // called from api or backend
 
-  if (!access('buy and sell')) return array('no buy and sell', array());
+  if (!r\acct()->can(PERM_BUY)) return array('no buy', array());
   if (!($result = lastTx('xid=:zxid AND state=:TX_PENDING', compact('zxid')))) return array('no such tx', array());
   extract($result, EXTR_PREFIX_ALL, 'old');
 // (not needed)  if ($zxid < 0 and (r\isRTrader($old_payer) and r\isRTrader($old_payee))) return array("can't pay asif invoice");
@@ -394,9 +396,10 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
 
   // Check permissions
   u\EXPECT(compact(u\ray('ttype acct confirmed data')), 'string acct bool assoc');
-  list ($my_access, $other_access) = u\order($taking, 'sell', 'buy and sell');
-  if (!access($my_access)) return array("no $my_access", array(), FALSE);
-  if (!access($other_access, $acct)) return array("other no $other_access", array(), FALSE);
+  list ($myAccess, $otherAccess) = u\order($taking, PERM_SELL, PERM_BUY);
+  list ($myAccessErr, $otherAccessErr) = u\order($taking, 'sell', 'buy');
+  if (!$cacct->can($myAccess)) return array("no $myAccessErr", array(), FALSE);
+  if (!$acct->can($otherAccess)) return array("other no $otherAccessErr", array(), FALSE);
   
   // Analyze who's buying or selling
   list ($uid, $foreign_uid) = txPerson($acct->id, $acct->region);
@@ -409,7 +412,7 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   // Sort out what type of transfer this is
   $paying_invoice = ($ttype == 'invoice payment');
   $type = TX_TRANSFER;
-  $preapproved = (@$data['preapproved'] or !$taking or access('charge others')); // paying OR permitted to charge unilaterally
+  $preapproved = (@$data['preapproved'] or !$taking or $cacct->can(PERM_CHARGE)); // paying OR permitted to charge unilaterally
 //  $state = ($preapproved and !@$data['pay_all'])? TX_DONE : TX_PENDING;
   $virtual = ($goods and !$taking and ($cacct->hasBit(BIT_VIRTUAL_ALL) or ($cacct->hasBit(BIT_VIRTUAL_EMPLOYEES) and r\isEmployee($uid))));
   $state = ($preapproved and !$virtual)? TX_DONE : TX_PENDING;
@@ -478,7 +481,7 @@ function fund($uid, $type = TX_SIGNUP, $amount = R_STARTING_BALANCE, $confirmed 
   $payee_agent = $payee = $uid;
   $cacct = r\acct(); // null, if just registering
   $ctty = r\userField('community_uid', $payee);
-  if ($type > TX_AUTOMATIC and !access('community admin')) return FALSE; // incentives given only automatically or by community agent
+  if ($type > TX_AUTOMATIC and !$cacct->can(PERM_CTTY_ADMIN)) return FALSE; // incentives given only automatically or by community agent
   if (!$confirmed) return TRUE;
   
   $payer = $ctty;
@@ -683,7 +686,7 @@ function mergeCheck($info) {
 /**
  * Return a list of account choices for the current user (NOT the current credit account)
  * @return an array of account names, indexed by uid (FALSE if none)
- * @todo: recurse, to include access to the accounts that the shared accounts have access to
+ * @todo (maybe): recurse, to include access to the accounts that the shared accounts have access to
  *   maybe like this: SELECT main_uid, MAX(permission) WHERE agent_uid=:agent 
  *     OR agent_uid IN (SELECT main_uid FROM r_relations WHERE agent_uid=:agent) GROUP BY main_uid
  */
@@ -755,8 +758,8 @@ function zxid2tid($zxid, $uid = '') {
   if (isFrontend()) return backend('zxid2tid', compact(u\ray('zxid uid')));
   if (is_array($zxid)) extract($zxid); // called from api or backend
   
-  $crit =  ":uid IN (payer, payee) AND xid<=:zxid AND type NOT IN (:TX_REBATE, :TX_BONUS)";
-  return ($zxid < 0 ? 'a' : '') . r\dbLookup('COUNT(xid)', '{zxs}', $crit, compact('uid', 'zxid'));
+  $where =  ":uid IN (payer, payee) AND xid<=:zxid AND type NOT IN (:TX_REBATE, :TX_BONUS)";
+  return ($zxid < 0 ? 'a' : '') . r\dbLookup('COUNT(xid)', '{zxs}', $where, compact('uid', 'zxid'));
 }
 
 function accountName($uid) {
@@ -765,47 +768,6 @@ function accountName($uid) {
   
   $acct = r\acct($uid);
   return $acct->full_name . ' ' . u\hug($acct->mainQid);
-}
-
-/**
- * Return all the permissions for the specified account
- * @param array $acct: acct object for the other party
- *   OR a qid or simple uid on the current server
- * @return simple array of that account's permissions
- * @todo: move this to acct class
- */
-function accesses($acct = '') {  
-  if (isFrontend()) {
-    $result = backend('accesses', compact(u\ray('acct')), (bool) $acct);
-    return is_array($result) ? $result : array();
-  }
-  if (is_array($acct)) extract($acct); // called from api or backend
-
-  if (!($cacct = r\acct())) return array(); // no access for ANYONE, if anonymous user
-  if (!$acct) $acct = $cacct;
-  if (!u\isAcct($acct)) {$uid = $acct; $acct = r\acct($uid);}
-  if (!$acct) return array();
-  $perms = array();
-
-  list ($id, $agent) = array($acct->id, $acct->agent);
-  $cans = $GLOBALS['share permissions'];
-  if (!$acct->proSe()) {
-    $can = r\dbLookup('permission', 'r_relations', 'main_uid=:id AND agent_uid=:agent', compact('id', 'agent'));
-  } else $can = count($cans) - 1;
-  for ($i = 1; $i <= $can; $i++) $perms[] = $cans[$i];
-
-  if ($acct->hasBit(BIT_ADMIN) or $acct->id == 1) $perms[] = 'admin';
-  
-  if ($acct->id < 0 and !$acct->proSe() and $can >= PERM_MANAGE) $perms[] = 'community admin'; // managing community account
-  if ($acct->hasBit(BIT_ADMIN) or $acct->id == 1) $perms[] = 'community admin'; // temporary
-
-  if ($acct->hasBit(BIT_PARTNER)) $perms[] = 'partner';
-  if ($acct->hasBit(BIT_STEWARD)) $perms[] = 'steward';
-  if ($acct->hasBit(BIT_RTRADER)) $perms[] = 'rtrader';
-  if ($acct->hasBit(BIT_CHARGE)) $perms[] = 'charge others';
-  if ($acct->account_type != R_PERSONAL) $perms[] = 'company'; // ad hoc permissions
-
-  return $perms;
 }
 
 /**
@@ -886,21 +848,4 @@ function backend($op, $info = array(), $cache = FALSE) {
   u\log('out', $info + compact('api_result'));
   if ($cache) r\Web\svar($skey, $api_result);
   return $api_result;
-}
-
-// Shortcut functions
-
-/**
- * Say whether the account has the specified permission
- * @param string $access: the queried permission. This could be any of three types:
- *   a standard Drupal permission, queryable through user_access()
- *   a shared account permission, stored in r_relations (cached in $_SESSION['rcredits_accountChoices'], but we're not trusting that)
- *   an ad hoc permission handled directly by this function
- * @param array $acct: acct object for the other party (DEFAULT current account)
- *   OR a simple uid on the current server
- * @return boolean: TRUE if the user has the permission
- */
-function access($access, $acct = '') {
-  u\EXPECT(compact(u\ray('access acct')), 'string&notempty acct|empty|id|qid');
-  return in_array($access, accesses($acct));
 }

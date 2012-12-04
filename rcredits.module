@@ -36,7 +36,7 @@
  */
 
 require_once 'rcredits.inc';
-require_once 'rcredits-api.inc';
+require_once 'rcredits-backend.inc';
 use rCredits as r;
 use rCredits\Util as u;
 use rCredits\Testing as t;

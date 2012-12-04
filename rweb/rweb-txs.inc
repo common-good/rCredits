@@ -13,8 +13,9 @@ use rCredits as r;
  * List Transactions
  */
 function formTxs($form, &$sta, $argString = '') {
-  $cuid = r\acct()->id;
   global $base_url;
+  $cacct = r\acct();
+  $cuid = $cacct->id;
 
 //  $args = explode('&', $args);
 //  foreach ($args as $one) list ($keys[], $values[]) = explode('=', "$one=");
@@ -38,8 +39,7 @@ function formTxs($form, &$sta, $argString = '') {
   $ago = @$tx_days[$period] ?: ($period . ' days');
   $ending = time();
   $starting = strtotime($period == '-1' ? '1jan' : "$ago ago", $ending);
-  $can_sell = be\access('sell');
-  $can_buy = be\access('buy and sell');
+  list ($canSell, $canBuy) = array($cacct->can(PERM_SELL), $cacct->can(PERM_BUY));
 
   $states = array(TX_DONE => '&#10004;', TX_PENDING => 'ok?', TX_DENIED => 'denied', TX_DISPUTED => 'disputed');
   $colors = array('&#10004;' => 'green', 'ok?' => 'orange', 'pending' => 'darkgreen', 'denied' => 'red', 'disputed' => 'red');
@@ -64,7 +64,7 @@ function formTxs($form, &$sta, $argString = '') {
     $state = "<span style='color:$color;'>$state</span>";
     $button1 = (!$by_me and $one_state == TX_PENDING) ? button('OK', "$base_url/transactions/real=$real&period=$period&do=ok&zxid=$one_zxid", tx_action('ok', $one_state, $toMe, $by_me)) : '';
     $button2 = (!$is_reward and !@$data['undone']) ? button(' X ', "$base_url/transactions/real=$real&period=$period&do=no&zxid=$one_zxid", tx_action('no', $one_state, $toMe, $by_me)) : '';
-    $button3 = (($one_taking ? $can_sell : $can_buy) and !$is_reward) ? "<a href='$base_url/transactions/real=$real&period=$period&do=edit&zxid=$one_zxid' title='Edit Purpose'><img src='$base_url/images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
+    $button3 = (($one_taking ? $canSell : $canBuy) and !$is_reward) ? "<a href='$base_url/transactions/real=$real&period=$period&do=edit&zxid=$one_zxid' title='Edit Purpose'><img src='$base_url/images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
     $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
     $rows[] = array($tid, strftime('%d-%b', $one_created), $one_name, $from_you, $to_you, $state, $buttons, $one_purpose, $reward);
   }
@@ -167,7 +167,7 @@ function tx_edit($zxid) {
   if (!($details = be\lastTx('xid=:zxid', compact('zxid'), TRUE))) return FALSE; // bail on hack attempt
   extract(u\just('taking purpose role', r\txReportArgs($details)));
   
-  if (!be\access($taking ? 'sell' : 'buy and sell')) return FALSE;
+  if (!r\acct()->can($taking ? PERM_SELL : PERM_BUY)) return FALSE;
   
   $form = array(
     'title' => formField('item', t('Edit Description')),

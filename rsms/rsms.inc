@@ -3,7 +3,7 @@ namespace rCredits\SMS;
 use rCredits as r;
 use rCredits\Backend as be;
 use rCredits\Util as u;
-require_once __DIR__ . '/../rcredits-api.inc'; // Drupal bug (needs this explicit)
+require_once __DIR__ . '/../rcredits-backend.inc'; // Drupal bug (needs this explicit)
 require_once __DIR__ . '/../rcredits-util.inc';
 
 /**
@@ -112,9 +112,9 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'no access get' => t('You do not have permission to exchange rCredits for US Dollars or vice-versa.'),
 //  'no access create' => t('You do not have permission to create transactions.'),
   'no sell' => t('You do not have permission to make sales for this account.'),
-  'no buy and sell' => t('You do not have permission to make purchases for this account.'),
+  'no buy' => t('You do not have permission to make purchases for this account.'),
   'other no sell' => t('That person does not have permission to make sales for that account.'),
-  'other no buy and sell' => t('That person does not have permission to make purchases for that account.'),
+  'other no buy' => t('That person does not have permission to make purchases for that account.'),
   'bad amount' => t('The amount must be a number.'),
   'nonpositive amount' => t('The amount must be a positive number.'),
   'negative amount' => t('The amount cannot be negative.'),

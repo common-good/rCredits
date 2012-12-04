@@ -6,7 +6,7 @@ use rCredits as r;
 use rCredits\Testing as t;
 
 include_once __DIR__ . '/rweb-txs.inc'; // treat this as an extension of this file, just to make menu ['file'] consistent
-require_once __DIR__ . '/../rcredits-api.inc';
+require_once __DIR__ . '/../rcredits-backend.inc';
 require_once __DIR__ . '/../rcredits-testing.inc'; // else fails in showForm()
 define('isDEV', @$_SERVER['WINDIR']); // developing on Windows (unlike production server)
 
@@ -173,7 +173,7 @@ EOF;
 function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   global $formOutput; // for testing
   try {
-    setupGlobals(); // in case it's an anonymous form, so web_access doesn't have a chance to set up
+    setupGlobals(); // in case it's an anonymous form, so webAccess doesn't have a chance to set up
     
     $args = 'arg1' . ($arg2 !== '' ? ' arg2' : '') . ($arg3 !== '' ? ' arg3' : '') . ($arg4 !== '' ? ' arg4' : '');
     if ($function != 'accounts' and $function != 'home') u\log("show $function", compact(u\ray($args)));
@@ -353,7 +353,7 @@ function formMembership($form, &$sta) {
   
   $stagelist = 'rTrader Steward Partner Member';
   $stages = u\ray($stagelist);
-  foreach ($stages as $stage) if (be\access(strtolower($stage))) break;
+  foreach ($stages as $stage) if ($cacct->can(constant('PERM_' . strtoupper($stage)))) break;
 
   $rTrader = 'authorized to use rCredits "for real"';
   $Steward = "a responsible voter, stewarding your community's finances";
@@ -390,11 +390,11 @@ function formUser($form, &$sta) {return \user_login($form, $sta);} // called fro
 
 function formSummary($form, &$sta) {
   global $base_url;
-  if (!defined('TESTING')) if (!be\access('read transactions')) r\go('user'); // haven't figured a way to test this yet
+  $cacct = r\acct();
+  if (!defined('TESTING')) if (!$cacct or !$cacct->can(PERM_READ)) r\go('user'); // haven't figured a way to test this yet
   
   extract(be\creditInfo()->fancy, EXTR_PREFIX_ALL, 'my');
 
-  $cacct = r\acct();
   $name = $cacct->name;
   $address = u\location($cacct, TRUE);
 
@@ -493,7 +493,7 @@ function formAccounts($form, &$sta) {
 function formAccounts_submit($form, &$sta) {
   extract($sta['values']);
   $cacct = r\acct();
-  if (!r\acct($account_account, $cacct->agent)->agentCan(PERM_READ)) r\go('user/logout');
+  if (!r\acct($account_account, $cacct->agent)->can()) r\go('user/logout');
   svar('cuid', $account_account); // this gets checked ONLY in setupGlobals()
 }
 
@@ -720,15 +720,15 @@ function formExchange_validate($form, &$sta) {
 }
 
 function formExchange_submit($form, &$sta) {
-  $cuid = r\acct()->id;
+  $cacct = r\acct();
   if (confirming_s($sta)) return;
 
   extract($sta['values']);
-  list ($message, $args, $confirm) = be\get($op == 'Get rCredits' ? 'r' : 'usd', $amount, $cuid, TRUE);
+  list ($message, $args, $confirm) = be\get($op == 'Get rCredits' ? 'r' : 'usd', $amount, $cacct->id, TRUE);
   say($message, $args, @$args['success'] ? '' : 'amount'); // error or success
   if ($op == 'Get rCredits' and $amount != 0) {
     if ($amount < R_MIN_DEMAND) say('demand too small');
-    if (!be\access('partner')) say('demand not yet');
+    if (!$cacct->can(PERM_PARTNER)) say('demand not yet');
   }
 }
 
@@ -737,9 +737,10 @@ function formExchange_submit($form, &$sta) {
  */
 function formContact($form, &$sta) {
   be\mergeCheck(compact(u\ray('name website phone fax'))); // check before and after
-  extract((array) r\acct()->account(), EXTR_PREFIX_ALL, 'my');
+  $cacct = r\acct();
+  extract((array) $cacct->account(), EXTR_PREFIX_ALL, 'my');
   $full_name_desc = t('Your full legal name, properly capitalized');
-  if (be\access('company')) $full_name_desc .= '<br>' . t('(If you change this, your short identifier and rCredits webpage URL will also change.');
+  if ($cacct->can(PERM_COMPANY)) $full_name_desc .= '<br>' . t('(If you change this, your short identifier and rCredits webpage URL will also change.');
   
   $onchange = "print_state('edit-state',this.selectedIndex,'');";
   $form = array(
@@ -1008,11 +1009,9 @@ function formRelations_validate($form, &$sta) {
   
   if (@$new_person) {
     $acct = whois($new_person, 'new_person', $sta['values'], FALSE, 'no self-relation');
-//    if (be\access('company', $acct)) return say('no company relations', 'new_person');
-    $uid = $acct->id;
-    $already = r\dbLookup('1', 'r_relations', 'main_uid=:cuid AND agent_uid=:uid', compact('cuid', 'uid'));
-    if ($already) return say('already related', 'new_person');
-    $sta['values']['agent_uid'] = $uid; // save for submission handling
+//    if ($acct->can(PERM_COMPANY)) return say('no company relations', 'new_person');
+    if (r\relation(1, $cuid, $acct->id)) return say('already related', 'new_person');
+    $sta['values']['agent_uid'] = $acct->id; // save for submission handling
   }
 }
 
@@ -1223,7 +1222,7 @@ function formRegister_submit($form, &$sta) {
       $companyAcct = new r\acct(array('full_name' => $company, 'phone' => $company_phone));
       $companyUid = $companyAcct->id;
     }
-    if (!r\reid($companyUid, $uid)) {
+    if (!r\relation(1, $companyUid, $uid)) {
       list ($main_uid, $agent_uid, $is_owner) = array($companyUid, $uid, $is_owner);
       $info = compact(u\ray('main_uid agent_uid employee_ok is_owner'));
       \drupal_write_record('r_relations', $info);
@@ -1419,11 +1418,12 @@ EOF;
       $headed = TRUE; // always show the category (but keep the option to disable this choice)
       $list .= $headed ? ($list ? '</ul>' : '') . "<ul><h2>$cat</h2>\n" : '<li>&nbsp;</li>';
     }
+    $cacct = r\acct();
     $acct = r\acct($uid);
     $type = $acct->pass ? (r\isRTrader($uid) ? $symbolRTrader : $symbolMember) : $symbolNonMember;
     $class = strtr($type, array($symbolRTrader => 'rtrader', $symbolMember => 'member', $symbolNonMember => 'nonmember'));
-    $pay = be\access('buy and sell') ? button('pay', "$base_url/pay/who=$short_name") : '';
-    $chg = be\access('sell') ? button('chg', "$base_url/charge/who=$short_name") : '';
+    $pay = $cacct->can(PERM_BUY) ? button('pay', "$base_url/pay/who=$short_name") : '';
+    $chg = $cacct->can(PERM_SELL) ? button('chg', "$base_url/charge/who=$short_name") : '';
     $full_name = "<a href='$base_url/member/$short_name'>$full_name</a>";
     $item = "<b class=\"$class\">$type</b> $pay$chg $full_name";
     if (!$headed) $item = "- $item <span>($industry)</span>";
@@ -1504,22 +1504,23 @@ function button($text, $href = '', $title = '', $type = '') {
 }
 
 /**
- * Show a page when someone scans an account ID QR.
- * Cases:
+ * Show a page when someone scans an account ID QR, for example with QRDroid.
+ * Cases (ideally):
  *   Using Account ID card as a business card -- show the company's rCredits webpage
  *   Curious or trying to use the app -- say a bit about rCredits and how to get the app and how to sign up / sign in.
  *   Charging / Paying with Webcam (signed in) -- show pic and name, and ask whether to charge or pay
  */
 function formI($form, &$sta, $who) {
   if (!($acct = r\acct($who))) return r\go(''); // not a real code -- just go to home page
-  if (!($cacct = r\acct()) or !be\access('sell')) {
+/* NO. give choices.
+  if (!($cacct = r\acct()) or !$cacct->can(PERM_SELL)) {
     if ($acct->isCompany()) return formProfile($form, $sta, $acct->name);
     say('get app');
     r\go('');
   }
-  
-  // charging/paying/etc. with WebCam or QRDroid on smartphone
-  list ($myId, $myAgent) = array($cacct->id, $cacct->agent);
+*/
+
+  list ($myId, $myAgent) = ($cacct = r\acct()) ? array($cacct->id, $cacct->agent) : array(FALSE, FALSE);
   list ($theId, $theAgent) = array($acct->id, $acct->agent);
   $title = formField('item', t('Scanned QR'));
   $the_id = formField('hidden', $theId);
@@ -1527,16 +1528,14 @@ function formI($form, &$sta, $who) {
 
   if ($theId == $myId) {
     say('no self-trading', array(), 'error');
+    r\go('');
   } else {
-    $charge = formField('submit', '', '', t('Charge'));
-    if (be\access('buy and sell')) $pay = formField('submit', '', '', t('Pay'));
-
-      if (r\dbLookup(1, 'r_relations', 'main_uid=:myId AND agent_uid=:theAgent AND permission>=:PERM_READ', compact('myId',
-    'theAgent'))) {
-      $change_agent = formField('submit', '', '', t('Change Agent'));
-    }
-    if (r\dbLookup(1, 'r_relations', 'main_uid=:theId AND agent_uid=:myAgent AND permission>=:PERM_READ', compact('theId', 'myAgent'))) {
-      $change_account = formField('submit', '', '', t('Change Account'));
+    $charge = formField('submit', t('Charge'));
+    if (!$cacct or $cacct->can(PERM_BUY)) $pay = formField('submit', t('Pay'));
+    if ($acct->can(PERM_COMPANY)) $site = formField('submit', t('Show Webpage'));
+    if ($cacct) { // can change account or agent only if signed in
+      if (r\acct($myId, $theAgent)->can()) $change_agent = formField('submit', '', '', t('Change Agent'));
+      if (r\acct($theId, $myAgent)->can()) $change_account = formField('submit', t('Change Account'));
     }
   }
   $form = compact(u\ray('title the_id the_agent charge pay change_agent change_account'));
@@ -1550,9 +1549,10 @@ function formI_submit($form, &$sta) {
   $shortName = $acct->name;
   if ($op == 'Charge') r\go("charge/who=$shortName");
   if ($op == 'Pay') r\go("pay/who=$shortName");
+  if ($op == 'Show Webpage') r\go("member/$shortName");
   if ($op == 'Change Agent') r\go("user/logout/who=$shortName");
   if ($op == 'Change Account') {
-    if (!r\acct($the_id, $cuid)->agentCan(PERM_READ)) r\go('user/logout'); // hack
+    if (!r\acct($the_id, $cuid)->can()) r\go('user/logout'); // hack
     svar('cuid', $the_id);
     $accountName = $acct->full_name;
     say('changed account', compact('accountName'));
@@ -1679,7 +1679,7 @@ function memberID($uid = '') {
 function identifiers($acct) {
   list ($agent, $company) = $acct->proSe() ? array($acct, '') : array(r\acct($acct->agent), $acct->full_name);
   $location = u\location($acct);
-  $pic = be\access('charge others') ? profile_picture($agent->id, TRUE) : '';
+  $pic = r\acct()->can(PERM_CHARGE) ? profile_picture($agent->id, TRUE) : ''; // let qualified companies see the picture
   return <<<EOF
     <div class="clearfix">
     $pic
@@ -1901,8 +1901,8 @@ function menu($title, $type, $function = NULL, $function_args = array(), $access
     'page callback' => $function,
     'page arguments' => $function_args,
 //    'access callback' => TRUE,
-    'access callback' => 'rCredits\\Web\\web_access', // don't use be\access directly (rweb needs to remember $cuid)
-    'access arguments' => array($access),
+    'access callback' => 'rCredits\\Web\\webAccess', // don't use be\access directly (rweb needs to remember $cuid)
+    'access arguments' => array('a' . $access), // 'a' because Drupal doesn't like numbers
     'weight' => @$menu_weight - 1,
     'menu_name' => 'main-menu', 
     'module' => 'rweb',
@@ -2001,9 +2001,11 @@ function focusOn($focusFieldName) {
   drupal_add_js("document.getElementById('edit-$focusFieldName').focus();", array('type'=>'inline', 'scope'=>'footer'));
 }
  
-function web_access($access) {
+function webAccess($access) {
+  $access = substr($access, 1);
   setupGlobals(); // remember who we are (the only reason for this function)
-  return be\access($access);
+  $cacct = $cacct = r\acct();
+  return ($access and $cacct) ? $cacct->can($access) : FALSE;
 }
 
 // one-line functions that need no explanation

@@ -248,7 +248,7 @@ class rsmartTransact extends DrupalWebTestCase {
     When_('member " NEW.ZZA " asks device "codeC" to do this: "pay" "NEW.ZZB" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
-    . '\\| 0       | no buy and sell |"');
+    . '\\| 0       | no buy          |"');
   }
 
   // Scenario: Seller agent lacks permission to sell
@@ -437,7 +437,7 @@ class rsmartTransact extends DrupalWebTestCase {
     When_('member " NEW.ZZA " asks device "codeC" to do this: "pay" "NEW.ZZB" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
-    . '\\| 0       | no buy and sell |"');
+    . '\\| 0       | no buy          |"');
   }
 
   // Scenario: Seller agent lacks permission to sell
@@ -626,7 +626,7 @@ class rsmartTransact extends DrupalWebTestCase {
     When_('member " NEW.ZZA " asks device "codeC" to do this: "pay" "NEW.ZZB" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
-    . '\\| 0       | no buy and sell |"');
+    . '\\| 0       | no buy          |"');
   }
 
   // Scenario: Seller agent lacks permission to sell
@@ -815,7 +815,7 @@ class rsmartTransact extends DrupalWebTestCase {
     When_('member " NEW.ZZA " asks device "codeC" to do this: "pay" "NEW.ZZB" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
-    . '\\| 0       | no buy and sell |"');
+    . '\\| 0       | no buy          |"');
   }
 
   // Scenario: Seller agent lacks permission to sell

@@ -15,6 +15,7 @@ class acct {
   var $agentRegion; // record id of agent's region (on this server)
   var $mainQid; // nearly alphabetic representation of id, id, and region for external queries
   var $agentQid; // same for agent (for combined qid for main account and agent, use acct()->qid())
+  var $perms; // permissions
   private static $records = FALSE; // account records for all acct objects, indexed by id
   
   /**
@@ -135,14 +136,38 @@ class acct {
     return $this->update(compact('flags'));
   }
   public static function setDefault($acct) {
-    global $cacct; $cacct = $acct;
-    global $user; if (!@$user) $user = $cacct->account(); // probably needed only for rWeb login form testing
+    global $currentAcct; $currentAcct = $acct;
+    global $user; if (!@$user) $user = $currentAcct->account(); // probably needed only for rWeb login form testing
   }
   
-  public function agentCan($permission = '') {
-    return ($this->id == $this->agent or reid($this->id, $this->agent, $permission));
+  /**
+   * Say whether this account/agent has the permission.
+   * @param int $permission: the permission in question (DEFAULT PERM_READ)
+   */
+  public function can($permission = PERM_READ) {
+    if (!is_array($this->perms)) {
+      $perms = array();
+      $id = $this->id;
+      if ($this->proSe()) {
+        $can = ($id < 0) ? 0 : PERM_MANAGE; // communities must be managed by an agent, never directly
+      } else $can = relation('permission', $id, $this->agent);
+
+      for ($i = 0; $i <= PERM_MANAGE; $i++) $perms[$i] = ($i <= $can);
+         
+      $perms[PERM_COMPANY] = ($this->account_type != R_PERSONAL); // ad hoc permissions
+      $perms[PERM_PARTNER] = $this->hasBit(BIT_PARTNER);
+      $perms[PERM_STEWARD] = $this->hasBit(BIT_STEWARD);
+      $perms[PERM_RTRADER] = $this->hasBit(BIT_RTRADER);
+      $perms[PERM_CHARGE] = $this->hasBit(BIT_CHARGE);
+      $perms[PERM_ADMIN] = ($this->hasBit(BIT_ADMIN) or $id == 1);
+      $perms[PERM_CTTY_ADMIN] = ($id < 0 and $perms[PERM_MANAGE]); // managing community account
+
+      if ($perms[PERM_ADMIN]) $perms[PERM_CTTY_ADMIN] = TRUE; // temporary until communities are independent
+      $this->perms = $perms;
+    }
+    return $this->perms[$permission];
   }
-}
+} // end of class
 
 /**
  * Convert quid to UAR
@@ -157,7 +182,7 @@ function UAR($quid = '', $no_abbrev = TRUE) {
 
   list ($zuid, $regionUid) = unQid($quid);
   if (($reid = -$zuid) > 0) {
-    if (!($record = dbLookup('main_uid,agent_uid', 'r_relations', 'reid=:reid', compact('reid')))) return FALSE;
+    if (!($record = relation('main_uid,agent_uid', 'reid=:reid', compact('reid')))) return FALSE;
     $result = array_values($record);
   } else $result = array($zuid, $zuid);
   $result[] = $regionUid;
@@ -165,10 +190,10 @@ function UAR($quid = '', $no_abbrev = TRUE) {
 }
 
 function acct($uid = '', $agent = '', &$error = '') {
-  global $cacct; // use this ONLY in this class file
+  global $currentAcct; // use this ONLY in this class file
   if (!$uid) {
-    if (!$cacct) {$error = 'There is no current account.'; return FALSE;}
-    return $cacct;
+    if (!$currentAcct) {$error = 'There is no current account.'; return FALSE;}
+    return $currentAcct;
   }
   if (!acct::ok($uid, $agent, $error, TRUE)) return FALSE;
   return new acct($uid, $agent);

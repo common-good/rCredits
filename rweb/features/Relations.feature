@@ -28,7 +28,6 @@ Scenario: Member has an employee, confirmed
   When member ".ZZA" visits page "relations"
   Then we show page "relations" with:
   | Person  | Is employer? | Is employee? | Is owner? | Permission | Print id                |
-  | Person  | Is employer? | Is employee? | Is owner? | Permission |                         |  
   | Bea Two | No           | Yes          | Yes       | sell       | print Temporary ID Card |
 
 Scenario: Member has an employee, unconfirmed

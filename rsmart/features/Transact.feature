@@ -191,7 +191,7 @@ Scenario: Buyer agent lacks permission to buy
   When member " NEW.ZZA " asks device "codeC" to do this: "pay" "NEW.ZZB" $300 ("goods": "groceries")
   Then we respond with:
   | success | message         |
-  | 0       | no buy and sell |
+  | 0       | no buy          |
 
 Scenario: Seller agent lacks permission to sell
   When member " NEW.ZZA " asks device "codeB" to do this: "charge" "NEW.ZZC" $300 ("goods": "groceries")

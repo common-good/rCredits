@@ -149,7 +149,7 @@ function startup($args = '') {
   $account_name = $cacct->full_name;
   $allow_change_account = 0;
   $allow_change_agent = 1;
-  $require_agent = be\access('company') ? 1 : 0;
+  $require_agent = $cacct->can(PERM_COMPANY) ? 1 : 0;
   $show_buttons = buttons($cacct, $owner);
   return compact(u\ray('my_id account_name update_link allow_change_account allow_change_agent require_agent show_buttons')); // standard fields to return on startup);
 }
@@ -165,15 +165,15 @@ function startup($args = '') {
  *   other_balance: the current balance of the company if it's a company, otherwise of the individual
  */
 function identify($args) {
-  $cuid = r\acct()->id;
+  $cacct = r\acct();
   extract(u\just('acct', $args));
   if (!@$acct) return be\error('missing acct');
   $full_name = $acct->full_name;
-  if ($acct->id == $cuid) return be\error('no self-trading');
+  if ($acct->id == $cacct->id) return be\error('no self-trading');
   $location = u\location($acct);
   if (!$acct->proSe()) list ($company_name, $full_name) = array($full_name, r\acct($acct->agent)->full_name);
   $uid = $acct->id;
-  if (be\access('charge others')) $other_balance = be\creditInfo(compact('uid'))->balance;
+  if ($cacct->can(PERM_CHARGE)) $other_balance = be\creditInfo(compact('uid'))->balance;
   return compact(u\ray('full_name location company_name other_balance'));
 }
 
@@ -299,9 +299,9 @@ function makeDevice($device, $acct, $code = '') {
 }
 
 function agentButtons($acct) {
-  return $acct->agentCan(PERM_BUY) ? 3
-      : ($acct->agentCan(PERM_SELL) ? 1 
-      : ($acct->agentCan(PERM_READ) ? 0
+  return $acct->can(PERM_BUY) ? 3
+      : ($acct->can(PERM_SELL) ? 1 
+      : ($acct->can(PERM_READ) ? 0
       : (-1 )));
 }
 
@@ -314,7 +314,7 @@ function accountName($acct) {
 
 function balances($uid, $real) {
   $my_balance = be\creditInfo(compact('real'))->balance;
-  if (be\access('charge others') and !r\acct($uid)->hasBit(BIT_SECRET_BAL)) $other_balance = be\creditInfo(compact('real', 'uid'))->balance;
+  if (r\acct()->can(PERM_CHARGE) and !r\acct($uid)->hasBit(BIT_SECRET_BAL)) $other_balance = be\creditInfo(compact('real', 'uid'))->balance;
   return compact('my_balance', 'other_balance');
 }
 

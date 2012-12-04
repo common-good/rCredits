@@ -136,7 +136,7 @@ class rsmartUndoAttack extends DrupalWebTestCase {
     When_('member "NEW.ZZA" asks device "codeC" to undo transaction "NEW.AAAE", with the request "unconfirmed"');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
-    . '\\| 0       | no buy and sell |"');
+    . '\\| 0       | no buy          |"');
   }
 
   // Scenario: Seller agent lacks permission to reverse purchase
@@ -208,7 +208,7 @@ class rsmartUndoAttack extends DrupalWebTestCase {
     When_('member "NEW.ZZA" asks device "codeC" to undo transaction "NEW.AAAE", with the request "confirmed"');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
-    . '\\| 0       | no buy and sell |"');
+    . '\\| 0       | no buy          |"');
   }
 
   // Scenario: Seller agent lacks permission to reverse purchase
@@ -280,7 +280,7 @@ class rsmartUndoAttack extends DrupalWebTestCase {
     When_('member "NEW.ZZA" asks device "codeC" to undo transaction "NEW.AAAE", with the request "unconfirmed"');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
-    . '\\| 0       | no buy and sell |"');
+    . '\\| 0       | no buy          |"');
   }
 
   // Scenario: Seller agent lacks permission to reverse purchase
