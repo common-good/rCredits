@@ -1,30 +1,40 @@
 /* Standard Forms */
 #page-wrapper, #footer-wrapper {background: white;} /* Drupal messes this up otherwise, in Bartik theme */
+#footer, #footer label {text-align:center; color:darkgray;}
+#footer label a {color:black;}
+#footer label a:hover {color:darkgray; text-decoration:underline;}
 #page-title {display: none;}
+#name-and-slogan {margin-bottom:15px;}
+#site-name {margin-top:30px;}
+#help-link {margin:0px; float:right;}
+#breadcrumb {margin:0px; display:none;}
+div.develw div {display:inline;}
 
 /* ul#main-menu-links li.first {display:none;} Use this to suppress spurious "Home" tab, but better to delete it in menu_links */
 div#secondary-menu li.menu-2 {display:none;} /* Drupal recreates and unhides this if we try to delete it or hide it */
 
 form.rweb {font-family:Arial;}
 form.rweb div.invisible {display:none;}
+form.rweb div {vertical-align:top;}
 
 form.rweb div#edit-title {margin-bottom:0px;}
 form.rweb div#edit-title label {font-size:200%; color:darkgreen;}
 form.rweb div#help-link label {font-size:80%; text-align:left; padding-left:23px; background-image:url(../../../../../images/icons/question-mark.gif); background-repeat:no-repeat; height:20px;}
+
 form.rweb div.form-item div.description {display:block; clear:both; margin:2px 0px 0px 0px;}
 form.rweb div.form-type-item label {text-align:left;}
-form.rweb div.form-type-textfield {display:inline-block; margin-right:0px; vertical-align:top;}
+form.rweb div.form-type-textfield {display:inline-block; margin-right:0px;}
 form.rweb div.form-type-textfield label {display:inline-block;}
 form.rweb div#edit-subtext label {font-weight:normal; width:100%; text-align:left;}
 
 form.rweb input {vertical-align:top;}
 form.rweb input[type="text"] {width:240px;}
 
-form.rweb div.form-type-radios {height:25px; margin:0px;}
+form.rweb div.form-type-radios {margin:0px;}
 form.rweb div.form-radios {margin-bottom:0px;}
-form.rweb div.form-type-radio {display:inline-block;}
+form.rweb div.form-type-radio {display:inline-block; margin-top:0px;}
 form.rweb div.form-type-radio input {display:inline-block; margin-left:0px; vertical-align:bottom;}
-form.rweb div.form-type-radio label {display:inline; width:100px; margin-left:3px; text-align:left; vertical-align:top;}
+form.rweb div.form-type-radio label {display:inline; width:100px; margin-left:3px; text-align:left;}
 
 /* Labeled Forms (each field is preceded by a short label and the fields line up)
 /* form.rweb.labeled (this fails for Chrome) */
@@ -39,8 +49,8 @@ form.labeled div.form-radios,
 form.labeled div#edit-subtext {margin-left:135px;}
 
 form.labeled div.description {font-size:.85em}
-form.labeled div#edit-title label {text-align:left; vertical-align:top; width:100%;}
-form.labeled div.labeled-block {display:inline-block; vertical-align:top;}
+form.labeled div#edit-title label {text-align:left; width:100%;}
+form.labeled div.labeled-block {display:inline-block;}
 form.labeled div.form-textarea-wrapper {display:inline-block;}
 
 form.labeled .form-local, form.rweb .form-local {margin:1px 2px 1px 2px; padding:2px; font-size:70%; color:darkgreen;}
@@ -64,7 +74,7 @@ form.rweb  .form-no {color:red;}
 #user-register-form div.form-checkboxes {margin-left:135px;}
 #user-register-form div.form-type-checkbox {display:inline-block;}
 #user-register-form div.form-type-checkbox input {display:inline-block; margin-left:0px; vertical-align:bottom;}
-#user-register-form div.form-type-checkbox label {display:inline; width:100px; margin-left:3px; text-align:left; vertical-align:top;}
+#user-register-form div.form-type-checkbox label {display:inline; width:100px; margin-left:3px; text-align:left;}
 #user-register-form  fieldset.form-wrapper {margin-left:0px;}
 #user-register-form  div#edit-company-text label {text-align:left;}
 
@@ -92,10 +102,14 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformaccount div.form-type-radio label {display:block;}*/
 
 /* Accounts Selector */
+div#accounts {position:absolute; right:0px; top:30px; width:100%;}
+div#accounts div.region-accounts {float:right;}
+div#accounts div.content, div#accounts div.form-item-account-account {margin:0px;}
+div#accounts select {font-size:10px; padding:0px; margin-right:15px;}
 #rcreditswebformaccounts #edit-account-submit {display:none;} /* Drupal requires unused button to be there, so make it invisible */
 /* #rcreditswebformaccount div.form-type-item {display:none;} /* no title */
 #rcreditswebformaccounts  #edit-account-submit {margin:5px 0px 0px 10px;}
-#rcreditswebformaccounts  div#edit-account-current-balance label {font-weight:normal;} /* when there is just one account */
+/* #rcreditswebformaccounts  div#edit-account-current-balance label {font-weight:normal;} /* when there is just one account */
 
 /* Contact Info (labeled) */
 
@@ -219,30 +233,32 @@ div#content {display:block;} /* keeps autocomplete from getting placed in a wack
 #rcreditswebformprofile div#member-details {float:left; min-width:200px; max-width:300px; font-weight:normal;}
 
 /* Options */
+#rcreditswebformoptions div.description {padding-bottom:12px;}
 #rcreditswebformoptions  div.form-radios {margin-left:0px; display:inline-block;}
-#rcreditswebformoptions div.form-item-notify-by {margin-top:40px;}
-#rcreditswebformoptions div.form-item-secret-bal {margin-top:80px;}
+/*#rcreditswebformoptions div.form-item-notify-by {margin-top:40px;}
+#rcreditswebformoptions div.form-item-secret-bal {margin-top:80px;}*/
 #rcreditswebformoptions div.form-item-secret-bal input {margin-left:135px;}
 #rcreditswebformoptions div.form-item-secret-bal label {margin-left:-154px; font-weight:bold;}
 #rcreditswebformoptions div.form-item-secret-bal div.description {display:inline-block; margin-left:23px;}
+#rcreditswebformoptions div.form-type-radios {border-bottom:1px solid darkgreen; margin-bottom:5px;}
 
 /* Popups */
 fieldset#popup, fieldset#help {
-    position: absolute;
-    z-index:100;
-    top: 0px;
-    left: 300px;
-    width: 500px;
-	height: 300px;
-	padding-bottom: 2px;
-    background: #FFF;
-    border-radius: 5px; -moz-border-radius: 5px; -webkit-border-radius: 5px;
-    box-shadow: 0px 0px 4px rgba(0,0,0,0.7); -webkit-box-shadow: 0 0 4px rgba(0,0,0,0.7); -moz-box-shadow: 0 0px 4px rgba(0,0,0,0.7);
+  position: absolute;
+  z-index:100;
+  top: 0px;
+  left: 300px;
+  width: 500px;
+  height: 300px;
+  padding-bottom: 2px;
+  background: #FFF;
+  border-radius: 5px; -moz-border-radius: 5px; -webkit-border-radius: 5px;
+  box-shadow: 0px 0px 4px rgba(0,0,0,0.7); -webkit-box-shadow: 0 0 4px rgba(0,0,0,0.7); -moz-box-shadow: 0 0px 4px rgba(0,0,0,0.7);
 }
 fieldset#popup {left:450px;} /* needs 150px extra for unknown reason */
 fieldset#popup legend, fieldset#help legend {background:darkgreen; color:white;}
 fieldset#popup label {text-align:left; font-weight:normal; width:100%;}
 fieldset#popup select {width:480px; overflow:auto;}
 fieldset#help {left:450px; height:420px; display:none;}
-fieldset#help div#help-close {float:right; width:26px; height:26px; position:absolute; z-index:99; top:-12px; left:470px;}
-fieldset#help div#help-close label {margin-left:0px; width:26px;}
+div#popup-close {float:right; width:26px; height:26px; position:absolute; z-index:99; top:-12px; left:470px;}
+div#popup-close label {margin-left:0px; width:26px;}

@@ -1,0 +1,28 @@
+div {min-width:0px; max-width:480px;}
+div#footer, div#footer div.region-footer {margin:0px;}
+div#footer-wrapper {padding:0px;}
+
+/* Nav */
+ul#main-menu-links, ul.tabs.primary {padding:0px; font-size:0.75em;}
+ul#main-menu-links li, ul.tabs.primary li {padding:0px;}
+div.tabs ul.primary li {margin:0px;}
+div.tabs ul.primary li a {padding:0 4px 0.5px; font-size:1em;}
+
+/* Popups */
+fieldset#popup, fieldset#help {
+  left: 0px;
+  width: 480px;
+  height: 300px;
+}
+fieldset#popup {left:0px;} /* needs 150px extra for unknown reason */
+fieldset#popup select {width:460px; overflow:auto;}
+fieldset#help {height:420px;}
+div#popup-close {left:450px;}
+
+div#txs-title, table#txlist {max-width:640px; width:640px;}
+
+#rcreditswebformrelations div {max-width:640px;}
+#rcreditswebformrelations table#relations {width:640px;}
+
+/* Options */
+#rcreditswebformoptions div.form-type-radio {display:block;}

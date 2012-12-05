@@ -18,7 +18,7 @@ require_once __DIR__ . '/rweb.inc';
 require_once __DIR__ . '/../rsmart/rsmart.inc'; // for smart api menu entry
 
 //define('RWEB_BLOCKS', 'accounts payment buy_now example_store charge exchange manage tx_period txs manage_account');
-define('RWEB_BLOCKS', 'accounts');
+define('RWEB_BLOCKS', 'accounts footer');
 
 /**
  * Implements hook_block_info().
@@ -27,15 +27,13 @@ function rweb_block_info() {
   $info = array();
   foreach (u\ray(RWEB_BLOCKS) as $one) {
     $def = array('info' => ucfirst($one) . ' Block');
-    if ($one == 'accounts') {
-      $region = 'header';
-//      $visibility = BLOCK_VISIBILITY_LISTED;
-//      $pages = "members\nmembers/*";
-      $status = 1;
-      $def += compact(u\ray('region status'));
-    }
+    $status = 1;
+    $def += compact(u\ray('region status'));
     $info[$one] = $def;
   }
+  $info['footer']['cache'] = -1;
+  $info['footer']['region'] = 'footer';
+  $info['accounts']['region'] = 'accounts';
   return $info;
 }
 
@@ -66,22 +64,24 @@ function rweb_menu() {
     'transactions' => r\Web\menu(t('Transactions'), MENU_NORMAL_ITEM, 'showForm', array('Txs', 1), PERM_READ),
     'charge' => r\Web\menu(t('Charge'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), PERM_SELL),
     'pay' => r\Web\menu(t('Pay'), MENU_NORMAL_ITEM, 'showForm', array('Tx', 1), PERM_BUY),
-    'exchange' => r\Web\menu(t('Get rCredits / USD'), MENU_NORMAL_ITEM, 'showForm', array('Exchange'), PERM_MANAGE),
+    'exchange' => r\Web\menu(t('Get r / USD'), MENU_NORMAL_ITEM, 'showForm', array('Exchange'), PERM_MANAGE),
     'directory' => r\Web\menu(t('Find Companies'), MENU_NORMAL_ITEM, 'showForm', array('Directory'), PERM_SELL),
+    'reports' => r\Web\menu(t('Reports'), MENU_NORMAL_ITEM, 'showForm', array('Reports'), PERM_SELL),
+
     'Temporary-Member-ID-Card' => r\Web\menu(t('Print Temporary Member ID Card'), MENU_CALLBACK, 'memberID', array(1),  PERM_SELL),
     'draft' => r\Web\menu(t('Draft into Database'), MENU_CALLBACK, 'showForm', array('Draft', 1), PERM_SELL),
     
     'I' => r\Web\menu('Scanned QR', MENU_CALLBACK, 'showForm', array('I'), '', $anyone),
     'sms' => r\Web\menu('Test SMS', MENU_CALLBACK, 'showForm', array('SMS'), '', $anyone), // should be PERM_ADMIN not '',...
-    'handy' => r\Web\menu('Handy Links', MENU_NORMAL_ITEM, 'handy_links', array(), PERM_ADMIN),
+    'handy' => r\Web\menu('Handy', MENU_NORMAL_ITEM, 'handy_links', array(), PERM_ADMIN),
 
-    'account' => r\Web\menu(t('Basic Account Settings'), MENU_CALLBACK, 'showForm', array('Account'), PERM_MANAGE),
-    'account/overview' => r\Web\menu('Basic Account Settings', MENU_DEFAULT_LOCAL_TASK, 'showForm', array('Account'), PERM_MANAGE),
-    'account/cell' => r\Web\menu(t('Cell Phone Access'), MENU_LOCAL_TASK, 'showForm', array('Cell'), PERM_MANAGE),
+    'account' => r\Web\menu(t('Basic Settings'), MENU_CALLBACK, 'showForm', array('Account'), PERM_MANAGE),
+    'account/overview' => r\Web\menu('Basic Settings', MENU_DEFAULT_LOCAL_TASK, 'showForm', array('Account'), PERM_MANAGE),
+    'account/cell' => r\Web\menu(t('Cell Phones'), MENU_LOCAL_TASK, 'showForm', array('Cell'), PERM_MANAGE),
     'account/relations' => r\Web\menu(t('Relations'), MENU_LOCAL_TASK, 'showForm', array('Relations'), PERM_MANAGE),
-    'account/contact' => r\Web\menu(t('Contact Information'), MENU_LOCAL_TASK, 'showForm', array('Contact'), PERM_MANAGE),
+    'account/contact' => r\Web\menu(t('Contact Info'), MENU_LOCAL_TASK, 'showForm', array('Contact'), PERM_MANAGE),
     'account/company' => r\Web\menu(t('Company Info'), MENU_LOCAL_TASK, 'showForm', array('Company'), PERM_COMPANY),
-    'account/options' => r\Web\menu(t('Account Options'), MENU_LOCAL_TASK, 'showForm', array('Options'), PERM_MANAGE),
+    'account/options' => r\Web\menu(t('Options'), MENU_LOCAL_TASK, 'showForm', array('Options'), PERM_MANAGE),
 //    'account/bank-info' => r\Web\menu(t('Bank Info'), MENU_LOCAL_TASK, 'showForm', array('Bank'), PERM_MANAGE),
 
     'radmin' => r\Web\menu(t('Community Overview'), MENU_CALLBACK, 'showForm', array('Account'), PERM_CTTY_ADMIN),

@@ -28,7 +28,7 @@ define('R_TOGGLE_JS', '
     jQuery(field).val(jQuery(field + "-YES").is(":visible"));
   }
   jQuery("div#help-link").click(function() {jQuery("fieldset#help").show();});
-  jQuery("div#help-close").click(function() {jQuery("fieldset#help").hide();});
+  jQuery("div#popup-close").click(function() {jQuery("fieldset#help").hide();});
   jQuery("div#edit-card").click(function() {window.open("Temporary-Member-ID-Card", "tempcard","height=250,width=600,left=100,location=0,menubar=0,resizable=0,scrollbars=0,status=0,toolbar=0");});
 ');
 
@@ -87,7 +87,7 @@ $GLOBALS[TX_WEB . ' messages'] = array(
 function modal_form($form, &$sta) {
   $form = array(
     'one' => formField('textfield', 'prompt', 'help text', 'default'),
-    'submit' => formField('submit', '', '', 'Go!'),
+    'submit' => formField('submit', t('Go!')),
   );
   
   return $form;
@@ -158,34 +158,42 @@ function handy_links() {
     'devel/variable?destination=node|Edit and delete site variables.|Variable editor',
   );
 
-  $result = '';
+  $result = array();
   foreach ($links as $link) {
     list ($url, $title, $label) = explode('|', $link);
     if (!$label) $label = $title;
     if (!u\abbreviates('http://', $url)) $url = $base_path . $url;
-    $result .= <<<EOF
+    $result[] = <<<EOF
 <div><a href="$url" title="$title">$label</a></div>
 EOF;
   }
-  return "<style>div.develw div {display:inline; margin-right:20px;}</style><div class='develw'>\n$result</div>";
+  $result = join(' | ', $result);
+  return "<div class='develw'>\n$result</div>";
 }
 
 function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   global $formOutput; // for testing
   try {
     setupGlobals(); // in case it's an anonymous form, so webAccess doesn't have a chance to set up
+    $layout = @$_GET['layout'] ?: svar('layout');
     
     $args = 'arg1' . ($arg2 !== '' ? ' arg2' : '') . ($arg3 !== '' ? ' arg3' : '') . ($arg4 !== '' ? ' arg4' : '');
     if ($function != 'accounts' and $function != 'home') u\log("show $function", compact(u\ray($args)));
     drupal_add_css(\drupal_get_path('module', 'rweb') . '/rweb.css', array('group' => CSS_THEME) + weight(-9));
+    if ($layout == 'mobile') drupal_add_css(\drupal_get_path('module', 'rweb') . '/mobile.css', array('group' => CSS_THEME) + weight(-8));
     $formName = substr($function, 0, 1) == '\\' ? $function : "rCredits\\Web\\form$function";
     $form = drupal_get_form($formName, $arg1, $arg2, $arg3, $arg4);
   //  $form['#attached']['css'] = array(\drupal_get_path('module', 'rweb') . '/rweb.css');
     $form['#attributes']['class'][] = 'rweb';
+    if ($layout != svar('layout')) {
+      svar('layout', $layout);
+      $form['#cache'] = FALSE;
+    }
     if (!@$form['confirm']) $form += which(); // add the choices popup form, if any
 
     if ($function != 'help') if (($i = array_search('title', array_keys($form))) !== FALSE or $function == 'Txs') {
       if ($function == 'Txs') $i = -1; // no title on Transactions page, so insert at beginning
+      $i = -1; // always at beginning
       $extras = array('#id' => 'help-link', '#weight' => @$form['title']['#weight']);
       $help_link = formField('item', t('<a>Help with this page</a>')) + $extras; // add a help link just under the title
       $form = array_slice($form, 0, $i+1) + compact('help_link') + array_slice($form, $i+1) + help($function, @$form['#attributes']['class'][0]);
@@ -241,8 +249,9 @@ function which($choices = '', $result_field = '', $info = '', $question = 'Which
   $onchange = "this.form.elements['$pop_result_field'].value=this.options[this.selectedIndex].text; this.form.submit();";
   $subtext = formField('item', $pop_question);
   $choice = formField('select', '', '', attrib(compact('onchange') + array('size' => 12)), $pop_choices);
-  $popup = formField('fieldset', t('Which One?'), '', array('id' => 'popup')) + compact(u\ray('subtext choice'));
-  return compact('popup');
+  $close = popupCloser(); // this is needed in mobile layout
+  $popup = formField('fieldset', t('Which One?'), '', array('id' => 'popup')) + compact(u\ray('subtext choice close'));
+return compact('popup');
 }
 
 function keep_values(&$form) {
@@ -333,15 +342,19 @@ function formHelp($form, &$sta, $what = '') {
   return compact(u\ray('title text'));
 }
 
+function popupCloser() {
+  global $base_url;
+  return formField('item', "<img src='$base_url/images/icons/close.png' border='0'>") + array('#id' => 'popup-close');
+}
+
 /**
  * Return a help overlay
  * @todo: make it move right when "labeled"
  */
 function help($page, $class = '') {
   require_once __DIR__ . '/rweb-help.inc';
-  global $base_url;
 //  $subtext = formField('item', $question);
-  $close = formField('item', "<img src='$base_url/images/icons/close.png' border='0'>") + array('#id' => 'help-close');
+  $close = popupCloser();
   $text = formField('item', '', '', helpText($page));
   $help = formField('fieldset', t('Help with this page'), '', array('id' => 'help')) + compact(u\ray('subtext close text'));
   return compact('help');
@@ -479,12 +492,13 @@ function formAccounts($form, &$sta) {
   $qid = r\quid(); // $credit_id = r\userField('credit_id', $cuid);
   $full_name = r\userField('full_name', $cuid);
   $onchange = "this.form.submit();";
-  $account = formField('select', t('Account:'), t('(Select an account)'), 
-    dft($cuid) + attrib(compact('onchange')), $choices);
+//  $account = formField('select', t('Account:'), t('(Select an account)'), dft($cuid) + attrib(compact('onchange')), $choices);
+  $account = formField('select', '', '', dft($cuid) + attrib(compact('onchange')), $choices);
   $one_account = formField('item', t('Account') . ": <span>$full_name ($qid)</span>");
   $one_balance = formField('item', t('Current Balance') . ": <span>$balance</span>");
   $submit = formField('submit');
-  $form = count($choices) == 1 ? compact(u\ray('one_account one_balance')) : u\prefixKeys('account_', compact(u\ray('account submit')));
+//  $form = count($choices) == 1 ? compact(u\ray('one_account one_balance')) : u\prefixKeys('account_', compact(u\ray('account submit')));
+  $form = u\prefixKeys('account_', compact(u\ray('account submit'))); // always give a dropdown
 
   //  $form['#attributes']['class'] = array('labeled');
   return $form;
@@ -590,7 +604,7 @@ function formTx($form, &$sta, $argString = '') {
   $amount = formField('textfield', 'Amount: $', t('Amount to ') . $type, dft(@$amount));
   $goods = formField('radios', '', '', dft(u\retSet(@$goods) ?: 1), $radios); //  + attrib(compact('onchange'))
   $purpose = formField('textfield', 'Purpose:', t('Description of goods and services or purpose'), dft(@$purpose));
-  $$type = formField('submit', NULL, t('Submit button'), ucwords($type));
+  $$type = formField('submit', ucwords($type));
 
   $form = compact(u\ray("title who amount goods purpose $type"));
   $form['#attributes']['class'] = array('labeled');
@@ -644,7 +658,7 @@ function formBuy($form, &$sta) {
     $verbs = u\ray('Contribute, Donate, Pay');
     $verb = in_array(ucwords(@$my_verb), $verbs) ? ucwords($my_verb) : 'Pay';
 
-    $button = user_is_logged_in() ? formField('submit', NULL, t('Submit button'), $verb)
+    $button = user_is_logged_in() ? formField('submit', $verb)
       : formField('item', t('By typing your username and password, you agree to pay with rCredits, as detailed above.'));
 
     $my_amount = @number_format($my_amount, 2);
@@ -700,8 +714,8 @@ function formExchange($form, &$sta) {
     'amount' => formField('textfield', t('Amount:'), t('Amount to exchange (r$ or us$)'), required()),
 //    'way' => formField('radios', 'trade:', '', array(), array(t('rCredit for cash'), t('cash for rCredits'))),
 //    'who' => formField('textfield', 'to/from:', t('Exchange with whom?')),
-    'getr' => formField('submit', '', t('Submit button'), 'Get rCredits'),
-    'getusd' => formField('submit', '', t('Submit button'), 'Get USD'),
+    'getr' => formField('submit', t('Get rCredits')),
+    'getusd' => formField('submit', t('Get USD')),
   );
 
   $form['#attributes']['class'] = array('labeled');
@@ -755,7 +769,7 @@ function formContact($form, &$sta) {
     'state' => formField('select', t('State:'), t(''), dft($my_state)), // can't use required() here
     'city' => formField('textfield', t('City:'), t(''), dft($my_city) + required()),
     'address' => formField('textfield', t('Address:'), t('Mailing address'), dft($my_address) + required()),
-    'submit' => formField('submit', NULL, t('Submit button'), 'Submit'),
+    'submit' => formField('submit', t('Submit')),
   );
 
   $form['#attributes']['class'] = array('labeled');
@@ -812,7 +826,7 @@ function formDraft($form, &$sta, $argString = '') {
     'phone' => formField('textfield', t('Phone:'), t('Their primary phone (landline or cell)'), dft($phone) + required()),
     'argString' => formField('hidden', http_build_query($args)),
     'return' => formField('hidden', $return),
-    'submit' => formField('submit', NULL, t('Submit button'), 'Submit'),
+    'submit' => formField('submit', t('Submit')),
   );
 
   $form['#attributes']['class'] = array('labeled');
@@ -868,7 +882,7 @@ function formBank($form, &$sta) {
     'bank_accountName' => formField('textfield', t('Account name:'), t('What is the name on this bank account?'), dft($my_bank_accountName) + required()),
     'routing_number' => $routing_number,
     'bank_account_number' => formField('textfield', t('Account number:'), t('What is the account number? (be sure to get this right)'), dft($my_bank_account_number) + required()),
-    'submit' => formField('submit', NULL, t('Submit button'), 'Submit'),
+    'submit' => formField('submit', t('Submit')),
   );
 
   $form['#attributes']['class'] = array('labeled');
@@ -969,7 +983,7 @@ EOF;
     'new_person' => formField('textfield', t('Add Someone:'), t("name, id, email, or phone"), autocomplete('')),
     'list' => formField('item', '', '', array('markup' => $list)),
 //    'new_permission' => formField('select', '', '', dft(count($GLOBALS['share permissions']) - 1), $GLOBALS['share permissions']),
-    'go' => formField('submit', NULL, t('Submit button'), 'Save Changes'),
+    'go' => formField('submit', t('Save Changes')),
   );
 
 // (not needed because help_form has it)  drupal_add_js(R_TOGGLE_JS, array('type'=>'inline', 'scope'=>'footer'));
@@ -1063,7 +1077,7 @@ function formCell($form, &$sta) {
       'subtext' => formField('item', tt('verify cell', compact('number'))),
       'code' => formField('textfield', t('Code:')),
       'number' => formField('hidden', $number),
-      'verify' => formField('submit', NULL, t('Submit button'), 'Verify'),
+      'verify' => formField('submit', t('Verify')),
     );
     return $form;
   }
@@ -1081,10 +1095,10 @@ function formCell($form, &$sta) {
   $form = array(
     'title' => formField('item', t('Cell Phones for this account')),
     'cells' => formField('tableselect', '', '', array('header' => $headers, 'multiple' => TRUE, 'empty' => tt('no cells')), $list),
-    'delete' => formField('submit', NULL, t('Submit button'), 'Remove Selected Numbers'),
+    'delete' => formField('submit', t('Remove Selected Numbers')),
 
     'number' => formField('textfield', t('Add another cell phone:')),
-    'add' => formField('submit', NULL, t('Submit button'), 'Add'),
+    'add' => formField('submit', t('Add')),
   );
   return $form;
 }
@@ -1169,7 +1183,7 @@ function formRegister(&$form, &$sta) {
     'company_info' => formField('fieldset', '', '', array('id' => 'company_info')) + $company_info,
 
 /*    'address' => formField('textfield', t('Address:'), t('Mailing address'), dft($my_address)),
-    'submit' => formField('submit', NULL, t('Submit button'), 'Submit'), */
+    'submit' => formField('submit', t('Submit')), */
   );
 
   drupal_add_css(\drupal_get_path('module', 'rweb') . '/rweb.css', array('group' => CSS_THEME) + weight(-9));
@@ -1243,7 +1257,7 @@ function resetAlter(&$form, &$sta) {
   $form['title'] = formField('item', t('First Time Login'), '', weight(-99));
   $form['message']['#markup'] = str_replace('</p><p>' . t('Click on this button to log in to the site and change your password.'), t(' Choose a new password, then click on the button to log in.'), $form['message']['#markup']);
   $form['account']['pass'] = formField('password_confirm', '', t('Enter your new password in both fields.'));
-  $form['actions']['submit'] = formField('submit', '', '', array('value' => t('Login'))); // + weight(99));
+  $form['actions']['submit'] = formField('submit', t('Login')); // + weight(99));
   $form['#submit'][] = 'rCredits\\Web\\resetSubmit';
   $form['#attributes']['class'][] = 'rweb';
   focusOn('pass-pass1'); // note that password field gets expanded to two fields, of which pass1 is the first
@@ -1371,7 +1385,7 @@ function formDirectory($form, &$sta) {
 //    'subtext' => formField('item', t('for a country name or postal code...')),
     'which' => formField('textfield', t('Search for:'), t('Type part of company name or industry category'), dft($which) + autocomplete('industry')),
     'region' => formField('textfield', t('Where:'), t('Type the first few characters of your postal code<br>Try 013, to see the list for Greenfield, MA.'), dft($region)), // or country name
-    'submit' => formField('submit', NULL, t('Submit button'), t('Go')),
+    'submit' => formField('submit', t('Go')),
     'item' => formField('item', '', '', $list),
   );
 
@@ -1458,7 +1472,7 @@ EOF;
     'name' => formField('item', t('Company name:'), '', $cacct->full_name),
     'categories' => formField('select', t('Categories:'), t('Hold down the Ctrl key to select more than one'), $multiple + dft($my_cats), $cats),
     'description' => formField('text_format', t('Description:'), t('What does this company do?'), $filtered_html + dft($my_description)),
-    'submit' => formField('submit', NULL, t('Submit button'), t('Submit')),
+    'submit' => formField('submit', t('Submit')),
     'afterlinks' => formField('item', $afterlinks),
   );
 
@@ -1512,6 +1526,7 @@ function button($text, $href = '', $title = '', $type = '') {
  */
 function formI($form, &$sta, $who) {
   if (!($acct = r\acct($who))) return r\go(''); // not a real code -- just go to home page
+  svar('layout', 'mobile');
 /* NO. give choices.
   if (!($cacct = r\acct()) or !$cacct->can(PERM_SELL)) {
     if ($acct->isCompany()) return formProfile($form, $sta, $acct->name);
@@ -1522,7 +1537,7 @@ function formI($form, &$sta, $who) {
 
   list ($myId, $myAgent) = ($cacct = r\acct()) ? array($cacct->id, $cacct->agent) : array(FALSE, FALSE);
   list ($theId, $theAgent) = array($acct->id, $acct->agent);
-  $title = formField('item', t('Scanned QR'));
+  $identifiers = formField('item', identifiers($acct));
   $the_id = formField('hidden', $theId);
   $the_agent = formField('hidden', $theAgent);
 
@@ -1534,11 +1549,11 @@ function formI($form, &$sta, $who) {
     if (!$cacct or $cacct->can(PERM_BUY)) $pay = formField('submit', t('Pay'));
     if ($acct->can(PERM_COMPANY)) $site = formField('submit', t('Show Webpage'));
     if ($cacct) { // can change account or agent only if signed in
-      if (r\acct($myId, $theAgent)->can()) $change_agent = formField('submit', '', '', t('Change Agent'));
+      if (r\acct($myId, $theAgent)->can()) $change_agent = formField('submit', t('Change Agent'));
       if (r\acct($theId, $myAgent)->can()) $change_account = formField('submit', t('Change Account'));
     }
   }
-  $form = compact(u\ray('title the_id the_agent charge pay change_agent change_account'));
+  $form = compact(u\ray('identifiers the_id the_agent charge pay change_agent change_account'));
   return $form;
 }
 
@@ -1564,7 +1579,7 @@ function formSMS($form, &$sta) {
   $my_number = svar('lastSMS');
   $number = formField('textfield', t('From (number): '), '', dft($my_number));
   $message = formField('textfield', t('Message: '));
-  $submit = formField('submit', '', '', t('Send it!'));
+  $submit = formField('submit', t('Send it!'));
 
   focusOn('message');
   $form = compact(u\ray('title number message submit'));
@@ -1593,7 +1608,7 @@ function formOptions($form, &$sta) {
   $pay_how = formField('radios', t('Pay people how:'), $explain_virtual, dft($dft) + compact('post_render'), $pay_hows);
   $secret_bal = formField('checkbox', t('Secret Balance:'), t("Don't let qualified merchants tell me my balance, when I ask."), $cacct->hasBit(BIT_SECRET_BAL));
   // Double confirmation: by SMS, by email, either. require extra confirmation of crucial account changes
-  $submit = formField('submit', '', '', t('Update options'));
+  $submit = formField('submit', t('Update options'));
   
   $form = compact(u\ray('title pay_how notify_by secret_bal submit'));
   $form['#attributes']['class'] = array('labeled');
@@ -1608,6 +1623,13 @@ function formOptions_submit($form, $sta) {
   $cacct->setBit(BIT_NOTIFY_EMAIL, $notify_by & 1);
   $cacct->setBit(BIT_NOTIFY_SMS, $notify_by & 2);
   say('options saved');
+}
+
+function formReports($form, &$sta) {
+  $title = formField('item', t('Reports'));
+  $subtitle = formField('item', t('After rCredits is launched, this page will report progress statistics.'));
+  $form = compact(u\ray('title subtitle'));
+  return $form;
 }
 
 function fixupRadios($content, $element) {
@@ -1785,8 +1807,8 @@ function sureForm(&$sta, $title = 'Please Confirm') {
   $form = array(
     'title' => formField('item', $title),
     'question' => formField('item', $sta['confirm']),
-    'confirm' => formField('submit', NULL, t('Go ahead'), 'Okay'),
-    'cancel' => formField('submit', NULL, t("Don't do it"), 'Cancel'),
+    'confirm' => formField('submit', 'Okay'),
+    'cancel' => formField('submit', 'Cancel'),
   );
   $form['#skip_duplicate_check'] = TRUE; // Confirm form fails duplication check, as the form values rarely change -- so skip it.
   $form['#attributes'] = array('class' => u\ray('rweb confirmation'));
@@ -1912,7 +1934,7 @@ function menu($title, $type, $function = NULL, $function_args = array(), $access
 
 function formField($type, $title = '', $description = '', $other = array(), $options = NULL, $ajax = array()) {
   if (!is_array($other)) $other = array(($type == 'item' ? 'markup' : 'value') => $other);
-  if (empty($other) and ($type == 'item' or $type == 'hidden')) $other['value'] = $title;
+  if (empty($other) and in_array($type, u\ray('item hidden submit'))) $other['value'] = $title;
   $field = u\prefixKeys('#', array_merge(compact(u\ray('type title description options')), $other));
   return $field;
 }
@@ -2000,7 +2022,33 @@ function focusOn($focusFieldName) {
   $focusFieldName = str_replace('_', '-', $focusFieldName);
   drupal_add_js("document.getElementById('edit-$focusFieldName').focus();", array('type'=>'inline', 'scope'=>'footer'));
 }
- 
+
+function formFooter() {
+  $newLayout = (svar('layout') == 'mobile') ? '<a href="?layout=desktop">desktop layout</a>' : '<a href="?layout=mobile">mobile-friendly layout</a>';
+  $year = date('Y');
+  $markup =<<<EOF
+<hr><br>
+website copyright &copy; $year <a href="http://CommonGoodFinance.org">Common Good Finance&trade;</a>, a 501(c)(3) nonprofit<br/>
+PO Box 21, Ashfield, MA 01330 USA<br/>
++1 413-628-1723 &nbsp; <a href="mailto:info@rCredits.org">info@rCredits.org</a><br>
+$newLayout
+<br>
+EOF;
+  $text = formField('item', $markup);
+$js =<<<EOF
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-30262912-1']);
+_gaq.push(['_trackPageview']);
+
+(function() {
+  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+  ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+EOF;
+  drupal_add_js($js, array('type'=>'inline', 'scope'=>'footer'));
+  return compact('text');
+}
+
 function webAccess($access) {
   $access = substr($access, 1);
   setupGlobals(); // remember who we are (the only reason for this function)
