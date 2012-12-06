@@ -15,5 +15,6 @@ function rweb_install() {
   r\Web\userMenuItem('help', 'Help');
   r\Web\userMenuItem('membership', 'Membership');
   r\Web\userMenuItem('account', 'Settings');
+  r\Web\userMenuItem('promo-site', 'Main site');
   r\dbQ("UPDATE {menu_links} SET hidden=1 WHERE menu_name='user-menu' AND link_path='user'");
 }

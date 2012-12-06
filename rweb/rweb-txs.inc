@@ -72,7 +72,7 @@ function formTxs($form, &$sta, $argString = '') {
   $title = "<div id='txs-title'>TRANSACTIONS</div>";
   $classes = u\prefixValues('tx-', u\ray('tid date name fromyou toyou state buttons purpose reward'));
   $attributes = array('id' => 'txlist');
-  $header = u\ray('#,Date,Name,From you,To you,Status,,Purpose,Rewards');
+  $header = u\ray('#,Date,Name,From you,To you,Status,Action,Purpose,Rewards');
   $cols = array();
   foreach ($classes as $class) $cols[] = compact('class');
   $colgroups = array($cols);

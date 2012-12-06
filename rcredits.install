@@ -235,7 +235,7 @@ function rcredits_schema_alter(&$schema) {
     'counts' => r\setupField('counts of command use, etc.', 'int big', 0),
     'min_balance' => r\setupField('minimum balance (normally zero or less)', 'numeric 9,2', R_MIN_BALANCE),
 // separate table for this? 'nym' => r\setupField('unique identifier for cryptographic signing', 'text tiny'), 
-    'bank_accountName' => r\setupField('name on US$ bank account -- usually the same as full_name', 'varchar 60'),
+    'bank_account_name' => r\setupField('name on US$ bank account -- usually the same as full_name', 'varchar 60'),
     'bank_account_number' => r\setupField('official currency international bank account number', 'varchar 34'),
     'bank_account_status' => r\setupField('account ownership verified, closed, etc.', 'int tiny', 0, '010'),
   );

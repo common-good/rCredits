@@ -610,6 +610,7 @@ function trimAll(&$array) {
  */
  
 function retNum($s) {return is_numeric($s) ? $s : FALSE;}
+function retEqual($s, $value) {return $s == $value ? $s : FALSE;}
 function retNotEqual($s, $value) {return $s != $value ? $s : FALSE;}
 function retSet($s) {return isset($s) ? $s : FALSE;} // this is needed when $s might be set but FALSE, '', or 0
 

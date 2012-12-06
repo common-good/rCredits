@@ -91,6 +91,7 @@ function rweb_menu() {
     'radmin/fine' => r\Web\menu(t('Fine'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), PERM_CTTY_ADMIN),
 
     'membership' => r\Web\menu(t('Membership Status'), MENU_CALLBACK, 'showForm', array('Membership'), PERM_MANAGE),
+    'promo-site' => r\Web\menu(t('Main Site'), MENU_CALLBACK, 'drupal_goto', array('http://rCredits.org'), '', $anyone),
 
     'member' => r\Web\menu('Company Profile', MENU_CALLBACK, 'showForm', array('Profile'), '', $anyone),
     'rcredits/util' => r\Web\menu('Util', MENU_CALLBACK, 'rCredits\\Web\\util', array(2), PERM_ADMIN),

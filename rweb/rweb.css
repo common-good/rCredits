@@ -6,7 +6,13 @@
 #page-title {display: none;}
 #name-and-slogan {margin-bottom:15px;}
 #site-name {margin-top:30px;}
+#secondary-menu-links li {border-right:1px solid silver; padding-left:3px; padding-right:5px;}
+#secondary-menu-links li.last {border-right:0;}
+/*#edit-account-link label {margin-right:15px; text-align:right;}
+#edit-account-link label a {color:white; font-weight:normal;} */
 #help-link {margin:0px; float:right;}
+#help-link label {width:108px; font-size:80%; text-align:left; padding-left:23px; background-image:url(../../../../../images/icons/question-mark.gif); background-repeat:no-repeat; height:20px;}
+
 #breadcrumb {margin:0px; display:none;}
 div.develw div {display:inline;}
 
@@ -19,7 +25,6 @@ form.rweb div {vertical-align:top;}
 
 form.rweb div#edit-title {margin-bottom:0px;}
 form.rweb div#edit-title label {font-size:200%; color:darkgreen;}
-form.rweb div#help-link label {font-size:80%; text-align:left; padding-left:23px; background-image:url(../../../../../images/icons/question-mark.gif); background-repeat:no-repeat; height:20px;}
 
 form.rweb div.form-item div.description {display:block; clear:both; margin:2px 0px 0px 0px;}
 form.rweb div.form-type-item label {text-align:left;}
@@ -39,14 +44,13 @@ form.rweb div.form-type-radio label {display:inline; width:100px; margin-left:3p
 /* Labeled Forms (each field is preceded by a short label and the fields line up)
 /* form.rweb.labeled (this fails for Chrome) */
 form.labeled div.form-type-textfield {display:block; margin-right:0px;}
-form.labeled label, form.labeled div.form-type-item label {display:inline-block; width:130px; text-align:right; margin-right:0px;} /* default label width */
+form.labeled label, form.labeled div.form-type-item label {display:inline-block; width:135px; text-align:right; margin-right:0px;} /* default label width */
 form.labeled div#edit-title label,
-form.labeled div#help-link,
 form.labeled div.form-item div.description,
 form.labeled div.description,
 form.labeled input.form-submit,
 form.labeled div.form-radios,
-form.labeled div#edit-subtext {margin-left:135px;}
+form.labeled div#edit-subtext {margin-left:135px; padding-left:5px;}
 
 form.labeled div.description {font-size:.85em}
 form.labeled div#edit-title label {text-align:left; width:100%;}
@@ -60,6 +64,7 @@ form.rweb  .form-no {color:red;}
 
 /* Login */
 #user-login div#edit-tip label {font-weight:normal; width:100%;}
+#user-login input#edit-pass {width:250px;}
 
 /* Login block */
 #user-login-form input#edit-name {width:150px;}
@@ -79,16 +84,18 @@ form.rweb  .form-no {color:red;}
 #user-register-form  div#edit-company-text label {text-align:left;}
 
 /* Company Info */
-#rcreditswebformcompany fieldset#edit-description-format,
-#rcreditswebformcompany fieldset#edit-description-format div.fieldset-wrapper {
-  margin-top:0px; 
-  background-color:lightblue;
+#rcreditswebformcompany fieldset#edit-description-format {background-color:lightblue;}
+#rcreditswebformcompany.labeled fieldset#edit-description-format {margin-left:135px;}
+#rcreditswebformcompany fieldset#edit-description-format div.fieldset-wrapper {margin:0px;}
 }
 #rcreditswebformcompany textarea {height:60px; width:100%; border-color:lightblue;}
-#rcreditswebformcompany div.form-textarea-wrapper {width:796px;}
+#rcreditswebformcompany.labeled div.form-textarea-wrapper {width:796px;}
 #rcreditswebformcompany input#edit-submit {margin-top:20px; display:inline-block;}
-#rcreditswebformcompany div#edit-afterlinks {display:inline-block; width:400px;}
-#rcreditswebformcompany div#edit-afterlinks label {width:100%; margin-top:20px; text-align:left;}
+#rcreditswebformcompany div#edit-links {display:block; width:340px;}
+#rcreditswebformcompany.labeled div#edit-links {margin-left:135px;}
+#rcreditswebformcompany div#edit-links label {width:100%; text-align:left; font-weight:normal;}
+
+#rcreditswebformcompany.labeled div.form-item-categories label {position:relative; top:-56px;} /* dunno why top is off */
 
 /* Account Info */
 #rcreditswebformaccount div.form-type-textfield label {display:block;}
@@ -116,7 +123,7 @@ div#accounts select {font-size:10px; padding:0px; margin-right:15px;}
 /* Transact form (labeled) */
 #rcreditswebformtx.confirmation div.user-picture {float:left; margin-right:20px;}
 #rcreditswebformtx.confirmation div#id-other {float:left; clear:right; min-width:200px; max-width:300px; font-weight:normal; font-size:20px;}
-#rcreditswebformtx.confirmation div#id-name {margin-top:50px;}
+#rcreditswebformtx.confirmation div#id-name {margin-top:30px; font-weight:bold; font-size:30px; color:darkgreen;}
 
 /* Exchange form (labeled) */
 /* #rcreditswebformexchange div#edit-request label {font-weight:normal; text-align:left; margin-left:100px; width:100%} */
@@ -138,29 +145,30 @@ div#accounts select {font-size:10px; padding:0px; margin-right:15px;}
 #txsum col.txsum-toyou, #txsum col.txsum-fromyou, #txsum col.txsum-rewards {width:75px;}
 
 /* Transactions */
-#rcreditswebformtxs {display:inline-block; width:100%; height:45px; text-align:left;}
-#rcreditswebformtxs div.form-item-tx-period {display:inline-block;}
+#rcreditswebformtxs {display:inline-block; width:100%; text-align:left;}
+#rcreditswebformtxs div.form-item-tx-period {margin-top:20px; display:inline-block;}
 #rcreditswebformtxs div.form-item-tx-task {display:inline-block;}
-#rcreditswebformtxs div.form-type-select label {display:inline-block; width:225px;} 
-#rcreditswebformtxs  input[type="submit"] {margin:5px 0px 0px 10px;}
+#rcreditswebformtxs div.form-type-select label {display:inline-block; width:200px;} 
+#rcreditswebformtxs  input[type="submit"] {margin:23px 0px 0px 10px;}
 #rcreditswebformtxs div.txs-buttons div {display:inline-block; width:22px; text-align:center; vertical-align:middle;}
 #rcreditswebformtxs div.txs-buttons div:first-child +div input {color:red; font-weight:bold;}
 
 #rcreditswebformtxs col.tx-selector {width:10px;}
-#rcreditswebformtxs col.tx-tid {width:50px; text-align:right;} /* for IE; text-align in <col> should have no effect according to CSS 2.1 */ 
-#rcreditswebformtxs col.tx-date {width:60px;}
-#rcreditswebformtxs col.tx-fromyou {width:75px; text-align:right;}
-#rcreditswebformtxs col.tx-toyou {width:75px; text-align:right;}
-#rcreditswebformtxs col.tx-status {width:75px;}
-#rcreditswebformtxs col.tx-buttons {width:85px;}
-#rcreditswebformtxs col.tx-rewards {width:75px; text-align:right;}
+/* for IE; text-align in <col> should have no effect according to CSS 2.1 */ 
+#rcreditswebformtxs col.tx-tid {width:50px; text-align:right;} /* 1 */
+#rcreditswebformtxs col.tx-date {width:60px; text-align:right;} /* 2 */
+#rcreditswebformtxs col.tx-fromyou {width:75px; text-align:right;} /* 4 */
+#rcreditswebformtxs col.tx-toyou {width:75px; text-align:right;} /* 5 */
+#rcreditswebformtxs col.tx-status {width:75px; text-align:right;} /* 6 */
+#rcreditswebformtxs col.tx-buttons {width:85px; text-align:right;} /* 7 */
+#rcreditswebformtxs col.tx-rewards {width:75px; text-align:right;} /* 7 */
 
 #rcreditswebformtxs th:first-child {text-align:right;} /* column 1 */
 #rcreditswebformtxs th:first-child +th {text-align:right;} /* column 2 */
 #rcreditswebformtxs th:first-child +th+th+th {text-align:right;} /* column 4 */
 #rcreditswebformtxs th:first-child +th+th+th+th {text-align:right;} /* column 5 */
 #rcreditswebformtxs th:first-child +th+th+th+th+th {text-align:right;} /* column 6 */
-/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th {text-align:right;} /* column 7 */
+#rcreditswebformtxs th:first-child +th+th+th+th+th+th {text-align:right;} /* column 7 */
 #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th {text-align:right;} /* column 9 */
 
 #rcreditswebformtxs td:first-child {text-align:right;} /* column 1 */
@@ -168,7 +176,7 @@ div#accounts select {font-size:10px; padding:0px; margin-right:15px;}
 #rcreditswebformtxs td:first-child +td+td+td {text-align:right;} /* column 4 */
 #rcreditswebformtxs td:first-child +td+td+td+td {text-align:right;} /* column 5 */
 #rcreditswebformtxs td:first-child +td+td+td+td+td {text-align:right;} /* column 6 */
-/* #rcreditswebformtxs td:first-child +td+td+td+td+td+td {text-align:right;} /* column 7 */
+#rcreditswebformtxs td:first-child +td+td+td+td+td+td {text-align:right;} /* column 7 */
 #rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td {text-align:right;} /* column 9 */
 
 /* Relation form */
@@ -237,10 +245,16 @@ div#content {display:block;} /* keeps autocomplete from getting placed in a wack
 #rcreditswebformoptions  div.form-radios {margin-left:0px; display:inline-block;}
 /*#rcreditswebformoptions div.form-item-notify-by {margin-top:40px;}
 #rcreditswebformoptions div.form-item-secret-bal {margin-top:80px;}*/
-#rcreditswebformoptions div.form-item-secret-bal input {margin-left:135px;}
-#rcreditswebformoptions div.form-item-secret-bal label {margin-left:-154px; font-weight:bold;}
-#rcreditswebformoptions div.form-item-secret-bal div.description {display:inline-block; margin-left:23px;}
+#rcreditswebformoptions div.form-item-secret-bal input {margin-left:145px;}
+#rcreditswebformoptions div.form-item-secret-bal label {margin-left:-160px; font-weight:bold;}
+#rcreditswebformoptions div.form-item-secret-bal div.description {display:inline-block; margin-left:20px;}
 #rcreditswebformoptions div.form-type-radios {border-bottom:1px solid darkgreen; margin-bottom:5px;}
+
+/* I */
+div#sidebar-first {width:180px; padding-top:5px; border:1px solid darkgreen;}
+div#sidebar-first div.section {padding:0px;}
+div#block-user-login {padding:0px; padding-left:12px; margin-bottom:0px;}
+#rcreditswebformi div#id-name {margin-top:30px; font-weight:bold; font-size:24px; color:darkgreen;}
 
 /* Popups */
 fieldset#popup, fieldset#help {

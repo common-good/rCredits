@@ -45,6 +45,7 @@ define('PERM_MANAGE', 5);
 define('PERM_COMPANY', 7);
 $GLOBALS['share permissions'] = array('no access', 'read transactions', 'sell', 'buy and sell', 'other', 'manage account');
 define('PERM_CHARGE', 8);
+define('PERM_MEMBER', 10); // signed up for rCredits
 define('PERM_PARTNER', 11); // signed the membership agreement and donated
 define('PERM_STEWARD', 12); // is allowed to vote and is responsible for stewarding the Common Good Community
 define('PERM_RTRADER', 14); // is allowed to use rCredits for real

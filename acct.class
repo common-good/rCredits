@@ -153,7 +153,8 @@ class acct {
       } else $can = relation('permission', $id, $this->agent);
 
       for ($i = 0; $i <= PERM_MANAGE; $i++) $perms[$i] = ($i <= $can);
-         
+
+      $perms[PERM_MEMBER] = ($this->pass !== ''); // anyone with a password is a member
       $perms[PERM_COMPANY] = ($this->account_type != R_PERSONAL); // ad hoc permissions
       $perms[PERM_PARTNER] = $this->hasBit(BIT_PARTNER);
       $perms[PERM_STEWARD] = $this->hasBit(BIT_STEWARD);

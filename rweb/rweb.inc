@@ -176,19 +176,17 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   try {
     setupGlobals(); // in case it's an anonymous form, so webAccess doesn't have a chance to set up
     $layout = @$_GET['layout'] ?: svar('layout');
+    if ($function == 'I') $layout = 'Mobile';
+    $newLayout = ($layout != svar('layout'));
     
     $args = 'arg1' . ($arg2 !== '' ? ' arg2' : '') . ($arg3 !== '' ? ' arg3' : '') . ($arg4 !== '' ? ' arg4' : '');
     if ($function != 'accounts' and $function != 'home') u\log("show $function", compact(u\ray($args)));
-    drupal_add_css(\drupal_get_path('module', 'rweb') . '/rweb.css', array('group' => CSS_THEME) + weight(-9));
-    if ($layout == 'mobile') drupal_add_css(\drupal_get_path('module', 'rweb') . '/mobile.css', array('group' => CSS_THEME) + weight(-8));
+    if ($layout == 'Mobile') css('mobile.css', 100);
     $formName = substr($function, 0, 1) == '\\' ? $function : "rCredits\\Web\\form$function";
+    if ($newLayout) svar('layout', $layout); // do this before drupal_get_form, so forms can know the current layout
     $form = drupal_get_form($formName, $arg1, $arg2, $arg3, $arg4);
-  //  $form['#attached']['css'] = array(\drupal_get_path('module', 'rweb') . '/rweb.css');
     $form['#attributes']['class'][] = 'rweb';
-    if ($layout != svar('layout')) {
-      svar('layout', $layout);
-      $form['#cache'] = FALSE;
-    }
+    if ($newLayout) $form['#cache'] = FALSE;
     if (!@$form['confirm']) $form += which(); // add the choices popup form, if any
 
     if ($function != 'help') if (($i = array_search('title', array_keys($form))) !== FALSE or $function == 'Txs') {
@@ -416,12 +414,12 @@ function formSummary($form, &$sta) {
   $account_id = formField('item', t('Account ID:'), '', $cacct->mainQid . ' ' . u\hug(R_REGION_NAME));
   if (!$cacct->isCompany() or !$cacct->proSe()) {
     $card = formField('item', '&nbsp;', '', t('<a>Print Temporary ID Card</a>'));
-  } else $cardC = formField('item', '&nbsp;', '', t("To print temporary ID cards for employees or other agents, visit the <a href=\"$base_url/account/relations\">Account Relations</a> page."));
+  } else $cardC = formField('item', '&nbsp;', '', t("To print employee ID cards, visit the <a href=\"$base_url/account/relations\">Account Relations</a> page."));
   $accountName = formField('item', t('Name:'), '', $cacct->full_name . ' ' . u\hug($name));
   $address = formField('item', '&nbsp;', '', $address);
   $account_type = formField('item', t('Account type:'), '', $GLOBALS['account types'][$cacct->account_type+0]); // +0 for admin
   $balance = formField('item', t('Balance:'), '', $my_balance . (r\isRTrader() ? '' : R_ASIF_TEXT));
-  $credit_limit = formField('item', t('Credit limit:'), '(this is how far in debt you can go &mdash; for up to 30 days)', u\formatAmount(-$cacct->min_balance));
+  $credit_limit = formField('item', t('Credit limit:'), '(You can go this far in debt for up to 30 days)', u\formatAmount(-$cacct->min_balance));
   $rewards_to_date = formField('item', t('Rewards to date:'), '', $my_rewards);
 
   $form = compact(u\ray('title account_id card cardC accountName address account_type balance credit_limit rewards_to_date'));
@@ -494,12 +492,13 @@ function formAccounts($form, &$sta) {
   $onchange = "this.form.submit();";
 //  $account = formField('select', t('Account:'), t('(Select an account)'), dft($cuid) + attrib(compact('onchange')), $choices);
   $account = formField('select', '', '', dft($cuid) + attrib(compact('onchange')), $choices);
-  $one_account = formField('item', t('Account') . ": <span>$full_name ($qid)</span>");
-  $one_balance = formField('item', t('Current Balance') . ": <span>$balance</span>");
+//  $link = formField('item', '<a href="http://rCredits.org">Main Site</a>');
   $submit = formField('submit');
-//  $form = count($choices) == 1 ? compact(u\ray('one_account one_balance')) : u\prefixKeys('account_', compact(u\ray('account submit')));
   $form = u\prefixKeys('account_', compact(u\ray('account submit'))); // always give a dropdown
 
+//  $one_account = formField('item', t('Account') . ": <span>$full_name ($qid)</span>");
+//  $one_balance = formField('item', t('Current Balance') . ": <span>$balance</span>");
+  //  $form = count($choices) == 1 ? compact(u\ray('one_account one_balance')) : u\prefixKeys('account_', compact(u\ray('account submit')));
   //  $form['#attributes']['class'] = array('labeled');
   return $form;
 }
@@ -867,7 +866,7 @@ function no_selection($list) {
 function formBank($form, &$sta) {
   extract((array) r\acct()->account(), EXTR_PREFIX_ALL, 'my');
 
-  if (!$my_bank_accountName) $my_bank_accountName = $my_full_name;
+  if (!$my_bank_account_name) $my_bank_account_name = $my_full_name;
   
   $form = array();
   if ($my_country == R_COUNTRY) {
@@ -879,7 +878,7 @@ function formBank($form, &$sta) {
   $form = array(
     'title' => formField('item', t('Bank Information')),
 //    'subtext' => ,
-    'bank_accountName' => formField('textfield', t('Account name:'), t('What is the name on this bank account?'), dft($my_bank_accountName) + required()),
+    'bank_account_name' => formField('textfield', t('Account name:'), t('What is the name on this bank account?'), dft($my_bank_account_name) + required()),
     'routing_number' => $routing_number,
     'bank_account_number' => formField('textfield', t('Account number:'), t('What is the account number? (be sure to get this right)'), dft($my_bank_account_number) + required()),
     'submit' => formField('submit', t('Submit')),
@@ -891,7 +890,7 @@ function formBank($form, &$sta) {
 
 function formBank_validate($form, &$sta) {
   extract(u\trimAll($sta['values']));
-  if (!u\validName($bank_accountName, FALSE, FALSE)) say('bad name', 'bank_accountName');
+  if (!u\validName($bank_account_name, FALSE, FALSE)) say('bad name', 'bank_account_name');
   if (!preg_match('/^(|[0-9]{9})$/', $routing_number)) say('bad routing number', 'routing_number');
   if (!preg_match('/^[0-9]{3,20}$/', $bank_account_number)) say('bad account number', 'bank_account_number');
 }
@@ -899,7 +898,7 @@ function formBank_validate($form, &$sta) {
 function formBank_submit($form, &$sta) {
   extract($sta['values']);
   if (r\acct()->country == R_COUNTRY) $bank_account_number = "USkk$routing_number$bank_account_number";
-  r\userUpdate(compact(u\ray('bank_accountName bank_account_number')));
+  r\userUpdate(compact(u\ray('bank_account_name bank_account_number')));
   say('info saved');
 }
 
@@ -1093,7 +1092,8 @@ function formCell($form, &$sta) {
   }
 
   $form = array(
-    'title' => formField('item', t('Cell Phones for this account')),
+    'title' => formField('item', t('Cell Phones')),
+    'subtitle' => formField('item', t('for this account')),
     'cells' => formField('tableselect', '', '', array('header' => $headers, 'multiple' => TRUE, 'empty' => tt('no cells')), $list),
     'delete' => formField('submit', t('Remove Selected Numbers')),
 
@@ -1165,7 +1165,7 @@ function formRegister(&$form, &$sta) {
   $company_info = array(
     'company_text' => formField('item', t('Are you an owner and/or employee of a local company (or of any participating rCredits company)? Otherwise leave it blank.')),
     'company' => formField('textfield', t('Company: '), t(''), autocomplete('company')),
-    'company_phone' => formField('textfield', t('Company phone:'), t('What is the company\'s primary phone number?')),
+    'company_phone' => formField('textfield', t('<small>Company</small> Phone:'), t('What is the company\'s primary phone number?')),
     'company_options' => formField('checkboxes', '', '', '', $company_options),
   );
   
@@ -1186,7 +1186,7 @@ function formRegister(&$form, &$sta) {
     'submit' => formField('submit', t('Submit')), */
   );
 
-  drupal_add_css(\drupal_get_path('module', 'rweb') . '/rweb.css', array('group' => CSS_THEME) + weight(-9));
+  css('rweb.css', -9); // needed because this function doesn't go through show()
   drupal_add_js('inc/countries.js', array('type'=>'file', 'scope'=>'header'));
   drupal_add_js("print_country(\"edit-country\", \"$my_country\", \"$my_state\");", array('type'=>'inline', 'scope'=>'footer'));
 
@@ -1297,8 +1297,9 @@ function loginAlter(&$form, &$sta, $regular = TRUE) {
   $form['pass']['#title'] = t('Password:');
   
   $form['#attributes']['class'][] = $regular ? 'rweb labeled' : 'rweb';
-  $form['#attached']['css'][] = \drupal_get_path('module', 'rweb') . '/rweb.css';
+//  $form['#attached']['css'][] = \drupal_get_path('module', 'rweb') . '/rweb.css';
   focusOn('name');
+  css('rweb.css', -9); // needed because this function doesn't go through show()
 }
 
 /**
@@ -1462,22 +1463,22 @@ function formCompany($form, &$sta) {
   $my_cats = r\dbQ('SELECT iid FROM r_user_industries WHERE uid=:cuid', compact('cuid'))->fetchCol();
   $multiple = array('multiple' => TRUE);
   $filtered_html = array('format' => 'filtered_html');
-  $afterlinks = <<<EOF
+  $links = <<<EOF
   <a id='show-webpage' href="$base_url/member/$cacct->name" target="_blank">Show my public rCredits web page</a> (in a new window)
 EOF;
   
   $form = array(
     'title' => formField('item', t('Company Information')),
+    'links' => formField('item', $links),
 //    'subtext' => basic_account_info(),
     'name' => formField('item', t('Company name:'), '', $cacct->full_name),
     'categories' => formField('select', t('Categories:'), t('Hold down the Ctrl key to select more than one'), $multiple + dft($my_cats), $cats),
     'description' => formField('text_format', t('Description:'), t('What does this company do?'), $filtered_html + dft($my_description)),
     'submit' => formField('submit', t('Submit')),
-    'afterlinks' => formField('item', $afterlinks),
   );
 
 // (doesn't work well for textarea) $form['#attributes']['class'] = array('labeled');
-  $form['#attributes']['class'] = array('labeled');
+  if (svar('layout') != 'Mobile') $form['#attributes']['class'] = array('labeled');
   return $form;
 }
 
@@ -1526,7 +1527,6 @@ function button($text, $href = '', $title = '', $type = '') {
  */
 function formI($form, &$sta, $who) {
   if (!($acct = r\acct($who))) return r\go(''); // not a real code -- just go to home page
-  svar('layout', 'mobile');
 /* NO. give choices.
   if (!($cacct = r\acct()) or !$cacct->can(PERM_SELL)) {
     if ($acct->isCompany()) return formProfile($form, $sta, $acct->name);
@@ -1545,21 +1545,21 @@ function formI($form, &$sta, $who) {
     say('no self-trading', array(), 'error');
     r\go('');
   } else {
-    $charge = formField('submit', t('Charge'));
-    if (!$cacct or $cacct->can(PERM_BUY)) $pay = formField('submit', t('Pay'));
-    if ($acct->can(PERM_COMPANY)) $site = formField('submit', t('Show Webpage'));
-    if ($cacct) { // can change account or agent only if signed in
+    if ($cacct) { // can charge, pay, or change account or agent only if signed in
+      $charge = formField('submit', t('Charge'));
+      if ($cacct->can(PERM_BUY)) $pay = formField('submit', t('Pay'));
       if (r\acct($myId, $theAgent)->can()) $change_agent = formField('submit', t('Change Agent'));
       if (r\acct($theId, $myAgent)->can()) $change_account = formField('submit', t('Change Account'));
-    }
+    } else $login = formField('item', t('Please login, to Pay or Charge this account.'));
+    if ($acct->can(PERM_COMPANY)) $site = formField('submit', t('Show Webpage'));
   }
-  $form = compact(u\ray('identifiers the_id the_agent charge pay change_agent change_account'));
+  $form = compact(u\ray('identifiers the_id the_agent login charge pay site change_agent change_account'));
+  if (!$cacct) css('formi.css');
   return $form;
 }
 
 function formI_submit($form, &$sta) {
   extract(u\just('op the_id the_agent', $sta['values']));
-  $cuid = r\acct()->id;
   $acct = r\acct($the_id, $the_agent);
   $shortName = $acct->name;
   if ($op == 'Charge') r\go("charge/who=$shortName");
@@ -1567,7 +1567,8 @@ function formI_submit($form, &$sta) {
   if ($op == 'Show Webpage') r\go("member/$shortName");
   if ($op == 'Change Agent') r\go("user/logout/who=$shortName");
   if ($op == 'Change Account') {
-    if (!r\acct($the_id, $cuid)->can()) r\go('user/logout'); // hack
+    $cacct = r\acct();
+    if (!$cacct or !r\acct($the_id, $cacct->id)->can()) r\go('user/logout'); // hacker. so leave.
     svar('cuid', $the_id);
     $accountName = $acct->full_name;
     say('changed account', compact('accountName'));
@@ -1699,9 +1700,10 @@ function memberID($uid = '') {
  * Return markup to identify the agent of the given account.
  */
 function identifiers($acct) {
+  $cacct = r\acct();
   list ($agent, $company) = $acct->proSe() ? array($acct, '') : array(r\acct($acct->agent), $acct->full_name);
   $location = u\location($acct);
-  $pic = r\acct()->can(PERM_CHARGE) ? profile_picture($agent->id, TRUE) : ''; // let qualified companies see the picture
+  $pic = ($cacct and $cacct->can(PERM_CHARGE)) ? profile_picture($agent->id, TRUE) : ''; // let qualified companies see the picture
   return <<<EOF
     <div class="clearfix">
     $pic
@@ -2024,15 +2026,17 @@ function focusOn($focusFieldName) {
 }
 
 function formFooter() {
-  $newLayout = (svar('layout') == 'mobile') ? '<a href="?layout=desktop">desktop layout</a>' : '<a href="?layout=mobile">mobile-friendly layout</a>';
+  $layout = (svar('layout') == 'Mobile') ? 'Desktop' : 'Mobile';
   $year = date('Y');
   $markup =<<<EOF
-<hr><br>
+<hr>
+<a href="?layout=$layout">$layout layout</a> |
+<a href="http://rCredits.org">Main site</a> |
+<a href="help">Help</a>
+<br><br>
 website copyright &copy; $year <a href="http://CommonGoodFinance.org">Common Good Finance&trade;</a>, a 501(c)(3) nonprofit<br/>
 PO Box 21, Ashfield, MA 01330 USA<br/>
 +1 413-628-1723 &nbsp; <a href="mailto:info@rCredits.org">info@rCredits.org</a><br>
-$newLayout
-<br>
 EOF;
   $text = formField('item', $markup);
 $js =<<<EOF
@@ -2054,6 +2058,10 @@ function webAccess($access) {
   setupGlobals(); // remember who we are (the only reason for this function)
   $cacct = $cacct = r\acct();
   return ($access and $cacct) ? $cacct->can($access) : FALSE;
+}
+
+function css($sheet, $weight = -99) {
+  drupal_add_css(\drupal_get_path('module', 'rweb') . "/$sheet", array('group' => CSS_THEME) + weight($weight));
 }
 
 // one-line functions that need no explanation
