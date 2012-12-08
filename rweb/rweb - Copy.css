@@ -1,0 +1,278 @@
+/* Standard Forms */
+#page-wrapper, #footer-wrapper {background: white;} /* Drupal messes this up otherwise, in Bartik theme */
+#footer, #footer label {text-align:center; color:darkgray;}
+#footer label a {color:black;}
+#footer label a:hover {color:darkgray; text-decoration:underline;}
+#page-title {display: none;}
+#name-and-slogan {margin-bottom:15px;}
+#site-name {margin-top:30px;}
+#secondary-menu-links li {border-right:1px solid silver; padding-left:3px; padding-right:5px;}
+#secondary-menu-links li.last {border-right:0;}
+/*#edit-account-link label {margin-right:15px; text-align:right;}
+#edit-account-link label a {color:white; font-weight:normal;} */
+#help-link {margin:0px; float:right;}
+#help-link label {width:100%; font-size:80%; text-align:left; padding-left:23px; background-image:url(../../../../../images/icons/question-mark.gif); background-repeat:no-repeat;}
+
+div.breadcrumb {margin:0px; display:none;}
+div.develw div {display:inline;}
+
+/* ul#main-menu-links li.first {display:none;} Use this to suppress spurious "Home" tab, but better to delete it in menu_links */
+div#secondary-menu li.menu-2 {display:none;} /* Drupal recreates and unhides this if we try to delete it or hide it */
+
+form.rweb {font-family:Arial;}
+form.rweb div.invisible {display:none;}
+form.rweb div {vertical-align:top;}
+
+form.rweb div#edit-title {margin-bottom:0px;}
+form.rweb div#edit-title label {font-size:200%; color:darkgreen;}
+
+form.rweb div.form-item div.description {display:block; clear:both; margin:2px 0px 0px 0px;}
+form.rweb div.form-type-item label {text-align:left;}
+form.rweb div.form-type-textfield {display:inline-block; margin-right:0px;}
+form.rweb div.form-type-textfield label {display:inline-block;}
+form.rweb div#edit-subtext label {font-weight:normal; width:100%; text-align:left;}
+
+form.rweb input {vertical-align:top;}
+form.rweb input[type="text"] {width:240px;}
+
+form.rweb div.form-type-radios {margin:0px;}
+form.rweb div.form-radios {margin-bottom:0px;}
+form.rweb div.form-type-radio {display:inline-block; margin-top:0px;}
+form.rweb div.form-type-radio input {display:inline-block; margin-left:0px; vertical-align:bottom;}
+form.rweb div.form-type-radio label {display:inline; width:100px; margin-left:3px; text-align:left;}
+
+/* Labeled Forms (each field is preceded by a short label and the fields line up)
+/* form.rweb.labeled (this fails for Chrome) */
+form.labeled div.form-type-textfield {display:block; margin-right:0px;}
+form.labeled label, form.labeled div.form-type-item label {display:inline-block; width:135px; text-align:right; margin-right:0px;} /* default label width */
+form.labeled div#edit-title label,
+form.labeled div.form-item div.description,
+form.labeled div.description,
+form.labeled input.form-submit,
+form.labeled div.form-radios,
+form.labeled div#edit-subtext {margin-left:135px; padding-left:5px;}
+
+form.labeled div.description {font-size:.85em}
+form.labeled div#edit-title label {text-align:left; width:100%;}
+form.labeled div.labeled-block {display:inline-block;}
+form.labeled div.form-textarea-wrapper {display:inline-block;}
+
+form.labeled .form-local, form.rweb .form-local {margin:1px 2px 1px 2px; padding:2px; font-size:70%; color:darkgreen;}
+
+form.rweb  .form-yes {color:green;}
+form.rweb  .form-no {color:red;}
+
+/* Login */
+#user-login div#edit-tip label {font-weight:normal; width:100%;}
+#user-login input#edit-pass {width:250px;}
+
+/* Login block */
+#user-login-form input#edit-name {width:150px;}
+#user-login-form input#edit-pass {width:150px;}
+#user-login-form div#edit-tip label {font-weight:normal;}
+
+
+/* Register */
+#user-register-form div#edit-company-text label {font-weight:normal; width:100%;}
+#user-register-form div.form-checkboxes div {display:inline-block;}
+
+#user-register-form div.form-checkboxes {margin-left:135px;}
+#user-register-form div.form-type-checkbox {display:inline-block;}
+#user-register-form div.form-type-checkbox input {display:inline-block; margin-left:0px; vertical-align:bottom;}
+#user-register-form div.form-type-checkbox label {display:inline; width:100px; margin-left:3px; text-align:left;}
+#user-register-form  fieldset.form-wrapper {margin-left:0px;}
+#user-register-form  div#edit-company-text label {text-align:left;}
+
+/* Company Info */
+#rcreditswebformcompany fieldset#edit-description-format {background-color:lightblue;}
+#rcreditswebformcompany.labeled fieldset#edit-description-format {margin-left:135px;}
+#rcreditswebformcompany fieldset#edit-description-format div.fieldset-wrapper {margin:0px;}
+}
+#rcreditswebformcompany textarea {height:60px; width:100%; border-color:lightblue;}
+#rcreditswebformcompany.labeled div.form-textarea-wrapper {width:796px;}
+#rcreditswebformcompany input#edit-submit {margin-top:20px; display:inline-block;}
+#rcreditswebformcompany div#edit-links {display:block; width:340px;}
+#rcreditswebformcompany.labeled div#edit-links {margin-left:135px;}
+#rcreditswebformcompany div#edit-links label {width:100%; text-align:left; font-weight:normal;}
+
+#rcreditswebformcompany.labeled div.form-item-categories label {position:relative; top:-56px;} /* dunno why top is off */
+
+/* Account Info */
+#rcreditswebformaccount div.form-type-textfield label {display:block;}
+#rcreditswebformaccount div.form-radios {display:block;}
+#rcreditswebformaccount div.form-item-roles {margin-top:30px;}
+#rcreditswebformaccount div.form-item-pass-pass1 {display:inline-block;}
+#rcreditswebformaccount div.form-item-pass-pass2 {display:inline-block; clear:right; margin-left:20px;}
+
+/*#rcreditswebformaccount div.form-type-radio {display:block;}
+#rcreditswebformaccount div.form-type-radio input {display:block;}
+#rcreditswebformaccount div.form-type-radio label {display:block;}*/
+
+/* Accounts Selector */
+div#accounts {position:absolute; right:0px; top:30px; width:100%;}
+div#accounts div.region-accounts {float:right;}
+div#accounts div.content, div#accounts div.form-item-account-account {margin:0px;}
+div#accounts select {font-size:10px; padding:0px; margin-right:15px;}
+#rcreditswebformaccounts #edit-account-submit {display:none;} /* Drupal requires unused button to be there, so make it invisible */
+/* #rcreditswebformaccount div.form-type-item {display:none;} /* no title */
+#rcreditswebformaccounts  #edit-account-submit {margin:5px 0px 0px 10px;}
+/* #rcreditswebformaccounts  div#edit-account-current-balance label {font-weight:normal;} /* when there is just one account */
+
+/* Contact Info (labeled) */
+
+/* Transact form (labeled) */
+#rcreditswebformtx.confirmation div.user-picture {float:left; margin-right:20px;}
+#rcreditswebformtx.confirmation div#id-other {float:left; clear:right; min-width:200px; max-width:300px; font-weight:normal; font-size:20px;}
+#rcreditswebformtx.confirmation div#id-name {margin-top:30px; font-weight:bold; font-size:30px; color:darkgreen;}
+
+/* Exchange form (labeled) */
+/* #rcreditswebformexchange div#edit-request label {font-weight:normal; text-align:left; margin-left:100px; width:100%} */
+#rcreditswebformexchange input#edit-getusd {margin-left:50px;}
+#rcreditswebformexchange div#edit-subtext {margin-left:0px; width:450px;}
+#rcreditswebformexchange div#edit-subtext div.r-explain {text-align:left; margin-left:80px;}
+#rcreditswebformexchange div#edit-subtext div.r-amounts {text-align:right; margin-right:70px;}
+
+/* Transaction Summary Table */
+#txsum, #txsum-title, #txs-title {width:550px; margin:0px;} /* outline:2px solid darkgreen;} */
+#txsum-title, #txs-title {text-align:center; margin:0px; padding:0px; font-weight:bold; font-size:150%;}
+#txs-title {margin-top:30px;}
+#txsum td {text-align:right; border:0px;}
+#txsum tr#txsum-dates {background:none; line-height:.9; border:0px;}
+#txsum tr#txsum-headers {font-weight:bold; background:none; border-bottom:1px solid black;}
+/*one tosign toyou fromsign fromyou rewardssign rewards balancesign balance*/
+/* #txsum col.txsum-one, #txsum col.txsum-balance {width:120px;} */
+#txsum col.txsum-tosign, #txsum col.txsum-fromsign, #txsum col.txsum-rewardssign, #txsum col.txsum-balancesign {width:10px;}
+#txsum col.txsum-toyou, #txsum col.txsum-fromyou, #txsum col.txsum-rewards {width:75px;}
+
+/* Transactions */
+#rcreditswebformtxs {display:inline-block; width:100%; text-align:left;}
+#rcreditswebformtxs div.form-item-tx-period {margin-top:20px; display:inline-block;}
+#rcreditswebformtxs div.form-item-tx-task {display:inline-block;}
+#rcreditswebformtxs div.form-type-select label {display:inline-block; width:200px;} 
+#rcreditswebformtxs  input[type="submit"] {margin:23px 0px 0px 10px;}
+#rcreditswebformtxs div.txs-buttons div {display:inline-block; width:22px; text-align:center; vertical-align:middle;}
+#rcreditswebformtxs div.txs-buttons div:first-child +div input {color:red; font-weight:bold;}
+
+#rcreditswebformtxs col.tx-selector {width:10px;}
+/* for IE; text-align in <col> should have no effect according to CSS 2.1 */ 
+#rcreditswebformtxs col.tx-tid {width:50px; text-align:right;} /* 1 */
+#rcreditswebformtxs col.tx-date {width:60px; text-align:right;} /* 2 */
+#rcreditswebformtxs col.tx-fromyou {width:75px; text-align:right;} /* 4 */
+#rcreditswebformtxs col.tx-toyou {width:75px; text-align:right;} /* 5 */
+#rcreditswebformtxs col.tx-status {width:75px; text-align:right;} /* 6 */
+#rcreditswebformtxs col.tx-buttons {width:85px; text-align:right;} /* 7 */
+#rcreditswebformtxs col.tx-rewards {width:75px; text-align:right;} /* 7 */
+
+#rcreditswebformtxs th:first-child {text-align:right;} /* column 1 */
+#rcreditswebformtxs th:first-child +th {text-align:right;} /* column 2 */
+#rcreditswebformtxs th:first-child +th+th+th {text-align:right;} /* column 4 */
+#rcreditswebformtxs th:first-child +th+th+th+th {text-align:right;} /* column 5 */
+#rcreditswebformtxs th:first-child +th+th+th+th+th {text-align:right;} /* column 6 */
+#rcreditswebformtxs th:first-child +th+th+th+th+th+th {text-align:right;} /* column 7 */
+#rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th {text-align:right;} /* column 9 */
+
+#rcreditswebformtxs td:first-child {text-align:right;} /* column 1 */
+#rcreditswebformtxs td:first-child +td {text-align:right;} /* column 2 */
+#rcreditswebformtxs td:first-child +td+td+td {text-align:right;} /* column 4 */
+#rcreditswebformtxs td:first-child +td+td+td+td {text-align:right;} /* column 5 */
+#rcreditswebformtxs td:first-child +td+td+td+td+td {text-align:right;} /* column 6 */
+#rcreditswebformtxs td:first-child +td+td+td+td+td+td {text-align:right;} /* column 7 */
+#rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td {text-align:right;} /* column 9 */
+
+/* Relation form */
+/*#rcreditswebformrelations div#edit-subtext label {width:450px;}*/
+
+#rcreditswebformrelations div.form-item-new-person {display:inline-block;}
+#rcreditswebformrelations div.form-item-new-person label {width:105px;}
+#rcreditswebformrelations div.form-item-new-person div.description {margin-left:110px;}
+#rcreditswebformrelations #account-label {font-weight:bold;}
+
+/*#rcreditswebformrelations {max-width:800px;} */
+#rcreditswebformrelations col.rel-person {width:auto;}
+#rcreditswebformrelations col.rel-employer {width:94px;}
+#rcreditswebformrelations col.rel-employee {width:96px;}
+#rcreditswebformrelations col.rel-owner{width:76px;}
+#rcreditswebformrelations col.rel-permission {width:145px;}
+#rcreditswebformrelations col.rel-link {width:200px;}
+#rcreditswebformrelations div.highlight input {background-image:url(../../../../../images/buttons/buttons-highlight.png);}
+
+/* Cell */
+#rcreditswebformcell input#edit-delete {margin-right:100%;}
+#rcreditswebformcell table.table-select-processed {width:300px;}
+
+/* Example Store */
+#rcreditswebexample-store-form input.form-submit, #rcreditswebexample-store-form input.form-submit:hover {background:none; border:0;}
+
+/* Pay with rcredits */
+#rcreditswebformbuy div#edit-submit label {margin-left:100px; width:100%; color:blue;}
+
+/* Directory */
+#rcreditswebformdirectory #edit-title label {margin-left:0px;}
+/*#rcreditswebformdirectory div.form-item-area {display:inline-block;} */
+#rcreditswebformdirectory input.form-submit {margin-left:5px;}
+#rcreditswebformdirectory input#edit-submit {margin-left:135px;}
+/*#rcreditswebformdirectory div.form-item-area label {width:40px;}
+#rcreditswebformdirectory div.form-item-area div.description {margin-left:45px;}
+*/
+#rcreditswebformdirectory div#edit-item li {list-style-type:none;}
+#rcreditswebformdirectory b.member {color:darkblue;;}
+#rcreditswebformdirectory b.rtrader {color:green;}
+#rcreditswebformdirectory b.nonmember {color:black; font-weight:normal;}
+
+/* Autocomplete */
+/*html.js input.form-autocomplete.throbbing {margin:0px; padding:0px; width:400px;}*/
+div#autocomplete  ul {clear:none; display:inline;}
+div#autocomplete  li {margin:0px; padding:0px; line-height:140%; background-color:lightyellow;}
+div#content {display:block;} /* keeps autocomplete from getting placed in a wacky position */
+
+/* Membership */
+#rcreditswebformmembership div#next-steps {width:500px; margin:-13px;}
+
+/* Summary */
+#rcreditswebformsummary div#edit-credit-limit div.description {display:inline-block; margin-left:5px;}
+#rcreditswebformsummary div#edit-account-id {margin-bottom:0px;}
+#rcreditswebformsummary div#edit-card a {font-size:80%;}
+#rcreditswebformsummary div#edit-cardc {font-size:80%;}
+#rcreditswebformsummary div#edit-account-name {margin-bottom:0px;}
+
+/* Profile */
+#rcreditswebformprofile {font-family:Arial;}
+#rcreditswebformprofile div.user-picture {float:left; margin-right:20px;}
+#rcreditswebformprofile div#member-details {float:left; min-width:200px; max-width:300px; font-weight:normal;}
+
+/* Options */
+#rcreditswebformoptions div.description {padding-bottom:12px;}
+#rcreditswebformoptions  div.form-radios {margin-left:0px; display:inline-block;}
+/*#rcreditswebformoptions div.form-item-notify-by {margin-top:40px;}
+#rcreditswebformoptions div.form-item-secret-bal {margin-top:80px;}*/
+#rcreditswebformoptions div.form-item-secret-bal input {margin-left:145px;}
+#rcreditswebformoptions div.form-item-secret-bal label {margin-left:-160px; font-weight:bold;}
+#rcreditswebformoptions div.form-item-secret-bal div.description {display:inline-block; margin-left:20px;}
+#rcreditswebformoptions div.form-type-radios {border-bottom:1px solid darkgreen; margin-bottom:5px;}
+
+/* I */
+div#sidebar-first {width:180px; padding-top:5px; border:1px solid darkgreen;}
+div#sidebar-first div.section {padding:0px;}
+div#block-user-login {padding:0px; padding-left:12px; margin-bottom:0px;}
+#rcreditswebformi div#id-name {margin-top:30px; font-weight:bold; font-size:24px; color:darkgreen;}
+
+/* Popups */
+fieldset#popup, fieldset#help {
+  position: absolute;
+  z-index:100;
+  top: 0px;
+  left: 300px;
+  width: 500px;
+  height: 300px;
+  padding-bottom: 2px;
+  background: #FFF;
+  border-radius: 5px; -moz-border-radius: 5px; -webkit-border-radius: 5px;
+  box-shadow: 0px 0px 4px rgba(0,0,0,0.7); -webkit-box-shadow: 0 0 4px rgba(0,0,0,0.7); -moz-box-shadow: 0 0px 4px rgba(0,0,0,0.7);
+}
+fieldset#popup {left:450px;} /* needs 150px extra for unknown reason */
+fieldset#popup legend, fieldset#help legend {background:darkgreen; color:white;}
+fieldset#popup label {text-align:left; font-weight:normal; width:100%;}
+fieldset#popup select {width:480px; overflow:auto;}
+fieldset#help {left:450px; height:420px; display:none;}
+div#popup-close {float:right; width:26px; height:26px; position:absolute; z-index:99; top:-12px; left:470px;}
+div#popup-close label {margin-left:0px; width:26px;}

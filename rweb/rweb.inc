@@ -28,8 +28,10 @@ define('R_TOGGLE_JS', '
     jQuery(field).val(jQuery(field + "-YES").is(":visible"));
   }
   jQuery("div#help-link").click(function() {jQuery("fieldset#help").show();});
-  jQuery("div#popup-close").click(function() {jQuery("fieldset#help").hide();});
-  jQuery("div#edit-card").click(function() {window.open("Temporary-Member-ID-Card", "tempcard","height=250,width=600,left=100,location=0,menubar=0,resizable=0,scrollbars=0,status=0,toolbar=0");});
+  jQuery("div#help-close").click(function() {jQuery("fieldset#help").hide();});
+  jQuery("div#popup-close").click(function() {jQuery("fieldset#popup").hide();});
+  jQuery("a#popup-cancel").click(function() {jQuery("fieldset#popup").hide();});
+  jQuery("a#idcard").click(function() {window.open("Temporary-Member-ID-Card", "tempcard","height=250,width=600,left=100,location=0,menubar=0,resizable=0,scrollbars=0,status=0,toolbar=0");});
 ');
 
 $GLOBALS[TX_WEB . ' messages'] = array(
@@ -73,8 +75,8 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'bad routing number' => t('US bank routing numbers are 9 digits. Use the number on the lower left edge of your checks.'),
   'nothing selected' => t('You did not select anything'),
   'undo incomplete' => t('The undo operation is not yet complete.'),
-  'unknown member' => t('"@who" has not yet signed up for rCredits. <a href="@draftLink">Click here</a> to add them to the database.'),
-  'ambiguous other' => t('"@who" might mean any of these rCredits accounts.<br>Click on the one you want or, if you don\'t see them listed, <a href="@draftLink">Click here</a> to add them to the database.'),
+  'unknown member' => t('"@who" has not yet signed up for rCredits. <a href="@draftLink">Click here to add them</a> to the list or <a href="" id="popup-cancel">click here to cancel</a>.'),
+  'ambiguous other' => t('"@who" might mean any of these rCredits accounts. Click on the one you want or, if you don\'t see them listed, <a href="@draftLink">Click here to add them</a> to the list or <a id="popup-cancel">here to cancel</a>.'),
   'similar found' => t('Do you mean @otherName (@phone)? If so, <a href="@draftLink">click here</a>. Otherwise, click on any tab to cancel.'),
   'get app' => t('To scan Account ID cards with a smartphone, you need the app! You can download the Android app <a href="http://rCredits.org/rc.apk">here</a>. The iphone version is in the works (check again in January).'),
   'no help' => t('There is no written help available for this page. Give it a try! If you are still puzzled, please feel free to give us a call at @R_ORG_PHONE. Or send your question by <a href="mailto:@R_ORG_EMAIL?subject=help with rCredits Members Site, @page page" target="_blank">email</a>.'),
@@ -175,25 +177,25 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   global $formOutput; // for testing
   try {
     setupGlobals(); // in case it's an anonymous form, so webAccess doesn't have a chance to set up
-    $layout = @$_GET['layout'] ?: svar('layout');
-    if ($function == 'I') $layout = 'Mobile';
-    $newLayout = ($layout != svar('layout'));
+//    $layout = @$_GET['layout'] ?: svar('layout');
+//    if ($function == 'I') $layout = 'Mobile';
+//    $newLayout = ($layout != svar('layout'));
     
     $args = 'arg1' . ($arg2 !== '' ? ' arg2' : '') . ($arg3 !== '' ? ' arg3' : '') . ($arg4 !== '' ? ' arg4' : '');
     if ($function != 'accounts' and $function != 'home') u\log("show $function", compact(u\ray($args)));
-    if ($layout == 'Mobile') css('mobile.css', 100);
+//    if ($layout == 'Mobile') css('mobile.css', 100);
     $formName = substr($function, 0, 1) == '\\' ? $function : "rCredits\\Web\\form$function";
-    if ($newLayout) svar('layout', $layout); // do this before drupal_get_form, so forms can know the current layout
+//    if ($newLayout) svar('layout', $layout); // do this before drupal_get_form, so forms can know the current layout
     $form = drupal_get_form($formName, $arg1, $arg2, $arg3, $arg4);
     $form['#attributes']['class'][] = 'rweb';
-    if ($newLayout) $form['#cache'] = FALSE;
+//    if ($newLayout) $form['#cache'] = FALSE;
     if (!@$form['confirm']) $form += which(); // add the choices popup form, if any
 
     if ($function != 'help') if (($i = array_search('title', array_keys($form))) !== FALSE or $function == 'Txs') {
       if ($function == 'Txs') $i = -1; // no title on Transactions page, so insert at beginning
       $i = -1; // always at beginning
       $extras = array('#id' => 'help-link', '#weight' => @$form['title']['#weight']);
-      $help_link = formField('item', t('<a>Help with this page</a>')) + $extras; // add a help link just under the title
+      $help_link = formField('item', t('<a><div></div>Help with this page</a>')) + $extras; // add a help link just under the title
       $form = array_slice($form, 0, $i+1) + compact('help_link') + array_slice($form, $i+1) + help($function, @$form['#attributes']['class'][0]);
       drupal_add_js(R_TOGGLE_JS, array('type'=>'inline', 'scope'=>'footer'));
 //      debug($form);
@@ -247,7 +249,7 @@ function which($choices = '', $result_field = '', $info = '', $question = 'Which
   $onchange = "this.form.elements['$pop_result_field'].value=this.options[this.selectedIndex].text; this.form.submit();";
   $subtext = formField('item', $pop_question);
   $choice = formField('select', '', '', attrib(compact('onchange') + array('size' => 12)), $pop_choices);
-  $close = popupCloser(); // this is needed in mobile layout
+  $close = popupCloser('popup'); // this is needed in mobile layout
   $popup = formField('fieldset', t('Which One?'), '', array('id' => 'popup')) + compact(u\ray('subtext choice close'));
 return compact('popup');
 }
@@ -340,9 +342,9 @@ function formHelp($form, &$sta, $what = '') {
   return compact(u\ray('title text'));
 }
 
-function popupCloser() {
+function popupCloser($fieldset) {
   global $base_url;
-  return formField('item', "<img src='$base_url/images/icons/close.png' border='0'>") + array('#id' => 'popup-close');
+  return formField('item', "<img src='$base_url/images/icons/close.png' border='0'>") + array('#id' => "$fieldset-close");
 }
 
 /**
@@ -352,7 +354,7 @@ function popupCloser() {
 function help($page, $class = '') {
   require_once __DIR__ . '/rweb-help.inc';
 //  $subtext = formField('item', $question);
-  $close = popupCloser();
+  $close = popupCloser('help');
   $text = formField('item', '', '', helpText($page));
   $help = formField('fieldset', t('Help with this page'), '', array('id' => 'help')) + compact(u\ray('subtext close text'));
   return compact('help');
@@ -409,20 +411,20 @@ function formSummary($form, &$sta) {
   $name = $cacct->name;
   $address = u\location($cacct, TRUE);
 
+  if (!$cacct->isCompany() or !$cacct->proSe()) {
+    $card = t('<a id="idcard">Print Temporary ID Card</a>');
+  } else $card = t("To print employee ID cards, visit the <a href=\"$base_url/account/relations\">Account Relations</a> page.");
+
   $title = formField('item', t('Account Summary'));
 //  'subtext = basic_account_info();
-  $account_id = formField('item', t('Account ID:'), '', $cacct->mainQid . ' ' . u\hug(R_REGION_NAME));
-  if (!$cacct->isCompany() or !$cacct->proSe()) {
-    $card = formField('item', '&nbsp;', '', t('<a>Print Temporary ID Card</a>'));
-  } else $cardC = formField('item', '&nbsp;', '', t("To print employee ID cards, visit the <a href=\"$base_url/account/relations\">Account Relations</a> page."));
-  $accountName = formField('item', t('Name:'), '', $cacct->full_name . ' ' . u\hug($name));
-  $address = formField('item', '&nbsp;', '', $address);
-  $account_type = formField('item', t('Account type:'), '', $GLOBALS['account types'][$cacct->account_type+0]); // +0 for admin
+  $accountId = formField('item', t('Account ID:'), $card, $cacct->mainQid . ' ' . u\hug(R_REGION_NAME));
+  $accountName = formField('item', t('Name:'), $address, $cacct->full_name . ' ' . u\hug($name));
+  $accountType = formField('item', t('Account type:'), '', $GLOBALS['account types'][$cacct->account_type+0]); // +0 for admin
   $balance = formField('item', t('Balance:'), '', $my_balance . (r\isRTrader() ? '' : R_ASIF_TEXT));
-  $credit_limit = formField('item', t('Credit limit:'), '(You can go this far in debt for up to 30 days)', u\formatAmount(-$cacct->min_balance));
-  $rewards_to_date = formField('item', t('Rewards to date:'), '', $my_rewards);
+  $creditLimit = formField('item', t('Credit limit:'), '(You can go this far in debt for up to 30 days)', u\formatAmount(-$cacct->min_balance));
+  $rewards = formField('item', t('Rewards:'), t('(to date)'), $my_rewards);
 
-  $form = compact(u\ray('title account_id card cardC accountName address account_type balance credit_limit rewards_to_date'));
+  $form = compact(u\ray('title accountId accountName accountType balance creditLimit rewards'));
   $form['#attributes']['class'] = array('labeled');
   return $form;
 }
@@ -936,7 +938,7 @@ EOF;
     $isAgent = ($cuid != $main_uid);
     $combo = ($isAgent and @$previousAgent == $main_uid); // related both ways
     $otherIsPerson = !r\acct($isAgent ? $main_uid : $agent_uid)->isCompany();
-    $idLink = (!$isAgent and $otherIsPerson and $employee_ok and $permission >= PERM_SELL) ? "<a target=\"_blank\" href=\"$base_url/Temporary-Member-ID-Card/$agent_uid\">print Temporary ID Card</a>" : R_NONE;
+    $idLink = (!$isAgent and $otherIsPerson and $employee_ok and $permission >= PERM_SELL) ? "<a target=\"_blank\" href=\"$base_url/Temporary-Member-ID-Card/$agent_uid\">print&nbspID&nbspCard</a>" : R_NONE;
 
     $id = (count($rows) - ($combo ? 1 : 0)) . "-$reid"; // "row-reid"
     $discrepant = ($employer_ok xor $employee_ok); // exactly one has claimed the relation
@@ -1478,7 +1480,8 @@ EOF;
   );
 
 // (doesn't work well for textarea) $form['#attributes']['class'] = array('labeled');
-  if (svar('layout') != 'Mobile') $form['#attributes']['class'] = array('labeled');
+//  if (svar('layout') != 'Mobile') $form['#attributes']['class'] = array('labeled');
+  $form['#attributes']['class'] = array('labeled');
   return $form;
 }
 
@@ -1606,7 +1609,7 @@ function formOptions($form, &$sta) {
   $explain_virtual = t('When you pay people, do you want to pay them directly in rCredits or do you want to pay them in US Dollars, then give them the automatic option to buy their share of rCredits from you with US Dollars? The second way lets you use your current payroll system without any change. You still get the 5% rebate, minus 25 cents for each payment. For example, on a $100 payment, you get a net rebate of $5.00 - 0.25 = $4.75.');
   $pay_hows = array(t('everyone directly'), t('employees virtually'), t('everyone virtually'));
   $dft = $cacct->hasBit(BIT_VIRTUAL_ALL) ? 2 : ($cacct->hasBit(BIT_VIRTUAL_EMPLOYEES) ? 1 : 0);
-  $pay_how = formField('radios', t('Pay people how:'), $explain_virtual, dft($dft) + compact('post_render'), $pay_hows);
+  $pay_how = formField('radios', t('Pay how:'), $explain_virtual, dft($dft) + compact('post_render'), $pay_hows);
   $secret_bal = formField('checkbox', t('Secret Balance:'), t("Don't let qualified merchants tell me my balance, when I ask."), $cacct->hasBit(BIT_SECRET_BAL));
   // Double confirmation: by SMS, by email, either. require extra confirmation of crucial account changes
   $submit = formField('submit', t('Update options'));
@@ -1803,11 +1806,11 @@ function form_args($function, $args = '') {
 /**
  * Replacement for \confirm_form
  */
-function sureForm(&$sta, $title = 'Please Confirm') {
+function sureForm(&$sta, $title = '') {
   if (!isset($sta['confirm'])) return FALSE;
   
   $form = array(
-    'title' => formField('item', $title),
+    'title' => $title ? formField('item', $title) : NULL,
     'question' => formField('item', $sta['confirm']),
     'confirm' => formField('submit', 'Okay'),
     'cancel' => formField('submit', 'Cancel'),
@@ -2026,11 +2029,12 @@ function focusOn($focusFieldName) {
 }
 
 function formFooter() {
-  $layout = (svar('layout') == 'Mobile') ? 'Desktop' : 'Mobile';
+//  $layout = (svar('layout') == 'Mobile') ? 'Desktop' : 'Mobile';
   $year = date('Y');
+
+  //<a href="?layout=$layout">$layout layout</a> |
   $markup =<<<EOF
 <hr>
-<a href="?layout=$layout">$layout layout</a> |
 <a href="http://rCredits.org">Main site</a> |
 <a href="help">Help</a>
 <br><br>

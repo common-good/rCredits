@@ -72,7 +72,7 @@ function formTxs($form, &$sta, $argString = '') {
   $title = "<div id='txs-title'>TRANSACTIONS</div>";
   $classes = u\prefixValues('tx-', u\ray('tid date name fromyou toyou state buttons purpose reward'));
   $attributes = array('id' => 'txlist');
-  $header = u\ray('#,Date,Name,From you,To you,Status,Action,Purpose,Rewards');
+  $header = u\ray('#,Date,Name,From you,To you,Status,Action,Purpose,Reward');
   $cols = array();
   foreach ($classes as $class) $cols[] = compact('class');
   $colgroups = array($cols);
@@ -81,7 +81,7 @@ function formTxs($form, &$sta, $argString = '') {
   $list = theme_table(compact(u\ray('header rows attributes caption colgroups sticky empty')));
 
   $form = u\prefixKeys('tx_', array(
-    'period' => formField('select', t('Show transactions for the past'), '', dft($period), $tx_days),
+    'period' => formField('select', t('Show transactions for the past:'), '', dft($period), $tx_days),
     'real' => !r\isRTrader() ? formField('hidden', FALSE) 
       : formField('radios', t('Show:'), '', dft($real) + array(u\getConstants(t('Show :R_ASIF_TEXT Transactions')), t('Show Real Transactions'))),
     'show' => formField('submit', NULL, t('Submit button'), 'Show'),
