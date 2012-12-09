@@ -495,8 +495,9 @@ function formAccounts($form, &$sta) {
 //  $account = formField('select', t('Account:'), t('(Select an account)'), dft($cuid) + attrib(compact('onchange')), $choices);
   $account = formField('select', '', '', dft($cuid) + attrib(compact('onchange')), $choices);
 //  $link = formField('item', '<a href="http://rCredits.org">Main Site</a>');
-  $submit = formField('submit');
-  $form = u\prefixKeys('account_', compact(u\ray('account submit'))); // always give a dropdown
+  $submit = formField('submit'); // default submission
+  $menu = formField('submit', t('Menu'));
+  $form = u\prefixKeys('account_', compact(u\ray('account menu submit'))); // always give a dropdown
 
 //  $one_account = formField('item', t('Account') . ": <span>$full_name ($qid)</span>");
 //  $one_balance = formField('item', t('Current Balance') . ": <span>$balance</span>");
@@ -506,10 +507,30 @@ function formAccounts($form, &$sta) {
 }
 
 function formAccounts_submit($form, &$sta) {
-  extract($sta['values']);
+  extract(u\just('account_account', $sta['values']));
   $cacct = r\acct();
-  if (!r\acct($account_account, $cacct->agent)->can()) r\go('user/logout');
+  if (!r\acct($account_account, $cacct->agent)->can()) r\go('user/logout'); // hack attempt?
   svar('cuid', $account_account); // this gets checked ONLY in setupGlobals()
+}
+
+function formMenu($form, &$sta, $page) {
+  return array(
+    'charge' => formField('submit', t('Charge')),
+    'pay' => formField('submit', t('Pay')),
+    'get' => formField('submit', t('Get r/USD')),
+    'find' => formField('submit', t('Find Companies')),
+    'reports' => formField('submit', t('Reports')),
+    'help' => formField('submit', t('Help')),
+    'logout' => formField('submit', t('Logout')),
+    
+    'account' => formField('submit', t('Account')),
+    'cells' => formField('submit', t('Cell Phones')),
+    'relations' => formField('submit', t('Relations')),
+    'options' => formField('submit', t('Options')),
+    'company' => formField('submit', t('Company Info')),
+    'contact' => formField('submit', t('Contact Info')),
+    'membership' => formField('submit', t('Membership')),
+  );
 }
 
 /**

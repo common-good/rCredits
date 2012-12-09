@@ -20,7 +20,7 @@ div#footer-wrapper, #footer, #footer .region {margin:0; padding:0;}
 #footer label a:hover {color:darkgray; text-decoration:underline;}
 #page-title {display: none;}
 #logo img {height:6em; width:4.5em;}
-#name-and-slogan {margin-top:3.3em; padding-top:0; margin-bottom:1em;}
+#name-and-slogan {margin:3.3em 0 1em 0; padding-top:0;}
 #secondary-menu {position:absolute; z-index:3;}
 #secondary-menu-links li {border-right:1px solid silver; padding-right:1px;}
 #secondary-menu-links li.last {border-right:0;}
@@ -40,6 +40,7 @@ div.tabs ul.primary li a {padding:0 .5em .1em; font-size:1em;}
 #accounts div.content, div#accounts div.form-item-account-account {margin:0;}
 #accounts select {font-size:80%; padding:0;}
 #rcreditswebformaccounts #edit-account-submit {display:none;} /* Drupal requires unused button to be there, so make it invisible */
+#rcreditswebformaccounts #edit-account-menu {display:none;} /* show only for smartphones */
 /* #rcreditswebformaccounts  div#edit-account-current-balance label {font-weight:normal;} /* when there is just one account */
 
 #help-link {width:100%;}
@@ -75,20 +76,22 @@ form.rweb .form-local {margin:.1em .2em; padding:.2em; font-size:70%; color:dark
 form.rweb  .form-yes {color:green;}
 form.rweb  .form-no {color:red;}
 
-/* Labeled Forms (each field is preceded by a short label and the fields line up)
-/* form.rweb.labeled (this fails for Chrome) */
-form.labeled div.form-type-textfield {display:block; margin-right:0;}
-form.labeled label, form.labeled div.form-type-item label {display:inline-block; width:8em; text-align:right; margin-right:0;} /* default label width */
-form.labeled div#edit-title,
-form.labeled input.form-submit,
-form.labeled div.form-radios {margin-left:8em;}
+@media all and (min-width: 481px) {
+  /* Labeled Forms (each field is preceded by a short label and the fields line up)
+  /* form.rweb.labeled (this fails for Chrome) */
+  form.labeled div.form-type-textfield {display:block; margin-right:0;}
+  form.labeled label, form.labeled div.form-type-item label {display:inline-block; width:8em; text-align:right; margin-right:0;} /* default label width */
+  form.labeled div#edit-title,
+  form.labeled input.form-submit,
+  form.labeled div.form-radios {margin-left:8em;}
 
-form.labeled div#edit-subtext,
-form.labeled div.description {margin-left:9.1em;}
+  form.labeled div#edit-subtext,
+  form.labeled div.description {margin-left:9.1em;}
 
-form.labeled div.description {font-size:85%}
-form.labeled div.labeled-block {display:inline-block;}
-form.labeled div.form-textarea-wrapper {display:inline-block;}
+  form.labeled div.description {font-size:85%}
+  form.labeled div.labeled-block {display:inline-block;}
+  form.labeled div.form-textarea-wrapper {display:inline-block;}
+}
 
 /* Login */
 #user-login div#edit-tip label {font-weight:normal; width:100%;}
@@ -297,10 +300,22 @@ fieldset#help {display:none;}
 #popup-close label, #help-close label {margin-left:0px; width:26px;}
 
 /* Smartphones (portrait and landscape) ----------- */
-@media only screen
+/*@media only screen
 and (min-device-width : 320px)
-and (max-device-width : 480px) {
-/* Styles */
+and (max-device-width : 480px) { */
+@media all and (max-width: 480px) {
+  body {font-size:150%;}
+  #name-and-slogan {margin-top:2.5em;}
+  #site-slogan {font-size:70%; width:14em;}
+  #secondary-menu, #main-menu {display:none;}
+  
+  #accounts {top:.3em;}
+  #accounts div.region-accounts {margin:0;}
+  #accounts select {font-size:120%; overflow:none;}
+  #rcreditswebformaccounts #edit-account-menu {display:block; float:right; font-size:140%; margin:.9em .1em;}
+  
+  fieldset#help {width:auto;}
+  form.rweb div#help-link {display:block; margin-bottom:2em; border:1px solid white;}
 }
 /* Smartphones (landscape) ----------- */
 @media only screen
