@@ -221,6 +221,7 @@ function undoTx($zxid) {
 
   if ($old_state == TX_PENDING or $old_state == TX_DENIED) { // it's an invoice - cancel simply by changing the transaction state
 // function undo_invoice($zxid, $oldRecord, $old_otherUid, $by_me) // return $solution
+//debug(compact('old_byme','old_state','oldRecord','data'));
     if ($old_by_me) {
       list ($new_state, $solution) = array(TX_DELETED, t('deleted')); // abandon the attempt to invoice
       r\notify($old_otherUid, $old_toMe ? 'invoice-canceled' : 'offer-canceled', r\txReportArgs($oldRecord));
@@ -295,7 +296,6 @@ EOF;
  * @param numeric $amount: how much
  * @param boolean $confirmed: has user confirmed this request
  * @return array(message index, subs, needs confirmation)
- * @todo: require Dwolla account, rather than bank account
  */
 function get($currency, &$amount, $confirmed) {
   $cacct = r\acct();
@@ -305,20 +305,26 @@ function get($currency, &$amount, $confirmed) {
   
   if (!$cacct->can(PERM_MANAGE)) return array('no access get', array(), FALSE);
   if ($error = u\badAmount($amount, $currency == 'usd')) return array($error, array(), FALSE); // allow zero for rCredits request
+  // (No, include this in rTrader requirements) if (r\isRTrader() and !$cacct->can(PERM_DWOLLA)) return array('no usd account', array(), FALSE);
   $request = u\formatAmount($amount);
   $success = TRUE;
   if ($currency == 'r') {
 // (catch this only when demand is high)      if ($my_amount < R_MIN_DEMAND) return array('demand too small');
     r\demand($cuid, $amount);
+    if (r\isRTrader()) {
+      if (!$confirmed) return array('confirm get r', compact(u\ray('request success')), TRUE);
+      //DWOLLA: transfer fraction R_GETR_ADVANCE of $amount from user's Dwolla account to community's Dwolla account
+    }
     return array('your demand', compact(u\ray('request success')), FALSE);
   }
 
   // $currency == 'usd'
   extract((array) creditInfo(), EXTR_PREFIX_ALL, 'info');
   if ($amount > $info_cashable) return array("can't cash incentives", $info_fancy, FALSE);
-  if (r\userField('bank_account_status') != R_BANK_VERIFIED) return array('bank unverified', array(), FALSE);
+//  if (r\userField('bank_account_status') != R_BANK_VERIFIED) return array('bank unverified', array(), FALSE);
   if (!r\isRTrader()) return array('get usd inactive', $info_fancy, FALSE);
   
+  //DWOLLA: transfer $amount from community's Dwolla account to the user's Dwolla account
   $type = TX_TRANSFER;
   $payer = $cuid;
   $payee = $payer_agent = $payee_agent = r\userField('community_uid', $payer);
@@ -329,6 +335,8 @@ function get($currency, &$amount, $confirmed) {
   //*** Begin DBTX
   $dbtx = db_transaction();
   r\transact(compact(u\ray('type amount payer payee payer_agent payee_agent for taking')));
+  //DWOLLA: transfer from Dwolla account(s) of next rTrader(s) in line to community account (may take a few days)
+  //DWOLLA: (we need a request table with dates to track who is next in line. no need for "request" field in users table
   $balance = u\formatAmount($info_balance - $amount);
   if ($confirmed) return array('report get usd', compact(u\ray('request balance success')), FALSE);
   
@@ -372,7 +380,10 @@ function payInvoice($zxid) {
  *   'rebate': the rebate amount for this request (should be negative the original bonus amount)
  *   'bonus': the bonus amount (should be negative the original rebate amount) [rebate and bonus are always both set or neither]
  *   'zxid': the signed transaction id of the related transaction (invoice or transaction being undone)
- *   'preapproved': the transaction is prapproved (from some other region)
+ *   'preapproved': the transaction is preapproved (from some other region)
+ *     Note that other regions must not have PERM_CHARGE (else the code will not permit foreign invoices)
+ *   'bilateral': set TRUE if a company with PERM_CHARGE wants to pretend it doesn't
+ *      (Typically upon recursion, to handle shortfall invoice)
  *   'pay_all': the transaction is part of a "pay all" (bulk employee payment)
 // * @param bool $force_asif: make this an As-If transaction, even if both parties are rTraders
  * @return simple array: 
@@ -383,6 +394,7 @@ function payInvoice($zxid) {
  * Do something different, based on these boolean values: $taking (charge vs. payment), $preapproved (paying or authorized to charge), 
  * $confirmed (user confirmed the transaction request), $paying_invoice, $goods (the transaction is an exchange for real stuff),
  * $shortfall (how inadequate the payer's balance is)
+ * @todo: write feature tests for partial transactions (paying/taking unilateral/not undoing/not broke/not)
  */
 function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE, $data = array()) {
   if (isFrontend()) return (array) backend('transfer', compact(u\ray('ttype acct requestAmount for confirmed data')));
@@ -412,7 +424,8 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   // Sort out what type of transfer this is
   $paying_invoice = ($ttype == 'invoice payment');
   $type = TX_TRANSFER;
-  $preapproved = (@$data['preapproved'] or !$taking or $cacct->can(PERM_CHARGE)); // paying OR permitted to charge unilaterally
+  $unilateral = isset($data['bilateral']) ? FALSE : ($taking  and $cacct->can(PERM_CHARGE));
+  $preapproved = (@$data['preapproved'] or !$taking or $unilateral); // paying OR permitted to charge unilaterally
 //  $state = ($preapproved and !@$data['pay_all'])? TX_DONE : TX_PENDING;
   $virtual = ($goods and !$taking and ($cacct->hasBit(BIT_VIRTUAL_ALL) or ($cacct->hasBit(BIT_VIRTUAL_EMPLOYEES) and r\isEmployee($uid))));
   $state = ($preapproved and !$virtual)? TX_DONE : TX_PENDING;
@@ -426,7 +439,10 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
     $otherName = r\userField('full_name', $uid);
     if ($paying_invoice) return array('short payment', compact('short'), FALSE); // no partial payment of invoice
     if (!$goods) return array($taking ? 'short cash from' : 'short cash to', compact('short', 'otherName'), FALSE); // no partial cash trans
-    if ($shortfall >= $requestAmount) return array($taking ? 'broke from' : 'broke to', compact('otherName'), FALSE);
+    if ($shortfall >= $requestAmount or isset($data['rebate'])) { // flat broke or undoing (partial undo is too complex for now)
+      $msg = $taking ? 'broke from' : 'broke to';
+      if (!$unilateral) return array($msg, compact('otherName'), FALSE); // let unilateral partials fall through for invoicing
+    }
   }
   $amount = $requestAmount - $shortfall;
   
@@ -437,26 +453,35 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   if (!isset($data['rebate'])) $data += compact('rebate', 'bonus');
   $data += $foreign;
   unset($data['preapproved']); // probably don't need this (but keep zxid of related transaction, if any)
+  unset($data['bilateral']);
   $data = serialize($data);
 
-  /*** Begin DBTX ***/ $dbtx = db_transaction();
-  $txs = r\transact(compact(u\ray('type amount payer payee payer_agent payee_agent for data taking goods state')));
-  $zxid = $txs[0]['zxid'];
-  if (!$confirmed) $dbtx->rollback();
-  /*** End DBTX ***/ unset($dbtx); // $dbtx->commit() is disallowed
+  if ($amount > 0) { // broke customer charged unilaterally needs to fall through for invoice and proper message
+    /*** Begin DBTX ***/ $dbtx = db_transaction();
+    $txs = r\transact(compact(u\ray('type amount payer payee payer_agent payee_agent for data taking goods state')));
+    $zxid = $txs[0]['zxid'];
+    if (!$confirmed) $dbtx->rollback();
+    /*** End DBTX ***/ unset($dbtx); // $dbtx->commit() is disallowed
+  }
   
   // Report results
   $args = r\txReportArgs($txs[0], 1, $shortfall);
+  
+  if ($shortfall and $taking and $confirmed) {
+    list ($zot, $invoiceArgs) = transfer($ttype, $acct, $shortfall, $for, $goods, TRUE, array('bilateral' => TRUE));
+    $args['tid2'] = $invoiceArgs['tid'];
+  }
   
   if ($confirmed) { // notify other party by email about any confirmed transaction
     $notice = $taking ? ($preapproved ? 'new-charge' : 'new-invoice')
       : ($virtual ? 'new-offer' : 'new-payment');
     r\notify($uid, $notice, $args);
     $message = $goods ?
-        ($shortfall ? 'report short transaction' 
-          : ($preapproved ? ($virtual ? 'report virtual' : 'report transaction')
-          : 'report invoice'))
-      : ($preapproved ? 'report exchange' : 'report exchange request'); // no possible shortfall on confirmed cash exchange (see above)
+        ($shortfall ? ($taking ? ($shortfall >= $requestAmount ? 'broke invoice' : 'short invoice') : 'short payment')
+          : ($preapproved ? ($virtual ? 'offer' : 'transaction')
+          : 'invoice'))
+      : ($preapproved ? 'exchange' : 'exchange request'); // no possible shortfall on confirmed cash exchange (see above)
+    $message = "report $message";
   } else {
     $message = $goods ? $ttype : 'exchange';
     if ($shortfall) $args['amount'] = u\formatAmount($requestAmount); // restore original amount before getting confirmation

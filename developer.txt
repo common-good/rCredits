@@ -57,7 +57,6 @@ E. Database clues
          width and height: size of the picture
          company, employee_ok, and is_owner: these are stored upon registration, but they should really go in the relations table and the user should be required to give a phone number for the company, if it is not in the users table yet
      . description is html for the company's page (N/A for personal accounts)
-     . bank_account, etc. will be replaced with Dwolla info (maybe just the Dwolla account ID)
      . community_uid: the (negative) uid of the account's CGC. For anyone who is not in an established CGC, their community is the region (using the regional server's uid)
      . counts is not currently used
    - r_txs

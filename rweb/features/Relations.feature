@@ -27,8 +27,8 @@ Scenario: Member has an employee, confirmed
   | 1  | .ZZA | .ZZB  | sell       | 1           | 1           | 1        |
   When member ".ZZA" visits page "relations"
   Then we show page "relations" with:
-  | Person  | Is employer? | Is employee? | Is owner? | Permission | Print id                |
-  | Bea Two | No           | Yes          | Yes       | sell       | print Temporary ID Card |
+  | Person  | Is employer? | Is employee? | Is owner? | Permission | Print id      |
+  | Bea Two | No           | Yes          | Yes       | sell       | print ID Card |
 
 Scenario: Member has an employee, unconfirmed
   Given relations:
@@ -86,8 +86,8 @@ Scenario: Member company has relations
   | 1  | .ZZC | .ZZA  | sell       | 1           | 1           | 1        |
   When member ".ZZC" visits page "relations"
   Then we show page "relations" with:
-  | Person  | Is employee? | Is owner? | Permission | Print ID                |
-  | Abe One | Yes          | Yes       | sell       | print Temporary ID Card |
+  | Person  | Is employee? | Is owner? | Permission | Print ID      |
+  | Abe One | Yes          | Yes       | sell       | print ID Card |
   And we show page "relations" without:
   | Header       |
   | Is employer? |

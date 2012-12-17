@@ -28,7 +28,8 @@ function rcredits_install() {
   if (!r\dbLookup(1, 'users', 'uid=:uid', compact('uid'))) new r\acct($info); // create the server record if it doesn't exist yet (don't use r\acct() here)
   variable_set('date_default_timezone', 'America/New_York');
   variable_set('site_frontpage', 'summary');
-  variable_set('site_name', 'rCredits Members Site' . R_VERSION);
+  variable_set('site_name', 'Members');
+  variable_set('site_slogan', 'version ' . R_VERSION);
   variable_set('user_register', USER_REGISTER_VISITORS); // let visitors register themselves
 
 // NO. This creates a navigation column.  variable_set('site_frontpage', 'charge');
@@ -97,7 +98,12 @@ function rcredits_schema() {
   $foreign_keys = r\foreignKey('payer') + r\foreignKey('payee') + r\foreignKey('payer_agent') + r\foreignKey('payee_agent');
   $indexes = r\index('payer') + r\index('payee'); // also serial/type/taking/goods/state/payer_agent/payee_agent/channel/created?
   $schema['r_txs'] = r\setupTable('Record of all rCredits transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
+
   $schema['r_asif'] = r\setupTable('Record of pretend (asif) transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
+  
+  foreach (u\ray('type taking goods payer_agent payee_agent payer_for payee_for') as $one) unset($fields[$one]);
+  $foreign_keys = r\foreignKey('payer') + r\foreignKey('payee');
+  $schema['r_usd'] = r\setupTable('Record of USD (Dwolla) transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
 
   // table r_donations
   $fields = array(
@@ -213,6 +219,7 @@ function rcredits_schema() {
  * Implements hook_schema_alter().
  */
 function rcredits_schema_alter(&$schema) {
+  // table user (additions)
   $fields = array( // additional users fields
     'account_type' => r\setupField('personal, commercial, non-profit (or government)', 'int tiny'),
     'flags' => r\setupField('permissions and boolean state flags', 'int big', 0, '010'),
@@ -232,12 +239,12 @@ function rcredits_schema_alter(&$schema) {
     'dob' => r\setupField('date of birth, founding, or incorporation', 'int 11'),
     'rebate_percent' => r\setupField('current rebate percentage (sales bonus is double)', 'numeric 4,3', 5),
     'demand' => r\setupField('waiting to buy this much credit', 'numeric 11,2', 0),
+    'demand_date' => r\setupField('first rCredits request data', 'int 11'),
     'counts' => r\setupField('counts of command use, etc.', 'int big', 0),
     'min_balance' => r\setupField('minimum balance (normally zero or less)', 'numeric 9,2', R_MIN_BALANCE),
 // separate table for this? 'nym' => r\setupField('unique identifier for cryptographic signing', 'text tiny'), 
-    'bank_account_name' => r\setupField('name on US$ bank account -- usually the same as full_name', 'varchar 60'),
-    'bank_account_number' => r\setupField('official currency international bank account number', 'varchar 34'),
-    'bank_account_status' => r\setupField('account ownership verified, closed, etc.', 'int tiny', 0, '010'),
+    'usd_account' => r\setupField('official currency account number (Dwolla)', 'varchar 34'), // 34 is enough for IBAN
+    'usd_auth' => r\setupField('official currency account authorization token', 'varchar 60'),
   );
   $schema['users']['fields'] = (@$schema['users']['fields'] ?: array()) + $fields;
   $schema['users']['fields']['uid'] = r\setupField('Unique user ID', 'int 11'); // not unsigned

@@ -240,6 +240,7 @@ function postProcess($form, $formName, $type) {
 }
 
 function strip($form) {
+  $form = str_replace('&nbsp;', ' ', $form);
   $form = preg_replace('~<fieldset id="help".*?</fieldset>~sm', '', $form); // remove help div
   $form = preg_replace('~<div[^>]*class="invisible.*?</div>~sm', '', $form); // remove invisible divs (not nested)
   $form = preg_replace('~<option value="[^"]*">.*?</option>~sm', '', $form); // remove unselected options

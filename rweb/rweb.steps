@@ -79,8 +79,8 @@ function memberCompletesFormWithValues($id, $formName, $values, $confirmed = FAL
     }
   }
   $testConfirmation = @$sta['confirm'];
-  if ($i = strpos($testConfirmation, '<hr>')) $testConfirmation = substr($testConfirmation, $i + 4);
-
+  $lastIdentifierTag = '</div identifiers>';
+  if ($i = strpos($testConfirmation, $lastIdentifierTag)) $testConfirmation = substr($testConfirmation, $i + strlen($lastIdentifierTag));
   foreach (t\postProcess($form, 'tx', 'submit') as $one) $one($form, $sta);
   return TRUE;
 }
@@ -324,7 +324,7 @@ function weShowPageWith($page, $content, $showDebugs = TRUE) {
         if ($showDebugs) t\testOutput(substr($formShown, 0, $xi) . ' <b style="font-size:200%;">[OK until here]</b> ' . substr($formShown, $xi));
         if ($showDebugs) t\testOutput(compact('xi','one'));
         return FALSE;
-      } else $i++;
+      } else $i += strlen($one);
     }
   }
   return TRUE;

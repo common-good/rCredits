@@ -130,7 +130,7 @@ function location($acct, $complete = FALSE) {
 function countryAbbrev($country) {
   global $base_path;
 //  include_once $base_path . 'inc/countries.php';
-  include __DIR__ . '/../../../../inc/countries.php';
+  include __DIR__ . '/inc/countries.php';
   return strlen($country) == 2 ? $countries[$country] : array_search($country, $countries);
 }
 
@@ -140,7 +140,7 @@ function countryAbbrev($country) {
  */
 function stateAbbrev($state) {
   global $base_path;
-  include __DIR__ . '/../../../../inc/states.php';
+  include __DIR__ . '/inc/states.php';
   return strlen($state) == 2 ? $states[$state] : array_search($state, $states);
 }
 

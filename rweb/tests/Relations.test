@@ -68,8 +68,8 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| 1  | .ZZA | .ZZB  | sell       | 1           | 1           | 1        |"');
     When_('member ".ZZA" visits page "relations"');
     Then_('we show page "relations" with: "DATA'
-    . '\\| Person  | Is employer? | Is employee? | Is owner? | Permission | Print id                |'
-    . '\\| Bea Two | No           | Yes          | Yes       | sell       | print Temporary ID Card |"');
+    . '\\| Person  | Is employer? | Is employee? | Is owner? | Permission | Print id      |'
+    . '\\| Bea Two | No           | Yes          | Yes       | sell       | print ID Card |"');
   }
 
   // Scenario: Member has an employee, unconfirmed
@@ -145,8 +145,8 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| 1  | .ZZC | .ZZA  | sell       | 1           | 1           | 1        |"');
     When_('member ".ZZC" visits page "relations"');
     Then_('we show page "relations" with: "DATA'
-    . '\\| Person  | Is employee? | Is owner? | Permission | Print ID                |'
-    . '\\| Abe One | Yes          | Yes       | sell       | print Temporary ID Card |"');
+    . '\\| Person  | Is employee? | Is owner? | Permission | Print ID      |'
+    . '\\| Abe One | Yes          | Yes       | sell       | print ID Card |"');
     And__('we show page "relations" without: "DATA'
     . '\\| Header       |'
     . '\\| Is employer? |"');

@@ -1,6 +1,9 @@
 /*img {max-width:100%; height:auto;}*/
 img {width:auto; height:auto;}
-body {background:silver;}
+body {background:silver; font-size:100%;}
+fieldset {-webkit-margin-start:0; -webkit-margin-end:0; -webkit-padding-before:0; -webkit-padding-start:0; -webkit-padding-end:0; -webkit-padding-after:0;}
+legend {-webkit-padding-start: 2px; -webkit-padding-end: 2px;}
+select {font-size:.85em;}
 #page-wrapper {
   margin:auto; max-width:960px; 
   background:white; /* Drupal messes this up otherwise, in Bartik theme */
@@ -11,16 +14,37 @@ body {background:silver;}
 }
 #footer-wrapper {background:white;}
 
-#main {margin:0;}
+/* Radios and Checkboxes */
+.form-type-checkbox label {margin-left:0;}
+.form-type-radio label {padding-left:1.5em;}
+.form-type-radio label {background:url(../images/radio.gif) no-repeat; background-size:1.3em;}
+
+.form-type-checkbox div.description,
+form.rweb .form-type-checkboxes label,
+.form-type-checkboxes label {text-align:left; padding-left:2em; height:1.35em; background:url(../images/checkbox.gif) no-repeat; background-size:1.35em;}
+
+.form-type-checkbox div.opt-on,
+form.rweb .form-type-checkboxes label.opt-on,
+.form-type-radio label.opt-on {background-position:left bottom;}
+
+div.form-type-checkbox  input,
+div.form-type-radio input {position:absolute; left:-9999px;}
+
+#main {margin:0 0 1em 0;}
+#main .section {padding:0 1em;}
 #content {width:100%;}
-#main {margin-bottom:1em;}
 div#footer-wrapper, #footer, #footer .region {margin:0; padding:0;}
 #footer, #footer label {text-align:center; color:darkgray;}
 #footer label a {color:black;}
 #footer label a:hover {color:darkgray; text-decoration:underline;}
 #page-title {display: none;}
+
+.region-header {margin: 1em 5px 1.5em;}
+#logo {padding: 1em 1em 1em .8em;}
 #logo img {height:6em; width:4.5em;}
 #name-and-slogan {margin:3.3em 0 1em 0; padding-top:0;}
+#breadcrumb, div.breadcrumb {display:none;}
+div.develw div {display:inline;}
 #secondary-menu {position:absolute; z-index:3;}
 #secondary-menu-links li {border-right:1px solid silver; padding-right:1px;}
 #secondary-menu-links li.last {border-right:0;}
@@ -36,18 +60,17 @@ div.tabs ul.primary li a {padding:0 .5em .1em; font-size:1em;}
 
 /* Accounts Selector */
 #accounts {position:absolute; left:0; top:2em; width:100%;}
-#accounts div.region-accounts {float:right; margin-right:1em;}
-#accounts div.content, div#accounts div.form-item-account-account {margin:0;}
-#accounts select {font-size:80%; padding:0;}
+#accounts div.region-accounts {float:right; margin-right:1em; width:100%;}
+#accounts div.content, div#accounts div.form-item-account-account {margin:0; }
+#accounts .form-type-textfield, #accounts .form-type-select {width:100%;}
+#accounts #edit-account-account {font-size:1em; padding:0; float:right; margin-left:100%; width:auto;}
+#accounts input#edit-account-account {padding:.4em;}
 #rcreditswebformaccounts #edit-account-submit {display:none;} /* Drupal requires unused button to be there, so make it invisible */
-#rcreditswebformaccounts #edit-account-menu {display:none;} /* show only for smartphones */
-/* #rcreditswebformaccounts  div#edit-account-current-balance label {font-weight:normal;} /* when there is just one account */
-
+#edit-account-showmenu, #edit-account-showhelp {display:none;}
+  
+/* Help */
 #help-link {width:100%;}
-#help-link label {width:10em; font-size:.8em; float:right; text-align:left; padding-left:2em; background-image:url(../../../../../images/icons/question-mark.gif); background-repeat:no-repeat;}
-
-#breadcrumb, div.breadcrumb {display:none;}
-div.develw div {display:inline;}
+#help-link label {width:10em; font-size:.8em; float:right; text-align:left; padding-left:2em; background-image:url(../images/icons/question-mark.gif); background-repeat:no-repeat;}
 
 /* Standard Forms */
 form.rweb {font-family:Arial;}
@@ -57,44 +80,55 @@ form.rweb div {vertical-align:top;}
 form.rweb div#edit-title {margin-bottom:1em;}
 form.rweb div#edit-title label {font-size:190%; color:darkgreen; text-align:left; width:100%;}
 
-form.rweb div.description {display:block; clear:both; margin:.15em 0 0 0;}
-form.rweb div.form-type-item label {text-align:left;}
-form.rweb div.form-type-textfield {display:inline-block; margin-right:0;}
-form.rweb div.form-type-textfield label {display:inline-block;}
+form.rweb .description {display:block; clear:both; margin:.15em 0 0 0;}
+form.rweb .form-type-item label {text-align:left;}
+form.rweb .form-type-textfield {display:inline-block; margin-right:0;}
+form.rweb .form-type-textfield label {display:inline-block;}
 form.rweb div#edit-subtext label {font-weight:normal; width:100%; text-align:left;}
 
 form.rweb input {vertical-align:top;}
 form.rweb input[type="text"] {width:20em;}
 
-form.rweb div.form-type-radios {margin:0;}
-form.rweb div.form-radios {margin-bottom:0;}
-form.rweb div.form-type-radio {display:inline-block; margin-top:0;}
-form.rweb div.form-type-radio input {display:inline-block; margin-left:0; vertical-align:bottom;}
-form.rweb div.form-type-radio label {display:inline; width:8em; margin-left:.25em; text-align:left;}
+form.rweb .form-type-radio label {width:.93em;}
+form.rweb .form-type-radios {margin:0;}
+form.rweb .form-radios {margin-bottom:0;}
+form.rweb .form-type-radio {display:inline-block; margin-top:0;}
+form.rweb .form-type-radio input {display:inline-block; margin-left:0; vertical-align:bottom;}
+form.rweb .form-type-radio label {display:inline; width:8em; margin-left:.25em; text-align:left;}
 
 form.rweb .form-local {margin:.1em .2em; padding:.2em; font-size:70%; color:darkgreen;}
 form.rweb  .form-yes {color:green;}
 form.rweb  .form-no {color:red;}
 
-@media all and (min-width: 481px) {
+@media (min-width:28em) {
   /* Labeled Forms (each field is preceded by a short label and the fields line up)
   /* form.rweb.labeled (this fails for Chrome) */
   form.labeled div.form-type-textfield {display:block; margin-right:0;}
   form.labeled label, form.labeled div.form-type-item label {display:inline-block; width:8em; text-align:right; margin-right:0;} /* default label width */
   form.labeled div#edit-title,
   form.labeled input.form-submit,
+  form.labeled div#edit-tip label,
+  form.labeled div#edit-subtext,
   form.labeled div.form-radios {margin-left:8em;}
 
-  form.labeled div#edit-subtext,
   form.labeled div.description {margin-left:9.1em;}
 
   form.labeled div.description {font-size:85%}
   form.labeled div.labeled-block {display:inline-block;}
   form.labeled div.form-textarea-wrapper {display:inline-block;}
+
+  form.labeled  .form-type-checkbox div.description {margin-left:1em;}
+}
+@media (max-width:27.99em) {
+  form.rweb .form-type-textfield label {display:block;}
+  form.rweb input {display:block;}
 }
 
+/* Menu */
+#menu {display:none;}
+
 /* Login */
-#user-login div#edit-tip label {font-weight:normal; width:100%;}
+#user-login div#edit-tip label {font-weight:normal; width:100%; text-align:left;}
 #user-login input#edit-name,
 #user-login input#edit-pass {width:20em;}
 
@@ -103,16 +137,22 @@ form.rweb  .form-no {color:red;}
 #user-login-form input#edit-pass {width:12em;}
 #user-login-form div#edit-tip label {font-weight:normal;}
 
-/* Register */
+/* Register (New account) */
 #user-register-form div#edit-company-text label {font-weight:normal; width:100%;}
 #user-register-form div.form-checkboxes div {display:inline-block;}
 
 #user-register-form div.form-checkboxes {margin-left:8em;}
-#user-register-form div.form-type-checkbox {display:inline-block;}
-#user-register-form div.form-type-checkbox input {display:inline-block; margin-left:0; vertical-align:bottom;}
-#user-register-form div.form-type-checkbox label {display:inline; width:10em; margin-left:.2em; text-align:left;}
+#user-register-form div.form-type-radio {display:inline-block;}
+#user-register-form div.form-type-radio input {display:inline-block; margin-left:0; vertical-align:bottom;}
+/*#user-register-form div.form-type-radio label {display:inline; width:10em; margin-left:.2em; text-align:left;}*/
 #user-register-form  fieldset.form-wrapper {margin-left:0;}
 #user-register-form  div#edit-company-text label {text-align:left;}
+
+/* New password */
+#user-pass #edit-name {width:20em;}
+
+/* Draft a new member */
+#rcreditswebformdraft #edit-cancel {margin-left:8em;}
 
 /* Summary */
 #rcreditswebformsummary div#edit-creditlimit div.description,
@@ -154,10 +194,10 @@ form.rweb  .form-no {color:red;}
 
 /* Exchange form (labeled) Get r / USD */
 /* #rcreditswebformexchange div#edit-request label {font-weight:normal; text-align:left; margin-left:100px; width:100%} */
-#rcreditswebformexchange input#edit-getusd {margin-left:4em;}
-#rcreditswebformexchange div#edit-subtext {margin-left:0px; width:30em;}
-#rcreditswebformexchange div#edit-subtext div.r-explain {text-align:left; margin-left:6.6em;}
-#rcreditswebformexchange div#edit-subtext div.r-amounts {text-align:right; margin-right:7em;}
+#rcreditswebformexchange #edit-getusd {margin-left:4em;}
+#rcreditswebformexchange #edit-subtext {margin-left:0px; width:30em;}
+#rcreditswebformexchange #edit-subtext div.r-explain {text-align:left; margin-left:6.6em;}
+#rcreditswebformexchange #edit-subtext div.r-amounts {text-align:right; margin-right:7em;}
 
 /* Transaction Summary Table */
 #txsum, #txsum-title, #txs-title {width:100%; margin:0;} /* outline:2px solid darkgreen;} */
@@ -221,7 +261,7 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformrelations col.rel-owner {width:13%;}
 #rcreditswebformrelations col.rel-permission {width:18%;}
 #rcreditswebformrelations col.rel-link {width:4%;}
-#rcreditswebformrelations div.highlight input {background-image:url(../../../../../images/buttons/buttons-highlight.png);}
+#rcreditswebformrelations div.highlight input {background-image:url(../images/buttons/buttons-highlight.png);}
 
 /* Cell */
 #rcreditswebformcell input#edit-delete {margin-right:100%;}
@@ -251,6 +291,8 @@ form.rweb  .form-no {color:red;}
 div#autocomplete  ul {clear:none; display:inline;}
 div#autocomplete  li {font-size:.7em; margin:0px; padding:0px; line-height:140%; background-color:lightyellow;}
 div#content {display:block;} /* keeps autocomplete from getting placed in a wacky position */
+html.js input.form-autocomplete {background-size:1.8em; background-position:right top;}
+html.js input.throbbing {background-position:right -2.4em;}
 
 /* Membership */
 #rcreditswebformmembership div#next-steps {width:500px; margin:-13px;}
@@ -260,63 +302,109 @@ div#content {display:block;} /* keeps autocomplete from getting placed in a wack
 #rcreditswebformprofile div.user-picture {float:left; margin-right:20px;}
 #rcreditswebformprofile div#member-details {float:left; min-width:200px; max-width:300px; font-weight:normal;}
 
-/* Options */
-#rcreditswebformoptions div.description {padding-bottom:12px;}
+/* Options (Preferences) */
+#rcreditswebformoptions div.description {margin-bottom:1em;}
 #rcreditswebformoptions  div.form-radios {margin-left:0px; display:inline-block;}
 /*#rcreditswebformoptions div.form-item-notify-by {margin-top:40px;}
 #rcreditswebformoptions div.form-item-secret-bal {margin-top:80px;}*/
-#rcreditswebformoptions div.form-item-secret-bal input {margin-left:105px;}
-#rcreditswebformoptions div.form-item-secret-bal label {margin-left:-9.3em; font-weight:bold;}
-#rcreditswebformoptions div.form-item-secret-bal div.description {display:inline-block; margin-left:1.5em;}
-#rcreditswebformoptions div.form-type-radios {border-bottom:1px solid darkgreen; margin-bottom:5px;}
+/*#rcreditswebformoptions div.form-item-secret-bal input {margin-left:105px;} */
+#rcreditswebformoptions div.form-item-secret-bal label {font-weight:bold;}
+#rcreditswebformoptions div.form-item-secret-bal div.description {display:inline-block; margin-left:0;}
+#rcreditswebformoptions div.form-type-radios {border-bottom:1px solid darkgreen; margin-bottom:.4em;}
 #rcreditswebformoptions div.form-type-radio {display:block;} /* less good for browser, better for mobile */
 
 /* I */
 div#sidebar-first {width:180px; padding-top:5px; border:1px solid darkgreen;}
 div#sidebar-first div.section {padding:0px;}
 div#block-user-login {padding:0px; padding-left:12px; margin-bottom:0px;}
-#rcreditswebformi div#id-name {margin-top:30px; font-weight:bold; font-size:24px; color:darkgreen;}
+#rcreditswebformi div.user-picture {float:left; max-width:48%; margin-right:1em;}
+#rcreditswebformi #id-other {float:left; clear:right; max-width:48%; margin-bottom:1em;}
+#rcreditswebformi div.form-item {float:left; max-width:48%;}
+#rcreditswebformi div.form-item input {font-size:1.5em; padding:.2em 1em;}
+#rcreditswebformi div#edit-all {width:30em; max-width:100%;}
+#rcreditswebformi div#id-name {margin-top:2.5em; font-weight:bold; font-size:1.5em; color:darkgreen;}
+#rcreditswebformi #edit-identifiers {margin-bottom:0;}
 
 /* Popups */
-fieldset#popup, fieldset#help {
+fieldset.popup {
   position:absolute;
   z-index:100;
   top: 1em;
-  float:right;
-  width:500px;
+  left:28em;
+  width:31em;
   padding-bottom:2px;
   background:white;
   border-radius:1em; -moz-border-radius:1em; -webkit-border-radius:1em;
   box-shadow: 0px 0px 1em rgba(0,0,0,0.7); -webkit-box-shadow: 0 0 1em rgba(0,0,0,0.7); -moz-box-shadow: 0 0px 1em rgba(0,0,0,0.7);
 }
-/*fieldset#popup {left:450px;} /* needs 150px extra for unknown reason */
-fieldset#popup legend, fieldset#help legend {background:darkgreen; color:white;}
-fieldset#popup label {text-align:left; font-weight:normal; width:100%;}
-fieldset#popup select {width:36em; overflow:auto;}
+/*fieldset.popup {left:450px;} /* needs 150px extra for unknown reason */
+fieldset.popup legend {background:darkgreen; color:white;}
+fieldset.popup div.form-item label {text-align:left; font-weight:normal; width:100%;}
+fieldset.popup select {width:36em; overflow:auto;}
 
-fieldset#help div.form-item {clear:both; font-size:90%;}
-fieldset#help {display:none;}
-#popup-close, #help-close {float:right; width:26px; height:26px; position:absolute; z-index:99; top:-12px; left:470px;}
-#popup-close label, #help-close label {margin-left:0px; width:26px;}
+#help div.form-item {clear:both; font-size:90%; padding-top:1em;}
+#help {display:none; top:9em;}
+div.popup-close {float:right; width:100%; height:2em; position:absolute; z-index:99; top:-1.5em; left:0;}
+div.popup-close img {float:right; width:2em; padding-right:.5em;}
+div.popup-close label {margin-left:0; width:0;}
 
 /* Smartphones (portrait and landscape) ----------- */
+@media all and (max-width:900px) { /* undoing style.css */   
+  #main-menu-links {text-align: left;}
+  #main-menu-links li, #main-menu-links li:nth-child(3n) {float: none; margin-right: 0; width: auto;}
+}
+
 /*@media only screen
 and (min-device-width : 320px)
 and (max-device-width : 480px) { */
-@media all and (max-width: 480px) {
-  body {font-size:150%;}
-  #name-and-slogan {margin-top:2.5em;}
-  #site-slogan {font-size:70%; width:14em;}
+@media (max-width:40em) {
+  body {font-size:100%;}
+  #main .section {padding:0 .4em;}
+  #main-wrapper {min-height:26em;} /* below the menu */
+  #logo {padding:.8em 0 .5em .4em;}
+  #name-and-slogan {font-size:.8em; padding-left:.1em; margin-top:4.5em;}
+  #site-slogan {width:14em; font-size:1em;}
   #secondary-menu, #main-menu {display:none;}
+  body.logged-in div.tabs {display:none;}
+  body.not-logged-in div.tabs ul {margin-left:0;}
+  #edit-title {display:none;}
   
-  #accounts {top:.3em;}
+  #accounts {top:.05em;}
   #accounts div.region-accounts {margin:0;}
-  #accounts select {font-size:120%; overflow:none;}
-  #rcreditswebformaccounts #edit-account-menu {display:block; float:right; font-size:140%; margin:.9em .1em;}
+  #accounts select, #accounts input {font-size:1.5em; overflow:none;}
+  #edit-account-showmenu,
+  #edit-account-showhelp {display:block; float:right; font-size:.8em; margin:0 0 .1em 100%;}
+  #edit-account-showmenu input,
+  #edit-account-showhelp input {width:3.5em;}
+
+  #menu {width:100%; margin:0; padding-top:0; border:0;} /* don't show unless button pressed */
+  #menu .fieldset-wrapper {padding:0 0 0 .2em;}
+  #menu .form-item {width:48%; display:inline-block;}
+  #menu input  {width:100%; padding-top:.6em; padding-bottom:.6em;}
+  #menu input#edit-help {margin-bottom:8em;}
+  #user-login input#edit-name,
+  #user-login input#edit-pass {width:17em;}
+
+  #help {top:8.3em; width:100%;}
+  #help-close {display:none;}
   
-  fieldset#help {width:auto;}
-  form.rweb div#help-link {display:block; margin-bottom:2em; border:1px solid white;}
+  fieldset.popup, fieldset.popup legend {border:0; box-shadow:none; -webkit-box-shadow:none; -moz-box-shadow:none; border-radius:0; -moz-border-radius:0; -webkit-border-radius:0;}
+  fieldset.popup, fieldset.popup select, fieldset.popup label, fieldset.popup legend {width:100%; left:0; border:0;}
+  /* form.rweb div#help-link {display:block; margin-bottom:2em; border:1px solid white;} */
+  fieldset#which {top:8em; width:100%;}
+  #help-link {display:none;}
+  
+  #rcreditswebformexchange #edit-subtext div.r-explain,
+  #rcreditswebformexchange #edit-subtext div.r-amounts {margin-left:0; text-align:left; width:100%;}
+  #rcreditswebformexchange #edit-getusd {margin-left:0;}
+
+  #rcreditswebformdirectory ul {margin-left:0; padding-left:0;}
+  
+  #rcreditswebformi input.form-submit {width:6em; margin:.1em auto 0 auto;}
+  #rcreditswebformi div#id-name {margin-top:.5em;}
+  #rcreditswebformi div.user-picture {margin-right:.4em; margin-bottom:10em;}
 }
+
 /* Smartphones (landscape) ----------- */
 @media only screen
 and (min-width : 321px) {
@@ -363,3 +451,4 @@ only screen and (-webkit-min-device-pixel-ratio : 1.5),
 only screen and (min-device-pixel-ratio : 1.5) {
 /* Styles */
 }
+

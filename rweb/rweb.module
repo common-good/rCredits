@@ -76,13 +76,14 @@ function rweb_menu() {
     'handy' => r\Web\menu('Handy', MENU_NORMAL_ITEM, 'handy_links', array(), PERM_ADMIN),
 
     'account' => r\Web\menu(t('Basic Settings'), MENU_CALLBACK, 'showForm', array('Account'), PERM_MANAGE),
-    'account/overview' => r\Web\menu('Basic Settings', MENU_DEFAULT_LOCAL_TASK, 'showForm', array('Account'), PERM_MANAGE),
-    'account/cell' => r\Web\menu(t('Cell Phones'), MENU_LOCAL_TASK, 'showForm', array('Cell'), PERM_MANAGE),
+    'account/basic' => r\Web\menu('Basic Settings', MENU_DEFAULT_LOCAL_TASK, 'showForm', array('Account'), PERM_MANAGE),
+    'account/cells' => r\Web\menu(t('Cell Phones'), MENU_LOCAL_TASK, 'showForm', array('Cells'), PERM_MANAGE),
     'account/relations' => r\Web\menu(t('Relations'), MENU_LOCAL_TASK, 'showForm', array('Relations'), PERM_MANAGE),
     'account/contact' => r\Web\menu(t('Contact Info'), MENU_LOCAL_TASK, 'showForm', array('Contact'), PERM_MANAGE),
     'account/company' => r\Web\menu(t('Company Info'), MENU_LOCAL_TASK, 'showForm', array('Company'), PERM_COMPANY),
-    'account/options' => r\Web\menu(t('Options'), MENU_LOCAL_TASK, 'showForm', array('Options'), PERM_MANAGE),
+    'account/preferences' => r\Web\menu(t('Preferences'), MENU_LOCAL_TASK, 'showForm', array('Options'), PERM_MANAGE),
 //    'account/bank-info' => r\Web\menu(t('Bank Info'), MENU_LOCAL_TASK, 'showForm', array('Bank'), PERM_MANAGE),
+    'account/usd' => r\Web\menu(t('Dwolla Info'), MENU_LOCAL_TASK, 'showForm', array('Usd'), PERM_ADMIN), // should be PERM_MANAGE
 
     'radmin' => r\Web\menu(t('Community Overview'), MENU_CALLBACK, 'showForm', array('Account'), PERM_CTTY_ADMIN),
     'radmin/overview' => r\Web\menu('Community Overview', MENU_DEFAULT_LOCAL_TASK, 'showForm', array('Account'), PERM_CTTY_ADMIN),
@@ -91,7 +92,7 @@ function rweb_menu() {
     'radmin/fine' => r\Web\menu(t('Fine'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), PERM_CTTY_ADMIN),
 
     'membership' => r\Web\menu(t('Membership Status'), MENU_CALLBACK, 'showForm', array('Membership'), PERM_MANAGE),
-    'promo-site' => r\Web\menu(t('Main Site'), MENU_CALLBACK, 'drupal_goto', array('http://rCredits.org'), '', $anyone),
+//    'promo-site' => r\Web\menu(t('Main Site'), MENU_CALLBACK, 'drupal_goto', array('http://rCredits.org'), '', $anyone),
 
     'menu' => r\Web\menu('Main Menu', MENU_CALLBACK, 'showForm', array('Menu'), PERM_READ),
     'member' => r\Web\menu('Company Profile', MENU_CALLBACK, 'showForm', array('Profile'), '', $anyone),
@@ -113,6 +114,8 @@ function rweb_menu() {
 
 function rweb_menu_alter(&$items) {
   unset($items['node']);
+  $items['user/password']['title'] = 'New password';
+  $items['user/register']['title'] = 'New account';
 }
 
 function rweb_form_alter(&$form, &$sta, $form_id) {

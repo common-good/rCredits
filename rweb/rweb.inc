@@ -8,7 +8,6 @@ use rCredits\Testing as t;
 include_once __DIR__ . '/rweb-txs.inc'; // treat this as an extension of this file, just to make menu ['file'] consistent
 require_once __DIR__ . '/../rcredits-backend.inc';
 require_once __DIR__ . '/../rcredits-testing.inc'; // else fails in showForm()
-define('isDEV', @$_SERVER['WINDIR']); // developing on Windows (unlike production server)
 
 /**
  * @file
@@ -23,15 +22,22 @@ define('R_NONE', '<span class="none">--</span>'); // let the tests see null valu
 define('R_TOGGLE_JS', '
   function toggle(field) {
     field = "#" + field;
-    jQuery(field + "-YES").toggle();
-    jQuery(field + "-NO").toggle();
+    jQuery(field + "-YES, " + field + "-NO").toggle();
     jQuery(field).val(jQuery(field + "-YES").is(":visible"));
   }
-  jQuery("div#help-link").click(function() {jQuery("fieldset#help").show();});
-  jQuery("div#help-close").click(function() {jQuery("fieldset#help").hide();});
-  jQuery("div#popup-close").click(function() {jQuery("fieldset#popup").hide();});
-  jQuery("a#popup-cancel").click(function() {jQuery("fieldset#popup").hide();});
-  jQuery("a#idcard").click(function() {window.open("Temporary-Member-ID-Card", "tempcard","height=250,width=600,left=100,location=0,menubar=0,resizable=0,scrollbars=0,status=0,toolbar=0");});
+  function toggleMain(me) {
+    var was=jQuery(me).is(":visible");
+    jQuery("#main, #help, #menu").hide();
+    jQuery(was ? "#main" : me).show();
+  }
+  jQuery("#which, #help").addClass("popup");
+  jQuery("#help-close, #which-close").addClass("popup-close");
+  jQuery("#help-link").click(function() {jQuery("fieldset#help").show();});
+  jQuery("#edit-account-showhelp").click(function() {toggleMain("#help");});
+  jQuery("#edit-account-showmenu").click(function() {toggleMain("#menu");});
+  jQuery(".popup-close").click(function() {jQuery(this).parents("fieldset").hide();});
+  jQuery("#which-cancel").click(function() {jQuery("fieldset#which").hide();});
+  jQuery("#idcard").click(function() {window.open("Temporary-Member-ID-Card", "tempcard","height=250,width=600,left=100,location=0,menubar=0,resizable=0,scrollbars=0,status=0,toolbar=0");});
 ');
 
 $GLOBALS[TX_WEB . ' messages'] = array(
@@ -75,8 +81,8 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'bad routing number' => t('US bank routing numbers are 9 digits. Use the number on the lower left edge of your checks.'),
   'nothing selected' => t('You did not select anything'),
   'undo incomplete' => t('The undo operation is not yet complete.'),
-  'unknown member' => t('"@who" has not yet signed up for rCredits. <a href="@draftLink">Click here to add them</a> to the list or <a href="" id="popup-cancel">click here to cancel</a>.'),
-  'ambiguous other' => t('"@who" might mean any of these rCredits accounts. Click on the one you want or, if you don\'t see them listed, <a href="@draftLink">Click here to add them</a> to the list or <a id="popup-cancel">here to cancel</a>.'),
+  'unknown member' => t('"@who" has not yet signed up for rCredits. <a href="@draftLink">Click here to add them</a> to the list or <a href="" id="which-cancel">click here to cancel</a>.'),
+  'ambiguous other' => t('"@who" might mean any of these rCredits accounts. Click on the one you want or, if you don\'t see them listed, <a href="@draftLink">Click here to add them</a> to the list or <a id="which-cancel">here to cancel</a>.'),
   'similar found' => t('Do you mean @otherName (@phone)? If so, <a href="@draftLink">click here</a>. Otherwise, click on any tab to cancel.'),
   'get app' => t('To scan Account ID cards with a smartphone, you need the app! You can download the Android app <a href="http://rCredits.org/rc.apk">here</a>. The iphone version is in the works (check again in January).'),
   'no help' => t('There is no written help available for this page. Give it a try! If you are still puzzled, please feel free to give us a call at @R_ORG_PHONE. Or send your question by <a href="mailto:@R_ORG_EMAIL?subject=help with rCredits Members Site, @page page" target="_blank">email</a>.'),
@@ -191,13 +197,14 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
 //    if ($newLayout) $form['#cache'] = FALSE;
     if (!@$form['confirm']) $form += which(); // add the choices popup form, if any
 
+
     if ($function != 'help') if (($i = array_search('title', array_keys($form))) !== FALSE or $function == 'Txs') {
       if ($function == 'Txs') $i = -1; // no title on Transactions page, so insert at beginning
       $i = -1; // always at beginning
       $extras = array('#id' => 'help-link', '#weight' => @$form['title']['#weight']);
-      $help_link = formField('item', t('<a><div></div>Help with this page</a>')) + $extras; // add a help link just under the title
-      $form = array_slice($form, 0, $i+1) + compact('help_link') + array_slice($form, $i+1) + help($function, @$form['#attributes']['class'][0]);
-      drupal_add_js(R_TOGGLE_JS, array('type'=>'inline', 'scope'=>'footer'));
+      $help_link = formField('item', t('<a><div></div>Help with this page</a>')) + $extras; // add a help link at top of page
+      $form = array_slice($form, 0, $i+1) + compact('help_link') + array_slice($form, $i+1);
+      js(R_TOGGLE_JS, 'inline', 'footer');
 //      debug($form);
     }
 
@@ -223,19 +230,19 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
  * 2. If called as which('info'), this function returns $info from svar('pop')
  * 3. If called with NO arguments (from showForm()), this function returns a fieldset to insert as a popup layover div into
  * the form awaiting the choice. Clicking on a choice fills in the missing value and submits the form.
- * For #3, we expect svar('pop') to contain: $formName, $choices, $result_field, and $question
+ * For #3, we expect svar('pop') to contain: $formName, $choices, $resultField, and $question
  *   $formName: the form name
  *   $choices: an array of choices
  * @param array $choices: associative array of things to choose from
- * @param string $result_field: name of field that gets the choice
+ * @param string $resultField: name of field that gets the choice
  * @param array $info: field values to be stored, then reinstated when the page is refreshed to show the choices
  * @param string $question: the question to ask
  */
-function which($choices = '', $result_field = '', $info = '', $question = 'Which one?') {
+function which($choices = '', $resultField = '', $info = '', $question = 'Which one?') {
   $formName = current_path();
   
   if (is_array($choices)) { // called with all args (#1)
-    svar('pop', compact(u\ray('formName choices result_field info question')));
+    svar('pop', compact(u\ray('formName choices resultField info question')));
     r\go($formName); // reload page
   }
 
@@ -246,12 +253,12 @@ function which($choices = '', $result_field = '', $info = '', $question = 'Which
   if ($choices) return array();
   
   svar('pop', NULL); // called with no args (#3)
-  $onchange = "this.form.elements['$pop_result_field'].value=this.options[this.selectedIndex].text; this.form.submit();";
+  $onchange = "this.form.elements['$pop_resultField'].value=this.options[this.selectedIndex].text; this.form.submit();";
   $subtext = formField('item', $pop_question);
   $choice = formField('select', '', '', attrib(compact('onchange') + array('size' => 12)), $pop_choices);
-  $close = popupCloser('popup'); // this is needed in mobile layout
-  $popup = formField('fieldset', t('Which One?'), '', array('id' => 'popup')) + compact(u\ray('subtext choice close'));
-return compact('popup');
+  $close = popupCloser('which'); // this is needed in mobile layout
+  $popup = formField('fieldset', t('Which One?'), '', array('id' => 'which')) + compact(u\ray('subtext close choice'));
+  return compact('popup');
 }
 
 function keep_values(&$form) {
@@ -342,9 +349,9 @@ function formHelp($form, &$sta, $what = '') {
   return compact(u\ray('title text'));
 }
 
-function popupCloser($fieldset) {
+function popupCloser($idHead) {
   global $base_url;
-  return formField('item', "<img src='$base_url/images/icons/close.png' border='0'>") + array('#id' => "$fieldset-close");
+  return formField('item', "<img src='$base_url/sites/all/modules/rcredits/images/icons/close.png' border='0'>") + array('#id' => "$idHead-close");
 }
 
 /**
@@ -356,7 +363,7 @@ function help($page, $class = '') {
 //  $subtext = formField('item', $question);
   $close = popupCloser('help');
   $text = formField('item', '', '', helpText($page));
-  $help = formField('fieldset', t('Help with this page'), '', array('id' => 'help')) + compact(u\ray('subtext close text'));
+  $help = formField('fieldset', t('Help with this page'), '', array('id' => 'help')) + compact(u\ray('close subtext text'));
   return compact('help');
 }
 
@@ -493,44 +500,64 @@ function formAccounts($form, &$sta) {
   $full_name = r\userField('full_name', $cuid);
   $onchange = "this.form.submit();";
 //  $account = formField('select', t('Account:'), t('(Select an account)'), dft($cuid) + attrib(compact('onchange')), $choices);
-  $account = formField('select', '', '', dft($cuid) + attrib(compact('onchange')), $choices);
+  $oneText = "$full_name: $balance";
+  
+  $account = count($choices) == 1 ? 
+      formField('textfield', '', '', dft($oneText) + attrib(array('disabled' => TRUE, 'size' => strlen($oneText)+2)))
+    : formField('select', '', '', dft($cuid) + attrib(compact('onchange')), $choices);
 //  $link = formField('item', '<a href="http://rCredits.org">Main Site</a>');
   $submit = formField('submit'); // default submission
-  $menu = formField('submit', t('Menu'));
-  $form = u\prefixKeys('account_', compact(u\ray('account menu submit'))); // always give a dropdown
+  $showMenu = formField('item', '', '', button('Menu', '', $title = 'Show the menu'));
+  $showHelp = formField('item', '', '', button('Help', '', $title = 'Help for this page'));
+//  $version = formField('item', t('v 0.1d'));
+  $form = u\prefixKeys('account_', compact(u\ray('account showMenu showHelp submit'))); // always give a dropdown
 
-//  $one_account = formField('item', t('Account') . ": <span>$full_name ($qid)</span>");
-//  $one_balance = formField('item', t('Current Balance') . ": <span>$balance</span>");
-  //  $form = count($choices) == 1 ? compact(u\ray('one_account one_balance')) : u\prefixKeys('account_', compact(u\ray('account submit')));
-  //  $form['#attributes']['class'] = array('labeled');
+  $chunks = explode('/', $_SERVER['REQUEST_URI']);
+  if (isDEV) array_shift($chunks); // site is in a subfolder on the dev server
+  $chunkIndex = (($chunks[1] == 'account' and @$chunks[2]) or $chunks[0] == 'user') ? 2 : 1;
+  $function = $chunks[$chunkIndex];
+  $menu = formMenu($function);
+  $help = help($function);
+  $form += $help + $menu;
+
   return $form;
 }
 
 function formAccounts_submit($form, &$sta) {
-  extract(u\just('account_account', $sta['values']));
+  extract(u\just('op account_account', $sta['values']));
   $cacct = r\acct();
   if (!r\acct($account_account, $cacct->agent)->can()) r\go('user/logout'); // hack attempt?
-  svar('cuid', $account_account); // this gets checked ONLY in setupGlobals()
+  if ($op == 'Menu') {
+    r\go('menu'); 
+  } else svar('cuid', $account_account); // this gets checked ONLY in setupGlobals()
 }
 
-function formMenu($form, &$sta, $page) {
-  return array(
-    'charge' => formField('submit', t('Charge')),
-    'pay' => formField('submit', t('Pay')),
-    'get' => formField('submit', t('Get r/USD')),
-    'find' => formField('submit', t('Find Companies')),
-    'reports' => formField('submit', t('Reports')),
-    'help' => formField('submit', t('Help')),
-    'logout' => formField('submit', t('Logout')),
-    
-    'account' => formField('submit', t('Account')),
-    'cells' => formField('submit', t('Cell Phones')),
-    'relations' => formField('submit', t('Relations')),
-    'options' => formField('submit', t('Options')),
-    'company' => formField('submit', t('Company Info')),
-    'contact' => formField('submit', t('Contact Info')),
-    'membership' => formField('submit', t('Membership')),
-  );
+function formMenu($page) {
+  $menu = goButton(t('Charge'), 'charge', t('Charge someone'))
+        + goButton(t('Pay'), 'pay', t('Pay someone'))
+        + goButton(t('Summary'), 'summary', t('Account summary'))
+        + goButton(t('Transactions'), 'transactions', t('Show transaction history'))
+        + goButton(t('Get r/USD'), 'exchange', t('Exchange rCredits for USD or vice-versa'))
+        + goButton(t('Find Companies'), 'directory', t('Find an rCredits member company'))
+        + goButton(t('Help'), "help/$page", t('Help with this page'))
+        + goButton(t('Reports'), 'reports', t('rCredits syste-wide or community-wide activity reports'))
+        + goButton(t('Account'), 'account', t('Basic account information'))
+        + goButton(t('Mobile'), 'account/cells', t('Authorize mobile devices for this account'))
+        + goButton(t('Relations'), 'account/relations', t('Connect other members to this account'))
+        + goButton(t('Preferences'), 'account/preferences', t('Set your account preferences'))
+        + goButton(t('Contact Info'), 'account/contact', t('Tell us where to find you'))
+        + goButton(t('Membership'), 'membership', t('Your rCredits membership progress'))
+        + (r\acct()->can(PERM_COMPANY) ? goButton(t('Company Info'), 'account/company', t('Describe this company')) : array())
+        + goButton(t('Logout'), 'user/logout', t('End your rCredits session'))
+  ;
+  $menu = formField('fieldset', '', '', array('id' => 'menu')) + compact('menu');
+  return compact('menu');
+}
+
+function goButton($label, $goto, $title) {
+  $gotoHead = isDEV ? '/devcore' : '';
+  $name = str_replace('/', '_', $goto);
+  return array($name => formField('item', '', '', button($label, "$gotoHead/$goto", $title)));
 }
 
 /**
@@ -607,7 +634,7 @@ function formTx($form, &$sta, $argString = '') {
   if ($confirm = sureForm($sta)) return $confirm;
   
   parse_str(strpos($argString, urlencode('=')) ? urldecode($argString) : $argString, $args);
-  extract(u\just('who amount goods purpose', $args));
+  extract(u\just('who amount goods purpose ided', $args));
   $type = $argString === '' ? basename(current_path()) : basename(dirname(current_path()));
   $role = in_array($type, u\ray('charge fine')) ? 'payee' : 'payer';
   $cash = in_array($type, u\ray('fine grant loan'));
@@ -626,21 +653,12 @@ function formTx($form, &$sta, $argString = '') {
   $amount = formField('textfield', 'Amount: $', t('Amount to ') . $type, dft(@$amount));
   $goods = formField('radios', '', '', dft(u\retSet(@$goods) ?: 1), $radios); //  + attrib(compact('onchange'))
   $purpose = formField('textfield', 'Purpose:', t('Description of goods and services or purpose'), dft(@$purpose));
+  $ided = formField('hidden', @$ided); // IDed means user already saw a name and photo
   $$type = formField('submit', ucwords($type));
 
-  $form = compact(u\ray("title who amount goods purpose $type"));
+  $form = compact(u\ray("title who amount goods purpose $type ided"));
   $form['#attributes']['class'] = array('labeled');
-  
-/*
-  $js = <<<EOF
-    function nixwhat() {
-      var c0=document.getElementById('edit-goods-0');
-      jQuery('.form-item-what').css('display', c0.checked ? 'none' : 'block');
-    }
-    nixwhat();
-    document.getElementById('edit-who').focus();
-EOF;
-*/
+  js('inc/radiocheck.js', 'file', 'footer');
   
   return keep_values($form); // get defaults from which('info')
 }
@@ -795,8 +813,8 @@ function formContact($form, &$sta) {
   );
 
   $form['#attributes']['class'] = array('labeled');
-  drupal_add_js('inc/countries.js', array('type'=>'file', 'scope'=>'header'));
-  drupal_add_js("print_country('edit-country', \"$my_country\", \"$my_state\");", array('type'=>'inline', 'scope'=>'footer'));
+  js('inc/countries.js', 'file', 'header');
+  js("print_country('edit-country', \"$my_country\", \"$my_state\");", 'inline', 'footer');
   focusOn('full_name');
 
   return $form;
@@ -808,8 +826,8 @@ function formContact_validate($form, &$sta) {
 //  if (blank_field(compact(u\ray('phone city address')))) return;
 
   // add dropdowns, just in case there is an error
-  drupal_add_js('inc/countries.js', array('type'=>'file', 'scope'=>'header'));
-  drupal_add_js("print_country('edit-country', \"$country\", \"$state\");", array('type'=>'inline', 'scope'=>'footer'));
+  js('inc/countries.js', 'file', 'header');
+  js("print_country('edit-country', \"$country\", \"$state\");", 'inline', 'footer');
 
   if ($phone and !($phone = u\formatPhone($phone, '+n'))) say('bad phone', 'phone'); else $sta['values']['phone'] = $phone;
   if ($fax and !($fax = u\formatPhone($fax, '+n'))) say('bad phone', 'fax'); else $sta['values']['fax'] = $fax;
@@ -849,6 +867,7 @@ function formDraft($form, &$sta, $argString = '') {
     'argString' => formField('hidden', http_build_query($args)),
     'return' => formField('hidden', $return),
     'submit' => formField('submit', t('Submit')),
+    'cancel' => formField('submit', t('Cancel')),
   );
 
   $form['#attributes']['class'] = array('labeled');
@@ -857,7 +876,8 @@ function formDraft($form, &$sta, $argString = '') {
 
 function formDraft_validate($form, &$sta) {
   global $base_url;
-  extract(u\just('full_name phone argString return', u\trimAll($sta['values']))); // (trim ALL values for later)
+  extract(u\just('op full_name phone argString return', u\trimAll($sta['values']))); // (trim ALL values for later)
+  if (op($sta) == 'cancel') return r\go("$return/$argString");
   if ($phone and !($phone = u\formatPhone($phone, '+n'))) say('bad phone', 'phone'); else $sta['values']['phone'] = $phone;
   if (!u\validName($full_name, FALSE, FALSE)) say('bad name', 'name');
   $sta['values']['full_name'] = u\normalizeCase($full_name);
@@ -881,11 +901,44 @@ function no_selection($list) {
   return TRUE;
 }
 
+
+/**
+ * Get the Dwolla account info
+ * @todo: add subtle link to disconnect from Dwolla
+ */
+function formUsd($form, &$sta) {
+  $cacct = r\acct();
+  $form = array(
+    'title' => formField('item', t('US Dollar Account (Dwolla) Info')),
+//    'subtext' => ,
+    'usd_account' => formField('textfield', t('Dwolla number:'), t('What is your 10-digit Dwolla account number?'), dft($cacct->usd_account) + required()),
+    'submit' => formField('submit', t('Submit')),
+  );
+
+  $form['#attributes']['class'] = array('labeled');
+  return $form;
+}
+
+function formUsd_validate($form, &$sta) {
+  extract(u\just('usd_account', $sta['values']));
+  $usd_account = $sta['values']['usd_account'] = str_replace('-', '', trim($usd_account));
+  if (!preg_match('/^[0-9]{10}$/', $usd_account)) say('bad account number', 'bank_account_number');
+}
+
+function formUsd_submit($form, &$sta) {
+  extract(u\just('usd_account', $sta['values']));
+  //DWOLLA: get open auth code
+  // $usd_auth = whatever;
+  r\userUpdate(compact(u\ray('usd_account usd_auth')));
+  say('info saved');
+}
+
 /**
  * Get the bank account info
  * @todo: store two verification EFT deposit amounts in bank_account_status as 1000*one+two
  * (if status > 100, it's waiting for verification)
  */
+ /*
 function formBank($form, &$sta) {
   extract((array) r\acct()->account(), EXTR_PREFIX_ALL, 'my');
 
@@ -924,6 +977,7 @@ function formBank_submit($form, &$sta) {
   r\userUpdate(compact(u\ray('bank_account_name bank_account_number')));
   say('info saved');
 }
+*/
 
 /**
  * Give someone access to the current account or mark them as an employee or owner.
@@ -959,7 +1013,7 @@ EOF;
     $isAgent = ($cuid != $main_uid);
     $combo = ($isAgent and @$previousAgent == $main_uid); // related both ways
     $otherIsPerson = !r\acct($isAgent ? $main_uid : $agent_uid)->isCompany();
-    $idLink = (!$isAgent and $otherIsPerson and $employee_ok and $permission >= PERM_SELL) ? "<a target=\"_blank\" href=\"$base_url/Temporary-Member-ID-Card/$agent_uid\">print&nbspID&nbspCard</a>" : R_NONE;
+    $idLink = (!$isAgent and $otherIsPerson and $employee_ok and $permission >= PERM_SELL) ? "<a target=\"_blank\" href=\"$base_url/Temporary-Member-ID-Card/$agent_uid\">print&nbsp;ID&nbsp;Card</a>" : R_NONE;
 
     $id = (count($rows) - ($combo ? 1 : 0)) . "-$reid"; // "row-reid"
     $discrepant = ($employer_ok xor $employee_ok); // exactly one has claimed the relation
@@ -988,7 +1042,7 @@ EOF;
   }
   $sta['original_settings'] = compact('raws0', 'raws');
   
-  $help = t("Use this form to mark someone as an employee or owner or to give someone access to this account. Individuals marked as employees are the ones who will get paid in rCredits when you use the Pay form to pay \"all\". For example, you might authorize some employees to buy or sell for your company. The system will track who does what. Or you might give your accountant \"read\" permission. Yellow highlights show settings that need to be confirmed &mdash; either by you or by the other party.");
+  $help = t("Connect individual rCredits participants to your account &mdash; either as owners, employees, or others, with limited or full access to the account.");
   $subtext = '<span id="account-label">' . t('Current Account') . ":</span> <span id='account-identifiers'>$account_identifiers</span><br><br>$help";
 
   $attributes = array('id' => 'relations');
@@ -1089,7 +1143,7 @@ function formRelations_submit($form, &$sta) {
 /**
  * @todo: focus on code input
  */
-function formCell($form, &$sta) {
+function formCells($form, &$sta) {
   $cuid = r\acct()->id;
   if ($confirm = sureForm($sta)) return $confirm; // confirm only deletion
   if (form_step($sta, $info) == 'prove') {
@@ -1116,7 +1170,7 @@ function formCell($form, &$sta) {
 
   $form = array(
     'title' => formField('item', t('Cell Phones')),
-    'subtitle' => formField('item', t('for this account')),
+    'subtitle' => formField('item', t('Authorized devices for this account')),
     'cells' => formField('tableselect', '', '', array('header' => $headers, 'multiple' => TRUE, 'empty' => tt('no cells')), $list),
     'delete' => formField('submit', t('Remove Selected Numbers')),
 
@@ -1126,7 +1180,7 @@ function formCell($form, &$sta) {
   return $form;
 }
 
-function formCell_validate($form, &$sta) {
+function formCells_validate($form, &$sta) {
   $cuid = r\acct()->id;
   if (confirming_v($sta)) return;
   extract($sta['values']);
@@ -1147,7 +1201,7 @@ function formCell_validate($form, &$sta) {
   }
 }
 
-function formCell_submit($form, &$sta) {
+function formCells_submit($form, &$sta) {
   if (confirming_s($sta)) return;
   
   extract($sta['values']);
@@ -1162,7 +1216,7 @@ function formCell_submit($form, &$sta) {
   if ($op == 'Verify') {
     step_one($sta); // no next step (back to original form)
     say(be\addCell($number));
-    $sta['redirect'] = 'account/cell-access';
+    $sta['redirect'] = 'account/cells';
   }
     
   if ($op == 'Remove') {
@@ -1210,8 +1264,9 @@ function formRegister(&$form, &$sta) {
   );
 
   css('rweb.css', -9); // needed because this function doesn't go through show()
-  drupal_add_js('inc/countries.js', array('type'=>'file', 'scope'=>'header'));
-  drupal_add_js("print_country(\"edit-country\", \"$my_country\", \"$my_state\");", array('type'=>'inline', 'scope'=>'footer'));
+  js('inc/countries.js', 'file', 'header');
+  js("print_country(\"edit-country\", \"$my_country\", \"$my_state\");", 'inline', 'footer');
+  js('inc/radiocheck.js', 'file', 'footer');
 
   $form['#attributes']['class'][] = 'labeled';
   $form['#attributes']['class'][] = 'rweb';
@@ -1302,11 +1357,12 @@ function resetSubmit(&$form, &$sta) {
 function loginAlter(&$form, &$sta, $regular = TRUE) {
 
   if ($regular) {
-    $title = formField('item', t('rCredits Member Login'));
-    $subtext = formField('item', t('Welcome! If you have not yet signed up for rCredits, click on "Create New Account".'));
+    $title = formField('item', t('rCredits Login'));
+    $subtext = formField('item', t('Welcome! If you have not yet signed up for rCredits, click on "New account" above.'));
     array_unshift($form, compact(u\ray('title subtext')));
-    $form['tip'] = formField('item', t('<b>NOTE: </b>If you already created an account using cell texting and have never yet logged in here, start by requesting a "new password" for your email address.'));
-    $form['name']['#description'] = t('Enter your username (usually your legal name without spaces or punctuation) OR your rCredits account ID.');
+    $form['tip'] = formField('item', t('<b>NOTE: </b>If you created an account using cell texting request a "New password".'));
+    $form['name']['#description'] = t('Enter your username (the letters of your legal name, all lowercase) OR your rCredits account ID.');
+    $form['pass']['#description'] = t('Enter your account password.');
   }
   
   $form['external_input'] = formField('hidden', serialize($sta['input'])); // pass this to rweb_user_login
@@ -1320,7 +1376,6 @@ function loginAlter(&$form, &$sta, $regular = TRUE) {
   $form['pass']['#title'] = t('Password:');
   
   $form['#attributes']['class'][] = $regular ? 'rweb labeled' : 'rweb';
-//  $form['#attached']['css'][] = \drupal_get_path('module', 'rweb') . '/rweb.css';
   focusOn('name');
   css('rweb.css', -9); // needed because this function doesn't go through show()
 }
@@ -1528,15 +1583,15 @@ function formCompany_submit($form, &$sta) {
   say('info saved');
 }
 
-function button($text, $href = '', $title = '', $type = '') {
+function button($value, $href = '', $title = '', $type = '') {
   $title = htmlspecialchars($title);
-  $type = 'local form-submit' . ($type ? " $type" : ''); // Drupal prefixes this with 'form-'
-  $markup = render($zot = array($text => formField('button', '', '', array('value' => $text, 'button_type' => $type))));
+  $button_type = 'local form-submit' . ($type ? " $type" : ''); // Drupal prefixes this with 'form-'
+  $markup = render($zot = array($value => formField('button', '', '', compact(u\ray('value button_type title')))));
   $markup = str_replace('"submit"', '"button"', $markup); // compensate for Drupal pigheadedness
   if ($href) {
     if (strpos($href, 'http://') !== FALSE or substr($href, 0, 1) == '/') $href = "document.location.href='$href';";
     $name = 'name="op"';
-    $markup = str_replace($name, ($type == 'local' ? '' : "$name ") . "onclick=\"$href\"", $markup);
+    $markup = str_replace($name, ($button_type == 'local' ? '' : "$name ") . "onclick=\"$href\"", $markup);
 //  if ($href) $markup = "<a href=\"$href\" title=\"$title\">$markup</a>";
   }
   return $markup;
@@ -1551,49 +1606,42 @@ function button($text, $href = '', $title = '', $type = '') {
  */
 function formI($form, &$sta, $who) {
   if (!($acct = r\acct($who))) return r\go(''); // not a real code -- just go to home page
-/* NO. give choices.
-  if (!($cacct = r\acct()) or !$cacct->can(PERM_SELL)) {
-    if ($acct->isCompany()) return formProfile($form, $sta, $acct->name);
-    say('get app');
-    r\go('');
-  }
-*/
 
   list ($myId, $myAgent) = ($cacct = r\acct()) ? array($cacct->id, $cacct->agent) : array(FALSE, FALSE);
-  list ($theId, $theAgent) = array($acct->id, $acct->agent);
-  $identifiers = formField('item', identifiers($acct));
-  $the_id = formField('hidden', $theId);
-  $the_agent = formField('hidden', $theAgent);
-
-  if ($theId == $myId) {
+  list ($otherId, $otherAgent) = array($acct->id, $acct->agent);
+  if ($otherId == $myId) {
     say('no self-trading', array(), 'error');
-    r\go('');
-  } else {
-    if ($cacct) { // can charge, pay, or change account or agent only if signed in
-      $charge = formField('submit', t('Charge'));
-      if ($cacct->can(PERM_BUY)) $pay = formField('submit', t('Pay'));
-      if (r\acct($myId, $theAgent)->can()) $change_agent = formField('submit', t('Change Agent'));
-      if (r\acct($theId, $myAgent)->can()) $change_account = formField('submit', t('Change Account'));
-    } else $login = formField('item', t('Please login, to Pay or Charge this account.'));
-    if ($acct->can(PERM_COMPANY)) $site = formField('submit', t('Show Webpage'));
+    return r\go('');
   }
-  $form = compact(u\ray('identifiers the_id the_agent login charge pay site change_agent change_account'));
-  if (!$cacct) css('formi.css');
-  return $form;
+  
+  if ($acct->can(PERM_COMPANY)) $site = goButton(t('Show Webpage'), "member/$shortName", t("See this company's rCredits webpage"));
+
+  if ($cacct) { // can charge, pay, or change account or agent only if signed in
+    $shortName = $acct->name;
+    $theId = formField('hidden', $otherId);
+    $theAgent = formField('hidden', $otherAgent);
+    if ($cacct->can(PERM_SELL)) $charge = goButton(t('Charge'), "charge/who=$shortName&ided=1", t('Charge someone'));
+    if ($cacct->can(PERM_BUY)) $pay = goButton(t('Pay'), "pay/who=$shortName&ided=1", t('Pay someone'));
+    if (r\acct($myId, $otherAgent)->can()) $changeAgent = goButton(t('Change Agent'), "user/logout/who=$shortName", t('Change Shift?'));
+    if (r\acct($otherId, $myAgent)->can()) $changeAccount = formField('submit', t('Change Account'));
+    $all = identifiers($acct) . render(compact(u\ray('charge pay changeAgent changeAccount site')));
+  } else {
+    $login = formField('item', t('Please login, to Pay or Charge this account.'));
+    $all = render(compact('login', 'site'));
+  }
+
+  $all = formField('item', '', '', $all);
+  return compact('all');
 }
 
 function formI_submit($form, &$sta) {
-  extract(u\just('op the_id the_agent', $sta['values']));
-  $acct = r\acct($the_id, $the_agent);
-  $shortName = $acct->name;
-  if ($op == 'Charge') r\go("charge/who=$shortName");
-  if ($op == 'Pay') r\go("pay/who=$shortName");
-  if ($op == 'Show Webpage') r\go("member/$shortName");
-  if ($op == 'Change Agent') r\go("user/logout/who=$shortName");
-  if ($op == 'Change Account') {
+  extract(u\just('theId theAgent', $sta['values']));
+  $acct = r\acct($theId, $theAgent);
+  $op = op($sta);
+  if ($op == 'changeAccount') {
     $cacct = r\acct();
-    if (!$cacct or !r\acct($the_id, $cacct->id)->can()) r\go('user/logout'); // hacker. so leave.
-    svar('cuid', $the_id);
+    if (!$cacct or !r\acct($theId, $cacct->id)->can()) return r\go('user/logout'); // hacker. so leave.
+    svar('cuid', $theId);
     $accountName = $acct->full_name;
     say('changed account', compact('accountName'));
   }
@@ -1622,7 +1670,7 @@ function formSMS_submit($form, $sta) {
 
 function formOptions($form, &$sta) {
   $cacct = r\acct();
-  $title = formField('item', t('Account Options'));
+  $title = formField('item', t('Account Preferences'));
   $notify_bys = array(t('no notifications'), t('by email'), t('by SMS'), t('by both email and SMS'));
   $dft = $cacct->hasBit(BIT_NOTIFY_EMAIL) + 2 * $cacct->hasBit(BIT_NOTIFY_SMS);
   $post_render = array('rCredits\\Web\fixupRadios'); // $class = array('clearfix');
@@ -1637,16 +1685,19 @@ function formOptions($form, &$sta) {
   
   $form = compact(u\ray('title pay_how notify_by secret_bal submit'));
   $form['#attributes']['class'] = array('labeled');
+  js('inc/radiocheck.js', 'file', 'footer');
   return $form;  
 }
 
 function formOptions_submit($form, $sta) {
   $cacct = r\acct();
   extract(u\just('pay_how notify_by', $sta['values']));
+  $secret_bal = @$sta['input']['secret_bal']; // damn Drupal sets this (=1) iff true. ['values']['secret_bal'] is always FALSE.
   $cacct->setBit(BIT_VIRTUAL_ALL, $pay_how == 2);
   $cacct->setBit(BIT_VIRTUAL_EMPLOYEES, $pay_how == 1);
   $cacct->setBit(BIT_NOTIFY_EMAIL, $notify_by & 1);
   $cacct->setBit(BIT_NOTIFY_SMS, $notify_by & 2);
+  $cacct->setBit(BIT_SECRET_BAL, $secret_bal);
   say('options saved');
 }
 
@@ -1682,7 +1733,7 @@ function memberID($uid = '') {
     $nameSize = '36px';
   } else $nameSize = '60px';
   $qid = str_replace(':', '=', $acct->qid()); // "=" to avoid GoDaddy's 'Bad Request' death redirecting RC2.ME with a ":" qid
-  if(!($photo = profile_picture($acct->agent))) $photo = 'images/no-photo-available.gif';
+  if(!($photo = profile_picture($acct->agent))) $photo = __DIR__ . '/../images/no-photo-available.gif';
 
   $info = @getimagesize($photo);
   list ($photoW, $photoH) = is_array($info) ? $info : array(0, 0);
@@ -1703,10 +1754,10 @@ function memberID($uid = '') {
   );
 
   // Image params: $file, $x='', $y='', $w=0, $h=0, $type='', $link='', $align='', $resize=false, $dpi=300, $palign='', $ismask=false, $imgmask=false, $border=0, $fitbox=false, $hidden=false, $fitonpage=false, $alt=false, $altimgs=array())
-  $pdf->Image('images/idcard/frame.jpg', 5, 5, 101, 64, '', '', '', true, 150, '', false, false, 0, false, false, false);
+  $pdf->Image(__DIR__ . '/../images/idcard/frame.jpg', 5, 5, 101, 64, '', '', '', true, 150, '', false, false, 0, false, false, false);
   $pdf->Image($photo, 10, 10, $photoW, $photoH, '', './account', '', true, 150, '', false, false, 0, false, false, false);
   $pdf->write2DBarcode("HTTP://RC2.ME/I/$qid", 'QRCODE,Q', 53, 25, 25, 25, $style, 'N'); // L,M,Q,H are low-high error-correction
-  $pdf->Image('images/rlogo150.png', 85, 25, 14.93, 20, '', '', '', true, 150, '', false, false, 0, false, false, false);
+  $pdf->Image(__DIR__ . '/../images/rlogo150.png', 85, 25, 14.93, 20, '', '', '', true, 150, '', false, false, 0, false, false, false);
 
   $html = strtr('<span style="font-size:22px;">Member ID<br><span style="font-size:38px; color:darkred;">@CODE</span><br>@REGION</span>', array('@CODE' => $qid, '@REGION' => R_REGION_NAME));
   $pdf->writeHTMLCell(50, 15, 52, 10, $html); // w, h, x, y
@@ -1715,7 +1766,7 @@ function memberID($uid = '') {
   
   $pdf->writeHTMLCell(90, 64, 110, 5, 'Here is your<h1 style="color:darkgreen;">Temporary Member ID Card</h1><p>You may cut out this card and use it for "AS-IF" transactions, to complete your membership requirements.</p><p>To print, right-click here, then click on "Print" OR use your browser\'s print icon.');
   // Add temporary symbol over image (maybe remove lower right corner and add "temp"), to discourage unauthorized use
-//  $pdf->Image('images/icons/print.png', 120, 30, 32, 32, '', '', '', true, 150, '', false, false, 0, false, false, false);
+//  $pdf->Image(__DIR__ . '/../images/icons/print.png', 120, 30, 32, 32, '', '', '', true, 150, '', false, false, 0, false, false, false);
   
   $pdf->Output('rCredits-ID-Card.pdf', 'I'); //Close and output PDF document
 }
@@ -1729,14 +1780,12 @@ function identifiers($acct) {
   $location = u\location($acct);
   $pic = ($cacct and $cacct->can(PERM_CHARGE)) ? profile_picture($agent->id, TRUE) : ''; // let qualified companies see the picture
   return <<<EOF
-    <div class="clearfix">
     $pic
     <div id="id-other">
       <div id="id-name">$agent->full_name</div>
       <div id="id-company">$company</div>
       <div id="id-location">$location</div>
-    </div>
-    </div><hr>
+    </div id-other>
 EOF;
 }
 
@@ -1902,7 +1951,7 @@ function whois($who, $field_name, $info, $allow_ALL = FALSE, $selfMsg = 'no self
  */
 function transfer($info, $confirmed) {
   $cuid = r\acct()->id;
-  extract(u\just('op who amount goods purpose', $info));
+  extract(u\just('op who amount goods purpose ided', $info));
   $txType = $op == 'Pay' ? 'payment' : strtolower($op);
   if (blank_field(compact(u\ray('who amount')))) return FALSE;
   if ($goods and trim($purpose) == '') return say('missing purpose', 'purpose');
@@ -1912,7 +1961,11 @@ function transfer($info, $confirmed) {
   list ($msg, $args, $confirm) = in_array($txType, array('payment', 'charge')) ?
        be\transfer($txType, $acct, $amount, $purpose, !u\forCash($purpose), $confirmed)
      : communityTransfer($txType, $acct, $amount, $confirmed);
-  if ($confirm) return identifiers($acct) . tt('confirm ' . $msg, $args);
+  if (!@$ided) { // not yet IDed -- We need to show identifying photo, name, etc. for the target account
+    $identifiers = identifiers($acct);
+    $identifiers = "<div id='identifiers' class='clearfix'>$identifiers</div identifiers>";
+  }
+  if ($confirm) return @$identifiers . tt('confirm ' . $msg, $args);
   if (@$args['success']) return say($msg, $args);
   return say($msg, $args, 'amount');
 }
@@ -2046,7 +2099,7 @@ function userMenuItem($router_path, $link_title) {
 
 function focusOn($focusFieldName) {
   $focusFieldName = str_replace('_', '-', $focusFieldName);
-  drupal_add_js("document.getElementById('edit-$focusFieldName').focus();", array('type'=>'inline', 'scope'=>'footer'));
+  js("document.getElementById('edit-$focusFieldName').focus();", 'inline', 'footer');
 }
 
 function formFooter() {
@@ -2056,7 +2109,7 @@ function formFooter() {
   //<a href="?layout=$layout">$layout layout</a> |
   $markup =<<<EOF
 <hr>
-<a href="http://rCredits.org">Main site</a> |
+<a href="http://rCredits.org">rCredits promo site</a> |
 <a href="help">Help</a>
 <br><br>
 website copyright &copy; $year <a href="http://CommonGoodFinance.org">Common Good Finance&trade;</a>, a 501(c)(3) nonprofit<br/>
@@ -2074,7 +2127,7 @@ _gaq.push(['_trackPageview']);
   ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
   var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
 EOF;
-  drupal_add_js($js, array('type'=>'inline', 'scope'=>'footer'));
+  js($js, 'inline', 'footer');
   return compact('text');
 }
 
@@ -2089,6 +2142,12 @@ function css($sheet, $weight = -99) {
   drupal_add_css(\drupal_get_path('module', 'rweb') . "/$sheet", array('group' => CSS_THEME) + weight($weight));
 }
 
+function js($what, $type, $scope) {
+  global $base_url;
+  if ($type == 'file') $what = "$base_url/sites/all/modules/rcredits/$what";
+  return drupal_add_js($what, compact('type', 'scope'));
+}
+
 // one-line functions that need no explanation
 function tt($message, $subs = array()) {return u\tt($message, $subs);}
 //function block_def($info, $extra = array()) {return compact(u\ray('info cache'));} // also status, region, visibility, pages
@@ -2101,3 +2160,5 @@ function attrib($attribs) {return array('attributes' => $attribs);}
 function autocomplete($path) {return array('autocomplete_path' => "autocomplete/$path/" . @r\acct()->id);}
 function required() {return array('required' => TRUE);}
 // UNUSED function check($array, $type = 'plain') {return array_map("check_$type", $array);} // Check an array for plain or markup.
+function op($sta) {return $sta['clicked_button']['#parents'][0];}
+function submit($label) {return formField('submit', $label);}

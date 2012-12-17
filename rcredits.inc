@@ -13,7 +13,9 @@ namespace rCredits; // typically abbreviated as "r"
 use rCredits\Util as u;
 use rCredits\Backend as be;
 
-define('R_VERSION', '0.1c'); // software version
+define('isDEV', @$_SERVER['WINDIR']); // developing on Windows (unlike production server)
+
+define('R_VERSION', '0.1d'); // software version
 define('R_SEPARATE_BACKEND', FALSE);
 define('R_TEMP_NAME_PREFIX', 'unknown ');
 define('R_ASIF_TEXT', ' "AS-IF"'); // how to identify "As If" transactions
@@ -269,7 +271,7 @@ function shortfall($uid, $requestAmount, $preapproved, $real) {
   if (!$preapproved) return 0; // if this is just an invoice, funds don't have to be there yet (no shortfall)
   $available = be\creditInfo(compact('uid', 'real'))->available;
   $amount = min($requestAmount, $available);
-  $shortfall = max(0, $requestAmount - $amount); // how much needs to be done in a separate currency
+  $shortfall = max(0, $requestAmount - $amount); // how much needs to be done later or in a separate currency
   if ($shortfall) {
     $shortfall = max(.01, $shortfall); // don't report a tiny shortfall by rounding down to zero
     $short = u\formatAmount($shortfall);
@@ -307,6 +309,7 @@ function payEmployees($amount0, $for, $confirmed) {
  */
 function notify($uid, $index, $info) {
   global $channel;
+  $cacct = acct();
   $acct = acct($uid);
   extract(u\just('full_name mail', $account = $acct->account()));
   $fullName = @$full_name ?: t('rCredits Member');
@@ -315,9 +318,10 @@ function notify($uid, $index, $info) {
     'fullName' => $fullName,
     'email' => $mail, // testing uses this
   );
+  $warnIndexes = u\ray('new-invoice new-offer charge-disputed');
   
   $info = array_merge($info, $standard_fields);
-  if ($uid != acct()->id) $info['otherName'] = acct()->full_name; // this comes in backwards if notifying elseone
+  if ($uid != $cacct->id) $info['otherName'] = $cacct->full_name; // this comes in backwards if notifying elseone
 
   $subs = array();
   if (!strlen($acct->pass)) {
@@ -331,8 +335,10 @@ function notify($uid, $index, $info) {
       $number = dbLookup('number', 'r_sms', 'uid=:uid AND status=:SMS_PRIMARY', compact('uid'));
       if ($number) $smsed = SMS\send($number, u\tt($index, $info, TX_SMS));
     }
-    $notification = str_replace('-', ' ', $index);
-    if (!@$mailed and !@$smsed and $index != 'new-payment') $warning = u\tt('cannot contact', compact('fullName', 'notification'));
+    if (!@$mailed and !@$smsed and array_search($index, $warnIndexes) !== FALSE) {
+      $notification = str_replace('-', ' ', $index);
+      $warning = u\tt('cannot contact', compact('fullName', 'notification'));
+    }
   }
   if (@$warning) {
     if ($channel == TX_WEB) Web\say($warning);

@@ -35,12 +35,14 @@ $GLOBALS[TX_SMS . ' messages'] = array(
 //  'account info2' => t("More account info"), // not used yet
   'your account is ready' => t('Your starting balance is @balance. Pretend to buy and sell as you would in a typical month (we need that info). Have fun! Type "helpme" to get started.'), // separate out the last sentence
   'report transaction' => t("You@asif @action @otherName @amount (@rewardType: @rewardAmount). Your new balance is @balance. Transaction #@tid"),
-  'report virtual' => t("You@asif offered @otherName @amount (@rewardType: @rewardAmount). Your balance is unchanged, pending acceptance. Transaction #@tid"),
+  'report offer' => t("You@asif offered @otherName @amount (@rewardType: @rewardAmount). Your balance is unchanged, pending acceptance. Transaction #@tid"),
   'report invoice' => t("You@asif @action @otherName @amount. Your balance is unchanged, pending agreement. Invoice #@tid"),
-  'report short transaction' => t("SPLIT! You@asif @action @otherName @amount (@short remains to be paid). Your new balance is @balance. Transaction #@tid"),
+  'report broke invoice' => t("@otherName does not have enough@asif rCredits at this time, so an invoice has been sent, for @amount. Invoice #@tid"),
+  'report short payment' => t("SPLIT! You@asif paid @otherName @amount (@short remains to be paid). Transaction #@tid"),
+  'report short invoice' => t("SPLIT! You@asif charged @otherName @amount (@short has been invoiced). Transaction #@tid, Invoice #@tid2"),
 //  'transaction done asif' => t("@action: @amount @tofrom user#@otherName (@rewardType: @rewardAmount). Your new provisional balance is @balance (If this had been a real transaction, your balance would be @amount @moreless). Transaction ID #@tid"),
   'report exchange' => t("You@asif @action @otherName r@amount for cash/loan/gift/etc. Your new balance is @balance. Transaction #@tid"),
-  'report exchange request' => t("You@asif requested r@amount from @otherName. Your balance is unchanged, pending approval. Invoice transaction #@tid"),
+  'report exchange request' => t("You@asif requested r@amount from @otherName. Your balance is unchanged, pending approval. Invoice #@tid"),
   'report funding' => t("You successfully@asif @action @amount to @otherName."),
   'paid employees' => t('You distributed @total to @successes of @employeeCount employees. See your transactions page for details.'),
   'new-invoice' => t('@otherName@asif requests @amount for @payerPurpose. Type "pay" or "undo".'),
@@ -50,10 +52,10 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'charge-disputed' => t('@otherName disputes a @created@asif charge of @amount for @payeePurpose.'),
   'invoice-denied' => t('@otherName has declined to pay your @created@asif invoice of @amount for @payeePurpose.'),
   'offer-refused' => t('@otherName has declined to accept your @created@asif offer of @amount for @payerPurpose.'),
-  'report undo' => t("@asif Transaction has been @solution."),
-  'report get usd' => t("@Exchange approved. @request will be transferred directly to your bank account within 24 hours. Your new balance is @balance."),
-  'get usd inactive' => t("If you were an Active Participant in the rCredits system, your request would transfer @amount directly to your bank account. Alas, you are not yet an Active Participant."),
-  'your demand' => t("Your total request for rCredits is now @request."),
+  'report undo' => t('@asif Transaction has been @solution.'),
+  'report get usd' => t('@Exchange approved. @request will be transferred directly to your bank account within 24 hours. Your new balance is @balance.'),
+  'get usd inactive' => t('If you were an Active Participant in the rCredits system, your request would transfer @amount directly to your bank account. Alas, you are not yet an Active Participant.'),
+  'your demand' => t('Your total request for rCredits is now @request.'),
   'updated relation' => t('Updated settings for @otherName'),
   'deleted relation' => t('Deleted relation with @otherName'),
 
@@ -64,15 +66,16 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   "what's your email really?" => t("Please type carefully. What is your email address?"),
   
   // confirmations
-  'confirm get usd' => t("@asif Trade r@request for us@request?"),
-  'confirm payment' => t("@asif Pay @otherName @amount for goods and services?"),
-  'confirm pay invoice' => t("@asif Pay @otherName @amount for goods and services (invoice @created)?"),
-  'confirm charge' => t("@asif Charge @otherName @amount for goods and services?"),
-  'confirm exchange' => t("Okay to@asif @confirmAction @otherName @amount in rCredits (for CASH/LOAN/ETC.)?"),
+  'confirm get r' => t('Trade us@request for r@request?'),
+  'confirm get usd' => t('@asif Trade r@request for us@request?'),
+  'confirm payment' => t('@asif Pay @otherName @amount for goods and services?'),
+  'confirm pay invoice' => t('@asif Pay @otherName @amount for goods and services (invoice @created)?'),
+  'confirm charge' => t('@asif Charge @otherName @amount for goods and services?'),
+  'confirm exchange' => t('Okay to@asif @confirmAction @otherName @amount in rCredits (for CASH/LOAN/ETC.)?'),
   'confirm pay employees' => t('Pay @employeeCount employees @amount each (a total of @total)?'),
-  'confirm undo' => t("Undo @created@asif transfer of @amount @tofrom @otherName?"),
-  'confirm funding' => t("@asif @confirmAction @amount to @otherName?"),
-  'please confirm' => t("To confirm, type @nonce."),
+  'confirm undo' => t('Undo @created@asif transfer of @amount @tofrom @otherName?'),
+  'confirm funding' => t('@asif @confirmAction @amount to @otherName?'),
+  'please confirm' => t('To confirm, type @nonce.'),
   'verification code' => 'Your verification code for using rCredits online is: @nonce', // used in rWeb
   
   // error messages
@@ -106,8 +109,8 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'short cash to' => t('You are r@short short, for that exchange.'),
   'short cash from' => t('@otherName does not have enough rCredits for that exchange.'),
   'short payment' => t('You are r@short short, for that payment. Get more rCredits first, or pay less.'),
-  'broke to' => t('You are completely out of rCredits, so that transaction cannot be completed. Type "get r <amount>" to get more rCredits.'),
-  'broke from' => t('@otherName does not have enough rCredits for that transaction at this time. But your request has been noted.'),
+  'broke to' => t('You do not have enough@asif rCredits, for that transaction. Type "get r <amount>" to get more rCredits.'),
+  'broke from' => t('@otherName does not have enough rCredits for that transaction at this time.'),
   'demand too small' => t('NOTE: The minimum amount of rCredits you can actually buy at a time is $@min.', array('@min' => R_MIN_DEMAND)),
   'no access get' => t('You do not have permission to exchange rCredits for US Dollars or vice-versa.'),
 //  'no access create' => t('You do not have permission to create transactions.'),
@@ -128,6 +131,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'shortname taken' => t('There is already an account with a nearly identical name ("@otherName").'),
   'no asif notify' => t('@fullName has not yet signed up for rCredits, so no notification message will be sent.'),
   'cannot contact' => t('We are unable to contact @fullName by email or text message. You may want follow up directly.'),
+  'no usd account' => t('To exchange rCredits for US Dollars (or vice versa), you must first connect your rCredits account to Dwolla (online).'),
 );
 
   // help messages (for use with the help command)
