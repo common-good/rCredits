@@ -30,7 +30,7 @@ Setup:
   | NEW.AAAK | %today-1d | %TX_TRANSFER | %TX_DONE    |     80 | NEW.ZZA   | NEW.ZZC | whatever54   | 000000 |
   | NEW.AAAL | %today-1d | %TX_REBATE   | %TX_DONE    |      4 | community | NEW.ZZA | rebate on #5 | 000000 |
   | NEW.AAAM | %today-1d | %TX_BONUS    | %TX_DONE    |      8 | community | NEW.ZZC | bonus on #4  | 000000 |
-  Then balances:
+  Then "asif" balances:
   | id        | balance |
   | community |    -768 |
   | NEW.ZZA   |     166 |

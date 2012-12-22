@@ -466,9 +466,10 @@ function expect1($arg, $value, $type, $ret) {
  * @param string $special: a special value if any (for example the nonce)
  * @return the log record id (for exception handler and shutdown function)
  */  
-function log($type, $info, $special = '', $adhocChannel = '') {
+function log($type, $info = array(), $special = '', $adhocChannel = '') {
   global $channel;
 
+  if (empty($info)) list ($type, $info) = array('-', array($type));
   if ($adhocChannel and $adhocChannel != $channel and !$special) $special = "via ch$adhocChannel";
   $cuid = @r\acct()->id;
   $agent = @r\acct()->agent;
@@ -601,6 +602,12 @@ function trimAll(&$array) {
   return $array;
 }
 
+function deb($arg = '') {
+  global $counterI;
+  $msgCount = count(@$_SESSION['messages']['status'] ?: array());
+  log(($counterI = @$counterI + 1) . " ($msgCount messages): " . print_r($arg, 1));
+}
+  
 /**
  * ret<X>
  * A collection of functions to return the argument when it passes a certain test.

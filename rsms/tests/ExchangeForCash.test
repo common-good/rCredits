@@ -10,15 +10,14 @@ require_once __DIR__ . '/../rsms.steps';
 
 class rsmsExchangeForCash extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
-  var $currentTest;
-  var $variant;
+  var $sceneName;
   const SHORT_NAME = 'ExchangeForCash';
   const FEATURE_NAME = 'rsms Test - ExchangeForCash';
   const DESCRIPTION = 'Exchange for cash';
   const MODULE = 'rsms';
 
   public function gherkin($statement, $type) {
-    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
   }
   
   public static function getInfo() {
@@ -30,12 +29,16 @@ class rsmsExchangeForCash extends DrupalWebTestCase {
     );
   }
 
-  public function setUp() { // especially, enable any modules required for the tests
+  public function setUp($sceneName, $variant = '') { // especially, enable any modules required for the tests
+    global $sceneTest; $sceneTest = $this;
     parent::setUp(self::MODULE);
-    if (function_exists('extraSetup')) extraSetup($this); // defined in rsms.steps
-    sceneSetup($this, __FUNCTION__);
 
-    switch ($this->variant) {
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rsms.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
@@ -56,7 +59,7 @@ class rsmsExchangeForCash extends DrupalWebTestCase {
 
   // Scenario: The caller confirms a trade of rCredits for cash
   public function testTheCallerConfirmsATradeOfRCreditsForCash_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('phone +20001 confirms "100 to .ZZC for cash"');
     Then_('the community has r$-750');
     And__('phone +20003 has r$350');
@@ -68,7 +71,7 @@ class rsmsExchangeForCash extends DrupalWebTestCase {
 
   // Scenario: The caller confirms an implicit trade of rCredits for cash
   public function testTheCallerConfirmsAnImplicitTradeOfRCreditsForCash_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('phone +20001 confirms "100 to .ZZC"');
     Then_('phone +20003 has r$350');
     And__('phone +20001 has r$150');
@@ -76,7 +79,7 @@ class rsmsExchangeForCash extends DrupalWebTestCase {
 
   // Scenario: The caller confirms a request to trade cash for rCredits
   public function testTheCallerConfirmsARequestToTradeCashForRCredits_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('phone +20003 confirms "100 from .ZZA for cash"');
     Then_('phone +20003 has r$250');
     And__('phone +20001 has r$250');
@@ -87,7 +90,7 @@ class rsmsExchangeForCash extends DrupalWebTestCase {
 
   // Scenario: The caller confirms a unilateral trade of cash for rCredits
   public function testTheCallerConfirmsAUnilateralTradeOfCashForRCredits_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     Given('phone +20003 can charge unilaterally');
     When_('phone +20003 confirms "100 from .ZZA for cash"');
     Then_('phone +20003 has r$350');
@@ -99,7 +102,7 @@ class rsmsExchangeForCash extends DrupalWebTestCase {
 
   // Scenario: The caller requests an implicit trade with insufficient balance
   public function testTheCallerRequestsAnImplicitTradeWithInsufficientBalance_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('phone +20001 says "300 to .ZZC"');
     Then_('we say to phone +20001 "short cash to" with subs: "DATA'
     . '\\| short |'

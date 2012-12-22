@@ -1,0 +1,119 @@
+<?php
+//
+// Feature: A user signs up for rCredits
+//   AS a newbie
+//   I WANT to get access to the rCredits Participants section
+//   SO I can start pretending
+
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rweb.steps';
+
+class rwebSignup extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
+  var $sceneName;
+  const SHORT_NAME = 'Signup';
+  const FEATURE_NAME = 'rweb Test - Signup';
+  const DESCRIPTION = 'A user signs up for rCredits';
+  const MODULE = 'rweb';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
+  }
+  
+  public static function getInfo() {
+    return array(
+      'short_name' => self::SHORT_NAME,
+      'name' => self::FEATURE_NAME,
+      'description' => self::DESCRIPTION,
+      'group' => ucwords(self::MODULE)
+    );
+  }
+
+  public function setUp($sceneName, $variant = '') { // especially, enable any modules required for the tests
+    global $sceneTest; $sceneTest = $this;
+    parent::setUp(self::MODULE);
+
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rweb.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
+    default: // fall through to case(0)
+    case(0):
+    Given('member is logged out');
+    break;
+
+
+    }
+  }
+
+  // Scenario: A newbie visits the registration page
+  public function testANewbieVisitsTheRegistrationPage_0() {
+    $this->setUp(__FUNCTION__, 0);
+    When_('member "?" visits page "\user_register_form"');
+    Then_('we show page "\user_register_form" with: "DATA'
+    . '\\| descName    |'
+    . '\\| capitalized |"');
+  }
+
+  // Scenario: A newbie registers
+  public function testANewbieRegisters_0() {
+    $this->setUp(__FUNCTION__, 0);
+    When_('member "?" confirms form "\user_register_form" with values: "DATA'
+    . '\\| full_name | email         | country       | postal_code | state         | city    | account_type |'
+    . '\\| Abe One   | a@example.com | United States | 01001       | Massachusetts | Amherst | personal     |"');
+    Then_('members: "DATA'
+    . '\\| id      | full_name | email         | country | postal_code | state         | city    | account_type | flags         |'
+    . '\\| NEW.ZZA | Abe One   | a@example.com | United States | 01001 | Massachusetts | Amherst | %R_PERSONAL  | %BIT_DEFAULTS |"');
+    And__('we say "status": "your account is ready" with subs: "DATA'
+    . '\\| quid    | balance |'
+    . '\\| NEW.ZZA | $250    |"');
+    And__('we email "welcome" to member "a@example.com" with subs: "DATA'
+    . '\\| fullName | name   | quid    | oneTimeLoginUrl |'
+    . '\\| Abe One  | abeone | NEW.ZZA | (varies)        |"');
+    And__('member is logged out');
+  }
+
+  // Scenario: A member registers bad email
+  public function testAMemberRegistersBadEmail_0() {
+    $this->setUp(__FUNCTION__, 0);
+    When_('member "?" confirms form "\user_register_form" with values: "DATA'
+    . '\\| full_name | email     | country       | postal_code | state         | city    | account_type |'
+    . '\\| Abe One   | whatever | United States | 01001       | Massachusetts | Amherst | personal     |"');
+    Then_('we say "error": "bad email" with subs: "DATA'
+    . '\\| email     |'
+    . '\\| whatever |"');
+  }
+
+  // Scenario: A member registers again
+  public function testAMemberRegistersAgain_0() {
+    $this->setUp(__FUNCTION__, 0);
+    Given('members: "DATA'
+    . '\\| id      | full_name  | phone  | email         | city  | state  | country       |'
+    . '\\| NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | Alaska | United States |"');
+    When_('member "?" confirms form "\user_register_form" with values: "DATA'
+    . '\\| full_name | email         | country       | postal_code | state         | city    | account_type |'
+    . '\\| Bea Two   | a@example.com | United States | 01001       | Massachusetts | Amherst | %R_PERSONAL  |"');
+    Then_('we say "notice": "duplicate email" with subs: "DATA'
+    . '\\| password |'
+    . '\\| %BASE_PATHuser/password |"');
+    And__('member is logged out');
+  }
+
+  // Scenario: A member registers with a company
+  public function testAMemberRegistersWithACompany_0() {
+    $this->setUp(__FUNCTION__, 0);
+    When_('member "?" confirms form "\user_register_form" with values: "DATA'
+    . '\\| full_name | email         | postal_code | city    | account_type | company  | company_phone | company_options |'
+    . '\\| Abe One   | a@example.com |  01001      | Amherst | personal     | Aacme Co | (413)628-0000 | is_owner=>1     |"');
+    Then_('members: "DATA'
+    . '\\| id      | full_name | email         | postal_code | phone        | city    | account_type  | flags         |'
+    . '\\| NEW.ZZA | Abe One   | a@example.com | 01001       |              | Amherst | %R_PERSONAL   | %BIT_DEFAULTS |'
+    . '\\| NEW.ZZB | Aacme Co  |               |             | +14136280000 |         | %R_COMMERCIAL | %BIT_DEFAULTS |"');
+    And__('relations: "DATA'
+    . '\\| id | main | agent | permission | employer_ok | employee_ok | is_owner |'
+    . '\\| 1  | .ZZB | .ZZA  |            |             |             | 1        |"');
+  }
+
+}

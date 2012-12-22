@@ -9,14 +9,15 @@ use rCredits as r;
 use rCredits\Util as u;
 use rCredits\Backend as be;
 
-define('TEST_REAL', FALSE);
+global $base_path;
+define('BASE_PATH', $base_path);
 
 /**
  * Fabricate a bogus account.
  * Minimum parameters: none
  * @return uid
  */
-function makeAccount($info = array()) {
+function makeAccount($info = array(), $testOnly = FALSE) {
   if (!is_array($info)) {print_r($info); die(print_r(debug_backtrace(), 1)); } // keep for now
   extract($info, EXTR_PREFIX_ALL, 'my');
 
@@ -26,12 +27,24 @@ function makeAccount($info = array()) {
   $full_name = @$my_full_name ?: ('makeAccount ' . randomString(20, 'A'));
   $name = u\shortName($full_name);
   $pass = @$my_password ?: '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae'; // default to 123
-  $mail = @$my_email ?: "$name@example.com";
-  $flags = isset($my_flags) ? $my_flags : (BIT_DEFAULTS | (TEST_REAL ? BIT_RTRADER : 0));
+  $mail = @$my_email ?: ''; // Don't use "$name@example.com"
+  $flags = isset($my_flags) ? $my_flags : BIT_DEFAULTS;
   $community_uid = @$my_communityUid ?: r\serverUid();
   u\EXPECT(!empty($community_uid), 'empty community uid');
+  foreach (u\ray('id email password') as $one) unset($info[$one]);
   
   $info = array_merge($info, compact(u\ray('uid flags rebate_percent name pass full_name mail community_uid')));
+  if ($testOnly) {
+    if (!($acct = r\acct($uid))) return testOutput("No such uid: $uid");
+    foreach ($info as $key => $value) {
+      if (!eq($acct->$key, $value)) {
+        if ($key == 'pass' and (!isset($my_password) or $acct->passwordOkay(@$my_password))) continue;
+        return testOutput("Wrong value for $key. Expected:$value Got:" . $acct->$key);
+      }
+    }
+    return TRUE;
+  }
+  
   if (!($acct = new r\acct($info))) return FALSE;
   
   if (@$my_picture) if (!makePicture($my_picture, $acct)) return FALSE;
@@ -46,7 +59,7 @@ function makeAccount($info = array()) {
  *   if called with $infoOnly TRUE, return assoc with the information actually written (called from verifyTx())
  *   otherwise return serial (treated as TRUE in test steps)
  */
-function makeTransaction($info, $infoOnly = FALSE, $real = TEST_REAL) {
+function makeTransaction($info, $infoOnly = FALSE) {
   global $channel;
   extract($info, EXTR_PREFIX_ALL, 'my');
 
@@ -59,6 +72,8 @@ function makeTransaction($info, $infoOnly = FALSE, $real = TEST_REAL) {
   $payer_agent = uid(@$my_from_agent ?: ($type == TX_TRANSFER ? $my_from : r\communityUid()));
   $payee = uid($my_to); 
   $payee_agent = uid(@$my_to_agent ?: ($type == TX_TRANSFER ? $my_to : r\communityUid()));
+  $real = (r\isRTrader($payer) and r\isRTrader($payee));
+  
   $payer_for = @$my_purpose ?: 'cash';
   $payee_for = @$my_purpose ?: 'cash';
   $goods = @$my_goods ?: (($type != TX_TRANSFER or u\forCash($payer_for)) ? 0 : 1);
@@ -84,14 +99,12 @@ function makeTransaction($info, $infoOnly = FALSE, $real = TEST_REAL) {
  * Fabricate bogus relations.
  * Minimum parameters: main, agent (both are quids -- at least one must be local)
  */
-function makeRelation($info) {
+function makeRelation($info, $infoOnly = FALSE) {
   extract($info, EXTR_PREFIX_ALL, 'my');
   
   $reid = u\retNum($my_id) ?: u\a2n(substr($my_id, -3));
-  $main = r\acct(fullQid($my_main));
-  $agent = r\acct(fullQid($my_agent));
-  u\EXPECT((bool) $main, 'main is not an id');
-  u\EXPECT((bool) $agent, 'agent is not an id');
+  if (!($main = r\acct(fullQid($my_main)))) return testOutput("main:$my_main is not an id");
+  if (!($agent = r\acct(fullQid($my_agent)))) return testOutput("agent:$my_agent is not an id");
   u\EXPECT(!r\isForeign($main->region) or !r\isForeign($agent->region));
   u\EXPECT($main->proSe() and $agent->proSe());
   list ($main_uid, $agent_uid) = array($main->id, $agent->id);
@@ -102,16 +115,18 @@ function makeRelation($info) {
     $perms = array_flip($GLOBALS['share permissions']);
     $info['permission'] = $perms[$my_permission]; 
   }
+  
+  foreach (u\ray('id main agent') as $one) unset($info[$one]);
   $info += compact(u\ray('reid main_uid agent_uid foreign_uid'));
-  return \drupal_write_record('r_relations', $info);
+  return $infoOnly ? verifyRecord('r_relations', $info) : \drupal_write_record('r_relations', $info);
 }
 
 /**
  * Return the credit info for the given uid.
  * To get just the balance, use uidCredit(uid)->balance
  */
-function uidCredit($uid) {
-  $real = TEST_REAL;
+function uidCredit($uid, $real = NULL) {
+  $real = isset($real) ? ($real == 'real') : r\isRTrader($uid);
   return be\creditInfo(compact('uid', 'real'));
 }
 
@@ -132,25 +147,27 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
   $cuid = r\acct()->id;
   if ($message = ($message ?: @$fields['message'])) {
     if ($channel != TX_SMS and strlen($message < 30)) $message = u\tt($message, $subs);
-    $fields['message'] = realFix($message);
+    $real = isset($subs['real']) ? $subs['real'] : NULL;
+    $fields['message'] = realFix($message, $real);
     if ($subject) { // must be email
       $fields['message'] = str_replace("\r\n", '', $fields['message']);
-      $fields['subject'] = realFix($subject);
+      $fields['subject'] = realFix($subject, $real);
     }
   } else unset($fields['message']); // empty message in features means NO message
   $agent = r\acct()->agent;
   \drupal_set_message(color(array('EXPECT' => '') + $fields, @$subject ? 'email' : 'output')); // keep this
   $info = json_encode2($fields, JSON_UNESCAPED_SLASHES);
   $crit = "channel=:channel AND type=:type AND cuid=:cuid AND agent=:agent ORDER BY logid DESC";
+//  debug(compact(u\ray('info type cuid agent channel crit'))); // for debugging mysterious email mismatches
 //  debug(compact(u\ray('info type cuid agent channel')), '', 1);
   //debug("info=:info AND $crit"); debug(compact(u\ray('info type cuid agent')));
   return r\dbLookup(1, 'r_log', "info=:info AND $crit", compact(u\ray('info type cuid agent channel')));
 }
 
-function findEmail($key, $email, $subs) {
+function findEmail($key, $email, $subs, $real = FALSE) {
   $subs = $subs[0];
   foreach (array('payerpurpose', 'payeepurpose') as $field) {
-    if (($purpose = @$subs[$field]) and !TEST_REAL) $subs[$field] = str_replace('#', '#a', $purpose);
+    if (($purpose = @$subs[$field]) and !$real) $subs[$field] = str_replace('#', '#a', $purpose);
   }
   $esubs = array();
   foreach ($subs as $k => $value) $esubs['{' . $k . '}'] = $value;
@@ -214,20 +231,49 @@ function hitServer($op, $agent, $code = '', $account_id = '', $extra = array()) 
   return TRUE;
 }
 
-function logIn($id) {r\acct::setDefault(r\acct($id));}
+function snapShot(&$form) { // (additional sta values have no effect at this stage)
+  addAttribs($form);
+  global $formOutput; $formOutput = strip(\render($zot = $form)); // for testing
+  testOutput('ACTUAL or EXPECTED: ' . $formOutput, 'screen');
+}
+
+function addAttribs(&$thing) {
+  foreach ($thing as $key => $value) { // else Drupal complains when rendering
+    if (substr($key, 0, 1) == '#') continue;
+    if (!isset($value['#attributes']['id'])) $thing[$key]['#attributes']['id'] = array('id' => "edit-$key");
+    if (!isset($value['#title_display'])) $thing[$key]['#title_display'] = 'before';
+    addAttribs($thing[$key]);
+  }
+}
+
+function logIn($id) {
+u\deb('before logIn');
+  if ($id != '?') r\acct::setDefault(r\acct($id));
+u\deb('after logIn');
+}
 
 function verifyTx($info) {
   $info2 = makeTransaction($info, TRUE);
-  if (!TEST_REAL) $info2['real'] = 0;
+  $info2['real'] = (r\isRTrader($info2['payer']) and r\isRTrader($info2['payee'])) ? 1 : 0;
   return verifyRecord('{zxs}', $info2);
 }
-           
+
+/**
+ * Compare the data to a corresponding record in the table.
+ * Return TRUE if the record matches the data.
+ * Example call:
+ *   $info = makeRelation($info, TRUE);
+ *   return verifyRecord('relations', $info);
+ */
 function verifyRecord($table, $info) {
+  if (!is_array($info)) die('in verifyRecord: ' . print_r(debug_backtrace(), 1));
   unset($info['data']);
   unset($info['created']);
-  foreach ($info as $key => $value) if (!($table == '{zxs}' and $key == 'real')) $crit[] = "$key=:$key";
+  foreach ($info as $key => $value) if (!($table == '{zxs}' and $key == 'real')) $crit[] = "$key<=>:$key"; // null-safe ==
   $crit = join(' AND ', $crit);
-  return r\dbLookup(1, $table, $crit, $info);
+  $result = r\dbLookup(1, $table, $crit, $info);
+  if (!$result) testOutput("verifyRecord failed. table=$table crit=$crit info=" . print_r($info, 1));
+  return $result;
 }
 
 function postProcess($form, $formName, $type) {
@@ -237,6 +283,32 @@ function postProcess($form, $formName, $type) {
     $functions = function_exists($function) ? array($function) : array();
   }
   return $functions;
+}
+
+function postLogout($function) {
+  global $skipToStep;
+  if ($messages = @cache_get('t_messages')->data) {
+    extract(u\just('msgs skipToStep', $messages));
+    if ($skipToStep == $function) {
+      if (strlen(serialize($msgs)) > strlen(serialize(@$_SESSION['messages']))) {
+        foreach (u\ray('status error notice') as $type) {
+          $_SESSION['messages'][$type] = array_merge((@$msgs[$type] ?: array()), (@$_SESSION['messages'][$type] ?: array()));
+          if (empty($_SESSION['messages'][$type])) unset($_SESSION['messages'][$type]);
+        }
+      }
+      cache_set('t_messages', FALSE);
+u\deb('postLogout returning TRUE, skipToStep was ='.@$skipToStep.' (now NULL)');
+      $skipToStep = NULL; // strangely, this has to be = NULL not unset()
+      return TRUE;
+    }
+  }
+u\deb('postLogout returning FALSE, about to save skiptostep '.$function);
+  $vars = array(
+    'msgs' => @$_SESSION['messages'] ?: array(),
+    'skipToStep' => $function, // tell gherkin function to skip steps in interrupted scene until this step
+  );
+  cache_set('t_messages', $vars); // save the test results so far
+  return FALSE;
 }
 
 function strip($form) {
@@ -251,7 +323,9 @@ function strip($form) {
 }
 
 function eq($a, $b) {
-  $result = (($a - $b) * ($a - $b) < .001);
+  $result = (is_numeric($a) and is_numeric($b)) ? 
+      (($a - $b) * ($a - $b) < .001)
+    : ($a == $b or (empty($a) and empty($b)));
   if (!$result) print_r(compact('a','b')); // keep for now
   if (!$result) \drupal_set_message(color("unequal: a=$a b=$b", 'error')); // keep for now
   return $result;
@@ -262,15 +336,19 @@ function fullQid($q) {
   return ($c1 == '.' or $c1 == ':') ? (R_SERVER_ID . $q) : $q;
 }
 
-function realFix($msg) {
-  $map = array(
+function realFix($msg, $real = FALSE) {
+  $mapReal = array(
+    '@asif' => '', 
+    '{asif}' => '',
+  );
+  $mapNot = array(
     'ransaction #' => 'ransaction #a', 
     'reverses #' => 'reverses #a', 
     'nvoice #' => 'nvoice #a', 
     '@asif' => R_ASIF_TEXT, 
     '{asif}' => R_ASIF_TEXT,
   );
-  return TEST_REAL ? $msg : strtr($msg, $map);
+  return strtr($msg, $real ? $mapReal : $mapNot);
 }
 
 /**
@@ -289,4 +367,11 @@ function color($msg, $color = 'normal') {
   return "<pre style='background-color:$color;'>$msg</pre>";
 }
 
-function testOutput($msg, $color = 'normal') {if (defined('TESTING')) \drupal_set_message(color($msg, $color));}
+/**
+ * Output the message with the given background color.
+ * Return FALSE (meaning error in returns from callers) unless a color is specified.
+ */
+function testOutput($msg, $color = 'normal') {
+  if (@TESTING == 1) \drupal_set_message(color($msg, $color));
+  return $color == 'normal' ? FALSE : TRUE;
+}

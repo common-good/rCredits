@@ -10,15 +10,14 @@ require_once __DIR__ . '/../rweb.steps';
 
 class rwebSummary extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
-  var $currentTest;
-  var $variant;
+  var $sceneName;
   const SHORT_NAME = 'Summary';
   const FEATURE_NAME = 'rweb Test - Summary';
   const DESCRIPTION = 'Transact';
   const MODULE = 'rweb';
 
   public function gherkin($statement, $type) {
-    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
   }
   
   public static function getInfo() {
@@ -30,12 +29,16 @@ class rwebSummary extends DrupalWebTestCase {
     );
   }
 
-  public function setUp() { // especially, enable any modules required for the tests
+  public function setUp($sceneName, $variant = '') { // especially, enable any modules required for the tests
+    global $sceneTest; $sceneTest = $this;
     parent::setUp(self::MODULE);
-    if (function_exists('extraSetup')) extraSetup($this); // defined in rweb.steps
-    sceneSetup($this, __FUNCTION__);
 
-    switch ($this->variant) {
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rweb.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
@@ -63,7 +66,7 @@ class rwebSummary extends DrupalWebTestCase {
     . '\\| NEW.AAAK | %today-1d | %TX_TRANSFER | %TX_DONE    |     80 | NEW.ZZA   | NEW.ZZC | whatever54   | 000000 |'
     . '\\| NEW.AAAL | %today-1d | %TX_REBATE   | %TX_DONE    |      4 | community | NEW.ZZA | rebate on #5 | 000000 |'
     . '\\| NEW.AAAM | %today-1d | %TX_BONUS    | %TX_DONE    |      8 | community | NEW.ZZC | bonus on #4  | 000000 |"');
-    Then_('balances: "DATA'
+    Then_('"asif" balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -768 |'
     . '\\| NEW.ZZA   |     166 |'
@@ -77,7 +80,7 @@ class rwebSummary extends DrupalWebTestCase {
 
   // Scenario: A member clicks on the summary tab
   public function testAMemberClicksOnTheSummaryTab_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZA" visits page "summary" with options ""');
     Then_('we show page "summary" with: "DATA'
     . '\\| Account ID               | Name             | Address                | Type     | Balance        | Credit | Rewards |'
@@ -86,7 +89,7 @@ class rwebSummary extends DrupalWebTestCase {
 
   // Scenario: A foreign rTrader clicks on the summary tab
   public function testAForeignRTraderClicksOnTheSummaryTab_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZC" visits page "summary" with options ""');
     Then_('we show page "summary" with: "DATA'
     . '\\| Account ID               | Name                   | Address                     | Type       | Balance | Credit | Rewards |'
@@ -95,7 +98,7 @@ class rwebSummary extends DrupalWebTestCase {
 
   // Scenario: A member clicks on the summary tab
   public function testAMemberClicksOnTheSummaryTab_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW:ZZA" visits page "summary" with options ""');
     Then_('we show page "summary" with: "DATA'
     . '\\| Account ID               | Name             | Address                | Type     | Balance        | Credit | Rewards |'
@@ -104,7 +107,7 @@ class rwebSummary extends DrupalWebTestCase {
 
   // Scenario: A foreign rTrader clicks on the summary tab
   public function testAForeignRTraderClicksOnTheSummaryTab_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW:ZZC" visits page "summary" with options ""');
     Then_('we show page "summary" with: "DATA'
     . '\\| Account ID               | Name                   | Address                     | Type       | Balance | Credit | Rewards |'

@@ -26,9 +26,10 @@ require_once __DIR__ . '/../rcredits-testing.inc';
  * The feature object contains information about the current feature and test, etc.
  */
 function extraSetup($feature) {
-  global $picturePath; 
+  global $picturePath, $channel; 
   list ($picturePath) = explode('sites', __DIR__);
   $picturePath .= 'sites/default/files/pictures';
+  $channel = TX_WEB;
 
   global $sms_devel; $sms_devel = TRUE;
   r\dbQ('DELETE FROM users WHERE uid>1000');
@@ -39,6 +40,8 @@ function extraSetup($feature) {
   r\dbQ('DELETE FROM file_managed WHERE uid>1000');
   r\dbQ('TRUNCATE r_relations');
   r\dbQ('TRUNCATE r_log'); // so we don't find results from the wrong test
+  r\dbQ('TRUNCATE sequences');
+  r\dbQ('ALTER TABLE sequences AUTO_INCREMENT=' . u\a2n('ZZA'));
 
   if (!function_exists('multiline_tweak')) {function multiline_tweak(&$line) {
     $line = str_replace('%last_quid', r\quid(r\acct::nextId() - 1), $line);
@@ -57,39 +60,58 @@ function extraSubs(&$subs) {
 /**
  * member (ARG) completes form (ARG) with values: (ARG)
  *
- * in: Transact - testAMemberAsksToChargeAnotherMember MAKE
- *     Transact - testAMemberAsksToPayAnotherMember MAKE
+ * in: Transact AMemberAsksToChargeAnotherMember MAKE
+ *     Transact AMemberAsksToPayAnotherMember MAKE
  */
 function memberCompletesFormWithValues($id, $formName, $values, $confirmed = FALSE) {
   global $testOnly; //debug(compact(u\ray('id formName values confirmed testOnly')));
 //  global $testOnly; if ($testOnly) return FALSE;
   global $testConfirmation; // confirmation message output, if any
 
-  t\logIn($id);
-  $form = r\Web\showForm($formName);
-  $sta['values'] = @$values[0]['email'] ? u\changeKey('email', 'mail', $values[0]) : $values[0];
-
-  if (!$confirmed) foreach (t\postProcess($form, 'Tx', 'validate') as $one) {
-    $one($form, $sta);
-    if ($errors = \drupal_get_messages('error', FALSE)) {
-      $errors = $errors['error']; // the only entry in the array
-      while (u\abbreviates('Unable to send e-mail', @$errors[0])) array_shift($errors); // ignore this offline
-      if (!empty($errors)) debug(compact(u\ray('id formName values confirmed one errors')));
-      if (!empty($errors)) return FALSE;
+  $values = @$values[0]['email'] ? u\changeKey('email', 'mail', $values[0]) : $values[0];
+  foreach ($values as $key => $value) if (strpos($value, '=>') !== FALSE) { // handle subvalues (eg opt1=>a opt2=>b)
+    $newValue = array();
+    foreach(explode(' ', $value) as $one) {
+      list ($kid, $kidValue) = explode('=>', $one);
+      $newValue[$kid] = $kidValue;
     }
+    $values[$key] = $newValue;
   }
-  $testConfirmation = @$sta['confirm'];
-  $lastIdentifierTag = '</div identifiers>';
-  if ($i = strpos($testConfirmation, $lastIdentifierTag)) $testConfirmation = substr($testConfirmation, $i + strlen($lastIdentifierTag));
-  foreach (t\postProcess($form, 'tx', 'submit') as $one) $one($form, $sta);
+  $sta['values'] = $values;
+  
+  t\logIn($id);
+  if (in_array($formName, u\ray('Pay Charge Grant Loan Fine'))) list ($formName, $arg) = array('Tx', $formName);
+  $formPath = substr($formName, 0, 1) == '\\' ? substr($formName, 1) : "rCredits\\Web\\form$formName";
+  $form = \drupal_get_form($formPath, @$arg);
+//  if (function_exists($alter = 'rweb_form_' . $formPath . '_alter')) $alter($form, $sta, $formName);
+  
+//  if (!$confirmed) foreach (t\postProcess($form, $formName, 'validate') as $one) {
+  $errorsBefore = \drupal_get_messages('error', FALSE);
+  if ($formName != 'Tx' or !$confirmed) foreach (t\postProcess($form, $formName, 'validate') as $one) $one($form, $sta);
+  $errorsAfter = \drupal_get_messages('error', FALSE);
+  if (count($errorsAfter) > count($errorsBefore)) {
+    $errors = $errors['error']; // the only entry in the array
+    while (u\abbreviates('Unable to send e-mail', @$errors[0])) array_shift($errors); // ignore this offline
+    // NO! if (!empty($errors)) return FALSE;
+    debug(compact(u\ray('id formName values confirmed one errors')));
+  } else {
+    $testConfirmation = @$sta['confirm'];
+    $lastIdentifierTag = '</div identifiers>';
+    if ($i = strpos($testConfirmation, $lastIdentifierTag)) $testConfirmation = substr($testConfirmation, $i + strlen($lastIdentifierTag));
+    foreach (t\postProcess($form, $formName, 'submit') as $one) $one($form, $sta);
+  }
   return TRUE;
 }
 
 /**
  * member (ARG) confirms form (ARG) with values: (ARG)
  *
- * in: Transact - testAMemberConfirmsRequestToChargeAnotherMember MAKE
- *     Transact - testAMemberConfirmsRequestToPayAnotherMember MAKE
+ * in: Signup ANewbieRegisters MAKE
+ *     Signup AMemberRegistersBadEmail MAKE
+ *     Signup AMemberRegistersAgain MAKE
+ *     Signup AMemberRegistersWithACompany MAKE
+ *     Transact AMemberConfirmsRequestToChargeAnotherMember MAKE
+ *     Transact AMemberConfirmsRequestToPayAnotherMember MAKE
  */
 function memberConfirmsFormWithValues($id, $formName, $values) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -97,12 +119,16 @@ function memberConfirmsFormWithValues($id, $formName, $values) {
 }
 
 /**
- * a member completes form (ARG) with values: (ARG)
+ * a member confirms form (ARG) (which logs out) with values: (ARG)
  *
  * in: 
  */
-function aMemberCompletesFormWithValues($formName, $values) {
-
+function aMemberConfirmsFormwhichLogsOutWithValues($formName, $values) {
+  global $testOnly; if ($testOnly) return FALSE;
+  global $skipToStep;
+  $result = t\postLogout(__FUNCTION__) ?: MemberConfirmsFormWithValues('?', $formName, $values);
+  $skipToStep = NULL;
+  return $result;
 }
 
 /*
@@ -129,27 +155,30 @@ function aMemberCompletesFormWithValues($formName, $values) {
 /**
  * members: (ARG)
  *
- * in: Relations - featureSetup MAKE
- *     Summary - featureSetup MAKE
- *     Transact - featureSetup MAKE
- *     Transactions - featureSetup MAKE
+ * in: Relations Setup MAKE
+ *     Signup ANewbieRegisters TEST
+ *     Signup AMemberRegistersAgain MAKE
+ *     Signup AMemberRegistersWithACompany TEST
+ *     Summary Setup MAKE
+ *     Transact Setup MAKE
+ *     Transactions Setup MAKE
  */
 function members($list) {
-  global $testOnly; if ($testOnly) return FALSE;
-  foreach ($list as $one) if (!t\makeAccount($one)) return FALSE;
+  global $testOnly;
+  foreach ($list as $one) if (!t\makeAccount($one, $testOnly)) return FALSE;
   return TRUE;
 }
 
 /**
  * transactions: (ARG)
  *
- * in: Relations - featureSetup MAKE
- *     Summary - featureSetup MAKE
- *     Transact - featureSetup MAKE
- *     Transact - testAMemberConfirmsRequestToChargeAnotherMember TEST
- *     Transact - testAMemberConfirmsRequestToPayAnotherMember TEST
- *     Transactions - featureSetup MAKE
- *     Transactions - testTransactionsWithOtherStatesShowUpProperly MAKE
+ * in: Relations Setup MAKE
+ *     Summary Setup MAKE
+ *     Transact Setup MAKE
+ *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
+ *     Transact AMemberConfirmsRequestToPayAnotherMember TEST
+ *     Transactions Setup MAKE
+ *     Transactions TransactionsWithOtherStatesShowUpProperly MAKE
  */
 function transactions($list) {
   global $testOnly; 
@@ -162,15 +191,18 @@ function transactions($list) {
 /**
  * we say (ARG): (ARG) with subs: (ARG)
  *
- * in: Transact - testAMemberConfirmsRequestToChargeAnotherMember TEST
- *     Transact - testAMemberConfirmsRequestToPayAnotherMember TEST
+ * in: Signup ANewbieRegisters TEST
+ *     Signup AMemberRegistersBadEmail TEST
+ *     Signup AMemberRegistersAgain TEST
+ *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
+ *     Transact AMemberConfirmsRequestToPayAnotherMember TEST
  */
 function weSayWithSubs($type, $index, $subs) {
   global $testOnly;
 
-  $msg = t\realFix(u\tt($index, $subs[0]));
+  $msg = t\realFix(u\tt($index, @$subs[0]));
   $msgs = drupal_get_messages($type ?: NULL, FALSE);
-  $result = (array_search($msg, $msgs[$type]) !== FALSE);
+  $result = (@$msgs[$type] and array_search($msg, $msgs[$type]) !== FALSE);
   t\testOutput($msg, 'output');
   return $result;
 }
@@ -178,32 +210,90 @@ function weSayWithSubs($type, $index, $subs) {
 /**
  * we show (ARG) with subs: (ARG)
  *
- * in: Transact - testAMemberAsksToChargeAnotherMember TEST
- *     Transact - testAMemberConfirmsRequestToChargeAnotherMember TEST
- *     Transact - testAMemberAsksToPayAnotherMember TEST
- *     Transact - testAMemberConfirmsRequestToPayAnotherMember TEST
+ * in: Transact AMemberAsksToChargeAnotherMember TEST
+ *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
+ *     Transact AMemberAsksToPayAnotherMember TEST
+ *     Transact AMemberConfirmsRequestToPayAnotherMember TEST
  */
 function weShowWithSubs($page, $subs) {
   global $testOnly;
   global $testConfirmation; // confirmation message output, if any
   global $formOutput; // for testing
   
-  $subs = $subs[0];
+  $subs = @$subs[0] ?: array(); // comes in as "" if no subs
   if (u\abbreviates('confirm', $page)) {
     $wanted = u\tt($page, $subs);
     t\testOutput("<b>WANTED: </b>$wanted", 'screen');
     return ($wanted == $testConfirmation);
   }
   $form = strtr(t\strip(r\Web\showForm($page, @$subs['arg1'], @$subs['arg2'])), $subs);
-  t\testOutput($form, 'screen');
-  return ($form == $formOutput);
+  t\testOutput("<b>WANTED: </b>$form", 'screen');
+  if ($form != $formOutput) return FALSE;
+  unset($subs['arg1']);
+  unset($subs['arg2']);
+  foreach ($subs as $one) if (strpos($form, $one) === FALSE) return FALSE; // sometimes we dunno what to sub for
+  return TRUE;
+}
+
+
+/**
+ * we show page (ARG) with: (ARG)
+ *
+ * in: Relations MemberHasAnEmployeeConfirmed TEST
+ *     Relations MemberHasAnEmployeeUnconfirmed TEST
+ *     Relations MemberHasAnEmployeeClaimed TEST
+ *     Relations EmployeeCanOnlyRead TEST
+ *     Relations MemberHasAnEmployer TEST
+ *     Relations MemberHasAccessToEmployeeAccount TEST
+ *     Relations MemberCompanyHasRelations TEST
+ *     Relations ItsComplicated TEST
+ *     Signup ANewbieVisitsTheRegistrationPage TEST
+ *     Summary AMemberClicksOnTheSummaryTab TEST
+ *     Summary AForeignRTraderClicksOnTheSummaryTab TEST
+ *     Transactions AMemberLooksAtTransactionsForThePastYear TEST
+ *     Transactions AMemberLooksAtTransactionsForThePastFewDays TEST
+ *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
+ */
+function weShowPageWith($page, $content, $showDebugs = TRUE) {
+  global $testOnly, $formOutput;
+  $xi = $i = 0;
+  foreach ($content as $fields) {
+    foreach ($fields as $key => $one) if (strpos($one, '%') !== FALSE) t\lastMinuteSubs($fields[$key]);
+    if ($showDebugs) debug($fields); // keep this
+    foreach ($fields as $key => $one) {
+      if ($key == 'tid' and substr($one, 0, 1) != 'a') $one = 'a' . $one; // for real, variant should change tid=>realtid
+      if ($one !== '') $i = strpos($formOutput, $one, $xi = $i);
+      if ($i === FALSE) {
+        if ($showDebugs) t\testOutput(substr($formOutput, 0, $xi) . ' <b style="font-size:200%;">[OK until here]</b> ' . substr($formOutput, $xi));
+        if ($showDebugs) t\testOutput(compact('xi','one'));
+        return FALSE;
+      } else $i += strlen($one);
+    }
+  }
+  return TRUE;
+}
+
+/**
+ * we show page (ARG) without: (ARG)
+ *
+ * in: Relations MemberCompanyHasRelations TEST
+ *     Relations ItsComplicated TEST
+ *     Transactions AMemberLooksAtTransactionsForThePastYear TEST
+ *     Transactions AMemberLooksAtTransactionsForThePastFewDays TEST
+ *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
+ */
+function weShowPageWithout($page, $content) {
+  global $testOnly;
+  foreach ($content as $one) if (weShowPageWith($page, array($one), FALSE)) return FALSE;
+  return TRUE;
 }
 
 /**
  * we email (ARG) to member (ARG) with subs: (ARG)
  *
- * in: Transact - testAMemberConfirmsRequestToChargeAnotherMember TEST
- *     Transact - testAMemberConfirmsRequestToPayAnotherMember TEST
+ * in: Signup ANewbieRegisters TEST
+ *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
+ *     Transact AMemberConfirmsRequestToPayAnotherMember TEST
  */
 function weEmailToMemberWithSubs($key, $email, $subs) {
   global $testOnly;
@@ -211,64 +301,56 @@ function weEmailToMemberWithSubs($key, $email, $subs) {
 }
 
 /**
- * we show (ARG)
- *
- * in: 
- */
-function weShow($arg1) {
-  global $testOnly;
-  todo;
-}
-
-/**
  * relations: (ARG)
  *
- * in: Relations - testMemberHasAnEmployeeConfirmed MAKE
- *     Relations - testMemberHasAnEmployeeUnconfirmed MAKE
- *     Relations - testMemberHasAnEmployeeClaimed MAKE
- *     Relations - testEmployeeCanOnlyRead MAKE
- *     Relations - testMemberHasAnEmployer MAKE
- *     Relations - testMemberHasAccessToEmployeeAccount MAKE
- *     Relations - testMemberCompanyHasRelations MAKE
- *     Relations - testItsComplicated MAKE
- *     Summary - featureSetup MAKE
- *     Transact - featureSetup MAKE
- *     Transactions - featureSetup MAKE
+ * in: Relations MemberHasAnEmployeeConfirmed MAKE
+ *     Relations MemberHasAnEmployeeUnconfirmed MAKE
+ *     Relations MemberHasAnEmployeeClaimed MAKE
+ *     Relations EmployeeCanOnlyRead MAKE
+ *     Relations MemberHasAnEmployer MAKE
+ *     Relations MemberHasAccessToEmployeeAccount MAKE
+ *     Relations MemberCompanyHasRelations MAKE
+ *     Relations ItsComplicated MAKE
+ *     Signup AMemberRegistersWithACompany TEST
+ *     Summary Setup MAKE
+ *     Transact Setup MAKE
+ *     Transactions Setup MAKE
  */
 function relations($relations) {
-  global $testOnly; if ($testOnly) return FALSE;
-  foreach ($relations as $one) if (!t\makeRelation($one)) return FALSE;
+  global $testOnly; 
+  foreach ($relations as $one) if (!t\makeRelation($one, $testOnly)) return FALSE;
   return TRUE;
 }
 
 /**
- * balances: (ARG)
+ * (ARG) balances: (ARG)
  *
- * in: Relations - featureSetup TEST
- *     Summary - featureSetup TEST
- *     Transact - featureSetup TEST
- *     Transact - testAMemberConfirmsRequestToChargeAnotherMember TEST
- *     Transact - testAMemberConfirmsRequestToPayAnotherMember TEST
- *     Transactions - featureSetup TEST
- *     Transactions - testTransactionsWithOtherStatesShowUpProperly TEST
+ * in: Relations Setup TEST
+ *     Summary Setup TEST
+ *     Transact Setup TEST
+ *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
+ *     Transact AMemberConfirmsRequestToPayAnotherMember TEST
+ *     Transactions Setup TEST
+ *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
  */
-function balances($list) {
+function balances($real, $list) {
   global $testOnly;
-  foreach ($list as $one) if (!t\eq(t\uidCredit(t\uid($one['id']))->balance, $one['balance'])) return FALSE;
+  foreach ($list as $one) if (!t\eq(t\uidCredit(t\uid($one['id'], $real))->balance, $one['balance'])) return FALSE;
   return TRUE;
 }
 
 /**
  * member (ARG) visits page (ARG)
  *
- * in: Relations - testMemberHasAnEmployeeConfirmed MAKE
- *     Relations - testMemberHasAnEmployeeUnconfirmed MAKE
- *     Relations - testMemberHasAnEmployeeClaimed MAKE
- *     Relations - testEmployeeCanOnlyRead MAKE
- *     Relations - testMemberHasAnEmployer MAKE
- *     Relations - testMemberHasAccessToEmployeeAccount MAKE
- *     Relations - testMemberCompanyHasRelations MAKE
- *     Relations - testItsComplicated MAKE
+ * in: Relations MemberHasAnEmployeeConfirmed MAKE
+ *     Relations MemberHasAnEmployeeUnconfirmed MAKE
+ *     Relations MemberHasAnEmployeeClaimed MAKE
+ *     Relations EmployeeCanOnlyRead MAKE
+ *     Relations MemberHasAnEmployer MAKE
+ *     Relations MemberHasAccessToEmployeeAccount MAKE
+ *     Relations MemberCompanyHasRelations MAKE
+ *     Relations ItsComplicated MAKE
+ *     Signup ANewbieVisitsTheRegistrationPage MAKE
  */
 function memberVisitsPage($id, $page) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -278,70 +360,50 @@ function memberVisitsPage($id, $page) {
 /**
  * member (ARG) visits page (ARG) with options (ARG)
  *
- * in: Summary - testAMemberClicksOnTheSummaryTab MAKE
- *     Summary - testAForeignRTraderClicksOnTheSummaryTab MAKE
- *     Transactions - testAMemberLooksAtTransactionsForThePastYear MAKE
- *     Transactions - testAMemberLooksAtTransactionsForThePastFewDays MAKE
- *     Transactions - testTransactionsWithOtherStatesShowUpProperly MAKE
+ * in: Summary AMemberClicksOnTheSummaryTab MAKE
+ *     Summary AForeignRTraderClicksOnTheSummaryTab MAKE
+ *     Transactions AMemberLooksAtTransactionsForThePastYear MAKE
+ *     Transactions AMemberLooksAtTransactionsForThePastFewDays MAKE
+ *     Transactions TransactionsWithOtherStatesShowUpProperly MAKE
  */
 function memberVisitsPageWithOptions($id, $page, $options) {
   global $testOnly; if ($testOnly) return FALSE;
 
   $cacct = r\acct(); // save, so we can restore it
-  r\acct::setDefault(r\acct(t\fullQid($id)));
-  global $formShown; $formShown = t\strip(r\Web\showForm($page, $options));
+  if ($id != '?') r\acct::setDefault(r\acct(t\fullQid($id)));
+  r\Web\showForm($page, $options);
   r\acct::setDefault($cacct);
   return TRUE;
 }
 
 /**
- * we show page (ARG) with: (ARG)
+ * member is logged out
  *
- * in: Relations - testMemberHasAnEmployeeConfirmed TEST
- *     Relations - testMemberHasAnEmployeeUnconfirmed TEST
- *     Relations - testMemberHasAnEmployeeClaimed TEST
- *     Relations - testEmployeeCanOnlyRead TEST
- *     Relations - testMemberHasAnEmployer TEST
- *     Relations - testMemberHasAccessToEmployeeAccount TEST
- *     Relations - testMemberCompanyHasRelations TEST
- *     Relations - testItsComplicated TEST
- *     Summary - testAMemberClicksOnTheSummaryTab TEST
- *     Summary - testAForeignRTraderClicksOnTheSummaryTab TEST
- *     Transactions - testAMemberLooksAtTransactionsForThePastYear TEST
- *     Transactions - testAMemberLooksAtTransactionsForThePastFewDays TEST
- *     Transactions - testTransactionsWithOtherStatesShowUpProperly TEST
+ * in: Signup Setup MAKE
+ *     Signup ANewbieRegisters TEST
+ *     Signup AMemberRegistersAgain TEST
  */
-function weShowPageWith($page, $content, $showDebugs = TRUE) {
-  global $testOnly, $formShown;
-  $xi = $i = 0;
-  foreach ($content as $fields) {
-    foreach ($fields as $key => $one) if (strpos($one, '%') !== FALSE) t\lastMinuteSubs($fields[$key]);
-    if ($showDebugs) debug($fields); // keep this
-    foreach ($fields as $key => $one) {
-      if ($key == 'tid' and substr($one, 0, 1) != 'a' and !TEST_REAL) $one = 'a' . $one;
-      if ($one !== '') $i = strpos($formShown, $one, $xi = $i);
-      if ($i === FALSE) {
-        if ($showDebugs) t\testOutput(substr($formShown, 0, $xi) . ' <b style="font-size:200%;">[OK until here]</b> ' . substr($formShown, $xi));
-        if ($showDebugs) t\testOutput(compact('xi','one'));
-        return FALSE;
-      } else $i += strlen($one);
-    }
+function memberIsLoggedOut() {
+  global $testOnly;
+  u\deb('memberIsLoggedOut top loggedin=' . \user_is_logged_in());
+  if ($testOnly) return !\user_is_logged_in();
+  
+  if (t\postLogout(__FUNCTION__)) {
+  u\deb('memberIsLoggedOut after postLogout (returning TRUE)');
+    global $skipToStep; u\deb("in memberIsLoggedOut after postLogout before return TRUE skipToStep=$skipToStep");
+    return TRUE;
   }
-  return TRUE;
+  module_load_include('pages.inc', 'user');
+  if (\user_is_logged_in()) \user_logout(); else return TRUE;
+  return FALSE; // should never get here
 }
 
-
 /**
- * we show page (ARG) without: (ARG)
+ * member (ARG) confirms form (ARG) (which logs out) with values: (ARG)
  *
- * in: Relations - testMemberCompanyHasRelations TEST
- *     Relations - testItsComplicated TEST
- *     Transactions - testAMemberLooksAtTransactionsForThePastYear TEST
- *     Transactions - testAMemberLooksAtTransactionsForThePastFewDays TEST
- *     Transactions - testTransactionsWithOtherStatesShowUpProperly TEST
+ * in: 
  */
-function weShowPageWithout($page, $content) {
+function memberConfirmsFormwhichLogsOutWithValues($arg1, $arg2, $arg3) {
   global $testOnly;
-  foreach ($content as $one) if (weShowPageWith($page, array($one), FALSE)) return FALSE;
-  return TRUE;
+  todo;
 }

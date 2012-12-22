@@ -37,7 +37,7 @@ use rCredits\Util as u;
 use rCredits\Testing as t;
 
 define('REAL', @$_SERVER['SystemRoot'] != 'C:\\Windows');
-define('API_URL', REAL ? 'http://devcore.rCredits.org/api' : 'http://localhost/devcore/api');
+define('API_URL', REAL ? (R_SITE_URL . '/api') : 'http://localhost/devcore/api');
 
 function send($data) {
   $ch = curl_init();
@@ -74,7 +74,7 @@ function error($message, $subs = '', $success = 0) {
 function apiOut($args) {
   $result = json_encode2($args, JSON_UNESCAPED_SLASHES);
   u\log('out', $args);
-  if (defined('TESTING')) {t\testOutput($args, 'output'); return $result;}
+  if (@TESTING == 1) {t\testOutput($args, 'output'); return $result;}
   exit($result);
 }
 
@@ -650,12 +650,13 @@ function creditInfo($args = array()) {
   }
   extract($args, EXTR_PREFIX_ALL, 'my'); // uid, state, real, asof
 
-  $cuid = r\acct()->id;
+  $cacct = r\acct();
+  $cuid = $cacct ? $cacct->id : 0;
   $uid = @$my_uid ?: $cuid;
   $state = @$my_state ?: ':TX_DONE,:TX_DISPUTED';
   $real = isset($my_real) ? $my_real : r\isRTrader($uid);
   $asof = @$my_asof ?: '';
-  $quid = r\quid($cuid, $cuid);
+// (this doesn't belong here)  $quid = r\quid($cuid, $cuid);
   
   $result_keys = 'grossIn grossOut grossInProper balance available unavailable rewards cashable totalDemand minBalance quid';
   $minBalance = r\userField('min_balance', $uid);
@@ -867,7 +868,7 @@ function backend($op, $info = array(), $cache = FALSE) {
 //  foreach ($info as $key => $value) if (strpos($key, 'uid') !== FALSE) $info[$key] = r\quid($value); // convert to qid
 //  $basic = array('agent' => r\quid($agent), 'cuid' => r\quid($cuid));
   $info += compact(u\ray('cuid agent op password firewall')); // operation, credentials, and account
-  $host = strpos($base_url, 'localhost/') !== FALSE ? 'http://localhost/devcore' : 'http://devcore.rCredits.org';
+  $host = strpos($base_url, 'localhost/') !== FALSE ? 'http://localhost/devcore' : R_SITE_URL;
   $api_result = R_SEPARATE_BACKEND ? u\httpRequest("$hostrcredits/api/", $info) : backend2($info);
 //debug($api_result);
   u\log('out', $info + compact('api_result'));

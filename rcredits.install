@@ -28,7 +28,7 @@ function rcredits_install() {
   if (!r\dbLookup(1, 'users', 'uid=:uid', compact('uid'))) new r\acct($info); // create the server record if it doesn't exist yet (don't use r\acct() here)
   variable_set('date_default_timezone', 'America/New_York');
   variable_set('site_frontpage', 'summary');
-  variable_set('site_name', 'Members');
+  variable_set('site_name', 'rCredits');
   variable_set('site_slogan', 'version ' . R_VERSION);
   variable_set('user_register', USER_REGISTER_VISITORS); // let visitors register themselves
 
@@ -53,7 +53,7 @@ function rcredits_install() {
   foreach (u\ray(R_PRESERVE) as $table) {
     if (r\dbLookup(1, $table)) {
       \drupal_set_message("Table $table is already populated -- severe error in reinstallation. If you proceed, <b style='background-color:yellow; font-size:300%;'>BE CAREFUL!</b>", 'error');
-    } else \db_query("DROP TABLE $table; RENAME TABLE $table$key TO $table");
+    } elseif (\db_table_exists("$table$key")) \db_query("DROP TABLE $table; RENAME TABLE $table$key TO $table");
   }
 }
 
@@ -142,10 +142,10 @@ function rcredits_schema() {
     'agent_uid' => r\setupField('uid of a user related to that account', 'int 11'),
     'foreign_uid' => r\setupField('uid of the foreign main account or foreign agent in their own region (main_uid or agent_uid is then the region)', 'int 11'),
     'foreign_name' => r\setupField('full name of the foreign main account or foreign agent', 'varchar 60'),
-    'permission' => r\setupField('what type of permission the agent has on the main account', 'int tiny'),
-    'employer_ok' => r\setupField('employer says this agent is an employee', 'int tiny'),
-    'employee_ok' => r\setupField('employee says this agent is an employee', 'int tiny'),
-    'is_owner' => r\setupField('this agent is an owner (or part owner)', 'int tiny'),
+    'permission' => r\setupField('what type of permission the agent has on the main account', 'int tiny', 0),
+    'employer_ok' => r\setupField('employer says this agent is an employee', 'int tiny', 0),
+    'employee_ok' => r\setupField('employee says this agent is an employee', 'int tiny', 0),
+    'is_owner' => r\setupField('this agent is an owner (or part owner)', 'int tiny', 0),
   );
   $foreign_keys = r\foreignKey('main_uid') + r\foreignKey('agent_uid') + r\foreignKey('foreign_uid');
   $indexes = r\index('main_uid') + r\index('agent_uid');
@@ -154,9 +154,9 @@ function rcredits_schema() {
   // table r_candidates (almost same as r_relations, but with extra fields -- used for candidates in rcredits-circles.inc)
   $fields = array(
     'uid' => r\setupField('candidate record id', 'serial 11'),
-    'is_company' => r\setupField('is this a company', 'int tiny'),
+    'is_company' => r\setupField('is this a company', 'int tiny', 0),
     'ignore' => r\setupField('temporarily omit this record from consideration', 'int tiny', 0),
-    'score' => r\setupField('how good is this candidate', 'int 11'),
+    'score' => r\setupField('how good is this candidate', 'int 11', 0),
   );
   $foreign_keys = r\foreignKey('uid');
   $schema['r_candidates'] = r\setupTable('Candidates to become rTraders', $fields, 'uid', $foreign_keys);
@@ -260,7 +260,7 @@ function rcredits_uninstall() {
   require_once 'rcredits-util.inc';
 
   \variable_set('rcredits_preserve', $key = time());
-  foreach (u\ray(R_PRESERVE) as $table) \db_query("RENAME TABLE $table TO $table$key");
+  foreach (u\ray(R_PRESERVE) as $table) if (\db_table_exists($table)) \db_query("RENAME TABLE $table TO $table$key");
 //  r\make_fields('UNMAKE', $old_fields);
 // (DON'T DELETE record!)  r\dbQ('DELETE FROM users WHERE uid=:ctty', compact('ctty' => r\communityUid()));
 

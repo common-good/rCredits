@@ -10,15 +10,14 @@ require_once __DIR__ . '/../rsms.steps';
 
 class rsmsGetHelp extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
-  var $currentTest;
-  var $variant;
+  var $sceneName;
   const SHORT_NAME = 'GetHelp';
   const FEATURE_NAME = 'rsms Test - GetHelp';
   const DESCRIPTION = 'Get help';
   const MODULE = 'rsms';
 
   public function gherkin($statement, $type) {
-    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
   }
   
   public static function getInfo() {
@@ -30,12 +29,16 @@ class rsmsGetHelp extends DrupalWebTestCase {
     );
   }
 
-  public function setUp() { // especially, enable any modules required for the tests
+  public function setUp($sceneName, $variant = '') { // especially, enable any modules required for the tests
+    global $sceneTest; $sceneTest = $this;
     parent::setUp(self::MODULE);
-    if (function_exists('extraSetup')) extraSetup($this); // defined in rsms.steps
-    sceneSetup($this, __FUNCTION__);
 
-    switch ($this->variant) {
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rsms.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
     default: // fall through to case(0)
 
     }
@@ -43,7 +46,7 @@ class rsmsGetHelp extends DrupalWebTestCase {
 
   // Scenario: A caller wants help with a specific command
   public function testACallerWantsHelpWithASpecificCommand_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     Given('phone %number1 is a member');
     When_('phone %number1 says "help get"');
     Then_('we say to phone %number1 "help get"');
@@ -51,7 +54,7 @@ class rsmsGetHelp extends DrupalWebTestCase {
 
   // Scenario: A caller wants to know what's available
   public function testACallerWantsToKnowWhatsAvailable_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     Given('phone %number1 is a member');
     When_('phone %number1 says "help"');
     Then_('we say to phone %number1 "help helpme"');
@@ -59,7 +62,7 @@ class rsmsGetHelp extends DrupalWebTestCase {
 
   // Scenario: A caller types an unrecognized command
   public function testACallerTypesAnUnrecognizedCommand_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     Given('phone %number1 is a member');
     And__('the expected nonce for phone %number1 is ""');
     When_('phone %number1 says %whatever');
@@ -68,7 +71,7 @@ class rsmsGetHelp extends DrupalWebTestCase {
 
   // Scenario: Caller gives the wrong nonce
   public function testCallerGivesTheWrongNonce_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     Given('phone %number1 is a member');
     And__('the expected nonce for phone %number1 is "mango"');
     When_('phone %number1 says "anySingleWordOtherThanALegalCommand"');
@@ -77,7 +80,7 @@ class rsmsGetHelp extends DrupalWebTestCase {
 
   // Scenario: A caller types the wrong number of arguments
   public function testACallerTypesTheWrongNumberOfArguments_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     Given('phone %number1 is a member');
     When_('phone %number1 says "get r 100 with too many arguments"');
     Then_('we say to phone %number1 "syntax|help get"');
@@ -85,7 +88,7 @@ class rsmsGetHelp extends DrupalWebTestCase {
 
   // Scenario: Caller types a wrong argument
   public function testCallerTypesAWrongArgument_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     Given('phone %number1 is a member');
     When_('phone %number1 says "get zot"');
     Then_('we say to phone %number1 "syntax|help get"');
@@ -93,7 +96,7 @@ class rsmsGetHelp extends DrupalWebTestCase {
 
   // Scenario: Amount is too big
   public function testAmountIsTooBig_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     Given('phone %number1 is a member');
     When_('phone %number1 says "get r 1%R_MAX_AMOUNT"');
     Then_('we say to phone %number1 "amount too big"');
@@ -101,7 +104,7 @@ class rsmsGetHelp extends DrupalWebTestCase {
 
   // Scenario: Account does not exist
   public function testAccountDoesNotExist_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     Given('phone %number1 is a member');
     And__('".ZZZ" is not an account id');
     When_('phone %number1 says "100 to .ZZZ"');

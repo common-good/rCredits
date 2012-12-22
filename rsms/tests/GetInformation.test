@@ -10,15 +10,14 @@ require_once __DIR__ . '/../rsms.steps';
 
 class rsmsGetInformation extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
-  var $currentTest;
-  var $variant;
+  var $sceneName;
   const SHORT_NAME = 'GetInformation';
   const FEATURE_NAME = 'rsms Test - GetInformation';
   const DESCRIPTION = 'Get information about account balance and system health';
   const MODULE = 'rsms';
 
   public function gherkin($statement, $type) {
-    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
   }
   
   public static function getInfo() {
@@ -30,12 +29,16 @@ class rsmsGetInformation extends DrupalWebTestCase {
     );
   }
 
-  public function setUp() { // especially, enable any modules required for the tests
+  public function setUp($sceneName, $variant = '') { // especially, enable any modules required for the tests
+    global $sceneTest; $sceneTest = $this;
     parent::setUp(self::MODULE);
-    if (function_exists('extraSetup')) extraSetup($this); // defined in rsms.steps
-    sceneSetup($this, __FUNCTION__);
 
-    switch ($this->variant) {
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rsms.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
     default: // fall through to case(0)
 
     }
@@ -43,7 +46,7 @@ class rsmsGetInformation extends DrupalWebTestCase {
 
   // Scenario: Getting information
   public function testGettingInformation_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     Given('phone %number1 is member "NEW.ZZB"');
     And__('phone %number1 has r$200 including rewards of $2.50');
     And__('the total demand for rCredits is $26,987.56');
@@ -55,7 +58,7 @@ class rsmsGetInformation extends DrupalWebTestCase {
 
   // Scenario: Getting information, larger amounts
   public function testGettingInformationLargerAmounts_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     Given('phone %number1 is member "NEW.ZZB"');
     And__('phone %number1 has r$100,000.01 including rewards of $99,908.00');
     And__('the total demand for rCredits is $1,226,987.25');

@@ -10,15 +10,14 @@ require_once __DIR__ . '/../rsmart.steps';
 
 class rsmartStartup extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
-  var $currentTest;
-  var $variant;
+  var $sceneName;
   const SHORT_NAME = 'Startup';
   const FEATURE_NAME = 'rsmart Test - Startup';
   const DESCRIPTION = 'Start up';
   const MODULE = 'rsmart';
 
   public function gherkin($statement, $type) {
-    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
   }
   
   public static function getInfo() {
@@ -30,12 +29,16 @@ class rsmartStartup extends DrupalWebTestCase {
     );
   }
 
-  public function setUp() { // especially, enable any modules required for the tests
+  public function setUp($sceneName, $variant = '') { // especially, enable any modules required for the tests
+    global $sceneTest; $sceneTest = $this;
     parent::setUp(self::MODULE);
-    if (function_exists('extraSetup')) extraSetup($this); // defined in rsmart.steps
-    sceneSetup($this, __FUNCTION__);
 
-    switch ($this->variant) {
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rsmart.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
@@ -57,7 +60,7 @@ class rsmartStartup extends DrupalWebTestCase {
 
   // Scenario: Member logs in successfully to initialize device
   public function testMemberLogsInSuccessfullyToInitializeDevice_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     Given('member "NEW.ZZA" password is %whatever1');
     When_('member initializes the device as member "NEW.ZZA" with password %whatever1');
     Then_('we respond with: "DATA'
@@ -67,7 +70,7 @@ class rsmartStartup extends DrupalWebTestCase {
 
   // Scenario: Member initializes with an ill-formed id
   public function testMemberInitializesWithAnIllformedId_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member initializes the device as member %random with password %whatever');
     Then_('we respond with: "DATA'
     . '\\| success | message |'
@@ -76,7 +79,7 @@ class rsmartStartup extends DrupalWebTestCase {
 
   // Scenario: Device owner is not a member
   public function testDeviceOwnerIsNotAMember_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member initializes the device as member "NEW.ZZZ" with password %whatever1');
     Then_('we respond with: "DATA'
     . '\\| success | message        |'
@@ -85,7 +88,7 @@ class rsmartStartup extends DrupalWebTestCase {
 
   // Scenario: Member types the wrong password
   public function testMemberTypesTheWrongPassword_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member initializes the device as member "NEW.ZZA" with password %random');
     Then_('we respond with: "DATA'
     . '\\| success | message   |'
@@ -94,7 +97,7 @@ class rsmartStartup extends DrupalWebTestCase {
 
   // Scenario: Member reruns the app
   public function testMemberRerunsTheApp_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
     When_('the app starts up as code %whatever1');
     Then_('we respond with: "DATA'
@@ -104,7 +107,7 @@ class rsmartStartup extends DrupalWebTestCase {
 
   // Scenario: Device requests a bad op
   public function testDeviceRequestsABadOp_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('the app requests op %random as member "NEW.ZZA" and code "codeA"');
     Then_('we respond with: "DATA'
     . '\\| success | message    |'
@@ -113,7 +116,7 @@ class rsmartStartup extends DrupalWebTestCase {
 
   // Scenario: Device gives no code
   public function testDeviceGivesNoCode_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('the app starts up as code ""');
     Then_('we respond with: "DATA'
     . '\\| success | message       |'
@@ -122,7 +125,7 @@ class rsmartStartup extends DrupalWebTestCase {
 
   // Scenario: Device gives a bad code
   public function testDeviceGivesABadCode_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('the app starts up as code %random');
     Then_('we respond with: "DATA'
     . '\\| success | message        |'

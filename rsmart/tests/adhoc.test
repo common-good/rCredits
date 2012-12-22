@@ -10,15 +10,14 @@ require_once __DIR__ . '/../rsmart.steps';
 
 class rsmartadhoc extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
-  var $currentTest;
-  var $variant;
+  var $sceneName;
   const SHORT_NAME = 'adhoc';
   const FEATURE_NAME = 'rsmart Test - adhoc';
   const DESCRIPTION = 'adhoc';
   const MODULE = 'rsmart';
 
   public function gherkin($statement, $type) {
-    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
   }
   
   public static function getInfo() {
@@ -30,12 +29,16 @@ class rsmartadhoc extends DrupalWebTestCase {
     );
   }
 
-  public function setUp() { // especially, enable any modules required for the tests
+  public function setUp($sceneName, $variant = '') { // especially, enable any modules required for the tests
+    global $sceneTest; $sceneTest = $this;
     parent::setUp(self::MODULE);
-    if (function_exists('extraSetup')) extraSetup($this); // defined in rsmart.steps
-    sceneSetup($this, __FUNCTION__);
 
-    switch ($this->variant) {
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rsmart.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
@@ -64,7 +67,7 @@ class rsmartadhoc extends DrupalWebTestCase {
 
   // Scenario: A member changes account
   public function testAMemberChangesAccount_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     Given('device "codeA" account is "NEW.ZZB" and agent is "NEW.ZZA"');
     When_('a member asks device "codeA" to change "account" to "NEW.ZZC"');
     Then_('we respond success 1, my_id "NEW:ZZC", account_name "Corner Pub~Agent: Abe One", show_buttons 0, and message "changed account", with subs: "DATA'

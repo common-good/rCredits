@@ -11,15 +11,14 @@ require_once __DIR__ . '/../rsmart.steps';
 
 class rsmartInsufficient extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
-  var $currentTest;
-  var $variant;
+  var $sceneName;
   const SHORT_NAME = 'Insufficient';
   const FEATURE_NAME = 'rsmart Test - Insufficient';
   const DESCRIPTION = 'Insufficient Balance';
   const MODULE = 'rsmart';
 
   public function gherkin($statement, $type) {
-    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
   }
   
   public static function getInfo() {
@@ -31,12 +30,16 @@ class rsmartInsufficient extends DrupalWebTestCase {
     );
   }
 
-  public function setUp() { // especially, enable any modules required for the tests
+  public function setUp($sceneName, $variant = '') { // especially, enable any modules required for the tests
+    global $sceneTest; $sceneTest = $this;
     parent::setUp(self::MODULE);
-    if (function_exists('extraSetup')) extraSetup($this); // defined in rsmart.steps
-    sceneSetup($this, __FUNCTION__);
 
-    switch ($this->variant) {
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rsmart.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
@@ -192,7 +195,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed payment, with insufficient balance
   public function testAMemberAsksToUndoACompletedPaymentWithInsufficientBalance_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom | otherName | purpose |'
@@ -206,7 +209,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed payment, with insufficient balance
   public function testAMemberConfirmsRequestToUndoACompletedPaymentWithInsufficientBalance_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAL" my_balance 155 other_balance "" and message "report undo|report invoice" with subs: "DATA'
     . '\\| solution | action  | otherName | amount | balance | tid |'
@@ -223,7 +226,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed payment unilaterally, with insufficient balance
   public function testAMemberAsksToUndoACompletedPaymentUnilaterallyWithInsufficientBalance_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     Given('member "NEW.ZZC" can charge unilaterally');
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
@@ -239,7 +242,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed payment unilaterally, with insufficient balance
   public function testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterallyWithInsufficientBalance_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     Given('member "NEW.ZZC" can charge unilaterally');
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAL" my_balance 210 other_balance 0 and message "report undo|report short transaction" with subs: "DATA'
@@ -257,7 +260,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed charge, with insufficient balance
   public function testAMemberAsksToUndoACompletedChargeWithInsufficientBalance_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom | otherName  | purpose |'
@@ -272,7 +275,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed charge, with insufficient balance
   public function testAMemberConfirmsRequestToUndoACompletedChargeWithInsufficientBalance_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAL" my_balance 0 other_balance "" and message "report undo|report short transaction" with subs: "DATA'
     . '\\| solution | action| otherName  | amount | balance | tid | short |'
@@ -289,7 +292,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed payment, with insufficient balance
   public function testAMemberAsksToUndoACompletedPaymentWithInsufficientBalance_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom | otherName | purpose |'
@@ -303,7 +306,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed payment, with insufficient balance
   public function testAMemberConfirmsRequestToUndoACompletedPaymentWithInsufficientBalance_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAL" my_balance 155 other_balance "" and message "report undo|report invoice" with subs: "DATA'
     . '\\| solution | action  | otherName | amount | balance | tid |'
@@ -320,7 +323,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed payment unilaterally, with insufficient balance
   public function testAMemberAsksToUndoACompletedPaymentUnilaterallyWithInsufficientBalance_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     Given('member "NEW.ZZC" can charge unilaterally');
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
@@ -336,7 +339,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed payment unilaterally, with insufficient balance
   public function testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterallyWithInsufficientBalance_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     Given('member "NEW.ZZC" can charge unilaterally');
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAL" my_balance 210 other_balance 0 and message "report undo|report short transaction" with subs: "DATA'
@@ -354,7 +357,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed charge, with insufficient balance
   public function testAMemberAsksToUndoACompletedChargeWithInsufficientBalance_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom | otherName  | purpose |'
@@ -369,7 +372,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed charge, with insufficient balance
   public function testAMemberConfirmsRequestToUndoACompletedChargeWithInsufficientBalance_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAL" my_balance 0 other_balance "" and message "report undo|report short transaction" with subs: "DATA'
     . '\\| solution | action| otherName  | amount | balance | tid | short |'
@@ -386,7 +389,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed payment, with insufficient balance
   public function testAMemberAsksToUndoACompletedPaymentWithInsufficientBalance_2() {
-    sceneSetup($this, __FUNCTION__, 2);
+    $this->setUp(__FUNCTION__, 2);
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom | otherName | purpose |'
@@ -400,7 +403,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed payment, with insufficient balance
   public function testAMemberConfirmsRequestToUndoACompletedPaymentWithInsufficientBalance_2() {
-    sceneSetup($this, __FUNCTION__, 2);
+    $this->setUp(__FUNCTION__, 2);
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAL" my_balance 155 other_balance "" and message "report undo|report invoice" with subs: "DATA'
     . '\\| solution | action  | otherName | amount | balance | tid |'
@@ -417,7 +420,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed payment unilaterally, with insufficient balance
   public function testAMemberAsksToUndoACompletedPaymentUnilaterallyWithInsufficientBalance_2() {
-    sceneSetup($this, __FUNCTION__, 2);
+    $this->setUp(__FUNCTION__, 2);
     Given('member "NEW.ZZC" can charge unilaterally');
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
@@ -433,7 +436,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed payment unilaterally, with insufficient balance
   public function testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterallyWithInsufficientBalance_2() {
-    sceneSetup($this, __FUNCTION__, 2);
+    $this->setUp(__FUNCTION__, 2);
     Given('member "NEW.ZZC" can charge unilaterally');
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAL" my_balance 210 other_balance 0 and message "report undo|report short transaction" with subs: "DATA'
@@ -451,7 +454,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed charge, with insufficient balance
   public function testAMemberAsksToUndoACompletedChargeWithInsufficientBalance_2() {
-    sceneSetup($this, __FUNCTION__, 2);
+    $this->setUp(__FUNCTION__, 2);
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom | otherName  | purpose |'
@@ -466,7 +469,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed charge, with insufficient balance
   public function testAMemberConfirmsRequestToUndoACompletedChargeWithInsufficientBalance_2() {
-    sceneSetup($this, __FUNCTION__, 2);
+    $this->setUp(__FUNCTION__, 2);
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAL" my_balance 0 other_balance "" and message "report undo|report short transaction" with subs: "DATA'
     . '\\| solution | action| otherName  | amount | balance | tid | short |'
@@ -483,7 +486,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed payment, with insufficient balance
   public function testAMemberAsksToUndoACompletedPaymentWithInsufficientBalance_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom | otherName | purpose |'
@@ -497,7 +500,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed payment, with insufficient balance
   public function testAMemberConfirmsRequestToUndoACompletedPaymentWithInsufficientBalance_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAL" my_balance 155 other_balance "" and message "report undo|report invoice" with subs: "DATA'
     . '\\| solution | action  | otherName | amount | balance | tid |'
@@ -514,7 +517,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed payment unilaterally, with insufficient balance
   public function testAMemberAsksToUndoACompletedPaymentUnilaterallyWithInsufficientBalance_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     Given('member "NEW.ZZC" can charge unilaterally');
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
@@ -530,7 +533,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed payment unilaterally, with insufficient balance
   public function testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterallyWithInsufficientBalance_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     Given('member "NEW.ZZC" can charge unilaterally');
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAL" my_balance 210 other_balance 0 and message "report undo|report short transaction" with subs: "DATA'
@@ -548,7 +551,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed charge, with insufficient balance
   public function testAMemberAsksToUndoACompletedChargeWithInsufficientBalance_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom | otherName  | purpose |'
@@ -563,7 +566,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed charge, with insufficient balance
   public function testAMemberConfirmsRequestToUndoACompletedChargeWithInsufficientBalance_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAL" my_balance 0 other_balance "" and message "report undo|report short transaction" with subs: "DATA'
     . '\\| solution | action| otherName  | amount | balance | tid | short |'

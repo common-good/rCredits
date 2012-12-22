@@ -97,6 +97,7 @@ function rweb_menu() {
     'menu' => r\Web\menu('Main Menu', MENU_CALLBACK, 'showForm', array('Menu'), PERM_READ),
     'member' => r\Web\menu('Company Profile', MENU_CALLBACK, 'showForm', array('Profile'), '', $anyone),
     'rcredits/util' => r\Web\menu('Util', MENU_CALLBACK, 'rCredits\\Web\\util', array(2), PERM_ADMIN),
+    'rcredits/test' => r\Web\menu('Util', MENU_CALLBACK, 'rCredits\\Web\\test', array(2), '', $anyone),
     'autocomplete' => r\Web\menu('Identify', MENU_CALLBACK, 'rCredits\\Web\\auto', array(1, 2, 3), '', $anyone),
 
     'rcredits/backend' => r\Web\menu('API', 0, 'rCredits\\be\\backend2', array(), '', $anyone),

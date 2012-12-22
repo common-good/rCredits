@@ -10,15 +10,14 @@ require_once __DIR__ . '/../rsms.steps';
 
 class rsmsTransact extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
-  var $currentTest;
-  var $variant;
+  var $sceneName;
   const SHORT_NAME = 'Transact';
   const FEATURE_NAME = 'rsms Test - Transact';
   const DESCRIPTION = 'Transact';
   const MODULE = 'rsms';
 
   public function gherkin($statement, $type) {
-    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
   }
   
   public static function getInfo() {
@@ -30,12 +29,16 @@ class rsmsTransact extends DrupalWebTestCase {
     );
   }
 
-  public function setUp() { // especially, enable any modules required for the tests
+  public function setUp($sceneName, $variant = '') { // especially, enable any modules required for the tests
+    global $sceneTest; $sceneTest = $this;
     parent::setUp(self::MODULE);
-    if (function_exists('extraSetup')) extraSetup($this); // defined in rsms.steps
-    sceneSetup($this, __FUNCTION__);
 
-    switch ($this->variant) {
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rsms.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
@@ -60,7 +63,7 @@ class rsmsTransact extends DrupalWebTestCase {
 
   // Scenario: The caller asks to pay a member id
   public function testTheCallerAsksToPayAMemberId_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('phone +20001 says "123.45 to .ZZB for pie"');
     Then_('we say to phone +20001 "confirm payment|please confirm" with subs: "DATA'
     . '\\| amount  | otherName |'
@@ -69,7 +72,7 @@ class rsmsTransact extends DrupalWebTestCase {
 
   // Scenario: The caller asks to pay a player by name
   public function testTheCallerAsksToPayAPlayerByName_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('phone +20001 says "123.45 to cornerpub for groceries"');
     Then_('we say to phone +20001 "confirm payment|please confirm" with subs: "DATA'
     . '\\| amount  | otherName |'
@@ -78,7 +81,7 @@ class rsmsTransact extends DrupalWebTestCase {
 
   // Scenario: The caller asks to charge a member id
   public function testTheCallerAsksToChargeAMemberId_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('phone +20001 says "123.45 from .ZZC for labor"');
     Then_('we say to phone +20001 "confirm charge|please confirm" with subs: "DATA'
     . '\\| amount  | otherName |'
@@ -87,7 +90,7 @@ class rsmsTransact extends DrupalWebTestCase {
 
   // Scenario: The caller confirms a payment
   public function testTheCallerConfirmsAPayment_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('phone +20001 confirms "100 to .ZZC for groceries"');
     Then_('the community has r$-765');
     And__('phone +20003 has r$360');
@@ -98,7 +101,7 @@ class rsmsTransact extends DrupalWebTestCase {
 
   // Scenario: The caller confirms a request to charge
   public function testTheCallerConfirmsARequestToCharge_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('phone +20001 confirms "100 from .ZZC for labor"');
     Then_('phone +20003 has r$250');
     And__('phone +20001 has r$250');
@@ -112,7 +115,7 @@ class rsmsTransact extends DrupalWebTestCase {
 
   // Scenario: The caller confirms a unilateral charge
   public function testTheCallerConfirmsAUnilateralCharge_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     Given('phone +20001 can charge unilaterally');
     When_('phone +20001 confirms "100 from .ZZC for labor"');
     Then_('the community has r$-765');
@@ -127,7 +130,7 @@ class rsmsTransact extends DrupalWebTestCase {
 
   // Scenario: The caller confirms a payment with insufficient balance
   public function testTheCallerConfirmsAPaymentWithInsufficientBalance_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('phone +20001 confirms "300 to .ZZC for groceries"');
     Then_('the community has r$-787.50');
     And__('phone +20003 has r$525');
@@ -138,7 +141,7 @@ class rsmsTransact extends DrupalWebTestCase {
 
   // Scenario: The caller asks to pay the latest invoice
   public function testTheCallerAsksToPayTheLatestInvoice_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     Given('transactions: "DATA'
     . '\\| created   | state       | amount | from | to   | purpose| taking |'
     . '\\| %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  | 1      |"');
@@ -150,7 +153,7 @@ class rsmsTransact extends DrupalWebTestCase {
 
   // Scenario: The caller confirms payment of the latest invoice
   public function testTheCallerConfirmsPaymentOfTheLatestInvoice_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     Given('transactions: "DATA'
     . '\\| created   | state       | amount | from | to   | purpose| taking |'
     . '\\| %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  | 1      |"');
@@ -164,7 +167,7 @@ class rsmsTransact extends DrupalWebTestCase {
 
   // Scenario: The caller asks to pay the latest invoice from a particular member
   public function testTheCallerAsksToPayTheLatestInvoiceFromAParticularMember_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     Given('transactions: "DATA'
     . '\\| created   | state       | amount | from | to   | purpose| taking |'
     . '\\| %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  | 1      |'
@@ -177,7 +180,7 @@ class rsmsTransact extends DrupalWebTestCase {
 
   // Scenario: The caller asks to pay a company agent
   public function testTheCallerAsksToPayACompanyAgent_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('phone +20001 confirms "123.45 to :ZZA for pie"');
     Then_('we say to phone +20001 "confirm payment|please confirm" with subs: "DATA'
     . '\\| amount  | otherName |'

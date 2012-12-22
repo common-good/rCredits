@@ -52,6 +52,7 @@ div.develw div {display:inline;}
 div#secondary-menu li.menu-2 {display:none;} /* Drupal recreates and unhides this if we try to delete it or hide it */
 
 /* Nav */
+body.not-logged-in div#main-menu {display:none;}
 ul.tabs.primary {padding:0; margin-left:4em; margin-top:.8em; font-size:85%;}
 #main-menu-links li, ul.tabs.primary li {padding:0;}
 #main-menu-links li a {padding:.5em .8em;}
@@ -78,7 +79,7 @@ form.rweb div.invisible {display:none;}
 form.rweb div {vertical-align:top;}
 
 form.rweb div#edit-title {margin-bottom:1em;}
-form.rweb div#edit-title label {font-size:190%; color:darkgreen; text-align:left; width:100%;}
+form.rweb div#edit-title label {font-size:160%; color:darkgreen; text-align:left; width:100%;}
 
 form.rweb .description {display:block; clear:both; margin:.15em 0 0 0;}
 form.rweb .form-type-item label {text-align:left;}

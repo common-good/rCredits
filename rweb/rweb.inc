@@ -64,6 +64,7 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'no relations' => t('There are not yet any relations for this account.'),
   'no cells' => t('This account has no related cell phones.'),
   'required field' => t('@field must not be blank.'),
+  'duplicate email' => t('WARNING: There is already an account with that email address. <a href="@password">Have you forgotten your password?</a>'), // mirrors message in user.module
   'bad name' => t('That is not a plausible name.'),
   'bad login' => t('That account does not exist. Check your typing?'),
   'bad phone' => t('That is not a proper phone number.'),
@@ -88,7 +89,9 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'no help' => t('There is no written help available for this page. Give it a try! If you are still puzzled, please feel free to give us a call at @R_ORG_PHONE. Or send your question by <a href="mailto:@R_ORG_EMAIL?subject=help with rCredits Members Site, @page page" target="_blank">email</a>.'),
   'no permission' => t('You do not have permission to use that account.'),
   'bad transient id' => t('That QR code is out of date. Try again?'),
-
+  'bad email' => t('The e-mail address <em class="placeholder">@email</em> is not valid.'),
+  'bad company phone' => t('You must give a valid phone number for your company.'),
+  'what relation' => t('Are you an owner or an employee of the company? (please choose one or both)'),
 );
 
 /*
@@ -102,11 +105,18 @@ function modal_form($form, &$sta) {
 }
 */
 
+function test($arg) {
+  global $user;
+  include __DIR__ . '/../../gherkin/test.php';
+  $adminPass = '123';
+  $account = user_authenticate('admin', $adminPass);
+  $user = user_load($account, TRUE);
+  drupal_session_regenerate();
+  \drupal_goto('handy');
+}
+
 function util($arg) {
 //  if ($arg == 'modal') drupal_goto('modal');
-  if ($arg == 'test') {
-    include __DIR__ . '/../../gherkin/test.php';
-  }
   if ($arg == 'reset') {
     r\reset();
 /*    $uid = variable_get('rcredits_communityUid') + 1;
@@ -131,8 +141,8 @@ EOF;
   
   if ($arg == 'clear_sessions') r\dbQ('TRUNCATE table SESSIONS');
   
-  drupal_set_message("Doing rCredits Util '$arg'...");
-  drupal_goto('handy');
+  \drupal_set_message("Doing rCredits Util '$arg'...");
+  \drupal_goto('handy');
 }
 
 function handy_links() {
@@ -141,7 +151,7 @@ function handy_links() {
   $test_path = "$base_url/sites/all/modules";
 
   $links = array(
-    'rcredits/util/test?menu=1|Test Menu|',
+    'rcredits/test?menu=1|Test Menu|',
 //    "$test_path/gherkin/compile.php?module=rcredits/rsms&return=1|Compile rSMS|",
     'sms|Simulate an SMS transaction|Simulate SMS',
 //    'admin/config/development/testing|Test|Test',
@@ -188,11 +198,12 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
 //    $newLayout = ($layout != svar('layout'));
     
     $args = 'arg1' . ($arg2 !== '' ? ' arg2' : '') . ($arg3 !== '' ? ' arg3' : '') . ($arg4 !== '' ? ' arg4' : '');
-    if ($function != 'accounts' and $function != 'home') u\log("show $function", compact(u\ray($args)));
+    if ($function != 'accounts' and $function != 'summary') u\log("show $function", compact(u\ray($args)));
 //    if ($layout == 'Mobile') css('mobile.css', 100);
-    $formName = substr($function, 0, 1) == '\\' ? $function : "rCredits\\Web\\form$function";
+    $formName = substr($function, 0, 1) == '\\' ? substr($function, 1) : "rCredits\\Web\\form$function";
 //    if ($newLayout) svar('layout', $layout); // do this before drupal_get_form, so forms can know the current layout
-    $form = drupal_get_form($formName, $arg1, $arg2, $arg3, $arg4);
+    $form = \drupal_get_form($formName, $arg1, $arg2, $arg3, $arg4);
+    \rweb_form_alter($form, $sta = array(), $formName);
     $form['#attributes']['class'][] = 'rweb';
 //    if ($newLayout) $form['#cache'] = FALSE;
     if (!@$form['confirm']) $form += which(); // add the choices popup form, if any
@@ -208,7 +219,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
 //      debug($form);
     }
 
-    $rent = render($form);
+    $rent = render($form2 = $form);
     t\testOutput($formOutput = t\strip($rent), 'screen');
     if ($colgroup = @$form['#colgroup']) {
       unset($form['#colgroup']);
@@ -410,8 +421,9 @@ function formUser($form, &$sta) {return \user_login($form, $sta);} // called fro
 
 function formSummary($form, &$sta) {
   global $base_url;
+  
   $cacct = r\acct();
-  if (!defined('TESTING')) if (!$cacct or !$cacct->can(PERM_READ)) r\go('user'); // haven't figured a way to test this yet
+  if (!$cacct or !$cacct->can(PERM_READ)) r\go('user'); // haven't figured a way to test this yet
   
   extract(be\creditInfo()->fancy, EXTR_PREFIX_ALL, 'my');
 
@@ -420,6 +432,7 @@ function formSummary($form, &$sta) {
 
   if (!$cacct->isCompany() or !$cacct->proSe()) {
     $card = t('<a id="idcard">Print Temporary ID Card</a>');
+if ($cacct->id == 1) $card .= ' [<a href="http://localhost/devcore/rcredits/test?module=rcredits/rweb&feature=Signup&scene=&restart=1">run current test</a>]'; // DEBUG (keep)
   } else $card = t("To print employee ID cards, visit the <a href=\"$base_url/account/relations\">Account Relations</a> page.");
 
   $title = formField('item', t('Account Summary'));
@@ -672,7 +685,7 @@ function formTx_submit($form, &$sta) {
   if (confirming_s($sta)) return;
   transfer($sta['values'], TRUE); // op who amount goods what
   $sta['redirect'] = current_path(); // clean out the fields
-//  if (!defined('TESTING')) r\go(current_path());
+//  if (!@TESTING == 1) r\go(current_path());
 }
 
 /**
@@ -1232,7 +1245,7 @@ function formRegister(&$form, &$sta) {
   $account_types = u\ray('Personal,Commercial,Public Non-profit/Government');
   $account_type_help = t('NOTE: If you choose "@commercial" or "@nonprofit", your contact information and photo will be public.', array('@commercial' => $account_types[1], '@nonprofit' => $account_types[2]));
   $my_country = $my_state = '';
-  extract($sta['input'], EXTR_PREFIX_ALL, 'my'); // overwrites my_country and my_state with input values, on input error
+  extract(u\just('country state', $sta['input']), EXTR_PREFIX_ALL, 'my'); // on input error, sets to intents
   $onchange = "print_state('edit-state',this.selectedIndex,'');";
   $country_attrib = attrib(compact('onchange'));
   $company_options = array('employee_ok' => t('employee'), 'is_owner' => t('owner'));
@@ -1274,18 +1287,19 @@ function formRegister(&$form, &$sta) {
   $form['#submit'][] = 'rCredits\\Web\\formRegister_submit';
   $sta['no_cache'] = TRUE; // otherwise the javascript-populated dropdowns get lost
   focusOn('full_name');
-  
   keep_values($form);
+  t\snapShot($form);
+  debug('bottom of formRegister');
 }
 
 function formRegister_validate($form, &$sta) {
   extract(u\just('company company_phone company_options full_name postal_code', $values = u\trimAll($sta['values'])));
 
-  if ($company) {
+  if (@$company) {
     if (!($companyPhone = u\formatPhone($company_phone, '+n'))) return say('bad company phone', compact('companyPhone'), 'company_phone');
     $sta['company_phone'] = $companyPhone;
-    extract(u\just('employee_ok is_owner', $company_options));
-    if (!($employee_ok or $is_owner)) return say('what relationship', 'company');
+    if (@$company_options) extract(u\just('employee_ok is_owner', $company_options));
+    if (!(@$employee_ok or @$is_owner)) return say('what relation', 'company');
     $company = $company;
     $data = compact(u\ray('company employee_ok is_owner'));
   }
@@ -1297,21 +1311,29 @@ function formRegister_validate($form, &$sta) {
 
   u\normalizeCase(u\ray('full_name city address'));
   $community_uid = r\communityUid($postal_code);
-  $sta['values'] = array_merge($values, compact(u\ray('name data community_uid')));
+  $flags = BIT_DEFAULTS;
+  $administer_users = FALSE; // for testing (keep Drupal from griping)
+  $status = 1;
+  $sta['values'] = array_merge($values, compact(u\ray('name data community_uid flags administer_users status')));
+  if (!isset($sta['buttons'])) $sta['buttons'] = array(); // for testing (keep Drupal from griping)
 }
 
 function formRegister_submit($form, &$sta) {
   extract(u\just('company company_options company_phone uid name', $sta['values']));
+  if (FALSE) {
+    $cacct = new r\acct($sta['values']); // create test record
+    $uid = $cacct->id;
+  } else u\EXPECT(@$uid > 0, 'registration failure');
   setupGlobals($uid); // some rcredits functions need to know who we are
 
-  if ($company) {
+  if (@$company) {
     extract(u\just('is_owner employee_ok', $company_options));
     // (can't use whois to create record because user is logged out) $companyAcct = whois($company, 'company', $sta['values']);
     $companyShortName = u\shortName($company);
     $companyUid = r\dbLookup('uid', 'users', 'phone=:company_phone', compact('company_phone'));
     if (!$companyUid) $companyUid = r\dbLookup('uid', 'users', 'name=:companyShortName', compact('companyShortName'));
     if (!$companyUid) { // company account doesn't exist, so create it
-      $companyAcct = new r\acct(array('full_name' => $company, 'phone' => $company_phone));
+      $companyAcct = new r\acct(array('full_name' => $company, 'phone' => $company_phone, 'account_type' => R_COMMERCIAL));
       $companyUid = $companyAcct->id;
     }
     if (!r\relation(1, $companyUid, $uid)) {
@@ -1339,6 +1361,7 @@ function resetAlter(&$form, &$sta) {
   $form['#submit'][] = 'rCredits\\Web\\resetSubmit';
   $form['#attributes']['class'][] = 'rweb';
   focusOn('pass-pass1'); // note that password field gets expanded to two fields, of which pass1 is the first
+  t\snapShot($form);
 }
 
 function resetSubmit(&$form, &$sta) {
@@ -1355,7 +1378,6 @@ function resetSubmit(&$form, &$sta) {
  * @param bool $regular: is this the full-page login form (default TRUE) -- otherwise the narrower login block
  */
 function loginAlter(&$form, &$sta, $regular = TRUE) {
-
   if ($regular) {
     $title = formField('item', t('rCredits Login'));
     $subtext = formField('item', t('Welcome! If you have not yet signed up for rCredits, click on "New account" above.'));
@@ -1365,12 +1387,10 @@ function loginAlter(&$form, &$sta, $regular = TRUE) {
     $form['pass']['#description'] = t('Enter your account password.');
   }
   
-  $form['external_input'] = formField('hidden', serialize($sta['input'])); // pass this to rweb_user_login
+  $form['external_input'] = formField('hidden', serialize(@$sta['input'])); // pass this to rweb_user_login
 //  $form['#submit'][] = 'rCredits\\Web\\login_form_submit';
 
-  $i = array_search('user_login_authenticate_validate', $form['#validate']);
-  assert($i !== FALSE);
-  $form['#validate'][$i] = 'rCredits\\Web\\login_extra_validate'; // our replacement function
+  $form['#validate'] = array('rCredits\\Web\\login_extra_validate', 'user_login_final_validate'); // add replacement function
   
   $form['name']['#title'] = t('Username/ID:');
   $form['pass']['#title'] = t('Password:');
@@ -1378,6 +1398,8 @@ function loginAlter(&$form, &$sta, $regular = TRUE) {
   $form['#attributes']['class'][] = $regular ? 'rweb labeled' : 'rweb';
   focusOn('name');
   css('rweb.css', -9); // needed because this function doesn't go through show()
+  t\snapShot($form);
+  loginCheck(); // must follow snapShot()
 }
 
 /**
@@ -1397,7 +1419,6 @@ function login_extra_validate($form, &$sta) {
     return;
   }
   if (!($uid = r\loginString($name))) return; // not a user
-  $name = r\acct($uid)->name;
   
   $failed_login_identifier_uid_only = variable_get('user_failed_login_identifier_uid_only', FALSE);
   $failed_login_user_limit = variable_get('user_failed_login_user_limit', 5);
@@ -1411,7 +1432,8 @@ function login_extra_validate($form, &$sta) {
     return;
   }
 
-  $sta['uid'] = user_authenticate($name, $pass);
+  $cacct = r\acct($uid);
+  $sta['uid'] = $cacct->passwordOkay($pass) ? $uid : FALSE;
 }
 
 function loginFollowup($edit, $account) {
@@ -1440,9 +1462,14 @@ function loginFollowup($edit, $account) {
 }
 
 function passAlter(&$form, $sta) {
-  $form['name']['#title'] = 'Username or Account ID:';
+  $title = formField('item', t('Request New Password'));
+  array_unshift($form, compact('title'));
+  $form['name']['#title'] = t('Account:');
+  $form['name']['#description'] = t('Username or Account ID');
   $form['#validate'] = array('rCredits\\Web\\pass_validate');
+  $form['#attributes']['class'] = array('rweb', 'labeled');
   focusOn('name');
+  t\snapShot($form);
 }
 
 function pass_validate(&$form, &$sta) {
@@ -1451,6 +1478,26 @@ function pass_validate(&$form, &$sta) {
   say('password reset');
 }
 
+/**
+ * Automatically log back in and continue testing, if testing (offline only)
+ */
+function loginCheck() {
+  global $channel;
+u\log('top of loginCheck');
+  if (@TESTING == 1) return;
+u\log('loginCheck not testing yet');
+  if (!@cache_get('t_resume')->data) return;
+u\log('loginCheck redirecting');
+/*  global $user;
+  $adminPass = '123';
+  $account = user_authenticate('admin', $adminPass);
+  $user = user_load($account, TRUE);
+  drupal_session_regenerate();
+  $user = (object) array(); // we need this empty for registration and login tests
+  setupGlobals(1);
+*/
+  \drupal_goto('http://localhost/devcore/rcredits/test'); // must be drupal_goto not r\go
+}
 
 function formDirectory($form, &$sta) {
   $cuid = r\acct()->id;
@@ -1624,10 +1671,10 @@ function formI($form, &$sta, $who) {
     if ($cacct->can(PERM_BUY)) $pay = goButton(t('Pay'), "pay/who=$shortName&ided=1", t('Pay someone'));
     if (r\acct($myId, $otherAgent)->can()) $changeAgent = goButton(t('Change Agent'), "user/logout/who=$shortName", t('Change Shift?'));
     if (r\acct($otherId, $myAgent)->can()) $changeAccount = formField('submit', t('Change Account'));
-    $all = identifiers($acct) . render(compact(u\ray('charge pay changeAgent changeAccount site')));
+    $all = identifiers($acct) . render($zot = compact(u\ray('charge pay changeAgent changeAccount site')));
   } else {
     $login = formField('item', t('Please login, to Pay or Charge this account.'));
-    $all = render(compact('login', 'site'));
+    $all = render($zot = compact('login', 'site'));
   }
 
   $all = formField('item', '', '', $all);
@@ -2098,6 +2145,7 @@ function userMenuItem($router_path, $link_title) {
 }
 
 function focusOn($focusFieldName) {
+  u\EXPECT(!empty($focusFieldName), 'focus on null');
   $focusFieldName = str_replace('_', '-', $focusFieldName);
   js("document.getElementById('edit-$focusFieldName').focus();", 'inline', 'footer');
 }
@@ -2116,7 +2164,7 @@ website copyright &copy; $year <a href="http://CommonGoodFinance.org">Common Goo
 PO Box 21, Ashfield, MA 01330 USA<br/>
 +1 413-628-1723 &nbsp; <a href="mailto:info@rCredits.org">info@rCredits.org</a><br>
 EOF;
-  $text = formField('item', $markup);
+  $footerText = formField('item', $markup); // unique name for this page
 $js =<<<EOF
 var _gaq = _gaq || [];
 _gaq.push(['_setAccount', 'UA-30262912-1']);
@@ -2128,7 +2176,7 @@ _gaq.push(['_trackPageview']);
   var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
 EOF;
   js($js, 'inline', 'footer');
-  return compact('text');
+  return compact('footerText');
 }
 
 function webAccess($access) {

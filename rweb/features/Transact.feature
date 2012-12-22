@@ -5,9 +5,13 @@ SO I can buy and sell stuff.
 # We will eventually need variants or separate feature files for neighbor (member of different community within the region) to member, etc.
 # And foreigner (member on a different server) to member, etc.
 
+Variants: all members are rTraders
+  | %BIT_DEFAULTS | %BIT_PARTNER | NEW:AAA |
+  | %BIT_RTRADER  | %BIT_RTRADER | NEW.AAA |
+
 Setup:
   Given members:
-  | id      | full_name  | address | city  | state  | postal_code | country       | email | account_type  | flags       |
+  | id      | full_name  | address | city  | state  | postal_code | country   | email | account_type  | flags       |
   | NEW.ZZA | Abe One    | POB 1   | Atown | Alaska | 01000   | United States | a@example.com | %R_PERSONAL   | %BIT_DEFAULTS |
   | NEW.ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000   | United States | b@example.com | %R_PERSONAL   | %BIT_PARTNER  |
   | NEW.ZZC | Corner Pub | POB 3   | Ctown | Corse  |         | France        | c@example.com | %R_COMMERCIAL | %BIT_RTRADER  |
@@ -19,10 +23,10 @@ Setup:
   | NEW:ZZD | NEW.ZZC | NEW.ZZA | sell              |
   And transactions: 
   | tx_id    | created   | type       | amount | from      | to      | purpose | taking |
-  | NEW.AAAB | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |
-  | NEW.AAAC | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZB | signup  | 0      |
-  | NEW.AAAD | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZC | signup  | 0      |
-  Then balances:
+  | NEW:AAAB | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |
+  | NEW:AAAC | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZB | signup  | 0      |
+  | NEW:AAAD | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZC | signup  | 0      |
+  Then "asif" balances:
   | id        | balance |
   | community |    -750 |
   | NEW.ZZA   |     250 |
@@ -34,7 +38,7 @@ Setup:
 #  | "NEW:ZZA" | # agent to member           |
 
 Scenario: A member asks to charge another member
-  When member "NEW.ZZA" completes form "tx" with values:
+  When member "NEW.ZZA" completes form "Tx" with values:
   | op     | who     | amount | goods | purpose |
   | Charge | Bea Two | 100    | 1     | labor   |
   Then we show "confirm charge" with subs:
@@ -42,7 +46,7 @@ Scenario: A member asks to charge another member
   | $100   | Bea Two    |
   
 Scenario: A member confirms request to charge another member
-  When member "NEW.ZZA" confirms form "tx" with values:
+  When member "NEW.ZZA" confirms form "Tx" with values:
   | op     | who     | amount | goods | purpose |
   | Charge | Bea Two | 100    | 1     | labor   |
   Then we say "status": "report invoice" with subs:
@@ -51,7 +55,7 @@ Scenario: A member confirms request to charge another member
   And we email "new-invoice" to member "b@example.com" with subs:
   | created | fullName | otherName | amount | payerPurpose |
   | %today  | Bea Two  | Abe One    | $100   | labor         |
-  And we show "tx" with subs:
+  And we show "Tx" with subs:
   | arg1   |
   | charge |
   And transactions:
@@ -59,7 +63,7 @@ Scenario: A member confirms request to charge another member
   | NEW.AAAE | %today | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZB   | NEW.ZZA | labor   | 1      |
   | NEW.AAAF | %today | %TX_REBATE   | %TX_PENDING |      5 | community | NEW.ZZB | rebate  | 0      |
   | NEW.AAAG | %today | %TX_BONUS    | %TX_PENDING |     10 | community | NEW.ZZA | bonus   | 0      |
-  And balances:
+  And "asif" balances:
   | id        | balance |
   | community |    -750 |
   | NEW.ZZA   |     250 |
@@ -67,7 +71,7 @@ Scenario: A member confirms request to charge another member
   | NEW.ZZC   |     250 |
 
 Scenario: A member asks to pay another member
-  When member "NEW.ZZA" completes form "tx" with values:
+  When member "NEW.ZZA" completes form "Tx" with values:
   | op  | who     | amount | goods | purpose |
   | Pay | Bea Two | 100    | 1     | labor   |
   Then we show "confirm payment" with subs:
@@ -75,7 +79,7 @@ Scenario: A member asks to pay another member
   | $100   | Bea Two    |
   
 Scenario: A member confirms request to pay another member
-  When member "NEW.ZZA" confirms form "tx" with values:
+  When member "NEW.ZZA" confirms form "Tx" with values:
   | op  | who     | amount | goods | purpose |
   | Pay | Bea Two | 100    | 1     | labor   |
   Then we say "status": "report transaction" with subs:
@@ -84,7 +88,7 @@ Scenario: A member confirms request to pay another member
   And we email "new-payment" to member "b@example.com" with subs:
   | created | fullName | otherName | amount | payeePurpose |
   | %today  | Bea Two  | Abe One    | $100   | labor         |
-  And we show "tx" with subs:
+  And we show "Tx" with subs:
   | arg1 |
   | pay  |
   And transactions:
@@ -92,7 +96,7 @@ Scenario: A member confirms request to pay another member
   | NEW.AAAE | %today | %TX_TRANSFER | %TX_DONE |    100 | NEW.ZZA   | NEW.ZZB | labor   | 0      |
   | NEW.AAAF | %today | %TX_REBATE   | %TX_DONE |      5 | community | NEW.ZZA | rebate  | 0      |
   | NEW.AAAG | %today | %TX_BONUS    | %TX_DONE |     10 | community | NEW.ZZB | bonus   | 0      |
-  And balances:
+  And "asif" balances:
   | id        | balance |
   | community |    -765 |
   | NEW.ZZA   |     155 |

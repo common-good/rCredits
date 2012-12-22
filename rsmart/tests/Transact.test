@@ -10,15 +10,14 @@ require_once __DIR__ . '/../rsmart.steps';
 
 class rsmartTransact extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
-  var $currentTest;
-  var $variant;
+  var $sceneName;
   const SHORT_NAME = 'Transact';
   const FEATURE_NAME = 'rsmart Test - Transact';
   const DESCRIPTION = 'Transact';
   const MODULE = 'rsmart';
 
   public function gherkin($statement, $type) {
-    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
   }
   
   public static function getInfo() {
@@ -30,12 +29,16 @@ class rsmartTransact extends DrupalWebTestCase {
     );
   }
 
-  public function setUp() { // especially, enable any modules required for the tests
+  public function setUp($sceneName, $variant = '') { // especially, enable any modules required for the tests
+    global $sceneTest; $sceneTest = $this;
     parent::setUp(self::MODULE);
-    if (function_exists('extraSetup')) extraSetup($this); // defined in rsmart.steps
-    sceneSetup($this, __FUNCTION__);
 
-    switch ($this->variant) {
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rsmart.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
@@ -73,7 +76,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: A member asks to charge another member
   public function testAMemberAsksToChargeAnotherMember_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "charge" "NEW.ZZC" $100 ("goods": "labor")');
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance 250 other_balance "" and message "report invoice" with subs: "DATA'
     . '\\| action  | otherName | amount | tid |'
@@ -90,7 +93,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: A member asks to pay another member
   public function testAMemberAsksToPayAnotherMember_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $100 ("goods": "groceries")');
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance 155 other_balance "" and message "report transaction" with subs: "DATA'
     . '\\| action | otherName | amount | rewardType | rewardAmount | balance | tid |'
@@ -107,7 +110,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: A member asks to charge another member unilaterally
   public function testAMemberAsksToChargeAnotherMemberUnilaterally_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     Given('member "NEW.ZZC" can charge unilaterally');
     When_('member "NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $100 ("goods": "groceries")');
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance 360 other_balance 155 and message "report transaction" with subs: "DATA'
@@ -125,7 +128,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: A member asks to charge another member unilaterally, with insufficient balance
   public function testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     Given('member "NEW.ZZC" can charge unilaterally');
     When_('member "NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $300 ("goods": "groceries")');
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance 525 other_balance 12.5 and message "report short transaction" with subs: "DATA'
@@ -140,7 +143,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: A member asks to pay another member, with insufficient balance
   public function testAMemberAsksToPayAnotherMemberWithInsufficientBalance_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $300 ("goods": "groceries")');
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance 12.5 other_balance "" and message "report short transaction" with subs: "DATA'
     . '\\| action | otherName | amount | short | balance | tid |'
@@ -154,7 +157,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: A member asks to pay self
   public function testAMemberAsksToPaySelf_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZA" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
@@ -163,7 +166,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives no account id
   public function testDeviceGivesNoAccountId_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message            |'
@@ -172,7 +175,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives bad account id
   public function testDeviceGivesBadAccountId_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" %whatever $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message        |'
@@ -181,7 +184,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives no amount
   public function testDeviceGivesNoAmount_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $"" ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message        |'
@@ -190,7 +193,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives bad amount
   public function testDeviceGivesBadAmount_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $%whatever ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message    |'
@@ -199,7 +202,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives nonpositive amount
   public function testDeviceGivesNonpositiveAmount_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $-100 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message    |'
@@ -208,7 +211,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives too big an amount
   public function testDeviceGivesTooBigAnAmount_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $10,000,000 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message    |'
@@ -217,7 +220,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives no type
   public function testDeviceGivesNoType_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "" "NEW.ZZC" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message                  |'
@@ -226,7 +229,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives bad type
   public function testDeviceGivesBadType_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to do this: %whatever "NEW.ZZC" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message |'
@@ -235,7 +238,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives no purpose for goods and services
   public function testDeviceGivesNoPurposeForGoodsAndServices_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $300 ("goods": "")');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
@@ -244,7 +247,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Buyer agent lacks permission to buy
   public function testBuyerAgentLacksPermissionToBuy_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member " NEW.ZZA " asks device "codeC" to do this: "pay" "NEW.ZZB" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
@@ -253,7 +256,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Seller agent lacks permission to sell
   public function testSellerAgentLacksPermissionToSell_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member " NEW.ZZA " asks device "codeB" to do this: "charge" "NEW.ZZC" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message |'
@@ -262,7 +265,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: A member asks to charge another member
   public function testAMemberAsksToChargeAnotherMember_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW.ZZB" asks device "codeA" to do this: "charge" "NEW.ZZC" $100 ("goods": "labor")');
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance 250 other_balance "" and message "report invoice" with subs: "DATA'
     . '\\| action  | otherName | amount | tid |'
@@ -279,7 +282,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: A member asks to pay another member
   public function testAMemberAsksToPayAnotherMember_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW.ZZC" $100 ("goods": "groceries")');
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance 155 other_balance "" and message "report transaction" with subs: "DATA'
     . '\\| action | otherName | amount | rewardType | rewardAmount | balance | tid |'
@@ -296,7 +299,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: A member asks to charge another member unilaterally
   public function testAMemberAsksToChargeAnotherMemberUnilaterally_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     Given('member "NEW.ZZC" can charge unilaterally');
     When_('member "NEW.ZZB" asks device "codeC" to do this: "charge" "NEW.ZZA" $100 ("goods": "groceries")');
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance 360 other_balance 155 and message "report transaction" with subs: "DATA'
@@ -314,7 +317,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: A member asks to charge another member unilaterally, with insufficient balance
   public function testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     Given('member "NEW.ZZC" can charge unilaterally');
     When_('member "NEW.ZZB" asks device "codeC" to do this: "charge" "NEW.ZZA" $300 ("goods": "groceries")');
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance 525 other_balance 12.5 and message "report short transaction" with subs: "DATA'
@@ -329,7 +332,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: A member asks to pay another member, with insufficient balance
   public function testAMemberAsksToPayAnotherMemberWithInsufficientBalance_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW.ZZC" $300 ("goods": "groceries")');
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance 12.5 other_balance "" and message "report short transaction" with subs: "DATA'
     . '\\| action | otherName | amount | short | balance | tid |'
@@ -343,7 +346,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: A member asks to pay self
   public function testAMemberAsksToPaySelf_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW.ZZA" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
@@ -352,7 +355,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives no account id
   public function testDeviceGivesNoAccountId_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message            |'
@@ -361,7 +364,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives bad account id
   public function testDeviceGivesBadAccountId_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" %whatever $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message        |'
@@ -370,7 +373,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives no amount
   public function testDeviceGivesNoAmount_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW.ZZC" $"" ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message        |'
@@ -379,7 +382,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives bad amount
   public function testDeviceGivesBadAmount_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW.ZZC" $%whatever ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message    |'
@@ -388,7 +391,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives nonpositive amount
   public function testDeviceGivesNonpositiveAmount_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW.ZZC" $-100 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message    |'
@@ -397,7 +400,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives too big an amount
   public function testDeviceGivesTooBigAnAmount_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW.ZZC" $10,000,000 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message    |'
@@ -406,7 +409,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives no type
   public function testDeviceGivesNoType_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW.ZZB" asks device "codeA" to do this: "" "NEW.ZZC" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message                  |'
@@ -415,7 +418,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives bad type
   public function testDeviceGivesBadType_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW.ZZB" asks device "codeA" to do this: %whatever "NEW.ZZC" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message |'
@@ -424,7 +427,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives no purpose for goods and services
   public function testDeviceGivesNoPurposeForGoodsAndServices_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW.ZZC" $300 ("goods": "")');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
@@ -433,7 +436,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Buyer agent lacks permission to buy
   public function testBuyerAgentLacksPermissionToBuy_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member " NEW.ZZA " asks device "codeC" to do this: "pay" "NEW.ZZB" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
@@ -442,7 +445,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Seller agent lacks permission to sell
   public function testSellerAgentLacksPermissionToSell_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member " NEW.ZZA " asks device "codeB" to do this: "charge" "NEW.ZZC" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message |'
@@ -451,7 +454,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: A member asks to charge another member
   public function testAMemberAsksToChargeAnotherMember_2() {
-    sceneSetup($this, __FUNCTION__, 2);
+    $this->setUp(__FUNCTION__, 2);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "charge" "NEW:ZZC" $100 ("goods": "labor")');
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance 250 other_balance "" and message "report invoice" with subs: "DATA'
     . '\\| action  | otherName | amount | tid |'
@@ -468,7 +471,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: A member asks to pay another member
   public function testAMemberAsksToPayAnotherMember_2() {
-    sceneSetup($this, __FUNCTION__, 2);
+    $this->setUp(__FUNCTION__, 2);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZC" $100 ("goods": "groceries")');
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance 155 other_balance "" and message "report transaction" with subs: "DATA'
     . '\\| action | otherName | amount | rewardType | rewardAmount | balance | tid |'
@@ -485,7 +488,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: A member asks to charge another member unilaterally
   public function testAMemberAsksToChargeAnotherMemberUnilaterally_2() {
-    sceneSetup($this, __FUNCTION__, 2);
+    $this->setUp(__FUNCTION__, 2);
     Given('member "NEW.ZZC" can charge unilaterally');
     When_('member "NEW.ZZC" asks device "codeC" to do this: "charge" "NEW:ZZA" $100 ("goods": "groceries")');
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance 360 other_balance 155 and message "report transaction" with subs: "DATA'
@@ -503,7 +506,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: A member asks to charge another member unilaterally, with insufficient balance
   public function testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance_2() {
-    sceneSetup($this, __FUNCTION__, 2);
+    $this->setUp(__FUNCTION__, 2);
     Given('member "NEW.ZZC" can charge unilaterally');
     When_('member "NEW.ZZC" asks device "codeC" to do this: "charge" "NEW:ZZA" $300 ("goods": "groceries")');
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance 525 other_balance 12.5 and message "report short transaction" with subs: "DATA'
@@ -518,7 +521,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: A member asks to pay another member, with insufficient balance
   public function testAMemberAsksToPayAnotherMemberWithInsufficientBalance_2() {
-    sceneSetup($this, __FUNCTION__, 2);
+    $this->setUp(__FUNCTION__, 2);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZC" $300 ("goods": "groceries")');
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance 12.5 other_balance "" and message "report short transaction" with subs: "DATA'
     . '\\| action | otherName | amount | short | balance | tid |'
@@ -532,7 +535,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: A member asks to pay self
   public function testAMemberAsksToPaySelf_2() {
-    sceneSetup($this, __FUNCTION__, 2);
+    $this->setUp(__FUNCTION__, 2);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZA" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
@@ -541,7 +544,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives no account id
   public function testDeviceGivesNoAccountId_2() {
-    sceneSetup($this, __FUNCTION__, 2);
+    $this->setUp(__FUNCTION__, 2);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message            |'
@@ -550,7 +553,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives bad account id
   public function testDeviceGivesBadAccountId_2() {
-    sceneSetup($this, __FUNCTION__, 2);
+    $this->setUp(__FUNCTION__, 2);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" %whatever $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message        |'
@@ -559,7 +562,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives no amount
   public function testDeviceGivesNoAmount_2() {
-    sceneSetup($this, __FUNCTION__, 2);
+    $this->setUp(__FUNCTION__, 2);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZC" $"" ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message        |'
@@ -568,7 +571,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives bad amount
   public function testDeviceGivesBadAmount_2() {
-    sceneSetup($this, __FUNCTION__, 2);
+    $this->setUp(__FUNCTION__, 2);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZC" $%whatever ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message    |'
@@ -577,7 +580,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives nonpositive amount
   public function testDeviceGivesNonpositiveAmount_2() {
-    sceneSetup($this, __FUNCTION__, 2);
+    $this->setUp(__FUNCTION__, 2);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZC" $-100 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message    |'
@@ -586,7 +589,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives too big an amount
   public function testDeviceGivesTooBigAnAmount_2() {
-    sceneSetup($this, __FUNCTION__, 2);
+    $this->setUp(__FUNCTION__, 2);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZC" $10,000,000 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message    |'
@@ -595,7 +598,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives no type
   public function testDeviceGivesNoType_2() {
-    sceneSetup($this, __FUNCTION__, 2);
+    $this->setUp(__FUNCTION__, 2);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "" "NEW:ZZC" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message                  |'
@@ -604,7 +607,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives bad type
   public function testDeviceGivesBadType_2() {
-    sceneSetup($this, __FUNCTION__, 2);
+    $this->setUp(__FUNCTION__, 2);
     When_('member "NEW.ZZA" asks device "codeA" to do this: %whatever "NEW:ZZC" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message |'
@@ -613,7 +616,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives no purpose for goods and services
   public function testDeviceGivesNoPurposeForGoodsAndServices_2() {
-    sceneSetup($this, __FUNCTION__, 2);
+    $this->setUp(__FUNCTION__, 2);
     When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZC" $300 ("goods": "")');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
@@ -622,7 +625,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Buyer agent lacks permission to buy
   public function testBuyerAgentLacksPermissionToBuy_2() {
-    sceneSetup($this, __FUNCTION__, 2);
+    $this->setUp(__FUNCTION__, 2);
     When_('member " NEW.ZZA " asks device "codeC" to do this: "pay" "NEW.ZZB" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
@@ -631,7 +634,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Seller agent lacks permission to sell
   public function testSellerAgentLacksPermissionToSell_2() {
-    sceneSetup($this, __FUNCTION__, 2);
+    $this->setUp(__FUNCTION__, 2);
     When_('member " NEW.ZZA " asks device "codeB" to do this: "charge" "NEW:ZZC" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message |'
@@ -640,7 +643,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: A member asks to charge another member
   public function testAMemberAsksToChargeAnotherMember_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member "NEW.ZZB" asks device "codeA" to do this: "charge" "NEW:ZZC" $100 ("goods": "labor")');
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance 250 other_balance "" and message "report invoice" with subs: "DATA'
     . '\\| action  | otherName | amount | tid |'
@@ -657,7 +660,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: A member asks to pay another member
   public function testAMemberAsksToPayAnotherMember_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW:ZZC" $100 ("goods": "groceries")');
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance 155 other_balance "" and message "report transaction" with subs: "DATA'
     . '\\| action | otherName | amount | rewardType | rewardAmount | balance | tid |'
@@ -674,7 +677,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: A member asks to charge another member unilaterally
   public function testAMemberAsksToChargeAnotherMemberUnilaterally_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     Given('member "NEW.ZZC" can charge unilaterally');
     When_('member "NEW.ZZB" asks device "codeC" to do this: "charge" "NEW:ZZA" $100 ("goods": "groceries")');
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance 360 other_balance 155 and message "report transaction" with subs: "DATA'
@@ -692,7 +695,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: A member asks to charge another member unilaterally, with insufficient balance
   public function testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     Given('member "NEW.ZZC" can charge unilaterally');
     When_('member "NEW.ZZB" asks device "codeC" to do this: "charge" "NEW:ZZA" $300 ("goods": "groceries")');
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance 525 other_balance 12.5 and message "report short transaction" with subs: "DATA'
@@ -707,7 +710,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: A member asks to pay another member, with insufficient balance
   public function testAMemberAsksToPayAnotherMemberWithInsufficientBalance_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW:ZZC" $300 ("goods": "groceries")');
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance 12.5 other_balance "" and message "report short transaction" with subs: "DATA'
     . '\\| action | otherName | amount | short | balance | tid |'
@@ -721,7 +724,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: A member asks to pay self
   public function testAMemberAsksToPaySelf_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW:ZZA" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
@@ -730,7 +733,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives no account id
   public function testDeviceGivesNoAccountId_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message            |'
@@ -739,7 +742,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives bad account id
   public function testDeviceGivesBadAccountId_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" %whatever $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message        |'
@@ -748,7 +751,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives no amount
   public function testDeviceGivesNoAmount_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW:ZZC" $"" ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message        |'
@@ -757,7 +760,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives bad amount
   public function testDeviceGivesBadAmount_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW:ZZC" $%whatever ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message    |'
@@ -766,7 +769,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives nonpositive amount
   public function testDeviceGivesNonpositiveAmount_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW:ZZC" $-100 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message    |'
@@ -775,7 +778,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives too big an amount
   public function testDeviceGivesTooBigAnAmount_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW:ZZC" $10,000,000 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message    |'
@@ -784,7 +787,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives no type
   public function testDeviceGivesNoType_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member "NEW.ZZB" asks device "codeA" to do this: "" "NEW:ZZC" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message                  |'
@@ -793,7 +796,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives bad type
   public function testDeviceGivesBadType_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member "NEW.ZZB" asks device "codeA" to do this: %whatever "NEW:ZZC" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message |'
@@ -802,7 +805,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Device gives no purpose for goods and services
   public function testDeviceGivesNoPurposeForGoodsAndServices_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW:ZZC" $300 ("goods": "")');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
@@ -811,7 +814,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Buyer agent lacks permission to buy
   public function testBuyerAgentLacksPermissionToBuy_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member " NEW.ZZA " asks device "codeC" to do this: "pay" "NEW.ZZB" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
@@ -820,7 +823,7 @@ class rsmartTransact extends DrupalWebTestCase {
 
   // Scenario: Seller agent lacks permission to sell
   public function testSellerAgentLacksPermissionToSell_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member " NEW.ZZA " asks device "codeB" to do this: "charge" "NEW:ZZC" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message |'

@@ -194,7 +194,7 @@ function photo($args) {
   $message = bin2hex(substr($pic, 0, 50));
   u\log('out', compact('message'));
 
-  if (defined('TESTING')) {debug($message); return $message;} else exit($pic);
+  if (@TESTING == 1) {debug($message); return $message;} else exit($pic);
 }
 
 /*

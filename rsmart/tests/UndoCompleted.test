@@ -24,15 +24,14 @@ require_once __DIR__ . '/../rsmart.steps';
 
 class rsmartUndoCompleted extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
-  var $currentTest;
-  var $variant;
+  var $sceneName;
   const SHORT_NAME = 'UndoCompleted';
   const FEATURE_NAME = 'rsmart Test - UndoCompleted';
   const DESCRIPTION = 'Undo Completed Transaction';
   const MODULE = 'rsmart';
 
   public function gherkin($statement, $type) {
-    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->currentTest);
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
   }
   
   public static function getInfo() {
@@ -44,12 +43,16 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
     );
   }
 
-  public function setUp() { // especially, enable any modules required for the tests
+  public function setUp($sceneName, $variant = '') { // especially, enable any modules required for the tests
+    global $sceneTest; $sceneTest = $this;
     parent::setUp(self::MODULE);
-    if (function_exists('extraSetup')) extraSetup($this); // defined in rsmart.steps
-    sceneSetup($this, __FUNCTION__);
 
-    switch ($this->variant) {
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rsmart.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
@@ -174,7 +177,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed payment
   public function testAMemberAsksToUndoACompletedPayment_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAK", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom  | otherName | purpose    |'
@@ -189,7 +192,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed payment
   public function testAMemberConfirmsRequestToUndoACompletedPayment_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAK", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAN" my_balance 166 other_balance "" and message "report undo|report invoice" with subs: "DATA'
     . '\\| solution | action  | otherName | amount | tid |'
@@ -207,7 +210,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed charge
   public function testAMemberAsksToUndoACompletedCharge_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAK", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom  | otherName | purpose    |'
@@ -216,7 +219,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed charge
   public function testAMemberConfirmsRequestToUndoACompletedCharge_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAK", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAN" my_balance 235 other_balance "" and message "report undo|report transaction" with subs: "DATA'
     . '\\| solution | action | otherName | amount | tid | rewardType | rewardAmount | balance |'
@@ -234,7 +237,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed cash payment
   public function testAMemberAsksToUndoACompletedCashPayment_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZB" asks device "codeB" to undo transaction "NEW.AAAJ", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom | otherName  | purpose |'
@@ -243,7 +246,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed cash payment
   public function testAMemberConfirmsRequestToUndoACompletedCashPayment_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZB" asks device "codeB" to undo transaction "NEW.AAAJ", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAN" my_balance 279 other_balance "" and message "report undo|report exchange request" with subs: "DATA'
     . '\\| solution | action  | otherName | amount | tid |'
@@ -261,7 +264,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed cash charge
   public function testAMemberAsksToUndoACompletedCashCharge_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAJ", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom | otherName | purpose |'
@@ -270,7 +273,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed cash charge
   public function testAMemberConfirmsRequestToUndoACompletedCashCharge_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAJ", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAN" my_balance 318 other_balance "" and message "report undo|report exchange" with subs: "DATA'
     . '\\| solution | action | otherName | amount | tid | balance |'
@@ -288,7 +291,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed payment unilaterally
   public function testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterally_0() {
-    sceneSetup($this, __FUNCTION__, 0);
+    $this->setUp(__FUNCTION__, 0);
     Given('member "NEW.ZZA" can charge unilaterally');
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAK", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAN" my_balance 242 other_balance 235 and message "report undo|report transaction" with subs: "DATA'
@@ -307,7 +310,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed payment
   public function testAMemberAsksToUndoACompletedPayment_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAK", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom  | otherName | purpose    |'
@@ -322,7 +325,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed payment
   public function testAMemberConfirmsRequestToUndoACompletedPayment_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAK", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAN" my_balance 166 other_balance "" and message "report undo|report invoice" with subs: "DATA'
     . '\\| solution | action  | otherName | amount | tid |'
@@ -340,7 +343,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed charge
   public function testAMemberAsksToUndoACompletedCharge_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAK", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom  | otherName | purpose    |'
@@ -349,7 +352,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed charge
   public function testAMemberConfirmsRequestToUndoACompletedCharge_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAK", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAN" my_balance 235 other_balance "" and message "report undo|report transaction" with subs: "DATA'
     . '\\| solution | action | otherName | amount | tid | rewardType | rewardAmount | balance |'
@@ -367,7 +370,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed cash payment
   public function testAMemberAsksToUndoACompletedCashPayment_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW.ZZB" asks device "codeB" to undo transaction "NEW.AAAJ", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom | otherName  | purpose |'
@@ -376,7 +379,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed cash payment
   public function testAMemberConfirmsRequestToUndoACompletedCashPayment_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW.ZZB" asks device "codeB" to undo transaction "NEW.AAAJ", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAN" my_balance 279 other_balance "" and message "report undo|report exchange request" with subs: "DATA'
     . '\\| solution | action  | otherName | amount | tid |'
@@ -394,7 +397,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed cash charge
   public function testAMemberAsksToUndoACompletedCashCharge_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAJ", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom | otherName | purpose |'
@@ -403,7 +406,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed cash charge
   public function testAMemberConfirmsRequestToUndoACompletedCashCharge_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAJ", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAN" my_balance 318 other_balance "" and message "report undo|report exchange" with subs: "DATA'
     . '\\| solution | action | otherName | amount | tid | balance |'
@@ -421,7 +424,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed payment unilaterally
   public function testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterally_1() {
-    sceneSetup($this, __FUNCTION__, 1);
+    $this->setUp(__FUNCTION__, 1);
     Given('member "NEW.ZZA" can charge unilaterally');
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAK", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAN" my_balance 242 other_balance 235 and message "report undo|report transaction" with subs: "DATA'
@@ -440,7 +443,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed payment
   public function testAMemberAsksToUndoACompletedPayment_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAK", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom  | otherName | purpose    |'
@@ -455,7 +458,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed payment
   public function testAMemberConfirmsRequestToUndoACompletedPayment_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAK", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAN" my_balance 166 other_balance "" and message "report undo|report invoice" with subs: "DATA'
     . '\\| solution | action  | otherName | amount | tid |'
@@ -473,7 +476,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed charge
   public function testAMemberAsksToUndoACompletedCharge_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAK", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom  | otherName | purpose    |'
@@ -482,7 +485,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed charge
   public function testAMemberConfirmsRequestToUndoACompletedCharge_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAK", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAN" my_balance 235 other_balance "" and message "report undo|report transaction" with subs: "DATA'
     . '\\| solution | action | otherName | amount | tid | rewardType | rewardAmount | balance |'
@@ -500,7 +503,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed cash payment
   public function testAMemberAsksToUndoACompletedCashPayment_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member "NEW.ZZB" asks device "codeB" to undo transaction "NEW.AAAJ", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom | otherName  | purpose |'
@@ -509,7 +512,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed cash payment
   public function testAMemberConfirmsRequestToUndoACompletedCashPayment_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member "NEW.ZZB" asks device "codeB" to undo transaction "NEW.AAAJ", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAN" my_balance 279 other_balance "" and message "report undo|report exchange request" with subs: "DATA'
     . '\\| solution | action  | otherName | amount | tid |'
@@ -527,7 +530,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed cash charge
   public function testAMemberAsksToUndoACompletedCashCharge_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAJ", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom | otherName | purpose |'
@@ -536,7 +539,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed cash charge
   public function testAMemberConfirmsRequestToUndoACompletedCashCharge_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAJ", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAN" my_balance 318 other_balance "" and message "report undo|report exchange" with subs: "DATA'
     . '\\| solution | action | otherName | amount | tid | balance |'
@@ -554,7 +557,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed payment unilaterally
   public function testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterally_3() {
-    sceneSetup($this, __FUNCTION__, 3);
+    $this->setUp(__FUNCTION__, 3);
     Given('member "NEW.ZZA" can charge unilaterally');
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAK", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAN" my_balance 242 other_balance 235 and message "report undo|report transaction" with subs: "DATA'

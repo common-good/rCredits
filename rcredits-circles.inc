@@ -331,14 +331,13 @@ function makeRandomTransactions($count = 5000) {
     $state = rand(1, 12) == 6 ? TX_PENDING : TX_DONE;
     $goods = rand(1, 20) == 10 ? 0 : 1;
     $purpose = $goods ? 'stuff' : 'cash';
-    $real = (r\isRTrader($payer) and r\isRTrader($payee));
-    $serial = t\makeTransaction(compact(u\ray('amount to from purpose taking state goods')), FALSE, $real);
+    $serial = t\makeTransaction(compact(u\ray('amount to from purpose taking state goods')), FALSE);
     if ($goods) {
       list ($goods, $purpose, $from) = array(0, 'reward', r\communityUid());
       list ($amount, $to) = array(round(.05 * $amount, 2), $payer);
-      t\makeTransaction(compact(u\ray('serial amount to from purpose taking state goods')), FALSE, $real);
+      t\makeTransaction(compact(u\ray('serial amount to from purpose taking state goods')), FALSE);
       list ($amount, $to) = array((int) (2 * $amount), $payee);
-      t\makeTransaction(compact(u\ray('serial amount to from purpose taking state goods')), FALSE, $real);
+      t\makeTransaction(compact(u\ray('serial amount to from purpose taking state goods')), FALSE);
     }
   }
 }

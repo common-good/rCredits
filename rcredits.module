@@ -83,7 +83,7 @@ function rcredits_exception_handler($e) {
   $msg = "$short_msg<br>\n($msg)<br>\n- $line0 ($file0)" . $trace_msg;
   $message = str_replace('&nbsp;', '', str_replace('<br>', '', $msg));
   $R_FATAL_ERROR = u\log('FATAL', compact('message'));
-  if (defined('TESTING')) print_r($msg, 1); // do this in any case (doesn't show up unless interface fails)
+  if (@TESTING == 1) print_r($msg, 1); // do this in any case (doesn't show up unless interface fails)
 
   switch (@$channel) {
     case TX_WEB:
@@ -140,7 +140,7 @@ function rcredits_help($path, $arg) {
 }
 
 /**
- * Implements hook_mail().
+ * Implements hook_im_send().
  */
 function rcredits_im_send($key, &$message, $subs) {
   return FALSE; // can't send IMs yet
@@ -151,22 +151,38 @@ function rcredits_im_send($key, &$message, $subs) {
 
 /**
  * Implements hook_mail().
- * @see also: r\notify()
+ * @see also: r\notify() and _user_mail_notify
  */
-function rcredits_mail($key, &$msg_array, $subs) {
+function rcredits_mail($key, &$msg_array, $info) {
     $language = $msg_array['language'];
 //    $data['user'] = r\acct()->account();
 //    user_mail_tokens($variables, $data, compact('language')); // adds links for password reset and account cancelation
+    if ($key == 'register_no_approval_required') $key = 'welcome';
+    if (rcredits_im_send($key, $msg_array, $info)) return; // If we can send by instant-message, do not send by email.
     
-    if (rcredits_im_send($key, $msg_array, $subs)) return; // If we can send by instant-message, do not send by email.
+    $uid = $info['uid'];
+    $acct = r\acct($uid);
+    $info += (array) $acct->account();
+    $info['fullName'] = $info['full_name'];
+    $info['quid'] = $acct->mainQid;
+    $info['oneTimeLoginUrl'] = user_pass_reset_url($acct->account());
+    $info['site'] = R_SITE_URL;
+    $email = $info['email'] = $info['mail'];
+
+    foreach ($info as $k => $value) $subs['{' . $k . '}'] = $value;
     $langcode = $language->language;
     $msg_array['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed'; // default is plain text
     $msg_array['subject'] = $subject = strtr($GLOBALS['emailSubjects'][$key], $subs);
     $msg_array['body'][] = $message = strtr(r\emailBody($key), $subs);
     $message = str_replace("\r\n", '', $message); // easier reading for log and tests
-    $email = $subs['{email}'];
+    $message = str_replace($info['oneTimeLoginUrl'], '(varies)', $message);
     $fields = compact(u\ray('key email subject message'));
-    if (defined('TESTING')) \drupal_set_message(t\color($fields, 'email')); // keep this
+    if (@TESTING == 1) \drupal_set_message(t\color($fields, 'email')); // keep this
+    
+    if (!r\acct()) { // must be register/login/reset, so setup what u\log needs
+      r\acct::setDefault($acct);      
+      global $channel; if (!$channel) $channel = TX_WEB;
+    }
     u\log('email', $fields);
 
 //    $msg_array['subject'] = t('Notification from !site', $variables, compact('langcode'));

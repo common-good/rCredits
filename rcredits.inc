@@ -112,6 +112,8 @@ $GLOBALS['emailSubjects'] = array(
   'new-offer' => t('rCredits PAYMENT OFFER from {otherName}'),
   'offer-refused' => t('rCredits Payment REJECTED by {otherName}'),
   'offer-canceled' => t('rCredits Invoice CANCELED by {otherName}'),
+  
+  'welcome' => t('Welcome to rCredits!'),
 );
 
 include_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
@@ -311,25 +313,25 @@ function notify($uid, $index, $info) {
   global $channel;
   $cacct = acct();
   $acct = acct($uid);
-  extract(u\just('full_name mail', $account = $acct->account()));
-  $fullName = @$full_name ?: t('rCredits Member');
-  $standard_fields = array(
+  $info['uid'] = $uid;
+//  extract(u\just('full_name mail', $account = $acct->account()));
+//  $fullName = @$full_name ?: t('rCredits Member');
+/*  $standard_fields = array(
     'uid' => $uid,
     'fullName' => $fullName,
     'email' => $mail, // testing uses this
   );
+  */
   $warnIndexes = u\ray('new-invoice new-offer charge-disputed');
   
-  $info = array_merge($info, $standard_fields);
+//  $info = array_merge($info, $standard_fields);
   if ($uid != $cacct->id) $info['otherName'] = $cacct->full_name; // this comes in backwards if notifying elseone
 
-  $subs = array();
   if (!strlen($acct->pass)) {
     $warning = u\tt('no asif notify', compact('fullName'));
   } else {
-    if ($acct->hasBit(BIT_NOTIFY_EMAIL) and !empty($mail)) {
-      foreach ($info as $key => $value) $subs['{' . $key . '}'] = $value;
-      $mailed = drupal_mail('rCredits', $index, $mail, user_preferred_language($account), $subs);
+    if ($acct->hasBit(BIT_NOTIFY_EMAIL) and @$acct->mail) {
+      $mailed = drupal_mail('rCredits', $index, $acct->mail, user_preferred_language($acct->account()), $info);
     }
     if ($acct->hasBit(BIT_NOTIFY_SMS)) {
       $number = dbLookup('number', 'r_sms', 'uid=:uid AND status=:SMS_PRIMARY', compact('uid'));
@@ -707,7 +709,7 @@ function userUpdate($info, $uid = '') {
  * Drupal urlencodes the parameters (= and &), so the target page will have to sort that out. (can't use Header() here)
  */
 function go($page) {
-  if (defined('TESTING')) {
+  if (@TESTING == 1) {
     list ($form, $arg1) = ($page == 'pay' or $page == 'charge') ? array('tx', $page) : array($page, '');
     return Web\showForm($form, $arg1);
   }
