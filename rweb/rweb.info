@@ -22,3 +22,4 @@ files[] = tests/Transact.test
 files[] = tests/Summary.test
 files[] = tests/Transactions.test
 files[] = tests/Relations.test
+files[] = tests/multi.test

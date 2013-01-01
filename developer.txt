@@ -127,8 +127,11 @@ G. Special rCredits datatypes
 @todo: Finish separating backend. Front end should have no registered users. This should maybe wait until after launch.
 @todo: use popups for some things
 @todo: make help divs draggable
+@todo: when a relation for a company is created with PERM_MANAGE, warn the user that they will no longer be able to log in directly to the company account, change the password to "NOACCESS", and prevent a password change ("Only authorized individuals can manage this account.")
+@todo: option to suppress current balance in messages (make it a separate message) BIT_SHOWBAL (default TRUE)
+@todo: rTraders have unlimited asif rCredits (or unlimited credit and show balance as N/A)
 @todo
-- remove all direct db operations from interface modules (and their .inc files) -- use api\ and u\ there, but not r\
+- remove all direct db operations from interface modules (and their .inc files) -- use be\ and u\ there, but not r\
 
 Notes on transaction record system:
   Other servers have a single negative (<0) UID on our system, so a
@@ -152,3 +155,27 @@ Notes on transaction record system:
 
 Other thoughts:
   Joining by dumb cellphone is for play only. Accounts and transactions created that way should get deleted after a week of inactivity.
+
+To clear cache:   http://localhost/devcore/devel/cache/clear?destination=node
+  (or http://new.rcredits.org/devel/cache/clear?destination=node)
+
+To uninstall the rCredits modules manually (export first, since this DESTROYS ALL DATA):
+  DELETE FROM system WHERE filename LIKE 'sites/all/modules/rcredits/%' OR name='rcredits';
+  DELETE FROM block WHERE theme='rcredits';
+  DELETE FROM menu_links WHERE menu_name='main-menu' OR (menu_name='user-menu' AND mlid>20) OR link_title='rCredits';
+  DELETE FROM menu_router WHERE access_callback LIKE 'rCredits%' or page_callback LIKE 'rCredits%' OR path LIKE '%rcredits';
+  DELETE FROM registry WHERE module IN ('rcredits','rweb','rsmart','rsms');
+  DELETE FROM registry_file WHERE filename LIKE 'sites/all/modules/rcredits/%';
+  TRUNCATE sessions;
+  DELETE FROM variable WHERE name LIKE 'rcredits%';
+  TRUNCATE cache;
+  TRUNCATE cache_block;
+  TRUNCATE cache_bootstrap;
+  TRUNCATE cache_field;
+  TRUNCATE cache_filter;
+  TRUNCATE cache_form;
+  TRUNCATE cache_menu;
+  TRUNCATE cache_page;
+  TRUNCATE cache_path;
+  TRUNCATE cache_update;  
+  DROP TABLE IF EXISTS r_areas,r_asif,r_candidates,r_donations,r_industries,r_log,r_nonces,r_regions,r_relations,r_scores,r_smarts,r_sms,r_txs,r_usd;

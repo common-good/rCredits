@@ -7,6 +7,7 @@
  *   $cacct is the current account
  *   $acct is some other account
  *
+ * @todo: return "stay" param, meaning "stay on current screen" (for some errors, such as missing description). Better might be to include those checks in the app, so the app returns to main menu always after talking to the server, whether successful or not. Or supply a "try again" button.
  * @todo:
  
  http://code.google.com/p/zxing/issues/detail?id=1337
@@ -221,10 +222,11 @@ function transact($args) {
 
   if ($q_type == 'pay') $q_type = 'payment'; // this is what be\transfer() expects
   list ($index, $subs, $zot) = be\transfer($q_type, $q_acct, $q_amount, $q_purpose, $q_goods, TRUE);
-  if (!@$subs['success']) return be\error($index, $subs);
+
+  $balances = balances($q_acct->id, @$subs['real']); // my_balance, other_balance
+  if (!($subs['success'] = (int) @$subs['success'])) return be\error($index, $subs + $balances);
   $tx_id = r\qxid($subs['zxid']); // return the transaction id as a qid (globally unique transaction id) (':' means As-If)
   $message = u\tt($index, $subs);
-  $balances = balances($q_acct->id, $subs['real']); // my_balance, other_balance
   return compact(u\ray('message tx_id')) + $balances;
 }
 
@@ -253,9 +255,9 @@ function undo($params) {
   if ($confirmed) {
     list ($message, $args) = be\undoTx($zxid);
     $message = u\tt($message, $args);
-    if (!@$args['success']) return be\error($message);
+    $balances = balances(@$args['otherUid'], $zxid > 0);
+    if (!($success = (int) @$args['success'])) return compact(u\ray('success message')) + (@$balances ?: array());
     if ($new_zxid = @$args['zxid']) $tx_id = r\qxid($new_zxid); // get offsetting transaction id, if any (otherwise state changed)
-    $balances = balances($args['otherUid'], $zxid > 0);
   } else {
     $oldRecord = be\lastTx('xid=:zxid', compact('zxid'));
     if ($error = r\nonoUndo($oldRecord, $subs)) return be\error($error, $subs); // check nono before confirm AND here
@@ -313,8 +315,11 @@ function accountName($acct) {
 }
 
 function balances($uid, $real) {
-  $my_balance = be\creditInfo(compact('real'))->balance;
-  if (r\acct()->can(PERM_CHARGE) and !r\acct($uid)->hasBit(BIT_SECRET_BAL)) $other_balance = be\creditInfo(compact('real', 'uid'))->balance;
+  if (r\acct()->can(PERM_MANAGE)) $my_balance = be\creditInfo(compact('real'))->fancy['balance'];
+  if ($uid) {
+    $other_balance = r\otherBalance($uid);
+    if (!$other_balance) unset($other_balance); // don't return an empty parameter
+  }
   return compact('my_balance', 'other_balance');
 }
 

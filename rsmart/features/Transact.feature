@@ -24,10 +24,10 @@ Setup:
   | NEW:ZZD | NEW.ZZC | NEW.ZZA | sell              |
   And transactions: 
   | tx_id    | created   | type       | amount | from      | to      | purpose | taking |
-  | NEW.AAAB | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |
-  | NEW.AAAC | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZB | signup  | 0      |
-  | NEW.AAAD | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZC | signup  | 0      |
-  Then balances:
+  | NEW:AAAB | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |
+  | NEW:AAAC | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZB | signup  | 0      |
+  | NEW:AAAD | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZC | signup  | 0      |
+  Then "asif" balances:
   | id        | balance |
   | community |    -750 |
   | NEW.ZZA   |     250 |
@@ -41,31 +41,33 @@ Variants: with/without an agent
   | "NEW.ZZB" asks device "codeA" | "NEW.ZZB" asks device "codeC" | "NEW:ZZA" $ | "NEW:ZZC" $ | # agent to agent            |
 
 Scenario: A member asks to charge another member
-  When member "NEW.ZZA" asks device "codeA" to do this: "charge" "NEW.ZZC" $100 ("goods": "labor")
+  When member " NEW.ZZA" asks device "codeA" to do this: "charge" "NEW.ZZC" $100 ("goods": "labor")
   # cash exchange would be ("cash": "")
-  Then we respond success 1 tx_id "NEW.AAAE" my_balance 250 other_balance "" and message "report invoice" with subs:
+  #no variant on first member because showing balance requires PERM_MANAGE
+  Then we respond success 1 tx_id "NEW:AAAE" my_balance "$250" other_balance "" and message "report invoice" with subs:
   | action  | otherName | amount | tid |
   | charged | Corner Pub | $100   | 2   |
   # "You charged Corner Pub $100 (bonus: $10). Your balance is unchanged, pending payment. Invoice #2"
   And we email "new-invoice" to member "c@example.com" with subs:
   | created | fullName   | otherName | amount | payerPurpose |
   | %today  | Corner Pub | Abe One    | $100   | labor         |
-  And balances:
+  And "asif" balances:
   | id        | balance |
   | community |    -750 |
   | NEW.ZZA   |     250 |
   | NEW.ZZC   |     250 |
 
 Scenario: A member asks to pay another member
-  When member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $100 ("goods": "groceries")
-  Then we respond success 1 tx_id "NEW.AAAE" my_balance 155 other_balance "" and message "report transaction" with subs:
+  When member " NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $100 ("goods": "groceries")
+  #no variant on first member because showing balance requires PERM_MANAGE
+  Then we respond success 1 tx_id "NEW:AAAE" my_balance "$155" other_balance "" and message "report transaction" with subs:
   | action | otherName | amount | rewardType | rewardAmount | balance | tid |
   | paid   | Corner Pub | $100   | rebate      | $5            | $155    | 2   |
   # "You paid Corner Pub $100 (rebate: $5). Your new balance is $155. Transaction #2"
   And we email "new-payment" to member "c@example.com" with subs:
   | created | fullName   | otherName | amount | payeePurpose   |
   | %today  | Corner Pub | Abe One    | $100   | groceries       |
-  And balances:
+  And "asif" balances:
   | id        | balance |
   | community |    -765 |
   | NEW.ZZA   |     155 |
@@ -88,15 +90,16 @@ Scenario: A member asks to pay another member
 
 Scenario: A member asks to charge another member unilaterally
   Given member "NEW.ZZC" can charge unilaterally
-  When member "NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $100 ("goods": "groceries")
-  Then we respond success 1 tx_id "NEW.AAAE" my_balance 360 other_balance 155 and message "report transaction" with subs:
+  When member " NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $100 ("goods": "groceries")
+  #no variant on first member because showing balance requires PERM_MANAGE
+  Then we respond success 1 tx_id "NEW:AAAE" my_balance "$360" other_balance "$155" and message "report transaction" with subs:
   | action  | otherName | amount | rewardType | rewardAmount | balance | tid |
   | charged | Abe One    | $100   | bonus       | $10           | $360    | 2   |
   # "You charged Corner Pub $100 (bonus: $10). Your new balance is $360. Transaction #2"
   And we email "new-charge" to member "a@example.com" with subs:
   | created | fullName  | otherName | amount | payerPurpose   |
   | %today  | Abe One   | Corner Pub | $100   | groceries       |
-  And balances:
+  And "asif" balances:
   | id        | balance |
   | community |    -765 |
   | NEW.ZZA   |     155 |
@@ -104,24 +107,26 @@ Scenario: A member asks to charge another member unilaterally
 
 Scenario: A member asks to charge another member unilaterally, with insufficient balance
   Given member "NEW.ZZC" can charge unilaterally
-  When member "NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $300 ("goods": "groceries")
-  Then we respond success 1 tx_id "NEW.AAAE" my_balance 525 other_balance 12.5 and message "report short transaction" with subs:
-  | action  | otherName | amount | short | balance | tid |
-  | charged | Abe One    | $250   | $50   | $525    | 2   |
+  When member " NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $300 ("goods": "groceries")
+  #no variant on first member because showing balance requires PERM_MANAGE
+  Then we respond success 1 tx_id "NEW:AAAE" my_balance "$525" other_balance "$12.50" and message "report short invoice" with subs:
+  | action  | otherName | amount | short | balance | tid | t2id |
+  | charged | Abe One   | $250   | $50   | $525    | 2   | 3    |
   # "SPLIT TRANSACTION! You paid Corner Pub $250 (rebate: $12.50). You will need to use US Dollars for the remaining $50. Your new balance is $12.50. Transaction #2"
-  And balances:
+  And "asif" balances:
   | id        | balance |
   | community | -787.50 |
   | NEW.ZZA   |   12.50 |
   | NEW.ZZC   |  525.00 |
 
 Scenario: A member asks to pay another member, with insufficient balance
-  When member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $300 ("goods": "groceries")
-  Then we respond success 1 tx_id "NEW.AAAE" my_balance 12.5 other_balance "" and message "report short transaction" with subs:
+  When member " NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $300 ("goods": "groceries")
+  #no variant on first member because showing balance requires PERM_MANAGE
+  Then we respond success 1 tx_id "NEW:AAAE" my_balance "$12.50" other_balance "" and message "report short payment" with subs:
   | action | otherName | amount | short | balance | tid |
   | paid   | Corner Pub | $250   | $50   | $12.50  | 2   |
   # "SPLIT TRANSACTION! You paid Corner Pub $250 (rebate: $12.50). You will need to use US Dollars for the remaining $50. Your new balance is $12.50. Transaction #2"
-  And balances:
+  And "asif" balances:
   | id        | balance |
   | community | -787.50 |
   | NEW.ZZA   |   12.50 |

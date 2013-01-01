@@ -68,16 +68,7 @@ function memberCompletesFormWithValues($id, $formName, $values, $confirmed = FAL
 //  global $testOnly; if ($testOnly) return FALSE;
   global $testConfirmation; // confirmation message output, if any
 
-  $values = @$values[0]['email'] ? u\changeKey('email', 'mail', $values[0]) : $values[0];
-  foreach ($values as $key => $value) if (strpos($value, '=>') !== FALSE) { // handle subvalues (eg opt1=>a opt2=>b)
-    $newValue = array();
-    foreach(explode(' ', $value) as $one) {
-      list ($kid, $kidValue) = explode('=>', $one);
-      $newValue[$kid] = $kidValue;
-    }
-    $values[$key] = $newValue;
-  }
-  $sta['values'] = $values;
+  $sta['values'] = @$values[0]['email'] ? u\changeKey('email', 'mail', $values[0]) : $values[0];
   
   t\logIn($id);
   if (in_array($formName, u\ray('Pay Charge Grant Loan Fine'))) list ($formName, $arg) = array('Tx', $formName);
@@ -86,12 +77,9 @@ function memberCompletesFormWithValues($id, $formName, $values, $confirmed = FAL
 //  if (function_exists($alter = 'rweb_form_' . $formPath . '_alter')) $alter($form, $sta, $formName);
   
 //  if (!$confirmed) foreach (t\postProcess($form, $formName, 'validate') as $one) {
-  $errorsBefore = \drupal_get_messages('error', FALSE);
+  $errorsBefore = t\getErrors();
   if ($formName != 'Tx' or !$confirmed) foreach (t\postProcess($form, $formName, 'validate') as $one) $one($form, $sta);
-  $errorsAfter = \drupal_get_messages('error', FALSE);
-  if (count($errorsAfter) > count($errorsBefore)) {
-    $errors = $errors['error']; // the only entry in the array
-    while (u\abbreviates('Unable to send e-mail', @$errors[0])) array_shift($errors); // ignore this offline
+  if (count($errors = t\getErrors()) > count($errorsBefore)) {
     // NO! if (!empty($errors)) return FALSE;
     debug(compact(u\ray('id formName values confirmed one errors')));
   } else {
@@ -110,6 +98,7 @@ function memberCompletesFormWithValues($id, $formName, $values, $confirmed = FAL
  *     Signup AMemberRegistersBadEmail MAKE
  *     Signup AMemberRegistersAgain MAKE
  *     Signup AMemberRegistersWithACompany MAKE
+ *     Signup AMemberRegistersWithACompanyWithNoEmployeeOrOwner MAKE
  *     Transact AMemberConfirmsRequestToChargeAnotherMember MAKE
  *     Transact AMemberConfirmsRequestToPayAnotherMember MAKE
  */
@@ -189,40 +178,62 @@ function transactions($list) {
 }
 
 /**
- * we say (ARG): (ARG) with subs: (ARG)
+ * we say (ARG): (ARG) with (ARG) subs: (ARG)
  *
  * in: Signup ANewbieRegisters TEST
  *     Signup AMemberRegistersBadEmail TEST
  *     Signup AMemberRegistersAgain TEST
+ *     Signup AMemberRegistersWithACompanyWithNoEmployeeOrOwner TEST
  *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
  *     Transact AMemberConfirmsRequestToPayAnotherMember TEST
  */
-function weSayWithSubs($type, $index, $subs) {
+function weSayWithSubs($type, $index, $real, $subs) {
   global $testOnly;
 
-  $msg = t\realFix(u\tt($index, @$subs[0]));
+  $real = ($real == 'real');
+  $subs = @$subs[0] ?: array();
+  if (isset($subs['email'])) {
+    $subs['email'] = str_replace("'", '&#039;', htmlspecialchars($subs['email'])); // Drupal does this in user_register()
+  }
+  $msg = t\realFix(u\tt($index, $subs + compact('real')), $real);
   $msgs = drupal_get_messages($type ?: NULL, FALSE);
   $result = (@$msgs[$type] and array_search($msg, $msgs[$type]) !== FALSE);
-  t\testOutput($msg, 'output');
+  if (!$result) debug(compact('msg','msgs'));
+  t\testOutput($msg, 'output'); // this must come after array_search!
   return $result;
 }
 
 /**
- * we show (ARG) with subs: (ARG)
+ * we email (ARG) to member (ARG) with (ARG) subs: (ARG)
+ *
+ * in: Signup ANewbieRegisters TEST
+ *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
+ *     Transact AMemberConfirmsRequestToPayAnotherMember TEST
+ */
+function weEmailToMemberWithSubs($key, $email, $real, $subs) {
+  global $testOnly;
+  $real = ($real == 'real');
+  $subs = @$subs[0] ?: array();
+  return t\findEmail($key, $email, $subs + compact('real'), $real);
+}
+
+/**
+ * we show (ARG) with (ARG) subs: (ARG)
  *
  * in: Transact AMemberAsksToChargeAnotherMember TEST
  *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
  *     Transact AMemberAsksToPayAnotherMember TEST
  *     Transact AMemberConfirmsRequestToPayAnotherMember TEST
  */
-function weShowWithSubs($page, $subs) {
+function weShowWithSubs($page, $real, $subs) {
   global $testOnly;
   global $testConfirmation; // confirmation message output, if any
   global $formOutput; // for testing
   
+  $real = ($real == 'real');
   $subs = @$subs[0] ?: array(); // comes in as "" if no subs
   if (u\abbreviates('confirm', $page)) {
-    $wanted = u\tt($page, $subs);
+    $wanted = u\tt($page, $subs + compact('real'));
     t\testOutput("<b>WANTED: </b>$wanted", 'screen');
     return ($wanted == $testConfirmation);
   }
@@ -289,18 +300,6 @@ function weShowPageWithout($page, $content) {
 }
 
 /**
- * we email (ARG) to member (ARG) with subs: (ARG)
- *
- * in: Signup ANewbieRegisters TEST
- *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
- *     Transact AMemberConfirmsRequestToPayAnotherMember TEST
- */
-function weEmailToMemberWithSubs($key, $email, $subs) {
-  global $testOnly;
-  return t\findEmail($key, $email, $subs);
-}
-
-/**
  * relations: (ARG)
  *
  * in: Relations MemberHasAnEmployeeConfirmed MAKE
@@ -335,7 +334,7 @@ function relations($relations) {
  */
 function balances($real, $list) {
   global $testOnly;
-  foreach ($list as $one) if (!t\eq(t\uidCredit(t\uid($one['id'], $real))->balance, $one['balance'])) return FALSE;
+  foreach ($list as $one) if (!t\eq(t\uidCredit(t\uid($one['id']), $real)->balance, $one['balance'])) return FALSE;
   return TRUE;
 }
 
@@ -396,14 +395,4 @@ function memberIsLoggedOut() {
   module_load_include('pages.inc', 'user');
   if (\user_is_logged_in()) \user_logout(); else return TRUE;
   return FALSE; // should never get here
-}
-
-/**
- * member (ARG) confirms form (ARG) (which logs out) with values: (ARG)
- *
- * in: 
- */
-function memberConfirmsFormwhichLogsOutWithValues($arg1, $arg2, $arg3) {
-  global $testOnly;
-  todo;
 }

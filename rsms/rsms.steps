@@ -248,7 +248,7 @@ function phoneEmailIs($number, $email) {
 }
 
 /**
- * phone (ARG) has r$(ARG)
+ * phone (ARG) (ARG) has r$(ARG)
  *
  * in: ExchangeForCash TheCallerConfirmsATradeOfRCreditsForCash TEST
  *     ExchangeForCash TheCallerConfirmsAnImplicitTradeOfRCreditsForCash TEST
@@ -271,7 +271,7 @@ function phoneHasR($number, $real, $amount) {
 }
 
 /**
- * phone (ARG) has r$(ARG) including rewards of $(ARG)
+ * phone (ARG) (ARG) has r$(ARG) including rewards of $(ARG)
  *
  * in: GetInformation GettingInformation MAKE
  *     GetInformation GettingInformationLargerAmounts MAKE
@@ -293,7 +293,7 @@ function phoneHasRIncludingRewardsOf($number, $real, $bal, $rewards) {
 }
 
 /**
- * the community has r$(ARG)
+ * the community (ARG) has r$(ARG)
  *
  * in: ExchangeForCash TheCallerConfirmsATradeOfRCreditsForCash TEST
  *     Transact TheCallerConfirmsAPayment TEST

@@ -29,7 +29,9 @@ class rsmsOfferToExchangeUSDollarsForRCredits extends DrupalWebTestCase {
     );
   }
 
-  public function setUp($sceneName, $variant = '') { // especially, enable any modules required for the tests
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
     global $sceneTest; $sceneTest = $this;
     parent::setUp(self::MODULE);
 
@@ -46,7 +48,7 @@ class rsmsOfferToExchangeUSDollarsForRCredits extends DrupalWebTestCase {
 
   // Scenario: Make or update an offer
   public function testMakeOrUpdateAnOffer_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('phone %number1 is a member');
     And__('phone %number1 demand for rCredits is $100');
     And__('the total demand for rCredits is $100,000');

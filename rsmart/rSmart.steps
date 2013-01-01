@@ -68,6 +68,7 @@ function extraSubs(&$subs) {
  *     UndoAttack Setup MAKE
  *     UndoCompleted Setup MAKE
  *     UndoPending Setup MAKE
+ *     Unilateral Setup MAKE
  */
 function members($list) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -87,6 +88,7 @@ function members($list) {
  *     UndoAttack Setup MAKE
  *     UndoCompleted Setup MAKE
  *     UndoPending Setup MAKE
+ *     Unilateral Setup MAKE
  */
 function relations($relations) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -103,6 +105,7 @@ function relations($relations) {
  *     UndoAttack Setup MAKE
  *     UndoCompleted Setup MAKE
  *     UndoPending Setup MAKE
+ *     Unilateral Setup MAKE
  */
 function transactions($list) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -271,6 +274,7 @@ function theAppStartsUpAsCode($code) {
  *     UndoAttack Setup MAKE
  *     UndoCompleted Setup MAKE
  *     UndoPending Setup MAKE
+ *     Unilateral Setup MAKE
  */
 function devices($list) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -279,7 +283,7 @@ function devices($list) {
 }
 
 /**
- * balances: (ARG)
+ * (ARG) balances: (ARG)
  *
  * in: Insufficient Setup TEST
  *     Insufficient AMemberAsksToUndoACompletedPaymentWithInsufficientBalance TEST
@@ -294,6 +298,7 @@ function devices($list) {
  *     Transact AMemberAsksToChargeAnotherMemberUnilaterally TEST
  *     Transact AMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance TEST
  *     Transact AMemberAsksToPayAnotherMemberWithInsufficientBalance TEST
+ *     UndoAttack Setup TEST
  *     UndoCompleted Setup TEST
  *     UndoCompleted AMemberAsksToUndoACompletedPayment TEST
  *     UndoCompleted AMemberConfirmsRequestToUndoACompletedPayment TEST
@@ -306,10 +311,11 @@ function devices($list) {
  *     UndoPending AMemberConfirmsRequestToRefuseToPayInvoice TEST
  *     UndoPending AMemberAsksToRefusePaymentOffer TEST
  *     UndoPending AMemberConfirmsRequestToRefusePaymentOffer TEST
+ *     Unilateral Setup TEST
  */
-function balances($real, $list) {
+function balances($real, $list) { // real is "asif" or "real"
   global $testOnly;
-  foreach ($list as $one) if (!t\eq(t\uidCredit(t\uid($one['id'], $real))->balance, $one['balance'])) return FALSE;
+  foreach ($list as $one) if (!t\eq(t\uidCredit(t\uid($one['id']), $real)->balance, $one['balance'])) return FALSE;
   return TRUE;
 }
 
@@ -363,8 +369,8 @@ function memberAsksDeviceToDoThis($agent, $code, $type, $account_id, $amount, $g
  */
 function weRespondSuccessTxidMybalanceOtherbalanceAndMessageWithSubs($success, $tx_id, $my_balance, $other_balance, $message, $subs) {
   global $testOnly;
-  if ($tx_id === '') $tx_id = NULL;
-  if ($other_balance === '') $other_balance = NULL;
+  if ($tx_id === '') unset($tx_id);
+  if ($other_balance === '') unset($other_balance);
   return t\findMessage('out', compact(u\ray('success message tx_id my_balance other_balance')), $message, '', $subs);
 }
 
@@ -373,7 +379,6 @@ function weRespondSuccessTxidMybalanceOtherbalanceAndMessageWithSubs($success, $
  *
  * in: Insufficient AMemberConfirmsRequestToUndoACompletedPaymentWithInsufficientBalance TEST
  *     Insufficient AMemberConfirmsRequestToUndoACompletedPaymentUnilaterallyWithInsufficientBalance TEST
- *     Insufficient AMemberConfirmsRequestToUndoACompletedChargeWithInsufficientBalance TEST
  *     Transact AMemberAsksToChargeAnotherMember TEST
  *     Transact AMemberAsksToPayAnotherMember TEST
  *     Transact AMemberAsksToChargeAnotherMemberUnilaterally TEST

@@ -39,7 +39,9 @@ class rsmartUndoAttack extends DrupalWebTestCase {
     );
   }
 
-  public function setUp($sceneName, $variant = '') { // especially, enable any modules required for the tests
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
     global $sceneTest; $sceneTest = $this;
     parent::setUp(self::MODULE);
 
@@ -69,10 +71,16 @@ class rsmartUndoAttack extends DrupalWebTestCase {
     . '\\| NEW:ZZD | NEW.ZZC | NEW.ZZA | sell              |"');
     And__('transactions: "DATA'
     . '\\| tx_id    | created   | type         | state       | amount | from      | to      | purpose      | taking |'
-    . '\\| NEW.AAAB | %today-7m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZA | signup       | 0      |'
-    . '\\| NEW.AAAC | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZB | signup       | 0      |'
-    . '\\| NEW.AAAD | %today-2d | %TX_TRANSFER | %TX_DONE    |      5 | NEW.ZZB   | NEW.ZZC | cash given   | 0      |'
-    . '\\| NEW.AAAE | %today-1d | %TX_TRANSFER | %TX_DONE    |     80 | NEW.ZZA   | NEW.ZZC | whatever54   | 1      |"');
+    . '\\| NEW:AAAB | %today-7m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZA | signup       | 0      |'
+    . '\\| NEW:AAAC | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZB | signup       | 0      |'
+    . '\\| NEW:AAAD | %today-2d | %TX_TRANSFER | %TX_DONE    |      5 | NEW.ZZB   | NEW.ZZC | cash given   | 0      |'
+    . '\\| NEW:AAAE | %today-1d | %TX_TRANSFER | %TX_DONE    |     80 | NEW.ZZA   | NEW.ZZC | whatever54   | 1      |"');
+    Then_('"asif" balances: "DATA'
+    . '\\| id        | balance |'
+    . '\\| community |    -500 |'
+    . '\\| NEW.ZZA   |     170 |'
+    . '\\| NEW.ZZB   |     245 |'
+    . '\\| NEW.ZZC   |      85 |"');
     break;
 
 
@@ -81,7 +89,7 @@ class rsmartUndoAttack extends DrupalWebTestCase {
 
   // Scenario: Device gives no transaction id
   public function testDeviceGivesNoTransactionId_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction "", with the request "unconfirmed"');
     Then_('we respond with: "DATA'
     . '\\| success | message                |'
@@ -90,7 +98,7 @@ class rsmartUndoAttack extends DrupalWebTestCase {
 
   // Scenario: Device gives bad transaction id
   public function testDeviceGivesBadTransactionId_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction %random, with the request "unconfirmed"');
     Then_('we respond with: "DATA'
     . '\\| success | message            |'
@@ -99,17 +107,17 @@ class rsmartUndoAttack extends DrupalWebTestCase {
 
   // Scenario: Device gives nonexistent transaction id
   public function testDeviceGivesNonexistentTransactionId_0() {
-    $this->setUp(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.ZZZZ", with the request "unconfirmed"');
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member " NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAZ", with the request "confirmed"');
     Then_('we respond with: "DATA'
-    . '\\| success | message       |'
-    . '\\| 0       | undo no match |"');
+    . '\\| success | message       | my_balance |'
+    . '\\| 0       | undo no match | $170       |"');
   }
 
   // Scenario: Device gives no confirmation status
   public function testDeviceGivesNoConfirmationStatus_0() {
-    $this->setUp(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAB", with the request ""');
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAB", with the request ""');
     Then_('we respond with: "DATA'
     . '\\| success | message                 |'
     . '\\| 0       | bad confirmation status |"');
@@ -117,8 +125,8 @@ class rsmartUndoAttack extends DrupalWebTestCase {
 
   // Scenario: Device gives bad confirmation status
   public function testDeviceGivesBadConfirmationStatus_0() {
-    $this->setUp(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAB", with the request %random');
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAB", with the request %random');
     Then_('we respond with: "DATA'
     . '\\| success | message                 |'
     . '\\| 0       | bad confirmation status |"');
@@ -126,17 +134,17 @@ class rsmartUndoAttack extends DrupalWebTestCase {
 
   // Scenario: Member asks to undo someone else's transaction
   public function testMemberAsksToUndoSomeoneElsesTransaction_0() {
-    $this->setUp(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAC", with the request "unconfirmed"');
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member " NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAC", with the request "confirmed"');
     Then_('we respond with: "DATA'
-    . '\\| success | message       |'
-    . '\\| 0       | undo no match |"');
+    . '\\| success | message       | my_balance |'
+    . '\\| 0       | undo no match | $170       |"');
   }
 
   // Scenario: Buyer agent lacks permission to reverse sale
   public function testBuyerAgentLacksPermissionToReverseSale_0() {
-    $this->setUp(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" asks device "codeC" to undo transaction "NEW.AAAE", with the request "unconfirmed"');
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member "NEW.ZZA" asks device "codeC" to undo transaction "NEW:AAAE", with the request "unconfirmed"');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
     . '\\| 0       | no buy          |"');
@@ -144,8 +152,8 @@ class rsmartUndoAttack extends DrupalWebTestCase {
 
   // Scenario: Seller agent lacks permission to reverse purchase
   public function testSellerAgentLacksPermissionToReversePurchase_0() {
-    $this->setUp(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" asks device "codeB" to undo transaction "NEW.AAAD", with the request "unconfirmed"');
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member "NEW.ZZA" asks device "codeB" to undo transaction "NEW:AAAD", with the request "unconfirmed"');
     Then_('we respond with: "DATA'
     . '\\| success | message |'
     . '\\| 0       | no sell |"');
@@ -153,7 +161,7 @@ class rsmartUndoAttack extends DrupalWebTestCase {
 
   // Scenario: Device gives no transaction id
   public function testDeviceGivesNoTransactionId_1() {
-    $this->setUp(__FUNCTION__, 1);
+    $this->setUp2(__FUNCTION__, 1);
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction "", with the request "confirmed"');
     Then_('we respond with: "DATA'
     . '\\| success | message                |'
@@ -162,7 +170,7 @@ class rsmartUndoAttack extends DrupalWebTestCase {
 
   // Scenario: Device gives bad transaction id
   public function testDeviceGivesBadTransactionId_1() {
-    $this->setUp(__FUNCTION__, 1);
+    $this->setUp2(__FUNCTION__, 1);
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction %random, with the request "confirmed"');
     Then_('we respond with: "DATA'
     . '\\| success | message            |'
@@ -171,17 +179,17 @@ class rsmartUndoAttack extends DrupalWebTestCase {
 
   // Scenario: Device gives nonexistent transaction id
   public function testDeviceGivesNonexistentTransactionId_1() {
-    $this->setUp(__FUNCTION__, 1);
-    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.ZZZZ", with the request "confirmed"');
+    $this->setUp2(__FUNCTION__, 1);
+    When_('member " NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAZ", with the request "confirmed"');
     Then_('we respond with: "DATA'
-    . '\\| success | message       |'
-    . '\\| 0       | undo no match |"');
+    . '\\| success | message       | my_balance |'
+    . '\\| 0       | undo no match | $170       |"');
   }
 
   // Scenario: Device gives no confirmation status
   public function testDeviceGivesNoConfirmationStatus_1() {
-    $this->setUp(__FUNCTION__, 1);
-    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAB", with the request ""');
+    $this->setUp2(__FUNCTION__, 1);
+    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAB", with the request ""');
     Then_('we respond with: "DATA'
     . '\\| success | message                 |'
     . '\\| 0       | bad confirmation status |"');
@@ -189,8 +197,8 @@ class rsmartUndoAttack extends DrupalWebTestCase {
 
   // Scenario: Device gives bad confirmation status
   public function testDeviceGivesBadConfirmationStatus_1() {
-    $this->setUp(__FUNCTION__, 1);
-    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAB", with the request %random');
+    $this->setUp2(__FUNCTION__, 1);
+    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAB", with the request %random');
     Then_('we respond with: "DATA'
     . '\\| success | message                 |'
     . '\\| 0       | bad confirmation status |"');
@@ -198,17 +206,17 @@ class rsmartUndoAttack extends DrupalWebTestCase {
 
   // Scenario: Member asks to undo someone else's transaction
   public function testMemberAsksToUndoSomeoneElsesTransaction_1() {
-    $this->setUp(__FUNCTION__, 1);
-    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAC", with the request "confirmed"');
+    $this->setUp2(__FUNCTION__, 1);
+    When_('member " NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAC", with the request "confirmed"');
     Then_('we respond with: "DATA'
-    . '\\| success | message       |'
-    . '\\| 0       | undo no match |"');
+    . '\\| success | message       | my_balance |'
+    . '\\| 0       | undo no match | $170       |"');
   }
 
   // Scenario: Buyer agent lacks permission to reverse sale
   public function testBuyerAgentLacksPermissionToReverseSale_1() {
-    $this->setUp(__FUNCTION__, 1);
-    When_('member "NEW.ZZA" asks device "codeC" to undo transaction "NEW.AAAE", with the request "confirmed"');
+    $this->setUp2(__FUNCTION__, 1);
+    When_('member "NEW.ZZA" asks device "codeC" to undo transaction "NEW:AAAE", with the request "confirmed"');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
     . '\\| 0       | no buy          |"');
@@ -216,8 +224,8 @@ class rsmartUndoAttack extends DrupalWebTestCase {
 
   // Scenario: Seller agent lacks permission to reverse purchase
   public function testSellerAgentLacksPermissionToReversePurchase_1() {
-    $this->setUp(__FUNCTION__, 1);
-    When_('member "NEW.ZZA" asks device "codeB" to undo transaction "NEW.AAAD", with the request "confirmed"');
+    $this->setUp2(__FUNCTION__, 1);
+    When_('member "NEW.ZZA" asks device "codeB" to undo transaction "NEW:AAAD", with the request "confirmed"');
     Then_('we respond with: "DATA'
     . '\\| success | message |'
     . '\\| 0       | no sell |"');
@@ -225,7 +233,7 @@ class rsmartUndoAttack extends DrupalWebTestCase {
 
   // Scenario: Device gives no transaction id
   public function testDeviceGivesNoTransactionId_3() {
-    $this->setUp(__FUNCTION__, 3);
+    $this->setUp2(__FUNCTION__, 3);
     When_('member "NEW.ZZB" asks device "codeA" to undo transaction "", with the request "unconfirmed"');
     Then_('we respond with: "DATA'
     . '\\| success | message                |'
@@ -234,7 +242,7 @@ class rsmartUndoAttack extends DrupalWebTestCase {
 
   // Scenario: Device gives bad transaction id
   public function testDeviceGivesBadTransactionId_3() {
-    $this->setUp(__FUNCTION__, 3);
+    $this->setUp2(__FUNCTION__, 3);
     When_('member "NEW.ZZB" asks device "codeA" to undo transaction %random, with the request "unconfirmed"');
     Then_('we respond with: "DATA'
     . '\\| success | message            |'
@@ -243,17 +251,17 @@ class rsmartUndoAttack extends DrupalWebTestCase {
 
   // Scenario: Device gives nonexistent transaction id
   public function testDeviceGivesNonexistentTransactionId_3() {
-    $this->setUp(__FUNCTION__, 3);
-    When_('member "NEW.ZZB" asks device "codeA" to undo transaction "NEW.ZZZZ", with the request "unconfirmed"');
+    $this->setUp2(__FUNCTION__, 3);
+    When_('member " NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAZ", with the request "confirmed"');
     Then_('we respond with: "DATA'
-    . '\\| success | message       |'
-    . '\\| 0       | undo no match |"');
+    . '\\| success | message       | my_balance |'
+    . '\\| 0       | undo no match | $170       |"');
   }
 
   // Scenario: Device gives no confirmation status
   public function testDeviceGivesNoConfirmationStatus_3() {
-    $this->setUp(__FUNCTION__, 3);
-    When_('member "NEW.ZZB" asks device "codeA" to undo transaction "NEW.AAAB", with the request ""');
+    $this->setUp2(__FUNCTION__, 3);
+    When_('member "NEW.ZZB" asks device "codeA" to undo transaction "NEW:AAAB", with the request ""');
     Then_('we respond with: "DATA'
     . '\\| success | message                 |'
     . '\\| 0       | bad confirmation status |"');
@@ -261,8 +269,8 @@ class rsmartUndoAttack extends DrupalWebTestCase {
 
   // Scenario: Device gives bad confirmation status
   public function testDeviceGivesBadConfirmationStatus_3() {
-    $this->setUp(__FUNCTION__, 3);
-    When_('member "NEW.ZZB" asks device "codeA" to undo transaction "NEW.AAAB", with the request %random');
+    $this->setUp2(__FUNCTION__, 3);
+    When_('member "NEW.ZZB" asks device "codeA" to undo transaction "NEW:AAAB", with the request %random');
     Then_('we respond with: "DATA'
     . '\\| success | message                 |'
     . '\\| 0       | bad confirmation status |"');
@@ -270,17 +278,17 @@ class rsmartUndoAttack extends DrupalWebTestCase {
 
   // Scenario: Member asks to undo someone else's transaction
   public function testMemberAsksToUndoSomeoneElsesTransaction_3() {
-    $this->setUp(__FUNCTION__, 3);
-    When_('member "NEW.ZZB" asks device "codeA" to undo transaction "NEW.AAAC", with the request "unconfirmed"');
+    $this->setUp2(__FUNCTION__, 3);
+    When_('member " NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAC", with the request "confirmed"');
     Then_('we respond with: "DATA'
-    . '\\| success | message       |'
-    . '\\| 0       | undo no match |"');
+    . '\\| success | message       | my_balance |'
+    . '\\| 0       | undo no match | $170       |"');
   }
 
   // Scenario: Buyer agent lacks permission to reverse sale
   public function testBuyerAgentLacksPermissionToReverseSale_3() {
-    $this->setUp(__FUNCTION__, 3);
-    When_('member "NEW.ZZA" asks device "codeC" to undo transaction "NEW.AAAE", with the request "unconfirmed"');
+    $this->setUp2(__FUNCTION__, 3);
+    When_('member "NEW.ZZA" asks device "codeC" to undo transaction "NEW:AAAE", with the request "unconfirmed"');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
     . '\\| 0       | no buy          |"');
@@ -288,8 +296,8 @@ class rsmartUndoAttack extends DrupalWebTestCase {
 
   // Scenario: Seller agent lacks permission to reverse purchase
   public function testSellerAgentLacksPermissionToReversePurchase_3() {
-    $this->setUp(__FUNCTION__, 3);
-    When_('member "NEW.ZZA" asks device "codeB" to undo transaction "NEW.AAAD", with the request "unconfirmed"');
+    $this->setUp2(__FUNCTION__, 3);
+    When_('member "NEW.ZZA" asks device "codeB" to undo transaction "NEW:AAAD", with the request "unconfirmed"');
     Then_('we respond with: "DATA'
     . '\\| success | message |'
     . '\\| 0       | no sell |"');

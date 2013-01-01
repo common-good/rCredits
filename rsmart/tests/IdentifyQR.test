@@ -32,7 +32,9 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
     );
   }
 
-  public function setUp($sceneName, $variant = '') { // especially, enable any modules required for the tests
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
     global $sceneTest; $sceneTest = $this;
     parent::setUp(self::MODULE);
 
@@ -69,7 +71,7 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
 
   // Scenario: Member asks us to identify a QR
   public function testMemberAsksUsToIdentifyAQR_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to identify QR "NEW.ZZB"');
     Then_('we respond with: "DATA'
     . '\\| success | full_name | location  |'
@@ -78,7 +80,7 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
 
   // Scenario: Member asks us to identify the member's own QR
   public function testMemberAsksUsToIdentifyTheMembersOwnQR_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to identify QR "NEW.ZZA"');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
@@ -87,7 +89,7 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
 
   // Scenario: Member asks us to identify a foreign QR
   public function testMemberAsksUsToIdentifyAForeignQR_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to identify QR "NEW.ZZC"');
     Then_('we respond with: "DATA'
     . '\\| success | full_name  | location             |'
@@ -96,7 +98,7 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
 
   // Scenario: Member asks us to identify a QR and member can show balances
   public function testMemberAsksUsToIdentifyAQRAndMemberCanShowBalances_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('member "NEW.ZZA" can charge unilaterally');
     When_('member "NEW.ZZA" asks device "codeA" to identify QR "NEW.ZZB"');
     Then_('we respond with: "DATA'
@@ -106,7 +108,7 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
 
   // Scenario: Member asks us to identify a QR for a company agent
   public function testMemberAsksUsToIdentifyAQRForACompanyAgent_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to identify QR "NEW:ZZA"');
     Then_('we respond with: "DATA'
     . '\\| success | full_name | location             | company_name |'
@@ -115,7 +117,7 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
 
   // Scenario: Device asks for a picture to go with the QR
   public function testDeviceAsksForAPictureToGoWithTheQR_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('member "NEW.ZZB" has picture %picture1');
     When_('member "NEW.ZZA" asks device "codeA" for a picture of member "NEW.ZZB"');
     Then_('we respond to member "NEW.ZZA" with picture %picture1');
@@ -123,7 +125,7 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
 
   // Scenario: Device asks for a picture but there isn't one
   public function testDeviceAsksForAPictureButThereIsntOne_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('member "NEW.ZZB" has no picture');
     When_('member "NEW.ZZA" asks device "codeA" for a picture of member "NEW.ZZB"');
     Then_('we respond to member "NEW.ZZA" with picture "no-photo-available"');

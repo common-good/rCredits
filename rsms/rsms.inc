@@ -37,9 +37,9 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'report transaction' => t("You@asif @action @otherName @amount (@rewardType: @rewardAmount). Your new balance is @balance. Transaction #@tid"),
   'report offer' => t("You@asif offered @otherName @amount (@rewardType: @rewardAmount). Your balance is unchanged, pending acceptance. Transaction #@tid"),
   'report invoice' => t("You@asif @action @otherName @amount. Your balance is unchanged, pending agreement. Invoice #@tid"),
-  'report broke invoice' => t("@otherName does not have enough@asif rCredits at this time, so an invoice has been sent, for @amount. Invoice #@tid"),
+  'report broke invoice' => t("@otherName does not have enough@asif rCredits at this time, so an invoice has been sent, for @short. Invoice #@tid"),
   'report short payment' => t("SPLIT! You@asif paid @otherName @amount (@short remains to be paid). Transaction #@tid"),
-  'report short invoice' => t("SPLIT! You@asif charged @otherName @amount (@short has been invoiced). Transaction #@tid, Invoice #@tid2"),
+  'report short invoice' => t("SPLIT! You@asif charged @otherName @amount (@short has been invoiced). Transaction #@tid, Invoice #@t2id"),
 //  'transaction done asif' => t("@action: @amount @tofrom user#@otherName (@rewardType: @rewardAmount). Your new provisional balance is @balance (If this had been a real transaction, your balance would be @amount @moreless). Transaction ID #@tid"),
   'report exchange' => t("You@asif @action @otherName r@amount for cash/loan/gift/etc. Your new balance is @balance. Transaction #@tid"),
   'report exchange request' => t("You@asif requested r@amount from @otherName. Your balance is unchanged, pending approval. Invoice #@tid"),
@@ -58,6 +58,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'your demand' => t('Your total request for rCredits is now @request.'),
   'updated relation' => t('Updated settings for @otherName'),
   'deleted relation' => t('Deleted relation with @otherName'),
+  'customer balance' => t('The current balance for @otherName is @balance.'),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),
@@ -132,6 +133,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'no asif notify' => t('@fullName has not yet signed up for rCredits, so no notification message will be sent.'),
   'cannot contact' => t('We are unable to contact @fullName by email or text message. You may want follow up directly.'),
   'no usd account' => t('To exchange rCredits for US Dollars (or vice versa), you must first connect your rCredits account to Dwolla (online).'),
+  'no last customer' => t('The system does not know who your last customer was.'),
 );
 
   // help messages (for use with the help command)

@@ -29,7 +29,9 @@ class rsmsUndo extends DrupalWebTestCase {
     );
   }
 
-  public function setUp($sceneName, $variant = '') { // especially, enable any modules required for the tests
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
     global $sceneTest; $sceneTest = $this;
     parent::setUp(self::MODULE);
 
@@ -60,10 +62,10 @@ class rsmsUndo extends DrupalWebTestCase {
     . '\\| %today-1d | %TX_TRANSFER | 55.55  | .ZZA      | .ZZC | whatever43   | 0      |'
     . '\\| %today-1d | %TX_REBATE   | 2.78   | community | .ZZA | rebate on #5 | 0      |'
     . '\\| %today-1d | %TX_BONUS    | 5.56   | community | .ZZC | bonus on #4  | 0      |"');
-    Then_('the community has r$-763.34');
-    And__('phone +20001 has r$198.90');
-    And__('phone +20002 has r$231.11');
-    And__('phone +20003 has r$333.33');
+    Then_('the community "asif" has r$-763.34');
+    And__('phone +20001 "asif" has r$198.90');
+    And__('phone +20002 "asif" has r$231.11');
+    And__('phone +20003 "asif" has r$333.33');
     break;
 
 
@@ -72,7 +74,7 @@ class rsmsUndo extends DrupalWebTestCase {
 
   // Scenario: Undo the last transaction
   public function testUndoTheLastTransaction_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     When_('phone +20001 says "undo"');
     Then_('we say to phone +20001 "confirm undo|please confirm" with subs: "DATA'
     . '\\| created   | amount | tofrom  | otherName | purpose    |'
@@ -81,7 +83,7 @@ class rsmsUndo extends DrupalWebTestCase {
 
   // Scenario: Undo the last transaction with someone specific
   public function testUndoTheLastTransactionWithSomeoneSpecific_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     When_('phone +20001 says "undo .ZZB"');
     Then_('we say to phone +20001 "confirm undo|please confirm" with subs: "DATA'
     . '\\| created   | amount | tofrom  | otherName | purpose    |'
@@ -90,7 +92,7 @@ class rsmsUndo extends DrupalWebTestCase {
 
   // Scenario: Undo the last transfer to me
   public function testUndoTheLastTransferToMe_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     When_('phone +20001 says "undo from"');
     Then_('we say to phone +20001 "confirm undo|please confirm" with subs: "DATA'
     . '\\| created   | amount | tofrom  | otherName | purpose    |'
@@ -99,7 +101,7 @@ class rsmsUndo extends DrupalWebTestCase {
 
   // Scenario: Undo the last transfer to me from someone specific
   public function testUndoTheLastTransferToMeFromSomeoneSpecific_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     When_('phone +20001 says "undo from .ZZB"');
     Then_('we say to phone +20001 "confirm undo|please confirm" with subs: "DATA'
     . '\\| created   | amount | tofrom | otherName | purpose     |'
@@ -108,10 +110,10 @@ class rsmsUndo extends DrupalWebTestCase {
 
   // Scenario: The caller confirms undoing a charge
   public function testTheCallerConfirmsUndoingACharge_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     When_('phone +20001 confirms "undo from .ZZB"');
-    Then_('the community has r$-763.34');
-    And__('phone +20002 has r$242.22');
+    Then_('the community "asif" has r$-763.34');
+    And__('phone +20002 "asif" has r$242.22');
     And__('we say to phone +20001 "report undo|report exchange" with subs: "DATA'
     . '\\| solution | action | otherName | amount | balance | tid |'
     . '\\| reversed | gave   | Bea Two    | $11.11 | $187.79 | 6   |"');
@@ -119,7 +121,7 @@ class rsmsUndo extends DrupalWebTestCase {
 
   // Scenario: The caller confirms undoing a payment
   public function testTheCallerConfirmsUndoingAPayment_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     When_('phone +20001 confirms "undo to .ZZB"');
     And__('we say to phone +20001 "report undo|report invoice" with subs: "DATA'
     . '\\| solution | action  | otherName | amount | tid |'
@@ -128,7 +130,7 @@ class rsmsUndo extends DrupalWebTestCase {
 
   // Scenario: The caller refuses to pay the latest invoice
   public function testTheCallerRefusesToPayTheLatestInvoice_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('transactions: "DATA'
     . '\\| created   | state       | amount | from | to   | purpose  | taking |'
     . '\\| %today    | %TX_PENDING | 100    | .ZZA | .ZZB | cleaning | 1      |"');
@@ -143,7 +145,7 @@ class rsmsUndo extends DrupalWebTestCase {
 
   // Scenario: The caller refuses a pending payment
   public function testTheCallerRefusesAPendingPayment_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('transactions: "DATA'
     . '\\| created   | state       | amount | from | to   | purpose | taking |'
     . '\\| %today    | %TX_PENDING | 100    | .ZZC | .ZZA | wages   | 0      |"');

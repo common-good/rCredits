@@ -29,7 +29,9 @@ class rwebSignup extends DrupalWebTestCase {
     );
   }
 
-  public function setUp($sceneName, $variant = '') { // especially, enable any modules required for the tests
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
     global $sceneTest; $sceneTest = $this;
     parent::setUp(self::MODULE);
 
@@ -50,7 +52,7 @@ class rwebSignup extends DrupalWebTestCase {
 
   // Scenario: A newbie visits the registration page
   public function testANewbieVisitsTheRegistrationPage_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     When_('member "?" visits page "\user_register_form"');
     Then_('we show page "\user_register_form" with: "DATA'
     . '\\| descName    |'
@@ -59,17 +61,17 @@ class rwebSignup extends DrupalWebTestCase {
 
   // Scenario: A newbie registers
   public function testANewbieRegisters_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     When_('member "?" confirms form "\user_register_form" with values: "DATA'
     . '\\| full_name | email         | country       | postal_code | state         | city    | account_type |'
     . '\\| Abe One   | a@example.com | United States | 01001       | Massachusetts | Amherst | personal     |"');
     Then_('members: "DATA'
     . '\\| id      | full_name | email         | country | postal_code | state         | city    | account_type | flags         |'
     . '\\| NEW.ZZA | Abe One   | a@example.com | United States | 01001 | Massachusetts | Amherst | %R_PERSONAL  | %BIT_DEFAULTS |"');
-    And__('we say "status": "your account is ready" with subs: "DATA'
+    And__('we say "status": "your account is ready" with "asif" subs: "DATA'
     . '\\| quid    | balance |'
     . '\\| NEW.ZZA | $250    |"');
-    And__('we email "welcome" to member "a@example.com" with subs: "DATA'
+    And__('we email "welcome" to member "a@example.com" with "asif" subs: "DATA'
     . '\\| fullName | name   | quid    | oneTimeLoginUrl |'
     . '\\| Abe One  | abeone | NEW.ZZA | (varies)        |"');
     And__('member is logged out');
@@ -77,25 +79,25 @@ class rwebSignup extends DrupalWebTestCase {
 
   // Scenario: A member registers bad email
   public function testAMemberRegistersBadEmail_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     When_('member "?" confirms form "\user_register_form" with values: "DATA'
     . '\\| full_name | email     | country       | postal_code | state         | city    | account_type |'
-    . '\\| Abe One   | whatever | United States | 01001       | Massachusetts | Amherst | personal     |"');
-    Then_('we say "error": "bad email" with subs: "DATA'
+    . '\\| Abe One   | %whatever | United States | 01001       | Massachusetts | Amherst | personal     |"');
+    Then_('we say "error": "bad email" with "asif" subs: "DATA'
     . '\\| email     |'
-    . '\\| whatever |"');
+    . '\\| %whatever |"');
   }
 
   // Scenario: A member registers again
   public function testAMemberRegistersAgain_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('members: "DATA'
     . '\\| id      | full_name  | phone  | email         | city  | state  | country       |'
     . '\\| NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | Alaska | United States |"');
     When_('member "?" confirms form "\user_register_form" with values: "DATA'
     . '\\| full_name | email         | country       | postal_code | state         | city    | account_type |'
     . '\\| Bea Two   | a@example.com | United States | 01001       | Massachusetts | Amherst | %R_PERSONAL  |"');
-    Then_('we say "notice": "duplicate email" with subs: "DATA'
+    Then_('we say "notice": "duplicate email" with "asif" subs: "DATA'
     . '\\| password |'
     . '\\| %BASE_PATHuser/password |"');
     And__('member is logged out');
@@ -103,7 +105,7 @@ class rwebSignup extends DrupalWebTestCase {
 
   // Scenario: A member registers with a company
   public function testAMemberRegistersWithACompany_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     When_('member "?" confirms form "\user_register_form" with values: "DATA'
     . '\\| full_name | email         | postal_code | city    | account_type | company  | company_phone | company_options |'
     . '\\| Abe One   | a@example.com |  01001      | Amherst | personal     | Aacme Co | (413)628-0000 | is_owner=>1     |"');
@@ -114,6 +116,15 @@ class rwebSignup extends DrupalWebTestCase {
     And__('relations: "DATA'
     . '\\| id | main | agent | permission | employer_ok | employee_ok | is_owner |'
     . '\\| 1  | .ZZB | .ZZA  |            |             |             | 1        |"');
+  }
+
+  // Scenario: A member registers with a company with no employee or owner
+  public function testAMemberRegistersWithACompanyWithNoEmployeeOrOwner_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member "?" confirms form "\user_register_form" with values: "DATA'
+    . '\\| full_name | email         | postal_code | city    | account_type | company  | company_phone | company_options |'
+    . '\\| Abe One   | a@example.com |  01001      | Amherst | personal     | Aacme Co | (413)628-0000 |                 |"');
+    Then_('we say "error": "what relation" with "asif" subs: ""');
   }
 
 }

@@ -67,7 +67,7 @@ function setupField($description = '', $type = 'varchar 255', $default = '', $SU
   list ($serialize, $unsigned, $notnull) = str_split($SUN);
   list ($precision, $scale) = explode(',', $precision); // don't use u\ray here
   
-  $scheme = compact(u\ray('description type size length precision default scale serialize unsigned'));
+  $scheme = compact(explode(' ', 'description type size length precision default scale serialize unsigned')); // don't use u\ray
   foreach ($scheme as $key => $value) if ($value === '') unset($scheme[$key]);
 
   $scheme['not null'] = $notnull;

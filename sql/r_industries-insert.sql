@@ -1,41 +1,3 @@
--- phpMyAdmin SQL Dump
--- version 3.4.5
--- http://www.phpmyadmin.net
---
--- Host: localhost:3306
--- Generation Time: Aug 27, 2012 at 03:53 PM
--- Server version: 5.5.25
--- PHP Version: 5.3.8
-
-SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
-SET time_zone = "+00:00";
-
-
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8 */;
-
---
--- Database: `drupal_1`
---
-
--- --------------------------------------------------------
-
---
--- Table structure for table `r_industries`
---
-
-CREATE TABLE IF NOT EXISTS `r_industries` (
-  `iid` int(11) NOT NULL AUTO_INCREMENT,
-  `industry` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
-  PRIMARY KEY (`iid`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci AUTO_INCREMENT=271 ;
-
---
--- Dumping data for table `r_industries`
---
-
 INSERT INTO `r_industries` (`iid`, `industry`) VALUES
 (1, 'Arts - Performing'),
 (2, 'Sanitary Services & Septic Systems'),
@@ -305,7 +267,3 @@ INSERT INTO `r_industries` (`iid`, `industry`) VALUES
 (266, 'Siding & Gutter Contractors'),
 (267, 'Electric Contractors'),
 (268, 'Zip Line Canopy Tours');
-
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

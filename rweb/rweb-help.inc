@@ -8,8 +8,9 @@ function helpText($page) {
   $acctName = @$cacct->name; // @ is for SMS testing (when not signed in)
 
   $companySummary = (@$cacct->account_type == R_PERSONAL or !@$cacct->proSe())? '' : t('<p>You cannot print a Member ID Card for the company, because ID cards are for individuals, not companies. However, in the <a href="$base_url/account/relations">Account Relations</a> section you can print an ID card for each person authorized to buy and/or sell on behalf of the company.</p>');
+  $site = str_replace('http://', '', R_SITE_URL);
   $companyAccount = (@$cacct->account_type == R_PERSONAL) ? '' : t(<<<EOF
-  <p>For companies, upload a picture to represent your business. This picture will appear on your automatic rCredits webpage: <a target="_blank" href="$base_url/member/$cacct->name">devcore.rCredits.org/member/$cacct->name</a> &mdash; so choose wisely. See also the <a href="$base_url/account/company">Company Info</a> form.</p>
+  <p>For companies, upload a picture to represent your business. This picture will appear on your automatic rCredits webpage: <a target="_blank" href="$base_url/member/$cacct->name">$site/member/$cacct->name</a> &mdash; so choose wisely. See also the <a href="$base_url/account/company">Company Info</a> form.</p>
 EOF
   );
 
@@ -43,11 +44,12 @@ EOF
       <li><b>Help</b> is this page.</li>
       <li><b>Log out</b> protects your account from unauthorized passersby.</li>
     </ul>
+    <p>If you need help and can't find the answer here, please feel free to <a href="mailto:info@rCredits.org?subject=help with rCredits">email us</a>.</p>
 EOF
     ),
     'smartphone' => t(<<<EOF
-        <p>Before you try the smartphone app (Android only, until January), you may want to create a business account and another individual account &mdash; or test with a friend. From the Summary tab, print a Temporary Member ID Card for each account.</p>
-        <p>Download the app from <a href="http://rCredits.org/rc.apk">rCredits.org/rc.apk</a>, install, run. Try all the buttons.</p>
+        <p>To use the smartphone interface, you will need to install an app to read QR codes (for example QRDroid on Android phones or Qrafter for iPhones). You can pay participating businesses by scanning their QR code, then visiting the scanned URL.</p>
+        <p>Your customers (or employer) can pay you by scanning the QR code on your member ID card. You can print a temporary member ID card for your individual account, using the link on the Summary page.</p>
 EOF
     ),
     'sms' => t("The Text Message Interface is intended to be easy enough that you can just muddle your way through the first time. Give it a shot. You can even <i>sign up</i> with Text Messaging. Send your texts to +1 413.285.2867 OR use the <a href=\"$base_url/sms\">Test SMS form</a> to simulate sending a text."),
@@ -111,4 +113,6 @@ EOF
     ),
   );
   return @$helps[strtolower($page)] ?: tt('no help', compact('page'));
+  //        <p>Download the app from <a href="http://rCredits.org/rc.apk">rCredits.org/rc.apk</a>, install, run. Try all the buttons.</p>
+
 }

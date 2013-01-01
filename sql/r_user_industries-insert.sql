@@ -1,42 +1,3 @@
--- phpMyAdmin SQL Dump
--- version 3.4.5
--- http://www.phpmyadmin.net
---
--- Host: localhost
--- Generation Time: Aug 27, 2012 at 09:49 PM
--- Server version: 5.5.16
--- PHP Version: 5.3.8
-
-SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
-SET time_zone = "+00:00";
-
-
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8 */;
-
---
--- Database: `devcore`
---
-
--- --------------------------------------------------------
-
---
--- Table structure for table `r_user_industries`
---
-
-CREATE TABLE IF NOT EXISTS `r_user_industries` (
-  `iid` int(11) unsigned NOT NULL DEFAULT '0',
-  `uid` int(11) unsigned NOT NULL DEFAULT '0',
-  KEY `iid` (`iid`),
-  KEY `uid` (`uid`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
---
--- Dumping data for table `r_user_industries`
---
-
 INSERT INTO `r_user_industries` (`iid`, `uid`) VALUES
 (1, 933),
 (2, 653),
@@ -630,7 +591,3 @@ INSERT INTO `r_user_industries` (`iid`, `uid`) VALUES
 (267, 772),
 (268, 568),
 (84, 568);
-
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

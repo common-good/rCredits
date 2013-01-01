@@ -29,7 +29,9 @@ class rsmartChange extends DrupalWebTestCase {
     );
   }
 
-  public function setUp($sceneName, $variant = '') { // especially, enable any modules required for the tests
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
     global $sceneTest; $sceneTest = $this;
     parent::setUp(self::MODULE);
 
@@ -67,7 +69,7 @@ class rsmartChange extends DrupalWebTestCase {
 
   // Scenario: A member changes agent
   public function testAMemberChangesAgent_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('device "codeB" account is "NEW.ZZB" and agent is "NEW.ZZB"');
     When_('a member asks device "codeB" to change "agent" to "NEW.ZZC"');
     Then_('we respond success 1, my_id "NEW:ZZB", account_name "Bea Two~Agent: Corner Pub", show_buttons 1, and message "changed agent", with subs: "DATA'
@@ -77,7 +79,7 @@ class rsmartChange extends DrupalWebTestCase {
 
   // Scenario: A member changes account
   public function testAMemberChangesAccount_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('device "codeA" account is "NEW.ZZA" and agent is "NEW.ZZA"');
     When_('a member asks device "codeA" to change "account" to "NEW.ZZC"');
     Then_('we respond success 1, my_id "NEW:ZZC", account_name "Corner Pub~Agent: Abe One", show_buttons 0, and message "changed account", with subs: "DATA'
@@ -87,7 +89,7 @@ class rsmartChange extends DrupalWebTestCase {
 
   // Scenario: A member changes to different account AND agent
   public function testAMemberChangesToDifferentAccountANDAgent_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('device "codeC" account is "NEW.ZZB" and agent is "NEW.ZZC"');
     When_('a member asks device "codeC" to change "agent" to "NEW.ZZA"');
     Then_('we respond success 1, my_id "NEW:ZZE", account_name "Bea Two~Agent: Abe One", show_buttons 0, and message "changed agent", with subs: "DATA'
@@ -97,7 +99,7 @@ class rsmartChange extends DrupalWebTestCase {
 
   // Scenario: A member changes agent back to default account
   public function testAMemberChangesAgentBackToDefaultAccount_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('device "codeC" account is "NEW.ZZC" and agent is "NEW.ZZA"');
     When_('a member asks device "codeC" to change "agent" to "NEW.ZZC"');
     Then_('we respond success 1, my_id "NEW.ZZC", account_name "Corner Pub", show_buttons 3, and message "changed agent", with subs: "DATA'
@@ -107,7 +109,7 @@ class rsmartChange extends DrupalWebTestCase {
 
   // Scenario: A member changes account back to the default account
   public function testAMemberChangesAccountBackToTheDefaultAccount_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('device "codeA" account is "NEW.ZZC" and agent is "NEW.ZZA"');
     When_('a member asks device "codeA" to change "account" to "NEW.ZZA"');
     Then_('we respond success 1, my_id "NEW.ZZA", account_name "Abe One", show_buttons 3, and message "changed account", with subs: "DATA'
@@ -117,7 +119,7 @@ class rsmartChange extends DrupalWebTestCase {
 
   // Scenario: A member changes agent to same as current non-default account
   public function testAMemberChangesAgentToSameAsCurrentNondefaultAccount_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('device "codeC" account is "NEW.ZZA" and agent is "NEW.ZZB"');
     When_('a member asks device "codeC" to change "agent" to "NEW.ZZA"');
     Then_('we respond success 1, my_id "NEW.ZZA", account_name "Abe One", show_buttons 1, and message "changed agent", with subs: "DATA'
@@ -127,7 +129,7 @@ class rsmartChange extends DrupalWebTestCase {
 
   // Scenario: A member changes account to same as current non-default agent
   public function testAMemberChangesAccountToSameAsCurrentNondefaultAgent_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('device "codeC" account is "NEW.ZZA" and agent is "NEW.ZZB"');
     When_('a member asks device "codeC" to change "account" to "NEW.ZZB"');
     Then_('we respond success 1, my_id "NEW.ZZB", account_name "Bea Two", show_buttons 1, and message "changed account", with subs: "DATA'
@@ -137,7 +139,7 @@ class rsmartChange extends DrupalWebTestCase {
 
   // Scenario: A member omits the account_id
   public function testAMemberOmitsTheAccountid_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('device "codeC" account is "NEW.ZZA" and agent is "NEW.ZZB"');
     When_('a member asks device "codeC" to change "account" to ""');
     Then_('we respond with: "DATA'
@@ -147,7 +149,7 @@ class rsmartChange extends DrupalWebTestCase {
 
   // Scenario: A member omits the type of change
   public function testAMemberOmitsTheTypeOfChange_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('device "codeC" account is "NEW.ZZA" and agent is "NEW.ZZB"');
     When_('a member asks device "codeC" to change "" to "NEW.ZZB"');
     Then_('we respond with: "DATA'
@@ -157,7 +159,7 @@ class rsmartChange extends DrupalWebTestCase {
 
   // Scenario: A member types a bad type of change
   public function testAMemberTypesABadTypeOfChange_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('device "codeC" account is "NEW.ZZA" and agent is "NEW.ZZB"');
     When_('a member asks device "codeC" to change %random to "NEW.ZZB"');
     Then_('we respond with: "DATA'

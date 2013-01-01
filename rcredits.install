@@ -31,6 +31,13 @@ function rcredits_install() {
   variable_set('site_name', 'rCredits');
   variable_set('site_slogan', 'version ' . R_VERSION);
   variable_set('user_register', USER_REGISTER_VISITORS); // let visitors register themselves
+  
+  // pictures
+  variable_set('user_pictures', '1');
+  variable_set('user_picture_default', 'sites/default/files/pictures/no-photo-available.jpg');
+  variable_set('user_picture_dimensions', '200x300');
+  variable_set('user_picture_file_size', '100');
+  variable_set('user_picture_style', 'large');
 
 // NO. This creates a navigation column.  variable_set('site_frontpage', 'charge');
 
@@ -49,11 +56,11 @@ function rcredits_install() {
   db_query("DELETE from menu_links WHERE menu_name='main-menu' AND link_title='Home'"); // this is replaced by "Summary"
 // this fails  db_query("UPDATE menu_links SET hidden=1 WHERE menu_name='navigation'"); // don't want these either
   
-  $key = \variable_get('rcredits_preserve');
+  $key = \variable_get('rcredits_preserve', '');
   foreach (u\ray(R_PRESERVE) as $table) {
     if (r\dbLookup(1, $table)) {
       \drupal_set_message("Table $table is already populated -- severe error in reinstallation. If you proceed, <b style='background-color:yellow; font-size:300%;'>BE CAREFUL!</b>", 'error');
-    } elseif (\db_table_exists("$table$key")) \db_query("DROP TABLE $table; RENAME TABLE $table$key TO $table");
+    } elseif (\db_table_exists("$table$key")) \db_query("DROP TABLE IF EXISTS $table; RENAME TABLE $table$key TO $table");
   }
 }
 

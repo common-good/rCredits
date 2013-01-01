@@ -28,7 +28,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
   $name = u\shortName($full_name);
   $pass = @$my_password ?: '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae'; // default to 123
   $mail = @$my_email ?: ''; // Don't use "$name@example.com"
-  $flags = isset($my_flags) ? $my_flags : BIT_DEFAULTS;
+  $flags = BIT_DEFAULTS | (isset($my_flags) ? $my_flags : 0);
   $community_uid = @$my_communityUid ?: r\serverUid();
   u\EXPECT(!empty($community_uid), 'empty community uid');
   foreach (u\ray('id email password') as $one) unset($info[$one]);
@@ -72,7 +72,10 @@ function makeTransaction($info, $infoOnly = FALSE) {
   $payer_agent = uid(@$my_from_agent ?: ($type == TX_TRANSFER ? $my_from : r\communityUid()));
   $payee = uid($my_to); 
   $payee_agent = uid(@$my_to_agent ?: ($type == TX_TRANSFER ? $my_to : r\communityUid()));
-  $real = (r\isRTrader($payer) and r\isRTrader($payee));
+  $real = strpos(@$my_tx_id, ':') !== FALSE ? FALSE : (r\isRTrader($payer) and r\isRTrader($payee)); // even handles asif signup bonus to rTrader
+//  debug(compact('real','payer','payee','my_tx_id','xid'));
+//  debug(r\isRTrader($payer));
+//  debug(r\isRTrader($payee));
   
   $payer_for = @$my_purpose ?: 'cash';
   $payee_for = @$my_purpose ?: 'cash';
@@ -124,6 +127,8 @@ function makeRelation($info, $infoOnly = FALSE) {
 /**
  * Return the credit info for the given uid.
  * To get just the balance, use uidCredit(uid)->balance
+ * @param int $uid: return credit info for this account id
+ * @param string $real: "asif" or "real" or NULL (the default, means real iff uid is an rTrader)
  */
 function uidCredit($uid, $real = NULL) {
   $real = isset($real) ? ($real == 'real') : r\isRTrader($uid);
@@ -139,12 +144,23 @@ function uid($id) {
   ));
 }
 
+function getErrors() {
+  $errors = \drupal_get_messages('error', FALSE);
+  $errors = @$errors['error'] ?: array();
+  while (u\abbreviates('Unable to send e-mail', @$errors[0])) array_shift($errors); // ignore this when testing
+  return $errors;
+}
+
+/**
+ * Find the message in the log table.
+ * @param assoc $subs: subs for message iff message index is passed. Also may contain [real]
+ */
 function findMessage($type, $fields, $message = '', $subject = '', $subs = array()) {
   global $channel;
 
   $fields = @$fields[0] ?: $fields;
   $subs = @$subs[0] ?: @$subs;
-  $cuid = r\acct()->id;
+  $cuid = @r\acct()->id;
   if ($message = ($message ?: @$fields['message'])) {
     if ($channel != TX_SMS and strlen($message < 30)) $message = u\tt($message, $subs);
     $real = isset($subs['real']) ? $subs['real'] : NULL;
@@ -154,26 +170,28 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
       $fields['subject'] = realFix($subject, $real);
     }
   } else unset($fields['message']); // empty message in features means NO message
-  $agent = r\acct()->agent;
+  $agent = @r\acct()->agent;
   \drupal_set_message(color(array('EXPECT' => '') + $fields, @$subject ? 'email' : 'output')); // keep this
   $info = json_encode2($fields, JSON_UNESCAPED_SLASHES);
   $crit = "channel=:channel AND type=:type AND cuid=:cuid AND agent=:agent ORDER BY logid DESC";
 //  debug(compact(u\ray('info type cuid agent channel crit'))); // for debugging mysterious email mismatches
 //  debug(compact(u\ray('info type cuid agent channel')), '', 1);
-  //debug("info=:info AND $crit"); debug(compact(u\ray('info type cuid agent')));
+//  debug("info=:info AND $crit"); debug(compact(u\ray('info type cuid agent')));
   return r\dbLookup(1, 'r_log', "info=:info AND $crit", compact(u\ray('info type cuid agent channel')));
 }
 
 function findEmail($key, $email, $subs, $real = FALSE) {
-  $subs = $subs[0];
-  foreach (array('payerpurpose', 'payeepurpose') as $field) {
-    if (($purpose = @$subs[$field]) and !$real) $subs[$field] = str_replace('#', '#a', $purpose);
-  }
+  $subs = @$subs[0] ?: @$subs;
+  debug($subs);
+/* REDUNDANT? foreach (array('payerPurpose', 'payeePurpose') as $field) {
+    if (($purpose = @$subs[$field]) and !$real) $subs[$field] = str_replace('#', '#a', $purpose); // would realFix() handle this?
+  } */
   $esubs = array();
   foreach ($subs as $k => $value) $esubs['{' . $k . '}'] = $value;
   $message = strtr(r\emailBody($key), $esubs);
+  debug($esubs);
   $subject = strtr($GLOBALS['emailSubjects'][$key], $esubs);
-  return findMessage('email', compact(u\ray('key email subject')), $message, $subject);
+  return findMessage('email', compact(u\ray('key email subject')), $message, $subject, $subs);
 }
 
 function makePicture($picture, $acct) {
@@ -233,7 +251,7 @@ function hitServer($op, $agent, $code = '', $account_id = '', $extra = array()) 
 
 function snapShot(&$form) { // (additional sta values have no effect at this stage)
   addAttribs($form);
-  global $formOutput; $formOutput = strip(\render($zot = $form)); // for testing
+  global $formOutput; $zot = $form; $formOutput = strip(\render($zot)); // for testing
   testOutput('ACTUAL or EXPECTED: ' . $formOutput, 'screen');
 }
 
@@ -266,7 +284,7 @@ function verifyTx($info) {
  *   return verifyRecord('relations', $info);
  */
 function verifyRecord($table, $info) {
-  if (!is_array($info)) die('in verifyRecord: ' . print_r(debug_backtrace(), 1));
+  if (!is_array($info)) die('in verifyRecord: ' . print_r(debug_backtrace(), 1)); // keep
   unset($info['data']);
   unset($info['created']);
   foreach ($info as $key => $value) if (!($table == '{zxs}' and $key == 'real')) $crit[] = "$key<=>:$key"; // null-safe ==
@@ -326,7 +344,7 @@ function eq($a, $b) {
   $result = (is_numeric($a) and is_numeric($b)) ? 
       (($a - $b) * ($a - $b) < .001)
     : ($a == $b or (empty($a) and empty($b)));
-  if (!$result) print_r(compact('a','b')); // keep for now
+  if (!$result) echo 'not equal: ' . print_r(compact('a','b'), 1); // keep for now
   if (!$result) \drupal_set_message(color("unequal: a=$a b=$b", 'error')); // keep for now
   return $result;
 }

@@ -23,10 +23,10 @@ Setup:
   | %today-1d | %TX_TRANSFER | 55.55  | .ZZA      | .ZZC | whatever43   | 0      |
   | %today-1d | %TX_REBATE   | 2.78   | community | .ZZA | rebate on #5 | 0      |
   | %today-1d | %TX_BONUS    | 5.56   | community | .ZZC | bonus on #4  | 0      |
-  Then the community has r$-763.34
-  And phone +20001 has r$198.90
-  And phone +20002 has r$231.11
-  And phone +20003 has r$333.33
+  Then the community "asif" has r$-763.34
+  And phone +20001 "asif" has r$198.90
+  And phone +20002 "asif" has r$231.11
+  And phone +20003 "asif" has r$333.33
 
 Scenario: Undo the last transaction
   When phone +20001 says "undo"
@@ -58,8 +58,8 @@ Scenario: Undo the last transfer to me from someone specific
 
 Scenario: The caller confirms undoing a charge
   When phone +20001 confirms "undo from .ZZB"
-  Then the community has r$-763.34
-  And phone +20002 has r$242.22
+  Then the community "asif" has r$-763.34
+  And phone +20002 "asif" has r$242.22
   And we say to phone +20001 "report undo|report exchange" with subs:
   | solution | action | otherName | amount | balance | tid |
   | reversed | gave   | Bea Two    | $11.11 | $187.79 | 6   |

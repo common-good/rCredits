@@ -15,7 +15,7 @@ use rCredits\Backend as be;
 
 define('isDEV', @$_SERVER['WINDIR']); // developing on Windows (unlike production server)
 
-define('R_VERSION', '0.1d'); // software version
+define('R_VERSION', '1.0'); // software version
 define('R_SEPARATE_BACKEND', FALSE);
 define('R_TEMP_NAME_PREFIX', 'unknown ');
 define('R_ASIF_TEXT', ' "AS-IF"'); // how to identify "As If" transactions
@@ -129,11 +129,15 @@ include_once __DIR__ . '/rcredits-circles.inc'; // treat this as an extension of
  * @param float $shortfall: how much short my balance is, for a transaction (if any)
  * @return assoc array of args
  */
-function txReportArgs($tx, $getBalance = 0, $shortfall = 0) {
+function txReportArgs($tx, $getMyBalance = FALSE, $shortfall = 0) {
   extract($tx); // any or all standard transaction fields
   if ($data) if ($data = unserialize($data)) extract($data, EXTR_PREFIX_ALL, 'data');
+  global $lastZxid; $lastZxid = $zxid; // remember last transaction for current user, for potential undo (here and on undo)
+
+  $cacct = acct();
+  $toMe = ($payee == $cacct->id);
+  $acct = acct($toMe ? $payer : $payee);
   
-  $toMe = ($payee == acct()->id);
   $role = $toMe ? 'payee' : 'payer';
   list ($purpose, $otherPurpose) = u\order($toMe, $payee_for, $payer_for);
   list ($payerPurpose, $payeePurpose) = array($payer_for, $payee_for); // clearer names, for substitutions
@@ -151,16 +155,23 @@ function txReportArgs($tx, $getBalance = 0, $shortfall = 0) {
 
   $real = ($zxid > 0);
   $asif = $real ? '' : R_ASIF_TEXT;
-  if ($getBalance > 0) {
-    list ($tid, $balance) = array(be\zxid2tid($zxid), be\creditInfo(compact('real'))->fancy['balance']);
-    if ($getBalance > 1) {
-      list ($otherTid, $otherBalance) = array(be\zxid2tid($zxid, $otherUid), be\creditInfo(compact('real', 'uid'))->fancy['balance']);
-    }
+  if ($getMyBalance) {
+    $tid = be\zxid2tid($zxid);
+    if ($cacct->can(PERM_BUY)) $balance = be\creditInfo(compact('real'))->fancy['balance'];
   }
-  
+//  $otherTid = be\zxid2tid($zxid, $otherUid);
   $summary = "$asif $summary_word of $amount $tofrom $otherName for \"$purpose\" on $created";
   $success = TRUE;
-  return array_merge($tx, compact(u\ray('created zxid action real role payerPurpose payeePurpose purpose otherPurpose toMe asif confirmAction amount tofrom rewardType rewardAmount balance otherBalance tid otherTid otherUid otherName short summary success')));
+  return array_merge($tx, compact(u\ray('created zxid action real role payerPurpose payeePurpose purpose otherPurpose toMe asif confirmAction amount tofrom rewardType rewardAmount balance tid otherUid otherName short summary success')));
+}
+
+function otherBalance($uid) {
+  $cacct = acct();
+  $acct = acct($uid);
+  if ($acct and $cacct->can(PERM_CHARGE) and !$acct->hasBit(BIT_SECRET_BAL)) {
+    $real = (isRTrader() and isRTrader($acct));
+    return be\creditInfo(compact('real', 'uid'))->fancy['balance'];
+  } else return FALSE;
 }
 
 /**
@@ -315,7 +326,7 @@ function notify($uid, $index, $info) {
   $acct = acct($uid);
   $info['uid'] = $uid;
 //  extract(u\just('full_name mail', $account = $acct->account()));
-//  $fullName = @$full_name ?: t('rCredits Member');
+  $fullName = $acct->full_name;
 /*  $standard_fields = array(
     'uid' => $uid,
     'fullName' => $fullName,
@@ -414,20 +425,11 @@ function mergeAccounts($oldUid) {
   $old = acct($oldUid);
   $update = array();
   foreach (u\ray('phone fax website address') as $one) if ($old->$one and !$new->$one) $update[$one] = $old->$one;
-  
-  /*** Begin DBTX ***/ $dbtx = \db_transaction();
   userUpdate($update, $newUid);
-  $sql = <<<EOF
-    UPDATE r_asif SET payer=:newUid WHERE payer=:oldUid;
-    UPDATE r_asif SET payee=:newUid WHERE payee=:oldUid;
-    DELETE FROM r_asif a LEFT JOIN r_asif b ON b.serial=a.serial WHERE b.payer=b.payee;
-    DELETE FROM r_asif WHERE payer=payee;
-    UPDATE r_sms SET uid=:newUid WHERE uid=:oldUid;
-    UPDATE r_user_industries SET uid=:newUid WHERE uid=:oldUid;
-    DELETE FROM users WHERE uid=:oldUid;
-EOF;
-  dbQ($sql, compact('newUid', 'oldUid'));
-  /*** End DBTX ***/ unset($dbtx);
+  dbQ('DELETE FROM r_asif a LEFT JOIN r_asif b ON b.serial=a.serial WHERE b.payer=b.payee;'); // rebates and bonuses (if any)
+  dbQ('DELETE FROM r_asif WHERE payer=payee;'); // then the main transaction
+  newMemberId($oldUid, $newUid, TRUE);
+  dbQ('DELETE FROM users WHERE uid=:oldUid', compact('oldUid')); // must be last, for referential integrity
   return 1;
 //  dbQ("UPDATE users SET uid=IF(uid>0,-uid,uid), status=0 WHERE uid=:oldUid", compact('oldUid'));
 }
@@ -646,11 +648,6 @@ function employees() {
   return $accts;
 }
 
-function isRTrader($uid = '') {
-  if (!$uid and !($cacct = acct())) return FALSE;
-  return (userField('flags', $uid ?: $cacct->id) & BIT_RTRADER);
-}
-
 /**
  * @param mixed $who: criteria or uid (defaults to $cuid)
  * @return:
@@ -691,6 +688,59 @@ function relation($field, $id, $agent = array(), $where = '1', $subs = array()) 
      $subs += compact('id', 'agent');
   } else list ($where, $subs) = array($id, $agent); // called with alternate form
   return dbLookup($field, 'r_relations', $where, $subs);
+}
+
+/**
+ * Assign the given account a new id.
+ * This is safe only if run in Maintenance mode or if there is a gap in the used uids.
+ * For an ugly QUID, a replacement record will need to be created for the old uid, and marked unusable
+ * @param bool $skipUsers: don't change the actual users table record 
+ *   called from mergeAccounts, where the old record is to be deleted and the new already exists
+ * @return the new uid
+ */
+function newMemberId($oldUid, $newUid = FALSE, $skipUsers = FALSE) {
+  $where = 'u.uid>0 AND u2.uid IS NULL ORDER BY u.uid';
+  if (!$newUid) $newUid = dbLookup('u.uid', 'users u LEFT JOIN users u2 ON u2.uid=(u.uid+1)', $where) + 1;
+  $subs = array( // all tables are listed, to be sure we don't leave any out
+  // r_areas
+    'r_asif:payer',
+    'r_asif:payee',
+    'r_candidates:uid', // in case we're in the middle of figuring who's next
+    'r_donations:uid',
+  // r_industries
+    'r_log:cuid',
+    'r_log:agent',
+  // r_nonces
+  // r_regions
+    'r_relations:main_uid',
+    'r_relations:agent_uid',
+  // r_scores
+    'r_smarts:owner',
+    'r_smarts:default_agent',
+    'r_sms:uid',
+    'r_txs:payer',
+    'r_txs:payee',
+    'r_usd:payer',
+    'r_usd:payee',
+    'r_user_industries:uid',
+    'users:uid',
+  );
+
+  /*** Begin DBTX ***/ $dbtx = \db_transaction();
+  foreach ($subs as $one) {
+    list ($table, $field) = explode(':', $one);
+    if ($skipUsers and $table == 'users') {
+/*      $cols = dbQ("SELECT column_name FROM information_schema.columns WHERE table_name='users'")->fetchCol();
+      $map = array(',uid=DEFAULT,' => ',', ',mail=DEFAULT' => ',mail=uid', ',name=DEFAULT' => ",name='UNUSABLE$oldUid'");
+      $updates = strtr(',' . join('=DEFAULT,', $cols) . '=DEFAULT,', $map);
+      $updates = str_replace(',name=DEFAULT', ",name='UNUSABLE$oldUid'", $updates); // mystery why the strtr skips this (???!)
+      $updates = substr($updates, 1, strlen($updates) - 2); // remove surrounding commas
+      dbQ("UPDATE $table SET $updates WHERE uid=:oldUid", compact('oldUid'));
+*/
+    } else dbQ("UPDATE $table SET $field=:newUid WHERE $field=:oldUid", compact('newUid', 'oldUid'));
+  }
+  /*** End DBTX ***/ unset($dbtx);
+  return $newUid;
 }
 
 function userUpdate($info, $uid = '') {
@@ -754,3 +804,4 @@ function totalDemand() {return dbLookup('SUM(demand)', 'users');}
 function serverUid($regionID = '') {return -u\a2n($regionID ?: R_SERVER_ID);}
 function emailTemplate($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}
 function emailBody($key) {return str_replace('{BODY}', emailTemplate($key), emailTemplate(R_EMAIL_FRAME));}
+function isRTrader($uid = '') {return ($acct = acct($uid)) ? $acct->hasBit(BIT_RTRADER) : FALSE;}

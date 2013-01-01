@@ -29,7 +29,9 @@ class rsmsGetHelp extends DrupalWebTestCase {
     );
   }
 
-  public function setUp($sceneName, $variant = '') { // especially, enable any modules required for the tests
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
     global $sceneTest; $sceneTest = $this;
     parent::setUp(self::MODULE);
 
@@ -46,7 +48,7 @@ class rsmsGetHelp extends DrupalWebTestCase {
 
   // Scenario: A caller wants help with a specific command
   public function testACallerWantsHelpWithASpecificCommand_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('phone %number1 is a member');
     When_('phone %number1 says "help get"');
     Then_('we say to phone %number1 "help get"');
@@ -54,7 +56,7 @@ class rsmsGetHelp extends DrupalWebTestCase {
 
   // Scenario: A caller wants to know what's available
   public function testACallerWantsToKnowWhatsAvailable_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('phone %number1 is a member');
     When_('phone %number1 says "help"');
     Then_('we say to phone %number1 "help helpme"');
@@ -62,7 +64,7 @@ class rsmsGetHelp extends DrupalWebTestCase {
 
   // Scenario: A caller types an unrecognized command
   public function testACallerTypesAnUnrecognizedCommand_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('phone %number1 is a member');
     And__('the expected nonce for phone %number1 is ""');
     When_('phone %number1 says %whatever');
@@ -71,7 +73,7 @@ class rsmsGetHelp extends DrupalWebTestCase {
 
   // Scenario: Caller gives the wrong nonce
   public function testCallerGivesTheWrongNonce_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('phone %number1 is a member');
     And__('the expected nonce for phone %number1 is "mango"');
     When_('phone %number1 says "anySingleWordOtherThanALegalCommand"');
@@ -80,7 +82,7 @@ class rsmsGetHelp extends DrupalWebTestCase {
 
   // Scenario: A caller types the wrong number of arguments
   public function testACallerTypesTheWrongNumberOfArguments_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('phone %number1 is a member');
     When_('phone %number1 says "get r 100 with too many arguments"');
     Then_('we say to phone %number1 "syntax|help get"');
@@ -88,7 +90,7 @@ class rsmsGetHelp extends DrupalWebTestCase {
 
   // Scenario: Caller types a wrong argument
   public function testCallerTypesAWrongArgument_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('phone %number1 is a member');
     When_('phone %number1 says "get zot"');
     Then_('we say to phone %number1 "syntax|help get"');
@@ -96,7 +98,7 @@ class rsmsGetHelp extends DrupalWebTestCase {
 
   // Scenario: Amount is too big
   public function testAmountIsTooBig_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('phone %number1 is a member');
     When_('phone %number1 says "get r 1%R_MAX_AMOUNT"');
     Then_('we say to phone %number1 "amount too big"');
@@ -104,7 +106,7 @@ class rsmsGetHelp extends DrupalWebTestCase {
 
   // Scenario: Account does not exist
   public function testAccountDoesNotExist_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('phone %number1 is a member');
     And__('".ZZZ" is not an account id');
     When_('phone %number1 says "100 to .ZZZ"');

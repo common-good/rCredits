@@ -20,10 +20,10 @@ Scenario: A newbie registers
   Then members:
   | id      | full_name | email         | country | postal_code | state         | city    | account_type | flags         |
   | NEW.ZZA | Abe One   | a@example.com | United States | 01001 | Massachusetts | Amherst | %R_PERSONAL  | %BIT_DEFAULTS |
-  And we say "status": "your account is ready" with subs:
+  And we say "status": "your account is ready" with "asif" subs:
   | quid    | balance |
   | NEW.ZZA | $250    |
-  And we email "welcome" to member "a@example.com" with subs:
+  And we email "welcome" to member "a@example.com" with "asif" subs:
   | fullName | name   | quid    | oneTimeLoginUrl |
   | Abe One  | abeone | NEW.ZZA | (varies)        |
   And member is logged out
@@ -32,10 +32,10 @@ Scenario: A newbie registers
 Scenario: A member registers bad email
   When member "?" confirms form "\user_register_form" with values:
   | full_name | email     | country       | postal_code | state         | city    | account_type |
-  | Abe One   | whatever | United States | 01001       | Massachusetts | Amherst | personal     |
-  Then we say "error": "bad email" with subs:
+  | Abe One   | %whatever | United States | 01001       | Massachusetts | Amherst | personal     |
+  Then we say "error": "bad email" with "asif" subs:
   | email     |
-  | whatever |
+  | %whatever |
   
 Scenario: A member registers again
   Given members:
@@ -44,7 +44,7 @@ Scenario: A member registers again
   When member "?" confirms form "\user_register_form" with values:
   | full_name | email         | country       | postal_code | state         | city    | account_type |
   | Bea Two   | a@example.com | United States | 01001       | Massachusetts | Amherst | %R_PERSONAL  |
-  Then we say "notice": "duplicate email" with subs:
+  Then we say "notice": "duplicate email" with "asif" subs:
   | password |
   | %BASE_PATHuser/password |
   And member is logged out
@@ -62,21 +62,27 @@ Scenario: A member registers with a company
   | id | main | agent | permission | employer_ok | employee_ok | is_owner |
   | 1  | .ZZB | .ZZA  |            |             |             | 1        |
 
+Scenario: A member registers with a company with no employee or owner
+  When member "?" confirms form "\user_register_form" with values:
+  | full_name | email         | postal_code | city    | account_type | company  | company_phone | company_options |
+  | Abe One   | a@example.com |  01001      | Amherst | personal     | Aacme Co | (413)628-0000 |                 |
+  Then we say "error": "what relation" with "asif" subs: ""
+  
 #Scenario: A member registers with a company but no relation
 #  When member "?" confirms form "\user_register_form" with values:
 #  | full_name | email         | country       | postal_code | state         | city    | account_type | company  |
 #  | Abe One   | a@example.com | United States | 01001       | Massachusetts | Amherst | personal     | Aacme Co |
-#  Then we say "error": "bad company phone" with subs: ""
+#  Then we say "error": "bad company phone" with "asif" subs: ""
 #
 #Scenario: A member registers with a company with bad phone
 #  When member "?" confirms form "\user_register_form" with values:
 #  | full_name | email         | country  | postal_code | state         | city    | account_type | company  | company_phone |
 #  | Abe One   | a@example.com | United States | 01001  | Massachusetts | Amherst | personal     | Aacme Co | random       |
-#  Then we say "error": "bad company phone" with subs: ""
+#  Then we say "error": "bad company phone" with "asif" subs: ""
 #
 #Scenario: A member registers with a company but no relation
 #  When member "?" confirms form "\user_register_form" with values:
 #  | full_name | email         | country  | postal_code | state         | city    | account_type | company  | company_phone |
 #  | Abe One   | a@example.com | United States | 01001  | Massachusetts | Amherst | personal     | Aacme Co | (413)628-0000 |
-#  Then we say "error": "what relation" with subs: ""
+#  Then we say "error": "what relation" with "asif" subs: ""
 #

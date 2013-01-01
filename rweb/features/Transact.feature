@@ -6,12 +6,12 @@ SO I can buy and sell stuff.
 # And foreigner (member on a different server) to member, etc.
 
 Variants: all members are rTraders
-  | %BIT_DEFAULTS | %BIT_PARTNER | NEW:AAA |
-  | %BIT_RTRADER  | %BIT_RTRADER | NEW.AAA |
+  | %BIT_DEFAULTS | %BIT_PARTNER | NEW:AAA | asif |
+  | %BIT_RTRADER  | %BIT_RTRADER | NEW.AAA | real |
 
 Setup:
   Given members:
-  | id      | full_name  | address | city  | state  | postal_code | country   | email | account_type  | flags       |
+  | id      | full_name  | address | city  | state  | postal_code | country   | email         | account_type  | flags         |
   | NEW.ZZA | Abe One    | POB 1   | Atown | Alaska | 01000   | United States | a@example.com | %R_PERSONAL   | %BIT_DEFAULTS |
   | NEW.ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000   | United States | b@example.com | %R_PERSONAL   | %BIT_PARTNER  |
   | NEW.ZZC | Corner Pub | POB 3   | Ctown | Corse  |         | France        | c@example.com | %R_COMMERCIAL | %BIT_RTRADER  |
@@ -41,21 +41,21 @@ Scenario: A member asks to charge another member
   When member "NEW.ZZA" completes form "Tx" with values:
   | op     | who     | amount | goods | purpose |
   | Charge | Bea Two | 100    | 1     | labor   |
-  Then we show "confirm charge" with subs:
+  Then we show "confirm charge" with "asif" subs:
   | amount | otherName |
-  | $100   | Bea Two    |
+  | $100   | Bea Two   |
   
 Scenario: A member confirms request to charge another member
   When member "NEW.ZZA" confirms form "Tx" with values:
   | op     | who     | amount | goods | purpose |
   | Charge | Bea Two | 100    | 1     | labor   |
-  Then we say "status": "report invoice" with subs:
+  Then we say "status": "report invoice" with "asif" subs:
   | action  | otherName | amount | tid |
-  | charged | Bea Two    | $100   | 2   |
-  And we email "new-invoice" to member "b@example.com" with subs:
+  | charged | Bea Two   | $100   | 2   |
+  And we email "new-invoice" to member "b@example.com" with "asif" subs:
   | created | fullName | otherName | amount | payerPurpose |
-  | %today  | Bea Two  | Abe One    | $100   | labor         |
-  And we show "Tx" with subs:
+  | %today  | Bea Two  | Abe One   | $100   | labor        |
+  And we show "Tx" with "asif" subs:
   | arg1   |
   | charge |
   And transactions:
@@ -74,21 +74,21 @@ Scenario: A member asks to pay another member
   When member "NEW.ZZA" completes form "Tx" with values:
   | op  | who     | amount | goods | purpose |
   | Pay | Bea Two | 100    | 1     | labor   |
-  Then we show "confirm payment" with subs:
+  Then we show "confirm payment" with "asif" subs:
   | amount | otherName |
-  | $100   | Bea Two    |
+  | $100   | Bea Two   |
   
 Scenario: A member confirms request to pay another member
   When member "NEW.ZZA" confirms form "Tx" with values:
   | op  | who     | amount | goods | purpose |
   | Pay | Bea Two | 100    | 1     | labor   |
-  Then we say "status": "report transaction" with subs:
+  Then we say "status": "report transaction" with "asif" subs:
   | action | otherName | amount | tid | rewardType | rewardAmount | balance |
-  | paid   | Bea Two    | $100   | 2   | rebate      | $5            | $155    |
-  And we email "new-payment" to member "b@example.com" with subs:
+  | paid   | Bea Two   | $100   | 2   | rebate     | $5           | $155    |
+  And we email "new-payment" to member "b@example.com" with "asif" subs:
   | created | fullName | otherName | amount | payeePurpose |
-  | %today  | Bea Two  | Abe One    | $100   | labor         |
-  And we show "Tx" with subs:
+  | %today  | Bea Two  | Abe One   | $100   | labor        |
+  And we show "Tx" with "asif" subs:
   | arg1 |
   | pay  |
   And transactions:

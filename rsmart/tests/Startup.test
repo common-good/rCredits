@@ -29,7 +29,9 @@ class rsmartStartup extends DrupalWebTestCase {
     );
   }
 
-  public function setUp($sceneName, $variant = '') { // especially, enable any modules required for the tests
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
     global $sceneTest; $sceneTest = $this;
     parent::setUp(self::MODULE);
 
@@ -60,7 +62,7 @@ class rsmartStartup extends DrupalWebTestCase {
 
   // Scenario: Member logs in successfully to initialize device
   public function testMemberLogsInSuccessfullyToInitializeDevice_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('member "NEW.ZZA" password is %whatever1');
     When_('member initializes the device as member "NEW.ZZA" with password %whatever1');
     Then_('we respond with: "DATA'
@@ -70,7 +72,7 @@ class rsmartStartup extends DrupalWebTestCase {
 
   // Scenario: Member initializes with an ill-formed id
   public function testMemberInitializesWithAnIllformedId_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     When_('member initializes the device as member %random with password %whatever');
     Then_('we respond with: "DATA'
     . '\\| success | message |'
@@ -79,7 +81,7 @@ class rsmartStartup extends DrupalWebTestCase {
 
   // Scenario: Device owner is not a member
   public function testDeviceOwnerIsNotAMember_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     When_('member initializes the device as member "NEW.ZZZ" with password %whatever1');
     Then_('we respond with: "DATA'
     . '\\| success | message        |'
@@ -88,7 +90,7 @@ class rsmartStartup extends DrupalWebTestCase {
 
   // Scenario: Member types the wrong password
   public function testMemberTypesTheWrongPassword_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     When_('member initializes the device as member "NEW.ZZA" with password %random');
     Then_('we respond with: "DATA'
     . '\\| success | message   |'
@@ -97,7 +99,7 @@ class rsmartStartup extends DrupalWebTestCase {
 
   // Scenario: Member reruns the app
   public function testMemberRerunsTheApp_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
     When_('the app starts up as code %whatever1');
     Then_('we respond with: "DATA'
@@ -107,7 +109,7 @@ class rsmartStartup extends DrupalWebTestCase {
 
   // Scenario: Device requests a bad op
   public function testDeviceRequestsABadOp_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     When_('the app requests op %random as member "NEW.ZZA" and code "codeA"');
     Then_('we respond with: "DATA'
     . '\\| success | message    |'
@@ -116,7 +118,7 @@ class rsmartStartup extends DrupalWebTestCase {
 
   // Scenario: Device gives no code
   public function testDeviceGivesNoCode_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     When_('the app starts up as code ""');
     Then_('we respond with: "DATA'
     . '\\| success | message       |'
@@ -125,7 +127,7 @@ class rsmartStartup extends DrupalWebTestCase {
 
   // Scenario: Device gives a bad code
   public function testDeviceGivesABadCode_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     When_('the app starts up as code %random');
     Then_('we respond with: "DATA'
     . '\\| success | message        |'

@@ -17,26 +17,26 @@ Setup:
   | NEW:ZZD | NEW.ZZC | NEW.ZZA | sell              |
   And transactions: 
   | tx_id    | created   | type         | state       | amount | from      | to      | purpose | taking |
-  | NEW.AAAB | %today-7m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZA | signup  | 0      |
-  | NEW.AAAC | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZB | signup  | 0      |
-  | NEW.AAAD | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZC | signup  | 0      |
-  | NEW.AAAE | %today-5m | %TX_TRANSFER | %TX_DONE    |     10 | NEW.ZZB   | NEW.ZZA | cash E  | 0      |
-  | NEW.AAAF | %today-4m | %TX_TRANSFER | %TX_DONE    |     20 | NEW.ZZC   | NEW.ZZA | usd F   | 1      |
-  | NEW.AAAG | %today-3m | %TX_TRANSFER | %TX_DONE    |     40 | NEW.ZZA   | NEW.ZZB | what G  | 0      |
-  | NEW.AAAH | %today-3m | %TX_REBATE   | %TX_DONE    |      2 | community | NEW.ZZA | rebate  | 0      |
-  | NEW.AAAI | %today-3m | %TX_BONUS    | %TX_DONE    |      4 | community | NEW.ZZB | bonus   | 0      |
-  | NEW.AAAJ | %today-3w | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZA   | NEW.ZZB | pie N   | 1      |
-  | NEW.AAAK | %today-3w | %TX_REBATE   | %TX_PENDING |      5 | community | NEW.ZZC | rebate  | 0      |
-  | NEW.AAAL | %today-3w | %TX_BONUS    | %TX_PENDING |     10 | community | NEW.ZZA | bonus   | 0      |
-  | NEW.AAAM | %today-2w | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZC   | NEW.ZZA | labor M | 0      |
-  | NEW.AAAN | %today-2w | %TX_REBATE   | %TX_PENDING |      5 | community | NEW.ZZC | rebate  | 0      |
-  | NEW.AAAO | %today-2w | %TX_BONUS    | %TX_PENDING |     10 | community | NEW.ZZA | bonus   | 0      |
-  | NEW.AAAP | %today-2w | %TX_TRANSFER | %TX_DONE    |      5 | NEW.ZZB   | NEW.ZZC | cash P  | 0      |
-  | NEW.AAAQ | %today-1w | %TX_TRANSFER | %TX_DONE    |     80 | NEW.ZZA   | NEW.ZZC | this Q  | 1      |
-  | NEW.AAAR | %today-1w | %TX_REBATE   | %TX_DONE    |      4 | community | NEW.ZZA | rebate  | 0      |
-  | NEW.AAAS | %today-1w | %TX_BONUS    | %TX_DONE    |      8 | community | NEW.ZZC | bonus   | 0      |
-  | NEW.AAAT | %today-6d | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZA   | NEW.ZZB | cash T  | 0      |
-  | NEW.AAAU | %today-6d | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZB   | NEW.ZZA | cash U  | 1      |
+  | NEW:AAAB | %today-7m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZA | signup  | 0      |
+  | NEW:AAAC | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZB | signup  | 0      |
+  | NEW:AAAD | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZC | signup  | 0      |
+  | NEW:AAAE | %today-5m | %TX_TRANSFER | %TX_DONE    |     10 | NEW.ZZB   | NEW.ZZA | cash E  | 0      |
+  | NEW:AAAF | %today-4m | %TX_TRANSFER | %TX_DONE    |     20 | NEW.ZZC   | NEW.ZZA | usd F   | 1      |
+  | NEW:AAAG | %today-3m | %TX_TRANSFER | %TX_DONE    |     40 | NEW.ZZA   | NEW.ZZB | what G  | 0      |
+  | NEW:AAAH | %today-3m | %TX_REBATE   | %TX_DONE    |      2 | community | NEW.ZZA | rebate  | 0      |
+  | NEW:AAAI | %today-3m | %TX_BONUS    | %TX_DONE    |      4 | community | NEW.ZZB | bonus   | 0      |
+  | NEW:AAAJ | %today-3w | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZA   | NEW.ZZB | pie N   | 1      |
+  | NEW:AAAK | %today-3w | %TX_REBATE   | %TX_PENDING |      5 | community | NEW.ZZC | rebate  | 0      |
+  | NEW:AAAL | %today-3w | %TX_BONUS    | %TX_PENDING |     10 | community | NEW.ZZA | bonus   | 0      |
+  | NEW:AAAM | %today-2w | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZC   | NEW.ZZA | labor M | 0      |
+  | NEW:AAAN | %today-2w | %TX_REBATE   | %TX_PENDING |      5 | community | NEW.ZZC | rebate  | 0      |
+  | NEW:AAAO | %today-2w | %TX_BONUS    | %TX_PENDING |     10 | community | NEW.ZZA | bonus   | 0      |
+  | NEW:AAAP | %today-2w | %TX_TRANSFER | %TX_DONE    |      5 | NEW.ZZB   | NEW.ZZC | cash P  | 0      |
+  | NEW:AAAQ | %today-1w | %TX_TRANSFER | %TX_DONE    |     80 | NEW.ZZA   | NEW.ZZC | this Q  | 1      |
+  | NEW:AAAR | %today-1w | %TX_REBATE   | %TX_DONE    |      4 | community | NEW.ZZA | rebate  | 0      |
+  | NEW:AAAS | %today-1w | %TX_BONUS    | %TX_DONE    |      8 | community | NEW.ZZC | bonus   | 0      |
+  | NEW:AAAT | %today-6d | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZA   | NEW.ZZB | cash T  | 0      |
+  | NEW:AAAU | %today-6d | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZB   | NEW.ZZA | cash U  | 1      |
   Then "asif" balances:
   | id        | balance |
   | community |    -768 |
@@ -91,15 +91,15 @@ Scenario: A member looks at transactions for the past few days
 Scenario: Transactions with other states show up properly
   Given transactions:
   | tx_id    | created   | type         | state        | amount | from      | to      | purpose | taking |
-  | NEW.AAAV | %today-5d | %TX_TRANSFER | %TX_DENIED   |    100 | NEW.ZZC   | NEW.ZZA | labor V | 0      |
-  | NEW.AAAW | %today-5d | %TX_REBATE   | %TX_DENIED   |      5 | community | NEW.ZZC | rebate  | 0      |
-  | NEW.AAAX | %today-5d | %TX_BONUS    | %TX_DENIED   |     10 | community | NEW.ZZA | bonus   | 0      |
-  | NEW.AAAY | %today-5d | %TX_TRANSFER | %TX_DENIED   |      5 | NEW.ZZA   | NEW.ZZC | cash Y  | 1      |
-  | NEW.AAAZ | %today-5d | %TX_TRANSFER | %TX_DISPUTED |     80 | NEW.ZZA   | NEW.ZZC | this Z  | 1      |
-  | NEW.AABA | %today-5d | %TX_REBATE   | %TX_DISPUTED |      4 | community | NEW.ZZA | rebate  | 0      |
-  | NEW.AABB | %today-5d | %TX_BONUS    | %TX_DISPUTED |      8 | community | NEW.ZZC | bonus   | 0      |
-  | NEW.AABC | %today-5d | %TX_TRANSFER | %TX_DELETED  |    200 | NEW.ZZA   | NEW.ZZC | never   | 1      |
-  | NEW.AABD | %today-5d | %TX_TRANSFER | %TX_DISPUTED |    100 | NEW.ZZC   | NEW.ZZA | cash BD | 1      |
+  | NEW:AAAV | %today-5d | %TX_TRANSFER | %TX_DENIED   |    100 | NEW.ZZC   | NEW.ZZA | labor V | 0      |
+  | NEW:AAAW | %today-5d | %TX_REBATE   | %TX_DENIED   |      5 | community | NEW.ZZC | rebate  | 0      |
+  | NEW:AAAX | %today-5d | %TX_BONUS    | %TX_DENIED   |     10 | community | NEW.ZZA | bonus   | 0      |
+  | NEW:AAAY | %today-5d | %TX_TRANSFER | %TX_DENIED   |      5 | NEW.ZZA   | NEW.ZZC | cash Y  | 1      |
+  | NEW:AAAZ | %today-5d | %TX_TRANSFER | %TX_DISPUTED |     80 | NEW.ZZA   | NEW.ZZC | this Z  | 1      |
+  | NEW:AABA | %today-5d | %TX_REBATE   | %TX_DISPUTED |      4 | community | NEW.ZZA | rebate  | 0      |
+  | NEW:AABB | %today-5d | %TX_BONUS    | %TX_DISPUTED |      8 | community | NEW.ZZC | bonus   | 0      |
+  | NEW:AABC | %today-5d | %TX_TRANSFER | %TX_DELETED  |    200 | NEW.ZZA   | NEW.ZZC | never   | 1      |
+  | NEW:AABD | %today-5d | %TX_TRANSFER | %TX_DISPUTED |    100 | NEW.ZZC   | NEW.ZZA | cash BD | 1      |
   Then "asif" balances:
   | id        | balance |
   | community |    -780 |

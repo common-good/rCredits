@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Secret rCredits Settings for this rCredits server
+ * Specialized rCredits settings for this rCredits server
  */
 
 define('R_REGION_NAME', 'Western Massachusetts Region');
@@ -9,7 +9,7 @@ define('R_SERVER_ID', 'NEW'); // qid header for this region's server (New Englan
 // other 3rd letters: M=ME H=NH V=VT C=CT R=RI P=PA Y=NY A=NYC (apple) B=Boston
 define('R_ORG_PHONE', '413-628-3336');
 define('R_ORG_EMAIL', 'info@rCredits.org');
-define('R_SITE_URL', 'http://devcore.rCredits.org');
+define('R_SITE_URL', 'http://new.rCredits.org');
 
 // (you don't get an ID card unless you are in this geographic area)
 define('R_REGION_POSTAL_AREA', '^01.*'); // anyone with a postal code that matches this regular expression is in the region
@@ -22,3 +22,4 @@ define('R_MIN_DEMAND', 10); // you can't buy less rCredits than this at a time
 define('R_STARTING_BALANCE', 250); // how much people start with in the TRIAL RUN
 define('R_MIN_BALANCE', 0); // how low can user's balance go, by default
 define('R_FIREWALL', 'lkj234lisufsd89072osi%!@J@$K'); // nobody can use the backend without knowing this code
+// NOTE: this code will need to be changed and kept out of github, if we ever use it

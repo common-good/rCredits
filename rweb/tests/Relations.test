@@ -29,7 +29,9 @@ class rwebRelations extends DrupalWebTestCase {
     );
   }
 
-  public function setUp($sceneName, $variant = '') { // especially, enable any modules required for the tests
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
     global $sceneTest; $sceneTest = $this;
     parent::setUp(self::MODULE);
 
@@ -48,9 +50,9 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| .ZZC | Corner Pub | %R_COMMERCIAL | %BIT_RTRADER  |"');
     And__('transactions: "DATA'
     . '\\| tx_id | created   | type       | amount | from      | to   | purpose | taking |'
-    . '\\| .AAAB | %today-6m | %TX_SIGNUP |    250 | community | .ZZA | signup  | 0      |'
-    . '\\| .AAAC | %today-6m | %TX_SIGNUP |    250 | community | .ZZB | signup  | 0      |'
-    . '\\| .AAAD | %today-6m | %TX_SIGNUP |    250 | community | .ZZC | signup  | 0      |"');
+    . '\\| :AAAB | %today-6m | %TX_SIGNUP |    250 | community | .ZZA | signup  | 0      |'
+    . '\\| :AAAC | %today-6m | %TX_SIGNUP |    250 | community | .ZZB | signup  | 0      |'
+    . '\\| :AAAD | %today-6m | %TX_SIGNUP |    250 | community | .ZZC | signup  | 0      |"');
     Then_('"asif" balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -750 |'
@@ -65,7 +67,7 @@ class rwebRelations extends DrupalWebTestCase {
 
   // Scenario: Member has an employee, confirmed
   public function testMemberHasAnEmployeeConfirmed_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('relations: "DATA'
     . '\\| id | main | agent | permission | employer_ok | employee_ok | is_owner |'
     . '\\| 1  | .ZZA | .ZZB  | sell       | 1           | 1           | 1        |"');
@@ -77,7 +79,7 @@ class rwebRelations extends DrupalWebTestCase {
 
   // Scenario: Member has an employee, unconfirmed
   public function testMemberHasAnEmployeeUnconfirmed_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('relations: "DATA'
     . '\\| id | main | agent | permission   | employer_ok | employee_ok | is_owner |'
     . '\\| 1  | .ZZA | .ZZB  | buy and sell | 1           | 0           | 0        |"');
@@ -89,7 +91,7 @@ class rwebRelations extends DrupalWebTestCase {
 
   // Scenario: Member has an employee, claimed
   public function testMemberHasAnEmployeeClaimed_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('relations: "DATA'
     . '\\| id | main | agent | permission | employer_ok | employee_ok | is_owner |'
     . '\\| 1  | .ZZA | .ZZB  | sell       | 0           | 1           | 0        |"');
@@ -101,7 +103,7 @@ class rwebRelations extends DrupalWebTestCase {
 
   // Scenario: Employee can only read
   public function testEmployeeCanOnlyRead_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('relations: "DATA'
     . '\\| id | main | agent | permission        | employer_ok | employee_ok | is_owner |'
     . '\\| 1  | .ZZA | .ZZB  | read transactions | 1           | 1           | 1        |"');
@@ -113,7 +115,7 @@ class rwebRelations extends DrupalWebTestCase {
 
   // Scenario: Member has an employer
   public function testMemberHasAnEmployer_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('relations: "DATA'
     . '\\| id | main | agent | permission | employer_ok | employee_ok | is_owner |'
     . '\\| 1  | .ZZB | .ZZA  | sell       | 1           | 1           | 1        |"');
@@ -125,7 +127,7 @@ class rwebRelations extends DrupalWebTestCase {
 
   // Scenario: Member has access to employee account
   public function testMemberHasAccessToEmployeeAccount_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('relations: "DATA'
     . '\\| id | main | agent | permission | employer_ok | employee_ok | is_owner |'
     . '\\| 1  | .ZZA | .ZZB  | no access  | 1           | 1           | 1        |'
@@ -142,7 +144,7 @@ class rwebRelations extends DrupalWebTestCase {
 
   // Scenario: Member company has relations
   public function testMemberCompanyHasRelations_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('relations: "DATA'
     . '\\| id | main | agent | permission | employer_ok | employee_ok | is_owner |'
     . '\\| 1  | .ZZC | .ZZA  | sell       | 1           | 1           | 1        |"');
@@ -161,7 +163,7 @@ class rwebRelations extends DrupalWebTestCase {
 
   // Scenario: It's complicated
   public function testItsComplicated_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('relations: "DATA'
     . '\\| id | main | agent | permission     | employer_ok | employee_ok | is_owner |'
     . '\\| 1  | .ZZA | .ZZB  | sell           | 1           | 0           | 1        |'

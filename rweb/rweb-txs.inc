@@ -22,7 +22,7 @@ function formTxs($form, &$sta, $argString = '') {
 //  extract(u\just('real period do zxid', array_combine($keys, $values)));
   parse_str($argString, $args);
   extract(u\just('real period do zxid', $args)); 
-  $real = r\isRTrader() ? ((bool) retSet($real) ?: TRUE) : FALSE;
+  $real = r\isRTrader() ? (isset($real) ? $real : TRUE) : FALSE;
   $period = (int) (@$period ?: 30);
   $do = in_array(@$do, u\ray('ok no edit')) ? $do : '';
   $zxid = (int) (@$zxid ?: 0);
@@ -52,19 +52,19 @@ function formTxs($form, &$sta, $argString = '') {
     $data = unserialize($one_data);
     $is_reward = ($one_type != TX_TRANSFER);
     $toMe = ($one_payee == $cuid);
-    $by_me = ($one_taking == $toMe);
+    $byMe = ($one_taking == $toMe);
     $reward = @$data[$toMe ? 'bonus' : 'rebate'];
     $reward = $reward ? number_format($reward, 2) : R_NONE;
     $amount = number_format($one_amount, 2);
     if ($is_reward) list ($amount, $reward) = array(R_NONE, $amount); // show inflation, grants, fines, and signup bonus as rewards
     list ($to_you, $from_you) = $toMe ? array($amount, R_NONE) : array(R_NONE, $amount);
-    $state = ($one_state == TX_PENDING and $by_me) ? 'pending' : $states[$one_state];
-//    debug("taking=$one_taking to=$toMe by=$by_me state=$state");
+    $state = ($one_state == TX_PENDING and $byMe) ? 'pending' : $states[$one_state];
+//    debug("taking=$one_taking to=$toMe by=$byMe state=$state");
     $color = $colors[$state];
     $state = "<span style='color:$color;'>$state</span>";
-    $button1 = (!$by_me and $one_state == TX_PENDING) ? button('OK', "$base_url/transactions/real=$real&period=$period&do=ok&zxid=$one_zxid", tx_action('ok', $one_state, $toMe, $by_me)) : '';
-    $button2 = (!$is_reward and !@$data['undone']) ? button(' X ', "$base_url/transactions/real=$real&period=$period&do=no&zxid=$one_zxid", tx_action('no', $one_state, $toMe, $by_me)) : '';
-    $button3 = (($one_taking ? $canSell : $canBuy) and !$is_reward) ? "<a href='$base_url/transactions/real=$real&period=$period&do=edit&zxid=$one_zxid' title='Edit Purpose'><img src='$base_url/images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
+    $button1 = (!$byMe and $one_state == TX_PENDING) ? button('OK', "$base_url/transactions/real=$real&period=$period&do=ok&zxid=$one_zxid", tx_action('ok', $one_state, $toMe, $byMe)) : '';
+    $button2 = (!$is_reward and !@$data['undone']) ? button(' X ', "$base_url/transactions/real=$real&period=$period&do=no&zxid=$one_zxid", tx_action('no', $one_state, $toMe, $byMe)) : '';
+    $button3 = (($one_taking ? $canSell : $canBuy) and !$is_reward) ? "<a href='$base_url/transactions/real=$real&period=$period&do=edit&zxid=$one_zxid' title='Edit Purpose'><img src='$base_url/sites/all/modules/rcredits/images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
     $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
     $rows[] = array($tid, strftime('%d-%b', $one_created), $one_name, $from_you, $to_you, $state, $buttons, $one_purpose, $reward);
   }
@@ -97,7 +97,7 @@ function txConfirm($do, $zxid, &$sta) {
   if (confirming_v($sta)) return FALSE;
   if (!($details = be\lastTx('xid=:zxid', compact('zxid'), TRUE))) return FALSE; // bail on hack attempt
   extract(r\txReportArgs($details), EXTR_PREFIX_ALL, 'my');
-  $action = tx_action($do, $my_state, $my_toMe, $my_by_me);
+  $action = tx_action($do, $my_state, $my_toMe, $my_byMe);
   confirm("Are you sure you want to $action?<br>($my_summary)", $sta); // sets 'confirm'
   return sureForm($sta);
 }
@@ -108,19 +108,19 @@ function txConfirm($do, $zxid, &$sta) {
  * @param string $do: which major type of action ('ok' or 'no')
  * @param int $state: the current transaction state
  * @param bool $toMe: user is the payee
- * @param bool $by_me: user originated the transaction
+ * @param bool $byMe: user originated the transaction
  * @return string: how to describe the ok or no
  */
-function tx_action($do, $state, $toMe, $by_me) {
+function tx_action($do, $state, $toMe, $byMe) {
   if ($do == 'ok') return $toMe ? t('ACCEPT this payment') : t('APPROVE this charge');
   
   if ($toMe) {
     if ($state == TX_DISPUTED) return t('REVERSE this disputed transaction'); // let the customer win
-    if ($state == TX_PENDING) return $by_me ? t('CANCEL this invoice') : t('REFUSE this payment');
+    if ($state == TX_PENDING) return $byMe ? t('CANCEL this invoice') : t('REFUSE this payment');
     return t('REVERSE this charge'); // let the customer win
   } else {
-    if ($state == TX_PENDING) return $by_me ? t('CANCEL this payment') : t('DECLINE to pay this invoice');
-    return $by_me ? t('REVERSE this payment') : t('DISPUTE this charge');
+    if ($state == TX_PENDING) return $byMe ? t('CANCEL this payment') : t('DECLINE to pay this invoice');
+    return $byMe ? t('REVERSE this payment') : t('DISPUTE this charge');
   }
 }
 

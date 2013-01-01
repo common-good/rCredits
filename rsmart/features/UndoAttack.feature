@@ -34,10 +34,16 @@ Setup:
   | NEW:ZZD | NEW.ZZC | NEW.ZZA | sell              |
   And transactions: 
   | tx_id    | created   | type         | state       | amount | from      | to      | purpose      | taking |
-  | NEW.AAAB | %today-7m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZA | signup       | 0      |
-  | NEW.AAAC | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZB | signup       | 0      |
-  | NEW.AAAD | %today-2d | %TX_TRANSFER | %TX_DONE    |      5 | NEW.ZZB   | NEW.ZZC | cash given   | 0      |
-  | NEW.AAAE | %today-1d | %TX_TRANSFER | %TX_DONE    |     80 | NEW.ZZA   | NEW.ZZC | whatever54   | 1      |
+  | NEW:AAAB | %today-7m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZA | signup       | 0      |
+  | NEW:AAAC | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZB | signup       | 0      |
+  | NEW:AAAD | %today-2d | %TX_TRANSFER | %TX_DONE    |      5 | NEW.ZZB   | NEW.ZZC | cash given   | 0      |
+  | NEW:AAAE | %today-1d | %TX_TRANSFER | %TX_DONE    |     80 | NEW.ZZA   | NEW.ZZC | whatever54   | 1      |
+  Then "asif" balances:
+  | id        | balance |
+  | community |    -500 |
+  | NEW.ZZA   |     170 |
+  | NEW.ZZB   |     245 |
+  | NEW.ZZC   |      85 |
 
 Variants:
   | unconfirmed |
@@ -60,37 +66,39 @@ Scenario: Device gives bad transaction id
   | 0       | bad transaction id |
 
 Scenario: Device gives nonexistent transaction id
-  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.ZZZZ", with the request "unconfirmed"
+  When member " NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAZ", with the request "confirmed"
+  #no variant on first member because (1) balance should be shown when confirmed and (3) showing balance requires PERM_MANAGE 
   Then we respond with:
-  | success | message       |
-  | 0       | undo no match |
+  | success | message       | my_balance |
+  | 0       | undo no match | $170       |
 
 Scenario: Device gives no confirmation status
-  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAB", with the request ""
+  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAB", with the request ""
   Then we respond with:
   | success | message                 |
   | 0       | bad confirmation status |
 
 Scenario: Device gives bad confirmation status
-  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAB", with the request %random
+  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAB", with the request %random
   Then we respond with:
   | success | message                 |
   | 0       | bad confirmation status |
 
 Scenario: Member asks to undo someone else's transaction
-  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAC", with the request "unconfirmed"
+  When member " NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAC", with the request "confirmed"
+  #no variant on first member because (1) balance should be shown when confirmed and (3) showing balance requires PERM_MANAGE 
   Then we respond with:
-  | success | message       |
-  | 0       | undo no match |
+  | success | message       | my_balance |
+  | 0       | undo no match | $170       |
   
 Scenario: Buyer agent lacks permission to reverse sale
-  When member "NEW.ZZA" asks device "codeC" to undo transaction "NEW.AAAE", with the request "unconfirmed"
+  When member "NEW.ZZA" asks device "codeC" to undo transaction "NEW:AAAE", with the request "unconfirmed"
   Then we respond with:
   | success | message         |
   | 0       | no buy          |
 
 Scenario: Seller agent lacks permission to reverse purchase
-  When member "NEW.ZZA" asks device "codeB" to undo transaction "NEW.AAAD", with the request "unconfirmed"
+  When member "NEW.ZZA" asks device "codeB" to undo transaction "NEW:AAAD", with the request "unconfirmed"
   Then we respond with:
   | success | message |
   | 0       | no sell |

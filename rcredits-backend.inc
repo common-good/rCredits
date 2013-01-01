@@ -220,9 +220,9 @@ function undoTx($zxid) {
   $data = unserialize($old_data);
 
   if ($old_state == TX_PENDING or $old_state == TX_DENIED) { // it's an invoice - cancel simply by changing the transaction state
-// function undo_invoice($zxid, $oldRecord, $old_otherUid, $by_me) // return $solution
+// function undo_invoice($zxid, $oldRecord, $old_otherUid, $byMe) // return $solution
 //debug(compact('old_byme','old_state','oldRecord','data'));
-    if ($old_by_me) {
+    if ($old_byMe) {
       list ($new_state, $solution) = array(TX_DELETED, t('deleted')); // abandon the attempt to invoice
       r\notify($old_otherUid, $old_toMe ? 'invoice-canceled' : 'offer-canceled', r\txReportArgs($oldRecord));
     } else {
@@ -230,7 +230,7 @@ function undoTx($zxid) {
       r\notify($old_otherUid, $old_toMe ? 'offer-refused' : 'invoice-denied', r\txReportArgs($oldRecord));
     }
     r\setTxState($new_state, $zxid);
-  } elseif (!$old_toMe and !$old_by_me) { // someone charged (either unilaterally or I approved it)
+  } elseif (!$old_toMe and !$old_byMe) { // someone charged (either unilaterally or I approved it)
 // function dispute($zxid, $oldRecord, $old_otherUid)
     r\setTxState(TX_DISPUTED, $zxid); // mark it disputed
     $solution = t('marked "disputed"');
@@ -240,6 +240,9 @@ function undoTx($zxid) {
     return reverse($zxid, $old_amount, $otherAcct, $data, $old_goods, $old_tid, $old_toMe); // create an offsetting transaction
   }
 
+  // handle undo of a partial unilateral charge (let the merchant undo the invoice, then the partial payment)
+  global $lastZxid; $lastZxid = $old_data['zxid']; // previous related transaction or FALSE
+  
   $amount = u\formatAmount($old_amount);
   $tofrom = !$old_toMe ? t('to') : t('from');
   $otherUid = $old_otherUid;
@@ -379,7 +382,7 @@ function payInvoice($zxid) {
  * @param array $data: associative array of info about the transaction this request is reversing (if any), indexed by any of:
  *   'rebate': the rebate amount for this request (should be negative the original bonus amount)
  *   'bonus': the bonus amount (should be negative the original rebate amount) [rebate and bonus are always both set or neither]
- *   'zxid': the signed transaction id of the related transaction (invoice or transaction being undone)
+ *   'zxid': signed transaction id of the related transaction (invoice or transaction being undone or partial unilateral charge)
  *   'preapproved': the transaction is preapproved (from some other region)
  *     Note that other regions must not have PERM_CHARGE (else the code will not permit foreign invoices)
  *   'bilateral': set TRUE if a company with PERM_CHARGE wants to pretend it doesn't
@@ -397,6 +400,7 @@ function payInvoice($zxid) {
  * @todo: write feature tests for partial transactions (paying/taking unilateral/not undoing/not broke/not)
  */
 function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE, $data = array()) {
+  global $lastZxid; 
   if (isFrontend()) return (array) backend('transfer', compact(u\ray('ttype acct requestAmount for confirmed data')));
   if (is_array($ttype)) extract($ttype); // called from api or backend
 
@@ -424,7 +428,8 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   // Sort out what type of transfer this is
   $paying_invoice = ($ttype == 'invoice payment');
   $type = TX_TRANSFER;
-  $unilateral = isset($data['bilateral']) ? FALSE : ($taking  and $cacct->can(PERM_CHARGE));
+  $unilateral = isset($data['bilateral']) ? FALSE 
+  : ($taking  and $cacct->can(PERM_CHARGE) and !($acct->can(PERM_COMPANY) and $acct->proSe()));
   $preapproved = (@$data['preapproved'] or !$taking or $unilateral); // paying OR permitted to charge unilaterally
 //  $state = ($preapproved and !@$data['pay_all'])? TX_DONE : TX_PENDING;
   $virtual = ($goods and !$taking and ($cacct->hasBit(BIT_VIRTUAL_ALL) or ($cacct->hasBit(BIT_VIRTUAL_EMPLOYEES) and r\isEmployee($uid))));
@@ -440,8 +445,9 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
     if ($paying_invoice) return array('short payment', compact('short'), FALSE); // no partial payment of invoice
     if (!$goods) return array($taking ? 'short cash from' : 'short cash to', compact('short', 'otherName'), FALSE); // no partial cash trans
     if ($shortfall >= $requestAmount or isset($data['rebate'])) { // flat broke or undoing (partial undo is too complex for now)
-      $msg = $taking ? 'broke from' : 'broke to';
-      if (!$unilateral) return array($msg, compact('otherName'), FALSE); // let unilateral partials fall through for invoicing
+      $msg = $taking ? 'broke from' : ($shortfall >= $requestAmount ? 'broke to' : 'short payment');
+      $balance = u\formatAmount($requestAmount + $shortfall);
+      if (!$unilateral) return array($msg, compact('otherName', 'short', 'balance'), FALSE); // let unilateral partials fall through for invoicing
     }
   }
   $amount = $requestAmount - $shortfall;
@@ -456,20 +462,20 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   unset($data['bilateral']);
   $data = serialize($data);
 
-  if ($amount > 0) { // broke customer charged unilaterally needs to fall through for invoice and proper message
-    /*** Begin DBTX ***/ $dbtx = db_transaction();
-    $txs = r\transact(compact(u\ray('type amount payer payee payer_agent payee_agent for data taking goods state')));
-    $zxid = $txs[0]['zxid'];
-    if (!$confirmed) $dbtx->rollback();
-    /*** End DBTX ***/ unset($dbtx); // $dbtx->commit() is disallowed
-  }
+  /*** Begin DBTX ***/ $dbtx = db_transaction();
+  $txs = r\transact(compact(u\ray('type amount payer payee payer_agent payee_agent for data taking goods state')));
+  $zxid = $txs[0]['zxid'];
+  if ($confirmed and $amount > 0) $lastZxid = $zxid; else $dbtx->rollback();
+  // and amount > 0 because broke customer charged unilaterally needs to fall through for invoice and proper message
+
+  /*** End DBTX ***/ unset($dbtx); // $dbtx->commit() is disallowed
   
   // Report results
-  $args = r\txReportArgs($txs[0], 1, $shortfall);
+  $args = r\txReportArgs($txs[0], TRUE, $shortfall);
   
-  if ($shortfall and $taking and $confirmed) {
-    list ($zot, $invoiceArgs) = transfer($ttype, $acct, $shortfall, $for, $goods, TRUE, array('bilateral' => TRUE));
-    $args['tid2'] = $invoiceArgs['tid'];
+  if ($shortfall and $taking and $confirmed) { // special case of partial unilateral charge
+    list ($zot, $invoiceArgs) = transfer($ttype, $acct, $shortfall, $for, $goods, TRUE, array('bilateral' => TRUE, 'zxid' => $zxid));
+    $args[$amount > 0 ? 't2id' : 'tid'] = @$invoiceArgs['tid'];
   }
   
   if ($confirmed) { // notify other party by email about any confirmed transaction
@@ -758,19 +764,19 @@ function todo($number, $todo = 'nothing', $nonce = 'whatever') {
  * @return associative array: the old transaction record (FALSE if none)
  */
 function lastTx($where = 1, $subs = array(), $cache = FALSE) {
-  $cuid = r\acct()->id;
   if (isFrontend()) return backend('lastTx', compact(u\ray('where subs')), $cache);
   if (is_array($where)) extract($where); // called from api or backend
 
-  $basic = "$cuid IN (payer, payee) AND type NOT IN (:TX_DELETED, :TX_REBATE, :TX_BONUS)";
-  $sql = "SELECT * FROM {zxs} WHERE ($basic) AND ($where) ORDER BY zxid DESC LIMIT 1"; // make sure it's for $cuid
+  $cuid = r\acct()->id;
+  $basic = "$cuid IN (payer, payee) AND type NOT IN (:TX_DELETED, :TX_REBATE, :TX_BONUS)"; // make sure it's for $cuid
+  $sql = "SELECT * FROM {zxs} WHERE ($basic) AND ($where) ORDER BY zxid DESC LIMIT 1";
   if (!($result = r\dbQ($sql, $subs)->fetchAssoc())) return FALSE;
   $toMe = ($result['payee'] == $cuid);
-  $by_me = ($result['taking'] == $toMe);
+  $byMe = ($result['taking'] == $toMe);
   $otherUid = $result[$toMe ? 'payer' : 'payee'];
   $zxid = r\zxid($result['xid'], r\zxs());
   unset($result['xid']);
-  return $result + compact(u\ray('by_me toMe otherUid zxid'));
+  return $result + compact(u\ray('byMe toMe otherUid zxid'));
 }
 
 /**

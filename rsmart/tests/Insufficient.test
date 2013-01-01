@@ -30,7 +30,9 @@ class rsmartInsufficient extends DrupalWebTestCase {
     );
   }
 
-  public function setUp($sceneName, $variant = '') { // especially, enable any modules required for the tests
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
     global $sceneTest; $sceneTest = $this;
     parent::setUp(self::MODULE);
 
@@ -60,17 +62,17 @@ class rsmartInsufficient extends DrupalWebTestCase {
     . '\\| NEW:ZZD | NEW.ZZC | NEW.ZZA | sell         |"');
     And__('transactions: "DATA'
     . '\\| tx_id    | created   | type         | state       | amount | from      | to      | purpose      | taking |'
-    . '\\| NEW.AAAB | %today-7m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZA | signup       | 000000 |'
-    . '\\| NEW.AAAC | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZB | signup       | 000000 |'
-    . '\\| NEW.AAAD | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZC | signup       | 000000 |'
-    . '\\| NEW.AAAE | %today-3w | %TX_TRANSFER | %TX_DONE    |    200 | NEW.ZZA   | NEW.ZZB | whatever E   | 000000 |'
-    . '\\| NEW.AAAF | %today-3w | %TX_REBATE   | %TX_DONE    |     10 | community | NEW.ZZA | rebate on #2 | 000000 |'
-    . '\\| NEW.AAAG | %today-3w | %TX_BONUS    | %TX_DONE    |     20 | community | NEW.ZZB | bonus on #2  | 000000 |'
-    . '\\| NEW.AAAH | %today-3d | %TX_TRANSFER | %TX_DONE    |    100 | NEW.ZZC   | NEW.ZZA | labor H      | 000000 |'
-    . '\\| NEW.AAAI | %today-3d | %TX_REBATE   | %TX_DONE    |      5 | community | NEW.ZZC | rebate on #2 | 000000 |'
-    . '\\| NEW.AAAJ | %today-3d | %TX_BONUS    | %TX_DONE    |     10 | community | NEW.ZZA | bonus on #3  | 000000 |'
-    . '\\| NEW.AAAK | %today-2d | %TX_TRANSFER | %TX_DONE    |    100 | NEW.ZZA   | NEW.ZZB | cash I       | 000000 |"');
-    Then_('balances: "DATA'
+    . '\\| NEW:AAAB | %today-7m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZA | signup       | 000000 |'
+    . '\\| NEW:AAAC | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZB | signup       | 000000 |'
+    . '\\| NEW:AAAD | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZC | signup       | 000000 |'
+    . '\\| NEW:AAAE | %today-3w | %TX_TRANSFER | %TX_DONE    |    200 | NEW.ZZA   | NEW.ZZB | whatever E   | 000000 |'
+    . '\\| NEW:AAAF | %today-3w | %TX_REBATE   | %TX_DONE    |     10 | community | NEW.ZZA | rebate on #2 | 000000 |'
+    . '\\| NEW:AAAG | %today-3w | %TX_BONUS    | %TX_DONE    |     20 | community | NEW.ZZB | bonus on #2  | 000000 |'
+    . '\\| NEW:AAAH | %today-3d | %TX_TRANSFER | %TX_DONE    |    100 | NEW.ZZC   | NEW.ZZA | labor H      | 000000 |'
+    . '\\| NEW:AAAI | %today-3d | %TX_REBATE   | %TX_DONE    |      5 | community | NEW.ZZC | rebate on #2 | 000000 |'
+    . '\\| NEW:AAAJ | %today-3d | %TX_BONUS    | %TX_DONE    |     10 | community | NEW.ZZA | bonus on #3  | 000000 |'
+    . '\\| NEW:AAAK | %today-2d | %TX_TRANSFER | %TX_DONE    |    100 | NEW.ZZA   | NEW.ZZB | cash I       | 000000 |"');
+    Then_('"asif" balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -795 |'
     . '\\| NEW.ZZA   |      70 |'
@@ -97,91 +99,17 @@ class rsmartInsufficient extends DrupalWebTestCase {
     . '\\| NEW:ZZD | NEW.ZZC | NEW.ZZA | sell         |"');
     And__('transactions: "DATA'
     . '\\| tx_id    | created   | type         | state       | amount | from      | to      | purpose      | taking |'
-    . '\\| NEW.AAAB | %today-7m | %TX_SIGNUP   | %TX_DISPUTED    |    250 | community | NEW.ZZA | signup       | 000000 |'
-    . '\\| NEW.AAAC | %today-6m | %TX_SIGNUP   | %TX_DISPUTED    |    250 | community | NEW.ZZB | signup       | 000000 |'
-    . '\\| NEW.AAAD | %today-6m | %TX_SIGNUP   | %TX_DISPUTED    |    250 | community | NEW.ZZC | signup       | 000000 |'
-    . '\\| NEW.AAAE | %today-3w | %TX_TRANSFER | %TX_DISPUTED    |    200 | NEW.ZZA   | NEW.ZZB | whatever E   | 000000 |'
-    . '\\| NEW.AAAF | %today-3w | %TX_REBATE   | %TX_DISPUTED    |     10 | community | NEW.ZZA | rebate on #2 | 000000 |'
-    . '\\| NEW.AAAG | %today-3w | %TX_BONUS    | %TX_DISPUTED    |     20 | community | NEW.ZZB | bonus on #2  | 000000 |'
-    . '\\| NEW.AAAH | %today-3d | %TX_TRANSFER | %TX_DISPUTED    |    100 | NEW.ZZC   | NEW.ZZA | labor H      | 000000 |'
-    . '\\| NEW.AAAI | %today-3d | %TX_REBATE   | %TX_DISPUTED    |      5 | community | NEW.ZZC | rebate on #2 | 000000 |'
-    . '\\| NEW.AAAJ | %today-3d | %TX_BONUS    | %TX_DISPUTED    |     10 | community | NEW.ZZA | bonus on #3  | 000000 |'
-    . '\\| NEW.AAAK | %today-2d | %TX_TRANSFER | %TX_DISPUTED    |    100 | NEW.ZZA   | NEW.ZZB | cash I       | 000000 |"');
-    Then_('balances: "DATA'
-    . '\\| id        | balance |'
-    . '\\| community |    -795 |'
-    . '\\| NEW.ZZA   |      70 |'
-    . '\\| NEW.ZZB   |     570 |'
-    . '\\| NEW.ZZC   |     155 |"');
-    break;
-
-    case(2):
-    Given('members: "DATA'
-    . '\\| id      | full_name  | phone  | email         | city  | state  | country       |'
-    . '\\| NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | Alaska | United States |'
-    . '\\| NEW.ZZB | Bea Two    | +20002 | b@example.com | Btown | Utah   | United States |'
-    . '\\| NEW.ZZC | Corner Pub | +20003 | c@example.com | Ctown | Corse  | France        |"');
-    And__('devices: "DATA'
-    . '\\| id      | code  |'
-    . '\\| NEW.ZZA | codeA |'
-    . '\\| NEW.ZZB | codeB |'
-    . '\\| NEW.ZZC | codeC |"');
-    And__('relations: "DATA'
-    . '\\| id      | main    | agent   | permission   |'
-    . '\\| NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell |'
-    . '\\| NEW:ZZB | NEW.ZZB | NEW.ZZA |              |'
-    . '\\| NEW:ZZC | NEW.ZZC | NEW.ZZB | buy and sell |'
-    . '\\| NEW:ZZD | NEW.ZZC | NEW.ZZA | sell         |"');
-    And__('transactions: "DATA'
-    . '\\| tx_id    | created   | type         | state       | amount | from      | to      | purpose      | taking |'
-    . '\\| NEW.AAAB | %today-7m | %TX_SIGNUP   | 00000    |    250 | community | NEW.ZZA | signup       | 000000 |'
-    . '\\| NEW.AAAC | %today-6m | %TX_SIGNUP   | 00000    |    250 | community | NEW.ZZB | signup       | 000000 |'
-    . '\\| NEW.AAAD | %today-6m | %TX_SIGNUP   | 00000    |    250 | community | NEW.ZZC | signup       | 000000 |'
-    . '\\| NEW.AAAE | %today-3w | %TX_TRANSFER | 00000    |    200 | NEW.ZZA   | NEW.ZZB | whatever E   | 000000 |'
-    . '\\| NEW.AAAF | %today-3w | %TX_REBATE   | 00000    |     10 | community | NEW.ZZA | rebate on #2 | 000000 |'
-    . '\\| NEW.AAAG | %today-3w | %TX_BONUS    | 00000    |     20 | community | NEW.ZZB | bonus on #2  | 000000 |'
-    . '\\| NEW.AAAH | %today-3d | %TX_TRANSFER | 00000    |    100 | NEW.ZZC   | NEW.ZZA | labor H      | 000000 |'
-    . '\\| NEW.AAAI | %today-3d | %TX_REBATE   | 00000    |      5 | community | NEW.ZZC | rebate on #2 | 000000 |'
-    . '\\| NEW.AAAJ | %today-3d | %TX_BONUS    | 00000    |     10 | community | NEW.ZZA | bonus on #3  | 000000 |'
-    . '\\| NEW.AAAK | %today-2d | %TX_TRANSFER | 00000    |    100 | NEW.ZZA   | NEW.ZZB | cash I       | 000000 |"');
-    Then_('balances: "DATA'
-    . '\\| id        | balance |'
-    . '\\| community |    -795 |'
-    . '\\| NEW.ZZA   |      70 |'
-    . '\\| NEW.ZZB   |     570 |'
-    . '\\| NEW.ZZC   |     155 |"');
-    break;
-
-    case(3):
-    Given('members: "DATA'
-    . '\\| id      | full_name  | phone  | email         | city  | state  | country       |'
-    . '\\| NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | Alaska | United States |'
-    . '\\| NEW.ZZB | Bea Two    | +20002 | b@example.com | Btown | Utah   | United States |'
-    . '\\| NEW.ZZC | Corner Pub | +20003 | c@example.com | Ctown | Corse  | France        |"');
-    And__('devices: "DATA'
-    . '\\| id      | code  |'
-    . '\\| NEW.ZZA | codeA |'
-    . '\\| NEW.ZZB | codeB |'
-    . '\\| NEW.ZZC | codeC |"');
-    And__('relations: "DATA'
-    . '\\| id      | main    | agent   | permission   |'
-    . '\\| NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell |'
-    . '\\| NEW:ZZB | NEW.ZZB | NEW.ZZA |              |'
-    . '\\| NEW:ZZC | NEW.ZZC | NEW.ZZB | buy and sell |'
-    . '\\| NEW:ZZD | NEW.ZZC | NEW.ZZA | sell         |"');
-    And__('transactions: "DATA'
-    . '\\| tx_id    | created   | type         | state       | amount | from      | to      | purpose      | taking |'
-    . '\\| NEW.AAAB | %today-7m | %TX_SIGNUP   | 1    |    250 | community | NEW.ZZA | signup       | 000000 |'
-    . '\\| NEW.AAAC | %today-6m | %TX_SIGNUP   | 1    |    250 | community | NEW.ZZB | signup       | 000000 |'
-    . '\\| NEW.AAAD | %today-6m | %TX_SIGNUP   | 1    |    250 | community | NEW.ZZC | signup       | 000000 |'
-    . '\\| NEW.AAAE | %today-3w | %TX_TRANSFER | 1    |    200 | NEW.ZZA   | NEW.ZZB | whatever E   | 000000 |'
-    . '\\| NEW.AAAF | %today-3w | %TX_REBATE   | 1    |     10 | community | NEW.ZZA | rebate on #2 | 000000 |'
-    . '\\| NEW.AAAG | %today-3w | %TX_BONUS    | 1    |     20 | community | NEW.ZZB | bonus on #2  | 000000 |'
-    . '\\| NEW.AAAH | %today-3d | %TX_TRANSFER | 1    |    100 | NEW.ZZC   | NEW.ZZA | labor H      | 000000 |'
-    . '\\| NEW.AAAI | %today-3d | %TX_REBATE   | 1    |      5 | community | NEW.ZZC | rebate on #2 | 000000 |'
-    . '\\| NEW.AAAJ | %today-3d | %TX_BONUS    | 1    |     10 | community | NEW.ZZA | bonus on #3  | 000000 |'
-    . '\\| NEW.AAAK | %today-2d | %TX_TRANSFER | 1    |    100 | NEW.ZZA   | NEW.ZZB | cash I       | 000000 |"');
-    Then_('balances: "DATA'
+    . '\\| NEW:AAAB | %today-7m | %TX_SIGNUP   | %TX_DISPUTED    |    250 | community | NEW.ZZA | signup       | 000000 |'
+    . '\\| NEW:AAAC | %today-6m | %TX_SIGNUP   | %TX_DISPUTED    |    250 | community | NEW.ZZB | signup       | 000000 |'
+    . '\\| NEW:AAAD | %today-6m | %TX_SIGNUP   | %TX_DISPUTED    |    250 | community | NEW.ZZC | signup       | 000000 |'
+    . '\\| NEW:AAAE | %today-3w | %TX_TRANSFER | %TX_DISPUTED    |    200 | NEW.ZZA   | NEW.ZZB | whatever E   | 000000 |'
+    . '\\| NEW:AAAF | %today-3w | %TX_REBATE   | %TX_DISPUTED    |     10 | community | NEW.ZZA | rebate on #2 | 000000 |'
+    . '\\| NEW:AAAG | %today-3w | %TX_BONUS    | %TX_DISPUTED    |     20 | community | NEW.ZZB | bonus on #2  | 000000 |'
+    . '\\| NEW:AAAH | %today-3d | %TX_TRANSFER | %TX_DISPUTED    |    100 | NEW.ZZC   | NEW.ZZA | labor H      | 000000 |'
+    . '\\| NEW:AAAI | %today-3d | %TX_REBATE   | %TX_DISPUTED    |      5 | community | NEW.ZZC | rebate on #2 | 000000 |'
+    . '\\| NEW:AAAJ | %today-3d | %TX_BONUS    | %TX_DISPUTED    |     10 | community | NEW.ZZA | bonus on #3  | 000000 |'
+    . '\\| NEW:AAAK | %today-2d | %TX_TRANSFER | %TX_DISPUTED    |    100 | NEW.ZZA   | NEW.ZZB | cash I       | 000000 |"');
+    Then_('"asif" balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -795 |'
     . '\\| NEW.ZZA   |      70 |'
@@ -195,12 +123,12 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed payment, with insufficient balance
   public function testAMemberAsksToUndoACompletedPaymentWithInsufficientBalance_0() {
-    $this->setUp(__FUNCTION__, 0);
-    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW:AAAH", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom | otherName | purpose |'
     . '\\| %today-3d | $100   | to     | Abe One   | labor H |"');
-    And__('balances: "DATA'
+    And__('"asif" balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -795 |'
     . '\\| NEW.ZZA   |      70 |'
@@ -209,15 +137,15 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed payment, with insufficient balance
   public function testAMemberConfirmsRequestToUndoACompletedPaymentWithInsufficientBalance_0() {
-    $this->setUp(__FUNCTION__, 0);
-    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "confirmed"');
-    Then_('we respond success 1 tx_id "NEW.AAAL" my_balance 155 other_balance "" and message "report undo|report invoice" with subs: "DATA'
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW:AAAH", with the request "confirmed"');
+    Then_('we respond success 1 tx_id "NEW:AAAL" my_balance "$155" other_balance "" and message "report undo|report invoice" with subs: "DATA'
     . '\\| solution | action  | otherName | amount | balance | tid |'
     . '\\| reversed | charged | Abe One    | $100   | $525    | 3   |"');
     And__('we email "new-invoice" to member "a@example.com" with subs: "DATA'
     . '\\| created | fullName  | otherName  | amount | payerPurpose |'
     . '\\| %today  | Abe One   | Corner Pub | $100   | reverses #3  |"');
-    And__('balances: "DATA'
+    And__('"asif" balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -795 |'
     . '\\| NEW.ZZA   |      70 |'
@@ -226,13 +154,13 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed payment unilaterally, with insufficient balance
   public function testAMemberAsksToUndoACompletedPaymentUnilaterallyWithInsufficientBalance_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('member "NEW.ZZC" can charge unilaterally');
-    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
+    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW:AAAH", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom  | otherName | purpose |'
     . '\\| %today-3d | $100   | to      | Abe One   | labor H |"');
-    And__('balances: "DATA'
+    And__('"asif" balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -795 |'
     . '\\| NEW.ZZA   |      70 |'
@@ -242,16 +170,16 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed payment unilaterally, with insufficient balance
   public function testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterallyWithInsufficientBalance_0() {
-    $this->setUp(__FUNCTION__, 0);
+    $this->setUp2(__FUNCTION__, 0);
     Given('member "NEW.ZZC" can charge unilaterally');
-    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "confirmed"');
-    Then_('we respond success 1 tx_id "NEW.AAAL" my_balance 210 other_balance 0 and message "report undo|report short transaction" with subs: "DATA'
-    . '\\| solution | action  | otherName | amount | balance | tid | short |'
-    . '\\| reversed | charged | Abe One    | $60    | $210    | 3   | $40   |"');
+    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW:AAAH", with the request "confirmed"');
+    Then_('we respond success 1 tx_id "NEW:AAAL" my_balance "$210" other_balance "$0" and message "report undo|report short invoice" with subs: "DATA'
+    . '\\| solution | action  | otherName | amount | balance | tid | short | t2id |'
+    . '\\| reversed | charged | Abe One   | $60    | $210    | 3   | $40   | 4    |"');
     And__('we email "new-charge" to member "a@example.com" with subs: "DATA'
     . '\\| created | fullName | otherName  | amount | payerPurpose |'
     . '\\| %today  | Abe One  | Corner Pub | $60    | reverses #3  |"');
-    And__('balances: "DATA'
+    And__('"asif" balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -780 |'
     . '\\| NEW.ZZA   |       0 |'
@@ -260,12 +188,12 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed charge, with insufficient balance
   public function testAMemberAsksToUndoACompletedChargeWithInsufficientBalance_0() {
-    $this->setUp(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAH", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom | otherName  | purpose |'
     . '\\| %today-3d | $100   | from   | Corner Pub | labor H |"');
-    And__('balances: "DATA'
+    And__('"asif" balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -795 |'
     . '\\| NEW.ZZA   |      70 |'
@@ -275,29 +203,26 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed charge, with insufficient balance
   public function testAMemberConfirmsRequestToUndoACompletedChargeWithInsufficientBalance_0() {
-    $this->setUp(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "confirmed"');
-    Then_('we respond success 1 tx_id "NEW.AAAL" my_balance 0 other_balance "" and message "report undo|report short transaction" with subs: "DATA'
-    . '\\| solution | action| otherName  | amount | balance | tid | short |'
-    . '\\| reversed | paid  | Corner Pub | $60    | $0      | 5   | $40   |"');
-    And__('we email "new-payment" to member "c@example.com" with subs: "DATA'
-    . '\\| created | fullName   | otherName | amount | payeePurpose |'
-    . '\\| %today  | Corner Pub | Abe One   | $60    | reverses #2  |"');
-    And__('balances: "DATA'
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAH", with the request "confirmed"');
+    Then_('we respond success 0 tx_id "" my_balance "$70" other_balance "" and message "short payment" with subs: "DATA'
+    . '\\| short |'
+    . '\\| $40   |"');
+    And__('"asif" balances: "DATA'
     . '\\| id        | balance |'
-    . '\\| community |    -780 |'
-    . '\\| NEW.ZZA   |       0 |'
-    . '\\| NEW.ZZC   |     210 |"');
+    . '\\| community |    -795 |'
+    . '\\| NEW.ZZA   |      70 |'
+    . '\\| NEW.ZZC   |     155 |"');
   }
 
   // Scenario: A member asks to undo a completed payment, with insufficient balance
   public function testAMemberAsksToUndoACompletedPaymentWithInsufficientBalance_1() {
-    $this->setUp(__FUNCTION__, 1);
-    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
+    $this->setUp2(__FUNCTION__, 1);
+    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW:AAAH", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom | otherName | purpose |'
     . '\\| %today-3d | $100   | to     | Abe One   | labor H |"');
-    And__('balances: "DATA'
+    And__('"asif" balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -795 |'
     . '\\| NEW.ZZA   |      70 |'
@@ -306,15 +231,15 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed payment, with insufficient balance
   public function testAMemberConfirmsRequestToUndoACompletedPaymentWithInsufficientBalance_1() {
-    $this->setUp(__FUNCTION__, 1);
-    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "confirmed"');
-    Then_('we respond success 1 tx_id "NEW.AAAL" my_balance 155 other_balance "" and message "report undo|report invoice" with subs: "DATA'
+    $this->setUp2(__FUNCTION__, 1);
+    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW:AAAH", with the request "confirmed"');
+    Then_('we respond success 1 tx_id "NEW:AAAL" my_balance "$155" other_balance "" and message "report undo|report invoice" with subs: "DATA'
     . '\\| solution | action  | otherName | amount | balance | tid |'
     . '\\| reversed | charged | Abe One    | $100   | $525    | 3   |"');
     And__('we email "new-invoice" to member "a@example.com" with subs: "DATA'
     . '\\| created | fullName  | otherName  | amount | payerPurpose |'
     . '\\| %today  | Abe One   | Corner Pub | $100   | reverses #3  |"');
-    And__('balances: "DATA'
+    And__('"asif" balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -795 |'
     . '\\| NEW.ZZA   |      70 |'
@@ -323,13 +248,13 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed payment unilaterally, with insufficient balance
   public function testAMemberAsksToUndoACompletedPaymentUnilaterallyWithInsufficientBalance_1() {
-    $this->setUp(__FUNCTION__, 1);
+    $this->setUp2(__FUNCTION__, 1);
     Given('member "NEW.ZZC" can charge unilaterally');
-    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
+    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW:AAAH", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom  | otherName | purpose |'
     . '\\| %today-3d | $100   | to      | Abe One   | labor H |"');
-    And__('balances: "DATA'
+    And__('"asif" balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -795 |'
     . '\\| NEW.ZZA   |      70 |'
@@ -339,16 +264,16 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed payment unilaterally, with insufficient balance
   public function testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterallyWithInsufficientBalance_1() {
-    $this->setUp(__FUNCTION__, 1);
+    $this->setUp2(__FUNCTION__, 1);
     Given('member "NEW.ZZC" can charge unilaterally');
-    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "confirmed"');
-    Then_('we respond success 1 tx_id "NEW.AAAL" my_balance 210 other_balance 0 and message "report undo|report short transaction" with subs: "DATA'
-    . '\\| solution | action  | otherName | amount | balance | tid | short |'
-    . '\\| reversed | charged | Abe One    | $60    | $210    | 3   | $40   |"');
+    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW:AAAH", with the request "confirmed"');
+    Then_('we respond success 1 tx_id "NEW:AAAL" my_balance "$210" other_balance "$0" and message "report undo|report short invoice" with subs: "DATA'
+    . '\\| solution | action  | otherName | amount | balance | tid | short | t2id |'
+    . '\\| reversed | charged | Abe One   | $60    | $210    | 3   | $40   | 4    |"');
     And__('we email "new-charge" to member "a@example.com" with subs: "DATA'
     . '\\| created | fullName | otherName  | amount | payerPurpose |'
     . '\\| %today  | Abe One  | Corner Pub | $60    | reverses #3  |"');
-    And__('balances: "DATA'
+    And__('"asif" balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -780 |'
     . '\\| NEW.ZZA   |       0 |'
@@ -357,12 +282,12 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member asks to undo a completed charge, with insufficient balance
   public function testAMemberAsksToUndoACompletedChargeWithInsufficientBalance_1() {
-    $this->setUp(__FUNCTION__, 1);
-    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
+    $this->setUp2(__FUNCTION__, 1);
+    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAH", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom | otherName  | purpose |'
     . '\\| %today-3d | $100   | from   | Corner Pub | labor H |"');
-    And__('balances: "DATA'
+    And__('"asif" balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -795 |'
     . '\\| NEW.ZZA   |      70 |'
@@ -372,213 +297,16 @@ class rsmartInsufficient extends DrupalWebTestCase {
 
   // Scenario: A member confirms request to undo a completed charge, with insufficient balance
   public function testAMemberConfirmsRequestToUndoACompletedChargeWithInsufficientBalance_1() {
-    $this->setUp(__FUNCTION__, 1);
-    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "confirmed"');
-    Then_('we respond success 1 tx_id "NEW.AAAL" my_balance 0 other_balance "" and message "report undo|report short transaction" with subs: "DATA'
-    . '\\| solution | action| otherName  | amount | balance | tid | short |'
-    . '\\| reversed | paid  | Corner Pub | $60    | $0      | 5   | $40   |"');
-    And__('we email "new-payment" to member "c@example.com" with subs: "DATA'
-    . '\\| created | fullName   | otherName | amount | payeePurpose |'
-    . '\\| %today  | Corner Pub | Abe One   | $60    | reverses #2  |"');
-    And__('balances: "DATA'
-    . '\\| id        | balance |'
-    . '\\| community |    -780 |'
-    . '\\| NEW.ZZA   |       0 |'
-    . '\\| NEW.ZZC   |     210 |"');
-  }
-
-  // Scenario: A member asks to undo a completed payment, with insufficient balance
-  public function testAMemberAsksToUndoACompletedPaymentWithInsufficientBalance_2() {
-    $this->setUp(__FUNCTION__, 2);
-    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
-    Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
-    . '\\| created   | amount | tofrom | otherName | purpose |'
-    . '\\| %today-3d | $100   | to     | Abe One   | labor H |"');
-    And__('balances: "DATA'
+    $this->setUp2(__FUNCTION__, 1);
+    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAH", with the request "confirmed"');
+    Then_('we respond success 0 tx_id "" my_balance "$70" other_balance "" and message "short payment" with subs: "DATA'
+    . '\\| short |'
+    . '\\| $40   |"');
+    And__('"asif" balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -795 |'
     . '\\| NEW.ZZA   |      70 |'
     . '\\| NEW.ZZC   |     155 |"');
-  }
-
-  // Scenario: A member confirms request to undo a completed payment, with insufficient balance
-  public function testAMemberConfirmsRequestToUndoACompletedPaymentWithInsufficientBalance_2() {
-    $this->setUp(__FUNCTION__, 2);
-    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "confirmed"');
-    Then_('we respond success 1 tx_id "NEW.AAAL" my_balance 155 other_balance "" and message "report undo|report invoice" with subs: "DATA'
-    . '\\| solution | action  | otherName | amount | balance | tid |'
-    . '\\| reversed | charged | Abe One    | $100   | $525    | 3   |"');
-    And__('we email "new-invoice" to member "a@example.com" with subs: "DATA'
-    . '\\| created | fullName  | otherName  | amount | payerPurpose |'
-    . '\\| %today  | Abe One   | Corner Pub | $100   | reverses #3  |"');
-    And__('balances: "DATA'
-    . '\\| id        | balance |'
-    . '\\| community |    -795 |'
-    . '\\| NEW.ZZA   |      70 |'
-    . '\\| NEW.ZZC   |     155 |"');
-  }
-
-  // Scenario: A member asks to undo a completed payment unilaterally, with insufficient balance
-  public function testAMemberAsksToUndoACompletedPaymentUnilaterallyWithInsufficientBalance_2() {
-    $this->setUp(__FUNCTION__, 2);
-    Given('member "NEW.ZZC" can charge unilaterally');
-    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
-    Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
-    . '\\| created   | amount | tofrom  | otherName | purpose |'
-    . '\\| %today-3d | $100   | to      | Abe One   | labor H |"');
-    And__('balances: "DATA'
-    . '\\| id        | balance |'
-    . '\\| community |    -795 |'
-    . '\\| NEW.ZZA   |      70 |'
-    . '\\| NEW.ZZB   |     570 |'
-    . '\\| NEW.ZZC   |     155 |"');
-  }
-
-  // Scenario: A member confirms request to undo a completed payment unilaterally, with insufficient balance
-  public function testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterallyWithInsufficientBalance_2() {
-    $this->setUp(__FUNCTION__, 2);
-    Given('member "NEW.ZZC" can charge unilaterally');
-    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "confirmed"');
-    Then_('we respond success 1 tx_id "NEW.AAAL" my_balance 210 other_balance 0 and message "report undo|report short transaction" with subs: "DATA'
-    . '\\| solution | action  | otherName | amount | balance | tid | short |'
-    . '\\| reversed | charged | Abe One    | $60    | $210    | 3   | $40   |"');
-    And__('we email "new-charge" to member "a@example.com" with subs: "DATA'
-    . '\\| created | fullName | otherName  | amount | payerPurpose |'
-    . '\\| %today  | Abe One  | Corner Pub | $60    | reverses #3  |"');
-    And__('balances: "DATA'
-    . '\\| id        | balance |'
-    . '\\| community |    -780 |'
-    . '\\| NEW.ZZA   |       0 |'
-    . '\\| NEW.ZZC   |     210 |"');
-  }
-
-  // Scenario: A member asks to undo a completed charge, with insufficient balance
-  public function testAMemberAsksToUndoACompletedChargeWithInsufficientBalance_2() {
-    $this->setUp(__FUNCTION__, 2);
-    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
-    Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
-    . '\\| created   | amount | tofrom | otherName  | purpose |'
-    . '\\| %today-3d | $100   | from   | Corner Pub | labor H |"');
-    And__('balances: "DATA'
-    . '\\| id        | balance |'
-    . '\\| community |    -795 |'
-    . '\\| NEW.ZZA   |      70 |'
-    . '\\| NEW.ZZB   |     570 |'
-    . '\\| NEW.ZZC   |     155 |"');
-  }
-
-  // Scenario: A member confirms request to undo a completed charge, with insufficient balance
-  public function testAMemberConfirmsRequestToUndoACompletedChargeWithInsufficientBalance_2() {
-    $this->setUp(__FUNCTION__, 2);
-    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "confirmed"');
-    Then_('we respond success 1 tx_id "NEW.AAAL" my_balance 0 other_balance "" and message "report undo|report short transaction" with subs: "DATA'
-    . '\\| solution | action| otherName  | amount | balance | tid | short |'
-    . '\\| reversed | paid  | Corner Pub | $60    | $0      | 5   | $40   |"');
-    And__('we email "new-payment" to member "c@example.com" with subs: "DATA'
-    . '\\| created | fullName   | otherName | amount | payeePurpose |'
-    . '\\| %today  | Corner Pub | Abe One   | $60    | reverses #2  |"');
-    And__('balances: "DATA'
-    . '\\| id        | balance |'
-    . '\\| community |    -780 |'
-    . '\\| NEW.ZZA   |       0 |'
-    . '\\| NEW.ZZC   |     210 |"');
-  }
-
-  // Scenario: A member asks to undo a completed payment, with insufficient balance
-  public function testAMemberAsksToUndoACompletedPaymentWithInsufficientBalance_3() {
-    $this->setUp(__FUNCTION__, 3);
-    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
-    Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
-    . '\\| created   | amount | tofrom | otherName | purpose |'
-    . '\\| %today-3d | $100   | to     | Abe One   | labor H |"');
-    And__('balances: "DATA'
-    . '\\| id        | balance |'
-    . '\\| community |    -795 |'
-    . '\\| NEW.ZZA   |      70 |'
-    . '\\| NEW.ZZC   |     155 |"');
-  }
-
-  // Scenario: A member confirms request to undo a completed payment, with insufficient balance
-  public function testAMemberConfirmsRequestToUndoACompletedPaymentWithInsufficientBalance_3() {
-    $this->setUp(__FUNCTION__, 3);
-    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "confirmed"');
-    Then_('we respond success 1 tx_id "NEW.AAAL" my_balance 155 other_balance "" and message "report undo|report invoice" with subs: "DATA'
-    . '\\| solution | action  | otherName | amount | balance | tid |'
-    . '\\| reversed | charged | Abe One    | $100   | $525    | 3   |"');
-    And__('we email "new-invoice" to member "a@example.com" with subs: "DATA'
-    . '\\| created | fullName  | otherName  | amount | payerPurpose |'
-    . '\\| %today  | Abe One   | Corner Pub | $100   | reverses #3  |"');
-    And__('balances: "DATA'
-    . '\\| id        | balance |'
-    . '\\| community |    -795 |'
-    . '\\| NEW.ZZA   |      70 |'
-    . '\\| NEW.ZZC   |     155 |"');
-  }
-
-  // Scenario: A member asks to undo a completed payment unilaterally, with insufficient balance
-  public function testAMemberAsksToUndoACompletedPaymentUnilaterallyWithInsufficientBalance_3() {
-    $this->setUp(__FUNCTION__, 3);
-    Given('member "NEW.ZZC" can charge unilaterally');
-    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
-    Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
-    . '\\| created   | amount | tofrom  | otherName | purpose |'
-    . '\\| %today-3d | $100   | to      | Abe One   | labor H |"');
-    And__('balances: "DATA'
-    . '\\| id        | balance |'
-    . '\\| community |    -795 |'
-    . '\\| NEW.ZZA   |      70 |'
-    . '\\| NEW.ZZB   |     570 |'
-    . '\\| NEW.ZZC   |     155 |"');
-  }
-
-  // Scenario: A member confirms request to undo a completed payment unilaterally, with insufficient balance
-  public function testAMemberConfirmsRequestToUndoACompletedPaymentUnilaterallyWithInsufficientBalance_3() {
-    $this->setUp(__FUNCTION__, 3);
-    Given('member "NEW.ZZC" can charge unilaterally');
-    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "confirmed"');
-    Then_('we respond success 1 tx_id "NEW.AAAL" my_balance 210 other_balance 0 and message "report undo|report short transaction" with subs: "DATA'
-    . '\\| solution | action  | otherName | amount | balance | tid | short |'
-    . '\\| reversed | charged | Abe One    | $60    | $210    | 3   | $40   |"');
-    And__('we email "new-charge" to member "a@example.com" with subs: "DATA'
-    . '\\| created | fullName | otherName  | amount | payerPurpose |'
-    . '\\| %today  | Abe One  | Corner Pub | $60    | reverses #3  |"');
-    And__('balances: "DATA'
-    . '\\| id        | balance |'
-    . '\\| community |    -780 |'
-    . '\\| NEW.ZZA   |       0 |'
-    . '\\| NEW.ZZC   |     210 |"');
-  }
-
-  // Scenario: A member asks to undo a completed charge, with insufficient balance
-  public function testAMemberAsksToUndoACompletedChargeWithInsufficientBalance_3() {
-    $this->setUp(__FUNCTION__, 3);
-    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
-    Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
-    . '\\| created   | amount | tofrom | otherName  | purpose |'
-    . '\\| %today-3d | $100   | from   | Corner Pub | labor H |"');
-    And__('balances: "DATA'
-    . '\\| id        | balance |'
-    . '\\| community |    -795 |'
-    . '\\| NEW.ZZA   |      70 |'
-    . '\\| NEW.ZZB   |     570 |'
-    . '\\| NEW.ZZC   |     155 |"');
-  }
-
-  // Scenario: A member confirms request to undo a completed charge, with insufficient balance
-  public function testAMemberConfirmsRequestToUndoACompletedChargeWithInsufficientBalance_3() {
-    $this->setUp(__FUNCTION__, 3);
-    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "confirmed"');
-    Then_('we respond success 1 tx_id "NEW.AAAL" my_balance 0 other_balance "" and message "report undo|report short transaction" with subs: "DATA'
-    . '\\| solution | action| otherName  | amount | balance | tid | short |'
-    . '\\| reversed | paid  | Corner Pub | $60    | $0      | 5   | $40   |"');
-    And__('we email "new-payment" to member "c@example.com" with subs: "DATA'
-    . '\\| created | fullName   | otherName | amount | payeePurpose |'
-    . '\\| %today  | Corner Pub | Abe One   | $60    | reverses #2  |"');
-    And__('balances: "DATA'
-    . '\\| id        | balance |'
-    . '\\| community |    -780 |'
-    . '\\| NEW.ZZA   |       0 |'
-    . '\\| NEW.ZZC   |     210 |"');
   }
 
 }

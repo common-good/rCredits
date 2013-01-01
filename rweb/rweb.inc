@@ -55,7 +55,12 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'password reset' => t('Your new password has been emailed to you.'),
   'changed agent' => t('You successfully changed the agent to @agentName.'),
   'changed account' => t('You successfully changed the account to @accountName.'),
- 
+  'nothing undone' => t('Nothing undone.'),
+
+  // confirm
+  'yes or no' =>  '@yesNo', // to replace with yesNo(url)
+  'confirm undo' => t('Undo @created@asif transfer of @amount @tofrom @otherName?'),
+
   // errors
   'missing purpose' => t('<p>For buying or selling actual goods and services, you must include a description. Otherwise select "cash/loan/etc.". Rebates and bonuses are intended as rewards for productive economic activity in rCredits.</p>
     <p>For everyone\'s protection, the rCredits software automatically detects and penalizes attempts to "game" the system.</p>'),
@@ -94,19 +99,47 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'what relation' => t('Are you an owner or an employee of the company? (please choose one or both)'),
 );
 
-/*
-function modal_form($form, &$sta) {
-  $form = array(
-    'one' => formField('textfield', 'prompt', 'help text', 'default'),
-    'submit' => formField('submit', t('Go!')),
-  );
-  
-  return $form;
+/**
+ * Return yes and no buttons.
+ * Do NOT use button() here (it kills the site)
+ */
+function yesNo($yesURL, $noURL = '', $yesNext = 'empty', $noNext = 'empty') {
+  svar('yesNext', $yesNext);
+  svar('noNext', $noNext);
+  return <<<EOF
+<br>
+<input type="button" name="op" onclick="document.location.href='$yesURL'" value="Yes" class="form-local form-submit">
+&nbsp;
+<input type="button" name="op" onclick="document.location.href='$noURL'" value="No" class="form-local form-submit">
+EOF;
 }
-*/
+
+function button($value, $href = '', $title = '', $type = '') {
+  $title = htmlspecialchars($title);
+  $button_type = 'local form-submit' . ($type ? " $type" : ''); // Drupal prefixes this with 'form-'
+  $markup = array($value => formField('button', '', '', compact(u\ray('value button_type title'))));
+  $markup = render($markup);
+  $markup = str_replace('"submit"', '"button"', $markup); // compensate for Drupal pigheadedness
+  if ($href) {
+    if (strpos($href, 'http://') !== FALSE or substr($href, 0, 1) == '/') $href = "document.location.href='$href';";
+    $name = 'name="op"';
+    $markup = str_replace($name, ($button_type == 'local' ? '' : "$name ") . "onclick=\"$href\"", $markup);
+//  if ($href) $markup = "<a href=\"$href\" title=\"$title\">$markup</a>";
+  }
+  return $markup;
+}
+
+function formField($type, $title = '', $description = '', $other = array(), $options = NULL, $ajax = array()) {
+  if (!is_array($other)) $other = array(($type == 'item' ? 'markup' : 'value') => $other);
+  if (empty($other) and in_array($type, u\ray('item hidden submit'))) $other['value'] = $title;
+  $field = u\prefixKeys('#', array_merge(compact(u\ray('type title description options')), $other));
+  return $field;
+}
 
 function test($arg) {
   global $user;
+//  cache_set('t_resume', FALSE); // cleanup after potential previous failures
+//  cache_set('t_messages', FALSE);
   include __DIR__ . '/../../gherkin/test.php';
   $adminPass = '123';
   $account = user_authenticate('admin', $adminPass);
@@ -203,7 +236,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     $formName = substr($function, 0, 1) == '\\' ? substr($function, 1) : "rCredits\\Web\\form$function";
 //    if ($newLayout) svar('layout', $layout); // do this before drupal_get_form, so forms can know the current layout
     $form = \drupal_get_form($formName, $arg1, $arg2, $arg3, $arg4);
-    \rweb_form_alter($form, $sta = array(), $formName);
+    $sta = array(); \rweb_form_alter($form, $sta, $formName);
     $form['#attributes']['class'][] = 'rweb';
 //    if ($newLayout) $form['#cache'] = FALSE;
     if (!@$form['confirm']) $form += which(); // add the choices popup form, if any
@@ -219,7 +252,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
 //      debug($form);
     }
 
-    $rent = render($form2 = $form);
+    $form2 = $form; $rent = render($form2);
     t\testOutput($formOutput = t\strip($rent), 'screen');
     if ($colgroup = @$form['#colgroup']) {
       unset($form['#colgroup']);
@@ -546,21 +579,27 @@ function formAccounts_submit($form, &$sta) {
 }
 
 function formMenu($page) {
-  $menu = goButton(t('Charge'), 'charge', t('Charge someone'))
-        + goButton(t('Pay'), 'pay', t('Pay someone'))
-        + goButton(t('Summary'), 'summary', t('Account summary'))
-        + goButton(t('Transactions'), 'transactions', t('Show transaction history'))
-        + goButton(t('Get r/USD'), 'exchange', t('Exchange rCredits for USD or vice-versa'))
+  $menu = array()
+        + goButtonIf(PERM_SELL, t('Charge'), 'charge', t('Charge someone'))
+        + goButtonIf(PERM_BUY, t('Pay'), 'pay', t('Pay someone'))
+  ;
+  if ($lastZxid = svar('lastZxid')) $menu += goButton(t('Undo'), "undo", t('Undo the last transaction'));
+  if (r\otherBalance(svar('lastOther'))) $menu += goButton(t('Customer Bal'), 'remainder', t("Display the customer's current balance."));
+//  if (count($menu) == 1) $menu += goButton(t(''), '', ''); // filler
+  $menu += array()
+        + goButtonIf(PERM_MANAGE, t('Summary'), 'summary', t('Account summary'))
+        + goButtonIf(PERM_MANAGE, t('Transactions'), 'transactions', t('Show transaction history'))
+        + goButtonIf(PERM_MANAGE, t('Get r/USD'), 'exchange', t('Exchange rCredits for USD or vice-versa'))
         + goButton(t('Find Companies'), 'directory', t('Find an rCredits member company'))
         + goButton(t('Help'), "help/$page", t('Help with this page'))
         + goButton(t('Reports'), 'reports', t('rCredits syste-wide or community-wide activity reports'))
-        + goButton(t('Account'), 'account', t('Basic account information'))
-        + goButton(t('Mobile'), 'account/cells', t('Authorize mobile devices for this account'))
-        + goButton(t('Relations'), 'account/relations', t('Connect other members to this account'))
-        + goButton(t('Preferences'), 'account/preferences', t('Set your account preferences'))
-        + goButton(t('Contact Info'), 'account/contact', t('Tell us where to find you'))
-        + goButton(t('Membership'), 'membership', t('Your rCredits membership progress'))
-        + (r\acct()->can(PERM_COMPANY) ? goButton(t('Company Info'), 'account/company', t('Describe this company')) : array())
+        + goButtonIf(PERM_MANAGE, t('Account'), 'account', t('Basic account information'))
+        + goButtonIf(PERM_MANAGE, t('Mobile'), 'account/cells', t('Authorize mobile devices for this account'))
+        + goButtonIf(PERM_MANAGE, t('Relations'), 'account/relations', t('Connect other members to this account'))
+        + goButtonIf(PERM_MANAGE, t('Preferences'), 'account/preferences', t('Set your account preferences'))
+        + goButtonIf(PERM_MANAGE, t('Contact Info'), 'account/contact', t('Tell us where to find you'))
+        + goButtonIf(PERM_MANAGE, t('Membership'), 'membership', t('Your rCredits membership progress'))
+        + goButtonIf(PERM_MANAGE | PERM_COMPANY, t('Company Info'), 'account/company', t('Describe this company'))
         + goButton(t('Logout'), 'user/logout', t('End your rCredits session'))
   ;
   $menu = formField('fieldset', '', '', array('id' => 'menu')) + compact('menu');
@@ -572,6 +611,8 @@ function goButton($label, $goto, $title) {
   $name = str_replace('/', '_', $goto);
   return array($name => formField('item', '', '', button($label, "$gotoHead/$goto", $title)));
 }
+
+function goButtonIf($perm, $label, $goto, $title) {return r\acct()->can($perm) ? goButton($label, $goto, $title) : array();}
 
 /**
  * Display the member company's profile (no editable fields here)
@@ -639,6 +680,15 @@ function profile_picture($uid, $with_markup = FALSE) {
   return strtr('<div class="user-picture"><img src="url" width="new_width" height="new_height" alt="profile picture" /></div>', $subs);
 }
 
+function formAdjust($form, &$sta, $argString = '') {
+  $form = array(
+    'title' => formField('item', t('Adjust User\'s Settings')),
+    // $onchange =
+    'user' => formField('textfield', t('Who'), t('Type a name, id, email, phone, or a list of ids.'), autocomplete('') + attrib(compact('onchange'))),
+  );
+  return $form;
+}
+
 /**
  * Get a transaction request (usually pay or charge) and process it
  * @param string $argString: all or some parameters for the form (when called from directory or draft form)
@@ -686,6 +736,43 @@ function formTx_submit($form, &$sta) {
   transfer($sta['values'], TRUE); // op who amount goods what
   $sta['redirect'] = current_path(); // clean out the fields
 //  if (!@TESTING == 1) r\go(current_path());
+}
+
+/**
+ * Undo the last transaction.
+ */
+function undo($confirmed = FALSE) {
+  if (!($zxid = svar('lastZxid'))) r\go('');
+  if ($confirmed) {
+    list ($message, $args) = be\undoTx($zxid);
+    say($message, $args);
+    if (@$args['success'] and svar('lastZxid') == $zxid) svar('lastZxid', FALSE);
+  } elseif ($confirmed === '0') {
+    say('nothing undone');
+  } else {
+    $args = be\lastTx('zxid=:zxid', compact('zxid'));
+    $args['yesNo'] = yesNo('undo/1', 'undo/0');
+    if ($args) say('confirm undo|yes or no', r\txReportArgs($args));
+  }
+  r\go('empty');
+}
+
+/**
+ * Show remaining customer balance.
+ */
+function remainder() {
+  $acct = svar('lastCustomer');
+  if ($acct) {
+    $otherName = $acct->full_name;
+    $uid = $acct->id;
+    $balance = be\creditInfo(compact('uid'))->fancy['balance'];
+    say('customer balance', compact('otherName', 'balance'));
+  } else say('no last customer', 'zot');
+  r\go('empty');
+}
+
+function formEmpty($form, &$sta) {
+  return array('title' => formField('item', 'this'));
 }
 
 /**
@@ -1081,13 +1168,15 @@ EOF;
 
 function dropdown($name, $value, $options, $id) {
   $name = "$name-$id";
-  return render($zot = array("$name-$id" => formField('select', '', '', compact('value') + attrib(compact('name')), $options)));
+  $zot = array("$name-$id" => formField('select', '', '', compact('value') + attrib(compact('name')), $options));
+  return render($zot);
 }
 
 function toggle($field, $value, $id, $highlight = 'never') {
   $path = current_path();
   $name = $id = "$field-$id";
-  $input = \render($zot = array($id => formField('hidden', '', '', attrib(compact(u\ray('id name value'))))));
+  $zot = array($id => formField('hidden', '', '', attrib(compact(u\ray('id name value')))));
+  $input = \render($zot);
   $b1 = button(' - ', "toggle('$id');", t('Change to NO'), 'form-no');
   $b2 = button(' + ', "toggle('$id');", t('Change to YES'), 'form-yes');
 
@@ -1289,12 +1378,13 @@ function formRegister(&$form, &$sta) {
   focusOn('full_name');
   keep_values($form);
   t\snapShot($form);
-  debug('bottom of formRegister');
 }
 
 function formRegister_validate($form, &$sta) {
+  if (!isset($sta['buttons'])) $sta['buttons'] = array(); // for testing (keep Drupal from griping)
   extract(u\just('company company_phone company_options full_name postal_code', $values = u\trimAll($sta['values'])));
-
+  $sta['values'] = array(); // make sure Drupal doesn't save the record WE find an error
+  
   if (@$company) {
     if (!($companyPhone = u\formatPhone($company_phone, '+n'))) return say('bad company phone', compact('companyPhone'), 'company_phone');
     $sta['company_phone'] = $companyPhone;
@@ -1309,13 +1399,13 @@ function formRegister_validate($form, &$sta) {
 //  $name = $name0 = u\shortName($full_name);
 //  if (r\userField(1, 'name=:name', compact('name'))) return say('duplicate name'); // require unique full_name
 
-  u\normalizeCase(u\ray('full_name city address'));
+  $params = u\ray('full_name city address'); // prepare for pass-by-reference
+  list ($full_name, $city, $address) = u\normalizeCase($params);
   $community_uid = r\communityUid($postal_code);
   $flags = BIT_DEFAULTS;
   $administer_users = FALSE; // for testing (keep Drupal from griping)
   $status = 1;
   $sta['values'] = array_merge($values, compact(u\ray('name data community_uid flags administer_users status')));
-  if (!isset($sta['buttons'])) $sta['buttons'] = array(); // for testing (keep Drupal from griping)
 }
 
 function formRegister_submit($form, &$sta) {
@@ -1630,20 +1720,6 @@ function formCompany_submit($form, &$sta) {
   say('info saved');
 }
 
-function button($value, $href = '', $title = '', $type = '') {
-  $title = htmlspecialchars($title);
-  $button_type = 'local form-submit' . ($type ? " $type" : ''); // Drupal prefixes this with 'form-'
-  $markup = render($zot = array($value => formField('button', '', '', compact(u\ray('value button_type title')))));
-  $markup = str_replace('"submit"', '"button"', $markup); // compensate for Drupal pigheadedness
-  if ($href) {
-    if (strpos($href, 'http://') !== FALSE or substr($href, 0, 1) == '/') $href = "document.location.href='$href';";
-    $name = 'name="op"';
-    $markup = str_replace($name, ($button_type == 'local' ? '' : "$name ") . "onclick=\"$href\"", $markup);
-//  if ($href) $markup = "<a href=\"$href\" title=\"$title\">$markup</a>";
-  }
-  return $markup;
-}
-
 /**
  * Show a page when someone scans an account ID QR, for example with QRDroid.
  * Cases (ideally):
@@ -1661,20 +1737,23 @@ function formI($form, &$sta, $who) {
     return r\go('');
   }
   
+  $shortName = $acct->name;
   if ($acct->can(PERM_COMPANY)) $site = goButton(t('Show Webpage'), "member/$shortName", t("See this company's rCredits webpage"));
 
   if ($cacct) { // can charge, pay, or change account or agent only if signed in
-    $shortName = $acct->name;
     $theId = formField('hidden', $otherId);
     $theAgent = formField('hidden', $otherAgent);
     if ($cacct->can(PERM_SELL)) $charge = goButton(t('Charge'), "charge/who=$shortName&ided=1", t('Charge someone'));
     if ($cacct->can(PERM_BUY)) $pay = goButton(t('Pay'), "pay/who=$shortName&ided=1", t('Pay someone'));
     if (r\acct($myId, $otherAgent)->can()) $changeAgent = goButton(t('Change Agent'), "user/logout/who=$shortName", t('Change Shift?'));
     if (r\acct($otherId, $myAgent)->can()) $changeAccount = formField('submit', t('Change Account'));
-    $all = identifiers($acct) . render($zot = compact(u\ray('charge pay changeAgent changeAccount site')));
+    $zot = compact(u\ray('charge pay changeAgent changeAccount site'));
+    $all = identifiers($acct) . render($zot);
+    svar('lastCustomer', $acct);
   } else {
     $login = formField('item', t('Please login, to Pay or Charge this account.'));
-    $all = render($zot = compact('login', 'site'));
+    $zot = compact('login', 'site');
+    $all = render($zot);
   }
 
   $all = formField('item', '', '', $all);
@@ -1806,12 +1885,22 @@ function memberID($uid = '') {
   $pdf->write2DBarcode("HTTP://RC2.ME/I/$qid", 'QRCODE,Q', 53, 25, 25, 25, $style, 'N'); // L,M,Q,H are low-high error-correction
   $pdf->Image(__DIR__ . '/../images/rlogo150.png', 85, 25, 14.93, 20, '', '', '', true, 150, '', false, false, 0, false, false, false);
 
-  $html = strtr('<span style="font-size:22px;">Member ID<br><span style="font-size:38px; color:darkred;">@CODE</span><br>@REGION</span>', array('@CODE' => $qid, '@REGION' => R_REGION_NAME));
+  $html = strtr('<span style="font-size:22px;">Member<br><span style="font-size:38px; color:darkred;">@CODE</span><br>@REGION</span>', array('@CODE' => $qid, '@REGION' => R_REGION_NAME));
   $pdf->writeHTMLCell(50, 15, 52, 10, $html); // w, h, x, y
   $pdf->writeHTMLCell(20, 5, 85, 47, '<div style="font-size:22px;">rCredits.org</div>');
   $pdf->writeHTMLCell(91, 20, 10, 55, "<div style=\"font-size:$nameSize; text-align:center; color:midnightblue; font-weight:bold;\">$full_name</div>");
   
-  $pdf->writeHTMLCell(90, 64, 110, 5, 'Here is your<h1 style="color:darkgreen;">Temporary Member ID Card</h1><p>You may cut out this card and use it for "AS-IF" transactions, to complete your membership requirements.</p><p>To print, right-click here, then click on "Print" OR use your browser\'s print icon.');
+$instructions = <<<EOF
+<style>
+  big {color:darkgreen; font-size:2em;}
+  p {margin-top:.5em;}
+</style>
+Here is your<br><b style="color:darkgreen; font-size:1.3em;">Temporary Member ID Card</b>
+<p>You may print this card and use it for "AS-IF" transactions, to complete your membership requirements. To print, right-click here, then click on "Print" OR use your browser's print icon.</p>
+<p>To upload or change your photo, visit the "Settings" section.</p>
+EOF;
+ 
+  $pdf->writeHTMLCell(90, 64, 110, 5, $instructions);
   // Add temporary symbol over image (maybe remove lower right corner and add "temp"), to discourage unauthorized use
 //  $pdf->Image(__DIR__ . '/../images/icons/print.png', 120, 30, 32, 32, '', '', '', true, 150, '', false, false, 0, false, false, false);
   
@@ -1997,6 +2086,7 @@ function whois($who, $field_name, $info, $allow_ALL = FALSE, $selfMsg = 'no self
  * @return confirmation message (FALSE if confirmation not appropriate -- Note that say() returns FALSE)
  */
 function transfer($info, $confirmed) {
+  global $lastZxid;
   $cuid = r\acct()->id;
   extract(u\just('op who amount goods purpose ided', $info));
   $txType = $op == 'Pay' ? 'payment' : strtolower($op);
@@ -2005,6 +2095,7 @@ function transfer($info, $confirmed) {
   if (!$goods) $purpose = 'cash'; // tell be\transfer it's not for goods (should be the only place this string occurs)
   if ($error = u\badAmount($amount)) return say($error, 'amount');
   if (!($acct = whois($who, 'who', $info, $txType == 'payment'))) return FALSE; // (allow "ALL" for payment)
+  svar('lastCustomer', $acct);
   list ($msg, $args, $confirm) = in_array($txType, array('payment', 'charge')) ?
        be\transfer($txType, $acct, $amount, $purpose, !u\forCash($purpose), $confirmed)
      : communityTransfer($txType, $acct, $amount, $confirmed);
@@ -2013,8 +2104,10 @@ function transfer($info, $confirmed) {
     $identifiers = "<div id='identifiers' class='clearfix'>$identifiers</div identifiers>";
   }
   if ($confirm) return @$identifiers . tt('confirm ' . $msg, $args);
-  if (@$args['success']) return say($msg, $args);
-  return say($msg, $args, 'amount');
+  if (!@$args['success']) return say($msg, $args, 'amount');
+
+  svar('lastZxid', $lastZxid); // remember identity of most recent transaction
+  return say($msg, $args);
 }
 
 /**
@@ -2056,13 +2149,6 @@ function menu($title, $type, $function = NULL, $function_args = array(), $access
     'module' => 'rweb',
     'file' => 'rweb.inc',
   ), $other); // $other overwrites, if there is a conflict
-}
-
-function formField($type, $title = '', $description = '', $other = array(), $options = NULL, $ajax = array()) {
-  if (!is_array($other)) $other = array(($type == 'item' ? 'markup' : 'value') => $other);
-  if (empty($other) and in_array($type, u\ray('item hidden submit'))) $other['value'] = $title;
-  $field = u\prefixKeys('#', array_merge(compact(u\ray('type title description options')), $other));
-  return $field;
 }
 
 /**

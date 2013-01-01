@@ -18,9 +18,9 @@ Setup:
 
 Scenario: The caller confirms a trade of rCredits for cash
   When phone +20001 confirms "100 to .ZZC for cash"
-  Then the community has r$-750
-  And phone +20003 has r$350
-  And phone +20001 has r$150
+  Then the community "asif" has r$-750
+  And phone +20003 "asif" has r$350
+  And phone +20001 "asif" has r$150
   And we say to phone +20001 "report exchange" with subs:
   | action | otherName | amount | balance | tid |
   | gave   | Corner Pub | $100   | $150    | 2   |
@@ -28,13 +28,13 @@ Scenario: The caller confirms a trade of rCredits for cash
 
 Scenario: The caller confirms an implicit trade of rCredits for cash
   When phone +20001 confirms "100 to .ZZC"
-  Then phone +20003 has r$350
-  And phone +20001 has r$150
+  Then phone +20003 "asif" has r$350
+  And phone +20001 "asif" has r$150
 
 Scenario: The caller confirms a request to trade cash for rCredits
   When phone +20003 confirms "100 from .ZZA for cash"
-  Then phone +20003 has r$250
-  And phone +20001 has r$250
+  Then phone +20003 "asif" has r$250
+  And phone +20001 "asif" has r$250
   And we say to phone +20003 "report exchange request" with subs:
   | action  | otherName | amount | tid |
   | charged | Abe One    | $100   | 2   |
@@ -43,8 +43,8 @@ Scenario: The caller confirms a request to trade cash for rCredits
 Scenario: The caller confirms a unilateral trade of cash for rCredits
   Given phone +20003 can charge unilaterally
   When phone +20003 confirms "100 from .ZZA for cash"
-  Then phone +20003 has r$350
-  And phone +20001 has r$150
+  Then phone +20003 "asif" has r$350
+  And phone +20001 "asif" has r$150
   And we say to phone +20003 "report exchange" with subs:
   | action  | otherName | amount | balance | tid |
   | charged | Abe One    | $100   | $350    | 2   |

@@ -1,0 +1,55 @@
+<?php
+//
+// Feature: test multi
+
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rweb.steps';
+
+class rwebmulti extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
+  var $sceneName;
+  const SHORT_NAME = 'multi';
+  const FEATURE_NAME = 'rweb Test - multi';
+  const DESCRIPTION = 'test multi';
+  const MODULE = 'rweb';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
+  }
+  
+  public static function getInfo() {
+    return array(
+      'short_name' => self::SHORT_NAME,
+      'name' => self::FEATURE_NAME,
+      'description' => self::DESCRIPTION,
+      'group' => ucwords(self::MODULE)
+    );
+  }
+
+  public function setUp($sceneName, $variant = '') { // especially, enable any modules required for the tests
+    global $sceneTest; $sceneTest = $this;
+    parent::setUp(self::MODULE);
+
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rweb.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
+    default: // fall through to case(0)
+
+    }
+  }
+
+  // Scenario: A member registers bad email
+  public function testAMemberRegistersBadEmail_0() {
+    $this->setUp(__FUNCTION__, 0);
+    When_('member "?" confirms form "\user_register_form" with values: "DATA'
+    . '\\| full_name | email     | country       | postal_code | state         | city    | account_type |'
+    . '\\| Abe One   | %whatever | United States | 01001       | Massachusetts | Amherst | personal     |"');
+    Then_('we say "error": "bad email" with "asif" subs: "DATA'
+    . '\\| email     |'
+    . '\\| %whatever |"');
+  }
+
+}

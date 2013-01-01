@@ -49,7 +49,7 @@ class acct {
       $info['status'] = TRUE;
       $info['is_new'] = TRUE;
       $info['roles'] = 0; // this keeps Drupal happy in user.module
-      $info['flags'] = BIT_DEFAULTS;
+      $info['flags'] = @$my_flags ?: (@$info['uid'] ? (BIT_DEFAULTS | BIT_RTRADER) : BIT_DEFAULTS);
       $info['community_uid'] = $region = serverUid(); // $communityUid(@$my_postal_code); // defaults to current server
 
       /*** Begin DBTX ***/ $dbtx = db_transaction();
@@ -58,7 +58,7 @@ class acct {
           $uid = $info['uid'] = self::nextId();
           if (\drupal_write_record('users', $info)) break;
         }
-      } elseif (!\drupal_write_record('users', $info)) $try == 20; // predestined uid (probably for testing)
+      } elseif (!\drupal_write_record('users', $info)) $try = 20; // predestined uid (probably for testing)
       u\EXPECT(@$try < 20, 'failed to save user record');
       if (isset($my_number)) {
         $success = SMS\create($my_number, $uid);
@@ -69,8 +69,10 @@ class acct {
       list($this->id, $this->agent, $this->region, $this->agentRegion) = array($uid, $uid, $region, $region);
       self::$records[$this->id] = (object) $info;
     }
-    $this->mainQid = qid($this->id, u\n2a(-$this->region, 3), 3);
-    $this->agentQid = qid($this->agent, u\n2a(-$this->agentRegion, 3), 3);
+    if ($this->id > 0) { // no qids for communities and regions!
+      $this->mainQid = qid($this->id, u\n2a(-$this->region, 3), 3);
+      $this->agentQid = qid($this->agent, u\n2a(-$this->agentRegion, 3), 3);
+    }
   }    
 
   /**
@@ -80,7 +82,7 @@ class acct {
     if ($error = u\EXPECT(compact(u\ray('id0 agent0')), 'zid|qid|assoc empty|id|qid', $test)) return FALSE;
     if ($error = u\EXPECT((bool) $id0, 'null uid in new acct()', $test)) return FALSE;
     if ($error = u\EXPECT(!(strpos($id0, ':') and $agent0), 'agent already specified in qid', $test)) return FALSE;
-    list ($id, $agent, $region) = u\isId($id0) ? array($id0, $agent0 ?: $id0, serverUid()) : UAR($id0); // handle
+    list ($id, $agent, $region) = u\isZid($id0) ? array($id0, $agent0 ?: $id0, serverUid()) : UAR($id0); // handle
 
     if (u\isQid($agent0)) {
       list ($agent, $zot, $agentRegion) = UAR($agent0);
@@ -89,28 +91,27 @@ class acct {
 
     $record = self::getRecord($id, $region);
     if ($error = u\EXPECT($record, 'That account does not exist.', $test)) return FALSE; // don't use tt() here (many calls)
-    self::$records[$id] = $record;
     u\EXPECT($id and $agent and $region and $agentRegion, "Missing acct property: [$id, $agent, $region, $agentRegion]");
     return array($id, $agent, $region, $agentRegion);
   }
   
-  private function getRecord($id, $region, $reread = FALSE) {
+  private static function getRecord($id, $region, $reread = FALSE) {
     if (@self::$records[$id] and !property_exists(self::$records[$id], 'flags')) die("No flags field in record $id: " . print_r(self::$records, 1)); // keep this
     if (@self::$records[$id] and !$reread) return self::$records[$id];
     if ($region != serverUid()) { // foreign
       // contact other server here, for the record
     } else {
       $records = be\getRecords('users', "uid=:id LIMIT 1", compact('id')); // domestic (don't use Drupal's caching)
-      return $records ? $records[0] : FALSE;
+      return $records ? (self::$records[$id] = $records[0]) : FALSE;
     }
   }
 
   public function reread() {self::getRecord($this->id, $this->region, TRUE);}
   
   public function __get($field) {
-    u\EXPECT((bool) self::$records, "Record has not been set up for uid $this->id");
+    if (!@self::$records[$this->id]) $this->reread(); // necessary when we pass an acct object to another page
 //    u\EXPECT(property_exists(self::$records[$this->id], $field), "bad field for uid $this->id: $field" . print_r(self::$records[$this->id], 1));
-    return @self::$records[$this->id]->$field;
+    return @self::$records[$this->id]->$field; // returns NULL if the field is not set
   }
   public function account() {return @self::$records[$this->id];}
 
@@ -133,6 +134,7 @@ class acct {
   
   public function setBit($bit, $on = TRUE) {
     $flags = $on ? ($this->flags | $bit) : ($this->flags & ~$bit);
+    $this->perms = NULL; // force redo in can()
     return $this->update(compact('flags'));
   }
   
@@ -154,7 +156,7 @@ class acct {
    * @param int $permission: the permission in question (DEFAULT PERM_READ)
    */
   public function can($permission = PERM_READ) {
-    if (!is_array($this->perms)) {
+    if (!is_array($this->perms)) { // set up perms if we haven't yet (setBit() resets this)
       $perms = array();
       $id = $this->id;
       if ($this->proSe()) {
