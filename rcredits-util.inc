@@ -55,12 +55,14 @@ function preK($prefix, $s) {
  * Typical use: extract(just('key2 key4 key 7', $info));
  * If a key did not exist in the original array, it will no be in the returned array either.
  * @param string $these: space-delimited array of field names
- * @param array/object $array: which values to return
+ * @param array/object/string $args: possible key/value pairs to return (passed as array, object, or UrlArgString)
  * @return array of the results
  */
-function just($these, $array) {
+function just($these, $args) {
   $result = array();
-  $array = (array) $array; // in case it was an object
+  if (is_string($args)) {
+    parse_str(strpos($args, urlencode('=')) ? urldecode($args) : $args, $array);
+  } else $array = (array) $args; // in case it was an object
   foreach (ray($these) as $one) if (isset($array[$one])) $result[$one] = $array[$one];
   return $result;
 }

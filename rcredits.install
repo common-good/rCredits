@@ -35,7 +35,7 @@ function rcredits_install() {
   // pictures
   variable_set('user_pictures', '1');
   variable_set('user_picture_default', 'sites/default/files/pictures/no-photo-available.jpg');
-  variable_set('user_picture_dimensions', '200x300');
+  variable_set('user_picture_dimensions', '1024x1024');
   variable_set('user_picture_file_size', '100');
   variable_set('user_picture_style', 'large');
 
@@ -232,6 +232,8 @@ function rcredits_schema_alter(&$schema) {
     'flags' => r\setupField('permissions and boolean state flags', 'int big', 0, '010'),
     'community_uid' => r\setupField("uid of this account's Common Good Community", 'int 11'),
     'federal_id' => r\setupField('social security number or employer id number, for reporting', 'varchar 9'),
+    'dob' => r\setupField('date of birth, founding, or incorporation', 'int 11'),
+    'id_proof' => r\setupField('proof of identity (index into file_managed image)', 'int medium'),
     'full_name' => r\setupField('full name of the individual or entity', 'varchar 60'),
     'phone' => r\setupField('contact phone (no country code, no punctuation)', 'varchar 255'),
     'fax' => r\setupField('fax number (no country code, no punctuation)', 'varchar 255'),
@@ -243,8 +245,8 @@ function rcredits_schema_alter(&$schema) {
     'website' => r\setupField('primary website', 'varchar 255'),
     'description' => r\setupField('markup text describing the company (unused for personal accounts)', 'text medium'),
     'notes' => r\setupField('miscellaneous notes about the user or the account', 'text medium'),
-    'dob' => r\setupField('date of birth, founding, or incorporation', 'int 11'),
     'rebate_percent' => r\setupField('current rebate percentage (sales bonus is double)', 'numeric 4,3', 5),
+    'tithe' => r\setupField('fraction of rebates and bonuses to contribute back to Common Good Finance', 'numeric 4,3', 0),
     'demand' => r\setupField('waiting to buy this much credit', 'numeric 11,2', 0),
     'demand_date' => r\setupField('first rCredits request data', 'int 11'),
     'counts' => r\setupField('counts of command use, etc.', 'int big', 0),

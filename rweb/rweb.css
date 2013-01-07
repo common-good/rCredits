@@ -1,5 +1,5 @@
 /*img {max-width:100%; height:auto;}*/
-img {width:auto; height:auto;}
+/* img {width:auto; height:auto;} */
 body {background:silver; font-size:100%;}
 fieldset {-webkit-margin-start:0; -webkit-margin-end:0; -webkit-padding-before:0; -webkit-padding-start:0; -webkit-padding-end:0; -webkit-padding-after:0;}
 legend {-webkit-padding-start: 2px; -webkit-padding-end: 2px;}
@@ -15,7 +15,12 @@ select {font-size:.85em;}
 }
 #footer-wrapper {background:white;}
 div#sidebar-first {width:0; display:none;}
-.sidebar-first #content {margin-left:0; width:100%;}
+.sidebar-first #content {margin-left:0; float:right;}
+.logged-in #content {margin-left:0px; float:left; display:block;} /* keeps autocomplete from getting placed in a wacky position */
+.not-logged-in #content {clear:none; max-width:100%;}
+.not-logged-in #sidebar-first {display:inline-block; margin-left:0; margin-top:0; width:200px; padding-top:5px; border:1px solid darkgreen; clear:none;}
+.not-logged-in #sidebar-first div.section {padding:0px;} */
+.not-logged-in #block-user-login {padding:0px; padding-left:12px; margin-bottom:0px;}
 
 /* Radios and Checkboxes */
 .form-type-checkbox label {margin-left:0;}
@@ -32,6 +37,8 @@ form.rweb .form-type-checkboxes label.opt-on,
 
 div.form-type-checkbox  input,
 div.form-type-radio input {position:absolute; left:-9999px;}
+body.page-devel  div.form-type-checkbox  input,
+body.page-devel  div.form-type-radio  input,
 body.page-admin  div.form-type-checkbox  input,
 body.page-admin  div.form-type-radio  input {position:relative; left:0;}
 
@@ -298,12 +305,24 @@ form.rweb  .form-no {color:red;}
 /*html.js input.form-autocomplete.throbbing {margin:0px; padding:0px; width:400px;}*/
 div#autocomplete  ul {clear:none; display:inline;}
 div#autocomplete  li {font-size:.7em; margin:0px; padding:0px; line-height:140%; background-color:lightyellow;}
-#content {display:block;} /* keeps autocomplete from getting placed in a wacky position */
 html.js input.form-autocomplete {background-size:1.8em; background-position:right top;}
 html.js input.throbbing {background-position:right -2.4em;}
 
 /* Membership */
-#rcreditswebformmembership div#next-steps {width:500px; margin:-13px;}
+/* #rcreditswebformmembership div#next-steps {width:500px; margin:-13px;} */
+#rcreditswebformmembership #edit-steps {margin-left:3.2em;}
+#rcreditswebformmembership #edit-steps table {margin-top:-12px;}
+#rcreditswebformmembership #edit-steps h2 {color:darkblue; font-weight:bold;}
+#rcreditswebformmembership #edit-steps td {vertical-align:top; background-color:white; font-size:1.15em; padding:0;}
+#rcreditswebformmembership #edit-steps .done div {width:29px; height:39px; background-repeat:no-repeat; }
+#rcreditswebformmembership #edit-steps .done.state div {background-image:url(../images/NONE.gif);}
+#rcreditswebformmembership #edit-steps .done.state1 div {background-image:url(../images/checkmark.gif);}
+#rcreditswebformmembership #edit-steps .step div {font-size:0; width:35px; height:37px; margin-right:8px; margin-top:8px; background:url(../images/steps.gif) no-repeat; background-position:99px 99px;}
+#rcreditswebformmembership #edit-steps .step1 div {background-position:left top;}
+#rcreditswebformmembership #edit-steps .step2 div {background-position:right top;}
+#rcreditswebformmembership #edit-steps .step3 div {background-position:left bottom;}
+#rcreditswebformmembership #edit-steps .step4 div {background-position:right bottom;}
+#rcreditswebformmembership #edit-steps .text div {padding-top:18px; margin-left:0px;}
 
 /* Profile */
 #rcreditswebformprofile {font-family:Arial;}
@@ -322,15 +341,12 @@ html.js input.throbbing {background-position:right -2.4em;}
 #rcreditswebformoptions div.form-type-radio {display:block;} /* less good for browser, better for mobile */
 
 /* form I */
-.not-logged-in div#sidebar-first {display:block; width:200px; padding-top:5px; border:1px solid darkgreen;}
-.not-logged-in div#sidebar-first div.section {padding:0px;} */
-.not-logged-in div#block-user-login {padding:0px; padding-left:12px; margin-bottom:0px;}
-.not-logged-in #content {margin-left:240;}
 #rcreditswebformi div.user-picture {float:left; max-width:48%; margin-right:1em;}
-#rcreditswebformi #id-other {float:left; clear:right; max-width:48%; margin-bottom:1em;}
+#rcreditswebformi #id-other {float:left; clear:right; max-width:48%; margin-bottom:1em; margin-right:2em;}
 #rcreditswebformi div.form-item {float:left; max-width:48%;}
 #rcreditswebformi div.form-item input {font-size:1.5em; padding:.2em 1em;}
 #rcreditswebformi div#edit-all {width:30em; max-width:100%;}
+#rcreditswebformi div#edit-all div.form-type-item {max-width:100%;}
 #rcreditswebformi div#id-name {margin-top:2.5em; font-weight:bold; font-size:1.5em; color:darkgreen;}
 #rcreditswebformi #edit-identifiers {margin-bottom:0;}
 
@@ -412,6 +428,8 @@ and (max-device-width : 480px) { */
   #rcreditswebformi input.form-submit {width:6em; margin:.1em auto 0 auto;}
   #rcreditswebformi div#id-name {margin-top:.5em;}
   #rcreditswebformi div.user-picture {margin-right:.4em; margin-bottom:10em;}
+  
+  #rcreditswebformmembership #edit-steps {margin-left:0;}
 }
 
 /* Smartphones (landscape) ----------- */

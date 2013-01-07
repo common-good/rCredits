@@ -461,8 +461,7 @@ function theTotalDemandForRCreditsIs($amount) {
   
   if (!($uid = t\makeAccount())) return FALSE;
   $demand = $amount - $old;
-//  debug(compact('demand', 'old', 'amount'));
-  r\userUpdate(compact('demand'), $uid);
+  r\demand($uid, $demand);
   return TRUE;
 }
 
@@ -475,9 +474,7 @@ function phoneDemandForRCreditsIs($number, $demand) {
   global $testOnly;
   $uid = r\SMS\uid($number);
   if ($testOnly) return t\eq(r\userField('demand', $uid), $demand);
-  r\userUpdate(compact('demand'), $uid);
-//  debug(r\userField('demand', $uid));
-//  debug(compact('number','demand','uid'));
+  r\demand($uid, $demand);
   return TRUE;  
 }
 

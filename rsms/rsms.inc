@@ -94,6 +94,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'wrong nonce' => t('That is not the expected confirmation response. Try again (start over).'),
   'no self-trading' => t("You can't exchange rCredits with yourself."),
   'no self-relation' => t("You can't relate yourself to your own account."),
+  'no self-adjustment' => t('To adjust your own account settings, do it directly.'),
   'funding error' => t("You do not have permission to fund that person."),
   'no company relations' => t("Only individuals can be related to this account."),
 // not used  'no self-undo' => t("You can't undo transactions with yourself."),

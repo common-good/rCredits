@@ -56,6 +56,7 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'changed agent' => t('You successfully changed the agent to @agentName.'),
   'changed account' => t('You successfully changed the account to @accountName.'),
   'nothing undone' => t('Nothing undone.'),
+  'got asif credits' => t('You have received a "grant" of $@R_STARTING_BALANCE additional @R_ASIF_TEXT rCredits.'),
 
   // confirm
   'yes or no' =>  '@yesNo', // to replace with yesNo(url)
@@ -99,6 +100,21 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'what relation' => t('Are you an owner or an employee of the company? (please choose one or both)'),
 );
 
+// one-line functions that need no explanation
+function tt($message, $subs = array()) {return u\tt($message, $subs);}
+//function block_def($info, $extra = array()) {return compact(u\ray('info cache'));} // also status, region, visibility, pages
+function blockView($subject, $content) {return compact(u\ray('subject content'));}
+
+function disabled($value) {return array('value' => $value, 'disabled' => TRUE);}
+function dft($default_value) {return compact('default_value');}
+function weight($weight) {return compact('weight');}
+function attrib($attribs) {return array('attributes' => $attribs);}
+function autocomplete($path) {return array('autocomplete_path' => "autocomplete/$path/" . @r\acct()->id);}
+function required() {return array('required' => TRUE);}
+// UNUSED function check($array, $type = 'plain') {return array_map("check_$type", $array);} // Check an array for plain or markup.
+function op($sta) {return $sta['clicked_button']['#parents'][0];}
+function submit($label) {return formField('submit', $label);}
+
 /**
  * Return yes and no buttons.
  * Do NOT use button() here (it kills the site)
@@ -132,6 +148,7 @@ function button($value, $href = '', $title = '', $type = '') {
 function formField($type, $title = '', $description = '', $other = array(), $options = NULL, $ajax = array()) {
   if (!is_array($other)) $other = array(($type == 'item' ? 'markup' : 'value') => $other);
   if (empty($other) and in_array($type, u\ray('item hidden submit'))) $other['value'] = $title;
+  if ($type == 'submit' and !$title) $title = t('Submit');
   $field = u\prefixKeys('#', array_merge(compact(u\ray('type title description options')), $other));
   return $field;
 }
@@ -266,6 +283,24 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
       return str_replace('<thead>', $markup . '<thead>', $rent); // shore up Drupal lack of colgroups in tableselect
     } else return $rent;
   } catch(u\fit $e) {r\Web\exception_handler($e);}
+}
+
+function setupGlobals($agent = '') {
+  global $user, $channel;
+  if (@$channel) return; // already setup
+  if (!$agent) $agent = @$user->uid; // register_submit supplies agent (no one else does)
+  $cuid = svar('cuid') ?: $agent;
+  r\acct::setDefault(r\acct($cuid, $agent)); // set default for r\acct()
+  $channel = TX_WEB;
+}
+
+/**
+ * Set or retrieve an rCredits session variable.
+ */
+function svar($name) {
+  $name = 'rcredits_' . $name;
+  $args = func_get_args();
+  if (count($args) == 1) return @$_SESSION[$name]; else $_SESSION[$name] = $args[1];
 }
 
 /**
@@ -413,16 +448,137 @@ function help($page, $class = '') {
 
 function formMembership($form, &$sta) {
   if (!($cacct = r\acct())) return NULL;
-  $acct = r\acct($cacct->agent); // this form is for people, not accounts
-  
-  $stagelist = 'rTrader Steward Partner Member';
-  $stages = u\ray($stagelist);
-  foreach ($stages as $stage) if ($cacct->can(constant('PERM_' . strtoupper($stage)))) break;
+  $id = $cacct->agent; // this form is for people, not accounts
+  $acct = r\acct($id);
+  $stages = u\ray(R_STAGES);
+  $stage = r\stage();
+//  $stage = 'rTrader'; // for testing
 
-  $rTrader = 'authorized to use rCredits "for real"';
-  $Steward = "a responsible voter, stewarding your community's finances";
-  $Partner = 'a committed rCredits member';
-  $Member = 'signed up to do rCredits "As If" transactions, for real credit';
+  if ($stage == 'Member') {
+    $where = 'state!=:TX_DELETED AND type=:TX_TRANSFER AND goods';
+    $buys = $where .= ' AND (NOT taking AND payer=:id)';
+    $sells = $where .= ' AND (taking AND payee=:id)';
+    $buyCount = r\txField('COUNT(*)', $buys, compact('id')); // (presumably selected from asif table)
+    $sellCount = r\txField('COUNT(*)', $sells, compact('id'));
+    $asifed = ($buyCount >= R_ASIF_BUY_MIN and $sellCount >= R_ASIF_SELL_MIN);
+    $usedId = $acct->hasBit(BIT_USED_ID);
+    $sawVid1 = $acct->hasBit(BIT_SAW_VID1);
+    $donated = ($acct->tithe > 0);
+    $signed = $acct->hasBit(BIT_SIGNED);
+    $eligible = ($usedId and $asifed and $sawVid1);
+
+    $message1 = u\getConstants(t(<<<EOF
+<h2>Congratulations on becoming an rCredits Member!</h2>
+<p>As a member, you are eligible to do :R_ASIF_TEXT transactions, to learn how to use rCredits. These transactions should be realistic amounts that you spend at actual businesses in a typical month. Or realistic amounts that you get paid by your employer, by your customers, or by anyone who pays you. The :R_ASIF_TEXT transactions don't count, but you get <b>real rewards</b> for doing them. You can spend your rewards once you are approved to use rCredits for real.</p>
+<p><b>Your next milestone</b>, toward using rCredits for real, is to become a <em>Partner</em>. Here's what you need to do, to be eligible to be a Partner. Click on any step, to get started.</p>
+EOF
+    ));
+
+    $step1 = t('Print out a <a>temporary Member ID card</a> for yourself and get another member (or member business) to scan it with their smartphone using a free QR Code Reader app. This is how you normally pay for things with rCredits -- just carry your card around! Once you are authorized to use rCredits for real, a permanent Member ID card will arrive in the mail.');
+    $step2 = u\getConstants(t('Think about where you spend money and where you get money. Complete at least :R_ASIF_BUY_MIN :R_ASIF_TEXT (realistic) <a href="pay">purchases</a> and at least :R_ASIF_SELL_MIN :R_ASIF_TEXT <a href="charge">charges</a>.'));
+    $step3 = t('Watch our <a>5-minute video</a> about how rCredits works.');
+    $message1 .= memberStep(1, $usedId, $step1, 'Temporary-Member-ID-Card', TRUE)
+               . memberStep(2, $asifed, $step2, $buyCount < R_ASIF_BUY_MIN ? 'pay' : 'charge')
+               . memberStep(3, $sawVid1, $step3, 'vid1', TRUE);
+
+    $message2 = t(<<<EOF
+<h2>You are Eligible to Become a Partner in rCredits!</h2>
+<p>Being a Partner means you accept a higher level of commitment to rCredits and the Common Good Economy. This is an easy, essential milestone on your way to using rCredits for real. To accept this invitation and become an rCredits Partner:</p>
+EOF
+    );
+//<p>As a Partner, you accept a joint responsibility with hundreds of other rCredits members, for the economic well being of your community. This is an 
+    $step1 = t('Sign the <a>rCredits Agreement</a>.');
+    $step2 = t('Make a <a>contribution</a> of any size, to support the rCredits system.');
+    $message2 .= memberStep(1, $signed, $step1, 'membership/agreement')
+               . memberStep(2, $donated, $step2, 'http://rCredits.org/donate');
+    $message = $eligible ? $message2 : $message1;
+    if ($eligible and $signed and $donated) {
+      $acct->setBit(BIT_PARTNER);
+      $stage = 'Partner';
+    }
+  }
+  
+  if ($stage == 'Partner') {
+    $gotContact = ($acct->phone and $acct->mail and $acct->address and $acct->city and $acct->country);
+    $sawVid2 = $acct->hasBit(BIT_SAW_VID2);
+    $passedTest = $acct->hasBit(BIT_PASSED_TEST);
+    $met = $acct->hasBit(BIT_MET);
+    $eligible = ($gotContact and $sawVid2 and $passedTest);
+
+    $message1 = t(<<<EOF
+<h2>Congratulations on becoming a Partner in rCredits!</h2>
+<p>Your final milestone, on the way to using rCredits for real, is to become an rCredits Steward. Being a Steward means you have a good understanding of how to manage the rCredits system in your community, together with hundreds of other members.</p>
+<p>To become an rCredits Steward:</p>
+EOF
+    );
+    $step1 = t('Complete your <a>contact information</a>.');
+    $step2 = t('Watch our <a>5-minute video</a> about how to manage rCredits as a community.');
+    $step3 = t('Take a <a>short quiz</a> about the video.');
+    $message1 .= memberStep(1, $gotContact, $step1, 'account/contact')
+               . memberStep(2, $sawVid2, $step2, 'vid2', TRUE)
+               . memberStep(3, $passedTest, $step3, 'membership/steward-test');
+               
+    $message2 = t(<<<EOF
+<h2>Hurray! You are Eligible to Be a Steward of rCredits!</h2>
+<p>To actually BE a Steward, you must participate in at least one rCredits community meeting -- either online or in person.</p>
+EOF
+    );
+    $step = t('<a>Sign up</a> for an online meeting or <a>verify</a> that you have participated at a meeting in your community.');
+    $message2 .= memberStep('', $met, $step, 'meetings');
+    $message = $eligible ? $message2 : $message1;
+    if ($eligible and $met) {
+      $acct->setBit(BIT_STEWARD);
+      $stage = 'Steward';
+    }
+  }
+
+  if ($stage == 'Steward') {
+    $gotPhoto = ($acct->picture > 0);
+    $gotIdProof = (@$acct->id_proof > 0 and @$acct->dob and @$acct->federal_id); // include SS#
+    $gotUsdInfo = (@$acct->usd_account and @$acct->usd_auth);
+    $demanding = ($acct->demand > 0);
+    $rqualified = $acct->hasBit(BIT_RQUALIFIED);
+    $eligible = ($gotPhoto and $gotIdProof and $gotUsdInfo and $demanding);
+
+    $message1 = t(<<<EOF
+<h2>Congratulations on becoming a Steward of rCredits!</h2>
+<p>There are a few final tasks we need you to complete, before you are eligible to become an rTrader and use rCredits for real:</p>
+EOF
+    );
+    $step1 = t('<a>Upload a photo</a> for your Member ID Card.');
+    $step2 = t('Open a <a>Dwolla</a> account and <a href="account/usd">connect it</a> to your rCredits account. In partnership with Veridian Federal Credit Union, Dwolla connects to your US Dollar bank account, so you can easily exchange US Dollars for rCredits and vice versa.');
+    $step3 = t('<a>Upload a photo</a> of your driver\'s license, birth certificate, passport, or other official ID.');
+    $step4 = t('Choose an amount of US Dollars that you would like to <a>trade for rCredits</a> (Remember that you will also get some free when you become an rTrader).');
+    $message1 .= memberStep(1, $gotPhoto, $step1, 'account')
+               . memberStep(2, $gotUsdInfo, $step2, 'http://dwolla.com', TRUE)
+               . memberStep(3, $gotIdProof, $step3, 'account/usd')
+               . memberStep(4, $demanding, $step4, 'exchange');
+
+    $message2 = u\getConstants(t(<<<EOF
+<h2>You are eligible to be an rTrader!</h2>
+<p>You have completed all the requirements. At the end of each month, a limited number of members are promoted to rTrader status. Members are selected according to who makes the strongest economic circles -- that is, who provides goods and services that are most in demand among the current rTraders. Companies will typically be promoted at the same time as their eligible employees.</p>
+<p>Expect a short wait. rCredits growth is accelerating. Once enough people in your community sign up, everyone who is eligible will be promoted to rTrader status immediately.</p>
+<p>You can improve your position to be chosen, by encouraging individuals and companies in your own economic circle to sign up. If you are an employee, invite other employees and the company itself to sign up. If you are a business owner, invite your customers, employees, and suppliers to sign up. If you are self-employed or retired, think about where your money comes from and invite them to sign up. Doing :R_ASIF_TEXT transactions is one way to invite and encourage others to sign up.</p>
+EOF
+    ));
+    $step = u\getConstants(t('Do some more <a>:R_ASIF_TEXT transactions</a>.'));
+    $message2 .= memberStep('', FALSE, $step, 'charge'); // do nothing with $rqualified?
+    $message = $eligible ? $message2 : $message1;
+  }
+  
+  if ($stage == 'rTrader') {
+    $message = t(<<<EOF
+<h2>Congratulations! You are an rTrader.</h2>
+<p>You are authorized to use rCredits for real transactions. You are also responsible for guiding your local economy, together with hundreds of other rCredits members -- setting investment and grant-making priorities, electing local directors for your Common Good Community, planning for a sustainable local prosperity for all residents, and offering help to communities elsewhere.</p>
+EOF
+    );
+  }
+  $message = "<table width=\"100%\">$message</table>";
+  
+  $rTrader = t('authorized to use rCredits "for real"');
+  $Steward = t("a responsible voter, stewarding your community's finances");
+  $Partner = t('a committed rCredits member');
+  $Member = u\getConstants(t('signed up to do rCredits :R_ASIF_TEXT transactions, for real credit'));
   $details = compact($stages);
   foreach ($details as $key => $value) $details[$key] = "<em>$key</em> - $value<br>\n";
 
@@ -442,11 +598,72 @@ function formMembership($form, &$sta) {
   foreach ($future as $key => $value) $future[$key] = "<div id='overview-future' class='labeled-block'>$value</div>\n";
 
   $title = formField('item', t('Membership Status'));
-  $stage_now = formField('item', t('You are:'), '', $now[$stage]);
-  $future = $future[$stage] ? formField('item', t('Future milestones:'), '', $future[$stage]) : NULL;
-  $steps = formField('item', t('Next Steps:'), '', t('<div id="next-steps" class="labeled-block"><ol><li>Do at least three realistic "As-If" Payments to participating businesses, so the system knows where you will be able to spend your rCredits.</li><li>Do at least one As-If Charge, so the system knows where you will get your rCredits.</li><li>Try some of the other rCredits features.</li><li>Read or talk to other participants until you are confident that you understand how rCredits works.</li></ol></div>'));
-  $form = compact(u\ray('title stage_now future steps'));
+  $subtext = formField('item', t('for ') . $acct->full_name);
+  $stage_now = formField('item', t('You are a:'), '', $now[$stage]);
+  $future = $future[$stage] ? formField('item', t('Not yet a:'), '', $future[$stage]) : NULL;
+  $steps = formField('item', '', '', $message);
+//  $steps = formField('item', t('Next Steps:'), '', t('<div id="next-steps" class="labeled-block"><ol><li>Do at least three realistic "As-If" Payments to participating businesses, so the system knows where you will be able to spend your rCredits.</li><li>Do at least one As-If Charge, so the system knows where you will get your rCredits.</li><li>Try some of the other rCredits features.</li><li>Read or talk to other participants until you are confident that you understand how rCredits works.</li></ol></div>'));
+  $form = compact(u\ray('title subtext stage_now future steps'));
   $form['#attributes']['class'] = array('labeled');
+  return $form;
+}
+
+function memberStep($step, $done, $text, $link = '', $newWindow = FALSE) {
+  $target = $newWindow ? ' target="_blank"' : '';
+  $step = "$step";
+  if ($link) {
+    $link = "<a href=\"$link\"$target>";
+    $linkx = '</a>';
+    $step = str_replace('<a>', $link, $step);
+  } else $link = $linkx = '';
+  return <<<EOF
+<tr>
+  <td class="done state$done">$link<div>&nbsp;</div>$linkx</td>
+  <td class="step step$step">$link<div>$step</div>$linkx</td>
+  <td class="text"><div>$text</div></td>
+</tr>
+EOF;
+}
+
+/**
+ * Give member a chance to sign the rCredits Agreement.
+ */
+function formAgreement($form, &$sta) {
+
+  $title = formField('item', t('rCredits Agreement'));
+  $check = array('checkNUMBER' => formField('checkbox'));
+  return;
+  $model = \render($check);
+  $agreement = <<<EOF
+<p>Instructions: Put a check mark in each checkbox to indicate that you have read that section and agree to it. Really DO read this and make sure you understand it. This agreement that we make with each other is the foundation for the rCredits system and the Common Good Economy.</p>
+
+[0] I recognize that:
+<ul>
+  <li>rCredits™ will be the framework for the Common Good Economy -- a democratic, community-centered economic system that puts people and planet first.</li>
+  <li>Together as a community we have the power to issue money for our own use. It is our promise to accept rCredits that gives them value.</li>
+  <li>Governance by the people is essential, for a just society.</li>
+</ul>
+
+As a responsible participant in the Common Good Economy:
+<ol>
+  <li>[1] I will accept rCredits as payment for my goods and services, without limit, as long as I can spend them easily or exchange them easily for US Dollars. I will exchange rCredits for US Dollars only if I cannot spend them easily.</li>
+  <li>[2] I will price my goods and services the same in rCredits and in US Dollars. Whenever I exchange rCredits for US Dollars or vice versa, I will exchange them one for one.</li>
+  <li>[3] I understand that I will receive some rCredits from the community as Incentive Rewards. If I stop participating (or if the system ends) within six months of receiving my first rCredits, I will immediately pay back whatever amount of Incentive Rewards I have received (while keeping any rCredits I received from other participants).</li>
+  <li>[4] I promise to maintain a high level of honesty, integrity, and ethics in my dealings with other rCredits participants and with the community (including the rCredits system itself). When there is a dispute, I will follow the Dispute Resolution Process as written in the Common Good Economy governance documents, and will honor its outcome.</li>
+  <li>[5] I will move my deposits and investments to the Common Good Economy when that is sensible, in my judgment.</li>
+  <li>[6] I agree to participate responsibly in managing the Common Good Economy to the best of my ability and as my life circumstances allow, including:
+    <ul>
+      <li>understanding the workings and governance of the Common Good Economy,</li>
+      <li>participating in the decision process to set funding priorities for my community and for the common good of all, and</li>
+      <li>participating in other decisions (including amending the Common Good Economy governance documents) from time to time as needed.</li>
+    </ul></li>
+</ol>
+EOF;
+
+  for ($i = 0; $i < 7; $i++) $agreement = str_replace("[$i]", str_replace('checkNUMBER', "check$i", $model));
+debug($agreement);
+
+  $form = compact(u\ray('title check0 check1 check2 check3 check4 check5 check6 signed'));
   return $form;
 }
 
@@ -456,7 +673,7 @@ function formSummary($form, &$sta) {
   global $base_url;
   
   $cacct = r\acct();
-  if (!$cacct or !$cacct->can(PERM_READ)) r\go('user'); // haven't figured a way to test this yet
+  if (!$cacct) r\go('user');
   
   extract(be\creditInfo()->fancy, EXTR_PREFIX_ALL, 'my');
 
@@ -464,18 +681,20 @@ function formSummary($form, &$sta) {
   $address = u\location($cacct, TRUE);
 
   if (!$cacct->isCompany() or !$cacct->proSe()) {
-    $card = t('<a id="idcard">Print Temporary ID Card</a>');
-if ($cacct->id == 1) $card .= ' [<a href="http://localhost/devcore/rcredits/test?module=rcredits/rweb&feature=Signup&scene=&restart=1">run current test</a>]'; // DEBUG (keep)
+    $card = $cacct->mainQid ? t('<a id="idcard">Print Temporary ID Card</a>') : ''; // no card for community accounts
+if ($cacct->agent == 1) $card .= ' [<a href="http://localhost/devcore/rcredits/test?module=rcredits/rweb&feature=Signup&scene=&restart=1">run current test</a>]'; // DEBUG (keep)
   } else $card = t("To print employee ID cards, visit the <a href=\"$base_url/account/relations\">Account Relations</a> page.");
 
   $title = formField('item', t('Account Summary'));
 //  'subtext = basic_account_info();
-  $accountId = formField('item', t('Account ID:'), $card, $cacct->mainQid . ' ' . u\hug(R_REGION_NAME));
   $accountName = formField('item', t('Name:'), $address, $cacct->full_name . ' ' . u\hug($name));
-  $accountType = formField('item', t('Account type:'), '', $GLOBALS['account types'][$cacct->account_type+0]); // +0 for admin
   $balance = formField('item', t('Balance:'), '', $my_balance . (r\isRTrader() ? '' : R_ASIF_TEXT));
-  $creditLimit = formField('item', t('Credit limit:'), '(You can go this far in debt for up to 30 days)', u\formatAmount(-$cacct->min_balance));
-  $rewards = formField('item', t('Rewards:'), t('(to date)'), $my_rewards);
+  if ($cacct->id > 0) {
+    $accountId = formField('item', t('Account ID:'), $card, ($cacct->mainQid ?: 'N/A') . ' ' . u\hug(R_REGION_NAME));
+    $accountType = formField('item', t('Account type:'), '', $GLOBALS['account types'][$cacct->account_type+0]); // +0 for admin
+    $creditLimit = formField('item', t('Credit limit:'), '(You can go this far in debt for up to 30 days)', u\formatAmount(-$cacct->min_balance));
+    $rewards = formField('item', t('Rewards:'), t('(to date)'), $my_rewards);
+  }
 
   $form = compact(u\ray('title accountId accountName accountType balance creditLimit rewards'));
   $form['#attributes']['class'] = array('labeled');
@@ -572,7 +791,7 @@ function formAccounts($form, &$sta) {
 function formAccounts_submit($form, &$sta) {
   extract(u\just('op account_account', $sta['values']));
   $cacct = r\acct();
-  if (!r\acct($account_account, $cacct->agent)->can()) r\go('user/logout'); // hack attempt?
+  if (!$cacct->can(PERM_ADMIN) and !r\acct($account_account, $cacct->agent)->can()) r\go('user/logout'); // hack attempt?
   if ($op == 'Menu') {
     r\go('menu'); 
   } else svar('cuid', $account_account); // this gets checked ONLY in setupGlobals()
@@ -673,32 +892,75 @@ function profile_picture($uid, $with_markup = FALSE) {
 
   $info = @getimagesize($url);
   list ($width, $height) = is_array($info) ? $info : array(1, 0);
-  $new_height = min($height * 2, 800 * $height / $width, 400);
-  if (!$new_height) $new_height = 400; // in case getimagesize fails
-  $new_width = $height ? round($width * $new_height / $height, 0) : '';
+  $new_width = min(max($width, R_MIN_PHOTO_WIDTH), R_MAX_PHOTO_WIDTH);
+  $new_height = round($new_width * $height / $width, 0);
   $subs = compact(u\ray('new_width new_height url'));
   return strtr('<div class="user-picture"><img src="url" width="new_width" height="new_height" alt="profile picture" /></div>', $subs);
 }
 
-function formAdjust($form, &$sta, $argString = '') {
+function formCommunity($form, &$sta, $args = '') {
+  $cacct = r\acct();
+  $cuid = $cacct->id;
+  $count = r\userfield('COUNT(uid)', 'community_uid=:cuid', compact('cuid'));
   $form = array(
-    'title' => formField('item', t('Adjust User\'s Settings')),
-    // $onchange =
-    'user' => formField('textfield', t('Who'), t('Type a name, id, email, phone, or a list of ids.'), autocomplete('') + attrib(compact('onchange'))),
+    'title' => formField('item', t('Community Overview')),
+    'subtext' => formField('item', $cacct->full_name),
+    'count' => formField('item', t('Members:'), '', dft(0)),
   );
+  $form['#attributes']['class'] = array('labeled');
   return $form;
 }
 
 /**
- * Get a transaction request (usually pay or charge) and process it
- * @param string $argString: all or some parameters for the form (when called from directory or draft form)
+ * Adjust a member's data or settings.
+ * @todo: offer to change data on any of the various settings forms (contact, company info, etc.), then return that form
+ *   (with a hidden field for which user we mean -- but don't heed that field unless requestor is admin)
  */
-function formTx($form, &$sta, $argString = '') {
+function formAdjust($form, &$sta, $args = '') {
+  extract(u\just('who', $args));
+  $title = formField('item', t('Adjust Member Settings'));
+  $submit = formField('submit');
+    // $onchange =
+  if (@$id and ($acct = r\acct($id))) {
+    $id = formField('hidden', $id);
+    $name = formField('item', t('Name'), '', $acct->full_name);
+    $qid = formField('item', t('Account'), '', $acct->mainQid);
+    $stage = formField('select', 'Stage:', '', dft(r\stage($acct)), u\ray(R_STAGES));
+    // $met =
+    $form = compact(u\ray('title name qid stage met submit'));
+  } else {
+    $who = formField('textfield', t('Who'), t('Type a name, id, email, phone, or a list of ids.'), autocomplete('') + attrib(compact('onchange')));
+    // $doWhat = // options to change user's information on various forms (contact, company info, etc.)
+    $form = compact(u\ray('title who doWhat submit'));
+  }
+  
+  $form['#attributes']['class'] = array('labeled');
+  return $form;
+}
+
+function formAdjust_validate($form, &$sta) {
+  extract(u\just('who', $sta['values']));
+  
+  if (@$who) {
+    $acct = whois($who, 'who', $sta['values'], FALSE, 'no self-adjustment');
+    if ($acct) r\go('adjust/id=' . $acct->id);
+  }
+}
+
+function formAdjust_submit($form, &$sta) {
+  extract(u\just('id stage met', $sta['values']));
+  // adjust em!
+}
+
+/**
+ * Get a transaction request (usually pay or charge) and process it
+ * @param string $args: all or some parameters for the form (when called from directory or draft form)
+ */
+function formTx($form, &$sta, $args = '') {
   if ($confirm = sureForm($sta)) return $confirm;
   
-  parse_str(strpos($argString, urlencode('=')) ? urldecode($argString) : $argString, $args);
   extract(u\just('who amount goods purpose ided', $args));
-  $type = $argString === '' ? basename(current_path()) : basename(dirname(current_path()));
+  $type = $args === '' ? basename(current_path()) : basename(dirname(current_path()));
   $role = in_array($type, u\ray('charge fine')) ? 'payee' : 'payer';
   $cash = in_array($type, u\ray('fine grant loan'));
   focusOn(@$who ? 'amount' : 'who');
@@ -909,7 +1171,7 @@ function formContact($form, &$sta) {
     'state' => formField('select', t('State:'), t(''), dft($my_state)), // can't use required() here
     'city' => formField('textfield', t('City:'), t(''), dft($my_city) + required()),
     'address' => formField('textfield', t('Address:'), t('Mailing address'), dft($my_address) + required()),
-    'submit' => formField('submit', t('Submit')),
+    'submit' => formField('submit'),
   );
 
   $form['#attributes']['class'] = array('labeled');
@@ -942,7 +1204,7 @@ function formContact_validate($form, &$sta) {
 function formContact_submit($form, &$sta) {
   extract(u\just('name website phone fax', $info = $sta['values']));
   $info['website'] = str_replace('http://', '', strtolower(@$website));
-  r\userUpdate($info);
+  r\acct()->update($info);
   be\mergeCheck(compact(u\ray('name website phone fax'))); // check before and after
   say('info saved');
 }
@@ -951,8 +1213,7 @@ function formContact_submit($form, &$sta) {
  * Draft an individual or company into the database.
  * Called when a member tries to pay or charge a non-member.
  */
-function formDraft($form, &$sta, $argString = '') {
-  parse_str($argString, $args);
+function formDraft($form, &$sta, $args = '') {
   extract(u\just('who return', $args));
   $full_name_desc = t('Their full legal name, properly capitalized');
   unset($args['who']); unset($args['return']); // be neat
@@ -966,7 +1227,7 @@ function formDraft($form, &$sta, $argString = '') {
     'phone' => formField('textfield', t('Phone:'), t('Their primary phone (landline or cell)'), dft($phone) + required()),
     'argString' => formField('hidden', http_build_query($args)),
     'return' => formField('hidden', $return),
-    'submit' => formField('submit', t('Submit')),
+    'submit' => formField('submit'),
     'cancel' => formField('submit', t('Cancel')),
   );
 
@@ -1008,13 +1269,23 @@ function no_selection($list) {
  */
 function formUsd($form, &$sta) {
   $cacct = r\acct();
+  $statementRadios = array(
+    t('I will accept electronic statements.'), 
+    u\getConstants(t('I choose to receive printed statements by mail instead and I agree to pay $:R_STATEMENT_COST per month to cover the postage and handling costs for this service.'))
+  );
   $form = array(
     'title' => formField('item', t('US Dollar Account (Dwolla) Info')),
 //    'subtext' => ,
     'usd_account' => formField('textfield', t('Dwolla number:'), t('What is your 10-digit Dwolla account number?'), dft($cacct->usd_account) + required()),
-    'submit' => formField('submit', t('Submit')),
+    'statements' => formField('radio', t('Statements:'), '', dft($cacct->hasBit(BIT_ELECTRONIC), $statementRadios)),
+    'submit' => formField('submit'),
   );
 
+/* this is essential (required):
+? I will accept electronic statements. 
+? I choose to receive printed statements by mail instead and I agree to pay $10 per month to cover the postage and handling costs for this service.
+*/
+  
   $form['#attributes']['class'] = array('labeled');
   return $form;
 }
@@ -1026,10 +1297,11 @@ function formUsd_validate($form, &$sta) {
 }
 
 function formUsd_submit($form, &$sta) {
-  extract(u\just('usd_account', $sta['values']));
+  extract(u\just('usd_account electronic', $sta['values']));
   //DWOLLA: get open auth code
   // $usd_auth = whatever;
-  r\userUpdate(compact(u\ray('usd_account usd_auth')));
+  r\acct()->update(compact(u\ray('usd_account usd_auth')));
+  r\acct()->setBit(BIT_ELECTRONIC, $electronic);
   say('info saved');
 }
 
@@ -1057,7 +1329,7 @@ function formBank($form, &$sta) {
     'bank_account_name' => formField('textfield', t('Account name:'), t('What is the name on this bank account?'), dft($my_bank_account_name) + required()),
     'routing_number' => $routing_number,
     'bank_account_number' => formField('textfield', t('Account number:'), t('What is the account number? (be sure to get this right)'), dft($my_bank_account_number) + required()),
-    'submit' => formField('submit', t('Submit')),
+    'submit' => formField('submit'),
   );
 
   $form['#attributes']['class'] = array('labeled');
@@ -1074,7 +1346,7 @@ function formBank_validate($form, &$sta) {
 function formBank_submit($form, &$sta) {
   extract($sta['values']);
   if (r\acct()->country == R_COUNTRY) $bank_account_number = "USkk$routing_number$bank_account_number";
-  r\userUpdate(compact(u\ray('bank_account_name bank_account_number')));
+  r\acct()->update(compact(u\ray('bank_account_name bank_account_number')));
   say('info saved');
 }
 */
@@ -1197,7 +1469,7 @@ EOF;
 function formRelations_validate($form, &$sta) {
   if (confirming_v($sta)) return;
   $cuid = r\acct()->id;
-  extract($sta['values']);
+  extract(u\just('new_person', $sta['values']));
   
   if (@$new_person) {
     $acct = whois($new_person, 'new_person', $sta['values'], FALSE, 'no self-relation');
@@ -1362,7 +1634,7 @@ function formRegister(&$form, &$sta) {
     'company_info' => formField('fieldset', '', '', array('id' => 'company_info')) + $company_info,
 
 /*    'address' => formField('textfield', t('Address:'), t('Mailing address'), dft($my_address)),
-    'submit' => formField('submit', t('Submit')), */
+    'submit' => formField('submit'), */
   );
 
   css('rweb.css', -9); // needed because this function doesn't go through show()
@@ -1689,7 +1961,7 @@ EOF;
     'name' => formField('item', t('Company name:'), '', $cacct->full_name),
     'categories' => formField('select', t('Categories:'), t('Hold down the Ctrl key to select more than one'), $multiple + dft($my_cats), $cats),
     'description' => formField('text_format', t('Description:'), t('What does this company do?'), $filtered_html + dft($my_description)),
-    'submit' => formField('submit', t('Submit')),
+    'submit' => formField('submit'),
   );
 
 // (doesn't work well for textarea) $form['#attributes']['class'] = array('labeled');
@@ -1707,7 +1979,7 @@ function formCompany_submit($form, &$sta) {
   extract(u\trimAll($sta['values']));
 //  $description = \check_markup($description['value']);
   $description = $description['value'];
-  r\userUpdate(compact('description'));
+  r\acct()->update(compact('description'));
 
   //*** Begin DBTX
   $dbtx = db_transaction();
@@ -1763,6 +2035,7 @@ function formI($form, &$sta, $who) {
 function formI_submit($form, &$sta) {
   extract(u\just('theId theAgent', $sta['values']));
   $acct = r\acct($theId, $theAgent);
+  r\acct($acct->agent)->setBit(BIT_USED_ID); // track membership progress
   $op = op($sta);
   if ($op == 'changeAccount') {
     $cacct = r\acct();
@@ -1799,12 +2072,11 @@ function formOptions($form, &$sta) {
   $title = formField('item', t('Account Preferences'));
   $notify_bys = array(t('no notifications'), t('by email'), t('by SMS'), t('by both email and SMS'));
   $dft = $cacct->hasBit(BIT_NOTIFY_EMAIL) + 2 * $cacct->hasBit(BIT_NOTIFY_SMS);
-  $post_render = array('rCredits\\Web\fixupRadios'); // $class = array('clearfix');
-  $notify_by = formField('radios', t('Notifications:'), t('How do you want to be notified about new charges to your account, short-term opportunities, and the like?'), dft($dft) + compact('post_render'), $notify_bys);
+  $notify_by = formField('radios', t('Notifications:'), t('How do you want to be notified about new charges to your account, short-term opportunities, and the like?'), dft($dft), $notify_bys);
   $explain_virtual = t('When you pay people, do you want to pay them directly in rCredits or do you want to pay them in US Dollars, then give them the automatic option to buy their share of rCredits from you with US Dollars? The second way lets you use your current payroll system without any change. You still get the 5% rebate, minus 25 cents for each payment. For example, on a $100 payment, you get a net rebate of $5.00 - 0.25 = $4.75.');
   $pay_hows = array(t('everyone directly'), t('employees virtually'), t('everyone virtually'));
   $dft = $cacct->hasBit(BIT_VIRTUAL_ALL) ? 2 : ($cacct->hasBit(BIT_VIRTUAL_EMPLOYEES) ? 1 : 0);
-  $pay_how = formField('radios', t('Pay how:'), $explain_virtual, dft($dft) + compact('post_render'), $pay_hows);
+  $pay_how = formField('radios', t('Pay how:'), $explain_virtual, dft($dft), $pay_hows);
   $secret_bal = formField('checkbox', t('Secret Balance:'), t("Don't let qualified merchants tell me my balance, when I ask."), $cacct->hasBit(BIT_SECRET_BAL));
   // Double confirmation: by SMS, by email, either. require extra confirmation of crucial account changes
   $submit = formField('submit', t('Update options'));
@@ -1832,11 +2104,6 @@ function formReports($form, &$sta) {
   $subtitle = formField('item', t('After rCredits is launched, this page will report progress statistics.'));
   $form = compact(u\ray('title subtitle'));
   return $form;
-}
-
-function fixupRadios($content, $element) {
-//  return str_replace('class="', 'class="clearfix ', $content);
-  return $content;
 }
 
 /**
@@ -2043,15 +2310,6 @@ function detour($detour_via, $detour_args, $whence = '', $modal = TRUE) {
 */
 
 /**
- * Set or retrieve an rCredits session variable.
- */
-function svar($name) {
-  $name = 'rcredits_' . $name;
-  $args = func_get_args();
-  if (count($args) == 1) return @$_SESSION[$name]; else $_SESSION[$name] = $args[1];
-}
-
-/**
  * Figure out who the user means, offering choices to disambiguate
  * If the intended person or company does not exist, 
  * @param string $who: what the user typed
@@ -2209,15 +2467,6 @@ function say($index, $args = array(), $error_field = '') {
   return FALSE;
 }
 
-function setupGlobals($agent = '') {
-  global $user, $channel;
-  if (@$channel) return; // already setup
-  if (!$agent) $agent = @$user->uid; // register_submit supplies agent (no one else does)
-  $cuid = svar('cuid') ?: $agent;
-  r\acct::setDefault(r\acct($cuid, $agent)); // set default for r\acct()
-  $channel = TX_WEB;
-}
-
 function userMenuItem($router_path, $link_title) {
   $menu_name = 'user-menu';
   $link_path = $router_path;
@@ -2265,6 +2514,15 @@ EOF;
   return compact('footerText');
 }
 
+/**
+ * Give the user some more ASIF rCredits
+ */
+function getAsif($return) {
+  be\fund(r\acct()->id, TX_GRANT, R_STARTING_BALANCE, TRUE, FALSE);
+  say('got asif credits');
+  r\go($return);
+}
+
 function webAccess($access) {
   $access = substr($access, 1);
   setupGlobals(); // remember who we are (the only reason for this function)
@@ -2282,17 +2540,3 @@ function js($what, $type, $scope) {
   return drupal_add_js($what, compact('type', 'scope'));
 }
 
-// one-line functions that need no explanation
-function tt($message, $subs = array()) {return u\tt($message, $subs);}
-//function block_def($info, $extra = array()) {return compact(u\ray('info cache'));} // also status, region, visibility, pages
-function blockView($subject, $content) {return compact(u\ray('subject content'));}
-
-function disabled($value) {return array('value' => $value, 'disabled' => TRUE);}
-function dft($default_value) {return compact('default_value');}
-function weight($weight) {return compact('weight');}
-function attrib($attribs) {return array('attributes' => $attribs);}
-function autocomplete($path) {return array('autocomplete_path' => "autocomplete/$path/" . @r\acct()->id);}
-function required() {return array('required' => TRUE);}
-// UNUSED function check($array, $type = 'plain') {return array_map("check_$type", $array);} // Check an array for plain or markup.
-function op($sta) {return $sta['clicked_button']['#parents'][0];}
-function submit($label) {return formField('submit', $label);}

@@ -19,16 +19,16 @@ define('R_VERSION', '1.0'); // software version
 define('R_SEPARATE_BACKEND', FALSE);
 define('R_TEMP_NAME_PREFIX', 'unknown ');
 define('R_ASIF_TEXT', ' "AS-IF"'); // how to identify "As If" transactions
+define('R_MIN_PHOTO_WIDTH', 240); // how wide to make profile pictures (unless too long)
+define('R_MAX_PHOTO_WIDTH', 1024);
+define('R_FIRST_CTTY_UID', -1000001); // community uids are less than or equal to this
+define('R_ASIF_BUY_MIN', 3); // minimum number of ASIF purchases before eligible to be a Partner
+define('R_ASIF_SELL_MIN', 1); // minimum number of ASIF sales before eligible to be a Partner
+define('R_STAGES', 'Member Partner Steward rTrader'); // stages in the progress to rTrader
 
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
 define('R_EMAIL_FRAME', 'email-frame');
-
-// Roles
-define('R_ROLE_RTRADER', 4);
-
-// Bank account states
-define('R_BANK_VERIFIED', 1); // we have proof that the user owns the bank account
 
 // Account types
 define('R_PERSONAL', 0);
@@ -54,7 +54,7 @@ define('PERM_RTRADER', 14); // is allowed to use rCredits for real
 define('PERM_CTTY_ADMIN', 99);
 define('PERM_ADMIN', 100);
 
-// Permissions, options, and flags (flags field in account record)
+// Permissions, options, and flags (flags field in account record) - max 2,147,483,647
 define('BIT_PARTNER', 1); // signed the membership agreement and donated
 define('BIT_STEWARD', 2); // is allowed to vote and is responsible for stewarding the Common Good Community
 define('BIT_RTRADER', 4); // is allowed to use rCredits for real
@@ -64,7 +64,15 @@ define('BIT_VIRTUAL_ALL', 32); // pay everyone virtually
 define('BIT_SECRET_BAL', 64); // don't let merchants tell me my balance on request
 define('BIT_NOTIFY_EMAIL', 128); // notifications by email
 define('BIT_NOTIFY_SMS', 256); // notifications by SMS
-define('BIT_ADMIN', 32768); // is an administrator (not yet implemented)
+define('BIT_USED_ID', 512); // user ID has been scanned (requirement for Partner status)
+define('BIT_SIGNED', 1024); // signed the rCredits Agreement
+define('BIT_SAW_VID1', 2048); // saw the pre-Partner vid
+define('BIT_SAW_VID2', 4096); // saw the pre-Steward vid
+define('BIT_PASSED_TEST', 8192); // passed the Stewardship test
+define('BIT_ELECTRONIC', 16384); // will accept electronic statements
+define('BIT_MET', 32768); // has participated in a community meeting
+define('BIT_RQUALIFIED', 65536); // makes good economic circles
+define('BIT_ADMIN', 67108864); // is an administrator (not yet implemented)
 define('BIT_DEFAULTS', BIT_NOTIFY_EMAIL | 0); // what bits to set when creating a new account
 
 // Transaction states
@@ -119,6 +127,15 @@ $GLOBALS['emailSubjects'] = array(
 include_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
 include_once __DIR__ . '/acct.class';
 include_once __DIR__ . '/rcredits-circles.inc'; // treat this as an extension of this file, for testing
+
+/**
+ * Return the account's current stage in its progression toward rTrader
+ */
+function stage($acct = '') {  
+  if (!($acct = $acct ?: acct())) return FALSE;
+  foreach (u\ray(R_STAGES) as $one) if ($acct->can(constant('PERM_' . strtoupper($one)))) $stage = $one;
+  return @$stage;
+}
 
 /**
  * Format and return args for reporting a transaction (old or new) to the current account.
@@ -178,22 +195,23 @@ function otherBalance($uid) {
  * Record a transaction between two participants
  * @see also transactionSetup(), r\transactionRewards(), and be\transfer()
  */
-function transact($info) {
+function transact($info, $real = NULL) {
   $txs = array(transactionSetup($info));
   transactionRewards($txs);
-  return txSave($txs);
+  return txSave($txs, $real);
 }
 
 /**
  * Save the transaction set
- * @todo: don't give real rewards to the passive party in an ASIF transaction (look retroactively)
+ * @todo: don't give real retroactive rewards to the passive party in an ASIF transaction (look retroactively)
  */
-function txSave($txs) {
-  extract($txs[0], EXTR_PREFIX_ALL, 'my');
+function txSave($txs, $real = 'as appropriate') {
+  extract(u\just('payer payee data', $txs[0]));
   //*** Begin DBTX
   $dbtx = db_transaction();
-  $table = zxs($my_payer, $my_payee);
-  if (@$my_data['zxid'] < 0) $table = zxs(FALSE/2); // rare case: undoing an asif, even though both parties are now rTraders
+  $table = zxs($payer, $payee);
+  $data = @unserialize($data) ?: array();
+  if (@$data['zxid'] < 0 or $real === FALSE) $table = zxs(FALSE/2); // rare case: undoing an asif, even though both parties are now rTraders OR extra asif credits for an rTrader
   foreach ($txs as $key => $one) {
     if (empty($one)) continue; // skipping rebate or bonus
     $txs[$key]['serial'] = @$serial; // set serial for dependent transactions
@@ -271,9 +289,10 @@ function transactionSetup($info) {
  * @return the user's demand amount
  */
 function demand($uid, $demand = FALSE) {
-  if ($demand === FALSE) return userField('demand', $uid);
+  $acct = acct($uid);
+  if ($demand === FALSE) return $acct->demand;
   $demand = min(R_MAX_AMOUNT, $demand);
-  userUpdate(compact('demand'), $uid);
+  $acct->update(compact('demand')); 
   return $demand;
 }
 
@@ -425,7 +444,7 @@ function mergeAccounts($oldUid) {
   $old = acct($oldUid);
   $update = array();
   foreach (u\ray('phone fax website address') as $one) if ($old->$one and !$new->$one) $update[$one] = $old->$one;
-  userUpdate($update, $newUid);
+  acct()->update($update);
   dbQ('DELETE FROM r_asif a LEFT JOIN r_asif b ON b.serial=a.serial WHERE b.payer=b.payee;'); // rebates and bonuses (if any)
   dbQ('DELETE FROM r_asif WHERE payer=payee;'); // then the main transaction
   newMemberId($oldUid, $newUid, TRUE);
@@ -649,34 +668,6 @@ function employees() {
 }
 
 /**
- * @param mixed $who: criteria or uid (defaults to $cuid)
- * @return:
- *   data from the field, if a single field is requested
- *   an associative array of the field data, if more than one field is requested
- */
-function userField($field, $who = 'none', $subs = array()) {
-  if ($who == 'none') $who = acct()->id;
-  if (!$who) return FALSE;
-  if (is_numeric($uid = $who) and !strpos($field, '(')) { // handle numbered accounts efficiently
-    if (!($acct = acct($uid))) return FALSE;
-    if (strpos($field, ',')) {
-      $result = array();
-      foreach (u\ray($field) as $one) {
-        if (strpos($one, ' AS ')) list($one, $key) = explode(' AS ', $one); else $key = $one;
-        $result[$key] = $acct->$one;
-      }
-      return $result;
-    } else return $acct->$field;
-  }
-//  debug(compact(u\ray('field who subs')));
-  $result = be\getRecords('users', is_numeric($who) ? "uid=$who" : $who, $subs, $field, TRUE);
-  if (count($result) < 1) return FALSE;
-  u\EXPECT(count($result) == 1, "ambiguous user in userField(): $who");
-  u\EXPECT(is_object($result[0]), 'bad object array in userField(): ' . print_r($result, 1)); // keep this
-  return strpos($field, ',') ? ((array) $result[0]) : $result[0]->$field;
-}
-
-/**
  * Return the field or fields from the relations table, for the given id and agent.
  * Call by:
  *   relation(field, id, agent, where, subs) OR
@@ -743,16 +734,6 @@ function newMemberId($oldUid, $newUid = FALSE, $skipUsers = FALSE) {
   return $newUid;
 }
 
-function userUpdate($info, $uid = '') {
-  if ($acct = acct($uid)) {
-    $acct->update($info); 
-  } else {
-    die('in userUpdate (never gets called): ' . print_r(compact('info','uid'), 1)); // after testing, make this a 2-line function
-    $info['uid'] = $uid;
-    \drupal_write_record('users', $info, 'uid');
-  }
-}
-
 /**
  * Go to the specified page
  * Accommodate testing, if that's what's happening.
@@ -764,6 +745,35 @@ function go($page) {
     return Web\showForm($form, $arg1);
   }
   \drupal_goto($page);
+}
+
+/**
+ * @param mixed $which: criteria or record id (defaults to $cuid if users)
+ * @return:
+ *   data from the field, if a single field is requested
+ *   an associative array of the field data, if more than one field is requested
+ */
+function tableField($field, $table, $which = '', $subs = array()) {
+  if ($table == 'users') {
+    if ($which === '') if (!($which = acct()->id)) return FALSE;
+    if (is_numeric($which) and !strpos($field, '(')) { // handle numbered records efficiently
+      if (!($acct = acct($which))) return FALSE;
+      if (strpos($field, ',')) {
+        $result = array();
+        foreach (u\ray($field) as $one) {
+          if (strpos($one, ' AS ')) list($one, $key) = explode(' AS ', $one); else $key = $one;
+          $result[$key] = $acct->$one;
+        }
+        return $result;
+      } else return $acct->$field;
+    }
+  } elseif (!$which) return FALSE;
+  
+  $result = be\getRecords($table, is_numeric($which) ? "uid=$which" : $which, $subs, $field, TRUE);
+  if (count($result) < 1) return FALSE;
+  u\EXPECT(count($result) == 1, "ambiguous in tableField(): $which");
+  u\EXPECT(is_object($result[0]), 'bad object array in tableField(): ' . print_r($result, 1)); // keep this
+  return strpos($field, ',') ? ((array) $result[0]) : $result[0]->$field;
 }
 
 /**
@@ -796,9 +806,10 @@ function error($logid) {
 }
 
 // Single line functions that need no explanation
+function userField($field, $who = '', $subs = array()) {return tableField($field, 'users', $who, $subs);}
 function rebate($uid, $amount = 1) {return round($amount * userField('rebate_percent', $uid) / 100, 2);}
 function bonus($uid, $amount = 1) {return rebate($uid, 2 * $amount);}
-// UNUSED tx_field($fieldName, $xid, $real) {return dbLookup($fieldName, zxs($real/2), 'xid=:xid', compact('xid'));}
+function txField($field, $which, $subs = array()) {return tableField($field, '{zxs}', $which, $subs);}
 function setTxState($new_value, $zserial) {setTxField('state', $new_value, $zserial, TRUE);}
 function totalDemand() {return dbLookup('SUM(demand)', 'users');}
 function serverUid($regionID = '') {return -u\a2n($regionID ?: R_SERVER_ID);}

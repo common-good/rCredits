@@ -21,5 +21,6 @@ define('R_MAX_AMOUNT', 100000); // you can't ask for more rCredits than this
 define('R_MIN_DEMAND', 10); // you can't buy less rCredits than this at a time
 define('R_STARTING_BALANCE', 250); // how much people start with in the TRIAL RUN
 define('R_MIN_BALANCE', 0); // how low can user's balance go, by default
+define('R_STATEMENT_COST', 10); // how much member must pay (in rCredits dollars) for monthly and annual statements by mail
 define('R_FIREWALL', 'lkj234lisufsd89072osi%!@J@$K'); // nobody can use the backend without knowing this code
-// NOTE: this code will need to be changed and kept out of github, if we ever use it
+// NOTE: this code will need to be changed and kept out of github, if we ever use it for something

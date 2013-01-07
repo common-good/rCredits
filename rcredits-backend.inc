@@ -502,24 +502,25 @@ function txPerson($id, $region) {return r\isForeign($region) ? array($region, $i
  * @param int $uid: uid of the account to credit or debit
  * @param int $type: what type of transfer (defaults to signup)
  * @param int $amount: how much to transfer
- * @param bool $forReal: actually do it? (otherwise just see if it can be done)
+ * @param bool $confirmed: actually do it? (otherwise just see if it can be done)
+ * @param bool $real: real rCredits? otherwise asif (default to real if funding an rTrader, otherwise asif)
  * @return int: the incentive amount (FALSE if the current account does not have permission to do this)
  */
-function fund($uid, $type = TX_SIGNUP, $amount = R_STARTING_BALANCE, $confirmed = TRUE) {
+function fund($uid, $type = TX_SIGNUP, $amount = R_STARTING_BALANCE, $confirmed = TRUE, $real = NULL) {
   if (isFrontend()) return backend('fund', compact(u\ray('uid type amount')));
   if (is_array($uid)) extract($uid); // called from api or backend
 
   $payee_agent = $payee = $uid;
   $cacct = r\acct(); // null, if just registering
   $ctty = r\userField('community_uid', $payee);
-  if ($type > TX_AUTOMATIC and !$cacct->can(PERM_CTTY_ADMIN)) return FALSE; // incentives given only automatically or by community agent
+  if ($type > TX_AUTOMATIC and !$cacct->can(PERM_CTTY_ADMIN) and $real) return FALSE; // real incentives given only automatically or by community agent
   if (!$confirmed) return TRUE;
   
   $payer = $ctty;
   $payer_agent = @$cacct->id < 0 ? $cacct->agent : $ctty;
   $taking = ($type >= TX_FINE);
   $for = $GLOBALS['txTypes'][$type];
-  r\transact(compact(u\ray('type amount payer payee payer_agent payee_agent for taking')));
+  r\transact(compact(u\ray('type amount payer payee payer_agent payee_agent for taking')), $real);
   return $amount;
 }
 
@@ -527,7 +528,8 @@ function fund($uid, $type = TX_SIGNUP, $amount = R_STARTING_BALANCE, $confirmed 
  * @return FALSE if success; else array($error_message, $subs)
  */
 function addCell($number, $validate = FALSE) {
-  $cuid = r\acct()->id;
+  $cacct = r\acct();
+  $cuid = $cacct->id;
   if (isFrontend()) return backend('addCell', compact(u\ray('number validate')));
   if (is_array($number)) extract($number); // called from api or backend
 
@@ -548,10 +550,10 @@ function addCell($number, $validate = FALSE) {
   
   $uid = $cuid;
   $status = SMS_PRIMARY;
-  $number = $numberInternal;
+  $phone = $number = $numberInternal;
   $info = compact(u\ray('uid number status'));
   if (!mergeCheck(compact('number'))) \drupal_write_record('r_sms', $info);
-  if (!r\acct()->phone) r\userUpdate(array('phone' => $number)); // use it as contact phone, if none yet
+  if (!$cacct->phone) $cacct->update(compact('phone')); // use it as contact phone, if none yet
   $number = $numberPretty;
   return array('report new cell', compact('number'));
 }
@@ -729,8 +731,9 @@ function accountChoices() {
   $agent = $cacct->agent;
   $primary = array((string) $agent => (count($GLOBALS['share permissions']) - 1)); // max access for primary user account
 
-  $result = r\dbQ("SELECT main_uid, permission FROM r_relations WHERE agent_uid=:agent", compact('agent'));
-  return $primary + $result->fetchAllKeyed(0, 1);
+  $result = r\dbQ("SELECT main_uid, permission FROM r_relations WHERE agent_uid=:agent", compact('agent'))->fetchAllKeyed(0, 1);
+  $resulta = $cacct->can(PERM_ADMIN) ? r\dbQ('SELECT uid, :PERM_MANAGE FROM users WHERE uid<=:R_FIRST_CTTY_UID')->fetchAllKeyed(0, 1) : array();
+  return $primary + $result + $resulta;
 }
 
 /**

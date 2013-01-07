@@ -9,7 +9,6 @@ A. Development environment
    If you use Notepad++ for PHP, Go to Settings/Style Configurator/Language, select php, add the following list to User Ext.:
       inc module test class install steps
    Also go to Settings/Preferences/Tab Settings and set the tab size to 2, replace with spaces
-
  
 B. Coding style and strategies:
   - Mostly follow generally-accepted coding practices (For example, all of the Eclipse's defaults.)
@@ -130,6 +129,13 @@ G. Special rCredits datatypes
 @todo: when a relation for a company is created with PERM_MANAGE, warn the user that they will no longer be able to log in directly to the company account, change the password to "NOACCESS", and prevent a password change ("Only authorized individuals can manage this account.")
 @todo: option to suppress current balance in messages (make it a separate message) BIT_SHOWBAL (default TRUE)
 @todo: rTraders have unlimited asif rCredits (or unlimited credit and show balance as N/A)
+@todo: Miscellaneous other data to collect:
+  Names and Social Security Numbers of Dependents [why do we need this?]
+  If this is a joint account and you are the first to join, social security numbers of the other account holders
+  If this is a joint account, do you want separate balances? (if so, it will be treated as separate accounts except that available funds may be transferred automatically to any of the joined accounts that dips below its credit limit.)
+  Choose a Proxy -- someone to represent you, whenever you are unable to vote directly. This should be someone you trust to make sound decisions for the common good of all. Also choose an Alternate proxy, as a backup. If you choose someone who is not yet a member, you will need to supply their email address, so we can invite them to participate. Your membership will not be complete until your chosen representatives sign up.
+  Proxy:
+  Alternate:
 @todo
 - remove all direct db operations from interface modules (and their .inc files) -- use be\ and u\ there, but not r\
 
@@ -159,15 +165,15 @@ Other thoughts:
 To clear cache:   http://localhost/devcore/devel/cache/clear?destination=node
   (or http://new.rcredits.org/devel/cache/clear?destination=node)
 
-To uninstall the rCredits modules manually (export first, since this DESTROYS ALL DATA):
+To uninstall the rCredits modules manually (export first, since this DESTROYS ALL rCredits DATA except users):
   DELETE FROM system WHERE filename LIKE 'sites/all/modules/rcredits/%' OR name='rcredits';
   DELETE FROM block WHERE theme='rcredits';
   DELETE FROM menu_links WHERE menu_name='main-menu' OR (menu_name='user-menu' AND mlid>20) OR link_title='rCredits';
   DELETE FROM menu_router WHERE access_callback LIKE 'rCredits%' or page_callback LIKE 'rCredits%' OR path LIKE '%rcredits';
   DELETE FROM registry WHERE module IN ('rcredits','rweb','rsmart','rsms');
   DELETE FROM registry_file WHERE filename LIKE 'sites/all/modules/rcredits/%';
-  TRUNCATE sessions;
   DELETE FROM variable WHERE name LIKE 'rcredits%';
+  DROP TABLE IF EXISTS r_areas,r_asif,r_candidates,r_donations,r_industries,r_log,r_nonces,r_regions,r_relations,r_scores,r_smarts,r_sms,r_txs,r_usd;
   TRUNCATE cache;
   TRUNCATE cache_block;
   TRUNCATE cache_bootstrap;
@@ -178,4 +184,4 @@ To uninstall the rCredits modules manually (export first, since this DESTROYS AL
   TRUNCATE cache_page;
   TRUNCATE cache_path;
   TRUNCATE cache_update;  
-  DROP TABLE IF EXISTS r_areas,r_asif,r_candidates,r_donations,r_industries,r_log,r_nonces,r_regions,r_relations,r_scores,r_smarts,r_sms,r_txs,r_usd;
+  TRUNCATE sessions;

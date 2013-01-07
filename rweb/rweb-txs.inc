@@ -12,7 +12,7 @@ use rCredits as r;
 /**
  * List Transactions
  */
-function formTxs($form, &$sta, $argString = '') {
+function formTxs($form, &$sta, $args = '') {
   global $base_url;
   $cacct = r\acct();
   $cuid = $cacct->id;
@@ -20,7 +20,6 @@ function formTxs($form, &$sta, $argString = '') {
 //  $args = explode('&', $args);
 //  foreach ($args as $one) list ($keys[], $values[]) = explode('=', "$one=");
 //  extract(u\just('real period do zxid', array_combine($keys, $values)));
-  parse_str($argString, $args);
   extract(u\just('real period do zxid', $args)); 
   $real = r\isRTrader() ? (isset($real) ? $real : TRUE) : FALSE;
   $period = (int) (@$period ?: 30);

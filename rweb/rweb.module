@@ -87,18 +87,20 @@ function rweb_menu() {
 //    'account/bank-info' => r\Web\menu(t('Bank Info'), MENU_LOCAL_TASK, 'showForm', array('Bank'), PERM_MANAGE),
     'account/usd' => r\Web\menu(t('Dwolla Info'), MENU_LOCAL_TASK, 'showForm', array('Usd'), PERM_ADMIN), // should be PERM_MANAGE
 
-    'radmin' => r\Web\menu(t('Community Overview'), MENU_CALLBACK, 'showForm', array('Account'), PERM_CTTY_ADMIN),
-    'radmin/overview' => r\Web\menu('Community Overview', MENU_DEFAULT_LOCAL_TASK, 'showForm', array('Account'), PERM_CTTY_ADMIN),
+    'radmin' => r\Web\menu(t('Community Overview'), MENU_NORMAL_ITEM, 'showForm', array('Community'), PERM_CTTY_ADMIN),
+    'radmin/overview' => r\Web\menu('Community Overview', MENU_DEFAULT_LOCAL_TASK, 'showForm', array('Community'), PERM_CTTY_ADMIN),
     'radmin/grant' => r\Web\menu(t('Grant'), MENU_LOCAL_TASK, 'showForm', array('Tx'), PERM_CTTY_ADMIN),
     'radmin/loan' => r\Web\menu(t('Loan'), MENU_LOCAL_TASK, 'showForm', array('Tx'), PERM_CTTY_ADMIN),
     'radmin/fine' => r\Web\menu(t('Fine'), MENU_LOCAL_TASK, 'showForm', array('Tx'), PERM_CTTY_ADMIN),
-    'radmin/adjust' => r\Web\menu(t('Modify User\'s Settings'), MENU_LOCAL_TASK, 'showForm', array('Adjust'), PERM_CTTY_ADMIN),
+    'radmin/adjust' => r\Web\menu(t('Edit Member'), MENU_LOCAL_TASK, 'showForm', array('Adjust'), PERM_CTTY_ADMIN),
 
     'membership' => r\Web\menu(t('Membership Status'), MENU_CALLBACK, 'showForm', array('Membership'), PERM_MANAGE),
+    'membership/agreement' => r\Web\menu(t('rCredits Agreement'), MENU_CALLBACK, 'showForm', array('Agreement'), PERM_MANAGE),
 //    'promo-site' => r\Web\menu(t('Main Site'), MENU_CALLBACK, 'drupal_goto', array('http://rCredits.org'), '', $anyone),
 
     'menu' => r\Web\menu('Main Menu', MENU_CALLBACK, 'showForm', array('Menu'), PERM_READ),
     'member' => r\Web\menu('Company Profile', MENU_CALLBACK, 'showForm', array('Profile'), '', $anyone),
+    'get-asif' => r\Web\menu('Get more ASIF rCredits', MENU_CALLBACK, 'getAsif', array(1), PERM_SELL),
     'rcredits/util' => r\Web\menu('Util', MENU_CALLBACK, 'util', array(2), PERM_ADMIN),
     'rcredits/test' => r\Web\menu('Util', MENU_CALLBACK, 'test', array(2), '', $anyone),
     'autocomplete' => r\Web\menu('Identify', MENU_CALLBACK, 'auto', array(1, 2, 3), '', $anyone),
