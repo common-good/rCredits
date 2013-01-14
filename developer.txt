@@ -110,6 +110,7 @@ G. Special rCredits datatypes
 
 @todo: BUG: profile picture is discarded on repeated Save
 @todo: rate each account health as ratio of total demand of repeat payees to total demand of repeat payers OR to monthly sales
+@todo: use hidentity in r\acct (_get and update, not account()) for federal_id, dob, usd_acct, and id_proof
 @todo: make id_proof file_managed_record_id,hash where hash is how the file is encoded. 
   $salt = uniqid('', true);
   $encryptionKey = openssl_random_pseudo_bytes(32, $strong) . $salt;

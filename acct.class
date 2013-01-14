@@ -6,7 +6,6 @@ use rCredits\Util as u;
 /**
  * @file
  * rCredits Account class
- * @todo: use hidentity for federal_id, dob, usd_acct, and id_proof
  */
 
 class acct {

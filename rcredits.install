@@ -242,7 +242,7 @@ function rcredits_schema_alter(&$schema) {
     'community_uid' => r\setupField("uid of this account's Common Good Community", 'int 11'),
     'federal_id' => r\setupField('social security number or employer id number, for reporting', 'varchar 9'),
     'dob' => r\setupField('date of birth, founding, or incorporation', 'int 11'),
-    'id_proof' => r\setupField('proof of identity (index into file_managed image)', 'int medium'),
+    'id_proof' => r\setupField('proof of identity (index into file_managed image,encryption key)', 'varchar 70'), // max 11(id)+1(comma)+32(key)+23(salt)
     'full_name' => r\setupField('full name of the individual or entity', 'varchar 60'),
     'phone' => r\setupField('contact phone (no country code, no punctuation)', 'varchar 255'),
     'fax' => r\setupField('fax number (no country code, no punctuation)', 'varchar 255'),
