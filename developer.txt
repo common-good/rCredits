@@ -11,6 +11,7 @@ A. Development environment
    Also go to Settings/Preferences/Tab Settings and set the tab size to 2, replace with spaces
  
 B. Coding style and strategies:
+  - isDev (defined at the top of rcredits.inc) is TRUE only under Windows
   - Mostly follow generally-accepted coding practices (For example, all of the Eclipse's defaults.)
   - Exceptions: 
     . Indent two spaces instead of one tab.
@@ -55,6 +56,7 @@ E. Database clues
          picture: the URL of a temporary guessed-at picture for Greenfield businesses. Once the business uploads a picture, this guessed one has no effect. These links should have gone in the file_managed table instead, but they didn't.
          width and height: size of the picture
          company, employee_ok, and is_owner: these are stored upon registration, but they should really go in the relations table and the user should be required to give a phone number for the company, if it is not in the users table yet
+         new_account: qid of new account when this account is closed by moving funds elsewhere
      . description is html for the company's page (N/A for personal accounts)
      . community_uid: the (negative) uid of the account's CGC. For anyone who is not in an established CGC, their community is the region (using the regional server's uid)
      . counts is not currently used
@@ -106,6 +108,16 @@ G. Special rCredits datatypes
  zxid: a (signed) transaction id (>0: xid in r_txs (real), <0: -xid in r_asif)
        All database operations with transactions are performed by dbQ() on a virtual table {txs} with key zxid.
 
+@todo: BUG: profile picture is discarded on repeated Save
+@todo: rate each account health as ratio of total demand of repeat payees to total demand of repeat payers OR to monthly sales
+@todo: make id_proof file_managed_record_id,hash where hash is how the file is encoded. 
+  $salt = uniqid('', true);
+  $encryptionKey = openssl_random_pseudo_bytes(32, $strong) . $salt;
+  $file = file_get_contents($filename);
+  $encryptedFile = mcrypt_encrypt(MCRYPT_RIJNDAEL_128, $encryptionKey, $file, MCRYPT_MODE_CFB);
+  file_put_contents($filename, $encryptedFile);
+  $id_proof = "$id,$encryptionKey"; // $id is the record key in file_managed
+  $decryptedFile = mcrypt_decrypt(MCRYPT_RIJNDAEL_128, $key, $encryptedFile, MCRYPT_MODE_CFB);
 @todo: move some util functions, like ray(), to rcredits-basic.inc and "USE" them everywhere without a namespace qualifier.
 @todo: on successful web request for rCredits, say you will have to Dwolla us $20, to actually be added to the waiting list.
 @todo: allow surrounding spaces on all web input, leading dollar signs in amounts. Test.
@@ -136,6 +148,10 @@ G. Special rCredits datatypes
   Choose a Proxy -- someone to represent you, whenever you are unable to vote directly. This should be someone you trust to make sound decisions for the common good of all. Also choose an Alternate proxy, as a backup. If you choose someone who is not yet a member, you will need to supply their email address, so we can invite them to participate. Your membership will not be complete until your chosen representatives sign up.
   Proxy:
   Alternate:
+@todo: closed accounts have only read perm and point (data[new_account]) at new account qid
+@todo: servers exchange info on which ss#s (or other ids) are dups
+@todo: *** unilateral only if agent charging for company using SMS or scan. No invoicing for remainder beyond partial charge (just say how much is still due).
+@todo: donations
 @todo
 - remove all direct db operations from interface modules (and their .inc files) -- use be\ and u\ there, but not r\
 

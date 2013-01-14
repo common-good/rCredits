@@ -173,17 +173,18 @@ class rsmartInsufficient extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('member "NEW.ZZC" can charge unilaterally');
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW:AAAH", with the request "confirmed"');
-    Then_('we respond success 1 tx_id "NEW:AAAL" my_balance "$210" other_balance "$0" and message "report undo|report short invoice" with subs: "DATA'
-    . '\\| solution | action  | otherName | amount | balance | tid | short | t2id |'
-    . '\\| reversed | charged | Abe One   | $60    | $210    | 3   | $40   | 4    |"');
-    And__('we email "new-charge" to member "a@example.com" with subs: "DATA'
+    Then_('we respond success 1 tx_id "NEW:AAAL" my_balance "$155" other_balance "$70" and message "report undo|report invoice" with subs: "DATA'
+    . '\\| solution | action  | otherName | amount | balance | tid |'
+    . '\\| reversed | charged | Abe One   | $100   | $155    | 3   |"');
+    And__('we email "new-invoice" to member "a@example.com" with subs: "DATA'
     . '\\| created | fullName | otherName  | amount | payerPurpose |'
-    . '\\| %today  | Abe One  | Corner Pub | $60    | reverses #3  |"');
+    . '\\| %today  | Abe One  | Corner Pub | $100   | reverses #3  |"');
     And__('"asif" balances: "DATA'
     . '\\| id        | balance |'
-    . '\\| community |    -780 |'
-    . '\\| NEW.ZZA   |       0 |'
-    . '\\| NEW.ZZC   |     210 |"');
+    . '\\| community |    -795 |'
+    . '\\| NEW.ZZA   |      70 |'
+    . '\\| NEW.ZZB   |     570 |'
+    . '\\| NEW.ZZC   |     155 |"');
   }
 
   // Scenario: A member asks to undo a completed charge, with insufficient balance
@@ -267,17 +268,18 @@ class rsmartInsufficient extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 1);
     Given('member "NEW.ZZC" can charge unilaterally');
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW:AAAH", with the request "confirmed"');
-    Then_('we respond success 1 tx_id "NEW:AAAL" my_balance "$210" other_balance "$0" and message "report undo|report short invoice" with subs: "DATA'
-    . '\\| solution | action  | otherName | amount | balance | tid | short | t2id |'
-    . '\\| reversed | charged | Abe One   | $60    | $210    | 3   | $40   | 4    |"');
-    And__('we email "new-charge" to member "a@example.com" with subs: "DATA'
+    Then_('we respond success 1 tx_id "NEW:AAAL" my_balance "$155" other_balance "$70" and message "report undo|report invoice" with subs: "DATA'
+    . '\\| solution | action  | otherName | amount | balance | tid |'
+    . '\\| reversed | charged | Abe One   | $100   | $155    | 3   |"');
+    And__('we email "new-invoice" to member "a@example.com" with subs: "DATA'
     . '\\| created | fullName | otherName  | amount | payerPurpose |'
-    . '\\| %today  | Abe One  | Corner Pub | $60    | reverses #3  |"');
+    . '\\| %today  | Abe One  | Corner Pub | $100   | reverses #3  |"');
     And__('"asif" balances: "DATA'
     . '\\| id        | balance |'
-    . '\\| community |    -780 |'
-    . '\\| NEW.ZZA   |       0 |'
-    . '\\| NEW.ZZC   |     210 |"');
+    . '\\| community |    -795 |'
+    . '\\| NEW.ZZA   |      70 |'
+    . '\\| NEW.ZZB   |     570 |'
+    . '\\| NEW.ZZC   |     155 |"');
   }
 
   // Scenario: A member asks to undo a completed charge, with insufficient balance

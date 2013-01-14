@@ -108,11 +108,11 @@ function makeRelation($info, $infoOnly = FALSE) {
   $reid = u\retNum($my_id) ?: u\a2n(substr($my_id, -3));
   if (!($main = r\acct(fullQid($my_main)))) return testOutput("main:$my_main is not an id");
   if (!($agent = r\acct(fullQid($my_agent)))) return testOutput("agent:$my_agent is not an id");
-  u\EXPECT(!r\isForeign($main->region) or !r\isForeign($agent->region));
+  u\EXPECT(!r\isForeign($main->regionId) or !r\isForeign($agent->regionId));
   u\EXPECT($main->proSe() and $agent->proSe());
   list ($main_uid, $agent_uid) = array($main->id, $agent->id);
-  if (r\isForeign($main->region)) list ($main_uid, $foreign_uid) = array($main->region, $main->id);
-  if (r\isForeign($agent->region)) list ($agent_uid, $foreign_uid) = array($agent->region, $agent->id);
+  if (r\isForeign($main->regionId)) list ($main_uid, $foreign_uid) = array($main->regionId, $main->id);
+  if (r\isForeign($agent->regionId)) list ($agent_uid, $foreign_uid) = array($agent->regionId, $agent->id);
   
   if (@$my_permission) {
     $perms = array_flip($GLOBALS['share permissions']);
@@ -170,7 +170,7 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
       $fields['subject'] = realFix($subject, $real);
     }
   } else unset($fields['message']); // empty message in features means NO message
-  $agent = @r\acct()->agent;
+  $agent = @r\acct()->agentId;
   \drupal_set_message(color(array('EXPECT' => '') + $fields, @$subject ? 'email' : 'output')); // keep this
   $info = json_encode2($fields, JSON_UNESCAPED_SLASHES);
   $crit = "channel=:channel AND type=:type AND cuid=:cuid AND agent=:agent ORDER BY logid DESC";

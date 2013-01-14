@@ -81,8 +81,8 @@ function api($args = FALSE) {
       if (!u\isQid($q_my_id)) return be\error('bad id format');
       if (!($cacct = r\acct($q_my_id, '', $error))) return be\error($error);
     } else if (!($cacct = r\acct($q_owner))) return be\error('bad code owner'); // this should never happen
-    if ($cacct->region != r\serverUid()) return be\error('wrong server');
-    if ($cacct->agentRegion != r\serverUid()) return be\error('wrong server for agent');
+    if ($cacct->regionId != r\serverUid()) return be\error('wrong server');
+    if ($cacct->agentIdRegion != r\serverUid()) return be\error('wrong server for agent');
     if (buttons($cacct, $q_owner) < 0) return be\error('no permission');
     r\acct::setDefault($cacct);
     $args['cacct'] = $cacct;
@@ -172,7 +172,7 @@ function identify($args) {
   $full_name = $acct->full_name;
   if ($acct->id == $cacct->id) return be\error('no self-trading');
   $location = u\location($acct);
-  if (!$acct->proSe()) list ($company_name, $full_name) = array($full_name, r\acct($acct->agent)->full_name);
+  if (!$acct->proSe()) list ($company_name, $full_name) = array($full_name, r\acct($acct->agentId)->full_name);
   $uid = $acct->id;
   if ($cacct->can(PERM_CHARGE)) $other_balance = be\creditInfo(compact('uid'))->balance;
   return compact(u\ray('full_name location company_name other_balance'));
@@ -217,7 +217,7 @@ function transact($args) {
   if ($q_type != 'pay' and $q_type != 'charge') return be\error('bad transaction type');
   if (!@$q_account_id) return be\error('missing account id');
   if (!@$q_amount) return be\error('missing amount');
-  if ($error = u\badAmount($q_amount, TRUE)) return be\error($error);
+  if ($error = u\badAmount($q_amount, '>0')) return be\error($error);
   if (@$q_goods and !@$q_purpose) return be\error('missing purpose');
 
   if ($q_type == 'pay') $q_type = 'payment'; // this is what be\transfer() expects
@@ -270,11 +270,11 @@ function change($params) {
   extract(u\just('cacct acct what', $params));
   if (!@$acct) return be\error('missing account_id');
   if (!in_array($what, u\ray('agent account'))) return be\error('bad what');
-  if ($acct->proSe()) $acct = $what == 'agent' ? r\acct($cacct->id, $acct->id) : r\acct($acct->id, $cacct->agent);
+  if ($acct->proSe()) $acct = $what == 'agent' ? r\acct($cacct->id, $acct->id) : r\acct($acct->id, $cacct->agentId);
   if (($show_buttons = buttons($acct, $params['owner'])) < 0) return be\error('no permission');
 
   $account_name = $accountName = $acct->full_name;
-  $agentName = r\acct($acct->agent)->full_name;
+  $agentName = r\acct($acct->agentId)->full_name;
   $message = u\tt('changed ' . $what, compact(u\ray('what agentName accountName')));
 
   $my_id = $acct->qid();
@@ -294,7 +294,7 @@ function display_id($params) {
 function makeDevice($device, $acct, $code = '') {
   u\EXPECT(compact('device', 'acct'), 'string&notempty acct');
   $owner = $acct->id;
-  $code = $code ?: user_hash_password(uniqid($acct->mainQid, TRUE) . time()) . '/'; // add a slash to make sure slashes get handled properly
+  $code = trim($code ?: user_hash_password(uniqid($acct->mainQid, TRUE) . time()) . '/'); // add a slash to make sure slashes get handled properly
   $accessed = time();
   $info = compact(u\ray('owner code device accessed'));
   return @\drupal_write_record('r_smarts', $info) ? $code : FALSE; // no way to tell if it's the same device as others
@@ -310,7 +310,7 @@ function agentButtons($acct) {
 function buttons($acct, $owner) {return min(agentButtons(r\acct($acct->id, $owner)), agentButtons($acct));}
   
 function accountName($acct) {
-  $agentName = $acct->proSe() ? '' : "\nAgent: " . r\acct($acct->agent)->full_name; 
+  $agentName = $acct->proSe() ? '' : "\nAgent: " . r\acct($acct->agentId)->full_name; 
   return $acct->full_name . $agentName;
 }
 

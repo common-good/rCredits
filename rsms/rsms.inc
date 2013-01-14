@@ -37,9 +37,11 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'report transaction' => t("You@asif @action @otherName @amount (@rewardType: @rewardAmount). Your new balance is @balance. Transaction #@tid"),
   'report offer' => t("You@asif offered @otherName @amount (@rewardType: @rewardAmount). Your balance is unchanged, pending acceptance. Transaction #@tid"),
   'report invoice' => t("You@asif @action @otherName @amount. Your balance is unchanged, pending agreement. Invoice #@tid"),
-  'report broke invoice' => t("@otherName does not have enough@asif rCredits at this time, so an invoice has been sent, for @short. Invoice #@tid"),
+  'report broke invoice' => t("@otherName does not have enough@asif rCredits at this time, so an invoice has been sent, for @short. Invoice #@tid"), // UNUSED probably
   'report short payment' => t("SPLIT! You@asif paid @otherName @amount (@short remains to be paid). Transaction #@tid"),
-  'report short invoice' => t("SPLIT! You@asif charged @otherName @amount (@short has been invoiced). Transaction #@tid, Invoice #@t2id"),
+//  'report short invoice' => t("SPLIT! You@asif charged @otherName @amount (@short has been invoiced). Transaction #@tid, Invoice #@t2id"),
+  'report short invoice' => t("SPLIT! You@asif charged @otherName @amount (@short remains to be paid). Transaction #@tid"),
+ 
 //  'transaction done asif' => t("@action: @amount @tofrom user#@otherName (@rewardType: @rewardAmount). Your new provisional balance is @balance (If this had been a real transaction, your balance would be @amount @moreless). Transaction ID #@tid"),
   'report exchange' => t("You@asif @action @otherName r@amount for cash/loan/gift/etc. Your new balance is @balance. Transaction #@tid"),
   'report exchange request' => t("You@asif requested r@amount from @otherName. Your balance is unchanged, pending approval. Invoice #@tid"),
@@ -59,6 +61,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'updated relation' => t('Updated settings for @otherName'),
   'deleted relation' => t('Deleted relation with @otherName'),
   'customer balance' => t('The current balance for @otherName is @balance.'),
+  'account updated' => t('The account data has been updated.'),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),
@@ -94,7 +97,6 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'wrong nonce' => t('That is not the expected confirmation response. Try again (start over).'),
   'no self-trading' => t("You can't exchange rCredits with yourself."),
   'no self-relation' => t("You can't relate yourself to your own account."),
-  'no self-adjustment' => t('To adjust your own account settings, do it directly.'),
   'funding error' => t("You do not have permission to fund that person."),
   'no company relations' => t("Only individuals can be related to this account."),
 // not used  'no self-undo' => t("You can't undo transactions with yourself."),

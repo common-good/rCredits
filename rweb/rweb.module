@@ -70,12 +70,11 @@ function rweb_menu() {
     'remainder' => r\Web\menu(t('Show Customer Balance'), MENU_CALLBACK, 'remainder', array(1), PERM_SELL),
     'empty' => r\Web\menu(t('Empty'), MENU_CALLBACK, 'showForm', array('Empty'), '', $anyone),
 
-    'Temporary-Member-ID-Card' => r\Web\menu(t('Print Temporary Member ID Card'), MENU_CALLBACK, 'memberID', array(1),  PERM_SELL),
+    'Advance-ID-Card' => r\Web\menu(t('Print Advance ID Card'), MENU_CALLBACK, 'memberID', array(1),  PERM_SELL),
     'draft' => r\Web\menu(t('Draft into Database'), MENU_CALLBACK, 'showForm', array('Draft', 1), PERM_SELL),
     
     'I' => r\Web\menu('Scanned QR', MENU_CALLBACK, 'showForm', array('I'), '', $anyone),
     'sms' => r\Web\menu('Test SMS', MENU_CALLBACK, 'showForm', array('SMS'), '', $anyone), // should be PERM_ADMIN not '',...
-    'handy' => r\Web\menu('Handy', MENU_NORMAL_ITEM, 'handy_links', array(), PERM_ADMIN),
 
     'account' => r\Web\menu(t('Basic Settings'), MENU_CALLBACK, 'showForm', array('Account'), PERM_MANAGE),
     'account/basic' => r\Web\menu('Basic Settings', MENU_DEFAULT_LOCAL_TASK, 'showForm', array('Account'), PERM_MANAGE),
@@ -85,18 +84,23 @@ function rweb_menu() {
     'account/company' => r\Web\menu(t('Company Info'), MENU_LOCAL_TASK, 'showForm', array('Company'), PERM_COMPANY),
     'account/preferences' => r\Web\menu(t('Preferences'), MENU_LOCAL_TASK, 'showForm', array('Options'), PERM_MANAGE),
 //    'account/bank-info' => r\Web\menu(t('Bank Info'), MENU_LOCAL_TASK, 'showForm', array('Bank'), PERM_MANAGE),
-    'account/usd' => r\Web\menu(t('Dwolla Info'), MENU_LOCAL_TASK, 'showForm', array('Usd'), PERM_ADMIN), // should be PERM_MANAGE
+    'account/usd' => r\Web\menu(t('USD Account'), MENU_LOCAL_TASK, 'showForm', array('Usd'), PERM_ADMIN), // should be PERM_MANAGE
 
-    'radmin' => r\Web\menu(t('Community Overview'), MENU_NORMAL_ITEM, 'showForm', array('Community'), PERM_CTTY_ADMIN),
-    'radmin/overview' => r\Web\menu('Community Overview', MENU_DEFAULT_LOCAL_TASK, 'showForm', array('Community'), PERM_CTTY_ADMIN),
-    'radmin/grant' => r\Web\menu(t('Grant'), MENU_LOCAL_TASK, 'showForm', array('Tx'), PERM_CTTY_ADMIN),
-    'radmin/loan' => r\Web\menu(t('Loan'), MENU_LOCAL_TASK, 'showForm', array('Tx'), PERM_CTTY_ADMIN),
-    'radmin/fine' => r\Web\menu(t('Fine'), MENU_LOCAL_TASK, 'showForm', array('Tx'), PERM_CTTY_ADMIN),
-    'radmin/adjust' => r\Web\menu(t('Edit Member'), MENU_LOCAL_TASK, 'showForm', array('Adjust'), PERM_CTTY_ADMIN),
+    'sadmin' => r\Web\menu(t('System'), MENU_NORMAL_ITEM, 'showForm', array('System'), PERM_ADMIN),
+    'handy' => r\Web\menu('Handy', MENU_NORMAL_ITEM, 'handy_links', array(), PERM_ADMIN),
+    
+    'radmin' => r\Web\menu(t('Community'), MENU_NORMAL_ITEM, 'showForm', array('Community'), PERM_CTTY_ADMIN),
+    'radmin/overview' => r\Web\menu('Community', MENU_DEFAULT_LOCAL_TASK, 'showForm', array('Community'), PERM_CTTY_ADMIN),
+    'radmin/grant' => r\Web\menu(t('Grant'), MENU_LOCAL_TASK, 'showForm', array('Tx'), PERM_MANAGING_CTTY),
+    'radmin/loan' => r\Web\menu(t('Loan'), MENU_LOCAL_TASK, 'showForm', array('Tx'), PERM_MANAGING_CTTY),
+    'radmin/fine' => r\Web\menu(t('Fine'), MENU_LOCAL_TASK, 'showForm', array('Tx'), PERM_MANAGING_CTTY),
 
-    'membership' => r\Web\menu(t('Membership Status'), MENU_CALLBACK, 'showForm', array('Membership'), PERM_MANAGE),
-    'membership/agreement' => r\Web\menu(t('rCredits Agreement'), MENU_CALLBACK, 'showForm', array('Agreement'), PERM_MANAGE),
-//    'promo-site' => r\Web\menu(t('Main Site'), MENU_CALLBACK, 'drupal_goto', array('http://rCredits.org'), '', $anyone),
+    'membership' => r\Web\menu(t('Membership Status'), MENU_CALLBACK, 'showForm', array('Membership'), PERM_MEMBER),
+    'membership/status' => r\Web\menu('Membership Status', MENU_DEFAULT_LOCAL_TASK, 'showForm', array('Membership'), PERM_MANAGE),
+    'membership/agreement' => r\Web\menu(t('rCredits Agreement'), MENU_LOCAL_TASK, 'showForm', array('Agreement'), PERM_MANAGE),
+    'membership/video' => r\Web\menu(t('Videos'), MENU_LOCAL_TASK, 'showForm', array('Videos', 2), '', $anyone),
+
+    //    'promo-site' => r\Web\menu(t('Main Site'), MENU_CALLBACK, 'drupal_goto', array('http://rCredits.org'), '', $anyone),
 
     'menu' => r\Web\menu('Main Menu', MENU_CALLBACK, 'showForm', array('Menu'), PERM_READ),
     'member' => r\Web\menu('Company Profile', MENU_CALLBACK, 'showForm', array('Profile'), '', $anyone),

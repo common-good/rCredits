@@ -259,7 +259,7 @@ function memberInitializesTheDeviceAsMemberWithPassword($agent, $password) {
  */
 function theAppStartsUpAsCode($code) {
   global $testOnly; if ($testOnly) return FALSE;
-  return t\hitServer('startup', NULL, $code);
+  return t\hitServer('startup', NULL, trim($code));
 }
 
 /**

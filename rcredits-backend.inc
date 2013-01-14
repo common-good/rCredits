@@ -130,9 +130,9 @@ function myTransactions($args) {
     AND t.created>=:starting AND t.created<=:ending
     ORDER BY t.xid DESC
 EOF;
-  
+
   $result = r\dbQ($sql, compact(u\ray('starting ending')))->fetchAllAssoc('xid', \PDO::FETCH_ASSOC);
-  
+
   if (!$real) foreach ($result as $xid => $one) { // negate the keys for asif transactions
     $zxid = -$xid;
     $one['zxid'] = $zxid;
@@ -273,7 +273,7 @@ function reverse($zxid, $amount, $acct, $data, $old_goods, $old_tid, $toMe) {
     u\EXPECT($new_zxid * $zxid > 0, 'reverse: wrong reality');
     $otherTid = zxid2tid($new_zxid, $acct->id);
     $old_data['undone'] = TRUE;
-    $old_data['changes'][] = array(time(), r\acct()->agent, 'undo', $new_zxid);
+    $old_data['changes'][] = array(time(), r\acct()->agentId, 'undo', $new_zxid);
     $old_data = serialize($old_data);
     $my_note = "(reversed by #$new_tid) ";
     $other_note = str_replace($new_tid, $otherTid, $my_note);
@@ -307,7 +307,7 @@ function get($currency, &$amount, $confirmed) {
   if (is_array($currency)) extract($currency); // called from api or backend
   
   if (!$cacct->can(PERM_MANAGE)) return array('no access get', array(), FALSE);
-  if ($error = u\badAmount($amount, $currency == 'usd')) return array($error, array(), FALSE); // allow zero for rCredits request
+  if ($error = u\badAmount($amount, $currency == 'usd' ? '>0' : '>=0')) return array($error, array(), FALSE); // allow zero for rCredits request
   // (No, include this in rTrader requirements) if (r\isRTrader() and !$cacct->can(PERM_DWOLLA)) return array('no usd account', array(), FALSE);
   $request = u\formatAmount($amount);
   $success = TRUE;
@@ -382,7 +382,7 @@ function payInvoice($zxid) {
  * @param array $data: associative array of info about the transaction this request is reversing (if any), indexed by any of:
  *   'rebate': the rebate amount for this request (should be negative the original bonus amount)
  *   'bonus': the bonus amount (should be negative the original rebate amount) [rebate and bonus are always both set or neither]
- *   'zxid': signed transaction id of the related transaction (invoice or transaction being undone or partial unilateral charge)
+ *   'zxid': signed transaction id of the related transaction (invoice or transaction being undone)
  *   'preapproved': the transaction is preapproved (from some other region)
  *     Note that other regions must not have PERM_CHARGE (else the code will not permit foreign invoices)
  *   'bilateral': set TRUE if a company with PERM_CHARGE wants to pretend it doesn't
@@ -400,7 +400,7 @@ function payInvoice($zxid) {
  * @todo: write feature tests for partial transactions (paying/taking unilateral/not undoing/not broke/not)
  */
 function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE, $data = array()) {
-  global $lastZxid; 
+  global $lastZxid, $scanned, $channel; 
   if (isFrontend()) return (array) backend('transfer', compact(u\ray('ttype acct requestAmount for confirmed data')));
   if (is_array($ttype)) extract($ttype); // called from api or backend
 
@@ -418,18 +418,24 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   if (!$acct->can($otherAccess)) return array("other no $otherAccessErr", array(), FALSE);
   
   // Analyze who's buying or selling
-  list ($uid, $foreign_uid) = txPerson($acct->id, $acct->region);
-  list ($agent_uid, $foreign_agent) = txPerson($acct->agent, $acct->agentRegion);
+  list ($uid, $foreign_uid) = txPerson($acct->id, $acct->regionId);
+  list ($agent_uid, $foreign_agent) = txPerson($acct->agentId, $acct->agentIdRegion);
   $foreign = compact($foreign_uid ? 'foreign_uid' : '', $foreign_agent ? 'foreign_agent' : '');
   if ($uid == $cuid) return array('no self-trading', array(), FALSE);
   list ($payer, $payee) = u\order($taking, $uid, $cuid);
-  list ($payer_agent, $payee_agent) = u\order($taking, $agent_uid, r\acct()->agent);
+  list ($payer_agent, $payee_agent) = u\order($taking, $agent_uid, r\acct()->agentId);
 
   // Sort out what type of transfer this is
   $paying_invoice = ($ttype == 'invoice payment');
+  $undoing = isset($data['zxid']);
   $type = TX_TRANSFER;
   $unilateral = isset($data['bilateral']) ? FALSE 
-  : ($taking  and $cacct->can(PERM_CHARGE) and !($acct->can(PERM_COMPANY) and $acct->proSe()));
+  : ($taking // selling
+      and $cacct->can(PERM_CHARGE) // seller can charge unilaterally
+      and !$undoing // not reversing a payment
+      and !($acct->can(PERM_COMPANY) and $acct->proSe()) // not selling to a company directly (without its agent)
+      and ($channel == TX_SMART or $scanned or $channel == TX_SMS) // in person: scanned (web or smart) or by SMS
+  );
   $preapproved = (@$data['preapproved'] or !$taking or $unilateral); // paying OR permitted to charge unilaterally
 //  $state = ($preapproved and !@$data['pay_all'])? TX_DONE : TX_PENDING;
   $virtual = ($goods and !$taking and ($cacct->hasBit(BIT_VIRTUAL_ALL) or ($cacct->hasBit(BIT_VIRTUAL_EMPLOYEES) and r\isEmployee($uid))));
@@ -437,17 +443,19 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   $real = (!(@$data['zxid'] < 0) and r\isRTrader() and r\isRTrader($uid));
   
   // Check the amount and calculate any balance shortfall
-  if ($error = u\badAmount($requestAmount, TRUE)) return array($error, array(), FALSE);
+  if ($error = u\badAmount($requestAmount, '>0')) return array($error, array(), FALSE);
   $totalHit = $requestAmount - @$data['rebate']; // leave room for reversing rewards (minus a negative)
-  if ($shortfall = r\shortfall($taking ? $uid : $cuid, $totalHit, $preapproved, $real)) {
+  if ($shortfall = r\shortfall($taking ? $uid : $cuid, $totalHit, $preapproved, $real)) { // short payment or unilateral charge
     $short = u\formatAmount($shortfall);
     $otherName = r\userField('full_name', $uid);
     if ($paying_invoice) return array('short payment', compact('short'), FALSE); // no partial payment of invoice
     if (!$goods) return array($taking ? 'short cash from' : 'short cash to', compact('short', 'otherName'), FALSE); // no partial cash trans
-    if ($shortfall >= $requestAmount or isset($data['rebate'])) { // flat broke or undoing (partial undo is too complex for now)
+    if ($shortfall >= $requestAmount or $undoing) { // flat broke or undoing (partial undo is too complex for now)
       $msg = $taking ? 'broke from' : ($shortfall >= $requestAmount ? 'broke to' : 'short payment');
+      $how = $real ? 'exchange' : 'get-asif/pay'; // for 'broke to' message on web interface
       $balance = u\formatAmount($requestAmount + $shortfall);
-      if (!$unilateral) return array($msg, compact('otherName', 'short', 'balance'), FALSE); // let unilateral partials fall through for invoicing
+      // NOPE if (!$unilateral) // let unilateral partials fall through for invoicing
+      return array($msg, compact(u\ray('otherName short balance how')), FALSE);
     }
   }
   $amount = $requestAmount - $shortfall;
@@ -472,20 +480,23 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   
   // Report results
   $args = r\txReportArgs($txs[0], TRUE, $shortfall);
-  
+
+/* NOPE. When charging unilaterally (only ever in person), simply tell payer how much is left to pay  
   if ($shortfall and $taking and $confirmed) { // special case of partial unilateral charge
     list ($zot, $invoiceArgs) = transfer($ttype, $acct, $shortfall, $for, $goods, TRUE, array('bilateral' => TRUE, 'zxid' => $zxid));
     $args[$amount > 0 ? 't2id' : 'tid'] = @$invoiceArgs['tid'];
   }
-  
+*/
+
   if ($confirmed) { // notify other party by email about any confirmed transaction
     $notice = $taking ? ($preapproved ? 'new-charge' : 'new-invoice')
       : ($virtual ? 'new-offer' : 'new-payment');
     r\notify($uid, $notice, $args);
     $message = $goods ?
-        ($shortfall ? ($taking ? ($shortfall >= $requestAmount ? 'broke invoice' : 'short invoice') : 'short payment')
-          : ($preapproved ? ($virtual ? 'offer' : 'transaction')
-          : 'invoice'))
+      // $shortfall >= $requestAmount never happens (see "NOPE" notes, above). Remove this when sure.
+      ($shortfall ? ($taking ? ($shortfall >= $requestAmount ? 'broke invoice' : 'short invoice') : 'short payment')
+        : ($preapproved ? ($virtual ? 'offer' : 'transaction')
+        : 'invoice'))
       : ($preapproved ? 'exchange' : 'exchange request'); // no possible shortfall on confirmed cash exchange (see above)
     $message = "report $message";
   } else {
@@ -513,11 +524,11 @@ function fund($uid, $type = TX_SIGNUP, $amount = R_STARTING_BALANCE, $confirmed 
   $payee_agent = $payee = $uid;
   $cacct = r\acct(); // null, if just registering
   $ctty = r\userField('community_uid', $payee);
-  if ($type > TX_AUTOMATIC and !$cacct->can(PERM_CTTY_ADMIN) and $real) return FALSE; // real incentives given only automatically or by community agent
+  if ($real and $type > TX_AUTOMATIC and !$cacct->can(PERM_MANAGING_CTTY)) return FALSE; // real incentives given only automatically or by community agent
   if (!$confirmed) return TRUE;
   
   $payer = $ctty;
-  $payer_agent = @$cacct->id < 0 ? $cacct->agent : $ctty;
+  $payer_agent = @$cacct->id < 0 ? $cacct->agentId : $ctty;
   $taking = ($type >= TX_FINE);
   $for = $GLOBALS['txTypes'][$type];
   r\transact(compact(u\ray('type amount payer payee payer_agent payee_agent for taking')), $real);
@@ -719,7 +730,7 @@ function mergeCheck($info) {
 
 /**
  * Return a list of account choices for the current user (NOT the current credit account)
- * @return an array of account names, indexed by uid (FALSE if none)
+ * @return an array of account permissions, indexed by uid (FALSE if none)
  * @todo (maybe): recurse, to include access to the accounts that the shared accounts have access to
  *   maybe like this: SELECT main_uid, MAX(permission) WHERE agent_uid=:agent 
  *     OR agent_uid IN (SELECT main_uid FROM r_relations WHERE agent_uid=:agent) GROUP BY main_uid
@@ -728,10 +739,11 @@ function accountChoices() {
   if (isFrontend()) return (array) backend('accountChoices');
   
   if (!($cacct = r\acct())) return FALSE;
-  $agent = $cacct->agent;
-  $primary = array((string) $agent => (count($GLOBALS['share permissions']) - 1)); // max access for primary user account
+  $agentId = $cacct->agentId;
+  $primary = array((string) $agentId => (count($GLOBALS['share permissions']) - 1)); // max access for primary user account
 
-  $result = r\dbQ("SELECT main_uid, permission FROM r_relations WHERE agent_uid=:agent", compact('agent'))->fetchAllKeyed(0, 1);
+  $sql = "SELECT main_uid, permission FROM r_relations WHERE agent_uid=:agentId AND permission>0";
+  $result = r\dbQ($sql, compact('agentId'))->fetchAllKeyed(0, 1);
   $resulta = $cacct->can(PERM_ADMIN) ? r\dbQ('SELECT uid, :PERM_MANAGE FROM users WHERE uid<=:R_FIRST_CTTY_UID')->fetchAllKeyed(0, 1) : array();
   return $primary + $result + $resulta;
 }
@@ -864,7 +876,7 @@ function backend($op, $info = array(), $cache = FALSE) {
   u\EXPECT(@$cuid, 'no cuid in backend!');
   if (empty($info)) $cache = TRUE;
   
-  $agent = r\acct()->agent;
+  $agent = r\acct()->agentId;
 //  $cache = FALSE; // debug
 //  debug("cache=$cache cachekey=rcredits_$op$cuid:" . serialize($info));
   $skey = "{$op}_{$agent}_{$cuid}_" . base64_encode(serialize($info)); // htmlspecialchars prevents session key failure (PHP bug?)

@@ -6,16 +6,17 @@ use rCredits\Util as u;
 /**
  * @file
  * rCredits Account class
+ * @todo: use hidentity for federal_id, dob, usd_acct, and id_proof
  */
 
 class acct {
   var $id; // the account's record id
-  var $region; // the account region's record id
-  var $agent; // record id (in the agent's regional server) of whoever is acting on behalf of the account
+  var $regionId; // the account region's record id
+  var $agentId; // record id (in the agent's regional server) of whoever is acting on behalf of the account
   var $agentRegion; // record id of agent's region (on this server)
   var $mainQid; // nearly alphabetic representation of id, id, and region for external queries
   var $agentQid; // same for agent (for combined qid for main account and agent, use acct()->qid())
-  var $perms; // permissions
+  private static $perms = array(); // permissions
   private static $records = FALSE; // account records for all acct objects, indexed by id
   
   /**
@@ -35,7 +36,7 @@ class acct {
    */
   function __construct($id = array(), $agent = '', $info = array()) {
     if (!is_array($info = $id)) { // referring to existing db record
-      list($this->id, $this->agent, $this->region, $this->agentRegion) = acct::ok($id, $agent, $zot, FALSE);
+      list($this->id, $this->agentId, $this->regionId, $this->agentIdRegion) = acct::ok($id, $agent, $zot, FALSE);
     } else { // create new db record
       extract($info, EXTR_PREFIX_ALL, 'my');   
       if (isset($my_number) and !isset($my_phone)) $my_phone = $my_number;
@@ -66,12 +67,12 @@ class acct {
       }
       /*** End DBTX ***/ unset($dbtx);
 
-      list($this->id, $this->agent, $this->region, $this->agentRegion) = array($uid, $uid, $region, $region);
+      list($this->id, $this->agentId, $this->regionId, $this->agentIdRegion) = array($uid, $uid, $region, $region);
       self::$records[$this->id] = (object) $info;
     }
     if ($this->id > 0) { // no qids for communities and regions!
-      $this->mainQid = qid($this->id, u\n2a(-$this->region, 3), 3);
-      $this->agentQid = qid($this->agent, u\n2a(-$this->agentRegion, 3), 3);
+      $this->mainQid = qid($this->id, u\n2a(-$this->regionId, 3), 3);
+      $this->agentIdQid = qid($this->agentId, u\n2a(-$this->agentIdRegion, 3), 3);
     }
   }    
 
@@ -106,12 +107,18 @@ class acct {
     }
   }
 
-  public function reread() {self::getRecord($this->id, $this->region, TRUE);}
+  public function reread() {self::getRecord($this->id, $this->regionId, TRUE);}
   
+  /**
+   * Return the value of the specified field that is not a simple property of the acct class.
+   * This function reads the account record from the database if it hasn't been read yet.
+   * Special field:
+   *   agent: returns an account object for agentId
+   */
   public function __get($field) {
     if (!@self::$records[$this->id]) $this->reread(); // necessary when we pass an acct object to another page
 //    u\EXPECT(property_exists(self::$records[$this->id], $field), "bad field for uid $this->id: $field" . print_r(self::$records[$this->id], 1));
-    return @self::$records[$this->id]->$field; // returns NULL if the field is not set
+    return $field == 'agent' ? acct($this->agentId) : @self::$records[$this->id]->$field; // returns NULL if field not set
   }
   public function account() {return @self::$records[$this->id];}
 
@@ -127,14 +134,16 @@ class acct {
     return \drupal_write_record('users', $info, 'uid');
   }
   
-  public function proSe() {return ($this->id == $this->agent);}  
-  public function qid() {return $this->proSe() ? $this->mainQid : quid($this->id, $this->agent, $this->region);}
+  public function proSe() {return ($this->id == $this->agentId);}  
+  public function qid() {return $this->proSe() ? $this->mainQid : quid($this->id, $this->agentId, $this->regionId);}
   public function isCompany() {return (@$this->account_type != R_PERSONAL);}
   public function hasBit($bit) {return (bool) ($this->flags & $bit);}
   
   public function setBit($bit, $on = TRUE) {
+  //debug(sprintf("bit=$bit flags before; %x", $this->flags));
     $flags = $on ? ($this->flags | $bit) : ($this->flags & ~$bit);
-    $this->perms = NULL; // force redo in can()
+  //debug(sprintf("flags after; %x", $flags));
+    self::$perms[$this->id] = NULL; // force redo in can()
     return $this->update(compact('flags'));
   }
   
@@ -156,28 +165,39 @@ class acct {
    * @param int $permission: the permission in question (DEFAULT PERM_READ)
    */
   public function can($permission = PERM_READ) {
-    if (!is_array($this->perms)) { // set up perms if we haven't yet (setBit() resets this)
+    if (!@self::$perms[$this->id]) { // set up perms if we haven't yet (setBit() resets this)
       $perms = array();
       $id = $this->id;
-      if ($this->proSe()) {
-        $can = ($id < 0) ? 0 : PERM_MANAGE; // communities must be managed by an agent, never directly
-      } else $can = relation('permission', $id, $this->agent);
+      $agent = $this->agent;
 
-      for ($i = 0; $i <= PERM_MANAGE; $i++) $perms[$i] = ($i <= $can);
-
-      $perms[PERM_MEMBER] = ($this->pass !== ''); // anyone with a password is a member
+      $perms[PERM_MEMBER] = ($agent->pass !== '' and $agent->id != 1); // anyone with a password is a member
       $perms[PERM_COMPANY] = ($this->account_type != R_PERSONAL); // ad hoc permissions
       $perms[PERM_PARTNER] = $this->hasBit(BIT_PARTNER);
       $perms[PERM_STEWARD] = $this->hasBit(BIT_STEWARD);
       $perms[PERM_RTRADER] = $this->hasBit(BIT_RTRADER);
       $perms[PERM_CHARGE] = $this->hasBit(BIT_CHARGE);
-      $perms[PERM_ADMIN] = ($this->hasBit(BIT_ADMIN) or $this->agent == 1);
-      $perms[PERM_CTTY_ADMIN] = ($id < 0 and $perms[PERM_MANAGE]); // managing community account
 
-      if ($perms[PERM_ADMIN] and $id < 0) $perms[PERM_CTTY_ADMIN] = TRUE; // temporary until communities are independent
-      $this->perms = $perms;
+      $perms[PERM_ADMIN] = ($agent->hasBit(BIT_ADMIN));
+      $perms[PERM_CTTY_ADMIN] = $agent->hasBit(BIT_CTTY_ADMIN);
+      if ($perms[PERM_ADMIN] and R_ADMIN_CAN_MANAGE_CTTYS) $perms[PERM_CTTY_ADMIN] = TRUE; // temporary extra power, until communities are independent
+
+      if ($this->proSe()) {
+        $can = ($id < 0) ? 0 : PERM_MANAGE; // communities must be managed by an agent, never directly
+      } else $can = ($perms[PERM_CTTY_ADMIN] and ($perms[PERM_ADMIN] or $this->community_uid == $agent->community_uid)) ? PERM_MANAGE : relation('permission', $id, $this->agentId);
+
+      for ($i = 0; $i <= PERM_MANAGE; $i++) $perms[$i] = ($i <= $can); // set all permissions, even the false ones
+
+      $perms[PERM_MANAGING_CTTY] = ($perms[PERM_CTTY_ADMIN] and $this->id == $this->community_uid);
+      if ($perms[PERM_MANAGING_CTTY]) $perms[PERM_BUY] = $perms[PERM_SELL] = FALSE;
+      ksort($perms); // easier to debug
+      self::$perms[$this->id] = $perms;
     }
-    return $this->perms[$permission];
+    if ($permission == -1) {
+      $p = u\ray($GLOBALS['permissions']);
+      for ($i = 0; $i < count($p); $i++) if ($p[$i] != '-') $result[$p[$i]] = @self::$perms[$this->id][$i];
+      return $result; // for debugging
+    }
+    return self::$perms[$this->id][$permission];
   }
 } // end of class
 
@@ -188,7 +208,7 @@ class acct {
  */
 
 function UAR($quid = '', $no_abbrev = TRUE) {
-  if (!$quid) return array(acct()->id, acct()->agent, serverUid());
+  if (!$quid) return array(acct()->id, acct()->agentId, serverUid());
   if (!u\isQid($quid) and !$no_abbrev) $quid = R_SERVER_ID . $quid;
   if (!u\isQid($quid)) return FALSE;
 
@@ -210,3 +230,5 @@ function acct($uid = '', $agent = '', &$error = '') {
   if (!acct::ok($uid, $agent, $error, TRUE)) return FALSE;
   return new acct($uid, $agent);
 }
+
+function agent($uid = '') {return @acct($uid)->agent;}

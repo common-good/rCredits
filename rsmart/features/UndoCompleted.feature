@@ -181,15 +181,15 @@ Scenario: A member confirms request to undo a completed cash charge
 Scenario: A member confirms request to undo a completed payment unilaterally
   Given member "NEW.ZZA" can charge unilaterally
   When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAK", with the request "confirmed"
-  Then we respond success 1 tx_id "NEW:AAAN" my_balance "$242" other_balance "$235" and message "report undo|report transaction" with subs:
+  Then we respond success 1 tx_id "NEW:AAAN" my_balance "$166" other_balance "$323" and message "report undo|report invoice" with subs:
   | solution | action  | otherName  | amount | rewardType | rewardAmount | balance | tid |
-  | reversed | charged | Corner Pub | $80    | bonus      | $-4          | $242    | 6   |
-  And we email "new-charge" to member "c@example.com" with subs:
+  | reversed | charged | Corner Pub | $80    | bonus      | $-4          | $166    | 6   |
+  And we email "new-invoice" to member "c@example.com" with subs:
   | created | fullName   | otherName | amount | payerPurpose |
   | %today  | Corner Pub | Abe One   | $80    | reverses #4  |
   And "asif" balances:
   | id        | balance |
-  | community |    -756 |
-  | NEW.ZZA   |     242 |
+  | community |    -768 |
+  | NEW.ZZA   |     166 |
   | NEW.ZZB   |     279 |
-  | NEW.ZZC   |     235 |
+  | NEW.ZZC   |     323 |

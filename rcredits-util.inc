@@ -67,16 +67,26 @@ function just($these, $args) {
   return $result;
 }
 
-function badAmount(&$amount, $noZero = FALSE) {
-  $amount = preg_replace('/[ \,]/', '', $amount); // ignore spaces and commas
+function cleanAmount($amount) {
+  $amount = trim($amount);
   if (substr($amount, 0, 1) == '$') $amount = substr($amount, 1);
+  $amount = preg_replace('/[ \,]/', '', $amount); // ignore spaces and commas
+  return $amount + 0;
+}
+
+/**
+ * Return an error message if the amount is bad.
+ * @param string $restriction: none, >0, or >=0 (the default)
+ */
+function badAmount(&$amount, $restriction = '') {
+  $amount = cleanAmount($amount);
   if (!is_numeric($amount)) return 'bad amount';
 
   $dotPos = strpos($amount, '.');
   if ($dotPos !== FALSE and strlen($amount) > $dotPos + 3) return 'fractional cents';
   if ($amount > R_MAX_AMOUNT) return 'amount too big';
-  if ($noZero and $amount <= 0) return 'nonpositive amount';
-  if ($amount < 0) return 'negative amount';
+  if ($restriction == '>0' and $amount <= 0) return 'nonpositive amount';
+  if ($restriction == '>=0' and $amount < 0) return 'negative amount';
   return FALSE;
 }
 
@@ -90,7 +100,7 @@ function badAmount(&$amount, $noZero = FALSE) {
  *   the formatted amount
  */
 function formatAmount($amount, $simplify = TRUE) {
-  $amount = '$' . number_format($amount, 2);
+  $amount = '$' . number_format(cleanAmount($amount), 2);
   return $simplify ? str_replace('.00', '', $amount) : $amount;
 }
 
@@ -474,9 +484,9 @@ function log($type, $info = array(), $special = '', $adhocChannel = '') {
   if (empty($info)) list ($type, $info) = array('-', array($type));
   if ($adhocChannel and $adhocChannel != $channel and !$special) $special = "via ch$adhocChannel";
   $cuid = @r\acct()->id;
-  $agent = @r\acct()->agent;
+  $agent = @r\acct()->agentId;
   $log_filename = @$channel ? "$channel.log" : 'rcredits.log';
-  $date = strftime('%d-%b-%Y', time());
+  $date = formatDate();
   $channels = ray(TX_CHANNELS); 
   $channel_name = @$channel ? $channels[$channel] : 'none';
   if (isNonce($special) and @$info['message']) $info['message'] = str_replace($special, '@nonce', $info['message']); // make it easy to match
@@ -609,6 +619,18 @@ function deb($arg = '') {
   $msgCount = count(@$_SESSION['messages']['status'] ?: array());
   log(($counterI = @$counterI + 1) . " ($msgCount messages): " . print_r($arg, 1));
 }
+
+/**
+ * Insert the bundle (associative array) before the needle in haystack
+ * @param assoc $bundle: array to insert
+ * @param assoc $haystack: array into which to insert
+ * @param string $needle: key before which to insert
+ * @return assoc: the resultant array (FALSE if the needle is not found)
+ */
+function insertBefore($bundle, $haystack, $needle) {
+  if (!($i = array_search($needle, $haystack))) return FALSE;
+  return array_slice($haystack, 0, $i+1) + $bundle + array_slice($haystack, $i+1);
+}
   
 /**
  * ret<X>
@@ -639,3 +661,6 @@ function isNonce($nonce) {return preg_match('/^[A-Z]{3,}$/', $nonce);}
 function isName($value) {return preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $value);}
 function isAcct($acct) {return (is_object($acct) and get_class($acct) == 'rCredits\acct');}
 function hug($s, $arms = '()') {return substr($arms, 0, 1) . $s . substr($arms, -1, 1);}
+function formatDate($time = '') {return strftime('%d-%b-%Y', $time ?: time());}
+function formatTime($time = '') {return strtolower(strftime('%I:%M%p', $time ?: time()));}
+function lastCall() {$back = debug_backtrace(); return $back[2];}

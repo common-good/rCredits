@@ -51,7 +51,7 @@ EOF
     ),
     'smartphone' => t(<<<EOF
         <p>To use the smartphone interface, you will need to install an app to read QR codes (for example QRDroid on Android phones or Qrafter for iPhones). You can pay participating businesses by scanning their QR code, then visiting the scanned URL.</p>
-        <p>Your customers (or employer) can pay you by scanning the QR code on your member ID card. You can print a temporary member ID card for your individual account, using the link on the Summary page.</p>
+        <p>Your customers (or employer) can pay you by scanning the QR code on your member ID card. You can print an Advance ID card for your individual account, using the link on the Summary page.</p>
 EOF
     ),
     'sms' => t("The Text Message Interface is intended to be easy enough that you can just muddle your way through the first time. Give it a shot. You can even <i>sign up</i> with Text Messaging. Send your texts to +1 413.285.2867 OR use the <a href=\"$base_url/sms\">Test SMS form</a> to simulate sending a text."),

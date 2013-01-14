@@ -21,7 +21,7 @@ define('R_TEMP_NAME_PREFIX', 'unknown ');
 define('R_ASIF_TEXT', ' "AS-IF"'); // how to identify "As If" transactions
 define('R_MIN_PHOTO_WIDTH', 240); // how wide to make profile pictures (unless too long)
 define('R_MAX_PHOTO_WIDTH', 1024);
-define('R_FIRST_CTTY_UID', -1000001); // community uids are less than or equal to this
+define('R_FIRST_CTTY_UID', -1000001); // community uids are less than or equal to this (farther from zero)
 define('R_ASIF_BUY_MIN', 3); // minimum number of ASIF purchases before eligible to be a Partner
 define('R_ASIF_SELL_MIN', 1); // minimum number of ASIF sales before eligible to be a Partner
 define('R_STAGES', 'Member Partner Steward rTrader'); // stages in the progress to rTrader
@@ -43,36 +43,49 @@ define('PERM_SELL', 2);
 define('PERM_BUY', 3);
 define('PERM_RESERVED4', 4);
 define('PERM_MANAGE', 5);
-
-define('PERM_COMPANY', 7);
 $GLOBALS['share permissions'] = array('no access', 'read transactions', 'sell', 'buy and sell', 'other', 'manage account');
-define('PERM_CHARGE', 8);
+
+define('PERM_RESERVED6', 6);
+define('PERM_COMPANY', 7); // is a company (not a personal account)
+define('PERM_CHARGE', 8); // can charge unilaterally
 define('PERM_MEMBER', 10); // signed up for rCredits
 define('PERM_PARTNER', 11); // signed the membership agreement and donated
 define('PERM_STEWARD', 12); // is allowed to vote and is responsible for stewarding the Common Good Community
 define('PERM_RTRADER', 14); // is allowed to use rCredits for real
-define('PERM_CTTY_ADMIN', 99);
-define('PERM_ADMIN', 100);
+$GLOBALS['permissions'] = 'related read sell buy - manage - company charge - member partner steward - rtrader - - managing_ctty ctty_admin - admin';
 
-// Permissions, options, and flags (flags field in account record) - max 2,147,483,647
-define('BIT_PARTNER', 1); // signed the membership agreement and donated
-define('BIT_STEWARD', 2); // is allowed to vote and is responsible for stewarding the Common Good Community
-define('BIT_RTRADER', 4); // is allowed to use rCredits for real
-define('BIT_CHARGE', 8); // can charge customers without confirmation (treat this like a permission)
-define('BIT_VIRTUAL_EMPLOYEES', 16); // pay employees virtually
-define('BIT_VIRTUAL_ALL', 32); // pay everyone virtually
-define('BIT_SECRET_BAL', 64); // don't let merchants tell me my balance on request
-define('BIT_NOTIFY_EMAIL', 128); // notifications by email
-define('BIT_NOTIFY_SMS', 256); // notifications by SMS
-define('BIT_USED_ID', 512); // user ID has been scanned (requirement for Partner status)
-define('BIT_SIGNED', 1024); // signed the rCredits Agreement
-define('BIT_SAW_VID1', 2048); // saw the pre-Partner vid
-define('BIT_SAW_VID2', 4096); // saw the pre-Steward vid
-define('BIT_PASSED_TEST', 8192); // passed the Stewardship test
-define('BIT_ELECTRONIC', 16384); // will accept electronic statements
-define('BIT_MET', 32768); // has participated in a community meeting
-define('BIT_RQUALIFIED', 65536); // makes good economic circles
-define('BIT_ADMIN', 67108864); // is an administrator (not yet implemented)
+define('PERM_MANAGING_CTTY', 17); // ctty_admin is actually managing a qualified account
+define('PERM_CTTY_ADMIN', 18); // is authorized to manage own community
+define('PERM_MANAGING', 19); // UNUSED admin or ctty_admin is actually managing a qualified account
+define('PERM_ADMIN', 20); // can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
+define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities can manage themselves
+
+// Permissions, options, and flags (flags field in account record) - max 2,147,483,647 = 2^31 - 1
+define('BIT_PARTNER', 0x1); // signed the membership agreement and donated
+define('BIT_STEWARD', 0x2); // is allowed to vote and is responsible for stewarding the Common Good Community
+define('BIT_RTRADER', 0x4); // is allowed to use rCredits for real
+define('BIT_CHARGE', 0x8); // can charge customers without confirmation (treat this like a permission)
+
+define('BIT_VIRTUAL_EMPLOYEES', 0x10); // pay employees virtually --16
+define('BIT_VIRTUAL_ALL', 0x20); // pay everyone virtually
+define('BIT_SECRET_BAL', 0x40); // don't let merchants tell me my balance on request
+define('BIT_NOTIFY_EMAIL', 0x80); // notifications by email
+
+define('BIT_NOTIFY_SMS', 0x100); // notifications by SMS --256
+define('BIT_USED_ID', 0x200); // user ID has been scanned (requirement for Partner status)
+define('BIT_unused400', 0x400); // NOT YET USED
+define('BIT_SAW_VID1', 0x800); // saw the pre-Partner vid
+
+define('BIT_SAW_VID2', 0x1000); // saw the pre-Steward vid --4096
+define('BIT_PASSED_TEST', 0x2000); // passed the Stewardship test
+define('BIT_ELECTRONIC', 0x4000); // will accept electronic statements
+define('BIT_MET', 0x8000); // has participated in a community meeting
+
+define('BIT_RQUALIFIED', 0x10000); // makes good economic circles --65,536 = 256 * 256
+
+define('BIT_CTTY_ADMIN', 0x1000000); // is a community administrator --67,108,864 = 256 * 256 * 256
+define('BIT_ADMIN', 0x2000000); // is a system administrator
+define('BIT_CLOSED', 0x4000000); // account is closed (data[new_account] has new qid)
 define('BIT_DEFAULTS', BIT_NOTIFY_EMAIL | 0); // what bits to set when creating a new account
 
 // Transaction states
@@ -89,7 +102,7 @@ define('TX_SMS', 1);
 define('TX_WEB', 2);
 define('TX_SMART', 3); // smart phone or other computer-like device
 define('TX_TOUCH', 4); // touch tone phone
-define('TX_CHANNELS', 'None SMS Web Smart Touch');
+define('TX_CHANNELS', 'None SMS Web App Touch');
 
 // Transaction types
 define('TX_SIGNUP', 0); // signup incentive reward
@@ -131,9 +144,9 @@ include_once __DIR__ . '/rcredits-circles.inc'; // treat this as an extension of
 /**
  * Return the account's current stage in its progression toward rTrader
  */
-function stage($acct = '') {  
+function stage($acct = '', $numeric = FALSE) {  
   if (!($acct = $acct ?: acct())) return FALSE;
-  foreach (u\ray(R_STAGES) as $one) if ($acct->can(constant('PERM_' . strtoupper($one)))) $stage = $one;
+  foreach (u\ray(R_STAGES) as $key => $one) if ($acct->can(constant('PERM_' . strtoupper($one)))) $stage = $numeric ? $key : $one;
   return @$stage;
 }
 
@@ -168,7 +181,7 @@ function txReportArgs($tx, $getMyBalance = FALSE, $shortfall = 0) {
   if (@$data_bonus) $rewardType = $taking ? t('bonus') : t('rebate');
   $rewardAmount = u\formatAmount($toMe ? @$data_bonus : @$data_rebate);
   $otherName = userField('full_name', @$data_foreign_uid ?: $otherUid);
-  $created = strftime('%d-%b-%Y', $created);
+  $created = u\formatDate($created);
 
   $real = ($zxid > 0);
   $asif = $real ? '' : R_ASIF_TEXT;
@@ -180,6 +193,35 @@ function txReportArgs($tx, $getMyBalance = FALSE, $shortfall = 0) {
   $summary = "$asif $summary_word of $amount $tofrom $otherName for \"$purpose\" on $created";
   $success = TRUE;
   return array_merge($tx, compact(u\ray('created zxid action real role payerPurpose payeePurpose purpose otherPurpose toMe asif confirmAction amount tofrom rewardType rewardAmount balance tid otherUid otherName short summary success')));
+}
+
+/**
+ * Return the percentage tithe chosen by given user (as identified by their email).
+ * Consider the tithe valid ONLY if it was specified as part of a completed contribution.
+ */
+function tithe($acct) {
+  include(DRUPAL_ROOT . '/sites/default/settings.php');
+  extract(u\just('database username password host', $databases['civi'][0]));
+  $email = $acct->mail;
+//  return 0; // until we figure out how to read the civi database without warnings
+  $conn = mysql_connect($host, $username, $password);
+  if (!$conn) return 0; // die("Can't connect to MySQL Server " . $host);
+  mysql_select_db($database, $conn) or die("Can't open database " . $database);
+  $sql = <<<EOF
+SELECT MAX(c2.tithe_45) AS tithe
+FROM civicrm_email e
+INNER JOIN civicrm_contribution c ON c.contact_id=e.contact_id
+INNER JOIN civicrm_value_extra_donation_fields_5 c2 ON c2.entity_id=c.id
+WHERE c.contribution_status_id=1
+AND c.contribution_type_id IN(1, 2)
+AND e.email=:email
+EOF;
+
+  $sql = str_replace(':email', \valid_email_address($email) ? "'$email'" : "''", $sql); // injection
+  $result = mysql_query($sql);
+  $tithe = ($row = mysql_fetch_array($result)) ? $row[0] : 0;
+  if ($tithe) $acct->update(compact('tithe'));
+  return $tithe;
 }
 
 function otherBalance($uid) {
@@ -415,7 +457,7 @@ function setTxField($fieldName, $new_value, $zxid, $all_related = FALSE) {
   $where = "xid=:xid and $cuid in (payer, payee)"; // "$cuid in" is a security measure
   list ($old_value, $data) = array_values(dbLookup("$fieldName,data", $table, $where, compact(u\ray('xid'))));
   $data = unserialize($data);
-  $data['changes'][] = array(time(), acct()->agent, $fieldName, $old_value);
+  $data['changes'][] = array(time(), acct()->agentId, $fieldName, $old_value);
   $data = serialize($data);
   $sql = "UPDATE $table SET $fieldName=:new_value, data=:data WHERE $where";
   $sql2 = "UPDATE $table SET $fieldName=:new_value WHERE serial=:xid AND type<>:TX_TRANSFER";
@@ -498,13 +540,13 @@ function dbLookup($fieldName, $table_name, $where = '1', $subs = array()) {
 /**
  * Return a qid for the zid
  * @param $zid: a zid
- * @param string $regionID: the 3-character regional server ID (defaults to this server)
+ * @param string $regionId: the 3-character regional server ID (defaults to this server)
  * @param int $min_len: minimum length of the part of the qid after the "." or ":"
  * @return the qid, FALSE if wrong format
  */
-function qid($zid = '', $regionID = R_SERVER_ID, $min_len = 1) {
+function qid($zid = '', $regionId = R_SERVER_ID, $min_len = 1) {
   if (!u\isZid($zid)) return FALSE;
-  return $regionID . ($zid < 0 ? (':' . u\n2a(-$zid, -$min_len)) : ('.' . u\n2a($zid, -$min_len)));
+  return $regionId . ($zid < 0 ? (':' . u\n2a(-$zid, -$min_len)) : ('.' . u\n2a($zid, -$min_len)));
 }
 
 /**
@@ -513,10 +555,10 @@ function qid($zid = '', $regionID = R_SERVER_ID, $min_len = 1) {
  */
 function unQid($qid) {
   if (!u\isQid($qid)) return FALSE;
-  list ($regionID, $type, $iid) = preg_split('/(\.+|=|:)/', $qid, 0, PREG_SPLIT_DELIM_CAPTURE); // allow a horizontal colon
+  list ($regionId, $type, $iid) = preg_split('/(\.+|=|:)/', $qid, 0, PREG_SPLIT_DELIM_CAPTURE); // allow a horizontal colon
   
   $id = u\a2n($iid);
-  return array($type == '.' ? $id : -$id, serverUid($regionID ?: R_SERVER_ID));
+  return array($type == '.' ? $id : -$id, serverUid($regionId ?: R_SERVER_ID));
 }
   
 /**
@@ -537,11 +579,11 @@ function quid($uid = '', $agentUid = '', $regionUid = '') {
     if (!$regionUid) $regionUid = serverUid();
   } else list ($uid, $agentUid, $regionUid) = 
     $uid ? array($uid, $uid, serverUid()) 
-         : array($cacct->id, $cacct->agent, $cacct->region);
+         : array($cacct->id, $cacct->agentId, $cacct->regionId);
   return qid($uid == $agentUid ? $uid : -relation('reid', $uid, $agentUid), u\n2a(-$regionUid, 3), 3);
 }
 
-function qxid($zxid, $regionID = R_SERVER_ID) {return qid($zxid, $regionID = R_SERVER_ID, 4);} // Convert zxid to qxid
+function qxid($zxid, $regionId = R_SERVER_ID) {return qid($zxid, $regionId = R_SERVER_ID, 4);} // Convert zxid to qxid
 
 /**
  * Convert a zxid to xid and table or vice-versa
@@ -579,9 +621,9 @@ function nonoUndo($oldRecord, &$subs = array()) {
   }
 
   $acct = tx2acct($old_toMe ? array($old_payee, $old_payee_agent, $data) : array($old_payer, $old_payer_agent, $data));
-  if ($cacct->agent != $acct->agent) {
+  if ($cacct->agentId != $acct->agentId) {
     $perm = $old_taking ? PERM_BUY : PERM_SELL;
-    if (!acct($acct->id, $cacct->agent)->can($perm)) return $old_taking ? 'no buy' : 'no sell';
+    if (!acct($acct->id, $cacct->agentId)->can($perm)) return $old_taking ? 'no buy' : 'no sell';
   }
   return FALSE;
 }
@@ -812,7 +854,7 @@ function bonus($uid, $amount = 1) {return rebate($uid, 2 * $amount);}
 function txField($field, $which, $subs = array()) {return tableField($field, '{zxs}', $which, $subs);}
 function setTxState($new_value, $zserial) {setTxField('state', $new_value, $zserial, TRUE);}
 function totalDemand() {return dbLookup('SUM(demand)', 'users');}
-function serverUid($regionID = '') {return -u\a2n($regionID ?: R_SERVER_ID);}
+function serverUid($regionId = '') {return -u\a2n($regionId ?: R_SERVER_ID);}
 function emailTemplate($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}
 function emailBody($key) {return str_replace('{BODY}', emailTemplate($key), emailTemplate(R_EMAIL_FRAME));}
 function isRTrader($uid = '') {return ($acct = acct($uid)) ? $acct->hasBit(BIT_RTRADER) : FALSE;}
