@@ -151,6 +151,18 @@ function rcredits_schema() {
   $indexes = r\index('type') + r\index('channel') + r\index('cuid') + r\index('agent');  
   $schema['r_log'] = r\setupTable('Development and error log', $fields, 'logid', $foreign_keys, $indexes);
   
+  // table r_demand
+  $fields = array(
+    'id' => r\setupField('demand record id', 'serial 11'),
+    'time' => r\setupField('date/time requested', 'int 11'),
+    'amount' => r\setupField('request amount', 'numeric 11,2'), 
+    'who' => r\setupField('uid of the account requesting rCredits', 'int 11'),
+    'is_real' => r\setupField('was the account an rTrader at the time of the request', 'int tiny'), // "real" is a reserved word
+  );
+  $foreign_keys = r\foreignKey('who');
+  $indexes = r\index('who');
+  $schema['r_demand'] = r\setupTable('Who requested rCredits when', $fields, 'id', $foreign_keys, $indexes);
+  
   // table r_relations
   $fields = array(
     'reid' => r\setupField('relationship record id', 'serial 11'),

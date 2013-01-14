@@ -380,23 +380,18 @@ function payEmployees($amount0, $for, $confirmed) {
  
 /**
  * Notify the specified user, according to their preferences
+ * @param integer $uid: account record id
+ * @param string $index: message index
+ * @param assoc $info: substitutions for the message
  */
 function notify($uid, $index, $info) {
   global $channel;
   $cacct = acct();
   $acct = acct($uid);
   $info['uid'] = $uid;
-//  extract(u\just('full_name mail', $account = $acct->account()));
   $fullName = $acct->full_name;
-/*  $standard_fields = array(
-    'uid' => $uid,
-    'fullName' => $fullName,
-    'email' => $mail, // testing uses this
-  );
-  */
   $warnIndexes = u\ray('new-invoice new-offer charge-disputed');
   
-//  $info = array_merge($info, $standard_fields);
   if ($uid != $cacct->id) $info['otherName'] = $cacct->full_name; // this comes in backwards if notifying elseone
 
   if (!strlen($acct->pass)) {

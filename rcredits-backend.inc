@@ -302,7 +302,7 @@ EOF;
  */
 function get($currency, &$amount, $confirmed) {
   $cacct = r\acct();
-  $cuid = $cacct->id;
+  $who = $cuid = $cacct->id;
   if (isFrontend()) return (array) backend('get', compact(u\ray('currency amount confirmed')));
   if (is_array($currency)) extract($currency); // called from api or backend
   
@@ -314,10 +314,12 @@ function get($currency, &$amount, $confirmed) {
   if ($currency == 'r') {
 // (catch this only when demand is high)      if ($my_amount < R_MIN_DEMAND) return array('demand too small');
     r\demand($cuid, $amount);
-    if (r\isRTrader()) {
+    if ($is_real = r\isRTrader()) {
       if (!$confirmed) return array('confirm get r', compact(u\ray('request success')), TRUE);
       //DWOLLA: transfer fraction R_GETR_ADVANCE of $amount from user's Dwolla account to community's Dwolla account
     }
+    $time = time();
+    \drupal_write_record('r_demand', compact(u\ray('time amount who is_real'))); // track history of demands
     return array('your demand', compact(u\ray('request success')), FALSE);
   }
 

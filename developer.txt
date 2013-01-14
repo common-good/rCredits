@@ -108,8 +108,16 @@ G. Special rCredits datatypes
  zxid: a (signed) transaction id (>0: xid in r_txs (real), <0: -xid in r_asif)
        All database operations with transactions are performed by dbQ() on a virtual table {txs} with key zxid.
 
+H. TODO
 @todo: BUG: profile picture is discarded on repeated Save
-@todo: rate each account health as ratio of total demand of repeat payees to total demand of repeat payers OR to monthly sales
+@todo: add videos, like this:
+  <video width="320" height="240" controls autoplay>
+    <source src="movie.mp4" type="video/mp4">
+    <source src="movie.ogg" type="video/ogg">
+    <source src="movie.webm" type="video/webm">
+  Your browser does not support the video tag. (maybe embed a clickable vid in an iframe here?)
+  </video>
+@todo: rate each account health as ratio of total demand of repeat payees to total demand of repeat payers (potential for future) OR to monthly sales (current health); also rate of change of sales volume (maximize for everyone and not negative)
 @todo: use hidentity in r\acct (_get and update, not account()) for federal_id, dob, usd_acct, and id_proof
 @todo: make id_proof file_managed_record_id,hash where hash is how the file is encoded. 
   $salt = uniqid('', true);
@@ -178,6 +186,7 @@ Notes on transaction record system:
 
 Other thoughts:
   Joining by dumb cellphone is for play only. Accounts and transactions created that way should get deleted after a week of inactivity.
+  Suppose I live in 413 (NEW), but my cell is 987 (NYC). Person B lives in 222 with cell 333. When I am traveling to AAA I pay person B with SMS, by calling the local rCredits number. The local server contacts NYC to process my side of the transactions, but gets redirected to NEW. Similarly for person B's side. So at most 5 servers are involved (three just redirecting). NEW.rcredits.org and other subdomains act similarly.
 
 To clear cache:   http://localhost/devcore/devel/cache/clear?destination=node
   (or http://new.rcredits.org/devel/cache/clear?destination=node)

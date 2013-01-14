@@ -62,6 +62,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'deleted relation' => t('Deleted relation with @otherName'),
   'customer balance' => t('The current balance for @otherName is @balance.'),
   'account updated' => t('The account data has been updated.'),
+  'payment accepted' => t('rCredits payment accepted. In exchange, us@amount will be refunded to the payer, from your Dwolla account.'),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),

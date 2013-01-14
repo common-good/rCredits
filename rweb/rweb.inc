@@ -241,7 +241,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
 
     $form2 = $form; $rent = render($form2);
     t\testOutput($formOutput = t\strip($rent), 'screen');
-    if (strpos($rent, 'form-type-checkbox') or strpos($rent, 'form-type-checkbox')) js('inc/radiocheck.js', 'file', 'footer');
+    if (strpos($rent, 'form-type-checkbox') or strpos($rent, 'form-type-radio')) js('inc/radiocheck.js', 'file', 'footer');
     
     if ($colgroup = @$form['#colgroup']) {
       unset($form['#colgroup']);
@@ -2373,7 +2373,7 @@ function transfer($info, $confirmed) {
   list ($msg, $args, $confirm) = in_array($txType, array('payment', 'charge')) ?
        be\transfer($txType, $acct, $amount, $purpose, !u\forCash($purpose), $confirmed)
      : communityTransfer($txType, $acct, $amount, $confirmed);
-  if (!@$scanned) { // not scanned -- We need to show identifying photo, name, etc. for the target account
+  if (!@$scanned and strtoupper($who) != 'ALL') { // not scanned -- We need to show identifying photo, name, etc. for the target account
     $identifiers = identifiers($acct);
     $identifiers = "<div id='identifiers' class='clearfix'>$identifiers</div identifiers>";
   }

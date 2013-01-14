@@ -40,7 +40,7 @@ function formTxs($form, &$sta, $args = '') {
   $txStates = u\ray(TX_STATES);
   $states = array(TX_DONE => '&#10004;', TX_PENDING => 'ok?', TX_DENIED => 'denied', TX_DISPUTED => 'disputed');
   $colors = array('&#10004;' => 'green', 'ok?' => 'orange', 'pending' => 'darkgreen', 'denied' => 'red', 'disputed' => 'red');
-  $url = @"$base_url/transactions/real=$real&period=$period&zxid=$one_zxid&agents=$agents&channels=$channels";
+  $url0 = @"$base_url/transactions/real=$real&period=$period&agents=$agents&channels=$channels";
   $title = "<div id='txs-title'>TRANSACTIONS</div>";
   $classes = 'tid date name fromyou toyou state buttons purpose reward';
   $headers = t('#,Date,Name,From you,To you,Status,Action,Purpose,Reward');
@@ -64,6 +64,7 @@ function formTxs($form, &$sta, $args = '') {
   $rows = array();
   foreach ($records as $record) {
     extract($record, EXTR_PREFIX_ALL, 'one');
+    $url = $url0 . "&zxid=$one_zxid";
     $tid = be\zxid2tid($one_zxid);
     $data = unserialize($one_data);
     $is_reward = ($one_type != TX_TRANSFER);
@@ -137,9 +138,9 @@ function txConfirm($do, $zxid, &$sta) {
 }
 
 function formTxs_validate($form, &$sta) {
-  $txDays = $form['period']['#options'];
+  $txDays = @$form['period']['#options'];
   extract(u\just('real period starting ending op', $sta['values']));
-  list ($sta['values']['starting'], $sta['values']['ending']) = strpos(op($sta), 'Period') ? txDates($txDays, $period) : txDates($txDays, '', $starting, $ending);
+  list ($sta['values']['starting'], $sta['values']['ending']) = strpos(op($sta), 'Period') ? txDates($txDays, @$period) : txDates($txDays, '', @$starting, @$ending);
 }
 
 function formTxs_submit($form, &$sta) {
@@ -187,26 +188,22 @@ function tx_action($do, $state, $toMe, $byMe) {
   }
 }
 
+/**
+ * Handle click on 'OK' or 'NO' (approving or undoing a transaction)
+ */
 function txOKorNO($tx_task, $zxid) {
   $cuid = r\acct()->id;
   if (!($result = be\lastTx('xid=:zxid', compact('zxid'), TRUE))) return FALSE; // bail on hack attempt
-  extract($result, EXTR_PREFIX_ALL, 'my');
-//  $atid = be\zxid2tid($zxid);
-//  $xname = "tx_transactions[x$zxid]";
-  if ($tx_task == 'ok') {
-// (no. allow pay-all and external transaction confirmation)    assert($my_payer == $cuid);
-    u\EXPECT($my_state == TX_PENDING);
-    if ($my_toMe) {
+  extract(u\just('state amount toMe', $result));
+  if ($tx_task == 'ok') { // OK
+    u\EXPECT($state == TX_PENDING);
+    if ($toMe) {
       r\setTxState(TX_DONE, $zxid); // accept the payment
-    } else {
-      list ($message, $args) = be\payInvoice($zxid);
-      say($message, $args);
-    }
-  }
-  if ($tx_task == 'no') {
-    list ($message, $args) = be\undoTx($zxid);
-    say($message, $args);
-  }
+      // DWOLLA: initiate transfer from user to community
+      list ($message, $args) = array('payment accepted', compact('amount'));
+    } else list ($message, $args) = be\payInvoice($zxid);
+  } else list ($message, $args) = be\undoTx($zxid); // NO
+  say($message, $args);
 }
 
 function tx_edit($zxid) {
