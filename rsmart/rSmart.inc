@@ -65,7 +65,7 @@ function api($args = FALSE) {
   global $channel; $channel = TX_SMART;
   if (!$args) $args = $_POST;
   u\log('in', $args);
-  if (!(@$args = (array) json_decode($args['json']))) return be\error('no json');
+  if (!$args = @(array) json_decode($args['json'])) return be\error('no json');
   foreach ($args as $key => $value) $args[$key] = trim($value); // allow some sloppy spaces around each arg
   extract($args, EXTR_PREFIX_ALL, 'q');
   
@@ -73,14 +73,14 @@ function api($args = FALSE) {
   if (@$q_op != 'reset') // DEBUG
   if (@$q_op != 'first_time') {
     if (!@$q_code) return be\error('no code given');
-    if (!($smartInfo = r\dbLookup('owner,default_agent,transient_id,accessed', 'r_smarts', 'code=:q_code', compact('q_code')))) return be\error('unknown device');
+    if (!$smartInfo = r\dbLookup('owner,default_agent,transient_id,accessed', 'r_smarts', 'code=:q_code', compact('q_code'))) return be\error('unknown device');
     $args += $smartInfo; // pass these on to the op function
     extract($smartInfo, EXTR_PREFIX_ALL, 'q');
     r\acct::setDefault(r\acct($q_owner)); // set current account temporarily to owner, so that error log has it right
     if (@$q_op != 'startup') { // no my_id on startup (it gets returned instead)
       if (!u\isQid($q_my_id)) return be\error('bad id format');
-      if (!($cacct = r\acct($q_my_id, '', $error))) return be\error($error);
-    } else if (!($cacct = r\acct($q_owner))) return be\error('bad code owner'); // this should never happen
+      if (!$cacct = r\acct($q_my_id, '', $error)) return be\error($error);
+    } elseif (!$cacct = r\acct($q_owner)) return be\error('bad code owner'); // this should never happen
     if ($cacct->regionId != r\serverUid()) return be\error('wrong server');
     if ($cacct->agentIdRegion != r\serverUid()) return be\error('wrong server for agent');
     if (buttons($cacct, $q_owner) < 0) return be\error('no permission');
@@ -98,7 +98,7 @@ function api($args = FALSE) {
       $recent = time() - R_TRANSIENCE;
       if (dbLookup('transient_id', 'r_smarts', 'code=:code AND accessed>=:recent') != $transient_id) return be\error('bad transient id');
     }
-    if (!($acct = r\acct($account_id, '', $error))) return be\error($error);
+    if (!$acct = r\acct($account_id, '', $error)) return be\error($error);
     $args['acct'] = $acct;
   }
   
@@ -124,13 +124,13 @@ function first_time($args) {
   require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
   extract(u\just('my_id password', $args));
   if (!u\isQid(@$my_id)) return be\error('bad id');
-  if (!($cacct = r\acct(@$my_id))) return be\error('unknown member');
+  if (!$cacct = r\acct(@$my_id)) return be\error('unknown member');
   if (!$cacct->proSe()) $cacct = r\acct($cacct->id); // use the pure account
   r\acct::setDefault($cacct);
   $args['cacct'] = $cacct;
   if (@!$password) return be\error('login error');
   if (!user_check_password($password, $cacct->account())) return be\error('bad login'); // make these two error messages distinct but obscure
-  if (!($code = makeDevice(t('Smart Device'), $cacct))) return be\error("can't save device info");
+  if (!$code = makeDevice(t('Smart Device'), $cacct)) return be\error("can't save device info");
   $args['owner'] = $cacct->id;
   $message = u\tt('first time');
   // also update_link allow_change_account allow_change_agent
@@ -224,7 +224,7 @@ function transact($args) {
   list ($index, $subs, $zot) = be\transfer($q_type, $q_acct, $q_amount, $q_purpose, $q_goods, TRUE);
 
   $balances = balances($q_acct->id, @$subs['real']); // my_balance, other_balance
-  if (!($subs['success'] = (int) @$subs['success'])) return be\error($index, $subs + $balances);
+  if (!$subs['success'] = (int) @$subs['success']) return be\error($index, $subs + $balances);
   $tx_id = r\qxid($subs['zxid']); // return the transaction id as a qid (globally unique transaction id) (':' means As-If)
   $message = u\tt($index, $subs);
   return compact(u\ray('message tx_id')) + $balances;
@@ -256,7 +256,7 @@ function undo($params) {
     list ($message, $args) = be\undoTx($zxid);
     $message = u\tt($message, $args);
     $balances = balances(@$args['otherUid'], $zxid > 0);
-    if (!($success = (int) @$args['success'])) return compact(u\ray('success message')) + (@$balances ?: array());
+    if (!$success = (int) @$args['success']) return compact(u\ray('success message')) + (@$balances ?: array());
     if ($new_zxid = @$args['zxid']) $tx_id = r\qxid($new_zxid); // get offsetting transaction id, if any (otherwise state changed)
   } else {
     $oldRecord = be\lastTx('xid=:zxid', compact('zxid'));

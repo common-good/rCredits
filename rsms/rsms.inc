@@ -124,6 +124,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'other no sell' => t('That person does not have permission to make sales for that account.'),
   'other no buy' => t('That person does not have permission to make purchases for that account.'),
   'bad amount' => t('The amount must be a number.'),
+  'bad date' => t('That is not a valid date.'),
   'nonpositive amount' => t('The amount must be a positive number.'),
   'negative amount' => t('The amount cannot be negative.'),
   'fractional cents' => t('The amount must be a whole number of cents.'),

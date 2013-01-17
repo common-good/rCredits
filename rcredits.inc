@@ -25,6 +25,8 @@ define('R_FIRST_CTTY_UID', -1000001); // community uids are less than or equal t
 define('R_ASIF_BUY_MIN', 3); // minimum number of ASIF purchases before eligible to be a Partner
 define('R_ASIF_SELL_MIN', 1); // minimum number of ASIF sales before eligible to be a Partner
 define('R_STAGES', 'Member Partner Steward rTrader'); // stages in the progress to rTrader
+define('R_HIDE_FIELDS', 'federal_id dob usd_acct id_proof answer'); // personal identifying information
+define('R_URL_SLASH', '%_%'); // Drupal gets confused by slashes in a url, even if urlencoded
 
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
@@ -73,7 +75,7 @@ define('BIT_NOTIFY_EMAIL', 0x80); // notifications by email
 
 define('BIT_NOTIFY_SMS', 0x100); // notifications by SMS --256
 define('BIT_USED_ID', 0x200); // user ID has been scanned (requirement for Partner status)
-define('BIT_unused400', 0x400); // NOT YET USED
+define('BIT_PROVED', 0x400); // proof of ID has been approved
 define('BIT_SAW_VID1', 0x800); // saw the pre-Partner vid
 
 define('BIT_SAW_VID2', 0x1000); // saw the pre-Steward vid --4096
@@ -135,6 +137,7 @@ $GLOBALS['emailSubjects'] = array(
   'offer-canceled' => t('rCredits Invoice CANCELED by {otherName}'),
   
   'welcome' => t('Welcome to rCredits!'),
+  'password_reset' => t('New rCredits PASSWORD'),
 );
 
 include_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
@@ -145,7 +148,7 @@ include_once __DIR__ . '/rcredits-circles.inc'; // treat this as an extension of
  * Return the account's current stage in its progression toward rTrader
  */
 function stage($acct = '', $numeric = FALSE) {  
-  if (!($acct = $acct ?: acct())) return FALSE;
+  if (!$acct = ($acct ?: acct())) return FALSE;
   foreach (u\ray(R_STAGES) as $key => $one) if ($acct->can(constant('PERM_' . strtoupper($one)))) $stage = $numeric ? $key : $one;
   return @$stage;
 }
@@ -197,31 +200,14 @@ function txReportArgs($tx, $getMyBalance = FALSE, $shortfall = 0) {
 
 /**
  * Return the percentage tithe chosen by given user (as identified by their email).
- * Consider the tithe valid ONLY if it was specified as part of a completed contribution.
+ * Consider the tithe valid only if it was specified as part of a COMPLETED contribution.
  */
 function tithe($acct) {
-  include(DRUPAL_ROOT . '/sites/default/settings.php');
-  extract(u\just('database username password host', $databases['civi'][0]));
-  $email = $acct->mail;
-//  return 0; // until we figure out how to read the civi database without warnings
-  $conn = mysql_connect($host, $username, $password);
-  if (!$conn) return 0; // die("Can't connect to MySQL Server " . $host);
-  mysql_select_db($database, $conn) or die("Can't open database " . $database);
-  $sql = <<<EOF
-SELECT MAX(c2.tithe_45) AS tithe
-FROM civicrm_email e
-INNER JOIN civicrm_contribution c ON c.contact_id=e.contact_id
-INNER JOIN civicrm_value_extra_donation_fields_5 c2 ON c2.entity_id=c.id
-WHERE c.contribution_status_id=1
-AND c.contribution_type_id IN(1, 2)
-AND e.email=:email
-EOF;
-
-  $sql = str_replace(':email', \valid_email_address($email) ? "'$email'" : "''", $sql); // injection
-  $result = mysql_query($sql);
-  $tithe = ($row = mysql_fetch_array($result)) ? $row[0] : 0;
-  if ($tithe) $acct->update(compact('tithe'));
-  return $tithe;
+  if (!$tithe = $acct->tithe) {
+    $tithe = file_get_contents("http://rcredits.org/inc/tithe.php/$acct->mail");
+    if ($tithe) $acct->update(compact('tithe'));
+  }
+  return $tithe + 0;
 }
 
 function otherBalance($uid) {
@@ -359,7 +345,7 @@ function shortfall($uid, $requestAmount, $preapproved, $real) {
  */
 function payEmployees($amount0, $for, $confirmed) {
   $employees = employees();
-  if (!($employeeCount = count($employees))) return array('no employees', array(), array());
+  if (!$employeeCount = count($employees)) return array('no employees', array(), array());
   if ($shortfall = shortfall(acct()->id, $amount0 * $employeeCount, TRUE, isRTrader())) {
      $short = u\formatAmount($shortfall);
      return array('short payment', compact('short'), FALSE); // no partial payment of employees
@@ -792,9 +778,9 @@ function go($page) {
  */
 function tableField($field, $table, $which = '', $subs = array()) {
   if ($table == 'users') {
-    if ($which === '') if (!($which = acct()->id)) return FALSE;
+    if ($which === '') if (!$which = acct()->id) return FALSE;
     if (is_numeric($which) and !strpos($field, '(')) { // handle numbered records efficiently
-      if (!($acct = acct($which))) return FALSE;
+      if (!$acct = acct($which)) return FALSE;
       if (strpos($field, ',')) {
         $result = array();
         foreach (u\ray($field) as $one) {

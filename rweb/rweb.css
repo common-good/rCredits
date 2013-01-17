@@ -139,6 +139,7 @@ form.rweb  .form-no {color:red;}
   form.labeled  .form-radios {margin-left:0px; display:inline-block;}
   form.labeled .form-type-radios {border-bottom:1px solid darkgreen; margin-bottom:.4em;}
   form.labeled .form-type-radio {display:block;} /* less good for browser, better for mobile */
+  form.labeled .yesno .form-type-radio {display:inline-block;}
   form.labeled  .form-type-checkbox .description {margin-left:5px;}
 }
 @media (max-width:27.99em) {
@@ -179,6 +180,9 @@ form.rweb  .form-no {color:red;}
 /* Summary */
 #rcreditswebformsummary #edit-creditlimit .description,
 #rcreditswebformsummary #edit-rewards .description {display:inline-block; margin-left:.25em;}
+
+/* Reports */
+/* #rcreditswebformreports .form-type-item label {width:30em;} */
 
 /* Company Info */
 #rcreditswebformcompany fieldset#edit-description-format {background-color:lightblue; max-width:45em;}
@@ -372,6 +376,7 @@ html.js input.throbbing {background-position:right -2.4em;}
 
 /* Dwolla */
 #rcreditswebformusd .form-radios {max-width:80%;}
+#rcreditswebformusd  .form-type-radio label {font-weight:normal;}
 
 /* form I */
 #rcreditswebformi .user-picture {float:left; max-width:48%; margin-right:1em;}

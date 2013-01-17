@@ -316,7 +316,7 @@ class call {
       $otherUid = $acct->id;
       $where .= ' AND payee=:otherUid';
     }
-    if(!($result = be\lastTx($where, compact(u\ray('cuid otherUid'))))) return tt('no matching invoice');
+    if(!$result = be\lastTx($where, compact(u\ray('cuid otherUid')))) return tt('no matching invoice');
     $this->parms['zxid'] = $result['zxid'];
     return $this->confirm('pay invoice', r\txReportArgs($result));
   }

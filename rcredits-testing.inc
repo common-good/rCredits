@@ -35,7 +35,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
   
   $info = array_merge($info, compact(u\ray('uid flags rebate_percent name pass full_name mail community_uid')));
   if ($testOnly) {
-    if (!($acct = r\acct($uid))) return testOutput("No such uid: $uid");
+    if (!$acct = r\acct($uid)) return testOutput("No such uid: $uid");
     foreach ($info as $key => $value) {
       if (!eq($acct->$key, $value)) {
         if ($key == 'pass' and (!isset($my_password) or $acct->passwordOkay(@$my_password))) continue;
@@ -45,7 +45,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
     return TRUE;
   }
   
-  if (!($acct = new r\acct($info))) return FALSE;
+  if (!$acct = new r\acct($info)) return FALSE;
   
   if (@$my_picture) if (!makePicture($my_picture, $acct)) return FALSE;
 
@@ -106,8 +106,8 @@ function makeRelation($info, $infoOnly = FALSE) {
   extract($info, EXTR_PREFIX_ALL, 'my');
   
   $reid = u\retNum($my_id) ?: u\a2n(substr($my_id, -3));
-  if (!($main = r\acct(fullQid($my_main)))) return testOutput("main:$my_main is not an id");
-  if (!($agent = r\acct(fullQid($my_agent)))) return testOutput("agent:$my_agent is not an id");
+  if (!$main = r\acct(fullQid($my_main))) return testOutput("main:$my_main is not an id");
+  if (!$agent = r\acct(fullQid($my_agent))) return testOutput("agent:$my_agent is not an id");
   u\EXPECT(!r\isForeign($main->regionId) or !r\isForeign($agent->regionId));
   u\EXPECT($main->proSe() and $agent->proSe());
   list ($main_uid, $agent_uid) = array($main->id, $agent->id);

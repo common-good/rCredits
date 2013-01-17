@@ -359,7 +359,7 @@ function payInvoice($zxid) {
   if (is_array($zxid)) extract($zxid); // called from api or backend
 
   if (!r\acct()->can(PERM_BUY)) return array('no buy', array());
-  if (!($result = lastTx('xid=:zxid AND state=:TX_PENDING', compact('zxid')))) return array('no such tx', array());
+  if (!$result = lastTx('xid=:zxid AND state=:TX_PENDING', compact('zxid'))) return array('no such tx', array());
   extract($result, EXTR_PREFIX_ALL, 'old');
 // (not needed)  if ($zxid < 0 and (r\isRTrader($old_payer) and r\isRTrader($old_payee))) return array("can't pay asif invoice");
   $acct = r\acct($old_payee, $old_payee_agent);
@@ -615,7 +615,7 @@ function identify($who, $allow_ALL = FALSE, $self_message = 'no self-trading') {
   }
 
   if (u\isQid($quid)) {
-    if (!($acct = r\acct($quid))) return array('unknown member', compact('who'), array());
+    if (!$acct = r\acct($quid)) return array('unknown member', compact('who'), array());
     if ($acct->id == $cuid) return array($self_message, array(), array());
     return $acct; // qids are easy
   }
@@ -740,7 +740,7 @@ function mergeCheck($info) {
 function accountChoices() {
   if (isFrontend()) return (array) backend('accountChoices');
   
-  if (!($cacct = r\acct())) return FALSE;
+  if (!$cacct = r\acct()) return FALSE;
   $agentId = $cacct->agentId;
   $primary = array((string) $agentId => (count($GLOBALS['share permissions']) - 1)); // max access for primary user account
 
@@ -787,7 +787,7 @@ function lastTx($where = 1, $subs = array(), $cache = FALSE) {
   $cuid = r\acct()->id;
   $basic = "$cuid IN (payer, payee) AND type NOT IN (:TX_DELETED, :TX_REBATE, :TX_BONUS)"; // make sure it's for $cuid
   $sql = "SELECT * FROM {zxs} WHERE ($basic) AND ($where) ORDER BY zxid DESC LIMIT 1";
-  if (!($result = r\dbQ($sql, $subs)->fetchAssoc())) return FALSE;
+  if (!$result = r\dbQ($sql, $subs)->fetchAssoc()) return FALSE;
   $toMe = ($result['payee'] == $cuid);
   $byMe = ($result['taking'] == $toMe);
   $otherUid = $result[$toMe ? 'payer' : 'payee'];

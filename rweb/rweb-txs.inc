@@ -115,8 +115,8 @@ function formTxs($form, &$sta, $args = '') {
     'period' => formField('select', t('For the past:'), '', dft(@$period), $txDays),
     'submitPeriod' => submit(t('Show ')), // label has to be different from submitDates (see below)
     'downloadPeriod' => submit(t('Download')),
-    'starting' => formField('textfield', t('OR Starting:'), '', dft(u\formatDate($starting))),
-    'ending' => formField('textfield', t('Ending:'), '', dft(u\formatDate($ending))),
+    'starting' => textField(t('OR Starting:'), '', dft(u\formatDate($starting))),
+    'ending' => textField(t('Ending:'), '', dft(u\formatDate($ending))),
     'submitDates' => submit(t(' Show')), // label has to be different (Drupal bug -- else can't tell which is clicked)
     'downloadDates' => submit(t('Download')),
     'do' => formField('hidden', $do),
@@ -130,7 +130,7 @@ function formTxs($form, &$sta, $args = '') {
 function txConfirm($do, $zxid, &$sta) {
   $cuid = r\acct()->id;
   if (confirming_v($sta)) return FALSE;
-  if (!($details = be\lastTx('xid=:zxid', compact('zxid'), TRUE))) return FALSE; // bail on hack attempt
+  if (!$details = be\lastTx('xid=:zxid', compact('zxid'), TRUE)) return FALSE; // bail on hack attempt
   extract(r\txReportArgs($details), EXTR_PREFIX_ALL, 'my');
   $action = tx_action($do, $my_state, $my_toMe, $my_byMe);
   confirm(t('Are you sure you want to ') . "$action?<br>($my_summary)", $sta); // sets 'confirm'
@@ -193,7 +193,7 @@ function tx_action($do, $state, $toMe, $byMe) {
  */
 function txOKorNO($tx_task, $zxid) {
   $cuid = r\acct()->id;
-  if (!($result = be\lastTx('xid=:zxid', compact('zxid'), TRUE))) return FALSE; // bail on hack attempt
+  if (!$result = be\lastTx('xid=:zxid', compact('zxid'), TRUE)) return FALSE; // bail on hack attempt
   extract(u\just('state amount toMe', $result));
   if ($tx_task == 'ok') { // OK
     u\EXPECT($state == TX_PENDING);
@@ -207,7 +207,7 @@ function txOKorNO($tx_task, $zxid) {
 }
 
 function tx_edit($zxid) {
-  if (!($details = be\lastTx('xid=:zxid', compact('zxid'), TRUE))) return FALSE; // bail on hack attempt
+  if (!$details = be\lastTx('xid=:zxid', compact('zxid'), TRUE)) return FALSE; // bail on hack attempt
   extract(u\just('taking purpose role', r\txReportArgs($details)));
   
   if (!r\acct()->can($taking ? PERM_SELL : PERM_BUY)) return FALSE;
@@ -215,7 +215,7 @@ function tx_edit($zxid) {
   $form = array(
     'title' => formField('item', t('Edit Description')),
 //    'review' => formField('item', $tx_summary),
-    'purpose' => formField('textfield', t('Purpose'), '', dft($purpose)),
+    'purpose' => textField(t('Purpose'), '', dft($purpose)),
     'go' => formField('submit', NULL, t('Submit button'), 'Update'),
     'zxid' => formField('hidden', $zxid),
     'field' => formField('hidden', $role . '_for'),

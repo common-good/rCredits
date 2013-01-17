@@ -15,7 +15,7 @@ class acct {
   var $agentRegion; // record id of agent's region (on this server)
   var $mainQid; // nearly alphabetic representation of id, id, and region for external queries
   var $agentQid; // same for agent (for combined qid for main account and agent, use acct()->qid())
-  private static $perms = array(); // permissions
+  private static $perms = array(); // permissions for all acct objects, indexed by id and agent
   private static $records = FALSE; // account records for all acct objects, indexed by id
   
   /**
@@ -33,7 +33,7 @@ class acct {
    * @param id/qid $id: the account's record id (can this be a community?) (DEFAULT to cuid)
    * @param id/qid $agent: the agent's record id on this server OR the foreign agent's qid (DEFAULT to same as $id)
    */
-  function __construct($id = array(), $agent = '', $info = array()) {
+  function __construct($id = array(), $agent = '') {
     if (!is_array($info = $id)) { // referring to existing db record
       list($this->id, $this->agentId, $this->regionId, $this->agentIdRegion) = acct::ok($id, $agent, $zot, FALSE);
     } else { // create new db record
@@ -50,10 +50,10 @@ class acct {
       $info['is_new'] = TRUE;
       $info['roles'] = 0; // this keeps Drupal happy in user.module
       $info['flags'] = @$my_flags ?: (@$info['uid'] ? (BIT_DEFAULTS | BIT_RTRADER) : BIT_DEFAULTS);
-      $info['community_uid'] = $region = serverUid(); // $communityUid(@$my_postal_code); // defaults to current server
+      $info['community_uid'] = communityUid(@$my_postal_code); // defaults to current server
 
       /*** Begin DBTX ***/ $dbtx = db_transaction();
-      if (!($uid = @$info['uid'])) {
+      if (!$uid = @$info['uid']) {
         for ($try = 0; $try < 20; $try++) { // limit the retries
           $uid = $info['uid'] = self::nextId();
           if (\drupal_write_record('users', $info)) break;
@@ -66,6 +66,7 @@ class acct {
       }
       /*** End DBTX ***/ unset($dbtx);
 
+      $region = communityUid();
       list($this->id, $this->agentId, $this->regionId, $this->agentIdRegion) = array($uid, $uid, $region, $region);
       self::$records[$this->id] = (object) $info;
     }
@@ -99,7 +100,7 @@ class acct {
     if (@self::$records[$id] and !property_exists(self::$records[$id], 'flags')) die("No flags field in record $id: " . print_r(self::$records, 1)); // keep this
     if (@self::$records[$id] and !$reread) return self::$records[$id];
     if ($region != serverUid()) { // foreign
-      // contact other server here, for the record
+      // contact other server here, for a subset of the record
     } else {
       $records = be\getRecords('users', "uid=:id LIMIT 1", compact('id')); // domestic (don't use Drupal's caching)
       return $records ? (self::$records[$id] = $records[0]) : FALSE;
@@ -119,20 +120,57 @@ class acct {
 //    u\EXPECT(property_exists(self::$records[$this->id], $field), "bad field for uid $this->id: $field" . print_r(self::$records[$this->id], 1));
     return $field == 'agent' ? acct($this->agentId) : @self::$records[$this->id]->$field; // returns NULL if field not set
   }
-  public function account() {return @self::$records[$this->id];}
+  
+  /**
+   * Return the entire account object or just certain fields.
+   * @param string $just: space-delimited list of fields to return
+   * @param bool getHidden: whether we need to return the actual values of personal identifying information fields
+   *   NOTE: getHidden is ignored if $just is specified
+   */
+  public function account($just = '', $getHidden = FALSE) {
+    if (!@self::$records[$this->id]) $this->reread(); // make sure we have read the record from the db
+    if (!@$this->actual and ($getHidden or $just)) {
+      if ($just) $getHidden = (count(array_intersect(u\ray($just), u\ray(R_HIDE_FIELDS))) > 0);
+      if ($getHidden) $this->getHidden();
+    }
+    $account = @self::$records[$this->id];
+    return $just ? u\just($just, $account) : $account;
+  }
 
-  public static function _clear() {self::$records = array();}
+  /**
+   * Read protected personal identifying information fields into the account record
+   */
+  private function getHidden() {
+//    if ($this->actual) return;
+    $hideData = u\just(R_HIDE_FIELDS, $this->account()); // fake field values are keys into hidden data
+    $data = hideData($hideData, 'RETRIEVE'); // get actual data from Hidentity
+    foreach ($data as $key => $value) self::$records[$this->id]->$key = $value;
+    self::$records[$this->id]->actual = TRUE; // set this in the record, not in the object--it applies to all objects for the id
+  }
+  
+  public static function _clear() {self::$perms = self::$records = array();}
   public static function nextId() {return max(@TESTING == 1 ? 1000 : -9999999, dbLookup('MAX(uid)', 'users', 1)) + 1;}
   
+  /**
+   * Update the saved record in the database with the given data.
+   * @param assoc $info: data to update
+   */
   public function update($info) {
     //if (!@self::$records[$this->id]->uid) self::$records[$this->id] = \user_load($this->id);
+    $toHide = array_intersect(array_keys($info), u\ray(R_HIDE_FIELDS));
+    if (count($toHide) > 0 and !@$this->actual) $this->getHidden();
     foreach ($info as $field => $value) {
       if ($field != 'uid') self::$records[$this->id]->$field = $value;
     }
     $info['uid'] = $this->id; // make sure drupal gets this
+    if (count($toHide) > 0) {
+      $hideData = u\just($toHide, $this->account());
+      $data = hideData($hideData, 'STORE'); // get fake data from Hidentity
+      $info = $data + $info; // replace relevant fields in $info with fake data, before saving to the db
+    }
     return \drupal_write_record('users', $info, 'uid');
   }
-  
+
   public function proSe() {return ($this->id == $this->agentId);}  
   public function qid() {return $this->proSe() ? $this->mainQid : quid($this->id, $this->agentId, $this->regionId);}
   public function isCompany() {return (@$this->account_type != R_PERSONAL);}
@@ -164,7 +202,8 @@ class acct {
    * @param int $permission: the permission in question (DEFAULT PERM_READ)
    */
   public function can($permission = PERM_READ) {
-    if (!@self::$perms[$this->id]) { // set up perms if we haven't yet (setBit() resets this)
+    if (!@self::$perms[$this->id]) self::$perms[$this->id] = array();
+    if (!@self::$perms[$this->id][$this->agentId]) { // set up perms if we haven't yet (setBit() resets this)
       $perms = array();
       $id = $this->id;
       $agent = $this->agent;
@@ -176,27 +215,26 @@ class acct {
       $perms[PERM_RTRADER] = $this->hasBit(BIT_RTRADER);
       $perms[PERM_CHARGE] = $this->hasBit(BIT_CHARGE);
 
-      $perms[PERM_ADMIN] = ($agent->hasBit(BIT_ADMIN));
+      $perms[PERM_ADMIN] = $agent->hasBit(BIT_ADMIN);
       $perms[PERM_CTTY_ADMIN] = $agent->hasBit(BIT_CTTY_ADMIN);
       if ($perms[PERM_ADMIN] and R_ADMIN_CAN_MANAGE_CTTYS) $perms[PERM_CTTY_ADMIN] = TRUE; // temporary extra power, until communities are independent
 
       if ($this->proSe()) {
         $can = ($id < 0) ? 0 : PERM_MANAGE; // communities must be managed by an agent, never directly
       } else $can = ($perms[PERM_CTTY_ADMIN] and ($perms[PERM_ADMIN] or $this->community_uid == $agent->community_uid)) ? PERM_MANAGE : relation('permission', $id, $this->agentId);
-
       for ($i = 0; $i <= PERM_MANAGE; $i++) $perms[$i] = ($i <= $can); // set all permissions, even the false ones
 
       $perms[PERM_MANAGING_CTTY] = ($perms[PERM_CTTY_ADMIN] and $this->id == $this->community_uid);
       if ($perms[PERM_MANAGING_CTTY]) $perms[PERM_BUY] = $perms[PERM_SELL] = FALSE;
       ksort($perms); // easier to debug
-      self::$perms[$this->id] = $perms;
+      self::$perms[$this->id][$this->agentId] = $perms;
     }
     if ($permission == -1) {
       $p = u\ray($GLOBALS['permissions']);
-      for ($i = 0; $i < count($p); $i++) if ($p[$i] != '-') $result[$p[$i]] = @self::$perms[$this->id][$i];
+      for ($i = 0; $i < count($p); $i++) if ($p[$i] != '-') $result[$p[$i]] = @self::$perms[$this->id][$this->agentId][$i];
       return $result; // for debugging
     }
-    return self::$perms[$this->id][$permission];
+    return self::$perms[$this->id][$this->agentId][$permission];
   }
 } // end of class
 
@@ -213,12 +251,23 @@ function UAR($quid = '', $no_abbrev = TRUE) {
 
   list ($zuid, $regionUid) = unQid($quid);
   if (($reid = -$zuid) > 0) {
-    if (!($record = relation('main_uid,agent_uid', 'reid=:reid', compact('reid')))) return FALSE;
+    if (!$record = relation('main_uid,agent_uid', 'reid=:reid', compact('reid'))) return FALSE;
     $result = array_values($record);
   } else $result = array($zuid, $zuid);
   $result[] = $regionUid;
   return $result;
 }
+
+/**
+ * Hide or unhide the given data.
+ * @param assoc $data: fields to hide or unhide
+ * @param string $do: 'STORE' or 'RETRIEVE'
+ * @return: the actual data (if RETRIEVING) or fake data (if STORING)
+ */
+ function hideData($data, $do) {
+  return $data;
+  // this should actually contact Hidentity
+}  
 
 function acct($uid = '', $agent = '', &$error = '') {
   global $currentAcct; // use this ONLY in this class file

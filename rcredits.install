@@ -254,7 +254,9 @@ function rcredits_schema_alter(&$schema) {
     'community_uid' => r\setupField("uid of this account's Common Good Community", 'int 11'),
     'federal_id' => r\setupField('social security number or employer id number, for reporting', 'varchar 9'),
     'dob' => r\setupField('date of birth, founding, or incorporation', 'int 11'),
-    'id_proof' => r\setupField('proof of identity (index into file_managed image,encryption key)', 'varchar 70'), // max 11(id)+1(comma)+32(key)+23(salt)
+    'id_proof' => r\setupField('proof of identity encryption key', 'text tiny'), // blob for binary (just 33 bytes)
+    'question' => r\setupField('security question', 'varchar 255'),
+    'answer' => r\setupField('answer to security question', 'varchar 255'),
     'full_name' => r\setupField('full name of the individual or entity', 'varchar 60'),
     'phone' => r\setupField('contact phone (no country code, no punctuation)', 'varchar 255'),
     'fax' => r\setupField('fax number (no country code, no punctuation)', 'varchar 255'),

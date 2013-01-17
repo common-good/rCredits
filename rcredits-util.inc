@@ -15,6 +15,7 @@ use rCredits as r; // get rid of this
  * Entries in a comma-delimited list that contain a colon will be split into key and value.
  */
 function ray($s) {
+  EXPECT(compact('s'), 'string');
   $pattern = strpos($s, '|') ? ' *\| *' : (strpos($s, ',') ? '\, *' : (strpos($s, ';') ? '; *' : (strpos($s, ' ') ? ' +' : '\, *')));
   $simple = mb_split($pattern, $s);
   if (strpos($s, '|') or !strpos($s, ',') or !strpos($s, ':')) return $simple;
@@ -51,10 +52,10 @@ function preK($prefix, $s) {
 */
 
 /**
- * Return just the specified key/value pairs from the given array.
+ * Return just the specified key/value pairs from the given array, trimmed.
  * Typical use: extract(just('key2 key4 key 7', $info));
  * If a key did not exist in the original array, it will no be in the returned array either.
- * @param string $these: space-delimited array of field names
+ * @param string/array $these: array or space-delimited array of field names
  * @param array/object/string $args: possible key/value pairs to return (passed as array, object, or UrlArgString)
  * @return array of the results
  */
@@ -63,7 +64,8 @@ function just($these, $args) {
   if (is_string($args)) {
     parse_str(strpos($args, urlencode('=')) ? urldecode($args) : $args, $array);
   } else $array = (array) $args; // in case it was an object
-  foreach (ray($these) as $one) if (isset($array[$one])) $result[$one] = $array[$one];
+  if (!is_array($these)) $these = ray($these);
+  foreach ($these as $one) if (isset($array[$one])) $result[$one] = is_string($array[$one]) ? trim($array[$one]) : $array[$one];
   return $result;
 }
 
@@ -79,9 +81,9 @@ function cleanAmount($amount) {
  * @param string $restriction: none, >0, or >=0 (the default)
  */
 function badAmount(&$amount, $restriction = '') {
-  $amount = cleanAmount($amount);
   if (!is_numeric($amount)) return 'bad amount';
 
+  $amount = cleanAmount($amount);
   $dotPos = strpos($amount, '.');
   if ($dotPos !== FALSE and strlen($amount) > $dotPos + 3) return 'fractional cents';
   if ($amount > R_MAX_AMOUNT) return 'amount too big';
@@ -501,6 +503,28 @@ function log($type, $info = array(), $special = '', $adhocChannel = '') {
 }  
 
 /**
+ * Encrypt the given file and save in new path.
+ * to decrypt:
+ *   $decrypted = $cryptastic->decrypt($encrypted, $encryptionKey) or die("Failed to complete decryption");
+ * @return: the encryption key (FALSE if unsuccessful)
+ */
+function encryptFile($filepath, $newFilepath = '', $pass, $salt) {
+  require __DIR__ . '/cryptastic.php';
+  if ($newFilepath === '') $newFilepath = $filepath;
+  $content = file_get_contents($filepath);
+  $destination = dirname($newFilepath);
+  if (!is_dir($destination)) mkdir($destination);
+
+  $cryptastic = new \cryptastic;
+  $encryptionKey = $cryptastic->pbkdf2($pass, $salt, 1000, 32) or die("Failed to generate secret key.");
+  $encryptedFile = $cryptastic->encrypt($content, $encryptionKey) or die("Failed to complete encryption.");
+
+  if (file_put_contents($newFilepath, $encryptedFile)) {
+    return $encryptionKey;
+  } else return FALSE;
+}
+ 
+/**
  * Change something to the proper case, unless it is already right.
  * @param mixed $what: a string or array of strings to fix
  * @param string $proper: the PHP function to use, to fix the case
@@ -534,7 +558,7 @@ function import_gfld() {
     $cats = unserialize($categories);
     foreach ($cats as $industry) {
       $industry = ucwords(strtolower($industry));
-      if (!($iid = r\dbLookup('iid', 'r_industries', 'industry=:industry', compact('industry')))) {
+      if (!$iid = r\dbLookup('iid', 'r_industries', 'industry=:industry', compact('industry'))) {
         $record = compact('industry');
         db_query("INSERT INTO r_industries (industry) VALUES (:industry)", $record);
 //        db_insert('r_industries')->fields($record);
@@ -628,10 +652,21 @@ function deb($arg = '') {
  * @return assoc: the resultant array (FALSE if the needle is not found)
  */
 function insertBefore($bundle, $haystack, $needle) {
-  if (!($i = array_search($needle, $haystack))) return FALSE;
+  if (!$i = array_search($needle, $haystack)) return FALSE;
   return array_slice($haystack, 0, $i+1) + $bundle + array_slice($haystack, $i+1);
 }
-  
+ 
+function formatNum($num, $format) {
+  $num = digits($num);
+  if ($format == 'dwolla') $format = 'ddd-ddd-dddd';
+  if ($format == 'ein') $format = 'dd-ddddddd';
+  if ($format == 'ss') $format = 'ddd-dd-dddd';
+  $oldFormat = '(' . str_replace('d', '\\d', str_replace('-', ')(', $format)) . ')'; // eg (\d\d\d)(\d\d\d)(\d\d\d\d)
+  $newFormat = '$1';
+  for ($i = 2; $i <= substr_count($format, '-') + 1; $i++) $newFormat .= '-$' . $i;
+  return preg_replace("|\\b$oldFormat\\b|", $newFormat, $num);
+}  
+ 
 /**
  * ret<X>
  * A collection of functions to return the argument when it passes a certain test.
@@ -664,3 +699,4 @@ function hug($s, $arms = '()') {return substr($arms, 0, 1) . $s . substr($arms, 
 function formatDate($time = '') {return strftime('%d-%b-%Y', $time ?: time());}
 function formatTime($time = '') {return strtolower(strftime('%I:%M%p', $time ?: time()));}
 function lastCall() {$back = debug_backtrace(); return $back[2];}
+function digits($n) {return preg_replace('/\D/', '', $n);}
