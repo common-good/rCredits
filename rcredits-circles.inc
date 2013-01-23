@@ -120,7 +120,7 @@ function promote($uid, $score) {
   $sql = <<<EOF
     SELECT r.agent_uid FROM r_relations r
     INNER join r_candidates c ON c.uid=r.agent_uid
-    WHERE r.main_uid=:uid AND NOT c.ignore
+    WHERE r.main_uid=:uid AND NOT c.ignor
 EOF;
   $nubes = r\dbQ($sql, compact('uid'))->fetchCol();
   $nubes[] = $uid;
@@ -138,7 +138,7 @@ EOF;
  */
 function scores() {
 
-  r\dbQ('UPDATE r_candidates SET `ignore`=0 WHERE 1'); // this function gets called repeatedly, so we need to reset
+  r\dbQ('UPDATE r_candidates SET ignor=0 WHERE 1'); // this function gets called repeatedly, so we need to reset
 
   // First add unemployed people to r_candidates (eg people with rental income) -- treat them as self-employed
   // Count number of rTrader places that each candidate ASIF buys (to eliminate those that buy from too few places)
@@ -156,18 +156,18 @@ function scores() {
     GROUP BY c.uid
 EOF;
 
-  $ignoreSQL = 'UPDATE r_candidates c INNER JOIN r_temp tmp ON tmp.uid=c.uid SET c.ignore=1 WHERE tmp.count<:R_MIN_BUYS';
+  $ignorSQL = 'UPDATE r_candidates c INNER JOIN r_temp tmp ON tmp.uid=c.uid SET c.ignor=1 WHERE tmp.count<:R_MIN_BUYS';
 
   r\dbQ($countSQL);
-  if (\db_table_exists('r_temp')) r\dbQ($ignoreSQL); // mark ineligible individual candidates
-// FAILS  r\dbQ("UPDATE r_candidates SET `ignore`=1 WHERE ($countSQL) < :R_MIN_BUYS"); // mark ineligible individual candidates
+  if (\db_table_exists('r_temp')) r\dbQ($ignorSQL); // mark ineligible individual candidates
+// FAILS  r\dbQ("UPDATE r_candidates SET ignor=1 WHERE ($countSQL) < :R_MIN_BUYS"); // mark ineligible individual candidates
 
   // Eliminate candidate companies that buy from too few places (including their candidate employees)
   $eligibleEmployeesSQL =<<<EOF
     SELECT r.agent_uid AS employee 
     FROM r_candidates d 
     INNER JOIN r_relations r ON d.uid=r.main_uid
-    WHERE d.uid=c.uid AND NOT `ignore`
+    WHERE d.uid=c.uid AND NOT ignor
 EOF;
 
   $countSQL = <<<EOF
@@ -184,8 +184,8 @@ EOF;
     GROUP BY c.uid
 EOF;
   r\dbQ($countSQL);
-  if (\db_table_exists('r_temp')) r\dbQ($ignoreSQL); // mark ineligible companies
-// FAILS  r\dbQ("UPDATE r_candidates SET `ignore`=1 WHERE ($countSQL) < :R_MIN_BUYS"); // mark ineligible companies
+  if (\db_table_exists('r_temp')) r\dbQ($ignorSQL); // mark ineligible companies
+// FAILS  r\dbQ("UPDATE r_candidates SET ignor=1 WHERE ($countSQL) < :R_MIN_BUYS"); // mark ineligible companies
 
   // Find out how many places each rTrader can ALREADY spend
   // might want to INSERT these into a temp table for efficiency (rather than reusing the SQL, below)
@@ -219,7 +219,7 @@ EOF;
     WHERE a.type=:TX_TRANSFER 
     AND a.goods
     AND a.state IN (:TX_DONE, :TX_PENDING)
-    AND NOT c.ignore
+    AND NOT c.ignor
     GROUP BY tmp.count, c.uid
 EOF;
   r\dbQ($sql);
@@ -278,7 +278,7 @@ EOF;
  * The array represents an arbitrarily large radix integer with fractional digits.
  * Each entry is a digit, with the 0th being the high-order digit.
  * The 0th entries of the two arrays are aligned, so if one is longer the other is (conceptually) padded with zeroes.
- * Array keys are ignored.
+ * Array keys are ignord.
  */
 function array_lt($a, $b) {
   $a = array_values($a);

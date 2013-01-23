@@ -69,11 +69,20 @@ function just($these, $args) {
   return $result;
 }
 
+/**
+ * array_splice for associative arrays.
+ * If the key is not found, $input is unchanged and return NULL
+ */
+function splice(&$input, $key, $len = 0, $replacement = NULL) {
+  $i = array_search($key, array_keys($input));
+  return $i === FALSE ? NULL : array_splice($input, $i, $len, $replacement);
+}
+
 function cleanAmount($amount) {
   $amount = trim($amount);
   if (substr($amount, 0, 1) == '$') $amount = substr($amount, 1);
   $amount = preg_replace('/[ \,]/', '', $amount); // ignore spaces and commas
-  return $amount + 0;
+  return is_numeric($amount) ? $amount + 0 : $amount;
 }
 
 /**
@@ -81,9 +90,9 @@ function cleanAmount($amount) {
  * @param string $restriction: none, >0, or >=0 (the default)
  */
 function badAmount(&$amount, $restriction = '') {
-  if (!is_numeric($amount)) return 'bad amount';
+  if (!is_numeric($new = cleanAmount($amount))) return 'bad amount';
 
-  $amount = cleanAmount($amount);
+  $amount = $new;
   $dotPos = strpos($amount, '.');
   if ($dotPos !== FALSE and strlen($amount) > $dotPos + 3) return 'fractional cents';
   if ($amount > R_MAX_AMOUNT) return 'amount too big';
@@ -102,7 +111,9 @@ function badAmount(&$amount, $restriction = '') {
  *   the formatted amount
  */
 function formatAmount($amount, $simplify = TRUE) {
-  $amount = '$' . number_format(cleanAmount($amount), 2);
+  $amount = cleanAmount($amount);
+//  if (!is_numeric($amount)) $amount = -999999;
+  $amount = '$' . number_format($amount, 2);
   return $simplify ? str_replace('.00', '', $amount) : $amount;
 }
 
@@ -690,13 +701,14 @@ function myInt($n) {return (is_numeric($n) and $n == (int) $n);}
 function myFloat($n) {return (is_numeric($n) and $n == (float) $n);}
 function isId($id) {return (myInt($id) and $id > 0);}
 //function is_ruid($ruid) {return (is_array($ruid) and array_keys($ruid) == array(0, 1, 2) and isZid($ruid[0]) and isZid($ruid[1]) and isZid($ruid[2]));}
-function isQid($qid) {return preg_match('/^[A-Z]{3}(\.|:|=|\.\.)[A-Z]+$/', $qid);}
+function isQid($qid) {if(is_object($qid)) debug(lastCall(6)); return preg_match('/^[A-Z]{3}(\.|:|=|\.\.)[A-Z]+$/', $qid);}
 function isZid($zid) {return (myInt($zid) and $zid !== 0);}
 function isNonce($nonce) {return preg_match('/^[A-Z]{3,}$/', $nonce);}
 function isName($value) {return preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $value);}
 function isAcct($acct) {return (is_object($acct) and get_class($acct) == 'rCredits\acct');}
 function hug($s, $arms = '()') {return substr($arms, 0, 1) . $s . substr($arms, -1, 1);}
-function formatDate($time = '') {return strftime('%d-%b-%Y', $time ?: time());}
-function formatTime($time = '') {return strtolower(strftime('%I:%M%p', $time ?: time()));}
-function lastCall() {$back = debug_backtrace(); return $back[2];}
+function formatDate($time = REQUEST_TIME) {return strftime('%d-%b-%Y', $time);}
+function formatTime($time = REQUEST_TIME) {return strtolower(strftime('%I:%M%p', $time));}
+function lastCall($far = 4) {$back = debug_backtrace(); return array_slice($back, 1, $far);}
 function digits($n) {return preg_replace('/\D/', '', $n);}
+function monthDay1($time = REQUEST_TIME) {return strtotime(strftime('%b01'));}

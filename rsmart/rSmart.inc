@@ -86,7 +86,7 @@ function api($args = FALSE) {
     if (buttons($cacct, $q_owner) < 0) return be\error('no permission');
     r\acct::setDefault($cacct);
     $args['cacct'] = $cacct;
-    $edit = array('code' => $q_code, 'accessed' => time());
+    $edit = array('code' => $q_code, 'accessed' => REQUEST_TIME);
     \drupal_write_record('r_smarts', $edit, 'code'); // remember time last accessed so we can drop the deadwood
   }
 
@@ -95,7 +95,7 @@ function api($args = FALSE) {
     if (!u\isQid($account_id = basename(@$q_account_id))) return be\error('bad account id');
     if ($account_id != $q_account_id) { // this is a transient id scanned from the other party's smart device
       $transient_id = basename(dirname($q_account_id));
-      $recent = time() - R_TRANSIENCE;
+      $recent = REQUEST_TIME - R_TRANSIENCE;
       if (dbLookup('transient_id', 'r_smarts', 'code=:code AND accessed>=:recent') != $transient_id) return be\error('bad transient id');
     }
     if (!$acct = r\acct($account_id, '', $error)) return be\error($error);
@@ -294,8 +294,8 @@ function display_id($params) {
 function makeDevice($device, $acct, $code = '') {
   u\EXPECT(compact('device', 'acct'), 'string&notempty acct');
   $owner = $acct->id;
-  $code = trim($code ?: user_hash_password(uniqid($acct->mainQid, TRUE) . time()) . '/'); // add a slash to make sure slashes get handled properly
-  $accessed = time();
+  $code = trim($code ?: user_hash_password(uniqid($acct->mainQid, TRUE) . REQUEST_TIME) . '/'); // add a slash to make sure slashes get handled properly
+  $accessed = REQUEST_TIME;
   $info = compact(u\ray('owner code device accessed'));
   return @\drupal_write_record('r_smarts', $info) ? $code : FALSE; // no way to tell if it's the same device as others
 }

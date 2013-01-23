@@ -461,7 +461,8 @@ function theTotalDemandForRCreditsIs($amount) {
   
   if (!$uid = t\makeAccount()) return FALSE;
   $demand = $amount - $old;
-  r\demand($uid, $demand);
+  r\acct($uid)->update(compact('demand'));
+  // NO - fails for disallowed high amounts. r\demand($uid, $demand);
   return TRUE;
 }
 

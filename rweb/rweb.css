@@ -103,7 +103,7 @@ form.rweb .description {display:block; clear:both; margin:.15em 0 0 0;}
 form.rweb .form-type-item label {text-align:left;}
 form.rweb .form-type-textfield {display:inline-block; margin-right:0;}
 form.rweb .form-type-textfield label {display:inline-block;}
-form.rweb #edit-subtext label {font-weight:normal; width:100%; text-align:left;}
+form.rweb #edit-subtext label {font-weight:normal; color:darkgreen; width:100%; text-align:left;}
 
 form.rweb input {vertical-align:top;}
 form.rweb input[type="text"] {width:20em;}
@@ -125,6 +125,7 @@ form.rweb  .form-no {color:red;}
   /* form.rweb.labeled (this fails for Chrome) */
   form.labeled .form-type-textfield {display:block; margin-right:0;}
   form.labeled label, form.labeled .form-type-item label {display:inline-block; width:8em; text-align:right; margin-right:0;} /* default label width */
+
   form.labeled #edit-title,
   form.labeled input.form-submit,
   form.labeled #edit-tip label,
@@ -132,6 +133,7 @@ form.rweb  .form-no {color:red;}
 
   form.labeled .description {margin-left:9.1em;}
 
+  form.labeled #edit-subtext  {margin-top:-15px;}
   form.labeled .description {font-size:85%}
   form.labeled .labeled-block {display:inline-block;}
   form.labeled .form-textarea-wrapper {display:inline-block;}
@@ -180,9 +182,7 @@ form.rweb  .form-no {color:red;}
 /* Summary */
 #rcreditswebformsummary #edit-creditlimit .description,
 #rcreditswebformsummary #edit-rewards .description {display:inline-block; margin-left:.25em;}
-
-/* Reports */
-/* #rcreditswebformreports .form-type-item label {width:30em;} */
+#rcreditswebformsummary .form-type-radios {border-bottom:0;} /* yesno looks silly with bottom border */
 
 /* Company Info */
 #rcreditswebformcompany fieldset#edit-description-format {background-color:lightblue; max-width:45em;}
@@ -227,6 +227,41 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformexchange #edit-subtext .r-explain {text-align:left; margin-left:6.6em;}
 #rcreditswebformexchange #edit-subtext .r-amounts {text-align:right; margin-right:7em;}
 
+/* Reports */
+#rcreditswebformreports .form-item-agents,
+#rcreditswebformreports .form-item-channels {display:inline-block;}
+#rcreditswebformreports .form-item-period,
+#rcreditswebformreports .form-item-ending {display:inline-block;}
+#rcreditswebformreports .form-item-starting {margin-bottom:0;}
+#rcreditswebformreports .form-submit {margin-left:10px;}
+#rcreditswebformreports input {max-width:110px;}
+
+#rcreditswebformreports .tx-selector {width:1em;}
+/* for IE; text-align in <col> should have no effect according to CSS 2.1 */ 
+#rcreditswebformreports .tx-tid {width:5%; text-align:right;} /* 1 # */
+#rcreditswebformreports .tx-amount {width:7.5%; text-align:right;} /* 5 amount */
+#rcreditswebformreports .tx-reward {width:7.5%; text-align:right;} /* 8 rewards */
+
+#rcreditswebformreports th:first-child {text-align:right;} /* column 1 */
+/* #rcreditswebformreports th:first-child +th {text-align:right;} /* column 2 */
+/* #rcreditswebformreports th:first-child +th+th {text-align:left;} /* column 3 */
+/* #rcreditswebformreports th:first-child +th+th+th {text-align:right;} /* column 4 */
+#rcreditswebformreports th:first-child +th+th+th+th {text-align:right;} /* column 5 */
+/* #rcreditswebformreports th:first-child +th+th+th+th+th {text-align:right;} /* column 6 */
+/* #rcreditswebformreports th:first-child +th+th+th+th+th+th {text-align:right;} /* column 7 */
+#rcreditswebformreports th:first-child +th+th+th+th+th+th+th {text-align:right;} /* column 8 */
+/* #rcreditswebformreports th:first-child +th+th+th+th+th+th+th+th {text-align:right;} /* column 9 */
+
+#rcreditswebformreports td:first-child {text-align:right;} /* column 1 */
+/* #rcreditswebformreports td:first-child +td {text-align:right;} /* column 2 */
+/* #rcreditswebformreports td:first-child +td+td {text-align:left;} /* column 3 */
+/* #rcreditswebformreports td:first-child +td+td+td {text-align:right;} /* column 4 */
+#rcreditswebformreports td:first-child +td+td+td+td {text-align:right;} /* column 5 */
+/* #rcreditswebformreports td:first-child +td+td+td+td+td {text-align:right;} /* column 6 */
+/* #rcreditswebformreports td:first-child +td+td+td+td+td+td {text-align:right;} /* column 7 */
+#rcreditswebformreports td:first-child +td+td+td+td+td+td+td {text-align:right;} /* column 8 */
+/* #rcreditswebformreports td:first-child +td+td+td+td+td+td+td+td {text-align:right;} /* column 9 */
+
 /* Transactions */
 #rcreditswebformtxs .form-type-checkbox {max-width:200px;}
 #rcreditswebformtxs .form-item-agents,
@@ -248,15 +283,15 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformtxs .form-type-radio {display:block;} /* less good for browser, better for mobile
 #rcreditswebformtxs .form-type-radio label {width:12em; height:17px;} */
 
-#rcreditswebformtxs col.tx-selector {width:1em;}
+#rcreditswebformtxs .tx-selector {width:1em;}
 /* for IE; text-align in <col> should have no effect according to CSS 2.1 */ 
-#rcreditswebformtxs col.tx-tid {width:5%; text-align:right;} /* 1 # */
-#rcreditswebformtxs col.tx-date {width:7.5%; text-align:right;} /* 2 date */
-#rcreditswebformtxs col.tx-fromyou {width:9.5%; text-align:right;} /* 4 from you */
-#rcreditswebformtxs col.tx-toyou {width:9.5%; text-align:right;} /* 5 to you */
-#rcreditswebformtxs col.tx-state {width:5%; text-align:right;} /* 6 status */
-#rcreditswebformtxs col.tx-buttons {width:12%; text-align:right;} /* 7 buttons */
-#rcreditswebformtxs col.tx-reward {width:7.5%; text-align:right;} /* 9 rewards */
+#rcreditswebformtxs .tx-tid {width:5%; text-align:right;} /* 1 # */
+#rcreditswebformtxs .tx-date {width:7.5%; text-align:right;} /* 2 date */
+#rcreditswebformtxs .tx-fromyou {width:9.5%; text-align:right;} /* 4 from you */
+#rcreditswebformtxs .tx-toyou {width:9.5%; text-align:right;} /* 5 to you */
+#rcreditswebformtxs .tx-state {width:5%; text-align:right;} /* 6 status */
+#rcreditswebformtxs .tx-buttons {width:12%; text-align:right;} /* 7 buttons */
+#rcreditswebformtxs .tx-reward {width:7.5%; text-align:right;} /* 9 rewards */
 
 #rcreditswebformtxs th,
 #rcreditswebformtxs td {text-align:right;}
@@ -289,9 +324,9 @@ form.rweb  .form-no {color:red;}
 #txsum tr#txsum-dates {background:none; line-height:.9; border:0px;}
 #txsum tr#txsum-headers {font-weight:bold; background:none; border-bottom:1px solid black;}
 /*one tosign toyou fromsign fromyou rewardssign rewards balancesign balance*/
-/* #txsum col.txsum-one, #txsum col.txsum-balance {width:120px;} */
-#txsum col.txsum-tosign, #txsum col.txsum-fromsign, #txsum col.txsum-rewardssign, #txsum col.txsum-balancesign {min-width:1em;}
-#txsum col.txsum-toyou, #txsum col.txsum-fromyou, #txsum col.txsum-rewards {min-width:7em;}
+/* .txsum-one, .txsum-balance {width:120px;} */
+.txsum-tosign, .txsum-fromsign, .txsum-rewardssign, .txsum-tithesign, .txsum-balancesign {min-width:1em;}
+.txsum-toyou, .txsum-fromyou, .txsum-tithe, .txsum-rewards {min-width:7em;}
 
 /* Relation form */
 /*#rcreditswebformrelations #edit-subtext label {width:450px;}*/
@@ -302,12 +337,12 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformrelations #account-label {font-weight:bold;}
 
 /*#rcreditswebformrelations {max-width:800px;} */
-#rcreditswebformrelations col.rel-person {width:auto;}
-#rcreditswebformrelations col.rel-employer {width:15%;}
-#rcreditswebformrelations col.rel-employee {width:15.5%;}
-#rcreditswebformrelations col.rel-owner {width:13%;}
-#rcreditswebformrelations col.rel-permission {width:18%;}
-#rcreditswebformrelations col.rel-link {width:4%;}
+#rcreditswebformrelations .rel-person {width:auto;}
+#rcreditswebformrelations .rel-employer {width:15%;}
+#rcreditswebformrelations .rel-employee {width:15.5%;}
+#rcreditswebformrelations .rel-owner {width:13%;}
+#rcreditswebformrelations .rel-permission {width:18%;}
+#rcreditswebformrelations .rel-link {width:4%;}
 #rcreditswebformrelations .highlight input {background-image:url(../images/buttons/buttons-highlight.png);}
 
 /* Cell */

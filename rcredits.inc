@@ -24,9 +24,10 @@ define('R_MAX_PHOTO_WIDTH', 1024);
 define('R_FIRST_CTTY_UID', -1000001); // community uids are less than or equal to this (farther from zero)
 define('R_ASIF_BUY_MIN', 3); // minimum number of ASIF purchases before eligible to be a Partner
 define('R_ASIF_SELL_MIN', 1); // minimum number of ASIF sales before eligible to be a Partner
-define('R_STAGES', 'Member Partner Steward rTrader'); // stages in the progress to rTrader
+define('R_STAGES', t('Member Partner Steward rTrader')); // stages in the progress to rTrader
 define('R_HIDE_FIELDS', 'federal_id dob usd_acct id_proof answer'); // personal identifying information
 define('R_URL_SLASH', '%_%'); // Drupal gets confused by slashes in a url, even if urlencoded
+define('R_MAX_DAILY_EXCHANGE', 1000); // per Common Good Finance policy and to avoid formal regulation by FinCEN
 
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
@@ -95,7 +96,7 @@ define('TX_STATES', 'deleted done pending disputed denied');
 
 define('TX_DELETED', 0);
 define('TX_DONE', 1);
-define('TX_PENDING', 2); // charged, waiting for confirmation
+define('TX_PENDING', 2); // charged, waiting for confirmation (in all other states, transaction is complete)
 define('TX_DISPUTED', 3); // unilaterally charged, but disputed by the payer (the charge stands, until settled)
 define('TX_DENIED', 4); // invoice rejected by the non-originator
 
@@ -122,6 +123,7 @@ define('TX_FINE', 9);
 $GLOBALS['txTypes'] = array(
   t('signup'), t('transfer'), t('rebate'), t('bonus'), '', t('inflation'), t('grant'), t('loan'), '', t('fine'),
 );
+define('TX_DEFAULT_PERIOD', 30); // number of days to show in transaction history, by default
 
 $GLOBALS['emailSubjects'] = array(
   'new-payment' => t('rCredits PAYMENT from {otherName}'),
@@ -214,7 +216,7 @@ function otherBalance($uid) {
   $cacct = acct();
   $acct = acct($uid);
   if ($acct and $cacct->can(PERM_CHARGE) and !$acct->hasBit(BIT_SECRET_BAL)) {
-    $real = (isRTrader() and isRTrader($acct));
+    $real = (isRTrader() and isRTrader($uid));
     return be\creditInfo(compact('real', 'uid'))->fancy['balance'];
   } else return FALSE;
 }
@@ -302,12 +304,13 @@ function transactionSetup($info) {
   if (!isset($my_state)) $state = TX_DONE;
   if (!isset($my_goods)) $goods = FALSE; // set TRUE only in be\transfer()
   $created = REQUEST_TIME;
+  if (@$my_state != TX_PENDING) $completed = $created;
   $serial = NULL; // always set equal to xid of main transaction after saving
   
   list ($payer_for, $payee_for) = is_array($my_for) ? $my_for : array($my_for, $my_for);
   unset($info['for']);
 
-  return array_merge($info, compact(u\ray('state goods created serial payer_for payee_for channel')));
+  return array_merge($info, compact(u\ray('state goods created completed serial payer_for payee_for channel')));
 }
 
 /**
@@ -424,30 +427,32 @@ function tempName($info) {
 /**
  * Set a transaction field for the current user.
  * @param string $fieldName: the field to update
- * @param mixed $new_value: what to update it to
+ * @param mixed $newValue: what to update it to
  * @param int $zxid: transaction id & table
- * @param bool $all_related: set all related transactions too (default FALSE)
+ * @param bool $allRelated: set all related transactions too (default FALSE)
  * NOTE: tx data changes(date, agent, field, oldvalue) (this gives a complete history of the transaction)
  *     (prefixes added to the payer_for or payee_for fields when changing state will not be included in changes)
  */
-function setTxField($fieldName, $new_value, $zxid, $all_related = FALSE) {
+function setTxField($fieldName, $newValue, $zxid, $allRelated = FALSE) {
   $cuid = acct()->id;
-  u\EXPECT(compact(u\ray('fieldName zxid all_related')), 'name zid bool');
+  u\EXPECT(compact(u\ray('fieldName zxid allRelated')), 'name zid bool');
   
   list ($xid, $table) = azxid($zxid);
   $where = "xid=:xid and $cuid in (payer, payee)"; // "$cuid in" is a security measure
-  list ($old_value, $data) = array_values(dbLookup("$fieldName,data", $table, $where, compact(u\ray('xid'))));
+  list ($oldValue, $oldState, $data) = array_values(dbLookup("$fieldName AS f1,state,data", $table, $where, compact(u\ray('xid')))); // f1 prevent Drupal from combining state results when $fieldName is 'state'
   $data = unserialize($data);
-  $data['changes'][] = array(time(), acct()->agentId, $fieldName, $old_value);
+  $data['changes'][] = array(REQUEST_TIME, acct()->agentId, $fieldName, $oldValue);
   $data = serialize($data);
-  $sql = "UPDATE $table SET $fieldName=:new_value, data=:data WHERE $where";
-  $sql2 = "UPDATE $table SET $fieldName=:new_value WHERE serial=:xid AND type<>:TX_TRANSFER";
+  $newState = $fieldName == 'state' ? $newValue : $oldState;
+  $completion = (@$newState != TX_PENDING and !@$oldState) ? ',completed=:REQUEST_TIME' : ''; // update completion time
+  $sql = "UPDATE $table SET $fieldName=:newValue,data=:data$completion WHERE $where";
+  $sql2 = "UPDATE $table SET $fieldName=:newValue$completion WHERE serial=:xid AND type<>:TX_TRANSFER";
 //  $sql2 = str_replace(', data=:data', '', str_replace('xid=:xid', 'serial=:xid', $sql));
   
   /*** Begin DBTX ***/
   $dbtx = \db_transaction();
-  dbQ($sql, compact(u\ray('new_value data xid')));
-  if ($all_related) dbQ($sql2, compact(u\ray('new_value xid'))); // gotta do the auxiliary records separately so as not to affect their data field (separate query, to avoid "unbuffered query" error -- known Drupal bug)
+  dbQ($sql, compact(u\ray('newValue data xid')));
+  if ($allRelated) dbQ($sql2, compact(u\ray('newValue xid'))); // gotta do the auxiliary records separately so as not to affect their data field (separate query, to avoid "unbuffered query" error -- known Drupal bug)
   unset($dbtx);
   /*** End DBTX ***/
 }
@@ -515,7 +520,10 @@ function dbLookup($fieldName, $table_name, $where = '1', $subs = array()) {
   $sql = "SELECT $fieldName FROM $table_name WHERE $where";
   if (!strpos($where, ' LIMIT ')) $where .= ' LIMIT 1';
   $result = dbQ($sql, $subs);
-  return strpos($fieldName, ',') ? $result->fetchAssoc() : $result->fetchField();
+  $fieldCount = substr_count($fieldName, ',') + 1;
+  $result = $fieldCount > 1 ? $result->fetchAssoc() : $result->fetchField();
+  u\EXPECT($fieldCount == 1 or !$result or count($result) == $fieldCount); // count is off, eg, if $fieldName == 'a,a'
+  return $result;
 }
 
 /**
@@ -529,6 +537,8 @@ function qid($zid = '', $regionId = R_SERVER_ID, $min_len = 1) {
   if (!u\isZid($zid)) return FALSE;
   return $regionId . ($zid < 0 ? (':' . u\n2a(-$zid, -$min_len)) : ('.' . u\n2a($zid, -$min_len)));
 }
+
+function qid2($zid) {return substr(qid($zid, R_SERVER_ID, 3), 3);}
 
 /**
  * Return a zid and region for the qid
@@ -833,8 +843,9 @@ function userField($field, $who = '', $subs = array()) {return tableField($field
 function rebate($uid, $amount = 1) {return round($amount * userField('rebate_percent', $uid) / 100, 2);}
 function bonus($uid, $amount = 1) {return rebate($uid, 2 * $amount);}
 function txField($field, $which, $subs = array()) {return tableField($field, '{zxs}', $which, $subs);}
-function setTxState($new_value, $zserial) {setTxField('state', $new_value, $zserial, TRUE);}
-function totalDemand() {return dbLookup('SUM(demand)', 'users');}
+function setTxState($newValue, $zserial) {setTxField('state', $newValue, $zserial, TRUE);}
+function totalDemand($ctty = '') {return dbLookup('SUM(demand)', 'users', $ctty ? 'community_uid=:ctty' : '1', compact('ctty'));}
+function balance($uid = '', $real = TRUE) {return be\creditInfo(compact('uid', 'real'))->balance;}
 function serverUid($regionId = '') {return -u\a2n($regionId ?: R_SERVER_ID);}
 function emailTemplate($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}
 function emailBody($key) {return str_replace('{BODY}', emailTemplate($key), emailTemplate(R_EMAIL_FRAME));}

@@ -264,9 +264,10 @@ function UAR($quid = '', $no_abbrev = TRUE) {
  * @param string $do: 'STORE' or 'RETRIEVE'
  * @return: the actual data (if RETRIEVING) or fake data (if STORING)
  */
- function hideData($data, $do) {
-  return $data;
+function hideData($data, $do) {
+  return $do == 'STORE' ? strrev($data) : strrev($data);
   // this should actually contact Hidentity
+  // return u\httpRequest($hidentityApiUrl, $info);
 }  
 
 function acct($uid = '', $agent = '', &$error = '') {

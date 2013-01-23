@@ -66,7 +66,7 @@ function makeTransaction($info, $infoOnly = FALSE) {
   if (@$my_tx_id) $xid = u\a2n(substr($my_tx_id, 4));
   $type = isset($my_type) ? $my_type : TX_TRANSFER;
   $state = TX_DONE;
-  $created = @$my_created ? strtotime($my_created) : time();
+  $created = @$my_created ? strtotime($my_created) : REQUEST_TIME;
   
   $payer = uid($my_from);
   $payer_agent = uid(@$my_from_agent ?: ($type == TX_TRANSFER ? $my_from : r\communityUid()));

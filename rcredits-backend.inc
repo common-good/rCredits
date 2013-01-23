@@ -106,16 +106,15 @@ function backend2($args = FALSE) {
  *     real (boolean): show real transactions? (or asif)
  *   Optional arguments:
  *     include_bonuses (boolean)
- * @return array: associative list of transactions (with negative zxids, if they are not real transactions)
+ * @return the recordset (FALSE if none)
  * NOTE: Denied invoices are included only for the payee, otherwise all complete or tentative transactions
  * other than rebates and bonuses are included (even those will be included if the 'include_bonuses' option is set).
  */
 function myTransactions($args) {
-  $cuid = r\acct()->id;
-  
   if (isFrontend()) return backend(__FUNCTION__, $args);
   extract($args);
   
+  $cuid = r\acct()->id;
   $table = r\zxs($real/2);
   $omit_bonuses = @$include_bonuses ? '' : 'WHERE t.type NOT IN (:TX_REBATE, :TX_BONUS)';
   
@@ -131,17 +130,9 @@ function myTransactions($args) {
     ORDER BY t.xid DESC
 EOF;
 
-  $result = r\dbQ($sql, compact(u\ray('starting ending')))->fetchAllAssoc('xid', \PDO::FETCH_ASSOC);
+  return r\dbQ($sql, compact(u\ray('starting ending'))); // ->fetchAllAssoc('xid', \PDO::FETCH_ASSOC);
 
-  if (!$real) foreach ($result as $xid => $one) { // negate the keys for asif transactions
-    $zxid = -$xid;
-    $one['zxid'] = $zxid;
-    $result[$zxid] = $one;
-    unset($result[$xid]);
-  }
 //  return array_flip(array_map(function($one) {return -$one;}, array_flip($result))); // negate the keys
-
-  return $result;
 }
 
 /**
@@ -273,7 +264,7 @@ function reverse($zxid, $amount, $acct, $data, $old_goods, $old_tid, $toMe) {
     u\EXPECT($new_zxid * $zxid > 0, 'reverse: wrong reality');
     $otherTid = zxid2tid($new_zxid, $acct->id);
     $old_data['undone'] = TRUE;
-    $old_data['changes'][] = array(time(), r\acct()->agentId, 'undo', $new_zxid);
+    $old_data['changes'][] = array(REQUEST_TIME, r\acct()->agentId, 'undo', $new_zxid);
     $old_data = serialize($old_data);
     $my_note = "(reversed by #$new_tid) ";
     $other_note = str_replace($new_tid, $otherTid, $my_note);
@@ -318,7 +309,7 @@ function get($currency, &$amount, $confirmed) {
       if (!$confirmed) return array('confirm get r', compact(u\ray('request success')), TRUE);
       //DWOLLA: transfer fraction R_GETR_ADVANCE of $amount from user's Dwolla account to community's Dwolla account
     }
-    $time = time();
+    $time = REQUEST_TIME;
     \drupal_write_record('r_demand', compact(u\ray('time amount who is_real'))); // track history of demands
     return array('your demand', compact(u\ray('request success')), FALSE);
   }
@@ -328,6 +319,7 @@ function get($currency, &$amount, $confirmed) {
   if ($amount > $info_cashable) return array("can't cash incentives", $info_fancy, FALSE);
 //  if (r\userField('bank_account_status') != R_BANK_VERIFIED) return array('bank unverified', array(), FALSE);
   if (!r\isRTrader()) return array('get usd inactive', $info_fancy, FALSE);
+  if ($amount > R_MAX_DAILY_EXCHANGE) return array('max daily usd', array(), FALSE);
   
   //DWOLLA: transfer $amount from community's Dwolla account to the user's Dwolla account
   $type = TX_TRANSFER;
@@ -514,7 +506,7 @@ function txPerson($id, $region) {return r\isForeign($region) ? array($region, $i
  * Record a transfer to or from the community.
  * @param int $uid: uid of the account to credit or debit
  * @param int $type: what type of transfer (defaults to signup)
- * @param int $amount: how much to transfer
+ * @param int $amount: how much to transfer (standardized default for signup)
  * @param bool $confirmed: actually do it? (otherwise just see if it can be done)
  * @param bool $real: real rCredits? otherwise asif (default to real if funding an rTrader, otherwise asif)
  * @return int: the incentive amount (FALSE if the current account does not have permission to do this)
@@ -526,8 +518,9 @@ function fund($uid, $type = TX_SIGNUP, $amount = R_STARTING_BALANCE, $confirmed 
   $payee_agent = $payee = $uid;
   $cacct = r\acct(); // null, if just registering
   $ctty = r\userField('community_uid', $payee);
+  if (!isset($real)) $real = r\isRTrader($payee);
   if ($real and $type > TX_AUTOMATIC and !$cacct->can(PERM_MANAGING_CTTY)) return FALSE; // real incentives given only automatically or by community agent
-  if (!$confirmed) return TRUE;
+  if (!$confirmed) return $amount;
   
   $payer = $ctty;
   $payer_agent = @$cacct->id < 0 ? $cacct->agentId : $ctty;
@@ -660,7 +653,7 @@ EOF;
  *  asof: last date to include (defaults to '', meaning unrestricted)
  *
  * @return
- *   standard object of credit account information (see $result_keys, below)
+ *   standard object of credit account information (see $resultKeys, below)
  *   with corresponding number-formatted information in ->fancy
  *   including the overall demand for rCredits
  */
@@ -677,31 +670,33 @@ function creditInfo($args = array()) {
   $state = @$my_state ?: ':TX_DONE,:TX_DISPUTED';
   $real = isset($my_real) ? $my_real : r\isRTrader($uid);
   $asof = @$my_asof ?: '';
-// (this doesn't belong here)  $quid = r\quid($cuid, $cuid);
-  
-  $result_keys = 'grossIn grossOut grossInProper balance available unavailable rewards cashable totalDemand minBalance quid';
+  $dateField = 'GREATEST(t.created,IF(ISNULL(t.completed), 0, t.completed))';
+  $monthStart = u\monthDay1();
   $minBalance = r\userField('min_balance', $uid);
 
   $sql = <<<EOF
     SELECT 
     SUM(IF(t.payer=:uid, t.amount, 0)) AS grossOut, 
     SUM(IF(t.payee=:uid, t.amount, 0)) AS grossIn,
-    SUM(IF(t.type=:TX_TRANSFER, 0, t.amount)) AS rewards
+    SUM(IF(t.type=:TX_TRANSFER, 0, t.amount)) AS rewards,
+    SUM(IF(t.type IN(:TX_REBATE,:TX_BONUS) AND $dateField>=$monthStart, t.amount, 0)) AS committed
     FROM {zxs} t
     WHERE (t.payer=:uid OR t.payee=:uid) AND t.state IN($state)
 EOF;
-  if ($asof) $sql .= " AND t.created<=:asof";
+  if ($asof) $sql .= " AND $dateField<=:asof";
 
   extract(r\dbQ($sql, compact(u\ray('uid asof real')))->fetchAssoc());
   $grossInProper = $grossIn - $rewards;
-  $balance = $grossIn - $grossOut;
+  $committed = round($committed * r\acct($uid)->tithe / 100, 2);
+  $balance = $grossIn - $grossOut - $committed;
   $unavailable = 0; // for now
   $available = ($balance - $minBalance) - $unavailable;
   $cashable = $balance - $rewards;
   $totalDemand = r\totalDemand();
-  $result = compact(u\ray($result_keys));
+  $resultKeys = 'grossIn grossOut grossInProper committed balance available unavailable rewards cashable totalDemand minBalance';
+  $result = compact(u\ray($resultKeys));
   $fancy = array();
-  foreach ($result as $key => $value) $fancy[$key] = is_numeric($value ?: 0) ? u\formatAmount($value) : $value;
+  foreach ($result as $key => $value) $fancy[$key] = u\formatAmount(@$value + 0);
   if ($totalDemand >= 1000000) $fancy['totalDemand'] = '$' . number_format(($totalDemand - 9999) / 1000000, 2) . ' million';
   $result['fancy'] = $fancy;
   return (object) $result;

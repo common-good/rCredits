@@ -191,7 +191,7 @@ function handy_links() {
     'rcredits/util/clear_sessions|Clear Sessions|',
     
     'devel/settings|Helper functions, pages, and blocks to assist Drupal developers. The devel blocks can be managed via the block administration page.|Devel settings',
-    'devel/cache/clear?destination=node|Clear the CSS cache and all database cache tables which store page, node, theme and variable caches.|Empty cache',
+    'devel/cache/clear?destination=handy|Clear the CSS cache and all database cache tables which store page, node, theme and variable caches.|Empty cache',
     'devel/entity/info|View entity information across the whole site.|Entity info',
     'devel/php|Execute some PHP code|Execute PHP Code',
     'devel/field/info|View fields information across the whole site.|Field info',
@@ -199,12 +199,12 @@ function handy_links() {
     'devel/elements|View the active form/render elements for this site.|Hook_elements()',
     'devel/menu/item?path=node|Details about a given menu item.|Menu item',
     'devel/phpinfo|View your server&#039;s PHP configuration|PHPinfo()',
-    'devel/menu/reset?destination=node|Rebuild menu based on hook_menu() and revert any custom changes. All menu items return to their default settings.|Rebuild menus',
-    'devel/reinstall?destination=node|Run hook_uninstall() and then hook_install() for a given module.|Reinstall modules',
+    'devel/menu/reset?destination=handy|Rebuild menu based on hook_menu() and revert any custom changes. All menu items return to their default settings.|Rebuild menus',
+    'devel/reinstall?destination=handy|Run hook_uninstall() and then hook_install() for a given module.|Reinstall modules',
 //    'devel/run-cron|Run cron|Run cron',
     'devel/session|List the contents of SESSION.|Session viewer',
     'devel/theme/registry|View a list of available theme functions across the whole site.|Theme registry',
-    'devel/variable?destination=node|Edit and delete site variables.|Variable editor',
+    'devel/variable?destination=handy|Edit and delete site variables.|Variable editor',
   );
 
   $result = array();
@@ -247,7 +247,6 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
       $help_link = item(t('<a><div></div>Help with this page</a>')) + $extras; // add a help link at top of page
       $form = array_slice($form, 0, $i+1) + compact('help_link') + array_slice($form, $i+1);
       js('inc/misc.js', 'file', 'footer');
-//      debug($form);
     }
 
     $form2 = $form; $rent = render($form2);
@@ -353,19 +352,20 @@ function close_form() {
  * @param int $cuid: the current account (globals and session variables are inappropriate here)
  * @todo: ditch this altogether or make it efficient with separate rCredits backend (put it in the api)
  *    maybe even use .htaccess to redirect the autocomplete URL to the backend? privacy is not crucial here
- * @todo: fix Drupal bug which gets Ajax error on any input that matches (.*)/?.([^\.]|\..)
+ * @patched: Drupal bug which gets Ajax error on any input that matches (.*)/?.([^\.]|\..)
  */
 function auto($role = '', $cuid = 0, $string = '') {
 //  return drupal_json_output(array('zot' => "role=$role cuid=$cuid string=$string"));
   if (!$string) return;
   $string0 = $string;
-  $string = '%' . u\shortName($string, '%') . '%';
+  $string = '%' . u\shortName($string, '%') . '%'; // this also prevents malicious database injection
 //  $string = str_replace(' ', '%', \db_like(" $string "));
-  $params = 'string';
+  if (!is_numeric($cuid)) return;
   
   if (u\abbreviates('paye', $role)) {
     $other = $role == 'payer' ? 'payee' : 'payer';
-/*     AND (t.$role IS NULL OR t.$role=:cuid) ORDER BY t.created DESC, u.full_name
+/*  attempt to show recently used members first (add cuid to dbQ query subs)
+   AND (t.$role IS NULL OR t.$role=:cuid) ORDER BY t.created DESC, u.full_name
     $selection = <<<EOF
       u.uid, u.full_name AS display, u.mail AS email 
       FROM users u LEFT JOIN {zxs} t ON t.$other=u.uid 
@@ -377,7 +377,6 @@ function auto($role = '', $cuid = 0, $string = '') {
       u.uid, u.full_name AS display, u.mail AS email 
       FROM users u WHERE (u.uid>1 AND (u.name LIKE :string OR u.mail LIKE :string))
 EOF;
-    $params .= ' cuid';
   } elseif ($role == 'industry') { // the one place we don't need to include the qid (for definiteness)
     if (strlen($string) > 6) {
       $soundex = soundex($string0) . '%';
@@ -390,11 +389,13 @@ EOF;
 EOF;
   } elseif ($role == 'company') {
     $selection = 'uid, full_name AS display FROM users WHERE (uid>1 AND account_type!=:R_PERSONAL AND name LIKE :string)';
+  } elseif ($role == 'ctty') {
+    $selection = 'uid, full_name AS display FROM users WHERE (uid>1 AND name LIKE :string AND community_uid=:cuid)';
   } else $selection = 'uid, full_name AS display FROM users WHERE (uid>1 AND name LIKE :string)';
   $sql = "SELECT DISTINCT HIGH_PRIORITY $selection AND uid>1 ORDER BY display LIMIT 10"; // omit communities and regions
-//return drupal_json_output(array('zot' => $sql));
+//return drupal_json_output(array('zot' => "role=$role cuid=$cuid string=$string sql=$selection"));
 
-  $result = r\dbQ($sql, compact(u\ray($params)));
+  $result = r\dbQ($sql, compact(u\ray('string cuid')));
   $matches = array();
   while ($row = $result->fetchAssoc()) {
     extract($row); // ($uid), $display
@@ -447,7 +448,6 @@ function formMembership($form, &$sta) {
     $sells = $where . ' AND (taking AND payee=:id)';
     $buyCount = r\txField('COUNT(DISTINCT payee)', $buys, compact('id')); // (presumably selected from asif table)
     $sellCount = r\txField('COUNT(DISTINCT payer)', $sells, compact('id'));
-//    debug(compact('buyCount','sellCount','buys','sells'));
     $asifed = ($buyCount >= R_ASIF_BUY_MIN and $sellCount >= R_ASIF_SELL_MIN);
     $usedId = $acct->hasBit(BIT_USED_ID);
     $sawVid1 = $acct->hasBit(BIT_SAW_VID1);
@@ -675,7 +675,7 @@ function formAgreement_validate($form, &$sta) {
 }
 
 function formAgreement_submit($form, &$sta) {
-  $signed_agreement = time();
+  $signed_agreement = REQUEST_TIME;
   r\agent()->update(compact('signed_agreement'));
 }
 
@@ -696,7 +696,7 @@ function formSummary($form, &$sta) {
   global $base_url;
   
   $cacct = r\acct();
-//  debug($cacct->can(-1));
+//  debug($cacct->can(-1)); // keep
   if (!$cacct) r\go('user');
   
   extract(be\creditInfo()->fancy, EXTR_PREFIX_ALL, 'my');
@@ -723,6 +723,7 @@ if ($cacct->agentId == 1) $card .= ' [<a href="http://localhost/devcore/rcredits
   }
   if (r\agent()->can(PERM_CTTY_ADMIN) and !$cacct->proSe() and $cacct->id > 0) { // ctty admin not for self or community
     $account_type = formField('select', t('Account type:'), '', $cacct->account_type+0, $GLOBALS['account types']); // +0 for admin
+    $canCharge = boolField(t('Can charge'), t('This account can charge others unilaterally (in person)'), $cacct->hasBit(BIT_CHARGE) + 0);
     $min_balance = textField(t('Credit limit:'), '(You can go this far in debt for up to 30 days)', dft(u\formatAmount(-$cacct->min_balance)));
 
     $stageChoices = u\ray(R_STAGES);
@@ -733,23 +734,42 @@ if ($cacct->agentId == 1) $card .= ' [<a href="http://localhost/devcore/rcredits
     $submit = submit();
   }
 
-  $form = compact(u\ray('title accountId accountName account_type balance min_balance rewards stage idApproved met submit'));
+  $form = compact(u\ray('title accountId accountName account_type canCharge balance min_balance rewards stage idApproved met submit'));
   return labeled($form);
 }
 
 function formSummary_validate($form, &$sta) {
   extract(u\just('min_balance', $sta['values']));
-  if (u\badAmount($min_balance)) return say('bad amount', 'min_balance'); 
+  if ($error = u\badAmount($min_balance)) return say($error, 'min_balance'); 
   $sta['values']['min_balance'] = -u\cleanAmount($min_balance);
 }
 
 function formSummary_submit($form, &$sta) {
-  extract(u\just('account_type min_balance stage met idApproved', $sta['values']));
+  extract(u\just('account_type canCharge min_balance stage met idApproved', $sta['values']));
   $cacct = r\acct();
+  $cuid = $cacct->id;
   $cacct->update(compact(u\ray('account_type min_balance')));
+  $stageChoices = u\ray(R_STAGES);
+  $wasRTrader = $cacct->hasBit(BIT_RTRADER);
   for ($i = 1; $i <= BIT_RTRADER; $i++) $cacct->setBit(1 << ($i - 1), $i <= $stage);
+  $cacct->setBit(BIT_CHARGE, $canCharge);
   $cacct->setBit(BIT_PROVED, $idApproved);
   $cacct->setBit(BIT_MET, $met);
+
+  if (($stage == count($stageChoices) - 1) and !$wasRTrader) { // signup incentive if promoted to rTrader
+//REQUEST_TIME < strtotime('April 1, 2013')) { // randomize initial signup incentives somewhat
+    $amounts = u\ray(R_SIGNUP_INCENTIVES);
+    $sofar = r\dbLookup('SUM(amount)', '{zxs}', 'payee=:cuid AND type=:TX_SIGNUP', compact('cuid', 'real'));
+    $i = array_search($sofar, $amounts);
+    array_splice($amounts, 0, $i + 1); // remove what they got so far
+    $amount = $cacct->community_uid == -1000002 ? 100 : min(R_STARTING_BALANCE - $sofar, $amounts[rand(0, count($amounts) - 1)]);
+    be\fund($cacct->id, TX_SIGNUP, $amount);
+    $action = 'granted';
+    $otherName = $cacct->full_name;
+    $amount = u\formatAmount($amount);
+    say('report funding', compact(u\ray('action amount otherName')));
+  }
+
   say('account updated');
 }
 
@@ -960,7 +980,9 @@ function profile_picture($uid, $with_markup = FALSE) {
 function formSystem($form, &$sta, $args = '') {
 //  $form = u\insertBefore(compact('communities'), formCommunity(array(), &$sta, $args), 'count');
 
-/*  $rows = r\dbQ('SELECT uid, full_name FROM users WHERE uid<0 AND uid<=:R_FIRST_CTTY_UID ORDER BY full_name')->fetchAllKeyed();
+/* (This dropdown might be better here than at the top of every page)
+   (top of page dropdown would then include only the CURRENTLY selected community (and the admin))
+  $rows = r\dbQ('SELECT uid, full_name FROM users WHERE uid<0 AND uid<=:R_FIRST_CTTY_UID ORDER BY full_name')->fetchAllKeyed();
   $cttyChoices = array_merge(array('ctty-0' => 'Select a community to manage'), u\prefixKeys('ctty', $rows));
   $community = formField('select', t('Manage:'), t('Select a community to manage'), '', $cttyChoices);
 */
@@ -984,7 +1006,7 @@ function formCommunity($form, &$sta, $args = '') {
   $title = item(t('Community Overview'));
   $subtext = item($cacct->full_name);
   $count = formField('item', t('Members:'), '', dft(0));
-  $who = textField(t('Who'), t('Type a name, id, email, or phone.'), autocomplete(''));
+  $who = textField(t('Who'), t('Type a name, id, email, or phone.'), autocomplete('ctty'));
   $submit = submit();
   $form = compact(u\ray('title $subtext who submit'));
   return labeled($form);
@@ -998,7 +1020,7 @@ function formCommunity_validate($form, &$sta) {
 
 function formCommunity_submit($form, &$sta) {
   extract(u\just('who', $sta['values']));
-  if ($who and $who->community_uid == r\agent()->community_uid) svar('cuid', $who->id); // make it the new current account
+  if ($who and ($who->community_uid == r\agent()->community_uid or r\agent()->id == 1)) svar('cuid', $who->id); // make it the new current account
   r\go('');
 }
 
@@ -1562,7 +1584,6 @@ function formRelations_submit($form, &$sta) {
 
   $changes = array();
   extract(u\just('raws0 raws', $sta['original_settings']));
-//  debug(compact('raws0','raws'));
   
   // Drupal doesn't pass along our hidden inputs, so get them directly from $_POST ...
   foreach ($_POST as $key => $value) { // ... be\updateRelations will have to check permissions and data carefully
@@ -1572,7 +1593,6 @@ function formRelations_submit($form, &$sta) {
 
     $value = (int) strtr($value, array('true' => 1, 'false' => 0));
     if ($value != (int) $raws[$rawnum][$key]) { // changed?
-//      debug("key=$key reid=$reid rawnum=$rawnum value=$value orig=".$raws[$rawnum][$key]);
       $changes[$reid][$key] = $value;
       $changes[$reid]['original'] = @$raws0[$reid]; // save for update reporting and permission-checking
     }
@@ -1792,8 +1812,6 @@ function resetSubmit(&$form, &$sta) {
   svar('resetPass', $sta['values']['pass']);
 //  $uid = $sta['buid_info']['args'][0];
 //  r\acct($uid)->update(compact('pass'));
-//  debug($form);
-//  debug($sta);
 }
 
 /**
@@ -2154,12 +2172,29 @@ function formOptions_submit($form, $sta) {
   say('options saved');
 }
 
-function formReports($form, &$sta) {
+function formReports($form, &$sta, $args = '') {
+  $cacct = r\acct();
+  $ctty = r\acct($cacct->community_uid);
+  $issued = -r\balance($ctty->id);
+  $demand = r\totalDemand($ctty->id);
+  $demandPct = $issued ? (' (' . number_format(100 * $demand / $issued, 1) . '% beyond amount issued)') : '';
+   
   $title = item(t('Reports'));
-  $demand = item(t('Total Demand for rCredits:'), '', u\formatAmount(r\totalDemand()));
-  $moreLater = item('', t('After rCredits is launched, this page will also report progress statistics.'));
-  $form = compact(u\ray('title demand moreLater'));
+  $subtext = item(t('for ') . $ctty->full_name);
+  $issued = item(t('r$ issued:'), t('How many rCredits have been issued'), u\formatAmount($issued)); // ($xxx worldwide)
+  $demand = item(t('Margin:'), t('Community demand for additional rCredits'), u\formatAmount($demand) . $demandPct); // ($xxx worldwide)
+//  $moreLater = item('', t('After rCredits is launched, this page will also report progress statistics.'));
+  if (strpos($args, 'variety=') === FALSE) $args .= '&variety=report';
+  $form = compact(u\ray('title subtext issued demand')) + formTxs($form, $sta, $args);
   return labeled($form);
+}
+
+function formReports_validate($form, &$sta) {
+  formTxs_validate($form, $sta);
+}
+
+function formReports_submit($form, &$sta) {
+  formTxs_submit($form, $sta, 'reports');
 }
 
 /**
@@ -2515,6 +2550,7 @@ function blank_field($fields, $prefix = '') {
  */
 function say($index, $args = array(), $error_field = '') {
   if (!@$index) return;
+//  if (is_array($index) and !isset($index[0])) debug($index);
   if (is_array($index)) list ($index, $args, $error_field) = array($index[0], $index[1], $args); // error returned from a function
   if (!is_array($args)) list ($args, $error_field) = array($error_field, $args); // allow either order, for easy 2-param calls
   $message = tt($index, $args);
@@ -2580,7 +2616,7 @@ function getAsif($return) {
 }
 
 function webAccess($access) {
-  $access = substr($access, 1);
+  $access = substr($access, 1); // turn this from a string back into a number (work around Drupal)
   setupGlobals(); // remember who we are (the only reason for this function)
   $cacct = $cacct = r\acct();
   return ($access and $cacct) ? $cacct->can($access) : FALSE;

@@ -10,8 +10,7 @@ use rCredits\Backend as be;
 
 include_once __DIR__ . '/rcredits-install.inc'; // treat this as an extension of this file
 
-define('R_TABLES', 'r_areas,r_regions,r_nonces,r_txs,r_asif,r_relations,r_industries,r_user_industries');
-define('R_PRESERVE', 'r_asif r_txs r_relations r_smarts r_sms r_donations'); // tables whose data must be preserved when reinstalling
+define('R_TABLES', 'r_areas,r_regions,r_nonces,r_industries,r_user_industries');
 
 /**
  * Implement hook_install().
@@ -53,7 +52,7 @@ function rcredits_install() {
   $current = variable_get('mail_system', array('default-system' => 'DefaultMailSystem'));
   variable_set('mail_system', array_merge($current, array('rCredits' => 'rCreditsMailSystem')));
 
-  $tables = explode(',', R_TABLES . ',role'); // we also add records to some standard Drupal tables
+  $tables = explode(',', R_TABLES);
   foreach ($tables as $table) {
     $filename = __DIR__ . "/sql/$table";
     if ($sql = @file_get_contents("$filename-make.sql")) db_query($sql); // read in a single CREATE TABLE (if exists) query
@@ -64,224 +63,25 @@ function rcredits_install() {
   }
   db_query("DELETE from menu_links WHERE menu_name='main-menu' AND link_title='Home'"); // this is replaced by "Summary"
 // this fails  db_query("UPDATE menu_links SET hidden=1 WHERE menu_name='navigation'"); // don't want these either
-  
-  $key = \variable_get('rcredits_preserve', '');
-  foreach (u\ray(R_PRESERVE) as $table) {
-    if (r\dbLookup(1, $table)) {
-      \drupal_set_message("Table $table is already populated -- severe error in reinstallation. If you proceed, <b style='background-color:yellow; font-size:300%;'>BE CAREFUL!</b>", 'error');
-    } elseif (\db_table_exists("$table$key")) \db_query("DROP TABLE IF EXISTS $table; RENAME TABLE $table$key TO $table");
-  }
 }
 
 /**
  * Implements hook_schema().
+ * This is where tables structures get deleted (if the table exists) and rebuilt.
  */
 function rcredits_schema() {
-  require_once 'rcredits.inc'; // Drupal bug. hook_schema needs this explicit.
-  require_once 'rcredits-util.inc';
-
-  // table r_sms 
-  $fields = array(
-    'number' => r\setupField('international phone number (eg +12223334444)', 'varchar 16'),
-    'uid' => r\setupField('uid of cell phone owner (one owner per number)', 'int 11'),
-    'status' => r\setupField('phone status', 'int tiny'),
-    'todo' => r\setupField('waiting for confirmation to complete this operation', 'text medium'),
-    'nonce' => r\setupField('waiting for this nonce, for confirmation', 'varchar 10'),
-  );
-  $foreign_keys = r\foreignKey('uid');
-  $indexes = r\index('uid');
-  $schema['r_sms'] = r\setupTable('SMS cell numbers corresponding to user accounts', $fields, 'number', $foreign_keys, $indexes);
-  
-  // table r_txs (and r_asif)
-  $fields = array(
-    'xid' => r\setupField('the unique transaction ID', 'serial 11'), 
-    'serial' => r\setupField('serial number of related transactions (=xid of first transaction in the group)', 'int 11'), 
-    'type' => r\setupField('transaction type (transfer, rebate, etc.)', 'int tiny'), 
-    'taking' => r\setupField('was the transaction initiated by the payee', 'int tiny'), 
-    'goods' => r\setupField('is this transfer and exchange for real goods and services?', 'int tiny'), 
-    'state' => r\setupField('completed, pending, disputed, etc', 'int tiny'), 
-    'amount' => r\setupField('transaction amount', 'numeric 11,2'), 
-    'payer' => r\setupField('user id of the payer', 'int 11'), 
-    'payee' => r\setupField('user id of the payee', 'int 11'), 
-    'payer_agent' => r\setupField("user id of payer's agent (who approved this transaction for the payer)", 'int 11'), 
-    'payee_agent' => r\setupField("user id of payee's agent (who approved this transaction for the payee)", 'int 11'), 
-    'payer_for' => r\setupField("payer's description", 'varchar 60'), 
-    'payee_for' => r\setupField("payee's description", 'varchar 60'), 
-    'data' => r\setupField('info stored elsewhere, duplicated here for convenience (serialized array)', 'text big'), 
-    'channel' => r\setupField('through what medium was the transaction entered', 'int tiny'), 
-    'created' => r\setupField('Unixtime transaction was created', 'int 11'), 
-  );
-  $foreign_keys = r\foreignKey('payer') + r\foreignKey('payee') + r\foreignKey('payer_agent') + r\foreignKey('payee_agent');
-  $indexes = r\index('payer') + r\index('payee'); // also serial/type/taking/goods/state/payer_agent/payee_agent/channel/created?
-  $schema['r_txs'] = r\setupTable('Record of all rCredits transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
-
-  $schema['r_asif'] = r\setupTable('Record of pretend (asif) transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
-  
-  foreach (u\ray('type taking goods payer_agent payee_agent payer_for payee_for') as $one) unset($fields[$one]);
-  $foreign_keys = r\foreignKey('payer') + r\foreignKey('payee');
-  $schema['r_usd'] = r\setupTable('Record of USD (Dwolla) transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
-
-  // table r_donations
-  $fields = array(
-    'donid' => r\setupField('donation record id', 'serial 11'),
-    'created' => r\setupField('date/time of donation', 'int 11'),
-    'uid' => r\setupField('uid of account that made the donation', 'int 11'),
-    'amount' => r\setupField('amount of donation', 'numeric 11,2'),
-    'type' => r\setupField('donation type (cc, check, cash, rCredits pledge, rCredits)', 'int tiny'),
-    'how_often' => r\setupField('recurring how often (Y, Q, M, 1)', 'varchar 1'), // this is for information only
-    'check_number' => r\setupField('check number, if any', 'varchar 60'),
-    'received' => r\setupField('date actually received', 'int 11'),
-  );
-  $foreign_keys = r\foreignKey('uid');
-  $indexes = r\index('uid');
-  $schema['r_donations'] = r\setupTable('Donation details (for rCredits "Partners")', $fields, 'donid', $foreign_keys, $indexes);
-
-  // table r_log
-  $fields = array(
-    'logid' => r\setupField('log record id', 'serial 11'),
-    'time' => r\setupField('date/time logged', 'int 11'),
-    'channel' => r\setupField('logged from what interface module', 'int tiny'),
-    'type' => r\setupField('what type of log entry', 'varchar 60'),
-    'cuid' => r\setupField('current account uid', 'int 11'),
-    'agent' => r\setupField('agent account uid', 'int 11'),
-    'info' => r\setupField('arbitrary serialized data', 'text medium'),
-    'special' => r\setupField('special value if any', 'varchar 20'), // eg cell number or nonce
-  );
-  $foreign_keys = r\foreignKey('cuid') + r\foreignKey('agent');
-  $indexes = r\index('type') + r\index('channel') + r\index('cuid') + r\index('agent');  
-  $schema['r_log'] = r\setupTable('Development and error log', $fields, 'logid', $foreign_keys, $indexes);
-  
-  // table r_demand
-  $fields = array(
-    'id' => r\setupField('demand record id', 'serial 11'),
-    'time' => r\setupField('date/time requested', 'int 11'),
-    'amount' => r\setupField('request amount', 'numeric 11,2'), 
-    'who' => r\setupField('uid of the account requesting rCredits', 'int 11'),
-    'is_real' => r\setupField('was the account an rTrader at the time of the request', 'int tiny'), // "real" is a reserved word
-  );
-  $foreign_keys = r\foreignKey('who');
-  $indexes = r\index('who');
-  $schema['r_demand'] = r\setupTable('Who requested rCredits when', $fields, 'id', $foreign_keys, $indexes);
-  
-  // table r_relations
-  $fields = array(
-    'reid' => r\setupField('relationship record id', 'serial 11'),
-    'main_uid' => r\setupField('uid of the account to which others are related', 'int 11'),
-    'agent_uid' => r\setupField('uid of a user related to that account', 'int 11'),
-    'foreign_uid' => r\setupField('uid of the foreign main account or foreign agent in their own region (main_uid or agent_uid is then the region)', 'int 11'),
-    'foreign_name' => r\setupField('full name of the foreign main account or foreign agent', 'varchar 60'),
-    'permission' => r\setupField('what type of permission the agent has on the main account', 'int tiny', 0),
-    'employer_ok' => r\setupField('employer says this agent is an employee', 'int tiny', 0),
-    'employee_ok' => r\setupField('employee says this agent is an employee', 'int tiny', 0),
-    'is_owner' => r\setupField('this agent is an owner (or part owner)', 'int tiny', 0),
-  );
-  $foreign_keys = r\foreignKey('main_uid') + r\foreignKey('agent_uid') + r\foreignKey('foreign_uid');
-  $indexes = r\index('main_uid') + r\index('agent_uid');
-  $schema['r_relations'] = r\setupTable('Who can manage which accounts, and how', $fields, 'reid', $foreign_keys, $indexes);
-    
-  // table r_candidates (almost same as r_relations, but with extra fields -- used for candidates in rcredits-circles.inc)
-  $fields = array(
-    'uid' => r\setupField('candidate record id', 'serial 11'),
-    'is_company' => r\setupField('is this a company', 'int tiny', 0),
-    'ignore' => r\setupField('temporarily omit this record from consideration', 'int tiny', 0),
-    'score' => r\setupField('how good is this candidate', 'int 11', 0),
-  );
-  $foreign_keys = r\foreignKey('uid');
-  $schema['r_candidates'] = r\setupTable('Candidates to become rTraders', $fields, 'uid', $foreign_keys);
-/*
-  $fields = array(
-    'ignore' => r\setupField('temporarily omit this record from consideration', 'int tiny'),
-    'employee_isrtrader' => r\setupField('this employee is an rTrader', 'int tiny'),
-    'score' => r\setupField('how good is this candidate', 'int 11'),
-  );
-  $schema['r_candidates'] = $schema['r_relations'];
-  $schema['r_candidates']['fields'] += $fields;
-  $schema['r_candidates']['description] = 'Candidates to become rTraders';
-*/
-
-  // table r_smarts
-  $fields = array(
-    'code' => r\setupField('permanent secret identifier for the device', 'varchar 255'),
-    'owner' => r\setupField('uid of the smart device owner', 'int 11'),
-    'default_agent' => r\setupField('uid of the default user of the device', 'int 11'),
-    'device' => r\setupField('human-readable identifier for the smart device', 'varchar 60'),
-    'transient_id' => r\setupField('once-use identifier displayed on the device as a QR for the current account/agent', 'varchar 255'),
-    'accessed' => r\setupField('date/time last used', 'int 11'), // to trigger deletion after several months
-  );
-  $foreign_keys = r\foreignKey('owner') + r\foreignKey('default_agent');
-  $indexes = r\index('owner');
-  $schema['r_smarts'] = r\setupTable('Who owns what smart device', $fields, 'code', $foreign_keys, $indexes);
-/*
-  // table r_counts
-  $fields = array(
-    'type' => r\setupField('what is being counted', 'varchar 255'),
-    'channel' => r\setupField('through what channel did it happen', 'int 11'),
-    'real' => r\setupField('is it for real (or just asif)', 'int tiny'),
-    'count' => r\setupField('the count', 'int big', 0),
-  );
-  $schema['r_counts'] = r\setupTable('How many this and that overall, through the various channels', $fields, array('type', 'channel'));
-*/
-  
-  // table r_scores
-  $fields = array(
-    'company' => r\setupField('uid of company', 'int 11'),
-    'count' => r\setupField('for the rTraders that have this many places to buy with rCredits', 'int 11', 0),
-    'score' => r\setupField('this many of those rTraders would buy from this company', 'int 11'),
-  );
-  $foreign_keys = r\foreignKey('company');
-  $indexes = r\index('company');
-  $schema['r_scores'] = r\setupTable('Best companies to promote to rTrader in the current round', $fields, NULL, $foreign_keys, $indexes);
-  
-  /*  
-  r\setupField($schema, 'r_areas', 'Area Code', 'telephone area code', 'char 3'); 
-  r\setupField($schema, 'r_areas', 'Region', 'state, province, or territory', 'varchar 24'); 
-  
-  r\setupField($schema, 'r_regions', 'Region', 'state or province', 'char 2');
-  r\setupField($schema, 'r_regions', 'Credit Region', 'credit region id', 'char 2');
-  */
-  
+  $schema = array();
+  foreach (r\tableDefs() as $table => $scheme) if (!\db_table_exists($table)) $schema[$table] = $scheme;
   return $schema;
 }
 
 /**
  * Implements hook_schema_alter().
+ * This is where tables structures get changed, rather than deleted and rebuilt.
  */
 function rcredits_schema_alter(&$schema) {
-  // table user (additions)
-  $fields = array( // additional users fields
-    'account_type' => r\setupField('personal, commercial, non-profit (or government)', 'int tiny'),
-    'flags' => r\setupField('permissions and boolean state flags', 'int big', 0, '010'),
-    'community_uid' => r\setupField("uid of this account's Common Good Community", 'int 11'),
-    'federal_id' => r\setupField('social security number or employer id number, for reporting', 'varchar 9'),
-    'dob' => r\setupField('date of birth, founding, or incorporation', 'int 11'),
-    'id_proof' => r\setupField('proof of identity encryption key', 'text tiny'), // blob for binary (just 33 bytes)
-    'question' => r\setupField('security question', 'varchar 255'),
-    'answer' => r\setupField('answer to security question', 'varchar 255'),
-    'full_name' => r\setupField('full name of the individual or entity', 'varchar 60'),
-    'phone' => r\setupField('contact phone (no country code, no punctuation)', 'varchar 255'),
-    'fax' => r\setupField('fax number (no country code, no punctuation)', 'varchar 255'),
-    'address' => r\setupField('postal street address', 'varchar 60'),
-    'city' => r\setupField('municipality', 'varchar 60'),
-    'state' => r\setupField('full state/province name', 'varchar 60'), // varchar because char is deprecated
-    'postal_code' => r\setupField('contact postal code (no punctuation)', 'varchar 20'),
-    'country' => r\setupField('full country name', 'varchar 60'),
-    'website' => r\setupField('primary website', 'varchar 255'),
-    'description' => r\setupField('markup text describing the company (unused for personal accounts)', 'text medium'),
-    'notes' => r\setupField('miscellaneous notes about the user or the account', 'text medium'),
-    'signed_agreement' => r\setupField('when did this person sign the rCredits Agreement', 'int 11'),
-    'rebate_percent' => r\setupField('current rebate percentage (sales bonus is double)', 'numeric 4,3', 5),
-    'tithe' => r\setupField('fraction of rebates and bonuses to contribute back to Common Good Finance', 'numeric 6,3', 0),
-    'demand' => r\setupField('waiting to buy this much credit', 'numeric 11,2', 0),
-    'demand_date' => r\setupField('first rCredits request data', 'int 11'),
-    'counts' => r\setupField('counts of command use, etc.', 'int big', 0),
-    'min_balance' => r\setupField('minimum balance (normally zero or less)', 'numeric 9,2', R_MIN_BALANCE),
-// separate table for this? 'nym' => r\setupField('unique identifier for cryptographic signing', 'text tiny'), 
-    'usd_account' => r\setupField('official currency account number (Dwolla)', 'varchar 34'), // Dwolla acct (34 is enough for eventual IBAN)
-    'usd_auth' => r\setupField('official currency account authorization token', 'text medium'), // Dwolla code may be any len
-  );
-  $schema['users']['fields'] = (@$schema['users']['fields'] ?: array()) + $fields;
-  $schema['users']['fields']['uid'] = r\setupField('Unique user ID', 'int 11'); // not unsigned
-// kills Drupal: $schema['users']['fields']['data']['description'] = 'incidental data (a serialized array of name value pairs)';
+//  $t = r\tableDefs($schema); debug($t['users']);
+  $schema = r\tableDefs($schema);
 }
  
 /**
@@ -289,11 +89,9 @@ function rcredits_schema_alter(&$schema) {
  * Best not to use anything much here from other files.
  */
 function rcredits_uninstall() {
-  require_once 'rcredits.inc'; // Drupal bug. Uninstall needs this explicit.
-  require_once 'rcredits-util.inc';
+//  require_once 'rcredits.inc'; // Drupal bug. Uninstall needs this explicit.
+//  require_once 'rcredits-util.inc';
 
-  \variable_set('rcredits_preserve', $key = time());
-  foreach (u\ray(R_PRESERVE) as $table) if (\db_table_exists($table)) \db_query("RENAME TABLE $table TO $table$key");
 //  r\make_fields('UNMAKE', $old_fields);
 // (DON'T DELETE record!)  r\dbQ('DELETE FROM users WHERE uid=:ctty', compact('ctty' => r\communityUid()));
 

@@ -139,6 +139,8 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'cannot contact' => t('We are unable to contact @fullName by email or text message. You may want follow up directly.'),
   'no usd account' => t('To exchange rCredits for US Dollars (or vice versa), you must first connect your rCredits account to Dwolla (online).'),
   'no last customer' => t('The system does not know who your last customer was.'),
+  'max daily usd' => t('The amount of rCredits you can exchange for US Dollars in one day is limited to $@R_MAX_DAILY_EXCHANGE'),
+  'beyond today' => t('The date cannot be any later than today.'),
 );
 
   // help messages (for use with the help command)
