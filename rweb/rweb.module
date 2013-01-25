@@ -63,6 +63,11 @@ function rweb_menu() {
     'transactions' => r\Web\menu(t('Transactions'), MENU_NORMAL_ITEM, 'showForm', array('Txs', 1), PERM_READ),
     'charge' => r\Web\menu(t('Charge'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), PERM_SELL),
     'pay' => r\Web\menu(t('Pay'), MENU_NORMAL_ITEM, 'showForm', array('Tx', 1), PERM_BUY),
+
+    'grant' => r\Web\menu(t('Grant'), MENU_LOCAL_TASK, 'showForm', array('Tx'), PERM_MANAGING_CTTY),
+    'loan' => r\Web\menu(t('Loan'), MENU_LOCAL_TASK, 'showForm', array('Tx'), PERM_MANAGING_CTTY),
+    'fine' => r\Web\menu(t('Fine'), MENU_LOCAL_TASK, 'showForm', array('Tx'), PERM_MANAGING_CTTY),
+
     'exchange' => r\Web\menu(t('Get r / USD'), MENU_NORMAL_ITEM, 'showForm', array('Exchange'), PERM_MANAGE),
     'directory' => r\Web\menu(t('Find Companies'), MENU_NORMAL_ITEM, 'showForm', array('Directory'), PERM_SELL),
     'reports' => r\Web\menu(t('Reports'), MENU_NORMAL_ITEM, 'showForm', array('Reports', 1), '', $anyone),
@@ -89,12 +94,6 @@ function rweb_menu() {
     'sadmin' => r\Web\menu(t('System'), MENU_NORMAL_ITEM, 'showForm', array('System'), PERM_ADMIN),
     'handy' => r\Web\menu('Handy', MENU_NORMAL_ITEM, 'handy_links', array(), PERM_ADMIN),
     
-    'radmin' => r\Web\menu(t('Community'), MENU_NORMAL_ITEM, 'showForm', array('Community'), PERM_CTTY_ADMIN),
-    'radmin/overview' => r\Web\menu('Community', MENU_DEFAULT_LOCAL_TASK, 'showForm', array('Community'), PERM_CTTY_ADMIN),
-    'radmin/grant' => r\Web\menu(t('Grant'), MENU_LOCAL_TASK, 'showForm', array('Tx'), PERM_MANAGING_CTTY),
-    'radmin/loan' => r\Web\menu(t('Loan'), MENU_LOCAL_TASK, 'showForm', array('Tx'), PERM_MANAGING_CTTY),
-    'radmin/fine' => r\Web\menu(t('Fine'), MENU_LOCAL_TASK, 'showForm', array('Tx'), PERM_MANAGING_CTTY),
-
     'membership' => r\Web\menu(t('Membership Status'), MENU_CALLBACK, 'showForm', array('Membership'), PERM_MEMBER),
     'membership/status' => r\Web\menu('Membership Status', MENU_DEFAULT_LOCAL_TASK, 'showForm', array('Membership'), PERM_MANAGE),
     'membership/agreement' => r\Web\menu(t('rCredits Agreement'), MENU_LOCAL_TASK, 'showForm', array('Agreement'), PERM_MANAGE),

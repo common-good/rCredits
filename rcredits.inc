@@ -44,9 +44,8 @@ define('PERM_RELATED', 0); // has a relationship record
 define('PERM_READ', 1);
 define('PERM_SELL', 2);
 define('PERM_BUY', 3);
-define('PERM_RESERVED4', 4);
-define('PERM_MANAGE', 5);
-$GLOBALS['share permissions'] = array('no access', 'read transactions', 'sell', 'buy and sell', 'other', 'manage account');
+define('PERM_MANAGE', 4);
+$GLOBALS['share permissions'] = array('no access', 'read transactions', 'sell', 'buy and sell', 'manage account');
 
 define('PERM_RESERVED6', 6);
 define('PERM_COMPANY', 7); // is a company (not a personal account)
@@ -55,7 +54,7 @@ define('PERM_MEMBER', 10); // signed up for rCredits
 define('PERM_PARTNER', 11); // signed the membership agreement and donated
 define('PERM_STEWARD', 12); // is allowed to vote and is responsible for stewarding the Common Good Community
 define('PERM_RTRADER', 14); // is allowed to use rCredits for real
-$GLOBALS['permissions'] = 'related read sell buy - manage - company charge - member partner steward - rtrader - - managing_ctty ctty_admin - admin';
+$GLOBALS['permissions'] = 'related read sell buy manage - company charge - member partner steward - rtrader - - managing_ctty ctty_admin - admin';
 
 define('PERM_MANAGING_CTTY', 17); // ctty_admin is actually managing a qualified account
 define('PERM_CTTY_ADMIN', 18); // is authorized to manage own community
@@ -538,7 +537,10 @@ function qid($zid = '', $regionId = R_SERVER_ID, $min_len = 1) {
   return $regionId . ($zid < 0 ? (':' . u\n2a(-$zid, -$min_len)) : ('.' . u\n2a($zid, -$min_len)));
 }
 
-function qid2($zid) {return substr(qid($zid, R_SERVER_ID, 3), 3);}
+/**
+ * Return a qid without the 3-char header
+ */
+function qid2($zid, $regionId = R_SERVER_ID) {return substr(qid($zid, $regionId, 3), 3);}
 
 /**
  * Return a zid and region for the qid
@@ -549,7 +551,7 @@ function unQid($qid) {
   list ($regionId, $type, $iid) = preg_split('/(\.+|=|:)/', $qid, 0, PREG_SPLIT_DELIM_CAPTURE); // allow a horizontal colon
   
   $id = u\a2n($iid);
-  return array($type == '.' ? $id : -$id, serverUid($regionId ?: R_SERVER_ID));
+  return array($type == '.' ? $id : -$id, serverUid($regionId));
 }
   
 /**
@@ -846,7 +848,7 @@ function txField($field, $which, $subs = array()) {return tableField($field, '{z
 function setTxState($newValue, $zserial) {setTxField('state', $newValue, $zserial, TRUE);}
 function totalDemand($ctty = '') {return dbLookup('SUM(demand)', 'users', $ctty ? 'community_uid=:ctty' : '1', compact('ctty'));}
 function balance($uid = '', $real = TRUE) {return be\creditInfo(compact('uid', 'real'))->balance;}
-function serverUid($regionId = '') {return -u\a2n($regionId ?: R_SERVER_ID);}
+function serverUid($regionId = '') {return -u\a2n(u\neq($regionId, CT_SERVER_ID) ?: R_SERVER_ID);}
 function emailTemplate($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}
 function emailBody($key) {return str_replace('{BODY}', emailTemplate($key), emailTemplate(R_EMAIL_FRAME));}
 function isRTrader($uid = '') {return ($acct = acct($uid)) ? $acct->hasBit(BIT_RTRADER) : FALSE;}

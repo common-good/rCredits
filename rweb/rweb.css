@@ -462,7 +462,7 @@ and (max-device-width : 480px) { */
   #logo {padding:.8em 0 .5em .4em;}
   #name-and-slogan {font-size:.8em; padding-left:.1em; margin-top:4.5em;}
   #site-slogan {width:14em; font-size:1em;}
-/*  #secondary-menu, /* upper right corner menu */
+  #secondary-menu, /* upper right corner menu */
   #main-menu {display:none;}
   body.logged-in .tabs {display:none;}
   body.not-logged-in .tabs ul {margin-left:0;}
@@ -475,7 +475,7 @@ and (max-device-width : 480px) { */
   #edit-account-showmenu input,
   #edit-account-showhelp input {width:3.5em;}
 
-  #menu {width:100%; margin:0; padding-top:0; border:0;} /* don't show unless button pressed */
+  #menu {position:absolute; left:0; top:125px; width:100%; margin:0; background-color:white; padding-top:0; border:0;} /* don't show unless button pressed (dunno why this has to be absolute, but top-margin otherwise fails) */
   #menu .fieldset-wrapper {padding:0 0 0 .2em;}
   #menu .form-item {width:48%; display:inline-block;}
   #menu input  {width:90%; font-size:1.2em; padding-top:.4em; padding-bottom:.4em;}
@@ -483,7 +483,7 @@ and (max-device-width : 480px) { */
   #user-login input#edit-name,
   #user-login input#edit-pass {width:17em;}
 
-  #help {top:8.3em; width:100%;}
+  #help {top:125px; width:100%;}
   #help-close {display:none;}
 
   #edit-title, form.labeled #edit-title {display:block; margin:-10px -10px 10px -10px; padding:2px 0 2px 15px; background:silver;}

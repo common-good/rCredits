@@ -81,8 +81,7 @@ function splice(&$input, $key, $len = 0, $replacement = NULL) {
 function cleanAmount($amount) {
   $amount = trim($amount);
   if (substr($amount, 0, 1) == '$') $amount = substr($amount, 1);
-  $amount = preg_replace('/[ \,]/', '', $amount); // ignore spaces and commas
-  return is_numeric($amount) ? $amount + 0 : $amount;
+  return preg_replace('/[ \,]/', '', $amount); // ignore spaces and commas
 }
 
 /**
@@ -111,7 +110,7 @@ function badAmount(&$amount, $restriction = '') {
  *   the formatted amount
  */
 function formatAmount($amount, $simplify = TRUE) {
-  $amount = cleanAmount($amount);
+  $amount = cleanAmount(nn($amount, 0));
 //  if (!is_numeric($amount)) $amount = -999999;
   $amount = '$' . number_format($amount, 2);
   return $simplify ? str_replace('.00', '', $amount) : $amount;
@@ -677,21 +676,36 @@ function formatNum($num, $format) {
   for ($i = 2; $i <= substr_count($format, '-') + 1; $i++) $newFormat .= '-$' . $i;
   return preg_replace("|\\b$oldFormat\\b|", $newFormat, $num);
 }  
- 
-/**
- * ret<X>
- * A collection of functions to return the argument when it passes a certain test.
- * Espectially for use with PHP's ?: structure, like this:
- *   return retNum($input) ?: 'not a number';
- * @return the argument if it passes the test, otherwise FALSE
- */
- 
-function retNum($s) {return is_numeric($s) ? $s : FALSE;}
-function retEqual($s, $value) {return $s == $value ? $s : FALSE;}
-function retNotEqual($s, $value) {return $s != $value ? $s : FALSE;}
-function retSet($s) {return isset($s) ? $s : FALSE;} // this is needed when $s might be set but FALSE, '', or 0
+
+function switchOnNEW() {
+/*
+SELECT DISTINCT
+  c.id, c.display_name AS full_name, c.contact_type AS account_type,
+  e.email,
+  w.url AS website,
+  p.phone,
+  a.street_address AS address, a.city, CONCAT('"',a.postal_code,'"') AS zip, IF(a.country_id=1228 OR a.country_id IS NULL, 'US', a.country_id) AS country, a.state_province_id AS state,
+  x.company_43 AS company, x.types_42 AS types, x.created_37 AS created
+  FROM ((((((`civicrm_contact` c INNER JOIN `civicrm_entity_tag` t ON t.entity_id=c.id)
+  LEFT JOIN civicrm_email e ON e.contact_id=c.id)
+  LEFT JOIN civicrm_website w ON w.contact_id=c.id)
+  LEFT JOIN civicrm_phone p ON p.contact_id=c.id)
+  LEFT JOIN civicrm_address a ON a.contact_id=c.id)
+  LEFT JOIN civicrm_value_extra_contact_fields_6 x ON x.entity_id=c.id)
+  WHERE t.tag_id=54
+  AND NOT c.is_deleted
+  AND (e.contact_id IS NULL OR e.is_primary=1)
+  AND (p.contact_id IS NULL OR p.is_primary=1)
+  ORDER BY display_name
+EOF;
+*/
+}
 
 // Single line functions that need no explanation
+function nn($a, $else = '') {return is_null($a) ? $else : $a;}
+function num($a, $else = 0) {return is_numeric($a) ? $a : $else;}
+function eq($a, $b, $else = FALSE) {return $a == $b ? $a : $else;}
+function neq($a, $b, $else = FALSE) {return $a != $b ? $a : $else;}
 function valid_url($url) {return (\valid_url($url) and preg_match('/^[A-Z0-9\-_]+\.[A-Z0-9\-_]+/i', $url) and strpos($url, '@') === FALSE);}
 function abbreviates($s, $string) {return (substr($string, 0, strlen($s)) == $s);}
 function prlog($log = 'rCredits') {print_r(log($log));} // keep this

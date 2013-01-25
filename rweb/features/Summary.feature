@@ -44,11 +44,11 @@ Variants: with/without an agent
 Scenario: A member clicks on the summary tab
   When member "NEW.ZZA" visits page "summary" with options ""
   Then we show page "summary" with:
-  | Account ID               | Name             | Address                | Type     | Balance        | Credit | Rewards |
-  | NEW.ZZA (%R_REGION_NAME) | Abe One (abeone) | POB 1, Atown, AK 01000 | personal |$166 ''AS-IF'' | $100   | $256    |
+  | Name             | Address                | Account ID               | Type     | Balance        | Credit | Rewards |
+  | Abe One (abeone) | POB 1, Atown, AK 01000 | NEW.ZZA (%R_REGION_NAME) | personal |$166 ''AS-IF'' | $100   | $256    |
 
 Scenario: A foreign rTrader clicks on the summary tab
   When member "NEW.ZZC" visits page "summary" with options ""
   Then we show page "summary" with:
-  | Account ID               | Name                   | Address                     | Type       | Balance | Credit | Rewards |
-  | NEW.ZZC (%R_REGION_NAME) | Corner Pub (cornerpub) | POB 3, Ctown, Corse, FRANCE | commercial | $323    | $300   | $258    |
+  | Name                   | Address                     | Account ID               | Type       | Balance | Credit | Rewards |
+  | Corner Pub (cornerpub) | POB 3, Ctown, Corse, FRANCE | NEW.ZZC (%R_REGION_NAME) | commercial | $323    | $300   | $258    |

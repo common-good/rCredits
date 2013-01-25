@@ -38,6 +38,8 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'got asif credits' => t('You have received a "grant" of $@R_STARTING_BALANCE additional @R_ASIF_TEXT rCredits.'),
   'signed agreement' => t('You signed the rCredits Agreement on @date.'),
   'downloading' => t('Your download will begin shortly...'),
+  'changed account' => t('You are now managing the account for @newAcct. Any unsaved changes to account @oldAcct have been discarded.'),
+  'take a step' => t('You are not yet an authorized rTrader. <a href="membership">Take the next step! Click here</a> to see where you are in your membership progress and what to do next.'),
 
   // confirm
   'yes or no' =>  '@yesNo', // to replace with yesNo(url)
@@ -250,7 +252,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     }
 
     $form2 = $form; $rent = render($form2);
-    if ($function == 'Usd') $rent = str_replace('Dwolla', '<a href="http://dwolla.com" target="_blank">Dwolla</a>', $rent);
+    if ($function == 'Usd') $rent = str_replace('Dwolla', '<a href="http://refer.dwolla.com/a/clk/3KkS2w" target="_blank">Dwolla</a>', $rent);
     t\testOutput($formOutput = t\strip($rent), 'screen');
     if (strpos($rent, 'form-type-checkbox') or strpos($rent, 'form-type-radio')) js('inc/radiocheck.js', 'file', 'footer');
     
@@ -361,6 +363,7 @@ function auto($role = '', $cuid = 0, $string = '') {
   $string = '%' . u\shortName($string, '%') . '%'; // this also prevents malicious database injection
 //  $string = str_replace(' ', '%', \db_like(" $string "));
   if (!is_numeric($cuid)) return;
+  $params = 'string'; // list of substitution parameters for query (each section below can add additional params)
   
   if (u\abbreviates('paye', $role)) {
     $other = $role == 'payer' ? 'payee' : 'payer';
@@ -385,23 +388,26 @@ EOF;
     $string = u\shortName(" $string0 ", '%');
     $selection = <<<EOF
       industry AS display FROM r_industries WHERE (industry LIKE :string $soundex)
-      UNION SELECT full_name AS display FROM users WHERE (uid>1 AND account_type!=:R_PERSONAL AND name LIKE :string)
+      UNION SELECT full_name AS display FROM users WHERE (account_type!=:R_PERSONAL AND name LIKE :string)
 EOF;
   } elseif ($role == 'company') {
-    $selection = 'uid, full_name AS display FROM users WHERE (uid>1 AND account_type!=:R_PERSONAL AND name LIKE :string)';
+    $selection = 'uid, full_name AS display FROM users WHERE (account_type!=:R_PERSONAL AND name LIKE :string)';
   } elseif ($role == 'ctty') {
-    $selection = 'uid, full_name AS display FROM users WHERE (uid>1 AND name LIKE :string AND community_uid=:cuid)';
-  } else $selection = 'uid, full_name AS display FROM users WHERE (uid>1 AND name LIKE :string)';
+    $selection = 'uid, full_name AS display FROM users WHERE (name LIKE :string AND community_uid=:cuid)';
+    $params .= ' cuid';
+  } else $selection = 'uid, full_name AS display FROM users WHERE (name LIKE :string)';
   $sql = "SELECT DISTINCT HIGH_PRIORITY $selection AND uid>1 ORDER BY display LIMIT 10"; // omit communities and regions
 //return drupal_json_output(array('zot' => "role=$role cuid=$cuid string=$string sql=$selection"));
+//return drupal_json_output(array('zot' => "subs=" . print_r(compact(u\ray('string cuid')), 1)));
 
-  $result = r\dbQ($sql, compact(u\ray('string cuid')));
+  $result = r\dbQ($sql, compact(u\ray($params)));
   $matches = array();
   while ($row = $result->fetchAssoc()) {
     extract($row); // ($uid), $display
     if (@$uid) $display = substr(r\quid($uid), 3) . '   ' . $display;
 // (never show email) $display .= @$email ? " ($email)" : '';
     $matches[$display] = check_plain($display);
+//    return drupal_json_output(array('zot' => "display=$display"));
   }
   drupal_json_output($matches);
 }
@@ -540,7 +546,7 @@ EOF
     $step3 = t('<a>Upload a photo</a> of your driver\'s license, birth certificate, passport, or other official ID.');
     $step4 = t('Choose an amount of US Dollars that you would like to <a>trade for rCredits</a> (Remember that you will also get some free when you become an rTrader).');
     $message1 .= memberStep(1, $gotPhoto, $step1, 'account')
-               . memberStep(2, $gotUsdInfo, $step2, 'http://dwolla.com', TRUE)
+               . memberStep(2, $gotUsdInfo, $step2, 'hhttp://refer.dwolla.com/a/clk/3KkS2w', TRUE)
                . memberStep(3, $gotIdProof, $step3, 'account/usd')
                . memberStep(4, $demanding, $step4, 'exchange');
 
@@ -703,6 +709,7 @@ function formSummary($form, &$sta) {
 
   $name = $cacct->name;
   $address = u\location($cacct, TRUE);
+  $regionName = r\acct($cacct->community_uid)->full_name;
 
   if (!$cacct->isCompany() or !$cacct->proSe()) {
 // FAILS on mobile    $idLink = 'id="idcard"'; // use jQuery to create popup (see inc/misc.js)
@@ -716,61 +723,85 @@ if ($cacct->agentId == 1) $card .= ' [<a href="http://localhost/devcore/rcredits
   $accountName = formField('item', t('Name:'), $address, $cacct->full_name . ' ' . u\hug($name));
   $balance = formField('item', t('Balance:'), '', $my_balance . (r\isRTrader() ? '' : R_ASIF_TEXT));
   if ($cacct->id > 0) {
-    $accountId = formField('item', t('Account ID:'), $card, ($cacct->mainQid ?: 'N/A') . ' ' . u\hug(R_REGION_NAME));
+    $extra = r\agent()->can(PERM_ADMIN) ? " id#$cacct->id" : '';
+    $accountId = formField('item', t('ID:'), $card, ($cacct->mainQid ?: 'N/A') . ' (' . $regionName . ")$extra");
     $account_type = formField('item', t('Account type:'), '', $GLOBALS['account types'][$cacct->account_type+0]); // +0 for admin
     $min_balance = formField('item', t('Credit limit:'), '(You can go this far in debt for up to 30 days)', u\formatAmount(-$cacct->min_balance));
     $rewards = formField('item', t('Rewards:'), t('(to date)'), $my_rewards);
   }
-  if (r\agent()->can(PERM_CTTY_ADMIN) and !$cacct->proSe() and $cacct->id > 0) { // ctty admin not for self or community
-    $account_type = formField('select', t('Account type:'), '', $cacct->account_type+0, $GLOBALS['account types']); // +0 for admin
-    $canCharge = boolField(t('Can charge'), t('This account can charge others unilaterally (in person)'), $cacct->hasBit(BIT_CHARGE) + 0);
-    $min_balance = textField(t('Credit limit:'), '(You can go this far in debt for up to 30 days)', dft(u\formatAmount(-$cacct->min_balance)));
 
-    $stageChoices = u\ray(R_STAGES);
-    if ($cacct->account_type != R_PERSONAL) array_splice($stageChoices, 1, 2); // just Member or rTrader for companies
-    $stage = formField('select', 'Stage:', '', dft(r\stage($cacct, TRUE)), $stageChoices);
-    $idApproved = boolField(t('ID approved:'), t('Does the submitted proof of ID pass muster?'), $cacct->hasBit(BIT_PROVED) + 0);
-    $met = boolField(t('Met:'), t('Has this member attended a community meeting (online or in-person)'), $cacct->hasBit(BIT_MET) + 0);
+  if (r\agent()->can(PERM_CTTY_ADMIN and !$cacct->proSe())) { // ctty admin not managing own personal account
+    $ctty = $cacct->community_uid;
+    if ($cacct->id < 0) { // managing the community itself
+      $count = formField('item', t('Members:'), '', r\dbLookup('COUNT(*)', 'users', 'community_uid=:ctty AND uid<>:ctty', compact('ctty')));
+    } else { // managing some individual community member account
+      $account_type = formField('select', t('Account type:'), '', $cacct->account_type+0, $GLOBALS['account types']); // +0 for admin
+      if ($cacct->isCompany()) $canCharge = boolField(t('Can charge'), t('This account can charge others unilaterally (in person)'), $cacct->hasBit(BIT_CHARGE) + 0);
+      $min_balance = textField(t('Credit limit:'), '(You can go this far in debt for up to 30 days)', dft(u\formatAmount(-$cacct->min_balance)));
+
+      $stageChoices = u\ray(R_STAGES);
+      if ($cacct->account_type != R_PERSONAL) array_splice($stageChoices, 1, 2); // just Member or rTrader for companies
+      $stage = formField('select', 'Stage:', '', dft(r\stage($cacct, TRUE)), $stageChoices);
+      $idApproved = boolField(t('ID approved:'), t('Does the submitted proof of ID pass muster?'), $cacct->hasBit(BIT_PROVED) + 0);
+      $met = boolField(t('Met:'), t('Has this member attended a community meeting (online or in-person)'), $cacct->hasBit(BIT_MET) + 0);
+      $notes = formField('textarea', t('Notes'), '', dft($cacct->notes));
+    }
+    $who = textField(t('Be who:'), t('Type a name, id, email, or phone of a (different) member account to manage.'), autocomplete('ctty'));
     $submit = submit();
   }
 
-  $form = compact(u\ray('title accountId accountName account_type canCharge balance min_balance rewards stage idApproved met submit'));
+  if ($cacct->proSe() and !$cacct->isCompany() and !$cacct->can(PERM_RTRADER)) say('take a step');
+  $form = compact(u\ray('title accountName accountId account_type canCharge balance min_balance rewards stage idApproved met notes count who submit'));
   return labeled($form);
 }
 
 function formSummary_validate($form, &$sta) {
-  extract(u\just('min_balance', $sta['values']));
-  if ($error = u\badAmount($min_balance)) return say($error, 'min_balance'); 
-  $sta['values']['min_balance'] = -u\cleanAmount($min_balance);
+  extract(u\just('who min_balance', $sta['values']));
+  if (isset($min_balance)) {
+    if ($error = u\badAmount($min_balance)) return say($error, 'min_balance'); 
+    $sta['values']['min_balance'] = -u\cleanAmount($min_balance);
+  }
+  if (@$who) {
+    if (!$acct = whois($who, 'who', $sta['values'])) return FALSE;
+    $sta['values']['who'] = $acct;
+  }
 }
 
 function formSummary_submit($form, &$sta) {
-  extract(u\just('account_type canCharge min_balance stage met idApproved', $sta['values']));
+  extract(u\just('who account_type min_balance notes canCharge stage met idApproved', $sta['values']));
   $cacct = r\acct();
-  $cuid = $cacct->id;
-  $cacct->update(compact(u\ray('account_type min_balance')));
-  $stageChoices = u\ray(R_STAGES);
-  $wasRTrader = $cacct->hasBit(BIT_RTRADER);
-  for ($i = 1; $i <= BIT_RTRADER; $i++) $cacct->setBit(1 << ($i - 1), $i <= $stage);
-  $cacct->setBit(BIT_CHARGE, $canCharge);
-  $cacct->setBit(BIT_PROVED, $idApproved);
-  $cacct->setBit(BIT_MET, $met);
+  if (!$cacct->can(PERM_CTTY_ADMIN)) return; // hack attempt
 
-  if (($stage == count($stageChoices) - 1) and !$wasRTrader) { // signup incentive if promoted to rTrader
-//REQUEST_TIME < strtotime('April 1, 2013')) { // randomize initial signup incentives somewhat
-    $amounts = u\ray(R_SIGNUP_INCENTIVES);
-    $sofar = r\dbLookup('SUM(amount)', '{zxs}', 'payee=:cuid AND type=:TX_SIGNUP', compact('cuid', 'real'));
-    $i = array_search($sofar, $amounts);
-    array_splice($amounts, 0, $i + 1); // remove what they got so far
-    $amount = $cacct->community_uid == -1000002 ? 100 : min(R_STARTING_BALANCE - $sofar, $amounts[rand(0, count($amounts) - 1)]);
-    be\fund($cacct->id, TX_SIGNUP, $amount);
-    $action = 'granted';
-    $otherName = $cacct->full_name;
-    $amount = u\formatAmount($amount);
-    say('report funding', compact(u\ray('action amount otherName')));
+  if (@$who and ($who->community_uid == r\agent()->community_uid or r\agent()->id == 1)) {
+    svar('cuid', $who->id); // make it the new current account
+    list ($newAcct, $oldAcct) = array($who->full_name, $cacct->full_name);
+    return say('changed account', compact('newAcct', 'oldAcct'));
+  } 
+  
+  if (($cuid = $cacct->id) > 0) {
+    $cacct->update(compact(u\ray('account_type min_balance notes')));
+    $stageChoices = u\ray(R_STAGES);
+    $wasRTrader = $cacct->hasBit(BIT_RTRADER);
+    for ($i = 1; $i <= BIT_RTRADER; $i++) $cacct->setBit(1 << ($i - 1), $i <= $stage);
+    if (isset($canCharge)) $cacct->setBit(BIT_CHARGE, $canCharge);
+    $cacct->setBit(BIT_PROVED, $idApproved);
+    $cacct->setBit(BIT_MET, $met);
+
+    if (($stage == count($stageChoices) - 1) and !$wasRTrader) { // signup incentive if promoted to rTrader
+  //REQUEST_TIME < strtotime('April 1, 2013')) { // randomize initial signup incentives somewhat
+      $amounts = u\ray(R_SIGNUP_INCENTIVES);
+      $sofar = r\dbLookup('SUM(amount)', '{zxs}', 'payee=:cuid AND type=:TX_SIGNUP', compact('cuid', 'real'));
+      $i = array_search($sofar, $amounts);
+      array_splice($amounts, 0, $i + 1); // remove what they got so far
+      $amount = u\n2a(-$cacct->community_uid, 3) == CT_SERVER_ID ? 100 : min(R_STARTING_BALANCE - $sofar, $amounts[rand(0, count($amounts) - 1)]);
+      be\fund($cacct->id, TX_SIGNUP, $amount);
+      $action = 'granted';
+      $otherName = $cacct->full_name;
+      $amount = u\formatAmount($amount);
+      say('report funding', compact(u\ray('action amount otherName')));
+    }
+    say('account updated');
   }
-
-  say('account updated');
 }
 
 function formAccount($form, &$sta) {
@@ -827,6 +858,7 @@ function formAccount_submit($form, &$sta) {
 /**
  * Account Selector form
  * appears above the whole Members Section
+ * @todo: make help form say what it is help FOR
  */
 function formAccounts($form, &$sta) {
   if (!$cacct = r\acct()) return NULL; // no account selector before login
@@ -851,15 +883,17 @@ function formAccounts($form, &$sta) {
     : formField('select', '', '', dft($cuid) + attrib(compact('onchange')), $choices);
 //  $link = item('<a href="http://rCredits.org">Main Site</a>');
   $submit = submit(); // default submission
-  $showMenu = formField('item', '', '', button('Menu', '', $title = 'Show the menu'));
-  $showHelp = formField('item', '', '', button('Help', '', $title = 'Help for this page'));
-//  $version = item(t('v 0.1d'));
-  $form = u\prefixKeys('account_', compact(u\ray('account showMenu showHelp submit'))); // always give a dropdown
 
   $chunks = explode('/', $_SERVER['REQUEST_URI']);
   if (isDEV) array_shift($chunks); // site is in a subfolder on the dev server
   $chunkIndex = (($chunks[1] == 'account' and @$chunks[2]) or $chunks[0] == 'user') ? 2 : 1;
   $function = $chunks[$chunkIndex];
+
+  $showMenu = formField('item', '', '', button('Menu', '', 'Show the menu'));
+  $showHelp = formField('item', '', '', button('Help', '', 'Help for ' . ucwords($function)));
+//  $version = item(t('v 0.1d'));
+  $form = u\prefixKeys('account_', compact(u\ray('account showMenu showHelp submit'))); // always give a dropdown
+
   $menu = formMenu($function);
   $help = help($function);
   $form += $help + $menu;
@@ -889,7 +923,7 @@ function formMenu($page) {
         + goButtonIf(PERM_MANAGE, t('Transactions'), 'transactions', t('Show transaction history'))
         + goButtonIf(PERM_MANAGE, t('Get r/USD'), 'exchange', t('Exchange rCredits for USD or vice-versa'))
         + goButton(t('Find Companies'), 'directory', t('Find an rCredits member company'))
-        + goButton(t('Help'), "help/$page", t('Help with this page'))
+//        + goButton(t('Help'), "help/$page", t('Help with this page'))
         + goButton(t('Reports'), 'reports', t('rCredits syste-wide or community-wide activity reports'))
         + goButtonIf(PERM_MANAGE, t('Account'), 'account', t('Basic account information'))
         + goButtonIf(PERM_MANAGE, t('Mobile'), 'account/cells', t('Authorize mobile devices for this account'))
@@ -998,32 +1032,6 @@ function formSystem_submit($form, &$sta) {
 //  if ($community) svar('cuid', -$community); // make it the new current account
 }
 
-function formCommunity($form, &$sta, $args = '') {
-  $cacct = r\acct();
-  $cuid = $cacct->id;
-  $count = r\userfield('COUNT(uid)', 'community_uid=:cuid', compact('cuid'));
-
-  $title = item(t('Community Overview'));
-  $subtext = item($cacct->full_name);
-  $count = formField('item', t('Members:'), '', dft(0));
-  $who = textField(t('Who'), t('Type a name, id, email, or phone.'), autocomplete('ctty'));
-  $submit = submit();
-  $form = compact(u\ray('title $subtext who submit'));
-  return labeled($form);
-}
-
-function formCommunity_validate($form, &$sta) {
-  extract(u\just('who', $sta['values']));
-  if (!$acct = whois($who, 'who', $sta['values'])) return FALSE;
-  $sta['values']['who'] = $acct;
-}
-
-function formCommunity_submit($form, &$sta) {
-  extract(u\just('who', $sta['values']));
-  if ($who and ($who->community_uid == r\agent()->community_uid or r\agent()->id == 1)) svar('cuid', $who->id); // make it the new current account
-  r\go('');
-}
-
 /**
  * Get a transaction request (usually pay or charge) and process it
  * @param string $args: all or some parameters for the form (when called from directory or draft form)
@@ -1048,7 +1056,7 @@ function formTx($form, &$sta, $args = '') {
   $who = textField($whoLabel, t('Type a name, id, email, or phone'), dft(@$who) + autocomplete($role) + attrib(compact('onchange')));
 
   $amount = textField('Amount: $', t('Amount to ') . $type, required(@$amount));
-  $goods = $incentive ? formField('hidden', FALSE) : formField('radios', '&nbsp;', '', required(u\retSet(@$goods) ?: 1), $radios); //  + attrib(compact('onchange'))
+  $goods = $incentive ? formField('hidden', FALSE) : formField('radios', '&nbsp;', '', required(isset($goods) ? $goods : 1), $radios); //  + attrib(compact('onchange'))
   $purpose = textField('Purpose:', t('Description of goods and services or purpose'), dft(@$purpose));
   $scanned = formField('hidden', @$scanned); // scanned means user already saw a name and photo
   $$type = formField('submit', ucwords($type));
@@ -1518,7 +1526,7 @@ EOF;
   $form = array(
     'title' => item(t('Relations')),
     'subtext' => item($subtext),
-    'new_person' => textField(t('Add Someone:'), t("name, id, email, or phone"), autocomplete('')),
+    'new_person' => textField(t('Add Someone:'), t("name, id, email, or phone"), autocomplete('relation')),
     'list' => formField('item', '', '', array('markup' => $list)),
 //    'new_permission' => formField('select', '', '', dft(count($GLOBALS['share permissions']) - 1), $GLOBALS['share permissions']),
     'go' => formField('submit', t('Save Changes')),
@@ -2207,10 +2215,12 @@ function memberID($uid = '') {
   define('PHOTO_MAX', 40); // maximum height and width of photo
 
   $cacct = r\acct();
-  $acct = $uid ? r\acct($cacct->id, $uid) : $cacct;
+  $acct = $uid ? r\acct($cacct->id, $uid) 
+    : (($cacct->can(PERM_CTTY_ADMIN) and $cacct->can(PERM_MANAGE)) ? r\acct($cacct->id) : $cacct);
   if (!$acct) return 'No such account. Your hack attempt has been logged.';
   
   $full_name = $acct->full_name;
+  $regionName = r\acct($acct->community_uid)->full_name;
   if (!$acct->proSe()) {
     $agent_name = r\acct($acct->agentId)->full_name;
     $full_name = "$agent_name<br>$full_name";
@@ -2243,7 +2253,7 @@ function memberID($uid = '') {
   $pdf->write2DBarcode("HTTP://RC2.ME/I/$qid", 'QRCODE,Q', 53, 25, 25, 25, $style, 'N'); // L,M,Q,H are low-high error-correction
   $pdf->Image(__DIR__ . '/../images/rlogo150.png', 85, 25, 14.93, 20, '', '', '', true, 150, '', false, false, 0, false, false, false);
 
-  $html = strtr('<span style="font-size:22px;">Member<br><span style="font-size:38px; color:darkred;">@CODE</span><br>@REGION</span>', array('@CODE' => $qid, '@REGION' => R_REGION_NAME));
+  $html = strtr('<span style="font-size:22px;">Member<br><span style="font-size:38px; color:darkred;">@CODE</span><br>@REGION</span>', array('@CODE' => $qid, '@REGION' => $regionName));
   $pdf->writeHTMLCell(50, 15, 52, 10, $html); // w, h, x, y
   $pdf->writeHTMLCell(20, 5, 85, 47, '<div style="font-size:22px;">rCredits.org</div>');
   $pdf->writeHTMLCell(91, 20, 10, 55, "<div style=\"font-size:$nameSize; text-align:center; color:midnightblue; font-weight:bold;\">$full_name</div>");

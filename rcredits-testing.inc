@@ -105,7 +105,7 @@ function makeTransaction($info, $infoOnly = FALSE) {
 function makeRelation($info, $infoOnly = FALSE) {
   extract($info, EXTR_PREFIX_ALL, 'my');
   
-  $reid = u\retNum($my_id) ?: u\a2n(substr($my_id, -3));
+  $reid = u\num($my_id, u\a2n(substr($my_id, -3)));
   if (!$main = r\acct(fullQid($my_main))) return testOutput("main:$my_main is not an id");
   if (!$agent = r\acct(fullQid($my_agent))) return testOutput("agent:$my_agent is not an id");
   u\EXPECT(!r\isForeign($main->regionId) or !r\isForeign($agent->regionId));

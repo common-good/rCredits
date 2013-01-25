@@ -14,7 +14,6 @@ class acct {
   var $agentId; // record id (in the agent's regional server) of whoever is acting on behalf of the account
   var $agentRegion; // record id of agent's region (on this server)
   var $mainQid; // nearly alphabetic representation of id, id, and region for external queries
-  var $agentQid; // same for agent (for combined qid for main account and agent, use acct()->qid())
   private static $perms = array(); // permissions for all acct objects, indexed by id and agent
   private static $records = FALSE; // account records for all acct objects, indexed by id
   
@@ -71,8 +70,8 @@ class acct {
       self::$records[$this->id] = (object) $info;
     }
     if ($this->id > 0) { // no qids for communities and regions!
-      $this->mainQid = qid($this->id, u\n2a(-$this->regionId, 3), 3);
-      $this->agentIdQid = qid($this->agentId, u\n2a(-$this->agentIdRegion, 3), 3);
+//      $this->mainQid = qid($this->id, u\n2a(-$this->regionId, 3), 3);
+      $this->mainQid = qid($this->id, u\n2a(-u\eq($this->community_uid, -u\a2n(CT_SERVER_ID), $this->regionId), 3), 3);
     }
   }    
 

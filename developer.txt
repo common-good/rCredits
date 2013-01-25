@@ -47,9 +47,12 @@ E. Database clues
    - users (accounts)
      . Common Good Communities (CGCs) and regional servers have uid < 0.
          -1 to -17575: regional servers (the numeric version of the region's 3-letter qid, negated -- AAA is not used)
+           the software should be able to treat some servers as virtual independent servers, for example when CT started
+           using rCredits for real before they had their own server, the NEW server gave them all NEC. qids rather than NEW.
          less than -1000000: Common Good Communities (leaving room for 4-character regions)
      . Tests create users with uids starting at 17550 (ZZA, ZZB, etc.)
      . name is a lowercase, no-punctuation version of the full_name field, sometimes with a numeric suffix to disambiguate
+         exceptions: admin is admin. For regions, name is (uppercase) the 3-char start of their qids, followed by "."
      . pass and mail should be called "password" and "email" but Drupal doesn't. So it's confusing.
      . we don't currently use theme, signature, or signature format.
      . data: We use this to store non-essential information in a serialized associative array:
@@ -58,7 +61,7 @@ E. Database clues
          company, employee_ok, and is_owner: these are stored upon registration, but they should really go in the relations table and the user should be required to give a phone number for the company, if it is not in the users table yet
          new_account: qid of new account when this account is closed by moving funds elsewhere
      . description is html for the company's page (N/A for personal accounts)
-     . community_uid: the (negative) uid of the account's CGC. For anyone who is not in an established CGC, their community is the region (using the regional server's uid)
+     . community_uid: the (negative) uid of the account's CGC. For anyone who is not in an established CGC, their community is the region (using the regional server's uid). For region and community records, community_uid === uid
      . counts is not currently used
    - r_txs
      . xid: record id. Always positive in the tables, but in the code: negative zxid means use the ASIF table (r_asif) instead.
