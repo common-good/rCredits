@@ -112,7 +112,6 @@ G. Special rCredits datatypes
        All database operations with transactions are performed by dbQ() on a virtual table {txs} with key zxid.
 
 H. TODO
-@todo: BUG: profile picture is discarded on repeated Save
 @todo: add videos, like this:
   <video width="320" height="240" controls autoplay>
     <source src="movie.mp4" type="video/mp4">
@@ -120,11 +119,81 @@ H. TODO
     <source src="movie.webm" type="video/webm">
   Your browser does not support the video tag. (maybe embed a clickable vid in an iframe here?)
   </video>
-@todo: rate each account health as ratio of total demand of repeat payees to total demand of repeat payers (potential for future) OR to monthly sales (current health); also rate of change of sales volume (maximize for everyone and not negative)
+@todo: rate each account health as ratio of total demand of repeat payees (2x/2.5mos) to total demand of recent payers (2.5mos) (potential for future) OR to monthly sales (current health); also rate of change of sales volume (maximize for everyone and not negative)
+
+/**
+ * Return a number or recordset representing the health of one or more accounts.
+ * @param string $where: a uid or criteria for account selection
+ * @return: a number representing the health of the specified account OR a recordset given the health of each account
+ */
+function health($where = 'TRUE') {
+
+  if (is_numeric($where)) $where = "uid=$where";
+  
+  $payeeDemandSql = demandSql('payee', 2, 2.5, $where);
+  $payerDemandSql = demandSql('payer', 0, 3, $where);
+  $return eachAccount($queries, $ons, $where, $subs = array()) {
+
+// * @param string $measure: current, future, count, or growth
+  if ($measure == 'current' or $measure == 'growth') {
+    $lastMonthSales = r\dbQ(salesSql(1, $where));
+    $prevMonthSales = r\dbQ(salesSql(2, $where)) - $lastMonthSales;
+  }
+  if ($measure == 'growth') {
+    return u\small($prevMonthSales) ? (u\small($lastMonthSales) ? 0 : 1) : ($lastMonthSales - $prevMonthSales) / $prevMonthSales;
+  } elseif ($measure == 
+
+compact('cuid', 'months')
+
+list ($me, $months) = array('payee', '2');
+$last2MonthsSales =
+
+/**
+ * Return a query that will return payee,sales1,sales2,sales3
+ * where the salesN fields are total sales for the payee for the preceding (non-calendar) month, month before that, etc.
+ */
+function salesSql() {
+  $fields = 'payee';
+  for ($i = 0; $i <= 3; $i++) {
+    $nextMonth = @$monthi;
+    $monthi = strtotime("$i months ago", REQUEST_TIME);
+    if ($i > 0) $fields .= ",SUM(IF(completed>=$monthi AND completed<$nextMonth, amount, 0)) AS sales$i";
+  }
+  return "SELECT $fields FROM txs WHERE type=:TX_TRANSACT AND goods AND state=:TX_DONE AND completed>=$monthi AND payee=u.uid";
+}
+
+/**
+ * Return a query that will return (total) demand for an account's payers or payees in the recent past.
+ * @param string $other: payer or payee
+ * @param int $minRepeats: consider demand from members who did business with the account at least this many times
+ * @param int $months: how far back to look
+ */
+function demandSql($other, $minRepeats, $months) {
+  $earliest = strtotime("$months ago", REQUEST_TIME);
+  $me = $other == 'payer' ? 'payee' : 'payer';
+  return <<<EOF
+  SELECT SUM(demand) AS demand 
+    FROM (SELECT $other, COUNT(*) AS count FROM txs 
+    WHERE type=:TX_TRANSACT AND goods AND state=:TX_DONE AND completed>=$earliest AND $me=u.uid AND $other>0)
+    WHERE count>=$minRepeats
+EOF;
+}
+
+function eachAccount($queries, $ons, $where = 'TRUE', $subs = array()) {
+  $fields = 'u.uid';
+  $tables = 'users u';
+  foreach ($queries as $q => $query) {
+    $on = array_shift($ons);
+    $fields .= ",$q.*";
+    $tables .= ",($query) $q ON $q.$on=u.uid";
+  }
+  return r\dbQ("SELECT $fields FROM $tables WHERE $where", $subs);
+}
+
 @todo: use hidentity in r\acct (_get and update, not account()) for federal_id, dob, usd_acct, and id_proof
 @todo: move some util functions, like ray(), to rcredits-basic.inc and "USE" them everywhere without a namespace qualifier.
 @todo: on successful web request for rCredits, say you will have to Dwolla us $20, to actually be added to the waiting list.
-@todo: allow surrounding spaces on all web input, leading dollar signs in amounts. Test.
+@todo: allow surrounding spaces on all web input, leading dollar signs in amounts. Test. (mostly done)
 @todo: change zxid to a class. $tx->xid, table, real
 @todo
 - handling employees (virtual payments). This should probably be extended to suppliers too,
@@ -135,8 +204,8 @@ H. TODO
   that amount to the Community in US Dollars (using billpay or Dwolla). [need to integrate with Dwolla, otherwise done.]
 @todo: we also need some kind of confirmation on foreign transactions (from the other server)
 @todo: don't require email address for SMS signups, set name properly [NOT YET. JUST LEAVE IT.]
-@todo: store country code rather than country, and state code rather than state
-@todo: store city code (rather than city), with a code for "other" -- store other in data or r_other (same for country/state)
+@todo: store country code rather than country, and state code rather than state, using tables from civiCRM
+@todo: store city code (rather than city), with a code for "other" -- store other in data or r_other (same for country/state) MAYBE
 @todo: reporting for a community or server (a form that anyone can use)
 @todo: download transactions in standard formats
 @todo: Finish separating backend. Front end should have no registered users. This should maybe wait until after launch.

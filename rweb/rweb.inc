@@ -470,8 +470,8 @@ EOF
     $step2 = u\getConstants(t('Think about where you spend money and where you get money. Complete at least :R_ASIF_BUY_MIN :R_ASIF_TEXT (realistic) <a href="pay">purchases</a> and at least :R_ASIF_SELL_MIN :R_ASIF_TEXT <a href="charge">charge</a>.'));
     $step3 = t('Watch our <a>5-minute video</a> about how rCredits works.');
     $message1 .= memberStep(1, $usedId, $step1, 'Advance-ID-Card', TRUE)
-               . memberStep(2, $asifed, $step2, $buyCount < R_ASIF_BUY_MIN ? 'pay' : 'charge')
-               . memberStep(3, $sawVid1, $step3, 'membership/video/1');
+               . memberStep(2, $asifed, $step2, $buyCount < R_ASIF_BUY_MIN ? 'pay' : 'charge');
+//               . memberStep(3, $sawVid1, $step3, 'membership/video/1');
 
     if ($eligible) { // don't bother with all this unless eligible
       $donated = ($acct->tithe > 0 or r\tithe($acct)); // r\tithe() also updates the database
@@ -484,8 +484,8 @@ EOF
   //<p>As a Partner, you accept a joint responsibility with hundreds of other rCredits members, for the economic well being of your community. This is an 
       $step1 = t('Sign the <a>rCredits Agreement</a>.');
       $step2 = t('Make a <a>contribution</a> of <i>any size</i>, to support the rCredits system.');
-      $message2 .= memberStep(1, $signed, $step1, 'membership/agreement')
-                 . memberStep(2, $donated, $step2, 'http://rCredits.org/donate');
+      $message2 .= memberStep(1, $signed, $step1, 'membership/agreement') // ONE
+                 . memberStep(2, $donated, $step2, 'http://rCredits.org/donate'); // TWO
       if ($eligible and $signed and $donated) {
         $acct->setBit(BIT_PARTNER);
         $stage = 'Partner';
@@ -510,9 +510,10 @@ EOF
     $step1 = t('Complete your <a>contact information</a>.');
     $step2 = t('Watch our <a>5-minute video</a> about how to manage rCredits as a community.');
     $step3 = t('Take a <a>short quiz</a> about the video.');
-    $message1 .= memberStep(1, $gotContact, $step1, 'account/contact')
-               . memberStep(2, $sawVid2, $step2, 'membership/video/2')
-               . memberStep(3, $passedTest, $step3, 'membership/steward-test');
+    $step4 = t('<a>Choose two people</a> to represent your views whenever you are not there to discuss and vote directly on community funding issues.'); // These should be people you know and trust and generally agree with. (need email or phone if not yet a member, to identify them when they do sign up)
+    $message1 .= memberStep(1, $gotContact, $step1, 'account/contact'); // THREE
+//               . memberStep(2, $sawVid2, $step2, 'membership/video/2')
+//               . memberStep(3, $passedTest, $step3, 'membership/steward-test');
                
     $message2 = t(<<<EOF
 <h2>Hurray! You are Eligible to Be a Steward of rCredits!</h2>
@@ -545,10 +546,10 @@ EOF
     $step2 = t('Open a <a>Dwolla</a> account and <a href="account/usd">connect it</a> to your rCredits account. In partnership with Veridian Federal Credit Union, Dwolla connects to your US Dollar bank account, so you can easily exchange US Dollars for rCredits and vice versa.');
     $step3 = t('<a>Upload a photo</a> of your driver\'s license, birth certificate, passport, or other official ID.');
     $step4 = t('Choose an amount of US Dollars that you would like to <a>trade for rCredits</a> (Remember that you will also get some free when you become an rTrader).');
-    $message1 .= memberStep(1, $gotPhoto, $step1, 'account')
-               . memberStep(2, $gotUsdInfo, $step2, 'hhttp://refer.dwolla.com/a/clk/3KkS2w', TRUE)
-               . memberStep(3, $gotIdProof, $step3, 'account/usd')
-               . memberStep(4, $demanding, $step4, 'exchange');
+    $message1 .= memberStep(1, $gotPhoto, $step1, 'account') // FOUR
+               . memberStep(2, $gotUsdInfo, $step2, 'hhttp://refer.dwolla.com/a/clk/3KkS2w', TRUE) // FIVE
+               . memberStep(3, $gotIdProof, $step3, 'account/usd') // SIX
+               . memberStep(4, $demanding, $step4, 'exchange'); // SEVEN
 
     $message2 = u\getConstants(t(<<<EOF
 <h2>You are eligible to be an rTrader!</h2>
@@ -851,8 +852,10 @@ function formAccount_submit($form, &$sta) {
 //  $account = r\acct()->account();
 //  \user_save($account, $sta['values']);
   if (!@$sta['values']['picture']) unset($sta['values']['picture']); // don't overwrite old picture except with a new one
+  if (empty($sta['values']['pass'])) unset($sta['values']['pass']); // don't overwrite old password except with a new one
   r\acct()->update($sta['values']);
 //  r\acct()->reread();
+  say('account updated');
 }
 
 /**
@@ -1281,6 +1284,7 @@ function formContact_validate($form, &$sta) {
 function formContact_submit($form, &$sta) {
   extract(u\just('name website phone fax', $info = $sta['values']));
   $info['website'] = str_replace('http://', '', strtolower(@$website));
+  if (r\acct()->id == 1) unset($info['name']); // don't change 'admin'
   r\acct()->update($info);
   be\mergeCheck(compact(u\ray('name website phone fax'))); // check before and after
   say('info saved');
@@ -2159,7 +2163,7 @@ function formOptions($form, &$sta) {
   $explain_virtual = t('When you pay people, do you want to pay them directly in rCredits or do you want to pay them in US Dollars, then give them the automatic option to buy their share of rCredits from you with US Dollars? The second way lets you use your current payroll system without any change. You still get the 5% rebate, minus 25 cents for each payment. For example, on a $100 payment, you get a net rebate of $5.00 - 0.25 = $4.75.');
   $pay_hows = array(t('everyone directly'), t('employees virtually'), t('everyone virtually'));
   $dft = $cacct->hasBit(BIT_VIRTUAL_ALL) ? 2 : ($cacct->hasBit(BIT_VIRTUAL_EMPLOYEES) ? 1 : 0);
-  $pay_how = formField('radios', t('Pay how:'), $explain_virtual, required($dft), $pay_hows);
+  if ($cacct->can(PERM_COMPANY)) $pay_how = formField('radios', t('Pay how:'), $explain_virtual, required($dft), $pay_hows);
   $secret_bal = formField('checkbox', t('Secret Balance:'), t("Don't let qualified merchants tell me my balance, when I ask."), $cacct->hasBit(BIT_SECRET_BAL));
   // Double confirmation: by SMS, by email, either. require extra confirmation of crucial account changes
   $submit = formField('submit', t('Update options'));

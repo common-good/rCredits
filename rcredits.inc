@@ -472,8 +472,8 @@ function mergeAccounts($oldUid) {
   $update = array();
   foreach (u\ray('phone fax website address') as $one) if ($old->$one and !$new->$one) $update[$one] = $old->$one;
   acct()->update($update);
-  dbQ('DELETE FROM r_asif a LEFT JOIN r_asif b ON b.serial=a.serial WHERE b.payer=b.payee;'); // rebates and bonuses (if any)
-  dbQ('DELETE FROM r_asif WHERE payer=payee;'); // then the main transaction
+  dbQ('UPDATE r_asif a LEFT JOIN r_asif b ON b.serial=a.serial SET b.state=-1 WHERE a.payer=a.payee;'); // rebates and bonuses if any (JOINed DELETE fails here)
+  dbQ('DELETE FROM r_asif WHERE payer=payee OR state=-1;'); // then the main transaction
   newMemberId($oldUid, $newUid, TRUE);
   dbQ('DELETE FROM users WHERE uid=:oldUid', compact('oldUid')); // must be last, for referential integrity
   return 1;

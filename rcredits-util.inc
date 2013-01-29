@@ -706,6 +706,8 @@ function nn($a, $else = '') {return is_null($a) ? $else : $a;}
 function num($a, $else = 0) {return is_numeric($a) ? $a : $else;}
 function eq($a, $b, $else = FALSE) {return $a == $b ? $a : $else;}
 function neq($a, $b, $else = FALSE) {return $a != $b ? $a : $else;}
+function small($n) {return (($n < 0 ? -$n : $n) < .001);}
+function equy($a, $b) {return small($a - $b);} // sort of equal
 function valid_url($url) {return (\valid_url($url) and preg_match('/^[A-Z0-9\-_]+\.[A-Z0-9\-_]+/i', $url) and strpos($url, '@') === FALSE);}
 function abbreviates($s, $string) {return (substr($string, 0, strlen($s)) == $s);}
 function prlog($log = 'rCredits') {print_r(log($log));} // keep this
