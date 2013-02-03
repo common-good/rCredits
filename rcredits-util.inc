@@ -462,7 +462,7 @@ function expect1($arg, $value, $type, $ret) {
       foreach ($value as $key => $one) expect1("$arg key", $key, 'name', $ret);
       return;
     case 'bool': return EXPECT(is_bool($value), $msg, $ret);
-    case 'email': return EXPECT(valid_email_address($value), $msg, $ret);
+    case 'email': return EXPECT(\valid_email_address($value), $msg, $ret);
     case 'empty': return EXPECT(empty($value), $msg, $ret);
     case 'float': return EXPECT(myFloat($value), $msg, $ret); // don't use is_float()?
     case 'id': return EXPECT(isId($value), $msg, $ret);
@@ -514,26 +514,54 @@ function log($type, $info = array(), $special = '', $adhocChannel = '') {
 
 /**
  * Encrypt the given file and save in new path.
- * to decrypt:
- *   $decrypted = $cryptastic->decrypt($encrypted, $encryptionKey) or die("Failed to complete decryption");
  * @return: the encryption key (FALSE if unsuccessful)
  */
-function encryptFile($filepath, $newFilepath = '', $pass, $salt) {
-  require __DIR__ . '/cryptastic.php';
+function encryptFile($filepath, $newFilepath = '', $passSalt) {
   if ($newFilepath === '') $newFilepath = $filepath;
   $content = file_get_contents($filepath);
   $destination = dirname($newFilepath);
   if (!is_dir($destination)) mkdir($destination);
 
-  $cryptastic = new \cryptastic;
-  $encryptionKey = $cryptastic->pbkdf2($pass, $salt, 1000, 32) or die("Failed to generate secret key.");
-  $encryptedFile = $cryptastic->encrypt($content, $encryptionKey) or die("Failed to complete encryption.");
-
+  list ($encryptedFile, $encryptionKey) = encode($content, $passSalt);
   if (file_put_contents($newFilepath, $encryptedFile)) {
     return $encryptionKey;
   } else return FALSE;
 }
- 
+
+/**
+ * Encrypt the content with the password and salt.
+ * @param mixed $content: what to encrypt
+ * @param assoc $passSalt: [pass]=password, [salt]=salt
+ * @return array(encryptedContent, Key)
+ */
+function encode($content, $passSalt) {
+  require __DIR__ . '/cryptastic.php';
+  $cryptastic = new \cryptastic;
+  $encryptionKey = $cryptastic->pbkdf2($passSalt['pass'], $passSalt['salt'], 1000, 32) or die("Failed to generate secret key.");
+  $encryptedContent = $cryptastic->encrypt($content, $encryptionKey) or die("Failed to complete encryption.");
+  return array($encryptedContent, $encryptionKey);
+}
+
+function decode($crypt, $key) {
+  require __DIR__ . '/cryptastic.php';
+  $cryptastic = new \cryptastic;
+  return $cryptastic->decrypt($crypt, $key) ?: die('Failed to complete decryption');
+}
+
+/**
+ * Quicker encryption for often-used fields.
+ */
+function ezencrypt($data, $key = '', $encrypt = TRUE) {
+  $function = $encrypt ? 'mcrypt_encrypt' : 'mcrypt_decrypt';
+  $key .= "jist so's it ain't flat obvius";
+  $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_256, MCRYPT_MODE_ECB); 
+  $iv = mcrypt_create_iv($iv_size, MCRYPT_RAND); 
+  $data = $function(MCRYPT_RIJNDAEL_256, $key, $data, MCRYPT_MODE_ECB, $iv); 
+  return $encrypt ? $data : rtrim($data, "\0");
+} 
+
+function ezdecrypt($data, $key = '') {return ezencrypt($data, $key, FALSE);}
+
 /**
  * Change something to the proper case, unless it is already right.
  * @param mixed $what: a string or array of strings to fix

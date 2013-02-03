@@ -25,9 +25,12 @@ define('R_FIRST_CTTY_UID', -1000001); // community uids are less than or equal t
 define('R_ASIF_BUY_MIN', 3); // minimum number of ASIF purchases before eligible to be a Partner
 define('R_ASIF_SELL_MIN', 1); // minimum number of ASIF sales before eligible to be a Partner
 define('R_STAGES', t('Member Partner Steward rTrader')); // stages in the progress to rTrader
-define('R_HIDE_FIELDS', 'federal_id dob usd_acct id_proof answer'); // personal identifying information
+define('R_HIDE_FIELDS', 'federal_id dob id_proof answer'); // personal identifying information
+define('R_SECRET_ID_LEN', 32); // maximum length of secret data keys
+define('R_SECRET_DATA_LEN', 40); // maximum length of secret data
 define('R_URL_SLASH', '%_%'); // Drupal gets confused by slashes in a url, even if urlencoded
 define('R_MAX_DAILY_EXCHANGE', 1000); // per Common Good Finance policy and to avoid formal regulation by FinCEN
+define('R_INVITE_DAYS', 7); // number of days to accept invitation to membership
 
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
@@ -35,9 +38,10 @@ define('R_EMAIL_FRAME', 'email-frame');
 
 // Account types
 define('R_PERSONAL', 0);
-define('R_COMMERCIAL', 1);
-define('R_NONPROFIT', 2);
-$GLOBALS['account types'] = array(t('personal'), t('commercial'), t('non-profit'));
+define('R_SELF_EMPLOYED', 1);
+define('R_COMMERCIAL', 2);
+define('R_NONPROFIT', 3);
+$GLOBALS['account types'] = array(t('personal'), t('commercial'), t('personal AND commercial'), t('non-profit'));
 
 // Relationship permissions used in calls to acct::can()
 define('PERM_RELATED', 0); // has a relationship record
@@ -50,9 +54,9 @@ $GLOBALS['share permissions'] = array('no access', 'read transactions', 'sell', 
 define('PERM_RESERVED6', 6);
 define('PERM_COMPANY', 7); // is a company (not a personal account)
 define('PERM_CHARGE', 8); // can charge unilaterally
-define('PERM_MEMBER', 10); // signed up for rCredits
-define('PERM_PARTNER', 11); // signed the membership agreement and donated
-define('PERM_STEWARD', 12); // is allowed to vote and is responsible for stewarding the Common Good Community
+define('PERM_MEMBER', 10); // completed the rCredits requirements
+//define('PERM_PARTNER', 11); // signed the membership agreement and donated
+//define('PERM_STEWARD', 12); // is allowed to vote and is responsible for stewarding the Common Good Community
 define('PERM_RTRADER', 14); // is allowed to use rCredits for real
 $GLOBALS['permissions'] = 'related read sell buy manage - company charge - member partner steward - rtrader - - managing_ctty ctty_admin - admin';
 
@@ -63,9 +67,9 @@ define('PERM_ADMIN', 20); // can manage server, including assigning ctty admins,
 define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities can manage themselves
 
 // Permissions, options, and flags (flags field in account record) - max 2,147,483,647 = 2^31 - 1
-define('BIT_PARTNER', 0x1); // signed the membership agreement and donated
-define('BIT_STEWARD', 0x2); // is allowed to vote and is responsible for stewarding the Common Good Community
-define('BIT_RTRADER', 0x4); // is allowed to use rCredits for real
+define('BIT_MEMBER', 0x1); // signed the membership agreement, etc.
+//define('BIT_STEWARD', 0x2); // is allowed to vote and is responsible for stewarding the Common Good Community
+define('BIT_RTRADER', 0x2); // is allowed to use rCredits for real
 define('BIT_CHARGE', 0x8); // can charge customers without confirmation (treat this like a permission)
 
 define('BIT_VIRTUAL_EMPLOYEES', 0x10); // pay employees virtually --16
@@ -74,18 +78,18 @@ define('BIT_SECRET_BAL', 0x40); // don't let merchants tell me my balance on req
 define('BIT_NOTIFY_EMAIL', 0x80); // notifications by email
 
 define('BIT_NOTIFY_SMS', 0x100); // notifications by SMS --256
-define('BIT_USED_ID', 0x200); // user ID has been scanned (requirement for Partner status)
+//define('BIT_USED_ID', 0x200); // user ID has been scanned (requirement for Partner status)
 define('BIT_PROVED', 0x400); // proof of ID has been approved
-define('BIT_SAW_VID1', 0x800); // saw the pre-Partner vid
+//define('BIT_SAW_VID1', 0x800); // saw the pre-Partner vid
 
-define('BIT_SAW_VID2', 0x1000); // saw the pre-Steward vid --4096
-define('BIT_PASSED_TEST', 0x2000); // passed the Stewardship test
+//define('BIT_SAW_VID2', 0x1000); // saw the pre-Steward vid --4096
+//define('BIT_PASSED_TEST', 0x2000); // passed the Stewardship test
 define('BIT_ELECTRONIC', 0x4000); // will accept electronic statements
-define('BIT_MET', 0x8000); // has participated in a community meeting
+//define('BIT_MET', 0x8000); // has participated in a community meeting
 
-define('BIT_RQUALIFIED', 0x10000); // makes good economic circles --65,536 = 256 * 256
+//define('BIT_RQUALIFIED', 0x10000); // makes good economic circles --65,536 = 256 * 256
 
-define('BIT_CTTY_ADMIN', 0x1000000); // is a community administrator --67,108,864 = 256 * 256 * 256
+define('BIT_CTTY_ADMIN', 0x1000000); // is a community administrator --16,777,216 = 256 * 256 * 256
 define('BIT_ADMIN', 0x2000000); // is a system administrator
 define('BIT_CLOSED', 0x4000000); // account is closed (data[new_account] has new qid)
 define('BIT_DEFAULTS', BIT_NOTIFY_EMAIL | 0); // what bits to set when creating a new account
@@ -93,11 +97,12 @@ define('BIT_DEFAULTS', BIT_NOTIFY_EMAIL | 0); // what bits to set when creating 
 // Transaction states
 define('TX_STATES', 'deleted done pending disputed denied');
 
-define('TX_DELETED', 0);
-define('TX_DONE', 1);
-define('TX_PENDING', 2); // charged, waiting for confirmation (in all other states, transaction is complete)
+define('TX_DENIED', -2); // invoice rejected by the non-originator
+define('TX_DELETED', -1);
+define('TX_PENDING', 0); // charged, waiting for confirmation (in all other states, transaction is complete)
+define('TX_DONE', 1); // transactions with a positive state count as done
+define('TX_TENTATIVE', 2); // done in rCredits, but waiting for USD funds to clear instead (usd_amount is the expected amount)
 define('TX_DISPUTED', 3); // unilaterally charged, but disputed by the payer (the charge stands, until settled)
-define('TX_DENIED', 4); // invoice rejected by the non-originator
 
 // Transaction channels (roughly in order of simplicity and generality of messages)
 define('TX_SMS', 1); 
@@ -386,7 +391,7 @@ function notify($uid, $index, $info) {
     $warning = u\tt('no asif notify', compact('fullName'));
   } else {
     if ($acct->hasBit(BIT_NOTIFY_EMAIL) and @$acct->mail) {
-      $mailed = drupal_mail('rCredits', $index, $acct->mail, user_preferred_language($acct->account()), $info);
+      $mailed = \drupal_mail('rCredits', $index, $acct->mail, $acct->language, $info);
     }
     if ($acct->hasBit(BIT_NOTIFY_SMS)) {
       $number = dbLookup('number', 'r_sms', 'uid=:uid AND status=:SMS_PRIMARY', compact('uid'));
@@ -543,6 +548,16 @@ function qid($zid = '', $regionId = R_SERVER_ID, $min_len = 1) {
 function qid2($zid, $regionId = R_SERVER_ID) {return substr(qid($zid, $regionId, 3), 3);}
 
 /**
+ * Return the short qid and full name of the specified account.
+ * For example, return ".AAC Abe One".
+ */
+function definiteName($uid) {
+  if ($uid <= 0) return '';
+  $acct = acct($uid);
+  return qid2($uid) . ' ' . $acct->full_name;
+}
+
+/**
  * Return a zid and region for the qid
  * @return [zid, regionUid]
  */
@@ -680,12 +695,12 @@ function uniqueName($full_name) {
 }
 
 /**
- * Return the uid for the given qid or (short) name.
+ * Return the uid for the given qid or (short) name or email.
  * @return the uid (FALSE if unsuccessful)
  */
 function loginString($id) {
   if ($acct = acct(strtoupper($id))) return $acct->id; // try to interpret it as a qid
-  return userField('uid', 'name=:id', compact('id'));
+  return userField('uid', 'name=:id OR mail=:id', compact('id'));
 }
   
 /**
@@ -714,6 +729,17 @@ function relation($field, $id, $agent = array(), $where = '1', $subs = array()) 
      $subs += compact('id', 'agent');
   } else list ($where, $subs) = array($id, $agent); // called with alternate form
   return dbLookup($field, 'r_relations', $where, $subs);
+}
+
+/**
+ * Return our standard encryption password and a salt for the given account.
+ */
+function passSalt($acct = '') {
+  $acct = $acct ?: r\acct();
+  require(DRUPAL_ROOT . '/sites/default/settings.php');
+  $pass = $databases['default']['default']['password'];
+  $salt = $acct->created;
+  return compact('pass', 'salt');
 }
 
 /**
@@ -780,6 +806,40 @@ function go($page) {
     return Web\showForm($form, $arg1);
   }
   \drupal_goto($page);
+}
+
+/**
+ * Store or retrieve personal identifying information.
+ * @param string $data: the data to store or the ID of the data to retrieve
+ * @param string $type: 9=digits, ?=arbitrary ascii, ''=retrieve
+ * @param string $id: key of record to replace ('' means create new)
+ * @return string: if retrieving, return the data. if storing return the id.
+ */
+function secret($data, $type = '', $id = '') {
+  define('R_SECRET_TABLE', 'r_secret_new');
+//define('R_HIDE_FIELDS', 'federal_id dob usd_account id_proof answer'); // personal identifying information
+  if (!$type) return dbLookup('data', R_SECRET_TABLE, 'id=:data', array('id' => $data)); // retrieval is easy
+  if ($id) {
+    \drupal_write_record(R_SECRET_TABLE, compact('id', 'data'), 'id');
+    return $id;
+  }
+  $len = strlen($data);
+  if ($id = dbLookup('id', R_SECRET_TABLE, 'data=:data', compact('data'))) return $id;
+  while (@$taken) {
+    $id = $type == '9' ? rand($len) : \user_password(R_SECRET_ID_LEN);
+    $taken = dbLookup(1, R_SECRET_TABLE, 'id=:id', compact('id'));
+    if ($taken and $type == '9') {
+      $sql = <<<EOF
+SELECT (t1.id + 1) as gap FROM :R_SECRET_TABLE t1 
+WHERE id REGEXP '^[0-9]$'
+AND (SELECT 1 FROM :R_SECRET_TABLE t2 WHERE t2.id = t1.id + 1) IS NULL
+EOF;
+      $id = dbQ($sql)->fetchField();
+      $taken = FALSE; // the gap we found is not taken
+    }
+  }    
+  \drupal_write_record(R_SECRET_TABLE, compact('id', 'data'));
+  return $id;
 }
 
 /**

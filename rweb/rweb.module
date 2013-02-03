@@ -89,15 +89,17 @@ function rweb_menu() {
     'account/company' => r\Web\menu(t('Company Info'), MENU_LOCAL_TASK, 'showForm', array('Company'), PERM_COMPANY),
     'account/preferences' => r\Web\menu(t('Preferences'), MENU_LOCAL_TASK, 'showForm', array('Options'), PERM_MANAGE),
 //    'account/bank-info' => r\Web\menu(t('Bank Info'), MENU_LOCAL_TASK, 'showForm', array('Bank'), PERM_MANAGE),
-    'account/usd' => r\Web\menu(t('USD Account'), MENU_LOCAL_TASK, 'showForm', array('Usd'), PERM_ADMIN), // should be PERM_MANAGE
+    'account/usd' => r\Web\menu(t('USD Account'), MENU_LOCAL_TASK, 'showForm', array('Usd'), PERM_MANAGE),
 
     'sadmin' => r\Web\menu(t('System'), MENU_NORMAL_ITEM, 'showForm', array('System'), PERM_ADMIN),
     'handy' => r\Web\menu('Handy', MENU_NORMAL_ITEM, 'handy_links', array(), PERM_ADMIN),
     
-    'membership' => r\Web\menu(t('Membership Status'), MENU_CALLBACK, 'showForm', array('Membership'), PERM_MEMBER),
+    'membership' => r\Web\menu(t('Membership Status'), MENU_CALLBACK, 'showForm', array('Membership'), PERM_MANAGE),
     'membership/status' => r\Web\menu('Membership Status', MENU_DEFAULT_LOCAL_TASK, 'showForm', array('Membership'), PERM_MANAGE),
     'membership/agreement' => r\Web\menu(t('rCredits Agreement'), MENU_LOCAL_TASK, 'showForm', array('Agreement'), PERM_MANAGE),
-    'membership/video' => r\Web\menu(t('Videos'), MENU_LOCAL_TASK, 'showForm', array('Videos', 2), '', $anyone),
+//    'membership/video' => r\Web\menu(t('Videos'), MENU_LOCAL_TASK, 'showForm', array('Videos', 2), '', $anyone),
+    'membership/proxies' => r\Web\menu(t('Choose Proxies'), MENU_LOCAL_TASK, 'showForm', array('Proxies'), PERM_MANAGE),
+    'membership/invite' => r\Web\menu(t('Invite Someone'), MENU_LOCAL_TASK, 'showForm', array('Invite'), PERM_MANAGE),
 
     //    'promo-site' => r\Web\menu(t('Main Site'), MENU_CALLBACK, 'drupal_goto', array('http://rCredits.org'), '', $anyone),
 

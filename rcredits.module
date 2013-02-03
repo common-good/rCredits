@@ -172,8 +172,10 @@ function rcredits_mail($key, &$msg_array, $info) {
     foreach ($info as $k => $value) $subs['{' . $k . '}'] = $value;
     $langcode = $language->language;
     $msg_array['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed'; // default is plain text
-    $msg_array['subject'] = $subject = strtr($GLOBALS['emailSubjects'][$key], $subs);
-    $msg_array['body'][] = $message = strtr(r\emailBody($key), $subs);
+    $message = @$info['noFrame'] ? r\emailTemplate($key) : r\emailBody($key);
+    $msg_array['body'][] = $message = strtr($message, $subs);
+    $msg_array['subject'] = $subject = @$info['subject'] ?: strtr($GLOBALS['emailSubjects'][$key], $subs);
+
     $message = str_replace("\r\n", '', $message); // easier reading for log and tests
     $message = str_replace($info['oneTimeLoginUrl'], '(varies)', $message);
     $fields = compact(u\ray('key email subject message'));
