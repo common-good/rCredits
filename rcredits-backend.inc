@@ -300,6 +300,8 @@ function get($currency, &$amount, $confirmed) {
   if (!$cacct->can(PERM_MANAGE)) return array('no access get', array(), FALSE);
   if ($error = u\badAmount($amount, $currency == 'usd' ? '>0' : '>=0')) return array($error, array(), FALSE); // allow zero for rCredits request
   // (No, include this in rTrader requirements) if (r\isRTrader() and !$cacct->can(PERM_DWOLLA)) return array('no usd account', array(), FALSE);
+  $usd = new USD();
+  if (!$usd->canTrade()) return array('no usd account', array(), FALSE);
   $request = u\formatAmount($amount);
   $success = TRUE;
   if ($currency == 'r') {
@@ -308,6 +310,7 @@ function get($currency, &$amount, $confirmed) {
     if ($is_real = r\isRTrader()) {
       if (!$confirmed) return array('confirm get r', compact(u\ray('request success')), TRUE);
       //DWOLLA: transfer fraction R_GETR_ADVANCE of $amount from user's Dwolla account to community's Dwolla account
+      $usd->request(round($amount * R_GETR_ADVANCE, 2));
     }
     $time = REQUEST_TIME;
     \drupal_write_record('r_demand', compact(u\ray('time amount who is_real'))); // track history of demands

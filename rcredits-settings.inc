@@ -19,6 +19,7 @@ define('R_COUNTRY', 'United States');
 define('R_INITIAL_DEMAND', 25000); // total escrowed rCredits during TRIAL RUN
 define('R_REBATE', 0.05);
 define('R_BONUS', 0.10);
+define('R_GETR_ADVANCE', 0.10); // fraction of get rCredits request we take as advance
 define('R_MAX_AMOUNT', 100000); // you can't ask for more rCredits than this
 define('R_MIN_DEMAND', 10); // you can't buy less rCredits than this at a time
 define('R_STARTING_BALANCE', 250); // how much people start with in the TRIAL RUN
