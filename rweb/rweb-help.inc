@@ -16,9 +16,10 @@ EOF
   );
   $paySpecial = t(' If you have employees you can say pay "ALL", to pay each employee the same amount.');
   
+  // the <a href="$base_url/help/smartphone">Android Smartphone Interface</a> and 
   $helps = array(
     'general' => t(<<<EOF
-      <p>Thank you for helping test the rCredits Web Browser Interface. (Help is also available for the <a href="$base_url/help/smartphone">Android Smartphone Interface</a> and the <a href="$base_url/help/sms">Text Messaging Interface</a>.)
+      <p>Help is also available for the <a href="$base_url/help/sms">Text Messaging Interface</a>.
       Use the tabs above and the links at the top right, to try all the features of the rCredits system. Here's an overview of what's where:</p>
       <h2>Tabs:</h2>
       <ul>

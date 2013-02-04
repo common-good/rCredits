@@ -21,7 +21,7 @@ label.option {font-weight:bold;}
 .sidebar-first #content {margin-left:0; float:right;}
 .logged-in #content {margin-left:0px; float:left; display:block;} /* keeps autocomplete from getting placed in a wacky position */
 .not-logged-in #content {clear:none; max-width:100%;}
-.not-logged-in #sidebar-first {display:inline-block; margin-left:0; margin-top:0; width:200px; padding-top:5px; border:1px solid darkgreen; clear:none;}
+.not-logged-in #sidebar-first {display:inline-block; margin-left:20px; margin-top:0; width:215px; padding-top:5px; border:1px solid darkgreen; clear:none;}
 .not-logged-in #sidebar-first .section {padding:0px;} */
 .not-logged-in #block-user-login {padding:0px; padding-left:12px; margin-bottom:0px;}
 
@@ -47,7 +47,7 @@ body.page-admin  .form-type-radio  input {position:relative; left:0;}
 
 #main {margin:0 0 1em 0;}
 body.logged-in.one-sidebar #content {width:100%;}
-#main .section {margin-left:2em; padding:0 1em;}
+#main .section {margin-left:10px; padding:0 12px;}
 #footer-wrapper, #footer, #footer .region {margin:0; padding:0;}
 #footer, #footer label {text-align:center; color:darkgray;}
 #footer label a {color:black;}
@@ -133,7 +133,7 @@ form.rweb  .form-no {color:red;}
 
   form.labeled .description {margin-left:9.1em;}
 
-  form.labeled #edit-subtext  {margin-top:-15px;}
+  form.labeled #edit-subtext  {margin-top:-5px;}
   form.labeled .description {font-size:85%}
   form.labeled .labeled-block {display:inline-block;}
   form.labeled .form-textarea-wrapper {display:inline-block;}
@@ -170,7 +170,7 @@ form.rweb  .form-no {color:red;}
 #user-register-form .form-type-radio {display:inline-block;}
 #user-register-form .form-type-radio input {display:inline-block; margin-left:0; vertical-align:bottom;}
 /*#user-register-form .form-type-radio label {display:inline; width:10em; margin-left:.2em; text-align:left;}*/
-#user-register-form  fieldset.form-wrapper {margin-left:0;}
+#user-register-form  fieldset.form-wrapper {margin-left:0; border-color:darkgreen; background-color:lightyellow;}
 #user-register-form  #edit-company-text label {text-align:left;}
 
 /* New password */
@@ -398,6 +398,10 @@ html.js input.throbbing {background-position:right -2.4em;}
 #rcreditswebformagreement #agreement ul,
 #rcreditswebformagreement #agreement ol {margin-left:25px;}
 
+/* Invite */
+#rcreditswebforminvite .form-item-trusted {border:0;}
+#rcreditswebforminvite .form-item-subject {margin-top:20px;}
+
 /* Profile */
 #rcreditswebformprofile {font-family:Arial;}
 #rcreditswebformprofile .user-picture {float:left; margin-right:20px;}
@@ -466,6 +470,8 @@ and (max-device-width : 480px) { */
   #main-menu {display:none;}
   body.logged-in .tabs {display:none;}
   body.not-logged-in .tabs ul {margin-left:0;}
+  .not-logged-in #sidebar-first {width:200px; margin-left:0;}
+  
   
   #accounts {top:.05em;} /* account dropdown */
   #accounts .region-accounts {margin:0;}

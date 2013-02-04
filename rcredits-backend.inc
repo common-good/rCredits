@@ -151,7 +151,7 @@ function updateRelations($updates) {
     extract(u\just('main_uid agent_uid permission employee_ok full_name', $data['original'])); 
     unset($data['original']);
     $isAgent = ($cuid != $main_uid);
-    extract(u\just('employee_ok employer_ok permission is_owner', $data), EXTR_PREFIX_ALL, 'd');
+//    extract(u\just('employee_ok employer_ok permission is_owner', $data), EXTR_PREFIX_ALL, 'd');
     
     if (!$isAgent) r\reverseRelations($main_uid, $agent_uid, $data, 'employee_ok'); // claiming to be an employee
     if ($isAgent) r\reverseRelations($main_uid, $agent_uid, $data, 'permission employer_ok is_owner'); // giving employer permission -- create a proper record
@@ -168,14 +168,21 @@ function updateRelations($updates) {
 
     $msg = 'updated relation';
     if (!r\relation('permission>0 OR employer_ok OR employee_ok OR is_owner', $where, $reidSub)) {
+      setCttyAdmin(FALSE, $main_uid, $agent_uid);
       r\dbQ("DELETE FROM r_relations WHERE $where", $reidSub);
       $pot = '(:main_uid, :agent_uid)';
       if (!r\relation(1, "main_uid IN $pot AND agent_uid IN $pot", compact('main_uid', 'agent_uid'))) $msg = 'deleted relation';
-    }
+    } else {
+      setCttyAdmin($data['permission'] >= PERM_MANAGE, $main_uid, $agent_uid);
+    }    
     $otherName = $full_name;
     $report .= u\tt($msg, compact('otherName')) . '<br>';
   }
   return $report;
+}
+
+function setCttyAdmin($value, $main_uid, $agent_uid) {
+  if ($main_uid < 0 and $main_uid == r\acct($agent_uid)->community_uid) r\acct($agent_uid)->setBit(BIT_CTTY_ADMIN, $value);
 }
 
 /**
@@ -442,6 +449,10 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   // Check the amount and calculate any balance shortfall
   if ($error = u\badAmount($requestAmount, '>0')) return array($error, array(), FALSE);
   $totalHit = $requestAmount - @$data['rebate']; // leave room for reversing rewards (minus a negative)
+  
+  // *** RETHINK THIS SHORTFALL CODE, to transact partially in USD (always tentative) OR to refuse totally (if insuff. credit)
+  // amount/usd_amount need to be figured AND revise shortfall reporting, below
+  // separate function for handling Dwolla response (possibly 3 days later)
   if ($shortfall = r\shortfall($taking ? $uid : $cuid, $totalHit, $preapproved, $real)) { // short payment or unilateral charge
     $short = u\formatAmount($shortfall);
     $otherName = r\userField('full_name', $uid);

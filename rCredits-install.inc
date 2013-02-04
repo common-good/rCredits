@@ -23,11 +23,11 @@ function tableDefs($schema = array()) {
     'account_type' => setupField('personal, commercial, non-profit (or government)', 'int tiny'),
     'flags' => setupField('permissions and boolean state flags', 'int big', 0, '010'),
     'community_uid' => setupField("uid of this account's Common Good Community", 'int 11'),
-    'federal_id' => setupField('social security number or employer id number, for reporting', 'varchar 9'),
-    'dob' => setupField('date of birth, founding, or incorporation', 'int 11'),
-    'id_proof' => setupField('proof of identity encryption key', 'text tiny'), // blob for binary (just 33 bytes)
+    'federal_id' => setupField('social security number or employer id number, for reporting', 'int 9'), // secret
+    'dob' => setupField('date of birth, founding, or incorporation', 'int 11'), // secret
+    'id_proof' => setupField('proof of identity encryption key', 'varchar ' . R_SECRET_ID_LEN), // secret
     'question' => setupField('security question', 'varchar 255'),
-    'answer' => setupField('answer to security question', 'varchar 255'),
+    'answer' => setupField('answer to security question', 'varchar ' . R_SECRET_ID_LEN), // secret
     'full_name' => setupField('full name of the individual or entity', 'varchar 60'),
     'phone' => setupField('contact phone (no country code, no punctuation)', 'varchar 255'),
     'fax' => setupField('fax number (no country code, no punctuation)', 'varchar 255'),
@@ -42,18 +42,43 @@ function tableDefs($schema = array()) {
     'signed_agreement' => setupField('when did this person sign the rCredits Agreement', 'int 11'),
     'rebate_percent' => setupField('current rebate percentage (sales bonus is double)', 'numeric 4,3', 5),
     'tithe' => setupField('fraction of rebates and bonuses to contribute back to Common Good Finance', 'numeric 6,3', 0),
-    'demand' => setupField('waiting to buy this much credit', 'numeric 11,2', 0),
-    'demand_date' => setupField('first rCredits request data', 'int 11'),
+    'demand' => setupField('waiting to trade this much USD for rCredits (or vice-versa)', 'numeric 11,2', 0),
+    'demand_date' => setupField('date/time of request for rCredits (or USD)', 'int 11'),
     'counts' => setupField('counts of command use, etc.', 'int big', 0),
     'min_balance' => setupField('minimum balance (normally zero or less)', 'numeric 9,2', R_MIN_BALANCE),
 // separate table for this? 'nym' => setupField('unique identifier for cryptographic signing', 'text tiny'), 
-    'usd_account' => setupField('official currency account number (eg Dwolla) with 2-char header', 'varchar 36'), // Dwolla acct (34 is enough for eventual IBAN)
-    'usd_auth' => setupField('official currency account authorization token', 'text medium'), // Dwolla code may be any len
+    'usd_account' => setupField('official currency account number (eg Dwolla) with 2-char header', 'text tiny'), // secret
+    'usd_auth' => setupField('official currency account authorization token(s)', 'text medium'), // Dwolla code may be any len
+    'proxy1' => setupField('first representative', 'int 11'),
+    'proxy2' => setupField('second representative', 'int 11'),
   );
+  // need foreign keys here
   $schema['users']['fields'] = (@$schema['users']['fields'] ?: array()) + $fields;
   $schema['users']['fields']['uid'] = setupField('Unique user ID', 'int 11'); // not unsigned
 // kills Drupal: $schema['users']['fields']['data']['description'] = 'incidental data (a serialized array of name value pairs)';
+/* MOVE THESE TO data field
+    'balance' => setupField('cached current rCredits account balance (sum of transactions is authoritative)', 'numeric 11,2'),
+    'rewards' => setupField('incentive rewards received to date (cannot be cashed out)', 'numeric 11,2'),
+    'frozen' => setupField('how much of the balance is unavailable to spend', 'numeric 11,2'),
+    'no_bonus' => setupField('how many rCredits must the account accept as payment for goods and services, before receiving more sales bonuses', 'numeric 11,2'),
+*/
 
+  // table r_secret_num
+  $fields = array(
+    'id' => setupField('key to secret data', 'int big'),
+    'data' => setupField('true value of some secret data field on some other server', 'int big'), // up to 20 digits
+  );
+  $indexes = index('data');
+  $schema['r_secret_num'] = setupTable('secret numeric data on some other server', $fields, 'id', NULL, $indexes);
+  
+  // table r_secret_hash
+  $fields = array(
+    'id' => setupField($fields['id']['description'], 'varchar ' . R_SECRET_ID_LEN),
+    'data' => setupField($fields['data']['description'], 'text tiny'), // blob for possible binary data (up to 255 chars)
+  );
+  $indexes = index('data');
+  $schema['r_secret_num'] = setupTable('secret numeric data on some other server', $fields, 'id', NULL, $indexes);
+  
   // table r_sms 
   $fields = array(
     'number' => setupField('international phone number (eg +12223334444)', 'varchar 16'),
@@ -73,8 +98,9 @@ function tableDefs($schema = array()) {
     'type' => setupField('transaction type (transfer, rebate, etc.)', 'int tiny'), 
     'taking' => setupField('was the transaction initiated by the payee', 'int tiny'), 
     'goods' => setupField('is this transfer and exchange for real goods and services?', 'int tiny'), 
-    'state' => setupField('completed, pending, disputed, etc', 'int tiny'), 
-    'amount' => setupField('transaction amount', 'numeric 11,2'), 
+    'state' => setupField('done, pending, disputed, etc', 'int tiny'), 
+    'amount' => setupField('amount in rCredits', 'numeric 11,2'), 
+    'usd_amount' => setupField('amount in US Dollars', 'numeric 11,2'), 
     'payer' => setupField('user id of the payer', 'int 11'), 
     'payee' => setupField('user id of the payee', 'int 11'), 
     'payer_agent' => setupField("user id of payer's agent (who approved this transaction for the payer)", 'int 11'), 
@@ -87,14 +113,14 @@ function tableDefs($schema = array()) {
     'completed' => setupField('Unixtime transaction was completed', 'int 11'), // MYSQL reserves DATE, COMPLETED, WHEN
   );
   $foreign_keys = foreignKey('payer') + foreignKey('payee') + foreignKey('payer_agent') + foreignKey('payee_agent');
-  $indexes = index('payer') + index('payee') + index('created') + index('date'); // also serial/type/taking/goods/state/payer_agent/payee_agent/channel/?
+  $indexes = index('payer') + index('payee') + index('created') + index('completed'); // also serial/type/taking/goods/state/payer_agent/payee_agent/channel/?
   $schema['r_txs'] = setupTable('Record of all rCredits transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
 
   $schema['r_asif'] = setupTable('Record of pretend (asif) transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
   
-  foreach (u\ray('type taking goods payer_agent payee_agent payer_for payee_for') as $one) unset($fields[$one]);
-  $foreign_keys = foreignKey('payer') + foreignKey('payee');
-  $schema['r_usd'] = setupTable('Record of USD (Dwolla) transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
+//  foreach (u\ray('type taking goods payer_agent payee_agent payer_for payee_for') as $one) unset($fields[$one]);
+//  $foreign_keys = foreignKey('payer') + foreignKey('payee');
+//  $schema['r_usd'] = setupTable('Record of USD (Dwolla) transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
 
   // table r_donations
   $fields = array(
@@ -149,6 +175,7 @@ function tableDefs($schema = array()) {
     'employer_ok' => setupField('employer says this agent is an employee', 'int tiny', 0),
     'employee_ok' => setupField('employee says this agent is an employee', 'int tiny', 0),
     'is_owner' => setupField('this agent is an owner (or part owner)', 'int tiny', 0),
+    'proxy' => setupField('proxy level (0=none, 1=first, etc.)', 'int 11'),
   );
   $foreign_keys = foreignKey('main_uid') + foreignKey('agent_uid') + foreignKey('foreign_uid');
   $indexes = index('main_uid') + index('agent_uid');
@@ -186,6 +213,18 @@ function tableDefs($schema = array()) {
   $foreign_keys = foreignKey('owner') + foreignKey('default_agent');
   $indexes = index('owner');
   $schema['r_smarts'] = setupTable('Who owns what smart device', $fields, 'code', $foreign_keys, $indexes);
+  
+  // table r_invites
+  $fields = array(
+    'code' => setupField('secret invitation code', 'varchar 20'),
+    'email' => setupField('email of invitee', 'varchar 60'),
+    'inviter' => setupField('uid of inviting member', 'int 11'),
+    'invitee' => setupField('uid of invited new member', 'int 11'), // null if not accepted yet
+    'invited' => setupField('date of invitation', 'int 11'),
+  );
+  $foreign_keys = foreignKey('inviter') + foreignKey('invitee');
+  $indexes = index('inviter');
+  $schema['r_invites'] = setupTable('Who invited whom', $fields, 'code', $foreign_keys, $indexes);
 /*
   // table r_counts
   $fields = array(

@@ -1,6 +1,33 @@
 rCredits Software
 Notes for developers
 
+Short term tasks:
+On new. server (after updating code):
+  UPDATE users SET account_type=IF(uid<100, 0, 1) WHERE account_type IS NULL;
+  UPDATE users SET account_type=account_type+1 WHERE account_type>0;
+  UPDATE r_asif SET state=-1 WHERE state=0;
+  UPDATE r_asif SET state=0 WHERE state=2;
+- create r_secret_new (id varchar 32, data varchar 40 not indexed)
+- handle TX_TENTATIVE
+- code for usd_amount
+- outline distribution procedure for rCredits requests:
+    Weekly: Everyone in line gets $10, starting with the Nubes, who have to PAY for their first $10 of credits, which then
+    get created on the spot (that's the float)
+    Keep going around the queue until there's less than $10 to sell.
+    Report result, with option to order more and option to renew order for remainder automatically.
+    Date of next distribution is always known.
+- in profile, handle links to list of website
+- handle personal&commercial (choose only if you are self-employed, using your own social security number and photograph for the business, and you don't want a separate account for the business). Look especially for !PERM_COMPANY.
+- rcredits agreement: "plus the amount I saved on credit card processing fees"
+- when dwolla confirmation comes through, simply change the state of the transaction from "tentative" to "done" and add another related transaction (same serial) to exchange community USD for merchant rCredits (the usd_amount). 
+- The Transactions screen shows always the "amount", which is the total amount, with an extra column for USD.
+- Transaction Summary: add extra rows for "Unavailable until <date>", "Available Balance", "Incentive Rewards to Date", and "Amount That Can Be Exchanged for USD", reflecting serialized assoc values in the data field of the account: balance, frozen[n]=array(date,amount), rewards (available balance is calculated)
+- cron for daily stuff
+- for now, mock up a stand-alone php script on rcredits.org for the secret table. But write it and debug it first on new. (referring back to new.)
+- signup button on rcredits.org goes directly to user/register
+- demo button on rcredits.org goes to login with options to log in as abeone, beatwo (self-employed), cornerpub, or townarts (which should have a "Contribute" form on its member/townarts page)
+
+
 A. Development environment
  - See https://docs.google.com/document/d/1oQU-PPown2TV02Xg9htxByzOhUopGH-areUrlZ94Te0/edit
    for Step by Step Development Environment Setup Instructions
@@ -63,10 +90,19 @@ E. Database clues
      . description is html for the company's page (N/A for personal accounts)
      . community_uid: the (negative) uid of the account's CGC. For anyone who is not in an established CGC, their community is the region (using the regional server's uid). For region and community records, community_uid === uid
      . counts is not currently used
+     . usd_auth is a serialized assoc:
+         gateway: Dwolla
+         PIN: the Dwolla PIN
+         auth: the Dwolla OAUTH code
    - r_txs
      . xid: record id. Always positive in the tables, but in the code: negative zxid means use the ASIF table (r_asif) instead.
        Transactions are identified to the user counting just their own transactions (1, 2, 3, ...), NOT as an xid.
      . payer: normally the uid of the account being debited. If the payer is "foreign" (that is, if their account record is stored on a different regional server), then payer is that region's uid and the data field has details. Similarly, payee, payer_agent, and/or payee_agent might be a region, with details in data.
+     . amount: the amount of rCredits transferred. While waiting for a USD amount to clear, the entire transaction amount is
+         tentatively (TX_TENTATIVE) transferred in rCredits, so amount is the total transaction amount
+     . usd_amount: the amount of USD transferred (or waiting to be transferred). While waiting for a USD amount to clear, 
+         this field holds the expected amount of USD. (So the total of amount+usd_amount is typically greater than the total
+         transaction amount, until the transaction is TX_DONE.)         
      . data: We use this to store non-essential and unusual essential information in a serialized associative array:
        undone: 1 if the transaction has been reversed
        bonus and rebate: the dollar amounts of any rewards associated with a payment
@@ -77,6 +113,9 @@ E. Database clues
        foreign_payer_agent, foreign_payee_agent: uid of a non-local agent for a party to the transaction
    - r_asif: the pretend version of r_txs (ASIF transaction numbers are displayed with prefix "a")
    (more to come...)
+   - r_secret_new: protected personal identifying information from the NEW region
+     . id: a random id that matches the type and length of the original data
+     . data: the original data, encrypted, len=
          
 F. Notes on some PHP functions and rCredits utilities - often-used or crucial
      compact/extract: typically we compact arguments to a function and the function extracts them
@@ -190,6 +229,8 @@ function eachAccount($queries, $ons, $where = 'TRUE', $subs = array()) {
   return r\dbQ("SELECT $fields FROM $tables WHERE $where", $subs);
 }
 
+@todo: handle account type as bits. New choices: self-employed doing business under your own name, publicly-traded corporation.
+@todo: business ("commercial") can't get incentives until it has specified at least one owner
 @todo: use hidentity in r\acct (_get and update, not account()) for federal_id, dob, usd_acct, and id_proof
 @todo: move some util functions, like ray(), to rcredits-basic.inc and "USE" them everywhere without a namespace qualifier.
 @todo: on successful web request for rCredits, say you will have to Dwolla us $20, to actually be added to the waiting list.
