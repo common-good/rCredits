@@ -172,7 +172,7 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
   } else unset($fields['message']); // empty message in features means NO message
   $agent = @r\acct()->agentId;
   \drupal_set_message(color(array('EXPECT' => '') + $fields, @$subject ? 'email' : 'output')); // keep this
-  $info = json_encode2($fields, JSON_UNESCAPED_SLASHES);
+  $info = json_encode($fields, JSON_UNESCAPED_SLASHES);
   $crit = "channel=:channel AND type=:type AND cuid=:cuid AND agent=:agent ORDER BY logid DESC";
 //  debug(compact(u\ray('info type cuid agent channel crit'))); // for debugging mysterious email mismatches
 //  debug(compact(u\ray('info type cuid agent channel')), '', 1);
@@ -242,7 +242,7 @@ function hitServer($op, $agent, $code = '', $account_id = '', $extra = array()) 
       $my_id = $acct ? $acct->qid() : $agent; // accommodate bad agents
     }
   }
-  $json = json_encode2(compact(u\ray('op my_id code account_id')) + $extra, JSON_UNESCAPED_SLASHES);
+  $json = json_encode(compact(u\ray('op my_id code account_id')) + $extra, JSON_UNESCAPED_SLASHES);
   \drupal_set_message(color($json, 'input')); // keep this
   r\Smart\api(compact('json'));
 //  be\send($json); // remember the server's response (this is the real test, once most bugs are gone)

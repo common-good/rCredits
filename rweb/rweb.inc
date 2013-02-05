@@ -1479,14 +1479,8 @@ function no_selection($list) {
  */
 function formUsd($form, &$sta) {
   $cacct = r\acct();
-  if ($account = $cacct->usd_account) {
-    $account = u\ezdecrypt($account);
-    if (substr($account, 0, 2) == 'DW') {
-      // $number = 'xxx-xxx-' . substr($account, -4);
-      $number = $pin = $federal_id = $dob = $answer = R_ON_FILE;
-    }
-  }
-  if ($cacct->proof) $proof = R_ON_FILE;
+  if ($cacct->offsite) $federal_id = $dob = $answer = R_ON_FILE;
+  if ($cacct->usd_account) $number = $pin = R_ON_FILE;
   
   $statementRadios = array(
     t('I will accept electronic statements.'), 
@@ -1503,7 +1497,7 @@ function formUsd($form, &$sta) {
     'dob' => textField(t('Birthdate:'), t('Your date of birth'), required(@$dob)),
     'question' => textField(t('Question:'), t('Type a question that no one but you could ever guess the answer to.'), required($cacct->question)),
     'answer' => textField(t('Answer:'), t('The answer to that question'), required(@$answer)),
-    'proof' => @$proof ? 
+    'id_proof' => $cacct->hasBit(BIT_GOT_PROOF) ? 
         formField('item', t('Photo ID:'), '', R_ON_FILE . ($cacct->hasBit(BIT_PROVED) ? '' : t(' (pending approval)')))
       : formField('file', t('Photo ID:'), t('Upload an image of your driver\'s license, passport, or other official photo ID.'), attrib(array('enctype' => "multipart/form-data"))),
     'statements' => formField('radios', t('Statements:'), '', required($cacct->hasBit(BIT_ELECTRONIC) + 0), $statementRadios),
@@ -1514,7 +1508,6 @@ function formUsd($form, &$sta) {
 }
 
 function onFile($field, $sta) {
-  debug($sta['complete form'][$field]['#value']);
   return ($sta['complete form'][$field]['#value'] == R_ON_FILE and $sta['values'][$field] == R_ON_FILE);
 }
 
@@ -1537,25 +1530,30 @@ function formUsd_validate($form, &$sta) {
   if (!onFile('dob', $sta)) { // 12/14/1901 is the earliest
     if (!$dob = $sta['values']['dob'] = strtotime($dob) or $dob > REQUEST_TIME) return say('bad date', 'dob');
   }
-  if ($_FILES['files']['name']['proof']) {
-    if (!$file = file_save_upload('proof', array(), '', FILE_EXISTS_REPLACE)) return say('Try again.', 'proof');
-    if (!u\abbreviates('image/', @$file->filemime)) return say('bad file type', 'proof');
+  if ($_FILES['files']['name']['id_proof']) { // fine to let this be uploaded separately
+    if (!$file = file_save_upload('id_proof', array(), '', FILE_EXISTS_REPLACE)) return say('Try again.', 'id_proof');
+    if (!u\abbreviates('image/', @$file->filemime)) return say('bad file type', 'id_proof');
     $dir = variable_get('id_proof_path', '/sites/default/files/proofs');
     $destination = DRUPAL_ROOT . "/$dir/$cacct->id";
     $tempfile = file_directory_temp() . '/' . $file->filename;
-    if (!$sta['values']['proof'] = bin2hex(u\encryptFile($tempfile, $destination, passSalt()))) return say('encryption failure', 'proof');
+    if (!$sta['values']['id_proof'] = bin2hex(u\encryptFile($tempfile, $destination, passSalt()))) return say('encryption failure', 'id_proof');
     \file_delete($file);
-  } // fine to let this be uploaded separately
+  } else if($cacct->hasBit(BIT_GOT_PROOF)) $sta['values']['id_proof'] = R_ON_FILE; // flag for no change
  }
 
 function formUsd_submit($form, &$sta) {
+  debug((array) u\httpRequest(R_SECRET_URL, array('do' => 'dothis', 'data' => 'thedata'))); return;
   $cacct = r\acct();
-  extract($info = u\just('number pin federal_id dob question answer proof statements', $sta['values']));
-  //DWOLLA: get open auth code
-  // $usd_auth = whatever;
-  $info['usd_account'] = serialize(compact('number', 'pin'));
-  if ($proof) $info['id_proof'] = $proof; // don't set this unless we got a new image!
+  extract($info = u\just('number pin federal_id dob question answer id_proof statements', $sta['values']));
+  foreach ($info as $key => $value) if ($value == R_ON_FILE) $info[$key] = NULL; // don't change if on file
   $cacct->setBit(BIT_ELECTRONIC, @$statements);
+  if (isset($number)) { // do this encryption and consolidation in acct:: because we have to read in the old first
+  //DWOLLA: get open auth code
+  // $auth = whatever;
+    $type = 'Dwolla';
+    $info['usd_account'] = u\ezencrypt(serialize(compact(u\ray('type pin number auth'))), R_WORD);
+  }
+// (do this in acct::)  $info = r\secretArray(u\just('federal_id dob answer id_proof', $info)) + $info;
   $cacct->update($info);
   say('info saved');
 }
@@ -2789,7 +2787,7 @@ function formFooter() {
   //<a href="?layout=$layout">$layout layout</a> |
   $markup =<<<EOF
 <hr>
-<a href="http://rCredits.org">rCredits promo site</a> |
+<a href="http://rCredits.org">About rCredits</a> |
 <a href="help">Help</a>
 <br><br>
 website copyright &copy; $year <a href="http://CommonGoodFinance.org">Common Good Finance&trade;</a>, a 501(c)(3) nonprofit<br/>

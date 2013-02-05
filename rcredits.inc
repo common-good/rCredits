@@ -25,12 +25,12 @@ define('R_FIRST_CTTY_UID', -1000001); // community uids are less than or equal t
 define('R_ASIF_BUY_MIN', 3); // minimum number of ASIF purchases before eligible to be a Partner
 define('R_ASIF_SELL_MIN', 1); // minimum number of ASIF sales before eligible to be a Partner
 define('R_STAGES', t('Member Partner Steward rTrader')); // stages in the progress to rTrader
-define('R_HIDE_FIELDS', 'federal_id dob id_proof answer'); // personal identifying information
-define('R_SECRET_ID_LEN', 32); // maximum length of secret data keys
-define('R_SECRET_DATA_LEN', 40); // maximum length of secret data
+define('R_SECRET_FIELDS', 'federal_id dob id_proof answer'); // personal identifying information
+define('R_SECRET_URL', isDEV ? 'http://localhost/devcore/secret/' : 'http://new.rcredits.org/secret'); // where to store secrets
 define('R_URL_SLASH', '%_%'); // Drupal gets confused by slashes in a url, even if urlencoded
 define('R_MAX_DAILY_EXCHANGE', 1000); // per Common Good Finance policy and to avoid formal regulation by FinCEN
 define('R_INVITE_DAYS', 7); // number of days to accept invitation to membership
+define('R_WORD', file_get_contents(dirname($_SERVER['DOCUMENT_ROOT']) . "/.shibboleth")); // put this closer to where used
 
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
@@ -78,7 +78,7 @@ define('BIT_SECRET_BAL', 0x40); // don't let merchants tell me my balance on req
 define('BIT_NOTIFY_EMAIL', 0x80); // notifications by email
 
 define('BIT_NOTIFY_SMS', 0x100); // notifications by SMS --256
-//define('BIT_USED_ID', 0x200); // user ID has been scanned (requirement for Partner status)
+define('BIT_GOT_PROOF', 0x200); // proof of ID has been submitted
 define('BIT_PROVED', 0x400); // proof of ID has been approved
 //define('BIT_SAW_VID1', 0x800); // saw the pre-Partner vid
 
@@ -806,40 +806,6 @@ function go($page) {
     return Web\showForm($form, $arg1);
   }
   \drupal_goto($page);
-}
-
-/**
- * Store or retrieve personal identifying information.
- * @param string $data: the data to store or the ID of the data to retrieve
- * @param string $type: 9=digits, ?=arbitrary ascii, ''=retrieve
- * @param string $id: key of record to replace ('' means create new)
- * @return string: if retrieving, return the data. if storing return the id.
- */
-function secret($data, $type = '', $id = '') {
-  define('R_SECRET_TABLE', 'r_secret_new');
-//define('R_HIDE_FIELDS', 'federal_id dob usd_account id_proof answer'); // personal identifying information
-  if (!$type) return dbLookup('data', R_SECRET_TABLE, 'id=:data', array('id' => $data)); // retrieval is easy
-  if ($id) {
-    \drupal_write_record(R_SECRET_TABLE, compact('id', 'data'), 'id');
-    return $id;
-  }
-  $len = strlen($data);
-  if ($id = dbLookup('id', R_SECRET_TABLE, 'data=:data', compact('data'))) return $id;
-  while (@$taken) {
-    $id = $type == '9' ? rand($len) : \user_password(R_SECRET_ID_LEN);
-    $taken = dbLookup(1, R_SECRET_TABLE, 'id=:id', compact('id'));
-    if ($taken and $type == '9') {
-      $sql = <<<EOF
-SELECT (t1.id + 1) as gap FROM :R_SECRET_TABLE t1 
-WHERE id REGEXP '^[0-9]$'
-AND (SELECT 1 FROM :R_SECRET_TABLE t2 WHERE t2.id = t1.id + 1) IS NULL
-EOF;
-      $id = dbQ($sql)->fetchField();
-      $taken = FALSE; // the gap we found is not taken
-    }
-  }    
-  \drupal_write_record(R_SECRET_TABLE, compact('id', 'data'));
-  return $id;
 }
 
 /**

@@ -7,7 +7,14 @@ On new. server (after updating code):
   UPDATE users SET account_type=account_type+1 WHERE account_type>0;
   UPDATE r_asif SET state=-1 WHERE state=0;
   UPDATE r_asif SET state=0 WHERE state=2;
-- create r_secret_new (id varchar 32, data varchar 40 not indexed)
+  ALTER TABLE  `users` 
+DROP  `dob` ,
+DROP  `usd_auth` ,
+DROP  `id_proof` ,
+DROP  `answer` ,
+DROP  `federal_id` ;
+  reinstall modules
+  
 - handle TX_TENTATIVE
 - code for usd_amount
 - outline distribution procedure for rCredits requests:
@@ -19,7 +26,7 @@ On new. server (after updating code):
 - in profile, handle links to list of website
 - handle personal&commercial (choose only if you are self-employed, using your own social security number and photograph for the business, and you don't want a separate account for the business). Look especially for !PERM_COMPANY.
 - rcredits agreement: "plus the amount I saved on credit card processing fees"
-- when dwolla confirmation comes through, simply change the state of the transaction from "tentative" to "done" and add another related transaction (same serial) to exchange community USD for merchant rCredits (the usd_amount). 
+- when dwolla confirmation comes through, simply change the state of the transaction from "tentative" to "done" (no need for . 
 - The Transactions screen shows always the "amount", which is the total amount, with an extra column for USD.
 - Transaction Summary: add extra rows for "Unavailable until <date>", "Available Balance", "Incentive Rewards to Date", and "Amount That Can Be Exchanged for USD", reflecting serialized assoc values in the data field of the account: balance, frozen[n]=array(date,amount), rewards (available balance is calculated)
 - cron for daily stuff

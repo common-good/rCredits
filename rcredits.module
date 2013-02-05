@@ -66,11 +66,11 @@ function rcredits_exception_handler($e) {
   $trace_msg = '';
   for ($i = 0; $i < 11; $i++) {
     $line = $file = '';
-    extract($trace[$i]); // (file, line, function, args) OR just (function, args)
+    @extract($trace[$i]); // (file, line, function, args) OR just (function, args)
     $line = @$line ?: '';
     $file = basename(@$file);
-    $function = basename($function);
-    $args = preg_replace('/Array\s+\(/sm', 'Array', print_r($args, 1)); // keep
+    $function = basename(@$function);
+    $args = preg_replace('/Array\s+\(/sm', 'Array', print_r(@$args, 1)); // keep
     $args = substr($args, 6); // discard the gratuitous "Array" at the start
     $args = preg_replace('/$\s*\)$\s$/sm', '', $args);
     $args = '    ' . str_replace("\n", "<br>\n    ", $args);
@@ -209,13 +209,6 @@ function rcredits_page_alter($page) {
 }
 /*************/
 
-define('JSON_UNESCAPED_SLASHES', '');
-function json_encode2($s, $zot) { // fudge or pre PHP-5.4 (delete this and change to json_encode (no 2) when we upgrade)
-  $standin = '!##$%!';
-  $s = str_replace('/', $standin, $s);
-  $s = json_encode($s);
-  return str_replace($standin, '/', $s);
-}
 
 /**
  * Add a single entry to the permission array for hook_permission()

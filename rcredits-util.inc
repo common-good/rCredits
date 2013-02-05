@@ -374,7 +374,7 @@ function httpRequest($url, $params = FALSE, $extra_headers = array(), $method = 
 
   if ($params) {
     if ($method == 'POST') {
-      $http['content'] = $request_format == 'json' ? json_encode2($params, JSON_UNESCAPED_SLASHES) : http_build_query($params);
+      $http['content'] = $request_format == 'json' ? json_encode($params, JSON_UNESCAPED_SLASHES) : http_build_query($params);
     } else $url .= '?' . http_build_query($params);
   }
 
@@ -390,9 +390,15 @@ function httpRequest($url, $params = FALSE, $extra_headers = array(), $method = 
   if ($res === FALSE) throw new \Exception("$method $url failed: $php_errormsg");
   
   $result = $format == 'xml' ? simplexml_load_string($res) : json_decode($res);
-  if (is_null($result)) throw new \Exception("$method $url returned error: $res");
+  EXPECT(!is_null($result), "$method $url returned error: $res");
   
   return $result;
+}
+
+function randomInt($len = NULL) {
+  $result = '';
+  while (strlen($result) < $len) $result .= mt_rand(100000000, 999999999);
+  return substr($result, 0, $len);
 }
 
 /**
@@ -504,7 +510,7 @@ function log($type, $info = array(), $special = '', $adhocChannel = '') {
   if (isNonce($special) and @$info['message']) $info['message'] = str_replace($special, '@nonce', $info['message']); // make it easy to match
   if (@$info['code']) $info['code'] = '(the code)'; // don't make code and password any more accessible than they are
   if (@$info['password']) $info['password'] = '(the password)';
-  $info = json_encode2($info, JSON_UNESCAPED_SLASHES);
+  $info = json_encode($info, JSON_UNESCAPED_SLASHES);
   file_put_contents($log_filename, "$date ($channel_name) $type: $info\n", FILE_APPEND);
   $time = time();
   $record = compact(ray('time channel type cuid agent info special'));
