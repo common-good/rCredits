@@ -137,7 +137,7 @@ class acct {
   public function account($just = '', $getHidden = FALSE) {
     if (!@self::$records[$this->id]) $this->reread(); // make sure we have read the record from the db
     if (!@$this->actual and ($getHidden or $just)) {
-      if ($just) $getHidden = (count(array_intersect(u\ray($just), u\ray(R_HIDE_FIELDS))) > 0);
+      if ($just) $getHidden = (count(array_intersect(u\ray($just), u\ray(R_SECRET_FIELDS))) > 0);
       if ($getHidden) $this->getHidden();
     }
     $account = @self::$records[$this->id];
@@ -149,7 +149,7 @@ class acct {
    */
   private function getHidden() {
 //    if ($this->actual) return;
-    $hideData = u\just(R_HIDE_FIELDS, $this->account()); // fake field values are keys into hidden data
+    $hideData = u\just(R_SECRET_FIELDS, $this->account()); // fake field values are keys into hidden data
     $data = hideData($hideData, 'RETRIEVE'); // get actual data from Hidentity
     foreach ($data as $key => $value) self::$records[$this->id]->$key = $value;
     self::$records[$this->id]->actual = TRUE; // set this in the record, not in the object--it applies to all objects for the id
@@ -164,7 +164,7 @@ class acct {
    */
   public function update($info) {
     //if (!@self::$records[$this->id]->uid) self::$records[$this->id] = \user_load($this->id);
-    $toHide = array_intersect(array_keys($info), u\ray(R_HIDE_FIELDS));
+    $toHide = array_intersect(array_keys($info), u\ray(R_SECRET_FIELDS));
     if (count($toHide) > 0 and !@$this->actual) $this->getHidden();
     foreach ($info as $field => $value) {
       if ($field != 'uid') self::$records[$this->id]->$field = $value;
@@ -273,9 +273,7 @@ function UAR($quid = '', $no_abbrev = TRUE) {
  * @return: the actual data (if RETRIEVING) or fake data (if STORING)
  */
 function hideData($data, $do) {
-  return $do == 'STORE' ? strrev($data) : strrev($data);
-  // this should actually contact Hidentity
-  // return u\httpRequest($hidentityApiUrl, $info);
+  return u\httpRequest(R_SECRET_URL, compact('data', 'do'));
 }  
 
 function acct($uid = '', $agent = '', &$error = '') {

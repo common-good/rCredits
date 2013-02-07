@@ -15,7 +15,8 @@ use rCredits\Util as u;
  * @param assoc $schema: the schema to modify or empty, if creating from scratch
  */
 function tableDefs($schema = array()) {
-  require_once 'rcredits-settings.inc'; // Drupal bug. hook_schema needs these explicit, both uninstalling and installing.
+  require_once 'rcredits.inc'; // Drupal bug. hook_schema needs these explicit, both uninstalling and installing.
+  require_once 'rcredits-settings.inc';
   require_once 'rcredits-util.inc';
 
   // table user (additions to Drupal standard)
@@ -23,11 +24,8 @@ function tableDefs($schema = array()) {
     'account_type' => setupField('personal, commercial, non-profit (or government)', 'int tiny'),
     'flags' => setupField('permissions and boolean state flags', 'int big', 0, '010'),
     'community_uid' => setupField("uid of this account's Common Good Community", 'int 11'),
-    'federal_id' => setupField('social security number or employer id number, for reporting', 'int 9'), // secret
-    'dob' => setupField('date of birth, founding, or incorporation', 'int 11'), // secret
-    'id_proof' => setupField('proof of identity encryption key', 'varchar ' . R_SECRET_ID_LEN), // secret
     'question' => setupField('security question', 'varchar 255'),
-    'answer' => setupField('answer to security question', 'varchar ' . R_SECRET_ID_LEN), // secret
+    'offsite' => setupField('index to encrypted data stored off-site', 'int big'),
     'full_name' => setupField('full name of the individual or entity', 'varchar 60'),
     'phone' => setupField('contact phone (no country code, no punctuation)', 'varchar 255'),
     'fax' => setupField('fax number (no country code, no punctuation)', 'varchar 255'),
@@ -47,8 +45,7 @@ function tableDefs($schema = array()) {
     'counts' => setupField('counts of command use, etc.', 'int big', 0),
     'min_balance' => setupField('minimum balance (normally zero or less)', 'numeric 9,2', R_MIN_BALANCE),
 // separate table for this? 'nym' => setupField('unique identifier for cryptographic signing', 'text tiny'), 
-    'usd_account' => setupField('official currency account number (eg Dwolla) with 2-char header', 'text tiny'), // secret
-    'usd_auth' => setupField('official currency account authorization token(s)', 'text medium'), // Dwolla code may be any len
+    'usd_account' => setupField('official currency account info (serialized)', 'text medium'), 
     'proxy1' => setupField('first representative', 'int 11'),
     'proxy2' => setupField('second representative', 'int 11'),
   );
@@ -61,23 +58,27 @@ function tableDefs($schema = array()) {
     'rewards' => setupField('incentive rewards received to date (cannot be cashed out)', 'numeric 11,2'),
     'frozen' => setupField('how much of the balance is unavailable to spend', 'numeric 11,2'),
     'no_bonus' => setupField('how many rCredits must the account accept as payment for goods and services, before receiving more sales bonuses', 'numeric 11,2'),
-*/
 
-  // table r_secret_num
+  MOVE THESE TO offsite field:
+    'federal_id' => setupField('social security number or employer id number, for reporting', 'int 9'), // secret
+    'dob' => setupField('date of birth, founding, or incorporation', 'int 11'), // secret
+    'id_proof' => setupField('proof of identity encryption key', 'varchar ' . R_SECRET_ID_LEN), // secret
+    'answer' => setupField('answer to security question', 'varchar ' . R_SECRET_ID_LEN), // secret
+
+  */
+
+  // table offsite
   $fields = array(
-    'id' => setupField('key to secret data', 'int big'),
-    'data' => setupField('true value of some secret data field on some other server', 'int big'), // up to 20 digits
+    'id' => setupField('key to secret data', 'int big', 0, '010'),
+    'data' => setupField('true value of some secret data field on some other server (encrypted)', 'text medium'), // blob for encrypted data (up to 255*255 chars)
   );
-  $indexes = index('data');
-  $schema['r_secret_num'] = setupTable('secret numeric data on some other server', $fields, 'id', NULL, $indexes);
+//  $indexes = index('data');
+  $schema['offsite'] = setupTable('secret data on some other server', $fields, 'id', NULL, NULL);
   
-  // table r_secret_hash
-  $fields = array(
-    'id' => setupField($fields['id']['description'], 'varchar ' . R_SECRET_ID_LEN),
-    'data' => setupField($fields['data']['description'], 'text tiny'), // blob for possible binary data (up to 255 chars)
-  );
-  $indexes = index('data');
-  $schema['r_secret_num'] = setupTable('secret numeric data on some other server', $fields, 'id', NULL, $indexes);
+/*  // table r_secret_hash
+  $fields['id'] = setupField($fields['id']['description'], 'varchar ' . R_SECRET_ID_LEN),
+  $schema['r_secret_hash'] = setupTable('secret non-numeric data on some other server', $fields, 'id', NULL, NULL);
+*/
   
   // table r_sms 
   $fields = array(
