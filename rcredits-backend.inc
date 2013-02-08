@@ -88,7 +88,7 @@ function backend2($args = FALSE) {
   extract($args, EXTR_PREFIX_ALL, 'my'); // $cuid, $firewall, $agent, $my_id, $op
   unset($args['cuid']); // unset because it is passed as part of r\acct(), not as an arg
 
-  if (@$my_firewall != R_WORD) error('firewall system failure'); // give hackers some satisfaction by saying 'failure'
+  if (@$my_firewall != r\word()) error('firewall system failure'); // give hackers some satisfaction by saying 'failure'
   $firewall = $my_firewall; // is this useful?
   if (!@$my_cuid or !@$my_agent) error('user validation error');
   $cacct = r\acct($my_cuid, $my_agent);
@@ -857,7 +857,7 @@ function isTempName($name) {
 
 function testbe($function = '', $arg1 = '', $arg2 = '', $arg3 = '') {
   global $testing_backend, $firewall;
-  $firewall = R_WORD; // this is not currently necessary
+  $firewall = r\word(); // this is not currently necessary
   if (!$function) return $testing_backend;
   $function = "rCredits\\be\\$function";
   $testing_backend = TRUE;
@@ -893,12 +893,12 @@ function backend($op, $info = array(), $cache = FALSE) {
 //  debug("cache:$cache $op: " . json_encode($info) . ($cache ? " result:$result" : ''));
 //  debug($result);
   $password = r\acct($agent)->pass;
-  $firewall = R_WORD;
+  $firewall = r\word();
 //  foreach ($info as $key => $value) if (strpos($key, 'uid') !== FALSE) $info[$key] = r\quid($value); // convert to qid
 //  $basic = array('agent' => r\quid($agent), 'cuid' => r\quid($cuid));
   $info += compact(u\ray('cuid agent op password firewall')); // operation, credentials, and account
   $host = strpos($base_url, 'localhost/') !== FALSE ? 'http://localhost/devcore' : R_SITE_URL;
-  $api_result = R_SEPARATE_BACKEND ? u\httpRequest("$hostrcredits/api/", $info) : backend2($info);
+  $api_result = R_SEPARATE_BACKEND ? u\httpRequest("$hostrcredits/api/", $info, 'json') : backend2($info);
 //debug($api_result);
   u\log('out', $info + compact('api_result'));
   if ($cache) r\Web\svar($skey, $api_result);

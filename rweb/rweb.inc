@@ -90,6 +90,7 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'incomplete agreement' => t('To sign this agreement, you must put a check in each box, meaning that you have read that section and agree to it.'),
   'bad signature' => t('That signature does not match your full legal name ("@fullName").'),
   'bad invite' => t('To sign up for rCredits, you must be invited and you must use the invitation link within @R_INVITE_DAYS days.'),
+  'info not saved' => t('We apologize. Your information could not be saved at this time. Please try again in an hour or so.'),
 );
 
 /**
@@ -1490,7 +1491,7 @@ function formUsd($form, &$sta) {
     'title' => item(t('USD Account and Security Info')),
     'subtext' => item(t('If you need help completing this section, visit the rCredits office in Greenfield, MA or call @phone', array('@phone' => R_ORG_PHONE))),
     'number' => textField(t('Account:'), t('Your 10-digit Dwolla account number'), required(@$number)),
-    'pin' => textField(t('PIN'), t('Your 4-digit Dwolla PIN'), required(@$pin.'testing')),
+    'pin' => textField(t('PIN'), t('Your 4-digit Dwolla PIN'), required(@$pin)),
     'federal_id' => $cacct->can(PERM_COMPANY) ?
         textField(t('Federal ID:'), t('Your official employer ID number (EIN)'), required(@$federal_id))
       : textField(t('Soc Sec #:'), t('Your social security number (for required annual reporting)'), required(@$federal_id)),
@@ -1538,24 +1539,26 @@ function formUsd_validate($form, &$sta) {
     $tempfile = file_directory_temp() . '/' . $file->filename;
     if (!$sta['values']['id_proof'] = bin2hex(u\encryptFile($tempfile, $destination, passSalt()))) return say('encryption failure', 'id_proof');
     \file_delete($file);
-  } else if($cacct->hasBit(BIT_GOT_PROOF)) $sta['values']['id_proof'] = R_ON_FILE; // flag for no change
+  } elseif($cacct->hasBit(BIT_GOT_PROOF)) {
+    $sta['values']['id_proof'] = R_ON_FILE; // flag for no change
+  } else unset($sta['values']['id_proof']); // no attempt yet to provide this
  }
 
 function formUsd_submit($form, &$sta) {
-  debug((array) u\httpRequest(R_SECRET_URL, array('do' => 'dothis', 'data' => 'thedata'))); return;
+//  debug((string) u\httpRequest(R_SECRET_URL . '/offsite.php', array('id' => '', 'data' => 'thedata'))); return;
   $cacct = r\acct();
-  extract($info = u\just('number pin federal_id dob question answer id_proof statements', $sta['values']));
-  foreach ($info as $key => $value) if ($value == R_ON_FILE) $info[$key] = NULL; // don't change if on file
+  $info = u\just('number pin federal_id dob question answer id_proof statements', $sta['values']);
+  foreach ($info as $key => $value) if ($value == R_ON_FILE or $value == @$form[$key]['#default_value']) unset($info[$key]); // don't change if on file or unchanged
+  extract($info);
   $cacct->setBit(BIT_ELECTRONIC, @$statements);
-  if (isset($number)) { // do this encryption and consolidation in acct:: because we have to read in the old first
+  if (isset($number) or isset($pin)) {
   //DWOLLA: get open auth code
   // $auth = whatever;
     $type = 'Dwolla';
-    $info['usd_account'] = u\ezencrypt(serialize(compact(u\ray('type pin number auth'))), R_WORD);
+    $info['usd_account'] = compact(u\ray('type number pin auth')); // only the updated fields will be included here
   }
-// (do this in acct::)  $info = r\secretArray(u\just('federal_id dob answer id_proof', $info)) + $info;
-  $cacct->update($info);
-  say('info saved');
+  $info = u\just(R_SECRET_FIELDS . ' usd_account question', $info);
+  if (empty($info) or $cacct->update($info)) say('info saved'); else say('info not saved', 'zot');
 }
 
 /**

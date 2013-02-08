@@ -65,7 +65,7 @@ function api($args = FALSE) {
   global $channel; $channel = TX_SMART;
   if (!$args) $args = $_POST;
   u\log('in', $args);
-  if (!$args = @(array) json_decode($args['json'])) return be\error('no json');
+  if (!$args = @(array) json_decode(utf8_encode($args['json']))) return be\error('no json');
   foreach ($args as $key => $value) $args[$key] = trim($value); // allow some sloppy spaces around each arg
   extract($args, EXTR_PREFIX_ALL, 'q');
   

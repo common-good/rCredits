@@ -365,7 +365,7 @@ This function uses the ignore_errors context parameter. Without this set (the de
 
 When using POST with REST, take care: PHP's HTTP redirection handler will drop your POST payload if the endpoint issues a redirect. If you experience problems using POST with the function below, it might be due to redirects. Most of the POST calls I've run into issue redirects if the URL is missing a trailing '/' character. In other words, if you experience problems where it seems like your parameters are not being sent in, try appending a '/' to the end of the URL and try it again.
  */
-function httpRequest($url, $params = FALSE, $extra_headers = array(), $method = 'POST', $format = 'json', $request_format = 'url') {
+function httpRequest($url, $params = FALSE, $responseFormat = 'raw', $extra_headers = array(), $method = 'POST', $request_format = 'url') {
   $ignore_errors = TRUE;
   $headers = array('Content-Type' => $request_format == 'json' ? 'application/json' : 'application/x-www-form-urlencoded') + $extra_headers;
   $header = '';
@@ -381,17 +381,18 @@ function httpRequest($url, $params = FALSE, $extra_headers = array(), $method = 
   $context = stream_context_create(compact('http'));
   $fp = fopen($url, 'rb', FALSE, $context);
   if (!$fp) {
-    $res = FALSE;
+    $response = FALSE;
   } else {
     // If you're troubleshooting, uncomment the next line to see the HTTP response headers across all redirects:
     // $meta = stream_get_meta_data($fp); var_dump($meta['wrapper_data']);
-    $res = stream_get_contents($fp);
+    $response = stream_get_contents($fp);
   }
-  if ($res === FALSE) throw new \Exception("$method $url failed: $php_errormsg");
+  if ($response === FALSE) throw new \Exception("$method $url failed: $php_errormsg");
   
-  $result = $format == 'xml' ? simplexml_load_string($res) : json_decode($res);
-  EXPECT(!is_null($result), "$method $url returned error: $res");
-  
+  $result = $responseFormat == 'xml' ? simplexml_load_string($response)
+    : ($responseFormat == 'json' ? json_decode(utf8_encode($response))
+    : ($response) );
+  EXPECT(!is_null($result), "$method $url returned error: $response");
   return $result;
 }
 
@@ -439,6 +440,7 @@ function EXPECT($assertion, $message = '', $ret = FALSE) {
 //if (strpos($types, '|')) {debug(array_keys($args)); debug($types);}
 //    EXPECT(count($args) != count($types = explode(' ', $types)), 'wrong number of types expected'); // infinite recursion
 //    if(count($args) != count($types = explode(' ', $types))) die('wrong number of types expected: ' . print_r(debug_backtrace(), 1));
+    if (count($args) != count(explode(' ', $types))) debug(debug_backtrace());
     $types = array_combine(array_keys($args), explode(' ', $types)); // not ray() here, $types may have '|'
     foreach ($args as $key => $value) if ($error = expect1($key, $value, $types[$key], $ret)) return $error;
   } elseif (!$assertion) {
@@ -556,17 +558,26 @@ function decode($crypt, $key) {
 
 /**
  * Quicker encryption for often-used fields.
+ * @param string $key: a base64-encoded encryption key (maximum 24 characters, so the resultant key is at most 16 chars)
  */
 function ezencrypt($data, $key = '', $encrypt = TRUE) {
   $function = $encrypt ? 'mcrypt_encrypt' : 'mcrypt_decrypt';
-  $key .= "jist so's it ain't flat obvius";
   $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_256, MCRYPT_MODE_ECB); 
   $iv = mcrypt_create_iv($iv_size, MCRYPT_RAND); 
-  $data = $function(MCRYPT_RIJNDAEL_256, $key, $data, MCRYPT_MODE_ECB, $iv); 
+  $data = $function(MCRYPT_RIJNDAEL_256, base64_decode(substr($key, 0, 24)), $data, MCRYPT_MODE_ECB, $iv); 
   return $encrypt ? $data : rtrim($data, "\0");
 } 
 
 function ezdecrypt($data, $key = '') {return ezencrypt($data, $key, FALSE);}
+
+/**
+ * Return a random ascii string with no spaces or below (good for mcrypt key).
+ */
+function randomString($len = 16) {
+  $s = '';
+  for ($i=0; $i < 16; $i++) $s .= chr(rand(33,254));
+  return $s;
+}
 
 /**
  * Change something to the proper case, unless it is already right.

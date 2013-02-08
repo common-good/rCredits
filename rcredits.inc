@@ -26,11 +26,10 @@ define('R_ASIF_BUY_MIN', 3); // minimum number of ASIF purchases before eligible
 define('R_ASIF_SELL_MIN', 1); // minimum number of ASIF sales before eligible to be a Partner
 define('R_STAGES', t('Member Partner Steward rTrader')); // stages in the progress to rTrader
 define('R_SECRET_FIELDS', 'federal_id dob id_proof answer'); // personal identifying information
-define('R_SECRET_URL', isDEV ? 'http://localhost/devcore/secret/' : 'http://new.rcredits.org/secret'); // where to store secrets
+define('R_SECRET_URL', isDEV ? 'http://localhost/rcredits' : 'http://rcredits.org'); // where to store secrets
 define('R_URL_SLASH', '%_%'); // Drupal gets confused by slashes in a url, even if urlencoded
 define('R_MAX_DAILY_EXCHANGE', 1000); // per Common Good Finance policy and to avoid formal regulation by FinCEN
 define('R_INVITE_DAYS', 7); // number of days to accept invitation to membership
-define('R_WORD', file_get_contents(dirname($_SERVER['DOCUMENT_ROOT']) . "/.shibboleth")); // put this closer to where used
 
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
@@ -855,12 +854,43 @@ function dbQ($sql, $subs = array(), $die = FALSE) {
 //  debug($subs);
 //  if ($die)
  //if (@$subs['info']) {print_r(u\getConstants($sql) . ' ' . print_r(u\prefixKeys(':', $subs), 1)); die();}
+//if (strpos($sql, 'PDATE') and !@$subs['flags']) {print_r(compact('sql','subs','key'));} 
+  //if (!strpos($sql, 'PDATE ')) 
   return \db_query(u\getConstants($sql), u\prefixKeys(':', $subs));
+
+  global $databases, $db;
+  extract($databases['default']['default']);
+  $db = new \PDO("$driver:host=$host;port=$port;dbname=$database", $username, $password);
+  return query(u\getConstants($sql), u\prefixKeys(':', $subs));
 }
 
+function query($sql, $subs = array()) {
+  global $db;
+  $q = $db->prepare($sql);
+  $q->execute($subs);
+  return $q;
+//  return substr($sql, 0, 7) == 'SELECT ' ? $q : $q->rowCount();
+}
+
+/**
+ * Update a database record 
+ * (replaces half the functionality of \drupal_write_record, which does not update bigint fields properly)
+ * @param string $table: table name
+ * @param assoc $info: data to update
+ * @param string $key: record key name
+ * @return: number of rows affected
+ */
+function dbUpdate($table, $info, $key) {
+  $sql = '';
+  foreach ($info as $field => $value) if ($field != $key) $sql .= ",$field=:$field";
+  $sql = "UPDATE $table SET " . substr($sql, 1) . " WHERE $key=:$key";
+  $result = dbQ($sql, $info);
+  return $result->rowCount();
+}
+ 
 function error($logid) {
   $info = dbLookup('info', 'r_log', 'logid=:logid', compact('logid'));
-  if ($info) $info = json_decode($info); else $info = 'unknown error';
+  if ($info) $info = json_decode(utf8_encode($info)); else $info = 'unknown error';
   print_r($info); // keep this for now
 //  drupal_set_message(print_r($info, 1), 'error');
 //  drupal_goto('');
@@ -872,6 +902,7 @@ function rebate($uid, $amount = 1) {return round($amount * userField('rebate_per
 function bonus($uid, $amount = 1) {return rebate($uid, 2 * $amount);}
 function txField($field, $which, $subs = array()) {return tableField($field, '{zxs}', $which, $subs);}
 function setTxState($newValue, $zserial) {setTxField('state', $newValue, $zserial, TRUE);}
+function word() {return file_get_contents(dirname($_SERVER['DOCUMENT_ROOT']) . "/.shibboleth");}
 function totalDemand($ctty = '') {return dbLookup('SUM(demand)', 'users', $ctty ? 'community_uid=:ctty' : '1', compact('ctty'));}
 function balance($uid = '', $real = TRUE) {return be\creditInfo(compact('uid', 'real'))->balance;}
 function serverUid($regionId = '') {return -u\a2n(u\neq($regionId, CT_SERVER_ID) ?: R_SERVER_ID);}

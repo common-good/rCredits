@@ -90,7 +90,7 @@ class acct {
     } else $agentRegion = serverUid();
 
     $record = self::getRecord($id, $region);
-    if ($error = u\EXPECT($record, 'That account does not exist.', $test)) return FALSE; // don't use tt() here (many calls)
+    if ($error = u\EXPECT((bool) $record, 'That account does not exist.', $test)) return FALSE; // don't use tt() here (many calls)
     u\EXPECT($id and $agent and $region and $agentRegion, "Missing acct property: [$id, $agent, $region, $agentRegion]");
     return array($id, $agent, $region, $agentRegion);
   }
@@ -119,13 +119,15 @@ class acct {
     if (!@self::$records[$this->id]) $this->reread(); // necessary when we pass an acct object to another page
 //    u\EXPECT(property_exists(self::$records[$this->id], $field), "bad field for uid $this->id: $field" . print_r(self::$records[$this->id], 1));
     if ($field == 'agent') return acct($this->agentId);
-
+    if (in_array($field, u\ray(R_SECRET_FIELDS))) $this->getHidden();
     $result = @self::$records[$this->id]->$field; // returns NULL if field not set
-    if ($field == 'language') {
+
+    if ($field == 'usd_account') {
+      return @$result ? unserialize(u\ezdecrypt($result, word())) : NULL;
+    } elseif ($field == 'language') {
       $language = $result;
       return \user_preferred_language((object) compact('language'));
-    }
-    return $result;
+    } else return $result;
   }
   
   /**
@@ -136,23 +138,28 @@ class acct {
    */
   public function account($just = '', $getHidden = FALSE) {
     if (!@self::$records[$this->id]) $this->reread(); // make sure we have read the record from the db
-    if (!@$this->actual and ($getHidden or $just)) {
+    if (($getHidden or $just) and !$this->gotOffsite()) {
       if ($just) $getHidden = (count(array_intersect(u\ray($just), u\ray(R_SECRET_FIELDS))) > 0);
       if ($getHidden) $this->getHidden();
     }
     $account = @self::$records[$this->id];
-    return $just ? u\just($just, $account) : $account;
+    return $just ? (object) u\just($just, $account) : $account;
   }
 
+  private function gotOffsite($set = FALSE) {
+    if ($set) {
+      self::$records[$this->id]->gotOffsite = TRUE; // applies to all objects for the id
+    } else return @self::$records[$this->id]->gotOffsite;
+  }
+  
   /**
    * Read protected personal identifying information fields into the account record
    */
   private function getHidden() {
-//    if ($this->actual) return;
-    $hideData = u\just(R_SECRET_FIELDS, $this->account()); // fake field values are keys into hidden data
-    $data = hideData($hideData, 'RETRIEVE'); // get actual data from Hidentity
+    if (!$this->offsite or $this->gotOffsite()) return; // no offsite data or already got it
+    $data = (array) offsiteData($this->offsite); // get protected data from offsite
     foreach ($data as $key => $value) self::$records[$this->id]->$key = $value;
-    self::$records[$this->id]->actual = TRUE; // set this in the record, not in the object--it applies to all objects for the id
+    $this->gotOffsite(TRUE);
   }
   
   public static function _clear() {self::$perms = self::$records = array();}
@@ -161,21 +168,26 @@ class acct {
   /**
    * Update the saved record in the database with the given data.
    * @param assoc $info: data to update
+   * @return: FALSE if update fails (saving either onsite or offsite)
    */
   public function update($info) {
     //if (!@self::$records[$this->id]->uid) self::$records[$this->id] = \user_load($this->id);
-    $toHide = array_intersect(array_keys($info), u\ray(R_SECRET_FIELDS));
-    if (count($toHide) > 0 and !@$this->actual) $this->getHidden();
-    foreach ($info as $field => $value) {
+    if (@$info['usd_account']) { // serialize and encrypt before updating this
+      $usdArray = $info['usd_account'] + ($this->usd_account ?: array());
+      $info['usd_account'] = u\ezencrypt(serialize($usdArray), word());
+    }
+    $toHide = count(array_intersect(array_keys($info), u\ray(R_SECRET_FIELDS))); // how many fields to hide
+    if ($toHide and !$this->gotOffsite()) $this->getHidden(); // get what's offsite before updating it
+    foreach ($info as $field => $value) { // update account object with new info
       if ($field != 'uid') self::$records[$this->id]->$field = $value;
     }
-    $info['uid'] = $this->id; // make sure drupal gets this
-    if (count($toHide) > 0) {
-      $hideData = u\just($toHide, $this->account());
-      $data = hideData($hideData, 'STORE'); // get fake data from Hidentity
-      $info = $data + $info; // replace relevant fields in $info with fake data, before saving to the db
+    if ($toHide) { // store protected information securely, offsite
+      foreach (u\ray(R_SECRET_FIELDS) as $field) unset($info[$field]); // don't pass these to dbUpdate
+      $key = offsiteData(@$this->offsite, $this->account(R_SECRET_FIELDS));
+      if ($key and is_numeric($key)) $info['offsite'] = $key; else return FALSE; // if attempt to store fails, save nothing
     }
-    return \drupal_write_record('users', $info, 'uid');
+    $info['uid'] = $this->id; // make sure dbUpdate gets this
+    return dbUpdate('users', $info, 'uid');
   }
 
   public function proSe() {return ($this->id == $this->agentId);}  
@@ -184,9 +196,7 @@ class acct {
   public function hasBit($bit) {return (bool) ($this->flags & $bit);}
   
   public function setBit($bit, $on = TRUE) {
-  //debug(sprintf("bit=$bit flags before; %x", $this->flags));
     $flags = $on ? ($this->flags | $bit) : ($this->flags & ~$bit);
-  //debug(sprintf("flags after; %x", $flags));
     self::$perms[$this->id] = NULL; // force redo in can()
     return $this->update(compact('flags'));
   }
@@ -267,13 +277,16 @@ function UAR($quid = '', $no_abbrev = TRUE) {
 }
 
 /**
- * Hide or unhide the given data.
- * @param assoc $data: fields to hide or unhide
- * @param string $do: 'STORE' or 'RETRIEVE'
- * @return: the actual data (if RETRIEVING) or fake data (if STORING)
+ * Store or retrieve the given offsite data.
+ * @param string (bigint) $id: record key of offsite data to retrieve or update (if empty, store the data)
+ * @param assoc $data: fields to store or update offsite (if NULL, retrieve the data)
+ * @return: the actual data (if RETRIEVING) or record key (if STORING)
  */
-function hideData($data, $do) {
-  return u\httpRequest(R_SECRET_URL, compact('data', 'do'));
+function offsiteData($id, $data = NULL) {
+  $word = word();
+  if (isset($data)) $data = base64_encode(u\ezencrypt(serialize($data), $word));
+  $result = u\httpRequest(R_SECRET_URL . '/offsite.php', compact('id', 'data'));
+  return isset($data) ? $result : unserialize(u\ezdecrypt(base64_decode($result), $word));
 }  
 
 function acct($uid = '', $agent = '', &$error = '') {

@@ -1,0 +1,70 @@
+<?php
+namespace rCredits;
+use rCredits\Backend as be;
+use rCredits\Util as u;
+
+/**
+ * @file
+ * rCredits USD (official currency) account class
+ */
+
+class usd {
+  var $type; // what type of official currency account (for example Dwolla)
+  var $number; // the USD account number
+  var $pin; // PIN for that account
+  var $oauth; // authorization token
+  var $minimum; // how much money the account-holder wants (us) to keep in the account
+  
+  /**
+   * Instantiate a new USD account object
+   * Update the $info parameter, if appropriate (for example, by filling in the oauth token)
+   *
+   * @param assoc $info (BYREF): information we need in order to access the account and manage it, possibly including:
+   *   type: account type (required)
+   *   number: account number (required for Dwolla)
+   *   pin: account PIN (required for Dwolla)
+   *   oauth: authorization token
+   *   (float) minimum: how much money the account-holder wants (us) to keep in the account
+   * @param string $error: (RETURNED) an error message if appropriate
+   */
+  function __construct(&$info, $error = NULL) {
+    u\EXPECT(@$info['type'] == 'Dwolla', 'bad usd account type');
+    
+  }    
+
+  /**
+   * Return the account balance or its sufficiency
+   * Call by:
+   *   $usd->bal() - return the amount currently in the account
+   *   $usd->bal($want) - return 2=success/0=fail/1=maybe (meaning there is a connected bank account)
+   * @param float $want: can the account give up this much money in a hypothetical immediate transaction?
+   * @param string $error: (RETURNED) an error message on failure
+   * @return: balance or sufficiency
+   */
+  function bal($want = NULL, $error = NULL) {
+    if (isset($want)) {
+
+    } else {
+
+    }
+  }
+
+  /**
+   * Transfer funds from this account to another.
+   * @param float $amount: the amount to transfer
+   * @param usd $other: the other account
+   * @param string $error: (RETURNED) an error message on failure
+   * @return: 2=success 0=fail 1=maybe
+   */
+  function transfer($amount, $other, $error = NULL) {
+    return 0;
+  }
+  
+  /**
+   * Handle callbacks from the USD institution
+   * @param string $type: which institution is calling back (for example Dwolla)
+   */
+  function callback($type) {
+  }
+
+} // end of class

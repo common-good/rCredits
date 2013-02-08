@@ -15,6 +15,7 @@ DROP  `answer` ,
 DROP  `federal_id` ;
   reinstall modules
   
+- add usdMinimum to usd_account
 - handle TX_TENTATIVE
 - code for usd_amount
 - outline distribution procedure for rCredits requests:
