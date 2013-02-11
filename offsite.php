@@ -5,31 +5,35 @@
  * @param string $data: the data to store
  * @return string: if retrieving, return the data. if storing return the id.
  */
-
+ini_set('display_errors',1); error_reporting(E_ALL); 
 define('isDEV', @$_SERVER['WINDIR']); // developing on Windows (unlike production server)
+$root = dirname($_SERVER['DOCUMENT_ROOT']);
+if (strpos($root, '.manage.myhosting.com')) $root .= '/rcredits';
 $caller = $_SERVER['REMOTE_ADDR'];
-if ($caller != (isDEV ? '::1' : '168.144.87.128')) die('access denied');
 
-$args = $_GET;
+$dbs = (array) json_decode(utf8_encode(file_get_contents("$root/.databases")));
+if (!$cryptKey = @$dbs['_offsiteKeys']->$caller) die('access denied, caller '.$caller); // unique password for each caller (unknown to them)
+
+$args = $_POST;
 $id = @$args['id'];
 $data = @$args['data'];
 if (empty($id) and is_null($data)) die('server error (no data)');
 try {
-  exit((string) secret($id, $data));
+  exit((string) secret($dbs, $cryptKey, $id, $data));
 } catch(PDOException $ex) {die('server error (query)');}
 
-function secret($id, $data = NULL) {
-  global $db, $caller;
-  $offsite = file_get_contents(dirname($_SERVER['DOCUMENT_ROOT']) . "/.offsite");
-  extract((array) unserialize($offsite)); // list ($word, $dsn, $dbuser, $dbpass)
+function secret($dbs, $cryptKey, $id, $data = NULL) {
+  global $db;
   $maxLen = strlen('9223372036854775807') - 1; // keep it shorter than biggest usable unsigned "big int" in MySQL
   $table = 'offsite';
-  $key = $word . $caller;
 
-  $db = new PDO($dsn, $dbuser, $dbpass);
-  if (!isset($data)) return ezdecrypt(lookup('data', $table, $id), $key); // retrieval is easy
+  parse_str($dbs[$db_name = key($dbs)], $dbInfo);
+  extract($dbInfo, EXTR_PREFIX_ALL, 'db');
+  $db = new PDO("$db_driver:host=$db_host;port=$db_port;dbname=$db_name", $db_user, $db_pass);
+
+  if (!isset($data)) return ($result = lookup('data', $table, $id)) == '' ? '' : base64_encode(ezdecrypt($result, $cryptKey)); // retrieval is easy
   
-  $data = ezencrypt($data, $key);
+  $data = ezencrypt(base64_decode($data), $cryptKey);
   if ($id) return query("UPDATE $table SET data=? WHERE id=?", array($data, $id)) ? $id : FALSE; // replacing old data with new value
 
   while (TRUE) { // new data, find an unused id
@@ -53,16 +57,20 @@ function query($sql, $subs = array()) {
 
 /**
  * Quick encrypt/decrypt.
+ * @param string $data: what to encrypt or decrypt
+ * @param string $cryptKey: a base64-encoded encryption key (maximum 24 characters, so the resultant key is at most 16 chars)
+ * @param bool $encrypt: TRUE to encrypt, FALSE to decrypt
+ * @return: the encrypted or decrypted data
  */
-function ezencrypt($data, $key = '', $encrypt = TRUE) {
+function ezencrypt($data, $cryptKey = '', $encrypt = TRUE) {
   $function = $encrypt ? 'mcrypt_encrypt' : 'mcrypt_decrypt';
   $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_256, MCRYPT_MODE_ECB); 
   $iv = mcrypt_create_iv($iv_size, MCRYPT_RAND); 
-  $data = $function(MCRYPT_RIJNDAEL_256, $key, $data, MCRYPT_MODE_ECB, $iv); 
+  $data = $function(MCRYPT_RIJNDAEL_256, base64_decode(substr($cryptKey, 0, 24)), $data, MCRYPT_MODE_ECB, $iv); 
   return $encrypt ? $data : rtrim($data, "\0");
 } 
 
-function ezdecrypt($data, $key = '') {return ezencrypt($data, $key, FALSE);}
+function ezdecrypt($data, $cryptKey = '') {return ezencrypt($data, $cryptKey, FALSE);}
 
 function randomInt($len = NULL) {
   $result = '';
