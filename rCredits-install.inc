@@ -31,9 +31,9 @@ function tableDefs($schema = array()) {
     'fax' => setupField('fax number (no country code, no punctuation)', 'varchar 255'),
     'address' => setupField('postal street address', 'varchar 60'),
     'city' => setupField('municipality', 'varchar 60'),
-    'state' => setupField('full state/province name', 'varchar 60'), // varchar because char is deprecated
+    'state' => setupField('state/province index', 'int 5'),
     'postal_code' => setupField('contact postal code (no punctuation)', 'varchar 20'),
-    'country' => setupField('full country name', 'varchar 60'),
+    'country' => setupField('country index', 'int 4'),
     'website' => setupField('primary website', 'varchar 255'),
     'description' => setupField('markup text describing the company (unused for personal accounts)', 'text medium'),
     'notes' => setupField('miscellaneous notes about the user or the account', 'text medium'),
@@ -323,4 +323,97 @@ function setupField($description = '', $type = 'varchar 255', $default = '', $SU
   $scheme['not null'] = $notnull;
 //  ['fields'][$field_name] = $scheme;
   return $scheme;
+}
+
+function makeGeoDropdowns() {
+  $js = 'var cs = new Array();'; // countries
+  $js .= "\n\nvar ss = new Array();"; // states
+  $cq = \db_query('SELECT * FROM r_countries');
+  while ($crow = $cq->fetchAssoc()) {
+    $cid = $crow['id']; $cname = addslashes($crow['name']);
+    $js .= "\n\ncs[$cid] = '$cname';";
+    $js .= "\n\nss[$cid] = new Array();";
+    $sq = dbQ('SELECT * FROM r_states WHERE country_id=:cid', compact('cid'));
+    while ($srow = $sq->fetchAssoc()) {
+      $sid = $srow['id']; $sname = addslashes($srow['name']);
+      $js .= "\nss[$cid][$sid] = '$sname';";
+    }
+  }
+
+  $js .= <<<EOF
+\n
+function print_country(country_id, dft_country, dft_state){
+  var options = document.getElementById(country_id);
+  options.length=0; // zap any previous list items
+  var x, i = 0;
+  for(x in cs) {
+    options.options[i] = new Option(x,cs[x]);
+    if (dft_country == cs[x]) options.selectedIndex = i;
+    i++;
+  }
+  if (dft_country == "") {
+    options.selectedIndex = 1228; // 1228 is US
+    dft_state = 1020; // 1020 is MA
+  }
+  print_state('edit-state', options.selectedIndex, dft_state);
+}
+
+function print_state(state_id, ci, dft_state){
+  var options = document.getElementById(state_id);
+  options.length=0; // zap any previous list items
+  var x, i = 0;
+  for(x in ss) {
+    options.options[i] = new Option(x,ss[ci][x]);
+    if (dft_state == ss[x]) options.selectedIndex = i;
+    i++;
+  }
+}
+EOF;
+
+  file_put_contents(__DIR__ . '/inc/countries.js', $js);
+}
+
+/**
+ * Handle adjustments to previous versions of this software
+ * @param string $version: the version number (eg 1.0)
+ * @param string $when: run "before" or "after" all other installation tasks, or on "uninstall"
+ */
+function oldVersion($version, $when) {
+//  if ($version >= '1.0b') return;
+  
+  if (\db_table_exists('r_countries')) {
+    if (dbLookup(1, 'users', "country='United States'")) {
+      $sql = <<< EOF
+        UPDATE users u
+          INNER JOIN r_countries c ON BINARY c.name=BINARY u.country
+          SET u.country=c.id;
+        UPDATE users u
+          INNER JOIN r_countries c ON BINARY c.id=BINARY u.country
+          INNER JOIN r_states s ON BINARY s.name=BINARY u.state
+          SET u.state=s.id;
+        UPDATE users SET state=4370 WHERE state='Stockholms';
+        UPDATE users SET state=9999 WHERE state='Islington';
+EOF;
+      \db_query($sql);
+      makeGeoDropdowns();
+    }
+  }
+  
+  if (\db_field_exists('users', 'dob')) {
+    $sql = <<< EOF
+      ALTER TABLE users
+      DROP dob,
+      DROP usd_auth,
+      DROP id_proof,
+      DROP answer,
+      DROP federal_id;
+      UPDATE users SET account_type=IF(uid<100, 0, 1) WHERE account_type IS NULL;
+      UPDATE users SET account_type=account_type+1 WHERE account_type>0;
+      UPDATE r_asif SET state=-1 WHERE state=0;
+      UPDATE r_asif SET state=0 WHERE state=2;
+      UPDATE r_txs SET state=-1 WHERE state=0;
+      UPDATE r_txs SET state=0 WHERE state=2;
+EOF;
+    \db_query($sql);
+  }
 }

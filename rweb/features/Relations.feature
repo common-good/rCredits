@@ -7,7 +7,7 @@ Setup:
   Given members:
   | id   | full_name  | account_type  | flags         |
   | .ZZA | Abe One    | %R_PERSONAL   | %BIT_DEFAULTS |
-  | .ZZB | Bea Two    | %R_PERSONAL   | %BIT_PARTNER  |
+  | .ZZB | Bea Two    | %R_PERSONAL   | %BIT_MEMBER  |
   | .ZZC | Corner Pub | %R_COMMERCIAL | %BIT_RTRADER  |
   And transactions: 
   | tx_id | created   | type       | amount | from      | to   | purpose | taking |

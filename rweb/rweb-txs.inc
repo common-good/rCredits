@@ -293,7 +293,8 @@ function tx_summary($starting, $ending) {
   $cuid = r\acct()->id;
   $previous_ending = $starting - 1;
   extract($now_info = (array) be\creditInfo(array('asof' => $ending)), EXTR_PREFIX_ALL, 'now');
-  extract($pending_info = (array) be\creditInfo(array('state' => TX_PENDING, 'asof' => $ending)), EXTR_PREFIX_ALL, 'pending');
+  extract($pending_info = (array) be\creditInfo(array('state' => ':TX_PENDING', 'asof' => $ending)), EXTR_PREFIX_ALL, 'pending');
+  debug($pending_info);
   extract($old_info = (array) be\creditInfo(array('asof' => $previous_ending)), EXTR_PREFIX_ALL, 'old');
   $dif = $pfancy = array();
   foreach (u\ray('grossInProper grossOut rewards committed') as $key) {

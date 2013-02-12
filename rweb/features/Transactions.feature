@@ -7,7 +7,7 @@ Setup:
   Given members:
   | id      | full_name  | min_balance | account_type  | flags         |
   | NEW.ZZA | Abe One    | -100        | %R_PERSONAL   | %BIT_DEFAULTS |
-  | NEW.ZZB | Bea Two    | -200        | %R_PERSONAL   | %BIT_PARTNER  |
+  | NEW.ZZB | Bea Two    | -200        | %R_PERSONAL   | %BIT_MEMBER  |
   | NEW.ZZC | Corner Pub | -300        | %R_COMMERCIAL | %BIT_RTRADER  |
   And relations:
   | id      | main    | agent   | permission        |

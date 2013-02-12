@@ -15,7 +15,7 @@ use rCredits\Backend as be;
 
 define('isDEV', @$_SERVER['WINDIR']); // developing on Windows (unlike production server)
 
-define('R_VERSION', '1.0'); // software version
+define('R_VERSION', '1.0b'); // software version
 define('R_SEPARATE_BACKEND', FALSE);
 define('R_TEMP_NAME_PREFIX', 'unknown ');
 define('R_ASIF_TEXT', ' "AS-IF"'); // how to identify "As If" transactions
@@ -485,6 +485,23 @@ function mergeAccounts($oldUid) {
 }
 
 /**
+ * Return the rough location of the entity with the given account (city, state, non-US country).
+ */
+function location($acct, $complete = FALSE) {
+  $country = dbLookup('name', 'r_countries', 'id=:cid', $where = array('cid' => $acct->country));
+  $isUS = ($country == R_COUNTRY);
+  $state = dbLookup($isUS ? 'abbreviation' : 'name', 'r_states', 'id=:sid and country_id=:cid', $where + array('sid' => $acct->state));
+  
+  $result = array();
+  if ($complete) $result[] = (string) $acct->address; // (string) in case address is NULL
+  $result[] = $acct->city;
+  $result[] = $state . (($complete and $acct->postal_code) ? ' ' . $acct->postal_code : '');
+  if (!$isUS) $result[] = strtoupper($country);
+  foreach ($result as $key => $value) if ($value === '') unset($result[$key]);
+  return join(', ', $result);
+}
+
+/**
  * Reset all rCredits data, to start development with a clean slate
  */
 function reset() {
@@ -795,6 +812,24 @@ function newMemberId($oldUid, $newUid = FALSE, $skipUsers = FALSE) {
 }
 
 /**
+ * Record an invitation
+ * @param string $email: email address to which the invite was sent
+ * @param int $inviter: the inviter's account uid
+ * @param string $code: proof of the invitation (that invitee must have, in order to sign up) (DEFAULT random)
+ * @return string: the code
+ */
+function invite($email, $inviter, $code = '') {
+  $info = array(
+    'code' => $code ?: \user_password(20),
+    'email' => $email,
+    'inviter' => $inviter,
+    'invited' => REQUEST_TIME,
+  );
+  drupal_write_record('r_invites', $info);
+  return $info['code'];
+}
+
+/**
  * Go to the specified page
  * Accommodate testing, if that's what's happening.
  * Drupal urlencodes the parameters (= and &), so the target page will have to sort that out. (can't use Header() here)
@@ -802,6 +837,9 @@ function newMemberId($oldUid, $newUid = FALSE, $skipUsers = FALSE) {
 function go($page) {
   if (@TESTING == 1) {
     list ($form, $arg1) = ($page == 'pay' or $page == 'charge') ? array('tx', $page) : array($page, '');
+    $form = function_exists("\\rCredits\\Web\\form$form") ? $form 
+      : ($form = 'user/register' ? 'register'
+      : "\\$form");
     return Web\showForm($form, $arg1);
   }
   \drupal_goto($page);

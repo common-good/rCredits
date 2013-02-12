@@ -27,7 +27,7 @@ class usd {
    *   (float) minimum: how much money the account-holder wants (us) to keep in the account
    * @param string $error: (RETURNED) an error message if appropriate
    */
-  function __construct(&$info, $error = NULL) {
+  function __construct(&$info, &$error = NULL) {
     u\EXPECT(@$info['type'] == 'Dwolla', 'bad usd account type');
     
   }    
@@ -41,7 +41,7 @@ class usd {
    * @param string $error: (RETURNED) an error message on failure
    * @return: balance or sufficiency
    */
-  function bal($want = NULL, $error = NULL) {
+  function bal($want = NULL, &$error = NULL) {
     if (isset($want)) {
 
     } else {
@@ -54,17 +54,20 @@ class usd {
    * @param float $amount: the amount to transfer
    * @param usd $other: the other account
    * @param string $error: (RETURNED) an error message on failure
+   * @param bool $payerFee: the payer pays the transaction fee (if any) -- otherwise (default) the payee pays it
    * @return: 2=success 0=fail 1=maybe
    */
-  function transfer($amount, $other, $error = NULL) {
+  function transfer($amount, $other, &$error = NULL, $payerFee = FALSE) {
     return 0;
   }
   
   /**
    * Handle callbacks from the USD institution
-   * @param string $type: which institution is calling back (for example Dwolla)
+   * The calling institution is expected to be explicit in the callback info
    */
-  function callback($type) {
+  public static function callback() {
+    extract(u\just('this that theother', $_POST));
+    
   }
 
 } // end of class

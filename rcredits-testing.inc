@@ -31,6 +31,8 @@ function makeAccount($info = array(), $testOnly = FALSE) {
   $flags = BIT_DEFAULTS | (isset($my_flags) ? $my_flags : 0);
   $community_uid = @$my_communityUid ?: r\serverUid();
   u\EXPECT(!empty($community_uid), 'empty community uid');
+  fixCountryAndState($info);
+
   foreach (u\ray('id email password') as $one) unset($info[$one]);
   
   $info = array_merge($info, compact(u\ray('uid flags rebate_percent name pass full_name mail community_uid')));
@@ -73,7 +75,8 @@ function makeTransaction($info, $infoOnly = FALSE) {
   $payee = uid($my_to); 
   $payee_agent = uid(@$my_to_agent ?: ($type == TX_TRANSFER ? $my_to : r\communityUid()));
   $real = strpos(@$my_tx_id, ':') !== FALSE ? FALSE : (r\isRTrader($payer) and r\isRTrader($payee)); // even handles asif signup bonus to rTrader
-//  debug(compact('real','payer','payee','my_tx_id','xid'));
+
+  //  debug(compact('real','payer','payee','my_tx_id','xid'));
 //  debug(r\isRTrader($payer));
 //  debug(r\isRTrader($payee));
   
@@ -147,7 +150,9 @@ function uid($id) {
 function getErrors() {
   $errors = \drupal_get_messages('error', FALSE);
   $errors = @$errors['error'] ?: array();
-  while (u\abbreviates('Unable to send e-mail', @$errors[0])) array_shift($errors); // ignore this when testing
+  foreach ($errors as $key => $value) {
+    if (u\abbreviates('Unable to send e-mail', $value) or strpos(strip_tags($value), 'expected to be a reference, value given in drupal_retrieve_form()')) unset($errors[$key]); // ignore these when testing
+  }
   return $errors;
 }
 
@@ -192,6 +197,15 @@ function findEmail($key, $email, $subs, $real = FALSE) {
   debug($esubs);
   $subject = strtr($GLOBALS['emailSubjects'][$key], $esubs);
   return findMessage('email', compact(u\ray('key email subject')), $message, $subject, $subs);
+}
+
+/**
+ * Convert country and state names or abbreviations to the corresponding indices
+ */
+function fixCountryAndState(&$info) {
+  extract(u\just('country state', $info));
+  if (@$country) $info['country'] = $country = r\dbLookup('id', 'r_countries', ':country IN (name, iso_code)', compact('country'));
+  if (@$state) $info['state'] = r\dbLookup('id', 'r_states', ':state IN (name, abbreviation) AND country_id=:country', compact('state', 'country'));
 }
 
 function makePicture($picture, $acct) {
@@ -258,7 +272,7 @@ function snapShot(&$form) { // (additional sta values have no effect at this sta
 function addAttribs(&$thing) {
   foreach ($thing as $key => $value) { // else Drupal complains when rendering
     if (substr($key, 0, 1) == '#') continue;
-    if (!isset($value['#attributes']['id'])) $thing[$key]['#attributes']['id'] = array('id' => "edit-$key");
+    if (!isset($value['#attributes']['id'])) $thing[$key]['#attributes']['id'] = "edit-$key";
     if (!isset($value['#title_display'])) $thing[$key]['#title_display'] = 'before';
     addAttribs($thing[$key]);
   }
@@ -296,7 +310,7 @@ function verifyRecord($table, $info) {
 
 function postProcess($form, $formName, $type) {
   $functions = @$form["#$type"];
-  if (!@$functions or ((string) $functions) == '<') {
+  if (!@$functions or @($functions == '<')) {
     $function = "rCredits\\Web\\form{$formName}_$type";
     $functions = function_exists($function) ? array($function) : array();
   }
@@ -367,6 +381,14 @@ function realFix($msg, $real = FALSE) {
     '{asif}' => R_ASIF_TEXT,
   );
   return strtr($msg, $real ? $mapReal : $mapNot);
+}
+
+/**
+ * Fake $_SERVER params for testing
+ */
+function SERVER($key, $value = NULL) {
+  global $T_SERVER;
+  if (isset($value)) $T_SERVER[$key] = $value; else return $T_SERVER[$key];
 }
 
 /**

@@ -168,10 +168,12 @@ class acct {
   /**
    * Update the saved record in the database with the given data.
    * @param assoc $info: data to update
+   * @param string $just: update only these fields (update all if NULL, none if '')
    * @return: FALSE if update fails (saving either onsite or offsite)
    */
-  public function update($info) {
+  public function update($info, $just = NULL) {
     //if (!@self::$records[$this->id]->uid) self::$records[$this->id] = \user_load($this->id);
+    if (isset($just)) $info = u\just($just, $info);
     if (@$info['usd_account']) { // serialize and encrypt before updating this
       $usdArray = $info['usd_account'] + ($this->usd_account ?: array());
       $info['usd_account'] = u\ezencrypt(serialize($usdArray), word());

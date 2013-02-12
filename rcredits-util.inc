@@ -132,21 +132,6 @@ function validName($name, $individual = TRUE, $picky = TRUE) {
 }
 
 /**
- * Return the rough location of the entity with the given account (city, state, non-US country).
- */
-function location($acct, $complete = FALSE) {
-  $isUS = ($acct->country == R_COUNTRY);
-  
-  $result = array();
-  if ($complete) $result[] = (string) $acct->address; // (string) in case address is NULL
-  $result[] = $acct->city;
-  $result[] = ($isUS ? stateAbbrev($acct->state) : $acct->state) . (($complete and $acct->postal_code) ? ' ' . $acct->postal_code : '');
-  if (!$isUS) $result[] = strtoupper($acct->country);
-  foreach ($result as $key => $value) if ($value === '') unset($result[$key]);
-  return join(', ', $result);
-}
-
-/**
  * Return the standard 2-letter abbreviation for the country or vice versa
  * See the latest data on Wikipedia.
  * @todo: get this in agreement with countries.js (sorted by country name)
@@ -318,6 +303,8 @@ function tt($message, $subs = array(), $adhocChannel = '') {
           $real = isset($subs['real']) ? $subs['real'] : r\isRTrader();
           $subs['asif'] = $real ? '' : R_ASIF_TEXT;
         }
+        if (@$subs['href']) $model = str_replace('<a>', '<a href="@href">', $model);
+
         break;
       }
     }

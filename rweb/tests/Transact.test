@@ -46,8 +46,8 @@ class rwebTransact extends DrupalWebTestCase {
     Given('members: "DATA'
     . '\\| id      | full_name  | address | city  | state  | postal_code | country   | email         | account_type  | flags         |'
     . '\\| NEW.ZZA | Abe One    | POB 1   | Atown | Alaska | 01000   | United States | a@example.com | %R_PERSONAL   | %BIT_DEFAULTS |'
-    . '\\| NEW.ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000   | United States | b@example.com | %R_PERSONAL   | %BIT_PARTNER  |'
-    . '\\| NEW.ZZC | Corner Pub | POB 3   | Ctown | Corse  |         | France        | c@example.com | %R_COMMERCIAL | %BIT_RTRADER  |"');
+    . '\\| NEW.ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000   | United States | b@example.com | %R_PERSONAL   | %BIT_MEMBER   |'
+    . '\\| NEW.ZZC | Corner Pub | POB 3   | Ctown | Cher   |         | France        | c@example.com | %R_COMMERCIAL | %BIT_RTRADER  |"');
     And__('relations: "DATA'
     . '\\| id      | main    | agent   | permission        |'
     . '\\| NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |'
@@ -71,8 +71,8 @@ class rwebTransact extends DrupalWebTestCase {
     Given('members: "DATA'
     . '\\| id      | full_name  | address | city  | state  | postal_code | country   | email         | account_type  | flags         |'
     . '\\| NEW.ZZA | Abe One    | POB 1   | Atown | Alaska | 01000   | United States | a@example.com | %R_PERSONAL   | %BIT_RTRADER |'
-    . '\\| NEW.ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000   | United States | b@example.com | %R_PERSONAL   | %BIT_RTRADER  |'
-    . '\\| NEW.ZZC | Corner Pub | POB 3   | Ctown | Corse  |         | France        | c@example.com | %R_COMMERCIAL | %BIT_RTRADER  |"');
+    . '\\| NEW.ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000   | United States | b@example.com | %R_PERSONAL   | %BIT_RTRADER   |'
+    . '\\| NEW.ZZC | Corner Pub | POB 3   | Ctown | Cher   |         | France        | c@example.com | %R_COMMERCIAL | %BIT_RTRADER  |"');
     And__('relations: "DATA'
     . '\\| id      | main    | agent   | permission        |'
     . '\\| NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |'
