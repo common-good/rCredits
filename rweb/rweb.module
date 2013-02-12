@@ -75,7 +75,7 @@ function rweb_menu() {
     'remainder' => r\Web\menu(t('Show Customer Balance'), MENU_CALLBACK, 'remainder', array(1), PERM_SELL),
     'empty' => r\Web\menu(t('Empty'), MENU_CALLBACK, 'showForm', array('Empty'), '', $anyone),
 
-    'Advance-ID-Card' => r\Web\menu(t('Print Advance ID Card'), MENU_CALLBACK, 'memberID', array(1),  PERM_SELL),
+    'Print-ID-Card' => r\Web\menu(t('Print Advance ID Card'), MENU_CALLBACK, 'memberID', array(1),  PERM_SELL),
     'draft' => r\Web\menu(t('Draft into Database'), MENU_CALLBACK, 'showForm', array('Draft', 1), PERM_SELL),
     
     'I' => r\Web\menu('Scanned QR', MENU_CALLBACK, 'showForm', array('I'), '', $anyone),

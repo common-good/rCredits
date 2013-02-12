@@ -6,15 +6,15 @@ SO I can buy and sell stuff.
 # And foreigner (member on a different server) to member, etc.
 
 Variants: all members are rTraders
-  | %BIT_DEFAULTS | %BIT_PARTNER | NEW:AAA | asif |
+  | %BIT_DEFAULTS | %BIT_MEMBER  | NEW:AAA | asif |
   | %BIT_RTRADER  | %BIT_RTRADER | NEW.AAA | real |
 
 Setup:
   Given members:
   | id      | full_name  | address | city  | state  | postal_code | country   | email         | account_type  | flags         |
   | NEW.ZZA | Abe One    | POB 1   | Atown | Alaska | 01000   | United States | a@example.com | %R_PERSONAL   | %BIT_DEFAULTS |
-  | NEW.ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000   | United States | b@example.com | %R_PERSONAL   | %BIT_PARTNER  |
-  | NEW.ZZC | Corner Pub | POB 3   | Ctown | Corse  |         | France        | c@example.com | %R_COMMERCIAL | %BIT_RTRADER  |
+  | NEW.ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000   | United States | b@example.com | %R_PERSONAL   | %BIT_MEMBER   |
+  | NEW.ZZC | Corner Pub | POB 3   | Ctown | Cher   |         | France        | c@example.com | %R_COMMERCIAL | %BIT_RTRADER  |
   And relations:
   | id      | main    | agent   | permission        |
   | NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |

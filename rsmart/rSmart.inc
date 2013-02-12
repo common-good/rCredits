@@ -171,7 +171,7 @@ function identify($args) {
   if (!@$acct) return be\error('missing acct');
   $full_name = $acct->full_name;
   if ($acct->id == $cacct->id) return be\error('no self-trading');
-  $location = u\location($acct);
+  $location = r\location($acct);
   if (!$acct->proSe()) list ($company_name, $full_name) = array($full_name, r\acct($acct->agentId)->full_name);
   $uid = $acct->id;
   if ($cacct->can(PERM_CHARGE)) $other_balance = be\creditInfo(compact('uid'))->balance;

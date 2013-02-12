@@ -41,6 +41,7 @@ function extraSetup($feature) {
   r\dbQ('TRUNCATE r_relations');
   r\dbQ('TRUNCATE r_log'); // so we don't find results from the wrong test
   r\dbQ('TRUNCATE sequences');
+  r\dbQ('TRUNCATE r_invites');
   r\dbQ('ALTER TABLE sequences AUTO_INCREMENT=' . u\a2n('ZZA'));
 
   if (!function_exists('multiline_tweak')) {function multiline_tweak(&$line) {
@@ -68,17 +69,22 @@ function memberCompletesFormWithValues($id, $formName, $values, $confirmed = FAL
 //  global $testOnly; if ($testOnly) return FALSE;
   global $testConfirmation; // confirmation message output, if any
 
-  $sta['values'] = @$values[0]['email'] ? u\changeKey('email', 'mail', $values[0]) : $values[0];
-  
+  $values = $values[0];
+  t\fixCountryAndState($values);
+  $sta['values'] = @$values['email'] ? u\changeKey('email', 'mail', $values) : $values;
+    
   t\logIn($id);
   if (in_array($formName, u\ray('Pay Charge Grant Loan Fine'))) list ($formName, $arg) = array('Tx', $formName);
   $formPath = substr($formName, 0, 1) == '\\' ? substr($formName, 1) : "rCredits\\Web\\form$formName";
-  $form = \drupal_get_form($formPath, @$arg);
+  $arg = @$arg; // avoid undefined errors (?) and byref errors in call to \drupal_get_form()
+  $form = \drupal_get_form($formPath, $arg);
 //  if (function_exists($alter = 'rweb_form_' . $formPath . '_alter')) $alter($form, $sta, $formName);
   
 //  if (!$confirmed) foreach (t\postProcess($form, $formName, 'validate') as $one) {
   $errorsBefore = t\getErrors();
-  if ($formName != 'Tx' or !$confirmed) foreach (t\postProcess($form, $formName, 'validate') as $one) $one($form, $sta);
+  if ($formName != 'Tx' or !$confirmed) {
+    foreach (t\postProcess($form, $formName, 'validate') as $one) $one($form, $sta);
+  }
   if (count($errors = t\getErrors()) > count($errorsBefore)) {
     // NO! if (!empty($errors)) return FALSE;
     debug(compact(u\ray('id formName values confirmed one errors')));
@@ -96,9 +102,6 @@ function memberCompletesFormWithValues($id, $formName, $values, $confirmed = FAL
  *
  * in: Signup ANewbieRegisters MAKE
  *     Signup AMemberRegistersBadEmail MAKE
- *     Signup AMemberRegistersAgain MAKE
- *     Signup AMemberRegistersWithACompany MAKE
- *     Signup AMemberRegistersWithACompanyWithNoEmployeeOrOwner MAKE
  *     Transact AMemberConfirmsRequestToChargeAnotherMember MAKE
  *     Transact AMemberConfirmsRequestToPayAnotherMember MAKE
  */
@@ -146,8 +149,6 @@ function aMemberConfirmsFormwhichLogsOutWithValues($formName, $values) {
  *
  * in: Relations Setup MAKE
  *     Signup ANewbieRegisters TEST
- *     Signup AMemberRegistersAgain MAKE
- *     Signup AMemberRegistersWithACompany TEST
  *     Summary Setup MAKE
  *     Transact Setup MAKE
  *     Transactions Setup MAKE
@@ -182,8 +183,6 @@ function transactions($list) {
  *
  * in: Signup ANewbieRegisters TEST
  *     Signup AMemberRegistersBadEmail TEST
- *     Signup AMemberRegistersAgain TEST
- *     Signup AMemberRegistersWithACompanyWithNoEmployeeOrOwner TEST
  *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
  *     Transact AMemberConfirmsRequestToPayAnotherMember TEST
  */
@@ -196,7 +195,7 @@ function weSayWithSubs($type, $index, $real, $subs) {
     $subs['email'] = str_replace("'", '&#039;', htmlspecialchars($subs['email'])); // Drupal does this in user_register()
   }
   $msg = t\realFix(u\tt($index, $subs + compact('real')), $real);
-  $msgs = drupal_get_messages($type ?: NULL, FALSE);
+  $msgs = \drupal_get_messages($type ?: NULL, FALSE);
   $result = (@$msgs[$type] and array_search($msg, $msgs[$type]) !== FALSE);
   if (!$result) debug(compact('msg','msgs'));
   t\testOutput($msg, 'output'); // this must come after array_search!
@@ -258,7 +257,8 @@ function weShowWithSubs($page, $real, $subs) {
  *     Relations MemberHasAccessToEmployeeAccount TEST
  *     Relations MemberCompanyHasRelations TEST
  *     Relations ItsComplicated TEST
- *     Signup ANewbieVisitsTheRegistrationPage TEST
+ *     Signup ANewbieVisitsTheRegistrationPageWithNoInvite TEST
+ *     Signup AnInvitedNewbieVisitsTheRegistrationPage TEST
  *     Summary AMemberClicksOnTheSummaryTab TEST
  *     Summary AForeignRTraderClicksOnTheSummaryTab TEST
  *     Transactions AMemberLooksAtTransactionsForThePastYear TEST
@@ -310,7 +310,6 @@ function weShowPageWithout($page, $content) {
  *     Relations MemberHasAccessToEmployeeAccount MAKE
  *     Relations MemberCompanyHasRelations MAKE
  *     Relations ItsComplicated MAKE
- *     Signup AMemberRegistersWithACompany TEST
  *     Summary Setup MAKE
  *     Transact Setup MAKE
  *     Transactions Setup MAKE
@@ -349,7 +348,8 @@ function balances($real, $list) {
  *     Relations MemberHasAccessToEmployeeAccount MAKE
  *     Relations MemberCompanyHasRelations MAKE
  *     Relations ItsComplicated MAKE
- *     Signup ANewbieVisitsTheRegistrationPage MAKE
+ *     Signup ANewbieVisitsTheRegistrationPageWithNoInvite MAKE
+ *     Signup AnInvitedNewbieVisitsTheRegistrationPage MAKE
  */
 function memberVisitsPage($id, $page) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -380,7 +380,6 @@ function memberVisitsPageWithOptions($id, $page, $options) {
  *
  * in: Signup Setup MAKE
  *     Signup ANewbieRegisters TEST
- *     Signup AMemberRegistersAgain TEST
  */
 function memberIsLoggedOut() {
   global $testOnly;
@@ -395,4 +394,18 @@ function memberIsLoggedOut() {
   module_load_include('pages.inc', 'user');
   if (\user_is_logged_in()) \user_logout(); else return TRUE;
   return FALSE; // should never get here
+}
+
+/**
+ * invitation to email (ARG) is (ARG)
+ *
+ * in: Signup ANewbieVisitsTheRegistrationPageWithNoInvite MAKE
+ *     Signup AnInvitedNewbieVisitsTheRegistrationPage MAKE
+ *     Signup ANewbieRegisters MAKE
+ */
+function invitationToEmailIs($email, $code) {
+  global $testOnly; if ($testOnly) return FALSE;
+  if ($code) r\invite($email, 1, $code); // invitation comes (arbitrarily) from uid 1
+  t\SERVER('REQUEST_URI', "whatever/$code"); // fake the URI
+  return TRUE;
 }

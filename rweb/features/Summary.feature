@@ -7,8 +7,8 @@ Setup:
   Given members:
   | id      | full_name  | address | city  | state  | postal_code | country       | min_balance | account_type  | flags       |
   | NEW.ZZA | Abe One    | POB 1   | Atown | Alaska | 01000       | United States | -100      | %R_PERSONAL   | %BIT_DEFAULTS |
-  | NEW.ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000       | United States | -200      | %R_PERSONAL   | %BIT_PARTNER  |
-  | NEW.ZZC | Corner Pub | POB 3   | Ctown | Corse  |             | France        | -300      | %R_COMMERCIAL | %BIT_STEWARD  |
+  | NEW.ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000       | United States | -200      | %R_PERSONAL   | %BIT_MEMBER  |
+  | NEW.ZZC | Corner Pub | POB 3   | Ctown | Cher   |             | France        | -300      | %R_COMMERCIAL | %BIT_MEMBER  |
 
   And relations:
   | id      | main    | agent   | permission        |
@@ -50,5 +50,5 @@ Scenario: A member clicks on the summary tab
 Scenario: A foreign rTrader clicks on the summary tab
   When member "NEW.ZZC" visits page "summary" with options ""
   Then we show page "summary" with:
-  | Name                   | Address                     | Account ID               | Type       | Balance | Credit | Rewards |
-  | Corner Pub (cornerpub) | POB 3, Ctown, Corse, FRANCE | NEW.ZZC (%R_REGION_NAME) | commercial | $323    | $300   | $258    |
+  | Name                   | Address                    | Account ID               | Type       | Balance | Credit | Rewards |
+  | Corner Pub (cornerpub) | POB 3, Ctown, Cher, FRANCE | NEW.ZZC (%R_REGION_NAME) | commercial | $323    | $300   | $258    |

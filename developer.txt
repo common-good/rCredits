@@ -2,20 +2,31 @@ rCredits Software
 Notes for developers
 
 Short term tasks:
-On new. server (after updating code):
-  UPDATE users SET account_type=IF(uid<100, 0, 1) WHERE account_type IS NULL;
-  UPDATE users SET account_type=account_type+1 WHERE account_type>0;
-  UPDATE r_asif SET state=-1 WHERE state=0;
-  UPDATE r_asif SET state=0 WHERE state=2;
-  ALTER TABLE  `users` 
-DROP  `dob` ,
-DROP  `usd_auth` ,
-DROP  `id_proof` ,
-DROP  `answer` ,
-DROP  `federal_id` ;
-  reinstall modules
-  
+- Start everyone with $50, bring it up to $100 the next week (2nd month everyone starts at $20)
+- Cut the registration process loose from user_register (mostly so the testing can run properly).
+- Coding security policy: never show any personal identifying info (R_SECRET_FIELDS) in the HTML. EVER. For example, when verifying someone's identity, the staff member should ask for the last 4 of their ss#, type it in and press submit. The code does a compare and returns just yes or no. Even the member cannot ever see what they earlier typed in. We might want to have a similar but weaker restriction on phone numbers and addresses -- like maybe those are protected for personal accounts. When 1099 time comes, the reports go out electronically only (no preview, etc.) Even user 1 and other admins don't have access to PII. Also put in some safe-guards to prevent repetitive guessing.
+- default purpose for companies
+- make a "open another account" button and add that possibility to the error when trying to register without an invite (implement by creating an invite and redirecting to registration, using that code). Choices for the new account:
+  . current account owns the new account
+  . new account owns the current account
+  . current account and new account have the same owner(s)
+  . current account and new account are personal accounts for individuals who have a personal relationship rather than a business relationship
+  . none of the above
+  ----------
+  . current account can cover new account's debts and overdrafts
+  . new account can cover current account's debts and overdrafts
+  . both
+  . neither
 - add usdMinimum to usd_account
+- separate security page from bank page?
+- relations: fields for (financial) master and slave (not just employer and employee). Master includes O=owner (main owns other), E=employer, S=supplied, F=family. Slave includes o=owned, e=employee, 1=proxy1, 2=proxy2 (etc?), s=supplier, f=family. Ownership, supplier, and family do not have to be confirmed (eg, either owner or owned will show up as both but will track who stated the relation). On relations screen do not list proxies.
+- Default for companies is "pay everyone virtually", for personal is "pay everyone directly". Companies with the "pay everyone virtually" option don't have to pay anyone consciously. A "pay ALL" is done for them at midnight daily. Their rCredits are offered equally to all employees and to their suppliers in proportion to how many employees and vendors that supplier has (where each supplier counts as half the average number of employees that any supplier has, divided by the average number of supplieds that any supplier has), divided by its supplied count, divided by 2. All amounts are truncated to the penny. All payment offers are accepted automatically, up to the amount in the accepter's Dwolla account. Unaccepted amounts are redistributed to others (not recursively, if the company is unable to distribute its funds). A company's payments are tentative until we know what all of them will be. Companies must list for each employee and supplier the average amount they pay them per month ($/mo) on the relations screen.
+- beef up security - immediate:
+  . QR on card includes a security code (urlencoded 5 random bytes, preceded by 3 case-insensitive letters printed on back). Merchants who 
+  . Show the agent's picture below Help/Menu (below accounts dropdown in fullscreen). 
+- security later: 
+  . Make the agent's picture appear from behind the "r", get big, then shrink and settle into place, traveling in the shape of an "r", ideally leaving a jet trail.
+  . How to prove the logged-out site is rcredits? Maybe always ask first "It looks like you came here from an rCredits member site. Make sure this is the real rCredits website! Does your url bar say https://new.rcredits.org? Does it show a security symbol? We will display this reminder only once in a while. Don't let the identity thieves get you. Be sure to check the url bar <i>every time</i>."
 - handle TX_TENTATIVE
 - code for usd_amount
 - outline distribution procedure for rCredits requests:
@@ -273,6 +284,7 @@ function eachAccount($queries, $ons, $where = 'TRUE', $subs = array()) {
 @todo: closed accounts have only read perm and point (data[new_account]) at new account qid
 @todo: servers exchange info on which ss#s (or other ids) are dups
 @todo: *** unilateral only if agent charging for company using SMS or scan. No invoicing for remainder beyond partial charge (just say how much is still due).
+@todo: check on mergeaccounts: do inter-table key relations get updated automatically?
 @todo: donations
 @todo
 - remove all direct db operations from interface modules (and their .inc files) -- use be\ and u\ there, but not r\

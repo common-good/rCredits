@@ -10,7 +10,7 @@ use rCredits\Backend as be;
 
 include_once __DIR__ . '/rcredits-install.inc'; // treat this as an extension of this file
 
-define('R_TABLES', 'r_areas,r_regions,r_nonces,r_industries,r_user_industries');
+define('R_TABLES', 'r_areas,r_regions,r_countries,r_states,r_nonces,r_industries,r_user_industries');
 
 /**
  * Implement hook_install().
@@ -18,6 +18,8 @@ define('R_TABLES', 'r_areas,r_regions,r_nonces,r_industries,r_user_industries');
  * Add custom data for the rCredits module.
  */
 function rcredits_install() {
+  $oldVersion = substr(variable_get('site_slogan'), 8);
+  r\oldVersion($oldVersion, 'before');
   r\make_fields();
 
   // create server record if it doesn't exist yet
@@ -39,6 +41,8 @@ function rcredits_install() {
   variable_set('site_name', 'rCredits');
   variable_set('site_slogan', 'version ' . R_VERSION);
   variable_set('user_register', USER_REGISTER_VISITORS); // let visitors register themselves
+  variable_set('duplicate_email_message', r\Web\tt('duplicate email'));
+  variable_set('forgot_password_message', r\Web\tt('forgot password'));
   
   // pictures
   variable_set('user_pictures', '1');
@@ -61,8 +65,10 @@ function rcredits_install() {
       if (!db_query($sql)->rowCount()) die("Failed to insert records for $table.");
 	  }
   }
+  
   db_query("DELETE from menu_links WHERE menu_name='main-menu' AND link_title='Home'"); // this is replaced by "Summary"
 // this fails  db_query("UPDATE menu_links SET hidden=1 WHERE menu_name='navigation'"); // don't want these either
+  r\oldVersion($oldVersion, 'after');
 }
 
 /**
@@ -89,6 +95,9 @@ function rcredits_schema_alter(&$schema) {
  * Best not to use anything much here from other files.
  */
 function rcredits_uninstall() {
+  $oldVersion = substr(variable_get('site_slogan'), 8);
+  r\oldVersion($oldVersion, 'uninstall');
+
 //  require_once 'rcredits.inc'; // Drupal bug. Uninstall needs this explicit.
 //  require_once 'rcredits-util.inc';
 

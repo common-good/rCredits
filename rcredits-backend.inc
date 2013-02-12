@@ -657,11 +657,11 @@ EOF;
 
 /**
  * Return financial information about the given account on this server
- * param array $args: associative array of non-default options:
- *  uid: uid for the account to return information for (DEFAULTS to cuid)
- *  state: string list of transaction states to return (DEFAULT ':TX_DONE,:TX_DISPUTED')
- *  real: return real transactions instead of asif (DEFAULT real for rTraders, asif for non-rTraders)
- *  asof: last date to include (defaults to '', meaning unrestricted)
+ * @param assoc $args: non-default options:
+ *   uid: uid for the account to return information for (DEFAULTS to cuid)
+ *   state: string list of transaction states to return (DEFAULT ':TX_DONE,:TX_DISPUTED')
+ *   real: return real transactions instead of asif (DEFAULT real for rTraders, asif for non-rTraders)
+ *   asof: last date to include (defaults to '', meaning unrestricted)
  *
  * @return
  *   standard object of credit account information (see $resultKeys, below)
