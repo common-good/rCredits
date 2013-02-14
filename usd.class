@@ -1,23 +1,24 @@
 <?php
 namespace rCredits;
-use rCredits\Backend as be;
 use rCredits\Util as u;
 
 /**
  * @file
  * rCredits USD (official currency) account class
+ *
+ * This class has no awareness of the Drupal database
  */
 
 class usd {
-  var $type; // what type of official currency account (for example Dwolla)
+  var $type; // what type of official currency account (for example Dwolla, Ripple, or Bank)
   var $number; // the USD account number
   var $pin; // PIN for that account
   var $auth; // authorization token
   var $minimum; // how much money the account-holder wants (us) to keep in the account
   
   /**
-   * Instantiate a new USD account object
-   * Update the $info parameter, if appropriate (for example, by filling in the auth token)
+   * Instantiate (and return) a new USD account object
+   * Get a new auth, if none is specified in $info.
    *
    * @param assoc $info: information we need in order to access the account and manage it, possibly including:
    *   type: account type (required)

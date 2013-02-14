@@ -25,6 +25,8 @@ define('R_FIRST_CTTY_UID', -1000001); // community uids are less than or equal t
 define('R_ASIF_BUY_MIN', 3); // minimum number of ASIF purchases before eligible to be a Partner
 define('R_ASIF_SELL_MIN', 1); // minimum number of ASIF sales before eligible to be a Partner
 //define('R_STAGES', t('Member Partner Steward rTrader')); // stages in the progress to rTrader
+define('R_DATA_FIELDS', ''); // fields stored in the account's "data" array field (serialized)
+define('R_SECURE_FIELDS', 'type number pin minimum card_code'); // non-personal encrypted fields
 define('R_SECRET_FIELDS', 'federal_id dob id_proof answer'); // personal identifying information
 define('R_SECRET_URL', isDEV ? 'http://localhost/rcredits' : 'http://rcredits.org'); // where to store secrets
 define('R_URL_SLASH', '%_%'); // Drupal gets confused by slashes in a url, even if urlencoded
@@ -424,6 +426,11 @@ function membershipEvent($acct, $status, $do = TRUE) {
     $fullName = $acct->full_name;
     $quid = $acct->mainQid;
     notifyStaff('Account @fullName (@quid) is now @status.', compact(u\ray('fullName quid status')));
+    if ($status == 'member') { // time to choose a card security code
+      $card_code = u\randomString(20);
+      $secure = compact($card_code);
+      $acct->update(compact('secure'));
+    }
   }
 }
 

@@ -122,7 +122,9 @@ class acct {
     if (in_array($field, u\ray(R_SECRET_FIELDS))) $this->getHidden();
     $result = @self::$records[$this->id]->$field; // returns NULL if field not set
 
-    if ($field == 'usd_account') {
+    if ($field == 'data') {
+      return @$result ? unserialize($result) : NULL;
+    } elseif ($field == 'secure') {
       return @$result ? unserialize(u\ezdecrypt($result, word())) : NULL;
     } elseif ($field == 'language') {
       $language = $result;
@@ -174,9 +176,12 @@ class acct {
   public function update($info, $just = NULL) {
     //if (!@self::$records[$this->id]->uid) self::$records[$this->id] = \user_load($this->id);
     if (isset($just)) $info = u\just($just, $info);
-    if (@$info['usd_account']) { // serialize and encrypt before updating this
-      $usdArray = $info['usd_account'] + ($this->usd_account ?: array());
-      $info['usd_account'] = u\ezencrypt(serialize($usdArray), word());
+    if (@$info['data']) {
+      $data = @$info['data'] + ($this->data ?: array()); // add fields (to "delete" them, set them to NULL)
+      $info['data'] = serialize($data);
+    } elseif (@$info['secure']) { // serialize and encrypt before updating this
+      $usdArray = $info['secure'] + ($this->secure ?: array());
+      $info['secure'] = u\ezencrypt(serialize($usdArray), word());
     }
     $toHide = count(array_intersect(array_keys($info), u\ray(R_SECRET_FIELDS))); // how many fields to hide
     if ($toHide and !$this->gotOffsite()) $this->getHidden(); // get what's offsite before updating it

@@ -463,7 +463,7 @@ function formMembership($form, &$sta) {
   $donated = ($acct->tithe > 0 or r\tithe($acct)); // r\tithe() also updates the database
   $gotProxies = (@$acct->proxy1 and @$acct->proxy2);
 
-  $gotUsdInfo = (@$acct->usd_account and @$acct->usd_auth);
+  $gotUsdInfo = (($secure = @$acct->secure) and @$secure['auth']);
   $gotIdProof = (@$acct->id_proof > 0 and @$acct->dob and @$acct->federal_id); // include SS#
   $demanding = ($acct->demand > 0);
   $invited = (r\dbLookup('COUNT(*)', 'r_invites', 'inviter=:id', compact('id')) >= 2);
@@ -1566,7 +1566,11 @@ function no_selection($list) {
 function formUsd($form, &$sta) {
   $cacct = r\acct();
   if ($cacct->offsite) $federal_id = $dob = $answer = R_ON_FILE;
-  if ($cacct->usd_account) $number = $pin = R_ON_FILE;
+  if ($secure = $cacct->secure) {
+    if ($secure['number']) $number = $pin = R_ON_FILE;
+    $minimum = $secure['minimum'];
+  }
+  $statements = $cacct->hasBit(BIT_ELECTRONIC) + 0;
   
   $statementRadios = array(
     t('I will accept electronic statements.'), 
@@ -1586,7 +1590,8 @@ function formUsd($form, &$sta) {
     'id_proof' => $cacct->hasBit(BIT_GOT_PROOF) ? 
         formField('item', t('Photo ID:'), '', R_ON_FILE . ($cacct->hasBit(BIT_PROVED) ? '' : t(' (pending approval)')))
       : formField('file', t('Photo ID:'), t('Upload an image of your driver\'s license, passport, or other official photo ID.'), attrib(array('enctype' => "multipart/form-data"))),
-    'statements' => formField('radios', t('Statements:'), '', required($cacct->hasBit(BIT_ELECTRONIC) + 0), $statementRadios),
+    'minimum' => textField(t('Minimum:'), t('How much do you want to keep in the account? Fund transfers can take up to 3 days, so this should be the amount you expect to spend at rCredits businesses in a typical 3-day period.'), required(@$minimum)),
+    'statements' => formField('radios', t('Statements:'), '', required($statements), $statementRadios),
     'submit' => submit(),
   );
 
@@ -1630,21 +1635,24 @@ function formUsd_validate($form, &$sta) {
  }
 
 function formUsd_submit($form, &$sta) {
+  $usdFields = 'type number pin minimum';
 //  debug((string) u\httpRequest(R_SECRET_URL . '/offsite.php', array('id' => '', 'data' => 'thedata'))); return;
   $cacct = r\acct();
-  $info = u\just('number pin minimum federal_id dob question answer id_proof statements', $sta['values']);
+  $info = u\just($usdFields . ' federal_id dob question answer id_proof statements', $sta['values']);
   foreach ($info as $key => $value) if ($value == R_ON_FILE or $value == @$form[$key]['#default_value']) unset($info[$key]); // don't change if on file or unchanged
   extract($info); // extract just the ones that changed
+
   $cacct->setBit(BIT_ELECTRONIC, @$statements);
-  if (isset($number) or isset($pin)) {
-    $usdInfo = $cacct->usd_account;
+
+  if (isset($number) or isset($pin)) { // some secure info changed
+    $usdInfo = $cacct->secure; // get secure info, if any (may include more than usdFields)
     $type = 'Dwolla';
-    $usdInfo = compact('type number pin') + $usdInfo;
-    if (!$usd = new usd($usdInfo, $error)) return say($error, 'number');
+    $usdInfo = compact($usdFields) + $usdInfo; // update the updated fields
+    if (!$usd = new usd(u\just($usdFields, $usdInfo), $error)) return say($error, 'number'); // get (new) auth token
     $usdInfo['auth'] = $usd->auth;
-    $info['usd_account'] = $usdInfo; // only the updated fields will be included here
+    $info['secure'] = $usdInfo;
   }
-  $info = u\just(R_SECRET_FIELDS . ' usd_account question', $info);
+  $info = u\just(R_SECRET_FIELDS . ' secure question', $info);
   if (empty($info) or $cacct->update($info)) say('info saved'); else say('info not saved', 'zot');
 }
 

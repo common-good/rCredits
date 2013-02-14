@@ -25,6 +25,7 @@ function tableDefs($schema = array()) {
     'flags' => setupField('permissions and boolean state flags', 'int big', 0, '010'),
     'community_uid' => setupField("uid of this account's Common Good Community", 'int 11'),
     'question' => setupField('security question', 'varchar 255'),
+    'secure' => setupField('non-personal encrypted data (official currency account etc)', 'blob normal'), 
     'offsite' => setupField('index to encrypted data stored off-site', 'int big', NULL, '010'),
     'full_name' => setupField('full name of the individual or entity', 'varchar 60'),
     'phone' => setupField('contact phone (no country code, no punctuation)', 'varchar 255'),
@@ -45,7 +46,6 @@ function tableDefs($schema = array()) {
     'counts' => setupField('counts of command use, etc.', 'int big', 0),
     'min_balance' => setupField('minimum balance (normally zero or less)', 'numeric 11,2', R_MIN_BALANCE),
 // separate table for this? 'nym' => setupField('unique identifier for cryptographic signing', 'text tiny'), 
-    'usd_account' => setupField('official currency account info (serialized)', 'blob normal'), 
     'proxy1' => setupField('first representative', 'int 11'),
     'proxy2' => setupField('second representative', 'int 11'),
   );

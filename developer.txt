@@ -18,7 +18,7 @@ Short term tasks: (* = before launch ** = earlier)
 - ** default purpose for companies
 - ** add preferred usd minimum balance (3-day's worth) to usd tab
 - ** cron for daily stuff
-- ** security code for cards (store in usd_account, which should be renamed "secure")
+- ** security code for cards (store in "secure" field)
 - ** handle personal&commercial (choose only if you are self-employed, using your own social security number and photograph for the business, and you don't want a separate account for the business). Look especially for !PERM_COMPANY.
 - ** (?) cards scan to new.rc2.me, which redirects (for now) to new.rcredits.org (ultimately to the proper region). whole URL
 - ** The Transactions screen shows always the "amount", which is the total amount, with an extra column for USD.
@@ -55,7 +55,7 @@ includes security code, like this: http(s?)://new.rc2.me/new.abc/Urlencoded10Cha
 - relation.class
 - Cut the registration process loose from user_register (mostly so the testing can run properly).
 - Coding security policy: never show any personal identifying info (R_SECRET_FIELDS) in the HTML. EVER. For example, when verifying someone's identity, the staff member should ask for the last 4 of their ss#, type it in and press submit. The code does a compare and returns just yes or no. Even the member cannot ever see what they earlier typed in. We might want to have a similar but weaker restriction on phone numbers and addresses -- like maybe those are protected for personal accounts. When 1099 time comes, the reports go out electronically only (no preview, etc.) Even user 1 and other admins don't have access to PII. Also put in some safe-guards to prevent repetitive guessing.
-- * add usdMinimum to usd_account (preferences?)
+- * add usdMinimum to the secure field (preferences?)
 - separate security page from bank page?
 - beef up security - immediate:
   . QR on card includes a security code (urlencoded 5 random bytes, preceded by 3 case-insensitive letters printed on back). Merchants who 

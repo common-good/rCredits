@@ -558,11 +558,16 @@ function ezencrypt($data, $key = '', $encrypt = TRUE) {
 function ezdecrypt($data, $key = '') {return ezencrypt($data, $key, FALSE);}
 
 /**
- * Return a random ascii string with no spaces or below (good for mcrypt key).
+ * Return a random ascii string (good for mcrypt key).
+ * @param int $len: length of result string
+ * @param string $choices: restrict characters to this subset. If empty (the default), use anything but \0
+ *   if $choices is one of the following use the corresponding character subset, otherwise a list of characters
+ *     lower = lowercase characters
  */
-function randomString($len = 16) {
+function randomString($len = 16, $choices = '') {
+  if ($choices == 'lower') $choices = 'abcdefghijklmnopqrstuvwxyz';
   $s = '';
-  for ($i=0; $i < 16; $i++) $s .= chr(rand(33,254));
+  for ($i=0; $i < 16; $i++) $s .= $choices ? substr($choices, rand(0, strlen($choices) - 1), 1) : chr(rand(1,255));
   return $s;
 }
 
