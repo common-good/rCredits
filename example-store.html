@@ -1,0 +1,44 @@
+<div style="width:180px; text-align:center; margin-bottom:20px;">
+<b>Corner Store's</b><br>
+Awesome Apple Pie<br>
+only $23.50<br>
+</div>
+
+<form action="http://localhost/devcore/pay-with-rCredits" method="POST" accept-charset="UTF-8">
+<input type="hidden" name="item" value="Awesome Apple Pie" />
+<input type="hidden" name="amount" value="23.50" />
+<input type="hidden" name="company" value="NEW.AAC" />
+<input type="hidden" name="code" value="cornerstore" />
+<input type="hidden" name="verb" value="Pay" />
+<input type="image" name="submit" src="http://devcore.rCredits.org/images/buttons/buynow.png" />
+</form>
+
+<hr>
+OR you can buy the same thing by clicking
+<a href="http://localhost/devcore/pay-with-rCredits?item=Awesome%20Apple%20Pie&amount=23.50&company=NEAAAAAD&code=cornerstore&verb=Pay">here</a>.
+
+<!--
+Documentation:
+
+Insert a form or a link like those above, on any page on your website or in an email.
+Change the values according to the situation.
+
+Here are the possible fields:
+* item: a description of goods or services being sold
+* amount: the amount of rCredits to be paid
+* company: your 8-character rCredits account ID (all capitals)
+* code: Your account code. Find this code on the home page of the rCredits Members section when you log in.
+	NOTE: This code is not secret, so you can use this form anywhere.
+* verb: Pay, Contribute, or Donate
+    NOTE: If you ask for donations online, you are legally required to register with the state, first.
+* return_to: URL to go on successful completion (optional)
+* submit: source can be any image file (as long as it's not misleading)
+	Here are some standard ones on the rCredits website (in http://members.rCredits.org/images/buttons):
+		buynow.png
+		buy.png (not yet)
+		donate.png (not yet)
+		contribute.png (not yet)
+		comprar.png (not yet)
+	OR you can use a standard submit button something like this:
+		<input type="submit" name="submit" value="Buy With rCredits" />
+-->

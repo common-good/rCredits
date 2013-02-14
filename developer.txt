@@ -1,12 +1,30 @@
 rCredits Software
 Notes for developers
-
-Short term tasks:
-- Start everyone with $50, bring it up to $100 the next week (2nd month everyone starts at $20)
-- Cut the registration process loose from user_register (mostly so the testing can run properly).
-- Coding security policy: never show any personal identifying info (R_SECRET_FIELDS) in the HTML. EVER. For example, when verifying someone's identity, the staff member should ask for the last 4 of their ss#, type it in and press submit. The code does a compare and returns just yes or no. Even the member cannot ever see what they earlier typed in. We might want to have a similar but weaker restriction on phone numbers and addresses -- like maybe those are protected for personal accounts. When 1099 time comes, the reports go out electronically only (no preview, etc.) Even user 1 and other admins don't have access to PII. Also put in some safe-guards to prevent repetitive guessing.
-- default purpose for companies
-- make a "open another account" button and add that possibility to the error when trying to register without an invite (implement by creating an invite and redirecting to registration, using that code). Choices for the new account:
+*** upload r_countries and r_states, then
+  UPDATE users u
+    INNER JOIN r_countries c ON BINARY c.name=BINARY u.country
+    SET u.country=c.id;
+  UPDATE users u
+    INNER JOIN r_countries c ON BINARY c.id=BINARY u.country
+    INNER JOIN r_states s ON BINARY s.name=BINARY u.state
+    SET u.state=s.id;
+  UPDATE users SET state=4370 WHERE state='Stockholms';
+  UPDATE users SET state=9999 WHERE state='Islington';
+***
+        
+Short term tasks: (* = before launch ** = earlier)
+- ** code for usd_amount
+- ** Store profile picture like we store id_proof, but not encrypted
+- ** default purpose for companies
+- ** add preferred usd minimum balance (3-day's worth) to usd tab
+- ** cron for daily stuff
+- ** security code for cards (store in usd_account, which should be renamed "secure")
+- ** handle personal&commercial (choose only if you are self-employed, using your own social security number and photograph for the business, and you don't want a separate account for the business). Look especially for !PERM_COMPANY.
+- ** (?) cards scan to new.rc2.me, which redirects (for now) to new.rcredits.org (ultimately to the proper region). whole URL
+- ** The Transactions screen shows always the "amount", which is the total amount, with an extra column for USD.
+- ** Transaction Summary: add extra rows for "Unavailable until <date>", "Available Balance", "Incentive Rewards to Date", and "Amount That Can Be Exchanged for USD", reflecting serialized assoc values in the data field of the account: balance, frozen[n]=array(date,amount), rewards (available balance is calculated)
+- ** membership path for companies!
+- ** make a "open another account" button and add that possibility to the error when trying to register without an invite (implement by creating an invite and redirecting to registration, using that code). Choices for the new account:
   . current account owns the new account
   . new account owns the current account
   . current account and new account have the same owner(s)
@@ -17,34 +35,45 @@ Short term tasks:
   . new account can cover current account's debts and overdrafts
   . both
   . neither
-- add usdMinimum to usd_account
+- ** Default for companies is "pay everyone virtually", for personal is "pay everyone directly". Companies with the "pay everyone virtually" option don't have to pay anyone consciously. A "pay ALL" is done for them at midnight daily. Their rCredits are offered equally to all employees and to their suppliers in proportion to how many employees and vendors that supplier has (where each supplier counts as half the average number of employees that any supplier has, divided by the average number of supplieds that any supplier has), divided by its supplied count, divided by 2. All amounts are truncated to the penny. All payment offers are accepted automatically, up to the amount in the accepter's Dwolla account. Unaccepted amounts are redistributed to others (not recursively, if the company is unable to distribute its funds). A company's payments are tentative until we know what all of them will be. Companies must list for each employee and supplier the average amount they pay them per month ($/mo) on the relations screen.
+- * Start everyone with $50, bring it up to $100 the next week (2nd month everyone starts at $20)
+- for companies, show HTML for online payment buttons
+- add tithe to summary page, for admins
+- Company profile picture will also appear in our office slideshow. Say so on company tab.
+- find out why account_type doesn't get passed to formSummary_submit in $sta['values'] (low priority)
+includes security code, like this: http(s?)://new.rc2.me/new.abc/Urlencoded10CharacterSecurityCode
+- (2013-02-13) i had a dream last night that peace prevailed among the human planets because a benign alien race provided a way to verify the identity of any speaker. This morning the following ideas came to me, about how to approach that ideal. Members should be able to choose their security method:
+  . whenever the transaction is between accounts from different regions, in-person merchant must ask the customer for a "travel word". The system reports a new travel word (for next time) that the merchant then tells the customer.
+  . the foreign in-person merchant can ask for a PIN (that doesn't change)
+  . the customer must show a separate photo ID
+  . the customer must pay with an ad-hoc smartphone QR, rather than a card (best). The QR is valid for only 2 minutes (and only once).
+  . either in-person or online, the customer must verify the purchase by text message or email (within 2 minutes or so)
+  . online, no extra security for requests from the usual machine/IP/cookie. Otherwise customer must first go to the rcredits website separately and log in (you can create an icon, to make this easy).
+  . different options may apply for different charge amounts. Rate the "level" of each method and suggest appropriate levels/defaults for (rounded) price ranges (0-5, 6-25, 26-100, 101-500, 501-2500, 2501+)
+  . "Protect yourself from identity theft: (give standard tips, plus:) As long as you are using rCredits on *this machine*, we will not need to ask you any security questions. Do not sign in to rCredits on a machine you don't trust. If you must, then as soon as you get home, check your transaction history and change your password and security questions. If you are shopping online at a non-local site, when it comes time to pay, make sure you are really on the rCredits site (show what to look for).
+  . (when the member buys something online from a foreign site, from an unusual machine, ALWAYS require confirmation by email. Do not show settings except from home machine)
+- relation.class
+- Cut the registration process loose from user_register (mostly so the testing can run properly).
+- Coding security policy: never show any personal identifying info (R_SECRET_FIELDS) in the HTML. EVER. For example, when verifying someone's identity, the staff member should ask for the last 4 of their ss#, type it in and press submit. The code does a compare and returns just yes or no. Even the member cannot ever see what they earlier typed in. We might want to have a similar but weaker restriction on phone numbers and addresses -- like maybe those are protected for personal accounts. When 1099 time comes, the reports go out electronically only (no preview, etc.) Even user 1 and other admins don't have access to PII. Also put in some safe-guards to prevent repetitive guessing.
+- * add usdMinimum to usd_account (preferences?)
 - separate security page from bank page?
-- relations: fields for (financial) master and slave (not just employer and employee). Master includes O=owner (main owns other), E=employer, S=supplied, F=family. Slave includes o=owned, e=employee, 1=proxy1, 2=proxy2 (etc?), s=supplier, f=family. Ownership, supplier, and family do not have to be confirmed (eg, either owner or owned will show up as both but will track who stated the relation). On relations screen do not list proxies.
-- Default for companies is "pay everyone virtually", for personal is "pay everyone directly". Companies with the "pay everyone virtually" option don't have to pay anyone consciously. A "pay ALL" is done for them at midnight daily. Their rCredits are offered equally to all employees and to their suppliers in proportion to how many employees and vendors that supplier has (where each supplier counts as half the average number of employees that any supplier has, divided by the average number of supplieds that any supplier has), divided by its supplied count, divided by 2. All amounts are truncated to the penny. All payment offers are accepted automatically, up to the amount in the accepter's Dwolla account. Unaccepted amounts are redistributed to others (not recursively, if the company is unable to distribute its funds). A company's payments are tentative until we know what all of them will be. Companies must list for each employee and supplier the average amount they pay them per month ($/mo) on the relations screen.
 - beef up security - immediate:
   . QR on card includes a security code (urlencoded 5 random bytes, preceded by 3 case-insensitive letters printed on back). Merchants who 
   . Show the agent's picture below Help/Menu (below accounts dropdown in fullscreen). 
 - security later: 
   . Make the agent's picture appear from behind the "r", get big, then shrink and settle into place, traveling in the shape of an "r", ideally leaving a jet trail.
   . How to prove the logged-out site is rcredits? Maybe always ask first "It looks like you came here from an rCredits member site. Make sure this is the real rCredits website! Does your url bar say https://new.rcredits.org? Does it show a security symbol? We will display this reminder only once in a while. Don't let the identity thieves get you. Be sure to check the url bar <i>every time</i>."
-- handle TX_TENTATIVE
-- code for usd_amount
+- * handle TX_TENTATIVE
 - outline distribution procedure for rCredits requests:
     Weekly: Everyone in line gets $10, starting with the Nubes, who have to PAY for their first $10 of credits, which then
     get created on the spot (that's the float)
     Keep going around the queue until there's less than $10 to sell.
     Report result, with option to order more and option to renew order for remainder automatically.
     Date of next distribution is always known.
-- in profile, handle links to list of website
-- handle personal&commercial (choose only if you are self-employed, using your own social security number and photograph for the business, and you don't want a separate account for the business). Look especially for !PERM_COMPANY.
-- rcredits agreement: "plus the amount I saved on credit card processing fees"
+- * in profile, handle links to list of websites
 - when dwolla confirmation comes through, simply change the state of the transaction from "tentative" to "done" (no need for . 
-- The Transactions screen shows always the "amount", which is the total amount, with an extra column for USD.
-- Transaction Summary: add extra rows for "Unavailable until <date>", "Available Balance", "Incentive Rewards to Date", and "Amount That Can Be Exchanged for USD", reflecting serialized assoc values in the data field of the account: balance, frozen[n]=array(date,amount), rewards (available balance is calculated)
-- cron for daily stuff
-- for now, mock up a stand-alone php script on rcredits.org for the secret table. But write it and debug it first on new. (referring back to new.)
-- signup button on rcredits.org goes directly to user/register
-- demo button on rcredits.org goes to login with options to log in as abeone, beatwo (self-employed), cornerpub, or townarts (which should have a "Contribute" form on its member/townarts page)
+- * signup button on rcredits.org goes directly to user/register
+- * demo button on rcredits.org goes to login with options to log in as abeone, beatwo (self-employed), cornerpub, or townarts (which should have a "Contribute" form on its member/townarts page)
 
 
 A. Development environment
@@ -324,7 +353,7 @@ To uninstall the rCredits modules manually (export first, since this DESTROYS AL
   DELETE FROM registry WHERE module IN ('rcredits','rweb','rsmart','rsms');
   DELETE FROM registry_file WHERE filename LIKE 'sites/all/modules/rcredits/%';
   DELETE FROM variable WHERE name LIKE 'rcredits%';
-  DROP TABLE IF EXISTS r_areas,r_asif,r_candidates,r_donations,r_industries,r_log,r_nonces,r_regions,r_relations,r_scores,r_smarts,r_sms,r_txs,r_usd;
+  DROP TABLE IF EXISTS r_areas,r_asif,r_candidates,r_industries,r_log,r_nonces,r_regions,r_relations,r_scores,r_smarts,r_sms,r_txs;
   TRUNCATE cache;
   TRUNCATE cache_block;
   TRUNCATE cache_bootstrap;

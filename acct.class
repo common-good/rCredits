@@ -271,7 +271,7 @@ function UAR($quid = '', $no_abbrev = TRUE) {
 
   list ($zuid, $regionUid) = unQid($quid);
   if (($reid = -$zuid) > 0) {
-    if (!$record = relation('main_uid,agent_uid', 'reid=:reid', compact('reid'))) return FALSE;
+    if (!$record = relation('main,other', 'reid=:reid', compact('reid'))) return FALSE;
     $result = array_values($record);
   } else $result = array($zuid, $zuid);
   $result[] = $regionUid;

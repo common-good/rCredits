@@ -113,9 +113,9 @@ function makeRelation($info, $infoOnly = FALSE) {
   if (!$agent = r\acct(fullQid($my_agent))) return testOutput("agent:$my_agent is not an id");
   u\EXPECT(!r\isForeign($main->regionId) or !r\isForeign($agent->regionId));
   u\EXPECT($main->proSe() and $agent->proSe());
-  list ($main_uid, $agent_uid) = array($main->id, $agent->id);
-  if (r\isForeign($main->regionId)) list ($main_uid, $foreign_uid) = array($main->regionId, $main->id);
-  if (r\isForeign($agent->regionId)) list ($agent_uid, $foreign_uid) = array($agent->regionId, $agent->id);
+  list ($main, $other) = array($main->id, $agent->id);
+  if (r\isForeign($main->regionId)) list ($main, $foreign_uid) = array($main->regionId, $main->id);
+  if (r\isForeign($agent->regionId)) list ($other, $foreign_uid) = array($agent->regionId, $agent->id);
   
   if (@$my_permission) {
     $perms = array_flip($GLOBALS['share permissions']);
@@ -123,7 +123,7 @@ function makeRelation($info, $infoOnly = FALSE) {
   }
   
   foreach (u\ray('id main agent') as $one) unset($info[$one]);
-  $info += compact(u\ray('reid main_uid agent_uid foreign_uid'));
+  $info += compact(u\ray('reid main other foreign_uid'));
   return $infoOnly ? verifyRecord('r_relations', $info) : \drupal_write_record('r_relations', $info);
 }
 

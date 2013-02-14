@@ -12,22 +12,22 @@ class usd {
   var $type; // what type of official currency account (for example Dwolla)
   var $number; // the USD account number
   var $pin; // PIN for that account
-  var $oauth; // authorization token
+  var $auth; // authorization token
   var $minimum; // how much money the account-holder wants (us) to keep in the account
   
   /**
    * Instantiate a new USD account object
-   * Update the $info parameter, if appropriate (for example, by filling in the oauth token)
+   * Update the $info parameter, if appropriate (for example, by filling in the auth token)
    *
-   * @param assoc $info (BYREF): information we need in order to access the account and manage it, possibly including:
+   * @param assoc $info: information we need in order to access the account and manage it, possibly including:
    *   type: account type (required)
    *   number: account number (required for Dwolla)
    *   pin: account PIN (required for Dwolla)
-   *   oauth: authorization token
+   *   auth: authorization token
    *   (float) minimum: how much money the account-holder wants (us) to keep in the account
    * @param string $error: (RETURNED) an error message if appropriate
    */
-  function __construct(&$info, &$error = NULL) {
+  function __construct($info, &$error = NULL) {
     u\EXPECT(@$info['type'] == 'Dwolla', 'bad usd account type');
     
   }    

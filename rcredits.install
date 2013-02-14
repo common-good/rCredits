@@ -26,7 +26,7 @@ function rcredits_install() {
   $uid = r\serverUid();
   if (!r\dbLookup(1, 'users', 'uid=:uid', compact('uid'))) {
     $keys = u\ray('uid community_uid name full_name postal_code country demand rebate_percent flags');
-    $values = array($uid, $uid, R_SERVER_ID . '.', R_REGION_NAME, R_REGION_POSTAL_AREA, R_COUNTRY, R_INITIAL_DEMAND, 0, BIT_RTRADER);
+    $values = array($uid, $uid, R_SERVER_ID . '.', R_REGION_NAME, R_REGION_POSTAL_AREA, R_COUNTRY_ID, R_INITIAL_DEMAND, 0, BIT_RTRADER);
     $info = array_combine($keys, $values);
     new r\acct($info);
   }
@@ -41,8 +41,13 @@ function rcredits_install() {
   variable_set('site_name', 'rCredits');
   variable_set('site_slogan', 'version ' . R_VERSION);
   variable_set('user_register', USER_REGISTER_VISITORS); // let visitors register themselves
-  variable_set('duplicate_email_message', r\Web\tt('duplicate email'));
-  variable_set('forgot_password_message', r\Web\tt('forgot password'));
+  
+  // favicon
+  $theme = variable_get('theme_rcredits_settings', array());
+  $theme['toggle_favicon'] = TRUE;
+  $theme['default_favicon'] = 0;
+  $theme['favicon_path'] = 'sites/all/modules/rcredits/images/icons/favicon.ico';
+  variable_set('theme_rcredits_settings', $theme);
   
   // pictures
   variable_set('user_pictures', '1');

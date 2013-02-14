@@ -118,9 +118,9 @@ EOF;
 
 function promote($uid, $score) {
   $sql = <<<EOF
-    SELECT r.agent_uid FROM r_relations r
-    INNER join r_candidates c ON c.uid=r.agent_uid
-    WHERE r.main_uid=:uid AND NOT c.ignor
+    SELECT r.other FROM r_relations r
+    INNER join r_candidates c ON c.uid=r.other
+    WHERE r.main=:uid AND NOT c.ignor
 EOF;
   $nubes = r\dbQ($sql, compact('uid'))->fetchCol();
   $nubes[] = $uid;
@@ -164,9 +164,9 @@ EOF;
 
   // Eliminate candidate companies that buy from too few places (including their candidate employees)
   $eligibleEmployeesSQL =<<<EOF
-    SELECT r.agent_uid AS employee 
+    SELECT r.other AS employee 
     FROM r_candidates d 
-    INNER JOIN r_relations r ON d.uid=r.main_uid
+    INNER JOIN r_relations r ON d.uid=r.main
     WHERE d.uid=c.uid AND NOT ignor
 EOF;
 
@@ -299,11 +299,11 @@ function makeRandomIndividuals() {
 function makeRandomRelations() {
   r\dbQ('TRUNCATE r_relations');
   $companies = (array) r\dbQ('SELECT uid FROM users WHERE uid BETWEEN :UID1 AND :UID9 AND account_type=:R_COMMERCIAL')->fetchCol();
-  for ($agent_uid = UID1; $agent_uid <= UID9; $agent_uid++) {
-    if (!in_array($agent_uid, $companies)) {
-      $main_uid = $companies[rand(0, count($companies) - 1)];
+  for ($other = UID1; $other <= UID9; $other++) {
+    if (!in_array($other, $companies)) {
+      $main = $companies[rand(0, count($companies) - 1)];
       $employer_ok = $employee_ok = TRUE;
-      \drupal_write_record('r_relations', compact(u\ray('main_uid agent_uid $employer_ok employee_ok')));
+      \drupal_write_record('r_relations', compact(u\ray('main other $employer_ok employee_ok')));
     }
   }
 }

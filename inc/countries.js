@@ -4722,29 +4722,29 @@ cs[1246] = 'Isle of Man';
 
 ss[1246] = new Array();
 
-function print_country(country_id, dft_country, dft_state){
-  var options = document.getElementById(country_id);
+function print_country(dft_country, dft_state){
+  if (dft_country == "") {
+    dft_country = 1228; // 1228 is US
+    dft_state = 1020; // 1020 is MA
+  }
+  var options = document.getElementById('edit-country');
   options.length=0; // zap any previous list items
   var x, i = 0;
   for(x in cs) {
-    options.options[i] = new Option(x,cs[x]);
-    if (dft_country == cs[x]) options.selectedIndex = i;
+    options.options[i] = new Option(cs[x], x);
+    if (dft_country == x) options.selectedIndex = i;
     i++;
   }
-  if (dft_country == "") {
-    options.selectedIndex = 1228; // 1228 is US
-    dft_state = 1020; // 1020 is MA
-  }
-  print_state('edit-state', options.selectedIndex, dft_state);
+  print_state(options[options.selectedIndex].value, dft_state);
 }
 
-function print_state(state_id, ci, dft_state){
-  var options = document.getElementById(state_id);
+function print_state(ci, dft_state){
+  var options = document.getElementById('edit-state');
   options.length=0; // zap any previous list items
   var x, i = 0;
   for(x in ss) {
-    options.options[i] = new Option(x,ss[ci][x]);
-    if (dft_state == ss[x]) options.selectedIndex = i;
+    options.options[i] = new Option(ss[ci][x], x);
+    if (dft_state == x) options.selectedIndex = i;
     i++;
   }
 }

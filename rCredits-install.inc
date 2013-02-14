@@ -123,7 +123,7 @@ function tableDefs($schema = array()) {
 //  $foreign_keys = foreignKey('payer') + foreignKey('payee');
 //  $schema['r_usd'] = setupTable('Record of USD (Dwolla) transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
 
-  // table r_donations
+/*  // table r_donations
   $fields = array(
     'donid' => setupField('donation record id', 'serial 11'),
     'created' => setupField('date/time of donation', 'int 11'),
@@ -137,6 +137,7 @@ function tableDefs($schema = array()) {
   $foreign_keys = foreignKey('uid');
   $indexes = index('uid');
   $schema['r_donations'] = setupTable('Donation details (for rCredits "Partners")', $fields, 'donid', $foreign_keys, $indexes);
+*/
 
   // table r_log
   $fields = array(
@@ -168,18 +169,18 @@ function tableDefs($schema = array()) {
   // table r_relations
   $fields = array(
     'reid' => setupField('relationship record id', 'serial 11'),
-    'main_uid' => setupField('uid of the account to which others are related', 'int 11'),
-    'agent_uid' => setupField('uid of a user related to that account', 'int 11'),
-    'foreign_uid' => setupField('uid of the foreign main account or foreign agent in their own region (main_uid or agent_uid is then the region)', 'int 11'),
+    'main' => setupField('uid of the account to which others are related', 'int 11'),
+    'other' => setupField('uid of a user related to that account', 'int 11'), // eg owner, agent, employee, supplier
+    'foreign_uid' => setupField('uid of the foreign main account or foreign agent in their own region (main or other is then the region)', 'int 11'),
     'foreign_name' => setupField('full name of the foreign main account or foreign agent', 'varchar 60'),
+    'amount' => setupField('average monthly amount paid to other', 'numeric 11,2'), // typically to employee or supplier
     'permission' => setupField('what type of permission the agent has on the main account', 'int tiny', 0),
     'employer_ok' => setupField('employer says this agent is an employee', 'int tiny', 0),
     'employee_ok' => setupField('employee says this agent is an employee', 'int tiny', 0),
     'is_owner' => setupField('this agent is an owner (or part owner)', 'int tiny', 0),
-    'proxy' => setupField('proxy level (0=none, 1=first, etc.)', 'int 11'),
   );
-  $foreign_keys = foreignKey('main_uid') + foreignKey('agent_uid') + foreignKey('foreign_uid');
-  $indexes = index('main_uid') + index('agent_uid');
+  $foreign_keys = foreignKey('main') + foreignKey('other') + foreignKey('foreign_uid');
+  $indexes = index('main') + index('other');
   $schema['r_relations'] = setupTable('Who can manage which accounts, and how', $fields, 'reid', $foreign_keys, $indexes);
     
   // table r_candidates (almost same as r_relations, but with extra fields -- used for candidates in rcredits-circles.inc)
@@ -340,36 +341,36 @@ function makeGeoDropdowns() {
     }
   }
 
-  $js .= <<<EOF
+  $js .= u\getConstants(<<<EOF
 \n
-function print_country(country_id, dft_country, dft_state){
-  var options = document.getElementById(country_id);
+function print_country(dft_country, dft_state){
+  if (dft_country == "") {
+    dft_country = :R_COUNTRY_ID;
+    dft_state = :R_STATE_ID;
+  }
+  var options = document.getElementById('edit-country');
   options.length=0; // zap any previous list items
   var x, i = 0;
   for(x in cs) {
-    options.options[i] = new Option(x,cs[x]);
-    if (dft_country == cs[x]) options.selectedIndex = i;
+    options.options[i] = new Option(cs[x], x);
+    if (dft_country == x) options.selectedIndex = i;
     i++;
   }
-  if (dft_country == "") {
-    options.selectedIndex = 1228; // 1228 is US
-    dft_state = 1020; // 1020 is MA
-  }
-  print_state('edit-state', options.selectedIndex, dft_state);
+  print_state(options[options.selectedIndex].value, dft_state);
 }
 
-function print_state(state_id, ci, dft_state){
-  var options = document.getElementById(state_id);
+function print_state(ci, dft_state){
+  var options = document.getElementById('edit-state');
   options.length=0; // zap any previous list items
   var x, i = 0;
   for(x in ss) {
-    options.options[i] = new Option(x,ss[ci][x]);
-    if (dft_state == ss[x]) options.selectedIndex = i;
+    options.options[i] = new Option(ss[ci][x], x);
+    if (dft_state == x) options.selectedIndex = i;
     i++;
   }
 }
-EOF;
-
+EOF
+  );
   file_put_contents(__DIR__ . '/inc/countries.js', $js);
 }
 
@@ -379,7 +380,10 @@ EOF;
  * @param string $when: run "before" or "after" all other installation tasks, or on "uninstall"
  */
 function oldVersion($version, $when) {
-//  if ($version >= '1.0b') return;
+  require_once 'rcredits.inc'; // must be explicit for dbLookup()
+  require_once 'rcredits-util.inc'; // must be explicit for dbLookup()
+
+  //  if ($version >= '1.0b') return;
   
   if (\db_table_exists('r_countries')) {
     if (dbLookup(1, 'users', "country='United States'")) {
@@ -408,7 +412,6 @@ EOF;
       DROP answer,
       DROP federal_id;
       UPDATE users SET account_type=IF(uid<100, 0, 1) WHERE account_type IS NULL;
-      UPDATE users SET account_type=account_type+1 WHERE account_type>0;
       UPDATE r_asif SET state=-1 WHERE state=0;
       UPDATE r_asif SET state=0 WHERE state=2;
       UPDATE r_txs SET state=-1 WHERE state=0;

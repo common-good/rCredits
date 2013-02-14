@@ -15,7 +15,8 @@ define('R_SITE_URL', 'http://new.rCredits.org');
 // (you don't get an ID card unless you are in this geographic area)
 define('R_REGION_POSTAL_AREA', '^01.*'); // anyone with a postal code that matches this regular expression is in the region
 date_default_timezone_set('America/New_York'); // server handles just one timezone
-define('R_COUNTRY', 'United States');
+define('R_COUNTRY_ID', 1228); // United States
+define('R_STATE_ID', 1020); // Massachusetts
 define('R_INITIAL_DEMAND', 25000); // total escrowed rCredits during TRIAL RUN
 define('R_REBATE', 0.05);
 define('R_BONUS', 0.10);

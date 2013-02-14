@@ -148,13 +148,13 @@ function updateRelations($updates) {
   $cuid = r\acct()->id;
   $report = '';
   foreach ($updates as $reid => $data) {
-    extract(u\just('main_uid agent_uid permission employee_ok full_name', $data['original'])); 
+    extract(u\just('main other full_name', $data['original'])); 
     unset($data['original']);
-    $isAgent = ($cuid != $main_uid);
+    $isAgent = ($cuid != $main);
 //    extract(u\just('employee_ok employer_ok permission is_owner', $data), EXTR_PREFIX_ALL, 'd');
     
-    if (!$isAgent) r\reverseRelations($main_uid, $agent_uid, $data, 'employee_ok'); // claiming to be an employee
-    if ($isAgent) r\reverseRelations($main_uid, $agent_uid, $data, 'permission employer_ok is_owner'); // giving employer permission -- create a proper record
+    if (!$isAgent) r\reverseRelations($main, $other, $data, 'employee_ok'); // claiming to be an employee
+    if ($isAgent) r\reverseRelations($main, $other, $data, 'permission employer_ok is_owner'); // giving employer permission -- create a proper record
     
     $reidSub = $subs = compact('reid');
     $changes = '';
@@ -168,12 +168,12 @@ function updateRelations($updates) {
 
     $msg = 'updated relation';
     if (!r\relation('permission>0 OR employer_ok OR employee_ok OR is_owner', $where, $reidSub)) {
-      setCttyAdmin(FALSE, $main_uid, $agent_uid);
+      setCttyAdmin(FALSE, $main, $other);
       r\dbQ("DELETE FROM r_relations WHERE $where", $reidSub);
-      $pot = '(:main_uid, :agent_uid)';
-      if (!r\relation(1, "main_uid IN $pot AND agent_uid IN $pot", compact('main_uid', 'agent_uid'))) $msg = 'deleted relation';
+      $pot = '(:main, :other)';
+      if (!r\relation(1, "main IN $pot AND other IN $pot", compact('main', 'other'))) $msg = 'deleted relation';
     } else {
-      setCttyAdmin($data['permission'] >= PERM_MANAGE, $main_uid, $agent_uid);
+      setCttyAdmin(@$data['permission'] >= PERM_MANAGE, $main, $other);
     }    
     $otherName = $full_name;
     $report .= u\tt($msg, compact('otherName')) . '<br>';
@@ -181,8 +181,8 @@ function updateRelations($updates) {
   return $report;
 }
 
-function setCttyAdmin($value, $main_uid, $agent_uid) {
-  if ($main_uid < 0 and $main_uid == r\acct($agent_uid)->community_uid) r\acct($agent_uid)->setBit(BIT_CTTY_ADMIN, $value);
+function setCttyAdmin($value, $main, $other) {
+  if ($main < 0 and $main == r\acct($other)->community_uid) r\acct($other)->setBit(BIT_CTTY_ADMIN, $value);
 }
 
 /**
@@ -420,11 +420,11 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   
   // Analyze who's buying or selling
   list ($uid, $foreign_uid) = txPerson($acct->id, $acct->regionId);
-  list ($agent_uid, $foreign_agent) = txPerson($acct->agentId, $acct->agentIdRegion);
+  list ($other, $foreign_agent) = txPerson($acct->agentId, $acct->agentIdRegion);
   $foreign = compact($foreign_uid ? 'foreign_uid' : '', $foreign_agent ? 'foreign_agent' : '');
   if ($uid == $cuid) return array('no self-trading', array(), FALSE);
   list ($payer, $payee) = u\order($taking, $uid, $cuid);
-  list ($payer_agent, $payee_agent) = u\order($taking, $agent_uid, r\acct()->agentId);
+  list ($payer_agent, $payee_agent) = u\order($taking, $other, r\acct()->agentId);
 
   // Sort out what type of transfer this is
   $paying_invoice = ($ttype == 'invoice payment');
@@ -740,8 +740,8 @@ function mergeCheck($info) {
  * Return a list of account choices for the current user (NOT the current credit account)
  * @return an array of account permissions, indexed by uid (FALSE if none)
  * @todo (maybe): recurse, to include access to the accounts that the shared accounts have access to
- *   maybe like this: SELECT main_uid, MAX(permission) WHERE agent_uid=:agent 
- *     OR agent_uid IN (SELECT main_uid FROM r_relations WHERE agent_uid=:agent) GROUP BY main_uid
+ *   maybe like this: SELECT main, MAX(permission) WHERE other=:agent 
+ *     OR other IN (SELECT main FROM r_relations WHERE other=:agent) GROUP BY main
  */
 function accountChoices() {
   if (isFrontend()) return (array) backend('accountChoices');
@@ -750,7 +750,7 @@ function accountChoices() {
   $agentId = $cacct->agentId;
   $primary = array((string) $agentId => (count($GLOBALS['share permissions']) - 1)); // max access for primary user account
 
-  $sql = "SELECT main_uid, permission FROM r_relations WHERE agent_uid=:agentId AND permission>0";
+  $sql = "SELECT main, permission FROM r_relations WHERE other=:agentId AND permission>0";
   $result = r\dbQ($sql, compact('agentId'))->fetchAllKeyed(0, 1);
   $resulta = $cacct->can(PERM_ADMIN) ? r\dbQ('SELECT uid, :PERM_MANAGE FROM users WHERE uid<=:R_FIRST_CTTY_UID')->fetchAllKeyed(0, 1) : array();
   return $primary + $result + $resulta;

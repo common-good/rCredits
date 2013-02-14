@@ -694,8 +694,8 @@ function deb($arg = '') {
  * @return assoc: the resultant array (FALSE if the needle is not found)
  */
 function insertBefore($bundle, $haystack, $needle) {
-  if (!$i = array_search($needle, $haystack)) return FALSE;
-  return array_slice($haystack, 0, $i+1) + $bundle + array_slice($haystack, $i+1);
+  if (!$i = array_search($needle, array_keys($haystack))) return FALSE;
+  return array_slice($haystack, 0, $i) + $bundle + array_slice($haystack, $i);
 }
  
 function formatNum($num, $format) {

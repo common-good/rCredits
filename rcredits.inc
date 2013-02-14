@@ -24,7 +24,7 @@ define('R_MAX_PHOTO_WIDTH', 1024);
 define('R_FIRST_CTTY_UID', -1000001); // community uids are less than or equal to this (farther from zero)
 define('R_ASIF_BUY_MIN', 3); // minimum number of ASIF purchases before eligible to be a Partner
 define('R_ASIF_SELL_MIN', 1); // minimum number of ASIF sales before eligible to be a Partner
-define('R_STAGES', t('Member Partner Steward rTrader')); // stages in the progress to rTrader
+//define('R_STAGES', t('Member Partner Steward rTrader')); // stages in the progress to rTrader
 define('R_SECRET_FIELDS', 'federal_id dob id_proof answer'); // personal identifying information
 define('R_SECRET_URL', isDEV ? 'http://localhost/rcredits' : 'http://rcredits.org'); // where to store secrets
 define('R_URL_SLASH', '%_%'); // Drupal gets confused by slashes in a url, even if urlencoded
@@ -51,7 +51,7 @@ define('PERM_MANAGE', 4);
 $GLOBALS['share permissions'] = array('no access', 'read transactions', 'sell', 'buy and sell', 'manage account');
 
 define('PERM_RESERVED6', 6);
-define('PERM_COMPANY', 7); // is a company (not a personal account)
+define('PERM_COMPANY', 7); // can act as a company (not a purely personal account)
 define('PERM_CHARGE', 8); // can charge unilaterally
 define('PERM_MEMBER', 10); // completed the rCredits requirements
 //define('PERM_PARTNER', 11); // signed the membership agreement and donated
@@ -143,6 +143,7 @@ $GLOBALS['emailSubjects'] = array(
   
   'welcome' => t('Welcome to rCredits!'),
   'password_reset' => t('New rCredits PASSWORD'),
+  'tell_staff' => t('rCredits STAFF ALERT'),
 );
 
 include_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
@@ -151,12 +152,13 @@ include_once __DIR__ . '/rcredits-circles.inc'; // treat this as an extension of
 
 /**
  * Return the account's current stage in its progression toward rTrader
- */
+ *//*
 function stage($acct = '', $numeric = FALSE) {  
   if (!$acct = ($acct ?: acct())) return FALSE;
   foreach (u\ray(R_STAGES) as $key => $one) if ($acct->can(constant('PERM_' . strtoupper($one)))) $stage = $numeric ? $key : $one;
   return @$stage;
 }
+*/
 
 /**
  * Format and return args for reporting a transaction (old or new) to the current account.
@@ -409,6 +411,34 @@ function notify($uid, $index, $info) {
 }
 
 /**
+ * If appropriate, update an account's membership status and send the staff an alert.
+ * @param acct $acct: the account
+ * @param string $status: what milestone or event to alert about
+ * @param bool $do: prerequisite for the alert
+ * If there is an appropriate bit to set, it will be set as appropriate.
+ */
+function membershipEvent($acct, $status, $do = TRUE) {
+  $bit = @constant('BIT_' . strtoupper($status));
+  if ($do and (!$bit or !$acct->hasBit($bit))) { // met the prerequisite and hasn't previously
+    if ($bit) $acct->setBit($bit);
+    $fullName = $acct->full_name;
+    $quid = $acct->mainQid;
+    notifyStaff('Account @fullName (@quid) is now @status.', compact(u\ray('fullName quid status')));
+  }
+}
+
+/**
+ * Notify rCredits staff
+ * @param string $message: the message or message index
+ * @param assoc $subs: substitutions for the message
+ */
+function notifyStaff($message, $subs = array()) {
+  $noFrame = TRUE;
+  $message = u\tt($message, $subs);
+  $mailed = \drupal_mail('rCredits', 'tell_staff', R_ORG_EMAIL, '', compact('message', 'noFrame'));
+}
+
+/**
  * Return a unique temporary name related to the given uniquely identifying parmeters 
  * in this order of preference: 
  *   phone: "unknown phone dddddddddd"
@@ -488,15 +518,13 @@ function mergeAccounts($oldUid) {
  * Return the rough location of the entity with the given account (city, state, non-US country).
  */
 function location($acct, $complete = FALSE) {
-  $country = dbLookup('name', 'r_countries', 'id=:cid', $where = array('cid' => $acct->country));
-  $isUS = ($country == R_COUNTRY);
-  $state = dbLookup($isUS ? 'abbreviation' : 'name', 'r_states', 'id=:sid and country_id=:cid', $where + array('sid' => $acct->state));
-  
+  $country = realCountry($acct->country);
+  $state = realState($acct->state, $acct->country);
   $result = array();
   if ($complete) $result[] = (string) $acct->address; // (string) in case address is NULL
   $result[] = $acct->city;
   $result[] = $state . (($complete and $acct->postal_code) ? ' ' . $acct->postal_code : '');
-  if (!$isUS) $result[] = strtoupper($country);
+  if ($acct->country != R_COUNTRY_ID) $result[] = strtoupper($country);
   foreach ($result as $key => $value) if ($value === '') unset($result[$key]);
   return join(', ', $result);
 }
@@ -653,20 +681,20 @@ function nonoUndo($oldRecord, &$subs = array()) {
 }
 
 /**
- * Create or update a reverse relation record for the given main_uid and agent_uid
+ * Create or update a reverse relation record for the given main and other
  * if any of the given fields is positive
- * @param int $agent_uid: the main_uid (switching to agent)
- * @param int $main_uid: the agent_uid (switching to main)
+ * @param int $other: the main (switching to agent)
+ * @param int $main: the other (switching to main)
  * @param assoc $data: (byRef) array of field values
  *   Returned with all fields listed in $fields unset (if any of those fields has a positive value)
  * @param string $fields: space-delimited list of fields to check
  * @return (none)
  */
-function reverseRelations($agent_uid, $main_uid, &$data, $fields) {
+function reverseRelations($other, $main, &$data, $fields) {
   foreach (u\ray($fields) as $field) if (@$data[$field]) $stay = TRUE;
   if (!@$stay) return;
-  $subs = compact('main_uid', 'agent_uid') + u\just($fields, $data);
-  if ($reid = relation('reid', $main_uid, $agent_uid)) $subs += compact('reid');
+  $subs = compact('main', 'other') + u\just($fields, $data);
+  if ($reid = relation('reid', $main, $other)) $subs += compact('reid');
   \drupal_write_record('r_relations', $subs, $reid ? 'reid' : array());
   foreach (u\ray($fields) as $field) unset($data[$field]); // don't get these fields mixed in with the reverse record
 }
@@ -675,7 +703,7 @@ function reverseRelations($agent_uid, $main_uid, &$data, $fields) {
  * Say whether one of the accounts owns the other.
  */
 function owning($uid1, $uid2) {
-  $where = 'is_owner AND ((main_uid=:uid1 AND agent_uid=:uid2) OR (main_uid=:uid2 AND agent_uid=:uid1))';
+  $where = 'is_owner AND ((main=:uid1 AND other=:uid2) OR (main=:uid2 AND other=:uid1))';
   return $uid1 == $uid2 ?: relation(1, $where, compact('uid1', 'uid2'));
 }
 
@@ -690,7 +718,7 @@ function isEmployee($uid, $company = '') {
 
 function communityUid($postal_code = '') {
   if (!$postal_code) return serverUid();
-  $where = "country=':R_COUNTRY' AND :postal_code RLIKE postal_code AND uid=community_uid";
+  $where = "country=':R_COUNTRY_ID' AND :postal_code RLIKE postal_code AND uid=community_uid";
   return userField('uid', $where, compact(u\ray('postal_code'))) ?: serverUid();
 }
 
@@ -724,11 +752,11 @@ function loginString($id) {
  */
 function employees() {
   $cuid = acct()->id;
-  $result = dbQ('SELECT agent_uid, foreign_uid FROM r_relations WHERE main_uid=:cuid AND employer_ok AND employee_ok', compact('cuid'));
+  $result = dbQ('SELECT other, foreign_uid FROM r_relations WHERE main=:cuid AND employer_ok AND employee_ok', compact('cuid'));
   $accts = array();
   foreach ($result as $key => $one) {
-    extract((array) $one); // agent_uid, foreign_uid
-    $accts[] = $agent_uid > 0 ? acct($agent_uid) : acct(qid($foreign_uid, $agent_uid));
+    extract((array) $one); // other, foreign_uid
+    $accts[] = $other > 0 ? acct($other) : acct(qid($foreign_uid, $other));
   }
   return $accts;
 }
@@ -741,7 +769,7 @@ function employees() {
  */
 function relation($field, $id, $agent = array(), $where = '1', $subs = array()) {
   if (is_numeric($id)) {
-     $where = "main_uid=:id AND agent_uid=:agent AND ($where)";
+     $where = "main=:id AND other=:agent AND ($where)";
      $subs += compact('id', 'agent');
   } else list ($where, $subs) = array($id, $agent); // called with alternate form
   return dbLookup($field, 'r_relations', $where, $subs);
@@ -774,14 +802,13 @@ function newMemberId($oldUid, $newUid = FALSE, $skipUsers = FALSE) {
     'r_asif:payer',
     'r_asif:payee',
     'r_candidates:uid', // in case we're in the middle of figuring who's next
-    'r_donations:uid',
   // r_industries
     'r_log:cuid',
     'r_log:agent',
   // r_nonces
   // r_regions
-    'r_relations:main_uid',
-    'r_relations:agent_uid',
+    'r_relations:main',
+    'r_relations:other',
   // r_scores
     'r_smarts:owner',
     'r_smarts:default_agent',
@@ -947,3 +974,5 @@ function serverUid($regionId = '') {return -u\a2n(u\neq($regionId, CT_SERVER_ID)
 function emailTemplate($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}
 function emailBody($key) {return str_replace('{BODY}', emailTemplate($key), emailTemplate(R_EMAIL_FRAME));}
 function isRTrader($uid = '') {return ($acct = acct($uid)) ? $acct->hasBit(BIT_RTRADER) : FALSE;}
+function realCountry($country) {return dbLookup('name', 'r_countries', 'id=:country', compact('country'));}
+function realState($state, $country = R_COUNTRY_ID) {dbLookup($country == R_COUNTRY_ID ? 'abbreviation' : 'name', 'r_states', 'id=:state and country_id=:country', compact('state', 'country'));}
