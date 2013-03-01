@@ -10,43 +10,56 @@ use rCredits\Util as u;
  */
 
 class usd {
+  var $acct; // the associated rCredits account
   var $type; // what type of official currency account (for example Dwolla, Ripple, or Bank)
   var $number; // the USD account number
   var $pin; // PIN for that account
   var $auth; // authorization token
-  var $minimum; // how much money the account-holder wants (us) to keep in the account
+  var $minimum; // how much money the account-holder wants (us) to keep in the account (min)
+  var $maximum; // how much money the account-holder wants (us) to keep in the account (max)
   
   /**
    * Instantiate (and return) a new USD account object
-   * Get a new auth, if none is specified in $info.
-   *
+   * @param acct $acct: the rCredits account that has this USD account
+   */
+  function __construct($acct) {
+    $this->acct = $acct;
+    $this->minimum = $acct->min_usd;
+    $this->maximum = $acct->max_usd;
+  }
+  
+  /**
+   * Update the usd information in the account record (both in this object and in the database).
    * @param assoc $info: information we need in order to access the account and manage it, possibly including:
-   *   type: account type (required)
+   *   type: account type (required if not supplied previously)
    *   number: account number (required for Dwolla)
    *   pin: account PIN (required for Dwolla)
    *   auth: authorization token
-   *   (float) minimum: how much money the account-holder wants (us) to keep in the account
    * @param string $error: (RETURNED) an error message if appropriate
+   * @return bool: success
    */
-  function __construct($info, &$error = NULL) {
-    u\EXPECT(@$info['type'] == 'Dwolla', 'bad usd account type');
-    
+  public function update($info, &$error = NULL) {
+//    u\EXPECT(@$info['type'] == 'Dwolla', 'bad usd account type');
+    debug('Updating USD info.');
+//    $this->auth = ;
+//    $this->acct->update(compact(...
+    return TRUE;
   }    
 
   /**
    * Return the account balance or its sufficiency
    * Call by:
    *   $usd->bal() - return the amount currently in the account
-   *   $usd->bal($want) - return 2=success/0=fail/1=maybe (meaning there is a connected bank account)
+   *   $usd->bal($want) - return 0=fail/1=success/2=maybe (meaning there is a connected bank account)
    * @param float $want: can the account give up this much money in a hypothetical immediate transaction?
    * @param string $error: (RETURNED) an error message on failure
-   * @return: balance or sufficiency
+   * @return: balance or sufficiency (0 if failure)
    */
   function bal($want = NULL, &$error = NULL) {
     if (isset($want)) {
-
+      return $want <= 100 ? 1 : 0;
     } else {
-
+      return random(0, 10000) / 100;
     }
   }
 
@@ -54,12 +67,14 @@ class usd {
    * Transfer funds from this account to another.
    * @param float $amount: the amount to transfer
    * @param usd $other: the other account
+   * $param bool $direct: the funds must already be in the Dwolla account (no 3-day delay)
    * @param string $error: (RETURNED) an error message on failure
    * @param bool $payerFee: the payer pays the transaction fee (if any) -- otherwise (default) the payee pays it
-   * @return: 2=success 0=fail 1=maybe
+   * @return: 0=fail 1=success 2=maybe
    */
-  function transfer($amount, $other, &$error = NULL, $payerFee = FALSE) {
-    return 0;
+  function transfer($amount, $other, $direct = TRUE, &$error = NULL, $payerFee = FALSE) {
+    debug("Transferring USD $amount from $acct->id to $other->id.");
+    return random(0, 1);
   }
   
   /**

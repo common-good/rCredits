@@ -115,6 +115,11 @@ EOF
       <p>If there are settings you would like to see here &mdash; that is, things you want to work differently &mdash; please let us know. We expect to offer many additional options over the next few months.</p>
 EOF
     ),
+    'why-wait' => t(<<<EOF
+      <p>Exchanges of rCredits for US Dollars reflect an incomplete economic circle. That is, the individual or company selling the rCredits does not yet have enough places to spend them.</p>
+      <p>The 2-week delay in spending rCredits that you buy takes that amount out of circulation temporarily, giving the seller time to find more places to spend rCredits, without meanwhile having to sell more and more of them.</p>
+EOF
+    ),
   );
 
   $helps['charge'] = strtr($helps['pay'], array('pay' => 'charge', $paySpecial => ''));  

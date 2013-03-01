@@ -49,7 +49,7 @@ class acct {
       $info['is_new'] = TRUE;
       $info['roles'] = 0; // this keeps Drupal happy in user.module
       $info['flags'] = @$my_flags ?: (@$info['uid'] ? (BIT_DEFAULTS | BIT_RTRADER) : BIT_DEFAULTS);
-      $info['community_uid'] = communityUid(@$my_postal_code); // defaults to current server
+      $info['community'] = communityUid(@$my_postal_code); // defaults to current server
 
       /*** Begin DBTX ***/ $dbtx = db_transaction();
       if (!$uid = @$info['uid']) {
@@ -71,7 +71,7 @@ class acct {
     }
     if ($this->id > 0) { // no qids for communities and regions!
 //      $this->mainQid = qid($this->id, u\n2a(-$this->regionId, 3), 3);
-      $this->mainQid = qid($this->id, u\n2a(-u\eq($this->community_uid, -u\a2n(CT_SERVER_ID), $this->regionId), 3), 3);
+      $this->mainQid = qid($this->id, u\n2a(-u\eq($this->community, -u\a2n(CT_SERVER_ID), $this->regionId), 3), 3);
     }
   }    
 
@@ -222,6 +222,14 @@ class acct {
   }
   
   /**
+   * Return an auxiliary filename for the account.
+   */
+  function auxFilename($type = 'picture') {
+    if ($type == 'picture') return R_PICTURE_DIR . "/$this->id-$this->created";
+    if ($type == 'proof') return R_PROOF_DIR . "/$this->id-$this->created";
+  }
+  
+  /**
    * Say whether this account/agent has the permission.
    * @param int $permission: the permission in question (DEFAULT PERM_READ)
    */
@@ -233,7 +241,7 @@ class acct {
       $agent = $this->agent;
 
       //($agent->pass !== '' and $agent->id != 1); // anyone with a password is a member
-      $perms[PERM_COMPANY] = ($this->account_type != R_PERSONAL); // ad hoc permissions
+      $perms[PERM_COMPANY] = ($this->account_type != R_PERSONAL);
 //      $perms[PERM_PARTNER] = $this->hasBit(BIT_PARTNER);
 //      $perms[PERM_STEWARD] = $this->hasBit(BIT_STEWARD);
       $perms[PERM_MEMBER] = $this->hasBit(BIT_MEMBER);
@@ -246,10 +254,10 @@ class acct {
 
       if ($this->proSe()) {
         $can = ($id < 0) ? 0 : PERM_MANAGE; // communities must be managed by an agent, never directly
-      } else $can = ($perms[PERM_CTTY_ADMIN] and ($perms[PERM_ADMIN] or $this->community_uid == $agent->community_uid)) ? PERM_MANAGE : relation('permission', $id, $this->agentId);
+      } else $can = ($perms[PERM_CTTY_ADMIN] and ($perms[PERM_ADMIN] or $this->community == $agent->community)) ? PERM_MANAGE : relation('permission', $id, $this->agentId);
       for ($i = 0; $i <= PERM_MANAGE; $i++) $perms[$i] = ($i <= $can); // set all permissions, even the false ones
 
-      $perms[PERM_MANAGING_CTTY] = ($perms[PERM_CTTY_ADMIN] and $this->id == $this->community_uid);
+      $perms[PERM_MANAGING_CTTY] = ($perms[PERM_CTTY_ADMIN] and $this->id == $this->community);
       if ($perms[PERM_MANAGING_CTTY]) $perms[PERM_BUY] = $perms[PERM_SELL] = FALSE;
       ksort($perms); // easier to debug
       self::$perms[$this->id][$this->agentId] = $perms;

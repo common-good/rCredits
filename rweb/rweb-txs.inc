@@ -26,8 +26,8 @@ function formTxs($form, &$sta, $args = '') {
   
   if ($report) { // community transaction history
     $page = 'reports';
-    $classes = 'tid date from to amount state purpose reward';
-    $headers = t('#,Date,From,To,Amount,Status,Purpose,Rewards');
+    $classes = 'tid date from to amount rpct state purpose reward';
+    $headers = t('#,Date,From,To,Amount,r%,Status,Purpose,Rewards');
   } else { // individual account transaction history
     $page = 'transactions';
     $do = in_array(@$do, u\ray('ok no edit')) ? $do : '';
@@ -39,8 +39,8 @@ function formTxs($form, &$sta, $args = '') {
       $url = str_replace('&do=', '&did=', "transactions/$args"); // don't do it again
       r\go($url); // back to the normal form
     }
-    $classes = 'tid date name fromyou toyou state buttons purpose reward';
-    $headers = t('#,Date,Name,From you,To you,Status,Action,Purpose,Reward');
+    $classes = 'tid date name fromyou toyou rpct state buttons purpose reward';
+    $headers = t('#,Date,Name,From you,To you,r%,Status,Action,Purpose,Reward');
     if (@$agents) {$classes .= ' agent'; $headers .= t(',Agent');}
     list ($canSell, $canBuy) = array($cacct->can(PERM_SELL), $cacct->can(PERM_BUY));
   }
@@ -83,15 +83,20 @@ function formTxs($form, &$sta, $args = '') {
     $zxid = $real ? $tx_xid : -$tx_xid;
     $data = unserialize($tx_data);
     $is_reward = ($tx_type != TX_TRANSFER);
-    $amount = number_format($tx_amount, 2);
-    $date = @$tx_dt ?: $tx_created;
+    $amount = number_format($tx_amount - $tx_usd, 2);
+    $total = number_format($tx_amount, 2);
+    $usd = number_format($tx_usd, 2);
+    $rpct = number_format(100 * (1 - $tx_usd / $tx_amount), 1);
+    if ($rpct == '100.0') $rpct = '100'; // keep the field narrow (4 chars max)
+    $rpct = "<span title=\"r$$amount + us$$usd = $$total\">$rpct</span>";
+    $date = @$tx_completed ?: $tx_created;
     
     if ($report) { // community transaction history
       $reward = @$data['bonus'] + @$data['rebate'];
       txNeatAmounts($amount, $reward, $is_reward);
       $state = txColoredState($tx_state);
       $tid = str_replace('-', 'a', $zxid);
-      $row = array($tid, strftime('%d-%b-%Y', $date), r\acct($tx_payer)->full_name, r\acct($tx_payee)->full_name, $amount, $state, $tx_purpose, $reward);
+      $row = array($tid, strftime('%d-%b-%Y', $date), r\acct($tx_payer)->full_name, r\acct($tx_payee)->full_name, $amount, $rpct, $state, $tx_purpose, $reward);
     } else { // individual account transaction history
       $url = $url0 . "&zxid=$zxid";
       $tid = be\zxid2tid($zxid);
@@ -106,7 +111,7 @@ function formTxs($form, &$sta, $args = '') {
       $button2 = ((!$is_reward or $cttyAdmin) and !@$data['undone']) ? button(' X ', "$url&do=no", tx_action('no', $tx_state, $toMe, $byMe)) : '';
       $button3 = (($tx_taking ? $canSell : $canBuy) and !$is_reward) ? "<a href='$url&do=edit' title='Edit Purpose'><img src='$base_url/sites/all/modules/rcredits/images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
       $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
-      $row = array($tid, strftime('%d-%b', $date), $tx_name, $from_you, $to_you, $state, $buttons, $tx_purpose, $reward);
+      $row = array($tid, strftime('%d-%b', $date), $tx_name, $from_you, $to_you, $rpct, $state, $buttons, $tx_purpose, $reward);
       if (@$agents) $row[] = ($agent == $cuid or $agent < 0) ? R_NONE : (@$download ? r\qid($agent) : u\n2a($agent, 3));
       // might optionally show both agents for reports someday
     }
@@ -117,7 +122,7 @@ function formTxs($form, &$sta, $args = '') {
       $row = array_combine($classes, $row); // associate to make deletions cleaner
       u\splice($row, 'buttons', 1); // remove buttons if they exist
       u\splice($row, 'date', 0, strftime('%Y-%m-%d', $tx_created)); // insert full creation date
-      $row['date'] = @$tx_dt ? strftime('%Y-%m-%d', $tx_dt) : ''; // show FULL date completed
+      $row['date'] = @$tx_completed ? strftime('%Y-%m-%d', $tx_completed) : ''; // show FULL date completed
       $row['state'] = $txStates[$tx_state]; // transaction state
       foreach ($row as $key => $value) $row[$key] = $value == R_NONE ? '' : strip_tags($value);
       $row = array_values($row);
@@ -157,9 +162,10 @@ function formTxs($form, &$sta, $args = '') {
   $submitDates = submit(t(' Show')); // label has to be different (Drupal bug -- else can't tell which is clicked)
   $downloadDates = submit(t('Download'));
   $transactions = formField('markup', '', '', array('markup' => $title . $list . '<br>&nbsp;'));
-  $title = item(t('Transaction History'));
+  $title = item(t('rCredits Transaction History'));
+  $subtext = item(t('Only the rCredits part of each transaction is shown. The "r%" column tells what percentage this represents of the total transaction amount. Hover over the figure in the "r%" column to see the total and US Dollar amounts.'));
 
-  $form = compact(u\ray('title agents channels real period submitPeriod downloadPeriod starting ending submitDates downloadDates summary transactions'));
+  $form = compact(u\ray('title subtext agents channels real period submitPeriod downloadPeriod starting ending submitDates downloadDates summary transactions'));
   if (@$downloaded) js("window.open(\"$url0&download=1\")", 'inline', 'footer');
   return labeled($form);
 }
@@ -294,7 +300,6 @@ function tx_summary($starting, $ending) {
   $previous_ending = $starting - 1;
   extract($now_info = (array) be\creditInfo(array('asof' => $ending)), EXTR_PREFIX_ALL, 'now');
   extract($pending_info = (array) be\creditInfo(array('state' => ':TX_PENDING', 'asof' => $ending)), EXTR_PREFIX_ALL, 'pending');
-  debug($pending_info);
   extract($old_info = (array) be\creditInfo(array('asof' => $previous_ending)), EXTR_PREFIX_ALL, 'old');
   $dif = $pfancy = array();
   foreach (u\ray('grossInProper grossOut rewards committed') as $key) {

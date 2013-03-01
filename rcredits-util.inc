@@ -104,16 +104,19 @@ function badAmount(&$amount, $restriction = '') {
  * Format the given amount as currency.
  *
  * @param float $amount
- * @param boolean $simplify: Omit the cents for whole dollar amounts
- *
+ * $param string $options (default s$): 
+ *   s = simplify: Omit the cents for whole dollar amounts
+ *   $ = include initial dollar sign
  * @return
  *   the formatted amount
  */
-function formatAmount($amount, $simplify = TRUE) {
+function formatAmount($amount, $options = 's$') {
   $amount = cleanAmount(nn($amount, 0));
 //  if (!is_numeric($amount)) $amount = -999999;
-  $amount = '$' . number_format($amount, 2);
-  return $simplify ? str_replace('.00', '', $amount) : $amount;
+  $amount = number_format($amount, 2);
+  if (strpos($options, '$') !== FALSE) $amount = '$' . $amount;
+  if (strpos($options, 's') !== FALSE) $amount = str_replace('.00', '', $amount);
+  return $amount;
 }
 
 /**
@@ -294,22 +297,18 @@ function tt($message, $subs = array(), $adhocChannel = '') {
   $channels = ray(TX_CHANNELS);
   foreach ($messages as $i => $message) {
     $model = $message; // the default
-    for ($ch = ($adhocChannel ?: (count($channels) - 1)); $ch > 0; $ch--) {
-      if ($model = @$GLOBALS["$ch messages"][$message]) {
-        if($p = strpos($model, '. Type ')) {
-          if ($channel != TX_SMS and $adhocChannel != TX_SMS) $model = substr($model, 0, $p + 1); // don't tell the user to type something unless it's SMS
-        }
-        if (strpos($model, '@asif') !== FALSE and !isset($subs['asif'])) {
-          $real = isset($subs['real']) ? $subs['real'] : r\isRTrader();
-          $subs['asif'] = $real ? '' : R_ASIF_TEXT;
-        }
-        if (@$subs['href']) $model = str_replace('<a>', '<a href="@href">', $model);
-
-        break;
-      }
+    $ch1 = $adhocChannel ?: (count($channels) - 1);
+    for ($ch = $ch1; $ch > 0; $ch--) $model = @$GLOBALS["$ch messages"][$message] ?: $model;
+    if($p = strpos($model, '. Type ')) {
+      if ($channel != TX_SMS and $adhocChannel != TX_SMS) $model = substr($model, 0, $p + 1); // don't tell the user to type something unless it's SMS
     }
+    if (strpos($model, '@asif') !== FALSE and !isset($subs['asif'])) {
+      $real = isset($subs['real']) ? $subs['real'] : r\isRTrader();
+      $subs['asif'] = $real ? '' : R_ASIF_TEXT;
+    }
+    if (@$subs['href']) $model = str_replace('<a>', '<a href="@href">', $model);
 // NO (use raw message instead)   EXPECT(@$model, "missing message '$message'"); 
-    if (@$model) $messages[$i] = getConstants(strtr($model, prefixKeys('@', $subs)), '@');
+    $messages[$i] = getConstants(strtr($model, prefixKeys('@', $subs)), '@');
   }
   return join(' ', $messages);
 }

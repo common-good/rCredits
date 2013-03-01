@@ -25,7 +25,7 @@ function rcredits_install() {
   // create server record if it doesn't exist yet
   $uid = r\serverUid();
   if (!r\dbLookup(1, 'users', 'uid=:uid', compact('uid'))) {
-    $keys = u\ray('uid community_uid name full_name postal_code country demand rebate_percent flags');
+    $keys = u\ray('uid community name full_name postal_code country demand rebate_percent flags');
     $values = array($uid, $uid, R_SERVER_ID . '.', R_REGION_NAME, R_REGION_POSTAL_AREA, R_COUNTRY_ID, R_INITIAL_DEMAND, 0, BIT_RTRADER);
     $info = array_combine($keys, $values);
     new r\acct($info);

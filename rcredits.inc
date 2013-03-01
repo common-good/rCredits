@@ -32,17 +32,23 @@ define('R_SECRET_URL', isDEV ? 'http://localhost/rcredits' : 'http://rcredits.or
 define('R_URL_SLASH', '%_%'); // Drupal gets confused by slashes in a url, even if urlencoded
 define('R_MAX_DAILY_EXCHANGE', 1000); // per Common Good Finance policy and to avoid formal regulation by FinCEN
 define('R_INVITE_DAYS', 7); // number of days to accept invitation to membership
+define('R_MINR_DEFAULT', 200); // suggested minimum amount to hold in rCredits
+define('R_MAXR_DEFAULT', 0); // suggested maximum amount to hold in rCredits
+define('R_MINUSD_DEFAULT', 200); // suggested minimum amount to hold in Dwolla
+define('R_MAXUSD_DEFAULT', 0); // suggested maximum amount to hold in Dwolla
 
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
 define('R_EMAIL_FRAME', 'email-frame');
+define('R_PICTURE_DIR', DRUPAL_ROOT . '/sites/default/files/pictures');
+define('R_PROOF_DIR', DRUPAL_ROOT . '/sites/default/files/proof');
 
 // Account types
 define('R_PERSONAL', 0);
 define('R_SELF_EMPLOYED', 1);
 define('R_COMMERCIAL', 2);
 define('R_NONPROFIT', 3);
-$GLOBALS['account types'] = array(t('personal'), t('commercial'), t('personal AND commercial'), t('non-profit'));
+$GLOBALS['account types'] = array(t('personal'), t('personal AND commercial'), t('commercial'), t('non-profit or government'));
 
 // Relationship permissions used in calls to acct::can()
 define('PERM_RELATED', 0); // has a relationship record
@@ -69,23 +75,23 @@ define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities ca
 
 // Permissions, options, and flags (flags field in account record) - max 2,147,483,647 = 2^31 - 1
 define('BIT_MEMBER', 0x1); // signed the membership agreement, etc.
-//define('BIT_STEWARD', 0x2); // is allowed to vote and is responsible for stewarding the Common Good Community
 define('BIT_RTRADER', 0x2); // is allowed to use rCredits for real
+define('BIT_UNUSED4', 0x4); // 
 define('BIT_CHARGE', 0x8); // can charge customers without confirmation (treat this like a permission)
 
-define('BIT_VIRTUAL_EMPLOYEES', 0x10); // pay employees virtually --16
-define('BIT_VIRTUAL_ALL', 0x20); // pay everyone virtually
-define('BIT_SECRET_BAL', 0x40); // don't let merchants tell me my balance on request
+define('BIT_VIRTUAL_EMPLOYEES', 0x10); // automatically pay employees virtually --16
+define('BIT_VIRTUAL_ALL', 0x20); // automatically pay everyone virtually
+define('BIT_PAYROLL', 0x40); // automatically pay employees their total daily salary - employer chooses pay period)
 define('BIT_NOTIFY_EMAIL', 0x80); // notifications by email
 
 define('BIT_NOTIFY_SMS', 0x100); // notifications by SMS --256
-define('BIT_GOT_PROOF', 0x200); // proof of ID has been submitted
-define('BIT_PROVED', 0x400); // proof of ID has been approved
-//define('BIT_SAW_VID1', 0x800); // saw the pre-Partner vid
+define('BIT_ELECTRONIC', 0x200); // will accept electronic statements
+//define('BIT_PROVED', 0x400); // proof of ID has been approved
+//define('BIT_GOT_PROOF', 0x800); // proof of ID has been submitted
 
 //define('BIT_SAW_VID2', 0x1000); // saw the pre-Steward vid --4096
-//define('BIT_PASSED_TEST', 0x2000); // passed the Stewardship test
-define('BIT_ELECTRONIC', 0x4000); // will accept electronic statements
+define('BIT_SECRET_BAL', 0x2000); // don't let merchants tell me my balance on request
+//define('BIT_UNUSED4000', 0x4000); // 
 //define('BIT_MET', 0x8000); // has participated in a community meeting
 
 //define('BIT_RQUALIFIED', 0x10000); // makes good economic circles --65,536 = 256 * 256
@@ -102,7 +108,7 @@ define('TX_DENIED', -2); // invoice rejected by the non-originator
 define('TX_DELETED', -1);
 define('TX_PENDING', 0); // charged, waiting for confirmation (in all other states, transaction is complete)
 define('TX_DONE', 1); // transactions with a positive state count as done
-define('TX_TENTATIVE', 2); // done in rCredits, but waiting for USD funds to clear instead (usd_amount is the expected amount)
+define('TX_TENTATIVE', 2); // done in rCredits, but waiting for USD funds to clear instead (usd field is the expected amount)
 define('TX_DISPUTED', 3); // unilaterally charged, but disputed by the payer (the charge stands, until settled)
 
 // Transaction channels (roughly in order of simplicity and generality of messages)
@@ -282,7 +288,7 @@ function transactionRewards(&$txs) {
 }
 
 function txRewardSetup($type, $payee, $state, $rewards) {
-  $payer = $payer_agent = $payee_agent = userField('community_uid', $payee);
+  $payer = $payer_agent = $payee_agent = userField('community', $payee);
   if ($payer == $payee) return NULL; // payee is a community, so no rewards
 
   $taking = FALSE;
@@ -335,19 +341,25 @@ function demand($uid, $demand = FALSE) {
 }
 
 /**
- * Calculate how much too little the payer has
+ * Return how much of a transaction will be in USD.
+ * @param float $shortfall (RETURNED) how much too little the payer has
+ * @return float: how much of the transaction will be in USD (NULL if no USD account)
  */
-function shortfall($uid, $requestAmount, $preapproved, $real) {
+function usdPart($requestAmount, $acct, $preapproved, $real, &$shortfall) {
+  $shortfall = 0; // no shortfall if preapproved
   if (!$preapproved) return 0; // if this is just an invoice, funds don't have to be there yet (no shortfall)
+  
+  $uid = $acct->id;
   $available = be\creditInfo(compact('uid', 'real'))->available;
-  $amount = min($requestAmount, $available);
-  $shortfall = max(0, $requestAmount - $amount); // how much needs to be done later or in a separate currency
-  if ($shortfall) {
-    $shortfall = max(.01, $shortfall); // don't report a tiny shortfall by rounding down to zero
-    $short = u\formatAmount($shortfall);
-    $shortfall = ceil($shortfall); // shortfall should be a round figure (no cents)
-  }
-  return $shortfall;
+  $r = min($requestAmount, $available);
+  if (!$shortfall = max(0, $requestAmount - $r)) return 0;
+
+  $usdAcct = new usd($acct); // try to do some in USD
+  $usdBalance = $usdAcct->bal();
+  $shortfall = max(0, round($shortfall - $usdBalance, 2));
+//    $shortfall = max(.01, $shortfall); // don't report a tiny shortfall by rounding down to zero
+//    $shortfall = ceil($shortfall); // shortfall should be a round figure (no cents)
+  return round($requestAmount - $r - $shortfall, 2);
 }
 
 /**
@@ -725,7 +737,7 @@ function isEmployee($uid, $company = '') {
 
 function communityUid($postal_code = '') {
   if (!$postal_code) return serverUid();
-  $where = "country=':R_COUNTRY_ID' AND :postal_code RLIKE postal_code AND uid=community_uid";
+  $where = "country=':R_COUNTRY_ID' AND :postal_code RLIKE postal_code AND uid=community";
   return userField('uid', $where, compact(u\ray('postal_code'))) ?: serverUid();
 }
 
@@ -880,6 +892,15 @@ function go($page) {
 }
 
 /**
+ * Set or return the proxy for the person
+ */
+function proxy($person, $priority = 1, $proxy = NULL) {
+  if (!@$proxy) return r\dbLookup('proxy', 'r_proxies', 'person=:id AND priority=:priority', compact('id', 'priority'));
+  dbQ('DELETE FROM r_proxies WHERE person=:person AND priority=:priority');
+  \drupal_write_record('r_proxies', compact(u\ray('person priority proxy')));
+}
+
+/**
  * @param mixed $which: criteria or record id (defaults to $cuid if users)
  * @return:
  *   data from the field, if a single field is requested
@@ -975,7 +996,7 @@ function bonus($uid, $amount = 1) {return rebate($uid, 2 * $amount);}
 function txField($field, $which, $subs = array()) {return tableField($field, '{zxs}', $which, $subs);}
 function setTxState($newValue, $zserial) {setTxField('state', $newValue, $zserial, TRUE);}
 function word() {return file_get_contents(dirname($_SERVER['DOCUMENT_ROOT']) . "/.shibboleth");}
-function totalDemand($ctty = '') {return dbLookup('SUM(demand)', 'users', $ctty ? 'community_uid=:ctty' : '1', compact('ctty'));}
+function totalDemand($ctty = '') {return dbLookup('SUM(demand)', 'users', $ctty ? 'community=:ctty' : '1', compact('ctty'));}
 function balance($uid = '', $real = TRUE) {return be\creditInfo(compact('uid', 'real'))->balance;}
 function serverUid($regionId = '') {return -u\a2n(u\neq($regionId, CT_SERVER_ID) ?: R_SERVER_ID);}
 function emailTemplate($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}
@@ -983,3 +1004,4 @@ function emailBody($key) {return str_replace('{BODY}', emailTemplate($key), emai
 function isRTrader($uid = '') {return ($acct = acct($uid)) ? $acct->hasBit(BIT_RTRADER) : FALSE;}
 function realCountry($country) {return dbLookup('name', 'r_countries', 'id=:country', compact('country'));}
 function realState($state, $country = R_COUNTRY_ID) {dbLookup($country == R_COUNTRY_ID ? 'abbreviation' : 'name', 'r_states', 'id=:state and country_id=:country', compact('state', 'country'));}
+

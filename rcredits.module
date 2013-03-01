@@ -112,31 +112,10 @@ function rcredits_shutdown() {
 }
 
 /**
- * Implements hook_permission().
- * Permission to transact through various interfaces is created here, 
- * so that those permissions can be granted during installation of the corresponding submodules.
- *
-function rcredits_permission() {
-  $permissions = array();
-  r\permission($permissions, 'Member', t('Has an account, can access the member area and do "As If" transactions'));
-  r\permission($permissions, 'Partner', t('Signed the membership agreement and donated'));
-  r\permission($permissions, 'Steward', t('Is allowed to vote and is responsible for stewarding the Common Good Community'));
-// make this a role  r\permission($permissions, 'rTrader', t('Is allowed to use rCredits for real'));
-  r\permission($permissions, 'Charge others', t('Can charge customers without confirmation'));
-//  r\permission($permissions, 'Transact via SMS', t('Transfer funds and get account information through the SMS Interface'));
-//  r\permission($permissions, 'Transact via Web Browser', t('Transfer funds and get account information through the Web Browser Interface'));
-//  r\permission($permissions, 'Transact via Smart Phone', t('Transfer funds and get account information through the Smart Interface'));
-  return $permissions;
-}
-*/
-
-/**
- * Implements hook_help().
+ * Implements hook_cron().
  */
-function rcredits_help($path, $arg) {
-  if ($path == 'admin/help#rCredits') {
-    return t('If you have trouble using rCredits software during the development phase, call William Spademan for help: wspademan@RCredits.org.');
-  }
+function rcredits_cron() {
+  include_once 'rcredits-cron.php';
 }
 
 /**
@@ -145,7 +124,7 @@ function rcredits_help($path, $arg) {
 function rcredits_im_send($key, &$message, $subs) {
   return FALSE; // can't send IMs yet
 
-  $message['send'] = FALSE; // disable emailing, since we sent it my IM instead
+  $message['send'] = FALSE; // disable emailing, since we sent it by IM instead
   return TRUE;
 } 
 
@@ -207,14 +186,4 @@ function rcredits_page_alter($page) {
   //debug($page['#type']);
   //debug(strip_tags($page['content']['system_main']['main']['#markup']));
 }
-/*************/
 
-
-/**
- * Add a single entry to the permission array for hook_permission()
- */
-/*
-function permission(&$permissions, $title, $description) {
-  $permissions[strtolower($title)] = compact('title', 'description');
-}
-*/

@@ -21,9 +21,9 @@ function tableDefs($schema = array()) {
 
   // table user (additions to Drupal standard)
   $fields = array( // additional users fields
-    'account_type' => setupField('personal, commercial, non-profit (or government)', 'int tiny'),
+    'account_type' => setupField('personal, commercial, both, non-profit (or government)', 'int tiny'),
     'flags' => setupField('permissions and boolean state flags', 'int big', 0, '010'),
-    'community_uid' => setupField("uid of this account's Common Good Community", 'int 11'),
+    'community' => setupField("uid of this account's Common Good Community", 'int 11'),
     'question' => setupField('security question', 'varchar 255'),
     'secure' => setupField('non-personal encrypted data (official currency account etc)', 'blob normal'), 
     'offsite' => setupField('index to encrypted data stored off-site', 'int big', NULL, '010'),
@@ -44,10 +44,12 @@ function tableDefs($schema = array()) {
     'demand' => setupField('waiting to trade this much USD for rCredits (or vice-versa)', 'numeric 11,2', 0),
     'demand_date' => setupField('date/time of request for rCredits (or USD)', 'int 11'),
     'counts' => setupField('counts of command use, etc.', 'int big', 0),
-    'min_balance' => setupField('minimum balance (normally zero or less)', 'numeric 11,2', R_MIN_BALANCE),
+    'min_balance' => setupField('how low can balance go (normally zero or less)', 'numeric 11,2', R_MIN_BALANCE),
+    'min_r' => setupField('minimum rCredits balance (savings, buy shortfall automatically, NULL=none)', 'numeric 11,2', NULL),
+    'max_r' => setupField('maximum rCredits balance (exchange excess for USD automatically), 0=no max)', 'numeric 11,2', NULL),
+    'min_usd' => setupField('minimum Dwolla balance (enough for 3 days of USD purchases, NULL=none)', 'numeric 11,2', NULL),
+    'max_usd' => setupField('maximum Dwolla balance (transfer excess to bank account, 0=no max)', 'numeric 11,2', NULL),
 // separate table for this? 'nym' => setupField('unique identifier for cryptographic signing', 'text tiny'), 
-    'proxy1' => setupField('first representative', 'int 11'),
-    'proxy2' => setupField('second representative', 'int 11'),
   );
   // need foreign keys here
   $schema['users']['fields'] = (@$schema['users']['fields'] ?: array()) + $fields;
@@ -75,10 +77,15 @@ function tableDefs($schema = array()) {
 //  $indexes = index('data');
   $schema['offsite'] = setupTable('secret data on some other server', $fields, 'id', NULL, NULL);
   
-/*  // table r_secret_hash
-  $fields['id'] = setupField($fields['id']['description'], 'varchar ' . R_SECRET_ID_LEN),
-  $schema['r_secret_hash'] = setupTable('secret non-numeric data on some other server', $fields, 'id', NULL, NULL);
-*/
+  // table proxies
+  $fields = array(
+    'person' => setupField('account record id', 'int 11'),
+    'proxy' => setupField('account rercord id of proxy', 'int 11'),
+    'priority' => setupField('precedence of this proxy (1=top priority)', 'int tiny'),
+  );
+  $foreign_keys = foreignKey('person') + foreignKey('proxy');
+  $indexes = index('person');
+  $schema['r_proxies'] = setupTable('Who represents whom', $fields, NULL, $foreign_keys, $indexes);
   
   // table r_sms 
   $fields = array(
@@ -101,7 +108,7 @@ function tableDefs($schema = array()) {
     'goods' => setupField('is this transfer and exchange for real goods and services?', 'int tiny'), 
     'state' => setupField('done, pending, disputed, etc', 'int tiny'), 
     'amount' => setupField('amount in rCredits', 'numeric 11,2'), 
-    'usd_amount' => setupField('amount in US Dollars', 'numeric 11,2'), 
+    'usd' => setupField('amount in US Dollars', 'numeric 11,2'), 
     'payer' => setupField('user id of the payer', 'int 11'), 
     'payee' => setupField('user id of the payee', 'int 11'), 
     'payer_agent' => setupField("user id of payer's agent (who approved this transaction for the payer)", 'int 11'), 
@@ -173,7 +180,7 @@ function tableDefs($schema = array()) {
     'other' => setupField('uid of a user related to that account', 'int 11'), // eg owner, agent, employee, supplier
     'foreign_uid' => setupField('uid of the foreign main account or foreign agent in their own region (main or other is then the region)', 'int 11'),
     'foreign_name' => setupField('full name of the foreign main account or foreign agent', 'varchar 60'),
-    'amount' => setupField('average monthly amount paid to other', 'numeric 11,2'), // typically to employee or supplier
+    'amount' => setupField('average monthly amount paid to other', 'numeric 11,2', 0), // typically to employee or supplier
     'permission' => setupField('what type of permission the agent has on the main account', 'int tiny', 0),
     'employer_ok' => setupField('employer says this agent is an employee', 'int tiny', 0),
     'employee_ok' => setupField('employee says this agent is an employee', 'int tiny', 0),
@@ -397,6 +404,7 @@ function oldVersion($version, $when) {
           SET u.state=s.id;
         UPDATE users SET state=4370 WHERE state='Stockholms';
         UPDATE users SET state=9999 WHERE state='Islington';
+        UPDATE users SET account_type=2 WHERE account_type=1;
 EOF;
       \db_query($sql);
       makeGeoDropdowns();

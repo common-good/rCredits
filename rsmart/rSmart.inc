@@ -150,7 +150,7 @@ function startup($args = '') {
   $account_name = $cacct->full_name;
   $allow_change_account = 0;
   $allow_change_agent = 1;
-  $require_agent = $cacct->can(PERM_COMPANY) ? 1 : 0;
+  $require_agent = $cacct->account_type >= R_COMMERCIAL ? 1 : 0;
   $show_buttons = buttons($cacct, $owner);
   return compact(u\ray('my_id account_name update_link allow_change_account allow_change_agent require_agent show_buttons')); // standard fields to return on startup);
 }
@@ -189,7 +189,7 @@ function photo($args) {
   global $base_url;
   extract(u\just('acct', $args));
   $pic_filename = r\Web\profile_picture(@$acct->id);
-  $default = "$base_url/sites/default/files/pictures/no-photo-available.jpg";
+  $default = "$base_url/" . variable_set('user_picture_default');
   $pic = file_get_contents($pic_filename ?: $default);
   if (!$pic) $pic = file_get_contents($default);
   $message = bin2hex(substr($pic, 0, 50));

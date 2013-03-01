@@ -29,13 +29,13 @@ function makeAccount($info = array(), $testOnly = FALSE) {
   $pass = @$my_password ?: '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae'; // default to 123
   $mail = @$my_email ?: ''; // Don't use "$name@example.com"
   $flags = BIT_DEFAULTS | (isset($my_flags) ? $my_flags : 0);
-  $community_uid = @$my_communityUid ?: r\serverUid();
-  u\EXPECT(!empty($community_uid), 'empty community uid');
+  $community = @$my_communityUid ?: r\serverUid();
+  u\EXPECT(!empty($community), 'empty community uid');
   fixCountryAndState($info);
 
   foreach (u\ray('id email password') as $one) unset($info[$one]);
   
-  $info = array_merge($info, compact(u\ray('uid flags rebate_percent name pass full_name mail community_uid')));
+  $info = array_merge($info, compact(u\ray('uid flags rebate_percent name pass full_name mail community')));
   if ($testOnly) {
     if (!$acct = r\acct($uid)) return testOutput("No such uid: $uid");
     foreach ($info as $key => $value) {
@@ -221,8 +221,7 @@ function makePicture($picture, $acct) {
 }
 
 function getPicture($picture) {
-  global $picturePath;
-  return file_get_contents("$picturePath/$picture.jpg");
+  return file_get_contents(R_PICTURE_DIR . "/$picture.jpg");
 }
 
 function lastMinuteSubs(&$string) {

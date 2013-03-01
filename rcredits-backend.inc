@@ -182,7 +182,7 @@ function updateRelations($updates) {
 }
 
 function setCttyAdmin($value, $main, $other) {
-  if ($main < 0 and $main == r\acct($other)->community_uid) r\acct($other)->setBit(BIT_CTTY_ADMIN, $value);
+  if ($main < 0 and $main == r\acct($other)->community) r\acct($other)->setBit(BIT_CTTY_ADMIN, $value);
 }
 
 /**
@@ -312,7 +312,7 @@ function get($currency, &$amount, $confirmed) {
   $request = u\formatAmount($amount);
   $success = TRUE;
   if ($currency == 'r') {
-// (catch this only when demand is high)      if ($my_amount < R_MIN_DEMAND) return array('demand too small');
+    if ($my_amount < R_MIN_DEMAND) return array('demand too small', array(), FALSE);
     r\demand($cuid, $amount);
     if ($is_real = r\isRTrader()) {
       if (!$confirmed) return array('confirm get r', compact(u\ray('request success')), TRUE);
@@ -324,7 +324,8 @@ function get($currency, &$amount, $confirmed) {
     return array('your demand', compact(u\ray('request success')), FALSE);
   }
 
-  // $currency == 'usd'
+  // $currency == 'usd' UNUSED at present (using max_r field instead)
+  u\EXPECT(FALSE, 'requesting usd');
   extract((array) creditInfo(), EXTR_PREFIX_ALL, 'info');
   if ($amount > $info_cashable) return array("can't cash incentives", $info_fancy, FALSE);
 //  if (r\userField('bank_account_status') != R_BANK_VERIFIED) return array('bank unverified', array(), FALSE);
@@ -334,7 +335,7 @@ function get($currency, &$amount, $confirmed) {
   //DWOLLA: transfer $amount from community's Dwolla account to the user's Dwolla account
   $type = TX_TRANSFER;
   $payer = $cuid;
-  $payee = $payer_agent = $payee_agent = r\userField('community_uid', $payer);
+  $payee = $payer_agent = $payee_agent = r\userField('community', $payer);
 
   $taking = FALSE;
   $for = t('USD');
@@ -343,7 +344,6 @@ function get($currency, &$amount, $confirmed) {
   $dbtx = db_transaction();
   r\transact(compact(u\ray('type amount payer payee payer_agent payee_agent for taking')));
   //DWOLLA: transfer from Dwolla account(s) of next rTrader(s) in line to community account (may take a few days)
-  //DWOLLA: (we need a request table with dates to track who is next in line. no need for "request" field in users table
   $balance = u\formatAmount($info_balance - $amount);
   if ($confirmed) return array('report get usd', compact(u\ray('request balance success')), FALSE);
   
@@ -437,13 +437,13 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   : ($taking // selling
       and $cacct->can(PERM_CHARGE) // seller can charge unilaterally
       and !$undoing // not reversing a payment
-      and !($acct->can(PERM_COMPANY) and $acct->proSe()) // not selling to a company directly (without its agent)
+      and !($acct->account_type >= R_COMMERCIAL and $acct->proSe()) // not selling to a company directly (without its agent)
       and ($channel == TX_SMART or $scanned or $channel == TX_SMS) // in person: scanned (web or smart) or by SMS
   );
   $preapproved = (@$data['preapproved'] or !$taking or $unilateral); // paying OR permitted to charge unilaterally
 //  $state = ($preapproved and !@$data['pay_all'])? TX_DONE : TX_PENDING;
   $virtual = ($goods and !$taking and ($cacct->hasBit(BIT_VIRTUAL_ALL) or ($cacct->hasBit(BIT_VIRTUAL_EMPLOYEES) and r\isEmployee($uid))));
-  $state = ($preapproved and !$virtual)? TX_DONE : TX_PENDING;
+  $state = ($preapproved and !$virtual)? TX_DONE : TX_PENDING; // may be changed to TX_TENTATIVE below
   $real = (!(@$data['zxid'] < 0) and r\isRTrader() and r\isRTrader($uid));
   
   // Check the amount and calculate any balance shortfall
@@ -451,37 +451,51 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   $totalHit = $requestAmount - @$data['rebate']; // leave room for reversing rewards (minus a negative)
   
   // *** RETHINK THIS SHORTFALL CODE, to transact partially in USD (always tentative) OR to refuse totally (if insuff. credit)
-  // amount/usd_amount need to be figured AND revise shortfall reporting, below
+  // amount/usd amount need to be figured AND revise shortfall reporting, below
   // separate function for handling Dwolla response (possibly 3 days later)
-  if ($shortfall = r\shortfall($taking ? $uid : $cuid, $totalHit, $preapproved, $real)) { // short payment or unilateral charge
+  $usd = r\usdPart($totalHit, $taking ? $acct : $cacct, $preapproved, $real, $shortfall); // short payment or unilateral charge
+  if ($shortfall) {
     $short = u\formatAmount($shortfall);
     $otherName = r\userField('full_name', $uid);
+    /*
     if ($paying_invoice) return array('short payment', compact('short'), FALSE); // no partial payment of invoice
     if (!$goods) return array($taking ? 'short cash from' : 'short cash to', compact('short', 'otherName'), FALSE); // no partial cash trans
     if ($shortfall >= $requestAmount or $undoing) { // flat broke or undoing (partial undo is too complex for now)
-      $msg = $taking ? 'broke from' : ($shortfall >= $requestAmount ? 'broke to' : 'short payment');
-      $how = $real ? 'exchange' : 'get-asif/pay'; // for 'broke to' message on web interface
+      $msg = $taking ? 'shortr from' : ($shortfall >= $requestAmount ? 'shortr to' : 'short payment');
       $balance = u\formatAmount($requestAmount + $shortfall);
+      */
+      if (!$real or is_null($usd)) {
+        $msg = $taking ? 'shortr from' : 'shortr to';
+        $how = $real ? 'exchange' : 'get-asif/pay'; // for 'shortr to' message on web interface
+      } else $msg = $taking ? 'short from' : 'short to';
       // NOPE if (!$unilateral) // let unilateral partials fall through for invoicing
-      return array($msg, compact(u\ray('otherName short balance how')), FALSE);
-    }
+      return array($msg, compact(u\ray('otherName short how')), FALSE);
   }
-  $amount = $requestAmount - $shortfall;
+  $amount = $requestAmount;
+  $r = $amount - $usd;
   
   // Figure rewards and other extra info
   if (!$for) $for = $goods ? 'goods and services' : 'cash/loan/etc.';
-  $rebate = (string) ($goods ? r\rebate($payer, $amount) : 0); // force string, to avoid long serializations
-  $bonus = (string) ($goods ? r\bonus($payee, $amount) : 0);
+  $rebate = (string) ($goods ? r\rebate($payer, $r) : 0); // force string, to avoid long serializations
+  $bonus = (string) ($goods ? r\bonus($payee, $r) : 0);
   if (!isset($data['rebate'])) $data += compact('rebate', 'bonus');
   $data += $foreign;
   unset($data['preapproved']); // probably don't need this (but keep zxid of related transaction, if any)
   unset($data['bilateral']);
   $data = serialize($data);
 
+  list ($fromUsAcct, $toUsAcct) = u\order($taking, new usd($acct), new usd($cacct));
   /*** Begin DBTX ***/ $dbtx = db_transaction();
-  $txs = r\transact(compact(u\ray('type amount payer payee payer_agent payee_agent for data taking goods state')));
+  $txs = r\transact(compact(u\ray('type amount usd payer payee payer_agent payee_agent for data taking goods state')));
+  $direct = TRUE; // for now, payer MUST have the usd amount in Dwolla, not just in the bank
+  if ($confirmed and $state = TX_DONE and !$usdPartOk = $fromUsAcct->transfer($usd, $toUsAcct, $direct)) {
+    $dbtx->rollback();
+    return array('usd failed', array(), FALSE);
+  }
   $zxid = $txs[0]['zxid'];
-  if ($confirmed and $amount > 0) $lastZxid = $zxid; else $dbtx->rollback();
+  if ($confirmed) $lastZxid = $zxid; else $dbtx->rollback();
+
+  //if ($confirmed and $amount > 0) $lastZxid = $zxid; else $dbtx->rollback();
   // and amount > 0 because broke customer charged unilaterally needs to fall through for invoice and proper message
 
   /*** End DBTX ***/ unset($dbtx); // $dbtx->commit() is disallowed
@@ -489,12 +503,10 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   // Report results
   $args = r\txReportArgs($txs[0], TRUE, $shortfall);
 
-/* NOPE. When charging unilaterally (only ever in person), simply tell payer how much is left to pay  
-  if ($shortfall and $taking and $confirmed) { // special case of partial unilateral charge
+/*  if ($shortfall and $taking and $confirmed) { // special case of partial unilateral charge
     list ($zot, $invoiceArgs) = transfer($ttype, $acct, $shortfall, $for, $goods, TRUE, array('bilateral' => TRUE, 'zxid' => $zxid));
     $args[$amount > 0 ? 't2id' : 'tid'] = @$invoiceArgs['tid'];
-  }
-*/
+  } */
 
   if ($confirmed) { // notify other party by email about any confirmed transaction
     $notice = $taking ? ($preapproved ? 'new-charge' : 'new-invoice')
@@ -502,14 +514,13 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
     r\notify($uid, $notice, $args);
     $message = $goods ?
       // $shortfall >= $requestAmount never happens (see "NOPE" notes, above). Remove this when sure.
-      ($shortfall ? ($taking ? ($shortfall >= $requestAmount ? 'broke invoice' : 'short invoice') : 'short payment')
-        : ($preapproved ? ($virtual ? 'offer' : 'transaction')
-        : 'invoice'))
+      // ($shortfall ? ($taking ? ($shortfall >= $requestAmount ? 'broke invoice' : 'short invoice') : 'short payment')
+        ($preapproved ? ($virtual ? 'offer' : 'transaction') : 'invoice')
       : ($preapproved ? 'exchange' : 'exchange request'); // no possible shortfall on confirmed cash exchange (see above)
     $message = "report $message";
   } else {
     $message = $goods ? $ttype : 'exchange';
-    if ($shortfall) $args['amount'] = u\formatAmount($requestAmount); // restore original amount before getting confirmation
+//    if ($shortfall) $args['amount'] = u\formatAmount($requestAmount); // restore original amount before getting confirmation
   }
   return array($message, $args, !$confirmed);
 }
@@ -531,7 +542,7 @@ function fund($uid, $type = TX_SIGNUP, $amount = R_STARTING_BALANCE, $confirmed 
 
   $payee_agent = $payee = $uid;
   $cacct = r\acct(); // null, if just registering
-  $ctty = r\userField('community_uid', $payee);
+  $ctty = r\userField('community', $payee);
   if (!isset($real)) $real = r\isRTrader($payee);
   if ($real and $type > TX_AUTOMATIC and !$cacct->can(PERM_MANAGING_CTTY)) return FALSE; // real incentives given only automatically or by community agent
   if (!$confirmed) return $amount;
@@ -540,7 +551,8 @@ function fund($uid, $type = TX_SIGNUP, $amount = R_STARTING_BALANCE, $confirmed 
   $payer_agent = @$cacct->id < 0 ? $cacct->agentId : $ctty;
   $taking = ($type >= TX_FINE);
   $for = $GLOBALS['txTypes'][$type];
-  r\transact(compact(u\ray('type amount payer payee payer_agent payee_agent for taking')), $real);
+  $usd = 0;
+  r\transact(compact(u\ray('type amount usd payer payee payer_agent payee_agent for taking')), $real);
   return $amount;
 }
 
@@ -665,6 +677,7 @@ EOF;
  *   state: string list of transaction states to return (DEFAULT ':TX_DONE,:TX_DISPUTED')
  *   real: return real transactions instead of asif (DEFAULT real for rTraders, asif for non-rTraders)
  *   asof: last date to include (defaults to '', meaning unrestricted)
+ *   currency: r, usd, or both (default is r)
  *
  * @return
  *   standard object of credit account information (see $resultKeys, below)
@@ -676,24 +689,29 @@ function creditInfo($args = array()) {
     $info = backend('creditInfo', $args);
     $info->fancy = (array) $info->fancy; // backend turns the whole shebang into an object
   }
-  extract($args, EXTR_PREFIX_ALL, 'my'); // uid, state, real, asof
+  extract(u\just('uid state real asof currency', $args));
 
   $cacct = r\acct();
   $cuid = $cacct ? $cacct->id : 0;
-  $uid = @$my_uid ?: $cuid;
-  $state = @$my_state ?: ':TX_DONE,:TX_DISPUTED';
-  $real = isset($my_real) ? $my_real : r\isRTrader($uid);
-  $asof = @$my_asof ?: '';
+
+  // set parameter defaults
+  $uid = @$uid ?: $cuid;
+  $state = @$state ?: ':TX_DONE,:TX_DISPUTED';
+  $real = isset($real) ? $real : r\isRTrader($uid);
+  $asof = @$asof ?: '';
+  $currency = @$currency ?: 'r';
+  
   $dateField = 'GREATEST(t.created,IF(ISNULL(t.completed), 0, t.completed))';
   $monthStart = u\monthDay1();
   $minBalance = r\userField('min_balance', $uid);
+  $amount = $currency == 'both' ? 't.amount' : ($currency == 'usd' ? 't.usd' : '(t.amount - t.usd)');
 
   $sql = <<<EOF
     SELECT 
-    SUM(IF(t.payer=:uid, t.amount, 0)) AS grossOut, 
-    SUM(IF(t.payee=:uid, t.amount, 0)) AS grossIn,
-    SUM(IF(t.type=:TX_TRANSFER, 0, t.amount)) AS rewards,
-    SUM(IF(t.type IN(:TX_REBATE,:TX_BONUS) AND $dateField>=$monthStart, t.amount, 0)) AS committed
+    SUM(IF(t.payer=:uid, $amount, 0)) AS grossOut, 
+    SUM(IF(t.payee=:uid, $amount, 0)) AS grossIn,
+    SUM(IF(t.type=:TX_TRANSFER, 0, $amount)) AS rewards,
+    SUM(IF(t.type IN(:TX_REBATE,:TX_BONUS) AND $dateField>=$monthStart, $amount, 0)) AS committed
     FROM {zxs} t
     WHERE (t.payer=:uid OR t.payee=:uid) AND t.state IN($state)
 EOF;

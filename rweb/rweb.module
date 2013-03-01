@@ -68,7 +68,7 @@ function rweb_menu() {
     'loan' => r\Web\menu(t('Loan'), MENU_LOCAL_TASK, 'showForm', array('Tx'), PERM_MANAGING_CTTY),
     'fine' => r\Web\menu(t('Fine'), MENU_LOCAL_TASK, 'showForm', array('Tx'), PERM_MANAGING_CTTY),
 
-    'exchange' => r\Web\menu(t('Get r / USD'), MENU_NORMAL_ITEM, 'showForm', array('Exchange'), PERM_MANAGE),
+    'getr' => r\Web\menu(t('Get rCredits'), MENU_NORMAL_ITEM, 'showForm', array('GetR'), PERM_MANAGE),
     'directory' => r\Web\menu(t('Find Companies'), MENU_NORMAL_ITEM, 'showForm', array('Directory'), PERM_SELL),
     'reports' => r\Web\menu(t('Reports'), MENU_NORMAL_ITEM, 'showForm', array('Reports', 1), '', $anyone),
     'undo' => r\Web\menu(t('Undo'), MENU_CALLBACK, 'undo', array(1), PERM_SELL),

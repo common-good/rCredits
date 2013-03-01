@@ -26,9 +26,7 @@ require_once __DIR__ . '/../rcredits-testing.inc';
  * The feature object contains information about the current feature and test, etc.
  */
 function extraSetup($feature) {
-  global $picturePath, $channel; 
-  list ($picturePath) = explode('sites', __DIR__);
-  $picturePath .= 'sites/default/files/pictures';
+  global $channel; 
   $channel = TX_WEB;
 
   global $sms_devel; $sms_devel = TRUE;

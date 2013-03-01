@@ -222,12 +222,11 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformtx.confirmation #id-name {margin-top:30px; font-weight:bold; font-size:30px; color:darkgreen;}
 #rcreditswebformtx.confirmation #edit-question label {font-weight:normal;}
 
-/* Exchange form (labeled) Get r / USD */
-/* #rcreditswebformexchange #edit-request label {font-weight:normal; text-align:left; margin-left:100px; width:100%} */
-#rcreditswebformexchange #edit-getusd {margin-left:4em;}
-#rcreditswebformexchange #edit-subtext {margin-left:0px; width:30em;}
-#rcreditswebformexchange #edit-subtext .r-explain {text-align:left; margin-left:6.6em;}
-#rcreditswebformexchange #edit-subtext .r-amounts {text-align:right; margin-right:7em;}
+/* Exchange form (labeled) Get r */
+/* #rcreditswebformgetr #edit-request label {font-weight:normal; text-align:left; margin-left:100px; width:100%} */
+#rcreditswebformgetr #edit-subtext {margin-left:0px; width:100%;}
+#rcreditswebformgetr #edit-subtext .r-explain {text-align:left; margin-left:30px; max-width:650px;}
+#rcreditswebformgetr #edit-subtext .r-amounts {text-align:right; max-width:425px;}
 
 /* Reports */
 #rcreditswebformreports .form-item-agents,
@@ -291,9 +290,10 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformtxs .tx-date {width:7.5%; text-align:right;} /* 2 date */
 #rcreditswebformtxs .tx-fromyou {width:9.5%; text-align:right;} /* 4 from you */
 #rcreditswebformtxs .tx-toyou {width:9.5%; text-align:right;} /* 5 to you */
-#rcreditswebformtxs .tx-state {width:5%; text-align:right;} /* 6 status */
-#rcreditswebformtxs .tx-buttons {width:12%; text-align:right;} /* 7 buttons */
-#rcreditswebformtxs .tx-reward {width:7.5%; text-align:right;} /* 9 rewards */
+#rcreditswebformtxs .tx-rpct {width:5%; text-align:right;} /* 6 r% */
+#rcreditswebformtxs .tx-state {width:5%; text-align:right;} /* 7 status */
+#rcreditswebformtxs .tx-buttons {width:12%; text-align:right;} /* 8 buttons */
+#rcreditswebformtxs .tx-reward {width:7.5%; text-align:right;} /* 100 rewards */
 
 #rcreditswebformtxs th,
 #rcreditswebformtxs td {text-align:right;}
@@ -305,8 +305,9 @@ form.rweb  .form-no {color:red;}
 /* #rcreditswebformtxs th:first-child +th+th+th+th {text-align:right;} /* column 5 */
 /* #rcreditswebformtxs th:first-child +th+th+th+th+th {text-align:right;} /* column 6 */
 /* #rcreditswebformtxs th:first-child +th+th+th+th+th+th {text-align:right;} /* column 7 */
-#rcreditswebformtxs th:first-child +th+th+th+th+th+th+th {text-align:left;} /* column 8 */
-/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th {text-align:right;} /* column 9 */
+/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th {text-align:right;} /* column 8 */
+#rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th {text-align:left;} /* column 9 */
+/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th+th {text-align:right;} /* column 10 */
 
 /* #rcreditswebformtxs td:first-child {text-align:right;} /* column 1 */
 /* #rcreditswebformtxs td:first-child +td {text-align:right;} /* column 2 */
@@ -315,8 +316,9 @@ form.rweb  .form-no {color:red;}
 /* #rcreditswebformtxs td:first-child +td+td+td+td {text-align:right;} /* column 5 */
 /* #rcreditswebformtxs td:first-child +td+td+td+td+td {text-align:right;} /* column 6 */
 /* #rcreditswebformtxs td:first-child +td+td+td+td+td+td {text-align:right;} /* column 7 */
-#rcreditswebformtxs td:first-child +td+td+td+td+td+td+td {text-align:left;} /* column 8 */
-/* #rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td {text-align:right;} /* column 9 */
+/* #rcreditswebformtxs td:first-child +td+td+td+td+td+td+td {text-align:right;} /* column 8 */
+#rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td {text-align:left;} /* column 9 */
+/* #rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td+td {text-align:right;} /* column 10 */
 
 /* Transaction Summary Table */
 #txsum, #txsum-title, #txs-title {width:100%; margin:0;} /* outline:2px solid darkgreen;} */
@@ -505,9 +507,9 @@ and (max-device-width : 480px) { */
   fieldset#which {top:8em; width:100%;}
   #help-link {display:none;}
   
-  #rcreditswebformexchange #edit-subtext .r-explain,
-  #rcreditswebformexchange #edit-subtext .r-amounts {margin-left:0; text-align:left; width:100%;}
-  #rcreditswebformexchange #edit-getusd {margin-left:0;}
+  #rcreditswebformgetr #edit-subtext .r-explain,
+  #rcreditswebformgetr #edit-subtext .r-amounts {margin-left:0; text-align:left; width:100%;}
+  #rcreditswebformgetr #edit-getusd {margin-left:0;}
 
   #rcreditswebformdirectory ul {margin-left:0; padding-left:0;}
   

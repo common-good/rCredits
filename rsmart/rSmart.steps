@@ -28,10 +28,6 @@ require_once __DIR__ . '/../rsmart/rsmart.inc';
  * The feature object contains information about the current feature and test, etc.
  */
 function extraSetup($feature) {
-  global $picturePath; 
-  list ($picturePath) = explode('sites', __DIR__);
-  $picturePath .= 'sites/default/files/pictures';
-
   global $sms_devel; $sms_devel = TRUE;
   r\dbQ('DELETE FROM users WHERE uid>1000');
   r\dbQ('TRUNCATE r_sms');
@@ -211,7 +207,7 @@ function memberHasPicture($id, $picture) {
  */
 function weRespondToMemberWithPicture($id, $picture) {
   global $testOnly;
-  $message = bin2hex(substr(t\getPicture($picture), 0, 50));
+  $message = bin2hex(substr(R_PICTURE_DIR . "/$picture", 0, 50));
   return t\findMessage('out', compact('message'));
 }
 

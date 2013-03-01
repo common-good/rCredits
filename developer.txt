@@ -1,5 +1,6 @@
 rCredits Software
 Notes for developers
+rename community field to community
 *** upload r_countries and r_states, then
   UPDATE users u
     INNER JOIN r_countries c ON BINARY c.name=BINARY u.country
@@ -13,13 +14,18 @@ Notes for developers
 ***
         
 Short term tasks: (* = before launch ** = earlier)
-- ** code for usd_amount
-- ** Store profile picture like we store id_proof, but not encrypted
+- include r column in downloads
+- count owners (if not employed too) and suppliers each as one (average) employee, when distributing virtual payments
+- options for employee: 
+  . how often to get paid (default is set by employer. More often than that and employee pays the 25cents, otherwise the employer)
+  . fill Dwolla account automatically in advance to cover expected virtual payments OR let me do it when you remind me
+- travel checks (use once, limited amount)
+- callback from oauth request calls usd page with success/youSaidNO/error (display a message)
+- suggest horizontal image (ideally 16x9) for company profile pix
+- allow extra params in buynow form
+- ** code for usd amount in txs
 - ** default purpose for companies
-- ** add preferred usd minimum balance (3-day's worth) to usd tab
-- ** cron for daily stuff
 - ** security code for cards (store in "secure" field)
-- ** handle personal&commercial (choose only if you are self-employed, using your own social security number and photograph for the business, and you don't want a separate account for the business). Look especially for !PERM_COMPANY.
 - ** (?) cards scan to new.rc2.me, which redirects (for now) to new.rcredits.org (ultimately to the proper region). whole URL
 - ** The Transactions screen shows always the "amount", which is the total amount, with an extra column for USD.
 - ** Transaction Summary: add extra rows for "Unavailable until <date>", "Available Balance", "Incentive Rewards to Date", and "Amount That Can Be Exchanged for USD", reflecting serialized assoc values in the data field of the account: balance, frozen[n]=array(date,amount), rewards (available balance is calculated)
@@ -31,7 +37,7 @@ Short term tasks: (* = before launch ** = earlier)
   . current account and new account are personal accounts for individuals who have a personal relationship rather than a business relationship
   . none of the above
   ----------
-  . current account can cover new account's debts and overdrafts
+  . current account can cover new account's debts and overdrafts (no funds will be moved automatically)
   . new account can cover current account's debts and overdrafts
   . both
   . neither
@@ -39,6 +45,7 @@ Short term tasks: (* = before launch ** = earlier)
 - * Start everyone with $50, bring it up to $100 the next week (2nd month everyone starts at $20)
 - for companies, show HTML for online payment buttons
 - add tithe to summary page, for admins
+- make personal contact info secure?
 - Company profile picture will also appear in our office slideshow. Say so on company tab.
 - find out why account_type doesn't get passed to formSummary_submit in $sta['values'] (low priority)
 includes security code, like this: http(s?)://new.rc2.me/new.abc/Urlencoded10CharacterSecurityCode
@@ -136,7 +143,7 @@ E. Database clues
          company, employee_ok, and is_owner: these are stored upon registration, but they should really go in the relations table and the user should be required to give a phone number for the company, if it is not in the users table yet
          new_account: qid of new account when this account is closed by moving funds elsewhere
      . description is html for the company's page (N/A for personal accounts)
-     . community_uid: the (negative) uid of the account's CGC. For anyone who is not in an established CGC, their community is the region (using the regional server's uid). For region and community records, community_uid === uid
+     . community: the (negative) uid of the account's CGC. For anyone who is not in an established CGC, their community is the region (using the regional server's uid). For region and community records, community === uid
      . counts is not currently used
      . usd_auth is a serialized assoc:
          gateway: Dwolla
@@ -148,8 +155,8 @@ E. Database clues
      . payer: normally the uid of the account being debited. If the payer is "foreign" (that is, if their account record is stored on a different regional server), then payer is that region's uid and the data field has details. Similarly, payee, payer_agent, and/or payee_agent might be a region, with details in data.
      . amount: the amount of rCredits transferred. While waiting for a USD amount to clear, the entire transaction amount is
          tentatively (TX_TENTATIVE) transferred in rCredits, so amount is the total transaction amount
-     . usd_amount: the amount of USD transferred (or waiting to be transferred). While waiting for a USD amount to clear, 
-         this field holds the expected amount of USD. (So the total of amount+usd_amount is typically greater than the total
+     . usd: the amount of USD transferred (or waiting to be transferred). While waiting for a USD amount to clear, 
+         this field holds the expected amount of USD. (So the total of amount+usd is typically greater than the total
          transaction amount, until the transaction is TX_DONE.)         
      . data: We use this to store non-essential and unusual essential information in a serialized associative array:
        undone: 1 if the transaction has been reversed
