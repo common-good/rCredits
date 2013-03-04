@@ -10,8 +10,6 @@ use rCredits\Backend as be;
 
 include_once __DIR__ . '/rcredits-install.inc'; // treat this as an extension of this file
 
-define('R_TABLES', 'r_areas,r_regions,r_countries,r_states,r_nonces,r_industries,r_user_industries');
-
 /**
  * Implement hook_install().
  *
@@ -61,17 +59,29 @@ function rcredits_install() {
   $current = variable_get('mail_system', array('default-system' => 'DefaultMailSystem'));
   variable_set('mail_system', array_merge($current, array('rCredits' => 'rCreditsMailSystem')));
 
-  $tables = explode(',', R_TABLES);
+  // use PDO for insertion queries, because Drupal's db_query ignores braces
+  $root = dirname($_SERVER['DOCUMENT_ROOT']);
+  $dbs = (array) json_decode(utf8_encode(file_get_contents("$root/.databases")));
+  parse_str($dbs[$db_name = @$_SERVER['WINDIR'] ? 'new_rcredits' : key($dbs)], $dbInfo);
+  extract($dbInfo, EXTR_PREFIX_ALL, 'db');
+  $db = new PDO("$db_driver:host=$db_host;port=$db_port;dbname=$db_name", $db_user, $db_pass);
+
+  $rTables = 'r_areas,r_regions,r_countries,r_states,r_nonces,r_industries,r_user_industries';
+  $redoTables = 'filter,filter_format,role_permission';
+  foreach (explode(',', $redoTables) as $table) \db_query("TRUNCATE $table");
+  $sqlDir = __DIR__ . '/sql';
+  $tables = explode(',', "$rTables,$redoTables");
+
   foreach ($tables as $table) {
-    $filename = __DIR__ . "/sql/$table";
-    if ($sql = @file_get_contents("$filename-make.sql")) db_query($sql); // read in a single CREATE TABLE (if exists) query
+    $filename = "$sqlDir/$table";
+    if ($sql = @file_get_contents("$filename-make.sql")) \db_query($sql); // read in a single CREATE TABLE (if exists) query
     if (!@r\dbLookup(1, "$table", 'TRUE') and file_exists("$filename-insert.sql")) {
       $sql = file_get_contents("$filename-insert.sql"); // read in a single multi-record INSERT query
-      if (!db_query($sql)->rowCount()) die("Failed to insert records for $table.");
+      if (!$db->query($sql)) die("Failed to insert records for $table.");
 	  }
   }
-  
-  db_query("DELETE from menu_links WHERE menu_name='main-menu' AND link_title='Home'"); // this is replaced by "Summary"
+
+  \db_query("DELETE from menu_links WHERE menu_name='main-menu' AND link_title='Home'"); // this is replaced by "Summary"
 // this fails  db_query("UPDATE menu_links SET hidden=1 WHERE menu_name='navigation'"); // don't want these either
   r\oldVersion($oldVersion, 'after');
 }

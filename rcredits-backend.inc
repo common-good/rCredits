@@ -451,9 +451,6 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   if ($error = u\badAmount($requestAmount, '>0')) return array($error, array(), FALSE);
   $totalHit = $requestAmount - @$data['rebate']; // leave room for reversing rewards (minus a negative)
   
-  // *** RETHINK THIS SHORTFALL CODE, to transact partially in USD (always tentative) OR to refuse totally (if insuff. credit)
-  // amount/usd amount need to be figured AND revise shortfall reporting, below
-  // separate function for handling Dwolla response (possibly 3 days later)
   $usd = r\usdPart($totalHit, $taking ? $acct : $cacct, $preapproved, $real, $shortfall); // short payment or unilateral charge
   if ($shortfall) {
     $short = u\formatAmount($shortfall);
@@ -487,9 +484,9 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
 
   list ($fromUsAcct, $toUsAcct) = u\order($taking, new r\usd($acct), new r\usd($cacct));
   /*** Begin DBTX ***/ $dbtx = db_transaction();
-  $txs = r\transact(compact(u\ray('type amount usd payer payee payer_agent payee_agent for data taking goods state')));
+  $txs = r\transact(compact(u\ray('type amount r payer payee payer_agent payee_agent for data taking goods state')));
   $direct = TRUE; // for now, payer MUST have the usd amount in Dwolla, not just in the bank
-  if ($confirmed and $state = TX_DONE and !$usdPartOk = $fromUsAcct->transfer($usd, $toUsAcct, $direct)) {
+  if ($confirmed and $state = TX_DONE and $usd > 0 and !$usdPartOk = $fromUsAcct->transfer($usd, $toUsAcct, $direct)) {
     $dbtx->rollback();
     return array('usd failed', array(), FALSE);
   }
@@ -552,8 +549,8 @@ function fund($uid, $type = TX_SIGNUP, $amount = R_STARTING_BALANCE, $confirmed 
   $payer_agent = @$cacct->id < 0 ? $cacct->agentId : $ctty;
   $taking = ($type >= TX_FINE);
   $for = $GLOBALS['txTypes'][$type];
-  $usd = 0;
-  r\transact(compact(u\ray('type amount usd payer payee payer_agent payee_agent for taking')), $real);
+  $r = $amount;
+  r\transact(compact(u\ray('type amount r payer payee payer_agent payee_agent for taking')), $real);
   return $amount;
 }
 
@@ -705,7 +702,7 @@ function creditInfo($args = array()) {
   $dateField = 'GREATEST(t.created,IF(ISNULL(t.completed), 0, t.completed))';
   $monthStart = u\monthDay1();
   $minBalance = r\userField('min_balance', $uid);
-  $amount = $currency == 'both' ? 't.amount' : ($currency == 'usd' ? 't.usd' : '(t.amount - t.usd)');
+  $amount = $currency == 'both' ? 't.amount' : ($currency == 'usd' ? '(t.amount - t.r)' : 't.r');
 
   $sql = <<<EOF
     SELECT 

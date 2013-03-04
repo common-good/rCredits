@@ -155,7 +155,8 @@ $GLOBALS['SMS help'] = array(
   'help undo' => t('To undo your most recent transaction, type "undo". Type "more" for options to undo your most recent transaction of a certain type.'),
   'help undo2' => t('Examples: undo | undo janedough | undo to | undo from | undo to janedough | undo from janedough — Type "more" for details.'),
   'help undo22' => t('"undo janedough" undoes your most recent transaction with Jane Dough. You can also identify her by phone, email, or account ID.'),
-  'help get' => t('To get $200 more in rCredits, type "get r 200". To send $50 in rCredits to your US bank account, type "get usd 50".'),
+//  'help get' => t('To get $200 more in rCredits, type "get r 200". To send $50 in rCredits to your US bank account, type "get usd 50".'),
+  'help get' => t('To get $200 more in rCredits, type "get r 200".'),
   'help information' => t('Just type "info" (tells you your balance and the current demand for rCredits)'),
   'help helpme' => t('Options: pay | charge | undo | info | get | helpme. For details, type "helpme pay" and so forth.'),
 );
@@ -207,7 +208,7 @@ $GLOBALS['SMS command tokens'] = array(
   '%amount' => '([0-9]+(?:.[0-9][0-9]?)?)',
   '%who' => '([^ ]+)',
   '%what' =>  '(.+)',
-  '%rusd' => '(r|usd)',
+  '%rusd' => '(r)', // was (r|usd)
   '%currency' => '([a-z]+)',
   '%feature' => '([^ ]+)',
 );

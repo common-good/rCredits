@@ -83,10 +83,10 @@ function formTxs($form, &$sta, $args = '') {
     $zxid = $real ? $tx_xid : -$tx_xid;
     $data = unserialize($tx_data);
     $is_reward = ($tx_type != TX_TRANSFER);
-    $amount = number_format($tx_amount - $tx_usd, 2);
+    $amount = number_format($tx_r, 2);
     $total = number_format($tx_amount, 2);
-    $usd = number_format($tx_usd, 2);
-    $rpct = number_format(100 * (1 - $tx_usd / $tx_amount), 1);
+    $usd = number_format($tx_amount - $tx_r, 2);
+    $rpct = number_format(100 * $tx_r / $tx_amount, 1);
     if ($rpct == '100.0') $rpct = '100'; // keep the field narrow (4 chars max)
     $rpct = "<span title=\"r$$amount + us$$usd = $$total\">$rpct</span>";
     $date = @$tx_completed ?: $tx_created;

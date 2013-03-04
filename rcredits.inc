@@ -108,7 +108,7 @@ define('TX_DENIED', -2); // invoice rejected by the non-originator
 define('TX_DELETED', -1);
 define('TX_PENDING', 0); // charged, waiting for confirmation (in all other states, transaction is complete)
 define('TX_DONE', 1); // transactions with a positive state count as done
-define('TX_TENTATIVE', 2); // done in rCredits, but waiting for USD funds to clear instead (usd field is the expected amount)
+define('TX_TENTATIVE', 2); // done in rCredits, but waiting for USD funds instead (amount minus r is the expected amount)
 define('TX_DISPUTED', 3); // unilaterally charged, but disputed by the payer (the charge stands, until settled)
 
 // Transaction channels (roughly in order of simplicity and generality of messages)
@@ -821,10 +821,16 @@ function newMemberId($oldUid, $newUid = FALSE, $skipUsers = FALSE) {
     'r_asif:payer',
     'r_asif:payee',
     'r_candidates:uid', // in case we're in the middle of figuring who's next
+  // r_countries,
+    'r_demand:who',
   // r_industries
+    'r_invites:inviter',
+    'r_invites:invitee',
     'r_log:cuid',
     'r_log:agent',
   // r_nonces
+    'r_proxies:person',
+    'r_proxies:proxy',
   // r_regions
     'r_relations:main',
     'r_relations:other',
@@ -832,10 +838,9 @@ function newMemberId($oldUid, $newUid = FALSE, $skipUsers = FALSE) {
     'r_smarts:owner',
     'r_smarts:default_agent',
     'r_sms:uid',
+  // r_states
     'r_txs:payer',
     'r_txs:payee',
-    'r_usd:payer',
-    'r_usd:payee',
     'r_user_industries:uid',
     'users:uid',
   );

@@ -14,6 +14,7 @@ rename community field to community
 ***
         
 Short term tasks: (* = before launch ** = earlier)
+- change SMS command "get r" to just "get"
 - in asif and txs: r column instead of usd column
 - include r column in downloads
 - count owners (if not employed too) and suppliers each as one (average) employee, when distributing virtual payments
@@ -28,7 +29,6 @@ Short term tasks: (* = before launch ** = earlier)
 - ** default purpose for companies
 - ** security code for cards (store in "secure" field)
 - ** (?) cards scan to new.rc2.me, which redirects (for now) to new.rcredits.org (ultimately to the proper region). whole URL
-- ** The Transactions screen shows always the "amount", which is the total amount, with an extra column for USD.
 - ** Transaction Summary: add extra rows for "Unavailable until <date>", "Available Balance", "Incentive Rewards to Date", and "Amount That Can Be Exchanged for USD", reflecting serialized assoc values in the data field of the account: balance, frozen[n]=array(date,amount), rewards (available balance is calculated)
 - ** membership path for companies!
 - ** make a "open another account" button and add that possibility to the error when trying to register without an invite (implement by creating an invite and redirecting to registration, using that code). Choices for the new account:
@@ -154,11 +154,10 @@ E. Database clues
      . xid: record id. Always positive in the tables, but in the code: negative zxid means use the ASIF table (r_asif) instead.
        Transactions are identified to the user counting just their own transactions (1, 2, 3, ...), NOT as an xid.
      . payer: normally the uid of the account being debited. If the payer is "foreign" (that is, if their account record is stored on a different regional server), then payer is that region's uid and the data field has details. Similarly, payee, payer_agent, and/or payee_agent might be a region, with details in data.
-     . amount: the amount of rCredits transferred. While waiting for a USD amount to clear, the entire transaction amount is
-         tentatively (TX_TENTATIVE) transferred in rCredits, so amount is the total transaction amount
-     . usd: the amount of USD transferred (or waiting to be transferred). While waiting for a USD amount to clear, 
-         this field holds the expected amount of USD. (So the total of amount+usd is typically greater than the total
-         transaction amount, until the transaction is TX_DONE.)         
+     . amount: the total transaction amount. While waiting for a USD amount to clear, the entire transaction amount is
+         tentatively (TX_TENTATIVE) transferred in rCredits
+     . r: the amount of rCredits transferred. While waiting for a USD amount to clear, 
+         this field holds the expected amount of rCredits. This may change if the USD EFT does not clear.
      . data: We use this to store non-essential and unusual essential information in a serialized associative array:
        undone: 1 if the transaction has been reversed
        bonus and rebate: the dollar amounts of any rewards associated with a payment

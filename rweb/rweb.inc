@@ -2288,7 +2288,7 @@ function formCompany_submit($form, &$sta) {
   extract(u\trimAll($sta['values']));
 //  $description = \check_markup($description['value']);
   $description = $description['value'];
-  r\acct()->update(compact('description'));
+  r\acct()->update(compact('description', 'selling'));
 
   //*** Begin DBTX
   $dbtx = db_transaction();
