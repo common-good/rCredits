@@ -97,6 +97,7 @@ function rweb_menu() {
     'membership' => r\Web\menu(t('Membership Status'), MENU_CALLBACK, 'showForm', array('Membership'), PERM_MANAGE),
     'membership/status' => r\Web\menu('Membership Status', MENU_DEFAULT_LOCAL_TASK, 'showForm', array('Membership'), PERM_MANAGE),
     'membership/agreement' => r\Web\menu(t('rCredits Agreement'), MENU_LOCAL_TASK, 'showForm', array('Agreement'), PERM_MANAGE),
+    'membership/contribute' => r\Web\menu(t('Contribute'), MENU_LOCAL_TASK, 'contribute', array(), '', $anyone),
 //    'membership/video' => r\Web\menu(t('Videos'), MENU_LOCAL_TASK, 'showForm', array('Videos', 2), '', $anyone),
     'membership/proxies' => r\Web\menu(t('Choose Proxies'), MENU_LOCAL_TASK, 'showForm', array('Proxies'), PERM_MANAGE),
     'membership/invite' => r\Web\menu(t('Invite Someone'), MENU_LOCAL_TASK, 'showForm', array('Invite'), PERM_MANAGE),

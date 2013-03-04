@@ -33,8 +33,10 @@ class acct {
    * @param id/qid $agent: the agent's record id on this server OR the foreign agent's qid (DEFAULT to same as $id)
    */
   function __construct($id = array(), $agent = '') {
+    $card_code = \user_password(10); // in case we have not yet created an rCard security code
     if (!is_array($info = $id)) { // referring to existing db record
       list($this->id, $this->agentId, $this->regionId, $this->agentIdRegion) = acct::ok($id, $agent, $zot, FALSE);
+      if (!@$this->secure['card_code']) $this->secure = compact('card_code'); // delete this line once every account has one
     } else { // create new db record
       extract($info, EXTR_PREFIX_ALL, 'my');   
       if (isset($my_number) and !isset($my_phone)) $my_phone = $my_number;
@@ -50,6 +52,7 @@ class acct {
       $info['roles'] = 0; // this keeps Drupal happy in user.module
       $info['flags'] = @$my_flags ?: (@$info['uid'] ? (BIT_DEFAULTS | BIT_RTRADER) : BIT_DEFAULTS);
       $info['community'] = communityUid(@$my_postal_code); // defaults to current server
+      $info['secure'] = compact('card_code');
 
       /*** Begin DBTX ***/ $dbtx = db_transaction();
       if (!$uid = @$info['uid']) {

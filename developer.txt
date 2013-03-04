@@ -14,6 +14,7 @@ rename community field to community
 ***
         
 Short term tasks: (* = before launch ** = earlier)
+- in asif and txs: r column instead of usd column
 - include r column in downloads
 - count owners (if not employed too) and suppliers each as one (average) employee, when distributing virtual payments
 - options for employee: 

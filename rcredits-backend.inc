@@ -404,6 +404,7 @@ function payInvoice($zxid) {
  * @todo: write feature tests for partial transactions (paying/taking unilateral/not undoing/not broke/not)
  */
 function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE, $data = array()) {
+  include_once __DIR__ . '/usd.class';
   global $lastZxid, $scanned, $channel; 
   if (isFrontend()) return (array) backend('transfer', compact(u\ray('ttype acct requestAmount for confirmed data')));
   if (is_array($ttype)) extract($ttype); // called from api or backend
@@ -484,7 +485,7 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   unset($data['bilateral']);
   $data = serialize($data);
 
-  list ($fromUsAcct, $toUsAcct) = u\order($taking, new usd($acct), new usd($cacct));
+  list ($fromUsAcct, $toUsAcct) = u\order($taking, new r\usd($acct), new r\usd($cacct));
   /*** Begin DBTX ***/ $dbtx = db_transaction();
   $txs = r\transact(compact(u\ray('type amount usd payer payee payer_agent payee_agent for data taking goods state')));
   $direct = TRUE; // for now, payer MUST have the usd amount in Dwolla, not just in the bank

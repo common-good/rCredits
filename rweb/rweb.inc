@@ -429,6 +429,23 @@ EOF;
   drupal_json_output($matches);
 }
 
+function contribute() {
+  setupGlobals(); // required because not called from showForm
+  if ($cacct = r\acct()) {
+    $memberid = $cacct->mainQid;
+    if ($cacct->can(PERM_COMPANY)) $organization = $cacct->full_name; else $yourname = $cacct->full_name;
+    $phone = $cacct->phone;
+    $email = $cacct->mail;
+    $country = $cacct->country;
+    $postalcode = $cacct->postal_code;
+    $state = $cacct->state;
+    $city = $cacct->city;
+    $address = $cacct->address;
+    $info = compact(u\ray('memberid yourname organization phone email country postalcode state city address'));
+  } else $info = array();
+  r\go('http://rCredits.org/donate?rparams=' . bin2hex(gzdeflate(http_build_query($info))));
+}
+
 function formHelp($form, &$sta, $what = '') {
   require_once __DIR__ . '/rweb-help.inc';
   $title = item($what ? t('Help for ') . ucwords($what) : t('General Help'));
@@ -462,6 +479,9 @@ function formMembership($updating, &$sta = '') {
   if (!$acct = r\agent()) return NULL; // agent is the member, not the account BUT need to show separate path for companies
   $id = $acct->id;
   
+//  $acct->setBit(BIT_MEMBER, 0); // for testing
+//  $acct->setBit(BIT_RTRADER, 0);
+  
   if (!$acct->can(PERM_MEMBER)) {
     $photoFilename = $acct->auxFilename('picture');
     $gotPhoto = file_exists($photoFilename);
@@ -471,8 +491,9 @@ function formMembership($updating, &$sta = '') {
     r\membershipEvent($acct, 'member', $gotPhoto and $signed and $donated and $gotProxies);
   }
 
+  $gotContact = ($acct->phone and $acct->mail and $acct->address and $acct->city and $acct->country);
+
   if ($acct->can(PERM_MEMBER) and !$acct->can(PERM_RTRADER)) {
-    $gotContact = ($acct->phone and $acct->mail and $acct->address and $acct->city and $acct->country);
     $idProofFilename = $acct->auxFilename('proof');
     $gotUsdInfo = (($secure = @$acct->secure) and @$secure['auth']);
     $gotIdProof = (file_exists($idProofFilename) and @$acct->dob and @$acct->federal_id);
@@ -483,33 +504,40 @@ function formMembership($updating, &$sta = '') {
 
   if ($updating) return $acct->can(PERM_RTRADER);
   
-  if (FALSE and !$acct->can(PERM_MEMBER)) { // not a member yet (no rCard, no vote)
-    $message = u\getConstants(t(<<<EOF
+  $message1 = $message2 = $message3 = '';
+  
+  if (!$acct->can(PERM_MEMBER)) { // not a member yet (no rCard, no vote)
+    $message1 = t(<<<EOF
 <h2>Congratulations on signing up for rCredits!</h2>
 <p>Before we can send your rCard, and before you can vote on community funding, you must complete a few simple tasks.</p>
-<p>If you want, feel free to do some pretend (:R_ASIF_TEXT) transactions, to learn how to use rCredits. These transactions should be realistic amounts that you <a href="pay">spend</a> at actual businesses in a typical month. Or realistic amounts that you <a href="charge">charge</a> your employer, your customers, or anyone who pays you. The :R_ASIF_TEXT transactions don't count, but you get <b>real rewards</b> for doing them, beginning after your first month of participation.</p>
 <p>Thanks for joining us. Together we can build sustainable prosperity for everyone. Here's what you need to do:</p>
 EOF
-    ));
+    );
 
 //    $step1 = t('Complete your <a>contact information</a>.'); // keep this in case
     $step1 = t('<a>Upload a photo</a> for your Member ID Card.');
     $step2 = t('Sign the <a>rCredits Agreement</a>.');
     $step3 = t('Make a <a>contribution</a> of <i>any size</i>, to support the rCredits system.');
-    $step4 = t('<a>Choose two people</a> to represent your views whenever you are not there to discuss and vote directly on community funding issues. They will need to sign up, before you can choose them (<a>invite them</a>!).'); // These should be people you know and trust and generally agree with. (need email or phone if not yet a member, to identify them when they do sign up)
+    $step4 = t('<a>Choose two people</a> to represent your views whenever you are not there, to discuss and vote on community funding issues. They will need to sign up, before you can choose them (<a>invite them</a>!).'); // These should be people you know and trust and generally agree with. (need email or phone if not yet a member, to identify them when they do sign up)
 //    .= memberStep(1, $gotContact, $step1, 'account/contact')
-    $message .= memberStep(1, $gotPhoto, $step1, 'account')
+    $message2 = memberStep(1, $gotPhoto, $step1, 'account')
               . memberStep(2, $signed, $step2, 'membership/agreement')
-              . memberStep(3, $donated, $step3, 'http://rCredits.org/donate')
+              . memberStep(3, $donated, $step3, 'donate')
               . memberStep(4, $gotProxies, $step4, array('membership/proxies', 'membership/invite'));
-  } elseif (TRUE or !$gotContact) { // did all four steps, but somehow didn't complete contact info
-    $message = t(<<<EOF
+    $message3 = u\getConstants(t(<<<EOF
+<br><p><b>Optional:</b> Also, if you want, feel free to do some pretend (:R_ASIF_TEXT) transactions, to learn how to use rCredits. These transactions should be realistic amounts that you <a href="pay">spend</a> at actual businesses in a typical month. Or realistic amounts that you <a href="charge">charge</a> your employer, your customers, or anyone who pays you.</p>
+<p>The :R_ASIF_TEXT transactions don't count, but you get <b>real rewards</b> for doing them, beginning after your first month of participation.</p>
+EOF
+    ));
+              
+  } elseif (!$gotContact) { // did all four steps, but somehow didn't complete contact info
+    $message1 = t(<<<EOF
 <h2>Missing Contact Information</h2>
 <p>Please complete your <a href="account/contact">Contact Information</a>, so we can mail your rCard.</p>
 EOF
     );
-  } elseif (FALSE and !$acct->can(PERM_RTRADER)) { // got rCard, but not activated yet
-    $message = t(<<<EOF
+  } elseif (!$acct->can(PERM_RTRADER)) { // got rCard, but not activated yet
+    $message1 = t(<<<EOF
 <h2>You have completed all the rCredits membership requirements!</h2>
 <p>You will receive your rCard in the mail within a few days. To activate your account and begin using your rCard for purchases from participating businesses, there are a few final tasks:</p>
 EOF
@@ -518,18 +546,18 @@ EOF
     $step2 = t('<a>Upload a photo</a> of your driver\'s license, birth certificate, passport, or other official ID.' . ($gotIdProof ? ' <span class="pending">(pending approval)</span>' : ''));
     $step3 = t('Set your <a>Account Preferences</a>.');
     $step4 = t('<a>Invite someone</a> to sign up for rCredits! No one can join without an invitation. You can help by sending one. You might particularly want to invite companies and individuals you buy from or sell to (for example your employer or employees).');
-    $message .= memberStep(1, $gotUsdInfo, $step1, 'http://refer.dwolla.com/a/clk/3KkS2w', TRUE)
+    $message2 .= memberStep(1, $gotUsdInfo, $step1, 'http://refer.dwolla.com/a/clk/3KkS2w', TRUE)
               . memberStep(2, $gotIdProof, $step2, 'account/usd')
               . memberStep(3, $gotPreferences, $step3, 'account/preferences')
               . memberStep(4, $invited, $step4, 'membership/invite');
   } else {
-    $message = t(<<<EOF
+    $message1 = t(<<<EOF
 <h2>Congratulations! Your account is Activated.</h2>
 <p>You are authorized to use rCredits for real transactions. You are also responsible for guiding your local economy, together with hundreds of other rCredits members -- setting investment and grant-making priorities, electing local directors for your Common Good Community, planning a sustainable local prosperity for all residents, and offering help to communities elsewhere.</p>
 EOF
     );
   }
-  $message = "<table width=\"100%\">$message</table>";
+  $message = $message1 . "<table width=\"100%\">$message2</table>" . $message3;
   
 //  $title = item(t('Membership Status'));
 //  $subtext = item(t('for ') . $acct->full_name);
@@ -744,7 +772,7 @@ function formSummary($form, &$sta) {
 // FAILS on mobile    $idLink = 'id="idcard"'; // use jQuery to create popup (see inc/misc.js)
     $idLink = 'href="Print-ID-Card" target="_blank"';
     $card = $cacct->can(PERM_CTTY_ADMIN) ? ("<a $idLink>" . t('Print ID Card') . '</a>') : ''; // no card for community accounts
-if ($cacct->agentId == 1) $card .= ' [<a href="http://localhost/devcore/rcredits/test?module=rcredits/rweb&feature=Signup&scene=&restart=1">run current test</a>]'; // DEBUG (keep)
+    if ($cacct->agentId == 1) $card .= ' [<a href="http://localhost/devcore/rcredits/test?module=rcredits/rweb&feature=Signup&scene=&restart=1">run current test</a>]'; // DEBUG (keep)
   } else $card = t("To request employee ID cards, visit the <a href=\"$base_url/account/relations\">Account Relations</a> page.");
 
   $title = item(t('Account Summary'));
@@ -1096,9 +1124,11 @@ function formTx($form, &$sta, $args = '') {
   if ($confirm = sureForm($sta)) return $confirm;
   
   extract(u\just('who amount goods purpose scanned', $args));
-  $type = $args === '' ? basename(current_path()) : basename(dirname(current_path()));
+  $type = $args === '' ? basename(current_path()) : basename(dirname(current_path())); // pay, charge, etc.
   $role = in_array($type, u\ray('charge fine')) ? 'payee' : 'payer';
   $incentive = in_array($type, u\ray('fine grant loan'));
+  if (!@$purpose and $type == 'charge') $purpose = r\acct()->selling;
+  
   focusOn(@$who ? 'amount' : 'who');
 
   //$onchange = "nixwhat();";
@@ -1592,15 +1622,9 @@ function formUsd($form, &$sta) {
   $cacct = r\acct();
   if ($cacct->offsite) $federal_id = $dob = $answer = R_ON_FILE;
   if ($secure = $cacct->secure) {
-    if ($secure['number']) $number = $pin = R_ON_FILE;
-    $minimum = $secure['minimum'];
+    if (@$secure['number']) $number = $pin = R_ON_FILE;
   }
-  $statements = $cacct->hasBit(BIT_ELECTRONIC) + 0;
-  
-  $statementRadios = array(
-    t('I will accept electronic statements.'), 
-    u\getConstants(t('I choose to receive printed statements by mail. I agree to pay $:R_STATEMENT_COST per month to cover the postage and handling costs for this service.'))
-  );
+
   $form = array(
     'title' => item(t('USD Account and Security Info')),
     'subtext' => item(t('If you need help completing this section, visit the rCredits office in Greenfield, MA or call @phone', array('@phone' => R_ORG_PHONE))),
@@ -1615,7 +1639,6 @@ function formUsd($form, &$sta) {
     'id_proof' => file_exists($cacct->auxFilename('proof')) ? 
         formField('item', t('Photo ID:'), '', R_ON_FILE . ($cacct->hasBit(BIT_RTRADER) ? '' : t(' (pending approval)')))
       : formField('file', t('Photo ID:'), t('Upload an image of your driver\'s license, passport, or other official photo ID.'), attrib(array('enctype' => "multipart/form-data"))),
-    'statements' => formField('radios', t('Statements:'), '', required($statements), $statementRadios),
     'submit' => submit(),
   );
 
@@ -1663,18 +1686,16 @@ function formUsd_submit($form, &$sta) {
   $usdFields = 'type number pin';
 //  debug((string) u\httpRequest(R_SECRET_URL . '/offsite.php', array('id' => '', 'data' => 'thedata'))); return;
   $cacct = r\acct();
-  $info = u\just($usdFields . ' federal_id dob question answer id_proof statements', $sta['values']);
+  $info = u\just($usdFields . ' federal_id dob question answer id_proof', $sta['values']);
   foreach ($info as $key => $value) if ($value == R_ON_FILE or $value == @$form[$key]['#default_value']) unset($info[$key]); // don't change if on file or unchanged
   extract($info); // extract just the ones that changed
-
-  $cacct->setBit(BIT_ELECTRONIC, @$statements);
 
   if (isset($number) or isset($pin)) { // some secure info changed
     $usd = new r\usd($cacct);
     $usdInfo = $cacct->secure; // get secure info, if any (may include more than usdFields)
     $type = 'Dwolla';
-    $usdInfo = compact($usdFields) + ($usdInfo ?: array()); // update the updated fields
-    if (!$usd->update(u\just($usdFields, $usdInfo), $error)) return say($error, 'number'); // get (new) auth token
+    $usdInfo = compact(u\ray($usdFields)) + ($usdInfo ?: array()); // update the updated fields
+    if (!$usd->update($usdInfo, $error)) return say($error, 'number'); // get (new) auth token
   }
   $info = u\just(R_SECRET_FIELDS . ' secure question', $info);
   if (empty($info) or $cacct->update($info)) say('info saved'); else say('info not saved', 'zot');
@@ -2087,7 +2108,7 @@ function login_extra_validate($form, &$sta) {
 }
 
 function loginFollowup($edit, $account) {
-  $resetPass = svar('resetPass');
+  $resetPass = svar('resetPass'); // this gets unset by unset($_SESSION[$key]) below
 
   foreach ($_SESSION as $key => $value) if (u\abbreviates('rcredits_', $key)) unset($_SESSION[$key]);
   svar('external_input', @unserialize($edit['external_input'])); // save params from external online merchant
@@ -2234,6 +2255,7 @@ function formCompany($form, &$sta) {
   $cacct = r\acct();
   $cuid = $cacct->id;
   $my_description = $cacct->description;
+  $my_selling = $cacct->selling;
   
   $cats = r\dbQ('SELECT iid, industry FROM r_industries ORDER BY industry')->fetchAllKeyed();
   $my_cats = r\dbQ('SELECT iid FROM r_user_industries WHERE uid=:cuid', compact('cuid'))->fetchCol();
@@ -2249,6 +2271,7 @@ EOF;
 //    'subtext' => basic_account_info(),
     'name' => formField('item', t('Company name:'), '', $cacct->full_name),
     'categories' => formField('select', t('Categories:'), t('Hold down the Ctrl key to select more than one'), $multiple + dft($my_cats), $cats),
+    'selling' => textField(t('Selling:'), t('What is the typical description of what you sell? (This will appear as the default "purpose" when you charge someone).'), dft($my_selling)),
     'description' => formField('text_format', t('Description:'), t('What does this company do?'), $filtered_html + dft($my_description)),
     'submit' => submit(),
   );
@@ -2363,6 +2386,12 @@ function formOptions($form, &$sta) {
   $notify_bys = array(t('no notifications'), t('by email'), t('by SMS'), t('by both email and SMS'));
   $dft = $cacct->hasBit(BIT_NOTIFY_EMAIL) + 2 * $cacct->hasBit(BIT_NOTIFY_SMS);
   $notify_by = formField('radios', t('Notifications:'), t('How do you want to be notified about new charges to your account, short-term opportunities, and the like?'), required($dft), $notify_bys);
+  $statements = $cacct->hasBit(BIT_ELECTRONIC) + 0;
+  $statementRadios = array(
+    t('I will accept electronic statements.'), 
+    t('I choose to receive printed statements by mail.') . u\getConstants(t('<div>I agree to pay $:R_STATEMENT_COST per month to cover the postage and handling costs for this service.</div>'))
+  );
+  $statements = formField('radios', t('Statements:'), '', required($statements), $statementRadios);
 
   $explain_virtual = t('When you pay people, do you want to pay them directly in rCredits or do you want to pay them in US Dollars, then give them the automatic option to buy their share of rCredits from you with US Dollars? The second way lets you use your current payroll system without any change. You still get the 5% rebate, minus 25 cents for each payment. For example, on a $100 payment, you get a net rebate of $5.00 - 0.25 = $4.75. For automatic "virtual" payments, you will need to set up average monthly payment amounts on the <a href="account/relations">Relations</a> page.');
   $pay_hows = array(t('everyone directly'), t('employees virtually'), t('everyone virtually'));
@@ -2372,7 +2401,7 @@ function formOptions($form, &$sta) {
   // Double confirmation: by SMS, by email, either. require extra confirmation of crucial account changes
   $submit = submit(t('Update options'));
   
-  $form = compact(u\ray('title min_r max_r min_usd max_usd pay_how notify_by secret_bal submit'));
+  $form = compact(u\ray('title min_r max_r min_usd max_usd pay_how notify_by statements secret_bal submit'));
   return labeled($form);
 }
 
@@ -2394,6 +2423,7 @@ function formOptions_submit($form, $sta) {
   $cacct->setBit(BIT_VIRTUAL_EMPLOYEES, @$pay_how == 1);
   $cacct->setBit(BIT_NOTIFY_EMAIL, $notify_by & 1);
   $cacct->setBit(BIT_NOTIFY_SMS, $notify_by & 2);
+  $cacct->setBit(BIT_ELECTRONIC, @$statements);
   $cacct->setBit(BIT_SECRET_BAL, $secret_bal);
   $cacct->update(compact(u\ray('min_r max_r min_usd max_usd')));
   say('options saved');
@@ -2847,7 +2877,7 @@ function getAsif($return) {
 function webAccess($access) {
   $access = substr($access, 1); // turn this from a string back into a number (work around Drupal)
   setupGlobals(); // remember who we are (the only reason for this function)
-  $cacct = $cacct = r\acct();
+  $cacct = r\acct();
   return ($access and $cacct) ? $cacct->can($access) : FALSE;
 }
 

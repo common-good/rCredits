@@ -2,6 +2,17 @@
 /**
  * @file
  * Functions to run periodically.
+ 
+ update / check balances (often -- 15 minutes?)
+other security / scam checks (often)
+completion of (deliberate) pending virtual payments (daily, but not implemented yet)
+automatic payments (just virtual payments for now) (daily)
+redistribution (selling of unwanted rCredits) (daily)
+interest (monthly, calculating daily bals from history)
+statements (daily, weekly, monthly -- at user's option)
+1099s (annual)
+(just auto pay and redist happen in a chunk)
+
  */
  
 require_once 'rcredits.inc';

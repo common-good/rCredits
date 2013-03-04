@@ -15,6 +15,7 @@ class usd {
   var $number; // the USD account number
   var $pin; // PIN for that account
   var $auth; // authorization token
+  var $card_code; // rCard security code
   var $minimum; // how much money the account-holder wants (us) to keep in the account (min)
   var $maximum; // how much money the account-holder wants (us) to keep in the account (max)
   
@@ -24,13 +25,14 @@ class usd {
    */
   function __construct($acct) {
     $this->acct = $acct;
+    foreach ($acct->secure as $key => $value) if (property_exists($this, $key)) $this->$key = $value;
     $this->minimum = $acct->min_usd;
     $this->maximum = $acct->max_usd;
   }
   
   /**
    * Update the usd information in the account record (both in this object and in the database).
-   * @param assoc $info: information we need in order to access the account and manage it, possibly including:
+   * @param assoc $secure: information we need in order to access the account and manage it, possibly including:
    *   type: account type (required if not supplied previously)
    *   number: account number (required for Dwolla)
    *   pin: account PIN (required for Dwolla)
@@ -38,11 +40,11 @@ class usd {
    * @param string $error: (RETURNED) an error message if appropriate
    * @return bool: success
    */
-  public function update($info, &$error = NULL) {
+  public function update($secure, &$error = NULL) {
 //    u\EXPECT(@$info['type'] == 'Dwolla', 'bad usd account type');
-    debug('Updating USD info.');
-//    $this->auth = ;
-//    $this->acct->update(compact(...
+    $this->auth = $secure['auth'] = 'DUMMYAUTH';
+    $this->acct->update(compact('secure'));
+    debug('Updating USD info: ' . print_r(compact('secure'), 1));
     return TRUE;
   }    
 
@@ -59,7 +61,7 @@ class usd {
     if (isset($want)) {
       return $want <= 100 ? 1 : 0;
     } else {
-      return random(0, 10000) / 100;
+      return rand(0, 10000) / 100;
     }
   }
 
@@ -73,8 +75,8 @@ class usd {
    * @return: 0=fail 1=success 2=maybe
    */
   function transfer($amount, $other, $direct = TRUE, &$error = NULL, $payerFee = FALSE) {
-    debug("Transferring USD $amount from $acct->id to $other->id.");
-    return random(0, 1);
+    debug("Transferring USD $amount from {$this->acct->id} to {$other->acct->id}.");
+    return rand(0, 1);
   }
   
   /**

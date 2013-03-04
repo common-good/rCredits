@@ -49,6 +49,7 @@ function tableDefs($schema = array()) {
     'max_r' => setupField('maximum rCredits balance (exchange excess for USD automatically), 0=no max)', 'numeric 11,2', NULL),
     'min_usd' => setupField('minimum Dwolla balance (enough for 3 days of USD purchases, NULL=none)', 'numeric 11,2', NULL),
     'max_usd' => setupField('maximum Dwolla balance (transfer excess to bank account, 0=no max)', 'numeric 11,2', NULL),
+    'selling' => setupField('typical description of what this company sells', 'varchar 255'),
 // separate table for this? 'nym' => setupField('unique identifier for cryptographic signing', 'text tiny'), 
   );
   // need foreign keys here

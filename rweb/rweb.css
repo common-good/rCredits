@@ -415,6 +415,7 @@ html.js input.throbbing {background-position:right -2.4em;}
 
 /* Options (Preferences) */
 #rcreditswebformoptions .description {margin-bottom:1em;}
+#rcreditswebformoptions .form-item-statements label div {margin-left:27px; font-weight:normal;}
 /*#rcreditswebformoptions .form-item-notify-by {margin-top:40px;}
 #rcreditswebformoptions .form-item-secret-bal {margin-top:80px;}*/
 /*#rcreditswebformoptions .form-item-secret-bal input {margin-left:105px;} */
