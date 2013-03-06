@@ -58,9 +58,9 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'no relations' => t('There are not yet any relations for this account.'),
   'no cells' => t('This account has no related cell phones.'),
   'required field' => t('@field must not be blank.'),
-//  'duplicate email' => t('There is already an account with that email address (@duplicateAccount). If you want to use the same email address for this account, you will need to add a tag to the local part, for example "@emailTagged". If you just forgot the password to the other account, <a href="@passwordLink">click here</a> to request a new password.'), // used in user.module
-  'duplicate email' => t('That email address is already taken by @duplicateAccount.'), // used in user.module
-  'forgot password' => t('<a>Click here</a> to get a new password.'), // used in user.module
+  'duplicate email' => t('There is already an account with that email address (@duplicateAccount). If you want to use the same email address for this account, add a tag to the local part, for example "@emailTagged". '), // used in user.module
+//  'duplicate email' => t('That email address is already taken by @duplicateAccount.'), // used in user.module
+  'forgot password' => t('If you just forgot the password to the other account, <a>click here</a> to request a new password.'), // used in user.module
   'bad name' => t('That is not a plausible name.'),
   'bad login' => t('That account does not exist. Check your typing?'),
   'bad phone' => t('That is not a proper phone number.'),
@@ -93,11 +93,12 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'incomplete agreement' => t('To sign this agreement, you must put a check in each box, meaning that you have read that section and agree to it.'),
   'bad signature' => t('That signature does not match your full legal name ("@fullName").'),
   'bad invite' => t('To sign up for rCredits, you must be invited and you must use the invitation link within @R_INVITE_DAYS days.'),
-  'bad minr' => t('Your chosen rCredits minimum cannot be less than your minimum balance (@minBalance).'),
+  'bad minr' => t('Your chosen rCredits minimum cannot be less than your assigned minimum balance (@minBalance).'),
   'bad maxr' => t('Your chosen rCredits maximum cannot be less than your rCredits minimum. Nor can it be less than your total amount of incentive rewards to date.'),
-  'bad minusd' => t('Your chosen USD minimum cannot be negative.'),
-  'bad maxusd' => t('Your chosen USD maximum cannot be less than your USD maximum.'),
+//  'bad maxusd' => t('Your chosen USD maximum cannot be less than your rCredits minimum.'),
   'info not saved' => t('We apologize. Your information could not be saved at this time. Please try again in an hour or so.'),
+  'no permission' => t('You do not have permission to visit this page.'),
+  'specific bad amount' => t('The amount (@amount) must be a number.'),
 );
 
 /**
@@ -475,9 +476,10 @@ function help($page, $class = '') {
  * Show the user's current membership status and steps to get to the next milestone.
  * @$updating bool: TRUE if just updating membership status bits.
  */
-function formMembership($updating, &$sta = '') {
+function formMembership($updating, &$sta = '', $code = '') {
   if (!$acct = r\agent()) return NULL; // agent is the member, not the account BUT need to show separate path for companies
   $id = $acct->id;
+  $nonperson = ($acct->account_type >= R_COMMERCIAL);
   
 //  $acct->setBit(BIT_MEMBER, 0); // for testing
 //  $acct->setBit(BIT_RTRADER, 0);
@@ -488,12 +490,12 @@ function formMembership($updating, &$sta = '') {
     $signed = $acct->signed_agreement;
     $donated = ($acct->tithe > 0 or r\tithe($acct)); // r\tithe() also updates the database
     $gotProxies = (r\dbLookup('COUNT(*)', 'r_proxies', 'person=:id', compact('id')) >= 2);
-    r\membershipEvent($acct, 'member', $gotPhoto and $signed and $donated and $gotProxies);
+    r\membershipEvent($acct, 'member', $gotPhoto and $signed and $donated and ($nonperson or $gotProxies));
   }
 
   $gotContact = ($acct->phone and $acct->mail and $acct->address and $acct->city and $acct->country);
 
-  if ($acct->can(PERM_MEMBER) and !$acct->can(PERM_RTRADER)) {
+  if (@$code == 'w' or ($acct->can(PERM_MEMBER) and !$acct->can(PERM_RTRADER))) {
     $idProofFilename = $acct->auxFilename('proof');
     $gotUsdInfo = (($secure = @$acct->secure) and @$secure['auth']);
     $gotIdProof = (file_exists($idProofFilename) and @$acct->dob and @$acct->federal_id);
@@ -506,44 +508,38 @@ function formMembership($updating, &$sta = '') {
   
   $message1 = $message2 = $message3 = '';
   
-  if (!$acct->can(PERM_MEMBER)) { // not a member yet (no rCard, no vote)
-    $message1 = t(<<<EOF
-<h2>Congratulations on signing up for rCredits!</h2>
-<p>Before we can send your rCard, and before you can vote on community funding, you must complete a few simple tasks.</p>
-<p>Thanks for joining us. Together we can build sustainable prosperity for everyone. Here's what you need to do:</p>
-EOF
-    );
+  if (!$acct->can(PERM_MEMBER) and !@$code) { // not a member yet (no rCard, no vote)
+    $message1 = t('<h2>Congratulations on signing up for rCredits!</h2><p>Thanks for joining us. ') 
+    . ($nonperson ? t('Before you can begin accepting rCredits payments, you must complete a few simple tasks (this is page one of two):</p>') 
+      : t('Before we can send your rCard, and before you can vote on community funding, you must complete a few simple tasks:</p>'));
 
 //    $step1 = t('Complete your <a>contact information</a>.'); // keep this in case
-    $step1 = t('<a>Upload a photo</a> for your Member ID Card.');
+    $step1 = t('<a>Upload a photo</a> for your ') . ($nonperson ? t('company profile.') : t('Member ID Card.'));
     $step2 = t('Sign the <a>rCredits Agreement</a>.');
     $step3 = t('Make a <a>contribution</a> of <i>any size</i>, to support the rCredits system.');
     $step4 = t('<a>Choose two people</a> to represent your views whenever you are not there, to discuss and vote on community funding issues. They will need to sign up, before you can choose them (<a>invite them</a>!).'); // These should be people you know and trust and generally agree with. (need email or phone if not yet a member, to identify them when they do sign up)
 //    .= memberStep(1, $gotContact, $step1, 'account/contact')
     $message2 = memberStep(1, $gotPhoto, $step1, 'account')
               . memberStep(2, $signed, $step2, 'membership/agreement')
-              . memberStep(3, $donated, $step3, 'donate')
-              . memberStep(4, $gotProxies, $step4, array('membership/proxies', 'membership/invite'));
+              . memberStep(3, $donated, $step3, 'membership/contribute');
+    if (!$nonperson) $message2 .= memberStep(4, $gotProxies, $step4, array('membership/proxies', 'membership/invite'));
     $message3 = u\getConstants(t(<<<EOF
-<br><p><b>Optional:</b> Also, if you want, feel free to do some pretend (:R_ASIF_TEXT) transactions, to learn how to use rCredits. These transactions should be realistic amounts that you <a href="pay">spend</a> at actual businesses in a typical month. Or realistic amounts that you <a href="charge">charge</a> your employer, your customers, or anyone who pays you.</p>
+<br><p><b>Optional:</b> Feel free to do some pretend (:R_ASIF_TEXT) transactions, to learn how to use rCredits. These transactions should be realistic amounts that you <a href="pay">spend</a> at actual businesses in a typical month. Or realistic amounts that you <a href="charge">charge</a> your employer, your customers, or anyone who pays you.</p>
 <p>The :R_ASIF_TEXT transactions don't count, but you get <b>real rewards</b> for doing them, beginning after your first month of participation.</p>
 EOF
     ));
               
-  } elseif (!$gotContact) { // did all four steps, but somehow didn't complete contact info
-    $message1 = t(<<<EOF
-<h2>Missing Contact Information</h2>
-<p>Please complete your <a href="account/contact">Contact Information</a>, so we can mail your rCard.</p>
-EOF
-    );
+  } elseif (!$gotContact) { // did all the initial steps, but somehow didn't complete contact info
+    $message1 = t('<h2>Missing Contact Information</h2><p>Please complete your <a href="../account/contact">Contact Information</a>, ') . ($nonperson ? t('before continuing.</p>') : t('so we can mail your rCard.</p>'));
   } elseif (!$acct->can(PERM_RTRADER)) { // got rCard, but not activated yet
-    $message1 = t(<<<EOF
-<h2>You have completed all the rCredits membership requirements!</h2>
-<p>You will receive your rCard in the mail within a few days. To activate your account and begin using your rCard for purchases from participating businesses, there are a few final tasks:</p>
-EOF
-    );
-    $step1 = t('Open a <a>Dwolla</a> account and <a href="account/usd">connect it</a> to your rCredits account. In partnership with Veridian Federal Credit Union, Dwolla communicates with your US Dollar bank account. Whenever you buy something, your rCredits (if any) are used first and the remainder is paid in US Dollars &mdash; just like a typical debit card.');
-    $step2 = t('<a>Upload a photo</a> of your driver\'s license, birth certificate, passport, or other official ID.' . ($gotIdProof ? ' <span class="pending">(pending approval)</span>' : ''));
+    $message1 = $nonperson ? t('<h2>To activate your account, complete these final steps:</h2>') 
+    : (t('<h2>You have completed all the rCredits membership requirements!</h2>')
+      . t('<p>You will receive your rCard in the mail within a few days. To activate your account and begin using your rCard for purchases from participating businesses, there are a few final tasks:</p>'));
+    $step1 = t('Open a <a>Dwolla</a> account and <a href="../account/usd">connect it</a> to your rCredits account. In partnership with Veridian Federal Credit Union, Dwolla communicates with your US Dollar bank account. Whenever you buy something, your rCredits (if any) are used first and the remainder is paid in US Dollars &mdash; just like a typical debit card.');
+    $step2 = t('<a>Upload a photo</a> of your ')
+      . ($nonperson ? t('Charter, Articles of Organization, or similar document.')
+        : t('driver\'s license, birth certificate, passport, or other official ID.'))
+      . ($gotIdProof ? t(' <span class="pending">(pending approval)</span>') : '');
     $step3 = t('Set your <a>Account Preferences</a>.');
     $step4 = t('<a>Invite someone</a> to sign up for rCredits! No one can join without an invitation. You can help by sending one. You might particularly want to invite companies and individuals you buy from or sell to (for example your employer or employees).');
     $message2 .= memberStep(1, $gotUsdInfo, $step1, 'http://refer.dwolla.com/a/clk/3KkS2w', TRUE)
@@ -568,10 +564,12 @@ EOF
 }
 
 function memberStep($step, $done, $text, $links = '', $newWindow = FALSE) {
+  global $base_url;
   $target = $newWindow ? ' target="_blank"' : '';
   if ($links) {
     if (!is_array($links)) $links = array($links);
     foreach ($links as $link) {
+      if (strpos($link, 'http://') === FALSE) $link = "$base_url/$link";
       $link = "<a href=\"$link\"$target>";
       $linkx = '</a>';
       $text = preg_replace('/<a>/', $link, $text, 1);
@@ -664,14 +662,14 @@ function formProxies($form, &$sta) {
   
   $title = item(t('Proxies'));
   $subtext = item(t(<<<EOF
-<p><b>Direct democracy</b> is at the heart of the rCredits design. In each community, members meet to discuss and decide on funding priorities for grants, loans, and investments of rCredits for the greater good of all. Each person gets one vote.</p>
+<p><b>Direct democracy</b> is at the heart of the rCredits design. In each community, members meet to discuss and decide on funding priorities for grants, loans, and investments of rCredits for the greater good.</p>
 <p>You assign another person as your ongoing Representative (Proxy). Whenever you don't vote, your Representative votes for you. The Representative's vote simply counts double (one vote for you and one vote for the Representative). If your Representative also fails to vote, then your Representative's Proxy votes for all three of you.<br><br>Everyone's voice is counted, whether or not they vote directly &mdash; one person one vote.</p>
-<p>Our community's most trusted Representatives (who represent a lot of people) will meet in person to research and debate specific issues, as our current elected representatives do. In the rCredits system though, these trusted Representatives do not decide issues directly. They oversee the public discussions, choose the wording for questions to be voted on, take action as directed by the members, and assure that the system is running smoothly.</p>
+<p>Our community's most trusted Representatives (who represent a lot of people) will meet in person to research and debate specific issues. These trusted Representatives do not decide policy issues directly. They oversee the public discussions, choose the wording for questions to be voted on, take action as directed by the members, and assure that the system is running smoothly.</p>
 EOF
   ));
 
-  $proxy1 = textField(t('Proxy:'), t('Who will vote on your behalf, when your are not available?'), required(r\definiteName(r\proxy($id, 1))) + autocomplete('cttyPerson'));
-  $proxy2 = textField(t('Alternate:'), t('Who will vote on your behalf, if your Proxty is not available either? (even before resorting to your Proxy\'s Proxy)'), required(r\definiteName(r\proxy($id, 2))) + autocomplete('cttyPerson'));
+  $proxy1 = textField(t('Proxy:'), t('Who will vote on your behalf, when you don\'t vote?'), required(r\definiteName(r\proxy($id, 1))) + autocomplete('cttyPerson'));
+  $proxy2 = textField(t('Alternate:'), t('Who will vote on your behalf, if your Proxty doesn\'t vote either? (even before resorting to your Proxy\'s Proxy)'), required(r\definiteName(r\proxy($id, 2))) + autocomplete('cttyPerson'));
   $submit = submit();
   $form = compact(u\ray('title subtext proxy1 proxy2 submit'));
   return labeled($form);
@@ -782,8 +780,9 @@ function formSummary($form, &$sta) {
   if ($cacct->id > 0) {
     $extra = r\agent()->can(PERM_ADMIN) ? " id#$cacct->id" : '';
     $accountId = formField('item', t('ID:'), $card, ($cacct->mainQid ?: 'N/A') . ' (' . $regionName . ")$extra");
+    if ($cacct->account_type == R_PERSONAL) $another = submit(t('Open Another Account'));
     $account_type = formField('item', t('Account type:'), '', $GLOBALS['account types'][$cacct->account_type+0]); // +0 for admin
-    $min_balance = formField('item', t('Credit limit:'), '(You can go this far in debt for up to 30 days)', u\formatAmount(-$cacct->min_balance));
+    $floor = formField('item', t('Credit floor:'), 'Your balance can go this low for up to 30 days', u\formatAmount(-$cacct->floor));
     $rewards = formField('item', t('Rewards:'), t('(to date)'), $my_rewards);
   }
 
@@ -794,7 +793,7 @@ function formSummary($form, &$sta) {
     } else { // managing some individual community member account
       $account_type = formField('select', t('Account type:'), '', $cacct->account_type+0, $GLOBALS['account types']); // +0 for admin
       if ($cacct->isCompany()) $canCharge = boolField(t('Can charge'), t('This account can charge others unilaterally (in person)'), $cacct->hasBit(BIT_CHARGE) + 0);
-      $min_balance = textField(t('Credit limit:'), '(You can go this far in debt for up to 30 days)', dft(u\formatAmount(-$cacct->min_balance)));
+      $floor = textField(t('Credit floor:'), 'Your balance can go this low for up to 30 days', dft(u\formatAmount(-$cacct->floor)));
 
       $rTrader = boolField(t('rTrader?'), t('Does the submitted proof of ID pass muster? Is this account approved to use rCredits for real?'), $cacct->hasBit(BIT_RTRADER) + 0);
       $notes = formField('textarea', t('Notes'), '', dft($cacct->notes));
@@ -804,15 +803,16 @@ function formSummary($form, &$sta) {
   }
 
   if ($cacct->proSe() and !$cacct->isCompany() and !formMembership(TRUE)) say('take a step');
-  $form = compact(u\ray('title accountName accountId account_type canCharge balance min_balance rewards rTrader idApproved notes count who submit'));
+  $form = compact(u\ray('title who accountName accountId another account_type canCharge balance floor rewards rTrader idApproved notes count submit'));
   return labeled($form);
 }
 
 function formSummary_validate($form, &$sta) {
-  extract(u\just('who min_balance', $sta['values']));
-  if (isset($min_balance)) {
-    if ($error = u\badAmount($min_balance)) return say($error, 'min_balance'); 
-    $sta['values']['min_balance'] = -u\cleanAmount($min_balance);
+  if (op($sta) == 'another') r\go('another');
+  extract(u\just('who floor', $sta['values']));
+  if (isset($floor)) {
+    if ($error = u\badAmount($floor)) return say($error, 'floor'); 
+    $sta['values']['floor'] = -u\cleanAmount($floor);
   }
   if (@$who) {
     if (!$acct = whois($who, 'who', $sta['values'])) return FALSE;
@@ -821,7 +821,7 @@ function formSummary_validate($form, &$sta) {
 }
 
 function formSummary_submit($form, &$sta) {
-  extract(u\just('who account_type min_balance notes canCharge rTrader idApproved', $sta['values']));
+  extract(u\just('who account_type floor notes canCharge rTrader idApproved', $sta['values']));
   $account_type = $_POST['account_type']; // dunno why Drupal omits this from $sta['values']
   if (!r\agent()->can(PERM_CTTY_ADMIN)) return; // hack attempt
   $cacct = r\acct();
@@ -833,7 +833,7 @@ function formSummary_submit($form, &$sta) {
   } 
   
   if (($cuid = $cacct->id) > 0) {
-    $cacct->update(compact(u\ray('account_type min_balance notes')));
+    $cacct->update(compact(u\ray('account_type floor notes')));
     $wasRTrader = $cacct->hasBit(BIT_RTRADER);
     $cacct->setBit(BIT_RTRADER, $rTrader);
     if (isset($canCharge)) $cacct->setBit(BIT_CHARGE, $canCharge);
@@ -856,7 +856,8 @@ function formSummary_submit($form, &$sta) {
 }
 
 function formAccount($form, &$sta) {
-  $form['#user'] = r\acct()->account();
+  $cacct = r\acct();
+  $form['#user'] = $cacct->account();
   user_account_form($form, $sta);
 // Each region has its own timezone.  system_user_timezone($form, $sta);
 
@@ -869,6 +870,9 @@ function formAccount($form, &$sta) {
   $form['account']['current_pass']['#weight'] = 4;
   $form['account']['status']['#weight'] = 5;
   $form['account']['roles']['#weight'] = 6;
+  $form['picture']['picture_upload']['#description'] .= $cacct->account_type >= R_COMMERCIAL ? 
+      t(' A picture in landscape orientation will look best, in rCredits promotions.')
+    : t(' Your picture must be taller than it is wide and must show your full face, filling about 3/4 of the space.');
   $form['submit'] = formField('submit', '', '', array('value' => t('Save')) + weight(99));
   $form['#user_category'] = 'account';
   u\EXPECT($form['#validate'][0] == 'user_account_form_validate', 'wrong account form validator');
@@ -1160,7 +1164,9 @@ function formTx_validate($form, &$sta) {
 function formTx_submit($form, &$sta) {
   if (confirming_s($sta)) return;
   transfer($sta['values'], TRUE); // op who amount goods what
-  $sta['redirect'] = current_path(); // clean out the fields
+  $path = current_path(); // clean out the fields
+  if ($i = strpos($path, '/who=')) $path = substr($path, 0, $i);
+  $sta['redirect'] = $path;
 //  if (!@TESTING == 1) r\go(current_path());
 }
 
@@ -1323,10 +1329,31 @@ function formGetR_submit($form, &$sta) {
 }
 
 /**
+- ** make a "open another account" button and add that possibility to the error when trying to register without an invite (implement by creating an invite and redirecting to registration, using that code). Choices for the new account (similar choices should be in the invitation form and should be recorded in the invite):
+  ONLY individuals can accept invitations (you have to create a personal account before you create a company account)
+  . current account owns the new account (Do you own 10% or more of this company?)
+  . new account owns the current account (Is this person a 10%-or-more owner of the company?) -- if current account is company
+  . current account and new account are personal accounts for individuals who have a personal relationship rather than a business relationship
+  . none of the above
+  ----------
+  . current account can cover new account's debts and overdrafts (no funds will be moved automatically)
+  . new account can cover current account's debts and overdrafts (add these choices to relations)
+  . both
+  . neither
+ */
+function formAnother(&$form, &$sta) {
+  $cacct = r\acct();
+  if ($cacct->account_type != R_PERSONAL) r\go('', 'no permission');
+  
+  
+}
+
+/**
  * Modify the user registration form.
+ * @param string $code: if not empty, the shibboleth
  */
 function formRegister(&$form, &$sta, $code = '') {
-  $code = basename(@TESTING == 1 ? t\SERVER('REQUEST_URI') : $_SERVER['REQUEST_URI']);
+  if (!$code) $code = basename(@TESTING == 1 ? t\SERVER('REQUEST_URI') : $_SERVER['REQUEST_URI']);
   // zap standard Drupal fields
   $form['account']['name'] = NULL; // name is calculated from full_name
   $form['account']['mail'] = NULL; // (e)mail is redefined here below
@@ -1338,7 +1365,7 @@ function formRegister(&$form, &$sta, $code = '') {
   
   $title = item(t('Sign up for rCredits'));
 
-  if (!$email = invitation($code)) {
+  if (!$email = invitation($code) and $code != r\word() and $code != 'w') {
     $form['actions']['submit'] = NULL; // nothing to submit
     $subtext = item(tt('bad invite'));
     $form['account']['mail'] = hidField('unused@example.com'); // keep Drupal processing happy
@@ -1351,8 +1378,8 @@ function formRegister(&$form, &$sta, $code = '') {
   $form['#validate'][] = 'rCredits\\Web\\formRegister_validate';
   $form['#submit'][] = 'rCredits\\Web\\formRegister_submit';
   
-  $account_types = $GLOBAL['account types'];
-  $account_type_help = t('For all non-Personal accounts, contact information will be public (except email address). If you are self-employed, we recommend that you open a separate account for the business. Choose "Personal AND Commercial" only if you use your own social security number and photograph for the business and don\'t want a separate account.');
+  $account_types = $GLOBALS['account types'];
+  $account_type_help = t('For all but Personal accounts, contact information will be public (except your email address, which is never made public). If you are self-employed, we recommend that you open a separate account for the business. Choose "Personal AND Commercial" only if you use your own social security number and photograph for the business and don\'t want a separate account.');
   $company_options = array('employee_ok' => t('employee'), 'is_owner' => t('owner'));
   $onchange = "var info = jQuery('#edit-companyInfo'); if(jQuery('#edit-account_type').val() == 0) info.show(); else info.hide();";
   $account_type_attrib = attrib(compact('onchange'));
@@ -1382,7 +1409,7 @@ function formRegister_validate($form, &$sta) {
   if (!isset($sta['buttons'])) $sta['buttons'] = array(); // for testing (keep Drupal from griping)
   extract(u\just('company company_phone company_options full_name website postal_code code', $values = u\trimAll($sta['values'])));
   $sta['values'] = array(); // make sure Drupal doesn't save the record when WE find an error
-  if (!$email = invitation(@$code)) return r\go('user/register'); // in case user resubmits
+  if (!$email = invitation(@$code) and $code != r\word() and $code != 'w') return r\go('user/register'); // in case user resubmits
   
   if (@$company) {
     if (!$companyPhone = u\formatPhone($company_phone, '+n')) return say('bad company phone', compact('companyPhone'), 'company_phone');
@@ -1439,7 +1466,7 @@ function formRegister_submit($form, &$sta) {
   $quid = r\quid($uid, $uid);
   $balance = u\formatAmount(be\fund($uid, TX_SIGNUP));
   if (@$_SESSION['messages']['status'][0] == t('A welcome message with further instructions has been sent to your email address.')) unset($_SESSION['messages']['status']);
-  $inviter = $invitation($code, $uid);
+  $inviter = invitation($code, $uid);
   say('your account is ready', compact(u\ray('balance quid')));
 
   $fields2 = 'full_name mail phone fax website country postal_code state city address account_type';
@@ -1451,12 +1478,13 @@ function formRegister_submit($form, &$sta) {
   $account_type = $GLOBALS['account types'][$account_type];
   $inviter = r\acct($inviter)->full_name;
 
+  $company_options = json_encode($company_options);
   $fields = compact(u\ray("inviter $fields2 $fields1"));
   unset($fields['code']); // don't need to see this
   $message = '<h2>NEW SIGNUP</h2>';
   foreach ($fields as $key => $value) $message .= "\n$key: $value<br>";
-  notifyStaff($message);
-//  r\go('user/login');
+  r\notifyStaff($message);
+  r\go('user/login');
 }
 
 /**
@@ -1798,7 +1826,7 @@ EOF;
     $isOwner = toggle('is_owner', $is_owner, $ii);
     $permission = $isAgent ? 0 : $permission;
     $perm = dropdown('permission', $permission, $GLOBALS['share permissions'], $ii);
-    $amountValue = amountField('amount', number_format($amount,2), $ii);
+    $amountValue = amountField('amount', number_format($amount,0), $ii);
 
     if ($combo) { // employee record preceded by other record for same entity
       $thisRow = array_pop($rows); // throw out everything (everything but $isEmployer), use previous record data
@@ -1850,6 +1878,14 @@ function formRelations_validate($form, &$sta) {
 //    if ($acct->can(PERM_COMPANY)) return say('no company relations', 'new_person');
     if (r\relation(1, $cuid, $acct->id)) return say('already related', 'new_person');
     $sta['values']['other'] = $acct->id; // save for submission handling
+  }
+  foreach ($_POST as $key => $value) {
+    if (!strpos($key, '-')) continue;
+    list ($keya, $rawnum, $reid) = explode('-', $key);
+    if ($keya == 'amount') {
+      if (u\badAmount($value)) return say('specific bad amount', array('amount' => $value), 'amount');
+      $_POST[$key] = $value;
+    }
   }
 }
 
@@ -2307,9 +2343,13 @@ function formCompany_submit($form, &$sta) {
  *   Using Account ID card as a business card -- show the company's rCredits webpage
  *   Curious or trying to use the app -- say a bit about rCredits and how to get the app and how to sign up / sign in.
  *   Charging / Paying with Webcam (signed in) -- show pic and name, and ask whether to charge or pay
+ * @param string $who: some account's short qid (without the R_SERVER_ID prefix) REVERSED, followed by bin2hex of a R_CARDCODE_LEN-long rCard security code that must match the one stored in the secure field of the account record.
  */
 function formI($form, &$sta, $who) {
-  if (!$acct = r\acct($who)) return r\go(''); // not a real code -- just go to home page
+  $m = strcspn($who, '.=');
+  $code = hex2bin(substr($who, $m + 1));
+  $who = R_SERVER_ID . strrev(substr($who, 0, $m + 1));
+  if (!$acct = r\acct($who) or $acct->secure['card_code'] != $code) return r\go(''); // not a real code -- just go to home page
 
   list ($myId, $myAgent) = ($cacct = r\acct()) ? array($cacct->id, $cacct->agentId) : array(FALSE, FALSE);
   list ($otherId, $otherAgent) = array($acct->id, $acct->agentId);
@@ -2317,7 +2357,7 @@ function formI($form, &$sta, $who) {
     say('no self-trading', array(), 'error');
     return r\go('');
   }
-  r\acct($acct->agentId)->setBit(BIT_USED_ID); // track membership progress
+//  r\acct($acct->agentId)->setBit(BIT_USED_ID); // track membership progress
   
   $shortName = $acct->name;
   if ($acct->can(PERM_COMPANY)) $site = goButton(t('Show Webpage'), "member/$shortName", t("See this company's rCredits webpage"));
@@ -2379,13 +2419,13 @@ function formOptions($form, &$sta) {
   $cacct = r\acct();
   $title = item(t('Account Preferences'));
   $virtualMaxMessage = $cacct->can(PERM_COMPANY) ? t(' If you make automatic "virtual" payments, your maximum is the same as your minimum, regardless of this setting.') : '';
-  $min_r = textField(t('rCredits Min:'), t('Keep at least this much in your rCredits account (for purchases or inflation-proof savings). When your balance goes below this amount, the system will automatically use funds from your Dwolla account to buy more rCredits for you.'), required(u\formatAmount(isset($cacct->min_r) ? $cacct->min_r : R_MINR_DEFAULT, 's')));
-  $max_r = textField(t('rCredits Max:'), t('Keep at most this much in your rCredits account. When your balance goes above this amount by $10 or more, the system automatically exchanges some rCredits for US Dollars. 0 means no limit (recommended in most cases).') . $virtualMaxMessage, required(u\formatAmount(isset($cacct->max_r) ? $cacct->max_r : R_MAXR_DEFAULT, 's')));
-  $min_usd = textField(t('USD Min:'), t('Keep at least this much in your Dwolla account (for purchases when you don\'t have enough rCredits). When your Dwolla balance goes below this amount, the system will refill it from your bank account, which may take 3 days.'), required(u\formatAmount(isset($cacct->min_usd) ? $cacct->min_usd : R_MINUSD_DEFAULT, 's')));
-  $max_usd = textField(t('USD Max:'), t('Keep at most this much in your Dwolla account. When your Dwolla balance goes above this amount by $10 or more, the system will automatically initiate a transfer to your bank account. 0 means no limit.'), required(u\formatAmount(isset($cacct->max_usd) ? $cacct->max_usd : R_MAXUSD_DEFAULT, 's')));
-  $notify_bys = array(t('no notifications'), t('by email'), t('by SMS'), t('by both email and SMS'));
+  $minimum = textField(t('Minimum:'), t('Keep AT LEAST this much in your rCredits account, for purchases or inflation-proof savings. When your balance goes below this amount, the system refills it for you automatically from your bank account (which may take 3 days), then trades US Dollars for rCredits whenever possible, up to this amount.'), required(u\formatAmount(u\nn($cacct->minimum, R_MINR_DEFAULT), 's')));
+  $maximum = textField(t('Maximum:'), t('Keep AT MOST this much in your rCredits account. When your balance goes above this amount by $10 or more, the extra rCredits are automatically exchanged for US Dollars. 0 means no limit (recommended in most cases).') . $virtualMaxMessage, required(u\formatAmount(u\nn($cacct->maximum, R_MAXR_DEFAULT), 's')));
+  $toBank = formField('checkbox', t('To bank:'), t('Automatically transfer the excess to your bank account (recommended). [<a href="../help/to-bank">why ever not?</a>]'), $cacct->hasBit(BIT_TO_BANK));
+//  $max_usd = textField(t('USD Max:'), t('Keep at most this much in your Dwolla account. When your Dwolla balance goes above this amount by $10 or more, the system will automatically initiate a transfer to your bank account. 0 means no limit.'), required(u\formatAmount(u\nn($cacct->max_usd, R_MAXUSD_DEFAULT), 's')));
+  $notifyBys = array(t('no notifications'), t('by email'), t('by SMS'), t('by both email and SMS'));
   $dft = $cacct->hasBit(BIT_NOTIFY_EMAIL) + 2 * $cacct->hasBit(BIT_NOTIFY_SMS);
-  $notify_by = formField('radios', t('Notifications:'), t('How do you want to be notified about new charges to your account, short-term opportunities, and the like?'), required($dft), $notify_bys);
+  $notifyBy = formField('radios', t('Notifications:'), t('How do you want to be notified about new charges to your account, short-term opportunities, and the like?'), required($dft), $notifyBys);
   $statements = $cacct->hasBit(BIT_ELECTRONIC) + 0;
   $statementRadios = array(
     t('I will accept electronic statements.'), 
@@ -2393,39 +2433,44 @@ function formOptions($form, &$sta) {
   );
   $statements = formField('radios', t('Statements:'), '', required($statements), $statementRadios);
 
-  $explain_virtual = t('When you pay people, do you want to pay them directly in rCredits or do you want to pay them in US Dollars, then give them the automatic option to buy their share of rCredits from you with US Dollars? The second way lets you use your current payroll system without any change. You still get the 5% rebate, minus 25 cents for each payment. For example, on a $100 payment, you get a net rebate of $5.00 - 0.25 = $4.75. For automatic "virtual" payments, you will need to set up average monthly payment amounts on the <a href="account/relations">Relations</a> page.');
-  $pay_hows = array(t('everyone directly'), t('employees virtually'), t('everyone virtually'));
-  $dft = $cacct->hasBit(BIT_VIRTUAL_ALL) ? 2 : ($cacct->hasBit(BIT_VIRTUAL_EMPLOYEES) ? 1 : 0);
-  if ($cacct->can(PERM_COMPANY)) $pay_how = formField('radios', t('Pay how:'), $explain_virtual, required($dft), $pay_hows);
-  $secret_bal = formField('checkbox', t('Secret Balance:'), t("Don't let qualified merchants tell me my balance, when I ask."), $cacct->hasBit(BIT_SECRET_BAL));
+  $explain_virtual = t('Do you want to pay people directly in rCredits or do you want to pay in US Dollars, letting them automatically <i>buy</i> their share of rCredits from you? The second way lets you use your current payroll system without any change. You still get the 5% rebate, minus 25 cents for each payment. For example, a $100 payment gives you a net rebate of $5.00 - 0.25 = $4.75. For automatic "virtual" payments, you need to set up average monthly payment amounts on the <a href="account/relations">Relations</a> page.');
+  if ($cacct->can(PERM_COMPANY)) {
+    $payHows = array(t('everyone directly'), t('employees virtually'), t('everyone virtually'));
+    if (isset($cacct->minimum)) { // preferences have already been set
+      $dft = $cacct->hasBit(BIT_VIRTUAL_ALL) ? 2 : ($cacct->hasBit(BIT_VIRTUAL_EMPLOYEES) ? 1 : 0);
+    } else $dft = 2; // companies should generally pay virtually
+    $payHow = formField('radios', t('Pay how:'), $explain_virtual, required($dft), $payHows);
+  }
+  $secretBal = formField('checkbox', t('Secret Balance:'), t("Don't let qualified merchants tell me my balance, when I ask."), $cacct->hasBit(BIT_SECRET_BAL));
   // Double confirmation: by SMS, by email, either. require extra confirmation of crucial account changes
   $submit = submit(t('Update options'));
   
-  $form = compact(u\ray('title min_r max_r min_usd max_usd pay_how notify_by statements secret_bal submit'));
+  $form = compact(u\ray('title minimum maximum toBank payHow notifyBy statements secretBal submit'));
   return labeled($form);
 }
 
 function formOptions_validate($form, $sta) {
   $cacct = r\acct();
-  $minBalance = u\formatAmount($cacct->min_balance);
-  extract(u\just('min_r max_r min_usd max_usd', $sta['values']));
-  if ($min_r < $cacct->min_balance) say('bad minr', compact('minBalance'), 'min_r');
-  if ($max_r != 0 and ($max_r < min($min_r, $cacct->rewards))) say('bad maxr', 'max_r');
-  if ($min_usd < 0) say('bad minusd', 'min_usd');
-  if ($max_usd != 0 and $max_usd < $min_usd) say('bad maxusd', 'max_usd');
+  $minBalance = u\formatAmount($cacct->floor);
+  extract(u\just('minimum maximum', $sta['values']));
+  if ($minimum < $cacct->floor) say('bad minr', compact('minBalance'), 'minimum');
+  if ($maximum != 0 and ($maximum < min($minimum, $cacct->rewards))) say('bad maxr', 'maximum');
+//  if ($max_usd != 0 and $max_usd < $minimum) say('bad maxusd', 'max_usd');
 }
 
 function formOptions_submit($form, $sta) {
   $cacct = r\acct();
-  extract(u\just('min_r max_r min_usd max_usd pay_how notify_by', $sta['values']));
-  $secret_bal = @$sta['input']['secret_bal']; // damn Drupal sets this (=1) iff true. ['values']['secret_bal'] is always FALSE.
-  $cacct->setBit(BIT_VIRTUAL_ALL, @$pay_how == 2);
-  $cacct->setBit(BIT_VIRTUAL_EMPLOYEES, @$pay_how == 1);
-  $cacct->setBit(BIT_NOTIFY_EMAIL, $notify_by & 1);
-  $cacct->setBit(BIT_NOTIFY_SMS, $notify_by & 2);
+  extract(u\just('minimum maximum payHow notifyBy', $sta['values']));
+  extract(u\just('toBank secretBal', $sta['input'])); // damn Drupal sets these (=1) iff true, but not in values.
+
+  $cacct->setBit(BIT_TO_BANK, @$toBank); 
+  $cacct->setBit(BIT_VIRTUAL_ALL, @$payHow == 2);
+  $cacct->setBit(BIT_VIRTUAL_EMPLOYEES, @$payHow == 1);
+  $cacct->setBit(BIT_NOTIFY_EMAIL, $notifyBy & 1);
+  $cacct->setBit(BIT_NOTIFY_SMS, $notifyBy & 2);
   $cacct->setBit(BIT_ELECTRONIC, @$statements);
-  $cacct->setBit(BIT_SECRET_BAL, $secret_bal);
-  $cacct->update(compact(u\ray('min_r max_r min_usd max_usd')));
+  $cacct->setBit(BIT_SECRET_BAL, @$secretBal); // damn Drupal sets this (=1) iff true, but not in values.
+  $cacct->update(compact(u\ray('minimum maximum')));
   say('options saved');
 }
 
@@ -2476,6 +2521,10 @@ function memberID($uid = '', $big = FALSE) {
     $nameSize = '36px';
   } else $nameSize = '60px';
   $qid = str_replace(':', '=', $acct->qid()); // "=" to avoid GoDaddy's 'Bad Request' death redirecting RC2.ME with a ":" qid
+  $qid = 'NEW.BHO';
+  $qid2 = strpbrk($qid, '.=');
+  $qrURL = 'http://' . R_SERVER_ID . '.rC2.me/I/' . strrev($qid2) . bin2hex($acct->secure['card_code']);
+  debug($qrURL);
   if(!$photo = profile_picture($acct->agentId)) $photo = __DIR__ . '/../images/no-photo-available.gif';
 
   $info = @getimagesize($photo);

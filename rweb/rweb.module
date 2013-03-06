@@ -88,6 +88,7 @@ function rweb_menu() {
     'account/contact' => r\Web\menu(t('Contact Info'), MENU_LOCAL_TASK, 'showForm', array('Contact'), PERM_MANAGE),
     'account/company' => r\Web\menu(t('Company Info'), MENU_LOCAL_TASK, 'showForm', array('Company'), PERM_COMPANY),
     'account/preferences' => r\Web\menu(t('Preferences'), MENU_LOCAL_TASK, 'showForm', array('Options'), PERM_MANAGE),
+    'another' => r\Web\menu(t('Open Another Account'), MENU_CALLBACK, 'showForm', array('Another'), PERM_MANAGE),
 //    'account/bank-info' => r\Web\menu(t('Bank Info'), MENU_LOCAL_TASK, 'showForm', array('Bank'), PERM_MANAGE),
     'account/usd' => r\Web\menu(t('USD Account'), MENU_LOCAL_TASK, 'showForm', array('Usd'), PERM_MANAGE),
 
@@ -95,7 +96,7 @@ function rweb_menu() {
     'handy' => r\Web\menu('Handy', MENU_NORMAL_ITEM, 'handy_links', array(), PERM_ADMIN),
     
     'membership' => r\Web\menu(t('Membership Status'), MENU_CALLBACK, 'showForm', array('Membership'), PERM_MANAGE),
-    'membership/status' => r\Web\menu('Membership Status', MENU_DEFAULT_LOCAL_TASK, 'showForm', array('Membership'), PERM_MANAGE),
+    'membership/status' => r\Web\menu('Membership Status', MENU_DEFAULT_LOCAL_TASK, 'showForm', array('Membership', 2), PERM_MANAGE),
     'membership/agreement' => r\Web\menu(t('rCredits Agreement'), MENU_LOCAL_TASK, 'showForm', array('Agreement'), PERM_MANAGE),
     'membership/contribute' => r\Web\menu(t('Contribute'), MENU_LOCAL_TASK, 'contribute', array(), '', $anyone),
 //    'membership/video' => r\Web\menu(t('Videos'), MENU_LOCAL_TASK, 'showForm', array('Videos', 2), '', $anyone),

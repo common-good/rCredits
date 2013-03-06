@@ -33,10 +33,9 @@ class acct {
    * @param id/qid $agent: the agent's record id on this server OR the foreign agent's qid (DEFAULT to same as $id)
    */
   function __construct($id = array(), $agent = '') {
-    $card_code = \user_password(10); // in case we have not yet created an rCard security code
     if (!is_array($info = $id)) { // referring to existing db record
       list($this->id, $this->agentId, $this->regionId, $this->agentIdRegion) = acct::ok($id, $agent, $zot, FALSE);
-      if (!@$this->secure['card_code']) $this->secure = compact('card_code'); // delete this line once every account has one
+//      if (!@$this->secure['card_code']) $this->secure = compact('card_code'); // delete this line once every account has one
     } else { // create new db record
       extract($info, EXTR_PREFIX_ALL, 'my');   
       if (isset($my_number) and !isset($my_phone)) $my_phone = $my_number;
@@ -52,7 +51,9 @@ class acct {
       $info['roles'] = 0; // this keeps Drupal happy in user.module
       $info['flags'] = @$my_flags ?: (@$info['uid'] ? (BIT_DEFAULTS | BIT_RTRADER) : BIT_DEFAULTS);
       $info['community'] = communityUid(@$my_postal_code); // defaults to current server
+      $card_code = u\randomString(R_CARDCODE_LEN); // in case we have not yet created an rCard security code
       $info['secure'] = compact('card_code');
+      $info['data'] = serialize(@$my_data ?: array());
 
       /*** Begin DBTX ***/ $dbtx = db_transaction();
       if (!$uid = @$info['uid']) {
@@ -126,7 +127,7 @@ class acct {
     $result = @self::$records[$this->id]->$field; // returns NULL if field not set
 
     if ($field == 'data') {
-      return @$result ? unserialize($result) : NULL;
+      return @$result ? unserialize($result) : array();
     } elseif ($field == 'secure') {
       return @$result ? unserialize(u\ezdecrypt($result, word())) : NULL;
     } elseif ($field == 'language') {
@@ -206,6 +207,7 @@ class acct {
   public function hasBit($bit) {return (bool) ($this->flags & $bit);}
   
   public function setBit($bit, $on = TRUE) {
+// gets caught anyway    u\EXPECT(compact('int', 'on'), 'int bool');
     $flags = $on ? ($this->flags | $bit) : ($this->flags & ~$bit);
     self::$perms[$this->id] = NULL; // force redo in can()
     return $this->update(compact('flags'));

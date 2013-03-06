@@ -10,6 +10,7 @@
  */
  
 namespace rCredits; // typically abbreviated as "r"
+//use rCredits as r;
 use rCredits\Util as u;
 use rCredits\Backend as be;
 
@@ -36,6 +37,7 @@ define('R_MINR_DEFAULT', 200); // suggested minimum amount to hold in rCredits
 define('R_MAXR_DEFAULT', 0); // suggested maximum amount to hold in rCredits
 define('R_MINUSD_DEFAULT', 200); // suggested minimum amount to hold in Dwolla
 define('R_MAXUSD_DEFAULT', 0); // suggested maximum amount to hold in Dwolla
+define('R_CARDCODE_LEN', 20); // length of rCard security code (long to deter easy copying)
 
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
@@ -91,7 +93,7 @@ define('BIT_ELECTRONIC', 0x200); // will accept electronic statements
 
 //define('BIT_SAW_VID2', 0x1000); // saw the pre-Steward vid --4096
 define('BIT_SECRET_BAL', 0x2000); // don't let merchants tell me my balance on request
-//define('BIT_UNUSED4000', 0x4000); // 
+define('BIT_TO_BANK', 0x4000); // automatically transfer excess US Dollars from Dwolla to bank account
 //define('BIT_MET', 0x8000); // has participated in a community meeting
 
 //define('BIT_RQUALIFIED', 0x10000); // makes good economic circles --65,536 = 256 * 256
@@ -99,7 +101,7 @@ define('BIT_SECRET_BAL', 0x2000); // don't let merchants tell me my balance on r
 define('BIT_CTTY_ADMIN', 0x1000000); // is a community administrator --16,777,216 = 256 * 256 * 256
 define('BIT_ADMIN', 0x2000000); // is a system administrator
 define('BIT_CLOSED', 0x4000000); // account is closed (data[new_account] has new qid)
-define('BIT_DEFAULTS', BIT_NOTIFY_EMAIL | 0); // what bits to set when creating a new account
+define('BIT_DEFAULTS', BIT_NOTIFY_EMAIL | BIT_TO_BANK); // what bits to set when creating a new account
 
 // Transaction states
 define('TX_STATES', 'deleted done pending disputed denied');
@@ -265,6 +267,9 @@ function txSave($txs, $real = 'as appropriate') {
     }
   }
 
+  cacheTotals($payer, $txs);
+  cacheTotals($payee, $txs);
+
   unset($dbtx); // commit ($dbtx->commit() is disallowed)
   //*** End DBTX
 
@@ -276,15 +281,15 @@ function txSave($txs, $real = 'as appropriate') {
  * Add rebate and bonus to the transaction set, if appropriate.
  */
 function transactionRewards(&$txs) {
-  extract($txs[0], EXTR_PREFIX_ALL, 'my');
+  extract(u\just('type goods payer payee data state', $txs[0]));
   
-  if ($my_type != TX_TRANSFER) return;
-  if (!$my_goods) return; // quit unless rebates and bonuses apply
-  if (owning($my_payer, $my_payee)) return; // no rewards for transactions between owner and owned
-  $rewards = unserialize($my_data);
+  if ($type != TX_TRANSFER) return;
+  if (!$goods) return; // quit unless rebates and bonuses apply
+  if (owning($payer, $payee)) return; // no rewards for transactions between owner and owned
+  $rewards = unserialize($data);
   
-  $txs[] = txRewardSetup(TX_REBATE, $my_payer, $my_state, $rewards);
-  $txs[] = txRewardSetup(TX_BONUS, $my_payee, $my_state, $rewards);
+  $txs[] = txRewardSetup(TX_REBATE, $payer, $state, $rewards);
+  $txs[] = txRewardSetup(TX_BONUS, $payee, $state, $rewards);
 }
 
 function txRewardSetup($type, $payee, $state, $rewards) {
@@ -293,9 +298,9 @@ function txRewardSetup($type, $payee, $state, $rewards) {
 
   $taking = FALSE;
   $goods = FALSE;
-  $amount = $rewards[$type == TX_REBATE ? 'rebate' : 'bonus'];
+  $r = $amount = $rewards[$type == TX_REBATE ? 'rebate' : 'bonus'];
   $for = $type == TX_REBATE ? t('rebate') : t('bonus');
-  return transactionSetup(compact(u\ray('type amount goods payer payee payer_agent payee_agent for taking state')));
+  return transactionSetup(compact(u\ray('type amount r goods payer payee payer_agent payee_agent for taking state')));
 }
 
 /**
@@ -341,17 +346,58 @@ function demand($uid, $demand = FALSE) {
 }
 
 /**
+ * Return the amount the given account has available to pay.
+ * @param acct $acct: the account
+ * @param bool $goods: is the request for real goods and services (or cash)
+ */
+function available($acct, $goods) {
+  $data = $acct->data;
+  return $data['available'] - ($goods ? 0 : $data['rewards']);
+}
+
+/**
+ * Keep track of balance, available balance, and other figures in data field of account record:
+ *    balance: cached current rCredits account balance (sum of transactions is authoritative)
+ *    available: the amount available to spend
+ *    rewards: incentive rewards received to date (cannot be cashed out)
+ *    frozen: how much of the balance is unavailable to spend (array of amounts keyed by dates)
+ *    noBonus: how many rCredits must the account accept as payment for goods and services, before receiving more sales bonuses
+ */
+function cacheTotals($uid, $txs) {
+  if ($uid < 0) return; // don't cache community and region totals
+  if ($txs[0]['state'] <= TX_PENDING) return; // don't change totals if transaction doesn't count (yet)
+  $acct = acct($uid);
+  $data = $acct->data;
+//  extract(u\just('balance rewards frozen', $data));
+  $balance = @$data['balance'] ?: 0;
+  $rewards = @$data['rewards'] ?: 0;
+  $frozen = @$data['frozen'] ?: array();
+  
+  foreach ($txs as $tx) {
+    extract(u\just('payer payee r type goods', $tx));
+    $amount = $payer == $uid ? -$r : ($payee == $uid ? $r : 0);
+    $balance += $amount;
+    if ($type != TX_TRANSFER) {
+      $rewards += $amount;
+    } elseif (!$goods) $frozen[$wait] = @$frozen[$wait] + $amount;
+  }
+  $available = $balance - array_sum($frozen);
+  $data = compact(u\ray('balance rewards frozen available')) + $data;
+  $acct->update(compact('data'));
+}
+
+/**
  * Return how much of a transaction will be in USD.
  * @param float $shortfall (RETURNED) how much too little the payer has
  * @return float: how much of the transaction will be in USD (NULL if no USD account)
  */
-function usdPart($requestAmount, $acct, $preapproved, $real, &$shortfall) {
+function usdPart($requestAmount, $acct, $preapproved, $goods, $real, &$shortfall) {
   $shortfall = 0; // no shortfall if preapproved
-  if (!$preapproved) return 0; // if this is just an invoice, funds don't have to be there yet (no shortfall)
+  if (!$real or !$preapproved) return 0; // if asif or just an invoice, funds don't have to be there yet (no shortfall, no usd)
   
   $uid = $acct->id;
-  $available = be\creditInfo(compact('uid', 'real'))->available;
-  $r = min($requestAmount, $available);
+//  $available = be\creditInfo(compact('uid', 'real'))->available;
+  $r = min($requestAmount, r\available($acct, $goods));
   if (!$shortfall = max(0, $requestAmount - $r)) return 0;
 
   $usdAcct = new usd($acct); // try to do some in USD
@@ -365,6 +411,7 @@ function usdPart($requestAmount, $acct, $preapproved, $real, &$shortfall) {
 /**
  * Pay each employee the amount
  */
+ /*
 function payEmployees($amount0, $for, $confirmed) {
   $employees = employees();
   if (!$employeeCount = count($employees)) return array('no employees', array(), array());
@@ -385,7 +432,8 @@ function payEmployees($amount0, $for, $confirmed) {
   $success = ($successes > 0);
   return array('paid employees', compact(u\ray('total successes employeeCount results success')), FALSE);
 }
- 
+*/
+
 /**
  * Notify the specified user, according to their preferences
  * @param integer $uid: account record id
@@ -406,7 +454,7 @@ function notify($uid, $index, $info) {
     $warning = u\tt('no asif notify', compact('fullName'));
   } else {
     if ($acct->hasBit(BIT_NOTIFY_EMAIL) and @$acct->mail) {
-      $mailed = \drupal_mail('rCredits', $index, $acct->mail, $acct->language, $info);
+      $mailed = \drupal_mail('rCredits', $index, $acct->mail, '', $info); // no need to pass $acct->language
     }
     if ($acct->hasBit(BIT_NOTIFY_SMS)) {
       $number = dbLookup('number', 'r_sms', 'uid=:uid AND status=:SMS_PRIMARY', compact('uid'));
@@ -439,7 +487,7 @@ function membershipEvent($acct, $status, $do = TRUE) {
     $quid = $acct->mainQid;
     notifyStaff('Account @fullName (@quid) is now @status.', compact(u\ray('fullName quid status')));
     if ($status == 'member') { // time to choose a card security code
-      $card_code = u\randomString(20);
+      $card_code = u\randomString(R_CARDCODE_LEN);
       $secure = compact($card_code);
       $acct->update(compact('secure'));
     }
@@ -450,11 +498,13 @@ function membershipEvent($acct, $status, $do = TRUE) {
  * Notify rCredits staff
  * @param string $message: the message or message index
  * @param assoc $subs: substitutions for the message
+ * @param int $uid: account id (only needed when called from register, defaults to current account id)
  */
-function notifyStaff($message, $subs = array()) {
+function notifyStaff($message, $subs = array(), $uid = '') {
   $noFrame = TRUE;
   $message = u\tt($message, $subs);
-  $mailed = \drupal_mail('rCredits', 'tell_staff', R_ORG_EMAIL, '', compact('message', 'noFrame'));
+  if (!$uid) $uid = acct()->id;
+  $mailed = \drupal_mail('rCredits', 'tell_staff', R_ORG_EMAIL, '', compact(u\ray('message noFrame uid')));
 }
 
 /**
@@ -608,7 +658,7 @@ function qid($zid = '', $regionId = R_SERVER_ID, $min_len = 1) {
 /**
  * Return a qid without the 3-char header
  */
-function qid2($zid, $regionId = R_SERVER_ID) {return substr(qid($zid, $regionId, 3), 3);}
+function qid2($zid, $regionId = R_SERVER_ID) {return substr(qid($zid, $regionId, 3), strlen($regionId));}
 
 /**
  * Return the short qid and full name of the specified account.
@@ -900,7 +950,7 @@ function go($page) {
  * Set or return the proxy for the person
  */
 function proxy($person, $priority = 1, $proxy = NULL) {
-  if (!@$proxy) return r\dbLookup('proxy', 'r_proxies', 'person=:id AND priority=:priority', compact('id', 'priority'));
+  if (!@$proxy) return dbLookup('proxy', 'r_proxies', 'person=:person AND priority=:priority', compact('person', 'priority'));
   dbQ('DELETE FROM r_proxies WHERE person=:person AND priority=:priority');
   \drupal_write_record('r_proxies', compact(u\ray('person priority proxy')));
 }

@@ -24,6 +24,7 @@ class usd {
    * @param acct $acct: the rCredits account that has this USD account
    */
   function __construct($acct) {
+    if (!$acct->hasBit(BIT_RTRADER)) return;
     $this->acct = $acct;
     foreach ($acct->secure as $key => $value) if (property_exists($this, $key)) $this->$key = $value;
     $this->minimum = $acct->min_usd;

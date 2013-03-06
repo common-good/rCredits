@@ -26,8 +26,8 @@ function formTxs($form, &$sta, $args = '') {
   
   if ($report) { // community transaction history
     $page = 'reports';
-    $classes = 'tid date from to amount rpct state purpose reward';
-    $headers = t('#,Date,From,To,Amount,r%,Status,Purpose,Rewards');
+    $classes = 'tid date from to amount r usd rpct state purpose reward';
+    $headers = t('#,Date,From,To,Total,rCredits,USD,r%,Status,Purpose,Rewards');
   } else { // individual account transaction history
     $page = 'transactions';
     $do = in_array(@$do, u\ray('ok no edit')) ? $do : '';
@@ -86,7 +86,7 @@ function formTxs($form, &$sta, $args = '') {
     $amount = number_format($tx_r, 2);
     $total = number_format($tx_amount, 2);
     $usd = number_format($tx_amount - $tx_r, 2);
-    $rpct = number_format(100 * $tx_r / $tx_amount, 1);
+    $rpct = $tx_amount ? number_format(100 * $tx_r / $tx_amount, 1) : R_NONE;
     if ($rpct == '100.0') $rpct = '100'; // keep the field narrow (4 chars max)
     $rpct = "<span title=\"r$$amount + us$$usd = $$total\">$rpct</span>";
     $date = @$tx_completed ?: $tx_created;
@@ -96,7 +96,7 @@ function formTxs($form, &$sta, $args = '') {
       txNeatAmounts($amount, $reward, $is_reward);
       $state = txColoredState($tx_state);
       $tid = str_replace('-', 'a', $zxid);
-      $row = array($tid, strftime('%d-%b-%Y', $date), r\acct($tx_payer)->full_name, r\acct($tx_payee)->full_name, $amount, $rpct, $state, $tx_purpose, $reward);
+      $row = array($tid, strftime('%d-%b-%Y', $date), r\acct($tx_payer)->full_name, r\acct($tx_payee)->full_name, $total, $amount, $usd, $rpct, $state, $tx_purpose, $reward);
     } else { // individual account transaction history
       $url = $url0 . "&zxid=$zxid";
       $tid = be\zxid2tid($zxid);

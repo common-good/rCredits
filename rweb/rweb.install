@@ -18,6 +18,7 @@ function rweb_install() {
   r\dbQ("UPDATE {menu_links} SET hidden=1 WHERE menu_name='user-menu' AND link_path='user'");
   \drupal_flush_all_caches();
 
-  variable_set('duplicate_email_message', r\Web\tt('duplicate email'));
-  variable_set('forgot_password_message', r\Web\tt('forgot password'));
+  global $channel; $channel = TX_WEB; // used in tt
+  variable_set('duplicate_email_message', u\tt('duplicate email'));
+  variable_set('forgot_password_message', u\tt('forgot password'));
 }

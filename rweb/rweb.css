@@ -185,6 +185,7 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformsummary #edit-creditlimit .description,
 #rcreditswebformsummary #edit-rewards .description {display:inline-block; margin-left:.25em;}
 #rcreditswebformsummary .form-type-radios {border-bottom:0;} /* yesno looks silly with bottom border */
+#rcreditswebformsummary  #edit-another {display:inline-block;}
 
 /* Company Info */
 #rcreditswebformcompany fieldset#edit-description-format {background-color:lightblue; max-width:45em;}
@@ -416,9 +417,13 @@ html.js input.throbbing {background-position:right -2.4em;}
 /* Options (Preferences) */
 #rcreditswebformoptions .description {margin-bottom:1em;}
 #rcreditswebformoptions .form-item-statements label div {margin-left:27px; font-weight:normal;}
-/*#rcreditswebformoptions .form-item-notify-by {margin-top:40px;}
-#rcreditswebformoptions .form-item-secret-bal {margin-top:80px;}*/
-/*#rcreditswebformoptions .form-item-secret-bal input {margin-left:105px;} */
+/*#rcreditswebformoptions .form-item-toBank {border-bottom:1px solid darkgreen;}
+#rcreditswebformoptions .form-item-toBank .description {margin-bottom:auto;}
+#rcreditswebformoptions .form-item-toBank .description:after {content:"."; display:block;	clear:both; visibility:hidden;	line-height:0; height:0;} */
+#rcreditswebformoptions .form-item-payHow {border-top:1px solid darkgreen; padding-top:5px;}
+#rcreditswebformoptions .form-item-payHow div {border-top:0; padding-top:0;}
+/*#rcreditswebformoptions .form-item-secretBal {margin-top:80px;}*/
+/*#rcreditswebformoptions .form-item-secretBal input {margin-left:105px;} */
 
 /* Dwolla */
 #rcreditswebformusd .form-radios {max-width:80%;}

@@ -44,30 +44,22 @@ function tableDefs($schema = array()) {
     'demand' => setupField('waiting to trade this much USD for rCredits (or vice-versa)', 'numeric 11,2', 0),
     'demand_date' => setupField('date/time of request for rCredits (or USD)', 'int 11'),
     'counts' => setupField('counts of command use, etc.', 'int big', 0),
-    'min_balance' => setupField('how low can balance go (normally zero or less)', 'numeric 11,2', R_MIN_BALANCE),
-    'min_r' => setupField('minimum rCredits balance (savings, buy shortfall automatically, NULL=none)', 'numeric 11,2', NULL),
-    'max_r' => setupField('maximum rCredits balance (exchange excess for USD automatically), 0=no max)', 'numeric 11,2', NULL),
-    'min_usd' => setupField('minimum Dwolla balance (enough for 3 days of USD purchases, NULL=none)', 'numeric 11,2', NULL),
-    'max_usd' => setupField('maximum Dwolla balance (transfer excess to bank account, 0=no max)', 'numeric 11,2', NULL),
-    'selling' => setupField('typical description of what this company sells', 'varchar 255'),
+    'floor' => setupField('how low can balance go (normally zero or less)', 'numeric 11,2', R_FLOOR),
+    'minimum' => setupField('chosen minimum balance (savings + 3 days, fill automatically)', 'numeric 11,2', NULL),
+    'maximum' => setupField('maximum rCredits balance (exchange excess for USD automatically), 0=none)', 'numeric 11,2', NULL),
+    'selling' => setupField('typical description of what this company sells (default transaction purpose)', 'varchar 255'),
 // separate table for this? 'nym' => setupField('unique identifier for cryptographic signing', 'text tiny'), 
   );
   // need foreign keys here
   $schema['users']['fields'] = (@$schema['users']['fields'] ?: array()) + $fields;
   $schema['users']['fields']['uid'] = setupField('Unique user ID', 'int 11'); // not unsigned
 // kills Drupal: $schema['users']['fields']['data']['description'] = 'incidental data (a serialized array of name value pairs)';
-/* MOVE THESE TO data field
-    'balance' => setupField('cached current rCredits account balance (sum of transactions is authoritative)', 'numeric 11,2'),
-    'rewards' => setupField('incentive rewards received to date (cannot be cashed out)', 'numeric 11,2'),
-    'frozen' => setupField('how much of the balance is unavailable to spend', 'numeric 11,2'),
-    'no_bonus' => setupField('how many rCredits must the account accept as payment for goods and services, before receiving more sales bonuses', 'numeric 11,2'),
 
-  MOVE THESE TO offsite field:
+/*  MOVE THESE TO offsite field:
     'federal_id' => setupField('social security number or employer id number, for reporting', 'int 9'), // secret
     'dob' => setupField('date of birth, founding, or incorporation', 'int 11'), // secret
     'id_proof' => setupField('proof of identity encryption key', 'varchar ' . R_SECRET_ID_LEN), // secret
     'answer' => setupField('answer to security question', 'varchar ' . R_SECRET_ID_LEN), // secret
-
   */
 
   // table offsite

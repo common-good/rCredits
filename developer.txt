@@ -14,35 +14,19 @@ rename community field to community
 ***
         
 Short term tasks: (* = before launch ** = earlier)
+- disable checkboxes in agreement, if already signed, and show signature and date at bottom (not text box)
+- company relations during registration fails (missing is_owner and employee_ok)
+- add flow to relations (1=to, 2=from, 3=both, 0=none)
+- don't allow clicking on links in emails (send to new.rcredits_org.com/whatever, which looks like rcredits.org but scolds the user for clicking on an email link, then offers a link to the real site (don't accept that one either).
+- Dwolla fee goes to cash buyer (otherwise always to the rCredits recipient -- the payee)
+- change to populate form and redirect for contribution (whenever)
 - change SMS command "get r" to just "get"
-- in asif and txs: r column instead of usd column
-- include r column in downloads
 - count owners (if not employed too) and suppliers each as one (average) employee, when distributing virtual payments
-- options for employee: 
-  . how often to get paid (default is set by employer. More often than that and employee pays the 25cents, otherwise the employer)
-  . fill Dwolla account automatically in advance to cover expected virtual payments OR let me do it when you remind me
 - travel checks (use once, limited amount)
 - callback from oauth request calls usd page with success/youSaidNO/error (display a message)
-- suggest horizontal image (ideally 16x9) for company profile pix
 - allow extra params in buynow form
-- ** code for usd amount in txs
-- ** default purpose for companies
-- ** security code for cards (store in "secure" field)
-- ** (?) cards scan to new.rc2.me, which redirects (for now) to new.rcredits.org (ultimately to the proper region). whole URL
 - ** Transaction Summary: add extra rows for "Unavailable until <date>", "Available Balance", "Incentive Rewards to Date", and "Amount That Can Be Exchanged for USD", reflecting serialized assoc values in the data field of the account: balance, frozen[n]=array(date,amount), rewards (available balance is calculated)
 - ** membership path for companies!
-- ** make a "open another account" button and add that possibility to the error when trying to register without an invite (implement by creating an invite and redirecting to registration, using that code). Choices for the new account:
-  . current account owns the new account
-  . new account owns the current account
-  . current account and new account have the same owner(s)
-  . current account and new account are personal accounts for individuals who have a personal relationship rather than a business relationship
-  . none of the above
-  ----------
-  . current account can cover new account's debts and overdrafts (no funds will be moved automatically)
-  . new account can cover current account's debts and overdrafts
-  . both
-  . neither
-- ** Default for companies is "pay everyone virtually", for personal is "pay everyone directly". Companies with the "pay everyone virtually" option don't have to pay anyone consciously. A "pay ALL" is done for them at midnight daily. Their rCredits are offered equally to all employees and to their suppliers in proportion to how many employees and vendors that supplier has (where each supplier counts as half the average number of employees that any supplier has, divided by the average number of supplieds that any supplier has), divided by its supplied count, divided by 2. All amounts are truncated to the penny. All payment offers are accepted automatically, up to the amount in the accepter's Dwolla account. Unaccepted amounts are redistributed to others (not recursively, if the company is unable to distribute its funds). A company's payments are tentative until we know what all of them will be. Companies must list for each employee and supplier the average amount they pay them per month ($/mo) on the relations screen.
 - * Start everyone with $50, bring it up to $100 the next week (2nd month everyone starts at $20)
 - for companies, show HTML for online payment buttons
 - add tithe to summary page, for admins

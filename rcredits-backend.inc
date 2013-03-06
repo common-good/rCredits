@@ -167,7 +167,7 @@ function updateRelations($updates) {
     if (!empty($data)) r\dbQ("UPDATE r_relations SET $changes WHERE $where", $subs);
 
     $msg = 'updated relation';
-    if (!r\relation('permission>0 OR employer_ok OR employee_ok OR is_owner', $where, $reidSub)) {
+    if (!r\relation('permission>0 OR employer_ok OR employee_ok OR is_owner OR amount', $where, $reidSub)) {
       setCttyAdmin(FALSE, $main, $other);
       r\dbQ("DELETE FROM r_relations WHERE $where", $reidSub);
       $pot = '(:main, :other)';
@@ -378,7 +378,7 @@ function payInvoice($zxid) {
  * Create a transaction
  * @param string $ttype: payment, charge, or invoice payment
  * @param array $acct: acct object for the other party
- *   OR 'ALL' (paying employees)
+ *   OR 'ALL' (paying employees) -- currently UNUSED
  * @param numeric $requestAmount: the transaction amount
  * @param string $for OR array($payer_for, $payee_for): description of the transaction's purpose (user input)
  * @param bool $goods: is this for real goods and services
@@ -410,7 +410,7 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   if (is_array($ttype)) extract($ttype); // called from api or backend
 
   u\EXPECT(in_array($ttype, u\ray('payment,charge,invoice payment')), 'bad transaction type');
-  if ($acct == 'ALL') return $ttype == 'payment' ? r\payEmployees($requestAmount, $for, $confirmed) : array('no ALL', array(), FALSE);
+// disabled for now  if ($acct == 'ALL') return $ttype == 'payment' ? r\payEmployees($requestAmount, $for, $confirmed) : array('no ALL', array(), FALSE);
   $cacct = r\acct();
   $cuid = $cacct->id;
   $taking = ($ttype == 'charge');
@@ -451,7 +451,7 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   if ($error = u\badAmount($requestAmount, '>0')) return array($error, array(), FALSE);
   $totalHit = $requestAmount - @$data['rebate']; // leave room for reversing rewards (minus a negative)
   
-  $usd = r\usdPart($totalHit, $taking ? $acct : $cacct, $preapproved, $real, $shortfall); // short payment or unilateral charge
+  $usd = r\usdPart($totalHit, $taking ? $acct : $cacct, $preapproved, $goods, $real, $shortfall); // short payment or unilateral charge
   if ($shortfall) {
     $short = u\formatAmount($shortfall);
     $otherName = r\userField('full_name', $uid);
@@ -470,7 +470,7 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
       return array($msg, compact(u\ray('otherName short how')), FALSE);
   }
   $amount = $requestAmount;
-  $r = $amount - $usd;
+  $r = round($amount - $usd, 2);
   
   // Figure rewards and other extra info
   if (!$for) $for = $goods ? 'goods and services' : 'cash/loan/etc.';
@@ -701,7 +701,7 @@ function creditInfo($args = array()) {
   
   $dateField = 'GREATEST(t.created,IF(ISNULL(t.completed), 0, t.completed))';
   $monthStart = u\monthDay1();
-  $minBalance = r\userField('min_balance', $uid);
+  $minBalance = r\userField('floor', $uid);
   $amount = $currency == 'both' ? 't.amount' : ($currency == 'usd' ? '(t.amount - t.r)' : 't.r');
 
   $sql = <<<EOF

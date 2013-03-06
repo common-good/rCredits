@@ -25,5 +25,5 @@ define('R_MAX_AMOUNT', 100000); // you can't ask for more rCredits than this
 define('R_MIN_DEMAND', 10); // you can't buy less rCredits than this at a time
 define('R_STARTING_BALANCE', 250); // how much people start with in the TRIAL RUN
 define('R_SIGNUP_INCENTIVES', '20 100 150 200 250'); // possible total amounts of signup incentives in launch month
-define('R_MIN_BALANCE', 0); // how low can user's balance go, by default
+define('R_FLOOR', 0); // how low can user's balance go, by default
 define('R_STATEMENT_COST', 10); // how much member must pay (in rCredits dollars) for monthly and annual statements by mail

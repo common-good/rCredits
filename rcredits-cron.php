@@ -3,7 +3,9 @@
  * @file
  * Functions to run periodically.
  
- update / check balances (often -- 15 minutes?)
+update / check balances (often -- 5 minutes?)
+  recalc balance, rewards
+  unset data[frozen[today]]
 other security / scam checks (often)
 completion of (deliberate) pending virtual payments (daily, but not implemented yet)
 automatic payments (just virtual payments for now) (daily)
@@ -12,6 +14,8 @@ interest (monthly, calculating daily bals from history)
 statements (daily, weekly, monthly -- at user's option)
 1099s (annual)
 (just auto pay and redist happen in a chunk)
+
+- ** Default for companies is "pay everyone virtually", for personal is "pay everyone directly". Companies with the "pay everyone virtually" option don't have to pay anyone consciously. A "pay ALL" is done for them at midnight daily. Their rCredits are offered equally to all employees and to their suppliers in proportion to how many employees and vendors that supplier has (where each supplier counts as half the average number of employees that any supplier has, divided by the average number of supplieds that any supplier has), divided by its supplied count, divided by 2. All amounts are truncated to the penny. All payment offers are accepted automatically, up to the amount in the accepter's Dwolla account. Unaccepted amounts are redistributed to others (not recursively, if the company is unable to distribute its funds). A company's payments are tentative until we know what all of them will be. Companies must list for each employee and supplier the average amount they pay them per month ($/mo) on the relations screen.
 
  */
  

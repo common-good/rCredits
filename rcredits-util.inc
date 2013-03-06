@@ -289,16 +289,17 @@ function diff($a, $b) {
  */   
 function tt($message, $subs = array(), $adhocChannel = '') {
   global $channel;
-  
+ 
   if (!$adhocChannel) $adhocChannel = $channel;
   if (is_array($message)) list ($message, $subs) = $message;
   if (!$subs) $subs = array();
   $messages = explode('|', $message);
   $channels = ray(TX_CHANNELS);
+
   foreach ($messages as $i => $message) {
-    $model = $message; // the default
     $ch1 = $adhocChannel ?: (count($channels) - 1);
-    for ($ch = $ch1; $ch > 0; $ch--) $model = @$GLOBALS["$ch messages"][$message] ?: $model;
+    for ($ch = $ch1; $ch > 0; $ch--) if ($model = @$GLOBALS["$ch messages"][$message]) break;
+    if (!@$model) $model = $message;
     if($p = strpos($model, '. Type ')) {
       if ($channel != TX_SMS and $adhocChannel != TX_SMS) $model = substr($model, 0, $p + 1); // don't tell the user to type something unless it's SMS
     }
@@ -405,8 +406,8 @@ function getConstants($string, $prefix = ':') {
  * Assert an expectation or check parameters for validity
  * Throw an Exception if the expectation is not met.
  * call by:
- *   EXPECT($assertion, $message, $ret)
- *   EXPECT($args, $types, $ret) OR
+ *   EXPECT($assertion, $message, $ret) OR
+ *   EXPECT($args, $types, $ret) eg EXPECT(compact(u\ray('arg1 arg2')), 'bool float');
  * @param boolean $assertion: a statement to assert
  * @param string $message: message to display if assertion is FALSE
  *

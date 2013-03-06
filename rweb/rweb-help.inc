@@ -39,7 +39,7 @@ EOF
           <li><b>Cell Phone Access</b> lets you connect your account to one or more cell phones, so you can use Text Messaging to buy and sell things with rCredits.</li>
           <li><b>Relations</b> lets you connect individual rCredits participants to your account &mdash; either as owners, employees, or others, with limited or full access to the account. This is especially useful for authorizing sales clerks or setting up joint accounts.</li>
           <li><b>Contact Information</b> is where you add or change your phone numbers and address.</li>
-          <li><b>Account Options</b> gives you several choices about how your rCredits account works. This section will be growing. Feel free to suggest additional options that you would like to see here.</li>
+          <li><b>Account Preferences</b> gives you several choices about how your rCredits account works. This section will be growing. Feel free to suggest additional options that you would like to see here.</li>
         </ul>
         </li>
       <li><b>Membership Status</b> tells you where you are in the process of becoming an "rTrader" &mdash; an active participant in the rCredits system. This section will give you links to your next steps.</li>
@@ -112,12 +112,20 @@ EOF
     ),
     'preferences' => t(<<<EOF
       <p>These settings are, by default, what most people prefer. Feel free to adjust them to your taste. You can always come back and change them again later.</p>
+      <ul>
+        <li><b>Minimum.</b> You will want to keep enough rCredits plus US Dollars in your account to cover the total amount you expect to spend at rCredits member businesses in a typical 3-day period. Add to this however much you want to hold as inflation-protected savings (the inflation adjustment is a monthly credit to your account).</li>
+        <li><b>To bank.</b> This setting is usually a good idea unless you use your Dwolla account outside the rCredits system.</li>
+      </ul>
       <p>If there are settings you would like to see here &mdash; that is, things you want to work differently &mdash; please let us know. We expect to offer many additional options over the next few months.</p>
 EOF
     ),
     'why-wait' => t(<<<EOF
       <p>Exchanges of rCredits for US Dollars reflect an incomplete economic circle. That is, the individual or company selling the rCredits does not yet have enough places to spend them.</p>
       <p>The 2-week delay in spending rCredits that you buy takes that amount out of circulation temporarily, giving the seller time to find more places to spend rCredits, without meanwhile having to sell more and more of them.</p>
+EOF
+    ),
+    'to-bank' => t(<<<EOF
+      <p>This "To bank" setting is usually a good idea unless you use your Dwolla account outside the rCredits system. It can take up to 3 days for the bank to receive the funds, once they are sent.</p>
 EOF
     ),
   );
