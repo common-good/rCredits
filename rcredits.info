@@ -7,11 +7,11 @@ php = 5.3
 
 files[] = rcredits.module
 files[] = rcredits.install
-files[] = rcredits-install.inc
 files[] = rcredits-settings.inc
+files[] = rcredits-cron.inc
 files[] = rcredits-util.inc
 files[] = rcredits.inc
 files[] = rcredits-backend.inc
-files[] = rcredits-circles.inc
+
 
 

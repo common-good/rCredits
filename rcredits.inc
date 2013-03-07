@@ -503,7 +503,7 @@ function membershipEvent($acct, $status, $do = TRUE) {
 function notifyStaff($message, $subs = array(), $uid = '') {
   $noFrame = TRUE;
   $message = u\tt($message, $subs);
-  if (!$uid) $uid = acct()->id;
+  if (!$uid) $uid = acct()->id ?: 1; // use Site Admin account if no other
   $mailed = \drupal_mail('rCredits', 'tell_staff', R_ORG_EMAIL, '', compact(u\ray('message noFrame uid')));
 }
 
@@ -634,8 +634,8 @@ function zxs($uid1 = 'current', $uid2 = '') {
  */
 function dbLookup($fieldName, $table_name, $where = '1', $subs = array()) {
   u\EXPECT(compact(u\ray('fieldName table_name where subs')), 'notempty notempty notempty assoc');
-  $sql = "SELECT $fieldName FROM $table_name WHERE $where";
   if (!strpos($where, ' LIMIT ')) $where .= ' LIMIT 1';
+  $sql = "SELECT $fieldName FROM $table_name WHERE $where";
   $result = dbQ($sql, $subs);
   $fieldCount = substr_count($fieldName, ',') + 1;
   $result = $fieldCount > 1 ? $result->fetchAssoc() : $result->fetchField();
@@ -1053,10 +1053,12 @@ function setTxState($newValue, $zserial) {setTxField('state', $newValue, $zseria
 function word() {return file_get_contents(dirname($_SERVER['DOCUMENT_ROOT']) . "/.shibboleth");}
 function totalDemand($ctty = '') {return dbLookup('SUM(demand)', 'users', $ctty ? 'community=:ctty' : '1', compact('ctty'));}
 function balance($uid = '', $real = TRUE) {return be\creditInfo(compact('uid', 'real'))->balance;}
-function serverUid($regionId = '') {return -u\a2n(u\neq($regionId, CT_SERVER_ID) ?: R_SERVER_ID);}
+//function serverUid($regionId = '') {return -u\a2n(u\neq($regionId, CT_SERVER_ID) ?: R_SERVER_ID);}
+function serverUid($regionId = R_SERVER_ID) {return -u\a2n($regionId);}
 function emailTemplate($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}
 function emailBody($key) {return str_replace('{BODY}', emailTemplate($key), emailTemplate(R_EMAIL_FRAME));}
 function isRTrader($uid = '') {return ($acct = acct($uid)) ? $acct->hasBit(BIT_RTRADER) : FALSE;}
 function realCountry($country) {return dbLookup('name', 'r_countries', 'id=:country', compact('country'));}
-function realState($state, $country = R_COUNTRY_ID) {dbLookup($country == R_COUNTRY_ID ? 'abbreviation' : 'name', 'r_states', 'id=:state and country_id=:country', compact('state', 'country'));}
-
+function realState($state, $country = R_COUNTRY_ID) {return dbLookup($country == R_COUNTRY_ID ? 'abbreviation' : 'name', 'r_states', 'id=:state and country_id=:country', compact('state', 'country'));}
+function makeQueue($callback, $time = 15) {return array('worker callback' => "rCredits\\$callback", 'time' => $time);}
+function enqueue($queue, $item) {\DrupalQueue::get($queue)->createItem($item);}

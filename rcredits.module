@@ -37,6 +37,7 @@
 
 require_once 'rcredits.inc';
 require_once 'rcredits-backend.inc';
+require_once 'rcredits-cron.inc'; // required here by cron
 use rCredits as r;
 use rCredits\Util as u;
 use rCredits\Testing as t;
@@ -112,13 +113,6 @@ function rcredits_shutdown() {
 }
 
 /**
- * Implements hook_cron().
- */
-function rcredits_cron() {
-  include_once 'rcredits-cron.php';
-}
-
-/**
  * Implements hook_im_send().
  */
 function rcredits_im_send($key, &$message, $subs) {
@@ -186,3 +180,20 @@ function rcredits_page_alter($page) {
   //debug(strip_tags($page['content']['system_main']['main']['#markup']));
 }
 
+/**
+ * Implements hook_cron().
+ */
+function rcredits_cron() {
+  rCredits\Cron\periodic();
+}
+
+
+/**
+ * Implements hook_cron_queue_info().
+ */
+function rcredits_cron_queue_info() {
+  $intensiveQueues = 'virtualPayment redistribute'; // these want to be done ASAP once they start
+  $queues = u\ray('checkBalance checkScam inflation statement f1099 ' . $intensiveQueues);
+  foreach ($queues as $one) $$one = r\makeQueue($one, strpos($intensiveQueues, $one) !== FALSE ? 5*60 : 15);
+  return compact($queues);
+}

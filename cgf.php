@@ -1,4 +1,5 @@
 David:
+queues and timing of virtual payments vs. redistribution
 
 to do:
 - employee ID cards are US mailed to employee.

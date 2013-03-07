@@ -75,7 +75,7 @@ class acct {
     }
     if ($this->id > 0) { // no qids for communities and regions!
 //      $this->mainQid = qid($this->id, u\n2a(-$this->regionId, 3), 3);
-      $this->mainQid = qid($this->id, u\n2a(-u\eq($this->community, -u\a2n(CT_SERVER_ID), $this->regionId), 3), 3);
+      $this->mainQid = qid($this->id, u\n2a(-$this->regionId, 3), 3);
     }
   }    
 

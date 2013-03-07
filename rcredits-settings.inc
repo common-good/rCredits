@@ -6,10 +6,10 @@
 
 define('R_REGION_NAME', 'Western Massachusetts Region');
 define('R_SERVER_ID', 'NEW'); // qid header for this region's server (New England / Western MA)
-define('CT_SERVER_ID', 'NEC'); // a temporary fake server
+//define('CT_SERVER_ID', 'NEC'); // a temporary fake server
 // other 3rd letters: M=ME H=NH V=VT C=CT R=RI P=PA Y=NY A=NYC (apple) B=Boston
 define('R_ORG_PHONE', '413-628-1723');
-define('R_ORG_EMAIL', 'info@rCredits.org');
+define('R_ORG_EMAIL', isDEV ? 'wspademan@gmail.com' : 'info@rCredits.org');
 define('R_SITE_URL', 'http://new.rCredits.org');
 
 // (you don't get an ID card unless you are in this geographic area)
@@ -27,3 +27,6 @@ define('R_STARTING_BALANCE', 250); // how much people start with in the TRIAL RU
 define('R_SIGNUP_INCENTIVES', '20 100 150 200 250'); // possible total amounts of signup incentives in launch month
 define('R_FLOOR', 0); // how low can user's balance go, by default
 define('R_STATEMENT_COST', 10); // how much member must pay (in rCredits dollars) for monthly and annual statements by mail
+define('R_DAILY_HOUR', '03'); // what time (2-digit 24-hour clock hour) to do database-intensive daily maintenance tasks
+define('R_WEEKLY_DAY', 'Sunday'); // what day of the week to do weekly tasks
+define('R_MONTHLY_DAY', '01'); // what day of the month to do monthly tasks (2-digits)
