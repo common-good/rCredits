@@ -45,10 +45,14 @@ function tableDefs($schema = array()) {
     'demand_date' => setupField('date/time of request for rCredits (or USD)', 'int 11'),
     'counts' => setupField('counts of command use, etc.', 'int big', 0),
     'floor' => setupField('how low can balance go (normally zero or less)', 'numeric 11,2', R_FLOOR),
+//    'usd_account' => setupField('USD account number', 'varchar 36'),
     'minimum' => setupField('chosen minimum balance (savings + 3 days, fill automatically)', 'numeric 11,2', NULL),
     'maximum' => setupField('maximum rCredits balance (exchange excess for USD automatically), 0=none)', 'numeric 11,2', NULL),
     'selling' => setupField('typical description of what this company sells (default transaction purpose)', 'varchar 255'),
-// separate table for this? 'nym' => setupField('unique identifier for cryptographic signing', 'text tiny'), 
+    'available' => setupField('how much is available to spend on goods and services (cached)', 'numeric 11,2'),
+    'rewards' => setupField('total incentive rewards to date (cached)', 'numeric 11,2'),
+    'frozen' => setupField('amounts unavailable until specific dates or indefinitely', 'text tiny'),
+// 'nym' => setupField('unique identifier for cryptographic signing', 'text tiny'), 
   );
   // need foreign keys here
   $schema['users']['fields'] = (@$schema['users']['fields'] ?: array()) + $fields;
@@ -120,8 +124,17 @@ function tableDefs($schema = array()) {
   $schema['r_asif'] = setupTable('Record of pretend (asif) transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
   
 //  foreach (u\ray('type taking goods payer_agent payee_agent payer_for payee_for') as $one) unset($fields[$one]);
-//  $foreign_keys = foreignKey('payer') + foreignKey('payee');
-//  $schema['r_usd'] = setupTable('Record of USD (Dwolla) transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
+  $fields = array(
+    'txid' => setupField('the unique transaction ID', 'varchar 255'), 
+    'goods' => setupField('is this transfer and exchange for real goods and services?', 'int tiny'), 
+    'amount' => setupField('amount in rCredits', 'numeric 11,2'), 
+    'payer' => setupField('user id of the payer', 'int 11'), 
+    'payee' => setupField('user id of the payee', 'int 11'), 
+    'created' => setupField('Unixtime transaction was created', 'int 11'),
+  );
+  $foreign_keys = foreignKey('payer') + foreignKey('payee');
+  $indexes = index('created');
+  $schema['r_usd'] = setupTable('Record of USD (Dwolla) transactions in the region', $fields, 'txid', $foreign_keys, $indexes);
 
 /*  // table r_donations
   $fields = array(

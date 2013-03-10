@@ -15,9 +15,7 @@ class usd {
   var $number; // the USD account number
   var $pin; // PIN for that account
   var $auth; // authorization token
-  var $card_code; // rCard security code
-  var $minimum; // how much money the account-holder wants (us) to keep in the account (min)
-  var $maximum; // how much money the account-holder wants (us) to keep in the account (max)
+  private static $atoms = array();
   
   /**
    * Instantiate (and return) a new USD account object
@@ -27,25 +25,25 @@ class usd {
     if (!$acct->hasBit(BIT_RTRADER)) return;
     $this->acct = $acct;
     foreach ($acct->secure as $key => $value) if (property_exists($this, $key)) $this->$key = $value;
-    $this->minimum = $acct->min_usd;
-    $this->maximum = $acct->max_usd;
   }
   
   /**
    * Update the usd information in the account record (both in this object and in the database).
-   * @param assoc $secure: information we need in order to access the account and manage it, possibly including:
+   * @param assoc $info: information we need in order to access the account and manage it, possibly including:
    *   type: account type (required if not supplied previously)
    *   number: account number (required for Dwolla)
    *   pin: account PIN (required for Dwolla)
-   *   auth: authorization token
+   *   auth: (current) authorization token
    * @param string $error: (RETURNED) an error message if appropriate
    * @return bool: success
    */
-  public function update($secure, &$error = NULL) {
+  public function update($info, &$error = NULL) {
 //    u\EXPECT(@$info['type'] == 'Dwolla', 'bad usd account type');
-    $this->auth = $secure['auth'] = 'DUMMYAUTH';
+    $secure = $this->acct->secure;
+    foreach ($info as $key => $value) $this->$key = $secure[$key] = $value;
+    $this->auth = $secure['auth'] = '?'; // get auth here
     $this->acct->update(compact('secure'));
-    debug('Updating USD info: ' . print_r(compact('secure'), 1));
+    debug('Updated USD info: ' . print_r(compact('secure'), 1));
     return TRUE;
   }    
 
@@ -53,10 +51,10 @@ class usd {
    * Return the account balance or its sufficiency
    * Call by:
    *   $usd->bal() - return the amount currently in the account
-   *   $usd->bal($want) - return 0=fail/1=success/2=maybe (meaning there is a connected bank account)
+   *   $usd->bal($want) - return FALSE=no/TRUE=yes/'?'=maybe (meaning there is a connected bank account)
    * @param float $want: can the account give up this much money in a hypothetical immediate transaction?
    * @param string $error: (RETURNED) an error message on failure
-   * @return: balance or sufficiency (0 if failure)
+   * @return: balance or sufficiency (FALSE if failure)
    */
   function bal($want = NULL, &$error = NULL) {
     if (isset($want)) {
@@ -70,23 +68,109 @@ class usd {
    * Transfer funds from this account to another.
    * @param float $amount: the amount to transfer
    * @param usd $other: the other account
+   * @param string $notes: description of transaction (to be prefixed with "r: "), limited to 250-3 characters
+   * @param bool $payerFee: the payer pays the transaction fee (if any) -- otherwise (default) the payee pays it
    * $param bool $direct: the funds must already be in the Dwolla account (no 3-day delay)
    * @param string $error: (RETURNED) an error message on failure
-   * @param bool $payerFee: the payer pays the transaction fee (if any) -- otherwise (default) the payee pays it
-   * @return: 0=fail 1=success 2=maybe
+   * @return:
+   *   success: transaction ID string
+   *   fail: FALSE
+   *   maybe: '?'
+   * NOTE: this function should write the transaction id, amount, payer, and payee to r_usd BEFORE doing the Dwolla transfer
    */
-  function transfer($amount, $other, $direct = TRUE, &$error = NULL, $payerFee = FALSE) {
-    debug("Transferring USD $amount from {$this->acct->id} to {$other->acct->id}.");
-    return rand(0, 1);
+  function transfer($amount, $other, $notes, $payerFee = FALSE, $direct = TRUE, &$error = NULL) {
+    $created = time();
+    $payer = $this->acct->id;
+    $payee = $other->acct->id;
+    debug("Transferring USD $amount from $payer to $payee.");
+    $txid = 'FAKE.DWOLLA.TXID'; // do the USD transaction here ($amount from $this->number to $other->number)
+    if (!$txid) return FALSE;
+    
+    self::addToAtom(compact(u\ray('txid amount payer payee created')));
+    return $txid;
   }
   
   /**
    * Handle callbacks from the USD institution
    * The calling institution is expected to be explicit in the callback info
+   * UNUSED at present
    */
   public static function callback() {
     extract(u\just('this that theother', $_POST));
     
   }
 
+  /**
+   * Transfer funds from a Dwolla account to the connected bank account or vice versa.
+   * @param float $amount: the amount to transfer to the bank (from the bank, if negative)
+   */
+  function bank($amount) {
+    debug("Transferring USD $amount from $this->acct->id's Dwolla account to the bank.");
+  }
+
+  /**
+   * Call the callback for each transaction OUT of the account after a given date/time (defaults to day 1 of the Unix Epoch).
+   * Passes to the callback function an assoc with complete transaction details, including transaction id
+   */
+  function each($callback, $start = 0) {
+  }
+
+// Atomic Data Transaction Handling for mixed rCredits/USD financial transactions
+// Strategy: Allow inconsistent USD transfers for up to 24 hours after system failure.
+// Record committed USD transactions in the r_usd table. 
+// A compensating transaction is created at the end of the day, 
+//    for any recent USD transfer that does not appear in that table.
+// $atoms is a list of transaction IDs waiting to be committed. 
+// A Drupal transaction object entry marks the start of a new nested level.
+// For example, [$dbtx1, a, b, $dbtx2, c, d, e] has 2 transactions at the top level and 3 nested.
+// commit() and rollback() must always be called explicitly, barring a system crash (don't just return to the caller)
+  
+  /**
+   * Mark the beginning of a mixed USD/rCredits (possibly nested) database transaction.
+   */
+  public static function beginAtom() {
+    return self::$atoms[] = \db_transaction();
+  }
+  
+  private static function addToAtom($txid) {
+    self::$atoms[] = $txid; // remember transaction to commit or rollback
+  }
+
+  public static function commit() {
+    $values = '';
+    while (!is_object($one = array_shift($atoms))) {
+      extract(u\just('txid amount payer payee created', $one));
+      $values .= ($values ? ',' : '') . "($txid, $amount $payer $payee $created)";
+    }
+    r\dbQ("INSERT INTO r_usd (txid, amount, payer, payee, created) VALUES $values");
+    // Drupal automatically commits if we don't rollback
+  }
+  
+  /**
+   * Rollback a list of transactions
+   * If no $list is specified, rollback the most recent atom.
+   * @param array $list: array of assocs of USD transaction details (defaults to most recent atom)
+   * $list is specified when recovering from system failure during the daily (nightly) consistency checks
+   */
+  public static function rollback($list = array()) {
+    if (!$list) {
+      while (!is_object($one = array_shift(self::$atoms))) $list[] = $one;
+      $one->rollback(); // got Drupal transaction object last (and removed it from list)
+    }
+    
+    foreach ($list as $one) { // create a compensating usd transaction for each transaction in $list
+      extract(u\just('txid amount payer payee created', $one));
+      $usdAcct1 = new usd(r\acct($payer));
+      $usdAcct2 = new usd(r\acct($payee));
+      $one['amount'] = 0;
+  
+      /*!*/ self::beginAtom();
+      self::addToAtom($one);
+      $txid = 'create compensating transaction'; // $amount from $usdAcct2 to $usdAcct1
+      list ($amount, $payer, $payee, $created) = array(0, $payee, $payer, time());
+      self::addToAtom(compact(u\ray('txid amount payer payee created')));
+      /*!*/ self::commit();
+    }
+  }
+  
 } // end of class

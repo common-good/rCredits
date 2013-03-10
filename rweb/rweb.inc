@@ -92,7 +92,7 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'shortr to' => t('You do not have enough@asif rCredits, for that transaction. <a href="@how">Go here</a> to get more rCredits.'),
   'incomplete agreement' => t('To sign this agreement, you must put a check in each box, meaning that you have read that section and agree to it.'),
   'bad signature' => t('That signature does not match your full legal name ("@fullName").'),
-  'bad invite' => t('To sign up for rCredits, you must be invited and you must use the invitation link within @R_INVITE_DAYS days.'),
+  'bad invite' => t('To sign up for rCredits, you must be invited and you must use the invitation link within @R_INVITE_DAYS days. If you already have an rCredits account and want to open an additional account for yourself, your business, or a family member, sign in to your personal account and use the "Open Another Account" on the Summary page.'),
   'bad minr' => t('Your chosen rCredits minimum cannot be less than your assigned minimum balance (@minBalance).'),
   'bad maxr' => t('Your chosen rCredits maximum cannot be less than your rCredits minimum. Nor can it be less than your total amount of incentive rewards to date.'),
 //  'bad maxusd' => t('Your chosen USD maximum cannot be less than your rCredits minimum.'),
@@ -733,9 +733,9 @@ function formInvite_submit($form, &$sta) {
     'PERSONAL_NOTE' => $message, 
     'MEMBER_NAME' => $cacct->full_name, 
     'DATE' => u\formatDate(),
-    'CODE' => invite($email, $cacct->id),
+    'CODE' => r\invite($email, $cacct->id),
   );
-  \drupal_mail('rCredits', 'invite', $email, $cacct->language, $info);
+  \drupal_mail('rCredits', 'invite', $email, '', $info);
 
   say('invite sent', compact('email'));
 }
@@ -759,7 +759,7 @@ function formSummary($form, &$sta) {
   $cacct = r\acct();
 //  debug($cacct->can(-1)); // keep
   if (!$cacct) r\go('user');
-  
+
   extract(be\creditInfo()->fancy, EXTR_PREFIX_ALL, 'my');
 
   $name = $cacct->name;
@@ -821,6 +821,8 @@ function formSummary_validate($form, &$sta) {
 }
 
 function formSummary_submit($form, &$sta) {
+  if (op($sta) == 'another') return r\go('another');
+
   extract(u\just('who account_type floor notes canCharge rTrader idApproved', $sta['values']));
   $account_type = $_POST['account_type']; // dunno why Drupal omits this from $sta['values']
   if (!r\agent()->can(PERM_CTTY_ADMIN)) return; // hack attempt
@@ -1345,12 +1347,13 @@ function formAnother(&$form, &$sta) {
   $cacct = r\acct();
   if ($cacct->account_type != R_PERSONAL) r\go('', 'no permission');
   
+// invite($email, $inviter, $code = '')
   
 }
 
 /**
  * Modify the user registration form.
- * @param string $code: if not empty, the shibboleth
+ * @param string $code: if not empty, the invitation code (from an email invitation or the "Create Another Account" button)
  */
 function formRegister(&$form, &$sta, $code = '') {
   if (!$code) $code = basename(@TESTING == 1 ? t\SERVER('REQUEST_URI') : $_SERVER['REQUEST_URI']);

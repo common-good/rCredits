@@ -135,10 +135,11 @@ function rcredits_mail($key, &$msg_array, $info) {
     $uid = $info['uid'];
     $acct = r\acct($uid);
     $info += (array) $acct->account();
-    $info['fullName'] = $info['full_name'];
     $info['quid'] = $acct->mainQid;
     $info['oneTimeLoginUrl'] = user_pass_reset_url($acct->account());
     $info['site'] = R_SITE_URL;
+
+    $info['fullName'] = $info['full_name']; // these are not always the name and email of the account
     $email = $info['email'] = $info['mail'];
 
     foreach ($info as $k => $value) $subs['{' . $k . '}'] = $value;
@@ -192,8 +193,9 @@ function rcredits_cron() {
  * Implements hook_cron_queue_info().
  */
 function rcredits_cron_queue_info() {
-  $intensiveQueues = 'virtualPayment redistribute'; // these want to be done ASAP once they start
+  $intensiveQueues = 'automaticPayments payVirtual redistribute'; // these want to be done ASAP once they start
   $queues = u\ray('checkBalance checkScam inflation statement f1099 ' . $intensiveQueues);
-  foreach ($queues as $one) $$one = r\makeQueue($one, strpos($intensiveQueues, $one) !== FALSE ? 5*60 : 15);
+//  foreach ($queues as $one) $$one = r\makeQueue($one, strpos($intensiveQueues, $one) !== FALSE ? 5*60 : 15);
+  foreach ($queues as $one) $$one = r\makeQueue($one, 5*60); // give all queues the full 5 minutes (they are self-thinning)
   return compact($queues);
 }

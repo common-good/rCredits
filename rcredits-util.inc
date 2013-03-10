@@ -483,25 +483,28 @@ function expect1($arg, $value, $type, $ret) {
  * @param string $type: type of log entry (if FALSE, don't log anything)
  * @param array $info: the information to log
  * @param string $special: a special value if any (for example the nonce)
+ * @param int $adhocChannel: a second channel used from within the primary channel
  * @return the log record id (for exception handler and shutdown function)
  */  
-function log($type, $info = array(), $special = '', $adhocChannel = '') {
+function log($type, $info = array(), $special = '', $adhocChannel = FALSE) {
   global $channel;
+  $useTextLogToo = TRUE;
 
   if (empty($info)) list ($type, $info) = array('-', array($type));
-  if ($adhocChannel and $adhocChannel != $channel and !$special) $special = "via ch$adhocChannel";
   $cuid = @r\acct()->id;
   $agent = @r\acct()->agentId;
-  $log_filename = @$channel ? "$channel.log" : 'rcredits.log';
+  $time = time();
   $date = formatDate();
-  $channels = ray(TX_CHANNELS); 
-  $channel_name = @$channel ? $channels[$channel] : 'none';
-  if (isNonce($special) and @$info['message']) $info['message'] = str_replace($special, '@nonce', $info['message']); // make it easy to match
+  if ($adhocChannel and $adhocChannel != $channel and !$special) $special = "via ch$adhocChannel";
+  
+  // make it easy to match the message when searching
+  if (isNonce($special) and @$info['message']) $info['message'] = str_replace($special, '@nonce', $info['message']);
   if (@$info['code']) $info['code'] = '(the code)'; // don't make code and password any more accessible than they are
   if (@$info['password']) $info['password'] = '(the password)';
+  
   $info = json_encode($info, JSON_UNESCAPED_SLASHES);
-  file_put_contents($log_filename, "$date ($channel_name) $type: $info\n", FILE_APPEND);
-  $time = time();
+  $channels = ray(TX_CHANNELS); 
+  if ($useTextLogToo) file_put_contents($channels[$channel] . '.log', "$date $type: $info\n", FILE_APPEND);
   $record = compact(ray('time channel type cuid agent info special'));
   drupal_write_record('r_log', $record);
   return $record['logid'];

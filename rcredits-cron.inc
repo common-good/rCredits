@@ -3,16 +3,18 @@
  * @file
  * Functions to run periodically.
  
-update / check balances (often -- 5 minutes?)
-  recalc balance, rewards
-  unset data[frozen[today]]
-other security / scam checks (often)
-completion of (deliberate) pending virtual payments (daily, but not implemented yet)
 automatic payments (just virtual payments for now) (daily)
 redistribution (selling of unwanted rCredits) (daily)
+transfers to/from bank (daily)
+
 interest (monthly, calculating daily bals from history) is credited to the new month. calculated as the sum of t*bal*APR, where bal is each balance they had during the preceding month and t is the number of years that balance lasted.
 statements (daily, weekly, monthly -- at user's option)
 1099s (annual)
+
+update / check balances (often -- 5 minutes?) -- restart daily (start with random account?)
+  recalc balance, rewards
+  unset data[frozen[today]]
+other security / scam checks (often)
 
 (just auto pay and redist happen in a chunk)
 periodic queue adds all appropriate accounts to either the autopay or redistrib queue (never both and mostly neither)
@@ -27,6 +29,8 @@ use rCredits as r;
 use rCredits\Util as u;
 use rCredits\Testing as t;
 
+define ('R_DAILY_TASKS', ' lostUsdTxs lostUsdTx beginVirtualPayments virtualPayments endVirtualPayments virtualPayment redistribute bank lessOften checkAccount');
+
 //require_once 'rcredits.inc';
 //require_once 'rcredits-backend.inc';
 
@@ -37,27 +41,26 @@ use rCredits\Testing as t;
  * Queue: Check to see if it's time for a less-often periodic activity.
  */
 function periodic() {
-r\notifyStaff('periodic');
   if (strftime('%M') == '00') everyHour();
   // stuff to do every time cron is called (normally every 5 minutes)
 }
 
 function everyHour() {
-r\notifyStaff('hourly');
   if (strftime('%H') == R_DAILY_HOUR) everyDay();
   // stuff to do every hour
 }
 
 function everyDay() {
-  if (strftime('%A') == R_WEEKLY_DAY) everyWeek();
-  if (strftime('%d') == R_MONTHLY_DAY) everyMonth();
+  r\notifyStaff('Daily cron begins');
   // stuff to do every day
   // use maintenance mode? no
   // doPendingPayments(); // not yet implemented (if ever)
+  return doNextInQueueAfter('START');
+}
 
-  // queue up companies that pay automatically
-  queueCompanies(BIT_VIRTUAL_ALL);
-  queueCompanies(BIT_VIRTUAL_EMPLOYEES);
+function lessOften() {
+  if (strftime('%A') == R_WEEKLY_DAY) everyWeek();
+  if (strftime('%d') == R_MONTHLY_DAY) everyMonth();
 }
 
 function everyWeek() {
@@ -71,11 +74,39 @@ function everyMonth() {
 function everyYear() {
 }
 
+function lostUsdTxs() {
+	$result = r\dbQ('SELECT uid FROM users WHERE flags&BIT_RTRADER');
+	while($uid = $result->fetchColumn()) r\queue('lostUsdTx', compact('uid'));
+  r\queue('lostUsdTx', FALSE);
+}
+
+function lostUsdTx($item) {
+  if (!$item) return doNextInQueueAfter(__FUNCTION__);
+  $uid = $item['uid'];
+  $usAcct = new r\usd($acct = r\acct($uid));
+  $usAcct->each('rCredits\\lostUsdTx1', strtotime('3 days ago'));
+}
+
+function lostUsdTx1($info) {
+  extract(u\just('txid amount dateOfTransaction', $info));
+  if (r\dbLookup(1, 'r_usd', 'txid=:txid', compact('txid'))) return;
+  $payer = $payee = 0; // irrelevant
+  $created = $dateOfTransaction; // need proper param here
+  r\usd::rollback(array(compact(u\ray('txid amount payer payee created'))));
+}
+
+function beginVirtualPayments() {
+  // queue up companies that pay automatically
+  doCompanies(BIT_VIRTUAL_ALL); // suppliers first
+  doCompanies(BIT_VIRTUAL_EMPLOYEES); // then employees
+  r\queue('virtualPayments', FALSE); // mark end of virtualPayments queue, so we can do what must follow
+}
+
 /**
- * Identify companies that have the given payment option and queue them up for processing.
+ * Identify companies that have the given payment option and queue them up for virtualPayments.
  * @param int $which: BIT_VIRTUAL_ALL (queue up payments to suppliers) or BIT_VIRTUAL_EMPLOYEES (queue up payments to staff)
  */
-function queueCompanies($which) {
+function doCompanies($which) {
   $sql = <<< EOF
     SELECT u.uid, SUM(IF(r.employer_ok, r.amount, 0)) AS salaries, SUM(r.amount) AS amounts, u.data
     FROM relations r LEFT JOIN users u ON u.uid=r.main 
@@ -91,65 +122,146 @@ EOF;
     $available = r\available(acct($uid), TRUE);
 	  $total = $which == BIT_VIRTUAL_ALL ? ($amounts - $salaries) : $salaries; // total amounts paid per month
 	  $kitty = ($available - $minimum) * $total / $amounts; // amount to pay out today
-	  if ($kitty > 0 and $total > 0) r\queue('virtualPayment', compact(u\ray('uid kitty total which'))); 
+	  if ($kitty > 0 and $total > 0) r\queue('virtualPayments', compact(u\ray('uid kitty total which'))); 
 	}
-}
-
-function doPendingPayments() { // leave this incomplete (for now ALL virtual payments are automatic)
-/*
-  $sql = 'SELECT xid, payer, payee, amount FROM r_txs WHERE NOT taking and state=:TX_PENDING';
-  $result = r\dbQ($sql);
-  while($row = $result->fetchAssoc()) {
-    extract($row);
-	$dbtx = \db_transaction();
-	r\setTxState(); // TX_DONE (amount should be 0, usd is negative the payment amount)
-*/
 }
 
 /**
  * Pay suppliers or employees
- * @param string $which: employees (BIT_VIRTUAL_EMPLOYEES) or suppliers (BIT_VIRTUAL_ALL)
+ * @param assoc $item:
+ *   uid: company account id
+ *   kitty: amount to pay out
+ *   total: total amounts paid to this type of recipient per month
+ *   which: employees (BIT_VIRTUAL_EMPLOYEES) or suppliers (BIT_VIRTUAL_ALL)
  */
-function payVirtuals($kitty, $total, $row, $which) {
-  extract(u\just('main', $row));
+function virtualPayments($item) {
+  if (!$item) return doNextInQueueAfter(__FUNCTION__);
+  extract(u\just('uid kitty total which', $item));
   
+  $main = $uid;
   $not = $which == BIT_VIRTUAL_ALL ? 'NOT' : '';
-  $result = r\dbQ("SELECT other, amount FROM r_relations WHERE main=:main AND amount>0 AND $not employer_ok", compact('main'));
+  $sql = "SELECT other, amount FROM r_relations WHERE main=:main AND amount>0 AND $not employer_ok";
+  $result = r\dbQ($sql, compact('main')); // get each recipient's proportionate share of $total
   while($row = $result->fetchAssoc());
     extract($row);
-    $amount *= $kitty / $total;
-	if ($amount >= 0.01) payVirtual($main, $other, $amount);
+    $offer = round($amount * $kitty / $total, 2);
+    if ($offer >= 0.01) r\queue('virtualPayment', compact(u\ray('main other offer')));
 }
 
-function payVirtual($uid1, $uid2, $total) {
-  $usAcct1 = new usd($acct1 = r\acct($uid1));
-  $usAcct2 = new usd($acct2 = r\acct($uid2));
-  $excess = max(0, $acct2->balance + $total - $acct2->maxR);
-  $amount = $total - $excess;
-  $usBalance2 = $usAcct2->balance();
-  $short = max(0, $amount - $usBalance2);
-  if ($short) {
-    r\notify(); // tell the supplier or employee about the missed opportunity to receive $short rCredits
-	$amount -= $short;
-	$excess += $short;
+function endVirtualPayments() {
+  r\queue('virtualPayment', FALSE); // mark end of virtualPayment queue
+}
+
+/**
+ * Pay one employee or supplier virtually.
+ * We use "acct1" for the company (the "from" account) and "acct2" for the employee or supplier (the "to" account).
+ */
+function virtualPayment($item) {
+  if (!$item) return doNextInQueueAfter(__FUNCTION__);
+  extract(u\just('main other offer', $item));
+  global $channel; $channel = TX_SYSTEM;
+  
+  $usAcct1 = new usd($acct1 = r\acct($main)); // from
+  $usAcct2 = new usd($acct2 = r\acct($other)); // to
+  
+  $max2 = ($acct2->hasBit(BIT_VIRTUAL_ALL) or $acct2->hasBit(BIT_VIRTUAL_EMPLOYEES)) ? 0 : $acct2->maximum;
+  $newBalance = $acct2->balance + $offer; // $acct2 balance after the offer is received
+  $excess = round(max(0, $max2 ? ($newBalance - $max2) : 0, $offer - $usAcct2->balance), 2); // rCredits to sell off
+  
+  /*!*/ r\usd::beginAtom();
+  $traded = $excess ? getUsd($excess, $acct2, $usAcct1) : 0; // give company partial USD through rCredits sale to 3rd party
+  r\exchange($offer, $main, $other, 'rCredits/USD exchange'); // total rCredits from company to other
+  if ($traded < $excess or !$usAcct2->transfer($offer - $traded, $usAcct1)) { // other partially pays main in USD
+    /*!*/ r\usd::rollback();
+    virtualPaymentError($acct1, $acct2);
+    return;
   }
-  $dbtx = db_transaction();
-  if ($amount > 0) r\transact(); // total from 1 to 2
-  if (!$usAcct2->transfer($amount, $usAcct1)) {$dbtx ->rollBack(); return FALSE;}
-  if ($excess) {
-    $usAcct3 = new usd($acct3 = nextRBuyer($excess));
-    r\transact(); // $excess from 2 to ctty
-	  r\transact(); // $excess from ctty to 3
-    if (!$usAcct2->transfer($excess, $usAcct3)) {$dbtx->rollBack(); return FALSE;}
+  /*!*/ r\usd::commit();
+}
+
+function redistribute() {
+  $result = r\dbQ('SELECT uid, 10*CEILING((balance-maximum)/10) AS excess FROM users WHERE balance>=maximum+10');
+  while ($uid = $result->fetchColumn()) r\queue('sellR', compact(u\ray('uid excess')));
+  r\queue('sellR', FALSE);
+}
+
+function sellR($item) {
+  if (!$item) return doNextInQueueAfter(__FUNCTION__); 
+  extract(u\just('uid excess', $item));
+  $usAcct = new usd($acct = r\acct($uid));
+  if (!getUsd($excess, $usAcct, $uid)) r\notify($acct, 'cannot offload');
+}
+
+/**
+ * Trade some rCredits for USD, from somebody. 
+ * The rCredits always travel by way of the community.
+ * @param object $dbtx: active db transaction object
+ * @param float $request: how much to try to get
+ * @param acct $acct: rCredits account that is trading rCredits to third parties
+ * @param usd $usAcct: USD account that is receiving USD from the third parties (might be different owner from $acct)
+ * @return how much USD we actually delivered
+ */
+function getUsd($request, $acct, $usAcct) {
+  $need = $request;
+  while ($need > 0) {
+    $part = $need;
+    if (!$acct3 = nextRBuyer($part)) break; // asks for what we need, returns the part we got in $part
+    $usAcct3 = new usd($acct3); // "third party" Dwolla account
+    $dbtx = \db_transaction(); // we cannot easily rollback a USD transfer, so rCredits transactions must come first
+    r\exchange($amount, $acct->id, r\community(), 'rCredits/USD exchange');
+    r\exchange($amount, r\community(), $acct3->id, 'rCredits/USD exchange');
+    if ($usAcct3->transfer($amount, $usAcct)) {
+      $need = round($need - $part, 2);
+    } else $dbtx->rollback();
   }
-  unset($dbtx);
-  return TRUE;
+  return round($request - $need, 2);
 }
 
 /**
  * Return the uid of the next account in line that wants to trade enough US Dollars for rCredits.
- * @param float $amount: the amount we're looking for
- * return: uid of the best account to handle the trade (there may be none that wants so many)
+ * @param float $amount: the amount we're looking for. Returned with the amount actually available from the returned account.
+ * return: the best account to handle the trade (there may be none that wants so many)
+ *    if no account wants to buy any, return FALSE (this would be really bad and should never ever happen)
  */
-function nextRBuyer($amount) {
+function nextRBuyer(&$amount) {
+  $sql1 = <<<EOF
+    SELECT u.uid, u.minimum-u.balance AS wants FROM users u
+    LEFT JOIN r_txs t ON t.payee=:u.uid
+    WHERE wants>0 AND t.type=:TX_TRANSFER AND NOT t.goods
+    ORDER BY (wants+10>:amount) DESC, t.completed LIMIT 1
+EOF;
+  $sql2 = 'SELECT u.uid, u.minimum-u.balance AS wants WHERE wants>0 ORDER BY wants DESC LIMIT 1';
+  if (!$result = r\dbQ($sql1, compact('amount'))) { // find out who (preferably who who wants enough) has waited the longest
+    $result = r\dbQ($sql2, compact('amount')); // nobody wanted even $10! find out who wants the most
+  }
+  if (!$result) {
+    r\notifyStaff('no buyers', compact('amount')); // this is a really bad thing
+    return FALSE;
+  }
+
+  extract($result->fetchAssoc());
+  if ($wants > 10) $wants = 10 * floor($wants / 10); // truncate to nearest 10
+  $amount = min($amount, round($wants, 2));
+  return r\acct($uid);
+}
+
+/**
+ * Run the next daily function.
+ */
+function doNextInQueueAfter($task) {
+  $tasks = u\ray(R_DAILY_TASKS);
+  if ($function = $tasks[array_search($task) + 1]) $function();
+}
+
+function lastInQueue($queue) {return (r\dbLookup('COUNT(*)', 'queue', 'name=:queue', compact('queue')) == 1);}
+
+function virtualPaymentError($acct1, $acct2) {
+  virtualPaymentError1($acct1, 'to', $acct2);
+  virtualPaymentError1($acct2, 'from', $acct1);
+  return FALSE;
+}
+
+function virtualPaymentError1($acct1, $way, $acct2) {
+  $other = $acct2->full_name;
+  r\notify($acct->id, 'pay virtual error', compact('way', 'other'));
 }

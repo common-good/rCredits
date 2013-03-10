@@ -14,12 +14,19 @@ rename community field to community
 ***
         
 Short term tasks: (* = before launch ** = earlier)
+- how much can the community safely create? this depends on velocity of circulation and two kinds of demand: 
+    (1) company/employee/contractor demand and (2) other (by people who have no rCredits income source)
+    The first kind reflects the inherent strength of the system, the second should be seen as backup
+    We can create the amount of the first kind divided by velocity, probably.
+- disable getr command altogether
+- disable signup via SMS
+- disable ASIF transactions (charge and pay are for activated accounts (rTraders) only)
 - disable checkboxes in agreement, if already signed, and show signature and date at bottom (not text box)
 - company relations during registration fails (missing is_owner and employee_ok)
 - add flow to relations (1=to, 2=from, 3=both, 0=none)
 - don't allow clicking on links in emails (send to new.rcredits_org.com/whatever, which looks like rcredits.org but scolds the user for clicking on an email link, then offers a link to the real site (don't accept that one either).
 - Dwolla fee goes to cash buyer (otherwise always to the rCredits recipient -- the payee)
-- change to populate form and redirect for contribution (whenever)
+- change company suggested donation to $250 (pass it)
 - change SMS command "get r" to just "get"
 - count owners (if not employed too) and suppliers each as one (average) employee, when distributing virtual payments
 - travel checks (use once, limited amount)
@@ -56,12 +63,6 @@ includes security code, like this: http(s?)://new.rc2.me/new.abc/Urlencoded10Cha
   . Make the agent's picture appear from behind the "r", get big, then shrink and settle into place, traveling in the shape of an "r", ideally leaving a jet trail.
   . How to prove the logged-out site is rcredits? Maybe always ask first "It looks like you came here from an rCredits member site. Make sure this is the real rCredits website! Does your url bar say https://new.rcredits.org? Does it show a security symbol? We will display this reminder only once in a while. Don't let the identity thieves get you. Be sure to check the url bar <i>every time</i>."
 - * handle TX_TENTATIVE
-- outline distribution procedure for rCredits requests:
-    Weekly: Everyone in line gets $10, starting with the Nubes, who have to PAY for their first $10 of credits, which then
-    get created on the spot (that's the float)
-    Keep going around the queue until there's less than $10 to sell.
-    Report result, with option to order more and option to renew order for remainder automatically.
-    Date of next distribution is always known.
 - * in profile, handle links to list of websites
 - when dwolla confirmation comes through, simply change the state of the transaction from "tentative" to "done" (no need for . 
 - * signup button on rcredits.org goes directly to user/register
@@ -129,8 +130,9 @@ E. Database clues
          new_account: qid of new account when this account is closed by moving funds elsewhere
      . description is html for the company's page (N/A for personal accounts)
      . community: the (negative) uid of the account's CGC. For anyone who is not in an established CGC, their community is the region (using the regional server's uid). For region and community records, community === uid
-     . counts is not currently used
-     . usd_auth is a serialized assoc:
+     . minimum: the user's preferred minimum rCredits balance. Request at least r$10 more automatically if balance goes under by even one cent.
+     . maximum: the user's preferred maximum rCredits balance. Exchange any excess beyond maximum+10-.01 automatically for USD
+     . secure is an encrypted serialized assoc:
          gateway: Dwolla
          PIN: the Dwolla PIN
          auth: the Dwolla OAUTH code
@@ -150,9 +152,9 @@ E. Database clues
        preapproved: (not in the table, just internally) transaction is preapproved by another server (a payment or an authorized business unilaterally charging a customer)
        foreign_payer, foreign_payee: uid of a non-local party to the transaction
        foreign_payer_agent, foreign_payee_agent: uid of a non-local agent for a party to the transaction
-   - r_asif: the pretend version of r_txs (ASIF transaction numbers are displayed with prefix "a")
+   - r_asif: (UNUSED) the pretend version of r_txs (ASIF transaction numbers are displayed with prefix "a")
    (more to come...)
-   - r_secret_new: protected personal identifying information from the NEW region
+   - offsite: protected personal identifying information from the NEW region
      . id: a random id that matches the type and length of the original data
      . data: the original data, encrypted, len=
          
@@ -330,8 +332,9 @@ Notes on transaction record system:
   desktop computers running an app should store all their own transactions. Encrypted backups of everything to the cloud too.
 
 Other thoughts:
-  Joining by dumb cellphone is for play only. Accounts and transactions created that way should get deleted after a week of inactivity.
-  Suppose I live in 413 (NEW), but my cell is 987 (NYC). Person B lives in 222 with cell 333. When I am traveling to AAA I pay person B with SMS, by calling the local rCredits number. The local server contacts NYC to process my side of the transactions, but gets redirected to NEW. Similarly for person B's side. So at most 5 servers are involved (three just redirecting). NEW.rcredits.org and other subdomains act similarly.
+  - Joining by dumb cellphone is for play only. Accounts and transactions created that way should get deleted after a week of inactivity.
+  - Suppose I live in 413 (NEW), but my cell is 987 (NYC). Person B lives in 222 with cell 333. When I am traveling to AAA I pay person B with SMS, by calling the local rCredits number. The local server contacts NYC to process my side of the transactions, but gets redirected to NEW. Similarly for person B's side. So at most 5 servers are involved (three just redirecting). NEW.rcredits.org and other subdomains act similarly.
+  - 
 
 To clear cache:   http://localhost/devcore/devel/cache/clear?destination=node
   (or http://new.rcredits.org/devel/cache/clear?destination=node)

@@ -485,13 +485,13 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   list ($fromUsAcct, $toUsAcct) = u\order($taking, new r\usd($acct), new r\usd($cacct));
   /*** Begin DBTX ***/ $dbtx = db_transaction();
   $txs = r\transact(compact(u\ray('type amount r payer payee payer_agent payee_agent for data taking goods state')));
-  $direct = TRUE; // for now, payer MUST have the usd amount in Dwolla, not just in the bank
-  if ($confirmed and $state = TX_DONE and $usd > 0 and !$usdPartOk = $fromUsAcct->transfer($usd, $toUsAcct, $direct)) {
-    $dbtx->rollback();
-    return array('usd failed', array(), FALSE);
-  }
-  $zxid = $txs[0]['zxid'];
-  if ($confirmed) $lastZxid = $zxid; else $dbtx->rollback();
+  if ($confirmed) {
+    if ($state = TX_DONE and $usd > 0 and !$usdPartOk = $fromUsAcct->transfer($usd, $toUsAcct, !$goods)) {
+      $dbtx->rollback();
+      return array('usd failed', array(), FALSE);
+    }
+    $lastZxid = $txs[0]['zxid'];
+  } else $dbtx->rollback();
 
   //if ($confirmed and $amount > 0) $lastZxid = $zxid; else $dbtx->rollback();
   // and amount > 0 because broke customer charged unilaterally needs to fall through for invoice and proper message

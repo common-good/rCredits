@@ -142,6 +142,10 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'max daily usd' => t('The amount of rCredits you can exchange for US Dollars in one day is limited to $@R_MAX_DAILY_EXCHANGE'),
   'beyond today' => t('The date cannot be any later than today.'),
   'must trust' => t('Do not invite someone unless you trust their integrity.'),
+  'pay virtual error' => t('An unknown technical problem prevented your virtual payment @way @other.'),
+  'no buyers' => t('Uh oh. Nobody wants to buy rCredits. Needed: $@amount.'),
+  'cannot offload' => t('A temporary technical problem prevented some of your excess rCredits from being exchanged for US Dollars. The system will try again tomorrow.'),
+  'usd failed' => t('A temporary technical problem prevented the transfer of US Dollars.'),
 );
 
   // help messages (for use with the help command)

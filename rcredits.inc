@@ -114,11 +114,12 @@ define('TX_TENTATIVE', 2); // done in rCredits, but waiting for USD funds instea
 define('TX_DISPUTED', 3); // unilaterally charged, but disputed by the payer (the charge stands, until settled)
 
 // Transaction channels (roughly in order of simplicity and generality of messages)
+define('TX_SYSTEM', 0); // cron
 define('TX_SMS', 1); 
 define('TX_WEB', 2);
 define('TX_SMART', 3); // smart phone or other computer-like device
 define('TX_TOUCH', 4); // touch tone phone
-define('TX_CHANNELS', 'None SMS Web App Touch');
+define('TX_CHANNELS', 'System SMS Web App Touch');
 
 // Transaction types
 define('TX_SIGNUP', 0); // signup incentive reward
@@ -236,6 +237,11 @@ function otherBalance($uid) {
   } else return FALSE;
 }
 
+function exchange($amount, $payer, $payee, $for) {
+  $taking = FALSE;
+  r\transact(compact(u\ray('amount payer payee for')));
+}
+
 /**
  * Record a transaction between two participants
  * @see also transactionSetup(), r\transactionRewards(), and be\transfer()
@@ -308,7 +314,6 @@ function txRewardSetup($type, $payee, $state, $rewards) {
  * @param array $info: an associative array of transaction info. The following elements are required:
  *   amount: how much to transfer
  *   payer, payee: uids
- *   payer_agent, payee_agent: uids
  *   for: purpose of the transaction OR a simple array (payer's purpose, payee's purpose)
  *   taking (bool): did the payee initiate the transaction
  * @return the array, with some extra field information added
@@ -316,11 +321,16 @@ function txRewardSetup($type, $payee, $state, $rewards) {
 function transactionSetup($info) {
   global $channel; // through what medium was the transaction requested (web, SMS, etc.).
   extract($info, EXTR_PREFIX_ALL, 'my');
-  $required_params = compact(u\prefixValues('my_', u\ray('amount payer payee payer_agent payee_agent for taking')));
+  $required_params = compact(u\prefixValues('my_', u\ray('amount payer payee for taking')));
   u\EXPECT($required_params, 'float zid zid zid zid notempty bool');
 
-  if (!isset($my_state)) $state = TX_DONE;
-  if (!isset($my_goods)) $goods = FALSE; // set TRUE only in be\transfer()
+  setDft($info['type'], TX_TRANSFER);
+  setDft($info['r'], $my_amount);
+  setDft($info['state'], TX_DONE);
+  setDft($info['goods'], FALSE);
+  setDft($info['payer_agent'], $my_payer);
+  setDft($info['payee_agent'], $my_payee);
+
   $created = REQUEST_TIME;
   if (@$my_state != TX_PENDING) $completed = $created;
   $serial = NULL; // always set equal to xid of main transaction after saving
@@ -328,7 +338,7 @@ function transactionSetup($info) {
   list ($payer_for, $payee_for) = is_array($my_for) ? $my_for : array($my_for, $my_for);
   unset($info['for']);
 
-  return array_merge($info, compact(u\ray('state goods created completed serial payer_for payee_for channel')));
+  return array_merge($info, compact(u\ray('created completed serial payer_for payee_for channel')));
 }
 
 /**
@@ -926,7 +936,7 @@ function invite($email, $inviter, $code = '') {
     'inviter' => $inviter,
     'invited' => REQUEST_TIME,
   );
-  drupal_write_record('r_invites', $info);
+  \drupal_write_record('r_invites', $info);
   return $info['code'];
 }
 
@@ -1045,6 +1055,7 @@ function error($logid) {
 }
 
 // Single line functions that need no explanation
+function setDft(&$param, $value) {if (!isset($param)) $param = $value;}
 function userField($field, $who = '', $subs = array()) {return tableField($field, 'users', $who, $subs);}
 function rebate($uid, $amount = 1) {return round($amount * userField('rebate_percent', $uid) / 100, 2);}
 function bonus($uid, $amount = 1) {return rebate($uid, 2 * $amount);}
