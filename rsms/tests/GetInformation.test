@@ -50,7 +50,7 @@ class rsmsGetInformation extends DrupalWebTestCase {
   public function testGettingInformation_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('phone %number1 is member "NEW.ZZB"');
-    And__('phone %number1 "asif" has r$200 including rewards of $2.50');
+    And__('phone %number1 has r$200 including rewards of $2.50');
     And__('the total demand for rCredits is $26,987.56');
     When_('phone %number1 says "information"');
     Then_('we say to phone %number1 "account info" with subs: "DATA'
@@ -62,7 +62,7 @@ class rsmsGetInformation extends DrupalWebTestCase {
   public function testGettingInformationLargerAmounts_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('phone %number1 is member "NEW.ZZB"');
-    And__('phone %number1 "asif" has r$100,000.01 including rewards of $99,908.00');
+    And__('phone %number1 has r$100,000.01 including rewards of $99,908.00');
     And__('the total demand for rCredits is $1,226,987.25');
     When_('phone %number1 says "information"');
     Then_('we say to phone %number1 "account info" with subs: "DATA'

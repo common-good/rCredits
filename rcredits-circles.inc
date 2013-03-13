@@ -321,7 +321,6 @@ function makeRandomRTraders($target = 100) {
 }
 
 function makeRandomTransactions($count = 5000) {
-  r\dbQ('TRUNCATE r_asif');
   r\dbQ('TRUNCATE r_txs');
   for ($i = 1; $i < $count; $i++) {
     $amount = rand(10,200);

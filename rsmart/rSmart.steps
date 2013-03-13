@@ -31,7 +31,6 @@ function extraSetup($feature) {
   global $sms_devel; $sms_devel = TRUE;
   r\dbQ('DELETE FROM users WHERE uid>1000');
   r\dbQ('TRUNCATE r_sms');
-  r\dbQ('TRUNCATE r_asif');
   r\dbQ('TRUNCATE r_txs');
   r\dbQ('DELETE FROM r_smarts WHERE owner>1000');
   r\dbQ('DELETE FROM file_managed WHERE uid>1000');
@@ -279,7 +278,7 @@ function devices($list) {
 }
 
 /**
- * (ARG) balances: (ARG)
+ * balances: (ARG)
  *
  * in: Insufficient Setup TEST
  *     Insufficient AMemberAsksToUndoACompletedPaymentWithInsufficientBalance TEST
@@ -309,9 +308,9 @@ function devices($list) {
  *     UndoPending AMemberConfirmsRequestToRefusePaymentOffer TEST
  *     Unilateral Setup TEST
  */
-function balances($real, $list) { // real is "asif" or "real"
+function balances($list) {
   global $testOnly;
-  foreach ($list as $one) if (!t\eq(t\uidCredit(t\uid($one['id']), $real)->balance, $one['balance'])) return FALSE;
+  foreach ($list as $one) if (!t\eq(t\uidCredit(t\uid($one['id']))->balance, $one['balance'])) return FALSE;
   return TRUE;
 }
 

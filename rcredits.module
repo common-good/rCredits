@@ -84,7 +84,7 @@ function rcredits_exception_handler($e) {
   $msg = "$short_msg<br>\n($msg)<br>\n- $line0 ($file0)" . $trace_msg;
   $message = str_replace('&nbsp;', '', str_replace('<br>', '', $msg));
   $R_FATAL_ERROR = u\log('FATAL', compact('message'));
-  if (@TESTING == 1) print_r($msg, 1); // do this in any case (doesn't show up unless interface fails)
+  if (\testing()) print_r($msg, 1); // do this in any case (doesn't show up unless interface fails)
 
   switch (@$channel) {
     case TX_WEB:
@@ -129,7 +129,6 @@ function rcredits_im_send($key, &$message, $subs) {
 function rcredits_mail($key, &$msg_array, $info) {
 //    $data['user'] = r\acct()->account();
 //    user_mail_tokens($variables, $data, compact('language')); // adds links for password reset and account cancelation
-    if ($key == 'register_no_approval_required') $key = 'welcome';
     if (rcredits_im_send($key, $msg_array, $info)) return; // If we can send by instant-message, do not send by email.
     
     $uid = $info['uid'];
@@ -152,7 +151,7 @@ function rcredits_mail($key, &$msg_array, $info) {
     $message = str_replace("\r\n", '', $message); // easier reading for log and tests
     $message = str_replace($info['oneTimeLoginUrl'], '(varies)', $message);
     $fields = compact(u\ray('key email subject message'));
-    if (@TESTING == 1) \drupal_set_message(t\color($fields, 'email')); // keep this
+    if (\testing()) \drupal_set_message(t\color($fields, 'email')); // keep this
     
     if (!r\acct()) { // must be register/login/reset, so setup what u\log needs
       r\acct::setDefault($acct);      
@@ -199,3 +198,5 @@ function rcredits_cron_queue_info() {
   foreach ($queues as $one) $$one = r\makeQueue($one, 5*60); // give all queues the full 5 minutes (they are self-thinning)
   return compact($queues);
 }
+
+function testing() {return (@TESTING == 1);}

@@ -28,7 +28,7 @@ EOF
         <li><b>Charge</b> lets you invoice another participant (to be paid in rCredits). Or, if you have a qualified business account, you can charge them. If the transaction is for real goods or services, both buyer and seller get an incentive reward of additional rCredits.</li>
         <li><b>Pay</b> lets you transfer your rCredits to another participant. If the transaction is for real goods or services, both buyer and seller get an incentive reward of additional rCredits.</li>
         <li><b>Get rCredits / USD</b> is where you trade US Dollars for rCredits or vice versa. Since you get more for rCredits, you will probably want as many as you can easily spend. We are issuing rCredits slowly, to avoid any possibility of economic disruption, so there is a waiting line. Meanwhile, some participants will occasionally have more rCredits than they can spend. If you are in that position, use this tab to exchange rCredits for US Dollars.</li>
-        <li><b>Find Businesses</b>. Once we begin for real, this is where you can find out who takes rCredits for what you want. Meanwhile, you can :R_ASIF_TEXT buy things from anyone &mdash; whether they have signed up or not. Once they are an active participant, you will get real rCredits rewards for the realistic :R_ASIF_TEXT purchases you made. Since we are launching in Greenfield, Massachusetts, most businesses there are already listed, for your convenience.</li>
+        <li><b>Find Businesses</b>. This is where you can find out who takes rCredits for what you want.</li>
         <li><b>Test SMS</b> is a temporary tab where you can test the Text Messaging even if you don't have a cell phone or cell service.</li>
       </ul>
       <h2>Upper Right Links</h2>
@@ -66,7 +66,6 @@ EOF
     ),
     'txs' => t(<<<EOF
       <p>Select the period you want to see transactions for. Both the Summary and Transactions sections will reflect just the transactions in that period. However, the "Pending" line will reflect all your not-yet-accepted invoices and offers EVER. The Ending balance in the Summary is always your current balance.</p>
-      <p>Transactions numbers begin with "a" because they are :R_ASIF_TEXT transactions.</p>
       <p>If the status is "pending", either you or the other party will need to click on "OK" to complete the deal. Click on the "X" to reject an invoice, dispute a charge, reject an offer, or cancel or undo something you did. Click on the pencil to edit the description. The description is just for you &mdash; the other party will not see it.</p>
       <p>The Rewards column shows how much rCredits were added to your account as a reward for joining or for buying or selling real goods and services. Loans, exchanges for US Dollars, and other purely financial deals do not earn rewards.</p>
 EOF
@@ -75,12 +74,11 @@ EOF
       <p><b>Whom:</b> Type all or part of the full name of the account you want to pay. You can leave out the punctuation, spaces, and capitals. Or you can type their phone number or email address or their account ID. Note that a period in the account ID (a regular account) is different from a colon (an agent acting on behalf of an account).$paySpecial</p>
       <p><b>Amount:</b> The amount of the transaction, measured in dollars, to be paid in rCredits.</p>
       <p><b>Purpose:</b> If this is a purely financial transaction, click on "cash/loan/etc". Otherwise, a description is required (for purchases and sales of real goods and services). Donations to nonprofit organizations count as purchases of real services &mdash; services to society. For loans, cash exchanges, and other money deals, you can leave the purpose blank &mdash; your statements will call the purpose "cash".</p>
-      <p>Need more :R_ASIF_TEXT rCredits for your :R_ASIF_TEXT transactions? <a href="get-asif/pay">Click here</a>.</p>
 EOF
     ),
     'directory' => t(<<<EOF
-      <p>Once we begin for real, this is where you can find out who takes rCredits for what you want. Meanwhile, most businesses in Greenfield, Massachusetts (postal code 01301 &mdash; our launch site) are already listed, for your convenience. Feel free to do :R_ASIF_TEXT transactions with the ones you plan to buy from or sell to. Click on a business name to see its automatic rCredits webpage. (The photos were captured robotically from the internet, so some are less than perfect.)</p>
-      <p>You can limit the results to a specific industry or a specific business by typing all or part of the industry or business name. Currently, if you limit the results geographically, there won't be any results unless you happen to live in the United States "01" postal code region.</p>
+      <p>This is where you can find out who takes rCredits for what you want. Click on a business name to see its rCredits webpage.</p>
+      <p>You can limit the results to a specific industry or a specific business by typing all or part of the industry or business name. Currently, if you limit the results geographically, there won't be any results unless you choose the United States "01" postal code region.</p>
 EOF
     ),
     'account' => t(<<<EOF

@@ -7,8 +7,8 @@ Setup:
   Given members:
   | id      | full_name  | address | city  | state  | postal_code | country       | min_balance | account_type  | flags       |
   | NEW.ZZA | Abe One    | POB 1   | Atown | Alaska | 01000       | United States | -100      | %R_PERSONAL   | %BIT_DEFAULTS |
-  | NEW.ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000       | United States | -200      | %R_PERSONAL   | %BIT_MEMBER  |
-  | NEW.ZZC | Corner Pub | POB 3   | Ctown | Cher   |             | France        | -300      | %R_COMMERCIAL | %BIT_MEMBER  |
+  | NEW.ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000       | United States | -200      | %R_PERSONAL   | %BIT_MEMBER   |
+  | NEW.ZZC | Corner Pub | POB 3   | Ctown | Cher   |             | France        | -300      | %R_COMMERCIAL | %BIT_MEMBER   |
 
   And relations:
   | id      | main    | agent   | permission        |
@@ -30,7 +30,7 @@ Setup:
   | NEW:AAAK | %today-1d | %TX_TRANSFER | %TX_DONE    |     80 | NEW.ZZA   | NEW.ZZC | whatever54   | 000000 |
   | NEW:AAAL | %today-1d | %TX_REBATE   | %TX_DONE    |      4 | community | NEW.ZZA | rebate on #5 | 000000 |
   | NEW:AAAM | %today-1d | %TX_BONUS    | %TX_DONE    |      8 | community | NEW.ZZC | bonus on #4  | 000000 |
-  Then "asif" balances:
+  Then balances:
   | id        | balance |
   | community |    -768 |
   | NEW.ZZA   |     166 |
@@ -44,11 +44,11 @@ Variants: with/without an agent
 Scenario: A member clicks on the summary tab
   When member "NEW.ZZA" visits page "summary" with options ""
   Then we show page "summary" with:
-  | Name             | Address                | Account ID               | Type     | Balance        | Credit | Rewards |
-  | Abe One (abeone) | POB 1, Atown, AK 01000 | NEW.ZZA (%R_REGION_NAME) | personal |$166 ''AS-IF'' | $100   | $256    |
+  | Name             | Address                | Account ID               | Account type | Balance | Credit | Rewards |
+  | Abe One (abeone) | POB 1, Atown, AK 01000 | NEW.ZZA (%R_REGION_NAME) | personal     |$166     | $0     | $256    |
 
 Scenario: A foreign rTrader clicks on the summary tab
   When member "NEW.ZZC" visits page "summary" with options ""
   Then we show page "summary" with:
-  | Name                   | Address                    | Account ID               | Type       | Balance | Credit | Rewards |
-  | Corner Pub (cornerpub) | POB 3, Ctown, Cher, FRANCE | NEW.ZZC (%R_REGION_NAME) | commercial | $323    | $300   | $258    |
+  | Name                   | Address                    | Account ID               | Account type | Balance | Credit | Rewards |
+  | Corner Pub (cornerpub) | POB 3, Ctown, Cher, FRANCE | NEW.ZZC (%R_REGION_NAME) | commercial   | $323    | $0     | $258    |

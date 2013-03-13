@@ -37,7 +37,7 @@ Setup:
   | NEW:AAAS | %today-1w | %TX_BONUS    | %TX_DONE    |      8 | community | NEW.ZZC | bonus   | 0      |
   | NEW:AAAT | %today-6d | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZA   | NEW.ZZB | cash T  | 0      |
   | NEW:AAAU | %today-6d | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZB   | NEW.ZZA | cash U  | 1      |
-  Then "asif" balances:
+  Then balances:
   | id        | balance |
   | community |    -768 |
   | NEW.ZZA   |     166 |
@@ -100,7 +100,7 @@ Scenario: Transactions with other states show up properly
   | NEW:AABB | %today-5d | %TX_BONUS    | %TX_DISPUTED |      8 | community | NEW.ZZC | bonus   | 0      |
   | NEW:AABC | %today-5d | %TX_TRANSFER | %TX_DELETED  |    200 | NEW.ZZA   | NEW.ZZC | never   | 1      |
   | NEW:AABD | %today-5d | %TX_TRANSFER | %TX_DISPUTED |    100 | NEW.ZZC   | NEW.ZZA | cash BD | 1      |
-  Then "asif" balances:
+  Then balances:
   | id        | balance |
   | community |    -780 |
   | NEW.ZZA   |     190 |

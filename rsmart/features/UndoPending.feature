@@ -39,7 +39,7 @@ Setup:
   | NEW:AAAJ | %today-2w | %TX_BONUS    | %TX_PENDING |     10 | community | NEW.ZZA | bonus on #3  | 0      |
   | NEW:AAAK | %today-3d | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZA   | NEW.ZZB | cash given   | 0      |
   | NEW:AAAL | %today-2d | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZB   | NEW.ZZA | cash request | 1      |
-  Then "asif" balances:
+  Then balances:
   | id        | balance |
   | community | -750 |
   | NEW.ZZA   |  250 |
@@ -51,7 +51,7 @@ Scenario: A member asks to refuse to pay invoice
   Then we respond with success 1, message "confirm undo", and subs:
   | created   | amount | tofrom  | otherName | purpose |
   | %today-2w | $100   | to      | Abe One    | labor H |
-  And "asif" balances:
+  And balances:
   | id        | balance |
   | community | -750 |
   | NEW.ZZA   |  250 |
@@ -66,7 +66,7 @@ Scenario: A member confirms request to refuse to pay invoice
   And we email "invoice-denied" to member "a@example.com" with subs:
   | created    | fullName | otherName | amount | payeePurpose |
   | %today-2w  | Abe One  | Corner Pub | $100   | labor H       |
-  And "asif" balances:
+  And balances:
   | id        | balance |
   | community | -750 |
   | NEW.ZZA   |  250 |
@@ -78,7 +78,7 @@ Scenario: A member asks to refuse payment offer
   Then we respond with success 1, message "confirm undo", and subs:
   | created   | amount | tofrom  | otherName | purpose |
   | %today-3w | $100   | from    | Abe One    | pie E   |
-  And "asif" balances:
+  And balances:
   | id        | balance |
   | community | -750 |
   | NEW.ZZA   |  250 |
@@ -93,7 +93,7 @@ Scenario: A member confirms request to refuse payment offer
   And we email "offer-refused" to member "a@example.com" with subs:
   | created   | fullName | otherName | amount | payerPurpose |
   | %today-3w | Abe One  | Bea Two    | $100   | pie E         |
-  And "asif" balances:
+  And balances:
   | id        | balance |
   | community | -750 |
   | NEW.ZZA   |  250 |

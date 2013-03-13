@@ -93,7 +93,7 @@ class rsmsOpenAnAccountForTheCaller extends DrupalWebTestCase {
     Given('phone %number1 is waiting to "setup email"');
     When_('phone %number1 says " zot@example.com "');
     Then_('phone %number1 email is "zot@example.com"');
-    And__('phone %number1 "asif" has r$250');
+    And__('phone %number1 has r$250');
     And__('we say to phone %number1 "your account is ready" with subs: "DATA'
     . '\\| balance |'
     . '\\| $250    |"');

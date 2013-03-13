@@ -38,7 +38,7 @@ Setup:
   | NEW:AAAC | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZB | signup       | 0      |
   | NEW:AAAD | %today-2d | %TX_TRANSFER | %TX_DONE    |      5 | NEW.ZZB   | NEW.ZZC | cash given   | 0      |
   | NEW:AAAE | %today-1d | %TX_TRANSFER | %TX_DONE    |     80 | NEW.ZZA   | NEW.ZZC | whatever54   | 1      |
-  Then "asif" balances:
+  Then balances:
   | id        | balance |
   | community |    -500 |
   | NEW.ZZA   |     170 |

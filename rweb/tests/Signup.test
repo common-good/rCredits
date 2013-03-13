@@ -80,10 +80,10 @@ class rwebSignup extends DrupalWebTestCase {
     Then_('members: "DATA'
     . '\\| id      | full_name | email         | country | postal_code | state | city    | account_type | flags         |'
     . '\\| NEW.ZZA | Abe One   | a@example.com | US      | 01001       | MA    | Amherst | %R_PERSONAL  | %BIT_DEFAULTS |"');
-    And__('we say "status": "your account is ready" with "asif" subs: "DATA'
+    And__('we say "status": "your account is ready" with subs: "DATA'
     . '\\| quid    | balance |'
     . '\\| NEW.ZZA | $250    |"');
-    And__('we email "welcome" to member "a@example.com" with "asif" subs: "DATA'
+    And__('we email "welcome" to member "a@example.com" with subs: "DATA'
     . '\\| fullName | name   | quid    | oneTimeLoginUrl |'
     . '\\| Abe One  | abeone | NEW.ZZA | (varies)        |"');
     And__('member is logged out');
@@ -95,7 +95,7 @@ class rwebSignup extends DrupalWebTestCase {
     When_('member "?" confirms form "\user_register_form" with values: "DATA'
     . '\\| full_name | email     | country | postal_code | state | city    | account_type |'
     . '\\| Abe One   | %whatever | US      | 01001       | MA    | Amherst | personal     |"');
-    Then_('we say "error": "bad email" with "asif" subs: "DATA'
+    Then_('we say "error": "bad email" with subs: "DATA'
     . '\\| email     |'
     . '\\| %whatever |"');
   }

@@ -73,7 +73,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
     . '\\| NEW:AAAJ | %today-2w | %TX_BONUS    | %TX_PENDING |     10 | community | NEW.ZZA | bonus on #3  | 0      |'
     . '\\| NEW:AAAK | %today-3d | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZA   | NEW.ZZB | cash given   | 0      |'
     . '\\| NEW:AAAL | %today-2d | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZB   | NEW.ZZA | cash request | 1      |"');
-    Then_('"asif" balances: "DATA'
+    Then_('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community | -750 |'
     . '\\| NEW.ZZA   |  250 |'
@@ -111,7 +111,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
     . '\\| NEW:AAAJ | %today-2w | %TX_BONUS    | %TX_DENIED |     10 | community | NEW.ZZA | bonus on #3  | 0      |'
     . '\\| NEW:AAAK | %today-3d | %TX_TRANSFER | %TX_DENIED |    100 | NEW.ZZA   | NEW.ZZB | cash given   | 0      |'
     . '\\| NEW:AAAL | %today-2d | %TX_TRANSFER | %TX_DENIED |    100 | NEW.ZZB   | NEW.ZZA | cash request | 1      |"');
-    Then_('"asif" balances: "DATA'
+    Then_('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community | -750 |'
     . '\\| NEW.ZZA   |  250 |'
@@ -130,7 +130,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom  | otherName | purpose |'
     . '\\| %today-2w | $100   | to      | Abe One    | labor H |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community | -750 |'
     . '\\| NEW.ZZA   |  250 |'
@@ -148,7 +148,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
     And__('we email "invoice-denied" to member "a@example.com" with subs: "DATA'
     . '\\| created    | fullName | otherName | amount | payeePurpose |'
     . '\\| %today-2w  | Abe One  | Corner Pub | $100   | labor H       |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community | -750 |'
     . '\\| NEW.ZZA   |  250 |'
@@ -163,7 +163,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom  | otherName | purpose |'
     . '\\| %today-3w | $100   | from    | Abe One    | pie E   |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community | -750 |'
     . '\\| NEW.ZZA   |  250 |'
@@ -181,7 +181,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
     And__('we email "offer-refused" to member "a@example.com" with subs: "DATA'
     . '\\| created   | fullName | otherName | amount | payerPurpose |'
     . '\\| %today-3w | Abe One  | Bea Two    | $100   | pie E         |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community | -750 |'
     . '\\| NEW.ZZA   |  250 |'
@@ -238,7 +238,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom  | otherName | purpose |'
     . '\\| %today-2w | $100   | to      | Abe One    | labor H |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community | -750 |'
     . '\\| NEW.ZZA   |  250 |'
@@ -256,7 +256,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
     And__('we email "invoice-denied" to member "a@example.com" with subs: "DATA'
     . '\\| created    | fullName | otherName | amount | payeePurpose |'
     . '\\| %today-2w  | Abe One  | Corner Pub | $100   | labor H       |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community | -750 |'
     . '\\| NEW.ZZA   |  250 |'
@@ -271,7 +271,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom  | otherName | purpose |'
     . '\\| %today-3w | $100   | from    | Abe One    | pie E   |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community | -750 |'
     . '\\| NEW.ZZA   |  250 |'
@@ -289,7 +289,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
     And__('we email "offer-refused" to member "a@example.com" with subs: "DATA'
     . '\\| created   | fullName | otherName | amount | payerPurpose |'
     . '\\| %today-3w | Abe One  | Bea Two    | $100   | pie E         |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community | -750 |'
     . '\\| NEW.ZZA   |  250 |'

@@ -43,8 +43,8 @@ Scenario: The caller asks to charge a member id
 
 Scenario: The caller confirms a payment
   When phone +20001 confirms "100 to .ZZC for groceries"
-  Then the community "asif" has r$-765
-  And phone +20003 "asif" has r$360
+  Then the community has r$-765
+  And phone +20003 has r$360
   And we say to phone +20001 "report transaction" with subs:
   | action | otherName | amount | rewardType | rewardAmount | balance | tid |
   | paid   | Corner Pub | $100   | rebate      | $5            | $155    | 2   |
@@ -52,8 +52,8 @@ Scenario: The caller confirms a payment
 
 Scenario: The caller confirms a request to charge
   When phone +20001 confirms "100 from .ZZC for labor"
-  Then phone +20003 "asif" has r$250
-  And phone +20001 "asif" has r$250
+  Then phone +20003 has r$250
+  And phone +20001 has r$250
   And we say to phone +20001 "report invoice" with subs:
   | action  | otherName | amount | tid |
   | charged | Corner Pub | $100   | 2   |
@@ -65,8 +65,8 @@ Scenario: The caller confirms a request to charge
 Scenario: The caller confirms a unilateral charge
   Given phone +20001 can charge unilaterally
   When phone +20001 confirms "100 from .ZZC for labor"
-  Then the community "asif" has r$-765
-  And phone +20003 "asif" has r$155
+  Then the community has r$-765
+  And phone +20003 has r$155
   And we say to phone +20001 "report transaction" with subs:
   | action  | otherName | amount | rewardType | rewardAmount | balance | tid |
   | charged | Corner Pub | $100   | bonus       | $10           | $360    | 2   |
@@ -77,8 +77,8 @@ Scenario: The caller confirms a unilateral charge
 
 Scenario: The caller confirms a payment with insufficient balance
   When phone +20001 confirms "300 to .ZZC for groceries"
-  Then the community "asif" has r$-787.50
-  And phone +20003 "asif" has r$525
+  Then the community has r$-787.50
+  And phone +20003 has r$525
   And we say to phone +20001 "report short payment" with subs:
   | action | otherName | amount | short | balance | tid |
   | paid   | Corner Pub | $250   | $50   | $12.50  | 2   |
@@ -99,8 +99,8 @@ Scenario: The caller confirms payment of the latest invoice
   | created   | state       | amount | from | to   | purpose| taking |
   | %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  | 1      |
   When phone +20003 confirms "pay"
-  Then the community "asif" has r$-765
-  And phone +20001 "asif" has r$360
+  Then the community has r$-765
+  And phone +20001 has r$360
   And we say to phone +20003 "report transaction" with subs:
   | action| otherName | amount | rewardType | rewardAmount | balance | tid |
   | paid  | Abe One    | $100   | rebate      | $5            | $155    | 3   |

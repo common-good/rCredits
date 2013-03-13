@@ -87,7 +87,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
     . '\\| NEW:AAAK | %today-1d | %TX_TRANSFER | %TX_DONE    |     80 | NEW.ZZA   | NEW.ZZC | whatever54   | 000000 |'
     . '\\| NEW:AAAL | %today-1d | %TX_REBATE   | %TX_DONE    |      4 | community | NEW.ZZA | rebate on #5 | 000000 |'
     . '\\| NEW:AAAM | %today-1d | %TX_BONUS    | %TX_DONE    |      8 | community | NEW.ZZC | bonus on #4  | 000000 |"');
-    Then_('"asif" balances: "DATA'
+    Then_('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -768 |'
     . '\\| NEW.ZZA   |     166 |'
@@ -126,7 +126,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
     . '\\| NEW:AAAK | %today-1d | %TX_TRANSFER | %TX_DISPUTED    |     80 | NEW.ZZA   | NEW.ZZC | whatever54   | 000000 |'
     . '\\| NEW:AAAL | %today-1d | %TX_REBATE   | %TX_DISPUTED    |      4 | community | NEW.ZZA | rebate on #5 | 000000 |'
     . '\\| NEW:AAAM | %today-1d | %TX_BONUS    | %TX_DISPUTED    |      8 | community | NEW.ZZC | bonus on #4  | 000000 |"');
-    Then_('"asif" balances: "DATA'
+    Then_('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -768 |'
     . '\\| NEW.ZZA   |     166 |'
@@ -145,7 +145,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom  | otherName | purpose    |'
     . '\\| %today-1d | $80    | to      | Corner Pub | whatever54 |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -768 |'
     . '\\| NEW.ZZA   |     166 |'
@@ -163,7 +163,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
     And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'
     . '\\| %today  | Corner Pub | Abe One   | $80    | reverses #4  |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -768 |'
     . '\\| NEW.ZZA   |     166 |'
@@ -190,7 +190,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
     And__('we email "new-payment" to member "a@example.com" with subs: "DATA'
     . '\\| created | fullName | otherName  | amount | payeePurpose |'
     . '\\| %today  | Abe One  | Corner Pub | $80    | reverses #5  |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -756 |'
     . '\\| NEW.ZZA   |     242 |'
@@ -217,7 +217,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
     And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'
     . '\\| %today  | Corner Pub | Bea Two   | $5     | reverses #3  |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -768 |'
     . '\\| NEW.ZZA   |     166 |'
@@ -244,7 +244,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
     And__('we email "new-payment" to member "b@example.com" with subs: "DATA'
     . '\\| created | fullName | otherName  | amount | payeePurpose |'
     . '\\| %today  | Bea Two  | Corner Pub | $5     | reverses #4  |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -768 |'
     . '\\| NEW.ZZA   |     166 |'
@@ -263,7 +263,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
     And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'
     . '\\| %today  | Corner Pub | Abe One   | $80    | reverses #4  |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -768 |'
     . '\\| NEW.ZZA   |     166 |'
@@ -278,7 +278,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom  | otherName | purpose    |'
     . '\\| %today-1d | $80    | to      | Corner Pub | whatever54 |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -768 |'
     . '\\| NEW.ZZA   |     166 |'
@@ -296,7 +296,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
     And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'
     . '\\| %today  | Corner Pub | Abe One   | $80    | reverses #4  |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -768 |'
     . '\\| NEW.ZZA   |     166 |'
@@ -323,7 +323,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
     And__('we email "new-payment" to member "a@example.com" with subs: "DATA'
     . '\\| created | fullName | otherName  | amount | payeePurpose |'
     . '\\| %today  | Abe One  | Corner Pub | $80    | reverses #5  |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -756 |'
     . '\\| NEW.ZZA   |     242 |'
@@ -350,7 +350,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
     And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'
     . '\\| %today  | Corner Pub | Bea Two   | $5     | reverses #3  |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -768 |'
     . '\\| NEW.ZZA   |     166 |'
@@ -377,7 +377,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
     And__('we email "new-payment" to member "b@example.com" with subs: "DATA'
     . '\\| created | fullName | otherName  | amount | payeePurpose |'
     . '\\| %today  | Bea Two  | Corner Pub | $5     | reverses #4  |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -768 |'
     . '\\| NEW.ZZA   |     166 |'
@@ -396,7 +396,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
     And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'
     . '\\| %today  | Corner Pub | Abe One   | $80    | reverses #4  |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -768 |'
     . '\\| NEW.ZZA   |     166 |'

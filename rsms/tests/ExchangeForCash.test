@@ -63,9 +63,9 @@ class rsmsExchangeForCash extends DrupalWebTestCase {
   public function testTheCallerConfirmsATradeOfRCreditsForCash_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('phone +20001 confirms "100 to .ZZC for cash"');
-    Then_('the community "asif" has r$-750');
-    And__('phone +20003 "asif" has r$350');
-    And__('phone +20001 "asif" has r$150');
+    Then_('the community has r$-750');
+    And__('phone +20003 has r$350');
+    And__('phone +20001 has r$150');
     And__('we say to phone +20001 "report exchange" with subs: "DATA'
     . '\\| action | otherName | amount | balance | tid |'
     . '\\| gave   | Corner Pub | $100   | $150    | 2   |"');
@@ -75,16 +75,16 @@ class rsmsExchangeForCash extends DrupalWebTestCase {
   public function testTheCallerConfirmsAnImplicitTradeOfRCreditsForCash_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('phone +20001 confirms "100 to .ZZC"');
-    Then_('phone +20003 "asif" has r$350');
-    And__('phone +20001 "asif" has r$150');
+    Then_('phone +20003 has r$350');
+    And__('phone +20001 has r$150');
   }
 
   // Scenario: The caller confirms a request to trade cash for rCredits
   public function testTheCallerConfirmsARequestToTradeCashForRCredits_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('phone +20003 confirms "100 from .ZZA for cash"');
-    Then_('phone +20003 "asif" has r$250');
-    And__('phone +20001 "asif" has r$250');
+    Then_('phone +20003 has r$250');
+    And__('phone +20001 has r$250');
     And__('we say to phone +20003 "report exchange request" with subs: "DATA'
     . '\\| action  | otherName | amount | tid |'
     . '\\| charged | Abe One    | $100   | 2   |"');
@@ -95,8 +95,8 @@ class rsmsExchangeForCash extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('phone +20003 can charge unilaterally');
     When_('phone +20003 confirms "100 from .ZZA for cash"');
-    Then_('phone +20003 "asif" has r$350');
-    And__('phone +20001 "asif" has r$150');
+    Then_('phone +20003 has r$350');
+    And__('phone +20001 has r$150');
     And__('we say to phone +20003 "report exchange" with subs: "DATA'
     . '\\| action  | otherName | amount | balance | tid |'
     . '\\| charged | Abe One    | $100   | $350    | 2   |"');

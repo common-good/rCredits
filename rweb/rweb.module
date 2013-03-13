@@ -90,7 +90,7 @@ function rweb_menu() {
     'account/preferences' => r\Web\menu(t('Preferences'), MENU_LOCAL_TASK, 'showForm', array('Options'), PERM_MANAGE),
     'another' => r\Web\menu(t('Open Another Account'), MENU_CALLBACK, 'showForm', array('Another'), PERM_MANAGE),
 //    'account/bank-info' => r\Web\menu(t('Bank Info'), MENU_LOCAL_TASK, 'showForm', array('Bank'), PERM_MANAGE),
-    'account/usd' => r\Web\menu(t('USD Account'), MENU_LOCAL_TASK, 'showForm', array('Usd'), PERM_MANAGE),
+    'account/usd' => r\Web\menu(t('USD Account'), MENU_LOCAL_TASK, 'showForm', array('Usd', 2), PERM_MANAGE),
 
     'sadmin' => r\Web\menu(t('System'), MENU_NORMAL_ITEM, 'showForm', array('System'), PERM_ADMIN),
     'handy' => r\Web\menu('Handy', MENU_NORMAL_ITEM, 'handy_links', array(), PERM_ADMIN),
@@ -105,16 +105,15 @@ function rweb_menu() {
 
     //    'promo-site' => r\Web\menu(t('Main Site'), MENU_CALLBACK, 'drupal_goto', array('http://rCredits.org'), '', $anyone),
 
-    'menu' => r\Web\menu('Main Menu', MENU_CALLBACK, 'showForm', array('Menu'), PERM_READ),
+    'menu' => r\Web\menu('Main Menu', MENU_CALLBACK, 'showForm', array('Menu'), '', $anyone),
     'member' => r\Web\menu('Company Profile', MENU_CALLBACK, 'showForm', array('Profile'), '', $anyone),
-    'get-asif' => r\Web\menu('Get more ASIF rCredits', MENU_CALLBACK, 'getAsif', array(1), PERM_SELL),
     'rcredits/util' => r\Web\menu('Util', MENU_CALLBACK, 'util', array(2), PERM_ADMIN),
     'rcredits/test' => r\Web\menu('Util', MENU_CALLBACK, 'test', array(2), '', $anyone),
     'autocomplete' => r\Web\menu('Identify', MENU_CALLBACK, 'auto', array(1, 2, 3), '', $anyone),
 
     'rcredits/backend' => r\Web\menu('API', 0, 'rCredits\\be\\backend2', array(), '', $anyone),
     'api' => r\Web\menu('API', 0, 'rCredits\\Smart\\api', array(), '', $anyone),
-    'bank' => r\Web\menu('Bank callback', 0, 'rCredits\\usd::callback', array(), '', $anyone),
+    'bank' => r\Web\menu('Bank callback', 0, 'rCredits\\usd::callback', array(1), '', $anyone),
     'secret' => r\Web\menu('Secret', 0, 'secrets', array(), '', $anyone),
     'error' => r\Web\menu('System Error', 0, 'rCredits\\error', array(1), '', $anyone),
     
@@ -139,14 +138,15 @@ function rweb_form_alter(&$form, &$sta, $form_id) {
 //debug($form_id);
 //debug($_SERVER);
   if ($form_id == 'user_pass_reset') return r\Web\resetAlter($form, $sta);
-  if ($form_id == 'user_login') return r\Web\loginAlter($form, $sta);
+  if ($form_id == 'user_login') {return r\Web\loginAlter($form, $sta);}
+  // (has no effect, keep as comment) if ($form_id == 'user_register') {return r\Web\formRegister($form, $sta);}
   if (basename($_SERVER['REQUEST_URI']) == 'user' and user_is_logged_in()) r\go('');
 }
 
 function rweb_form_user_register_form_alter(&$form, &$sta, $form_id) {r\Web\formRegister($form, $sta);}
 function rweb_form_user_login_block_alter(&$form, &$sta, $form_id) {return r\Web\loginAlter($form, $sta, FALSE);}
-function rweb_form_user_login_form_alter(&$form, &$sta, $form_id) {return r\Web\loginAlter($form, $sta);}
-function rweb_user_login(&$edit, $account) {r\Web\loginFollowup($edit, $account);} // Implements hook_user_login().
+// (has no effect, keep as comment) function rweb_form_user_login_form_alter(&$form, &$sta, $form_id) {return r\Web\loginAlter($form, $sta);}
+function rweb_user_login(&$edit, $account) {r\Web\loginFollowup($edit, $account);}
 function rweb_form_user_pass_alter(&$form, &$sta) {return r\Web\passAlter($form, $sta);}
 
 /*function rweb_form_user_profile_form_alter(&$form, &$sta, $form_id) {

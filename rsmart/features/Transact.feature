@@ -27,7 +27,7 @@ Setup:
   | NEW:AAAB | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |
   | NEW:AAAC | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZB | signup  | 0      |
   | NEW:AAAD | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZC | signup  | 0      |
-  Then "asif" balances:
+  Then balances:
   | id        | balance |
   | community |    -750 |
   | NEW.ZZA   |     250 |
@@ -51,7 +51,7 @@ Scenario: A member asks to charge another member
   And we email "new-invoice" to member "c@example.com" with subs:
   | created | fullName   | otherName | amount | payerPurpose |
   | %today  | Corner Pub | Abe One    | $100   | labor         |
-  And "asif" balances:
+  And balances:
   | id        | balance |
   | community |    -750 |
   | NEW.ZZA   |     250 |
@@ -67,7 +67,7 @@ Scenario: A member asks to pay another member
   And we email "new-payment" to member "c@example.com" with subs:
   | created | fullName   | otherName | amount | payeePurpose   |
   | %today  | Corner Pub | Abe One    | $100   | groceries       |
-  And "asif" balances:
+  And balances:
   | id        | balance |
   | community |    -765 |
   | NEW.ZZA   |     155 |
@@ -99,7 +99,7 @@ Scenario: A member asks to charge another member unilaterally
   And we email "new-charge" to member "a@example.com" with subs:
   | created | fullName  | otherName | amount | payerPurpose   |
   | %today  | Abe One   | Corner Pub | $100   | groceries       |
-  And "asif" balances:
+  And balances:
   | id        | balance |
   | community |    -765 |
   | NEW.ZZA   |     155 |
@@ -113,7 +113,7 @@ Scenario: A member asks to charge another member unilaterally, with insufficient
   | action  | otherName | amount | short | balance | tid | t2id |
   | charged | Abe One   | $250   | $50   | $525    | 2   | 3    |
   # "SPLIT TRANSACTION! You paid Corner Pub $250 (rebate: $12.50). You will need to use US Dollars for the remaining $50. Your new balance is $12.50. Transaction #2"
-  And "asif" balances:
+  And balances:
   | id        | balance |
   | community | -787.50 |
   | NEW.ZZA   |   12.50 |
@@ -126,7 +126,7 @@ Scenario: A member asks to pay another member, with insufficient balance
   | action | otherName | amount | short | balance | tid |
   | paid   | Corner Pub | $250   | $50   | $12.50  | 2   |
   # "SPLIT TRANSACTION! You paid Corner Pub $250 (rebate: $12.50). You will need to use US Dollars for the remaining $50. Your new balance is $12.50. Transaction #2"
-  And "asif" balances:
+  And balances:
   | id        | balance |
   | community | -787.50 |
   | NEW.ZZA   |   12.50 |

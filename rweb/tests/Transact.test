@@ -59,7 +59,7 @@ class rwebTransact extends DrupalWebTestCase {
     . '\\| NEW:AAAB | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |'
     . '\\| NEW:AAAC | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZB | signup  | 0      |'
     . '\\| NEW:AAAD | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZC | signup  | 0      |"');
-    Then_('"asif" balances: "DATA'
+    Then_('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -750 |'
     . '\\| NEW.ZZA   |     250 |'
@@ -84,7 +84,7 @@ class rwebTransact extends DrupalWebTestCase {
     . '\\| NEW.AAAB | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |'
     . '\\| NEW.AAAC | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZB | signup  | 0      |'
     . '\\| NEW.AAAD | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZC | signup  | 0      |"');
-    Then_('"real" balances: "DATA'
+    Then_('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -750 |'
     . '\\| NEW.ZZA   |     250 |'
@@ -102,7 +102,7 @@ class rwebTransact extends DrupalWebTestCase {
     When_('member "NEW.ZZA" completes form "Tx" with values: "DATA'
     . '\\| op     | who     | amount | goods | purpose |'
     . '\\| Charge | Bea Two | 100    | 1     | labor   |"');
-    Then_('we show "confirm charge" with "asif" subs: "DATA'
+    Then_('we show "confirm charge" with subs: "DATA'
     . '\\| amount | otherName |'
     . '\\| $100   | Bea Two   |"');
   }
@@ -113,13 +113,13 @@ class rwebTransact extends DrupalWebTestCase {
     When_('member "NEW.ZZA" confirms form "Tx" with values: "DATA'
     . '\\| op     | who     | amount | goods | purpose |'
     . '\\| Charge | Bea Two | 100    | 1     | labor   |"');
-    Then_('we say "status": "report invoice" with "asif" subs: "DATA'
+    Then_('we say "status": "report invoice" with subs: "DATA'
     . '\\| action  | otherName | amount | tid |'
     . '\\| charged | Bea Two   | $100   | 2   |"');
-    And__('we email "new-invoice" to member "b@example.com" with "asif" subs: "DATA'
+    And__('we email "new-invoice" to member "b@example.com" with subs: "DATA'
     . '\\| created | fullName | otherName | amount | payerPurpose |'
     . '\\| %today  | Bea Two  | Abe One   | $100   | labor        |"');
-    And__('we show "Tx" with "asif" subs: "DATA'
+    And__('we show "Tx" with subs: "DATA'
     . '\\| arg1   |'
     . '\\| charge |"');
     And__('transactions: "DATA'
@@ -127,7 +127,7 @@ class rwebTransact extends DrupalWebTestCase {
     . '\\| NEW.AAAE | %today | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZB   | NEW.ZZA | labor   | 1      |'
     . '\\| NEW.AAAF | %today | %TX_REBATE   | %TX_PENDING |      5 | community | NEW.ZZB | rebate  | 0      |'
     . '\\| NEW.AAAG | %today | %TX_BONUS    | %TX_PENDING |     10 | community | NEW.ZZA | bonus   | 0      |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -750 |'
     . '\\| NEW.ZZA   |     250 |'
@@ -141,7 +141,7 @@ class rwebTransact extends DrupalWebTestCase {
     When_('member "NEW.ZZA" completes form "Tx" with values: "DATA'
     . '\\| op  | who     | amount | goods | purpose |'
     . '\\| Pay | Bea Two | 100    | 1     | labor   |"');
-    Then_('we show "confirm payment" with "asif" subs: "DATA'
+    Then_('we show "confirm payment" with subs: "DATA'
     . '\\| amount | otherName |'
     . '\\| $100   | Bea Two   |"');
   }
@@ -152,13 +152,13 @@ class rwebTransact extends DrupalWebTestCase {
     When_('member "NEW.ZZA" confirms form "Tx" with values: "DATA'
     . '\\| op  | who     | amount | goods | purpose |'
     . '\\| Pay | Bea Two | 100    | 1     | labor   |"');
-    Then_('we say "status": "report transaction" with "asif" subs: "DATA'
+    Then_('we say "status": "report transaction" with subs: "DATA'
     . '\\| action | otherName | amount | tid | rewardType | rewardAmount | balance |'
     . '\\| paid   | Bea Two   | $100   | 2   | rebate     | $5           | $155    |"');
-    And__('we email "new-payment" to member "b@example.com" with "asif" subs: "DATA'
+    And__('we email "new-payment" to member "b@example.com" with subs: "DATA'
     . '\\| created | fullName | otherName | amount | payeePurpose |'
     . '\\| %today  | Bea Two  | Abe One   | $100   | labor        |"');
-    And__('we show "Tx" with "asif" subs: "DATA'
+    And__('we show "Tx" with subs: "DATA'
     . '\\| arg1 |'
     . '\\| pay  |"');
     And__('transactions: "DATA'
@@ -166,7 +166,7 @@ class rwebTransact extends DrupalWebTestCase {
     . '\\| NEW.AAAE | %today | %TX_TRANSFER | %TX_DONE |    100 | NEW.ZZA   | NEW.ZZB | labor   | 0      |'
     . '\\| NEW.AAAF | %today | %TX_REBATE   | %TX_DONE |      5 | community | NEW.ZZA | rebate  | 0      |'
     . '\\| NEW.AAAG | %today | %TX_BONUS    | %TX_DONE |     10 | community | NEW.ZZB | bonus   | 0      |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -765 |'
     . '\\| NEW.ZZA   |     155 |'
@@ -180,7 +180,7 @@ class rwebTransact extends DrupalWebTestCase {
     When_('member "NEW.ZZA" completes form "Tx" with values: "DATA'
     . '\\| op     | who     | amount | goods | purpose |'
     . '\\| Charge | Bea Two | 100    | 1     | labor   |"');
-    Then_('we show "confirm charge" with "real" subs: "DATA'
+    Then_('we show "confirm charge" with subs: "DATA'
     . '\\| amount | otherName |'
     . '\\| $100   | Bea Two   |"');
   }
@@ -191,13 +191,13 @@ class rwebTransact extends DrupalWebTestCase {
     When_('member "NEW.ZZA" confirms form "Tx" with values: "DATA'
     . '\\| op     | who     | amount | goods | purpose |'
     . '\\| Charge | Bea Two | 100    | 1     | labor   |"');
-    Then_('we say "status": "report invoice" with "real" subs: "DATA'
+    Then_('we say "status": "report invoice" with subs: "DATA'
     . '\\| action  | otherName | amount | tid |'
     . '\\| charged | Bea Two   | $100   | 2   |"');
-    And__('we email "new-invoice" to member "b@example.com" with "real" subs: "DATA'
+    And__('we email "new-invoice" to member "b@example.com" with subs: "DATA'
     . '\\| created | fullName | otherName | amount | payerPurpose |'
     . '\\| %today  | Bea Two  | Abe One   | $100   | labor        |"');
-    And__('we show "Tx" with "real" subs: "DATA'
+    And__('we show "Tx" with subs: "DATA'
     . '\\| arg1   |'
     . '\\| charge |"');
     And__('transactions: "DATA'
@@ -205,7 +205,7 @@ class rwebTransact extends DrupalWebTestCase {
     . '\\| NEW.AAAE | %today | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZB   | NEW.ZZA | labor   | 1      |'
     . '\\| NEW.AAAF | %today | %TX_REBATE   | %TX_PENDING |      5 | community | NEW.ZZB | rebate  | 0      |'
     . '\\| NEW.AAAG | %today | %TX_BONUS    | %TX_PENDING |     10 | community | NEW.ZZA | bonus   | 0      |"');
-    And__('"real" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -750 |'
     . '\\| NEW.ZZA   |     250 |'
@@ -219,7 +219,7 @@ class rwebTransact extends DrupalWebTestCase {
     When_('member "NEW.ZZA" completes form "Tx" with values: "DATA'
     . '\\| op  | who     | amount | goods | purpose |'
     . '\\| Pay | Bea Two | 100    | 1     | labor   |"');
-    Then_('we show "confirm payment" with "real" subs: "DATA'
+    Then_('we show "confirm payment" with subs: "DATA'
     . '\\| amount | otherName |'
     . '\\| $100   | Bea Two   |"');
   }
@@ -230,13 +230,13 @@ class rwebTransact extends DrupalWebTestCase {
     When_('member "NEW.ZZA" confirms form "Tx" with values: "DATA'
     . '\\| op  | who     | amount | goods | purpose |'
     . '\\| Pay | Bea Two | 100    | 1     | labor   |"');
-    Then_('we say "status": "report transaction" with "real" subs: "DATA'
+    Then_('we say "status": "report transaction" with subs: "DATA'
     . '\\| action | otherName | amount | tid | rewardType | rewardAmount | balance |'
     . '\\| paid   | Bea Two   | $100   | 2   | rebate     | $5           | $155    |"');
-    And__('we email "new-payment" to member "b@example.com" with "real" subs: "DATA'
+    And__('we email "new-payment" to member "b@example.com" with subs: "DATA'
     . '\\| created | fullName | otherName | amount | payeePurpose |'
     . '\\| %today  | Bea Two  | Abe One   | $100   | labor        |"');
-    And__('we show "Tx" with "real" subs: "DATA'
+    And__('we show "Tx" with subs: "DATA'
     . '\\| arg1 |'
     . '\\| pay  |"');
     And__('transactions: "DATA'
@@ -244,7 +244,7 @@ class rwebTransact extends DrupalWebTestCase {
     . '\\| NEW.AAAE | %today | %TX_TRANSFER | %TX_DONE |    100 | NEW.ZZA   | NEW.ZZB | labor   | 0      |'
     . '\\| NEW.AAAF | %today | %TX_REBATE   | %TX_DONE |      5 | community | NEW.ZZA | rebate  | 0      |'
     . '\\| NEW.AAAG | %today | %TX_BONUS    | %TX_DONE |     10 | community | NEW.ZZB | bonus   | 0      |"');
-    And__('"real" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -765 |'
     . '\\| NEW.ZZA   |     155 |'

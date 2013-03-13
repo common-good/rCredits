@@ -14,20 +14,21 @@ rename community field to community
 ***
         
 Short term tasks: (* = before launch ** = earlier)
+- automatic bank transfer tester
+- move shibboleth into .databases
+- for existing signups, just set the whole table aside. invite them and let them redo everything
 - how much can the community safely create? this depends on velocity of circulation and two kinds of demand: 
     (1) company/employee/contractor demand and (2) other (by people who have no rCredits income source)
     The first kind reflects the inherent strength of the system, the second should be seen as backup
     We can create the amount of the first kind divided by velocity, probably.
-- disable getr command altogether
+- disable SMS getr command altogether
 - disable signup via SMS
-- disable ASIF transactions (charge and pay are for activated accounts (rTraders) only)
 - disable checkboxes in agreement, if already signed, and show signature and date at bottom (not text box)
 - company relations during registration fails (missing is_owner and employee_ok)
 - add flow to relations (1=to, 2=from, 3=both, 0=none)
 - don't allow clicking on links in emails (send to new.rcredits_org.com/whatever, which looks like rcredits.org but scolds the user for clicking on an email link, then offers a link to the real site (don't accept that one either).
 - Dwolla fee goes to cash buyer (otherwise always to the rCredits recipient -- the payee)
 - change company suggested donation to $250 (pass it)
-- change SMS command "get r" to just "get"
 - count owners (if not employed too) and suppliers each as one (average) employee, when distributing virtual payments
 - travel checks (use once, limited amount)
 - callback from oauth request calls usd page with success/youSaidNO/error (display a message)
@@ -121,12 +122,11 @@ E. Database clues
      . Tests create users with uids starting at 17550 (ZZA, ZZB, etc.)
      . name is a lowercase, no-punctuation version of the full_name field, sometimes with a numeric suffix to disambiguate
          exceptions: admin is admin. For regions, name is (uppercase) the 3-char start of their qids, followed by "."
-     . pass and mail should be called "password" and "email" but Drupal doesn't. So it's confusing.
+     . pass and mail should be called "password" and "email" but Drupal doesn't. So it's confusing. (just a heads-up)
      . we don't currently use theme, signature, or signature format.
      . data: We use this to store non-essential information in a serialized associative array:
-         picture: the URL of a temporary guessed-at picture for Greenfield businesses. Once the business uploads a picture, this guessed one has no effect. These links should have gone in the file_managed table instead, but they didn't.
          width and height: size of the picture
-         company, employee_ok, and is_owner: these are stored upon registration, but they should really go in the relations table and the user should be required to give a phone number for the company, if it is not in the users table yet
+         company, companyPhone, employee_ok, and is_owner: these are stored upon registration, if the company does not exist yet (otherwise the info goes in the relations table)
          new_account: qid of new account when this account is closed by moving funds elsewhere
      . description is html for the company's page (N/A for personal accounts)
      . community: the (negative) uid of the account's CGC. For anyone who is not in an established CGC, their community is the region (using the regional server's uid). For region and community records, community === uid
@@ -137,22 +137,21 @@ E. Database clues
          PIN: the Dwolla PIN
          auth: the Dwolla OAUTH code
    - r_txs
-     . xid: record id. Always positive in the tables, but in the code: negative zxid means use the ASIF table (r_asif) instead.
-       Transactions are identified to the user counting just their own transactions (1, 2, 3, ...), NOT as an xid.
+     . xid: record id
+     . payer_tid: Transactions are identified to the user counting just their own transactions (1, 2, 3, ...), NOT as an xid.
+     . payee_tid: ditto
      . payer: normally the uid of the account being debited. If the payer is "foreign" (that is, if their account record is stored on a different regional server), then payer is that region's uid and the data field has details. Similarly, payee, payer_agent, and/or payee_agent might be a region, with details in data.
      . amount: the total transaction amount. While waiting for a USD amount to clear, the entire transaction amount is
          tentatively (TX_TENTATIVE) transferred in rCredits
      . r: the amount of rCredits transferred. While waiting for a USD amount to clear, 
          this field holds the expected amount of rCredits. This may change if the USD EFT does not clear.
      . data: We use this to store non-essential and unusual essential information in a serialized associative array:
-       undone: 1 if the transaction has been reversed
+       undoneBy: xid of the transaction that reversed this one (if it is reversed)
+       undoes: the transaction id of the undone transaction that this transaction reversed
        bonus and rebate: the dollar amounts of any rewards associated with a payment
-       zxid: the (signed) transaction id of the undone transaction that this transaction reverses
-       pay_all: this transaction is part of a pay "all"
        preapproved: (not in the table, just internally) transaction is preapproved by another server (a payment or an authorized business unilaterally charging a customer)
        foreign_payer, foreign_payee: uid of a non-local party to the transaction
        foreign_payer_agent, foreign_payee_agent: uid of a non-local agent for a party to the transaction
-   - r_asif: (UNUSED) the pretend version of r_txs (ASIF transaction numbers are displayed with prefix "a")
    (more to come...)
    - offsite: protected personal identifying information from the NEW region
      . id: a random id that matches the type and length of the original data
@@ -186,10 +185,8 @@ G. Special rCredits datatypes
     (Communities within the region also have negative uids, descending from -1,000,000, and do not need qids,
     but could have a qid with a hyphen, like AAA-BBB, if needed.)
   
- qxid: a qid (8 characters or more) reprersenting a zxid (: means a negative zxid)
+ qxid: a qid (8 characters or more) representing an xid
  quid: a qid (7 characters or more) representing a uid acting as its own agent (. separator) OR an reid (: separator)
- zxid: a (signed) transaction id (>0: xid in r_txs (real), <0: -xid in r_asif)
-       All database operations with transactions are performed by dbQ() on a virtual table {txs} with key zxid.
 
 H. TODO
 @todo: add videos, like this:
@@ -276,7 +273,6 @@ function eachAccount($queries, $ons, $where = 'TRUE', $subs = array()) {
 @todo: move some util functions, like ray(), to rcredits-basic.inc and "USE" them everywhere without a namespace qualifier.
 @todo: on successful web request for rCredits, say you will have to Dwolla us $20, to actually be added to the waiting list.
 @todo: allow surrounding spaces on all web input, leading dollar signs in amounts. Test. (mostly done)
-@todo: change zxid to a class. $tx->xid, table, real
 @todo
 - handling employees (virtual payments). This should probably be extended to suppliers too,
   or maybe even to everyone. The idea is to pay someone virtually in rCredits by totally paying them
@@ -295,7 +291,6 @@ function eachAccount($queries, $ons, $where = 'TRUE', $subs = array()) {
 @todo: make help divs draggable
 @todo: when a relation for a company is created with PERM_MANAGE, warn the user that they will no longer be able to log in directly to the company account, change the password to "NOACCESS", and prevent a password change ("Only authorized individuals can manage this account.")
 @todo: option to suppress current balance in messages (make it a separate message) BIT_SHOWBAL (default TRUE)
-@todo: rTraders have unlimited asif rCredits (or unlimited credit and show balance as N/A)
 @todo: Miscellaneous other data to collect:
   Names and Social Security Numbers of Dependents [why do we need this?]
   If this is a joint account and you are the first to join, social security numbers of the other account holders
@@ -347,7 +342,7 @@ To uninstall the rCredits modules manually (export first, since this DESTROYS AL
   DELETE FROM registry WHERE module IN ('rcredits','rweb','rsmart','rsms');
   DELETE FROM registry_file WHERE filename LIKE 'sites/all/modules/rcredits/%';
   DELETE FROM variable WHERE name LIKE 'rcredits%';
-  DROP TABLE IF EXISTS r_areas,r_asif,r_candidates,r_industries,r_log,r_nonces,r_regions,r_relations,r_scores,r_smarts,r_sms,r_txs;
+  DROP TABLE IF EXISTS r_areas,r_candidates,r_industries,r_log,r_nonces,r_regions,r_relations,r_scores,r_smarts,r_sms,r_txs;
   TRUNCATE cache;
   TRUNCATE cache_block;
   TRUNCATE cache_bootstrap;

@@ -195,7 +195,7 @@ function photo($args) {
   $message = bin2hex(substr($pic, 0, 50));
   u\log('out', compact('message'));
 
-  if (@TESTING == 1) {debug($message); return $message;} else exit($pic);
+  if (\testing()) {debug($message); return $message;} else exit($pic);
 }
 
 /*
@@ -223,9 +223,9 @@ function transact($args) {
   if ($q_type == 'pay') $q_type = 'payment'; // this is what be\transfer() expects
   list ($index, $subs, $zot) = be\transfer($q_type, $q_acct, $q_amount, $q_purpose, $q_goods, TRUE);
 
-  $balances = balances($q_acct->id, @$subs['real']); // my_balance, other_balance
+  $balances = balances($q_acct->id); // my_balance, other_balance
   if (!$subs['success'] = (int) @$subs['success']) return be\error($index, $subs + $balances);
-  $tx_id = r\qxid($subs['zxid']); // return the transaction id as a qid (globally unique transaction id) (':' means As-If)
+  $tx_id = r\qxid($subs['xid']); // return the transaction id as a qid (globally unique transaction id)
   $message = u\tt($index, $subs);
   return compact(u\ray('message tx_id')) + $balances;
 }
@@ -247,19 +247,19 @@ function undo($params) {
   
   if (!@$tx_id) return be\error('missing transaction id');
   if (!u\isQid(@$tx_id)) return be\error('bad transaction id');
-  list ($zxid, $regionUid) = r\unQid($tx_id);
+  list ($xid, $regionUid) = r\unQid($tx_id);
   if ($regionUid != r\serverUid()) return be\error('That is not a transaction on this server.');
   if (@$confirmed !== '1' and @$confirmed !== '0') return be\error('bad confirmation status');
   
   unset($tx_id); // done with the old transaction id
   if ($confirmed) {
-    list ($message, $args) = be\undoTx($zxid);
+    list ($message, $args) = be\undoTx($xid);
     $message = u\tt($message, $args);
-    $balances = balances(@$args['otherUid'], $zxid > 0);
+    $balances = balances(@$args['otherUid']);
     if (!$success = (int) @$args['success']) return compact(u\ray('success message')) + (@$balances ?: array());
-    if ($new_zxid = @$args['zxid']) $tx_id = r\qxid($new_zxid); // get offsetting transaction id, if any (otherwise state changed)
+    if ($new_xid = @$args['xid']) $tx_id = r\qxid($new_xid); // get offsetting transaction id, if any (otherwise state changed)
   } else {
-    $oldRecord = be\lastTx('xid=:zxid', compact('zxid'));
+    $oldRecord = be\lastTx('xid=:xid', compact('xid'));
     if ($error = r\nonoUndo($oldRecord, $subs)) return be\error($error, $subs); // check nono before confirm AND here
     $message = u\tt('confirm undo', r\txReportArgs($oldRecord));
   }
@@ -314,8 +314,8 @@ function accountName($acct) {
   return $acct->full_name . $agentName;
 }
 
-function balances($uid, $real) {
-  if (r\acct()->can(PERM_MANAGE)) $my_balance = be\creditInfo(compact('real'))->fancy['balance'];
+function balances($uid) {
+  if (r\acct()->can(PERM_MANAGE)) $my_balance = be\creditInfo()->fancy['balance'];
   if ($uid) {
     $other_balance = r\otherBalance($uid);
     if (!$other_balance) unset($other_balance); // don't return an empty parameter

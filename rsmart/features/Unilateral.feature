@@ -42,7 +42,7 @@ Setup:
   | NEW:AAAI | %today-3d | %TX_REBATE   | %TX_DONE    |      5 | community | NEW.ZZC | rebate on #2 | 000000 |
   | NEW:AAAJ | %today-3d | %TX_BONUS    | %TX_DONE    |     10 | community | NEW.ZZA | bonus on #3  | 000000 |
   | NEW:AAAK | %today-2d | %TX_TRANSFER | %TX_DONE    |    100 | NEW.ZZA   | NEW.ZZB | cash I       | 000000 |
-  Then "asif" balances:
+  Then balances:
   | id        | balance |
   | community |    -795 |
   | NEW.ZZA   |      70 |

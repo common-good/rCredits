@@ -1,5 +1,6 @@
 <?php
 namespace rCredits;
+use rCredits as r;
 use rCredits\Util as u;
 
 /**
@@ -22,29 +23,21 @@ class usd {
    * @param acct $acct: the rCredits account that has this USD account
    */
   function __construct($acct) {
-    if (!$acct->hasBit(BIT_RTRADER)) return;
     $this->acct = $acct;
     foreach ($acct->secure as $key => $value) if (property_exists($this, $key)) $this->$key = $value;
   }
   
   /**
-   * Update the usd information in the account record (both in this object and in the database).
-   * @param assoc $info: information we need in order to access the account and manage it, possibly including:
-   *   type: account type (required if not supplied previously)
-   *   number: account number (required for Dwolla)
-   *   pin: account PIN (required for Dwolla)
-   *   auth: (current) authorization token
-   * @param string $error: (RETURNED) an error message if appropriate
-   * @return bool: success
+   * Handle updated usd information by requesting a new auth token from Dwolla
+   * @return: does not return, but initiates callback to receive auth token
    */
-  public function update($info, &$error = NULL) {
-//    u\EXPECT(@$info['type'] == 'Dwolla', 'bad usd account type');
-    $secure = $this->acct->secure;
-    foreach ($info as $key => $value) $this->$key = $secure[$key] = $value;
-    $this->auth = $secure['auth'] = '?'; // get auth here
-    $this->acct->update(compact('secure'));
-    debug('Updated USD info: ' . print_r(compact('secure'), 1));
-    return TRUE;
+  public function update() {
+    global $base_url;
+    extract(u\just('type number pin', $this->acct->secure));
+//    u\EXPECT(@$type == 'Dwolla', 'bad usd account type');
+    $id = $this->acct->id;
+    $callbackUrl = "$base_url/account/usd/$id";
+    r\go('http://api.dwolla...'); // ask Dwolla for a new oauth (create and populate form instead?)
   }    
 
   /**
@@ -68,7 +61,7 @@ class usd {
    * Transfer funds from this account to another.
    * @param float $amount: the amount to transfer
    * @param usd $other: the other account
-   * @param string $notes: description of transaction (to be prefixed with "r: "), limited to 250-3 characters
+   * @param string $notes: description of transaction (to be prefixed with "r: "), limited to 250-4 characters
    * @param bool $payerFee: the payer pays the transaction fee (if any) -- otherwise (default) the payee pays it
    * $param bool $direct: the funds must already be in the Dwolla account (no 3-day delay)
    * @param string $error: (RETURNED) an error message on failure
@@ -92,12 +85,17 @@ class usd {
   
   /**
    * Handle callbacks from the USD institution
-   * The calling institution is expected to be explicit in the callback info
-   * UNUSED at present
+   * The calling institution is expected to be explicit in the callback info.
+   * Used at present only for getting the auth token from Dwolla.
+   * @param int $uid: the account id of the rCredits account for which we are getting a callback
    */
-  public static function callback() {
-    extract(u\just('this that theother', $_POST));
-    
+  public static function callback($uid) {
+    extract(u\just('oauth', $_POST));
+    $acct = r\acct($uid);
+    $secure = $acct->secure;
+    $secure['auth'] = $oauth;
+    $acct->update(compact('secure'));
+    r\go('account/usd/connected'); // tell user we were successful
   }
 
   /**

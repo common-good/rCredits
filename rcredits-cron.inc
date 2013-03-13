@@ -75,7 +75,7 @@ function everyYear() {
 }
 
 function lostUsdTxs() {
-	$result = r\dbQ('SELECT uid FROM users WHERE flags&BIT_RTRADER');
+	$result = r\dbQ('SELECT uid FROM users WHERE flags&:BIT_RTRADER');
 	while($uid = $result->fetchColumn()) r\queue('lostUsdTx', compact('uid'));
   r\queue('lostUsdTx', FALSE);
 }
@@ -89,9 +89,9 @@ function lostUsdTx($item) {
 
 function lostUsdTx1($info) {
   extract(u\just('txid amount dateOfTransaction', $info));
-  if (r\dbLookup(1, 'r_usd', 'txid=:txid', compact('txid'))) return;
+  if (r\dbExists('r_usd', 'txid=:txid', compact('txid'))) return;
   $payer = $payee = 0; // irrelevant
-  $created = $dateOfTransaction; // need proper param here
+  $created = strtotime(str_replace('/', '.', $dateOfTransaction)); // (need proper param here) convert to day-first format
   r\usd::rollback(array(compact(u\ray('txid amount payer payee created'))));
 }
 

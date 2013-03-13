@@ -14,7 +14,7 @@ Setup:
   | :AAAB | %today-6m | %TX_SIGNUP |    250 | community | .ZZA | signup  | 0      |
   | :AAAC | %today-6m | %TX_SIGNUP |    250 | community | .ZZB | signup  | 0      |
   | :AAAD | %today-6m | %TX_SIGNUP |    250 | community | .ZZC | signup  | 0      |
-  Then "asif" balances:
+  Then balances:
   | id        | balance |
   | community |    -750 |
   | .ZZA      |     250 |

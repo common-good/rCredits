@@ -19,7 +19,7 @@ class call {
   var $number; // calling phone number
   var $uid; // record id of caller's record in user table (duplicates $cacct->id and can probably be eliminated, but look carefully
     // at storing $this for todo and retrieving
-  var $zxid; // record id of transaction, related to an operation awaiting confirmation (negative for asif transactions)
+  var $xid; // record id of transaction, related to an operation awaiting confirmation
   var $command; // the major command operation (as parsed)
   var $parms; // parameters to the command (as parsed)
   var $confirmed; // whether the operation has been confirmed
@@ -260,7 +260,7 @@ class call {
     extract($this->parms, EXTR_PREFIX_ALL, 'my');	// who and/or tofrom
 
     if ($this->confirmed) {
-      list ($message, $args) = be\undoTx($my_zxid);
+      list ($message, $args) = be\undoTx($my_xid);
       return tt($message, $args);
     }
     
@@ -280,7 +280,7 @@ class call {
 
     $oldRecord = be\lastTx($where, compact(u\ray('cuid otherUid')));
     if ($error = r\nonoUndo($oldRecord, $subs)) return array($error, $subs);
-    $this->parms['zxid'] = $oldRecord['zxid'];
+    $this->parms['xid'] = $oldRecord['xid'];
     return $this->confirm('undo', r\txReportArgs($oldRecord, FALSE));
   }
 
@@ -300,12 +300,12 @@ class call {
    */
   function do_payment() {
     $cuid = r\acct()->id;
-    extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, what, and maybe zxid
+    extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, what, and maybe xid
     if (isset($my_amount)) return $this->do_transfer('payment'); // complete syntax
     
     // confirmed invoice payment
     if ($this->confirmed) {
-      list ($message, $args) = be\payInvoice($my_zxid);
+      list ($message, $args) = be\payInvoice($my_xid);
       return tt($message, $args);
     }
     
@@ -317,7 +317,7 @@ class call {
       $where .= ' AND payee=:otherUid';
     }
     if(!$result = be\lastTx($where, compact(u\ray('cuid otherUid')))) return tt('no matching invoice');
-    $this->parms['zxid'] = $result['zxid'];
+    $this->parms['xid'] = $result['xid'];
     return $this->confirm('pay invoice', r\txReportArgs($result));
   }
   

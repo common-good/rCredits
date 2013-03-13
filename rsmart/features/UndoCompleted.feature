@@ -57,7 +57,7 @@ Setup:
   | NEW:AAAK | %today-1d | %TX_TRANSFER | %TX_DONE    |     80 | NEW.ZZA   | NEW.ZZC | whatever54   | 000000 |
   | NEW:AAAL | %today-1d | %TX_REBATE   | %TX_DONE    |      4 | community | NEW.ZZA | rebate on #5 | 000000 |
   | NEW:AAAM | %today-1d | %TX_BONUS    | %TX_DONE    |      8 | community | NEW.ZZC | bonus on #4  | 000000 |
-  Then "asif" balances:
+  Then balances:
   | id        | balance |
   | community |    -768 |
   | NEW.ZZA   |     166 |
@@ -76,7 +76,7 @@ Scenario: A member asks to undo a completed payment
   | created   | amount | tofrom  | otherName | purpose    |
   | %today-1d | $80    | to      | Corner Pub | whatever54 |
   # "Undo 01-02-2012 payment of $80 to Corner Pub for whatever?"
-  And "asif" balances:
+  And balances:
   | id        | balance |
   | community |    -768 |
   | NEW.ZZA   |     166 |
@@ -98,7 +98,7 @@ Scenario: A member confirms request to undo a completed payment
   And we email "new-invoice" to member "c@example.com" with subs:
   | created | fullName   | otherName | amount | payerPurpose |
   | %today  | Corner Pub | Abe One   | $80    | reverses #4  |
-  And "asif" balances:
+  And balances:
   | id        | balance |
   | community |    -768 |
   | NEW.ZZA   |     166 |
@@ -129,7 +129,7 @@ Scenario: A member confirms request to undo a completed charge
   And we email "new-payment" to member "a@example.com" with subs:
   | created | fullName | otherName  | amount | payeePurpose |
   | %today  | Abe One  | Corner Pub | $80    | reverses #5  |
-  And "asif" balances:
+  And balances:
   | id        | balance |
   | community |    -756 |
   | NEW.ZZA   |     242 |
@@ -150,7 +150,7 @@ Scenario: A member confirms request to undo a completed cash payment
   And we email "new-invoice" to member "c@example.com" with subs:
   | created | fullName   | otherName | amount | payerPurpose |
   | %today  | Corner Pub | Bea Two   | $5     | reverses #3  |
-  And "asif" balances:
+  And balances:
   | id        | balance |
   | community |    -768 |
   | NEW.ZZA   |     166 |
@@ -171,7 +171,7 @@ Scenario: A member confirms request to undo a completed cash charge
   And we email "new-payment" to member "b@example.com" with subs:
   | created | fullName | otherName  | amount | payeePurpose |
   | %today  | Bea Two  | Corner Pub | $5     | reverses #4  |
-  And "asif" balances:
+  And balances:
   | id        | balance |
   | community |    -768 |
   | NEW.ZZA   |     166 |
@@ -187,7 +187,7 @@ Scenario: A member confirms request to undo a completed payment unilaterally
   And we email "new-invoice" to member "c@example.com" with subs:
   | created | fullName   | otherName | amount | payerPurpose |
   | %today  | Corner Pub | Abe One   | $80    | reverses #4  |
-  And "asif" balances:
+  And balances:
   | id        | balance |
   | community |    -768 |
   | NEW.ZZA   |     166 |

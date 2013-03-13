@@ -351,6 +351,15 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformrelations .rel-link {width:4%;}
 #rcreditswebformrelations .highlight input {background-image:url(../images/buttons/buttons-highlight.png);}
 
+/* Open Another Account form */
+#rcreditswebformanother #edit-relationprompt {font-weight:bold; margin-bottom:5px;}
+#rcreditswebformanother #edit-flowprompt {font-weight:bold; margin-bottom:5px; margin-top:20px;}
+
+#rcreditswebformanother label.option {font-weight:normal;}
+#rcreditswebformanother .form-item {margin-left:125px;}
+#rcreditswebformanother .form-type-radio {margin-left:0px;}
+#rcreditswebformanother #edit-submit {margin-top:20px;}
+
 /* Cell */
 #rcreditswebformcell input#edit-delete {margin-right:100%;}
 #rcreditswebformcell table.table-select-processed {width:300px;}

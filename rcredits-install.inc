@@ -39,11 +39,12 @@ function tableDefs($schema = array()) {
     'description' => setupField('markup text describing the company (unused for personal accounts)', 'text medium'),
     'notes' => setupField('miscellaneous notes about the user or the account', 'text medium'),
     'signed_agreement' => setupField('when did this person sign the rCredits Agreement', 'int 11'),
+    'signed_by' => setupField('who signed the agreement (on behalf of the account)', 'varchar 60'),
     'rebate_percent' => setupField('current rebate percentage (sales bonus is double)', 'numeric 4,3', 5),
     'tithe' => setupField('fraction of rebates and bonuses to contribute back to Common Good Finance', 'numeric 6,3', 0),
-    'demand' => setupField('waiting to trade this much USD for rCredits (or vice-versa)', 'numeric 11,2', 0),
-    'demand_date' => setupField('date/time of request for rCredits (or USD)', 'int 11'),
-    'counts' => setupField('counts of command use, etc.', 'int big', 0),
+//    'demand' => setupField('waiting to trade this much USD for rCredits (or vice-versa)', 'numeric 11,2', 0),
+//    'demand_date' => setupField('date/time of request for rCredits (or USD)', 'int 11'),
+//    'counts' => setupField('counts of command use, etc.', 'int big', 0),
     'floor' => setupField('how low can balance go (normally zero or less)', 'numeric 11,2', R_FLOOR),
 //    'usd_account' => setupField('USD account number', 'varchar 36'),
     'minimum' => setupField('chosen minimum balance (savings + 3 days, fill automatically)', 'numeric 11,2', NULL),
@@ -96,13 +97,13 @@ function tableDefs($schema = array()) {
   $indexes = index('uid');
   $schema['r_sms'] = setupTable('SMS cell numbers corresponding to user accounts', $fields, 'number', $foreign_keys, $indexes);
   
-  // table r_txs (and r_asif)
+  // table r_txs
   $fields = array(
     'xid' => setupField('the unique transaction ID', 'serial 11'), 
     'serial' => setupField('serial number of related transactions (=xid of first transaction in the group)', 'int 11'), 
     'type' => setupField('transaction type (transfer, rebate, etc.)', 'int tiny'), 
     'taking' => setupField('was the transaction initiated by the payee', 'int tiny'), 
-    'goods' => setupField('is this transfer and exchange for real goods and services?', 'int tiny'), 
+    'goods' => setupField('is this transfer an exchange for real goods and services?', 'int tiny'), 
     'state' => setupField('done, pending, disputed, etc', 'int tiny'), 
     'amount' => setupField('amount in rCredits', 'numeric 11,2'), 
     'r' => setupField('amount in rCredits', 'numeric 11,2'), 
@@ -112,21 +113,21 @@ function tableDefs($schema = array()) {
     'payee_agent' => setupField("user id of payee's agent (who approved this transaction for the payee)", 'int 11'), 
     'payer_for' => setupField("payer's description", 'varchar 60'), 
     'payee_for' => setupField("payee's description", 'varchar 60'), 
+    'payer_tid' => setupField("payer's transaction ID", 'int 11'),
+    'payee_tid' => setupField("payee's transaction ID", 'int 11'),
     'data' => setupField('info stored elsewhere, duplicated here for convenience (serialized array)', 'text big'), 
     'channel' => setupField('through what medium was the transaction entered', 'int tiny'), 
     'created' => setupField('Unixtime transaction was created', 'int 11'),
-    'completed' => setupField('Unixtime transaction was completed', 'int 11'), // MYSQL reserves DATE, COMPLETED, WHEN
+    'completed' => setupField('Unixtime transaction was completed', 'int 11'),
   );
   $foreign_keys = foreignKey('payer') + foreignKey('payee') + foreignKey('payer_agent') + foreignKey('payee_agent');
   $indexes = index('payer') + index('payee') + index('created') + index('completed'); // also serial/type/taking/goods/state/payer_agent/payee_agent/channel/?
   $schema['r_txs'] = setupTable('Record of all rCredits transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
 
-  $schema['r_asif'] = setupTable('Record of pretend (asif) transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
-  
 //  foreach (u\ray('type taking goods payer_agent payee_agent payer_for payee_for') as $one) unset($fields[$one]);
   $fields = array(
     'txid' => setupField('the unique transaction ID', 'varchar 255'), 
-    'goods' => setupField('is this transfer and exchange for real goods and services?', 'int tiny'), 
+    'goods' => setupField('is this transfer an exchange for real goods and services?', 'int tiny'), 
     'amount' => setupField('amount in rCredits', 'numeric 11,2'), 
     'payer' => setupField('user id of the payer', 'int 11'), 
     'payee' => setupField('user id of the payee', 'int 11'), 
@@ -173,7 +174,6 @@ function tableDefs($schema = array()) {
     'time' => setupField('date/time requested', 'int 11'),
     'amount' => setupField('request amount', 'numeric 11,2'), 
     'who' => setupField('uid of the account requesting rCredits', 'int 11'),
-    'is_real' => setupField('was the account an rTrader at the time of the request', 'int tiny'), // "real" is a reserved word
   );
   $foreign_keys = foreignKey('who');
   $indexes = index('who');
@@ -187,6 +187,7 @@ function tableDefs($schema = array()) {
     'foreign_uid' => setupField('uid of the foreign main account or foreign agent in their own region (main or other is then the region)', 'int 11'),
     'foreign_name' => setupField('full name of the foreign main account or foreign agent', 'varchar 60'),
     'amount' => setupField('average monthly amount paid to other', 'numeric 11,2', 0), // typically to employee or supplier
+    'flow' => setupField('which way credit can flow 1=to other 2=to main 3=both 0=neither', 'int tiny', 0),
     'permission' => setupField('what type of permission the agent has on the main account', 'int tiny', 0),
     'employer_ok' => setupField('employer says this agent is an employee', 'int tiny', 0),
     'employee_ok' => setupField('employee says this agent is an employee', 'int tiny', 0),
@@ -245,7 +246,6 @@ function tableDefs($schema = array()) {
   $fields = array(
     'type' => setupField('what is being counted', 'varchar 255'),
     'channel' => setupField('through what channel did it happen', 'int 11'),
-    'real' => setupField('is it for real (or just asif)', 'int tiny'),
     'count' => setupField('the count', 'int big', 0),
   );
   $schema['r_counts'] = setupTable('How many this and that overall, through the various channels', $fields, array('type', 'channel'));
@@ -399,7 +399,7 @@ function oldVersion($version, $when) {
   //  if ($version >= '1.0b') return;
   
   if (\db_table_exists('r_countries')) {
-    if (dbLookup(1, 'users', "country='United States'")) {
+    if (dbExists('users', "country='United States'")) {
       $sql = <<< EOF
         UPDATE users u
           INNER JOIN r_countries c ON BINARY c.name=BINARY u.country
@@ -426,8 +426,6 @@ EOF;
       DROP answer,
       DROP federal_id;
       UPDATE users SET account_type=IF(uid<100, 0, 1) WHERE account_type IS NULL;
-      UPDATE r_asif SET state=-1 WHERE state=0;
-      UPDATE r_asif SET state=0 WHERE state=2;
       UPDATE r_txs SET state=-1 WHERE state=0;
       UPDATE r_txs SET state=0 WHERE state=2;
 EOF;

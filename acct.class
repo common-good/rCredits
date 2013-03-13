@@ -33,51 +33,60 @@ class acct {
    * @param id/qid $agent: the agent's record id on this server OR the foreign agent's qid (DEFAULT to same as $id)
    */
   function __construct($id = array(), $agent = '') {
-    if (!is_array($info = $id)) { // referring to existing db record
-      list($this->id, $this->agentId, $this->regionId, $this->agentIdRegion) = acct::ok($id, $agent, $zot, FALSE);
-//      if (!@$this->secure['card_code']) $this->secure = compact('card_code'); // delete this line once every account has one
-    } else { // create new db record
-      extract($info, EXTR_PREFIX_ALL, 'my');   
-      if (isset($my_number) and !isset($my_phone)) $my_phone = $my_number;
-      if (isset($my_phone)) $info['phone'] = u\formatPhone($my_phone, '+n');
-      
-      $info['mail'] = $info['init'] = @$my_mail ?: (@$my_email ?: '');
-    // Don't create a password (that's how we know it's a temporary account) $info['pass'] = \user_password();
-      $short_name = @$my_full_name ? u\shortName($my_full_name) : '';
-      $info['name'] =  @$my_name ?: (@$short_name ?: tempName($info));
-      $info['full_name'] = @$my_full_name ?: $info['name'];
-      $info['status'] = TRUE;
-      $info['is_new'] = TRUE;
-      $info['roles'] = 0; // this keeps Drupal happy in user.module
-      $info['flags'] = @$my_flags ?: (@$info['uid'] ? (BIT_DEFAULTS | BIT_RTRADER) : BIT_DEFAULTS);
-      $info['community'] = communityUid(@$my_postal_code); // defaults to current server
-      $card_code = u\randomString(R_CARDCODE_LEN); // in case we have not yet created an rCard security code
-      $info['secure'] = compact('card_code');
-      $info['data'] = serialize(@$my_data ?: array());
+    if (is_array($info = $id)) { // referring to existing db record
+      $this->createNew($info); // create new db record
+    } else list($this->id, $this->agentId, $this->regionId, $this->agentIdRegion) = acct::ok($id, $agent, $zot, FALSE);
 
-      /*** Begin DBTX ***/ $dbtx = db_transaction();
-      if (!$uid = @$info['uid']) {
-        for ($try = 0; $try < 20; $try++) { // limit the retries
-          $uid = $info['uid'] = self::nextId();
-          if (\drupal_write_record('users', $info)) break;
-        }
-      } elseif (!\drupal_write_record('users', $info)) $try = 20; // predestined uid (probably for testing)
-      u\EXPECT(@$try < 20, 'failed to save user record');
-      if (isset($my_number)) {
-        $success = SMS\create($my_number, $uid);
-        u\EXPECT($success, 'Unable to create SMS record.');
-      }
-      /*** End DBTX ***/ unset($dbtx);
-
-      $region = communityUid();
-      list($this->id, $this->agentId, $this->regionId, $this->agentIdRegion) = array($uid, $uid, $region, $region);
-      self::$records[$this->id] = (object) $info;
-    }
-    if ($this->id > 0) { // no qids for communities and regions!
-//      $this->mainQid = qid($this->id, u\n2a(-$this->regionId, 3), 3);
-      $this->mainQid = qid($this->id, u\n2a(-$this->regionId, 3), 3);
-    }
+    if ($this->id > 0) $this->mainQid = qid($this->id, u\n2a(-$this->regionId, 3), 3); // no qids for communities and regions!
   }    
+
+  /**
+   * Create a new account record in the database.
+   * @param assoc $info: array of field values for new account
+   */
+  private function createNew($info) {
+    extract($info, EXTR_PREFIX_ALL, 'my');   
+    if (isset($my_number) and !isset($my_phone)) $my_phone = $my_number;
+    if (isset($my_phone)) $phone = u\formatPhone($my_phone, '+n');
+    
+    $status = TRUE;
+    $mail = $init = @$my_mail ?: (@$my_email ?: '');
+    if (@$my_pass) {
+      require_once DRUPAL_ROOT . '/includes/password.inc';
+      $pass = \user_hash_password(trim($my_pass));
+    }
+    $short_name = @$my_full_name ? u\shortName($my_full_name) : '';
+    $name =  @$my_name ?: (@$short_name ?: tempName($info));
+    $full_name = @$my_full_name ?: $info['name'];
+    $flags = @$my_flags ?: BIT_DEFAULTS;
+    $community = communityUid(@$my_postal_code); // defaults to current server
+    $data = serialize(@$my_data ?: array());
+    $created = REQUEST_TIME;
+    $info = compact(u\ray('phone status mail init pass name full_name flags community data created')) + $info;
+    /*!*/ $dbtx = db_transaction();
+    if ($uid = @$my_uid) {
+      $try = \drupal_write_record('users', $info) ? 0 : 20; // predestined uid (probably for testing)
+    } else for ($try = 0; $try < 20; $try++) { // limit the retries
+      $uid = $info['uid'] = self::nextId();
+      if (\drupal_write_record('users', $info)) break;
+    }
+    u\EXPECT(@$try < 20, 'failed to save user record');
+    if (isset($my_number)) {
+      $success = SMS\create($my_number, $uid);
+      u\EXPECT($success, 'Unable to create SMS record.');
+    }
+
+//      $info['roles'] = 0; // these keep Drupal happy in user.module
+
+    $region = communityUid();
+    list($this->id, $this->agentId, $this->regionId, $this->agentIdRegion) = array($uid, $uid, $region, $region);
+    self::$records[$this->id] = (object) $info;
+    
+    $card_code = u\randomString(R_CARDCODE_LEN); // create an rCard security code
+    $secure = compact('card_code');
+    $this->update(compact('secure')); // this is easier to do after saving the record
+    /*!*/ unset($dbtx);
+  }
 
   /**
    * Setup acct variables, returning FALSE on error.
@@ -169,7 +178,7 @@ class acct {
   }
   
   public static function _clear() {self::$perms = self::$records = array();}
-  public static function nextId() {return max(@TESTING == 1 ? 1000 : -9999999, dbLookup('MAX(uid)', 'users', 1)) + 1;}
+  public static function nextId() {return max(\testing() ? 1000 : -9999999, dbLookup('MAX(uid)', 'users', 1)) + 1;}
   
   /**
    * Update the saved record in the database with the given data.
@@ -255,15 +264,23 @@ class acct {
 
       $perms[PERM_ADMIN] = $agent->hasBit(BIT_ADMIN);
       $perms[PERM_CTTY_ADMIN] = $agent->hasBit(BIT_CTTY_ADMIN);
-      if ($perms[PERM_ADMIN] and R_ADMIN_CAN_MANAGE_CTTYS) $perms[PERM_CTTY_ADMIN] = TRUE; // temporary extra power, until communities are independent
 
-      if ($this->proSe()) {
-        $can = ($id < 0) ? 0 : PERM_MANAGE; // communities must be managed by an agent, never directly
-      } else $can = ($perms[PERM_CTTY_ADMIN] and ($perms[PERM_ADMIN] or $this->community == $agent->community)) ? PERM_MANAGE : relation('permission', $id, $this->agentId);
+      $can = $this->proSe() ?
+          (($id < 0) ? 0 : PERM_MANAGE) // communities must be managed by an agent, never directly
+        : ($perms[PERM_CTTY_ADMIN] and ($perms[PERM_ADMIN] or $this->community == $agent->community)) ? 
+              PERM_MANAGE : relation('permission', $id, $this->agentId);
       for ($i = 0; $i <= PERM_MANAGE; $i++) $perms[$i] = ($i <= $can); // set all permissions, even the false ones
+      if (!$perms[PERM_RTRADER]) $perms[PERM_READ] = $perms[PERM_SELL] = $perms[PERM_BUY] = FALSE; // no ASIFs!
 
       $perms[PERM_MANAGING_CTTY] = ($perms[PERM_CTTY_ADMIN] and $this->id == $this->community);
-      if ($perms[PERM_MANAGING_CTTY]) $perms[PERM_BUY] = $perms[PERM_SELL] = FALSE;
+      if ($perms[PERM_MANAGING_CTTY]) $perms[PERM_BUY] = $perms[PERM_SELL] = FALSE; // ctty admin can manage but not buy/sell
+      
+      if ($perms[PERM_ADMIN]) {
+        if (R_ADMIN_CAN_MANAGE_CTTYS) $perms[PERM_CTTY_ADMIN] = TRUE; // temporary extra power, until communities are independent
+        $perms[PERM_COMPANY] = TRUE; // show company form, disallow personal stuff
+        $perms[PERM_READ] = $perms[PERM_SELL] = $perms[PERM_BUY] = TRUE;
+      }
+      
       ksort($perms); // easier to debug
       self::$perms[$this->id][$this->agentId] = $perms;
     }

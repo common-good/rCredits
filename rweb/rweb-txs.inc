@@ -20,9 +20,8 @@ function formTxs($form, &$sta, $args = '') {
   $cuid = $cacct->id;
   $cttyAdmin = $cacct->can(PERM_CTTY_ADMIN);
   
-  extract(u\just('real agents channels period starting ending do zxid download downloaded variety', $args)); 
+  extract(u\just('agents channels period starting ending do xid download downloaded variety', $args)); 
   $report = $cttyAdmin ? (@$variety == 'report') : FALSE; // no community reports yet for non-admins
-  $real = r\isRTrader() ? (isset($real) ? $real : TRUE) : FALSE;
   
   if ($report) { // community transaction history
     $page = 'reports';
@@ -31,11 +30,11 @@ function formTxs($form, &$sta, $args = '') {
   } else { // individual account transaction history
     $page = 'transactions';
     $do = in_array(@$do, u\ray('ok no edit')) ? $do : '';
-    $zxid = (int) (@$zxid ?: 0);
-    if ($do == 'edit') return tx_edit($zxid);
+    $xid = (int) (@$xid ?: 0);
+    if ($do == 'edit') return tx_edit($xid);
     if ($do == 'ok' or $do == 'no') {
-      if ($confirm = txConfirm($do, $zxid, $sta)) return $confirm;
-      if (!$sta['rebuild']) txOKorNO($do, $zxid); // don't do anything if canceling
+      if ($confirm = txConfirm($do, $xid, $sta)) return $confirm;
+      if (!$sta['rebuild']) txOKorNO($do, $xid); // don't do anything if canceling
       $url = str_replace('&do=', '&did=', "transactions/$args"); // don't do it again
       r\go($url); // back to the normal form
     }
@@ -44,7 +43,7 @@ function formTxs($form, &$sta, $args = '') {
     if (@$agents) {$classes .= ' agent'; $headers .= t(',Agent');}
     list ($canSell, $canBuy) = array($cacct->can(PERM_SELL), $cacct->can(PERM_BUY));
   }
-  $url0 = @"$base_url/$page/real=$real&period=$period&agents=$agents&channels=$channels&variety=$variety";
+  $url0 = @"$base_url/$page/period=$period&agents=$agents&channels=$channels&variety=$variety";
   if (@$channels) {$classes .= ' channel'; $headers .= t(',Via');}
   $classes = u\ray($classes);
   
@@ -61,8 +60,7 @@ function formTxs($form, &$sta, $args = '') {
     header('Content-type: text/plain');
     $dt1 = strftime('%Y%m%d', $starting);
     $dt2 = strftime('%Y%m%d', $ending);
-    $asif = $real ? '' : 'asif';
-    $filename = "rcredits$dt1-$dt2$asif.csv";
+    $filename = "rcredits$dt1-$dt2.csv";
     header("Content-Disposition: attachment; filename=\"$filename\"");
     $csv = fopen('php://output', 'w');
     
@@ -73,14 +71,14 @@ function formTxs($form, &$sta, $args = '') {
     fputcsv($csv, $header);
   }
 
-//  $records = be\myTransactions(compact(u\ray('starting ending real'))); // we use $rows for another purpose, below
-  $result = be\myTransactions(compact(u\ray('starting ending real'))); // we use $rows for another purpose, below
+//  $records = be\myTransactions(compact(u\ray('starting ending'))); // we use $rows for another purpose, below
+  $result = be\myTransactions(compact(u\ray('starting ending'))); // we use $rows for another purpose, below
   $rows = array();
   for ($rowNum = 0; $rowNum < $maxRows; $rowNum++) {
     if (!$record = $result->fetchAssoc()) break;
 //  foreach ($records as $record) {
     extract($record, EXTR_PREFIX_ALL, 'tx');
-    $zxid = $real ? $tx_xid : -$tx_xid;
+    $xid = $tx_xid;
     $data = unserialize($tx_data);
     $is_reward = ($tx_type != TX_TRANSFER);
     $amount = number_format($tx_r, 2);
@@ -95,11 +93,11 @@ function formTxs($form, &$sta, $args = '') {
       $reward = @$data['bonus'] + @$data['rebate'];
       txNeatAmounts($amount, $reward, $is_reward);
       $state = txColoredState($tx_state);
-      $tid = str_replace('-', 'a', $zxid);
+      $tid = $xid; // for community use the actual transaction numbers
       $row = array($tid, strftime('%d-%b-%Y', $date), r\acct($tx_payer)->full_name, r\acct($tx_payee)->full_name, $total, $amount, $usd, $rpct, $state, $tx_purpose, $reward);
     } else { // individual account transaction history
-      $url = $url0 . "&zxid=$zxid";
-      $tid = be\zxid2tid($zxid);
+      $url = $url0 . "&xid=$xid";
+      $tid = be\xid2tid($xid);
       $toMe = ($tx_payee == $cuid);
       $byMe = ($tx_taking == $toMe);
       $agent = $toMe ? $tx_payee_agent : $tx_payer_agent;
@@ -108,7 +106,7 @@ function formTxs($form, &$sta, $args = '') {
       txNeatAmounts($amount, $reward, $is_reward);
       list ($to_you, $from_you) = $toMe ? array($amount, R_NONE) : array(R_NONE, $amount);
       $button1 = (!$byMe and $tx_state == TX_PENDING) ? button('OK', "$url&do=ok", tx_action('ok', $tx_state, $toMe, $byMe)) : '';
-      $button2 = ((!$is_reward or $cttyAdmin) and !@$data['undone']) ? button(' X ', "$url&do=no", tx_action('no', $tx_state, $toMe, $byMe)) : '';
+      $button2 = ((!$is_reward or $cttyAdmin) and !@$data['undoneBy']) ? button(' X ', "$url&do=no", tx_action('no', $tx_state, $toMe, $byMe)) : '';
       $button3 = (($tx_taking ? $canSell : $canBuy) and !$is_reward) ? "<a href='$url&do=edit' title='Edit Purpose'><img src='$base_url/sites/all/modules/rcredits/images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
       $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
       $row = array($tid, strftime('%d-%b', $date), $tx_name, $from_you, $to_you, $rpct, $state, $buttons, $tx_purpose, $reward);
@@ -152,8 +150,6 @@ function formTxs($form, &$sta, $args = '') {
     $summary = formField('markup', '', '', array('markup' => tx_summary($starting, $ending)));
   }
 
-  $real = !r\isRTrader() ? item('') 
-    : formField('radios', t('Show:'), '', dft($real), array(R_ASIF_TEXT . t(' Transactions'), t('Real Transactions')));
   $period = formField('select', t('For the past:'), '', dft(@$period ?: TX_DEFAULT_PERIOD), $txDays);
   $submitPeriod = submit(t('Show ')); // label has to be different from submitDates (see below)
   $downloadPeriod = submit(t('Download'));
@@ -165,15 +161,15 @@ function formTxs($form, &$sta, $args = '') {
   $title = item(t('rCredits Transaction History'));
   $subtext = item(t('Only the rCredits part of each transaction is shown. The "r%" column tells what percentage this represents of the total transaction amount. Hover over the figure in the "r%" column to see the total and US Dollar amounts.'));
 
-  $form = compact(u\ray('title subtext agents channels real period submitPeriod downloadPeriod starting ending submitDates downloadDates summary transactions'));
+  $form = compact(u\ray('title subtext agents channels period submitPeriod downloadPeriod starting ending submitDates downloadDates summary transactions'));
   if (@$downloaded) js("window.open(\"$url0&download=1\")", 'inline', 'footer');
   return labeled($form);
 }
 
-function txConfirm($do, $zxid, &$sta) {
+function txConfirm($do, $xid, &$sta) {
   $cuid = r\acct()->id;
   if (confirming_v($sta)) return FALSE;
-  if (!$details = be\lastTx('xid=:zxid', compact('zxid'), TRUE)) return FALSE; // bail on hack attempt
+  if (!$details = be\lastTx('xid=:xid', compact('xid'), TRUE)) return FALSE; // bail on hack attempt
   extract(r\txReportArgs($details), EXTR_PREFIX_ALL, 'my');
   $action = tx_action($do, $my_state, $my_toMe, $my_byMe);
   confirm(t('Are you sure you want to ') . "$action?<br>($my_summary)", $sta); // sets 'confirm'
@@ -182,16 +178,15 @@ function txConfirm($do, $zxid, &$sta) {
 
 function formTxs_validate($form, &$sta) {
   $txDays = @$form['period']['#options'];
-  extract(u\just('real period starting ending op', $sta['values']));
+  extract(u\just('period starting ending op', $sta['values']));
   list ($sta['values']['starting'], $sta['values']['ending']) = strpos(op($sta), 'Period') ? txDates($txDays, @$period) : txDates($txDays, '', @$starting, @$ending);
 }
 
 function formTxs_submit($form, &$sta, $page = 'transactions') {
   global $base_url;
   if (confirming_s($sta)) return;
-  extract(u\just('real period starting ending agents channels op', $sta['values']));
-  $real = @$real; // avoid warning, in case it was hidden
-  $url = @"$page/real=$real&period=$period&starting=$starting&ending=$ending&agents=$agents&channels=$channels";
+  extract(u\just('period starting ending agents channels op', $sta['values']));
+  $url = @"$page/period=$period&starting=$starting&ending=$ending&agents=$agents&channels=$channels";
   if ($op == t('Download')) {
     say('downloading');
     $url .= '&downloaded=1';    
@@ -249,23 +244,23 @@ function tx_action($do, $state, $toMe, $byMe) {
 /**
  * Handle click on 'OK' or 'NO' (approving or undoing a transaction)
  */
-function txOKorNO($tx_task, $zxid) {
+function txOKorNO($tx_task, $xid) {
   $cuid = r\acct()->id;
-  if (!$result = be\lastTx('xid=:zxid', compact('zxid'), TRUE)) return FALSE; // bail on hack attempt
+  if (!$result = be\lastTx('xid=:xid', compact('xid'), TRUE)) return FALSE; // bail on hack attempt
   extract(u\just('state amount toMe', $result));
   if ($tx_task == 'ok') { // OK
     u\EXPECT($state == TX_PENDING);
     if ($toMe) {
-      r\setTxState(TX_DONE, $zxid); // accept the payment
+      r\setTxState(TX_DONE, $xid); // accept the payment
       // DWOLLA: initiate transfer from user to community
       list ($message, $args) = array('payment accepted', compact('amount'));
-    } else list ($message, $args) = be\payInvoice($zxid);
-  } else list ($message, $args) = be\undoTx($zxid); // NO
+    } else list ($message, $args) = be\payInvoice($xid);
+  } else list ($message, $args) = be\undoTx($xid); // NO
   say($message, $args);
 }
 
-function tx_edit($zxid) {
-  if (!$details = be\lastTx('xid=:zxid', compact('zxid'), TRUE)) return FALSE; // bail on hack attempt
+function tx_edit($xid) {
+  if (!$details = be\lastTx('xid=:xid', compact('xid'), TRUE)) return FALSE; // bail on hack attempt
   extract(u\just('taking purpose role', r\txReportArgs($details)));
   
   if (!r\acct()->can($taking ? PERM_SELL : PERM_BUY)) return FALSE;
@@ -275,7 +270,7 @@ function tx_edit($zxid) {
 //    'review' => formField('item', $tx_summary),
     'purpose' => textField(t('Purpose'), '', dft($purpose)),
     'go' => formField('submit', NULL, t('Submit button'), 'Update'),
-    'zxid' => formField('hidden', $zxid),
+    'xid' => formField('hidden', $xid),
     'field' => formField('hidden', $role . '_for'),
     
     '#validate' => array('rCredits\\Web\\tx_edit_validate'),
@@ -289,7 +284,7 @@ function tx_edit_validate($form, &$sta) {
 
 function tx_edit_submit($form, &$sta) {
   extract($sta['values']);
-  r\setTxField($field, $purpose, $zxid);
+  r\setTxField($field, $purpose, $xid);
   $sta['redirect'] = 'transactions';
 }
 

@@ -72,7 +72,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
     . '\\| NEW:AAAI | %today-3d | %TX_REBATE   | %TX_DONE    |      5 | community | NEW.ZZC | rebate on #2 | 000000 |'
     . '\\| NEW:AAAJ | %today-3d | %TX_BONUS    | %TX_DONE    |     10 | community | NEW.ZZA | bonus on #3  | 000000 |'
     . '\\| NEW:AAAK | %today-2d | %TX_TRANSFER | %TX_DONE    |    100 | NEW.ZZA   | NEW.ZZB | cash I       | 000000 |"');
-    Then_('"asif" balances: "DATA'
+    Then_('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -795 |'
     . '\\| NEW.ZZA   |      70 |'
@@ -109,7 +109,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
     . '\\| NEW:AAAI | %today-3d | %TX_REBATE   | %TX_DISPUTED    |      5 | community | NEW.ZZC | rebate on #2 | 000000 |'
     . '\\| NEW:AAAJ | %today-3d | %TX_BONUS    | %TX_DISPUTED    |     10 | community | NEW.ZZA | bonus on #3  | 000000 |'
     . '\\| NEW:AAAK | %today-2d | %TX_TRANSFER | %TX_DISPUTED    |    100 | NEW.ZZA   | NEW.ZZB | cash I       | 000000 |"');
-    Then_('"asif" balances: "DATA'
+    Then_('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -795 |'
     . '\\| NEW.ZZA   |      70 |'
@@ -128,7 +128,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom | otherName | purpose |'
     . '\\| %today-3d | $100   | to     | Abe One   | labor H |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -795 |'
     . '\\| NEW.ZZA   |      70 |'
@@ -145,7 +145,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
     And__('we email "new-invoice" to member "a@example.com" with subs: "DATA'
     . '\\| created | fullName  | otherName  | amount | payerPurpose |'
     . '\\| %today  | Abe One   | Corner Pub | $100   | reverses #3  |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -795 |'
     . '\\| NEW.ZZA   |      70 |'
@@ -160,7 +160,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom  | otherName | purpose |'
     . '\\| %today-3d | $100   | to      | Abe One   | labor H |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -795 |'
     . '\\| NEW.ZZA   |      70 |'
@@ -179,7 +179,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
     And__('we email "new-invoice" to member "a@example.com" with subs: "DATA'
     . '\\| created | fullName | otherName  | amount | payerPurpose |'
     . '\\| %today  | Abe One  | Corner Pub | $100   | reverses #3  |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -795 |'
     . '\\| NEW.ZZA   |      70 |'
@@ -194,7 +194,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom | otherName  | purpose |'
     . '\\| %today-3d | $100   | from   | Corner Pub | labor H |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -795 |'
     . '\\| NEW.ZZA   |      70 |'
@@ -209,7 +209,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
     Then_('we respond success 0 tx_id "" my_balance "$70" other_balance "" and message "short payment" with subs: "DATA'
     . '\\| short |'
     . '\\| $40   |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -795 |'
     . '\\| NEW.ZZA   |      70 |'
@@ -223,7 +223,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom | otherName | purpose |'
     . '\\| %today-3d | $100   | to     | Abe One   | labor H |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -795 |'
     . '\\| NEW.ZZA   |      70 |'
@@ -240,7 +240,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
     And__('we email "new-invoice" to member "a@example.com" with subs: "DATA'
     . '\\| created | fullName  | otherName  | amount | payerPurpose |'
     . '\\| %today  | Abe One   | Corner Pub | $100   | reverses #3  |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -795 |'
     . '\\| NEW.ZZA   |      70 |'
@@ -255,7 +255,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom  | otherName | purpose |'
     . '\\| %today-3d | $100   | to      | Abe One   | labor H |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -795 |'
     . '\\| NEW.ZZA   |      70 |'
@@ -274,7 +274,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
     And__('we email "new-invoice" to member "a@example.com" with subs: "DATA'
     . '\\| created | fullName | otherName  | amount | payerPurpose |'
     . '\\| %today  | Abe One  | Corner Pub | $100   | reverses #3  |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -795 |'
     . '\\| NEW.ZZA   |      70 |'
@@ -289,7 +289,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom | otherName  | purpose |'
     . '\\| %today-3d | $100   | from   | Corner Pub | labor H |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -795 |'
     . '\\| NEW.ZZA   |      70 |'
@@ -304,7 +304,7 @@ class rsmartInsufficient extends DrupalWebTestCase {
     Then_('we respond success 0 tx_id "" my_balance "$70" other_balance "" and message "short payment" with subs: "DATA'
     . '\\| short |'
     . '\\| $40   |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -795 |'
     . '\\| NEW.ZZA   |      70 |'

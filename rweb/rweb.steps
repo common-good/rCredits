@@ -32,7 +32,6 @@ function extraSetup($feature) {
   global $sms_devel; $sms_devel = TRUE;
   r\dbQ('DELETE FROM users WHERE uid>1000');
   r\dbQ('TRUNCATE r_sms');
-  r\dbQ('TRUNCATE r_asif');
   r\dbQ('TRUNCATE r_txs');
   r\dbQ('DELETE FROM r_smarts WHERE owner>1000');
   r\dbQ('DELETE FROM file_managed WHERE uid>1000');
@@ -177,22 +176,21 @@ function transactions($list) {
 }
 
 /**
- * we say (ARG): (ARG) with (ARG) subs: (ARG)
+ * we say (ARG): (ARG) with subs: (ARG)
  *
  * in: Signup ANewbieRegisters TEST
  *     Signup AMemberRegistersBadEmail TEST
  *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
  *     Transact AMemberConfirmsRequestToPayAnotherMember TEST
  */
-function weSayWithSubs($type, $index, $real, $subs) {
+function weSayWithSubs($type, $index, $subs) {
   global $testOnly;
 
-  $real = ($real == 'real');
   $subs = @$subs[0] ?: array();
   if (isset($subs['email'])) {
     $subs['email'] = str_replace("'", '&#039;', htmlspecialchars($subs['email'])); // Drupal does this in user_register()
   }
-  $msg = t\realFix(u\tt($index, $subs + compact('real')), $real);
+  $msg = u\tt($index, $subs);
   $msgs = \drupal_get_messages($type ?: NULL, FALSE);
   $result = (@$msgs[$type] and array_search($msg, $msgs[$type]) !== FALSE);
   if (!$result) debug(compact('msg','msgs'));
@@ -201,36 +199,34 @@ function weSayWithSubs($type, $index, $real, $subs) {
 }
 
 /**
- * we email (ARG) to member (ARG) with (ARG) subs: (ARG)
+ * we email (ARG) to member (ARG) with subs: (ARG)
  *
  * in: Signup ANewbieRegisters TEST
  *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
  *     Transact AMemberConfirmsRequestToPayAnotherMember TEST
  */
-function weEmailToMemberWithSubs($key, $email, $real, $subs) {
+function weEmailToMemberWithSubs($key, $email, $subs) {
   global $testOnly;
-  $real = ($real == 'real');
   $subs = @$subs[0] ?: array();
-  return t\findEmail($key, $email, $subs + compact('real'), $real);
+  return t\findEmail($key, $email, $subs);
 }
 
 /**
- * we show (ARG) with (ARG) subs: (ARG)
+ * we show (ARG) with subs: (ARG)
  *
  * in: Transact AMemberAsksToChargeAnotherMember TEST
  *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
  *     Transact AMemberAsksToPayAnotherMember TEST
  *     Transact AMemberConfirmsRequestToPayAnotherMember TEST
  */
-function weShowWithSubs($page, $real, $subs) {
+function weShowWithSubs($page, $subs) {
   global $testOnly;
   global $testConfirmation; // confirmation message output, if any
   global $formOutput; // for testing
   
-  $real = ($real == 'real');
   $subs = @$subs[0] ?: array(); // comes in as "" if no subs
   if (u\abbreviates('confirm', $page)) {
-    $wanted = u\tt($page, $subs + compact('real'));
+    $wanted = u\tt($page, $subs);
     t\testOutput("<b>WANTED: </b>$wanted", 'screen');
     return ($wanted == $testConfirmation);
   }
@@ -270,7 +266,6 @@ function weShowPageWith($page, $content, $showDebugs = TRUE) {
     foreach ($fields as $key => $one) if (strpos($one, '%') !== FALSE) t\lastMinuteSubs($fields[$key]);
     if ($showDebugs) debug($fields); // keep this
     foreach ($fields as $key => $one) {
-      if ($key == 'tid' and substr($one, 0, 1) != 'a') $one = 'a' . $one; // for real, variant should change tid=>realtid
       if ($one !== '') $i = strpos($formOutput, $one, $xi = $i);
       if ($i === FALSE) {
         if ($showDebugs) t\testOutput(substr($formOutput, 0, $xi) . ' <b style="font-size:200%;">[OK until here]</b> ' . substr($formOutput, $xi));
@@ -319,7 +314,7 @@ function relations($relations) {
 }
 
 /**
- * (ARG) balances: (ARG)
+ * balances: (ARG)
  *
  * in: Relations Setup TEST
  *     Summary Setup TEST
@@ -329,9 +324,9 @@ function relations($relations) {
  *     Transactions Setup TEST
  *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
  */
-function balances($real, $list) {
+function balances($list) {
   global $testOnly;
-  foreach ($list as $one) if (!t\eq(t\uidCredit(t\uid($one['id']), $real)->balance, $one['balance'])) return FALSE;
+  foreach ($list as $one) if (!t\eq(t\uidCredit(t\uid($one['id']), TRUE)->balance, $one['balance'])) return FALSE;
   return TRUE;
 }
 

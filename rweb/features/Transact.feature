@@ -6,8 +6,8 @@ SO I can buy and sell stuff.
 # And foreigner (member on a different server) to member, etc.
 
 Variants: all members are rTraders
-  | %BIT_DEFAULTS | %BIT_MEMBER  | NEW:AAA | asif |
-  | %BIT_RTRADER  | %BIT_RTRADER | NEW.AAA | real |
+  | %BIT_DEFAULTS | %BIT_MEMBER  | NEW:AAA |
+  | %BIT_RTRADER  | %BIT_RTRADER | NEW.AAA |
 
 Setup:
   Given members:
@@ -26,7 +26,7 @@ Setup:
   | NEW:AAAB | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |
   | NEW:AAAC | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZB | signup  | 0      |
   | NEW:AAAD | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZC | signup  | 0      |
-  Then "asif" balances:
+  Then balances:
   | id        | balance |
   | community |    -750 |
   | NEW.ZZA   |     250 |
@@ -41,7 +41,7 @@ Scenario: A member asks to charge another member
   When member "NEW.ZZA" completes form "Tx" with values:
   | op     | who     | amount | goods | purpose |
   | Charge | Bea Two | 100    | 1     | labor   |
-  Then we show "confirm charge" with "asif" subs:
+  Then we show "confirm charge" with subs:
   | amount | otherName |
   | $100   | Bea Two   |
   
@@ -49,13 +49,13 @@ Scenario: A member confirms request to charge another member
   When member "NEW.ZZA" confirms form "Tx" with values:
   | op     | who     | amount | goods | purpose |
   | Charge | Bea Two | 100    | 1     | labor   |
-  Then we say "status": "report invoice" with "asif" subs:
+  Then we say "status": "report invoice" with subs:
   | action  | otherName | amount | tid |
   | charged | Bea Two   | $100   | 2   |
-  And we email "new-invoice" to member "b@example.com" with "asif" subs:
+  And we email "new-invoice" to member "b@example.com" with subs:
   | created | fullName | otherName | amount | payerPurpose |
   | %today  | Bea Two  | Abe One   | $100   | labor        |
-  And we show "Tx" with "asif" subs:
+  And we show "Tx" with subs:
   | arg1   |
   | charge |
   And transactions:
@@ -63,7 +63,7 @@ Scenario: A member confirms request to charge another member
   | NEW.AAAE | %today | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZB   | NEW.ZZA | labor   | 1      |
   | NEW.AAAF | %today | %TX_REBATE   | %TX_PENDING |      5 | community | NEW.ZZB | rebate  | 0      |
   | NEW.AAAG | %today | %TX_BONUS    | %TX_PENDING |     10 | community | NEW.ZZA | bonus   | 0      |
-  And "asif" balances:
+  And balances:
   | id        | balance |
   | community |    -750 |
   | NEW.ZZA   |     250 |
@@ -74,7 +74,7 @@ Scenario: A member asks to pay another member
   When member "NEW.ZZA" completes form "Tx" with values:
   | op  | who     | amount | goods | purpose |
   | Pay | Bea Two | 100    | 1     | labor   |
-  Then we show "confirm payment" with "asif" subs:
+  Then we show "confirm payment" with subs:
   | amount | otherName |
   | $100   | Bea Two   |
   
@@ -82,13 +82,13 @@ Scenario: A member confirms request to pay another member
   When member "NEW.ZZA" confirms form "Tx" with values:
   | op  | who     | amount | goods | purpose |
   | Pay | Bea Two | 100    | 1     | labor   |
-  Then we say "status": "report transaction" with "asif" subs:
+  Then we say "status": "report transaction" with subs:
   | action | otherName | amount | tid | rewardType | rewardAmount | balance |
   | paid   | Bea Two   | $100   | 2   | rebate     | $5           | $155    |
-  And we email "new-payment" to member "b@example.com" with "asif" subs:
+  And we email "new-payment" to member "b@example.com" with subs:
   | created | fullName | otherName | amount | payeePurpose |
   | %today  | Bea Two  | Abe One   | $100   | labor        |
-  And we show "Tx" with "asif" subs:
+  And we show "Tx" with subs:
   | arg1 |
   | pay  |
   And transactions:
@@ -96,7 +96,7 @@ Scenario: A member confirms request to pay another member
   | NEW.AAAE | %today | %TX_TRANSFER | %TX_DONE |    100 | NEW.ZZA   | NEW.ZZB | labor   | 0      |
   | NEW.AAAF | %today | %TX_REBATE   | %TX_DONE |      5 | community | NEW.ZZA | rebate  | 0      |
   | NEW.AAAG | %today | %TX_BONUS    | %TX_DONE |     10 | community | NEW.ZZB | bonus   | 0      |
-  And "asif" balances:
+  And balances:
   | id        | balance |
   | community |    -765 |
   | NEW.ZZA   |     155 |

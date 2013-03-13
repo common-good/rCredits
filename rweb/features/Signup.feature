@@ -29,10 +29,10 @@ Scenario: A newbie registers
   Then members:
   | id      | full_name | email         | country | postal_code | state | city    | account_type | flags         |
   | NEW.ZZA | Abe One   | a@example.com | US      | 01001       | MA    | Amherst | %R_PERSONAL  | %BIT_DEFAULTS |
-  And we say "status": "your account is ready" with "asif" subs:
+  And we say "status": "your account is ready" with subs:
   | quid    | balance |
   | NEW.ZZA | $250    |
-  And we email "welcome" to member "a@example.com" with "asif" subs:
+  And we email "welcome" to member "a@example.com" with subs:
   | fullName | name   | quid    | oneTimeLoginUrl |
   | Abe One  | abeone | NEW.ZZA | (varies)        |
   And member is logged out
@@ -42,7 +42,7 @@ Scenario: A member registers bad email
   When member "?" confirms form "\user_register_form" with values:
   | full_name | email     | country | postal_code | state | city    | account_type |
   | Abe One   | %whatever | US      | 01001       | MA    | Amherst | personal     |
-  Then we say "error": "bad email" with "asif" subs:
+  Then we say "error": "bad email" with subs:
   | email     |
   | %whatever |
 
@@ -54,7 +54,7 @@ Scenario: A member registers bad email
 #  When member "?" confirms form "\user_register_form" with values:
 #  | full_name | email         | country | postal_code | state | city    | account_type |
 #  | Bea Two   | a@example.com | US      | 01001       | MA    | Amherst | %R_PERSONAL  |
-#  Then we say "error": "duplicate email|forgot password" with "asif" subs:
+#  Then we say "error": "duplicate email|forgot password" with subs:
 #  | duplicateAccount | href                              |
 #  | Abe One          | %BASE_PATHuser/password/a%40example.com |
 #  And member is logged out
@@ -78,23 +78,23 @@ Scenario: A member registers bad email
 #  When member "?" confirms form "\user_register_form" with values:
 #  | full_name | email         | postal_code | city    | account_type | company  | company_phone | company_options |
 #  | Abe One   | a@example.com |  01001      | Amherst | personal     | Aacme Co | (413)628-0000 |                 |
-#  Then we say "error": "what relation" with "asif" subs: ""
+#  Then we say "error": "what relation" with subs: ""
 
 #Scenario: A member registers with a company but no relation
 #  When member "?" confirms form "\user_register_form" with values:
 #  | full_name | email         | country | postal_code | state | city    | account_type | company  |
 #  | Abe One   | a@example.com | US      | 01001       | MA    | Amherst | personal     | Aacme Co |
-#  Then we say "error": "bad company phone" with "asif" subs: ""
+#  Then we say "error": "bad company phone" with subs: ""
 #
 #Scenario: A member registers with a company with bad phone
 #  When member "?" confirms form "\user_register_form" with values:
 #  | full_name | email         | country | postal_code | state | city    | account_type | company  | company_phone |
 #  | Abe One   | a@example.com | US      | 01001       | MA    | Amherst | personal     | Aacme Co | random       |
-#  Then we say "error": "bad company phone" with "asif" subs: ""
+#  Then we say "error": "bad company phone" with subs: ""
 #
 #Scenario: A member registers with a company but no relation
 #  When member "?" confirms form "\user_register_form" with values:
 #  | full_name | email         | country | postal_code | state | city    | account_type | company  | company_phone |
 #  | Abe One   | a@example.com | US      | 01001       | MA    | Amherst | personal     | Aacme Co | (413)628-0000 |
-#  Then we say "error": "what relation" with "asif" subs: ""
+#  Then we say "error": "what relation" with subs: ""
 #

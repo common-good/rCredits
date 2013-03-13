@@ -19,13 +19,9 @@ define('isDEV', @$_SERVER['WINDIR']); // developing on Windows (unlike productio
 define('R_VERSION', '1.0b'); // software version
 define('R_SEPARATE_BACKEND', FALSE);
 define('R_TEMP_NAME_PREFIX', 'unknown ');
-define('R_ASIF_TEXT', ' "AS-IF"'); // how to identify "As If" transactions
 define('R_MIN_PHOTO_WIDTH', 240); // how wide to make profile pictures (unless too long)
 define('R_MAX_PHOTO_WIDTH', 1024);
 define('R_FIRST_CTTY_UID', -1000001); // community uids are less than or equal to this (farther from zero)
-define('R_ASIF_BUY_MIN', 3); // minimum number of ASIF purchases before eligible to be a Partner
-define('R_ASIF_SELL_MIN', 1); // minimum number of ASIF sales before eligible to be a Partner
-//define('R_STAGES', t('Member Partner Steward rTrader')); // stages in the progress to rTrader
 define('R_DATA_FIELDS', ''); // fields stored in the account's "data" array field (serialized)
 define('R_SECURE_FIELDS', 'type number pin auth card_code'); // non-personal encrypted fields
 define('R_SECRET_FIELDS', 'federal_id dob id_proof answer'); // personal identifying information
@@ -52,7 +48,7 @@ define('R_COMMERCIAL', 2);
 define('R_NONPROFIT', 3);
 $GLOBALS['account types'] = array(t('personal'), t('personal AND commercial'), t('commercial'), t('non-profit or government'));
 
-// Relationship permissions used in calls to acct::can()
+// Relationship permissions used in calls to acct::can() -- other than the first 5, these are not stored
 define('PERM_RELATED', 0); // has a relationship record
 define('PERM_READ', 1);
 define('PERM_SELL', 2);
@@ -76,6 +72,7 @@ define('PERM_ADMIN', 20); // can manage server, including assigning ctty admins,
 define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities can manage themselves
 
 // Permissions, options, and flags (flags field in account record) - max 2,147,483,647 = 2^31 - 1
+// If we need more bits, create a flags2 field and make the BIT_ definitions negative for acct::hasBit and setBit (et -0x200)
 define('BIT_MEMBER', 0x1); // signed the membership agreement, etc.
 define('BIT_RTRADER', 0x2); // is allowed to use rCredits for real
 define('BIT_UNUSED4', 0x4); // 
@@ -175,7 +172,7 @@ function stage($acct = '', $numeric = FALSE) {
  * Format and return args for reporting a transaction (old or new) to the current account.
  * Not all returned args are used for any particular type of transaction.
  * Note that templates and tests depend on the names of some of these fields
- * @param array $tx: the transaction array (including zxid)
+ * @param array $tx: the transaction array (including xid)
  * @param int $getBalance: 0=don't get any balances, 1=get my balance and tid, 2=get other party's balance and tid also
  * @param float $shortfall: how much short my balance is, for a transaction (if any)
  * @return assoc array of args
@@ -183,7 +180,7 @@ function stage($acct = '', $numeric = FALSE) {
 function txReportArgs($tx, $getMyBalance = FALSE, $shortfall = 0) {
   extract($tx); // any or all standard transaction fields
   if ($data) if ($data = unserialize($data)) extract($data, EXTR_PREFIX_ALL, 'data');
-  global $lastZxid; $lastZxid = $zxid; // remember last transaction for current user, for potential undo (here and on undo)
+  global $lastXid; $lastXid = $xid; // remember last transaction for current user, for potential undo (here and on undo)
 
   $cacct = acct();
   $toMe = ($payee == $cacct->id);
@@ -204,16 +201,14 @@ function txReportArgs($tx, $getMyBalance = FALSE, $shortfall = 0) {
   $otherName = userField('full_name', @$data_foreign_uid ?: $otherUid);
   $created = u\formatDate($created);
 
-  $real = ($zxid > 0);
-  $asif = $real ? '' : R_ASIF_TEXT;
   if ($getMyBalance) {
-    $tid = be\zxid2tid($zxid);
-    if ($cacct->can(PERM_BUY)) $balance = be\creditInfo(compact('real'))->fancy['balance'];
+    $tid = be\xid2tid($xid);
+    if ($cacct->can(PERM_BUY)) $balance = be\creditInfo()->fancy['balance'];
   }
-//  $otherTid = be\zxid2tid($zxid, $otherUid);
-  $summary = "$asif $summary_word of $amount $tofrom $otherName for \"$purpose\" on $created";
+//  $otherTid = be\xid2tid($xid, $otherUid);
+  $summary = "$summary_word of $amount $tofrom $otherName for \"$purpose\" on $created";
   $success = TRUE;
-  return array_merge($tx, compact(u\ray('created zxid action real role payerPurpose payeePurpose purpose otherPurpose toMe asif confirmAction amount tofrom rewardType rewardAmount balance tid otherUid otherName short summary success')));
+  return array_merge($tx, compact(u\ray('created xid action role payerPurpose payeePurpose purpose otherPurpose toMe confirmAction amount tofrom rewardType rewardAmount balance tid otherUid otherName short summary success')));
 }
 
 /**
@@ -221,9 +216,9 @@ function txReportArgs($tx, $getMyBalance = FALSE, $shortfall = 0) {
  * Consider the tithe valid only if it was specified as part of a COMPLETED contribution.
  */
 function tithe($acct) {
-  if (!$tithe = $acct->tithe) {
+  if (!$tithe = $acct->tithe + 0) {
     $tithe = file_get_contents("http://rcredits.org/inc/tithe.php/$acct->mail");
-    if ($tithe) $acct->update(compact('tithe'));
+    if (is_numeric($tithe)) $acct->update(compact('tithe'));
   }
   return $tithe + 0;
 }
@@ -232,8 +227,7 @@ function otherBalance($uid) {
   $cacct = acct();
   $acct = acct($uid);
   if ($acct and $cacct->can(PERM_CHARGE) and !$acct->hasBit(BIT_SECRET_BAL)) {
-    $real = (isRTrader() and isRTrader($uid));
-    return be\creditInfo(compact('real', 'uid'))->fancy['balance'];
+    return be\creditInfo(compact('uid'))->fancy['balance'];
   } else return FALSE;
 }
 
@@ -246,30 +240,28 @@ function exchange($amount, $payer, $payee, $for) {
  * Record a transaction between two participants
  * @see also transactionSetup(), r\transactionRewards(), and be\transfer()
  */
-function transact($info, $real = NULL) {
+function transact($info) {
   $txs = array(transactionSetup($info));
   transactionRewards($txs);
-  return txSave($txs, $real);
+  return txSave($txs);
 }
 
 /**
  * Save the transaction set
- * @todo: don't give real retroactive rewards to the passive party in an ASIF transaction (look retroactively)
  */
-function txSave($txs, $real = 'as appropriate') {
+function txSave($txs) {
   extract(u\just('payer payee data', $txs[0]));
   //*** Begin DBTX
   $dbtx = db_transaction();
-  $table = zxs($payer, $payee);
+//  $table = zxs($payer, $payee);
   $data = @unserialize($data) ?: array();
-  if (@$data['zxid'] < 0 or $real === FALSE) $table = zxs(FALSE/2); // rare case: undoing an asif, even though both parties are now rTraders OR extra asif credits for an rTrader
   foreach ($txs as $key => $one) {
     if (empty($one)) continue; // skipping rebate or bonus
     $txs[$key]['serial'] = @$serial; // set serial for dependent transactions
-    \drupal_write_record($table, $txs[$key]); // pass actual array element, to get xid
+    \drupal_write_record('r_txs', $txs[$key]); // pass actual array element, to get xid
     if ($key == 0) {
       $txs[$key]['serial'] = $serial = $txs[0]['xid']; // set serial for main transaction
-      dbQ("UPDATE $table SET serial=:serial WHERE xid=:serial", compact('serial'));
+      dbQ("UPDATE r_txs SET serial=:serial WHERE xid=:serial", compact('serial'));
     }
   }
 
@@ -278,8 +270,6 @@ function txSave($txs, $real = 'as appropriate') {
 
   unset($dbtx); // commit ($dbtx->commit() is disallowed)
   //*** End DBTX
-
-  $txs[0]['zxid'] = zxid($txs[0]['xid'], $table); // report zxid to caller
   return $txs;
 }
 
@@ -322,7 +312,7 @@ function transactionSetup($info) {
   global $channel; // through what medium was the transaction requested (web, SMS, etc.).
   extract($info, EXTR_PREFIX_ALL, 'my');
   $required_params = compact(u\prefixValues('my_', u\ray('amount payer payee for taking')));
-  u\EXPECT($required_params, 'float zid zid zid zid notempty bool');
+  u\EXPECT($required_params, 'float zid zid notempty bool');
 
   setDft($info['type'], TX_TRANSFER);
   setDft($info['r'], $my_amount);
@@ -337,6 +327,10 @@ function transactionSetup($info) {
   
   list ($payer_for, $payee_for) = is_array($my_for) ? $my_for : array($my_for, $my_for);
   unset($info['for']);
+  if ($info['type'] == TX_TRANSFER) {
+    $payer_tid = xid2tid($xid, $info['my_payer']);
+    $payee_tid = xid2tid($xid, $info['my_payee']);
+  }
 
   return array_merge($info, compact(u\ray('created completed serial payer_for payee_for channel')));
 }
@@ -401,12 +395,12 @@ function cacheTotals($uid, $txs) {
  * @param float $shortfall (RETURNED) how much too little the payer has
  * @return float: how much of the transaction will be in USD (NULL if no USD account)
  */
-function usdPart($requestAmount, $acct, $preapproved, $goods, $real, &$shortfall) {
+function usdPart($requestAmount, $acct, $preapproved, $goods, &$shortfall) {
   $shortfall = 0; // no shortfall if preapproved
-  if (!$real or !$preapproved) return 0; // if asif or just an invoice, funds don't have to be there yet (no shortfall, no usd)
+  if (!$preapproved) return 0; // if just an invoice, funds don't have to be there yet (no shortfall, no usd)
   
   $uid = $acct->id;
-//  $available = be\creditInfo(compact('uid', 'real'))->available;
+//  $available = be\creditInfo(compact('uid'))->available;
   $r = min($requestAmount, r\available($acct, $goods));
   if (!$shortfall = max(0, $requestAmount - $r)) return 0;
 
@@ -452,13 +446,13 @@ function payEmployees($amount0, $for, $confirmed) {
  */
 function notify($uid, $index, $info) {
   global $channel;
-  $cacct = acct();
+  $cacct = acct(); // careful: current account is empty if called from formRegister_submit
   $acct = acct($uid);
   $info['uid'] = $uid;
   $fullName = $acct->full_name;
   $warnIndexes = u\ray('new-invoice new-offer charge-disputed');
   
-  if ($uid != $cacct->id) $info['otherName'] = $cacct->full_name; // this comes in backwards if notifying elseone
+  if ($uid != @$cacct->id) $info['otherName'] = @$cacct->full_name; // this comes in backwards if notifying elseone
 
   if (!strlen($acct->pass)) {
     $warning = u\tt('no asif notify', compact('fullName'));
@@ -493,14 +487,10 @@ function membershipEvent($acct, $status, $do = TRUE) {
   $bit = @constant('BIT_' . strtoupper($status));
   if ($do and (!$bit or !$acct->hasBit($bit))) { // met the prerequisite and hasn't previously
     if ($bit) $acct->setBit($bit);
+    if ($status == 'member') be\fund($acct->id, TX_SIGNUP);
     $fullName = $acct->full_name;
     $quid = $acct->mainQid;
     notifyStaff('Account @fullName (@quid) is now @status.', compact(u\ray('fullName quid status')));
-    if ($status == 'member') { // time to choose a card security code
-      $card_code = u\randomString(R_CARDCODE_LEN);
-      $secure = compact($card_code);
-      $acct->update(compact('secure'));
-    }
   }
 }
 
@@ -540,33 +530,32 @@ function tempName($info) {
  * Set a transaction field for the current user.
  * @param string $fieldName: the field to update
  * @param mixed $newValue: what to update it to
- * @param int $zxid: transaction id & table
+ * @param int $xid: transaction id
  * @param bool $allRelated: set all related transactions too (default FALSE)
  * NOTE: tx data changes(date, agent, field, oldvalue) (this gives a complete history of the transaction)
  *     (prefixes added to the payer_for or payee_for fields when changing state will not be included in changes)
  */
-function setTxField($fieldName, $newValue, $zxid, $allRelated = FALSE) {
+function setTxField($fieldName, $newValue, $xid, $allRelated = FALSE) {
   $cuid = acct()->id;
-  u\EXPECT(compact(u\ray('fieldName zxid allRelated')), 'name zid bool');
+  u\EXPECT(compact(u\ray('fieldName xid allRelated')), 'name zid bool');
   
-  list ($xid, $table) = azxid($zxid);
   $where = "xid=:xid and $cuid in (payer, payee)"; // "$cuid in" is a security measure
-  list ($oldValue, $oldState, $data) = array_values(dbLookup("$fieldName AS f1,state,data", $table, $where, compact(u\ray('xid')))); // f1 prevent Drupal from combining state results when $fieldName is 'state'
+  list ($oldValue, $oldState, $data) = array_values(dbLookup("$fieldName AS f1,state,data", 'r_txs', $where, compact(u\ray('xid')))); // f1 prevent Drupal from combining state results when $fieldName is 'state'
   $data = unserialize($data);
   $data['changes'][] = array(REQUEST_TIME, acct()->agentId, $fieldName, $oldValue);
   $data = serialize($data);
   $newState = $fieldName == 'state' ? $newValue : $oldState;
   $completion = (@$newState != TX_PENDING and !@$oldState) ? ',completed=:REQUEST_TIME' : ''; // update completion time
-  $sql = "UPDATE $table SET $fieldName=:newValue,data=:data$completion WHERE $where";
-  $sql2 = "UPDATE $table SET $fieldName=:newValue$completion WHERE serial=:xid AND type<>:TX_TRANSFER";
+  $sql = "UPDATE r_txs SET $fieldName=:newValue,data=:data$completion WHERE $where";
+  $sql2 = "UPDATE r_txs SET $fieldName=:newValue$completion WHERE serial=:xid AND type<>:TX_TRANSFER";
 //  $sql2 = str_replace(', data=:data', '', str_replace('xid=:xid', 'serial=:xid', $sql));
   
-  /*** Begin DBTX ***/
+  /*!*/
   $dbtx = \db_transaction();
   dbQ($sql, compact(u\ray('newValue data xid')));
   if ($allRelated) dbQ($sql2, compact(u\ray('newValue xid'))); // gotta do the auxiliary records separately so as not to affect their data field (separate query, to avoid "unbuffered query" error -- known Drupal bug)
   unset($dbtx);
-  /*** End DBTX ***/
+  /*!*/
 }
 
 /**
@@ -585,8 +574,6 @@ function mergeAccounts($oldUid) {
   $update = array();
   foreach (u\ray('phone fax website address') as $one) if ($old->$one and !$new->$one) $update[$one] = $old->$one;
   acct()->update($update);
-  dbQ('UPDATE r_asif a LEFT JOIN r_asif b ON b.serial=a.serial SET b.state=-1 WHERE a.payer=a.payee;'); // rebates and bonuses if any (JOINed DELETE fails here)
-  dbQ('DELETE FROM r_asif WHERE payer=payee OR state=-1;'); // then the main transaction
   newMemberId($oldUid, $newUid, TRUE);
   dbQ('DELETE FROM users WHERE uid=:oldUid', compact('oldUid')); // must be last, for referential integrity
   return 1;
@@ -615,7 +602,6 @@ function reset() {
 //  $ctty_uid = serverUid();
   $sqls = array(
     'TRUNCATE TABLE r_txs',
-    'TRUNCATE TABLE r_asif',
     'TRUNCATE TABLE r_sms',
 //    "DELETE FROM users WHERE uid > $ctty_uid",
     'TRUNCATE TABLE sessions',
@@ -626,26 +612,13 @@ function reset() {
 }
 
 /**
- * Return the real or ASIF transaction table name
- * @param int $uid1: uid of first member (DEFAULTs to current)
- *   OR boolean/2 $uid1: TRUE/2 if real (call with boolean/2 to allow administrator to do asif transactions)
- * @param int $uid2: uid of second member (DEFAULTs to current)
- * @return: the real table name if the one user or both users (if specified) are rTraders, otherwise the asif table name
- */
-function zxs($uid1 = 'current', $uid2 = '') {
-  if (((string) $uid1) == 'current') $uid1 = acct()->id;
-  $real = ($uid1 >= 0 and $uid1 < 1) ? (2 * $uid1) : (isRTrader($uid1) and isRTrader($uid2)); // $real < 1 means boolean
-  return $real ? 'r_txs' : 'r_asif';
-}
-
-/**
  * Look the field up in the table, returning the first record matching the criteria.
  * @params array $subs: optional substitutions -- keys will be prefixed by ':'
  */
-function dbLookup($fieldName, $table_name, $where = '1', $subs = array()) {
-  u\EXPECT(compact(u\ray('fieldName table_name where subs')), 'notempty notempty notempty assoc');
+function dbLookup($fieldName, $table, $where = '1', $subs = array()) {
+  u\EXPECT(compact(u\ray('fieldName table where subs')), 'notempty notempty notempty assoc');
   if (!strpos($where, ' LIMIT ')) $where .= ' LIMIT 1';
-  $sql = "SELECT $fieldName FROM $table_name WHERE $where";
+  $sql = "SELECT $fieldName FROM $table WHERE $where";
   $result = dbQ($sql, $subs);
   $fieldCount = substr_count($fieldName, ',') + 1;
   $result = $fieldCount > 1 ? $result->fetchAssoc() : $result->fetchField();
@@ -714,13 +687,7 @@ function quid($uid = '', $agentUid = '', $regionUid = '') {
   return qid($uid == $agentUid ? $uid : -relation('reid', $uid, $agentUid), u\n2a(-$regionUid, 3), 3);
 }
 
-function qxid($zxid, $regionId = R_SERVER_ID) {return qid($zxid, $regionId = R_SERVER_ID, 4);} // Convert zxid to qxid
-
-/**
- * Convert a zxid to xid and table or vice-versa
- */
-function zxid($xid, $table) {return $table == zxs(TRUE/2) ? $xid : -$xid;}
-function azxid($zxid) {return $zxid > 0 ? array($zxid, zxs(TRUE/2)) : array(-$zxid, zxs(FALSE/2));}
+function qxid($xid, $regionId = R_SERVER_ID) {return qid($xid, $regionId = R_SERVER_ID, 4);} // Convert xid to qxid
 
 /**
  * Interpret transaction record fields as an acct object
@@ -746,8 +713,8 @@ function nonoUndo($oldRecord, &$subs = array()) {
   $cacct = acct();
   extract($oldRecord, EXTR_PREFIX_ALL, 'old');
   $data = unserialize($old_data);
-  if (@$data['undone']) {
-    $subs = array($old_tid => zxid2tid($old_zxid));
+  if (@$data['undoneBy']) {
+    $subs = array($old_tid => xid2tid($old_xid));
     return 'already undone';
   }
 
@@ -878,8 +845,6 @@ function newMemberId($oldUid, $newUid = FALSE, $skipUsers = FALSE) {
   if (!$newUid) $newUid = dbLookup('u.uid', 'users u LEFT JOIN users u2 ON u2.uid=(u.uid+1)', $where) + 1;
   $subs = array( // all tables are listed, to be sure we don't leave any out
   // r_areas
-    'r_asif:payer',
-    'r_asif:payee',
     'r_candidates:uid', // in case we're in the middle of figuring who's next
   // r_countries,
     'r_demand:who',
@@ -905,7 +870,7 @@ function newMemberId($oldUid, $newUid = FALSE, $skipUsers = FALSE) {
     'users:uid',
   );
 
-  /*** Begin DBTX ***/ $dbtx = \db_transaction();
+  /*!*/ $dbtx = \db_transaction();
   foreach ($subs as $one) {
     list ($table, $field) = explode(':', $one);
     if ($skipUsers and $table == 'users') {
@@ -918,7 +883,7 @@ function newMemberId($oldUid, $newUid = FALSE, $skipUsers = FALSE) {
 */
     } else dbQ("UPDATE $table SET $field=:newUid WHERE $field=:oldUid", compact('newUid', 'oldUid'));
   }
-  /*** End DBTX ***/ unset($dbtx);
+  /*!*/ unset($dbtx);
   return $newUid;
 }
 
@@ -946,7 +911,7 @@ function invite($email, $inviter, $code = '') {
  * Drupal urlencodes the parameters (= and &), so the target page will have to sort that out. (can't use Header() here)
  */
 function go($page) {
-  if (@TESTING == 1) {
+  if (\testing()) {
     list ($form, $arg1) = ($page == 'pay' or $page == 'charge') ? array('tx', $page) : array($page, '');
     $form = function_exists("\\rCredits\\Web\\form$form") ? $form 
       : ($form = 'user/register' ? 'register'
@@ -961,8 +926,9 @@ function go($page) {
  */
 function proxy($person, $priority = 1, $proxy = NULL) {
   if (!@$proxy) return dbLookup('proxy', 'r_proxies', 'person=:person AND priority=:priority', compact('person', 'priority'));
-  dbQ('DELETE FROM r_proxies WHERE person=:person AND priority=:priority');
-  \drupal_write_record('r_proxies', compact(u\ray('person priority proxy')));
+  dbQ('DELETE FROM r_proxies WHERE person=:person AND priority=:priority', compact('person', 'priority'));
+  $info = compact(u\ray('person priority proxy'));
+  \drupal_write_record('r_proxies', $info);
 }
 
 /**
@@ -995,19 +961,10 @@ function tableField($field, $table, $which = '', $subs = array()) {
 }
 
 /**
- * @todo: maybe move the processing of zxs to a wrapper function db_txq() that also does postprocessing on fetchAssoc()
+ * Do a database query with easy substitutions.
  */
 function dbQ($sql, $subs = array(), $die = FALSE) {
   u\EXPECT(compact(u\ray('sql subs')), 'notempty assoc');
-  if (strpos($sql, '{zxs}')) {
-    extract(u\just('zxid real', $subs));
-    if (@$zxid) {
-      list ($subs['xid'], $table) = azxid($zxid);
-    } else $table = zxs((isset($real) ? $real : isRTrader())/2);
-    unset($subs['zxid']);
-    unset($subs['real']);
-    $sql = strtr($sql, array('{zxs}' => $table, 'zxid' => 'xid'));
-  }
 //  debug(u\getConstants($sql));
 //  debug($subs);
 //  if ($die)
@@ -1015,11 +972,12 @@ function dbQ($sql, $subs = array(), $die = FALSE) {
 //if (strpos($sql, 'PDATE') and !@$subs['flags']) {print_r(compact('sql','subs','key'));} 
   //if (!strpos($sql, 'PDATE ')) 
   return \db_query(u\getConstants($sql), u\prefixKeys(':', $subs));
-
+/*
   global $databases, $db;
   extract($databases['default']['default']);
   $db = new \PDO("$driver:host=$host;port=$port;dbname=$database", $username, $password);
   return query(u\getConstants($sql), u\prefixKeys(':', $subs));
+  */
 }
 
 function query($sql, $subs = array()) {
@@ -1059,11 +1017,11 @@ function setDft(&$param, $value) {if (!isset($param)) $param = $value;}
 function userField($field, $who = '', $subs = array()) {return tableField($field, 'users', $who, $subs);}
 function rebate($uid, $amount = 1) {return round($amount * userField('rebate_percent', $uid) / 100, 2);}
 function bonus($uid, $amount = 1) {return rebate($uid, 2 * $amount);}
-function txField($field, $which, $subs = array()) {return tableField($field, '{zxs}', $which, $subs);}
+function txField($field, $which, $subs = array()) {return tableField($field, 'r_txs', $which, $subs);}
 function setTxState($newValue, $zserial) {setTxField('state', $newValue, $zserial, TRUE);}
 function word() {return file_get_contents(dirname($_SERVER['DOCUMENT_ROOT']) . "/.shibboleth");}
 function totalDemand($ctty = '') {return dbLookup('SUM(demand)', 'users', $ctty ? 'community=:ctty' : '1', compact('ctty'));}
-function balance($uid = '', $real = TRUE) {return be\creditInfo(compact('uid', 'real'))->balance;}
+function balance($uid = '') {return be\creditInfo(compact('uid'))->balance;}
 //function serverUid($regionId = '') {return -u\a2n(u\neq($regionId, CT_SERVER_ID) ?: R_SERVER_ID);}
 function serverUid($regionId = R_SERVER_ID) {return -u\a2n($regionId);}
 function emailTemplate($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}
@@ -1073,3 +1031,4 @@ function realCountry($country) {return dbLookup('name', 'r_countries', 'id=:coun
 function realState($state, $country = R_COUNTRY_ID) {return dbLookup($country == R_COUNTRY_ID ? 'abbreviation' : 'name', 'r_states', 'id=:state and country_id=:country', compact('state', 'country'));}
 function makeQueue($callback, $time = 15) {return array('worker callback' => "rCredits\\$callback", 'time' => $time);}
 function enqueue($queue, $item) {\DrupalQueue::get($queue)->createItem($item);}
+function dbExists($table, $where = '1', $subs = array()) {return dbLookup(1, $table, $where, $subs);}

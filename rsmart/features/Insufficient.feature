@@ -42,7 +42,7 @@ Setup:
   | NEW:AAAI | %today-3d | %TX_REBATE   | %TX_DONE    |      5 | community | NEW.ZZC | rebate on #2 | 000000 |
   | NEW:AAAJ | %today-3d | %TX_BONUS    | %TX_DONE    |     10 | community | NEW.ZZA | bonus on #3  | 000000 |
   | NEW:AAAK | %today-2d | %TX_TRANSFER | %TX_DONE    |    100 | NEW.ZZA   | NEW.ZZB | cash I       | 000000 |
-  Then "asif" balances:
+  Then balances:
   | id        | balance |
   | community |    -795 |
   | NEW.ZZA   |      70 |
@@ -60,7 +60,7 @@ Scenario: A member asks to undo a completed payment, with insufficient balance
   Then we respond with success 1, message "confirm undo", and subs:
   | created   | amount | tofrom | otherName | purpose |
   | %today-3d | $100   | to     | Abe One   | labor H |
-  And "asif" balances:
+  And balances:
   | id        | balance |
   | community |    -795 |
   | NEW.ZZA   |      70 |
@@ -74,7 +74,7 @@ Scenario: A member confirms request to undo a completed payment, with insufficie
   And we email "new-invoice" to member "a@example.com" with subs:
   | created | fullName  | otherName  | amount | payerPurpose |
   | %today  | Abe One   | Corner Pub | $100   | reverses #3  |
-  And "asif" balances:
+  And balances:
   | id        | balance |
   | community |    -795 |
   | NEW.ZZA   |      70 |
@@ -86,7 +86,7 @@ Scenario: A member asks to undo a completed payment unilaterally, with insuffici
   Then we respond with success 1, message "confirm undo", and subs:
   | created   | amount | tofrom  | otherName | purpose |
   | %today-3d | $100   | to      | Abe One   | labor H |
-  And "asif" balances:
+  And balances:
   | id        | balance |
   | community |    -795 |
   | NEW.ZZA   |      70 |
@@ -102,7 +102,7 @@ Scenario: A member confirms request to undo a completed payment unilaterally, wi
   And we email "new-invoice" to member "a@example.com" with subs:
   | created | fullName | otherName  | amount | payerPurpose |
   | %today  | Abe One  | Corner Pub | $100   | reverses #3  |
-  And "asif" balances:
+  And balances:
   | id        | balance |
   | community |    -795 |
   | NEW.ZZA   |      70 |
@@ -114,7 +114,7 @@ Scenario: A member asks to undo a completed charge, with insufficient balance
   Then we respond with success 1, message "confirm undo", and subs:
   | created   | amount | tofrom | otherName  | purpose |
   | %today-3d | $100   | from   | Corner Pub | labor H |
-  And "asif" balances:
+  And balances:
   | id        | balance |
   | community |    -795 |
   | NEW.ZZA   |      70 |
@@ -126,7 +126,7 @@ Scenario: A member confirms request to undo a completed charge, with insufficien
   Then we respond success 0 tx_id "" my_balance "$70" other_balance "" and message "short payment" with subs:
   | short |
   | $40   |
-  And "asif" balances:
+  And balances:
   | id        | balance |
   | community |    -795 |
   | NEW.ZZA   |      70 |
@@ -139,7 +139,7 @@ Scenario: A member confirms request to undo a completed charge, with insufficien
 #  And we email "new-payment" to member "c@example.com" with subs:
 #  | created | fullName   | otherName | amount | payeePurpose |
 #  | %today  | Corner Pub | Abe One   | $60    | reverses #2  |
-#  And "asif" balances:
+#  And balances:
 #  | id        | balance |
 #  | community |    -780 |
 #  | NEW.ZZA   |       0 |

@@ -22,7 +22,7 @@ function rcredits_install() {
 
   // create server record if it doesn't exist yet
   $uid = r\serverUid();
-  if (!r\dbLookup(1, 'users', 'uid=:uid', compact('uid'))) {
+  if (!r\dbExists('users', 'uid=:uid', compact('uid'))) {
     $keys = u\ray('uid community name full_name postal_code country demand rebate_percent flags');
     $values = array($uid, $uid, R_SERVER_ID . '.', R_REGION_NAME, R_REGION_POSTAL_AREA, R_COUNTRY_ID, R_INITIAL_DEMAND, 0, BIT_RTRADER);
     $info = array_combine($keys, $values);
@@ -75,7 +75,7 @@ function rcredits_install() {
   foreach ($tables as $table) {
     $filename = "$sqlDir/$table";
     if ($sql = @file_get_contents("$filename-make.sql")) \db_query($sql); // read in a single CREATE TABLE (if exists) query
-    if (!@r\dbLookup(1, "$table", 'TRUE') and file_exists("$filename-insert.sql")) {
+    if (!@r\dbExists("$table", 'TRUE') and file_exists("$filename-insert.sql")) {
       $sql = file_get_contents("$filename-insert.sql"); // read in a single multi-record INSERT query
       if (!$db->query($sql)) die("Failed to insert records for $table.");
 	  }

@@ -64,7 +64,7 @@ class rsmartTransact extends DrupalWebTestCase {
     . '\\| NEW:AAAB | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |'
     . '\\| NEW:AAAC | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZB | signup  | 0      |'
     . '\\| NEW:AAAD | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZC | signup  | 0      |"');
-    Then_('"asif" balances: "DATA'
+    Then_('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -750 |'
     . '\\| NEW.ZZA   |     250 |'
@@ -86,7 +86,7 @@ class rsmartTransact extends DrupalWebTestCase {
     And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'
     . '\\| %today  | Corner Pub | Abe One    | $100   | labor         |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -750 |'
     . '\\| NEW.ZZA   |     250 |'
@@ -103,7 +103,7 @@ class rsmartTransact extends DrupalWebTestCase {
     And__('we email "new-payment" to member "c@example.com" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payeePurpose   |'
     . '\\| %today  | Corner Pub | Abe One    | $100   | groceries       |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -765 |'
     . '\\| NEW.ZZA   |     155 |'
@@ -121,7 +121,7 @@ class rsmartTransact extends DrupalWebTestCase {
     And__('we email "new-charge" to member "a@example.com" with subs: "DATA'
     . '\\| created | fullName  | otherName | amount | payerPurpose   |'
     . '\\| %today  | Abe One   | Corner Pub | $100   | groceries       |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -765 |'
     . '\\| NEW.ZZA   |     155 |'
@@ -136,7 +136,7 @@ class rsmartTransact extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$525" other_balance "$12.50" and message "report short invoice" with subs: "DATA'
     . '\\| action  | otherName | amount | short | balance | tid | t2id |'
     . '\\| charged | Abe One   | $250   | $50   | $525    | 2   | 3    |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community | -787.50 |'
     . '\\| NEW.ZZA   |   12.50 |'
@@ -150,7 +150,7 @@ class rsmartTransact extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$12.50" other_balance "" and message "report short payment" with subs: "DATA'
     . '\\| action | otherName | amount | short | balance | tid |'
     . '\\| paid   | Corner Pub | $250   | $50   | $12.50  | 2   |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community | -787.50 |'
     . '\\| NEW.ZZA   |   12.50 |'
@@ -275,7 +275,7 @@ class rsmartTransact extends DrupalWebTestCase {
     And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'
     . '\\| %today  | Corner Pub | Abe One    | $100   | labor         |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -750 |'
     . '\\| NEW.ZZA   |     250 |'
@@ -292,7 +292,7 @@ class rsmartTransact extends DrupalWebTestCase {
     And__('we email "new-payment" to member "c@example.com" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payeePurpose   |'
     . '\\| %today  | Corner Pub | Abe One    | $100   | groceries       |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -765 |'
     . '\\| NEW.ZZA   |     155 |'
@@ -310,7 +310,7 @@ class rsmartTransact extends DrupalWebTestCase {
     And__('we email "new-charge" to member "a@example.com" with subs: "DATA'
     . '\\| created | fullName  | otherName | amount | payerPurpose   |'
     . '\\| %today  | Abe One   | Corner Pub | $100   | groceries       |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -765 |'
     . '\\| NEW.ZZA   |     155 |'
@@ -325,7 +325,7 @@ class rsmartTransact extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$525" other_balance "$12.50" and message "report short invoice" with subs: "DATA'
     . '\\| action  | otherName | amount | short | balance | tid | t2id |'
     . '\\| charged | Abe One   | $250   | $50   | $525    | 2   | 3    |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community | -787.50 |'
     . '\\| NEW.ZZA   |   12.50 |'
@@ -339,7 +339,7 @@ class rsmartTransact extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$12.50" other_balance "" and message "report short payment" with subs: "DATA'
     . '\\| action | otherName | amount | short | balance | tid |'
     . '\\| paid   | Corner Pub | $250   | $50   | $12.50  | 2   |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community | -787.50 |'
     . '\\| NEW.ZZA   |   12.50 |'
@@ -464,7 +464,7 @@ class rsmartTransact extends DrupalWebTestCase {
     And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'
     . '\\| %today  | Corner Pub | Abe One    | $100   | labor         |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -750 |'
     . '\\| NEW.ZZA   |     250 |'
@@ -481,7 +481,7 @@ class rsmartTransact extends DrupalWebTestCase {
     And__('we email "new-payment" to member "c@example.com" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payeePurpose   |'
     . '\\| %today  | Corner Pub | Abe One    | $100   | groceries       |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -765 |'
     . '\\| NEW.ZZA   |     155 |'
@@ -499,7 +499,7 @@ class rsmartTransact extends DrupalWebTestCase {
     And__('we email "new-charge" to member "a@example.com" with subs: "DATA'
     . '\\| created | fullName  | otherName | amount | payerPurpose   |'
     . '\\| %today  | Abe One   | Corner Pub | $100   | groceries       |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -765 |'
     . '\\| NEW.ZZA   |     155 |'
@@ -514,7 +514,7 @@ class rsmartTransact extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$525" other_balance "$12.50" and message "report short invoice" with subs: "DATA'
     . '\\| action  | otherName | amount | short | balance | tid | t2id |'
     . '\\| charged | Abe One   | $250   | $50   | $525    | 2   | 3    |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community | -787.50 |'
     . '\\| NEW.ZZA   |   12.50 |'
@@ -528,7 +528,7 @@ class rsmartTransact extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$12.50" other_balance "" and message "report short payment" with subs: "DATA'
     . '\\| action | otherName | amount | short | balance | tid |'
     . '\\| paid   | Corner Pub | $250   | $50   | $12.50  | 2   |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community | -787.50 |'
     . '\\| NEW.ZZA   |   12.50 |'
@@ -653,7 +653,7 @@ class rsmartTransact extends DrupalWebTestCase {
     And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'
     . '\\| %today  | Corner Pub | Abe One    | $100   | labor         |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -750 |'
     . '\\| NEW.ZZA   |     250 |'
@@ -670,7 +670,7 @@ class rsmartTransact extends DrupalWebTestCase {
     And__('we email "new-payment" to member "c@example.com" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payeePurpose   |'
     . '\\| %today  | Corner Pub | Abe One    | $100   | groceries       |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -765 |'
     . '\\| NEW.ZZA   |     155 |'
@@ -688,7 +688,7 @@ class rsmartTransact extends DrupalWebTestCase {
     And__('we email "new-charge" to member "a@example.com" with subs: "DATA'
     . '\\| created | fullName  | otherName | amount | payerPurpose   |'
     . '\\| %today  | Abe One   | Corner Pub | $100   | groceries       |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -765 |'
     . '\\| NEW.ZZA   |     155 |'
@@ -703,7 +703,7 @@ class rsmartTransact extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$525" other_balance "$12.50" and message "report short invoice" with subs: "DATA'
     . '\\| action  | otherName | amount | short | balance | tid | t2id |'
     . '\\| charged | Abe One   | $250   | $50   | $525    | 2   | 3    |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community | -787.50 |'
     . '\\| NEW.ZZA   |   12.50 |'
@@ -717,7 +717,7 @@ class rsmartTransact extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$12.50" other_balance "" and message "report short payment" with subs: "DATA'
     . '\\| action | otherName | amount | short | balance | tid |'
     . '\\| paid   | Corner Pub | $250   | $50   | $12.50  | 2   |"');
-    And__('"asif" balances: "DATA'
+    And__('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community | -787.50 |'
     . '\\| NEW.ZZA   |   12.50 |'

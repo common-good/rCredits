@@ -303,10 +303,6 @@ function tt($message, $subs = array(), $adhocChannel = '') {
     if($p = strpos($model, '. Type ')) {
       if ($channel != TX_SMS and $adhocChannel != TX_SMS) $model = substr($model, 0, $p + 1); // don't tell the user to type something unless it's SMS
     }
-    if (strpos($model, '@asif') !== FALSE and !isset($subs['asif'])) {
-      $real = isset($subs['real']) ? $subs['real'] : r\isRTrader();
-      $subs['asif'] = $real ? '' : R_ASIF_TEXT;
-    }
     if (@$subs['href']) $model = str_replace('<a>', '<a href="@href">', $model);
 // NO (use raw message instead)   EXPECT(@$model, "missing message '$message'"); 
     $messages[$i] = getConstants(strtr($model, prefixKeys('@', $subs)), '@');
@@ -504,7 +500,7 @@ function log($type, $info = array(), $special = '', $adhocChannel = FALSE) {
   
   $info = json_encode($info, JSON_UNESCAPED_SLASHES);
   $channels = ray(TX_CHANNELS); 
-  if ($useTextLogToo) file_put_contents($channels[$channel] . '.log', "$date $type: $info\n", FILE_APPEND);
+  if ($useTextLogToo) file_put_contents($channels[$channel + 0] . '.log', "$date $type: $info\n", FILE_APPEND);
   $record = compact(ray('time channel type cuid agent info special'));
   drupal_write_record('r_log', $record);
   return $record['logid'];
@@ -601,7 +597,7 @@ function import_gfld() {
     $fax = $fax ? "+1$fax" : NULL;
     $state = stateAbbrev($state);
     $website = str_replace('https://', '', str_replace('http://', '', str_replace('www.', '', $website)));
-    $account_type = r\dbLookup(1, 'r_user_industries', "iid IN (121,61) AND uid=:uid", compact('uid')) ? 2 : 1;
+    $account_type = r\dbExists('r_user_industries', "iid IN (121,61) AND uid=:uid", compact('uid')) ? 2 : 1;
     $sql = "UPDATE companies SET phone=:phone, fax=:fax, status=1, website=:website, name=:short_name, short_name=:short_name, state=:state, country='United States', timezone='America/New_York', account_type=:account_type WHERE uid=:uid";
     r\dbQ($sql, compact(ray('short_name uid phone fax state website account_type')));
 
