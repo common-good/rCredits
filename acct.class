@@ -63,7 +63,7 @@ class acct {
     $data = serialize(@$my_data ?: array());
     $created = REQUEST_TIME;
     $info = compact(u\ray('phone status mail init pass name full_name flags community data created')) + $info;
-    /*!*/ $dbtx = db_transaction();
+    $DBTX = db_transaction();
     if ($uid = @$my_uid) {
       $try = \drupal_write_record('users', $info) ? 0 : 20; // predestined uid (probably for testing)
     } else for ($try = 0; $try < 20; $try++) { // limit the retries
@@ -85,7 +85,7 @@ class acct {
     $card_code = u\randomString(R_CARDCODE_LEN); // create an rCard security code
     $secure = compact('card_code');
     $this->update(compact('secure')); // this is easier to do after saving the record
-    /*!*/ unset($dbtx);
+    unset($DBTX); // commit
   }
 
   /**
@@ -203,10 +203,13 @@ class acct {
     }
     if ($toHide) { // store protected information securely, offsite
       foreach (u\ray(R_SECRET_FIELDS) as $field) unset($info[$field]); // don't pass these to dbUpdate
+      debug($this->account(R_SECRET_FIELDS));
       $key = offsiteData(@$this->offsite, $this->account(R_SECRET_FIELDS));
+      debug($key);
       if ($key and is_numeric($key)) $info['offsite'] = $key; else return FALSE; // if attempt to store fails, save nothing
     }
     $info['uid'] = $this->id; // make sure dbUpdate gets this
+    debug($info);
     return dbUpdate('users', $info, 'uid');
   }
 
@@ -237,10 +240,10 @@ class acct {
   
   /**
    * Return an auxiliary filename for the account.
+   * @param string $type: picture or proof
    */
   function auxFilename($type = 'picture') {
-    if ($type == 'picture') return R_PICTURE_DIR . "/$this->id-$this->created";
-    if ($type == 'proof') return R_PROOF_DIR . "/$this->id-$this->created";
+    return ($type == 'picture' ? R_PICTURE_DIR : R_PROOF_DIR) . "/$this->id-$this->created";
   }
   
   /**
@@ -267,7 +270,7 @@ class acct {
 
       $can = $this->proSe() ?
           (($id < 0) ? 0 : PERM_MANAGE) // communities must be managed by an agent, never directly
-        : ($perms[PERM_CTTY_ADMIN] and ($perms[PERM_ADMIN] or $this->community == $agent->community)) ? 
+        : ($perms[PERM_CTTY_ADMIN] and $this->community == $agent->community) ? 
               PERM_MANAGE : relation('permission', $id, $this->agentId);
       for ($i = 0; $i <= PERM_MANAGE; $i++) $perms[$i] = ($i <= $can); // set all permissions, even the false ones
       if (!$perms[PERM_RTRADER]) $perms[PERM_READ] = $perms[PERM_SELL] = $perms[PERM_BUY] = FALSE; // no ASIFs!
@@ -276,9 +279,11 @@ class acct {
       if ($perms[PERM_MANAGING_CTTY]) $perms[PERM_BUY] = $perms[PERM_SELL] = FALSE; // ctty admin can manage but not buy/sell
       
       if ($perms[PERM_ADMIN]) {
-        if (R_ADMIN_CAN_MANAGE_CTTYS) $perms[PERM_CTTY_ADMIN] = TRUE; // temporary extra power, until communities are independent
+        if (R_ADMIN_CAN_MANAGE_CTTYS) {
+          $perms[PERM_CTTY_ADMIN] = TRUE; // temporary extra power, until communities are independent
+          $perms[PERM_READ] = $perms[PERM_SELL] = $perms[PERM_BUY] = $perms[PERM_MANAGE] = TRUE;
+        }
         $perms[PERM_COMPANY] = TRUE; // show company form, disallow personal stuff
-        $perms[PERM_READ] = $perms[PERM_SELL] = $perms[PERM_BUY] = TRUE;
       }
       
       ksort($perms); // easier to debug
@@ -322,6 +327,7 @@ function UAR($quid = '', $no_abbrev = TRUE) {
 function offsiteData($id, $data = NULL) {
   $word = word();
   if (isset($data)) $data = base64_encode(u\ezencrypt(serialize($data), $word));
+  debug(compact('id', 'data'));
   $result = u\httpRequest(R_SECRET_URL . '/offsite.php', compact('id', 'data'));
   return isset($data) ? $result : unserialize(u\ezdecrypt(base64_decode($result), $word));
 }  

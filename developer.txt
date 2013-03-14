@@ -14,6 +14,7 @@ rename community field to community
 ***
         
 Short term tasks: (* = before launch ** = earlier)
+- ctty admin can view secret and secure stuff
 - automatic bank transfer tester
 - move shibboleth into .databases
 - for existing signups, just set the whole table aside. invite them and let them redo everything

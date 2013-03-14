@@ -53,6 +53,7 @@ function rcredits_install() {
   variable_set('user_picture_dimensions', '1024x1024');
   variable_set('user_picture_file_size', '100');
   variable_set('user_picture_style', 'large');
+  foreach (array(R_PICTURE_DIR, R_PROOF_DIR) as $dir) \file_prepare_directory($dir, FILE_CREATE_DIRECTORY);
 
 // NO. This creates a navigation column.  variable_set('site_frontpage', 'charge');
 

@@ -294,6 +294,7 @@ EOF;
  * @param boolean $confirmed: has user confirmed this request
  * @return array(message index, subs, needs confirmation)
  */
+ /*
 function get($currency, &$amount, $confirmed) {
   $cacct = r\acct();
   $who = $cuid = $cacct->id;
@@ -318,7 +319,7 @@ function get($currency, &$amount, $confirmed) {
     return array('your demand', compact(u\ray('request success')), FALSE);
   }
 
-  // $currency == 'usd' UNUSED at present (using max_r field instead)
+  // $currency == 'usd' UNUSED at present (using "maximum" field instead)
   u\EXPECT(FALSE, 'requesting usd');
   extract((array) creditInfo(), EXTR_PREFIX_ALL, 'info');
   if ($amount > $info_cashable) return array("can't cash incentives", $info_fancy, FALSE);
@@ -334,17 +335,19 @@ function get($currency, &$amount, $confirmed) {
   $taking = FALSE;
   $for = t('USD');
 
-  //*** Begin DBTX
-  $dbtx = db_transaction();
+  $DBTX = db_transaction();
   r\transact(compact(u\ray('type amount payer payee payer_agent payee_agent for taking')));
   //DWOLLA: transfer from Dwolla account(s) of next rTrader(s) in line to community account (may take a few days)
   $balance = u\formatAmount($info_balance - $amount);
-  if ($confirmed) return array('report get usd', compact(u\ray('request balance success')), FALSE);
+  if ($confirmed) {
+    unset($DBTX); // commit
+    return array('report get usd', compact(u\ray('request balance success')), FALSE);
+  }
   
-  $dbtx->rollback();
+  $DBTX->rollback();
   return array('confirm get usd', compact(u\ray('request success')), TRUE);
-  //*** End DBTX
 }
+*/
 
 /**
  * Pay the given invoice
@@ -360,10 +363,10 @@ function payInvoice($xid) {
   extract($result, EXTR_PREFIX_ALL, 'old');
   $acct = r\acct($old_payee, $old_payee_agent);
   
-  /*!*/ $dbtx = db_transaction();
+  $DBTX = db_transaction();
   list ($message, $args, $confirm) = transfer('invoice payment', $acct, $old_amount, $old_payee_for, $old_goods, TRUE, compact('xid'));
   if (@$args['success']) r\setTxState(TX_DELETED, $xid); // delete the invoice
-  /*!*/ unset($dbtx); // $dbtx->commit() is disallowed
+  unset($DBTX); // commit
 
   return array($message, $args);
 }
@@ -475,16 +478,16 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   $data = serialize($data);
 
   list ($fromUsAcct, $toUsAcct) = u\order($taking, new r\usd($acct), new r\usd($cacct));
-  /*!*/ $dbtx = db_transaction();
+  $DBTX = db_transaction();
   $txs = r\transact(compact(u\ray('type amount r payer payee payer_agent payee_agent for data taking goods state')));
   if ($confirmed) {
     if ($state = TX_DONE and $usd > 0 and !$fromUsAcct->transfer($usd, $toUsAcct, !$goods)) {
-      $dbtx->rollback();
+      $DBTX->rollback();
       return array('usd failed', array(), FALSE);
     }
     $lastXid = $txs[0]['xid'];
-  } else $dbtx->rollback();
-  /*!*/ unset($dbtx); // $dbtx->commit() is disallowed
+  } else $DBTX->rollback();
+  unset($DBTX); // commit
   
   // Report results
   $args = r\txReportArgs($txs[0], TRUE, $shortfall);

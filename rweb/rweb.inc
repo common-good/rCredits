@@ -482,28 +482,26 @@ function help($page, $class = '') {
  */
 function formMembership($updating, &$sta = '', $code = '') {
   if (!$acct = r\acct()) return NULL;
-  $id = $acct->id;
+  $cuid = $acct->id;  
   $nonperson = ($acct->account_type >= R_COMMERCIAL);
-  
 //  $acct->setBit(BIT_MEMBER, 0); // for testing
 //  $acct->setBit(BIT_RTRADER, 0);
   if (!$acct->can(PERM_MEMBER)) {
-    $photoFilename = $acct->auxFilename('picture');
-    $gotPhoto = file_exists($photoFilename);
+    $gotPhoto = file_exists(DRUPAL_ROOT . $acct->auxFilename('picture'));
     $signed = (bool) $acct->signed_agreement;
     $donated = ($acct->tithe > 0 or r\tithe($acct)); // r\tithe() also updates the database
-    $gotProxies = (r\dbLookup('COUNT(*)', 'r_proxies', 'person=:id', compact('id')) >= 2);
+    $gotProxies = (r\dbLookup('COUNT(*)', 'r_proxies', 'person=:cuid', compact('cuid')) >= 2);
     r\membershipEvent($acct, 'member', $gotPhoto and $signed and $donated and ($nonperson or $gotProxies));
   }
 
   $gotContact = ($acct->phone and $acct->mail and $acct->address and $acct->city and $acct->country);
 
   if (@$code == 'w' or ($acct->can(PERM_MEMBER) and !$acct->can(PERM_RTRADER))) {
-    $idProofFilename = $acct->auxFilename('proof');
     $gotUsdInfo = (($secure = @$acct->secure) and @$secure['auth']);
-    $gotIdProof = (file_exists($idProofFilename) and @$acct->dob and @$acct->federal_id);
-    $gotPreferences = !is_null($acct->min_r);
-    $invited = (r\dbLookup('COUNT(*)', 'r_invites', 'inviter=:id', compact('id')) >= 2);
+    $gotIdProof = (file_exists(DRUPAL_ROOT . $acct->auxFilename('proof')) and @$acct->dob and @$acct->federal_id);
+    $gotPreferences = !is_null($acct->minimum);
+    $email = $acct->mail;
+    $invited = (r\dbLookup('COUNT(*)', 'r_invites', 'inviter=:cuid AND email<>:email', compact('cuid', 'email')) >= 1);
     r\membershipEvent($acct, 'eligible', $gotUsdInfo and $gotIdProof and $gotPreferences and $invited);
   }
 
@@ -700,11 +698,11 @@ function formProxies_submit($form, &$sta) {
 }
 
 /**
- * Invite someone to sign up for rCredits.
+ * Invite someone to sign up for rCredits (on behalf of the account, not the agent).
  */
 function formInvite($form, &$sta) {
   global $base_url;
-  $cagent = r\agent();
+  $cacct = r\acct();
   $title = item(t('Invite Someone to Sign Up for rCredits'));
   $subtext = t('We\'re sorry, you cannot invite someone to sign up until you have completed your own Membership requirements.<br><br><a>Click here</a> to see where you stand.');
   $subtext = item(strtr($subtext, array('<a>' => '<a href="status">')));
@@ -713,13 +711,12 @@ function formInvite($form, &$sta) {
   $trusted = boolField(t('Trusty?'), t('If you lent this person $250, would you trust them to pay it back?'));
   $subject = textField(t('Subject:'), t('The subject of your message'), required(t('Invitation to rCredits')));
 
-  $default = "Dude,\n\nrCredits looks amazing. I signed up. Check it out!\n\n$cagent->full_name";
+  $default = "Dude,\n\nrCredits looks amazing. I signed up. Check it out!\n\n$cacct->full_name";
   $blurbLink = array('<a>' => "<a href=\"$base_url/sites/all/modules/rcredits/templates/invite.html\" target=\"_blank\">");
   $messageHelp = strtr(t('Invite them to sign up, and say why. A <a>blurb about rCredits</a> will follow your message, with a signup link.'), $blurbLink);
   $message = formField('textarea', t('Message:'), $messageHelp, required($default));
   $submit = submit();
-//  $form = $cagent->can(PERM_MEMBER) ? 
-  $form = TRUE ?
+  $form = $cacct->can(PERM_MEMBER) ? 
       labeled(compact(u\ray('title email trusted subject message submit')))
     : compact(u\ray('title subtext'));
   return $form;
@@ -868,9 +865,8 @@ function formSummary_submit($form, &$sta) {
 function formAccount($form, &$sta) {
   global $base_url;
   $cacct = r\acct();
-  $pictureFilename = R_PICTURE_DIR . "/$cacct->id-$cacct->created";
-  if (!file_exists($pictureFilename)) $pictureFilename = R_PICTURE_DIR . \variable_get('user_picture_default');
-  $pictureURL = str_replace(DRUPAL_ROOT, $base_url, $pictureFilename);
+  $pictureFilename = $cacct->auxFilename('picture');
+  $pictureURL = $base_url . (file_exists(DRUPAL_ROOT . $pictureFilename) ? $pictureFilename : ('/' . \variable_get('user_picture_default')));
   $form['#user'] = $cacct->account();
   user_account_form($form, $sta);
 // Each region has its own timezone.  system_user_timezone($form, $sta);
@@ -925,29 +921,15 @@ function formAccount_submit($form, &$sta) {
   global $base_url;
   $cacct = r\acct();
   $id = $cacct->id;
-  $dir = R_PICTURE_DIR;
-  $pictureFilename = "$dir/$id-$cacct->created";
+  $pictureFilename = DRUPAL_ROOT . $cacct->auxFilename('picture');
   $values = $sta['values'];
   unset($values['picture']); // don't overwrite old picture except with a new one
 
   if ($picture = @$values['picture_upload']) {
-  debug($picture);
-  debug($_FILES);
     if (!$picture->status) { // If the picture is a temporary file move it to its final location and make it permanent.
-      \file_prepare_directory($dir, FILE_CREATE_DIRECTORY); // Prepare the pictures directory.
 //      $tempName = $_FILES['files']['tmp_name']['picture_upload'];
       $tempName = str_replace('temporary://', \file_directory_temp() . '/', $picture->uri);
-      debug($tempName);
       if (!rename($tempName, $pictureFilename)) say('file save error', 'picture');
-      // fudge for drupal display
-      r\dbQ('DELETE FROM file_managed WHERE uid=:id', compact('id'));
-      $fid = $uid = $id;
-      $filename = basename($picture->uri);
-      $uri = str_replace(DRUPAL_ROOT, $base_url, $pictureFilename);
-      $status = 1;
-      $info = compact(u\ray('fid uid filename uri status'));
-      \drupal_write_record('file_managed', $info);
-      // end of fudge
     }
   }
   
@@ -1105,16 +1087,13 @@ EOF;
  * @return FALSE if none
  */
 function profile_picture($uid, $with_markup = FALSE) {
-  global $base_url;
   $acct = r\acct($uid);
   $data = @unserialize($acct->data);
-  if ($fid = r\acct($uid)->picture) { 
-    if (!$url = r\dbLookup('filename', 'file_managed', 'fid=:fid AND uid=:uid', compact('fid', 'uid'))) return FALSE;
-    $url = R_PICTURE_DIR . "/$url";
-  } else $url = @$data['picture']; // temporary fudge for Greenfield pictures
-  if (!$with_markup or !$url) return $url;
+  $filename = DRUPAL_ROOT . $acct->auxFilename('picture');
+  $url = $base_url . $acct->auxFilename('picture');
+  if (!$with_markup or !file_exists($filename)) return $url;
 
-  $info = @getimagesize($url);
+  $info = @getimagesize($filename);
   list ($width, $height) = is_array($info) ? $info : array(1, 0);
   $new_width = min(max($width, R_MIN_PHOTO_WIDTH), R_MAX_PHOTO_WIDTH);
   $new_height = round($new_width * $height / $width, 0);
@@ -1295,14 +1274,14 @@ function formBuy_submit($form, &$sta) {
 /**
  * Exchange USD for rCredits or vice-versa
  * @todo: validate amount
- */
+ *//*
 function formGetR($form, &$sta) {
   $cacct = r\acct();
   $cuid = $cacct->id;
   if ($confirm = sureForm($sta)) return $confirm; // confirm only getUSD
   $request = u\formatAmount($cacct->demand);
   $demand = be\creditInfo()->fancy['totalDemand'];
-  $minR = u\formatAmount($cacct->min_r);
+  $minR = u\formatAmount($cacct->minimum);
   $subtext = tt(<<<EOF
 <div class="r-explain">The amounts you request here are one-time requests for rCredits beyond the minimum level you set in your <a href="account/preferences">Account Preferences</a>. You will probably get at least part of your request within a week or so and can spend your new rCredits two weeks later. [<a href="help/why-wait">why the wait?</a>]</div><br>
 <div class="r-amounts">
@@ -1350,6 +1329,7 @@ function formGetR_submit($form, &$sta) {
     if (!$cacct->can(PERM_PARTNER)) say('demand not yet');
   }
 }
+*/
 
 /**
 - ** (implement by creating an invite and redirecting to registration, using that code). Choices for the new account (similar choices should be in the invitation form and should be recorded in the invite):
@@ -1729,11 +1709,14 @@ function no_selection($list) {
 
 /**
  * Get the Dwolla account info
- * @param string $status: report from Dwolla (via usd::callback()) on success of getting auth token
+ * @param string $args: params or report from Dwolla (via usd::callback()) on success of getting auth token
  */
-function formUsd($form, &$sta, $status) {
-  if ($status == 'connected') say('got token');
+function formUsd($form, &$sta, $args = '') {
+  if ($args == 'connected') {
+    say('got token');
+  } else extract(u\just('show', $args));
   $cacct = r\acct();
+  
   if ($cacct->offsite) $federal_id = $dob = $answer = R_ON_FILE;
   if ($secure = $cacct->secure) {
     if (@$secure['number']) $number = $pin = R_ON_FILE;
@@ -1750,13 +1733,46 @@ function formUsd($form, &$sta, $status) {
     'dob' => textField(t('Birthdate:'), t('Your date of birth'), required(@$dob)),
     'question' => textField(t('Question:'), t('Type a question that no one but you could ever guess the answer to.'), required($cacct->question)),
     'answer' => textField(t('Answer:'), t('The answer to that question'), required(@$answer)),
-    'id_proof' => file_exists($cacct->auxFilename('proof')) ? 
+    'id_proof' => file_exists(DRUPAL_ROOT . $cacct->auxFilename('proof')) ? 
         formField('item', t('Photo ID:'), '', R_ON_FILE . ($cacct->hasBit(BIT_RTRADER) ? '' : t(' (pending approval)')))
       : formField('file', t('Photo ID:'), t('Upload an image of your driver\'s license, passport, or other official photo ID.'), attrib(array('enctype' => "multipart/form-data"))),
     'submit' => submit(),
   );
 
+  foreach (u\ray('number pin federal_id dob answer id_proof') as $field) {
+    u\prefix($form[$field]['#description'], show($field, @$show));
+  }
+  
   return labeled($form);
+}
+
+/**
+ * Return a "SHOW" link for the field or a display of the field's value, for community admins only.
+ * @param string $field: the field in question
+ * @param string $show: the field to display, if any (default none)
+ * @return the appropriate markup
+ */
+function show($field, $show = '') {
+  global $base_url;
+  $cacct = r\acct();
+  if (!$cacct->can(PERM_CTTY_ADMIN)) return '';
+  
+  if ($field == $show) {
+    if (strpos(R_SECURE_FIELDS, $field) !== FALSE) {
+      $secure = $cacct->secure;
+      $result = $secure[$field];
+    } elseif ($field == 'id_proof') {
+      $proofFilename = DRUPAL_ROOT . $cacct->auxFilename('proof');
+      $im = imagecreatefromstring(u\decode(hex2bin(file_get_contents($proofFilename)), $cacct->id_proof));
+      imagejpeg($im);
+      exit();
+    } elseif ($field == 'dob') {
+      $result = u\formatDate($cacct->$field);
+    } elseif (strpos(R_SECRET_FIELDS, $field) !== FALSE) {
+      $result = $cacct->$field;
+    }
+  } else $result = "<a href=\"$base_url/account/usd/show=$field\">SHOW</a>";
+  return "[$result] ";
 }
 
 function onFile($field, $sta) {
@@ -1765,7 +1781,7 @@ function onFile($field, $sta) {
 
 function formUsd_validate($form, &$sta) {
   $cacct = r\acct();
-  $proofFilename = $cacct->auxFilename('proof');
+  $proofFilename = DRUPAL_ROOT . $cacct->auxFilename('proof');
   extract(u\just('number pin federal_id dob', $sta['values']));
   if (!onFile('number', $sta)) {
     $number = $sta['values']['number'] = u\digits($number);
@@ -1783,11 +1799,13 @@ function formUsd_validate($form, &$sta) {
   if (!onFile('dob', $sta)) { // 12/14/1901 is the earliest
     if (!$dob = $sta['values']['dob'] = strtotime($dob) or $dob > REQUEST_TIME) return say('bad date', 'dob');
   }
-  if ($_FILES['files']['name']['id_proof']) { // fine to let this be uploaded separately
+  if (@$_FILES['files']['name']['id_proof']) { // fine to let this be uploaded separately
     if (!$file = file_save_upload('id_proof', array(), '', FILE_EXISTS_REPLACE)) return say('Try again.', 'id_proof');
     if (!u\abbreviates('image/', @$file->filemime)) return say('bad file type', 'id_proof');
     $tempfile = file_directory_temp() . '/' . $file->filename;
-    if (!$sta['values']['id_proof'] = bin2hex(u\encryptFile($tempfile, $proofFilename, passSalt()))) return say('encryption failure', 'id_proof');
+    if (!$key = $sta['values']['id_proof'] = bin2hex(u\encryptFile($tempfile, $proofFilename, r\passSalt()))) return say('encryption failure', 'id_proof');
+    debug($key);
+    //72522a054c8d56acbed14056d6c4112e1b78e922381ba41d5aed8726d0d997df
     \file_delete($file);
   } elseif(file_exists($proofFilename)) {
     $sta['values']['id_proof'] = R_ON_FILE; // flag for no change
@@ -1804,13 +1822,14 @@ function formUsd_submit($form, &$sta) {
   foreach ($info as $key => $value) if ($value == R_ON_FILE or $value == @$form[$key]['#default_value']) unset($info[$key]); // don't change if on file or unchanged
   extract($info); // extract just the ones that changed
 
-  $info = u\just(R_SECRET_FIELDS . ' secure question', $info);
+  $info = u\just(R_SECRET_FIELDS . ' question', $info);
+  debug($info);
   if (empty($info) or $cacct->update($info)) say('info saved'); else say('info not saved', 'zot');
 
   if (isset($number) or isset($pin)) { // some secure info changed (this must be last, because it redirects to Dwolla)
-    $secure = $cacct->secure; // get secure info, if any (may include more than usdFields)
     $type = 'Dwolla';
     $auth = ''; // no valid auth token until Dwolla calls us back
+    $secure = compact(u\ray('type number pin auth')) + $cacct->secure; // secure info may include more than usdFields
     $cacct->update(compact('secure'));
     $usd = new r\usd($cacct);
     $usd->update(); // get (new) auth token (does not return until after a visit to Dwolla)
@@ -2411,14 +2430,12 @@ function formCompany_submit($form, &$sta) {
   $description = $description['value'];
   r\acct()->update(compact('description', 'selling'));
 
-  //*** Begin DBTX
-  $dbtx = db_transaction();
+  $DBTX = db_transaction();
   r\dbQ('DELETE FROM r_user_industries WHERE uid=:cuid', compact('cuid')); // out with the old
   foreach ($categories as $iid) {
     r\dbQ("INSERT INTO r_user_industries (uid, iid) VALUES (:cuid, :iid)", compact('cuid', 'iid')); // in with the new
   }
-  unset($dbtx);
-  //*** End DBTX
+  unset($DBTX); // commit
   say('info saved');
 }
 

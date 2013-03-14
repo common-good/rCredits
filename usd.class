@@ -120,7 +120,7 @@ class usd {
 //    for any recent USD transfer that does not appear in that table.
 // $atoms is a list of transaction IDs waiting to be committed. 
 // A Drupal transaction object entry marks the start of a new nested level.
-// For example, [$dbtx1, a, b, $dbtx2, c, d, e] has 2 transactions at the top level and 3 nested.
+// For example, [$DBTX1, a, b, $DBTX2, c, d, e] has 2 transactions at the top level and 3 nested.
 // commit() and rollback() must always be called explicitly, barring a system crash (don't just return to the caller)
   
   /**
@@ -162,12 +162,12 @@ class usd {
       $usdAcct2 = new usd(r\acct($payee));
       $one['amount'] = 0;
   
-      /*!*/ self::beginAtom();
+      self::beginAtom();
       self::addToAtom($one);
       $txid = 'create compensating transaction'; // $amount from $usdAcct2 to $usdAcct1
       list ($amount, $payer, $payee, $created) = array(0, $payee, $payer, time());
       self::addToAtom(compact(u\ray('txid amount payer payee created')));
-      /*!*/ self::commit();
+      self::commit();
     }
   }
   

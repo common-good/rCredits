@@ -508,9 +508,10 @@ function log($type, $info = array(), $special = '', $adhocChannel = FALSE) {
 
 /**
  * Encrypt the given file and save in new path.
+ * @param bool $delete: whether to delete the source file
  * @return: the encryption key (FALSE if unsuccessful)
  */
-function encryptFile($filepath, $newFilepath = '', $passSalt) {
+function encryptFile($filepath, $newFilepath = '', $passSalt, $delete = TRUE) {
   if ($newFilepath === '') $newFilepath = $filepath;
   $content = file_get_contents($filepath);
   $destination = dirname($newFilepath);
@@ -518,6 +519,7 @@ function encryptFile($filepath, $newFilepath = '', $passSalt) {
 
   list ($encryptedFile, $encryptionKey) = encode($content, $passSalt);
   if (file_put_contents($newFilepath, $encryptedFile)) {
+    if ($delete) unlink($filepath);
     return $encryptionKey;
   } else return FALSE;
 }
@@ -527,19 +529,47 @@ function encryptFile($filepath, $newFilepath = '', $passSalt) {
  * @param mixed $content: what to encrypt
  * @param assoc $passSalt: [pass]=password, [salt]=salt
  * @return array(encryptedContent, Key)
+
+$filepath = 'zot.txt';
+$newFilepath = 'zot2.txt';
+$pass = 'dlfkdj';
+$salt = 'sdfdlkjl';
+$passSalt = compact('pass', 'salt');
+$delete = TRUE;
+
+$text = 'this is a test';
+file_put_contents($filepath, $text);
+
+  $content = file_get_contents($filepath);
+
+  list ($encryptedFile, $encryptionKey) = rCredits\Util\encode($content, $passSalt);
+  if (file_put_contents($newFilepath, $encryptedFile)) {
+    if ($delete) unlink($filepath);
+    $key = $encryptionKey;
+  }
+  
+//list ($stuff, $key) = rCredits\Util\encode('this is a test', compact('pass', 'salt'));
+//file_put_contents($file, $stuff);
+$stuff2 = file_get_contents($newFilepath);
+echo rCredits\Util\decode($stuff2, $key);
+
  */
 function encode($content, $passSalt) {
-  require __DIR__ . '/cryptastic.php';
+  require_once __DIR__ . '/cryptastic.php';
   $cryptastic = new \cryptastic;
-  $encryptionKey = $cryptastic->pbkdf2($passSalt['pass'], $passSalt['salt'], 1000, 32) or die("Failed to generate secret key.");
-  $encryptedContent = $cryptastic->encrypt($content, $encryptionKey) or die("Failed to complete encryption.");
+  $encryptionKey = $cryptastic->pbkdf2($passSalt['pass'], $passSalt['salt'], 1000, 32);
+  EXPECT($encryptionKey, 'Failed to generate secret key.');
+  $encryptedContent = $cryptastic->encrypt($content, $encryptionKey);
+  EXPECT($encryptedContent, 'Failed to complete encryption.');
   return array($encryptedContent, $encryptionKey);
 }
 
 function decode($crypt, $key) {
-  require __DIR__ . '/cryptastic.php';
+  require_once __DIR__ . '/cryptastic.php';
   $cryptastic = new \cryptastic;
-  return $cryptastic->decrypt($crypt, $key) ?: die('Failed to complete decryption');
+  $result = $cryptastic->decrypt($crypt, $key);
+  EXPECT($result, 'Failed to complete decryption');
+  return $result;
 }
 
 /**
@@ -764,3 +794,4 @@ function formatTime($time = REQUEST_TIME) {return strtolower(strftime('%I:%M%p',
 function lastCall($far = 4) {$back = debug_backtrace(); return array_slice($back, 1, $far);}
 function digits($n) {return preg_replace('/\D/', '', $n);}
 function monthDay1($time = REQUEST_TIME) {return strtotime(strftime('%b01'));}
+function prefix(&$var, $prefix) {$var = $prefix . $var;}

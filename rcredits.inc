@@ -10,7 +10,7 @@
  */
  
 namespace rCredits; // typically abbreviated as "r"
-//use rCredits as r;
+use rCredits as r;
 use rCredits\Util as u;
 use rCredits\Backend as be;
 
@@ -38,8 +38,8 @@ define('R_CARDCODE_LEN', 20); // length of rCard security code (long to deter ea
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
 define('R_EMAIL_FRAME', 'email-frame');
-define('R_PICTURE_DIR', DRUPAL_ROOT . '/sites/default/files/pictures');
-define('R_PROOF_DIR', DRUPAL_ROOT . '/sites/default/files/proof');
+define('R_PICTURE_DIR', '/sites/default/files/pictures'); // precede this by DRUPAL_ROOT (file) or $base_url (url)
+define('R_PROOF_DIR', '/sites/default/files/proofs');
 
 // Account types
 define('R_PERSONAL', 0);
@@ -251,8 +251,7 @@ function transact($info) {
  */
 function txSave($txs) {
   extract(u\just('payer payee data', $txs[0]));
-  //*** Begin DBTX
-  $dbtx = db_transaction();
+  $DBTX = db_transaction();
 //  $table = zxs($payer, $payee);
   $data = @unserialize($data) ?: array();
   foreach ($txs as $key => $one) {
@@ -268,8 +267,7 @@ function txSave($txs) {
   cacheTotals($payer, $txs);
   cacheTotals($payee, $txs);
 
-  unset($dbtx); // commit ($dbtx->commit() is disallowed)
-  //*** End DBTX
+  unset($DBTX); // commit (commit)
   return $txs;
 }
 
@@ -550,12 +548,10 @@ function setTxField($fieldName, $newValue, $xid, $allRelated = FALSE) {
   $sql2 = "UPDATE r_txs SET $fieldName=:newValue$completion WHERE serial=:xid AND type<>:TX_TRANSFER";
 //  $sql2 = str_replace(', data=:data', '', str_replace('xid=:xid', 'serial=:xid', $sql));
   
-  /*!*/
-  $dbtx = \db_transaction();
+  $DBTX = \db_transaction();
   dbQ($sql, compact(u\ray('newValue data xid')));
   if ($allRelated) dbQ($sql2, compact(u\ray('newValue xid'))); // gotta do the auxiliary records separately so as not to affect their data field (separate query, to avoid "unbuffered query" error -- known Drupal bug)
-  unset($dbtx);
-  /*!*/
+  unset($DBTX); // commit
 }
 
 /**
@@ -870,7 +866,7 @@ function newMemberId($oldUid, $newUid = FALSE, $skipUsers = FALSE) {
     'users:uid',
   );
 
-  /*!*/ $dbtx = \db_transaction();
+  $DBTX = \db_transaction();
   foreach ($subs as $one) {
     list ($table, $field) = explode(':', $one);
     if ($skipUsers and $table == 'users') {
@@ -883,7 +879,7 @@ function newMemberId($oldUid, $newUid = FALSE, $skipUsers = FALSE) {
 */
     } else dbQ("UPDATE $table SET $field=:newUid WHERE $field=:oldUid", compact('newUid', 'oldUid'));
   }
-  /*!*/ unset($dbtx);
+  unset($DBTX); // commit
   return $newUid;
 }
 
