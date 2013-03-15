@@ -129,7 +129,7 @@ EOF
   );
 
   $helps['charge'] = strtr($helps['pay'], array('pay' => 'charge', $paySpecial => ''));  
-  return u\getConstants(@$helps[strtolower($page)]) ?: tt('no help', compact('page'));
+  return u\SUBS(@$helps[strtolower($page)]) ?: tt('no help', compact('page'));
   //        <p>Download the app from <a href="http://rCredits.org/rc.apk">rCredits.org/rc.apk</a>, install, run. Try all the buttons.</p>
 
 }

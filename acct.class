@@ -203,13 +203,10 @@ class acct {
     }
     if ($toHide) { // store protected information securely, offsite
       foreach (u\ray(R_SECRET_FIELDS) as $field) unset($info[$field]); // don't pass these to dbUpdate
-      debug($this->account(R_SECRET_FIELDS));
       $key = offsiteData(@$this->offsite, $this->account(R_SECRET_FIELDS));
-      debug($key);
       if ($key and is_numeric($key)) $info['offsite'] = $key; else return FALSE; // if attempt to store fails, save nothing
     }
     $info['uid'] = $this->id; // make sure dbUpdate gets this
-    debug($info);
     return dbUpdate('users', $info, 'uid');
   }
 
@@ -326,10 +323,13 @@ function UAR($quid = '', $no_abbrev = TRUE) {
  */
 function offsiteData($id, $data = NULL) {
   $word = word();
-  if (isset($data)) $data = base64_encode(u\ezencrypt(serialize($data), $word));
-  debug(compact('id', 'data'));
+//  debug(strlen(u\ezencrypt(serialize($orig = $data), $word)));
+  if (isset($data)) $data = bin2hex(u\ezencrypt(serialize($data), $word));
+//  debug(strlen($data));
+//  debug($data);
+//  debug(u\ezencrypt(serialize($orig), $word) == hex2bin($data));
   $result = u\httpRequest(R_SECRET_URL . '/offsite.php', compact('id', 'data'));
-  return isset($data) ? $result : unserialize(u\ezdecrypt(base64_decode($result), $word));
+  return isset($data) ? $result : unserialize(u\ezdecrypt(hex2bin($result), $word));
 }  
 
 function acct($uid = '', $agent = '', &$error = '') {

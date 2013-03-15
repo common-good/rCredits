@@ -50,9 +50,10 @@ function tableDefs($schema = array()) {
     'minimum' => setupField('chosen minimum balance (savings + 3 days, fill automatically)', 'numeric 11,2', NULL),
     'maximum' => setupField('maximum rCredits balance (exchange excess for USD automatically), 0=none)', 'numeric 11,2', NULL),
     'selling' => setupField('typical description of what this company sells (default transaction purpose)', 'varchar 255'),
-    'available' => setupField('how much is available to spend on goods and services (cached)', 'numeric 11,2'),
+    'usd' => setupField('balance in related USD account (probable)', 'numeric 11,2'),
+    'available' => setupField('rCredits available to spend on goods and services (cached)', 'numeric 11,2'),
     'rewards' => setupField('total incentive rewards to date (cached)', 'numeric 11,2'),
-    'frozen' => setupField('amounts unavailable until specific dates or indefinitely', 'text tiny'),
+    'frozen' => setupField('amounts unavailable until specific dates or indefinitely', 'text medium'),
 // 'nym' => setupField('unique identifier for cryptographic signing', 'text tiny'), 
   );
   // need foreign keys here
@@ -169,6 +170,7 @@ function tableDefs($schema = array()) {
   $schema['r_log'] = setupTable('Development and error log', $fields, 'logid', $foreign_keys, $indexes);
   
   // table r_demand
+  /*
   $fields = array(
     'id' => setupField('demand record id', 'serial 11'),
     'time' => setupField('date/time requested', 'int 11'),
@@ -178,6 +180,7 @@ function tableDefs($schema = array()) {
   $foreign_keys = foreignKey('who');
   $indexes = index('who');
   $schema['r_demand'] = setupTable('Who requested rCredits when', $fields, 'id', $foreign_keys, $indexes);
+  */
   
   // table r_relations
   $fields = array(
@@ -198,6 +201,7 @@ function tableDefs($schema = array()) {
   $schema['r_relations'] = setupTable('Who can manage which accounts, and how', $fields, 'reid', $foreign_keys, $indexes);
     
   // table r_candidates (almost same as r_relations, but with extra fields -- used for candidates in rcredits-circles.inc)
+  /*
   $fields = array(
     'uid' => setupField('candidate record id', 'serial 11'),
     'is_company' => setupField('is this a company', 'int tiny', 0),
@@ -206,6 +210,8 @@ function tableDefs($schema = array()) {
   );
   $foreign_keys = foreignKey('uid');
   $schema['r_candidates'] = setupTable('Candidates to become rTraders', $fields, 'uid', $foreign_keys);
+  */
+  
 /*
   $fields = array(
     'ignore' => setupField('temporarily omit this record from consideration', 'int tiny'),
@@ -252,6 +258,7 @@ function tableDefs($schema = array()) {
 */
   
   // table r_scores
+  /*
   $fields = array(
     'company' => setupField('uid of company', 'int 11'),
     'count' => setupField('for the rTraders that have this many places to buy with rCredits', 'int 11', 0),
@@ -260,6 +267,7 @@ function tableDefs($schema = array()) {
   $foreign_keys = foreignKey('company');
   $indexes = index('company');
   $schema['r_scores'] = setupTable('Best companies to promote to rTrader in the current round', $fields, NULL, $foreign_keys, $indexes);
+  */
   
   /*  
   setupField($schema, 'r_areas', 'Area Code', 'telephone area code', 'char 3'); 
@@ -354,7 +362,7 @@ function makeGeoDropdowns() {
     }
   }
 
-  $js .= u\getConstants(<<<EOF
+  $js .= u\SUBS(<<<EOF
 \n
 function print_country(dft_country, dft_state){
   if (dft_country == "") {

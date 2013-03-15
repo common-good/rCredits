@@ -701,7 +701,7 @@ EOF;
   $unavailable = 0; // for now
   $available = ($balance - $minBalance) - $unavailable;
   $cashable = $balance - $rewards;
-  $totalDemand = r\totalDemand();
+  $totalDemand = r\total('demand');
   $resultKeys = 'grossIn grossOut grossInProper committed balance available unavailable rewards cashable totalDemand minBalance';
   $result = compact(u\ray($resultKeys));
   $fancy = array();

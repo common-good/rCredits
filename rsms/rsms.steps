@@ -454,7 +454,7 @@ function isNotAnAccountId($id) {
  */
 function theTotalDemandForRCreditsIs($amount) {
   global $testOnly;
-  $old = r\totalDemand();
+  $old = r\total('demand');
   $same = t\eq($old, $amount);
   if ($testOnly or $same) return $same;
   

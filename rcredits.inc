@@ -339,6 +339,7 @@ function transactionSetup($info) {
  * @param numeric $demand: the user's new demand amount (defaults to 0, meaning "just report")
  * @return the user's demand amount
  */
+ /*
 function demand($uid, $demand = FALSE) {
   $acct = acct($uid);
   if ($demand === FALSE) return $acct->demand;
@@ -346,6 +347,7 @@ function demand($uid, $demand = FALSE) {
   $acct->update(compact('demand')); 
   return $demand;
 }
+*/
 
 /**
  * Return the amount the given account has available to pay.
@@ -841,9 +843,7 @@ function newMemberId($oldUid, $newUid = FALSE, $skipUsers = FALSE) {
   if (!$newUid) $newUid = dbLookup('u.uid', 'users u LEFT JOIN users u2 ON u2.uid=(u.uid+1)', $where) + 1;
   $subs = array( // all tables are listed, to be sure we don't leave any out
   // r_areas
-    'r_candidates:uid', // in case we're in the middle of figuring who's next
   // r_countries,
-    'r_demand:who',
   // r_industries
     'r_invites:inviter',
     'r_invites:invitee',
@@ -855,13 +855,14 @@ function newMemberId($oldUid, $newUid = FALSE, $skipUsers = FALSE) {
   // r_regions
     'r_relations:main',
     'r_relations:other',
-  // r_scores
     'r_smarts:owner',
     'r_smarts:default_agent',
     'r_sms:uid',
   // r_states
     'r_txs:payer',
     'r_txs:payee',
+    'r_usd:payer',
+    'r_usd:payee',
     'r_user_industries:uid',
     'users:uid',
   );
@@ -928,6 +929,29 @@ function proxy($person, $priority = 1, $proxy = NULL) {
 }
 
 /**
+ * Return a system-wide or community-wide total.
+ * As of the last daily cron, unless testing.
+ * @param string $what:
+ *    demand: the total unmet demand for rCredits
+ *    r: rCredits in the system
+ *    usd: USD in play (approximate)
+ *    frozen: rCredits temporarily inaccessible
+ *    signup: rCredits issued as signup reward
+ *    inflation: rCredits issued to offset inflation
+ *    rebates: rCredits issued as rebates (including on USD transactions)
+ *    bonuses: rCredits issued as sales bonuses
+ */
+function total($what, $ctty = '') {
+  $totals = \variable_get('totals');
+  return $totals[$ctty ?: 'all'][$what];
+/*
+  $result = dbLookup('SUM(minimum)', 'users', $ctty ? 'community=:ctty' : '1', compact('ctty')); // minima
+  $result -= -r\balance($ctty); // less how many rCredits are in circulation
+  $result -= r\totalUSD($ctty); // less how much official currency is in play
+  */
+}
+
+/**
  * @param mixed $which: criteria or record id (defaults to $cuid if users)
  * @return:
  *   data from the field, if a single field is requested
@@ -961,18 +985,18 @@ function tableField($field, $table, $which = '', $subs = array()) {
  */
 function dbQ($sql, $subs = array(), $die = FALSE) {
   u\EXPECT(compact(u\ray('sql subs')), 'notempty assoc');
-//  debug(u\getConstants($sql));
+//  debug(u\SUBS($sql));
 //  debug($subs);
 //  if ($die)
- //if (@$subs['info']) {print_r(u\getConstants($sql) . ' ' . print_r(u\prefixKeys(':', $subs), 1)); die();}
+ //if (@$subs['info']) {print_r(u\SUBS($sql) . ' ' . print_r(u\prefixKeys(':', $subs), 1)); die();}
 //if (strpos($sql, 'PDATE') and !@$subs['flags']) {print_r(compact('sql','subs','key'));} 
   //if (!strpos($sql, 'PDATE ')) 
-  return \db_query(u\getConstants($sql), u\prefixKeys(':', $subs));
+  return \db_query(u\SUBS($sql), u\prefixKeys(':', $subs));
 /*
   global $databases, $db;
   extract($databases['default']['default']);
   $db = new \PDO("$driver:host=$host;port=$port;dbname=$database", $username, $password);
-  return query(u\getConstants($sql), u\prefixKeys(':', $subs));
+  return query(u\SUBS($sql), u\prefixKeys(':', $subs));
   */
 }
 
@@ -990,14 +1014,16 @@ function query($sql, $subs = array()) {
  * @param string $table: table name
  * @param assoc $info: data to update
  * @param string $key: record key name
- * @return: number of rows affected
+ * @return: success
  */
 function dbUpdate($table, $info, $key) {
   $sql = '';
   foreach ($info as $field => $value) if ($field != $key) $sql .= ",$field=:$field";
   $sql = "UPDATE $table SET " . substr($sql, 1) . " WHERE $key=:$key";
-  $result = dbQ($sql, $info);
-  return $result->rowCount();
+  try {
+    $result = dbQ($sql, $info);
+    return TRUE;
+  } catch (Exception $e) {return FALSE;} 
 }
  
 function error($logid) {
@@ -1016,7 +1042,6 @@ function bonus($uid, $amount = 1) {return rebate($uid, 2 * $amount);}
 function txField($field, $which, $subs = array()) {return tableField($field, 'r_txs', $which, $subs);}
 function setTxState($newValue, $zserial) {setTxField('state', $newValue, $zserial, TRUE);}
 function word() {return file_get_contents(dirname($_SERVER['DOCUMENT_ROOT']) . "/.shibboleth");}
-function totalDemand($ctty = '') {return dbLookup('SUM(demand)', 'users', $ctty ? 'community=:ctty' : '1', compact('ctty'));}
 function balance($uid = '') {return be\creditInfo(compact('uid'))->balance;}
 //function serverUid($regionId = '') {return -u\a2n(u\neq($regionId, CT_SERVER_ID) ?: R_SERVER_ID);}
 function serverUid($regionId = R_SERVER_ID) {return -u\a2n($regionId);}

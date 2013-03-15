@@ -305,7 +305,7 @@ function tt($message, $subs = array(), $adhocChannel = '') {
     }
     if (@$subs['href']) $model = str_replace('<a>', '<a href="@href">', $model);
 // NO (use raw message instead)   EXPECT(@$model, "missing message '$message'"); 
-    $messages[$i] = getConstants(strtr($model, prefixKeys('@', $subs)), '@');
+    $messages[$i] = SUBS(strtr($model, prefixKeys('@', $subs)), '@');
   }
   return join(' ', $messages);
 }
@@ -340,7 +340,7 @@ PHP's HTTP wrapper will automatically fill out the Content-Length header based o
 ...
 Many web services offer a REST-ful interface for consuming their data, using GET requests for information retrieval and POST requests for making changes. Below you'll find a helper function that can very easily be used to consume a REST API.
 
-The $url parameter is the HTTP or HTTPS URL for the web service. $params is an associative array of form parameters to pass to the web service; they will be passed as _GET parameters for GET requests or _POST parameters for POST requests. The $method parameter can be GET or POST (and presumably any other valid HTTP REQUEST method, such as PUT or DELETE, although I haven't tried those and can't say whether they will work as expected). The $format parameter can be "json" or "xml" and will automatically return a decoded json or XML document, respectively.
+The $url parameter is the HTTP or HTTPS URL for the web service. $content is an associative array of form parameters to pass to the web service; they will be passed as _GET parameters for GET requests or _POST parameters for POST requests. The $method parameter can be GET or POST (and presumably any other valid HTTP REQUEST method, such as PUT or DELETE, although I haven't tried those and can't say whether they will work as expected). The $format parameter can be "json" or "xml" and will automatically return a decoded json or XML document, respectively.
 
 I've used simplexml here because it is... simple. You could very easily add a "dom" format to return the object using the richer and more complex DOM API instead.
 
@@ -348,30 +348,30 @@ This function uses the ignore_errors context parameter. Without this set (the de
 
 When using POST with REST, take care: PHP's HTTP redirection handler will drop your POST payload if the endpoint issues a redirect. If you experience problems using POST with the function below, it might be due to redirects. Most of the POST calls I've run into issue redirects if the URL is missing a trailing '/' character. In other words, if you experience problems where it seems like your parameters are not being sent in, try appending a '/' to the end of the URL and try it again.
  */
-function httpRequest($url, $params = FALSE, $responseFormat = 'raw', $extra_headers = array(), $method = 'POST', $request_format = 'url') {
+function httpRequest($url, $content = FALSE, $responseFormat = 'raw', $extra_headers = array(), $method = 'POST', $request_format = 'url') {
   $ignore_errors = TRUE;
   $headers = array('Content-Type' => $request_format == 'json' ? 'application/json' : 'application/x-www-form-urlencoded') + $extra_headers;
+
   $header = '';
   foreach ($headers as $key => $value) $header .= "$key: $value\n";
   $http = compact(ray('method ignore_errors header'));
 
-  if ($params) {
+  if ($content) {
+    $content = http_build_query($content);
     if ($method == 'POST') {
-      $http['content'] = $request_format == 'json' ? json_encode($params, JSON_UNESCAPED_SLASHES) : http_build_query($params);
-    } else $url .= '?' . http_build_query($params);
+      if ($request_format == 'json') $content = json_encode($content, JSON_UNESCAPED_SLASHES);
+      $http += compact('content');
+    } else $url .= '?' . $content;
   }
 
   $context = stream_context_create(compact('http'));
-  $fp = fopen($url, 'rb', FALSE, $context);
-  if (!$fp) {
-    $response = FALSE;
-  } else {
+  if ($fp = fopen($url, 'rb', FALSE, $context)) {
     // If you're troubleshooting, uncomment the next line to see the HTTP response headers across all redirects:
     // $meta = stream_get_meta_data($fp); var_dump($meta['wrapper_data']);
     $response = stream_get_contents($fp);
-  }
+  } else $response = FALSE;
+
   if ($response === FALSE) throw new \Exception("$method $url failed: $php_errormsg");
-  
   $result = $responseFormat == 'xml' ? simplexml_load_string($response)
     : ($responseFormat == 'json' ? json_decode(utf8_encode($response))
     : ($response) );
@@ -391,7 +391,7 @@ function randomInt($len = NULL) {
  * @param string $string: the string to fix
  * @return string: the string with constant names replaced by their values
  */
-function getConstants($string, $prefix = ':') {
+function SUBS($string, $prefix = ':') {
   preg_match_all("/\\$prefix([A-Z_][A-Z0-9_]*)/ms", $string, $matches);
   $map = array();
   foreach ($matches[1] as $one) $map["$prefix$one"] = constant($one);

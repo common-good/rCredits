@@ -1,5 +1,6 @@
 rCredits Software
 Notes for developers
+make sure offsite.php, .databases, and offsite table are correct on rcredits.org
 rename community field to community
 *** upload r_countries and r_states, then
   UPDATE users u
@@ -14,7 +15,13 @@ rename community field to community
 ***
         
 Short term tasks: (* = before launch ** = earlier)
-- ctty admin can view secret and secure stuff
+- update balances in user table as appropriate
+- cut loose circles file
+- shrink photo in formI (should be 50%)
+- make 1 day an option in -txs
+- download must include rebate and bonuses transactions as a separate row (for GFM)
+- change totalDemand function to total('demand', $ctty = '')
+- cron: make a "daily" queue for most stuff. include figuring variable_set('totals') (usd, r, demand, etc.)
 - automatic bank transfer tester
 - move shibboleth into .databases
 - for existing signups, just set the whole table aside. invite them and let them redo everything

@@ -30,7 +30,7 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'report new cell' => t('Cell number @number is now connected to this account.'),
   'report delete cell' => t('Cell number @number has been removed from this account.'),
 //  'your account is ready' => t('<p></p><p>Welcome to rCredits! Your account ID is @quid. Your starting balance is @balance.</p><p>After you confirm your email address (by clicking the link in the email we sent you), come back here and log in. Pretend to buy and sell just as you would in a typical month. We need that information, to make sure everyone has plenty of places to receive and spend their rCredits.</p><p>Experiment! Have fun!'),
-  'your account is ready' => t('<p></p><p>Welcome to rCredits! We sent you an email with your user ID and password. Come back here and log in, to finish setting up your account. Then if you have another account to set up, use the "Create Another Account" button on the Summary page.</p>'),
+  'your account is ready' => t('<p></p><p>Welcome to rCredits! We sent you an email with your user ID and password. Come back here to log in and finish your account setup. Then if you have another account to create, use the "Create Another Account" button on the Summary page.</p>'),
   'info saved' => t('Your information has been saved.'),
   'verify cell' => t('We sent a verification code to your cell phone (@number).<br>Please type that code in the box below.'),
   'options saved' => t('Your options have been saved'),
@@ -101,6 +101,7 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'specific bad amount' => t('The amount (@amount) must be a number.'),
   'insufficient relation' => t('You cannot open an account unless you have a closer relationship to it. Use the <a href="membership/invite">invitation page</a> instead.'),
   'humans sign' => t('You must be logged in to a personal account, to sign the agreement on behalf of a company.'),
+  'bad spoof check' => t('You must confirm (<i>every time</i>) that you are on the real rCredits site.'),
 );
 
 /**
@@ -601,38 +602,56 @@ function formAgreement($form, &$sta) {
     say('signed agreement', compact('date'));
     $signed_by = item("Signed by <b>$cacct->signed_by</b>, $date");
   } else {
-    $signed_by = textField(t('Signed:'), t('Type your full name here'));
+    $signed_by = textField(t('Signed:'), t('Type your full name here ') . "($cacct->full_name)");
     $submit = submit();
     $instructions = <<<EOF
 <div id='instructions'><b>Instructions:</b> Put a check mark in each checkbox to indicate that you have read that section and agree to it. Really DO read the agreement and make sure you understand it! This agreement, that we make with each other, is the foundation for the rCredits system and the Common Good Economy.</div>
 EOF;
   }
 
-// within six months of receiving my first rCredits
+//  as long as its rCredits trade debt does not exceed its readiness to redeem that debt with official currency or the equivalent
+//  as written in the ever-evolving Common Good Economy governance documents
+// (including amending the Common Good Economy governance documents)
+/*
+Common Good Economy:
+issue money:
+Common Good Community: (links to explanation of both “CGC” and “in good standing”, including something like “as long as its rCredits trade debt does not exceed its readiness to redeem that debt with official currency or the equivalent”)
+if the system ends:  (links to explanation of our plans for how to end gracefully, if necessary -- listing which participants you can still spend at for a while, etc.)
+immediately pay back:
+ethics:
+Dispute Resolution Process: linked to the actual process description “as written in the Common Good Economy governance documents”
+paying attention:
+decision process:
+other decisions:  including amending the Common Good Economy governance documents
+*/
 
   $agreement = <<<EOF
 $instructions
-<div id='agreement'>
+<div id="agreement">
 <h2>A. I recognize that:</h2>
 <ul>
-  <li>[-2] rCredits are intended as the basis for the Common Good Economy -- a democratic, community-centered economic system that puts people and planet first.</li>
-  <li>[-1] Together as a community we have the power to issue money for our own use. It is our promise to accept rCredits that gives them value.</li>
+  <li>[-2] rCredits are intended as the basis for the <a href="help/common-good-economy">Common Good Economy</a> -- a democratic, community-centered economic system that puts people and planet first.</li>
+  <li>[-1] Together as a community we have the power to <a href="help/common-good-economy">issue money</a> for our own use. It is our promise to accept rCredits that gives them value.</li>
   <li>[0] Governance by the people is essential, for a just society.</li>
 </ul>
 
 <h2>B. As a responsible participant in the Common Good Economy:</h2>
 <ol>
-  <li>[1] I will accept rCredits as payment for my goods and services, without limit, as long as I can spend them easily or exchange them easily for US Dollars. I will exchange rCredits for US Dollars only if I cannot spend them easily.</li>
-  <li>[2] I will accept rCredits from members of any rCredits community or region as long as its rCredits trade debt does not exceed its readiness to redeem that debt with official currency or the equivalent.</li>
-  <li>[3] I will price my goods and services the same in rCredits and in US Dollars. Whenever I exchange rCredits for US Dollars or vice versa, I will exchange them one for one.</li>
-  <li>[4] I understand that I will receive some rCredits from the community as Incentive Rewards. If I stop participating (or if the system ends) within 6 months of receiving my first rCredits or before the community has enough revenue to cover the Incentive Rewards, I will immediately pay back whatever amount of Incentive Rewards I have received (while keeping any rCredits I received from other participants).</li>
-  <li>[5] I promise to maintain a high level of honesty, integrity, and ethics in my dealings with other rCredits participants and with the community (including the rCredits system itself). When there is a dispute, I will follow the Dispute Resolution Process as written in the ever-evolving Common Good Economy governance documents, and will honor its outcome.</li>
+  <li>[1] As long as I can spend my rCredits easily or exchange them easily for US Dollars, I will accept them without limit as payment for my goods and services. I will exchange rCredits for US Dollars only if I cannot spend them easily.</li>
+  <li>[2] I will accept rCredits from members of any <a href="help/common-good-community">Common Good Community</a> in good standing.</li>
+  <li>[3] Whenever I exchange rCredits for US Dollars or vice versa, I will exchange them one for one, and I will price my goods and services the same in rCredits and in US Dollars. </li>
+  <li>[4] I understand that I will receive some rCredits from the community as Incentive Rewards. If I stop participating (or <a href="help/if-the-system-ends">if the system ends</a>) within 6 months of receiving my first rCredits or before the community has enough revenue to cover the Incentive Rewards, I will <a href="help/immediately-pay-back">immediately pay back</a> whatever amount of Incentive Rewards I have received (while keeping any rCredits I received from other participants).</li>
+  <li>[5] I promise to maintain a high level of honesty, integrity, and <a href="help/ethics">ethics</a> in my dealings with other rCredits participants and with the community (including the rCredits system itself). When there is a dispute, I will follow the <a href="help/dispute-resolution-process">Dispute Resolution Process</a> and will honor its outcome.</li>
   <li>[6] I agree to participate responsibly in managing the Common Good Economy to the best of my ability and as my life circumstances allow, including:
-    <ul>
-      <li>paying attention and understanding the workings and governance of the Common Good Economy,</li>
-      <li>participating in the decision process to set funding priorities for my community, to foster healthy, fulfilling lives for all community members and to assist communities elsewhere, and</li>
-      <li>participating in other decisions (including amending the Common Good Economy governance documents) from time to time, as needed.</li>
-    </ul></li>
+    <ol style="list-style-type:lower-alpha;">
+      <li><a href="help/paying-attention">paying attention</a> and understanding how the Common Good Economy works</li>
+      <li>participating in the <a href="help/decision-process">decision process</a> to set my community's funding priorities:
+        <ol style="list-style-type:lower-roman;">
+          <li>to foster healthy, fulfilling lives for all community members and</li>
+          <li>to assist communities elsewhere</li>
+        </ol></li>
+      <li>participating in <a href="help/other-decisions">other decisions</a> from time to time, as needed.</li>
+    </ol></li>
 </ol>
 </div>
 EOF;
@@ -880,9 +899,10 @@ function formAccount($form, &$sta) {
   $form['account']['current_pass']['#weight'] = 4;
   $form['account']['status']['#weight'] = 5;
   $form['account']['roles']['#weight'] = 6;
-  $form['picture']['picture_upload']['#description'] .= $cacct->account_type >= R_COMMERCIAL ? 
+  $form['picture']['picture_upload']['#description'] .= t(' File size must be under 3MB.')
+    . $cacct->account_type >= R_COMMERCIAL ? 
       t(' A picture in landscape orientation will look best, in rCredits promotions.')
-    : t(' Your picture must be taller than it is wide and must show your full face, filling about 3/4 of the space.');
+    : t(' Your picture must be taller than it is wide (3:4 ratio is ideal) and must show your full face, filling most of the frame.');
   $form['picture']['picture_current']['#markup'] = <<<EOF
   <div class="user-picture">
   <img src="$pictureURL" />
@@ -1724,7 +1744,7 @@ function formUsd($form, &$sta, $args = '') {
 
   $form = array(
     'title' => item(t('USD Account and Security Info')),
-    'subtext' => item(t('If you need help completing this section, visit the rCredits office in Greenfield, MA or call @phone', array('@phone' => R_ORG_PHONE))),
+    'subtext' => item(t('If you need help completing this section, visit the rCredits office in Greenfield, MA or call @phone.', array('@phone' => R_ORG_PHONE))),
     'number' => textField(t('Account:'), t('Your 10-digit Dwolla account number'), required(@$number)),
     'pin' => textField(t('PIN'), t('Your 4-digit Dwolla PIN'), required(@$pin)),
     'federal_id' => $cacct->account_type >= R_COMMERCIAL ?
@@ -1739,8 +1759,11 @@ function formUsd($form, &$sta, $args = '') {
     'submit' => submit(),
   );
 
-  foreach (u\ray('number pin federal_id dob answer id_proof') as $field) {
-    u\prefix($form[$field]['#description'], show($field, @$show));
+  if ($cacct->can(PERM_CTTY_ADMIN)) {
+    foreach (u\ray('number pin federal_id dob answer id_proof') as $field) {
+      u\prefix($form[$field]['#description'], show($field, @$show));
+    }
+    unset($form['subtext']);
   }
   
   return labeled($form);
@@ -1755,16 +1778,16 @@ function formUsd($form, &$sta, $args = '') {
 function show($field, $show = '') {
   global $base_url;
   $cacct = r\acct();
-  if (!$cacct->can(PERM_CTTY_ADMIN)) return '';
   
   if ($field == $show) {
     if (strpos(R_SECURE_FIELDS, $field) !== FALSE) {
       $secure = $cacct->secure;
       $result = $secure[$field];
-    } elseif ($field == 'id_proof') {
+    } elseif ($field == 'id_proof') { // display the proof image alone (then user clicks on Back)
       $proofFilename = DRUPAL_ROOT . $cacct->auxFilename('proof');
-      $im = imagecreatefromstring(u\decode(hex2bin(file_get_contents($proofFilename)), $cacct->id_proof));
-      imagejpeg($im);
+      $imgString = u\decode(file_get_contents($proofFilename), hex2bin($cacct->id_proof));
+      header("Content-Type: image/jpeg");
+      imagejpeg(imagecreatefromstring($imgString));
       exit();
     } elseif ($field == 'dob') {
       $result = u\formatDate($cacct->$field);
@@ -2196,7 +2219,9 @@ function loginAlter(&$form, &$sta, $regular = TRUE) {
   if ($regular) {
     $title = item(t('rCredits Login'));
     $subtext = item(t('Welcome! If you have not yet signed up for rCredits, click on "New account" above.'));
-    array_unshift($form, compact(u\ray('title subtext')));
+    $isRCredits = formField('checkbox', t('Spoof check:'), u\SUBS(t('Does the address in your URL bar start with ":R_SITE_URL" (as usual)?')), required(rand(0,1)));
+
+    array_unshift($form, compact(u\ray('title subtext isRCredits')));
 //    $form['tip'] = item(t('<b>NOTE: </b>If you created an account using cell texting request a "New password".'));
     $form['name']['#description'] = t('Enter your username (the letters of your legal name, all lowercase) OR your rCredits account ID.');
     $form['pass']['#description'] = t('Enter your account password.');
@@ -2225,7 +2250,7 @@ function loginAlter(&$form, &$sta, $regular = TRUE) {
  * Sets $sta['uid'] to signify successful authentication.
  */
 function login_extra_validate($form, &$sta) {
-  extract(u\just('name pass', $sta['values']));
+  extract(u\just('name pass isRCredits', $sta['values']));
   if (!$name or empty($pass)) return;
 
   $failed_login_ip_limit = variable_get('user_failed_login_ip_limit', 50);
@@ -2248,6 +2273,7 @@ function login_extra_validate($form, &$sta) {
     return;
   }
 
+  if (!$isRCredits) say('bad spoof check', 'isRCredits');
   $cacct = r\acct($uid);
   $sta['uid'] = $cacct->passwordOkay($pass) ? $uid : FALSE;
 }
@@ -2531,7 +2557,7 @@ function formOptions($form, &$sta) {
   $statements = $cacct->hasBit(BIT_ELECTRONIC) + 0;
   $statementRadios = array(
     t('I will accept electronic statements.'), 
-    t('I choose to receive printed statements by mail.') . u\getConstants(t('<div>I agree to pay $:R_STATEMENT_COST per month to cover the postage and handling costs for this service.</div>'))
+    t('I choose to receive printed statements by mail.') . u\SUBS(t('<div>I agree to pay $:R_STATEMENT_COST per month to cover the postage and handling costs for this service.</div>'))
   );
   $statements = formField('radios', t('Statements:'), '', required($statements), $statementRadios);
 
@@ -2580,12 +2606,12 @@ function formReports($form, &$sta, $args = '') {
   $cacct = r\acct();
   $ctty = r\acct($cacct->community);
   $issued = -r\balance($ctty->id);
-  $demand = r\totalDemand($ctty->id);
+  $demand = r\total('demand', $ctty->id);
   $demandPct = $issued ? (' (' . number_format(100 * $demand / $issued, 1) . '% beyond amount issued)') : '';
    
   $title = item(t('Reports'));
   $subtext = item(t('for ') . $ctty->full_name);
-  $issued = item(t('r$ issued:'), t('How many rCredits have been issued'), u\formatAmount($issued)); // ($xxx worldwide)
+  $issued = item(t('rCredits issued:'), t('How many rCredits have been issued'), u\formatAmount($issued)); // ($xxx worldwide)
   $demand = item(t('Margin:'), t('Community demand for additional rCredits'), u\formatAmount($demand) . $demandPct); // ($xxx worldwide)
 //  $moreLater = item('', t('After rCredits is launched, this page will also report progress statistics.'));
   if (strpos($args, 'variety=') === FALSE) $args .= '&variety=report';

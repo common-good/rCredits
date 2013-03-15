@@ -14,7 +14,8 @@ $caller = $_SERVER['REMOTE_ADDR'];
 $dbs = (array) json_decode(utf8_encode(file_get_contents("$root/.databases")));
 if (!$cryptKey = @$dbs['_offsiteKeys']->$caller) die('access denied, caller '.$caller); // unique password for each caller (unknown to them)
 
-$args = $_POST;
+offlog(17, $args = $_POST);
+
 $id = @$args['id'];
 $data = @$args['data'];
 if (empty($id) and is_null($data)) die('server error (no data)');
@@ -31,16 +32,16 @@ function secret($dbs, $cryptKey, $id, $data = NULL) {
   extract($dbInfo, EXTR_PREFIX_ALL, 'db');
   $db = new PDO("$db_driver:host=$db_host;port=$db_port;dbname=$db_name", $db_user, $db_pass);
 
-  if (!isset($data)) return ($result = lookup('data', $table, $id)) == '' ? '' : base64_encode(ezdecrypt($result, $cryptKey)); // retrieval is easy
+  if (!isset($data)) return (offlog(35, $result = lookup('data', $table, $id)) == '' ? '' : base64_encode(ezdecrypt($result, $cryptKey))); // retrieval is easy
   
   $data = ezencrypt(base64_decode($data), $cryptKey);
-  if ($id) return query("UPDATE $table SET data=? WHERE id=?", array($data, $id)) ? $id : FALSE; // replacing old data with new value
+  if ($id) return offlog(38, query("UPDATE $table SET data=? WHERE id=?", array($data, $id)) ? $id : FALSE); // replacing old data with new value
 
   while (TRUE) { // new data, find an unused id
     $id = randomInt($maxLen);
     if (!lookup(1, $table, $id)) break;
   }
-  return query("INSERT INTO $table (id, data) VALUES (?, ?)", array($id, $data)) ? $id : FALSE;
+  return offlog(44, query("INSERT INTO $table (id, data) VALUES (?, ?)", array($id, $data)) ? $id : FALSE);
 }
 
 function lookup($field, $table, $id) {
@@ -76,4 +77,11 @@ function randomInt($len = NULL) {
   $result = '';
   while (strlen($result) < $len) $result .= mt_rand(100000000, 999999999);
   return substr($result, 0, $len);
+}
+
+function offlog($line, $s) {
+  global $offlog;
+  $offlog = @$offlog . "\r\n $line: " . print_r($s, 1);
+  file_put_contents('offlog.txt', $offlog);
+  return $s;
 }
