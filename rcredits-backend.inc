@@ -88,7 +88,7 @@ function backend2($args = FALSE) {
   extract($args, EXTR_PREFIX_ALL, 'my'); // $cuid, $firewall, $agent, $my_id, $op
   unset($args['cuid']); // unset because it is passed as part of r\acct(), not as an arg
 
-  if (@$my_firewall != r\word()) error('firewall system failure'); // give hackers some satisfaction by saying 'failure'
+  if (@$my_firewall != R_WORD) error('firewall system failure'); // give hackers some satisfaction by saying 'failure'
   $firewall = $my_firewall; // is this useful?
   if (!@$my_cuid or !@$my_agent) error('user validation error');
   $cacct = r\acct($my_cuid, $my_agent);
@@ -854,7 +854,7 @@ function isTempName($name) {
 
 function testbe($function = '', $arg1 = '', $arg2 = '', $arg3 = '') {
   global $testing_backend, $firewall;
-  $firewall = r\word(); // this is not currently necessary
+  $firewall = R_WORD; // this is not currently necessary
   if (!$function) return $testing_backend;
   $function = "rCredits\\be\\$function";
   $testing_backend = TRUE;
@@ -890,7 +890,7 @@ function backend($op, $info = array(), $cache = FALSE) {
 //  debug("cache:$cache $op: " . json_encode($info) . ($cache ? " result:$result" : ''));
 //  debug($result);
   $password = r\acct($agent)->pass;
-  $firewall = r\word();
+  $firewall = R_WORD;
 //  foreach ($info as $key => $value) if (strpos($key, 'uid') !== FALSE) $info[$key] = r\quid($value); // convert to qid
 //  $basic = array('agent' => r\quid($agent), 'cuid' => r\quid($cuid));
   $info += compact(u\ray('cuid agent op password firewall')); // operation, credentials, and account

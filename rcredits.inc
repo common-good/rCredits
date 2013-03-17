@@ -23,17 +23,16 @@ define('R_MIN_PHOTO_WIDTH', 240); // how wide to make profile pictures (unless t
 define('R_MAX_PHOTO_WIDTH', 1024);
 define('R_FIRST_CTTY_UID', -1000001); // community uids are less than or equal to this (farther from zero)
 define('R_DATA_FIELDS', ''); // fields stored in the account's "data" array field (serialized)
-define('R_SECURE_FIELDS', 'type number pin auth card_code'); // non-personal encrypted fields
+define('R_SECURE_FIELDS', 'type pin auth card_code'); // non-personal encrypted fields
 define('R_SECRET_FIELDS', 'federal_id dob id_proof answer'); // personal identifying information
 define('R_SECRET_URL', isDEV ? 'http://localhost/rcredits' : 'http://rcredits.org'); // where to store secrets
 define('R_URL_SLASH', '%_%'); // Drupal gets confused by slashes in a url, even if urlencoded
-define('R_MAX_DAILY_EXCHANGE', 1000); // per Common Good Finance policy and to avoid formal regulation by FinCEN
+define('R_MAX_DAILY_EXCHANGE', 1000); // per Common Good Finance policy and to avoid formal FinCEN regulation
 define('R_INVITE_DAYS', 7); // number of days to accept invitation to membership
 define('R_MINR_DEFAULT', 200); // suggested minimum amount to hold in rCredits
 define('R_MAXR_DEFAULT', 0); // suggested maximum amount to hold in rCredits
-define('R_MINUSD_DEFAULT', 200); // suggested minimum amount to hold in Dwolla
-define('R_MAXUSD_DEFAULT', 0); // suggested maximum amount to hold in Dwolla
 define('R_CARDCODE_LEN', 20); // length of rCard security code (long to deter easy copying)
+define('R_FREEZE_TIME', '2 weeks'); // how long to freeze newly bought rCredits
 
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
@@ -252,8 +251,6 @@ function transact($info) {
 function txSave($txs) {
   extract(u\just('payer payee data', $txs[0]));
   $DBTX = db_transaction();
-//  $table = zxs($payer, $payee);
-  $data = @unserialize($data) ?: array();
   foreach ($txs as $key => $one) {
     if (empty($one)) continue; // skipping rebate or bonus
     $txs[$key]['serial'] = @$serial; // set serial for dependent transactions
@@ -360,34 +357,48 @@ function available($acct, $goods) {
 }
 
 /**
- * Keep track of balance, available balance, and other figures in data field of account record:
- *    balance: cached current rCredits account balance (sum of transactions is authoritative)
+ * Keep track of balance, available balance, and other figures in the account record:
+ *    balance: cached current rCredits account balance (but sum of transactions is authoritative)
  *    available: the amount available to spend
+ *    usd: (probable) balance in Dwolla account
  *    rewards: incentive rewards received to date (cannot be cashed out)
  *    frozen: how much of the balance is unavailable to spend (array of amounts keyed by dates)
- *    noBonus: how many rCredits must the account accept as payment for goods and services, before receiving more sales bonuses
  */
 function cacheTotals($uid, $txs) {
   if ($uid < 0) return; // don't cache community and region totals
   if ($txs[0]['state'] <= TX_PENDING) return; // don't change totals if transaction doesn't count (yet)
   $acct = acct($uid);
-  $data = $acct->data;
-//  extract(u\just('balance rewards frozen', $data));
-  $balance = @$data['balance'] ?: 0;
-  $rewards = @$data['rewards'] ?: 0;
-  $frozen = @$data['frozen'] ?: array();
+  foreach (u\ray($cacheFields = 'usd available rewards frozen') as $field) $$field = $acct->$field;
   
   foreach ($txs as $tx) {
-    extract(u\just('payer payee r type goods', $tx));
-    $amount = $payer == $uid ? -$r : ($payee == $uid ? $r : 0);
-    $balance += $amount;
+    extract(u\just('payer payee amount r type goods', $tx));
+    if ($toOther = ($payer == $uid)) {
+      $amount = -$amount;
+      $r = -$r;
+    } elseif ($payee != $uid) continue; // neither to nor from me
+    $usd += $amount - $r; 
     if ($type != TX_TRANSFER) {
-      $rewards += $amount;
-    } elseif (!$goods) $frozen[$wait] = @$frozen[$wait] + $amount;
+      $rewards += $r;
+      $available += $r;
+    } elseif (!$goods) {
+      $wait = strtotime(R_FREEZE_TIME);
+      $frozen[$wait] = @$frozen[$wait] + $amount;
+    } else $available += $r;
+    unfreeze($available, $frozen); // update expired frozen amounts
   }
-  $available = $balance - array_sum($frozen);
-  $data = compact(u\ray('balance rewards frozen available')) + $data;
-  $acct->update(compact('data'));
+  $acct->update(compact(u\ray($cacheFields)));
+}
+
+/**
+ * Unfreeze expired frozen funds.
+ * @param float $available: amount available to spend (returned updated)
+ * @param assoc $frozen: list of amounts and what time they should get unfrozen (returned updated)
+ */
+function unfreeze(&$available, &$frozen) {
+  foreach ($frozen as $time => $amount) if (is_numeric($time) and time() > $time) {
+    $available = round($available + $amount, 2);
+    unset($frozen[$time]);
+  }
 }
 
 /**
@@ -929,6 +940,19 @@ function proxy($person, $priority = 1, $proxy = NULL) {
 }
 
 /**
+ * Say whether the account is nearly a member.
+ * That is, have they satisfied all membership requirement except possibly choosing proxies.
+ * @return assoc of the component steps: gotPhoto, signed, and donated, with a summary in "nearly"
+ */
+function nearlyMember($acct) {
+  $gotPhoto = file_exists(DRUPAL_ROOT . $acct->auxFilename('picture'));
+  $signed = (bool) $acct->signed_agreement;
+  $donated = ($acct->tithe > 0 or r\tithe($acct)); // r\tithe() also updates the database
+  $nearly = ($gotPhoto and $signed and $donated);
+  return compact(u\ray('gotPhoto signed donated nearly'));
+}
+
+/**
  * Return a system-wide or community-wide total.
  * As of the last daily cron, unless testing.
  * @param string $what:
@@ -1041,7 +1065,6 @@ function rebate($uid, $amount = 1) {return round($amount * userField('rebate_per
 function bonus($uid, $amount = 1) {return rebate($uid, 2 * $amount);}
 function txField($field, $which, $subs = array()) {return tableField($field, 'r_txs', $which, $subs);}
 function setTxState($newValue, $zserial) {setTxField('state', $newValue, $zserial, TRUE);}
-function word() {return file_get_contents(dirname($_SERVER['DOCUMENT_ROOT']) . "/.shibboleth");}
 function balance($uid = '') {return be\creditInfo(compact('uid'))->balance;}
 //function serverUid($regionId = '') {return -u\a2n(u\neq($regionId, CT_SERVER_ID) ?: R_SERVER_ID);}
 function serverUid($regionId = R_SERVER_ID) {return -u\a2n($regionId);}

@@ -47,7 +47,7 @@ function formTxs($form, &$sta, $args = '') {
   if (@$channels) {$classes .= ' channel'; $headers .= t(',Via');}
   $classes = u\ray($classes);
   
-  $txDays = array('4' => '4 days', '30' => '30 days', '90' => '90 days', '180' => '6 months', '365' => '12 months', '-1' => 'Year to date');
+  $txDays = array('1' => 'today', '4' => '4 days', '30' => '30 days', '90' => '90 days', '180' => '6 months', '365' => '12 months', '-1' => 'Year to date');
   list ($starting, $ending) = txDates($txDays, @$period, @$starting, @$ending);
 
 
@@ -199,11 +199,12 @@ function txDates($txDays, $period, $starting = '', $ending = '') {
   if (@$starting > REQUEST_TIME) say('beyond today', 'starting');
   if (@$ending and !is_numeric($ending) and !($ending = strtotime($ending))) say('bad date', 'ending');
   if (!@$ending or $ending > REQUEST_TIME) $ending = REQUEST_TIME;
-  $ending = strtotime('tomorrow', $ending) - 1;
+  $ending = strtotime('tomorrow', $ending) - 1; // last second of the day
 
   $period = (int) (@$period ?: TX_DEFAULT_PERIOD);
   $ago = @$txDays[$period] ?: ($period . ' days');
   if (!@$starting) $starting = strtotime($period == '-1' ? '1jan' : "$ago ago");
+  $starting = strtotime(date("Y-m-d", $starting)); // chop off time of day
   return array($starting, $ending);
 }  
 

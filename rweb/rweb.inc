@@ -453,7 +453,7 @@ function contribute() {
 
 function formHelp($form, &$sta, $what = '') {
   require_once __DIR__ . '/rweb-help.inc';
-  $title = item($what ? t('Help for ') . ucwords($what) : t('General Help'));
+  $title = item($what ? t('Help for ') . ucwords(str_replace('-', ' ', $what)) : t('General Help'));
   $text = formField('item', '', '', helpText($what ?: 'general'));
   return compact(u\ray('title text'));
 }
@@ -488,11 +488,9 @@ function formMembership($updating, &$sta = '', $code = '') {
 //  $acct->setBit(BIT_MEMBER, 0); // for testing
 //  $acct->setBit(BIT_RTRADER, 0);
   if (!$acct->can(PERM_MEMBER)) {
-    $gotPhoto = file_exists(DRUPAL_ROOT . $acct->auxFilename('picture'));
-    $signed = (bool) $acct->signed_agreement;
-    $donated = ($acct->tithe > 0 or r\tithe($acct)); // r\tithe() also updates the database
+    extract(u\just('gotPhoto signed donated nearly', r\nearlyMember($acct)));
     $gotProxies = (r\dbLookup('COUNT(*)', 'r_proxies', 'person=:cuid', compact('cuid')) >= 2);
-    r\membershipEvent($acct, 'member', $gotPhoto and $signed and $donated and ($nonperson or $gotProxies));
+    r\membershipEvent($acct, 'member', $nearly and ($nonperson or $gotProxies));
   }
 
   $gotContact = ($acct->phone and $acct->mail and $acct->address and $acct->city and $acct->country);
@@ -586,6 +584,7 @@ EOF;
  * Give member a chance to sign the rCredits Agreement.
  */
 function formAgreement($form, &$sta) {
+  global $base_url;
   $cacct = r\acct();
   if ($cacct->proSe() and $cacct->account_type >= R_COMMERCIAL) {
     say('humans sign', 'signed_by');
@@ -630,27 +629,27 @@ $instructions
 <div id="agreement">
 <h2>A. I recognize that:</h2>
 <ul>
-  <li>[-2] rCredits are intended as the basis for the <a href="help/common-good-economy">Common Good Economy</a> -- a democratic, community-centered economic system that puts people and planet first.</li>
-  <li>[-1] Together as a community we have the power to <a href="help/common-good-economy">issue money</a> for our own use. It is our promise to accept rCredits that gives them value.</li>
+  <li>[-2] rCredits are intended as the basis for the <a href="$base_url/help/common-good-economy">Common Good Economy</a> -- a democratic, community-centered economic system that puts people and planet first.</li>
+  <li>[-1] Together as a community we have the power to <a href="$base_url/help/common-good-economy">issue money</a> for our own use. It is our promise to accept rCredits that gives them value.</li>
   <li>[0] Governance by the people is essential, for a just society.</li>
 </ul>
 
 <h2>B. As a responsible participant in the Common Good Economy:</h2>
 <ol>
   <li>[1] As long as I can spend my rCredits easily or exchange them easily for US Dollars, I will accept them without limit as payment for my goods and services. I will exchange rCredits for US Dollars only if I cannot spend them easily.</li>
-  <li>[2] I will accept rCredits from members of any <a href="help/common-good-community">Common Good Community</a> in good standing.</li>
+  <li>[2] I will accept rCredits from members of any <a href="$base_url/help/common-good-community">Common Good Community</a> in good standing.</li>
   <li>[3] Whenever I exchange rCredits for US Dollars or vice versa, I will exchange them one for one, and I will price my goods and services the same in rCredits and in US Dollars. </li>
-  <li>[4] I understand that I will receive some rCredits from the community as Incentive Rewards. If I stop participating (or <a href="help/if-the-system-ends">if the system ends</a>) within 6 months of receiving my first rCredits or before the community has enough revenue to cover the Incentive Rewards, I will <a href="help/immediately-pay-back">immediately pay back</a> whatever amount of Incentive Rewards I have received (while keeping any rCredits I received from other participants).</li>
-  <li>[5] I promise to maintain a high level of honesty, integrity, and <a href="help/ethics">ethics</a> in my dealings with other rCredits participants and with the community (including the rCredits system itself). When there is a dispute, I will follow the <a href="help/dispute-resolution-process">Dispute Resolution Process</a> and will honor its outcome.</li>
+  <li>[4] I understand that I will receive some rCredits from the community as Incentive Rewards. If I stop participating (or <a href="$base_url/help/if-the-system-ends">if the system ends</a>) within 6 months of receiving my first rCredits or before the community has enough revenue to cover the Incentive Rewards, I will <a href="$base_url/help/immediately-pay-back">immediately pay back</a> whatever amount of Incentive Rewards I have received (while keeping any rCredits I received from other participants).</li>
+  <li>[5] I promise to maintain a high level of honesty, integrity, and <a href="$base_url/help/ethics">ethics</a> in my dealings with other rCredits participants and with the community (including the rCredits system itself). When there is a dispute, I will follow the <a href="$base_url/help/dispute-resolution-process">Dispute Resolution Process</a> and will honor its outcome.</li>
   <li>[6] I agree to participate responsibly in managing the Common Good Economy to the best of my ability and as my life circumstances allow, including:
     <ol style="list-style-type:lower-alpha;">
-      <li><a href="help/paying-attention">paying attention</a> and understanding how the Common Good Economy works</li>
-      <li>participating in the <a href="help/decision-process">decision process</a> to set my community's funding priorities:
+      <li><a href="$base_url/help/paying-attention">paying attention</a> and understanding how the Common Good Economy works</li>
+      <li>participating in the <a href="$base_url/help/decision-process">decision process</a> to set my community's funding priorities:
         <ol style="list-style-type:lower-roman;">
           <li>to foster healthy, fulfilling lives for all community members and</li>
           <li>to assist communities elsewhere</li>
         </ol></li>
-      <li>participating in <a href="help/other-decisions">other decisions</a> from time to time, as needed.</li>
+      <li>participating in <a href="$base_url/help/other-decisions">other decisions</a> from time to time, as needed.</li>
     </ol></li>
 </ol>
 </div>
@@ -723,8 +722,9 @@ function formInvite($form, &$sta) {
   global $base_url;
   $cacct = r\acct();
   $title = item(t('Invite Someone to Sign Up for rCredits'));
-  $subtext = t('We\'re sorry, you cannot invite someone to sign up until you have completed your own Membership requirements.<br><br><a>Click here</a> to see where you stand.');
-  $subtext = item(strtr($subtext, array('<a>' => '<a href="status">')));
+  extract(u\just('nearly', r\nearlyMember($cacct)));
+  $subtext = t('We\'re sorry, you cannot invite someone to sign up until you have completed your other membership steps.<br><br><a>Click here</a> to see where you stand.'); // don't require membership (conceptual loop)
+  $subtext = item(strtr($subtext, array('<a>' => "<a href=\"$base_url/membership\">")));
 //  $contact = textField(t('Email or Cell:'), t('An email address or cell number for the person you want to invite'), required());
   $email = textField(t('Email:'), t('An email address for the person you want to invite'), required());
   $trusted = boolField(t('Trusty?'), t('If you lent this person $250, would you trust them to pay it back?'));
@@ -735,7 +735,7 @@ function formInvite($form, &$sta) {
   $messageHelp = strtr(t('Invite them to sign up, and say why. A <a>blurb about rCredits</a> will follow your message, with a signup link.'), $blurbLink);
   $message = formField('textarea', t('Message:'), $messageHelp, required($default));
   $submit = submit();
-  $form = $cacct->can(PERM_MEMBER) ? 
+  $form = $nearly ? 
       labeled(compact(u\ray('title email trusted subject message submit')))
     : compact(u\ray('title subtext'));
   return $form;
@@ -756,7 +756,7 @@ function formInvite_submit($form, &$sta) {
     'subject' => $subject,
     'PERSONAL_NOTE' => $message, 
     'MEMBER_NAME' => $cacct->full_name, 
-    'DATE' => u\formatDate(),
+    'DATE' => u\formatDate($cacct->signed_agreement),
     'CODE' => r\invite($email, $cacct->id),
   );
   \drupal_mail('rCredits', 'invite', $email, '', $info);
@@ -1415,7 +1415,7 @@ function formRegister(&$form, &$sta, $args = '') {
   
   $title = item(t('Sign up for rCredits'));
 
-  if (!$email = invitation(@$code) and @$code != r\word() and @$code != 'w') {
+  if (!$email = invitation(@$code) and @$code != bin2hex(R_WORD) and @$code != 'w') {
     $form['actions']['submit'] = NULL; // nothing to submit
     $subtext = item(tt('bad invite'));
     $form['account']['mail'] = hidField('unused@example.com'); // keep Drupal processing happy
@@ -1461,7 +1461,7 @@ function formRegister_validate($form, &$sta) {
   extract(u\just('is_owner employee_ok', $companyOptions));
   extract(u\just('code', $args));
   $sta['values'] = array(); // make sure Drupal doesn't save the record when WE find an error (no longer needed?)
-  if (!$email = invitation(@$code) and $code != r\word() and $code != 'w') return r\go('user/register'); // in case user resubmits
+  if (!$email = invitation(@$code) and $code != bin2hex(R_WORD) and $code != 'w') return r\go('user/register'); // in case user resubmits
     
   if (!emailOkay($mail)) return;
   
@@ -1732,20 +1732,19 @@ function no_selection($list) {
  * @param string $args: params or report from Dwolla (via usd::callback()) on success of getting auth token
  */
 function formUsd($form, &$sta, $args = '') {
-  if ($args == 'connected') {
-    say('got token');
-  } else extract(u\just('show', $args));
+  extract(u\just('show connected', $args));
+  if (@$connected === TRUE) {
+    say('got token'); 
+  } elseif (@$connected) say("There was an error. Dwolla said: $connected", 'zot');
   $cacct = r\acct();
   
   if ($cacct->offsite) $federal_id = $dob = $answer = R_ON_FILE;
-  if ($secure = $cacct->secure) {
-    if (@$secure['number']) $number = $pin = R_ON_FILE;
-  }
+  if ($cacct->usd_account) $usd_account = $pin = R_ON_FILE;
 
   $form = array(
     'title' => item(t('USD Account and Security Info')),
     'subtext' => item(t('If you need help completing this section, visit the rCredits office in Greenfield, MA or call @phone.', array('@phone' => R_ORG_PHONE))),
-    'number' => textField(t('Account:'), t('Your 10-digit Dwolla account number'), required(@$number)),
+    'usd_account' => textField(t('Account:'), t('Your 10-digit Dwolla account number'), required(@$usd_account)),
     'pin' => textField(t('PIN'), t('Your 4-digit Dwolla PIN'), required(@$pin)),
     'federal_id' => $cacct->account_type >= R_COMMERCIAL ?
         textField(t('Federal ID:'), t('Your official employer ID number (EIN)'), required(@$federal_id))
@@ -1760,7 +1759,7 @@ function formUsd($form, &$sta, $args = '') {
   );
 
   if ($cacct->can(PERM_CTTY_ADMIN)) {
-    foreach (u\ray('number pin federal_id dob answer id_proof') as $field) {
+    foreach (u\ray('usd_account pin federal_id dob answer id_proof') as $field) {
       u\prefix($form[$field]['#description'], show($field, @$show));
     }
     unset($form['subtext']);
@@ -1791,7 +1790,7 @@ function show($field, $show = '') {
       exit();
     } elseif ($field == 'dob') {
       $result = u\formatDate($cacct->$field);
-    } elseif (strpos(R_SECRET_FIELDS, $field) !== FALSE) {
+    } elseif (strpos(R_SECRET_FIELDS . ' usd_account', $field) !== FALSE) {
       $result = $cacct->$field;
     }
   } else $result = "<a href=\"$base_url/account/usd/show=$field\">SHOW</a>";
@@ -1805,10 +1804,10 @@ function onFile($field, $sta) {
 function formUsd_validate($form, &$sta) {
   $cacct = r\acct();
   $proofFilename = DRUPAL_ROOT . $cacct->auxFilename('proof');
-  extract(u\just('number pin federal_id dob', $sta['values']));
-  if (!onFile('number', $sta)) {
-    $number = $sta['values']['number'] = u\digits($number);
-    if (!preg_match('/^[0-9]{10}$/', $number)) return say('bad account number', 'number');
+  extract(u\just('usd_account pin federal_id dob', $sta['values']));
+  if (!onFile('usd_account', $sta)) {
+    $usd_account = $sta['values']['usd_account'] = u\digits($usd_account);
+    if (!preg_match('/^[0-9]{10}$/', $usd_account)) return say('bad account number', 'usd_account');
   }
   if (!onFile('pin', $sta)) {
     $pin = $sta['values']['pin'] = u\digits($pin);
@@ -1827,8 +1826,6 @@ function formUsd_validate($form, &$sta) {
     if (!u\abbreviates('image/', @$file->filemime)) return say('bad file type', 'id_proof');
     $tempfile = file_directory_temp() . '/' . $file->filename;
     if (!$key = $sta['values']['id_proof'] = bin2hex(u\encryptFile($tempfile, $proofFilename, r\passSalt()))) return say('encryption failure', 'id_proof');
-    debug($key);
-    //72522a054c8d56acbed14056d6c4112e1b78e922381ba41d5aed8726d0d997df
     \file_delete($file);
   } elseif(file_exists($proofFilename)) {
     $sta['values']['id_proof'] = R_ON_FILE; // flag for no change
@@ -1838,22 +1835,23 @@ function formUsd_validate($form, &$sta) {
 function formUsd_submit($form, &$sta) {
   include_once __DIR__ . '/../usd.class'; // treat this as an extension of this file, just to make menu ['file'] consistent
 
-  $usdFields = 'type number pin auth';
-//  debug((string) u\httpRequest(R_SECRET_URL . '/offsite.php', array('id' => '', 'data' => 'thedata'))); return;
+  $usdFields = '';
   $cacct = r\acct();
-  $info = u\just($usdFields . ' federal_id dob question answer id_proof', $sta['values']);
+  $info = u\just('type usd_account pin auth federal_id dob question answer id_proof', $sta['values']);
+  $secure = @$cacct->secure ?: array();
+  $retry = (!@$secure['auth'] and $info['usd_account'] == R_ON_FILE and $info['pin'] == R_ON_FILE);
+
   foreach ($info as $key => $value) if ($value == R_ON_FILE or $value == @$form[$key]['#default_value']) unset($info[$key]); // don't change if on file or unchanged
   extract($info); // extract just the ones that changed
 
   $info = u\just(R_SECRET_FIELDS . ' question', $info);
-  debug($info);
   if (empty($info) or $cacct->update($info)) say('info saved'); else say('info not saved', 'zot');
 
-  if (isset($number) or isset($pin)) { // some secure info changed (this must be last, because it redirects to Dwolla)
+  if (isset($usd_account) or isset($pin) or $retry) { // this must be last, because it redirects to Dwolla
     $type = 'Dwolla';
     $auth = ''; // no valid auth token until Dwolla calls us back
-    $secure = compact(u\ray('type number pin auth')) + $cacct->secure; // secure info may include more than usdFields
-    $cacct->update(compact('secure'));
+    $secure = compact(u\ray('type pin auth')) + $secure; // secure includes more than these
+    $cacct->update(compact('secure', 'usd_account'));
     $usd = new r\usd($cacct);
     $usd->update(); // get (new) auth token (does not return until after a visit to Dwolla)
   }
@@ -2219,7 +2217,7 @@ function loginAlter(&$form, &$sta, $regular = TRUE) {
   if ($regular) {
     $title = item(t('rCredits Login'));
     $subtext = item(t('Welcome! If you have not yet signed up for rCredits, click on "New account" above.'));
-    $isRCredits = formField('checkbox', t('Spoof check:'), u\SUBS(t('Does the address in your URL bar start with ":R_SITE_URL" (as usual)?')), required(rand(0,1)));
+    $isRCredits = rand(0, 1) ? formField('checkbox', t('Spoof check:'), u\SUBS(t('Does the address in your URL bar start with ":R_SITE_URL" (as usual)?')), required()) : hidField(TRUE);
 
     array_unshift($form, compact(u\ray('title subtext isRCredits')));
 //    $form['tip'] = item(t('<b>NOTE: </b>If you created an account using cell texting request a "New password".'));
@@ -2238,7 +2236,8 @@ function loginAlter(&$form, &$sta, $regular = TRUE) {
   
   $form['#attributes']['class'][] = $regular ? 'rweb labeled' : 'rweb';
   focusOn('name');
-  css('rweb.css', -9); // needed because this function doesn't go through show()
+  css('rweb.css', -9); // this normally gets called in showForm()
+  js('inc/radiocheck.js', 'file', 'footer'); // this normally gets called in showForm()
   t\snapShot($form);
   loginCheck(); // must follow snapShot()
 }
@@ -2915,7 +2914,12 @@ function communityTransfer($type, $acct, $amount, $confirmed) {
   $amount = u\formatAmount($amount);
   return array($msg, compact(u\ray('success action confirmAction amount otherName')), $success and !$confirmed);
 }  
-    
+
+function usdCallback($uid) {
+  include_once __DIR__ . '/../usd.class';  
+  return r\usd::callback($uid);
+}
+  
 function menu($title, $type, $function = NULL, $function_args = array(), $access = 'member', $other = array()) {
   global $menu_weight;
   $menu_weight += !@$menu_weight ?: 1;

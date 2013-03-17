@@ -15,12 +15,10 @@ rename community field to community
 ***
         
 Short term tasks: (* = before launch ** = earlier)
-- update balances in user table as appropriate
 - cut loose circles file
+- dwindling rewards in cron
 - shrink photo in formI (should be 50%)
-- make 1 day an option in -txs
 - download must include rebate and bonuses transactions as a separate row (for GFM)
-- change totalDemand function to total('demand', $ctty = '')
 - cron: make a "daily" queue for most stuff. include figuring variable_set('totals') (usd, r, demand, etc.)
 - automatic bank transfer tester
 - move shibboleth into .databases
@@ -31,15 +29,11 @@ Short term tasks: (* = before launch ** = earlier)
     We can create the amount of the first kind divided by velocity, probably.
 - disable SMS getr command altogether
 - disable signup via SMS
-- disable checkboxes in agreement, if already signed, and show signature and date at bottom (not text box)
-- company relations during registration fails (missing is_owner and employee_ok)
 - add flow to relations (1=to, 2=from, 3=both, 0=none)
 - don't allow clicking on links in emails (send to new.rcredits_org.com/whatever, which looks like rcredits.org but scolds the user for clicking on an email link, then offers a link to the real site (don't accept that one either).
 - Dwolla fee goes to cash buyer (otherwise always to the rCredits recipient -- the payee)
-- change company suggested donation to $250 (pass it)
 - count owners (if not employed too) and suppliers each as one (average) employee, when distributing virtual payments
 - travel checks (use once, limited amount)
-- callback from oauth request calls usd page with success/youSaidNO/error (display a message)
 - allow extra params in buynow form
 - ** Transaction Summary: add extra rows for "Unavailable until <date>", "Available Balance", "Incentive Rewards to Date", and "Amount That Can Be Exchanged for USD", reflecting serialized assoc values in the data field of the account: balance, frozen[n]=array(date,amount), rewards (available balance is calculated)
 - ** membership path for companies!
@@ -63,17 +57,12 @@ includes security code, like this: http(s?)://new.rc2.me/new.abc/Urlencoded10Cha
 - relation.class
 - Cut the registration process loose from user_register (mostly so the testing can run properly).
 - Coding security policy: never show any personal identifying info (R_SECRET_FIELDS) in the HTML. EVER. For example, when verifying someone's identity, the staff member should ask for the last 4 of their ss#, type it in and press submit. The code does a compare and returns just yes or no. Even the member cannot ever see what they earlier typed in. We might want to have a similar but weaker restriction on phone numbers and addresses -- like maybe those are protected for personal accounts. When 1099 time comes, the reports go out electronically only (no preview, etc.) Even user 1 and other admins don't have access to PII. Also put in some safe-guards to prevent repetitive guessing.
-- * add usdMinimum to the secure field (preferences?)
-- separate security page from bank page?
 - beef up security - immediate:
-  . QR on card includes a security code (urlencoded 5 random bytes, preceded by 3 case-insensitive letters printed on back). Merchants who 
   . Show the agent's picture below Help/Menu (below accounts dropdown in fullscreen). 
 - security later: 
   . Make the agent's picture appear from behind the "r", get big, then shrink and settle into place, traveling in the shape of an "r", ideally leaving a jet trail.
   . How to prove the logged-out site is rcredits? Maybe always ask first "It looks like you came here from an rCredits member site. Make sure this is the real rCredits website! Does your url bar say https://new.rcredits.org? Does it show a security symbol? We will display this reminder only once in a while. Don't let the identity thieves get you. Be sure to check the url bar <i>every time</i>."
-- * handle TX_TENTATIVE
 - * in profile, handle links to list of websites
-- when dwolla confirmation comes through, simply change the state of the transaction from "tentative" to "done" (no need for . 
 - * signup button on rcredits.org goes directly to user/register
 - * demo button on rcredits.org goes to login with options to log in as abeone, beatwo (self-employed), cornerpub, or townarts (which should have a "Contribute" form on its member/townarts page)
 
@@ -140,10 +129,12 @@ E. Database clues
      . community: the (negative) uid of the account's CGC. For anyone who is not in an established CGC, their community is the region (using the regional server's uid). For region and community records, community === uid
      . minimum: the user's preferred minimum rCredits balance. Request at least r$10 more automatically if balance goes under by even one cent.
      . maximum: the user's preferred maximum rCredits balance. Exchange any excess beyond maximum+10-.01 automatically for USD
-     . secure is an encrypted serialized assoc:
-         gateway: Dwolla
-         PIN: the Dwolla PIN
+     . usd_account is the usd account number, encrypted with R_WORD
+     . secure is an encrypted (with R_WORD) serialized assoc:
+         type: Dwolla
+         pin: the Dwolla PIN
          auth: the Dwolla OAUTH code
+         card_code: security code for QR code on rCard
    - r_txs
      . xid: record id
      . payer_tid: Transactions are identified to the user counting just their own transactions (1, 2, 3, ...), NOT as an xid.

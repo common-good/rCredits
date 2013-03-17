@@ -1,8 +1,18 @@
 <?php
+
+/*
+ * @file
+ * rCredits Help Messages
+ * This file contains a single function that returns a help message.
+ */
+ 
 namespace rCredits\Web;
 use rCredits as r;
 use rCredits\Util as u;
 
+/**
+ * Return a help message for the page.
+ */
 function helpText($page) {
   global $base_url;
   $cacct = r\acct();

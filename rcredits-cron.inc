@@ -13,7 +13,7 @@ statements (daily, weekly, monthly -- at user's option)
 
 update / check balances (often -- 5 minutes?) -- restart daily (start with random account?)
   recalc balance, rewards
-  unset data[frozen[today]]
+  r\unfreeze($available, $frozen);
 other security / scam checks (often)
 
 (just auto pay and redist happen in a chunk)
@@ -90,7 +90,6 @@ function lostUsdTx($item) {
 function lostUsdTx1($info) {
   extract(u\just('txid amount dateOfTransaction', $info));
   if (r\dbExists('r_usd', 'txid=:txid', compact('txid'))) return;
-  $payer = $payee = 0; // irrelevant
   $created = strtotime(str_replace('/', '.', $dateOfTransaction)); // (need proper param here) convert to day-first format
   r\usd::rollback(array(compact(u\ray('txid amount payer payee created'))));
 }

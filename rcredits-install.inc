@@ -25,7 +25,8 @@ function tableDefs($schema = array()) {
     'flags' => setupField('permissions and boolean state flags', 'int big', 0, '010'),
     'community' => setupField("uid of this account's Common Good Community", 'int 11'),
     'question' => setupField('security question', 'varchar 255'),
-    'secure' => setupField('non-personal encrypted data (official currency account etc)', 'blob normal'), 
+    'usd_account' => setupField('USD account number (encrypted)', 'blob normal'), // blob tiny doesn't exist
+    'secure' => setupField('other non-personal encrypted data', 'blob normal'), 
     'offsite' => setupField('index to encrypted data stored off-site', 'int big', NULL, '010'),
     'full_name' => setupField('full name of the individual or entity', 'varchar 60'),
     'phone' => setupField('contact phone (no country code, no punctuation)', 'varchar 255'),
@@ -42,11 +43,7 @@ function tableDefs($schema = array()) {
     'signed_by' => setupField('who signed the agreement (on behalf of the account)', 'varchar 60'),
     'rebate_percent' => setupField('current rebate percentage (sales bonus is double)', 'numeric 4,3', 5),
     'tithe' => setupField('fraction of rebates and bonuses to contribute back to Common Good Finance', 'numeric 6,3', 0),
-//    'demand' => setupField('waiting to trade this much USD for rCredits (or vice-versa)', 'numeric 11,2', 0),
-//    'demand_date' => setupField('date/time of request for rCredits (or USD)', 'int 11'),
-//    'counts' => setupField('counts of command use, etc.', 'int big', 0),
     'floor' => setupField('how low can balance go (normally zero or less)', 'numeric 11,2', R_FLOOR),
-//    'usd_account' => setupField('USD account number', 'varchar 36'),
     'minimum' => setupField('chosen minimum balance (savings + 3 days, fill automatically)', 'numeric 11,2', NULL),
     'maximum' => setupField('maximum rCredits balance (exchange excess for USD automatically), 0=none)', 'numeric 11,2', NULL),
     'selling' => setupField('typical description of what this company sells (default transaction purpose)', 'varchar 255'),
@@ -54,13 +51,16 @@ function tableDefs($schema = array()) {
     'available' => setupField('rCredits available to spend on goods and services (cached)', 'numeric 11,2'),
     'rewards' => setupField('total incentive rewards to date (cached)', 'numeric 11,2'),
     'frozen' => setupField('amounts unavailable until specific dates or indefinitely', 'text medium'),
-// 'nym' => setupField('unique identifier for cryptographic signing', 'text tiny'), 
   );
   // need foreign keys here
   $schema['users']['fields'] = (@$schema['users']['fields'] ?: array()) + $fields;
   $schema['users']['fields']['uid'] = setupField('Unique user ID', 'int 11'); // not unsigned
 // kills Drupal: $schema['users']['fields']['data']['description'] = 'incidental data (a serialized array of name value pairs)';
 
+// 'nym' => setupField('unique identifier for cryptographic signing', 'text tiny'), 
+//    'demand' => setupField('waiting to trade this much USD for rCredits (or vice-versa)', 'numeric 11,2', 0),
+//    'demand_date' => setupField('date/time of request for rCredits (or USD)', 'int 11'),
+//    'counts' => setupField('counts of command use, etc.', 'int big', 0),
 /*  MOVE THESE TO offsite field:
     'federal_id' => setupField('social security number or employer id number, for reporting', 'int 9'), // secret
     'dob' => setupField('date of birth, founding, or incorporation', 'int 11'), // secret

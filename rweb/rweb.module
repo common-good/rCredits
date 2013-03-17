@@ -113,7 +113,7 @@ function rweb_menu() {
 
     'rcredits/backend' => r\Web\menu('API', 0, 'rCredits\\be\\backend2', array(), '', $anyone),
     'api' => r\Web\menu('API', 0, 'rCredits\\Smart\\api', array(), '', $anyone),
-    'bank' => r\Web\menu('Bank callback', 0, 'rCredits\\usd::callback', array(1), '', $anyone),
+    'usd-callback' => r\Web\menu('USD account callback', 0, 'usdCallback', array(1), '', $anyone),
     'secret' => r\Web\menu('Secret', 0, 'secrets', array(), '', $anyone),
     'error' => r\Web\menu('System Error', 0, 'rCredits\\error', array(1), '', $anyone),
     
