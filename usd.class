@@ -11,7 +11,8 @@ use rCredits\Util as u;
  */
 
 require_once __DIR__ . '/../dwolla/dwolla.php';
-define ('R_USD_NOTE_PREFIX', 'rC: '); // prefix USD transaction notes so we know they are ours
+define ('USD_NOTE_PREFIX', 'rC: '); // prefix USD transaction notes so we know they are ours
+define ('NO_DWOLLA', TRUE or !t\EST());
 
 class usd {
   var $acct; // the associated rCredits account
@@ -23,13 +24,13 @@ class usd {
 
   /**
    * Get a dwolla object. Set the auth token, if appropriate.
+   * @param bool $setToken: whether to set the auth token
    * @param string $redirectUri: where to redirect on request for auth token OR
-   *   an arbitrary string meaning "don't set the token"
    * @return: a dwolla object (usually received into $dw)
    */
-  private function dwolla($redirectUri = FALSE) {
+  private function dwolla($setToken = TRUE, $redirectUri = FALSE) {
     $dw = new \DwollaRestClient(DWOLLA_API_KEY, DWOLLA_API_SECRET, $redirectUri);
-    if (!$redirectUri) $dw->setToken($this->acct->secure['auth']);
+    if ($setToken) $dw->setToken($this->acct->secure['auth']);
     return $dw;
   }
   
@@ -47,9 +48,9 @@ class usd {
    * Handle updated usd information by requesting a new auth token from Dwolla
    * @return: does not return, but initiates callback to receive auth token
    */
-  public function update() {
+  public function getAuth() {
     global $base_url;
-    $dw = $this->dwolla("$base_url/usd-callback/" . $this->acct->id); // tell Dwolla where to wake us up
+    $dw = $this->dwolla('', "$base_url/usd-callback/" . $this->acct->id); // tell Dwolla where to wake us up
 	  header('Location: ' . $dw->getAuthUrl()); // request an auth token
     exit();
   }    
@@ -65,6 +66,7 @@ class usd {
    */
   function bal($want = NULL, &$error = NULL) {
     $dw = $this->dwolla();
+    if (NO_DWOLLA) return $this->acct->usd;
     return $dw->balance();
   }
 
@@ -82,12 +84,12 @@ class usd {
    *   maybe: '?'
    * NOTE: this function should write the transaction id, amount, payer, and payee to r_usd BEFORE doing the Dwolla transfer
    */
-  function transfer($amount, $other, $notes, $payerFee = FALSE, $direct = TRUE, &$error = NULL) {
+  function transfer($amount, $other, $notes = R_DEFAULT_PURPOSE, $payerFee = FALSE, $direct = TRUE, &$error = NULL) {
     $source = $direct ? 'Dwolla' : 'ERROR'; // no delayed payments at present
-    $notes = R_USD_NOTE_PREFIX . $notes;
+    $notes = USD_NOTE_PREFIX . $notes;
     $dw = $this->dwolla();
-    $txid = $dw->send($this->pin, $other->number, $amount, $source, $notes, 0, $payerFee);
-    if (!$txid) return FALSE;
+    if (NO_DWOLLA) $txid = \user_password(); else
+    if (!$txid = $dw->send($this->pin, $other->number, $amount, $source, $notes, 0, R_FEE_FOR_CASH and $payerFee)) return FALSE;
     
     $created = time();
     $payer = $this->acct->id;
@@ -106,15 +108,17 @@ class usd {
   public static function callback($uid) {
     global $base_url;
     $uri = "$base_url/account/usd/connected=";
+    
+    if (NO_DWOLLA) unset($_GET['error']);
     if(@$_GET['error']) return r\go($uri . $_GET['error_description']);
 
-    $dw = $this->dwolla('no token yet');
-    if (!$token = $dw->requestToken(@$_GET['code'])) return r\go($uri . $dw->getError());
+    $dw = $this->dwolla(FALSE);
+    if (NO_DWOLLA) $authToken = \user_password(); else
+    if (!$authToken = $dw->requestToken(@$_GET['code'])) return r\go($uri . $dw->getError());
 
-    //session_start(); $_SESSION['token'] = $token;
     $acct = r\acct($uid);
     $secure = $acct->secure;
-    $secure['auth'] = $token;
+    $secure['auth'] = $authToken;
     $acct->update(compact('secure'));
     return r\go($uri . TRUE); // tell user we were successful
   }
@@ -128,7 +132,13 @@ class usd {
     $sources = $dw->fundingSources();
     $function = $amount < 0 ? 'withdraw' : 'deposit';
     debug("Transferring USD $amount from $this->acct->id's Dwolla account to the bank.");
-    return $dw->$function($sources['WHAT GOES HERE?'], $this->pin, abs($amount));
+    self::beginAtom();
+    if (!$result = $dw->$function($sources['Response'][0]['Id'], $this->pin, abs($amount))) return FALSE;
+    $txid = $result['Response'][0]['Id'];
+    list ($payer, $payee, $created) = array($this->acct->id, 0, REQUEST_TIME); 
+    self::addToAtom(compact(u\ray('txid amount payer payee created')));
+    self::commit();
+    return $result;
   }
 
   /**
@@ -137,13 +147,11 @@ class usd {
    */
   function each($callback, $start = 0) {
     $dw = $this->dwolla();
-    $skip = 0;
-    $atATime = 50;
-    while ($listings = $dw->listings(strftime('%m-%d-%Y', $start), 'money_sent', $atATime, $skip)) {
-      foreach ($listings as $txid) {
-        $details = transaction($txid);
-        $details['txid'] = $txid;
-        if (u\abbreviates(R_USD_NOTE_PREFIX, $one['notes'])) $callback($details);
+    $skip = 0; // how many transactions to skip, in call to $dw->listings()
+    $atATime = 50; // arbitrary, up to 200 (Dwolla limit)
+    while ($listings = $dw->listings(strftime('%d-%m-%Y', $start), 'money_sent', $atATime, $skip)) {
+      foreach ($listings['Response'] as $one) {
+        if (u\abbreviates(USD_NOTE_PREFIX, $one['notes'])) $callback($one); // handle rCredits PAYMENTS only
       }
       $skip += $atATime;
     }   
@@ -162,13 +170,17 @@ class usd {
   /**
    * Mark the beginning of a mixed USD/rCredits (possibly nested) database transaction.
    */
-  public static function beginAtom() {
-    return self::$atoms[] = \db_transaction();
-  }
+  public static function beginAtom() {return self::$atoms[] = \db_transaction();}
   
-  private static function addToAtom($txid) {
-    self::$atoms[] = $txid; // remember transaction to commit or rollback
-  }
+  /**
+   * Remember a Dwolla transaction to commit or rollback
+   *   txid: the Dwolla transaction id
+   *   amount: the amount of a Dwolla transaction or bank transfer (negative for a withdrawal)
+   *   payer: rCredits account id of the sender
+   *   payee: rCredits account id of the other (0 for bank transfers)
+   *   created: (int) creation date/time
+   */
+  private static function addToAtom($one) {self::$atoms[] = $one;}
 
   public static function commit() {
     $values = '';
@@ -176,6 +188,7 @@ class usd {
       extract(u\just('txid amount payer payee created', $one));
       $values .= ($values ? ',' : '') . "($txid, $amount $payer $payee $created)";
     }
+    u\EXPECT(strpos($values, ';') === FALSE, 'sql insertion in usd commit'); // impossible, but verify
     r\dbQ("INSERT INTO r_usd (txid, amount, payer, payee, created) VALUES $values");
     // Drupal automatically commits if we don't rollback
   }
@@ -195,26 +208,28 @@ class usd {
     
     foreach ($list as $one) { // create a compensating usd transaction for each transaction in $list
       extract(u\just($fields, $one));
-      $usdAcct1 = new usd(r\acct($payer));
-      $usdAcct2 = new usd(r\acct($payee));
+      $usAcct1 = new usd(r\acct($payer));
+      $usAcct2 = new usd(r\acct($payee));
   
       self::beginAtom();
-      $notes = R_USD_NOTE_PREFIX . 'reversing transaction #' . $one['transactionID'];
-      $dw = $usdAcct1->dwolla();
-      extract(u\just('WHAT ARE THESE FIELDS?', $dw->transaction($txid)));
-      $dw = $usdAcct2->dwolla();
-      // payerFee should be the opposite of 
-      if (!$txid = $dw->send($usdAcct2->pin, $usdAcct1->number, $amount, 'Dwolla', $notes, 0, $payerFee) {
-        // failure (probably insufficient Dwolla balance). transfer amount in r, from payee to payer
-        // if ($amount > 10) reimburse the original 25 cents, in r
-        $one['created'] = REQUEST_TIME; // sync with the r transfer
-        self::addToAtom($one);
+      self::addToAtom($one); // record original transaction
+      $notes = USD_NOTE_PREFIX . 'reversing Dwolla transaction #' . $one['transactionID'];
+      $dw = $usAcct1->dwolla();
+      extract(u\just('Success Response', $dw->transaction($txid)));
+      if (!@$Success) {self::rollback(); continue;}
+      //$payerFee = FALSE; // don't know yet how to extract this from $Response['Fees'][0]['Type'] (?todo)
+      $payerFee = R_FEE_FOR_CASH ? ($Response['Notes'] == USD_NOTE_PREFIX . 'cash') : FALSE;
+      
+      $dw = $usAcct2->dwolla();
+      if (!$txid = $dw->send($usAcct2->pin, $usAcct1->number, $amount, 'Dwolla', $notes, 0, $payerFee)) {
+        // failure (probably insufficient Dwolla balance).
+        list ($payer, $payee, $for, $taking) = array($payee, $payer, $notes, FALSE);
+        r\transact(compact(u\ray('payer payee amount for taking'))); // reverse it in rCredits instead.
+        if ($amount > 10) be\fund($payerFee ? $payee : $payer, TX_GRANT, 0.25); // reimburse Dwolla fee
       } else {
-        $one['amount'] = $one['payer'] = $one['payee'] = 0; // all irrelevant (just the txids matter)
-        self::addToAtom($one);
         list ($amount, $payer, $payee, $created) = array(0, $payee, $payer, time());
         self::addToAtom(compact(u\ray($fields)));
-        // if ($amount > 10) reimburse both 25 centses in r
+        if ($amount > 10) foreach (array($payer, $payee) as $one) be\fund($one, TX_GRANT, 0.25); // reimburse Dwolla fees
       }
       self::commit();
     }

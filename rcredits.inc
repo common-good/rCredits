@@ -11,6 +11,7 @@
  
 namespace rCredits; // typically abbreviated as "r"
 use rCredits as r;
+use rCredits\Testing as t;
 use rCredits\Util as u;
 use rCredits\Backend as be;
 
@@ -33,6 +34,7 @@ define('R_MINR_DEFAULT', 200); // suggested minimum amount to hold in rCredits
 define('R_MAXR_DEFAULT', 0); // suggested maximum amount to hold in rCredits
 define('R_CARDCODE_LEN', 20); // length of rCard security code (long to deter easy copying)
 define('R_FREEZE_TIME', '2 weeks'); // how long to freeze newly bought rCredits
+define('R_DEFAULT_PURPOSE', 'rCredits/USD exchange'); // default transaction purpose
 
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
@@ -211,6 +213,14 @@ function txReportArgs($tx, $getMyBalance = FALSE, $shortfall = 0) {
 }
 
 /**
+ * Return the rCredits account id for the given USD account id.
+ */
+function whoseUsd($usdAccountId) {
+  $usd_account = bin2hex(u\ezencrypt($usdAccountId, R_WORD));
+  return r\dbLookup('uid', 'users', 'usd_account=:usd_account', compact('usd_account'));
+}
+
+/**
  * Return the percentage tithe chosen by given user (as identified by their email).
  * Consider the tithe valid only if it was specified as part of a COMPLETED contribution.
  */
@@ -230,11 +240,6 @@ function otherBalance($uid) {
   } else return FALSE;
 }
 
-function exchange($amount, $payer, $payee, $for) {
-  $taking = FALSE;
-  r\transact(compact(u\ray('amount payer payee for')));
-}
-
 /**
  * Record a transaction between two participants
  * @see also transactionSetup(), r\transactionRewards(), and be\transfer()
@@ -249,15 +254,14 @@ function transact($info) {
  * Save the transaction set
  */
 function txSave($txs) {
-  extract(u\just('payer payee data', $txs[0]));
+  extract(u\just('payer payee', $txs[0]));
   $DBTX = db_transaction();
   foreach ($txs as $key => $one) {
-    if (empty($one)) continue; // skipping rebate or bonus
     $txs[$key]['serial'] = @$serial; // set serial for dependent transactions
-    \drupal_write_record('r_txs', $txs[$key]); // pass actual array element, to get xid
-    if ($key == 0) {
-      $txs[$key]['serial'] = $serial = $txs[0]['xid']; // set serial for main transaction
-      dbQ("UPDATE r_txs SET serial=:serial WHERE xid=:serial", compact('serial'));
+    $txs[$key]['xid'] = $xid = r\dbInsert('r_txs', $one);
+    if ($key == 0) { // set serial for main transaction
+      dbQ("UPDATE r_txs SET serial=:xid WHERE xid=:xid", compact('xid'));
+      $txs[0]['serial'] = $serial = $xid; // set serial for this and remember it for dependents
     }
   }
 
@@ -296,23 +300,25 @@ function txRewardSetup($type, $payee, $state, $rewards) {
 
 /**
  * Create a new transaction and set up all the important fields.
- * @param array $info: an associative array of transaction info. The following elements are required:
- *   amount: how much to transfer
- *   payer, payee: uids
+ * @param array $info: an associative array of transaction info.
+ *   amount: (required) how much to transfer
+ *   payer, payee: (required) uids
  *   for: purpose of the transaction OR a simple array (payer's purpose, payee's purpose)
- *   taking (bool): did the payee initiate the transaction
+ *   etc.
  * @return the array, with some extra field information added
  */
 function transactionSetup($info) {
   global $channel; // through what medium was the transaction requested (web, SMS, etc.).
   extract($info, EXTR_PREFIX_ALL, 'my');
-  $required_params = compact(u\prefixValues('my_', u\ray('amount payer payee for taking')));
-  u\EXPECT($required_params, 'float zid zid notempty bool');
+  $required_params = compact(u\prefixValues('my_', u\ray('amount payer payee')));
+  u\EXPECT($required_params, 'float zid zid');
 
   setDft($info['type'], TX_TRANSFER);
   setDft($info['r'], $my_amount);
   setDft($info['state'], TX_DONE);
+  setDft($info['taking'], FALSE);
   setDft($info['goods'], FALSE);
+  setDft($info['for'], R_DEFAULT_PURPOSE);
   setDft($info['payer_agent'], $my_payer);
   setDft($info['payee_agent'], $my_payee);
 
@@ -415,8 +421,8 @@ function usdPart($requestAmount, $acct, $preapproved, $goods, &$shortfall) {
   $r = min($requestAmount, r\available($acct, $goods));
   if (!$shortfall = max(0, $requestAmount - $r)) return 0;
 
-  $usdAcct = new usd($acct); // try to do some in USD
-  $usdBalance = $usdAcct->bal();
+  $usAcct = new usd($acct); // try to do some in USD
+  $usdBalance = $usAcct->bal();
   $shortfall = max(0, round($shortfall - $usdBalance, 2));
 //    $shortfall = max(.01, $shortfall); // don't report a tiny shortfall by rounding down to zero
 //    $shortfall = ceil($shortfall); // shortfall should be a round figure (no cents)
@@ -749,8 +755,11 @@ function reverseRelations($other, $main, &$data, $fields) {
   foreach (u\ray($fields) as $field) if (@$data[$field]) $stay = TRUE;
   if (!@$stay) return;
   $subs = compact('main', 'other') + u\just($fields, $data);
-  if ($reid = relation('reid', $main, $other)) $subs += compact('reid');
-  \drupal_write_record('r_relations', $subs, $reid ? 'reid' : array());
+  if ($reid = relation('reid', $main, $other)) {
+    $subs += compact('reid');
+    r\dbUpdate('r_relations', $subs, 'reid');
+  } else r\dbInsert('r_relations', $subs);
+
   foreach (u\ray($fields) as $field) unset($data[$field]); // don't get these fields mixed in with the reverse record
 }
 
@@ -909,7 +918,7 @@ function invite($email, $inviter, $code = '') {
     'inviter' => $inviter,
     'invited' => REQUEST_TIME,
   );
-  \drupal_write_record('r_invites', $info);
+  r\dbInsert('r_invites', $info);
   return $info['code'];
 }
 
@@ -919,7 +928,7 @@ function invite($email, $inviter, $code = '') {
  * Drupal urlencodes the parameters (= and &), so the target page will have to sort that out. (can't use Header() here)
  */
 function go($page) {
-  if (\testing()) {
+  if (t\EST()) {
     list ($form, $arg1) = ($page == 'pay' or $page == 'charge') ? array('tx', $page) : array($page, '');
     $form = function_exists("\\rCredits\\Web\\form$form") ? $form 
       : ($form = 'user/register' ? 'register'
@@ -936,7 +945,7 @@ function proxy($person, $priority = 1, $proxy = NULL) {
   if (!@$proxy) return dbLookup('proxy', 'r_proxies', 'person=:person AND priority=:priority', compact('person', 'priority'));
   dbQ('DELETE FROM r_proxies WHERE person=:person AND priority=:priority', compact('person', 'priority'));
   $info = compact(u\ray('person priority proxy'));
-  \drupal_write_record('r_proxies', $info);
+  r\dbInsert('r_proxies', $info);
 }
 
 /**
@@ -1006,6 +1015,7 @@ function tableField($field, $table, $which = '', $subs = array()) {
 
 /**
  * Do a database query with easy substitutions.
+ * @return: if inserting, then the id of the inserted record, else the query object (FALSE if failure)
  */
 function dbQ($sql, $subs = array(), $die = FALSE) {
   u\EXPECT(compact(u\ray('sql subs')), 'notempty assoc');
@@ -1015,7 +1025,8 @@ function dbQ($sql, $subs = array(), $die = FALSE) {
  //if (@$subs['info']) {print_r(u\SUBS($sql) . ' ' . print_r(u\prefixKeys(':', $subs), 1)); die();}
 //if (strpos($sql, 'PDATE') and !@$subs['flags']) {print_r(compact('sql','subs','key'));} 
   //if (!strpos($sql, 'PDATE ')) 
-  return \db_query(u\SUBS($sql), u\prefixKeys(':', $subs));
+  if (strpos($sql, 'INSERT INTO') !== FALSE) $return = \Database::RETURN_INSERT_ID;
+  return \db_query(u\SUBS($sql), u\prefixKeys(':', $subs), compact('return'));
 /*
   global $databases, $db;
   extract($databases['default']['default']);
@@ -1024,6 +1035,7 @@ function dbQ($sql, $subs = array(), $die = FALSE) {
   */
 }
 
+/*
 function query($sql, $subs = array()) {
   global $db;
   $q = $db->prepare($sql);
@@ -1031,25 +1043,37 @@ function query($sql, $subs = array()) {
   return $q;
 //  return substr($sql, 0, 7) == 'SELECT ' ? $q : $q->rowCount();
 }
+*/
 
 /**
  * Update a database record 
- * (replaces half the functionality of \drupal_write_record, which does not update bigint fields properly)
+ * (replaces half the functionality of drupal_write_record, which does not update bigint fields properly)
  * @param string $table: table name
  * @param assoc $info: data to update
  * @param string $key: record key name
- * @return: success
+ * @return: if inserting, then the id of the inserted record, else TRUE (FALSE on failure)
  */
-function dbUpdate($table, $info, $key) {
+function dbUpdate($table, $info, $key, $command = 'UPDATE') {
   $sql = '';
   foreach ($info as $field => $value) if ($field != $key) $sql .= ",$field=:$field";
-  $sql = "UPDATE $table SET " . substr($sql, 1) . " WHERE $key=:$key";
+  $sql = "$command $table SET " . substr($sql, 1) . ($key ? " WHERE $key=:$key" : '');
   try {
     $result = dbQ($sql, $info);
-    return TRUE;
+    return $command == 'INSERT INTO' ? $result : TRUE;
   } catch (Exception $e) {return FALSE;} 
 }
- 
+
+/**
+ * Insert a database record (just one)
+ * (replaces half the functionality of drupal_write_record)
+ * @param string $table: table name
+ * @param assoc $info: data to update
+ * @return: record key of the inserted record (FALSE on failure)
+ */
+function dbInsert($table, $info) {
+  return dbUpdate($table, $info, '', 'INSERT INTO');
+}
+
 function error($logid) {
   $info = dbLookup('info', 'r_log', 'logid=:logid', compact('logid'));
   if ($info) $info = json_decode(utf8_encode($info)); else $info = 'unknown error';

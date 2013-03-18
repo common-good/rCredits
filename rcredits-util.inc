@@ -502,8 +502,7 @@ function log($type, $info = array(), $special = '', $adhocChannel = FALSE) {
   $channels = ray(TX_CHANNELS); 
   if ($useTextLogToo) file_put_contents($channels[$channel + 0] . '.log', "$date $type: $info\n", FILE_APPEND);
   $record = compact(ray('time channel type cuid agent info special'));
-  drupal_write_record('r_log', $record);
-  return $record['logid'];
+  return r\dbInsert('r_log', $record);
 }  
 
 /**
@@ -637,12 +636,11 @@ function import_gfld() {
       if (!$iid = r\dbLookup('iid', 'r_industries', 'industry=:industry', compact('industry'))) {
         $record = compact('industry');
         db_query("INSERT INTO r_industries (industry) VALUES (:industry)", $record);
-//        db_insert('r_industries')->fields($record);
-//        debug(drupal_write_record('r_industries', $record));
-        $iid = $record['iid'];
+//        $iid = r\dbInsert('r_industries', $record);
+//        debug(r\dbInsert('r_industries', $record));
       }
       db_query("INSERT INTO r_user_industries (iid, uid) VALUES (:iid, :uid)", prefixKeys(':', compact('iid', 'uid')));
-//      drupal_write_record('r_user_industries', compact(ray('iid uid')));
+//      r\dbInsert('r_user_industries', compact(ray('iid uid')));
     }
   }
 }

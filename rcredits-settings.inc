@@ -20,13 +20,14 @@ define('R_STATE_ID', 1020); // Massachusetts
 define('R_INITIAL_DEMAND', 25000); // total escrowed rCredits during TRIAL RUN
 define('R_REBATE', 0.05);
 define('R_BONUS', 0.10);
-define('R_GETR_ADVANCE', 0.10); // fraction of get rCredits request we take as advance
-define('R_MAX_AMOUNT', 100000); // you can't ask for more rCredits than this
-define('R_MIN_DEMAND', 10); // you can't buy less rCredits than this at a time
-define('R_STARTING_BALANCE', 250); // how much people start with in the TRIAL RUN
+//define('R_GETR_ADVANCE', 0.10); // fraction of get rCredits request we take as advance
+define('R_MAX_AMOUNT', 100000); // transaction request size limit (some smaller limits also apply)
+//define('R_MIN_DEMAND', 10); // you can't buy less rCredits than this at a time
+define('R_STARTING_BALANCE', 20); // how much people start with at this time
 define('R_SIGNUP_INCENTIVES', '20 100 150 200 250'); // possible total amounts of signup incentives in launch month
 define('R_FLOOR', 0); // how low can user's balance go, by default
 define('R_STATEMENT_COST', 10); // how much member must pay (in rCredits dollars) for monthly and annual statements by mail
-define('R_DAILY_HOUR', '03'); // what time (2-digit 24-hour clock hour) to do database-intensive daily maintenance tasks
+define('R_DAILY_HOUR', '03'); // what time (2-digit 24-hour clock hour) to start intensive daily maintenance tasks
 define('R_WEEKLY_DAY', 'Sunday'); // what day of the week to do weekly tasks
 define('R_MONTHLY_DAY', '01'); // what day of the month to do monthly tasks (2-digits)
+define('R_FEE_FOR_CASH', FALSE); // does customer pay the Dwolla fee when trading rCredits for cash?

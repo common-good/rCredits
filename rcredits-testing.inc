@@ -5,6 +5,7 @@
  */
 
 namespace rCredits\Testing;
+use rCredits\Testing as t;
 use rCredits as r;
 use rCredits\Util as u;
 use rCredits\Backend as be;
@@ -93,9 +94,9 @@ function makeTransaction($info, $infoOnly = FALSE) {
   $info += compact(u\ray('xid created r payer payer_agent payee payee_agent payer_for payee_for type channel goods taking state data'));
   if ($infoOnly) return $info;
   
-  \drupal_write_record('r_txs', $info);
+  $xid = r\dbInsert('r_txs', $info);
   if (!@$my_serial) {
-    $serial = $xid = $info['xid'];
+    $serial = $xid;
     r\dbQ('UPDATE r_txs SET serial=:serial WHERE xid=:xid', compact(u\ray('serial xid')));
   } else $serial = $my_serial;
   return $serial;
@@ -124,7 +125,7 @@ function makeRelation($info, $infoOnly = FALSE) {
   
   foreach (u\ray('id main agent') as $one) unset($info[$one]);
   $info += compact(u\ray('reid main other foreign_uid'));
-  return $infoOnly ? verifyRecord('r_relations', $info) : \drupal_write_record('r_relations', $info);
+  return $infoOnly ? verifyRecord('r_relations', $info) : r\dbInsert('r_relations', $info);
 }
 
 /**
@@ -212,8 +213,8 @@ function makePicture($picture, $acct) {
   $status = 1;
   $picture = $uid = $fid = $acct->id;
   $info = compact(u\ray('fid uid filename uri filemime status'));
-  if (!\drupal_write_record('file_managed', $info)) return FALSE;
-  if (!$acct->update(compact('picture'))) return FALSE;
+//  if (!r\dbInsert('file_managed', $info)) return FALSE;
+//  if (!$acct->update(compact('picture'))) return FALSE;
   return TRUE;
 }
 
@@ -392,6 +393,8 @@ function color($msg, $color = 'normal') {
  * Return FALSE (meaning error in returns from callers) unless a color is specified.
  */
 function testOutput($msg, $color = 'normal') {
-  if (\testing()) \drupal_set_message(color($msg, $color));
+  if (t\EST()) \drupal_set_message(color($msg, $color));
   return $color == 'normal' ? FALSE : TRUE;
 }
+
+function EST() {return (@TESTING == 1);}

@@ -88,9 +88,13 @@ function lostUsdTx($item) {
 }
 
 function lostUsdTx1($info) {
-  extract(u\just('txid amount dateOfTransaction', $info));
-  if (r\dbExists('r_usd', 'txid=:txid', compact('txid'))) return;
-  $created = strtotime(str_replace('/', '.', $dateOfTransaction)); // (need proper param here) convert to day-first format
+  extract(u\just('Id Amount SourceId DestinationId Date', $info));
+  if (r\dbExists('r_usd', 'txid=:Id', compact('Id'))) return;
+  
+  list ($txid, $amount) = array($Id, $Amount);
+  $payer = r\whoseUsd($SourceId);
+  $payee = r\whoseUsd($DestinationId);
+  $created = strtotime($Date);
   r\usd::rollback(array(compact(u\ray('txid amount payer payee created'))));
 }
 
@@ -169,8 +173,8 @@ function virtualPayment($item) {
   
   r\usd::beginAtom();
   $traded = $excess ? getUsd($excess, $acct2, $usAcct1) : 0; // give company partial USD through rCredits sale to 3rd party
-  r\exchange($offer, $main, $other, 'rCredits/USD exchange'); // total rCredits from company to other
-  if ($traded < $excess or !$usAcct2->transfer($offer - $traded, $usAcct1)) { // other partially pays main in USD
+  r\transfer($offer, $main, $other); // total rCredits from company to other
+  if ($traded < $excess or !$usAcct2->transfer($offer - $traded, $usAcct1, 'virtual payment exchange')) { // other partially pays main in USD
     r\usd::rollback();
     virtualPaymentError($acct1, $acct2);
     return;
@@ -194,7 +198,6 @@ function sellR($item) {
 /**
  * Trade some rCredits for USD, from somebody. 
  * The rCredits always travel by way of the community.
- * @param object $DBTX: active db transaction object
  * @param float $request: how much to try to get
  * @param acct $acct: rCredits account that is trading rCredits to third parties
  * @param usd $usAcct: USD account that is receiving USD from the third parties (might be different owner from $acct)
@@ -206,12 +209,13 @@ function getUsd($request, $acct, $usAcct) {
     $part = $need;
     if (!$acct3 = nextRBuyer($part)) break; // asks for what we need, returns the part we got in $part
     $usAcct3 = new usd($acct3); // "third party" Dwolla account
-    $DBTX = \db_transaction(); // we cannot easily rollback a USD transfer, so rCredits transactions must come first
-    r\exchange($amount, $acct->id, r\community(), 'rCredits/USD exchange');
-    r\exchange($amount, r\community(), $acct3->id, 'rCredits/USD exchange');
+    r\usd::beginAtom();
+    r\transfer($amount, $acct->id, r\community());
+    r\transfer($amount, r\community(), $acct3->id);
     if ($usAcct3->transfer($amount, $usAcct)) {
       $need = round($need - $part, 2);
-    } else $DBTX->rollback();
+      r\usd::commit();
+    } else r\usd::rollback();
   }
   return round($request - $need, 2);
 }

@@ -87,7 +87,7 @@ function api($args = FALSE) {
     r\acct::setDefault($cacct);
     $args['cacct'] = $cacct;
     $edit = array('code' => $q_code, 'accessed' => REQUEST_TIME);
-    \drupal_write_record('r_smarts', $edit, 'code'); // remember time last accessed so we can drop the deadwood
+    r\dbUpdate('r_smarts', $edit, 'code'); // remember time last accessed so we can drop the deadwood
   }
 
   // handle scanned QR, if any
@@ -195,7 +195,7 @@ function photo($args) {
   $message = bin2hex(substr($pic, 0, 50));
   u\log('out', compact('message'));
 
-  if (\testing()) {debug($message); return $message;} else exit($pic);
+  if (t\EST()) {debug($message); return $message;} else exit($pic);
 }
 
 /*
@@ -286,7 +286,7 @@ function display_id($params) {
   extract(u\just('cacct code', $params));
   $transient_id = R_QR_HEADER . u\n2a(mt_rand(), 20) . '/' . $cacct->qid();
   $edit = compact('code', 'transient_id');
-  \drupal_write_record('r_smarts', $edit, 'code'); // remember what id to accept (briefly)
+  r\dbUpdate('r_smarts', $edit, 'code'); // remember what id to accept (briefly)
   $message = '';
   return compact('message', 'transient_id');
 }
@@ -297,7 +297,7 @@ function makeDevice($device, $acct, $code = '') {
   $code = trim($code ?: user_hash_password(uniqid($acct->mainQid, TRUE) . REQUEST_TIME) . '/'); // add a slash to make sure slashes get handled properly
   $accessed = REQUEST_TIME;
   $info = compact(u\ray('owner code device accessed'));
-  return @\drupal_write_record('r_smarts', $info) ? $code : FALSE; // no way to tell if it's the same device as others
+  return @r\dbInsert('r_smarts', $info) ? $code : FALSE; // no way to tell if it's the same device as others
 }
 
 function agentButtons($acct) {

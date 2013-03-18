@@ -74,7 +74,7 @@ function error($message, $subs = '', $success = 0) {
 function apiOut($args) {
   $result = json_encode($args, JSON_UNESCAPED_SLASHES);
   u\log('out', $args);
-  if (\testing()) {t\testOutput($args, 'output'); return $result;}
+  if (t\EST()) {t\testOutput($args, 'output'); return $result;}
   exit($result);
 }
 
@@ -315,7 +315,7 @@ function get($currency, &$amount, $confirmed) {
     //DWOLLA: transfer fraction R_GETR_ADVANCE of $amount from user's Dwolla account to community's Dwolla account
     $usd->request(round($amount * R_GETR_ADVANCE, 2));
     $time = REQUEST_TIME;
-    \drupal_write_record('r_demand', compact(u\ray('time amount who'))); // track history of demands
+    r\dbInsert('r_demand', compact(u\ray('time amount who'))); // track history of demands
     return array('your demand', compact(u\ray('request success')), FALSE);
   }
 
@@ -481,7 +481,7 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   $DBTX = db_transaction();
   $txs = r\transact(compact(u\ray('type amount r payer payee payer_agent payee_agent for data taking goods state')));
   if ($confirmed) {
-    if ($state = TX_DONE and $usd > 0 and !$fromUsAcct->transfer($usd, $toUsAcct, !$goods)) {
+    if ($state = TX_DONE and $usd > 0 and !$fromUsAcct->transfer($usd, $toUsAcct, $for, !$goods)) {
       $DBTX->rollback();
       return array('usd failed', array(), FALSE);
     }
@@ -509,7 +509,7 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
 function txPerson($id, $region) {return r\isForeign($region) ? array($region, $id) : array($id, NULL);}
 
 /**
- * Record a transfer to or from the community.
+ * Record a transfer (of rCredits) to or from the community.
  * @param int $uid: uid of the account to credit or debit
  * @param int $type: what type of transfer (defaults to signup)
  * @param int $amount: how much to transfer (standardized default for signup)
@@ -563,7 +563,7 @@ function addCell($number, $validate = FALSE) {
   $status = SMS_PRIMARY;
   $phone = $number = $numberInternal;
   $info = compact(u\ray('uid number status'));
-  if (!mergeCheck(compact('number'))) \drupal_write_record('r_sms', $info);
+  if (!mergeCheck(compact('number'))) r\dbInsert('r_sms', $info);
   if (!$cacct->phone) $cacct->update(compact('phone')); // use it as contact phone, if none yet
   $number = $numberPretty;
   return array('report new cell', compact('number'));

@@ -25,7 +25,7 @@ function tableDefs($schema = array()) {
     'flags' => setupField('permissions and boolean state flags', 'int big', 0, '010'),
     'community' => setupField("uid of this account's Common Good Community", 'int 11'),
     'question' => setupField('security question', 'varchar 255'),
-    'usd_account' => setupField('USD account number (encrypted)', 'blob normal'), // blob tiny doesn't exist
+    'usd_account' => setupField('USD account number (hex of encrypted)', 'varchar 255'), // searchable
     'secure' => setupField('other non-personal encrypted data', 'blob normal'), 
     'offsite' => setupField('index to encrypted data stored off-site', 'int big', NULL, '010'),
     'full_name' => setupField('full name of the individual or entity', 'varchar 60'),
@@ -126,6 +126,8 @@ function tableDefs($schema = array()) {
   $schema['r_txs'] = setupTable('Record of all rCredits transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
 
 //  foreach (u\ray('type taking goods payer_agent payee_agent payer_for payee_for') as $one) unset($fields[$one]);
+
+  // table r_usd
   $fields = array(
     'txid' => setupField('the unique transaction ID', 'varchar 255'), 
     'goods' => setupField('is this transfer an exchange for real goods and services?', 'int tiny'), 

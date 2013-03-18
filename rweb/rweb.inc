@@ -102,6 +102,7 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'insufficient relation' => t('You cannot open an account unless you have a closer relationship to it. Use the <a href="membership/invite">invitation page</a> instead.'),
   'humans sign' => t('You must be logged in to a personal account, to sign the agreement on behalf of a company.'),
   'bad spoof check' => t('You must confirm (<i>every time</i>) that you are on the real rCredits site.'),
+  'no auth yet' => t('You have not yet authorized a connection with your Dwolla account. Please resubmit.'),
 );
 
 /**
@@ -865,12 +866,12 @@ function formSummary_submit($form, &$sta) {
     if (isset($canCharge)) $cacct->setBit(BIT_CHARGE, $canCharge);
 
     if ($rTrader and !$wasRTrader) { // signup incentive if promoted to rTrader
-  //REQUEST_TIME < strtotime('April 1, 2013')) { // randomize initial signup incentives somewhat
-      $amounts = u\ray(R_SIGNUP_INCENTIVES);
-      $sofar = r\dbLookup('SUM(amount)', 'r_txs', 'payee=:cuid AND type=:TX_SIGNUP', compact('cuid'));
-      $i = array_search($sofar, $amounts);
-      array_splice($amounts, 0, $i + 1); // remove what they got so far
-      $amount = u\n2a(-$cacct->community, 3) == min(R_STARTING_BALANCE - $sofar, $amounts[rand(0, count($amounts) - 1)]);
+      //REQUEST_TIME < strtotime('April 1, 2013')) { // randomize initial signup incentives somewhat
+      //$amounts = u\ray(R_SIGNUP_INCENTIVES);
+      //$sofar = r\dbLookup('SUM(amount)', 'r_txs', 'payee=:cuid AND type=:TX_SIGNUP', compact('cuid'));
+      //$i = array_search($sofar, $amounts);
+      //array_splice($amounts, 0, $i + 1); // remove what they got so far
+      $amount = R_STARTING_BALANCE; //min(R_STARTING_BALANCE - $sofar, $amounts[rand(0, count($amounts) - 1)]);
       be\fund($cacct->id, TX_SIGNUP, $amount);
       $action = 'granted';
       $otherName = $cacct->full_name;
@@ -1189,7 +1190,7 @@ function formTx_submit($form, &$sta) {
   $path = current_path(); // clean out the fields
   if ($i = strpos($path, '/who=')) $path = substr($path, 0, $i);
   $sta['redirect'] = $path;
-//  if (!\testing()) r\go(current_path());
+//  if (!t\EST()) r\go(current_path());
 }
 
 /**
@@ -1401,7 +1402,7 @@ function formAnother_submit($form, &$sta) {
  *   employee_ok: is the inviter an employee
  */
 function formRegister(&$form, &$sta, $args = '') {
-  if (!$args) $args = basename(\testing() ? t\SERVER('REQUEST_URI') : $_SERVER['REQUEST_URI']);
+  if (!$args) $args = basename(t\EST() ? t\SERVER('REQUEST_URI') : $_SERVER['REQUEST_URI']);
   extract(u\just('code full_name phone', $args));
   
   // zap standard Drupal fields
@@ -1511,7 +1512,7 @@ function formRegister_submit($form, &$sta) {
       //$companyUid = $companyAcct->id;
       if (!r\relation(1, $companyUid, $cuid)) {
         list ($main, $other) = array($companyUid, $cuid);
-        \drupal_write_record('r_relations', compact(u\ray('main other employee_ok is_owner')));
+        r\dbInsert('r_relations', compact(u\ray('main other employee_ok is_owner')));
       } 
     } else {
       $data = compact(u\ray('company companyPhone is_owner employee_ok'));
@@ -1529,7 +1530,7 @@ function formRegister_submit($form, &$sta) {
   extract(u\just('was_owner employee_oked flow by', $args)); // set up relation to created-by account, if any
   if (@$by) {
     list ($main, $other, $is_owner, $employee_ok) = array($cuid, $by, $was_owner, $employee_oked);
-    \drupal_write_record('r_relations', compact(u\ray('main other employee_ok is_owner flow')));
+    r\dbInsert('r_relations', compact(u\ray('main other employee_ok is_owner flow')));
   }
   
   extract(u\just($fields2, $values));
@@ -1739,7 +1740,10 @@ function formUsd($form, &$sta, $args = '') {
   $cacct = r\acct();
   
   if ($cacct->offsite) $federal_id = $dob = $answer = R_ON_FILE;
-  if ($cacct->usd_account) $usd_account = $pin = R_ON_FILE;
+  if ($cacct->usd_account) {
+    $usd_account = $pin = R_ON_FILE;
+    if (!$cacct->secure['auth']) say('no auth yet', 'usd_account');
+  }
 
   $form = array(
     'title' => item(t('USD Account and Security Info')),
@@ -1853,7 +1857,7 @@ function formUsd_submit($form, &$sta) {
     $secure = compact(u\ray('type pin auth')) + $secure; // secure includes more than these
     $cacct->update(compact('secure', 'usd_account'));
     $usd = new r\usd($cacct);
-    $usd->update(); // get (new) auth token (does not return until after a visit to Dwolla)
+    exit($usd->getAuth()); // get (new) auth token (does not return until after a visit to Dwolla)
   }
 }
 
@@ -2026,7 +2030,7 @@ function formRelations_submit($form, &$sta) {
     $main = $cuid;
     $permission = 0; // default to no permissions
     $info = compact(u\ray('main other permission'));
-    $zot = \drupal_write_record('r_relations', $info);
+    r\dbInsert('r_relations', $info);
     $who = r\acct($other)->full_name;
     say('report new relation', compact('who'));
   }
@@ -2212,7 +2216,7 @@ function resetSubmit($form, &$sta) {
  * @param bool $regular: is this the full-page login form (default TRUE) -- otherwise the narrower login block
  */
 function loginAlter(&$form, &$sta, $regular = TRUE) {
-  $args = basename(\testing() ? t\SERVER('REQUEST_URI') : $_SERVER['REQUEST_URI']);
+  $args = basename(t\EST() ? t\SERVER('REQUEST_URI') : $_SERVER['REQUEST_URI']);
   extract(u\just('name', $args));
   if ($regular) {
     $title = item(t('rCredits Login'));
@@ -2327,7 +2331,7 @@ function pass_validate($form, &$sta) {
 function loginCheck() {
   global $channel;
 u\log('top of loginCheck');
-  if (\testing()) return;
+  if (t\EST()) return;
 u\log('loginCheck not testing yet');
   if (!@cache_get('t_resume')->data) return;
 u\log('loginCheck redirecting');

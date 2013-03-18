@@ -112,7 +112,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'short payment' => t('You are r@short short, for that payment. Get more rCredits first, or pay less.'),
   'shortr to' => t('You do not have enough rCredits, for that transaction. Type "get r <amount>" to get more rCredits.'),
   'shortr from' => t('@otherName does not have enough rCredits for that transaction at this time.'),
-  'demand too small' => t('NOTE: The minimum amount of rCredits you can actually buy at a time is $@min.', array('@min' => R_MIN_DEMAND)),
+//  'demand too small' => t('NOTE: The minimum amount of rCredits you can actually buy at a time is $@min.', array('@min' => R_MIN_DEMAND)),
   'no access get' => t('You do not have permission to exchange rCredits for US Dollars or vice-versa.'),
 //  'no access create' => t('You do not have permission to create transactions.'),
   'no sell' => t('You do not have permission to make sales for this account.'),
@@ -247,8 +247,7 @@ function create($number, $uid, $status = SMS_PRIMARY) {
   u\EXPECT(compact(u\ray('number uid status')), 'string&notempty id int');
   $number = u\formatPhone($number, '+n');
 //  debug("creating SMS record for number $number, uid $uid");
-  $info = compact(u\ray('number uid status'));
-  return \drupal_write_record('r_sms', $info);
+  return r\dbInsert('r_sms', compact(u\ray('number uid status')));
 }
 
 /**
