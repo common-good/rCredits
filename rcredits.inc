@@ -35,6 +35,10 @@ define('R_MAXR_DEFAULT', 0); // suggested maximum amount to hold in rCredits
 define('R_CARDCODE_LEN', 20); // length of rCard security code (long to deter easy copying)
 define('R_FREEZE_TIME', '2 weeks'); // how long to freeze newly bought rCredits
 define('R_DEFAULT_PURPOSE', 'rCredits/USD exchange'); // default transaction purpose
+define('R_RBUY_QUANTUM', 10); // chunk size for buying rCredits (sales amounts are a multiple of this)
+define('R_COMMERCIAL_ASPECT', '16:9'); // width-to-height ratio for commercial profile picture
+define('R_PERSONAL_ASPECT', '3:4'); // width-to-height ratio for personal profile picture
+define('R_PIXEL_FACTOR', 128); // what to multiply the aspect ratio components by, to get pixel dimensions
 
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
@@ -189,6 +193,7 @@ function txReportArgs($tx, $getMyBalance = FALSE, $shortfall = 0) {
   
   $role = $toMe ? 'payee' : 'payer';
   list ($purpose, $otherPurpose) = u\order($toMe, $payee_for, $payer_for);
+  list ($tid, $otherTid) = u\order($toMe, $payee_tid, $payer_tid);
   list ($payerPurpose, $payeePurpose) = array($payer_for, $payee_for); // clearer names, for substitutions
   $tofrom = $toMe ? t('from') : t('to');
   $uid = $otherUid = ($toMe ? $payer : $payee);
@@ -203,13 +208,12 @@ function txReportArgs($tx, $getMyBalance = FALSE, $shortfall = 0) {
   $created = u\formatDate($created);
 
   if ($getMyBalance) {
-    $tid = be\xid2tid($xid);
-    if ($cacct->can(PERM_BUY)) $balance = be\creditInfo()->fancy['balance'];
+    if ($cacct->can(PERM_BUY)) $balance = u\formatAmount($cacct->balance());
   }
-//  $otherTid = be\xid2tid($xid, $otherUid);
+
   $summary = "$summary_word of $amount $tofrom $otherName for \"$purpose\" on $created";
   $success = TRUE;
-  return array_merge($tx, compact(u\ray('created xid action role payerPurpose payeePurpose purpose otherPurpose toMe confirmAction amount tofrom rewardType rewardAmount balance tid otherUid otherName short summary success')));
+  return array_merge($tx, compact(u\ray('created xid action role payerPurpose payeePurpose purpose otherPurpose toMe confirmAction amount tofrom rewardType rewardAmount balance tid otherTid otherUid otherName short summary success')));
 }
 
 /**
@@ -232,70 +236,97 @@ function tithe($acct) {
   return $tithe + 0;
 }
 
+/**
+ * Return the customer's formatted balance only if we have permission
+ */
 function otherBalance($uid) {
   $cacct = acct();
   $acct = acct($uid);
   if ($acct and $cacct->can(PERM_CHARGE) and !$acct->hasBit(BIT_SECRET_BAL)) {
-    return be\creditInfo(compact('uid'))->fancy['balance'];
+    return u\formatAmount($acct->balance());
+    //return be\creditInfo(compact('uid'))->fancy['balance'];
   } else return FALSE;
 }
 
 /**
- * Record a transaction between two participants
- * @see also transactionSetup(), r\transactionRewards(), and be\transfer()
+ * Return the user's sequential transaction number
+ * @param int $xid: the transaction record number
+ * @param int $uid: the user's uid
+ * @return string: the user's transaction number
  */
-function transact($info) {
-  $txs = array(transactionSetup($info));
-  transactionRewards($txs);
-  return txSave($txs);
+function xid2tid($xid, $uid) {
+  $where =  ":uid IN (payer, payee) AND xid<=:xid AND type NOT IN (:TX_REBATE, :TX_BONUS)";
+  return r\dbLookup('COUNT(xid)', 'r_txs', $where, compact('uid', 'xid')) + 1;
 }
 
 /**
- * Save the transaction set
+ * Payer exchanges rCredits for USD. Record the rCredits transaction.
+ * @param string $usd_xid: (optional) related USD transaction ID
  */
-function txSave($txs) {
-  extract(u\just('payer payee', $txs[0]));
+function exchange($amount, $payer, $payee, $usd_xid = NULL) {
+  return r\transfer(compact(u\ray('amount payer payee usd_xid')));
+}
+
+/**
+ * Record a transaction between two participants
+ * and create related transactions for any applicable incentive rewards
+ * @param assoc $info: transaction data
+ * @return array: the list of transactions created (main, rebate, bonus)
+ */
+function transact($info) {
+  $txs = array();
+
   $DBTX = db_transaction();
-  foreach ($txs as $key => $one) {
-    $txs[$key]['serial'] = @$serial; // set serial for dependent transactions
-    $txs[$key]['xid'] = $xid = r\dbInsert('r_txs', $one);
-    if ($key == 0) { // set serial for main transaction
-      dbQ("UPDATE r_txs SET serial=:xid WHERE xid=:xid", compact('xid'));
-      $txs[0]['serial'] = $serial = $xid; // set serial for this and remember it for dependents
-    }
-  }
+  $txs[] = txSave(transactionSetup($info));
+  transactionRewards($txs);
+  cacheBothTotals($txs);
+  unset($DBTX); // commit
 
-  cacheTotals($payer, $txs);
-  cacheTotals($payee, $txs);
-
-  unset($DBTX); // commit (commit)
   return $txs;
+}
+
+/**
+ * Save the transaction
+ */
+function txSave($tx) {
+  $xid = r\dbInsert('r_txs', $tx);
+  if (!@$tx['serial']) { // main transaction needs some touching up, now that we know the xid
+    extract(u\just('payer payee', $tx));
+    $payer_tid = $payer > 0 ? r\xid2tid($xid, $payer) : 0;
+    $payee_tid = $payee > 0 ? r\xid2tid($xid, $payee) : 0;
+    $sql = "UPDATE r_txs SET serial=:xid, payer_tid=:payer_tid, payee_tid=:payee_tid WHERE xid=:xid";
+    dbQ($sql, compact(u\ray('xid payer_tid payee_tid')));
+    $serial = $xid; // set serial for this and remember it for dependents
+  }
+  return $tx + compact(u\ray('xid serial payer_tid payee_tid'));
 }
 
 /**
  * Add rebate and bonus to the transaction set, if appropriate.
  */
 function transactionRewards(&$txs) {
-  extract(u\just('type goods payer payee data state', $txs[0]));
+  extract(u\just('type serial goods payer payee data state payer_tid payee_tid', $txs[0]));
   
   if ($type != TX_TRANSFER) return;
   if (!$goods) return; // quit unless rebates and bonuses apply
   if (owning($payer, $payee)) return; // no rewards for transactions between owner and owned
   $rewards = unserialize($data);
   
-  $txs[] = txRewardSetup(TX_REBATE, $payer, $state, $rewards);
-  $txs[] = txRewardSetup(TX_BONUS, $payee, $state, $rewards);
+  $txs[] = txSave(txRewardSetup($serial, TX_REBATE, $payer, $state, $rewards, $payer_tid));
+  $txs[] = txSave(txRewardSetup($serial, TX_BONUS, $payee, $state, $rewards, $payee_tid));
 }
 
-function txRewardSetup($type, $payee, $state, $rewards) {
+function txRewardSetup($serial, $type, $payee, $state, $rewards, $tid) {
   $payer = $payer_agent = $payee_agent = userField('community', $payee);
   if ($payer == $payee) return NULL; // payee is a community, so no rewards
+  if (!$amount = $rewards[$type == TX_REBATE ? 'rebate' : 'bonus']) return NULL;
 
   $taking = FALSE;
   $goods = FALSE;
-  $r = $amount = $rewards[$type == TX_REBATE ? 'rebate' : 'bonus'];
-  $for = $type == TX_REBATE ? t('rebate') : t('bonus');
-  return transactionSetup(compact(u\ray('type amount r goods payer payee payer_agent payee_agent for taking state')));
+  $for = ($type == TX_REBATE ? t('rebate') : t('bonus')) . t( ' on #') . $tid;
+  list ($payer_tid, $payee_tid) = u\order($type == TX_REBATE, $tid, NULL);
+
+  return transactionSetup(compact(u\ray('serial type amount goods payer payee payer_agent payee_agent for payer_tid payee_tid taking state')));
 }
 
 /**
@@ -313,27 +344,24 @@ function transactionSetup($info) {
   $required_params = compact(u\prefixValues('my_', u\ray('amount payer payee')));
   u\EXPECT($required_params, 'float zid zid');
 
-  setDft($info['type'], TX_TRANSFER);
-  setDft($info['r'], $my_amount);
-  setDft($info['state'], TX_DONE);
-  setDft($info['taking'], FALSE);
-  setDft($info['goods'], FALSE);
-  setDft($info['for'], R_DEFAULT_PURPOSE);
-  setDft($info['payer_agent'], $my_payer);
-  setDft($info['payee_agent'], $my_payee);
+  u\setDft($info['type'], TX_TRANSFER);
+  u\setDft($info['r'], $my_amount);
+  u\setDft($info['state'], TX_DONE);
+  u\setDft($info['taking'], FALSE);
+  u\setDft($info['goods'], FALSE);
+  u\setDft($info['for'], R_DEFAULT_PURPOSE);
+  u\setDft($info['payer_agent'], $my_payer);
+  u\setDft($info['payee_agent'], $my_payee);
 
   $created = REQUEST_TIME;
   if (@$my_state != TX_PENDING) $completed = $created;
-  $serial = NULL; // always set equal to xid of main transaction after saving
-  
+  $info['taking'] += 0;
+  $info['goods'] += 0;
+
   list ($payer_for, $payee_for) = is_array($my_for) ? $my_for : array($my_for, $my_for);
   unset($info['for']);
-  if ($info['type'] == TX_TRANSFER) {
-    $payer_tid = xid2tid($xid, $info['my_payer']);
-    $payee_tid = xid2tid($xid, $info['my_payee']);
-  }
 
-  return array_merge($info, compact(u\ray('created completed serial payer_for payee_for channel')));
+  return array_merge($info, compact(u\ray('created completed payer_for payee_for channel')));
 }
 
 /**
@@ -352,20 +380,15 @@ function demand($uid, $demand = FALSE) {
 }
 */
 
-/**
- * Return the amount the given account has available to pay.
- * @param acct $acct: the account
- * @param bool $goods: is the request for real goods and services (or cash)
- */
-function available($acct, $goods) {
-  $data = $acct->data;
-  return $data['available'] - ($goods ? 0 : $data['rewards']);
+function cacheBothTotals($txs) {
+  cacheTotals($txs[0]['payer'], $txs);
+  cacheTotals($txs[0]['payee'], $txs);
 }
 
 /**
  * Keep track of balance, available balance, and other figures in the account record:
- *    balance: cached current rCredits account balance (but sum of transactions is authoritative)
- *    available: the amount available to spend
+ *    balance: (implicit) cached current rCredits account balance (but sum of transactions is authoritative)
+ *    available: the amount available to spend (available + array_sum(frozen) = balance)
  *    usd: (probable) balance in Dwolla account
  *    rewards: incentive rewards received to date (cannot be cashed out)
  *    frozen: how much of the balance is unavailable to spend (array of amounts keyed by dates)
@@ -417,8 +440,7 @@ function usdPart($requestAmount, $acct, $preapproved, $goods, &$shortfall) {
   if (!$preapproved) return 0; // if just an invoice, funds don't have to be there yet (no shortfall, no usd)
   
   $uid = $acct->id;
-//  $available = be\creditInfo(compact('uid'))->available;
-  $r = min($requestAmount, r\available($acct, $goods));
+  $r = min($requestAmount, $acct->available  - ($goods ? 0 : $acct->rewards));
   if (!$shortfall = max(0, $requestAmount - $r)) return 0;
 
   $usAcct = new usd($acct); // try to do some in USD
@@ -635,9 +657,9 @@ function dbLookup($fieldName, $table, $where = '1', $subs = array()) {
   if (!strpos($where, ' LIMIT ')) $where .= ' LIMIT 1';
   $sql = "SELECT $fieldName FROM $table WHERE $where";
   $result = dbQ($sql, $subs);
-  $fieldCount = substr_count($fieldName, ',') + 1;
+  $fieldCount = substr($fieldName, 0, 3) == 'IF(' ? 1 : substr_count($fieldName, ',') + 1;
   $result = $fieldCount > 1 ? $result->fetchAssoc() : $result->fetchField();
-  u\EXPECT($fieldCount == 1 or !$result or count($result) == $fieldCount); // count is off, eg, if $fieldName == 'a,a'
+  u\EXPECT($fieldCount == 1 or !$result or count($result) == $fieldCount, 'field count is off'); // eg, if $fieldName == 'a,a'
   return $result;
 }
 
@@ -719,24 +741,25 @@ function tx2acct($id, $agent = '', $data = '') {
 
 /**
  * Determine whether the record can be undone
- * @param assoc $oldRecord: the transaction record or NULL (to make it easy when last_tx found no matching transaction)
+ * @param assoc $oldRecord: the transaction record+ from be\lastTx or NULL (to make it easy when last_tx found no matching transaction)
  * @param assoc $subs: (RETURNED) necessary substitutions, if any
  * @return string: the error message (FALSE if the current agent CAN undo it on behalf of the current account)
  */
 function nonoUndo($oldRecord, &$subs = array()) {
   if (!@$oldRecord) return 'undo no match';
   $cacct = acct();
-  extract($oldRecord, EXTR_PREFIX_ALL, 'old');
-  $data = unserialize($old_data);
+  extract(u\just('toMe data payer payee payer_agent payee_agent payer_tid payee_tid taking', $oldRecord));
+  $data = unserialize($data);
   if (@$data['undoneBy']) {
-    $subs = array($old_tid => xid2tid($old_xid));
+    $oldTid = $toMe ? $payee_tid : $payer_tid;
+    $subs = compact('oldTid');
     return 'already undone';
   }
 
-  $acct = tx2acct($old_toMe ? array($old_payee, $old_payee_agent, $data) : array($old_payer, $old_payer_agent, $data));
+  $acct = tx2acct($toMe ? array($payee, $payee_agent, $data) : array($payer, $payer_agent, $data));
   if ($cacct->agentId != $acct->agentId) {
-    $perm = $old_taking ? PERM_BUY : PERM_SELL;
-    if (!acct($acct->id, $cacct->agentId)->can($perm)) return $old_taking ? 'no buy' : 'no sell';
+    $perm = $taking ? PERM_BUY : PERM_SELL;
+    if (!acct($acct->id, $cacct->agentId)->can($perm)) return $taking ? 'no buy' : 'no sell';
   }
   return FALSE;
 }
@@ -963,8 +986,7 @@ function nearlyMember($acct) {
 
 /**
  * Return a system-wide or community-wide total.
- * As of the last daily cron, unless testing.
- * @param string $what:
+ * As of the last daily cron, unless testing. For each community, and overall, the totals include:
  *    demand: the total unmet demand for rCredits
  *    r: rCredits in the system
  *    usd: USD in play (approximate)
@@ -973,15 +995,48 @@ function nearlyMember($acct) {
  *    inflation: rCredits issued to offset inflation
  *    rebates: rCredits issued as rebates (including on USD transactions)
  *    bonuses: rCredits issued as sales bonuses
+ * @param int $ctty: the community account id for which to return totals (default ALL)
  */
-function total($what, $ctty = '') {
-  $totals = \variable_get('totals');
-  return $totals[$ctty ?: 'all'][$what];
+function totals($ctty = '', $calculate = FALSE) {
+  $totals = unserialize(\variable_get('totals'));
+  if ($calculate) {
+    $totals[$ctty ?: 'ALL'] = getTotals($ctty ?: NULL);
+    \variable_set('totals', serialize($totals));
+  }
+  return (object) $totals[$ctty ?: 'ALL'];
 /*
   $result = dbLookup('SUM(minimum)', 'users', $ctty ? 'community=:ctty' : '1', compact('ctty')); // minima
   $result -= -r\balance($ctty); // less how many rCredits are in circulation
   $result -= r\totalUSD($ctty); // less how much official currency is in play
   */
+}
+
+/**
+ * Return totals for the given community
+ * @param int $ctty: the community account id (NULL means all communities)
+ */
+function getTotals($ctty) {
+  $where = (@$ctty ? "community=:ctty" : 1) . ' AND (flags&:BIT_RTRADER)';
+  $result = r\dbQ("SELECT frozen FROM users WHERE $where", compact('ctty'));
+  $frozen = 0; // this could easily be extended to get frozen amounts for each upcoming date
+  while ($one = $result->fetchColumn()) $frozen += array_sum(unserialize($one));
+  
+  $fields = 'SUM(available), SUM(rewards), SUM(usd), SUM(minimum), SUM(maximum)';
+  $result1 = r\dbLookup($fields, 'users', $where, compact('ctty'));
+  $result1 = array_combine(u\ray('available rewards usd minimum maximum'), array_values($result1));
+
+  $where = @$ctty ? '(payer=:ctty OR payee=:ctty)' : 1;
+  $sql = '';
+  foreach (u\ray('signup rebate bonus inflation grant loan fine') as $one) {
+    $ONE = strtoupper($one);
+    $sql .= "SUM(IF(type=:TX_$ONE, amount, 0)) AS `$one`, ";
+    $sql .= "SUM(IF(type=:TX_$ONE, 1, 0)) AS {$one}Count, ";
+  }
+  $sql = "SELECT $sql MAX(IF(type=:TX_REBATE, amount, 0)) AS maxRebate FROM r_txs WHERE $where AND state IN(':TX_DONE,:TX_DISPUTED')";
+  $result2 = r\dbQ($sql, compact('ctty'))->fetchAssoc();
+  $balance = -($result1['available'] + $frozen);
+  $demand = $result1['minimum'] - $result1['available'];
+  return $result1 + $result2 + compact(u\ray('frozen balance demand'));
 }
 
 /**
@@ -1014,36 +1069,23 @@ function tableField($field, $table, $which = '', $subs = array()) {
 }
 
 /**
+ * Return the median (untested)
+ */
+function median($field, $table = 'users', $where = 1, $subs = array()) {
+  $middle = r\dbLookup('COUNT(*)', $table, $where, $subs) / 2;
+  $limit = floor($middle) . (is_int($middle) ? ', 1' : ', 2');
+  return r\dbLookup('AVG($field)', 'users', "$where ORDER BY $field LIMIT $limit", $subs);
+}
+
+/**
  * Do a database query with easy substitutions.
  * @return: if inserting, then the id of the inserted record, else the query object (FALSE if failure)
  */
 function dbQ($sql, $subs = array(), $die = FALSE) {
   u\EXPECT(compact(u\ray('sql subs')), 'notempty assoc');
-//  debug(u\SUBS($sql));
-//  debug($subs);
-//  if ($die)
- //if (@$subs['info']) {print_r(u\SUBS($sql) . ' ' . print_r(u\prefixKeys(':', $subs), 1)); die();}
-//if (strpos($sql, 'PDATE') and !@$subs['flags']) {print_r(compact('sql','subs','key'));} 
-  //if (!strpos($sql, 'PDATE ')) 
   if (strpos($sql, 'INSERT INTO') !== FALSE) $return = \Database::RETURN_INSERT_ID;
   return \db_query(u\SUBS($sql), u\prefixKeys(':', $subs), compact('return'));
-/*
-  global $databases, $db;
-  extract($databases['default']['default']);
-  $db = new \PDO("$driver:host=$host;port=$port;dbname=$database", $username, $password);
-  return query(u\SUBS($sql), u\prefixKeys(':', $subs));
-  */
 }
-
-/*
-function query($sql, $subs = array()) {
-  global $db;
-  $q = $db->prepare($sql);
-  $q->execute($subs);
-  return $q;
-//  return substr($sql, 0, 7) == 'SELECT ' ? $q : $q->rowCount();
-}
-*/
 
 /**
  * Update a database record 
@@ -1083,13 +1125,11 @@ function error($logid) {
 }
 
 // Single line functions that need no explanation
-function setDft(&$param, $value) {if (!isset($param)) $param = $value;}
 function userField($field, $who = '', $subs = array()) {return tableField($field, 'users', $who, $subs);}
 function rebate($uid, $amount = 1) {return round($amount * userField('rebate_percent', $uid) / 100, 2);}
 function bonus($uid, $amount = 1) {return rebate($uid, 2 * $amount);}
 function txField($field, $which, $subs = array()) {return tableField($field, 'r_txs', $which, $subs);}
 function setTxState($newValue, $zserial) {setTxField('state', $newValue, $zserial, TRUE);}
-function balance($uid = '') {return be\creditInfo(compact('uid'))->balance;}
 //function serverUid($regionId = '') {return -u\a2n(u\neq($regionId, CT_SERVER_ID) ?: R_SERVER_ID);}
 function serverUid($regionId = R_SERVER_ID) {return -u\a2n($regionId);}
 function emailTemplate($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}

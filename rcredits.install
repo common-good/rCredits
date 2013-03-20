@@ -50,7 +50,7 @@ function rcredits_install() {
   // pictures
   variable_set('user_pictures', '1');
   variable_set('user_picture_default', 'sites/default/files/pictures/no-photo-available.jpg');
-  variable_set('user_picture_dimensions', '1024x1024');
+  variable_set('user_picture_dimensions', '2048x1152');
   variable_set('user_picture_file_size', '100');
   variable_set('user_picture_style', 'large');
   foreach (array(R_PICTURE_DIR, R_PROOF_DIR) as $dir) \file_prepare_directory($dir, FILE_CREATE_DIRECTORY);
@@ -63,8 +63,8 @@ function rcredits_install() {
   // use PDO for insertion queries, because Drupal's db_query ignores braces
   $root = dirname($_SERVER['DOCUMENT_ROOT']);
   $dbs = (array) json_decode(utf8_encode(file_get_contents("$root/.databases")));
-  parse_str($dbs[$db_name = @$_SERVER['WINDIR'] ? 'new_rcredits' : key($dbs)], $dbInfo);
-  extract($dbInfo, EXTR_PREFIX_ALL, 'db');
+  $db_name = @$_SERVER['WINDIR'] ? 'new_rcredits' : key($dbs);
+  extract((array) $dbs[$db_name], EXTR_PREFIX_ALL, 'db');
   $db = new PDO("$db_driver:host=$db_host;port=$db_port;dbname=$db_name", $db_user, $db_pass);
 
   $rTables = 'r_areas,r_regions,r_countries,r_states,r_nonces,r_industries,r_user_industries';

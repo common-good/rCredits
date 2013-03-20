@@ -29,7 +29,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
   $name = u\shortName($full_name);
   $pass = @$my_password ?: '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae'; // default to 123
   $mail = @$my_email ?: ''; // Don't use "$name@example.com"
-  $flags = BIT_DEFAULTS | (isset($my_flags) ? $my_flags : 0);
+  $flags = BIT_DEFAULTS | (isset($my_flags) ? @$my_flags : BIT_RTRADER);
   $community = @$my_communityUid ?: r\serverUid();
   u\EXPECT(!empty($community), 'empty community uid');
   fixCountryAndState($info);
@@ -75,10 +75,8 @@ function makeTransaction($info, $infoOnly = FALSE) {
   $payer_agent = uid(@$my_from_agent ?: ($type == TX_TRANSFER ? $my_from : r\communityUid()));
   $payee = uid($my_to); 
   $payee_agent = uid(@$my_to_agent ?: ($type == TX_TRANSFER ? $my_to : r\communityUid()));
-
-  //  debug(compact('real','payer','payee','my_tx_id','xid'));
-//  debug(r\isRTrader($payer));
-//  debug(r\isRTrader($payee));
+  $payer_tid = r\xid2tid($xid, $payer);
+  $payee_tid = r\xid2tid($xid, $payee);
   
   $payer_for = @$my_purpose ?: 'cash';
   $payee_for = @$my_purpose ?: 'cash';
@@ -91,7 +89,7 @@ function makeTransaction($info, $infoOnly = FALSE) {
     $data = serialize(compact(u\ray('rebate bonus')));
   }
   foreach (u\ray('created from to purpose usd tx_id') as $one) unset($info[$one]);
-  $info += compact(u\ray('xid created r payer payer_agent payee payee_agent payer_for payee_for type channel goods taking state data'));
+  $info += compact(u\ray('xid created r payer payer_agent payee payee_agent payer_for payee_for payer_tid payee_tid type channel goods taking state data'));
   if ($infoOnly) return $info;
   
   $xid = r\dbInsert('r_txs', $info);
@@ -99,6 +97,7 @@ function makeTransaction($info, $infoOnly = FALSE) {
     $serial = $xid;
     r\dbQ('UPDATE r_txs SET serial=:serial WHERE xid=:xid', compact(u\ray('serial xid')));
   } else $serial = $my_serial;
+  r\cacheBothTotals(array($info));
   return $serial;
 }
 
@@ -134,7 +133,12 @@ function makeRelation($info, $infoOnly = FALSE) {
  * @param int $uid: return credit info for this account id
  */
 function uidCredit($uid) {
-  return be\creditInfo(compact('uid'));
+  $info = be\creditInfo(compact('uid'));
+  $balance = r\acct($uid)->balance();
+  if ($uid >0 and $info->balance != $balance) { // (community amounts don't get cached)
+    testOutput("Calculated balance different from cache: $info->balance <> $balance");
+    return (object) array('balance' => 'error');
+  } else return $info;
 }
 
 function uid($id) {

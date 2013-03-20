@@ -28,8 +28,7 @@ function secret($dbs, $cryptKey, $id, $data = NULL) {
   $maxLen = strlen('9223372036854775807') - 1; // keep it shorter than biggest usable unsigned "big int" in MySQL
   $table = 'offsite';
 
-  parse_str($dbs[$db_name = key($dbs)], $dbInfo);
-  extract($dbInfo, EXTR_PREFIX_ALL, 'db');
+  extract((array) $dbs[$db_name = key($dbs)], EXTR_PREFIX_ALL, 'db');
   $db = new PDO("$db_driver:host=$db_host;port=$db_port;dbname=$db_name", $db_user, $db_pass);
 
   if (!isset($data)) return (offlog(35, $result = lookup('data', $table, $id)) == '' ? '' : base64_encode(ezdecrypt($result, $cryptKey))); // retrieval is easy

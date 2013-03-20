@@ -93,7 +93,7 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'incomplete agreement' => t('To sign this agreement, you must put a check in each box, meaning that you have read that section and agree to it.'),
   'bad signature' => t('That signature does not match your full legal name ("@fullName").'),
   'bad invite' => t('To sign up for rCredits, you must be invited and you must use the invitation link within @R_INVITE_DAYS days. If you already have an rCredits account and want to open an additional account for yourself, your business, or a family member, sign in to your personal account and use the "Open Another Account" on the Summary page.'),
-  'bad minr' => t('Your chosen rCredits minimum cannot be less than your assigned minimum balance (@minBalance).'),
+  'bad minr' => t('Your chosen rCredits minimum cannot be less than your assigned minimum balance (@floor).'),
   'bad maxr' => t('Your chosen rCredits maximum cannot be less than your rCredits minimum. Nor can it be less than your total amount of incentive rewards to date.'),
 //  'bad maxusd' => t('Your chosen USD maximum cannot be less than your rCredits minimum.'),
   'info not saved' => t('We apologize. Your information could not be saved at this time. Please try again in an hour or so.'),
@@ -103,6 +103,9 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'humans sign' => t('You must be logged in to a personal account, to sign the agreement on behalf of a company.'),
   'bad spoof check' => t('You must confirm (<i>every time</i>) that you are on the real rCredits site.'),
   'no auth yet' => t('You have not yet authorized a connection with your Dwolla account. Please resubmit.'),
+  'not an image' => t('That is not an acceptable image format.'),
+  'bad commercial aspect' => t('Your company profile picture must be in landscape orientation, with a width-to-height ratio of about @R_COMMERCIAL_ASPECT.'),
+  'bad personal aspect' => t('Your profile picture must be in portrait orientation, with a width-to-height ratio of about @R_PERSONAL_ASPECT.'),
 );
 
 /**
@@ -145,7 +148,7 @@ function formField($type, $title = '', $description = '', $other = array(), $opt
 }
 
 function submit($title = '') {return formField('submit', '', '', $title ?: t('Submit'));}
-function item($value) {return formField('item', '', '', $value);}
+function item($value, $title = '', $desc = '') {return formField('item', $title, $desc, $value);}
 function hidField($value) {return formField('hidden', '', '', $value);}
 function textField($title = '', $description = '', $other = array(), $options = NULL) {
   return formField('textfield', $title, $description, $other, $options);
@@ -790,7 +793,8 @@ function formSummary($form, &$sta) {
   $name = $cacct->name;
   $address = r\location($cacct, TRUE);
   $regionName = r\acct($cacct->community)->full_name;
-
+  $floorDesc = t('Your balance can go this low for up to 30 days');
+  
   if (!$cacct->isCompany() or !$cacct->proSe()) {
 // FAILS on mobile    $idLink = 'id="idcard"'; // use jQuery to create popup (see inc/misc.js)
     $idLink = 'href="Print-ID-Card" target="_blank"';
@@ -807,7 +811,7 @@ function formSummary($form, &$sta) {
     $accountId = formField('item', t('ID:'), $card, ($cacct->mainQid ?: 'N/A') . ' (' . $regionName . ")$extra");
     if ($cacct->can(PERM_MEMBER) and $cacct->account_type == R_PERSONAL) $another = submit(t('Open Another Account'));
     $account_type = formField('item', t('Account type:'), '', $GLOBALS['account types'][$cacct->account_type+0]); // +0 for admin
-    $floor = formField('item', t('Credit floor:'), 'Your balance can go this low for up to 30 days', u\formatAmount(-$cacct->floor));
+    $floor = formField('item', t('Credit floor:'), $floorDesc, u\formatAmount($cacct->floor));
     $rewards = formField('item', t('Rewards:'), t('(to date)'), $my_rewards);
   }
 
@@ -818,7 +822,7 @@ function formSummary($form, &$sta) {
     } else { // managing some individual community member account
       $account_type = formField('select', t('Account type:'), '', $cacct->account_type+0, $GLOBALS['account types']); // +0 for admin
       if ($cacct->isCompany()) $canCharge = boolField(t('Can charge'), t('This account can charge others unilaterally (in person)'), $cacct->hasBit(BIT_CHARGE) + 0);
-      $floor = textField(t('Credit floor:'), 'Your balance can go this low for up to 30 days', dft(u\formatAmount(-$cacct->floor)));
+      $floor = textField(t('Credit floor:'), $floorDesc, dft(u\formatAmount($cacct->floor)));
 
       $rTrader = boolField(t('rTrader?'), t('Does the submitted proof of ID pass muster? Is this account approved to use rCredits?'), $cacct->hasBit(BIT_RTRADER) + 0);
       $notes = formField('textarea', t('Notes'), '', dft($cacct->notes));
@@ -944,31 +948,47 @@ function formAccount_submit($form, &$sta) {
   $id = $cacct->id;
   $pictureFilename = DRUPAL_ROOT . $cacct->auxFilename('picture');
   $values = $sta['values'];
-  unset($values['picture']); // don't overwrite old picture except with a new one
 
   if ($picture = @$values['picture_upload']) {
-    if (!$picture->status) { // If the picture is a temporary file move it to its final location and make it permanent.
-//      $tempName = $_FILES['files']['tmp_name']['picture_upload'];
-      $tempName = str_replace('temporary://', \file_directory_temp() . '/', $picture->uri);
-      if (!rename($tempName, $pictureFilename)) say('file save error', 'picture');
-    }
+    r\dbQ('DELETE FROM file_managed');
+    $tempName = str_replace('temporary://', \file_directory_temp() . '/', $picture->uri);
+    if ($cacct->account_type >= R_COMMERCIAL) {
+      if (!fixPicture($tempName, R_COMMERCIAL_ASPECT, 'bad commercial aspect')) return;
+    } elseif (!fixPicture($tempName, R_PERSONAL_ASPECT, 'bad personal aspect')) return;
+    if (!rename($tempName, $pictureFilename)) return say('file save error', 'picture');
   }
   
-  if (@$values['picture_delete'] and file_exists($pictureFilename)) {
-    unlink($pictureFilename);
-    // fudge for drupal delete
-    $picture = 0;
-    r\dbQ('DELETE FROM file_managed WHERE uid=:id', compact('id'));
-    // end of fudge
-  }
+  if (@$values['picture_delete'] and file_exists($pictureFilename)) unlink($pictureFilename);
 
   if (empty($values['pass'])) {
     unset($values['pass']); // don't overwrite old password except with a new one
   } else $values['pass'] = user_hash_password($values['pass']);
   
-  if (r\acct()->update($values, 'mail pass status picture')) say('account updated');
-//  r\acct()->reread();
+  if (r\acct()->update($values, 'mail pass status')) say('account updated');
 }
+
+function fixPicture($filename, $aspect, $errMsg) {
+  if (!$info = @getimagesize($filename)) return say('not an image', 'picture');
+  list ($w, $h) = $info;
+  list ($w0, $h0) = explode(':', $aspect);
+  $off = $w/$h - $w0/$h0;
+  if (abs($off) > .25) return say($errMsg, 'picture');
+
+  $img = new \Imagick($filename);
+  list ($wFactor, $hFactor) = u\order($off > 0, 1 - abs($off), 1);
+  if ($off > 0) $img->cropImage($w*$wFactor, $h*$hFactor, ($w-$w*$wFactor)/2, ($h-$h*$hFactor)/2); // narrow or shorten
+  $img->resizeImage($w0 * R_PIXEL_FACTOR, $h0 * R_PIXEL_FACTOR, \Imagick::FILTER_CATROM, 1);
+  if (!$img->writeImage($filename)) return say('file save error', 'picture');
+  return TRUE;
+}
+
+/*
+$thumb->destroy(); 
+      $img = imagecreatetruecolor($w0 * R_PIXEL_FACTOR, $h0 * R_PIXEL_FACTOR);
+      $sourceImg = imagecreatefromjpeg($tempName);
+      $ims = getimagesize($image);
+imagecopy($img,$org_img, 0, 0, 20, 20, 200, 150);
+*/
 
 /**
  * Account Selector form
@@ -982,15 +1002,14 @@ function formAccounts($form, &$sta) {
   if (!in_array($cuid, @$accounts) and $cacct->can()) array_splice($accounts, 1, 0, $cuid); // admin or ctty_admin
   $choices = array();
   foreach ($accounts as $uid) {
-    $balance = u\formatAmount(be\creditInfo(compact('uid'))->balance);
-    $choices[$uid] = r\userField('full_name', $uid) . ": $balance";
+    $acct = r\acct($uid);
+    $balance = u\formatAmount($acct->balance());
+    $choices[$uid] = "$acct->full_name: $balance";
   }
 
   $qid = r\quid(); // $credit_id = r\userField('credit_id', $cuid);
-  $full_name = r\userField('full_name', $cuid);
   $onchange = "this.form.submit();";
-//  $account = formField('select', t('Account:'), t('(Select an account)'), dft($cuid) + attrib(compact('onchange')), $choices);
-  $oneText = "$full_name: $balance";
+  $oneText = $choices[$cuid];
   
   $account = count($choices) == 1 ? 
       textField('', '', dft($oneText) + attrib(array('disabled' => TRUE, 'size' => strlen($oneText)+2)))
@@ -1154,7 +1173,7 @@ function formTx($form, &$sta, $args = '') {
   $type = $args === '' ? basename(current_path()) : basename(dirname(current_path())); // pay, charge, etc.
   $role = in_array($type, u\ray('charge fine')) ? 'payee' : 'payer';
   $incentive = in_array($type, u\ray('fine grant loan'));
-  if (!@$purpose and $type == 'charge') $purpose = r\acct()->selling;
+  $purpose = @$purpose ?: ($type == 'charge' ? r\acct()->selling : ($type == 'pay' ? '' : $type));
   
   focusOn(@$who ? 'amount' : 'who');
 
@@ -1850,7 +1869,6 @@ function formUsd_submit($form, &$sta) {
 
   $info = u\just(R_SECRET_FIELDS . ' question', $info);
   if (empty($info) or $cacct->update($info)) say('info saved'); else say('info not saved', 'zot');
-
   if (isset($usd_account) or isset($pin) or $retry) { // this must be last, because it redirects to Dwolla
     $type = 'Dwolla';
     $auth = ''; // no valid auth token until Dwolla calls us back
@@ -1921,15 +1939,13 @@ function formRelations($form, &$sta) {
   global $base_url;
   $cacct = r\acct();
   $cuid = $cacct->id;
-  $isPerson = !$cacct->isCompany();
+  $personal = !$cacct->isCompany();
   if ($confirm = sureForm($sta)) return $confirm; // confirm only getUSD
   $account_identifiers = be\accountName($cuid);
   $header = u\ray('Other account,Employer?,My employee?,Family?,Permission,');
   $classes = u\prefixValues('rel-', u\ray('person employer employee owner permission link'));
-  if (!$isPerson) { // if ($cacct->account_type >= R_COMPANY) 
-    $header[1] = '$/mo';
-    $header[3] = 'Owner?';
-  }
+  if (!$personal) $header[1] = '$/mo';
+  if ($cacct->account_type >= R_COMMERCIAL) $header[3] = 'Owner?';
   
   $sql = <<<EOF
     SELECT DISTINCT s.reid, s.main, s.other, s.amount, IF(:cuid=s.main, v.full_name, u.full_name) AS full_name,
@@ -1946,14 +1962,15 @@ EOF;
     $raws0[$reid] = $row; // original data from table
     $isAgent = ($cuid != $main);
     $combo = ($isAgent and @$previousAgent == $main); // related both ways
-    $otherIsPerson = !r\acct($isAgent ? $main : $other)->isCompany();
-    $idLink = (!$isAgent and $otherIsPerson and $employee_ok and $permission >= PERM_SELL) ? "<a target=\"_blank\" href=\"$base_url/Print-ID-Card/$other\">print&nbsp;ID&nbsp;Card</a>" : R_NONE;
+    $otherpersonal = !r\acct($isAgent ? $main : $other)->isCompany();
+    $idLink = (!$isAgent and $otherpersonal and $employee_ok and $permission >= PERM_SELL) ? "<a target=\"_blank\" href=\"$base_url/Print-ID-Card/$other\">print&nbsp;ID&nbsp;Card</a>" : R_NONE;
 
     $ii = (count($rows) - ($combo ? 1 : 0)) . "-$reid"; // "row-reid"
     $discrepant = ($employer_ok xor $employee_ok); // exactly one has claimed the relation
     list ($employee_ok, $employer_ok) = array($employee_ok and $isAgent, $employer_ok and !$isAgent);
     $isEmployer = toggle('employee_ok', $employee_ok, $ii, $isAgent and $discrepant);
-    $isEmployee = $otherIsPerson ? toggle('employer_ok', $employer_ok, $ii, !$isAgent and $discrepant) : R_NONE;
+    $isEmployee = $otherpersonal ? toggle('employer_ok', $employer_ok, $ii, !$isAgent and $discrepant) : R_NONE;
+    debug(compact('isEmployer','isEmployee','employee_ok','employer_ok'));
     $is_owner = ($is_owner and !$isAgent);
     $isOwner = toggle('is_owner', $is_owner, $ii);
     $permission = $isAgent ? 0 : $permission;
@@ -1962,13 +1979,13 @@ EOF;
 
     if ($combo) { // employee record preceded by other record for same entity
       $thisRow = array_pop($rows); // throw out everything (everything but $isEmployer), use previous record data
-      if ($isPerson) $thisRow[1] = $isEmployer;
+      if ($personal) $thisRow[1] = $isEmployer;
       $thisRaw = array_pop($raws);
       $thisRaw['employee_ok'] = $employee_ok;
     } else {
-      $thisRow = array($full_name, $isPerson ? $isEmployer : $amountValue, $isEmployee, $isOwner, $perm, $idLink);
-      $thisRaw = compact(u\ray(($isPerson ? 'employee_ok' : 'amount') . ' employer_ok permission is_owner'));
-//      if (!$isPerson) array_splice($thisRow, 1, 1, $amount); // companies can't be employees
+      $thisRow = array($full_name, $personal ? $isEmployer : $amountValue, $isEmployee, $isOwner, $perm, $idLink);
+      $thisRaw = compact(u\ray(($personal ? 'employee_ok' : 'amount') . ' employer_ok permission is_owner'));
+//      if (!$personal) array_splice($thisRow, 1, 1, $amount); // companies can't be employees
     }
     
     $rows[] = $thisRow;
@@ -2551,9 +2568,9 @@ function formOptions($form, &$sta) {
   $title = item(t('Account Preferences'));
   $virtualMaxMessage = $cacct->can(PERM_COMPANY) ? t(' If you make automatic "virtual" payments, your maximum is the same as your minimum, regardless of this setting.') : '';
   $minimum = textField(t('Minimum:'), t('Keep AT LEAST this much in your rCredits account, for purchases or inflation-proof savings. When your balance goes below this amount, the system refills it for you automatically from your bank account (which may take 3 days), then trades US Dollars for rCredits whenever possible, up to this amount.'), required(u\formatAmount(u\nn($cacct->minimum, R_MINR_DEFAULT), 's')));
-  $maximum = textField(t('Maximum:'), t('Keep AT MOST this much in your rCredits account. When your balance goes above this amount by $10 or more, the extra rCredits are automatically exchanged for US Dollars. 0 means no limit (recommended in most cases).') . $virtualMaxMessage, required(u\formatAmount(u\nn($cacct->maximum, R_MAXR_DEFAULT), 's')));
+  $maximum = textField(t('Maximum:'), u\SUBS(t('Keep AT MOST this much in your rCredits account. When your balance goes above this amount by $:R_RBUY_QUANTUM or more, the extra rCredits are automatically exchanged for US Dollars. 0 means no limit (recommended in most cases).') . $virtualMaxMessage, required(u\formatAmount(u\nn($cacct->maximum, R_MAXR_DEFAULT), 's'))));
   $toBank = formField('checkbox', t('To bank:'), t('Automatically transfer the excess to your bank account (recommended). [<a href="../help/to-bank">why ever not?</a>]'), $cacct->hasBit(BIT_TO_BANK));
-//  $max_usd = textField(t('USD Max:'), t('Keep at most this much in your Dwolla account. When your Dwolla balance goes above this amount by $10 or more, the system will automatically initiate a transfer to your bank account. 0 means no limit.'), required(u\formatAmount(u\nn($cacct->max_usd, R_MAXUSD_DEFAULT), 's')));
+//  $max_usd = textField(t('USD Max:'), u\SUBS(t('Keep at most this much in your Dwolla account. When your Dwolla balance goes above this amount by $:R_RBUY_QUANTUM or more, the system will automatically initiate a transfer to your bank account. 0 means no limit.'), required(u\formatAmount(u\nn($cacct->max_usd, R_MAXUSD_DEFAULT), 's'))));
   $notifyBys = array(t('no notifications'), t('by email'), t('by SMS'), t('by both email and SMS'));
   $dft = $cacct->hasBit(BIT_NOTIFY_EMAIL) + 2 * $cacct->hasBit(BIT_NOTIFY_SMS);
   $notifyBy = formField('radios', t('Notifications:'), t('How do you want to be notified about new charges to your account, short-term opportunities, and the like?'), required($dft), $notifyBys);
@@ -2582,9 +2599,9 @@ function formOptions($form, &$sta) {
 
 function formOptions_validate($form, $sta) {
   $cacct = r\acct();
-  $minBalance = u\formatAmount($cacct->floor);
+  $floor = u\formatAmount($cacct->floor);
   extract(u\just('minimum maximum', $sta['values']));
-  if ($minimum < $cacct->floor) say('bad minr', compact('minBalance'), 'minimum');
+  if ($minimum < $cacct->floor) say('bad minr', compact('floor'), 'minimum');
   if ($maximum != 0 and ($maximum < min($minimum, $cacct->rewards))) say('bad maxr', 'maximum');
 //  if ($max_usd != 0 and $max_usd < $minimum) say('bad maxusd', 'max_usd');
 }
@@ -2600,7 +2617,7 @@ function formOptions_submit($form, $sta) {
   $cacct->setBit(BIT_NOTIFY_EMAIL, $notifyBy & 1);
   $cacct->setBit(BIT_NOTIFY_SMS, $notifyBy & 2);
   $cacct->setBit(BIT_ELECTRONIC, @$statements);
-  $cacct->setBit(BIT_SECRET_BAL, @$secretBal); // damn Drupal sets this (=1) iff true, but not in values.
+  $cacct->setBit(BIT_SECRET_BAL, @$secretBal);
   $cacct->update(compact(u\ray('minimum maximum')));
   say('options saved');
 }
@@ -2608,17 +2625,18 @@ function formOptions_submit($form, $sta) {
 function formReports($form, &$sta, $args = '') {
   $cacct = r\acct();
   $ctty = r\acct($cacct->community);
-  $issued = -r\balance($ctty->id);
-  $demand = r\total('demand', $ctty->id);
+  $totals = r\totals($ctty->id);
+  $issued = -$totals->balance;
+  $demand = $totals->demand;
   $demandPct = $issued ? (' (' . number_format(100 * $demand / $issued, 1) . '% beyond amount issued)') : '';
    
   $title = item(t('Reports'));
   $subtext = item(t('for ') . $ctty->full_name);
-  $issued = item(t('rCredits issued:'), t('How many rCredits have been issued'), u\formatAmount($issued)); // ($xxx worldwide)
-  $demand = item(t('Margin:'), t('Community demand for additional rCredits'), u\formatAmount($demand) . $demandPct); // ($xxx worldwide)
+  $issued = item(u\formatAmount($issued), t('rCredits issued:'), t('How many rCredits have been issued')); // ($xxx worldwide)
+  $demand = item(u\formatAmount($demand) . $demandPct, t('Margin:'), t('Community demand for additional rCredits')); // ($xxx worldwide)
 //  $moreLater = item('', t('After rCredits is launched, this page will also report progress statistics.'));
   if (strpos($args, 'variety=') === FALSE) $args .= '&variety=report';
-  $form = compact(u\ray('title subtext issued demand')) + formTxs($form, $sta, $args);
+  $form = compact(u\ray('title subtext issued demand')) + formTxs('', $sta, $args);
   return labeled($form);
 }
 
@@ -2886,7 +2904,8 @@ function transfer($info, $confirmed) {
   svar('lastCustomer', $acct);
   list ($msg, $args, $confirm) = in_array($txType, array('payment', 'charge')) ?
        be\transfer($txType, $acct, $amount, $purpose, !u\forCash($purpose), $confirmed)
-     : communityTransfer($txType, $acct, $amount, $confirmed);
+     : communityTransfer($txType, $acct, $amount, $purpose, $confirmed);
+
   if (!@$scanned and strtoupper($who) != 'ALL') { // not scanned -- We need to show identifying photo, name, etc. for the target account
     $identifiers = identifiers($acct);
     $identifiers = "<div id='identifiers' class='clearfix'>$identifiers</div identifiers>";
@@ -2903,14 +2922,15 @@ function transfer($info, $confirmed) {
  * @param int $type: what type of transfer
  * @param acct $acct: the account to credit or debit
  * @param int $amount: how much to transfer
+ * @param string @purpose: what's the transfer for
  * @param bool $confirmed: has this transaction been confirmed by the user?
  * @return simple array: 
  *    index: index to result message string (if success, the index begins with "report ")
  *    parms: replacement parameters, specific to the message
  *    confirm: boolean "this needs to be confirmed"
  */
-function communityTransfer($type, $acct, $amount, $confirmed) {
-  $success = (bool) be\fund($acct->id, constant(strtoupper("TX_$type")), $amount, $confirmed);
+function communityTransfer($type, $acct, $amount, $purpose, $confirmed) {
+  $success = (bool) be\fund($acct->id, constant(strtoupper("TX_$type")), $amount, $purpose, $confirmed);
   $msg = $success ? ($confirmed ? 'report funding' : 'funding') : 'funding error';
   $confirmAction = ucwords($type);
   $action = $confirmAction . 'ed';

@@ -1,7 +1,9 @@
 <?php
 namespace rCredits;
+use rCredits as r;
 use rCredits\Backend as be;
 use rCredits\Util as u;
+use rCredits\Testing as t;
 
 /**
  * @file
@@ -62,16 +64,17 @@ class acct {
     $community = communityUid(@$my_postal_code); // defaults to current server
     $data = serialize(@$my_data ?: array());
     $frozen = serialize(array());
-    $created = REQUEST_TIME;
-    $info = compact(u\ray('phone status mail init pass name full_name flags community data created')) + $info;
+    $created = $login = $access = REQUEST_TIME;
+    $info = compact(u\ray('phone status mail init pass name full_name flags community data created login access')) + $info;
     $DBTX = db_transaction();
-    if ($uid = @$my_uid) {
-      $try = r\dbInsert('users', $info) ? 0 : 20; // predestined uid (probably for testing)
-    } else for ($try = 0; $try < 20; $try++) { // limit the retries
-      $uid = $info['uid'] = self::nextId();
-      if (r\dbInsert('users', $info)) break;
-    }
-    u\EXPECT(@$try < 20, 'failed to save user record');
+    if (!$uid = @$my_uid) {
+      for ($try = 0; $try < 20; $try++) { // limit the retries
+        $uid = $info['uid'] = self::nextId();
+        if (r\dbInsert('users', $info)) break;
+      }
+      u\EXPECT(@$try < 20, "failed to save user record after $try tries.");
+    } else r\dbInsert('users', $info); // predestined uid (probably for testing)
+
     if (isset($my_number)) {
       $success = SMS\create($my_number, $uid);
       u\EXPECT($success, 'Unable to create SMS record.');
@@ -115,8 +118,10 @@ class acct {
     if ($region != serverUid()) { // foreign
       // contact other server here, for a subset of the record
     } else {
-      $records = be\getRecords('users', "uid=:id LIMIT 1", compact('id')); // domestic (don't use Drupal's caching)
-      return $records ? (self::$records[$id] = $records[0]) : FALSE;
+      if ($records = be\getRecords('users', "uid=:id LIMIT 1", compact('id'))) { // domestic (don't use Drupal's caching)
+        $access = REQUEST_TIME;
+        return self::$records[$id] = (object) (((array) $records[0]) + compact('access'));
+      } else return FALSE;
     }
   }
 
@@ -192,9 +197,9 @@ class acct {
   public function update($info, $just = NULL) {
     //if (!@self::$records[$this->id]->uid) self::$records[$this->id] = \user_load($this->id);
     if (isset($just)) $info = u\just($just, $info);
-    if (@$info['data']) $info['data'] = serialize($info['data'] + $this->data);
-    if (@$info['frozen']) $info['frozen'] = serialize($info['frozen'] + $this->frozen);
-    if (@$info['secure']) { // serialize and encrypt before updating this
+    if (isset($info['data'])) $info['data'] = serialize($this->data);
+    if (isset($info['frozen'])) $info['frozen'] = serialize($info['frozen']);
+    if (isset($info['secure'])) { // serialize and encrypt before updating this
       $usdArray = $info['secure'] + ($this->secure ?: array());
       $info['secure'] = u\ezencrypt(serialize($usdArray), R_WORD);
     }
@@ -227,9 +232,10 @@ class acct {
   }
   
   public static function setDefault($acct) {
-    global $currentAcct; $currentAcct = $acct;
-    global $user; 
-    if (empty($user)) $user = (object) ($acct ? $acct->account() : array('uid' => 0)); // probably needed only for rWeb login/registration form testing
+    global $currentAcct; 
+    global $user; if (empty($user)) $user = (object) ($acct ? $acct->account() : array('uid' => 0)); // probably needed only for rWeb login/registration form testing
+    if (!$currentAcct = $acct) return;
+    if (($login = REQUEST_TIME) != $acct->login) $acct->update(compact('login'));
   }
 
   function passwordOkay($password) {
@@ -239,6 +245,11 @@ class acct {
     return ($hash and $stored_hash == $hash);
   }
   
+  /**
+   * Return the total (cached) balance.
+   */
+  function balance() {return $this->available + array_sum($this->frozen);}
+
   /**
    * Return an auxiliary filename for the account.
    * @param string $type: picture or proof
@@ -276,9 +287,6 @@ class acct {
       for ($i = 0; $i <= PERM_MANAGE; $i++) $perms[$i] = ($i <= $can); // set all permissions, even the false ones
       if (!$perms[PERM_RTRADER]) $perms[PERM_READ] = $perms[PERM_SELL] = $perms[PERM_BUY] = FALSE; // no ASIFs!
 
-      $perms[PERM_MANAGING_CTTY] = ($perms[PERM_CTTY_ADMIN] and $this->id == $this->community);
-      if ($perms[PERM_MANAGING_CTTY]) $perms[PERM_BUY] = $perms[PERM_SELL] = FALSE; // ctty admin can manage but not buy/sell
-      
       if ($perms[PERM_ADMIN]) {
         if (R_ADMIN_CAN_MANAGE_CTTYS) {
           $perms[PERM_CTTY_ADMIN] = TRUE; // temporary extra power, until communities are independent
@@ -286,6 +294,9 @@ class acct {
         }
         $perms[PERM_COMPANY] = TRUE; // show company form, disallow personal stuff
       }
+
+      $perms[PERM_MANAGING_CTTY] = ($perms[PERM_CTTY_ADMIN] and $this->id == $this->community);
+      if ($perms[PERM_MANAGING_CTTY] and !$perms[PERM_ADMIN]) $perms[PERM_BUY] = $perms[PERM_SELL] = FALSE; // ctty admin can manage but not buy/sell
       
       ksort($perms); // easier to debug
       self::$perms[$this->id][$this->agentId] = $perms;

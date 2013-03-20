@@ -232,11 +232,13 @@ function undoTx($xid) {
     r\notify($old_otherUid, 'charge-disputed', r\txReportArgs($oldRecord));
   } else {
     $otherAcct = r\tx2acct($old_toMe ? array($old_payer, $old_payer_agent, $data) : array($old_payee, $old_payee_agent, $data));
-    return reverse($xid, $old_amount, $otherAcct, $data, $old_goods, $old_tid, $old_toMe); // create an offsetting transaction
+    $type = $old_toMe ? 'payment' : 'charge';
+    $otherTid = $old_toMe ? $old_payer_tid : $old_payee_tid;
+    return reverse($xid, $old_amount, $otherAcct, $data, $old_goods, $old_tid, $type, $otherTid); // create an offsetting transaction
   }
 
   // handle undo of a partial unilateral charge (let the merchant undo the invoice, then the partial payment)
-  global $lastXid; $lastXid = $old_data['xid']; // previous related transaction or FALSE
+  global $lastXid; $lastXid = @$old_data['undoes']; // previous related transaction or FALSE
   
   $amount = u\formatAmount($old_amount);
   $tofrom = !$old_toMe ? t('to') : t('from');
@@ -249,37 +251,35 @@ function undoTx($xid) {
 /**
  * Create an offsetting transaction.
  */
-function reverse($xid, $amount, $acct, $data, $old_goods, $old_tid, $toMe) {
-//    print_r(compact(u\ray('xid amount acct data old_tid toMe'))); die();
-  u\EXPECT(compact(u\ray('xid amount acct data old_tid toMe')), 'id float acct assoc|empty string bool');
+function reverse($xid, $amount, $acct, $data, $old_goods, $tid, $type, $otherTid) {
+//    print_r(compact(u\ray('xid amount acct data tid toMe'))); die();
+  u\EXPECT(compact(u\ray('xid amount acct data tid type otherTid')), 'id float acct assoc|empty string string id');
 
   if (!is_array($data)) $data = array();
   $old_data = $data; // remember original data from transaction we're reversing
-  $type = $toMe ? 'payment' : 'charge';
-  $my_note = "reverses #$old_tid";
-  $other_note = str_replace($old_tid, xid2tid($xid, $acct->id), $my_note);
-  $what = u\order($type == 'payment', $my_note, $other_note);
+  $myFor = "reverses #$tid";
+  $otherFor = str_replace($tid, $otherTid, $myFor);
+  $what = u\order($type == 'payment', $myFor, $otherFor);
   if (@$data['rebate'] or @$data['bonus']) list ($data['rebate'], $data['bonus']) = array(-$data['bonus'], -$data['rebate']);
   $data['undoes'] = $xid; // remember what we're reversing (especially to get the realness right)
   list ($message, $args, $confirm) = transfer($type, $acct, $amount, $what, $old_goods, TRUE, $data);
 
   if (@$args['success']) {
-    list ($new_tid, $new_xid) = array($args['tid'], $args['xid']);
-    $otherTid = xid2tid($new_xid, $acct->id);
+    extract(u\just('xid tid otherTid', $args), EXTR_PREFIX_ALL, 'new');
     $old_data['undoneBy'] = $new_xid;
     $old_data['changes'][] = array(REQUEST_TIME, r\acct()->agentId, 'undo', $new_xid);
     $old_data = serialize($old_data);
-    $my_note = "(reversed by #$new_tid) ";
-    $other_note = str_replace($new_tid, $otherTid, $my_note);
-    list ($payer_note, $payee_note) = u\order($type == 'payment', $other_note, $my_note);
+    $myFor = "(reversed by #$new_tid) ";
+    $otherFor = str_replace($new_tid, $new_otherTid, $myFor);
+    list ($payer_for, $payee_for) = u\order($type == 'payment', $otherFor, $myFor);
     $sql = <<<EOF
       UPDATE r_txs SET 
-        payer_for=CONCAT(:payer_note, payer_for), 
-        payee_for=CONCAT(:payee_note, payee_for),
+        payer_for=CONCAT(:payer_for, payer_for), 
+        payee_for=CONCAT(:payee_for, payee_for),
         data=:old_data
       WHERE xid=:xid
 EOF;
-    r\dbQ($sql, compact(u\ray('payer_note payee_note xid old_data')));
+    r\dbQ($sql, compact(u\ray('payer_for payee_for xid old_data')));
     $message = 'report undo|' . $message;
     $args['solution'] = 'reversed';
   }
@@ -304,7 +304,7 @@ function get($currency, &$amount, $confirmed) {
   if (!$cacct->can(PERM_MANAGE)) return array('no access get', array(), FALSE);
   if ($error = u\badAmount($amount, $currency == 'usd' ? '>0' : '>=0')) return array($error, array(), FALSE); // allow zero for rCredits request
   // (No, include this in rTrader requirements) if (r\isRTrader() and !$cacct->can(PERM_DWOLLA)) return array('no usd account', array(), FALSE);
-  $usd = new USD();
+  $usd = new usd();
   if (!$usd->canTrade()) return array('no usd account', array(), FALSE);
   $request = u\formatAmount($amount);
   $success = TRUE;
@@ -362,11 +362,12 @@ function payInvoice($xid) {
   if (!$result = lastTx('xid=:xid AND state=:TX_PENDING', compact('xid'))) return array('no such tx', array());
   extract($result, EXTR_PREFIX_ALL, 'old');
   $acct = r\acct($old_payee, $old_payee_agent);
+  $undoes = $xid;
   
-  $DBTX = db_transaction();
-  list ($message, $args, $confirm) = transfer('invoice payment', $acct, $old_amount, $old_payee_for, $old_goods, TRUE, compact('xid'));
+  r\usd::beginAtom();
+  list ($message, $args, $confirm) = transfer('invoice payment', $acct, $old_amount, $old_payee_for, $old_goods, TRUE, compact('undoes'));
   if (@$args['success']) r\setTxState(TX_DELETED, $xid); // delete the invoice
-  unset($DBTX); // commit
+  r\usd::commit();
 
   return array($message, $args);
 }
@@ -383,7 +384,7 @@ function payInvoice($xid) {
  * @param array $data: associative array of info about the transaction this request is reversing (if any), indexed by any of:
  *   'rebate': the rebate amount for this request (should be negative the original bonus amount)
  *   'bonus': the bonus amount (should be negative the original rebate amount) [rebate and bonus are always both set or neither]
- *   'undoes': transaction id of the related transaction (invoice or transaction being undone)
+ *   'undoes': transaction id of the related transaction (transaction being undone / invoice being paid)
  *   'preapproved': the transaction is preapproved (from some other region)
  *     Note that other regions must not have PERM_CHARGE (else the code will not permit foreign invoices)
  *   'bilateral': set TRUE if a company with PERM_CHARGE wants to pretend it doesn't
@@ -478,16 +479,21 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   $data = serialize($data);
 
   list ($fromUsAcct, $toUsAcct) = u\order($taking, new r\usd($acct), new r\usd($cacct));
-  $DBTX = db_transaction();
-  $txs = r\transact(compact(u\ray('type amount r payer payee payer_agent payee_agent for data taking goods state')));
+  $txArgs = compact(u\ray('type amount r payer payee payer_agent payee_agent for data taking goods state'));
+  r\usd::beginAtom();
   if ($confirmed) {
-    if ($state = TX_DONE and $usd > 0 and !$fromUsAcct->transfer($usd, $toUsAcct, $for, !$goods)) {
-      $DBTX->rollback();
+    $payerFee = R_FEE_FOR_CASH ? (!$goods) : FALSE; // cash-getter pays the transaction fee
+    if ($state = TX_DONE and $usd > 0 and !$usd_xid = $fromUsAcct->send($usd, $toUsAcct, $for, $payerFee)) {
+      r\usd::rollback();
       return array('usd failed', array(), FALSE);
     }
+    $txs = r\transact($txArgs + compact('usd_xid'));
     $lastXid = $txs[0]['xid'];
-  } else $DBTX->rollback();
-  unset($DBTX); // commit
+    r\usd::commit();
+  } else {
+    $txs = r\transact($txArgs);
+    r\usd::rollback();
+  }
   
   // Report results
   $args = r\txReportArgs($txs[0], TRUE, $shortfall);
@@ -513,10 +519,11 @@ function txPerson($id, $region) {return r\isForeign($region) ? array($region, $i
  * @param int $uid: uid of the account to credit or debit
  * @param int $type: what type of transfer (defaults to signup)
  * @param int $amount: how much to transfer (standardized default for signup)
+ * @param string $for: purpose of funding (defaults to description of funding type)
  * @param bool $confirmed: actually do it? (otherwise just see if it can be done)
  * @return int: the incentive amount (FALSE if the current account does not have permission to do this)
  */
-function fund($uid, $type = TX_SIGNUP, $amount = R_STARTING_BALANCE, $confirmed = TRUE) {
+function fund($uid, $type = TX_SIGNUP, $amount = R_STARTING_BALANCE, $for = NULL, $confirmed = TRUE) {
   if (isFrontend()) return backend('fund', compact(u\ray('uid type amount')));
   if (is_array($uid)) extract($uid); // called from api or backend
 
@@ -529,7 +536,7 @@ function fund($uid, $type = TX_SIGNUP, $amount = R_STARTING_BALANCE, $confirmed 
   $payer = $ctty;
   $payer_agent = @$cacct->id < 0 ? $cacct->agentId : $ctty;
   $taking = ($type >= TX_FINE);
-  $for = $GLOBALS['txTypes'][$type];
+  u\setDft($for, $GLOBALS['txTypes'][$type]);
   $r = $amount;
   r\transact(compact(u\ray('type amount r payer payee payer_agent payee_agent for taking')));
   return $amount;
@@ -669,18 +676,16 @@ function creditInfo($args = array()) {
   }
   extract(u\just('uid state asof currency', $args));
 
-  $cacct = r\acct();
-  $cuid = $cacct ? $cacct->id : 0;
+  u\setDft($uid, 0);
+  $acct = r\acct($uid);
 
-  // set parameter defaults
-  $uid = @$uid ?: $cuid;
-  $state = @$state ?: ':TX_DONE,:TX_DISPUTED';
-  $asof = @$asof ?: '';
-  $currency = @$currency ?: 'r';
+  u\setDft($state, ':TX_DONE,:TX_DISPUTED');
+  u\setDft($asof, '');
+  u\setDft($currency, 'r');
   
   $dateField = 'GREATEST(t.created,IF(ISNULL(t.completed), 0, t.completed))';
   $monthStart = u\monthDay1();
-  $minBalance = r\userField('floor', $uid);
+  $floor = $acct->floor;
   $amount = $currency == 'both' ? 't.amount' : ($currency == 'usd' ? '(t.amount - t.r)' : 't.r');
 
   $sql = <<<EOF
@@ -696,13 +701,13 @@ EOF;
 
   extract(r\dbQ($sql, compact(u\ray('uid asof')))->fetchAssoc());
   $grossInProper = $grossIn - $rewards;
-  $committed = round($committed * r\acct($uid)->tithe / 100, 2);
+  $committed = round($committed * $acct->tithe / 100, 2);
   $balance = $grossIn - $grossOut - $committed;
-  $unavailable = 0; // for now
-  $available = ($balance - $minBalance) - $unavailable;
+  $unavailable = array_sum($acct->frozen);
+  $available = ($balance - $floor) - $unavailable;
   $cashable = $balance - $rewards;
-  $totalDemand = r\total('demand');
-  $resultKeys = 'grossIn grossOut grossInProper committed balance available unavailable rewards cashable totalDemand minBalance';
+  $totalDemand = r\totals()->demand;
+  $resultKeys = 'grossIn grossOut grossInProper committed balance available unavailable rewards cashable totalDemand floor';
   $result = compact(u\ray($resultKeys));
   $fancy = array();
   foreach ($result as $key => $value) $fancy[$key] = u\formatAmount(@$value + 0);
@@ -797,21 +802,6 @@ function lastTx($where = 1, $subs = array(), $cache = FALSE) {
   $tid = u\order($toMe, $result['payee_tid'], $result['payer_tid']);
   $otherUid = $result[$toMe ? 'payer' : 'payee'];
   return $result + compact(u\ray('byMe toMe tid otherUid'));
-}
-
-/**
- * Return the user's sequential transaction number
- * @param int $xid: the transaction record number
- * @param int $uid: the user's uid (DEFAULTs to current account)
- * @return string: the user's transaction number
- */
-function xid2tid($xid, $uid = '') {
-  if (isFrontend()) return backend('xid2tid', compact(u\ray('xid uid')));
-  if (is_array($xid)) extract($xid); // called from api or backend
-  
-  if (!$uid) $uid = r\acct()->id;
-  $where =  ":uid IN (payer, payee) AND xid<=:xid AND type NOT IN (:TX_REBATE, :TX_BONUS)";
-  return r\dbLookup('COUNT(xid)', 'r_txs', $where, compact('uid', 'xid'));
 }
 
 function accountName($uid) {

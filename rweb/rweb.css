@@ -232,7 +232,7 @@ form.rweb  .form-no {color:red;}
 /* Reports */
 #rcreditswebformreports .form-item-agents,
 #rcreditswebformreports .form-item-channels {display:inline-block;}
-#rcreditswebformreports .form-item-period,
+#rcreditswebformreports .form-item-period {display:inline-block;}
 #rcreditswebformreports .form-item-ending {display:inline-block;}
 #rcreditswebformreports .form-item-starting {margin-bottom:0;}
 #rcreditswebformreports .form-submit {margin-left:10px;}
@@ -268,7 +268,7 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformtxs .form-type-checkbox {max-width:200px;}
 #rcreditswebformtxs .form-item-agents,
 #rcreditswebformtxs .form-item-channels {display:inline-block;}
-#rcreditswebformtxs .form-item-period,
+#rcreditswebformtxs .form-item-period {display:inline-block;}
 #rcreditswebformtxs .form-item-ending {display:inline-block;}
 #rcreditswebformtxs .form-item-starting {margin-bottom:0;}
 #rcreditswebformtxs .form-submit {margin-left:10px;}

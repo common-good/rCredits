@@ -97,9 +97,9 @@ function formTxs($form, &$sta, $args = '') {
       $row = array($tid, strftime('%d-%b-%Y', $date), r\acct($tx_payer)->full_name, r\acct($tx_payee)->full_name, $total, $amount, $usd, $rpct, $state, $tx_purpose, $reward);
     } else { // individual account transaction history
       $url = $url0 . "&xid=$xid";
-      $tid = be\xid2tid($xid);
       $toMe = ($tx_payee == $cuid);
       $byMe = ($tx_taking == $toMe);
+      $tid = $toMe ? $tx_payee_tid : $tx_payer_tid;
       $agent = $toMe ? $tx_payee_agent : $tx_payer_agent;
       $state = txColoredState($tx_state, $byMe);
       $reward = @$data[$toMe ? 'bonus' : 'rebate'];
@@ -150,6 +150,7 @@ function formTxs($form, &$sta, $args = '') {
     $summary = formField('markup', '', '', array('markup' => tx_summary($starting, $ending)));
   }
 
+  $divider = item('<hr>');
   $period = formField('select', t('For the past:'), '', dft(@$period ?: TX_DEFAULT_PERIOD), $txDays);
   $submitPeriod = submit(t('Show ')); // label has to be different from submitDates (see below)
   $downloadPeriod = submit(t('Download'));
@@ -161,7 +162,7 @@ function formTxs($form, &$sta, $args = '') {
   $title = item(t('rCredits Transaction History'));
   $subtext = item(t('Only the rCredits part of each transaction is shown. The "r%" column tells what percentage this represents of the total transaction amount. Hover over the figure in the "r%" column to see the total and US Dollar amounts.'));
 
-  $form = compact(u\ray('title subtext agents channels period submitPeriod downloadPeriod starting ending submitDates downloadDates summary transactions'));
+  $form = compact(u\ray('title subtext agents channels divider period submitPeriod downloadPeriod starting ending submitDates downloadDates summary transactions'));
   if (@$downloaded) js("window.open(\"$url0&download=1\")", 'inline', 'footer');
   return labeled($form);
 }

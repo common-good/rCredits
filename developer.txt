@@ -15,9 +15,16 @@ rename community field to community
 ***
         
 Short term tasks: (* = before launch ** = earlier)
+- make sure to check RTRADER bit everywhere we need to (anything financial, nowhere else)
+- don't go over employee maximums unless we have to (know it ahead of time, either limit it to max or don't. simple) (don't bother with this -- it will probably be better as it is)
+- receive deposit/withrawal callbacks to set "completed" in r_usd. alert staff if fails.
+- set completed in r_usd on other transactions
+- in daily: alert staff if deposit / withdrawal not complete after 3 days
+- on miscellaneous unknown dwolla status returns, alert staff
+- log more stuff
 - cut loose circles file
 - dwindling rewards in cron
-- shrink photo in formI (should be 50%)
+- shrink photo in formI (should be 50%) done?
 - download must include rebate and bonuses transactions as a separate row (for GFM)
 - cron: make a "daily" queue for most stuff. include figuring variable_set('totals') (usd, r, demand, etc.)
 - automatic bank transfer tester
@@ -128,7 +135,7 @@ E. Database clues
      . description is html for the company's page (N/A for personal accounts)
      . community: the (negative) uid of the account's CGC. For anyone who is not in an established CGC, their community is the region (using the regional server's uid). For region and community records, community === uid
      . minimum: the user's preferred minimum rCredits balance. Request at least r$10 more automatically if balance goes under by even one cent.
-     . maximum: the user's preferred maximum rCredits balance. Exchange any excess beyond maximum+10-.01 automatically for USD
+     . maximum: the user's preferred maximum rCredits AVAILABLE balance. Exchange any excess beyond maximum+10-.01 automatically for USD
      . usd_account is the usd account number, encrypted with R_WORD
      . secure is an encrypted (with R_WORD) serialized assoc:
          type: Dwolla

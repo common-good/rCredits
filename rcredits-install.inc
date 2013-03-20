@@ -102,9 +102,10 @@ function tableDefs($schema = array()) {
   $fields = array(
     'xid' => setupField('the unique transaction ID', 'serial 11'), 
     'serial' => setupField('serial number of related transactions (=xid of first transaction in the group)', 'int 11'), 
+    'usd_xid' => setupField('the unique transaction ID for USD part', 'varchar 255'), 
     'type' => setupField('transaction type (transfer, rebate, etc.)', 'int tiny'), 
     'taking' => setupField('was the transaction initiated by the payee', 'int tiny'), 
-    'goods' => setupField('is this transfer an exchange for real goods and services?', 'int tiny'), 
+    'goods' => setupField('is this transfer an exchange for real goods and services?', 'int tiny', 0), 
     'state' => setupField('done, pending, disputed, etc', 'int tiny'), 
     'amount' => setupField('amount in rCredits', 'numeric 11,2'), 
     'r' => setupField('amount in rCredits', 'numeric 11,2'), 
@@ -130,11 +131,11 @@ function tableDefs($schema = array()) {
   // table r_usd
   $fields = array(
     'txid' => setupField('the unique transaction ID', 'varchar 255'), 
-    'goods' => setupField('is this transfer an exchange for real goods and services?', 'int tiny'), 
     'amount' => setupField('amount in rCredits', 'numeric 11,2'), 
     'payer' => setupField('user id of the payer', 'int 11'), 
-    'payee' => setupField('user id of the payee', 'int 11'), 
+    'payee' => setupField('user id of the payee', 'int 11'), // 0 for deposits / withdrawals
     'created' => setupField('Unixtime transaction was created', 'int 11'),
+    'completed' => setupField('Unixtime transaction was completed', 'int 11'), // for deposits / withdrawals
   );
   $foreign_keys = foreignKey('payer') + foreignKey('payee');
   $indexes = index('created');

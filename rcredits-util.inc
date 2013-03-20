@@ -31,11 +31,11 @@ function ray($s) {
 /**
  * Return an associative array built from the arguments.
  * Call by:
- *   ass(keys, value1, value2, ...)
+ *   assoc(keys, value1, value2, ...)
  * @param string $keys: space-delimited list of identifier names
  * @return assoc array whose keys and values are as listed
  */
-function ass($keys, $value1) {
+function assoc($keys, $value1) {
   $args = func_get_args();
   $keys = array_shift($args);
   return array_combine(ray($keys), $args);
@@ -657,6 +657,7 @@ function gzdecode($data){
 }
 
 // rCredits\Util\get_company_pictures();
+/*
 function get_company_pictures() {
   $result = r\dbQ("SELECT uid,website,data,description FROM users WHERE uid>791 AND website<>'' ORDER BY uid");
   while ($row = $result->fetchAssoc()) {
@@ -700,6 +701,7 @@ function get_company_pictures() {
   }
   debug('done'); // keep this
 }
+*/
 
 function fsize($url) {
   if ($size = @filesize($url)) return $size;
@@ -793,3 +795,4 @@ function lastCall($far = 4) {$back = debug_backtrace(); return array_slice($back
 function digits($n) {return preg_replace('/\D/', '', $n);}
 function monthDay1($time = REQUEST_TIME) {return strtotime(strftime('%b01'));}
 function prefix(&$var, $prefix) {$var = $prefix . $var;}
+function setDft(&$param, $value) {if (!isset($param)) $param = $value;}

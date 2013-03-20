@@ -5,16 +5,12 @@ SO I can buy and sell stuff.
 # We will eventually need variants or separate feature files for neighbor (member of different community within the region) to member, etc.
 # And foreigner (member on a different server) to member, etc.
 
-Variants: all members are rTraders
-  | %BIT_DEFAULTS | %BIT_MEMBER  | NEW:AAA |
-  | %BIT_RTRADER  | %BIT_RTRADER | NEW.AAA |
-
 Setup:
   Given members:
-  | id      | full_name  | address | city  | state  | postal_code | country   | email         | account_type  | flags         |
-  | NEW.ZZA | Abe One    | POB 1   | Atown | Alaska | 01000   | United States | a@example.com | %R_PERSONAL   | %BIT_DEFAULTS |
-  | NEW.ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000   | United States | b@example.com | %R_PERSONAL   | %BIT_MEMBER   |
-  | NEW.ZZC | Corner Pub | POB 3   | Ctown | Cher   |         | France        | c@example.com | %R_COMMERCIAL | %BIT_RTRADER  |
+  | id      | full_name  | address | city  | state  | postal_code | country | email         | account_type  |
+  | NEW.ZZA | Abe One    | POB 1   | Atown | Alaska | 01000       | US      | a@example.com | %R_PERSONAL   |
+  | NEW.ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000       | US      | b@example.com | %R_PERSONAL   |
+  | NEW.ZZC | Corner Pub | POB 3   | Ctown | Cher   |             | France  | c@example.com | %R_COMMERCIAL |
   And relations:
   | id      | main    | agent   | permission        |
   | NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |
@@ -23,9 +19,9 @@ Setup:
   | NEW:ZZD | NEW.ZZC | NEW.ZZA | sell              |
   And transactions: 
   | tx_id    | created   | type       | amount | from      | to      | purpose | taking |
-  | NEW:AAAB | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |
-  | NEW:AAAC | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZB | signup  | 0      |
-  | NEW:AAAD | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZC | signup  | 0      |
+  | NEW.AAAB | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |
+  | NEW.AAAC | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZB | signup  | 0      |
+  | NEW.AAAD | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZC | signup  | 0      |
   Then balances:
   | id        | balance |
   | community |    -750 |
@@ -59,10 +55,10 @@ Scenario: A member confirms request to charge another member
   | arg1   |
   | charge |
   And transactions:
-  | tx_id    | created   | type      | state       | amount | from      | to      | purpose | taking |
-  | NEW.AAAE | %today | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZB   | NEW.ZZA | labor   | 1      |
-  | NEW.AAAF | %today | %TX_REBATE   | %TX_PENDING |      5 | community | NEW.ZZB | rebate  | 0      |
-  | NEW.AAAG | %today | %TX_BONUS    | %TX_PENDING |     10 | community | NEW.ZZA | bonus   | 0      |
+  | tx_id    | created   | type      | state       | amount | from      | to      | purpose      | taking |
+  | NEW.AAAE | %today | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZB   | NEW.ZZA | labor        | 1      |
+  | NEW.AAAF | %today | %TX_REBATE   | %TX_PENDING |      5 | community | NEW.ZZB | rebate on #2 | 0      |
+  | NEW.AAAG | %today | %TX_BONUS    | %TX_PENDING |     10 | community | NEW.ZZA | bonus on #2  | 0      |
   And balances:
   | id        | balance |
   | community |    -750 |
@@ -92,10 +88,10 @@ Scenario: A member confirms request to pay another member
   | arg1 |
   | pay  |
   And transactions:
-  | tx_id    | created   | type      | state    | amount | from      | to      | purpose | taking |
-  | NEW.AAAE | %today | %TX_TRANSFER | %TX_DONE |    100 | NEW.ZZA   | NEW.ZZB | labor   | 0      |
-  | NEW.AAAF | %today | %TX_REBATE   | %TX_DONE |      5 | community | NEW.ZZA | rebate  | 0      |
-  | NEW.AAAG | %today | %TX_BONUS    | %TX_DONE |     10 | community | NEW.ZZB | bonus   | 0      |
+  | tx_id    | created   | type      | state    | amount | from      | to      | purpose      | taking |
+  | NEW.AAAE | %today | %TX_TRANSFER | %TX_DONE |    100 | NEW.ZZA   | NEW.ZZB | labor        | 0      |
+  | NEW.AAAF | %today | %TX_REBATE   | %TX_DONE |      5 | community | NEW.ZZA | rebate on #2 | 0      |
+  | NEW.AAAG | %today | %TX_BONUS    | %TX_DONE |     10 | community | NEW.ZZB | bonus on #2  | 0      |
   And balances:
   | id        | balance |
   | community |    -765 |

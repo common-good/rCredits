@@ -5,10 +5,11 @@ SO I can buy and sell stuff on behalf of other accounts, and they on mine.
 
 Setup:
   Given members:
-  | id   | full_name  | account_type  | flags         |
-  | .ZZA | Abe One    | %R_PERSONAL   | %BIT_DEFAULTS |
-  | .ZZB | Bea Two    | %R_PERSONAL   | %BIT_MEMBER  |
-  | .ZZC | Corner Pub | %R_COMMERCIAL | %BIT_RTRADER  |
+  | id   | full_name  | account_type     | flags         |
+  | .ZZA | Abe One    | %R_PERSONAL      | %BIT_DEFAULTS |
+  | .ZZB | Bea Two    | %R_SELF_EMPLOYED | %BIT_MEMBER   |
+  | .ZZC | Corner Pub | %R_COMMERCIAL    | %BIT_RTRADER  |
+  | .ZZD | Dee Four   | %R_PERSONAL      | 0             |
   And transactions: 
   | tx_id | created   | type       | amount | from      | to   | purpose | taking |
   | :AAAB | %today-6m | %TX_SIGNUP |    250 | community | .ZZA | signup  | 0      |
@@ -23,99 +24,111 @@ Setup:
 
 Scenario: Member has an employee, confirmed
   Given relations:
-  | id | main | agent | permission | employer_ok | employee_ok | is_owner |
-  | 1  | .ZZA | .ZZB  | sell       | 1           | 1           | 1        |
+  | id | main | agent | permission   | amount | employer_ok | employee_ok | is_owner |
+  | 1  | .ZZA | .ZZD  | sell         |     10 | 1           | 1           | 1        |
   When member ".ZZA" visits page "relations"
   Then we show page "relations" with:
-  | Person  | Is employer? | Is employee? | Is owner? | Permission | Print id      |
-  | Bea Two | No           | Yes          | Yes       | sell       | print ID Card |
+  | Person     | Is employer? | Is employee? | Family? | Permission   | Print ID |
+  | Dee Four   | Yes          | Yes          | Yes     | sell         | print ID Card |
 
 Scenario: Member has an employee, unconfirmed
   Given relations:
-  | id | main | agent | permission   | employer_ok | employee_ok | is_owner |
-  | 1  | .ZZA | .ZZB  | buy and sell | 1           | 0           | 0        |
+  | id | main | agent | permission   | amount | employer_ok | employee_ok | is_owner |
+  | 1  | .ZZA | .ZZD  | buy and sell |     50 | 1           | 0           | 0        |
   When member ".ZZA" visits page "relations"
   Then we show page "relations" with:
-  | Person  | Is employer? | Is employee? | Is owner? | Permission   | Print ID |
-  | Bea Two | No           | Yes          | No        | buy and sell |          |
+  | Person     | Is employer? | Is employee? | Family? | Permission   | Print ID |
+  | Dee Four   | No           | Yes          | No      | buy and sell |          |
+
+Scenario: Member has a relation with a contractor
+  Given relations:
+  | id | main | agent | permission   | amount | employer_ok | employee_ok | is_owner |
+  | 1  | .ZZA | .ZZB  | buy and sell |     50 | 1           | 0           | 0        |
+  When member ".ZZA" visits page "relations"
+  Then we show page "relations" with:
+  | Person     | Is employer? | Is employee? | Family? | Permission   | Print ID |
+  | Bea Two    | No           | --           | No      | buy and sell |          |
   
 Scenario: Member has an employee, claimed
   Given relations:
-  | id | main | agent | permission | employer_ok | employee_ok | is_owner |
-  | 1  | .ZZA | .ZZB  | sell       | 0           | 1           | 0        |
+  | id | main | agent | permission   | amount | employer_ok | employee_ok | is_owner |
+  | 1  | .ZZA | .ZZD  | sell         |     10 | 0           | 1           | 0        |
   When member ".ZZA" visits page "relations"
   Then we show page "relations" with:
-  | Person  | Is employer? | Is employee? | Is owner? | Permission | Print ID |
-  | Bea Two | No           | No           | No        | sell       |          |
+  | Person     | Is employer? | Is employee? | Family? | Permission   | Print ID |
+  | Dee Four   | No           | No           | No        | sell       |          |
   
 Scenario: Employee can only read
   Given relations:
-  | id | main | agent | permission        | employer_ok | employee_ok | is_owner |
-  | 1  | .ZZA | .ZZB  | read transactions | 1           | 1           | 1        |
+  | id | main | agent | permission        | amount | employer_ok | employee_ok | is_owner |
+  | 1  | .ZZA | .ZZD  | read transactions |     10 | 1           | 1           | 1        |
   When member ".ZZA" visits page "relations"
   Then we show page "relations" with:
-  | Person  | Is employer? | Is employee? | Is owner? | Permission        | Print ID |
-  | Bea Two | No           | Yes          | Yes       | read transactions |          |
+  | Person     | Is employer? | Is employee? | Family? | Permission        | Print ID |
+  | Dee Four   | No           | Yes          | Yes     | read transactions |          |
   
 Scenario: Member has an employer
   Given relations:
-  | id | main | agent | permission | employer_ok | employee_ok | is_owner |
-  | 1  | .ZZB | .ZZA  | sell       | 1           | 1           | 1        |
+  | id | main | agent | permission   | amount | employer_ok | employee_ok | is_owner |
+  | 1  | .ZZB | .ZZA  | sell         |     10 | 1           | 1           | 1        |
   When member ".ZZA" visits page "relations"
   Then we show page "relations" with:
-  | Person  | Is employer? | Is employee? | Is owner? | Permission | Print ID |
-  | Bea Two | Yes          | No           | No        | no access  | --       |
+  | Person     | Is employer? | Is employee? | Family? | Permission   | Print ID |
+  | Bea Two    | Yes          | No           | No      | no access    | --       |
   
 Scenario: Member has access to employee account
   Given relations:
-  | id | main | agent | permission | employer_ok | employee_ok | is_owner |
-  | 1  | .ZZA | .ZZB  | no access  | 1           | 1           | 1        |
-  | 2  | .ZZB | .ZZA  | sell       | 0           | 0           | 0        |
+  | id | main | agent | permission   | amount | employer_ok | employee_ok | is_owner |
+  | 1  | .ZZA | .ZZD  | no access    |     10 | 1           | 1           | 1        |
+  | 2  | .ZZD | .ZZA  | sell         |     20 | 0           | 0           | 0        |
   When member ".ZZA" visits page "relations"
   Then we show page "relations" with:
-  | Person  | Is employer? | Is employee? | Is owner? | Permission | Print ID |
-  | Bea Two | No           | Yes          | Yes       | no access  | --       |
-  When member ".ZZB" visits page "relations"
+  | Person     | Is employer? | Is employee? | Family? | Permission   | Print ID |
+  | Dee Four   | No           | Yes          | Yes     | no access    | --       |
+  When member ".ZZD" visits page "relations"
   Then we show page "relations" with:
-  | Person  | Is employer? | Is employee? | Is owner? | Permission | Print ID |
-  | Abe One | Yes          | No           | No        | sell       | --       |
+  | Person     | Is employer? | Is employee? | Family? | Permission   | Print ID |
+  | Abe One    | No           | Yes          | No      | sell       | --            |
 
 Scenario: Member company has relations
   Given relations:
-  | id | main | agent | permission | employer_ok | employee_ok | is_owner |
-  | 1  | .ZZC | .ZZA  | sell       | 1           | 1           | 1        |
+  | id | main | agent | permission   | amount | employer_ok | employee_ok | is_owner |
+  | 1  | .ZZC | .ZZA  | sell         |     10 | 1           | 1           | 1        |
   When member ".ZZC" visits page "relations"
   Then we show page "relations" with:
-  | Person  | Is employee? | Is owner? | Permission | Print ID      |
-  | Abe One | Yes          | Yes       | sell       | print ID Card |
+  | Person  | Amount | Is employee? | Is owner? | Permission | Print ID      |
+  | Abe One | $10    | Yes          | Yes       | sell       | print ID Card |
   And we show page "relations" without:
   | Header       |
   | Is employer? |
   When member ".ZZA" visits page "relations"
   Then we show page "relations" with:
-  | Person     | Is employer? | Is employee? | Is owner? | Permission | Print ID |
-  | Corner Pub | Yes          | --           | No        | no access  | --       |
+  | Person     | Is employer? | Is employee? | Family? | Permission   | Print ID |
+  | Corner Pub | Yes          | --           | No      | no access    | --       |
 
 Scenario: It's complicated
   Given relations:
-  | id | main | agent | permission     | employer_ok | employee_ok | is_owner |
-  | 1  | .ZZA | .ZZB  | sell           | 1           | 0           | 1        |
-  | 2  | .ZZB | .ZZA  | no access      | 0           | 1           | 0        |
-  | 3  | .ZZA | .ZZC  | buy and sell   | 0           | 1           | 0        |
-  | 4  | .ZZC | .ZZA  | manage account | 1           | 0           | 0        |
+  | id | main | agent | permission     | amount | employer_ok | employee_ok | is_owner |
+  | 1  | .ZZA | .ZZB  | sell           |     10 |     50 | 1           | 0           | 1        |
+  | 2  | .ZZB | .ZZA  | no access      |     20 |     50 | 0           | 1           | 0        |
+  | 3  | .ZZA | .ZZC  | buy and sell   |     30 |     50 | 0           | 1           | 0        |
+  | 4  | .ZZC | .ZZA  | manage account |     40 |     50 | 1           | 0           | 0        |
   When member ".ZZA" visits page "relations"
   Then we show page "relations" with:
-  | Person     | Is employer? | Is employee? | Is owner? | Permission   | Print ID |
-  | Bea Two    | Yes          | Yes          | Yes       | sell         | --       |
-  | Corner Pub | No           | --           | No        | buy and sell | --       |
+  | Person     | Is employer? | Is employee? | Family? | Permission   | Print ID |
+  | Bea Two    | Yes          | Yes          | Yes     | sell         | --       |
+  | Corner Pub | No           | --           | No      | buy and sell | --       |
   When member ".ZZB" visits page "relations"
   Then we show page "relations" with:
-  | Person  | Is employer? | Is employee? | Is owner? | Permission | Print ID |
-  | Abe One | No           | No           | No        | no access  | --       |
+  | Person  | Amount | Is employee? | Family? | Permission | Print ID      |
+  | Abe One | $20    | No           | No      | no access  | --            |
+  And we show page "relations" with:
+  | Header  |
+  | Family? |
   When member ".ZZC" visits page "relations"
   Then we show page "relations" with:
-  | Person  | Is employee? | Is owner? | Permission     | Print ID |
-  | Abe One | Yes          | No        | manage account | --       |
+  | Person  | Amount | Is employee? | Is owner? | Permission     | Print ID      |
+  | Abe One | $40    | Yes          | No        | manage account | --            |
   And we show page "relations" without:
-  | Header       |
-  | Is employer? |
+  | Header    |
+  | employer? |

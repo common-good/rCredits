@@ -44,10 +44,10 @@ class rwebRelations extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id   | full_name  | account_type  | flags         |'
-    . '\\| .ZZA | Abe One    | %R_PERSONAL   | %BIT_DEFAULTS |'
-    . '\\| .ZZB | Bea Two    | %R_PERSONAL   | %BIT_MEMBER  |'
-    . '\\| .ZZC | Corner Pub | %R_COMMERCIAL | %BIT_RTRADER  |"');
+    . '\\| id   | full_name  | account_type     | flags         |'
+    . '\\| .ZZA | Abe One    | %R_PERSONAL      | %BIT_DEFAULTS |'
+    . '\\| .ZZB | Bea Two    | %R_SELF_EMPLOYED | %BIT_MEMBER  |'
+    . '\\| .ZZC | Corner Pub | %R_COMMERCIAL    | %BIT_RTRADER  |"');
     And__('transactions: "DATA'
     . '\\| tx_id | created   | type       | amount | from      | to   | purpose | taking |'
     . '\\| :AAAB | %today-6m | %TX_SIGNUP |    250 | community | .ZZA | signup  | 0      |'
@@ -69,123 +69,126 @@ class rwebRelations extends DrupalWebTestCase {
   public function testMemberHasAnEmployeeConfirmed_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "DATA'
-    . '\\| id | main | agent | permission | employer_ok | employee_ok | is_owner |'
-    . '\\| 1  | .ZZA | .ZZB  | sell       | 1           | 1           | 1        |"');
+    . '\\| id | main | agent | permission   | amount | employer_ok | employee_ok | is_owner |'
+    . '\\| 1  | .ZZA | .ZZB  | sell         |     10 | 1           | 1           | 1        |"');
     When_('member ".ZZA" visits page "relations"');
     Then_('we show page "relations" with: "DATA'
-    . '\\| Person  | Is employer? | Is employee? | Is owner? | Permission | Print id      |'
-    . '\\| Bea Two | No           | Yes          | Yes       | sell       | print ID Card |"');
+    . '\\| Person     | Is employer? | Is employee? | Family? | Permission   | Print ID |'
+    . '\\| Bea Two    | Yes          | Yes          | Yes     | sell         | print ID Card |"');
   }
 
   // Scenario: Member has an employee, unconfirmed
   public function testMemberHasAnEmployeeUnconfirmed_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "DATA'
-    . '\\| id | main | agent | permission   | employer_ok | employee_ok | is_owner |'
-    . '\\| 1  | .ZZA | .ZZB  | buy and sell | 1           | 0           | 0        |"');
+    . '\\| id | main | agent | permission   | amount | employer_ok | employee_ok | is_owner |'
+    . '\\| 1  | .ZZA | .ZZB  | buy and sell |     50 | 1           | 0           | 0        |"');
     When_('member ".ZZA" visits page "relations"');
     Then_('we show page "relations" with: "DATA'
-    . '\\| Person  | Is employer? | Is employee? | Is owner? | Permission   | Print ID |'
-    . '\\| Bea Two | No           | Yes          | No        | buy and sell |          |"');
+    . '\\| Person     | Is employer? | Is employee? | Family? | Permission   | Print ID |'
+    . '\\| Bea Two    | No           | Yes          | No      | buy and sell |          |"');
   }
 
   // Scenario: Member has an employee, claimed
   public function testMemberHasAnEmployeeClaimed_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "DATA'
-    . '\\| id | main | agent | permission | employer_ok | employee_ok | is_owner |'
-    . '\\| 1  | .ZZA | .ZZB  | sell       | 0           | 1           | 0        |"');
+    . '\\| id | main | agent | permission   | amount | employer_ok | employee_ok | is_owner |'
+    . '\\| 1  | .ZZA | .ZZB  | sell         |     10 | 0           | 1           | 0        |"');
     When_('member ".ZZA" visits page "relations"');
     Then_('we show page "relations" with: "DATA'
-    . '\\| Person  | Is employer? | Is employee? | Is owner? | Permission | Print ID |'
-    . '\\| Bea Two | No           | No           | No        | sell       |          |"');
+    . '\\| Person     | Is employer? | Is employee? | Family? | Permission   | Print ID |'
+    . '\\| Bea Two    | No           | No           | No        | sell       |          |"');
   }
 
   // Scenario: Employee can only read
   public function testEmployeeCanOnlyRead_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "DATA'
-    . '\\| id | main | agent | permission        | employer_ok | employee_ok | is_owner |'
-    . '\\| 1  | .ZZA | .ZZB  | read transactions | 1           | 1           | 1        |"');
+    . '\\| id | main | agent | permission        | amount | employer_ok | employee_ok | is_owner |'
+    . '\\| 1  | .ZZA | .ZZB  | read transactions |     10 | 1           | 1           | 1        |"');
     When_('member ".ZZA" visits page "relations"');
     Then_('we show page "relations" with: "DATA'
-    . '\\| Person  | Is employer? | Is employee? | Is owner? | Permission        | Print ID |'
-    . '\\| Bea Two | No           | Yes          | Yes       | read transactions |          |"');
+    . '\\| Person     | Is employer? | Is employee? | Family? | Permission        | Print ID |'
+    . '\\| Bea Two    | No           | Yes          | Yes     | read transactions |          |"');
   }
 
   // Scenario: Member has an employer
   public function testMemberHasAnEmployer_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "DATA'
-    . '\\| id | main | agent | permission | employer_ok | employee_ok | is_owner |'
-    . '\\| 1  | .ZZB | .ZZA  | sell       | 1           | 1           | 1        |"');
+    . '\\| id | main | agent | permission   | amount | employer_ok | employee_ok | is_owner |'
+    . '\\| 1  | .ZZB | .ZZA  | sell         |     10 | 1           | 1           | 1        |"');
     When_('member ".ZZA" visits page "relations"');
     Then_('we show page "relations" with: "DATA'
-    . '\\| Person  | Is employer? | Is employee? | Is owner? | Permission | Print ID |'
-    . '\\| Bea Two | Yes          | No           | No        | no access  | --       |"');
+    . '\\| Person     | Is employer? | Is employee? | Family? | Permission   | Print ID |'
+    . '\\| Bea Two    | Yes          | No           | No      | no access    | --       |"');
   }
 
   // Scenario: Member has access to employee account
   public function testMemberHasAccessToEmployeeAccount_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "DATA'
-    . '\\| id | main | agent | permission | employer_ok | employee_ok | is_owner |'
-    . '\\| 1  | .ZZA | .ZZB  | no access  | 1           | 1           | 1        |'
-    . '\\| 2  | .ZZB | .ZZA  | sell       | 0           | 0           | 0        |"');
+    . '\\| id | main | agent | permission   | amount | employer_ok | employee_ok | is_owner |'
+    . '\\| 1  | .ZZA | .ZZB  | no access    |     10 | 1           | 1           | 1        |'
+    . '\\| 2  | .ZZB | .ZZA  | sell         |     20 | 0           | 0           | 0        |"');
     When_('member ".ZZA" visits page "relations"');
     Then_('we show page "relations" with: "DATA'
-    . '\\| Person  | Is employer? | Is employee? | Is owner? | Permission | Print ID |'
-    . '\\| Bea Two | No           | Yes          | Yes       | no access  | --       |"');
+    . '\\| Person     | Is employer? | Is employee? | Family? | Permission   | Print ID |'
+    . '\\| Bea Two    | No           | Yes          | Yes     | no access    | --       |"');
     When_('member ".ZZB" visits page "relations"');
     Then_('we show page "relations" with: "DATA'
-    . '\\| Person  | Is employer? | Is employee? | Is owner? | Permission | Print ID |'
-    . '\\| Abe One | Yes          | No           | No        | sell       | --       |"');
+    . '\\| Person  | Amount | Is employee? | Family? | Permission | Print ID      |'
+    . '\\| Abe One | $20    | Yes          | No      | sell       | --            |"');
   }
 
   // Scenario: Member company has relations
   public function testMemberCompanyHasRelations_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "DATA'
-    . '\\| id | main | agent | permission | employer_ok | employee_ok | is_owner |'
-    . '\\| 1  | .ZZC | .ZZA  | sell       | 1           | 1           | 1        |"');
+    . '\\| id | main | agent | permission   | amount | employer_ok | employee_ok | is_owner |'
+    . '\\| 1  | .ZZC | .ZZA  | sell         |     10 | 1           | 1           | 1        |"');
     When_('member ".ZZC" visits page "relations"');
     Then_('we show page "relations" with: "DATA'
-    . '\\| Person  | Is employee? | Is owner? | Permission | Print ID      |'
-    . '\\| Abe One | Yes          | Yes       | sell       | print ID Card |"');
+    . '\\| Person  | Amount | Is employee? | Is owner? | Permission | Print ID      |'
+    . '\\| Abe One | $10    | Yes          | Yes       | sell       | print ID Card |"');
     And__('we show page "relations" without: "DATA'
     . '\\| Header       |'
     . '\\| Is employer? |"');
     When_('member ".ZZA" visits page "relations"');
     Then_('we show page "relations" with: "DATA'
-    . '\\| Person     | Is employer? | Is employee? | Is owner? | Permission | Print ID |'
-    . '\\| Corner Pub | Yes          | --           | No        | no access  | --       |"');
+    . '\\| Person     | Is employer? | Is employee? | Family? | Permission   | Print ID |'
+    . '\\| Corner Pub | Yes          | --           | No      | no access    | --       |"');
   }
 
   // Scenario: It's complicated
   public function testItsComplicated_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "DATA'
-    . '\\| id | main | agent | permission     | employer_ok | employee_ok | is_owner |'
-    . '\\| 1  | .ZZA | .ZZB  | sell           | 1           | 0           | 1        |'
-    . '\\| 2  | .ZZB | .ZZA  | no access      | 0           | 1           | 0        |'
-    . '\\| 3  | .ZZA | .ZZC  | buy and sell   | 0           | 1           | 0        |'
-    . '\\| 4  | .ZZC | .ZZA  | manage account | 1           | 0           | 0        |"');
+    . '\\| id | main | agent | permission     | amount | employer_ok | employee_ok | is_owner |'
+    . '\\| 1  | .ZZA | .ZZB  | sell           |     10 |     50 | 1           | 0           | 1        |'
+    . '\\| 2  | .ZZB | .ZZA  | no access      |     20 |     50 | 0           | 1           | 0        |'
+    . '\\| 3  | .ZZA | .ZZC  | buy and sell   |     30 |     50 | 0           | 1           | 0        |'
+    . '\\| 4  | .ZZC | .ZZA  | manage account |     40 |     50 | 1           | 0           | 0        |"');
     When_('member ".ZZA" visits page "relations"');
     Then_('we show page "relations" with: "DATA'
-    . '\\| Person     | Is employer? | Is employee? | Is owner? | Permission   | Print ID |'
-    . '\\| Bea Two    | Yes          | Yes          | Yes       | sell         | --       |'
-    . '\\| Corner Pub | No           | --           | No        | buy and sell | --       |"');
+    . '\\| Person     | Is employer? | Is employee? | Family? | Permission   | Print ID |'
+    . '\\| Bea Two    | Yes          | Yes          | Yes     | sell         | --       |'
+    . '\\| Corner Pub | No           | --           | No      | buy and sell | --       |"');
     When_('member ".ZZB" visits page "relations"');
     Then_('we show page "relations" with: "DATA'
-    . '\\| Person  | Is employer? | Is employee? | Is owner? | Permission | Print ID |'
-    . '\\| Abe One | No           | No           | No        | no access  | --       |"');
+    . '\\| Person  | Amount | Is employee? | Family? | Permission | Print ID      |'
+    . '\\| Abe One | $20    | No           | No      | no access  | --            |"');
+    And__('we show page "relations" with: "DATA'
+    . '\\| Header  |'
+    . '\\| Family? |"');
     When_('member ".ZZC" visits page "relations"');
     Then_('we show page "relations" with: "DATA'
-    . '\\| Person  | Is employee? | Is owner? | Permission     | Print ID |'
-    . '\\| Abe One | Yes          | No        | manage account | --       |"');
+    . '\\| Person  | Amount | Is employee? | Is owner? | Permission     | Print ID      |'
+    . '\\| Abe One | $40    | Yes          | No        | manage account | --            |"');
     And__('we show page "relations" without: "DATA'
-    . '\\| Header       |'
-    . '\\| Is employer? |"');
+    . '\\| Header    |'
+    . '\\| employer? |"');
   }
 
 }

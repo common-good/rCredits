@@ -29,7 +29,7 @@ use rCredits as r;
 use rCredits\Util as u;
 use rCredits\Testing as t;
 
-define ('R_DAILY_TASKS', ' lostUsdTxs lostUsdTx beginVirtualPayments virtualPayments endVirtualPayments virtualPayment redistribute bank lessOften checkAccount');
+define ('R_DAILY_TASKS', 'START lostUsdTxs lostUsdTx beginVirtualPayments virtualPayments endVirtualPayments virtualPayment redistribute bank lessOften checkAccount');
 
 //require_once 'rcredits.inc';
 //require_once 'rcredits-backend.inc';
@@ -66,11 +66,17 @@ function lessOften() {
 function everyWeek() {
 }
 
+/**
+ * inflation (calculate and credit)
+ */
 function everyMonth() {
   if (strftime('%m') == '01') everyYear();
   // stuff to do every month
 }
 
+/**
+ * 1099s
+ */
 function everyYear() {
 }
 
@@ -95,6 +101,7 @@ function lostUsdTx1($info) {
   $payer = r\whoseUsd($SourceId);
   $payee = r\whoseUsd($DestinationId);
   $created = strtotime($Date);
+  r\notifyStaff('lost USD tx: #@txid $@amount', compact('txid', 'amount'));
   r\usd::rollback(array(compact(u\ray('txid amount payer payee created'))));
 }
 
@@ -110,9 +117,13 @@ function beginVirtualPayments() {
  * @param int $which: BIT_VIRTUAL_ALL (queue up payments to suppliers) or BIT_VIRTUAL_EMPLOYEES (queue up payments to staff)
  */
 function doCompanies($which) {
+  $these = $which == BIT_VIRTUAL_EMPLOYEES ? 'r.employer_ok' : 'NOT r.employer_ok';
   $sql = <<< EOF
-    SELECT u.uid, SUM(IF(r.employer_ok, r.amount, 0)) AS salaries, SUM(r.amount) AS amounts, u.data
-    FROM relations r LEFT JOIN users u ON u.uid=r.main 
+    SELECT u.uid, u.minimum, u.available, 
+      SUM(r.amount) AS amounts, 
+      SUM(IF($these, r.amount, 0)) AS total, 
+    FROM relations r 
+    LEFT JOIN users u ON u.uid=r.main
     GROUP ON r.main
     WHERE amount>0 and (u.flags&$which)>0
 EOF;
@@ -120,12 +131,9 @@ EOF;
 	$result = r\dbQ($sql);
 
 	while($row = $result->fetchAssoc()) {
-	  extract(u\just('uid data amounts salaries', $row));
-	  extract(u\just('minimum', $data));
-    $available = r\available(acct($uid), TRUE);
-	  $total = $which == BIT_VIRTUAL_ALL ? ($amounts - $salaries) : $salaries; // total amounts paid per month
+	  extract($row);
 	  $kitty = ($available - $minimum) * $total / $amounts; // amount to pay out today
-	  if ($kitty > 0 and $total > 0) r\queue('virtualPayments', compact(u\ray('uid kitty total which'))); 
+	  if ($kitty > 0 and $total > 0) r\queue('virtualPayments', compact(u\ray('uid kitty total slack these'))); 
 	}
 }
 
@@ -135,15 +143,17 @@ EOF;
  *   uid: company account id
  *   kitty: amount to pay out
  *   total: total amounts paid to this type of recipient per month
- *   which: employees (BIT_VIRTUAL_EMPLOYEES) or suppliers (BIT_VIRTUAL_ALL)
+ *   UNUSED slack: how much capacity the recipients have (collectively) to be paid, before reaching their max
+ *   these: employer_ok (for employees) or NOT employer_ok (for vendors)
  */
 function virtualPayments($item) {
   if (!$item) return doNextInQueueAfter(__FUNCTION__);
   extract(u\just('uid kitty total which', $item));
+  //$limit = ($kitty < $slack); // if there is enough slack, don't put anyone over their max
+  //  SUM(IF($these, GREATEST(o.maximum, o.rewards)-o.available, 0)) AS slack, 
   
   $main = $uid;
-  $not = $which == BIT_VIRTUAL_ALL ? 'NOT' : '';
-  $sql = "SELECT other, amount FROM r_relations WHERE main=:main AND amount>0 AND $not employer_ok";
+  $sql = "SELECT other, amount FROM r_relations WHERE main=:main AND amount>0 AND $these";
   $result = r\dbQ($sql, compact('main')); // get each recipient's proportionate share of $total
   while($row = $result->fetchAssoc());
     extract($row);
@@ -167,23 +177,25 @@ function virtualPayment($item) {
   $usAcct1 = new usd($acct1 = r\acct($main)); // from
   $usAcct2 = new usd($acct2 = r\acct($other)); // to
   
+  // if employee is also an employer that pays people virtually, no maximum
   $max2 = ($acct2->hasBit(BIT_VIRTUAL_ALL) or $acct2->hasBit(BIT_VIRTUAL_EMPLOYEES)) ? 0 : $acct2->maximum;
-  $newBalance = $acct2->balance + $offer; // $acct2 balance after the offer is received
-  $excess = round(max(0, $max2 ? ($newBalance - $max2) : 0, $offer - $usAcct2->balance), 2); // rCredits to sell off
+  $newAvailable = $acct2->available + $offer; // $acct2 balance after the offer is received
+  $excess = round(max(0, $max2 ? ($newAvailable - $max2) : 0, $offer - $usAcct2->balance()), 2); // rCredits to sell off
   
   r\usd::beginAtom();
   $traded = $excess ? getUsd($excess, $acct2, $usAcct1) : 0; // give company partial USD through rCredits sale to 3rd party
-  r\transfer($offer, $main, $other); // total rCredits from company to other
-  if ($traded < $excess or !$usAcct2->transfer($offer - $traded, $usAcct1, 'virtual payment exchange')) { // other partially pays main in USD
+  if ($traded < $excess or !$txid = $usAcct2->send($offer - $traded, $usAcct1, 'virtual payment exchange')) { // other partially pays main in USD
     r\usd::rollback();
     virtualPaymentError($acct1, $acct2);
-    return;
+  } else {
+    $info = u\assoc('amount r usd payer payee for goods usd_xid', 0, $offer, -$offer, $main, $other, t('virtual payment'), TRUE, $txid);
+    r\transact($info); // total rCredits from company to other
+    r\usd::commit();
   }
-  r\usd::commit();
 }
 
 function redistribute() {
-  $result = r\dbQ('SELECT uid, 10*CEILING((balance-maximum)/10) AS excess FROM users WHERE balance>=maximum+10');
+  $result = r\dbQ('SELECT uid, :R_RBUY_QUANTUM*CEILING((available-maximum)/:R_RBUY_QUANTUM) AS excess FROM users WHERE available>=maximum+:R_RBUY_QUANTUM');
   while ($uid = $result->fetchColumn()) r\queue('sellR', compact(u\ray('uid excess')));
   r\queue('sellR', FALSE);
 }
@@ -210,11 +222,11 @@ function getUsd($request, $acct, $usAcct) {
     if (!$acct3 = nextRBuyer($part)) break; // asks for what we need, returns the part we got in $part
     $usAcct3 = new usd($acct3); // "third party" Dwolla account
     r\usd::beginAtom();
-    r\transfer($amount, $acct->id, r\community());
-    r\transfer($amount, r\community(), $acct3->id);
-    if ($usAcct3->transfer($amount, $usAcct)) {
-      $need = round($need - $part, 2);
+    if ($txid = $usAcct3->send(R_RBUY_QUANTUM, $usAcct)) {
+      r\exchange(R_RBUY_QUANTUM, $acct->id, r\community(), $txid);
+      r\exchange(R_RBUY_QUANTUM, r\community(), $acct3->id, $txid);
       r\usd::commit();
+      $need = round($need - $part, 2);
     } else r\usd::rollback();
   }
   return round($request - $need, 2);
@@ -231,7 +243,7 @@ function nextRBuyer(&$amount) {
     SELECT u.uid, u.minimum-u.balance AS wants FROM users u
     LEFT JOIN r_txs t ON t.payee=:u.uid
     WHERE wants>0 AND t.type=:TX_TRANSFER AND NOT t.goods
-    ORDER BY (wants+10>:amount) DESC, t.completed LIMIT 1
+    ORDER BY (wants+:R_RBUY_QUANTUM>:amount) DESC, t.completed LIMIT 1
 EOF;
   $sql2 = 'SELECT u.uid, u.minimum-u.balance AS wants WHERE wants>0 ORDER BY wants DESC LIMIT 1';
   if (!$result = r\dbQ($sql1, compact('amount'))) { // find out who (preferably who who wants enough) has waited the longest
@@ -243,7 +255,7 @@ EOF;
   }
 
   extract($result->fetchAssoc());
-  if ($wants > 10) $wants = 10 * floor($wants / 10); // truncate to nearest 10
+  if ($wants > R_RBUY_QUANTUM) $wants = R_RBUY_QUANTUM * floor($wants / R_RBUY_QUANTUM); // truncate to nearest chunk
   $amount = min($amount, round($wants, 2));
   return r\acct($uid);
 }

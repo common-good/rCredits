@@ -44,10 +44,10 @@ class rwebTransactions extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id      | full_name  | min_balance | account_type  | flags         |'
-    . '\\| NEW.ZZA | Abe One    | -100        | %R_PERSONAL   | %BIT_DEFAULTS |'
-    . '\\| NEW.ZZB | Bea Two    | -200        | %R_PERSONAL   | %BIT_MEMBER  |'
-    . '\\| NEW.ZZC | Corner Pub | -300        | %R_COMMERCIAL | %BIT_RTRADER  |"');
+    . '\\| id      | full_name  | floor | account_type  | flags         |'
+    . '\\| NEW.ZZA | Abe One    | -100  | %R_PERSONAL   | %BIT_DEFAULTS |'
+    . '\\| NEW.ZZB | Bea Two    | -200  | %R_PERSONAL   | %BIT_MEMBER  |'
+    . '\\| NEW.ZZC | Corner Pub | -300  | %R_COMMERCIAL | %BIT_RTRADER  |"');
     And__('relations: "DATA'
     . '\\| id      | main    | agent   | permission        |'
     . '\\| NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |'

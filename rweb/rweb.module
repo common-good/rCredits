@@ -64,9 +64,9 @@ function rweb_menu() {
     'charge' => r\Web\menu(t('Charge'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), PERM_SELL),
     'pay' => r\Web\menu(t('Pay'), MENU_NORMAL_ITEM, 'showForm', array('Tx', 1), PERM_BUY),
 
-    'grant' => r\Web\menu(t('Grant'), MENU_LOCAL_TASK, 'showForm', array('Tx'), PERM_MANAGING_CTTY),
-    'loan' => r\Web\menu(t('Loan'), MENU_LOCAL_TASK, 'showForm', array('Tx'), PERM_MANAGING_CTTY),
-    'fine' => r\Web\menu(t('Fine'), MENU_LOCAL_TASK, 'showForm', array('Tx'), PERM_MANAGING_CTTY),
+    'grant' => r\Web\menu(t('Grant'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), PERM_MANAGING_CTTY),
+    'loan' => r\Web\menu(t('Loan'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), PERM_MANAGING_CTTY),
+    'fine' => r\Web\menu(t('Fine'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), PERM_MANAGING_CTTY),
 
 //    'getr' => r\Web\menu(t('Get rCredits'), MENU_NORMAL_ITEM, 'showForm', array('GetR'), PERM_MANAGE),
     'directory' => r\Web\menu(t('Find Companies'), MENU_NORMAL_ITEM, 'showForm', array('Directory'), PERM_SELL),
