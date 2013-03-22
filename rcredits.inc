@@ -161,7 +161,6 @@ $GLOBALS['emailSubjects'] = array(
 
 include_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
 include_once __DIR__ . '/acct.class';
-include_once __DIR__ . '/rcredits-circles.inc'; // treat this as an extension of this file, for testing
 
 /**
  * Return the account's current stage in its progression toward rTrader
@@ -460,7 +459,7 @@ function payEmployees($amount0, $for, $confirmed) {
   if (!$employeeCount = count($employees)) return array('no employees', array(), array());
   if ($shortfall = shortfall(acct()->id, $amount0 * $employeeCount, TRUE, isRTrader())) {
      $short = u\formatAmount($shortfall);
-     return array('short payment', compact('short'), FALSE); // no partial payment of employees
+     return array('short to', compact('short'), FALSE); // no partial payment of employees
   }
   $total = u\formatAmount($amount0 * $employeeCount);
   $amount = u\formatAmount($amount0);

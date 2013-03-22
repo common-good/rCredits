@@ -414,6 +414,8 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
 
   // Check permissions
   u\EXPECT(compact(u\ray('ttype acct confirmed data')), 'string acct bool assoc');
+  $otherName = $acct->full_name;
+  if (!$acct->can(PERM_RTRADER)) return array('non trader', compact('otherName'), FALSE);
   list ($myAccess, $otherAccess) = u\order($taking, PERM_SELL, PERM_BUY);
   list ($myAccessErr, $otherAccessErr) = u\order($taking, 'sell', 'buy');
   if (!$cacct->can($myAccess)) return array("no $myAccessErr", array(), FALSE);
@@ -448,14 +450,14 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   $totalHit = $requestAmount - @$data['rebate']; // leave room for reversing rewards (minus a negative)
   
   $usd = r\usdPart($totalHit, $taking ? $acct : $cacct, $preapproved, $goods, $shortfall); // short payment or unilateral charge
+//  $usd = 5; $shortfall=0; // debug
   if ($shortfall) {
     $short = u\formatAmount($shortfall);
-    $otherName = r\userField('full_name', $uid);
     /*
-    if ($paying_invoice) return array('short payment', compact('short'), FALSE); // no partial payment of invoice
+    if ($paying_invoice) return array('short to', compact('short'), FALSE); // no partial payment of invoice
     if (!$goods) return array($taking ? 'short cash from' : 'short cash to', compact('short', 'otherName'), FALSE); // no partial cash trans
     if ($shortfall >= $requestAmount or $undoing) { // flat broke or undoing (partial undo is too complex for now)
-      $msg = $taking ? 'shortr from' : ($shortfall >= $requestAmount ? 'shortr to' : 'short payment');
+      $msg = $taking ? 'shortr from' : ($shortfall >= $requestAmount ? 'shortr to' : 'short to');
       $balance = u\formatAmount($requestAmount + $shortfall);
       */
       if (is_null($usd)) {

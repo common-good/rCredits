@@ -69,6 +69,7 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'bad pin' => t('Your PIN must be exactly 4 digits'),
   'bad federal id' => t('Your @what must be exactly 9 digits'),
   'bad nonce' => t('That is not the right verification code. Try again (start over).'),
+  'short to' => t('You are @short for that transaction. <a href="account/preferences">Increase your minimum balance</a>!'),
   'no such company' => t('There is no such company.'),
   'op canceled' => t('Operation Canceled.'),
   'demand not yet' => t('You will be notified when there are some rCredits for you to buy with US Dollars.'),
@@ -783,7 +784,7 @@ function formUser($form, &$sta) {return \user_login($form, $sta);} // called fro
  */
 function formSummary($form, &$sta) {
   global $base_url;
-  
+
   $cacct = r\acct();
 //  debug($cacct->can(-1)); // keep
   if (!$cacct) r\go('user');
@@ -805,7 +806,11 @@ function formSummary($form, &$sta) {
   $title = item(t('Account Summary'));
 //  'subtext = basic_account_info();
   $accountName = formField('item', t('Name:'), $address, $cacct->full_name . ' ' . u\hug($name));
-  $balance = formField('item', t('Balance:'), '', $my_balance);
+  $balance = u\formatAmount($bal0 = $cacct->available + array_sum($cacct->frozen));
+  $usdBalance = u\formatAmount($cacct->usd);
+  $total = u\formatAmount($bal0 + $cacct->usd);
+  $balance = formField('item', t('Balance:'), '', "r$balance + us$usdBalance = $total");
+  
   if ($cacct->id > 0) {
     $extra = r\agent()->can(PERM_ADMIN) ? " id#$cacct->id" : '';
     $accountId = formField('item', t('ID:'), $card, ($cacct->mainQid ?: 'N/A') . ' (' . $regionName . ")$extra");
@@ -1434,7 +1439,6 @@ function formRegister(&$form, &$sta, $args = '') {
   css('rweb.css', -9); // needed because this function doesn't go through show()
   
   $title = item(t('Sign up for rCredits'));
-
   if (!$email = invitation(@$code) and @$code != bin2hex(R_WORD) and @$code != 'w') {
     $form['actions']['submit'] = NULL; // nothing to submit
     $subtext = item(tt('bad invite'));
@@ -1478,8 +1482,8 @@ function formRegister(&$form, &$sta, $args = '') {
 function formRegister_validate($form, &$sta) {
   if (!isset($sta['buttons'])) $sta['buttons'] = array(); // for testing (keep Drupal from griping)
   extract(u\just('args mail company companyPhone companyOptions full_name website postal_code code', $values = u\trimAll($sta['values'])));
-  extract(u\just('is_owner employee_ok', $companyOptions));
-  extract(u\just('code', $args));
+  if (@$companyOptions) extract(u\just('is_owner employee_ok', $companyOptions));
+  if (@$args) extract(u\just('code', $args));
   $sta['values'] = array(); // make sure Drupal doesn't save the record when WE find an error (no longer needed?)
   if (!$email = invitation(@$code) and $code != bin2hex(R_WORD) and $code != 'w') return r\go('user/register'); // in case user resubmits
     
@@ -1753,7 +1757,7 @@ function no_selection($list) {
  */
 function formUsd($form, &$sta, $args = '') {
   extract(u\just('show connected', $args));
-  if (@$connected === TRUE) {
+  if (@$connected == 'yes') {
     say('got token'); 
   } elseif (@$connected) say("There was an error. Dwolla said: $connected", 'zot');
   $cacct = r\acct();
@@ -1858,6 +1862,9 @@ function formUsd_validate($form, &$sta) {
 function formUsd_submit($form, &$sta) {
   include_once __DIR__ . '/../usd.class'; // treat this as an extension of this file, just to make menu ['file'] consistent
 
+  $usd = new r\usd(r\acct());
+  debug($usd->bank(-20, $error));debug($error); return;
+ 
   $usdFields = '';
   $cacct = r\acct();
   $info = u\just('type usd_account pin auth federal_id dob question answer id_proof', $sta['values']);
@@ -1868,7 +1875,8 @@ function formUsd_submit($form, &$sta) {
   extract($info); // extract just the ones that changed
 
   $info = u\just(R_SECRET_FIELDS . ' question', $info);
-  if (empty($info) or $cacct->update($info)) say('info saved'); else say('info not saved', 'zot');
+  $saved = (empty($info) or $cacct->update($info));
+
   if (isset($usd_account) or isset($pin) or $retry) { // this must be last, because it redirects to Dwolla
     $type = 'Dwolla';
     $auth = ''; // no valid auth token until Dwolla calls us back
@@ -1877,6 +1885,8 @@ function formUsd_submit($form, &$sta) {
     $usd = new r\usd($cacct);
     exit($usd->getAuth()); // get (new) auth token (does not return until after a visit to Dwolla)
   }
+  
+  if ($saved) say('info saved'); else say('info not saved', 'zot'); // don't say anything if getting auth
 }
 
 /**
@@ -1942,7 +1952,7 @@ function formRelations($form, &$sta) {
   $personal = !$cacct->isCompany();
   if ($confirm = sureForm($sta)) return $confirm; // confirm only getUSD
   $account_identifiers = be\accountName($cuid);
-  $header = u\ray('Other account,Employer?,My employee?,Family?,Permission,');
+  $header = u\ray('Other account,My employer?,My employee?,Family?,Permission,');
   $classes = u\prefixValues('rel-', u\ray('person employer employee owner permission link'));
   if (!$personal) $header[1] = '$/mo';
   if ($cacct->account_type >= R_COMMERCIAL) $header[3] = 'Owner?';
@@ -1970,7 +1980,6 @@ EOF;
     list ($employee_ok, $employer_ok) = array($employee_ok and $isAgent, $employer_ok and !$isAgent);
     $isEmployer = toggle('employee_ok', $employee_ok, $ii, $isAgent and $discrepant);
     $isEmployee = $otherpersonal ? toggle('employer_ok', $employer_ok, $ii, !$isAgent and $discrepant) : R_NONE;
-    debug(compact('isEmployer','isEmployee','employee_ok','employer_ok'));
     $is_owner = ($is_owner and !$isAgent);
     $isOwner = toggle('is_owner', $is_owner, $ii);
     $permission = $isAgent ? 0 : $permission;
@@ -2238,7 +2247,7 @@ function loginAlter(&$form, &$sta, $regular = TRUE) {
   if ($regular) {
     $title = item(t('rCredits Login'));
     $subtext = item(t('Welcome! If you have not yet signed up for rCredits, click on "New account" above.'));
-    $isRCredits = rand(0, 1) ? formField('checkbox', t('Spoof check:'), u\SUBS(t('Does the address in your URL bar start with ":R_SITE_URL" (as usual)?')), required()) : hidField(TRUE);
+//    $isRCredits = rand(0, 1) ? formField('checkbox', t('Spoof check:'), u\SUBS(t('Does the address in your URL bar start with ":R_SITE_URL" (as usual)?')), required()) : hidField(TRUE);
 
     array_unshift($form, compact(u\ray('title subtext isRCredits')));
 //    $form['tip'] = item(t('<b>NOTE: </b>If you created an account using cell texting request a "New password".'));
@@ -2293,7 +2302,7 @@ function login_extra_validate($form, &$sta) {
     return;
   }
 
-  if (!$isRCredits) say('bad spoof check', 'isRCredits');
+  // if (!$isRCredits) return say('bad spoof check', 'isRCredits');
   $cacct = r\acct($uid);
   $sta['uid'] = $cacct->passwordOkay($pass) ? $uid : FALSE;
 }
@@ -2568,7 +2577,7 @@ function formOptions($form, &$sta) {
   $title = item(t('Account Preferences'));
   $virtualMaxMessage = $cacct->can(PERM_COMPANY) ? t(' If you make automatic "virtual" payments, your maximum is the same as your minimum, regardless of this setting.') : '';
   $minimum = textField(t('Minimum:'), t('Keep AT LEAST this much in your rCredits account, for purchases or inflation-proof savings. When your balance goes below this amount, the system refills it for you automatically from your bank account (which may take 3 days), then trades US Dollars for rCredits whenever possible, up to this amount.'), required(u\formatAmount(u\nn($cacct->minimum, R_MINR_DEFAULT), 's')));
-  $maximum = textField(t('Maximum:'), u\SUBS(t('Keep AT MOST this much in your rCredits account. When your balance goes above this amount by $:R_RBUY_QUANTUM or more, the extra rCredits are automatically exchanged for US Dollars. 0 means no limit (recommended in most cases).') . $virtualMaxMessage, required(u\formatAmount(u\nn($cacct->maximum, R_MAXR_DEFAULT), 's'))));
+  $maximum = textField(t('Maximum:'), u\SUBS(t('Keep AT MOST this much in your rCredits account. When your balance goes above this amount by $:R_RBUY_QUANTUM or more, the extra rCredits are automatically exchanged for US Dollars. 0 means no limit (recommended in most cases).')) . $virtualMaxMessage, required(u\formatAmount(u\nn($cacct->maximum, R_MAXR_DEFAULT), 's')));
   $toBank = formField('checkbox', t('To bank:'), t('Automatically transfer the excess to your bank account (recommended). [<a href="../help/to-bank">why ever not?</a>]'), $cacct->hasBit(BIT_TO_BANK));
 //  $max_usd = textField(t('USD Max:'), u\SUBS(t('Keep at most this much in your Dwolla account. When your Dwolla balance goes above this amount by $:R_RBUY_QUANTUM or more, the system will automatically initiate a transfer to your bank account. 0 means no limit.'), required(u\formatAmount(u\nn($cacct->max_usd, R_MAXUSD_DEFAULT), 's'))));
   $notifyBys = array(t('no notifications'), t('by email'), t('by SMS'), t('by both email and SMS'));

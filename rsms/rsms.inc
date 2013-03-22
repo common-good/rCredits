@@ -52,8 +52,8 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'invoice-denied' => t('@otherName has declined to pay your @created invoice of @amount for @payeePurpose.'),
   'offer-refused' => t('@otherName has declined to accept your @created offer of @amount for @payerPurpose.'),
   'report undo' => t('Transaction has been @solution.'),
-  'report get usd' => t('@Exchange approved. @request will be transferred directly to your bank account within 24 hours. Your new balance is @balance.'),
-  'get usd inactive' => t('If you were an Active Participant in the rCredits system, your request would transfer @amount directly to your bank account. Alas, you are not yet an Active Participant.'),
+//  'report get usd' => t('@Exchange approved. @request will be transferred directly to your bank account within 24 hours. Your new balance is @balance.'),
+//  'get usd inactive' => t('If you were an Active Participant in the rCredits system, your request would transfer @amount directly to your bank account. Alas, you are not yet an Active Participant.'),
   'your demand' => t('Your total request for rCredits is now @request.'),
   'updated relation' => t('Updated settings for @otherName'),
   'deleted relation' => t('Deleted relation with @otherName'),
@@ -68,8 +68,8 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   "what's your email really?" => t("Please type carefully. What is your email address?"),
   
   // confirmations
-  'confirm get r' => t('Trade us@request for r@request?'),
-  'confirm get usd' => t('Trade r@request for us@request?'),
+//  'confirm get r' => t('Trade us@request for r@request?'),
+//  'confirm get usd' => t('Trade r@request for us@request?'),
   'confirm payment' => t('Pay @otherName @amount for goods and services?'),
   'confirm pay invoice' => t('Pay @otherName @amount for goods and services (invoice @created)?'),
   'confirm charge' => t('Charge @otherName @amount for goods and services?'),
@@ -82,7 +82,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   
   // error messages
   'syntax' => t('Wrong syntax!'),
-  'nyi' => t('That feature is not yet available.'),
+  'nyi' => t('That feature is not available through the SMS interface.'),
   'already started' => t('You are already an rCredits member. For help, type "helpme".'),
   'duplicate name' => t('That name is already taken, in your region. Try again. Use a middle initial?'),
   'name too long' => t('That name is too long. Try again (keep it under 60 characters).'),
@@ -109,9 +109,10 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'what relationship' => t('You forgot to say whether you are an employee, owner, or both.'),
   'short cash to' => t('You are r@short short, for that exchange.'),
   'short cash from' => t('@otherName does not have enough rCredits for that exchange.'),
-  'short payment' => t('You are r@short short, for that payment. Get more rCredits first, or pay less.'),
-  'shortr to' => t('You do not have enough rCredits, for that transaction. Type "get r <amount>" to get more rCredits.'),
-  'shortr from' => t('@otherName does not have enough rCredits for that transaction at this time.'),
+  'short to' => t('You are @short short, for that payment. Increase your minimum!'),
+  'short from' => t('@otherName does not have enough funds for this request.'),
+//  'shortr to' => t('You do not have enough rCredits, for that transaction. Type "get r <amount>" to get more rCredits.'),
+//  'shortr from' => t('@otherName does not have enough rCredits for that transaction at this time.'),
 //  'demand too small' => t('NOTE: The minimum amount of rCredits you can actually buy at a time is $@min.', array('@min' => R_MIN_DEMAND)),
   'no access get' => t('You do not have permission to exchange rCredits for US Dollars or vice-versa.'),
 //  'no access create' => t('You do not have permission to create transactions.'),
@@ -141,7 +142,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'pay virtual error' => t('An unknown technical problem prevented your virtual payment @way @other.'),
   'no buyers' => t('Uh oh. Nobody wants to buy rCredits. Needed: $@amount.'),
   'cannot offload' => t('A temporary technical problem prevented some of your excess rCredits from being exchanged for US Dollars. The system will try again tomorrow.'),
-  'usd failed' => t('A temporary technical problem prevented the transfer of US Dollars.'),
+  'usd failed' => t('A temporary technical problem prevented the transfer of US Dollars. No transaction took place.'),
 );
 
   // help messages (for use with the help command)
@@ -156,9 +157,9 @@ $GLOBALS['SMS help'] = array(
   'help undo2' => t('Examples: undo | undo janedough | undo to | undo from | undo to janedough | undo from janedough — Type "more" for details.'),
   'help undo22' => t('"undo janedough" undoes your most recent transaction with Jane Dough. You can also identify her by phone, email, or account ID.'),
 //  'help get' => t('To get $200 more in rCredits, type "get r 200". To send $50 in rCredits to your US bank account, type "get usd 50".'),
-  'help get' => t('To get $200 more in rCredits, type "get r 200".'),
+//  'help get' => t('To get $200 more in rCredits, type "get r 200".'),
   'help information' => t('Just type "info" (tells you your balance and the current demand for rCredits)'),
-  'help helpme' => t('Options: pay | charge | undo | info | get | helpme. For details, type "helpme pay" and so forth.'),
+  'help helpme' => t('Options: pay | charge | undo | info | helpme. For details, type "helpme pay" and so forth.'),
 );
 
 $GLOBALS[TX_SMS . ' messages'] = array_merge($GLOBALS[TX_SMS . ' messages'], $GLOBALS['SMS help']); 
@@ -166,7 +167,7 @@ $GLOBALS[TX_SMS . ' messages']['help helpme no-error'] = t('Try something! ') . 
 foreach (array('more', 'stop', 'start') as $one) $GLOBALS[TX_SMS . ' messages']["help $one"] = $GLOBALS['SMS help']['help helpme'];
 
 $GLOBALS['SMS commands'] = array( // these can be abbreviated by the caller
-  'get' => array('get %rusd %amount', 'get %amount %rusd'), // best before pay, so that "g r 10" is interpreted as "get r" not "give who"
+//  'get' => array('get %rusd %amount', 'get %amount %rusd'), // best before pay, so that "g r 10" is interpreted as "get r" not "give who"
   'be' => array('(?:as|be) %who'),
   'payment' => array(
     '(?:payment|okay|approve)',

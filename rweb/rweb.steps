@@ -71,12 +71,18 @@ function memberCompletesFormWithValues($id, $formName, $values, $confirmed = FAL
   $sta['values'] = @$values['email'] ? u\changeKey('email', 'mail', $values) : $values;
     
   t\logIn($id);
-  if (in_array($formName, u\ray('Pay Charge Grant Loan Fine'))) list ($formName, $arg) = array('Tx', $formName);
-  $formPath = substr($formName, 0, 1) == '\\' ? substr($formName, 1) : "rCredits\\Web\\form$formName";
-  $arg = @$arg; // avoid undefined errors (?) and byref errors in call to \drupal_get_form()
-  $form = \drupal_get_form($formPath, $arg);
-//  if (function_exists($alter = 'rweb_form_' . $formPath . '_alter')) $alter($form, $sta, $formName);
-  
+
+  $form = t\pageForm($formName, FALSE);
+
+  if (FALSE) {
+   // $form = \drupal_get_form($formPath, $arg);
+    if (in_array($formName, u\ray('Pay Charge Grant Loan Fine'))) list ($formName, $arg) = array('Tx', $formName);
+    $formPath = substr($formName, 0, 1) == '\\' ? substr($formName, 1) : "rCredits\\Web\\form$formName";
+    $arg = @$arg; // avoid undefined errors (?) and byref errors in call to \drupal_get_form()
+    $form = \drupal_get_form($formPath, $arg);
+    //  if (function_exists($alter = 'rweb_form_' . $formPath . '_alter')) $alter($form, $sta, $formName);
+  }
+
 //  if (!$confirmed) foreach (t\postProcess($form, $formName, 'validate') as $one) {
   $errorsBefore = t\getErrors();
   if ($formName != 'Tx' or !$confirmed) {
@@ -98,7 +104,6 @@ function memberCompletesFormWithValues($id, $formName, $values, $confirmed = FAL
  * member (ARG) confirms form (ARG) with values: (ARG)
  *
  * in: Signup ANewbieRegisters MAKE
- *     Signup AMemberRegistersBadEmail MAKE
  *     Transact AMemberConfirmsRequestToChargeAnotherMember MAKE
  *     Transact AMemberConfirmsRequestToPayAnotherMember MAKE
  */
@@ -179,7 +184,6 @@ function transactions($list) {
  * we say (ARG): (ARG) with subs: (ARG)
  *
  * in: Signup ANewbieRegisters TEST
- *     Signup AMemberRegistersBadEmail TEST
  *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
  *     Transact AMemberConfirmsRequestToPayAnotherMember TEST
  */
@@ -245,6 +249,7 @@ function weShowWithSubs($page, $subs) {
  *
  * in: Relations MemberHasAnEmployeeConfirmed TEST
  *     Relations MemberHasAnEmployeeUnconfirmed TEST
+ *     Relations MemberHasARelationWithAContractor TEST
  *     Relations MemberHasAnEmployeeClaimed TEST
  *     Relations EmployeeCanOnlyRead TEST
  *     Relations MemberHasAnEmployer TEST
@@ -267,9 +272,9 @@ function weShowPageWith($page, $content, $showDebugs = TRUE) {
     if ($showDebugs) debug($fields); // keep this
     foreach ($fields as $key => $one) {
       if ($one !== '') $i = strpos($formOutput, $one, $xi = $i);
+      if ($showDebugs) t\testOutput(compact('xi','i','one'));
       if ($i === FALSE) {
         if ($showDebugs) t\testOutput(substr($formOutput, 0, $xi) . ' <b style="font-size:200%;">[OK until here]</b> ' . substr($formOutput, $xi));
-        if ($showDebugs) t\testOutput(compact('xi','one'));
         return FALSE;
       } else $i += strlen($one);
     }
@@ -297,6 +302,7 @@ function weShowPageWithout($page, $content) {
  *
  * in: Relations MemberHasAnEmployeeConfirmed MAKE
  *     Relations MemberHasAnEmployeeUnconfirmed MAKE
+ *     Relations MemberHasARelationWithAContractor MAKE
  *     Relations MemberHasAnEmployeeClaimed MAKE
  *     Relations EmployeeCanOnlyRead MAKE
  *     Relations MemberHasAnEmployer MAKE
@@ -335,6 +341,7 @@ function balances($list) {
  *
  * in: Relations MemberHasAnEmployeeConfirmed MAKE
  *     Relations MemberHasAnEmployeeUnconfirmed MAKE
+ *     Relations MemberHasARelationWithAContractor MAKE
  *     Relations MemberHasAnEmployeeClaimed MAKE
  *     Relations EmployeeCanOnlyRead MAKE
  *     Relations MemberHasAnEmployer MAKE
@@ -363,7 +370,8 @@ function memberVisitsPageWithOptions($id, $page, $options) {
 
   $cacct = r\acct(); // save, so we can restore it
   if ($id != '?') r\acct::setDefault(r\acct(t\fullQid($id)));
-  r\Web\showForm($page, $options);
+  t\pageForm($page, FALSE);
+//  r\Web\showForm($page, $options);
   r\acct::setDefault($cacct);
   return TRUE;
 }

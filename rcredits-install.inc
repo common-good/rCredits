@@ -141,6 +141,15 @@ function tableDefs($schema = array()) {
   $indexes = index('created');
   $schema['r_usd'] = setupTable('Record of USD (Dwolla) transactions in the region', $fields, 'txid', $foreign_keys, $indexes);
 
+  // table r_usderror
+  $fields = array(
+    'id' => setupField('record ID', 'serial 11'),
+    'error' => setupField('error message from USD server', 'varchar 255'),
+  );
+  $foreign_keys = array();
+  $indexes = array();
+  $schema['r_usderror'] = setupTable('USD error messages from USD gateway', $fields, 'id', $foreign_keys, $indexes);
+  
 /*  // table r_donations
   $fields = array(
     'donid' => setupField('donation record id', 'serial 11'),

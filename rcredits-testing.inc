@@ -32,6 +32,12 @@ function makeAccount($info = array(), $testOnly = FALSE) {
   $flags = BIT_DEFAULTS | (isset($my_flags) ? @$my_flags : BIT_RTRADER);
   $community = @$my_communityUid ?: r\serverUid();
   u\EXPECT(!empty($community), 'empty community uid');
+
+/*  if (@$my_account_type) {
+    $account_types = array_flip($GLOBALS['account_types']);
+    $account_type = $account_types[$my_account_type]; 
+  }*/
+  
   fixCountryAndState($info);
 
   foreach (u\ray('id email password') as $one) unset($info[$one]);
@@ -306,6 +312,25 @@ function verifyRecord($table, $info) {
   $result = r\dbExists($table, $crit, $info);
   if (!$result) testOutput("verifyRecord failed. table=$table crit=$crit info=" . print_r($info, 1));
   return $result;
+}
+
+/**
+ * Simulate a visit to the page, return its form.
+ * @param string $page: the Drupal URL to visit
+ * @return: the form that would normally be displayed by the browser
+ */
+function pageForm($page) {
+  global $formOutput;
+  if (u\abbreviates('user/register', $page)) {
+    $args = basename($page);
+    $form = \drupal_get_form('user_register_form', $args);
+    $sta = array();
+    r\Web\formRegister($form, $sta, $args);
+    $form2 = $form; $rent = render($form2);
+    t\testOutput($formOutput = t\strip($rent), 'screen');
+    return $form;
+  }
+  menu_execute_active_handler($page, FALSE);
 }
 
 function postProcess($form, $formName, $type) {

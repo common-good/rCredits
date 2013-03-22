@@ -68,14 +68,16 @@ class call {
     $number = $this->number;
     $cuid = $this->uid = uid($number);
     if (!$cuid) {
-      $cacct = new r\acct(compact('number')); // this will crash if someone (VERY) quickly calls again from the same number
-      $cuid = $cacct->id;
+      return tt('you must setup');
+      //$cacct = new r\acct(compact('number')); // this will crash if someone (VERY) quickly calls again from the same number
+      //$cuid = $cacct->id;
     } else $cacct = r\acct($cuid);
 //    print_r(compact('number','cuid','cacct')); die();
     u\EXPECT($cacct, 'failed to get acct');
     r\acct::setDefault($cacct);
     
     $todo = @be\todo($number)->todo;
+    /*
     if (be\isTempName($cacct->name)) {
       if($todo != 'setup name') {
         be\todo($number, 'setup name', '');
@@ -239,6 +241,7 @@ class call {
    * Help the caller exchange rCredits for US Dollars or vice versa.
    */
   function do_get() {
+    return tt('nyi');
     extract($this->parms, EXTR_PREFIX_ALL, 'my');
     list ($message, $args, $confirm) = be\get(strtolower($my_rusd), $my_amount, $this->uid, $this->confirmed);
     return $confirm ? $this->confirm($message, $args) : tt($message, $args);

@@ -1,6 +1,8 @@
 rCredits Software
 Notes for developers
 make sure offsite.php, .databases, and offsite table are correct on rcredits.org
+
+Don't do this probably (archive old data instead, with apology to those who signed up earlier):
 rename community field to community
 *** upload r_countries and r_states, then
   UPDATE users u
@@ -14,39 +16,38 @@ rename community field to community
   UPDATE users SET state=9999 WHERE state='Islington';
 ***
         
-Short term tasks: (* = before launch ** = earlier)
-- make sure to check RTRADER bit everywhere we need to (anything financial, nowhere else)
+To do: (* = before launch ** = earlier)
+@todo: * handle account type as bits? New choices: self-employed doing business under your own name, publicly-traded corporation.
+@todo: * business ("commercial") can't get incentives until it has specified at least one owner
+
+- *add warning about flow not implemented yet
+- nightly: recalc exchange rates / allow users to express amounts in any currency (rounding DOWN); transactions will need to record exchange rate (true currency will be tied to region, regardless of how the user chooses to have it displayed)
+- * accept rCredits for membership donation! and move it to new.rcredits.org
+- * make sure to check RTRADER bit everywhere we need to (anything financial, nowhere else)
 - don't go over employee maximums unless we have to (know it ahead of time, either limit it to max or don't. simple) (don't bother with this -- it will probably be better as it is)
-- receive deposit/withrawal callbacks to set "completed" in r_usd. alert staff if fails.
-- set completed in r_usd on other transactions
-- in daily: alert staff if deposit / withdrawal not complete after 3 days
-- on miscellaneous unknown dwolla status returns, alert staff
-- log more stuff
-- cut loose circles file
+- *receive deposit/withrawal callbacks to set "completed" in r_usd. alert staff if fails.
+- **set completed in r_usd for other transactions
+- *in daily: alert staff if deposit / withdrawal not complete after 3 days
+- * log more stuff
 - dwindling rewards in cron
-- shrink photo in formI (should be 50%) done?
-- download must include rebate and bonuses transactions as a separate row (for GFM)
-- cron: make a "daily" queue for most stuff. include figuring variable_set('totals') (usd, r, demand, etc.)
+- ** shrink photo in formI (should be 50%) done?
+- ** download must include rebate and bonuses transactions as a separate row (for GFM)
+- ** cron: make a "daily" queue for most stuff. include figuring variable_set('totals') (usd, r, demand, etc.)
+- * in profile, handle links to list of websites
+- * signup button on rcredits.org goes directly to user/register
+- * demo button on rcredits.org goes to login with options to log in as abeone, beatwo (self-employed), cornerpub, or townarts (which should have a "Contribute" form on its member/townarts page)
 - automatic bank transfer tester
-- move shibboleth into .databases
-- for existing signups, just set the whole table aside. invite them and let them redo everything
 - how much can the community safely create? this depends on velocity of circulation and two kinds of demand: 
     (1) company/employee/contractor demand and (2) other (by people who have no rCredits income source)
     The first kind reflects the inherent strength of the system, the second should be seen as backup
     We can create the amount of the first kind divided by velocity, probably.
-- disable SMS getr command altogether
-- disable signup via SMS
 - add flow to relations (1=to, 2=from, 3=both, 0=none)
-- don't allow clicking on links in emails (send to new.rcredits_org.com/whatever, which looks like rcredits.org but scolds the user for clicking on an email link, then offers a link to the real site (don't accept that one either).
-- Dwolla fee goes to cash buyer (otherwise always to the rCredits recipient -- the payee)
-- count owners (if not employed too) and suppliers each as one (average) employee, when distributing virtual payments
+- * don't allow clicking on links in emails (send to new.rcredits_org.com/whatever, which looks like rcredits.org but scolds the user for clicking on an email link, then offers a link to the real site (don't accept that one either).
 - travel checks (use once, limited amount)
 - allow extra params in buynow form
 - ** Transaction Summary: add extra rows for "Unavailable until <date>", "Available Balance", "Incentive Rewards to Date", and "Amount That Can Be Exchanged for USD", reflecting serialized assoc values in the data field of the account: balance, frozen[n]=array(date,amount), rewards (available balance is calculated)
-- ** membership path for companies!
-- * Start everyone with $50, bring it up to $100 the next week (2nd month everyone starts at $20)
 - for companies, show HTML for online payment buttons
-- add tithe to summary page, for admins
+- * add tithe to summary page, for admins
 - make personal contact info secure?
 - Company profile picture will also appear in our office slideshow. Say so on company tab.
 - find out why account_type doesn't get passed to formSummary_submit in $sta['values'] (low priority)
@@ -66,13 +67,114 @@ includes security code, like this: http(s?)://new.rc2.me/new.abc/Urlencoded10Cha
 - Coding security policy: never show any personal identifying info (R_SECRET_FIELDS) in the HTML. EVER. For example, when verifying someone's identity, the staff member should ask for the last 4 of their ss#, type it in and press submit. The code does a compare and returns just yes or no. Even the member cannot ever see what they earlier typed in. We might want to have a similar but weaker restriction on phone numbers and addresses -- like maybe those are protected for personal accounts. When 1099 time comes, the reports go out electronically only (no preview, etc.) Even user 1 and other admins don't have access to PII. Also put in some safe-guards to prevent repetitive guessing.
 - beef up security - immediate:
   . Show the agent's picture below Help/Menu (below accounts dropdown in fullscreen). 
+
+TODO whenever
+
 - security later: 
   . Make the agent's picture appear from behind the "r", get big, then shrink and settle into place, traveling in the shape of an "r", ideally leaving a jet trail.
   . How to prove the logged-out site is rcredits? Maybe always ask first "It looks like you came here from an rCredits member site. Make sure this is the real rCredits website! Does your url bar say https://new.rcredits.org? Does it show a security symbol? We will display this reminder only once in a while. Don't let the identity thieves get you. Be sure to check the url bar <i>every time</i>."
-- * in profile, handle links to list of websites
-- * signup button on rcredits.org goes directly to user/register
-- * demo button on rcredits.org goes to login with options to log in as abeone, beatwo (self-employed), cornerpub, or townarts (which should have a "Contribute" form on its member/townarts page)
+@todo: add videos, like this:
+  <video width="320" height="240" controls autoplay>
+    <source src="movie.mp4" type="video/mp4">
+    <source src="movie.ogg" type="video/ogg">
+    <source src="movie.webm" type="video/webm">
+  Your browser does not support the video tag. (maybe embed a clickable vid in an iframe here?)
+  </video>
+@todo: rate each account health as ratio of total demand of repeat payees (2x/2.5mos) to total demand of recent payers (2.5mos) (potential for future) OR to monthly sales (current health); also rate of change of sales volume (maximize for everyone and not negative)
 
+/**
+ * Return a number or recordset representing the health of one or more accounts.
+ * @param string $where: a uid or criteria for account selection
+ * @return: a number representing the health of the specified account OR a recordset given the health of each account
+ */
+function health($where = 'TRUE') {
+
+  if (is_numeric($where)) $where = "uid=$where";
+  
+  $payeeDemandSql = demandSql('payee', 2, 2.5, $where);
+  $payerDemandSql = demandSql('payer', 0, 3, $where);
+  $return eachAccount($queries, $ons, $where, $subs = array()) {
+
+// * @param string $measure: current, future, count, or growth
+  if ($measure == 'current' or $measure == 'growth') {
+    $lastMonthSales = r\dbQ(salesSql(1, $where));
+    $prevMonthSales = r\dbQ(salesSql(2, $where)) - $lastMonthSales;
+  }
+  if ($measure == 'growth') {
+    return u\small($prevMonthSales) ? (u\small($lastMonthSales) ? 0 : 1) : ($lastMonthSales - $prevMonthSales) / $prevMonthSales;
+  } elseif ($measure == 
+
+compact('cuid', 'months')
+
+list ($me, $months) = array('payee', '2');
+$last2MonthsSales =
+
+/**
+ * Return a query that will return payee,sales1,sales2,sales3
+ * where the salesN fields are total sales for the payee for the preceding (non-calendar) month, month before that, etc.
+ */
+function salesSql() {
+  $fields = 'payee';
+  for ($i = 0; $i <= 3; $i++) {
+    $nextMonth = @$monthi;
+    $monthi = strtotime("$i months ago", REQUEST_TIME);
+    if ($i > 0) $fields .= ",SUM(IF(completed>=$monthi AND completed<$nextMonth, amount, 0)) AS sales$i";
+  }
+  return "SELECT $fields FROM txs WHERE type=:TX_TRANSACT AND goods AND state=:TX_DONE AND completed>=$monthi AND payee=u.uid";
+}
+
+/**
+ * Return a query that will return (total) demand for an account's payers or payees in the recent past.
+ * @param string $other: payer or payee
+ * @param int $minRepeats: consider demand from members who did business with the account at least this many times
+ * @param int $months: how far back to look
+ */
+function demandSql($other, $minRepeats, $months) {
+  $earliest = strtotime("$months ago", REQUEST_TIME);
+  $me = $other == 'payer' ? 'payee' : 'payer';
+  return <<<EOF
+  SELECT SUM(demand) AS demand 
+    FROM (SELECT $other, COUNT(*) AS count FROM txs 
+    WHERE type=:TX_TRANSACT AND goods AND state=:TX_DONE AND completed>=$earliest AND $me=u.uid AND $other>0)
+    WHERE count>=$minRepeats
+EOF;
+}
+
+function eachAccount($queries, $ons, $where = 'TRUE', $subs = array()) {
+  $fields = 'u.uid';
+  $tables = 'users u';
+  foreach ($queries as $q => $query) {
+    $on = array_shift($ons);
+    $fields .= ",$q.*";
+    $tables .= ",($query) $q ON $q.$on=u.uid";
+  }
+  return r\dbQ("SELECT $fields FROM $tables WHERE $where", $subs);
+}
+
+@todo: move some util functions, like ray(), to rcredits-basic.inc and "USE" them everywhere without a namespace qualifier.
+@todo: on successful web request for rCredits, say you will have to Dwolla us $20, to actually be added to the waiting list.
+@todo: allow surrounding spaces on all web input, leading dollar signs in amounts. Test. (mostly done)
+@todo: we also need some kind of confirmation on foreign transactions (from the other server)
+@todo: store city code (rather than city), with a code for "other" -- store other in data or r_other (same for country/state) MAYBE
+@todo: reporting for a community or server (a form that anyone can use)
+@todo: download transactions in standard formats
+@todo: Finish separating backend. Front end should have no registered users. This should maybe wait until after launch.
+@todo: use popups for some things
+@todo: make help divs draggable
+@todo: when a relation for a company is created with PERM_MANAGE, warn the user that they will no longer be able to log in directly to the company account, change the password to "NOACCESS", and prevent a password change ("Only authorized individuals can manage this account.")
+@todo: option to suppress current balance in messages (make it a separate message) BIT_SHOWBAL (default TRUE)
+@todo: Miscellaneous other data to collect:
+  Names and Social Security Numbers of Dependents [why do we need this?]
+  If this is a joint account and you are the first to join, social security numbers of the other account holders
+  If this is a joint account, do you want separate balances? (if so, it will be treated as separate accounts except that available funds may be transferred automatically to any of the joined accounts that dips below its credit limit.)
+@todo: closed accounts have only read perm and point (data[new_account]) at new account qid
+@todo: servers exchange info on which ss#s (or other ids) are dups
+@todo: check on mergeaccounts: do inter-table key relations get updated automatically?
+@todo: donations
+@todo
+- remove all direct db operations from interface modules (and their .inc files) -- use be\ and u\ there, but not r\
+
+**************************************************
 
 A. Development environment
  - See https://docs.google.com/document/d/1oQU-PPown2TV02Xg9htxByzOhUopGH-areUrlZ94Te0/edit
@@ -194,125 +296,7 @@ G. Special rCredits datatypes
  qxid: a qid (8 characters or more) representing an xid
  quid: a qid (7 characters or more) representing a uid acting as its own agent (. separator) OR an reid (: separator)
 
-H. TODO
-@todo: add videos, like this:
-  <video width="320" height="240" controls autoplay>
-    <source src="movie.mp4" type="video/mp4">
-    <source src="movie.ogg" type="video/ogg">
-    <source src="movie.webm" type="video/webm">
-  Your browser does not support the video tag. (maybe embed a clickable vid in an iframe here?)
-  </video>
-@todo: rate each account health as ratio of total demand of repeat payees (2x/2.5mos) to total demand of recent payers (2.5mos) (potential for future) OR to monthly sales (current health); also rate of change of sales volume (maximize for everyone and not negative)
-
-/**
- * Return a number or recordset representing the health of one or more accounts.
- * @param string $where: a uid or criteria for account selection
- * @return: a number representing the health of the specified account OR a recordset given the health of each account
- */
-function health($where = 'TRUE') {
-
-  if (is_numeric($where)) $where = "uid=$where";
-  
-  $payeeDemandSql = demandSql('payee', 2, 2.5, $where);
-  $payerDemandSql = demandSql('payer', 0, 3, $where);
-  $return eachAccount($queries, $ons, $where, $subs = array()) {
-
-// * @param string $measure: current, future, count, or growth
-  if ($measure == 'current' or $measure == 'growth') {
-    $lastMonthSales = r\dbQ(salesSql(1, $where));
-    $prevMonthSales = r\dbQ(salesSql(2, $where)) - $lastMonthSales;
-  }
-  if ($measure == 'growth') {
-    return u\small($prevMonthSales) ? (u\small($lastMonthSales) ? 0 : 1) : ($lastMonthSales - $prevMonthSales) / $prevMonthSales;
-  } elseif ($measure == 
-
-compact('cuid', 'months')
-
-list ($me, $months) = array('payee', '2');
-$last2MonthsSales =
-
-/**
- * Return a query that will return payee,sales1,sales2,sales3
- * where the salesN fields are total sales for the payee for the preceding (non-calendar) month, month before that, etc.
- */
-function salesSql() {
-  $fields = 'payee';
-  for ($i = 0; $i <= 3; $i++) {
-    $nextMonth = @$monthi;
-    $monthi = strtotime("$i months ago", REQUEST_TIME);
-    if ($i > 0) $fields .= ",SUM(IF(completed>=$monthi AND completed<$nextMonth, amount, 0)) AS sales$i";
-  }
-  return "SELECT $fields FROM txs WHERE type=:TX_TRANSACT AND goods AND state=:TX_DONE AND completed>=$monthi AND payee=u.uid";
-}
-
-/**
- * Return a query that will return (total) demand for an account's payers or payees in the recent past.
- * @param string $other: payer or payee
- * @param int $minRepeats: consider demand from members who did business with the account at least this many times
- * @param int $months: how far back to look
- */
-function demandSql($other, $minRepeats, $months) {
-  $earliest = strtotime("$months ago", REQUEST_TIME);
-  $me = $other == 'payer' ? 'payee' : 'payer';
-  return <<<EOF
-  SELECT SUM(demand) AS demand 
-    FROM (SELECT $other, COUNT(*) AS count FROM txs 
-    WHERE type=:TX_TRANSACT AND goods AND state=:TX_DONE AND completed>=$earliest AND $me=u.uid AND $other>0)
-    WHERE count>=$minRepeats
-EOF;
-}
-
-function eachAccount($queries, $ons, $where = 'TRUE', $subs = array()) {
-  $fields = 'u.uid';
-  $tables = 'users u';
-  foreach ($queries as $q => $query) {
-    $on = array_shift($ons);
-    $fields .= ",$q.*";
-    $tables .= ",($query) $q ON $q.$on=u.uid";
-  }
-  return r\dbQ("SELECT $fields FROM $tables WHERE $where", $subs);
-}
-
-@todo: handle account type as bits. New choices: self-employed doing business under your own name, publicly-traded corporation.
-@todo: business ("commercial") can't get incentives until it has specified at least one owner
-@todo: use hidentity in r\acct (_get and update, not account()) for federal_id, dob, usd_acct, and id_proof
-@todo: move some util functions, like ray(), to rcredits-basic.inc and "USE" them everywhere without a namespace qualifier.
-@todo: on successful web request for rCredits, say you will have to Dwolla us $20, to actually be added to the waiting list.
-@todo: allow surrounding spaces on all web input, leading dollar signs in amounts. Test. (mostly done)
-@todo
-- handling employees (virtual payments). This should probably be extended to suppliers too,
-  or maybe even to everyone. The idea is to pay someone virtually in rCredits by totally paying them
-  (either first or second) in US Dollars and (either second or first) having them buy back
-  the appropriate amount of rCredits. Probably the best way to do this is with a simple payment transaction
-  that requires confirmation by the payee (an "offer"). The payee cannot accept the offer without first paying
-  that amount to the Community in US Dollars (using billpay or Dwolla). [need to integrate with Dwolla, otherwise done.]
-@todo: we also need some kind of confirmation on foreign transactions (from the other server)
-@todo: don't require email address for SMS signups, set name properly [NOT YET. JUST LEAVE IT.]
-@todo: store country code rather than country, and state code rather than state, using tables from civiCRM
-@todo: store city code (rather than city), with a code for "other" -- store other in data or r_other (same for country/state) MAYBE
-@todo: reporting for a community or server (a form that anyone can use)
-@todo: download transactions in standard formats
-@todo: Finish separating backend. Front end should have no registered users. This should maybe wait until after launch.
-@todo: use popups for some things
-@todo: make help divs draggable
-@todo: when a relation for a company is created with PERM_MANAGE, warn the user that they will no longer be able to log in directly to the company account, change the password to "NOACCESS", and prevent a password change ("Only authorized individuals can manage this account.")
-@todo: option to suppress current balance in messages (make it a separate message) BIT_SHOWBAL (default TRUE)
-@todo: Miscellaneous other data to collect:
-  Names and Social Security Numbers of Dependents [why do we need this?]
-  If this is a joint account and you are the first to join, social security numbers of the other account holders
-  If this is a joint account, do you want separate balances? (if so, it will be treated as separate accounts except that available funds may be transferred automatically to any of the joined accounts that dips below its credit limit.)
-  Choose a Proxy -- someone to represent you, whenever you are unable to vote directly. This should be someone you trust to make sound decisions for the common good of all. Also choose an Alternate proxy, as a backup. If you choose someone who is not yet a member, you will need to supply their email address, so we can invite them to participate. Your membership will not be complete until your chosen representatives sign up.
-  Proxy:
-  Alternate:
-@todo: closed accounts have only read perm and point (data[new_account]) at new account qid
-@todo: servers exchange info on which ss#s (or other ids) are dups
-@todo: *** unilateral only if agent charging for company using SMS or scan. No invoicing for remainder beyond partial charge (just say how much is still due).
-@todo: check on mergeaccounts: do inter-table key relations get updated automatically?
-@todo: donations
-@todo
-- remove all direct db operations from interface modules (and their .inc files) -- use be\ and u\ there, but not r\
-
-Notes on transaction record system:
+H. Notes on transaction record system:
   Other servers have a single negative (<0) UID on our system, so a
   user doing business with someone in another region would generate a transaction between an individual and a server,
   with qid for the individual in that other region stored in the data field. 
