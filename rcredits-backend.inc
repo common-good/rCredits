@@ -171,7 +171,7 @@ function updateRelations($updates) {
       $pot = '(:main, :other)';
       if (!r\relation(1, "main IN $pot AND other IN $pot", compact('main', 'other'))) $msg = 'deleted relation';
     } else {
-      setCttyAdmin(@$data['permission'] >= PERM_MANAGE, $main, $other);
+      setCttyAdmin(@$data['permission'] >= B_MANAGE, $main, $other);
     }    
     $otherName = $full_name;
     $report .= u\tt($msg, compact('otherName')) . '<br>';
@@ -180,7 +180,7 @@ function updateRelations($updates) {
 }
 
 function setCttyAdmin($value, $main, $other) {
-  if ($main < 0 and $main == r\acct($other)->community) r\acct($other)->setBit(BIT_CTTY_ADMIN, $value);
+  if ($main < 0 and $main == r\acct($other)->community) r\acct($other)->setBit(B_CTTY_ADMIN, $value, TRUE);
 }
 
 /**
@@ -301,9 +301,9 @@ function get($currency, &$amount, $confirmed) {
   if (isFrontend()) return (array) backend('get', compact(u\ray('currency amount confirmed')));
   if (is_array($currency)) extract($currency); // called from api or backend
   
-  if (!$cacct->can(PERM_MANAGE)) return array('no access get', array(), FALSE);
+  if (!$cacct->can(B_MANAGE)) return array('no access get', array(), FALSE);
   if ($error = u\badAmount($amount, $currency == 'usd' ? '>0' : '>=0')) return array($error, array(), FALSE); // allow zero for rCredits request
-  // (No, include this in rTrader requirements) if (r\isRTrader() and !$cacct->can(PERM_DWOLLA)) return array('no usd account', array(), FALSE);
+  // (No, include this in rTrader requirements) if (r\isRTrader() and !$cacct->can(B_DWOLLA)) return array('no usd account', array(), FALSE);
   $usd = new usd();
   if (!$usd->canTrade()) return array('no usd account', array(), FALSE);
   $request = u\formatAmount($amount);
@@ -358,7 +358,7 @@ function payInvoice($xid) {
   if (isFrontend()) return (array) backend('payInvoice', compact(u\ray('xid')));
   if (is_array($xid)) extract($xid); // called from api or backend
 
-  if (!r\acct()->can(PERM_BUY)) return array('no buy', array());
+  if (!r\acct()->can(B_BUY)) return array('no buy', array());
   if (!$result = lastTx('xid=:xid AND state=:TX_PENDING', compact('xid'))) return array('no such tx', array());
   extract($result, EXTR_PREFIX_ALL, 'old');
   $acct = r\acct($old_payee, $old_payee_agent);
@@ -386,8 +386,8 @@ function payInvoice($xid) {
  *   'bonus': the bonus amount (should be negative the original rebate amount) [rebate and bonus are always both set or neither]
  *   'undoes': transaction id of the related transaction (transaction being undone / invoice being paid)
  *   'preapproved': the transaction is preapproved (from some other region)
- *     Note that other regions must not have PERM_CHARGE (else the code will not permit foreign invoices)
- *   'bilateral': set TRUE if a company with PERM_CHARGE wants to pretend it doesn't
+ *     Note that other regions must not have B_CHARGE (else the code will not permit foreign invoices)
+ *   'bilateral': set TRUE if a company with B_CHARGE wants to pretend it doesn't
  *      (Typically upon recursion, to handle shortfall invoice)
  *   'pay_all': the transaction is part of a "pay all" (bulk employee payment)
  * @return simple array: 
@@ -415,8 +415,8 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   // Check permissions
   u\EXPECT(compact(u\ray('ttype acct confirmed data')), 'string acct bool assoc');
   $otherName = $acct->full_name;
-  if (!$acct->can(PERM_RTRADER)) return array('non trader', compact('otherName'), FALSE);
-  list ($myAccess, $otherAccess) = u\order($taking, PERM_SELL, PERM_BUY);
+  if (!$acct->can(B_RTRADER)) return array('non trader', compact('otherName'), FALSE);
+  list ($myAccess, $otherAccess) = u\order($taking, B_SELL, B_BUY);
   list ($myAccessErr, $otherAccessErr) = u\order($taking, 'sell', 'buy');
   if (!$cacct->can($myAccess)) return array("no $myAccessErr", array(), FALSE);
   if (!$acct->can($otherAccess)) return array("other no $otherAccessErr", array(), FALSE);
@@ -435,14 +435,14 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   $type = TX_TRANSFER;
   $unilateral = isset($data['bilateral']) ? FALSE 
   : ($taking // selling
-      and $cacct->can(PERM_CHARGE) // seller can charge unilaterally
+      and $cacct->can(B_CHARGE) // seller can charge unilaterally
       and !$undoing // not reversing a payment
-      and !($acct->account_type >= R_COMMERCIAL and $acct->proSe()) // not selling to a company directly (without its agent)
+      and !($acct->can(B_PERSONAL) and $acct->proSe()) // not selling to a company directly (without its agent)
       and ($channel == TX_SMART or $scanned or $channel == TX_SMS) // in person: scanned (web or smart) or by SMS
   );
   $preapproved = (@$data['preapproved'] or !$taking or $unilateral); // paying OR permitted to charge unilaterally
 //  $state = ($preapproved and !@$data['pay_all'])? TX_DONE : TX_PENDING;
-  $virtual = ($goods and !$taking and ($cacct->hasBit(BIT_VIRTUAL_ALL) or ($cacct->hasBit(BIT_VIRTUAL_EMPLOYEES) and r\isEmployee($uid))));
+  $virtual = ($goods and !$taking and ($cacct->hasBit(B_VIRTUAL_ALL) or ($cacct->hasBit(B_VIRTUAL_EMPLOYEES) and r\isEmployee($uid))));
   $state = ($preapproved and !$virtual)? TX_DONE : TX_PENDING; // may be changed to TX_TENTATIVE below
   
   // Check the amount and calculate any balance shortfall
@@ -532,7 +532,7 @@ function fund($uid, $type = TX_SIGNUP, $amount = R_STARTING_BALANCE, $for = NULL
   $payee_agent = $payee = $uid;
   $cacct = r\acct(); // null, if just registering
   $ctty = r\userField('community', $payee);
-  if ($type > TX_AUTOMATIC and !$cacct->can(PERM_MANAGING_CTTY)) return FALSE; // incentives given only automatically or by community agent
+  if ($type > TX_AUTOMATIC and !$cacct->can(B_MANAGING_CTTY)) return FALSE; // incentives given only automatically or by community agent
   if (!$confirmed) return $amount;
   
   $payer = $ctty;
@@ -703,7 +703,7 @@ EOF;
 
   extract(r\dbQ($sql, compact(u\ray('uid asof')))->fetchAssoc());
   $grossInProper = $grossIn - $rewards;
-  $committed = round($committed * $acct->tithe / 100, 2);
+  $committed = round($committed * $acct->share / 100, 2);
   $balance = $grossIn - $grossOut - $committed;
   $unavailable = array_sum($acct->frozen);
   $available = ($balance - $floor) - $unavailable;
@@ -757,7 +757,7 @@ function accountChoices() {
 
   $sql = "SELECT main, permission FROM r_relations WHERE other=:agentId AND permission>0";
   $result = r\dbQ($sql, compact('agentId'))->fetchAllKeyed(0, 1);
-  $resulta = $cacct->can(PERM_ADMIN) ? r\dbQ('SELECT uid, :PERM_MANAGE FROM users WHERE uid<=:R_FIRST_CTTY_UID')->fetchAllKeyed(0, 1) : array();
+  $resulta = $cacct->can(B_ADMIN) ? r\dbQ('SELECT uid, :B_MANAGE FROM users WHERE uid<=:R_FIRST_CTTY_UID')->fetchAllKeyed(0, 1) : array();
   return $primary + $result + $resulta;
 }
 

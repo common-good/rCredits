@@ -5,10 +5,10 @@ SO I can see what happened, accept or refuse offers, adjust descriptions, and co
 
 Setup:
   Given members:
-  | id      | full_name  | floor | account_type  | flags         |
-  | NEW.ZZA | Abe One    | -100  | %R_PERSONAL   | %BIT_DEFAULTS |
-  | NEW.ZZB | Bea Two    | -200  | %R_PERSONAL   | %BIT_MEMBER  |
-  | NEW.ZZC | Corner Pub | -300  | %R_COMMERCIAL | %BIT_RTRADER  |
+  | id      | full_name  | floor | account_type  | flags      |
+  | NEW.ZZA | Abe One    | -100  | %R_PERSONAL   |            |
+  | NEW.ZZB | Bea Two    | -200  | %R_PERSONAL   | %B_MEMBER  |
+  | NEW.ZZC | Corner Pub | -300  | %R_COMMERCIAL | %B_RTRADER |
   And relations:
   | id      | main    | agent   | permission        |
   | NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |

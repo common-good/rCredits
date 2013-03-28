@@ -229,6 +229,20 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformgetr #edit-subtext .r-explain {text-align:left; margin-left:30px; max-width:650px;}
 #rcreditswebformgetr #edit-subtext .r-amounts {text-align:right; max-width:425px;}
 
+/* Contribute */
+#rcreditswebformcontribute .form-item-other {display:none;}
+#rcreditswebformcontribute #edit-other,
+#rcreditswebformcontribute #edit-share {width:50px;}
+/* fails #rcreditswebformcontribute input#edit-share:after {content:"%"} */
+#rcreditswebformcontribute #edit-subtext {font-weight:normal; font-size:85%;}
+#rcreditswebformcontribute #edit-gift {font-family:monospace; font-size:120%;}
+#rcreditswebformcontribute .form-item-share .description {display:inline-block; max-width:470px; margin-left:5px;}
+#rcreditswebformcontribute .form-item-honor,
+#rcreditswebformcontribute .form-item-honored {display:inline-block;}
+
+/* Proxies */
+#rcreditswebformproxies #edit-subtext  {font-weight:normal; font-size:85%;}
+
 /* Reports */
 #rcreditswebformreports .form-item-agents,
 #rcreditswebformreports .form-item-channels {display:inline-block;}
@@ -330,8 +344,8 @@ form.rweb  .form-no {color:red;}
 #txsum tr#txsum-headers {font-weight:bold; background:none; border-bottom:1px solid black;}
 /*one tosign toyou fromsign fromyou rewardssign rewards balancesign balance*/
 /* .txsum-one, .txsum-balance {width:120px;} */
-.txsum-tosign, .txsum-fromsign, .txsum-rewardssign, .txsum-tithesign, .txsum-balancesign {min-width:1em;}
-.txsum-toyou, .txsum-fromyou, .txsum-tithe, .txsum-rewards {min-width:7em;}
+.txsum-tosign, .txsum-fromsign, .txsum-rewardssign, .txsum-sharesign, .txsum-balancesign {min-width:1em;}
+.txsum-toyou, .txsum-fromyou, .txsum-share, .txsum-rewards {min-width:7em;}
 
 /* Relation form */
 /*#rcreditswebformrelations #edit-subtext label {width:450px;}*/

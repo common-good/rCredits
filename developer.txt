@@ -17,12 +17,12 @@ rename community field to community
 ***
         
 To do: (* = before launch ** = earlier)
-@todo: * handle account type as bits? New choices: self-employed doing business under your own name, publicly-traded corporation.
-@todo: * business ("commercial") can't get incentives until it has specified at least one owner
-
-- *add warning about flow not implemented yet
+- * I includes security code, like this: http(s?)://new.rc2.me/new.abc/Urlencoded10CharacterSecurityCode
+- ** Default for companies is "pay everyone virtually", for personal is "pay everyone directly". 
+- ** membership gift happens upon account activation (rTrader status). It goes through as an rC transaction.
+- * diagram to illustrate min, max, and automatic virtual payments (for employees and companies, each in middle)
+- * add warning about flow not implemented yet
 - nightly: recalc exchange rates / allow users to express amounts in any currency (rounding DOWN); transactions will need to record exchange rate (true currency will be tied to region, regardless of how the user chooses to have it displayed)
-- * accept rCredits for membership donation! and move it to new.rcredits.org
 - * make sure to check RTRADER bit everywhere we need to (anything financial, nowhere else)
 - don't go over employee maximums unless we have to (know it ahead of time, either limit it to max or don't. simple) (don't bother with this -- it will probably be better as it is)
 - *receive deposit/withrawal callbacks to set "completed" in r_usd. alert staff if fails.
@@ -47,11 +47,9 @@ To do: (* = before launch ** = earlier)
 - allow extra params in buynow form
 - ** Transaction Summary: add extra rows for "Unavailable until <date>", "Available Balance", "Incentive Rewards to Date", and "Amount That Can Be Exchanged for USD", reflecting serialized assoc values in the data field of the account: balance, frozen[n]=array(date,amount), rewards (available balance is calculated)
 - for companies, show HTML for online payment buttons
-- * add tithe to summary page, for admins
+- * add share to summary page, for admins
 - make personal contact info secure?
 - Company profile picture will also appear in our office slideshow. Say so on company tab.
-- find out why account_type doesn't get passed to formSummary_submit in $sta['values'] (low priority)
-includes security code, like this: http(s?)://new.rc2.me/new.abc/Urlencoded10CharacterSecurityCode
 - (2013-02-13) i had a dream last night that peace prevailed among the human planets because a benign alien race provided a way to verify the identity of any speaker. This morning the following ideas came to me, about how to approach that ideal. Members should be able to choose their security method:
   . whenever the transaction is between accounts from different regions, in-person merchant must ask the customer for a "travel word". The system reports a new travel word (for next time) that the merchant then tells the customer.
   . the foreign in-person merchant can ask for a PIN (that doesn't change)
@@ -161,8 +159,8 @@ function eachAccount($queries, $ons, $where = 'TRUE', $subs = array()) {
 @todo: Finish separating backend. Front end should have no registered users. This should maybe wait until after launch.
 @todo: use popups for some things
 @todo: make help divs draggable
-@todo: when a relation for a company is created with PERM_MANAGE, warn the user that they will no longer be able to log in directly to the company account, change the password to "NOACCESS", and prevent a password change ("Only authorized individuals can manage this account.")
-@todo: option to suppress current balance in messages (make it a separate message) BIT_SHOWBAL (default TRUE)
+@todo: when a relation for a company is created with B_MANAGE, warn the user that they will no longer be able to log in directly to the company account, change the password to "NOACCESS", and prevent a password change ("Only authorized individuals can manage this account.")
+@todo: option to suppress current balance in messages (make it a separate message) B_SHOWBAL (default TRUE)
 @todo: Miscellaneous other data to collect:
   Names and Social Security Numbers of Dependents [why do we need this?]
   If this is a joint account and you are the first to join, social security numbers of the other account holders
@@ -170,7 +168,6 @@ function eachAccount($queries, $ons, $where = 'TRUE', $subs = array()) {
 @todo: closed accounts have only read perm and point (data[new_account]) at new account qid
 @todo: servers exchange info on which ss#s (or other ids) are dups
 @todo: check on mergeaccounts: do inter-table key relations get updated automatically?
-@todo: donations
 @todo
 - remove all direct db operations from interface modules (and their .inc files) -- use be\ and u\ there, but not r\
 

@@ -410,8 +410,8 @@ function phoneConfirms($number, $request) {
 function phoneCanChargeUnilaterally($number) {
   global $testOnly;
   if (!$acct = r\acct(r\SMS\uid($number))) return FALSE;
-  if ($testOnly) return $acct->hasBit(BIT_CHARGE);
-  return $acct->setBit(BIT_CHARGE);
+  if ($testOnly) return $acct->hasBit(B_CHARGE);
+  return $acct->setBit(B_CHARGE, TRUE, TRUE);
 }
 
 /**

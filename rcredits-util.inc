@@ -86,7 +86,7 @@ function cleanAmount($amount) {
 
 /**
  * Return an error message if the amount is bad.
- * @param string $restriction: none, >0, or >=0 (the default)
+ * @param string $restriction: none (the default), >0, or >=0
  */
 function badAmount(&$amount, $restriction = '') {
   if (!is_numeric($new = cleanAmount($amount))) return 'bad amount';
@@ -796,3 +796,4 @@ function digits($n) {return preg_replace('/\D/', '', $n);}
 function monthDay1($time = REQUEST_TIME) {return strtotime(strftime('%b01'));}
 function prefix(&$var, $prefix) {$var = $prefix . $var;}
 function setDft(&$param, $value) {if (!isset($param)) $param = $value;}
+function bit($bit) {return 1 << $bit;}

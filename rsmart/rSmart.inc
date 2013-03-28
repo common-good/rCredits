@@ -150,7 +150,7 @@ function startup($args = '') {
   $account_name = $cacct->full_name;
   $allow_change_account = 0;
   $allow_change_agent = 1;
-  $require_agent = $cacct->account_type >= R_COMMERCIAL ? 1 : 0;
+  $require_agent = $cacct->can(B_PERSONAL) ? 0 : 1;
   $show_buttons = buttons($cacct, $owner);
   return compact(u\ray('my_id account_name update_link allow_change_account allow_change_agent require_agent show_buttons')); // standard fields to return on startup);
 }
@@ -300,9 +300,9 @@ function makeDevice($device, $acct, $code = '') {
 }
 
 function agentButtons($acct) {
-  return $acct->can(PERM_BUY) ? 3
-      : ($acct->can(PERM_SELL) ? 1 
-      : ($acct->can(PERM_READ) ? 0
+  return $acct->can(B_BUY) ? 3
+      : ($acct->can(B_SELL) ? 1 
+      : ($acct->can(B_READ) ? 0
       : (-1 )));
 }
 
@@ -314,7 +314,7 @@ function accountName($acct) {
 }
 
 function balances($uid) {
-  if (r\acct()->can(PERM_MANAGE)) $my_balance = be\creditInfo()->fancy['balance'];
+  if (r\acct()->can(B_MANAGE)) $my_balance = be\creditInfo()->fancy['balance'];
   if ($uid) {
     $other_balance = r\otherBalance($uid);
     if (!$other_balance) unset($other_balance); // don't return an empty parameter

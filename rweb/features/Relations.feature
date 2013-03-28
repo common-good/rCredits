@@ -6,9 +6,9 @@ SO I can buy and sell stuff on behalf of other accounts, and they on mine.
 Setup:
   Given members:
   | id   | full_name  | account_type     | flags         |
-  | .ZZA | Abe One    | %R_PERSONAL      | %BIT_DEFAULTS |
-  | .ZZB | Bea Two    | %R_SELF_EMPLOYED | %BIT_MEMBER   |
-  | .ZZC | Corner Pub | %R_COMMERCIAL    | %BIT_RTRADER  |
+  | .ZZA | Abe One    | %R_PERSONAL      |  |
+  | .ZZB | Bea Two    | %R_SELF_EMPLOYED | %B_MEMBER   |
+  | .ZZC | Corner Pub | %R_COMMERCIAL    | %B_RTRADER  |
   | .ZZD | Dee Four   | %R_PERSONAL      | 0             |
   And transactions: 
   | tx_id | created   | type       | amount | from      | to   | purpose | taking |

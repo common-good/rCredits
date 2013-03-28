@@ -28,7 +28,7 @@ Scenario: A newbie registers
   | Abe One   | a@example.com | US    | 01001       | MA    | Amherst | %R_PERSONAL  | Th15_i5_A_rAnd0M_c0D |
  Then members:
   | id      | full_name | email         | country | postal_code | state | city    | account_type | flags    |
-  | NEW.ZZA | Abe One   | a@example.com | US | 01001       | MA    | Amherst | %R_PERSONAL  | %BIT_DEFAULTS |
+  | NEW.ZZA | Abe One   | a@example.com | US | 01001       | MA    | Amherst | %R_PERSONAL  |  |
   And we say "status": "your account is ready" with subs:
   | quid    | balance |
   | NEW.ZZA | $250    |
@@ -66,9 +66,9 @@ Scenario: A newbie registers
 ##  | full_name | email         | postal_code | city    | account_type | company  | company_phone | company_options |
 ##  | Abe One   | a@example.com | 01001       | Amherst | personal     | Aacme Co | (413)628-0000 | is_owner=>1     |
 ##  Then members:
-##  | id      | full_name | email         | postal_code | phone        | city    | account_type  | flags         |
-##  | NEW.ZZA | Abe One   | a@example.com | 01001       |              | Amherst | %R_PERSONAL   | %BIT_DEFAULTS |
-##  | NEW.ZZB | Aacme Co  |               |             | +14136280000 |         | %R_COMMERCIAL | %BIT_DEFAULTS |
+##  | id      | full_name | email         | postal_code | phone        | city    | account_type  | flags |
+##  | NEW.ZZA | Abe One   | a@example.com | 01001       |              | Amherst | %R_PERSONAL   |  |
+##  | NEW.ZZB | Aacme Co  |               |             | +14136280000 |         | %R_COMMERCIAL |  |
 ##  And relations:
 ##  | id | main | agent | permission | employer_ok | employee_ok | is_owner |
 ##  | 1  | .ZZB | .ZZA  |            |             |             | 1        |

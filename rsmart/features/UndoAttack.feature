@@ -67,7 +67,7 @@ Scenario: Device gives bad transaction id
 
 Scenario: Device gives nonexistent transaction id
   When member " NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAZ", with the request "confirmed"
-  #no variant on first member because (1) balance should be shown when confirmed and (3) showing balance requires PERM_MANAGE 
+  #no variant on first member because (1) balance should be shown when confirmed and (3) showing balance requires B_MANAGE 
   Then we respond with:
   | success | message       | my_balance |
   | 0       | undo no match | $170       |
@@ -86,7 +86,7 @@ Scenario: Device gives bad confirmation status
 
 Scenario: Member asks to undo someone else's transaction
   When member " NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAC", with the request "confirmed"
-  #no variant on first member because (1) balance should be shown when confirmed and (3) showing balance requires PERM_MANAGE 
+  #no variant on first member because (1) balance should be shown when confirmed and (3) showing balance requires B_MANAGE 
   Then we respond with:
   | success | message       | my_balance |
   | 0       | undo no match | $170       |

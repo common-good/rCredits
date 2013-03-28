@@ -18,7 +18,7 @@ function formTxs($form, &$sta, $args = '') {
   $maxRows = 20;
   $cacct = r\acct();
   $cuid = $cacct->id;
-  $cttyAdmin = $cacct->can(PERM_CTTY_ADMIN);
+  $cttyAdmin = $cacct->can(B_CTTY_ADMIN);
   
   extract(u\just('agents channels period starting ending do xid download downloaded variety', $args)); 
   $report = $cttyAdmin ? (@$variety == 'report') : FALSE; // no community reports yet for non-admins
@@ -41,7 +41,7 @@ function formTxs($form, &$sta, $args = '') {
     $classes = 'tid date name fromyou toyou rpct state buttons purpose reward';
     $headers = t('#,Date,Name,From you,To you,r%,Status,Action,Purpose,Reward');
     if (@$agents) {$classes .= ' agent'; $headers .= t(',Agent');}
-    list ($canSell, $canBuy) = array($cacct->can(PERM_SELL), $cacct->can(PERM_BUY));
+    list ($canSell, $canBuy) = array($cacct->can(B_SELL), $cacct->can(B_BUY));
   }
   $url0 = @"$base_url/$page/period=$period&agents=$agents&channels=$channels&variety=$variety";
   if (@$channels) {$classes .= ' channel'; $headers .= t(',Via');}
@@ -145,7 +145,7 @@ function formTxs($form, &$sta, $args = '') {
     $channels['#title'] = t('Show:');
     $agents = $do = $summary = NULL;
   } else {
-    $agents = formField('checkbox', t('Show:'), t('agents'), dft(isset($agents) ? $agents : $cacct->can(PERM_COMPANY)));
+    $agents = formField('checkbox', t('Show:'), t('agents'), dft(isset($agents) ? $agents : $cacct->can(B_COMPANY)));
     $do = formField('hidden', $do);
     $summary = formField('markup', '', '', array('markup' => tx_summary($starting, $ending)));
   }
@@ -265,7 +265,7 @@ function tx_edit($xid) {
   if (!$details = be\lastTx('xid=:xid', compact('xid'), TRUE)) return FALSE; // bail on hack attempt
   extract(u\just('taking purpose role', r\txReportArgs($details)));
   
-  if (!r\acct()->can($taking ? PERM_SELL : PERM_BUY)) return FALSE;
+  if (!r\acct()->can($taking ? B_SELL : B_BUY)) return FALSE;
   
   $form = array(
     'title' => formField('item', t('Edit Description')),
@@ -313,7 +313,7 @@ function tx_summary($starting, $ending) {
   $old_balance = txBal($old_balance);
   $summary_title = "<div id='txsum-title'>SUMMARY</div>";
   
-  $classes = u\prefixValues('txsum-', u\ray('one tosign toyou fromsign fromyou rewardssign rewards tithesign tithe balancesign balance'));
+  $classes = u\prefixValues('txsum-', u\ray('one tosign toyou fromsign fromyou rewardssign rewards sharesign share balancesign balance'));
   $rows = array(
     array('id' => 'txsum-dates', 'data' => u\ray("$starting,,,,,,,,,,$ending")),
     array('id' => 'txsum-headers', 'data' => u\ray('Starting balance,,To You,,From You,,Rewards,,To CGF,,Ending balance')),

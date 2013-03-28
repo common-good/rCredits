@@ -101,7 +101,7 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'no permission' => t('You do not have permission to visit this page.'),
   'specific bad amount' => t('The amount (@amount) must be a number.'),
   'insufficient relation' => t('You cannot open an account unless you have a closer relationship to it. Use the <a href="membership/invite">invitation page</a> instead.'),
-  'humans sign' => t('You must be logged in to a personal account, to sign the agreement on behalf of a company.'),
+//  'humans sign' => t('You must be logged in to a personal account, to sign the agreement on behalf of a company.'),
   'bad spoof check' => t('You must confirm (<i>every time</i>) that you are on the real rCredits site.'),
   'no auth yet' => t('You have not yet authorized a connection with your Dwolla account. Please resubmit.'),
   'not an image' => t('That is not an acceptable image format.'),
@@ -191,7 +191,6 @@ EOF;
     r\dbQ($sql);
     be\fund($uid, TX_SIGNUP);
     be\fund($uid2, TX_SIGNUP);
-    r\dbQ(file_get_contents(__DIR__ . '\..\sql\r_companies-insert.sql'));
 */
   }
   
@@ -411,14 +410,14 @@ EOF;
     $string = u\shortName(" $string0 ", '%');
     $selection = <<<EOF
       industry AS display FROM r_industries WHERE (industry LIKE :string $soundex)
-      UNION SELECT full_name AS display FROM users WHERE (account_type!=:R_PERSONAL AND name LIKE :string)
+      UNION SELECT full_name AS display FROM users WHERE ((flags&(1<<B_COMPANY)) AND name LIKE :string)
 EOF;
   } elseif ($role == 'company') {
-    $selection = 'uid, full_name AS display FROM users WHERE (account_type!=:R_PERSONAL AND name LIKE :string)';
+    $selection = 'uid, full_name AS display FROM users WHERE (flags&(1<<B_COMPANY)) AND name LIKE :string)';
   } elseif (u\abbreviates('ctty', $role)) { // ctty or cttyPerson
     $cacct = r\acct($cuid);
     $cttyId = $cacct->community;
-    $personal = $role == 'ctty' ? '' : ' AND account_type<:R_COMMERCIAL AND status=1';
+    $personal = $role == 'ctty' ? '' : ' AND (flags&(1<<B_PERSONAL))';
     $selection = "uid, full_name AS display FROM users WHERE (name LIKE :string AND community=:cttyId$personal)";
     $params .= ' cttyId';
   } else $selection = 'uid, full_name AS display FROM users WHERE (name LIKE :string)';
@@ -438,11 +437,70 @@ EOF;
   drupal_json_output($matches);
 }
 
+define('R_CONTRIB_SHOWHIDE', "var other = jQuery('.form-item-amount'); if(jQuery('#edit-gift').val() == 0) {other.show();} else other.hide();");
+
+function formContribute($form, &$sta) {
+  $cacct = r\acct();
+  $giftLevels = array(
+  //	10000 => 'Marble .. $10,000',
+  //	 5000 => 'Granite ... 5,000',
+    2500 => 'Slate .... $2,500',
+    1000 => 'Glass ..... 1,000',
+     500 => 'Iron ........ 500',
+     250 => 'Oak ......... 250',
+     100 => 'Two Bricks .. 100',
+      50 => 'One Brick .... 50',
+      25 => 'Half Brick ... 25',
+       0 => 'Water ... (other)',
+  );
+  $oftens = array(0 => 'when?', 'M' => 'Monthly', 'Q' => 'Quarterly', 1 => 'Now (maybe again later)');
+  $honors = array('honor' => 'in honor of', 'memory' => 'in memory of', 'other' => '(other)');
+  $onchange = str_replace('show()', "show(); jQuery('#edit-amount').focus()", R_CONTRIB_SHOWHIDE);
+  $giftAttrib = attrib(compact('onchange'));
+   
+  $form = array(
+    'title' => item(t('Membership Contribution to Common Good Finance')),
+    'subtext' => item(t('<p>Make a contribution of any size, to help support the rCredits system. Buy a BRICK or some other piece of the Common Good Economy, as a tax-deductible contribution to Common Good Finance. We especially love monthly giving commitments.') . ($cacct->can(B_RTRADER) ? '' : t(' The amount you choose will come from your combined rCredits/US Dollar account after your account is activated.</p>')) . t('</p><p>Thank you for your support!</p>')),
+    'gift' => formField('select', t('Contribution:'), '', required($cacct->can(B_COMPANY) ? R_COMPANY_GIFT : R_INDIVIDUAL_GIFT) + $giftAttrib, $giftLevels),
+    'amount' => textField(t('Other amount $'), ''),
+    'often' => formField('select', t('When:'), '', required(), $oftens),
+    'honor' => formField('select', t('Honoring:'), '', '', $honors),
+    'honored' => textField(),
+    'share' => textField(t('Share:'), t('What percentage of your ongoing rebates and bonuses would you like to contribute back to Common Good Finance, to support the rCredits system?'), required('50%')),
+    'submit' => submit(),
+  );
+
+  js(R_CONTRIB_SHOWHIDE, 'inline', 'footer');
+  return labeled($form);
+}
+
+function formContribute_validate($form, &$sta) {
+  js(R_CONTRIB_SHOWHIDE, 'inline', 'footer');
+  extract(u\just('gift amount share', $sta['values']));
+  extract(u\just('often', $sta['input']));
+  if (!$amount = $gift ?: $amount) return say('missing field', array('field' => 'amount'), 'amount');
+  if (!$often) return say('missing field', array('field' => 'when'), 'often');
+  if (!$share = str_replace('%', '', $share)) return say('missing field', array('field' => 'share'), 'share');
+  if (u\badAmount($amount, '>0')) return say('nonpositive amount', 'amount');
+  if (u\badAmount($share)) return say('nonpositive amount', 'share');
+  $sta['values'] = compact(u\ray('amount share')) + $sta['values'];
+}
+
+function formContribute_submit($form, &$sta) {
+  $cacct = r\acct();
+  $info = u\just('amount often honor honored share', $sta['values']) + u\just('often', $sta['input']);
+  $uid = $cacct->id;
+  $created = REQUEST_TIME;
+  r\dbInsert('r_gifts', $info + compact('uid', 'created'));
+  say('gift successful');
+}
+
+/*
 function contribute() {
   setupGlobals(); // required because not called from showForm
   if ($cacct = r\acct()) {
     $memberid = $cacct->mainQid;
-    if ($cacct->can(PERM_COMPANY)) $organization = $cacct->full_name; else $yourname = $cacct->full_name;
+    if ($cacct->can(B_COMPANY)) $organization = $cacct->full_name; else $yourname = $cacct->full_name;
     $phone = u\formatPhone($cacct->phone, '');
     $email = $cacct->mail;
     $country = $cacct->country;
@@ -455,6 +513,7 @@ function contribute() {
   } else $info = array();
   r\go('http://rCredits.org/donate?rparams=' . bin2hex(gzdeflate(http_build_query($info))));
 }
+*/
 
 function formHelp($form, &$sta, $what = '') {
   require_once __DIR__ . '/rweb-help.inc';
@@ -489,18 +548,18 @@ function help($page, $class = '') {
 function formMembership($updating, &$sta = '', $code = '') {
   if (!$acct = r\acct()) return NULL;
   $cuid = $acct->id;  
-  $nonperson = ($acct->account_type >= R_COMMERCIAL);
-//  $acct->setBit(BIT_MEMBER, 0); // for testing
-//  $acct->setBit(BIT_RTRADER, 0);
-  if (!$acct->can(PERM_MEMBER)) {
+  $nonperson = !$acct->can(B_PERSONAL);
+//  $acct->setBit(B_MEMBER, 0); // for testing
+//  $acct->setBit(B_RTRADER, 0);
+  if (!$acct->can(B_MEMBER)) {
     extract(u\just('gotPhoto signed donated nearly', r\nearlyMember($acct)));
-    $gotProxies = (r\dbLookup('COUNT(*)', 'r_proxies', 'person=:cuid', compact('cuid')) >= 2);
-    r\membershipEvent($acct, 'member', $nearly and ($nonperson or $gotProxies));
+    $gotProxies = $nonperson ?: (r\dbLookup('COUNT(*)', 'r_proxies', 'person=:cuid', compact('cuid')) >= 2);
+    r\membershipEvent($acct, 'member', $nearly and $gotProxies);
   }
 
   $gotContact = ($acct->phone and $acct->mail and $acct->address and $acct->city and $acct->country);
 
-  if (@$code == 'w' or ($acct->can(PERM_MEMBER) and !$acct->can(PERM_RTRADER))) {
+  if (@$code == 'w' or ($acct->can(B_MEMBER) and !$acct->can(B_RTRADER))) {
     $gotUsdInfo = (($secure = @$acct->secure) and @$secure['auth']);
     $gotIdProof = (file_exists(DRUPAL_ROOT . $acct->auxFilename('proof')) and @$acct->dob and @$acct->federal_id);
     $gotPreferences = !is_null($acct->minimum);
@@ -509,11 +568,11 @@ function formMembership($updating, &$sta = '', $code = '') {
     r\membershipEvent($acct, 'eligible', $gotUsdInfo and $gotIdProof and $gotPreferences and $invited);
   }
 
-  if ($updating) return $acct->can(PERM_RTRADER);
+  if ($updating) return $acct->can(B_RTRADER);
   
   $message1 = $message2 = $message3 = '';
   
-  if (!$acct->can(PERM_MEMBER) and !@$code) { // not a member yet (no rCard, no vote)
+  if (!$acct->can(B_MEMBER) and !@$code) { // not a member yet (no rCard, no vote)
     $message1 = t('<h2>Congratulations on signing up for rCredits!</h2><p>Thanks for joining us. ') 
     . ($nonperson ? t('Before you can begin accepting rCredits payments, you must complete a few simple tasks (this is page one of two):</p>') 
       : t('Before we can send your rCard, and before you can vote on community funding, you must complete a few simple tasks:</p>'));
@@ -531,7 +590,7 @@ function formMembership($updating, &$sta = '', $code = '') {
               
   } elseif (!$gotContact) { // did all the initial steps, but somehow didn't complete contact info
     $message1 = t('<h2>Missing Contact Information</h2><p>Please complete your <a href="../account/contact">Contact Information</a>, ') . ($nonperson ? t('before continuing.</p>') : t('so we can mail your rCard.</p>'));
-  } elseif (!$acct->can(PERM_RTRADER)) { // got rCard, but not activated yet
+  } elseif (!$acct->can(B_RTRADER)) { // got rCard, but not activated yet
     $message1 = $nonperson ? t('<h2>To activate your account, complete these final steps:</h2>') 
     : (t('<h2>You have completed all the rCredits membership requirements!</h2>')
       . t('<p>You will receive your rCard in the mail within a few days. To activate your account and begin using your rCard for purchases from participating businesses, there are a few final tasks:</p>'));
@@ -591,10 +650,10 @@ EOF;
 function formAgreement($form, &$sta) {
   global $base_url;
   $cacct = r\acct();
-  if ($cacct->proSe() and $cacct->account_type >= R_COMMERCIAL) {
+/* NEVER HAPPENS if ($cacct->proSe() and $cacct->acctType >= R_COMMERCIAL) {
     say('humans sign', 'signed_by');
     r\go('membership');
-  }
+  } */
   $title = item(t('rCredits Agreement'));
   $name = 'checkNUMBER';
   $id = "edit-$name";
@@ -697,7 +756,7 @@ function formProxies($form, &$sta) {
 EOF
   ));
 
-  $proxy1 = textField(t('Proxy:'), t('Who will vote on your behalf, when you don\'t vote?'), required(r\definiteName(r\proxy($id, 1))) + autocomplete('cttyPerson'));
+  $proxy1 = textField(t('Proxy:'), t('Who will vote on your behalf, when you don\'t vote directly?'), required(r\definiteName(r\proxy($id, 1))) + autocomplete('cttyPerson'));
   $proxy2 = textField(t('Alternate:'), t('Who will vote on your behalf, if your Proxty doesn\'t vote either? (even before resorting to your Proxy\'s Proxy)'), required(r\definiteName(r\proxy($id, 2))) + autocomplete('cttyPerson'));
   $submit = submit();
   $form = compact(u\ray('title subtext proxy1 proxy2 submit'));
@@ -796,10 +855,10 @@ function formSummary($form, &$sta) {
   $regionName = r\acct($cacct->community)->full_name;
   $floorDesc = t('Your balance can go this low for up to 30 days');
   
-  if (!$cacct->isCompany() or !$cacct->proSe()) {
+  if (!$cacct->can(B_COMPANY) or !$cacct->proSe()) {
 // FAILS on mobile    $idLink = 'id="idcard"'; // use jQuery to create popup (see inc/misc.js)
     $idLink = 'href="Print-ID-Card" target="_blank"';
-    $card = $cacct->can(PERM_CTTY_ADMIN) ? ("<a $idLink>" . t('Print ID Card') . '</a>') : ''; // no card for community accounts
+    $card = $cacct->can(B_CTTY_ADMIN) ? ("<a $idLink>" . t('Print ID Card') . '</a>') : ''; // no card for community accounts
     if ($cacct->agentId == 1) $card .= ' [<a href="http://localhost/devcore/rcredits/test?module=rcredits/rweb&feature=Signup&scene=&restart=1">run current test</a>]'; // DEBUG (keep)
   } else $card = t("To request employee ID cards, visit the <a href=\"$base_url/account/relations\">Account Relations</a> page.");
 
@@ -812,32 +871,32 @@ function formSummary($form, &$sta) {
   $balance = formField('item', t('Balance:'), '', "r$balance + us$usdBalance = $total");
   
   if ($cacct->id > 0) {
-    $extra = r\agent()->can(PERM_ADMIN) ? " id#$cacct->id" : '';
+    $extra = r\agent()->can(B_ADMIN) ? " id#$cacct->id" : '';
     $accountId = formField('item', t('ID:'), $card, ($cacct->mainQid ?: 'N/A') . ' (' . $regionName . ")$extra");
-    if ($cacct->can(PERM_MEMBER) and $cacct->account_type == R_PERSONAL) $another = submit(t('Open Another Account'));
-    $account_type = formField('item', t('Account type:'), '', $GLOBALS['account types'][$cacct->account_type+0]); // +0 for admin
+    if ($cacct->can(B_MEMBER) and $cacct->can(B_PERSONAL)) $another = submit(t('Open Another Account'));
+    $acctType = formField('item', t('Account type:'), '', $GLOBALS['account types'][$cacct->acctType+0]); // +0 for admin
     $floor = formField('item', t('Credit floor:'), $floorDesc, u\formatAmount($cacct->floor));
     $rewards = formField('item', t('Rewards:'), t('(to date)'), $my_rewards);
   }
 
-  if (r\agent()->can(PERM_CTTY_ADMIN) and (!$cacct->proSe() or $cacct->id == 1)) { // ctty admin not managing own personal account
+  if (r\agent()->can(B_CTTY_ADMIN) and (!$cacct->proSe() or $cacct->id == 1)) { // ctty admin not managing own personal account
     $ctty = $cacct->community;
     if ($cacct->id < 0) { // managing the community itself
       $count = formField('item', t('Members:'), '', r\dbLookup('COUNT(*)', 'users', 'community=:ctty AND uid<>:ctty', compact('ctty')));
     } else { // managing some individual community member account
-      $account_type = formField('select', t('Account type:'), '', $cacct->account_type+0, $GLOBALS['account types']); // +0 for admin
-      if ($cacct->isCompany()) $canCharge = boolField(t('Can charge'), t('This account can charge others unilaterally (in person)'), $cacct->hasBit(BIT_CHARGE) + 0);
+      $acctType = formField('select', t('Account type:'), '', $cacct->acctType+0, $GLOBALS['account types']); // +0 for admin
+      if ($cacct->can(B_COMPANY)) $canCharge = boolField(t('Can charge'), t('This account can charge others unilaterally (in person)'), $cacct->hasBit(B_CHARGE) + 0);
       $floor = textField(t('Credit floor:'), $floorDesc, dft(u\formatAmount($cacct->floor)));
 
-      $rTrader = boolField(t('rTrader?'), t('Does the submitted proof of ID pass muster? Is this account approved to use rCredits?'), $cacct->hasBit(BIT_RTRADER) + 0);
+      $rTrader = boolField(t('rTrader?'), t('Does the submitted proof of ID pass muster? Is this account approved to use rCredits?'), $cacct->hasBit(B_RTRADER) + 0);
       $notes = formField('textarea', t('Notes'), '', dft($cacct->notes));
     }
     $who = textField(t('Be who:'), t('Type a name, id, email, or phone of a (different) member account to manage.'), autocomplete('ctty'));
     $submit = submit();
   }
 
-  if ($cacct->proSe() and !$cacct->isCompany() and !formMembership(TRUE)) say('take a step');
-  $form = compact(u\ray('title who accountName accountId another account_type canCharge balance floor rewards rTrader idApproved notes count submit'));
+  if ($cacct->proSe() and !$cacct->can(B_COMPANY) and !formMembership(TRUE)) say('take a step');
+  $form = compact(u\ray('title who accountName accountId another acctType canCharge balance floor rewards rTrader idApproved notes count submit'));
   return labeled($form);
 }
 
@@ -857,9 +916,9 @@ function formSummary_validate($form, &$sta) {
 function formSummary_submit($form, &$sta) {
   if (op($sta) == 'another') return r\go('another');
 
-  extract(u\just('who account_type floor notes canCharge rTrader idApproved', $sta['values']));
-  $account_type = $_POST['account_type']; // dunno why Drupal omits this from $sta['values']
-  if (!r\agent()->can(PERM_CTTY_ADMIN)) return; // hack attempt
+  extract(u\just('who acctType floor notes canCharge rTrader idApproved', $sta['values']));
+  $acctType = $_POST['acctType']; // dunno why Drupal omits this from $sta['values']
+  if (!r\agent()->can(B_CTTY_ADMIN)) return; // hack attempt
   $cacct = r\acct();
 
   if (@$who and ($who->community == r\agent()->community or r\agent()->id == 1)) {
@@ -869,18 +928,13 @@ function formSummary_submit($form, &$sta) {
   } 
   
   if (($cuid = $cacct->id) > 0) {
-    $cacct->update(compact(u\ray('account_type floor notes')));
-    $wasRTrader = $cacct->hasBit(BIT_RTRADER);
-    $cacct->setBit(BIT_RTRADER, $rTrader);
-    if (isset($canCharge)) $cacct->setBit(BIT_CHARGE, $canCharge);
+    $wasRTrader = $cacct->hasBit(B_RTRADER);
+    $cacct->setBit(B_RTRADER, $rTrader);
+    if (isset($canCharge)) $cacct->setBit(B_CHARGE, $canCharge);
+    $cacct->update(compact(u\ray('acctType floor notes')));
 
     if ($rTrader and !$wasRTrader) { // signup incentive if promoted to rTrader
-      //REQUEST_TIME < strtotime('April 1, 2013')) { // randomize initial signup incentives somewhat
-      //$amounts = u\ray(R_SIGNUP_INCENTIVES);
-      //$sofar = r\dbLookup('SUM(amount)', 'r_txs', 'payee=:cuid AND type=:TX_SIGNUP', compact('cuid'));
-      //$i = array_search($sofar, $amounts);
-      //array_splice($amounts, 0, $i + 1); // remove what they got so far
-      $amount = R_STARTING_BALANCE; //min(R_STARTING_BALANCE - $sofar, $amounts[rand(0, count($amounts) - 1)]);
+      $amount = R_STARTING_BALANCE; 
       be\fund($cacct->id, TX_SIGNUP, $amount);
       $action = 'granted';
       $otherName = $cacct->full_name;
@@ -910,9 +964,9 @@ function formAccount($form, &$sta) {
   $form['account']['status']['#weight'] = 5;
   $form['account']['roles']['#weight'] = 6;
   $form['picture']['picture_upload']['#description'] .= t(' File size must be under 3MB.')
-    . $cacct->account_type >= R_COMMERCIAL ? 
-      t(' A picture in landscape orientation will look best, in rCredits promotions.')
-    : t(' Your picture must be taller than it is wide (3:4 ratio is ideal) and must show your full face, filling most of the frame.');
+    . $cacct->can(B_PERSONAL) ? 
+      t(' Your picture must be taller than it is wide (3:4 ratio is ideal) and must show your full face, filling most of the frame.')
+    : t(' A picture in landscape orientation will look best, in rCredits promotions.');
   $form['picture']['picture_current']['#markup'] = <<<EOF
   <div class="user-picture">
   <img src="$pictureURL" />
@@ -957,9 +1011,9 @@ function formAccount_submit($form, &$sta) {
   if ($picture = @$values['picture_upload']) {
     r\dbQ('DELETE FROM file_managed');
     $tempName = str_replace('temporary://', \file_directory_temp() . '/', $picture->uri);
-    if ($cacct->account_type >= R_COMMERCIAL) {
-      if (!fixPicture($tempName, R_COMMERCIAL_ASPECT, 'bad commercial aspect')) return;
-    } elseif (!fixPicture($tempName, R_PERSONAL_ASPECT, 'bad personal aspect')) return;
+    if ($cacct->can(B_PERSONAL)) {
+      if (!fixPicture($tempName, R_PERSONAL_ASPECT, 'bad personal aspect')) return;
+    } elseif (!fixPicture($tempName, R_COMMERCIAL_ASPECT, 'bad commercial aspect')) return;
     if (!rename($tempName, $pictureFilename)) return say('file save error', 'picture');
   }
   
@@ -1042,7 +1096,7 @@ function formAccounts($form, &$sta) {
 function formAccounts_submit($form, &$sta) {
   extract(u\just('op account_account', $sta['values']));
   $cacct = r\acct();
-  if (!$cacct->can(PERM_ADMIN) and !r\acct($account_account, $cacct->agentId)->can()) r\go('user/logout'); // hack attempt?
+  if (!$cacct->can(B_ADMIN) and !r\acct($account_account, $cacct->agentId)->can()) r\go('user/logout'); // hack attempt?
   if ($op == 'Menu') {
     r\go('menu'); 
   } else svar('cuid', $account_account); // this gets checked ONLY in setupGlobals()
@@ -1050,39 +1104,56 @@ function formAccounts_submit($form, &$sta) {
 
 function formMenu($page) {
   $menu = array()
-        + goButtonIf(PERM_SELL, t('Charge'), 'charge', t('Charge someone'))
-        + goButtonIf(PERM_BUY, t('Pay'), 'pay', t('Pay someone'))
+        + goButtonIf(B_SELL, t('Charge'), 'charge', t('Charge someone'))
+        + goButtonIf(B_BUY, t('Pay'), 'pay', t('Pay someone'))
   ;
   if ($lastXid = svar('lastXid')) $menu += goButton(t('Undo'), "undo", t('Undo the last transaction'));
   if (r\otherBalance(svar('lastOther'))) $menu += goButton(t('Customer Bal'), 'remainder', t("Display the customer's current balance."));
 //  if (count($menu) == 1) $menu += goButton(t(''), '', ''); // filler
   $menu += array()
-        + goButtonIf(PERM_MANAGE, t('Summary'), 'summary', t('Account summary'))
-        + goButtonIf(PERM_MANAGE, t('Transactions'), 'transactions', t('Show transaction history'))
-        + goButtonIf(PERM_MANAGE, t('Get r/USD'), 'exchange', t('Exchange rCredits for USD or vice-versa'))
+        + goButtonIf(B_MANAGE, t('Summary'), 'summary', t('Account summary'))
+        + goButtonIf(B_MANAGE, t('Transactions'), 'transactions', t('Show transaction history'))
+        + goButtonIf(B_MANAGE, t('Get r/USD'), 'exchange', t('Exchange rCredits for USD or vice-versa'))
         + goButton(t('Find Companies'), 'directory', t('Find an rCredits member company'))
 //        + goButton(t('Help'), "help/$page", t('Help with this page'))
         + goButton(t('Reports'), 'reports', t('rCredits syste-wide or community-wide activity reports'))
-        + goButtonIf(PERM_MANAGE, t('Account'), 'account', t('Basic account information'))
-        + goButtonIf(PERM_MANAGE, t('Mobile'), 'account/cells', t('Authorize mobile devices for this account'))
-        + goButtonIf(PERM_MANAGE, t('Relations'), 'account/relations', t('Connect other members to this account'))
-        + goButtonIf(PERM_MANAGE, t('Preferences'), 'account/preferences', t('Set your account preferences'))
-        + goButtonIf(PERM_MANAGE, t('Contact Info'), 'account/contact', t('Tell us where to find you'))
-        + goButtonIf(PERM_MANAGE, t('Membership'), 'membership', t('Your rCredits membership progress'))
-        + goButtonIf(PERM_MANAGE | PERM_COMPANY, t('Company Info'), 'account/company', t('Describe this company'))
+        + goButtonIf(B_MANAGE, t('Account'), 'account', t('Basic account information'))
+        + goButtonIf(B_MANAGE, t('Mobile'), 'account/cells', t('Authorize mobile devices for this account'))
+        + goButtonIf(B_MANAGE, t('Relations'), 'account/relations', t('Connect other members to this account'))
+        + goButtonIf(B_MANAGE, t('Preferences'), 'account/preferences', t('Set your account preferences'))
+        + goButtonIf(B_MANAGE, t('Contact Info'), 'account/contact', t('Tell us where to find you'))
+        + goButtonIf(B_MANAGE, t('Membership'), 'membership', t('Your rCredits membership progress'))
+        + goButtonIf(array(B_COMPANY, B_MANAGE), t('Company Info'), 'account/company', t('Describe this company'))
         + goButton(t('Logout'), 'user/logout', t('End your rCredits session'))
   ;
   $menu = formField('fieldset', '', '', array('id' => 'menu')) + compact('menu');
   return compact('menu');
 }
 
+/**
+ * Go to the button's destination if the permission requirement is met.
+ * @param string $label: button label
+ * @param string $goto: where to go when the button is pressed
+ * @param string $title: what to say when hovering over the button
+ * @return: the button html
+ */
 function goButton($label, $goto, $title) {
   $gotoHead = isDEV ? '/devcore' : '';
   $name = str_replace('/', '_', $goto);
   return array($name => formField('item', '', '', button($label, "$gotoHead/$goto", $title)));
 }
 
-function goButtonIf($perm, $label, $goto, $title) {return r\acct()->can($perm) ? goButton($label, $goto, $title) : array();}
+/**
+ * Go to the button's destination if the permission requirement is met.
+ * @param mixed $perms: single permission number or array of permission numbers
+ * Remaining params are as for goButton().
+ */
+function goButtonIf($perms, $label, $goto, $title) {
+  $cacct = r\acct();
+  if (!is_array($perms)) $perms = array($perms);
+  foreach ($perms as $perm) if (!$cacct->can($perm)) return array();
+  return goButton($label, $goto, $title);
+}
 
 /**
  * Display the member company's profile (no editable fields here)
@@ -1090,7 +1161,7 @@ function goButtonIf($perm, $label, $goto, $title) {return r\acct()->can($perm) ?
 function formProfile($form, &$sta, $company) {
   $uid = r\userField('uid', 'name=:company', compact('company'));
   $acct = r\acct($uid);
-  if (!$uid or !$acct->isCompany()) return say('no such company', 'zot');
+  if (!$uid or !$acct->can(B_COMPANY)) return say('no such company', 'zot');
   extract((array) $acct->account(), EXTR_PREFIX_ALL, 'my');
 
   $pic = profile_picture($uid, TRUE);
@@ -1371,7 +1442,7 @@ function formGetR_submit($form, &$sta) {
   say($message, $args, @$args['success'] ? '' : 'amount'); // error or success
   if ($amount != 0) {
     if ($amount < R_MIN_DEMAND) say('demand too small');
-    if (!$cacct->can(PERM_PARTNER)) say('demand not yet');
+    if (!$cacct->can(B_PARTNER)) say('demand not yet');
   }
 }
 */
@@ -1382,7 +1453,7 @@ function formGetR_submit($form, &$sta) {
  */
 function formAnother($form, &$sta) {
   $cacct = r\acct();
-  if ($cacct->account_type != R_PERSONAL) r\go('', 'no permission');
+  if (!$cacct->can(B_PERSONAL)) r\go('', 'no permission');
   $title = item('Open Another Account');
   $relations = array(t('a company and I own at least 10% of it'), t('a company or organization that I work for, but I am not a 10%-or-more owner'), t('a family member or friend, with whom I have a primarily personal rather than financial relationship'), t('myself individually or jointly with others -- not for business'), t('none of the above'));
   $relationPrompt = item(t('What is the new account for?'));
@@ -1439,24 +1510,27 @@ function formRegister(&$form, &$sta, $args = '') {
   css('rweb.css', -9); // needed because this function doesn't go through show()
   
   $title = item(t('Sign up for rCredits'));
-  if (!$email = invitation(@$code) and @$code != bin2hex(R_WORD) and @$code != 'w') {
+  list ($email, $inviter) = invitation(@$code));
+  if (!$email and @$code != bin2hex(R_WORD) and @$code != 'w') {
     $form['actions']['submit'] = NULL; // nothing to submit
     $subtext = item(tt('bad invite'));
     $form['account']['mail'] = hidField('unused@example.com'); // keep Drupal processing happy
     $form += compact(u\ray('title subtext mail'));
     return $form;
   }
-
+  $selfInvite = ($email == r\acct($inviter)->mail);
+  
   $form['#attributes']['class'][] = 'labeled'; // "invitation required" message is not "labeled", so this comes after
   js('inc/radiocheck.js', 'file', 'footer'); // this function is not called by showForm, so we have to do this here
   $form['#validate'] = array('rCredits\\Web\\formRegister_validate');
   $form['#submit'] = array('rCredits\\Web\\formRegister_submit');
 
-  $account_types = $GLOBALS['account types'];
-  $account_type_help = t('For all but Personal accounts, contact information will be public (except your email address, which is never made public). If you are self-employed, we recommend that you open a separate account for the business. Choose "Personal AND Commercial" only if you use your own social security number and photograph for the business and don\'t want a separate account.');
+  $acctTypes = $GLOBALS['account types'];
+  if (!$selfInvite) $acctTypes = u\just('0 1', $acctTypes);
+  $acctType_help = t('For all but Personal accounts, contact information will be public (except your email address, which is never made public). If you are self-employed, we recommend that you open a separate account for the business. Choose "Personal AND Commercial" only if you use your own social security number and photograph for the business and you don\'t want a separate account.');
   $companyOptions = array('employee_ok' => t('employee'), 'is_owner' => t('owner'));
-  $onchange = "var info = jQuery('#edit-companyInfo'); if(jQuery('#edit-account_type').val() == 0) info.show(); else info.hide();";
-  $account_type_attrib = attrib(compact('onchange'));
+  $onchange = "var info = jQuery('#edit-companyInfo'); if(jQuery('#edit-acctType').val() == 0) info.show(); else info.hide();";
+  $acctType_attrib = attrib(compact('onchange'));
   
   $companyInfo = array(
     'company_text' => item(t('Are you an owner and/or employee of a local company, or of any participating rCredits company? Otherwise leave this section blank.')),
@@ -1467,12 +1541,12 @@ function formRegister(&$form, &$sta, $args = '') {
   $emailHelp = t('All emails from the system will be sent to this address. It will not be made public. If you want to use this address <b>for more than one account</b>, include a tag on the local part starting with "+" (for example, myemail<b>+whatever</b>@example.com).');
 
   $mail = textField(t('Email:'), $emailHelp, required());
-  $account_type = formField('select', t('Account type:'), $account_type_help, dft('Personal') + $account_type_attrib, $account_types);
+  $acctType = formField('select', t('Account type:'), $acctType_help, dft('Personal') + $acctType_attrib, $acctTypes);
   $companyInfo = formField('fieldset', '', '', array('id' => 'companyInfo')) + $companyInfo;
   $args = hidField($args);
   
   $defaults = compact(u\ray('country state full_name phone'));
-  $form += compact('title') + contactFields($form, $defaults) + compact(u\ray('account_type companyInfo args'));
+  $form += compact('title') + contactFields($form, $defaults) + compact(u\ray('acctType companyInfo args'));
   $form = u\insertBefore(compact('mail'), $form, 'phone');
 
   keep_values($form);
@@ -1481,11 +1555,12 @@ function formRegister(&$form, &$sta, $args = '') {
 
 function formRegister_validate($form, &$sta) {
   if (!isset($sta['buttons'])) $sta['buttons'] = array(); // for testing (keep Drupal from griping)
-  extract(u\just('args mail company companyPhone companyOptions full_name website postal_code code', $values = u\trimAll($sta['values'])));
+  extract(u\just('args mail company companyPhone companyOptions full_name postal_code code', $values = u\trimAll($sta['values'])));
   if (@$companyOptions) extract(u\just('is_owner employee_ok', $companyOptions));
   if (@$args) extract(u\just('code', $args));
   $sta['values'] = array(); // make sure Drupal doesn't save the record when WE find an error (no longer needed?)
-  if (!$email = invitation(@$code) and $code != bin2hex(R_WORD) and $code != 'w') return r\go('user/register'); // in case user resubmits
+  list ($email, $inviter) = invitation(@$code));
+  if (!$email and $code != bin2hex(R_WORD) and $code != 'w') return r\go('user/register'); // in case user resubmits
     
   if (!emailOkay($mail)) return;
   
@@ -1505,34 +1580,43 @@ function formRegister_validate($form, &$sta) {
 
   $params = u\ray('full_name city address'); // prepare for pass-by-reference
   list ($full_name, $city, $address) = u\normalizeCase($params);
-  $website = str_ireplace('http://', '', @$website);
   $community = r\communityUid($postal_code);
-  $flags = BIT_DEFAULTS;
+  $flags = B_DEFAULTS;
   $administer_users = FALSE; // for testing (keep Drupal from griping)
   $status = 1;
-  $sta['values'] = array_merge($values, compact(u\ray('name data community flags administer_users status website')));
+  $sta['values'] = array_merge($values, compact(u\ray('name data community flags administer_users status')));
 }
 
 function formRegister_submit($form, &$sta) {
-  $fields1 = 'args company companyOptions companyPhone name';
-  $fields2 = 'full_name mail phone fax website country postal_code state city address account_type';
+  $fields1 = 'args company companyOptions companyPhone';
+  $fields2 = 'name acctType full_name mail phone fax country postal_code state city address';
 
   $values = $sta['values'];
-  extract(u\just($fields1, $values));
+  extract(u\just("name acctType $fields1", $values));
   extract(u\just('code', $args));
   $pass = \user_password();
-  $cacct = new r\acct(u\just("name $fields2", $values) + compact('pass'));
-  u\EXPECT(($cuid = $cacct->id) > 0, 'registration failure');
-  setupGlobals($cuid); // some rcredits functions need to know who we are
+  $flags = B_DEFAULTS
+    | ($acctType <= R_SELF_EMPLOYED ? u\bit(B_PERSONAL) : 0)
+    | ($acctType >= R_SELF_EMPLOYED ? u\bit(B_COMPANY) : 0);
 
+  if ($acctType >= R_SELF_EMPLOYED) { // company
+    $type = $GLOBALS['account types'][$acctType];
+    $structure =
+        ($acctType == R_SELF_EMPLOYED ? u\bit(R_SELF_EMPLOYED)
+      : (strpos($type, 'nonprofit') ? u\bit(R_NONPROFIT)
+      : (strpos($type, 'corporation') ? (u\bit(R_CORPORATION) | u\bit(R_PUBLICLY_TRADED)) : 0)));
+  }
+  $cacct = new r\acct(u\just($fields2, $values) + compact(u\ray('pass flags structure')));
+  u\EXPECT(($id = $cuid = $cacct->id) > 0, 'registration failure');
+  setupGlobals($cuid); // some rcredits functions need to know who we are
+  
+  
   if (@$company) {
     extract(u\just('is_owner employee_ok', $companyOptions));
     $is_owner = (bool) $is_owner; // POSTed as "is_owner" when TRUE
     $employee_ok = (bool) $employee_ok;
     // (can't use whois to create record because user is logged out) $companyAcct = whois($company, 'company', $values);
     if ($companyUid = findCompany($company, $companyPhone)) { // company account exists
-      //$companyAcct = new r\acct(array('full_name' => $company, 'phone' => $companyPhone, 'account_type' => R_COMMERCIAL));
-      //$companyUid = $companyAcct->id;
       if (!r\relation(1, $companyUid, $cuid)) {
         list ($main, $other) = array($companyUid, $cuid);
         r\dbInsert('r_relations', compact(u\ray('main other employee_ok is_owner')));
@@ -1556,12 +1640,12 @@ function formRegister_submit($form, &$sta) {
     r\dbInsert('r_relations', compact(u\ray('main other employee_ok is_owner flow')));
   }
   
-  extract(u\just($fields2, $values));
+  extract(u\just("acctType $fields2", $values));
   $phone = u\formatPhone($phone);
   $fax = u\formatPhone($fax);
   $country = r\realCountry($country);
   $state = r\realState($state);
-  $account_type = $GLOBALS['account types'][$account_type];
+  $acctType = $GLOBALS['account types'][$acctType];
   $inviter = r\acct($inviter)->full_name;
 
   $companyOptions = json_encode($companyOptions);
@@ -1586,7 +1670,7 @@ function emailOkay($mail, $uid = '') {
 
 function findCompany($company, $companyPhone) {
   $companyShortName = u\shortName($company);
-  $where = 'account_type>:R_PERSONAL AND ';
+  $where = '(flags&(1<<B_COMPANY)) AND ';
   $companyUid = r\dbLookup('uid', 'users', $where . 'phone=:companyPhone', compact('companyPhone'));
   if (!$companyUid) $companyUid = r\dbLookup('uid', 'users', $where . 'name=:companyShortName', compact('companyShortName'));
   if (!$companyUid and strlen($companyShortName) > 8 ) {
@@ -1615,7 +1699,6 @@ function contactFields($form, $defaults = array()) {
     'full_name' => textField(t('Full name:'), $full_name_desc, required(@$full_name)),
     'phone' => textField(t('Phone:'), t('Your primary phone (landline or cell)'), required(@$phone ? u\formatPhone($phone): '')),
     'fax' => textField(t('Fax:'), t(''), dft(@$fax ? u\formatPhone($fax) : '')),
-    'website' => textField(t('Website(s):'), t('If you want to accept payments on your website, be sure to list it here.'), dft(@$website)),
     'country' => formField('select', t('Country:'), t(''), dft(@$country) + $country_attrib), // can't use required() here
     'postal_code' => textField(t('Postal code:'), t(''), required(@$postal_code)),
     'state' => formField('select', t('State:'), t(''), dft(@$state)), // can't use required() here
@@ -1632,38 +1715,16 @@ function contactFields($form, $defaults = array()) {
  * @NOTE: The country and state drop down require a change in form.inc (see patch/form.inc.patch)
  */
 function formContact($form, &$sta) {
-  be\mergeCheck(compact(u\ray('name website phone fax'))); // check before and after
+  be\mergeCheck(compact(u\ray('name phone fax'))); // check before and after
   $cacct = r\acct();
 //  extract((array) $cacct->account(), EXTR_PREFIX_ALL, 'my');
 
   $title = item(t('Contact Information'));
   $submit = submit();
-  $defaults = u\just('full_name phone fax website country postal_code state city address', $cacct->account());
+  $defaults = u\just('full_name phone fax country postal_code state city address', $cacct->account());
   $form = compact('title') + contactFields($form, $defaults) + compact('submit');
   
-//  $full_name_desc = t('Your full legal name, properly capitalized');
-  if ($cacct->can(PERM_COMPANY)) $form['full_name']['#description'] .= '<br>' . t('(If you change this, your username and rCredits webpage address will also change.)');
-  /*
-//  $onchange = "print_state(this.options[this.selectedIndex].value,'');";
-  $form = array(
-//    'title' => item(t('Contact Information')),
-//    'subtext' => basic_account_info(),
-    'full_name' => textField(t('Full name:'), $full_name_desc, required($my_full_name)),
-    'phone' => textField(t('Phone:'), t('Your primary phone (landline or cell)'), required($my_phone ? u\formatPhone($my_phone): '')),
-    'fax' => textField(t('Fax:'), t(''), dft($my_fax)),
-    'website' => textField(t('Website:'), t(''), dft($my_website)),
-    'country' => formField('select', t('Country:'), t(''), dft($my_country) + attrib(compact('onchange'))), // can't use required() here
-    'postal_code' => textField(t('Postal code:'), t(''), required($my_postal_code)),
-    'state' => formField('select', t('State:'), t(''), dft($my_state)), // can't use required() here
-    'city' => textField(t('City:'), t(''), required($my_city)),
-    'address' => textField(t('Address:'), t('Mailing address'), required($my_address)),
-    'submit' => submit(),
-  );
-
-  js('inc/countries.js', 'file', 'header');
-  js("print_country(\"$my_country\", \"$my_state\");", 'inline', 'footer');
-  */
-//  focusOn('full_name');
+  if ($cacct->can(B_COMPANY)) $form['full_name']['#description'] .= '<br>' . t('(If you change this, your username and rCredits webpage address will also change.)');
 
   return labeled($form);
 }
@@ -1688,11 +1749,10 @@ function formContact_validate($form, &$sta) {
 }
 
 function formContact_submit($form, &$sta) {
-  extract($info = u\just('full_name name website phone fax country postal_code state city address', $sta['values']));
-  $info['website'] = str_replace('http://', '', @$website);
+  extract($info = u\just('full_name name phone fax country postal_code state city address', $sta['values']));
   if (r\acct()->id == 1) unset($info['name']); // don't change 'admin'
   r\acct()->update($info);
-  be\mergeCheck(compact(u\ray('name website phone fax'))); // check before and after
+  be\mergeCheck(compact(u\ray('name phone fax'))); // check before and after
   say('info saved');
 }
 
@@ -1773,19 +1833,19 @@ function formUsd($form, &$sta, $args = '') {
     'subtext' => item(t('If you need help completing this section, visit the rCredits office in Greenfield, MA or call @phone.', array('@phone' => R_ORG_PHONE))),
     'usd_account' => textField(t('Account:'), t('Your 10-digit Dwolla account number'), required(@$usd_account)),
     'pin' => textField(t('PIN'), t('Your 4-digit Dwolla PIN'), required(@$pin)),
-    'federal_id' => $cacct->account_type >= R_COMMERCIAL ?
-        textField(t('Federal ID:'), t('Your official employer ID number (EIN)'), required(@$federal_id))
-      : textField(t('Soc Sec #:'), t('Your social security number (for required annual reporting)'), required(@$federal_id)),
+    'federal_id' => $cacct->can(B_PERSONAL) ?
+        textField(t('Soc Sec #:'), t('Your social security number (for required annual reporting)'), required(@$federal_id))
+      : textField(t('Federal ID:'), t('Your official employer ID number (EIN)'), required(@$federal_id)),
     'dob' => textField(t('Birthdate:'), t('Your date of birth'), required(@$dob)),
     'question' => textField(t('Question:'), t('Type a question that no one but you could ever guess the answer to.'), required($cacct->question)),
     'answer' => textField(t('Answer:'), t('The answer to that question'), required(@$answer)),
     'id_proof' => file_exists(DRUPAL_ROOT . $cacct->auxFilename('proof')) ? 
-        formField('item', t('Photo ID:'), '', R_ON_FILE . ($cacct->hasBit(BIT_RTRADER) ? '' : t(' (pending approval)')))
+        formField('item', t('Photo ID:'), '', R_ON_FILE . ($cacct->hasBit(B_RTRADER) ? '' : t(' (pending approval)')))
       : formField('file', t('Photo ID:'), t('Upload an image of your driver\'s license, passport, or other official photo ID.'), attrib(array('enctype' => "multipart/form-data"))),
     'submit' => submit(),
   );
 
-  if ($cacct->can(PERM_CTTY_ADMIN)) {
+  if ($cacct->can(B_CTTY_ADMIN)) {
     foreach (u\ray('usd_account pin federal_id dob answer id_proof') as $field) {
       u\prefix($form[$field]['#description'], show($field, @$show));
     }
@@ -1842,7 +1902,7 @@ function formUsd_validate($form, &$sta) {
   }
   if (!onFile('federal_id', $sta)) {
     $federal_id = $sta['values']['federal_id'] = u\digits($federal_id);
-    $what = r\acct()->account_type >= R_COMMERCIAL ? 'federal ID' : 'social security number';
+    $what = r\acct()->can(B_PERSONAL) ? 'social security number' : 'federal ID';
     if (!preg_match('/^[0-9]{9}$/', $federal_id)) return say('bad federal id', compact('what'), 'federal_id');
   }
   if (!onFile('dob', $sta)) { // 12/14/1901 is the earliest
@@ -1863,8 +1923,11 @@ function formUsd_submit($form, &$sta) {
   include_once __DIR__ . '/../usd.class'; // treat this as an extension of this file, just to make menu ['file'] consistent
 
   $usd = new r\usd(r\acct());
-  debug($usd->bank(-20, $error));debug($error); return;
- 
+//  debug($usd->bank(-.12, $error));debug($error); return;
+  r\usd::beginAtom();
+  debug($usd->send(.01, new r\usd(r\acct(2)), 'my note',FALSE, TRUE, $error));debug($error); return;
+  r\usd::commit();
+  
   $usdFields = '';
   $cacct = r\acct();
   $info = u\just('type usd_account pin auth federal_id dob question answer id_proof', $sta['values']);
@@ -1949,13 +2012,13 @@ function formRelations($form, &$sta) {
   global $base_url;
   $cacct = r\acct();
   $cuid = $cacct->id;
-  $personal = !$cacct->isCompany();
+  $personal = !$cacct->can(B_COMPANY);
   if ($confirm = sureForm($sta)) return $confirm; // confirm only getUSD
   $account_identifiers = be\accountName($cuid);
   $header = u\ray('Other account,My employer?,My employee?,Family?,Permission,');
   $classes = u\prefixValues('rel-', u\ray('person employer employee owner permission link'));
   if (!$personal) $header[1] = '$/mo';
-  if ($cacct->account_type >= R_COMMERCIAL) $header[3] = 'Owner?';
+  if (!$cacct->can(B_PERSONAL)) $header[3] = 'Owner?';
   
   $sql = <<<EOF
     SELECT DISTINCT s.reid, s.main, s.other, s.amount, IF(:cuid=s.main, v.full_name, u.full_name) AS full_name,
@@ -1972,8 +2035,8 @@ EOF;
     $raws0[$reid] = $row; // original data from table
     $isAgent = ($cuid != $main);
     $combo = ($isAgent and @$previousAgent == $main); // related both ways
-    $otherpersonal = !r\acct($isAgent ? $main : $other)->isCompany();
-    $idLink = (!$isAgent and $otherpersonal and $employee_ok and $permission >= PERM_SELL) ? "<a target=\"_blank\" href=\"$base_url/Print-ID-Card/$other\">print&nbsp;ID&nbsp;Card</a>" : R_NONE;
+    $otherpersonal = !r\acct($isAgent ? $main : $other)->can(B_COMPANY);
+    $idLink = (!$isAgent and $otherpersonal and $employee_ok and $permission >= B_SELL) ? "<a target=\"_blank\" href=\"$base_url/Print-ID-Card/$other\">print&nbsp;ID&nbsp;Card</a>" : R_NONE;
 
     $ii = (count($rows) - ($combo ? 1 : 0)) . "-$reid"; // "row-reid"
     $discrepant = ($employer_ok xor $employee_ok); // exactly one has claimed the relation
@@ -2033,7 +2096,7 @@ function formRelations_validate($form, &$sta) {
   
   if (@$new_person) {
     $acct = whois($new_person, 'new_person', $sta['values'], FALSE, 'no self-relation');
-//    if ($acct->can(PERM_COMPANY)) return say('no company relations', 'new_person');
+//    if ($acct->can(B_COMPANY)) return say('no company relations', 'new_person');
     if (r\relation(1, $cuid, $acct->id)) return say('already related', 'new_person');
     $sta['values']['other'] = $acct->id; // save for submission handling
   }
@@ -2206,14 +2269,16 @@ function formCells_submit($form, &$sta) {
  * @param string $code: the invitation code
  * @param int $invitee: the invitee's uid
  * Call by:
- *   $email = invitation($code) - returns the email address to which the invitation was sent, if sent recently (else NULL)
- *   $inviter = invitation($code, $invitee) - marks the invitation USED by recording the invitee's account id
+ *   [$email, $inviter] = invitation($code) 
+ *     returns the email address to which the invitation was sent and the inviter, if sent recently (else NULL)
+ *   $inviter = invitation($code, $invitee)
+ *     marks the invitation USED by recording the invitee's account id
  */
 function invitation($code, $invitee = '') {  
   if ($invitee) r\dbUpdate('r_invites', compact('code', 'invitee'), 'code');
   $lastweek = strtotime(R_INVITE_DAYS . ' days ago');
   $sql = 'code=:code AND invited>=:lastweek AND invitee IS NULL';
-  return r\dbLookup($invitee ? 'inviter' : 'email', 'r_invites', $sql, compact('code', 'lastweek'));
+  return r\dbLookup($invitee ? 'inviter' : 'email,inviter', 'r_invites', $sql, compact('code', 'lastweek'));
 }
 
 /**
@@ -2416,7 +2481,7 @@ function directoryList($which, $region) {
     FROM users u 
     LEFT JOIN r_user_industries ui ON ui.uid=u.uid
     LEFT JOIN r_industries i ON i.iid=ui.iid
-    WHERE account_type!=:R_PERSONAL AND u.$field LIKE :region AND (u.full_name LIKE :which OR i.industry LIKE :which)
+    WHERE (flags&(1<<B_COMPANY)) AND u.$field LIKE :region AND (u.full_name LIKE :which OR i.industry LIKE :which)
     ORDER BY industry, u.full_name
 EOF;
   $result = r\dbQ($sql, compact(u\ray('region which')));
@@ -2432,8 +2497,8 @@ EOF;
     }
     $cacct = r\acct();
     $acct = r\acct($uid);
-    $pay = $cacct->can(PERM_BUY) ? button('pay', "$base_url/pay/who=$short_name") : '';
-    $chg = $cacct->can(PERM_SELL) ? button('chg', "$base_url/charge/who=$short_name") : '';
+    $pay = $cacct->can(B_BUY) ? button('pay', "$base_url/pay/who=$short_name") : '';
+    $chg = $cacct->can(B_SELL) ? button('chg', "$base_url/charge/who=$short_name") : '';
     $full_name = "<a href='$base_url/member/$short_name'>$full_name</a>";
     $item = "$pay$chg $full_name";
     if (!$headed) $item = "- $item <span>($industry)</span>";
@@ -2467,6 +2532,7 @@ EOF;
     'name' => formField('item', t('Company name:'), '', $cacct->full_name),
     'categories' => formField('select', t('Categories:'), t('Hold down the Ctrl key to select more than one'), $multiple + dft($my_cats), $cats),
     'selling' => textField(t('Selling:'), t('What is the typical description of what you sell? (This will appear as the default "purpose" when you charge someone).'), dft($my_selling)),
+    'website' => textField(t('Website(s):'), t('If you want to accept payments on your website, be sure to list it here.'), dft(@$website)),
     'description' => formField('text_format', t('Description:'), t('What does this company do?'), $filtered_html + dft($my_description)),
     'submit' => submit(),
   );
@@ -2479,16 +2545,18 @@ function formCompany_validate($form, &$sta) {
 }
 
 function formCompany_submit($form, &$sta) {
-  $cuid = r\acct()->id;
-  extract(u\trimAll($sta['values']));
+  $cacct = r\acct();
+  $id = $cacct->id;
+  extract(u\just('description website selling categories', u\trimAll($sta['values'])));
 //  $description = \check_markup($description['value']);
   $description = $description['value'];
-  r\acct()->update(compact('description', 'selling'));
-
+  $info['website'] = str_replace('http://', '', @$website);
+  $cacct->update(compact(u\ray('description website selling')));
+  
   $DBTX = db_transaction();
-  r\dbQ('DELETE FROM r_user_industries WHERE uid=:cuid', compact('cuid')); // out with the old
+  r\dbQ('DELETE FROM r_user_industries WHERE uid=:id', compact('id')); // out with the old
   foreach ($categories as $iid) {
-    r\dbQ("INSERT INTO r_user_industries (uid, iid) VALUES (:cuid, :iid)", compact('cuid', 'iid')); // in with the new
+    r\dbQ("INSERT INTO r_user_industries (uid, iid) VALUES (:id, :iid)", compact('id', 'iid')); // in with the new
   }
   unset($DBTX); // commit
   say('info saved');
@@ -2514,16 +2582,15 @@ function formI($form, &$sta, $who) {
     say('no self-trading', array(), 'error');
     return r\go('');
   }
-//  r\acct($acct->agentId)->setBit(BIT_USED_ID); // track membership progress
   
   $shortName = $acct->name;
-  if ($acct->can(PERM_COMPANY)) $site = goButton(t('Show Webpage'), "member/$shortName", t("See this company's rCredits webpage"));
+  if ($acct->can(B_COMPANY)) $site = goButton(t('Show Webpage'), "member/$shortName", t("See this company's rCredits webpage"));
 
   if ($cacct) { // can charge, pay, or change account or agent only if signed in
     $theId = hidField($otherId);
     $theAgent = hidField($otherAgent);
-    if ($cacct->can(PERM_SELL)) $charge = goButton(t('Charge'), "charge/who=$shortName&scanned=1", t('Charge someone'));
-    if ($cacct->can(PERM_BUY)) $pay = goButton(t('Pay'), "pay/who=$shortName&scanned=1", t('Pay someone'));
+    if ($cacct->can(B_SELL)) $charge = goButton(t('Charge'), "charge/who=$shortName&scanned=1", t('Charge someone'));
+    if ($cacct->can(B_BUY)) $pay = goButton(t('Pay'), "pay/who=$shortName&scanned=1", t('Pay someone'));
     if (r\acct($myId, $otherAgent)->can()) $changeAgent = goButton(t('Change Agent'), "user/logout/who=$shortName", t('Change Shift?'));
     if (r\acct($otherId, $myAgent)->can()) $changeAccount = submit(t('Change Account'));
     $zot = compact(u\ray('charge pay changeAgent changeAccount site'));
@@ -2575,15 +2642,15 @@ function formSMS_submit($form, $sta) {
 function formOptions($form, &$sta) {
   $cacct = r\acct();
   $title = item(t('Account Preferences'));
-  $virtualMaxMessage = $cacct->can(PERM_COMPANY) ? t(' If you make automatic "virtual" payments, your maximum is the same as your minimum, regardless of this setting.') : '';
+  $virtualMaxMessage = $cacct->can(B_COMPANY) ? t(' If you make automatic "virtual" payments, your maximum is the same as your minimum, regardless of this setting.') : '';
   $minimum = textField(t('Minimum:'), t('Keep AT LEAST this much in your rCredits account, for purchases or inflation-proof savings. When your balance goes below this amount, the system refills it for you automatically from your bank account (which may take 3 days), then trades US Dollars for rCredits whenever possible, up to this amount.'), required(u\formatAmount(u\nn($cacct->minimum, R_MINR_DEFAULT), 's')));
   $maximum = textField(t('Maximum:'), u\SUBS(t('Keep AT MOST this much in your rCredits account. When your balance goes above this amount by $:R_RBUY_QUANTUM or more, the extra rCredits are automatically exchanged for US Dollars. 0 means no limit (recommended in most cases).')) . $virtualMaxMessage, required(u\formatAmount(u\nn($cacct->maximum, R_MAXR_DEFAULT), 's')));
-  $toBank = formField('checkbox', t('To bank:'), t('Automatically transfer the excess to your bank account (recommended). [<a href="../help/to-bank">why ever not?</a>]'), $cacct->hasBit(BIT_TO_BANK));
+  $toBank = formField('checkbox', t('To bank:'), t('Automatically transfer the excess to your bank account (recommended). [<a href="../help/to-bank">why ever not?</a>]'), $cacct->hasBit(B_TO_BANK));
 //  $max_usd = textField(t('USD Max:'), u\SUBS(t('Keep at most this much in your Dwolla account. When your Dwolla balance goes above this amount by $:R_RBUY_QUANTUM or more, the system will automatically initiate a transfer to your bank account. 0 means no limit.'), required(u\formatAmount(u\nn($cacct->max_usd, R_MAXUSD_DEFAULT), 's'))));
   $notifyBys = array(t('no notifications'), t('by email'), t('by SMS'), t('by both email and SMS'));
-  $dft = $cacct->hasBit(BIT_NOTIFY_EMAIL) + 2 * $cacct->hasBit(BIT_NOTIFY_SMS);
+  $dft = $cacct->hasBit(B_NOTIFY_EMAIL) + 2 * $cacct->hasBit(B_NOTIFY_SMS);
   $notifyBy = formField('radios', t('Notifications:'), t('How do you want to be notified about new charges to your account, short-term opportunities, and the like?'), required($dft), $notifyBys);
-  $statements = $cacct->hasBit(BIT_ELECTRONIC) + 0;
+  $statements = $cacct->hasBit(B_ELECTRONIC) + 0;
   $statementRadios = array(
     t('I will accept electronic statements.'), 
     t('I choose to receive printed statements by mail.') . u\SUBS(t('<div>I agree to pay $:R_STATEMENT_COST per month to cover the postage and handling costs for this service.</div>'))
@@ -2591,14 +2658,14 @@ function formOptions($form, &$sta) {
   $statements = formField('radios', t('Statements:'), '', required($statements), $statementRadios);
 
   $explain_virtual = t('Do you want to pay people directly in rCredits or do you want to pay in US Dollars, letting them automatically <i>buy</i> their share of rCredits from you? The second way lets you use your current payroll system without any change. You still get the 5% rebate, minus 25 cents for each payment. For example, a $100 payment gives you a net rebate of $5.00 - 0.25 = $4.75. For automatic "virtual" payments, you need to set up average monthly payment amounts on the <a href="account/relations">Relations</a> page.');
-  if ($cacct->can(PERM_COMPANY)) {
+  if ($cacct->can(B_COMPANY)) {
     $payHows = array(t('everyone directly'), t('employees virtually'), t('everyone virtually'));
     if (isset($cacct->minimum)) { // preferences have already been set
-      $dft = $cacct->hasBit(BIT_VIRTUAL_ALL) ? 2 : ($cacct->hasBit(BIT_VIRTUAL_EMPLOYEES) ? 1 : 0);
+      $dft = $cacct->hasBit(B_VIRTUAL_ALL) ? 2 : ($cacct->hasBit(B_VIRTUAL_EMPLOYEES) ? 1 : 0);
     } else $dft = 2; // companies should generally pay virtually
     $payHow = formField('radios', t('Pay how:'), $explain_virtual, required($dft), $payHows);
   }
-  $secretBal = formField('checkbox', t('Secret Balance:'), t("Don't let qualified merchants tell me my balance, when I ask."), $cacct->hasBit(BIT_SECRET_BAL));
+  $secretBal = formField('checkbox', t('Secret Balance:'), t("Don't let qualified merchants tell me my balance, when I ask."), $cacct->hasBit(B_SECRET_BAL));
   // Double confirmation: by SMS, by email, either. require extra confirmation of crucial account changes
   $submit = submit(t('Update options'));
   
@@ -2620,13 +2687,13 @@ function formOptions_submit($form, $sta) {
   extract(u\just('minimum maximum payHow notifyBy', $sta['values']));
   extract(u\just('toBank secretBal', $sta['input'])); // damn Drupal sets these (=1) iff true, but not in values.
 
-  $cacct->setBit(BIT_TO_BANK, @$toBank); 
-  $cacct->setBit(BIT_VIRTUAL_ALL, @$payHow == 2);
-  $cacct->setBit(BIT_VIRTUAL_EMPLOYEES, @$payHow == 1);
-  $cacct->setBit(BIT_NOTIFY_EMAIL, $notifyBy & 1);
-  $cacct->setBit(BIT_NOTIFY_SMS, $notifyBy & 2);
-  $cacct->setBit(BIT_ELECTRONIC, @$statements);
-  $cacct->setBit(BIT_SECRET_BAL, @$secretBal);
+  $cacct->setBit(B_TO_BANK, @$toBank); 
+  $cacct->setBit(B_VIRTUAL_ALL, @$payHow == 2);
+  $cacct->setBit(B_VIRTUAL_EMPLOYEES, @$payHow == 1);
+  $cacct->setBit(B_NOTIFY_EMAIL, $notifyBy & 1);
+  $cacct->setBit(B_NOTIFY_SMS, $notifyBy & 2);
+  $cacct->setBit(B_ELECTRONIC, @$statements);
+  $cacct->setBit(B_SECRET_BAL, @$secretBal);
   $cacct->update(compact(u\ray('minimum maximum')));
   say('options saved');
 }
@@ -2658,8 +2725,7 @@ function formReports_submit($form, &$sta) {
 }
 
 /**
- * Print an Advance ID card
- * @todo: add "temp" in lower right corner
+ * Print an ID card
  */
 function memberID($uid = '', $big = FALSE) {
   require_once(__DIR__ . "/../../tcpdf/config/lang/eng.php");
@@ -2668,7 +2734,7 @@ function memberID($uid = '', $big = FALSE) {
 
   $cacct = r\acct();
   $acct = $uid ? r\acct($cacct->id, $uid) 
-    : (($cacct->can(PERM_CTTY_ADMIN) and $cacct->can(PERM_MANAGE)) ? r\acct($cacct->id) : $cacct);
+    : (($cacct->can(B_CTTY_ADMIN) and $cacct->can(B_MANAGE)) ? r\acct($cacct->id) : $cacct);
   if (!$acct) return 'No such account. Your hack attempt has been logged.';
   
   $full_name = $acct->full_name;
@@ -2738,7 +2804,7 @@ function identifiers($acct) {
   $cacct = r\acct();
   list ($agent, $company) = $acct->proSe() ? array($acct, '') : array(r\acct($acct->agentId), $acct->full_name);
   $location = r\location($acct);
-  $pic = ($cacct and $cacct->can(PERM_CHARGE)) ? profile_picture($agent->id, TRUE) : ''; // let qualified companies see the picture
+  $pic = ($cacct and $cacct->can(B_CHARGE)) ? profile_picture($agent->id, TRUE) : ''; // let qualified companies see the picture
   return <<<EOF
     $pic
     <div id="id-other">
@@ -2948,25 +3014,28 @@ function communityTransfer($type, $acct, $amount, $purpose, $confirmed) {
   return array($msg, compact(u\ray('success action confirmAction amount otherName')), $success and !$confirmed);
 }  
 
-function usdCallback($uid) {
+function usdCallback($type, $uid) {
   include_once __DIR__ . '/../usd.class';  
-  return r\usd::callback($uid);
+  return r\usd::$type($uid);
 }
   
-function menu($title, $type, $function = NULL, $function_args = array(), $access = 'member', $other = array()) {
-  global $menu_weight;
-  $menu_weight += !@$menu_weight ?: 1;
-  
-  if (function_exists($local_func = "rCredits\\Web\\$function")) $function = $local_func;
+function menu($title, $type, $function = NULL, $args = array(), $accesses = 0, $other = array()) {
+  global $menuWeight;
+  $menuWeight += !@$menuWeight ?: 1;
+  $access = 'a'; // 'a' because Drupal doesn't like numbers
+  if (!is_array($accesses)) $accesses = array($accesses);
+  foreach ($accesses as $one) $access .= " $one";
+   
+  if (function_exists($localFunction = "rCredits\\Web\\$function")) $function = $localFunction;
   return array_merge(array(
     'title' => $title,
     'type' => $type,
     'page callback' => $function,
-    'page arguments' => $function_args,
+    'page arguments' => $args,
 //    'access callback' => TRUE,
     'access callback' => 'rCredits\\Web\\webAccess', // don't use be\access directly (rweb needs to remember $cuid)
-    'access arguments' => array('a' . $access), // 'a' because Drupal doesn't like numbers
-    'weight' => @$menu_weight - 1,
+    'access arguments' => array($access),
+    'weight' => @$menuWeight - 1,
     'menu_name' => 'main-menu', 
     'module' => 'rweb',
     'file' => 'rweb.inc',
@@ -3079,11 +3148,12 @@ EOF;
   return compact('footerText');
 }
 
-function webAccess($access) {
-  $access = substr($access, 1); // turn this from a string back into a number (work around Drupal)
-  setupGlobals(); // remember who we are (the only reason for this function)
-  $cacct = r\acct();
-  return ($access and $cacct) ? $cacct->can($access) : FALSE;
+function webAccess($accesses) {
+  setupGlobals(); // remember who we are (the main reason for this function)
+  if (!$cacct = r\acct()) return FALSE;
+  $accesses = u\ray(substr($accesses, 2)); // turn this from a string back into an array
+  foreach ($accesses as $access) if (!$cacct->can($access)) return FALSE;
+  return TRUE;
 }
 
 function css($sheet, $weight = -99) {

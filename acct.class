@@ -60,7 +60,7 @@ class acct {
     $short_name = @$my_full_name ? u\shortName($my_full_name) : '';
     $name =  @$my_name ?: (@$short_name ?: tempName($info));
     $full_name = @$my_full_name ?: $info['name'];
-    $flags = @$my_flags ?: BIT_DEFAULTS;
+    $flags = @$my_flags ?: B_DEFAULTS;
     $community = communityUid(@$my_postal_code); // defaults to current server
     $data = serialize(@$my_data ?: array());
     $frozen = serialize(array());
@@ -143,6 +143,9 @@ class acct {
 
     if ($field == 'data' or $field == 'frozen') {
       return @$result ? unserialize($result) : array();
+    } elseif (in_array($field, u\ray(R_COMPANY_FIELDS))) {
+      $id = $this->id;
+      return @$result ?: (@self::$records[$this->id]->$field = r\dbLookup($field, 'r_companies', 'id=:id', compact('id')));
     } elseif ($field == 'secure') {
       return @$result ? unserialize(u\ezdecrypt($result, R_WORD)) : NULL;
     } elseif ($field == 'usd_account') {
@@ -192,6 +195,7 @@ class acct {
    * Update the saved record in the database with the given data.
    * @param assoc $info: data to update
    * @param string $just: update only these fields (update all if NULL, none if '')
+   *   The flags field will always be included.
    * @return: FALSE if update fails (saving either onsite or offsite)
    */
   public function update($info, $just = NULL) {
@@ -215,20 +219,33 @@ class acct {
       $key = offsiteData(@$this->offsite, $this->account(R_SECRET_FIELDS));
       if ($key and is_numeric($key)) $info['offsite'] = $key; else return FALSE; // if attempt to store fails, save nothing
     }
+    if (count($companyInfo = u\just(R_COMPANY_FIELDS, $info))) {
+      $companyInfo['id'] = $this->id;
+      r\dbUpdate('r_companies', $companyInfo, 'id', TRUE);
+    }
+    u\setDft($info['flags'], $this->flags);
     $info['uid'] = $this->id; // make sure dbUpdate gets this
     return dbUpdate('users', $info, 'uid');
   }
 
   public function proSe() {return ($this->id == $this->agentId);}  
   public function qid() {return $this->proSe() ? $this->mainQid : quid($this->id, $this->agentId, $this->regionId);}
-  public function isCompany() {return (@$this->account_type != R_PERSONAL);}
-  public function hasBit($bit) {return (bool) ($this->flags & $bit);}
+  public function hasBit($bit) {return (bool) ($this->flags & (1 << $bit));}
   
-  public function setBit($bit, $on = TRUE) {
+  /**
+   * Set the bit in the flags field to the given value.
+   * @param int $bit: number of bit to set (0 - 31)
+   * @param bool $on: whether to set it ON or OFF
+   * @param boot $now: whether to write to the database (DEFAULT FALSE) or just to the cache (awaiting write)
+   */
+  public function setBit($bit, $on = TRUE, $now = FALSE) {
 // gets caught anyway    u\EXPECT(compact('int', 'on'), 'int bool');
+    u\EXPECT($bit < 32, 'setting too big a bit');
+    $bit = 1 << $bit;
     $flags = $on ? ($this->flags | $bit) : ($this->flags & ~$bit);
     self::$perms[$this->id] = NULL; // force redo in can()
-    return $this->update(compact('flags'));
+    self::$records[$this->id]->flags = $flags;
+    return $now ? $this->update(compact('flags')) : TRUE;
   }
   
   public static function setDefault($acct) {
@@ -260,43 +277,35 @@ class acct {
   
   /**
    * Say whether this account/agent has the permission.
-   * @param int $permission: the permission in question (DEFAULT PERM_READ)
+   * @param int $permission: the permission in question (DEFAULT B_READ)
    */
-  public function can($permission = PERM_READ) {
+  public function can($permission = B_READ) {
+//    if (0 <= $permission and $permission <= B_MAX) return $this->hasBit($permission);
     if (!@self::$perms[$this->id]) self::$perms[$this->id] = array();
     if (!@self::$perms[$this->id][$this->agentId]) { // set up perms if we haven't yet (setBit() resets this)
       $perms = array();
       $id = $this->id;
       $agent = $this->agent;
 
-      //($agent->pass !== '' and $agent->id != 1); // anyone with a password is a member
-      $perms[PERM_COMPANY] = ($this->account_type != R_PERSONAL);
-//      $perms[PERM_PARTNER] = $this->hasBit(BIT_PARTNER);
-//      $perms[PERM_STEWARD] = $this->hasBit(BIT_STEWARD);
-      $perms[PERM_MEMBER] = $this->hasBit(BIT_MEMBER);
-      $perms[PERM_RTRADER] = $this->hasBit(BIT_RTRADER);
-      $perms[PERM_CHARGE] = $this->hasBit(BIT_CHARGE);
-
-      $perms[PERM_ADMIN] = $agent->hasBit(BIT_ADMIN);
-      $perms[PERM_CTTY_ADMIN] = $agent->hasBit(BIT_CTTY_ADMIN);
-
+      for ($bit = 0; $bit < B_MAX; $bit++) $perms[$bit] = $this->hasBit($bit);
       $can = $this->proSe() ?
-          (($id < 0) ? 0 : PERM_MANAGE) // communities must be managed by an agent, never directly
-        : ($perms[PERM_CTTY_ADMIN] and $this->community == $agent->community) ? 
-              PERM_MANAGE : relation('permission', $id, $this->agentId);
-      for ($i = 0; $i <= PERM_MANAGE; $i++) $perms[$i] = ($i <= $can); // set all permissions, even the false ones
-      if (!$perms[PERM_RTRADER]) $perms[PERM_READ] = $perms[PERM_SELL] = $perms[PERM_BUY] = FALSE; // no ASIFs!
+          (($id < 0) ? 0 : B_MANAGE) // communities must be managed by an agent, never directly
+        : ($perms[B_CTTY_ADMIN] and $this->community == $agent->community) ? 
+              B_MANAGE : (B_RELATED + relation('permission', $id, $this->agentId));
+      for ($i = B_RELATED; $i <= B_MANAGE; $i++) $perms[$i] = ($i <= $can); // set all permissions, even the false ones
+      if (!$perms[B_RTRADER]) $perms[B_READ] = $perms[B_SELL] = $perms[B_BUY] = FALSE; // no ASIFs!
 
-      if ($perms[PERM_ADMIN]) {
+      if ($perms[B_ADMIN]) {
         if (R_ADMIN_CAN_MANAGE_CTTYS) {
-          $perms[PERM_CTTY_ADMIN] = TRUE; // temporary extra power, until communities are independent
-          $perms[PERM_READ] = $perms[PERM_SELL] = $perms[PERM_BUY] = $perms[PERM_MANAGE] = TRUE;
+          $perms[B_CTTY_ADMIN] = TRUE; // temporary extra power, until communities are independent
+          $perms[B_READ] = $perms[B_SELL] = $perms[B_BUY] = $perms[B_MANAGE] = TRUE;
         }
-        $perms[PERM_COMPANY] = TRUE; // show company form, disallow personal stuff
-      }
+        $perms[B_PERSONAL] = TRUE; // manage show PERSONAL settings (for debugging)
+        $perms[B_COMPANY] = TRUE; // manage show company settings
+      };
 
-      $perms[PERM_MANAGING_CTTY] = ($perms[PERM_CTTY_ADMIN] and $this->id == $this->community);
-      if ($perms[PERM_MANAGING_CTTY] and !$perms[PERM_ADMIN]) $perms[PERM_BUY] = $perms[PERM_SELL] = FALSE; // ctty admin can manage but not buy/sell
+      $perms[B_MANAGING_CTTY] = ($perms[B_CTTY_ADMIN] and $this->id == $this->community);
+      if ($perms[B_MANAGING_CTTY] and !$perms[B_ADMIN]) $perms[B_BUY] = $perms[B_SELL] = FALSE; // ctty admin can manage but not buy/sell
       
       ksort($perms); // easier to debug
       self::$perms[$this->id][$this->agentId] = $perms;

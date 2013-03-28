@@ -404,7 +404,7 @@ function weEmailToMemberWithSubs($key, $email, $subs) {
  */
 function memberCanChargeUnilaterally($id) {
   global $testOnly; if ($testOnly) return FALSE;
-  return r\acct($id)->setBit(BIT_CHARGE);
+  return r\acct($id)->setBit(B_CHARGE, TRUE, TRUE);
 }
 
 /**

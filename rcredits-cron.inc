@@ -3,25 +3,30 @@
  * @file
  * Functions to run periodically.
  
-automatic payments (just virtual payments for now) (daily)
-redistribution (selling of unwanted rCredits) (daily)
-transfers to/from bank (daily)
-
-interest (monthly, calculating daily bals from history) is credited to the new month. calculated as the sum of t*bal*APR, where bal is each balance they had during the preceding month and t is the number of years that balance lasted.
-statements (daily, weekly, monthly -- at user's option)
-1099s (annual)
-
-update / check balances (often -- 5 minutes?) -- restart daily (start with random account?)
-  recalc balance, rewards
-  r\unfreeze($available, $frozen);
+DAILY (every 5 mins for 5 mins, starting at 2am)
+'START lostUsdTxs lostUsdTx beginVirtualPayments virtualPayments endVirtualPayments virtualPayment redistribute bank lessOften checkAccount');
+- rollback lost USD transactions
+- check / recalc cached available, rewards
+- r\unfreeze($available, $frozen);
+- automatic virtual payments: Each employee gets relieved of their excess rCredits immediately if they are over their "maximum" after getting paid (even if they get paid zero).
+- redistribution (selling of unwanted rCredits) looks only at non non-employees over their maximum (maximum is ignored for companies that pay virtually)
+- automatic transfers to/from bank accounts
+- statements for those who want daily statements
+- weekly / monthly / quarterly / annual stuff
 other security / scam checks (often)
+
+MONTHLY
+- interest (monthly, calculating daily bals from history) is credited to the new month. calculated as the sum of t*bal*APR, where bal is each balance they had during the preceding month and t is the number of years that balance lasted.
+- share to CGF
+- archive the 13th previous month (13 is a parameter -- transactions are accessible for ever, but slower)
+
+YEARLY
+- 1099s
 
 (just auto pay and redist happen in a chunk)
 periodic queue adds all appropriate accounts to either the autopay or redistrib queue (never both and mostly neither)
-autopay starts at 2am, queue runs every 5 mins with time limit of 5 minutes. Each employee gets relieved of their excess rCredits immediately if they are over their "maximum" after getting paid (even if they get paid zero).
-redistrib also starts at 2am (every 5 mins for 5 mins) and looks only at non non-employees over their maximum (maximum is ignored for companies that pay virtually)
 
-- ** Default for companies is "pay everyone virtually", for personal is "pay everyone directly". Companies with the "pay everyone virtually" option don't have to pay anyone consciously. A "pay ALL" is done for them at midnight daily. Their rCredits are offered equally to all employees and to their suppliers in proportion to how many employees and vendors that supplier has (where each supplier counts as half the average number of employees that any supplier has, divided by the average number of supplieds that any supplier has), divided by its supplied count, divided by 2. All amounts are truncated to the penny. All payment offers are accepted automatically, up to the amount in the accepter's Dwolla account. Unaccepted amounts are redistributed to others (not recursively, if the company is unable to distribute its funds). A company's payments are tentative until we know what all of them will be. Companies must list for each employee and supplier the average amount they pay them per month ($/mo) on the relations screen.
+- Companies with the "pay everyone virtually" option don't have to pay anyone consciously. Their rCredits are offered proportionately to all employees and suppliers. Amounts are truncated to the penny. All payment offers are accepted automatically, up to the amount in the accepter's Dwolla account. Unaccepted amounts are redistributed to others (not recursively, if the company is unable to distribute its funds). Companies must list for each employee and supplier the average amount they pay them per month ($/mo) on the relations screen.
 
  */
 namespace rCredits\Cron;
@@ -81,7 +86,7 @@ function everyYear() {
 }
 
 function lostUsdTxs() {
-	$result = r\dbQ('SELECT uid FROM users WHERE flags&:BIT_RTRADER');
+	$result = r\dbQ('SELECT uid FROM users WHERE flags&(1<<:B_RTRADER)');
 	while($uid = $result->fetchColumn()) r\queue('lostUsdTx', compact('uid'));
   r\queue('lostUsdTx', FALSE);
 }
@@ -107,17 +112,17 @@ function lostUsdTx1($info) {
 
 function beginVirtualPayments() {
   // queue up companies that pay automatically
-  doCompanies(BIT_VIRTUAL_ALL); // suppliers first
-  doCompanies(BIT_VIRTUAL_EMPLOYEES); // then employees
+  doCompanies(B_VIRTUAL_ALL); // suppliers first
+  doCompanies(B_VIRTUAL_EMPLOYEES); // then employees
   r\queue('virtualPayments', FALSE); // mark end of virtualPayments queue, so we can do what must follow
 }
 
 /**
  * Identify companies that have the given payment option and queue them up for virtualPayments.
- * @param int $which: BIT_VIRTUAL_ALL (queue up payments to suppliers) or BIT_VIRTUAL_EMPLOYEES (queue up payments to staff)
+ * @param int $which: B_VIRTUAL_ALL (queue up payments to suppliers) or B_VIRTUAL_EMPLOYEES (queue up payments to staff)
  */
 function doCompanies($which) {
-  $these = $which == BIT_VIRTUAL_EMPLOYEES ? 'r.employer_ok' : 'NOT r.employer_ok';
+  $these = $which == B_VIRTUAL_EMPLOYEES ? 'r.employer_ok' : 'NOT r.employer_ok';
   $sql = <<< EOF
     SELECT u.uid, u.minimum, u.available, 
       SUM(r.amount) AS amounts, 
@@ -178,7 +183,7 @@ function virtualPayment($item) {
   $usAcct2 = new usd($acct2 = r\acct($other)); // to
   
   // if employee is also an employer that pays people virtually, no maximum
-  $max2 = ($acct2->hasBit(BIT_VIRTUAL_ALL) or $acct2->hasBit(BIT_VIRTUAL_EMPLOYEES)) ? 0 : $acct2->maximum;
+  $max2 = ($acct2->hasBit(B_VIRTUAL_ALL) or $acct2->hasBit(B_VIRTUAL_EMPLOYEES)) ? 0 : $acct2->maximum;
   $newAvailable = $acct2->available + $offer; // $acct2 balance after the offer is received
   $excess = round(max(0, $max2 ? ($newAvailable - $max2) : 0, $offer - $usAcct2->balance()), 2); // rCredits to sell off
   

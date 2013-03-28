@@ -16,17 +16,21 @@ use rCredits\Util as u;
 use rCredits\Backend as be;
 
 define('isDEV', @$_SERVER['WINDIR']); // developing on Windows (unlike production server)
+define('DWOLLA_TEST_ACCOUNT', '812-713-9234');
 
 define('R_VERSION', '1.0b'); // software version
 define('R_SEPARATE_BACKEND', FALSE);
+define('R_DATA_FIELDS', ''); // fields stored in the account's "data" array field (serialized)
+define('R_COMPANY_FIELDS', 'website description selling structure'); // fields in r_companies
+define('R_SECURE_FIELDS', 'type pin auth card_code'); // non-personal encrypted fields
+define('R_SECRET_FIELDS', 'federal_id dob id_proof answer'); // personal identifying information
+define('R_SECRET_URL', isDEV ? 'http://localhost/rcredits' : 'http://rcredits.org'); // where to store secrets
+define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities can manage themselves
+
 define('R_TEMP_NAME_PREFIX', 'unknown ');
 define('R_MIN_PHOTO_WIDTH', 240); // how wide to make profile pictures (unless too long)
 define('R_MAX_PHOTO_WIDTH', 1024);
 define('R_FIRST_CTTY_UID', -1000001); // community uids are less than or equal to this (farther from zero)
-define('R_DATA_FIELDS', ''); // fields stored in the account's "data" array field (serialized)
-define('R_SECURE_FIELDS', 'type pin auth card_code'); // non-personal encrypted fields
-define('R_SECRET_FIELDS', 'federal_id dob id_proof answer'); // personal identifying information
-define('R_SECRET_URL', isDEV ? 'http://localhost/rcredits' : 'http://rcredits.org'); // where to store secrets
 define('R_URL_SLASH', '%_%'); // Drupal gets confused by slashes in a url, even if urlencoded
 define('R_MAX_DAILY_EXCHANGE', 1000); // per Common Good Finance policy and to avoid formal FinCEN regulation
 define('R_INVITE_DAYS', 7); // number of days to accept invitation to membership
@@ -39,6 +43,9 @@ define('R_RBUY_QUANTUM', 10); // chunk size for buying rCredits (sales amounts a
 define('R_COMMERCIAL_ASPECT', '16:9'); // width-to-height ratio for commercial profile picture
 define('R_PERSONAL_ASPECT', '3:4'); // width-to-height ratio for personal profile picture
 define('R_PIXEL_FACTOR', 128); // what to multiply the aspect ratio components by, to get pixel dimensions
+define('R_GET_AUTH_URI', 'usd-get-auth'); // where Dwolla calls us back for getting auth code
+define('R_INDIVIDUAL_GIFT', 50); // suggested contribution for individuals
+define('R_COMPANY_GIFT', 250); // suggested contribution for companies
 
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
@@ -46,64 +53,60 @@ define('R_EMAIL_FRAME', 'email-frame');
 define('R_PICTURE_DIR', '/sites/default/files/pictures'); // precede this by DRUPAL_ROOT (file) or $base_url (url)
 define('R_PROOF_DIR', '/sites/default/files/proofs');
 
-// Account types
+// account type bits
 define('R_PERSONAL', 0);
-define('R_SELF_EMPLOYED', 1);
-define('R_COMMERCIAL', 2);
-define('R_NONPROFIT', 3);
-$GLOBALS['account types'] = array(t('personal'), t('personal AND commercial'), t('commercial'), t('non-profit or government'));
+define('R_SELF_EMPLOYED', 1); // this type is also used for commercial account structure
+$GLOBALS['account types'] = array(t('personal'), t('personal AND commercial'), t('commercial (but not publicly traded)'), t('publicly traded corporation'), t('non-profit or government'));
 
-// Relationship permissions used in calls to acct::can() -- other than the first 5, these are not stored
-define('PERM_RELATED', 0); // has a relationship record
-define('PERM_READ', 1);
-define('PERM_SELL', 2);
-define('PERM_BUY', 3);
-define('PERM_MANAGE', 4);
-$GLOBALS['share permissions'] = array('no access', 'read transactions', 'sell', 'buy and sell', 'manage account');
+// Commercial Account structure (bits)
+define('R_PARTNERSHIP', 2);
+define('R_CORPORATION', 3);
+define('R_NONPROFIT', 4);
+define('R_WORKER_COOP', 5);
+define('R_CONSUMER_COOP', 6);
+define('R_GOVERNMENT', 7);
+define('R_PUBLICLY_TRADED', 8);
 
-define('PERM_RESERVED6', 6);
-define('PERM_COMPANY', 7); // can act as a company (not a purely personal account)
-define('PERM_CHARGE', 8); // can charge unilaterally
-define('PERM_MEMBER', 10); // completed the rCredits requirements
-//define('PERM_PARTNER', 11); // signed the membership agreement and donated
-//define('PERM_STEWARD', 12); // is allowed to vote and is responsible for stewarding the Common Good Community
-define('PERM_RTRADER', 14); // is allowed to use rCredits for real
+// Permissions, options, and flags (flags field in account record)
+// If we need more bits, create a flags2 field and make the B_ defs negative for acct::hasBit and setBit
+define('B_MEMBER', 1); // signed the membership agreement, etc.
+define('B_RTRADER', 2); // approved to use rCredits for real
+define('B_unused4', 4); // 
+define('B_PERSONAL', 5); // personal account
+define('B_COMPANY', 6); // company account (could be personal also, for independent contractor)
+define('B_unused7', 7); // 
+define('B_CHARGE', 8); // can charge customers without confirmation
+define('B_unused9', 9); // 
+define('B_VIRTUAL_EMPLOYEES', 10); // automatically pay employees virtually
+define('B_VIRTUAL_ALL', 11); // automatically pay everyone virtually
+define('B_PAYROLL', 12); // automatically pay employees their total daily salary - employer chooses pay period)
+
+define('B_NOTIFY_EMAIL', 15); // notifications by email
+define('B_NOTIFY_SMS', 16); // notifications by SMS
+define('B_ELECTRONIC', 17); // will accept electronic statements
+define('B_SECRET_BAL', 18); // don't let merchants tell me my balance on request
+define('B_TO_BANK', 19); // automatically transfer excess US Dollars from Dwolla to bank account
+//define('B_MET', 8000); // has participated in a community meeting
+//define('B_RQUALIFIED', 10000); // makes good economic circles
+
+define('B_CTTY_ADMIN', 29); // is a community administrator
+define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
+define('B_CLOSED', 31); // account is closed (data[new_account] has new qid)
+define('B_MAX', 31); // maximum bit number
+define('B_DEFAULTS', (1 << B_NOTIFY_EMAIL) | (1 << B_TO_BANK)); // set what bits when creating a new account
+
+// Relationship permissions used in calls to acct::can() -- the first 5 are stored, negated, in r_relations
+define('B_RELATED', 100); // has a relationship record
+define('B_READ', 101);
+define('B_SELL', 102);
+define('B_BUY', 103);
+define('B_MANAGE', 104);
+$GLOBALS['share permissions'] = array(t('no access'), t('read transactions'), t('sell'), t('buy and sell'), t('manage account'));
+
+// Other special pseudo-bit values for acct::can()
+define('B_MANAGING_CTTY', 120); // ctty_admin is actually managing a qualified account
+define('B_SHOW_ALL', 999); // special signal to acct::can() to return all permissions
 $GLOBALS['permissions'] = 'related read sell buy manage - company charge - member partner steward - rtrader - - managing_ctty ctty_admin - admin';
-
-define('PERM_MANAGING_CTTY', 17); // ctty_admin is actually managing a qualified account
-define('PERM_CTTY_ADMIN', 18); // is authorized to manage own community
-define('PERM_MANAGING', 19); // UNUSED admin or ctty_admin is actually managing a qualified account
-define('PERM_ADMIN', 20); // can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
-define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities can manage themselves
-
-// Permissions, options, and flags (flags field in account record) - max 2,147,483,647 = 2^31 - 1
-// If we need more bits, create a flags2 field and make the BIT_ definitions negative for acct::hasBit and setBit (et -0x200)
-define('BIT_MEMBER', 0x1); // signed the membership agreement, etc.
-define('BIT_RTRADER', 0x2); // is allowed to use rCredits for real
-define('BIT_UNUSED4', 0x4); // 
-define('BIT_CHARGE', 0x8); // can charge customers without confirmation (treat this like a permission)
-
-define('BIT_VIRTUAL_EMPLOYEES', 0x10); // automatically pay employees virtually --16
-define('BIT_VIRTUAL_ALL', 0x20); // automatically pay everyone virtually
-define('BIT_PAYROLL', 0x40); // automatically pay employees their total daily salary - employer chooses pay period)
-define('BIT_NOTIFY_EMAIL', 0x80); // notifications by email
-
-define('BIT_NOTIFY_SMS', 0x100); // notifications by SMS --256
-define('BIT_ELECTRONIC', 0x200); // will accept electronic statements
-//define('BIT_PROVED', 0x400); // proof of ID has been approved
-//define('BIT_GOT_PROOF', 0x800); // proof of ID has been submitted
-
-//define('BIT_SAW_VID2', 0x1000); // saw the pre-Steward vid --4096
-define('BIT_SECRET_BAL', 0x2000); // don't let merchants tell me my balance on request
-define('BIT_TO_BANK', 0x4000); // automatically transfer excess US Dollars from Dwolla to bank account
-//define('BIT_MET', 0x8000); // has participated in a community meeting
-
-//define('BIT_RQUALIFIED', 0x10000); // makes good economic circles --65,536 = 256 * 256
-
-define('BIT_CTTY_ADMIN', 0x1000000); // is a community administrator --16,777,216 = 256 * 256 * 256
-define('BIT_ADMIN', 0x2000000); // is a system administrator
-define('BIT_CLOSED', 0x4000000); // account is closed (data[new_account] has new qid)
-define('BIT_DEFAULTS', BIT_NOTIFY_EMAIL | BIT_TO_BANK); // what bits to set when creating a new account
 
 // Transaction states
 define('TX_STATES', 'deleted done pending disputed denied');
@@ -167,7 +170,7 @@ include_once __DIR__ . '/acct.class';
  *//*
 function stage($acct = '', $numeric = FALSE) {  
   if (!$acct = ($acct ?: acct())) return FALSE;
-  foreach (u\ray(R_STAGES) as $key => $one) if ($acct->can(constant('PERM_' . strtoupper($one)))) $stage = $numeric ? $key : $one;
+  foreach (u\ray(R_STAGES) as $key => $one) if ($acct->can(constant('B_' . strtoupper($one)))) $stage = $numeric ? $key : $one;
   return @$stage;
 }
 */
@@ -207,7 +210,7 @@ function txReportArgs($tx, $getMyBalance = FALSE, $shortfall = 0) {
   $created = u\formatDate($created);
 
   if ($getMyBalance) {
-    if ($cacct->can(PERM_BUY)) $balance = u\formatAmount($cacct->balance());
+    if ($cacct->can(B_BUY)) $balance = u\formatAmount($cacct->balance());
   }
 
   $summary = "$summary_word of $amount $tofrom $otherName for \"$purpose\" on $created";
@@ -224,16 +227,17 @@ function whoseUsd($usdAccountId) {
 }
 
 /**
- * Return the percentage tithe chosen by given user (as identified by their email).
- * Consider the tithe valid only if it was specified as part of a COMPLETED contribution.
- */
-function tithe($acct) {
-  if (!$tithe = $acct->tithe + 0) {
-    $tithe = file_get_contents("http://rcredits.org/inc/tithe.php/$acct->mail");
-    if (is_numeric($tithe)) $acct->update(compact('tithe'));
+ * Return the percentage share chosen by given user (as identified by their email).
+ * Consider the share valid only if it was specified as part of a COMPLETED contribution.
+ *//*
+function share($acct) {
+  if (!$share = $acct->share + 0) {
+    $share = file_get_contents("http://rcredits.org/inc/share.php/$acct->mail");
+    if (is_numeric($share)) $acct->update(compact('share'));
   }
-  return $tithe + 0;
+  return $share + 0;
 }
+*/
 
 /**
  * Return the customer's formatted balance only if we have permission
@@ -241,7 +245,7 @@ function tithe($acct) {
 function otherBalance($uid) {
   $cacct = acct();
   $acct = acct($uid);
-  if ($acct and $cacct->can(PERM_CHARGE) and !$acct->hasBit(BIT_SECRET_BAL)) {
+  if ($acct and $cacct->can(B_CHARGE) and !$acct->hasBit(B_SECRET_BAL)) {
     return u\formatAmount($acct->balance());
     //return be\creditInfo(compact('uid'))->fancy['balance'];
   } else return FALSE;
@@ -495,10 +499,10 @@ function notify($uid, $index, $info) {
   if (!strlen($acct->pass)) {
     $warning = u\tt('no asif notify', compact('fullName'));
   } else {
-    if ($acct->hasBit(BIT_NOTIFY_EMAIL) and @$acct->mail) {
+    if ($acct->hasBit(B_NOTIFY_EMAIL) and @$acct->mail) {
       $mailed = \drupal_mail('rCredits', $index, $acct->mail, '', $info); // no need to pass $acct->language
     }
-    if ($acct->hasBit(BIT_NOTIFY_SMS)) {
+    if ($acct->hasBit(B_NOTIFY_SMS)) {
       $number = dbLookup('number', 'r_sms', 'uid=:uid AND status=:SMS_PRIMARY', compact('uid'));
       if ($number) $smsed = SMS\send($number, u\tt($index, $info, TX_SMS));
     }
@@ -522,9 +526,9 @@ function notify($uid, $index, $info) {
  * If there is an appropriate bit to set, it will be set as appropriate.
  */
 function membershipEvent($acct, $status, $do = TRUE) {
-  $bit = @constant('BIT_' . strtoupper($status));
+  $bit = @constant('B_' . strtoupper($status));
   if ($do and (!$bit or !$acct->hasBit($bit))) { // met the prerequisite and hasn't previously
-    if ($bit) $acct->setBit($bit);
+    if ($bit) $acct->setBit($bit, TRUE, TRUE);
     if ($status == 'member') be\fund($acct->id, TX_SIGNUP);
     $fullName = $acct->full_name;
     $quid = $acct->mainQid;
@@ -757,7 +761,7 @@ function nonoUndo($oldRecord, &$subs = array()) {
 
   $acct = tx2acct($toMe ? array($payee, $payee_agent, $data) : array($payer, $payer_agent, $data));
   if ($cacct->agentId != $acct->agentId) {
-    $perm = $taking ? PERM_BUY : PERM_SELL;
+    $perm = $taking ? B_BUY : B_SELL;
     if (!acct($acct->id, $cacct->agentId)->can($perm)) return $taking ? 'no buy' : 'no sell';
   }
   return FALSE;
@@ -978,7 +982,8 @@ function proxy($person, $priority = 1, $proxy = NULL) {
 function nearlyMember($acct) {
   $gotPhoto = file_exists(DRUPAL_ROOT . $acct->auxFilename('picture'));
   $signed = (bool) $acct->signed_agreement;
-  $donated = ($acct->tithe > 0 or r\tithe($acct)); // r\tithe() also updates the database
+//  $donated = ($acct->share > 0 or r\share($acct)); // r\share() also updates the database
+  $donated = r\dbExists('r_gifts', 'uid=:cuid', array('cuid' => $acct->id));
   $nearly = ($gotPhoto and $signed and $donated);
   return compact(u\ray('gotPhoto signed donated nearly'));
 }
@@ -1015,7 +1020,7 @@ function totals($ctty = '', $calculate = FALSE) {
  * @param int $ctty: the community account id (NULL means all communities)
  */
 function getTotals($ctty) {
-  $where = (@$ctty ? "community=:ctty" : 1) . ' AND (flags&:BIT_RTRADER)';
+  $where = (@$ctty ? "community=:ctty" : 1) . ' AND (flags&:B_RTRADER)';
   $result = r\dbQ("SELECT frozen FROM users WHERE $where", compact('ctty'));
   $frozen = 0; // this could easily be extended to get frozen amounts for each upcoming date
   while ($one = $result->fetchColumn()) $frozen += array_sum(unserialize($one));
@@ -1088,13 +1093,16 @@ function dbQ($sql, $subs = array(), $die = FALSE) {
 
 /**
  * Update a database record 
- * (replaces half the functionality of drupal_write_record, which does not update bigint fields properly)
+ * (replaces the functionality of drupal_write_record, which does not update bigint fields properly)
  * @param string $table: table name
  * @param assoc $info: data to update
- * @param string $key: record key name
+ * @param string $key: record key name (if empty (called from dbInsert) insert record, otherwise update)
+ * @param bool either: if TRUE, insert the record if it does not exist (otherwise update)
  * @return: if inserting, then the id of the inserted record, else TRUE (FALSE on failure)
  */
-function dbUpdate($table, $info, $key, $command = 'UPDATE') {
+function dbUpdate($table, $info, $key, $either = FALSE) {
+  if ($either and !r\dbExists($table, "$key=:$key", array($key => $info[$key]))) $key = '';
+  $command = $key ? 'UPDATE' : 'INSERT INTO';
   $sql = '';
   foreach ($info as $field => $value) if ($field != $key) $sql .= ",$field=:$field";
   $sql = "$command $table SET " . substr($sql, 1) . ($key ? " WHERE $key=:$key" : '');
@@ -1111,9 +1119,7 @@ function dbUpdate($table, $info, $key, $command = 'UPDATE') {
  * @param assoc $info: data to update
  * @return: record key of the inserted record (FALSE on failure)
  */
-function dbInsert($table, $info) {
-  return dbUpdate($table, $info, '', 'INSERT INTO');
-}
+function dbInsert($table, $info) {return dbUpdate($table, $info, '');}
 
 function error($logid) {
   $info = dbLookup('info', 'r_log', 'logid=:logid', compact('logid'));
@@ -1133,7 +1139,7 @@ function setTxState($newValue, $zserial) {setTxField('state', $newValue, $zseria
 function serverUid($regionId = R_SERVER_ID) {return -u\a2n($regionId);}
 function emailTemplate($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}
 function emailBody($key) {return str_replace('{BODY}', emailTemplate($key), emailTemplate(R_EMAIL_FRAME));}
-function isRTrader($uid = '') {return ($acct = acct($uid)) ? $acct->hasBit(BIT_RTRADER) : FALSE;}
+function isRTrader($uid = '') {return ($acct = acct($uid)) ? $acct->hasBit(B_RTRADER) : FALSE;}
 function realCountry($country) {return dbLookup('name', 'r_countries', 'id=:country', compact('country'));}
 function realState($state, $country = R_COUNTRY_ID) {return dbLookup($country == R_COUNTRY_ID ? 'abbreviation' : 'name', 'r_states', 'id=:state and country_id=:country', compact('state', 'country'));}
 function makeQueue($callback, $time = 15) {return array('worker callback' => "rCredits\\$callback", 'time' => $time);}

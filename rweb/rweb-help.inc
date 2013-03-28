@@ -18,9 +18,8 @@ function helpText($page) {
   $cacct = r\acct();
   $acctName = @$cacct->name; // @ is for SMS testing (when not signed in)
 
-  $companySummary = (@$cacct->account_type == R_PERSONAL or !@$cacct->proSe())? '' : t('<p>You cannot print a Member ID Card for the company, because ID cards are for individuals, not companies. However, in the <a href="$base_url/account/relations">Account Relations</a> section you can print an ID card for each person authorized to buy and/or sell on behalf of the company.</p>');
   $site = str_replace('http://', '', R_SITE_URL);
-  $companyAccount = (@$cacct->account_type == R_PERSONAL) ? '' : t(<<<EOF
+  $companyAccount = @$cacct->can(B_PERSONAL) ? '' : t(<<<EOF
   <p>For companies, upload a picture to represent your business. This picture will appear on your automatic rCredits webpage: <a target="_blank" href="$base_url/member/$cacct->name">$site/member/$cacct->name</a> &mdash; so choose wisely. See also the <a href="$base_url/account/company">Company Info</a> form.</p>
 EOF
   );
@@ -71,7 +70,6 @@ EOF
       <p>This page shows an overview of your rCredits account.</p>
       <p><b>Account ID</b> has two parts. The part before the period is a 3-character identifier for your region. The region name is shown in parentheses after your account ID. The part after the period uniquely identifies your account, within your region. If you have several accounts, this part will be different for each one.</p>
       <p>If you are acting as an agent for someone else's account &mdash; for example if you are a sales clerk for a department store &mdash; the period will be a colon instead. Your ID Card will show your picture, with the company name under yours. The second part of the account ID (and the scannable code) will identify both you and the company.</p>
-      $companySummary
 EOF
     ),
     'txs' => t(<<<EOF
@@ -83,7 +81,7 @@ EOF
     'pay' => t(<<<EOF
       <p><b>Whom:</b> Type all or part of the full name of the account you want to pay. You can leave out the punctuation, spaces, and capitals. Or you can type their phone number or email address or their account ID. Note that a period in the account ID (a regular account) is different from a colon (an agent acting on behalf of an account).$paySpecial</p>
       <p><b>Amount:</b> The amount of the transaction, measured in dollars, to be paid in rCredits.</p>
-      <p><b>Purpose:</b> If this is a purely financial transaction, click on "cash/loan/etc". Otherwise, a description is required (for purchases and sales of real goods and services). Donations to nonprofit organizations count as purchases of real services &mdash; services to society. For loans, cash exchanges, and other money deals, you can leave the purpose blank &mdash; your statements will call the purpose "cash".</p>
+      <p><b>Purpose:</b> If this is a purely financial transaction, click on "cash/loan/etc". Otherwise, a description is required (for purchases and sales of real goods and services). Contributions to nonprofit organizations count as purchases of real services &mdash; services to society. For loans, cash exchanges, and other money deals, you can leave the purpose blank &mdash; your statements will call the purpose "cash".</p>
 EOF
     ),
     'directory' => t(<<<EOF

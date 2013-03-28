@@ -21,7 +21,6 @@ function tableDefs($schema = array()) {
 
   // table user (additions to Drupal standard)
   $fields = array( // additional users fields
-    'account_type' => setupField('personal, commercial, both, non-profit (or government)', 'int tiny'),
     'flags' => setupField('permissions and boolean state flags', 'int big', 0, '010'),
     'community' => setupField("uid of this account's Common Good Community", 'int 11'),
     'question' => setupField('security question', 'varchar 255'),
@@ -36,17 +35,14 @@ function tableDefs($schema = array()) {
     'state' => setupField('state/province index', 'int 5'),
     'postal_code' => setupField('contact postal code (no punctuation)', 'varchar 20'),
     'country' => setupField('country index', 'int 4'),
-    'website' => setupField('primary website', 'varchar 255'),
-    'description' => setupField('markup text describing the company (unused for personal accounts)', 'text medium'),
     'notes' => setupField('miscellaneous notes about the user or the account', 'text medium'),
     'signed_agreement' => setupField('when did this person sign the rCredits Agreement', 'int 11'),
     'signed_by' => setupField('who signed the agreement (on behalf of the account)', 'varchar 60'),
     'rebate_percent' => setupField('current rebate percentage (sales bonus is double)', 'numeric 4,3', 5),
-    'tithe' => setupField('fraction of rebates and bonuses to contribute back to Common Good Finance', 'numeric 6,3', 0),
+    'share' => setupField('fraction of rebates and bonuses to contribute back to Common Good Finance', 'numeric 6,3', 0),
     'floor' => setupField('how low can balance go (normally zero or less)', 'numeric 11,2', R_FLOOR),
     'minimum' => setupField('chosen minimum balance (savings + 3 days, fill automatically)', 'numeric 11,2', NULL),
     'maximum' => setupField('maximum rCredits balance (exchange excess for USD automatically), 0=none)', 'numeric 11,2', NULL),
-    'selling' => setupField('typical description of what this company sells (default transaction purpose)', 'varchar 255'),
     'usd' => setupField('balance in related USD account (probable)', 'numeric 11,2'),
     'available' => setupField('rCredits available to spend on goods and services (cached)', 'numeric 11,2'),
     'rewards' => setupField('total incentive rewards to date (cached)', 'numeric 11,2'),
@@ -68,6 +64,18 @@ function tableDefs($schema = array()) {
     'answer' => setupField('answer to security question', 'varchar ' . R_SECRET_ID_LEN), // secret
   */
 
+  // table r_companies
+  $fields = array(
+    'id' => setupField('account record id', 'int 11'),
+    'website' => setupField('primary website', 'varchar 255'),
+    'description' => setupField('markup text describing the company', 'text medium'),
+    'selling' => setupField('typical description of what this company sells (default transaction purpose)', 'varchar 255'),
+    'structure' => setupField('organizational structure bits', 'int big', 0, '010'),
+  );
+  $foreignKeys = foreignKey('id');
+  $indexes = NULL;
+  $schema['r_companies'] = setupTable('Information about non-personal accounts', $fields, 'id', $foreignKeys, $indexes);
+  
   // table offsite
   $fields = array(
     'id' => setupField('key to secret data', 'int big', 0, '010'),
@@ -82,9 +90,9 @@ function tableDefs($schema = array()) {
     'proxy' => setupField('account rercord id of proxy', 'int 11'),
     'priority' => setupField('precedence of this proxy (1=top priority)', 'int tiny'),
   );
-  $foreign_keys = foreignKey('person') + foreignKey('proxy');
+  $foreignKeys = foreignKey('person') + foreignKey('proxy');
   $indexes = index('person');
-  $schema['r_proxies'] = setupTable('Who represents whom', $fields, NULL, $foreign_keys, $indexes);
+  $schema['r_proxies'] = setupTable('Who represents whom', $fields, NULL, $foreignKeys, $indexes);
   
   // table r_sms 
   $fields = array(
@@ -94,9 +102,9 @@ function tableDefs($schema = array()) {
     'todo' => setupField('waiting for confirmation to complete this operation', 'text medium'),
     'nonce' => setupField('waiting for this nonce, for confirmation', 'varchar 10'),
   );
-  $foreign_keys = foreignKey('uid');
+  $foreignKeys = foreignKey('uid');
   $indexes = index('uid');
-  $schema['r_sms'] = setupTable('SMS cell numbers corresponding to user accounts', $fields, 'number', $foreign_keys, $indexes);
+  $schema['r_sms'] = setupTable('SMS cell numbers corresponding to user accounts', $fields, 'number', $foreignKeys, $indexes);
   
   // table r_txs
   $fields = array(
@@ -122,9 +130,9 @@ function tableDefs($schema = array()) {
     'created' => setupField('Unixtime transaction was created', 'int 11'),
     'completed' => setupField('Unixtime transaction was completed', 'int 11'),
   );
-  $foreign_keys = foreignKey('payer') + foreignKey('payee') + foreignKey('payer_agent') + foreignKey('payee_agent');
+  $foreignKeys = foreignKey('payer') + foreignKey('payee') + foreignKey('payer_agent') + foreignKey('payee_agent');
   $indexes = index('payer') + index('payee') + index('created') + index('completed'); // also serial/type/taking/goods/state/payer_agent/payee_agent/channel/?
-  $schema['r_txs'] = setupTable('Record of all rCredits transactions in the region', $fields, 'xid', $foreign_keys, $indexes);
+  $schema['r_txs'] = setupTable('Record of all rCredits transactions in the region', $fields, 'xid', $foreignKeys, $indexes);
 
 //  foreach (u\ray('type taking goods payer_agent payee_agent payer_for payee_for') as $one) unset($fields[$one]);
 
@@ -137,34 +145,36 @@ function tableDefs($schema = array()) {
     'created' => setupField('Unixtime transaction was created', 'int 11'),
     'completed' => setupField('Unixtime transaction was completed', 'int 11'), // for deposits / withdrawals
   );
-  $foreign_keys = foreignKey('payer') + foreignKey('payee');
+  $foreignKeys = foreignKey('payer') + foreignKey('payee');
   $indexes = index('created');
-  $schema['r_usd'] = setupTable('Record of USD (Dwolla) transactions in the region', $fields, 'txid', $foreign_keys, $indexes);
+  $schema['r_usd'] = setupTable('Record of USD (Dwolla) transactions in the region', $fields, 'txid', $foreignKeys, $indexes);
 
   // table r_usderror
   $fields = array(
     'id' => setupField('record ID', 'serial 11'),
     'error' => setupField('error message from USD server', 'varchar 255'),
+    'op' => setupField('operation that caused the error', 'varchar 60'),
+    'ok' => setupField('is it okay to get this error?', 'int tiny', 0),
+    'created' => setupField('Unixtime error happened', 'int 11'),
   );
-  $foreign_keys = array();
+  $foreignKeys = array();
   $indexes = array();
-  $schema['r_usderror'] = setupTable('USD error messages from USD gateway', $fields, 'id', $foreign_keys, $indexes);
+  $schema['r_usderror'] = setupTable('USD error messages from USD gateway', $fields, 'id', $foreignKeys, $indexes);
   
-/*  // table r_donations
+  // table r_gifts
   $fields = array(
-    'donid' => setupField('donation record id', 'serial 11'),
-    'created' => setupField('date/time of donation', 'int 11'),
-    'uid' => setupField('uid of account that made the donation', 'int 11'),
-    'amount' => setupField('amount of donation', 'numeric 11,2'),
-    'type' => setupField('donation type (cc, check, cash, rCredits pledge, rCredits)', 'int tiny'),
-    'how_often' => setupField('recurring how often (Y, Q, M, 1)', 'varchar 1'), // this is for information only
-    'check_number' => setupField('check number, if any', 'varchar 60'),
-    'received' => setupField('date actually received', 'int 11'),
+    'donid' => setupField('gift record id', 'serial 11'),
+    'created' => setupField('date/time of gift', 'int 11'),
+    'uid' => setupField('uid of account that made the gift', 'int 11'),
+    'amount' => setupField('amount of gift', 'numeric 11,2'),
+    'often' => setupField('recurring how often (Y, Q, M, 1)', 'varchar 1'),
+    'honor' => setupField('what type of honor', 'varchar 10'),
+    'honored' => setupField('who is honored', 'varchar 255'),
+    'share' => setupField('percentage of rebates/bonuses to contribute back to CGF', 'numeric 6,3'),
   );
-  $foreign_keys = foreignKey('uid');
+  $foreignKeys = foreignKey('uid');
   $indexes = index('uid');
-  $schema['r_donations'] = setupTable('Donation details (for rCredits "Partners")', $fields, 'donid', $foreign_keys, $indexes);
-*/
+  $schema['r_gifts'] = setupTable('Membership gift details', $fields, 'donid', $foreignKeys, $indexes);
 
   // table r_log
   $fields = array(
@@ -177,9 +187,9 @@ function tableDefs($schema = array()) {
     'info' => setupField('arbitrary serialized data', 'text medium'),
     'special' => setupField('special value if any', 'varchar 20'), // eg cell number or nonce
   );
-  $foreign_keys = foreignKey('cuid') + foreignKey('agent');
+  $foreignKeys = foreignKey('cuid') + foreignKey('agent');
   $indexes = index('type') + index('channel') + index('cuid') + index('agent');  
-  $schema['r_log'] = setupTable('Development and error log', $fields, 'logid', $foreign_keys, $indexes);
+  $schema['r_log'] = setupTable('Development and error log', $fields, 'logid', $foreignKeys, $indexes);
   
   // table r_demand
   /*
@@ -189,9 +199,9 @@ function tableDefs($schema = array()) {
     'amount' => setupField('request amount', 'numeric 11,2'), 
     'who' => setupField('uid of the account requesting rCredits', 'int 11'),
   );
-  $foreign_keys = foreignKey('who');
+  $foreignKeys = foreignKey('who');
   $indexes = index('who');
-  $schema['r_demand'] = setupTable('Who requested rCredits when', $fields, 'id', $foreign_keys, $indexes);
+  $schema['r_demand'] = setupTable('Who requested rCredits when', $fields, 'id', $foreignKeys, $indexes);
   */
   
   // table r_relations
@@ -208,9 +218,9 @@ function tableDefs($schema = array()) {
     'employee_ok' => setupField('employee says this agent is an employee', 'int tiny', 0),
     'is_owner' => setupField('this agent is an owner (or part owner)', 'int tiny', 0),
   );
-  $foreign_keys = foreignKey('main') + foreignKey('other') + foreignKey('foreign_uid');
+  $foreignKeys = foreignKey('main') + foreignKey('other') + foreignKey('foreign_uid');
   $indexes = index('main') + index('other');
-  $schema['r_relations'] = setupTable('Who can manage which accounts, and how', $fields, 'reid', $foreign_keys, $indexes);
+  $schema['r_relations'] = setupTable('Who can manage which accounts, and how', $fields, 'reid', $foreignKeys, $indexes);
     
   // table r_candidates (almost same as r_relations, but with extra fields -- used for candidates in rcredits-circles.inc)
   /*
@@ -220,8 +230,8 @@ function tableDefs($schema = array()) {
     'ignor' => setupField('temporarily omit this record from consideration', 'int tiny', 0), // IGNORE is reserved in MySQL
     'score' => setupField('how good is this candidate', 'int 11', 0),
   );
-  $foreign_keys = foreignKey('uid');
-  $schema['r_candidates'] = setupTable('Candidates to become rTraders', $fields, 'uid', $foreign_keys);
+  $foreignKeys = foreignKey('uid');
+  $schema['r_candidates'] = setupTable('Candidates to become rTraders', $fields, 'uid', $foreignKeys);
   */
   
 /*
@@ -244,9 +254,9 @@ function tableDefs($schema = array()) {
     'transient_id' => setupField('once-use identifier displayed on the device as a QR for the current account/agent', 'varchar 255'),
     'accessed' => setupField('date/time last used', 'int 11'), // to trigger deletion after several months
   );
-  $foreign_keys = foreignKey('owner') + foreignKey('default_agent');
+  $foreignKeys = foreignKey('owner') + foreignKey('default_agent');
   $indexes = index('owner');
-  $schema['r_smarts'] = setupTable('Who owns what smart device', $fields, 'code', $foreign_keys, $indexes);
+  $schema['r_smarts'] = setupTable('Who owns what smart device', $fields, 'code', $foreignKeys, $indexes);
   
   // table r_invites
   $fields = array(
@@ -256,9 +266,9 @@ function tableDefs($schema = array()) {
     'invitee' => setupField('uid of invited new member', 'int 11'), // null if not accepted yet
     'invited' => setupField('date of invitation', 'int 11'),
   );
-  $foreign_keys = foreignKey('inviter') + foreignKey('invitee');
+  $foreignKeys = foreignKey('inviter') + foreignKey('invitee');
   $indexes = index('inviter');
-  $schema['r_invites'] = setupTable('Who invited whom', $fields, 'code', $foreign_keys, $indexes);
+  $schema['r_invites'] = setupTable('Who invited whom', $fields, 'code', $foreignKeys, $indexes);
 /*
   // table r_counts
   $fields = array(
@@ -276,9 +286,9 @@ function tableDefs($schema = array()) {
     'count' => setupField('for the rTraders that have this many places to buy with rCredits', 'int 11', 0),
     'score' => setupField('this many of those rTraders would buy from this company', 'int 11'),
   );
-  $foreign_keys = foreignKey('company');
+  $foreignKeys = foreignKey('company');
   $indexes = index('company');
-  $schema['r_scores'] = setupTable('Best companies to promote to rTrader in the current round', $fields, NULL, $foreign_keys, $indexes);
+  $schema['r_scores'] = setupTable('Best companies to promote to rTrader in the current round', $fields, NULL, $foreignKeys, $indexes);
   */
   
   /*  
@@ -315,8 +325,8 @@ function make_fields($unmake = FALSE, $extras = array()) {
   }
 }
 
-function setupTable($description, $fields, $primary_key, $foreign_keys = array(), $indexes = array()) {
-  $result = compact('description', 'fields', 'indexes') + array('foreign keys' => $foreign_keys);
+function setupTable($description, $fields, $primary_key, $foreignKeys = array(), $indexes = array()) {
+  $result = compact('description', 'fields', 'indexes') + array('foreign keys' => $foreignKeys);
   return is_null($primary_key) ? $result : ($result + array('primary key' => (is_array($primary_key) ? $primary_key : array($primary_key))));
 }
 
@@ -418,37 +428,4 @@ function oldVersion($version, $when) {
 
   //  if ($version >= '1.0b') return;
   
-  if (\db_table_exists('r_countries')) {
-    if (dbExists('users', "country='United States'")) {
-      $sql = <<< EOF
-        UPDATE users u
-          INNER JOIN r_countries c ON BINARY c.name=BINARY u.country
-          SET u.country=c.id;
-        UPDATE users u
-          INNER JOIN r_countries c ON BINARY c.id=BINARY u.country
-          INNER JOIN r_states s ON BINARY s.name=BINARY u.state
-          SET u.state=s.id;
-        UPDATE users SET state=4370 WHERE state='Stockholms';
-        UPDATE users SET state=9999 WHERE state='Islington';
-        UPDATE users SET account_type=2 WHERE account_type=1;
-EOF;
-      \db_query($sql);
-      makeGeoDropdowns();
-    }
-  }
-  
-  if (\db_field_exists('users', 'dob')) {
-    $sql = <<< EOF
-      ALTER TABLE users
-      DROP dob,
-      DROP usd_auth,
-      DROP id_proof,
-      DROP answer,
-      DROP federal_id;
-      UPDATE users SET account_type=IF(uid<100, 0, 1) WHERE account_type IS NULL;
-      UPDATE r_txs SET state=-1 WHERE state=0;
-      UPDATE r_txs SET state=0 WHERE state=2;
-EOF;
-    \db_query($sql);
-  }
 }

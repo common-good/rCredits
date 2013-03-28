@@ -96,8 +96,8 @@ class call {
       // send the user an email here?
       // throw new rSMSexception('You do not have permission to use this system.'); // (due to misbehavior?), so don't waste a call?
       return tt('no SMS permission'); // be polite 
-      */
     }
+    */
     return ''; // success
   }
 

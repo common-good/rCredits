@@ -14,7 +14,7 @@ use rCredits\Testing as t;
 
 require_once __DIR__ . '/../dwolla/dwolla.php';
 define('USD_NOTE_PREFIX', 'rC: '); // prefix USD transaction notes so we know they are ours
-define('NO_DWOLLA', TRUE or t\EST());
+define('NO_DWOLLA', FALSE or t\EST());
 define('DWOLLA_FEE_THRESHOLD', 10); // over this amount, Dwolla charges a fee
 
 class usd {
@@ -28,26 +28,30 @@ class usd {
   /**
    * Get a dwolla object. Set the auth token, if appropriate.
    * @param bool $setToken: whether to set the auth token
-   * @param int $id: rCredits account id to pass in redirect uri (for code or auth token)
-   *   if no id, no redirect uri (redirect uri must match, for getting code and getting auth)
+   * @param string $redirectUri: where Dwolla should return to
    * @return: a dwolla object (usually received into $dw)
    */
-  private function dwolla($setToken = TRUE) {
+  private function dwolla($setToken = TRUE, $redirectUri = 'usd-callback') {
     global $base_url;
-    $redirectUri = "$base_url/usd-callback/" . $this->acct->id;
+    $redirectUri = "$base_url/$redirectUri/" . $this->acct->id;
     $dw = new \DwollaRestClient(DWOLLA_API_KEY, DWOLLA_API_SECRET, $redirectUri);
     if ($setToken) $dw->setToken($this->acct->secure['auth']);
     return $dw;
   }
 
+  public static function format($n) {return preg_replace('/(\d{3})(\d{3})(\d{4})/', '$1-$2-$3', $n);}
+  
   /**
    * Set error to the Dwolla error, check for unknown errors, and return FALSE.
    */
   function dwError($dw, &$error) {
     $error = $dw->getError();
-    if (!r\dbExists('r_usderror', 'error=:error', compact('error'))) {
-      r\notifyStaff('Unprecedented Dwolla error: @error', compact('error'));
-      r\dbInsert('r_usderror', compact('error'));
+    if (!r\dbExists('r_usderror', 'error=:error and NOT ok', compact('error'))) {
+      $stack = debug_backtrace();
+      $op = $stack[1]['function'];
+      r\notifyStaff('Unprecedented Dwolla error: @error in @op', compact('error', 'op'));
+      $created = REQUEST_TIME;
+      r\dbInsert('r_usderror', compact(u\ray('error op created'));
     }
     return FALSE;
   }
@@ -68,11 +72,35 @@ class usd {
    * @return: does not return, but initiates callback to receive auth token
    */
   public function getAuth() {
-    $dw = $this->dwolla(FALSE); // tell Dwolla where to wake us up
+    $dw = $this->dwolla(FALSE, R_GET_AUTH_URI); // tell Dwolla where to wake us up
 	  header('Location: ' . $dw->getAuthUrl()); // request an auth token
     exit();
   }    
 
+    /**
+   * Return here from requesting an auth code, to get the final code.
+   * @param int $uid: rCredits account id, passed in return uri
+   */
+  public static function getAuth2($uid) {
+    global $base_url;
+    $uri = "$base_url/account/usd/connected=";
+    
+    if (NO_DWOLLA) unset($_GET['error']);
+    if (@$_GET['error']) return r\go($uri . $_GET['error_description']);
+
+    $cacct = r\acct();
+    if ($uid != @$cacct->id) return r\Web\say('wrong user', 'zot');
+    $usdAcct = new usd($cacct);
+    $dw = $usdAcct->dwolla(FALSE, R_GET_AUTH_URI); // URI must match the one in getAuth
+    if (NO_DWOLLA) $authToken = \user_password(); else
+    if (!$authToken = $dw->requestToken(@$_GET['code'])) return r\go($uri . $dw->getError());
+
+    $secure = $cacct->secure;
+    $secure['auth'] = $authToken;
+    $cacct->update(compact('secure'));
+    return r\go($uri . 'yes'); // tell user we were successful
+  }
+  
   /**
    * Return the account balance or its sufficiency
    * Call by:
@@ -108,8 +136,9 @@ class usd {
     $source = $direct ? 'Dwolla' : 'ERROR'; // no delayed payments at present
     $notes = USD_NOTE_PREFIX . $notes;
     $dw = $this->dwolla();
-    if (NO_DWOLLA) $txid = \user_password(); else
-    if ($txid = $dw->send($this->pin, $other->number, $amount, $source, $notes, 0, $payerFee)) {
+    if (NO_DWOLLA) return \user_password();
+//    if ($txid = $dw->send($this->pin, self::format(DWOLLA_TEST_ACCOUNT), $amount, $source, $notes, 0, $payerFee)) {
+    if ($txid = $dw->send($this->pin, self::format($other->number), $amount, $source, $notes, 0, $payerFee)) {
       self::addToAtom($txid, $amount, $this->acct->id, $other->acct->id);
       return $txid;
     } else return $this->dwError($dw, $error);
@@ -118,26 +147,8 @@ class usd {
   /**
    * Handle callbacks from the USD institution
    * The calling institution is expected to be explicit in the callback info.
-   * Used at present only for getting the auth token from Dwolla.
-   * @param int $uid: the account id of the rCredits account for which we are getting a callback
    */
-  public static function callback($uid) {
-    global $base_url;
-    $uri = "$base_url/account/usd/connected=";
-    
-    if (NO_DWOLLA) unset($_GET['error']);
-    if(@$_GET['error']) return r\go($uri . $_GET['error_description']);
-
-    $usdAcct = new usd(r\acct($uid));
-    $dw = $usdAcct->dwolla(FALSE);
-    if (NO_DWOLLA) $authToken = \user_password(); else
-    if (!$authToken = $dw->requestToken(@$_GET['code'])) return r\go($uri . $dw->getError());
-
-    $acct = r\acct($uid);
-    $secure = $acct->secure;
-    $secure['auth'] = $authToken;
-    $acct->update(compact('secure'));
-    return r\go($uri . 'yes'); // tell user we were successful
+  public static function callback() {
   }
 
   /**
@@ -145,19 +156,37 @@ class usd {
    * @param float $amount: the amount to transfer to the bank (from the bank, if negative)
    * @param string $error: (returned) the error message, if any
    * @return: the transaction ID string (FALSE on failure)
+   *
+   * result:
+array (
+  'Id' => 2420668,
+  'Amount' => 20,
+  'Date' => '3/25/2013 10:23:59 PM',
+  'Type' => 'deposit',
+  'UserType' => 'Dwolla',
+  'DestinationId' => '812-448-6052',
+  'DestinationName' => 'William Spademan',
+  'SourceId' => 'XXX1990',
+  'SourceName' => 'Computer Practitioner',
+  'ClearingDate' => '3/29/2013',
+  'Status' => 'pending',
+  'Notes' => NULL,
+  'Fees' => NULL,
+)
    */
   function bank($amount, &$error = NULL) {
     $dw = $this->dwolla();
     if (!$sources = $dw->fundingSources()) return $this->dwError($dw, $error);
-    debug($sources);
-    $function = $amount < 0 ? 'withdraw' : 'deposit';
+    $function = $amount < 0 ? 'deposit' : 'withdraw';
     // debug("Transferring USD $amount from Dwolla account to the bank for account uid=" . $this->acct->id);
     self::beginAtom();
+    if (!NO_DWOLLA)
     if (!$result = $dw->$function(@$sources[0]['Id'], $this->pin, abs($amount))) {
       self::rollback();
       return $this->dwError($dw, $error);
     }
-    $txid = $result['Response'][0]['Id'];
+    if (NO_DWOLLA) $txid = \user_password(); else
+    $txid = $result['Id'];
     self::addToAtom($txid, $amount, $this->acct->id, 0, 0);
     self::commit();
     return $result;

@@ -6,9 +6,9 @@ SO I know where it stands.
 Setup:
   Given members:
   | id      | full_name  | address | city  | state  | postal_code | country | floor  | account_type  | flags              |
-  | NEW.ZZA | Abe One    | POB 1   | Atown | Alaska | 01000       | US       | -100  | %R_PERSONAL   | %BIT_DEFAULTS |
-  | NEW.ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000       | US       | -200  | %R_PERSONAL   | %BIT_MEMBER   |
-  | NEW.ZZC | Corner Pub | POB 3   | Ctown | Cher   |             | France   | -300  | %R_COMMERCIAL | %BIT_MEMBER   |
+  | NEW.ZZA | Abe One    | POB 1   | Atown | Alaska | 01000       | US       | -100  | %R_PERSONAL   |  |
+  | NEW.ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000       | US       | -200  | %R_PERSONAL   | %B_MEMBER   |
+  | NEW.ZZC | Corner Pub | POB 3   | Ctown | Cher   |             | France   | -300  | %R_COMMERCIAL | %B_MEMBER   |
 
   And relations:
   | id      | main    | agent   | permission        |

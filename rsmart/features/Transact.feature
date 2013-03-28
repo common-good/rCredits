@@ -43,7 +43,7 @@ Variants: with/without an agent
 Scenario: A member asks to charge another member
   When member " NEW.ZZA" asks device "codeA" to do this: "charge" "NEW.ZZC" $100 ("goods": "labor")
   # cash exchange would be ("cash": "")
-  #no variant on first member because showing balance requires PERM_MANAGE
+  #no variant on first member because showing balance requires B_MANAGE
   Then we respond success 1 tx_id "NEW:AAAE" my_balance "$250" other_balance "" and message "report invoice" with subs:
   | action  | otherName | amount | tid |
   | charged | Corner Pub | $100   | 2   |
@@ -59,7 +59,7 @@ Scenario: A member asks to charge another member
 
 Scenario: A member asks to pay another member
   When member " NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $100 ("goods": "groceries")
-  #no variant on first member because showing balance requires PERM_MANAGE
+  #no variant on first member because showing balance requires B_MANAGE
   Then we respond success 1 tx_id "NEW:AAAE" my_balance "$155" other_balance "" and message "report transaction" with subs:
   | action | otherName | amount | rewardType | rewardAmount | balance | tid |
   | paid   | Corner Pub | $100   | rebate      | $5            | $155    | 2   |
@@ -91,7 +91,7 @@ Scenario: A member asks to pay another member
 Scenario: A member asks to charge another member unilaterally
   Given member "NEW.ZZC" can charge unilaterally
   When member " NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $100 ("goods": "groceries")
-  #no variant on first member because showing balance requires PERM_MANAGE
+  #no variant on first member because showing balance requires B_MANAGE
   Then we respond success 1 tx_id "NEW:AAAE" my_balance "$360" other_balance "$155" and message "report transaction" with subs:
   | action  | otherName | amount | rewardType | rewardAmount | balance | tid |
   | charged | Abe One    | $100   | bonus       | $10           | $360    | 2   |
@@ -108,7 +108,7 @@ Scenario: A member asks to charge another member unilaterally
 Scenario: A member asks to charge another member unilaterally, with insufficient balance
   Given member "NEW.ZZC" can charge unilaterally
   When member " NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $300 ("goods": "groceries")
-  #no variant on first member because showing balance requires PERM_MANAGE
+  #no variant on first member because showing balance requires B_MANAGE
   Then we respond success 1 tx_id "NEW:AAAE" my_balance "$525" other_balance "$12.50" and message "report short invoice" with subs:
   | action  | otherName | amount | short | balance | tid | t2id |
   | charged | Abe One   | $250   | $50   | $525    | 2   | 3    |
@@ -121,7 +121,7 @@ Scenario: A member asks to charge another member unilaterally, with insufficient
 
 Scenario: A member asks to pay another member, with insufficient balance
   When member " NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $300 ("goods": "groceries")
-  #no variant on first member because showing balance requires PERM_MANAGE
+  #no variant on first member because showing balance requires B_MANAGE
   Then we respond success 1 tx_id "NEW:AAAE" my_balance "$12.50" other_balance "" and message "report short payment" with subs:
   | action | otherName | amount | short | balance | tid |
   | paid   | Corner Pub | $250   | $50   | $12.50  | 2   |
