@@ -192,9 +192,10 @@ function rcredits_cron() {
  * Implements hook_cron_queue_info().
  */
 function rcredits_cron_queue_info() {
-  $intensiveQueues = 'automaticPayments payVirtual redistribute'; // these want to be done ASAP once they start
-  $queues = u\ray('checkBalance checkScam inflation statement f1099 ' . $intensiveQueues);
+//  $intensiveQueues = 'automaticPayments payVirtual redistribute'; // these want to be done ASAP once they start
+//  $queues = u\ray('checkBalance checkScam inflation statement f1099 ' . $intensiveQueues);
 //  foreach ($queues as $one) $$one = r\makeQueue($one, strpos($intensiveQueues, $one) !== FALSE ? 5*60 : 15);
+  $queues = u\ray('every5');
   foreach ($queues as $one) $$one = r\makeQueue($one, 5*60); // give all queues the full 5 minutes (they are self-thinning)
   return compact($queues);
 }

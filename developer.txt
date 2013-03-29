@@ -17,6 +17,18 @@ rename community field to community
 ***
         
 To do: (* = before launch ** = earlier)
+- write a function to detect if we are too close to the end of a 5-minute chunk, to start an activity. Maybe measure the average time that an activity takes and give it twice that much (and see if we get too many interrupted activities).
+- phase out tablefield and/or userfield
+- change $_POST to $sta['input'] ? (also see if input includes everything that values does)
+- change all underline fields to camelcase
+- 1/6 month credit after first month, etc. up to 6 mos.
+- * can't go down to credit floor<0 unless chosen "can go below". Credit floor has link to pref. Pref mentions fee after 30 days.
+- pref for notification frequency (hourly/daily/weekly/monthly digest, viewable online)
+- * agreement help links
+- * finish and test cron (one part at a time)
+- * 4 steps to get signup bonus!
+- * company categories
+- * relations screen: request ID card (not print)
 - * I includes security code, like this: http(s?)://new.rc2.me/new.abc/Urlencoded10CharacterSecurityCode
 - ** Default for companies is "pay everyone virtually", for personal is "pay everyone directly". 
 - ** membership gift happens upon account activation (rTrader status). It goes through as an rC transaction.
@@ -65,6 +77,16 @@ To do: (* = before launch ** = earlier)
 - Coding security policy: never show any personal identifying info (R_SECRET_FIELDS) in the HTML. EVER. For example, when verifying someone's identity, the staff member should ask for the last 4 of their ss#, type it in and press submit. The code does a compare and returns just yes or no. Even the member cannot ever see what they earlier typed in. We might want to have a similar but weaker restriction on phone numbers and addresses -- like maybe those are protected for personal accounts. When 1099 time comes, the reports go out electronically only (no preview, etc.) Even user 1 and other admins don't have access to PII. Also put in some safe-guards to prevent repetitive guessing.
 - beef up security - immediate:
   . Show the agent's picture below Help/Menu (below accounts dropdown in fullscreen). 
+- I figure we can continue without interruption or pain for a few days whenever Dwolla goes down. The current plan is to give everyone (everyone who has been a member for at least a month) one month of reserve credit -- that is, however much rCredits they earned in the past 30 days plus however much rCredits they typically buy (with US Dollars) in 30 days. No fees for that loan as long as it is paid back within 30 days or within 3 days after Dwolla comes back up, whichever is later.
+
+  It would be good to have an alternate way to trade rCredits for USD before that happens.
+
+  Let's hope that by the time we get a DoS attack on a regional rCredits server, we're big enough to hire competent people to fight it. As a corollary, we probably want to encourage regions to use large hosting companies rather than small local ones. Unfortunately.
+
+  We will also want a way to cope with internet outages (local or national). (David this paragraph is mostly for you, after the next sentence.) The current plan is to develop a mobile app that saves a working copy of the entire system in a distributed network (of smart devices) with lots of redundancy. For example, we want each merchant's device(s) to recognize their repeat customers. Each new customer who pays with a smart device (rather than a card) (which we will encourage at some point, perhaps by giving people an extra $5 if they forgo the card, or an extra penny per transaction) brings data to the merchant:
+  some encrypted gem that gets passed from member to member on each transaction, to prove their identity and/or balance and/or connection to the merchant's community
+  miscellaneous (encrypted) transaction data to add to the merchant's records. (This might just be a second purpose for the same data.)
+  In such times, even participants without a smart device could be given a paper receipt that is a single large QR code, to carry to their next transaction. Better, they could be given a (re-writable) mag-stripe card (or the equivalent) that the next merchant reads and re-writes.
 
 TODO whenever
 
@@ -159,7 +181,6 @@ function eachAccount($queries, $ons, $where = 'TRUE', $subs = array()) {
 @todo: Finish separating backend. Front end should have no registered users. This should maybe wait until after launch.
 @todo: use popups for some things
 @todo: make help divs draggable
-@todo: when a relation for a company is created with B_MANAGE, warn the user that they will no longer be able to log in directly to the company account, change the password to "NOACCESS", and prevent a password change ("Only authorized individuals can manage this account.")
 @todo: option to suppress current balance in messages (make it a separate message) B_SHOWBAL (default TRUE)
 @todo: Miscellaneous other data to collect:
   Names and Social Security Numbers of Dependents [why do we need this?]
@@ -313,7 +334,10 @@ H. Notes on transaction record system:
   public through a RESTful query. Intra-community transactions should also be stored twice -- ideally in member's devices. Smartphones and
   desktop computers running an app should store all their own transactions. Encrypted backups of everything to the cloud too.
 
-Other thoughts:
+I. Cron ops
+- Companies with the "pay everyone virtually" option don't have to pay anyone consciously. Their rCredits are offered proportionately to all employees and suppliers. Amounts are truncated to the penny. All payment offers are accepted automatically, up to the amount in the accepter's Dwolla account. Unaccepted amounts are redistributed to others (not recursively, if the company is unable to distribute its funds). Companies must list for each employee and supplier the average amount they pay them per month ($/mo) on the relations screen.
+
+J. Other thoughts:
   - Joining by dumb cellphone is for play only. Accounts and transactions created that way should get deleted after a week of inactivity.
   - Suppose I live in 413 (NEW), but my cell is 987 (NYC). Person B lives in 222 with cell 333. When I am traveling to AAA I pay person B with SMS, by calling the local rCredits number. The local server contacts NYC to process my side of the transactions, but gets redirected to NEW. Similarly for person B's side. So at most 5 servers are involved (three just redirecting). NEW.rcredits.org and other subdomains act similarly.
   - 

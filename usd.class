@@ -51,7 +51,7 @@ class usd {
       $op = $stack[1]['function'];
       r\notifyStaff('Unprecedented Dwolla error: @error in @op', compact('error', 'op'));
       $created = REQUEST_TIME;
-      r\dbInsert('r_usderror', compact(u\ray('error op created'));
+      r\dbInsert('r_usderror', compact(u\ray('error op created')));
     }
     return FALSE;
   }

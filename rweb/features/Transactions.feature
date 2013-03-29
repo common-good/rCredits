@@ -8,7 +8,7 @@ Setup:
   | id      | full_name  | floor | account_type  | flags      |
   | NEW.ZZA | Abe One    | -100  | %R_PERSONAL   |            |
   | NEW.ZZB | Bea Two    | -200  | %R_PERSONAL   | %B_MEMBER  |
-  | NEW.ZZC | Corner Pub | -300  | %R_COMMERCIAL | %B_RTRADER |
+  | NEW.ZZC | Corner Pub | -300  | %R_COMMERCIAL | %B_OK |
   And relations:
   | id      | main    | agent   | permission        |
   | NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |

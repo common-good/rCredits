@@ -41,6 +41,7 @@ function tableDefs($schema = array()) {
     'rebate_percent' => setupField('current rebate percentage (sales bonus is double)', 'numeric 4,3', 5),
     'share' => setupField('fraction of rebates and bonuses to contribute back to Common Good Finance', 'numeric 6,3', 0),
     'floor' => setupField('how low can balance go (normally zero or less)', 'numeric 11,2', R_FLOOR),
+    'reserve' => setupField('how much reserve credit in the event of a Dwolla outage', 'numeric 11,2', 0),
     'minimum' => setupField('chosen minimum balance (savings + 3 days, fill automatically)', 'numeric 11,2', NULL),
     'maximum' => setupField('maximum rCredits balance (exchange excess for USD automatically), 0=none)', 'numeric 11,2', NULL),
     'usd' => setupField('balance in related USD account (probable)', 'numeric 11,2'),
@@ -269,6 +270,15 @@ function tableDefs($schema = array()) {
   $foreignKeys = foreignKey('inviter') + foreignKey('invitee');
   $indexes = index('inviter');
   $schema['r_invites'] = setupTable('Who invited whom', $fields, 'code', $foreignKeys, $indexes);
+  
+  // table r_nonmembers
+  $fields = array(
+    'id' => setupField('non-member company record id', 'serial 11'),
+    'company' => setupField('company name', 'varchar 60'),
+    'potential' => setupField('number of members who shop there', 'int 6', 0),
+  );
+  $schema['r_nonmembers'] = setupTable('Local companies we want to recruit', $fields, 'id', NULL, NULL);
+  
 /*
   // table r_counts
   $fields = array(

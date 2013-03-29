@@ -29,7 +29,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
   $name = u\shortName($full_name);
   $pass = @$my_password ?: '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae'; // default to 123
   $mail = @$my_email ?: ''; // Don't use "$name@example.com"
-  $flags = B_DEFAULTS | (isset($my_flags) ? @$my_flags : (1 << B_RTRADER));
+  $flags = B_DEFAULTS | (isset($my_flags) ? @$my_flags : (1 << B_OK));
   $community = @$my_communityUid ?: r\serverUid();
   u\EXPECT(!empty($community), 'empty community uid');
 

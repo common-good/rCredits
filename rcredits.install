@@ -24,7 +24,7 @@ function rcredits_install() {
   $uid = r\serverUid();
   if (!r\dbExists('users', 'uid=:uid', compact('uid'))) {
     $keys = u\ray('uid community name full_name postal_code country minimum rebate_percent flags');
-    $values = array($uid, $uid, R_SERVER_ID . '.', R_REGION_NAME, R_REGION_POSTAL_AREA, R_COUNTRY_ID, R_INITIAL_DEMAND, 0, B_RTRADER);
+    $values = array($uid, $uid, R_SERVER_ID . '.', R_REGION_NAME, R_REGION_POSTAL_AREA, R_COUNTRY_ID, R_INITIAL_DEMAND, 0, B_OK);
     $info = array_combine($keys, $values);
     new r\acct($info);
   }

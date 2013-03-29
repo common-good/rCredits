@@ -8,7 +8,7 @@ Setup:
   | id   | full_name  | account_type     | flags         |
   | .ZZA | Abe One    | %R_PERSONAL      |  |
   | .ZZB | Bea Two    | %R_SELF_EMPLOYED | %B_MEMBER   |
-  | .ZZC | Corner Pub | %R_COMMERCIAL    | %B_RTRADER  |
+  | .ZZC | Corner Pub | %R_COMMERCIAL    | %B_OK  |
   | .ZZD | Dee Four   | %R_PERSONAL      | 0             |
   And transactions: 
   | tx_id | created   | type       | amount | from      | to   | purpose | taking |

@@ -34,8 +34,8 @@ label.option {font-weight:bold;}
 .form-type-radio label {background:url(../images/radio.gif) no-repeat; background-size:1.3em;}
 
 .form-type-checkbox .description,
-form.rweb .form-type-checkboxes label,
-.form-type-checkboxes label {text-align:left; padding-left:2em; height:1.35em; background:url(../images/checkbox.gif) no-repeat; background-size:1.35em;}
+form.rweb .form-type-checkbox label,
+.form-type-checkbox label {text-align:left; padding-left:2em; height:1.35em; background:url(../images/checkbox.gif) no-repeat; background-size:1.35em;}
 
 .form-type-checkbox .opt-on,
 form.rweb .form-type-checkboxes label.opt-on,
@@ -174,6 +174,9 @@ form.rweb  .form-no {color:red;}
 /*#user-register-form .form-type-radio label {display:inline; width:10em; margin-left:.2em; text-align:left;}*/
 #user-register-form  fieldset.form-wrapper {margin-left:0; border-color:darkgreen; background-color:lightyellow;}
 #user-register-form  #edit-company-text label {text-align:left;}
+#user-register-form .form-item-buysAt-15 label  {width:150px;}
+#user-register-form .form-item-buysAt label[for="edit-buysat"] {font-weight:normal; width:100%; text-align:left; margin-left:125px; margin-top:20px; border-top:1px solid darkgreen;}
+/* ask even companies! #user-register-form .form-item-buysAt {display:none;} */
 
 /* New password */
 #user-pass #edit-name {width:20em;}

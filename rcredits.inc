@@ -15,6 +15,7 @@ use rCredits\Testing as t;
 use rCredits\Util as u;
 use rCredits\Backend as be;
 
+define('MINI_LAUNCH', TRUE);
 define('isDEV', @$_SERVER['WINDIR']); // developing on Windows (unlike production server)
 define('DWOLLA_TEST_ACCOUNT', '812-713-9234');
 
@@ -46,6 +47,7 @@ define('R_PIXEL_FACTOR', 128); // what to multiply the aspect ratio components b
 define('R_GET_AUTH_URI', 'usd-get-auth'); // where Dwolla calls us back for getting auth code
 define('R_INDIVIDUAL_GIFT', 50); // suggested contribution for individuals
 define('R_COMPANY_GIFT', 250); // suggested contribution for companies
+define('R_BUYS_BEFORE_BONUS', MINI_LAUNCH ? 1 : 3); // number of purchases required before signup bonus
 
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
@@ -70,7 +72,8 @@ define('R_PUBLICLY_TRADED', 8);
 // Permissions, options, and flags (flags field in account record)
 // If we need more bits, create a flags2 field and make the B_ defs negative for acct::hasBit and setBit
 define('B_MEMBER', 1); // signed the membership agreement, etc.
-define('B_RTRADER', 2); // approved to use rCredits for real
+define('B_OK', 2); // approved to use rCredits for real
+define('B_BONA', 3); // got signup bonus (good circles - received rC and bought from 3 members)
 define('B_unused4', 4); // 
 define('B_PERSONAL', 5); // personal account
 define('B_COMPANY', 6); // company account (could be personal also, for independent contractor)
@@ -86,8 +89,8 @@ define('B_NOTIFY_SMS', 16); // notifications by SMS
 define('B_ELECTRONIC', 17); // will accept electronic statements
 define('B_SECRET_BAL', 18); // don't let merchants tell me my balance on request
 define('B_TO_BANK', 19); // automatically transfer excess US Dollars from Dwolla to bank account
+define('B_BORROWER', 20); // member chose to permit sub-zero balances
 //define('B_MET', 8000); // has participated in a community meeting
-//define('B_RQUALIFIED', 10000); // makes good economic circles
 
 define('B_CTTY_ADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
@@ -931,6 +934,20 @@ function newMemberId($oldUid, $newUid = FALSE, $skipUsers = FALSE) {
 }
 
 /**
+ * Check if an account needs a signup bonus. If so, give it.
+ * @param int $uid: account id
+ * @return: whether the signup bonus was given
+ */
+function checkBona($uid) {
+  $acct = r\acct($uid);
+  if ($acct->can(B_BONA)) return FALSE;
+  if (!r\dbExists('r_txs', 'payee=:uid and r>0 and payer>0 and state=:TX_DONE', compact('uid'))) return FALSE;
+  if (!r\dbLookup('COUNT(DISTINCT payee)', 'r_txs', 'payer=:uid and goods and state=:TX_DONE', compact('uid')) >= R_BUYS_BEFORE_BONUS) return FALSE;
+  be\fund($acct->id, TX_SIGNUP, R_STARTING_BALANCE);
+  return TRUE;
+}
+
+/**
  * Record an invitation
  * @param string $email: email address to which the invite was sent
  * @param int $inviter: the inviter's account uid
@@ -1020,7 +1037,7 @@ function totals($ctty = '', $calculate = FALSE) {
  * @param int $ctty: the community account id (NULL means all communities)
  */
 function getTotals($ctty) {
-  $where = (@$ctty ? "community=:ctty" : 1) . ' AND (flags&:B_RTRADER)';
+  $where = (@$ctty ? "community=:ctty" : 1) . ' AND (flags&:B_OK)';
   $result = r\dbQ("SELECT frozen FROM users WHERE $where", compact('ctty'));
   $frozen = 0; // this could easily be extended to get frozen amounts for each upcoming date
   while ($one = $result->fetchColumn()) $frozen += array_sum(unserialize($one));
@@ -1139,7 +1156,6 @@ function setTxState($newValue, $zserial) {setTxField('state', $newValue, $zseria
 function serverUid($regionId = R_SERVER_ID) {return -u\a2n($regionId);}
 function emailTemplate($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}
 function emailBody($key) {return str_replace('{BODY}', emailTemplate($key), emailTemplate(R_EMAIL_FRAME));}
-function isRTrader($uid = '') {return ($acct = acct($uid)) ? $acct->hasBit(B_RTRADER) : FALSE;}
 function realCountry($country) {return dbLookup('name', 'r_countries', 'id=:country', compact('country'));}
 function realState($state, $country = R_COUNTRY_ID) {return dbLookup($country == R_COUNTRY_ID ? 'abbreviation' : 'name', 'r_states', 'id=:state and country_id=:country', compact('state', 'country'));}
 function makeQueue($callback, $time = 15) {return array('worker callback' => "rCredits\\$callback", 'time' => $time);}

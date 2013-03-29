@@ -285,15 +285,19 @@ class acct {
     if (!@self::$perms[$this->id][$this->agentId]) { // set up perms if we haven't yet (setBit() resets this)
       $perms = array();
       $id = $this->id;
-      $agent = $this->agent;
-
+      $aacct = $this->agent;
+      if (!$this->proSe()) { // admin permissions depend on agent, not account
+        $perms[B_ADMIN] = $aacct->can(B_ADMIN);
+        $perms[B_CTTY_ADMIN] = $aacct->can(B_CTTY_ADMIN);
+      }
+      
       for ($bit = 0; $bit < B_MAX; $bit++) $perms[$bit] = $this->hasBit($bit);
       $can = $this->proSe() ?
           (($id < 0) ? 0 : B_MANAGE) // communities must be managed by an agent, never directly
-        : ($perms[B_CTTY_ADMIN] and $this->community == $agent->community) ? 
+        : ($perms[B_CTTY_ADMIN] and $this->community == $aacct->community) ? 
               B_MANAGE : (B_RELATED + relation('permission', $id, $this->agentId));
       for ($i = B_RELATED; $i <= B_MANAGE; $i++) $perms[$i] = ($i <= $can); // set all permissions, even the false ones
-      if (!$perms[B_RTRADER]) $perms[B_READ] = $perms[B_SELL] = $perms[B_BUY] = FALSE; // no ASIFs!
+      if (!$perms[B_OK]) $perms[B_READ] = $perms[B_SELL] = $perms[B_BUY] = FALSE; // no ASIFs!
 
       if ($perms[B_ADMIN]) {
         if (R_ADMIN_CAN_MANAGE_CTTYS) {

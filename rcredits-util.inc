@@ -407,7 +407,7 @@ function SUBS($string, $prefix = ':') {
  * @param boolean $assertion: a statement to assert
  * @param string $message: message to display if assertion is FALSE
  *
- * @param array $args: associative array of variables, indexed by variable name, for which to check types
+ * @param assoc $args: variables, indexed by variable name, for which to check types
  * @param string $types: a corresponding space-delimited array of expected types, 
  *   each of which may in turn be a list of types delimited by '&' or a list of such lists as options, delimited by '|'.
  *

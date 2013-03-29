@@ -5,28 +5,25 @@
  
 DAILY (every 5 mins for 5 mins, starting at 2am)
 'START lostUsdTxs lostUsdTx beginVirtualPayments virtualPayments endVirtualPayments virtualPayment redistribute bank lessOften checkAccount');
-- rollback lost USD transactions
-- check / recalc cached available, rewards
-- r\unfreeze($available, $frozen);
-- automatic virtual payments: Each employee gets relieved of their excess rCredits immediately if they are over their "maximum" after getting paid (even if they get paid zero).
-- redistribution (selling of unwanted rCredits) looks only at non non-employees over their maximum (maximum is ignored for companies that pay virtually)
-- automatic transfers to/from bank accounts
+- * rollback lost USD transactions
+- * check / recalc cached available, rewards
+- * r\unfreeze($available, $frozen);
+- * automatic virtual payments: Each employee gets relieved of their excess rCredits immediately if they are over their "maximum" after getting paid (even if they get paid zero).
+- * redistribution (selling of unwanted rCredits) looks only at non non-employees over their maximum (maximum is ignored for companies that pay virtually)
+- * automatic transfers to/from bank accounts
+- calculate credit line (for overdrafts, Dwolla outage (eg 503), etc.): give the payer (r)credit up to the amount they earned or bought in the past 5 days if they have been a member for a month, 30 days for 6 months
+- notify and maybe fine late borrowers (might figure interest at the same time, since it requires examining each balance -- but only actually credit the interest monthly, otherwise discard it)
 - statements for those who want daily statements
 - weekly / monthly / quarterly / annual stuff
-other security / scam checks (often)
+- other security / scam checks (often)
 
 MONTHLY
-- interest (monthly, calculating daily bals from history) is credited to the new month. calculated as the sum of t*bal*APR, where bal is each balance they had during the preceding month and t is the number of years that balance lasted.
+- interest (monthly, calculating daily bals from history) is credited to the new month. calculated as the sum of t*bal*APR, where bal is each balance they had during the preceding month and t is the number of years that balance lasted. (see daily notify and fine, above)
 - share to CGF
 - archive the 13th previous month (13 is a parameter -- transactions are accessible for ever, but slower)
 
 YEARLY
 - 1099s
-
-(just auto pay and redist happen in a chunk)
-periodic queue adds all appropriate accounts to either the autopay or redistrib queue (never both and mostly neither)
-
-- Companies with the "pay everyone virtually" option don't have to pay anyone consciously. Their rCredits are offered proportionately to all employees and suppliers. Amounts are truncated to the penny. All payment offers are accepted automatically, up to the amount in the accepter's Dwolla account. Unaccepted amounts are redistributed to others (not recursively, if the company is unable to distribute its funds). Companies must list for each employee and supplier the average amount they pay them per month ($/mo) on the relations screen.
 
  */
 namespace rCredits\Cron;
@@ -86,7 +83,7 @@ function everyYear() {
 }
 
 function lostUsdTxs() {
-	$result = r\dbQ('SELECT uid FROM users WHERE flags&(1<<:B_RTRADER)');
+	$result = r\dbQ('SELECT uid FROM users WHERE flags&(1<<:B_OK)');
 	while($uid = $result->fetchColumn()) r\queue('lostUsdTx', compact('uid'));
   r\queue('lostUsdTx', FALSE);
 }

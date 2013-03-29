@@ -171,7 +171,7 @@ function updateRelations($updates) {
       $pot = '(:main, :other)';
       if (!r\relation(1, "main IN $pot AND other IN $pot", compact('main', 'other'))) $msg = 'deleted relation';
     } else {
-      setCttyAdmin(@$data['permission'] >= B_MANAGE, $main, $other);
+      setCttyAdmin(@$data['permission'] >= B_MANAGE - B_RELATED, $main, $other);
     }    
     $otherName = $full_name;
     $report .= u\tt($msg, compact('otherName')) . '<br>';
@@ -415,7 +415,7 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   // Check permissions
   u\EXPECT(compact(u\ray('ttype acct confirmed data')), 'string acct bool assoc');
   $otherName = $acct->full_name;
-  if (!$acct->can(B_RTRADER)) return array('non trader', compact('otherName'), FALSE);
+  if (!$acct->can(B_OK)) return array('non trader', compact('otherName'), FALSE);
   list ($myAccess, $otherAccess) = u\order($taking, B_SELL, B_BUY);
   list ($myAccessErr, $otherAccessErr) = u\order($taking, 'sell', 'buy');
   if (!$cacct->can($myAccess)) return array("no $myAccessErr", array(), FALSE);
@@ -508,6 +508,7 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
         ($preapproved ? ($virtual ? 'offer' : 'transaction') : 'invoice')
       : ($preapproved ? 'exchange' : 'exchange request'); // no possible shortfall on confirmed cash exchange (see above)
     $message = "report $message";
+    if (r\checkBona($payer)) $message .= '|signup bonus';
   } else {
     $message = $goods ? $ttype : 'exchange';
   }
@@ -743,22 +744,19 @@ function mergeCheck($info) {
 
 /**
  * Return a list of account choices for the current user (NOT the current credit account)
- * @return an array of account permissions, indexed by uid (FALSE if none)
- * @todo (maybe): recurse, to include access to the accounts that the shared accounts have access to
- *   maybe like this: SELECT main, MAX(permission) WHERE other=:agent 
- *     OR other IN (SELECT main FROM r_relations WHERE other=:agent) GROUP BY main
+ * @return an array of account ids (FALSE if none)
  */
 function accountChoices() {
   if (isFrontend()) return (array) backend('accountChoices');
   
   if (!$cacct = r\acct()) return FALSE;
   $agentId = $cacct->agentId;
-  $primary = array((string) $agentId => (count($GLOBALS['share permissions']) - 1)); // max access for primary user account
+  // $primary = array((string) $agentId => (count($GLOBALS['share permissions']) - 1)); // max access for primary user account
 
-  $sql = "SELECT main, permission FROM r_relations WHERE other=:agentId AND permission>0";
-  $result = r\dbQ($sql, compact('agentId'))->fetchAllKeyed(0, 1);
-  $resulta = $cacct->can(B_ADMIN) ? r\dbQ('SELECT uid, :B_MANAGE FROM users WHERE uid<=:R_FIRST_CTTY_UID')->fetchAllKeyed(0, 1) : array();
-  return $primary + $result + $resulta;
+  $sql = "SELECT main FROM r_relations WHERE other=:agentId AND permission>0";
+  $result = @r\dbQ($sql, compact('agentId'))->fetchAllKeyed();
+  $resulta = $cacct->can(B_ADMIN) ? @r\dbQ('SELECT uid FROM users WHERE uid<=:R_FIRST_CTTY_UID')->fetchAllKeyed() : array();
+  return array_merge(array($agentId), array_keys($result), array_keys($resulta));
 }
 
 /**
