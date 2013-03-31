@@ -257,15 +257,15 @@ function create($number, $uid, $status = SMS_PRIMARY) {
  * Add the cell owner's full name to the account.
  * @return the full name
  */
-function setup_name($acct, $full_name) {
-  $full_name = str_replace('  ', ' ', trim($full_name));
-  if (strlen($full_name) > 60) throw new rSMSexception(tt('name too long'));
-  if (!u\validName($full_name)) throw new rSMSexception(tt("what's your name really?"));
-  u\normalizeCase($full_name);
-  $name = r\uniqueName($full_name);
+function setup_name($acct, $fullName) {
+  $fullName = str_replace('  ', ' ', trim($fullName));
+  if (strlen($fullName) > 60) throw new rSMSexception(tt('name too long'));
+  if (!u\validName($fullName)) throw new rSMSexception(tt("what's your name really?"));
+  u\normalizeCase($fullName);
+  $name = r\uniqueName($fullName);
 //  if (r\userField(1, 'name=:name', compact('name'))) throw new rSMSexception(tt('duplicate name'));
-  $acct->update(compact('name', 'full_name'));
-  return $full_name;
+  $acct->update(compact('name', 'fullName'));
+  return $fullName;
 }
 
 /**

@@ -24,7 +24,7 @@ define('R_SEPARATE_BACKEND', FALSE);
 define('R_DATA_FIELDS', ''); // fields stored in the account's "data" array field (serialized)
 define('R_COMPANY_FIELDS', 'website description selling structure'); // fields in r_companies
 define('R_SECURE_FIELDS', 'type pin auth card_code'); // non-personal encrypted fields
-define('R_SECRET_FIELDS', 'federal_id dob id_proof answer'); // personal identifying information
+define('R_SECRET_FIELDS', 'federalId dob idProof answer'); // personal identifying information
 define('R_SECRET_URL', isDEV ? 'http://localhost/rcredits' : 'http://rcredits.org'); // where to store secrets
 define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities can manage themselves
 
@@ -80,8 +80,7 @@ define('B_COMPANY', 6); // company account (could be personal also, for independ
 define('B_unused7', 7); // 
 define('B_CHARGE', 8); // can charge customers without confirmation
 define('B_unused9', 9); // 
-define('B_VIRTUAL_EMPLOYEES', 10); // automatically pay employees virtually
-define('B_VIRTUAL_ALL', 11); // automatically pay everyone virtually
+define('B_VIRTUAL', 10); // automatically pay employees and suppliers virtually
 define('B_PAYROLL', 12); // automatically pay employees their total daily salary - employer chooses pay period)
 
 define('B_NOTIFY_EMAIL', 15); // notifications by email
@@ -197,9 +196,9 @@ function txReportArgs($tx, $getMyBalance = FALSE, $shortfall = 0) {
   $acct = acct($toMe ? $payer : $payee);
   
   $role = $toMe ? 'payee' : 'payer';
-  list ($purpose, $otherPurpose) = u\order($toMe, $payee_for, $payer_for);
-  list ($tid, $otherTid) = u\order($toMe, $payee_tid, $payer_tid);
-  list ($payerPurpose, $payeePurpose) = array($payer_for, $payee_for); // clearer names, for substitutions
+  list ($purpose, $otherPurpose) = u\order($toMe, $payeeFor, $payerFor);
+  list ($tid, $otherTid) = u\order($toMe, $payeeTid, $payerTid);
+  list ($payerPurpose, $payeePurpose) = array($payerFor, $payeeFor); // clearer names, for substitutions
   $tofrom = $toMe ? t('from') : t('to');
   $uid = $otherUid = ($toMe ? $payer : $payee);
   $action = $taking ? t('charged') : ($goods ? t('paid') : t('gave'));
@@ -209,7 +208,7 @@ function txReportArgs($tx, $getMyBalance = FALSE, $shortfall = 0) {
   $short = u\formatAmount($shortfall);
   if (@$data_bonus) $rewardType = $taking ? t('bonus') : t('rebate');
   $rewardAmount = u\formatAmount($toMe ? @$data_bonus : @$data_rebate);
-  $otherName = userField('full_name', @$data_foreign_uid ?: $otherUid);
+  $otherName = userField('fullName', @$data_foreignUid ?: $otherUid);
   $created = u\formatDate($created);
 
   if ($getMyBalance) {
@@ -225,8 +224,8 @@ function txReportArgs($tx, $getMyBalance = FALSE, $shortfall = 0) {
  * Return the rCredits account id for the given USD account id.
  */
 function whoseUsd($usdAccountId) {
-  $usd_account = bin2hex(u\ezencrypt($usdAccountId, R_WORD));
-  return r\dbLookup('uid', 'users', 'usd_account=:usd_account', compact('usd_account'));
+  $usdAccount = bin2hex(u\ezencrypt($usdAccountId, R_WORD));
+  return r\dbLookup('uid', 'users', 'usdAccount=:usdAccount', compact('usdAccount'));
 }
 
 /**
@@ -267,10 +266,10 @@ function xid2tid($xid, $uid) {
 
 /**
  * Payer exchanges rCredits for USD. Record the rCredits transaction.
- * @param string $usd_xid: (optional) related USD transaction ID
+ * @param string $usdXid: (optional) related USD transaction ID
  */
-function exchange($amount, $payer, $payee, $usd_xid = NULL) {
-  return r\transfer(compact(u\ray('amount payer payee usd_xid')));
+function exchange($amount, $payer, $payee, $usdXid = NULL) {
+  return r\transfer(compact(u\ray('amount payer payee usdXid')));
 }
 
 /**
@@ -298,41 +297,41 @@ function txSave($tx) {
   $xid = r\dbInsert('r_txs', $tx);
   if (!@$tx['serial']) { // main transaction needs some touching up, now that we know the xid
     extract(u\just('payer payee', $tx));
-    $payer_tid = $payer > 0 ? r\xid2tid($xid, $payer) : 0;
-    $payee_tid = $payee > 0 ? r\xid2tid($xid, $payee) : 0;
-    $sql = "UPDATE r_txs SET serial=:xid, payer_tid=:payer_tid, payee_tid=:payee_tid WHERE xid=:xid";
-    dbQ($sql, compact(u\ray('xid payer_tid payee_tid')));
+    $payerTid = $payer > 0 ? r\xid2tid($xid, $payer) : 0;
+    $payeeTid = $payee > 0 ? r\xid2tid($xid, $payee) : 0;
+    $sql = "UPDATE r_txs SET serial=:xid, payerTid=:payerTid, payeeTid=:payeeTid WHERE xid=:xid";
+    dbQ($sql, compact(u\ray('xid payerTid payeeTid')));
     $serial = $xid; // set serial for this and remember it for dependents
   }
-  return $tx + compact(u\ray('xid serial payer_tid payee_tid'));
+  return $tx + compact(u\ray('xid serial payerTid payeeTid'));
 }
 
 /**
  * Add rebate and bonus to the transaction set, if appropriate.
  */
 function transactionRewards(&$txs) {
-  extract(u\just('type serial goods payer payee data state payer_tid payee_tid', $txs[0]));
+  extract(u\just('type serial goods payer payee data state payerTid payeeTid', $txs[0]));
   
   if ($type != TX_TRANSFER) return;
   if (!$goods) return; // quit unless rebates and bonuses apply
   if (owning($payer, $payee)) return; // no rewards for transactions between owner and owned
   $rewards = unserialize($data);
   
-  $txs[] = txSave(txRewardSetup($serial, TX_REBATE, $payer, $state, $rewards, $payer_tid));
-  $txs[] = txSave(txRewardSetup($serial, TX_BONUS, $payee, $state, $rewards, $payee_tid));
+  $txs[] = txSave(txRewardSetup($serial, TX_REBATE, $payer, $state, $rewards, $payerTid));
+  $txs[] = txSave(txRewardSetup($serial, TX_BONUS, $payee, $state, $rewards, $payeeTid));
 }
 
 function txRewardSetup($serial, $type, $payee, $state, $rewards, $tid) {
-  $payer = $payer_agent = $payee_agent = userField('community', $payee);
+  $payer = $payerAgent = $payeeAgent = userField('community', $payee);
   if ($payer == $payee) return NULL; // payee is a community, so no rewards
   if (!$amount = $rewards[$type == TX_REBATE ? 'rebate' : 'bonus']) return NULL;
 
   $taking = FALSE;
   $goods = FALSE;
   $for = ($type == TX_REBATE ? t('rebate') : t('bonus')) . t( ' on #') . $tid;
-  list ($payer_tid, $payee_tid) = u\order($type == TX_REBATE, $tid, NULL);
+  list ($payerTid, $payeeTid) = u\order($type == TX_REBATE, $tid, NULL);
 
-  return transactionSetup(compact(u\ray('serial type amount goods payer payee payer_agent payee_agent for payer_tid payee_tid taking state')));
+  return transactionSetup(compact(u\ray('serial type amount goods payer payee payerAgent payeeAgent for payerTid payeeTid taking state')));
 }
 
 /**
@@ -356,18 +355,18 @@ function transactionSetup($info) {
   u\setDft($info['taking'], FALSE);
   u\setDft($info['goods'], FALSE);
   u\setDft($info['for'], R_DEFAULT_PURPOSE);
-  u\setDft($info['payer_agent'], $my_payer);
-  u\setDft($info['payee_agent'], $my_payee);
+  u\setDft($info['payerAgent'], $my_payer);
+  u\setDft($info['payeeAgent'], $my_payee);
 
   $created = REQUEST_TIME;
   if (@$my_state != TX_PENDING) $completed = $created;
   $info['taking'] += 0;
   $info['goods'] += 0;
 
-  list ($payer_for, $payee_for) = is_array($my_for) ? $my_for : array($my_for, $my_for);
+  list ($payerFor, $payeeFor) = is_array($my_for) ? $my_for : array($my_for, $my_for);
   unset($info['for']);
 
-  return array_merge($info, compact(u\ray('created completed payer_for payee_for channel')));
+  return array_merge($info, compact(u\ray('created completed payerFor payeeFor channel')));
 }
 
 /**
@@ -494,10 +493,10 @@ function notify($uid, $index, $info) {
   $cacct = acct(); // careful: current account is empty if called from formRegister_submit
   $acct = acct($uid);
   $info['uid'] = $uid;
-  $fullName = $acct->full_name;
+  $fullName = $acct->fullName;
   $warnIndexes = u\ray('new-invoice new-offer charge-disputed');
   
-  if ($uid != @$cacct->id) $info['otherName'] = @$cacct->full_name; // this comes in backwards if notifying elseone
+  if ($uid != @$cacct->id) $info['otherName'] = @$cacct->fullName; // this comes in backwards if notifying elseone
 
   if (!strlen($acct->pass)) {
     $warning = u\tt('no asif notify', compact('fullName'));
@@ -532,11 +531,12 @@ function membershipEvent($acct, $status, $do = TRUE) {
   $bit = @constant('B_' . strtoupper($status));
   if ($do and (!$bit or !$acct->hasBit($bit))) { // met the prerequisite and hasn't previously
     if ($bit) $acct->setBit($bit, TRUE, TRUE);
-    if ($status == 'member') be\fund($acct->id, TX_SIGNUP);
-    $fullName = $acct->full_name;
+    if ($status == 'bona') be\fund($acct->id, TX_SIGNUP);
+    $fullName = $acct->fullName;
     $quid = $acct->mainQid;
     notifyStaff('Account @fullName (@quid) is now @status.', compact(u\ray('fullName quid status')));
-  }
+	return TRUE;
+  } else return FALSE;
 }
 
 /**
@@ -578,7 +578,7 @@ function tempName($info) {
  * @param int $xid: transaction id
  * @param bool $allRelated: set all related transactions too (default FALSE)
  * NOTE: tx data changes(date, agent, field, oldvalue) (this gives a complete history of the transaction)
- *     (prefixes added to the payer_for or payee_for fields when changing state will not be included in changes)
+ *     (prefixes added to the payerFor or payeeFor fields when changing state will not be included in changes)
  */
 function setTxField($fieldName, $newValue, $xid, $allRelated = FALSE) {
   $cuid = acct()->id;
@@ -632,7 +632,7 @@ function location($acct, $complete = FALSE) {
   $result = array();
   if ($complete) $result[] = (string) $acct->address; // (string) in case address is NULL
   $result[] = $acct->city;
-  $result[] = $state . (($complete and $acct->postal_code) ? ' ' . $acct->postal_code : '');
+  $result[] = $state . (($complete and $acct->postalCode) ? ' ' . $acct->postalCode : '');
   if ($acct->country != R_COUNTRY_ID) $result[] = strtoupper($country);
   foreach ($result as $key => $value) if ($value === '') unset($result[$key]);
   return join(', ', $result);
@@ -693,7 +693,7 @@ function qid2($zid, $regionId = R_SERVER_ID) {return substr(qid($zid, $regionId,
 function definiteName($uid) {
   if ($uid <= 0) return '';
   $acct = acct($uid);
-  return qid2($uid) . ' ' . $acct->full_name;
+  return qid2($uid) . ' ' . $acct->fullName;
 }
 
 /**
@@ -741,8 +741,8 @@ function qxid($xid, $regionId = R_SERVER_ID) {return qid($xid, $regionId = R_SER
  */
 function tx2acct($id, $agent = '', $data = '') {
   if (is_array($id)) list ($id, $agent, $data) = $id;
-  if (is_array($data)) extract($data); // foreign_uid and/or foreign_agent (or neither)
-  return acct(@$foreign_uid ? qid($foreign_uid, $id) : $id, @$foreign_agent ? qid($foreign_agent, $agent) : $agent);
+  if (is_array($data)) extract($data); // foreignUid and/or foreign_agent (or neither)
+  return acct(@$foreignUid ? qid($foreignUid, $id) : $id, @$foreign_agent ? qid($foreign_agent, $agent) : $agent);
 }
 
 /**
@@ -754,15 +754,15 @@ function tx2acct($id, $agent = '', $data = '') {
 function nonoUndo($oldRecord, &$subs = array()) {
   if (!@$oldRecord) return 'undo no match';
   $cacct = acct();
-  extract(u\just('toMe data payer payee payer_agent payee_agent payer_tid payee_tid taking', $oldRecord));
+  extract(u\just('toMe data payer payee payerAgent payeeAgent payerTid payeeTid taking', $oldRecord));
   $data = unserialize($data);
   if (@$data['undoneBy']) {
-    $oldTid = $toMe ? $payee_tid : $payer_tid;
+    $oldTid = $toMe ? $payeeTid : $payerTid;
     $subs = compact('oldTid');
     return 'already undone';
   }
 
-  $acct = tx2acct($toMe ? array($payee, $payee_agent, $data) : array($payer, $payer_agent, $data));
+  $acct = tx2acct($toMe ? array($payee, $payeeAgent, $data) : array($payer, $payerAgent, $data));
   if ($cacct->agentId != $acct->agentId) {
     $perm = $taking ? B_BUY : B_SELL;
     if (!acct($acct->id, $cacct->agentId)->can($perm)) return $taking ? 'no buy' : 'no sell';
@@ -796,7 +796,7 @@ function reverseRelations($other, $main, &$data, $fields) {
  * Say whether one of the accounts owns the other.
  */
 function owning($uid1, $uid2) {
-  $where = 'is_owner AND ((main=:uid1 AND other=:uid2) OR (main=:uid2 AND other=:uid1))';
+  $where = 'isOwner AND ((main=:uid1 AND other=:uid2) OR (main=:uid2 AND other=:uid1))';
   return $uid1 == $uid2 ?: relation(1, $where, compact('uid1', 'uid2'));
 }
 
@@ -806,13 +806,13 @@ function owning($uid1, $uid2) {
  */
 function isEmployee($uid, $company = '') {
   if (!$company) $company = acct()->id;
-  return relation(1, $company, $uid, 'employer_ok AND employee_ok');
+  return relation(1, $company, $uid, 'employerOk AND employeeOk');
 }
 
-function communityUid($postal_code = '') {
-  if (!$postal_code) return serverUid();
-  $where = "country=':R_COUNTRY_ID' AND :postal_code RLIKE postal_code AND uid=community";
-  return userField('uid', $where, compact(u\ray('postal_code'))) ?: serverUid();
+function communityUid($postalCode = '') {
+  if (!$postalCode) return serverUid();
+  $where = "country=':R_COUNTRY_ID' AND :postalCode RLIKE postalCode AND uid=community";
+  return userField('uid', $where, compact(u\ray('postalCode'))) ?: serverUid();
 }
 
 function isForeign($uid) {
@@ -823,8 +823,8 @@ function isForeign($uid) {
 /**
  * Given a full name, make a username and add digits until it is unique.
  */
-function uniqueName($full_name) {
-  $name = $name0 = u\shortName($full_name);
+function uniqueName($fullName) {
+  $name = $name0 = u\shortName($fullName);
   for ($i = 2; ; $i++) {
     if (!userField(1, 'name=:name', compact('name'))) return $name;
     $name = $name0 . $i;
@@ -845,11 +845,11 @@ function loginString($id) {
  */
 function employees() {
   $cuid = acct()->id;
-  $result = dbQ('SELECT other, foreign_uid FROM r_relations WHERE main=:cuid AND employer_ok AND employee_ok', compact('cuid'));
+  $result = dbQ('SELECT other, foreignUid FROM r_relations WHERE main=:cuid AND employerOk AND employeeOk', compact('cuid'));
   $accts = array();
   foreach ($result as $key => $one) {
-    extract((array) $one); // other, foreign_uid
-    $accts[] = $other > 0 ? acct($other) : acct(qid($foreign_uid, $other));
+    extract((array) $one); // other, foreignUid
+    $accts[] = $other > 0 ? acct($other) : acct(qid($foreignUid, $other));
   }
   return $accts;
 }
@@ -905,7 +905,7 @@ function newMemberId($oldUid, $newUid = FALSE, $skipUsers = FALSE) {
     'r_relations:main',
     'r_relations:other',
     'r_smarts:owner',
-    'r_smarts:default_agent',
+    'r_smarts:defaultAgent',
     'r_sms:uid',
   // r_states
     'r_txs:payer',
@@ -998,7 +998,7 @@ function proxy($person, $priority = 1, $proxy = NULL) {
  */
 function nearlyMember($acct) {
   $gotPhoto = file_exists(DRUPAL_ROOT . $acct->auxFilename('picture'));
-  $signed = (bool) $acct->signed_agreement;
+  $signed = (bool) $acct->signed;
 //  $donated = ($acct->share > 0 or r\share($acct)); // r\share() also updates the database
   $donated = r\dbExists('r_gifts', 'uid=:cuid', array('cuid' => $acct->id));
   $nearly = ($gotPhoto and $signed and $donated);
@@ -1148,7 +1148,7 @@ function error($logid) {
 
 // Single line functions that need no explanation
 function userField($field, $who = '', $subs = array()) {return tableField($field, 'users', $who, $subs);}
-function rebate($uid, $amount = 1) {return round($amount * userField('rebate_percent', $uid) / 100, 2);}
+function rebate($uid, $amount = 1) {return round($amount * userField('rebate', $uid) / 100, 2);}
 function bonus($uid, $amount = 1) {return rebate($uid, 2 * $amount);}
 function txField($field, $which, $subs = array()) {return tableField($field, 'r_txs', $which, $subs);}
 function setTxState($newValue, $zserial) {setTxField('state', $newValue, $zserial, TRUE);}

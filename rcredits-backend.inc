@@ -118,8 +118,8 @@ function myTransactions($args) {
   
   $sql = <<<EOF
     SELECT t.*,
-      (SELECT full_name FROM users WHERE uid=IF(t.payer=$cuid, t.payee, t.payer)) AS name,
-      IF(t.payer=$cuid, t.payer_for, t.payee_for) AS purpose
+      (SELECT fullName FROM users WHERE uid=IF(t.payer=$cuid, t.payee, t.payer)) AS name,
+      IF(t.payer=$cuid, t.payerFor, t.payeeFor) AS purpose
     FROM r_txs t 
     $omit_bonuses
     AND $cuid IN (t.payer, t.payee) 
@@ -139,25 +139,25 @@ EOF;
  *   each element is an associative array of new values, keyed by field name
  *   if a record is to be updated to all zeros, it is simply deleted.
  * @return string: a report of what got updated
- * Permissions and employer_ok cannot be updated by the agent and employee_ok cannot be updated by the employer
+ * Permissions and employerOk cannot be updated by the agent and employeeOk cannot be updated by the employer
  */
 function updateRelations($updates) {
 //debug($updates);
   $cuid = r\acct()->id;
   $report = '';
   foreach ($updates as $reid => $data) {
-    extract(u\just('main other full_name', $data['original'])); 
+    extract(u\just('main other fullName', $data['original'])); 
     unset($data['original']);
     $isAgent = ($cuid != $main);
-//    extract(u\just('employee_ok employer_ok permission is_owner', $data), EXTR_PREFIX_ALL, 'd');
+//    extract(u\just('employeeOk employerOk permission isOwner', $data), EXTR_PREFIX_ALL, 'd');
     
-    if (!$isAgent) r\reverseRelations($main, $other, $data, 'employee_ok'); // claiming to be an employee
-    if ($isAgent) r\reverseRelations($main, $other, $data, 'permission employer_ok is_owner'); // giving employer permission -- create a proper record
+    if (!$isAgent) r\reverseRelations($main, $other, $data, 'employeeOk'); // claiming to be an employee
+    if ($isAgent) r\reverseRelations($main, $other, $data, 'permission employerOk isOwner'); // giving employer permission -- create a proper record
     
     $reidSub = $subs = compact('reid');
     $changes = '';
     foreach ($data as $field => $value) {
-      if ($isAgent and $field != 'employee_ok') return u\tt('bad relations field'); // prevent hack
+      if ($isAgent and $field != 'employeeOk') return u\tt('bad relations field'); // prevent hack
       $changes .= ($changes ? ',' : '') . "$field=:$field";
       $subs += array($field => $value);
     }
@@ -165,7 +165,7 @@ function updateRelations($updates) {
     if (!empty($data)) r\dbQ("UPDATE r_relations SET $changes WHERE $where", $subs);
 
     $msg = 'updated relation';
-    if (!r\relation('permission>0 OR employer_ok OR employee_ok OR is_owner OR amount', $where, $reidSub)) {
+    if (!r\relation('permission>0 OR employerOk OR employeeOk OR isOwner OR amount', $where, $reidSub)) {
       setCttyAdmin(FALSE, $main, $other);
       r\dbQ("DELETE FROM r_relations WHERE $where", $reidSub);
       $pot = '(:main, :other)';
@@ -173,7 +173,7 @@ function updateRelations($updates) {
     } else {
       setCttyAdmin(@$data['permission'] >= B_MANAGE - B_RELATED, $main, $other);
     }    
-    $otherName = $full_name;
+    $otherName = $fullName;
     $report .= u\tt($msg, compact('otherName')) . '<br>';
   }
   return $report;
@@ -231,9 +231,9 @@ function undoTx($xid) {
     $solution = t('marked "disputed"');
     r\notify($old_otherUid, 'charge-disputed', r\txReportArgs($oldRecord));
   } else {
-    $otherAcct = r\tx2acct($old_toMe ? array($old_payer, $old_payer_agent, $data) : array($old_payee, $old_payee_agent, $data));
+    $otherAcct = r\tx2acct($old_toMe ? array($old_payer, $old_payerAgent, $data) : array($old_payee, $old_payeeAgent, $data));
     $type = $old_toMe ? 'payment' : 'charge';
-    $otherTid = $old_toMe ? $old_payer_tid : $old_payee_tid;
+    $otherTid = $old_toMe ? $old_payerTid : $old_payeeTid;
     return reverse($xid, $old_amount, $otherAcct, $data, $old_goods, $old_tid, $type, $otherTid); // create an offsetting transaction
   }
 
@@ -243,7 +243,7 @@ function undoTx($xid) {
   $amount = u\formatAmount($old_amount);
   $tofrom = !$old_toMe ? t('to') : t('from');
   $otherUid = $old_otherUid;
-  $other = r\userField('full_name', $otherUid);
+  $other = r\userField('fullName', $otherUid);
   $success = TRUE;
   return array("report undo", compact(u\ray('success old_tid new_tid amount other tofrom solution otherUid')));
 }
@@ -271,15 +271,15 @@ function reverse($xid, $amount, $acct, $data, $old_goods, $tid, $type, $otherTid
     $old_data = serialize($old_data);
     $myFor = "(reversed by #$new_tid) ";
     $otherFor = str_replace($new_tid, $new_otherTid, $myFor);
-    list ($payer_for, $payee_for) = u\order($type == 'payment', $otherFor, $myFor);
+    list ($payerFor, $payeeFor) = u\order($type == 'payment', $otherFor, $myFor);
     $sql = <<<EOF
       UPDATE r_txs SET 
-        payer_for=CONCAT(:payer_for, payer_for), 
-        payee_for=CONCAT(:payee_for, payee_for),
+        payerFor=CONCAT(:payerFor, payerFor), 
+        payeeFor=CONCAT(:payeeFor, payeeFor),
         data=:old_data
       WHERE xid=:xid
 EOF;
-    r\dbQ($sql, compact(u\ray('payer_for payee_for xid old_data')));
+    r\dbQ($sql, compact(u\ray('payerFor payeeFor xid old_data')));
     $message = 'report undo|' . $message;
     $args['solution'] = 'reversed';
   }
@@ -330,13 +330,13 @@ function get($currency, &$amount, $confirmed) {
   //DWOLLA: transfer $amount from community's Dwolla account to the user's Dwolla account
   $type = TX_TRANSFER;
   $payer = $cuid;
-  $payee = $payer_agent = $payee_agent = r\userField('community', $payer);
+  $payee = $payerAgent = $payeeAgent = r\userField('community', $payer);
 
   $taking = FALSE;
   $for = t('USD');
 
   $DBTX = db_transaction();
-  r\transact(compact(u\ray('type amount payer payee payer_agent payee_agent for taking')));
+  r\transact(compact(u\ray('type amount payer payee payerAgent payeeAgent for taking')));
   //DWOLLA: transfer from Dwolla account(s) of next rTrader(s) in line to community account (may take a few days)
   $balance = u\formatAmount($info_balance - $amount);
   if ($confirmed) {
@@ -361,11 +361,11 @@ function payInvoice($xid) {
   if (!r\acct()->can(B_BUY)) return array('no buy', array());
   if (!$result = lastTx('xid=:xid AND state=:TX_PENDING', compact('xid'))) return array('no such tx', array());
   extract($result, EXTR_PREFIX_ALL, 'old');
-  $acct = r\acct($old_payee, $old_payee_agent);
+  $acct = r\acct($old_payee, $old_payeeAgent);
   $undoes = $xid;
   
   r\usd::beginAtom();
-  list ($message, $args, $confirm) = transfer('invoice payment', $acct, $old_amount, $old_payee_for, $old_goods, TRUE, compact('undoes'));
+  list ($message, $args, $confirm) = transfer('invoice payment', $acct, $old_amount, $old_payeeFor, $old_goods, TRUE, compact('undoes'));
   if (@$args['success']) r\setTxState(TX_DELETED, $xid); // delete the invoice
   r\usd::commit();
 
@@ -378,7 +378,7 @@ function payInvoice($xid) {
  * @param array $acct: acct object for the other party
  *   OR 'ALL' (paying employees) -- currently UNUSED
  * @param numeric $requestAmount: the transaction amount
- * @param string $for OR array($payer_for, $payee_for): description of the transaction's purpose (user input)
+ * @param string $for OR array($payerFor, $payeeFor): description of the transaction's purpose (user input)
  * @param bool $goods: is this for real goods and services
  * @param bool $confirmed: has this transaction been confirmed by the user? (default TRUE)
  * @param array $data: associative array of info about the transaction this request is reversing (if any), indexed by any of:
@@ -414,7 +414,7 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
 
   // Check permissions
   u\EXPECT(compact(u\ray('ttype acct confirmed data')), 'string acct bool assoc');
-  $otherName = $acct->full_name;
+  $otherName = $acct->fullName;
   if (!$acct->can(B_OK)) return array('non trader', compact('otherName'), FALSE);
   list ($myAccess, $otherAccess) = u\order($taking, B_SELL, B_BUY);
   list ($myAccessErr, $otherAccessErr) = u\order($taking, 'sell', 'buy');
@@ -422,12 +422,12 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   if (!$acct->can($otherAccess)) return array("other no $otherAccessErr", array(), FALSE);
   
   // Analyze who's buying or selling
-  list ($uid, $foreign_uid) = txPerson($acct->id, $acct->regionId);
+  list ($uid, $foreignUid) = txPerson($acct->id, $acct->regionId);
   list ($other, $foreign_agent) = txPerson($acct->agentId, $acct->agentIdRegion);
-  $foreign = compact($foreign_uid ? 'foreign_uid' : '', $foreign_agent ? 'foreign_agent' : '');
+  $foreign = compact($foreignUid ? 'foreignUid' : '', $foreign_agent ? 'foreign_agent' : '');
   if ($uid == $cuid) return array('no self-trading', array(), FALSE);
   list ($payer, $payee) = u\order($taking, $uid, $cuid);
-  list ($payer_agent, $payee_agent) = u\order($taking, $other, r\acct()->agentId);
+  list ($payerAgent, $payeeAgent) = u\order($taking, $other, r\acct()->agentId);
 
   // Sort out what type of transfer this is
   $paying_invoice = ($ttype == 'invoice payment');
@@ -442,7 +442,7 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   );
   $preapproved = (@$data['preapproved'] or !$taking or $unilateral); // paying OR permitted to charge unilaterally
 //  $state = ($preapproved and !@$data['pay_all'])? TX_DONE : TX_PENDING;
-  $virtual = ($goods and !$taking and ($cacct->hasBit(B_VIRTUAL_ALL) or ($cacct->hasBit(B_VIRTUAL_EMPLOYEES) and r\isEmployee($uid))));
+  $virtual = ($goods and !$taking and $cacct->hasBit(B_VIRTUAL) and r\isEmployee($uid))));
   $state = ($preapproved and !$virtual)? TX_DONE : TX_PENDING; // may be changed to TX_TENTATIVE below
   
   // Check the amount and calculate any balance shortfall
@@ -481,15 +481,15 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   $data = serialize($data);
 
   list ($fromUsAcct, $toUsAcct) = u\order($taking, new r\usd($acct), new r\usd($cacct));
-  $txArgs = compact(u\ray('type amount r payer payee payer_agent payee_agent for data taking goods state'));
+  $txArgs = compact(u\ray('type amount r payer payee payerAgent payeeAgent for data taking goods state'));
   r\usd::beginAtom();
   if ($confirmed) {
     $payerFee = R_FEE_FOR_CASH ? (!$goods) : FALSE; // cash-getter pays the transaction fee
-    if ($state = TX_DONE and $usd > 0 and !$usd_xid = $fromUsAcct->send($usd, $toUsAcct, $for, $payerFee)) {
+    if ($state = TX_DONE and $usd > 0 and !$usdXid = $fromUsAcct->send($usd, $toUsAcct, $for, $payerFee)) {
       r\usd::rollback();
       return array('usd failed', array(), FALSE);
     }
-    $txs = r\transact($txArgs + compact('usd_xid'));
+    $txs = r\transact($txArgs + compact('usdXid'));
     $lastXid = $txs[0]['xid'];
     r\usd::commit();
   } else {
@@ -508,7 +508,7 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
         ($preapproved ? ($virtual ? 'offer' : 'transaction') : 'invoice')
       : ($preapproved ? 'exchange' : 'exchange request'); // no possible shortfall on confirmed cash exchange (see above)
     $message = "report $message";
-    if (r\checkBona($payer)) $message .= '|signup bonus';
+    if (r\membershipEvent(r\acct($payer), 'bona', r\checkBona($payer))) $message .= '|signup bonus';
   } else {
     $message = $goods ? $ttype : 'exchange';
   }
@@ -530,18 +530,18 @@ function fund($uid, $type = TX_SIGNUP, $amount = R_STARTING_BALANCE, $for = NULL
   if (isFrontend()) return backend('fund', compact(u\ray('uid type amount')));
   if (is_array($uid)) extract($uid); // called from api or backend
 
-  $payee_agent = $payee = $uid;
+  $payeeAgent = $payee = $uid;
   $cacct = r\acct(); // null, if just registering
   $ctty = r\userField('community', $payee);
   if ($type > TX_AUTOMATIC and !$cacct->can(B_MANAGING_CTTY)) return FALSE; // incentives given only automatically or by community agent
   if (!$confirmed) return $amount;
   
   $payer = $ctty;
-  $payer_agent = @$cacct->id < 0 ? $cacct->agentId : $ctty;
+  $payerAgent = @$cacct->id < 0 ? $cacct->agentId : $ctty;
   $taking = ($type >= TX_FINE);
   u\setDft($for, $GLOBALS['txTypes'][$type]);
   $r = $amount;
-  r\transact(compact(u\ray('type amount r payer payee payer_agent payee_agent for taking')));
+  r\transact(compact(u\ray('type amount r payer payee payerAgent payeeAgent for taking')));
   return $amount;
 }
 
@@ -600,7 +600,7 @@ function deleteCell($number) {
  * @return one of the following:
  *   'ALL', if the user typed "all"
  *   the other trader's acct
- *   array(error index, array of substitutions, array of possible full_names (0 or more) indexed by uid)
+ *   array(error index, array of substitutions, array of possible fullNames (0 or more) indexed by uid)
  *   (the caller can test which type of return, with "if (isAcct($returned_value))
  */
 function identify($who, $allow_ALL = FALSE, $self_message = 'no self-trading') {
@@ -619,7 +619,7 @@ function identify($who, $allow_ALL = FALSE, $self_message = 'no self-trading') {
   
   $quid = strtoupper($who); // in case this is a quid (abbreviated or not)
   if (strpos('.:', substr($quid, 0, 1)) !== FALSE) { // allow abbreviations within this region
-    list($quid) = explode(' ', R_SERVER_ID . $quid, 2); // take just the first word, in case this is from a list showing QUID and FULL_NAME
+    list($quid) = explode(' ', R_SERVER_ID . $quid, 2); // take just the first word, in case this is from a list showing QUID and fullName
   }
 
   if (u\isQid($quid)) {
@@ -631,17 +631,17 @@ function identify($who, $allow_ALL = FALSE, $self_message = 'no self-trading') {
   if (($short = u\shortName($who)) === '') $short = '-'; // abbreviations must not be null
   
   $sql = <<<EOF
-    SELECT DISTINCT u.uid, u.full_name FROM {users} u LEFT JOIN {r_sms} s ON u.uid = s.uid 
+    SELECT DISTINCT u.uid, u.fullName FROM {users} u LEFT JOIN {r_sms} s ON u.uid = s.uid 
     WHERE :who IN (s.number, u.phone, u.mail) 
     OR INSTR(u.name, :short)
-    ORDER BY u.full_name
+    ORDER BY u.fullName
 EOF;
 //debug(compact('sql', 'who', 'phone', 'short'));
   $result = r\dbQ($sql, compact(u\ray('who short')))->fetchAllKeyed(0, 1);
 //  $list = '';
-  foreach ($result as $uid => $full_name) {
+  foreach ($result as $uid => $fullName) {
     if ($uid != $cuid) { // not self
-//      $list .= " &nbsp; &nbsp; &nbsp; &nbsp; $full_name<br>";
+//      $list .= " &nbsp; &nbsp; &nbsp; &nbsp; $fullName<br>";
     } elseif (count($result) == 1) { // self is the only result
       return array($self_message, array(), array()); 
     } else unset($result[$uid]); // self is one of many results, so ignore it
@@ -799,7 +799,7 @@ function lastTx($where = 1, $subs = array(), $cache = FALSE) {
   if (!$result = r\dbQ($sql, $subs)->fetchAssoc()) return FALSE;
   $toMe = ($result['payee'] == $cuid);
   $byMe = ($result['taking'] == $toMe);
-  $tid = u\order($toMe, $result['payee_tid'], $result['payer_tid']);
+  $tid = u\order($toMe, $result['payeeTid'], $result['payerTid']);
   $otherUid = $result[$toMe ? 'payer' : 'payee'];
   return $result + compact(u\ray('byMe toMe tid otherUid'));
 }
@@ -809,7 +809,7 @@ function accountName($uid) {
   if (is_array($uid)) extract($uid); // called from api or backend
   
   $acct = r\acct($uid);
-  return $acct->full_name . ' ' . u\hug($acct->mainQid);
+  return $acct->fullName . ' ' . u\hug($acct->mainQid);
 }
 
 /**

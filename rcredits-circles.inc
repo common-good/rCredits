@@ -81,7 +81,7 @@ function grow() {
   $newRTraders = bestNewRTraders(10);
   
   foreach ($newRTraders as $uid => $score) { 
-    debug(r\userField('full_name', $uid)); // keep this for now
+    debug(r\userField('fullName', $uid)); // keep this for now
   }
 }
 
@@ -95,12 +95,12 @@ function bestNewRTraders($target = 100) {
   // Create a table of candidates
   $sql = <<<EOF
     TRUNCATE r_candidates;
-    INSERT INTO r_candidates (uid, is_company)
-    SELECT u.uid, (u.account_type<>:R_PERSONAL) AS is_company
+    INSERT INTO r_candidates (uid, isCompany)
+    SELECT u.uid, (u.account_type<>:R_PERSONAL) AS isCompany
     FROM users u
     WHERE u.uid > 1 AND NOT :IS_RTRADER
 EOF;
-  r\dbQ($sql); // include both individuals and companies (we don't currently use is_company)
+  r\dbQ($sql); // include both individuals and companies (we don't currently use isCompany)
 
   // handle clumps here
   $minScore = R_MIN_BUYS * pow(R_MAX_SCORE, -R_MAX_SCORE/2);
@@ -302,8 +302,8 @@ function makeRandomRelations() {
   for ($other = UID1; $other <= UID9; $other++) {
     if (!in_array($other, $companies)) {
       $main = $companies[rand(0, count($companies) - 1)];
-      $employer_ok = $employee_ok = TRUE;
-      \drupal_write_record('r_relations', compact(u\ray('main other $employer_ok employee_ok')));
+      $employerOk = $employeeOk = TRUE;
+      \drupal_write_record('r_relations', compact(u\ray('main other $employerOk employeeOk')));
     }
   }
 }

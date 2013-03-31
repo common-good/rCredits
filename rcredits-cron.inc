@@ -109,17 +109,17 @@ function lostUsdTx1($info) {
 
 function beginVirtualPayments() {
   // queue up companies that pay automatically
-  doCompanies(B_VIRTUAL_ALL); // suppliers first
-  doCompanies(B_VIRTUAL_EMPLOYEES); // then employees
+  doCompanies('SUPPLIERS'); // suppliers first
+  doCompanies('EMPLOYEES'); // then employees
   r\queue('virtualPayments', FALSE); // mark end of virtualPayments queue, so we can do what must follow
 }
 
 /**
  * Identify companies that have the given payment option and queue them up for virtualPayments.
- * @param int $which: B_VIRTUAL_ALL (queue up payments to suppliers) or B_VIRTUAL_EMPLOYEES (queue up payments to staff)
+ * @param int $which: SUPPLIERS (queue up payments to suppliers) or EMPLOYEES (queue up payments to staff)
  */
 function doCompanies($which) {
-  $these = $which == B_VIRTUAL_EMPLOYEES ? 'r.employer_ok' : 'NOT r.employer_ok';
+  $these = $which == 'EMPLOYEES' ? 'r.employerOk' : 'NOT r.employerOk';
   $sql = <<< EOF
     SELECT u.uid, u.minimum, u.available, 
       SUM(r.amount) AS amounts, 
@@ -146,7 +146,7 @@ EOF;
  *   kitty: amount to pay out
  *   total: total amounts paid to this type of recipient per month
  *   UNUSED slack: how much capacity the recipients have (collectively) to be paid, before reaching their max
- *   these: employer_ok (for employees) or NOT employer_ok (for vendors)
+ *   these: employerOk (for employees) or NOT employerOk (for vendors)
  */
 function virtualPayments($item) {
   if (!$item) return doNextInQueueAfter(__FUNCTION__);
@@ -180,7 +180,7 @@ function virtualPayment($item) {
   $usAcct2 = new usd($acct2 = r\acct($other)); // to
   
   // if employee is also an employer that pays people virtually, no maximum
-  $max2 = ($acct2->hasBit(B_VIRTUAL_ALL) or $acct2->hasBit(B_VIRTUAL_EMPLOYEES)) ? 0 : $acct2->maximum;
+  $max2 = $acct2->hasBit(B_VIRTUAL) ? 0 : $acct2->maximum;
   $newAvailable = $acct2->available + $offer; // $acct2 balance after the offer is received
   $excess = round(max(0, $max2 ? ($newAvailable - $max2) : 0, $offer - $usAcct2->balance()), 2); // rCredits to sell off
   
@@ -190,7 +190,7 @@ function virtualPayment($item) {
     r\usd::rollback();
     virtualPaymentError($acct1, $acct2);
   } else {
-    $info = u\assoc('amount r usd payer payee for goods usd_xid', 0, $offer, -$offer, $main, $other, t('virtual payment'), TRUE, $txid);
+    $info = u\assoc('amount r usd payer payee for goods usdXid', 0, $offer, -$offer, $main, $other, t('virtual payment'), TRUE, $txid);
     r\transact($info); // total rCredits from company to other
     r\usd::commit();
   }
@@ -279,6 +279,6 @@ function virtualPaymentError($acct1, $acct2) {
 }
 
 function virtualPaymentError1($acct1, $way, $acct2) {
-  $other = $acct2->full_name;
+  $other = $acct2->fullName;
   r\notify($acct->id, 'pay virtual error', compact('way', 'other'));
 }

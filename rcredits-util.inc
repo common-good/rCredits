@@ -158,13 +158,13 @@ function stateAbbrev($state) {
 
 
 /**
- * Calculate a short_name from the given full_name.
+ * Calculate a short_name from the given fullName.
  */
-function shortName($full_name, $filler = '') {
+function shortName($fullName, $filler = '') {
   $deletions = ray('Inc. LLC Co. P.C. Corp. LLP');
-  foreach ($deletions as $one) $full_name = str_replace(" $one", '', $full_name);
-  $full_name = str_replace('&', 'and', $full_name);
-  return strtolower(preg_replace('/\W/', $filler, iconv('UTF-8', 'ASCII//TRANSLIT', $full_name)));
+  foreach ($deletions as $one) $fullName = str_replace(" $one", '', $fullName);
+  $fullName = str_replace('&', 'and', $fullName);
+  return strtolower(preg_replace('/\W/', $filler, iconv('UTF-8', 'ASCII//TRANSLIT', $fullName)));
 }
 
 /**
@@ -618,10 +618,10 @@ function normalizeCase(&$what, $proper = 'ucwords') {
 
 /*
 function import_gfld() {
-  $result = \db_query("SELECT * FROM companies ORDER BY full_name");
+  $result = \db_query("SELECT * FROM companies ORDER BY fullName");
   while ($row = $result->fetchAssoc()) {
     extract($row);
-    $short_name = shortName($full_name);
+    $short_name = shortName($fullName);
     $phone = $phone ? "+1$phone" : NULL;
     $fax = $fax ? "+1$fax" : NULL;
     $state = stateAbbrev($state);
@@ -746,11 +746,11 @@ function formatNum($num, $format) {
 function switchOnNEW() {
 /*
 SELECT DISTINCT
-  c.id, c.display_name AS full_name, c.contact_type AS account_type,
+  c.id, c.display_name AS fullName, c.contact_type AS account_type,
   e.email,
   w.url AS website,
   p.phone,
-  a.street_address AS address, a.city, CONCAT('"',a.postal_code,'"') AS zip, IF(a.country_id=1228 OR a.country_id IS NULL, 'US', a.country_id) AS country, a.state_province_id AS state,
+  a.street_address AS address, a.city, CONCAT('"',a.postalCode,'"') AS zip, IF(a.country_id=1228 OR a.country_id IS NULL, 'US', a.country_id) AS country, a.state_province_id AS state,
   x.company_43 AS company, x.types_42 AS types, x.created_37 AS created
   FROM ((((((`civicrm_contact` c INNER JOIN `civicrm_entity_tag` t ON t.entity_id=c.id)
   LEFT JOIN civicrm_email e ON e.contact_id=c.id)

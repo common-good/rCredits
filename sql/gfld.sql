@@ -1,4 +1,4 @@
-INSERT INTO `companies` (full_name,address,city,state,postal_code,phone,fax,website,categories) VALUES
+INSERT INTO `companies` (fullName,address,city,state,postalCode,phone,fax,website,categories) VALUES
 ('Akey Insurance Agency, Inc.', '348 High Street', 'Greenfield', 'MA', '01301', '4137733488', '4137733489', 'akey-ins.com', 'a:1:{i:0;s:18:\"INSURANCE AGENCIES\";}'),
 ('Blackmer Insurance Agency, Inc.', '1147 Mohawk Trail', 'Shelburne', 'MA', '01370', '4136256527', '4136258210', 'http://www.blackmers.com', 'a:1:{i:0;s:18:\"INSURANCE AGENCIES\";}'),
 ('Cowan Auto Supply', '26 Clark Street', 'Greenfield', 'MA', '01301', '4137733667', '4137746226', '', 'a:1:{i:0;s:29:\"AUTOMOBILE - PARTS & SUPPLIES\";}'),

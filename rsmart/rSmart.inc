@@ -73,7 +73,7 @@ function api($args = FALSE) {
   if (@$q_op != 'reset') // DEBUG
   if (@$q_op != 'first_time') {
     if (!@$q_code) return be\error('no code given');
-    if (!$smartInfo = r\dbLookup('owner,default_agent,transient_id,accessed', 'r_smarts', 'code=:q_code', compact('q_code'))) return be\error('unknown device');
+    if (!$smartInfo = r\dbLookup('owner,defaultAgent,transientId,accessed', 'r_smarts', 'code=:q_code', compact('q_code'))) return be\error('unknown device');
     $args += $smartInfo; // pass these on to the op function
     extract($smartInfo, EXTR_PREFIX_ALL, 'q');
     r\acct::setDefault(r\acct($q_owner)); // set current account temporarily to owner, so that error log has it right
@@ -94,9 +94,9 @@ function api($args = FALSE) {
   if (@$q_account_id) {
     if (!u\isQid($account_id = basename(@$q_account_id))) return be\error('bad account id');
     if ($account_id != $q_account_id) { // this is a transient id scanned from the other party's smart device
-      $transient_id = basename(dirname($q_account_id));
+      $transientId = basename(dirname($q_account_id));
       $recent = REQUEST_TIME - R_TRANSIENCE;
-      if (dbLookup('transient_id', 'r_smarts', 'code=:code AND accessed>=:recent') != $transient_id) return be\error('bad transient id');
+      if (dbLookup('transientId', 'r_smarts', 'code=:code AND accessed>=:recent') != $transientId) return be\error('bad transient id');
     }
     if (!$acct = r\acct($account_id, '', $error)) return be\error($error);
     $args['acct'] = $acct;
@@ -147,7 +147,7 @@ function startup($args = '') {
   extract(u\just('cacct owner', $args));
 //  if (rand() < getrandmax() / 2) $update_link = 'http:/rCredits.org/files/smart.apk';
   $my_id = $cacct->qid();
-  $account_name = $cacct->full_name;
+  $account_name = $cacct->fullName;
   $allow_change_account = 0;
   $allow_change_agent = 1;
   $require_agent = $cacct->can(B_PERSONAL) ? 0 : 1;
@@ -160,7 +160,7 @@ function startup($args = '') {
  * @param array $args:
  *   account_id: the qid for an individual or company and rep
  * @return:
- *   full_name: the individual's name
+ *   fullName: the individual's name
  *   company_name: the company name (if any)
  *   location: the location of the company if it's a company, otherwise of the individual (typically city, state)
  *   other_balance: the current balance of the company if it's a company, otherwise of the individual
@@ -169,12 +169,12 @@ function identify($args) {
   $cacct = r\acct();
   extract(u\just('acct', $args));
   if (!@$acct) return be\error('missing acct');
-  $full_name = $acct->full_name;
+  $fullName = $acct->fullName;
   if ($acct->id == $cacct->id) return be\error('no self-trading');
   $location = r\location($acct);
-  if (!$acct->proSe()) list ($company_name, $full_name) = array($full_name, r\acct($acct->agentId)->full_name);
+  if (!$acct->proSe()) list ($company_name, $fullName) = array($fullName, r\acct($acct->agentId)->fullName);
   $other_balance = r\otherBalance($acct->id);
-  return compact(u\ray('full_name location company_name other_balance'));
+  return compact(u\ray('fullName location company_name other_balance'));
 }
 
 /*
@@ -272,8 +272,8 @@ function change($params) {
   if ($acct->proSe()) $acct = $what == 'agent' ? r\acct($cacct->id, $acct->id) : r\acct($acct->id, $cacct->agentId);
   if (($show_buttons = buttons($acct, $params['owner'])) < 0) return be\error('no permission');
 
-  $account_name = $accountName = $acct->full_name;
-  $agentName = r\acct($acct->agentId)->full_name;
+  $account_name = $accountName = $acct->fullName;
+  $agentName = r\acct($acct->agentId)->fullName;
   $message = u\tt('changed ' . $what, compact(u\ray('what agentName accountName')));
 
   $my_id = $acct->qid();
@@ -283,11 +283,11 @@ function change($params) {
 
 function display_id($params) {
   extract(u\just('cacct code', $params));
-  $transient_id = R_QR_HEADER . u\n2a(mt_rand(), 20) . '/' . $cacct->qid();
-  $edit = compact('code', 'transient_id');
+  $transientId = R_QR_HEADER . u\n2a(mt_rand(), 20) . '/' . $cacct->qid();
+  $edit = compact('code', 'transientId');
   r\dbUpdate('r_smarts', $edit, 'code'); // remember what id to accept (briefly)
   $message = '';
-  return compact('message', 'transient_id');
+  return compact('message', 'transientId');
 }
 
 function makeDevice($device, $acct, $code = '') {
@@ -309,8 +309,8 @@ function agentButtons($acct) {
 function buttons($acct, $owner) {return min(agentButtons(r\acct($acct->id, $owner)), agentButtons($acct));}
   
 function accountName($acct) {
-  $agentName = $acct->proSe() ? '' : "\nAgent: " . r\acct($acct->agentId)->full_name; 
-  return $acct->full_name . $agentName;
+  $agentName = $acct->proSe() ? '' : "\nAgent: " . r\acct($acct->agentId)->fullName; 
+  return $acct->fullName . $agentName;
 }
 
 function balances($uid) {

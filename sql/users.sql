@@ -44,22 +44,22 @@ CREATE TABLE IF NOT EXISTS `users` (
   `init` varchar(254) DEFAULT '' COMMENT 'E-mail address used for initial account creation.',
   `data` longblob COMMENT 'A serialized array of name value pairs that are related to the user. Any form values posted during user edit are stored and are loaded into the $user object during user_load(). Use of this field is discouraged and it will likely disappear in a future...',
   `account_type` tinyint(4) DEFAULT NULL COMMENT 'personal, commercial, or non-profit',
-  `federal_id` varchar(9) DEFAULT NULL COMMENT 'social security number or employer id number, for reporting',
+  `federalId` varchar(9) DEFAULT NULL COMMENT 'social security number or employer id number, for reporting',
   `dob` int(11) DEFAULT NULL COMMENT 'date of birth, founding, or incorporation',
-  `full_name` varchar(60) DEFAULT NULL COMMENT 'full name of the individual or entity',
+  `fullName` varchar(60) DEFAULT NULL COMMENT 'full name of the individual or entity',
   `short_name` varchar(60) DEFAULT NULL COMMENT 'alphanumeric identifier with no spaces (internal)',
   `phone` varchar(255) DEFAULT NULL COMMENT 'contact phone (no country code, no punctuation)',
   `fax` varchar(255) DEFAULT NULL COMMENT 'fax number (no country code, no punctuation)',
   `address` varchar(60) DEFAULT NULL COMMENT 'postal street address',
   `city` varchar(60) DEFAULT NULL COMMENT 'municipality',
   `state` varchar(60) DEFAULT NULL COMMENT 'full state/province name',
-  `postal_code` varchar(20) DEFAULT NULL COMMENT 'contact postal code (no punctuation)',
+  `postalCode` varchar(20) DEFAULT NULL COMMENT 'contact postal code (no punctuation)',
   `country` varchar(60) DEFAULT NULL COMMENT 'full country name',
   `website` varchar(255) DEFAULT NULL COMMENT 'primary website',
   `categories` mediumtext COMMENT 'business categories',
   `notes` mediumtext COMMENT 'miscellaneous notes about the user or the account',
   `credit_id` varchar(9) DEFAULT NULL COMMENT 'unique credit account identifier (8 characters for individuals)',
-  `rebate_percent` decimal(4,3) DEFAULT '5.000' COMMENT 'current rebate percentage (sales bonus is double)',
+  `rebate` decimal(4,3) DEFAULT '5.000' COMMENT 'current rebate percentage (sales bonus is double)',
   `demand` decimal(9,2) DEFAULT '0.00' COMMENT 'waiting to buy this much credit',
   `min_balance` decimal(9,2) DEFAULT '-10000.00' COMMENT 'minimum balance (normally zero or less)',
   `lost_card` tinyint(3) unsigned DEFAULT '0' COMMENT 'user lost the account id card',
@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`uid`, `name`, `pass`, `mail`, `theme`, `signature`, `signature_format`, `created`, `access`, `login`, `status`, `timezone`, `language`, `picture`, `init`, `data`, `account_type`, `federal_id`, `dob`, `full_name`, `short_name`, `phone`, `fax`, `address`, `city`, `state`, `postal_code`, `country`, `website`, `categories`, `notes`, `credit_id`, `rebate_percent`, `demand`, `min_balance`, `lost_card`, `bank_account_number`, `bank_account_name`, `bank_account_verified`) VALUES
+INSERT INTO `users` (`uid`, `name`, `pass`, `mail`, `theme`, `signature`, `signature_format`, `created`, `access`, `login`, `status`, `timezone`, `language`, `picture`, `init`, `data`, `account_type`, `federalId`, `dob`, `fullName`, `short_name`, `phone`, `fax`, `address`, `city`, `state`, `postalCode`, `country`, `website`, `categories`, `notes`, `credit_id`, `rebate`, `demand`, `min_balance`, `lost_card`, `bank_account_number`, `bank_account_name`, `bank_account_verified`) VALUES
 (0, '', '', '', '', '', NULL, 0, 0, 0, 0, NULL, '', 0, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 5.000, 0.00, -10000.00, 0, NULL, NULL, 0),
 (1, 'admin', '$S$D.yi/fTvY3CjOqPX2oyW1OgEIq6wj4jxMKOlAKXgevKPEtAZMdYi', 'wspademan@gmail.com', '', '', NULL, 1335463095, 1346045837, 1346028502, 1, 'America/New_York', '', 0, 'wspademan@gmail.com', 0x623a303b, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '01330', NULL, NULL, NULL, NULL, NULL, 5.000, 0.00, -10000.00, 0, NULL, NULL, 0),
 (129, 'Community', '$S$Du27exhBr0sQ.GwFTk111lzxFwgChiT4Ve3HGLExFt/8EXZAbDpO', '', '', '', NULL, 1339798842, 0, 0, 1, NULL, '', 0, '', 0x623a303b, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '01%', NULL, NULL, 'N;', NULL, 'community', 0.000, 25000.00, -10000.00, 0, NULL, NULL, 0),

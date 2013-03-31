@@ -24,21 +24,21 @@ function tableDefs($schema = array()) {
     'flags' => setupField('permissions and boolean state flags', 'int big', 0, '010'),
     'community' => setupField("uid of this account's Common Good Community", 'int 11'),
     'question' => setupField('security question', 'varchar 255'),
-    'usd_account' => setupField('USD account number (hex of encrypted)', 'varchar 255'), // searchable
+    'usdAccount' => setupField('USD account number (hex of encrypted)', 'varchar 255'), // searchable
     'secure' => setupField('other non-personal encrypted data', 'blob normal'), 
     'offsite' => setupField('index to encrypted data stored off-site', 'int big', NULL, '010'),
-    'full_name' => setupField('full name of the individual or entity', 'varchar 60'),
+    'fullName' => setupField('full name of the individual or entity', 'varchar 60'),
     'phone' => setupField('contact phone (no country code, no punctuation)', 'varchar 255'),
     'fax' => setupField('fax number (no country code, no punctuation)', 'varchar 255'),
     'address' => setupField('postal street address', 'varchar 60'),
     'city' => setupField('municipality', 'varchar 60'),
     'state' => setupField('state/province index', 'int 5'),
-    'postal_code' => setupField('contact postal code (no punctuation)', 'varchar 20'),
+    'postalCode' => setupField('contact postal code (no punctuation)', 'varchar 20'),
     'country' => setupField('country index', 'int 4'),
     'notes' => setupField('miscellaneous notes about the user or the account', 'text medium'),
-    'signed_agreement' => setupField('when did this person sign the rCredits Agreement', 'int 11'),
-    'signed_by' => setupField('who signed the agreement (on behalf of the account)', 'varchar 60'),
-    'rebate_percent' => setupField('current rebate percentage (sales bonus is double)', 'numeric 4,3', 5),
+    'signed' => setupField('when did this person sign the rCredits Agreement', 'int 11'),
+    'signedBy' => setupField('who signed the agreement (on behalf of the account)', 'varchar 60'),
+    'rebate' => setupField('current rebate percentage (sales bonus is double)', 'numeric 4,3', 5),
     'share' => setupField('fraction of rebates and bonuses to contribute back to Common Good Finance', 'numeric 6,3', 0),
     'floor' => setupField('how low can balance go (normally zero or less)', 'numeric 11,2', R_FLOOR),
     'reserve' => setupField('how much reserve credit in the event of a Dwolla outage', 'numeric 11,2', 0),
@@ -59,9 +59,9 @@ function tableDefs($schema = array()) {
 //    'demand_date' => setupField('date/time of request for rCredits (or USD)', 'int 11'),
 //    'counts' => setupField('counts of command use, etc.', 'int big', 0),
 /*  MOVE THESE TO offsite field:
-    'federal_id' => setupField('social security number or employer id number, for reporting', 'int 9'), // secret
+    'federalId' => setupField('social security number or employer id number, for reporting', 'int 9'), // secret
     'dob' => setupField('date of birth, founding, or incorporation', 'int 11'), // secret
-    'id_proof' => setupField('proof of identity encryption key', 'varchar ' . R_SECRET_ID_LEN), // secret
+    'idProof' => setupField('proof of identity encryption key', 'varchar ' . R_SECRET_ID_LEN), // secret
     'answer' => setupField('answer to security question', 'varchar ' . R_SECRET_ID_LEN), // secret
   */
 
@@ -111,7 +111,7 @@ function tableDefs($schema = array()) {
   $fields = array(
     'xid' => setupField('the unique transaction ID', 'serial 11'), 
     'serial' => setupField('serial number of related transactions (=xid of first transaction in the group)', 'int 11'), 
-    'usd_xid' => setupField('the unique transaction ID for USD part', 'varchar 255'), 
+    'usdXid' => setupField('the unique transaction ID for USD part', 'varchar 255'), 
     'type' => setupField('transaction type (transfer, rebate, etc.)', 'int tiny'), 
     'taking' => setupField('was the transaction initiated by the payee', 'int tiny'), 
     'goods' => setupField('is this transfer an exchange for real goods and services?', 'int tiny', 0), 
@@ -120,22 +120,22 @@ function tableDefs($schema = array()) {
     'r' => setupField('amount in rCredits', 'numeric 11,2'), 
     'payer' => setupField('user id of the payer', 'int 11'), 
     'payee' => setupField('user id of the payee', 'int 11'), 
-    'payer_agent' => setupField("user id of payer's agent (who approved this transaction for the payer)", 'int 11'), 
-    'payee_agent' => setupField("user id of payee's agent (who approved this transaction for the payee)", 'int 11'), 
-    'payer_for' => setupField("payer's description", 'varchar 60'), 
-    'payee_for' => setupField("payee's description", 'varchar 60'), 
-    'payer_tid' => setupField("payer's transaction ID", 'int 11'),
-    'payee_tid' => setupField("payee's transaction ID", 'int 11'),
+    'payerAgent' => setupField("user id of payer's agent (who approved this transaction for the payer)", 'int 11'), 
+    'payeeAgent' => setupField("user id of payee's agent (who approved this transaction for the payee)", 'int 11'), 
+    'payerFor' => setupField("payer's description", 'varchar 60'), 
+    'payeeFor' => setupField("payee's description", 'varchar 60'), 
+    'payerTid' => setupField("payer's transaction ID", 'int 11'),
+    'payeeTid' => setupField("payee's transaction ID", 'int 11'),
     'data' => setupField('info stored elsewhere, duplicated here for convenience (serialized array)', 'text big'), 
     'channel' => setupField('through what medium was the transaction entered', 'int tiny'), 
     'created' => setupField('Unixtime transaction was created', 'int 11'),
     'completed' => setupField('Unixtime transaction was completed', 'int 11'),
   );
-  $foreignKeys = foreignKey('payer') + foreignKey('payee') + foreignKey('payer_agent') + foreignKey('payee_agent');
-  $indexes = index('payer') + index('payee') + index('created') + index('completed'); // also serial/type/taking/goods/state/payer_agent/payee_agent/channel/?
+  $foreignKeys = foreignKey('payer') + foreignKey('payee') + foreignKey('payerAgent') + foreignKey('payeeAgent');
+  $indexes = index('payer') + index('payee') + index('created') + index('completed'); // also serial/type/taking/goods/state/payerAgent/payeeAgent/channel/?
   $schema['r_txs'] = setupTable('Record of all rCredits transactions in the region', $fields, 'xid', $foreignKeys, $indexes);
 
-//  foreach (u\ray('type taking goods payer_agent payee_agent payer_for payee_for') as $one) unset($fields[$one]);
+//  foreach (u\ray('type taking goods payerAgent payeeAgent payerFor payeeFor') as $one) unset($fields[$one]);
 
   // table r_usd
   $fields = array(
@@ -210,16 +210,16 @@ function tableDefs($schema = array()) {
     'reid' => setupField('relationship record id', 'serial 11'),
     'main' => setupField('uid of the account to which others are related', 'int 11'),
     'other' => setupField('uid of a user related to that account', 'int 11'), // eg owner, agent, employee, supplier
-    'foreign_uid' => setupField('uid of the foreign main account or foreign agent in their own region (main or other is then the region)', 'int 11'),
-    'foreign_name' => setupField('full name of the foreign main account or foreign agent', 'varchar 60'),
+    'foreignUid' => setupField('uid of the foreign main account or foreign agent in their own region (main or other is then the region)', 'int 11'),
+    'foreignName' => setupField('full name of the foreign main account or foreign agent', 'varchar 60'),
     'amount' => setupField('average monthly amount paid to other', 'numeric 11,2', 0), // typically to employee or supplier
     'flow' => setupField('which way credit can flow 1=to other 2=to main 3=both 0=neither', 'int tiny', 0),
     'permission' => setupField('what type of permission the agent has on the main account', 'int tiny', 0),
-    'employer_ok' => setupField('employer says this agent is an employee', 'int tiny', 0),
-    'employee_ok' => setupField('employee says this agent is an employee', 'int tiny', 0),
-    'is_owner' => setupField('this agent is an owner (or part owner)', 'int tiny', 0),
+    'employerOk' => setupField('employer says this agent is an employee', 'int tiny', 0),
+    'employeeOk' => setupField('employee says this agent is an employee', 'int tiny', 0),
+    'isOwner' => setupField('this agent is an owner (or part owner)', 'int tiny', 0),
   );
-  $foreignKeys = foreignKey('main') + foreignKey('other') + foreignKey('foreign_uid');
+  $foreignKeys = foreignKey('main') + foreignKey('other') + foreignKey('foreignUid');
   $indexes = index('main') + index('other');
   $schema['r_relations'] = setupTable('Who can manage which accounts, and how', $fields, 'reid', $foreignKeys, $indexes);
     
@@ -227,7 +227,7 @@ function tableDefs($schema = array()) {
   /*
   $fields = array(
     'uid' => setupField('candidate record id', 'serial 11'),
-    'is_company' => setupField('is this a company', 'int tiny', 0),
+    'isCompany' => setupField('is this a company', 'int tiny', 0),
     'ignor' => setupField('temporarily omit this record from consideration', 'int tiny', 0), // IGNORE is reserved in MySQL
     'score' => setupField('how good is this candidate', 'int 11', 0),
   );
@@ -238,7 +238,7 @@ function tableDefs($schema = array()) {
 /*
   $fields = array(
     'ignore' => setupField('temporarily omit this record from consideration', 'int tiny'),
-    'employee_isrtrader' => setupField('this employee is an rTrader', 'int tiny'),
+    'employeeIsRTrader' => setupField('this employee is an rTrader', 'int tiny'),
     'score' => setupField('how good is this candidate', 'int 11'),
   );
   $schema['r_candidates'] = $schema['r_relations'];
@@ -250,12 +250,12 @@ function tableDefs($schema = array()) {
   $fields = array(
     'code' => setupField('permanent secret identifier for the device', 'varchar 255'),
     'owner' => setupField('uid of the smart device owner', 'int 11'),
-    'default_agent' => setupField('uid of the default user of the device', 'int 11'),
+    'defaultAgent' => setupField('uid of the default user of the device', 'int 11'),
     'device' => setupField('human-readable identifier for the smart device', 'varchar 60'),
-    'transient_id' => setupField('once-use identifier displayed on the device as a QR for the current account/agent', 'varchar 255'),
+    'transientId' => setupField('once-use identifier displayed on the device as a QR for the current account/agent', 'varchar 255'),
     'accessed' => setupField('date/time last used', 'int 11'), // to trigger deletion after several months
   );
-  $foreignKeys = foreignKey('owner') + foreignKey('default_agent');
+  $foreignKeys = foreignKey('owner') + foreignKey('defaultAgent');
   $indexes = index('owner');
   $schema['r_smarts'] = setupTable('Who owns what smart device', $fields, 'code', $foreignKeys, $indexes);
   

@@ -94,13 +94,13 @@ function formTxs($form, &$sta, $args = '') {
       txNeatAmounts($amount, $reward, $is_reward);
       $state = txColoredState($tx_state);
       $tid = $xid; // for community use the actual transaction numbers
-      $row = array($tid, strftime('%d-%b-%Y', $date), r\acct($tx_payer)->full_name, r\acct($tx_payee)->full_name, $total, $amount, $usd, $rpct, $state, $tx_purpose, $reward);
+      $row = array($tid, strftime('%d-%b-%Y', $date), r\acct($tx_payer)->fullName, r\acct($tx_payee)->fullName, $total, $amount, $usd, $rpct, $state, $tx_purpose, $reward);
     } else { // individual account transaction history
       $url = $url0 . "&xid=$xid";
       $toMe = ($tx_payee == $cuid);
       $byMe = ($tx_taking == $toMe);
-      $tid = $toMe ? $tx_payee_tid : $tx_payer_tid;
-      $agent = $toMe ? $tx_payee_agent : $tx_payer_agent;
+      $tid = $toMe ? $tx_payeeTid : $tx_payerTid;
+      $agent = $toMe ? $tx_payeeAgent : $tx_payerAgent;
       $state = txColoredState($tx_state, $byMe);
       $reward = @$data[$toMe ? 'bonus' : 'rebate'];
       txNeatAmounts($amount, $reward, $is_reward);

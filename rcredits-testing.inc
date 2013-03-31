@@ -24,9 +24,9 @@ function makeAccount($info = array(), $testOnly = FALSE) {
 
   if (!@$my_id) $my_id = r\acct::nextId(); // default to first available number
   $uid = uid($my_id); // change .AAB to 1, etc.
-  $rebate_percent = isset($my_rebate) ? $my_rebate: (R_REBATE * 100); 
-  $full_name = @$my_full_name ?: ('makeAccount ' . randomString(20, 'A'));
-  $name = u\shortName($full_name);
+  $rebate = isset($my_rebate) ? $my_rebate: (R_REBATE * 100); 
+  $fullName = @$my_fullName ?: ('makeAccount ' . randomString(20, 'A'));
+  $name = u\shortName($fullName);
   $pass = @$my_password ?: '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae'; // default to 123
   $mail = @$my_email ?: ''; // Don't use "$name@example.com"
   $flags = B_DEFAULTS | (isset($my_flags) ? @$my_flags : (1 << B_OK));
@@ -42,7 +42,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
 
   foreach (u\ray('id email password') as $one) unset($info[$one]);
   
-  $info = array_merge($info, compact(u\ray('uid flags rebate_percent name pass full_name mail community')));
+  $info = array_merge($info, compact(u\ray('uid flags rebate name pass fullName mail community')));
   if ($testOnly) {
     if (!$acct = r\acct($uid)) return testOutput("No such uid: $uid");
     foreach ($info as $key => $value) {
@@ -78,15 +78,15 @@ function makeTransaction($info, $infoOnly = FALSE) {
   $created = @$my_created ? strtotime($my_created) : REQUEST_TIME;
   
   $payer = uid($my_from);
-  $payer_agent = uid(@$my_from_agent ?: ($type == TX_TRANSFER ? $my_from : r\communityUid()));
+  $payerAgent = uid(@$my_from_agent ?: ($type == TX_TRANSFER ? $my_from : r\communityUid()));
   $payee = uid($my_to); 
-  $payee_agent = uid(@$my_to_agent ?: ($type == TX_TRANSFER ? $my_to : r\communityUid()));
-  $payer_tid = r\xid2tid($xid, $payer);
-  $payee_tid = r\xid2tid($xid, $payee);
+  $payeeAgent = uid(@$my_to_agent ?: ($type == TX_TRANSFER ? $my_to : r\communityUid()));
+  $payerTid = r\xid2tid($xid, $payer);
+  $payeeTid = r\xid2tid($xid, $payee);
   
-  $payer_for = @$my_purpose ?: 'cash';
-  $payee_for = @$my_purpose ?: 'cash';
-  $goods = @$my_goods ?: (($type != TX_TRANSFER or u\forCash($payer_for)) ? 0 : 1);
+  $payerFor = @$my_purpose ?: 'cash';
+  $payeeFor = @$my_purpose ?: 'cash';
+  $goods = @$my_goods ?: (($type != TX_TRANSFER or u\forCash($payerFor)) ? 0 : 1);
   $taking = ($my_from == 'community' or @$my_type == 'payment') ? 0 : 1;
   $r = round($my_amount - @$my_usd, 2);
   if ($goods) {
@@ -95,7 +95,7 @@ function makeTransaction($info, $infoOnly = FALSE) {
     $data = serialize(compact(u\ray('rebate bonus')));
   }
   foreach (u\ray('created from to purpose usd tx_id') as $one) unset($info[$one]);
-  $info += compact(u\ray('xid created r payer payer_agent payee payee_agent payer_for payee_for payer_tid payee_tid type channel goods taking state data'));
+  $info += compact(u\ray('xid created r payer payerAgent payee payeeAgent payerFor payeeFor payerTid payeeTid type channel goods taking state data'));
   if ($infoOnly) return $info;
   
   $xid = r\dbInsert('r_txs', $info);
@@ -120,8 +120,8 @@ function makeRelation($info, $infoOnly = FALSE) {
   u\EXPECT(!r\isForeign($mainAcct->regionId) or !r\isForeign($agtAcct->regionId));
   u\EXPECT($mainAcct->proSe() and $agtAcct->proSe());
   list ($main, $other) = array($mainAcct->id, $agtAcct->id);
-  if (r\isForeign($mainAcct->regionId)) list ($main, $foreign_uid) = array($mainAcct->regionId, $mainAcct->id);
-  if (r\isForeign($agtAcct->regionId)) list ($other, $foreign_uid) = array($agtAcct->regionId, $agtAcct->id);
+  if (r\isForeign($mainAcct->regionId)) list ($main, $foreignUid) = array($mainAcct->regionId, $mainAcct->id);
+  if (r\isForeign($agtAcct->regionId)) list ($other, $foreignUid) = array($agtAcct->regionId, $agtAcct->id);
   
   if (@$my_permission) {
     $perms = array_flip($GLOBALS['share permissions']);
@@ -129,7 +129,7 @@ function makeRelation($info, $infoOnly = FALSE) {
   }
   
   foreach (u\ray('id main agent') as $one) unset($info[$one]);
-  $info += compact(u\ray('reid main other foreign_uid'));
+  $info += compact(u\ray('reid main other foreignUid'));
   return $infoOnly ? verifyRecord('r_relations', $info) : r\dbInsert('r_relations', $info);
 }
 
