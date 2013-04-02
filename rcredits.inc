@@ -48,6 +48,7 @@ define('R_GET_AUTH_URI', 'usd-get-auth'); // where Dwolla calls us back for gett
 define('R_INDIVIDUAL_GIFT', 50); // suggested contribution for individuals
 define('R_COMPANY_GIFT', 250); // suggested contribution for companies
 define('R_BUYS_BEFORE_BONUS', MINI_LAUNCH ? 1 : 3); // number of purchases required before signup bonus
+define('R_REGION_MAX', isDEV ? 46000 : 3000000000); // maximum uids in a region (46k,3T ~sqrt(PHP_INT_MAX))
 
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
@@ -58,6 +59,7 @@ define('R_PROOF_DIR', '/sites/default/files/proofs');
 // account type bits
 define('R_PERSONAL', 0);
 define('R_SELF_EMPLOYED', 1); // this type is also used for commercial account structure
+define('R_COMMERCIAL', 2); // not personal (used in testing)
 $GLOBALS['account types'] = array(t('personal'), t('personal AND commercial'), t('commercial (but not publicly traded)'), t('publicly traded corporation'), t('non-profit or government'));
 
 // Commercial Account structure (bits)
@@ -95,14 +97,19 @@ define('B_CTTY_ADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
 define('B_CLOSED', 31); // account is closed (data[new_account] has new qid)
 define('B_MAX', 31); // maximum bit number
-define('B_DEFAULTS', (1 << B_NOTIFY_EMAIL) | (1 << B_TO_BANK)); // set what bits when creating a new account
+define('B_DEFAULTS', (1 << B_NOTIFY_EMAIL) | 0); // set what bits when creating a new account
 
 // Relationship permissions used in calls to acct::can() -- the first 5 are stored, negated, in r_relations
+define('PERM_READ', 1);
+define('PERM_SELL', 2);
+define('PERM_BUY', 3);
+define('PERM_MANAGE', 4);
+
 define('B_RELATED', 100); // has a relationship record
-define('B_READ', 101);
-define('B_SELL', 102);
-define('B_BUY', 103);
-define('B_MANAGE', 104);
+define('B_READ', B_RELATED + PERM_READ);
+define('B_SELL', B_RELATED + PERM_SELL);
+define('B_BUY', B_RELATED + PERM_BUY);
+define('B_MANAGE', B_RELATED + PERM_MANAGE);
 $GLOBALS['share permissions'] = array(t('no access'), t('read transactions'), t('sell'), t('buy and sell'), t('manage account'));
 
 // Other special pseudo-bit values for acct::can()
@@ -260,7 +267,7 @@ function otherBalance($uid) {
  * @return string: the user's transaction number
  */
 function xid2tid($xid, $uid) {
-  $where =  ":uid IN (payer, payee) AND xid<=:xid AND type NOT IN (:TX_REBATE, :TX_BONUS)";
+  $where =  ":uid IN (payer, payee) AND xid<:xid AND type NOT IN (:TX_REBATE, :TX_BONUS)";
   return r\dbLookup('COUNT(xid)', 'r_txs', $where, compact('uid', 'xid')) + 1;
 }
 
@@ -276,6 +283,10 @@ function exchange($amount, $payer, $payee, $usdXid = NULL) {
  * Record a transaction between two participants
  * and create related transactions for any applicable incentive rewards
  * @param assoc $info: transaction data
+ *   amount: (required) how much to transfer
+ *   payer, payee: (required) uids
+ *   for: purpose of the transaction OR a simple array (payer's purpose, payee's purpose)
+ *   etc.
  * @return array: the list of transactions created (main, rebate, bonus)
  */
 function transact($info) {
@@ -292,6 +303,12 @@ function transact($info) {
 
 /**
  * Save the transaction
+ * @param assoc $tx: transaction info.
+ *   amount: (required) how much to transfer
+ *   payer, payee: (required) uids
+ *   for: purpose of the transaction OR a simple array (payer's purpose, payee's purpose)
+ *   etc.
+ * @return the transaction array, with extra info added
  */
 function txSave($tx) {
   $xid = r\dbInsert('r_txs', $tx);
@@ -329,14 +346,13 @@ function txRewardSetup($serial, $type, $payee, $state, $rewards, $tid) {
   $taking = FALSE;
   $goods = FALSE;
   $for = ($type == TX_REBATE ? t('rebate') : t('bonus')) . t( ' on #') . $tid;
-  list ($payerTid, $payeeTid) = u\order($type == TX_REBATE, $tid, NULL);
 
-  return transactionSetup(compact(u\ray('serial type amount goods payer payee payerAgent payeeAgent for payerTid payeeTid taking state')));
+  return transactionSetup(compact(u\ray('serial type amount goods payer payee payerAgent payeeAgent for taking state')));
 }
 
 /**
  * Create a new transaction and set up all the important fields.
- * @param array $info: an associative array of transaction info.
+ * @param assoc $info: transaction info.
  *   amount: (required) how much to transfer
  *   payer, payee: (required) uids
  *   for: purpose of the transaction OR a simple array (payer's purpose, payee's purpose)
@@ -357,16 +373,15 @@ function transactionSetup($info) {
   u\setDft($info['for'], R_DEFAULT_PURPOSE);
   u\setDft($info['payerAgent'], $my_payer);
   u\setDft($info['payeeAgent'], $my_payee);
-
-  $created = REQUEST_TIME;
-  if (@$my_state != TX_PENDING) $completed = $created;
+  u\setDft($info['created'], REQUEST_TIME);
+  if (@$my_state !== TX_PENDING) $completed = $info['created'];
   $info['taking'] += 0;
   $info['goods'] += 0;
 
   list ($payerFor, $payeeFor) = is_array($my_for) ? $my_for : array($my_for, $my_for);
   unset($info['for']);
 
-  return array_merge($info, compact(u\ray('created completed payerFor payeeFor channel')));
+  return array_merge($info, compact(u\ray('completed payerFor payeeFor channel')));
 }
 
 /**
@@ -498,20 +513,16 @@ function notify($uid, $index, $info) {
   
   if ($uid != @$cacct->id) $info['otherName'] = @$cacct->fullName; // this comes in backwards if notifying elseone
 
-  if (!strlen($acct->pass)) {
-    $warning = u\tt('no asif notify', compact('fullName'));
-  } else {
-    if ($acct->hasBit(B_NOTIFY_EMAIL) and @$acct->mail) {
-      $mailed = \drupal_mail('rCredits', $index, $acct->mail, '', $info); // no need to pass $acct->language
-    }
-    if ($acct->hasBit(B_NOTIFY_SMS)) {
-      $number = dbLookup('number', 'r_sms', 'uid=:uid AND status=:SMS_PRIMARY', compact('uid'));
-      if ($number) $smsed = SMS\send($number, u\tt($index, $info, TX_SMS));
-    }
-    if (!@$mailed and !@$smsed and array_search($index, $warnIndexes) !== FALSE) {
-      $notification = str_replace('-', ' ', $index);
-      $warning = u\tt('cannot contact', compact('fullName', 'notification'));
-    }
+  if ($acct->hasBit(B_NOTIFY_EMAIL) and @$acct->mail) {
+    $mailed = \drupal_mail('rCredits', $index, $acct->mail, '', $info); // no need to pass $acct->language
+  }
+  if ($acct->hasBit(B_NOTIFY_SMS)) {
+    $number = dbLookup('number', 'r_sms', 'uid=:uid AND status=:SMS_PRIMARY', compact('uid'));
+    if ($number) $smsed = SMS\send($number, u\tt($index, $info, TX_SMS));
+  }
+  if (!@$mailed and !@$smsed and array_search($index, $warnIndexes) !== FALSE) {
+    $notification = str_replace('-', ' ', $index);
+    $warning = u\tt('cannot contact', compact('fullName', 'notification'));
   }
   if (@$warning) {
     if ($channel == TX_WEB) Web\say($warning);
@@ -662,6 +673,7 @@ function dbLookup($fieldName, $table, $where = '1', $subs = array()) {
   u\EXPECT(compact(u\ray('fieldName table where subs')), 'notempty notempty notempty assoc');
   if (!strpos($where, ' LIMIT ')) $where .= ' LIMIT 1';
   $sql = "SELECT $fieldName FROM $table WHERE $where";
+//  debug(compact('sql','subs'));
   $result = dbQ($sql, $subs);
   $fieldCount = substr($fieldName, 0, 3) == 'IF(' ? 1 : substr_count($fieldName, ',') + 1;
   $result = $fieldCount > 1 ? $result->fetchAssoc() : $result->fetchField();
@@ -711,26 +723,33 @@ function unQid($qid) {
 /**
  * Convert uids to quid
  * Call by:
- *   quid()
  *   quid(uid) == quid(uid, uid)
- *   quid(uid, agentUid)
- *   quid(uid, agentUid, regionUid)
- * @param int uid: record id of the account (defaults to current account)
- * @param int agentUid: uid of agent (defaults to uid)
- * @param int $regionUid: uid of the region (always negative, defaults to current region)
+ *   quid(uid, agentId)
+ *   quid(uid, agentId, regionId)
+ * @param int uid: record id of the account
+ * @param int agentId: uid of agent (defaults to uid)
+ * @param int $regionId: uid of the region (always negative, defaults to current region)
  * @return the corresponding quid
  */
-function quid($uid = '', $agentUid = '', $regionUid = '') {
+function quid($uid = '', $agentId = '', $regionId = '') {
   $cacct = acct();
-  if ($agentUid) {
-    if (!$regionUid) $regionUid = serverUid();
-  } else list ($uid, $agentUid, $regionUid) = 
-    $uid ? array($uid, $uid, serverUid()) 
-         : array($cacct->id, $cacct->agentId, $cacct->regionId);
-  return qid($uid == $agentUid ? $uid : -relation('reid', $uid, $agentUid), u\n2a(-$regionUid, 3), 3);
+  if (!$regionId) $regionId = serverUid();
+  if (!$agentId) $agentId = $uid;
+  if ($agentId == $uid) { // proSe
+    if ($regionId == serverUid() and $uid > R_REGION_MAX) {
+      $regionId = -floor($uid / R_REGION_MAX);
+      $uid -= -$regionId * R_REGION_MAX;
+    }
+  } else $uid = -relation('reid', $uid, $agentId); // compound quid
+  return qid($uid, u\n2a(-$regionId, 3), 3);
 }
 
 function qxid($xid, $regionId = R_SERVER_ID) {return qid($xid, $regionId = R_SERVER_ID, 4);} // Convert xid to qxid
+
+function region($state = '', $zip = '') {
+  $region = r\dbLookup('region', 'r_regions', "state=:state AND (zips='' OR :zip RLIKE zips)", compact('state', 'zip'));
+  return -u\a2n($region ?: 'ZZZ');
+}
 
 /**
  * Interpret transaction record fields as an acct object
@@ -815,9 +834,9 @@ function communityUid($postalCode = '') {
   return userField('uid', $where, compact(u\ray('postalCode'))) ?: serverUid();
 }
 
-function isForeign($uid) {
-  $name = userField('name', $uid);
-  return $name == (R_SERVER_ID . '.') ? FALSE : ($uid < 0 and preg_match('/[A-Z]{3}\./', $name));
+function foreignServer($uid) {
+  if ($uid == serverUid()) return FALSE;
+  return ($uid < 0 and preg_match('/[A-Z]{3}\./', userField('name', $uid)));
 }
 
 /**
@@ -879,6 +898,12 @@ function passSalt($acct = '') {
   return compact('pass', 'salt');
 }
 
+function newUid($base) {
+  $where = 'u.uid>:base AND u2.uid IS NULL ORDER BY u.uid';
+  $previous = dbLookup('u.uid', 'users u LEFT JOIN users u2 ON u2.uid=(u.uid+1)', $where, compact('base'));
+  return $previous ? ($previous + 1) : ($base + 2); // skip uids 0 and 1
+}
+  
 /**
  * Assign the given account a new id.
  * This is safe only if run in Maintenance mode or if there is a gap in the used uids.
@@ -888,8 +913,7 @@ function passSalt($acct = '') {
  * @return the new uid
  */
 function newMemberId($oldUid, $newUid = FALSE, $skipUsers = FALSE) {
-  $where = 'u.uid>0 AND u2.uid IS NULL ORDER BY u.uid';
-  if (!$newUid) $newUid = dbLookup('u.uid', 'users u LEFT JOIN users u2 ON u2.uid=(u.uid+1)', $where) + 1;
+  if (!$newUid) $newUid = newUid($base);
   $subs = array( // all tables are listed, to be sure we don't leave any out
   // r_areas
   // r_countries,
@@ -1152,7 +1176,6 @@ function rebate($uid, $amount = 1) {return round($amount * userField('rebate', $
 function bonus($uid, $amount = 1) {return rebate($uid, 2 * $amount);}
 function txField($field, $which, $subs = array()) {return tableField($field, 'r_txs', $which, $subs);}
 function setTxState($newValue, $zserial) {setTxField('state', $newValue, $zserial, TRUE);}
-//function serverUid($regionId = '') {return -u\a2n(u\neq($regionId, CT_SERVER_ID) ?: R_SERVER_ID);}
 function serverUid($regionId = R_SERVER_ID) {return -u\a2n($regionId);}
 function emailTemplate($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}
 function emailBody($key) {return str_replace('{BODY}', emailTemplate($key), emailTemplate(R_EMAIL_FRAME));}

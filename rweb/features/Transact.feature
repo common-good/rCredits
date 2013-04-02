@@ -7,7 +7,7 @@ SO I can buy and sell stuff.
 
 Setup:
   Given members:
-  | id      | full_name  | address | city  | state  | postal_code | country | email         | account_type  |
+  | id      | fullName  | address | city  | state  | postalCode | country | email         | accountType  |
   | NEW.ZZA | Abe One    | POB 1   | Atown | Alaska | 01000       | US      | a@example.com | %R_PERSONAL   |
   | NEW.ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000       | US      | b@example.com | %R_PERSONAL   |
   | NEW.ZZC | Corner Pub | POB 3   | Ctown | Cher   |             | France  | c@example.com | %R_COMMERCIAL |
@@ -34,7 +34,7 @@ Setup:
 #  | "NEW:ZZA" | # agent to member           |
 
 Scenario: A member asks to charge another member
-  When member "NEW.ZZA" completes form "Tx" with values:
+  When member "NEW.ZZA" completes form "charge" with values:
   | op     | who     | amount | goods | purpose |
   | Charge | Bea Two | 100    | 1     | labor   |
   Then we show "confirm charge" with subs:
@@ -42,7 +42,7 @@ Scenario: A member asks to charge another member
   | $100   | Bea Two   |
   
 Scenario: A member confirms request to charge another member
-  When member "NEW.ZZA" confirms form "Tx" with values:
+  When member "NEW.ZZA" confirms form "charge" with values:
   | op     | who     | amount | goods | purpose |
   | Charge | Bea Two | 100    | 1     | labor   |
   Then we say "status": "report invoice" with subs:
@@ -67,7 +67,7 @@ Scenario: A member confirms request to charge another member
   | NEW.ZZC   |     250 |
 
 Scenario: A member asks to pay another member
-  When member "NEW.ZZA" completes form "Tx" with values:
+  When member "NEW.ZZA" completes form "pay" with values:
   | op  | who     | amount | goods | purpose |
   | Pay | Bea Two | 100    | 1     | labor   |
   Then we show "confirm payment" with subs:
@@ -75,7 +75,7 @@ Scenario: A member asks to pay another member
   | $100   | Bea Two   |
   
 Scenario: A member confirms request to pay another member
-  When member "NEW.ZZA" confirms form "Tx" with values:
+  When member "NEW.ZZA" confirms form "pay" with values:
   | op  | who     | amount | goods | purpose |
   | Pay | Bea Two | 100    | 1     | labor   |
   Then we say "status": "report transaction" with subs:

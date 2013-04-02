@@ -62,7 +62,7 @@ class usd {
    */
   function __construct($acct) {
     $this->acct = $acct;
-    $this->number = $acct->usd_account;
+    $this->number = $acct->usdAccount;
     $secure = $acct->secure;
     foreach (u\ray('type pin auth') as $one) $this->$one = @$secure[$one];
   }

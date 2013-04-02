@@ -44,7 +44,7 @@ class rsmsExchangeForCash extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id   | full_name  | cell   |'
+    . '\\| id   | fullName  | cell   |'
     . '\\| .ZZA | Abe One    | +20001 |'
     . '\\| .ZZB | Bea Two    | +20002 |'
     . '\\| .ZZC | Corner Pub | +20003 |"');

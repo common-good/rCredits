@@ -5,7 +5,7 @@ SO I can buy the things I want, locally and elsewhere
 
 Setup:
   Given members:
-  | id   | full_name  | cell   |
+  | id   | fullName  | cell   |
   | .ZZA | Abe One    | +20001 |
   | .ZZB | Bea Two    | +20002 |
   | .ZZC | Corner Pub | +20003 |

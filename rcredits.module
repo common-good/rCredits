@@ -138,7 +138,7 @@ function rcredits_mail($key, &$msg_array, $info) {
     $info['oneTimeLoginUrl'] = user_pass_reset_url($acct->account());
     $info['site'] = R_SITE_URL;
 
-    $info['fullName'] = $info['full_name']; // these are not always the name and email of the account
+    $info['fullName'] = $info['fullName']; // these are not always the name and email of the account
     $email = $info['email'] = $info['mail'];
 
     foreach ($info as $k => $value) $subs['{' . $k . '}'] = $value;
@@ -199,3 +199,5 @@ function rcredits_cron_queue_info() {
   foreach ($queues as $one) $$one = r\makeQueue($one, 5*60); // give all queues the full 5 minutes (they are self-thinning)
   return compact($queues);
 }
+
+function bs($n) {for ($i=0; $i <= B_MAX; $i++) if ($n & u\bit($i)) echo "$i ";}

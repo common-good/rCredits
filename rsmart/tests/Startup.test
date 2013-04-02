@@ -44,7 +44,7 @@ class rsmartStartup extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id      | full_name  | phone  | email         |'
+    . '\\| id      | fullName  | phone  | email         |'
     . '\\| NEW.ZZA | Abe One    | +20001 | a@example.com |'
     . '\\| NEW.ZZB | Bea Two    | +20002 | b@example.com |'
     . '\\| NEW.ZZC | Corner Pub | +20003 | c@example.com |"');

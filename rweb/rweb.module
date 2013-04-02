@@ -75,11 +75,12 @@ function rweb_menu() {
     'remainder' => r\Web\menu(t('Show Customer Balance'), MENU_CALLBACK, 'remainder', array(1), B_SELL),
     'empty' => r\Web\menu(t('Empty'), MENU_CALLBACK, 'showForm', array('Empty'), '', $anyone),
 
-    'Print-ID-Card' => r\Web\menu(t('Print Advance ID Card'), MENU_CALLBACK, 'memberID', array(1),  B_SELL),
+    'print-rcard' => r\Web\menu(t('Print ID Card'), MENU_CALLBACK, 'memberID', array(1), B_ADMIN),
+    'request-employee-rcard' => r\Web\menu(t('Request Employee rCard'), MENU_CALLBACK, 'showForm', array('RequestRCard', 1), B_MANAGE),
     'draft' => r\Web\menu(t('Draft into Database'), MENU_CALLBACK, 'showForm', array('Draft', 1), B_SELL),
     
     'I' => r\Web\menu('Scanned QR', MENU_CALLBACK, 'showForm', array('I'), '', $anyone),
-    'sms' => r\Web\menu('Test SMS', MENU_CALLBACK, 'showForm', array('SMS'), '', $anyone), // should be B_ADMIN not '',...
+    'sms' => r\Web\menu('Test SMS', MENU_CALLBACK, 'showForm', array('SMS'), B_ADMIN),
 
     'account' => r\Web\menu(t('Basic Settings'), MENU_CALLBACK, 'showForm', array('Account'), B_MANAGE),
     'account/basic' => r\Web\menu('Basic Settings', MENU_DEFAULT_LOCAL_TASK, 'showForm', array('Account'), B_MANAGE),

@@ -5,8 +5,8 @@ SO I can see what happened, accept or refuse offers, adjust descriptions, and co
 
 Setup:
   Given members:
-  | id      | full_name  | floor | account_type  | flags      |
-  | NEW.ZZA | Abe One    | -100  | %R_PERSONAL   |            |
+  | id      | fullName  | floor | accountType  | flags      |
+  | NEW.ZZA | Abe One    | -100  | %R_PERSONAL   | %B_OK      |
   | NEW.ZZB | Bea Two    | -200  | %R_PERSONAL   | %B_MEMBER  |
   | NEW.ZZC | Corner Pub | -300  | %R_COMMERCIAL | %B_OK |
   And relations:
@@ -45,12 +45,12 @@ Setup:
   | NEW.ZZC   |     323 |
 
 Scenario: A member looks at transactions for the past year
-  When member "NEW.ZZA" visits page "txs" with options "period=365"
-  Then we show page "txs" with:
+  When member "NEW.ZZA" visits page "transactions" with options "period=365"
+  Then we show page "transactions" with:
   | Start Date | End Date | Start Balance | To You | From You | Rewards | End Balance |
   | %dmy-12m   | %dmy     | $0.00         | 30.00  | 120.00   | 256.00  | $166.00     |
   |            |          | PENDING       | 200.00 | 200.00   | 20.00   | + $20.00    |
-  And we show page "txs" with:
+  And we show page "transactions" with:
   | tid | Date   | Name       | From you | To you | Status  | Buttons | Purpose | Rewards |
   | 9   | %dm-6d | Bea Two    | --       | 100.00 | pending | X       | cash U  | --      |
   | 8   | %dm-6d | Bea Two    | 100.00   | --     | pending | X       | cash T  | --      |
@@ -61,24 +61,24 @@ Scenario: A member looks at transactions for the past year
   | 3   | %dm-4m | Corner Pub | --       | 20.00  | %chk    | X       | usd F   | --      |
   | 2   | %dm-5m | Bea Two    | --       | 10.00  | %chk    | X       | cash E  | --      |
   | 1   | %dm-7m | %ctty      | --       | --     | %chk    |         | signup  | 250.00  |
-  And we show page "txs" without:
+  And we show page "transactions" without:
   | Purpose |
   | rebate  |
   | bonus   |
 
 Scenario: A member looks at transactions for the past few days
-  When member "NEW.ZZA" visits page "txs" with options "period=15"
-  Then we show page "txs" with:
+  When member "NEW.ZZA" visits page "transactions" with options "period=15"
+  Then we show page "transactions" with:
   | Start Date | End Date | Start Balance | To You | From You | Rewards | End Balance |
   | %dmy-15d   | %dmy     | $242.00       | 0.00   | 80.00    | 4.00    | $166.00     |
   |            |          | PENDING       | 200.00 | 200.00   | 20.00   | + $20.00    |
-  And we show page "txs" with:
+  And we show page "transactions" with:
   | tid | Date   | Name       | From you | To you | Status  | Buttons | Purpose | Rewards |
   | 9   | %dm-6d | Bea Two    | --       | 100.00 | pending | X       | cash U  | --      |
   | 8   | %dm-6d | Bea Two    | 100.00   | --     | pending | X       | cash T  | --      |
   | 7   | %dm-1w | Corner Pub | 80.00    | --     | %chk    | X       | this Q  | 4.00    |
   | 6   | %dm-2w | Corner Pub | --       | 100.00 | ok?     | OK X    | labor M | 10.00   |
-  And we show page "txs" without:
+  And we show page "transactions" without:
   | Purpose  |
   | pie N    |
   | whatever |
@@ -99,34 +99,34 @@ Scenario: Transactions with other states show up properly
   | NEW:AABA | %today-5d | %TX_REBATE   | %TX_DISPUTED |      4 | community | NEW.ZZA | rebate  | 0      |
   | NEW:AABB | %today-5d | %TX_BONUS    | %TX_DISPUTED |      8 | community | NEW.ZZC | bonus   | 0      |
   | NEW:AABC | %today-5d | %TX_TRANSFER | %TX_DELETED  |    200 | NEW.ZZA   | NEW.ZZC | never   | 1      |
-  | NEW:AABD | %today-5d | %TX_TRANSFER | %TX_DISPUTED |    100 | NEW.ZZC   | NEW.ZZA | cash BD | 1      |
+  | NEW:AABF | %today-5d | %TX_TRANSFER | %TX_DISPUTED |    100 | NEW.ZZC   | NEW.ZZA | cash BD | 1      |
   Then balances:
   | id        | balance |
   | community |    -780 |
   | NEW.ZZA   |     190 |
   | NEW.ZZB   |     279 |
   | NEW.ZZC   |     311 |
-  When member "NEW.ZZA" visits page "txs" with options "period=5"
-  Then we show page "txs" with:
+  When member "NEW.ZZA" visits page "transactions" with options "period=5"
+  Then we show page "transactions" with:
   | tid | Date   | Name       | From you | To you | Status   | Buttons | Purpose | Rewards |
-  , 14  , %dm-5d , Corner Pub , --       , 100.00 , disputed , X       , cash BD ,         ,
-  , 12  , %dm-5d , Corner Pub , 80.00    , --     , disputed , OK      , this Z  , 4.00    ,
-  And we show page "txs" without:
+  | 14  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X       | cash BD |         |
+  | 12  | %dm-5d | Corner Pub | 80.00    | --     | disputed | OK      | this Z  | 4.00    |
+  And we show page "transactions" without:
   | Purpose |
-  , labor V ,
-  , cash Y  ,
-  , never   ,
-  , rebate  ,
-  , bonus   ,
-  When member "NEW.ZZC" visits page "txs" with options "period=5"
-  Then we show page "txs" with:
+  | labor V |
+  | cash Y  |
+  | never   |
+  | rebate  |
+  | bonus   |
+  When member "NEW.ZZC" visits page "transactions" with options "period=5"
+  Then we show page "transactions" with:
   | tid | Date   | Name       | From you | To you | Status   | Buttons | Purpose | Rewards |
-  , 14  , %dm-5d , Abe One    , 100.00   , --     , disputed , OK      , cash BD ,         ,
-  , 12  , %dm-5d , Abe One    , --       , 80.00  , disputed , X       , this Z  , 8.00    ,
-  , 11  , %dm-5d , Abe One    , --       , 5.00   , denied   , X       , cash Y  , --      ,
+  | 14  | %dm-5d | Abe One    | 100.00   | --     | disputed | OK      | cash BD |         |
+  | 12  | %dm-5d | Abe One    | --       | 80.00  | disputed | X       | this Z  | 8.00    |
+  | 11  | %dm-5d | Abe One    | --       | 5.00   | denied   | X       | cash Y  | --      |
   | 10  | %dm-5d | Abe One    | 100.00   | --     | denied   | X       | labor V | 5.00    |
-  And we show page "txs" without:
+  And we show page "transactions" without:
   | Purpose |
-  , never   ,
-  , rebate  ,
-  , bonus   ,
+  | never   |
+  | rebate  |
+  | bonus   |

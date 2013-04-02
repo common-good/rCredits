@@ -47,7 +47,7 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id      | full_name  | phone  | email         | city  | state  | country       |'
+    . '\\| id      | fullName  | phone  | email         | city  | state  | country       |'
     . '\\| NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | Alaska | United States |'
     . '\\| NEW.ZZB | Bea Two    | +20002 | b@example.com | Btown | Utah   | United States |'
     . '\\| NEW.ZZC | Corner Pub | +20003 | c@example.com | Ctown | Corse  | France        |"');
@@ -74,7 +74,7 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to identify QR "NEW.ZZB"');
     Then_('we respond with: "DATA'
-    . '\\| success | full_name | location  |'
+    . '\\| success | fullName | location  |'
     . '\\| 1       | Bea Two   | Btown, UT |"');
   }
 
@@ -92,7 +92,7 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to identify QR "NEW.ZZC"');
     Then_('we respond with: "DATA'
-    . '\\| success | full_name  | location             |'
+    . '\\| success | fullName  | location             |'
     . '\\| 1       | Corner Pub | Ctown, Corse, France |"');
   }
 
@@ -102,7 +102,7 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
     Given('member "NEW.ZZA" can charge unilaterally');
     When_('member "NEW.ZZA" asks device "codeA" to identify QR "NEW.ZZB"');
     Then_('we respond with: "DATA'
-    . '\\| success | full_name | location  | other_balance |'
+    . '\\| success | fullName | location  | other_balance |'
     . '\\| 1       | Bea Two   | Btown, UT | 250           |"');
   }
 
@@ -111,7 +111,7 @@ class rsmartIdentifyQR extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to identify QR "NEW:ZZA"');
     Then_('we respond with: "DATA'
-    . '\\| success | full_name | location             | company_name |'
+    . '\\| success | fullName | location             | company_name |'
     . '\\| 1       | Bea Two   | Ctown, Corse, France | Corner Pub   |"');
   }
 

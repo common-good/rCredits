@@ -626,9 +626,9 @@ function import_gfld() {
     $fax = $fax ? "+1$fax" : NULL;
     $state = stateAbbrev($state);
     $website = str_replace('https://', '', str_replace('http://', '', str_replace('www.', '', $website)));
-    $account_type = r\dbExists('r_user_industries', "iid IN (121,61) AND uid=:uid", compact('uid')) ? 2 : 1;
-    $sql = "UPDATE companies SET phone=:phone, fax=:fax, status=1, website=:website, name=:short_name, short_name=:short_name, state=:state, country='United States', timezone='America/New_York', account_type=:account_type WHERE uid=:uid";
-    r\dbQ($sql, compact(ray('short_name uid phone fax state website account_type')));
+    $accountType = r\dbExists('r_user_industries', "iid IN (121,61) AND uid=:uid", compact('uid')) ? 2 : 1;
+    $sql = "UPDATE companies SET phone=:phone, fax=:fax, status=1, website=:website, name=:short_name, short_name=:short_name, state=:state, country='United States', timezone='America/New_York', accountType=:accountType WHERE uid=:uid";
+    r\dbQ($sql, compact(ray('short_name uid phone fax state website accountType')));
 
     $cats = unserialize($categories);
     foreach ($cats as $industry) {
@@ -746,7 +746,7 @@ function formatNum($num, $format) {
 function switchOnNEW() {
 /*
 SELECT DISTINCT
-  c.id, c.display_name AS fullName, c.contact_type AS account_type,
+  c.id, c.display_name AS fullName, c.contact_type AS accountType,
   e.email,
   w.url AS website,
   p.phone,

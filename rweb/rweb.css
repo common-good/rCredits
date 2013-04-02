@@ -29,13 +29,17 @@ label.option {font-weight:bold;}
 .not-logged-in #block-user-login {padding:0px; padding-left:12px; margin-bottom:0px;}
 
 /* Radios and Checkboxes */
+.rweb .form-checkboxes div {display:inline-block;}
+.rweb .form-checkboxes {display:inline-block;}
+.rweb .form-checkboxes .form-type-checkbox {margin-top:0;}
 .form-type-checkbox label {margin-left:0;}
 .form-type-radio label {padding-left:1.5em;}
 .form-type-radio label {background:url(../images/radio.gif) no-repeat; background-size:1.3em;}
 
-.form-type-checkbox .description,
-form.rweb .form-type-checkbox label,
-.form-type-checkbox label {text-align:left; padding-left:2em; height:1.35em; background:url(../images/checkbox.gif) no-repeat; background-size:1.35em;}
+/*form.rweb .form-type-checkbox label,
+.form-type-checkbox label, */
+.rweb .form-checkboxes .form-type-checkbox label,
+.rweb .form-type-checkbox .description {text-align:left; padding-left:2em; height:1.35em; background:url(../images/checkbox.gif) no-repeat; background-size:1.35em;}
 
 .form-type-checkbox .opt-on,
 form.rweb .form-type-checkboxes label.opt-on,
@@ -76,6 +80,9 @@ ul.tabs.primary {padding:0; margin-left:4em; margin-top:.8em; font-size:85%;}
 #main-menu-links li a {padding:.5em .8em;}
 .tabs ul.primary li {margin:0;}
 .tabs ul.primary li a {padding:0 .5em .1em; font-size:1em;}
+
+.r {font-weight:bold; color:green;}
+.us {font-weight:bold; color:blue;}
 
 /* Accounts Selector */
 #accounts {position:absolute; left:0; top:2em; width:100%;}
@@ -166,9 +173,6 @@ form.rweb  .form-no {color:red;}
 
 /* Register (New account) */
 #user-register-form #edit-company-text label {font-weight:normal; width:100%;}
-#user-register-form .form-checkboxes div {display:inline-block;}
-
-#user-register-form .form-checkboxes {margin-left:8em;}
 #user-register-form .form-type-radio {display:inline-block;}
 #user-register-form .form-type-radio input {display:inline-block; margin-left:0; vertical-align:bottom;}
 /*#user-register-form .form-type-radio label {display:inline; width:10em; margin-left:.2em; text-align:left;}*/
@@ -177,6 +181,7 @@ form.rweb  .form-no {color:red;}
 #user-register-form .form-item-buysAt-15 label  {width:150px;}
 #user-register-form .form-item-buysAt label[for="edit-buysat"] {font-weight:normal; width:100%; text-align:left; margin-left:125px; margin-top:20px; border-top:1px solid darkgreen;}
 /* ask even companies! #user-register-form .form-item-buysAt {display:none;} */
+#user-register-form  .form-checkboxes {margin-left:8em;}
 
 /* New password */
 #user-pass #edit-name {width:20em;}

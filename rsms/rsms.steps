@@ -233,7 +233,7 @@ function phoneIsWaitingTo($number, $todo, $recalled = FALSE) {
  */
 function phoneAccountNameIs($number, $name) {
   global $testOnly;
-  return (r\userField('full_name', r\SMS\uid($number)) == $name);
+  return (r\userField('fullName', r\SMS\uid($number)) == $name);
 }
 
 /**

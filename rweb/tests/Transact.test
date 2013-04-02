@@ -44,7 +44,7 @@ class rwebTransact extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id      | full_name  | address | city  | state  | postal_code | country | email         | account_type  |'
+    . '\\| id      | fullName  | address | city  | state  | postalCode | country | email         | accountType  |'
     . '\\| NEW.ZZA | Abe One    | POB 1   | Atown | Alaska | 01000       | US      | a@example.com | %R_PERSONAL   |'
     . '\\| NEW.ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000       | US      | b@example.com | %R_PERSONAL   |'
     . '\\| NEW.ZZC | Corner Pub | POB 3   | Ctown | Cher   |             | France  | c@example.com | %R_COMMERCIAL |"');
@@ -74,7 +74,7 @@ class rwebTransact extends DrupalWebTestCase {
   // Scenario: A member asks to charge another member
   public function testAMemberAsksToChargeAnotherMember_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" completes form "Tx" with values: "DATA'
+    When_('member "NEW.ZZA" completes form "charge" with values: "DATA'
     . '\\| op     | who     | amount | goods | purpose |'
     . '\\| Charge | Bea Two | 100    | 1     | labor   |"');
     Then_('we show "confirm charge" with subs: "DATA'
@@ -85,7 +85,7 @@ class rwebTransact extends DrupalWebTestCase {
   // Scenario: A member confirms request to charge another member
   public function testAMemberConfirmsRequestToChargeAnotherMember_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" confirms form "Tx" with values: "DATA'
+    When_('member "NEW.ZZA" confirms form "charge" with values: "DATA'
     . '\\| op     | who     | amount | goods | purpose |'
     . '\\| Charge | Bea Two | 100    | 1     | labor   |"');
     Then_('we say "status": "report invoice" with subs: "DATA'
@@ -113,7 +113,7 @@ class rwebTransact extends DrupalWebTestCase {
   // Scenario: A member asks to pay another member
   public function testAMemberAsksToPayAnotherMember_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" completes form "Tx" with values: "DATA'
+    When_('member "NEW.ZZA" completes form "pay" with values: "DATA'
     . '\\| op  | who     | amount | goods | purpose |'
     . '\\| Pay | Bea Two | 100    | 1     | labor   |"');
     Then_('we show "confirm payment" with subs: "DATA'
@@ -124,7 +124,7 @@ class rwebTransact extends DrupalWebTestCase {
   // Scenario: A member confirms request to pay another member
   public function testAMemberConfirmsRequestToPayAnotherMember_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" confirms form "Tx" with values: "DATA'
+    When_('member "NEW.ZZA" confirms form "pay" with values: "DATA'
     . '\\| op  | who     | amount | goods | purpose |'
     . '\\| Pay | Bea Two | 100    | 1     | labor   |"');
     Then_('we say "status": "report transaction" with subs: "DATA'

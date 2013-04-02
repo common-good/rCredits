@@ -44,10 +44,10 @@ class rwebSummary extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id      | full_name  | address | city  | state  | postal_code | country | floor  | account_type  | flags              |'
-    . '\\| NEW.ZZA | Abe One    | POB 1   | Atown | Alaska | 01000       | US       | -100  | %R_PERSONAL   | %BIT_DEFAULTS |'
-    . '\\| NEW.ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000       | US       | -200  | %R_PERSONAL   | %BIT_MEMBER   |'
-    . '\\| NEW.ZZC | Corner Pub | POB 3   | Ctown | Cher   |             | France   | -300  | %R_COMMERCIAL | %BIT_MEMBER   |"');
+    . '\\| id      | fullName  | address | city  | state  | postalCode | country | floor  | accountType  | flags              |'
+    . '\\| NEW.ZZA | Abe One    | POB 1   | Atown | Alaska | 01000       | US       | -100  | %R_PERSONAL   |  |'
+    . '\\| NEW.ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000       | US       | -200  | %R_PERSONAL   | %B_MEMBER   |'
+    . '\\| NEW.ZZC | Corner Pub | POB 3   | Ctown | Cher   |             | France   | -300  | %R_COMMERCIAL | %B_MEMBER   |"');
     And__('relations: "DATA'
     . '\\| id      | main    | agent   | permission        |'
     . '\\| NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |'
@@ -85,8 +85,8 @@ class rwebSummary extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('member "NEW.ZZA" visits page "summary" with options ""');
     Then_('we show page "summary" with: "DATA'
-    . '\\| Name             | Address                | Account ID               | Account type | Balance | Floor | Rewards |'
-    . '\\| Abe One (abeone) | POB 1, Atown, AK 01000 | NEW.ZZA (%R_REGION_NAME) | personal     |$166     | $-100 | $256    |"');
+    . '\\| Name             | Address                | Account ID               |  Balance | Account type |Floor | Rewards |'
+    . '\\| Abe One (abeone) | POB 1, Atown, AK 01000 | NEW.ZZA (%R_REGION_NAME) | $166     | personal     |$-100 | $256    |"');
   }
 
   // Scenario: A foreign rTrader clicks on the summary tab
@@ -94,8 +94,8 @@ class rwebSummary extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('member "NEW.ZZC" visits page "summary" with options ""');
     Then_('we show page "summary" with: "DATA'
-    . '\\| Name                   | Address                    | Account ID               | Account type | Balance | Floor | Rewards |'
-    . '\\| Corner Pub (cornerpub) | POB 3, Ctown, Cher, FRANCE | NEW.ZZC (%R_REGION_NAME) | commercial   | $323    | $-300 | $258    |"');
+    . '\\| Name                   | Address                    | Account ID               | Balance | Account type | Floor | Rewards |'
+    . '\\| Corner Pub (cornerpub) | POB 3, Ctown, Cher, FRANCE | NEW.ZZC (%R_REGION_NAME) | $323    | commercial   | $-300 | $258    |"');
   }
 
   // Scenario: A member clicks on the summary tab
@@ -103,8 +103,8 @@ class rwebSummary extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 1);
     When_('member "NEW:ZZA" visits page "summary" with options ""');
     Then_('we show page "summary" with: "DATA'
-    . '\\| Name             | Address                | Account ID               | Account type | Balance | Floor | Rewards |'
-    . '\\| Abe One (abeone) | POB 1, Atown, AK 01000 | NEW.ZZA (%R_REGION_NAME) | personal     |$166     | $-100 | $256    |"');
+    . '\\| Name             | Address                | Account ID               |  Balance | Account type |Floor | Rewards |'
+    . '\\| Abe One (abeone) | POB 1, Atown, AK 01000 | NEW.ZZA (%R_REGION_NAME) | $166     | personal     |$-100 | $256    |"');
   }
 
   // Scenario: A foreign rTrader clicks on the summary tab
@@ -112,8 +112,8 @@ class rwebSummary extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 1);
     When_('member "NEW:ZZC" visits page "summary" with options ""');
     Then_('we show page "summary" with: "DATA'
-    . '\\| Name                   | Address                    | Account ID               | Account type | Balance | Floor | Rewards |'
-    . '\\| Corner Pub (cornerpub) | POB 3, Ctown, Cher, FRANCE | NEW.ZZC (%R_REGION_NAME) | commercial   | $323    | $-300 | $258    |"');
+    . '\\| Name                   | Address                    | Account ID               | Balance | Account type | Floor | Rewards |'
+    . '\\| Corner Pub (cornerpub) | POB 3, Ctown, Cher, FRANCE | NEW.ZZC (%R_REGION_NAME) | $323    | commercial   | $-300 | $258    |"');
   }
 
 }

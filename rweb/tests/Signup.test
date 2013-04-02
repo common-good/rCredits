@@ -75,11 +75,11 @@ class rwebSignup extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('invitation to email "a@example.com" is "Th15_i5_A_rAnd0M_c0D"');
     When_('member "?" confirms form "user/register/code=Th15_i5_A_rAnd0M_c0D" with values: "DATA'
-    . '\\| full_name | email         | country | postal_code | state | city  | account_type | code        |'
+    . '\\| fullName | email         | country | postalCode | state | city  | accountType | code        |'
     . '\\| Abe One   | a@example.com | US    | 01001       | MA    | Amherst | %R_PERSONAL  | Th15_i5_A_rAnd0M_c0D |"');
     Then_('members: "DATA'
-    . '\\| id      | full_name | email         | country | postal_code | state | city    | account_type | flags    |'
-    . '\\| NEW.ZZA | Abe One   | a@example.com | US | 01001       | MA    | Amherst | %R_PERSONAL  | %BIT_DEFAULTS |"');
+    . '\\| id      | fullName | email         | country | postalCode | state | city    | accountType | flags    |'
+    . '\\| NEW.ZZA | Abe One   | a@example.com | US | 01001       | MA    | Amherst | %R_PERSONAL  |  |"');
     And__('we say "status": "your account is ready" with subs: "DATA'
     . '\\| quid    | balance |'
     . '\\| NEW.ZZA | $250    |"');

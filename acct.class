@@ -37,9 +37,10 @@ class acct {
   function __construct($id = array(), $agent = '') {
     if (is_array($info = $id)) { // referring to existing db record
       $this->createNew($info); // create new db record
-    } else list($this->id, $this->agentId, $this->regionId, $this->agentIdRegion) = acct::ok($id, $agent, $zot, FALSE);
+    } else list($this->id, $this->agentId, $this->regionId, $this->agentRegion) = acct::ok($id, $agent, $zot, FALSE);
 
-    if ($this->id > 0) $this->mainQid = qid($this->id, u\n2a(-$this->regionId, 3), 3); // no qids for communities and regions!
+//    if ($this->id > 0) $this->mainQid = qid($this->id, u\n2a(-$this->regionId, 3), 3); // no qids for communities and regions!
+    if ($this->id > 0) $this->mainQid = quid($this->id, $this->id, $this->regionId); // no qids for communities and regions!
   }    
 
   /**
@@ -57,23 +58,28 @@ class acct {
       require_once DRUPAL_ROOT . '/includes/password.inc';
       $pass = \user_hash_password(trim($my_pass));
     }
-    $short_name = @$my_full_name ? u\shortName($my_full_name) : '';
+    $short_name = @$my_fullName ? u\shortName($my_fullName) : '';
     $name =  @$my_name ?: (@$short_name ?: tempName($info));
-    $full_name = @$my_full_name ?: $info['name'];
+    $fullName = @$my_fullName ?: $info['name'];
     $flags = @$my_flags ?: B_DEFAULTS;
-    $community = communityUid(@$my_postal_code); // defaults to current server
+    $community = communityUid(@$my_postal); // defaults to current server
     $data = serialize(@$my_data ?: array());
     $frozen = serialize(array());
     $created = $login = $access = REQUEST_TIME;
-    $info = compact(u\ray('phone status mail init pass name full_name flags community data created login access')) + $info;
+    $info = compact(u\ray('phone status mail init pass name fullName flags community data created login access')) + $info;
+
     $DBTX = db_transaction();
     if (!$uid = @$my_uid) {
       for ($try = 0; $try < 20; $try++) { // limit the retries
-        $uid = $info['uid'] = self::nextId();
+        $uid = $info['uid'] = self::nextId($region);
         if (r\dbInsert('users', $info)) break;
       }
       u\EXPECT(@$try < 20, "failed to save user record after $try tries.");
-    } else r\dbInsert('users', $info); // predestined uid (probably for testing)
+      $region = r\region(@my_state, @my_postalCode);
+    } else {
+      r\dbInsert('users', $info); // predestined uid (probably for testing)
+      $region = communityUid();
+    }
 
     if (isset($my_number)) {
       $success = SMS\create($my_number, $uid);
@@ -82,8 +88,7 @@ class acct {
 
 //      $info['roles'] = 0; // these keep Drupal happy in user.module
 
-    $region = communityUid();
-    list($this->id, $this->agentId, $this->regionId, $this->agentIdRegion) = array($uid, $uid, $region, $region);
+    list($this->id, $this->agentId, $this->regionId, $this->agentRegion) = array($uid, $uid, $region, $region);
     self::$records[$this->id] = (object) $info;
     
     $card_code = u\randomString(R_CARDCODE_LEN); // create an rCard security code
@@ -148,7 +153,7 @@ class acct {
       return @$result ?: (@self::$records[$this->id]->$field = r\dbLookup($field, 'r_companies', 'id=:id', compact('id')));
     } elseif ($field == 'secure') {
       return @$result ? unserialize(u\ezdecrypt($result, R_WORD)) : NULL;
-    } elseif ($field == 'usd_account') {
+    } elseif ($field == 'usdAccount') {
       return @$result ? u\ezdecrypt(hex2bin($result), R_WORD) : NULL;
     } elseif ($field == 'language') {
       $language = $result;
@@ -189,7 +194,14 @@ class acct {
   }
   
   public static function _clear() {self::$perms = self::$records = array();}
-  public static function nextId() {return max(t\EST() ? 1000 : -9999999, dbLookup('MAX(uid)', 'users', 1)) + 1;}
+  
+  /**
+   * Return the next available uid in the specified region.
+   */
+  public static function nextId($region = '') {
+    return r\newUid(R_REGION_MAX * -($region ?: r\serverUid()));
+//    return max(t\EST() ? 1000 : -9999999, dbLookup('MAX(uid)', 'users', 1)) + 1;
+  }
   
   /**
    * Update the saved record in the database with the given data.
@@ -207,7 +219,7 @@ class acct {
       $usdArray = $info['secure'] + ($this->secure ?: array());
       $info['secure'] = u\ezencrypt(serialize($usdArray), R_WORD);
     }
-    if (@$info['usd_account']) $info['usd_account'] = bin2hex(u\ezencrypt($info['usd_account'], R_WORD));
+    if (@$info['usdAccount']) $info['usdAccount'] = bin2hex(u\ezencrypt($info['usdAccount'], R_WORD));
 
     $toHide = count(array_intersect(array_keys($info), u\ray(R_SECRET_FIELDS))); // how many fields to hide
     if ($toHide and !$this->gotOffsite()) $this->getHidden(); // get what's offsite before updating it
@@ -230,7 +242,7 @@ class acct {
 
   public function proSe() {return ($this->id == $this->agentId);}  
   public function qid() {return $this->proSe() ? $this->mainQid : quid($this->id, $this->agentId, $this->regionId);}
-  public function hasBit($bit) {return (bool) ($this->flags & (1 << $bit));}
+  public function hasBit($bit) {return (bool) ($this->flags & u\bit($bit));}
   
   /**
    * Set the bit in the flags field to the given value.
@@ -241,7 +253,7 @@ class acct {
   public function setBit($bit, $on = TRUE, $now = FALSE) {
 // gets caught anyway    u\EXPECT(compact('int', 'on'), 'int bool');
     u\EXPECT($bit < 32, 'setting too big a bit');
-    $bit = 1 << $bit;
+    $bit = u\bit($bit);
     $flags = $on ? ($this->flags | $bit) : ($this->flags & ~$bit);
     self::$perms[$this->id] = NULL; // force redo in can()
     self::$records[$this->id]->flags = $flags;
@@ -281,17 +293,19 @@ class acct {
    */
   public function can($permission = B_READ) {
 //    if (0 <= $permission and $permission <= B_MAX) return $this->hasBit($permission);
-    if (!@self::$perms[$this->id]) self::$perms[$this->id] = array();
-    if (!@self::$perms[$this->id][$this->agentId]) { // set up perms if we haven't yet (setBit() resets this)
+    $id = $this->id;
+    if (!@self::$perms[$id]) self::$perms[$id] = array();
+    if (!@self::$perms[$id][$this->agentId]) { // set up perms if we haven't yet (setBit() resets this)
       $perms = array();
-      $id = $this->id;
       $aacct = $this->agent;
+      
+      for ($bit = 0; $bit < B_MAX; $bit++) $perms[$bit] = $this->hasBit($bit);
+
       if (!$this->proSe()) { // admin permissions depend on agent, not account
         $perms[B_ADMIN] = $aacct->can(B_ADMIN);
         $perms[B_CTTY_ADMIN] = $aacct->can(B_CTTY_ADMIN);
       }
-      
-      for ($bit = 0; $bit < B_MAX; $bit++) $perms[$bit] = $this->hasBit($bit);
+
       $can = $this->proSe() ?
           (($id < 0) ? 0 : B_MANAGE) // communities must be managed by an agent, never directly
         : ($perms[B_CTTY_ADMIN] and $this->community == $aacct->community) ? 
@@ -305,21 +319,21 @@ class acct {
           $perms[B_READ] = $perms[B_SELL] = $perms[B_BUY] = $perms[B_MANAGE] = TRUE;
         }
         $perms[B_PERSONAL] = TRUE; // manage show PERSONAL settings (for debugging)
-        $perms[B_COMPANY] = TRUE; // manage show company settings
+        $perms[B_COMPANY] = $this->proSe(); // show company settings on own account (for debugging)
       };
 
-      $perms[B_MANAGING_CTTY] = ($perms[B_CTTY_ADMIN] and $this->id == $this->community);
+      $perms[B_MANAGING_CTTY] = ($perms[B_CTTY_ADMIN] and $id == $this->community);
       if ($perms[B_MANAGING_CTTY] and !$perms[B_ADMIN]) $perms[B_BUY] = $perms[B_SELL] = FALSE; // ctty admin can manage but not buy/sell
       
       ksort($perms); // easier to debug
-      self::$perms[$this->id][$this->agentId] = $perms;
+      self::$perms[$id][$this->agentId] = $perms;
     }
     if ($permission == -1) {
       $p = u\ray($GLOBALS['permissions']);
-      for ($i = 0; $i < count($p); $i++) if ($p[$i] != '-') $result[$p[$i]] = @self::$perms[$this->id][$this->agentId][$i];
+      for ($i = 0; $i < count($p); $i++) if ($p[$i] != '-') $result[$p[$i]] = @self::$perms[$id][$this->agentId][$i];
       return $result; // for debugging
     }
-    return self::$perms[$this->id][$this->agentId][$permission];
+    return self::$perms[$id][$this->agentId][$permission];
   }
 } // end of class
 
@@ -338,7 +352,10 @@ function UAR($quid = '', $no_abbrev = TRUE) {
   if (($reid = -$zuid) > 0) {
     if (!$record = relation('main,other', 'reid=:reid', compact('reid'))) return FALSE;
     $result = array_values($record);
-  } else $result = array($zuid, $zuid);
+  } else {
+    $zuid += -$regionUid * R_REGION_MAX;
+    $result = array($zuid, $zuid);
+  }
   $result[] = $regionUid;
   return $result;
 }

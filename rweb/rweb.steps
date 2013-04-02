@@ -68,26 +68,20 @@ function memberCompletesFormWithValues($id, $formName, $values, $confirmed = FAL
 
   $values = $values[0];
   t\fixCountryAndState($values);
-  $sta['values'] = @$values['email'] ? u\changeKey('email', 'mail', $values) : $values;
-    
+  if (@$values['email']) $values = u\changeKey('email', 'mail', $values);
+  $sta['values'] = $sta['input'] = $values;
+  
   t\logIn($id);
 
   $form = t\pageForm($formName, FALSE);
+  if ($formName == 'pay' or $formName == 'charge') {
+    $formName = 'Tx';
+  } else $confirmed = TRUE;
 
-  if (FALSE) {
-   // $form = \drupal_get_form($formPath, $arg);
-    if (in_array($formName, u\ray('Pay Charge Grant Loan Fine'))) list ($formName, $arg) = array('Tx', $formName);
-    $formPath = substr($formName, 0, 1) == '\\' ? substr($formName, 1) : "rCredits\\Web\\form$formName";
-    $arg = @$arg; // avoid undefined errors (?) and byref errors in call to \drupal_get_form()
-    $form = \drupal_get_form($formPath, $arg);
-    //  if (function_exists($alter = 'rweb_form_' . $formPath . '_alter')) $alter($form, $sta, $formName);
-  }
-
-//  if (!$confirmed) foreach (t\postProcess($form, $formName, 'validate') as $one) {
+  //  if (!$confirmed) foreach (t\postProcess($form, $formName, 'validate') as $one) {
   $errorsBefore = t\getErrors();
-  if ($formName != 'Tx' or !$confirmed) {
-    foreach (t\postProcess($form, $formName, 'validate') as $one) $one($form, $sta);
-  }
+  if (!$confirmed) foreach (t\postProcess($form, $formName, 'validate') as $one) $one($form, $sta);
+
   if (count($errors = t\getErrors()) > count($errorsBefore)) {
     // NO! if (!empty($errors)) return FALSE;
     debug(compact(u\ray('id formName values confirmed one errors')));
@@ -198,7 +192,7 @@ function weSayWithSubs($type, $index, $subs) {
   $msgs = \drupal_get_messages($type ?: NULL, FALSE);
   $result = (@$msgs[$type] and array_search($msg, $msgs[$type]) !== FALSE);
   if (!$result) debug(compact('msg','msgs'));
-  t\testOutput($msg, 'output'); // this must come after array_search!
+  t\testOutput("EXPECT: $msg", 'output'); // this must come after array_search!
   return $result;
 }
 

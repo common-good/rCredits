@@ -85,7 +85,7 @@ class call {
       }
       $fullName = setup_name($cacct, $this->message);
       be\todo($number, 'setup email', '');
-      $quid = r\quid(); //$cacct->credit_id;
+      $quid = r\quid($cacct->id, $cacct->agentId, $cacct->regionId); //$cacct->credit_id;
       return tt("what's your email?", compact('quid', 'fullName'));
     } elseif ($todo == 'setup email' and !$cacct->mail) {
       setup_email($cacct, $this->message);
@@ -330,7 +330,7 @@ class call {
   function do_transfer($type) {
     extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, and what
 
-    $acct = be\identify($my_who, $type == 'payment');
+    $acct = be\identify($my_who);
     if ($acct != 'ALL' and !u\isAcct($acct)) return tt($acct); // return the array if error
 
     list ($message, $args, $confirm) = be\transfer($type, $acct, $my_amount, $my_what, !u\forCash($my_what), $this->confirmed);

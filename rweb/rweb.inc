@@ -53,6 +53,7 @@ EOF
   'take a step' => t('Your account is not yet activated. <a href="membership">Take the next step! Click here</a> to see where you are in your membership progress and what to do next.'),
   'invite sent' => t('Your invitation has been sent to @email.'),
   'got token' => t('Your rCredits and US Dollar accounts have been successfully connected!'),
+  'company rcard' => t('Send a <a href="print-rcard">company rCard</a>.'),
 
   // confirm
   'yes or no' =>  '@yesNo', // to replace with yesNo(url)
@@ -88,8 +89,10 @@ EOF
   'bad routing number' => t('US bank routing numbers are 9 digits. Use the number on the lower left edge of your checks.'),
   'nothing selected' => t('You did not select anything'),
   'undo incomplete' => t('The undo operation is not yet complete.'),
-  'unknown member' => t('"@who" has not yet signed up for rCredits. <a href="@draftLink">Click here to add them</a> to the list or <a href="" id="which-cancel">click here to cancel</a>.'),
-  'ambiguous other' => t('"@who" might mean any of these rCredits accounts. Click on the one you want or, if you don\'t see them listed, <a href="@draftLink">Click here to add them</a> to the list or <a id="which-cancel">here to cancel</a>.'),
+//  'unknown member' => t('"@who" has not yet signed up for rCredits. <a href="@draftLink">Click here to add them</a> to the list or <a href="" id="which-cancel">click here to cancel</a>.'),
+  'unknown member' => t('"@who" has not yet signed up for rCredits.'),
+//  'ambiguous other' => t('"@who" might mean any of these rCredits accounts. Click on the one you want or, if you don\'t see them listed, <a href="@draftLink">Click here to add them</a> to the list or <a id="which-cancel">here to cancel</a>.'),
+  'ambiguous other' => t('"@who" might mean any of these rCredits accounts. Click on the one you want or <a id="which-cancel">here to cancel</a>.'),
   'similar found' => t('If you mean @otherName (@phone), <a href="@draftLink">click here for YES</a>. Otherwise, <a href="@cancelLink">click here to cancel</a>.'),
   'get app' => t('To scan Account ID cards with a smartphone, you need the app! You can download the Android app <a href="http://rCredits.org/rc.apk">here</a>. The iphone version is in the works (check again in January).'),
   'no help' => t('There is no written help available for this page. Give it a try! If you are still puzzled, please feel free to give us a call at @R_ORG_PHONE. Or send your question by <a href="mailto:@R_ORG_EMAIL?subject=help with rCredits Members Site, @page page" target="_blank">email</a>.'),
@@ -255,6 +258,7 @@ EOF;
 
 function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   global $formOutput; // for testing
+  
   try {
     setupGlobals(); // in case it's an anonymous form, so webAccess doesn't have a chance to set up
 //    $layout = @$_GET['layout'] ?: svar('layout');
@@ -267,6 +271,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     $formName = substr($function, 0, 1) == '\\' ? substr($function, 1) : "rCredits\\Web\\form$function";
 //    if ($newLayout) svar('layout', $layout); // do this before drupal_get_form, so forms can know the current layout
     $form = \drupal_get_form($formName, $arg1, $arg2, $arg3, $arg4);
+    if (!is_array($form)) return $form; // form probably did return r\go() during testing
     $sta = array(); \rweb_form_alter($form, $sta, $formName);
     $form['#attributes']['class'][] = 'rweb';
 //    if ($newLayout) $form['#cache'] = FALSE;
@@ -854,18 +859,16 @@ function formSummary($form, &$sta) {
 
   $cacct = r\acct();
 //  debug($cacct->can(-1)); // keep
-  if (!$cacct) r\go('user');
-
-  extract(be\creditInfo()->fancy, EXTR_PREFIX_ALL, 'my');
+  if (!$cacct) return r\go('user');
 
   $name = $cacct->name;
   $address = r\location($cacct, TRUE);
   $regionName = r\acct($cacct->community)->fullName;
-  $floorDesc = t('Your balance can go this low for up to 30 days');
+  $floorDesc = t('Your balance can go this low') . ($cacct->floor < 0 ? t(' for up to 30 days') : '');
   
   if (!$cacct->can(B_COMPANY) or !$cacct->proSe()) {
 // FAILS on mobile    $idLink = 'id="idcard"'; // use jQuery to create popup (see inc/misc.js)
-    $idLink = 'href="Print-ID-Card" target="_blank"';
+    $idLink = 'href="print-rcard" target="_blank"';
     $card = $cacct->can(B_CTTY_ADMIN) ? ("<a $idLink>" . t('Print ID Card') . '</a>') : ''; // no card for community accounts
     if ($cacct->agentId == 1) $card .= ' [<a href="http://localhost/devcore/rcredits/test?module=rcredits/rweb&feature=Signup&scene=&restart=1">run current test</a>]'; // DEBUG (keep)
   } else $card = t("To request employee ID cards, visit the <a href=\"$base_url/account/relations\">Account Relations</a> page.");
@@ -876,15 +879,17 @@ function formSummary($form, &$sta) {
   $balance = u\formatAmount($bal0 = $cacct->available + array_sum($cacct->frozen));
   $usdBalance = u\formatAmount($cacct->usd);
   $total = u\formatAmount($bal0 + $cacct->usd);
-  $balance = formField('item', t('Balance:'), '', "r$balance + us$usdBalance = $total");
+  $balance = formField('item', t('Balance:'), '', "<span class='r'>r$balance</span> + <span class='us'>us$usdBalance</span> = $total");
   
   if ($cacct->id > 0) {
     $extra = r\agent()->can(B_ADMIN) ? " id#$cacct->id" : '';
     $accountId = formField('item', t('ID:'), $card, ($cacct->mainQid ?: 'N/A') . ' (' . $regionName . ")$extra");
     if ($cacct->can(B_MEMBER) and $cacct->can(B_PERSONAL)) $another = submit(t('Open Another Account'));
-    $acctType = formField('item', t('Account type:'), '', $GLOBALS['account types'][$cacct->acctType+0]); // +0 for admin
+    list ($personal, $commercial) = array($cacct->can(B_PERSONAL), $cacct->can(B_COMPANY));
+    $acctType = ($personal and $commercial) ? 'self-employed' : ($personal ? 'personal' : 'commercial');
+    $acctType = formField('item', t('Account type:'), '', $acctType);
     $floor = formField('item', t('Credit floor:'), $floorDesc, u\formatAmount($cacct->floor));
-    $rewards = formField('item', t('Rewards:'), t('(to date)'), $my_rewards);
+    $rewards = formField('item', t('Rewards:'), t('(to date)'), u\formatAmount($cacct->rewards));
   }
 
   if (r\agent()->can(B_CTTY_ADMIN) and (!$cacct->proSe() or $cacct->id == 1)) { // ctty admin not managing own personal account
@@ -904,7 +909,7 @@ function formSummary($form, &$sta) {
   }
 
   if ($cacct->proSe() and !$cacct->can(B_COMPANY) and !formMembership(TRUE)) say('take a step');
-  $form = compact(u\ray('title who submit1 accountName accountId another acctType canCharge balance floor rewards rTrader idApproved notes count submit2'));
+  $form = compact(u\ray('title who submit1 accountName accountId balance another acctType canCharge floor rewards rTrader idApproved notes count submit2'));
   return labeled($form);
 }
 
@@ -1058,9 +1063,7 @@ function formAccounts($form, &$sta) {
   if (!$cacct = r\acct()) return NULL; // no account selector before login
   $cuid = @$cacct->id;
   if (!$accounts = be\accountChoices()) return FALSE;
-  debug($accounts);
   if (!in_array($cuid, @$accounts) and $cacct->can()) array_splice($accounts, 1, 0, $cuid); // admin or ctty_admin
-  debug($accounts);
   $choices = array();
   foreach ($accounts as $uid) {
     $acct = r\acct($uid);
@@ -1068,7 +1071,8 @@ function formAccounts($form, &$sta) {
     $choices[$uid] = "$acct->fullName: $balance";
   }
 
-  $qid = r\quid(); // $credit_id = r\userField('credit_id', $cuid);
+  $qid = r\quid($cacct->id, $cacct->agentId, $cacct->regionId);
+  
   $onchange = "this.form.submit();";
   $oneText = $choices[$cuid];
   
@@ -1512,7 +1516,7 @@ function formRegister(&$form, &$sta, $args = '') {
   css('rweb.css', -9); // needed because this function doesn't go through show()
   
   $title = item(t('Sign up for rCredits'));
-  list ($email, $inviter) = invitation(@$code);
+  $email = invitation(@$code, $inviter);
   if (!$email and @$code != bin2hex(R_WORD) and @$code != 'w') {
     $form['actions']['submit'] = NULL; // nothing to submit
     $subtext = item(tt('bad invite'));
@@ -1567,8 +1571,7 @@ function formRegister_validate($form, &$sta) {
   if (@$companyOptions) extract(u\just('isOwner employeeOk', $companyOptions));
   if (@$args) extract(u\just('code', $args));
   $sta['values'] = array(); // make sure Drupal doesn't save the record when WE find an error (no longer needed?)
-  list ($email) = invitation(@$code);
-  if (!$email and $code != bin2hex(R_WORD) and $code != 'w') return r\go('user/register'); // in case user resubmits
+  if (!invitation(@$code) and $code != bin2hex(R_WORD) and $code != 'w') return r\go('user/register'); // in case user resubmits
     
   if (!emailOkay($mail)) return;
   
@@ -1618,6 +1621,7 @@ function formRegister_submit($form, &$sta) {
   $cacct = new r\acct(u\just($fields2, $values) + compact(u\ray('pass flags structure')));
   u\EXPECT(($cuid = $cacct->id) > 0, 'registration failure');
   setupGlobals($cuid); // some rcredits functions need to know who we are
+  invitation($code, $cuid); // mark the invitation used
   
   if (@$company) {
     extract(u\just('isOwner employeeOk', $companyOptions));
@@ -1644,7 +1648,7 @@ function formRegister_submit($form, &$sta) {
   extract($params = u\just('isOwner employeeOk flow by', $args));
   if (@$by) { // created by a related account? set it up
     if (!$error = u\EXPECT($params, 'bool bool int id', TRUE)) { // if not a hack attempt
-      list ($main, $other, $employerOk, $permission) = array($cuid, $by, $employeeOk, B_MANAGE - B_RELATED);
+      list ($main, $other, $employerOk, $permission) = array($cuid, $by, $employeeOk, PERM_MANAGE);
       r\dbInsert('r_relations', compact(u\ray('main other employerOk employeeOk isOwner flow permission')));
     } else r\notifyStaff('bad params in formRegister');
   }
@@ -1659,7 +1663,7 @@ function formRegister_submit($form, &$sta) {
     r\notify($cuid, 'welcome', compact(u\ray('name quid pass'))); 
   } else { // non-personal (no independent login)
     say('company is ready', compact(u\ray('quid')));
-    $quie = r\quid($by, $by);
+    $quid = r\quid($by, $by);
   }
 
   r\go('user/login/name=' . strtolower($quid));
@@ -2056,20 +2060,22 @@ EOF;
   while ($row = $result->fetchAssoc()) {
     extract($row);
     $raws0[$reid] = $row; // original data from table
-    $isAgent = ($cuid != $main);
-    $combo = ($isAgent and @$previousAgent == $main); // related both ways
-    $otherNotCo = !r\acct($isAgent ? $main : $other)->can(B_COMPANY);
-    $otherNotPerson = !r\acct($isAgent ? $main : $other)->can(B_PERSONAL);
-    $idLink = (!$isAgent and $otherNotCo and $employeeOk and $permission >= B_SELL) ? "<a target=\"_blank\" href=\"$base_url/Print-ID-Card/$other\">print&nbsp;ID&nbsp;Card</a>" : R_NONE;
+    
+    // isOther is a CRUCIAL var, meaning looking at the OTHER relation record, not the MAIN record
+    $isOther = ($cuid != $main);
+    $combo = ($isOther and @$previousAgent == $main); // related both ways
+    $otherNotCo = !r\acct($isOther ? $main : $other)->can(B_COMPANY);
+    $otherNotPerson = !r\acct($isOther ? $main : $other)->can(B_PERSONAL);
+    $idLink = (!$isOther and $otherNotCo and $employeeOk and ($permission >= PERM_SELL)) ? "<a target=\"_blank\" href=\"$base_url/request-employee-rcard/$other\">request&nbsp;rCard</a>" : R_NONE;
 
     $ii = (count($rows) - ($combo ? 1 : 0)) . "-$reid"; // "row-reid"
     $discrepant = ($employerOk xor $employeeOk); // exactly one has claimed the relation
-    list ($employeeOk, $employerOk) = array($employeeOk and $isAgent, $employerOk and !$isAgent);
-    $isEmployer = toggle('employeeOk', $employeeOk, $ii, $isAgent and $discrepant);
-    $isEmployee = $otherNotCo ? toggle('employerOk', $employerOk, $ii, !$isAgent and $discrepant) : R_NONE;
-    $isOwner = ($isOwner and !$isAgent);
+    list ($employeeOk, $employerOk) = array($employeeOk and $isOther, $employerOk and !$isOther);
+    $isEmployer = toggle('employeeOk', $employeeOk, $ii, $isOther and $discrepant);
+    $isEmployee = $otherNotCo ? toggle('employerOk', $employerOk, $ii, !$isOther and $discrepant) : R_NONE;
+    $isOwner = ($isOwner and !$isOther);
     $isOwner = toggle('isOwner', $isOwner, $ii);
-    $permission = $isAgent ? 0 : $permission;
+    $permission = $isOther ? 0 : $permission;
     $perm = $otherNotPerson ? R_NONE : dropdown('permission', $permission, $GLOBALS['share permissions'], $ii);
     $amountValue = amountField('amount', number_format($amount,0), $ii);
 
@@ -2120,7 +2126,7 @@ function formRelations_validate($form, &$sta) {
   extract(u\just('new_person', $sta['values']));
   
   if (@$new_person) {
-    $acct = whois($new_person, 'new_person', $sta['values'], FALSE, 'no self-relation');
+    $acct = whois($new_person, 'new_person', $sta['values'], 'no self-relation');
 //    if ($acct->can(B_COMPANY)) return say('no company relations', 'new_person');
     if (r\relation(1, $cuid, $acct->id)) return say('already related', 'new_person');
     $sta['values']['other'] = $acct->id; // save for submission handling
@@ -2133,7 +2139,7 @@ function formRelations_validate($form, &$sta) {
       if (u\badAmount($value)) return say('specific bad amount', array('amount' => $value), 'amount');
       $_POST[$key] = $value;
     } elseif ($keya == 'permission') {
-      if ($value == B_MANAGE - B_RELATED) $managers++;
+      if ($value == PERM_MANAGE) $managers++;
     }
   }
   if (!$cacct->can(B_PERSONAL) and !$managers) return say('need a manager', 'permission');
@@ -2298,16 +2304,27 @@ function formCells_submit($form, &$sta) {
  * @param string $code: the invitation code
  * @param int $invitee: the invitee's uid
  * Call by:
- *   [$email, $inviter] = invitation($code) 
+ *   $email = invitation($code, $inviter) 
  *     returns the email address to which the invitation was sent and the inviter, if sent recently (else NULL)
  *   $inviter = invitation($code, $invitee)
  *     marks the invitation USED by recording the invitee's account id
+ * @param string $code: the invitation code
+ * @param int $inviter: (returned, if empty) account id of the inviter
+ * @param int $invitee: account id of the invited person
+ * @return: email or inviter id, as above (FALSE if no such invitation)
  */
-function invitation($code, $invitee = '') {  
-  if ($invitee) r\dbUpdate('r_invites', compact('code', 'invitee'), 'code');
+function invitation($code, &$invitee = '') {  
   $lastweek = strtotime(R_INVITE_DAYS . ' days ago');
   $sql = 'code=:code AND invited>=:lastweek AND invitee IS NULL';
-  return r\dbLookup($invitee ? 'inviter' : 'email,inviter', 'r_invites', $sql, compact('code', 'lastweek'));
+  $result = r\dbLookup($invitee ? 'inviter' : 'email,inviter', 'r_invites', $sql, compact('code', 'lastweek'));
+  if ($result) list ($email, $inviter) = $result; else return FALSE;
+  if (@$invitee) {
+    r\dbUpdate('r_invites', compact('code', 'invitee'), 'code');
+    return $inviter;
+  } else {
+    $invitee = $inviter;
+    return $email;
+  }
 }
 
 /**
@@ -2686,7 +2703,7 @@ function formOptions($form, &$sta) {
   );
   $statements = formField('radios', t('Statements:'), '', required($statements), $statementRadios);
 
-  if ($cacct->can(B_COMPANY)) $payVirtual = formField('checkbox', t('Pay virtually:'), t('Do you want to pay people directly in rCredits or do you want to pay in US Dollars, letting them automatically <i>buy</i> their share of rCredits from you? The second way lets you use your current payroll system without any change. You still get the 5% rebate, minus 25 cents for each payment. For example, a $100 payment gives you a net rebate of $5.00 - 0.25 = $4.75. For automatic "virtual" payments, you need to set up average monthly payment amounts on the <a href="account/relations">Relations</a> page.'), $cacct->hasBit(B_SECRET_BAL)isset($cacct->minimum));
+  if ($cacct->can(B_COMPANY)) $payVirtual = formField('checkbox', t('Pay virtually:'), t('Do you want to pay people directly in rCredits or do you want to pay in US Dollars, letting them automatically <i>buy</i> their share of rCredits from you? The second way lets you use your current payroll system without any change. You still get the 5% rebate, minus 25 cents for each payment. For example, a $100 payment gives you a net rebate of $5.00 - 0.25 = $4.75. For automatic "virtual" payments, you need to set up average monthly payment amounts on the <a href="account/relations">Relations</a> page.'), isset($cacct->minimum) ? $cacct->hasBit(B_VIRTUAL) : TRUE);
   $secretBal = formField('checkbox', t('Secret Balance:'), t("Don't let qualified merchants tell me my balance, when I ask."), $cacct->hasBit(B_SECRET_BAL));
   // Double confirmation: by SMS, by email, either. require extra confirmation of crucial account changes
   $submit = submit(t('Update options'));
@@ -2743,6 +2760,30 @@ function formReports_validate($form, &$sta) {
 
 function formReports_submit($form, &$sta) {
   formTxs_submit($form, $sta, 'reports');
+}
+
+/**
+ * Request an employee ID card (for buying on behalf of the company).
+ */
+function formRequestRCard($form, &$sta, $args = '') {
+  extract(u\just('main other', $args));
+  $form = array(
+    'title' => item(t('Request Employee rCard')),
+    'subtext' => item(tt('An rCard will be US Mailed to @fullName, to be used for purchases on behalf of the company. Your company account will be charged @R_CARD_COST.', compact('fullName'))),
+    'args' => hidField($args),
+    'okay' => boolField(t('Okay?')),
+  );
+  return labeled($form);
+}
+
+function formRequestRCard_submit($form, &$sta) {
+  extract(u\just('okay args', $sta['values']));
+  extract(u\just('main other', $args));
+  if ($okay and $reid = r\relation('reid', @$main, @$other)) {
+    r\notifyStaff('company rcard', compact(u\ray('main other reid')));
+    say('card ordered');
+  } else say('nothing done', 'zot');
+  return r\go('account/relations');
 }
 
 /**
@@ -2959,7 +3000,6 @@ function detour($detour_via, $detour_args, $whence = '', $modal = TRUE) {
  * @param string $who: what the user typed
  * @param string $field_name: name of the field the user typed in
  * @param array $info: field values to be stored, then reinstated when the page is refreshed to show the choices
- * @param boolean $allow_ALL: all $who to be "all" (meaning all employees) (default FALSE)
  * @param string $selfMsg: index to error message to give if user self-refers
  * UNUSED @param boolean $create: whether to create the person/company if it doesn't exist
  * @return:
@@ -2967,9 +3007,9 @@ function detour($detour_via, $detour_args, $whence = '', $modal = TRUE) {
  *   acct of the identified person
  *   no return (refreshes page) if ambiguous
  */
-function whois($who, $field_name, $info, $allow_ALL = FALSE, $selfMsg = 'no self-trading') {
+function whois($who, $field_name, $info, $selfMsg = 'no self-trading') {
   global $base_url;
-  $result = be\identify($who, $allow_ALL, $selfMsg);
+  $result = be\identify($who, $selfMsg);
   if ($result == 'ALL' or u\isAcct($result)) return $result;
 
   list ($msg, $args, $choices) = $result;
@@ -2996,13 +3036,13 @@ function transfer($info, $confirmed) {
   if ($goods and trim($purpose) == '') return say('missing purpose', 'purpose');
   if (!$goods) $purpose = 'cash'; // tell be\transfer it's not for goods (should be the only place this string occurs)
   if ($error = u\badAmount($amount, '>0')) return say($error, 'amount');
-  if (!$acct = whois($who, 'who', $info, $txType == 'payment')) return FALSE; // (allow "ALL" for payment)
+  if (!$acct = whois($who, 'who', $info)) return FALSE;
   svar('lastCustomer', $acct);
   list ($msg, $args, $confirm) = in_array($txType, array('payment', 'charge')) ?
        be\transfer($txType, $acct, $amount, $purpose, !u\forCash($purpose), $confirmed)
      : communityTransfer($txType, $acct, $amount, $purpose, $confirmed);
 
-  if (!@$scanned and strtoupper($who) != 'ALL') { // not scanned -- We need to show identifying photo, name, etc. for the target account
+  if (FALSE and !@$scanned) { // not scanned -- We need to show identifying photo, name, etc. for the target account
     $identifiers = identifiers($acct);
     $identifiers = "<div id='identifiers' class='clearfix'>$identifiers</div identifiers>";
   }

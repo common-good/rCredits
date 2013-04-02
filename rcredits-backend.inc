@@ -171,7 +171,7 @@ function updateRelations($updates) {
       $pot = '(:main, :other)';
       if (!r\relation(1, "main IN $pot AND other IN $pot", compact('main', 'other'))) $msg = 'deleted relation';
     } else {
-      setCttyAdmin(@$data['permission'] >= B_MANAGE - B_RELATED, $main, $other);
+      setCttyAdmin(@$data['permission'] >= PERM_MANAGE, $main, $other);
     }    
     $otherName = $fullName;
     $report .= u\tt($msg, compact('otherName')) . '<br>';
@@ -442,7 +442,8 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   );
   $preapproved = (@$data['preapproved'] or !$taking or $unilateral); // paying OR permitted to charge unilaterally
 //  $state = ($preapproved and !@$data['pay_all'])? TX_DONE : TX_PENDING;
-  $virtual = ($goods and !$taking and $cacct->hasBit(B_VIRTUAL) and r\isEmployee($uid))));
+//  $virtual = ($goods and !$taking and $cacct->hasBit(B_VIRTUAL) and r\isEmployee($uid));
+  $virtual = FALSE; // this is done only automatically
   $state = ($preapproved and !$virtual)? TX_DONE : TX_PENDING; // may be changed to TX_TENTATIVE below
   
   // Check the amount and calculate any balance shortfall
@@ -515,7 +516,7 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   return array($message, $args, !$confirmed);
 }
 
-function txPerson($id, $region) {return r\isForeign($region) ? array($region, $id) : array($id, NULL);}
+function txPerson($id, $region) {return r\foreignServer($region) ? array($region, $id) : array($id, NULL);}
 
 /**
  * Record a transfer (of rCredits) to or from the community.
@@ -593,26 +594,24 @@ function deleteCell($number) {
  * Figure out who the user meant.
  *
  * @param string $who: how the user referred to the trader
- * @param boolean $allow_ALL: all $who to be "all" (meaning all employees)
  * @param string $self_message: index to error message for identifying oneself
  * UNUSED @param boolean $create: whether to create a record, if the other trader cannot be identified (default FALSE)
  *   If true, the other trader will be created only if specified by email or phone
  * @return one of the following:
- *   'ALL', if the user typed "all"
  *   the other trader's acct
  *   array(error index, array of substitutions, array of possible fullNames (0 or more) indexed by uid)
  *   (the caller can test which type of return, with "if (isAcct($returned_value))
  */
-function identify($who, $allow_ALL = FALSE, $self_message = 'no self-trading') {
+function identify($who, $self_message = 'no self-trading') {
   if (isFrontend()) {
-    $result = backend('identify', compact(u\ray('who allow_ALL self_message')));
+    $result = backend('identify', compact(u\ray('who self_message')));
     return u\isAcct($result) ? $result : ((array) $result);
   }
   if (is_array($who)) extract($who); // called from api or backend
 
   $create = FALSE; // not currently used
   $who = trim($who);
-  if (($all = strtoupper($who)) == 'ALL') return $allow_ALL ? $all : array('no ALL', array(), array());
+//  if (($all = strtoupper($who)) == 'ALL') return $allow_ALL ? $all : array('no ALL', array(), array());
   $cuid = r\acct()->id;
 
   if ($phone = u\formatPhone($who, '+n')) $who = $phone;
@@ -750,13 +749,10 @@ function accountChoices() {
   if (isFrontend()) return (array) backend('accountChoices');
   
   if (!$cacct = r\acct()) return FALSE;
-  $agentId = $cacct->agentId;
-  // $primary = array((string) $agentId => (count($GLOBALS['share permissions']) - 1)); // max access for primary user account
-
-  $sql = "SELECT main FROM r_relations WHERE other=:agentId AND permission>0";
-  $result = @r\dbQ($sql, compact('agentId'))->fetchAllKeyed();
-  $resulta = $cacct->can(B_ADMIN) ? @r\dbQ('SELECT uid FROM users WHERE uid<=:R_FIRST_CTTY_UID')->fetchAllKeyed() : array();
-  return array_merge(array($agentId), array_keys($result), array_keys($resulta));
+  $result = array($aid = $cacct->agentId);
+  if ($cacct->can(B_ADMIN)) $result += @r\dbQ('SELECT uid FROM users WHERE uid<=:R_FIRST_CTTY_UID')->fetchAllKeyed(0, 0);
+  $result += @r\dbQ('SELECT main FROM r_relations WHERE other=:aid AND permission>0', compact('aid'))->fetchAllKeyed(0, 0);
+  return array_values($result);
 }
 
 /**

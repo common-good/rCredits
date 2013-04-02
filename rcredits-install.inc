@@ -20,7 +20,7 @@ function tableDefs($schema = array()) {
   require_once 'rcredits-util.inc';
 
   // table user (additions to Drupal standard)
-  $fields = array( // additional users fields
+  $fields = array( // additional/changed users fields
     'flags' => setupField('permissions and boolean state flags', 'int big', 0, '010'),
     'community' => setupField("uid of this account's Common Good Community", 'int 11'),
     'question' => setupField('security question', 'varchar 255'),
@@ -39,9 +39,8 @@ function tableDefs($schema = array()) {
     'signed' => setupField('when did this person sign the rCredits Agreement', 'int 11'),
     'signedBy' => setupField('who signed the agreement (on behalf of the account)', 'varchar 60'),
     'rebate' => setupField('current rebate percentage (sales bonus is double)', 'numeric 4,3', 5),
-    'share' => setupField('fraction of rebates and bonuses to contribute back to Common Good Finance', 'numeric 6,3', 0),
+    'share' => setupField('fraction of rebates/bonuses to give back to CGF', 'numeric 6,3', 0),
     'floor' => setupField('how low can balance go (normally zero or less)', 'numeric 11,2', R_FLOOR),
-    'reserve' => setupField('how much reserve credit in the event of a Dwolla outage', 'numeric 11,2', 0),
     'minimum' => setupField('chosen minimum balance (savings + 3 days, fill automatically)', 'numeric 11,2', NULL),
     'maximum' => setupField('maximum rCredits balance (exchange excess for USD automatically), 0=none)', 'numeric 11,2', NULL),
     'usd' => setupField('balance in related USD account (probable)', 'numeric 11,2'),
@@ -51,7 +50,8 @@ function tableDefs($schema = array()) {
   );
   // need foreign keys here
   $schema['users']['fields'] = (@$schema['users']['fields'] ?: array()) + $fields;
-  $schema['users']['fields']['uid'] = setupField('Unique user ID', 'int 11'); // not unsigned
+  $schema['users']['fields']['uid'] = setupField('Unique user ID', 'int big'); // not unsigned
+  $schema['users']['fields']['data'] = setupField('serialized array of miscellaneous data', 'text medium');
 // kills Drupal: $schema['users']['fields']['data']['description'] = 'incidental data (a serialized array of name value pairs)';
 
 // 'nym' => setupField('unique identifier for cryptographic signing', 'text tiny'), 
@@ -302,11 +302,11 @@ function tableDefs($schema = array()) {
   */
   
   /*  
-  setupField($schema, 'r_areas', 'Area Code', 'telephone area code', 'char 3'); 
-  setupField($schema, 'r_areas', 'Region', 'state, province, or territory', 'varchar 24'); 
+  setupField('r_areas', 'Area Code', 'telephone area code', 'char 3'); 
+  setupField('r_areas', 'Region', 'state, province, or territory', 'varchar 24'); 
   
-  setupField($schema, 'r_regions', 'Region', 'state or province', 'char 2');
-  setupField($schema, 'r_regions', 'Credit Region', 'credit region id', 'char 2');
+  setupField('r_regions', 'Region', 'state or province', 'char 2');
+  setupField('r_regions', 'Credit Region', 'credit region id', 'char 2');
   */
   
   return $schema;

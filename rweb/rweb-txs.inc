@@ -9,6 +9,9 @@ use rCredits as r;
  * Forms for managing transactions, and related functions
  */
 
+define('TX_OPT_CHANNELS', 0);
+define('TX_OPT_AGENTS', 0);
+
 /**
  * List Transactions
  * @todo: restrict how much can be displayed on screen (avoid memory overflow)
@@ -139,16 +142,27 @@ function formTxs($form, &$sta, $args = '') {
   $caption = $sticky = '';
   $empty = tt('no txs');
   $list = theme_table(compact(u\ray('header rows attributes caption colgroups sticky empty')));
-  $channels = formField('checkbox', '', t('channels'), dft(@$channels));
-
+  
+//  $channels = formField('checkbox', '', t('channels'), dft(@$channels));
+  $optDefaults = array();
+  $opts = array('channels');
+  if (@$channels) $optDefaults[] = TX_OPT_CHANNELS;
+  
   if ($report) {
-    $channels['#title'] = t('Show:');
+//    $channels['#title'] = t('Show:');
     $agents = $do = $summary = NULL;
   } else {
-    $agents = formField('checkbox', t('Show:'), t('agents'), dft(isset($agents) ? $agents : $cacct->can(B_COMPANY)));
+//    $agents = formField('checkbox', t('Show:'), t('agents'), dft(isset($agents) ? $agents : $cacct->can(B_COMPANY)));
+    $opts[] = 'agents';
+    if (isset($agents) ? $agents : !$cacct->can(B_PERSONAL)) $optDefaults[] = TX_OPT_AGENTS;
     $do = formField('hidden', $do);
     $summary = formField('markup', '', '', array('markup' => tx_summary($starting, $ending)));
   }
+
+  $optDefaults = array();
+  $opts = array(1 => 'channels', 2 => 'agents');
+  $opts = formField('checkboxes', t('Show:'), '', '', $opts);
+//  $opts = formField('checkboxes', t('Show:'), '', '', $opts);
 
   $divider = item('<hr>');
   $period = formField('select', t('For the past:'), '', dft(@$period ?: TX_DEFAULT_PERIOD), $txDays);
@@ -160,9 +174,9 @@ function formTxs($form, &$sta, $args = '') {
   $downloadDates = submit(t('Download'));
   $transactions = formField('markup', '', '', array('markup' => $title . $list . '<br>&nbsp;'));
   $title = item(t('rCredits Transaction History'));
-  $subtext = item(t('Only the rCredits part of each transaction is shown. The "r%" column tells what percentage this represents of the total transaction amount. Hover over the figure in the "r%" column to see the total and US Dollar amounts.'));
+  $subtext = item(t('Only the rCredits part of each transaction is shown. The "r%" column tells what percentage this represents of the total transaction amount. Hover over that figure to see the total and US Dollar amounts.'));
 
-  $form = compact(u\ray('title subtext agents channels divider period submitPeriod downloadPeriod starting ending submitDates downloadDates summary transactions'));
+  $form = compact(u\ray('title subtext opts divider period submitPeriod downloadPeriod starting ending submitDates downloadDates summary transactions'));
   if (@$downloaded) js("window.open(\"$url0&download=1\")", 'inline', 'footer');
   return labeled($form);
 }
@@ -178,6 +192,9 @@ function txConfirm($do, $xid, &$sta) {
 }
 
 function formTxs_validate($form, &$sta) {
+  debug($sta['values']);
+  debug($sta['input']);
+  debug($_POST);
   $txDays = @$form['period']['#options'];
   extract(u\just('period starting ending op', $sta['values']));
   list ($sta['values']['starting'], $sta['values']['ending']) = strpos(op($sta), 'Period') ? txDates($txDays, @$period) : txDates($txDays, '', @$starting, @$ending);
@@ -186,7 +203,8 @@ function formTxs_validate($form, &$sta) {
 function formTxs_submit($form, &$sta, $page = 'transactions') {
   global $base_url;
   if (confirming_s($sta)) return;
-  extract(u\just('period starting ending agents channels op', $sta['values']));
+  extract(u\just('period starting ending options op', $sta['values']));
+  //$channels = 
   $url = @"$page/period=$period&starting=$starting&ending=$ending&agents=$agents&channels=$channels";
   if ($op == t('Download')) {
     say('downloading');

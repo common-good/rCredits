@@ -134,7 +134,6 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'no ALL' => t('"ALL" (meaning all employees) is not allowed here.'),
   'no employees' => t('There are no employees related to this account.'),
   'shortname taken' => t('There is already an account with a nearly identical name ("@otherName").'),
-  'no asif notify' => t('@fullName has not yet signed up for rCredits, so no notification message will be sent.'),
   'cannot contact' => t('We are unable to contact @fullName by email or text message. You may want follow up directly.'),
   'no usd account' => t('To exchange rCredits for US Dollars (or vice versa), you must first connect your rCredits account to Dwolla (online).'),
   'no last customer' => t('The system does not know who your last customer was.'),

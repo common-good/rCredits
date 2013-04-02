@@ -81,8 +81,8 @@ function api($args = FALSE) {
       if (!u\isQid($q_my_id)) return be\error('bad id format');
       if (!$cacct = r\acct($q_my_id, '', $error)) return be\error($error);
     } elseif (!$cacct = r\acct($q_owner)) return be\error('bad code owner'); // this should never happen
-    if ($cacct->regionId != r\serverUid()) return be\error('wrong server');
-    if ($cacct->agentIdRegion != r\serverUid()) return be\error('wrong server for agent');
+    if (r\foreignServer($cacct->regionId)) return be\error('wrong server');
+    if (r\foreignServer($cacct->agentIdRegion)) return be\error('wrong server for agent');
     if (buttons($cacct, $q_owner) < 0) return be\error('no permission');
     r\acct::setDefault($cacct);
     $args['cacct'] = $cacct;
@@ -247,7 +247,7 @@ function undo($params) {
   if (!@$tx_id) return be\error('missing transaction id');
   if (!u\isQid(@$tx_id)) return be\error('bad transaction id');
   list ($xid, $regionUid) = r\unQid($tx_id);
-  if ($regionUid != r\serverUid()) return be\error('That is not a transaction on this server.');
+  if (r\foreignServer($regionUid)) return be\error('That is not a transaction on this server.');
   if (@$confirmed !== '1' and @$confirmed !== '0') return be\error('bad confirmation status');
   
   unset($tx_id); // done with the old transaction id

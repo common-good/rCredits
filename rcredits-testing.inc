@@ -27,20 +27,21 @@ function makeAccount($info = array(), $testOnly = FALSE) {
   $rebate = isset($my_rebate) ? $my_rebate: (R_REBATE * 100); 
   $fullName = @$my_fullName ?: ('makeAccount ' . randomString(20, 'A'));
   $name = u\shortName($fullName);
-  $pass = @$my_password ?: '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae'; // default to 123
+//  $pass = @$my_password ?: '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae'; // default to 123
+  $pass = @$my_password ?: '123';
   $mail = @$my_email ?: ''; // Don't use "$name@example.com"
-  $flags = B_DEFAULTS | (isset($my_flags) ? @$my_flags : (1 << B_OK));
+  $flags = B_DEFAULTS | u\bit(isset($my_flags) ? @$my_flags : B_OK);
   $community = @$my_communityUid ?: r\serverUid();
   u\EXPECT(!empty($community), 'empty community uid');
 
-/*  if (@$my_account_type) {
-    $account_types = array_flip($GLOBALS['account_types']);
-    $account_type = $account_types[$my_account_type]; 
-  }*/
+  if (isset($my_accountType)) {
+    if ($my_accountType <= R_SELF_EMPLOYED) $flags |= u\bit(B_PERSONAL);
+    if ($my_accountType >= R_SELF_EMPLOYED) $flags |= u\bit(B_COMPANY);
+  }
   
   fixCountryAndState($info);
 
-  foreach (u\ray('id email password') as $one) unset($info[$one]);
+  foreach (u\ray('id email password accountType') as $one) unset($info[$one]);
   
   $info = array_merge($info, compact(u\ray('uid flags rebate name pass fullName mail community')));
   if ($testOnly) {
@@ -74,19 +75,15 @@ function makeTransaction($info, $infoOnly = FALSE) {
 
   if (@$my_tx_id) $xid = u\a2n(substr($my_tx_id, 4));
   $type = isset($my_type) ? $my_type : TX_TRANSFER;
-  $state = TX_DONE;
   $created = @$my_created ? strtotime($my_created) : REQUEST_TIME;
   
   $payer = uid($my_from);
   $payerAgent = uid(@$my_from_agent ?: ($type == TX_TRANSFER ? $my_from : r\communityUid()));
   $payee = uid($my_to); 
   $payeeAgent = uid(@$my_to_agent ?: ($type == TX_TRANSFER ? $my_to : r\communityUid()));
-  $payerTid = r\xid2tid($xid, $payer);
-  $payeeTid = r\xid2tid($xid, $payee);
   
-  $payerFor = @$my_purpose ?: 'cash';
-  $payeeFor = @$my_purpose ?: 'cash';
-  $goods = @$my_goods ?: (($type != TX_TRANSFER or u\forCash($payerFor)) ? 0 : 1);
+  $for = @$my_purpose ?: 'cash';
+  $goods = @$my_goods ?: (($type != TX_TRANSFER or u\forCash($for)) ? 0 : 1);
   $taking = ($my_from == 'community' or @$my_type == 'payment') ? 0 : 1;
   $r = round($my_amount - @$my_usd, 2);
   if ($goods) {
@@ -95,16 +92,16 @@ function makeTransaction($info, $infoOnly = FALSE) {
     $data = serialize(compact(u\ray('rebate bonus')));
   }
   foreach (u\ray('created from to purpose usd tx_id') as $one) unset($info[$one]);
-  $info += compact(u\ray('xid created r payer payerAgent payee payeeAgent payerFor payeeFor payerTid payeeTid type channel goods taking state data'));
-  if ($infoOnly) return $info;
   
-  $xid = r\dbInsert('r_txs', $info);
-  if (!@$my_serial) {
-    $serial = $xid;
-    r\dbQ('UPDATE r_txs SET serial=:serial WHERE xid=:xid', compact(u\ray('serial xid')));
-  } else $serial = $my_serial;
-  r\cacheBothTotals(array($info));
-  return $serial;
+  $info += compact(u\ray('xid created r payer payerAgent payee payeeAgent for type channel goods taking data'));
+  if ($infoOnly or $type == TX_REBATE or $type == TX_BONUS) {
+    $info['payerFor'] = $info['payeeFor'] = $for;
+    unset($info['for']);
+    return $info;
+  }
+  
+  $txs = r\transact($info);
+  return $txs[0]['xid'];
 }
 
 /**
@@ -117,11 +114,11 @@ function makeRelation($info, $infoOnly = FALSE) {
   $reid = u\num($my_id, u\a2n(substr($my_id, -3)));
   if (!$mainAcct = r\acct(fullQid($my_main))) return testOutput("main:$my_main is not an id");
   if (!$agtAcct = r\acct(fullQid($my_agent))) return testOutput("agent:$my_agent is not an id");
-  u\EXPECT(!r\isForeign($mainAcct->regionId) or !r\isForeign($agtAcct->regionId));
+  u\EXPECT(!r\foreignServer($mainAcct->regionId) or !r\foreignServer($agtAcct->regionId));
   u\EXPECT($mainAcct->proSe() and $agtAcct->proSe());
   list ($main, $other) = array($mainAcct->id, $agtAcct->id);
-  if (r\isForeign($mainAcct->regionId)) list ($main, $foreignUid) = array($mainAcct->regionId, $mainAcct->id);
-  if (r\isForeign($agtAcct->regionId)) list ($other, $foreignUid) = array($agtAcct->regionId, $agtAcct->id);
+  if (r\foreignServer($mainAcct->regionId)) list ($main, $foreignUid) = array($mainAcct->regionId, $mainAcct->id);
+  if (r\foreignServer($agtAcct->regionId)) list ($other, $foreignUid) = array($agtAcct->regionId, $agtAcct->id);
   
   if (@$my_permission) {
     $perms = array_flip($GLOBALS['share permissions']);
@@ -148,12 +145,9 @@ function uidCredit($uid) {
 }
 
 function uid($id) {
-  return is_numeric($id) ? 
-      $id 
-    : ($id == 'community' ? 
-        r\serverUid() 
-    : u\a2n(substr(str_replace(R_SERVER_ID . '.', '.', $id), 1) 
-  ));
+  return is_numeric($id) ? $id 
+    : ($id == 'community' ? r\serverUid() 
+    : (R_REGION_MAX * -r\serverUid() + u\a2n(substr(str_replace(R_SERVER_ID . '.', '.', $id), 1))));
 }
 
 function getErrors() {
@@ -195,14 +189,12 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
 
 function findEmail($key, $email, $subs) {
   $subs = @$subs[0] ?: @$subs;
-  debug($subs);
 /* REDUNDANT? foreach (array('payerPurpose', 'payeePurpose') as $field) {
     if (($purpose = @$subs[$field]) and !$real) $subs[$field] = str_replace('#', '#a', $purpose); // would realFix() handle this?
   } */
   $esubs = array();
   foreach ($subs as $k => $value) $esubs['{' . $k . '}'] = $value;
   $message = strtr(r\emailBody($key), $esubs);
-  debug($esubs);
   $subject = strtr($GLOBALS['emailSubjects'][$key], $esubs);
   return findMessage('email', compact(u\ray('key email subject')), $message, $subject, $subs);
 }
@@ -330,7 +322,13 @@ function pageForm($page) {
     t\testOutput($formOutput = t\strip($rent), 'screen');
     return $form;
   }
-  menu_execute_active_handler($page, FALSE);
+
+  $result = menu_execute_active_handler($page, FALSE);
+  if (is_numeric($result)) {
+    $result = $result == MENU_NOT_FOUND ? 'not found' 
+      : ($result == MENU_ACCESS_DENIED ? 'access error' : "error #$result");
+    t\testOutput("page \"$page\": $result in t\\pageForm()");
+  }
 }
 
 function postProcess($form, $formName, $type) {

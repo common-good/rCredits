@@ -23,17 +23,17 @@ function rcredits_install() {
   // create server record if it doesn't exist yet
   $uid = r\serverUid();
   if (!r\dbExists('users', 'uid=:uid', compact('uid'))) {
-    $keys = u\ray('uid community name full_name postal_code country minimum rebate_percent flags');
+    $keys = u\ray('uid community name fullName postal country minimum rebate flags');
     $values = array($uid, $uid, R_SERVER_ID . '.', R_REGION_NAME, R_REGION_POSTAL_AREA, R_COUNTRY_ID, R_INITIAL_DEMAND, 0, B_OK);
     $info = array_combine($keys, $values);
     new r\acct($info);
   }
 
   // set up system admin record (uid=1)
-  $full_name = t('System Administrator');
+  $fullName = t('System Administrator');
   $acct1 = r\acct(1);
   foreach (array(B_NOTIFY_EMAIL, B_ADMIN, B_COMPANY) as $bit) $acct1->setBit($bit, TRUE, FALSE);
-  $acct1->update(compact(u\ray('full_name')));
+  $acct1->update(compact(u\ray('fullName')));
 
   variable_set('date_default_timezone', 'America/New_York');
   variable_set('site_frontpage', 'summary');

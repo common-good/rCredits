@@ -10,7 +10,7 @@ SO I can verify the customer's identity visually
 
 Setup:
   Given members:
-  | id      | full_name  | phone  | email         | city  | state  | country       |
+  | id      | fullName  | phone  | email         | city  | state  | country       |
   | NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | Alaska | United States |
   | NEW.ZZB | Bea Two    | +20002 | b@example.com | Btown | Utah   | United States |
   | NEW.ZZC | Corner Pub | +20003 | c@example.com | Ctown | Corse  | France        |
@@ -31,7 +31,7 @@ Scenario: Member asks us to identify a QR
 # Actually the member asks to pay or charge. That process begins with identification of the other party's QR.
   When member "NEW.ZZA" asks device "codeA" to identify QR "NEW.ZZB" 
   Then we respond with:
-  | success | full_name | location  |
+  | success | fullName | location  |
   | 1       | Bea Two   | Btown, UT |
 #op="identify"
 #other_balance (current balance for the identified person)
@@ -45,20 +45,20 @@ Scenario: Member asks us to identify the member's own QR
 Scenario: Member asks us to identify a foreign QR
   When member "NEW.ZZA" asks device "codeA" to identify QR "NEW.ZZC" 
   Then we respond with:
-  | success | full_name  | location             |
+  | success | fullName  | location             |
   | 1       | Corner Pub | Ctown, Corse, France |
   
 Scenario: Member asks us to identify a QR and member can show balances
   Given member "NEW.ZZA" can charge unilaterally
   When member "NEW.ZZA" asks device "codeA" to identify QR "NEW.ZZB" 
   Then we respond with:
-  | success | full_name | location  | other_balance |
+  | success | fullName | location  | other_balance |
   | 1       | Bea Two   | Btown, UT | 250           |
 
 Scenario: Member asks us to identify a QR for a company agent
   When member "NEW.ZZA" asks device "codeA" to identify QR "NEW:ZZA"
   Then we respond with:
-  | success | full_name | location             | company_name |
+  | success | fullName | location             | company_name |
   | 1       | Bea Two   | Ctown, Corse, France | Corner Pub   |
 
 Scenario: Device asks for a picture to go with the QR

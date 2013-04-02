@@ -24,10 +24,10 @@ Scenario: An invited newbie visits the registration page
 Scenario: A newbie registers
   Given invitation to email "a@example.com" is "Th15_i5_A_rAnd0M_c0D"
   When member "?" confirms form "user/register/code=Th15_i5_A_rAnd0M_c0D" with values:
-  | full_name | email         | country | postal_code | state | city  | account_type | code        |
+  | fullName | email         | country | postalCode | state | city  | accountType | code        |
   | Abe One   | a@example.com | US    | 01001       | MA    | Amherst | %R_PERSONAL  | Th15_i5_A_rAnd0M_c0D |
  Then members:
-  | id      | full_name | email         | country | postal_code | state | city    | account_type | flags    |
+  | id      | fullName | email         | country | postalCode | state | city    | accountType | flags    |
   | NEW.ZZA | Abe One   | a@example.com | US | 01001       | MA    | Amherst | %R_PERSONAL  |  |
   And we say "status": "your account is ready" with subs:
   | quid    | balance |
@@ -40,7 +40,7 @@ Scenario: A newbie registers
 
 #Scenario: A member registers bad email
 #  When member "?" confirms form "user/register" with values:
-#  | full_name | email     | country | postal_code | state | city    | account_type |
+#  | fullName | email     | country | postalCode | state | city    | accountType |
 #  | Abe One   | %whatever | US      | 01001       | MA    | Amherst | %R_PERSONAL  |
 #  Then we say "error": "bad email" with subs:
 #  | email     |
@@ -49,10 +49,10 @@ Scenario: A newbie registers
 ##Scenario: A member registers again
 ##  Given invitation to email "a@example.com" is %whatever20
 ##  Given members:
-##  | id      | full_name  | phone  | email         | city  | state | country | 
+##  | id      | fullName  | phone  | email         | city  | state | country | 
 ##  | NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | AK    | US      |
 ##  When member "?" confirms form "user/register" with values:
-##  | full_name | email         | country | postal_code | state | city    | account_type |
+##  | fullName | email         | country | postalCode | state | city    | accountType |
 ##  | Bea Two   | a@example.com | US      | 01001       | MA    | Amherst | %R_PERSONAL  |
 ##  Then we say "error": "duplicate email|forgot password" with subs:
 ##  | duplicateAccount | href                              |
@@ -63,38 +63,38 @@ Scenario: A newbie registers
 ##Scenario: A member registers with a company
 ##  Given invitation to email "a@example.com" is %whatever20
 ##  When member "?" confirms form "user/register" with values:
-##  | full_name | email         | postal_code | city    | account_type | company  | company_phone | company_options |
-##  | Abe One   | a@example.com | 01001       | Amherst | personal     | Aacme Co | (413)628-0000 | is_owner=>1     |
+##  | fullName | email         | postalCode | city    | accountType | company  | company_phone | company_options |
+##  | Abe One   | a@example.com | 01001       | Amherst | personal     | Aacme Co | (413)628-0000 | isOwner=>1     |
 ##  Then members:
-##  | id      | full_name | email         | postal_code | phone        | city    | account_type  | flags |
+##  | id      | fullName | email         | postalCode | phone        | city    | accountType  | flags |
 ##  | NEW.ZZA | Abe One   | a@example.com | 01001       |              | Amherst | %R_PERSONAL   |  |
 ##  | NEW.ZZB | Aacme Co  |               |             | +14136280000 |         | %R_COMMERCIAL |  |
 ##  And relations:
-##  | id | main | agent | permission | employer_ok | employee_ok | is_owner |
+##  | id | main | agent | permission | employerOk | employeeOk | isOwner |
 ##  | 1  | .ZZB | .ZZA  |            |             |             | 1        |
 ##
 ##Scenario: A member registers with a company with no employee or owner
 ##  Given invitation to email "a@example.com" is %whatever20
 ##  When member "?" confirms form "user/register" with values:
-##  | full_name | email         | postal_code | city    | account_type | company  | company_phone | company_options |
+##  | fullName | email         | postalCode | city    | accountType | company  | company_phone | company_options |
 ##  | Abe One   | a@example.com |  01001      | Amherst | personal     | Aacme Co | (413)628-0000 |                 |
 ##  Then we say "error": "what relation" with subs: ""
 #
 ##Scenario: A member registers with a company but no relation
 ##  When member "?" confirms form "user/register" with values:
-##  | full_name | email         | country | postal_code | state | city    | account_type | company  |
+##  | fullName | email         | country | postalCode | state | city    | accountType | company  |
 ##  | Abe One   | a@example.com | US      | 01001       | MA    | Amherst | personal     | Aacme Co |
 ##  Then we say "error": "bad company phone" with subs: ""
 ##
 ##Scenario: A member registers with a company with bad phone
 ##  When member "?" confirms form "user/register" with values:
-##  | full_name | email         | country | postal_code | state | city    | account_type | company  | company_phone |
+##  | fullName | email         | country | postalCode | state | city    | accountType | company  | company_phone |
 ##  | Abe One   | a@example.com | US      | 01001       | MA    | Amherst | personal     | Aacme Co | random       |
 ##  Then we say "error": "bad company phone" with subs: ""
 ##
 ##Scenario: A member registers with a company but no relation
 ##  When member "?" confirms form "user/register" with values:
-##  | full_name | email         | country | postal_code | state | city    | account_type | company  | company_phone |
+##  | fullName | email         | country | postalCode | state | city    | accountType | company  | company_phone |
 ##  | Abe One   | a@example.com | US      | 01001       | MA    | Amherst | personal     | Aacme Co | (413)628-0000 |
 ##  Then we say "error": "what relation" with subs: ""
 ##

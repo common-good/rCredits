@@ -17,7 +17,7 @@ Summary:
 
 Setup:
   Given members:
-  | id      | full_name  | phone  | email         | city  | state  | country       | 
+  | id      | fullName  | phone  | email         | city  | state  | country       | 
   | NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | Alaska | United States |
   | NEW.ZZB | Bea Two    | +20002 | b@example.com | Btown | Utah   | United States |
   | NEW.ZZC | Corner Pub | +20003 | c@example.com | Ctown | Corse  | France        |
