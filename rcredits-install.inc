@@ -35,6 +35,7 @@ function tableDefs($schema = array()) {
     'state' => setupField('state/province index', 'int 5'),
     'postalCode' => setupField('contact postal code (no punctuation)', 'varchar 20'),
     'country' => setupField('country index', 'int 4'),
+    'physical' => setupField('physical address', 'varchar 255'),
     'notes' => setupField('miscellaneous notes about the user or the account', 'text medium'),
     'signed' => setupField('when did this person sign the rCredits Agreement', 'int 11'),
     'signedBy' => setupField('who signed the agreement (on behalf of the account)', 'varchar 60'),
@@ -87,13 +88,14 @@ function tableDefs($schema = array()) {
   
   // table proxies
   $fields = array(
+    'id' => setupField('record id', 'serial 11'),
     'person' => setupField('account record id', 'int 11'),
     'proxy' => setupField('account rercord id of proxy', 'int 11'),
     'priority' => setupField('precedence of this proxy (1=top priority)', 'int tiny'),
   );
   $foreignKeys = foreignKey('person') + foreignKey('proxy');
   $indexes = index('person');
-  $schema['r_proxies'] = setupTable('Who represents whom', $fields, NULL, $foreignKeys, $indexes);
+  $schema['r_proxies'] = setupTable('Who represents whom', $fields, 'id', $foreignKeys, $indexes);
   
   // table r_sms 
   $fields = array(

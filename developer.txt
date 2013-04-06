@@ -15,23 +15,36 @@ rename community field to community
   UPDATE users SET state=4370 WHERE state='Stockholms';
   UPDATE users SET state=9999 WHERE state='Islington';
 ***
-        
+
+BEFORE LAUNCH:
+- print me a card (and test it)
+- proxies display wrong
+- 400 signup feature tests work (write more)
+- reset password link is acceptable
+- 60 6 people and 3 orgs tested signup, plus one joint account; watch people sign up
+- 30 log everything
+- 30 written instructions for signup (dwolla, etc)
+- 200 cron tests (just cache check, auto bank transfers)
+- ** membership gift happens upon account activation (rTrader status). It goes through as an rC transaction.
+- * I includes security code, like this: http(s?)://new.rc2.me/new.abc/Urlencoded10CharacterSecurityCode (test)
+- get SSL, set Always redirect to SSL [?] in WHM:Tweak Settings
+TOTAL: 1200 x 3 = 3600 = 60 hours
+
 To do: (* = before launch ** = earlier)
+
+- when a non-bona nube donates, replace the previous gift.
+- "debt ok" pref: make it work
+- * can't go down to credit floor<0 unless chosen "can go below". Credit floor has link to pref.
+- help for all pages
+- allow at most one repeating gift at a time
+- revisit t\addAttrib and t\snapshot (does Drupal make ids lowercase?)
+- handle 10-day interval for deposits/withdrawals for non-checking accounts
 - write a function to detect if we are too close to the end of a 5-minute chunk, to start an activity. Maybe measure the average time that an activity takes and give it twice that much (and see if we get too many interrupted activities).
 - phase out tablefield and/or userfield
 - change $_POST to $sta['input'] ? (also see if input includes everything that values does)
-- change all underline fields to camelcase
 - 1/6 month credit after first month, etc. up to 6 mos.
-- * can't go down to credit floor<0 unless chosen "can go below". Credit floor has link to pref. Pref mentions fee after 30 days.
 - pref for notification frequency (hourly/daily/weekly/monthly digest, viewable online)
-- * agreement help links
 - * finish and test cron (one part at a time)
-- * 4 steps to get signup bonus!
-- * company categories
-- * relations screen: request ID card (not print)
-- * I includes security code, like this: http(s?)://new.rc2.me/new.abc/Urlencoded10CharacterSecurityCode
-- ** Default for companies is "pay everyone virtually", for personal is "pay everyone directly". 
-- ** membership gift happens upon account activation (rTrader status). It goes through as an rC transaction.
 - * diagram to illustrate min, max, and automatic virtual payments (for employees and companies, each in middle)
 - * add warning about flow not implemented yet
 - nightly: recalc exchange rates / allow users to express amounts in any currency (rounding DOWN); transactions will need to record exchange rate (true currency will be tied to region, regardless of how the user chooses to have it displayed)

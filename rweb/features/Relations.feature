@@ -5,11 +5,11 @@ SO I can buy and sell stuff on behalf of other accounts, and they on mine.
 
 Setup:
   Given members:
-  | id   | fullName  | accountType     | flags         |
-  | .ZZA | Abe One    | %R_PERSONAL      |  |
-  | .ZZB | Bea Two    | %R_SELF_EMPLOYED | %B_MEMBER   |
-  | .ZZC | Corner Pub | %R_COMMERCIAL    | %B_OK  |
-  | .ZZD | Dee Four   | %R_PERSONAL      | 0             |
+  | id   | fullName   | acctType         | flags                   |
+  | .ZZA | Abe One    | %R_PERSONAL      | dft,ok,personal         |
+  | .ZZB | Bea Two    | %R_SELF_EMPLOYED | dft,ok,personal,company |
+  | .ZZC | Corner Pub | %R_COMMERCIAL    | dft,ok,company          |
+  | .ZZD | Dee Four   | %R_PERSONAL      | dft,ok,personal         |
   And transactions: 
   | tx_id | created   | type       | amount | from      | to   | purpose | taking |
   | :AAAB | %today-6m | %TX_SIGNUP |    250 | community | .ZZA | signup  | 0      |

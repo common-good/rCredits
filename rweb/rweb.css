@@ -87,12 +87,14 @@ ul.tabs.primary {padding:0; margin-left:4em; margin-top:.8em; font-size:85%;}
 /* Accounts Selector */
 #accounts {position:absolute; left:0; top:2em; width:100%;}
 #accounts .region-accounts {float:right; margin-right:1em; width:100%;}
-#accounts .content, #accounts .form-item-account-account {margin:0; }
+#accounts .content, #accounts .form-item-acct-account {margin:0; }
 #accounts .form-type-textfield, #accounts .form-type-select {width:100%;}
-#accounts #edit-account-account {font-size:1em; padding:0; float:right; margin-left:100%; width:auto;}
-#accounts input#edit-account-account {padding:.4em;}
-#rcreditswebformaccounts #edit-account-submit {display:none;} /* Drupal requires unused button to be there, so make it invisible */
-#edit-account-showmenu, #edit-account-showhelp {display:none;}
+#accounts #edit-acct-thumb {float:right;} 
+#accounts #edit-acct-thumb img {height:23px; margin-left:5px;}
+#accounts #edit-acct-account {font-size:1em; padding:0; float:right;}
+#accounts input#edit-acct-account {padding:.4em;}
+#rcreditswebformaccounts #edit-acct-submit {display:none;} /* Drupal requires unused button to be there, so make it invisible */
+#edit-acct-showmenu, #edit-acct-showhelp {display:none;}
 
 /* Empty */
 #rcreditswebformempty #edit-title {display:none;}
@@ -190,10 +192,15 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformdraft #edit-cancel {margin-left:8em;}
 
 /* Summary */
-#rcreditswebformsummary #edit-creditlimit .description,
+#rcreditswebformsummary #edit-floor .description,
 #rcreditswebformsummary #edit-rewards .description {display:inline-block; margin-left:.25em;}
 #rcreditswebformsummary .form-type-radios {border-bottom:0;} /* yesno looks silly with bottom border */
 #rcreditswebformsummary  #edit-another {display:inline-block;}
+
+#rcreditswebformsummary  .form-checkboxes {margin-left:8em;}
+#rcreditswebformsummary  .form-type-checkbox {max-width:110px;}
+#rcreditswebformsummary #edit-adminable {margin-left:0;}
+#rcreditswebformsummary  label[for="edit-adminable"] {display:inline-block;}
 
 /* Company Info */
 #rcreditswebformcompany fieldset#edit-description-format {background-color:lightblue; max-width:45em;}
@@ -265,29 +272,38 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformreports .tx-tid {width:5%; text-align:right;} /* 1 # */
 #rcreditswebformreports .tx-amount {width:7.5%; text-align:right;} /* 5 amount */
 #rcreditswebformreports .tx-reward {width:7.5%; text-align:right;} /* 8 rewards */
+#rcreditswebformreports .tx-r,
+#rcreditswebformreports .tx-usd,
+#rcreditswebformreports .tx-usdTid {width:0; display:none;}
 
-#rcreditswebformreports th:first-child {text-align:right;} /* column 1 */
-/* #rcreditswebformreports th:first-child +th {text-align:right;} /* column 2 */
-/* #rcreditswebformreports th:first-child +th+th {text-align:left;} /* column 3 */
-/* #rcreditswebformreports th:first-child +th+th+th {text-align:right;} /* column 4 */
-#rcreditswebformreports th:first-child +th+th+th+th {text-align:right;} /* column 5 */
-/* #rcreditswebformreports th:first-child +th+th+th+th+th {text-align:right;} /* column 6 */
-/* #rcreditswebformreports th:first-child +th+th+th+th+th+th {text-align:right;} /* column 7 */
-#rcreditswebformreports th:first-child +th+th+th+th+th+th+th {text-align:right;} /* column 8 */
-/* #rcreditswebformreports th:first-child +th+th+th+th+th+th+th+th {text-align:right;} /* column 9 */
+#rcreditswebformreports th:first-child {text-align:right;} /* col 1: tid */
+/* #rcreditswebformreports th:first-child +th {text-align:right;} /* col 2: date */
+/* #rcreditswebformreports th:first-child +th+th {text-align:left;} /* col 3: from */
+/* #rcreditswebformreports th:first-child +th+th+th {text-align:right;} /* col 4: to */
+#rcreditswebformreports th:first-child +th+th+th+th {text-align:right;} /* col 5: amount */
+/* #rcreditswebformreports th:first-child +th+th+th+th+th {text-align:right;} /* col 6: rpct */
+#rcreditswebformreports th:first-child +th+th+th+th+th+th {display:none;} /* col 7: r */
+#rcreditswebformreports th:first-child +th+th+th+th+th+th+th {display:none;} /* col 8: usd */
+#rcreditswebformreports th:first-child +th+th+th+th+th+th+th+th {display:none;} /* col 9: usdTid */
+/* #rcreditswebformreports th:first-child +th+th+th+th+th+th+th+th+th {text-align:right;} /* col 10: state */
+/* #rcreditswebformreports th:first-child +th+th+th+th+th+th+th+th+th+th {text-align:right;} /* col 11: purp */
+#rcreditswebformreports th:first-child +th+th+th+th+th+th+th+th+th+th+th {text-align:right;} /* col 12: reward */
 
-#rcreditswebformreports td:first-child {text-align:right;} /* column 1 */
-/* #rcreditswebformreports td:first-child +td {text-align:right;} /* column 2 */
-/* #rcreditswebformreports td:first-child +td+td {text-align:left;} /* column 3 */
-/* #rcreditswebformreports td:first-child +td+td+td {text-align:right;} /* column 4 */
-#rcreditswebformreports td:first-child +td+td+td+td {text-align:right;} /* column 5 */
-/* #rcreditswebformreports td:first-child +td+td+td+td+td {text-align:right;} /* column 6 */
-/* #rcreditswebformreports td:first-child +td+td+td+td+td+td {text-align:right;} /* column 7 */
-#rcreditswebformreports td:first-child +td+td+td+td+td+td+td {text-align:right;} /* column 8 */
-/* #rcreditswebformreports td:first-child +td+td+td+td+td+td+td+td {text-align:right;} /* column 9 */
+#rcreditswebformreports td:first-child {text-align:right;} /* col 1 */
+/* #rcreditswebformreports td:first-child +td {text-align:right;} /* col 2 */
+/* #rcreditswebformreports td:first-child +td+td {text-align:left;} /* col 3 */
+/* #rcreditswebformreports td:first-child +td+td+td {text-align:right;} /* col 4 */
+#rcreditswebformreports td:first-child +td+td+td+td {text-align:right;} /* col 5 */
+/* #rcreditswebformreports td:first-child +td+td+td+td+td {text-align:right;} /* col 6 */
+#rcreditswebformreports td:first-child +td+td+td+td+td+td {display:none;} /* col 7 */
+#rcreditswebformreports td:first-child +td+td+td+td+td+td+td {display:none;} /* col 8 */
+#rcreditswebformreports td:first-child +td+td+td+td+td+td+td+td {display:none;} /* col 9 */
+/* #rcreditswebformreports td:first-child +td+td+td+td+td+td+td+td+td {text-align:right;} /* col 10 */
+/* #rcreditswebformreports td:first-child +td+td+td+td+td+td+td+td+td+td {text-align:right;} /* col 11 */
+#rcreditswebformreports td:first-child +td+td+td+td+td+td+td+td+td+td+td {text-align:right;} /* col 12 */
 
 /* Transactions */
-#rcreditswebformtxs .form-type-checkbox {max-width:200px;}
+#rcreditswebformtxs .form-type-checkbox {max-width:120px;}
 #rcreditswebformtxs .form-item-agents,
 #rcreditswebformtxs .form-item-channels {display:inline-block;}
 #rcreditswebformtxs .form-item-period {display:inline-block;}
@@ -314,34 +330,43 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformtxs .tx-fromyou {width:9.5%; text-align:right;} /* 4 from you */
 #rcreditswebformtxs .tx-toyou {width:9.5%; text-align:right;} /* 5 to you */
 #rcreditswebformtxs .tx-rpct {width:5%; text-align:right;} /* 6 r% */
-#rcreditswebformtxs .tx-state {width:5%; text-align:right;} /* 7 status */
-#rcreditswebformtxs .tx-buttons {width:12%; text-align:right;} /* 8 buttons */
-#rcreditswebformtxs .tx-reward {width:7.5%; text-align:right;} /* 100 rewards */
+#rcreditswebformtxs .tx-r,
+#rcreditswebformtxs .tx-usd,
+#rcreditswebformtxs .tx-usdTid {width:0; display:none;}
+#rcreditswebformtxs .tx-state {width:5%; text-align:right;} /* 10 status */
+#rcreditswebformtxs .tx-buttons {width:12%; text-align:right;} /* 11 buttons */
+#rcreditswebformtxs .tx-reward {width:7.5%; text-align:right;} /* 12 rewards */
 
 #rcreditswebformtxs th,
 #rcreditswebformtxs td {text-align:right;}
 
-/* #rcreditswebformtxs th:first-child {text-align:right;} /* column 1 */
-/* #rcreditswebformtxs th:first-child +th {text-align:right;} /* column 2 */
-#rcreditswebformtxs th:first-child +th+th {text-align:left;} /* column 3 */
-/* #rcreditswebformtxs th:first-child +th+th+th {text-align:right;} /* column 4 */
-/* #rcreditswebformtxs th:first-child +th+th+th+th {text-align:right;} /* column 5 */
-/* #rcreditswebformtxs th:first-child +th+th+th+th+th {text-align:right;} /* column 6 */
-/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th {text-align:right;} /* column 7 */
-/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th {text-align:right;} /* column 8 */
-#rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th {text-align:left;} /* column 9 */
-/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th+th {text-align:right;} /* column 10 */
+/* #rcreditswebformtxs th:first-child {text-align:right;} /* col 1: tid */
+/* #rcreditswebformtxs th:first-child +th {text-align:right;} /* col 2: date */
+#rcreditswebformtxs th:first-child +th+th {text-align:left;} /* col 3: name */
+/* #rcreditswebformtxs th:first-child +th+th+th {text-align:right;} /* col 4: fromyou */
+/* #rcreditswebformtxs th:first-child +th+th+th+th {text-align:right;} /* col 5: toyou */
+/* #rcreditswebformtxs th:first-child +th+th+th+th+th {text-align:right;} /* col 6: rpct */
+#rcreditswebformtxs th:first-child +th+th+th+th+th+th {display:none;} /* col 7: r */
+#rcreditswebformtxs th:first-child +th+th+th+th+th+th+th {display:none;} /* col 8: usd */
+#rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th {display:none;} /* col 9: usdTid */
+/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th+th {text-align:right;} /* col 10: state */
+/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th+th+th {text-align:right;} /* col 11: buttons */
+/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th+th+th+th {text-align:right;} /* col 12: purpose */
+#rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th+th+th+th+th {text-align:right;} /* col 13: reward */
 
-/* #rcreditswebformtxs td:first-child {text-align:right;} /* column 1 */
-/* #rcreditswebformtxs td:first-child +td {text-align:right;} /* column 2 */
-#rcreditswebformtxs td:first-child +td+td {text-align:left;} /* column 3 */
-/* #rcreditswebformtxs td:first-child +td+td+td {text-align:right;} /* column 4 */
-/* #rcreditswebformtxs td:first-child +td+td+td+td {text-align:right;} /* column 5 */
-/* #rcreditswebformtxs td:first-child +td+td+td+td+td {text-align:right;} /* column 6 */
-/* #rcreditswebformtxs td:first-child +td+td+td+td+td+td {text-align:right;} /* column 7 */
-/* #rcreditswebformtxs td:first-child +td+td+td+td+td+td+td {text-align:right;} /* column 8 */
-#rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td {text-align:left;} /* column 9 */
-/* #rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td+td {text-align:right;} /* column 10 */
+/* #rcreditswebformtxs td:first-child {text-align:right;} /* col 1 */
+/* #rcreditswebformtxs td:first-child +td {text-align:right;} /* col 2 */
+#rcreditswebformtxs td:first-child +td+td {text-align:left;} /* col 3 */
+/* #rcreditswebformtxs td:first-child +td+td+td {text-align:right;} /* col 4 */
+/* #rcreditswebformtxs td:first-child +td+td+td+td {text-align:right;} /* col 5 */
+/* #rcreditswebformtxs td:first-child +td+td+td+td+td {text-align:right;} /* col 6 */
+#rcreditswebformtxs td:first-child +td+td+td+td+td+td {display:none;} /* col 7 */
+#rcreditswebformtxs td:first-child +td+td+td+td+td+td+td {display:none;} /* col 8 */
+#rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td {display:none;} /* col 9 */
+/* #rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td+td {text-align:right;} /* col 10 */
+/* #rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td+td+td {text-align:right;} /* col 11 */
+/* #rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td+td+td+td {text-align:right;} /* col 12 */
+#rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td+td+td+td+td {text-align:right;} /* col 13 */
 
 /* Transaction Summary Table */
 #txsum, #txsum-title, #txs-title {width:100%; margin:0;} /* outline:2px solid darkgreen;} */
@@ -354,6 +379,14 @@ form.rweb  .form-no {color:red;}
 /* .txsum-one, .txsum-balance {width:120px;} */
 .txsum-tosign, .txsum-fromsign, .txsum-rewardssign, .txsum-sharesign, .txsum-balancesign {min-width:1em;}
 .txsum-toyou, .txsum-fromyou, .txsum-share, .txsum-rewards {min-width:7em;}
+
+#rcreditswebformtxs #txsum th:first-child +th+th+th+th+th+th {display:table-cell;} /* col 7 */
+#rcreditswebformtxs #txsum th:first-child +th+th+th+th+th+th+th {display:table-cell;} /* col 8 */
+#rcreditswebformtxs #txsum th:first-child +th+th+th+th+th+th+th+th {display:table-cell;} /* col 9 */
+
+#rcreditswebformtxs #txsum td:first-child +td+td+td+td+td+td {display:table-cell;} /* col 7 */
+#rcreditswebformtxs #txsum td:first-child +td+td+td+td+td+td+td {display:table-cell;} /* col 8 */
+#rcreditswebformtxs #txsum td:first-child +td+td+td+td+td+td+td+td {display:table-cell;} /* col 9 */
 
 /* Relation form */
 /*#rcreditswebformrelations #edit-subtext label {width:450px;}*/
@@ -455,6 +488,8 @@ html.js input.throbbing {background-position:right -2.4em;}
 #rcreditswebformoptions .form-item-payHow div {border-top:0; padding-top:0;}
 /*#rcreditswebformoptions .form-item-secretBal {margin-top:80px;}*/
 /*#rcreditswebformoptions .form-item-secretBal input {margin-left:105px;} */
+#rcreditswebformoptions .form-item-payVirtual {border-bottom:0;}
+#rcreditswebformoptions .form-item-debtOk .description {max-width:700px;}
 
 /* Dwolla */
 #rcreditswebformusd .form-radios {max-width:80%;}
@@ -519,10 +554,10 @@ and (max-device-width : 480px) { */
   #accounts {top:.05em;} /* account dropdown */
   #accounts .region-accounts {margin:0;}
   #accounts select, #accounts input {font-size:1.5em; overflow:none;}
-  #edit-account-showmenu,
-  #edit-account-showhelp {display:inline-block; float:right; font-size:14px; margin:6px 0 0 0;}
-  #edit-account-showmenu input,
-  #edit-account-showhelp input {width:3.5em;}
+  #edit-acct-showmenu,
+  #edit-acct-showhelp {display:inline-block; float:right; font-size:14px; margin:6px 0 0 0;}
+  #edit-acct-showmenu input,
+  #edit-acct-showhelp input {width:3.5em;}
 
   #menu {position:absolute; left:0; top:125px; width:100%; margin:0; background-color:white; padding-top:0; border:0;} /* don't show unless button pressed (dunno why this has to be absolute, but top-margin otherwise fails) */
   #menu .fieldset-wrapper {padding:0 0 0 .2em;}

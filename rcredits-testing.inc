@@ -24,24 +24,33 @@ function makeAccount($info = array(), $testOnly = FALSE) {
 
   if (!@$my_id) $my_id = r\acct::nextId(); // default to first available number
   $uid = uid($my_id); // change .AAB to 1, etc.
-  $rebate = isset($my_rebate) ? $my_rebate: (R_REBATE * 100); 
+  $rebate = isset($my_rebate) ? $my_rebate: R_REBATE; 
   $fullName = @$my_fullName ?: ('makeAccount ' . randomString(20, 'A'));
   $name = u\shortName($fullName);
 //  $pass = @$my_password ?: '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae'; // default to 123
   $pass = @$my_password ?: '123';
   $mail = @$my_email ?: ''; // Don't use "$name@example.com"
-  $flags = B_DEFAULTS | u\bit(isset($my_flags) ? @$my_flags : B_OK);
+  if (strpos(@$my_flags, '%') !== FALSE) {
+    $flags = B_DFT | u\bit(isset($my_flags) ? @$my_flags : (B_MEMBER | B_OK));
+  } else {
+    $flags = 0;
+    foreach (u\ray($my_flags) as $one) {
+      $bit = constant('B_' . strtoupper($one));
+      $flags |= u\eq($bit, B_DFT, u\bit($bit));
+    }
+  }
+  
   $community = @$my_communityUid ?: r\serverUid();
   u\EXPECT(!empty($community), 'empty community uid');
 
-  if (isset($my_accountType)) {
-    if ($my_accountType <= R_SELF_EMPLOYED) $flags |= u\bit(B_PERSONAL);
-    if ($my_accountType >= R_SELF_EMPLOYED) $flags |= u\bit(B_COMPANY);
+  if (isset($my_acctType)) {
+    if ($my_acctType <= R_SELF_EMPLOYED) $flags |= u\bit(B_PERSONAL);
+    if ($my_acctType >= R_SELF_EMPLOYED) $flags |= u\bit(B_COMPANY);
   }
   
   fixCountryAndState($info);
 
-  foreach (u\ray('id email password accountType') as $one) unset($info[$one]);
+  foreach (u\ray('id email password acctType') as $one) unset($info[$one]);
   
   $info = array_merge($info, compact(u\ray('uid flags rebate name pass fullName mail community')));
   if ($testOnly) {
@@ -271,14 +280,13 @@ function snapShot(&$form) { // (additional sta values have no effect at this sta
 function addAttribs(&$thing) {
   foreach ($thing as $key => $value) { // else Drupal complains when rendering
     if (substr($key, 0, 1) == '#') continue;
-    if (!isset($value['#attributes']['id'])) $thing[$key]['#attributes']['id'] = "edit-$key";
+    if (!isset($value['#attributes']['id'])) $thing[$key]['#attributes']['id'] = 'edit-' . strtolower($key);
     if (!isset($value['#title_display'])) $thing[$key]['#title_display'] = 'before';
     addAttribs($thing[$key]);
   }
 }
 
 function logIn($id) {
-u\deb('before logIn');
   if ($id != '?') r\acct::setDefault(r\acct($id));
 u\deb('after logIn');
 }
@@ -317,18 +325,22 @@ function pageForm($page) {
     $args = basename($page);
     $form = \drupal_get_form('user_register_form', $args);
     $sta = array();
+  //if (r\dbExists('users', "name='abeone'")) die('1 ' . print_r(debug_backtrace(), 1));
     r\Web\formRegister($form, $sta, $args);
+  //if (r\dbExists('users', "name='abeone'")) die('1 ' . print_r(debug_backtrace(), 1));
     $form2 = $form; $rent = render($form2);
+  //if (r\dbExists('users', "name='abeone'")) die('1 ' . print_r(debug_backtrace(), 1));
     t\testOutput($formOutput = t\strip($rent), 'screen');
     return $form;
   }
 
-  $result = menu_execute_active_handler($page, FALSE);
+  $result = strpos($page, '/login/') ? r\Web\showForm(dirname($page), basename($page))
+    : menu_execute_active_handler($page, FALSE);
   if (is_numeric($result)) {
     $result = $result == MENU_NOT_FOUND ? 'not found' 
       : ($result == MENU_ACCESS_DENIED ? 'access error' : "error #$result");
     t\testOutput("page \"$page\": $result in t\\pageForm()");
-  }
+  } else t\testOutput($formOutput = t\strip($result), 'screen');
 }
 
 function postProcess($form, $formName, $type) {
@@ -341,8 +353,9 @@ function postProcess($form, $formName, $type) {
 }
 
 function postLogout($function) {
+  return TRUE; // never actually log out
   global $skipToStep;
-  if ($messages = @cache_get('t_messages')->data) {
+/*  if ($messages = @cache_get('t_messages')->data) {
     extract(u\just('msgs skipToStep', $messages));
     if ($skipToStep == $function) {
       if (strlen(serialize($msgs)) > strlen(serialize(@$_SESSION['messages']))) {
@@ -351,18 +364,19 @@ function postLogout($function) {
           if (empty($_SESSION['messages'][$type])) unset($_SESSION['messages'][$type]);
         }
       }
-      cache_set('t_messages', FALSE);
+//      cache_set('t_messages', FALSE);
 u\deb('postLogout returning TRUE, skipToStep was ='.@$skipToStep.' (now NULL)');
       $skipToStep = NULL; // strangely, this has to be = NULL not unset()
       return TRUE;
     }
   }
+  */
 u\deb('postLogout returning FALSE, about to save skiptostep '.$function);
   $vars = array(
     'msgs' => @$_SESSION['messages'] ?: array(),
     'skipToStep' => $function, // tell gherkin function to skip steps in interrupted scene until this step
   );
-  cache_set('t_messages', $vars); // save the test results so far
+//  cache_set('t_messages', $vars); // save the test results so far
   return FALSE;
 }
 

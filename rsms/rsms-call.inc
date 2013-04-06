@@ -34,7 +34,7 @@ class call {
     u\EXPECT(compact(u\ray('number message')), 'string&notempty string&notempty');
     $this->message = trim($message);
     $this->confirmed = FALSE;
-    u\log('in', compact('message'), $number);
+    u\loga('in', compact('message'), $number);
 //    die('in new call ' . print_r($this, 1));
   }
 

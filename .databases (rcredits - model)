@@ -1,5 +1,11 @@
 {
-  "dbname" : "driver=mysql&host=localhost&port=3306&user=dbusername&pass=dbpassword",
+  "dbname" : {
+    "driver" : "mysql",
+    "host" : "localhost",
+    "port" : "3306",
+    "user" : "dbusername",
+    "pass" : "dbpassword"
+  },
   "_offsiteKeys":{
     "168.144.87.128" : "24-char.base64.passwd#01 NEW",
     "168.144.87.129" : "24-char.base64.passwd#02 NEC",

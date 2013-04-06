@@ -1,24 +1,16 @@
-Arts
-Business Services and Associations
-Computer and Electronics Services and Supplies
-Hardware, Building Supplies, and Equipment
-Durable Goods
-Education
-Energy and Fuel
-Engineering
-Facilities and Accommodations
-Financial Services
-Food Production and Distribution
-Government and Nonprofit Organizations
-Health Services and Supplies
-Internet and Communications
-Law
-Leisure
-Manufacturing and Mining
-Materials and Construction
-Media
-Non-durable Goods
-Personal, Family, and Community Services
-Real Estate
-Restaurants and Food Services
-Transportation
+Art, Culture, Science: Theaters, Museums, Galleries, Crafts, Visual Artists, Performance Artists, Arts & Crafts Supplies, Performing Arts
+Food: Farms, Grocers, Restaurants & Catering
+Business and Industry: Manufacturing and Mining, Industrial Supplies & Materials, Office Supplies, Business Services and Associations, Computer Services, Engineering, Wholesale (Specify)
+Building / Construction / Hardware: Hardware & Building Supplies, Plumbing/Heating/Cooling, Electrical & Lighting, Contractors, Construction Equipment
+Government, Law, Community & Human Services
+Training & Education -- Schools / Colleges / Tutors
+Banks, Credit Unions, Insurance, Financial Services
+Information and Communications: Media, Internet, Libraries, Computer and Electronics
+Sports & Recreation: Liquor/Tobacco/Other-Recreational-Drugs, Hobbies, Sports Equipment
+Energy and Fuel: Propane, Oil, Wood, Gasoline
+Health: Hospitals/Clinics/Doctors/Midwives, Medical Supplies and Drugstores, Gyms, Therapists
+Transportation: Buses, Cars / Automobiles, Automotive Services
+Places: Housing, Accommodations, Facilities, Real Estate
+Retail: Department Stores, Bookstores, Furniture, Appliances, Clothing, Consumer Electronics, Other Retail (specify)
+Other Services (specify)
+

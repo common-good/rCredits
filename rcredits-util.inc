@@ -7,6 +7,7 @@
 
 namespace rCredits\Util; // typically abbreviated as "u"
 use rCredits as r; // get rid of this
+use rCredits\Util as u;
 
 // Some useful Drupal db methods: fetchAllKeyed(m, n), fetchAssoc and fetchAllAssoc(fld), fetchObject and fetchAll(), fetchCol(n), fetchField()
 /**
@@ -78,6 +79,9 @@ function splice(&$input, $key, $len = 0, $replacement = NULL) {
   return $i === FALSE ? NULL : array_splice($input, $i, $len, $replacement);
 }
 
+/**
+ * Return the amount string, cleaned up (leading $ and any commas or spaces are discarded)
+ */
 function cleanAmount($amount) {
   $amount = trim($amount);
   if (substr($amount, 0, 1) == '$') $amount = substr($amount, 1);
@@ -86,14 +90,18 @@ function cleanAmount($amount) {
 
 /**
  * Return an error message if the amount is bad.
+ * @param string $amount: the questionable amount string (leading $ and any commas or spaces are ignored)
+ *   The cleaned-up amount is returned by ref.
  * @param string $restriction: none (the default), >0, or >=0
+ * @param bool $fractionLimit: maximum digits after the decimal (default 2)
+ * @return: FALSE if not a bad amount, else error message
  */
-function badAmount(&$amount, $restriction = '') {
+function badAmount(&$amount, $restriction = '', $fractionLimit = 2) {
   if (!is_numeric($new = cleanAmount($amount))) return 'bad amount';
 
   $amount = $new;
   $dotPos = strpos($amount, '.');
-  if ($dotPos !== FALSE and strlen($amount) > $dotPos + 3) return 'fractional cents';
+  if ($dotPos !== FALSE and strlen($amount) > $dotPos + 1 + $fractionLimit) return 'too fractional';
   if ($amount > R_MAX_AMOUNT) return 'amount too big';
   if ($restriction == '>0' and $amount <= 0) return 'nonpositive amount';
   if ($restriction == '>=0' and $amount < 0) return 'negative amount';
@@ -133,29 +141,6 @@ function validName($name, $individual = TRUE, $picky = TRUE) {
   if ($picky and ($words < 2 or $words > 4)) return FALSE;
   return TRUE;
 }
-
-/**
- * Return the standard 2-letter abbreviation for the country or vice versa
- * See the latest data on Wikipedia.
- * @todo: get this in agreement with countries.js (sorted by country name)
- */
-function countryAbbrev($country) {
-  global $base_path;
-//  include_once $base_path . 'inc/countries.php';
-  include __DIR__ . '/inc/countries.php';
-  return strlen($country) == 2 ? $countries[$country] : array_search($country, $countries);
-}
-
-/**
- * Return the standard 2-letter abbreviation for the (US) state or vice versa
- * @todo: add Canadian provinces
- */
-function stateAbbrev($state) {
-  global $base_path;
-  include __DIR__ . '/inc/states.php';
-  return strlen($state) == 2 ? $states[$state] : array_search($state, $states);
-}
-
 
 /**
  * Calculate a short_name from the given fullName.
@@ -482,11 +467,11 @@ function expect1($arg, $value, $type, $ret) {
  * @param int $adhocChannel: a second channel used from within the primary channel
  * @return the log record id (for exception handler and shutdown function)
  */  
-function log($type, $info = array(), $special = '', $adhocChannel = FALSE) {
+function loga($type, $info = array(), $special = '', $adhocChannel = FALSE) {
+  if (strlen($type) >= 60) die($type); // don't use EXPECT here
   global $channel;
   $useTextLogToo = TRUE;
 
-  if (empty($info)) list ($type, $info) = array('-', array($type));
   $cuid = @r\acct()->id;
   $agent = @r\acct()->agentId;
   $time = time();
@@ -504,6 +489,44 @@ function log($type, $info = array(), $special = '', $adhocChannel = FALSE) {
   $record = compact(ray('time channel type cuid agent info special'));
   return r\dbInsert('r_log', $record);
 }  
+
+/**
+ * Normalize an image file to the given aspect
+ * @param string $filename: path of file to normalize (file will be replaced)
+ * @param string $aspect: the desired width:height ratio
+ * @param int $factor: normalized size is the aspect times $factor.
+ * @param string $error: (returned) the error message, if any
+ * @return: TRUE for success, else FALSE
+ */
+function fixPicture($filename, $aspect, $factor, &$error) {
+  if (!$info = @getimagesize($filename)) return (!$error = 'not an image');
+  list ($w, $h) = $info;
+  list ($w0, $h0) = explode(':', $aspect);
+  $off = $w/$h - $w0/$h0; // how much is the aspect off by?
+  if (abs($off) > .35) return (!$error = 'aspect');
+  $k = 1 - $off * $h / $w; // wFactor, if we need to correct width
+  list ($wFactor, $hFactor) = $off > 0 ? array($k, 1) : array(1, 1 / $k);
+  $img = imagecreatefromjpeg($filename);
+  cropImage($img, ($w-$w*$wFactor)/2, ($h-$h*$hFactor)/2, $w*$wFactor, $h*$hFactor); // narrow or shorten
+  resizeImage($img, $w0 * $factor, $h0 * $factor);
+  if (!imagejpeg($img, $filename, 100)) return (!$error = 'file save error');
+  return TRUE;
+}
+
+function cropImage(&$img, $x, $y, $w, $h) {  
+  $canvas = imagecreatetruecolor($w, $h); // crop
+  $result = imagecopy($canvas, $img, 0, 0, $x, $y, $w, $h);
+  // NO! imagedestroy($canvas);
+  $img = $canvas;
+  return $result;
+}
+
+function resizeImage(&$img, $w, $h) {
+  $canvas = imagecreatetruecolor($w,$h);
+  $result = imagecopyresampled($canvas, $img, 0, 0, 0, 0, $w, $h, imagesx($img), imagesy($img));
+  $img = $canvas;
+  return $result;
+}
 
 /**
  * Encrypt the given file and save in new path.
@@ -626,9 +649,9 @@ function import_gfld() {
     $fax = $fax ? "+1$fax" : NULL;
     $state = stateAbbrev($state);
     $website = str_replace('https://', '', str_replace('http://', '', str_replace('www.', '', $website)));
-    $accountType = r\dbExists('r_user_industries', "iid IN (121,61) AND uid=:uid", compact('uid')) ? 2 : 1;
-    $sql = "UPDATE companies SET phone=:phone, fax=:fax, status=1, website=:website, name=:short_name, short_name=:short_name, state=:state, country='United States', timezone='America/New_York', accountType=:accountType WHERE uid=:uid";
-    r\dbQ($sql, compact(ray('short_name uid phone fax state website accountType')));
+    $acctType = r\dbExists('r_user_industries', "iid IN (121,61) AND uid=:uid", compact('uid')) ? 2 : 1;
+    $sql = "UPDATE companies SET phone=:phone, fax=:fax, status=1, website=:website, name=:short_name, short_name=:short_name, state=:state, country='United States', timezone='America/New_York', acctType=:acctType WHERE uid=:uid";
+    r\dbQ($sql, compact(ray('short_name uid phone fax state website acctType')));
 
     $cats = unserialize($categories);
     foreach ($cats as $industry) {
@@ -717,7 +740,7 @@ function trimAll(&$array) {
 function deb($arg = '') {
   global $counterI;
   $msgCount = count(@$_SESSION['messages']['status'] ?: array());
-  log(($counterI = @$counterI + 1) . " ($msgCount messages): " . print_r($arg, 1));
+  log(($counterI = @$counterI + 1) . " ($msgCount messages): " . print_r($arg, 1), 'debug');
 }
 
 /**
@@ -743,40 +766,17 @@ function formatNum($num, $format) {
   return preg_replace("|\\b$oldFormat\\b|", $newFormat, $num);
 }  
 
-function switchOnNEW() {
-/*
-SELECT DISTINCT
-  c.id, c.display_name AS fullName, c.contact_type AS accountType,
-  e.email,
-  w.url AS website,
-  p.phone,
-  a.street_address AS address, a.city, CONCAT('"',a.postalCode,'"') AS zip, IF(a.country_id=1228 OR a.country_id IS NULL, 'US', a.country_id) AS country, a.state_province_id AS state,
-  x.company_43 AS company, x.types_42 AS types, x.created_37 AS created
-  FROM ((((((`civicrm_contact` c INNER JOIN `civicrm_entity_tag` t ON t.entity_id=c.id)
-  LEFT JOIN civicrm_email e ON e.contact_id=c.id)
-  LEFT JOIN civicrm_website w ON w.contact_id=c.id)
-  LEFT JOIN civicrm_phone p ON p.contact_id=c.id)
-  LEFT JOIN civicrm_address a ON a.contact_id=c.id)
-  LEFT JOIN civicrm_value_extra_contact_fields_6 x ON x.entity_id=c.id)
-  WHERE t.tag_id=54
-  AND NOT c.is_deleted
-  AND (e.contact_id IS NULL OR e.is_primary=1)
-  AND (p.contact_id IS NULL OR p.is_primary=1)
-  ORDER BY display_name
-EOF;
-*/
-}
-
 // Single line functions that need no explanation
 function nn($a, $else = '') {return is_null($a) ? $else : $a;}
 function num($a, $else = 0) {return is_numeric($a) ? $a : $else;}
 function eq($a, $b, $else = FALSE) {return $a == $b ? $a : $else;}
 function neq($a, $b, $else = FALSE) {return $a != $b ? $a : $else;}
-function small($n) {return (($n < 0 ? -$n : $n) < .001);}
+function nray($a, $else = FALSE) {return !is_array($a) ? $a : $else;}
+function small($n) {return (abs($n) < .001);}
 function equy($a, $b) {return small($a - $b);} // sort of equal
 function valid_url($url) {return (\valid_url($url) and preg_match('/^[A-Z0-9\-_]+\.[A-Z0-9\-_]+/i', $url) and strpos($url, '@') === FALSE);}
 function abbreviates($s, $string) {return (substr($string, 0, strlen($s)) == $s);}
-function prlog($log = 'rCredits') {print_r(log($log));} // keep this
+function prlog($log = 'rCredits') {print_r(loga($log));} // keep this
 function order($first_first, $choice1, $choice2) {return $first_first ? array($choice1, $choice2) : array($choice2, $choice1);}
 function wargs($s, $args, $prefix = '') {return strtr($s, prefixKeys($prefix, $args));} // for debugging
 function myInt($n) {return (is_numeric($n) and $n == (int) $n);}
@@ -797,3 +797,4 @@ function monthDay1($time = REQUEST_TIME) {return strtotime(strftime('%b01'));}
 function prefix(&$var, $prefix) {$var = $prefix . $var;}
 function setDft(&$param, $value) {if (!isset($param)) $param = $value;}
 function bit($bit) {return 1 << $bit;}
+function log($message, $type = 'state', $info = array()) {return u\loga($type, compact('message') + $info);}

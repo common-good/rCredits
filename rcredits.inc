@@ -18,6 +18,7 @@ use rCredits\Backend as be;
 define('MINI_LAUNCH', TRUE);
 define('isDEV', @$_SERVER['WINDIR']); // developing on Windows (unlike production server)
 define('DWOLLA_TEST_ACCOUNT', '812-713-9234');
+define('STAGE', 'http://ws.rcredits.org'); // staging site
 
 define('R_VERSION', '1.0b'); // software version
 define('R_SEPARATE_BACKEND', FALSE);
@@ -25,7 +26,8 @@ define('R_DATA_FIELDS', ''); // fields stored in the account's "data" array fiel
 define('R_COMPANY_FIELDS', 'website description selling structure'); // fields in r_companies
 define('R_SECURE_FIELDS', 'type pin auth card_code'); // non-personal encrypted fields
 define('R_SECRET_FIELDS', 'federalId dob idProof answer'); // personal identifying information
-define('R_SECRET_URL', isDEV ? 'http://localhost/rcredits' : 'http://rcredits.org'); // where to store secrets
+define('R_SECRET_URL', isDEV ? 'http://localhost/rcredits' 
+  : ($_SERVER['HTTP_HOST'] == STAGE ? STAGE : 'http://rcredits.org')); // where to store secrets
 define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities can manage themselves
 
 define('R_TEMP_NAME_PREFIX', 'unknown ');
@@ -38,6 +40,7 @@ define('R_INVITE_DAYS', 7); // number of days to accept invitation to membership
 define('R_MINR_DEFAULT', 200); // suggested minimum amount to hold in rCredits
 define('R_MAXR_DEFAULT', 0); // suggested maximum amount to hold in rCredits
 define('R_CARDCODE_LEN', 20); // length of rCard security code (long to deter easy copying)
+define('R_CARD_COST', 5); // cost to order a company or replacement rCard
 define('R_FREEZE_TIME', '2 weeks'); // how long to freeze newly bought rCredits
 define('R_DEFAULT_PURPOSE', 'rCredits/USD exchange'); // default transaction purpose
 define('R_RBUY_QUANTUM', 10); // chunk size for buying rCredits (sales amounts are a multiple of this)
@@ -49,6 +52,7 @@ define('R_INDIVIDUAL_GIFT', 50); // suggested contribution for individuals
 define('R_COMPANY_GIFT', 250); // suggested contribution for companies
 define('R_BUYS_BEFORE_BONUS', MINI_LAUNCH ? 1 : 3); // number of purchases required before signup bonus
 define('R_REGION_MAX', isDEV ? 46000 : 3000000000); // maximum uids in a region (46k,3T ~sqrt(PHP_INT_MAX))
+define('R_DWOLLA_LINK', 'http://refer.dwolla.com/a/clk/3KkS2w');
 
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
@@ -73,9 +77,10 @@ define('R_PUBLICLY_TRADED', 8);
 
 // Permissions, options, and flags (flags field in account record)
 // If we need more bits, create a flags2 field and make the B_ defs negative for acct::hasBit and setBit
-define('B_MEMBER', 1); // signed the membership agreement, etc.
-define('B_OK', 2); // approved to use rCredits for real
-define('B_BONA', 3); // got signup bonus (good circles - received rC and bought from 3 members)
+define('B_MEMBER', 0); // signed the membership agreement, etc.
+define('B_OK', 1); // approved to use rCredits for real
+define('B_BONA', 2); // got signup bonus (good circles - received rC and bought from 3 members)
+define('B_unused3', 3); // 
 define('B_unused4', 4); // 
 define('B_PERSONAL', 5); // personal account
 define('B_COMPANY', 6); // company account (could be personal also, for independent contractor)
@@ -90,14 +95,15 @@ define('B_NOTIFY_SMS', 16); // notifications by SMS
 define('B_ELECTRONIC', 17); // will accept electronic statements
 define('B_SECRET_BAL', 18); // don't let merchants tell me my balance on request
 define('B_TO_BANK', 19); // automatically transfer excess US Dollars from Dwolla to bank account
-define('B_BORROWER', 20); // member chose to permit sub-zero balances
+define('B_DEBT_OK', 20); // member chose to permit sub-zero balances
 //define('B_MET', 8000); // has participated in a community meeting
 
 define('B_CTTY_ADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
 define('B_CLOSED', 31); // account is closed (data[new_account] has new qid)
 define('B_MAX', 31); // maximum bit number
-define('B_DEFAULTS', (1 << B_NOTIFY_EMAIL) | 0); // set what bits when creating a new account
+define('B_DFT', (1 << B_NOTIFY_EMAIL) | 0); // set what bits when creating a new account
+define('B_ADMINABLE', 'personal company member bona ctty_admin closed'); // for cttyAdmin to set
 
 // Relationship permissions used in calls to acct::can() -- the first 5 are stored, negated, in r_relations
 define('PERM_READ', 1);
@@ -361,27 +367,28 @@ function txRewardSetup($serial, $type, $payee, $state, $rewards, $tid) {
  */
 function transactionSetup($info) {
   global $channel; // through what medium was the transaction requested (web, SMS, etc.).
-  extract($info, EXTR_PREFIX_ALL, 'my');
-  $required_params = compact(u\prefixValues('my_', u\ray('amount payer payee')));
-  u\EXPECT($required_params, 'float zid zid');
+  $fields = 'type r state taking goods amount payer payee payerAgent payeeAgent created';
+  extract(u\just($fields . ' for', $info));
+  u\EXPECT(compact(u\ray('amount payer payee')), 'float zid zid');
+  u\EXPECT(r\acct($payer)->hasBit(B_OK) and r\acct($payee)->hasBit(B_OK), 'non rTraders in txsetup');
+  
+  u\setDft($type, TX_TRANSFER);
+  u\setDft($r, $amount);
+  u\setDft($state, TX_DONE);
+  u\setDft($taking, FALSE);
+  u\setDft($goods, FALSE);
+  u\setDft($for, R_DEFAULT_PURPOSE);
+  u\setDft($payerAgent, $payer);
+  u\setDft($payeeAgent, $payee);
+  u\setDft($created, REQUEST_TIME);
+  if (@$state !== TX_PENDING) $completed = $created;
+  $taking += 0;
+  $goods += 0;
 
-  u\setDft($info['type'], TX_TRANSFER);
-  u\setDft($info['r'], $my_amount);
-  u\setDft($info['state'], TX_DONE);
-  u\setDft($info['taking'], FALSE);
-  u\setDft($info['goods'], FALSE);
-  u\setDft($info['for'], R_DEFAULT_PURPOSE);
-  u\setDft($info['payerAgent'], $my_payer);
-  u\setDft($info['payeeAgent'], $my_payee);
-  u\setDft($info['created'], REQUEST_TIME);
-  if (@$my_state !== TX_PENDING) $completed = $info['created'];
-  $info['taking'] += 0;
-  $info['goods'] += 0;
-
-  list ($payerFor, $payeeFor) = is_array($my_for) ? $my_for : array($my_for, $my_for);
+  list ($payerFor, $payeeFor) = is_array($for) ? $for : array($for, $for);
   unset($info['for']);
 
-  return array_merge($info, compact(u\ray('completed payerFor payeeFor channel')));
+  return compact(u\ray($fields . ' completed payerFor payeeFor channel')) + $info;
 }
 
 /**
@@ -539,14 +546,21 @@ function notify($uid, $index, $info) {
  * If there is an appropriate bit to set, it will be set as appropriate.
  */
 function membershipEvent($acct, $status, $do = TRUE) {
-  $bit = @constant('B_' . strtoupper($status));
+  $bit = @constant('B_' . strtoupper($status)); // get the appropriate bit, if any
   if ($do and (!$bit or !$acct->hasBit($bit))) { // met the prerequisite and hasn't previously
-    if ($bit) $acct->setBit($bit, TRUE, TRUE);
-    if ($status == 'bona') be\fund($acct->id, TX_SIGNUP);
+    $DBTX = \transaction();
+    if ($bit) $acct->setBit($bit, TRUE, TRUE); // set the bit, if any
+    if ($status == 'bona') {
+      be\fund($acct->id, TX_SIGNUP, R_STARTING_BALANCE);
+      $amount = r\dbLookup('amount', 'r_gifts', 'uid=:id', array('uid' => $acct->id));
+      list ($payer, $payee, $for) = array($acct->id, \variable_get('cgf_uid'), t('membership contribution'));
+      r\transact(compact(u\ray('amount payer payee for')));
+    }
+    unset($DBTX);
     $fullName = $acct->fullName;
     $quid = $acct->mainQid;
     notifyStaff('Account @fullName (@quid) is now @status.', compact(u\ray('fullName quid status')));
-	return TRUE;
+	  return TRUE;
   } else return FALSE;
 }
 
@@ -650,24 +664,14 @@ function location($acct, $complete = FALSE) {
 }
 
 /**
- * Reset all rCredits data, to start development with a clean slate
- */
-function reset() {
-//  $ctty_uid = serverUid();
-  $sqls = array(
-    'TRUNCATE TABLE r_txs',
-    'TRUNCATE TABLE r_sms',
-//    "DELETE FROM users WHERE uid > $ctty_uid",
-    'TRUNCATE TABLE sessions',
-  );
-  foreach ($sqls as $sql) \db_query($sql);
-  \rebuild_menus();
-  drupal_goto('devel/cache/clear?destination=node');
-}
-
-/**
  * Look the field up in the table, returning the first record matching the criteria.
- * @params array $subs: optional substitutions -- keys will be prefixed by ':'
+ * @param string $fieldName: field name, function, or list of field names
+ *   A list of field names cannot contain a function or a left paren
+ * @param string $table: table to look in
+ * @param string $where: criteria (defaults to ALL)
+ * @param assoc $subs: optional substitutions -- keys will be prefixed by ':'
+ * @return: the value of what was looked up -- an assoc of values if a list of fields was requested
+ *   FALSE if none
  */
 function dbLookup($fieldName, $table, $where = '1', $subs = array()) {
   u\EXPECT(compact(u\ray('fieldName table where subs')), 'notempty notempty notempty assoc');
@@ -675,7 +679,7 @@ function dbLookup($fieldName, $table, $where = '1', $subs = array()) {
   $sql = "SELECT $fieldName FROM $table WHERE $where";
 //  debug(compact('sql','subs'));
   $result = dbQ($sql, $subs);
-  $fieldCount = substr($fieldName, 0, 3) == 'IF(' ? 1 : substr_count($fieldName, ',') + 1;
+  $fieldCount = strpos($fieldName, '(') ? 1 : substr_count($fieldName, ',') + 1; // function or array, not both
   $result = $fieldCount > 1 ? $result->fetchAssoc() : $result->fetchField();
   u\EXPECT($fieldCount == 1 or !$result or count($result) == $fieldCount, 'field count is off'); // eg, if $fieldName == 'a,a'
   return $result;
@@ -746,8 +750,10 @@ function quid($uid = '', $agentId = '', $regionId = '') {
 
 function qxid($xid, $regionId = R_SERVER_ID) {return qid($xid, $regionId = R_SERVER_ID, 4);} // Convert xid to qxid
 
-function region($state = '', $zip = '') {
-  $region = r\dbLookup('region', 'r_regions', "state=:state AND (zips='' OR :zip RLIKE zips)", compact('state', 'zip'));
+function region($country = '', $state = '', $zip = '') {
+  $where = "s.country_id=:country AND s.id=:state AND (r.zips='' OR :zip RLIKE r.zips)";
+  $region = r\dbLookup('region', 'r_regions r INNER JOIN r_states s ON r.state=s.abbreviation', $where, compact('state', 'zip', 'country'));
+  if (!$region) $region = r\dbLookup("CONCAT(iso_code, 'A')", 'r_countries', 'id=:country', compact('country'));
   return -u\a2n($region ?: 'ZZZ');
 }
 
@@ -958,16 +964,15 @@ function newMemberId($oldUid, $newUid = FALSE, $skipUsers = FALSE) {
 }
 
 /**
- * Check if an account needs a signup bonus. If so, give it.
+ * Check if an account needs a signup bonus.
  * @param int $uid: account id
- * @return: whether the signup bonus was given
+ * @return: whether the signup bonus is deserved
  */
 function checkBona($uid) {
   $acct = r\acct($uid);
   if ($acct->can(B_BONA)) return FALSE;
   if (!r\dbExists('r_txs', 'payee=:uid and r>0 and payer>0 and state=:TX_DONE', compact('uid'))) return FALSE;
   if (!r\dbLookup('COUNT(DISTINCT payee)', 'r_txs', 'payer=:uid and goods and state=:TX_DONE', compact('uid')) >= R_BUYS_BEFORE_BONUS) return FALSE;
-  be\fund($acct->id, TX_SIGNUP, R_STARTING_BALANCE);
   return TRUE;
 }
 
@@ -995,13 +1000,14 @@ function invite($email, $inviter, $code = '') {
  * Drupal urlencodes the parameters (= and &), so the target page will have to sort that out. (can't use Header() here)
  */
 function go($page) {
-  if (t\EST()) {
+  if (t\EST()) return t\pageForm($page);
+/*  if (t\EST()) {
     list ($form, $arg1) = ($page == 'pay' or $page == 'charge') ? array('tx', $page) : array($page, '');
     $form = function_exists("\\rCredits\\Web\\form$form") ? $form 
       : ($form = 'user/register' ? 'register'
       : "\\$form");
     return Web\showForm($form, $arg1);
-  }
+  } */
   \drupal_goto($page);
 }
 
@@ -1149,7 +1155,16 @@ function dbUpdate($table, $info, $key, $either = FALSE) {
   $sql = "$command $table SET " . substr($sql, 1) . ($key ? " WHERE $key=:$key" : '');
   try {
     $result = dbQ($sql, $info);
-    return $command == 'INSERT INTO' ? $result : TRUE;
+    if ($command == 'INSERT INTO') { // if there is no serial field, result will be false, so check
+      if ($result) return $result; // must have had a serial field -- return its value
+      require_once __DIR__ . '/rcredits-install.inc';
+      $schema = r\tableDefs();
+      $id = $table == 'users' ? 'uid' : $schema[$table]['primary key'][0];
+      u\EXPECT($id, 'no primary key in ' . __FUNCTION__);
+      $field1 = reset($schema[$table]['fields']);
+      if ($hasSerial = ($field1['type'] == 'serial')) return FALSE;
+      return dbLookup($id, $table, "$id=:$id", array($id => $info[$id])); // return the supplied id if success
+    } else return TRUE;
   } catch (Exception $e) {return FALSE;} 
 }
 
@@ -1164,7 +1179,7 @@ function dbInsert($table, $info) {return dbUpdate($table, $info, '');}
 
 function error($logid) {
   $info = dbLookup('info', 'r_log', 'logid=:logid', compact('logid'));
-  if ($info) $info = json_decode(utf8_encode($info)); else $info = 'unknown error';
+  if ($info) $info = json_decode(utf8_encode($info)); else $info = 'unknown error (probably too big for json -- see r_log)';
   print_r($info); // keep this for now
 //  drupal_set_message(print_r($info, 1), 'error');
 //  drupal_goto('');

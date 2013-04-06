@@ -9,131 +9,41 @@ use rCredits as r;
  * Forms for managing transactions, and related functions
  */
 
-define('TX_OPT_CHANNELS', 0);
-define('TX_OPT_AGENTS', 0);
+define('TX_OPT_CHANNELS', 1);
+define('TX_OPT_AGENTS', 2);
 
 /**
  * List Transactions
- * @todo: restrict how much can be displayed on screen (avoid memory overflow)
  */
 function formTxs($form, &$sta, $args = '') {
   global $base_url;
-  $maxRows = 20;
   $cacct = r\acct();
-  $cuid = $cacct->id;
-  $cttyAdmin = $cacct->can(B_CTTY_ADMIN);
   
   extract(u\just('agents channels period starting ending do xid download downloaded variety', $args)); 
-  $report = $cttyAdmin ? (@$variety == 'report') : FALSE; // no community reports yet for non-admins
-  
-  if ($report) { // community transaction history
-    $page = 'reports';
-    $classes = 'tid date from to amount r usd rpct state purpose reward';
-    $headers = t('#,Date,From,To,Total,rCredits,USD,r%,Status,Purpose,Rewards');
-  } else { // individual account transaction history
-    $page = 'transactions';
-    $do = in_array(@$do, u\ray('ok no edit')) ? $do : '';
-    $xid = (int) (@$xid ?: 0);
-    if ($do == 'edit') return tx_edit($xid);
-    if ($do == 'ok' or $do == 'no') {
-      if ($confirm = txConfirm($do, $xid, $sta)) return $confirm;
-      if (!$sta['rebuild']) txOKorNO($do, $xid); // don't do anything if canceling
-      $url = str_replace('&do=', '&did=', "transactions/$args"); // don't do it again
-      r\go($url); // back to the normal form
-    }
-    $classes = 'tid date name fromyou toyou rpct state buttons purpose reward';
-    $headers = t('#,Date,Name,From you,To you,r%,Status,Action,Purpose,Reward');
-    if (@$agents) {$classes .= ' agent'; $headers .= t(',Agent');}
-    list ($canSell, $canBuy) = array($cacct->can(B_SELL), $cacct->can(B_BUY));
-  }
+  $report = $cacct->can(B_CTTY_ADMIN) ? (@$variety == 'report') : FALSE; // no community reports yet for non-admins
+  if (!$report and @$do) if ($result = handleTx($do, $xid, $sta, $args)) return $result;
+
+  $page = $report ? 'reports' : 'transactions';
   $url0 = @"$base_url/$page/period=$period&agents=$agents&channels=$channels&variety=$variety";
-  if (@$channels) {$classes .= ' channel'; $headers .= t(',Via');}
-  $classes = u\ray($classes);
-  
+  list ($classes, $header) = txFields($report, @$download, @$agents, @$channels);
+ 
   $txDays = array('1' => 'today', '4' => '4 days', '30' => '30 days', '90' => '90 days', '180' => '6 months', '365' => '12 months', '-1' => 'Year to date');
   list ($starting, $ending) = txDates($txDays, @$period, @$starting, @$ending);
+  $maxRows = @$download ? PHP_MAX_INT : 20; // don't overwhelm the screen
+  $csv = @$download ? setupDownload($starting, $ending) : FALSE;
+  if (@$download) fputcsv($csv, $header);
 
-
-  $txChannels = u\ray(TX_CHANNELS);
-  $txStates = u\ray(TX_STATES);
-  $title = "<div id='txs-title'>TRANSACTIONS</div>";
-  $header = u\ray($headers);
-
-  if (@$download) {
-    header('Content-type: text/plain');
-    $dt1 = strftime('%Y%m%d', $starting);
-    $dt2 = strftime('%Y%m%d', $ending);
-    $filename = "rcredits$dt1-$dt2.csv";
-    header("Content-Disposition: attachment; filename=\"$filename\"");
-    $csv = fopen('php://output', 'w');
-    
-    $header = array_combine($classes, $header); // make splice cleaner
-    u\splice($header, 'buttons', 1); // don't download buttons
-    u\splice($header, 'date', 0, t('Created')); // insert creation date
-    $header = array_values($header);
-    fputcsv($csv, $header);
-  }
-
-//  $records = be\myTransactions(compact(u\ray('starting ending'))); // we use $rows for another purpose, below
-  $result = be\myTransactions(compact(u\ray('starting ending'))); // we use $rows for another purpose, below
+  // build the transaction list
+  $result = be\myTransactions(compact(u\ray('starting ending')));
   $rows = array();
   for ($rowNum = 0; $rowNum < $maxRows; $rowNum++) {
-    if (!$record = $result->fetchAssoc()) break;
-//  foreach ($records as $record) {
-    extract($record, EXTR_PREFIX_ALL, 'tx');
-    $xid = $tx_xid;
-    $data = unserialize($tx_data);
-    $is_reward = ($tx_type != TX_TRANSFER);
-    $amount = number_format($tx_r, 2);
-    $total = number_format($tx_amount, 2);
-    $usd = number_format($tx_amount - $tx_r, 2);
-    $rpct = $tx_amount ? number_format(100 * $tx_r / $tx_amount, 1) : R_NONE;
-    if ($rpct == '100.0') $rpct = '100'; // keep the field narrow (4 chars max)
-    $rpct = "<span title=\"r$$amount + us$$usd = $$total\">$rpct</span>";
-    $date = @$tx_completed ?: $tx_created;
-    
-    if ($report) { // community transaction history
-      $reward = @$data['bonus'] + @$data['rebate'];
-      txNeatAmounts($amount, $reward, $is_reward);
-      $state = txColoredState($tx_state);
-      $tid = $xid; // for community use the actual transaction numbers
-      $row = array($tid, strftime('%d-%b-%Y', $date), r\acct($tx_payer)->fullName, r\acct($tx_payee)->fullName, $total, $amount, $usd, $rpct, $state, $tx_purpose, $reward);
-    } else { // individual account transaction history
-      $url = $url0 . "&xid=$xid";
-      $toMe = ($tx_payee == $cuid);
-      $byMe = ($tx_taking == $toMe);
-      $tid = $toMe ? $tx_payeeTid : $tx_payerTid;
-      $agent = $toMe ? $tx_payeeAgent : $tx_payerAgent;
-      $state = txColoredState($tx_state, $byMe);
-      $reward = @$data[$toMe ? 'bonus' : 'rebate'];
-      txNeatAmounts($amount, $reward, $is_reward);
-      list ($to_you, $from_you) = $toMe ? array($amount, R_NONE) : array(R_NONE, $amount);
-      $button1 = (!$byMe and $tx_state == TX_PENDING) ? button('OK', "$url&do=ok", tx_action('ok', $tx_state, $toMe, $byMe)) : '';
-      $button2 = ((!$is_reward or $cttyAdmin) and !@$data['undoneBy']) ? button(' X ', "$url&do=no", tx_action('no', $tx_state, $toMe, $byMe)) : '';
-      $button3 = (($tx_taking ? $canSell : $canBuy) and !$is_reward) ? "<a href='$url&do=edit' title='Edit Purpose'><img src='$base_url/sites/all/modules/rcredits/images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
-      $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
-      $row = array($tid, strftime('%d-%b', $date), $tx_name, $from_you, $to_you, $rpct, $state, $buttons, $tx_purpose, $reward);
-      if (@$agents) $row[] = ($agent == $cuid or $agent < 0) ? R_NONE : (@$download ? r\qid($agent) : u\n2a($agent, 3));
-      // might optionally show both agents for reports someday
-    }
-
-    if (@$channels) $row[] = $txChannels[$tx_channel];
-
-    if (@$download) {
-      $row = array_combine($classes, $row); // associate to make deletions cleaner
-      u\splice($row, 'buttons', 1); // remove buttons if they exist
-      u\splice($row, 'date', 0, strftime('%Y-%m-%d', $tx_created)); // insert full creation date
-      $row['date'] = @$tx_completed ? strftime('%Y-%m-%d', $tx_completed) : ''; // show FULL date completed
-      $row['state'] = $txStates[$tx_state]; // transaction state
-      foreach ($row as $key => $value) $row[$key] = $value == R_NONE ? '' : strip_tags($value);
-      $row = array_values($row);
-      fputcsv($csv, $row); // not STDOUT
-    } else $rows[] = $row;
+    if (!$tx = $result->fetchAssoc()) break;
+    $rows[] = doRow($tx, $report, $csv, $classes, @$channels, @$agents, $url0);
   }
-
+  if ($tx and $result->fetchAssoc()) say('transaction list truncated'); // there was more than we could show
   if (@$download) exit();
-  if ($record and $result->fetchAssoc()) say('transaction list truncated'); // there was more than we could show
 
+  // prepare screen display
   $classes = u\prefixValues('tx-', $classes);
   $attributes = array('id' => 'txlist');
   $cols = array();
@@ -142,28 +52,21 @@ function formTxs($form, &$sta, $args = '') {
   $caption = $sticky = '';
   $empty = tt('no txs');
   $list = theme_table(compact(u\ray('header rows attributes caption colgroups sticky empty')));
+//  $transactions = formField('markup', '', '', array('markup' => "<div id=\"txs-title\">TRANSACTIONS</div>$list <br>&nbsp;"));
+  $transactions = item("<div id=\"txs-title\">TRANSACTIONS</div>$list <br>&nbsp;");
   
-//  $channels = formField('checkbox', '', t('channels'), dft(@$channels));
   $optDefaults = array();
-  $opts = array('channels');
-  if (@$channels) $optDefaults[] = TX_OPT_CHANNELS;
-  
+  $opts = array(TX_OPT_CHANNELS => 'channels');
+  if (@$channels) $optDefaults[] = 'channels';
   if ($report) {
-//    $channels['#title'] = t('Show:');
-    $agents = $do = $summary = NULL;
+    $agents = $summary = NULL;
   } else {
-//    $agents = formField('checkbox', t('Show:'), t('agents'), dft(isset($agents) ? $agents : $cacct->can(B_COMPANY)));
-    $opts[] = 'agents';
-    if (isset($agents) ? $agents : !$cacct->can(B_PERSONAL)) $optDefaults[] = TX_OPT_AGENTS;
-    $do = formField('hidden', $do);
+    $opts[TX_OPT_AGENTS] = 'agents';
+    if (isset($agents) ? $agents : !$cacct->can(B_PERSONAL)) $optDefaults[] = 'agents';
     $summary = formField('markup', '', '', array('markup' => tx_summary($starting, $ending)));
   }
 
-  $optDefaults = array();
-  $opts = array(1 => 'channels', 2 => 'agents');
-  $opts = formField('checkboxes', t('Show:'), '', '', $opts);
-//  $opts = formField('checkboxes', t('Show:'), '', '', $opts);
-
+  $opts2 = boxField('opts', t('Show:'), '', $optDefaults, $opts);
   $divider = item('<hr>');
   $period = formField('select', t('For the past:'), '', dft(@$period ?: TX_DEFAULT_PERIOD), $txDays);
   $submitPeriod = submit(t('Show ')); // label has to be different from submitDates (see below)
@@ -172,15 +75,133 @@ function formTxs($form, &$sta, $args = '') {
   $ending = textField(t('Ending:'), '', dft(u\formatDate($ending)));
   $submitDates = submit(t(' Show')); // label has to be different (Drupal bug -- else can't tell which is clicked)
   $downloadDates = submit(t('Download'));
-  $transactions = formField('markup', '', '', array('markup' => $title . $list . '<br>&nbsp;'));
+  $title = "";
   $title = item(t('rCredits Transaction History'));
   $subtext = item(t('Only the rCredits part of each transaction is shown. The "r%" column tells what percentage this represents of the total transaction amount. Hover over that figure to see the total and US Dollar amounts.'));
 
-  $form = compact(u\ray('title subtext opts divider period submitPeriod downloadPeriod starting ending submitDates downloadDates summary transactions'));
+  $form = compact(u\ray('title subtext opts2 divider period submitPeriod downloadPeriod starting ending submitDates downloadDates summary transactions'));
   if (@$downloaded) js("window.open(\"$url0&download=1\")", 'inline', 'footer');
   return labeled($form);
 }
 
+function setupDownload($starting, $ending) {
+  header('Content-type: text/plain');
+  $dt1 = strftime('%Y%m%d', $starting);
+  $dt2 = strftime('%Y%m%d', $ending);
+  $filename = "rcredits$dt1-$dt2.csv";
+  header("Content-Disposition: attachment; filename=\"$filename\"");
+  $csv = fopen('php://output', 'w');
+}
+
+function handleTx($do, $xid, $sta, $args) {
+  if (!$xid = (int) @$xid) return FALSE;
+  if ($do == 'edit') return tx_edit($xid);
+  if ($do == 'ok' or $do == 'no') {
+    if ($confirm = txConfirm($do, $xid, $sta)) return $confirm;
+    if (!$sta['rebuild']) txOKorNO($do, $xid); // don't do anything if canceling
+    $url = str_replace('&do=', '&did=', "transactions/$args"); // don't do it again
+    r\go($url); // back to the normal form
+  }
+  return FALSE;
+}
+ 
+function txFields($report, $download, $agents, $channels) {
+  if ($report) { // community transaction history
+    $classes = 'tid date from to amount rpct r usd usdTid state purpose reward';
+    $headers = t('#,Date,From,To,Total,r%,rCredits,USD,USD#,Status,Purpose,Rewards');
+  } else { // individual account transaction history
+    $classes = 'tid date name fromyou toyou rpct r usd usdTid state buttons purpose reward';
+    $headers = t('#,Date,Name,From you,To you,r%,rCredits,USD,USD#,Status,Action,Purpose,Reward');
+    if (@$agents) {$classes .= ' agent'; $headers .= t(',Agent');}
+  }
+  if (@$channels) {$classes .= ' channel'; $headers .= t(',Via');}
+  $classes = u\ray($classes);
+  $header = u\ray($headers);
+
+  if (@$download) {  
+    $header = array_combine($classes, $header); // make splice cleaner
+    u\splice($header, 'rpct', 1); // don't download rpct
+    u\splice($header, 'buttons', 1); // don't download buttons
+    u\splice($header, 'date', 0, t('Created')); // insert creation date
+    $header = array_values($header);
+  }
+  
+  return array($classes, $header);
+}
+
+/**
+ * Prepare one transaction row for output (or download).
+ * @param assoc $tx: the transaction record
+ * @param file $csv: the (open) download file or FALSE if not downloading
+ *
+ * @return: the row
+ */
+function doRow($tx, $report, $csv, $classes, $channels, $agents, $url0) {
+  global $base_url;
+  $cacct = r\acct();
+  $cuid = $cacct->id;
+  $txChannels = u\ray(TX_CHANNELS);
+  $txStates = u\ray(TX_STATES);
+
+  extract($tx, EXTR_PREFIX_ALL, 'tx');
+  $xid = $tx_xid;
+  $data = unserialize($tx_data);
+  $is_reward = ($tx_type != TX_TRANSFER);
+  $amount = number_format($tx_r, 2);
+  $total = number_format($tx_amount, 2);
+  $usd = number_format($tx_amount - $tx_r, 2);
+  $rpct = $tx_amount ? number_format(100 * $tx_r / $tx_amount, 1) : R_NONE;
+  if ($rpct == '100.0') $rpct = '100'; // keep the field narrow (4 chars max)
+  $rpct = "<span title=\"r$$amount + us$$usd = $$total\">$rpct</span>";
+  $date = @$tx_completed ?: $tx_created;
+  
+  if ($report) { // community transaction history
+    $reward = @$data['bonus'] + @$data['rebate'];
+    txNeatAmounts($amount, $reward, $is_reward);
+    $state = txColoredState($tx_state);
+    $tid = $xid; // for community use the actual transaction numbers
+    $row = array($tid, strftime('%d-%b-%Y', $date), r\acct($tx_payer)->fullName, r\acct($tx_payee)->fullName, $total, $rpct, $amount, $usd, $tx_usdXid, $state, $tx_purpose, $reward);
+  } else { // individual account transaction history
+    $url = $url0 . "&xid=$xid";
+    $toMe = ($tx_payee == $cuid);
+    $byMe = ($tx_taking == $toMe);
+    $tid = $toMe ? $tx_payeeTid : $tx_payerTid;
+    $agent = $toMe ? $tx_payeeAgent : $tx_payerAgent;
+    $state = txColoredState($tx_state, $byMe);
+    $reward = @$data[$toMe ? 'bonus' : 'rebate'];
+    txNeatAmounts($amount, $reward, $is_reward);
+    list ($to_you, $from_you) = $toMe ? array($amount, R_NONE) : array(R_NONE, $amount);
+    $button1 = (!$byMe and $tx_state == TX_PENDING) ? button('OK', "$url&do=ok", tx_action('ok', $tx_state, $toMe, $byMe)) : '';
+    $button2 = ((!$is_reward or $cacct->can(B_CTTY_ADMIN)) and !@$data['undoneBy']) ? button(' X ', "$url&do=no", tx_action('no', $tx_state, $toMe, $byMe)) : '';
+    $button3 = ($cacct->can($tx_taking ? B_SELL : B_BUY) and !$is_reward) ? "<a href='$url&do=edit' title='Edit Purpose'><img src='$base_url/sites/all/modules/rcredits/images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
+    $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
+    $row = array($tid, strftime('%d-%b', $date), $tx_name, $from_you, $to_you, $rpct, $amount, $usd, $tx_usdXid, $state, $buttons, $tx_purpose, $reward);
+    if (@$agents) $row[] = ($agent == $cuid or $agent < 0) ? R_NONE : ($csv ? r\qid($agent) : u\n2a($agent, 3));
+    // might optionally show both agents for reports someday
+  }
+
+  if (@$channels) $row[] = $txChannels[$tx_channel];
+
+  if ($csv) {
+    $row = array_combine($classes, $row); // associate to make deletions cleaner
+    u\splice($row, 'buttons', 1); // remove buttons if they exist
+    u\splice($row, 'date', 0, strftime('%Y-%m-%d', $tx_created)); // insert full creation date
+    $row['date'] = @$tx_completed ? strftime('%Y-%m-%d', $tx_completed) : ''; // show FULL date completed
+    $row['state'] = $txStates[$tx_state]; // transaction state
+    foreach ($row as $key => $value) $row[$key] = $value == R_NONE ? '' : strip_tags($value);
+    $row = array_values($row);
+    fputcsv($csv, $row); // not STDOUT
+    return TRUE;
+  } else return $row;
+}
+
+/**
+ * Return a form to confirm the transaction operation.
+ * @param string $do: the action to confirm
+ * @param int $xid: record id of transaction to confirm an operation on
+ * @param assoc $sta: Drupal's status array (gets member 'confirm' set)
+ * @return: the form (FALSE on error or if already confirming)
+ */
 function txConfirm($do, $xid, &$sta) {
   $cuid = r\acct()->id;
   if (confirming_v($sta)) return FALSE;
@@ -192,19 +213,16 @@ function txConfirm($do, $xid, &$sta) {
 }
 
 function formTxs_validate($form, &$sta) {
-  debug($sta['values']);
-  debug($sta['input']);
-  debug($_POST);
   $txDays = @$form['period']['#options'];
-  extract(u\just('period starting ending op', $sta['values']));
-  list ($sta['values']['starting'], $sta['values']['ending']) = strpos(op($sta), 'Period') ? txDates($txDays, @$period) : txDates($txDays, '', @$starting, @$ending);
+  extract(u\just('period starting ending op', $sta['input']));
+  list ($sta['input']['starting'], $sta['input']['ending']) = op($sta) == 'submitPeriod' ? txDates($txDays, @$period) : txDates($txDays, '', @$starting, @$ending);
 }
 
 function formTxs_submit($form, &$sta, $page = 'transactions') {
-  global $base_url;
   if (confirming_s($sta)) return;
-  extract(u\just('period starting ending options op', $sta['values']));
-  //$channels = 
+  extract(u\just('period starting ending opts op', $sta['input']));
+  $channels = @$opts[TX_OPT_CHANNELS] ? 1 : 0;
+  $agents = @$opts[TX_OPT_AGENTS] ? 1 : 0;
   $url = @"$page/period=$period&starting=$starting&ending=$ending&agents=$agents&channels=$channels";
   if ($op == t('Download')) {
     say('downloading');
@@ -279,6 +297,11 @@ function txOKorNO($tx_task, $xid) {
   say($message, $args);
 }
 
+/**
+ * Return a form to edit the given transaction.
+ * @param int $xid: the transaction id
+ * @return the form (FALSE on error)
+ */
 function tx_edit($xid) {
   if (!$details = be\lastTx('xid=:xid', compact('xid'), TRUE)) return FALSE; // bail on hack attempt
   extract(u\just('taking purpose role', r\txReportArgs($details)));
@@ -310,6 +333,9 @@ function tx_edit_submit($form, &$sta) {
 
 function txBal($bal, $plus = '', $minus = '- ') {return ($bal < 0 ? $minus : $plus) . '$' . number_format(abs($bal), 2);}
 
+/**
+ * Return the transaction summary table
+ */
 function tx_summary($starting, $ending) {
   $cuid = r\acct()->id;
   $previous_ending = $starting - 1;
@@ -323,6 +349,8 @@ function tx_summary($starting, $ending) {
   }
   extract($dif, EXTR_PREFIX_ALL, 'dif');
   extract($pfancy, EXTR_PREFIX_ALL, 'pfancy');
+  $pending_committed += $dif['committed']; // this will include all pending commitments since day 1 (?!)
+  $pfancy_committed = u\formatAmount($pending_committed);
   
   $starting = u\formatDate($starting);
   $ending = u\formatDate($ending);
@@ -337,7 +365,7 @@ function tx_summary($starting, $ending) {
     array('id' => 'txsum-headers', 'data' => u\ray('Starting balance,,To You,,From You,,Rewards,,To CGF,,Ending balance')),
     array(
       'id' => 'txsum-now', 
-      'data' => u\ray("$old_balance | + | $dif_grossInProper | - | $dif_grossOut | + | $dif_rewards | - | $dif_committed | = | $now_balance"),
+      'data' => u\ray("$old_balance | + | $dif_grossInProper | - | $dif_grossOut | + | $dif_rewards | - |  | = | $now_balance"),
     ),
     array(
       'id' => 'txsum-pending',

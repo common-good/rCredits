@@ -83,7 +83,7 @@ function rcredits_exception_handler($e) {
   $short_msg = "<b>Exception:</b> The rCredits System has detected an unusual problem. If your activity was interrupted, please feel free to try again.<br>\n";
   $msg = "$short_msg<br>\n($msg)<br>\n- $line0 ($file0)" . $trace_msg;
   $message = str_replace('&nbsp;', '', str_replace('<br>', '', $msg));
-  $R_FATAL_ERROR = u\log('FATAL', compact('message'));
+  $R_FATAL_ERROR = u\loga('FATAL', compact('message'));
   if (t\EST()) print_r($msg, 1); // do this in any case (doesn't show up unless interface fails)
 
   switch (@$channel) {
@@ -157,7 +157,7 @@ function rcredits_mail($key, &$msg_array, $info) {
       r\acct::setDefault($acct);      
       global $channel; if (!$channel) $channel = TX_WEB;
     }
-    u\log('email', $fields);
+    u\loga('email', $fields);
 
 //    $msg_array['subject'] = t('Notification from !site', $variables, compact('langcode'));
 //    $msg_array['body'][] = t("Dear !username\n\nThere is new content available on the site.", $variables, compact('langcode'));

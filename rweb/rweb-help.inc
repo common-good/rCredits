@@ -134,6 +134,53 @@ EOF
       <p>This "To bank" setting is usually a good idea unless you use your Dwolla account outside the rCredits system. It can take up to 3 days for the bank to receive the funds, once they are sent.</p>
 EOF
     ),
+    'issue-credit' => t(<<<EOF
+      <p>rCredits are a type of credit. Like any medium of exchange, they represent value. They make it possible for us to trade goods and services with each other in our community, without having to trade something directly with whoever has what we want, and without having to give them something of precisely the same value. The medium of exchange lets us give any amount of our goods or services to any participant in the economy, then receive the same value of goods or services from some other participant(s). If everyone both buys and sells, the credits move through the community in interconnected circles of exchange.</p>
+
+      <p>Issuing rCredits is a community responsibility. This is the key to creating a Common Good Economy. We must issue as much credit as we need, to enable our exchanges of goods and services -- but no more than the value that we as a community are capable of producing.  Once rCredits become well-established and popular in a community, we can issue them together, with careful planning, as grants, loans, and equity investments. Together we can fund whatever enterprises and activities we decide would be best -- for our community, for communities elsewhere, and for the world.</p>
+EOF
+    ),
+    'common-good-community' => t(<<<EOF
+      <p>The purpose of the rCredits system is to create and fund community-centered participatory democracy. A community that has met the <a href='$base_url/help/common-good-community-requirements'>requirements</a> to become a Common Good Community may apply to Common Good Finance for certification. This certification permits the community to issue rCredits independently -- deciding for itself how many rCredits to issue (within safe limits) and what to fund with them.</p>
+
+      <p>A Common Good Community is in "good standing" when it is issuing rCredits responsibly so that they accurately represent the reality and potential of its members to produce goods and services to back those rCredits.  A Common Good Community may lose its good standing status if it runs up a trade deficit with other Common Good Communities that it fails to redeem in timely manner. Common Good Finance and the other communities will provide ongoing feedback, to prevent this from happening accidentally.</p>
+EOF
+    ),
+    'graceful-failure' => t(<<<EOF
+       <p>Common Good Finance has put great care into designing the rCredits system so that it will NOT fail. Paradoxically, one requirement for its success is a detailed plan for a graceful shutdown. In the unlikely event that the whole rCredits system proves to be unworkable, the rCredits Agreement give us a way to end without leaving anyone "holding the bag".</p>
+       
+       <p>As part of the agreement, you promise to give back all the free money you received -- as signup bonus, rebates, and sales bonuses. You can do that either by continuing to accept rCredits until your balance is equal to your total incentive rewards (then returning them to the community) OR you can substitute US Dollars for any missing rCredits. Complementarily, if you have more rCredits than you received as incentive rewards, you will be able to continue to make purchases with them for a short time, or trade them for other members' US Dollars that <i>they</i> returned to the community. Once a Common Good Community has ongoing revenue to cover its expenses and any incentive rewards, it is no longer in any danger of ending abruptly.</p>
+EOF
+    ),
+    'ethics' => t(<<<EOF
+      <p>A Common Good Community is relying on its members to exhibit a high level of ethical behaviour, as the basis for creating a culture of trust and possibility.  Of course it is always possible for someone to "game" the system and we will continue to develop software that brings such misbehavior to the attention of the community. Sometimes what looks like unethical behavior is in reality a desperate bid to escape from poverty. It is our responsibility as a community to think well about what our members need and want, and use the funding power of rCredits accordingly, so that such desperation is never necessary.</p>
+EOF
+    ),
+    'dispute-resolution-process' => t(<<<EOF
+      <p>Disputes between rCredits members will be resolved as follows:</p>
+         <ol>
+           <li>The members will work together cooperatively in good faith to attempt to resolve the matter themselves, amicably.</li>
+           <li>If, after 30 days, the members have been unable to agree on a resolution, at the request of either member the members will attempt to resolve the matter creatively with the help of a mediator.</li>
+           <li>Failing such resolution, at the initiative of either member, the members will submit the matter to binding arbitration at the nearest <a href="http://jamsadr.com" target="_blank">JAMS</a> Center.</li>
+         </ol>
+EOF
+    ),
+    'paying-attention' => t(<<<EOF
+      <p>Common Good Finance and the rCredits system will give you regular feedback on how your actions impact on your finances and on the well being of the community. In order for this feedback to be effective, you have to pay attention to it. Please feel free to make suggestions to improve the quality or timing of the feedback.</p>
+EOF
+    ),
+    'decision-process' => t(<<<EOF
+      <p>Each Common Good Community will decide for itself how to manage its decision making, so that active participation by all members is valued and encouraged. Common Good Finance is developing recommendations for best practices.</p>
+EOF
+    ),
+    'other-decisions' => t(<<<EOF
+      <p>From time to time, members will need to make a variety of non-financial decisions. Trustees need to be elected. Policies and procedures ocasionally need to be revised. Other issues may arise.</p>
+EOF
+    ),
+    'common-good-community-requirements' => t(<<<EOF
+      <p>Requirements for certification as a Common Good Community are not yet finalized. They may include such things as qualified leadership, minimum size, experience using the rCredits system, diversity of participants, and successful completion of a training program.</p>
+EOF
+    ),
   );
 
   $helps['charge'] = strtr($helps['pay'], array('pay' => 'charge', $paySpecial => ''));  

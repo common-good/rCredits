@@ -50,43 +50,25 @@ class rwebSignup extends DrupalWebTestCase {
     }
   }
 
-  // Scenario: A newbie visits the registration page with no invite
-  public function testANewbieVisitsTheRegistrationPageWithNoInvite_0() {
-    $this->setUp2(__FUNCTION__, 0);
-    Given('invitation to email "a@example.com" is ""');
-    When_('member "?" visits page "user/register"');
-    Then_('we show page "user/register" with: "DATA'
-    . '\\| errorPhrase         |'
-    . '\\| you must be invited |"');
-  }
-
-  // Scenario: An invited newbie visits the registration page
-  public function testAnInvitedNewbieVisitsTheRegistrationPage_0() {
-    $this->setUp2(__FUNCTION__, 0);
-    Given('invitation to email "a@example.com" is "Th15_i5_A_rAnd0M_c0D"');
-    When_('member "?" visits page "user/register/code=Th15_i5_A_rAnd0M_c0D"');
-    Then_('we show page "user/register" with: "DATA'
-    . '\\| nameDescription      |'
-    . '\\| properly capitalized |"');
-  }
-
   // Scenario: A newbie registers
   public function testANewbieRegisters_0() {
     $this->setUp2(__FUNCTION__, 0);
-    Given('invitation to email "a@example.com" is "Th15_i5_A_rAnd0M_c0D"');
-    When_('member "?" confirms form "user/register/code=Th15_i5_A_rAnd0M_c0D" with values: "DATA'
-    . '\\| fullName | email         | country | postalCode | state | city  | accountType | code        |'
-    . '\\| Abe One   | a@example.com | US    | 01001       | MA    | Amherst | %R_PERSONAL  | Th15_i5_A_rAnd0M_c0D |"');
+    Given('invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"');
+    When_('member "?" confirms form "user/register/code=s0M3_rAnd0M_c0D3" with values: "DATA'
+    . '\\| fullName | email         | country | postalCode | state | city  | acctType | code        |'
+    . '\\| Abe One   | a@example.com | US    | 01001       | MA    | Amherst | %R_PERSONAL  | s0M3_rAnd0M_c0D3 |"');
     Then_('members: "DATA'
-    . '\\| id      | fullName | email         | country | postalCode | state | city    | accountType | flags    |'
-    . '\\| NEW.ZZA | Abe One   | a@example.com | US | 01001       | MA    | Amherst | %R_PERSONAL  |  |"');
+    . '\\| id      | fullName | email         | country | postalCode | state | city    | flags |'
+    . '\\| NEW.AAC | Abe One   | a@example.com | US | 01001       | MA    | Amherst | dft,personal |"');
     And__('we say "status": "your account is ready" with subs: "DATA'
     . '\\| quid    | balance |'
-    . '\\| NEW.ZZA | $250    |"');
+    . '\\| NEW.AAC | $250    |"');
     And__('we email "welcome" to member "a@example.com" with subs: "DATA'
     . '\\| fullName | name   | quid    | oneTimeLoginUrl |'
     . '\\| Abe One  | abeone | NEW.ZZA | (varies)        |"');
-    And__('member is logged out');
+    And__('we show page "user/login" with: "DATA'
+    . '\\| name   |'
+    . '\\| abeone |"');
   }
 
 }

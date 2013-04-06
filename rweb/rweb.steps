@@ -55,6 +55,8 @@ function extraSubs(&$subs) {
 //  $subs['%replace_this'] = 'with this';
 }
 
+function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, $info);}
+
 /**
  * member (ARG) completes form (ARG) with values: (ARG)
  *
@@ -66,10 +68,10 @@ function memberCompletesFormWithValues($id, $formName, $values, $confirmed = FAL
 //  global $testOnly; if ($testOnly) return FALSE;
   global $testConfirmation; // confirmation message output, if any
 
+  if (r\dbExists('users', "name='abeone'")) die('1 ' . print_r(debug_backtrace(), 1));
   $values = $values[0];
   t\fixCountryAndState($values);
   if (@$values['email']) $values = u\changeKey('email', 'mail', $values);
-  $sta['values'] = $sta['input'] = $values;
   
   t\logIn($id);
 
@@ -78,8 +80,14 @@ function memberCompletesFormWithValues($id, $formName, $values, $confirmed = FAL
     $formName = 'Tx';
   } else $confirmed = TRUE;
 
-  //  if (!$confirmed) foreach (t\postProcess($form, $formName, 'validate') as $one) {
   $errorsBefore = t\getErrors();
+  
+  $dfts = array();
+  foreach ($form as $key => $field) if (substr($key, 0, 1) != '#') {
+//    u\setDft($dft, @$field['#default_value']);
+    if ($field['#type'] == 'hidden') $dfts[$key] = $field['#value'];
+  }
+  $sta['values'] = $sta['input'] = $values + $dfts;
   if (!$confirmed) foreach (t\postProcess($form, $formName, 'validate') as $one) $one($form, $sta);
 
   if (count($errors = t\getErrors()) > count($errorsBefore)) {
@@ -89,7 +97,9 @@ function memberCompletesFormWithValues($id, $formName, $values, $confirmed = FAL
     $testConfirmation = @$sta['confirm'];
     $lastIdentifierTag = '</div identifiers>';
     if ($i = strpos($testConfirmation, $lastIdentifierTag)) $testConfirmation = substr($testConfirmation, $i + strlen($lastIdentifierTag));
-    foreach (t\postProcess($form, $formName, 'submit') as $one) $one($form, $sta);
+    foreach (t\postProcess($form, $formName, 'submit') as $one) {
+      $one($form, $sta);
+    }
   }
   return TRUE;
 }
@@ -114,8 +124,9 @@ function memberConfirmsFormWithValues($id, $formName, $values) {
 function aMemberConfirmsFormwhichLogsOutWithValues($formName, $values) {
   global $testOnly; if ($testOnly) return FALSE;
   global $skipToStep;
-  $result = t\postLogout(__FUNCTION__) ?: MemberConfirmsFormWithValues('?', $formName, $values);
-  $skipToStep = NULL;
+//  $result = t\postLogout(__FUNCTION__) ?: 
+  return MemberConfirmsFormWithValues('?', $formName, $values);
+//  $skipToStep = NULL;
   return $result;
 }
 
@@ -250,8 +261,7 @@ function weShowWithSubs($page, $subs) {
  *     Relations MemberHasAccessToEmployeeAccount TEST
  *     Relations MemberCompanyHasRelations TEST
  *     Relations ItsComplicated TEST
- *     Signup ANewbieVisitsTheRegistrationPageWithNoInvite TEST
- *     Signup AnInvitedNewbieVisitsTheRegistrationPage TEST
+ *     Signup ANewbieRegisters TEST
  *     Summary AMemberClicksOnTheSummaryTab TEST
  *     Summary AForeignRTraderClicksOnTheSummaryTab TEST
  *     Transactions AMemberLooksAtTransactionsForThePastYear TEST
@@ -342,8 +352,6 @@ function balances($list) {
  *     Relations MemberHasAccessToEmployeeAccount MAKE
  *     Relations MemberCompanyHasRelations MAKE
  *     Relations ItsComplicated MAKE
- *     Signup ANewbieVisitsTheRegistrationPageWithNoInvite MAKE
- *     Signup AnInvitedNewbieVisitsTheRegistrationPage MAKE
  */
 function memberVisitsPage($id, $page) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -374,29 +382,27 @@ function memberVisitsPageWithOptions($id, $page, $options) {
  * member is logged out
  *
  * in: Signup Setup MAKE
- *     Signup ANewbieRegisters TEST
  */
 function memberIsLoggedOut() {
   global $testOnly;
   u\deb('memberIsLoggedOut top loggedin=' . \user_is_logged_in());
   if ($testOnly) return !\user_is_logged_in();
   
+  return TRUE; // never actually log out
   if (t\postLogout(__FUNCTION__)) {
   u\deb('memberIsLoggedOut after postLogout (returning TRUE)');
     global $skipToStep; u\deb("in memberIsLoggedOut after postLogout before return TRUE skipToStep=$skipToStep");
     return TRUE;
   }
-  module_load_include('pages.inc', 'user');
-  if (\user_is_logged_in()) \user_logout(); else return TRUE;
+//  module_load_include('pages.inc', 'user');
+//  if (\user_is_logged_in()) \user_logout(); else return TRUE;
   return FALSE; // should never get here
 }
 
 /**
  * invitation to email (ARG) is (ARG)
  *
- * in: Signup ANewbieVisitsTheRegistrationPageWithNoInvite MAKE
- *     Signup AnInvitedNewbieVisitsTheRegistrationPage MAKE
- *     Signup ANewbieRegisters MAKE
+ * in: Signup ANewbieRegisters MAKE
  */
 function invitationToEmailIs($email, $code) {
   global $testOnly; if ($testOnly) return FALSE;

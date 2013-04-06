@@ -48,6 +48,7 @@ class acct {
    * @param assoc $info: array of field values for new account
    */
   private function createNew($info) {
+  //if (r\dbExists('users', "name='abeone'")) die('a1 ' . print_r(debug_backtrace(), 1));
     extract($info, EXTR_PREFIX_ALL, 'my');   
     if (isset($my_number) and !isset($my_phone)) $my_phone = $my_number;
     if (isset($my_phone)) $phone = u\formatPhone($my_phone, '+n');
@@ -61,32 +62,37 @@ class acct {
     $short_name = @$my_fullName ? u\shortName($my_fullName) : '';
     $name =  @$my_name ?: (@$short_name ?: tempName($info));
     $fullName = @$my_fullName ?: $info['name'];
-    $flags = @$my_flags ?: B_DEFAULTS;
+    $flags = @$my_flags ?: B_DFT;
+    $rebate = @$rebate ?: R_REBATE;
     $community = communityUid(@$my_postal); // defaults to current server
     $data = serialize(@$my_data ?: array());
     $frozen = serialize(array());
     $created = $login = $access = REQUEST_TIME;
-    $info = compact(u\ray('phone status mail init pass name fullName flags community data created login access')) + $info;
+    if (count($companyInfo = u\just(R_COMPANY_FIELDS, $info))) {
+      $companyInfo['id'] = $this->id;
+      if ($flags & u\bit(B_COMPANY)) r\dbInsert('r_companies', $companyInfo);
+      foreach ($companyInfo as $key => $value) unset($info[$key]);
+    }
+
+    $info = compact(u\ray('phone status mail init pass name fullName flags rebate community data created login access')) + $info;
 
     $DBTX = db_transaction();
-    if (!$uid = @$my_uid) {
+    if ($uid = @$my_uid) {
+      r\dbInsert('users', $info); // predestined uid (probably for testing)
+      $region = communityUid();
+    } else {
       for ($try = 0; $try < 20; $try++) { // limit the retries
         $uid = $info['uid'] = self::nextId($region);
         if (r\dbInsert('users', $info)) break;
       }
       u\EXPECT(@$try < 20, "failed to save user record after $try tries.");
-      $region = r\region(@my_state, @my_postalCode);
-    } else {
-      r\dbInsert('users', $info); // predestined uid (probably for testing)
-      $region = communityUid();
+      $region = r\region(@$my_country, @$my_state, @$my_postalCode);
     }
 
     if (isset($my_number)) {
       $success = SMS\create($my_number, $uid);
       u\EXPECT($success, 'Unable to create SMS record.');
     }
-
-//      $info['roles'] = 0; // these keep Drupal happy in user.module
 
     list($this->id, $this->agentId, $this->regionId, $this->agentRegion) = array($uid, $uid, $region, $region);
     self::$records[$this->id] = (object) $info;
@@ -300,7 +306,8 @@ class acct {
       $aacct = $this->agent;
       
       for ($bit = 0; $bit < B_MAX; $bit++) $perms[$bit] = $this->hasBit($bit);
-
+      if (!$perms[B_COMPANY]) $perms[B_PERSONAL] = TRUE; // make sure it's always at least one of these
+      
       if (!$this->proSe()) { // admin permissions depend on agent, not account
         $perms[B_ADMIN] = $aacct->can(B_ADMIN);
         $perms[B_CTTY_ADMIN] = $aacct->can(B_CTTY_ADMIN);

@@ -126,7 +126,8 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'bad date' => t('That is not a valid date.'),
   'nonpositive amount' => t('The amount must be a positive number.'),
   'negative amount' => t('The amount cannot be negative.'),
-  'fractional cents' => t('The amount must be a whole number of cents.'),
+//  'fractional cents' => t('The amount must be a whole number of cents.'),
+  'too fractional' => t('You have too many digits after the decimal point.'),
   'amount too big' => t('Transactions larger than $@max are not permitted at this time.', array('@max' => R_MAX_AMOUNT)),
   'already undone' => t('Transaction is already undone.'),
   'no such tx' => t('That transaction does not exist.'),
@@ -225,7 +226,7 @@ function send($number, $message) {
   if ($msg != $message) $message .= ' — TOO LONG! (strlen ' . strlen($message) . ')';
   if (@$sms_devel) drupal_set_message("To $number: $message"); else \sms_send($number, $msg);
   $nonce = infer_nonce($message);
-  u\log('out', compact(u\ray('number message')), $nonce, TX_SMS); // "via chTX_SMS" in case called from another interface
+  u\loga('out', compact(u\ray('number message')), $nonce, TX_SMS); // "via chTX_SMS" in case called from another interface
 }
 
 /**

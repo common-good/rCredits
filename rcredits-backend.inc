@@ -73,7 +73,7 @@ function error($message, $subs = '', $success = 0) {
 
 function apiOut($args) {
   $result = json_encode($args, JSON_UNESCAPED_SLASHES);
-  u\log('out', $args);
+  u\loga('out', $args);
   if (t\EST()) {t\testOutput($args, 'output'); return $result;}
   exit($result);
 }
@@ -678,8 +678,8 @@ function creditInfo($args = array()) {
   }
   extract(u\just('uid state asof currency', $args));
 
-  u\setDft($uid, 0);
-  $acct = r\acct($uid);
+  if ($cacct = r\acct()) u\setDft($uid, $cacct->id);
+  if (!$acct = r\acct(@$uid)) return NULL;
 
   u\setDft($state, ':TX_DONE,:TX_DISPUTED');
   u\setDft($asof, '');
@@ -883,7 +883,7 @@ function backend($op, $info = array(), $cache = FALSE) {
   $host = strpos($base_url, 'localhost/') !== FALSE ? 'http://localhost/devcore' : R_SITE_URL;
   $api_result = R_SEPARATE_BACKEND ? u\httpRequest("$hostrcredits/api/", $info, 'json') : backend2($info);
 //debug($api_result);
-  u\log('out', $info + compact('api_result'));
+  u\loga('out', $info + compact('api_result'));
   if ($cache) r\Web\svar($skey, $api_result);
   return $api_result;
 }
