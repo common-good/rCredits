@@ -145,6 +145,23 @@ function rcredits_mail($key, &$msg_array, $info) {
     $langcode = $acct->language->language; // instead of $language = $msg_array['language']; 
     $msg_array['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed'; // default is plain text
     $message = @$info['noFrame'] ? r\emailTemplate($key) : r\emailBody($key);
+
+    $subject = @$info['subject'] ?: $GLOBALS['emailSubjects'][$key];
+    $subject = $msg_array['subject'] = strtr($subject, $subs);
+    $message = $msg_array['body'][] = strtr($message, $subs);
+
+    $message = str_replace("\r\n", '', $message); // easier reading for log and tests
+    foreach (u\ray(R_CONCEALED_FIELDS) as $one) $message = str_replace(@$info[$one], '(varies)', $message);
+    $fields = compact(u\ray('key email subject message'));
+    if (t\EST()) \drupal_set_message(t\color($fields, 'email')); // keep this
+    
+    if (!r\acct()) { // must be register/login/reset, so setup what u\log needs
+      r\acct::setDefault($acct);      
+      global $channel; if (!$channel) $channel = TX_WEB;
+    }
+    u\loga('email', $fields);
+
+/* OLD:
     $msg_array['body'][] = $message = strtr($message, $subs);
     $msg_array['subject'] = $subject = @$info['subject'] ?: strtr($GLOBALS['emailSubjects'][$key], $subs);
 
@@ -158,7 +175,7 @@ function rcredits_mail($key, &$msg_array, $info) {
       global $channel; if (!$channel) $channel = TX_WEB;
     }
     u\loga('email', $fields);
-
+*/    
 //    $msg_array['subject'] = t('Notification from !site', $variables, compact('langcode'));
 //    $msg_array['body'][] = t("Dear !username\n\nThere is new content available on the site.", $variables, compact('langcode'));
     

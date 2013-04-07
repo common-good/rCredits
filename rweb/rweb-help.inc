@@ -66,10 +66,10 @@ EOF
     ),
     'sms' => t("The Text Message Interface is intended to be easy enough that you can just muddle your way through the first time. Give it a shot. You can even <i>sign up</i> with Text Messaging. Send your texts to +1 413.285.2867 OR use the <a href=\"$base_url/sms\">Test SMS form</a> to simulate sending a text."),
 
-    'summary' => t(<<<EOF
+    'summary' => tt(<<<EOF
       <p>This page shows an overview of your rCredits account.</p>
-      <p><b>Account ID</b> has two parts. The part before the period is a 3-character identifier for your region. The region name is shown in parentheses after your account ID. The part after the period uniquely identifies your account, within your region. If you have several accounts, this part will be different for each one.</p>
-      <p>If you are acting as an agent for someone else's account &mdash; for example if you are a sales clerk for a department store &mdash; the period will be a colon instead. Your ID Card will show your picture, with the company name under yours. The second part of the account ID (and the scannable code) will identify both you and the company.</p>
+      <p><b>Account ID</b> has two parts. The part before the period is a 3-character identifier for your region (@R_REGION_NAME). The part after the period uniquely identifies your account, within your region. If you have several accounts, this part will be different for each one.</p>
+      <p>If you are acting as an agent for someone else's account &mdash; for example if you are a sales clerk for a department store &mdash; the period will be a colon instead. Your company ID Card will show your picture, with the company name under yours. The second part of the account ID (and the scannable code) identifies both you and the company.</p>
 EOF
     ),
     'txs' => t(<<<EOF

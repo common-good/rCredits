@@ -11,9 +11,6 @@ define('R_SERVER_ID', 'NEW'); // qid header for this region's server (New Englan
 define('R_ORG_PHONE', '413-628-1723');
 define('R_ORG_EMAIL', strpos($_SERVER['HTTP_HOST'], '.') < 3 ? 'wspademan@gmail.com' : 'info@rCredits.org');
 define('R_SITE_URL', 'http://new.rCredits.org');
-define('CGF_EMAIL', isDEV ? 'wspademan@gmail.com' : 'info@CommonGoodFinance.org'); // Common Good Finance email and other data
-define('CGF_PHONE', '+14136281723');
-define('CGF_ADDRESS', 'PO Box 21');
 
 // (you don't get an ID card unless you are in this geographic area)
 define('R_REGION_POSTAL_AREA', '^01.*'); // anyone with a postal code that matches this regular expression is in the region

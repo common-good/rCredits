@@ -67,7 +67,7 @@ EOF
   'no relations' => t('There are not yet any relations for this account.'),
   'no cells' => t('This account has no related cell phones.'),
   'required field' => t('@field must not be blank.'),
-  'duplicate email' => t('"@duplicateAccount" is already using that email address. If you want to use the same email address for this account, add a tag to the local part, for example "@emailTagged". '), // used in user.module
+  'duplicate email' => t('"@duplicateAccount" is already using that email address. If you want to use the same email address for this account, add a tag to the local part, for example "@emailTagged".'), // used in user.module
 //  'duplicate email' => t('That email address is already taken by @duplicateAccount.'),
   'forgot password' => t('If you just forgot the password to the other account, <a href="@passwordLink">click here</a> to request a new password.'), // used in user.module
   'bad name' => t('That is not a plausible name.'),
@@ -305,7 +305,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     $args = 'arg1' . ($arg2 !== '' ? ' arg2' : '') . ($arg3 !== '' ? ' arg3' : '') . ($arg4 !== '' ? ' arg4' : '');
     if ($function != 'accounts' and $function != 'summary') u\loga("show $function", compact(u\ray($args)));
 //    if ($layout == 'Mobile') css('mobile.css', 100);
-    $formName = substr($function, 0, 1) == '\\' ? substr($function, 1) : "rCredits\\Web\\form$function";
+    $formName = substr($function, 0, 1) == '/' ? substr($function, 1) : "rCredits\\Web\\form$function";
 //    if ($newLayout) svar('layout', $layout); // do this before drupal_get_form, so forms can know the current layout
     $form = \drupal_get_form($formName, $arg1, $arg2, $arg3, $arg4);
     if (!is_array($form)) return $form; // form probably did return r\go() during testing
@@ -774,14 +774,14 @@ EOF;
 function formAgreement_validate($form, &$sta) {
   $cacct = r\acct();
   $i9 = $cacct->hasBit(B_PERSONAL) ? R_AGREE_9 : R_AGREE_9 - 1;
-  for ($i = R_AGREE_0; $i <= $i9; $i++) if (!@$_POST["check$i"]) return say('incomplete agreement', "check$i"); // $_POST not $sta
+  for ($i = R_AGREE_0; $i <= $i9; $i++) if (!@$sta['input']["check$i"]) return say('incomplete agreement', "check$i");
   $fullName = r\agent()->fullName;
-  if (strcasecmp(trim($sta['values']['signedBy']), $fullName) != 0) return say('bad signature', compact('fullName'), 'signedBy');
+  if (strcasecmp(trim($sta['input']['signedBy']), $fullName) != 0) return say('bad signature', compact('fullName'), 'signedBy');
 }
 
 function formAgreement_submit($form, &$sta) {
   $signed = REQUEST_TIME;
-  extract(u\just('signedBy', $sta['values']));
+  extract(u\just('signedBy', $sta['input']));
   r\acct()->update(compact('signed', 'signedBy'));
 }
 
@@ -810,14 +810,14 @@ EOF
 function formProxies_validate($form, &$sta) {
   for ($i = 1; $i <= 2; $i++) {
     $proxyName = "proxy$i";
-    $proxy = $sta['values'][$proxyName];
-    if (@$proxy) if (!$proxy = whois($proxy, $proxyName, $sta['values'])) return FALSE;
-    $sta['values'][$proxyName] = $proxy->id;
+    $proxy = $sta['input'][$proxyName];
+    if (@$proxy) if (!$proxy = whois($proxy, $proxyName, $sta['input'])) return FALSE;
+    $sta['input'][$proxyName] = $proxy->id;
   }
 }
 
 function formProxies_submit($form, &$sta) {
-  extract(u\just('proxy1 proxy2', $sta['values']));
+  extract(u\just('proxy1 proxy2', $sta['input']));
   r\proxy(r\acct()->id, 1, $proxy1);
   r\proxy(r\acct()->id, 2, $proxy2);
   say('account updated');
@@ -850,14 +850,14 @@ function formInvite($form, &$sta) {
 }
 
 function formInvite_validate($form, &$sta) {
-  extract(u\just('email trusted', $sta['values']));
+  extract(u\just('email trusted', $sta['input']));
   if (!\valid_email_address($email)) return say('bad email', compact('email'), 'email');
   if (!@$trusted) return say('must trust', 'trusted');
 }
 
 function formInvite_submit($form, &$sta) {
   $cacct = r\acct();
-  extract(u\just('email subject message', $sta['values']));
+  extract(u\just('email subject message', $sta['input']));
   $info = array(
     'uid' => $cacct->id,
     'noFrame' => TRUE,
@@ -890,7 +890,7 @@ function formSummary($form, &$sta) {
 
   $cacct = r\acct();
 //  debug($cacct->can(B_ALL)); // keep
-  if (!$cacct) return r\go('user');
+  if (!$cacct) return r\go('/user');
 
   $name = $cacct->name;
   $address = r\location($cacct, TRUE);
@@ -957,14 +957,14 @@ function formSummary($form, &$sta) {
 
 function formSummary_validate($form, &$sta) {
   if (op($sta) == 'another') r\go('another');
-  extract(u\just('who floor', $sta['values']));
+  extract(u\just('who floor', $sta['input']));
   if (isset($floor)) {
     if ($error = u\badAmount($floor)) return say($error, 'floor'); 
-    $sta['values']['floor'] = -u\cleanAmount($floor);
+    $sta['input']['floor'] = -u\cleanAmount($floor);
   }
   if (@$who) {
-    if (!$acct = whois($who, 'who', $sta['values'])) return FALSE;
-    $sta['values']['who'] = $acct;
+    if (!$acct = whois($who, 'who', $sta['input'])) return FALSE;
+    $sta['input']['who'] = $acct;
   }
 }
 
@@ -973,7 +973,7 @@ function formSummary_submit($form, &$sta) {
 
   if (!r\agent()->can(B_CTTY_ADMIN)) return; // hack attempt
   $cacct = r\acct();
-  extract(u\just('who floor notes canCharge rTrader idApproved', $sta['values']));
+  extract(u\just('who floor notes canCharge rTrader idApproved', $sta['input']));
   extract(u\just('adminable', $sta['input']));
 
   if (@$who and ($who->community == r\agent()->community or r\agent()->id == 1)) {
@@ -1043,7 +1043,7 @@ function password_confirm($element) {
  * (because we want to allow the same email for several accounts)
  */
 function formAccount_validate($form, &$sta) {
-  $sta['values']['mail'] = $mail = trim($sta['values']['mail']);
+  $sta['input']['mail'] = $mail = trim($sta['input']['mail']);
   if (!emailOkay($mail, r\acct()->id)) return;
 }
 
@@ -1055,7 +1055,7 @@ function formAccount_submit($form, &$sta) {
   $cacct = r\acct();
   $id = $cacct->id;
   $pictureFilename = DRUPAL_ROOT . $cacct->auxFilename('picture');
-  $values = $sta['values'];
+  $values = $sta['input'];
 
   if ($picture = @$values['picture_upload']) {
     r\dbQ('DELETE FROM file_managed');
@@ -1129,7 +1129,7 @@ function formAccounts($form, &$sta) {
 }
 
 function formAccounts_submit($form, &$sta) {
-  extract(u\just('op acct_account', $sta['values']));
+  extract(u\just('op acct_account', $sta['input']));
   $cacct = r\acct();
   if (!$cacct->can(B_ADMIN) and !r\acct($acct_account, $cacct->agentId)->can()) hack('accts');
   if ($op == 'Menu') {
@@ -1259,7 +1259,7 @@ function formSystem($form, &$sta, $args = '') {
 
 /* (This dropdown might be better here than at the top of every page)
    (top of page dropdown would then include only the CURRENTLY selected community (and the admin))
-  $rows = r\dbQ('SELECT uid, fullName FROM users WHERE uid<0 AND uid<=:R_FIRST_CTTY_UID ORDER BY fullName')->fetchAllKeyed();
+  $rows = r\dbQ('SELECT uid, fullName FROM users WHERE uid<0 AND uid<:R_CTTY_UID0 ORDER BY fullName')->fetchAllKeyed();
   $cttyChoices = array_merge(array('ctty-0' => 'Select a community to manage'), u\prefixKeys('ctty', $rows));
   $community = formField('select', t('Manage:'), t('Select a community to manage'), '', $cttyChoices);
 */
@@ -1270,7 +1270,7 @@ function formSystem($form, &$sta, $args = '') {
 }
 
 function formSystem_submit($form, &$sta) {
-  extract(u\just('', $sta['values']));
+  extract(u\just('', $sta['input']));
 //  list ($community) = explode('-', $community, 2); // get the absolute value of community
 //  if ($community) svar('cuid', -$community); // make it the new current account
 }
@@ -1313,12 +1313,12 @@ function formTx($form, &$sta, $args = '') {
 
 function formTx_validate($form, &$sta) {
   if (confirming_v($sta)) return;
-  if ($confirm = transfer($sta['values'], FALSE)) confirm($confirm, $sta); // op who amount goods what
+  if ($confirm = transfer($sta['input'], FALSE)) confirm($confirm, $sta); // op who amount goods what
 }
 
 function formTx_submit($form, &$sta) {
   if (confirming_s($sta)) return;
-  transfer($sta['values'], TRUE); // op who amount goods what
+  transfer($sta['input'], TRUE); // op who amount goods what
   $path = current_path(); // clean out the fields
   if ($i = strpos($path, '/who=')) $path = substr($path, 0, $i);
   $sta['redirect'] = $path;
@@ -1462,7 +1462,7 @@ function formGetR_validate($form, &$sta) {
   $cuid = r\acct()->id;
   if (confirming_v($sta)) return;
 
-  extract($sta['values']);
+  extract($sta['input']);
 //  if (blank_field(compact('amount'))) return;
 //  list ($message, $args, $confirm) = be\get($op == 'Get rCredits' ? 'r' : 'usd', $amount, $cuid, FALSE);
   list ($message, $args, $confirm) = be\get('r', $amount, $cuid, FALSE);
@@ -1474,7 +1474,7 @@ function formGetR_submit($form, &$sta) {
   $cacct = r\acct();
   if (confirming_s($sta)) return;
 
-  extract($sta['values']);
+  extract($sta['input']);
   list ($message, $args, $confirm) = be\get('r', $amount, $cacct->id, TRUE);
   say($message, $args, @$args['success'] ? '' : 'amount'); // error or success
   if ($amount != 0) {
@@ -1521,7 +1521,7 @@ function formAnother_submit($form, &$sta) {
   $isOwner |= ($relation == 0);
   $employeeOk |= ($relation == 1);
   if (!findCompany($company, $companyPhone)) list ($fullName, $phone) = array($company, $companyPhone);
-  r\go('user/register/' . http_build_query(compact(u\ray('code fullName phone isOwner employeeOk flow by'))));
+  r\go('/user/register/' . http_build_query(compact(u\ray('code fullName phone isOwner employeeOk flow by'))));
 }
 
 /**
@@ -1592,22 +1592,20 @@ function formRegister(&$form, &$sta, $args = '') {
   $form += compact('title') + contactFields($form, $defaults) 
     + compact(u\ray('acctType companyInfo calling buysAt args'));
   $form = u\insertBefore(compact('mail'), $form, 'phone');
-  //if (r\dbExists('users', "name='abeone'")) die('1 ' . print_r(debug_backtrace(), 1));
 
   keep_values($form);
-  //if (r\dbExists('users', "name='abeone'")) die('1 ' . print_r(debug_backtrace(), 1));
   t\snapShot($form);
-  //if (r\dbExists('users', "name='abeone'")) die('1 ' . print_r(debug_backtrace(), 1));
 }
 
 function formRegister_validate($form, &$sta) {
+debug($sta['input']);
   if (!isset($sta['buttons'])) $sta['buttons'] = array(); // for testing (keep Drupal from griping)
-  extract(u\just('args mail company companyPhone companyOptions fullName postalCode code', $values = u\trimAll($sta['values'])));
+  extract(u\just('args mail company companyPhone companyOptions fullName postalCode code', $values = u\trimAll($sta['input'])));
   if (@$companyOptions) extract(u\just('isOwner employeeOk', $companyOptions));
   if (@$args) extract(u\just('code', $args));
-  $sta['values'] = array(); // make sure Drupal doesn't save the record when WE find an error (no longer needed?)
+  $sta['input'] = array(); // make sure Drupal doesn't save the record when WE find an error (no longer needed?)
   //if (r\dbExists('users', "name='abeone'")) die('1 ' . print_r(debug_backtrace(), 1));
-  if (!invitation(@$code) and $code != bin2hex(R_WORD) and $code != 'w') return r\go('user/register'); // in case user resubmits
+  if (!invitation(@$code) and @$code != bin2hex(R_WORD) and @$code != 'w') return r\go('/user/register'); // in case user resubmits
   //if (r\dbExists('users', "name='abeone'")) die('1 ' . print_r(debug_backtrace(), 1));
     
   if (!emailOkay($mail)) return;
@@ -1632,18 +1630,18 @@ function formRegister_validate($form, &$sta) {
   $flags = B_DFT;
   $administer_users = FALSE; // for testing (keep Drupal from griping)
   $status = 1;
-  $sta['values'] = array_merge($values, compact(u\ray('name data community flags administer_users status')));
+  $sta['input'] = array_merge($values, compact(u\ray('name data community flags administer_users status')));
   //if (r\dbExists('users', "name='abeone'")) die('1 ' . print_r(debug_backtrace(), 1));
 }
 
 function formRegister_submit($form, &$sta) {
-  $fields1 = 'args company companyOptions companyPhone';
+  $fields1 = 'args company companyOptions companyPhone buysAt';
   $fields2 = 'name fullName mail phone fax country postalCode state city address';
   //if (r\dbExists('users', "name='abeone'")) die('s1 ' . print_r(debug_backtrace(), 1));
 
-  $values = $sta['values'];
+  $values = $sta['input'];
   extract(u\just("name acctType $fields1", $values));
-//  u\EXPECT($args, 'no args');
+  u\EXPECT($args, 'no args');
   extract(u\just('code', $args));
   $pass = \user_password();
   $flags = B_DFT
@@ -1678,12 +1676,12 @@ function formRegister_submit($form, &$sta) {
     }
   } 
   
-  $buysAt = 0; // store a bit for each bought-at company
-  foreach ($sta['input']['buysAt'] as $one) if (@$one) {
-	r\dbQ('UPDATE r_nonmembers SET potential = potential+1 WHERE id=:one', compact('one'));
-	$buysAt |= u\bit($one);
+  $wants = 0; // store a bit for each bought-at company
+  if (@$buysAt) foreach ($buysAt as $one) if (@$one) {
+    r\dbQ('UPDATE r_nonmembers SET potential = potential+1 WHERE id=:one', compact('one'));
+    $wants |= u\bit($one);
   }
-  $data = $cacct->data + compact('buysAt');
+  $data = $cacct->data + compact('wants');
   $cacct->update(compact('data'));
   
   extract($params = u\just('isOwner employeeOk flow by', $args));
@@ -1694,20 +1692,21 @@ function formRegister_submit($form, &$sta) {
     } else r\notifyStaff('bad params in formRegister');
   }
   
-  $quid = r\quid($cuid, $cuid);
-  tellStaffNewMember(u\just("$fields1 $fields2", $values) + compact('by', 'quid'));
+  $quid = $cacct->qid();
+  tellStaffNewMember(u\just("name acctType by $fields1 $fields2", $values) + compact('by', 'quid'));
 
 //  if (@$_SESSION['messages']['status'][0] == t('A welcome message with further instructions has been sent to your email address.')) unset($_SESSION['messages']['status']);
 
   if ($acctType <= R_SELF_EMPLOYED) { // personal
     say('your account is ready', compact(u\ray('quid')));
-    r\notify($cuid, 'welcome', compact(u\ray('name quid pass'))); 
+    $region = strtolower(R_SERVER_ID);
+    r\notify($cuid, 'welcome', compact(u\ray('name quid pass region'))); 
   } else { // non-personal (no independent login)
     say('company is ready', compact(u\ray('quid')));
-    $quid = r\quid($by, $by);
+    $quid = r\quid($by);
   }
 
-  return r\go('user/login/name=' . strtolower($quid));
+  return r\go('/user/login/name=' . strtolower($quid));
 }
 
 function emailOkay($mail, $uid = '') {
@@ -1726,14 +1725,14 @@ function emailOkay($mail, $uid = '') {
  */
 function tellStaffNewMember($params) {
   extract($params);
-  $phone = u\formatPhone($phone);
-  $fax = u\formatPhone($fax);
+  $phone = u\formatPhone(@$phone);
+  $fax = u\formatPhone(@$fax);
   $country = r\realCountry($country);
   $state = r\realState($state);
   $acctType = $GLOBALS['account types'][$acctType];
-  $by = r\acct(@$by)->fullName;
+  $by = @$by ? r\acct($by)->fullName : 'unknown';
 
-  $companyOptions = json_encode($companyOptions);
+  $companyOptions = json_encode(@$companyOptions);
   $params = compact(u\ray('phone fax country state acctType by')) + $params;
   unset($params['code']); // don't need to see this
   $message = '<h2>NEW SIGNUP</h2>';
@@ -1810,25 +1809,25 @@ function formContact($form, &$sta) {
 
 function formContact_validate($form, &$sta) {
   $cuid = r\acct()->id;
-  extract(u\just('phone fax city address physical fullName country state', u\trimAll($sta['values']))); // trim ALL values, for later
+  extract(u\just('phone fax city address physical fullName country state', u\trimAll($sta['input']))); // trim ALL values, for later
 //  if (blank_field(compact(u\ray('phone city address')))) return;
 
   // add dropdowns, just in case there is an error
   js('inc/countries.js', 'file', 'header');
   js("print_country(\"$country\", \"$state\");", 'inline', 'footer');
 
-  if ($phone and !($phone = u\formatPhone($phone, '+n'))) say('bad phone', 'phone'); else $sta['values']['phone'] = $phone;
-  if ($fax and !($fax = u\formatPhone($fax, '+n'))) say('bad phone', 'fax'); else $sta['values']['fax'] = $fax;
+  if ($phone and !($phone = u\formatPhone($phone, '+n'))) say('bad phone', 'phone'); else $sta['input']['phone'] = $phone;
+  if ($fax and !($fax = u\formatPhone($fax, '+n'))) say('bad phone', 'fax'); else $sta['input']['fax'] = $fax;
   if ($fullName != r\acct()->fullName) {
     $shortName = u\shortName($fullName);
     $otherName = r\userField('fullName', 'name=:shortName AND uid<>:cuid', compact('shortName', 'cuid'));
     if ($otherName) return say('shortname taken', compact('otherName'), 'fullName');
-    $sta['values']['name'] = $shortName;
+    $sta['input']['name'] = $shortName;
   }
 }
 
 function formContact_submit($form, &$sta) {
-  extract($info = u\just('fullName name phone fax country postalCode state city address physical', $sta['values']));
+  extract($info = u\just('fullName name phone fax country postalCode state city address physical', $sta['input']));
   if (r\acct()->id == 1) unset($info['name']); // don't change 'admin'
   r\acct()->update($info);
   be\mergeCheck(compact(u\ray('name phone fax'))); // check before and after
@@ -1862,23 +1861,23 @@ function formDraft($form, &$sta, $args = '') {
 
 function formDraft_validate($form, &$sta) {
   global $base_url;
-  extract(u\just('op fullName phone argString return', $sta['values'])); // (trim ALL values for later)
+  extract(u\just('op fullName phone argString return', $sta['input'])); // (trim ALL values for later)
   if (op($sta) == 'cancel') {
     drupal_get_messages('error'); // don't complain about blank fields
     return r\go("$return/$argString");
   }
-  if ($phone and !($phone = u\formatPhone($phone, '+n'))) say('bad phone', 'phone'); else $sta['values']['phone'] = $phone;
+  if ($phone and !($phone = u\formatPhone($phone, '+n'))) say('bad phone', 'phone'); else $sta['input']['phone'] = $phone;
   if (!u\validName($fullName, FALSE, FALSE)) say('bad name', 'name');
-  $sta['values']['fullName'] = u\normalizeCase($fullName);
+  $sta['input']['fullName'] = u\normalizeCase($fullName);
   $shortName = u\shortName($fullName);
   if (($otherName = r\userField('fullName', 'name=:shortName or phone=:phone', compact('shortName', 'phone')))) {
     $draftLink = "$base_url/$return/who=$otherName&$argString";
     say('similar found', compact(u\ray('otherName phone draftLink')), u\shortName($otherName) == $shortName ? 'fullName' : 'phone');
-  } else $sta['values']['name'] = $shortName;
+  } else $sta['input']['name'] = $shortName;
 }
 
 function formDraft_submit($form, &$sta) {
-  extract(u\just('argString return name', $info = $sta['values']));
+  extract(u\just('argString return name', $info = $sta['input']));
   $acct = new r\acct($info);
   say('info saved|ok to continue');
   $sta['redirect'] = "$return/who=$name&$argString";
@@ -1964,38 +1963,38 @@ function show($field, $show = '') {
 }
 
 function onFile($field, $sta) {
-  return ($sta['complete form'][$field]['#value'] == R_ON_FILE and $sta['values'][$field] == R_ON_FILE);
+  return ($sta['complete form'][$field]['#value'] == R_ON_FILE and $sta['input'][$field] == R_ON_FILE);
 }
 
 function formUsd_validate($form, &$sta) {
   $cacct = r\acct();
   $proofFilename = DRUPAL_ROOT . $cacct->auxFilename('proof');
-  extract(u\just('usdAccount pin federalId dob', $sta['values']));
+  extract(u\just('usdAccount pin federalId dob', $sta['input']));
   if (!onFile('usdAccount', $sta)) {
-    $usdAccount = $sta['values']['usdAccount'] = u\digits($usdAccount);
+    $usdAccount = $sta['input']['usdAccount'] = u\digits($usdAccount);
     if (!preg_match('/^[0-9]{10}$/', $usdAccount)) return say('bad account number', 'usdAccount');
   }
   if (!onFile('pin', $sta)) {
-    $pin = $sta['values']['pin'] = u\digits($pin);
+    $pin = $sta['input']['pin'] = u\digits($pin);
     if (!preg_match('/^[0-9]{4}$/', $pin)) return say('bad pin', 'pin');
   }
   if (!onFile('federalId', $sta)) {
-    $federalId = $sta['values']['federalId'] = u\digits($federalId);
+    $federalId = $sta['input']['federalId'] = u\digits($federalId);
     $what = r\acct()->can(B_PERSONAL) ? 'social security number' : 'federal ID';
     if (!preg_match('/^[0-9]{9}$/', $federalId)) return say('bad federal id', compact('what'), 'federalId');
   }
   if (!onFile('dob', $sta)) { // 12/14/1901 is the earliest
-    if (!$dob = $sta['values']['dob'] = strtotime($dob) or $dob > REQUEST_TIME) return say('bad date', 'dob');
+    if (!$dob = $sta['input']['dob'] = strtotime($dob) or $dob > REQUEST_TIME) return say('bad date', 'dob');
   }
   if (@$_FILES['files']['name']['idProof']) { // fine to let this be uploaded separately
     if (!$file = file_save_upload('idProof', array(), '', FILE_EXISTS_REPLACE)) return say('Try again.', 'idProof');
     if (!u\abbreviates('image/', @$file->filemime)) return say('bad file type', 'idProof');
     $tempfile = file_directory_temp() . '/' . $file->filename;
-    if (!$key = $sta['values']['idProof'] = bin2hex(u\encryptFile($tempfile, $proofFilename, r\passSalt()))) return say('encryption failure', 'idProof');
+    if (!$key = $sta['input']['idProof'] = bin2hex(u\encryptFile($tempfile, $proofFilename, r\passSalt()))) return say('encryption failure', 'idProof');
     \file_delete($file);
   } elseif(file_exists($proofFilename)) {
-    $sta['values']['idProof'] = R_ON_FILE; // flag for no change
-  } else unset($sta['values']['idProof']); // no attempt yet to provide this
+    $sta['input']['idProof'] = R_ON_FILE; // flag for no change
+  } else unset($sta['input']['idProof']); // no attempt yet to provide this
  }
 
 function formUsd_submit($form, &$sta) {
@@ -2009,7 +2008,7 @@ function formUsd_submit($form, &$sta) {
   
   $usdFields = '';
   $cacct = r\acct();
-  $info = u\just('type usdAccount pin auth federalId dob question answer idProof', $sta['values']);
+  $info = u\just('type usdAccount pin auth federalId dob question answer idProof', $sta['input']);
   $secure = @$cacct->secure ?: array();
   $retry = (!@$secure['auth'] and $info['usdAccount'] == R_ON_FILE and $info['pin'] == R_ON_FILE);
 //  $retry = FALSE; // DEBUG
@@ -2063,14 +2062,14 @@ function formBank($form, &$sta) {
 }
 
 function formBank_validate($form, &$sta) {
-  extract(u\trimAll($sta['values']));
+  extract(u\trimAll($sta['input']));
   if (!u\validName($bank_account_name, FALSE, FALSE)) say('bad name', 'bank_account_name');
   if (!preg_match('/^(|[0-9]{9})$/', $routing_number)) say('bad routing number', 'routing_number');
   if (!preg_match('/^[0-9]{3,20}$/', $bank_account_number)) say('bad account number', 'bank_account_number');
 }
 
 function formBank_submit($form, &$sta) {
-  extract($sta['values']);
+  extract($sta['input']);
   if (r\acct()->country == R_COUNTRY_ID) $bank_account_number = "USkk$routing_number$bank_account_number";
   r\acct()->update(compact(u\ray('bank_account_name bank_account_number')));
   say('info saved');
@@ -2169,21 +2168,21 @@ function formRelations_validate($form, &$sta) {
   if (confirming_v($sta)) return;
   $cacct = r\acct();
   $cuid = $cacct->id;
-  extract(u\just('new_person', $sta['values']));
+  extract(u\just('new_person', $sta['input']));
   
   if (@$new_person) {
-    $acct = whois($new_person, 'new_person', $sta['values'], 'no self-relation');
+    $acct = whois($new_person, 'new_person', $sta['input'], 'no self-relation');
 //    if ($acct->can(B_COMPANY)) return say('no company relations', 'new_person');
     if (r\relation(1, $cuid, $acct->id)) return say('already related', 'new_person');
-    $sta['values']['other'] = $acct->id; // save for submission handling
+    $sta['input']['other'] = $acct->id; // save for submission handling
   }
   $managers = 0; // for company accounts there needs to be at least one manager
-  foreach ($_POST as $key => $value) { // change this (and the _POST below) to $sta['input'] ?
+  foreach ($sta['input'] as $key => $value) {
     if (!strpos($key, '-')) continue;
     list ($keya, $rawnum, $reid) = explode('-', $key);
     if ($keya == 'amount') {
       if (u\badAmount($value)) return say('specific bad amount', array('amount' => $value), 'amount');
-      $_POST[$key] = $value;
+      $sta['input'][$key] = $value;
     } elseif ($keya == 'permission') {
       if ($value == PERM_MANAGE) $managers++;
     }
@@ -2196,7 +2195,7 @@ function formRelations_submit($form, &$sta) {
 
   $cuid = r\acct()->id;
 
-  if ($other = @$sta['values']['other']) { // adding a new relation
+  if ($other = @$sta['input']['other']) { // adding a new relation
     $main = $cuid;
     $permission = 0; // default to no permissions
     $info = compact(u\ray('main other permission'));
@@ -2209,7 +2208,7 @@ function formRelations_submit($form, &$sta) {
   extract(u\just('raws0 raws', $sta['original_settings']));
 //  debug($sta['original_settings']);
   // Drupal doesn't pass along our hidden inputs, so get them directly from $_POST ...
-  foreach ($_POST as $key => $value) { // ... be\updateRelations will have to check permissions and data carefully
+  foreach ($sta['input'] as $key => $value) { // ... be\updateRelations will have to check permissions and data carefully
     if (!strpos($key, '-')) continue;
     list ($key, $rawnum, $reid) = explode('-', $key); // eg split permission-2-37
     if (!in_array($key, array_keys($raws))) return 'bad field in relations'; // hack attempt?
@@ -2304,7 +2303,7 @@ function formCells($form, &$sta) {
 function formCells_validate($form, &$sta) {
   $cuid = r\acct()->id;
   if (confirming_v($sta)) return;
-  extract($sta['values']);
+  extract($sta['input']);
 
   if ($op == 'Verify') {
     if (strtoupper($code) == svar('nonce')) return;
@@ -2317,7 +2316,7 @@ function formCells_validate($form, &$sta) {
 
   if ($op == 'Add') {
     if (blank_field(compact('number'))) return;
-    $sta['values']['op'] = $op; // make it stick if user pressed Enter
+    $sta['input']['op'] = $op; // make it stick if user pressed Enter
     say(be\addCell($number, 'VALIDATE'), 'number');
   }
 }
@@ -2325,7 +2324,7 @@ function formCells_validate($form, &$sta) {
 function formCells_submit($form, &$sta) {
   if (confirming_s($sta)) return;
   
-  extract($sta['values']);
+  extract($sta['input']);
   if ($op == 'Add') {
     if ($info = previous_state($sta)) return say($info, 'number'); // just returning from failed validation of step 2 ('prove')
     svar('nonce', $nonce = u\nonce()); // don't use POST (user could peek)
@@ -2387,7 +2386,7 @@ function resetAlter(&$form, &$sta) {
 }
 
 function resetSubmit($form, &$sta) {
-  svar('resetPass', $sta['values']['pass']);
+  svar('resetPass', $sta['input']['pass']);
 //  $uid = $sta['buid_info']['args'][0];
 //  r\acct($uid)->update(compact('pass'));
 }
@@ -2435,7 +2434,7 @@ function loginAlter(&$form, &$sta, $regular = TRUE) {
  * Sets $sta['uid'] to signify successful authentication.
  */
 function login_extra_validate($form, &$sta) {
-  extract(u\just('name pass isRCredits', $sta['values']));
+  extract(u\just('name pass isRCredits', $sta['input']));
   if (!$name or empty($pass)) return;
 
   $failed_login_ip_limit = variable_get('user_failed_login_ip_limit', 50);
@@ -2502,7 +2501,7 @@ function passAlter(&$form, $sta, $id = '') {
 }
 
 function pass_validate($form, &$sta) {
-  if (!$uid = r\loginString($sta['values']['name'])) return say('bad login', 'name');
+  if (!$uid = r\loginString($sta['input']['name'])) return say('bad login', 'name');
   form_set_value(array('#parents' => array('account')), r\acct($uid)->account(), $sta);
   say('password reset');
 }
@@ -2551,7 +2550,7 @@ function formDirectory_validate($form, &$sta) {
 }
 
 function formDirectory_submit($form, &$sta) {
-  extract($sta['values']);
+  extract($sta['input']);
   svar('which_companies', trim($which));
   svar('region', trim($region));
 }
@@ -2605,15 +2604,15 @@ function formCompany($form, &$sta) {
   global $base_url;
   $cacct = r\acct();
   $cuid = $cacct->id;
-  $my_description = $cacct->description;
-  $my_selling = $cacct->selling;
+  $description = $cacct->description;
+  $selling = $cacct->selling;
 
   $sql = <<<EOF
     SELECT iid, IF(parent=iid, UCASE(industry), CONCAT('--', industry)) AS cat, parent 
     FROM r_industries ORDER BY parent, IF(parent=iid,0,iid)
 EOF;
   $cats = r\dbQ($sql)->fetchAllKeyed();
-  $my_cats = r\dbQ('SELECT iid FROM r_user_industries WHERE uid=:cuid', compact('cuid'))->fetchCol();
+  $myCats = r\dbQ('SELECT iid FROM r_user_industries WHERE uid=:cuid', compact('cuid'))->fetchCol();
   $multiple = array('multiple' => TRUE);
   $filtered_html = array('format' => 'filtered_html');
   $links = <<<EOF
@@ -2625,10 +2624,10 @@ EOF;
     'links' => item($links),
 //    'subtext' => basic_account_info(),
     'name' => formField('item', t('Company name:'), '', $cacct->fullName),
-    'categories' => formField('select', t('Categories:'), t('Hold down the Ctrl key to select more than one'), $multiple + dft($my_cats), $cats),
-    'selling' => textField(t('Selling:'), t('What is the typical description of what you sell? (This will appear as the default "purpose" when you charge someone).'), dft($my_selling)),
+    'categories' => formField('select', t('Categories:'), t('Hold down the Ctrl key to select more than one'), $multiple + dft($myCats), $cats),
+    'selling' => textField(t('Selling:'), t('What is the typical description of what you sell? (This will appear as the default "purpose" when you charge someone).'), dft($selling)),
     'website' => textField(t('Website(s):'), t('If you want to accept payments on your website, be sure to list it here.'), dft(@$website)),
-    'description' => formField('text_format', t('Description:'), t('What does this company do?'), $filtered_html + dft($my_description)),
+    'description' => formField('text_format', t('Description:'), t('What does this company do?'), $filtered_html + dft($description)),
     'submit' => submit(),
   );
 
@@ -2636,18 +2635,19 @@ EOF;
 }
 
 function formCompany_validate($form, &$sta) {
-//  extract($sta['values']);
+//  extract($sta['input']);
 }
 
 function formCompany_submit($form, &$sta) {
   $cacct = r\acct();
   $id = $cacct->id;
-  extract(u\just('description website selling categories', u\trimAll($sta['values'])));
+  extract(u\just('description website selling categories', u\trimAll($sta['input'])));
 //  $description = \check_markup($description['value']);
   $description = @$description['value'];
   $website = str_ireplace('http://', '', @$website);
   u\setDft($selling, '');
-  r\dbUpdate('r_companies', compact(u\ray('id description website selling')), 'id');
+  $cacct->update(compact(u\ray('description website selling')));
+//  r\dbUpdate('r_companies', compact(u\ray('id description website selling')), 'id');
   
   $DBTX = db_transaction();
   r\dbQ('DELETE FROM r_user_industries WHERE uid=:id', compact('id')); // out with the old
@@ -2704,11 +2704,11 @@ function formI($form, &$sta, $who) {
 
 function hack($message, $info = array()) {
   r\loga('hack', $_SERVER + compact('message'));
-  return r\go('user/logout');
+  return r\go('/user/logout');
 }
 
 function formI_submit($form, &$sta) {
-  extract(u\just('theId theAgent', $sta['values']));
+  extract(u\just('theId theAgent', $sta['input']));
   $acct = r\acct($theId, $theAgent);
   $op = op($sta);
   if ($op == 'changeAccount') {
@@ -2722,8 +2722,8 @@ function formI_submit($form, &$sta) {
 
 function formSMS($form, &$sta) {
   $title = item(t('Test SMS'));
-  $my_number = svar('lastSMS');
-  $number = textField(t('From (number): '), '', required($my_number));
+  $myNumber = svar('lastSMS');
+  $number = textField(t('From (number): '), '', required($myNumber));
   $message = textField(t('Message: '));
   $submit = submit(t('Send it!'));
 
@@ -2734,7 +2734,7 @@ function formSMS($form, &$sta) {
 
 function formSMS_submit($form, $sta) {
   global $sms_devel; $sms_devel = TRUE;
-  extract(u\just('number message', $sta['values']));
+  extract(u\just('number message', $sta['input']));
   $number = u\formatPhone($number, '+n');
   svar('lastSMS', $number);
   \rsms_sms_incoming('process', $number, $message);
@@ -2772,7 +2772,7 @@ function formOptions($form, &$sta) {
 function formOptions_validate($form, $sta) {
   $cacct = r\acct();
   $floor = u\formatAmount($cacct->floor);
-  extract(u\just('minimum maximum', $sta['values']));
+  extract(u\just('minimum maximum', $sta['input']));
   if ($minimum < $cacct->floor) say('bad minr', compact('floor'), 'minimum');
   if ($maximum != 0 and ($maximum < min($minimum, $cacct->rewards))) say('bad maxr', 'maximum');
 //  if ($max_usd != 0 and $max_usd < $minimum) say('bad maxusd', 'max_usd');
@@ -2837,7 +2837,7 @@ function formRequestRCard($form, &$sta, $other = '') {
 }
 
 function formRequestRCard_submit($form, &$sta) {
-  extract(u\just('okay other', $sta['values']));
+  extract(u\just('okay other', $sta['input']));
   if ($okay and $reid = r\relation('reid', $main = r\acct()->id, @$other)) {
     r\notifyStaff('company rcard', compact(u\ray('main other reid')));
     say('card ordered');
@@ -2995,7 +2995,7 @@ function ok_form($form, &$sta) {
 }
 
 function ok_form_submit($form, &$sta) {
-  extract($sta['values']);
+  extract($sta['input']);
   $ok = ($op == 'Okay');
   return_from_detour($detour_to, compact('ok', 'return_with'));
 }
@@ -3076,7 +3076,7 @@ function whois($who, $field_name, $info, $selfMsg = 'no self-trading') {
   if (u\abbreviates('who=', $last = basename($return = \current_path()))) $return = dirname($return);
   $info['return'] = urlencode(str_replace('/', R_URL_SLASH, $return)); // even urlencoded slashes confuse Drupal
   $args['draftLink'] = "$base_url/draft/" . http_build_query($info);
-  foreach ($choices as $uid => $fullName) $choices[$uid] = substr(r\quid($uid), 3) . '   ' . $fullName;
+  foreach ($choices as $uid => $fullName) $choices[$uid] = substr(r\acct($uid)->qid(), 3) . ' ' . $fullName;
   if (empty($choices)) return say($msg, $args, $field_name); else which($choices, $field_name, $info, tt($msg, $args));
 }
   
@@ -3169,7 +3169,7 @@ function menu($title, $type, $function = NULL, $args = array(), $accesses = 0, $
 function confirming_s(&$sta) {return ($sta['rebuild'] = isset($sta['confirm']));}
 function confirming_v(&$sta) {
   if(@$sta['confirm']) {
-    extract($sta['values']);
+    extract($sta['input']);
     $sta = $sta['submitted_state'];
     if ($op == 'Cancel') {
       $sta['rebuild'] = TRUE;

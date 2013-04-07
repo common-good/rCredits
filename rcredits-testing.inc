@@ -34,7 +34,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
     $flags = B_DFT | u\bit(isset($my_flags) ? @$my_flags : (B_MEMBER | B_OK));
   } else {
     $flags = 0;
-    foreach (u\ray($my_flags) as $one) {
+    if (@$my_flags) foreach (u\ray($my_flags) as $one) {
       $bit = constant('B_' . strtoupper($one));
       $flags |= u\eq($bit, B_DFT, u\bit($bit));
     }
@@ -119,23 +119,25 @@ function makeTransaction($info, $infoOnly = FALSE) {
  */
 function makeRelation($info, $infoOnly = FALSE) {
   extract($info, EXTR_PREFIX_ALL, 'my');
+  debug($info);
   
   $reid = u\num($my_id, u\a2n(substr($my_id, -3)));
-  if (!$mainAcct = r\acct(fullQid($my_main))) return testOutput("main:$my_main is not an id");
-  if (!$agtAcct = r\acct(fullQid($my_agent))) return testOutput("agent:$my_agent is not an id");
-  u\EXPECT(!r\foreignServer($mainAcct->regionId) or !r\foreignServer($agtAcct->regionId));
+  debug('make relation 1');
+  if (!$mainAcct = r\acct(uid($my_main))) return testOutput("main:$my_main is not an id");
+  debug('make relation 2');
+  if (!$agtAcct = r\acct(uid($my_agent))) return testOutput("agent:$my_agent is not an id");
+  debug('make relation 3');
+  u\EXPECT(!r\foreignServer(r\uidRegion($mainAcct->id)) or !r\foreignServer(r\uidRegion($agtAcct->id)));
   u\EXPECT($mainAcct->proSe() and $agtAcct->proSe());
   list ($main, $other) = array($mainAcct->id, $agtAcct->id);
-  if (r\foreignServer($mainAcct->regionId)) list ($main, $foreignUid) = array($mainAcct->regionId, $mainAcct->id);
-  if (r\foreignServer($agtAcct->regionId)) list ($other, $foreignUid) = array($agtAcct->regionId, $agtAcct->id);
-  
+  debug(compact('main','other','reid'));
   if (@$my_permission) {
     $perms = array_flip($GLOBALS['share permissions']);
     $info['permission'] = $perms[$my_permission]; 
   }
   
   foreach (u\ray('id main agent') as $one) unset($info[$one]);
-  $info += compact(u\ray('reid main other foreignUid'));
+  $info += compact(u\ray('reid main other'));
   return $infoOnly ? verifyRecord('r_relations', $info) : r\dbInsert('r_relations', $info);
 }
 
@@ -156,7 +158,7 @@ function uidCredit($uid) {
 function uid($id) {
   return is_numeric($id) ? $id 
     : ($id == 'community' ? r\serverUid() 
-    : (R_REGION_MAX * -r\serverUid() + u\a2n(substr(str_replace(R_SERVER_ID . '.', '.', $id), 1))));
+    : r\unQuid($id));
 }
 
 function getErrors() {
@@ -321,21 +323,23 @@ function verifyRecord($table, $info) {
  */
 function pageForm($page) {
   global $formOutput;
-  if (u\abbreviates('user/register', $page)) {
-    $args = basename($page);
-    $form = \drupal_get_form('user_register_form', $args);
+
+  $args = basename($page);
+  if (u\abbreviates('/user/', $page)) {
     $sta = array();
-  //if (r\dbExists('users', "name='abeone'")) die('1 ' . print_r(debug_backtrace(), 1));
-    r\Web\formRegister($form, $sta, $args);
-  //if (r\dbExists('users', "name='abeone'")) die('1 ' . print_r(debug_backtrace(), 1));
+    list ($form, $function) = strpos($page, '/register') ?
+        array('user_register_form', 'formRegister')
+      : (strpos($page, '/login') ?
+        array('user_login', 'loginAlter') : array());
+    $function = 'rCredits\\Web\\' . $function;
+    $form = strpos($page, '/login') ? array() : \drupal_get_form($form, $args);
+    $function($form, $sta, $args);
     $form2 = $form; $rent = render($form2);
-  //if (r\dbExists('users', "name='abeone'")) die('1 ' . print_r(debug_backtrace(), 1));
     t\testOutput($formOutput = t\strip($rent), 'screen');
     return $form;
-  }
+  }     
 
-  $result = strpos($page, '/login/') ? r\Web\showForm(dirname($page), basename($page))
-    : menu_execute_active_handler($page, FALSE);
+  $result = menu_execute_active_handler($page, FALSE);
   if (is_numeric($result)) {
     $result = $result == MENU_NOT_FOUND ? 'not found' 
       : ($result == MENU_ACCESS_DENIED ? 'access error' : "error #$result");
@@ -400,10 +404,12 @@ function eq($a, $b) {
   return $result;
 }
 
+/*
 function fullQid($q) {
   $c1 = substr($q, 0, 1);
   return ($c1 == '.' or $c1 == ':') ? (R_SERVER_ID . $q) : $q;
 }
+*/
 
 /**
  * Fake $_SERVER params for testing

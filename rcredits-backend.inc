@@ -231,7 +231,7 @@ function undoTx($xid) {
     $solution = t('marked "disputed"');
     r\notify($old_otherUid, 'charge-disputed', r\txReportArgs($oldRecord));
   } else {
-    $otherAcct = r\tx2acct($old_toMe ? array($old_payer, $old_payerAgent, $data) : array($old_payee, $old_payeeAgent, $data));
+    $otherAcct = $old_toMe ? r\acct($old_payer, $old_payerAgent) : r\acct($old_payee, $old_payeeAgent);
     $type = $old_toMe ? 'payment' : 'charge';
     $otherTid = $old_toMe ? $old_payerTid : $old_payeeTid;
     return reverse($xid, $old_amount, $otherAcct, $data, $old_goods, $old_tid, $type, $otherTid); // create an offsetting transaction
@@ -386,10 +386,8 @@ function payInvoice($xid) {
  *   'bonus': the bonus amount (should be negative the original rebate amount) [rebate and bonus are always both set or neither]
  *   'undoes': transaction id of the related transaction (transaction being undone / invoice being paid)
  *   'preapproved': the transaction is preapproved (from some other region)
- *     Note that other regions must not have B_CHARGE (else the code will not permit foreign invoices)
  *   'bilateral': set TRUE if a company with B_CHARGE wants to pretend it doesn't
- *      (Typically upon recursion, to handle shortfall invoice)
- *   'pay_all': the transaction is part of a "pay all" (bulk employee payment)
+ *      (Typically upon recursion, to handle shortfall invoice -- currently UNUSED)
  * @return simple array: 
  *    index: index to result message string (if success, the index begins with "report ")
  *    parms: replacement parameters, specific to the message
@@ -422,9 +420,6 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   if (!$acct->can($otherAccess)) return array("other no $otherAccessErr", array(), FALSE);
   
   // Analyze who's buying or selling
-  list ($uid, $foreignUid) = txPerson($acct->id, $acct->regionId);
-  list ($other, $foreign_agent) = txPerson($acct->agentId, $acct->agentIdRegion);
-  $foreign = compact($foreignUid ? 'foreignUid' : '', $foreign_agent ? 'foreign_agent' : '');
   if ($uid == $cuid) return array('no self-trading', array(), FALSE);
   list ($payer, $payee) = u\order($taking, $uid, $cuid);
   list ($payerAgent, $payeeAgent) = u\order($taking, $other, r\acct()->agentId);
@@ -476,7 +471,6 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   $rebate = (string) ($goods ? r\rebate($payer, $r) : 0); // force string, to avoid long serializations
   $bonus = (string) ($goods ? r\bonus($payee, $r) : 0);
   if (!isset($data['rebate'])) $data += compact('rebate', 'bonus');
-  $data += $foreign;
   unset($data['preapproved']); // probably don't need this (but keep xid of related transaction, if any)
   unset($data['bilateral']);
   $data = serialize($data);
@@ -515,8 +509,6 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   }
   return array($message, $args, !$confirmed);
 }
-
-function txPerson($id, $region) {return r\foreignServer($region) ? array($region, $id) : array($id, NULL);}
 
 /**
  * Record a transfer (of rCredits) to or from the community.
@@ -617,7 +609,7 @@ function identify($who, $self_message = 'no self-trading') {
   if ($phone = u\formatPhone($who, '+n')) $who = $phone;
   
   $quid = strtoupper($who); // in case this is a quid (abbreviated or not)
-  if (strpos('.:', substr($quid, 0, 1)) !== FALSE) { // allow abbreviations within this region
+  if (strpos('.:=', substr($quid, 0, 1)) !== FALSE) { // allow abbreviations within this region
     list($quid) = explode(' ', R_SERVER_ID . $quid, 2); // take just the first word, in case this is from a list showing QUID and fullName
   }
 
@@ -750,7 +742,7 @@ function accountChoices() {
   
   if (!$cacct = r\acct()) return FALSE;
   $result = array($aid = $cacct->agentId);
-  if ($cacct->can(B_ADMIN)) $result += @r\dbQ('SELECT uid FROM users WHERE uid<=:R_FIRST_CTTY_UID')->fetchAllKeyed(0, 0);
+  if ($cacct->can(B_ADMIN)) $result += @r\dbQ('SELECT uid FROM users WHERE uid<:R_CTTY_UID0')->fetchAllKeyed(0, 0);
   $result += @r\dbQ('SELECT main FROM r_relations WHERE other=:aid AND permission>0', compact('aid'))->fetchAllKeyed(0, 0);
   return array_values($result);
 }

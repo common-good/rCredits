@@ -17,6 +17,7 @@ rename community field to community
 ***
 
 BEFORE LAUNCH:
+- notifystaff of proxies, agreements, dwolla accounts, invites, etc.
 - print me a card (and test it)
 - proxies display wrong
 - 400 signup feature tests work (write more)
@@ -33,6 +34,7 @@ TOTAL: 1200 x 3 = 3600 = 60 hours
 To do: (* = before launch ** = earlier)
 
 - when a non-bona nube donates, replace the previous gift.
+- do away with foreign fields in data
 - "debt ok" pref: make it work
 - * can't go down to credit floor<0 unless chosen "can go below". Credit floor has link to pref.
 - help for all pages
@@ -41,7 +43,6 @@ To do: (* = before launch ** = earlier)
 - handle 10-day interval for deposits/withdrawals for non-checking accounts
 - write a function to detect if we are too close to the end of a 5-minute chunk, to start an activity. Maybe measure the average time that an activity takes and give it twice that much (and see if we get too many interrupted activities).
 - phase out tablefield and/or userfield
-- change $_POST to $sta['input'] ? (also see if input includes everything that values does)
 - 1/6 month credit after first month, etc. up to 6 mos.
 - pref for notification frequency (hourly/daily/weekly/monthly digest, viewable online)
 - * finish and test cron (one part at a time)
@@ -252,26 +253,29 @@ E. Database clues
    - All rCredits tables begin with "r_", except the users table, which we have added many fields to.
    - users (accounts)
      . Common Good Communities (CGCs) and regional servers have uid < 0.
-         -1 to -17575: regional servers (the numeric version of the region's 3-letter qid, negated -- AAA is not used)
-           the software should be able to treat some servers as virtual independent servers, for example when CT started
-           using rCredits for real before they had their own server, the NEW server gave them all NEC. qids rather than NEW.
-         less than -1000000: Common Good Communities (leaving room for 4-character regions)
-         0  to 3T-1: users in (not yet independent) region AAA
-         3T to 6T-1: users in (not yet independent) region AAB etc.
-     . Tests create users with uids starting at xT + 17550 (ZZA, ZZB, etc.)
-     . name is a lowercase, no-punctuation version of the fullName field, sometimes with a numeric suffix to disambiguate
-         exceptions: admin is admin. For regions, name is (uppercase) the 3-char start of their qids, followed by "."
+         -1 to -17576: regional servers (the numeric version plus one of the region's 3-letter qid, negated)
+           the software can treat any or all servers as virtual independent servers, 
+           for example when CT started using rCredits for real before they had their own server, the NEW server gave them all "NEC." qids rather than NEW.
+         less than -500000: Common Good Communities (leaving room for all 4-character regions)
+         1+0  to 3T: users in (not yet independent) region AAA (admin is technically in region AAA)
+         1+3T to 6T: users in (not yet independent) region AAB etc.
+     . Tests create users with uids starting at 1+xT + 17550 (ZZA, ZZB, etc.)
+     . name is a lowercase, no-punctuation version of fullName, sometimes with a numeric suffix to disambiguate.
+         Exceptions: 
+           admin is admin
+           Common Good Finance is cgf (first in the "NEW" region)
+           For regions, name is (uppercase) the 3-char start of their qids, followed by "."
      . pass and mail should be called "password" and "email" but Drupal doesn't. So it's confusing. (just a heads-up)
-     . we don't currently use theme, signature, or signature format.
+     . we don't currently use theme, picture, timezone, signature, or signature format.
      . data: We use this to store non-essential information in a serialized associative array:
-         width and height: size of the picture
          company, companyPhone, employeeOk, and isOwner: these are stored upon registration, if the company does not exist yet (otherwise the info goes in the relations table)
-         new_account: qid of new account when this account is closed by moving funds elsewhere
+         newAccount: qid of new account when this account is closed by moving funds elsewhere
+         (survey data)
      . description is html for the company's page (N/A for personal accounts)
-     . community: the (negative) uid of the account's CGC. For anyone who is not in an established CGC, their community is the region (using the regional server's uid). For region and community records, community === uid
+     . community: the (negative) uid of the account's CGC. For anyone who is not in an established CGC, their community is the region (using the regional server's uid). For region and community records, community == uid
      . minimum: the user's preferred minimum rCredits balance. Request at least r$10 more automatically if balance goes under by even one cent.
      . maximum: the user's preferred maximum rCredits AVAILABLE balance. Exchange any excess beyond maximum+10-.01 automatically for USD
-     . usdAccount is the usd account number, encrypted with R_WORD
+     . usdAccount is the usd account number, encrypted with R_WORD (which gets set in settings.php)
      . secure is an encrypted (with R_WORD) serialized assoc:
          type: Dwolla
          pin: the Dwolla PIN
@@ -281,7 +285,7 @@ E. Database clues
      . xid: record id
      . payerTid: Transactions are identified to the user counting just their own transactions (1, 2, 3, ...), NOT as an xid.
      . payeeTid: ditto
-     . payer: normally the uid of the account being debited. If the payer is "foreign" (that is, if their account record is stored on a different regional server), then payer is that region's uid and the data field has details. Similarly, payee, payerAgent, and/or payeeAgent might be a region, with details in data.
+     . payer: the uid of the account being debited.
      . amount: the total transaction amount. While waiting for a USD amount to clear, the entire transaction amount is
          tentatively (TX_TENTATIVE) transferred in rCredits
      . r: the amount of rCredits transferred. While waiting for a USD amount to clear, 
@@ -291,8 +295,6 @@ E. Database clues
        undoes: the transaction id of the undone transaction that this transaction reversed
        bonus and rebate: the dollar amounts of any rewards associated with a payment
        preapproved: (not in the table, just internally) transaction is preapproved by another server (a payment or an authorized business unilaterally charging a customer)
-       foreign_payer, foreign_payee: uid of a non-local party to the transaction
-       foreign_payerAgent, foreign_payeeAgent: uid of a non-local agent for a party to the transaction
    (more to come...)
    - offsite: protected personal identifying information from the NEW region
      . id: a random id that matches the type and length of the original data
@@ -323,27 +325,22 @@ G. Special rCredits datatypes
       There are also two accepted alternatives to a colon: .. OR =
     The region (XXX) can be omitted in SMS identifiers (eg "200 to .ABCDE for pie")
     For each region that exists, we have a user record with uid < 0, with name = the region name followed by a period (eg ABC.)
-    (Communities within the region also have negative uids, descending from -1,000,000, and do not need qids,
+    (Communities within the region also have negative uids, descending from -REGION_MAX, and do not need qids,
     but could have a qid with a hyphen, like AAA-BBB, if needed.)
   
- qxid: a qid (8 characters or more) representing an xid
+ qxid: a qid (8 characters or more) representing an xid (currently used only in rSmart)
  quid: a qid (7 characters or more) representing a uid acting as its own agent (. separator) OR an reid (: separator)
 
 H. Notes on transaction record system:
-  Other servers have a single negative (<0) UID on our system, so a
-  user doing business with someone in another region would generate a transaction between an individual and a server,
-  with qid for the individual in that other region stored in the data field. 
-  Servers and communities have negative uids. Servers have their qid in the name field followed by a dot, eg "NEW.".
-
+  uids now contain the region info, so no need for recording "foreign" info in the data field
   Specifically: when we on the AAA regional server receive a transaction request using a qid, the first 3 characters are the "region" --
-  they tell us what database to hit. For example, if AAA.AAAB pays ZZZ.AAAC, we record a payment from AAA.AAAB's uid (1)
-  to ZZZ's uid. The data field in the transaction gets $data['foreignUid'] = ZZZ.AAAC's uid on the ZZZ server (2).
+  they tell us what database to hit. For example, if AAA.AAAA pays ZZZ.AAAC, we record a payment from AAA.AAAA's uid (1)
   We send the request to ZZZ's server and expect a confirmation 
   (if no confirmation, roll back the transaction and give an error message OR queue the request).
 
   On the other side of things, when we receive a request from some other community for a transaction with one of our accounts
   -- for example if we are the "ZZZ" community, receiving a request from the "ABC" community, for ABC.AAAAA to pay ZZZ.BBBBB --
-  we record the payer as ABC's uid and the payee as ZZZ.BBBBB's uid, with $data['payer_id'] = 'ABC.AAAAA'.
+  we record the transaction as our own and send confirmation to the ZZZ server.
 
   Thus every inter-community transaction is stored in both communities. Both communities know their trade balance, which should be
   public through a RESTful query. Intra-community transactions should also be stored twice -- ideally in member's devices. Smartphones and

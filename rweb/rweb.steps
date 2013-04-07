@@ -28,18 +28,19 @@ require_once __DIR__ . '/../rcredits-testing.inc';
 function extraSetup($feature) {
   global $channel; 
   $channel = TX_WEB;
+  $cgfUid = \variable_get('cgf_uid');
 
   global $sms_devel; $sms_devel = TRUE;
-  r\dbQ('DELETE FROM users WHERE uid>1000');
+  r\dbQ('DELETE FROM users WHERE uid>:cgfUid', compact('cgfUid'));
   r\dbQ('TRUNCATE r_sms');
   r\dbQ('TRUNCATE r_txs');
-  r\dbQ('DELETE FROM r_smarts WHERE owner>1000');
-  r\dbQ('DELETE FROM file_managed WHERE uid>1000');
+  r\dbQ('DELETE FROM r_smarts WHERE owner>:cgfUid', compact('cgfUid'));
+  r\dbQ('DELETE FROM file_managed WHERE uid>:cgfUid', compact('cgfUid'));
   r\dbQ('TRUNCATE r_relations');
   r\dbQ('TRUNCATE r_log'); // so we don't find results from the wrong test
   r\dbQ('TRUNCATE sequences');
   r\dbQ('TRUNCATE r_invites');
-  r\dbQ('ALTER TABLE sequences AUTO_INCREMENT=' . u\a2n('ZZA'));
+//  r\dbQ('ALTER TABLE sequences AUTO_INCREMENT=' . u\a2n('ZZA'));
 
   if (!function_exists('multiline_tweak')) {function multiline_tweak(&$line) {
     $line = str_replace('%last_quid', r\quid(r\acct::nextId() - 1), $line);
@@ -68,17 +69,18 @@ function memberCompletesFormWithValues($id, $formName, $values, $confirmed = FAL
 //  global $testOnly; if ($testOnly) return FALSE;
   global $testConfirmation; // confirmation message output, if any
 
-  if (r\dbExists('users', "name='abeone'")) die('1 ' . print_r(debug_backtrace(), 1));
   $values = $values[0];
   t\fixCountryAndState($values);
   if (@$values['email']) $values = u\changeKey('email', 'mail', $values);
   
   t\logIn($id);
 
+  $validate = TRUE;
   $form = t\pageForm($formName, FALSE);
   if ($formName == 'pay' or $formName == 'charge') {
     $formName = 'Tx';
-  } else $confirmed = TRUE;
+    if ($confirmed) $validate = FALSE;
+  }
 
   $errorsBefore = t\getErrors();
   
@@ -88,7 +90,7 @@ function memberCompletesFormWithValues($id, $formName, $values, $confirmed = FAL
     if ($field['#type'] == 'hidden') $dfts[$key] = $field['#value'];
   }
   $sta['values'] = $sta['input'] = $values + $dfts;
-  if (!$confirmed) foreach (t\postProcess($form, $formName, 'validate') as $one) $one($form, $sta);
+  if ($validate) foreach (t\postProcess($form, $formName, 'validate') as $one) $one($form, $sta);
 
   if (count($errors = t\getErrors()) > count($errorsBefore)) {
     // NO! if (!empty($errors)) return FALSE;
@@ -108,6 +110,8 @@ function memberCompletesFormWithValues($id, $formName, $values, $confirmed = FAL
  * member (ARG) confirms form (ARG) with values: (ARG)
  *
  * in: Signup ANewbieRegisters MAKE
+ *     Signup AMemberRegistersBadEmail MAKE
+ *     Signup AMemberRegistersAgain MAKE
  *     Transact AMemberConfirmsRequestToChargeAnotherMember MAKE
  *     Transact AMemberConfirmsRequestToPayAnotherMember MAKE
  */
@@ -132,10 +136,10 @@ function aMemberConfirmsFormwhichLogsOutWithValues($formName, $values) {
 
 /*
   $sta = array();
- * $sta['values']['mail'] = 'robouser@example.com';
- * $sta['values']['pass']['pass1'] = 'password';
- * $sta['values']['pass']['pass2'] = 'password';
- * $sta['values']['op'] = t('Create new account');
+ * $sta['input']['mail'] = 'robouser@example.com';
+ * $sta['input']['pass']['pass1'] = 'password';
+ * $sta['input']['pass']['pass2'] = 'password';
+ * $sta['input']['op'] = t('Create new account');
  * drupal_form_submit('user_register_form', $sta);
  * @endcode
  
@@ -156,6 +160,7 @@ function aMemberConfirmsFormwhichLogsOutWithValues($formName, $values) {
  *
  * in: Relations Setup MAKE
  *     Signup ANewbieRegisters TEST
+ *     Signup AMemberRegistersAgain MAKE
  *     Summary Setup MAKE
  *     Transact Setup MAKE
  *     Transactions Setup MAKE
@@ -189,6 +194,8 @@ function transactions($list) {
  * we say (ARG): (ARG) with subs: (ARG)
  *
  * in: Signup ANewbieRegisters TEST
+ *     Signup AMemberRegistersBadEmail TEST
+ *     Signup AMemberRegistersAgain TEST
  *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
  *     Transact AMemberConfirmsRequestToPayAnotherMember TEST
  */
@@ -261,6 +268,8 @@ function weShowWithSubs($page, $subs) {
  *     Relations MemberHasAccessToEmployeeAccount TEST
  *     Relations MemberCompanyHasRelations TEST
  *     Relations ItsComplicated TEST
+ *     Signup ANewbieVisitsTheRegistrationPageWithNoInvite TEST
+ *     Signup AnInvitedNewbieVisitsTheRegistrationPage TEST
  *     Signup ANewbieRegisters TEST
  *     Summary AMemberClicksOnTheSummaryTab TEST
  *     Summary AForeignRTraderClicksOnTheSummaryTab TEST
@@ -273,7 +282,7 @@ function weShowPageWith($page, $content, $showDebugs = TRUE) {
   $xi = $i = 0;
   foreach ($content as $fields) {
     foreach ($fields as $key => $one) if (strpos($one, '%') !== FALSE) t\lastMinuteSubs($fields[$key]);
-    if ($showDebugs) debug($fields); // keep this
+    if ($showDebugs) debug("EXPECT page $page with " . print_r($fields, 1)); // keep this
     foreach ($fields as $key => $one) {
       if ($one !== '') $i = strpos($formOutput, $one, $xi = $i);
       if ($showDebugs) t\testOutput(compact('xi','i','one'));
@@ -352,6 +361,8 @@ function balances($list) {
  *     Relations MemberHasAccessToEmployeeAccount MAKE
  *     Relations MemberCompanyHasRelations MAKE
  *     Relations ItsComplicated MAKE
+ *     Signup ANewbieVisitsTheRegistrationPageWithNoInvite MAKE
+ *     Signup AnInvitedNewbieVisitsTheRegistrationPage MAKE
  */
 function memberVisitsPage($id, $page) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -371,7 +382,7 @@ function memberVisitsPageWithOptions($id, $page, $options) {
   global $testOnly; if ($testOnly) return FALSE;
 
   $cacct = r\acct(); // save, so we can restore it
-  if ($id != '?') r\acct::setDefault(r\acct(t\fullQid($id)));
+  if ($id != '?') r\acct::setDefault(r\acct(t\uid($id)));
   t\pageForm($page, FALSE);
 //  r\Web\showForm($page, $options);
   r\acct::setDefault($cacct);
@@ -402,7 +413,11 @@ function memberIsLoggedOut() {
 /**
  * invitation to email (ARG) is (ARG)
  *
- * in: Signup ANewbieRegisters MAKE
+ * in: Signup ANewbieVisitsTheRegistrationPageWithNoInvite MAKE
+ *     Signup AnInvitedNewbieVisitsTheRegistrationPage MAKE
+ *     Signup ANewbieRegisters MAKE
+ *     Signup AMemberRegistersBadEmail MAKE
+ *     Signup AMemberRegistersAgain MAKE
  */
 function invitationToEmailIs($email, $code) {
   global $testOnly; if ($testOnly) return FALSE;

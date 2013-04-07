@@ -12,9 +12,7 @@ use rCredits\Testing as t;
 
 class acct {
   var $id; // the account's record id
-  var $regionId; // the account region's record id
   var $agentId; // record id (in the agent's regional server) of whoever is acting on behalf of the account
-  var $agentRegion; // record id of agent's region (on this server)
   var $mainQid; // nearly alphabetic representation of id, id, and region for external queries
   private static $perms = array(); // permissions for all acct objects, indexed by id and agent
   private static $records = FALSE; // account records for all acct objects, indexed by id
@@ -37,10 +35,8 @@ class acct {
   function __construct($id = array(), $agent = '') {
     if (is_array($info = $id)) { // referring to existing db record
       $this->createNew($info); // create new db record
-    } else list($this->id, $this->agentId, $this->regionId, $this->agentRegion) = acct::ok($id, $agent, $zot, FALSE);
-
-//    if ($this->id > 0) $this->mainQid = qid($this->id, u\n2a(-$this->regionId, 3), 3); // no qids for communities and regions!
-    if ($this->id > 0) $this->mainQid = quid($this->id, $this->id, $this->regionId); // no qids for communities and regions!
+    } else list($this->id, $this->agentId) = acct::ok($id, $agent, $zot, FALSE);
+    if ($this->id > 0) $this->mainQid = quid($this->id); // no qids for communities and regions!
   }    
 
   /**
@@ -81,12 +77,12 @@ class acct {
       r\dbInsert('users', $info); // predestined uid (probably for testing)
       $region = communityUid();
     } else {
+      $region = r\region(@$my_country, @$my_state, @$my_postalCode);
       for ($try = 0; $try < 20; $try++) { // limit the retries
         $uid = $info['uid'] = self::nextId($region);
         if (r\dbInsert('users', $info)) break;
       }
       u\EXPECT(@$try < 20, "failed to save user record after $try tries.");
-      $region = r\region(@$my_country, @$my_state, @$my_postalCode);
     }
 
     if (isset($my_number)) {
@@ -94,7 +90,7 @@ class acct {
       u\EXPECT($success, 'Unable to create SMS record.');
     }
 
-    list($this->id, $this->agentId, $this->regionId, $this->agentRegion) = array($uid, $uid, $region, $region);
+    list($this->id, $this->agentId) = array($uid, $uid);
     self::$records[$this->id] = (object) $info;
     
     $card_code = u\randomString(R_CARDCODE_LEN); // create an rCard security code
@@ -110,33 +106,32 @@ class acct {
     if ($error = u\EXPECT(compact(u\ray('id0 agent0')), 'zid|qid|assoc empty|id|qid', $test)) return FALSE;
     if ($error = u\EXPECT((bool) $id0, 'null uid in new acct()', $test)) return FALSE;
     if ($error = u\EXPECT(!(strpos($id0, ':') and $agent0), 'agent already specified in qid', $test)) return FALSE;
-    list ($id, $agent, $region) = u\isZid($id0) ? array($id0, $agent0 ?: $id0, serverUid()) : UAR($id0); // handle
+    list ($id, $agent) = u\isZid($id0) ? array($id0, $agent0 ?: $id0) : IA($id0); // handle
 
     if (u\isQid($agent0)) {
-      list ($agent, $zot, $agentRegion) = UAR($agent0);
+      list ($agent, $zot) = IA($agent0);
       if ($error = u\EXPECT($agent == $zot, 'agent agent not allowed', $test)) return FALSE;
-    } else $agentRegion = serverUid();
+    }
 
-    $record = self::getRecord($id, $region);
+    $record = self::getRecord($id);
     if ($error = u\EXPECT((bool) $record, 'That account does not exist.', $test)) return FALSE; // don't use tt() here (many calls)
-    u\EXPECT($id and $agent and $region and $agentRegion, "Missing acct property: [$id, $agent, $region, $agentRegion]");
-    return array($id, $agent, $region, $agentRegion);
+    u\EXPECT($id and $agent, "Missing acct property: [$id, $agent]");
+
+    return array($id, $agent);
   }
   
-  private static function getRecord($id, $region, $reread = FALSE) {
+  private static function getRecord($id, $reread = FALSE) {
     if (@self::$records[$id] and !property_exists(self::$records[$id], 'flags')) die("No flags field in record $id: " . print_r(self::$records, 1)); // keep this
     if (@self::$records[$id] and !$reread) return self::$records[$id];
-    if ($region != serverUid()) { // foreign
+    if (!$records = be\getRecords('users', "uid=:id LIMIT 1", compact('id'))) { // no such record here
+      if (TRUE) return FALSE; // not foreign either
       // contact other server here, for a subset of the record
-    } else {
-      if ($records = be\getRecords('users', "uid=:id LIMIT 1", compact('id'))) { // domestic (don't use Drupal's caching)
-        $access = REQUEST_TIME;
-        return self::$records[$id] = (object) (((array) $records[0]) + compact('access'));
-      } else return FALSE;
     }
+    $access = REQUEST_TIME;
+    return self::$records[$id] = (object) (((array) $records[0]) + compact('access'));
   }
 
-  public function reread() {self::getRecord($this->id, $this->regionId, TRUE);}
+  public function reread() {self::getRecord($this->id, TRUE);}
   
   /**
    * Return the value of the specified field that is not a simple property of the acct class.
@@ -205,7 +200,8 @@ class acct {
    * Return the next available uid in the specified region.
    */
   public static function nextId($region = '') {
-    return r\newUid(R_REGION_MAX * -($region ?: r\serverUid()));
+    u\EXPECT($region <= 0, 'non-negative region in nextId');
+    return r\newUid(R_REGION_MAX * (-($region ?: r\serverUid()) - 1));
 //    return max(t\EST() ? 1000 : -9999999, dbLookup('MAX(uid)', 'users', 1)) + 1;
   }
   
@@ -247,7 +243,9 @@ class acct {
   }
 
   public function proSe() {return ($this->id == $this->agentId);}  
-  public function qid() {return $this->proSe() ? $this->mainQid : quid($this->id, $this->agentId, $this->regionId);}
+
+  public function qid() {return $this->proSe() ? $this->mainQid : r\quid($this->id, $this->agentId);}
+  
   public function hasBit($bit) {return (bool) ($this->flags & u\bit($bit));}
   
   /**
@@ -345,12 +343,12 @@ class acct {
 } // end of class
 
 /**
- * Convert quid to UAR
+ * Convert quid to [id, agent]
  * @param quid $quid: the quid to convert (DEFAULT current acount and agent's quid)
- * @return the corresponding UAR = [uid, agent, region] (FALSE if wrong format)
+ * @return the corresponding UAR = [uid, agent] (FALSE if wrong format)
  */
 
-function UAR($quid = '', $no_abbrev = TRUE) {
+function IA($quid = '', $no_abbrev = TRUE) {
   if (!$quid) return array(acct()->id, acct()->agentId, serverUid());
   if (!u\isQid($quid) and !$no_abbrev) $quid = R_SERVER_ID . $quid;
   if (!u\isQid($quid)) return FALSE;
@@ -360,10 +358,9 @@ function UAR($quid = '', $no_abbrev = TRUE) {
     if (!$record = relation('main,other', 'reid=:reid', compact('reid'))) return FALSE;
     $result = array_values($record);
   } else {
-    $zuid += -$regionUid * R_REGION_MAX;
+    $zuid += 1 + -$regionUid * R_REGION_MAX;
     $result = array($zuid, $zuid);
   }
-  $result[] = $regionUid;
   return $result;
 }
 

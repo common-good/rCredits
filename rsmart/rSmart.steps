@@ -29,11 +29,13 @@ require_once __DIR__ . '/../rsmart/rsmart.inc';
  */
 function extraSetup($feature) {
   global $sms_devel; $sms_devel = TRUE;
-  r\dbQ('DELETE FROM users WHERE uid>1000');
+  $cgfUid = \variable_get('cgf_uid');
+
+  r\dbQ('DELETE FROM users WHERE uid>:cgfUid', compact('cgfUid'));
   r\dbQ('TRUNCATE r_sms');
   r\dbQ('TRUNCATE r_txs');
-  r\dbQ('DELETE FROM r_smarts WHERE owner>1000');
-  r\dbQ('DELETE FROM file_managed WHERE uid>1000');
+  r\dbQ('DELETE FROM r_smarts WHERE owner>:cgfUid', compact('cgfUid'));
+  r\dbQ('DELETE FROM file_managed WHERE uid>:cgfUid', compact('cgfUid'));
   r\dbQ('TRUNCATE r_relations');
   r\dbQ('TRUNCATE r_log'); // so we don't find results from the wrong test
 

@@ -67,7 +67,7 @@ class rsmartStartup extends DrupalWebTestCase {
     When_('member initializes the device as member "NEW.ZZA" with password %whatever1');
     Then_('we respond with: "DATA'
     . '\\| success | message    | code       | my_id   | account_name | allow_change_account | allow_change_agent | require_agent | show_buttons |'
-    . '\\| 1       | first time | (the code) | NEW.ZZA | Abe One      | 0                    | 1                  | 0             | 3             |"');
+    . '\\| 1       | first time | (varies) | NEW.ZZA | Abe One      | 0                    | 1                  | 0             | 3             |"');
   }
 
   // Scenario: Member initializes with an ill-formed id

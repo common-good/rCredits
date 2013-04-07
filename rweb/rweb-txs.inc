@@ -326,7 +326,7 @@ function tx_edit_validate($form, &$sta) {
 }
 
 function tx_edit_submit($form, &$sta) {
-  extract($sta['values']);
+  extract($sta['input']);
   r\setTxField($field, $purpose, $xid);
   $sta['redirect'] = 'transactions';
 }

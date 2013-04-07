@@ -19,9 +19,14 @@ define('MINI_LAUNCH', TRUE);
 define('isDEV', @$_SERVER['WINDIR']); // developing on Windows (unlike production server)
 define('DWOLLA_TEST_ACCOUNT', '812-713-9234');
 define('STAGE', 'http://ws.rcredits.org'); // staging site
+define('CGF_EMAIL', isDEV ? 'wspademan@gmail.com' : 'info@CommonGoodFinance.org'); // Common Good Finance email and other data
+define('CGF_PHONE', '+14136281723');
+define('CGF_ADDRESS', 'PO Box 21');
+define('CGF_CITY', 'Ashfield');
 
 define('R_VERSION', '1.0b'); // software version
 define('R_SEPARATE_BACKEND', FALSE);
+define('R_CONCEALED_FIELDS', 'code password pass oneTimeLoginUrl'); // fields to leave out of log
 define('R_DATA_FIELDS', ''); // fields stored in the account's "data" array field (serialized)
 define('R_COMPANY_FIELDS', 'website description selling structure'); // fields in r_companies
 define('R_SECURE_FIELDS', 'type pin auth card_code'); // non-personal encrypted fields
@@ -33,7 +38,6 @@ define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities ca
 define('R_TEMP_NAME_PREFIX', 'unknown ');
 define('R_MIN_PHOTO_WIDTH', 240); // how wide to make profile pictures (unless too long)
 define('R_MAX_PHOTO_WIDTH', 1024);
-define('R_FIRST_CTTY_UID', -1000001); // community uids are less than or equal to this (farther from zero)
 define('R_URL_SLASH', '%_%'); // Drupal gets confused by slashes in a url, even if urlencoded
 define('R_MAX_DAILY_EXCHANGE', 1000); // per Common Good Finance policy and to avoid formal FinCEN regulation
 define('R_INVITE_DAYS', 7); // number of days to accept invitation to membership
@@ -52,6 +56,7 @@ define('R_INDIVIDUAL_GIFT', 50); // suggested contribution for individuals
 define('R_COMPANY_GIFT', 250); // suggested contribution for companies
 define('R_BUYS_BEFORE_BONUS', MINI_LAUNCH ? 1 : 3); // number of purchases required before signup bonus
 define('R_REGION_MAX', isDEV ? 46000 : 3000000000); // maximum uids in a region (46k,3T ~sqrt(PHP_INT_MAX))
+define('R_CTTY_UID0', -R_REGION_MAX); // community uids are less than this (farther from zero)
 define('R_DWOLLA_LINK', 'http://refer.dwolla.com/a/clk/3KkS2w');
 
 // Filenames
@@ -221,7 +226,7 @@ function txReportArgs($tx, $getMyBalance = FALSE, $shortfall = 0) {
   $short = u\formatAmount($shortfall);
   if (@$data_bonus) $rewardType = $taking ? t('bonus') : t('rebate');
   $rewardAmount = u\formatAmount($toMe ? @$data_bonus : @$data_rebate);
-  $otherName = userField('fullName', @$data_foreignUid ?: $otherUid);
+  $otherName = userField('fullName', $otherUid);
   $created = u\formatDate($created);
 
   if ($getMyBalance) {
@@ -522,6 +527,7 @@ function notify($uid, $index, $info) {
 
   if ($acct->hasBit(B_NOTIFY_EMAIL) and @$acct->mail) {
     $mailed = \drupal_mail('rCredits', $index, $acct->mail, '', $info); // no need to pass $acct->language
+    debug($info);
   }
   if ($acct->hasBit(B_NOTIFY_SMS)) {
     $number = dbLookup('number', 'r_sms', 'uid=:uid AND status=:SMS_PRIMARY', compact('uid'));
@@ -573,7 +579,7 @@ function membershipEvent($acct, $status, $do = TRUE) {
 function notifyStaff($message, $subs = array(), $uid = '') {
   $noFrame = TRUE;
   $message = u\tt($message, $subs);
-  if (!$uid) $uid = acct()->id ?: 1; // use Site Admin account if no other
+  if (!$uid) $uid = @acct()->id ?: 1; // use Site Admin account if no other
   $mailed = \drupal_mail('rCredits', 'tell_staff', R_ORG_EMAIL, '', compact(u\ray('message noFrame uid')));
 }
 
@@ -698,18 +704,13 @@ function qid($zid = '', $regionId = R_SERVER_ID, $min_len = 1) {
 }
 
 /**
- * Return a qid without the 3-char header
- */
-function qid2($zid, $regionId = R_SERVER_ID) {return substr(qid($zid, $regionId, 3), strlen($regionId));}
-
-/**
  * Return the short qid and full name of the specified account.
- * For example, return ".AAC Abe One".
+ * For example, return ".ZZA Abe One".
  */
 function definiteName($uid) {
   if ($uid <= 0) return '';
   $acct = acct($uid);
-  return qid2($uid) . ' ' . $acct->fullName;
+  return r\quid2($uid) . ' ' . $acct->fullName;
 }
 
 /**
@@ -719,55 +720,63 @@ function definiteName($uid) {
 function unQid($qid) {
   if (!u\isQid($qid)) return FALSE;
   list ($regionId, $type, $iid) = preg_split('/(\.+|=|:)/', $qid, 0, PREG_SPLIT_DELIM_CAPTURE); // allow a horizontal colon
-  
   $id = u\a2n($iid);
   return array($type == '.' ? $id : -$id, serverUid($regionId));
 }
   
 /**
- * Convert uids to quid
+ * Convert uid to quid
  * Call by:
- *   quid(uid) == quid(uid, uid)
+ *   quid(uid)
  *   quid(uid, agentId)
- *   quid(uid, agentId, regionId)
  * @param int uid: record id of the account
  * @param int agentId: uid of agent (defaults to uid)
- * @param int $regionId: uid of the region (always negative, defaults to current region)
  * @return the corresponding quid
  */
-function quid($uid = '', $agentId = '', $regionId = '') {
+function quid($uid, $agentId = '') {
   $cacct = acct();
-  if (!$regionId) $regionId = serverUid();
-  if (!$agentId) $agentId = $uid;
-  if ($agentId == $uid) { // proSe
-    if ($regionId == serverUid() and $uid > R_REGION_MAX) {
-      $regionId = -floor($uid / R_REGION_MAX);
-      $uid -= -$regionId * R_REGION_MAX;
-    }
-  } else $uid = -relation('reid', $uid, $agentId); // compound quid
-  return qid($uid, u\n2a(-$regionId, 3), 3);
+  if (!$agentId or $agentId == $uid) { // proSe
+    $region = -uidRegion($uid) - 1;
+    $i = ($uid - 1) - $region * R_REGION_MAX; // -1 because uids are all bumped up by 1
+    return u\n2a($region, -3) . '.' . u\n2a($i, -3);
+  } else {
+    $uid = -relation('reid', $uid, $agentId); // compound quid
+    return R_SERVER_ID . '=' . u\n2a($id, -3);
+  }
 }
+
+/**
+ * Return the uid for a pro se quid (local or complete).
+ */
+function unQuid($quid) {
+  if (!u\isQid($quid)) $quid = R_SERVER_ID . $quid; // if local, complete it
+  list ($region, $i) = explode('.', $quid);
+  return 1 + R_REGION_MAX * u\a2n($region) + u\a2n($i);
+}
+
+/**
+ * Return a "local version" pro se quid without the region but with a leading dot.
+ */
+function quid2($uid) {return strstr(quid($uid), '.');}
 
 function qxid($xid, $regionId = R_SERVER_ID) {return qid($xid, $regionId = R_SERVER_ID, 4);} // Convert xid to qxid
 
+/**
+ * Return the rCredits region id for the given account id
+ */
+function uidRegion($uid) {
+  u\EXPECT($uid > 0, 'non-positive uid in uidRegion');
+  return -floor(($uid - 1) / R_REGION_MAX) - 1; // -1 because uids are all bumped up by 1
+}
+
+/**
+ * Return the rCredits region id for the given geographical location
+ */
 function region($country = '', $state = '', $zip = '') {
   $where = "s.country_id=:country AND s.id=:state AND (r.zips='' OR :zip RLIKE r.zips)";
   $region = r\dbLookup('region', 'r_regions r INNER JOIN r_states s ON r.state=s.abbreviation', $where, compact('state', 'zip', 'country'));
   if (!$region) $region = r\dbLookup("CONCAT(iso_code, 'A')", 'r_countries', 'id=:country', compact('country'));
-  return -u\a2n($region ?: 'ZZZ');
-}
-
-/**
- * Interpret transaction record fields as an acct object
- * @param int/array $id: the account id or [id, agent, data]
- * @param int $agent: account id of the transaction agent
- * @param assoc $data: extra info from the transaction, including info about foreign parties to the transaction
- * @return acct
- */
-function tx2acct($id, $agent = '', $data = '') {
-  if (is_array($id)) list ($id, $agent, $data) = $id;
-  if (is_array($data)) extract($data); // foreignUid and/or foreign_agent (or neither)
-  return acct(@$foreignUid ? qid($foreignUid, $id) : $id, @$foreign_agent ? qid($foreign_agent, $agent) : $agent);
+  return -u\a2n($region ?: 'ZZZ') - 1;
 }
 
 /**
@@ -787,7 +796,7 @@ function nonoUndo($oldRecord, &$subs = array()) {
     return 'already undone';
   }
 
-  $acct = tx2acct($toMe ? array($payee, $payeeAgent, $data) : array($payer, $payerAgent, $data));
+  $acct = $toMe ? r\acct($payee, $payeeAgent) : r\acct($payer, $payerAgent);
   if ($cacct->agentId != $acct->agentId) {
     $perm = $taking ? B_BUY : B_SELL;
     if (!acct($acct->id, $cacct->agentId)->can($perm)) return $taking ? 'no buy' : 'no sell';
@@ -840,6 +849,9 @@ function communityUid($postalCode = '') {
   return userField('uid', $where, compact(u\ray('postalCode'))) ?: serverUid();
 }
 
+/**
+ * Say whether the given account id is a foreign region.
+ */
 function foreignServer($uid) {
   if ($uid == serverUid()) return FALSE;
   return ($uid < 0 and preg_match('/[A-Z]{3}\./', userField('name', $uid)));
@@ -869,14 +881,8 @@ function loginString($id) {
  * Return a list of employee accts for the current account.
  */
 function employees() {
-  $cuid = acct()->id;
-  $result = dbQ('SELECT other, foreignUid FROM r_relations WHERE main=:cuid AND employerOk AND employeeOk', compact('cuid'));
-  $accts = array();
-  foreach ($result as $key => $one) {
-    extract((array) $one); // other, foreignUid
-    $accts[] = $other > 0 ? acct($other) : acct(qid($foreignUid, $other));
-  }
-  return $accts;
+  $cuid = r\acct()->id;
+  return r\dbQ('SELECT other FROM r_relations WHERE main=:cuid AND employerOk', compact('cuid'))->fetchCol();
 }
 
 /**
@@ -907,7 +913,7 @@ function passSalt($acct = '') {
 function newUid($base) {
   $where = 'u.uid>:base AND u2.uid IS NULL ORDER BY u.uid';
   $previous = dbLookup('u.uid', 'users u LEFT JOIN users u2 ON u2.uid=(u.uid+1)', $where, compact('base'));
-  return $previous ? ($previous + 1) : ($base + 2); // skip uids 0 and 1
+  return $previous ? ($previous + 1) : $base;
 }
   
 /**
@@ -1191,7 +1197,7 @@ function rebate($uid, $amount = 1) {return round($amount * userField('rebate', $
 function bonus($uid, $amount = 1) {return rebate($uid, 2 * $amount);}
 function txField($field, $which, $subs = array()) {return tableField($field, 'r_txs', $which, $subs);}
 function setTxState($newValue, $zserial) {setTxField('state', $newValue, $zserial, TRUE);}
-function serverUid($regionId = R_SERVER_ID) {return -u\a2n($regionId);}
+function serverUid($regionId = R_SERVER_ID) {return -u\a2n($regionId) - 1;}
 function emailTemplate($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}
 function emailBody($key) {return str_replace('{BODY}', emailTemplate($key), emailTemplate(R_EMAIL_FRAME));}
 function realCountry($country) {return dbLookup('name', 'r_countries', 'id=:country', compact('country'));}

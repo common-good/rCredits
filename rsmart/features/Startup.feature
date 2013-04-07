@@ -21,7 +21,7 @@ Scenario: Member logs in successfully to initialize device
   When member initializes the device as member "NEW.ZZA" with password %whatever1
   Then we respond with:
   | success | message    | code       | my_id   | account_name | allow_change_account | allow_change_agent | require_agent | show_buttons |
-  | 1       | first time | (the code) | NEW.ZZA | Abe One      | 0                    | 1                  | 0             | 3             |
+  | 1       | first time | (varies) | NEW.ZZA | Abe One      | 0                    | 1                  | 0             | 3             |
 #op="first_time"
 #update_link (URL of updated app or null if no update is available)
 #allow_change_account=TRUE or FALSE

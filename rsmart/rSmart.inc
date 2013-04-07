@@ -81,8 +81,8 @@ function api($args = FALSE) {
       if (!u\isQid($q_my_id)) return be\error('bad id format');
       if (!$cacct = r\acct($q_my_id, '', $error)) return be\error($error);
     } elseif (!$cacct = r\acct($q_owner)) return be\error('bad code owner'); // this should never happen
-    if (r\foreignServer($cacct->regionId)) return be\error('wrong server');
-    if (r\foreignServer($cacct->agentIdRegion)) return be\error('wrong server for agent');
+    if (r\foreignServer(r\uidRegion($cacct->id))) return be\error('wrong server');
+    if (r\foreignServer(r\uidRegion($cacct->agentId))) return be\error('wrong server for agent');
     if (buttons($cacct, $q_owner) < 0) return be\error('no permission');
     r\acct::setDefault($cacct);
     $args['cacct'] = $cacct;

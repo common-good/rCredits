@@ -212,8 +212,6 @@ function tableDefs($schema = array()) {
     'reid' => setupField('relationship record id', 'serial 11'),
     'main' => setupField('uid of the account to which others are related', 'int 11'),
     'other' => setupField('uid of a user related to that account', 'int 11'), // eg owner, agent, employee, supplier
-    'foreignUid' => setupField('uid of the foreign main account or foreign agent in their own region (main or other is then the region)', 'int 11'),
-    'foreignName' => setupField('full name of the foreign main account or foreign agent', 'varchar 60'),
     'amount' => setupField('average monthly amount paid to other', 'numeric 11,2', 0), // typically to employee or supplier
     'flow' => setupField('which way credit can flow 1=to other 2=to main 3=both 0=neither', 'int tiny', 0),
     'permission' => setupField('what type of permission the agent has on the main account', 'int tiny', 0),

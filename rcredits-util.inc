@@ -161,7 +161,7 @@ function forCash($for) {
 }
 
 /**
- * Return an alphabetic representation of the given integer.
+ * Return an alphabetic representation of the given non-negative integer.
  * A is the zero digit, B is 1, etc.
  * @param int $n: the integer to represent
  * @param int $len: the length of the string to return
@@ -480,9 +480,8 @@ function loga($type, $info = array(), $special = '', $adhocChannel = FALSE) {
   
   // make it easy to match the message when searching
   if (isNonce($special) and @$info['message']) $info['message'] = str_replace($special, '@nonce', $info['message']);
-  if (@$info['code']) $info['code'] = '(the code)'; // don't make code and password any more accessible than they are
-  if (@$info['password']) $info['password'] = '(the password)';
-  
+  // don't make code, password, and secret links any more accessible than they are
+  foreach (u\ray(R_CONCEALED_FIELDS) as $one) if (@$info[$one]) $info[$one] = '(varies)';
   $info = json_encode($info, JSON_UNESCAPED_SLASHES);
   $channels = ray(TX_CHANNELS); 
   if ($useTextLogToo) file_put_contents($channels[$channel + 0] . '.log', "$date $type: $info\n", FILE_APPEND);
