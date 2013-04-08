@@ -69,7 +69,9 @@ EOF
     'summary' => tt(<<<EOF
       <p>This page shows an overview of your rCredits account.</p>
       <p><b>Account ID</b> has two parts. The part before the period is a 3-character identifier for your region (@R_REGION_NAME). The part after the period uniquely identifies your account, within your region. If you have several accounts, this part will be different for each one.</p>
-      <p>If you are acting as an agent for someone else's account &mdash; for example if you are a sales clerk for a department store &mdash; the period will be a colon instead. Your company ID Card will show your picture, with the company name under yours. The second part of the account ID (and the scannable code) identifies both you and the company.</p>
+	  <p><b>Balance</b> is the sum of your rCredits (green) and your US Dollars (blue).</p>
+	  <p><b>Rewards</b> totals your signup bonus, adjustments for inflation, and all your rebates and bonuses ever.</p>
+	  <p><b>Credit floor</b> goes negative (meaning you can go into debt) a little at a time, based on your rCredits history.</p>
 EOF
     ),
     'txs' => t(<<<EOF
@@ -188,3 +190,6 @@ EOF
   //        <p>Download the app from <a href="http://rCredits.org/rc.apk">rCredits.org/rc.apk</a>, install, run. Try all the buttons.</p>
 
 }
+/*
+      <p>If you are acting as an agent for someone else's account &mdash; for example if you are a sales clerk for a department store &mdash; the period will be a colon instead. Your company ID Card will show your picture, with the company name under yours. The second part of the account ID (and the scannable code) identifies both you and the company.</p>
+*/
