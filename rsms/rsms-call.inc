@@ -17,7 +17,7 @@ class rSMSexception extends \Exception {} // so we can use \Exception for real e
 class call {
   var $message; // the text message received
   var $number; // calling phone number
-  var $uid; // record id of caller's record in user table (duplicates $cacct->id and can probably be eliminated, but look carefully
+  var $uid; // record id of caller's record in user table (duplicates $mya->id and can probably be eliminated, but look carefully
     // at storing $this for todo and retrieving
   var $xid; // record id of transaction, related to an operation awaiting confirmation
   var $command; // the major command operation (as parsed)
@@ -66,29 +66,29 @@ class call {
    */
   function validate_caller() {
     $number = $this->number;
-    $cuid = $this->uid = uid($number);
-    if (!$cuid) {
+    $myid = $this->uid = uid($number);
+    if (!$myid) {
       return tt('you must setup');
-      //$cacct = new r\acct(compact('number')); // this will crash if someone (VERY) quickly calls again from the same number
-      //$cuid = $cacct->id;
-    } else $cacct = r\acct($cuid);
-//    print_r(compact('number','cuid','cacct')); die();
-    u\EXPECT($cacct, 'failed to get acct');
-    r\acct::setDefault($cacct);
+      //$mya = new r\acct(compact('number')); // this will crash if someone (VERY) quickly calls again from the same number
+      //$myid = $mya->id;
+    } else $mya = r\acct($myid);
+//    print_r(compact('number','myid','mya')); die();
+    u\EXPECT($mya, 'failed to get acct');
+    r\acct::setDefault($mya);
     
     $todo = @be\todo($number)->todo;
     /*
-    if (be\isTempName($cacct->name)) {
+    if (be\isTempName($mya->name)) {
       if($todo != 'setup name') {
         be\todo($number, 'setup name', '');
         return tt("what's your name?");
       }
-      $fullName = setup_name($cacct, $this->message);
+      $fullName = setup_name($mya, $this->message);
       be\todo($number, 'setup email', '');
-      $quid = r\quid($cacct->id, $cacct->agentId, $cacct->regionId); //$cacct->credit_id;
+      $quid = r\quid($mya->id, $mya->agentId, $mya->regionId); //$mya->credit_id;
       return tt("what's your email?", compact('quid', 'fullName'));
-    } elseif ($todo == 'setup email' and !$cacct->mail) {
-      setup_email($cacct, $this->message);
+    } elseif ($todo == 'setup email' and !$mya->mail) {
+      setup_email($mya, $this->message);
       be\todo($number, '', '');
       $balance = u\formatAmount(be\fund($this->uid, TX_SIGNUP));
       return tt('your account is ready', compact('balance'));
@@ -259,7 +259,7 @@ class call {
    * AND payer=other OR payee=other
    */
   function do_undo() {
-    $cuid = r\acct()->id;
+    $myid = r\acct()->id;
     extract($this->parms, EXTR_PREFIX_ALL, 'my');	// who and/or tofrom
 
     if ($this->confirmed) {
@@ -269,8 +269,8 @@ class call {
     
     if (isset($my_tofrom)) {
       $my_tofrom = strtolower($my_tofrom);
-      $where = $my_tofrom === 'to' ? 'payer=:cuid' : 'payee=:cuid';
-    } else $where = '(payee=:cuid OR payer=:cuid)';
+      $where = $my_tofrom === 'to' ? 'payer=:myid' : 'payee=:myid';
+    } else $where = '(payee=:myid OR payer=:myid)';
 
     if (isset($my_who)) {
       if (!u\isAcct($acct = be\identify($my_who))) return tt($acct); // return if error
@@ -281,7 +281,7 @@ class call {
       } else $where .= '(payee=:otherUid OR payer=:otherUid)';
     }
 
-    $oldRecord = be\lastTx($where, compact(u\ray('cuid otherUid')));
+    $oldRecord = be\lastTx($where, compact(u\ray('myid otherUid')));
     if ($error = r\nonoUndo($oldRecord, $subs)) return array($error, $subs);
     $this->parms['xid'] = $oldRecord['xid'];
     return $this->confirm('undo', r\txReportArgs($oldRecord, FALSE));
@@ -302,7 +302,7 @@ class call {
    *   other syntaxes including who and amount (create a new transaction)
    */
   function do_payment() {
-    $cuid = r\acct()->id;
+    $myid = r\acct()->id;
     extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, what, and maybe xid
     if (isset($my_amount)) return $this->do_transfer('payment'); // complete syntax
     
@@ -313,13 +313,13 @@ class call {
     }
     
     // unconfirmed invoice payment
-    $where = 'state=:TX_PENDING AND payer=:cuid';
+    $where = 'state=:TX_PENDING AND payer=:myid';
     if (isset($my_who)) {
       if (!u\isAcct($acct = be\identify($my_who))) return tt($acct); // return if error
       $otherUid = $acct->id;
       $where .= ' AND payee=:otherUid';
     }
-    if(!$result = be\lastTx($where, compact(u\ray('cuid otherUid')))) return tt('no matching invoice');
+    if(!$result = be\lastTx($where, compact(u\ray('myid otherUid')))) return tt('no matching invoice');
     $this->parms['xid'] = $result['xid'];
     return $this->confirm('pay invoice', r\txReportArgs($result));
   }

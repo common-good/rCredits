@@ -29,7 +29,13 @@ function rcredits_install() {
     $info = array_combine($keys, $values);
     new r\acct($info);
 
-    $values = array(r\unQuid(R_SERVER_ID . '.AAA'), $server, 'cgf', 'Common Good Finance', '01330', R_COUNTRY_ID, 0, R_REBATE, u\bit(B_OK) | u\bit(B_COMPANY));
+    $values = array(r\unQuid(R_SERVER_ID . '.AAA'), $server, 'williamspademan', 'William Spademan', '01330', R_COUNTRY_ID, 0, R_REBATE, u\bit(B_OK) | u\bit(B_PERSONAL));
+    $info = array_combine($keys, $values);
+    list ($mail, $phone, $address, $city, $state) = array('wspademan@gmail.com', '+14136283336', 'PO Box 305', 'Ashfield', R_STATE_ID);
+    $info += compact(u\ray('mail phone address city state'));
+    $cgf = new r\acct($info);
+    
+    $values = array(r\unQuid(R_SERVER_ID . '.AAB'), $server, 'cgf', 'Common Good Finance', '01330', R_COUNTRY_ID, 0, R_REBATE, u\bit(B_OK) | u\bit(B_COMPANY));
     $info = array_combine($keys, $values);
     list ($mail, $phone, $address, $city, $state) = array(CGF_EMAIL, CGF_PHONE, CGF_ADDRESS, CGF_CITY, R_STATE_ID);
     $info += compact(u\ray('mail phone address city state'));
@@ -76,7 +82,7 @@ function rcredits_install() {
   extract((array) $dbs[$db_name], EXTR_PREFIX_ALL, 'db');
   $db = new PDO("$db_driver:host=$db_host;port=$db_port;dbname=$db_name", $db_user, $db_pass);
 
-  $rTables = 'r_areas,r_regions,r_countries,r_states,r_nonces,r_industries,r_user_industries';
+  $rTables = 'r_areas,r_regions,r_countries,r_states,r_nonces,r_industries,r_user_industries,r_nonmembers';
   $redoTables = 'filter,filter_format,role_permission';
   foreach (explode(',', $redoTables) as $table) \db_query("TRUNCATE $table");
   $sqlDir = __DIR__ . '/sql';
@@ -87,7 +93,7 @@ function rcredits_install() {
     if ($sql = @file_get_contents("$filename-make.sql")) \db_query($sql); // read in a single CREATE TABLE (if exists) query
     if (!@r\dbExists("$table", 'TRUE') and file_exists("$filename-insert.sql")) {
       $sql = file_get_contents("$filename-insert.sql"); // read in a single multi-record INSERT query
-      if (!$db->query($sql)) die("Failed to insert records for $table.");
+      if (!$db->query($sql)) die("Failed to insert records for $table."); // keep
 	  }
   }
 

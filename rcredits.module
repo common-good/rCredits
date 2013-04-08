@@ -42,6 +42,8 @@ use rCredits as r;
 use rCredits\Util as u;
 use rCredits\Testing as t;
 
+define('R_SYS_ERR', "The rCredits System has detected an unusual problem. If your activity was interrupted, please feel free to try again.<br>\n");
+
 class rCreditsMailSystem extends DefaultMailSystem {
   public function format(array $message) {
     $message['body'] = drupal_wrap_mail(join("\n\n", $message['body']));
@@ -80,8 +82,7 @@ function rcredits_exception_handler($e) {
   }
 //    $trace = str_replace('<!--', '<! --', print_r($trace, 1));
 //    $trace_msg .= "<!--$trace-->"; // source will contain the whole trace
-  $short_msg = "<b>Exception:</b> The rCredits System has detected an unusual problem. If your activity was interrupted, please feel free to try again.<br>\n";
-  $msg = "$short_msg<br>\n($msg)<br>\n- $line0 ($file0)" . $trace_msg;
+  $msg = '<b>Exception:</b>' . R_SYS_ERR. "<br>\n($msg)<br>\n- $line0 ($file0)" . $trace_msg;
   $message = str_replace('&nbsp;', '', str_replace('<br>', '', $msg));
   $R_FATAL_ERROR = u\loga('FATAL', compact('message'));
   if (t\EST()) print_r($msg, 1); // do this in any case (doesn't show up unless interface fails)
@@ -90,9 +91,9 @@ function rcredits_exception_handler($e) {
     case TX_WEB:
       drupal_set_message($msg, 'error'); // this fails
       drupal_goto('error/' . $R_FATAL_ERROR); // this fails -- use shutdown function to show error page (getting message from log)
-    case TX_SMS: if (@$rsms_number) \sms_send($rsms_number, $short_msg); break;
-    case TX_SMART: be\api_error($short_msg);
-    default: die('with no channel'); // definitely do the print_r first
+    case TX_SMS: if (@$rsms_number) \sms_send($rsms_number, R_SYS_ERR); break;
+    case TX_SMART: be\api_error(R_SYS_ERR);
+    default: die('with no channel'); // (keep) definitely do the print_r first
   }
 }
 
@@ -115,7 +116,7 @@ function rcredits_shutdown() {
 /**
  * Implements hook_im_send().
  */
-function rcredits_im_send($key, &$message, $subs) {
+function rcredits_im_send($index, &$message, $subs) {
   return FALSE; // can't send IMs yet
 
   $message['send'] = FALSE; // disable emailing, since we sent it by IM instead
@@ -126,16 +127,17 @@ function rcredits_im_send($key, &$message, $subs) {
  * Implements hook_mail().
  * @see also: r\notify() and _user_mail_notify
  */
-function rcredits_mail($key, &$msg_array, $info) {
+function rcredits_mail($index, &$msg_array, $info) {
 //    $data['user'] = r\acct()->account();
 //    user_mail_tokens($variables, $data, compact('language')); // adds links for password reset and account cancelation
-    if (rcredits_im_send($key, $msg_array, $info)) return; // If we can send by instant-message, do not send by email.
+    $index = str_replace('_', '-', $index); // correct Drupal template names to rCredits standard
+    if (rcredits_im_send($index, $msg_array, $info)) return; // If we can send by instant-message, do not send by email.
     
     $uid = $info['uid'];
     $acct = r\acct($uid);
     $info += (array) $acct->account();
     $info['quid'] = $acct->mainQid;
-    $info['oneTimeLoginUrl'] = user_pass_reset_url($acct->account());
+    $info['oneTimeLoginUrl'] = \user_pass_reset_url($acct->account());
     $info['site'] = R_SITE_URL;
 
     $info['fullName'] = $info['fullName']; // these are not always the name and email of the account
@@ -144,18 +146,18 @@ function rcredits_mail($key, &$msg_array, $info) {
     foreach ($info as $k => $value) $subs['{' . $k . '}'] = $value;
     $langcode = $acct->language->language; // instead of $language = $msg_array['language']; 
     $msg_array['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed'; // default is plain text
-    $message = @$info['noFrame'] ? r\emailTemplate($key) : r\emailBody($key);
+    $message = @$info['noFrame'] ? r\emailTemplate($index) : r\emailBody($index);
 
-    $subject = @$info['subject'] ?: $GLOBALS['emailSubjects'][$key];
+    $subject = @$info['subject'] ?: $GLOBALS['emailSubjects'][$index];
     $subject = $msg_array['subject'] = strtr($subject, $subs);
     $message = $msg_array['body'][] = strtr($message, $subs);
 
     $message = str_replace("\r\n", '', $message); // easier reading for log and tests
     foreach (u\ray(R_CONCEALED_FIELDS) as $one) $message = str_replace(@$info[$one], '(varies)', $message);
-    $fields = compact(u\ray('key email subject message'));
+    $fields = compact(u\ray('index email subject message'));
     if (t\EST()) \drupal_set_message(t\color($fields, 'email')); // keep this
     
-    if (!r\acct()) { // must be register/login/reset, so setup what u\log needs
+    if (!r\acct()) { // must be register/login/reset, so setup what u\loga needs
       r\acct::setDefault($acct);      
       global $channel; if (!$channel) $channel = TX_WEB;
     }

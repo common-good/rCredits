@@ -20,6 +20,7 @@ DAILY (every 5 mins for 5 mins, starting at 2am)
 MONTHLY
 - interest (monthly, calculating daily bals from history) is credited to the new month. calculated as the sum of t*bal*APR, where bal is each balance they had during the preceding month and t is the number of years that balance lasted. (see daily notify and fine, above)
 - share to CGF
+- adjust rewards pct for each account (based on growth of account's wider economic ctty)
 - archive the 13th previous month (13 is a parameter -- transactions are accessible for ever, but slower)
 
 YEARLY
@@ -280,5 +281,5 @@ function virtualPaymentError($acct1, $acct2) {
 
 function virtualPaymentError1($acct1, $way, $acct2) {
   $other = $acct2->fullName;
-  r\notify($acct->id, 'pay virtual error', compact('way', 'other'));
+  r\notify($acct->id, 'pay virtual error', compact('way', 'other'), TRUE);
 }

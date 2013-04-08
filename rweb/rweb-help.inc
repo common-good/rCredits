@@ -15,12 +15,12 @@ use rCredits\Util as u;
  */
 function helpText($page) {
   global $base_url;
-  $cacct = r\acct();
-  $acctName = @$cacct->name; // @ is for SMS testing (when not signed in)
+  $mya = r\acct();
+  $acctName = @$mya->name; // @ is for SMS testing (when not signed in)
 
   $site = str_replace('http://', '', R_SITE_URL);
-  $companyAccount = @$cacct->can(B_PERSONAL) ? '' : t(<<<EOF
-  <p>For companies, upload a picture to represent your business. This picture will appear on your automatic rCredits webpage: <a target="_blank" href="$base_url/member/$cacct->name">$site/member/$cacct->name</a> &mdash; so choose wisely. See also the <a href="$base_url/account/company">Company Info</a> form.</p>
+  $companyAccount = @$mya->can(B_PERSONAL) ? '' : t(<<<EOF
+  <p>For companies, upload a picture to represent your business. This picture will appear on your automatic rCredits webpage: <a target="_blank" href="$base_url/member/$mya->name">$site/member/$mya->name</a> &mdash; so choose wisely. See also the <a href="$base_url/account/company">Company Info</a> form.</p>
 EOF
   );
   $paySpecial = t(' If you have employees you can say pay "ALL", to pay each employee the same amount.');

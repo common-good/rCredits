@@ -41,8 +41,8 @@ label.option {font-weight:bold;}
 .rweb .form-checkboxes .form-type-checkbox label,
 .rweb .form-type-checkbox .description {text-align:left; padding-left:2em; height:1.35em; background:url(../images/checkbox.gif) no-repeat; background-size:1.35em;}
 
-.form-type-checkbox .opt-on,
-form.rweb .form-type-checkboxes label.opt-on,
+.rweb .form-type-checkbox .opt-on,
+.rweb .form-type-checkboxes label.opt-on,
 .form-type-radio label.opt-on {background-position:left bottom;}
 
 .form-type-checkbox  input,
@@ -87,12 +87,12 @@ ul.tabs.primary {padding:0; margin-left:4em; margin-top:.8em; font-size:85%;}
 /* Accounts Selector */
 #accounts {position:absolute; left:0; top:2em; width:100%;}
 #accounts .region-accounts {float:right; margin-right:1em; width:100%;}
-#accounts .content, #accounts .form-item-acct-account {margin:0; }
-#accounts .form-type-textfield, #accounts .form-type-select {width:100%;}
+#accounts .content, #accounts .form-item-acct-account {margin:0; padding:0;}
+#accounts .form-type-textfield, #accounts .form-type-select {float:right;}
 #accounts #edit-acct-thumb {float:right;} 
 #accounts #edit-acct-thumb img {height:23px; margin-left:5px;}
 #accounts #edit-acct-account {font-size:1em; padding:0; float:right;}
-#accounts input#edit-acct-account {padding:.4em;}
+#accounts input#edit-acct-account {padding:2px; width:auto; max-height:20px; margin:0; font-size:95%;}
 #rcreditswebformaccounts #edit-acct-submit {display:none;} /* Drupal requires unused button to be there, so make it invisible */
 #edit-acct-showmenu, #edit-acct-showhelp {display:none;}
 
@@ -418,6 +418,7 @@ form.rweb  .form-no {color:red;}
 /* Cell */
 #rcreditswebformcell input#edit-delete {margin-right:100%;}
 #rcreditswebformcell table.table-select-processed {width:300px;}
+#rcreditswebformcells .form-type-checkbox input {position:relative; left:0;}
 
 /* Example Store */
 #rcreditswebexample-store-form input.form-submit, #rcreditswebexample-store-form input.form-submit:hover {background:none; border:0;}
@@ -555,7 +556,8 @@ and (max-device-width : 480px) { */
   #accounts .region-accounts {margin:0;}
   #accounts select, #accounts input {font-size:1.5em; overflow:none;}
   #edit-acct-showmenu,
-  #edit-acct-showhelp {display:inline-block; float:right; font-size:14px; margin:6px 0 0 0;}
+  #edit-acct-showhelp {display:inline-block; float:right; font-size:14px; margin:0 0 0 0;}
+  #edit-acct-showmenu {clear:right;}
   #edit-acct-showmenu input,
   #edit-acct-showhelp input {width:3.5em;}
 

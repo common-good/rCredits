@@ -207,9 +207,11 @@ function formatPhone($phone, $how = '') {
   $phone = (preg_replace('/[\(\) \-\.]/', '', $phone)); // ignore typical punctuation
   if (substr($phone, 0, 2) == '+1') {
     $phone = substr($phone, 2);
+  } elseif (substr($phone, 0, 1) == '1') {
+    $phone = substr($phone, 1);
   } elseif (substr($phone, 0, 1) == '+') $foreign = substr($phone, 1);
 
-  if (!is_numeric($phone)) return FALSE;
+  if (!is_numeric($phone) or strlen($phone) < 8 or strlen($phone) > 16) return FALSE;
   if (!$foreign and substr($phone, 0, 1) < 2) return FALSE; // US phone numbers cannot start with 0 or 1
   if (!$foreign and strlen($phone) != 10) return FALSE;
 
@@ -408,7 +410,7 @@ function EXPECT($assertion, $message = '', $ret = FALSE) {
 //if (strpos($types, '|')) {debug(array_keys($args)); debug($types);}
 //    EXPECT(count($args) != count($types = explode(' ', $types)), 'wrong number of types expected'); // infinite recursion
 //    if(count($args) != count($types = explode(' ', $types))) die('wrong number of types expected: ' . print_r(debug_backtrace(), 1));
-    if (count($args) != count(explode(' ', $types))) debug(debug_backtrace());
+    if (count($args) != count(explode(' ', $types))) debug(debug_backtrace()); // keep
     $types = array_combine(array_keys($args), explode(' ', $types)); // not ray() here, $types may have '|'
     foreach ($args as $key => $value) if ($error = expect1($key, $value, $types[$key], $ret)) return $error;
   } elseif (!$assertion) {
@@ -437,7 +439,7 @@ function expect1($arg, $value, $type, $ret) {
       if ($msg2 = EXPECT(is_array($value), $msg, $ret)) return $msg2;
       foreach ($value as $key => $one) expect1("$arg key", $key, 'name', $ret);
       return;
-    case 'bool': return EXPECT(is_bool($value), $msg, $ret);
+    case 'bool': return EXPECT(is_bool($value) or $value == 0 or $value == 1, $msg, $ret);
     case 'email': return EXPECT(\valid_email_address($value), $msg, $ret);
     case 'empty': return EXPECT(empty($value), $msg, $ret);
     case 'float': return EXPECT(myFloat($value), $msg, $ret); // don't use is_float()?
@@ -472,7 +474,7 @@ function loga($type, $info = array(), $special = '', $adhocChannel = FALSE) {
   global $channel;
   $useTextLogToo = TRUE;
 
-  $cuid = @r\acct()->id;
+  $myid = @r\acct()->id;
   $agent = @r\acct()->agentId;
   $time = time();
   $date = formatDate();
@@ -485,7 +487,7 @@ function loga($type, $info = array(), $special = '', $adhocChannel = FALSE) {
   $info = json_encode($info, JSON_UNESCAPED_SLASHES);
   $channels = ray(TX_CHANNELS); 
   if ($useTextLogToo) file_put_contents($channels[$channel + 0] . '.log', "$date $type: $info\n", FILE_APPEND);
-  $record = compact(ray('time channel type cuid agent info special'));
+  $record = compact(ray('time channel type myid agent info special'));
   return r\dbInsert('r_log', $record);
 }  
 
@@ -782,7 +784,7 @@ function myInt($n) {return (is_numeric($n) and $n == (int) $n);}
 function myFloat($n) {return (is_numeric($n) and $n == (float) $n);}
 function isId($id) {return (myInt($id) and $id > 0);}
 //function is_ruid($ruid) {return (is_array($ruid) and array_keys($ruid) == array(0, 1, 2) and isZid($ruid[0]) and isZid($ruid[1]) and isZid($ruid[2]));}
-function isQid($qid) {if(is_object($qid)) debug(lastCall(6)); return preg_match('/^[A-Z]{3}(\.|:|=|\.\.)[A-Z]+$/', $qid);}
+function isQid($qid) {return preg_match('/^[A-Z]{3}(\.|:|=|\.\.)[A-Z]+$/', $qid);}
 function isZid($zid) {return (myInt($zid) and $zid !== 0);}
 function isNonce($nonce) {return preg_match('/^[A-Z]{3,}$/', $nonce);}
 function isName($value) {return preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $value);}

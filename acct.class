@@ -29,14 +29,14 @@ class acct {
    *   'email' is email address
    *   UNUSED (because it's hard to verify): 'website' is website address
    *   (This function assumes that the info is not sufficient to identify an existing user)
-   * @param id/qid $id: the account's record id (can this be a community?) (DEFAULT to cuid)
+   * @param id/qid $id: the account's record id (can this be a community?) (DEFAULT to myid)
    * @param id/qid $agent: the agent's record id on this server OR the foreign agent's qid (DEFAULT to same as $id)
    */
   function __construct($id = array(), $agent = '') {
     if (is_array($info = $id)) { // referring to existing db record
       $this->createNew($info); // create new db record
     } else list($this->id, $this->agentId) = acct::ok($id, $agent, $zot, FALSE);
-    if ($this->id > 0) $this->mainQid = quid($this->id); // no qids for communities and regions!
+    if ($this->id > 0) $this->mainQid = r\quid($this->id); // no quids for communities and regions!
   }    
 
   /**
@@ -64,11 +64,8 @@ class acct {
     $data = serialize(@$my_data ?: array());
     $frozen = serialize(array());
     $created = $login = $access = REQUEST_TIME;
-    if (count($companyInfo = u\just(R_COMPANY_FIELDS, $info))) {
-      $companyInfo['id'] = $this->id;
-      if ($flags & u\bit(B_COMPANY)) r\dbInsert('r_companies', $companyInfo);
-      foreach ($companyInfo as $key => $value) unset($info[$key]);
-    }
+    $companyInfo = u\just(R_COMPANY_FIELDS, $info);
+    foreach ($companyInfo as $key => $value) unset($info[$key]);
 
     $info = compact(u\ray('phone status mail init pass name fullName flags rebate community data created login access')) + $info;
 
@@ -85,6 +82,11 @@ class acct {
       u\EXPECT(@$try < 20, "failed to save user record after $try tries.");
     }
 
+    if (!empty($companyInfo)) {
+      $companyInfo['id'] = $uid;
+      if ($flags & u\bit(B_COMPANY)) r\dbInsert('r_companies', $companyInfo);
+    }
+    
     if (isset($my_number)) {
       $success = SMS\create($my_number, $uid);
       u\EXPECT($success, 'Unable to create SMS record.');
@@ -107,7 +109,6 @@ class acct {
     if ($error = u\EXPECT((bool) $id0, 'null uid in new acct()', $test)) return FALSE;
     if ($error = u\EXPECT(!(strpos($id0, ':') and $agent0), 'agent already specified in qid', $test)) return FALSE;
     list ($id, $agent) = u\isZid($id0) ? array($id0, $agent0 ?: $id0) : IA($id0); // handle
-
     if (u\isQid($agent0)) {
       list ($agent, $zot) = IA($agent0);
       if ($error = u\EXPECT($agent == $zot, 'agent agent not allowed', $test)) return FALSE;
@@ -201,8 +202,7 @@ class acct {
    */
   public static function nextId($region = '') {
     u\EXPECT($region <= 0, 'non-negative region in nextId');
-    return r\newUid(R_REGION_MAX * (-($region ?: r\serverUid()) - 1));
-//    return max(t\EST() ? 1000 : -9999999, dbLookup('MAX(uid)', 'users', 1)) + 1;
+    return r\newUid(R_REGION_MAX * (-($region ?: r\serverUid()) - 1) + 1);
   }
   
   /**
@@ -316,7 +316,7 @@ class acct {
         : ($perms[B_CTTY_ADMIN] and $this->community == $aacct->community) ? 
               B_MANAGE : (B_RELATED + relation('permission', $id, $this->agentId));
       for ($i = B_RELATED; $i <= B_MANAGE; $i++) $perms[$i] = ($i <= $can); // set all permissions, even the false ones
-      if (!$perms[B_OK]) $perms[B_READ] = $perms[B_SELL] = $perms[B_BUY] = FALSE; // no ASIFs!
+      if (!$perms[B_OK]) $perms[B_SELL] = $perms[B_BUY] = FALSE; // no ASIFs! (read here kills acct dropdown)
 
       if ($perms[B_ADMIN]) {
         if (R_ADMIN_CAN_MANAGE_CTTYS) {
@@ -358,7 +358,7 @@ function IA($quid = '', $no_abbrev = TRUE) {
     if (!$record = relation('main,other', 'reid=:reid', compact('reid'))) return FALSE;
     $result = array_values($record);
   } else {
-    $zuid += 1 + -$regionUid * R_REGION_MAX;
+    $zuid = r\unQuid($quid);
     $result = array($zuid, $zuid);
   }
   return $result;

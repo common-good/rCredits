@@ -119,18 +119,13 @@ function makeTransaction($info, $infoOnly = FALSE) {
  */
 function makeRelation($info, $infoOnly = FALSE) {
   extract($info, EXTR_PREFIX_ALL, 'my');
-  debug($info);
   
   $reid = u\num($my_id, u\a2n(substr($my_id, -3)));
-  debug('make relation 1');
-  if (!$mainAcct = r\acct(uid($my_main))) return testOutput("main:$my_main is not an id");
-  debug('make relation 2');
-  if (!$agtAcct = r\acct(uid($my_agent))) return testOutput("agent:$my_agent is not an id");
-  debug('make relation 3');
+  if (!$mainAcct = r\acct(fullQid($my_main))) return testOutput("main:$my_main is not an id");
+  if (!$agtAcct = r\acct(fullQid($my_agent))) return testOutput("agent:$my_agent is not an id");
   u\EXPECT(!r\foreignServer(r\uidRegion($mainAcct->id)) or !r\foreignServer(r\uidRegion($agtAcct->id)));
   u\EXPECT($mainAcct->proSe() and $agtAcct->proSe());
   list ($main, $other) = array($mainAcct->id, $agtAcct->id);
-  debug(compact('main','other','reid'));
   if (@$my_permission) {
     $perms = array_flip($GLOBALS['share permissions']);
     $info['permission'] = $perms[$my_permission]; 
@@ -179,7 +174,7 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
 
   $fields = @$fields[0] ?: $fields;
   $subs = @$subs[0] ?: @$subs;
-  $cuid = @r\acct()->id;
+  $myid = @r\acct()->id;
   if ($message = ($message ?: @$fields['message'])) {
     if ($channel != TX_SMS and strlen($message < 30)) $message = u\tt($message, $subs);
     $fields['message'] = $message;
@@ -191,11 +186,11 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
   $agent = @r\acct()->agentId;
   \drupal_set_message(color(array('EXPECT' => '') + $fields, @$subject ? 'email' : 'output')); // keep this
   $info = json_encode($fields, JSON_UNESCAPED_SLASHES);
-  $crit = "channel=:channel AND type=:type AND cuid=:cuid AND agent=:agent ORDER BY logid DESC";
-//  debug(compact(u\ray('info type cuid agent channel crit'))); // for debugging mysterious email mismatches
-//  debug(compact(u\ray('info type cuid agent channel')), '', 1);
-//  debug("info=:info AND $crit"); debug(compact(u\ray('info type cuid agent')));
-  return r\dbExists('r_log', "info=:info AND $crit", compact(u\ray('info type cuid agent channel')));
+  $crit = "channel=:channel AND type=:type AND myid=:myid AND agent=:agent ORDER BY logid DESC";
+//  debug(compact(u\ray('info type myid agent channel crit'))); // for debugging mysterious email mismatches
+//  debug(compact(u\ray('info type myid agent channel')), '', 1);
+//  debug("info=:info AND $crit"); debug(compact(u\ray('info type myid agent')));
+  return r\dbExists('r_log', "info=:info AND $crit", compact(u\ray('info type myid agent channel')));
 }
 
 function findEmail($key, $email, $subs) {
@@ -345,6 +340,7 @@ function pageForm($page) {
       : ($result == MENU_ACCESS_DENIED ? 'access error' : "error #$result");
     t\testOutput("page \"$page\": $result in t\\pageForm()");
   } else t\testOutput($formOutput = t\strip($result), 'screen');
+  
 }
 
 function postProcess($form, $formName, $type) {
@@ -404,12 +400,10 @@ function eq($a, $b) {
   return $result;
 }
 
-/*
 function fullQid($q) {
   $c1 = substr($q, 0, 1);
   return ($c1 == '.' or $c1 == ':') ? (R_SERVER_ID . $q) : $q;
 }
-*/
 
 /**
  * Fake $_SERVER params for testing

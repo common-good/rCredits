@@ -2,7 +2,6 @@ jQuery(".form-type-checkbox > .description, .form-checkboxes .form-type-checkbox
   var input=jQuery(this).parent().children("input:first");
   if(input.attr("checked")) jQuery(this).addClass("opt-on");
   jQuery(this).click(function() {
-//  alert(input.attr("checked"));
     jQuery(this).toggleClass("opt-on");
     input.attr("checked", jQuery(this).hasClass("opt-on"));
   });

@@ -94,7 +94,7 @@ function memberCompletesFormWithValues($id, $formName, $values, $confirmed = FAL
 
   if (count($errors = t\getErrors()) > count($errorsBefore)) {
     // NO! if (!empty($errors)) return FALSE;
-    debug(compact(u\ray('id formName values confirmed one errors')));
+    //debug(compact(u\ray('id formName values confirmed one errors')));
   } else {
     $testConfirmation = @$sta['confirm'];
     $lastIdentifierTag = '</div identifiers>';
@@ -209,7 +209,7 @@ function weSayWithSubs($type, $index, $subs) {
   $msg = u\tt($index, $subs);
   $msgs = \drupal_get_messages($type ?: NULL, FALSE);
   $result = (@$msgs[$type] and array_search($msg, $msgs[$type]) !== FALSE);
-  if (!$result) debug(compact('msg','msgs'));
+  if (!$result) debug(compact('msg','msgs')); // keep
   t\testOutput("EXPECT: $msg", 'output'); // this must come after array_search!
   return $result;
 }
@@ -381,11 +381,11 @@ function memberVisitsPage($id, $page) {
 function memberVisitsPageWithOptions($id, $page, $options) {
   global $testOnly; if ($testOnly) return FALSE;
 
-  $cacct = r\acct(); // save, so we can restore it
-  if ($id != '?') r\acct::setDefault(r\acct(t\uid($id)));
+  $mya = r\acct(); // save, so we can restore it
+  if ($id != '?') r\acct::setDefault(r\acct(t\fullQid($id)));
   t\pageForm($page, FALSE);
 //  r\Web\showForm($page, $options);
-  r\acct::setDefault($cacct);
+  r\acct::setDefault($mya);
   return TRUE;
 }
 

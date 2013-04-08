@@ -4,7 +4,7 @@
  * Smart phone interface to the rCredits system.
  *
  * Coding conventions:
- *   $cacct is the current account
+ *   $mya is the current account
  *   $acct is some other account
  *
  * @todo: return "stay" param, meaning "stay on current screen" (for some errors, such as missing description). Better might be to include those checks in the app, so the app returns to main menu always after talking to the server, whether successful or not. Or supply a "try again" button.
@@ -52,7 +52,7 @@ $GLOBALS[TX_SMART . ' messages'] = array(
  * @param assoc $args: an associative array (defaults $_POST) of a json-encoded assoc that normally includes:
  *   op: what to do (determines what function to call)
  *   my_id: agent qid
- *   code: permanent code that we sent to the device in First Time response (used to set default $cuid)
+ *   code: permanent code that we sent to the device in First Time response (used to set default $myid)
  *     if $op = 'first_time', expect $password instead
  *   position: (optional) latitude,longitude,elevation (from the device's GPS)
  *   account_id: the qid for the other party, if any 
@@ -79,13 +79,13 @@ function api($args = FALSE) {
     r\acct::setDefault(r\acct($q_owner)); // set current account temporarily to owner, so that error log has it right
     if (@$q_op != 'startup') { // no my_id on startup (it gets returned instead)
       if (!u\isQid($q_my_id)) return be\error('bad id format');
-      if (!$cacct = r\acct($q_my_id, '', $error)) return be\error($error);
-    } elseif (!$cacct = r\acct($q_owner)) return be\error('bad code owner'); // this should never happen
-    if (r\foreignServer(r\uidRegion($cacct->id))) return be\error('wrong server');
-    if (r\foreignServer(r\uidRegion($cacct->agentId))) return be\error('wrong server for agent');
-    if (buttons($cacct, $q_owner) < 0) return be\error('no permission');
-    r\acct::setDefault($cacct);
-    $args['cacct'] = $cacct;
+      if (!$mya = r\acct($q_my_id, '', $error)) return be\error($error);
+    } elseif (!$mya = r\acct($q_owner)) return be\error('bad code owner'); // this should never happen
+    if (r\foreignServer(r\uidRegion($mya->id))) return be\error('wrong server');
+    if (r\foreignServer(r\uidRegion($mya->agentId))) return be\error('wrong server for agent');
+    if (buttons($mya, $q_owner) < 0) return be\error('no permission');
+    r\acct::setDefault($mya);
+    $args['mya'] = $mya;
     $edit = array('code' => $q_code, 'accessed' => REQUEST_TIME);
     r\dbUpdate('r_smarts', $edit, 'code'); // remember time last accessed so we can drop the deadwood
   }
@@ -124,14 +124,14 @@ function first_time($args) {
   require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
   extract(u\just('my_id password', $args));
   if (!u\isQid(@$my_id)) return be\error('bad id');
-  if (!$cacct = r\acct(@$my_id)) return be\error('unknown member');
-  if (!$cacct->proSe()) $cacct = r\acct($cacct->id); // use the pure account
-  r\acct::setDefault($cacct);
-  $args['cacct'] = $cacct;
+  if (!$mya = r\acct(@$my_id)) return be\error('unknown member');
+  if (!$mya->proSe()) $mya = r\acct($mya->id); // use the pure account
+  r\acct::setDefault($mya);
+  $args['mya'] = $mya;
   if (@!$password) return be\error('login error');
-  if (!user_check_password($password, $cacct->account())) return be\error('bad login'); // make these two error messages distinct but obscure
-  if (!$code = makeDevice(t('Smart Device'), $cacct)) return be\error("can't save device info");
-  $args['owner'] = $cacct->id;
+  if (!user_check_password($password, $mya->account())) return be\error('bad login'); // make these two error messages distinct but obscure
+  if (!$code = makeDevice(t('Smart Device'), $mya)) return be\error("can't save device info");
+  $args['owner'] = $mya->id;
   $message = u\tt('first time');
   // also update_link allow_change_account allow_change_agent
   return compact('message', 'code') + startup($args); // testing counts on this arg order
@@ -144,14 +144,14 @@ function first_time($args) {
  *   update_link (URL of updated app; not set if no update is available)
  */
 function startup($args = '') {
-  extract(u\just('cacct owner', $args));
+  extract(u\just('mya owner', $args));
 //  if (rand() < getrandmax() / 2) $update_link = 'http:/rCredits.org/files/smart.apk';
-  $my_id = $cacct->qid();
-  $account_name = $cacct->fullName;
+  $my_id = $mya->qid();
+  $account_name = $mya->fullName;
   $allow_change_account = 0;
   $allow_change_agent = 1;
-  $require_agent = $cacct->can(B_PERSONAL) ? 0 : 1;
-  $show_buttons = buttons($cacct, $owner);
+  $require_agent = $mya->can(B_PERSONAL) ? 0 : 1;
+  $show_buttons = buttons($mya, $owner);
   return compact(u\ray('my_id account_name update_link allow_change_account allow_change_agent require_agent show_buttons')); // standard fields to return on startup);
 }
 
@@ -166,11 +166,11 @@ function startup($args = '') {
  *   other_balance: the current balance of the company if it's a company, otherwise of the individual
  */
 function identify($args) {
-  $cacct = r\acct();
+  $mya = r\acct();
   extract(u\just('acct', $args));
   if (!@$acct) return be\error('missing acct');
   $fullName = $acct->fullName;
-  if ($acct->id == $cacct->id) return be\error('no self-trading');
+  if ($acct->id == $mya->id) return be\error('no self-trading');
   $location = r\location($acct);
   if (!$acct->proSe()) list ($company_name, $fullName) = array($fullName, r\acct($acct->agentId)->fullName);
   $other_balance = r\otherBalance($acct->id);
@@ -266,10 +266,10 @@ function undo($params) {
 }
 
 function change($params) {
-  extract(u\just('cacct acct what', $params));
+  extract(u\just('mya acct what', $params));
   if (!@$acct) return be\error('missing account_id');
   if (!in_array($what, u\ray('agent account'))) return be\error('bad what');
-  if ($acct->proSe()) $acct = $what == 'agent' ? r\acct($cacct->id, $acct->id) : r\acct($acct->id, $cacct->agentId);
+  if ($acct->proSe()) $acct = $what == 'agent' ? r\acct($mya->id, $acct->id) : r\acct($acct->id, $mya->agentId);
   if (($show_buttons = buttons($acct, $params['owner'])) < 0) return be\error('no permission');
 
   $account_name = $accountName = $acct->fullName;
@@ -282,8 +282,8 @@ function change($params) {
 }
 
 function display_id($params) {
-  extract(u\just('cacct code', $params));
-  $transientId = R_QR_HEADER . u\n2a(mt_rand(), 20) . '/' . $cacct->qid();
+  extract(u\just('mya code', $params));
+  $transientId = R_QR_HEADER . u\n2a(mt_rand(), 20) . '/' . $mya->qid();
   $edit = compact('code', 'transientId');
   r\dbUpdate('r_smarts', $edit, 'code'); // remember what id to accept (briefly)
   $message = '';
@@ -292,6 +292,7 @@ function display_id($params) {
 
 function makeDevice($device, $acct, $code = '') {
   u\EXPECT(compact('device', 'acct'), 'string&notempty acct');
+  require_once DRUPAL_ROOT . '/includes/password.inc';
   $owner = $acct->id;
   $code = trim($code ?: user_hash_password(uniqid($acct->mainQid, TRUE) . REQUEST_TIME) . '/'); // add a slash to make sure slashes get handled properly
   $accessed = REQUEST_TIME;

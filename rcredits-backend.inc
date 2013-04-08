@@ -25,7 +25,7 @@
  * The Back End will accept web requests only from the right IP.
  * Eventually the Back End will listen only on a certain port (not 80).
  *
- * No Drupal login is required in Back End. (just pass quid(cuid) and quid(user_id),password)
+ * No Drupal login is required in Back End. (just pass quid(myid) and quid(user_id),password)
  * All uids are passed as qids (qid = r\quid(uid) = R_SERVER_ID . n2a(uid))
  *
  * @todo: either make a backend or don't. Another way to look at it is to isolate the Web frontend, since rSmart and rSMS are already pretty secure and separate. May want to separate lowish-level db functions as db\ (or not).
@@ -85,15 +85,15 @@ function backend2($args = FALSE) {
   global $firewall; // is this useful?
 
   if (!$args) $args = $_POST;
-  extract($args, EXTR_PREFIX_ALL, 'my'); // $cuid, $firewall, $agent, $my_id, $op
-  unset($args['cuid']); // unset because it is passed as part of r\acct(), not as an arg
+  extract($args, EXTR_PREFIX_ALL, 'my'); // $myid, $firewall, $agent, $my_id, $op
+  unset($args['myid']); // unset because it is passed as part of r\acct(), not as an arg
 
   if (@$my_firewall != R_WORD) error('firewall system failure'); // give hackers some satisfaction by saying 'failure'
   $firewall = $my_firewall; // is this useful?
-  if (!@$my_cuid or !@$my_agent) error('user validation error');
-  $cacct = r\acct($my_cuid, $my_agent);
-  if (!$cacct->can()) error('sharing error');
-  r\acct::setDefault($cacct);
+  if (!@$my_iId or !@$my_agent) error('user validation error');
+  $mya = r\acct($my_iId, $my_agent);
+  if (!$mya->can()) error('sharing error');
+  r\acct::setDefault($mya);
   doOp($my_op, $args);
 }
 
@@ -113,17 +113,17 @@ function myTransactions($args) {
   if (isFrontend()) return backend(__FUNCTION__, $args);
   extract($args);
   
-  $cuid = r\acct()->id;
+  $myid = r\acct()->id;
   $omit_bonuses = @$include_bonuses ? '' : 'WHERE t.type NOT IN (:TX_REBATE, :TX_BONUS)';
   
   $sql = <<<EOF
     SELECT t.*,
-      (SELECT fullName FROM users WHERE uid=IF(t.payer=$cuid, t.payee, t.payer)) AS name,
-      IF(t.payer=$cuid, t.payerFor, t.payeeFor) AS purpose
+      (SELECT fullName FROM users WHERE uid=IF(t.payer=$myid, t.payee, t.payer)) AS name,
+      IF(t.payer=$myid, t.payerFor, t.payeeFor) AS purpose
     FROM r_txs t 
     $omit_bonuses
-    AND $cuid IN (t.payer, t.payee) 
-    AND (t.state IN(:TX_DONE, :TX_PENDING, :TX_DISPUTED) OR (t.state=:TX_DENIED AND t.payee=$cuid))
+    AND $myid IN (t.payer, t.payee) 
+    AND (t.state IN(:TX_DONE, :TX_PENDING, :TX_DISPUTED) OR (t.state=:TX_DENIED AND t.payee=$myid))
     AND t.created>=:starting AND t.created<=:ending
     ORDER BY t.xid DESC
 EOF;
@@ -143,12 +143,12 @@ EOF;
  */
 function updateRelations($updates) {
 //debug($updates);
-  $cuid = r\acct()->id;
+  $myid = r\acct()->id;
   $report = '';
   foreach ($updates as $reid => $data) {
     extract(u\just('main other fullName', $data['original'])); 
     unset($data['original']);
-    $isAgent = ($cuid != $main);
+    $isAgent = ($myid != $main);
 //    extract(u\just('employeeOk employerOk permission isOwner', $data), EXTR_PREFIX_ALL, 'd');
     
     if (!$isAgent) r\reverseRelations($main, $other, $data, 'employeeOk'); // claiming to be an employee
@@ -296,21 +296,21 @@ EOF;
  */
  /*
 function get($currency, &$amount, $confirmed) {
-  $cacct = r\acct();
-  $who = $cuid = $cacct->id;
+  $mya = r\acct();
+  $who = $myid = $mya->id;
   if (isFrontend()) return (array) backend('get', compact(u\ray('currency amount confirmed')));
   if (is_array($currency)) extract($currency); // called from api or backend
   
-  if (!$cacct->can(B_MANAGE)) return array('no access get', array(), FALSE);
+  if (!$mya->can(B_MANAGE)) return array('no access get', array(), FALSE);
   if ($error = u\badAmount($amount, $currency == 'usd' ? '>0' : '>=0')) return array($error, array(), FALSE); // allow zero for rCredits request
-  // (No, include this in rTrader requirements) if (r\isRTrader() and !$cacct->can(B_DWOLLA)) return array('no usd account', array(), FALSE);
+  // (No, include this in rTrader requirements) if (r\isRTrader() and !$mya->can(B_DWOLLA)) return array('no usd account', array(), FALSE);
   $usd = new usd();
   if (!$usd->canTrade()) return array('no usd account', array(), FALSE);
   $request = u\formatAmount($amount);
   $success = TRUE;
   if ($currency == 'r') {
     if ($my_amount < R_MIN_DEMAND) return array('demand too small', array(), FALSE);
-    r\demand($cuid, $amount);
+    r\demand($myid, $amount);
     if (!$confirmed) return array('confirm get r', compact(u\ray('request success')), TRUE);
     //DWOLLA: transfer fraction R_GETR_ADVANCE of $amount from user's Dwolla account to community's Dwolla account
     $usd->request(round($amount * R_GETR_ADVANCE, 2));
@@ -329,7 +329,7 @@ function get($currency, &$amount, $confirmed) {
   
   //DWOLLA: transfer $amount from community's Dwolla account to the user's Dwolla account
   $type = TX_TRANSFER;
-  $payer = $cuid;
+  $payer = $myid;
   $payee = $payerAgent = $payeeAgent = r\userField('community', $payer);
 
   $taking = FALSE;
@@ -375,7 +375,7 @@ function payInvoice($xid) {
 /**
  * Create a transaction
  * @param string $ttype: payment, charge, or invoice payment
- * @param array $acct: acct object for the other party
+ * @param array $a: acct object for the other party
  *   OR 'ALL' (paying employees) -- currently UNUSED
  * @param numeric $requestAmount: the transaction amount
  * @param string $for OR array($payerFor, $payeeFor): description of the transaction's purpose (user input)
@@ -398,31 +398,31 @@ function payInvoice($xid) {
  * $shortfall (how inadequate the payer's balance is)
  * @todo: write feature tests for partial transactions (paying/taking unilateral/not undoing/not broke/not)
  */
-function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE, $data = array()) {
+function transfer($ttype, $a, $requestAmount, $for, $goods, $confirmed = TRUE, $data = array()) {
   include_once __DIR__ . '/usd.class';
   global $lastXid, $scanned, $channel; 
-  if (isFrontend()) return (array) backend('transfer', compact(u\ray('ttype acct requestAmount for confirmed data')));
+  if (isFrontend()) return (array) backend('transfer', compact(u\ray('ttype a requestAmount for confirmed data')));
   if (is_array($ttype)) extract($ttype); // called from api or backend
 
   u\EXPECT(in_array($ttype, u\ray('payment,charge,invoice payment')), 'bad transaction type');
-// disabled for now  if ($acct == 'ALL') return $ttype == 'payment' ? r\payEmployees($requestAmount, $for, $confirmed) : array('no ALL', array(), FALSE);
-  $cacct = r\acct();
-  $cuid = $cacct->id;
+// disabled for now  if ($a == 'ALL') return $ttype == 'payment' ? r\payEmployees($requestAmount, $for, $confirmed) : array('no ALL', array(), FALSE);
+  $mya = r\acct();
+  list ($myid, $uid) = array($mya->id, $a->id);
   $taking = ($ttype == 'charge');
 
   // Check permissions
-  u\EXPECT(compact(u\ray('ttype acct confirmed data')), 'string acct bool assoc');
-  $otherName = $acct->fullName;
-  if (!$acct->can(B_OK)) return array('non trader', compact('otherName'), FALSE);
+  u\EXPECT(compact(u\ray('ttype a confirmed data')), 'string acct bool assoc');
+  $otherName = $a->fullName;
+  if (!$a->can(B_OK)) return array('non trader', compact('otherName'), FALSE);
   list ($myAccess, $otherAccess) = u\order($taking, B_SELL, B_BUY);
   list ($myAccessErr, $otherAccessErr) = u\order($taking, 'sell', 'buy');
-  if (!$cacct->can($myAccess)) return array("no $myAccessErr", array(), FALSE);
-  if (!$acct->can($otherAccess)) return array("other no $otherAccessErr", array(), FALSE);
+  if (!$mya->can($myAccess)) return array("no $myAccessErr", array(), FALSE);
+  if (!$a->can($otherAccess)) return array("other no $otherAccessErr", array(), FALSE);
   
   // Analyze who's buying or selling
-  if ($uid == $cuid) return array('no self-trading', array(), FALSE);
-  list ($payer, $payee) = u\order($taking, $uid, $cuid);
-  list ($payerAgent, $payeeAgent) = u\order($taking, $other, r\acct()->agentId);
+  if ($uid == $myid) return array('no self-trading', array(), FALSE);
+  list ($payer, $payee) = u\order($taking, $uid, $myid);
+  list ($payerAgent, $payeeAgent) = u\order($taking, $a->agentId, $mya->agentId);
 
   // Sort out what type of transfer this is
   $paying_invoice = ($ttype == 'invoice payment');
@@ -430,14 +430,14 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   $type = TX_TRANSFER;
   $unilateral = isset($data['bilateral']) ? FALSE 
   : ($taking // selling
-      and $cacct->can(B_CHARGE) // seller can charge unilaterally
+      and $mya->can(B_CHARGE) // seller can charge unilaterally
       and !$undoing // not reversing a payment
-      and !($acct->can(B_PERSONAL) and $acct->proSe()) // not selling to a company directly (without its agent)
+      and !($a->can(B_PERSONAL) and $a->proSe()) // not selling to a company directly (without its agent)
       and ($channel == TX_SMART or $scanned or $channel == TX_SMS) // in person: scanned (web or smart) or by SMS
   );
   $preapproved = (@$data['preapproved'] or !$taking or $unilateral); // paying OR permitted to charge unilaterally
 //  $state = ($preapproved and !@$data['pay_all'])? TX_DONE : TX_PENDING;
-//  $virtual = ($goods and !$taking and $cacct->hasBit(B_VIRTUAL) and r\isEmployee($uid));
+//  $virtual = ($goods and !$taking and $mya->hasBit(B_VIRTUAL) and r\isEmployee($uid));
   $virtual = FALSE; // this is done only automatically
   $state = ($preapproved and !$virtual)? TX_DONE : TX_PENDING; // may be changed to TX_TENTATIVE below
   
@@ -445,7 +445,7 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   if ($error = u\badAmount($requestAmount, '>0')) return array($error, array(), FALSE);
   $totalHit = $requestAmount - @$data['rebate']; // leave room for reversing rewards (minus a negative)
   
-  $usd = r\usdPart($totalHit, $taking ? $acct : $cacct, $preapproved, $goods, $shortfall); // short payment or unilateral charge
+  $usd = r\usdPart($totalHit, $taking ? $a : $mya, $preapproved, $goods, $shortfall); // short payment or unilateral charge
 //  $usd = 5; $shortfall=0; // debug
   if ($shortfall) {
     $short = u\formatAmount($shortfall);
@@ -475,7 +475,7 @@ function transfer($ttype, $acct, $requestAmount, $for, $goods, $confirmed = TRUE
   unset($data['bilateral']);
   $data = serialize($data);
 
-  list ($fromUsAcct, $toUsAcct) = u\order($taking, new r\usd($acct), new r\usd($cacct));
+  list ($fromUsAcct, $toUsAcct) = u\order($taking, new r\usd($a), new r\usd($mya));
   $txArgs = compact(u\ray('type amount r payer payee payerAgent payeeAgent for data taking goods state'));
   r\usd::beginAtom();
   if ($confirmed) {
@@ -524,13 +524,13 @@ function fund($uid, $type = TX_SIGNUP, $amount = R_STARTING_BALANCE, $for = NULL
   if (is_array($uid)) extract($uid); // called from api or backend
 
   $payeeAgent = $payee = $uid;
-  $cacct = r\acct(); // null, if just registering
+  $mya = r\acct(); // null, if just registering
   $ctty = r\userField('community', $payee);
-  if ($type > TX_AUTOMATIC and !$cacct->can(B_MANAGING_CTTY)) return FALSE; // incentives given only automatically or by community agent
+  if ($type > TX_AUTOMATIC and !$mya->can(B_MANAGING_CTTY)) return FALSE; // incentives given only automatically or by community agent
   if (!$confirmed) return $amount;
   
   $payer = $ctty;
-  $payerAgent = @$cacct->id < 0 ? $cacct->agentId : $ctty;
+  $payerAgent = @$mya->id < 0 ? $mya->agentId : $ctty;
   $taking = ($type >= TX_FINE);
   u\setDft($for, $GLOBALS['txTypes'][$type]);
   $r = $amount;
@@ -542,8 +542,8 @@ function fund($uid, $type = TX_SIGNUP, $amount = R_STARTING_BALANCE, $for = NULL
  * @return FALSE if success; else array($error_message, $subs)
  */
 function addCell($number, $validate = FALSE) {
-  $cacct = r\acct();
-  $cuid = $cacct->id;
+  $mya = r\acct();
+  $myid = $mya->id;
   if (isFrontend()) return backend('addCell', compact(u\ray('number validate')));
   if (is_array($number)) extract($number); // called from api or backend
 
@@ -555,19 +555,19 @@ function addCell($number, $validate = FALSE) {
     if (!$numberPretty) return array('bad phone', $subs);
     if ($result = r\dbQ('SELECT * FROM r_sms WHERE number=:numberInternal', compact('numberInternal'))->fetchAssoc()) {
       extract($result, EXTR_PREFIX_ALL, 'old');
-      if ($old_uid == $cuid) return array('already cell', $subs);
+      if ($old_uid == $myid) return array('already cell', $subs);
       $accountName = accountName($old_uid);
       if (!isTempAccount($old_uid)) return array('cell taken', compact(u\ray('number accountName')));
     }
     return NULL;
   }
   
-  $uid = $cuid;
+  $uid = $myid;
   $status = SMS_PRIMARY;
   $phone = $number = $numberInternal;
   $info = compact(u\ray('uid number status'));
   if (!mergeCheck(compact('number'))) r\dbInsert('r_sms', $info);
-  if (!$cacct->phone) $cacct->update(compact('phone')); // use it as contact phone, if none yet
+  if (!$mya->phone) $mya->update(compact('phone')); // use it as contact phone, if none yet
   $number = $numberPretty;
   return array('report new cell', compact('number'));
 }
@@ -604,7 +604,7 @@ function identify($who, $self_message = 'no self-trading') {
   $create = FALSE; // not currently used
   $who = trim($who);
 //  if (($all = strtoupper($who)) == 'ALL') return $allow_ALL ? $all : array('no ALL', array(), array());
-  $cuid = r\acct()->id;
+  $myid = r\acct()->id;
 
   if ($phone = u\formatPhone($who, '+n')) $who = $phone;
   
@@ -615,7 +615,7 @@ function identify($who, $self_message = 'no self-trading') {
 
   if (u\isQid($quid)) {
     if (!$acct = r\acct($quid)) return array('unknown member', compact('who'), array());
-    if ($acct->id == $cuid) return array($self_message, array(), array());
+    if ($acct->id == $myid) return array($self_message, array(), array());
     return $acct; // qids are easy
   }
 
@@ -631,7 +631,7 @@ EOF;
   $result = r\dbQ($sql, compact(u\ray('who short')))->fetchAllKeyed(0, 1);
 //  $list = '';
   foreach ($result as $uid => $fullName) {
-    if ($uid != $cuid) { // not self
+    if ($uid != $myid) { // not self
 //      $list .= " &nbsp; &nbsp; &nbsp; &nbsp; $fullName<br>";
     } elseif (count($result) == 1) { // self is the only result
       return array($self_message, array(), array()); 
@@ -640,7 +640,7 @@ EOF;
 
   if(count($result) > 1) return array('ambiguous other', compact(u\ray('who')), $result);
   if(count($result) == 1) {
-    foreach ($result as $uid => $other); // get the one entry
+    foreach ($result as $uid => $a); // get the one entry
     return r\acct($uid);
   }
 
@@ -653,7 +653,7 @@ EOF;
 /**
  * Return financial information about the given account on this server
  * @param assoc $args: non-default options:
- *   uid: uid for the account to return information for (DEFAULTS to cuid)
+ *   uid: uid for the account to return information for (DEFAULTS to myid)
  *   state: string list of transaction states to return (DEFAULT ':TX_DONE,:TX_DISPUTED')
  *   asof: last date to include (defaults to '', meaning unrestricted)
  *   currency: r, usd, or both (default is r)
@@ -670,7 +670,7 @@ function creditInfo($args = array()) {
   }
   extract(u\just('uid state asof currency', $args));
 
-  if ($cacct = r\acct()) u\setDft($uid, $cacct->id);
+  if ($mya = r\acct()) u\setDft($uid, $mya->id);
   if (!$acct = r\acct(@$uid)) return NULL;
 
   u\setDft($state, ':TX_DONE,:TX_DISPUTED');
@@ -717,17 +717,17 @@ EOF;
 function mergeCheck($info) {
   if (isFrontend()) return backend('mergeCheck', $info);
   
-  $cuid = r\acct()->id;
+  $myid = r\acct()->id;
   $info['name'] = r\userField('name');
   extract($info, EXTR_PREFIX_ALL, 'my');
   
   $where = 'name=:name';
-  foreach (u\ray('number website phone fax') as $field) {
+  foreach (u\ray('number website phone faxetc') as $field) {
     if (@$info[$field]) $where .= " OR u.$field=:$field"; else unset($info[$field]);
   }
   $where = str_replace('u.number', 'sms.number', $where);
-  $sql = "SELECT DISTINCT u.uid FROM users u LEFT JOIN r_sms sms ON sms.uid=u.uid WHERE u.uid<>:cuid AND (NOT u.pass) AND ($where)";
-  $result = r\dbQ($sql, $info + compact('cuid'));
+  $sql = "SELECT DISTINCT u.uid FROM users u LEFT JOIN r_sms sms ON sms.uid=u.uid WHERE u.uid<>:myid AND (NOT u.pass) AND ($where)";
+  $result = r\dbQ($sql, $info + compact('myid'));
   $found = 0;
   while ($row = $result->fetchAssoc()) $found += r\mergeAccounts($row['uid']);
   return $found;
@@ -740,9 +740,9 @@ function mergeCheck($info) {
 function accountChoices() {
   if (isFrontend()) return (array) backend('accountChoices');
   
-  if (!$cacct = r\acct()) return FALSE;
-  $result = array($aid = $cacct->agentId);
-  if ($cacct->can(B_ADMIN)) $result += @r\dbQ('SELECT uid FROM users WHERE uid<:R_CTTY_UID0')->fetchAllKeyed(0, 0);
+  if (!$mya = r\acct()) return FALSE;
+  $result = array($aid = $mya->agentId);
+  if ($mya->can(B_ADMIN)) $result += @r\dbQ('SELECT uid FROM users WHERE uid<:R_CTTY_UID0')->fetchAllKeyed(0, 0);
   $result += @r\dbQ('SELECT main FROM r_relations WHERE other=:aid AND permission>0', compact('aid'))->fetchAllKeyed(0, 0);
   return array_values($result);
 }
@@ -781,11 +781,11 @@ function lastTx($where = 1, $subs = array(), $cache = FALSE) {
   if (isFrontend()) return backend('lastTx', compact(u\ray('where subs')), $cache);
   if (is_array($where)) extract($where); // called from api or backend
 
-  $cuid = r\acct()->id;
-  $basic = "$cuid IN (payer, payee) AND type NOT IN (:TX_DELETED, :TX_REBATE, :TX_BONUS)"; // make sure it's for $cuid
+  $myid = r\acct()->id;
+  $basic = "$myid IN (payer, payee) AND type NOT IN (:TX_DELETED, :TX_REBATE, :TX_BONUS)"; // make sure it's for $myid
   $sql = "SELECT * FROM r_txs WHERE ($basic) AND ($where) ORDER BY xid DESC LIMIT 1";
   if (!$result = r\dbQ($sql, $subs)->fetchAssoc()) return FALSE;
-  $toMe = ($result['payee'] == $cuid);
+  $toMe = ($result['payee'] == $myid);
   $byMe = ($result['taking'] == $toMe);
   $tid = u\order($toMe, $result['payeeTid'], $result['payerTid']);
   $otherUid = $result[$toMe ? 'payer' : 'payee'];
@@ -855,14 +855,14 @@ function backend($op, $info = array(), $cache = FALSE) {
   if (!user_is_logged_in()) return FALSE; // probably checking permission
 //  if ($op == 'getRecords' and !$cache) die(print_r(debug_backtrace(), 1));
 
-  $cuid = r\acct()->id;
-  u\EXPECT(@$cuid, 'no cuid in backend!');
+  $myid = r\acct()->id;
+  u\EXPECT(@$myid, 'no myid in backend!');
   if (empty($info)) $cache = TRUE;
   
   $agent = r\acct()->agentId;
 //  $cache = FALSE; // debug
-//  debug("cache=$cache cachekey=rcredits_$op$cuid:" . serialize($info));
-  $skey = "{$op}_{$agent}_{$cuid}_" . base64_encode(serialize($info)); // htmlspecialchars prevents session key failure (PHP bug?)
+//  debug("cache=$cache cachekey=rcredits_$op$myid:" . serialize($info));
+  $skey = "{$op}_{$agent}_{$myid}_" . base64_encode(serialize($info)); // htmlspecialchars prevents session key failure (PHP bug?)
   if ($cache and (($result = r\Web\svar($skey)) !== NULL)) return $result;
 //  debug($skey . $result);
 //  debug("cache:$cache $op: " . json_encode($info) . ($cache ? " result:$result" : ''));
@@ -870,8 +870,8 @@ function backend($op, $info = array(), $cache = FALSE) {
   $password = r\acct($agent)->pass;
   $firewall = R_WORD;
 //  foreach ($info as $key => $value) if (strpos($key, 'uid') !== FALSE) $info[$key] = r\quid($value); // convert to qid
-//  $basic = array('agent' => r\quid($agent), 'cuid' => r\quid($cuid));
-  $info += compact(u\ray('cuid agent op password firewall')); // operation, credentials, and account
+//  $basic = array('agent' => r\quid($agent), 'myid' => r\quid($myid));
+  $info += compact(u\ray('myid agent op password firewall')); // operation, credentials, and account
   $host = strpos($base_url, 'localhost/') !== FALSE ? 'http://localhost/devcore' : R_SITE_URL;
   $api_result = R_SEPARATE_BACKEND ? u\httpRequest("$hostrcredits/api/", $info, 'json') : backend2($info);
 //debug($api_result);

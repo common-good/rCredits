@@ -24,7 +24,7 @@ define('CGF_PHONE', '+14136281723');
 define('CGF_ADDRESS', 'PO Box 21');
 define('CGF_CITY', 'Ashfield');
 
-define('R_VERSION', '1.0b'); // software version
+define('R_VERSION', '1.0a'); // software version
 define('R_SEPARATE_BACKEND', FALSE);
 define('R_CONCEALED_FIELDS', 'code password pass oneTimeLoginUrl'); // fields to leave out of log
 define('R_DATA_FIELDS', ''); // fields stored in the account's "data" array field (serialized)
@@ -69,7 +69,7 @@ define('R_PROOF_DIR', '/sites/default/files/proofs');
 define('R_PERSONAL', 0);
 define('R_SELF_EMPLOYED', 1); // this type is also used for commercial account structure
 define('R_COMMERCIAL', 2); // not personal (used in testing)
-$GLOBALS['account types'] = array(t('personal'), t('personal AND commercial'), t('commercial (but not publicly traded)'), t('publicly traded corporation'), t('non-profit or government'));
+$GLOBALS['account types'] = array(t('personal'), t('personal AND commercial'), t('commercial (but not publicly traded)'), t('publicly traded corporation'), t('nonprofit or government'));
 
 // Commercial Account structure (bits)
 define('R_PARTNERSHIP', 2);
@@ -178,8 +178,8 @@ $GLOBALS['emailSubjects'] = array(
   'offer-canceled' => t('rCredits Invoice CANCELED by {otherName}'),
   
   'welcome' => t('Welcome to rCredits!'),
-  'password_reset' => t('New rCredits PASSWORD'),
-  'tell_staff' => t('rCredits STAFF ALERT'),
+  'password-reset' => t('New rCredits PASSWORD'),
+  'tell-staff' => t('rCredits STAFF ALERT'),
 );
 
 include_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
@@ -209,8 +209,8 @@ function txReportArgs($tx, $getMyBalance = FALSE, $shortfall = 0) {
   if ($data) if ($data = unserialize($data)) extract($data, EXTR_PREFIX_ALL, 'data');
   global $lastXid; $lastXid = $xid; // remember last transaction for current user, for potential undo (here and on undo)
 
-  $cacct = acct();
-  $toMe = ($payee == $cacct->id);
+  $mya = acct();
+  $toMe = ($payee == $mya->id);
   $acct = acct($toMe ? $payer : $payee);
   
   $role = $toMe ? 'payee' : 'payer';
@@ -230,7 +230,7 @@ function txReportArgs($tx, $getMyBalance = FALSE, $shortfall = 0) {
   $created = u\formatDate($created);
 
   if ($getMyBalance) {
-    if ($cacct->can(B_BUY)) $balance = u\formatAmount($cacct->balance());
+    if ($mya->can(B_BUY)) $balance = u\formatAmount($mya->balance());
   }
 
   $summary = "$summary_word of $amount $tofrom $otherName for \"$purpose\" on $created";
@@ -263,9 +263,9 @@ function share($acct) {
  * Return the customer's formatted balance only if we have permission
  */
 function otherBalance($uid) {
-  $cacct = acct();
+  $mya = acct();
   $acct = acct($uid);
-  if ($acct and $cacct->can(B_CHARGE) and !$acct->hasBit(B_SECRET_BAL)) {
+  if ($acct and $mya->can(B_CHARGE) and !$acct->hasBit(B_SECRET_BAL)) {
     return u\formatAmount($acct->balance());
     //return be\creditInfo(compact('uid'))->fancy['balance'];
   } else return FALSE;
@@ -514,20 +514,20 @@ function payEmployees($amount0, $for, $confirmed) {
  * @param integer $uid: account record id
  * @param string $index: message index
  * @param assoc $info: substitutions for the message
+ * @param bool $force: send by email regardless of preference
  */
-function notify($uid, $index, $info) {
+function notify($uid, $index, $info, $force = FALSE) {
   global $channel;
-  $cacct = acct(); // careful: current account is empty if called from formRegister_submit
+  $mya = acct(); // careful: current account is empty if called from formRegister_submit
   $acct = acct($uid);
   $info['uid'] = $uid;
   $fullName = $acct->fullName;
   $warnIndexes = u\ray('new-invoice new-offer charge-disputed');
   
-  if ($uid != @$cacct->id) $info['otherName'] = @$cacct->fullName; // this comes in backwards if notifying elseone
+  if ($uid != @$mya->id) $info['otherName'] = @$mya->fullName; // this comes in backwards if notifying elseone
 
-  if ($acct->hasBit(B_NOTIFY_EMAIL) and @$acct->mail) {
+  if (($acct->hasBit(B_NOTIFY_EMAIL) or $force) and @$acct->mail) {
     $mailed = \drupal_mail('rCredits', $index, $acct->mail, '', $info); // no need to pass $acct->language
-    debug($info);
   }
   if ($acct->hasBit(B_NOTIFY_SMS)) {
     $number = dbLookup('number', 'r_sms', 'uid=:uid AND status=:SMS_PRIMARY', compact('uid'));
@@ -553,9 +553,9 @@ function notify($uid, $index, $info) {
  */
 function membershipEvent($acct, $status, $do = TRUE) {
   $bit = @constant('B_' . strtoupper($status)); // get the appropriate bit, if any
-  if ($do and (!$bit or !$acct->hasBit($bit))) { // met the prerequisite and hasn't previously
-    $DBTX = \transaction();
-    if ($bit) $acct->setBit($bit, TRUE, TRUE); // set the bit, if any
+  if ($do and ($bit === FALSE or !$acct->hasBit($bit))) { // met the prerequisite and hasn't previously
+    $DBTX = \db_transaction();
+    if ($bit !== FALSE) $acct->setBit($bit, TRUE, TRUE); // set the bit, if any
     if ($status == 'bona') {
       be\fund($acct->id, TX_SIGNUP, R_STARTING_BALANCE);
       $amount = r\dbLookup('amount', 'r_gifts', 'uid=:id', array('uid' => $acct->id));
@@ -580,7 +580,7 @@ function notifyStaff($message, $subs = array(), $uid = '') {
   $noFrame = TRUE;
   $message = u\tt($message, $subs);
   if (!$uid) $uid = @acct()->id ?: 1; // use Site Admin account if no other
-  $mailed = \drupal_mail('rCredits', 'tell_staff', R_ORG_EMAIL, '', compact(u\ray('message noFrame uid')));
+  $mailed = \drupal_mail('rCredits', 'tell-staff', R_ORG_EMAIL, '', compact(u\ray('message noFrame uid')));
 }
 
 /**
@@ -612,10 +612,10 @@ function tempName($info) {
  *     (prefixes added to the payerFor or payeeFor fields when changing state will not be included in changes)
  */
 function setTxField($fieldName, $newValue, $xid, $allRelated = FALSE) {
-  $cuid = acct()->id;
+  $myid = acct()->id;
   u\EXPECT(compact(u\ray('fieldName xid allRelated')), 'name zid bool');
   
-  $where = "xid=:xid and $cuid in (payer, payee)"; // "$cuid in" is a security measure
+  $where = "xid=:xid and $myid in (payer, payee)"; // "$myid in" is a security measure
   list ($oldValue, $oldState, $data) = array_values(dbLookup("$fieldName AS f1,state,data", 'r_txs', $where, compact(u\ray('xid')))); // f1 prevent Drupal from combining state results when $fieldName is 'state'
   $data = unserialize($data);
   $data['changes'][] = array(REQUEST_TIME, acct()->agentId, $fieldName, $oldValue);
@@ -646,7 +646,7 @@ function mergeAccounts($oldUid) {
   $new = acct($newUid);
   $old = acct($oldUid);
   $update = array();
-  foreach (u\ray('phone fax website address') as $one) if ($old->$one and !$new->$one) $update[$one] = $old->$one;
+  foreach (u\ray('phone faxetc website address') as $one) if ($old->$one and !$new->$one) $update[$one] = $old->$one;
   acct()->update($update);
   newMemberId($oldUid, $newUid, TRUE);
   dbQ('DELETE FROM users WHERE uid=:oldUid', compact('oldUid')); // must be last, for referential integrity
@@ -734,7 +734,7 @@ function unQid($qid) {
  * @return the corresponding quid
  */
 function quid($uid, $agentId = '') {
-  $cacct = acct();
+  u\EXPECT(compact('uid'), 'id');
   if (!$agentId or $agentId == $uid) { // proSe
     $region = -uidRegion($uid) - 1;
     $i = ($uid - 1) - $region * R_REGION_MAX; // -1 because uids are all bumped up by 1
@@ -787,7 +787,7 @@ function region($country = '', $state = '', $zip = '') {
  */
 function nonoUndo($oldRecord, &$subs = array()) {
   if (!@$oldRecord) return 'undo no match';
-  $cacct = acct();
+  $mya = acct();
   extract(u\just('toMe data payer payee payerAgent payeeAgent payerTid payeeTid taking', $oldRecord));
   $data = unserialize($data);
   if (@$data['undoneBy']) {
@@ -797,9 +797,9 @@ function nonoUndo($oldRecord, &$subs = array()) {
   }
 
   $acct = $toMe ? r\acct($payee, $payeeAgent) : r\acct($payer, $payerAgent);
-  if ($cacct->agentId != $acct->agentId) {
+  if ($mya->agentId != $acct->agentId) {
     $perm = $taking ? B_BUY : B_SELL;
-    if (!acct($acct->id, $cacct->agentId)->can($perm)) return $taking ? 'no buy' : 'no sell';
+    if (!acct($acct->id, $mya->agentId)->can($perm)) return $taking ? 'no buy' : 'no sell';
   }
   return FALSE;
 }
@@ -881,8 +881,8 @@ function loginString($id) {
  * Return a list of employee accts for the current account.
  */
 function employees() {
-  $cuid = r\acct()->id;
-  return r\dbQ('SELECT other FROM r_relations WHERE main=:cuid AND employerOk', compact('cuid'))->fetchCol();
+  $myid = r\acct()->id;
+  return r\dbQ('SELECT other FROM r_relations WHERE main=:myid AND employerOk', compact('myid'))->fetchCol();
 }
 
 /**
@@ -911,8 +911,9 @@ function passSalt($acct = '') {
 }
 
 function newUid($base) {
-  $where = 'u.uid>:base AND u2.uid IS NULL ORDER BY u.uid';
+  $where = 'u.uid>=:base AND u2.uid IS NULL ORDER BY u.uid';
   $previous = dbLookup('u.uid', 'users u LEFT JOIN users u2 ON u2.uid=(u.uid+1)', $where, compact('base'));
+//  print_r(compact('base','where','previous'));
   return $previous ? ($previous + 1) : $base;
 }
   
@@ -932,7 +933,7 @@ function newMemberId($oldUid, $newUid = FALSE, $skipUsers = FALSE) {
   // r_industries
     'r_invites:inviter',
     'r_invites:invitee',
-    'r_log:cuid',
+    'r_log:myid',
     'r_log:agent',
   // r_nonces
     'r_proxies:person',
@@ -1014,7 +1015,11 @@ function go($page) {
       : "\\$form");
     return Web\showForm($form, $arg1);
   } */
-  \drupal_goto($page);
+  foreach (u\ray('login register password reset') as $one) if (strpos($page, "user/$one") !== FALSE) {
+    //module_load_include('pages.inc', 'user', 'user');
+    if (\drupal_session_started()) session_destroy();
+  }
+  \drupal_goto(substr($page, 0, 1) == '/' ? substr($page, 1) : $page);
 }
 
 /**
@@ -1036,7 +1041,7 @@ function nearlyMember($acct) {
   $gotPhoto = file_exists(DRUPAL_ROOT . $acct->auxFilename('picture'));
   $signed = (bool) $acct->signed;
 //  $donated = ($acct->share > 0 or r\share($acct)); // r\share() also updates the database
-  $donated = r\dbExists('r_gifts', 'uid=:cuid', array('cuid' => $acct->id));
+  $donated = r\dbExists('r_gifts', 'uid=:myid', array('myid' => $acct->id));
   $nearly = ($gotPhoto and $signed and $donated);
   return compact(u\ray('gotPhoto signed donated nearly'));
 }
@@ -1097,7 +1102,7 @@ function getTotals($ctty) {
 }
 
 /**
- * @param mixed $which: criteria or record id (defaults to $cuid if users)
+ * @param mixed $which: criteria or record id (defaults to $myid if users)
  * @return:
  *   data from the field, if a single field is requested
  *   an associative array of the field data, if more than one field is requested
@@ -1123,6 +1128,12 @@ function tableField($field, $table, $which = '', $subs = array()) {
   u\EXPECT(count($result) == 1, "ambiguous in tableField(): $which");
   u\EXPECT(is_object($result[0]), 'bad object array in tableField(): ' . print_r($result, 1)); // keep this
   return strpos($field, ',') ? ((array) $result[0]) : $result[0]->$field;
+}
+
+function passHash($pass) {
+  u\EXPECT(is_string($pass) and $pass !== '', 'bad pass to hash');
+  require_once DRUPAL_ROOT . '/includes/password.inc';
+  return \user_hash_password($pass);
 }
 
 /**
@@ -1171,7 +1182,7 @@ function dbUpdate($table, $info, $key, $either = FALSE) {
       if ($hasSerial = ($field1['type'] == 'serial')) return FALSE;
       return dbLookup($id, $table, "$id=:$id", array($id => $info[$id])); // return the supplied id if success
     } else return TRUE;
-  } catch (Exception $e) {return FALSE;} 
+  } catch (PDOException $e) {return FALSE;} 
 }
 
 /**
@@ -1186,9 +1197,10 @@ function dbInsert($table, $info) {return dbUpdate($table, $info, '');}
 function error($logid) {
   $info = dbLookup('info', 'r_log', 'logid=:logid', compact('logid'));
   if ($info) $info = json_decode(utf8_encode($info)); else $info = 'unknown error (probably too big for json -- see r_log)';
-  print_r($info); // keep this for now
-//  drupal_set_message(print_r($info, 1), 'error');
-//  drupal_goto('');
+  if (isDEV) {
+    print_r($info); 
+  } else r\go('/user/login/err=' . R_SYS_ERR);
+
 }
 
 // Single line functions that need no explanation

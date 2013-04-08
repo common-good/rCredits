@@ -17,10 +17,10 @@ define('TX_OPT_AGENTS', 2);
  */
 function formTxs($form, &$sta, $args = '') {
   global $base_url;
-  $cacct = r\acct();
+  $mya = r\acct();
   
   extract(u\just('agents channels period starting ending do xid download downloaded variety', $args)); 
-  $report = $cacct->can(B_CTTY_ADMIN) ? (@$variety == 'report') : FALSE; // no community reports yet for non-admins
+  $report = $mya->can(B_CTTY_ADMIN) ? (@$variety == 'report') : FALSE; // no community reports yet for non-admins
   if (!$report and @$do) if ($result = handleTx($do, $xid, $sta, $args)) return $result;
 
   $page = $report ? 'reports' : 'transactions';
@@ -62,7 +62,7 @@ function formTxs($form, &$sta, $args = '') {
     $agents = $summary = NULL;
   } else {
     $opts[TX_OPT_AGENTS] = 'agents';
-    if (isset($agents) ? $agents : !$cacct->can(B_PERSONAL)) $optDefaults[] = 'agents';
+    if (isset($agents) ? $agents : !$mya->can(B_PERSONAL)) $optDefaults[] = 'agents';
     $summary = formField('markup', '', '', array('markup' => tx_summary($starting, $ending)));
   }
 
@@ -138,8 +138,8 @@ function txFields($report, $download, $agents, $channels) {
  */
 function doRow($tx, $report, $csv, $classes, $channels, $agents, $url0) {
   global $base_url;
-  $cacct = r\acct();
-  $cuid = $cacct->id;
+  $mya = r\acct();
+  $myid = $mya->id;
   $txChannels = u\ray(TX_CHANNELS);
   $txStates = u\ray(TX_STATES);
 
@@ -163,7 +163,7 @@ function doRow($tx, $report, $csv, $classes, $channels, $agents, $url0) {
     $row = array($tid, strftime('%d-%b-%Y', $date), r\acct($tx_payer)->fullName, r\acct($tx_payee)->fullName, $total, $rpct, $amount, $usd, $tx_usdXid, $state, $tx_purpose, $reward);
   } else { // individual account transaction history
     $url = $url0 . "&xid=$xid";
-    $toMe = ($tx_payee == $cuid);
+    $toMe = ($tx_payee == $myid);
     $byMe = ($tx_taking == $toMe);
     $tid = $toMe ? $tx_payeeTid : $tx_payerTid;
     $agent = $toMe ? $tx_payeeAgent : $tx_payerAgent;
@@ -172,11 +172,11 @@ function doRow($tx, $report, $csv, $classes, $channels, $agents, $url0) {
     txNeatAmounts($amount, $reward, $is_reward);
     list ($to_you, $from_you) = $toMe ? array($amount, R_NONE) : array(R_NONE, $amount);
     $button1 = (!$byMe and $tx_state == TX_PENDING) ? button('OK', "$url&do=ok", tx_action('ok', $tx_state, $toMe, $byMe)) : '';
-    $button2 = ((!$is_reward or $cacct->can(B_CTTY_ADMIN)) and !@$data['undoneBy']) ? button(' X ', "$url&do=no", tx_action('no', $tx_state, $toMe, $byMe)) : '';
-    $button3 = ($cacct->can($tx_taking ? B_SELL : B_BUY) and !$is_reward) ? "<a href='$url&do=edit' title='Edit Purpose'><img src='$base_url/sites/all/modules/rcredits/images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
+    $button2 = ((!$is_reward or $mya->can(B_CTTY_ADMIN)) and !@$data['undoneBy']) ? button(' X ', "$url&do=no", tx_action('no', $tx_state, $toMe, $byMe)) : '';
+    $button3 = ($mya->can($tx_taking ? B_SELL : B_BUY) and !$is_reward) ? "<a href='$url&do=edit' title='Edit Purpose'><img src='$base_url/sites/all/modules/rcredits/images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
     $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
     $row = array($tid, strftime('%d-%b', $date), $tx_name, $from_you, $to_you, $rpct, $amount, $usd, $tx_usdXid, $state, $buttons, $tx_purpose, $reward);
-    if (@$agents) $row[] = ($agent == $cuid or $agent < 0) ? R_NONE : ($csv ? r\qid($agent) : u\n2a($agent, 3));
+    if (@$agents) $row[] = ($agent == $myid or $agent < 0) ? R_NONE : ($csv ? r\qid($agent) : u\n2a($agent, 3));
     // might optionally show both agents for reports someday
   }
 
@@ -203,7 +203,7 @@ function doRow($tx, $report, $csv, $classes, $channels, $agents, $url0) {
  * @return: the form (FALSE on error or if already confirming)
  */
 function txConfirm($do, $xid, &$sta) {
-  $cuid = r\acct()->id;
+  $myid = r\acct()->id;
   if (confirming_v($sta)) return FALSE;
   if (!$details = be\lastTx('xid=:xid', compact('xid'), TRUE)) return FALSE; // bail on hack attempt
   extract(r\txReportArgs($details), EXTR_PREFIX_ALL, 'my');
@@ -283,7 +283,7 @@ function tx_action($do, $state, $toMe, $byMe) {
  * Handle click on 'OK' or 'NO' (approving or undoing a transaction)
  */
 function txOKorNO($tx_task, $xid) {
-  $cuid = r\acct()->id;
+  $myid = r\acct()->id;
   if (!$result = be\lastTx('xid=:xid', compact('xid'), TRUE)) return FALSE; // bail on hack attempt
   extract(u\just('state amount toMe', $result));
   if ($tx_task == 'ok') { // OK
@@ -337,7 +337,7 @@ function txBal($bal, $plus = '', $minus = '- ') {return ($bal < 0 ? $minus : $pl
  * Return the transaction summary table
  */
 function tx_summary($starting, $ending) {
-  $cuid = r\acct()->id;
+  $myid = r\acct()->id;
   $previous_ending = $starting - 1;
   extract($now_info = (array) be\creditInfo(array('asof' => $ending)), EXTR_PREFIX_ALL, 'now');
   extract($pending_info = (array) be\creditInfo(array('state' => ':TX_PENDING', 'asof' => $ending)), EXTR_PREFIX_ALL, 'pending');

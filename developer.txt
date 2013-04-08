@@ -19,14 +19,12 @@ rename community field to community
 BEFORE LAUNCH:
 - notifystaff of proxies, agreements, dwolla accounts, invites, etc.
 - print me a card (and test it)
-- proxies display wrong
 - 400 signup feature tests work (write more)
-- reset password link is acceptable
 - 60 6 people and 3 orgs tested signup, plus one joint account; watch people sign up
 - 30 log everything
 - 30 written instructions for signup (dwolla, etc)
 - 200 cron tests (just cache check, auto bank transfers)
-- ** membership gift happens upon account activation (rTrader status). It goes through as an rC transaction.
+- ** membership gift happens upon account activation (rTrader status); goes through as an rC transaction (test)
 - * I includes security code, like this: http(s?)://new.rc2.me/new.abc/Urlencoded10CharacterSecurityCode (test)
 - get SSL, set Always redirect to SSL [?] in WHM:Tweak Settings
 TOTAL: 1200 x 3 = 3600 = 60 hours
@@ -34,9 +32,10 @@ TOTAL: 1200 x 3 = 3600 = 60 hours
 To do: (* = before launch ** = earlier)
 
 - when a non-bona nube donates, replace the previous gift.
-- do away with foreign fields in data
-- "debt ok" pref: make it work
-- * can't go down to credit floor<0 unless chosen "can go below". Credit floor has link to pref.
+- 
+- "the picture will be scaled to..." (aspect*pixels)
+- use can() consistently, but have it do hasBit (for efficiency) when possible (bit < B_MAX)
+- "debt ok" pref: make it work: can't go down to credit floor<0 unless chosen "can go below". Credit floor has link to pref.
 - help for all pages
 - allow at most one repeating gift at a time
 - revisit t\addAttrib and t\snapshot (does Drupal make ids lowercase?)
@@ -49,13 +48,11 @@ To do: (* = before launch ** = earlier)
 - * diagram to illustrate min, max, and automatic virtual payments (for employees and companies, each in middle)
 - * add warning about flow not implemented yet
 - nightly: recalc exchange rates / allow users to express amounts in any currency (rounding DOWN); transactions will need to record exchange rate (true currency will be tied to region, regardless of how the user chooses to have it displayed)
-- * make sure to check RTRADER bit everywhere we need to (anything financial, nowhere else)
 - don't go over employee maximums unless we have to (know it ahead of time, either limit it to max or don't. simple) (don't bother with this -- it will probably be better as it is)
 - *receive deposit/withrawal callbacks to set "completed" in r_usd. alert staff if fails.
 - **set completed in r_usd for other transactions
 - *in daily: alert staff if deposit / withdrawal not complete after 3 days
 - * log more stuff
-- dwindling rewards in cron
 - ** shrink photo in formI (should be 50%) done?
 - ** download must include rebate and bonuses transactions as a separate row (for GFM)
 - ** cron: make a "daily" queue for most stuff. include figuring variable_set('totals') (usd, r, demand, etc.)
@@ -138,7 +135,7 @@ function health($where = 'TRUE') {
     return u\small($prevMonthSales) ? (u\small($lastMonthSales) ? 0 : 1) : ($lastMonthSales - $prevMonthSales) / $prevMonthSales;
   } elseif ($measure == 
 
-compact('cuid', 'months')
+compact('myid', 'months')
 
 list ($me, $months) = array('payee', '2');
 $last2MonthsSales =

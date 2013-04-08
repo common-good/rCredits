@@ -88,16 +88,16 @@ class usd {
     if (NO_DWOLLA) unset($_GET['error']);
     if (@$_GET['error']) return r\go($uri . $_GET['error_description']);
 
-    $cacct = r\acct();
-    if ($uid != @$cacct->id) return r\Web\say('wrong user', 'zot');
-    $usdAcct = new usd($cacct);
+    $mya = r\acct();
+    if ($uid != @$mya->id) return r\Web\say('wrong user', 'zot');
+    $usdAcct = new usd($mya);
     $dw = $usdAcct->dwolla(FALSE, R_GET_AUTH_URI); // URI must match the one in getAuth
     if (NO_DWOLLA) $authToken = \user_password(); else
     if (!$authToken = $dw->requestToken(@$_GET['code'])) return r\go($uri . $dw->getError());
 
-    $secure = $cacct->secure;
+    $secure = $mya->secure;
     $secure['auth'] = $authToken;
-    $cacct->update(compact('secure'));
+    $mya->update(compact('secure'));
     return r\go($uri . 'yes'); // tell user we were successful
   }
   
