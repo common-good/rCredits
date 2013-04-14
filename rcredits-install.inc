@@ -219,7 +219,7 @@ function tableDefs($schema = array()) {
     'main' => setupField('uid of the account to which others are related', 'int big'),
     'other' => setupField('uid of a user related to that account', 'int big'), // eg owner, agent, employee, supplier
     'amount' => setupField('average monthly amount paid to other', 'numeric 11,2', 0), // typically to employee or supplier
-    'flow' => setupField('which way credit can flow 1=to other 2=to main 3=both 0=neither', 'int tiny', 0),
+    'draw' => setupField('whether credit can flow from main to agent', 'int tiny', 0),
     'permission' => setupField('what type of permission the agent has on the main account', 'int tiny', 0),
     'employerOk' => setupField('employer says this agent is an employee', 'int tiny', 0),
     'employeeOk' => setupField('employee says this agent is an employee', 'int tiny', 0),
@@ -272,6 +272,8 @@ function tableDefs($schema = array()) {
     'inviter' => setupField('uid of inviting member', 'int big'),
     'invitee' => setupField('uid of invited new member', 'int big'), // null if not accepted yet
     'invited' => setupField('date of invitation', 'int 11'),
+    'subject' => setupField('email subject', 'varchar 255'),
+    'message' => setupField('email message body', 'text medium'),
   );
   $foreignKeys = foreignKey('inviter') + foreignKey('invitee');
   $indexes = index('inviter');

@@ -33,8 +33,8 @@ Scenario: Member has an employee, confirmed
 
 Scenario: Member has an employee, unconfirmed
   Given relations:
-  | id | main | agent | permission   | amount | employerOk | employeeOk | isOwner |
-  | 1  | .ZZA | .ZZD  | buy and sell |     50 | 1           | 0           | 0        |
+  | id | main | agent | permission | amount | employerOk | employeeOk | isOwner |
+  | 1  | .ZZA | .ZZD  | buy        |     50 | 1           | 0           | 0        |
   When member ".ZZA" visits page "account/relations"
   Then we show page "account/relations" with:
   | Person     | My employer? | My employee? | Family? | Permission   | Request rCard |
@@ -42,8 +42,8 @@ Scenario: Member has an employee, unconfirmed
 
 Scenario: Member has a relation with a contractor
   Given relations:
-  | id | main | agent | permission   | amount | employerOk | employeeOk | isOwner |
-  | 1  | .ZZA | .ZZB  | buy and sell |     50 | 1           | 0           | 0        |
+  | id | main | agent | permission | amount | employerOk | employeeOk | isOwner |
+  | 1  | .ZZA | .ZZB  | buy        |     50 | 1           | 0           | 0        |
   When member ".ZZA" visits page "account/relations"
   Then we show page "account/relations" with:
   | Person     | My employer? | My employee? | Family? | Permission   | Request rCard |
@@ -60,8 +60,8 @@ Scenario: Member has an employee, claimed
   
 Scenario: Employee can only read
   Given relations:
-  | id | main | agent | permission        | amount | employerOk | employeeOk | isOwner |
-  | 1  | .ZZA | .ZZD  | read transactions |     10 | 1           | 1           | 1        |
+  | id | main | agent | permission | amount | employerOk | employeeOk | isOwner |
+  | 1  | .ZZA | .ZZD  | read       |     10 | 1           | 1           | 1        |
   When member ".ZZA" visits page "account/relations"
   Then we show page "account/relations" with:
   | Person     | My employer? | My employee? | Family? | Permission        | Request rCard |
@@ -78,9 +78,9 @@ Scenario: Member has an employer
   
 Scenario: Member has access to employee account
   Given relations:
-  | id | main | agent | permission   | amount | employerOk | employeeOk | isOwner |
-  | 1  | .ZZA | .ZZD  | no access    |     10 | 1           | 1           | 1        |
-  | 2  | .ZZD | .ZZA  | sell         |     20 | 0           | 0           | 0        |
+  | id | main | agent | permission | amount | employerOk | employeeOk | isOwner |
+  | 1  | .ZZA | .ZZD  |            |     10 | 1           | 1           | 1        |
+  | 2  | .ZZD | .ZZA  | sell       |     20 | 0           | 0           | 0        |
   When member ".ZZA" visits page "account/relations"
   Then we show page "account/relations" with:
   | Person     | My employer? | My employee? | Family? | Permission   | Request rCard |
@@ -108,13 +108,13 @@ Scenario: Member company has relations
 
 Scenario: It's complicated
   Given relations:
-  | id | main | agent | permission     | amount | employerOk | employeeOk | isOwner |
-  | 1  | .ZZA | .ZZD  | sell           |     10 | 1           | 0           | 1        |
-  | 2  | .ZZD | .ZZA  | no access      |     20 | 0           | 1           | 0        |
-  | 3  | .ZZA | .ZZC  | buy and sell   |     30 | 0           | 1           | 0        |
-  | 4  | .ZZC | .ZZA  | manage account |     40 | 1           | 0           | 0        |
-  | 5  | .ZZA | .ZZB  | sell           |     10 | 1           | 0           | 1        |
-  | 6  | .ZZB | .ZZA  | no access      |     20 | 1           | 1           | 0        |
+  | id | main | agent | permission | amount | employerOk | employeeOk | isOwner |
+  | 1  | .ZZA | .ZZD  | sell       |     10 | 1           | 0           | 1        |
+  | 2  | .ZZD | .ZZA  |            |     20 | 0           | 1           | 0        |
+  | 3  | .ZZA | .ZZC  | buy        |     30 | 0           | 1           | 0        |
+  | 4  | .ZZC | .ZZA  | manage     |     40 | 1           | 0           | 0        |
+  | 5  | .ZZA | .ZZB  | sell       |     10 | 1           | 0           | 1        |
+  | 6  | .ZZB | .ZZA  |            |     20 | 1           | 1           | 0        |
   When member ".ZZA" visits page "account/relations"
   Then we show page "account/relations" with:
   | Person     | My employer? | My employee? | Family? | Permission   | Request rCard |

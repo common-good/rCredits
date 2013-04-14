@@ -1,38 +1,35 @@
 rCredits Software
 Notes for developers
-make sure offsite.php, .databases, and offsite table are correct on rcredits.org
 
-Don't do this probably (archive old data instead, with apology to those who signed up earlier):
-rename community field to community
-*** upload r_countries and r_states, then
-  UPDATE users u
-    INNER JOIN r_countries c ON BINARY c.name=BINARY u.country
-    SET u.country=c.id;
-  UPDATE users u
-    INNER JOIN r_countries c ON BINARY c.id=BINARY u.country
-    INNER JOIN r_states s ON BINARY s.name=BINARY u.state
-    SET u.state=s.id;
-  UPDATE users SET state=4370 WHERE state='Stockholms';
-  UPDATE users SET state=9999 WHERE state='Islington';
-***
+PRODUCTION SITE PROBLEMS:
+- Dwolla fails (waiting for Dwolla?)
+
+BEFORE MINI LAUNCH:
+- 6 people and 3 orgs tested signup, plus one joint account; watch people sign up
+- log everything
+- get Dwolla to work on production site
+- written instructions for signup (dwolla, etc)
+- 200 cron tests (just cache check, auto bank transfers)
+TOTAL: 1200 x 3 = 3600 = 60 hours
 
 BEFORE LAUNCH:
-- notifystaff of proxies, agreements, dwolla accounts, invites, etc.
 - print me a card (and test it)
-- 400 signup feature tests work (write more)
-- 60 6 people and 3 orgs tested signup, plus one joint account; watch people sign up
-- 30 log everything
-- 30 written instructions for signup (dwolla, etc)
-- 200 cron tests (just cache check, auto bank transfers)
-- ** membership gift happens upon account activation (rTrader status); goes through as an rC transaction (test)
-- * I includes security code, like this: http(s?)://new.rc2.me/new.abc/Urlencoded10CharacterSecurityCode (test)
-- get SSL, set Always redirect to SSL [?] in WHM:Tweak Settings
-TOTAL: 1200 x 3 = 3600 = 60 hours
+- flow (figure credit accordingly, transfer between accounts as needed at day's end)
+- inviter gets the Dwolla credit (is this possible?)
+- signup feature: Mike Morton NH should be NEN.AAA
+- membership gift happens upon account activation (rTrader status); goes through as an rC transaction (test)
+- /I/ includes security code, like this: http(s?)://new.rc2.me/new.abc/Urlencoded10CharacterSecurityCode (test)
 
 To do: (* = before launch ** = earlier)
 
 - when a non-bona nube donates, replace the previous gift.
-- 
+- accept PDF for id proof
+- explain picture format
+- during membership signup, always return to the membership page. else donation returns to summary; invite returns to invite if all other steps are complete
+- in formAccount do away with Drupal basis
+- back button
+- increase PHP memory so TCPDF works
+- check upload size of photos in validate (else crash)
 - "the picture will be scaled to..." (aspect*pixels)
 - use can() consistently, but have it do hasBit (for efficiency) when possible (bit < B_MAX)
 - "debt ok" pref: make it work: can't go down to credit floor<0 unless chosen "can go below". Credit floor has link to pref.
@@ -352,7 +349,7 @@ J. Other thoughts:
   - 
 
 To clear cache:   http://localhost/devcore/devel/cache/clear?destination=node
-  (or http://new.rcredits.org/devel/cache/clear?destination=node)
+  (or https://new.rcredits.org/devel/cache/clear?destination=node)
 
 To uninstall the rCredits modules manually (export first, since this DESTROYS ALL rCredits DATA except users):
   DELETE FROM system WHERE filename LIKE 'sites/all/modules/rcredits/%' OR name='rcredits';

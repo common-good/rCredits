@@ -16,9 +16,7 @@ use rCredits\Util as u;
 use rCredits\Backend as be;
 
 define('MINI_LAUNCH', TRUE);
-define('isDEV', @$_SERVER['WINDIR']); // developing on Windows (unlike production server)
 define('DWOLLA_TEST_ACCOUNT', '812-713-9234');
-define('STAGE', 'http://ws.rcredits.org'); // staging site
 define('CGF_EMAIL', isDEV ? 'wspademan@gmail.com' : 'info@CommonGoodFinance.org'); // Common Good Finance email and other data
 define('CGF_PHONE', '+14136281723');
 define('CGF_ADDRESS', 'PO Box 21');
@@ -32,7 +30,7 @@ define('R_COMPANY_FIELDS', 'website description selling structure'); // fields i
 define('R_SECURE_FIELDS', 'type pin auth card_code'); // non-personal encrypted fields
 define('R_SECRET_FIELDS', 'federalId dob idProof answer'); // personal identifying information
 define('R_SECRET_URL', isDEV ? 'http://localhost/rcredits' 
-  : ($_SERVER['HTTP_HOST'] == STAGE ? STAGE : 'http://rcredits.org')); // where to store secrets
+  : (STAGING ? ('http://' . STAGE) : 'http://rcredits.org')); // where to store secrets
 define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities can manage themselves
 
 define('R_TEMP_NAME_PREFIX', 'unknown ');
@@ -48,16 +46,16 @@ define('R_CARD_COST', 5); // cost to order a company or replacement rCard
 define('R_FREEZE_TIME', '2 weeks'); // how long to freeze newly bought rCredits
 define('R_DEFAULT_PURPOSE', 'rCredits/USD exchange'); // default transaction purpose
 define('R_RBUY_QUANTUM', 10); // chunk size for buying rCredits (sales amounts are a multiple of this)
-define('R_COMMERCIAL_ASPECT', '16:9'); // width-to-height ratio for commercial profile picture
+define('R_COMMERCIAL_ASPECT', '4:3'); // width-to-height ratio for commercial profile picture
 define('R_PERSONAL_ASPECT', '3:4'); // width-to-height ratio for personal profile picture
-define('R_PIXEL_FACTOR', 128); // what to multiply the aspect ratio components by, to get pixel dimensions
+define('R_PIXEL_FACTOR', 200); // what to multiply the aspect ratio components by, to get pixel dimensions
 define('R_GET_AUTH_URI', 'usd-get-auth'); // where Dwolla calls us back for getting auth code
 define('R_INDIVIDUAL_GIFT', 50); // suggested contribution for individuals
 define('R_COMPANY_GIFT', 250); // suggested contribution for companies
 define('R_BUYS_BEFORE_BONUS', MINI_LAUNCH ? 1 : 3); // number of purchases required before signup bonus
 define('R_REGION_MAX', isDEV ? 46000 : 3000000000); // maximum uids in a region (46k,3T ~sqrt(PHP_INT_MAX))
 define('R_CTTY_UID0', -R_REGION_MAX); // community uids are less than this (farther from zero)
-define('R_DWOLLA_LINK', 'http://refer.dwolla.com/a/clk/3KkS2w');
+define('R_DWOLLA_LINK', 'http://refer.dwolla.com/a/clk/3bf8cy'); // credits CGF
 
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
@@ -115,6 +113,11 @@ define('PERM_READ', 1);
 define('PERM_SELL', 2);
 define('PERM_BUY', 3);
 define('PERM_MANAGE', 4);
+
+define('FLOW_NONE', 0); // which way can credit flow, with another account
+define('FLOW_TO', 1);
+define('FLOW_FROM', 2);
+define('FLOW_BOTH', 3);
 
 define('B_RELATED', 100); // has a relationship record
 define('B_READ', B_RELATED + PERM_READ);
@@ -179,7 +182,7 @@ $GLOBALS['emailSubjects'] = array(
   
   'welcome' => t('Welcome to rCredits!'),
   'password-reset' => t('New rCredits PASSWORD'),
-  'tell-staff' => t('rCredits STAFF ALERT'),
+  'tell-staff' => t('rCredits STAFF ALERT: @index'),
 );
 
 include_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
@@ -572,15 +575,20 @@ function membershipEvent($acct, $status, $do = TRUE) {
 
 /**
  * Notify rCredits staff
- * @param string $message: the message or message index
- * @param assoc $subs: substitutions for the message
- * @param int $uid: account id (only needed when called from register, defaults to current account id)
+ * @param string $index: the message or message index
+ * @param assoc $subs: substitutions for the message OR (if no subs in message) data to show
+ * @param bool/int $uid: related account record id (defaults to current account), none if FALSE
  */
-function notifyStaff($message, $subs = array(), $uid = '') {
+function notifyStaff($index, $subs = array(), $uid = TRUE) {
+  $message = strpos($raw = u\tt($index), '@') === FALSE ? ($raw . u\seeAssoc($subs)) : u\tt($index, $subs);
+
+  if ($uid) {
+    if ($mya = r\acct($uid > 1 ? $uid : '')) $message = "$mya->fullName (#$mya->id): $message";
+  } else $uid = 1;
+
   $noFrame = TRUE;
-  $message = u\tt($message, $subs);
-  if (!$uid) $uid = @acct()->id ?: 1; // use Site Admin account if no other
-  $mailed = \drupal_mail('rCredits', 'tell-staff', R_ORG_EMAIL, '', compact(u\ray('message noFrame uid')));
+  $topic = strlen($index) < 20 ? $index : '';
+  \drupal_mail('rCredits', 'tell-staff', R_ORG_EMAIL, '', compact(u\ray('message topic noFrame uid')));
 }
 
 /**
@@ -806,7 +814,7 @@ function nonoUndo($oldRecord, &$subs = array()) {
 
 /**
  * Create or update a reverse relation record for the given main and other
- * if any of the given fields is positive
+ *   if any of the given fields is positive
  * @param int $other: the main (switching to agent)
  * @param int $main: the other (switching to main)
  * @param assoc $data: (byRef) array of field values
@@ -816,7 +824,8 @@ function nonoUndo($oldRecord, &$subs = array()) {
  */
 function reverseRelations($other, $main, &$data, $fields) {
   foreach (u\ray($fields) as $field) if (@$data[$field]) $stay = TRUE;
-  if (!@$stay) return;
+  if (!@$stay and !isset($data['employeeOk'])) return; // this function also UNsets employeeOk
+  
   $subs = compact('main', 'other') + u\just($fields, $data);
   if ($reid = relation('reid', $main, $other)) {
     $subs += compact('reid');
@@ -988,15 +997,15 @@ function checkBona($uid) {
  * @param string $email: email address to which the invite was sent
  * @param int $inviter: the inviter's account uid
  * @param string $code: proof of the invitation (that invitee must have, in order to sign up) (DEFAULT random)
+ *
+ * @param string $subject, $message: temporary params during MINI_LAUNCH
+ *
  * @return string: the code
  */
-function invite($email, $inviter, $code = '') {
-  $info = array(
-    'code' => $code ?: \user_password(20),
-    'email' => $email,
-    'inviter' => $inviter,
-    'invited' => REQUEST_TIME,
-  );
+function invite($email, $inviter, $code = '', $subject = '', $message = '') {
+  $code = $code ?: \user_password(20);
+  $invited = REQUEST_TIME;
+  $info = compact(u\ray('code invited email inviter subject message'));
   r\dbInsert('r_invites', $info);
   return $info['code'];
 }

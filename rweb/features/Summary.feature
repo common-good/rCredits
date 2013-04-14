@@ -42,13 +42,13 @@ Variants: with/without an agent
   | "NEW:ZZA" | "NEW:ZZC" | # agent for account |
 
 Scenario: A member clicks on the summary tab
-  When member "NEW.ZZA" visits page "summary" with options ""
+  When member "NEW.ZZA" visits page "summary"
   Then we show page "summary" with:
   | Name             | Address                | Account ID         |  Balance | Rewards | Floor |
   | Abe One (abeone) | POB 1, Atown, AK 01000 | NEW.ZZA (personal) | $166     | $256    | $-100 |
 
 Scenario: A foreign rTrader clicks on the summary tab
-  When member "NEW.ZZC" visits page "summary" with options ""
+  When member "NEW.ZZC" visits page "summary"
   Then we show page "summary" with:
   | Name                   | Address                    | Account ID        | Balance | Rewards |  Floor |
   | Corner Pub (cornerpub) | POB 3, Ctown, Cher, FRANCE | NEW.ZZC (company) | $323    | $258    |  $-300 |

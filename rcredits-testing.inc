@@ -126,10 +126,7 @@ function makeRelation($info, $infoOnly = FALSE) {
   u\EXPECT(!r\foreignServer(r\uidRegion($mainAcct->id)) or !r\foreignServer(r\uidRegion($agtAcct->id)));
   u\EXPECT($mainAcct->proSe() and $agtAcct->proSe());
   list ($main, $other) = array($mainAcct->id, $agtAcct->id);
-  if (@$my_permission) {
-    $perms = array_flip($GLOBALS['share permissions']);
-    $info['permission'] = $perms[$my_permission]; 
-  }
+  if (@$my_permission) $info['permission'] = constant('PERM_' . strtoupper($my_permission));
   
   foreach (u\ray('id main agent') as $one) unset($info[$one]);
   $info += compact(u\ray('reid main other'));
@@ -184,7 +181,7 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
     }
   } else unset($fields['message']); // empty message in features means NO message
   $agent = @r\acct()->agentId;
-  \drupal_set_message(color(array('EXPECT' => '') + $fields, @$subject ? 'email' : 'output')); // keep this
+  testOutput(array('EXPECT' => '') + $fields, @$subject ? 'email' : 'output'); // keep this
   $info = json_encode($fields, JSON_UNESCAPED_SLASHES);
   $crit = "channel=:channel AND type=:type AND myid=:myid AND agent=:agent ORDER BY logid DESC";
 //  debug(compact(u\ray('info type myid agent channel crit'))); // for debugging mysterious email mismatches
@@ -193,16 +190,16 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
   return r\dbExists('r_log', "info=:info AND $crit", compact(u\ray('info type myid agent channel')));
 }
 
-function findEmail($key, $email, $subs) {
+function findEmail($index, $email, $subs) {
   $subs = @$subs[0] ?: @$subs;
 /* REDUNDANT? foreach (array('payerPurpose', 'payeePurpose') as $field) {
     if (($purpose = @$subs[$field]) and !$real) $subs[$field] = str_replace('#', '#a', $purpose); // would realFix() handle this?
   } */
   $esubs = array();
   foreach ($subs as $k => $value) $esubs['{' . $k . '}'] = $value;
-  $message = strtr(r\emailBody($key), $esubs);
-  $subject = strtr($GLOBALS['emailSubjects'][$key], $esubs);
-  return findMessage('email', compact(u\ray('key email subject')), $message, $subject, $subs);
+  $message = strtr(r\emailBody($index), $esubs);
+  $subject = strtr($GLOBALS['emailSubjects'][$index], $esubs);
+  return findMessage('email', compact(u\ray('index email subject')), $message, $subject, $subs);
 }
 
 /**
@@ -262,7 +259,7 @@ function hitServer($op, $agent, $code = '', $account_id = '', $extra = array()) 
     }
   }
   $json = json_encode(compact(u\ray('op my_id code account_id')) + $extra, JSON_UNESCAPED_SLASHES);
-  \drupal_set_message(color($json, 'input')); // keep this
+  testOutput($json, 'input'); // keep this
   r\Smart\api(compact('json'));
 //  be\send($json); // remember the server's response (this is the real test, once most bugs are gone)
   return TRUE;
@@ -270,8 +267,9 @@ function hitServer($op, $agent, $code = '', $account_id = '', $extra = array()) 
 
 function snapShot(&$form) { // (additional sta values have no effect at this stage)
   addAttribs($form);
-  global $formOutput; $zot = $form; $formOutput = strip(\render($zot)); // for testing
-  testOutput('ACTUAL or EXPECTED: ' . $formOutput, 'screen');
+  return; // the rest is redundant
+  //global $formOutput; $zot = $form; $formOutput = strip(\render($zot)); // for testing
+  //testOutput('ACTUAL or EXPECTED: ' . $formOutput, 'screen');
 }
 
 function addAttribs(&$thing) {
@@ -307,7 +305,7 @@ function verifyRecord($table, $info) {
   foreach ($info as $key => $value) $crit[] = "$key<=>:$key"; // null-safe ==
   $crit = join(' AND ', $crit);
   $result = r\dbExists($table, $crit, $info);
-  if (!$result) testOutput("verifyRecord failed. table=$table crit=$crit info=" . print_r($info, 1));
+  if (!$result) testOutput("verifyRecord failed. table=$table crit=$crit EXPECTED info=" . print_r($info, 1));
   return $result;
 }
 
@@ -317,8 +315,9 @@ function verifyRecord($table, $info) {
  * @return: the form that would normally be displayed by the browser
  */
 function pageForm($page) {
-  global $formOutput;
+  global $formOutput, $formDropdowns;
 
+  t\SERVER('REQUEST_URI', $page);
   $args = basename($page);
   if (u\abbreviates('/user/', $page)) {
     $sta = array();
@@ -330,7 +329,8 @@ function pageForm($page) {
     $form = strpos($page, '/login') ? array() : \drupal_get_form($form, $args);
     $function($form, $sta, $args);
     $form2 = $form; $rent = render($form2);
-    t\testOutput($formOutput = t\strip($rent), 'screen');
+    $formDropdowns = t\dropdownOptions($rent);
+    t\testOutput('ACTUAL: ' . ($formOutput = t\strip($rent)), 'screen');
     return $form;
   }     
 
@@ -339,7 +339,10 @@ function pageForm($page) {
     $result = $result == MENU_NOT_FOUND ? 'not found' 
       : ($result == MENU_ACCESS_DENIED ? 'access error' : "error #$result");
     t\testOutput("page \"$page\": $result in t\\pageForm()");
-  } else t\testOutput($formOutput = t\strip($result), 'screen');
+  } else {
+    $formDropdowns = t\dropdownOptions($result);
+    t\testOutput($formOutput = t\strip($result), 'screen');
+  }
   
 }
 
@@ -380,7 +383,13 @@ u\deb('postLogout returning FALSE, about to save skiptostep '.$function);
   return FALSE;
 }
 
+function dropdownOptions($form) {
+  if (!preg_match_all('~<option [^>]*>.*?</option>~sm', $form, $matches)) return '';
+  return strip_tags(join(PHP_EOL, $matches[0]));
+}
+
 function strip($form) {
+
   $form = str_replace('&nbsp;', ' ', $form);
   $form = preg_replace('~<fieldset id="help".*?</fieldset>~sm', '', $form); // remove help div
   $form = preg_replace('~<div[^>]*class="invisible.*?</div>~sm', '', $form); // remove invisible divs (not nested)
@@ -396,7 +405,7 @@ function eq($a, $b) {
       (($a - $b) * ($a - $b) < .001)
     : ($a == $b or (empty($a) and empty($b)));
   if (!$result) echo 'not equal: ' . print_r(compact('a','b'), 1); // keep for now
-  if (!$result) \drupal_set_message(color("unequal: a=$a b=$b", 'error')); // keep for now
+  if (!$result) testOutput("unequal: a=$a b=$b", 'error'); // keep for now
   return $result;
 }
 
@@ -409,12 +418,14 @@ function fullQid($q) {
  * Fake $_SERVER params for testing
  */
 function SERVER($key, $value = NULL) {
+  if (!t\EST()) return $_SERVER[$key];
   global $T_SERVER;
   if (isset($value)) $T_SERVER[$key] = $value; else return $T_SERVER[$key];
 }
 
 /**
  * @param mixed $msg: what to give a background color to (can be any data type)
+ * Not to be confused with the color() function in test.php
  */
 function color($msg, $color = 'normal') {
   $colors = array(
@@ -423,6 +434,7 @@ function color($msg, $color = 'normal') {
     'input' => 'orange',
     'output' => 'thistle',
     'screen' => 'burlywood',
+    'error' => 'salmon',
   );
   $color = @$colors[$color] ?: $color;
   $msg = print_r($msg, 1); // keep this
@@ -433,9 +445,60 @@ function color($msg, $color = 'normal') {
  * Output the message with the given background color.
  * Return FALSE (meaning error in returns from callers) unless a color is specified.
  */
-function testOutput($msg, $color = 'normal') {
+function testOutput($msg, $color = 'error') {
   if (t\EST()) \drupal_set_message(color($msg, $color));
-  return $color == 'normal' ? FALSE : TRUE;
+  return $color == 'error' ? FALSE : TRUE;
 }
 
 function EST() {return (@TESTING == 1);}
+
+/**
+ * Clear out all possible data, so as to start the test fresh
+ * @param int $ch: the channel (web, sms, etc.)
+ */
+function clear($ch) {
+  global $channel; 
+  $channel = $ch;
+  $cgfUid = \variable_get('cgf_uid');
+  $files = 'r_sms r_txs r_relations r_log r_invites r_companies r_gifts r_smarts r_proxies r_usd r_user_industries';
+
+  global $sms_devel; $sms_devel = TRUE;
+  r\dbQ('DELETE FROM users WHERE uid>:cgfUid', compact('cgfUid'));
+  foreach (u\ray($files) as $one) r\dbQ("TRUNCATE $one");
+
+  r\acct::_clear(); // empty the acct cache
+  \drupal_static_reset(); // clear out drupal central storage
+}
+
+function fixPageArgs($page) {
+  $special = array(
+    '(by|id)=([A-Z]{3}?[\.:][A-Z]{3})',
+    '(flow)=(.*?)',
+  );
+  foreach ($special as $one) if (preg_match($pat = "`(/|&)$one(&|$)`", $page, $matches)) {
+    list ($zot, $start, $word, $what, $end) = $matches;
+    if ($word == 'by' or $word == 'id') $what = t\uid($what);
+    if ($word == 'flow') $what = constant('FLOW_' . strtoupper($what));
+    $page = preg_replace($pat, "$start$word=$what$end", $page);
+  }
+  return $page;
+}
+
+function shownWith($content, $only = '', $showDebugs = TRUE) {
+  global $formOutput, $formDropdowns;
+  $model = $only == 'options' ? $formDropdowns : $formOutput;
+  $xi = $i = 0;
+  foreach ($content as $fields) {
+    foreach ($fields as $key => $one) if (strpos($one, '%') !== FALSE) t\lastMinuteSubs($fields[$key]);
+    if ($showDebugs) debug("EXPECT page with " . print_r($fields, 1)); // keep this
+    foreach ($fields as $key => $one) {
+      if ($one !== '') $i = strpos($model, $one, $xi = $i);
+      if ($showDebugs) t\testOutput(compact('xi','i','one'));
+      if ($i === FALSE) {
+        if ($showDebugs) t\testOutput(substr($model, 0, $xi) . ' <b style="font-size:200%;">[OK until here]</b> ' . substr($model, $xi));
+        return FALSE;
+      } else $i += strlen($one);
+    }
+  }
+  return TRUE;
+}

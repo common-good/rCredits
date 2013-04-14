@@ -91,7 +91,7 @@ class rwebTransactions extends DrupalWebTestCase {
   // Scenario: A member looks at transactions for the past year
   public function testAMemberLooksAtTransactionsForThePastYear_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" visits page "transactions" with options "period=365"');
+    When_('member "NEW.ZZA" visits page "transactions/period=365"');
     Then_('we show page "transactions" with: "DATA'
     . '\\| Start Date | End Date | Start Balance | To You | From You | Rewards | End Balance |'
     . '\\| %dmy-12m   | %dmy     | $0.00         | 30.00  | 120.00   | 256.00  | $166.00     |'
@@ -116,7 +116,7 @@ class rwebTransactions extends DrupalWebTestCase {
   // Scenario: A member looks at transactions for the past few days
   public function testAMemberLooksAtTransactionsForThePastFewDays_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" visits page "transactions" with options "period=15"');
+    When_('member "NEW.ZZA" visits page "transactions/period=15"');
     Then_('we show page "transactions" with: "DATA'
     . '\\| Start Date | End Date | Start Balance | To You | From You | Rewards | End Balance |'
     . '\\| %dmy-15d   | %dmy     | $242.00       | 0.00   | 80.00    | 4.00    | $166.00     |'
@@ -158,7 +158,7 @@ class rwebTransactions extends DrupalWebTestCase {
     . '\\| NEW.ZZA   |     190 |'
     . '\\| NEW.ZZB   |     279 |'
     . '\\| NEW.ZZC   |     311 |"');
-    When_('member "NEW.ZZA" visits page "transactions" with options "period=5"');
+    When_('member "NEW.ZZA" visits page "transactions/period=5"');
     Then_('we show page "transactions" with: "DATA'
     . '\\| tid | Date   | Name       | From you | To you | Status   | Buttons | Purpose | Rewards |'
     . '\\| 14  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X       | cash BD |         |'
@@ -170,7 +170,7 @@ class rwebTransactions extends DrupalWebTestCase {
     . '\\| never   |'
     . '\\| rebate  |'
     . '\\| bonus   |"');
-    When_('member "NEW.ZZC" visits page "transactions" with options "period=5"');
+    When_('member "NEW.ZZC" visits page "transactions/period=5"');
     Then_('we show page "transactions" with: "DATA'
     . '\\| tid | Date   | Name       | From you | To you | Status   | Buttons | Purpose | Rewards |'
     . '\\| 14  | %dm-5d | Abe One    | 100.00   | --     | disputed | OK      | cash BD |         |'

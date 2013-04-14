@@ -54,7 +54,7 @@ function everyHour() {
 }
 
 function everyDay() {
-  r\notifyStaff('Daily cron begins');
+  r\notifyStaff('Daily cron begins', '', FALSE);
   // stuff to do every day
   // use maintenance mode? no
   // doPendingPayments(); // not yet implemented (if ever)

@@ -182,14 +182,16 @@ form.rweb  .form-no {color:red;}
 #user-register-form  #edit-company-text label {text-align:left;}
 #user-register-form .form-item-buysAt-15 label  {width:150px;}
 #user-register-form .form-item-buysAt label[for="edit-buysat"] {font-weight:normal; width:100%; text-align:left; margin-left:125px; margin-top:20px; border-top:1px solid darkgreen;}
+#user-register-form .form-item-buysAt label[for="edit-buysat"] b {color:darkgreen;}
 /* ask even companies! #user-register-form .form-item-buysAt {display:none;} */
 #user-register-form  .form-checkboxes {margin-left:8em;}
+#user-register-form .form-item-companyOptions-contractor label {width:auto;}
 
 /* New password */
 #user-pass #edit-name {width:20em;}
 
 /* Draft a new member */
-#rcreditswebformdraft #edit-cancel {margin-left:8em;}
+/*#rcreditswebformdraft #edit-cancel {margin-left:8em;} */
 
 /* Summary */
 #rcreditswebformsummary #edit-floor .description,
@@ -448,7 +450,8 @@ html.js input.throbbing {background-position:right -2.4em;}
 
 /* Membership */
 /* #rcreditswebformmembership #next-steps {width:500px; margin:-13px;} */
-#rcreditswebformmembership #edit-steps {margin-left:3.2em;}
+#rcreditswebformmembership #edit-steps,
+#rcreditswebformmembership #edit-addendum {margin-left:3.2em;}
 #rcreditswebformmembership #edit-steps table {margin-top:-12px;}
 #rcreditswebformmembership #edit-steps h2 {color:darkblue; font-weight:bold;}
 #rcreditswebformmembership #edit-steps td {vertical-align:top; background-color:white; font-size:1.15em; padding:0;}
@@ -474,9 +477,14 @@ html.js input.throbbing {background-position:right -2.4em;}
 #rcreditswebforminvite .form-item-trusted {border:0;}
 #rcreditswebforminvite .form-item-subject {margin-top:20px;}
 
-/* Profile */
+/* Photo */
+#rcreditswebformphoto .user-picture {display:inline-block; padding:0; margin-right:5px;}
+#rcreditswebformphoto .user-picture img {max-height:300px;}
+#rcreditswebformphoto .form-item-files-picture-upload {display:inline-block; max-width:400px; margin-left:10px;}
+#rcreditswebformphoto #edit-submit {display:block;}
+
+/* Profile (Account) */
 #rcreditswebformprofile {font-family:Arial;}
-#rcreditswebformprofile .user-picture {float:left; margin-right:20px;}
 #rcreditswebformprofile #member-details {float:left; min-width:200px; max-width:300px; font-weight:normal;}
 
 /* Options (Preferences) */

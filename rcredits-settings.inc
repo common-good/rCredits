@@ -9,8 +9,8 @@ define('R_SERVER_ID', 'NEW'); // qid header for this region's server (New Englan
 //define('CT_SERVER_ID', 'NEC'); // a temporary fake server
 // other 3rd letters: M=ME H=NH V=VT C=CT R=RI P=PA Y=NY A=NYC (apple) B=Boston
 define('R_ORG_PHONE', '413-628-1723');
-define('R_ORG_EMAIL', strpos($_SERVER['HTTP_HOST'], '.') < 3 ? 'wspademan+cgf@gmail.com' : 'info@rCredits.org');
-define('R_SITE_URL', 'http://new.rCredits.org');
+define('R_ORG_EMAIL', strpos($_SERVER['HTTP_HOST'], '.') < 3 ? 'wspademan+cgf@gmail.com' : (strtolower(R_SERVER_ID) . '@rCredits.org'));
+define('R_SITE_URL', 'https://new.rCredits.org');
 
 // (you don't get an ID card unless you are in this geographic area)
 define('R_REGION_POSTAL_AREA', '^01.*'); // anyone with a postal code that matches this regular expression is in the region

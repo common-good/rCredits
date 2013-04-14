@@ -215,7 +215,7 @@ class acct {
   public function update($info, $just = NULL) {
     //if (!@self::$records[$this->id]->uid) self::$records[$this->id] = \user_load($this->id);
     if (isset($just)) $info = u\just($just, $info);
-    if (isset($info['data'])) $info['data'] = serialize($this->data);
+    if (isset($info['data'])) $info['data'] = serialize($info['data']);
     if (isset($info['frozen'])) $info['frozen'] = serialize($info['frozen']);
     if (isset($info['secure'])) { // serialize and encrypt before updating this
       $usdArray = $info['secure'] + ($this->secure ?: array());
@@ -246,7 +246,7 @@ class acct {
 
   public function qid() {return $this->proSe() ? $this->mainQid : r\quid($this->id, $this->agentId);}
   
-  public function hasBit($bit) {return (bool) ($this->flags & u\bit($bit));}
+  public function hasBit($bit) {return (bool) ($this->flags & u\bit($bit + 0));}
   
   /**
    * Set the bit in the flags field to the given value.
@@ -323,7 +323,7 @@ class acct {
           $perms[B_CTTY_ADMIN] = TRUE; // temporary extra power, until communities are independent
           $perms[B_READ] = $perms[B_SELL] = $perms[B_BUY] = $perms[B_MANAGE] = TRUE;
         }
-        $perms[B_PERSONAL] = TRUE; // manage show PERSONAL settings (for debugging)
+//        $perms[B_PERSONAL] = TRUE; // manage show PERSONAL settings (for debugging)
         $perms[B_COMPANY] = $this->proSe(); // show company settings on own account (for debugging)
       };
 

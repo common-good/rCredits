@@ -55,7 +55,7 @@ class rwebSignup extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('invitation to email "a@example.com" is ""');
     When_('member "?" visits page "/user/register"');
-    Then_('we show page "/user/register" with: "DATA'
+    Then_('we show "Sign up for rCredits" with: "DATA'
     . '\\| errorPhrase         |'
     . '\\| you must be invited |"');
   }
@@ -65,9 +65,12 @@ class rwebSignup extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"');
     When_('member "?" visits page "/user/register/code=s0M3_rAnd0M_c0D3"');
-    Then_('we show page "/user/register" with: "DATA'
+    Then_('we show "Sign up for rCredits" with: "DATA'
     . '\\| nameDescription      |'
     . '\\| properly capitalized |"');
+    And__('without options: "DATA'
+    . '\\| acctType                             |'
+    . '\\| commercial (but not publicly traded) |"');
   }
 
   // Scenario: A newbie registers
@@ -75,20 +78,18 @@ class rwebSignup extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"');
     When_('member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values: "DATA'
-    . '\\| fullName | email         | country | postalCode | state | city  | acctType | code        |'
-    . '\\| Abe One   | a@example.com | US    | 01001       | MA    | Amherst | %R_PERSONAL  | s0M3_rAnd0M_c0D3 |"');
+    . '\\| fullName | email         | phone | country | postalCode | state | city  | acctType | code        |'
+    . '\\| Abe One | a@example.com | (413) 253-0000 | US | 01001 | MA | Amherst | %R_PERSONAL  | s0M3_rAnd0M_c0D3 |"');
     Then_('members: "DATA'
-    . '\\| id      | fullName | email         | country | postalCode | state | city    | flags |'
-    . '\\| NEW.AAB | Abe One   | a@example.com | US | 01001       | MA    | Amherst | dft,personal |"');
+    . '\\| id      | fullName | email         | phone        | country | postalCode | state | city    | flags |'
+    . '\\| NEW.AAC | Abe One  | a@example.com | +14132530000 | US | 01001       | MA    | Amherst | dft,personal |"');
     And__('we say "status": "your account is ready" with subs: "DATA'
     . '\\| quid    | balance |'
-    . '\\| NEW.AAB | $250    |"');
+    . '\\| NEW.AAC | $250    |"');
     And__('we email "welcome" to member "a@example.com" with subs: "DATA'
     . '\\| fullName | name   | quid    | region | pass     |'
-    . '\\| Abe One  | abeone | NEW.AAB | new    | (varies) |"');
-    And__('we show page "/user/login" with: "DATA'
-    . '\\| title          |'
-    . '\\| rCredits Login |"');
+    . '\\| Abe One  | abeone | NEW.AAC | new    | (varies) |"');
+    And__('we show "rCredits Login" with: ""');
   }
 
   // Scenario: A member registers bad email
@@ -96,11 +97,43 @@ class rwebSignup extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"');
     When_('member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values: "DATA'
-    . '\\| fullName | email     | country | postalCode | state | city    | acctType | code |'
-    . '\\| Abe One   | %whatever | US      | 01001       | MA    | Amherst | %R_PERSONAL  | s0M3_rAnd0M_c0D3 |"');
+    . '\\| fullName | email     | phone | country | postalCode | state | city    | acctType | code |'
+    . '\\| Abe One   | %whatever | 413-253-0001 | US      | 01001       | MA    | Amherst | %R_PERSONAL  | s0M3_rAnd0M_c0D3 |"');
     Then_('we say "error": "bad email" with subs: "DATA'
     . '\\| email     |'
     . '\\| %whatever |"');
+  }
+
+  // Scenario: A member registers bad phone
+  public function testAMemberRegistersBadPhone_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"');
+    When_('member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values: "DATA'
+    . '\\| fullName | email     | phone | country | postalCode | state | city    | acctType | code |'
+    . '\\| Abe One   | a@example.com | %random | US      | 01001       | MA    | Amherst | %R_PERSONAL  | s0M3_rAnd0M_c0D3 |"');
+    Then_('we say "error": "bad phone"');
+  }
+
+  // Scenario: A member registers bad name
+  public function testAMemberRegistersBadName_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"');
+    When_('member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values: "DATA'
+    . '\\| fullName  | email     | phone | country | postalCode | state | city    | acctType | code |'
+    . '\\| ™ %random | a@example.com | 413-253-0001 | US      | 01001-3829 | MA    | Amherst | %R_PERSONAL  | s0M3_rAnd0M_c0D3 |"');
+    Then_('we say "error": "illegal char" with subs: "DATA'
+    . '\\| field    |'
+    . '\\| fullName |"');
+  }
+
+  // Scenario: A member registers bad zip
+  public function testAMemberRegistersBadZip_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"');
+    When_('member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values: "DATA'
+    . '\\| fullName | email     | phone | country | postalCode | state | city    | acctType | code |'
+    . '\\| Abe One  | a@example.com | 413-253-0001 | US      | %random | MA    | Amherst | %R_PERSONAL  | s0M3_rAnd0M_c0D3 |"');
+    Then_('we say "error": "bad zip"');
   }
 
   // Scenario: A member registers again
@@ -111,11 +144,125 @@ class rwebSignup extends DrupalWebTestCase {
     . '\\| id      | fullName  | phone  | email         | city  | state | country |'
     . '\\| NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | AK    | US      |"');
     When_('member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values: "DATA'
-    . '\\| fullName | email         | country | postalCode | state | city    | acctType | code |'
-    . '\\| Bea Two   | a@example.com | US      | 01001       | MA    | Amherst | %R_PERSONAL | s0M3_rAnd0M_c0D3 |"');
+    . '\\| fullName | email         | phone | country | postalCode | state | city    | acctType | code |'
+    . '\\| Bea Two   | a@example.com | 413-253-0002 | US | 01001 | MA | Amherst | %R_PERSONAL | s0M3_rAnd0M_c0D3 |"');
     Then_('we say "error": "duplicate email|forgot password" with subs: "DATA'
     . '\\| duplicateAccount | emailTagged            | passwordLink                            |'
     . '\\| Abe One          | a+whatever@example.com | %BASE_PATHuser/password/a%40example.com |"');
+  }
+
+  // Scenario: A member registers with an existing company
+  public function testAMemberRegistersWithAnExistingCompany_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('members: "DATA'
+    . '\\| id      | fullName | email         | postalCode | phone        | country | city     | flags        |'
+    . '\\| NEW.AAD | AAAme Co | myco@example.com | 01330   | +14136280000 | US      | Ashfield | dft,company  |"');
+    And__('invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"');
+    When_('member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values: "DATA'
+    . '\\| fullName | email         | phone | country | state | postalCode | city    | acctType | company  | companyPhone | companyOptions |'
+    . '\\| Abe One  | a@example.com | 413-253-9876 | US | MA | 01001 | Amherst | %R_PERSONAL | AAAme Co | (413)628-0000 | isOwner=>1,contractor=>1 |"');
+    Then_('members: "DATA'
+    . '\\| id      | fullName | email         | postalCode | phone         | city    | flags        |'
+    . '\\| NEW.AAC | Abe One  | a@example.com | 01001       | +14132539876 | Amherst | dft,personal |"');
+    And__('relations: "DATA'
+    . '\\| id | main | agent | permission | employerOk | employeeOk | isOwner | amount | draw |'
+    . '\\| 1  | .AAD | .AAC  |            |          0 |          1 |       1 |      0 |    0 |"');
+  }
+
+  // Scenario: A member registers with an unknown company
+  public function testAMemberRegistersWithAnUnknownCompany_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"');
+    When_('member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values: "DATA'
+    . '\\| fullName | email         | phone | country | state | postalCode | city    | acctType | company  | companyPhone | companyOptions |'
+    . '\\| Abe One  | a@example.com | 413-253-9876 | US | MA | 01001 | Amherst | %R_PERSONAL | AAAme Co | (413)628-0000 | employeeOk=>1     |"');
+    Then_('members: "DATA'
+    . '\\| id      | fullName | email         | postalCode | phone         | city    | flags        |'
+    . '\\| NEW.AAC | Abe One  | a@example.com | 01001       | +14132539876 | Amherst | dft,personal |"');
+    And__('no relation: "DATA'
+    . '\\| main | agent |'
+    . '\\| .AAD | .AAC  |"');
+  }
+
+  // Scenario: A member registers with a company with no relation
+  public function testAMemberRegistersWithACompanyWithNoRelation_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"');
+    When_('member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values: "DATA'
+    . '\\| fullName | email         | phone | country | state | postalCode | city    | acctType | company  | companyPhone | companyOptions |'
+    . '\\| Abe One  | a@example.com | 413-253-9876 | US | MA | 01001 | Amherst | %R_PERSONAL | AAAme Co | (413)628-0000 | |"');
+    Then_('we say "error": "what relation"');
+  }
+
+  // Scenario: A member registers with a missing company
+  public function testAMemberRegistersWithAMissingCompany_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"');
+    When_('member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values: "DATA'
+    . '\\| fullName | email      | phone | country | state | postalCode | city    | acctType | company  | companyPhone | companyOptions |'
+    . '\\| Abe One  | a@example.com | 413-253-9876 | US | MA | 01001 | Amherst | %R_PERSONAL |          | (413)628-0000 | isOwner=>1 |"');
+    Then_('we say "error": "missing field" with subs: "DATA'
+    . '\\| field   |'
+    . '\\| company |"');
+  }
+
+  // Scenario: A member registers with a missing company phone
+  public function testAMemberRegistersWithAMissingCompanyPhone_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"');
+    When_('member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values: "DATA'
+    . '\\| fullName | email      | phone | country | state | postalCode | city    | acctType | company  | companyPhone | companyOptions |'
+    . '\\| Abe One  | a@example.com | 413-253-9876 | US | MA | 01001 | Amherst | %R_PERSONAL | AAAme Co |             | isOwner=>1 |"');
+    Then_('we say "error": "missing field" with subs: "DATA'
+    . '\\| field   |'
+    . '\\| companyPhone |"');
+  }
+
+  // Scenario: A member registers with a bad company
+  public function testAMemberRegistersWithABadCompany_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"');
+    When_('member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values: "DATA'
+    . '\\| fullName | email      | phone | country | state | postalCode | city    | acctType | company  | companyPhone | companyOptions |'
+    . '\\| Abe One  | a@example.com | 413-253-9876 | US | MA | 01001 | Amherst | %R_PERSONAL | 2sp  ces | (413)628-0000 | isOwner=>1 |"');
+    Then_('we say "error": "multiple spaces" with subs: "DATA'
+    . '\\| field   |'
+    . '\\| Company |"');
+  }
+
+  // Scenario: A member registers with a bad company phone
+  public function testAMemberRegistersWithABadCompanyPhone_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"');
+    When_('member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values: "DATA'
+    . '\\| fullName | email  | phone | country | state | postalCode | city    | acctType | company  | companyPhone | companyOptions |'
+    . '\\| Abe One  | a@example.com | 413-253-9876 | US | MA | 01001 | Amherst | %R_PERSONAL | AAAme Co | %random | isOwner=>1 |"');
+    Then_('we say "error": "bad company phone" with subs: ""');
+  }
+
+  // Scenario: A member registers a company
+  public function testAMemberRegistersACompany_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('members: "DATA'
+    . '\\| id      | fullName | email         | postalCode | phone        | country | city     | flags        |'
+    . '\\| NEW.AAC | Abe One  | a@example.com | 01330   | +14136280000 | US      | Ashfield | dft,personal  |"');
+    And__('invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"');
+    When_('member "?" visits page "/user/register/code=s0M3_rAnd0M_c0D3&by=NEW.AAC&flow=from&isOwner=1&employeeOk=1"');
+    Then_('we show "Sign up for rCredits" with: "DATA'
+    . '\\| nameDescription      |'
+    . '\\| properly capitalized |"');
+    And__('with options: "DATA'
+    . '\\| acctType                             |'
+    . '\\| commercial (but not publicly traded) |"');
+    When_('member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3&by=NEW.AAC&flow=from&isOwner=1&employeeOk=1" with values: "DATA'
+    . '\\| fullName | email         | phone | country | state | postalCode | city    | acctType | company  | companyPhone | companyOptions |'
+    . '\\| AAcme Co | aco@example.com | 413-253-9876 | US | MA | 01001 | Amherst | %R_COMMERCIAL | | | |"');
+    Then_('members: "DATA'
+    . '\\| id      | fullName | email         | postalCode | phone         | city    | flags        |'
+    . '\\| NEW.AAD | AAcme Co | aco@example.com | 01001       | +14132539876 | Amherst | dft,company |"');
+    And__('relations: "DATA'
+    . '\\| id | main | agent | permission | employerOk | employeeOk | isOwner | amount | draw |'
+    . '\\| 1  | .AAD | .AAC  | manage     |          1 |          1 |       1 |      0 |    1 |"');
   }
 
 }

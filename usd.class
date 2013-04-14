@@ -84,7 +84,7 @@ class usd {
   public static function getAuth2($uid) {
     global $base_url;
     $uri = "$base_url/account/usd/connected=";
-    
+
     if (NO_DWOLLA) unset($_GET['error']);
     if (@$_GET['error']) return r\go($uri . $_GET['error_description']);
 
@@ -98,6 +98,7 @@ class usd {
     $secure = $mya->secure;
     $secure['auth'] = $authToken;
     $mya->update(compact('secure'));
+//    print_r(compact('uid','base_url','uri','_GET','mya','usdAcct','dw','authToken','secure')); die();
     return r\go($uri . 'yes'); // tell user we were successful
   }
   
@@ -195,7 +196,9 @@ array (
   }
 
   /**
-   * Call the callback for each transaction OUT of the account after a given date/time (defaults to day 1 of the Unix Epoch).
+   * Call the callback for each transaction OUT of the account after a given date/time 
+   * @param string $callback: function to call
+   * @param int $start: earliest second to consider (defaults to day 1 of the Unix Epoch).
    * Passes to the callback function an assoc with complete transaction details, including transaction id
    */
   function each($callback, $start = 0) {

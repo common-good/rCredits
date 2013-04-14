@@ -89,8 +89,8 @@ function rcredits_exception_handler($e) {
 
   switch (@$channel) {
     case TX_WEB:
-      drupal_set_message($msg, 'error'); // this fails
-      drupal_goto('error/' . $R_FATAL_ERROR); // this fails -- use shutdown function to show error page (getting message from log)
+      \drupal_set_message($msg, 'error'); // this fails
+      \drupal_goto('error/' . $R_FATAL_ERROR); // this fails -- use shutdown function to show error page (getting message from log)
     case TX_SMS: if (@$rsms_number) \sms_send($rsms_number, R_SYS_ERR); break;
     case TX_SMART: be\api_error(R_SYS_ERR);
     default: die('with no channel'); // (keep) definitely do the print_r first
@@ -133,7 +133,8 @@ function rcredits_mail($index, &$msg_array, $info) {
     $index = str_replace('_', '-', $index); // correct Drupal template names to rCredits standard
     if (rcredits_im_send($index, $msg_array, $info)) return; // If we can send by instant-message, do not send by email.
     
-    $uid = $info['uid'];
+    $uid = (int) $info['uid'];
+    u\EXPECT($uid, 'bad uid in mail');
     $acct = r\acct($uid);
     $info += (array) $acct->account();
     $info['quid'] = $acct->mainQid;
@@ -155,7 +156,7 @@ function rcredits_mail($index, &$msg_array, $info) {
     $message = str_replace("\r\n", '', $message); // easier reading for log and tests
     foreach (u\ray(R_CONCEALED_FIELDS) as $one) $message = str_replace(@$info[$one], '(varies)', $message);
     $fields = compact(u\ray('index email subject message'));
-    if (t\EST()) \drupal_set_message(t\color($fields, 'email')); // keep this
+    t\testOutput($fields, 'email'); // keep this
     
     if (!r\acct()) { // must be register/login/reset, so setup what u\loga needs
       r\acct::setDefault($acct);      

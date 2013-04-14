@@ -16,10 +16,11 @@ use rCredits\Util as u;
 function helpText($page) {
   global $base_url;
   $mya = r\acct();
+  $company = !@$mya->can(B_PERSONAL);
   $acctName = @$mya->name; // @ is for SMS testing (when not signed in)
 
-  $site = str_replace('http://', '', R_SITE_URL);
-  $companyAccount = @$mya->can(B_PERSONAL) ? '' : t(<<<EOF
+  $site = str_replace('https://', '', R_SITE_URL);
+  $companyAccount = $company ? '' : t(<<<EOF
   <p>For companies, upload a picture to represent your business. This picture will appear on your automatic rCredits webpage: <a target="_blank" href="$base_url/member/$mya->name">$site/member/$mya->name</a> &mdash; so choose wisely. See also the <a href="$base_url/account/company">Company Info</a> form.</p>
 EOF
   );
@@ -27,7 +28,7 @@ EOF
   
   // the <a href="$base_url/help/smartphone">Android Smartphone Interface</a> and 
   $helps = array(
-    'general' => t(<<<EOF
+    'general' => tt(<<<EOF
       <p>Help is also available for the <a href="$base_url/help/sms">Text Messaging Interface</a>.
       Use the tabs above and the links at the top right, to try all the features of the rCredits system. Here's an overview of what's where:</p>
       <h2>Tabs:</h2>
@@ -46,17 +47,17 @@ EOF
         <ul>
           <li><b>Basic Account Settings</b> is where you change your email address, password, picture, or time zone.</li>
           <li><b>Cell Phone Access</b> lets you connect your account to one or more cell phones, so you can use Text Messaging to buy and sell things with rCredits.</li>
-          <li><b>Relations</b> lets you connect individual rCredits participants to your account &mdash; either as owners, employees, or others, with limited or full access to the account. This is especially useful for authorizing sales clerks or setting up joint accounts.</li>
+          <li><b>Relations</b> lets you connect individual rCredits participants to your account &mdash; as owners, employees, suppliers, or others, with limited or full access to the account. This is useful for authorizing sales clerks or setting up joint accounts.</li>
           <li><b>Contact Information</b> is where you add or change your phone numbers and address.</li>
           <li><b>Account Preferences</b> gives you several choices about how your rCredits account works. This section will be growing. Feel free to suggest additional options that you would like to see here.</li>
         </ul>
         </li>
-      <li><b>Membership Status</b> tells you where you are in the process of becoming an "rTrader" &mdash; an active participant in the rCredits system. This section will give you links to your next steps.</li>
+      <li><b>Membership Status</b> tells you where you are in the process of opening and activating your account. This section will give you links to your next steps.</li>
       <li><b>Account</b> shows the balance in your current account. If you have access to more than one account (that is, if some other account names you in the Relations section), then use this dropdown list to select an account to manage.</li>
       <li><b>Help</b> is this page.</li>
       <li><b>Log out</b> protects your account from unauthorized passersby.</li>
     </ul>
-    <p>If you need help and can't find the answer here, please feel free to <a href="mailto:info@rCredits.org?subject=help with rCredits">email us</a>.</p>
+    <p>If you need help and can't find the answer here, please feel free to <a href="mailto:@R_ORG_EMAIL?subject=help with rCredits" target="_blank">email us</a>.</p>
 EOF
     ),
     'smartphone' => t(<<<EOF
@@ -93,38 +94,47 @@ EOF
     ),
     'account' => t(<<<EOF
       <p><b>Current password:</b> To change your email address or password, you must supply your current password, as a security precaution.</p>
-      <p><b>Picture:</b> For an individual account you will need to upload a clear photo of your face, for identification. This is the photo that will appear on your Member ID card. Ideally, the picture should be no wider than it is tall. (otherwise it looks peculiar on their ID card). If you choose too skinny a picture, though, the bottom will get cropped off.</p>
+      <p><b>Picture:</b> For an individual account you will need to upload a clear photo of your face, for identification. This is the photo that will appear on your Member ID card.</p>
       $companyAccount
 EOF
     ),
-    'cells' => t(<<<EOF
+    'account/cells' => t(<<<EOF
       <p>Add one or more cell phones to your account so you can use Text Messaging to buy and sell things with rCredits. The form will send a secret word to your phone, which you can then enter here to confirm the connection.</p>
 EOF
     ),
-    'relations' => t(<<<EOF
-      <p>This is especially useful for authorizing sales clerks or setting up joint accounts. Or you might give your accountant "read" permission. For companies, the best practice is to use the account ONLY through an individual agent account, so that you always know who did what.</p>
-      <p>Individuals marked as employees are the ones who will get paid in rCredits when you use the Pay form to pay "all". Yellow highlights show settings that need to be confirmed &mdash; either by you or by the other party.</p>
-      <p>To change settings in the Employee? or Owner? column, click on + or -. To remove someone from the list, make them not an employee, not an owner, and no permissions (if they are already that way, you will have to change something and change it back). Be sure to "Save Changes".</p>
-      <p>The permissions you select will limit what the person can do. If you give the person at least "Sell" permission (and save the record), you can print a Member ID Card for them to use on behalf of this account.</p>
+    'account/relations' => t(<<<EOF
+      <p>Relations let you connect individual rCredits participants to your account &mdash; as owners, employees, suppliers, or others, with limited or full access to the account. This is useful for authorizing sales clerks or setting up joint accounts. Or you might give your accountant "read" permission. Company accounts are managed only by an individual agent.</p>
+      <p>Yellow highlights show settings that need to be confirmed &mdash; either by you or by the other party.</p>
+      <p>To change settings in a Yes/No column, click on + or -. To remove someone from the list, make them all "No"s, and no permissions (if they are already that way, change something and change it back). Be sure to "Save Changes".</p>
 EOF
-    ),
-    'contact' => t(<<<EOF
-      <p><b>Full name:</b> If you change the name on the account, you will need to buy a new member ID card (or cards) and your account will be disabled until you supply new proof of identity. For companies, your automatic rCredits website address will also change.</p>
+    ) . ($company ? t('<p>If you give the person at least "Sell" permission (and save the record), you can request a Member ID Card for them to use on behalf of this account.</p><p>"$/mo" is the most important column. Type the amount you pay each employee or supplier in a month &mdash; more or less. Then, if you select the virtual payment option on the preferences page, your rCredits will get distributed every night to those employees and suppliers in exchange for US Dollars.</p>') : ''),
+    
+    'account/contact' => t(<<<EOF
+      <p><b>Full name</b> should be your full legal name. If you change the name on the account, you will need to buy a new rCard and your account will be disabled until you supply new proof of identity. For companies, your rCredits website address will also change.</p>
       <p><b>Postal code:</b> Your postal code determines what rCredits "Common Good Community" you are in.</p>
       <p><b>All other settings on this page</b> are private for individual accounts, public for company accounts.</p>
 EOF
     ),
-    'company' => t(<<<EOF
-      <p>All of the information from this form goes on your automatic <a target="_blank" href="$base_url/member/$acctName">rCredits webpage</a>, along with your company name and profile picture. Your email address will not be included unless you put it in the description explicitly. Click on the link, to see the results.</p>
+    'account/photo' => tt(<<<EOF
+      <p>If you have trouble coming up with a photo in a format that works, have a youngster take picture of you with their cell phone or tablet. Ask them to email you the picture, save that attachment to your desktop, then upload it here. If you still have trouble, email a description of your predicament to   us at <a href="mailto:@R_ORG_EMAIL?subject=photo trouble" target="_blank">@R_ORG_EMAIL</a> and we will help.
 EOF
     ),
-    'preferences' => t(<<<EOF
-      <p>These settings are, by default, what most people prefer. Feel free to adjust them to your taste. You can always come back and change them again later.</p>
+    'account/company' => t(<<<EOF
+      <p>All of the information from this form goes automatically on your <a target="_blank" href="$base_url/member/$acctName">rCredits webpage</a>, along with your company name and profile picture. Your email address will not be included unless you put it in the description explicitly. Click on the link, to see the results (after saving your changes).</p>
+EOF
+    ),
+    'account/preferences' => t(<<<EOF
+      <p>These settings start out as what most people prefer. Feel free to adjust them as you like. You can always come back and change them again later.</p>
       <ul>
         <li><b>Minimum.</b> You will want to keep enough rCredits plus US Dollars in your account to cover the total amount you expect to spend at rCredits member businesses in a typical 3-day period. Add to this however much you want to hold as inflation-protected savings (the inflation adjustment is a monthly credit to your account).</li>
         <li><b>To bank.</b> This setting is usually a good idea unless you use your Dwolla account outside the rCredits system.</li>
       </ul>
       <p>If there are settings you would like to see here &mdash; that is, things you want to work differently &mdash; please let us know. We expect to offer many additional options over the next few months.</p>
+EOF
+    ),
+    'account/usd' => t(<<<EOF
+      <p>Open a Dwolla account and type the number here, to connect it to your rCredits account. In partnership with Veridian Federal Credit Union, Dwolla communicates with your US Dollar bank account. Whenever you buy something, your rCredits (if any) are used first and the remainder is paid in US Dollars &mdash; just like a typical debit card. Tips:<ol><li>Connect your <i>checking</i> account to Dwolla (other account types are limited to 3 withdrawals/deposits per month).</li><li>Disable Dwolla <a href="http://dwolla.com/notifications">Money In</a> notifications.</li></ol></p>
+      <p>Just as for opening any other financial account, you need to supply identifying information and proof of identity. Your information is then stored doubly-encrypted on a separate server.</p>
 EOF
     ),
     'why-wait' => t(<<<EOF
@@ -181,6 +191,23 @@ EOF
     ),
     'common-good-community-requirements' => t(<<<EOF
       <p>Requirements for certification as a Common Good Community are not yet finalized. They may include such things as qualified leadership, minimum size, experience using the rCredits system, diversity of participants, and successful completion of a training program.</p>
+EOF
+    ),
+    'membership/agreement' => t(<<<EOF
+      <p>The rCredits Agreement is at the heart of the the rCredits system. It is our agreement to accept rCredits from each other that gives them value. Please read each section carefully and click the checkboxes to indicate your agreement. For more specific information, click on the hyperlinks in the text.</p>
+EOF
+    ),
+    'membership/contribute' => t(<<<EOF
+      <p>Your contribution helps fund administration and promotion of the rCredits system during the pilot phase. It is also a formal "sealing" of your signature on the rCredits agreement.</p>
+EOF
+    ),
+    'membership/proxies' => t(<<<EOF
+      <p>During the pilot phase, it may be hard to choose two proxies from among the other members, unless you invite them to join first. You can change your choices at any time, so no worries.</p>
+EOF
+    ),
+    'membership/invite' => t(<<<EOF
+      <p>The rCredits system is designed to be community-centered, so our relationships with friends and neighbors in our own geographical community is important. We can work better together for the well being of everyone in our community and our region, if we know we can trust one another.</p>
+      <p>Invite as many people as you like, but only people you trust.</p>
 EOF
     ),
   );

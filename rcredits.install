@@ -29,7 +29,7 @@ function rcredits_install() {
     $info = array_combine($keys, $values);
     new r\acct($info);
 
-    $values = array(r\unQuid(R_SERVER_ID . '.AAA'), $server, 'williamspademan', 'William Spademan', '01330', R_COUNTRY_ID, 0, R_REBATE, u\bit(B_OK) | u\bit(B_PERSONAL));
+    $values = array(r\unQuid(R_SERVER_ID . '.AAA'), $server, 'williamspademan', 'William Spademan', '01330', R_COUNTRY_ID, 0, R_REBATE, u\bit(B_MEMBER) | u\bit(B_PERSONAL));
     $info = array_combine($keys, $values);
     list ($mail, $phone, $address, $city, $state) = array('wspademan@gmail.com', '+14136283336', 'PO Box 305', 'Ashfield', R_STATE_ID);
     $info += compact(u\ray('mail phone address city state'));

@@ -45,7 +45,7 @@ Setup:
   | NEW.ZZC   |     323 |
 
 Scenario: A member looks at transactions for the past year
-  When member "NEW.ZZA" visits page "transactions" with options "period=365"
+  When member "NEW.ZZA" visits page "transactions/period=365"
   Then we show page "transactions" with:
   | Start Date | End Date | Start Balance | To You | From You | Rewards | End Balance |
   | %dmy-12m   | %dmy     | $0.00         | 30.00  | 120.00   | 256.00  | $166.00     |
@@ -67,7 +67,7 @@ Scenario: A member looks at transactions for the past year
   | bonus   |
 
 Scenario: A member looks at transactions for the past few days
-  When member "NEW.ZZA" visits page "transactions" with options "period=15"
+  When member "NEW.ZZA" visits page "transactions/period=15"
   Then we show page "transactions" with:
   | Start Date | End Date | Start Balance | To You | From You | Rewards | End Balance |
   | %dmy-15d   | %dmy     | $242.00       | 0.00   | 80.00    | 4.00    | $166.00     |
@@ -106,7 +106,7 @@ Scenario: Transactions with other states show up properly
   | NEW.ZZA   |     190 |
   | NEW.ZZB   |     279 |
   | NEW.ZZC   |     311 |
-  When member "NEW.ZZA" visits page "transactions" with options "period=5"
+  When member "NEW.ZZA" visits page "transactions/period=5"
   Then we show page "transactions" with:
   | tid | Date   | Name       | From you | To you | Status   | Buttons | Purpose | Rewards |
   | 14  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X       | cash BD |         |
@@ -118,7 +118,7 @@ Scenario: Transactions with other states show up properly
   | never   |
   | rebate  |
   | bonus   |
-  When member "NEW.ZZC" visits page "transactions" with options "period=5"
+  When member "NEW.ZZC" visits page "transactions/period=5"
   Then we show page "transactions" with:
   | tid | Date   | Name       | From you | To you | Status   | Buttons | Purpose | Rewards |
   | 14  | %dm-5d | Abe One    | 100.00   | --     | disputed | OK      | cash BD |         |

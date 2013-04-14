@@ -232,16 +232,16 @@ function formTxs_submit($form, &$sta, $page = 'transactions') {
 }
 
 function txDates($txDays, $period, $starting = '', $ending = '') {
-  if (@$starting and !is_numeric($starting) and !($starting = strtotime(@$starting))) say('bad date', 'starting');
+  if (@$starting and !is_numeric($starting) and !($starting = u\strToDate(@$starting))) say('bad date', 'starting');
   if (@$starting > REQUEST_TIME) say('beyond today', 'starting');
-  if (@$ending and !is_numeric($ending) and !($ending = strtotime($ending))) say('bad date', 'ending');
+  if (@$ending and !is_numeric($ending) and !($ending = u\strToDate($ending))) say('bad date', 'ending');
   if (!@$ending or $ending > REQUEST_TIME) $ending = REQUEST_TIME;
   $ending = strtotime('tomorrow', $ending) - 1; // last second of the day
 
   $period = (int) (@$period ?: TX_DEFAULT_PERIOD);
   $ago = @$txDays[$period] ?: ($period . ' days');
   if (!@$starting) $starting = strtotime($period == '-1' ? '1jan' : "$ago ago");
-  $starting = strtotime(date("Y-m-d", $starting)); // chop off time of day
+  $starting = u\strToDate(date("m/d/Y", $starting)); // chop off time of day
   return array($starting, $ending);
 }  
 

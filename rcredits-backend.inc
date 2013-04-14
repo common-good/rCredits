@@ -139,7 +139,7 @@ EOF;
  *   each element is an associative array of new values, keyed by field name
  *   if a record is to be updated to all zeros, it is simply deleted.
  * @return string: a report of what got updated
- * Permissions and employerOk cannot be updated by the agent and employeeOk cannot be updated by the employer
+ * employeeOk can be updated only by other, all else only by main
  */
 function updateRelations($updates) {
 //debug($updates);
@@ -148,16 +148,16 @@ function updateRelations($updates) {
   foreach ($updates as $reid => $data) {
     extract(u\just('main other fullName', $data['original'])); 
     unset($data['original']);
-    $isAgent = ($myid != $main);
-//    extract(u\just('employeeOk employerOk permission isOwner', $data), EXTR_PREFIX_ALL, 'd');
+//    debug(compact('updates','data','employeeOk2'));
     
-    if (!$isAgent) r\reverseRelations($main, $other, $data, 'employeeOk'); // claiming to be an employee
-    if ($isAgent) r\reverseRelations($main, $other, $data, 'permission employerOk isOwner'); // giving employer permission -- create a proper record
+    if ($isAgent = ($myid != $main)) {
+      r\reverseRelations($main, $other, $data, 'permission employerOk isOwner draw'); // giving employer permission?(!) -- create (or update?) a proper record (originally was just the employer's record)
+    } else r\reverseRelations($main, $other, $data, 'employeeOk'); // claiming to be an employee?
     
     $reidSub = $subs = compact('reid');
     $changes = '';
     foreach ($data as $field => $value) {
-      if ($isAgent and $field != 'employeeOk') return u\tt('bad relations field'); // prevent hack
+//      if ($isAgent and $field != 'employeeOk') return u\tt('bad relations field'); // prevent hack
       $changes .= ($changes ? ',' : '') . "$field=:$field";
       $subs += array($field => $value);
     }
@@ -165,7 +165,8 @@ function updateRelations($updates) {
     if (!empty($data)) r\dbQ("UPDATE r_relations SET $changes WHERE $where", $subs);
 
     $msg = 'updated relation';
-    if (!r\relation('permission>0 OR employerOk OR employeeOk OR isOwner OR amount', $where, $reidSub)) {
+    if (!r\relation('permission>0 OR employerOk OR employeeOk OR isOwner OR amount OR draw', $where, $reidSub)
+      and (!r\relation('employerOk OR employeeOk', 'main=:other AND other=:main', compact('main', 'other')))) {
       setCttyAdmin(FALSE, $main, $other);
       r\dbQ("DELETE FROM r_relations WHERE $where", $reidSub);
       $pot = '(:main, :other)';
@@ -622,9 +623,8 @@ function identify($who, $self_message = 'no self-trading') {
   if (($short = u\shortName($who)) === '') $short = '-'; // abbreviations must not be null
   
   $sql = <<<EOF
-    SELECT DISTINCT u.uid, u.fullName FROM {users} u LEFT JOIN {r_sms} s ON u.uid = s.uid 
-    WHERE :who IN (s.number, u.phone, u.mail) 
-    OR INSTR(u.name, :short)
+    SELECT DISTINCT u.uid, u.fullName FROM users u LEFT JOIN r_sms s ON u.uid = s.uid 
+    WHERE (:who IN (s.number, u.phone, u.mail) OR INSTR(u.name, :short)) AND u.uid>0
     ORDER BY u.fullName
 EOF;
 //debug(compact('sql', 'who', 'phone', 'short'));

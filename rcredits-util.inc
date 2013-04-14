@@ -470,9 +470,9 @@ function expect1($arg, $value, $type, $ret) {
  * @return the log record id (for exception handler and shutdown function)
  */  
 function loga($type, $info = array(), $special = '', $adhocChannel = FALSE) {
-  if (strlen($type) >= 60) die($type); // don't use EXPECT here
+  if (strlen($type) >= 60) die($type); // (KEEP) don't use EXPECT here
   global $channel;
-  $useTextLogToo = TRUE;
+  $useTextLogToo = isDEV;
 
   $myid = @r\acct()->id;
   $agent = @r\acct()->agentId;
@@ -490,6 +490,12 @@ function loga($type, $info = array(), $special = '', $adhocChannel = FALSE) {
   $record = compact(ray('time channel type myid agent info special'));
   return r\dbInsert('r_log', $record);
 }  
+
+function seeAssoc($info) {
+  $result = '';
+  foreach ($info as $key => $value) $result .= "<b>$key</b>: " . print_r($value, 1) . "<br>\n";
+  return "\n<br>$result";
+}
 
 /**
  * Normalize an image file to the given aspect
@@ -794,8 +800,9 @@ function formatDate($time = REQUEST_TIME) {return strftime('%d-%b-%Y', $time);}
 function formatTime($time = REQUEST_TIME) {return strtolower(strftime('%I:%M%p', $time));}
 function lastCall($far = 4) {$back = debug_backtrace(); return array_slice($back, 1, $far);}
 function digits($n) {return preg_replace('/\D/', '', $n);}
-function monthDay1($time = REQUEST_TIME) {return strtotime(strftime('%b01'));}
+function monthDay1($time = REQUEST_TIME) {return strToDate(strftime('%b01'));}
 function prefix(&$var, $prefix) {$var = $prefix . $var;}
 function setDft(&$param, $value) {if (!isset($param)) $param = $value;}
 function bit($bit) {return 1 << $bit;}
 function log($message, $type = 'state', $info = array()) {return u\loga($type, compact('message') + $info);}
+function strToDate($s) {return strtotime(str_replace('-', '/', $s));}

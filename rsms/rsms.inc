@@ -62,6 +62,8 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'payment accepted' => t('rCredits payment accepted. In exchange, us@amount will be refunded to the payer, from your Dwolla account.'),
   'gift successful' => t('Your contribution is successfully completed. Thank you!'),
   'signup bonus' => t('You got your signup bonus!'), // keep this short, cause it's an add-on
+  'nothing done' => t('Nothing was done.'),
+  'nothing undone' => t('Nothing undone.'),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),

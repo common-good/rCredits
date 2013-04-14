@@ -79,16 +79,17 @@ function rweb_menu() {
     'reinstall' => r\Web\menu(t('Reinstall rCredits'), MENU_CALLBACK, 'reinstall', array(), B_ADMIN),
 
     'request-employee-rcard' => r\Web\menu(t('Request Employee rCard'), MENU_CALLBACK, 'showForm', array('RequestRCard', 1), B_MANAGE),
-    'draft' => r\Web\menu(t('Draft into Database'), MENU_CALLBACK, 'showForm', array('Draft', 1), B_SELL),
+//    'draft' => r\Web\menu(t('Draft into Database'), MENU_CALLBACK, 'showForm', array('Draft', 1), B_SELL),
     
     'I' => r\Web\menu('Scanned QR', MENU_CALLBACK, 'showForm', array('I'), '', $anyone),
     'sms' => r\Web\menu('Test SMS', MENU_CALLBACK, 'showForm', array('SMS'), B_ADMIN),
 
-    'account' => r\Web\menu(t('Basic Settings'), MENU_CALLBACK, 'showForm', array('Account'), B_MANAGE),
-    'account/basic' => r\Web\menu('Basic Settings', MENU_DEFAULT_LOCAL_TASK, 'showForm', array('Account'), B_MANAGE),
+    'account' => r\Web\menu(t('Contact Info'), MENU_CALLBACK, 'showForm', array('Contact'), B_MANAGE),
+    'account/contact' => r\Web\menu(t('Contact Info'), MENU_DEFAULT_LOCAL_TASK, 'showForm', array('Contact'), B_MANAGE),
+    'account/basic' => r\Web\menu('Email and Password', MENU_LOCAL_TASK, 'showForm', array('Account'), B_MANAGE),
+    'account/photo' => r\Web\menu('Photo', MENU_LOCAL_TASK, 'showForm', array('Photo'), B_MANAGE),
     'account/cells' => r\Web\menu(t('Cell Phones'), MENU_LOCAL_TASK, 'showForm', array('Cells'), B_MANAGE),
     'account/relations' => r\Web\menu(t('Relations'), MENU_LOCAL_TASK, 'showForm', array('Relations'), B_MANAGE),
-    'account/contact' => r\Web\menu(t('Contact Info'), MENU_LOCAL_TASK, 'showForm', array('Contact'), B_MANAGE),
     'account/company' => r\Web\menu(t('Company Info'), MENU_LOCAL_TASK, 'showForm', array('Company'), B_COMPANY),
     'account/preferences' => r\Web\menu(t('Preferences'), MENU_LOCAL_TASK, 'showForm', array('Options'), B_MANAGE),
     'another' => r\Web\menu(t('Open Another Account'), MENU_CALLBACK, 'showForm', array('Another'), B_MANAGE),
