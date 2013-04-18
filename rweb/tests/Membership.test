@@ -1,0 +1,126 @@
+<?php
+//
+// Feature: Membership
+//   AS a member
+//   I WANT to manage my progress toward activating my account
+//   SO I can participate actively.
+
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rweb.steps';
+
+class rwebMembership extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
+  var $sceneName;
+  const SHORT_NAME = 'Membership';
+  const FEATURE_NAME = 'rweb Test - Membership';
+  const DESCRIPTION = 'Membership';
+  const MODULE = 'rweb';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
+  }
+  
+  public static function getInfo() {
+    return array(
+      'short_name' => self::SHORT_NAME,
+      'name' => self::FEATURE_NAME,
+      'description' => self::DESCRIPTION,
+      'group' => ucwords(self::MODULE)
+    );
+  }
+
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
+    global $sceneTest; $sceneTest = $this;
+    parent::setUp(self::MODULE);
+
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rweb.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
+    default: // fall through to case(0)
+    case(0):
+    Given('members: "DATA'
+    . '\\| id      | fullName   | phone    | address | city  | state | postalCode | country | floor | flags         |'
+    . '\\| NEW.ZZA | Abe One    | +2000001 | POB 1 | Atown | AK    | 01000 | US      |     0 | dft,personal,company |'
+    . '\\| NEW.ZZB | Bea Two    | +2000002 | POB 2 | Btown | UT    | 02000 | US      |  -200 | dft,personal,member  |'
+    . '\\| NEW.ZZC | Corner Pub | +2000003 | POB 3 | Ctown | Cher  |       | France  |     0 | dft,company          |"');
+    And__('relations: "DATA'
+    . '\\| id      | main    | agent   | permission |'
+    . '\\| NEW:ZZA | NEW.ZZC | NEW.ZZA | manage     |"');
+    break;
+
+
+    }
+  }
+
+  // Scenario: A member clicks on the membership link
+  public function testAMemberClicksOnTheMembershipLink_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member "NEW.ZZA" visits page "membership"');
+    Then_('we show "Congratulations on signing up" with: "DATA'
+    . '\\| Step 1         | Step 2                      | Step 3              | Step 4            |'
+    . '\\| Upload a photo | Sign the rCredits Agreement | Make a contribution | Choose two people |"');
+    And__('with done ""');
+  }
+
+  // Scenario: A company agent clicks on the membership link
+  public function testACompanyAgentClicksOnTheMembershipLink_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member "NEW:ZZA" visits page "membership"');
+    Then_('we show "Congratulations on signing up" with: "DATA'
+    . '\\| Step 1         | Step 2                      | Step 3              |'
+    . '\\| Upload a photo | Sign the rCredits Agreement | Make a contribution |"');
+    And__('we show "Congratulations on signing up" without: "DATA'
+    . '\\| Step 4            |'
+    . '\\| Choose two people |"');
+    And__('with done ""');
+  }
+
+  // Scenario: A member signs the agreement
+  public function testAMemberSignsTheAgreement_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('member "NEW.ZZA" has done step "agreement"');
+    When_('member "NEW.ZZA" visits page "membership"');
+    Then_('we show "Congratulations on signing up"');
+    And__('with done "2"');
+    When_('member "NEW.ZZA" has done step "contribution"');
+    And__('member "NEW.ZZA" visits page "membership"');
+    Then_('with done "23"');
+    When_('member "NEW.ZZA" has done step "photo"');
+    And__('member "NEW.ZZA" visits page "membership"');
+    Then_('with done "123"');
+    When_('member "NEW.ZZA" has done step "proxies"');
+    And__('member "NEW.ZZA" visits page "membership"');
+    Then_('we show "Missing Contact Information"');
+    When_('member "NEW.ZZA" supplies "physical": "planet Earth"');
+    And__('member "NEW.ZZA" visits page "membership"');
+    Then_('we show "You have completed the rCredits membership" with: "DATA'
+    . '\\| Step 1                | Step 2                | Step 3                       | Step 4                    |'
+    . '\\| Open a Dwolla account | your driver\'s license | Set your Account Preferences | Invite someone to sign up |"');
+    And__('with done ""');
+    When_('member "NEW.ZZA" has done step "dwolla"');
+    And__('member "NEW.ZZA" visits page "membership"');
+    Then_('with done "1"');
+    When_('member "NEW.ZZA" has done step "preferences"');
+    And__('member "NEW.ZZA" visits page "membership"');
+    Then_('with done "13"');
+    When_('member "NEW.ZZA" has done step "invitation"');
+    And__('member "NEW.ZZA" visits page "membership"');
+    Then_('with done "134"');
+    When_('member "NEW.ZZA" has done step "proof"');
+    And__('member "NEW.ZZA" visits page "membership"');
+    Then_('we show "You have completed the rCredits membership" with: "DATA'
+    . '\\| note             |'
+    . '\\| pending approval |"');
+    When_('member "NEW.ZZA" has permission "ok"');
+    And__('member "NEW.ZZA" visits page "membership"');
+    Then_('we show "Your account is Activated" without: "DATA'
+    . '\\| note             |'
+    . '\\| pending approval |"');
+  }
+
+}

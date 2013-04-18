@@ -29,7 +29,7 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'report new relation' => t('@who is now related to this account. You will need to adjust the permissions or other settings.'),
   'report new cell' => t('Cell number @number is now connected to this account.'),
   'report delete cell' => t('Cell number @number has been removed from this account.'),
-  'your account is ready' => t('<p></p><p>Welcome to rCredits! We sent you an email with your user ID and password. Come back here to sign in and finish your account setup. Then if you have another account to create, use the "Create Another Account" button on the Summary page.</p>'),
+  'your account is ready' => t('<p></p><p>Welcome to rCredits! We sent you an email with your user ID and password. Come back here within the next @R_SIGNIN_HOURS hours to sign in and finish your account setup. Then if you have another account to create, use the "Create Another Account" button on the Summary page.</p>'),
   'company is ready' => t(<<<EOF
     <p></p><p>To finish setting up this company account:</p>
     <ol>
@@ -42,7 +42,7 @@ EOF
   'verify cell' => t('We sent a verification code to your cell phone (@number).<br>Please type that code in the box below.'),
   'options saved' => t('Your options have been saved'),
   'ok to continue' => t('You may now continue what you were originally doing.'),
-  'password reset' => t('A new password has been sent to your email address.'),
+  'password reset' => t('A temporary password has been sent to your email address.'),
   'changed agent' => t('You successfully changed the agent to @agentName.'),
   'changed account' => t('You successfully changed the account to @accountName.'),
   'signed agreement' => t('You signed the rCredits Agreement on @date.'),
@@ -123,9 +123,12 @@ EOF
   'self must sign' => t('You cannot sign this agreement on behalf of another person.'),
   'bad zip' => t('US zipcodes must be 5 digits, possibly followed by a hyphen and 4 more digits.'),
   'password required' => t('You must supply your current password, to change your email address or password.'),
+  'wrong pass' => t('That is not your current password.'),
   'multiple spaces' => t('Field @field cannot have more than one space in a row.'),
   'illegal char' => t('Field @field contains an illegal character. Try retyping it'),
   'too long' => t('Field @field is too long: it must be @USERNAME_MAX_LENGTH characters or less.'),
+  'weak pass' => t('Your password must be a "Strong" one.'),
+  'photo upload failed' => t('Your photo upload was not successful.'),
 );
 
 /**
@@ -659,7 +662,7 @@ function formMembership($updating, &$sta = '', $code = '') {
     r\membershipEvent($mya, 'member', $nearly and $gotProxies);
   }
 
-  $gotContact = ($mya->phone and $mya->mail and $mya->address and $mya->city and $mya->country);
+  $gotContact = ($mya->phone and $mya->address and $mya->physical and $mya->city and $mya->country);
 
   if (@$code == 'w' or ($mya->can(B_MEMBER) and !$mya->can(B_OK))) {
     $gotUsdInfo = (($secure = @$mya->secure) and @$secure['auth']);
@@ -695,7 +698,7 @@ function formMembership($updating, &$sta = '', $code = '') {
     $message1 = t('<h2>Missing Contact Information</h2><p>Please complete your <a href="../account/contact">Contact Information</a>, ') . ($nonperson ? t('before continuing.</p>') : t('so we can mail your rCard.</p>'));
   } elseif (!$mya->can(B_OK)) { // got rCard, but not activated yet
     $message1 = $nonperson ? t('<h2>To activate your account, complete these final steps:</h2>') 
-    : (t('<h2>You have completed all the rCredits membership requirements!</h2>')
+    : (t('<h2>You have completed the rCredits membership requirements!</h2>')
       . t('<p>You will receive your rCard in the mail within a few days. To activate your account and begin using your rCard for purchases from participating businesses, there are a few final tasks:</p>'));
     $step1 = t('Open a <a>Dwolla</a> account and <a href="account/usd">connect it</a> to your rCredits account. In partnership with Veridian Federal Credit Union, Dwolla communicates with your US Dollar bank account. Whenever you buy something, your rCredits (if any) are used first and the remainder is paid in US Dollars &mdash; just like a typical debit card. Tips:<ul><li>Connect your <i>checking</i> account to Dwolla (other account types are limited to 3 withdrawals/deposits per month).</li><li>Disable Dwolla <a href="http://dwolla.com/notifications">Money In</a> notifications.</li></ul>');
     $step2 = t('<a>Upload a photo</a> of your ')
@@ -739,7 +742,7 @@ function memberStep($step, $done, $text, $links = '', $newWindow = FALSE) {
   } else $link = $linkx = '';
   return <<<EOF
 <tr>
-  <td class="done state$done">$link<div>&nbsp;</div>$linkx</td>
+  <td class="done done-$step state$done">$link<div>&nbsp;</div>$linkx</td>
   <td class="step step$step">$link<div>$step</div>$linkx</td>
   <td class="text"><div>$text</div></td>
 </tr>
@@ -773,7 +776,13 @@ function formAgreement($form, &$sta) {
     $signedBy = textField(t('Signed:'), t('Type your full name here ') . "($aacct->fullName)");
     $submit = submit();
     $instructions = <<<EOF
-<div id='instructions'><b>Instructions:</b> Put a check mark in each checkbox to indicate that you have read that section and agree to it. Really DO read the agreement and make sure you understand it! This agreement, that we make with each other, is the foundation for the rCredits system and the Common Good Economy.</div>
+      <div id='instructions'>
+      <p><b>Instructions:</b> Put a check mark in each checkbox to indicate that you have read that section and agree to it. Really DO read the agreement and make sure you understand it! This agreement, that we make with each other, is the foundation for the rCredits system and the Common Good Economy.</p>
+
+      <p><b>Summary.</b> In the first part of the agreement (A), you acknowledge the intent and purpose of the rCredits system. In the second part (B), you agree to use the rCredits system the way it is designed to work. Notice that you can stop participating at any time, simply by giving back the rCredits you got for free (B4). Unlikely that you will <i>want</i> to stop, but you can.</p>
+      
+      <p><b>Responsibility.</b> Since the purpose of the rCredits system is to give us control of our local economy, as a community, the agreement requires that each member be responsible. You agree to take on that responsibility "as [your] life circumstances allow". During the mini-launch phase, this means paying attention to your experience and making comments to improve the system before it goes public. The amount of rCredits circulating during this mini-launch phase will intentionally be kept small.</p>
+      </div>
 EOF;
   }
 
@@ -806,7 +815,7 @@ $instructions
   <li>[1] As long as I can spend my rCredits easily or exchange them easily for US Dollars, I will accept them without limit as payment for my goods and services. I will exchange rCredits for US Dollars only if I cannot spend them easily.</li>
   <li>[2] I will accept rCredits from members of any <a href="$base_url/help/common-good-community">Common Good Community</a> in good standing.</li>
   <li>[3] Whenever I exchange rCredits for US Dollars or vice versa, I will exchange them one for one, and I will price my goods and services the same in rCredits and in US Dollars. </li>
-  <li>[4] I understand that I will receive some rCredits from the community as Incentive Rewards. If I stop participating (or <a href="$base_url/help/graceful-failure">if the system ends</a>) within 6 months of receiving my first rCredits or before the community has enough revenue to cover the Incentive Rewards, I will <a href="$base_url/help/graceful-failure">immediately pay back</a> whatever amount of Incentive Rewards I have received (while keeping any rCredits I received from other participants).</li>
+  <li>[4] I understand that I will receive some rCredits from the community as Incentive Rewards. If I stop participating (or <a href="$base_url/help/graceful-failure">if the system ends</a>) within 6 months of receiving my first rCredits or before the community has enough revenue to cover the Incentive Rewards, I will <a href="$base_url/help/graceful-failure">immediately give back</a> whatever amount of Incentive Rewards I have received (while keeping any rCredits I received from other participants).</li>
   <li>[5] I promise to maintain a high level of honesty, integrity, and <a href="$base_url/help/ethics">ethics</a> in my dealings with other rCredits participants and with the community (including the rCredits system itself). When there is a dispute, I will follow the <a href="$base_url/help/dispute-resolution-process">Dispute Resolution Process</a> and will honor its outcome.</li>
   $personOnly
 </ol>
@@ -948,7 +957,8 @@ function formSummary($form, &$sta) {
   $mya = r\acct();
   //  debug($mya->can(B_ALL)); // keep
   if (!$mya) return r\go('/user');
-  if (!formMembership(TRUE) and $mya->proSe() and !$mya->can(B_COMPANY)) say('take a step');
+//  if (!formMembership(TRUE) and $mya->proSe() and !$mya->can(B_COMPANY)) say('take a step');
+  if (!formMembership(TRUE)) say('take a step');
 
   $name = $mya->name;
   $address = r\location($mya, TRUE);
@@ -1076,7 +1086,7 @@ EOF;
     ($mya->can(B_PERSONAL) ? 
         tt('Upload a recent picture of yourself for your photo-ID rCard. It must be taller than wide (@R_PERSONAL_ASPECT ratio is ideal) and must show your full face filling most of the frame.')
       : tt('Upload a picture to represent your company in rCredits promotions. The picture must be wider than tall (@R_COMMERCIAL_ASPECT ratio is ideal).')) 
-    . tt(' File size must be under 2MB. The picture will be cropped and resized to @width x @height pixels.', compact('width', 'height'));
+    . tt(' File size must be under 3MB. The picture will be cropped and resized to @width x @height pixels.', compact('width', 'height'));
 
   $submit = submit();
 
@@ -1093,7 +1103,7 @@ function formPhoto_validate(&$form, &$sta) {
 
   $file = \file_save_upload('picture_upload', $validators); // Save the file as a temporary file.
   if ($file === FALSE) {
-    say(t("Failed to upload the picture image; the %directory directory doesn't exist or is not writable.", array('%directory' => variable_get('user_picture_path', 'pictures'))), 'picture_upload');
+    say('photo upload failed', 'picture_upload');
   } elseif ($file !== NULL) $sta['values']['picture_upload'] = $file;
 }
 
@@ -1113,7 +1123,9 @@ function formPhoto_submit($form, &$sta) {
     if ($err == 'aspect') $err = $mya->can(B_PERSONAL) ? 'bad personal aspect' : 'bad commercial aspect';
     return say($err, 'picture');
   }
-  if (!rename($tempName, $pictureFilename)) return say('file save error', 'picture');
+  if (!rename($tempName, $pictureFilename)) return say('file save error', 'picture'); // (rename fails)
+//  if (!unlink($tempName)) say('cannot delete tmp file');
+//  if (!unlink($pictureFilename)) say('cannot delete old picture'); return;
 
   //  if (@$values['picture_delete'] and file_exists($pictureFilename)) unlink($pictureFilename);
   say('account updated');
@@ -1130,8 +1142,8 @@ function formAccount($form, &$sta) {
   $form['title'] = formField('item', t('Account Information'), '', weight(-99));
   $form['account']['name'] = $form['account']['timezone'] = NULL;
   $form['account']['mail']['#description'] = t('All emails from the system will be sent to this address. The email address is not made public.');
-  $form['account']['pass']['#description'] = t('Enter your new password in both fields above.<br>To change your email address and/or password, enter your current password below.');
-  $form['account']['pass']['#process'] = array('form_process_password_confirm', 'rCredits\\Web\\password_confirm');
+  $form['account']['pass']['#description'] = t('To change your email address and/or password, enter your current password below.');
+  // No. $form['account']['pass']['#process'] = array('form_process_password_confirm', 'rCredits\\Web\\password_confirm');
   $form['account']['current_pass']['#description'] = '';
   $form['account']['current_pass']['#weight'] = 4;
   $form['account']['status']['#weight'] = 5;
@@ -1146,15 +1158,6 @@ function formAccount($form, &$sta) {
 }
 
 /**
- * Implements expand_password_confirm.
- */
-function password_confirm($element) {
-  $element['pass1']['#title'] = t("New Password (if any)");
-  $element['pass2']['#title'] = t("Confirm New Password");
-  return $element;
-}
-
-/**
  * Replacement for user_formAccount_validate()
  * (because we want to allow the same email for several accounts)
  */
@@ -1165,7 +1168,9 @@ function formAccount_validate($form, &$sta) {
     and ($mail != $form['account']['mail']['#default_value'] or !empty($pass))
   ) return say('password required', 'current_pass');
   // Drupal checks that pass1 == pass2
+  if ($pass and u\weakPass($pass)) return say('weak pass', 'pass1');
   if (!emailOkay($sta['values']['mail'] = $mail = trim($mail), $mya->id)) return say('bad email', 'mail');
+  if (!$mya->passwordOkay($pass)) return say('wrong pass', 'current_pass');
 }
 
 function formAccount_submit($form, &$sta) {
@@ -1764,7 +1769,7 @@ function formRegister_submit($form, &$sta) {
   extract(u\just("name acctType $fields1", $values));
   u\EXPECT($args, 'no args');
   extract(u\just('code', $args));
-  $pass = \user_password();
+
   $flags = B_DFT
     | ($acctType <= R_SELF_EMPLOYED ? u\bit(B_PERSONAL) : 0)
     | ($acctType >= R_SELF_EMPLOYED ? u\bit(B_COMPANY) : 0);
@@ -1784,9 +1789,10 @@ function formRegister_submit($form, &$sta) {
     r\dbQ('UPDATE r_nonmembers SET potential = potential+1 WHERE id=:one', compact('one'));
     $wants |= u\bit($one);
   }
-  $data += compact('wants');
+  $data += compact(u\ray('wants'));
 
-  $mya = new r\acct(u\just($fields2, $values) + compact(u\ray('pass flags structure data')));
+  $pass = oneTimePass($name, $data);
+  $mya = new r\acct(u\just($fields2, $values) + compact(u\ray('flags structure data')));
   $myid = $mya->id;
   u\EXPECT($myid > 0, 'registration failure');
   setupGlobals($myid); // some rcredits functions need to know who we are
@@ -1834,7 +1840,7 @@ function formRegister_submit($form, &$sta) {
   unset($DBTX); // commit
 
   //$sta['redirect'] = 'user/login/name=' . strtolower($quid);
-  return r\go('/user/login/name=' . strtolower($quid));
+  return r\go('/user/login/');
 }
 
 /**
@@ -1935,8 +1941,8 @@ function contactFields($form, $defaults = array()) {
     'postalCode' => textField(t('Postal code:'), t(''), required(@$postalCode) + $zipAttrib),
     'state' => formField('select', t('State:'), t(''), dft(@$state)), // can't use required() here
     'city' => textField(t('City:'), t(''), required(@$city)),
-    'address' => textField(t('Postal Address:'), t('Where does the post office send your mail (usually)?'), required(@$address)),
-    'physical' => textField(t('Location Addr:'), t('Where is your building located?'), required(@$physical) + $physicalAttrib),
+    'address' => textField(t('Address:'), t('Where does the post office send your mail (usually)?'), required(@$address)),
+    'physical' => textField(t('Location:'), t('Where is your building located?'), required(@$physical) + $physicalAttrib),
   );
 
   return $form;
@@ -2306,7 +2312,7 @@ EOF;
   $form = array(
     'title' => item(t('Relations')),
     'subtext' => item($subtext),
-    'new_person' => textField(t('Add Someone:'), t("name, id, email, or phone"), autocomplete('relation')),
+    'newPerson' => textField(t('Add Someone:'), t("name, id, email, or phone"), autocomplete('relation')),
     'list' => formField('item', '', '', array('markup' => $list)),
 //    'new_permission' => formField('select', '', '', dft(count($GLOBALS['share permissions']) - 1), $GLOBALS['share permissions']),
     'go' => submit(t('Save Changes')),
@@ -2319,12 +2325,12 @@ function formRelations_validate($form, &$sta) {
 if (confirming_v($sta)) return;
   $mya = r\acct();
   $myid = $mya->id;
-  extract(u\just('new_person', $sta['input']));
+  extract(u\just('newPerson', $sta['input']));
   
-  if (@$new_person) {
-    $acct = whois($new_person, 'new_person', $sta['input'], 'no self-relation');
-//    if ($acct->can(B_COMPANY)) return say('no company relations', 'new_person');
-    if (($id = @$acct->id) and r\relation(1, $myid, $id)) return say('already related', 'new_person');
+  if (@$newPerson) {
+    $acct = whois($newPerson, 'newPerson', $sta['input'], 'no self-relation');
+//    if ($acct->can(B_COMPANY)) return say('no company relations', 'newPerson');
+    if (($id = @$acct->id) and r\relation(1, $myid, $id)) return say('already related', 'newPerson');
     $sta['input']['other'] = $id; // save for submission handling
   }
   $managers = 0; // for company accounts there needs to be at least one manager
@@ -2531,6 +2537,7 @@ function invitation($code, &$invitee = '') {
 /**
  * Modify the password reset form.
  */
+ /*
 function resetAlter(&$form, &$sta) {
   $form['title'] = formField('item', t('First Time Sign In'), '', weight(-99));
   $form['message']['#markup'] = str_replace('</p><p>' . t('Click on this button to log in to the site and change your password.'), t(' Choose a new password, then click on the button to sign in.'), $form['message']['#markup']);
@@ -2543,47 +2550,64 @@ function resetAlter(&$form, &$sta) {
 }
 
 function resetSubmit($form, &$sta) {
-  svar('resetPass', $sta['input']['pass']);
+  svar('reset_pass', $sta['input']['pass']);
 //  $uid = $sta['buid_info']['args'][0];
 //  r\acct($uid)->update(compact('pass'));
 }
+*/
 
 /**
- * Modify the login form.
+ * Implements expand_password_confirm.
+ */
+ /*
+function password_confirm($element, $ifAny = TRUE) {
+  $element['pass1']['#title'] = t('New Password') . ($ifAny ? t(' (if any)') : '') . ':';
+  $element['pass2']['#title'] = t('Confirm:');
+  $element['pass2']['#description'] = t('Type your new password again.');
+  return $element;
+}
+
+function password_confirm0($element) {return password_confirm($element, FALSE);}
+*/
+
+/**
+ * Completely redo the login form (see user_login() in user.module).
  * @see also loginFollowup, below (called from rweb_user_login()).
  * @param bool $regular: is this the full-page login form (default TRUE) -- otherwise the narrower login block
  */
-function loginAlter(&$form, &$sta, $regular = TRUE) {
+function formLogin(&$form, &$sta, $regular = TRUE) {
   $args = basename(t\EST() ? t\SERVER('REQUEST_URI') : $_SERVER['REQUEST_URI']);
-  extract(u\just('name err', $args));
+  extract(u\just('err', $args));
   if (@$err) say($err, 'zot');
-  
+
+  unset($form['actions']);
+  unset($form['pass']);
+
   if ($regular) {
     $title = item(t('Sign In To Your rCredits Account'));
-    $subtext = item(t('Welcome! If you have not yet signed up for rCredits, click on "New account" above.'));
-//    $isRCredits = rand(0, 1) ? formField('checkbox', t('Spoof check:'), u\SUBS(t('Does the address in your URL bar start with ":R_SITE_URL" (as usual)?')), required()) : hidField(TRUE);
-
-    array_unshift($form, compact(u\ray('title subtext isRCredits')));
-//    $form['tip'] = item(t('<b>NOTE: </b>If you created an account using cell texting request a "New password".'));
-    $form['name']['#description'] = t('Enter your username (the letters of your legal name, all lowercase) OR your rCredits account ID.');
-    $form['pass']['#description'] = t('Enter your account password.');
+    $subtext = item(t('Welcome! If you have not yet signed up for rCredits, click on "New account" above.<br><br><b>TIP</b>: Do not sign in to your financial accounts on a public computer.'));
   }
+  if (($name = @$_COOKIE['loginto']) and ($uid = r\loginString($name))) {
+    // $process = array('form_process_password_confirm', 'rCredits\\Web\\password_confirm0');
+    $newPass = formField('password_confirm', '', '', compact('process'));
+  }
+  $name = textField(t('Username/ID:'), $regular ? t('Enter your username (the letters of your legal name, all lowercase) OR your rCredits account ID.') : '', required(@$name));
+  $pass = formField('password', @$newPass ? t('Old password:') : t('Password:'), t('Enter your current or temporary password.'), required());
+
+  $submit = submit(t('Sign in'));
+  $form = compact(u\ray('title subtext name pass newPass submit')) + $form;
+
+  $form['#validate'] = array('rCredits\\Web\\login_extra_validate', 'user_login_final_validate'); // add replacement function
+  
   
   $form['external_input'] = hidField(serialize(@$sta['input'])); // pass this to rweb_user_login
 //  $form['#submit'][] = 'rCredits\\Web\\login_form_submit';
 
-  $form['#validate'] = array('rCredits\\Web\\login_extra_validate', 'user_login_final_validate'); // add replacement function
-  
-  $form['name']['#title'] = t('Username/ID:');
-  if (@$name) $form['name']['#default_value'] = @$name;
-  $form['pass']['#title'] = t('Password:');
-  
   $form['#attributes']['class'][] = $regular ? 'rweb labeled' : 'rweb';
   focusOn('name');
   css('rweb.css', -9); // this normally gets called in showForm()
   js('inc/radiocheck.js', 'file', 'footer'); // this normally gets called in showForm()
   t\snapShot($form);
-//  loginCheck(); // must follow snapShot()
 }
 
 /**
@@ -2593,57 +2617,53 @@ function loginAlter(&$form, &$sta, $regular = TRUE) {
  * Sets $sta['uid'] to signify successful authentication.
  */
 function login_extra_validate($form, &$sta) {
-  extract(u\just('name pass isRCredits', $sta['input']));
+  extract(u\just('name pass newPass', $sta['input']));
   if (!$name or empty($pass)) return;
 
-  $failed_login_ip_limit = variable_get('user_failed_login_ip_limit', 50);
-  $failed_login_ip_window = variable_get('user_failed_login_ip_window', 3600);
-  if (!flood_is_allowed('failed_login_attempt_ip', $failed_login_ip_limit, $failed_login_ip_window)) {
+  $ipLimit = variable_get('user_failed_login_ip_limit', 50);
+  $ipWindow = variable_get('user_failed_login_ip_window', 3600);
+  if (!flood_is_allowed('failed_login_attempt_ip', $ipLimit, $ipWindow)) {
     $sta['flood_control_triggered'] = 'ip';
-    return;
+    return FALSE;
   }
-  if (!$uid = r\loginString($name)) return; // not a user
+  if (!$uid = r\loginString($name)) return FALSE; // not a user
   
-  $failed_login_identifier_uid_only = variable_get('user_failed_login_identifier_uid_only', FALSE);
-  $failed_login_user_limit = variable_get('user_failed_login_user_limit', 5);
-  $failed_login_user_window = variable_get('user_failed_login_user_window', 21600);
+  $uidOnly = variable_get('user_failed_login_identifier_uid_only', FALSE);
+  $userLimit = variable_get('user_failed_login_user_limit', 5);
+  $userWindow = variable_get('user_failed_login_user_window', 21600);
   
-  $identifier = $failed_login_identifier_uid_only ? $uid : $uid . '-' . ip_address();
+  $identifier = $uidOnly ? $uid : $uid . '-' . ip_address();
   $sta['flood_control_user_identifier'] = $identifier;
 
-  if (!flood_is_allowed('failed_login_attempt_user', $failed_login_user_limit, $failed_login_user_window, $identifier)) {
+  if (!flood_is_allowed('failed_login_attempt_user', $userLimit, $userWindow, $identifier)) {
     $sta['flood_control_triggered'] = 'user';
-    return;
+    return FALSE;
   }
 
-  // if (!$isRCredits) return say('bad spoof check', 'isRCredits');
+  if ($new = @$newPass['pass1'] and u\weakPass($new)) return say('weak pass', 'pass1');
   $mya = r\acct($uid);
   $sta['uid'] = $mya->passwordOkay($pass) ? $uid : FALSE;
 }
 
 function loginFollowup($edit, $account) {
-  $resetPass = svar('resetPass'); // this gets unset by unset($_SESSION[$key]) below
-
+  extract(u\just('newPass name', $edit['values'])); // values not input
+  $resetPass = svar('reset_pass'); // svar gets unset by unset($_SESSION[$key]) just below
+  if (!$pass = $resetPass ?: @$newPass) unset($pass);
+  
   foreach ($_SESSION as $key => $value) if (u\abbreviates('rcredits_', $key)) unset($_SESSION[$key]);
   svar('external_input', @unserialize($edit['external_input'])); // save params from external online merchant
 
-  $name = @$edit['values']['name'];
-  svar('myid', $uid = $account->uid);
-  if ($uid and $resetPass) {
-    require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
-    $pass = \user_hash_password(trim($resetPass));
-    r\acct($uid)->update(compact('pass'));
-  }
+  $mya = r\acct($myid = $account->uid);
+  svar('myid', $myid);
   setupGlobals();
-  u\loga('login', compact('name'), $uid);
-  /*
-  if ($resetting) { // 
-    $token = drupal_hash_base64(drupal_random_bytes(55));
-    $_SESSION['pass_reset_' . $user->uid] = $token;
-    drupal_goto('account', array('query' => array('pass-reset-token' => $token)));
-  } else 
-  */
-  r\go(''); // go to default page unless resetting password (then let 
+
+  setcookie('loginto', '', REQUEST_TIME-1, '/'); // no more default login
+  $data = $mya->data ?: array();
+  unset($data['oneTimePass']);
+  $mya->update(compact(u\ray('pass data')));
+
+  u\loga('login', compact('name'), $myid);
+  r\go('');
 }
 
 function passAlter(&$form, $sta, $id = '') {
@@ -2662,43 +2682,38 @@ function passAlter(&$form, $sta, $id = '') {
 }
 
 function formPass_validate($form, &$sta) {
-  if (!$name = $sta['input']['name']) return say('missing field', array('field' => 'account'), 'name');
-  if (!$sta['input']['uid'] = r\loginString($name)) return say('bad login', 'name');
+  extract(u\just('name', $sta['input']));
+  if (!@$name) return say('missing field', array('field' => 'account'), 'name');
+  if (!@$sta['input']['uid'] = r\loginString($name)) return say('bad login', 'name');
 }
 
 function formPass_submit($form, &$sta) {
   extract(u\just('uid', $sta['input']));
   u\EXPECT($uid, 'missing uid in pass_submit');
   $a = r\acct($uid);
-  list ($region, $name, $quid, $pass) = array(R_SERVER_ID, $a->name, $a->mainQid, \user_password());
-  $a->update(array('pass' =>r\passHash($pass)));
+  list ($name, $data) = array($a->name, $a->data);
+  list ($region, $quid, $pass) = array(R_SERVER_ID, $a->mainQid, oneTimePass($name, $data));
+  $a->update(compact('data'));
   r\notify($uid, 'password-reset', compact(u\ray('region name quid pass')), TRUE);
   say('password reset');
-
-  $sta['redirect'] = 'user';
-  return;
+  return r\go('');
+  //$sta['redirect'] = 'user';
 }
 
 /**
- * Automatically log back in and continue testing, if testing (offline only)
+ * Return a once-use password and record it in the data field.
+ * @param string $name: login identifier (email, account ID, or shortname)
+ * @param assoc $data: data field from account record, returned with "oneTimePass" set to [pass, expires]
+ * @return string: the raw password.
  */
-function loginCheck() {
-  global $channel;
-u\log('top of loginCheck');
-  if (t\EST()) return;
-u\log('loginCheck not testing yet');
-  if (!@cache_get('t_resume')->data) return;
-u\log('loginCheck redirecting');
-/*  global $user;
-  $adminPass = '123';
-  $account = user_authenticate('admin', $adminPass);
-  $user = user_load($account, TRUE);
-  drupal_session_regenerate();
-  $user = (object) array(); // we need this empty for registration and login tests
-  setupGlobals(1);
-*/
-  \drupal_goto('http://localhost/devcore/rcredits/test'); // must be drupal_goto not r\go
-}
+function oneTimePass($name, &$data) {
+  $pass = \user_password(); // not a hash
+  if (isDEV) say('Password: ' . $pass);
+  $expires = REQUEST_TIME + 3600 * R_SIGNIN_HOURS;
+  setcookie('loginto', $name, $expires, '/'); // make it easy (fails without '/')
+  $data['oneTimePass'] = compact('pass', 'expires');
+  return $pass;
+}  
 
 function formDirectory($form, &$sta) {
   $myid = r\acct()->id;

@@ -46,11 +46,11 @@ Setup:
 
 Scenario: A member looks at transactions for the past year
   When member "NEW.ZZA" visits page "transactions/period=365"
-  Then we show page "transactions" with:
+  Then we show "Transaction History" with:
   | Start Date | End Date | Start Balance | To You | From You | Rewards | End Balance |
   | %dmy-12m   | %dmy     | $0.00         | 30.00  | 120.00   | 256.00  | $166.00     |
   |            |          | PENDING       | 200.00 | 200.00   | 20.00   | + $20.00    |
-  And we show page "transactions" with:
+  And we show "Transaction History" with:
   | tid | Date   | Name       | From you | To you | Status  | Buttons | Purpose | Rewards |
   | 9   | %dm-6d | Bea Two    | --       | 100.00 | pending | X       | cash U  | --      |
   | 8   | %dm-6d | Bea Two    | 100.00   | --     | pending | X       | cash T  | --      |
@@ -61,24 +61,24 @@ Scenario: A member looks at transactions for the past year
   | 3   | %dm-4m | Corner Pub | --       | 20.00  | %chk    | X       | usd F   | --      |
   | 2   | %dm-5m | Bea Two    | --       | 10.00  | %chk    | X       | cash E  | --      |
   | 1   | %dm-7m | %ctty      | --       | --     | %chk    |         | signup  | 250.00  |
-  And we show page "transactions" without:
+  And we show "Transaction History" without:
   | Purpose |
   | rebate  |
   | bonus   |
 
 Scenario: A member looks at transactions for the past few days
   When member "NEW.ZZA" visits page "transactions/period=15"
-  Then we show page "transactions" with:
+  Then we show "Transaction History" with:
   | Start Date | End Date | Start Balance | To You | From You | Rewards | End Balance |
   | %dmy-15d   | %dmy     | $242.00       | 0.00   | 80.00    | 4.00    | $166.00     |
   |            |          | PENDING       | 200.00 | 200.00   | 20.00   | + $20.00    |
-  And we show page "transactions" with:
+  And we show "Transaction History" with:
   | tid | Date   | Name       | From you | To you | Status  | Buttons | Purpose | Rewards |
   | 9   | %dm-6d | Bea Two    | --       | 100.00 | pending | X       | cash U  | --      |
   | 8   | %dm-6d | Bea Two    | 100.00   | --     | pending | X       | cash T  | --      |
   | 7   | %dm-1w | Corner Pub | 80.00    | --     | %chk    | X       | this Q  | 4.00    |
   | 6   | %dm-2w | Corner Pub | --       | 100.00 | ok?     | OK X    | labor M | 10.00   |
-  And we show page "transactions" without:
+  And we show "Transaction History" without:
   | Purpose  |
   | pie N    |
   | whatever |
@@ -107,11 +107,11 @@ Scenario: Transactions with other states show up properly
   | NEW.ZZB   |     279 |
   | NEW.ZZC   |     311 |
   When member "NEW.ZZA" visits page "transactions/period=5"
-  Then we show page "transactions" with:
+  Then we show "Transaction History" with:
   | tid | Date   | Name       | From you | To you | Status   | Buttons | Purpose | Rewards |
   | 14  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X       | cash BD |         |
   | 12  | %dm-5d | Corner Pub | 80.00    | --     | disputed | OK      | this Z  | 4.00    |
-  And we show page "transactions" without:
+  And we show "Transaction History" without:
   | Purpose |
   | labor V |
   | cash Y  |
@@ -119,13 +119,13 @@ Scenario: Transactions with other states show up properly
   | rebate  |
   | bonus   |
   When member "NEW.ZZC" visits page "transactions/period=5"
-  Then we show page "transactions" with:
+  Then we show "Transaction History" with:
   | tid | Date   | Name       | From you | To you | Status   | Buttons | Purpose | Rewards |
   | 14  | %dm-5d | Abe One    | 100.00   | --     | disputed | OK      | cash BD |         |
   | 12  | %dm-5d | Abe One    | --       | 80.00  | disputed | X       | this Z  | 8.00    |
   | 11  | %dm-5d | Abe One    | --       | 5.00   | denied   | X       | cash Y  | --      |
   | 10  | %dm-5d | Abe One    | 100.00   | --     | denied   | X       | labor V | 5.00    |
-  And we show page "transactions" without:
+  And we show "Transaction History" without:
   | Purpose |
   | never   |
   | rebate  |

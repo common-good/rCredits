@@ -143,14 +143,14 @@ function rweb_form_alter(&$form, &$sta, $form_id) {
 //debug($form_id);
 //debug($_SERVER);
   if ($form_id == 'user_pass_reset') return r\Web\resetAlter($form, $sta);
-  if ($form_id == 'user_login') {return r\Web\loginAlter($form, $sta);}
+  if ($form_id == 'user_login') {return r\Web\formLogin($form, $sta);}
   // (has no effect, keep as comment) if ($form_id == 'user_register') {return r\Web\formRegister($form, $sta);}
   if (basename($_SERVER['REQUEST_URI']) == 'user' and user_is_logged_in()) r\go('');
 }
 
 function rweb_form_user_register_form_alter(&$form, &$sta, $form_id) {r\Web\formRegister($form, $sta);}
-function rweb_form_user_login_block_alter(&$form, &$sta, $form_id) {return r\Web\loginAlter($form, $sta, FALSE);}
-// (has no effect, keep as comment) function rweb_form_user_login_form_alter(&$form, &$sta, $form_id) {return r\Web\loginAlter($form, $sta);}
+function rweb_form_user_login_block_alter(&$form, &$sta, $form_id) {return r\Web\formLogin($form, $sta, FALSE);}
+// (has no effect, keep as comment) function rweb_form_user_login_form_alter(&$form, &$sta, $form_id) {return r\Web\formLogin($form, $sta);}
 function rweb_user_login(&$edit, $account) {r\Web\loginFollowup($edit, $account);}
 function rweb_form_user_pass_alter(&$form, &$sta) {return r\Web\passAlter($form, $sta);}
 

@@ -84,12 +84,14 @@ class rwebSignup extends DrupalWebTestCase {
     . '\\| id      | fullName | email         | phone        | country | postalCode | state | city    | flags |'
     . '\\| NEW.AAC | Abe One  | a@example.com | +14132530000 | US | 01001       | MA    | Amherst | dft,personal |"');
     And__('we say "status": "your account is ready" with subs: "DATA'
-    . '\\| quid    | balance |'
-    . '\\| NEW.AAC | $250    |"');
+    . '\\| quid    |'
+    . '\\| NEW.AAC |"');
     And__('we email "welcome" to member "a@example.com" with subs: "DATA'
     . '\\| fullName | name   | quid    | region | pass     |'
     . '\\| Abe One  | abeone | NEW.AAC | new    | (varies) |"');
-    And__('we show "rCredits Login" with: ""');
+    And__('we show "Sign In" with: "DATA'
+    . '\\| oldpass      | pass1        | pass2                |'
+    . '\\| Old password | New password | Confirm new password |"');
   }
 
   // Scenario: A member registers bad email
@@ -263,6 +265,29 @@ class rwebSignup extends DrupalWebTestCase {
     And__('relations: "DATA'
     . '\\| id | main | agent | permission | employerOk | employeeOk | isOwner | amount | draw |'
     . '\\| 1  | .AAD | .AAC  | manage     |          1 |          1 |       1 |      0 |    1 |"');
+    And__('we say "status": "company is ready" with subs: "DATA'
+    . '\\| quid    |'
+    . '\\| NEW.AAD |"');
+    And__('we show "Sign In" with: ""');
+  }
+
+  // Scenario: A newbie registers from elsewhere
+  public function testANewbieRegistersFromElsewhere_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"');
+    When_('member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values: "DATA'
+    . '\\| fullName | email         | phone | country | postalCode | state | city  | acctType | code        |'
+    . '\\| Abe One | a@example.com | (333) 253-0000 | US | 03768-2345 | NH | Lyme | %R_PERSONAL  | s0M3_rAnd0M_c0D3 |"');
+    Then_('members: "DATA'
+    . '\\| id      | fullName | email         | phone        | country | postalCode | state | city    | flags |'
+    . '\\| NEN.AAA | Abe One  | a@example.com | +13332530000 | US | 03768-2345 | NH | Lyme | dft,personal |"');
+    And__('we say "status": "your account is ready" with subs: "DATA'
+    . '\\| quid    |'
+    . '\\| NEN.AAA |"');
+    And__('we email "welcome" to member "a@example.com" with subs: "DATA'
+    . '\\| fullName | name   | quid    | region | pass     |'
+    . '\\| Abe One  | abeone | NEN.AAA | new    | (varies) |"');
+    And__('we show "Sign In" with: ""');
   }
 
 }

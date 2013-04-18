@@ -145,7 +145,7 @@ function first_time($args) {
  */
 function startup($args = '') {
   extract(u\just('mya owner', $args));
-//  if (rand() < getrandmax() / 2) $update_link = 'http:/rCredits.org/files/smart.apk';
+//  if (rand() < getrandmax() / 2) $update_link = 'http://rCredits.org/files/smart.apk';
   $my_id = $mya->qid();
   $account_name = $mya->fullName;
   $allow_change_account = 0;

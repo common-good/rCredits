@@ -29,7 +29,7 @@ define('R_DATA_FIELDS', ''); // fields stored in the account's "data" array fiel
 define('R_COMPANY_FIELDS', 'website description selling structure'); // fields in r_companies
 define('R_SECURE_FIELDS', 'type pin auth card_code'); // non-personal encrypted fields
 define('R_SECRET_FIELDS', 'federalId dob idProof answer'); // personal identifying information
-define('R_SECRET_URL', isDEV ? 'http://localhost/rcredits' 
+define('R_SECRET_URL', isDEV ? 'http://localhost/rcredits-promo' 
   : (STAGING ? ('http://' . STAGE) : 'http://rcredits.org')); // where to store secrets
 define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities can manage themselves
 
@@ -56,6 +56,7 @@ define('R_BUYS_BEFORE_BONUS', MINI_LAUNCH ? 1 : 3); // number of purchases requi
 define('R_REGION_MAX', isDEV ? 46000 : 3000000000); // maximum uids in a region (46k,3T ~sqrt(PHP_INT_MAX))
 define('R_CTTY_UID0', -R_REGION_MAX); // community uids are less than this (farther from zero)
 define('R_DWOLLA_LINK', 'http://refer.dwolla.com/a/clk/3bf8cy'); // credits CGF
+define('R_SIGNIN_HOURS', 2); // window for signing in after registering or resetting password
 
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
@@ -920,9 +921,8 @@ function passSalt($acct = '') {
 }
 
 function newUid($base) {
-  $where = 'u.uid>=:base AND u2.uid IS NULL ORDER BY u.uid';
+  $where = 'u.uid>=:base and u.uid <:base+:R_REGION_MAX AND u2.uid IS NULL ORDER BY u.uid';
   $previous = dbLookup('u.uid', 'users u LEFT JOIN users u2 ON u2.uid=(u.uid+1)', $where, compact('base'));
-//  print_r(compact('base','where','previous'));
   return $previous ? ($previous + 1) : $base;
 }
   

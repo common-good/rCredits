@@ -44,17 +44,13 @@ class acct {
    * @param assoc $info: array of field values for new account
    */
   private function createNew($info) {
-  //if (r\dbExists('users', "name='abeone'")) die('a1 ' . print_r(debug_backtrace(), 1));
     extract($info, EXTR_PREFIX_ALL, 'my');   
     if (isset($my_number) and !isset($my_phone)) $my_phone = $my_number;
     if (isset($my_phone)) $phone = u\formatPhone($my_phone, '+n');
     
     $status = TRUE;
     $mail = $init = @$my_mail ?: (@$my_email ?: '');
-    if (@$my_pass) {
-      require_once DRUPAL_ROOT . '/includes/password.inc';
-      $pass = \user_hash_password(trim($my_pass));
-    }
+    $pass = r\passHash(trim(@$my_pass ?: \user_password()));
     $short_name = @$my_fullName ? u\shortName($my_fullName) : '';
     $name =  @$my_name ?: (@$short_name ?: tempName($info));
     $fullName = @$my_fullName ?: $info['name'];
@@ -222,6 +218,7 @@ class acct {
       $info['secure'] = u\ezencrypt(serialize($usdArray), R_WORD);
     }
     if (@$info['usdAccount']) $info['usdAccount'] = bin2hex(u\ezencrypt($info['usdAccount'], R_WORD));
+    if (isset($info['pass'])) $info['pass'] = r\passHash($info['pass']);
 
     $toHide = count(array_intersect(array_keys($info), u\ray(R_SECRET_FIELDS))); // how many fields to hide
     if ($toHide and !$this->gotOffsite()) $this->getHidden(); // get what's offsite before updating it
@@ -264,18 +261,24 @@ class acct {
     return $now ? $this->update(compact('flags')) : TRUE;
   }
   
+  /**
+   * Set the current account being managed
+   * @param acct $acct: the account to manage
+   * @return: the account (FALSE if $acct is empty)
+   */
   public static function setDefault($acct) {
     global $currentAcct; 
     global $user; if (empty($user)) $user = (object) ($acct ? $acct->account() : array('uid' => 0)); // probably needed only for rWeb login/registration form testing
-    if (!$currentAcct = $acct) return;
-    if (($login = REQUEST_TIME) != $acct->login) $acct->update(compact('login'));
+    if ($acct and ($login = REQUEST_TIME) != $acct->login) $acct->update(compact('login'));
+    return $currentAcct = $acct;
   }
 
   function passwordOkay($password) {
     require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
     $stored_hash = $this->pass;
     $hash = \_password_crypt('sha512', $password, $stored_hash);
-    return ($hash and $stored_hash == $hash);
+    if (@$this->data['oneTimePass']) extract(u\just('pass expires', $this->data['oneTimePass']));
+    return (($password == @$pass and REQUEST_TIME < @$expires) or ($hash and $stored_hash == $hash));
   }
   
   /**
@@ -371,13 +374,15 @@ function IA($quid = '', $no_abbrev = TRUE) {
  * @return: the actual data (if RETRIEVING) or record key (if STORING)
  */
 function offsiteData($id, $data = NULL) {
-//  debug(strlen(u\ezencrypt(serialize($orig = $data), R_WORD)));
+  //debug(strlen(u\ezencrypt(serialize($orig = $data), R_WORD)));
   if (isset($data)) $data = bin2hex(u\ezencrypt(serialize($data), R_WORD));
-//  debug(strlen($data));
-//  debug($data);
-//  debug(u\ezencrypt(serialize($orig), R_WORD) == hex2bin($data));
+  //debug(strlen($data));
+  //debug($data);
+  //debug(u\ezencrypt(serialize($orig), R_WORD) == hex2bin($data));
+  //debug(R_SECRET_URL . '/offsite.php');
   $result = u\httpRequest(R_SECRET_URL . '/offsite.php', compact('id', 'data'));
-  return isset($data) ? $result : unserialize(u\ezdecrypt(hex2bin($result), R_WORD));
+  //debug($result);
+  return isset($data) ? $result : unserialize(u\ezdecrypt(hex2bin($result), R_WORD)); // hex2bin = pack('H*'
 }  
 
 function acct($uid = '', $agent = '', &$error = '') {

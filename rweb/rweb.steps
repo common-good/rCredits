@@ -48,19 +48,23 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     Transact AMemberAsksToPayAnotherMember MAKE
  */
 function memberCompletesFormWithValues($id, $page, $values, $confirmed = FALSE) {
-  global $testOnly; 
-//debug(compact(u\ray('id page values confirmed testOnly'))); // keep
-//  global $testOnly; if ($testOnly) return FALSE;
+  global $testOnly; if ($testOnly) return FALSE;
   global $testConfirmation; // confirmation message output, if any
+//debug(compact(u\ray('id page values confirmed testOnly'))); // keep
 
   $values = $values[0];
   t\fixCountryAndState($values);
   if (@$values['email']) $values = u\changeKey('email', 'mail', $values);
   
+  $mya = r\acct(); // save true account (that is running the tests), so we can restore it
   t\logIn($id);
 
   $validate = TRUE;
-  $form = t\pageForm(t\fixPageArgs($page), FALSE);
+  if (!$form = t\pageForm(t\fixPageArgs($page), FALSE)) {
+    r\acct::setDefault($mya); // restore tester's account
+    return FALSE; // probably access error
+  }
+  
   if ($page == 'pay' or $page == 'charge') {
     $page = 'Tx';
     if ($confirmed) $validate = FALSE;
@@ -87,13 +91,16 @@ function memberCompletesFormWithValues($id, $page, $values, $confirmed = FALSE) 
       $one($form, $sta);
     }
   }
+
+  r\acct::setDefault($mya); // restore tester's account
   return TRUE;
 }
 
 /**
  * member (ARG) confirms form (ARG) with values: (ARG)
  *
- * in: Signup ANewbieRegisters MAKE
+ * in: Relations AMemberAddsARelation MAKE
+ *     Signup ANewbieRegisters MAKE
  *     Signup AMemberRegistersBadEmail MAKE
  *     Signup AMemberRegistersBadPhone MAKE
  *     Signup AMemberRegistersBadName MAKE
@@ -107,6 +114,7 @@ function memberCompletesFormWithValues($id, $page, $values, $confirmed = FALSE) 
  *     Signup AMemberRegistersWithABadCompany MAKE
  *     Signup AMemberRegistersWithABadCompanyPhone MAKE
  *     Signup AMemberRegistersACompany MAKE
+ *     Signup ANewbieRegistersFromElsewhere MAKE
  *     Transact AMemberConfirmsRequestToChargeAnotherMember MAKE
  *     Transact AMemberConfirmsRequestToPayAnotherMember MAKE
  */
@@ -153,12 +161,14 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
 /**
  * members: (ARG)
  *
- * in: Relations Setup MAKE
+ * in: Membership Setup MAKE
+ *     Relations Setup MAKE
  *     Signup ANewbieRegisters TEST
  *     Signup AMemberRegistersAgain MAKE
  *     Signup AMemberRegistersWithAnExistingCompany BOTH
  *     Signup AMemberRegistersWithAnUnknownCompany TEST
  *     Signup AMemberRegistersACompany BOTH
+ *     Signup ANewbieRegistersFromElsewhere TEST
  *     Summary Setup MAKE
  *     Transact Setup MAKE
  *     Transactions Setup MAKE
@@ -199,6 +209,8 @@ function transactions($list) {
  *     Signup AMemberRegistersWithAMissingCompanyPhone TEST
  *     Signup AMemberRegistersWithABadCompany TEST
  *     Signup AMemberRegistersWithABadCompanyPhone TEST
+ *     Signup AMemberRegistersACompany TEST
+ *     Signup ANewbieRegistersFromElsewhere TEST
  *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
  *     Transact AMemberConfirmsRequestToPayAnotherMember TEST
  */
@@ -223,6 +235,7 @@ function weSayWithSubs($type, $index, $subs) {
  * in: Signup AMemberRegistersBadPhone TEST
  *     Signup AMemberRegistersBadZip TEST
  *     Signup AMemberRegistersWithACompanyWithNoRelation TEST
+ *     Summary MembersAccountIsNotActive TEST
  */
 function weSay($type, $index) {
   global $testOnly;
@@ -233,6 +246,7 @@ function weSay($type, $index) {
  * we email (ARG) to member (ARG) with subs: (ARG)
  *
  * in: Signup ANewbieRegisters TEST
+ *     Signup ANewbieRegistersFromElsewhere TEST
  *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
  *     Transact AMemberConfirmsRequestToPayAnotherMember TEST
  */
@@ -253,7 +267,7 @@ function weEmailToMemberWithSubs($key, $email, $subs) {
 function weShowWithSubs($page, $subs) {
   global $testOnly;
   global $testConfirmation; // confirmation message output, if any
-  global $formOutput; // for testing
+  global $formOut; // for testing
   
   $subs = @$subs[0] ?: array(); // comes in as "" if no subs
   if (u\abbreviates('confirm', $page)) {
@@ -263,43 +277,91 @@ function weShowWithSubs($page, $subs) {
   }
   $form = strtr(t\strip(r\Web\showForm($page, @$subs['arg1'], @$subs['arg2'])), $subs);
   t\testOutput("<b>WANTED: </b>$form", 'screen');
-  if ($form != $formOutput) return FALSE;
+  if ($form != $formOut['text']) return FALSE;
   unset($subs['arg1']);
   unset($subs['arg2']);
   foreach ($subs as $one) if (strpos($form, $one) === FALSE) return FALSE; // sometimes we dunno what to sub for
   return TRUE;
 }
 
-
 /**
  * we show (ARG) with: (ARG)
  *
- * in: Signup ANewbieVisitsTheRegistrationPageWithNoInvite TEST
+ * in: Membership AMemberClicksOnTheMembershipLink TEST
+ *     Membership ACompanyAgentClicksOnTheMembershipLink TEST
+ *     Membership AMemberSignsTheAgreement TEST
+ *     Relations MemberHasAnEmployeeConfirmed TEST
+ *     Relations MemberHasAnEmployeeUnconfirmed TEST
+ *     Relations MemberHasARelationWithAContractor TEST
+ *     Relations MemberHasAnEmployeeClaimed TEST
+ *     Relations EmployeeCanOnlyRead TEST
+ *     Relations MemberHasAnEmployer TEST
+ *     Relations MemberHasAccessToEmployeeAccount TEST
+ *     Relations MemberCompanyHasRelations TEST
+ *     Relations ItsComplicated TEST
+ *     Relations AMemberAddsARelation TEST
+ *     Signup ANewbieVisitsTheRegistrationPageWithNoInvite TEST
  *     Signup AnInvitedNewbieVisitsTheRegistrationPage TEST
  *     Signup ANewbieRegisters TEST
  *     Signup AMemberRegistersACompany TEST
+ *     Signup ANewbieRegistersFromElsewhere TEST
+ *     Summary AMemberClicksOnTheSummaryTab TEST
+ *     Summary AForeignRTraderClicksOnTheSummaryTab TEST
+ *     Transactions AMemberLooksAtTransactionsForThePastYear TEST
+ *     Transactions AMemberLooksAtTransactionsForThePastFewDays TEST
+ *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
  */
-function weShowWith($title, $content = array(), $showDebugs = TRUE) {
+function weShowWith($title, $content = FALSE, $showDebugs = TRUE) {
   global $testOnly; if (!$testOnly) return FALSE;
-  return t\shownWith($content, '', $showDebugs);
+  if (empty($content)) $content = array(); // might be "" called directly from feature
+  array_unshift($content, compact('title'));
+  return t\shownWith($content, 'text', $showDebugs);
 }
 
 /**
  * we show (ARG) without: (ARG)
  *
- * in: 
+ * in: Membership ACompanyAgentClicksOnTheMembershipLink TEST
+ *     Membership AMemberSignsTheAgreement TEST
+ *     Relations MemberCompanyHasRelations TEST
+ *     Relations ItsComplicated TEST
+ *     Transactions AMemberLooksAtTransactionsForThePastYear TEST
+ *     Transactions AMemberLooksAtTransactionsForThePastFewDays TEST
+ *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
  */
 function weShowWithout($title, $content) {
   global $testOnly; if (!$testOnly) return FALSE;
-  if (!weShow($title)) return FALSE;
-  foreach ($content as $one) if (weShow(array($one), FALSE)) return FALSE;
+  if (!weShowWith($title)) return FALSE;
+  foreach ($content as $one) if (weShowWith($title, array($one), FALSE)) return FALSE;
+  return TRUE;
+}
+
+/**
+ * with options: (ARG)
+ *
+ * in: Signup AMemberRegistersACompany TEST
+ */
+function withOptions($options, $showDebugs = TRUE) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  return t\shownWith($options, 'options', $showDebugs);
+}
+
+/**
+ * without options: (ARG)
+ *
+ * in: Signup AnInvitedNewbieVisitsTheRegistrationPage TEST
+ */
+function withoutOptions($options) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  foreach ($options as $one) if (WithOptions(array($one), FALSE)) return FALSE;
   return TRUE;
 }
 
 /**
  * relations: (ARG)
  *
- * in: Relations MemberHasAnEmployeeConfirmed MAKE
+ * in: Membership Setup MAKE
+ *     Relations MemberHasAnEmployeeConfirmed MAKE
  *     Relations MemberHasAnEmployeeUnconfirmed MAKE
  *     Relations MemberHasARelationWithAContractor MAKE
  *     Relations MemberHasAnEmployeeClaimed MAKE
@@ -340,7 +402,10 @@ function balances($list) {
 /**
  * member (ARG) visits page (ARG)
  *
- * in: Relations MemberHasAnEmployeeConfirmed MAKE
+ * in: Membership AMemberClicksOnTheMembershipLink MAKE
+ *     Membership ACompanyAgentClicksOnTheMembershipLink MAKE
+ *     Membership AMemberSignsTheAgreement MAKE
+ *     Relations MemberHasAnEmployeeConfirmed MAKE
  *     Relations MemberHasAnEmployeeUnconfirmed MAKE
  *     Relations MemberHasARelationWithAContractor MAKE
  *     Relations MemberHasAnEmployeeClaimed MAKE
@@ -349,11 +414,13 @@ function balances($list) {
  *     Relations MemberHasAccessToEmployeeAccount MAKE
  *     Relations MemberCompanyHasRelations MAKE
  *     Relations ItsComplicated MAKE
+ *     Relations AMemberAddsARelation MAKE
  *     Signup ANewbieVisitsTheRegistrationPageWithNoInvite MAKE
  *     Signup AnInvitedNewbieVisitsTheRegistrationPage MAKE
  *     Signup AMemberRegistersACompany MAKE
  *     Summary AMemberClicksOnTheSummaryTab MAKE
  *     Summary AForeignRTraderClicksOnTheSummaryTab MAKE
+ *     Summary MembersAccountIsNotActive MAKE
  *     Transactions AMemberLooksAtTransactionsForThePastYear MAKE
  *     Transactions AMemberLooksAtTransactionsForThePastFewDays MAKE
  *     Transactions TransactionsWithOtherStatesShowUpProperly MAKE
@@ -361,10 +428,12 @@ function balances($list) {
 function memberVisitsPage($id, $page) { // pass options in URL
   global $testOnly; if ($testOnly) return FALSE;
 
-  $mya = r\acct(); // save, so we can restore it
-  if ($id != '?') r\acct::setDefault(r\acct(t\fullQid($id)));
+  $mya = r\acct(); // save true account (that is running the tests), so we can restore it
+  if (!t\login($id)) return FALSE;
+
   t\pageForm(t\fixPageArgs($page), FALSE);
-  r\acct::setDefault($mya);
+
+  r\acct::setDefault($mya); // restore tester's account
   return TRUE;
 }
 
@@ -408,6 +477,7 @@ function memberIsLoggedOut() {
  *     Signup AMemberRegistersWithABadCompany MAKE
  *     Signup AMemberRegistersWithABadCompanyPhone MAKE
  *     Signup AMemberRegistersACompany MAKE
+ *     Signup ANewbieRegistersFromElsewhere MAKE
  */
 function invitationToEmailIs($email, $code) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -428,59 +498,98 @@ function noRelation($relations) {
 }
 
 /**
- * with options: (ARG)
+ * member (ARG) signs in the first time
  *
- * in: Signup AMemberRegistersACompany TEST
+ * in: 
  */
-function withOptions($options, $showDebugs = TRUE) {
+function memberSignsInTheFirstTime($uid) {
   global $testOnly; if (!$testOnly) return FALSE;
-  return t\shownWith($options, 'options', $showDebugs);
+  memberVisitsPage($uid, 'summary');
+  return r\dbLookup('created=login', 'users', 'uid=' . t\uid($uid));
 }
 
 /**
- * without options: (ARG)
+ * member (ARG) account is not active
  *
- * in: Signup AnInvitedNewbieVisitsTheRegistrationPage TEST
+ * in: Summary MembersAccountIsNotActive MAKE
  */
-function withoutOptions($options) {
-  global $testOnly; if (!$testOnly) return FALSE;
-  foreach ($options as $one) if (WithOptions(array($one), FALSE)) return FALSE;
+function memberAccountIsNotActive($uid) {
+  global $testOnly; if ($testOnly) return FALSE;
+  list ($uid, $agent) = r\IA($uid); // not unQuid
+  r\acct($uid)->setBit(B_OK, FALSE);
   return TRUE;
 }
 
 /**
- * we show page (ARG) with: (ARG)
+ * with done (ARG)
  *
- * in: Relations MemberHasAnEmployeeConfirmed TEST
- *     Relations MemberHasAnEmployeeUnconfirmed TEST
- *     Relations MemberHasARelationWithAContractor TEST
- *     Relations MemberHasAnEmployeeClaimed TEST
- *     Relations EmployeeCanOnlyRead TEST
- *     Relations MemberHasAnEmployer TEST
- *     Relations MemberHasAccessToEmployeeAccount TEST
- *     Relations MemberCompanyHasRelations TEST
- *     Relations ItsComplicated TEST
- *     Summary AMemberClicksOnTheSummaryTab TEST
- *     Summary AForeignRTraderClicksOnTheSummaryTab TEST
- *     Transactions AMemberLooksAtTransactionsForThePastYear TEST
- *     Transactions AMemberLooksAtTransactionsForThePastFewDays TEST
- *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
+ * in: Membership AMemberClicksOnTheMembershipLink TEST
+ *     Membership ACompanyAgentClicksOnTheMembershipLink TEST
+ *     Membership AMemberSignsTheAgreement TEST
  */
-function weShowPageWith($arg1, $arg2) {
-  global $testOnly;
-  todo;
+function withDone($steps) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  global $formOut;
+  return $steps == $formOut['done'];
 }
 
 /**
- * we show page (ARG) without: (ARG)
+ * member (ARG) has done step (ARG)
  *
- * in: Relations MemberCompanyHasRelations TEST
- *     Relations ItsComplicated TEST
- *     Transactions AMemberLooksAtTransactionsForThePastYear TEST
- *     Transactions AMemberLooksAtTransactionsForThePastFewDays TEST
- *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
+ * in: Membership AMemberSignsTheAgreement MAKE
  */
-function weShowPageWithout($arg1, $arg2) {
-  global $testOnly;
-  todo;
+function memberHasDoneStep($uid, $step) {
+  global $testOnly; if ($testOnly) return FALSE;
+  $a = r\acct($uid = t\uid($uid));
+
+  if ($step == 'photo') return file_put_contents(DRUPAL_ROOT . $a->auxFilename('picture'), 'whatever');
+  if ($step == 'agreement') return $a->update(u\assoc('signed', REQUEST_TIME));
+  if ($step == 'contribution') return r\dbInsert('r_gifts', u\assoc('uid amount', $uid, 123));
+  if ($step == 'proxies') return r\dbQ('INSERT INTO r_proxies (person, proxy) VALUES (:uid, 2),(:uid, 3)', compact('uid'));
+  
+  if ($step == 'dwolla') {
+    $secure = @$a->secure;
+    $secure['auth'] = 'whatever';
+    return $a->update(compact('secure'));
+  }
+  if ($step == 'proof') {
+    list ($dob, $federalId) = array(REQUEST_TIME - 3600*24*365*40, 123456789);
+    $a->update(compact('dob', 'federalId'));
+    return file_put_contents(DRUPAL_ROOT . $a->auxFilename('proof'), 'whatever') and $a->dob and $a->federalId;
+  }
+  if ($step == 'preferences') return $a->update(u\assoc('minimum', 0));
+  if ($step == 'invitation') return r\dbInsert('r_invites', u\assoc('inviter email code', $uid, 'any@example.com', 'whatever'));
+    
+  return FALSE;
+}
+
+/**
+ * we show (ARG)
+ *
+ * in: Membership AMemberSignsTheAgreement TEST
+ */
+function weShow($title) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  return weShowWith($title, array());
+}
+
+/**
+ * member (ARG) supplies (ARG): (ARG)
+ *
+ * in: Membership AMemberSignsTheAgreement MAKE
+ */
+function memberSupplies($uid, $field, $value) {
+  global $testOnly; if ($testOnly) return FALSE;
+  $a = r\acct($uid = t\uid($uid));
+  return $a->update(u\assoc($field, $value));
+}
+
+/**
+ * member (ARG) has permission (ARG)
+ *
+ * in: Membership AMemberSignsTheAgreement MAKE
+ */
+function memberHasPermission($uid, $permission) {
+  global $testOnly; if ($testOnly) return FALSE;
+  return r\acct(t\uid($uid))->setBit(constant('B_' . strtoupper($permission)), TRUE, TRUE);
 }

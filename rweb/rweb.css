@@ -167,6 +167,9 @@ form.rweb  .form-no {color:red;}
 #user-login #edit-tip label {font-weight:normal; width:100%; text-align:left;}
 #user-login input#edit-name,
 #user-login input#edit-pass {width:20em;}
+#user-login .confirm-parent, #user-login .password-parent, #user-login .password-suggestions {margin-left:125px;}
+#user-login .password-suggestions {background-color:lightyellow; width:240px;}
+#user-login .confirm-parent label, #user-login .password-parent label {text-align:left; width:auto;}
 
 /* Login block */
 #user-login-form input#edit-name,
@@ -576,6 +579,7 @@ and (max-device-width : 480px) { */
   #menu input#edit-help {margin-bottom:8em;}
   #user-login input#edit-name,
   #user-login input#edit-pass {width:17em;}
+  #user-login .confirm-parent, #user-login .password-parent, #user-login .password-suggestions {margin-left:0;}
 
   #help {top:125px; width:100%;}
   #help-close {display:none;}

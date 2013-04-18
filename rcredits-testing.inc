@@ -51,7 +51,6 @@ function makeAccount($info = array(), $testOnly = FALSE) {
   fixCountryAndState($info);
 
   foreach (u\ray('id email password acctType') as $one) unset($info[$one]);
-  
   $info = array_merge($info, compact(u\ray('uid flags rebate name pass fullName mail community')));
   if ($testOnly) {
     if (!$acct = r\acct($uid)) return testOutput("No such uid: $uid");
@@ -121,12 +120,12 @@ function makeRelation($info, $infoOnly = FALSE) {
   extract($info, EXTR_PREFIX_ALL, 'my');
   
   $reid = u\num($my_id, u\a2n(substr($my_id, -3)));
-  if (!$mainAcct = r\acct(fullQid($my_main))) return testOutput("main:$my_main is not an id");
-  if (!$agtAcct = r\acct(fullQid($my_agent))) return testOutput("agent:$my_agent is not an id");
+  if (!$mainAcct = r\acct(t\uid($my_main))) return testOutput("main:$my_main is not an id");
+  if (!$agtAcct = r\acct(t\uid($my_agent))) return testOutput("agent:$my_agent is not an id");
   u\EXPECT(!r\foreignServer(r\uidRegion($mainAcct->id)) or !r\foreignServer(r\uidRegion($agtAcct->id)));
   u\EXPECT($mainAcct->proSe() and $agtAcct->proSe());
   list ($main, $other) = array($mainAcct->id, $agtAcct->id);
-  if (@$my_permission) $info['permission'] = constant('PERM_' . strtoupper($my_permission));
+  $info['permission'] = @$my_permission ? constant('PERM_' . strtoupper($my_permission)) : 0;
   
   foreach (u\ray('id main agent') as $one) unset($info[$one]);
   $info += compact(u\ray('reid main other'));
@@ -150,7 +149,17 @@ function uidCredit($uid) {
 function uid($id) {
   return is_numeric($id) ? $id 
     : ($id == 'community' ? r\serverUid() 
-    : r\unQuid($id));
+    : r\unQuid(fullQid($id)));
+}
+
+/**
+ * Accept abbreviations of alphabetic ids for accounts, transactions, and relations
+ * @param string $q: the possibly-abbreviated id
+ * @return: the full id (if $q is numeric or an already-full alphabetic id, return it unchanged)
+ */
+function fullQid($q) {
+  $c1 = substr($q, 0, 1);
+  return ($c1 == '.' or $c1 == ':') ? (R_SERVER_ID . $q) : $q;
 }
 
 function getErrors() {
@@ -268,13 +277,14 @@ function hitServer($op, $agent, $code = '', $account_id = '', $extra = array()) 
 function snapShot(&$form) { // (additional sta values have no effect at this stage)
   addAttribs($form);
   return; // the rest is redundant
-  //global $formOutput; $zot = $form; $formOutput = strip(\render($zot)); // for testing
-  //testOutput('ACTUAL or EXPECTED: ' . $formOutput, 'screen');
+  //global $formOut['text']; $zot = $form; $formOut['text'] = strip(\render($zot)); // for testing
+  //testOutput('ACTUAL or EXPECTED: ' . $formOut['text'], 'screen');
 }
 
 function addAttribs(&$thing) {
   foreach ($thing as $key => $value) { // else Drupal complains when rendering
     if (substr($key, 0, 1) == '#') continue;
+    if (!is_array($value)) continue;
     if (!isset($value['#attributes']['id'])) $thing[$key]['#attributes']['id'] = 'edit-' . strtolower($key);
     if (!isset($value['#title_display'])) $thing[$key]['#title_display'] = 'before';
     addAttribs($thing[$key]);
@@ -282,8 +292,7 @@ function addAttribs(&$thing) {
 }
 
 function logIn($id) {
-  if ($id != '?') r\acct::setDefault(r\acct($id));
-u\deb('after logIn');
+  return $id == '?' ? '' : r\acct::setDefault(r\acct(t\uid($id)));
 }
 
 function verifyTx($info) {
@@ -315,7 +324,7 @@ function verifyRecord($table, $info) {
  * @return: the form that would normally be displayed by the browser
  */
 function pageForm($page) {
-  global $formOutput, $formDropdowns;
+  global $formOut;
 
   t\SERVER('REQUEST_URI', $page);
   $args = basename($page);
@@ -324,13 +333,12 @@ function pageForm($page) {
     list ($form, $function) = strpos($page, '/register') ?
         array('user_register_form', 'formRegister')
       : (strpos($page, '/login') ?
-        array('user_login', 'loginAlter') : array());
+        array('user_login', 'formLogin') : array());
     $function = 'rCredits\\Web\\' . $function;
     $form = strpos($page, '/login') ? array() : \drupal_get_form($form, $args);
     $function($form, $sta, $args);
     $form2 = $form; $rent = render($form2);
-    $formDropdowns = t\dropdownOptions($rent);
-    t\testOutput('ACTUAL: ' . ($formOutput = t\strip($rent)), 'screen');
+    getFormOut($rent);
     return $form;
   }     
 
@@ -339,11 +347,30 @@ function pageForm($page) {
     $result = $result == MENU_NOT_FOUND ? 'not found' 
       : ($result == MENU_ACCESS_DENIED ? 'access error' : "error #$result");
     t\testOutput("page \"$page\": $result in t\\pageForm()");
-  } else {
-    $formDropdowns = t\dropdownOptions($result);
-    t\testOutput($formOutput = t\strip($result), 'screen');
-  }
-  
+  } else getFormOut($result);
+  return $result;
+}
+
+function getFormOut($out) {
+  global $formOut;
+  $formOut = array();
+  $formOut['options'] = t\dropdownOptions($out);
+  $formOut['steps'] = t\getSteps($out);
+  $formOut['done'] = join('', t\getSteps($out, TRUE));
+  $formOut['text'] = t\strip($out);
+  t\testOutput('ACTUAL: ' . $formOut['text'], 'screen');
+}
+
+/**
+ * Return an array of steps in the output
+ * @param string $out: the rendered form
+ * @param bool $set: TRUE = return just the done steps, FALSE = just the not-done steps, DEFAULT = both
+ * @return: array of step numbers
+ */
+function getSteps($out, $set = NULL) {
+  if (!@$set) $set = isset($set) ? '>' : '';
+  if (!preg_match_all("/done-(\d) state$set/", $out, $matches)) return array();
+  return $matches[1];
 }
 
 function postProcess($form, $formName, $type) {
@@ -409,11 +436,6 @@ function eq($a, $b) {
   return $result;
 }
 
-function fullQid($q) {
-  $c1 = substr($q, 0, 1);
-  return ($c1 == '.' or $c1 == ':') ? (R_SERVER_ID . $q) : $q;
-}
-
 /**
  * Fake $_SERVER params for testing
  */
@@ -463,7 +485,7 @@ function clear($ch) {
   $files = 'r_sms r_txs r_relations r_log r_invites r_companies r_gifts r_smarts r_proxies r_usd r_user_industries';
 
   global $sms_devel; $sms_devel = TRUE;
-  r\dbQ('DELETE FROM users WHERE uid>:cgfUid', compact('cgfUid'));
+  r\dbQ('DELETE FROM users WHERE uid>:cgfUid OR (uid>1 AND uid<:cgfUid-1)', compact('cgfUid'));
   foreach (u\ray($files) as $one) r\dbQ("TRUNCATE $one");
 
   r\acct::_clear(); // empty the acct cache
@@ -484,14 +506,23 @@ function fixPageArgs($page) {
   return $page;
 }
 
-function shownWith($content, $only = '', $showDebugs = TRUE) {
-  global $formOutput, $formDropdowns;
-  $model = $only == 'options' ? $formDropdowns : $formOutput;
+/**
+ * Say whether the most recent page included the given text or options.
+ * @param array $content: array of assocs -- named values to check for (ignore the keys)
+ * @param string $type: description of what to check for (default 'text')
+ * @param bool $showDebugs: whether to report debugging info while looking
+ * @return TRUE if all the content is included
+ */
+function shownWith($content, $type = 'text', $showDebugs = TRUE) {
+  global $formOut;
+  $model = $formOut[$type];
+    
   $xi = $i = 0;
+
   foreach ($content as $fields) {
     foreach ($fields as $key => $one) if (strpos($one, '%') !== FALSE) t\lastMinuteSubs($fields[$key]);
     if ($showDebugs) debug("EXPECT page with " . print_r($fields, 1)); // keep this
-    foreach ($fields as $key => $one) {
+    foreach ($fields as $one) { // ignore the keys here
       if ($one !== '') $i = strpos($model, $one, $xi = $i);
       if ($showDebugs) t\testOutput(compact('xi','i','one'));
       if ($i === FALSE) {

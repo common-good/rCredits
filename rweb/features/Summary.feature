@@ -11,11 +11,11 @@ Setup:
   | NEW.ZZC | Corner Pub | POB 3   | Ctown | Cher   |            | France  | -300  | dft,ok,company          |
 
   And relations:
-  | id      | main    | agent   | permission        |
-  | NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |
-  | NEW:ZZB | NEW.ZZB | NEW.ZZA | read transactions |
-  | NEW:ZZC | NEW.ZZC | NEW.ZZB | buy and sell      |
-  | NEW:ZZD | NEW.ZZC | NEW.ZZA | sell              |
+  | id      | main    | agent   | permission |
+  | NEW:ZZA | NEW.ZZA | NEW.ZZB | buy        |
+  | NEW:ZZB | NEW.ZZB | NEW.ZZA | read       |
+  | NEW:ZZC | NEW.ZZC | NEW.ZZB | buy        |
+  | NEW:ZZD | NEW.ZZC | NEW.ZZA | sell       |
   And transactions: 
   | tx_id    | created   | type         | state       | amount | from      | to      | purpose      | taking |
   | NEW:AAAB | %today-7m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZA | signup       | 000000 |
@@ -43,12 +43,17 @@ Variants: with/without an agent
 
 Scenario: A member clicks on the summary tab
   When member "NEW.ZZA" visits page "summary"
-  Then we show page "summary" with:
+  Then we show "Account Summary" with:
   | Name             | Address                | Account ID         |  Balance | Rewards | Floor |
   | Abe One (abeone) | POB 1, Atown, AK 01000 | NEW.ZZA (personal) | $166     | $256    | $-100 |
 
 Scenario: A foreign rTrader clicks on the summary tab
   When member "NEW.ZZC" visits page "summary"
-  Then we show page "summary" with:
+  Then we show "Account Summary" with:
   | Name                   | Address                    | Account ID        | Balance | Rewards |  Floor |
   | Corner Pub (cornerpub) | POB 3, Ctown, Cher, FRANCE | NEW.ZZC (company) | $323    | $258    |  $-300 |
+
+Scenario: Member's account is not active
+  Given member "NEW.ZZA" account is not active
+  When member "NEW.ZZA" visits page "summary"
+  Then we say "status": "take a step"

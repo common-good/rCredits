@@ -201,6 +201,9 @@ function a2n($string, $base = 26) {
  *   ''   +1 ddd.ddd.dddd (the default)
  * @return the formatted phone number (FALSE if the $phone is not a phone number or $how is bad)
  */
+define('MAX_PHONE_DIGITS', 15);
+define('MIN_PHONE_DIGITS', 7);
+
 function formatPhone($phone, $how = '') {
   $sep = '.'; // digit group separator
   $foreign = ''; // set to 'n' format if the phone is outside US
@@ -211,7 +214,7 @@ function formatPhone($phone, $how = '') {
     $phone = substr($phone, 1);
   } elseif (substr($phone, 0, 1) == '+') $foreign = substr($phone, 1);
 
-  if (!is_numeric($phone) or strlen($phone) < 8 or strlen($phone) > 16) return FALSE;
+  if (!is_numeric($phone) or strlen($phone) < MIN_PHONE_DIGITS or strlen($phone) > MAX_PHONE_DIGITS) return FALSE;
   if (!$foreign and substr($phone, 0, 1) < 2) return FALSE; // US phone numbers cannot start with 0 or 1
   if (!$foreign and strlen($phone) != 10) return FALSE;
 
@@ -732,6 +735,14 @@ function get_company_pictures() {
   debug('done'); // keep this
 }
 */
+
+function weakPass($pass) {  
+  return strlen($pass) < 6 
+    or !preg_match('/[A-Z]/', $pass)
+    or !preg_match('/[a-z]/', $pass)
+    or !preg_match('/\d/', $pass)
+    or !preg_match('/[^A-Za-z\d]/', $pass);
+}
 
 function fsize($url) {
   if ($size = @filesize($url)) return $size;

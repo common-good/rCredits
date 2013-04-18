@@ -7,9 +7,11 @@ PRODUCTION SITE PROBLEMS:
 BEFORE MINI LAUNCH:
 - 6 people and 3 orgs tested signup, plus one joint account; watch people sign up
 - log everything
+- assign new password on first summary (check if last login == created)
+- tests: New Pass, Summary (add member check), Photo, Agreement, Contribute, Proxies
+- tests: Usd (including proof of ID), Options, Invite, Relations, Cron (just cache check, auto bank transfers)
 - get Dwolla to work on production site
 - written instructions for signup (dwolla, etc)
-- 200 cron tests (just cache check, auto bank transfers)
 TOTAL: 1200 x 3 = 3600 = 60 hours
 
 BEFORE LAUNCH:
@@ -23,6 +25,7 @@ BEFORE LAUNCH:
 To do: (* = before launch ** = earlier)
 
 - when a non-bona nube donates, replace the previous gift.
+- add a Contribute link in footer when logged in
 - accept PDF for id proof
 - explain picture format
 - during membership signup, always return to the membership page. else donation returns to summary; invite returns to invite if all other steps are complete
@@ -265,6 +268,7 @@ E. Database clues
          company, companyPhone, employeeOk, and isOwner: these are stored upon registration, if the company does not exist yet (otherwise the info goes in the relations table)
          newAccount: qid of new account when this account is closed by moving funds elsewhere
          (survey data)
+         oneTimePass: [pass, expires]
      . description is html for the company's page (N/A for personal accounts)
      . community: the (negative) uid of the account's CGC. For anyone who is not in an established CGC, their community is the region (using the regional server's uid). For region and community records, community == uid
      . minimum: the user's preferred minimum rCredits balance. Request at least r$10 more automatically if balance goes under by even one cent.
@@ -346,7 +350,7 @@ I. Cron ops
 J. Other thoughts:
   - Joining by dumb cellphone is for play only. Accounts and transactions created that way should get deleted after a week of inactivity.
   - Suppose I live in 413 (NEW), but my cell is 987 (NYC). Person B lives in 222 with cell 333. When I am traveling to AAA I pay person B with SMS, by calling the local rCredits number. The local server contacts NYC to process my side of the transactions, but gets redirected to NEW. Similarly for person B's side. So at most 5 servers are involved (three just redirecting). NEW.rcredits.org and other subdomains act similarly.
-  - 
+  - in dwolla.php: replace "if ($" with "if (@$" and "if (!$" with "if (!@$"
 
 To clear cache:   http://localhost/devcore/devel/cache/clear?destination=node
   (or https://new.rcredits.org/devel/cache/clear?destination=node)

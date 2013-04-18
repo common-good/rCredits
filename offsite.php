@@ -8,7 +8,7 @@
 ini_set('display_errors',1); error_reporting(E_ALL); 
 define('isDEV', @$_SERVER['WINDIR']); // developing on Windows (unlike production server)
 $root = dirname($_SERVER['DOCUMENT_ROOT']);
-//if (strpos($root, '.manage.myhosting.com')) $root .= '/rcredits';
+
 $caller = $_SERVER['REMOTE_ADDR'];
 
 $dbs = (array) json_decode(utf8_encode(file_get_contents("$root/.databases")));

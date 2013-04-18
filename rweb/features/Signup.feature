@@ -34,12 +34,14 @@ Scenario: A newbie registers
   | id      | fullName | email         | phone        | country | postalCode | state | city    | flags | 
   | NEW.AAC | Abe One  | a@example.com | +14132530000 | US | 01001       | MA    | Amherst | dft,personal |
   And we say "status": "your account is ready" with subs:
-  | quid    | balance |
-  | NEW.AAC | $250    |
+  | quid    |
+  | NEW.AAC |
   And we email "welcome" to member "a@example.com" with subs:
   | fullName | name   | quid    | region | pass     |
   | Abe One  | abeone | NEW.AAC | new    | (varies) |
-  And we show "Sign In" with: ""
+  And we show "Sign In" with:
+  | oldpass      | pass1        | pass2                |
+  | Old password | New password | Confirm new password |
 # Should check for name defaulting to "abeone" (but doesn't work yet in test)
 # Formatting and links are ignored
 
@@ -178,4 +180,25 @@ Scenario: A member registers a company
   And relations:
   | id | main | agent | permission | employerOk | employeeOk | isOwner | amount | draw |
   | 1  | .AAD | .AAC  | manage     |          1 |          1 |       1 |      0 |    1 |
+  And we say "status": "company is ready" with subs:
+  | quid    |
+  | NEW.AAD |
+  And we show "Sign In" with: ""
   
+Scenario: A newbie registers from elsewhere
+  Given invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"
+  When member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values:
+  | fullName | email         | phone | country | postalCode | state | city  | acctType | code        |
+  | Abe One | a@example.com | (333) 253-0000 | US | 03768-2345 | NH | Lyme | %R_PERSONAL  | s0M3_rAnd0M_c0D3 |
+ Then members:
+  | id      | fullName | email         | phone        | country | postalCode | state | city    | flags | 
+  | NEN.AAA | Abe One  | a@example.com | +13332530000 | US | 03768-2345 | NH | Lyme | dft,personal |
+  And we say "status": "your account is ready" with subs:
+  | quid    |
+  | NEN.AAA |
+  And we email "welcome" to member "a@example.com" with subs:
+  | fullName | name   | quid    | region | pass     |
+  | Abe One  | abeone | NEN.AAA | new    | (varies) |
+  And we show "Sign In" with: ""
+# Should check for name defaulting to "abeone" (but doesn't work yet in test)
+# Formatting and links are ignored

@@ -49,11 +49,11 @@ class rwebSummary extends DrupalWebTestCase {
     . '\\| NEW.ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000      | US      | -200  | dft,ok,personal,company |'
     . '\\| NEW.ZZC | Corner Pub | POB 3   | Ctown | Cher   |            | France  | -300  | dft,ok,company          |"');
     And__('relations: "DATA'
-    . '\\| id      | main    | agent   | permission        |'
-    . '\\| NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |'
-    . '\\| NEW:ZZB | NEW.ZZB | NEW.ZZA | read transactions |'
-    . '\\| NEW:ZZC | NEW.ZZC | NEW.ZZB | buy and sell      |'
-    . '\\| NEW:ZZD | NEW.ZZC | NEW.ZZA | sell              |"');
+    . '\\| id      | main    | agent   | permission |'
+    . '\\| NEW:ZZA | NEW.ZZA | NEW.ZZB | buy        |'
+    . '\\| NEW:ZZB | NEW.ZZB | NEW.ZZA | read       |'
+    . '\\| NEW:ZZC | NEW.ZZC | NEW.ZZB | buy        |'
+    . '\\| NEW:ZZD | NEW.ZZC | NEW.ZZA | sell       |"');
     And__('transactions: "DATA'
     . '\\| tx_id    | created   | type         | state       | amount | from      | to      | purpose      | taking |'
     . '\\| NEW:AAAB | %today-7m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZA | signup       | 000000 |'
@@ -84,7 +84,7 @@ class rwebSummary extends DrupalWebTestCase {
   public function testAMemberClicksOnTheSummaryTab_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member "NEW.ZZA" visits page "summary"');
-    Then_('we show page "summary" with: "DATA'
+    Then_('we show "Account Summary" with: "DATA'
     . '\\| Name             | Address                | Account ID         |  Balance | Rewards | Floor |'
     . '\\| Abe One (abeone) | POB 1, Atown, AK 01000 | NEW.ZZA (personal) | $166     | $256    | $-100 |"');
   }
@@ -93,16 +93,24 @@ class rwebSummary extends DrupalWebTestCase {
   public function testAForeignRTraderClicksOnTheSummaryTab_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member "NEW.ZZC" visits page "summary"');
-    Then_('we show page "summary" with: "DATA'
+    Then_('we show "Account Summary" with: "DATA'
     . '\\| Name                   | Address                    | Account ID        | Balance | Rewards |  Floor |'
     . '\\| Corner Pub (cornerpub) | POB 3, Ctown, Cher, FRANCE | NEW.ZZC (company) | $323    | $258    |  $-300 |"');
+  }
+
+  // Scenario: Member's account is not active
+  public function testMembersAccountIsNotActive_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('member "NEW.ZZA" account is not active');
+    When_('member "NEW.ZZA" visits page "summary"');
+    Then_('we say "status": "take a step"');
   }
 
   // Scenario: A member clicks on the summary tab
   public function testAMemberClicksOnTheSummaryTab_1() {
     $this->setUp2(__FUNCTION__, 1);
     When_('member "NEW:ZZA" visits page "summary"');
-    Then_('we show page "summary" with: "DATA'
+    Then_('we show "Account Summary" with: "DATA'
     . '\\| Name             | Address                | Account ID         |  Balance | Rewards | Floor |'
     . '\\| Abe One (abeone) | POB 1, Atown, AK 01000 | NEW.ZZA (personal) | $166     | $256    | $-100 |"');
   }
@@ -111,9 +119,17 @@ class rwebSummary extends DrupalWebTestCase {
   public function testAForeignRTraderClicksOnTheSummaryTab_1() {
     $this->setUp2(__FUNCTION__, 1);
     When_('member "NEW:ZZC" visits page "summary"');
-    Then_('we show page "summary" with: "DATA'
+    Then_('we show "Account Summary" with: "DATA'
     . '\\| Name                   | Address                    | Account ID        | Balance | Rewards |  Floor |'
     . '\\| Corner Pub (cornerpub) | POB 3, Ctown, Cher, FRANCE | NEW.ZZC (company) | $323    | $258    |  $-300 |"');
+  }
+
+  // Scenario: Member's account is not active
+  public function testMembersAccountIsNotActive_1() {
+    $this->setUp2(__FUNCTION__, 1);
+    Given('member "NEW:ZZA" account is not active');
+    When_('member "NEW:ZZA" visits page "summary"');
+    Then_('we say "status": "take a step"');
   }
 
 }
