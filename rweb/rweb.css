@@ -170,6 +170,7 @@ form.rweb  .form-no {color:red;}
 #user-login .confirm-parent, #user-login .password-parent, #user-login .password-suggestions {margin-left:125px;}
 #user-login .password-suggestions {background-color:lightyellow; width:240px;}
 #user-login .confirm-parent label, #user-login .password-parent label {text-align:left; width:auto;}
+#user-login .form-item-newPass label[for="edit-newpass"] {display:none;}
 
 /* Login block */
 #user-login-form input#edit-name,

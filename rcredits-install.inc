@@ -388,7 +388,12 @@ function setupField($description = '', $type = 'varchar 255', $default = '', $SU
   return $scheme;
 }
 
+/**
+ * Create country and state dropdowns.
+ * This should be called just once, offline, when country/state tables change, then upload it.
+ */
 function makeGeoDropdowns() {
+  if (!isDEV) return;
   $js = 'var cs = new Array();'; // countries
   $js .= "\n\nvar ss = new Array();"; // states
   $cq = \db_query('SELECT * FROM r_countries');

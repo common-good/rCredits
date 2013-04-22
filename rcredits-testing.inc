@@ -192,10 +192,10 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
   $agent = @r\acct()->agentId;
   testOutput(array('EXPECT' => '') + $fields, @$subject ? 'email' : 'output'); // keep this
   $info = json_encode($fields, JSON_UNESCAPED_SLASHES);
-  $crit = "channel=:channel AND type=:type AND myid=:myid AND agent=:agent ORDER BY logid DESC";
-//  debug(compact(u\ray('info type myid agent channel crit'))); // for debugging mysterious email mismatches
+  $crit = "channel=:channel AND type=:type AND myid<=>:myid AND agent<=>:agent ORDER BY logid DESC";
+  //debug(compact(u\ray('info type myid agent channel crit'))); // for debugging mysterious email mismatches
 //  debug(compact(u\ray('info type myid agent channel')), '', 1);
-//  debug("info=:info AND $crit"); debug(compact(u\ray('info type myid agent')));
+  //debug("info=:info AND $crit"); debug(compact(u\ray('info type myid agent')));
   return r\dbExists('r_log', "info=:info AND $crit", compact(u\ray('info type myid agent channel')));
 }
 
@@ -233,7 +233,7 @@ function makePicture($picture, $acct) {
 }
 
 function getPicture($picture) {
-  return file_get_contents(R_PICTURE_DIR . "/$picture.jpg");
+  return file_get_contents(DRUPAL_ROOT . R_PICTURE_DIR . "/$picture.jpg");
 }
 
 function lastMinuteSubs(&$string) {
@@ -291,8 +291,13 @@ function addAttribs(&$thing) {
   }
 }
 
+/**
+ * Log the given id in.
+ * @param string $id: full or partial quid or '?' (meaning anonymous user, so don't log in)
+ * @return: successful (always successful for anonymous)
+ */
 function logIn($id) {
-  return $id == '?' ? '' : r\acct::setDefault(r\acct(t\uid($id)));
+  return $id == '?' ? TRUE : r\acct::setDefault(r\acct(t\fullQid($id))); // fullQid not uid
 }
 
 function verifyTx($info) {
@@ -321,34 +326,36 @@ function verifyRecord($table, $info) {
 /**
  * Simulate a visit to the page, return its form.
  * @param string $page: the Drupal URL to visit
- * @return: the form that would normally be displayed by the browser
+ * @return: the form before rendering
  */
 function pageForm($page) {
-  global $formOut;
-
+  global $formArray, $formSta;
+  
+  $login = (strpos($page, 'user/login') !== FALSE);
   t\SERVER('REQUEST_URI', $page);
   $args = basename($page);
+
   if (u\abbreviates('/user/', $page)) {
     $sta = array();
-    list ($form, $function) = strpos($page, '/register') ?
-        array('user_register_form', 'formRegister')
-      : (strpos($page, '/login') ?
-        array('user_login', 'formLogin') : array());
+    list ($form, $function) = strpos($page, '/register') ? array('user_register_form', 'formRegister')
+      : ($login ? array('user_login', 'formLogin') : array());
     $function = 'rCredits\\Web\\' . $function;
-    $form = strpos($page, '/login') ? array() : \drupal_get_form($form, $args);
+    // (FAILS for user_login) $form = \drupal_get_form($form, $args);
+    $form = $login ? array() : \drupal_get_form($form, $args);
     $function($form, $sta, $args);
-    $form2 = $form; $rent = render($form2);
+    if ($login and $form['newPass']) $form['newPass'] = \form_process_password_confirm($form['newPass']);
+    $form2 = $form; $rent = \drupal_render($form2);
     getFormOut($rent);
     return $form;
   }     
 
-  $result = menu_execute_active_handler($page, FALSE);
+  $result = \menu_execute_active_handler($page, FALSE);
   if (is_numeric($result)) {
     $result = $result == MENU_NOT_FOUND ? 'not found' 
       : ($result == MENU_ACCESS_DENIED ? 'access error' : "error #$result");
     t\testOutput("page \"$page\": $result in t\\pageForm()");
   } else getFormOut($result);
-  return $result;
+  return $formArray;
 }
 
 function getFormOut($out) {
@@ -358,6 +365,7 @@ function getFormOut($out) {
   $formOut['steps'] = t\getSteps($out);
   $formOut['done'] = join('', t\getSteps($out, TRUE));
   $formOut['text'] = t\strip($out);
+  $formOut['notags'] = strip_tags($out);
   t\testOutput('ACTUAL: ' . $formOut['text'], 'screen');
 }
 
@@ -527,6 +535,7 @@ function shownWith($content, $type = 'text', $showDebugs = TRUE) {
       if ($showDebugs) t\testOutput(compact('xi','i','one'));
       if ($i === FALSE) {
         if ($showDebugs) t\testOutput(substr($model, 0, $xi) . ' <b style="font-size:200%;">[OK until here]</b> ' . substr($model, $xi));
+        //debug($formOut['notags']);
         return FALSE;
       } else $i += strlen($one);
     }

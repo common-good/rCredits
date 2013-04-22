@@ -183,7 +183,6 @@ function eachAccount($queries, $ons, $where = 'TRUE', $subs = array()) {
 }
 
 @todo: move some util functions, like ray(), to rcredits-basic.inc and "USE" them everywhere without a namespace qualifier.
-@todo: on successful web request for rCredits, say you will have to Dwolla us $20, to actually be added to the waiting list.
 @todo: allow surrounding spaces on all web input, leading dollar signs in amounts. Test. (mostly done)
 @todo: we also need some kind of confirmation on foreign transactions (from the other server)
 @todo: store city code (rather than city), with a code for "other" -- store other in data or r_other (same for country/state) MAYBE
@@ -199,7 +198,6 @@ function eachAccount($queries, $ons, $where = 'TRUE', $subs = array()) {
   If this is a joint account, do you want separate balances? (if so, it will be treated as separate accounts except that available funds may be transferred automatically to any of the joined accounts that dips below its credit limit.)
 @todo: closed accounts have only read perm and point (data[new_account]) at new account qid
 @todo: servers exchange info on which ss#s (or other ids) are dups
-@todo: check on mergeaccounts: do inter-table key relations get updated automatically?
 @todo
 - remove all direct db operations from interface modules (and their .inc files) -- use be\ and u\ there, but not r\
 

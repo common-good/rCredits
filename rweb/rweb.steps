@@ -50,18 +50,17 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
 function memberCompletesFormWithValues($id, $page, $values, $confirmed = FALSE) {
   global $testOnly; if ($testOnly) return FALSE;
   global $testConfirmation; // confirmation message output, if any
+  global $formSta;
 //debug(compact(u\ray('id page values confirmed testOnly'))); // keep
 
   $values = $values[0];
   t\fixCountryAndState($values);
   if (@$values['email']) $values = u\changeKey('email', 'mail', $values);
   
-  $mya = r\acct(); // save true account (that is running the tests), so we can restore it
   t\logIn($id);
 
   $validate = TRUE;
   if (!$form = t\pageForm(t\fixPageArgs($page), FALSE)) {
-    r\acct::setDefault($mya); // restore tester's account
     return FALSE; // probably access error
   }
   
@@ -77,22 +76,21 @@ function memberCompletesFormWithValues($id, $page, $values, $confirmed = FALSE) 
 //    u\setDft($dft, @$field['#default_value']);
     if ($field['#type'] == 'hidden') $dfts[$key] = $field['#value'];
   }
-  $sta['values'] = $sta['input'] = $values + $dfts;
-  if ($validate) foreach (t\postProcess($form, $page, 'validate') as $one) $one($form, $sta);
+  $formSta['values'] = $formSta['input'] = $values + $dfts; // add to whatever status the form left off in
+  if ($validate) foreach (t\postProcess($form, $page, 'validate') as $one) $one($form, $formSta);
 
   if (count($errors = t\getErrors()) > count($errorsBefore)) {
     // NO! if (!empty($errors)) return FALSE;
     //debug(compact(u\ray('id page values confirmed one errors')));
   } else {
-    $testConfirmation = @$sta['confirm'];
+    $testConfirmation = @$formSta['confirm'];
     $lastIdentifierTag = '</div identifiers>';
     if ($i = strpos($testConfirmation, $lastIdentifierTag)) $testConfirmation = substr($testConfirmation, $i + strlen($lastIdentifierTag));
     foreach (t\postProcess($form, $page, 'submit') as $one) {
-      $one($form, $sta);
+      $one($form, $formSta);
     }
   }
 
-  r\acct::setDefault($mya); // restore tester's account
   return TRUE;
 }
 
@@ -289,7 +287,7 @@ function weShowWithSubs($page, $subs) {
  *
  * in: Membership AMemberClicksOnTheMembershipLink TEST
  *     Membership ACompanyAgentClicksOnTheMembershipLink TEST
- *     Membership AMemberSignsTheAgreement TEST
+ *     Membership AMemberDoesItAll TEST
  *     Relations MemberHasAnEmployeeConfirmed TEST
  *     Relations MemberHasAnEmployeeUnconfirmed TEST
  *     Relations MemberHasARelationWithAContractor TEST
@@ -322,7 +320,7 @@ function weShowWith($title, $content = FALSE, $showDebugs = TRUE) {
  * we show (ARG) without: (ARG)
  *
  * in: Membership ACompanyAgentClicksOnTheMembershipLink TEST
- *     Membership AMemberSignsTheAgreement TEST
+ *     Membership AMemberDoesItAll TEST
  *     Relations MemberCompanyHasRelations TEST
  *     Relations ItsComplicated TEST
  *     Transactions AMemberLooksAtTransactionsForThePastYear TEST
@@ -404,7 +402,7 @@ function balances($list) {
  *
  * in: Membership AMemberClicksOnTheMembershipLink MAKE
  *     Membership ACompanyAgentClicksOnTheMembershipLink MAKE
- *     Membership AMemberSignsTheAgreement MAKE
+ *     Membership AMemberDoesItAll MAKE
  *     Relations MemberHasAnEmployeeConfirmed MAKE
  *     Relations MemberHasAnEmployeeUnconfirmed MAKE
  *     Relations MemberHasARelationWithAContractor MAKE
@@ -428,12 +426,8 @@ function balances($list) {
 function memberVisitsPage($id, $page) { // pass options in URL
   global $testOnly; if ($testOnly) return FALSE;
 
-  $mya = r\acct(); // save true account (that is running the tests), so we can restore it
   if (!t\login($id)) return FALSE;
-
   t\pageForm(t\fixPageArgs($page), FALSE);
-
-  r\acct::setDefault($mya); // restore tester's account
   return TRUE;
 }
 
@@ -446,16 +440,8 @@ function memberIsLoggedOut() {
   global $testOnly;
   u\deb('memberIsLoggedOut top loggedin=' . \user_is_logged_in());
   if ($testOnly) return !\user_is_logged_in();
-  
+  r\acct::setDefault(NULL);
   return TRUE; // never actually log out
-  if (t\postLogout(__FUNCTION__)) {
-  u\deb('memberIsLoggedOut after postLogout (returning TRUE)');
-    global $skipToStep; u\deb("in memberIsLoggedOut after postLogout before return TRUE skipToStep=$skipToStep");
-    return TRUE;
-  }
-//  module_load_include('pages.inc', 'user');
-//  if (\user_is_logged_in()) \user_logout(); else return TRUE;
-  return FALSE; // should never get here
 }
 
 /**
@@ -525,7 +511,7 @@ function memberAccountIsNotActive($uid) {
  *
  * in: Membership AMemberClicksOnTheMembershipLink TEST
  *     Membership ACompanyAgentClicksOnTheMembershipLink TEST
- *     Membership AMemberSignsTheAgreement TEST
+ *     Membership AMemberDoesItAll TEST
  */
 function withDone($steps) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -536,7 +522,7 @@ function withDone($steps) {
 /**
  * member (ARG) has done step (ARG)
  *
- * in: Membership AMemberSignsTheAgreement MAKE
+ * in: Membership AMemberDoesItAll MAKE
  */
 function memberHasDoneStep($uid, $step) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -566,7 +552,7 @@ function memberHasDoneStep($uid, $step) {
 /**
  * we show (ARG)
  *
- * in: Membership AMemberSignsTheAgreement TEST
+ * in: Membership AMemberDoesItAll TEST
  */
 function weShow($title) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -576,7 +562,7 @@ function weShow($title) {
 /**
  * member (ARG) supplies (ARG): (ARG)
  *
- * in: Membership AMemberSignsTheAgreement MAKE
+ * in: Membership AMemberDoesItAll MAKE
  */
 function memberSupplies($uid, $field, $value) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -587,7 +573,7 @@ function memberSupplies($uid, $field, $value) {
 /**
  * member (ARG) has permission (ARG)
  *
- * in: Membership AMemberSignsTheAgreement MAKE
+ * in: Membership AMemberDoesItAll MAKE
  */
 function memberHasPermission($uid, $permission) {
   global $testOnly; if ($testOnly) return FALSE;

@@ -148,7 +148,7 @@ class rwebRelations extends DrupalWebTestCase {
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
     . '\\| Person     | My employer? | My employee? | Family? | Permission   | Request rCard |'
-    . '\\| Dee Four   | No           | Yes          | Yes     | no access    | --       |"');
+    . '\\| Dee Four   | No           | Yes          | Yes     | no access    | --            |"');
     When_('member ".ZZD" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
     . '\\| Person     | My employer? | My employee? | Family? | Permission   | Request rCard |'
@@ -159,12 +159,12 @@ class rwebRelations extends DrupalWebTestCase {
   public function testMemberCompanyHasRelations_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "DATA'
-    . '\\| id    | main | agent | permission   | amount | employerOk | employeeOk | isOwner |'
-    . '\\| :ZZA  | .ZZC | .ZZA  | sell         |     10 | 1           | 1           | 1        |"');
+    . '\\| id    | main | agent | permission | amount | employerOk | employeeOk | isOwner |'
+    . '\\| :ZZA  | .ZZC | .ZZA  | manage     |     10 | 1           | 1           | 1        |"');
     When_('member ":ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
-    . '\\| Person  | Amount | My employee? | Is owner? | Permission | Request rCard      |'
-    . '\\| Abe One | 10     | Yes          | Yes       | sell       | request rCard |"');
+    . '\\| Person  | Amount | My employee? | Is owner? | Permission     | Request rCard |'
+    . '\\| Abe One | 10     | Yes          | Yes       | manage account | request rCard |"');
     And__('we show "Relations" without: "DATA'
     . '\\| Header       |'
     . '\\| My employer? |"');
@@ -220,7 +220,7 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| beatwo    |"');
     Then_('we show "Relations" with: "DATA'
     . '\\| Person     | Draw | My employer? | My employee? | Family? | Permission   | Request rCard |'
-    . '\\| Bea Two    | No   | No           | No           | No      | --           |               |"');
+    . '\\| Bea Two    | No   | No           | --           | No      | no access    |               |"');
   }
 
 }

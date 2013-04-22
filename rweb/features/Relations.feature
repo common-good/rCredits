@@ -84,7 +84,7 @@ Scenario: Member has access to employee account
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
   | Person     | My employer? | My employee? | Family? | Permission   | Request rCard |
-  | Dee Four   | No           | Yes          | Yes     | no access    | --       |
+  | Dee Four   | No           | Yes          | Yes     | no access    | --            |
   When member ".ZZD" visits page "account/relations"
   Then we show "Relations" with:
   | Person     | My employer? | My employee? | Family? | Permission   | Request rCard |
@@ -92,12 +92,12 @@ Scenario: Member has access to employee account
 
 Scenario: Member company has relations
   Given relations:
-  | id    | main | agent | permission   | amount | employerOk | employeeOk | isOwner |
-  | :ZZA  | .ZZC | .ZZA  | sell         |     10 | 1           | 1           | 1        |
+  | id    | main | agent | permission | amount | employerOk | employeeOk | isOwner |
+  | :ZZA  | .ZZC | .ZZA  | manage     |     10 | 1           | 1           | 1        |
   When member ":ZZA" visits page "account/relations"
   Then we show "Relations" with:
-  | Person  | Amount | My employee? | Is owner? | Permission | Request rCard      |
-  | Abe One | 10     | Yes          | Yes       | sell       | request rCard |
+  | Person  | Amount | My employee? | Is owner? | Permission     | Request rCard |
+  | Abe One | 10     | Yes          | Yes       | manage account | request rCard |
   And we show "Relations" without:
   | Header       |
   | My employer? |
@@ -147,5 +147,5 @@ Scenario: A member adds a relation
   | beatwo    |
   Then we show "Relations" with:
   | Person     | Draw | My employer? | My employee? | Family? | Permission   | Request rCard |
-  | Bea Two    | No   | No           | No           | No      | --           |               |
+  | Bea Two    | No   | No           | --           | No      | no access    |               |
   

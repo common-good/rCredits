@@ -95,6 +95,7 @@ function rweb_menu() {
     'another' => r\Web\menu(t('Open Another Account'), MENU_CALLBACK, 'showForm', array('Another'), B_MANAGE),
 //    'account/bank-info' => r\Web\menu(t('Bank Info'), MENU_LOCAL_TASK, 'showForm', array('Bank'), B_MANAGE),
     'account/usd' => r\Web\menu(t('USD Account'), MENU_LOCAL_TASK, 'showForm', array('Usd', 2), B_MANAGE),
+    'account/id-proof' => r\Web\menu(t('Id Proof'), MENU_LOCAL_TASK, 'showForm', array('Proof', 2), B_MANAGE),
 
     'sadmin' => r\Web\menu(t('System'), MENU_NORMAL_ITEM, 'showForm', array('System'), B_ADMIN),
     'handy' => r\Web\menu('Handy', MENU_NORMAL_ITEM, 'handy_links', array(), B_ADMIN),

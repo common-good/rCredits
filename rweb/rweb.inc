@@ -301,7 +301,12 @@ EOF;
   return "<div class='develw'>\n$result</div>";
 }
 
+/**
+ * Retrieve the specified form, called with the args, and return it rendered.
+ * Also sets $formArray and $formSta, for testing.
+ */
 function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
+  global $formArray, $formSta;
  
   try {
     setupGlobals(); // in case it's an anonymous form, so webAccess doesn't have a chance to set up
@@ -314,9 +319,16 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
 //    if ($layout == 'Mobile') css('mobile.css', 100);
     $formName = substr($function, 0, 1) == '/' ? substr($function, 1) : "rCredits\\Web\\form$function";
 //    if ($newLayout) svar('layout', $layout); // do this before drupal_get_form, so forms can know the current layout
-    $form = \drupal_get_form($formName, $arg1, $arg2, $arg3, $arg4);
-    if (!is_array($form)) return $form; // form probably did return r\go() during testing
-    $sta = array(); \rweb_form_alter($form, $sta, $formName);
+
+    $formSta = array(); // next few lines are from \drupal_get_form()
+    $args = func_get_args();
+    array_shift($args); // Remove $function from the arguments.
+    $formSta['build_info']['args'] = $args;
+    $form = drupal_build_form($formName, $formSta);
+
+//    $form = \drupal_get_form($formName, $arg1, $arg2, $arg3, $arg4);
+//    if (!is_array($form)) return $form; // form probably did return r\go() during testing
+    \rweb_form_alter($form, $formSta, $formName);
     $form['#attributes']['class'][] = 'rweb';
 //    if ($newLayout) $form['#cache'] = FALSE;
     if (!@$form['confirm']) $form += which(); // add the choices popup form, if any
@@ -331,7 +343,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
       js('inc/misc.js', 'file', 'footer');
     }
 
-    $form2 = $form; $rent = render($form2);
+    $formArray = $form2 = $form; $rent = \render($form2);
     if ($function == 'Usd') $rent = str_replace('Dwolla', '<a href="' . R_DWOLLA_LINK . '" target="_blank">Dwolla</a>', $rent);
     if (strpos($rent, 'form-type-checkbox') or strpos($rent, 'form-type-radio')) js('inc/radiocheck.js', 'file', 'footer');
     
@@ -696,7 +708,7 @@ function formMembership($updating, &$sta = '', $code = '') {
               
   } elseif (!$gotContact) { // did all the initial steps, but somehow didn't complete contact info
     $message1 = t('<h2>Missing Contact Information</h2><p>Please complete your <a href="../account/contact">Contact Information</a>, ') . ($nonperson ? t('before continuing.</p>') : t('so we can mail your rCard.</p>'));
-  } elseif (!$mya->can(B_OK)) { // got rCard, but not activated yet
+  } elseif (!$mya->can(B_OK) and !($gotUsdInfo and $gotIdProof and $gotPreferences and $invited)) { // got rCard, but not activated yet
     $message1 = $nonperson ? t('<h2>To activate your account, complete these final steps:</h2>') 
     : (t('<h2>You have completed the rCredits membership requirements!</h2>')
       . t('<p>You will receive your rCard in the mail within a few days. To activate your account and begin using your rCard for purchases from participating businesses, there are a few final tasks:</p>'));
@@ -708,9 +720,11 @@ function formMembership($updating, &$sta = '', $code = '') {
     $step3 = t('Set your <a>Account Preferences</a>.');
     $step4 = t('<a>Invite someone</a> to sign up for rCredits! No one can join without an invitation. You can help by sending one. You might particularly want to invite companies and individuals you buy from or sell to (for example your employer or employees).');
     $message2 .= memberStep(1, $gotUsdInfo, $step1, R_DWOLLA_LINK, TRUE)
-              . memberStep(2, $gotIdProof, $step2, 'account/usd')
+              . memberStep(2, $gotIdProof, $step2, 'account/id-proof')
               . memberStep(3, $gotPreferences, $step3, 'account/preferences')
               . memberStep(4, $invited, $step4, 'membership/invite');
+  } elseif (!$mya->can(B_OK)) {
+    $message1 = t('<h2>You have completed all membership steps.</h2><p>Within 24 hours, you should receive an email saying that your account is approved for use and you can begin using your rCard for purchases. Hurray!</p>');
   } else {
     $message1 = t('<h2>Congratulations! Your account is Activated.</h2><p>You are authorized to use rCredits to buy and sell with other members.')
       . ($mya->can(B_PERSONAL) ? t(' You are also responsible for guiding your local economy, together with hundreds of other rCredits members -- setting investment and grant-making priorities, electing local directors for your Common Good Community, planning a sustainable local prosperity for all residents, and offering help to communities elsewhere.</p>') : '</p>')
@@ -777,7 +791,7 @@ function formAgreement($form, &$sta) {
     $submit = submit();
     $instructions = <<<EOF
       <div id='instructions'>
-      <p><b>Instructions:</b> Put a check mark in each checkbox to indicate that you have read that section and agree to it. Really DO read the agreement and make sure you understand it! This agreement, that we make with each other, is the foundation for the rCredits system and the Common Good Economy.</p>
+      <p><b>Instructions:</b> Put a check mark in each checkbox to indicate that you have read that section and agree to it. Really DO read the agreement and make sure you understand it. This agreement, that we make with each other, is the foundation for the rCredits system and the Common Good Economy.</p>
 
       <p><b>Summary.</b> In the first part of the agreement (A), you acknowledge the intent and purpose of the rCredits system. In the second part (B), you agree to use the rCredits system the way it is designed to work. Notice that you can stop participating at any time, simply by giving back the rCredits you got for free (B4). Unlikely that you will <i>want</i> to stop, but you can.</p>
       
@@ -1097,8 +1111,7 @@ EOF;
 function formPhoto_validate(&$form, &$sta) {
   $validators = array(
     'file_validate_is_image' => array(),
-//    'file_validate_image_resolution' => array(variable_get('user_picture_dimensions', '85x85')),
-    'file_validate_size' => array(variable_get('user_picture_file_size', '30') * 1024),
+    'file_validate_size' => array(R_MAX_UPLOAD_SIZE * 1024000),
   );
 
   $file = \file_save_upload('picture_upload', $validators); // Save the file as a temporary file.
@@ -1143,7 +1156,7 @@ function formAccount($form, &$sta) {
   $form['account']['name'] = $form['account']['timezone'] = NULL;
   $form['account']['mail']['#description'] = t('All emails from the system will be sent to this address. The email address is not made public.');
   $form['account']['pass']['#description'] = t('To change your email address and/or password, enter your current password below.');
-  // No. $form['account']['pass']['#process'] = array('form_process_password_confirm', 'rCredits\\Web\\password_confirm');
+  //$form['account']['pass']['#process'] = array('form_process_password_confirm', 'user_form_process_password_confirm'); //'rCredits\\Web\\password_confirm');
   $form['account']['current_pass']['#description'] = '';
   $form['account']['current_pass']['#weight'] = 4;
   $form['account']['status']['#weight'] = 5;
@@ -1954,7 +1967,7 @@ function contactFields($form, $defaults = array()) {
  * @NOTE: The country and state drop down require a change in form.inc (see patch/form.inc.patch)
  */
 function formContact($form, &$sta) {
-  be\mergeCheck(compact(u\ray('name phone faxetc'))); // check before and after
+//  be\mergeCheck(compact(u\ray('name phone faxetc'))); // check before and after
   $mya = r\acct();
 //  extract((array) $mya->account(), EXTR_PREFIX_ALL, 'my');
 
@@ -1991,7 +2004,7 @@ function formContact_submit($form, &$sta) {
   extract($info = u\just('fullName name phone fax country postalCode state city address physical', $sta['input']));
   if (r\acct()->id == 1) unset($info['name']); // don't change 'admin'
   r\acct()->update($info);
-  be\mergeCheck(compact(u\ray('name phone fax'))); // check before and after
+//  be\mergeCheck(compact(u\ray('name phone fax'))); // check before and after
   say('info saved');
 }
 
@@ -2050,6 +2063,51 @@ function no_selection($list) {
   return TRUE;
 }
 
+/**
+ * Upload a photo ID
+ */
+function formProof($form, &$sta, $args = '') {
+  extract(u\just('show', $args));
+  $mya = r\acct();
+  $form = array(
+    'idProof' => file_exists(DRUPAL_ROOT . $mya->auxFilename('proof')) ? 
+        formField('item', t('Photo ID:'), '', R_ON_FILE . ($mya->hasBit(B_OK) ? '' : t(' (pending approval)')))
+      : formField('file', t('Photo ID:'), tt('Upload an image of your driver\'s license, passport, or other official photo ID. (maximum @R_MAX_UPLOAD_SIZE MB)'), attrib(array('enctype' => "multipart/form-data"))),
+    'submit' => submit(),
+  );
+
+  if ($mya->can(B_CTTY_ADMIN)) {
+    $field = 'idProof';
+    u\prefix($form[$field]['#description'], show($field, @$show));
+  }
+  return labeled($form);
+}
+
+function formProof_validate($form, &$sta) {
+  $mya = r\acct();
+  $proofFilename = DRUPAL_ROOT . $mya->auxFilename('proof');
+
+  if (@$_FILES['files']['name']['idProof']) { // fine to let this be uploaded separately
+    $validators = array('file_validate_size' => array(R_MAX_UPLOAD_SIZE * 1024000));
+    if (!$file = file_save_upload('idProof', $validators, '', FILE_EXISTS_REPLACE)) return say('Try again.', 'idProof');
+    if (!u\abbreviates('image/', @$file->filemime) and @$file->filemime != 'application/pdf') return say('bad file type', 'idProof');
+    $tempfile = file_directory_temp() . '/' . $file->filename;
+    if (!$key = $sta['input']['idProof'] = bin2hex(u\encryptFile($tempfile, $proofFilename, r\passSalt()))) return say('encryption failure', 'idProof');
+    \file_delete($file);
+  } elseif(file_exists($proofFilename)) {
+    $sta['input']['idProof'] = R_ON_FILE; // flag for no change
+  } else return say('nothing done', 'idProof');
+}
+
+function formProof_submit($form, &$sta) {
+  $mya = r\acct();
+  extract(u\just('idProof', $sta['input']));
+  if (@$idProof != R_ON_FILE) {
+    if (!$mya->update(compact('idProof'))) return say('info not saved', 'idProof');
+  }
+  say('info saved'); // don't say anything if getting auth
+  r\go('membership');
+}
 
 /**
  * Get the Dwolla account info
@@ -2079,14 +2137,11 @@ function formUsd($form, &$sta, $args = '') {
     'dob' => textField(t('Birthdate:'), t('Your date of birth'), required(@$dob)),
     'question' => textField(t('Question:'), t('Type a question that no one but you could ever guess the answer to.'), required($mya->question)),
     'answer' => textField(t('Answer:'), t('The answer to that question'), required(@$answer)),
-    'idProof' => file_exists(DRUPAL_ROOT . $mya->auxFilename('proof')) ? 
-        formField('item', t('Photo ID:'), '', R_ON_FILE . ($mya->hasBit(B_OK) ? '' : t(' (pending approval)')))
-      : formField('file', t('Photo ID:'), t('Upload an image of your driver\'s license, passport, or other official photo ID.'), attrib(array('enctype' => "multipart/form-data"))),
     'submit' => submit(),
   );
 
   if ($mya->can(B_CTTY_ADMIN)) {
-    foreach (u\ray('usdAccount pin federalId dob answer idProof') as $field) {
+    foreach (u\ray('usdAccount pin federalId dob answer') as $field) {
       u\prefix($form[$field]['#description'], show($field, @$show));
     }
     if (!$mya->can(B_ADMIN)) unset($form['subtext']);
@@ -2104,6 +2159,7 @@ function formUsd($form, &$sta, $args = '') {
 function show($field, $show = '') {
   global $base_url;
   $mya = r\acct();
+  $page = $field == 'idProof' ? 'id-proof' : 'usd'; 
   
   if ($field == $show) {
     if (strpos(R_SECURE_FIELDS, $field) !== FALSE) {
@@ -2120,7 +2176,7 @@ function show($field, $show = '') {
     } elseif (strpos(R_SECRET_FIELDS . ' usdAccount', $field) !== FALSE) {
       $result = $mya->$field;
     }
-  } else $result = "<a href=\"$base_url/account/usd/show=$field\">SHOW</a>";
+  } else $result = "<a href=\"$base_url/account/$page/show=$field\">SHOW</a>";
   return "[$result] ";
 }
 
@@ -2129,8 +2185,6 @@ function onFile($field, $sta) {
 }
 
 function formUsd_validate($form, &$sta) {
-  $mya = r\acct();
-  $proofFilename = DRUPAL_ROOT . $mya->auxFilename('proof');
   extract(u\just('usdAccount pin federalId dob', $sta['input']));
   if (!onFile('usdAccount', $sta)) {
     $usdAccount = $sta['input']['usdAccount'] = u\digits($usdAccount);
@@ -2148,16 +2202,7 @@ function formUsd_validate($form, &$sta) {
   if (!onFile('dob', $sta)) { // 12/14/1901 is the earliest
     if (!$dob = $sta['input']['dob'] = u\strToDate($dob) or $dob > REQUEST_TIME) return say('bad date', 'dob');
   }
-  if (@$_FILES['files']['name']['idProof']) { // fine to let this be uploaded separately
-    if (!$file = file_save_upload('idProof', array(), '', FILE_EXISTS_REPLACE)) return say('Try again.', 'idProof');
-    if (!u\abbreviates('image/', @$file->filemime)) return say('bad file type', 'idProof');
-    $tempfile = file_directory_temp() . '/' . $file->filename;
-    if (!$key = $sta['input']['idProof'] = bin2hex(u\encryptFile($tempfile, $proofFilename, r\passSalt()))) return say('encryption failure', 'idProof');
-    \file_delete($file);
-  } elseif(file_exists($proofFilename)) {
-    $sta['input']['idProof'] = R_ON_FILE; // flag for no change
-  } else unset($sta['input']['idProof']); // no attempt yet to provide this
- }
+}
 
 function formUsd_submit($form, &$sta) {
   include_once __DIR__ . '/../usd.class'; // treat this as an extension of this file, just to make menu ['file'] consistent
@@ -2170,7 +2215,7 @@ function formUsd_submit($form, &$sta) {
   
   $usdFields = '';
   $mya = r\acct();
-  $info = u\just('type usdAccount pin auth federalId dob question answer idProof', $sta['input']);
+  $info = u\just('type usdAccount pin auth federalId dob question answer', $sta['input']);
   $secure = @$mya->secure ?: array();
   $retry = (!@$secure['auth'] and $info['usdAccount'] == R_ON_FILE and $info['pin'] == R_ON_FILE);
 //  $retry = FALSE; // DEBUG
@@ -2179,7 +2224,7 @@ function formUsd_submit($form, &$sta) {
   extract($info); // extract just the ones that changed
 
   $info = u\just(R_SECRET_FIELDS . ' question', $info);
-  if (!$saved = (empty($info) or $mya->update($info))) return say('info not saved', 'zot');
+  if (!empty($info) and !$mya->update($info)) return say('info not saved', 'zot');
   
   if (isset($usdAccount) or isset($pin) or $retry) { // this must be last, because it redirects to Dwolla
     $type = 'Dwolla';
@@ -2382,6 +2427,7 @@ function formRelations_submit($form, &$sta) {
   }
 //  debug($changes);
   if (!empty($changes)) say(be\updateRelations($changes));
+  if (t\EST()) return r\go('account/relations');
 }
 
 function dropdown($name, $value, $options, $id) {
@@ -2588,8 +2634,8 @@ function formLogin(&$form, &$sta, $regular = TRUE) {
     $subtext = item(t('Welcome! If you have not yet signed up for rCredits, click on "New account" above.<br><br><b>TIP</b>: Do not sign in to your financial accounts on a public computer.'));
   }
   if (($name = @$_COOKIE['loginto']) and ($uid = r\loginString($name))) {
-    // $process = array('form_process_password_confirm', 'rCredits\\Web\\password_confirm0');
-    $newPass = formField('password_confirm', '', '', compact('process'));
+    //$process = array('form_process_password_confirm', 'user_form_process_password_confirm'); // 'rCredits\\Web\\password_confirm0');
+    $newPass = formField('password_confirm', '', '', required() + compact('process'));
   }
   $name = textField(t('Username/ID:'), $regular ? t('Enter your username (the letters of your legal name, all lowercase) OR your rCredits account ID.') : '', required(@$name));
   $pass = formField('password', @$newPass ? t('Old password:') : t('Password:'), t('Enter your current or temporary password.'), required());
@@ -2657,7 +2703,7 @@ function loginFollowup($edit, $account) {
   svar('myid', $myid);
   setupGlobals();
 
-  setcookie('loginto', '', REQUEST_TIME-1, '/'); // no more default login
+  r\setCook('loginto', '', REQUEST_TIME-1); // no more default login
   $data = $mya->data ?: array();
   unset($data['oneTimePass']);
   $mya->update(compact(u\ray('pass data')));
@@ -2710,7 +2756,7 @@ function oneTimePass($name, &$data) {
   $pass = \user_password(); // not a hash
   if (isDEV) say('Password: ' . $pass);
   $expires = REQUEST_TIME + 3600 * R_SIGNIN_HOURS;
-  setcookie('loginto', $name, $expires, '/'); // make it easy (fails without '/')
+  r\setCook('loginto', $name, $expires);
   $data['oneTimePass'] = compact('pass', 'expires');
   return $pass;
 }  

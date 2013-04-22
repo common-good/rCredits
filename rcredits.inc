@@ -36,6 +36,7 @@ define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities ca
 define('R_TEMP_NAME_PREFIX', 'unknown ');
 define('R_MIN_PHOTO_WIDTH', 240); // how wide to make profile pictures (unless too long)
 define('R_MAX_PHOTO_WIDTH', 1024);
+define('R_MAX_UPLOAD_SIZE', 3); // maximum upload size in MB
 define('R_URL_SLASH', '%_%'); // Drupal gets confused by slashes in a url, even if urlencoded
 define('R_MAX_DAILY_EXCHANGE', 1000); // per Common Good Finance policy and to avoid formal FinCEN regulation
 define('R_INVITE_DAYS', 7); // number of days to accept invitation to membership
@@ -183,7 +184,7 @@ $GLOBALS['emailSubjects'] = array(
   
   'welcome' => t('Welcome to rCredits!'),
   'password-reset' => t('New rCredits PASSWORD'),
-  'tell-staff' => t('rCredits STAFF ALERT: @index'),
+  'tell-staff' => t('rCredits STAFF ALERT: {topic}'),
 );
 
 include_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
@@ -588,7 +589,7 @@ function notifyStaff($index, $subs = array(), $uid = TRUE) {
   } else $uid = 1;
 
   $noFrame = TRUE;
-  $topic = strlen($index) < 20 ? $index : '';
+  $topic = strlen($index) < 20 ? strip_tags($index) : '';
   \drupal_mail('rCredits', 'tell-staff', R_ORG_EMAIL, '', compact(u\ray('message topic noFrame uid')));
 }
 
@@ -644,7 +645,7 @@ function setTxField($fieldName, $newValue, $xid, $allRelated = FALSE) {
 /**
  * Merge a temporary ("old") account into the current account (a permanent ("new") account).
  * @return 1 (for counting how many were merged)
- */
+ */ /*
 function mergeAccounts($oldUid) {
   $newUid = acct()->id;
   if (!be\isTempAccount($oldUid)) return; // don't merge non-temp account
@@ -662,6 +663,7 @@ function mergeAccounts($oldUid) {
   return 1;
 //  dbQ("UPDATE users SET uid=IF(uid>0,-uid,uid), status=0 WHERE uid=:oldUid", compact('oldUid'));
 }
+*/
 
 /**
  * Return the rough location of the entity with the given account (city, state, non-US country).
@@ -769,6 +771,11 @@ function unQuid($quid) {
 function quid2($uid) {return strstr(quid($uid), '.');}
 
 function qxid($xid, $regionId = R_SERVER_ID) {return qid($xid, $regionId = R_SERVER_ID, 4);} // Convert xid to qxid
+
+function setCook($key, $value, $expires) {
+  setcookie($key, $value, $expires, '/'); // make it easy (fails without '/')
+  if (t\EST()) $_COOKIE[$key] = $value;
+}
 
 /**
  * Return the rCredits region id for the given account id
@@ -928,23 +935,22 @@ function newUid($base) {
   
 /**
  * Assign the given account a new id.
- * This is safe only if run in Maintenance mode or if there is a gap in the used uids.
- * For an ugly QUID, a replacement record will need to be created for the old uid, and marked unusable
- * @param bool $skipUsers: don't change the actual users table record 
- *   called from mergeAccounts, where the old record is to be deleted and the new already exists
  * @return the new uid
  */
-function newMemberId($oldUid, $newUid = FALSE, $skipUsers = FALSE) {
+function changeUid($oldUid, $newUid = FALSE) {
   if (!$newUid) $newUid = newUid($base);
   $subs = array( // all tables are listed, to be sure we don't leave any out
   // r_areas
   // r_countries,
+    'r_companies:id',
+    'r_gifts:uid',
   // r_industries
     'r_invites:inviter',
     'r_invites:invitee',
     'r_log:myid',
     'r_log:agent',
   // r_nonces
+  // r_nonmembers
     'r_proxies:person',
     'r_proxies:proxy',
   // r_regions
@@ -958,6 +964,7 @@ function newMemberId($oldUid, $newUid = FALSE, $skipUsers = FALSE) {
     'r_txs:payee',
     'r_usd:payer',
     'r_usd:payee',
+  // r_usderror
     'r_user_industries:uid',
     'users:uid',
   );
@@ -965,15 +972,15 @@ function newMemberId($oldUid, $newUid = FALSE, $skipUsers = FALSE) {
   $DBTX = \db_transaction();
   foreach ($subs as $one) {
     list ($table, $field) = explode(':', $one);
-    if ($skipUsers and $table == 'users') {
-/*      $cols = dbQ("SELECT column_name FROM information_schema.columns WHERE table_name='users'")->fetchCol();
-      $map = array(',uid=DEFAULT,' => ',', ',mail=DEFAULT' => ',mail=uid', ',name=DEFAULT' => ",name='UNUSABLE$oldUid'");
-      $updates = strtr(',' . join('=DEFAULT,', $cols) . '=DEFAULT,', $map);
-      $updates = str_replace(',name=DEFAULT', ",name='UNUSABLE$oldUid'", $updates); // mystery why the strtr skips this (???!)
-      $updates = substr($updates, 1, strlen($updates) - 2); // remove surrounding commas
-      dbQ("UPDATE $table SET $updates WHERE uid=:oldUid", compact('oldUid'));
-*/
-    } else dbQ("UPDATE $table SET $field=:newUid WHERE $field=:oldUid", compact('newUid', 'oldUid'));
+    dbQ("UPDATE $table SET $field=:newUid WHERE $field=:oldUid", compact('newUid', 'oldUid'));
+  }
+  $oldQuid = r\quid($oldUid);
+  list ($uid, $name, $mail) = array($oldUid, "unusable-$oldQuid", "unusable$oldQuid@rcredits.org");
+  r\dbInsert('users', compact(u\ray('uid name mail'))); // mark old uid unusable
+  foreach (u\ray('picture proof') as $one) {
+    $newFilename = r\acct($newUid)->auxFilename($one);
+    $oldFilename = str_replace("/$newUid-", "/$oldUid-", $newFilename);
+    if (file_exists($oldFilename)) rename($oldFilename, $newFilename);
   }
   unset($DBTX); // commit
   return $newUid;
@@ -1013,19 +1020,11 @@ function invite($email, $inviter, $code = '', $subject = '', $message = '') {
 /**
  * Go to the specified page
  * Accommodate testing, if that's what's happening.
- * Drupal urlencodes the parameters (= and &), so the target page will have to sort that out. (can't use Header() here)
+ * Drupal urlencodes the parameters (= and &), so the target page will have to sort that out.
  */
 function go($page) {
   if (t\EST()) return t\pageForm($page);
-/*  if (t\EST()) {
-    list ($form, $arg1) = ($page == 'pay' or $page == 'charge') ? array('tx', $page) : array($page, '');
-    $form = function_exists("\\rCredits\\Web\\form$form") ? $form 
-      : ($form = 'user/register' ? 'register'
-      : "\\$form");
-    return Web\showForm($form, $arg1);
-  } */
   foreach (u\ray('login register password reset') as $one) if (strpos($page, "user/$one") !== FALSE) {
-    //module_load_include('pages.inc', 'user', 'user');
     if (\drupal_session_started()) session_destroy();
   }
   \drupal_goto(substr($page, 0, 1) == '/' ? substr($page, 1) : $page);

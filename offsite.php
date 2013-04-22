@@ -51,8 +51,8 @@ function lookup($field, $table, $id) {
 function query($sql, $subs = array()) {
   global $db;
   $q = $db->prepare($sql);
-  $q->execute($subs);
-  return substr($sql, 0, 7) == 'SELECT ' ? $q->fetchAll(PDO::FETCH_ASSOC) : $q->rowCount();
+  $result = $q->execute($subs);
+  return substr($sql, 0, 7) == 'SELECT ' ? $q->fetchAll(PDO::FETCH_ASSOC) : $result;
 }
 
 /**

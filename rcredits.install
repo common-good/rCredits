@@ -62,20 +62,20 @@ function rcredits_install() {
   $theme['favicon_path'] = 'sites/all/modules/rcredits/images/icons/favicon.ico';
   variable_set('theme_rcredits_settings', $theme);
   
-  // pictures
+  // pictures (probably do without most of these)
   variable_set('user_pictures', '1');
   variable_set('user_picture_default', 'sites/default/files/pictures/no-photo-available.jpg');
   variable_set('user_picture_dimensions', '2048x1152');
-  variable_set('user_picture_file_size', '3000');
+  variable_set('user_picture_file_size', R_MAX_UPLOAD_SIZE * 1024); // in KB
   variable_set('user_picture_style', 'large');
-  foreach (array(R_PICTURE_DIR, R_PROOF_DIR) as $dir) \file_prepare_directory($dir, FILE_CREATE_DIRECTORY);
+  foreach (array(R_PICTURE_DIR, R_PROOF_DIR) as $dir) mkdir(DRUPAL_ROOT . $dir, O777);
 
 // NO. This creates a navigation column.  variable_set('site_frontpage', 'charge');
 
   $current = variable_get('mail_system', array('default-system' => 'DefaultMailSystem'));
   variable_set('mail_system', array_merge($current, array('rCredits' => 'rCreditsMailSystem')));
 
-  // use PDO for insertion queries, because Drupal's db_query ignores braces
+  // use PDO::query for filter-insert.sql insertion queries, because Drupal's db_query ignores braces
   $root = dirname($_SERVER['DOCUMENT_ROOT']);
   $dbs = (array) json_decode(utf8_encode(file_get_contents("$root/.databases")));
   $db_name = @$_SERVER['WINDIR'] ? 'new_rcredits' : key($dbs);

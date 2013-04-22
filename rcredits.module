@@ -158,9 +158,10 @@ function rcredits_mail($index, &$msg_array, $info) {
     $fields = compact(u\ray('index email subject message'));
     t\testOutput($fields, 'email'); // keep this
     
-    if (!r\acct()) { // must be register/login/reset, so setup what u\loga needs
+    if (!$mya = r\acct()) { // must be register/login/reset, so setup what u\loga needs
       r\acct::setDefault($acct);      
       global $channel; if (!$channel) $channel = TX_WEB;
+      r\acct::setDefault($mya); // put it back (required at least for testing
     }
     u\loga('email', $fields);
 

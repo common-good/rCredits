@@ -30,7 +30,7 @@ Scenario: A company agent clicks on the membership link
   | Choose two people |
   And with done ""
 
-Scenario: A member signs the agreement
+Scenario: A member does it all
   Given member "NEW.ZZA" has done step "agreement"
   When member "NEW.ZZA" visits page "membership"
   Then we show "Congratulations on signing up"
@@ -56,14 +56,17 @@ Scenario: A member signs the agreement
   When member "NEW.ZZA" has done step "preferences"
   And member "NEW.ZZA" visits page "membership"
   Then with done "13"
-  When member "NEW.ZZA" has done step "invitation"
-  And member "NEW.ZZA" visits page "membership"
-  Then with done "134"
   When member "NEW.ZZA" has done step "proof"
   And member "NEW.ZZA" visits page "membership"
   Then we show "You have completed the rCredits membership" with:
   | note             |
   | pending approval |
+  And with done "123"
+  When member "NEW.ZZA" has done step "invitation"
+  And member "NEW.ZZA" visits page "membership"
+  Then we show "You have completed all membership steps" without:
+  | content |
+  | preferences |
   When member "NEW.ZZA" has permission "ok"
   And member "NEW.ZZA" visits page "membership"
   Then we show "Your account is Activated" without:

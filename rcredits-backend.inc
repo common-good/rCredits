@@ -567,7 +567,8 @@ function addCell($number, $validate = FALSE) {
   $status = SMS_PRIMARY;
   $phone = $number = $numberInternal;
   $info = compact(u\ray('uid number status'));
-  if (!mergeCheck(compact('number'))) r\dbInsert('r_sms', $info);
+  //if (!mergeCheck(compact('number'))) 
+  r\dbInsert('r_sms', $info);
   if (!$mya->phone) $mya->update(compact('phone')); // use it as contact phone, if none yet
   $number = $numberPretty;
   return array('report new cell', compact('number'));
@@ -713,7 +714,8 @@ EOF;
 /**
  * Find and merge into the current account any temporary accounts with the same shortname or specified criteria
  * @return int: the number of accounts that were merged.
- */
+ * CURRENTLY UNUSED
+ */ /*
 function mergeCheck($info) {
   if (isFrontend()) return backend('mergeCheck', $info);
   
@@ -732,7 +734,7 @@ function mergeCheck($info) {
   while ($row = $result->fetchAssoc()) $found += r\mergeAccounts($row['uid']);
   return $found;
 }
-
+*/
 /**
  * Return a list of account choices for the current user (NOT the current credit account)
  * @return an array of account ids (FALSE if none)
