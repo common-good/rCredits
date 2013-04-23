@@ -365,7 +365,7 @@ function tx_summary($starting, $ending) {
     array('id' => 'txsum-headers', 'data' => u\ray('Starting balance,,To You,,From You,,Rewards,,To CGF,,Ending balance')),
     array(
       'id' => 'txsum-now', 
-      'data' => u\ray("$old_balance | + | $dif_grossInProper | - | $dif_grossOut | + | $dif_rewards | - |  | = | $now_balance"),
+      'data' => u\ray("$old_balance | + | $dif_grossInProper | - | $dif_grossOut | + | $dif_rewards |  |  | = | $now_balance"),
     ),
     array(
       'id' => 'txsum-pending',

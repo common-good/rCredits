@@ -7,33 +7,24 @@ PRODUCTION SITE PROBLEMS:
 BEFORE MINI LAUNCH:
 - 6 people and 3 orgs tested signup, plus one joint account; watch people sign up
 - log everything
-- assign new password on first summary (check if last login == created)
-- tests: New Pass, Summary (add member check), Photo, Agreement, Contribute, Proxies
-- tests: Usd (including proof of ID), Options, Invite, Relations, Cron (just cache check, auto bank transfers)
-- get Dwolla to work on production site
+- tests (ideally before opening accounts): New Pass, Photo, Agreement, Contribute, Proxies
+- tests: Usd (including proof of ID), Options, Invite, Cron (daily)
 - written instructions for signup (dwolla, etc)
-TOTAL: 1200 x 3 = 3600 = 60 hours
-
-BEFORE LAUNCH:
 - print me a card (and test it)
 - flow (figure credit accordingly, transfer between accounts as needed at day's end)
 - inviter gets the Dwolla credit (is this possible?)
-- signup feature: Mike Morton NH should be NEN.AAA
 - membership gift happens upon account activation (rTrader status); goes through as an rC transaction (test)
 - /I/ includes security code, like this: http(s?)://new.rc2.me/new.abc/Urlencoded10CharacterSecurityCode (test)
+- ** download must include rebate and bonuses transactions as a separate row (for GFM)
+- ** cron: make a "daily" queue for most stuff. include figuring variable_set('totals') (usd, r, demand, etc.)
+- don't set aside bought rCredits (for 2 weeks)
 
 To do: (* = before launch ** = earlier)
 
-- when a non-bona nube donates, replace the previous gift.
 - add a Contribute link in footer when logged in
-- accept PDF for id proof
 - explain picture format
-- during membership signup, always return to the membership page. else donation returns to summary; invite returns to invite if all other steps are complete
 - in formAccount do away with Drupal basis
 - back button
-- increase PHP memory so TCPDF works
-- check upload size of photos in validate (else crash)
-- "the picture will be scaled to..." (aspect*pixels)
 - use can() consistently, but have it do hasBit (for efficiency) when possible (bit < B_MAX)
 - "debt ok" pref: make it work: can't go down to credit floor<0 unless chosen "can go below". Credit floor has link to pref.
 - help for all pages
@@ -46,7 +37,7 @@ To do: (* = before launch ** = earlier)
 - pref for notification frequency (hourly/daily/weekly/monthly digest, viewable online)
 - * finish and test cron (one part at a time)
 - * diagram to illustrate min, max, and automatic virtual payments (for employees and companies, each in middle)
-- * add warning about flow not implemented yet
+- * make flow (draw) work
 - nightly: recalc exchange rates / allow users to express amounts in any currency (rounding DOWN); transactions will need to record exchange rate (true currency will be tied to region, regardless of how the user chooses to have it displayed)
 - don't go over employee maximums unless we have to (know it ahead of time, either limit it to max or don't. simple) (don't bother with this -- it will probably be better as it is)
 - *receive deposit/withrawal callbacks to set "completed" in r_usd. alert staff if fails.
@@ -54,8 +45,6 @@ To do: (* = before launch ** = earlier)
 - *in daily: alert staff if deposit / withdrawal not complete after 3 days
 - * log more stuff
 - ** shrink photo in formI (should be 50%) done?
-- ** download must include rebate and bonuses transactions as a separate row (for GFM)
-- ** cron: make a "daily" queue for most stuff. include figuring variable_set('totals') (usd, r, demand, etc.)
 - * in profile, handle links to list of websites
 - * signup button on rcredits.org goes directly to user/register
 - * demo button on rcredits.org goes to login with options to log in as abeone, beatwo (self-employed), cornerpub, or townarts (which should have a "Contribute" form on its member/townarts page)

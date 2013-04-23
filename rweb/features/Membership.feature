@@ -50,6 +50,9 @@ Scenario: A member does it all
   | Step 1                | Step 2                | Step 3                       | Step 4                    |
   | Open a Dwolla account | your driver's license | Set your Account Preferences | Invite someone to sign up |
   And with done ""
+  And we email staff "event" with:
+  | fullName | quid    | status |
+  | Abe One  | NEW.ZZA | member |
   When member "NEW.ZZA" has done step "dwolla"
   And member "NEW.ZZA" visits page "membership"
   Then with done "1"
@@ -67,6 +70,9 @@ Scenario: A member does it all
   Then we show "You have completed all membership steps" without:
   | content |
   | preferences |
+  And we email staff "event" with:
+  | fullName | quid    | status |
+  | Abe One  | NEW.ZZA | ready  |
   When member "NEW.ZZA" has permission "ok"
   And member "NEW.ZZA" visits page "membership"
   Then we show "Your account is Activated" without:

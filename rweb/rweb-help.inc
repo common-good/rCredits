@@ -35,25 +35,22 @@ EOF
       <ul>
         <li><b>Summary</b> gives you an overview of your account.</li>
         <li><b>Transactions</b> shows your recent transactions so you can accept, edit, print, or undo them.</li>
-        <li><b>Charge</b> lets you invoice another participant (to be paid in rCredits). Or, if you have a qualified business account, you can charge them. If the transaction is for real goods or services, both buyer and seller get an incentive reward of additional rCredits.</li>
-        <li><b>Pay</b> lets you transfer your rCredits to another participant. If the transaction is for real goods or services, both buyer and seller get an incentive reward of additional rCredits.</li>
-        <li><b>Get rCredits / USD</b> is where you trade US Dollars for rCredits or vice versa. Since you get more for rCredits, you will probably want as many as you can easily spend. We are issuing rCredits slowly, to avoid any possibility of economic disruption, so there is a waiting line. Meanwhile, some participants will occasionally have more rCredits than they can spend. If you are in that position, use this tab to exchange rCredits for US Dollars.</li>
+        <li><b>Charge</b> lets you invoice another participant (to be paid in rCredits and/or US Dollars). Or, if you have a qualified business account, you can charge them. Normally, both buyer and seller get an incentive reward of additional rCredits.</li>
+        <li><b>Pay</b> lets you transfer your rCredits to another participant. Normally, both buyer and seller get an incentive reward of additional rCredits.</li>
         <li><b>Find Businesses</b>. This is where you can find out who takes rCredits for what you want.</li>
-        <li><b>Test SMS</b> is a temporary tab where you can test the Text Messaging even if you don't have a cell phone or cell service.</li>
       </ul>
       <h2>Upper Right Links</h2>
       <ul>
-        <li><b>Account Settings</b> has several subtabs:
+        <li><b>Settings</b> has several subtabs:
         <ul>
+          <li><b>Contact Info</b> is where you add or change your contact phone numbers and address.</li>
           <li><b>Basic Account Settings</b> is where you change your email address, password, picture, or time zone.</li>
-          <li><b>Cell Phone Access</b> lets you connect your account to one or more cell phones, so you can use Text Messaging to buy and sell things with rCredits.</li>
+          <li><b>Cell Phones</b> lets you connect your account to one or more cell phones, so you can use Text Messaging to buy and sell things with rCredits.</li>
           <li><b>Relations</b> lets you connect individual rCredits participants to your account &mdash; as owners, employees, suppliers, or others, with limited or full access to the account. This is useful for authorizing sales clerks or setting up joint accounts.</li>
-          <li><b>Contact Information</b> is where you add or change your phone numbers and address.</li>
-          <li><b>Account Preferences</b> gives you several choices about how your rCredits account works. This section will be growing. Feel free to suggest additional options that you would like to see here.</li>
+          <li><b>Preferences</b> gives you several choices about how your rCredits account works.</li>
         </ul>
         </li>
-      <li><b>Membership Status</b> tells you where you are in the process of opening and activating your account. This section will give you links to your next steps.</li>
-      <li><b>Account</b> shows the balance in your current account. If you have access to more than one account (that is, if some other account names you in the Relations section), then use this dropdown list to select an account to manage.</li>
+      <li><b>Membership</b> tells you where you are in the process of opening and activating your account. This section will give you links to your next steps.</li>
       <li><b>Help</b> is this page.</li>
       <li><b>Log out</b> protects your account from unauthorized passersby.</li>
     </ul>
@@ -92,10 +89,8 @@ EOF
       <p>You can limit the results to a specific industry or a specific business by typing all or part of the industry or business name. Currently, if you limit the results geographically, there won't be any results unless you choose the United States "01" postal code region.</p>
 EOF
     ),
-    'account' => t(<<<EOF
+    'account/basic' => t(<<<EOF
       <p><b>Current password:</b> To change your email address or password, you must supply your current password, as a security precaution.</p>
-      <p><b>Picture:</b> For an individual account you will need to upload a clear photo of your face, for identification. This is the photo that will appear on your Member ID card.</p>
-      $companyAccount
 EOF
     ),
     'account/cells' => t(<<<EOF
@@ -116,7 +111,8 @@ EOF
 EOF
     ),
     'account/photo' => tt(<<<EOF
-      <p>If you have trouble coming up with a photo in a format that works, have a youngster take picture of you with their cell phone or tablet. Ask them to email you the picture, save that attachment to your desktop, then upload it here. If you still have trouble, email a description of your predicament to   us at <a href="mailto:@R_ORG_EMAIL?subject=photo trouble" target="_blank">@R_ORG_EMAIL</a> and we will help.
+      <p>For an individual account you will need to upload a clear photo of your face, for identification. This is the photo that will appear on your Member ID card. If you have trouble coming up with a photo in a format that works, have a youngster take picture of you with their cell phone or tablet. Ask them to email you the picture, save that attachment to your desktop, then upload it here. If you still have trouble, email a description of your predicament to us at <a href="mailto:@R_ORG_EMAIL?subject=photo trouble" target="_blank">@R_ORG_EMAIL</a> and we will help.</p>
+      $companyAccount
 EOF
     ),
     'account/company' => t(<<<EOF
@@ -143,7 +139,7 @@ EOF
 EOF
     ),
     'to-bank' => t(<<<EOF
-      <p>This "To bank" setting is usually a good idea unless you use your Dwolla account outside the rCredits system. It can take up to 3 days for the bank to receive the funds, once they are sent.</p>
+      <p>This "To bank" setting is probably a good idea unless you use your Dwolla account outside the rCredits system. It can take up to 3 days for the bank to receive the funds, once they are sent.</p>
 EOF
     ),
     'issue-credit' => t(<<<EOF

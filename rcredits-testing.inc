@@ -31,7 +31,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
   $pass = @$my_password ?: '123';
   $mail = @$my_email ?: ''; // Don't use "$name@example.com"
   if (strpos(@$my_flags, '%') !== FALSE) {
-    $flags = B_DFT | u\bit(isset($my_flags) ? @$my_flags : (B_MEMBER | B_OK));
+    $flags = B_DFT | u\bit(isset($my_flags) ? @$my_flags : (u\bit(B_MEMBER) | u\bit(B_OK)));
   } else {
     $flags = 0;
     if (@$my_flags) foreach (u\ray($my_flags) as $one) {
@@ -199,14 +199,14 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
   return r\dbExists('r_log', "info=:info AND $crit", compact(u\ray('info type myid agent channel')));
 }
 
-function findEmail($index, $email, $subs) {
+function findEmail($index, $email, $subs, $noBody = FALSE) {
   $subs = @$subs[0] ?: @$subs;
 /* REDUNDANT? foreach (array('payerPurpose', 'payeePurpose') as $field) {
     if (($purpose = @$subs[$field]) and !$real) $subs[$field] = str_replace('#', '#a', $purpose); // would realFix() handle this?
   } */
   $esubs = array();
   foreach ($subs as $k => $value) $esubs['{' . $k . '}'] = $value;
-  $message = strtr(r\emailBody($index), $esubs);
+  $message = strtr($noBody ? r\emailTemplate($index) : r\emailBody($index), $esubs);
   $subject = strtr($GLOBALS['emailSubjects'][$index], $esubs);
   return findMessage('email', compact(u\ray('index email subject')), $message, $subject, $subs);
 }

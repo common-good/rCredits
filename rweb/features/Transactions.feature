@@ -10,11 +10,11 @@ Setup:
   | NEW.ZZB | Bea Two    | -200  | %R_PERSONAL   | dft,ok,personal,company |
   | NEW.ZZC | Corner Pub | -300  | %R_COMMERCIAL | dft,ok,company          |
   And relations:
-  | id      | main    | agent   | permission        |
-  | NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |
-  | NEW:ZZB | NEW.ZZB | NEW.ZZA | read transactions |
-  | NEW:ZZC | NEW.ZZC | NEW.ZZB | buy and sell      |
-  | NEW:ZZD | NEW.ZZC | NEW.ZZA | sell              |
+  | id      | main    | agent   | permission |
+  | NEW:ZZA | NEW.ZZA | NEW.ZZB | buy        |
+  | NEW:ZZB | NEW.ZZB | NEW.ZZA | read       |
+  | NEW:ZZC | NEW.ZZC | NEW.ZZB | buy        |
+  | NEW:ZZD | NEW.ZZC | NEW.ZZA | sell       |
   And transactions: 
   | tx_id    | created   | type         | state       | amount | from      | to      | purpose | taking |
   | NEW:AAAB | %today-7m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZA | signup  | 0      |
@@ -49,7 +49,7 @@ Scenario: A member looks at transactions for the past year
   Then we show "Transaction History" with:
   | Start Date | End Date | Start Balance | To You | From You | Rewards | End Balance |
   | %dmy-12m   | %dmy     | $0.00         | 30.00  | 120.00   | 256.00  | $166.00     |
-  |            |          | PENDING       | 200.00 | 200.00   | 20.00   | + $20.00    |
+  |            |          | PENDING       | 200.00 | 200.00   | 15.00   | + $15.00    |
   And we show "Transaction History" with:
   | tid | Date   | Name       | From you | To you | Status  | Buttons | Purpose | Rewards |
   | 9   | %dm-6d | Bea Two    | --       | 100.00 | pending | X       | cash U  | --      |

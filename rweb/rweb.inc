@@ -52,7 +52,8 @@ EOF
   'got token' => t('Your rCredits and US Dollar accounts have been successfully connected!'),
   'company rcard' => t('Send a <a href="print-rcard">company rCard</a>.'),
   'amount rounded' => t('"@amount" was rounded to the nearest integer value.'),
-  'repeat invite' => t('Come back to this page any time, to send more invitations (click on "Membership" in the upper right corner, then on "Invite").'),
+  'invite sent' => t('Your invitation has been sent.'),
+  'repeat invite' => t('Come back any time, to send more invitations (click on "Membership" in the upper right corner, then on "Invite").'),
   'gift successful' => t('Your contribution is successfully completed. Thank you!'),
   'repeat gift' => t('If you wish to make a donation again sometime, click on "Membership" in the upper right corner, then on "Contribute".'),
   
@@ -555,6 +556,8 @@ define('R_CONTRIB_SHOWHIDE', "var other = jQuery('.form-item-amount'); if(jQuery
 
 function formContribute($form, &$sta) {
   $mya = r\acct();
+  $share = r\dbLookup('share', 'r_gifts', 'uid=:myid', array('myid' => $mya->id)) + 0;
+  $donated = $share ? (t('<p>You have already made at least one contribution. Thank you! Please feel free to contribute again. Whatever "share" percentage you choose this time will replace your previous choice') . " ($share%).</p>") : '';
   $giftLevels = array(
   //	10000 => 'Marble .. $10,000',
   //	 5000 => 'Granite ... 5,000',
@@ -574,7 +577,7 @@ function formContribute($form, &$sta) {
    
   $form = array(
     'title' => item(t('Membership Contribution to Common Good Finance')),
-    'subtext' => item(t('<p>Make a contribution of any size, to help support the rCredits system. Buy a BRICK or some other piece of the Common Good Economy, as a tax-deductible contribution to Common Good Finance. We especially love monthly giving commitments.') . ($mya->can(B_OK) ? '' : t(' The amount you choose will come from your combined rCredits/US Dollar account after your account is activated.</p>')) . t('</p><p>Thank you for your support!</p>')),
+    'subtext' => item($donated . t('<p>Make a contribution of any size, to help support the rCredits system. Buy a BRICK or some other piece of the Common Good Economy, as a tax-deductible contribution (one-time, monthly, or quarterly). Also choose a percentage of your ongoing incentive rewards to share with Common Good Finance.') . ($mya->can(B_OK) ? '' : t(' The amount you choose will come from your account once it is activated. "Honoring" is optional.</p>')) . t('</p><p>Thank you for your support!</p>')),
     'gift' => formField('select', t('Contribution:'), '', required($mya->can(B_COMPANY) ? R_COMPANY_GIFT : R_INDIVIDUAL_GIFT) + $giftAttrib, $giftLevels),
     'amount' => textField(t('Other amount $'), ''),
     'often' => formField('select', t('When:'), '', required(), $oftens),
@@ -596,6 +599,7 @@ function formContribute_validate($form, &$sta) {
   if (!$share = str_replace('%', '', $share)) return say('missing field', array('field' => 'share'), 'share');
   if ($err = u\badAmount($amount, '>0')) return say($err, 'amount');
   if ($err = u\badAmount($share, '>0', 3)) return say($err, 'share');
+  $share = min($share, 999.999); // any bigger kills PDO
   $sta['input'] = compact(u\ray('amount share')) + $sta['input'];
 }
 
@@ -682,7 +686,7 @@ function formMembership($updating, &$sta = '', $code = '') {
     $gotPreferences = !is_null($mya->minimum);
     $email = $mya->mail;
     $invited = (r\dbLookup('COUNT(*)', 'r_invites', 'inviter=:myid AND email<>:email', compact('myid', 'email')) >= 1);
-    r\membershipEvent($mya, 'eligible', $gotUsdInfo and $gotIdProof and $gotPreferences and $invited);
+    r\membershipEvent($mya, 'ready', $gotUsdInfo and $gotIdProof and $gotPreferences and $invited);
   }
 
   if ($updating) return $mya->can(B_OK);
@@ -873,7 +877,7 @@ function formProxies($form, &$sta) {
   $subtext = item(t(<<<EOF
 <p><b>Direct democracy</b> is at the heart of the rCredits design. In each community, members meet to discuss and decide on funding priorities for grants, loans, and investments of rCredits for the greater good.</p>
 <p>You assign another person as your ongoing Representative (Proxy). Whenever you don't vote, your Representative votes for you. The Representative's vote simply counts double (one vote for you and one vote for the Representative). If your Representative also fails to vote, then your Representative's Proxy votes for all three of you.<br><br>Everyone's voice is counted, whether or not they vote directly &mdash; one person one vote.</p>
-<p>Our community's most trusted Representatives (who represent a lot of people) will meet in person to research and debate specific issues. These trusted Representatives do not decide policy issues directly. They oversee the public discussions, choose the wording for questions to be voted on, take action as directed by the members, and assure that the system is running smoothly.</p>
+<p>Our community's most trusted Representatives (who represent a lot of people) will meet in person to research and debate specific issues. These trusted Representatives ("Trustees") do not decide broad policy issues &mdash; all members decide the policy issues. The Trustees oversee the public discussions, choose wording for questions to be voted on, take action as directed by the members, and assure that the system is running smoothly.</p>
 EOF
   ));
 
@@ -2069,10 +2073,13 @@ function no_selection($list) {
 function formProof($form, &$sta, $args = '') {
   extract(u\just('show', $args));
   $mya = r\acct();
+  $proofType = $mya->can(B_PERSONAL) ? "driver's license, passport, or other official photo ID showing your social security number (or the equivalent)" : "EIN documentation from the IRS (or the equivalent)";
   $form = array(
+    'title' => item(t('Proof of Identity')),
+    'subtext' => item(t('Just like for a bank account, we need to verify your identity. The file you upload can be either an image or a PDF. Please be patient while the file is encrypted &mdash; it may take several seconds.')),
     'idProof' => file_exists(DRUPAL_ROOT . $mya->auxFilename('proof')) ? 
         formField('item', t('Photo ID:'), '', R_ON_FILE . ($mya->hasBit(B_OK) ? '' : t(' (pending approval)')))
-      : formField('file', t('Photo ID:'), tt('Upload an image of your driver\'s license, passport, or other official photo ID. (maximum @R_MAX_UPLOAD_SIZE MB)'), attrib(array('enctype' => "multipart/form-data"))),
+      : formField('file', t('Photo ID:'), tt('Upload an image of your @proofType. (maximum @R_MAX_UPLOAD_SIZE MB)', compact('proofType')), attrib(array('enctype' => "multipart/form-data"))),
     'submit' => submit(),
   );
 
@@ -2495,7 +2502,7 @@ function formCells($form, &$sta) {
 
   $form = array(
     'title' => item(t('Cell Phones')),
-    'subtitle' => item(t('Authorized devices for this account')),
+    'subtitle' => item(t('List here the authorized devices for this account. You may also have a cell phone listed on the <a href="account/contact">Contact Information</a> page, but you cannot use it for text message transactions until you list it here.')),
     'cells' => formField('tableselect', '', '', array('header' => $headers, 'multiple' => TRUE, 'empty' => tt('no cells')), $list),
     'delete' => submit(t('Remove Selected Numbers')),
 
@@ -3103,7 +3110,7 @@ function memberID($uid = '', $big = FALSE) {
   $qid = 'NEW.BHO';
   $qid2 = strpbrk($qid, '.=');
   $qrURL = 'http://' . R_SERVER_ID . '.rC2.me/I/' . strrev($qid2) . bin2hex($acct->secure['card_code']);
-  if(!$photo = profile_picture($acct->agentId)) $photo = __DIR__ . '/../images/no-photo-available.gif';
+  $photo = DRUPAL_ROOT . $acct->auxFilename('picture');
 
   $info = @getimagesize($photo);
   list ($photoW, $photoH) = is_array($info) ? $info : array(0, 0);
@@ -3133,8 +3140,8 @@ function memberID($uid = '', $big = FALSE) {
   $pdf->writeHTMLCell(100, 30, 94, 10, $html); // w, h, x, y
   $pdf->writeHTMLCell(40, 10, 160, 84.5, '<div style="font-size:44px;">rCredits.org</div>');
   $pdf->writeHTMLCell(182, 40, 10, 100, "<div style=\"font-size:$nameSize; text-align:center; color:midnightblue; font-weight:bold;\">$fullName</div>");
-  
-$instructions = <<<EOF
+  /*
+  $instructions = <<<EOF
 <style>
   big {color:darkgreen; font-size:2em;}
   p {margin-top:.5em;}
@@ -3143,7 +3150,7 @@ Here is your<br><b style="color:darkgreen; font-size:1.3em;">Advance ID Card</b>
 <p>You may print this card and use it temporarily, along with a second photo ID. To print, right-click here, then click on "Print" OR use your browser's print icon.</p>
 <p>To upload or change your photo, visit the "Settings" section.</p>
 EOF;
- 
+*/
 //  $pdf->writeHTMLCell(90, 64, 110, 5, $instructions);
   // Add temporary symbol over image (maybe remove lower right corner and add "temp"), to discourage unauthorized use
 //  $pdf->Image(__DIR__ . '/../images/icons/print.png', 120, 30, 32, 32, '', '', '', true, 150, '', false, false, 0, false, false, false);

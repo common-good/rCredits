@@ -64,6 +64,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'signup bonus' => t('You got your signup bonus!'), // keep this short, cause it's an add-on
   'nothing done' => t('Nothing was done.'),
   'nothing undone' => t('Nothing undone.'),
+  'event' => t('Account @fullName (@quid) is now @status.'),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),

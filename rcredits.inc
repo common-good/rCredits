@@ -83,9 +83,9 @@ define('R_PUBLICLY_TRADED', 8);
 // Permissions, options, and flags (flags field in account record)
 // If we need more bits, create a flags2 field and make the B_ defs negative for acct::hasBit and setBit
 define('B_MEMBER', 0); // signed the membership agreement, etc.
-define('B_OK', 1); // approved to use rCredits for real
-define('B_BONA', 2); // got signup bonus (good circles - received rC and bought from 3 members)
-define('B_unused3', 3); // 
+define('B_READY', 1); // completed all steps
+define('B_OK', 2); // approved to use rCredits for real (set by admin when READY)
+define('B_BONA', 3); // got signup bonus (good circles - received rC and bought from 3 members)
 define('B_unused4', 4); // 
 define('B_PERSONAL', 5); // personal account
 define('B_COMPANY', 6); // company account (could be personal also, for independent contractor)
@@ -570,7 +570,7 @@ function membershipEvent($acct, $status, $do = TRUE) {
     unset($DBTX);
     $fullName = $acct->fullName;
     $quid = $acct->mainQid;
-    notifyStaff('Account @fullName (@quid) is now @status.', compact(u\ray('fullName quid status')));
+    notifyStaff('event', compact(u\ray('fullName quid status')));
 	  return TRUE;
   } else return FALSE;
 }

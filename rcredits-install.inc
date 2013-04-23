@@ -46,7 +46,7 @@ function tableDefs($schema = array()) {
     'signed' => setupField('when did this person sign the rCredits Agreement', 'int 11'),
     'signedBy' => setupField('who signed the agreement (on behalf of the account)', 'varchar 60'),
     'rebate' => setupField('current rebate percentage (sales bonus is double)', 'numeric 4,3', 5),
-    'share' => setupField('fraction of rebates/bonuses to give back to CGF', 'numeric 6,3', 0),
+// (in gifts instead) 'share' => setupField('fraction of rebates/bonuses to give to CGF', 'numeric 6,3', 0),
     'floor' => setupField('how low can balance go (normally zero or less)', 'numeric 11,2', R_FLOOR),
     'minimum' => setupField('chosen minimum balance (savings + 3 days, fill automatically)', 'numeric 11,2', NULL),
     'maximum' => setupField('maximum rCredits balance (exchange excess for USD automatically), 0=none)', 'numeric 11,2', NULL),
@@ -179,7 +179,7 @@ function tableDefs($schema = array()) {
     'often' => setupField('recurring how often (Y, Q, M, 1)', 'varchar 1'),
     'honor' => setupField('what type of honor', 'varchar 10'),
     'honored' => setupField('who is honored', 'text medium'),
-    'share' => setupField('percentage of rebates/bonuses to contribute back to CGF', 'numeric 6,3'),
+    'share' => setupField('percentage of rebates/bonuses to contribute to CGF', 'numeric 6,3'),
   );
   $foreignKeys = foreignKey('uid');
   $indexes = index('uid');

@@ -249,9 +249,20 @@ function weSay($type, $index) {
  *     Transact AMemberConfirmsRequestToPayAnotherMember TEST
  */
 function weEmailToMemberWithSubs($key, $email, $subs) {
-  global $testOnly;
+  global $testOnly; if (!$testOnly) return FALSE;
   $subs = @$subs[0] ?: array();
   return t\findEmail($key, $email, $subs);
+}
+
+/**
+ * we email staff (ARG) with: (ARG)
+ *
+ * in: Membership AMemberDoesItAll TEST
+ */
+function weEmailStaffWith($topic, $subs) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  $subs = @$subs[0] ?: array();
+  return t\findEmail('tell-staff', R_ORG_EMAIL, $subs, TRUE);
 }
 
 /**
