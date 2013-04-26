@@ -658,7 +658,7 @@ EOF;
  *   state: string list of transaction states to return (DEFAULT ':TX_DONE,:TX_DISPUTED')
  *   asof: last date to include (defaults to '', meaning unrestricted)
  *   currency: r, usd, or both (default is r)
- *
+ * @param string $type: usd, r (default), or both
  * @return
  *   standard object of credit account information (see $resultKeys, below)
  *   with corresponding number-formatted information in ->fancy
@@ -680,7 +680,6 @@ function creditInfo($args = array()) {
   
   $dateField = 'GREATEST(t.created,IF(ISNULL(t.completed), 0, t.completed))';
   $monthStart = u\monthDay1();
-  $floor = $acct->floor;
   $amount = $currency == 'both' ? 't.amount' : ($currency == 'usd' ? '(t.amount - t.r)' : 't.r');
 
   $sql = <<<EOF
@@ -697,16 +696,11 @@ EOF;
   extract(r\dbQ($sql, compact(u\ray('uid asof')))->fetchAssoc());
   $grossInProper = $grossIn - $rewards;
   $committed = round($committed * $acct->share / 100, 2);
-  $balance = $grossIn - $grossOut - $committed;
-  $unavailable = array_sum($acct->frozen);
-  $available = ($balance - $floor) - $unavailable;
-  $cashable = $balance - $rewards;
-  $totalDemand = r\totals()->demand;
-  $resultKeys = 'grossIn grossOut grossInProper committed balance available unavailable rewards cashable totalDemand floor';
+  $balance = $grossIn - $grossOut;
+  $resultKeys = 'grossIn grossOut grossInProper committed balance available rewards';
   $result = compact(u\ray($resultKeys));
   $fancy = array();
   foreach ($result as $key => $value) $fancy[$key] = u\formatAmount(@$value + 0);
-  if ($totalDemand >= 1000000) $fancy['totalDemand'] = '$' . number_format(($totalDemand - 9999) / 1000000, 2) . ' million';
   $result['fancy'] = $fancy;
   return (object) $result;
 }

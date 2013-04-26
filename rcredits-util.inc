@@ -149,7 +149,12 @@ function shortName($fullName, $filler = '') {
   $deletions = ray('Inc. LLC Co. P.C. Corp. LLP');
   foreach ($deletions as $one) $fullName = str_replace(" $one", '', $fullName);
   $fullName = str_replace('&', 'and', $fullName);
-  return strtolower(preg_replace('/\W/', $filler, iconv('UTF-8', 'ASCII//TRANSLIT', $fullName)));
+
+  ini_set('mbstring.substitute_character', 'none'); 
+  $fullName = mb_convert_encoding($fullName, 'UTF-8', 'UTF-8'); // avoid iconv failure (bug in PHP 5.4.3)
+
+  $result = preg_replace('/\W/', $filler, iconv('UTF-8', 'ASCII//TRANSLIT', $fullName));
+  return strtolower($result === '' ? \user_password() : $result);
 }
 
 /**
@@ -622,11 +627,16 @@ function ezdecrypt($data, $key = '') {return ezencrypt($data, $key, FALSE);}
  * Return a random ascii string (good for mcrypt key).
  * @param int $len: length of result string
  * @param string $choices: restrict characters to this subset. If empty (the default), use anything but \0
- *   if $choices is one of the following use the corresponding character subset, otherwise a list of characters
- *     lower = lowercase characters
+ *   accepted named subsets:
+ *     lower, upper, digits (the obvious)
+ *     word = upper, lower, and digits
  */
 function randomString($len = 16, $choices = '') {
-  if ($choices == 'lower') $choices = 'abcdefghijklmnopqrstuvwxyz';
+  $lower = 'abcdefghijklmnopqrstuvwxyz';
+  $upper = strtoupper($lower);
+  $digits = '0123456789';
+  $word = $lower . $upper . $digits;
+  if (@$$choices) $choices = $$choices;
   $s = '';
   for ($i=0; $i < 16; $i++) $s .= $choices ? substr($choices, rand(0, strlen($choices) - 1), 1) : chr(rand(1,255));
   return $s;

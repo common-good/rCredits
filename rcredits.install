@@ -68,7 +68,10 @@ function rcredits_install() {
   variable_set('user_picture_dimensions', '2048x1152');
   variable_set('user_picture_file_size', R_MAX_UPLOAD_SIZE * 1024); // in KB
   variable_set('user_picture_style', 'large');
-  foreach (array(R_PICTURE_DIR, R_PROOF_DIR) as $dir) mkdir(DRUPAL_ROOT . $dir, O777);
+  foreach (array(R_PICTURE_DIR, R_PROOF_DIR) as $dir) {
+    $op = file_exists(DRUPAL_ROOT . $dir) ? 'chmod' : 'mkdir';
+    $op(DRUPAL_ROOT . $dir, 0777);
+  }
 
 // NO. This creates a navigation column.  variable_set('site_frontpage', 'charge');
 

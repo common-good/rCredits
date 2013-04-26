@@ -21,6 +21,9 @@ BEFORE MINI LAUNCH:
 
 To do: (* = before launch ** = earlier)
 
+- make which() put whole quid in choices AND autoselect pick from just same region unless admin
+- give ccty admin a way to reset a member's password (assign them a one-time pass, set a one-time bit)
+- user/password should give error if user is logged in
 - add a Contribute link in footer when logged in
 - explain picture format
 - in formAccount do away with Drupal basis
@@ -57,7 +60,6 @@ To do: (* = before launch ** = earlier)
 - * don't allow clicking on links in emails (send to new.rcredits_org.com/whatever, which looks like rcredits.org but scolds the user for clicking on an email link, then offers a link to the real site (don't accept that one either).
 - travel checks (use once, limited amount)
 - allow extra params in buynow form
-- ** Transaction Summary: add extra rows for "Unavailable until <date>", "Available Balance", "Incentive Rewards to Date", and "Amount That Can Be Exchanged for USD", reflecting serialized assoc values in the data field of the account: balance, frozen[n]=array(date,amount), rewards (available balance is calculated)
 - for companies, show HTML for online payment buttons
 - * add share to summary page, for admins
 - make personal contact info secure?
@@ -183,7 +185,6 @@ function eachAccount($queries, $ons, $where = 'TRUE', $subs = array()) {
 @todo: option to suppress current balance in messages (make it a separate message) B_SHOWBAL (default TRUE)
 @todo: Miscellaneous other data to collect:
   Names and Social Security Numbers of Dependents [why do we need this?]
-  If this is a joint account and you are the first to join, social security numbers of the other account holders
   If this is a joint account, do you want separate balances? (if so, it will be treated as separate accounts except that available funds may be transferred automatically to any of the joined accounts that dips below its credit limit.)
 @todo: closed accounts have only read perm and point (data[new_account]) at new account qid
 @todo: servers exchange info on which ss#s (or other ids) are dups
@@ -247,25 +248,26 @@ E. Database clues
      . name is a lowercase, no-punctuation version of fullName, sometimes with a numeric suffix to disambiguate.
          Exceptions: 
            admin is admin
-           Common Good Finance is cgf (first in the "NEW" region)
+           Common Good Finance is cgf (second in the "NEW" region)
            For regions, name is (uppercase) the 3-char start of their qids, followed by "."
      . pass and mail should be called "password" and "email" but Drupal doesn't. So it's confusing. (just a heads-up)
      . we don't currently use theme, picture, timezone, signature, or signature format.
      . data: We use this to store non-essential information in a serialized associative array:
          company, companyPhone, employeeOk, and isOwner: these are stored upon registration, if the company does not exist yet (otherwise the info goes in the relations table)
+         wants: bit collection of nonmember stores the member wants to buy from
          newAccount: qid of new account when this account is closed by moving funds elsewhere
          (survey data)
          oneTimePass: [pass, expires]
      . description is html for the company's page (N/A for personal accounts)
      . community: the (negative) uid of the account's CGC. For anyone who is not in an established CGC, their community is the region (using the regional server's uid). For region and community records, community == uid
-     . minimum: the user's preferred minimum rCredits balance. Request at least r$10 more automatically if balance goes under by even one cent.
+     . minimum: the user's preferred minimum rCredits balance. Request at least $10r more automatically if balance goes under by even one cent.
      . maximum: the user's preferred maximum rCredits AVAILABLE balance. Exchange any excess beyond maximum+10-.01 automatically for USD
      . usdAccount is the usd account number, encrypted with R_WORD (which gets set in settings.php)
      . secure is an encrypted (with R_WORD) serialized assoc:
          type: Dwolla
          pin: the Dwolla PIN
          auth: the Dwolla OAUTH code
-         card_code: security code for QR code on rCard
+         cardCode: security code for QR code on rCard
    - r_txs
      . xid: record id
      . payerTid: Transactions are identified to the user counting just their own transactions (1, 2, 3, ...), NOT as an xid.

@@ -227,6 +227,7 @@ class call {
   function do_information() {
 //    be\todo($this->number, 'account info2', ''); // queue up more info (not used yet)
     $quid = r\acct()->mainQid;
+    $totalDemand = r\totals()->fancy['demand'];
     return tt('account info', be\creditInfo()->fancy + compact('quid'));
   }
 

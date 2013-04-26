@@ -18,9 +18,8 @@ function tableDefs($schema = array()) {
   require_once 'rcredits.inc'; // Drupal bug. hook_schema needs these explicit, both uninstalling and installing.
   require_once 'rcredits-settings.inc';
   require_once 'rcredits-util.inc';
-
   // fix uid size in all Drupal tables
-  foreach (u\ray('authmap file_managed history node node_revision sessions users_roles watchdog') as $table) {
+  foreach (u\ray(DRUPAL_UID_TABLES) as $table) {
     $desc = @$schema[$table]['fields']['uid']['description'] ?: 'users record id';
     $schema[$table]['fields']['uid'] = setupField($desc, 'int big');
   }
@@ -46,14 +45,13 @@ function tableDefs($schema = array()) {
     'signed' => setupField('when did this person sign the rCredits Agreement', 'int 11'),
     'signedBy' => setupField('who signed the agreement (on behalf of the account)', 'varchar 60'),
     'rebate' => setupField('current rebate percentage (sales bonus is double)', 'numeric 4,3', 5),
-// (in gifts instead) 'share' => setupField('fraction of rebates/bonuses to give to CGF', 'numeric 6,3', 0),
     'floor' => setupField('how low can balance go (normally zero or less)', 'numeric 11,2', R_FLOOR),
     'minimum' => setupField('chosen minimum balance (savings + 3 days, fill automatically)', 'numeric 11,2', NULL),
     'maximum' => setupField('maximum rCredits balance (exchange excess for USD automatically), 0=none)', 'numeric 11,2', NULL),
     'usd' => setupField('balance in related USD account (probable)', 'numeric 11,2'),
-    'available' => setupField('rCredits available to spend on goods and services (cached)', 'numeric 11,2'),
+    'r' => setupField('rCredits balance, including rewards (cached)', 'numeric 11,2'),
     'rewards' => setupField('total incentive rewards to date (cached)', 'numeric 11,2'),
-    'frozen' => setupField('amounts unavailable until specific dates or indefinitely', 'text medium'),
+//    'frozen' => setupField('amount of rCredits currently unavailable until specific dates or indefinitely', 'text medium'),
   );
   // need foreign keys here
   $schema['users']['fields'] = (@$schema['users']['fields'] ?: array()) + $fields;

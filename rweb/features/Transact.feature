@@ -12,22 +12,28 @@ Setup:
   | NEW.ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000      | US      | b@example.com | dft,ok,personal |
   | NEW.ZZC | Corner Pub | POB 3   | Ctown | Cher   |            | France  | c@example.com | dft,ok,company  |
   And relations:
-  | id      | main    | agent   | permission        |
-  | NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |
-  | NEW:ZZB | NEW.ZZB | NEW.ZZA | read transactions |
-  | NEW:ZZC | NEW.ZZC | NEW.ZZB | buy and sell      |
-  | NEW:ZZD | NEW.ZZC | NEW.ZZA | sell              |
+  | id      | main    | agent   | permission |
+  | NEW:ZZA | NEW.ZZA | NEW.ZZB | buy        |
+  | NEW:ZZB | NEW.ZZB | NEW.ZZA | read       |
+  | NEW:ZZC | NEW.ZZC | NEW.ZZB | buy        |
+  | NEW:ZZD | NEW.ZZC | NEW.ZZA | sell       |
   And transactions: 
   | tx_id    | created   | type       | amount | from      | to      | purpose | taking |
   | NEW.AAAB | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |
   | NEW.AAAC | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZB | signup  | 0      |
   | NEW.AAAD | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZC | signup  | 0      |
+  And usd:
+  | id        | usd  |
+  | community | 1000 |
+  | NEW.ZZA   |  100 |
+  | NEW.ZZB   |  200 |
+  | NEW.ZZC   |  300 |
   Then balances:
-  | id        | balance |
-  | community |    -750 |
-  | NEW.ZZA   |     250 |
-  | NEW.ZZB   |     250 |
-  | NEW.ZZC   |     250 |
+  | id        | r    |
+  | community | -750 |
+  | NEW.ZZA   |  250 |
+  | NEW.ZZB   |  250 |
+  | NEW.ZZC   |  250 |
 
 # (rightly fails, so do this in a separate feature) Variants: with/without an agent
 #  | "NEW.ZZA" | # member to member (pro se) |
@@ -51,9 +57,6 @@ Scenario: A member confirms request to charge another member
   And we email "new-invoice" to member "b@example.com" with subs:
   | created | fullName | otherName | amount | payerPurpose |
   | %today  | Bea Two  | Abe One   | $100   | labor        |
-  And we show "Tx" with subs:
-  | arg1   |
-  | charge |
   And transactions:
   | tx_id    | created   | type      | state       | amount | from      | to      | purpose      | taking |
   | NEW.AAAE | %today | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZB   | NEW.ZZA | labor        | 1      |
@@ -84,9 +87,6 @@ Scenario: A member confirms request to pay another member
   And we email "new-payment" to member "b@example.com" with subs:
   | created | fullName | otherName | amount | payeePurpose |
   | %today  | Bea Two  | Abe One   | $100   | labor        |
-  And we show "Tx" with subs:
-  | arg1 |
-  | pay  |
   And transactions:
   | tx_id    | created   | type      | state    | amount | from      | to      | purpose      | taking |
   | NEW.AAAE | %today | %TX_TRANSFER | %TX_DONE |    100 | NEW.ZZA   | NEW.ZZB | labor        | 0      |

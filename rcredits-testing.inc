@@ -25,7 +25,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
   if (!@$my_id) $my_id = r\acct::nextId(); // default to first available number
   $uid = uid($my_id); // change .AAB to 1, etc.
   $rebate = isset($my_rebate) ? $my_rebate: R_REBATE; 
-  $fullName = @$my_fullName ?: ('makeAccount ' . randomString(20, 'A'));
+  $fullName = @$my_fullName ?: ('makeAccount ' . randomString(20, 'word'));
   $name = u\shortName($fullName);
 //  $pass = @$my_password ?: '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae'; // default to 123
   $pass = @$my_password ?: '123';
@@ -91,12 +91,12 @@ function makeTransaction($info, $infoOnly = FALSE) {
   $payeeAgent = uid(@$my_to_agent ?: ($type == TX_TRANSFER ? $my_to : r\communityUid()));
   
   $for = @$my_purpose ?: 'cash';
-  $goods = @$my_goods ?: (($type != TX_TRANSFER or u\forCash($for)) ? 0 : 1);
+  $goods = isset($my_goods) ? $my_goods : (($type != TX_TRANSFER or u\forCash($for)) ? 0 : 1);
   $taking = ($my_from == 'community' or @$my_type == 'payment') ? 0 : 1;
-  $r = round($my_amount - @$my_usd, 2);
+  $r = isset($my_r) ? $my_r : $my_amount;
   if ($goods) {
-    $rebate = r\rebate($payer, $my_amount);
-    $bonus = r\bonus($payee, $my_amount);
+    $rebate = r\rebate($payer, $r);
+    $bonus = r\bonus($payee, $r);
     $data = serialize(compact(u\ray('rebate bonus')));
   }
   foreach (u\ray('created from to purpose usd tx_id') as $one) unset($info[$one]);
@@ -139,7 +139,7 @@ function makeRelation($info, $infoOnly = FALSE) {
  */
 function uidCredit($uid) {
   $info = be\creditInfo(compact('uid'));
-  $balance = r\acct($uid)->balance();
+  $balance = r\acct($uid)->r;
   if ($uid >0 and $info->balance != $balance) { // (community amounts don't get cached)
     testOutput("Calculated balance different from cache: $info->balance <> $balance");
     return (object) array('balance' => 'error');
@@ -199,11 +199,21 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
   return r\dbExists('r_log', "info=:info AND $crit", compact(u\ray('info type myid agent channel')));
 }
 
+function findStaffEmail($topic, $subs) {
+  $index = 'tell-staff';
+  $subject = str_replace('{topic}', $topic, $GLOBALS['emailSubjects'][$index]);
+  $where = <<<EOF
+  info LIKE '%"index":"@index","email":"@R_ORG_EMAIL","subject":"@subject"%'
+  ORDER BY logid DESC
+EOF;
+  $where = u\tt($where, compact('index', 'subject'));
+  if (!$last = r\dbLookup('info', 'r_log', $where)) return FALSE;
+  foreach ($subs as $k => $value) if (strpos($last, $value) === FALSE) return FALSE;
+  return TRUE;
+}
+
 function findEmail($index, $email, $subs, $noBody = FALSE) {
   $subs = @$subs[0] ?: @$subs;
-/* REDUNDANT? foreach (array('payerPurpose', 'payeePurpose') as $field) {
-    if (($purpose = @$subs[$field]) and !$real) $subs[$field] = str_replace('#', '#a', $purpose); // would realFix() handle this?
-  } */
   $esubs = array();
   foreach ($subs as $k => $value) $esubs['{' . $k . '}'] = $value;
   $message = strtr($noBody ? r\emailTemplate($index) : r\emailBody($index), $esubs);

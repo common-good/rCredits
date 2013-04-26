@@ -27,11 +27,13 @@ define('R_SEPARATE_BACKEND', FALSE);
 define('R_CONCEALED_FIELDS', 'code password pass oneTimeLoginUrl'); // fields to leave out of log
 define('R_DATA_FIELDS', ''); // fields stored in the account's "data" array field (serialized)
 define('R_COMPANY_FIELDS', 'website description selling structure'); // fields in r_companies
-define('R_SECURE_FIELDS', 'type pin auth card_code'); // non-personal encrypted fields
+define('R_SECURE_FIELDS', 'type pin auth cardCode'); // non-personal encrypted fields
 define('R_SECRET_FIELDS', 'federalId dob idProof answer'); // personal identifying information
 define('R_SECRET_URL', isDEV ? 'http://localhost/rcredits-promo' 
   : (STAGING ? ('http://' . STAGE) : 'http://rcredits.org')); // where to store secrets
 define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities can manage themselves
+define('R_CRON_PERIOD', 5*60); // how many seconds between cron runs (must divide an hour evenly)
+define('DRUPAL_UID_TABLES', 'authmap file_managed history node node_revision sessions users_roles watchdog');
 
 define('R_TEMP_NAME_PREFIX', 'unknown ');
 define('R_MIN_PHOTO_WIDTH', 240); // how wide to make profile pictures (unless too long)
@@ -44,7 +46,7 @@ define('R_MINR_DEFAULT', 200); // suggested minimum amount to hold in rCredits
 define('R_MAXR_DEFAULT', 0); // suggested maximum amount to hold in rCredits
 define('R_CARDCODE_LEN', 20); // length of rCard security code (long to deter easy copying)
 define('R_CARD_COST', 5); // cost to order a company or replacement rCard
-define('R_FREEZE_TIME', '2 weeks'); // how long to freeze newly bought rCredits
+define('R_FREEZE_TIME', FALSE); // how long to freeze newly bought rCredits (was '2 weeks')
 define('R_DEFAULT_PURPOSE', 'rCredits/USD exchange'); // default transaction purpose
 define('R_RBUY_QUANTUM', 10); // chunk size for buying rCredits (sales amounts are a multiple of this)
 define('R_COMMERCIAL_ASPECT', '4:3'); // width-to-height ratio for commercial profile picture
@@ -57,7 +59,7 @@ define('R_BUYS_BEFORE_BONUS', MINI_LAUNCH ? 1 : 3); // number of purchases requi
 define('R_REGION_MAX', isDEV ? 46000 : 3000000000); // maximum uids in a region (46k,3T ~sqrt(PHP_INT_MAX))
 define('R_CTTY_UID0', -R_REGION_MAX); // community uids are less than this (farther from zero)
 define('R_DWOLLA_LINK', 'http://refer.dwolla.com/a/clk/3bf8cy'); // credits CGF
-define('R_SIGNIN_HOURS', 2); // window for signing in after registering or resetting password
+define('R_SIGNIN_HOURS', 24); // window for signing in after registering or resetting password
 
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
@@ -140,7 +142,7 @@ define('TX_DENIED', -2); // invoice rejected by the non-originator
 define('TX_DELETED', -1);
 define('TX_PENDING', 0); // charged, waiting for confirmation (in all other states, transaction is complete)
 define('TX_DONE', 1); // transactions with a positive state count as done
-define('TX_TENTATIVE', 2); // done in rCredits, but waiting for USD funds instead (amount minus r is the expected amount)
+define('TX_TENTATIVE', 2); // CURRENTLY UNUSED done in rCredits, but waiting for USD funds instead (amount minus r is the expected amount)
 define('TX_DISPUTED', 3); // unilaterally charged, but disputed by the payer (the charge stands, until settled)
 
 // Transaction channels (roughly in order of simplicity and generality of messages)
@@ -235,7 +237,7 @@ function txReportArgs($tx, $getMyBalance = FALSE, $shortfall = 0) {
   $created = u\formatDate($created);
 
   if ($getMyBalance) {
-    if ($mya->can(B_BUY)) $balance = u\formatAmount($mya->balance());
+    if ($mya->can(B_BUY)) $balance = u\formatAmount($mya->r);
   }
 
   $summary = "$summary_word of $amount $tofrom $otherName for \"$purpose\" on $created";
@@ -271,7 +273,7 @@ function otherBalance($uid) {
   $mya = acct();
   $acct = acct($uid);
   if ($acct and $mya->can(B_CHARGE) and !$acct->hasBit(B_SECRET_BAL)) {
-    return u\formatAmount($acct->balance());
+    return u\formatAmount($acct->r);
     //return be\creditInfo(compact('uid'))->fancy['balance'];
   } else return FALSE;
 }
@@ -343,18 +345,18 @@ function txSave($tx) {
  * Add rebate and bonus to the transaction set, if appropriate.
  */
 function transactionRewards(&$txs) {
-  extract(u\just('type serial goods payer payee data state payerTid payeeTid', $txs[0]));
+  extract(u\just('type serial goods payer payee data state payerTid payeeTid created', $txs[0]));
   
   if ($type != TX_TRANSFER) return;
   if (!$goods) return; // quit unless rebates and bonuses apply
   if (owning($payer, $payee)) return; // no rewards for transactions between owner and owned
   $rewards = unserialize($data);
   
-  $txs[] = txSave(txRewardSetup($serial, TX_REBATE, $payer, $state, $rewards, $payerTid));
-  $txs[] = txSave(txRewardSetup($serial, TX_BONUS, $payee, $state, $rewards, $payeeTid));
+  $txs[] = txSave(txRewardSetup($serial, TX_REBATE, $payer, $state, $rewards, $payerTid, $created));
+  $txs[] = txSave(txRewardSetup($serial, TX_BONUS, $payee, $state, $rewards, $payeeTid, $created));
 }
 
-function txRewardSetup($serial, $type, $payee, $state, $rewards, $tid) {
+function txRewardSetup($serial, $type, $payee, $state, $rewards, $tid, $created) {
   $payer = $payerAgent = $payeeAgent = userField('community', $payee);
   if ($payer == $payee) return NULL; // payee is a community, so no rewards
   if (!$amount = $rewards[$type == TX_REBATE ? 'rebate' : 'bonus']) return NULL;
@@ -363,7 +365,7 @@ function txRewardSetup($serial, $type, $payee, $state, $rewards, $tid) {
   $goods = FALSE;
   $for = ($type == TX_REBATE ? t('rebate') : t('bonus')) . t( ' on #') . $tid;
 
-  return transactionSetup(compact(u\ray('serial type amount goods payer payee payerAgent payeeAgent for taking state')));
+  return transactionSetup(compact(u\ray('serial type amount goods payer payee payerAgent payeeAgent for taking state created'))); // created is here mostly for testing
 }
 
 /**
@@ -423,18 +425,18 @@ function cacheBothTotals($txs) {
 }
 
 /**
- * Keep track of balance, available balance, and other figures in the account record:
- *    balance: (implicit) cached current rCredits account balance (but sum of transactions is authoritative)
- *    available: the amount available to spend (available + array_sum(frozen) = balance)
- *    usd: (probable) balance in Dwolla account
- *    rewards: incentive rewards received to date (cannot be cashed out)
- *    frozen: how much of the balance is unavailable to spend (array of amounts keyed by dates)
+ * Keep track of r balance, rewards, and USD balance in the account record
+ * None of these figures is authoritative. 
+ * The r balance and rewards are (definitively) the sum of the relevant fields in transactions.
+ * The USD balance is (definitively) what is actually in the Dwolla account.
  */
 function cacheTotals($uid, $txs) {
   if ($uid < 0) return; // don't cache community and region totals
   if ($txs[0]['state'] <= TX_PENDING) return; // don't change totals if transaction doesn't count (yet)
   $acct = acct($uid);
-  foreach (u\ray($cacheFields = 'usd available rewards frozen') as $field) $$field = $acct->$field;
+  $cache = u\ray('usd r rewards');
+  foreach ($cache as $field) $$field = $acct->$field;
+  $rs = $r; // don't confuse this with r field in txs
   
   foreach ($txs as $tx) {
     extract(u\just('payer payee amount r type goods', $tx));
@@ -445,27 +447,29 @@ function cacheTotals($uid, $txs) {
     $usd += $amount - $r; 
     if ($type != TX_TRANSFER) {
       $rewards += $r;
-      $available += $r;
-    } elseif (!$goods) {
+      $rs += $r;
+/*    } elseif (!$goods and R_FREEZE_TIME) {
       $wait = strtotime(R_FREEZE_TIME);
-      $frozen[$wait] = @$frozen[$wait] + $amount;
-    } else $available += $r;
-    unfreeze($available, $frozen); // update expired frozen amounts
+      $frozen[$wait] = @$frozen[$wait] + $r; */
+    } else $rs += $r;
   }
-  $acct->update(compact(u\ray($cacheFields)));
+///  unfreeze($available, $frozen); // update expired frozen amounts
+  $r = $rs;
+  $acct->update(compact($cache));
 }
 
 /**
  * Unfreeze expired frozen funds.
  * @param float $available: amount available to spend (returned updated)
  * @param assoc $frozen: list of amounts and what time they should get unfrozen (returned updated)
- */
+ */ /*
 function unfreeze(&$available, &$frozen) {
   foreach ($frozen as $time => $amount) if (is_numeric($time) and time() > $time) {
     $available = round($available + $amount, 2);
     unset($frozen[$time]);
   }
 }
+*/
 
 /**
  * Return how much of a transaction will be in USD.
@@ -477,7 +481,7 @@ function usdPart($requestAmount, $acct, $preapproved, $goods, &$shortfall) {
   if (!$preapproved) return 0; // if just an invoice, funds don't have to be there yet (no shortfall, no usd)
   
   $uid = $acct->id;
-  $r = min($requestAmount, $acct->available  - ($goods ? 0 : $acct->rewards));
+  $r = min($requestAmount, $acct->available($goods ? 'buy' : 'cash'));
   if (!$shortfall = max(0, $requestAmount - $r)) return 0;
 
   $usAcct = new usd($acct); // try to do some in USD
@@ -590,7 +594,8 @@ function notifyStaff($index, $subs = array(), $uid = TRUE) {
 
   $noFrame = TRUE;
   $topic = strlen($index) < 20 ? strip_tags($index) : '';
-  \drupal_mail('rCredits', 'tell-staff', R_ORG_EMAIL, '', compact(u\ray('message topic noFrame uid')));
+  $email = R_ORG_EMAIL;
+  \drupal_mail('rCredits', 'tell-staff', $email, '', compact(u\ray('email message topic noFrame uid')));
 }
 
 /**
@@ -968,6 +973,7 @@ function changeUid($oldUid, $newUid = FALSE) {
     'r_user_industries:uid',
     'users:uid',
   );
+  foreach (u\ray(DRUPAL_UID_TABLES) as $one) $subs[] = "$one:uid";
 
   $DBTX = \db_transaction();
   foreach ($subs as $one) {
@@ -977,10 +983,10 @@ function changeUid($oldUid, $newUid = FALSE) {
   $oldQuid = r\quid($oldUid);
   list ($uid, $name, $mail) = array($oldUid, "unusable-$oldQuid", "unusable$oldQuid@rcredits.org");
   r\dbInsert('users', compact(u\ray('uid name mail'))); // mark old uid unusable
-  foreach (u\ray('picture proof') as $one) {
-    $newFilename = r\acct($newUid)->auxFilename($one);
-    $oldFilename = str_replace("/$newUid-", "/$oldUid-", $newFilename);
-    if (file_exists($oldFilename)) rename($oldFilename, $newFilename);
+  foreach (u\ray('picture proof') as $one) { // this cannot be rolled back, so must follow db ops
+    $new = DRUPAL_ROOT . r\acct($newUid)->auxFilename($one);
+    $old = str_replace("/$newUid-", "/$oldUid-", $new);
+    if (file_exists($old)) rename($old, $new);
   }
   unset($DBTX); // commit
   return $newUid;
@@ -1060,20 +1066,23 @@ function nearlyMember($acct) {
  *    demand: the total unmet demand for rCredits
  *    r: rCredits in the system
  *    usd: USD in play (approximate)
- *    frozen: rCredits temporarily inaccessible
+ *    frozen: rCredits temporarily inaccessible (positive floors)
  *    signup: rCredits issued as signup reward
  *    inflation: rCredits issued to offset inflation
  *    rebates: rCredits issued as rebates (including on USD transactions)
  *    bonuses: rCredits issued as sales bonuses
  * @param int $ctty: the community account id for which to return totals (default ALL)
  */
-function totals($ctty = '', $calculate = FALSE) {
+function totals($ctty = 'ALL', $calculate = FALSE) {
   $totals = unserialize(\variable_get('totals'));
   if ($calculate) {
-    $totals[$ctty ?: 'ALL'] = getTotals($ctty ?: NULL);
+    $totals[$ctty] = getTotals($ctty == 'ALL' ? NULL : $ctty);
     \variable_set('totals', serialize($totals));
   }
-  return (object) $totals[$ctty ?: 'ALL'];
+  foreach ($totals[$ctty] as $key => $value) $fancy[$key] = u\formatAmount(@$value + 0);
+  $demand = $totals[$ctty]['demand'];
+  if ($demand >= 1000000) $fancy['demand'] = '$' . number_format(($demand - 9999) / 1000000, 2) . ' million';
+  return (object) ($totals[$ctty] + $fancy);
 /*
   $result = dbLookup('SUM(minimum)', 'users', $ctty ? 'community=:ctty' : '1', compact('ctty')); // minima
   $result -= -r\balance($ctty); // less how many rCredits are in circulation
@@ -1087,13 +1096,9 @@ function totals($ctty = '', $calculate = FALSE) {
  */
 function getTotals($ctty) {
   $where = (@$ctty ? "community=:ctty" : 1) . ' AND (flags&:B_OK)';
-  $result = r\dbQ("SELECT frozen FROM users WHERE $where", compact('ctty'));
-  $frozen = 0; // this could easily be extended to get frozen amounts for each upcoming date
-  while ($one = $result->fetchColumn()) $frozen += array_sum(unserialize($one));
-  
-  $fields = 'SUM(available), SUM(rewards), SUM(usd), SUM(minimum), SUM(maximum)';
+  $fields = 'SUM(r), SUM(floor), SUM(rewards), SUM(usd), SUM(minimum), SUM(maximum)';
   $result1 = r\dbLookup($fields, 'users', $where, compact('ctty'));
-  $result1 = array_combine(u\ray('available rewards usd minimum maximum'), array_values($result1));
+  $result1 = array_combine(u\ray('r rewards usd minimum maximum'), array_values($result1));
 
   $where = @$ctty ? '(payer=:ctty OR payee=:ctty)' : 1;
   $sql = '';
@@ -1104,9 +1109,9 @@ function getTotals($ctty) {
   }
   $sql = "SELECT $sql MAX(IF(type=:TX_REBATE, amount, 0)) AS maxRebate FROM r_txs WHERE $where AND state IN(':TX_DONE,:TX_DISPUTED')";
   $result2 = r\dbQ($sql, compact('ctty'))->fetchAssoc();
-  $balance = -($result1['available'] + $frozen);
-  $demand = $result1['minimum'] - $result1['available'];
-  return $result1 + $result2 + compact(u\ray('frozen balance demand'));
+  $balance = -$result1['r'];
+  $demand = $result1['minimum'] - $result1['r'];
+  return $result1 + $result2 + compact(u\ray('floor balance demand'));
 }
 
 /**
@@ -1209,6 +1214,26 @@ function error($logid) {
     print_r($info); 
   } else r\go('/user/login/err=' . R_SYS_ERR);
 
+}
+
+/**
+ * Utility to do something to each member account (see example below)
+ */
+function eachAccount($callBack) {
+  $result = r\dbQ('SELECT uid FROM users WHERE uid>1')->fetchCol();
+  $callBack = 'rCredits\\' . $callBack;
+  foreach ($result as $one) $callBack(r\acct($one));
+}
+
+/**
+ * For example eachAccount('changeIt');
+ */
+function changeIt($a) {
+  $secure = $a->secure;
+  $secure['cardCode'] = u\randomString(20, 'word');
+  unset($secure['card_code']);
+  debug(array('id' => $a->id, 'secure' => $secure));
+  //$a->update(compact('secure'));
 }
 
 // Single line functions that need no explanation

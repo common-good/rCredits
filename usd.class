@@ -16,6 +16,7 @@ require_once __DIR__ . '/../dwolla/dwolla.php';
 define('USD_NOTE_PREFIX', 'rC: '); // prefix USD transaction notes so we know they are ours
 define('NO_DWOLLA', FALSE or t\EST());
 define('DWOLLA_FEE_THRESHOLD', 10); // over this amount, Dwolla charges a fee
+define('DWOLLA_FEE', .25); // the fee
 
 class usd {
   var $acct; // the associated rCredits account
@@ -298,10 +299,10 @@ array (
         // failure (probably insufficient Dwolla balance).
         $info = u\assoc('payer payee amount for taking', $payee, $payer, $amount, $notes, FALSE);
         r\transact($info); // reverse it in rCredits instead (this should not have USD txid though)
-        if ($amount > DWOLLA_FEE_THRESHOLD) be\fund($payerFee ? $payer : $payee, TX_GRANT, 0.25, $grantNote);
+        if ($amount > DWOLLA_FEE_THRESHOLD) be\fund($payerFee ? $payer : $payee, TX_GRANT, DWOLLA_FEE, $grantNote);
       } else {
         self::addToAtom($txid, $amount, $payee, $payer);
-        if ($amount > DWOLLA_FEE_THRESHOLD) foreach (array($payer, $payee) as $one) be\fund($one, TX_GRANT, 0.25, $grantNote);
+        if ($amount > DWOLLA_FEE_THRESHOLD) foreach (array($payer, $payee) as $one) be\fund($one, TX_GRANT, DWOLLA_FEE, $grantNote);
       }
       self::commit();
     }

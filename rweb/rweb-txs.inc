@@ -152,7 +152,7 @@ function doRow($tx, $report, $csv, $classes, $channels, $agents, $url0) {
   $usd = number_format($tx_amount - $tx_r, 2);
   $rpct = $tx_amount ? number_format(100 * $tx_r / $tx_amount, 1) : R_NONE;
   if ($rpct == '100.0') $rpct = '100'; // keep the field narrow (4 chars max)
-  $rpct = "<span title=\"r$$amount + us$$usd = $$total\">$rpct</span>";
+  $rpct = sprintf('<span title="$%sr + $%sus = $%s">%s</span>', $amount, $usd, $total, $rpct);
   $date = @$tx_completed ?: $tx_created;
   
   if ($report) { // community transaction history
@@ -171,7 +171,7 @@ function doRow($tx, $report, $csv, $classes, $channels, $agents, $url0) {
     $reward = @$data[$toMe ? 'bonus' : 'rebate'];
     txNeatAmounts($amount, $reward, $is_reward);
     list ($to_you, $from_you) = $toMe ? array($amount, R_NONE) : array(R_NONE, $amount);
-    $button1 = (!$byMe and $tx_state == TX_PENDING) ? button('OK', "$url&do=ok", tx_action('ok', $tx_state, $toMe, $byMe)) : '';
+    $button1 = (!$byMe and okableState($tx_state)) ? button('OK', "$url&do=ok", tx_action('ok', $tx_state, $toMe, $byMe)) : '';
     $button2 = ((!$is_reward or $mya->can(B_CTTY_ADMIN)) and !@$data['undoneBy']) ? button(' X ', "$url&do=no", tx_action('no', $tx_state, $toMe, $byMe)) : '';
     $button3 = ($mya->can($tx_taking ? B_SELL : B_BUY) and !$is_reward) ? "<a href='$url&do=edit' title='Edit Purpose'><img src='$base_url/sites/all/modules/rcredits/images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
     $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
@@ -339,13 +339,14 @@ function txBal($bal, $plus = '', $minus = '- ') {return ($bal < 0 ? $minus : $pl
 function tx_summary($starting, $ending) {
   $myid = r\acct()->id;
   $previous_ending = $starting - 1;
-  extract($now_info = (array) be\creditInfo(array('asof' => $ending)), EXTR_PREFIX_ALL, 'now');
-  extract($pending_info = (array) be\creditInfo(array('state' => ':TX_PENDING', 'asof' => $ending)), EXTR_PREFIX_ALL, 'pending');
-  extract($old_info = (array) be\creditInfo(array('asof' => $previous_ending)), EXTR_PREFIX_ALL, 'old');
+  extract($nowInfo = (array) be\creditInfo(array('asof' => $ending)), EXTR_PREFIX_ALL, 'now');
+  extract($pendingInfo = (array) be\creditInfo(array('state' => ':TX_PENDING', 'asof' => $ending)), EXTR_PREFIX_ALL, 'pending');
+  extract($oldInfo = (array) be\creditInfo(array('asof' => $previous_ending)), EXTR_PREFIX_ALL, 'old');
+//  debug(compact('nowInfo','oldInfo'));
   $dif = $pfancy = array();
   foreach (u\ray('grossInProper grossOut rewards committed') as $key) {
-    $dif[$key] = number_format($now_info[$key] - $old_info[$key], 2);
-    $pfancy[$key] = number_format($pending_info[$key], 2);
+    $dif[$key] = number_format($nowInfo[$key] - $oldInfo[$key], 2);
+    $pfancy[$key] = number_format($pendingInfo[$key], 2);
   }
   extract($dif, EXTR_PREFIX_ALL, 'dif');
   extract($pfancy, EXTR_PREFIX_ALL, 'pfancy');
@@ -379,3 +380,5 @@ function tx_summary($starting, $ending) {
   $caption = $sticky = $empty = '';
   return $summary_title . theme_table(compact(u\ray('header rows attributes caption colgroups sticky empty')));
 }
+
+function okableState($state) {return ($state == TX_PENDING or $state == TX_DISPUTED);}

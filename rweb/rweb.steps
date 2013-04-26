@@ -262,16 +262,14 @@ function weEmailToMemberWithSubs($key, $email, $subs) {
 function weEmailStaffWith($topic, $subs) {
   global $testOnly; if (!$testOnly) return FALSE;
   $subs = @$subs[0] ?: array();
-  return t\findEmail('tell-staff', R_ORG_EMAIL, $subs, TRUE);
+  return t\findStaffEmail($topic, $subs);
 }
 
 /**
  * we show (ARG) with subs: (ARG)
  *
  * in: Transact AMemberAsksToChargeAnotherMember TEST
- *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
  *     Transact AMemberAsksToPayAnotherMember TEST
- *     Transact AMemberConfirmsRequestToPayAnotherMember TEST
  */
 function weShowWithSubs($page, $subs) {
   global $testOnly;
@@ -403,8 +401,34 @@ function relations($relations) {
  *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
  */
 function balances($list) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  foreach ($list as $one) {
+    extract(u\just('id r usd rewards', $one));
+    $a = r\acct($id = t\uid($id));
+    $calc = t\uidCredit($id, TRUE);
+    if (isset($r)) {
+      if (!t\eq($calc->balance, $r)) return t\testOutput('bad calc r');
+      if ($id > 0 and !t\eq($a->r, $r)) return t\testOutput('bad cached r');
+    }
+    if ($id > 0 and isset($rewards) and (!t\eq($a->rewards, $rewards) or !t\eq($calc->rewards, $rewards))) return t\testOutput('bad rewards');
+    if (isset($usd) and !t\eq($a->usd, $usd)) return t\testOutput('bad usd');
+  }
+  return TRUE;
+}
+
+/**
+ * usd: (ARG)
+ *
+ * in: Transact Setup MAKE
+ *     Transactions Setup MAKE
+ */
+function usd($list) {
   global $testOnly;
-  foreach ($list as $one) if (!t\eq(t\uidCredit(t\uid($one['id']), TRUE)->balance, $one['balance'])) return FALSE;
+  foreach ($list as $one) {
+    extract(u\just('id usd', $one));
+    $a = r\acct(t\uid($id));
+    if ($testOnly ? ($a->usd != $usd) : !$a->update(compact('usd'))) return FALSE;
+  }
   return TRUE;
 }
 

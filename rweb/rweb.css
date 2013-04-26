@@ -536,8 +536,8 @@ fieldset.popup .form-item label {text-align:left; font-weight:normal; width:100%
 fieldset.popup select {width:36em; overflow:auto;}
 
 #help .form-item {clear:both; font-size:90%; padding-top:1em;}
-#help {display:none; top:9em;}
-.popup-close {float:right; width:100%; height:2em; position:absolute; z-index:99; top:-1.5em; left:0;}
+#help {display:none; top:180px;}
+.popup-close {float:right; width:100%; height:2em; position:absolute; z-index:99; top:-25px; left:0;}
 .popup-close img {float:right; width:2em; padding-right:.5em;}
 .popup-close label {margin-left:0; width:0;}
 
