@@ -229,13 +229,14 @@ D. rCredits namespaces and how they are abbreviated in calling files:
          (r/Web) rCredits/Web
          (r/Smart) rCredits/Smart
          (r/SMS) rCredits/SMS
+         (r/Cron) rCredits/Cron
    (t) rCredits/Testing
    (u) rCredits/Utilities: helper functions that are not clearly specific to rCredits
    (be) rCredits/Backend: business logic functions called directly by the interfaces
         The separation of r from be is incomplete and muddy. We might wanna just use "r" for these backend functions
  
 E. Database clues
-   - All rCredits tables begin with "r_", except the users table, which we have added many fields to.
+   - All rCredits tables begin with "r_", except `offsite` and `users`, which we have added many fields to.
    - users (accounts)
      . Common Good Communities (CGCs) and regional servers have uid < 0.
          -1 to -17576: regional servers (the numeric version plus one of the region's 3-letter qid, negated)
@@ -283,6 +284,8 @@ E. Database clues
        bonus and rebate: the dollar amounts of any rewards associated with a payment
        preapproved: (not in the table, just internally) transaction is preapproved by another server (a payment or an authorized business unilaterally charging a customer)
    (more to come...)
+   - r_usd: short term (7 days) record of USD transactions, so that can be rolled back if not in this table
+       ALSO a short term record of what deposits and withrawals (to/from the USD bank) have been made/completed
    - offsite: protected personal identifying information from the NEW region
      . id: a random id that matches the type and length of the original data
      . data: the original data, encrypted, len=

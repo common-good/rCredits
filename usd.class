@@ -36,7 +36,7 @@ class usd {
     global $base_url;
     $redirectUri = "$base_url/$redirectUri/" . $this->acct->id;
     $dw = new \DwollaRestClient(DWOLLA_API_KEY, DWOLLA_API_SECRET, $redirectUri);
-    if ($setToken) $dw->setToken($this->acct->secure['auth']);
+    if ($setToken) $dw->setToken(@$this->acct->secure['auth']);
     return $dw;
   }
 
@@ -46,7 +46,7 @@ class usd {
    * Set error to the Dwolla error, check for unknown errors, and return FALSE.
    */
   function dwError($dw, &$error) {
-    $error = $dw->getError();
+    $error = is_object($dw) ? $dw->getError() : $dw;
     if (!r\dbExists('r_usderror', 'error=:error and NOT ok', compact('error'))) {
       $stack = debug_backtrace();
       $op = $stack[1]['function'];
@@ -73,7 +73,7 @@ class usd {
    * @return: does not return, but initiates callback to receive auth token
    */
   public function getAuth() {
-    $dw = $this->dwolla(FALSE, R_GET_AUTH_URI); // tell Dwolla where to wake us up
+    if (!$dw = $this->dwolla(FALSE, R_GET_AUTH_URI)) return FALSE; // tell Dwolla where to wake us up
 	  header('Location: ' . $dw->getAuthUrl()); // request an auth token
     exit();
   }    
@@ -90,7 +90,10 @@ class usd {
     if (@$_GET['error']) return r\go($uri . $_GET['error_description']);
 
     $mya = r\acct();
-    if ($uid != @$mya->id) return r\Web\say('wrong user', 'zot');
+    if ($uid != @$mya->id) {;
+      $this->dwError('wrong user in getAuth2');
+      r\go($uri . u\tt('wrong user'));
+    }
     $usdAcct = new usd($mya);
     $dw = $usdAcct->dwolla(FALSE, R_GET_AUTH_URI); // URI must match the one in getAuth
     if (NO_DWOLLA) $authToken = \user_password(); else
@@ -105,18 +108,16 @@ class usd {
   
   /**
    * Return the account balance or its sufficiency
-   * Call by:
-   *   $usd->bal() - return the amount currently in the account
    * UNUSED  $usd->bal($want) - return FALSE=no/TRUE=yes/'?'=maybe (meaning there is a connected bank account)
    * UNUSED @param float $want: can the account give up this much money in a hypothetical immediate transaction?
    * UNUSED @param string $error: (RETURNED) an error message on failure
-   * @return: balance or sufficiency (FALSE if failure)
+   * @return: current balance
    */
-  function bal($want = NULL, &$error = NULL) {
+  function bal(&$error = NULL) {
     $dw = $this->dwolla();
-    if (NO_DWOLLA) return $this->acct->usd;
+    if (NO_DWOLLA and !(t\EST() and $this->number == DW_TESTER_ACCOUNT)) return $this->acct->usd;
     $result = $dw->balance();
-    $error = $this->dwError($dw, $error);
+    $this->dwError($dw, $error); // get error message, if any
     return $result;
   }
 
@@ -135,13 +136,13 @@ class usd {
    */
   function send($amount, $other, $notes = R_DEFAULT_PURPOSE, $payerFee = FALSE, $direct = TRUE, &$error = NULL) {
     u\EXPECT(self::inAtom(), 'usd transfer outside atom');
-    u\EXPECT($this->hasBit(B_OK) and $other->hasBit(B_OK), 'non rTraders in usd send');
+    u\EXPECT($this->acct->hasBit(B_OK) and $other->acct->hasBit(B_OK), 'non rTraders in usd send');
 
     $source = $direct ? 'Dwolla' : 'ERROR'; // no delayed payments at present
     $notes = USD_NOTE_PREFIX . $notes;
     $dw = $this->dwolla();
-    if (NO_DWOLLA) return \user_password();
-//    if ($txid = $dw->send($this->pin, self::format(DWOLLA_TEST_ACCOUNT), $amount, $source, $notes, 0, $payerFee)) {
+    if (NO_DWOLLA and !(t\EST() and $this->number == DW_TESTER_ACCOUNT)) return \user_password();
+//    if ($txid = $dw->send($this->pin, self::format(DW_TEST_ACCOUNT), $amount, $source, $notes, 0, $payerFee)) {
     if ($txid = $dw->send($this->pin, self::format($other->number), $amount, $source, $notes, 0, $payerFee)) {
       self::addToAtom($txid, $amount, $this->acct->id, $other->acct->id);
       return $txid;

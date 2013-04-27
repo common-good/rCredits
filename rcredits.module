@@ -212,12 +212,18 @@ function rcredits_cron() {
  * Implements hook_cron_queue_info().
  */
 function rcredits_cron_queue_info() {
-//  $intensiveQueues = 'automaticPayments payVirtual redistribute'; // these want to be done ASAP once they start
-//  $queues = u\ray('checkBalance checkScam inflation statement f1099 ' . $intensiveQueues);
-//  foreach ($queues as $one) $$one = r\makeQueue($one, strpos($intensiveQueues, $one) !== FALSE ? 5*60 : 15);
-  $queues = u\ray('every5');
-  foreach ($queues as $one) $$one = r\makeQueue($one, R_CRON_PERIOD); // give all queues the full 5 minutes (they are self-thinning)
-  return compact($queues);
+//  $intensive = r\makeQueue('intensive', 15*60);
+  $q = r\makeQueue('q', R_CRON_PERIOD);
+  return compact('q');
 }
 
 function bs($n) {for ($i=0; $i <= B_MAX; $i++) if ($n & u\bit($i)) echo "$i ";}
+
+function test() {
+  include_once __DIR__ . '/usd.class';
+  $usdW = new r\usd($w = r\acct(410044001));
+  $usdA = new r\usd($a = r\acct(410061551));
+  debug($w->secure);
+  debug($a->secure);
+  debug($usdA->bal());
+}

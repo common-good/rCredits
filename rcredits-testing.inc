@@ -50,7 +50,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
   
   fixCountryAndState($info);
 
-  foreach (u\ray('id email password acctType') as $one) unset($info[$one]);
+  foreach (u\ray('id email password acctType dwolla') as $one) unset($info[$one]);
   $info = array_merge($info, compact(u\ray('uid flags rebate name pass fullName mail community')));
   if ($testOnly) {
     if (!$acct = r\acct($uid)) return testOutput("No such uid: $uid");
@@ -64,6 +64,17 @@ function makeAccount($info = array(), $testOnly = FALSE) {
   }
   
   if (!$acct = new r\acct($info)) return FALSE;
+
+  if ($usdAccount = str_replace('-', '', @$my_dwolla)) {
+    $acct->update(compact('usdAccount')); // this gets crunched, so save before compare
+    if ($usdAccount != DW_TEST_ACCOUNT) {
+      $num = r\dbLookup('usdAccount', 'users', 'uid=:uid', compact('uid')); // get crunched version
+      if ($tester = r\dbLookup('uid', 'users', 'usdAccount=:num', compact('num'))) {
+        $secure = r\acct($tester)->secure;
+        $acct->update(compact('secure'));
+      }
+    }
+  }
   
   if (@$my_picture) if (!makePicture($my_picture, $acct)) return FALSE;
 

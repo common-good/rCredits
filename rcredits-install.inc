@@ -192,7 +192,7 @@ function tableDefs($schema = array()) {
     'myid' => setupField('current account uid', 'int big'),
     'agent' => setupField('agent account uid', 'int big'),
     'info' => setupField('arbitrary serialized data', 'text medium'),
-    'special' => setupField('special value if any', 'varchar 20'), // eg cell number or nonce
+    'special' => setupField('special value if any', 'text medium'), // eg cell number, nonce, or sql
   );
   $foreignKeys = foreignKey('myid') + foreignKey('agent');
   $indexes = index('type') + index('channel') + index('myid') + index('agent');  

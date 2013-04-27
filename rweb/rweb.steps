@@ -97,7 +97,8 @@ function memberCompletesFormWithValues($id, $page, $values, $confirmed = FALSE) 
 /**
  * member (ARG) confirms form (ARG) with values: (ARG)
  *
- * in: Relations AMemberAddsARelation MAKE
+ * in: RealUsd AMixedRCreditsUSDTransactionHappens MAKE
+ *     Relations AMemberAddsARelation MAKE
  *     Signup ANewbieRegisters MAKE
  *     Signup AMemberRegistersBadEmail MAKE
  *     Signup AMemberRegistersBadPhone MAKE
@@ -160,6 +161,7 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  * members: (ARG)
  *
  * in: Membership Setup MAKE
+ *     RealUsd Setup MAKE
  *     Relations Setup MAKE
  *     Signup ANewbieRegisters TEST
  *     Signup AMemberRegistersAgain MAKE
@@ -180,7 +182,9 @@ function members($list) {
 /**
  * transactions: (ARG)
  *
- * in: Relations Setup MAKE
+ * in: RealUsd Setup MAKE
+ *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
+ *     Relations Setup MAKE
  *     Summary Setup MAKE
  *     Transact Setup MAKE
  *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
@@ -297,6 +301,7 @@ function weShowWithSubs($page, $subs) {
  * in: Membership AMemberClicksOnTheMembershipLink TEST
  *     Membership ACompanyAgentClicksOnTheMembershipLink TEST
  *     Membership AMemberDoesItAll TEST
+ *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
  *     Relations MemberHasAnEmployeeConfirmed TEST
  *     Relations MemberHasAnEmployeeUnconfirmed TEST
  *     Relations MemberHasARelationWithAContractor TEST
@@ -392,7 +397,8 @@ function relations($relations) {
 /**
  * balances: (ARG)
  *
- * in: Relations Setup TEST
+ * in: RealUsd AMixedRCreditsUSDTransactionHappens TEST
+ *     Relations Setup TEST
  *     Summary Setup TEST
  *     Transact Setup TEST
  *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
@@ -411,7 +417,18 @@ function balances($list) {
       if ($id > 0 and !t\eq($a->r, $r)) return t\testOutput('bad cached r');
     }
     if ($id > 0 and isset($rewards) and (!t\eq($a->rewards, $rewards) or !t\eq($calc->rewards, $rewards))) return t\testOutput('bad rewards');
-    if (isset($usd) and !t\eq($a->usd, $usd)) return t\testOutput('bad usd');
+    if (isset($usd)) {
+      if (!is_numeric($usd)) {
+        include_once __DIR__ . '/../usd.class';
+        $op = strpos($usd, '+') ? '+' : '-';
+        list ($var, $value) = explode($op, $usd);
+        global $$var;
+        $usd = $op == '+' ? ($$var + $value) : ($$var - $value);
+        $usdAcct = new r\usd($a);
+        if (!t\eq($usdAcct->bal(), $usd)) return t\testOutput('bad REAL usd');
+      }
+      if (!t\eq($a->usd, $usd)) return t\testOutput('bad usd');
+    }
   }
   return TRUE;
 }
@@ -419,7 +436,8 @@ function balances($list) {
 /**
  * usd: (ARG)
  *
- * in: Transact Setup MAKE
+ * in: RealUsd Setup MAKE
+ *     Transact Setup MAKE
  *     Transactions Setup MAKE
  */
 function usd($list) {
@@ -427,6 +445,12 @@ function usd($list) {
   foreach ($list as $one) {
     extract(u\just('id usd', $one));
     $a = r\acct(t\uid($id));
+    if (!is_numeric($usd)) {
+      include_once __DIR__ . '/../usd.class';
+      global $$usd;
+      $usdAcct = new r\usd($a);
+      $usd = $$usd = $usdAcct->bal();
+    }
     if ($testOnly ? ($a->usd != $usd) : !$a->update(compact('usd'))) return FALSE;
   }
   return TRUE;
@@ -438,6 +462,7 @@ function usd($list) {
  * in: Membership AMemberClicksOnTheMembershipLink MAKE
  *     Membership ACompanyAgentClicksOnTheMembershipLink MAKE
  *     Membership AMemberDoesItAll MAKE
+ *     RealUsd AMixedRCreditsUSDTransactionHappens MAKE
  *     Relations MemberHasAnEmployeeConfirmed MAKE
  *     Relations MemberHasAnEmployeeUnconfirmed MAKE
  *     Relations MemberHasARelationWithAContractor MAKE

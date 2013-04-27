@@ -16,7 +16,8 @@ use rCredits\Util as u;
 use rCredits\Backend as be;
 
 define('MINI_LAUNCH', TRUE);
-define('DWOLLA_TEST_ACCOUNT', '812-713-9234');
+define('DW_TEST_ACCOUNT', '8127139234'); // "reflector" account totally reimburses anything under $10
+define('DW_TESTER_ACCOUNT', '8124486052');
 define('CGF_EMAIL', isDEV ? 'wspademan@gmail.com' : 'info@CommonGoodFinance.org'); // Common Good Finance email and other data
 define('CGF_PHONE', '+14136281723');
 define('CGF_ADDRESS', 'PO Box 21');
@@ -477,11 +478,12 @@ function unfreeze(&$available, &$frozen) {
  * @return float: how much of the transaction will be in USD (NULL if no USD account)
  */
 function usdPart($requestAmount, $acct, $preapproved, $goods, &$shortfall) {
-  $shortfall = 0; // no shortfall if preapproved
+  $shortfall = 0; // no shortfall if not preapproved
   if (!$preapproved) return 0; // if just an invoice, funds don't have to be there yet (no shortfall, no usd)
   
   $uid = $acct->id;
   $r = min($requestAmount, $acct->available($goods ? 'buy' : 'cash'));
+debug(compact('uid','requestAmount','r','shortfall','usdBalance'));
   if (!$shortfall = max(0, $requestAmount - $r)) return 0;
 
   $usAcct = new usd($acct); // try to do some in USD
@@ -489,6 +491,7 @@ function usdPart($requestAmount, $acct, $preapproved, $goods, &$shortfall) {
   $shortfall = max(0, round($shortfall - $usdBalance, 2));
 //    $shortfall = max(.01, $shortfall); // don't report a tiny shortfall by rounding down to zero
 //    $shortfall = ceil($shortfall); // shortfall should be a round figure (no cents)
+debug(compact('uid','requestAmount','r','shortfall','usdBalance'));
   return round($requestAmount - $r - $shortfall, 2);
 }
 
@@ -1160,11 +1163,16 @@ function median($field, $table = 'users', $where = 1, $subs = array()) {
 
 /**
  * Do a database query with easy substitutions.
+ * @param string $sql: the raw query with substitution markers preceded by ':'
+ *   These can be keys supplied in $subs OR constants (all uppercase and underscores)
+ * @param assoc $subs: array of substitutions to make in $sql
+ *   Each key, with a colon tacked on the front, is replaced (in $sql) with its value
  * @return: if inserting, then the id of the inserted record, else the query object (FALSE if failure)
  */
-function dbQ($sql, $subs = array(), $die = FALSE) {
+function dbQ($sql, $subs = array(), $log = TRUE) {
   u\EXPECT(compact(u\ray('sql subs')), 'notempty assoc');
   if (strpos($sql, 'INSERT INTO') !== FALSE) $return = \Database::RETURN_INSERT_ID;
+  if ($log and !strpos($sql, 'r_log')) u\loga('db', $subs, $sql);
   return \db_query(u\SUBS($sql), u\prefixKeys(':', $subs), compact('return'));
 }
 
@@ -1178,6 +1186,7 @@ function dbQ($sql, $subs = array(), $die = FALSE) {
  * @return: if inserting, then the id of the inserted record, else TRUE (FALSE on failure)
  */
 function dbUpdate($table, $info, $key, $either = FALSE) {
+  if ($table != 'r_log') u\loga('db', $info, "$table:$key" . ($either ? ' EITHER' : ''));
   if ($either and !r\dbExists($table, "$key=:$key", array($key => $info[$key]))) $key = '';
   $command = $key ? 'UPDATE' : 'INSERT INTO';
   $sql = '';
@@ -1238,8 +1247,8 @@ function changeIt($a) {
 
 // Single line functions that need no explanation
 function userField($field, $who = '', $subs = array()) {return tableField($field, 'users', $who, $subs);}
-function rebate($uid, $amount = 1) {return round($amount * userField('rebate', $uid) / 100, 2);}
-function bonus($uid, $amount = 1) {return rebate($uid, 2 * $amount);}
+function rebate($uid, $amount = 1) {return max(R_MIN_REBATE, round($amount * r\acct($uid)->rebate / 100, 2));}
+function bonus($uid, $amount = 1) {return round($amount * R_BONUS_FACTOR * r\acct($uid)->rebate / 100, 2);}
 function txField($field, $which, $subs = array()) {return tableField($field, 'r_txs', $which, $subs);}
 function setTxState($newValue, $zserial) {setTxField('state', $newValue, $zserial, TRUE);}
 function serverUid($regionId = R_SERVER_ID) {return -u\a2n($regionId) - 1;}
@@ -1247,6 +1256,6 @@ function emailTemplate($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR 
 function emailBody($key) {return str_replace('{BODY}', emailTemplate($key), emailTemplate(R_EMAIL_FRAME));}
 function realCountry($country) {return dbLookup('name', 'r_countries', 'id=:country', compact('country'));}
 function realState($state, $country = R_COUNTRY_ID) {return dbLookup($country == R_COUNTRY_ID ? 'abbreviation' : 'name', 'r_states', 'id=:state and country_id=:country', compact('state', 'country'));}
-function makeQueue($callback, $time = 15) {return array('worker callback' => "rCredits\\$callback", 'time' => $time);}
-function enqueue($queue, $item) {\DrupalQueue::get($queue)->createItem($item);}
+function makeQueue($callback, $time = 15) {return array('worker callback' => "rCredits\\Cron\\$callback", 'time' => $time);}
+function queue($op, $item) {\DrupalQueue::get('q')->createItem(compact('op') + $item);}
 function dbExists($table, $where = '1', $subs = array()) {return dbLookup(1, $table, $where, $subs);}

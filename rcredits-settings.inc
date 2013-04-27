@@ -19,6 +19,8 @@ define('R_COUNTRY_ID', 1228); // United States
 define('R_STATE_ID', 1020); // Massachusetts
 define('R_INITIAL_DEMAND', 25000); // total escrowed rCredits during TRIAL RUN
 define('R_REBATE', 5);
+define('R_MIN_REBATE', .05); // members get this even for purchase with no rcredits (subject to dwindling)
+define('R_BONUS_FACTOR', 2); // standard bonus is this times standard rebate
 //define('R_GETR_ADVANCE', 0.10); // fraction of get rCredits request we take as advance
 define('R_MAX_AMOUNT', 100000); // transaction request size limit (some smaller limits also apply)
 //define('R_MIN_DEMAND', 10); // you can't buy less rCredits than this at a time

@@ -38,7 +38,6 @@ $GLOBALS[TX_WEB . ' messages'] = array(
     </ol>
 EOF
   ),
-  'info saved' => t('Your information has been saved.'),
   'verify cell' => t('We sent a verification code to your cell phone (@number).<br>Please type that code in the box below.'),
   'options saved' => t('Your options have been saved'),
   'ok to continue' => t('You may now continue what you were originally doing.'),
@@ -318,7 +317,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
 //    $newLayout = ($layout != svar('layout'));
     
     $args = 'arg1' . ($arg2 !== '' ? ' arg2' : '') . ($arg3 !== '' ? ' arg3' : '') . ($arg4 !== '' ? ' arg4' : '');
-    if ($function != 'accounts' and $function != 'summary') u\loga("show $function", compact(u\ray($args)));
+//    if (!strpos(' accounts summary footer ', $function)) u\loga("show $function", compact(u\ray($args)));
 //    if ($layout == 'Mobile') css('mobile.css', 100);
     $formName = substr($function, 0, 1) == '/' ? substr($function, 1) : "rCredits\\Web\\form$function";
 //    if ($newLayout) svar('layout', $layout); // do this before drupal_get_form, so forms can know the current layout
@@ -866,6 +865,7 @@ function formAgreement_submit($form, &$sta) {
   $signed = REQUEST_TIME;
   extract(u\just('signedBy', $sta['input']));
   r\acct()->update($info = compact('signed', 'signedBy'));
+  say('info saved');
   r\notifyStaff('agreement signed', $info);
   r\go('membership');
 }
@@ -909,7 +909,7 @@ function formProxies_submit($form, &$sta) {
   r\proxy(r\acct()->id, 1, $proxy1);
   r\proxy(r\acct()->id, 2, $proxy2);
   r\notifyStaff('chose proxies', $info);
-  say('account updated');
+  say('info saved');
   r\go('membership');
 }
 
@@ -1085,7 +1085,7 @@ function formSummary_submit($form, &$sta) {
       $mya->setBit($bit, @$adminable[$bit]);
     }
     $mya->update(compact(u\ray('floor notes')));
-    say('account updated');
+    say('info saved');
   }
 }
 
@@ -1153,7 +1153,7 @@ function formPhoto_submit($form, &$sta) {
 //  if (!unlink($pictureFilename)) say('cannot delete old picture'); return;
 
   //  if (@$values['picture_delete'] and file_exists($pictureFilename)) unlink($pictureFilename);
-  say('account updated');
+  say('info saved');
   r\go('membership');
 }
 
@@ -1205,7 +1205,7 @@ function formAccount_submit($form, &$sta) {
     unset($info['pass']); // don't overwrite old password except with a new one
   } else $info['pass'] = r\passHash($pass);
   
-  if (r\acct()->update($info)) say('account updated');
+  if (r\acct()->update($info)) say('info saved');
 }
 
 /**
@@ -2765,7 +2765,7 @@ function formPass_submit($form, &$sta) {
   u\EXPECT($uid, 'missing uid in pass_submit');
   $a = r\acct($uid);
   list ($name, $data) = array($a->name, $a->data);
-  list ($region, $quid, $pass) = array(R_SERVER_ID, $a->mainQid, oneTimePass($name, $data));
+  list ($region, $quid, $pass) = array(strtolower(R_SERVER_ID), $a->mainQid, oneTimePass($name, $data));
   $a->update(compact('data'));
   r\notify($uid, 'password-reset', compact(u\ray('region name quid pass')), TRUE);
   say('password reset');

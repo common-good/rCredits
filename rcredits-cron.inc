@@ -4,9 +4,10 @@
  * Functions to run periodically.
  
 DAILY (every 5 mins for 5 mins, starting at 2am)
-'START lostUsdTxs lostUsdTx beginVirtualPayments virtualPayments endVirtualPayments virtualPayment redistribute bank lessOften checkAccount');
+'START  bank lessOften checkAccount');
 - * rollback lost USD transactions
 - * check / recalc cached r, rewards, and usd
+- * get community and system totals: variable_set('totals', )
 - * automatic virtual payments: Each employee gets relieved of their excess rCredits immediately if they are over their "maximum" after getting paid (even if they get paid zero).
 - * redistribution (selling of unwanted rCredits) looks only at non non-employees over their maximum (maximum is ignored for companies that pay virtually)
 - * automatic transfers to/from bank accounts
@@ -38,6 +39,15 @@ define ('R_DAILY_TASKS', 'START lostUsdTxs lostUsdTx beginVirtualPayments virtua
 
 //$intensiveQueues = 'virtualPayment redistribute'; // these want to be done ASAP once they start
 //$queues = u\ray('periodic checkBalance checkScam inflation statement f1099 ' . $intensiveQueues);
+
+/**
+ * Do a queued task
+ * @param assoc $item: task arguments, including 'op' -- the function to handle the task
+ */
+function doTask($item) {
+  $op = 'rCredits\\Cron\\' . $item['op'];
+  $op($item);
+}
 
 /**
  * Queue: Check to see if it's time for a less-often periodic activity.
@@ -81,6 +91,9 @@ function everyMonth() {
  */
 function everyYear() {
 }
+
+//****************************************************
+
 
 function lostUsdTxs() {
 	$result = r\dbQ('SELECT uid FROM users WHERE flags&(1<<:B_OK)');
@@ -267,7 +280,10 @@ EOF;
  */
 function doNextInQueueAfter($task) {
   $tasks = u\ray(R_DAILY_TASKS);
-  if ($function = $tasks[array_search($task) + 1]) $function();
+  if ($function = $tasks[array_search($task) + 1]) {
+    $function = "rCredits\\Cron\\$function";
+    $function();
+  }
 }
 
 function lastInQueue($queue) {return (r\dbLookup('COUNT(*)', 'queue', 'name=:queue', compact('queue')) == 1);}

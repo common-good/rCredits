@@ -283,15 +283,16 @@ class acct {
    *     (not including credit lines and rewards)
    *   cash: the amount of credit available to trade for cash
    *     (including US Dollars in Dwolla, not including credit lines and rewards)
+   * @param bool $includUsd: whether to include USD balance in the returned result
    * @return float: the amount
    * If you want the amount of rCredits in the account (including rewards), use $this->r
    */
-  function available($type) {
-    extract(u\just('usd r floor rewards draws', $this->draws()));
-    $fees = $draws * DWOLLA_FEE;
-    if ($type == 'buy') return $usd + $r - $floor - $fees;
+  function available($type, $includeUsd = FALSE) {
+    extract(u\just(($includeUsd ? 'usd ' : '') . 'r floor rewards draws', $this->draws()));
+    $fees = $includeUsd ? $draws * DWOLLA_FEE : 0;
+    if ($type == 'buy') return ($includeUsd ? $usd : 0) + $r - $floor - $fees;
     if ($type == 'exch') return $r - $rewards - max(0, $floor) - $fees;
-    if ($type == 'cash') return $usd + $r - $rewards - max(0, $floor) - $fees;
+    if ($type == 'cash') return ($includeUsd ? $usd : 0) + $r - $rewards - max(0, $floor) - $fees;
     u\EXPECT(FALSE, 'bad available type');
   }
 
