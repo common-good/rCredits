@@ -2769,6 +2769,7 @@ function formPass_submit($form, &$sta) {
   $a->update(compact('data'));
   r\notify($uid, 'password-reset', compact(u\ray('region name quid pass')), TRUE);
   say('password reset');
+  r\notifyStaff('password reset', compact(u\ray('region name quid uid')), $uid);
   return r\go('');
   //$sta['redirect'] = 'user';
 }
@@ -3008,7 +3009,7 @@ function formOptions($form, &$sta) {
   $virtualMaxMessage = $mya->can(B_COMPANY) ? t(' If you choose to make automatic "virtual" payments, your maximum is the same as your minimum and this setting has no effect.') : '';
 
   $minimum = textField(t('Minimum:'), t('How much to keep in your rCredits account, for purchases or inflation-proof savings. When your balance goes below this amount, the system refills it for you automatically from your bank account, then trades US Dollars for rCredits whenever possible, up to this amount. Refilling may take 3 days (10 days for Savings and Money Market accounts).'), required(u\formatAmount(u\nn($mya->minimum, R_MINR_DEFAULT), 's')));
-  $maximum = textField(t('Maximum:'), u\SUBS(t('How much to keep in your rCredits account AT MOST. When your balance goes above this amount by $:R_RBUY_QUANTUM or more, the extra rCredits are automatically exchanged for US Dollars. 0 means no limit (recommended in most cases).')) . $virtualMaxMessage, required(u\formatAmount(u\nn($mya->maximum, R_MAXR_DEFAULT), 's')));
+  $maximum = textField(t('Maximum:'), u\SUBS(t('How much to keep in your rCredits account AT MOST. When your rCredits balance goes above this amount by $:R_RBUY_QUANTUM or more, the extra rCredits are automatically exchanged for US Dollars. 0 means no limit (recommended in most cases).')) . $virtualMaxMessage, required(u\formatAmount(u\nn($mya->maximum, R_MAXR_DEFAULT), 's')));
   $toBank = formField('checkbox', t('To bank:'), t('Automatically transfer the excess to your bank account (recommended). [<a href="../help/to-bank">why ever not?</a>]'), $mya->hasBit(B_TO_BANK));
 //  $max_usd = textField(t('USD Max:'), u\SUBS(t('Keep at most this much in your Dwolla account. When your Dwolla balance goes above this amount by $:R_RBUY_QUANTUM or more, the system will automatically initiate a transfer to your bank account. 0 means no limit.'), required(u\formatAmount(u\nn($mya->max_usd, R_MAXUSD_DEFAULT), 's'))));
   $notifyBys = array(t('no notifications'), t('by email'), t('by SMS'), t('by both email and SMS'));

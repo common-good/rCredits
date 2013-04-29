@@ -290,9 +290,9 @@ class acct {
   function available($type, $includeUsd = FALSE) {
     extract(u\just(($includeUsd ? 'usd ' : '') . 'r floor rewards draws', $this->draws()));
     $fees = $includeUsd ? $draws * DWOLLA_FEE : 0;
-    if ($type == 'buy') return ($includeUsd ? $usd : 0) + $r - $floor - $fees;
-    if ($type == 'exch') return $r - $rewards - max(0, $floor) - $fees;
-    if ($type == 'cash') return ($includeUsd ? $usd : 0) + $r - $rewards - max(0, $floor) - $fees;
+    if ($type == 'buy') return ($includeUsd ? @$usd : 0) + @$r - @$floor - $fees;
+    if ($type == 'exch') return @$r - @$rewards - max(0, @$floor) - $fees;
+    if ($type == 'cash') return ($includeUsd ? @$usd : 0) + @$r - @$rewards - max(0, @$floor) - $fees;
     u\EXPECT(FALSE, 'bad available type');
   }
 

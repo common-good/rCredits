@@ -44,8 +44,10 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
 /**
  * member (ARG) completes form (ARG) with values: (ARG)
  *
- * in: Transact AMemberAsksToChargeAnotherMember MAKE
- *     Transact AMemberAsksToPayAnotherMember MAKE
+ * in: TransactR AMemberAsksToChargeAnotherMember MAKE
+ *     TransactR AMemberAsksToPayAnotherMember MAKE
+ *     TransactUsd AMemberAsksToChargeAnotherMember MAKE
+ *     TransactUsd AMemberAsksToPayAnotherMember MAKE
  */
 function memberCompletesFormWithValues($id, $page, $values, $confirmed = FALSE) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -55,6 +57,10 @@ function memberCompletesFormWithValues($id, $page, $values, $confirmed = FALSE) 
 
   $values = $values[0];
   t\fixCountryAndState($values);
+  if (isset($values['amount']) and !is_numeric($values['amount'])) {
+    $a = r\acct(t\fullQid($id));
+    list ($values['amount']) = t\parseAmt($values['amount'], $a);
+  }
   if (@$values['email']) $values = u\changeKey('email', 'mail', $values);
   
   t\logIn($id);
@@ -98,6 +104,7 @@ function memberCompletesFormWithValues($id, $page, $values, $confirmed = FALSE) 
  * member (ARG) confirms form (ARG) with values: (ARG)
  *
  * in: RealUsd AMixedRCreditsUSDTransactionHappens MAKE
+ *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance MAKE
  *     Relations AMemberAddsARelation MAKE
  *     Signup ANewbieRegisters MAKE
  *     Signup AMemberRegistersBadEmail MAKE
@@ -114,8 +121,10 @@ function memberCompletesFormWithValues($id, $page, $values, $confirmed = FALSE) 
  *     Signup AMemberRegistersWithABadCompanyPhone MAKE
  *     Signup AMemberRegistersACompany MAKE
  *     Signup ANewbieRegistersFromElsewhere MAKE
- *     Transact AMemberConfirmsRequestToChargeAnotherMember MAKE
- *     Transact AMemberConfirmsRequestToPayAnotherMember MAKE
+ *     TransactR AMemberConfirmsRequestToChargeAnotherMember MAKE
+ *     TransactR AMemberConfirmsRequestToPayAnotherMember MAKE
+ *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember MAKE
+ *     TransactUsd AMemberConfirmsRequestToPayAnotherMember MAKE
  */
 function memberConfirmsFormWithValues($id, $page, $values) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -170,8 +179,9 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  *     Signup AMemberRegistersACompany BOTH
  *     Signup ANewbieRegistersFromElsewhere TEST
  *     Summary Setup MAKE
- *     Transact Setup MAKE
  *     Transactions Setup MAKE
+ *     TransactR Setup MAKE
+ *     TransactUsd Setup MAKE
  */
 function members($list) {
   global $testOnly;
@@ -186,11 +196,13 @@ function members($list) {
  *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
  *     Relations Setup MAKE
  *     Summary Setup MAKE
- *     Transact Setup MAKE
- *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
- *     Transact AMemberConfirmsRequestToPayAnotherMember TEST
  *     Transactions Setup MAKE
  *     Transactions TransactionsWithOtherStatesShowUpProperly MAKE
+ *     TransactR Setup MAKE
+ *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
+ *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
+ *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
+ *     TransactUsd AMemberConfirmsRequestToPayAnotherMember TEST
  */
 function transactions($list) {
   global $testOnly; 
@@ -203,7 +215,8 @@ function transactions($list) {
 /**
  * we say (ARG): (ARG) with subs: (ARG)
  *
- * in: Signup ANewbieRegisters TEST
+ * in: RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance TEST
+ *     Signup ANewbieRegisters TEST
  *     Signup AMemberRegistersBadEmail TEST
  *     Signup AMemberRegistersBadName TEST
  *     Signup AMemberRegistersAgain TEST
@@ -213,8 +226,10 @@ function transactions($list) {
  *     Signup AMemberRegistersWithABadCompanyPhone TEST
  *     Signup AMemberRegistersACompany TEST
  *     Signup ANewbieRegistersFromElsewhere TEST
- *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
- *     Transact AMemberConfirmsRequestToPayAnotherMember TEST
+ *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
+ *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
+ *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
+ *     TransactUsd AMemberConfirmsRequestToPayAnotherMember TEST
  */
 function weSayWithSubs($type, $index, $subs) {
   global $testOnly;
@@ -249,8 +264,10 @@ function weSay($type, $index) {
  *
  * in: Signup ANewbieRegisters TEST
  *     Signup ANewbieRegistersFromElsewhere TEST
- *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
- *     Transact AMemberConfirmsRequestToPayAnotherMember TEST
+ *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
+ *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
+ *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
+ *     TransactUsd AMemberConfirmsRequestToPayAnotherMember TEST
  */
 function weEmailToMemberWithSubs($key, $email, $subs) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -272,8 +289,10 @@ function weEmailStaffWith($topic, $subs) {
 /**
  * we show (ARG) with subs: (ARG)
  *
- * in: Transact AMemberAsksToChargeAnotherMember TEST
- *     Transact AMemberAsksToPayAnotherMember TEST
+ * in: TransactR AMemberAsksToChargeAnotherMember TEST
+ *     TransactR AMemberAsksToPayAnotherMember TEST
+ *     TransactUsd AMemberAsksToChargeAnotherMember TEST
+ *     TransactUsd AMemberAsksToPayAnotherMember TEST
  */
 function weShowWithSubs($page, $subs) {
   global $testOnly;
@@ -385,8 +404,9 @@ function withoutOptions($options) {
  *     Signup AMemberRegistersWithAnExistingCompany TEST
  *     Signup AMemberRegistersACompany TEST
  *     Summary Setup MAKE
- *     Transact Setup MAKE
  *     Transactions Setup MAKE
+ *     TransactR Setup MAKE
+ *     TransactUsd Setup MAKE
  */
 function relations($relations) {
   global $testOnly; 
@@ -398,36 +418,40 @@ function relations($relations) {
  * balances: (ARG)
  *
  * in: RealUsd AMixedRCreditsUSDTransactionHappens TEST
+ *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance TEST
  *     Relations Setup TEST
  *     Summary Setup TEST
- *     Transact Setup TEST
- *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
- *     Transact AMemberConfirmsRequestToPayAnotherMember TEST
  *     Transactions Setup TEST
  *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
+ *     TransactR Setup TEST
+ *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
+ *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
+ *     TransactUsd AMemberAsksToChargeAnotherMember TEST
+ *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
+ *     TransactUsd AMemberConfirmsRequestToPayAnotherMember TEST
  */
 function balances($list) {
   global $testOnly; if (!$testOnly) return FALSE;
   foreach ($list as $one) {
     extract(u\just('id r usd rewards', $one));
     $a = r\acct($id = t\uid($id));
-    $calc = t\uidCredit($id, TRUE);
+    $calc = t\uidCredit($id);
     if (isset($r)) {
-      if (!t\eq($calc->balance, $r)) return t\testOutput('bad calc r');
-      if ($id > 0 and !t\eq($a->r, $r)) return t\testOutput('bad cached r');
+      if (t\badEq('calc r', $calc->r, $r, $id)) return;
+      if ($id > 0 and t\badEq('cached r', $a->r, $r, $id)) return; // (ctty not cached)
     }
-    if ($id > 0 and isset($rewards) and (!t\eq($a->rewards, $rewards) or !t\eq($calc->rewards, $rewards))) return t\testOutput('bad rewards');
+    if ($id < 0) continue; // only r is tested for community (nothing is cached for ctty)
+    if (isset($rewards)) {
+      if (t\badEq('calc rewards', $calc->rewards, $rewards, $id)) return;
+      if (t\badEq('cached rewards', $a->rewards, $rewards, $id)) return;
+    }
     if (isset($usd)) {
       if (!is_numeric($usd)) {
-        include_once __DIR__ . '/../usd.class';
-        $op = strpos($usd, '+') ? '+' : '-';
-        list ($var, $value) = explode($op, $usd);
-        global $$var;
-        $usd = $op == '+' ? ($$var + $value) : ($$var - $value);
-        $usdAcct = new r\usd($a);
-        if (!t\eq($usdAcct->bal(), $usd)) return t\testOutput('bad REAL usd');
+        list ($usd, $bal) = t\parseAmt($usd, $a);
+        if (t\badEq('REAL usd', $bal, $usd, $id)) return;
       }
-      if (!t\eq($a->usd, $usd)) return t\testOutput('bad usd');
+// (can't tell because it starts nonzero) if (!t\eq($calc->usd, $usd)) return t\testOutput('bad calc usd');
+      if (t\badEq('cached usd', $a->usd, $usd, $id)) return;
     }
   }
   return TRUE;
@@ -437,20 +461,17 @@ function balances($list) {
  * usd: (ARG)
  *
  * in: RealUsd Setup MAKE
- *     Transact Setup MAKE
+ *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance MAKE
  *     Transactions Setup MAKE
+ *     TransactR Setup MAKE
+ *     TransactUsd Setup MAKE
  */
 function usd($list) {
   global $testOnly;
   foreach ($list as $one) {
     extract(u\just('id usd', $one));
     $a = r\acct(t\uid($id));
-    if (!is_numeric($usd)) {
-      include_once __DIR__ . '/../usd.class';
-      global $$usd;
-      $usdAcct = new r\usd($a);
-      $usd = $$usd = $usdAcct->bal();
-    }
+    if (!is_numeric($usd)) list ($usd) = t\parseAmt($usd, $a);
     if ($testOnly ? ($a->usd != $usd) : !$a->update(compact('usd'))) return FALSE;
   }
   return TRUE;

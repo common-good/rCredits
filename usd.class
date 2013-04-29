@@ -15,8 +15,6 @@ use rCredits\Testing as t;
 require_once __DIR__ . '/../dwolla/dwolla.php';
 define('USD_NOTE_PREFIX', 'rC: '); // prefix USD transaction notes so we know they are ours
 define('NO_DWOLLA', FALSE or t\EST());
-define('DWOLLA_FEE_THRESHOLD', 10); // over this amount, Dwolla charges a fee
-define('DWOLLA_FEE', .25); // the fee
 
 class usd {
   var $acct; // the associated rCredits account

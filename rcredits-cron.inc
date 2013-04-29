@@ -4,7 +4,6 @@
  * Functions to run periodically.
  
 DAILY (every 5 mins for 5 mins, starting at 2am)
-'START  bank lessOften checkAccount');
 - * rollback lost USD transactions
 - * check / recalc cached r, rewards, and usd
 - * get community and system totals: variable_set('totals', )
@@ -31,8 +30,9 @@ namespace rCredits\Cron;
 use rCredits as r;
 use rCredits\Util as u;
 use rCredits\Testing as t;
+use rCredits\Backend as be;
 
-define ('R_DAILY_TASKS', 'START lostUsdTxs lostUsdTx beginVirtualPayments virtualPayments endVirtualPayments virtualPayment redistribute bank lessOften checkAccount');
+define ('R_DAILY_TASKS', 'START lostUsdTxs recache totals beginVirtualPayments endVirtualPayments redistribute bank lessOften checkAccount END');
 
 //require_once 'rcredits.inc';
 //require_once 'rcredits-backend.inc';
@@ -64,10 +64,7 @@ function everyHour() {
 
 function everyDay() {
   r\notifyStaff('Daily cron begins', '', FALSE);
-  // stuff to do every day
-  // use maintenance mode? no
-  // doPendingPayments(); // not yet implemented (if ever)
-  return doNextInQueueAfter('START');
+  return queueNextAfter('START');
 }
 
 function lessOften() {
@@ -96,13 +93,12 @@ function everyYear() {
 
 
 function lostUsdTxs() {
-	$result = r\dbQ('SELECT uid FROM users WHERE flags&(1<<:B_OK)');
-	while($uid = $result->fetchColumn()) r\queue('lostUsdTx', compact('uid'));
-  r\queue('lostUsdTx', FALSE);
+	$result = r\rTraders();
+	while($uid = $result->fetchColumn()) queue('lostUsdTx', compact('uid'));
+  queueNextAfter('lostUsdTx');
 }
 
 function lostUsdTx($item) {
-  if (!$item) return doNextInQueueAfter(__FUNCTION__);
   $uid = $item['uid'];
   $usAcct = new r\usd($acct = r\acct($uid));
   $usAcct->each('rCredits\\lostUsdTx1', strtotime('3 days ago'));
@@ -116,16 +112,41 @@ function lostUsdTx1($info) {
   $payer = r\whoseUsd($SourceId);
   $payee = r\whoseUsd($DestinationId);
   $created = strtotime($Date);
-  r\notifyStaff('lost USD tx: #@txid $@amount', compact('txid', 'amount'));
+  r\notifyStaff('lost USD tx: #@txid $@amount', compact('txid', 'amount'), FALSE);
   r\usd::rollback(array(compact(u\ray('txid amount payer payee created'))));
+}
+
+function recache() {
+  $result = r\rTraders('uid, r, usd, rewards');
+  while ($row = $result->fetchAssoc()) queue('recache1', $row);
+}
+
+function recache1($item) {
+  $uid = array_shift($item);
+  $info = be\creditInfo(compact('uid'));
+  foreach ($item as $key => $value) if ($value != $info->$key) {
+    r\notifyStaff("Cron: Cache <> calc $key: $value <> " . $info->$key, array(), $uid);
+    r\acct($uid)->update(array($key => $info->$key));
+  } 
+}
+
+/**
+ * Update system-wide and community-wide totals
+ */
+function totals() {
+  r\totals('ALL', TRUE);
+  $result = r\dbQ('SELECT uid FROM users WHERE uid<0');
+  while ($uid = $result->fetchColumn()) r\totals($uid, TRUE);
 }
 
 function beginVirtualPayments() {
   // queue up companies that pay automatically
   doCompanies('SUPPLIERS'); // suppliers first
   doCompanies('EMPLOYEES'); // then employees
-  r\queue('virtualPayments', FALSE); // mark end of virtualPayments queue, so we can do what must follow
+  queue('endVirtualPayments'); // let virtualPayment tasks go on queue before queueing more stuff 
 }
+
+function endVirtualPayments() {queueNextAfter('endVirtualPayments');}
 
 /**
  * Identify companies that have the given payment option and queue them up for virtualPayments.
@@ -148,7 +169,7 @@ EOF;
 	while($row = $result->fetchAssoc()) {
 	  extract($row);
 	  $kitty = ($r - $minimum - max(0, $floor)) * $total / $amounts; // amount to pay out today
-	  if ($kitty > 0 and $total > 0) r\queue('virtualPayments', compact(u\ray('uid kitty total slack these'))); 
+	  if ($kitty > 0 and $total > 0) queue('virtualPayments', compact(u\ray('uid kitty total slack these'))); 
 	}
 }
 
@@ -162,7 +183,6 @@ EOF;
  *   which: employerOk (for employees) or NOT employerOk (for vendors)
  */
 function virtualPayments($item) {
-  if (!$item) return doNextInQueueAfter(__FUNCTION__);
   extract(u\just('uid kitty total which', $item));
   //$limit = ($kitty < $slack); // if there is enough slack, don't put anyone over their max
   //  SUM(IF($which, GREATEST(o.maximum, o.rewards)-o.r, 0)) AS slack, 
@@ -173,11 +193,7 @@ function virtualPayments($item) {
   while($row = $result->fetchAssoc());
     extract($row);
     $offer = round($amount * $kitty / $total, 2);
-    if ($offer >= 0.01) r\queue('virtualPayment', compact(u\ray('main other offer')));
-}
-
-function endVirtualPayments() {
-  r\queue('virtualPayment', FALSE); // mark end of virtualPayment queue
+    if ($offer >= 0.01) queue('virtualPayment', compact(u\ray('main other offer')));
 }
 
 /**
@@ -185,7 +201,6 @@ function endVirtualPayments() {
  * We use "acct1" for the company (the "from" account) and "acct2" for the employee or supplier (the "to" account).
  */
 function virtualPayment($item) {
-  if (!$item) return doNextInQueueAfter(__FUNCTION__);
   extract(u\just('main other offer', $item));
   global $channel; $channel = TX_SYSTEM;
   
@@ -211,15 +226,26 @@ function virtualPayment($item) {
 
 function redistribute() {
   $result = r\dbQ('SELECT uid, :R_RBUY_QUANTUM*CEILING((r-maximum)/:R_RBUY_QUANTUM) AS excess FROM users WHERE r>=maximum+:R_RBUY_QUANTUM');
-  while ($uid = $result->fetchColumn()) r\queue('sellR', compact(u\ray('uid excess')));
-  r\queue('sellR', FALSE);
+  while ($uid = $result->fetchColumn()) queue('sellR', compact(u\ray('uid excess')));
+  queueNextAfter('redistribute');
 }
 
 function sellR($item) {
-  if (!$item) return doNextInQueueAfter(__FUNCTION__); 
   extract(u\just('uid excess', $item));
   $usAcct = new usd($acct = r\acct($uid));
   if (!getUsd($excess, $usAcct, $uid)) r\notify($acct, 'cannot offload');
+}
+
+/**
+ * Transfer funds from Dwolla to bank account or vice versa, according to account's settings
+ */
+function bank($item) {
+}
+
+/**
+ * Check account for consistency, scams, whatever.
+ */
+function checkAccount($item) {
 }
 
 /**
@@ -276,17 +302,19 @@ EOF;
 }
 
 /**
- * Run the next daily function.
+ * Last task queued once the everyDay() function has gotten things started.
  */
-function doNextInQueueAfter($task) {
-  $tasks = u\ray(R_DAILY_TASKS);
-  if ($function = $tasks[array_search($task) + 1]) {
-    $function = "rCredits\\Cron\\$function";
-    $function();
-  }
+function END() {
+  r\notifyStaff('Daily cron ended successfully', '', FALSE);
 }
 
-function lastInQueue($queue) {return (r\dbLookup('COUNT(*)', 'queue', 'name=:queue', compact('queue')) == 1);}
+/**
+ * Run the next daily function.
+ */
+function queueNextAfter($task) {
+  $tasks = u\ray(R_DAILY_TASKS);
+  queue($tasks[array_search($task) + 1]);
+}
 
 function virtualPaymentError($acct1, $acct2) {
   virtualPaymentError1($acct1, 'to', $acct2);
@@ -297,4 +325,9 @@ function virtualPaymentError($acct1, $acct2) {
 function virtualPaymentError1($acct1, $way, $acct2) {
   $other = $acct2->fullName;
   r\notify($acct->id, 'pay virtual error', compact('way', 'other'), TRUE);
+}
+
+function queue($op, $item = array()) {
+  $op = "rCredits\\Cron\\$op";
+  \DrupalQueue::get('q')->createItem(compact('op') + $item);
 }

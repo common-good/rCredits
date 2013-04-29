@@ -145,16 +145,19 @@ function makeRelation($info, $infoOnly = FALSE) {
 
 /**
  * Return the credit info for the given uid.
- * To get just the balance, use uidCredit(uid)->balance
+ * To get just the r balance, use uidCredit(uid)->r
  * @param int $uid: return credit info for this account id
  */
 function uidCredit($uid) {
   $info = be\creditInfo(compact('uid'));
-  $balance = r\acct($uid)->r;
-  if ($uid >0 and $info->balance != $balance) { // (community amounts don't get cached)
-    testOutput("Calculated balance different from cache: $info->balance <> $balance");
-    return (object) array('balance' => 'error');
-  } else return $info;
+  $a = r\acct($uid);
+  if ($uid >0) foreach (u\ray('r rewards') as $one) { // (community amounts don't get cached)
+    if (!t\eq($v1 = $info->$one, $v2 = $a->$one + 0)) {
+      testOutput("Calculated $one different from cache: $v1 <> $v2");
+      return (object) array($one => 'error');
+    }
+  }
+  return $info;
 }
 
 function uid($id) {
@@ -534,6 +537,41 @@ function fixPageArgs($page) {
   }
   return $page;
 }
+
+/**
+ * Parse a partially-USD amount expression, such as "AMT+34.21"
+ * @param string $var: the expression to parse -- a simple addition or subtraction to/from a named variable
+ *   representing the account's initial USD balance -- or just the named variable itself.
+ *   if the variable name is preceded by '+', the variable is set to the USD balance
+ * @param acct $a: the account whose USD balance might be a parameter in the expression $s
+ * @return: [$value, $bal], where
+ *   $bal is the current actual USD balance for account $a
+ *   $value is the value of the expression
+ */
+function parseAmt($var, $a) {
+  u\EXPECT(!is_numeric($var), 'expected non-numeric var');
+
+  include_once __DIR__ . '/usd.class';
+  $usdAcct = new r\usd($a);
+  $bal = $usdAcct->bal();
+
+  if (($i = strpos($var, '+')) or ($i = strpos($var, '-'))) {
+    $op = substr($var, $i, 1);
+    list ($var, $value) = explode($op, $var);
+    if ($op == '-') $value = -$value;
+  } else $value = 0;
+  if (substr($var, 0, 1) == '+') list ($set, $var) = array(TRUE, substr($var, 1));
+  global $$var;
+  if (@$set) $$var = $bal; // not defined yet, set the var to actual USD balance
+//  debug(compact(u\ray('var a bal i op value')));
+  return array($$var + $value, $bal);
+}
+
+function badEq($type, $v1, $v2, $id) {
+  if (t\eq($v1, $v2)) return FALSE;
+  t\testOutput("bad $type v1=$v1 v2=$v2 uid=$id");
+  return TRUE;
+} 
 
 /**
  * Say whether the most recent page included the given text or options.

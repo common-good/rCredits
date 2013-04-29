@@ -344,7 +344,7 @@ function tx_summary($starting, $ending) {
   extract($oldInfo = (array) be\creditInfo(array('asof' => $previous_ending)), EXTR_PREFIX_ALL, 'old');
 //  debug(compact('nowInfo','oldInfo'));
   $dif = $pfancy = array();
-  foreach (u\ray('grossInProper grossOut rewards committed') as $key) {
+  foreach (u\ray('rInProper rOut rewards committed') as $key) {
     $dif[$key] = number_format($nowInfo[$key] - $oldInfo[$key], 2);
     $pfancy[$key] = number_format($pendingInfo[$key], 2);
   }
@@ -355,9 +355,9 @@ function tx_summary($starting, $ending) {
   
   $starting = u\formatDate($starting);
   $ending = u\formatDate($ending);
-  $pending_balance = txBal($pending_grossInProper - $pending_grossOut + $pending_rewards - $pending_committed, '+ ');
-  $now_balance = txBal($now_balance);
-  $old_balance = txBal($old_balance);
+  $pending_balance = txBal($pending_rInProper - $pending_rOut + $pending_rewards - $pending_committed, '+ ');
+  $now_balance = txBal($now_r);
+  $old_balance = txBal($old_r);
   $summary_title = "<div id='txsum-title'>SUMMARY</div>";
   
   $classes = u\prefixValues('txsum-', u\ray('one tosign toyou fromsign fromyou rewardssign rewards sharesign share balancesign balance'));
@@ -366,11 +366,11 @@ function tx_summary($starting, $ending) {
     array('id' => 'txsum-headers', 'data' => u\ray('Starting balance,,To You,,From You,,Rewards,,To CGF,,Ending balance')),
     array(
       'id' => 'txsum-now', 
-      'data' => u\ray("$old_balance | + | $dif_grossInProper | - | $dif_grossOut | + | $dif_rewards |  |  | = | $now_balance"),
+      'data' => u\ray("$old_balance | + | $dif_rInProper | - | $dif_rOut | + | $dif_rewards |  |  | = | $now_balance"),
     ),
     array(
       'id' => 'txsum-pending',
-      'data' => u\ray("<b>PENDING:</b> | + | $pfancy_grossInProper | - | $pfancy_grossOut | + | $pfancy_rewards | - | $pfancy_committed | = | $pending_balance"),
+      'data' => u\ray("<b>PENDING:</b> | + | $pfancy_rInProper | - | $pfancy_rOut | + | $pfancy_rewards | - | $pfancy_committed | = | $pending_balance"),
     ),
   );
   $attributes = array('id' => 'txsum');

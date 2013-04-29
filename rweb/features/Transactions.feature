@@ -45,11 +45,11 @@ Setup:
   | NEW:AAAU | %today-6d | %TX_TRANSFER | %TX_PENDING |    100 | 100 | NEW.ZZB   | NEW.ZZA | cash U  | 1      |
   | NEW:AAAV | %today-6d | %TX_TRANSFER | %TX_DONE    |    100 |   0 | NEW.ZZA   | NEW.ZZB | cash V  | 0      |
   Then balances:
-  | id        | r    | usd   | rewards |
-  | community | -768 | 10000 |       0 |
-  | NEW.ZZA   |  166 |   740 |     256 |
-  | NEW.ZZB   |  279 |  2255 |     254 |
-  | NEW.ZZC   |  323 |  3005 |     258 |
+  | id        | r    | usd      | rewards |
+  | community | -768 | 10000.00 |       0 |
+  | NEW.ZZA   |  166 |   739.75 |     256 |
+  | NEW.ZZB   |  279 |  2254.50 |     254 |
+  | NEW.ZZC   |  323 |  3004.50 |     258 |
 
 Scenario: A member looks at transactions for the past year
   When member "NEW.ZZA" visits page "transactions/period=365"

@@ -44,15 +44,15 @@ class rwebRealUsd extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id      | fullName   | dwolla   | address | city  | state  | postalCode | country | email         | flags           |'
-    . '\\| NEW.ZZA | Abe One    | %DW_TESTER_ACCOUNT | POB 1   | Atown | Alaska | 01000      | US      | a@example.com | dft,ok,personal |'
-    . '\\| NEW.ZZB | Bea Two    | %DW_TEST_ACCOUNT | POB 2   | Btown | Utah   | 02000      | US      | b@example.com | dft,ok,personal |"');
+    . '\\| id      | fullName   | dwolla             | country | email         | flags           |'
+    . '\\| NEW.ZZA | Abe One    | %DW_TESTER_ACCOUNT | US      | a@example.com | dft,ok,personal |'
+    . '\\| NEW.ZZB | Bea Two    | %DW_TEST_ACCOUNT   | US      | b@example.com | dft,ok,personal |"');
     And__('transactions: "DATA'
     . '\\| tx_id    | created   | type       | amount | from      | to      | purpose | taking |'
     . '\\| NEW.AAAB | %today-6m | %TX_SIGNUP |     10 | community | NEW.ZZA | signup  | 0      |"');
     And__('usd: "DATA'
-    . '\\| id        | usd  |'
-    . '\\| NEW.ZZA   | AMT1 |"');
+    . '\\| id        | usd   |'
+    . '\\| NEW.ZZA   | +AMT1 |"');
     break;
 
 
@@ -81,6 +81,23 @@ class rwebRealUsd extends DrupalWebTestCase {
     And__('we show "Transaction History" with: "DATA'
     . '\\| tid | Date | Name    | From you | To you | r%   | Status  | Buttons | Purpose | Rewards |'
     . '\\| 2   | %dm  | Bea Two | 10.00    | --     | 98.0 | %chk    | X       | labor   |    0.50 |"');
+  }
+
+  // Scenario: A member confirms payment with insufficient USD balance
+  public function testAMemberConfirmsPaymentWithInsufficientUSDBalance_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('usd: "DATA'
+    . '\\| id        | usd       |'
+    . '\\| NEW.ZZA   | +AMT1+100 |"');
+    When_('member "NEW.ZZA" confirms form "pay" with values: "DATA'
+    . '\\| op  | who     | amount     | goods | purpose |'
+    . '\\| Pay | Bea Two | AMT1+10.01 | 1     | labor   |"');
+    Then_('we say "error": "short to" with subs: "DATA'
+    . '\\| short |'
+    . '\\| $0.01 |"');
+    And__('balances: "DATA'
+    . '\\| id        | r  | usd  | rewards |'
+    . '\\| NEW.ZZA   | 10 | AMT1 |      10 |"');
   }
 
 }

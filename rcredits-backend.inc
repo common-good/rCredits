@@ -657,8 +657,6 @@ EOF;
  *   uid: uid for the account to return information for (DEFAULTS to myid)
  *   state: string list of transaction states to return (DEFAULT ':TX_DONE,:TX_DISPUTED')
  *   asof: last date to include (defaults to '', meaning unrestricted)
- *   currency: r, usd, or both (default is r)
- * @param string $type: usd, r (default), or both
  * @return
  *   standard object of credit account information (see $resultKeys, below)
  *   with corresponding number-formatted information in ->fancy
@@ -669,7 +667,7 @@ function creditInfo($args = array()) {
     $info = backend('creditInfo', $args);
     $info->fancy = (array) $info->fancy; // backend turns the whole shebang into an object
   }
-  extract(u\just('uid state asof currency', $args));
+  extract(u\just('uid state asof', $args));
 
   if ($mya = r\acct()) u\setDft($uid, $mya->id);
   if (!$acct = r\acct(@$uid)) return NULL;
@@ -680,24 +678,35 @@ function creditInfo($args = array()) {
   
   $dateField = 'GREATEST(t.created,IF(ISNULL(t.completed), 0, t.completed))';
   $monthStart = u\monthDay1();
-  $amount = $currency == 'both' ? 't.amount' : ($currency == 'usd' ? '(t.amount - t.r)' : 't.r');
 
   $sql = <<<EOF
     SELECT 
-    SUM(IF(t.payer=:uid, $amount, 0)) AS grossOut, 
-    SUM(IF(t.payee=:uid, $amount, 0)) AS grossIn,
-    SUM(IF(t.type=:TX_TRANSFER, 0, $amount)) AS rewards,
-    SUM(IF(t.type IN(:TX_REBATE,:TX_BONUS) AND $dateField>=$monthStart, $amount, 0)) AS committed
+    SUM(IF(t.payer=:uid, amount, 0)) AS `out`, 
+    SUM(IF(t.payee=:uid, amount, 0)) AS `in`,
+    SUM(IF(t.type=:TX_TRANSFER, 0, amount)) AS rewards,
+    
+    SUM(IF(t.payer=:uid, r, 0)) AS rOut, 
+    SUM(IF(t.payee=:uid, r, 0)) AS rIn,
+    
+    SUM(IF(t.type IN(:TX_REBATE,:TX_BONUS) AND $dateField>=$monthStart, amount, 0)) AS committed
     FROM r_txs t
     WHERE (t.payer=:uid OR t.payee=:uid) AND t.state IN($state)
 EOF;
   if ($asof) $sql .= " AND $dateField<=:asof";
 
   extract(r\dbQ($sql, compact(u\ray('uid asof')))->fetchAssoc());
-  $grossInProper = $grossIn - $rewards;
+  $balance = $in - $out;
+  $inProper = $in - $rewards;
+
+  $r = $rIn - $rOut;
+  $rInProper = $rIn - $rewards;
+
+  $usdIn = $in - $rIn;
+  $usdOut = $out - $rOut;
+  $usd = $usdIn - $usdOut;
+
   $committed = round($committed * $acct->share / 100, 2);
-  $balance = $grossIn - $grossOut;
-  $resultKeys = 'grossIn grossOut grossInProper committed balance available rewards';
+  $resultKeys = 'in out inProper balance rewards rIn rOut rInProper r usdIn usdOut usd committed';
   $result = compact(u\ray($resultKeys));
   $fancy = array();
   foreach ($result as $key => $value) $fancy[$key] = u\formatAmount(@$value + 0);

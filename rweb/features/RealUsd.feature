@@ -9,18 +9,20 @@ SO I don't lose money or get confused.
 #	Facebook	dwolla.reflector
 #	Twitter	@DwollaReflector
 
+# Next: pay AMT1+10 USD and make sure the transaction totally fails
+
 Setup:
   Given members:
-  | id      | fullName   | dwolla   | address | city  | state  | postalCode | country | email         | flags           |
-  | NEW.ZZA | Abe One    | %DW_TESTER_ACCOUNT | POB 1   | Atown | Alaska | 01000      | US      | a@example.com | dft,ok,personal |
-  | NEW.ZZB | Bea Two    | %DW_TEST_ACCOUNT | POB 2   | Btown | Utah   | 02000      | US      | b@example.com | dft,ok,personal |
+  | id      | fullName   | dwolla             | country | email         | flags           |
+  | NEW.ZZA | Abe One    | %DW_TESTER_ACCOUNT | US      | a@example.com | dft,ok,personal |
+  | NEW.ZZB | Bea Two    | %DW_TEST_ACCOUNT   | US      | b@example.com | dft,ok,personal |
   And transactions: 
   | tx_id    | created   | type       | amount | from      | to      | purpose | taking |
   | NEW.AAAB | %today-6m | %TX_SIGNUP |     10 | community | NEW.ZZA | signup  | 0      |
   And usd:
-  | id        | usd  |
-  | NEW.ZZA   | AMT1 |
-
+  | id        | usd   |
+  | NEW.ZZA   | +AMT1 |
+  
 Scenario: A mixed rCredits/USD transaction happens
   When member "NEW.ZZA" confirms form "pay" with values:
   | op  | who     | amount | goods | purpose |
@@ -41,3 +43,18 @@ Scenario: A mixed rCredits/USD transaction happens
   And we show "Transaction History" with:
   | tid | Date | Name    | From you | To you | r%   | Status  | Buttons | Purpose | Rewards |
   | 2   | %dm  | Bea Two | 10.00    | --     | 98.0 | %chk    | X       | labor   |    0.50 |
+
+Scenario: A member confirms payment with insufficient USD balance
+  Given usd:
+  | id        | usd       |
+  | NEW.ZZA   | +AMT1+100 |
+# meaning the cached usd amount is $100 higher than the actual USD balance
+  When member "NEW.ZZA" confirms form "pay" with values:
+  | op  | who     | amount     | goods | purpose |
+  | Pay | Bea Two | AMT1+10.01 | 1     | labor   |
+  Then we say "error": "short to" with subs:
+  | short |
+  | $0.01 |
+  And balances:
+  | id        | r  | usd  | rewards |
+  | NEW.ZZA   | 10 | AMT1 |      10 |

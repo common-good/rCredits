@@ -16,8 +16,6 @@ use rCredits\Util as u;
 use rCredits\Backend as be;
 
 define('MINI_LAUNCH', TRUE);
-define('DW_TEST_ACCOUNT', '8127139234'); // "reflector" account totally reimburses anything under $10
-define('DW_TESTER_ACCOUNT', '8124486052');
 define('CGF_EMAIL', isDEV ? 'wspademan@gmail.com' : 'info@CommonGoodFinance.org'); // Common Good Finance email and other data
 define('CGF_PHONE', '+14136281723');
 define('CGF_ADDRESS', 'PO Box 21');
@@ -61,6 +59,11 @@ define('R_REGION_MAX', isDEV ? 46000 : 3000000000); // maximum uids in a region 
 define('R_CTTY_UID0', -R_REGION_MAX); // community uids are less than this (farther from zero)
 define('R_DWOLLA_LINK', 'http://refer.dwolla.com/a/clk/3bf8cy'); // credits CGF
 define('R_SIGNIN_HOURS', 24); // window for signing in after registering or resetting password
+
+define('DW_TEST_ACCOUNT', '8127139234'); // "reflector" account totally reimburses anything under $10
+define('DW_TESTER_ACCOUNT', '8124486052');
+define('DWOLLA_FEE_THRESHOLD', 10); // over this amount, Dwolla charges a fee
+define('DWOLLA_FEE', .25); // the fee
 
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
@@ -232,8 +235,8 @@ function txReportArgs($tx, $getMyBalance = FALSE, $shortfall = 0) {
   $summary_word = $taking ? t('Charge') : t('Payment');
   $amount = u\formatAmount($amount);
   $short = u\formatAmount($shortfall);
-  if (@$data_bonus) $rewardType = $taking ? t('bonus') : t('rebate');
-  $rewardAmount = u\formatAmount($toMe ? @$data_bonus : @$data_rebate);
+  if (@$data_rebate and !$toMe) list ($rewardType, $rewardAmount) = array(t('rebate'), u\formatAmount($data_rebate));
+  if (@$data_bonus and $toMe) list ($rewardType, $rewardAmount) = array(t('bonus'), u\formatAmount($data_bonus));
   $otherName = userField('fullName', $otherUid);
   $created = u\formatDate($created);
 
@@ -243,6 +246,7 @@ function txReportArgs($tx, $getMyBalance = FALSE, $shortfall = 0) {
 
   $summary = "$summary_word of $amount $tofrom $otherName for \"$purpose\" on $created";
   $success = TRUE;
+  foreach (u\ray('r payer payee') as $one) unset($tx[$one]); // else preempts all subs that start thus
   return array_merge($tx, compact(u\ray('created xid action role payerPurpose payeePurpose purpose otherPurpose toMe confirmAction amount tofrom rewardType rewardAmount balance tid otherTid otherUid otherName short summary success')));
 }
 
@@ -353,15 +357,17 @@ function transactionRewards(&$txs) {
   if (owning($payer, $payee)) return; // no rewards for transactions between owner and owned
   $rewards = unserialize($data);
   
-  $txs[] = txSave(txRewardSetup($serial, TX_REBATE, $payer, $state, $rewards, $payerTid, $created));
-  $txs[] = txSave(txRewardSetup($serial, TX_BONUS, $payee, $state, $rewards, $payeeTid, $created));
+  foreach (array('rebate', 'bonus') as $type) {
+    $amount = $rewards[$type];
+    $to = $type == 'rebate' ? $payer : $payee;
+    $tid = $type == 'rebate' ? $payerTid : $payeeTid;
+    $type = constant('TX_' . strtoupper($type));
+    if ($amount and $to > 0) $txs[] = txSave(txRewardSetup($serial, $type, $to, $state, $amount, $tid, $created));
+  }
 }
 
-function txRewardSetup($serial, $type, $payee, $state, $rewards, $tid, $created) {
+function txRewardSetup($serial, $type, $payee, $state, $amount, $tid, $created) {
   $payer = $payerAgent = $payeeAgent = userField('community', $payee);
-  if ($payer == $payee) return NULL; // payee is a community, so no rewards
-  if (!$amount = $rewards[$type == TX_REBATE ? 'rebate' : 'bonus']) return NULL;
-
   $taking = FALSE;
   $goods = FALSE;
   $for = ($type == TX_REBATE ? t('rebate') : t('bonus')) . t( ' on #') . $tid;
@@ -445,7 +451,8 @@ function cacheTotals($uid, $txs) {
       $amount = -$amount;
       $r = -$r;
     } elseif ($payee != $uid) continue; // neither to nor from me
-    $usd += $amount - $r; 
+    $usd += $amount - $r;
+    if ($amount - $r > DWOLLA_FEE_THRESHOLD) $usd -= DWOLLA_FEE;
     if ($type != TX_TRANSFER) {
       $rewards += $r;
       $rs += $r;
@@ -483,15 +490,11 @@ function usdPart($requestAmount, $acct, $preapproved, $goods, &$shortfall) {
   
   $uid = $acct->id;
   $r = min($requestAmount, $acct->available($goods ? 'buy' : 'cash'));
-debug(compact('uid','requestAmount','r','shortfall','usdBalance'));
   if (!$shortfall = max(0, $requestAmount - $r)) return 0;
 
   $usAcct = new usd($acct); // try to do some in USD
-  $usdBalance = $usAcct->bal();
-  $shortfall = max(0, round($shortfall - $usdBalance, 2));
-//    $shortfall = max(.01, $shortfall); // don't report a tiny shortfall by rounding down to zero
-//    $shortfall = ceil($shortfall); // shortfall should be a round figure (no cents)
-debug(compact('uid','requestAmount','r','shortfall','usdBalance'));
+  $usd = $usAcct->bal();
+  if ($shortfall = max(0, round($shortfall - $usd, 2)) and $usd != $acct->usd) $acct->update(compact('usd')); // update cache
   return round($requestAmount - $r - $shortfall, 2);
 }
 
@@ -1257,5 +1260,5 @@ function emailBody($key) {return str_replace('{BODY}', emailTemplate($key), emai
 function realCountry($country) {return dbLookup('name', 'r_countries', 'id=:country', compact('country'));}
 function realState($state, $country = R_COUNTRY_ID) {return dbLookup($country == R_COUNTRY_ID ? 'abbreviation' : 'name', 'r_states', 'id=:state and country_id=:country', compact('state', 'country'));}
 function makeQueue($callback, $time = 15) {return array('worker callback' => "rCredits\\Cron\\$callback", 'time' => $time);}
-function queue($op, $item) {\DrupalQueue::get('q')->createItem(compact('op') + $item);}
 function dbExists($table, $where = '1', $subs = array()) {return dbLookup(1, $table, $where, $subs);}
+function rTraders($fields = 'uid') {return dbQ("SELECT $fields FROM users WHERE (flags&(1<<:B_OK))");}
