@@ -1,0 +1,76 @@
+<?php
+//
+// Feature: A user signs in to their rCredits account
+//   AS a member
+//   I WANT to sign in to my rCredits account
+//   SO I can view or change settings, view or handle past transactions, and/or pay or charge another account
+
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rweb.steps';
+
+class rwebSignin extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
+  var $sceneName;
+  const SHORT_NAME = 'Signin';
+  const FEATURE_NAME = 'rweb Test - Signin';
+  const DESCRIPTION = 'A user signs in to their rCredits account';
+  const MODULE = 'rweb';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
+  }
+  
+  public static function getInfo() {
+    return array(
+      'short_name' => self::SHORT_NAME,
+      'name' => self::FEATURE_NAME,
+      'description' => self::DESCRIPTION,
+      'group' => ucwords(self::MODULE)
+    );
+  }
+
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
+    global $sceneTest; $sceneTest = $this;
+    parent::setUp(self::MODULE);
+
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rweb.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
+    default: // fall through to case(0)
+    case(0):
+    Given('member is logged out');
+    break;
+
+
+    }
+  }
+
+  // Scenario: A member signs in for the first time
+  public function testAMemberSignsInForTheFirstTime_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"');
+    When_('member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values: "DATA'
+    . '\\| fullName | email         | phone | country | postalCode | state | city  | acctType | code        |'
+    . '\\| Abe One | a@example.com | (413) 253-0000 | US | 01001 | MA | Amherst | %R_PERSONAL  | s0M3_rAnd0M_c0D3 |"');
+    Then_('members: "DATA'
+    . '\\| id      | fullName | email         | phone        | country | postalCode | state | city    | flags |'
+    . '\\| NEW.AAC | Abe One  | a@example.com | +14132530000 | US | 01001       | MA    | Amherst | dft,personal |"');
+    And__('member "NEW.AAC" one-time password is set');
+    Given('member "NEW.AAC" one-time password is "thingy"');
+    When_('member "?" visits page "/user/login"');
+    Then_('we show "Sign In" with: "DATA'
+    . '\\| oldpass      | pass1        | pass2                |'
+    . '\\| Old password | New password | Confirm new password |"');
+    When_('member "?" confirms form "/user/login" with values: "DATA'
+    . '\\| name   | pass   | pass1  | pass2  |'
+    . '\\| abeone | thingy | Aa1!.. | Aa1!.. |"');
+    Then_('we show "Account Summary"');
+    And__('we say "status": "take a step"');
+  }
+
+}

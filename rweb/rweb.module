@@ -146,7 +146,7 @@ function rweb_form_alter(&$form, &$sta, $form_id) {
   if ($form_id == 'user_pass_reset') return r\Web\resetAlter($form, $sta);
   if ($form_id == 'user_login') {return r\Web\formLogin($form, $sta);}
   // (has no effect, keep as comment) if ($form_id == 'user_register') {return r\Web\formRegister($form, $sta);}
-  if (basename($_SERVER['REQUEST_URI']) == 'user' and user_is_logged_in()) r\go('');
+  if (basename($_SERVER['REQUEST_URI']) == 'user' and user_is_logged_in()) r\go('summary');
 }
 
 function rweb_form_user_register_form_alter(&$form, &$sta, $form_id) {r\Web\formRegister($form, $sta);}

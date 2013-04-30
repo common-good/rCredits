@@ -1,9 +1,8 @@
 Feature: A user signs up for rCredits
 AS a newbie
-I WANT to get access to the rCredits Participants section
-SO I can start pretending
+I WANT to open an rCredits account
+SO I can be part of the Common Good Economy
 # Note that "member" in the scenarios below means new member (newbie).
-# The first member is AAB because CGF is AAA.
 
 Setup:
   Given member is logged out
@@ -30,7 +29,7 @@ Scenario: A newbie registers
   When member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values:
   | fullName | email         | phone | country | postalCode | state | city  | acctType | code        |
   | Abe One | a@example.com | (413) 253-0000 | US | 01001 | MA | Amherst | %R_PERSONAL  | s0M3_rAnd0M_c0D3 |
- Then members:
+  Then members:
   | id      | fullName | email         | phone        | country | postalCode | state | city    | flags | 
   | NEW.AAC | Abe One  | a@example.com | +14132530000 | US | 01001       | MA    | Amherst | dft,personal |
   And we say "status": "your account is ready" with subs:
@@ -39,6 +38,7 @@ Scenario: A newbie registers
   And we email "welcome" to member "a@example.com" with subs:
   | fullName | name   | quid    | region | pass     |
   | Abe One  | abeone | NEW.AAC | new    | (varies) |
+  And member "NEW.AAC" one-time password is set
   And we show "Sign In" with:
   | oldpass      | pass1        | pass2                |
   | Old password | New password | Confirm new password |

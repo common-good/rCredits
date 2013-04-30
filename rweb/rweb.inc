@@ -40,7 +40,8 @@ EOF
   ),
   'verify cell' => t('We sent a verification code to your cell phone (@number).<br>Please type that code in the box below.'),
   'options saved' => t('Your options have been saved'),
-  'ok to continue' => t('You may now continue what you were originally doing.'),
+  'photo saved' => t('Your photo was successfully uploaded. Return to the <a href="@link">Step-by-step Membership checklist</a>.'),
+ 'ok to continue' => t('You may now continue what you were originally doing.'),
   'password reset' => t('A temporary password has been sent to your email address.'),
   'changed agent' => t('You successfully changed the agent to @agentName.'),
   'changed account' => t('You successfully changed the account to @accountName.'),
@@ -75,7 +76,7 @@ EOF
   'bad login' => t('That account does not exist. Check your typing?'),
   'bad phone' => t('That is not a proper phone number.'),
   'bad account id' => t('That is not a proper account ID.'),
-  'bad account number' => t('Your Dwolla account number must be exactly 10 digits'),
+  'bad account number' => t('Your Dwolla id must be exactly 10 digits'),
   'bad pin' => t('Your PIN must be exactly 4 digits'),
   'bad federal id' => t('Your @what must be exactly 9 digits'),
   'bad nonce' => t('That is not the right verification code. Try again (start over).'),
@@ -174,7 +175,7 @@ function formField($type, $title = '', $description = '', $other = array(), $opt
 
 function submit($title = '') {return formField('submit', '', '', $title ?: t('Submit'));}
 function item($value, $title = '', $desc = '') {return formField('item', $title, $desc, $value);}
-function hidField($value) {return formField('hidden', '', '', $value);}
+function hidField($value = '', $options = array()) {return formField('hidden', '', '', compact('value') + $options);}
 function textField($title = '', $description = '', $other = array(), $options = NULL) {
   return formField('textfield', $title, $description, $other, $options);
 }
@@ -710,7 +711,7 @@ function formMembership($updating, &$sta = '', $code = '') {
               . memberStep(2, $signed, $step2, 'membership/agreement')
               . memberStep(3, $donated, $step3, 'membership/contribute');
     if (!$nonperson) $message2 .= memberStep(4, $gotProxies, $step4, array('membership/proxies', 'membership/invite'));
-    $addendum = item(tt('<p>Opening an rCredits account takes time. After the steps listed above, there is another set of 4 steps to <i>activate</i> your account. This is almost exactly like opening two bank accounts and connecting them together. We will guide you through the process.</p><p>Please feel free to <a href="mailto:@R_ORG_EMAIL" target="_blank">send us an email</a> if you need help.</p>'));
+    $addendum = item(tt('<p>Opening an rCredits account is almost exactly like opening two bank accounts and connecting them together. We will guide you through the process.</p><p>Please feel free to <a href="mailto:@R_ORG_EMAIL" target="_blank">send us an email</a> if you need help.</p>'));
               
   } elseif ($admin == 1.5 or (!$gotContact and !$admin)) { // did all the initial steps, but somehow didn't complete contact info
     $message1 = t('<h2>Missing Contact Information</h2><p>Please complete your <a href="../account/contact">Contact Information</a>, ') . ($nonperson ? t('before continuing.</p>') : t('so we can mail your rCard.</p>'));
@@ -981,7 +982,7 @@ function formUser($form, &$sta) {return \user_login($form, $sta);} // called fro
 function formSummary($form, &$sta) {
   $mya = r\acct();
   //  debug($mya->can(B_ALL)); // keep
-  if (!$mya) return r\go('/user');
+  if (!$mya) return r\go('/user'); // this cannot be '' (infinite redirect)
 //  if (!formMembership(TRUE) and $mya->proSe() and !$mya->can(B_COMPANY)) say('take a step');
   if (!formMembership(TRUE)) say('take a step');
 
@@ -1133,6 +1134,7 @@ function formPhoto_validate(&$form, &$sta) {
 }
 
 function formPhoto_submit($form, &$sta) {
+  global $base_url;
   if (!$picture = @$sta['values']['picture_upload']) {
     say('nothing done');
     r\go('membership');
@@ -1153,8 +1155,8 @@ function formPhoto_submit($form, &$sta) {
 //  if (!unlink($pictureFilename)) say('cannot delete old picture'); return;
 
   //  if (@$values['picture_delete'] and file_exists($pictureFilename)) unlink($pictureFilename);
-  say('info saved');
-  r\go('membership');
+  $link = "$base_url/membership";
+  say('photo saved', compact('link'));
 }
 
 function formAccount($form, &$sta) {
@@ -1173,6 +1175,7 @@ function formAccount($form, &$sta) {
   $form['account']['current_pass']['#weight'] = 4;
   $form['account']['status']['#weight'] = 5;
   $form['account']['roles']['#weight'] = 6;
+  $form['strong'] = hidField(0, attrib(array('id' => 'edit-strong')));
 
   unset($form['picture']);
   $form['submit'] = formField('submit', '', '', array('value' => t('Save')) + weight(99));
@@ -1189,11 +1192,12 @@ function formAccount($form, &$sta) {
 function formAccount_validate($form, &$sta) {
   $mya = r\acct();
   extract(u\just('mail pass current_pass', $sta['values'])); // values NOT input
+  extract(u\just('strong', $sta['input'])); // input NOT values
   if (!$mya->can(B_ADMIN) and empty($current_pass) 
     and ($mail != $form['account']['mail']['#default_value'] or !empty($pass))
   ) return say('password required', 'current_pass');
   // Drupal checks that pass1 == pass2
-  if ($pass and u\weakPass($pass)) return say('weak pass', 'pass1');
+  if ($pass and !$strong) return say('weak pass', 'pass');
   if (!emailOkay($sta['values']['mail'] = $mail = trim($mail), $mya->id)) return say('bad email', 'mail');
   if (!passwordOkay($mya, $pass)) return FALSE;
 }
@@ -2144,7 +2148,7 @@ function formUsd($form, &$sta, $args = '') {
   $form = array(
     'title' => item(t('USD Account and Security Info')),
     'subtext' => item(t('Open a Dwolla account and connect it to your rCredits account by entering the information into this form.', array('@phone' => R_ORG_PHONE))),
-    'usdAccount' => textField(t('Account:'), t('Your 10-digit Dwolla account number'), required(@$usdAccount)),
+    'usdAccount' => textField(t('Account:'), t('Your 10-digit Dwolla id (top of the page, below your name, when signed in to Dwolla)'), required(@$usdAccount)),
     'pin' => textField(t('PIN'), t('Your 4-digit Dwolla PIN'), required(@$pin)),
     'federalId' => $mya->can(B_PERSONAL) ?
         textField(t('Soc Sec #:'), t('Your social security number (for required annual reporting)'), required(@$federalId))
@@ -2464,7 +2468,7 @@ function amountField($name, $value, $id) {
 function toggle($field, $value, $id, $highlight = 'never') {
   $path = current_path();
   $name = $id = "$field-$id";
-  $zot = array($id => hidField(attrib(compact(u\ray('id name value')))));
+  $zot = array($id => hidField($value, attrib(compact(u\ray('id name')))));
   $input = \render($zot);
   $b1 = button(' - ', "toggle('$id');", t('Change to NO'), 'form-no');
   $b2 = button(' + ', "toggle('$id');", t('Change to YES'), 'form-yes');
@@ -2657,9 +2661,10 @@ function formLogin(&$form, &$sta, $regular = TRUE) {
   }
   $name = textField(t('Username/ID:'), $regular ? t('Enter your username (the letters of your legal name, all lowercase) OR your rCredits account ID.') : '', required(@$name));
   $pass = formField('password', @$newPass ? t('Old password:') : t('Password:'), t('Enter your current or temporary password.'), required());
+  $strong = hidField(0, attrib(array('id' => 'edit-strong')));
 
   $submit = submit(t('Sign in'));
-  $form = compact(u\ray('title subtext name pass newPass submit')) + $form;
+  $form = compact(u\ray('title subtext name pass newPass strong submit')) + $form;
 
   $form['#validate'] = array('rCredits\\Web\\login_extra_validate', 'user_login_final_validate'); // add replacement function
   
@@ -2681,7 +2686,7 @@ function formLogin(&$form, &$sta, $regular = TRUE) {
  * Sets $sta['uid'] to signify successful authentication.
  */
 function login_extra_validate($form, &$sta) {
-  extract(u\just('name pass newPass', $sta['input']));
+  extract(u\just('name pass newPass strong', $sta['input']));
   if (!$name or empty($pass)) return;
 
   $ipLimit = variable_get('user_failed_login_ip_limit', 50);
@@ -2703,8 +2708,7 @@ function login_extra_validate($form, &$sta) {
     $sta['flood_control_triggered'] = 'user';
     return FALSE;
   }
-
-  if ($new = @$newPass['pass1'] and u\weakPass($new)) return say('weak pass', 'pass1');
+  if (@$newPass['pass1'] and !$strong) return say('weak pass', 'pass1');
   $mya = r\acct($uid);
   $sta['uid'] = passwordOkay($mya, $pass) ? $uid : FALSE;
 }
@@ -2736,7 +2740,7 @@ function loginFollowup($edit, $account) {
   $mya->update(compact(u\ray('pass data')));
 
   u\loga('login', compact('name'), $myid);
-  r\go('');
+  return r\go('summary');
 }
 
 function passAlter(&$form, $sta, $id = '') {

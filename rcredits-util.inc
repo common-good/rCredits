@@ -746,6 +746,7 @@ function get_company_pictures() {
 }
 */
 
+/*
 function weakPass($pass) {  
   return strlen($pass) < 6 
     or !preg_match('/[A-Z]/', $pass)
@@ -753,6 +754,7 @@ function weakPass($pass) {
     or !preg_match('/\d/', $pass)
     or !preg_match('/[^A-Za-z\d]/', $pass);
 }
+*/
 
 function fsize($url) {
   if ($size = @filesize($url)) return $size;

@@ -95,6 +95,10 @@ function memberCompletesFormWithValues($id, $page, $values, $confirmed = FALSE) 
     foreach (t\postProcess($form, $page, 'submit') as $one) {
       $one($form, $formSta);
     }
+    if ($page == '/user/login') { // fudge this test until we can take over the login process from Drupal
+      t\logIn($id = $formSta['uid']);
+      r\Web\loginFollowup($formSta, r\acct($id)->account());
+    }
   }
 
   return TRUE;
@@ -106,6 +110,7 @@ function memberCompletesFormWithValues($id, $page, $values, $confirmed = FALSE) 
  * in: RealUsd AMixedRCreditsUSDTransactionHappens MAKE
  *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance MAKE
  *     Relations AMemberAddsARelation MAKE
+ *     Signin AMemberSignsInForTheFirstTime MAKE
  *     Signup ANewbieRegisters MAKE
  *     Signup AMemberRegistersBadEmail MAKE
  *     Signup AMemberRegistersBadPhone MAKE
@@ -172,6 +177,7 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  * in: Membership Setup MAKE
  *     RealUsd Setup MAKE
  *     Relations Setup MAKE
+ *     Signin AMemberSignsInForTheFirstTime TEST
  *     Signup ANewbieRegisters TEST
  *     Signup AMemberRegistersAgain MAKE
  *     Signup AMemberRegistersWithAnExistingCompany BOTH
@@ -249,7 +255,8 @@ function weSayWithSubs($type, $index, $subs) {
 /**
  * we say (ARG): (ARG)
  *
- * in: Signup AMemberRegistersBadPhone TEST
+ * in: Signin AMemberSignsInForTheFirstTime TEST
+ *     Signup AMemberRegistersBadPhone TEST
  *     Signup AMemberRegistersBadZip TEST
  *     Signup AMemberRegistersWithACompanyWithNoRelation TEST
  *     Summary MembersAccountIsNotActive TEST
@@ -331,6 +338,7 @@ function weShowWithSubs($page, $subs) {
  *     Relations MemberCompanyHasRelations TEST
  *     Relations ItsComplicated TEST
  *     Relations AMemberAddsARelation TEST
+ *     Signin AMemberSignsInForTheFirstTime TEST
  *     Signup ANewbieVisitsTheRegistrationPageWithNoInvite TEST
  *     Signup AnInvitedNewbieVisitsTheRegistrationPage TEST
  *     Signup ANewbieRegisters TEST
@@ -494,6 +502,7 @@ function usd($list) {
  *     Relations MemberCompanyHasRelations MAKE
  *     Relations ItsComplicated MAKE
  *     Relations AMemberAddsARelation MAKE
+ *     Signin AMemberSignsInForTheFirstTime MAKE
  *     Signup ANewbieVisitsTheRegistrationPageWithNoInvite MAKE
  *     Signup AnInvitedNewbieVisitsTheRegistrationPage MAKE
  *     Signup AMemberRegistersACompany MAKE
@@ -515,7 +524,8 @@ function memberVisitsPage($id, $page) { // pass options in URL
 /**
  * member is logged out
  *
- * in: Signup Setup MAKE
+ * in: Signin Setup MAKE
+ *     Signup Setup MAKE
  */
 function memberIsLoggedOut() {
   global $testOnly;
@@ -528,7 +538,8 @@ function memberIsLoggedOut() {
 /**
  * invitation to email (ARG) is (ARG)
  *
- * in: Signup ANewbieVisitsTheRegistrationPageWithNoInvite MAKE
+ * in: Signin AMemberSignsInForTheFirstTime MAKE
+ *     Signup ANewbieVisitsTheRegistrationPageWithNoInvite MAKE
  *     Signup AnInvitedNewbieVisitsTheRegistrationPage MAKE
  *     Signup ANewbieRegisters MAKE
  *     Signup AMemberRegistersBadEmail MAKE
@@ -634,6 +645,7 @@ function memberHasDoneStep($uid, $step) {
  * we show (ARG)
  *
  * in: Membership AMemberDoesItAll TEST
+ *     Signin AMemberSignsInForTheFirstTime TEST
  */
 function weShow($title) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -659,4 +671,33 @@ function memberSupplies($uid, $field, $value) {
 function memberHasPermission($uid, $permission) {
   global $testOnly; if ($testOnly) return FALSE;
   return r\acct(t\uid($uid))->setBit(constant('B_' . strtoupper($permission)), TRUE, TRUE);
+}
+
+/**
+ * member (ARG) one-time password is set
+ *
+ * in: Signin AMemberSignsInForTheFirstTime TEST
+ *     Signup ANewbieRegisters TEST
+ */
+function memberOnetimePasswordIsSet($id) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  $a = r\acct($uid = t\uid($id));
+  return (isset($a->data['oneTimePass']['pass']) and $a->data['oneTimePass']['expires'] > REQUEST_TIME);
+}
+
+/**
+ * member (ARG) one-time password is (ARG)
+ *
+ * in: Signin AMemberSignsInForTheFirstTime MAKE
+ */
+function memberOnetimePasswordIs($id, $pass) {
+  global $testOnly;
+  $a = r\acct($uid = t\uid($id));
+  if (!$testOnly) {
+    $expires = REQUEST_TIME + R_SIGNIN_HOURS * 3600;
+    $oneTimePass = compact('pass', 'expires');
+    $data = compact('oneTimePass') + $a->data;
+    $a->update(compact('data'));
+  }
+  return ($a->data['oneTimePass']['pass'] == $pass and $a->data['oneTimePass']['expires'] > REQUEST_TIME);
 }

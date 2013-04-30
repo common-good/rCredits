@@ -4,17 +4,17 @@
  * Functions to run periodically.
  
 DAILY (every 5 mins for 5 mins, starting at 2am)
-- * rollback lost USD transactions
-- * check / recalc cached r, rewards, and usd
+- * lostUsdTxs() rollback lost USD transactions
+- * recache() check / recalc cached r, rewards, and usd
+- other security / scam checks (often)
 - * get community and system totals: variable_set('totals', )
 - * automatic virtual payments: Each employee gets relieved of their excess rCredits immediately if they are over their "maximum" after getting paid (even if they get paid zero).
 - * redistribution (selling of unwanted rCredits) looks only at non non-employees over their maximum (maximum is ignored for companies that pay virtually)
-- * automatic transfers to/from bank accounts
+- automatic transfers to/from bank accounts
 - calculate credit line (for overdrafts, Dwolla outage (eg 503), etc.): give the payer (r)credit up to the amount they earned or bought in the past 5 days if they have been a member for a month, 30 days for 6 months
 - notify and maybe fine late borrowers (might figure interest at the same time, since it requires examining each balance -- but only actually credit the interest monthly, otherwise discard it)
 - statements for those who want daily statements
 - weekly / monthly / quarterly / annual stuff
-- other security / scam checks (often)
 
 MONTHLY
 - interest (monthly, calculating daily bals from history) is credited to the new month. calculated as the sum of t*bal*APR, where bal is each balance they had during the preceding month and t is the number of years that balance lasted. (see daily notify and fine, above)
@@ -32,7 +32,7 @@ use rCredits\Util as u;
 use rCredits\Testing as t;
 use rCredits\Backend as be;
 
-define ('R_DAILY_TASKS', 'START lostUsdTxs recache totals beginVirtualPayments endVirtualPayments redistribute bank lessOften checkAccount END');
+define ('R_DAILY_TASKS', 'START lostUsdTxs recache checkAccount totals beginVirtualPayments endVirtualPayments redistribute bank lessOften END');
 
 //require_once 'rcredits.inc';
 //require_once 'rcredits-backend.inc';
@@ -53,18 +53,20 @@ function doTask($item) {
  * Queue: Check to see if it's time for a less-often periodic activity.
  */
 function periodic() {
+  $lastDaily = variable_get('daily', 0);
+  if (strftime('%H') >= R_DAILY_HOUR and strftime('%d') != strftime('%d', $lastDaily)) everyDay();
   if (strftime('%M') == '00') everyHour();
   // stuff to do every time cron is called (normally every 5 minutes)
 }
 
 function everyHour() {
-  if (strftime('%H') == R_DAILY_HOUR) everyDay();
   // stuff to do every hour
 }
 
 function everyDay() {
-  r\notifyStaff('Daily cron begins', '', FALSE);
   return queueNextAfter('START');
+  variable_set('daily', REQUEST_TIME);
+  die('here');
 }
 
 function lessOften() {
@@ -95,10 +97,11 @@ function everyYear() {
 function lostUsdTxs() {
 	$result = r\rTraders();
 	while($uid = $result->fetchColumn()) queue('lostUsdTx', compact('uid'));
-  queueNextAfter('lostUsdTx');
+  queueNextAfter('lostUsdTxs');
 }
 
 function lostUsdTx($item) {
+  include_once __DIR__ . '/usd.class';
   $uid = $item['uid'];
   $usAcct = new r\usd($acct = r\acct($uid));
   $usAcct->each('rCredits\\lostUsdTx1', strtotime('3 days ago'));
@@ -328,6 +331,5 @@ function virtualPaymentError1($acct1, $way, $acct2) {
 }
 
 function queue($op, $item = array()) {
-  $op = "rCredits\\Cron\\$op";
   \DrupalQueue::get('q')->createItem(compact('op') + $item);
 }

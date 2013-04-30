@@ -2,8 +2,8 @@
 //
 // Feature: A user signs up for rCredits
 //   AS a newbie
-//   I WANT to get access to the rCredits Participants section
-//   SO I can start pretending
+//   I WANT to open an rCredits account
+//   SO I can be part of the Common Good Economy
 
 require_once __DIR__ . '/../../../gherkin/test-defs.php';
 require_once __DIR__ . '/../rweb.steps';
@@ -89,6 +89,7 @@ class rwebSignup extends DrupalWebTestCase {
     And__('we email "welcome" to member "a@example.com" with subs: "DATA'
     . '\\| fullName | name   | quid    | region | pass     |'
     . '\\| Abe One  | abeone | NEW.AAC | new    | (varies) |"');
+    And__('member "NEW.AAC" one-time password is set');
     And__('we show "Sign In" with: "DATA'
     . '\\| oldpass      | pass1        | pass2                |'
     . '\\| Old password | New password | Confirm new password |"');

@@ -1244,7 +1244,7 @@ function changeIt($a) {
   $secure = $a->secure;
   $secure['cardCode'] = u\randomString(20, 'word');
   unset($secure['card_code']);
-  debug(array('id' => $a->id, 'secure' => $secure));
+  debug(array('id' => $a->id, 'secure' => $secure)); // keep
   //$a->update(compact('secure'));
 }
 

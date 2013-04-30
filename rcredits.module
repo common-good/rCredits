@@ -213,7 +213,7 @@ function rcredits_cron() {
  */
 function rcredits_cron_queue_info() {
 //  $intensive = r\makeQueue('intensive', 15*60);
-  $q = r\makeQueue('q', R_CRON_PERIOD);
+  $q = r\makeQueue('doTask', R_CRON_PERIOD);
   return compact('q');
 }
 
@@ -223,7 +223,5 @@ function test() {
   include_once __DIR__ . '/usd.class';
   $usdW = new r\usd($w = r\acct(410044001));
   $usdA = new r\usd($a = r\acct(410061551));
-  debug($w->secure);
-  debug($a->secure);
-  debug($usdA->bal());
+  debug($usdA->bal()); // keep
 }

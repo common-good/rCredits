@@ -583,7 +583,6 @@ function badEq($type, $v1, $v2, $id) {
 function shownWith($content, $type = 'text', $showDebugs = TRUE) {
   global $formOut;
   $model = $formOut[$type];
-    
   $xi = $i = 0;
 
   foreach ($content as $fields) {

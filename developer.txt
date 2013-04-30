@@ -10,17 +10,15 @@ BEFORE MINI LAUNCH:
 - tests (ideally before opening accounts): New Pass, Photo, Agreement, Contribute, Proxies
 - tests: Usd (including proof of ID), Options, Invite, Cron (daily)
 - written instructions for signup (dwolla, etc)
-- print me a card (and test it)
-- flow (figure credit accordingly, transfer between accounts as needed at day's end)
+- flow (figure credit accordingly, including handling/disallowing changes in draw relations)
 - inviter gets the Dwolla credit (is this possible?)
 - membership gift happens upon account activation (rTrader status); goes through as an rC transaction (test)
-- /I/ includes security code, like this: http(s?)://new.rc2.me/new.abc/Urlencoded10CharacterSecurityCode (test)
 - ** download must include rebate and bonuses transactions as a separate row (for GFM)
-- ** cron: make a "daily" queue for most stuff. include figuring variable_set('totals') (usd, r, demand, etc.)
-- don't set aside bought rCredits (for 2 weeks)
 
 To do: (* = before launch ** = earlier)
 
+- make logo on card darker (printer quirk)
+- don't ask for Dwolla id (get it from Dwolla)
 - make which() put whole quid in choices AND autoselect pick from just same region unless admin
 - give ccty admin a way to reset a member's password (assign them a one-time pass, set a one-time bit)
 - user/password should give error if user is logged in
