@@ -82,7 +82,7 @@ class rwebTransactR extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('member "NEW.ZZA" completes form "charge" with values: "DATA'
     . '\\| op     | who     | amount | goods | purpose |'
-    . '\\| Charge | Bea Two | 100    | 1     | labor   |"');
+    . '\\| charge | Bea Two | 100    | 1     | labor   |"');
     Then_('we show "confirm charge" with subs: "DATA'
     . '\\| amount | otherName |'
     . '\\| $100   | Bea Two   |"');
@@ -93,7 +93,7 @@ class rwebTransactR extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('member "NEW.ZZA" confirms form "charge" with values: "DATA'
     . '\\| op     | who     | amount | goods | purpose |'
-    . '\\| Charge | Bea Two | 100    | 1     | labor   |"');
+    . '\\| charge | Bea Two | 100    | 1     | labor   |"');
     Then_('we say "status": "report invoice" with subs: "DATA'
     . '\\| action  | otherName | amount | tid |'
     . '\\| charged | Bea Two   | $100   | 2   |"');
@@ -118,7 +118,7 @@ class rwebTransactR extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('member "NEW.ZZA" completes form "pay" with values: "DATA'
     . '\\| op  | who     | amount | goods | purpose |'
-    . '\\| Pay | Bea Two | 100    | 1     | labor   |"');
+    . '\\| pay | Bea Two | 100    | 1     | labor   |"');
     Then_('we show "confirm payment" with subs: "DATA'
     . '\\| amount | otherName |'
     . '\\| $100   | Bea Two   |"');
@@ -129,7 +129,7 @@ class rwebTransactR extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('member "NEW.ZZA" confirms form "pay" with values: "DATA'
     . '\\| op  | who     | amount | goods | purpose |'
-    . '\\| Pay | Bea Two | 100    | 1     | labor   |"');
+    . '\\| pay | Bea Two | 100    | 1     | labor   |"');
     Then_('we say "status": "report transaction" with subs: "DATA'
     . '\\| action | otherName | amount | tid | rewardType | rewardAmount | balance |'
     . '\\| paid   | Bea Two   | $100   | 2   | rebate     | $5           | $155    |"');

@@ -42,7 +42,7 @@ Setup:
 Scenario: A member asks to charge another member
   When member "NEW.ZZA" completes form "charge" with values:
   | op     | who     | amount | goods | purpose |
-  | Charge | Bea Two | 100    | 1     | labor   |
+  | charge | Bea Two | 100    | 1     | labor   |
   Then we show "confirm charge" with subs:
   | amount | otherName |
   | $100   | Bea Two   |
@@ -50,7 +50,7 @@ Scenario: A member asks to charge another member
 Scenario: A member confirms request to charge another member
   When member "NEW.ZZA" confirms form "charge" with values:
   | op     | who     | amount | goods | purpose |
-  | Charge | Bea Two | 100    | 1     | labor   |
+  | charge | Bea Two | 100    | 1     | labor   |
   Then we say "status": "report invoice" with subs:
   | action  | otherName | amount | tid |
   | charged | Bea Two   | $100   | 2   |
@@ -72,7 +72,7 @@ Scenario: A member confirms request to charge another member
 Scenario: A member asks to pay another member
   When member "NEW.ZZA" completes form "pay" with values:
   | op  | who     | amount | goods | purpose |
-  | Pay | Bea Two | 100    | 1     | labor   |
+  | pay | Bea Two | 100    | 1     | labor   |
   Then we show "confirm payment" with subs:
   | amount | otherName |
   | $100   | Bea Two   |
@@ -80,7 +80,7 @@ Scenario: A member asks to pay another member
 Scenario: A member confirms request to pay another member
   When member "NEW.ZZA" confirms form "pay" with values:
   | op  | who     | amount | goods | purpose |
-  | Pay | Bea Two | 100    | 1     | labor   |
+  | pay | Bea Two | 100    | 1     | labor   |
   Then we say "status": "report transaction" with subs:
   | action | otherName | amount | tid | rewardType | rewardAmount | balance |
   | paid   | Bea Two   | $100   | 2   | rebate     | $5           | $155    |

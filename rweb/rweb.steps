@@ -51,6 +51,7 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  */
 function memberCompletesFormWithValues($id, $page, $values, $confirmed = FALSE) {
   global $testOnly; if ($testOnly) return FALSE;
+  global $testOp; $testOp = @$values[0]['op'];
   global $testConfirmation; // confirmation message output, if any
   global $formSta;
 //debug(compact(u\ray('id page values confirmed testOnly'))); // keep
@@ -111,6 +112,7 @@ function memberCompletesFormWithValues($id, $page, $values, $confirmed = FALSE) 
  *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance MAKE
  *     Relations AMemberAddsARelation MAKE
  *     Signin AMemberSignsInForTheFirstTime MAKE
+ *     Signin AMemberGivesTheWrongPassword MAKE
  *     Signup ANewbieRegisters MAKE
  *     Signup AMemberRegistersBadEmail MAKE
  *     Signup AMemberRegistersBadPhone MAKE
@@ -178,6 +180,7 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  *     RealUsd Setup MAKE
  *     Relations Setup MAKE
  *     Signin AMemberSignsInForTheFirstTime TEST
+ *     Signin AMemberGivesTheWrongPassword MAKE
  *     Signup ANewbieRegisters TEST
  *     Signup AMemberRegistersAgain MAKE
  *     Signup AMemberRegistersWithAnExistingCompany BOTH
@@ -189,11 +192,7 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  *     TransactR Setup MAKE
  *     TransactUsd Setup MAKE
  */
-function members($list) {
-  global $testOnly;
-  foreach ($list as $one) if (!t\makeAccount($one, $testOnly)) return FALSE;
-  return TRUE;
-}
+function members($list) {return t\members($list);}
 
 /**
  * transactions: (ARG)
@@ -210,13 +209,7 @@ function members($list) {
  *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
  *     TransactUsd AMemberConfirmsRequestToPayAnotherMember TEST
  */
-function transactions($list) {
-  global $testOnly; 
-
-  $function = $testOnly ? 'rCredits\\Testing\\verifyTx' : 'rCredits\\Testing\\makeTransaction';
-  foreach ($list as $one) if (!$function($one)) return FALSE;
-  return TRUE;
-}
+function transactions($list) {return t\transactions($list);}
 
 /**
  * we say (ARG): (ARG) with subs: (ARG)
@@ -256,6 +249,7 @@ function weSayWithSubs($type, $index, $subs) {
  * we say (ARG): (ARG)
  *
  * in: Signin AMemberSignsInForTheFirstTime TEST
+ *     Signin AMemberGivesTheWrongPassword MAKE
  *     Signup AMemberRegistersBadPhone TEST
  *     Signup AMemberRegistersBadZip TEST
  *     Signup AMemberRegistersWithACompanyWithNoRelation TEST
@@ -416,11 +410,7 @@ function withoutOptions($options) {
  *     TransactR Setup MAKE
  *     TransactUsd Setup MAKE
  */
-function relations($relations) {
-  global $testOnly; 
-  foreach ($relations as $one) if (!t\makeRelation($one, $testOnly)) return FALSE;
-  return TRUE;
-}
+function relations($relations) {return t\relations($relations);}
 
 /**
  * balances: (ARG)
@@ -438,32 +428,7 @@ function relations($relations) {
  *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
  *     TransactUsd AMemberConfirmsRequestToPayAnotherMember TEST
  */
-function balances($list) {
-  global $testOnly; if (!$testOnly) return FALSE;
-  foreach ($list as $one) {
-    extract(u\just('id r usd rewards', $one));
-    $a = r\acct($id = t\uid($id));
-    $calc = t\uidCredit($id);
-    if (isset($r)) {
-      if (t\badEq('calc r', $calc->r, $r, $id)) return;
-      if ($id > 0 and t\badEq('cached r', $a->r, $r, $id)) return; // (ctty not cached)
-    }
-    if ($id < 0) continue; // only r is tested for community (nothing is cached for ctty)
-    if (isset($rewards)) {
-      if (t\badEq('calc rewards', $calc->rewards, $rewards, $id)) return;
-      if (t\badEq('cached rewards', $a->rewards, $rewards, $id)) return;
-    }
-    if (isset($usd)) {
-      if (!is_numeric($usd)) {
-        list ($usd, $bal) = t\parseAmt($usd, $a);
-        if (t\badEq('REAL usd', $bal, $usd, $id)) return;
-      }
-// (can't tell because it starts nonzero) if (!t\eq($calc->usd, $usd)) return t\testOutput('bad calc usd');
-      if (t\badEq('cached usd', $a->usd, $usd, $id)) return;
-    }
-  }
-  return TRUE;
-}
+function balances($list) {return t\balances($list);}
 
 /**
  * usd: (ARG)
@@ -474,16 +439,7 @@ function balances($list) {
  *     TransactR Setup MAKE
  *     TransactUsd Setup MAKE
  */
-function usd($list) {
-  global $testOnly;
-  foreach ($list as $one) {
-    extract(u\just('id usd', $one));
-    $a = r\acct(t\uid($id));
-    if (!is_numeric($usd)) list ($usd) = t\parseAmt($usd, $a);
-    if ($testOnly ? ($a->usd != $usd) : !$a->update(compact('usd'))) return FALSE;
-  }
-  return TRUE;
-}
+function usd($list) {return t\usd($list);}
 
 /**
  * member (ARG) visits page (ARG)
@@ -503,6 +459,7 @@ function usd($list) {
  *     Relations ItsComplicated MAKE
  *     Relations AMemberAddsARelation MAKE
  *     Signin AMemberSignsInForTheFirstTime MAKE
+ *     Signin AMemberGivesTheWrongPassword MAKE
  *     Signup ANewbieVisitsTheRegistrationPageWithNoInvite MAKE
  *     Signup AnInvitedNewbieVisitsTheRegistrationPage MAKE
  *     Signup AMemberRegistersACompany MAKE
@@ -631,7 +588,7 @@ function memberHasDoneStep($uid, $step) {
     return $a->update(compact('secure'));
   }
   if ($step == 'proof') {
-    list ($dob, $federalId) = array(REQUEST_TIME - 3600*24*365*40, 123456789);
+    list ($dob, $federalId) = array(REQUEST_TIME - DAY_SECS*365*40, 123456789);
     $a->update(compact('dob', 'federalId'));
     return file_put_contents(DRUPAL_ROOT . $a->auxFilename('proof'), 'whatever') and $a->dob and $a->federalId;
   }
@@ -689,12 +646,13 @@ function memberOnetimePasswordIsSet($id) {
  * member (ARG) one-time password is (ARG)
  *
  * in: Signin AMemberSignsInForTheFirstTime MAKE
+ *     Signin AMemberGivesTheWrongPassword MAKE
  */
 function memberOnetimePasswordIs($id, $pass) {
   global $testOnly;
   $a = r\acct($uid = t\uid($id));
   if (!$testOnly) {
-    $expires = REQUEST_TIME + R_SIGNIN_HOURS * 3600;
+    $expires = REQUEST_TIME + R_SIGNIN_HOURS * HOUR_SECS;
     $oneTimePass = compact('pass', 'expires');
     $data = compact('oneTimePass') + $a->data;
     $a->update(compact('data'));

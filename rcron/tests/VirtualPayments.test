@@ -1,0 +1,102 @@
+<?php
+//
+// Feature: Virtual Payments
+//   AS a member company
+//   I WANT to pay my employees and suppliers rCredits automatically
+//   SO I don't have to do change my current payroll and accounting system.
+//   and
+//   SO I don't build up a pile of credit I can't use yet.
+
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rcron.steps';
+
+class rcronVirtualPayments extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
+  var $sceneName;
+  const SHORT_NAME = 'VirtualPayments';
+  const FEATURE_NAME = 'rcron Test - VirtualPayments';
+  const DESCRIPTION = 'Virtual Payments';
+  const MODULE = 'rcron';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
+  }
+  
+  public static function getInfo() {
+    return array(
+      'short_name' => self::SHORT_NAME,
+      'name' => self::FEATURE_NAME,
+      'description' => self::DESCRIPTION,
+      'group' => ucwords(self::MODULE)
+    );
+  }
+
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
+    global $sceneTest; $sceneTest = $this;
+    parent::setUp(self::MODULE);
+
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rcron.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
+    default: // fall through to case(0)
+    case(0):
+    Given('members: "DATA'
+    . '\\| id      | fullName   | email         |floor | minimum | maximum | flags                   |'
+    . '\\| NEW.ZZA | Abe One    | a@example.com |    0 |      20 |      20 | dft,personal,ok         |'
+    . '\\| NEW.ZZB | Bea Two    | b@example.com |    0 |     100 |     200 | dft,personal,company,ok |'
+    . '\\| NEW.ZZC | Corner Pub | c@example.com |    0 |      10 |       0 | dft,company,virtual,ok  |'
+    . '\\| NEW.ZZD | Dee Four   | d@example.com |    0 |     100 |     100 | dft,personal,ok         |"');
+    And__('relations: "DATA'
+    . '\\| id      | main    | agent   | employerOk | permission | amount |'
+    . '\\| NEW:ZZA | NEW.ZZC | NEW.ZZA |          1 | sell       |   1800 |'
+    . '\\| NEW:ZZB | NEW.ZZC | NEW.ZZB |          0 |            |    200 |"');
+    break;
+
+
+    }
+  }
+
+  // Scenario: a member company pays suppliers virtually
+  public function testAMemberCompanyPaysSuppliersVirtually_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "DATA'
+    . '\\| id      | r  | usd | rewards |'
+    . '\\| NEW.ZZA | 10 | 100 |       5 |'
+    . '\\| NEW.ZZB | 60 |   0 |      20 |'
+    . '\\| NEW.ZZC | 50 |   0 |      20 |'
+    . '\\| NEW.ZZD |  0 | 100 |      20 |"');
+    When_('cron runs "paySuppliers"');
+    Then_('transactions: "DATA'
+    . '\\| tx_id    | created | type        | state    | amount | r    | from      | to      | purpose               |'
+    . '\\| NEW.AAAB | %today | %TX_TRANSFER | %TX_DONE |      4 |    4 | NEW.ZZB | community | rCredits/USD exchange |'
+    . '\\| NEW.AAAC | %today | %TX_TRANSFER | %TX_DONE |      4 |    4 | community | NEW.ZZA | rCredits/USD exchange |'
+    . '\\| NEW.AAAD | %today | %TX_TRANSFER | %TX_DONE |      0 |    4 | NEW.ZZC   | NEW.ZZB | virtual payment       |'
+    . '\\| NEW.AAAE | %today | %TX_REBATE   | %TX_DONE |   0.20 | 0.20 | community | NEW.ZZC | rebate on #1          |'
+    . '\\| NEW.AAAF | %today | %TX_BONUS    | %TX_DONE |   0.40 | 0.40 | community | NEW.ZZB | bonus on #2           |"');
+  }
+
+  // Scenario: a member company pays employees virtually
+  public function testAMemberCompanyPaysEmployeesVirtually_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "DATA'
+    . '\\| id      | r  | usd | rewards |'
+    . '\\| NEW.ZZA | 10 | 100 |       5 |'
+    . '\\| NEW.ZZB | 60 |   0 |      20 |'
+    . '\\| NEW.ZZC | 50 |   0 |      20 |'
+    . '\\| NEW.ZZD |  0 | 100 |      20 |"');
+    When_('cron runs "payEmployees"');
+    Then_('transactions: "DATA'
+    . '\\| tx_id    | created | type        | state    | amount | r    | from      | to      | purpose               |'
+    . '\\| NEW.AAAB | %today | %TX_TRANSFER | %TX_DONE |     30 |   30 | NEW.ZZA | community | rCredits/USD exchange |'
+    . '\\| NEW.AAAC | %today | %TX_TRANSFER | %TX_DONE |     30 |   30 | community | NEW.ZZD | rCredits/USD exchange |'
+    . '\\| NEW.AAAD | %today | %TX_TRANSFER | %TX_DONE |      0 |   40 | NEW.ZZC   | NEW.ZZA | virtual payment       |'
+    . '\\| NEW.AAAE | %today | %TX_REBATE   | %TX_DONE |   2.00 | 2.00 | community | NEW.ZZC | rebate on #1          |'
+    . '\\| NEW.AAAF | %today | %TX_BONUS    | %TX_DONE |   4.00 | 4.00 | community | NEW.ZZA | bonus on #2           |"');
+  }
+
+}

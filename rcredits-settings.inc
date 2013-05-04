@@ -25,7 +25,6 @@ define('R_BONUS_FACTOR', 2); // standard bonus is this times standard rebate
 define('R_MAX_AMOUNT', 100000); // transaction request size limit (some smaller limits also apply)
 //define('R_MIN_DEMAND', 10); // you can't buy less rCredits than this at a time
 define('R_STARTING_BALANCE', 20); // how much people start with at this time
-define('R_SIGNUP_INCENTIVES', '20 100 150 200 250'); // possible total amounts of signup incentives in launch month
 define('R_FLOOR', 0); // how low can user's balance go, by default
 define('R_STATEMENT_COST', 10); // how much member must pay (in rCredits dollars) for monthly and annual statements by mail
 define('R_DAILY_HOUR', '03'); // what time (2-digit 24-hour clock hour) to start intensive daily maintenance tasks

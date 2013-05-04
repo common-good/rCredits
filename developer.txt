@@ -17,6 +17,12 @@ BEFORE MINI LAUNCH:
 
 To do: (* = before launch ** = earlier)
 
+- dropdowns for proxies
+- contributions to CGF always get a rebate
+- auto bank transfers: check for pending transfers (in the past 4 days) -- don't do the opposite
+- update formMenu() to handle main, membership, and settings (the latter to with a "Home" button)
+- make submit() default to 'Save'
+- "sign" our invite emails so gmail and others won't see them as spam
 - make logo on card darker (printer quirk)
 - don't ask for Dwolla id (get it from Dwolla)
 - make which() put whole quid in choices AND autoselect pick from just same region unless admin
@@ -153,9 +159,10 @@ function demandSql($other, $minRepeats, $months) {
   $earliest = strtotime("$months ago", REQUEST_TIME);
   $me = $other == 'payer' ? 'payee' : 'payer';
   return <<<EOF
-  SELECT SUM(demand) AS demand 
+  SELECT SUM(GREATEST(0, minimum-r)) AS demand 
     FROM (SELECT $other, COUNT(*) AS count FROM txs 
-    WHERE type=:TX_TRANSACT AND goods AND state=:TX_DONE AND completed>=$earliest AND $me=u.uid AND $other>0)
+    WHERE type=:TX_TRANSACT AND goods AND state=:TX_DONE AND completed>=$earliest AND $other>0)
+    INNER JOIN users u ON u.uid=$me
     WHERE count>=$minRepeats
 EOF;
 }

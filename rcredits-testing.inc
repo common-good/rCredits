@@ -97,13 +97,13 @@ function makeTransaction($info, $infoOnly = FALSE) {
   $created = @$my_created ? strtotime($my_created) : REQUEST_TIME;
   
   $payer = uid($my_from);
-  $payerAgent = uid(@$my_from_agent ?: ($type == TX_TRANSFER ? $my_from : r\communityUid()));
+  $payerAgent = uid(@$my_fromAgent ?: ($type == TX_TRANSFER ? $my_from : r\communityUid()));
   $payee = uid($my_to); 
-  $payeeAgent = uid(@$my_to_agent ?: ($type == TX_TRANSFER ? $my_to : r\communityUid()));
+  $payeeAgent = uid(@$my_toAgent ?: ($type == TX_TRANSFER ? $my_to : r\communityUid()));
   
   $for = @$my_purpose ?: 'cash';
   $goods = isset($my_goods) ? $my_goods : (($type != TX_TRANSFER or u\forCash($for)) ? 0 : 1);
-  $taking = ($my_from == 'community' or @$my_type == 'payment') ? 0 : 1;
+  $taking = 0; //($my_from == 'community' or @$my_type == 'payment') ? 0 : 1;
   $r = isset($my_r) ? $my_r : $my_amount;
   if ($goods) {
     $rebate = r\rebate($payer, $r);
@@ -141,6 +141,82 @@ function makeRelation($info, $infoOnly = FALSE) {
   foreach (u\ray('id main agent') as $one) unset($info[$one]);
   $info += compact(u\ray('reid main other'));
   return $infoOnly ? verifyRecord('r_relations', $info) : r\dbInsert('r_relations', $info);
+}
+
+function members($list) {
+  global $testOnly;
+  foreach ($list as $one) if (!t\makeAccount($one, $testOnly)) return FALSE;
+  return TRUE;
+}
+
+function transactions($list) {
+  global $testOnly; 
+
+  $function = $testOnly ? 'rCredits\\Testing\\verifyTx' : 'rCredits\\Testing\\makeTransaction';
+  foreach ($list as $one) if (!$function($one)) return FALSE;
+  return TRUE;
+}
+
+function relations($relations) {
+  global $testOnly; 
+  foreach ($relations as $one) if (!t\makeRelation($one, $testOnly)) return FALSE;
+  return TRUE;
+}
+
+function balances($list) {
+  global $testOnly; 
+  foreach ($list as $one) {
+    $func = 'rCredits\\Testing\\balances' . ($testOnly ? 'TEST' : 'MAKE');
+    if (!$func($one)) return FALSE;
+  }
+  return TRUE;
+}  
+
+/**
+ * Make the cached balances be thus and such.
+ * Note that this will be at odds with any calculated balances, 
+ *   so a scenario cannot test balances with "balances:" after setting them up this way.
+ */
+function balancesMAKE($one) {
+  extract(u\just('id r usd rewards', $one));
+  $a = r\acct(t\uid($id));
+  unset($one['id']);
+  return ($a->update($one));
+}
+
+function balancesTEST($one) {  
+  extract(u\just('id r usd rewards', $one));
+  $a = r\acct($id = t\uid($id));
+  $calc = t\uidCredit($id);
+  if (isset($r)) {
+    if (t\badEq('calc r', $calc->r, $r, $id)) return FALSE;
+    if ($id > 0 and t\badEq('cached r', $a->r, $r, $id)) return FALSE; // (ctty not cached)
+  }
+  if ($id < 0) continue; // only r is tested for community (nothing is cached for ctty)
+  if (isset($rewards)) {
+    if (t\badEq('calc rewards', $calc->rewards, $rewards, $id)) return FALSE;
+    if (t\badEq('cached rewards', $a->rewards, $rewards, $id)) return FALSE;
+  }
+  if (isset($usd)) {
+    if (!is_numeric($usd)) {
+      list ($usd, $bal) = t\parseAmt($usd, $a);
+      if (t\badEq('REAL usd', $bal, $usd, $id)) return FALSE;
+    }
+// (can't tell because it starts nonzero) if (!t\eq($calc->usd, $usd)) return t\testOutput('bad calc usd');
+    if (t\badEq('cached usd', $a->usd, $usd, $id)) return FALSE;
+  }
+  return TRUE;
+}
+
+function usd($list) {
+  global $testOnly;
+  foreach ($list as $one) {
+    extract(u\just('id usd', $one));
+    $a = r\acct(t\uid($id));
+    if (!is_numeric($usd)) list ($usd) = t\parseAmt($usd, $a);
+    if ($testOnly ? ($a->usd != $usd) : !$a->update(compact('usd'))) return FALSE;
+  }
+  return TRUE;
 }
 
 /**
@@ -367,7 +443,7 @@ function pageForm($page) {
     // (FAILS for user_login) $form = \drupal_get_form($form, $args);
     $form = $login ? array() : \drupal_get_form($form, $args);
     $function($form, $sta, $args);
-    if ($login and $form['newPass']) $form['newPass'] = \form_process_password_confirm($form['newPass']);
+    if ($login and @$form['newPass']) $form['newPass'] = \form_process_password_confirm($form['newPass']);
     $form2 = $form; $rent = \drupal_render($form2);
     getFormOut($rent);
     return $form;

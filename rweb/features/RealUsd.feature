@@ -26,7 +26,7 @@ Setup:
 Scenario: A mixed rCredits/USD transaction happens
   When member "NEW.ZZA" confirms form "pay" with values:
   | op  | who     | amount | goods | purpose |
-  | Pay | Bea Two | 10.20  | 1     | labor   |
+  | pay | Bea Two | 10.20  | 1     | labor   |
   Then transactions: 
   | tx_id    | type         | state    | amount | r    | from      | to      | purpose      | taking |
   | NEW:AAAC | %TX_TRANSFER | %TX_DONE |  10.20 |   10 | NEW.ZZA   | NEW.ZZB | labor        | 0      |
@@ -51,7 +51,7 @@ Scenario: A member confirms payment with insufficient USD balance
 # meaning the cached usd amount is $100 higher than the actual USD balance
   When member "NEW.ZZA" confirms form "pay" with values:
   | op  | who     | amount     | goods | purpose |
-  | Pay | Bea Two | AMT1+10.01 | 1     | labor   |
+  | pay | Bea Two | AMT1+10.01 | 1     | labor   |
   Then we say "error": "short to" with subs:
   | short |
   | $0.01 |

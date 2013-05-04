@@ -27,7 +27,7 @@ EOF
   $paySpecial = t(' If you have employees you can say pay "ALL", to pay each employee the same amount.');
 
   if ($page == 'membership/proxies') {
-    $sql = 'SELECT name, fullName, city FROM users WHERE uid>1 AND (flags&(1<<:B_PERSONAL)) ORDER BY postalCode, city, fullName';
+    $sql = 'SELECT name, fullName, city FROM users WHERE uid>1 AND :IS_PERSONAL ORDER BY postalCode, city, fullName';
     $result = r\dbQ($sql);
     while ($row = $result->fetchAssoc()) {
       extract($row);

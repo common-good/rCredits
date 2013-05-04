@@ -382,7 +382,8 @@ function payInvoice($xid) {
  * @param string $for OR array($payerFor, $payeeFor): description of the transaction's purpose (user input)
  * @param bool $goods: is this for real goods and services
  * @param bool $confirmed: has this transaction been confirmed by the user? (default TRUE)
- * @param array $data: associative array of info about the transaction this request is reversing (if any), indexed by any of:
+ * @param array $data: associative array of info about the transaction this request is reversing (if any), 
+ *   indexed by any of:
  *   'rebate': the rebate amount for this request (should be negative the original bonus amount)
  *   'bonus': the bonus amount (should be negative the original rebate amount) [rebate and bonus are always both set or neither]
  *   'undoes': transaction id of the related transaction (transaction being undone / invoice being paid)
@@ -469,12 +470,6 @@ function transfer($ttype, $a, $requestAmount, $for, $goods, $confirmed = TRUE, $
   
   // Figure rewards and other extra info
   if (!$for) $for = $goods ? 'goods and services' : 'cash/loan/etc.';
-  $rebate = (string) ($goods ? r\rebate($payer, $r) : 0); // force string, to avoid long serializations
-  $bonus = (string) ($goods ? r\bonus($payee, $r) : 0);
-  if (!isset($data['rebate'])) $data += compact('rebate', 'bonus');
-  unset($data['preapproved']); // probably don't need this (but keep xid of related transaction, if any)
-  unset($data['bilateral']);
-  $data = serialize($data);
 
   list ($fromUsAcct, $toUsAcct) = u\order($taking, new r\usd($a), new r\usd($mya));
   $txArgs = compact(u\ray('type amount r payer payee payerAgent payeeAgent for data taking goods state'));
@@ -491,6 +486,7 @@ function transfer($ttype, $a, $requestAmount, $for, $goods, $confirmed = TRUE, $
   } else {
     $txs = r\transact($txArgs);
     r\usd::rollback();
+    r\updateUsdCache($mya);
   }
   
   // Report results
@@ -611,8 +607,9 @@ function identify($who, $self_message = 'no self-trading') {
   if ($phone = u\formatPhone($who, '+n')) $who = $phone;
   
   $quid = strtoupper($who); // in case this is a quid (abbreviated or not)
-  if (strpos('.:=', substr($quid, 0, 1)) !== FALSE) { // allow abbreviations within this region
-    list($quid) = explode(' ', R_SERVER_ID . $quid, 2); // take just the first word, in case this is from a list showing QUID and fullName
+  if (preg_match('/^([A-Z]{3})?[\.\:=][A-Z]{3,4}( |$)/i', $quid, $match)) { // allow quids or abbrevs within this region
+    $pre = $match[1] ? '' : R_SERVER_ID; // region name was omitted
+    list($quid) = explode(' ', "$pre$quid ", 2); // take just the first word, in case this is from a list showing QUID and fullName
   }
 
   if (u\isQid($quid)) {
@@ -688,11 +685,11 @@ function creditInfo($args = array()) {
     SUM(IF(t.payer=:uid, r, 0)) AS rOut, 
     SUM(IF(t.payee=:uid, r, 0)) AS rIn,
     
-    SUM(IF(t.type IN(:TX_REBATE,:TX_BONUS) AND $dateField>=$monthStart, amount, 0)) AS committed
     FROM r_txs t
     WHERE (t.payer=:uid OR t.payee=:uid) AND t.state IN($state)
 EOF;
   if ($asof) $sql .= " AND $dateField<=:asof";
+//    SUM(IF(t.type IN(:TX_REBATE,:TX_BONUS) AND $dateField>=$monthStart, amount, 0)) AS committed
 
   extract(r\dbQ($sql, compact(u\ray('uid asof')))->fetchAssoc());
   $balance = $in - $out;
@@ -705,8 +702,8 @@ EOF;
   $usdOut = $out - $rOut;
   $usd = $usdIn - $usdOut;
 
-  $committed = round($committed * $acct->share / 100, 2);
-  $resultKeys = 'in out inProper balance rewards rIn rOut rInProper r usdIn usdOut usd committed';
+//  $committed = round($committed * $acct->share / 100, 2);
+  $resultKeys = 'in out inProper balance rewards rIn rOut rInProper r usdIn usdOut usd';
   $result = compact(u\ray($resultKeys));
   $fancy = array();
   foreach ($result as $key => $value) $fancy[$key] = u\formatAmount(@$value + 0);

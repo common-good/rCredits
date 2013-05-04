@@ -15,13 +15,24 @@ Scenario: A member signs in for the first time
   | id      | fullName | email         | phone        | country | postalCode | state | city    | flags | 
   | NEW.AAC | Abe One  | a@example.com | +14132530000 | US | 01001       | MA    | Amherst | dft,personal |
   And member "NEW.AAC" one-time password is set
-  Given member "NEW.AAC" one-time password is "thingy"
+  Given member "NEW.AAC" one-time password is %whatever
   When member "?" visits page "/user/login"
   Then we show "Sign In" with:
   | oldpass      | pass1        | pass2                |
   | Old password | New password | Confirm new password |
   When member "?" confirms form "/user/login" with values:
-  | name   | pass   | pass1  | pass2  |
-  | abeone | thingy | Aa1!.. | Aa1!.. |
+  | name   | pass      | pass1  | pass2  |
+  | abeone | %whatever | Aa1!.. | Aa1!.. |
   Then we show "Account Summary"
   And we say "status": "take a step"
+  
+Scenario: A member gives the wrong password
+  Given members:
+  | id      | fullName   | acctType    | flags           | pass       |
+  | NEW.ZZA | Abe One    | %R_PERSONAL | dft,ok,personal | %whatever1 |
+  And member "NEW.ZZA" one-time password is %whatever2
+  When member "?" visits page "/user/login"
+  And member "?" confirms form "/user/login" with values:
+  | name   | pass    | pass1  | pass2  |
+  | abeone | %random | Aa1!.. | Aa1!.. |
+  And we say "error": "wrong pass"

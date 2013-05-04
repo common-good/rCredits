@@ -337,20 +337,21 @@ function txBal($bal, $plus = '', $minus = '- ') {return ($bal < 0 ? $minus : $pl
  * Return the transaction summary table
  */
 function tx_summary($starting, $ending) {
-  $myid = r\acct()->id;
+  $mya = r\acct();
+  $myid = $mya->id;
   $previous_ending = $starting - 1;
   extract($nowInfo = (array) be\creditInfo(array('asof' => $ending)), EXTR_PREFIX_ALL, 'now');
   extract($pendingInfo = (array) be\creditInfo(array('state' => ':TX_PENDING', 'asof' => $ending)), EXTR_PREFIX_ALL, 'pending');
   extract($oldInfo = (array) be\creditInfo(array('asof' => $previous_ending)), EXTR_PREFIX_ALL, 'old');
 //  debug(compact('nowInfo','oldInfo'));
   $dif = $pfancy = array();
-  foreach (u\ray('rInProper rOut rewards committed') as $key) {
+  foreach (u\ray('rInProper rOut rewards') as $key) {
     $dif[$key] = number_format($nowInfo[$key] - $oldInfo[$key], 2);
     $pfancy[$key] = number_format($pendingInfo[$key], 2);
   }
   extract($dif, EXTR_PREFIX_ALL, 'dif');
   extract($pfancy, EXTR_PREFIX_ALL, 'pfancy');
-  $pending_committed += $dif['committed']; // this will include all pending commitments since day 1 (?!)
+  $pending_committed = $mya->committed; // this will include all pending commitments
   $pfancy_committed = u\formatAmount($pending_committed);
   
   $starting = u\formatDate($starting);

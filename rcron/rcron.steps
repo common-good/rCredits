@@ -1,0 +1,153 @@
+<?php
+/**
+ * @file
+ * rCron Steps
+ *
+ * Provide step functions for functional testing.
+ * This file is created automatically by the Gherkin compiler.
+ *
+ * Note, therefore, that most of this file might be changed automatically
+ * when you run the compiler again. This @file description will not be affected,
+ * but all of the function header comments are (re)generated automatically.
+ *
+ * Be assured however, that no functions will be deleted and the compiler will
+ * never delete or alter code within a function.
+ */
+use rCredits as r;
+use rCredits\Testing as t;
+use rCredits\Util as u;
+use rCredits\Backend as be;
+
+require_once __DIR__ . '/../rcredits.inc';
+require_once __DIR__ . '/../rcredits-testing.inc';
+
+/**
+ * Add additional setup for any or all features or tests
+ * The feature object contains information about the current feature and test, etc.
+ */
+function extraSetup($feature) {
+  t\clear(TX_CRON);
+  if (!function_exists('multiline_tweak')) {function multiline_tweak(&$line) {
+    $line = str_replace('%last_quid', r\quid(r\acct::nextId() - 1), $line);
+  }}
+}
+
+/**
+ * Modify the standard list of magic substitutions (the %parameters)
+ */
+function extraSubs(&$subs) {
+//  $subs['%replace_this'] = 'with this';
+}
+
+function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, $info);}
+
+/**
+ * members: (ARG)
+ *
+ * in: Bank Setup MAKE
+ *     Bank AMemberHasNoMaximum MAKE
+ *     Bank AMemberPaysVirtually MAKE
+ *     VirtualPayments Setup MAKE
+ */
+function members($list) {return t\members($list);}
+
+
+/**
+ * balances: (ARG)
+ *
+ * in: Bank AMemberIsBarelyBelowMinimum MAKE
+ *     Bank AMemberIsAtMinimum MAKE
+ *     Bank AMemberIsWellBelowMinimum MAKE
+ *     Bank AMemberIsOverMaximum MAKE
+ *     Bank AMemberIsBarelyOverMaximum MAKE
+ *     Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank MAKE
+ *     Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank MAKE
+ *     Bank AMemberIsOverMaximumButAlreadyRequestedThatBarelyEnoughFundsGoToTheBank MAKE
+ *     Bank AMemberIsOverMaximumAndHasRequestedInsufficientFundsToGoToTheBank MAKE
+ *     Bank AMemberIsOverMaximumButHasRequestedFundsFROMTheBank MAKE
+ *     Bank AMemberHasNoMaximum MAKE
+ *     Bank AMemberPaysVirtually MAKE
+ *     Bank AMemberIsOverMaximumButMostlyInRCredits MAKE
+ *     VirtualPayments AMemberCompanyPaysSuppliersVirtually MAKE
+ *     VirtualPayments AMemberCompanyPaysEmployeesVirtually MAKE
+ */
+function balances($list) {return t\balances($list);}
+
+/**
+ * cron runs (ARG)
+ *
+ * in: Bank AMemberIsBarelyBelowMinimum MAKE
+ *     Bank AMemberIsAtMinimum MAKE
+ *     Bank AMemberIsWellBelowMinimum MAKE
+ *     Bank AMemberIsOverMaximum MAKE
+ *     Bank AMemberIsBarelyOverMaximum MAKE
+ *     Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank MAKE
+ *     Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank MAKE
+ *     Bank AMemberIsOverMaximumButAlreadyRequestedThatBarelyEnoughFundsGoToTheBank MAKE
+ *     Bank AMemberIsOverMaximumAndHasRequestedInsufficientFundsToGoToTheBank MAKE
+ *     Bank AMemberIsOverMaximumButHasRequestedFundsFROMTheBank MAKE
+ *     Bank AMemberHasNoMaximum MAKE
+ *     Bank AMemberPaysVirtually MAKE
+ *     Bank AMemberIsOverMaximumButMostlyInRCredits MAKE
+ *     VirtualPayments AMemberCompanyPaysSuppliersVirtually MAKE
+ *     VirtualPayments AMemberCompanyPaysEmployeesVirtually MAKE
+ */
+function cronRuns($op) {
+  global $testOnly; if($testOnly) return FALSE;
+  global $cronOp; $cronOp = $op;
+  \variable_set('daily', 0);
+  \drupal_cron_run();
+  return TRUE;
+}
+
+/**
+ * bank transfers: (ARG)
+ *
+ * in: Bank AMemberIsBarelyBelowMinimum TEST
+ *     Bank AMemberIsWellBelowMinimum TEST
+ *     Bank AMemberIsOverMaximum TEST
+ *     Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank TEST
+ *     Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank TEST
+ *     Bank AMemberIsOverMaximumButAlreadyRequestedThatBarelyEnoughFundsGoToTheBank TEST
+ *     Bank AMemberIsOverMaximumAndHasRequestedInsufficientFundsToGoToTheBank TEST
+ *     Bank AMemberIsOverMaximumButHasRequestedFundsFROMTheBank TEST
+ *     Bank AMemberIsOverMaximumButMostlyInRCredits TEST
+ */
+function bankTransfers($tx) {
+  global $testOnly; if(!$testOnly) return FALSE;
+  extract(u\just('payer amount', $tx[0]));
+  $payer = t\uid($payer);
+  return r\dbExists('r_usd', 'payer=:payer AND amount=:amount and payee=0', compact('payer', 'amount'));
+}
+
+/**
+ * bank transfer count is (ARG)
+ *
+ * in: Bank AMemberIsAtMinimum TEST
+ *     Bank AMemberIsBarelyOverMaximum TEST
+ *     Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank TEST
+ *     Bank AMemberIsOverMaximumButAlreadyRequestedThatBarelyEnoughFundsGoToTheBank TEST
+ *     Bank AMemberIsOverMaximumButHasRequestedFundsFROMTheBank TEST
+ *     Bank AMemberHasNoMaximum TEST
+ *     Bank AMemberPaysVirtually TEST
+ */
+function bankTransferCountIs($count) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  return (r\dbLookup('COUNT(*)', 'r_usd', 'payee=0') == $count);
+}
+
+/**
+ * relations: (ARG)
+ *
+ * in: VirtualPayments Setup MAKE
+ */
+function relations($relations) {return t\relations($relations);}
+
+
+/**
+ * transactions: (ARG)
+ *
+ * in: VirtualPayments AMemberCompanyPaysSuppliersVirtually TEST
+ *     VirtualPayments AMemberCompanyPaysEmployeesVirtually TEST
+ */
+function transactions($list) {return t\transactions($list);}

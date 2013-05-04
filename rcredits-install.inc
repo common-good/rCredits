@@ -48,9 +48,11 @@ function tableDefs($schema = array()) {
     'floor' => setupField('how low can balance go (normally zero or less)', 'numeric 11,2', R_FLOOR),
     'minimum' => setupField('chosen minimum balance (savings + 3 days, fill automatically)', 'numeric 11,2', NULL),
     'maximum' => setupField('maximum rCredits balance (exchange excess for USD automatically), 0=none)', 'numeric 11,2', NULL),
-    'usd' => setupField('balance in related USD account (probable)', 'numeric 11,2'),
-    'r' => setupField('rCredits balance, including rewards (cached)', 'numeric 11,2'),
-    'rewards' => setupField('total incentive rewards to date (cached)', 'numeric 11,2'),
+    'share' => setupField('percentage of rebates/bonuses to contribute to CGF', 'numeric 6,3', NULL),
+    'usd' => setupField('balance in related USD account (probable)', 'numeric 11,2', 0),
+    'r' => setupField('rCredits balance, including rewards (cached)', 'numeric 11,2', 0),
+    'rewards' => setupField('total incentive rewards to date (cached)', 'numeric 11,2', 0),
+    'committed' => setupField('amount committed (for donations to CGF)', 'numeric 11,2', 0),
 //    'frozen' => setupField('amount of rCredits currently unavailable until specific dates or indefinitely', 'text medium'),
   );
   // need foreign keys here
@@ -171,7 +173,8 @@ function tableDefs($schema = array()) {
   // table r_gifts
   $fields = array(
     'donid' => setupField('gift record id', 'serial 11'),
-    'created' => setupField('date/time of gift', 'int 11'),
+    'giftDate' => setupField('date/time of gift', 'int 11'),
+    'completed' => setupField('Unixtime donation was completed', 'int 11'),
     'uid' => setupField('uid of account that made the gift', 'int big'),
     'amount' => setupField('amount of gift', 'numeric 11,2'),
     'often' => setupField('recurring how often (Y, Q, M, 1)', 'varchar 1'),
@@ -276,6 +279,18 @@ function tableDefs($schema = array()) {
   $foreignKeys = foreignKey('inviter') + foreignKey('invitee');
   $indexes = index('inviter');
   $schema['r_invites'] = setupTable('Who invited whom', $fields, 'code', $foreignKeys, $indexes);
+  
+  // table r_notices
+  $fields = array(
+    'msgid' => setupField('notice record id', 'serial 11'),
+    'uid' => setupField('uid of member notified', 'int big'),
+    'created' => setupField('date of notice', 'int 11'),
+    'sent' => setupField('date sent (NULL if not sent yet)', 'int 11'),
+    'message' => setupField('the notice text', 'text medium'),
+  );
+  $foreignKeys = foreignKey('uid');
+  $indexes = index('uid');
+  $schema['r_notices'] = setupTable('Message digest buffer', $fields, 'msgid', $foreignKeys, $indexes);
   
   // table r_nonmembers (use -make instead)
 /*  $fields = array(

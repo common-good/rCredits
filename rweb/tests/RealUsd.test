@@ -64,7 +64,7 @@ class rwebRealUsd extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('member "NEW.ZZA" confirms form "pay" with values: "DATA'
     . '\\| op  | who     | amount | goods | purpose |'
-    . '\\| Pay | Bea Two | 10.20  | 1     | labor   |"');
+    . '\\| pay | Bea Two | 10.20  | 1     | labor   |"');
     Then_('transactions: "DATA'
     . '\\| tx_id    | type         | state    | amount | r    | from      | to      | purpose      | taking |'
     . '\\| NEW:AAAC | %TX_TRANSFER | %TX_DONE |  10.20 |   10 | NEW.ZZA   | NEW.ZZB | labor        | 0      |'
@@ -91,7 +91,7 @@ class rwebRealUsd extends DrupalWebTestCase {
     . '\\| NEW.ZZA   | +AMT1+100 |"');
     When_('member "NEW.ZZA" confirms form "pay" with values: "DATA'
     . '\\| op  | who     | amount     | goods | purpose |'
-    . '\\| Pay | Bea Two | AMT1+10.01 | 1     | labor   |"');
+    . '\\| pay | Bea Two | AMT1+10.01 | 1     | labor   |"');
     Then_('we say "error": "short to" with subs: "DATA'
     . '\\| short |'
     . '\\| $0.01 |"');

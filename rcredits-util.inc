@@ -38,8 +38,9 @@ function ray($s) {
  */
 function assoc($keys, $value1) {
   $args = func_get_args();
-  $keys = array_shift($args);
-  return array_combine(ray($keys), $args);
+  $keys = u\ray(array_shift($args));
+  u\EXPECT(count($keys) == count($args), 'assoc arg count mismatch');
+  return array_combine($keys, $args);
 }
 
 /* this is probably a bad idea
@@ -162,7 +163,7 @@ function shortName($fullName, $filler = '') {
  */
 function forCash($for) {
   if (is_array($for)) return forCash($for[0]) or forCash($for[1]);
-  return ($for == '' or preg_match('/^(cash|usd|loan)(\W|$)/i', $for)); // empty or a non-goods word at the beginning
+  return ($for == '' or preg_match('`^(rCredits/USD|cash|usd|loan)(\W|$)`i', $for)); // empty or a non-goods word at the beginning
 }
 
 /**
@@ -755,6 +756,16 @@ function weakPass($pass) {
     or !preg_match('/[^A-Za-z\d]/', $pass);
 }
 */
+
+/**
+ * Return query SUM fields for each field in the list.
+ * @param string $list: space-delimited list of fields
+ * @param string $prefix: table (and dot) prefix for the summed field (eg SUM(u.floor) AS floor)
+ */
+function sumAs($list, $prefix = '') {
+  foreach (u\ray($list) as $one) $result[] = "SUM(IFNULL($prefix$one, 0)) AS $one";
+  return join(', ', $result);
+}
 
 function fsize($url) {
   if ($size = @filesize($url)) return $size;

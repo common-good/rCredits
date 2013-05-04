@@ -97,7 +97,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
 //  'get r/usd' => t('You can get only "r" or "usd" (rCredits or US Dollars).'), // not yet used (maybe used when there is a third option)
   'not a feature' => t('"@feature" is not a feature.'),
   'wrong nonce' => t('That is not the expected confirmation response. Try again (start over).'),
-  'no self-trading' => t("You can't exchange rCredits with yourself."),
+  'no self-trading' => t("You can't exchange credit with yourself."),
   'no self-relation' => t("You can't relate yourself to your own account."),
   'funding error' => t("You do not have permission to fund that person."),
   'no company relations' => t("Only individuals can be related to this account."),
@@ -108,9 +108,9 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'duplicate email' => t('There is already an account with that email address. Visit rCredits.org to add this cell number to your account.'),
   'unknown member' => t('Unknown member: "@who" (they need to sign up before we can recognize them). Type "helpme pay".'),
   'not an account' => t('That account does not exist.'), // this is usually a system error (or REST error)
-  'non trader' => t('@otherName is not an authorized rTrader.'),
+  'non trader' => t('@otherName does not have an active rCredits account.'),
   'ambiguous other' => t('"@who" is associated with more than one rCredits account. You will need to identify them differently. Type "more" for options.'),
-  'ambiguous other2' => t('You can identify an rTrader by phone, email, fullname (no punctuation or spaces), or account ID.'),
+  'ambiguous other2' => t('You can identify a member by phone, email, fullname (no punctuation or spaces), or account ID.'),
   'what relationship' => t('You forgot to say whether you are an employee, owner, or both.'),
   'short cash to' => t('You are r@short short, for that exchange.'),
   'short cash from' => t('@otherName does not have enough rCredits for that exchange.'),
@@ -146,8 +146,23 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'must trust' => t('Do not invite someone unless you trust their integrity.'),
   'pay virtual error' => t('An unknown technical problem prevented your virtual payment @way @other.'),
   'no buyers' => t('Uh oh. Nobody wants to buy rCredits. Needed: $@amount.'),
-  'cannot offload' => t('A temporary technical problem prevented some of your excess rCredits from being exchanged for US Dollars. The system will try again tomorrow.'),
-  'usd failed' => t('A temporary technical problem prevented the transfer of US Dollars. No transaction took place.'),
+
+  'notice cannot-offload' => t('A temporary technical problem prevented some of your excess rCredits from being exchanged for US Dollars. The system will try again tomorrow.'),
+  'notice usd-failed' => t('A temporary technical problem prevented the transfer of US Dollars. No transaction took place.'),
+  'notice cannot-bank' => t('The rCredits system was unable to @action your bank: @error'),
+  'notice new-charge' => t('<b>Charge:</b> @otherName charged you @amount for "@payerPurpose".'),
+  'notice new-payment' => t('<b>Payment:</b> @otherName paid you @amount for "@payeePurpose".'),
+  'notice new-invoice' => t('<b>Invoice:</b> @otherName invoiced you @amount for "@payerPurpose". To pay (or deny) this invoice, visit your Transactions page.'),
+  'notice invoice-denied' => t('<p><b>Invoice DENIED:</b> Your customer @otherName has declined to pay the following invoice:</p>
+  <blockquote>@created @amount for "@payerPurpose"</blockquote>
+  <p>You may want to contact the customer directly, to resolve any dispute.</p>'),
+  'notice charge-disputed' => t('<p><b>Charge DISPUTED:</b> Your customer @otherName disputes the following charge:</p>
+  <blockquote>@created @amount for "@payeePurpose"</blockquote>
+  <p>You may want to contact the customer directly, to resolve this dispute.</p>'),
+  'notice invoice-canceled' => t('<p><b>Invoice CANCELED:</b> Your invoice from @otherName has been canceled:</p>
+  <blockquote>@created @amount for "@payerPurpose"</blockquote>
+  <p>This invoice will no longer appear in your list of transactions.'),
+  
 );
 
   // help messages (for use with the help command)

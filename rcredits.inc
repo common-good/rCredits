@@ -34,6 +34,9 @@ define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities ca
 define('R_CRON_PERIOD', 5*60); // how many seconds between cron runs (must divide an hour evenly)
 define('DRUPAL_UID_TABLES', 'authmap file_managed history node node_revision sessions users_roles watchdog');
 
+define('HOUR_SECS', 3600);
+define('DAY_SECS', 24 * 3600);
+
 define('R_TEMP_NAME_PREFIX', 'unknown ');
 define('R_MIN_PHOTO_WIDTH', 240); // how wide to make profile pictures (unless too long)
 define('R_MAX_PHOTO_WIDTH', 1024);
@@ -47,7 +50,7 @@ define('R_CARDCODE_LEN', 20); // length of rCard security code (long to deter ea
 define('R_CARD_COST', 5); // cost to order a company or replacement rCard
 define('R_FREEZE_TIME', FALSE); // how long to freeze newly bought rCredits (was '2 weeks')
 define('R_DEFAULT_PURPOSE', 'rCredits/USD exchange'); // default transaction purpose
-define('R_RBUY_QUANTUM', 10); // chunk size for buying rCredits (sales amounts are a multiple of this)
+define('R_RBUY_CHUNK', 10); // chunk size for buying rCredits (sales amounts are a multiple of this)
 define('R_COMMERCIAL_ASPECT', '4:3'); // width-to-height ratio for commercial profile picture
 define('R_PERSONAL_ASPECT', '3:4'); // width-to-height ratio for personal profile picture
 define('R_PIXEL_FACTOR', 200); // what to multiply the aspect ratio components by, to get pixel dimensions
@@ -116,6 +119,12 @@ define('B_MAX', 31); // maximum bit number
 define('B_DFT', (1 << B_NOTIFY_EMAIL) | 0); // set what bits when creating a new account
 define('B_ADMINABLE', 'personal company member bona ctty_admin closed'); // for cttyAdmin to set
 
+define('IS_OK', '(flags&(1<<' . B_OK . '))');
+define('IS_VIRTUAL', '(flags&(1<<' . B_VIRTUAL . '))');
+define('IS_PERSONAL', '(flags&(1<<' . B_PERSONAL . '))');
+define('IS_COMPANY', '(flags&(1<<' . B_COMPANY . '))');
+define('IS_TO_BANK', '(flags&(1<<' . B_TO_BANK . '))');
+
 // Relationship permissions used in calls to acct::can() -- the first 5 are stored, negated, in r_relations
 define('PERM_READ', 1);
 define('PERM_SELL', 2);
@@ -155,7 +164,8 @@ define('TX_SMS', 1);
 define('TX_WEB', 2);
 define('TX_SMART', 3); // smart phone or other computer-like device
 define('TX_TOUCH', 4); // touch tone phone
-define('TX_CHANNELS', 'System SMS Web App Touch');
+define('TX_CRON', 5);
+define('TX_CHANNELS', 'System SMS Web App Touch Cron');
 
 // Transaction types
 define('TX_SIGNUP', 0); // signup incentive reward
@@ -191,6 +201,7 @@ $GLOBALS['emailSubjects'] = array(
   'welcome' => t('Welcome to rCredits!'),
   'password-reset' => t('New rCredits PASSWORD'),
   'tell-staff' => t('rCredits STAFF ALERT: {topic}'),
+  'notices' => t('rCredits Notices for {yesterday}'),
 );
 
 include_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
@@ -259,19 +270,6 @@ function whoseUsd($usdAccountId) {
 }
 
 /**
- * Return the percentage share chosen by given user (as identified by their email).
- * Consider the share valid only if it was specified as part of a COMPLETED contribution.
- *//*
-function share($acct) {
-  if (!$share = $acct->share + 0) {
-    $share = file_get_contents("http://rcredits.org/inc/share.php/$acct->mail");
-    if (is_numeric($share)) $acct->update(compact('share'));
-  }
-  return $share + 0;
-}
-*/
-
-/**
  * Return the customer's formatted balance only if we have permission
  */
 function otherBalance($uid) {
@@ -299,7 +297,7 @@ function xid2tid($xid, $uid) {
  * @param string $usdXid: (optional) related USD transaction ID
  */
 function exchange($amount, $payer, $payee, $usdXid = NULL) {
-  return r\transfer(compact(u\ray('amount payer payee usdXid')));
+  return r\transact(compact(u\ray('amount payer payee usdXid')));
 }
 
 /**
@@ -386,10 +384,14 @@ function txRewardSetup($serial, $type, $payee, $state, $amount, $tid, $created) 
  */
 function transactionSetup($info) {
   global $channel; // through what medium was the transaction requested (web, SMS, etc.).
-  $fields = 'type r state taking goods amount payer payee payerAgent payeeAgent created';
+  $fields = 'type r state data taking goods amount payer payee payerAgent payeeAgent created';
   extract(u\just($fields . ' for', $info));
+
+  $specs = " -- payer=$payer payee=$payee";
   u\EXPECT(compact(u\ray('amount payer payee')), 'float zid zid');
-  u\EXPECT(r\acct($payer)->hasBit(B_OK) and r\acct($payee)->hasBit(B_OK), 'non rTraders in txsetup');
+  u\EXPECT($payer and $payee and $payer != $payee, 'null or self trading in txSetup' . $specs);
+  echo $specs;
+  u\EXPECT(($payer < 0 or r\acct($payer)->hasBit(B_OK)) and ($payee < 0 or r\acct($payee)->hasBit(B_OK)), 'non rTraders in txsetup' . $specs);
   
   u\setDft($type, TX_TRANSFER);
   u\setDft($r, $amount);
@@ -400,6 +402,7 @@ function transactionSetup($info) {
   u\setDft($payerAgent, $payer);
   u\setDft($payeeAgent, $payee);
   u\setDft($created, REQUEST_TIME);
+  $data = dataSetup($payer, $payee, $r, $goods, @$data ?: array());
   if (@$state !== TX_PENDING) $completed = $created;
   $taking += 0;
   $goods += 0;
@@ -408,6 +411,21 @@ function transactionSetup($info) {
   unset($info['for']);
 
   return compact(u\ray($fields . ' completed payerFor payeeFor channel')) + $info;
+}
+
+/**
+ * Set up and return the data field for a transaction.
+ * @param assoc $data: forced values, if any
+ */
+function dataSetup($payer, $payee, $r, $goods, $data = array()) {
+  if ($goods and !isset($data['rebate'])) {
+    $rebate = (string) ($goods ? r\rebate($payer, $r) : 0); // force string, to avoid long serializations
+    $bonus = (string) ($goods ? r\bonus($payee, $r) : 0);
+    $data += compact('rebate', 'bonus');
+  }
+  unset($data['preapproved']); // don't need these (but keep 'undoes' and original rebate/bonus, if any)
+  unset($data['bilateral']);
+  return serialize($data);
 }
 
 /**
@@ -432,8 +450,8 @@ function cacheBothTotals($txs) {
 }
 
 /**
- * Keep track of r balance, rewards, and USD balance in the account record
- * None of these figures is authoritative. 
+ * Keep track of r balance, USD balance, rewards, committed amount in the account record
+ * None of these figures is authoritative except 'committed'. 
  * The r balance and rewards are (definitively) the sum of the relevant fields in transactions.
  * The USD balance is (definitively) what is actually in the Dwolla account.
  */
@@ -441,7 +459,7 @@ function cacheTotals($uid, $txs) {
   if ($uid < 0) return; // don't cache community and region totals
   if ($txs[0]['state'] <= TX_PENDING) return; // don't change totals if transaction doesn't count (yet)
   $acct = acct($uid);
-  $cache = u\ray('usd r rewards');
+  $cache = u\ray('usd r rewards committed maximum');
   foreach ($cache as $field) $$field = $acct->$field;
   $rs = $r; // don't confuse this with r field in txs
   
@@ -451,18 +469,18 @@ function cacheTotals($uid, $txs) {
       $amount = -$amount;
       $r = -$r;
     } elseif ($payee != $uid) continue; // neither to nor from me
+    $rs += $r;
     $usd += $amount - $r;
     if ($amount - $r > DWOLLA_FEE_THRESHOLD) $usd -= DWOLLA_FEE;
+    $usd = round($usd, 2);    
     if ($type != TX_TRANSFER) {
-      $rewards += $r;
-      $rs += $r;
-/*    } elseif (!$goods and R_FREEZE_TIME) {
-      $wait = strtotime(R_FREEZE_TIME);
-      $frozen[$wait] = @$frozen[$wait] + $r; */
-    } else $rs += $r;
+      $rewards = round($rewards + $r, 2);
+      if ($rewards > $maximum) $maximum = $rewards;
+      if ($type == TX_REBATE or $type == TX_BONUS) $committed = round($committed + $acct->share / 100, 2);
+    }
   }
 ///  unfreeze($available, $frozen); // update expired frozen amounts
-  $r = $rs;
+  $r = round($rs, 2);
   $acct->update(compact($cache));
 }
 
@@ -484,18 +502,26 @@ function unfreeze(&$available, &$frozen) {
  * @param float $shortfall (RETURNED) how much too little the payer has
  * @return float: how much of the transaction will be in USD (NULL if no USD account)
  */
-function usdPart($requestAmount, $acct, $preapproved, $goods, &$shortfall) {
+function usdPart($requestAmount, $acct, $preapproved, $goods, &$shortfall, $retryOk = TRUE) {
   $shortfall = 0; // no shortfall if not preapproved
   if (!$preapproved) return 0; // if just an invoice, funds don't have to be there yet (no shortfall, no usd)
   
   $uid = $acct->id;
   $r = min($requestAmount, $acct->available($goods ? 'buy' : 'cash'));
   if (!$shortfall = max(0, $requestAmount - $r)) return 0;
-
-  $usAcct = new usd($acct); // try to do some in USD
-  $usd = $usAcct->bal();
-  if ($shortfall = max(0, round($shortfall - $usd, 2)) and $usd != $acct->usd) $acct->update(compact('usd')); // update cache
+  if ($shortfall = max(0, round($shortfall - $acct->usd, 2))) if ($retryOk) {
+    $usd = $acct->usd;
+    if (updateUsdCache($a) and $acct->usd != $usd) return usdPart($requestAmount, $acct, $preapproved, $goods, $shortfall, FALSE);
+  }
   return round($requestAmount - $r - $shortfall, 2);
+}
+
+function updateUsdCache($a) {
+  $usAcct = new usd($a);
+  $usd = $usAcct->bal($err);
+  if ($err) return FALSE;
+  return ($usd == $a->usd) ?: $a->update(compact('usd')); // update cache
+  
 }
 
 /**
@@ -529,9 +555,10 @@ function payEmployees($amount0, $for, $confirmed) {
  * @param integer $uid: account record id
  * @param string $index: message index
  * @param assoc $info: substitutions for the message
- * @param bool $force: send by email regardless of preference
+ * @param bool $force: send by email NOW
  */
 function notify($uid, $index, $info, $force = FALSE) {
+  //print_r(compact('uid','index','info','force'));
   global $channel;
   $mya = acct(); // careful: current account is empty if called from formRegister_submit
   $acct = acct($uid);
@@ -541,14 +568,18 @@ function notify($uid, $index, $info, $force = FALSE) {
   
   if ($uid != @$mya->id) $info['otherName'] = @$mya->fullName; // this comes in backwards if notifying elseone
 
-  if (($acct->hasBit(B_NOTIFY_EMAIL) or $force) and @$acct->mail) {
+  if ($force) {
     $mailed = \drupal_mail('rCredits', $index, $acct->mail, '', $info); // no need to pass $acct->language
+  } elseif ($acct->hasBit(B_NOTIFY_EMAIL)) {
+    list ($message, $created) = array(u\tt("notice $index", $info), REQUEST_TIME);
+    r\dbInsert('r_notices', compact(u\ray('message created')));
   }
+  
   if ($acct->hasBit(B_NOTIFY_SMS)) {
     $number = dbLookup('number', 'r_sms', 'uid=:uid AND status=:SMS_PRIMARY', compact('uid'));
     if ($number) $smsed = SMS\send($number, u\tt($index, $info, TX_SMS));
   }
-  if (!@$mailed and !@$smsed and array_search($index, $warnIndexes) !== FALSE) {
+  if (FALSE and !@$mailed and !@$smsed and array_search($index, $warnIndexes) !== FALSE) {
     $notification = str_replace('-', ' ', $index);
     $warning = u\tt('cannot contact', compact('fullName', 'notification'));
   }
@@ -592,10 +623,11 @@ function membershipEvent($acct, $status, $do = TRUE) {
  * @param bool/int $uid: related account record id (defaults to current account), none if FALSE
  */
 function notifyStaff($index, $subs = array(), $uid = TRUE) {
+  if (empty($subs)) $subs = array(); // accept ''
   $message = strpos($raw = u\tt($index), '@') === FALSE ? ($raw . u\seeAssoc($subs)) : u\tt($index, $subs);
 
   if ($uid) {
-    if ($mya = r\acct($uid > 1 ? $uid : '')) $message = "$mya->fullName (#$mya->id): $message";
+    if ($mya = r\acct($uid > 1 ? $uid : '')) $message = "$mya->fullName (#$mya->id): $message"; else $uid = 1;
   } else $uid = 1;
 
   $noFrame = TRUE;
@@ -677,7 +709,9 @@ function mergeAccounts($oldUid) {
 */
 
 /**
- * Return the rough location of the entity with the given account (city, state, non-US country).
+ * Return the rough (postal) location of the entity with the given account (city, state, non-US country).
+ * @param acct $acct: the account
+ * @param bool $complete: if TRUE, include the postal address
  */
 function location($acct, $complete = FALSE) {
   $country = realCountry($acct->country);
@@ -732,7 +766,7 @@ function qid($zid = '', $regionId = R_SERVER_ID, $min_len = 1) {
 function definiteName($uid) {
   if ($uid <= 0) return '';
   $acct = acct($uid);
-  return r\quid2($uid) . ' ' . $acct->fullName;
+  return r\quid($uid) . ' ' . $acct->fullName;
 }
 
 /**
@@ -1101,10 +1135,9 @@ function totals($ctty = 'ALL', $calculate = FALSE) {
  * @param int $ctty: the community account id (NULL means all communities)
  */
 function getTotals($ctty) {
-  $where = (@$ctty ? "community=:ctty" : 1) . ' AND (flags&:B_OK)';
-  $fields = 'SUM(r), SUM(floor), SUM(rewards), SUM(usd), SUM(minimum), SUM(maximum)';
-  $result1 = r\dbLookup($fields, 'users', $where, compact('ctty'));
-  $result1 = array_combine(u\ray('r rewards usd minimum maximum'), array_values($result1));
+  $where = (@$ctty ? "community=:ctty" : 1) . ' AND :IS_OK';
+  $fields = u\sumAs('r floor rewards usd minimum');
+  $result1 = r\dbQ("SELECT $fields, r+usd-maximum AS excess FROM users WHERE $where", compact('ctty'))->fetchAssoc();
 
   $where = @$ctty ? '(payer=:ctty OR payee=:ctty)' : 1;
   $sql = '';
@@ -1183,7 +1216,7 @@ function dbQ($sql, $subs = array(), $log = TRUE) {
  * Update a database record 
  * (replaces the functionality of drupal_write_record, which does not update bigint fields properly)
  * @param string $table: table name
- * @param assoc $info: data to update
+ * @param assoc $info: data to update (must include record key, unless inserting)
  * @param string $key: record key name (if empty (called from dbInsert) insert record, otherwise update)
  * @param bool either: if TRUE, insert the record if it does not exist (otherwise update)
  * @return: if inserting, then the id of the inserted record, else TRUE (FALSE on failure)
@@ -1261,4 +1294,4 @@ function realCountry($country) {return dbLookup('name', 'r_countries', 'id=:coun
 function realState($state, $country = R_COUNTRY_ID) {return dbLookup($country == R_COUNTRY_ID ? 'abbreviation' : 'name', 'r_states', 'id=:state and country_id=:country', compact('state', 'country'));}
 function makeQueue($callback, $time = 15) {return array('worker callback' => "rCredits\\Cron\\$callback", 'time' => $time);}
 function dbExists($table, $where = '1', $subs = array()) {return dbLookup(1, $table, $where, $subs);}
-function rTraders($fields = 'uid') {return dbQ("SELECT $fields FROM users WHERE (flags&(1<<:B_OK))");}
+function rTraders($fields = 'uid') {return dbQ("SELECT $fields FROM users WHERE :IS_OK");}

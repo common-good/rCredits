@@ -283,16 +283,16 @@ class acct {
    *     (not including credit lines and rewards)
    *   cash: the amount of credit available to trade for cash
    *     (including US Dollars in Dwolla, not including credit lines and rewards)
-   * @param bool $includUsd: whether to include USD balance in the returned result
+   * @param bool $includUsd: whether to include USD balance in the returned result (irrelevant for exch)
    * @return float: the amount
-   * If you want the amount of rCredits in the account (including rewards), use $this->r
+   * If you want the amount of rCredits in the account (including rewards and committed), use $this->r
    */
   function available($type, $includeUsd = FALSE) {
-    extract(u\just(($includeUsd ? 'usd ' : '') . 'r floor rewards draws', $this->draws()));
+    extract(u\just(($includeUsd ? 'usd ' : '') . 'r floor rewards committed draws', $this->draws()));
     $fees = $includeUsd ? $draws * DWOLLA_FEE : 0;
-    if ($type == 'buy') return ($includeUsd ? @$usd : 0) + @$r - @$floor - $fees;
-    if ($type == 'exch') return @$r - @$rewards - max(0, @$floor) - $fees;
-    if ($type == 'cash') return ($includeUsd ? @$usd : 0) + @$r - @$rewards - max(0, @$floor) - $fees;
+    if ($type == 'buy') return ($includeUsd ? @$usd : 0) + @$r - @$committed - @$floor - $fees;
+    if ($type == 'exch') return @$r - @$committed - @$rewards - max(0, @$floor) - $fees;
+    if ($type == 'cash') return ($includeUsd ? @$usd : 0) + @$r - @$committed - @$rewards - max(0, @$floor) - $fees;
     u\EXPECT(FALSE, 'bad available type');
   }
 
@@ -304,9 +304,9 @@ class acct {
   function draws($meToo = NULL) {
     $id = $this->id;
     u\setDft($meToo, 'OR (r.main IS NULL AND u.uid=:id)');
+    $fields = u\sumAs('usd r rewards committed floor', 'u.');
     $sql = <<<EOF
-      SELECT SUM(u.usd) AS usd, SUM(u.r) AS r, SUM(u.rewards) AS rewards,
-        SUM(u.floor) AS floor, SUM(IF(r.main IS NULL, 0, 1)) AS draws
+      SELECT $fields, SUM(IF(r.main IS NULL, 0, 1)) AS draws
       FROM users u LEFT JOIN r_relations r ON r.main=u.uid
       WHERE r.other=:id $meToo
 EOF;
@@ -319,6 +319,15 @@ EOF;
    */
   function auxFilename($type = 'picture') {
     return ($type == 'picture' ? R_PICTURE_DIR : R_PROOF_DIR) . "/$this->id-$this->created";
+  }
+  
+  /**
+   * Return the amount waiting to be transferred to (or from if negative) the bank.
+   */
+  public function waitingToBank() {
+    $where = 'payer=:id AND payee=0 AND NOT completed AND created>:ancient';
+    list ($id, $ancient) = array($this->id, REQUEST_TIME - 4 * DAY_SECS);
+    return r\dbLookup('SUM(amount)', 'r_usd', $where, compact('id', 'ancient')) + 0;
   }
   
   /**

@@ -37,7 +37,7 @@
 
 require_once 'rcredits.inc';
 require_once 'rcredits-backend.inc';
-require_once 'rcredits-cron.inc'; // required here by cron
+require_once 'rcron/rcron.inc'; // required here by cron
 use rCredits as r;
 use rCredits\Util as u;
 use rCredits\Testing as t;
@@ -223,5 +223,12 @@ function test() {
   include_once __DIR__ . '/usd.class';
   $usdW = new r\usd($w = r\acct(410044001));
   $usdA = new r\usd($a = r\acct(410061551));
-  debug($usdA->bal()); // keep
+  debug($usdW->bal()); // keep
+  $tx = $usdW->bank(-1, $err);
+  debug($tx.$err);
+  $usdW->each('test1', strtotime('60 days ago'), array('deposit'), TRUE);
+}
+
+function test1($tx) {
+  debug($tx);
 }

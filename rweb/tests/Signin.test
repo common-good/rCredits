@@ -61,16 +61,30 @@ class rwebSignin extends DrupalWebTestCase {
     . '\\| id      | fullName | email         | phone        | country | postalCode | state | city    | flags |'
     . '\\| NEW.AAC | Abe One  | a@example.com | +14132530000 | US | 01001       | MA    | Amherst | dft,personal |"');
     And__('member "NEW.AAC" one-time password is set');
-    Given('member "NEW.AAC" one-time password is "thingy"');
+    Given('member "NEW.AAC" one-time password is %whatever');
     When_('member "?" visits page "/user/login"');
     Then_('we show "Sign In" with: "DATA'
     . '\\| oldpass      | pass1        | pass2                |'
     . '\\| Old password | New password | Confirm new password |"');
     When_('member "?" confirms form "/user/login" with values: "DATA'
-    . '\\| name   | pass   | pass1  | pass2  |'
-    . '\\| abeone | thingy | Aa1!.. | Aa1!.. |"');
+    . '\\| name   | pass      | pass1  | pass2  |'
+    . '\\| abeone | %whatever | Aa1!.. | Aa1!.. |"');
     Then_('we show "Account Summary"');
     And__('we say "status": "take a step"');
+  }
+
+  // Scenario: A member gives the wrong password
+  public function testAMemberGivesTheWrongPassword_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('members: "DATA'
+    . '\\| id      | fullName   | acctType    | flags           | pass       |'
+    . '\\| NEW.ZZA | Abe One    | %R_PERSONAL | dft,ok,personal | %whatever1 |"');
+    And__('member "NEW.ZZA" one-time password is %whatever2');
+    When_('member "?" visits page "/user/login"');
+    And__('member "?" confirms form "/user/login" with values: "DATA'
+    . '\\| name   | pass    | pass1  | pass2  |'
+    . '\\| abeone | %random | Aa1!.. | Aa1!.. |"');
+    And__('we say "error": "wrong pass"');
   }
 
 }
