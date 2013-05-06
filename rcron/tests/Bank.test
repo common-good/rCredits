@@ -65,6 +65,9 @@ class rcronBank extends DrupalWebTestCase {
     Then_('bank transfers: "DATA'
     . '\\| payer   | amount |'
     . '\\| NEW.ZZA |    -10 |"');
+    And__('we notice "banked" to member "NEW.ZZA" with subs: "DATA'
+    . '\\| action    | status                    | amount |'
+    . '\\| draw from | under the minimum you set |    $10 |"');
   }
 
   // Scenario: a member is at minimum
@@ -87,6 +90,9 @@ class rcronBank extends DrupalWebTestCase {
     Then_('bank transfers: "DATA'
     . '\\| payer   | amount |'
     . '\\| NEW.ZZA |    -80 |"');
+    And__('we notice "banked" to member "NEW.ZZA" with subs: "DATA'
+    . '\\| action    | status                    | amount |'
+    . '\\| draw from | under the minimum you set |    $80 |"');
   }
 
   // Scenario: a member is over maximum
@@ -99,6 +105,9 @@ class rcronBank extends DrupalWebTestCase {
     Then_('bank transfers: "DATA'
     . '\\| payer   | amount |'
     . '\\| NEW.ZZA |     10 |"');
+    And__('we notice "banked" to member "NEW.ZZA" with subs: "DATA'
+    . '\\| action     | status                   | amount |'
+    . '\\| deposit to | over the maximum you set |    $10 |"');
   }
 
   // Scenario: a member is barely over maximum

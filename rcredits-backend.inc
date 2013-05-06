@@ -160,6 +160,10 @@ function updateRelations($updates) {
 //      if ($isAgent and $field != 'employeeOk') return u\tt('bad relations field'); // prevent hack
       $changes .= ($changes ? ',' : '') . "$field=:$field";
       $subs += array($field => $value);
+      if ($field == 'draws' and $value) {
+//        r\acct($main)->setBit(B_DRAWN, TRUE, TRUE);
+        r\acct($other)->setBit(B_DRAWS, TRUE, TRUE);
+      }
     }
     $where = 'reid=:reid';
     if (!empty($data)) r\dbQ("UPDATE r_relations SET $changes WHERE $where", $subs);
@@ -220,17 +224,17 @@ function undoTx($xid) {
 //debug(compact('old_byme','old_state','oldRecord','data'));
     if ($old_byMe) {
       list ($new_state, $solution) = array(TX_DELETED, t('deleted')); // abandon the attempt to invoice
-      r\notify($old_otherUid, $old_toMe ? 'invoice-canceled' : 'offer-canceled', r\txReportArgs($oldRecord));
+      r\notify($old_otherUid, $old_toMe ? 'invoice canceled' : 'offer canceled', r\txReportArgs($oldRecord));
     } else {
       list ($new_state, $solution) = array(TX_DENIED, t('marked "denied"'));
-      r\notify($old_otherUid, $old_toMe ? 'offer-refused' : 'invoice-denied', r\txReportArgs($oldRecord));
+      r\notify($old_otherUid, $old_toMe ? 'offer refused' : 'invoice denied', r\txReportArgs($oldRecord));
     }
     r\setTxState($new_state, $xid);
   } elseif (!$old_toMe and !$old_byMe) { // someone charged (either unilaterally or I approved it)
 // function dispute($xid, $oldRecord, $old_otherUid)
     r\setTxState(TX_DISPUTED, $xid); // mark it disputed
     $solution = t('marked "disputed"');
-    r\notify($old_otherUid, 'charge-disputed', r\txReportArgs($oldRecord));
+    r\notify($old_otherUid, 'charge disputed', r\txReportArgs($oldRecord));
   } else {
     $otherAcct = $old_toMe ? r\acct($old_payer, $old_payerAgent) : r\acct($old_payee, $old_payeeAgent);
     $type = $old_toMe ? 'payment' : 'charge';
@@ -375,6 +379,7 @@ function payInvoice($xid) {
 
 /**
  * Create a transaction
+ * call by: list ($msg, $args, $confirm) = be\transfer(...);
  * @param string $ttype: payment, charge, or invoice payment
  * @param array $a: acct object for the other party
  *   OR 'ALL' (paying employees) -- currently UNUSED
@@ -400,7 +405,7 @@ function payInvoice($xid) {
  * $shortfall (how inadequate the payer's balance is)
  * @todo: write feature tests for partial transactions (paying/taking unilateral/not undoing/not broke/not)
  */
-function transfer($ttype, $a, $requestAmount, $for, $goods, $confirmed = TRUE, $data = array()) {
+function transfer($ttype, $a, $requestAmount, $for, $goods = FALSE, $confirmed = TRUE, $data = array()) {
   include_once __DIR__ . '/usd.class';
   global $lastXid, $scanned, $channel; 
   if (isFrontend()) return (array) backend('transfer', compact(u\ray('ttype a requestAmount for confirmed data')));
@@ -447,8 +452,9 @@ function transfer($ttype, $a, $requestAmount, $for, $goods, $confirmed = TRUE, $
   if ($error = u\badAmount($requestAmount, '>0')) return array($error, array(), FALSE);
   $totalHit = $requestAmount - @$data['rebate']; // leave room for reversing rewards (minus a negative)
   
-  $usd = r\usdPart($totalHit, $taking ? $a : $mya, $preapproved, $goods, $shortfall); // short payment or unilateral charge
-//  $usd = 5; $shortfall=0; // debug
+  $usd = r\usdPart($totalHit, $taking ? $a : $mya, $preapproved, $goods, $confirmed, $shortfall); // short payment or unilateral charge
+  debug(compact('usd','shortfall','totalHit','goods'));
+
   if ($shortfall) {
     $short = u\formatAmount($shortfall);
     /*
@@ -493,8 +499,8 @@ function transfer($ttype, $a, $requestAmount, $for, $goods, $confirmed = TRUE, $
   $args = r\txReportArgs($txs[0], TRUE, $shortfall);
 
   if ($confirmed) { // notify other party by email about any confirmed transaction
-    $notice = $taking ? ($preapproved ? 'new-charge' : 'new-invoice')
-      : ($virtual ? 'new-offer' : 'new-payment');
+    $notice = $taking ? ($preapproved ? 'new charge' : 'new invoice')
+      : ($virtual ? 'new offer' : 'new payment');
     r\notify($uid, $notice, $args);
     $message = $goods ?
         ($preapproved ? ($virtual ? 'offer' : 'transaction') : 'invoice')
@@ -683,7 +689,7 @@ function creditInfo($args = array()) {
     SUM(IF(t.type=:TX_TRANSFER, 0, amount)) AS rewards,
     
     SUM(IF(t.payer=:uid, r, 0)) AS rOut, 
-    SUM(IF(t.payee=:uid, r, 0)) AS rIn,
+    SUM(IF(t.payee=:uid, r, 0)) AS rIn
     
     FROM r_txs t
     WHERE (t.payer=:uid OR t.payee=:uid) AND t.state IN($state)

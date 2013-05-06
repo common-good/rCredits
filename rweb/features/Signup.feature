@@ -41,7 +41,7 @@ Scenario: A newbie registers
   And member "NEW.AAC" one-time password is set
   And we show "Sign In" with:
   | oldpass      | pass1        | pass2                |
-  | Old password | New password | Confirm new password |
+  | Tmp password | New password | Confirm new password |
 # Should check for name defaulting to "abeone" (but doesn't work yet in test)
 # Formatting and links are ignored
 

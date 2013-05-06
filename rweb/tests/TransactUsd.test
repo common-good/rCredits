@@ -91,7 +91,7 @@ class rwebTransactUsd extends DrupalWebTestCase {
     Then_('we say "status": "report invoice" with subs: "DATA'
     . '\\| action  | otherName | amount | tid |'
     . '\\| charged | Bea Two   | $100   | 1   |"');
-    And__('we email "new-invoice" to member "b@example.com" with subs: "DATA'
+    And__('we notice "new invoice" to member "NEW.ZZB" with subs: "DATA'
     . '\\| created | fullName | otherName | amount | payerPurpose |'
     . '\\| %today  | Bea Two  | Abe One   | $100   | labor        |"');
     And__('transactions: "DATA'
@@ -126,7 +126,7 @@ class rwebTransactUsd extends DrupalWebTestCase {
     Then_('we say "status": "report transaction" with subs: "DATA'
     . '\\| action | otherName | amount | tid | rewardType | rewardAmount |'
     . '\\| paid   | Bea Two   | $100   | 1   | rebate     | $0.05        |"');
-    And__('we email "new-payment" to member "b@example.com" with subs: "DATA'
+    And__('we notice "new payment" to member "NEW.ZZB" with subs: "DATA'
     . '\\| created | fullName | otherName | amount | payeePurpose |'
     . '\\| %today  | Bea Two  | Abe One   | $100   | labor        |"');
     And__('transactions: "DATA'

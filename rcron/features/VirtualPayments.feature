@@ -33,6 +33,12 @@ Scenario: a member company pays suppliers virtually
   | NEW.AAAD | %today | %TX_TRANSFER | %TX_DONE |      0 |    4 | NEW.ZZC   | NEW.ZZB | virtual payment       |
   | NEW.AAAE | %today | %TX_REBATE   | %TX_DONE |   0.20 | 0.20 | community | NEW.ZZC | rebate on #1          |
   | NEW.AAAF | %today | %TX_BONUS    | %TX_DONE |   0.40 | 0.40 | community | NEW.ZZB | bonus on #2           |
+  And we notice "virtual payments offered" to member "NEW.ZZC" with subs:
+  | offers | total | whom      |
+  |      1 |   $4r | suppliers |
+  And we notice "virtual payment received" to member "NEW.ZZB" with subs:
+  | amount | fullName   | bonus |
+  |    $4r | Corner Pub | $0.40 |
 
 Scenario: a member company pays employees virtually
   Given balances:
@@ -49,4 +55,10 @@ Scenario: a member company pays employees virtually
   | NEW.AAAD | %today | %TX_TRANSFER | %TX_DONE |      0 |   40 | NEW.ZZC   | NEW.ZZA | virtual payment       |
   | NEW.AAAE | %today | %TX_REBATE   | %TX_DONE |   2.00 | 2.00 | community | NEW.ZZC | rebate on #1          |
   | NEW.AAAF | %today | %TX_BONUS    | %TX_DONE |   4.00 | 4.00 | community | NEW.ZZA | bonus on #2           |
-
+  And we notice "virtual payments offered" to member "NEW.ZZC" with subs:
+  | offers | total | whom      |
+  |      1 |  $40r | employees |
+  And we notice "virtual payment received" to member "NEW.ZZA" with subs:
+  | amount | fullName   | bonus |
+  |   $40r | Corner Pub | $4.00 |
+  

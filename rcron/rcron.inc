@@ -13,13 +13,13 @@ DAILY (every 5 mins for 5 mins, starting at 2am)
 - * totals() get community and system totals: variable_set('totals', )
 - ** paySuppliers(): automatic virtual payments to suppliers
 - ** payEmployees(): Each employee gets relieved of their excess rCredits immediately if they are over their "maximum" after getting paid.
-- ?? gifts(): contributions to CGF (not shares)
-- * redistribution (selling of unwanted rCredits) looks at accounts over their maximum (maximum is ignored for companies that pay virtually)
+- * gifts(): contributions to CGF (not shares)
+- * redistribute(): (selling of unwanted rCredits) looks at accounts over their maximum (maximum is ignored for companies that pay virtually)
 - ** bank(): automatic transfers to/from bank accounts
 - (later) calculate credit line (for overdrafts, Dwolla outage (eg 503), etc.): give the payer (r)credit up to the amount they earned or bought in the past 5 days if they have been a member for a month, 30 days for 6 months
 - (later) notify and maybe fine late borrowers (might figure interest at the same time, since it requires examining each balance -- but only actually credit the interest monthly, otherwise discard it)
 - (later) statements for those who want daily statements
-- ?? send notices (daily digest)
+- * notices(): send notices (daily digest)
 - (later) weekly / monthly / quarterly / annual stuff
 
 MONTHLY
@@ -196,7 +196,7 @@ function doCompanies($which) {
   $sql = <<< EOF
     SELECT u.uid, u.minimum, u.r, u.floor,
       SUM(r.amount) AS amounts, 
-      SUM(IF($rightType, r.amount, 0)) AS total 
+      SUM(IF($rightType, r.amount, 0)) AS tothese 
     FROM r_relations r 
     LEFT JOIN users u ON u.uid=r.main
     WHERE amount>0 and :IS_VIRTUAL and :IS_OK
@@ -207,8 +207,8 @@ EOF;
 	while($row = $result->fetchAssoc()) {
 	  extract($row);
 	  $kitty = ($r - $minimum - max(0, $floor)); // amount to pay out today for this group
-    if ($which != 'EMPLOYEES') $kitty *= $total / $amounts; // limit suppliers to their share
-	  if ($kitty > 0 and $total > 0) queue('virtualPayments1', compact(u\ray('uid kitty total slack rightType'))); 
+    if ($which != 'EMPLOYEES') $kitty *= $tothese / $amounts; // limit suppliers to their share
+	  if ($kitty > 0 and $tothese > 0) queue('virtualPayments1', compact(u\ray('uid kitty tothese slack rightType'))); 
 	}
 }
 
@@ -217,23 +217,31 @@ EOF;
  * @param assoc $item:
  *   uid: company account id
  *   kitty: amount to pay out
- *   total: total amounts paid to this type of recipient per month
+ *   tothese: total amounts paid to this type of recipient per month
  *   UNUSED slack: how much capacity the recipients have (collectively) to be paid, before reaching their max
  *   rightType: employerOk (for employees) or NOT employerOk (for vendors)
  */
 function virtualPayments1($item) {
-  extract(u\just('uid kitty total rightType', $item));
+  extract(u\just('uid kitty tothese rightType', $item));
   //$limit = ($kitty < $slack); // if there is enough slack, don't put anyone over their max
   //  SUM(IF($which, GREATEST(o.maximum, o.rewards)-o.r, 0)) AS slack, 
   
+  $offers = $total = 0;
   $main = $uid;
   $sql = "SELECT other, amount FROM r_relations WHERE main=:main AND amount>0 AND $rightType";
-  $result = r\dbQ($sql, compact('main')); // get each recipient's proportionate share of $total
+  $result = r\dbQ($sql, compact('main')); // get each recipient's proportionate share of $tothese
   while($row = $result->fetchAssoc()) {
     extract($row);
-    $offer = round($amount * $kitty / $total, 2);
-    if ($offer >= 0.01) queue('virtualPayment', compact(u\ray('main other offer')));
+    $offer = round($amount * $kitty / $tothese, 2);
+    if ($offer > 0) {
+      queue('virtualPayment', compact(u\ray('main other offer')));
+      $offers += 1;
+      $total += $offer;
+    }
   }
+  $whom = $rightType == 'employerOk' ? 'employees' : 'suppliers';
+  $total = u\formatAmount($total, 's$r');
+  if ($offers) r\notify($uid, 'virtual payments offered', compact(u\ray('offers total whom')));
 }
 
 /**
@@ -256,8 +264,11 @@ function virtualPayment($item) {
   if ($traded >= $excess and ($offer == $traded or $txid = $usAcct2->send($offer - $traded, $usAcct1, 'virtual payment exchange'))) { // other partially pays main in USD if not totally left to 3rd parties
     $info = u\assoc('amount r payer payee for goods usdXid', 0, $offer, $main, $other, t('virtual payment'), TRUE, @$txid);
     r\transact($info); // total rCredits from company to other
+    $amount = u\formatAmount($offer, 's$r');
+    $fullName = $acct1->fullName;
+    $bonus = u\formatAmount(r\bonus($other, $offer), '$');
+    r\notify($other, 'virtual payment received', compact(u\ray('amount fullName bonus')));
     r\usd::commit();
-    return;
   } else {
     r\usd::rollback();
     virtualPaymentError($acct1, $acct2);
@@ -268,21 +279,36 @@ function virtualPayment($item) {
  * Handle one-time and recurring gifts that it's time to handle.
  */
 function gifts() {
-  queueEach('gift1', "SELECT * FROM r_gifts WHERE NOT completed and giftDate<=:REQUEST_TIME");
+  queueEach('gift1', "SELECT * FROM r_gifts g INNER JOIN users u ON u.uid=g.uid WHERE NOT completed and giftDate<=:REQUEST_TIME AND :IS_OK");
   queueNextAfter('gifts');
 }
 
 /**
  * Handle a gift, if possible.
  * Repeating gifts happen on the same day each month (but earlier for gifts on the 29th-31st)
- * Each instance creates a one-time post-dated gift record.
- * One-time gifts happen as soon as the money is there, on or after the gift date.
+ * Each instance of a repeating gift creates a repeating post-dated gift record.
+ * Gifts happen as soon as the money is there, on or after the gift date.
  */
 function gift1($item) {
-  extract(u\just('uid giftDate amount often', $item));
+  extract(u\just('donid uid giftDate amount often', $item));
   $a = r\acct($uid);
+  if ($a->shortfall('buy', $amount)) return; // wait until tomorrow, if not enough
+
+  $a->shortfall('buy', $amount, TRUE); // actually draw from other accounts, as needed
   
-  //if ($often != '
+  r\usd::beginAtom();
+  list ($msg, $args, $confirm) = be\transfer('payment', $a, $amount, 'contribution', TRUE);
+  if ($args['success']) {
+    r\notify($uid, $msg, $args);
+    $completed = REQUEST_TIME;
+    r\Update('r_usd', compact('completed'));
+    if ($often != 1) {
+      $months = $often == 'M' ? 1 : ($often == 'Q' ? 3 : 12);
+      $giftDate = strtotime($months . ' months', $giftDate);
+      r\dbInsert('r_usd', compact(u\ray('uid giftDate amount often')));
+    }
+    r\usd::commit();
+  } else r\usd::rollback();
 }
 
 function redistribute() {
@@ -321,10 +347,12 @@ function bank1($item) {
 //  debug(compact(u\ray('excess shortfall waiting amount')));
   if (abs($amount) < R_RBUY_CHUNK) return; // too little
   if (($amount < 0 and $waiting > 0) or ($amount > 0 and $waiting < 0)) return; // flip-flop
-  if (!$usAcct->bank($amount, $error) and time() - $acct->created > 3 * DAY_SECS) {
-    $action = @$excess > 0 ? 'deposit to' : 'draw from';
-    r\notify($uid, 'cannot bank', compact('action', 'error'));
-  }
+  $action = @$excess > 0 ? 'deposit to' : 'draw from';
+  if ($usAcct->bank($amount, $error)) {
+    $status = @$excess > 0 ? 'over the maximum you set' : 'under the minimum you set';
+    $amount = u\formatAmount(abs(@$amount));
+    r\notify($uid, 'banked', compact(u\ray('action status amount')));
+  } elseif (time() - $acct->created > 3 * DAY_SECS) r\notify($uid, 'cannot bank', compact('action', 'error'));
 }
 
 /**

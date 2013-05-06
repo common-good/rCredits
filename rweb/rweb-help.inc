@@ -26,16 +26,6 @@ EOF
   );
   $paySpecial = t(' If you have employees you can say pay "ALL", to pay each employee the same amount.');
 
-  if ($page == 'membership/proxies') {
-    $sql = 'SELECT name, fullName, city FROM users WHERE uid>1 AND :IS_PERSONAL ORDER BY postalCode, city, fullName';
-    $result = r\dbQ($sql);
-    while ($row = $result->fetchAssoc()) {
-      extract($row);
-      $proxyChoices[] = "$fullName ($name), $city";
-    }
-    $proxyChoices = join('<br>', $proxyChoices);
-  } else $proxyChoices = '';
-  
   // the <a href="$base_url/help/smartphone">Android Smartphone Interface</a> and 
   $helps = array(
     'general' => tt(<<<EOF
@@ -211,8 +201,7 @@ EOF
 EOF
     ),
     'membership/proxies' => t(<<<EOF
-    <p>During the pilot phase, it may be hard to choose two proxies from among the other members, unless you invite them to join first. You can change your selections at any time, so no worries. Current choices:</p>
-    <div style="margin-left:20px;">$proxyChoices</div>
+    <p>During the pilot phase, it may be hard to choose two proxies from among the other members, unless you invite them to join first. You can change your selections at any time, so no worries.</p>
 EOF
     ),
     'membership/invite' => t(<<<EOF

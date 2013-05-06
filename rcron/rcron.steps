@@ -151,3 +151,14 @@ function relations($relations) {return t\relations($relations);}
  *     VirtualPayments AMemberCompanyPaysEmployeesVirtually TEST
  */
 function transactions($list) {return t\transactions($list);}
+
+/**
+ * we notice (ARG) to member (ARG) with subs: (ARG)
+ *
+ * in: Bank AMemberIsBarelyBelowMinimum TEST
+ *     Bank AMemberIsWellBelowMinimum TEST
+ *     Bank AMemberIsOverMaximum TEST
+ *     VirtualPayments AMemberCompanyPaysSuppliersVirtually TEST
+ *     VirtualPayments AMemberCompanyPaysEmployeesVirtually TEST
+ */
+function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice, $id, $subs);}

@@ -19,6 +19,9 @@ Scenario: a member is barely below minimum
   Then bank transfers:
   | payer   | amount |
   | NEW.ZZA |    -10 |
+  And we notice "banked" to member "NEW.ZZA" with subs:
+  | action    | status                    | amount |
+  | draw from | under the minimum you set |    $10 |
   
 Scenario: a member is at minimum
   Given balances:
@@ -35,6 +38,9 @@ Scenario: a member is well below minimum
   Then bank transfers:
   | payer   | amount |
   | NEW.ZZA |    -80 |
+  And we notice "banked" to member "NEW.ZZA" with subs:
+  | action    | status                    | amount |
+  | draw from | under the minimum you set |    $80 |
 
 Scenario: a member is over maximum
   Given balances:
@@ -44,6 +50,9 @@ Scenario: a member is over maximum
   Then bank transfers:
   | payer   | amount |
   | NEW.ZZA |     10 |
+  And we notice "banked" to member "NEW.ZZA" with subs:
+  | action     | status                   | amount |
+  | deposit to | over the maximum you set |    $10 |
 
 Scenario: a member is barely over maximum
   Given balances:

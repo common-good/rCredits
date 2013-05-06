@@ -40,8 +40,8 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'report short payment' => t("SPLIT! You paid @otherName @amount (@short remains to be paid). Transaction #@tid"),
 //  'report short invoice' => t("SPLIT! You charged @otherName @amount (@short has been invoiced). Transaction #@tid, Invoice #@t2id"),
   'report short invoice' => t("SPLIT! You charged @otherName @amount (@short remains to be paid). Transaction #@tid"),
-   'report exchange' => t("You @action @otherName r@amount for cash/loan/gift/etc. Transaction #@tid"),
-  'report exchange request' => t("You requested r@amount from @otherName. Your balance is unchanged, pending approval. Invoice #@tid"),
+   'report exchange' => t("You @action @otherName @amount for cash/loan/gift/etc. Transaction #@tid"),
+  'report exchange request' => t("You requested @amount from @otherName. Your balance is unchanged, pending approval. Invoice #@tid"),
   'report funding' => t("You successfully @action @amount to @otherName."),
   'paid employees' => t('You distributed @total to @successes of @employeeCount employees. See your transactions page for details.'),
   'new-invoice' => t('@otherName requests @amount for @payerPurpose. Type "pay" or "undo".'),
@@ -112,7 +112,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'ambiguous other' => t('"@who" is associated with more than one rCredits account. You will need to identify them differently. Type "more" for options.'),
   'ambiguous other2' => t('You can identify a member by phone, email, fullname (no punctuation or spaces), or account ID.'),
   'what relationship' => t('You forgot to say whether you are an employee, owner, or both.'),
-  'short cash to' => t('You are r@short short, for that exchange.'),
+  'short cash to' => t('You are @short short, for that exchange.'),
   'short cash from' => t('@otherName does not have enough rCredits for that exchange.'),
   'short to' => t('You are @short short, for that payment. Increase your minimum!'),
   'short from' => t('@otherName does not have enough funds for this request.'),
@@ -146,23 +146,26 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'must trust' => t('Do not invite someone unless you trust their integrity.'),
   'pay virtual error' => t('An unknown technical problem prevented your virtual payment @way @other.'),
   'no buyers' => t('Uh oh. Nobody wants to buy rCredits. Needed: $@amount.'),
+  'usd account taken' => t('That Dwolla account is already used by another account.'),
 
-  'notice cannot-offload' => t('A temporary technical problem prevented some of your excess rCredits from being exchanged for US Dollars. The system will try again tomorrow.'),
-  'notice usd-failed' => t('A temporary technical problem prevented the transfer of US Dollars. No transaction took place.'),
-  'notice cannot-bank' => t('The rCredits system was unable to @action your bank: @error'),
-  'notice new-charge' => t('<b>Charge:</b> @otherName charged you @amount for "@payerPurpose".'),
-  'notice new-payment' => t('<b>Payment:</b> @otherName paid you @amount for "@payeePurpose".'),
-  'notice new-invoice' => t('<b>Invoice:</b> @otherName invoiced you @amount for "@payerPurpose". To pay (or deny) this invoice, visit your Transactions page.'),
-  'notice invoice-denied' => t('<p><b>Invoice DENIED:</b> Your customer @otherName has declined to pay the following invoice:</p>
+  'cannot offload' => t('A temporary technical problem prevented some of your excess rCredits from being exchanged for US Dollars. The system will try again tomorrow.'),
+  'usd failed' => t('A temporary technical problem prevented the transfer of US Dollars. No transaction took place.'),
+  'cannot bank' => t('The rCredits system was unable to @action your bank: @error (You need to connect your Dwolla account to your checking account.)'),
+  'new-charge' => t('<b>Charge:</b> @otherName charged you @amount for "@payerPurpose".'),
+  'new-payment' => t('<b>Payment:</b> @otherName paid you @amount for "@payeePurpose".'),
+  'new-invoice' => t('<b>Invoice:</b> @otherName invoiced you @amount for "@payerPurpose". To pay (or deny) this invoice, visit your Transactions page.'),
+  'invoice-denied' => t('<p><b>Invoice DENIED:</b> Your customer @otherName has declined to pay the following invoice:</p>
   <blockquote>@created @amount for "@payerPurpose"</blockquote>
   <p>You may want to contact the customer directly, to resolve any dispute.</p>'),
-  'notice charge-disputed' => t('<p><b>Charge DISPUTED:</b> Your customer @otherName disputes the following charge:</p>
+  'charge-disputed' => t('<p><b>Charge DISPUTED:</b> Your customer @otherName disputes the following charge:</p>
   <blockquote>@created @amount for "@payeePurpose"</blockquote>
   <p>You may want to contact the customer directly, to resolve this dispute.</p>'),
-  'notice invoice-canceled' => t('<p><b>Invoice CANCELED:</b> Your invoice from @otherName has been canceled:</p>
+  'invoice-canceled' => t('<p><b>Invoice CANCELED:</b> Your invoice from @otherName has been canceled:</p>
   <blockquote>@created @amount for "@payerPurpose"</blockquote>
   <p>This invoice will no longer appear in your list of transactions.'),
-  
+  'banked' => t('Your combined USD and rCredits balance is @status, so a request has been made to @action your bank a total of @amount. This request may take up to 3 days to go through.'),
+  'virtual payment received' => t('You received from @fullName a virtual payment of @amount -- that is, you traded that much US Dollars for rCredits, receiving a bonus of @bonus on the exchange.'),
+  'virtual payments offered' => t('You made virtual payment offers to @offers @whom, totaling @total.'),
 );
 
   // help messages (for use with the help command)

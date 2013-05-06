@@ -20,43 +20,49 @@ define('BASE_PATH', $base_path);
  */
 function makeAccount($info = array(), $testOnly = FALSE) {
   if (!is_array($info)) {print_r($info); die(print_r(debug_backtrace(), 1)); } // keep for now
-  extract($info, EXTR_PREFIX_ALL, 'my');
+  extract($info);
 
-  if (!@$my_id) $my_id = r\acct::nextId(); // default to first available number
-  $uid = uid($my_id); // change .AAB to 1, etc.
-  $rebate = isset($my_rebate) ? $my_rebate: R_REBATE; 
-  $fullName = @$my_fullName ?: ('makeAccount ' . randomString(20, 'word'));
-  $name = u\shortName($fullName);
-//  $pass = @$my_password ?: '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae'; // default to 123
-  $pass = @$my_password ?: '123';
-  $mail = @$my_email ?: ''; // Don't use "$name@example.com"
-  if (strpos(@$my_flags, '%') !== FALSE) {
-    $flags = B_DFT | u\bit(isset($my_flags) ? @$my_flags : (u\bit(B_MEMBER) | u\bit(B_OK)));
-  } else {
-    $flags = 0;
-    if (@$my_flags) foreach (u\ray($my_flags) as $one) {
-      $bit = constant('B_' . strtoupper($one));
-      $flags |= u\eq($bit, B_DFT, u\bit($bit));
-    }
+  u\setDft($id, r\acct::nextId()); // default to first available number
+  $uid = uid($id); // change .AAB to 1, etc.
+  if (@$email) $mail = $info['mail'] = $email;
+
+  if (!$testOnly) { // when making, set many defaults
+    u\setDft($rebate, R_REBATE); 
+    u\setDft($fullName, 'makeAccount ' . randomString(20, 'word'));
+    $name = u\shortName($fullName);
+  //  $pass = @$my_password ?: '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae'; // default to 123
+    u\setDft($pass, '123');
+    u\setDft($mail, ''); // Don't use "$name@example.com"
+    u\setDft($community, r\serverUid());
+    $moneyFields = 'share committed maximum floor r usd rewards'; // not minimum because NULL means not set, in Membership page
+    foreach (u\ray($moneyFields) as $one) u\setDft($$one, 0);
+    $testFields = ' rebate fullName name pass mail community ' . $moneyFields;
+  } else $testFields = '';
+
+  $flags0 = @$flags;
+    /*if (strpos($flags0, '%') !== FALSE) {
+    $flags = B_DFT | u\bit(isset($flags0) ? @$flags0 : (u\bit(B_MEMBER) | u\bit(B_OK)));
+  } else { */
+  $flags = 0;
+  if (@$flags0) foreach (u\ray($flags0) as $one) {
+    $bit = constant('B_' . strtoupper($one));
+    $flags |= u\eq($bit, B_DFT, u\bit($bit));
   }
-  
-  $community = @$my_communityUid ?: r\serverUid();
-  u\EXPECT(!empty($community), 'empty community uid');
 
-  if (isset($my_acctType)) {
-    if ($my_acctType <= R_SELF_EMPLOYED) $flags |= u\bit(B_PERSONAL);
-    if ($my_acctType >= R_SELF_EMPLOYED) $flags |= u\bit(B_COMPANY);
+  if (isset($acctType)) {
+    if ($acctType <= R_SELF_EMPLOYED) $flags |= u\bit(B_PERSONAL);
+    if ($acctType >= R_SELF_EMPLOYED) $flags |= u\bit(B_COMPANY);
   }
   
   fixCountryAndState($info);
 
-  foreach (u\ray('id email password acctType dwolla') as $one) unset($info[$one]);
-  $info = array_merge($info, compact(u\ray('uid flags rebate name pass fullName mail community')));
+  foreach (u\ray('id email acctType dwolla') as $one) unset($info[$one]);
+  $info = compact(u\ray('uid flags ' . $testFields)) + $info;
   if ($testOnly) {
     if (!$acct = r\acct($uid)) return testOutput("No such uid: $uid");
     foreach ($info as $key => $value) {
       if (!eq($acct->$key, $value)) {
-        if ($key == 'pass' and (!isset($my_password) or $acct->passwordOkay(@$my_password))) continue;
+        if ($key == 'pass' and (!isset($pass) or r\Web\passwordOkay($acct, @$pass))) continue;
         return testOutput("Wrong value for $key. Expected:$value Got:" . $acct->$key);
       }
     }
@@ -65,7 +71,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
   
   if (!$acct = new r\acct($info)) return FALSE;
 
-  if ($usdAccount = str_replace('-', '', @$my_dwolla)) {
+  if ($usdAccount = str_replace('-', '', @$dwolla)) {
     $acct->update(compact('usdAccount')); // this gets crunched, so save before compare
     if ($usdAccount != DW_TEST_ACCOUNT) {
       $num = r\dbLookup('usdAccount', 'users', 'uid=:uid', compact('uid')); // get crunched version
@@ -76,7 +82,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
     }
   }
   
-  if (@$my_picture) if (!makePicture($my_picture, $acct)) return FALSE;
+  if (@$picture) if (!makePicture($picture, $acct)) return FALSE;
 
   return $uid;
 }
@@ -108,7 +114,7 @@ function makeTransaction($info, $infoOnly = FALSE) {
   if ($goods) {
     $rebate = r\rebate($payer, $r);
     $bonus = r\bonus($payee, $r);
-    $data = serialize(compact(u\ray('rebate bonus')));
+//    $data = compact(u\ray('rebate bonus'));
   }
   foreach (u\ray('created from to purpose usd tx_id') as $one) unset($info[$one]);
   
@@ -192,7 +198,7 @@ function balancesTEST($one) {
     if (t\badEq('calc r', $calc->r, $r, $id)) return FALSE;
     if ($id > 0 and t\badEq('cached r', $a->r, $r, $id)) return FALSE; // (ctty not cached)
   }
-  if ($id < 0) continue; // only r is tested for community (nothing is cached for ctty)
+  if ($id < 0) return TRUE; // only r is tested for community (nothing is cached for ctty)
   if (isset($rewards)) {
     if (t\badEq('calc rewards', $calc->rewards, $rewards, $id)) return FALSE;
     if (t\badEq('cached rewards', $a->rewards, $rewards, $id)) return FALSE;
@@ -259,6 +265,16 @@ function getErrors() {
     if (u\abbreviates('Unable to send e-mail', $value) or strpos(strip_tags($value), 'expected to be a reference, value given in drupal_retrieve_form()')) unset($errors[$key]); // ignore these when testing
   }
   return $errors;
+}
+
+/**
+ * Return TRUE if the notice has been sent to member $id
+ */
+function notice($notice, $id, $subs) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  $uid = uid($id);
+  $message = u\tt($notice, $subs[0]);
+  return r\dbExists('r_notices', compact('uid', 'message'));
 }
 
 /**
@@ -590,7 +606,7 @@ function clear($ch) {
   global $channel; 
   $channel = $ch;
   $cgfUid = \variable_get('cgf_uid');
-  $files = 'r_sms r_txs r_relations r_log r_invites r_companies r_gifts r_smarts r_proxies r_usd r_user_industries';
+  $files = 'r_notices r_sms r_txs r_relations r_log r_invites r_companies r_gifts r_smarts r_proxies r_usd r_user_industries';
 
   global $sms_devel; $sms_devel = TRUE;
   r\dbQ('DELETE FROM users WHERE uid>:cgfUid OR (uid>1 AND uid<:cgfUid-1)', compact('cgfUid'));

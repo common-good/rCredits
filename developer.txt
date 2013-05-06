@@ -5,67 +5,53 @@ PRODUCTION SITE PROBLEMS:
 - Dwolla fails (waiting for Dwolla?)
 
 BEFORE MINI LAUNCH:
-- 6 people and 3 orgs tested signup, plus one joint account; watch people sign up
-- log everything
-- tests (ideally before opening accounts): New Pass, Photo, Agreement, Contribute, Proxies
+- account checks: auto-deposit or minimum>0 but not connected to checking account yet: notice to user
+- tests: New Pass, Photo, Agreement, Contribute, Proxies
 - tests: Usd (including proof of ID), Options, Invite, Cron (daily)
-- written instructions for signup (dwolla, etc)
-- flow (figure credit accordingly, including handling/disallowing changes in draw relations)
-- inviter gets the Dwolla credit (is this possible?)
-- membership gift happens upon account activation (rTrader status); goes through as an rC transaction (test)
+- flow: figure credit accordingly -- done but not tested
 - ** download must include rebate and bonuses transactions as a separate row (for GFM)
+- PHP timeout 5mins
+- no two accounts can have the same Dwolla account!
+- dropdowns for proxies
+- * no signup on rcredits.org!
+- contributions to CGF always get a rebate
+- make logo on card darker (printer quirk)
+- make submit() default to 'Save' and/or make better labels for each
+- update formMenu() to handle main, membership, and settings (the latter to with a "Home" button)
+- * finish and test cron (one part at a time)
 
 To do: (* = before launch ** = earlier)
 
-- dropdowns for proxies
-- contributions to CGF always get a rebate
-- auto bank transfers: check for pending transfers (in the past 4 days) -- don't do the opposite
-- update formMenu() to handle main, membership, and settings (the latter to with a "Home" button)
-- make submit() default to 'Save'
+- * add share to summary page, for admins (or allow $0 donation and don't record it)
+- * receive deposit/withrawal callbacks to set "completed" in r_usd. alert staff if fails.
+- * in daily: alert staff if deposit / withdrawal not complete after 3 days
+- * log more stuff
+- * shrink photo in formI (should be 50%) done?
+- * in profile, handle links to list of websites
+- * demo button on rcredits.org goes to login with options to log in as abeone, beatwo (self-employed), cornerpub, or townarts (which should have a "Contribute" form on its member/townarts page)
 - "sign" our invite emails so gmail and others won't see them as spam
-- make logo on card darker (printer quirk)
-- don't ask for Dwolla id (get it from Dwolla)
-- make which() put whole quid in choices AND autoselect pick from just same region unless admin
 - give ccty admin a way to reset a member's password (assign them a one-time pass, set a one-time bit)
 - user/password should give error if user is logged in
-- add a Contribute link in footer when logged in
-- explain picture format
 - in formAccount do away with Drupal basis
 - back button
 - use can() consistently, but have it do hasBit (for efficiency) when possible (bit < B_MAX)
 - "debt ok" pref: make it work: can't go down to credit floor<0 unless chosen "can go below". Credit floor has link to pref.
 - help for all pages
-- allow at most one repeating gift at a time
 - revisit t\addAttrib and t\snapshot (does Drupal make ids lowercase?)
 - handle 10-day interval for deposits/withdrawals for non-checking accounts
-- write a function to detect if we are too close to the end of a 5-minute chunk, to start an activity. Maybe measure the average time that an activity takes and give it twice that much (and see if we get too many interrupted activities).
 - phase out tablefield and/or userfield
 - 1/6 month credit after first month, etc. up to 6 mos.
 - pref for notification frequency (hourly/daily/weekly/monthly digest, viewable online)
-- * finish and test cron (one part at a time)
-- * diagram to illustrate min, max, and automatic virtual payments (for employees and companies, each in middle)
-- * make flow (draw) work
 - nightly: recalc exchange rates / allow users to express amounts in any currency (rounding DOWN); transactions will need to record exchange rate (true currency will be tied to region, regardless of how the user chooses to have it displayed)
 - don't go over employee maximums unless we have to (know it ahead of time, either limit it to max or don't. simple) (don't bother with this -- it will probably be better as it is)
-- *receive deposit/withrawal callbacks to set "completed" in r_usd. alert staff if fails.
-- **set completed in r_usd for other transactions
-- *in daily: alert staff if deposit / withdrawal not complete after 3 days
-- * log more stuff
-- ** shrink photo in formI (should be 50%) done?
-- * in profile, handle links to list of websites
-- * signup button on rcredits.org goes directly to user/register
-- * demo button on rcredits.org goes to login with options to log in as abeone, beatwo (self-employed), cornerpub, or townarts (which should have a "Contribute" form on its member/townarts page)
-- automatic bank transfer tester
 - how much can the community safely create? this depends on velocity of circulation and two kinds of demand: 
     (1) company/employee/contractor demand and (2) other (by people who have no rCredits income source)
     The first kind reflects the inherent strength of the system, the second should be seen as backup
     We can create the amount of the first kind divided by velocity, probably.
-- add flow to relations (1=to, 2=from, 3=both, 0=none)
 - * don't allow clicking on links in emails (send to new.rcredits_org.com/whatever, which looks like rcredits.org but scolds the user for clicking on an email link, then offers a link to the real site (don't accept that one either).
 - travel checks (use once, limited amount)
 - allow extra params in buynow form
 - for companies, show HTML for online payment buttons
-- * add share to summary page, for admins
 - make personal contact info secure?
 - Company profile picture will also appear in our office slideshow. Say so on company tab.
 - (2013-02-13) i had a dream last night that peace prevailed among the human planets because a benign alien race provided a way to verify the identity of any speaker. This morning the following ideas came to me, about how to approach that ideal. Members should be able to choose their security method:
@@ -79,7 +65,6 @@ To do: (* = before launch ** = earlier)
   . "Protect yourself from identity theft: (give standard tips, plus:) As long as you are using rCredits on *this machine*, we will not need to ask you any security questions. Do not sign in to rCredits on a machine you don't trust. If you must, then as soon as you get home, check your transaction history and change your password and security questions. If you are shopping online at a non-local site, when it comes time to pay, make sure you are really on the rCredits site (show what to look for).
   . (when the member buys something online from a foreign site, from an unusual machine, ALWAYS require confirmation by email. Do not show settings except from home machine)
 - relation.class
-- Cut the registration process loose from user_register (mostly so the testing can run properly).
 - Coding security policy: never show any personal identifying info (R_SECRET_FIELDS) in the HTML. EVER. For example, when verifying someone's identity, the staff member should ask for the last 4 of their ss#, type it in and press submit. The code does a compare and returns just yes or no. Even the member cannot ever see what they earlier typed in. We might want to have a similar but weaker restriction on phone numbers and addresses -- like maybe those are protected for personal accounts. When 1099 time comes, the reports go out electronically only (no preview, etc.) Even user 1 and other admins don't have access to PII. Also put in some safe-guards to prevent repetitive guessing.
 - beef up security - immediate:
   . Show the agent's picture below Help/Menu (below accounts dropdown in fullscreen). 

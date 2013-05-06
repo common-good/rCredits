@@ -25,6 +25,7 @@ define('R_VERSION', '1.0a'); // software version
 define('R_SEPARATE_BACKEND', FALSE);
 define('R_CONCEALED_FIELDS', 'code password pass oneTimeLoginUrl'); // fields to leave out of log
 define('R_DATA_FIELDS', ''); // fields stored in the account's "data" array field (serialized)
+define('R_MONEY_FIELDS', 'usd r rewards floor committed'); // financial amount fields in account record
 define('R_COMPANY_FIELDS', 'website description selling structure'); // fields in r_companies
 define('R_SECURE_FIELDS', 'type pin auth cardCode'); // non-personal encrypted fields
 define('R_SECRET_FIELDS', 'federalId dob idProof answer'); // personal identifying information
@@ -32,6 +33,7 @@ define('R_SECRET_URL', isDEV ? 'http://localhost/rcredits-promo'
   : (STAGING ? ('http://' . STAGE) : 'http://rcredits.org')); // where to store secrets
 define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities can manage themselves
 define('R_CRON_PERIOD', 5*60); // how many seconds between cron runs (must divide an hour evenly)
+define('R_MAX_TASK_TIME', 1*60); // what's the longest a queued cron task might take
 define('DRUPAL_UID_TABLES', 'authmap file_managed history node node_revision sessions users_roles watchdog');
 
 define('HOUR_SECS', 3600);
@@ -110,7 +112,7 @@ define('B_ELECTRONIC', 17); // will accept electronic statements
 define('B_SECRET_BAL', 18); // don't let merchants tell me my balance on request
 define('B_TO_BANK', 19); // automatically transfer excess US Dollars from Dwolla to bank account
 define('B_DEBT_OK', 20); // member chose to permit sub-zero balances
-//define('B_MET', 8000); // has participated in a community meeting
+define('B_DRAWS', 21); // this account draws on one or more others
 
 define('B_CTTY_ADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
@@ -263,10 +265,13 @@ function txReportArgs($tx, $getMyBalance = FALSE, $shortfall = 0) {
 
 /**
  * Return the rCredits account id for the given USD account id.
+ * @param string $usdAccountId: the Dwolla ID (with no hyphens)
+ * @param int $omit: an account id to ignore (optional)
  */
-function whoseUsd($usdAccountId) {
+function whoseUsd($usdAccountId, $omit = NULL) {
   $usdAccount = bin2hex(u\ezencrypt($usdAccountId, R_WORD));
-  return r\dbLookup('uid', 'users', 'usdAccount=:usdAccount', compact('usdAccount'));
+  if (@$omit) $omit = ' AND uid<>:omit';
+  return r\dbLookup('uid', 'users', 'usdAccount=:usdAccount' . $omit, compact('usdAccount', 'omit'));
 }
 
 /**
@@ -390,7 +395,6 @@ function transactionSetup($info) {
   $specs = " -- payer=$payer payee=$payee";
   u\EXPECT(compact(u\ray('amount payer payee')), 'float zid zid');
   u\EXPECT($payer and $payee and $payer != $payee, 'null or self trading in txSetup' . $specs);
-  echo $specs;
   u\EXPECT(($payer < 0 or r\acct($payer)->hasBit(B_OK)) and ($payee < 0 or r\acct($payee)->hasBit(B_OK)), 'non rTraders in txsetup' . $specs);
   
   u\setDft($type, TX_TRANSFER);
@@ -418,6 +422,7 @@ function transactionSetup($info) {
  * @param assoc $data: forced values, if any
  */
 function dataSetup($payer, $payee, $r, $goods, $data = array()) {
+  u\EXPECT(is_array($data), 'data should be array');
   if ($goods and !isset($data['rebate'])) {
     $rebate = (string) ($goods ? r\rebate($payer, $r) : 0); // force string, to avoid long serializations
     $bonus = (string) ($goods ? r\bonus($payee, $r) : 0);
@@ -459,8 +464,9 @@ function cacheTotals($uid, $txs) {
   if ($uid < 0) return; // don't cache community and region totals
   if ($txs[0]['state'] <= TX_PENDING) return; // don't change totals if transaction doesn't count (yet)
   $acct = acct($uid);
-  $cache = u\ray('usd r rewards committed maximum');
-  foreach ($cache as $field) $$field = $acct->$field;
+  $cache = 'usd r rewards committed maximum';
+  extract((array) $acct->account($cache));
+  //foreach ($cache as $one) $$one = $acct->$one;
   $rs = $r; // don't confuse this with r field in txs
   
   foreach ($txs as $tx) {
@@ -474,14 +480,14 @@ function cacheTotals($uid, $txs) {
     if ($amount - $r > DWOLLA_FEE_THRESHOLD) $usd -= DWOLLA_FEE;
     $usd = round($usd, 2);    
     if ($type != TX_TRANSFER) {
+      if ($type == TX_REBATE or $type == TX_BONUS) $committed = round($committed + $amount * $acct->share / 100, 2);
       $rewards = round($rewards + $r, 2);
-      if ($rewards > $maximum) $maximum = $rewards;
-      if ($type == TX_REBATE or $type == TX_BONUS) $committed = round($committed + $acct->share / 100, 2);
+      if ($maximum) $maximum = round(max($maximum, $rewards), 2);
     }
   }
 ///  unfreeze($available, $frozen); // update expired frozen amounts
   $r = round($rs, 2);
-  $acct->update(compact($cache));
+  $acct->update(compact(u\ray($cache)));
 }
 
 /**
@@ -502,20 +508,18 @@ function unfreeze(&$available, &$frozen) {
  * @param float $shortfall (RETURNED) how much too little the payer has
  * @return float: how much of the transaction will be in USD (NULL if no USD account)
  */
-function usdPart($requestAmount, $acct, $preapproved, $goods, &$shortfall, $retryOk = TRUE) {
+function usdPart($requestAmount, $acct, $preapproved, $goods, $confirmed, &$shortfall) {
   $shortfall = 0; // no shortfall if not preapproved
   if (!$preapproved) return 0; // if just an invoice, funds don't have to be there yet (no shortfall, no usd)
+  if ($shortfall = $acct->shortfall($goods ? 'buy' : 'cash', $requestAmount, $confirmed)) return 0; // not enough!
   
-  $uid = $acct->id;
-  $r = min($requestAmount, $acct->available($goods ? 'buy' : 'cash'));
-  if (!$shortfall = max(0, $requestAmount - $r)) return 0;
-  if ($shortfall = max(0, round($shortfall - $acct->usd, 2))) if ($retryOk) {
-    $usd = $acct->usd;
-    if (updateUsdCache($a) and $acct->usd != $usd) return usdPart($requestAmount, $acct, $preapproved, $goods, $shortfall, FALSE);
-  }
-  return round($requestAmount - $r - $shortfall, 2);
+  $r = min($requestAmount, $acct->rAvailable($goods ? 'buy' : 'cash')); // how much can we get in r?
+  return round($requestAmount - $r, 2);
 }
 
+/**
+ * Update the account's cached USD amount and return TRUE if successful.
+ */
 function updateUsdCache($a) {
   $usAcct = new usd($a);
   $usd = $usAcct->bal($err);
@@ -564,15 +568,15 @@ function notify($uid, $index, $info, $force = FALSE) {
   $acct = acct($uid);
   $info['uid'] = $uid;
   $fullName = $acct->fullName;
-  $warnIndexes = u\ray('new-invoice new-offer charge-disputed');
+  $warnIndexes = u\ray('new invoice,new offer,charge disputed');
   
   if ($uid != @$mya->id) $info['otherName'] = @$mya->fullName; // this comes in backwards if notifying elseone
 
   if ($force) {
     $mailed = \drupal_mail('rCredits', $index, $acct->mail, '', $info); // no need to pass $acct->language
   } elseif ($acct->hasBit(B_NOTIFY_EMAIL)) {
-    list ($message, $created) = array(u\tt("notice $index", $info), REQUEST_TIME);
-    r\dbInsert('r_notices', compact(u\ray('message created')));
+    list ($message, $created) = array(u\tt($index, $info), REQUEST_TIME);
+    r\dbInsert('r_notices', compact(u\ray('uid message created')));
   }
   
   if ($acct->hasBit(B_NOTIFY_SMS)) {
@@ -948,16 +952,22 @@ function employees() {
 }
 
 /**
- * Return the field or fields from the relations table, for the given id and agent.
+ * Return the field or fields from the relations table, for the given main and other.
  * Call by:
- *   relation(field, id, agent, where, subs) OR
+ *   relation(field, main, other, where, subs) OR
  *   relation(field, where, subs)
+ *   relation(field, reid)
  */
-function relation($field, $id, $agent = array(), $where = '1', $subs = array()) {
-  if (is_numeric($id)) {
-     $where = "main=:id AND other=:agent AND ($where)";
-     $subs += compact('id', 'agent');
-  } else list ($where, $subs) = array($id, $agent); // called with alternate form
+function relation($field, $main, $other = array(), $where = 'TRUE', $subs = array()) {
+  if (is_numeric($main)) {
+    if (empty($other)) {
+      $reid = $main;
+      $where = "reid=:reid";
+    } else {
+      $where = "main=:main AND other=:other AND ($where)";
+      $subs += compact('main', 'other');
+    }
+  } else list ($where, $subs) = array($main, $other); // called with alternate form
   return dbLookup($field, 'r_relations', $where, $subs);
 }
 
@@ -993,9 +1003,10 @@ function changeUid($oldUid, $newUid = FALSE) {
     'r_invites:inviter',
     'r_invites:invitee',
     'r_log:myid',
-    'r_log:agent',
+    'r_log:other',
   // r_nonces
   // r_nonmembers
+    'r_notices:uid',
     'r_proxies:person',
     'r_proxies:proxy',
   // r_regions
@@ -1208,7 +1219,7 @@ function median($field, $table = 'users', $where = 1, $subs = array()) {
 function dbQ($sql, $subs = array(), $log = TRUE) {
   u\EXPECT(compact(u\ray('sql subs')), 'notempty assoc');
   if (strpos($sql, 'INSERT INTO') !== FALSE) $return = \Database::RETURN_INSERT_ID;
-  if ($log and !strpos($sql, 'r_log')) u\loga('db', $subs, $sql);
+  if ($log and !strpos($sql, 'r_log') and strpos($sql, 'SELECT ') === FALSE) u\loga('db', $subs, $sql);
   return \db_query(u\SUBS($sql), u\prefixKeys(':', $subs), compact('return'));
 }
 
@@ -1252,6 +1263,20 @@ function dbUpdate($table, $info, $key, $either = FALSE) {
  */
 function dbInsert($table, $info) {return dbUpdate($table, $info, '');}
 
+/**
+ * Say whether the described record exists.
+ * call by dbExists($table, $where, $subs)
+ *      or dbExists($table, $subs) where $subs contains the required field names and their values
+ */
+function dbExists($table, $where = '1', $subs = array()) {
+  if (is_array($where)) {
+    $subs = $where;
+    foreach ($where as $key => $value) $where[$key] = "$key=:$key";
+    $where = join(' AND ', $where);
+  }
+  return dbLookup(1, $table, $where, $subs);
+}
+
 function error($logid) {
   $info = dbLookup('info', 'r_log', 'logid=:logid', compact('logid'));
   if ($info) $info = json_decode(utf8_encode($info)); else $info = 'unknown error (probably too big for json -- see r_log)';
@@ -1293,5 +1318,4 @@ function emailBody($key) {return str_replace('{BODY}', emailTemplate($key), emai
 function realCountry($country) {return dbLookup('name', 'r_countries', 'id=:country', compact('country'));}
 function realState($state, $country = R_COUNTRY_ID) {return dbLookup($country == R_COUNTRY_ID ? 'abbreviation' : 'name', 'r_states', 'id=:state and country_id=:country', compact('state', 'country'));}
 function makeQueue($callback, $time = 15) {return array('worker callback' => "rCredits\\Cron\\$callback", 'time' => $time);}
-function dbExists($table, $where = '1', $subs = array()) {return dbLookup(1, $table, $where, $subs);}
 function rTraders($fields = 'uid') {return dbQ("SELECT $fields FROM users WHERE :IS_OK");}

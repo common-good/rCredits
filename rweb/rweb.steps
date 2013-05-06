@@ -265,10 +265,6 @@ function weSay($type, $index) {
  *
  * in: Signup ANewbieRegisters TEST
  *     Signup ANewbieRegistersFromElsewhere TEST
- *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
- *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
- *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
- *     TransactUsd AMemberConfirmsRequestToPayAnotherMember TEST
  */
 function weEmailToMemberWithSubs($key, $email, $subs) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -659,3 +655,13 @@ function memberOnetimePasswordIs($id, $pass) {
   }
   return ($a->data['oneTimePass']['pass'] == $pass and $a->data['oneTimePass']['expires'] > REQUEST_TIME);
 }
+
+/**
+ * we notice (ARG) to member (ARG) with subs: (ARG)
+ *
+ * in: TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
+ *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
+ *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
+ *     TransactUsd AMemberConfirmsRequestToPayAnotherMember TEST
+ */
+function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice, $id, $subs);}

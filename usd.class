@@ -86,6 +86,7 @@ class usd {
     if ($me = $dw->me()) $me = (object) $me; else return authReturn($dw); // get dwolla Id, etc.
     
     $usdAccount = str_replace('-', '', $me->Id);
+    if (r\whoseUsd($usdAccount, $uid)) return authReturn(u\tt('usd account taken'));
     if ($mya->city != $me->City) r\Web\say('dw mismatch', array('field' => 'City'));
     if (r\realState($mya->state) != $me->State) r\Web\say('dw mismatch', array('field' => 'State'));
     if ($mya->can(B_COMPANY) xor $me->Type != 'Personal') r\Web\say('dw mismatch', array('field' => 'Type'));
@@ -232,7 +233,7 @@ array (
   /**
    * Say whether we are currently in an atom.
    */
-  private static function inAtom() {return !empty(self::$atoms);}
+  public static function inAtom() {return !empty(self::$atoms);}
   
   /**
    * Remember a Dwolla transaction to commit or rollback (passed as individual params or as an assoc)
@@ -254,8 +255,11 @@ array (
 
   /**
    * Mark the atom complete by writing a record of each USD transaction to the r_usd table.
+   * @param bool $success: if TRUE (the default), commit and return TRUE, else rollback and return FALSE
    */
-  public static function commit() {
+  public static function commit($success = TRUE) {
+    if (!$success) {self::rollback(); return FALSE;}
+    
     $values = '';
     while (!is_object($one = array_pop(self::$atoms))) {
       extract($one);
@@ -264,6 +268,7 @@ array (
     u\EXPECT(strpos($values, ';') === FALSE, 'sql insertion in usd commit'); // impossible, but verify
     if ($values) r\dbQ("INSERT INTO r_usd (txid, amount, payer, payee, created, completed) VALUES $values");
     // Drupal automatically commits if we don't rollback (otherwise we would do a Drupal commit here)
+    return TRUE;
   }
   
   /**

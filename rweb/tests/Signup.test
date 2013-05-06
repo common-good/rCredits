@@ -92,7 +92,7 @@ class rwebSignup extends DrupalWebTestCase {
     And__('member "NEW.AAC" one-time password is set');
     And__('we show "Sign In" with: "DATA'
     . '\\| oldpass      | pass1        | pass2                |'
-    . '\\| Old password | New password | Confirm new password |"');
+    . '\\| Tmp password | New password | Confirm new password |"');
   }
 
   // Scenario: A member registers bad email

@@ -116,15 +116,20 @@ function badAmount(&$amount, $restriction = '', $fractionLimit = 2) {
  * $param string $options (default s$): 
  *   s = simplify: Omit the cents for whole dollar amounts
  *   $ = include initial dollar sign
+ *   r = include a trailing r
+ *   u = include a trailing us
  * @return
  *   the formatted amount
  */
 function formatAmount($amount, $options = 's$') {
+  $options = ' ' . $options; // simplify strpos check
   $amount = cleanAmount(nn($amount, 0));
 //  if (!is_numeric($amount)) $amount = -999999;
   $amount = number_format($amount, 2);
-  if (strpos($options, '$') !== FALSE) $amount = '$' . $amount;
-  if (strpos($options, 's') !== FALSE) $amount = str_replace('.00', '', $amount);
+  if (strpos($options, '$')) $amount = '$' . $amount;
+  if (strpos($options, 's')) $amount = str_replace('.00', '', $amount);
+  if (strpos($options, 'r')) $amount .= 'r';
+  if (strpos($options, 'u')) $amount .= 'us';
   return $amount;
 }
 
@@ -384,10 +389,16 @@ function randomInt($len = NULL) {
 /**
  * Translate constant parameters in a string.
  * For example, "SELECT * FROM table WHERE zot IN (:R_THIS, :R_THAT)" fills in the constants.
+ * Constants of the form "IS_WHATEVER" are a special case. They are taken to mean the corresponding
+ *   bit number B_WHATEVER in a field called $flagField
+ *   NOTE to developer: this could be expanded later to handle a second flag field named {$flagField}2
+ *     by changing the expression to "IF(:B_$1<32,$flagField&(1<<:B_$1),{$flagField}2&(1<<(:B_$1-32)))".
  * @param string $string: the string to fix
+ * @param string $flagField: name of the flags field for bit constants
  * @return string: the string with constant names replaced by their values
  */
-function SUBS($string, $prefix = ':') {
+function SUBS($string, $prefix = ':', $flagField = 'flags') {
+  $string = preg_replace("/\\{$prefix}IS_([A-Z0-9_]*)/ms", "($flagField&(1<<:B_$1))", $string);
   preg_match_all("/\\$prefix([A-Z_][A-Z0-9_]*)/ms", $string, $matches);
   $map = array();
   foreach ($matches[1] as $one) $map["$prefix$one"] = constant($one);

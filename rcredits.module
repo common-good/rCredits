@@ -212,8 +212,7 @@ function rcredits_cron() {
  * Implements hook_cron_queue_info().
  */
 function rcredits_cron_queue_info() {
-//  $intensive = r\makeQueue('intensive', 15*60);
-  $q = r\makeQueue('doTask', R_CRON_PERIOD);
+  $q = r\makeQueue('doTask', R_CRON_PERIOD - R_MAX_TASK_TIME); // make sure it finishes before the next period
   return compact('q');
 }
 

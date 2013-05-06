@@ -274,8 +274,8 @@ class acct {
   }
 
   /**
-   * Return the amount available, including draws from related accounts, depending on the purpose
-   * There may be a fee for drawing from a related account, so it is subtracted from the amount available.
+   * Return the amount not available, including draws from related accounts, depending on the purpose.
+   * If there are fees for drawing from a related account, they are added to the amount needed.
    * @param string $type: (does not default, to make sure we know what we're doing)
    *   buy: the amount of credit available for a purchase 
    *     (including credit lines and US Dollars in Dwolla)
@@ -283,36 +283,90 @@ class acct {
    *     (not including credit lines and rewards)
    *   cash: the amount of credit available to trade for cash
    *     (including US Dollars in Dwolla, not including credit lines and rewards)
-   * @param bool $includUsd: whether to include USD balance in the returned result (irrelevant for exch)
-   * @return float: the amount
-   * If you want the amount of rCredits in the account (including rewards and committed), use $this->r
+   * @param float $need: the amount needed
+   * @param bool $get: draw from other accounts as needed, then say whether there is enough
+   * @return how much short of what's needed is this account
    */
-  function available($type, $includeUsd = FALSE) {
-    extract(u\just(($includeUsd ? 'usd ' : '') . 'r floor rewards committed draws', $this->draws()));
-    $fees = $includeUsd ? $draws * DWOLLA_FEE : 0;
-    if ($type == 'buy') return ($includeUsd ? @$usd : 0) + @$r - @$committed - @$floor - $fees;
-    if ($type == 'exch') return @$r - @$committed - @$rewards - max(0, @$floor) - $fees;
-    if ($type == 'cash') return ($includeUsd ? @$usd : 0) + @$r - @$committed - @$rewards - max(0, @$floor) - $fees;
-    u\EXPECT(FALSE, 'bad available type');
-  }
+  function shortfall($type, $need = 0, $get = FALSE) {
+    $ray = (array) $this->account(R_MONEY_FIELDS);
+    $ray['fees'] = 0;
+    $avail = avail($type, $ray);
+    if ($avail >= $need) return 0; // plenty without drawing from other accounts
 
-  /**
-   * Return the sum of various fields in related accounts that this account can draw from
-   * @param bool $meToo: include this account in the sums (defaults to TRUE)
-   * @return assoc: the sums
-   */   
-  function draws($meToo = NULL) {
-    $id = $this->id;
-    u\setDft($meToo, 'OR (r.main IS NULL AND u.uid=:id)');
-    $fields = u\sumAs('usd r rewards committed floor', 'u.');
-    $sql = <<<EOF
-      SELECT $fields, SUM(IF(r.main IS NULL, 0, 1)) AS draws
-      FROM users u LEFT JOIN r_relations r ON r.main=u.uid
-      WHERE r.other=:id $meToo
-EOF;
-    return r\dbQ($sql, compact('id'))->fetchAssoc();
+    if ($get) { // get what we need (should have already checked to see if it's there)
+      r\usd::beginAtom();
+      $avail += $this->draw($type, $need - $avail, 'r'); // get as much in r as possible
+      if ($avail < $need) $avail += $this->draw($type, $need - $avail, 'usd'); // the remainder in USD
+      r\usd::commit($avail >= $need); // rollback if failure
+    } else $avail += $this->canDraw($type); // just asking
+    return max(0, $need - $avail); // the shortfall
   }
   
+  /**
+   * Return how much rCredits is available in this account, without drawing on other accounts.
+   */
+  function rAvailable($type) {return avail($type, (array) $this->account(R_MONEY_FIELDS), FALSE);}
+  
+  /**
+   * Return the amount this account can draw from other accounts.
+   * Repairs the B_DRAWS bit if all such relations have ended.
+   * @param string $type: purpose of the draw (see $this->available())
+   */
+  private function canDraw($type) {
+    if (!$this->can(B_DRAWS)) return FALSE;
+    
+    $id = $this->id;
+    $sums = u\sumAs(R_MONEY_FIELDS, 'u.');
+    $sql = <<<EOF
+      SELECT $sums, SUM(IF(u.usd>:DWOLLA_FEE_THRESHOLD, :DWOLLA_FEE, 0)) AS fees, COUNT(*) as count
+      FROM users u INNER JOIN r_relations r ON r.main=u.uid
+      WHERE r.other=:id AND r.draw
+EOF;
+    $row = r\dbQ($sql, compact('id'))->fetchAssoc();
+    if (!$row['count']) $this->setBit(B_DRAWS, FALSE, TRUE); // doesn't really have any drawable accounts
+    return avail($type, $row);
+  }
+  
+  /**
+   * Draw the needed amount from other accounts.
+   * Expects to be called within a usd class atom
+   * @param string $type: purpose of the draw (see acct::available())
+   * @param float $need: the amount needed
+   * @param string $currency: r or usd
+   * @return float: the amount drawn
+   */
+  private function draw($type, $need, $currency) {
+    u\EXPECT(r\usd::inAtom(), 'not in usd atom!');
+    $left = $need; // how much left to be drawn
+    $id = $this->id;
+    $fields = join(',', u\ray(R_MONEY_FIELDS));
+    $sql = <<<EOF
+      SELECT u.uid, $fields FROM users u INNER JOIN r_relations r ON r.main=u.uid
+      WHERE r.other=:id AND r.draw
+EOF;
+    $result = r\dbQ($sql, compact('id'));
+    while ($row = $result->fetchAssoc()) {
+      extract($row);
+      $avail = avail($type, $row);
+      if ($amount = min($left, $avail, $currency == 'usd' ? $usd : $avail - $usd)) {
+        list ($fromQuid, $toQuid) = array(r\quid($uid), $this->mainQid);
+        if ($currency == 'usd') {
+          $usFrom = new r\usd(r\acct($uid));
+          $usTo = new r\usd($this->id);
+          $note = t('automatic transfer from ') . $fromQuid . t(' to ') . $toQuid;
+          if (!$usXid = $usFrom->send($amount, $usTo, $note)) continue;
+          $r = 0;
+          if ($amount > DWOLLA_FEE_THRESHOLD) {$left += DWOLLA_FEE; $need += DWOLLA_FEE;}
+        } else $r = $amount;
+        list ($payer, $payee) = array($uid, $this->id);
+        $for = array(t('automatic transfer to ') . $toQuid, t('automatic transfer from ') . $fromQuid);
+        r\transact(compact('amount r payer payee for usXid'));
+        if (!$left -= $amount) break;
+      }
+    }
+    return $need - $left;
+  }
+
   /**
    * Return an auxiliary filename for the account.
    * @param string $type: picture or proof
@@ -432,3 +486,17 @@ function acct($uid = '', $agent = '', &$error = '') {
 }
 
 function agent($uid = '') {return @acct($uid)->agent;}
+
+/**
+ * Return the amount available for the given operation.
+ * @param string $type: purpose of the draw (see acct::available())
+ * @param assoc $ray: array of all relevant money fields (possibly including dwolla "fees")
+ * @param bool $withUsd: whether to include usd amounts
+ */
+function avail($type, $ray, $withUsd = TRUE) {
+  extract($ray);
+  if ($type == 'exch' or !$withUsd) $usd = 0; // no exchanging USD credit for USD credit
+  if ($type != 'buy') $floor = max(0, $floor); // no exchanging into debt
+  u\setDft($fees, $usd > DWOLLA_FEE_THRESHOLD ? DWOLLA_FEE : 0);
+  return $usd + $r - $committed - $floor - $fees;
+}

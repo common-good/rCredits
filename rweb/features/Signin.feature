@@ -19,7 +19,7 @@ Scenario: A member signs in for the first time
   When member "?" visits page "/user/login"
   Then we show "Sign In" with:
   | oldpass      | pass1        | pass2                |
-  | Old password | New password | Confirm new password |
+  | Tmp password | New password | Confirm new password |
   When member "?" confirms form "/user/login" with values:
   | name   | pass      | pass1  | pass2  |
   | abeone | %whatever | Aa1!.. | Aa1!.. |

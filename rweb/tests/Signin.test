@@ -65,7 +65,7 @@ class rwebSignin extends DrupalWebTestCase {
     When_('member "?" visits page "/user/login"');
     Then_('we show "Sign In" with: "DATA'
     . '\\| oldpass      | pass1        | pass2                |'
-    . '\\| Old password | New password | Confirm new password |"');
+    . '\\| Tmp password | New password | Confirm new password |"');
     When_('member "?" confirms form "/user/login" with values: "DATA'
     . '\\| name   | pass      | pass1  | pass2  |'
     . '\\| abeone | %whatever | Aa1!.. | Aa1!.. |"');

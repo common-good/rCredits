@@ -135,6 +135,7 @@ EOF
   'inhuman proxy' => t('@name is a company. Your proxies must be people.'),
   'dw mismatch' => t('The "@field" of your Dwolla account and your rCredits account are conflicting. Your account permissions will be restricted until you correct this mismatch.'),
   'proxy to go' => t('You have not yet completed your selection of proxies.'),
+  'no stop draw' => t('The account for @fullName has overspent its rCredits, based on your balance. So you cannot discontinue "draw" permission without first bringing that account back up to even (for example by giving it some funds.'),
 );
 
 /**
@@ -672,7 +673,7 @@ function formMembership($updating, &$sta = '', $code = '') {
     $gotPreferences = !is_null($mya->minimum);
     $email = $mya->mail;
     $invited = ($nonperson or r\dbLookup('COUNT(*)', 'r_invites', 'inviter=:myid AND email<>:email', compact('myid', 'email')) >= 1);
-    r\membershipEvent($mya, 'ready', $gotUsdInfo and $gotIdProof and $gotPreferences and $invited);
+    r\membershipEvent($mya, 'ready', $gotUsdInfo and (MINI_LAUNCH or $gotIdProof) and $gotPreferences and $invited);
   }
 
   if ($updating) return $mya->can(B_OK);
@@ -698,7 +699,7 @@ function formMembership($updating, &$sta = '', $code = '') {
               
   } elseif ($admin == 1.5 or (!$gotContact and !$admin)) { // did all the initial steps, but somehow didn't complete contact info
     $message1 = t('<h2>Missing Contact Information</h2><p>Please complete your <a href="../account/contact">Contact Information</a>, ') . ($nonperson ? t('before continuing.</p>') : t('so we can mail your rCard.</p>'));
-  } elseif ($admin == 2 or (!$mya->can(B_OK) and !($gotUsdInfo and $gotIdProof and $gotPreferences and $invited) and !$admin)) { // got rCard, but not activated yet
+  } elseif ($admin == 2 or (!$mya->can(B_OK) and !($gotUsdInfo and (MINI_LAUNCH or $gotIdProof) and $gotPreferences and $invited) and !$admin)) { // got rCard, but not activated yet
     $message1 = $nonperson ? t('<h2>To activate your account, complete these final steps:</h2>') 
     : (t('<h2>You have completed the rCredits membership requirements. But wait!</h2>')
       . t('<p>You will receive your rCard in the mail within a few days. Then to <span style="color:red;">activate</span> your account and begin using your rCard for purchases from participating businesses, there are a few final tasks:</p>'));
@@ -867,14 +868,27 @@ function formProxies($form, &$sta) {
   $title = item(t('Proxies'));
   $subtext = item(t(<<<EOF
 <p><b>Direct democracy</b> is at the heart of the rCredits design. In each community, members meet to discuss and decide on funding priorities for grants, loans, and investments of rCredits for the greater good. (Although we won't be doing that for several months yet.)</p>
-<p>You assign another person as your ongoing Representative (Proxy). This should be another member you know and trust and generally agree with. Whenever you don't vote, your Representative votes for you. The Representative's vote simply counts double (one vote for you and one vote for the Representative). If your Representative also fails to vote, then your Representative's Proxy votes for all three of you.<br><br>Everyone's voice is counted, whether or not they vote directly &mdash; one person one vote.</p>
+<p>You assign a person in your community as your ongoing Representative (Proxy). This should be a member you know and trust and generally agree with. Whenever you don't vote, your Representative votes for you. The Representative's vote simply counts double (one vote for you and one vote for the Representative). If your Representative also fails to vote, then your Representative's Proxy votes for all three of you.<br><br>Everyone's voice is counted, whether or not they vote directly &mdash; one person one vote.</p>
 <p>Our community's most trusted Representatives (chosen by many people to be their proxy) will meet in person to research and debate specific issues. These trusted Representatives ("Trustees") do not decide broad policy issues &mdash; all members decide the policy issues. The Trustees oversee the public discussions, choose wording for questions to be voted on, take action as directed by the members, and assure that the system is running smoothly.</p>
-<p>You can identify your representatives (in the boxes below) by name, email, or member ID. Click on "Help with this page" for a list of choices during the Pilot Phase.</p>
 EOF
   ));
+//<p>You can identify your representatives (in the boxes below) by name, email, or member ID. Click on "Help with this page" for a list of choices during the Pilot Phase.</p>
 
+  /*
   $proxy1 = textField(t('Proxy:'), t('Who will vote on your behalf, when you don\'t vote directly? (You can change your choices at any time.)'), required(r\definiteName(r\proxy($id, 1))) + autocomplete('cttyPerson'));
   $proxy2 = textField(t('Alternate:'), t('Who will vote on your behalf, if your Proxy doesn\'t vote either? (even before resorting to your Proxy\'s Proxy)'), dft(r\definiteName(r\proxy($id, 2))) + autocomplete('cttyPerson'));
+  */
+
+  $sql = 'SELECT name, fullName, city FROM users WHERE uid>1 AND :IS_PERSONAL ORDER BY postalCode, city, fullName';
+  $result = r\dbQ($sql);
+  while ($row = $result->fetchAssoc()) {
+    extract($row);
+    $choices[] = "$fullName ($name), $city";
+  }
+  $choices = join('<br>', $choices);
+
+  $proxy1 = formField('select', t('Proxy:'), t('Who will vote on your behalf, when you don\'t vote directly? (You can change your choices at any time.)'), required(r\acct(r\proxy($id, 1))->fullName), $choices);
+  $proxy2 = formField(t('Alternate:'), t('Who will vote on your behalf, if your Proxy doesn\'t vote either? (even before resorting to your Proxy\'s Proxy)'), required(r\acct(r\proxy($id, 2))->fullName), $choices);
   $submit = submit();
   $form = compact(u\ray('title subtext proxy1 proxy2 submit'));
   return labeled($form);
@@ -1029,7 +1043,7 @@ function formSummary($form, &$sta) {
 
       $notes = formField('textarea', t('Notes'), '', dft($mya->notes));
     }
-    $who = textField(t('Be who:'), t('Type a name, id, email, or phone of a (different) member account to manage.'), autocomplete('ctty'));
+    $who = textField(t('Be who:'), t('Type a name, id, email, or phone of a (different) member account to manage.'), autocomplete($mya->can(B_ADMIN) ? '' : 'ctty'));
 
     $submit1 = $submit2 = submit();
   }
@@ -2402,6 +2416,13 @@ if (confirming_v($sta)) return;
       if (($sta['input'][$key] = round($amount, 0)) != $amount) say('amount rounded', compact('amount'));
     } elseif ($keya == 'permission') {
       if ($value == PERM_MANAGE) $managers++;
+/*    } elseif ($keya == 'draw') {
+      if (!$value and $raws[$rawnum][$keya]) { // turning off the draw
+        $other = r\acct(r\relation('other', $reid));
+        $shortfall = -$other->available('exch', FALSE, FALSE);
+        $fullName = $other->fullName;
+        if ($shortfall > 0) say('no stop draw', compact('shortfall', 'fullName'), 'draw');
+      } */
     }
   }
   if (!$mya->can(B_PERSONAL) and !$managers) return say('need a manager', 'permission');
@@ -2424,7 +2445,6 @@ function formRelations_submit($form, &$sta) {
   $changes = array();
   extract(u\just('raws0 raws', $sta['original_settings']));
 //  debug($sta['original_settings']);
-  // Drupal doesn't pass along our hidden inputs, so get them directly from $_POST ...
   foreach ($sta['input'] as $key => $value) { // ... be\updateRelations will have to check permissions and data carefully
     if (!strpos($key, '-')) continue;
     list ($key, $rawnum, $reid) = explode('-', $key); // eg split permission-2-37
@@ -3356,7 +3376,6 @@ function transfer($op, $info, $confirmed) {
   $myid = r\acct()->id;
   extract(u\just('who amount goods purpose scanned', $info)); // $scanned is global, for be\transfer
   $txType = $op == 'pay' ? 'payment' : strtolower($op);
-  debug(compact('txType','op','info','confirmed'));
   if (blank_field(compact(u\ray('who amount')))) return FALSE;
   if ($goods and trim($purpose) == '') return say('missing purpose', 'purpose');
   if (!$goods) $purpose = 'cash'; // tell be\transfer it's not for goods (should be the only place this string occurs)
@@ -3506,14 +3525,17 @@ function focusOn($focusFieldName) {
 }
 
 function formFooter() {
+  global $base_url;
 //  $layout = (svar('layout') == 'Mobile') ? 'Desktop' : 'Mobile';
   $year = date('Y');
 
   //<a href="?layout=$layout">$layout layout</a> |
+  $donateLink = r\acct() ? '<a href="$base_url/membership/contribute">Contribute</a> |' : '';
   $markup =<<<EOF
 <hr>
+$donateLink
 <a href="http://rCredits.org">About rCredits</a> |
-<a href="help">Help</a>
+<a href="$base_url/help">Help</a>
 <br><br>
 website copyright &copy; $year <a href="http://CommonGoodFinance.org">Common Good Finance&trade;</a>, a 501(c)(3) nonprofit<br/>
 PO Box 21, Ashfield, MA 01330 USA<br/>

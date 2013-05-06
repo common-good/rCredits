@@ -42,7 +42,7 @@ Scenario: A member confirms request to charge another member
   Then we say "status": "report invoice" with subs:
   | action  | otherName | amount | tid |
   | charged | Bea Two   | $100   | 1   |
-  And we email "new-invoice" to member "b@example.com" with subs:
+  And we notice "new invoice" to member "NEW.ZZB" with subs:
   | created | fullName | otherName | amount | payerPurpose |
   | %today  | Bea Two  | Abe One   | $100   | labor        |
   And transactions:
@@ -71,7 +71,7 @@ Scenario: A member confirms request to pay another member
   Then we say "status": "report transaction" with subs:
   | action | otherName | amount | tid | rewardType | rewardAmount |
   | paid   | Bea Two   | $100   | 1   | rebate     | $0.05        |
-  And we email "new-payment" to member "b@example.com" with subs:
+  And we notice "new payment" to member "NEW.ZZB" with subs:
   | created | fullName | otherName | amount | payeePurpose |
   | %today  | Bea Two  | Abe One   | $100   | labor        |
   And transactions:
