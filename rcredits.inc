@@ -61,6 +61,7 @@ define('R_INDIVIDUAL_GIFT', 50); // suggested contribution for individuals
 define('R_COMPANY_GIFT', 250); // suggested contribution for companies
 define('R_BUYS_BEFORE_BONUS', MINI_LAUNCH ? 1 : 3); // number of purchases required before signup bonus
 define('R_REGION_MAX', isDEV ? 46000 : 3000000000); // maximum uids in a region (46k,3T ~sqrt(PHP_INT_MAX))
+define('R_ACCT_REGION', '(-FLOOR((uid-1)/' . R_REGION_MAX . ')-1)'); // SQL region expression
 define('R_CTTY_UID0', -R_REGION_MAX); // community uids are less than this (farther from zero)
 define('R_DWOLLA_LINK', 'http://refer.dwolla.com/a/clk/3bf8cy'); // credits CGF
 define('R_SIGNIN_HOURS', 24); // window for signing in after registering or resetting password
@@ -270,8 +271,8 @@ function txReportArgs($tx, $getMyBalance = FALSE, $shortfall = 0) {
  */
 function whoseUsd($usdAccountId, $omit = NULL) {
   $usdAccount = bin2hex(u\ezencrypt($usdAccountId, R_WORD));
-  if (@$omit) $omit = ' AND uid<>:omit';
-  return r\dbLookup('uid', 'users', 'usdAccount=:usdAccount' . $omit, compact('usdAccount', 'omit'));
+  $where = 'usdAccount=:usdAccount' . ($omit ? ' AND uid<>:omit' : '');
+  return r\dbLookup('uid', 'users', $where, compact('usdAccount', 'omit'));
 }
 
 /**
@@ -386,6 +387,7 @@ function txRewardSetup($serial, $type, $payee, $state, $amount, $tid, $created) 
  *   for: purpose of the transaction OR a simple array (payer's purpose, payee's purpose)
  *   etc.
  * @return the array, with some extra field information added
+ * Give full rewards for contributions to CGF, whether in r or USD
  */
 function transactionSetup($info) {
   global $channel; // through what medium was the transaction requested (web, SMS, etc.).
@@ -406,7 +408,8 @@ function transactionSetup($info) {
   u\setDft($payerAgent, $payer);
   u\setDft($payeeAgent, $payee);
   u\setDft($created, REQUEST_TIME);
-  $data = dataSetup($payer, $payee, $r, $goods, @$data ?: array());
+  $rewardBasis = ($payee == \variable_get('cgf_uid') and $for == 'contribution') ? $amount : $r;
+  $data = dataSetup($payer, $payee, $rewardBasis, $goods, @$data ?: array());
   if (@$state !== TX_PENDING) $completed = $created;
   $taking += 0;
   $goods += 0;
@@ -482,7 +485,7 @@ function cacheTotals($uid, $txs) {
     if ($type != TX_TRANSFER) {
       if ($type == TX_REBATE or $type == TX_BONUS) $committed = round($committed + $amount * $acct->share / 100, 2);
       $rewards = round($rewards + $r, 2);
-      if ($maximum) $maximum = round(max($maximum, $rewards), 2);
+      if (@$maximum) $maximum = round(max($maximum, $rewards), 2); // @ is for testing
     }
   }
 ///  unfreeze($available, $frozen); // update expired frozen amounts
@@ -546,7 +549,7 @@ function payEmployees($amount0, $for, $confirmed) {
   $results = array();
   $successes = 0;
   foreach ($employees as $acct) {
-    $results[] = list ($message, $args, $confirm) = be\transfer('payment', $acct, $amount0, $for, !u\forCash($for), TRUE, compact('pay_all'));
+    $results[] = list ($message, $args, $confirm) = be\transfer('payment', r\acct(), $acct, $amount0, $for, !u\forCash($for), TRUE, compact('pay_all'));
     if ($args['success']) $successes++;
   }
   $success = ($successes > 0);
@@ -618,6 +621,36 @@ function membershipEvent($acct, $status, $do = TRUE) {
     notifyStaff('event', compact(u\ray('fullName quid status')));
 	  return TRUE;
   } else return FALSE;
+}
+
+/**
+ * Try to transfer funds from contributor to CGF.
+ * @param assoc $info: the gift record data
+ * @return TRUE if the funds were successfully transferred.
+ */
+function acceptGift($info) {
+  extract(u\just('donid uid created amount often', $info));
+  $a = r\acct($uid);
+  if ($a->shortfall('buy', $amount)) return FALSE; // wait until tomorrow, if not enough
+  if ($a->shortfall('buy', $amount, TRUE)) return FALSE; // actually draw from other accounts, as needed
+
+  $cgf = r\acct(\variable_get('cgf_uid'));
+  
+  r\usd::beginAtom();
+  list ($msg, $args, $confirm) = be\transfer('payment', $a, $cgf, $amount, 'contribution', TRUE);
+  if ($args['success']) {
+    $completed = REQUEST_TIME;
+    r\dbUpdate('r_gifts', compact('donid', 'completed'), 'donid');
+    if ($often != 1) {
+      $months = $often == 'M' ? 1 : ($often == 'Q' ? 3 : 12);
+      $created = strtotime($months . ' months', $created);
+      r\dbInsert('r_gifts', compact(u\ray('uid created amount often')));
+    }
+    r\usd::commit();
+    r\notifyStaff('gift accepted', $info + $args);
+    return TRUE;
+  } else r\usd::rollback();
+  return FALSE;
 }
 
 /**

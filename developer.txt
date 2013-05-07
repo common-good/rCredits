@@ -11,17 +11,13 @@ BEFORE MINI LAUNCH:
 - flow: figure credit accordingly -- done but not tested
 - ** download must include rebate and bonuses transactions as a separate row (for GFM)
 - PHP timeout 5mins
-- no two accounts can have the same Dwolla account!
-- dropdowns for proxies
 - * no signup on rcredits.org!
-- contributions to CGF always get a rebate
-- make logo on card darker (printer quirk)
-- make submit() default to 'Save' and/or make better labels for each
 - update formMenu() to handle main, membership, and settings (the latter to with a "Home" button)
 - * finish and test cron (one part at a time)
 
 To do: (* = before launch ** = earlier)
 
+- Maybe remove r\acct class from public view (see https://help.github.com/articles/remove-sensitive-data)
 - * add share to summary page, for admins (or allow $0 donation and don't record it)
 - * receive deposit/withrawal callbacks to set "completed" in r_usd. alert staff if fails.
 - * in daily: alert staff if deposit / withdrawal not complete after 3 days

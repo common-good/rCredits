@@ -44,7 +44,9 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
 /**
  * member (ARG) completes form (ARG) with values: (ARG)
  *
- * in: TransactR AMemberAsksToChargeAnotherMember MAKE
+ * in: Gift AMemberContributes MAKE
+ *     Gift AMemberContributesPartlyInUSD MAKE
+ *     TransactR AMemberAsksToChargeAnotherMember MAKE
  *     TransactR AMemberAsksToPayAnotherMember MAKE
  *     TransactUsd AMemberAsksToChargeAnotherMember MAKE
  *     TransactUsd AMemberAsksToPayAnotherMember MAKE
@@ -176,7 +178,8 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
 /**
  * members: (ARG)
  *
- * in: Membership Setup MAKE
+ * in: Gift Setup MAKE
+ *     Membership Setup MAKE
  *     RealUsd Setup MAKE
  *     Relations Setup MAKE
  *     Signin AMemberSignsInForTheFirstTime TEST
@@ -197,7 +200,9 @@ function members($list) {return t\members($list);}
 /**
  * transactions: (ARG)
  *
- * in: RealUsd Setup MAKE
+ * in: Gift AMemberContributes TEST
+ *     Gift AMemberContributesPartlyInUSD TEST
+ *     RealUsd Setup MAKE
  *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
  *     Relations Setup MAKE
  *     Summary Setup MAKE
@@ -214,7 +219,8 @@ function transactions($list) {return t\transactions($list);}
 /**
  * we say (ARG): (ARG) with subs: (ARG)
  *
- * in: RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance TEST
+ * in: Gift AMemberContributes TEST
+ *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance TEST
  *     Signup ANewbieRegisters TEST
  *     Signup AMemberRegistersBadEmail TEST
  *     Signup AMemberRegistersBadName TEST
@@ -275,7 +281,8 @@ function weEmailToMemberWithSubs($key, $email, $subs) {
 /**
  * we email staff (ARG) with: (ARG)
  *
- * in: Membership AMemberDoesItAll TEST
+ * in: Gift AMemberContributes TEST
+ *     Membership AMemberDoesItAll TEST
  */
 function weEmailStaffWith($topic, $subs) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -411,7 +418,8 @@ function relations($relations) {return t\relations($relations);}
 /**
  * balances: (ARG)
  *
- * in: RealUsd AMixedRCreditsUSDTransactionHappens TEST
+ * in: Gift Setup MAKE
+ *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
  *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance TEST
  *     Relations Setup TEST
  *     Summary Setup TEST
@@ -659,9 +667,17 @@ function memberOnetimePasswordIs($id, $pass) {
 /**
  * we notice (ARG) to member (ARG) with subs: (ARG)
  *
- * in: TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
+ * in: Gift AMemberContributes TEST
+ *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
  *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
  *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
  *     TransactUsd AMemberConfirmsRequestToPayAnotherMember TEST
  */
 function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice, $id, $subs);}
+
+/**
+ * gifts: (ARG)
+ *
+ * in: Gift AMemberContributes TEST
+ */
+function gifts($gifts) {return t\gifts($gifts);}

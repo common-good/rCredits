@@ -169,11 +169,21 @@ EOF
     ),
     'dispute-resolution-process' => t(<<<EOF
     <p>Disputes between rCredits members will be resolved as follows:</p>
-       <ol>
-         <li>The members will work together cooperatively in good faith to attempt to resolve the matter themselves, amicably.</li>
-         <li>If, after 30 days, the members have been unable to agree on a resolution, at the request of either member the members will attempt to resolve the matter creatively with the help of a mediator.</li>
-         <li>Failing such resolution, at the initiative of either member, the members will submit the matter to binding arbitration at the nearest <a href="http://jamsadr.com" target="_blank">JAMS</a> Center.</li>
-       </ol>
+      <ol>
+        <li>The members will work together cooperatively in good faith to attempt to resolve the matter themselves, amicably.</li>
+        <li>If, after 30 days, the members have been unable to agree on a resolution, at the request of either member the members will attempt to resolve the matter creatively with the help of a mediator.</li>
+        <li>Failing such resolution, at the initiative of either member, the members will submit the matter to binding arbitration, as follows:
+          <ol style='list-style-type:lower-alpha;'>
+            <li>Either member will initiate the dispute resolution process by sending a registered letter to the other at their address of record in which they appoint a representative and include the representative's full contact information. The representative should be familiar with Common Good Finance and agree to put in the time and good will necessary to resolve the dispute.</li>
+            <li>Within 10 days of the postmark of the registered letter, the other Party will submit a registered letter naming their representative, again with full contact information, and including best times for a meeting.</li>
+            <li>The representative of the initiating Party will contact the other representative and set up a meeting. If there are any costs associated with setting up the meeting between organizers, they will be born by the organizers with the expectation that they will be reimbursed by their representees.</li>
+            <li>The organizers will agree on and appoint an arbitrator who agrees to spend the time and energy to resolve the dispute. Any costs incurred by the arbitrator will be borne equally by each Party.</li>
+            <li>The arbitrator may request any documentation or witnesses deemed necessary to arrive at a resolution, and both parties agree to comply promptly.  The decision of the arbitrator is binding on both parties.</li>
+            <li>The dispute resolution will be written up by the arbitrator and signed by both organizers.</li>
+            <li>The following timetables will be adhered to as well as possible: The organizers have 10 days to agree on an arbitrator, and the arbitrator will have 10 days to come up with a resolution.  All parties agree to complete the dispute resolution process within 30 days.</li>
+          </ol>
+        </li>
+      </ol>
 EOF
     ),
     'paying-attention' => t(<<<EOF

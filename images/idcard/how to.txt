@@ -1,0 +1,8 @@
+How to make the rCard background
+
+1. Start with a photo that is not too dark vertically in the 2nd and 3rd 5ths from the top.
+2. Add a Mask Layer and flood fill it with a simple gradient fading top to bottom.
+3. Create the rCredits logo:
+  - Dark green (#004000) "r" 550pt, Stroke 0, drag middle to 1391, 576
+  - White "TM" 26pt, drag middle to 1319, 746
+  - Dark blue (#000080) "Credits" 66pt, bold, drag middle to 1422, 624

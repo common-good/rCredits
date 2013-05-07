@@ -291,6 +291,7 @@ class acct {
     $ray = (array) $this->account(R_MONEY_FIELDS);
     $ray['fees'] = 0;
     $avail = avail($type, $ray);
+//    debug(compact('need','avail'));
     if ($avail >= $need) return 0; // plenty without drawing from other accounts
 
     if ($get) { // get what we need (should have already checked to see if it's there)
@@ -299,6 +300,7 @@ class acct {
       if ($avail < $need) $avail += $this->draw($type, $need - $avail, 'usd'); // the remainder in USD
       r\usd::commit($avail >= $need); // rollback if failure
     } else $avail += $this->canDraw($type); // just asking
+//    debug(compact('need','avail'));
     return max(0, $need - $avail); // the shortfall
   }
   

@@ -47,7 +47,7 @@ function send($data) {
   curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); //enable RETURN_TRANSFER so curl_exec() returns result of the request
   $result = curl_exec($ch);
   curl_close($ch);
-  echo $result;
+  echo $result; // KEEP
   exit();
 }
 
@@ -267,7 +267,7 @@ function reverse($xid, $amount, $acct, $data, $old_goods, $tid, $type, $otherTid
   $what = u\order($type == 'payment', $myFor, $otherFor);
   if (@$data['rebate'] or @$data['bonus']) list ($data['rebate'], $data['bonus']) = array(-$data['bonus'], -$data['rebate']);
   $data['undoes'] = $xid; // remember what we're reversing (especially to get the realness right)
-  list ($message, $args, $confirm) = transfer($type, $acct, $amount, $what, $old_goods, TRUE, $data);
+  list ($message, $args, $confirm) = transfer($type, r\acct(), $acct, $amount, $what, $old_goods, TRUE, $data);
 
   if (@$args['success']) {
     extract(u\just('xid tid otherTid', $args), EXTR_PREFIX_ALL, 'new');
@@ -363,14 +363,15 @@ function payInvoice($xid) {
   if (isFrontend()) return (array) backend('payInvoice', compact(u\ray('xid')));
   if (is_array($xid)) extract($xid); // called from api or backend
 
-  if (!r\acct()->can(B_BUY)) return array('no buy', array());
+  $mya = r\acct();
+  if (!$mya->can(B_BUY)) return array('no buy', array());
   if (!$result = lastTx('xid=:xid AND state=:TX_PENDING', compact('xid'))) return array('no such tx', array());
   extract($result, EXTR_PREFIX_ALL, 'old');
   $acct = r\acct($old_payee, $old_payeeAgent);
   $undoes = $xid;
   
   r\usd::beginAtom();
-  list ($message, $args, $confirm) = transfer('invoice payment', $acct, $old_amount, $old_payeeFor, $old_goods, TRUE, compact('undoes'));
+  list ($message, $args, $confirm) = transfer('invoice payment', $mya, $acct, $old_amount, $old_payeeFor, $old_goods, TRUE, compact('undoes'));
   if (@$args['success']) r\setTxState(TX_DELETED, $xid); // delete the invoice
   r\usd::commit();
 
@@ -381,7 +382,8 @@ function payInvoice($xid) {
  * Create a transaction
  * call by: list ($msg, $args, $confirm) = be\transfer(...);
  * @param string $ttype: payment, charge, or invoice payment
- * @param array $a: acct object for the other party
+ * @param acct $a1: acct object for first party (usually current user)
+ * @param acct $a2: acct object for the other party
  *   OR 'ALL' (paying employees) -- currently UNUSED
  * @param numeric $requestAmount: the transaction amount
  * @param string $for OR array($payerFor, $payeeFor): description of the transaction's purpose (user input)
@@ -405,31 +407,30 @@ function payInvoice($xid) {
  * $shortfall (how inadequate the payer's balance is)
  * @todo: write feature tests for partial transactions (paying/taking unilateral/not undoing/not broke/not)
  */
-function transfer($ttype, $a, $requestAmount, $for, $goods = FALSE, $confirmed = TRUE, $data = array()) {
+function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confirmed = TRUE, $data = array()) {
   include_once __DIR__ . '/usd.class';
   global $lastXid, $scanned, $channel; 
   if (isFrontend()) return (array) backend('transfer', compact(u\ray('ttype a requestAmount for confirmed data')));
   if (is_array($ttype)) extract($ttype); // called from api or backend
 
   u\EXPECT(in_array($ttype, u\ray('payment,charge,invoice payment')), 'bad transaction type');
-// disabled for now  if ($a == 'ALL') return $ttype == 'payment' ? r\payEmployees($requestAmount, $for, $confirmed) : array('no ALL', array(), FALSE);
-  $mya = r\acct();
-  list ($myid, $uid) = array($mya->id, $a->id);
+// disabled for now  if ($a2 == 'ALL') return $ttype == 'payment' ? r\payEmployees($requestAmount, $for, $confirmed) : array('no ALL', array(), FALSE);
+  list ($myid, $uid) = array($a1->id, $a2->id);
   $taking = ($ttype == 'charge');
 
   // Check permissions
-  u\EXPECT(compact(u\ray('ttype a confirmed data')), 'string acct bool assoc');
-  $otherName = $a->fullName;
-  if (!$a->can(B_OK)) return array('non trader', compact('otherName'), FALSE);
+  u\EXPECT(compact(u\ray('ttype a1 a2 confirmed data')), 'string acct acct bool assoc');
+  $otherName = $a2->fullName;
+  if (!$a2->can(B_OK)) return array('non trader', compact('otherName'), FALSE);
   list ($myAccess, $otherAccess) = u\order($taking, B_SELL, B_BUY);
   list ($myAccessErr, $otherAccessErr) = u\order($taking, 'sell', 'buy');
-  if (!$mya->can($myAccess)) return array("no $myAccessErr", array(), FALSE);
-  if (!$a->can($otherAccess)) return array("other no $otherAccessErr", array(), FALSE);
+  if (!$a1->can($myAccess)) return array("no $myAccessErr", array(), FALSE);
+  if (!$a2->can($otherAccess)) return array("other no $otherAccessErr", array(), FALSE);
   
   // Analyze who's buying or selling
   if ($uid == $myid) return array('no self-trading', array(), FALSE);
   list ($payer, $payee) = u\order($taking, $uid, $myid);
-  list ($payerAgent, $payeeAgent) = u\order($taking, $a->agentId, $mya->agentId);
+  list ($payerAgent, $payeeAgent) = u\order($taking, $a2->agentId, $a1->agentId);
 
   // Sort out what type of transfer this is
   $paying_invoice = ($ttype == 'invoice payment');
@@ -437,14 +438,14 @@ function transfer($ttype, $a, $requestAmount, $for, $goods = FALSE, $confirmed =
   $type = TX_TRANSFER;
   $unilateral = isset($data['bilateral']) ? FALSE 
   : ($taking // selling
-      and $mya->can(B_CHARGE) // seller can charge unilaterally
+      and $a1->can(B_CHARGE) // seller can charge unilaterally
       and !$undoing // not reversing a payment
-      and !($a->can(B_PERSONAL) and $a->proSe()) // not selling to a company directly (without its agent)
+      and !($a2->can(B_PERSONAL) and $a2->proSe()) // not selling to a company directly (without its agent)
       and ($channel == TX_SMART or $scanned or $channel == TX_SMS) // in person: scanned (web or smart) or by SMS
   );
   $preapproved = (@$data['preapproved'] or !$taking or $unilateral); // paying OR permitted to charge unilaterally
 //  $state = ($preapproved and !@$data['pay_all'])? TX_DONE : TX_PENDING;
-//  $virtual = ($goods and !$taking and $mya->hasBit(B_VIRTUAL) and r\isEmployee($uid));
+//  $virtual = ($goods and !$taking and $a1->hasBit(B_VIRTUAL) and r\isEmployee($uid));
   $virtual = FALSE; // this is done only automatically
   $state = ($preapproved and !$virtual)? TX_DONE : TX_PENDING; // may be changed to TX_TENTATIVE below
   
@@ -452,24 +453,15 @@ function transfer($ttype, $a, $requestAmount, $for, $goods = FALSE, $confirmed =
   if ($error = u\badAmount($requestAmount, '>0')) return array($error, array(), FALSE);
   $totalHit = $requestAmount - @$data['rebate']; // leave room for reversing rewards (minus a negative)
   
-  $usd = r\usdPart($totalHit, $taking ? $a : $mya, $preapproved, $goods, $confirmed, $shortfall); // short payment or unilateral charge
-  debug(compact('usd','shortfall','totalHit','goods'));
+  $usd = r\usdPart($totalHit, $taking ? $a2 : $a1, $preapproved, $goods, $confirmed, $shortfall); // short payment or unilateral charge
 
   if ($shortfall) {
     $short = u\formatAmount($shortfall);
-    /*
-    if ($paying_invoice) return array('short to', compact('short'), FALSE); // no partial payment of invoice
-    if (!$goods) return array($taking ? 'short cash from' : 'short cash to', compact('short', 'otherName'), FALSE); // no partial cash trans
-    if ($shortfall >= $requestAmount or $undoing) { // flat broke or undoing (partial undo is too complex for now)
-      $msg = $taking ? 'shortr from' : ($shortfall >= $requestAmount ? 'shortr to' : 'short to');
-      $balance = u\formatAmount($requestAmount + $shortfall);
-      */
-      if (is_null($usd)) {
-        $msg = $taking ? 'shortr from' : 'shortr to';
-        $how = 'exchange'; // for 'shortr to' message on web interface
-      } else $msg = $taking ? 'short from' : 'short to';
-      // NOPE if (!$unilateral) // let unilateral partials fall through for invoicing
-      return array($msg, compact(u\ray('otherName short how')), FALSE);
+    if (is_null($usd)) {
+      $msg = $taking ? 'shortr from' : 'shortr to';
+      $how = 'exchange'; // for 'shortr to' message on web interface
+    } else $msg = $taking ? 'short from' : 'short to';
+    return array($msg, compact(u\ray('otherName short how')), FALSE);
   }
   $amount = $requestAmount;
   $r = round($amount - $usd, 2);
@@ -477,13 +469,14 @@ function transfer($ttype, $a, $requestAmount, $for, $goods = FALSE, $confirmed =
   // Figure rewards and other extra info
   if (!$for) $for = $goods ? 'goods and services' : 'cash/loan/etc.';
 
-  list ($fromUsAcct, $toUsAcct) = u\order($taking, new r\usd($a), new r\usd($mya));
+  list ($fromUsAcct, $toUsAcct) = u\order($taking, new r\usd($a2), new r\usd($a1));
   $txArgs = compact(u\ray('type amount r payer payee payerAgent payeeAgent for data taking goods state'));
   r\usd::beginAtom();
   if ($confirmed) {
     $payerFee = R_FEE_FOR_CASH ? (!$goods) : FALSE; // cash-getter pays the transaction fee
     if ($state = TX_DONE and $usd > 0 and !$usdXid = $fromUsAcct->send($usd, $toUsAcct, $for, $payerFee)) {
       r\usd::rollback();
+      r\updateUsdCache($a1); // didn't have the funds we thought. fix it.
       return array('usd failed', array(), FALSE);
     }
     $txs = r\transact($txArgs + compact('usdXid'));
@@ -492,7 +485,6 @@ function transfer($ttype, $a, $requestAmount, $for, $goods = FALSE, $confirmed =
   } else {
     $txs = r\transact($txArgs);
     r\usd::rollback();
-    r\updateUsdCache($mya);
   }
   
   // Report results

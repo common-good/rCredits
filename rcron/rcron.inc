@@ -289,27 +289,7 @@ function gifts() {
  * Each instance of a repeating gift creates a repeating post-dated gift record.
  * Gifts happen as soon as the money is there, on or after the gift date.
  */
-function gift1($item) {
-  extract(u\just('donid uid giftDate amount often', $item));
-  $a = r\acct($uid);
-  if ($a->shortfall('buy', $amount)) return; // wait until tomorrow, if not enough
-
-  $a->shortfall('buy', $amount, TRUE); // actually draw from other accounts, as needed
-  
-  r\usd::beginAtom();
-  list ($msg, $args, $confirm) = be\transfer('payment', $a, $amount, 'contribution', TRUE);
-  if ($args['success']) {
-    r\notify($uid, $msg, $args);
-    $completed = REQUEST_TIME;
-    r\Update('r_usd', compact('completed'));
-    if ($often != 1) {
-      $months = $often == 'M' ? 1 : ($often == 'Q' ? 3 : 12);
-      $giftDate = strtotime($months . ' months', $giftDate);
-      r\dbInsert('r_usd', compact(u\ray('uid giftDate amount often')));
-    }
-    r\usd::commit();
-  } else r\usd::rollback();
-}
+function gift1($item) {r\acceptGift($item);}
 
 function redistribute() {
   $sql = 'SELECT uid, LEAST(usd, :R_RBUY_CHUNK*CEILING((r+usd-maximum)/:R_RBUY_CHUNK)) AS excess FROM users WHERE r+usd>=maximum+:R_RBUY_CHUNK AND maximum<>0 AND NOT :IS_VIRTUAL AND uid>0 AND :IS_OK';
@@ -436,7 +416,7 @@ EOF;
  */
 function END() {
   $elapsed = time() - REQUEST_TIME;
-  echo "Daily cron done after $elapsed seconds";
+  echo "Daily cron done after $elapsed seconds"; // keep
   r\notifyStaff('Daily cron ended successfully', '', FALSE);
 }
 

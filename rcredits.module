@@ -85,7 +85,7 @@ function rcredits_exception_handler($e) {
   $msg = '<b>Exception:</b>' . R_SYS_ERR. "<br>\n($msg)<br>\n- $line0 ($file0)" . $trace_msg;
   $message = str_replace('&nbsp;', '', str_replace('<br>', '', $msg));
   $R_FATAL_ERROR = u\loga('FATAL', compact('message'));
-  if (t\EST()) print_r($msg, 1); // do this in any case (doesn't show up unless interface fails)
+  if (t\EST()) print_r($msg, 1); // (KEEP) do this in any case (doesn't show up unless interface fails)
 
   switch (@$channel) {
     case TX_WEB:
@@ -216,7 +216,7 @@ function rcredits_cron_queue_info() {
   return compact('q');
 }
 
-function bs($n) {for ($i=0; $i <= B_MAX; $i++) if ($n & u\bit($i)) echo "$i ";}
+function bs($n) {for ($i=0; $i <= B_MAX; $i++) if ($n & u\bit($i)) echo "$i ";} // keep
 
 function test() {
   include_once __DIR__ . '/usd.class';

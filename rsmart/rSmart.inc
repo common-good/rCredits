@@ -220,7 +220,7 @@ function transact($args) {
   if (@$q_goods and !@$q_purpose) return be\error('missing purpose');
 
   if ($q_type == 'pay') $q_type = 'payment'; // this is what be\transfer() expects
-  list ($index, $subs, $zot) = be\transfer($q_type, $q_acct, $q_amount, $q_purpose, $q_goods, TRUE);
+  list ($index, $subs, $zot) = be\transfer($q_type, $q_mya, $q_acct, $q_amount, $q_purpose, $q_goods, TRUE);
 
   $balances = balances($q_acct->id); // my_balance, other_balance
   if (!$subs['success'] = (int) @$subs['success']) return be\error($index, $subs + $balances);

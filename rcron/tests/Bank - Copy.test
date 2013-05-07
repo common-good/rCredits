@@ -1,0 +1,246 @@
+<?php
+//
+// Feature: Bank
+//   AS a member
+//   I WANT credit to flow from my bank account
+//   SO I can spend it with my rCard.
+//   and
+//   I WANT credit to flow to my bank account
+//   SO I can pay it to non-members.
+
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rcron.steps';
+
+class rcronBank - Copy extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
+  var $sceneName;
+  const SHORT_NAME = 'Bank - Copy';
+  const FEATURE_NAME = 'rcron Test - Bank - Copy';
+  const DESCRIPTION = 'Bank';
+  const MODULE = 'rcron';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
+  }
+  
+  public static function getInfo() {
+    return array(
+      'short_name' => self::SHORT_NAME,
+      'name' => self::FEATURE_NAME,
+      'description' => self::DESCRIPTION,
+      'group' => ucwords(self::MODULE)
+    );
+  }
+
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
+    global $sceneTest; $sceneTest = $this;
+    parent::setUp(self::MODULE);
+
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rcron.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
+    default: // fall through to case(0)
+    case(0):
+    Given('members: "DATA'
+    . '\\| id      | fullName   | floor | minimum | maximum | flags                           |'
+    . '\\| NEW.ZZA | Abe One    |     0 |     100 |     200 | dft,personal,company,ok,to_bank |"');
+    break;
+
+
+    }
+  }
+
+  // Scenario: a member is barely below minimum
+  public function testAMemberIsBarelyBelowMinimum_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "DATA'
+    . '\\| id      | r  | usd   | rewards |'
+    . '\\| NEW.ZZA | 50 | 49.99 |      20 |"');
+    When_('cron runs "bank"');
+    Then_('bank transfers: "DATA'
+    . '\\| payer   | amount |'
+    . '\\| NEW.ZZA |    -10 |"');
+    And__('we notice "banked" to member "NEW.ZZA" with subs: "DATA'
+    . '\\| action    | status                    | amount |'
+    . '\\| draw from | under the minimum you set |    $10 |"');
+  }
+
+  // Scenario: a member is at minimum
+  public function testAMemberIsAtMinimum_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "DATA'
+    . '\\| id      | r  | usd | rewards |'
+    . '\\| NEW.ZZA | 50 |  50 |      20 |"');
+    When_('cron runs "bank"');
+    Then_('bank transfer count is 0');
+  }
+
+  // Scenario: a member is well below minimum
+  public function testAMemberIsWellBelowMinimum_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "DATA'
+    . '\\| id      | r  | usd | rewards |'
+    . '\\| NEW.ZZA | 20 |   5 |      20 |"');
+    When_('cron runs "bank"');
+    Then_('bank transfers: "DATA'
+    . '\\| payer   | amount |'
+    . '\\| NEW.ZZA |    -80 |"');
+    And__('we notice "banked" to member "NEW.ZZA" with subs: "DATA'
+    . '\\| action    | status                    | amount |'
+    . '\\| draw from | under the minimum you set |    $80 |"');
+  }
+
+  // Scenario: a member is over maximum
+  public function testAMemberIsOverMaximum_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "DATA'
+    . '\\| id      | r   | usd | rewards |'
+    . '\\| NEW.ZZA | 100 | 110 |      20 |"');
+    When_('cron runs "bank"');
+    Then_('bank transfers: "DATA'
+    . '\\| payer   | amount |'
+    . '\\| NEW.ZZA |     10 |"');
+    And__('we notice "banked" to member "NEW.ZZA" with subs: "DATA'
+    . '\\| action     | status                   | amount |'
+    . '\\| deposit to | over the maximum you set |    $10 |"');
+  }
+
+  // Scenario: a member is barely over maximum
+  public function testAMemberIsBarelyOverMaximum_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "DATA'
+    . '\\| id      | r   | usd    | rewards |'
+    . '\\| NEW.ZZA | 100 | 109.99 |      20 |"');
+    When_('cron runs "bank"');
+    Then_('bank transfer count is 0');
+  }
+
+  // Scenario: a member is under minimum but already requested barely enough funds from the bank
+  public function testAMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "DATA'
+    . '\\| id      | r   | usd    | rewards |'
+    . '\\| NEW.ZZA |  15 |      5 |      20 |"');
+    When_('cron runs "bank"');
+    Then_('bank transfers: "DATA'
+    . '\\| payer   | amount |'
+    . '\\| NEW.ZZA |    -80 |"');
+    When_('cron runs "bank"');
+    Then_('bank transfer count is 1');
+  }
+
+  // Scenario: a member is under minimum and has requested insufficient funds from the bank
+  public function testAMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "DATA'
+    . '\\| id      | r  | usd | rewards |'
+    . '\\| NEW.ZZA | 15 |   5 |      20 |"');
+    When_('cron runs "bank"');
+    Then_('bank transfers: "DATA'
+    . '\\| payer   | amount |'
+    . '\\| NEW.ZZA |    -80 |"');
+    Given('balances: "DATA'
+    . '\\| id      | r  | usd  | rewards |'
+    . '\\| NEW.ZZA | 15 | 4.99 |      20 |"');
+    When_('cron runs "bank"');
+    Then_('bank transfers: "DATA'
+    . '\\| payer   | amount |'
+    . '\\| NEW.ZZA |    -10 |"');
+  }
+
+  // Scenario: a member is over maximum but already requested that barely enough funds go to the bank
+  public function testAMemberIsOverMaximumButAlreadyRequestedThatBarelyEnoughFundsGoToTheBank_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "DATA'
+    . '\\| id      | r   | usd | rewards |'
+    . '\\| NEW.ZZA | 150 | 110 |      20 |"');
+    When_('cron runs "bank"');
+    Then_('bank transfers: "DATA'
+    . '\\| payer   | amount |'
+    . '\\| NEW.ZZA |     60 |"');
+    When_('cron runs "bank"');
+    Then_('bank transfer count is 1');
+  }
+
+  // Scenario: a member is over maximum and has requested insufficient funds to go to the bank
+  public function testAMemberIsOverMaximumAndHasRequestedInsufficientFundsToGoToTheBank_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "DATA'
+    . '\\| id      | r   | usd | rewards |'
+    . '\\| NEW.ZZA | 150 | 110 |      20 |"');
+    When_('cron runs "bank"');
+    Then_('bank transfers: "DATA'
+    . '\\| payer   | amount |'
+    . '\\| NEW.ZZA |     60 |"');
+    Given('balances: "DATA'
+    . '\\| id      | r      | usd | rewards |'
+    . '\\| NEW.ZZA | 150.01 | 110 |      20 |"');
+    When_('cron runs "bank"');
+    Then_('bank transfers: "DATA'
+    . '\\| payer   | amount |'
+    . '\\| NEW.ZZA |     10 |"');
+  }
+
+  // Scenario: a member is over maximum but has requested funds FROM the bank
+  public function testAMemberIsOverMaximumButHasRequestedFundsFROMTheBank_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "DATA'
+    . '\\| id      | r  | usd | rewards |'
+    . '\\| NEW.ZZA | 20 |   5 |      20 |"');
+    When_('cron runs "bank"');
+    Then_('bank transfers: "DATA'
+    . '\\| payer   | amount |'
+    . '\\| NEW.ZZA |    -80 |"');
+    Given('balances: "DATA'
+    . '\\| id      | r  | usd | rewards |'
+    . '\\| NEW.ZZA | 20 | 500 |      20 |"');
+    When_('cron runs "bank"');
+    Then_('bank transfer count is 1');
+  }
+
+  // Scenario: a member has no maximum
+  public function testAMemberHasNoMaximum_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('members: "DATA'
+    . '\\| id      | fullName   | floor | minimum | maximum | flags                           |'
+    . '\\| NEW.ZZB | Bea Two    |     0 |     100 |       0 | dft,personal,ok,to_bank         |"');
+    And__('balances: "DATA'
+    . '\\| id      | r  | usd | rewards |'
+    . '\\| NEW.ZZA | 50 |  50 |      20 |'
+    . '\\| NEW.ZZB | 20 | 500 |      20 |"');
+    When_('cron runs "bank"');
+    Then_('bank transfer count is 0');
+  }
+
+  // Scenario: a member pays virtually
+  public function testAMemberPaysVirtually_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('members: "DATA'
+    . '\\| id      | fullName   | floor | minimum | maximum | flags                           |'
+    . '\\| NEW.ZZC | Corner Pub |     0 |     100 |      10 | dft,company,ok,virtual,to_bank  |"');
+    And__('balances: "DATA'
+    . '\\| id      | r  | usd | rewards |'
+    . '\\| NEW.ZZA | 50 |  50 |      20 |'
+    . '\\| NEW.ZZC | 20 | 500 |      20 |"');
+    When_('cron runs "bank"');
+    Then_('bank transfer count is 0');
+  }
+
+  // Scenario: a member is over maximum but mostly in rCredits
+  public function testAMemberIsOverMaximumButMostlyInRCredits_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "DATA'
+    . '\\| id      | r   | usd | rewards |'
+    . '\\| NEW.ZZA | 500 |  25 |      20 |"');
+    When_('cron runs "bank"');
+    Then_('bank transfers: "DATA'
+    . '\\| payer   | amount |'
+    . '\\| NEW.ZZA |     25 |"');
+  }
+
+}

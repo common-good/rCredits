@@ -91,16 +91,16 @@ function makeAccount($info = array(), $testOnly = FALSE) {
  * Fabricate bogus transactions.
  * Minimum parameters: amount, from, to
  * @return:
- *   if called with $infoOnly TRUE, return assoc with the information actually written (called from verifyTx())
+ *   if called with $infoOnly TRUE, return assoc with the information actually written (called from verifyTxs())
  *   otherwise return serial (treated as TRUE in test steps)
  */
-function makeTransaction($info, $infoOnly = FALSE) {
+function makeTx($info, $infoOnly = FALSE) {
   global $channel;
   extract($info, EXTR_PREFIX_ALL, 'my');
 
   if (@$my_tx_id) $xid = u\a2n(substr($my_tx_id, 4));
   $type = isset($my_type) ? $my_type : TX_TRANSFER;
-  $created = @$my_created ? strtotime($my_created) : REQUEST_TIME;
+  $created = @$my_created ?: REQUEST_TIME;
   
   $payer = uid($my_from);
   $payerAgent = uid(@$my_fromAgent ?: ($type == TX_TRANSFER ? $my_from : r\communityUid()));
@@ -149,50 +149,41 @@ function makeRelation($info, $infoOnly = FALSE) {
   return $infoOnly ? verifyRecord('r_relations', $info) : r\dbInsert('r_relations', $info);
 }
 
-function members($list) {
+function makeRecords($list, $type, $testSeparate = FALSE) {
   global $testOnly;
-  foreach ($list as $one) if (!t\makeAccount($one, $testOnly)) return FALSE;
+  $function = 'rCredits\\Testing\\make' . $type;
+  if ($testSeparate and $testOnly) $function = str_replace('make', 'verify', $function);
+  foreach ($list as $one) if (!$function($one, $testOnly)) return FALSE;
   return TRUE;
 }
 
-function transactions($list) {
-  global $testOnly; 
+function members($list) {return makeRecords($list, 'Account');}
+function relations($list) {return makeRecords($list, 'Relation');}
+function gifts($list) {return makeRecords($list, 'Gift');}
+function transactions($list) {return makeRecords($list, 'Tx', TRUE);}
+function balances($list) {return makeRecords($list, 'Balances');}
 
-  $function = $testOnly ? 'rCredits\\Testing\\verifyTx' : 'rCredits\\Testing\\makeTransaction';
-  foreach ($list as $one) if (!$function($one)) return FALSE;
-  return TRUE;
+function makeGift($info, $testOnly) {
+  extract($info);
+  $uid = t\uid($id); unset($info['id']);
+  return $testOnly ? verifyRecord('r_gifts', $info) : r\dbInsert('r_gifts', $info);
 }
-
-function relations($relations) {
-  global $testOnly; 
-  foreach ($relations as $one) if (!t\makeRelation($one, $testOnly)) return FALSE;
-  return TRUE;
-}
-
-function balances($list) {
-  global $testOnly; 
-  foreach ($list as $one) {
-    $func = 'rCredits\\Testing\\balances' . ($testOnly ? 'TEST' : 'MAKE');
-    if (!$func($one)) return FALSE;
-  }
-  return TRUE;
-}  
 
 /**
  * Make the cached balances be thus and such.
  * Note that this will be at odds with any calculated balances, 
  *   so a scenario cannot test balances with "balances:" after setting them up this way.
  */
-function balancesMAKE($one) {
-  extract(u\just('id r usd rewards', $one));
-  $a = r\acct(t\uid($id));
-  unset($one['id']);
-  return ($a->update($one));
-}
-
-function balancesTEST($one) {  
+function makeBalances($one, $testOnly) {
   extract(u\just('id r usd rewards', $one));
   $a = r\acct($id = t\uid($id));
+  if (!$testOnly) {
+    print_r($one);
+    unset($one['id']);
+    return ($a->update($one));
+  }
+
+  // verify
   $calc = t\uidCredit($id);
   if (isset($r)) {
     if (t\badEq('calc r', $calc->r, $r, $id)) return FALSE;
@@ -245,7 +236,8 @@ function uidCredit($uid) {
 function uid($id) {
   return is_numeric($id) ? $id 
     : ($id == 'community' ? r\serverUid() 
-    : r\unQuid(fullQid($id)));
+    : ($id == 'cgf' ? \variable_get('cgf_uid')
+    : r\unQuid(fullQid($id))));
 }
 
 /**
@@ -417,7 +409,7 @@ function logIn($id) {
 }
 
 function verifyTx($info) {
-  $info2 = makeTransaction($info, TRUE);
+  $info2 = makeTx($info, TRUE);
   return verifyRecord('r_txs', $info2);
 }
 
@@ -430,12 +422,15 @@ function verifyTx($info) {
  */
 function verifyRecord($table, $info) {
   if (!is_array($info)) die('in verifyRecord: ' . print_r(debug_backtrace(), 1)); // keep
+  
   unset($info['data']);
-  unset($info['created']);
-  foreach ($info as $key => $value) $crit[] = "$key<=>:$key"; // null-safe ==
+  foreach ($info as $key => $value) {
+    $crit[] = strpos('. created completed ', " $key ") ? 
+      "$key-($key%:DAY_SECS)<=>:$key-(:$key%:DAY_SECS)" : "$key<=>:$key"; // null-safe ==
+  }
   $crit = join(' AND ', $crit);
   $result = r\dbExists($table, $crit, $info);
-  if (!$result) testOutput("verifyRecord failed. table=$table crit=$crit EXPECTED info=" . print_r($info, 1));
+  if (!$result) testOutput("verifyRecord failed. table=$table crit=$crit EXPECTED info=" . print_r($info, 1)); // keep
   return $result;
 }
 
@@ -663,7 +658,7 @@ function badEq($type, $v1, $v2, $id) {
   if (t\eq($v1, $v2)) return FALSE;
   t\testOutput("bad $type v1=$v1 v2=$v2 uid=$id");
   return TRUE;
-} 
+}
 
 /**
  * Say whether the most recent page included the given text or options.

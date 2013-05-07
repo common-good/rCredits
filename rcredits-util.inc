@@ -513,7 +513,7 @@ function loga($type, $info = array(), $special = '', $adhocChannel = FALSE) {
 
 function seeAssoc($info) {
   $result = '';
-  foreach ($info as $key => $value) $result .= "<b>$key</b>: " . print_r($value, 1) . "<br>\n";
+  foreach ($info as $key => $value) $result .= "<b>$key</b>: " . print_r($value, 1) . "<br>\n"; // keep
   return "\n<br>$result";
 }
 
@@ -792,7 +792,7 @@ function trimAll(&$array) {
 function deb($arg = '') {
   global $counterI;
   $msgCount = count(@$_SESSION['messages']['status'] ?: array());
-  log(($counterI = @$counterI + 1) . " ($msgCount messages): " . print_r($arg, 1), 'debug');
+  log(($counterI = @$counterI + 1) . " ($msgCount messages): " . print_r($arg, 1), 'debug'); // keep
 }
 
 /**
