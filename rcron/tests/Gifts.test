@@ -1,0 +1,82 @@
+<?php
+//
+// Feature: Gifts
+//   AS a member
+//   I WANT my recent requested contribution to CGF to go through
+//   SO I can enjoy the rCredit system's rapid growth and be a part of that.
+
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rcron.steps';
+
+class rcronGifts extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
+  var $sceneName;
+  const SHORT_NAME = 'Gifts';
+  const FEATURE_NAME = 'rcron Test - Gifts';
+  const DESCRIPTION = 'Gifts';
+  const MODULE = 'rcron';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
+  }
+  
+  public static function getInfo() {
+    return array(
+      'short_name' => self::SHORT_NAME,
+      'name' => self::FEATURE_NAME,
+      'description' => self::DESCRIPTION,
+      'group' => ucwords(self::MODULE)
+    );
+  }
+
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
+    global $sceneTest; $sceneTest = $this;
+    parent::setUp(self::MODULE);
+
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rcron.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
+    default: // fall through to case(0)
+    case(0):
+    Given('members: "DATA'
+    . '\\| id      | fullName   | address | city  | state  | postalCode | country | email         | flags           |'
+    . '\\| NEW.ZZA | Abe One    | POB 1   | Atown | Alaska | 01000      | US      | a@example.com | dft,ok,personal |"');
+    And__('balances: "DATA'
+    . '\\| id        | usd  | r   | rewards |'
+    . '\\| cgf       |    0 |   0 |       0 |'
+    . '\\| NEW.ZZA   |  100 |  20 |      20 |"');
+    And__('gifts: "DATA'
+    . '\\| id      | giftDate  | amount | often | honor  | honored | share | completed |'
+    . '\\| NEW.ZZA | %today-1d |     10 |     1 | memory | Jane Do |    10 |         0 |"');
+    break;
+
+
+    }
+  }
+
+  // Scenario: A contribution can be completed
+  public function testAContributionCanBeCompleted_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('cron runs "gifts"');
+    Then_('transactions: "DATA'
+    . '\\| tx_id    | created | type         | state    | amount | from      | to      | purpose      | r    |'
+    . '\\| NEW.AAAB | %today  | %TX_TRANSFER | %TX_DONE |     10 | NEW.ZZA   | cgf     | contribution |   10 |'
+    . '\\| NEW.AAAC | %today  | %TX_REBATE   | %TX_DONE |   0.50 | community | NEW.ZZA | rebate on #1 | 0.50 |'
+    . '\\| NEW.AAAD | %today  | %TX_BONUS    | %TX_DONE |   1.00 | community | cgf     | bonus on #1  | 1.00 |"');
+    And__('gifts: "DATA'
+    . '\\| id      | giftDate  | amount | often | honor  | honored | share | completed |'
+    . '\\| NEW.ZZA | %today-1d |     10 |     1 | memory | Jane Do |    10 | %today    |"');
+    And__('we notice "new payment" to member "cgf" with subs: "DATA'
+    . '\\| otherName | amount | payeePurpose |'
+    . '\\| Abe One   |    $10 | contribution |"');
+    And__('we tell staff "gift accepted" with: "DATA'
+    . '\\| amount | often | myName  | rewardType |'
+    . '\\|     10 |     1 | Abe One | rebate     |"');
+  }
+
+}

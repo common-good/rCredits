@@ -165,7 +165,7 @@ function balances($list) {return makeRecords($list, 'Balances');}
 
 function makeGift($info, $testOnly) {
   extract($info);
-  $uid = t\uid($id); unset($info['id']);
+  $info['uid'] = t\uid($id); unset($info['id']);
   return $testOnly ? verifyRecord('r_gifts', $info) : r\dbInsert('r_gifts', $info);
 }
 
@@ -297,7 +297,9 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
   return r\dbExists('r_log', "info=:info AND $crit", compact(u\ray('info type myid agent channel')));
 }
 
-function findStaffEmail($topic, $subs) {
+function weTellStaff($topic, $subs) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  $subs = @$subs[0] ?: array();
   $index = 'tell-staff';
   $subject = str_replace('{topic}', $topic, $GLOBALS['emailSubjects'][$index]);
   $where = <<<EOF
@@ -306,7 +308,10 @@ function findStaffEmail($topic, $subs) {
 EOF;
   $where = u\tt($where, compact('index', 'subject'));
   if (!$last = r\dbLookup('info', 'r_log', $where)) return FALSE;
-  foreach ($subs as $k => $value) if (strpos($last, $value) === FALSE) return FALSE;
+  foreach ($subs as $k => $value) if (strpos($last, $value) === FALSE) {
+    testOutput("missing $k=$value");
+    return FALSE;
+  }
   return TRUE;
 }
 
@@ -424,9 +429,12 @@ function verifyRecord($table, $info) {
   if (!is_array($info)) die('in verifyRecord: ' . print_r(debug_backtrace(), 1)); // keep
   
   unset($info['data']);
+  $dateFields = '. created completed sent signed login access ';
   foreach ($info as $key => $value) {
-    $crit[] = strpos('. created completed ', " $key ") ? 
-      "$key-($key%:DAY_SECS)<=>:$key-(:$key%:DAY_SECS)" : "$key<=>:$key"; // null-safe ==
+    $crit[] = $value === '' ? "($key IS NULL or $key='')"
+    : ((strpos($dateFields, " $key ") or stripos($key, 'date') !== FALSE) ? 
+      "$key-($key%:DAY_SECS)<=>:$key-(:$key%:DAY_SECS)" 
+    : "$key<=>:$key"); // null-safe ==
   }
   $crit = join(' AND ', $crit);
   $result = r\dbExists($table, $crit, $info);

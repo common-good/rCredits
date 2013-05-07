@@ -25,14 +25,15 @@ Scenario: A member contributes
   | amount |
   |    $10 |
   And gifts:
-  | id      | created | amount | often | honor  | honored | share | completed |
-  | NEW.ZZA | %today  |     10 |     1 | memory | Jane Do |    10 | %today    |
+  | id      | giftDate | amount | often | honor  | honored | share | completed |
+  | NEW.ZZA | %today   |     10 |     1 | memory | Jane Do |    10 | %today    |
   And we notice "new payment" to member "cgf" with subs:
   | otherName | amount | payeePurpose |
   | Abe One   |    $10 | contribution |
-  And we email staff "gift accepted" with:
-  | amount | often | payerTid |
-  |     10 |     1 |        2 |
+  And we tell staff "gift accepted" with:
+  | amount | often | txField  |
+  |     10 |     1 | payerTid |
+  # and many other fields
 
 Scenario: A member contributes partly in USD
 # Donations to CGF get full rewards, even if given in USD.
@@ -44,3 +45,17 @@ Scenario: A member contributes partly in USD
   | NEW.AAAB | %today  | %TX_TRANSFER | %TX_DONE |     50 | NEW.ZZA   | cgf     | contribution |   20 |
   | NEW.AAAC | %today  | %TX_REBATE   | %TX_DONE |   2.50 | community | NEW.ZZA | rebate on #1 | 2.50 |
   | NEW.AAAD | %today  | %TX_BONUS    | %TX_DONE |   5.00 | community | cgf     | bonus on #1  | 5.00 |
+  
+Scenario: A member contributes with insufficient funds
+  When member "NEW.ZZA" completes form "membership/contribute" with values:
+  | gift | amount | often | honor  | honored | share |
+  |    0 |    200 |     1 | memory | Jane Do |    10 |
+  Then we say "status": "gift successful|gift transfer later" with subs:
+  | amount |
+  |   $200 |
+  And gifts:
+  | id      | giftDate | amount | often | honor  | honored | share | completed |
+  | NEW.ZZA | %today   |    200 |     1 | memory | Jane Do |    10 |         0 |
+  And we tell staff "gift" with:
+  | amount | often |
+  |     10 |     1 |

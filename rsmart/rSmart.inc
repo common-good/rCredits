@@ -73,7 +73,7 @@ function api($args = FALSE) {
   if (@$q_op != 'reset') // DEBUG
   if (@$q_op != 'first_time') {
     if (!@$q_code) return be\error('no code given');
-    if (!$smartInfo = r\dbLookup('owner,defaultAgent,transientId,accessed', 'r_smarts', 'code=:q_code', compact('q_code'))) return be\error('unknown device');
+    if (!$smartInfo = r\dbLookup('owner,defaultAgent,transientId,access', 'r_smarts', 'code=:q_code', compact('q_code'))) return be\error('unknown device');
     $args += $smartInfo; // pass these on to the op function
     extract($smartInfo, EXTR_PREFIX_ALL, 'q');
     r\acct::setDefault(r\acct($q_owner)); // set current account temporarily to owner, so that error log has it right
@@ -86,7 +86,7 @@ function api($args = FALSE) {
     if (buttons($mya, $q_owner) < 0) return be\error('no permission');
     r\acct::setDefault($mya);
     $args['mya'] = $mya;
-    $edit = array('code' => $q_code, 'accessed' => REQUEST_TIME);
+    $edit = array('code' => $q_code, 'access' => REQUEST_TIME);
     r\dbUpdate('r_smarts', $edit, 'code'); // remember time last accessed so we can drop the deadwood
   }
 
@@ -96,7 +96,7 @@ function api($args = FALSE) {
     if ($account_id != $q_account_id) { // this is a transient id scanned from the other party's smart device
       $transientId = basename(dirname($q_account_id));
       $recent = REQUEST_TIME - R_TRANSIENCE;
-      if (dbLookup('transientId', 'r_smarts', 'code=:code AND accessed>=:recent') != $transientId) return be\error('bad transient id');
+      if (dbLookup('transientId', 'r_smarts', 'code=:code AND access>=:recent') != $transientId) return be\error('bad transient id');
     }
     if (!$acct = r\acct($account_id, '', $error)) return be\error($error);
     $args['acct'] = $acct;
@@ -242,7 +242,7 @@ function transact($args) {
  *   other_balance: the new balance of the company if it's a company, otherwise of the individual
  */
 function undo($params) {
-  extract(u\just('tx_id confirmed', $params));
+  extract(u\just('mya tx_id confirmed', $params));
   
   if (!@$tx_id) return be\error('missing transaction id');
   if (!u\isQid(@$tx_id)) return be\error('bad transaction id');
@@ -260,7 +260,7 @@ function undo($params) {
   } else {
     $oldRecord = be\lastTx('xid=:xid', compact('xid'));
     if ($error = r\nonoUndo($oldRecord, $subs)) return be\error($error, $subs); // check nono before confirm AND here
-    $message = u\tt('confirm undo', r\txReportArgs($oldRecord));
+    $message = u\tt('confirm undo', r\txReportArgs($mya, $oldRecord));
   }
   return compact(u\ray('message tx_id')) + (@$balances ?: array());
 }
@@ -295,8 +295,8 @@ function makeDevice($device, $acct, $code = '') {
   require_once DRUPAL_ROOT . '/includes/password.inc';
   $owner = $acct->id;
   $code = trim($code ?: user_hash_password(uniqid($acct->mainQid, TRUE) . REQUEST_TIME) . '/'); // add a slash to make sure slashes get handled properly
-  $accessed = REQUEST_TIME;
-  $info = compact(u\ray('owner code device accessed'));
+  $access = REQUEST_TIME;
+  $info = compact(u\ray('owner code device access'));
   return @r\dbInsert('r_smarts', $info) ? $code : FALSE; // no way to tell if it's the same device as others
 }
 

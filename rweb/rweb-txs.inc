@@ -203,10 +203,11 @@ function doRow($tx, $report, $csv, $classes, $channels, $agents, $url0) {
  * @return: the form (FALSE on error or if already confirming)
  */
 function txConfirm($do, $xid, &$sta) {
-  $myid = r\acct()->id;
+  $mya = r\acct();
+  $myid = $mya->id;
   if (confirming_v($sta)) return FALSE;
   if (!$details = be\lastTx('xid=:xid', compact('xid'), TRUE)) return FALSE; // bail on hack attempt
-  extract(r\txReportArgs($details), EXTR_PREFIX_ALL, 'my');
+  extract(r\txReportArgs($mya, $details), EXTR_PREFIX_ALL, 'my');
   $action = tx_action($do, $my_state, $my_toMe, $my_byMe);
   confirm(t('Are you sure you want to ') . "$action?<br>($my_summary)", $sta); // sets 'confirm'
   return sureForm($sta);
@@ -304,7 +305,7 @@ function txOKorNO($tx_task, $xid) {
  */
 function tx_edit($xid) {
   if (!$details = be\lastTx('xid=:xid', compact('xid'), TRUE)) return FALSE; // bail on hack attempt
-  extract(u\just('taking purpose role', r\txReportArgs($details)));
+  extract(u\just('taking purpose role', r\txReportArgs(r\acct(), $details)));
   
   if (!r\acct()->can($taking ? B_SELL : B_BUY)) return FALSE;
   

@@ -613,13 +613,13 @@ function formContribute_submit($form, &$sta) {
   $info = u\just('amount often honor honored share', $sta['input']);
   if (!$info['honored']) $info['honor'] = '';
   $uid = $mya->id;
-  $created = REQUEST_TIME;
-  $info += compact('uid', 'created');
+  $giftDate = REQUEST_TIME;
+  $info += compact('uid', 'giftDate');
   $donid = r\dbInsert('r_gifts', $info);
   $mya->update(compact('share'));
   $msg = 'gift successful';
   if (!r\acceptGift($info + compact('donid'))) {
-    r\notifyStaff('gift', $info);
+    r\tellStaff('gift', $info);
     $msg .= '|gift transfer later';
   }
   $amount = u\formatAmount($info['amount']);
@@ -860,7 +860,7 @@ function formAgreement_submit($form, &$sta) {
   extract(u\just('signedBy', $sta['input']));
   r\acct()->update($info = compact('signed', 'signedBy'));
   say('info saved');
-  r\notifyStaff('agreement signed', $info);
+  r\tellStaff('agreement signed', $info);
   r\go('membership');
 }
 
@@ -921,7 +921,7 @@ function formProxies_submit($form, &$sta) {
   if ($proxy2) r\proxy($myid, 2, $proxy2);
   if ($proxy1 and $proxy2) {
     r\go('membership');
-    r\notifyStaff('chose proxies', $info);
+    r\tellStaff('chose proxies', $info);
     say('info saved');
   } else say('proxy to go');
 }
@@ -975,7 +975,7 @@ function formInvite_submit($form, &$sta) {
     \drupal_mail('rCredits', 'invite', $email, '', $info);
     say('invite sent|repeat invite', compact('email'));
   } else say('Your invitation has been saved and will be sent after this Pilot Phase is completed and membership is open to the public.|repeat invite');
-  r\notifyStaff('invited', $info + compact('email'));
+  r\tellStaff('invited', $info + compact('email'));
 }
 
 function formVideos($form, &$sta) {
@@ -1494,7 +1494,7 @@ function undo($confirmed = FALSE) {
   } else {
     $args = be\lastTx('xid=:xid', compact('xid'));
     $args['yesNo'] = yesNo('undo/1', 'undo/0');
-    if ($args) say('confirm undo|yes or no', r\txReportArgs($args));
+    if ($args) say('confirm undo|yes or no', r\txReportArgs(r\acct(), $args));
   }
   r\go('empty');
 }
@@ -1867,7 +1867,7 @@ function formRegister_submit($form, &$sta) {
         list ($main, $other, $draw) = array($other, $main, TRUE);
         r\dbInsert('r_relations', compact(u\ray('main other draw')));
       }
-    } else r\notifyStaff("bad params in formRegister: $error -- ", $params);
+    } else r\tellStaff("bad params in formRegister: $error -- ", $params);
   }
   
   // report to staff and user
@@ -1934,7 +1934,7 @@ function tellStaffNewMember($params) {
   $params = compact(u\ray('phone country state acctType by companyOptions buysAt')) + $params;
   unset($params['code']); // don't need to see this
   $message = '<h2>NEW SIGNUP</h2>';
-  r\notifyStaff($message, $params);
+  r\tellStaff($message, $params);
 }
 
 function findCompany($company, $companyPhone) {
@@ -2145,7 +2145,7 @@ function formUsd($form, &$sta, $args = '') {
   if (@$connected == 'yes') {
     $link = "$base_url/membership";
     say('got token|goto membership', compact('link'));
-    r\notifyStaff('connected to Dwolla');
+    r\tellStaff('connected to Dwolla');
   } elseif (@$connected) say("There was an error. Dwolla said: $connected", 'zot');
   $mya = r\acct();
   
@@ -2789,7 +2789,7 @@ function formPass_submit($form, &$sta) {
   $a->update(compact('data'));
   r\notify($uid, 'password-reset', compact(u\ray('region name quid pass')), TRUE);
   say('password reset');
-  r\notifyStaff('password reset', compact(u\ray('region name quid uid')), $uid);
+  r\tellStaff('password reset', compact(u\ray('region name quid uid')), $uid);
   return r\go('');
   //$sta['redirect'] = 'user';
 }
@@ -3131,7 +3131,7 @@ function formRequestRCard($form, &$sta, $other = '') {
 function formRequestRCard_submit($form, &$sta) {
   extract(u\just('okay other', $sta['input']));
   if ($okay and $reid = r\relation('reid', $main = r\acct()->id, @$other)) {
-    r\notifyStaff('company rcard', compact(u\ray('main other reid')));
+    r\tellStaff('company rcard', compact(u\ray('main other reid')));
     say('card ordered');
   } else say('nothing done', 'zot');
   return r\go('account/relations');

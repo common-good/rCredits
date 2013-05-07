@@ -46,6 +46,7 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *
  * in: Gift AMemberContributes MAKE
  *     Gift AMemberContributesPartlyInUSD MAKE
+ *     Gift AMemberContributesWithInsufficientFunds MAKE
  *     TransactR AMemberAsksToChargeAnotherMember MAKE
  *     TransactR AMemberAsksToPayAnotherMember MAKE
  *     TransactUsd AMemberAsksToChargeAnotherMember MAKE
@@ -220,6 +221,7 @@ function transactions($list) {return t\transactions($list);}
  * we say (ARG): (ARG) with subs: (ARG)
  *
  * in: Gift AMemberContributes TEST
+ *     Gift AMemberContributesWithInsufficientFunds TEST
  *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance TEST
  *     Signup ANewbieRegisters TEST
  *     Signup AMemberRegistersBadEmail TEST
@@ -279,16 +281,11 @@ function weEmailToMemberWithSubs($key, $email, $subs) {
 }
 
 /**
- * we email staff (ARG) with: (ARG)
+ * we tell staff (ARG) with: (ARG)
  *
- * in: Gift AMemberContributes TEST
- *     Membership AMemberDoesItAll TEST
+ * in: 
  */
-function weEmailStaffWith($topic, $subs) {
-  global $testOnly; if (!$testOnly) return FALSE;
-  $subs = @$subs[0] ?: array();
-  return t\findStaffEmail($topic, $subs);
-}
+function weTellStaffWith($topic, $subs) {return t\weTellStaff($topic, $subs);}
 
 /**
  * we show (ARG) with subs: (ARG)
@@ -679,5 +676,18 @@ function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice,
  * gifts: (ARG)
  *
  * in: Gift AMemberContributes TEST
+ *     Gift AMemberContributesWithInsufficientFunds TEST
  */
 function gifts($gifts) {return t\gifts($gifts);}
+
+/**
+ * we email staff (ARG) with: (ARG)
+ *
+ * in: Gift AMemberContributes TEST
+ *     Gift AMemberContributesWithInsufficientFunds TEST
+ *     Membership AMemberDoesItAll TEST
+ */
+function weEmailStaffWith($arg1, $arg2) {
+  global $testOnly;
+  todo;
+}

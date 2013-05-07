@@ -71,14 +71,14 @@ class rwebGift extends DrupalWebTestCase {
     . '\\| amount |'
     . '\\|    $10 |"');
     And__('gifts: "DATA'
-    . '\\| id      | created | amount | often | honor  | honored | share | completed |'
-    . '\\| NEW.ZZA | %today  |     10 |     1 | memory | Jane Do |    10 | %today    |"');
+    . '\\| id      | giftDate | amount | often | honor  | honored | share | completed |'
+    . '\\| NEW.ZZA | %today   |     10 |     1 | memory | Jane Do |    10 | %today    |"');
     And__('we notice "new payment" to member "cgf" with subs: "DATA'
     . '\\| otherName | amount | payeePurpose |'
     . '\\| Abe One   |    $10 | contribution |"');
     And__('we email staff "gift accepted" with: "DATA'
-    . '\\| amount | often | payerTid |'
-    . '\\|     10 |     1 |        2 |"');
+    . '\\| amount | often | txField  |'
+    . '\\|     10 |     1 | payerTid |"');
   }
 
   // Scenario: A member contributes partly in USD
@@ -92,6 +92,23 @@ class rwebGift extends DrupalWebTestCase {
     . '\\| NEW.AAAB | %today  | %TX_TRANSFER | %TX_DONE |     50 | NEW.ZZA   | cgf     | contribution |   20 |'
     . '\\| NEW.AAAC | %today  | %TX_REBATE   | %TX_DONE |   2.50 | community | NEW.ZZA | rebate on #1 | 2.50 |'
     . '\\| NEW.AAAD | %today  | %TX_BONUS    | %TX_DONE |   5.00 | community | cgf     | bonus on #1  | 5.00 |"');
+  }
+
+  // Scenario: A member contributes with insufficient funds
+  public function testAMemberContributesWithInsufficientFunds_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member "NEW.ZZA" completes form "membership/contribute" with values: "DATA'
+    . '\\| gift | amount | often | honor  | honored | share |'
+    . '\\|    0 |    200 |     1 | memory | Jane Do |    10 |"');
+    Then_('we say "status": "gift successful|gift transfer later" with subs: "DATA'
+    . '\\| amount |'
+    . '\\|   $200 |"');
+    And__('gifts: "DATA'
+    . '\\| id      | giftDate | amount | often | honor  | honored | share | completed |'
+    . '\\| NEW.ZZA | %today   |    200 |     1 | memory | Jane Do |    10 |         0 |"');
+    And__('we email staff "gift" with: "DATA'
+    . '\\| amount | often |'
+    . '\\|     10 |     1 |"');
   }
 
 }

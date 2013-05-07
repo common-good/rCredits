@@ -47,6 +47,7 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  * in: Bank Setup MAKE
  *     Bank AMemberHasNoMaximum MAKE
  *     Bank AMemberPaysVirtually MAKE
+ *     Gifts Setup MAKE
  *     VirtualPayments Setup MAKE
  */
 function members($list) {return t\members($list);}
@@ -68,6 +69,7 @@ function members($list) {return t\members($list);}
  *     Bank AMemberHasNoMaximum MAKE
  *     Bank AMemberPaysVirtually MAKE
  *     Bank AMemberIsOverMaximumButMostlyInRCredits MAKE
+ *     Gifts Setup MAKE
  *     VirtualPayments AMemberCompanyPaysSuppliersVirtually MAKE
  *     VirtualPayments AMemberCompanyPaysEmployeesVirtually MAKE
  */
@@ -89,6 +91,7 @@ function balances($list) {return t\balances($list);}
  *     Bank AMemberHasNoMaximum MAKE
  *     Bank AMemberPaysVirtually MAKE
  *     Bank AMemberIsOverMaximumButMostlyInRCredits MAKE
+ *     Gifts AContributionCanBeCompleted MAKE
  *     VirtualPayments AMemberCompanyPaysSuppliersVirtually MAKE
  *     VirtualPayments AMemberCompanyPaysEmployeesVirtually MAKE
  */
@@ -147,7 +150,8 @@ function relations($relations) {return t\relations($relations);}
 /**
  * transactions: (ARG)
  *
- * in: VirtualPayments AMemberCompanyPaysSuppliersVirtually TEST
+ * in: Gifts AContributionCanBeCompleted TEST
+ *     VirtualPayments AMemberCompanyPaysSuppliersVirtually TEST
  *     VirtualPayments AMemberCompanyPaysEmployeesVirtually TEST
  */
 function transactions($list) {return t\transactions($list);}
@@ -158,7 +162,23 @@ function transactions($list) {return t\transactions($list);}
  * in: Bank AMemberIsBarelyBelowMinimum TEST
  *     Bank AMemberIsWellBelowMinimum TEST
  *     Bank AMemberIsOverMaximum TEST
+ *     Gifts AContributionCanBeCompleted TEST
  *     VirtualPayments AMemberCompanyPaysSuppliersVirtually TEST
  *     VirtualPayments AMemberCompanyPaysEmployeesVirtually TEST
  */
 function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice, $id, $subs);}
+
+/**
+ * gifts: (ARG)
+ *
+ * in: Gifts Setup MAKE
+ *     Gifts AContributionCanBeCompleted TEST
+ */
+function gifts($gifts) {return t\gifts($gifts);}
+
+/**
+ * we tell staff (ARG) with: (ARG)
+ *
+ * in: Gifts AContributionCanBeCompleted TEST
+ */
+function weTellStaffWith($topic, $subs) {return t\weTellStaff($topic, $subs);}

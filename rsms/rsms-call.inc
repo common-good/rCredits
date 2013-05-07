@@ -260,7 +260,8 @@ class call {
    * AND payer=other OR payee=other
    */
   function do_undo() {
-    $myid = r\acct()->id;
+    $mya = r\acct();
+    $myid = $mya->id;
     extract($this->parms, EXTR_PREFIX_ALL, 'my');	// who and/or tofrom
 
     if ($this->confirmed) {
@@ -285,7 +286,7 @@ class call {
     $oldRecord = be\lastTx($where, compact(u\ray('myid otherUid')));
     if ($error = r\nonoUndo($oldRecord, $subs)) return array($error, $subs);
     $this->parms['xid'] = $oldRecord['xid'];
-    return $this->confirm('undo', r\txReportArgs($oldRecord, FALSE));
+    return $this->confirm('undo', r\txReportArgs($mya, $oldRecord, FALSE));
   }
 
   /**
@@ -303,7 +304,8 @@ class call {
    *   other syntaxes including who and amount (create a new transaction)
    */
   function do_payment() {
-    $myid = r\acct()->id;
+    $mya = r\acct();
+    $myid = $mya->id;
     extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, what, and maybe xid
     if (isset($my_amount)) return $this->do_transfer('payment'); // complete syntax
     
@@ -322,7 +324,7 @@ class call {
     }
     if(!$result = be\lastTx($where, compact(u\ray('myid otherUid')))) return tt('no matching invoice');
     $this->parms['xid'] = $result['xid'];
-    return $this->confirm('pay invoice', r\txReportArgs($result));
+    return $this->confirm('pay invoice', r\txReportArgs($mya, $result));
   }
   
   /**

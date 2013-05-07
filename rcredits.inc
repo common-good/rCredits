@@ -224,19 +224,18 @@ function stage($acct = '', $numeric = FALSE) {
  * Format and return args for reporting a transaction (old or new) to the current account.
  * Not all returned args are used for any particular type of transaction.
  * Note that templates and tests depend on the names of some of these fields
+ * @param acct $acct: the account to report to (usually the current account)
  * @param array $tx: the transaction array (including xid)
  * @param int $getBalance: 0=don't get any balances, 1=get my balance and tid, 2=get other party's balance and tid also
  * @param float $shortfall: how much short my balance is, for a transaction (if any)
  * @return assoc array of args
  */
-function txReportArgs($tx, $getMyBalance = FALSE, $shortfall = 0) {
+function txReportArgs($acct, $tx, $getMyBalance = FALSE, $shortfall = 0) {
   extract($tx); // any or all standard transaction fields
   if ($data) if ($data = unserialize($data)) extract($data, EXTR_PREFIX_ALL, 'data');
   global $lastXid; $lastXid = $xid; // remember last transaction for current user, for potential undo (here and on undo)
 
-  $mya = acct();
-  $toMe = ($payee == $mya->id);
-  $acct = acct($toMe ? $payer : $payee);
+  $toMe = ($payee == $acct->id);
   
   $role = $toMe ? 'payee' : 'payer';
   list ($purpose, $otherPurpose) = u\order($toMe, $payeeFor, $payerFor);
@@ -251,17 +250,18 @@ function txReportArgs($tx, $getMyBalance = FALSE, $shortfall = 0) {
   $short = u\formatAmount($shortfall);
   if (@$data_rebate and !$toMe) list ($rewardType, $rewardAmount) = array(t('rebate'), u\formatAmount($data_rebate));
   if (@$data_bonus and $toMe) list ($rewardType, $rewardAmount) = array(t('bonus'), u\formatAmount($data_bonus));
+  $myName = $acct->fullName;
   $otherName = userField('fullName', $otherUid);
   $created = u\formatDate($created);
 
   if ($getMyBalance) {
-    if ($mya->can(B_BUY)) $balance = u\formatAmount($mya->r);
+    if ($acct->can(B_BUY)) $balance = u\formatAmount($acct->r);
   }
 
   $summary = "$summary_word of $amount $tofrom $otherName for \"$purpose\" on $created";
   $success = TRUE;
   foreach (u\ray('r payer payee') as $one) unset($tx[$one]); // else preempts all subs that start thus
-  return array_merge($tx, compact(u\ray('created xid action role payerPurpose payeePurpose purpose otherPurpose toMe confirmAction amount tofrom rewardType rewardAmount balance tid otherTid otherUid otherName short summary success')));
+  return array_merge($tx, compact(u\ray('created xid action role payerPurpose payeePurpose purpose otherPurpose toMe confirmAction amount tofrom rewardType rewardAmount balance tid otherTid otherUid myName otherName short summary success')));
 }
 
 /**
@@ -567,14 +567,12 @@ function payEmployees($amount0, $for, $confirmed) {
 function notify($uid, $index, $info, $force = FALSE) {
   //print_r(compact('uid','index','info','force'));
   global $channel;
-  $mya = acct(); // careful: current account is empty if called from formRegister_submit
   $acct = acct($uid);
   $info['uid'] = $uid;
+  $info['otherName'] = @$info['myName']; // notifying someone else about US, if anyone
   $fullName = $acct->fullName;
   $warnIndexes = u\ray('new invoice,new offer,charge disputed');
   
-  if ($uid != @$mya->id) $info['otherName'] = @$mya->fullName; // this comes in backwards if notifying elseone
-
   if ($force) {
     $mailed = \drupal_mail('rCredits', $index, $acct->mail, '', $info); // no need to pass $acct->language
   } elseif ($acct->hasBit(B_NOTIFY_EMAIL)) {
@@ -618,7 +616,7 @@ function membershipEvent($acct, $status, $do = TRUE) {
     unset($DBTX);
     $fullName = $acct->fullName;
     $quid = $acct->mainQid;
-    notifyStaff('event', compact(u\ray('fullName quid status')));
+    tellStaff('event', compact(u\ray('fullName quid status')));
 	  return TRUE;
   } else return FALSE;
 }
@@ -629,7 +627,7 @@ function membershipEvent($acct, $status, $do = TRUE) {
  * @return TRUE if the funds were successfully transferred.
  */
 function acceptGift($info) {
-  extract(u\just('donid uid created amount often', $info));
+  extract(u\just('donid uid giftDate amount often', $info));
   $a = r\acct($uid);
   if ($a->shortfall('buy', $amount)) return FALSE; // wait until tomorrow, if not enough
   if ($a->shortfall('buy', $amount, TRUE)) return FALSE; // actually draw from other accounts, as needed
@@ -643,11 +641,11 @@ function acceptGift($info) {
     r\dbUpdate('r_gifts', compact('donid', 'completed'), 'donid');
     if ($often != 1) {
       $months = $often == 'M' ? 1 : ($often == 'Q' ? 3 : 12);
-      $created = strtotime($months . ' months', $created);
-      r\dbInsert('r_gifts', compact(u\ray('uid created amount often')));
+      $giftDate = strtotime($months . ' months', $giftDate);
+      r\dbInsert('r_gifts', compact(u\ray('uid giftDate amount often')));
     }
     r\usd::commit();
-    r\notifyStaff('gift accepted', $info + $args);
+    r\tellStaff('gift accepted', $info + $args);
     return TRUE;
   } else r\usd::rollback();
   return FALSE;
@@ -659,8 +657,9 @@ function acceptGift($info) {
  * @param assoc $subs: substitutions for the message OR (if no subs in message) data to show
  * @param bool/int $uid: related account record id (defaults to current account), none if FALSE
  */
-function notifyStaff($index, $subs = array(), $uid = TRUE) {
+function tellStaff($index, $subs = array(), $uid = TRUE) {
   if (empty($subs)) $subs = array(); // accept ''
+  unset($subs['secure']); unset($subs['pass']); // nobody should see these
   $message = strpos($raw = u\tt($index), '@') === FALSE ? ($raw . u\seeAssoc($subs)) : u\tt($index, $subs);
 
   if ($uid) {

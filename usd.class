@@ -326,7 +326,7 @@ function dwError($dw, &$error = '') {
   if (!r\dbExists('r_usderror', 'error=:error and NOT ok', compact('error'))) {
     $stack = debug_backtrace();
     $op = $stack[1]['function'];
-    r\notifyStaff('Unprecedented Dwolla error: @error in @op', compact('error', 'op'));
+    r\tellStaff('Unprecedented Dwolla error: @error in @op', compact('error', 'op'));
     $created = REQUEST_TIME;
     r\dbInsert('r_usderror', compact(u\ray('error op created')));
   }

@@ -57,7 +57,7 @@ function doTask($item) {
  * Queue: Check to see if it's time for a less-often periodic activity.
  */
 function periodic() {
-  if (!isDEV) return; // DEBUG
+  if (!isDEV) return; // DEBUG (don't activate this until we're sure it will work smoothly)
   $lastDaily = \variable_get('daily', 0);
 //  $lastDaily = 0; // DEBUG
   r\dbQ("DELETE FROM queue WHERE name='q'");
@@ -128,7 +128,7 @@ function lostUsdTx($info) {
   $payer = r\whoseUsd($SourceId);
   $payee = r\whoseUsd($DestinationId);
   $created = strtotime($Date);
-  r\notifyStaff('lost USD tx: #@txid $@amount', compact('txid', 'amount'), FALSE);
+  r\tellStaff('lost USD tx: #@txid $@amount', compact('txid', 'amount'), FALSE);
   r\usd::rollback(array(compact(u\ray('txid amount payer payee created'))));
 }
 
@@ -147,7 +147,7 @@ function recache1($item) {
   $uid = array_shift($item);
   $info = be\creditInfo(compact('uid'));
   foreach ($item as $key => $value) if ($value != $info->$key) {
-    if ($key != 'usd') r\notifyStaff("Cron: Cache <> calc $key: $value <> " . $info->$key, array(), $uid);
+    if ($key != 'usd') r\tellStaff("Cron: Cache <> calc $key: $value <> " . $info->$key, array(), $uid);
     r\acct($uid)->update(array($key => $info->$key));
   } 
 }
@@ -320,7 +320,7 @@ EOF;
 
 function bank1($item) {
   extract(u\just('uid excess shortfall', $item));
-  if (@$excess > 0 and @$shortfall > 0) return r\notifyStaff('min > max', $item, $uid); // should never happen
+  if (@$excess > 0 and @$shortfall > 0) return r\tellStaff('min > max', $item, $uid); // should never happen
   $usAcct = new r\usd($acct = r\acct($uid));
   $waiting = $acct->waitingToBank(); // amount already requested
   $amount = (@$excess > 0 ? $excess : -$shortfall) - $waiting;
@@ -401,7 +401,7 @@ EOF;
 //    $row = r\dbQ($sql2, compact('amount'))->fetchAssoc(); // nobody wanted even $10! so who wants the most?
 //  }
 //  if (!$row) {
-    r\notifyStaff('no buyers', compact('amount')); // this is a really bad thing
+    r\tellStaff('no buyers', compact('amount')); // this is a really bad thing
     return FALSE;
   }
 
@@ -417,7 +417,7 @@ EOF;
 function END() {
   $elapsed = time() - REQUEST_TIME;
   echo "Daily cron done after $elapsed seconds"; // keep
-  r\notifyStaff('Daily cron ended successfully', '', FALSE);
+  r\tellStaff('Daily cron ended successfully', '', FALSE);
 }
 
 /**

@@ -213,6 +213,7 @@ function undoTx($xid) {
   if (isFrontend()) return (array) backend('undoTx', compact(u\ray('xid')));
   if (is_array($xid)) extract($xid); // called from api or backend
 
+  $mya = r\acct();
   $oldRecord = lastTx('xid=:xid', compact('xid'));
   if ($error = r\nonoUndo($oldRecord, $subs)) return array($error, $subs); // check nono before confirm AND here
 
@@ -224,17 +225,17 @@ function undoTx($xid) {
 //debug(compact('old_byme','old_state','oldRecord','data'));
     if ($old_byMe) {
       list ($new_state, $solution) = array(TX_DELETED, t('deleted')); // abandon the attempt to invoice
-      r\notify($old_otherUid, $old_toMe ? 'invoice canceled' : 'offer canceled', r\txReportArgs($oldRecord));
+      r\notify($old_otherUid, $old_toMe ? 'invoice canceled' : 'offer canceled', r\txReportArgs($mya, $oldRecord));
     } else {
       list ($new_state, $solution) = array(TX_DENIED, t('marked "denied"'));
-      r\notify($old_otherUid, $old_toMe ? 'offer refused' : 'invoice denied', r\txReportArgs($oldRecord));
+      r\notify($old_otherUid, $old_toMe ? 'offer refused' : 'invoice denied', r\txReportArgs($mya, $oldRecord));
     }
     r\setTxState($new_state, $xid);
   } elseif (!$old_toMe and !$old_byMe) { // someone charged (either unilaterally or I approved it)
 // function dispute($xid, $oldRecord, $old_otherUid)
     r\setTxState(TX_DISPUTED, $xid); // mark it disputed
     $solution = t('marked "disputed"');
-    r\notify($old_otherUid, 'charge disputed', r\txReportArgs($oldRecord));
+    r\notify($old_otherUid, 'charge disputed', r\txReportArgs($mya, $oldRecord));
   } else {
     $otherAcct = $old_toMe ? r\acct($old_payer, $old_payerAgent) : r\acct($old_payee, $old_payeeAgent);
     $type = $old_toMe ? 'payment' : 'charge';
@@ -488,7 +489,7 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   }
   
   // Report results
-  $args = r\txReportArgs($txs[0], TRUE, $shortfall);
+  $args = r\txReportArgs($a1, $txs[0], TRUE, $shortfall);
 
   if ($confirmed) { // notify other party by email about any confirmed transaction
     $notice = $taking ? ($preapproved ? 'new charge' : 'new invoice')
