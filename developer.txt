@@ -1,22 +1,23 @@
 rCredits Software
 Notes for developers
 
-PRODUCTION SITE PROBLEMS:
-- Dwolla fails (waiting for Dwolla?)
-
 BEFORE MINI LAUNCH:
 - account checks: auto-deposit or minimum>0 but not connected to checking account yet: notice to user
-- tests: New Pass, Photo, Agreement, Contribute, Proxies
-- tests: Usd (including proof of ID), Options, Invite, Cron (daily)
-- flow: figure credit accordingly -- done but not tested
+- membership tests: New Pass, Photo, Agreement, Contribute, Proxies, Usd, proof of ID, Options
 - ** download must include rebate and bonuses transactions as a separate row (for GFM)
-- PHP timeout 5mins
-- * no signup on rcredits.org!
+- * no signup on rcredits.org! (just mailing list)
 - update formMenu() to handle main, membership, and settings (the latter to with a "Home" button)
 - * finish and test cron (one part at a time)
+- invitation should be a tab and footer link -- not part of account opening
+- two phases: (1) 1-4 to be a member, get a card, vote, and RECEIVE rCredits (including signup)
+   (2) 5-6 to SPEND
 
 To do: (* = before launch ** = earlier)
 
+- create region records as needed, when a new member is outside NEW. Handle region totals in r\total()
+- in r\transact() we should rollback the transaction if it leaves the payer in unauthorized debt (due to a timing error that might be exploited intentionally by a determined hacker)
+- on Summary page, balance should link to Transaction tab.
+- in cron, a conflicting bank() request should send notice that min is too low or max too low
 - Maybe remove r\acct class from public view (see https://help.github.com/articles/remove-sensitive-data)
 - * add share to summary page, for admins (or allow $0 donation and don't record it)
 - * receive deposit/withrawal callbacks to set "completed" in r_usd. alert staff if fails.

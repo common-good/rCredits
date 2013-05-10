@@ -161,8 +161,8 @@ function updateRelations($updates) {
       $changes .= ($changes ? ',' : '') . "$field=:$field";
       $subs += array($field => $value);
       if ($field == 'draws' and $value) {
-//        r\acct($main)->setBit(B_DRAWN, TRUE, TRUE);
-        r\acct($other)->setBit(B_DRAWS, TRUE, TRUE);
+//        r\acct($main)->setBit(B_DRAWN);
+        r\acct($other)->setBit(B_DRAWS);
       }
     }
     $where = 'reid=:reid';
@@ -185,7 +185,7 @@ function updateRelations($updates) {
 }
 
 function setCttyAdmin($value, $main, $other) {
-  if ($main < 0 and $main == r\acct($other)->community) r\acct($other)->setBit(B_CTTY_ADMIN, $value, TRUE);
+  if ($main < 0 and $main == r\acct($other)->community) r\acct($other)->setBit(B_CTTY_ADMIN, $value);
 }
 
 /**
@@ -422,7 +422,7 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   // Check permissions
   u\EXPECT(compact(u\ray('ttype a1 a2 confirmed data')), 'string acct acct bool assoc');
   $otherName = $a2->fullName;
-  if (!$a2->can(B_OK)) return array('non trader', compact('otherName'), FALSE);
+  if (!$a2->can(B_MEMBER)) return array('non member', compact('otherName'), FALSE);
   list ($myAccess, $otherAccess) = u\order($taking, B_SELL, B_BUY);
   list ($myAccessErr, $otherAccessErr) = u\order($taking, 'sell', 'buy');
   if (!$a1->can($myAccess)) return array("no $myAccessErr", array(), FALSE);
@@ -470,14 +470,15 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   // Figure rewards and other extra info
   if (!$for) $for = $goods ? 'goods and services' : 'cash/loan/etc.';
 
-  list ($fromUsAcct, $toUsAcct) = u\order($taking, new r\usd($a2), new r\usd($a1));
+  list ($fromAcct, $toAcct) = u\order($taking, $a2, $a1);
+  list ($fromUsAcct, $toUsAcct) = array(new r\usd($fromAcct), new r\usd($toAcct));
   $txArgs = compact(u\ray('type amount r payer payee payerAgent payeeAgent for data taking goods state'));
   r\usd::beginAtom();
   if ($confirmed) {
     $payerFee = R_FEE_FOR_CASH ? (!$goods) : FALSE; // cash-getter pays the transaction fee
     if ($state = TX_DONE and $usd > 0 and !$usdXid = $fromUsAcct->send($usd, $toUsAcct, $for, $payerFee)) {
       r\usd::rollback();
-      r\updateUsdCache($a1); // didn't have the funds we thought. fix it.
+      r\updateUsdCache($fromAcct); // didn't have the funds we thought. fix it.
       return array('usd failed', array(), FALSE);
     }
     $txs = r\transact($txArgs + compact('usdXid'));
@@ -499,7 +500,11 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
         ($preapproved ? ($virtual ? 'offer' : 'transaction') : 'invoice')
       : ($preapproved ? 'exchange' : 'exchange request'); // no possible shortfall on confirmed cash exchange (see above)
     $message = "report $message";
-    if (r\membershipEvent(r\acct($payer), 'bona', r\checkBona($payer))) $message .= '|signup bonus';
+    $bona = ($toAcct->r + $toAcct->usd > $toAcct->rewards); // 1st time acct got money not as incentive
+    if (r\membershipEvent($toAcct, 'bona', $bona)) { // ($bona was r\checkBona())
+      r\notify($uid, 'signup bonus');
+      $message .= '|signup bonus';
+    }
   } else {
     $message = $goods ? $ttype : 'exchange';
   }
@@ -515,22 +520,20 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
  * @param bool $confirmed: actually do it? (otherwise just see if it can be done)
  * @return int: the incentive amount (FALSE if the current account does not have permission to do this)
  */
-function fund($uid, $type = TX_SIGNUP, $amount = R_STARTING_BALANCE, $for = NULL, $confirmed = TRUE) {
+function fund($uid, $type = TX_SIGNUP, $amount = R_SIGNUP_BONUS, $for = NULL, $confirmed = TRUE) {
   if (isFrontend()) return backend('fund', compact(u\ray('uid type amount')));
   if (is_array($uid)) extract($uid); // called from api or backend
 
   $payeeAgent = $payee = $uid;
-  $mya = r\acct(); // null, if just registering
-  $ctty = r\userField('community', $payee);
-  if ($type > TX_AUTOMATIC and !$mya->can(B_MANAGING_CTTY)) return FALSE; // incentives given only automatically or by community agent
+  $mya = r\acct(); // (null, if just registering or running as cron)
+  u\EXPECT($type <= TX_AUTOMATIC or $mya->can(B_MANAGING_CTTY), 'non-automatic reward by non ctty agent');
   if (!$confirmed) return $amount;
   
-  $payer = $ctty;
-  $payerAgent = @$mya->id < 0 ? $mya->agentId : $ctty;
+  $payer = r\acct($payee)->community;
+  $payerAgent = (@$mya and $mya->id < 0) ? $mya->agentId : $payer; // take note if funded by community admin
   $taking = ($type >= TX_FINE);
   u\setDft($for, $GLOBALS['txTypes'][$type]);
-  $r = $amount;
-  r\transact(compact(u\ray('type amount r payer payee payerAgent payeeAgent for taking')));
+  r\transact(compact(u\ray('type amount payer payee payerAgent payeeAgent for taking')));
   return $amount;
 }
 
@@ -690,7 +693,9 @@ EOF;
   if ($asof) $sql .= " AND $dateField<=:asof";
 //    SUM(IF(t.type IN(:TX_REBATE,:TX_BONUS) AND $dateField>=$monthStart, amount, 0)) AS committed
 
-  extract(r\dbQ($sql, compact(u\ray('uid asof')))->fetchAssoc());
+  $sums = r\dbQ($sql, compact(u\ray('uid asof')))->fetchAssoc();
+  foreach ($sums as $key => $value) $sums[$key] = $value + 0; // no nulls
+  extract($sums);
   $balance = $in - $out;
   $inProper = $in - $rewards;
 

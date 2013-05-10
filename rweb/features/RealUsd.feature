@@ -17,7 +17,7 @@ Setup:
   | NEW.ZZA | Abe One    | %DW_TESTER_ACCOUNT | US      | a@example.com | dft,ok,personal |
   | NEW.ZZB | Bea Two    | %DW_TEST_ACCOUNT   | US      | b@example.com | dft,ok,personal |
   And transactions: 
-  | tx_id    | created   | type       | amount | from      | to      | purpose | taking |
+  | xid      | created   | type       | amount | from      | to      | purpose | taking |
   | NEW.AAAB | %today-6m | %TX_SIGNUP |     10 | community | NEW.ZZA | signup  | 0      |
   And usd:
   | id        | usd   |
@@ -28,7 +28,7 @@ Scenario: A mixed rCredits/USD transaction happens
   | op  | who     | amount | goods | purpose |
   | pay | Bea Two | 10.20  | 1     | labor   |
   Then transactions: 
-  | tx_id    | type         | state    | amount | r    | from      | to      | purpose      | taking |
+  | xid      | type         | state    | amount | r    | from      | to      | purpose      | taking |
   | NEW:AAAC | %TX_TRANSFER | %TX_DONE |  10.20 |   10 | NEW.ZZA   | NEW.ZZB | labor        | 0      |
   | NEW:AAAD | %TX_REBATE   | %TX_DONE |    .50 |  .50 | community | NEW.ZZA | rebate on #2 | 0      |
   | NEW:AAAE | %TX_BONUS    | %TX_DONE |   1.00 | 1.00 | community | NEW.ZZB | bonus on #1  | 0      |

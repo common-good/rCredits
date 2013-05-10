@@ -46,7 +46,7 @@ Scenario: A member confirms request to charge another member
   | created | fullName | otherName | amount | payerPurpose |
   | %today  | Bea Two  | Abe One   | $100   | labor        |
   And transactions:
-  | tx_id    | created   | type      | state       | amount | from      | to      | purpose      | taking |
+  | xid      | created   | type      | state       | amount | from      | to      | purpose      | taking |
   | NEW.AAAB | %today | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZB   | NEW.ZZA | labor        | 1      |
   | NEW.AAAC | %today | %TX_REBATE   | %TX_PENDING |      5 | community | NEW.ZZB | rebate on #1 | 0      |
   | NEW.AAAD | %today | %TX_BONUS    | %TX_PENDING |     10 | community | NEW.ZZA | bonus on #1  | 0      |
@@ -75,7 +75,7 @@ Scenario: A member confirms request to pay another member
   | created | fullName | otherName | amount | payeePurpose |
   | %today  | Bea Two  | Abe One   | $100   | labor        |
   And transactions:
-  | tx_id    | created   | type      | state    | amount | r    | from      | to      | purpose      | taking |
+  | xid      | created   | type      | state    | amount | r    | from      | to      | purpose      | taking |
   | NEW.AAAB | %today | %TX_TRANSFER | %TX_DONE |    100 | 0    | NEW.ZZA   | NEW.ZZB | labor        | 0      |
   | NEW.AAAC | %today | %TX_REBATE   | %TX_DONE |   0.05 | 0.05 | community | NEW.ZZA | rebate on #1 | 0      |
   And balances:

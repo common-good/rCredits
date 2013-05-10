@@ -7,6 +7,11 @@ legend {-webkit-padding-start: 2px; -webkit-padding-end: 2px;}
 select {font-size:.85em;}
 label.option {font-weight:bold;}
 
+#messages #nextstep,
+.page-account #completed,
+.page-membership #completed {font-weight:bold; font-size:200%; color:green;}
+
+div#shout {position:absolute; z-level:2; left:300px; top:100px; background-color:yellow; color:darkgreen; font-size:500%;}
 #site-name {visibility:hidden;}
 #page-wrapper {
   margin:auto; max-width:960px; 
@@ -102,6 +107,10 @@ ul.tabs.primary {padding:0; margin-left:4em; margin-top:.8em; font-size:85%;}
 /* Help */
 #help-link {width:100%;}
 #help-link label {width:10em; font-size:.8em; float:right; text-align:left; padding-left:2em; background-image:url(../images/icons/question-mark.gif); background-repeat:no-repeat;}
+#rcreditswebformhelp #edit-title {font-weight:bold;}
+#rcreditswebformhelp h2 {font-weight:bold; color:darkblue;}
+#rcreditswebformhelp b {color:darkgreen;}
+#rcreditswebformhelp i {color:darkblue;}
 
 /* Standard Forms */
 form.rweb {font-family:Arial;}
@@ -462,11 +471,16 @@ html.js input.throbbing {background-position:right -2.4em;}
 #rcreditswebformmembership #edit-steps .done div {width:29px; height:39px; background-repeat:no-repeat; }
 #rcreditswebformmembership #edit-steps .done.state div {background-image:url(../images/NONE.gif);}
 #rcreditswebformmembership #edit-steps .done.state1 div {background-image:url(../images/checkmark.gif);}
-#rcreditswebformmembership #edit-steps .step div {font-size:0; width:35px; height:37px; margin-right:8px; margin-top:8px; background:url(../images/steps.gif) no-repeat; background-position:99px 99px;}
+#rcreditswebformmembership #edit-steps .step div {font-size:0; width:38px; height:37px; margin-right:8px; margin-top:8px; background:url(../images/steps-green50.gif) no-repeat; background-position:99px 99px;}
 #rcreditswebformmembership #edit-steps .step1 div {background-position:left top;}
-#rcreditswebformmembership #edit-steps .step2 div {background-position:right top;}
-#rcreditswebformmembership #edit-steps .step3 div {background-position:left bottom;}
-#rcreditswebformmembership #edit-steps .step4 div {background-position:right bottom;}
+#rcreditswebformmembership #edit-steps .step2 div {background-position:center top;}
+#rcreditswebformmembership #edit-steps .step3 div {background-position:right top;}
+#rcreditswebformmembership #edit-steps .step4 div {background-position:left center;}
+#rcreditswebformmembership #edit-steps .step5 div {background-position:center center;}
+#rcreditswebformmembership #edit-steps .step6 div {background-position:right center;}
+#rcreditswebformmembership #edit-steps .step7 div {background-position:left bottom;}
+#rcreditswebformmembership #edit-steps .step8 div {background-position:center bottom;}
+#rcreditswebformmembership #edit-steps .step9 div {background-position:right bottom;}
 #rcreditswebformmembership #edit-steps .text div {padding-top:18px; margin-left:0px;}
 #rcreditswebformmembership .pending {color:red;}
 
@@ -485,11 +499,12 @@ html.js input.throbbing {background-position:right -2.4em;}
 #rcreditswebformphoto .user-picture {display:inline-block; padding:0; margin-right:5px;}
 #rcreditswebformphoto .user-picture img {max-height:300px;}
 #rcreditswebformphoto .form-item-files-picture-upload {display:inline-block; max-width:400px; margin-left:10px;}
-#rcreditswebformphoto #edit-submit {display:block;}
+#rcreditswebformphoto #edit-submit {display:block; position:relative; left:330px; top:-60px;}
 
-/* Profile (Account) */
+/* Profile (member web page) */
 #rcreditswebformprofile {font-family:Arial;}
 #rcreditswebformprofile #member-details {float:left; min-width:200px; max-width:300px; font-weight:normal;}
+#rcreditswebformprofile .user-picture img {max-height:300px;}
 
 /* Options (Preferences) */
 #rcreditswebformoptions .description {margin-bottom:1em;}
@@ -606,6 +621,8 @@ and (max-device-width : 480px) { */
   
   #rcreditswebformmembership #edit-steps {margin-left:0;}
   #rcreditswebformtx .form-type-radio {display:block;}
+  
+  #rcreditswebformphoto #edit-submit {left:0px; top:0px;}
 }
 
 /* Smartphones (landscape) ----------- */

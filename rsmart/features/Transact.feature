@@ -23,7 +23,7 @@ Setup:
   | NEW:ZZC | NEW.ZZC | NEW.ZZB | buy and sell      |
   | NEW:ZZD | NEW.ZZC | NEW.ZZA | sell              |
   And transactions: 
-  | tx_id    | created   | type       | amount | from      | to      | purpose | taking |
+  | xid      | created   | type       | amount | from      | to      | purpose | taking |
   | NEW:AAAB | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |
   | NEW:AAAC | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZB | signup  | 0      |
   | NEW:AAAD | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZC | signup  | 0      |

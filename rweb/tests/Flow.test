@@ -1,0 +1,106 @@
+<?php
+//
+// Feature: Flow
+//   AS a member
+//   I WANT my account to draw automatically from another, when I overdraw
+//   SO I can spend up to my total credit line.
+
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rweb.steps';
+
+class rwebFlow extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
+  var $sceneName;
+  const SHORT_NAME = 'Flow';
+  const FEATURE_NAME = 'rweb Test - Flow';
+  const DESCRIPTION = 'Flow';
+  const MODULE = 'rweb';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
+  }
+  
+  public static function getInfo() {
+    return array(
+      'short_name' => self::SHORT_NAME,
+      'name' => self::FEATURE_NAME,
+      'description' => self::DESCRIPTION,
+      'group' => ucwords(self::MODULE)
+    );
+  }
+
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
+    global $sceneTest; $sceneTest = $this;
+    parent::setUp(self::MODULE);
+
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rweb.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
+    default: // fall through to case(0)
+    case(0):
+    Given('members: "DATA'
+    . '\\| id   | fullName   | email         | flags           |'
+    . '\\| .ZZA | Abe One    | a@example.com | dft,ok,personal |'
+    . '\\| .ZZB | Bea Two    | b@example.com | dft,ok,personal |'
+    . '\\| .ZZC | Corner Pub | c@example.com | dft,ok,company  |"');
+    And__('relations: "DATA'
+    . '\\| id      | main | agent | permission | draw |'
+    . '\\| NEW:ZZA | .ZZC | .ZZA  | manage     |    1 |'
+    . '\\| NEW:ZZB | .ZZC | .ZZB  | sell       |    0 |"');
+    And__('balances: "DATA'
+    . '\\| id   | usd  | r   | rewards |'
+    . '\\| .ZZA |    0 |  20 |      20 |'
+    . '\\| .ZZB |  100 |  20 |      20 |'
+    . '\\| .ZZC |  100 |  20 |      20 |"');
+    break;
+
+
+    }
+  }
+
+  // Scenario: A member overdraws
+  public function testAMemberOverdraws_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member ".ZZA" confirms form "pay" with values: "DATA'
+    . '\\| op  | who  | amount | goods | purpose |'
+    . '\\| pay | .ZZB |     30 |     1 | food    |"');
+    Then_('transactions: "DATA'
+    . '\\| xid   | type     | amount | from      | to   | purpose      | r    |'
+    . '\\| .AAAB | transfer |     10 | .ZZC      | .ZZA | automatic transfer to NEW.ZZA,automatic transfer from NEW.ZZC | 10 |'
+    . '\\| .AAAC | transfer |     30 | .ZZA      | .ZZB | food         |   30 |'
+    . '\\| .AAAD | rebate   |   1.50 | community | .ZZA | rebate on #2 | 1.50 |'
+    . '\\| .AAAE | bonus    |   3.00 | community | .ZZB | bonus on #1  | 3.00 |"');
+  }
+
+  // Scenario: A member overdraws and draws from both r and USD
+  public function testAMemberOverdrawsAndDrawsFromBothRAndUSD_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member ".ZZA" confirms form "pay" with values: "DATA'
+    . '\\| op  | who  | amount | goods | purpose |'
+    . '\\| pay | .ZZB |    130 |     1 | food    |"');
+    Then_('transactions: "DATA'
+    . '\\| xid   | type     | amount | from      | to   | purpose      | r    |'
+    . '\\| .AAAB | transfer |     20 | .ZZC      | .ZZA | automatic transfer to NEW.ZZA,automatic transfer from NEW.ZZC | 20 |'
+    . '\\| .AAAC | transfer |     90 | .ZZC      | .ZZA | automatic transfer to NEW.ZZA,automatic transfer from NEW.ZZC |  0 |'
+    . '\\| .AAAD | transfer |    130 | .ZZA      | .ZZB | food         |   40 |'
+    . '\\| .AAAE | rebate   |   2.00 | community | .ZZA | rebate on #3 | 2.00 |'
+    . '\\| .AAAF | bonus    |   4.00 | community | .ZZB | bonus on #1  | 4.00 |"');
+  }
+
+  // Scenario: A member overdraws with not enough to draw on
+  public function testAMemberOverdrawsWithNotEnoughToDrawOn_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member ".ZZA" completes form "pay" with values: "DATA'
+    . '\\| op  | who  | amount | goods | purpose |'
+    . '\\| pay | .ZZB |    200 |     1 | food    |"');
+    Then_('we say "error": "short to" with subs: "DATA'
+    . '\\| short  |'
+    . '\\| $60.25 |"');
+  }
+
+}

@@ -61,7 +61,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
     . '\\| NEW:ZZC | NEW.ZZC | NEW.ZZB | buy and sell |'
     . '\\| NEW:ZZD | NEW.ZZC | NEW.ZZA | sell         |"');
     And__('transactions: "DATA'
-    . '\\| tx_id    | created   | type         | state       | amount | from      | to      | purpose      | taking |'
+    . '\\| xid      | created   | type         | state       | amount | from      | to      | purpose      | taking |'
     . '\\| NEW:AAAB | %today-7m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZA | signup       | 0      |'
     . '\\| NEW:AAAC | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZB | signup       | 0      |'
     . '\\| NEW:AAAD | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZC | signup       | 0      |'
@@ -99,7 +99,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
     . '\\| NEW:ZZC | NEW.ZZC | NEW.ZZB | buy and sell |'
     . '\\| NEW:ZZD | NEW.ZZC | NEW.ZZA | sell         |"');
     And__('transactions: "DATA'
-    . '\\| tx_id    | created   | type         | state       | amount | from      | to      | purpose      | taking |'
+    . '\\| xid      | created   | type         | state       | amount | from      | to      | purpose      | taking |'
     . '\\| NEW:AAAB | %today-7m | %TX_SIGNUP   | %TX_DISPUTED    |    250 | community | NEW.ZZA | signup       | 0      |'
     . '\\| NEW:AAAC | %today-6m | %TX_SIGNUP   | %TX_DISPUTED    |    250 | community | NEW.ZZB | signup       | 0      |'
     . '\\| NEW:AAAD | %today-6m | %TX_SIGNUP   | %TX_DISPUTED    |    250 | community | NEW.ZZC | signup       | 0      |'

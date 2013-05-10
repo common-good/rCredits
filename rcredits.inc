@@ -23,6 +23,7 @@ define('CGF_CITY', 'Ashfield');
 
 define('R_VERSION', '1.0a'); // software version
 define('R_SEPARATE_BACKEND', FALSE);
+define('R_ROOT', DRUPAL_ROOT . '/sites/all/modules/rcredits');
 define('R_CONCEALED_FIELDS', 'code password pass oneTimeLoginUrl'); // fields to leave out of log
 define('R_DATA_FIELDS', ''); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'usd r rewards floor committed'); // financial amount fields in account record
@@ -63,7 +64,7 @@ define('R_BUYS_BEFORE_BONUS', MINI_LAUNCH ? 1 : 3); // number of purchases requi
 define('R_REGION_MAX', isDEV ? 46000 : 3000000000); // maximum uids in a region (46k,3T ~sqrt(PHP_INT_MAX))
 define('R_ACCT_REGION', '(-FLOOR((uid-1)/' . R_REGION_MAX . ')-1)'); // SQL region expression
 define('R_CTTY_UID0', -R_REGION_MAX); // community uids are less than this (farther from zero)
-define('R_DWOLLA_LINK', 'http://refer.dwolla.com/a/clk/3bf8cy'); // credits CGF
+define('R_DWOLLA_LINK', 'http://refer.dwolla.com/a/clk/3bf8cy'); // (credits CGF for referral)
 define('R_SIGNIN_HOURS', 24); // window for signing in after registering or resetting password
 
 define('DW_TEST_ACCOUNT', '8127139234'); // "reflector" account totally reimburses anything under $10
@@ -76,6 +77,8 @@ define('R_TEMPLATE_DIR', '/templates');
 define('R_EMAIL_FRAME', 'email-frame');
 define('R_PICTURE_DIR', '/sites/default/files/pictures'); // precede this by DRUPAL_ROOT (file) or $base_url (url)
 define('R_PROOF_DIR', '/sites/default/files/proofs');
+define('R_DFT_PICTURE', R_PICTURE_DIR . '/no-photo-available.jpg'); // default profile picture
+define('R_DFT_PICTURE_WIDE', R_PICTURE_DIR . '/no-photo-available-wide.jpg'); // default profile picture
 
 // account type bits
 define('R_PERSONAL', 0);
@@ -97,16 +100,18 @@ define('R_PUBLICLY_TRADED', 8);
 define('B_MEMBER', 0); // signed the membership agreement, etc.
 define('B_READY', 1); // completed all steps
 define('B_OK', 2); // approved to use rCredits for real (set by admin when READY)
-define('B_BONA', 3); // got signup bonus (good circles - received rC and bought from 3 members)
-define('B_unused4', 4); // 
+define('B_BONA', 3); // got signup bonus (good circles - somehow got more r+usd than the initial gift)
+define('B_u4', 4); // 
 define('B_PERSONAL', 5); // personal account
 define('B_COMPANY', 6); // company account (could be personal also, for independent contractor)
-define('B_unused7', 7); // 
+define('B_u7', 7); // 
 define('B_CHARGE', 8); // can charge customers without confirmation
-define('B_unused9', 9); // 
+define('B_u9', 9); // 
 define('B_VIRTUAL', 10); // automatically pay employees and suppliers virtually
+define('B_u11', 11); // 
 define('B_PAYROLL', 12); // automatically pay employees their total daily salary - employer chooses pay period)
-
+define('B_u13', 13); // 
+define('B_u14', 14); // 
 define('B_NOTIFY_EMAIL', 15); // notifications by email
 define('B_NOTIFY_SMS', 16); // notifications by SMS
 define('B_ELECTRONIC', 17); // will accept electronic statements
@@ -114,19 +119,28 @@ define('B_SECRET_BAL', 18); // don't let merchants tell me my balance on request
 define('B_TO_BANK', 19); // automatically transfer excess US Dollars from Dwolla to bank account
 define('B_DEBT_OK', 20); // member chose to permit sub-zero balances
 define('B_DRAWS', 21); // this account draws on one or more others
-
+define('B_u22', 22); // 
+define('B_u23', 23); // 
+define('B_u24', 24); // 
+define('B_u25', 25); // 
+define('B_u26', 26); // 
+define('B_u27', 27); // 
+define('B_u28', 28); // 
 define('B_CTTY_ADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
 define('B_CLOSED', 31); // account is closed (data[new_account] has new qid)
 define('B_MAX', 31); // maximum bit number
 define('B_DFT', (1 << B_NOTIFY_EMAIL) | 0); // set what bits when creating a new account
-define('B_ADMINABLE', 'personal company member bona ctty_admin closed'); // for cttyAdmin to set
+define('B_ADMINABLE', 'personal company member ctty_admin closed'); // for cttyAdmin to set
+define('B_LIST', 'member ready ok bona u4 personal company u7 charge u9 virtual u11 payroll u13 u14 notify_email notify_sms electronic secret_bal to_bank debt_ok draws u22 u23 u24 u25 u26 u27 u28 ctty_admin admin closed');
 
-define('IS_OK', '(flags&(1<<' . B_OK . '))');
+// for :IS_OK etc. -- see u\SUBS()
+
+/*define('IS_OK', '(flags&(1<<' . B_OK . '))');
 define('IS_VIRTUAL', '(flags&(1<<' . B_VIRTUAL . '))');
 define('IS_PERSONAL', '(flags&(1<<' . B_PERSONAL . '))');
 define('IS_COMPANY', '(flags&(1<<' . B_COMPANY . '))');
-define('IS_TO_BANK', '(flags&(1<<' . B_TO_BANK . '))');
+define('IS_TO_BANK', '(flags&(1<<' . B_TO_BANK . '))'); */
 
 // Relationship permissions used in calls to acct::can() -- the first 5 are stored, negated, in r_relations
 define('PERM_READ', 1);
@@ -397,7 +411,7 @@ function transactionSetup($info) {
   $specs = " -- payer=$payer payee=$payee";
   u\EXPECT(compact(u\ray('amount payer payee')), 'float zid zid');
   u\EXPECT($payer and $payee and $payer != $payee, 'null or self trading in txSetup' . $specs);
-  u\EXPECT(($payer < 0 or r\acct($payer)->hasBit(B_OK)) and ($payee < 0 or r\acct($payee)->hasBit(B_OK)), 'non rTraders in txsetup' . $specs);
+  u\EXPECT(($payer < 0 or r\acct($payer)->hasBit(B_MEMBER)) and ($payee < 0 or r\acct($payee)->hasBit(B_OK)), 'non rTraders in txsetup' . $specs);
   
   u\setDft($type, TX_TRANSFER);
   u\setDft($r, $amount);
@@ -606,14 +620,15 @@ function membershipEvent($acct, $status, $do = TRUE) {
   $bit = @constant('B_' . strtoupper($status)); // get the appropriate bit, if any
   if ($do and ($bit === FALSE or !$acct->hasBit($bit))) { // met the prerequisite and hasn't previously
     $DBTX = \db_transaction();
-    if ($bit !== FALSE) $acct->setBit($bit, TRUE, TRUE); // set the bit, if any
-    if ($status == 'bona') {
-      be\fund($acct->id, TX_SIGNUP, R_STARTING_BALANCE);
-      $amount = r\dbLookup('amount', 'r_gifts', 'uid=:id', array('uid' => $acct->id));
+    if ($bit !== FALSE) $acct->setBit($bit); // set the bit, if any
+    if ($status == 'bona') be\fund($acct->id, TX_SIGNUP, R_SIGNUP_BONUS);
+/*      $amount = r\dbLookup('amount', 'r_gifts', 'uid=:id', array('id' => $acct->id));
       list ($payer, $payee, $for) = array($acct->id, \variable_get('cgf_uid'), t('membership contribution'));
       r\transact(compact(u\ray('amount payer payee for')));
-    }
+    } */
+    if ($status == 'member') be\fund($acct->id, TX_SIGNUP, R_SIGNUP_GIFT);
     unset($DBTX);
+    
     $fullName = $acct->fullName;
     $quid = $acct->mainQid;
     tellStaff('event', compact(u\ray('fullName quid status')));
@@ -633,10 +648,11 @@ function acceptGift($info) {
   if ($a->shortfall('buy', $amount, TRUE)) return FALSE; // actually draw from other accounts, as needed
 
   $cgf = r\acct(\variable_get('cgf_uid'));
-  
+
   r\usd::beginAtom();
   list ($msg, $args, $confirm) = be\transfer('payment', $a, $cgf, $amount, 'contribution', TRUE);
-  if ($args['success']) {
+  //debug(compact('msg','args','confirm'));
+  if (@$args['success']) {
     $completed = REQUEST_TIME;
     r\dbUpdate('r_gifts', compact('donid', 'completed'), 'donid');
     if ($often != 1) {
@@ -925,10 +941,10 @@ function reverseRelations($other, $main, &$data, $fields) {
 }
 
 /**
- * Say whether one of the accounts owns the other.
+ * Say whether one of the accounts owns the other (or can draw from it).
  */
 function owning($uid1, $uid2) {
-  $where = 'isOwner AND ((main=:uid1 AND other=:uid2) OR (main=:uid2 AND other=:uid1))';
+  $where = '(isOwner or draw) AND ((main=:uid1 AND other=:uid2) OR (main=:uid2 AND other=:uid1))';
   return $uid1 == $uid2 ?: relation(1, $where, compact('uid1', 'uid2'));
 }
 
@@ -1079,14 +1095,14 @@ function changeUid($oldUid, $newUid = FALSE) {
  * Check if an account needs a signup bonus.
  * @param int $uid: account id
  * @return: whether the signup bonus is deserved
- */
+ *//*
 function checkBona($uid) {
   $acct = r\acct($uid);
   if ($acct->can(B_BONA)) return FALSE;
   if (!r\dbExists('r_txs', 'payee=:uid and r>0 and payer>0 and state=:TX_DONE', compact('uid'))) return FALSE;
   if (!r\dbLookup('COUNT(DISTINCT payee)', 'r_txs', 'payer=:uid and goods and state=:TX_DONE', compact('uid')) >= R_BUYS_BEFORE_BONUS) return FALSE;
   return TRUE;
-}
+}*/
 
 /**
  * Record an invitation
@@ -1176,24 +1192,28 @@ function totals($ctty = 'ALL', $calculate = FALSE) {
 /**
  * Return totals for the given community
  * @param int $ctty: the community account id (NULL means all communities)
+ * @return assoc (ctty or system-wide totals of):
+ *   r floor rewards usd minimum maximum 
+ *   signup rebate bonus inflation grant loan fine maxRebate
+ *   balance (-r) demand (minimum - r)
  */
 function getTotals($ctty) {
-  $where = (@$ctty ? "community=:ctty" : 1) . ' AND :IS_OK';
-  $fields = u\sumAs('r floor rewards usd minimum');
-  $result1 = r\dbQ("SELECT $fields, r+usd-maximum AS excess FROM users WHERE $where", compact('ctty'))->fetchAssoc();
+  $where = (@$ctty ? "community=:ctty" : 1) . ' AND :IS_MEMBER';
+  $fields = u\sumAs('r floor rewards usd minimum maximum');
+  $result1 = r\dbQ("SELECT $fields, SUM(r+usd-GREATEST(floor, maximum)) AS excess FROM users WHERE $where", compact('ctty'))->fetchAssoc();
 
   $where = @$ctty ? '(payer=:ctty OR payee=:ctty)' : 1;
-  $sql = '';
+  $sums = '';
   foreach (u\ray('signup rebate bonus inflation grant loan fine') as $one) {
     $ONE = strtoupper($one);
-    $sql .= "SUM(IF(type=:TX_$ONE, amount, 0)) AS `$one`, ";
-    $sql .= "SUM(IF(type=:TX_$ONE, 1, 0)) AS {$one}Count, ";
+    $sums .= "SUM(IF(type=:TX_$ONE, amount, 0)) AS `$one`, ";
+    $sums .= "SUM(IF(type=:TX_$ONE, 1, 0)) AS {$one}Count, ";
   }
-  $sql = "SELECT $sql MAX(IF(type=:TX_REBATE, amount, 0)) AS maxRebate FROM r_txs WHERE $where AND state IN(':TX_DONE,:TX_DISPUTED')";
+  $sql = "SELECT $sums MAX(IF(type=:TX_REBATE, amount, 0)) AS maxRebate FROM r_txs WHERE $where AND state IN(':TX_DONE,:TX_DISPUTED')";
   $result2 = r\dbQ($sql, compact('ctty'))->fetchAssoc();
   $balance = -$result1['r'];
   $demand = $result1['minimum'] - $result1['r'];
-  return $result1 + $result2 + compact(u\ray('floor balance demand'));
+  return $result1 + $result2 + compact(u\ray('balance demand'));
 }
 
 /**
@@ -1350,4 +1370,3 @@ function emailBody($key) {return str_replace('{BODY}', emailTemplate($key), emai
 function realCountry($country) {return dbLookup('name', 'r_countries', 'id=:country', compact('country'));}
 function realState($state, $country = R_COUNTRY_ID) {return dbLookup($country == R_COUNTRY_ID ? 'abbreviation' : 'name', 'r_states', 'id=:state and country_id=:country', compact('state', 'country'));}
 function makeQueue($callback, $time = 15) {return array('worker callback' => "rCredits\\Cron\\$callback", 'time' => $time);}
-function rTraders($fields = 'uid') {return dbQ("SELECT $fields FROM users WHERE :IS_OK");}

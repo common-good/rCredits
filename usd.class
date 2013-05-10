@@ -127,6 +127,7 @@ class usd {
    */
   function send($amount, $other, $notes = R_DEFAULT_PURPOSE, $payerFee = FALSE, $direct = TRUE, &$error = NULL) {
     u\EXPECT(self::inAtom(), 'usd transfer outside atom');
+    u\EXPECT(is_object($this->acct) and is_object($other->acct), 'empty account');
     u\EXPECT($this->acct->hasBit(B_OK) and $other->acct->hasBit(B_OK), 'non rTraders in usd send');
 
     $source = $direct ? 'Dwolla' : 'ERROR'; // no delayed payments at present

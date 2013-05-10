@@ -137,7 +137,7 @@ function txFields($report, $download, $agents, $channels) {
  * @return: the row
  */
 function doRow($tx, $report, $csv, $classes, $channels, $agents, $url0) {
-  global $base_url;
+  global $base_url, $rUrl;
   $mya = r\acct();
   $myid = $mya->id;
   $txChannels = u\ray(TX_CHANNELS);
@@ -173,7 +173,7 @@ function doRow($tx, $report, $csv, $classes, $channels, $agents, $url0) {
     list ($to_you, $from_you) = $toMe ? array($amount, R_NONE) : array(R_NONE, $amount);
     $button1 = (!$byMe and okableState($tx_state)) ? button('OK', "$url&do=ok", tx_action('ok', $tx_state, $toMe, $byMe)) : '';
     $button2 = ((!$is_reward or $mya->can(B_CTTY_ADMIN)) and !@$data['undoneBy']) ? button(' X ', "$url&do=no", tx_action('no', $tx_state, $toMe, $byMe)) : '';
-    $button3 = ($mya->can($tx_taking ? B_SELL : B_BUY) and !$is_reward) ? "<a href='$url&do=edit' title='Edit Purpose'><img src='$base_url/sites/all/modules/rcredits/images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
+    $button3 = ($mya->can($tx_taking ? B_SELL : B_BUY) and !$is_reward) ? "<a href='$url&do=edit' title='Edit Purpose'><img src='$rUrl/images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
     $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
     $row = array($tid, strftime('%d-%b', $date), $tx_name, $from_you, $to_you, $rpct, $amount, $usd, $tx_usdXid, $state, $buttons, $tx_purpose, $reward);
     if (@$agents) $row[] = ($agent == $myid or $agent < 0) ? R_NONE : ($csv ? r\qid($agent) : u\n2a($agent, 3));

@@ -48,6 +48,8 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     Bank AMemberHasNoMaximum MAKE
  *     Bank AMemberPaysVirtually MAKE
  *     Gifts Setup MAKE
+ *     Recache Setup MAKE
+ *     Totals Setup MAKE
  *     VirtualPayments Setup MAKE
  */
 function members($list) {return t\members($list);}
@@ -70,6 +72,9 @@ function members($list) {return t\members($list);}
  *     Bank AMemberPaysVirtually MAKE
  *     Bank AMemberIsOverMaximumButMostlyInRCredits MAKE
  *     Gifts Setup MAKE
+ *     Recache Setup TEST
+ *     Recache BalancesGetOutOfWhack BOTH
+ *     Totals Setup TEST
  *     VirtualPayments AMemberCompanyPaysSuppliersVirtually MAKE
  *     VirtualPayments AMemberCompanyPaysEmployeesVirtually MAKE
  */
@@ -92,6 +97,8 @@ function balances($list) {return t\balances($list);}
  *     Bank AMemberPaysVirtually MAKE
  *     Bank AMemberIsOverMaximumButMostlyInRCredits MAKE
  *     Gifts AContributionCanBeCompleted MAKE
+ *     Recache BalancesGetOutOfWhack MAKE
+ *     Totals CronCalculatesTheTotals MAKE
  *     VirtualPayments AMemberCompanyPaysSuppliersVirtually MAKE
  *     VirtualPayments AMemberCompanyPaysEmployeesVirtually MAKE
  */
@@ -142,7 +149,8 @@ function bankTransferCountIs($count) {
 /**
  * relations: (ARG)
  *
- * in: VirtualPayments Setup MAKE
+ * in: Totals Setup MAKE
+ *     VirtualPayments Setup MAKE
  */
 function relations($relations) {return t\relations($relations);}
 
@@ -151,6 +159,8 @@ function relations($relations) {return t\relations($relations);}
  * transactions: (ARG)
  *
  * in: Gifts AContributionCanBeCompleted TEST
+ *     Recache Setup MAKE
+ *     Totals Setup MAKE
  *     VirtualPayments AMemberCompanyPaysSuppliersVirtually TEST
  *     VirtualPayments AMemberCompanyPaysEmployeesVirtually TEST
  */
@@ -182,3 +192,26 @@ function gifts($gifts) {return t\gifts($gifts);}
  * in: Gifts AContributionCanBeCompleted TEST
  */
 function weTellStaffWith($topic, $subs) {return t\weTellStaff($topic, $subs);}
+
+/**
+ * usd: (ARG)
+ *
+ * in: Recache Setup MAKE
+ *     Totals Setup MAKE
+ */
+function usd($list) {return t\usd($list);}
+
+/**
+ * totals: (ARG)
+ *
+ * in: Totals CronCalculatesTheTotals TEST
+ */
+function totals($ray) {
+  global $testOnly; if(!$testOnly) return FALSE;
+  $totals = r\totals();
+  foreach ($ray as $key => $value) if ($value != $totals->$key) {
+    t\testOutput("Total mismatch ($key): value $value <> calc " . $totals->$key);
+    return FALSE;
+  }
+  return TRUE;
+}

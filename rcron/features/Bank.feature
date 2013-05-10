@@ -5,6 +5,7 @@ SO I can spend it with my rCard.
 and
 I WANT credit to flow to my bank account
 SO I can pay it to non-members.
+# next: test what happens when floor keeps max from applying
 
 Setup:
   Given members:

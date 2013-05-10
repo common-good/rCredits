@@ -71,6 +71,7 @@ function rweb_menu() {
 //    'getr' => r\Web\menu(t('Get rCredits'), MENU_NORMAL_ITEM, 'showForm', array('GetR'), B_MANAGE),
     'directory' => r\Web\menu(t('Find Companies'), MENU_NORMAL_ITEM, 'showForm', array('Directory'), B_SELL),
     'reports' => r\Web\menu(t('Reports'), MENU_NORMAL_ITEM, 'showForm', array('Reports', 1), '', $anyone),
+    'invite' => r\Web\menu(t('Invite'), MENU_LOCAL_TASK, 'showForm', array('Invite'), B_MANAGE),
     'undo' => r\Web\menu(t('Undo'), MENU_CALLBACK, 'undo', array(1), B_SELL),
     'remainder' => r\Web\menu(t('Show Customer Balance'), MENU_CALLBACK, 'remainder', array(1), B_SELL),
     'empty' => r\Web\menu(t('Empty'), MENU_CALLBACK, 'showForm', array('Empty'), '', $anyone),
@@ -106,7 +107,6 @@ function rweb_menu() {
     'membership/contribute' => r\Web\menu(t('Contribute'), MENU_LOCAL_TASK, 'showForm', array('Contribute'), B_MANAGE),
 //    'membership/video' => r\Web\menu(t('Videos'), MENU_LOCAL_TASK, 'showForm', array('Videos', 2), '', $anyone),
     'membership/proxies' => r\Web\menu(t('Choose Proxies'), MENU_LOCAL_TASK, 'showForm', array('Proxies'), B_MANAGE),
-    'membership/invite' => r\Web\menu(t('Invite Someone'), MENU_LOCAL_TASK, 'showForm', array('Invite'), B_MANAGE),
 
     //    'promo-site' => r\Web\menu(t('Main Site'), MENU_CALLBACK, 'drupal_goto', array('http://rCredits.org'), '', $anyone),
 

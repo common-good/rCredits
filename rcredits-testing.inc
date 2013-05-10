@@ -48,6 +48,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
     $bit = constant('B_' . strtoupper($one));
     $flags |= u\eq($bit, B_DFT, u\bit($bit));
   }
+  if ($flags & u\bit(B_OK)) $flags |= u\bit(B_MEMBER);
 
   if (isset($acctType)) {
     if ($acctType <= R_SELF_EMPLOYED) $flags |= u\bit(B_PERSONAL);
@@ -91,36 +92,35 @@ function makeAccount($info = array(), $testOnly = FALSE) {
  * Fabricate bogus transactions.
  * Minimum parameters: amount, from, to
  * @return:
- *   if called with $infoOnly TRUE, return assoc with the information actually written (called from verifyTxs())
+ *   if called with $testOnly TRUE, return assoc with the information actually written (called from verifyTxs())
  *   otherwise return serial (treated as TRUE in test steps)
  */
-function makeTx($info, $infoOnly = FALSE) {
+function makeTx($info, $testOnly = FALSE) {
   global $channel;
-  extract($info, EXTR_PREFIX_ALL, 'my');
+  extract($info);
 
-  if (@$my_tx_id) $xid = u\a2n(substr($my_tx_id, 4));
-  $type = isset($my_type) ? $my_type : TX_TRANSFER;
-  $created = @$my_created ?: REQUEST_TIME;
+  if (@$xid) $xid = u\a2n(substr(strstr($xid, '.'), 1));
+  u\setDft($type, TX_TRANSFER);
+  u\setDft($state, TX_DONE);
+  u\setDft($created, REQUEST_TIME);
+  foreach (u\ray('type state') as $one) if (!is_numeric($$one)) $$one = constant('TX_' . strtoupper($$one));
+  $payer = uid($from);
+  $payerAgent = uid(@$fromAgent ?: ($type == TX_TRANSFER ? $from : r\communityUid()));
+  $payee = uid($to); 
+  $payeeAgent = uid(@$toAgent ?: ($type == TX_TRANSFER ? $to : r\communityUid()));
+  u\setDft($r, $amount);
   
-  $payer = uid($my_from);
-  $payerAgent = uid(@$my_fromAgent ?: ($type == TX_TRANSFER ? $my_from : r\communityUid()));
-  $payee = uid($my_to); 
-  $payeeAgent = uid(@$my_toAgent ?: ($type == TX_TRANSFER ? $my_to : r\communityUid()));
-  
-  $for = @$my_purpose ?: 'cash';
-  $goods = isset($my_goods) ? $my_goods : (($type != TX_TRANSFER or u\forCash($for)) ? 0 : 1);
-  $taking = 0; //($my_from == 'community' or @$my_type == 'payment') ? 0 : 1;
-  $r = isset($my_r) ? $my_r : $my_amount;
-  if ($goods) {
-    $rebate = r\rebate($payer, $r);
-    $bonus = r\bonus($payee, $r);
-//    $data = compact(u\ray('rebate bonus'));
-  }
-  foreach (u\ray('created from to purpose usd tx_id') as $one) unset($info[$one]);
+  $for = @$purpose ?: 'cash';
+  if (strpos($for, ',')) $for = explode(',', $for); // specifying both payerFor and payeeFor
+  $taking = 0; //($from == 'community' or @$type == 'payment') ? 0 : 1;
+
+  u\setDft($goods, ($type != TX_TRANSFER or u\forCash($for)) ? 0 : 1);
+  if ($goods) list ($rebate, $bonus) = array(r\rebate($payer, $r), r\bonus($payee, $r));
+  foreach (u\ray('created from to purpose xid type state for') as $one) unset($info[$one]);
   
   $info += compact(u\ray('xid created r payer payerAgent payee payeeAgent for type channel goods taking data'));
-  if ($infoOnly or $type == TX_REBATE or $type == TX_BONUS) {
-    $info['payerFor'] = $info['payeeFor'] = $for;
+  if ($testOnly or $type == TX_REBATE or $type == TX_BONUS) {
+    list ($info['payerFor'], $info['payeeFor']) = is_array($for) ? $for : array($for, $for);
     unset($info['for']);
     return $info;
   }
@@ -133,20 +133,21 @@ function makeTx($info, $infoOnly = FALSE) {
  * Fabricate bogus relations.
  * Minimum parameters: main, agent (both are quids -- at least one must be local)
  */
-function makeRelation($info, $infoOnly = FALSE) {
-  extract($info, EXTR_PREFIX_ALL, 'my');
+function makeRelation($info, $testOnly = FALSE) {
+  extract($info);
   
-  $reid = u\num($my_id, u\a2n(substr($my_id, -3)));
-  if (!$mainAcct = r\acct(t\uid($my_main))) return testOutput("main:$my_main is not an id");
-  if (!$agtAcct = r\acct(t\uid($my_agent))) return testOutput("agent:$my_agent is not an id");
+  $reid = u\num($id, u\a2n(substr($id, -3)));
+  if (!$mainAcct = r\acct(t\uid($main))) return testOutput("main:$main is not an id");
+  if (!$agtAcct = r\acct(t\uid($agent))) return testOutput("agent:$agent is not an id");
   u\EXPECT(!r\foreignServer(r\uidRegion($mainAcct->id)) or !r\foreignServer(r\uidRegion($agtAcct->id)));
   u\EXPECT($mainAcct->proSe() and $agtAcct->proSe());
   list ($main, $other) = array($mainAcct->id, $agtAcct->id);
-  $info['permission'] = @$my_permission ? constant('PERM_' . strtoupper($my_permission)) : 0;
+  $info['permission'] = @$permission ? constant('PERM_' . strtoupper($permission)) : 0;
+  if (@$draw) $agtAcct->setBit(B_DRAWS);
   
   foreach (u\ray('id main agent') as $one) unset($info[$one]);
   $info += compact(u\ray('reid main other'));
-  return $infoOnly ? verifyRecord('r_relations', $info) : r\dbInsert('r_relations', $info);
+  return $testOnly ? verifyRecord('r_relations', $info) : r\dbInsert('r_relations', $info);
 }
 
 function makeRecords($list, $type, $testSeparate = FALSE) {
@@ -175,11 +176,12 @@ function makeGift($info, $testOnly) {
  *   so a scenario cannot test balances with "balances:" after setting them up this way.
  */
 function makeBalances($one, $testOnly) {
-  extract(u\just('id r usd rewards', $one));
+  extract(u\just('id r usd rewards maximum minimum', $one));
   $a = r\acct($id = t\uid($id));
   if (!$testOnly) {
     print_r($one);
     unset($one['id']);
+    if (@$usd and !is_numeric($usd)) list ($one['usd']) = t\parseAmt($usd, $a);
     return ($a->update($one));
   }
 
@@ -202,6 +204,8 @@ function makeBalances($one, $testOnly) {
 // (can't tell because it starts nonzero) if (!t\eq($calc->usd, $usd)) return t\testOutput('bad calc usd');
     if (t\badEq('cached usd', $a->usd, $usd, $id)) return FALSE;
   }
+  if (isset($minimum)) if (t\badEq('db minimum', $a->minimum, $minimum, $id)) return FALSE;
+  if (isset($maximum)) if (t\badEq('db maximum', $a->maximum, $maximum, $id)) return FALSE;
   return TRUE;
 }
 

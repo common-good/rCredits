@@ -27,7 +27,7 @@ Scenario: a member company pays suppliers virtually
   | NEW.ZZD |  0 | 100 |      20 |
   When cron runs "paySuppliers"
   Then transactions:
-  | tx_id    | created | type        | state    | amount | r    | from      | to      | purpose               |
+  | xid      | created | type        | state    | amount | r    | from      | to      | purpose               |
   | NEW.AAAB | %today | %TX_TRANSFER | %TX_DONE |      4 |    4 | NEW.ZZB | community | rCredits/USD exchange |
   | NEW.AAAC | %today | %TX_TRANSFER | %TX_DONE |      4 |    4 | community | NEW.ZZA | rCredits/USD exchange |
   | NEW.AAAD | %today | %TX_TRANSFER | %TX_DONE |      0 |    4 | NEW.ZZC   | NEW.ZZB | virtual payment       |
@@ -49,7 +49,7 @@ Scenario: a member company pays employees virtually
   | NEW.ZZD |  0 | 100 |      20 |
   When cron runs "payEmployees"
   Then transactions:
-  | tx_id    | created | type        | state    | amount | r    | from      | to      | purpose               |
+  | xid      | created | type        | state    | amount | r    | from      | to      | purpose               |
   | NEW.AAAB | %today | %TX_TRANSFER | %TX_DONE |     30 |   30 | NEW.ZZA | community | rCredits/USD exchange |
   | NEW.AAAC | %today | %TX_TRANSFER | %TX_DONE |     30 |   30 | community | NEW.ZZD | rCredits/USD exchange |
   | NEW.AAAD | %today | %TX_TRANSFER | %TX_DONE |      0 |   40 | NEW.ZZC   | NEW.ZZA | virtual payment       |

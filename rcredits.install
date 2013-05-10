@@ -64,7 +64,7 @@ function rcredits_install() {
   
   // pictures (probably do without most of these)
   variable_set('user_pictures', '1');
-  variable_set('user_picture_default', 'sites/default/files/pictures/no-photo-available.jpg');
+  define('user_picture_default', substr(R_DFT_PICTURE, 1)); // in case Drupal needs this
   variable_set('user_picture_dimensions', '2048x1152');
   variable_set('user_picture_file_size', R_MAX_UPLOAD_SIZE * 1024); // in KB
   variable_set('user_picture_style', 'large');

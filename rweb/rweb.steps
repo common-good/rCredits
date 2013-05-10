@@ -44,7 +44,8 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
 /**
  * member (ARG) completes form (ARG) with values: (ARG)
  *
- * in: Gift AMemberContributes MAKE
+ * in: Flow AMemberOverdrawsWithNotEnoughToDrawOn MAKE
+ *     Gift AMemberContributes MAKE
  *     Gift AMemberContributesPartlyInUSD MAKE
  *     Gift AMemberContributesWithInsufficientFunds MAKE
  *     TransactR AMemberAsksToChargeAnotherMember MAKE
@@ -111,7 +112,9 @@ function memberCompletesFormWithValues($id, $page, $values, $confirmed = FALSE) 
 /**
  * member (ARG) confirms form (ARG) with values: (ARG)
  *
- * in: RealUsd AMixedRCreditsUSDTransactionHappens MAKE
+ * in: Flow AMemberOverdraws MAKE
+ *     Flow AMemberOverdrawsAndDrawsFromBothRAndUSD MAKE
+ *     RealUsd AMixedRCreditsUSDTransactionHappens MAKE
  *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance MAKE
  *     Relations AMemberAddsARelation MAKE
  *     Signin AMemberSignsInForTheFirstTime MAKE
@@ -179,7 +182,8 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
 /**
  * members: (ARG)
  *
- * in: Gift Setup MAKE
+ * in: Flow Setup MAKE
+ *     Gift Setup MAKE
  *     Membership Setup MAKE
  *     RealUsd Setup MAKE
  *     Relations Setup MAKE
@@ -201,7 +205,9 @@ function members($list) {return t\members($list);}
 /**
  * transactions: (ARG)
  *
- * in: Gift AMemberContributes TEST
+ * in: Flow AMemberOverdraws TEST
+ *     Flow AMemberOverdrawsAndDrawsFromBothRAndUSD TEST
+ *     Gift AMemberContributes TEST
  *     Gift AMemberContributesPartlyInUSD TEST
  *     RealUsd Setup MAKE
  *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
@@ -220,7 +226,8 @@ function transactions($list) {return t\transactions($list);}
 /**
  * we say (ARG): (ARG) with subs: (ARG)
  *
- * in: Gift AMemberContributes TEST
+ * in: Flow AMemberOverdrawsWithNotEnoughToDrawOn TEST
+ *     Gift AMemberContributes TEST
  *     Gift AMemberContributesWithInsufficientFunds TEST
  *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance TEST
  *     Signup ANewbieRegisters TEST
@@ -283,7 +290,9 @@ function weEmailToMemberWithSubs($key, $email, $subs) {
 /**
  * we tell staff (ARG) with: (ARG)
  *
- * in: 
+ * in: Gift AMemberContributes TEST
+ *     Gift AMemberContributesWithInsufficientFunds TEST
+ *     Membership AMemberDoesItAll TEST
  */
 function weTellStaffWith($topic, $subs) {return t\weTellStaff($topic, $subs);}
 
@@ -393,7 +402,8 @@ function withoutOptions($options) {
 /**
  * relations: (ARG)
  *
- * in: Membership Setup MAKE
+ * in: Flow Setup MAKE
+ *     Membership Setup MAKE
  *     Relations MemberHasAnEmployeeConfirmed MAKE
  *     Relations MemberHasAnEmployeeUnconfirmed MAKE
  *     Relations MemberHasARelationWithAContractor MAKE
@@ -415,7 +425,8 @@ function relations($relations) {return t\relations($relations);}
 /**
  * balances: (ARG)
  *
- * in: Gift Setup MAKE
+ * in: Flow Setup MAKE
+ *     Gift Setup MAKE
  *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
  *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance TEST
  *     Relations Setup TEST
@@ -628,7 +639,7 @@ function memberSupplies($uid, $field, $value) {
  */
 function memberHasPermission($uid, $permission) {
   global $testOnly; if ($testOnly) return FALSE;
-  return r\acct(t\uid($uid))->setBit(constant('B_' . strtoupper($permission)), TRUE, TRUE);
+  return r\acct(t\uid($uid))->setBit(constant('B_' . strtoupper($permission)), TRUE);
 }
 
 /**
@@ -679,15 +690,3 @@ function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice,
  *     Gift AMemberContributesWithInsufficientFunds TEST
  */
 function gifts($gifts) {return t\gifts($gifts);}
-
-/**
- * we email staff (ARG) with: (ARG)
- *
- * in: Gift AMemberContributes TEST
- *     Gift AMemberContributesWithInsufficientFunds TEST
- *     Membership AMemberDoesItAll TEST
- */
-function weEmailStaffWith($arg1, $arg2) {
-  global $testOnly;
-  todo;
-}

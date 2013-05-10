@@ -18,7 +18,7 @@ Setup:
 Scenario: A contribution can be completed
   When cron runs "gifts"
   Then transactions:
-  | tx_id    | created | type         | state    | amount | from      | to      | purpose      | r    |
+  | xid      | created | type         | state    | amount | from      | to      | purpose      | r    |
   | NEW.AAAB | %today  | %TX_TRANSFER | %TX_DONE |     10 | NEW.ZZA   | cgf     | contribution |   10 |
   | NEW.AAAC | %today  | %TX_REBATE   | %TX_DONE |   0.50 | community | NEW.ZZA | rebate on #1 | 0.50 |
   | NEW.AAAD | %today  | %TX_BONUS    | %TX_DONE |   1.00 | community | cgf     | bonus on #1  | 1.00 |

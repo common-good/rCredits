@@ -168,7 +168,7 @@ function shortName($fullName, $filler = '') {
  */
 function forCash($for) {
   if (is_array($for)) return forCash($for[0]) or forCash($for[1]);
-  return ($for == '' or preg_match('`^(rCredits/USD|cash|usd|loan)(\W|$)`i', $for)); // empty or a non-goods word at the beginning
+  return ($for == '' or preg_match('`^(rCredits/USD|automatic transfer|cash|usd|loan)(\W|$)`i', $for)); // empty or a non-goods word at the beginning
 }
 
 /**

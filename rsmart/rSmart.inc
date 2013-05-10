@@ -185,13 +185,10 @@ function identify($args) {
  *   just the photo data (no json)
  */
 function photo($args) {
-  global $base_url;
   extract(u\just('acct', $args));
-  $pic_filename = r\Web\profile_picture(@$acct->id);
-  $default = "$base_url/" . variable_set('user_picture_default');
-  $pic = file_get_contents($pic_filename ?: $default);
-  if (!$pic) $pic = file_get_contents($default);
-  $message = bin2hex(substr($pic, 0, 50));
+  $picFilename = @$acct ? $acct->auxFilename('picture') : R_DFT_PICTURE;
+  $pic = file_get_contents(DRUPAL_ROOT . $picFilename);
+  $message = bin2hex(substr($pic, 0, 50)); // this allows identifying the picture without a big db hit
   u\loga('out', compact('message'));
 
   if (t\EST()) {debug($message); return $message;} else exit($pic); // keep

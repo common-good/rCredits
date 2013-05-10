@@ -216,7 +216,12 @@ function rcredits_cron_queue_info() {
   return compact('q');
 }
 
-function bs($n) {for ($i=0; $i <= B_MAX; $i++) if ($n & u\bit($i)) echo "$i ";} // keep
+function bs($n) {
+  $bits = u\ray(B_LIST);
+  for ($i=0; $i <= B_MAX; $i++) if ($n & u\bit($i)) {
+    echo $bits[$i] . ' ';
+  }
+} // keep here
 
 function test() {
   include_once __DIR__ . '/usd.class';

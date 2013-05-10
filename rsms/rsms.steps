@@ -414,7 +414,7 @@ function phoneCanChargeUnilaterally($number) {
   global $testOnly;
   if (!$acct = r\acct(r\SMS\uid($number))) return FALSE;
   if ($testOnly) return $acct->hasBit(B_CHARGE);
-  return $acct->setBit(B_CHARGE, TRUE, TRUE);
+  return $acct->setBit(B_CHARGE);
 }
 
 /**

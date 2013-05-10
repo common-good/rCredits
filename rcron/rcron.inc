@@ -8,8 +8,8 @@
  
 DAILY (every 5 mins for 5 mins, starting at 2am)
 - * usdTxs() rollback lost USD transactions, mark completed deposits/withdrawals
-- * recache() check / recalc cached r, rewards, and usd
-- (later) checkAccount() other security / scam checks (often)
+- ** recache() check / recalc cached r, rewards, and usd
+- [later] checkAccts() thorough security / scam checks
 - * totals() get community and system totals: variable_set('totals', )
 - ** paySuppliers(): automatic virtual payments to suppliers
 - ** payEmployees(): Each employee gets relieved of their excess rCredits immediately if they are over their "maximum" after getting paid.
@@ -17,8 +17,16 @@ DAILY (every 5 mins for 5 mins, starting at 2am)
 - * redistribute(): (selling of unwanted rCredits) looks at accounts over their maximum (maximum is ignored for companies that pay virtually)
 - ** bank(): automatic transfers to/from bank accounts
 - (later) calculate credit line (for overdrafts, Dwolla outage (eg 503), etc.): give the payer (r)credit up to the amount they earned or bought in the past 5 days if they have been a member for a month, 30 days for 6 months
-- (later) notify and maybe fine late borrowers (might figure interest at the same time, since it requires examining each balance -- but only actually credit the interest monthly, otherwise discard it)
-- (later) statements for those who want daily statements
+- [later] notify and maybe fine late borrowers (might figure interest at the same time, since it requires examining each balance -- but only actually credit the interest monthly, otherwise discard it)
+- [later] things to do 30/60/90 (etc) days after opening account:
+  . 1mo: notice - suggest sending invitations
+      $email = $mya->mail;
+      $invited = ($nonperson or r\dbLookup('COUNT(*)', 'r_invites', 'inviter=:myid AND email<>:email', compact('myid', 'email')) >= 1);
+          $step4 = t('<a>Invite someone</a> to sign up for rCredits! No one can join without an invitation. You can help by sending one. You might particularly want to invite companies and individuals you buy from or sell to (for example your employer or employees).');
+
+  . 1mo: suggest another contribution if first was small
+  . 6mo: allow cashing out rewards if system stable
+- [later] statements for those who want daily statements
 - * notices(): send notices (daily digest)
 - (later) weekly / monthly / quarterly / annual stuff
 
@@ -40,7 +48,7 @@ use rCredits\Backend as be;
 
 include_once __DIR__ . '/../usd.class';
 
-define ('R_DAILY_TASKS', 'START usdTxs recache checkAccount totals paySuppliers payEmployees gifts redistribute bank notices lessOften END');
+define ('R_DAILY_TASKS', 'START usdTxs recache checkAccts totals paySuppliers payEmployees gifts redistribute bank notices lessOften END');
 //define ('R_DAILY_TASKS', 'START redistribute END');
 
 /**
@@ -105,11 +113,10 @@ function everyYear() {
 
 
 function usdTxs() {
-	$result = r\rTraders();
-	while($uid = $result->fetchColumn()) queue('usdTx', compact('uid'));
+  queueEach('usdTx', 'SELECT uid FROM users WHERE :IS_OK');
   queue('usdTxsEND');
 }
-function usdTxsEND() {queuenextAfter('usdTxs');}
+function usdTxsEND() {queueNextAfter('usdTxs');}
 
 function usdTx($item) {
   $uid = $item['uid'];
@@ -138,25 +145,47 @@ function bankFollowup($info) {
   if ($Status == 'processed') r\dbUpdate('r_usd', compact(u\ray('txid amount completed')), 'txid');
 }
 
+/**
+ * Recalculate and update cached financial balances for each account.
+ */
 function recache() {
-  queueEach('recache1', 'uid, r, usd, rewards');
+  $fields = 'uid, r, usd, rewards, maximum, minimum';
+  queueEach('recache1', "SELECT $fields FROM users WHERE uid>0 AND :IS_MEMBER");
   queueNextAfter('recache');
 }
 
 function recache1($item) {
-  $uid = array_shift($item);
+  extract($item);
+
   $info = be\creditInfo(compact('uid'));
-  foreach ($item as $key => $value) if ($value != $info->$key) {
-    if ($key != 'usd') r\tellStaff("Cron: Cache <> calc $key: $value <> " . $info->$key, array(), $uid);
-    r\acct($uid)->update(array($key => $info->$key));
-  } 
+  foreach (u\just('r rewards', $item) as $key => $value) if ($value != $info->$key) {
+    r\tellStaff("Cron: Cache <> calc $key: $value <> " . $info->$key, array(), $uid);
+    $$key = $info->$key;
+  }
+
+  $usAcct = new r\usd($acct = r\acct($uid));
+  $usdActual = $usAcct->bal($err);
+  if (!$err) $usd = $usdActual;
+  
+  if ($maximum and $maximum < max($rewards, $minimum)) {
+    r\tellStaff('corrupt max', $item);
+    $maximum = max($rewards, $minimum);
+  }
+
+  $acct->update(compact(array_keys($item)));
 }
 
 /**
- * Check account for consistency, scams, whatever.
+ * Check accounts for consistency, scams, whatever.
  */
-function checkAccount($item) {
-  queueNextAfter('checkAccount');
+function checkAccts() {
+  queueEach('checkAcct', "SELECT uid, maximum, minimum, rewards FROM users WHERE uid>0 AND :IS_MEMBER");
+  queueNextAfter('checkAccts');
+}
+
+function checkAcct($item) {
+  extract($item); // (prepared for additional tasks)
+  $a = r\acct($uid);
 }
 
 /**
@@ -308,9 +337,9 @@ function sellR($item) {
  */
 function bank($item) {
   $sql = <<<EOF
-  SELECT uid, LEAST(usd, :R_RBUY_CHUNK*CEILING((r+usd-maximum)/:R_RBUY_CHUNK)) AS excess,
+  SELECT uid, LEAST(usd, :R_RBUY_CHUNK*CEILING((r+usd-GREATEST(floor, maximum))/:R_RBUY_CHUNK)) AS excess,
   :R_RBUY_CHUNK*CEILING((minimum-(r+usd))/:R_RBUY_CHUNK) AS shortfall
-  FROM users WHERE ((r+usd>=maximum+:R_RBUY_CHUNK AND maximum<>0 AND :IS_TO_BANK AND NOT :IS_VIRTUAL)
+  FROM users WHERE ((r+usd>=GREATEST(floor, maximum)+:R_RBUY_CHUNK AND maximum<>0 AND :IS_TO_BANK AND NOT :IS_VIRTUAL)
   OR r+usd<minimum) AND uid>0 AND :IS_OK
 EOF;
   // AND (flags&(1<<:B_BANKABLE))

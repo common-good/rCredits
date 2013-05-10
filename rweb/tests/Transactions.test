@@ -61,7 +61,7 @@ class rwebTransactions extends DrupalWebTestCase {
     . '\\| NEW.ZZB   |  2000 |'
     . '\\| NEW.ZZC   |  3000 |"');
     And__('transactions: "DATA'
-    . '\\| tx_id    | created   | type         | state       | amount | r   | from      | to      | purpose | taking |'
+    . '\\| xid      | created   | type         | state       | amount | r   | from      | to      | purpose | taking |'
     . '\\| NEW:AAAB | %today-7m | %TX_SIGNUP   | %TX_DONE    |    250 | 250 | community | NEW.ZZA | signup  | 0      |'
     . '\\| NEW:AAAC | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | 250 | community | NEW.ZZB | signup  | 0      |'
     . '\\| NEW:AAAD | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | 250 | community | NEW.ZZC | signup  | 0      |'
@@ -151,7 +151,7 @@ class rwebTransactions extends DrupalWebTestCase {
   public function testTransactionsWithOtherStatesShowUpProperly_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('transactions: "DATA'
-    . '\\| tx_id    | created   | type         | state        | amount | from      | to      | purpose  | taking |'
+    . '\\| xid      | created   | type         | state        | amount | from      | to      | purpose  | taking |'
     . '\\| NEW:AACA | %today-5d | %TX_TRANSFER | %TX_DENIED   |    100 | NEW.ZZC   | NEW.ZZA | labor CA | 0      |'
     . '\\| NEW:AACB | %today-5d | %TX_REBATE   | %TX_DENIED   |      5 | community | NEW.ZZC | rebate   | 0      |'
     . '\\| NEW:AACD | %today-5d | %TX_BONUS    | %TX_DENIED   |     10 | community | NEW.ZZA | bonus    | 0      |'

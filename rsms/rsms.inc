@@ -61,7 +61,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'info saved' => t('Your information has been saved.'),
   'payment accepted' => t('rCredits payment accepted. In exchange, us@amount will be refunded to the payer, from your Dwolla account.'),
   'gift successful' => t('Your contribution of @amount is successful. Thank you!'),
-  'signup bonus' => t('You got your signup bonus!'), // keep this short, cause it's an add-on
+  'signup bonus' => t('And you got your signup bonus!'), // keep this short, cause it's an add-on
   'nothing done' => t('Nothing was done.'),
   'nothing undone' => t('Nothing undone.'),
   'event' => t('Account @fullName (@quid) is now @status.'),
@@ -108,7 +108,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'duplicate email' => t('There is already an account with that email address. Visit rCredits.org to add this cell number to your account.'),
   'unknown member' => t('Unknown member: "@who" (they need to sign up before we can recognize them). Type "helpme pay".'),
   'not an account' => t('That account does not exist.'), // this is usually a system error (or REST error)
-  'non trader' => t('@otherName does not have an active rCredits account.'),
+  'non member' => t('@otherName does not have an active rCredits account.'),
   'ambiguous other' => t('"@who" is associated with more than one rCredits account. You will need to identify them differently. Type "more" for options.'),
   'ambiguous other2' => t('You can identify a member by phone, email, fullname (no punctuation or spaces), or account ID.'),
   'what relationship' => t('You forgot to say whether you are an employee, owner, or both.'),
@@ -166,6 +166,10 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'banked' => t('Your combined USD and rCredits balance is @status, so a request has been made to @action your bank a total of @amount. This request may take up to 3 days to go through.'),
   'virtual payment received' => t('You received from @fullName a virtual payment of @amount -- that is, you traded that much US Dollars for rCredits, receiving a bonus of @bonus on the exchange.'),
   'virtual payments offered' => t('You made virtual payment offers to @offers @whom, totaling @total.'),
+  
+  // notices to staff
+  'corrupt max' => t('Max for account @uid is corrupt: max=@maximum min=@minimum rewards=@rewards'),
+  
 );
 
   // help messages (for use with the help command)

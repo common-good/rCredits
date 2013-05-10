@@ -64,7 +64,7 @@ class rcronGifts extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('cron runs "gifts"');
     Then_('transactions: "DATA'
-    . '\\| tx_id    | created | type         | state    | amount | from      | to      | purpose      | r    |'
+    . '\\| xid      | created | type         | state    | amount | from      | to      | purpose      | r    |'
     . '\\| NEW.AAAB | %today  | %TX_TRANSFER | %TX_DONE |     10 | NEW.ZZA   | cgf     | contribution |   10 |'
     . '\\| NEW.AAAC | %today  | %TX_REBATE   | %TX_DONE |   0.50 | community | NEW.ZZA | rebate on #1 | 0.50 |'
     . '\\| NEW.AAAD | %today  | %TX_BONUS    | %TX_DONE |   1.00 | community | cgf     | bonus on #1  | 1.00 |"');

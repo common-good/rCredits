@@ -11,7 +11,7 @@ Setup:
   | .ZZC | Corner Pub | %R_COMMERCIAL    | dft,ok,company          |
   | .ZZD | Dee Four   | %R_PERSONAL      | dft,ok,personal         |
   And transactions: 
-  | tx_id | created   | type       | amount | from      | to   | purpose | taking |
+  | xid   | created   | type       | amount | from      | to   | purpose | taking |
   | :AAAB | %today-6m | %TX_SIGNUP |    250 | community | .ZZA | signup  | 0      |
   | :AAAC | %today-6m | %TX_SIGNUP |    250 | community | .ZZB | signup  | 0      |
   | :AAAD | %today-6m | %TX_SIGNUP |    250 | community | .ZZC | signup  | 0      |

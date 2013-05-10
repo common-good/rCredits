@@ -41,7 +41,7 @@ Scenario: A member contributes partly in USD
   | gift | amount | often | honor  | honored | share |
   |    0 |     50 |     1 | memory | Jane Do |    10 |
   Then transactions:
-  | tx_id    | created | type         | state    | amount | from      | to      | purpose      | r    |
+  | xid      | created | type         | state    | amount | from      | to      | purpose      | r    |
   | NEW.AAAB | %today  | %TX_TRANSFER | %TX_DONE |     50 | NEW.ZZA   | cgf     | contribution |   20 |
   | NEW.AAAC | %today  | %TX_REBATE   | %TX_DONE |   2.50 | community | NEW.ZZA | rebate on #1 | 2.50 |
   | NEW.AAAD | %today  | %TX_BONUS    | %TX_DONE |   5.00 | community | cgf     | bonus on #1  | 5.00 |

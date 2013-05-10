@@ -14,7 +14,7 @@ use rCredits\Util as u;
  * Return a help message for the page.
  */
 function helpText($page) {
-  global $base_url;
+  global $rUrl, $base_url;
   $mya = r\acct();
   $company = !@$mya->can(B_PERSONAL);
   $acctName = @$mya->name; // @ is for SMS testing (when not signed in)
@@ -130,10 +130,29 @@ EOF
 EOF
     ),
     'account/usd' => t(<<<EOF
-    <p>Open a Dwolla account and type the number here, to connect it to your rCredits account. In partnership with Veridian Federal Credit Union, Dwolla communicates with your US Dollar bank account. Whenever you buy something, your rCredits (if any) are used first and the remainder is paid in US Dollars &mdash; just like a typical debit card. Tips:<ol><li>Connect your <i>checking</i> account to Dwolla (other account types are limited to 3 withdrawals/deposits per month).</li><li>Disable Dwolla <a href="http://dwolla.com/notifications">Money In</a> notifications.</li></ol></p>
+    <p>Open a Dwolla account and type your PIN number here, to connect it to your rCredits account. In partnership with Veridian Federal Credit Union, Dwolla communicates with your US Dollar bank account. Whenever you buy something, your rCredits (if any) are used first and the remainder is paid in US Dollars &mdash; just like a typical debit card.</p>
     <p>Just as for opening any other financial account, you need to supply identifying information and proof of identity. Your information is then stored doubly-encrypted on a separate server.</p>
 EOF
     ),
+    'dwolla-account-setup' => u\SUBS(t(<<<EOF
+    <p>In partnership with Veridian Federal Credit Union, Dwolla communicates with your US Dollar bank account. Whenever you buy something, any rCredits you have are used first and the remainder is paid in US Dollars &mdash; just like a typical debit card, but with rebates and bonuses!</p>
+    <p>This help window will stay open while you set up your Dwolla account. So you can come back here for tips and next steps.  <a href=":R_DWOLLA_LINK" target="_blank"></p>
+    <p>Click here now to set up your Dwolla account</a> (following the tips below). When you're done, <a href="$base_url/account/usd">click here to continue </a> your rCredits account setup.</p>
+    <h2>Tips:</h2>
+    <ol>
+      <li><b>Email and password.</b> These can be the same as or different from your rCredits email and password.</li>
+      <li><b>Contact info and security info.</b> This information should generally be the same as what you tell the rCredits system.</li>
+      <li><b>Connecting to your bank.</b> Click on "Funding sources" on the left side. Dwolla will ask for information about the bank account you want to connect. You will want to connect your <i>checking</i> account (other account types are limited to 3 withdrawals/deposits per month).
+        <ul>
+          <li><i>Account name</i> can be anything that reminds you what account you connected, such as "my checking account".</li>
+          <li>The <i>routing number</i> appears at the bottom of your checks, on the left.</li>
+          <li>The <i>account number</i> appears at the bottom of your checks, in the middle.</li>
+          <li>Click "Add your account" and you're done. Dwolla will send two tiny deposits to your bank. You will have to wait a couple days, then find out from your bank the amounts of those two deposits. Dwolla will email you a link to click on, to return to that page and tell it those amounts, to verify that you really own that bank account.</li>
+        </ul>
+      <li><b>Nothing else.</b> You do NOT need to do anything else on the Dwolla site, despite its many choices. Come back and <a href="$base_url/account/usd">click here to continue</a> your rCredits account setup.</li>
+    </ol>
+EOF
+    )),
     'why-wait' => t(<<<EOF
     <p>Exchanges of rCredits for US Dollars reflect an incomplete economic circle. That is, the individual or company selling the rCredits does not yet have enough places to spend them.</p>
     <p>The 2-week delay in spending rCredits that you buy takes that amount out of circulation temporarily, giving the seller time to find more places to spend rCredits, without meanwhile having to sell more and more of them.</p>
@@ -214,13 +233,18 @@ EOF
     <p>During the pilot phase, it may be hard to choose two proxies from among the other members, unless you invite them to join first. You can change your selections at any time, so no worries.</p>
 EOF
     ),
-    'membership/invite' => t(<<<EOF
+    'invite' => t(<<<EOF
     <p>The rCredits system is designed to be community-centered, so our relationships with friends and neighbors in our own geographical community is important. We can work better together for the well being of everyone in our community and our region, if we know we can trust one another.</p>
     <p>Invite as many people as you like, but only people you trust.</p>
 EOF
     ),
-    'virtual-average' => t(<<<EOF
-    <p>Virtual payments <i>approximate</i> direct payments in rCredits. Someday, when rCredits become very popular, there may be accounting programs that make it easy to do payroll directly in rCredits. Meanwhile, virtual payments let you keep using your current payroll and accounting systems without change, and still have the effect of paying people in rCredits.</p><p>Your estimates of average monthly payments do NOT have to be exact. If an employee or supplier ends up buying more rCredits from you than their share, it's not a big problem for anyone.</p>
+    'virtual-payments' => t(<<<EOF
+    <p>Virtual payments are designed to make it easy for business owners and managers to use rCredits &mdash; harder to understand than paying people directly in rCredits, but much easier to use. Basically, you pay your employees and suppliers the usual way, on the usual schedule, in US Dollars, with no change to your payroll or accounting systems. Then they trade some of those US Dollars back to you for rCredits.</p>
+    <p>Payments are automated, based on what you choose for your account settings. Here's how it works:</p>
+    <img src="$rUrl/images/virtual-payments-companies.png" align="right"><p>Every day, customers pay you with rCredits and US Dollars. You get a 10% bonus on the rCredits part. Then at night, all the rCredits you took in get traded automatically to your employees and suppliers, in exchange for US Dollars. You get a 5% rebate on the exchange.</p>
+    <p>How much does each employee and supplier get? They should get their usual share. On the "Relations" page, estimate how much you normally pay each employee or supplier in a typical month. Divide each one by 30 and that's their maximum daily share of the rCredits you pay out. At first you will have only small amounts of rCredits to pay out, so everyone gets proportionately less (automatically).</p>
+    <p>Someday, when rCredits become very popular, there may be accounting programs that make it easy to do payroll directly in rCredits. Meanwhile, virtual payments let you keep using your current payroll and accounting systems without change, and still have the effect of paying people in rCredits. The net effect for you is that you receive extra US Dollar income from using the rCredits system.</p>
+    <p>Your estimates of average monthly payments do NOT have to be exact. If an employee or supplier ends up buying more rCredits from you than their exact share, it's not a big problem for anyone.</p>
 EOF
     ),
   );

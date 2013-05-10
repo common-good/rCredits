@@ -29,3 +29,4 @@ files[] = tests/TransactR.test
 files[] = tests/TransactUsd.test
 files[] = tests/Signin.test
 files[] = tests/Gift.test
+files[] = tests/Flow.test

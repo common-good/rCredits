@@ -102,7 +102,7 @@ class rwebMembership extends DrupalWebTestCase {
     . '\\| Step 1                | Step 2                | Step 3                       | Step 4                    |'
     . '\\| Open a Dwolla account | your driver\'s license | Set your Account Preferences | Invite someone to sign up |"');
     And__('with done ""');
-    And__('we email staff "event" with: "DATA'
+    And__('we tell staff "event" with: "DATA'
     . '\\| fullName | quid    | status |'
     . '\\| Abe One  | NEW.ZZA | member |"');
     When_('member "NEW.ZZA" has done step "dwolla"');
@@ -122,7 +122,7 @@ class rwebMembership extends DrupalWebTestCase {
     Then_('we show "You have completed all membership steps" without: "DATA'
     . '\\| content |'
     . '\\| preferences |"');
-    And__('we email staff "event" with: "DATA'
+    And__('we tell staff "event" with: "DATA'
     . '\\| fullName | quid    | status |'
     . '\\| Abe One  | NEW.ZZA | ready  |"');
     When_('member "NEW.ZZA" has permission "ok"');
