@@ -36,7 +36,10 @@ function extraSetup($feature) {
  * Modify the standard list of magic substitutions (the %parameters)
  */
 function extraSubs(&$subs) {
-//  $subs['%replace_this'] = 'with this';
+//  $subs += u\prefixKeys('%', compact(u\ray('chunk chunk2 chunk3 fancyYesterday')));
+  $subs['%fancyYesterday'] = u\formatDate(strtotime('yesterday'));
+  $subs['%chunk'] = R_CHUNK;
+  for ($i = 2; $i <= 5; $i++) $subs["%chunk$i"] = R_CHUNK * $i;
 }
 
 function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, $info);}
@@ -47,8 +50,12 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  * in: Bank Setup MAKE
  *     Bank AMemberHasNoMaximum MAKE
  *     Bank AMemberPaysVirtually MAKE
+ *     Bank AMemberIsOverMaximumButDoesntWantAutomaticDeposits MAKE
+ *     Bank AMemberIsOverPlentyOverMaximumButNotEnoughOverFloor MAKE
  *     Gifts Setup MAKE
+ *     Notices Setup MAKE
  *     Recache Setup MAKE
+ *     Redistribute Setup MAKE
  *     Totals Setup MAKE
  *     VirtualPayments Setup MAKE
  */
@@ -71,9 +78,13 @@ function members($list) {return t\members($list);}
  *     Bank AMemberHasNoMaximum MAKE
  *     Bank AMemberPaysVirtually MAKE
  *     Bank AMemberIsOverMaximumButMostlyInRCredits MAKE
+ *     Bank AMemberIsOverMaximumButDoesntWantAutomaticDeposits MAKE
+ *     Bank AMemberIsOverPlentyOverMaximumButNotEnoughOverFloor MAKE
  *     Gifts Setup MAKE
  *     Recache Setup TEST
  *     Recache BalancesGetOutOfWhack BOTH
+ *     Redistribute AMemberHasTooMuchR MAKE
+ *     Redistribute AMemberHasTooMuchRButTooFewBuyers MAKE
  *     Totals Setup TEST
  *     VirtualPayments AMemberCompanyPaysSuppliersVirtually MAKE
  *     VirtualPayments AMemberCompanyPaysEmployeesVirtually MAKE
@@ -96,8 +107,14 @@ function balances($list) {return t\balances($list);}
  *     Bank AMemberHasNoMaximum MAKE
  *     Bank AMemberPaysVirtually MAKE
  *     Bank AMemberIsOverMaximumButMostlyInRCredits MAKE
+ *     Bank AMemberIsOverMaximumButDoesntWantAutomaticDeposits MAKE
+ *     Bank AMemberIsOverPlentyOverMaximumButNotEnoughOverFloor MAKE
  *     Gifts AContributionCanBeCompleted MAKE
+ *     Gifts ARecurringContributionCanBeCompleted MAKE
+ *     Notices AMemberGetsSomeNotices MAKE
  *     Recache BalancesGetOutOfWhack MAKE
+ *     Redistribute AMemberHasTooMuchR MAKE
+ *     Redistribute AMemberHasTooMuchRButTooFewBuyers MAKE
  *     Totals CronCalculatesTheTotals MAKE
  *     VirtualPayments AMemberCompanyPaysSuppliersVirtually MAKE
  *     VirtualPayments AMemberCompanyPaysEmployeesVirtually MAKE
@@ -105,6 +122,7 @@ function balances($list) {return t\balances($list);}
 function cronRuns($op) {
   global $testOnly; if($testOnly) return FALSE;
   global $cronOp; $cronOp = $op;
+  if (strftime('%H') < R_DAILY_HOUR) die('Developer: For testing between midnight and :R_DAILY_HOUR:00, you need to temporarily change R_DAILY_HOUR in -settings.');
   \variable_set('daily', 0);
   \drupal_cron_run();
   return TRUE;
@@ -140,6 +158,8 @@ function bankTransfers($tx) {
  *     Bank AMemberIsOverMaximumButHasRequestedFundsFROMTheBank TEST
  *     Bank AMemberHasNoMaximum TEST
  *     Bank AMemberPaysVirtually TEST
+ *     Bank AMemberIsOverMaximumButDoesntWantAutomaticDeposits TEST
+ *     Bank AMemberIsOverPlentyOverMaximumButNotEnoughOverFloor TEST
  */
 function bankTransferCountIs($count) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -159,7 +179,10 @@ function relations($relations) {return t\relations($relations);}
  * transactions: (ARG)
  *
  * in: Gifts AContributionCanBeCompleted TEST
+ *     Gifts ARecurringContributionCanBeCompleted TEST
  *     Recache Setup MAKE
+ *     Redistribute AMemberHasTooMuchR TEST
+ *     Redistribute AMemberHasTooMuchRButTooFewBuyers TEST
  *     Totals Setup MAKE
  *     VirtualPayments AMemberCompanyPaysSuppliersVirtually TEST
  *     VirtualPayments AMemberCompanyPaysEmployeesVirtually TEST
@@ -173,6 +196,8 @@ function transactions($list) {return t\transactions($list);}
  *     Bank AMemberIsWellBelowMinimum TEST
  *     Bank AMemberIsOverMaximum TEST
  *     Gifts AContributionCanBeCompleted TEST
+ *     Gifts ARecurringContributionCanBeCompleted TEST
+ *     Redistribute AMemberHasTooMuchRButTooFewBuyers TEST
  *     VirtualPayments AMemberCompanyPaysSuppliersVirtually TEST
  *     VirtualPayments AMemberCompanyPaysEmployeesVirtually TEST
  */
@@ -181,17 +206,19 @@ function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice,
 /**
  * gifts: (ARG)
  *
- * in: Gifts Setup MAKE
- *     Gifts AContributionCanBeCompleted TEST
+ * in: Gifts AContributionCanBeCompleted BOTH
+ *     Gifts ARecurringContributionCanBeCompleted BOTH
  */
 function gifts($gifts) {return t\gifts($gifts);}
 
 /**
- * we tell staff (ARG) with: (ARG)
+ * we tell staff (ARG) with subs: (ARG)
  *
  * in: Gifts AContributionCanBeCompleted TEST
+ *     Gifts ARecurringContributionCanBeCompleted TEST
+ *     Redistribute AMemberHasTooMuchRButTooFewBuyers TEST
  */
-function weTellStaffWith($topic, $subs) {return t\weTellStaff($topic, $subs);}
+function weTellStaffWithSubs($topic, $subs) {return t\weTellStaff($topic, $subs);}
 
 /**
  * usd: (ARG)
@@ -209,9 +236,32 @@ function usd($list) {return t\usd($list);}
 function totals($ray) {
   global $testOnly; if(!$testOnly) return FALSE;
   $totals = r\totals();
-  foreach ($ray as $key => $value) if ($value != $totals->$key) {
+  debug(compact('ray','totals'));
+  foreach ($ray[0] as $key => $value) if ($value != $totals->$key) {
     t\testOutput("Total mismatch ($key): value $value <> calc " . $totals->$key);
     return FALSE;
   }
   return TRUE;
 }
+
+/**
+ * constants: (ARG)
+ *
+ * in: 
+ */
+function constants($list) {return t\constants($list);}
+
+
+/**
+ * notices: (ARG)
+ *
+ * in: Notices AMemberGetsSomeNotices BOTH
+ */
+function notices($list) {return t\notices($list);}
+
+/**
+ * we email (ARG) to member (ARG) with subs: (ARG)
+ *
+ * in: Notices AMemberGetsSomeNotices TEST
+ */
+function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, $email, $subs);}

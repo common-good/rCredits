@@ -38,6 +38,7 @@
 require_once 'rcredits.inc';
 require_once 'rcredits-backend.inc';
 require_once 'rcron/rcron.inc'; // required here by cron
+if (isDEV) include_once 'admin.inc';
 use rCredits as r;
 use rCredits\Util as u;
 use rCredits\Testing as t;
@@ -140,8 +141,10 @@ function rcredits_mail($index, &$msg_array, $info) {
     $info['quid'] = $acct->mainQid;
     $info['oneTimeLoginUrl'] = \user_pass_reset_url($acct->account());
     $info['site'] = R_SITE_URL;
+    $info['region'] = strtolower(R_SERVER_ID);
+    $info['shortName'] = $acct->name;
 
-    $info['fullName'] = $info['fullName']; // these are not always the name and email of the account
+    //$info['fullName'] = $info['fullName']; // these are not always the name and email of the account
     $email = $info['email'] = @$info['email'] ?: $info['mail'];
     foreach ($info as $k => $value) $subs['{' . $k . '}'] = $value;
     $langcode = $acct->language->language; // instead of $language = $msg_array['language']; 

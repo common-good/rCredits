@@ -389,10 +389,7 @@ function weRespondSuccessTxidMybalanceOtherbalanceAndMessageWithSubs($success, $
  *     UndoPending AMemberConfirmsRequestToCancelAnInvoice TEST
  *     UndoPending AMemberConfirmsRequestToCancelAnOffer TEST
  */
-function weEmailToMemberWithSubs($key, $email, $subs) {
-  global $testOnly;
-  return t\findEmail($key, $email, $subs);
-}
+function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, $email, $subs);}
 
 /**
  * member (ARG) can charge unilaterally

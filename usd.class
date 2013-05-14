@@ -196,6 +196,16 @@ array (
   }
 
   /**
+   * Get funding source info
+   */
+  function source(&$error = NULL) {
+    $dw = $this->dwolla();
+    if (!$sources = $dw->fundingSources()) return dwError($dw, $error);
+    $sources[0]['count'] = count($sources);
+    return $sources[0];
+  }
+  
+  /**
    * Call the callback for each transaction OUT of the account after a given date/time 
    * @param string $callback: function to call
    * @param int $start: earliest second to consider (defaults to day 1 of the Unix Epoch).

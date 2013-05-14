@@ -53,7 +53,8 @@ define('R_CARDCODE_LEN', 20); // length of rCard security code (long to deter ea
 define('R_CARD_COST', 5); // cost to order a company or replacement rCard
 define('R_FREEZE_TIME', FALSE); // how long to freeze newly bought rCredits (was '2 weeks')
 define('R_DEFAULT_PURPOSE', 'rCredits/USD exchange'); // default transaction purpose
-define('R_RBUY_CHUNK', 10); // chunk size for buying rCredits (sales amounts are a multiple of this)
+define('R_CHUNK', 5); // chunk size for buying rCredits (sales amounts are a multiple of this)
+define('R_BANK_MIN', 4); // minimum deposit or withdrawal from bank account
 define('R_COMMERCIAL_ASPECT', '4:3'); // width-to-height ratio for commercial profile picture
 define('R_PERSONAL_ASPECT', '3:4'); // width-to-height ratio for personal profile picture
 define('R_PIXEL_FACTOR', 200); // what to multiply the aspect ratio components by, to get pixel dimensions
@@ -316,8 +317,9 @@ function xid2tid($xid, $uid) {
  * Payer exchanges rCredits for USD. Record the rCredits transaction.
  * @param string $usdXid: (optional) related USD transaction ID
  */
-function exchange($amount, $payer, $payee, $usdXid = NULL) {
-  return r\transact(compact(u\ray('amount payer payee usdXid')));
+function exchange($r, $payer, $payee, $usdXid = NULL) {
+  $amount = 0;
+  return r\transact(compact(u\ray('amount r payer payee usdXid')));
 }
 
 /**
@@ -578,10 +580,11 @@ function payEmployees($amount0, $for, $confirmed) {
  * @param assoc $info: substitutions for the message
  * @param bool $force: send by email NOW
  */
-function notify($uid, $index, $info, $force = FALSE) {
+function notify($uid, $index, $info = array(), $force = FALSE) {
   //print_r(compact('uid','index','info','force'));
   global $channel;
   $acct = acct($uid);
+  u\EXPECT($acct, 'no account');
   $info['uid'] = $uid;
   $info['otherName'] = @$info['myName']; // notifying someone else about US, if anyone
   $fullName = $acct->fullName;
@@ -658,7 +661,8 @@ function acceptGift($info) {
     if ($often != 1) {
       $months = $often == 'M' ? 1 : ($often == 'Q' ? 3 : 12);
       $giftDate = strtotime($months . ' months', $giftDate);
-      r\dbInsert('r_gifts', compact(u\ray('uid giftDate amount often')));
+      $share = -1; // mark this field irrelevant
+      r\dbInsert('r_gifts', compact(u\ray('uid giftDate amount often share')));
     }
     r\usd::commit();
     r\tellStaff('gift accepted', $info + $args);
@@ -1165,7 +1169,6 @@ function nearlyMember($acct) {
  *    demand: the total unmet demand for rCredits
  *    r: rCredits in the system
  *    usd: USD in play (approximate)
- *    frozen: rCredits temporarily inaccessible (positive floors)
  *    signup: rCredits issued as signup reward
  *    inflation: rCredits issued to offset inflation
  *    rebates: rCredits issued as rebates (including on USD transactions)
@@ -1193,7 +1196,7 @@ function totals($ctty = 'ALL', $calculate = FALSE) {
  * Return totals for the given community
  * @param int $ctty: the community account id (NULL means all communities)
  * @return assoc (ctty or system-wide totals of):
- *   r floor rewards usd minimum maximum 
+ *   r floor rewards usd minimum maximum excess
  *   signup rebate bonus inflation grant loan fine maxRebate
  *   balance (-r) demand (minimum - r)
  */

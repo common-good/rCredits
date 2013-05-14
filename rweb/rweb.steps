@@ -281,20 +281,16 @@ function weSay($type, $index) {
  * in: Signup ANewbieRegisters TEST
  *     Signup ANewbieRegistersFromElsewhere TEST
  */
-function weEmailToMemberWithSubs($key, $email, $subs) {
-  global $testOnly; if (!$testOnly) return FALSE;
-  $subs = @$subs[0] ?: array();
-  return t\findEmail($key, $email, $subs);
-}
+function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, $email, $subs);}
 
 /**
- * we tell staff (ARG) with: (ARG)
+ * we tell staff (ARG) with subs: (ARG)
  *
  * in: Gift AMemberContributes TEST
  *     Gift AMemberContributesWithInsufficientFunds TEST
  *     Membership AMemberDoesItAll TEST
  */
-function weTellStaffWith($topic, $subs) {return t\weTellStaff($topic, $subs);}
+function weTellStaffWithSubs($topic, $subs) {return t\weTellStaff($topic, $subs);}
 
 /**
  * we show (ARG) with subs: (ARG)

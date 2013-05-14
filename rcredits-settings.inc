@@ -28,7 +28,7 @@ define('R_SIGNUP_GIFT', 5); // how much to give people to play with, even before
 define('R_SIGNUP_BONUS', 20); // how much people start with at this time
 define('R_FLOOR', 0); // how low can user's balance go, by default
 define('R_STATEMENT_COST', 10); // how much member must pay (in rCredits dollars) for monthly and annual statements by mail
-define('R_DAILY_HOUR', '03'); // what time (2-digit 24-hour clock hour) to start intensive daily maintenance tasks
+define('R_DAILY_HOUR', '01'); // what time (2-digit 24-hour clock hour) to start intensive daily maintenance tasks
 define('R_WEEKLY_DAY', 'Sunday'); // what day of the week to do weekly tasks
 define('R_MONTHLY_DAY', '01'); // what day of the month to do monthly tasks (2-digits)
 define('R_FEE_FOR_CASH', FALSE); // does customer pay the Dwolla fee when trading rCredits for cash?

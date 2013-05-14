@@ -1082,8 +1082,7 @@ function formSummary_submit($form, &$sta) {
 
   if (!r\agent()->can(B_CTTY_ADMIN)) return; // hack attempt
   $mya = r\acct();
-  extract(u\just('who floor notes canCharge rTrader idApproved', $sta['input']));
-  extract(u\just('adminable', $sta['input']));
+  extract(u\just('who floor notes canCharge rTrader adminable', $sta['input']));
 
   if (@$who and ($who->community == r\agent()->community or r\agent()->id == 1)) {
     svar('myid', $who->id); // make it the new current account
@@ -1097,7 +1096,7 @@ function formSummary_submit($form, &$sta) {
 
     foreach (u\ray(B_ADMINABLE) as $bitName) {
       $bit = constant('B_' . strtoupper($bitName));
-      $mya->setBit($bit, @$adminable[$bit], FALSE);
+      $mya->setBit($bit, isset($adminable[$bit]), FALSE);
     }
     $mya->update(compact(u\ray('floor notes')));
     say('info saved');
@@ -3007,9 +3006,9 @@ function formOptions($form, &$sta) {
   $virtualMaxMessage = $mya->can(B_COMPANY) ? t(' If you choose to make automatic "virtual" payments, your maximum is the same as your minimum and this setting has no effect.') : '';
 
   $minimum = textField(t('Minimum:'), t('How much to keep in your rCredits account, for purchases or inflation-proof savings. When your balance goes below this amount, the system refills it for you automatically from your bank account, then trades US Dollars for rCredits whenever possible, up to this amount. Refilling may take 3 days (10 days for Savings and Money Market accounts).'), required(u\formatAmount(u\nn($mya->minimum, R_MINR_DEFAULT), 's')));
-  $maximum = textField(t('Maximum:'), u\SUBS(t('How much to keep in your rCredits account AT MOST. When your rCredits balance goes above this amount by $:R_RBUY_CHUNK or more, the extra rCredits are automatically exchanged for US Dollars. 0 means no limit (recommended in most cases).')) . $virtualMaxMessage, required(u\formatAmount(u\nn($mya->maximum, R_MAXR_DEFAULT), 's')));
+  $maximum = textField(t('Maximum:'), u\SUBS(t('How much to keep in your rCredits account AT MOST. When your rCredits balance goes above this amount by $:R_CHUNK or more, the extra rCredits are automatically exchanged for US Dollars. 0 means no limit (recommended in most cases).')) . $virtualMaxMessage, required(u\formatAmount(u\nn($mya->maximum, R_MAXR_DEFAULT), 's')));
   $toBank = formField('checkbox', t('To bank:'), t('Automatically transfer the excess to your bank account (recommended). [<a href="../help/to-bank">why ever not?</a>]'), dft(is_null($mya->minimum) ?: $mya->hasBit(B_TO_BANK)));
-//  $max_usd = textField(t('USD Max:'), u\SUBS(t('Keep at most this much in your Dwolla account. When your Dwolla balance goes above this amount by $:R_RBUY_CHUNK or more, the system will automatically initiate a transfer to your bank account. 0 means no limit.'), required(u\formatAmount(u\nn($mya->max_usd, R_MAXUSD_DEFAULT), 's'))));
+//  $max_usd = textField(t('USD Max:'), u\SUBS(t('Keep at most this much in your Dwolla account. When your Dwolla balance goes above this amount by $:R_CHUNK or more, the system will automatically initiate a transfer to your bank account. 0 means no limit.'), required(u\formatAmount(u\nn($mya->max_usd, R_MAXUSD_DEFAULT), 's'))));
   $notifyBys = array(t('no notifications'), t('by email'), t('by SMS'), t('by both email and SMS'));
   $dft = $mya->hasBit(B_NOTIFY_EMAIL) + 2 * $mya->hasBit(B_NOTIFY_SMS);
   $notifyBy = formField('radios', t('Notifications:'), t('How do you want to be notified about new charges to your account, short-term opportunities, and the like?'), required($dft), $notifyBys);

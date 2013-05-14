@@ -13,6 +13,32 @@ use rCredits\Backend as be;
 global $base_path;
 define('BASE_PATH', $base_path);
 
+function makeRecords($list, $type, $testSeparate = FALSE) {
+  global $testOnly;
+  $table = 'r_' . strtolower($type) . 's';
+  $function = 'rCredits\\Testing\\';
+  if (!function_exists($function . "make$type")) $type = 'Thing';
+  $function .= ($testSeparate and $testOnly) ? "verify$type" : "make$type";
+  foreach ($list as $one) if (!$function($one, $testOnly, $table)) return FALSE;
+  return TRUE;
+}
+
+/*
+ * Generic record-maker/record-tester.
+ */
+function makeThing($info, $testOnly, $table) {
+  extract($info);
+  $info['uid'] = t\uid($id); unset($info['id']);
+  return $testOnly ? verifyRecord($table, $info) : r\dbInsert($table, $info);
+}
+
+function gifts($list) {return makeRecords($list, 'Gift');}
+function notices($list) {return makeRecords($list, 'Notice');}
+function members($list) {return makeRecords($list, 'Account');}
+function relations($list) {return makeRecords($list, 'Relation');}
+function transactions($list) {return makeRecords($list, 'Tx', TRUE);}
+function balances($list) {return makeRecords($list, 'Balances');}
+
 /**
  * Fabricate a bogus account.
  * Minimum parameters: none
@@ -150,26 +176,18 @@ function makeRelation($info, $testOnly = FALSE) {
   return $testOnly ? verifyRecord('r_relations', $info) : r\dbInsert('r_relations', $info);
 }
 
-function makeRecords($list, $type, $testSeparate = FALSE) {
-  global $testOnly;
-  $function = 'rCredits\\Testing\\make' . $type;
-  if ($testSeparate and $testOnly) $function = str_replace('make', 'verify', $function);
-  foreach ($list as $one) if (!$function($one, $testOnly)) return FALSE;
-  return TRUE;
+/**
+ * Return TRUE if the notice has been queued to member $id
+ */
+function notice($notice, $id, $subs) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  $uid = uid($id);
+  $message = u\tt($notice, @$subs[0]);
+  $sent = @$subs[0]['sent'] ?: 0;
+  $info = compact(u\ray('uid message sent'));
+  return r\dbExists('r_notices', $info);
 }
-
-function members($list) {return makeRecords($list, 'Account');}
-function relations($list) {return makeRecords($list, 'Relation');}
-function gifts($list) {return makeRecords($list, 'Gift');}
-function transactions($list) {return makeRecords($list, 'Tx', TRUE);}
-function balances($list) {return makeRecords($list, 'Balances');}
-
-function makeGift($info, $testOnly) {
-  extract($info);
-  $info['uid'] = t\uid($id); unset($info['id']);
-  return $testOnly ? verifyRecord('r_gifts', $info) : r\dbInsert('r_gifts', $info);
-}
-
+  
 /**
  * Make the cached balances be thus and such.
  * Note that this will be at odds with any calculated balances, 
@@ -239,7 +257,7 @@ function uidCredit($uid) {
 
 function uid($id) {
   return is_numeric($id) ? $id 
-    : ($id == 'community' ? r\serverUid() 
+    : (($id == 'community' or $id == 'ctty') ? r\serverUid() 
     : ($id == 'cgf' ? \variable_get('cgf_uid')
     : r\unQuid(fullQid($id))));
 }
@@ -261,16 +279,6 @@ function getErrors() {
     if (u\abbreviates('Unable to send e-mail', $value) or strpos(strip_tags($value), 'expected to be a reference, value given in drupal_retrieve_form()')) unset($errors[$key]); // ignore these when testing
   }
   return $errors;
-}
-
-/**
- * Return TRUE if the notice has been sent to member $id
- */
-function notice($notice, $id, $subs) {
-  global $testOnly; if (!$testOnly) return FALSE;
-  $uid = uid($id);
-  $message = u\tt($notice, $subs[0]);
-  return r\dbExists('r_notices', compact('uid', 'message'));
 }
 
 /**
@@ -320,9 +328,13 @@ EOF;
 }
 
 function findEmail($index, $email, $subs, $noBody = FALSE) {
+  global $testOnly; if (!$testOnly) return FALSE;
   $subs = @$subs[0] ?: @$subs;
   $esubs = array();
-  foreach ($subs as $k => $value) $esubs['{' . $k . '}'] = $value;
+  foreach ($subs as $k => $value) {
+    if (strpos($value, ',')) $value = '<li>' . join("</li>\n<li>", explode(',', $value)) . "</li>\n";
+    $esubs['{' . $k . '}'] = $value;
+  }
   $message = strtr($noBody ? r\emailTemplate($index) : r\emailBody($index), $esubs);
   $subject = strtr($GLOBALS['emailSubjects'][$index], $esubs);
   return findMessage('email', compact(u\ray('index email subject')), $message, $subject, $subs);
@@ -433,7 +445,7 @@ function verifyRecord($table, $info) {
   if (!is_array($info)) die('in verifyRecord: ' . print_r(debug_backtrace(), 1)); // keep
   
   unset($info['data']);
-  $dateFields = '. created completed sent signed login access ';
+  $dateFields = '. created completed sent signed login access yesterday ';
   foreach ($info as $key => $value) {
     $crit[] = $value === '' ? "($key IS NULL or $key='')"
     : ((strpos($dateFields, " $key ") or stripos($key, 'date') !== FALSE) ? 
@@ -698,4 +710,12 @@ function shownWith($content, $type = 'text', $showDebugs = TRUE) {
     }
   }
   return TRUE;
+}
+
+function constants($list) {
+  global $testOnly;
+  foreach ($list as $one) {
+    extract(u\just('name value', $one));
+    
+  }
 }

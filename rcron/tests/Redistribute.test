@@ -1,0 +1,94 @@
+<?php
+//
+// Feature: Redistribute
+//   AS a member
+//   I WANT to trade rCredits automatically for US Dollars and vice-versa, according to my chosen minimum and maximum
+//   SO I can buy with rCredits what I can and have plenty of US Dollars for everything else
+
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rcron.steps';
+
+class rcronRedistribute extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
+  var $sceneName;
+  const SHORT_NAME = 'Redistribute';
+  const FEATURE_NAME = 'rcron Test - Redistribute';
+  const DESCRIPTION = 'Redistribute';
+  const MODULE = 'rcron';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
+  }
+  
+  public static function getInfo() {
+    return array(
+      'short_name' => self::SHORT_NAME,
+      'name' => self::FEATURE_NAME,
+      'description' => self::DESCRIPTION,
+      'group' => ucwords(self::MODULE)
+    );
+  }
+
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
+    global $sceneTest; $sceneTest = $this;
+    parent::setUp(self::MODULE);
+
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rcron.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
+    default: // fall through to case(0)
+    case(0):
+    Given('members: "DATA'
+    . '\\| id   | fullName   | floor | minimum | maximum | flags                   |'
+    . '\\| .ZZA | Abe One    |     0 |     100 |     200 | dft,personal,ok         |'
+    . '\\| .ZZB | Bea Two    |     0 |     100 |     200 | dft,personal,ok         |'
+    . '\\| .ZZC | Corner Pub |     0 |     100 |     200 | dft,personal,company,ok |"');
+    break;
+
+
+    }
+  }
+
+  // Scenario: a member has too much r
+  public function testAMemberHasTooMuchR_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "DATA'
+    . '\\| id   | r                | usd | rewards |'
+    . '\\| .ZZA | %(201 + %chunk3) |  20 |      20 |'
+    . '\\| .ZZB |                5 | 120 |      20 |'
+    . '\\| .ZZC |                5 |  60 |      20 |"');
+    When_('cron runs "redistribute"');
+    Then_('transactions: "DATA'
+    . '\\| xid   | type     | state | amount | r       | from      | to        | purpose               |'
+    . '\\| .AAAB | transfer | done  |      0 | %chunk  | community | .ZZB      | rCredits/USD exchange |'
+    . '\\| .AAAC | transfer | done  |      0 | %chunk  | community | .ZZC      | rCredits/USD exchange |'
+    . '\\| .AAAD | transfer | done  |      0 | %chunk  | community | .ZZB      | rCredits/USD exchange |'
+    . '\\| .AAAE | transfer | done  |      0 | %chunk3 | .ZZA      | community | rCredits/USD exchange |"');
+  }
+
+  // Scenario: a member has too much r but too few buyers
+  public function testAMemberHasTooMuchRButTooFewBuyers_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "DATA'
+    . '\\| id   | r                | usd | rewards |'
+    . '\\| .ZZA | %(201 + %chunk3) |  20 |      20 |'
+    . '\\| .ZZB | %(100 - %chunk2) | 120 |      20 |'
+    . '\\| .ZZC |              100 |  60 |      20 |"');
+    When_('cron runs "redistribute"');
+    Then_('transactions: "DATA'
+    . '\\| xid   | type     | state | amount | r       | from      | to        | purpose               |'
+    . '\\| .AAAB | transfer | done  |      0 | %chunk  | community | .ZZB      | rCredits/USD exchange |'
+    . '\\| .AAAC | transfer | done  |      0 | %chunk  | community | .ZZB      | rCredits/USD exchange |'
+    . '\\| .AAAD | transfer | done  |      0 | %chunk2 | .ZZA      | community | rCredits/USD exchange |"');
+    And__('we tell staff "no buyers" with subs: "DATA'
+    . '\\| amount |'
+    . '\\| %chunk |"');
+    And__('we notice "cannot offload" to member ".ZZA" with subs: ""');
+  }
+
+}

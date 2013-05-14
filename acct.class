@@ -269,10 +269,10 @@ EOF;
   public function setBit($bit, $on = TRUE, $now = TRUE) {
 // gets caught anyway    u\EXPECT(compact('int', 'on'), 'int bool');
     u\EXPECT($bit <= B_MAX, 'setting too big a bit');
-    $bit = u\bit($bit);
+    $bit = u\bit($bit0 = $bit);
     $flags = $on ? ($this->flags | $bit) : ($this->flags & ~$bit);
-    $this->refreshCan();
     self::$records[$this->id]->flags = $flags;
+    $this->refreshCan();
     return $now ? $this->update(compact('flags')) : TRUE;
   }
   

@@ -35,7 +35,7 @@ function rcredits_install() {
     $info += compact(u\ray('mail phone address city state'));
     new r\acct($info);
     
-    $values = array(r\unQuid(R_SERVER_ID . '.AAB'), $server, 'cgf', 'Common Good Finance', '01330', R_COUNTRY_ID, 0, R_REBATE, B_DFT | u\bit(B_OK) | u\bit(B_COMPANY));
+    $values = array(r\unQuid(R_SERVER_ID . '.AAB'), $server, 'cgf', 'Common Good Finance', '01330', R_COUNTRY_ID, 0, R_REBATE, B_DFT | u\bit(B_MEMBER) | u\bit(B_OK) | u\bit(B_COMPANY));
     $info = array_combine($keys, $values);
     list ($mail, $phone, $address, $city, $state) = array(CGF_EMAIL, CGF_PHONE, CGF_ADDRESS, CGF_CITY, R_STATE_ID);
     $info += compact(u\ray('mail phone address city state'));

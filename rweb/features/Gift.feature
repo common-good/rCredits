@@ -5,57 +5,57 @@ SO I can enjoy the rCredit system's rapid growth and be a part of that.
 
 Setup:
   Given members:
-  | id      | fullName   | address | city  | state  | postalCode | country | email         | flags           |
-  | NEW.ZZA | Abe One    | POB 1   | Atown | Alaska | 01000      | US      | a@example.com | dft,ok,personal |
+  | id   | fullName   | address | city  | state  | postalCode | country | email         | flags           |
+  | .ZZA | Abe One    | POB 1   | Atown | Alaska | 01000      | US      | a@example.com | dft,ok,personal |
   And balances:
-  | id        | usd  | r   | rewards |
-  | cgf       |    0 |   0 |       0 |
-  | NEW.ZZA   |  100 |  20 |      20 |
+  | id     | usd  | r   | rewards |
+  | cgf    |    0 |   0 |       0 |
+  | .ZZA   |  100 |  20 |      20 |
 
 Scenario: A member contributes
-  When member "NEW.ZZA" completes form "membership/contribute" with values:
+  When member ".ZZA" completes form "membership/contribute" with values:
   | gift | amount | often | honor  | honored | share |
   |    0 |     10 |     1 | memory | Jane Do |    10 |
   Then transactions:
-  | tx_id    | created | type         | state    | amount | from      | to      | purpose      | r    |
-  | NEW.AAAB | %today  | %TX_TRANSFER | %TX_DONE |     10 | NEW.ZZA   | cgf     | contribution |   10 |
-  | NEW.AAAC | %today  | %TX_REBATE   | %TX_DONE |   0.50 | community | NEW.ZZA | rebate on #1 | 0.50 |
-  | NEW.AAAD | %today  | %TX_BONUS    | %TX_DONE |   1.00 | community | cgf     | bonus on #1  | 1.00 |
+  | xid   | created | type     | state | amount | from | to   | purpose      | r    |
+  | .AAAB | %today  | transfer | done  |     10 | .ZZA | cgf  | contribution |   10 |
+  | .AAAC | %today  | rebate   | done  |   0.50 | ctty | .ZZA | rebate on #1 | 0.50 |
+  | .AAAD | %today  | bonus    | done  |   1.00 | ctty | cgf  | bonus on #1  | 1.00 |
   And we say "status": "gift successful" with subs:
   | amount |
   |    $10 |
   And gifts:
-  | id      | giftDate | amount | often | honor  | honored | share | completed |
-  | NEW.ZZA | %today   |     10 |     1 | memory | Jane Do |    10 | %today    |
+  | id   | giftDate | amount | often | honor  | honored | share | completed |
+  | .ZZA | %today   |     10 |     1 | memory | Jane Do |    10 | %today    |
   And we notice "new payment" to member "cgf" with subs:
   | otherName | amount | payeePurpose |
   | Abe One   |    $10 | contribution |
-  And we tell staff "gift accepted" with:
+  And we tell staff "gift accepted" with subs:
   | amount | often | txField  |
   |     10 |     1 | payerTid |
   # and many other fields
 
 Scenario: A member contributes partly in USD
 # Donations to CGF get full rewards, even if given in USD.
-  When member "NEW.ZZA" completes form "membership/contribute" with values:
+  When member ".ZZA" completes form "membership/contribute" with values:
   | gift | amount | often | honor  | honored | share |
   |    0 |     50 |     1 | memory | Jane Do |    10 |
   Then transactions:
-  | xid      | created | type         | state    | amount | from      | to      | purpose      | r    |
-  | NEW.AAAB | %today  | %TX_TRANSFER | %TX_DONE |     50 | NEW.ZZA   | cgf     | contribution |   20 |
-  | NEW.AAAC | %today  | %TX_REBATE   | %TX_DONE |   2.50 | community | NEW.ZZA | rebate on #1 | 2.50 |
-  | NEW.AAAD | %today  | %TX_BONUS    | %TX_DONE |   5.00 | community | cgf     | bonus on #1  | 5.00 |
+  | xid   | created | type     | state | amount | from | to   | purpose      | r    |
+  | .AAAB | %today  | transfer | done  |     50 | .ZZA | cgf  | contribution |   20 |
+  | .AAAC | %today  | rebate   | done  |   2.50 | ctty | .ZZA | rebate on #1 | 2.50 |
+  | .AAAD | %today  | bonus    | done  |   5.00 | ctty | cgf  | bonus on #1  | 5.00 |
   
 Scenario: A member contributes with insufficient funds
-  When member "NEW.ZZA" completes form "membership/contribute" with values:
+  When member ".ZZA" completes form "membership/contribute" with values:
   | gift | amount | often | honor  | honored | share |
   |    0 |    200 |     1 | memory | Jane Do |    10 |
   Then we say "status": "gift successful|gift transfer later" with subs:
   | amount |
   |   $200 |
   And gifts:
-  | id      | giftDate | amount | often | honor  | honored | share | completed |
-  | NEW.ZZA | %today   |    200 |     1 | memory | Jane Do |    10 |         0 |
-  And we tell staff "gift" with:
+  | id   | giftDate | amount | often | honor  | honored | share | completed |
+  | .ZZA | %today   |    200 |     1 | memory | Jane Do |    10 |         0 |
+  And we tell staff "gift" with subs:
   | amount | often |
   |     10 |     1 |

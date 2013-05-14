@@ -1,0 +1,44 @@
+Feature: Redistribute
+AS a member
+I WANT to trade rCredits automatically for US Dollars and vice-versa, according to my chosen minimum and maximum
+SO I can buy with rCredits what I can and have plenty of US Dollars for everything else
+# Assumes 1 < R_BUY_CHUNK <= 50
+
+Setup:
+  Given members:
+  | id   | fullName   | floor | minimum | maximum | flags                   |
+  | .ZZA | Abe One    |     0 |     100 |     200 | dft,personal,ok         |
+  | .ZZB | Bea Two    |     0 |     100 |     200 | dft,personal,ok         |
+  | .ZZC | Corner Pub |     0 |     100 |     200 | dft,personal,company,ok |
+
+Scenario: a member has too much r
+  Given balances:
+  | id   | r                | usd | rewards |
+  | .ZZA | %(201 + %chunk3) |  20 |      20 |
+  | .ZZB |                5 | 120 |      20 |
+  | .ZZC |                5 |  60 |      20 |
+  When cron runs "redistribute"
+  Then transactions:
+  | xid   | type     | state | amount | r       | from      | to        | purpose               |
+  | .AAAB | transfer | done  |      0 | %chunk  | community | .ZZB      | rCredits/USD exchange |
+  | .AAAC | transfer | done  |      0 | %chunk  | community | .ZZC      | rCredits/USD exchange |
+  | .AAAD | transfer | done  |      0 | %chunk  | community | .ZZB      | rCredits/USD exchange |
+  | .AAAE | transfer | done  |      0 | %chunk3 | .ZZA      | community | rCredits/USD exchange |
+  
+Scenario: a member has too much r but too few buyers
+  Given balances:
+  | id   | r                | usd | rewards |
+  | .ZZA | %(201 + %chunk3) |  20 |      20 |
+  | .ZZB | %(100 - %chunk2) | 120 |      20 |
+  | .ZZC |              100 |  60 |      20 |
+  When cron runs "redistribute"
+  Then transactions:
+  | xid   | type     | state | amount | r       | from      | to        | purpose               |
+  | .AAAB | transfer | done  |      0 | %chunk  | community | .ZZB      | rCredits/USD exchange |
+  | .AAAC | transfer | done  |      0 | %chunk  | community | .ZZB      | rCredits/USD exchange |
+  | .AAAD | transfer | done  |      0 | %chunk2 | .ZZA      | community | rCredits/USD exchange |
+  And we tell staff "no buyers" with subs:
+  | amount |
+  | %chunk |
+  And we notice "cannot offload" to member ".ZZA" with subs: ""
+  

@@ -293,7 +293,7 @@ function tt($message, $subs = array(), $adhocChannel = '') {
  
   if (!$adhocChannel) $adhocChannel = $channel;
   if (is_array($message)) list ($message, $subs) = $message;
-  if (!$subs) $subs = array();
+  if (!$subs) $subs = array(); // accept ''
   $messages = explode('|', $message);
   $channels = ray(TX_CHANNELS);
 

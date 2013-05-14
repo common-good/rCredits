@@ -44,12 +44,12 @@ class rwebGift extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id      | fullName   | address | city  | state  | postalCode | country | email         | flags           |'
-    . '\\| NEW.ZZA | Abe One    | POB 1   | Atown | Alaska | 01000      | US      | a@example.com | dft,ok,personal |"');
+    . '\\| id   | fullName   | address | city  | state  | postalCode | country | email         | flags           |'
+    . '\\| .ZZA | Abe One    | POB 1   | Atown | Alaska | 01000      | US      | a@example.com | dft,ok,personal |"');
     And__('balances: "DATA'
-    . '\\| id        | usd  | r   | rewards |'
-    . '\\| cgf       |    0 |   0 |       0 |'
-    . '\\| NEW.ZZA   |  100 |  20 |      20 |"');
+    . '\\| id     | usd  | r   | rewards |'
+    . '\\| cgf    |    0 |   0 |       0 |'
+    . '\\| .ZZA   |  100 |  20 |      20 |"');
     break;
 
 
@@ -59,24 +59,24 @@ class rwebGift extends DrupalWebTestCase {
   // Scenario: A member contributes
   public function testAMemberContributes_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" completes form "membership/contribute" with values: "DATA'
+    When_('member ".ZZA" completes form "membership/contribute" with values: "DATA'
     . '\\| gift | amount | often | honor  | honored | share |'
     . '\\|    0 |     10 |     1 | memory | Jane Do |    10 |"');
     Then_('transactions: "DATA'
-    . '\\| tx_id    | created | type         | state    | amount | from      | to      | purpose      | r    |'
-    . '\\| NEW.AAAB | %today  | %TX_TRANSFER | %TX_DONE |     10 | NEW.ZZA   | cgf     | contribution |   10 |'
-    . '\\| NEW.AAAC | %today  | %TX_REBATE   | %TX_DONE |   0.50 | community | NEW.ZZA | rebate on #1 | 0.50 |'
-    . '\\| NEW.AAAD | %today  | %TX_BONUS    | %TX_DONE |   1.00 | community | cgf     | bonus on #1  | 1.00 |"');
+    . '\\| xid   | created | type     | state | amount | from | to   | purpose      | r    |'
+    . '\\| .AAAB | %today  | transfer | done  |     10 | .ZZA | cgf  | contribution |   10 |'
+    . '\\| .AAAC | %today  | rebate   | done  |   0.50 | ctty | .ZZA | rebate on #1 | 0.50 |'
+    . '\\| .AAAD | %today  | bonus    | done  |   1.00 | ctty | cgf  | bonus on #1  | 1.00 |"');
     And__('we say "status": "gift successful" with subs: "DATA'
     . '\\| amount |'
     . '\\|    $10 |"');
     And__('gifts: "DATA'
-    . '\\| id      | giftDate | amount | often | honor  | honored | share | completed |'
-    . '\\| NEW.ZZA | %today   |     10 |     1 | memory | Jane Do |    10 | %today    |"');
+    . '\\| id   | giftDate | amount | often | honor  | honored | share | completed |'
+    . '\\| .ZZA | %today   |     10 |     1 | memory | Jane Do |    10 | %today    |"');
     And__('we notice "new payment" to member "cgf" with subs: "DATA'
     . '\\| otherName | amount | payeePurpose |'
     . '\\| Abe One   |    $10 | contribution |"');
-    And__('we tell staff "gift accepted" with: "DATA'
+    And__('we tell staff "gift accepted" with subs: "DATA'
     . '\\| amount | often | txField  |'
     . '\\|     10 |     1 | payerTid |"');
   }
@@ -84,29 +84,29 @@ class rwebGift extends DrupalWebTestCase {
   // Scenario: A member contributes partly in USD
   public function testAMemberContributesPartlyInUSD_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" completes form "membership/contribute" with values: "DATA'
+    When_('member ".ZZA" completes form "membership/contribute" with values: "DATA'
     . '\\| gift | amount | often | honor  | honored | share |'
     . '\\|    0 |     50 |     1 | memory | Jane Do |    10 |"');
     Then_('transactions: "DATA'
-    . '\\| xid      | created | type         | state    | amount | from      | to      | purpose      | r    |'
-    . '\\| NEW.AAAB | %today  | %TX_TRANSFER | %TX_DONE |     50 | NEW.ZZA   | cgf     | contribution |   20 |'
-    . '\\| NEW.AAAC | %today  | %TX_REBATE   | %TX_DONE |   2.50 | community | NEW.ZZA | rebate on #1 | 2.50 |'
-    . '\\| NEW.AAAD | %today  | %TX_BONUS    | %TX_DONE |   5.00 | community | cgf     | bonus on #1  | 5.00 |"');
+    . '\\| xid   | created | type     | state | amount | from | to   | purpose      | r    |'
+    . '\\| .AAAB | %today  | transfer | done  |     50 | .ZZA | cgf  | contribution |   20 |'
+    . '\\| .AAAC | %today  | rebate   | done  |   2.50 | ctty | .ZZA | rebate on #1 | 2.50 |'
+    . '\\| .AAAD | %today  | bonus    | done  |   5.00 | ctty | cgf  | bonus on #1  | 5.00 |"');
   }
 
   // Scenario: A member contributes with insufficient funds
   public function testAMemberContributesWithInsufficientFunds_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" completes form "membership/contribute" with values: "DATA'
+    When_('member ".ZZA" completes form "membership/contribute" with values: "DATA'
     . '\\| gift | amount | often | honor  | honored | share |'
     . '\\|    0 |    200 |     1 | memory | Jane Do |    10 |"');
     Then_('we say "status": "gift successful|gift transfer later" with subs: "DATA'
     . '\\| amount |'
     . '\\|   $200 |"');
     And__('gifts: "DATA'
-    . '\\| id      | giftDate | amount | often | honor  | honored | share | completed |'
-    . '\\| NEW.ZZA | %today   |    200 |     1 | memory | Jane Do |    10 |         0 |"');
-    And__('we tell staff "gift" with: "DATA'
+    . '\\| id   | giftDate | amount | often | honor  | honored | share | completed |'
+    . '\\| .ZZA | %today   |    200 |     1 | memory | Jane Do |    10 |         0 |"');
+    And__('we tell staff "gift" with subs: "DATA'
     . '\\| amount | often |'
     . '\\|     10 |     1 |"');
   }

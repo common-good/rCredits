@@ -179,10 +179,7 @@ function weSayToPhoneWithSubs($number, $message, $subs) {
  *     Undo TheCallerRefusesToPayTheLatestInvoice TEST
  *     Undo TheCallerRefusesAPendingPayment TEST
  */
-function weEmailToMemberWithSubs($key, $email, $subs) {
-  global $testOnly;
-  return t\findEmail($key, $email, $subs);
-}
+function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, $email, $subs);}
 
 /**
  * phone (ARG) has no name
