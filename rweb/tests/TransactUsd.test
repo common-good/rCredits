@@ -44,22 +44,22 @@ class rwebTransactUsd extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id      | fullName   | country | email         | flags           |'
-    . '\\| NEW.ZZA | Abe One    | US      | a@example.com | dft,ok,personal |'
-    . '\\| NEW.ZZB | Bea Two    | US      | b@example.com | dft,ok,personal |'
-    . '\\| NEW.ZZC | Corner Pub | France  | c@example.com | dft,ok,company  |"');
+    . '\\| id   | fullName   | country | email         | flags                |'
+    . '\\| .ZZA | Abe One    | US      | a@example.com | dft,ok,personal      |'
+    . '\\| .ZZB | Bea Two    | US      | b@example.com | dft,ok,personal,bona |'
+    . '\\| .ZZC | Corner Pub | France  | c@example.com | dft,ok,company       |"');
     And__('relations: "DATA'
-    . '\\| id      | main    | agent   | permission |'
-    . '\\| NEW:ZZA | NEW.ZZA | NEW.ZZB | buy        |'
-    . '\\| NEW:ZZB | NEW.ZZB | NEW.ZZA | read       |'
-    . '\\| NEW:ZZC | NEW.ZZC | NEW.ZZB | buy        |'
-    . '\\| NEW:ZZD | NEW.ZZC | NEW.ZZA | sell       |"');
+    . '\\| id      | main | agent | permission |'
+    . '\\| NEW:ZZA | .ZZA | .ZZB  | buy        |'
+    . '\\| NEW:ZZB | .ZZB | .ZZA  | read       |'
+    . '\\| NEW:ZZC | .ZZC | .ZZB  | buy        |'
+    . '\\| NEW:ZZD | .ZZC | .ZZA  | sell       |"');
     And__('usd: "DATA'
-    . '\\| id        | usd  |'
-    . '\\| community | 1000 |'
-    . '\\| NEW.ZZA   |  100 |'
-    . '\\| NEW.ZZB   |  200 |'
-    . '\\| NEW.ZZC   |  300 |"');
+    . '\\| id   | usd  |'
+    . '\\| ctty | 1000 |'
+    . '\\| .ZZA |  100 |'
+    . '\\| .ZZB |  200 |'
+    . '\\| .ZZC |  300 |"');
     break;
 
 
@@ -69,47 +69,47 @@ class rwebTransactUsd extends DrupalWebTestCase {
   // Scenario: A member asks to charge another member
   public function testAMemberAsksToChargeAnotherMember_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" completes form "charge" with values: "DATA'
+    When_('member ".ZZA" completes form "charge" with values: "DATA'
     . '\\| op     | who     | amount | goods | purpose |'
     . '\\| charge | Bea Two | 100    | 1     | labor   |"');
     Then_('we show "confirm charge" with subs: "DATA'
     . '\\| amount | otherName |'
     . '\\| $100   | Bea Two   |"');
     And__('balances: "DATA'
-    . '\\| id      | r | usd | rewards |'
-    . '\\| NEW.ZZA | 0 | 100 |       0 |'
-    . '\\| NEW.ZZB | 0 | 200 |       0 |'
-    . '\\| NEW.ZZC | 0 | 300 |       0 |"');
+    . '\\| id   | r | usd | rewards |'
+    . '\\| .ZZA | 0 | 100 |       0 |'
+    . '\\| .ZZB | 0 | 200 |       0 |'
+    . '\\| .ZZC | 0 | 300 |       0 |"');
   }
 
   // Scenario: A member confirms request to charge another member
   public function testAMemberConfirmsRequestToChargeAnotherMember_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" confirms form "charge" with values: "DATA'
+    When_('member ".ZZA" confirms form "charge" with values: "DATA'
     . '\\| op     | who     | amount | goods | purpose |'
     . '\\| charge | Bea Two | 100    | 1     | labor   |"');
     Then_('we say "status": "report invoice" with subs: "DATA'
     . '\\| action  | otherName | amount | tid |'
     . '\\| charged | Bea Two   | $100   | 1   |"');
-    And__('we notice "new invoice" to member "NEW.ZZB" with subs: "DATA'
+    And__('we notice "new invoice" to member ".ZZB" with subs: "DATA'
     . '\\| created | fullName | otherName | amount | payerPurpose |'
     . '\\| %today  | Bea Two  | Abe One   | $100   | labor        |"');
     And__('transactions: "DATA'
-    . '\\| xid      | created   | type      | state       | amount | from      | to      | purpose      | taking |'
-    . '\\| NEW.AAAB | %today | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZB   | NEW.ZZA | labor        | 1      |'
-    . '\\| NEW.AAAC | %today | %TX_REBATE   | %TX_PENDING |      5 | community | NEW.ZZB | rebate on #1 | 0      |'
-    . '\\| NEW.AAAD | %today | %TX_BONUS    | %TX_PENDING |     10 | community | NEW.ZZA | bonus on #1  | 0      |"');
+    . '\\| xid   | created | type     | state   | amount | from | to   | purpose      | taking |'
+    . '\\| .AAAB | %today  | transfer | pending |    100 | .ZZB | .ZZA | labor        | 1      |'
+    . '\\| .AAAC | %today  | rebate   | pending |      5 | ctty | .ZZB | rebate on #1 | 0      |'
+    . '\\| .AAAD | %today  | bonus    | pending |     10 | ctty | .ZZA | bonus on #1  | 0      |"');
     And__('balances: "DATA'
     . '\\| id      | r | usd | rewards |'
-    . '\\| NEW.ZZA | 0 | 100 |       0 |'
-    . '\\| NEW.ZZB | 0 | 200 |       0 |'
-    . '\\| NEW.ZZC | 0 | 300 |       0 |"');
+    . '\\| .ZZA | 0 | 100 |       0 |'
+    . '\\| .ZZB | 0 | 200 |       0 |'
+    . '\\| .ZZC | 0 | 300 |       0 |"');
   }
 
   // Scenario: A member asks to pay another member
   public function testAMemberAsksToPayAnotherMember_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" completes form "pay" with values: "DATA'
+    When_('member ".ZZA" completes form "pay" with values: "DATA'
     . '\\| op  | who     | amount | goods | purpose |'
     . '\\| pay | Bea Two | 100    | 1     | labor   |"');
     Then_('we show "confirm payment" with subs: "DATA'
@@ -120,25 +120,25 @@ class rwebTransactUsd extends DrupalWebTestCase {
   // Scenario: A member confirms request to pay another member
   public function testAMemberConfirmsRequestToPayAnotherMember_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" confirms form "pay" with values: "DATA'
+    When_('member ".ZZA" confirms form "pay" with values: "DATA'
     . '\\| op  | who     | amount | goods | purpose |'
     . '\\| pay | Bea Two | 100    | 1     | labor   |"');
     Then_('we say "status": "report transaction" with subs: "DATA'
     . '\\| action | otherName | amount | tid | rewardType | rewardAmount |'
     . '\\| paid   | Bea Two   | $100   | 1   | rebate     | $0.05        |"');
-    And__('we notice "new payment" to member "NEW.ZZB" with subs: "DATA'
+    And__('we notice "new payment" to member ".ZZB" with subs: "DATA'
     . '\\| created | fullName | otherName | amount | payeePurpose |'
     . '\\| %today  | Bea Two  | Abe One   | $100   | labor        |"');
     And__('transactions: "DATA'
-    . '\\| xid      | created   | type      | state    | amount | r    | from      | to      | purpose      | taking |'
-    . '\\| NEW.AAAB | %today | %TX_TRANSFER | %TX_DONE |    100 | 0    | NEW.ZZA   | NEW.ZZB | labor        | 0      |'
-    . '\\| NEW.AAAC | %today | %TX_REBATE   | %TX_DONE |   0.05 | 0.05 | community | NEW.ZZA | rebate on #1 | 0      |"');
+    . '\\| xid   | created | type     | state | amount | r    | from | to   | purpose      | taking |'
+    . '\\| .AAAB | %today  | transfer | done  |    100 | 0    | .ZZA | .ZZB | labor        | 0      |'
+    . '\\| .AAAC | %today  | rebate   | done  |   0.05 | 0.05 | ctty | .ZZA | rebate on #1 | 0      |"');
     And__('balances: "DATA'
-    . '\\| id        | r     | usd    | rewards |'
-    . '\\| community | -0.05 |      - |       - |'
-    . '\\| NEW.ZZA   |  0.05 |   0.00 |    0.05 |'
-    . '\\| NEW.ZZB   |     0 | 299.75 |       0 |'
-    . '\\| NEW.ZZC   |     0 | 300.00 |       0 |"');
+    . '\\| id   | r     | usd    | rewards |'
+    . '\\| ctty | -0.05 |      - |       - |'
+    . '\\| .ZZA |  0.05 |   0.00 |    0.05 |'
+    . '\\| .ZZB |     0 | 299.75 |       0 |'
+    . '\\| .ZZC |     0 | 300.00 |       0 |"');
   }
 
 }

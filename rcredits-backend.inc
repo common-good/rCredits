@@ -109,28 +109,39 @@ function backend2($args = FALSE) {
  * NOTE: Denied invoices are included only for the payee, otherwise all complete or tentative transactions
  * other than rebates and bonuses are included (even those will be included if the 'include_bonuses' option is set).
  */
-function myTransactions($args) {
-  if (isFrontend()) return backend(__FUNCTION__, $args);
-  extract($args);
-  
-  $myid = r\acct()->id;
-  $omit_bonuses = @$include_bonuses ? '' : 'WHERE t.type NOT IN (:TX_REBATE, :TX_BONUS)';
-  
-  $sql = <<<EOF
-    SELECT t.*,
-      (SELECT fullName FROM users WHERE uid=IF(t.payer=$myid, t.payee, t.payer)) AS name,
-      IF(t.payer=$myid, t.payerFor, t.payeeFor) AS purpose
-    FROM r_txs t 
-    $omit_bonuses
-    AND $myid IN (t.payer, t.payee) 
-    AND (t.state IN(:TX_DONE, :TX_PENDING, :TX_DISPUTED) OR (t.state=:TX_DENIED AND t.payee=$myid))
-    AND t.created>=:starting AND t.created<=:ending
-    ORDER BY t.xid DESC
+function myTransactions($starting, $ending, $id = NULL, $omitPending = FALSE, $omitBonuses = TRUE) {
+  $mya = r\acct();
+  $omitBonuses = $omitBonuses ? 'AND t.type NOT IN (:TX_REBATE, :TX_BONUS)' : '';
+  $commonCriteria = 't.created>=:starting AND t.created<=:ending ORDER BY t.xid DESC';
+  if (@$id == 'ctty' or (@$id and @$id < 0)) {
+    $states = ':TX_DONE, :TX_DISPUTED';
+    if (!$omitPending) $states .= ', :TX_PENDING';
+    $sql = <<<EOF
+      SELECT t.*, IF(taking, t.payeeFor, t.payerFor) AS purpose
+      FROM r_txs t LEFT JOIN users u1 ON u1.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
+      WHERE (u1.community=:id OR u2.community=:id)
+      $omitBonuses
+      AND t.state IN($states)
+      AND $commonCriteria
 EOF;
+    $myCriteria = '(community=:id)';
+    $id = @$id == 'ctty' ? $mya->community : $id;
+  } else {
+    $otherStates = $omitPending ? 'FALSE' : 't.state=:TX_PENDING OR (t.state=:TX_DENIED AND t.payee=:id)';
+    $sql = <<<EOF
+      SELECT t.*,
+      (SELECT fullName FROM users WHERE uid=IF(t.payer=:id, t.payee, t.payer)) AS name,
+      IF(t.payer=:id, t.payerFor, t.payeeFor) AS purpose
+      FROM r_txs t 
+      WHERE :id IN (t.payer, t.payee)
+      $omitBonuses
+      AND (t.state IN(:TX_DONE, :TX_DISPUTED) OR $otherStates)
+      AND $commonCriteria
+EOF;
+    if (!@$id) $id = $mya->id;
+  }
 
-  return r\dbQ($sql, compact(u\ray('starting ending'))); // ->fetchAllAssoc('xid', \PDO::FETCH_ASSOC);
-
-//  return array_flip(array_map(function($one) {return -$one;}, array_flip($result))); // negate the keys
+  return r\dbQ($sql, compact(u\ray('starting ending id'))); 
 }
 
 /**
@@ -500,10 +511,10 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
         ($preapproved ? ($virtual ? 'offer' : 'transaction') : 'invoice')
       : ($preapproved ? 'exchange' : 'exchange request'); // no possible shortfall on confirmed cash exchange (see above)
     $message = "report $message";
-    $bona = ($toAcct->r + $toAcct->usd > $toAcct->rewards); // 1st time acct got money not as incentive
+    $bona = ($preapproved and $toAcct->r + $toAcct->usd > $toAcct->rewards); // 1st time acct got non-incentive
     if (r\membershipEvent($toAcct, 'bona', $bona)) { // ($bona was r\checkBona())
       r\notify($uid, 'signup bonus');
-      $message .= '|signup bonus';
+// ?      if ($uid == $a1->id) $message .= '|signup bonus';
     }
   } else {
     $message = $goods ? $ttype : 'exchange';

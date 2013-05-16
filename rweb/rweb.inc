@@ -52,7 +52,7 @@ EOF
   'changed account' => t('You are now managing the account for @newAcct. Any unsaved changes to account @oldAcct have been discarded.'),
   'take a step' => t('Your account is <b style="color:red;">not yet activated</b>. <a href="membership"><span id="nextstep">Take the next step!</span> Click here</a> to see where you are in your membership progress and what to do next.'),
   'got token' => t('Your rCredits and US Dollar accounts have been successfully connected!'),
-  'company rcard' => t('Send a <a href="print-rcard">company rCard</a>.'),
+  'company rcard' => t('Send a <a href="@href">company rCard</a> to @name at @address.'),
   'amount rounded' => t('"@amount" was rounded to the nearest integer value.'),
   'invite sent' => t('Your invitation has been sent.'),
   'repeat invite' => t('Come back any time, to send more invitations (click on "Membership" in the upper right corner, then on "Invite").'),
@@ -140,6 +140,8 @@ EOF
   'no stop draw' => t('The account for @fullName has overspent its rCredits, based on your balance. So you cannot discontinue "draw" permission without first bringing that account back up to even (for example by giving it some funds.'),
   'doubled proxy' => t('Your alternate proxy cannot be the same person as your first proxy.'),
   'po in location' => t('Your physical location address cannot be a Post Office box.'),
+  'missing currency' => t('You must choose rCredits, USD, or both.'),
+  'download always both' => t('Note: Downloads always include both rCredits and USD amounts.'),
 );
 
 /**
@@ -690,12 +692,14 @@ function formMembership($updating, &$sta = '', $code = '') {
 
   if ($mempage == .5 or (!$gotContact and !$mempage)) { // did all the initial steps, but somehow didn't complete contact info
     $message1 = t("<h2>Missing Contact Information</h2><p>Please complete your <a href=\"$base_url/account/contact\">Contact Information</a> before continuing.</p>");
-  } elseif ($mempage == '4' or ($ready and !$mempage)) {
-    $message1 = t('<h2>Your Account Setup Is Complete</h2><p>You have done everything you need to do. You can expect your account to be activated within the next 24 hours. Thank you for joining!</p>');
+  } elseif ($mempage == '4' or ($ready and !$mya->can(B_OK) and !$mempage)) {
+    $message1 = t('<h2>Your Account Setup Is Complete</h2><p>You have done everything you need to do. You can expect your account to be activated within the next 24 hours.</p><p>Thank you for joining us!</p>');
   } elseif ($mempage == '1' or (!$mya->can(B_OK) and !$mempage)) { // not a member yet (no rCard, no vote)
-    $message1 = t('<h2>Congratulations on signing up for rCredits!</h2><p>Thanks for joining us. ') 
-    . ($nonperson ? t('Before you can begin accepting rCredits payments, you must complete the following steps:</p>') 
-      : t('Before we can send your rCard, and before you can vote on community funding, you must complete the following steps:</p>'));
+    $message1 = ($gotPhoto or $signed or $donated or ($gotProxies and !$nonperson) or $gotUsdInfo or $gotIdProof or $gotPreferences) ? 
+          t("<h2>You're getting there!</h2><p>")
+        : t('<h2>Congratulations on signing up for rCredits!</h2><p>Thanks for joining us. ');
+    $message1 .= $nonperson ? t('Before you can begin accepting rCredits payments, you must complete the following steps:</p>') 
+      : t('Before we can send your rCard, and before you can vote on community funding, you must complete the following steps:</p>');
 
 //    $step1 = t('Complete your <a>contact information</a>.'); // keep this in case
     $stepPhoto = t('<a>Upload a photo</a> for your ') . ($nonperson ? t('company profile.') : t('Member ID Card.'));
@@ -725,11 +729,11 @@ EOF
     $addendum = item(tt('<p>Opening an rCredits account is almost exactly like opening two online bank accounts and connecting them together. We will guide you through the process.</p><p>Please feel free to <a href="mailto:@R_ORG_EMAIL" target="_blank">send us an email</a> if you need help.</p>'));
 // (Suggest it after 1mo) if (!$nonperson) $message2 .= memberStep(4, $invited, $step4, 'invite');
   } elseif ($mempage == 2 or (!$mya->can(B_OK) and !$mempage)) {
-    $message1 = t('<h2>You have completed all membership steps.</h2><p>Within 24 hours, you should receive an email saying your account is approved and you can expect your rCard in the mail within a day or two. Hurray!</p>');
+    $message1 = t('<h2>You have completed all membership steps.</h2><p>Within 24 hours, you should receive an email saying your account is approved and you can expect your rCard in the mail within a day or two. Hurray!</p>'); // UNUSED
   } else {
     $message1 = t('<h2>Congratulations! Your account is Activated.</h2><p>You are authorized to use rCredits to buy and sell with other members.')
       . ($mya->can(B_PERSONAL) ? t(' You are also responsible for guiding your local economy, together with hundreds of other rCredits members -- setting investment and grant-making priorities, electing local directors for your Common Good Community, planning a sustainable local prosperity for all residents, and offering help to communities elsewhere.</p>') : '</p>')
-      . ($mya->can(B_BONA) ? '' : t("<p>To receive your $" . R_SIGNUP_BONUS . " signup bonus, you must have a way to get money into your account. Ask someone to pay you with rCredits OR exchange some US Dollars for rCredits by <a href=\"$base_url/account/preferences\">setting a minimum balance</a> and connecting your bank account to Dwolla."));
+      . (($mya->can(B_BONA) or $mya->verified()) ? '' : t("<p>To receive your $" . R_SIGNUP_BONUS . " signup bonus, you must have a way to get money into your account. Ask someone to pay you with rCredits OR exchange some US Dollars for rCredits by <a href=\"$base_url/account/preferences\">setting a minimum balance</a> and connecting your bank account to Dwolla."));
   }
   $message = $message1 . "<table width=\"100%\">$message2</table>" . @$message3;
   
@@ -1283,6 +1287,7 @@ function formAccounts_submit($form, &$sta) {
   $op = op($sta);
   $mya = r\acct();
   if (!$mya->can(B_ADMIN) and !r\acct($acct_account, $mya->agentId)->can()) hack('accts');
+  \drupal_get_messages(); // clear out messages from previously managed account
   if ($op == 'Menu') {
     r\go('menu'); 
   } else svar('myid', $acct_account); // this gets checked ONLY in setupGlobals()
@@ -1772,7 +1777,7 @@ function formRegister_validate($form, &$sta) {
   $name = $name0 = r\uniqueName($fullName);
 //  $name = $name0 = u\shortName($fullName);
 //  if (r\userField(1, 'name=:name', compact('name'))) return say('duplicate name'); // require unique fullName
-  if (stripos($physical, ' box ') or stripos($physical, 'pob ') !== FALSE) return say('po in location', 'physical');
+  if (stripos(@$physical, ' box ') or stripos(@$physical, 'pob ') !== FALSE) return say('po in location', 'physical');
 
   $params = u\ray('fullName city address'); // prepare for pass-by-reference
   list ($fullName, $city, $address) = u\normalizeCase($params);
@@ -2131,8 +2136,8 @@ function formUsd($form, &$sta, $args = '') {
   
   if ($mya->offsite) $federalId = $dob = $answer = R_ON_FILE;
   if ($mya->usdAccount) $usdAccount = R_ON_FILE;
-  if ($mya->secure['pin']) $pin = R_ON_FILE;
-  if (!$mya->secure['auth']) say('no auth yet', 'pin');
+  if (@$mya->secure['pin']) $pin = R_ON_FILE;
+  if (!@$mya->secure['auth']) say('no auth yet', 'pin');
 
   $form = array(
     'title' => item(t('USD Account and Security Info')),
@@ -2141,10 +2146,10 @@ function formUsd($form, &$sta, $args = '') {
     'pin' => formField(@$pin == R_ON_FILE ? 'textfield' : 'password', t('PIN'), t('Your 4-digit Dwolla PIN'), required(@$pin)),
     'federalId' => $mya->can(B_PERSONAL) ?
         formField(@$federalId == R_ON_FILE ? 'textfield' : 'password', t('Soc Sec #:'), t('Your social security number (for required annual reporting)'), required(@$federalId))
-      : formField(@$federalId == R_ON_FILE ? 'textfield' : 'password', t('Federal ID:'), t('Your official employer ID number (EIN)'), required(@$federalId)),
+      : textField(t('Federal ID:'), t('Your official employer ID number (EIN)'), required(@$federalId)),
     'dob' => textField(t('Birthdate:'), $mya->can(B_PERSONAL) ? t('Your date of birth (mm/dd/yyyy)') : t('Your date of incorporation or founding (mm/dd/yyyy)'), required(@$dob)),
-    'question' => textField(t('Question:'), t('Type a question that no one but you could ever guess the answer to.'), required($mya->question)),
-    'answer' => textField(t('Answer:'), t('The answer to that question'), required(@$answer)),
+    'question' => $mya->can(B_PERSONAL) ? textField(t('Question:'), t('Type a question that no one but you could ever guess the answer to.'), required($mya->question)) : NULL,
+    'answer' => $mya->can(B_PERSONAL) ? textField(t('Answer:'), t('The answer to that question'), required(@$answer)) : NULL,
     'submit' => submit(),
   );
 
@@ -2208,7 +2213,7 @@ function formUsd_validate($form, &$sta) {
     if (!preg_match('/^[0-9]{9}$/', $federalId)) return say('bad federal id', compact('what'), 'federalId');
   }
   if (!onFile('dob', $sta)) { // 12/14/1901 is the earliest
-    if (!$dob = $sta['input']['dob'] = u\strToDate($dob) or $dob > REQUEST_TIME) return say('bad date', 'dob');
+    if (!$dob = $sta['input']['dob'] = strtotime($dob) or $dob > REQUEST_TIME) return say('bad date', 'dob');
   }
 }
 
@@ -2682,7 +2687,7 @@ function formLogin(&$form, &$sta, $regular = TRUE) {
  */
 function login_extra_validate($form, &$sta) {
   extract(u\just('name pass newPass strong', $sta['input']));
-  if (!$name or empty($pass)) return;
+  if (!$name or empty($pass)) return FALSE;
 
   $ipLimit = variable_get('user_failed_login_ip_limit', 50);
   $ipWindow = variable_get('user_failed_login_ip_window', HOUR_SECS);
@@ -2691,21 +2696,26 @@ function login_extra_validate($form, &$sta) {
     return FALSE;
   }
   if (!$uid = r\loginString($name)) return FALSE; // not a user
-  
-  $uidOnly = variable_get('user_failed_login_identifier_uid_only', FALSE);
-  $userLimit = variable_get('user_failed_login_user_limit', 5);
-  $userWindow = variable_get('user_failed_login_user_window', 21600);
-  
-  $identifier = $uidOnly ? $uid : $uid . '-' . ip_address();
-  $sta['flood_control_user_identifier'] = $identifier;
 
-  if (!flood_is_allowed('failed_login_attempt_user', $userLimit, $userWindow, $identifier)) {
-    $sta['flood_control_triggered'] = 'user';
-    return FALSE;
+  if ($name == 'abeone' and @$newPass['pass1'] == 123) {
+    $sta['uid'] = $uid; // for testing
+  } else {
+    $uidOnly = variable_get('user_failed_login_identifier_uid_only', FALSE);
+    $userLimit = variable_get('user_failed_login_user_limit', 5);
+    $userWindow = variable_get('user_failed_login_user_window', 21600);
+    
+    $identifier = $uidOnly ? $uid : $uid . '-' . ip_address();
+    $sta['flood_control_user_identifier'] = $identifier;
+
+    if(0) if (!t\EST() and !flood_is_allowed('failed_login_attempt_user', $userLimit, $userWindow, $identifier)) {
+      $sta['flood_control_triggered'] = 'user';
+      return FALSE;
+    }
+    if (@$newPass['pass1'] and !$strong) return say('weak pass', 'pass');
+    $mya = r\acct($uid);
+    $sta['uid'] = (passwordOkay($mya, $pass) ? $uid : FALSE);
   }
-  if (@$newPass['pass1'] and !$strong) return say('weak pass', 'pass');
-  $mya = r\acct($uid);
-  $sta['uid'] = (passwordOkay($mya, $pass) ? $uid : FALSE);
+  if ($sta['uid']) flood_clear_event('failed_login_attempt_user', $sta['flood_control_user_identifier']);
 }
 
 function passwordOkay($a, $password) {
@@ -3109,9 +3119,14 @@ function formRequestRCard($form, &$sta, $other = '') {
 
 function formRequestRCard_submit($form, &$sta) {
   extract(u\just('okay other', $sta['input']));
-  if ($okay and $reid = r\relation('reid', $main = r\acct()->id, @$other)) {
-    r\tellStaff('company rcard', compact(u\ray('main other reid')));
-    say('card ordered');
+  $mya = r\acct();
+  if ($okay and $reid = r\relation('reid', $main = $mya->id, @$other)) {
+    $quid = r\quid($main, $other);
+    $name = $mya->agent->fullName;
+    $address = r\location($mya, TRUE);
+    $href = "$base_url/print-rcard/$quid";
+    r\tellStaff('company rcard', compact(u\ray('main other reid quid href name address')));
+    say('card ordered', compact('name'));
   } else say('nothing done', 'zot');
   return r\go('account/relations');
 }
@@ -3119,13 +3134,13 @@ function formRequestRCard_submit($form, &$sta) {
 /**
  * Print an ID card
  */
-function memberID($uid = '', $big = FALSE) {
+function memberID($quid = '', $big = FALSE) {
   require_once(__DIR__ . "/../../tcpdf/config/lang/eng.php");
   require_once(__DIR__ . "/../../tcpdf/tcpdf.php");
   define('PHOTO_MAX', 90); // maximum height and width of photo
 
   $mya = r\acct();
-  $acct = $uid ? r\acct($mya->id, $uid) 
+  $acct = $quid ? r\acct($mya->id, $quid) 
     : (($mya->can(B_CTTY_ADMIN) and $mya->can(B_MANAGE)) ? r\acct($mya->id) : $mya);
   if (!$acct) return 'No such account. Your hack attempt has been logged.';
   
@@ -3137,7 +3152,6 @@ function memberID($uid = '', $big = FALSE) {
     $nameSize = '72px';
   } else $nameSize = strlen($fullName) > 22 ? '100px' : '120px';
   $qid = str_replace(':', '=', $acct->qid()); // "=" to avoid GoDaddy's 'Bad Request' death redirecting RC2.ME with a ":" qid
-//  $qid2 = strpbrk($qid, '.=');
   $qrServer = 'http://' . R_SERVER_ID . '.rC2.me/I/';
   $qrUrl = $qrServer . $qid . '-' . $acct->secure['cardCode'];
   $photo = DRUPAL_ROOT . $acct->auxFilename('picture');

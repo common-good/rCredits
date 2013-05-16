@@ -61,7 +61,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'info saved' => t('Your information has been saved.'),
   'payment accepted' => t('rCredits payment accepted. In exchange, us@amount will be refunded to the payer, from your Dwolla account.'),
   'gift successful' => t('Your contribution of @amount is successful. Thank you!'),
-  'signup bonus' => t('And you got your signup bonus!'), // keep this short, cause it's an add-on
+  'signup bonus' => t('-- and you got your signup bonus!'), // keep this short, cause it's an add-on
   'nothing done' => t('Nothing was done.'),
   'nothing undone' => t('Nothing undone.'),
   'event' => t('Account @fullName (@quid) is now @status.'),
@@ -166,6 +166,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'banked' => t('Your combined USD and rCredits balance is @status, so a request has been made to @action your bank a total of @amount. This request may take up to 3 days to go through.'),
   'virtual payment received' => t('You received from @fullName a virtual payment of @amount -- that is, you traded that much US Dollars for rCredits, receiving a bonus of @bonus on the exchange.'),
   'virtual payments offered' => t('You made virtual payment offers to @offers @whom, totaling @total.'),
+  'card ordered' => t('Your rCard has been ordered and will be mailed directly to @name.'),
   
   // notices to staff
   'corrupt max' => t('Max for account @uid is corrupt: max=@maximum min=@minimum rewards=@rewards'),

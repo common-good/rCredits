@@ -61,8 +61,8 @@ function rweb_menu() {
     'help' => r\Web\menu(t('Help'), MENU_CALLBACK, 'showForm', array('Help', 1), '', $anyone),
     'summary' => r\Web\menu(t('Summary'), MENU_NORMAL_ITEM, 'showForm', array('Summary'), '', $anyone),
     'transactions' => r\Web\menu(t('Transactions'), MENU_NORMAL_ITEM, 'showForm', array('Txs', 1), B_READ),
-    'charge' => r\Web\menu(t('Charge'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), B_SELL),
-    'pay' => r\Web\menu(t('Pay'), MENU_NORMAL_ITEM, 'showForm', array('Tx', 1), B_BUY),
+    'charge' => r\Web\menu(t('Charge'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), B_SELL_OK),
+    'pay' => r\Web\menu(t('Pay'), MENU_NORMAL_ITEM, 'showForm', array('Tx', 1), B_BUY_OK),
 
     'grant' => r\Web\menu(t('Grant'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), B_MANAGING_CTTY),
     'loan' => r\Web\menu(t('Loan'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), B_MANAGING_CTTY),

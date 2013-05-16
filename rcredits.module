@@ -232,10 +232,6 @@ function test() {
   $usdA = new r\usd($a = r\acct(410061551));
   debug($usdW->bal()); // keep
   $tx = $usdW->bank(-1, $err);
-  debug($tx.$err);
+  debug($tx.$err); // keep
   $usdW->each('test1', strtotime('60 days ago'), array('deposit'), TRUE);
-}
-
-function test1($tx) {
-  debug($tx);
 }

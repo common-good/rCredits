@@ -12,8 +12,10 @@ use rCredits\Util as u;
 /**
  * List the USD account status of each account.
  */
-function usdAccts() {
-  $result = r\dbQ('SELECT uid FROM users WHERE uid>1 ORDER BY fullName');
+function usdAccts($where = 'uid>1') {
+  debug(r\acct());
+  //if (!r\acct()->can(B_ADMIN)) return;
+  $result = r\dbQ("SELECT uid FROM users WHERE $where ORDER BY fullName");
   $list = '';
   while ($row = $result->fetch()) {
     $usA = new r\usd($a = r\acct($row->uid));

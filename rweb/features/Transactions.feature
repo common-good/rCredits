@@ -5,54 +5,54 @@ SO I can see what happened, accept or refuse offers, adjust descriptions, and co
 
 Setup:
   Given members:
-  | id      | fullName   | floor | acctType      | flags                   |
-  | NEW.ZZA | Abe One    | -100  | %R_PERSONAL   | dft,ok,personal         |
-  | NEW.ZZB | Bea Two    | -200  | %R_PERSONAL   | dft,ok,personal,company |
-  | NEW.ZZC | Corner Pub | -300  | %R_COMMERCIAL | dft,ok,company          |
+  | id   | fullName   | floor | acctType      | flags                   |
+  | .ZZA | Abe One    | -100  | %R_PERSONAL   | dft,ok,personal         |
+  | .ZZB | Bea Two    | -200  | %R_PERSONAL   | dft,ok,personal,company |
+  | .ZZC | Corner Pub | -300  | %R_COMMERCIAL | dft,ok,company          |
   And relations:
   | id      | main    | agent   | permission |
-  | NEW:ZZA | NEW.ZZA | NEW.ZZB | buy        |
-  | NEW:ZZB | NEW.ZZB | NEW.ZZA | read       |
-  | NEW:ZZC | NEW.ZZC | NEW.ZZB | buy        |
-  | NEW:ZZD | NEW.ZZC | NEW.ZZA | sell       |
+  | .ZZA | .ZZA | .ZZB | buy        |
+  | .ZZB | .ZZB | .ZZA | read       |
+  | .ZZC | .ZZC | .ZZB | buy        |
+  | .ZZD | .ZZC | .ZZA | sell       |
   And usd:
   | id        | usd   |
-  | community | 10000 |
-  | NEW.ZZA   |  1000 |
-  | NEW.ZZB   |  2000 |
-  | NEW.ZZC   |  3000 |
+  | ctty | 10000 |
+  | .ZZA   |  1000 |
+  | .ZZB   |  2000 |
+  | .ZZC   |  3000 |
   And transactions: 
-  | xid      | created   | type         | state       | amount | r   | from      | to      | purpose | taking |
-  | NEW:AAAB | %today-7m | %TX_SIGNUP   | %TX_DONE    |    250 | 250 | community | NEW.ZZA | signup  | 0      |
-  | NEW:AAAC | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | 250 | community | NEW.ZZB | signup  | 0      |
-  | NEW:AAAD | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | 250 | community | NEW.ZZC | signup  | 0      |
-  | NEW:AAAE | %today-5m | %TX_TRANSFER | %TX_DONE    |     10 |  10 | NEW.ZZB   | NEW.ZZA | cash E  | 0      |
-  | NEW:AAAF | %today-4m | %TX_TRANSFER | %TX_DONE    |    100 |  20 | NEW.ZZC   | NEW.ZZA | usd F   | 1      |
-  | NEW:AAAG | %today-3m | %TX_TRANSFER | %TX_DONE    |    240 |  40 | NEW.ZZA   | NEW.ZZB | what G  | 0      |
-  | NEW:AAAH | %today-3m | %TX_REBATE   | %TX_DONE    |      2 |   2 | community | NEW.ZZA | rebate  | 0      |
-  | NEW:AAAI | %today-3m | %TX_BONUS    | %TX_DONE    |      4 |   4 | community | NEW.ZZB | bonus   | 0      |
-  | NEW:AAAJ | %today-3w | %TX_TRANSFER | %TX_PENDING |    100 | 100 | NEW.ZZA   | NEW.ZZB | pie N   | 1      |
-  | NEW:AAAK | %today-3w | %TX_REBATE   | %TX_PENDING |      5 |   5 | community | NEW.ZZA | rebate  | 0      |
-  | NEW:AAAL | %today-3w | %TX_BONUS    | %TX_PENDING |     10 |  10 | community | NEW.ZZB | bonus   | 0      |
-  | NEW:AAAM | %today-2w | %TX_TRANSFER | %TX_PENDING |    100 | 100 | NEW.ZZC   | NEW.ZZA | labor M | 0      |
-  | NEW:AAAN | %today-2w | %TX_REBATE   | %TX_PENDING |      5 |   5 | community | NEW.ZZC | rebate  | 0      |
-  | NEW:AAAO | %today-2w | %TX_BONUS    | %TX_PENDING |     10 |  10 | community | NEW.ZZA | bonus   | 0      |
-  | NEW:AAAP | %today-2w | %TX_TRANSFER | %TX_DONE    |     50 |   5 | NEW.ZZB   | NEW.ZZC | cash P  | 0      |
-  | NEW:AAAQ | %today-1w | %TX_TRANSFER | %TX_DONE    |    120 |  80 | NEW.ZZA   | NEW.ZZC | this Q  | 1      |
-  | NEW:AAAR | %today-1w | %TX_REBATE   | %TX_DONE    |      4 |   4 | community | NEW.ZZA | rebate  | 0      |
-  | NEW:AAAS | %today-1w | %TX_BONUS    | %TX_DONE    |      8 |   8 | community | NEW.ZZC | bonus   | 0      |
-  | NEW:AAAT | %today-6d | %TX_TRANSFER | %TX_PENDING |    100 | 100 | NEW.ZZA   | NEW.ZZB | cash T  | 0      |
-  | NEW:AAAU | %today-6d | %TX_TRANSFER | %TX_PENDING |    100 | 100 | NEW.ZZB   | NEW.ZZA | cash U  | 1      |
-  | NEW:AAAV | %today-6d | %TX_TRANSFER | %TX_DONE    |    100 |   0 | NEW.ZZA   | NEW.ZZB | cash V  | 0      |
+  | xid   | created   | type     | state   | amount | r   | from | to   | purpose | taking |
+  | .AAAB | %today-7m | signup   | done    |    250 | 250 | ctty | .ZZA | signup  | 0      |
+  | .AAAC | %today-6m | signup   | done    |    250 | 250 | ctty | .ZZB | signup  | 0      |
+  | .AAAD | %today-6m | signup   | done    |    250 | 250 | ctty | .ZZC | signup  | 0      |
+  | .AAAE | %today-5m | transfer | done    |     10 |  10 | .ZZB | .ZZA | cash E  | 0      |
+  | .AAAF | %today-4m | transfer | done    |    100 |  20 | .ZZC | .ZZA | usd F   | 1      |
+  | .AAAG | %today-3m | transfer | done    |    240 |  40 | .ZZA | .ZZB | what G  | 0      |
+  | .AAAH | %today-3m | rebate   | done    |      2 |   2 | ctty | .ZZA | rebate  | 0      |
+  | .AAAI | %today-3m | bonus    | done    |      4 |   4 | ctty | .ZZB | bonus   | 0      |
+  | .AAAJ | %today-3w | transfer | pending |    100 | 100 | .ZZA | .ZZB | pie N   | 1      |
+  | .AAAK | %today-3w | rebate   | pending |      5 |   5 | ctty | .ZZA | rebate  | 0      |
+  | .AAAL | %today-3w | bonus    | pending |     10 |  10 | ctty | .ZZB | bonus   | 0      |
+  | .AAAM | %today-2w | transfer | pending |    100 | 100 | .ZZC | .ZZA | labor M | 0      |
+  | .AAAN | %today-2w | rebate   | pending |      5 |   5 | ctty | .ZZC | rebate  | 0      |
+  | .AAAO | %today-2w | bonus    | pending |     10 |  10 | ctty | .ZZA | bonus   | 0      |
+  | .AAAP | %today-2w | transfer | done    |     50 |   5 | .ZZB | .ZZC | cash P  | 0      |
+  | .AAAQ | %today-1w | transfer | done    |    120 |  80 | .ZZA | .ZZC | this Q  | 1      |
+  | .AAAR | %today-1w | rebate   | done    |      4 |   4 | ctty | .ZZA | rebate  | 0      |
+  | .AAAS | %today-1w | bonus    | done    |      8 |   8 | ctty | .ZZC | bonus   | 0      |
+  | .AAAT | %today-6d | transfer | pending |    100 | 100 | .ZZA | .ZZB | cash T  | 0      |
+  | .AAAU | %today-6d | transfer | pending |    100 | 100 | .ZZB | .ZZA | cash U  | 1      |
+  | .AAAV | %today-6d | transfer | done    |    100 |   0 | .ZZA | .ZZB | cash V  | 0      |
   Then balances:
-  | id        | r    | usd      | rewards |
-  | community | -768 | 10000.00 |       0 |
-  | NEW.ZZA   |  166 |   739.75 |     256 |
-  | NEW.ZZB   |  279 |  2254.50 |     254 |
-  | NEW.ZZC   |  323 |  3004.50 |     258 |
+  | id   | r    | usd      | rewards |
+  | ctty | -768 | 10000.00 |       0 |
+  | .ZZA |  166 |   739.75 |     256 |
+  | .ZZB |  279 |  2254.50 |     254 |
+  | .ZZC |  323 |  3004.50 |     258 |
 
 Scenario: A member looks at transactions for the past year
-  When member "NEW.ZZA" visits page "transactions/period=365"
+  When member ".ZZA" visits page "transactions/period=365&rCredits=1"
   Then we show "Transaction History" with:
   | Start Date | End Date | Start Balance | To You | From You | Rewards | End Balance |
   | %dmy-12m   | %dmy     | $0.00         | 30.00  | 120.00   | 256.00  | $166.00     |
@@ -75,7 +75,7 @@ Scenario: A member looks at transactions for the past year
   | bonus   |
 
 Scenario: A member looks at transactions for the past few days
-  When member "NEW.ZZA" visits page "transactions/period=15"
+  When member ".ZZA" visits page "transactions/period=15&rCredits=1"
   Then we show "Transaction History" with:
   | Start Date | End Date | Start Balance | To You | From You | Rewards | End Balance |
   | %dmy-15d   | %dmy     | $242.00       | 0.00   | 80.00    | 4.00    | $166.00     |
@@ -99,23 +99,23 @@ Scenario: A member looks at transactions for the past few days
 
 Scenario: Transactions with other states show up properly
   Given transactions:
-  | xid      | created   | type         | state        | amount | from      | to      | purpose  | taking |
-  | NEW:AACA | %today-5d | %TX_TRANSFER | %TX_DENIED   |    100 | NEW.ZZC   | NEW.ZZA | labor CA | 0      |
-  | NEW:AACB | %today-5d | %TX_REBATE   | %TX_DENIED   |      5 | community | NEW.ZZC | rebate   | 0      |
-  | NEW:AACD | %today-5d | %TX_BONUS    | %TX_DENIED   |     10 | community | NEW.ZZA | bonus    | 0      |
-  | NEW:AACE | %today-5d | %TX_TRANSFER | %TX_DENIED   |      5 | NEW.ZZA   | NEW.ZZC | cash CE  | 1      |
-  | NEW:AACF | %today-5d | %TX_TRANSFER | %TX_DISPUTED |     80 | NEW.ZZA   | NEW.ZZC | this CF  | 1      |
-  | NEW:AACG | %today-5d | %TX_REBATE   | %TX_DISPUTED |      4 | community | NEW.ZZA | rebate   | 0      |
-  | NEW:AACH | %today-5d | %TX_BONUS    | %TX_DISPUTED |      8 | community | NEW.ZZC | bonus    | 0      |
-  | NEW:AACI | %today-5d | %TX_TRANSFER | %TX_DELETED  |    200 | NEW.ZZA   | NEW.ZZC | never    | 1      |
-  | NEW:AACL | %today-5d | %TX_TRANSFER | %TX_DISPUTED |    100 | NEW.ZZC   | NEW.ZZA | cash CL  | 1      |
+  | xid   | created   | type     | state    | amount | from | to   | purpose  | taking |
+  | .AACA | %today-5d | transfer | denied   |    100 | .ZZC | .ZZA | labor CA | 0      |
+  | .AACB | %today-5d | rebate   | denied   |      5 | ctty | .ZZC | rebate   | 0      |
+  | .AACD | %today-5d | bonus    | denied   |     10 | ctty | .ZZA | bonus    | 0      |
+  | .AACE | %today-5d | transfer | denied   |      5 | .ZZA | .ZZC | cash CE  | 1      |
+  | .AACF | %today-5d | transfer | disputed |     80 | .ZZA | .ZZC | this CF  | 1      |
+  | .AACG | %today-5d | rebate   | disputed |      4 | ctty | .ZZA | rebate   | 0      |
+  | .AACH | %today-5d | bonus    | disputed |      8 | ctty | .ZZC | bonus    | 0      |
+  | .AACI | %today-5d | transfer | deleted  |    200 | .ZZA | .ZZC | never    | 1      |
+  | .AACL | %today-5d | transfer | disputed |    100 | .ZZC | .ZZA | cash CL  | 1      |
   Then balances:
   | id        | balance |
-  | community |    -780 |
-  | NEW.ZZA   |     190 |
-  | NEW.ZZB   |     279 |
-  | NEW.ZZC   |     311 |
-  When member "NEW.ZZA" visits page "transactions/period=5"
+  | ctty |    -780 |
+  | .ZZA   |     190 |
+  | .ZZB   |     279 |
+  | .ZZC   |     311 |
+  When member ".ZZA" visits page "transactions/period=5&rCredits=1"
   Then we show "Transaction History" with:
   | tid | Date   | Name       | From you | To you | Status   | Buttons | Purpose | Rewards |
   | 15  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X       | cash CL | --      |
@@ -127,7 +127,7 @@ Scenario: Transactions with other states show up properly
   | never   |
   | rebate  |
   | bonus   |
-  When member "NEW.ZZC" visits page "transactions/period=5"
+  When member ".ZZC" visits page "transactions/period=5&rCredits=1"
   Then we show "Transaction History" with:
   | tid | Date   | Name       | From you | To you | Status   | Buttons | Purpose | Rewards |
   | 10  | %dm-5d | Abe One    | 100.00   | --     | disputed | OK      | cash CL | --      |

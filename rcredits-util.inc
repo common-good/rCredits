@@ -72,12 +72,17 @@ function just($these, $args) {
 }
 
 /**
- * array_splice for associative arrays.
+ * array_splice() for associative arrays.
  * If the key is not found, $input is unchanged and return NULL
  */
 function splice(&$input, $key, $len = 0, $replacement = NULL) {
-  $i = array_search($key, array_keys($input));
-  return $i === FALSE ? NULL : array_splice($input, $i, $len, $replacement);
+  $i = array_search($key, $keys = array_keys($input));
+  if ($i === FALSE) return NULL;
+  $values = array_values($input);
+  $iKeys = array_splice($keys, $i, $len, @array_keys($replacement));
+  $iValues = array_splice($values, $i, $len, @array_values($replacement));
+  $input = array_combine($keys, $values);
+  return array_combine($iKeys, $iValues);
 }
 
 /**
@@ -845,9 +850,8 @@ function formatDate($time = REQUEST_TIME) {return strftime('%d-%b-%Y', $time);}
 function formatTime($time = REQUEST_TIME) {return strtolower(strftime('%I:%M%p', $time));}
 function lastCall($far = 4) {$back = debug_backtrace(); return array_slice($back, 1, $far);}
 function digits($n) {return preg_replace('/\D/', '', $n);}
-function monthDay1($time = REQUEST_TIME) {return strToDate(strftime('%b01'));}
+function monthDay1($time = REQUEST_TIME) {return strtotime(strftime('%b01', $time));}
 function prefix(&$var, $prefix) {$var = $prefix . $var;}
 function setDft(&$param, $value) {if (!isset($param)) $param = $value;}
 function bit($bit) {return 1 << $bit;}
 function log($message, $type = 'state', $info = array()) {return u\loga($type, compact('message') + $info);}
-function strToDate($s) {return strtotime(str_replace('-', '/', $s));}

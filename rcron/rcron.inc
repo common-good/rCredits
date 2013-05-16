@@ -258,7 +258,7 @@ function virtualPayments1($item) {
   
   $offers = $total = 0;
   $main = $uid;
-  $sql = "SELECT other, amount FROM r_relations WHERE main=:main AND amount>0 AND $rightType";
+  $sql = "SELECT other, amount FROM r_relations r INNER JOIN users u ON u.uid=r.other WHERE :IS_OK AND main=:main AND amount>0 AND $rightType";
   $result = r\dbQ($sql, compact('main')); // get each recipient's proportionate share of $tothese
   while($row = $result->fetchAssoc()) {
     extract($row);

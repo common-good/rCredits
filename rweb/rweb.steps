@@ -37,6 +37,8 @@ function extraSetup($feature) {
  */
 function extraSubs(&$subs) {
 //  $subs['%replace_this'] = 'with this';
+  $subs['%todayn-12m'] = t\subAgo('%todayn-365d', '%Y%m%d');
+  $subs['%todayn'] = t\subAgo('%todayn', '%Y%m%d');
 }
 
 function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, $info);}
@@ -101,7 +103,8 @@ function memberCompletesFormWithValues($id, $page, $values, $confirmed = FALSE) 
       $one($form, $formSta);
     }
     if ($page == '/user/login') { // fudge this test until we can take over the login process from Drupal
-      t\logIn($id = $formSta['uid']);
+      if (!$id = @$formSta['uid']) return FALSE;
+      t\logIn($id);
       r\Web\loginFollowup($formSta, r\acct($id)->account());
     }
   }
@@ -182,7 +185,8 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
 /**
  * members: (ARG)
  *
- * in: Flow Setup MAKE
+ * in: Download Setup MAKE
+ *     Flow Setup MAKE
  *     Gift Setup MAKE
  *     Membership Setup MAKE
  *     RealUsd Setup MAKE
@@ -205,7 +209,8 @@ function members($list) {return t\members($list);}
 /**
  * transactions: (ARG)
  *
- * in: Flow AMemberOverdraws TEST
+ * in: Download Setup MAKE
+ *     Flow AMemberOverdraws TEST
  *     Flow AMemberOverdrawsAndDrawsFromBothRAndUSD TEST
  *     Gift AMemberContributes TEST
  *     Gift AMemberContributesPartlyInUSD TEST
@@ -398,7 +403,8 @@ function withoutOptions($options) {
 /**
  * relations: (ARG)
  *
- * in: Flow Setup MAKE
+ * in: Download Setup MAKE
+ *     Flow Setup MAKE
  *     Membership Setup MAKE
  *     Relations MemberHasAnEmployeeConfirmed MAKE
  *     Relations MemberHasAnEmployeeUnconfirmed MAKE
@@ -421,7 +427,8 @@ function relations($relations) {return t\relations($relations);}
 /**
  * balances: (ARG)
  *
- * in: Flow Setup MAKE
+ * in: Download Setup TEST
+ *     Flow Setup MAKE
  *     Gift Setup MAKE
  *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
  *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance TEST
@@ -441,7 +448,8 @@ function balances($list) {return t\balances($list);}
 /**
  * usd: (ARG)
  *
- * in: RealUsd Setup MAKE
+ * in: Download Setup MAKE
+ *     RealUsd Setup MAKE
  *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance MAKE
  *     Transactions Setup MAKE
  *     TransactR Setup MAKE
@@ -452,7 +460,10 @@ function usd($list) {return t\usd($list);}
 /**
  * member (ARG) visits page (ARG)
  *
- * in: Membership AMemberClicksOnTheMembershipLink MAKE
+ * in: Download AMemberDownloadsTransactionsForThePastYear MAKE
+ *     Download AMemberDownloadsCompletedTransactionsForThePastYear MAKE
+ *     Membership AMemberHasIncompleteContactInformation MAKE
+ *     Membership AMemberClicksOnTheMembershipLink MAKE
  *     Membership ACompanyAgentClicksOnTheMembershipLink MAKE
  *     Membership AMemberDoesItAll MAKE
  *     RealUsd AMixedRCreditsUSDTransactionHappens MAKE
@@ -556,9 +567,10 @@ function memberSignsInTheFirstTime($uid) {
  *
  * in: Summary MembersAccountIsNotActive MAKE
  */
-function memberAccountIsNotActive($uid) {
+function memberAccountIsNotActive($id) {
   global $testOnly; if ($testOnly) return FALSE;
-  list ($uid, $agent) = r\IA($uid); // not unQuid
+  list ($uid, $agent) = r\IA(t\fullQid($id)); // not unQuid
+  if (!$uid) return FALSE;
   r\acct($uid)->setBit(B_OK, FALSE);
   return TRUE;
 }
@@ -609,7 +621,8 @@ function memberHasDoneStep($uid, $step) {
 /**
  * we show (ARG)
  *
- * in: Membership AMemberDoesItAll TEST
+ * in: Membership AMemberHasIncompleteContactInformation TEST
+ *     Membership AMemberDoesItAll TEST
  *     Signin AMemberSignsInForTheFirstTime TEST
  */
 function weShow($title) {
@@ -620,7 +633,9 @@ function weShow($title) {
 /**
  * member (ARG) supplies (ARG): (ARG)
  *
- * in: Membership AMemberDoesItAll MAKE
+ * in: Membership AMemberClicksOnTheMembershipLink MAKE
+ *     Membership ACompanyAgentClicksOnTheMembershipLink MAKE
+ *     Membership AMemberDoesItAll MAKE
  */
 function memberSupplies($uid, $field, $value) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -658,11 +673,11 @@ function memberOnetimePasswordIsSet($id) {
  */
 function memberOnetimePasswordIs($id, $pass) {
   global $testOnly;
-  $a = r\acct($uid = t\uid($id));
+  if (!$a = r\acct($uid = t\uid($id))) return FALSE;
   if (!$testOnly) {
     $expires = REQUEST_TIME + R_SIGNIN_HOURS * HOUR_SECS;
     $oneTimePass = compact('pass', 'expires');
-    $data = compact('oneTimePass') + $a->data;
+    $data = compact('oneTimePass') + ($a->data ?: array());
     $a->update(compact('data'));
   }
   return ($a->data['oneTimePass']['pass'] == $pass and $a->data['oneTimePass']['expires'] > REQUEST_TIME);
@@ -686,3 +701,47 @@ function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice,
  *     Gift AMemberContributesWithInsufficientFunds TEST
  */
 function gifts($gifts) {return t\gifts($gifts);}
+
+/**
+ * we download (ARG) with: (ARG)
+ *
+ * in: Download AMemberDownloadsTransactionsForThePastYear TEST
+ *     Download AMemberDownloadsCompletedTransactionsForThePastYear TEST
+ */
+function weDownloadWith($name, $rows) {
+  global $testOnly;
+  global $testCSV, $testCSVname;
+
+  if (@$testCSVname != $name) return t\testOutput("$testCSVname <> $name");
+  if (!is_array($testCSV) or empty($testCSV)) return t\testOutput('testCSV empty');
+  $testCSV2 = $testCSV; // don't alter this (withDownloadColumns() needs it)
+  $headers = array_shift($testCSV2);
+  if ($headers[0] == '#') $headers[0] = 't#';
+  foreach ($testCSV2 as $csvRow) {
+    //debug(compact('headers', 'csvRow'));
+    $csvRow = array_combine($headers, $csvRow); // add keys
+    if (!$row = array_shift($rows)) return t\testOutput('extra row in CSV: ' . print_r($csvRow, 1));
+    foreach ($row as $key => $value) {
+      if (strpos($value, '%') !== FALSE) $value = t\lastMinuteSubs($value);
+      if (!t\eq($csvValue = $csvRow[$key], $value)) return t\testOutput("key=$key csvValue<>value: $csvValue<>$value");
+    }
+  }
+  return TRUE;
+}
+
+/**
+ * with download columns: (ARG)
+ *
+ * in: Download AMemberDownloadsTransactionsForThePastYear TEST
+ */
+function withDownloadColumns($columns) {
+  global $testOnly;
+  global $testCSV, $testCSVname;
+
+  if (!is_array($testCSV) or empty($testCSV)) return FALSE;
+  $testCSV2 = $testCSV; // don't alter this (just in case)
+  $headers = array_shift($testCSV2);
+  //debug(compact('headers','testCSV','columns'));
+  foreach ($columns as $one) if (array_search($one['column'], $headers) === FALSE) return FALSE;
+  return TRUE;
+}

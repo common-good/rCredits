@@ -289,7 +289,8 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformreports .tx-reward {width:7.5%; text-align:right;} /* 8 rewards */
 #rcreditswebformreports .tx-r,
 #rcreditswebformreports .tx-usd,
-#rcreditswebformreports .tx-usdTid {width:0; display:none;}
+#rcreditswebformreports .tx-usdTid,
+#rcreditswebformreports .tx-net {width:0; display:none;}
 
 #rcreditswebformreports th:first-child {text-align:right;} /* col 1: tid */
 /* #rcreditswebformreports th:first-child +th {text-align:right;} /* col 2: date */
@@ -303,6 +304,7 @@ form.rweb  .form-no {color:red;}
 /* #rcreditswebformreports th:first-child +th+th+th+th+th+th+th+th+th {text-align:right;} /* col 10: state */
 /* #rcreditswebformreports th:first-child +th+th+th+th+th+th+th+th+th+th {text-align:right;} /* col 11: purp */
 #rcreditswebformreports th:first-child +th+th+th+th+th+th+th+th+th+th+th {text-align:right;} /* col 12: reward */
+#rcreditswebformreports th:first-child +th+th+th+th+th+th+th+th+th+th+th+th {display:none;} /* col 13: net */
 
 #rcreditswebformreports td:first-child {text-align:right;} /* col 1 */
 /* #rcreditswebformreports td:first-child +td {text-align:right;} /* col 2 */
@@ -316,6 +318,7 @@ form.rweb  .form-no {color:red;}
 /* #rcreditswebformreports td:first-child +td+td+td+td+td+td+td+td+td {text-align:right;} /* col 10 */
 /* #rcreditswebformreports td:first-child +td+td+td+td+td+td+td+td+td+td {text-align:right;} /* col 11 */
 #rcreditswebformreports td:first-child +td+td+td+td+td+td+td+td+td+td+td {text-align:right;} /* col 12 */
+#rcreditswebformreports td:first-child +td+td+td+td+td+td+td+td+td+td+td+td {display:none;} /* col 13 */
 
 /* Transactions */
 #rcreditswebformtxs .form-type-checkbox {max-width:120px;}
@@ -347,7 +350,8 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformtxs .tx-rpct {width:5%; text-align:right;} /* 6 r% */
 #rcreditswebformtxs .tx-r,
 #rcreditswebformtxs .tx-usd,
-#rcreditswebformtxs .tx-usdTid {width:0; display:none;}
+#rcreditswebformtxs .tx-usdTid,
+#rcreditswebformtxs .tx-net {width:0; display:none;}
 #rcreditswebformtxs .tx-state {width:5%; text-align:right;} /* 10 status */
 #rcreditswebformtxs .tx-buttons {width:12%; text-align:right;} /* 11 buttons */
 #rcreditswebformtxs .tx-reward {width:7.5%; text-align:right;} /* 12 rewards */
@@ -368,6 +372,7 @@ form.rweb  .form-no {color:red;}
 /* #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th+th+th {text-align:right;} /* col 11: buttons */
 /* #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th+th+th+th {text-align:right;} /* col 12: purpose */
 #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th+th+th+th+th {text-align:right;} /* col 13: reward */
+#rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th+th+th+th+th+th {display:none;} /* col 14: net */
 
 /* #rcreditswebformtxs td:first-child {text-align:right;} /* col 1 */
 /* #rcreditswebformtxs td:first-child +td {text-align:right;} /* col 2 */
@@ -382,6 +387,7 @@ form.rweb  .form-no {color:red;}
 /* #rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td+td+td {text-align:right;} /* col 11 */
 /* #rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td+td+td+td {text-align:right;} /* col 12 */
 #rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td+td+td+td+td {text-align:right;} /* col 13 */
+#rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td+td+td+td+td+td {display:none;} /* col 14 */
 
 /* Transaction Summary Table */
 #txsum, #txsum-title, #txs-title {width:100%; margin:0;} /* outline:2px solid darkgreen;} */

@@ -125,7 +125,7 @@ function makeTx($info, $testOnly = FALSE) {
   global $channel;
   extract($info);
 
-  if (@$xid) $xid = u\a2n(substr(strstr($xid, '.'), 1));
+  if (@$xid) $xid = u\a2n(substr(strpbrk($xid, '.:'), 1));
   u\setDft($type, TX_TRANSFER);
   u\setDft($state, TX_DONE);
   u\setDft($created, REQUEST_TIME);
@@ -135,16 +135,16 @@ function makeTx($info, $testOnly = FALSE) {
   $payee = uid($to); 
   $payeeAgent = uid(@$toAgent ?: ($type == TX_TRANSFER ? $to : r\communityUid()));
   u\setDft($r, $amount);
+  u\setDft($taking, 0);
   
   $for = @$purpose ?: 'cash';
   if (strpos($for, ',')) $for = explode(',', $for); // specifying both payerFor and payeeFor
-  $taking = 0; //($from == 'community' or @$type == 'payment') ? 0 : 1;
 
   u\setDft($goods, ($type != TX_TRANSFER or u\forCash($for)) ? 0 : 1);
   if ($goods) list ($rebate, $bonus) = array(r\rebate($payer, $r), r\bonus($payee, $r));
-  foreach (u\ray('created from to purpose xid type state for') as $one) unset($info[$one]);
+  foreach (u\ray('from to purpose for') as $one) unset($info[$one]);
   
-  $info += compact(u\ray('xid created r payer payerAgent payee payeeAgent for type channel goods taking data'));
+  $info = compact(u\ray('xid created r payer payerAgent payee payeeAgent for type state channel goods taking data')) + $info;
   if ($testOnly or $type == TX_REBATE or $type == TX_BONUS) {
     list ($info['payerFor'], $info['payeeFor']) = is_array($for) ? $for : array($for, $for);
     unset($info['for']);
@@ -365,23 +365,28 @@ function getPicture($picture) {
   return file_get_contents(DRUPAL_ROOT . R_PICTURE_DIR . "/$picture.jpg");
 }
 
-function lastMinuteSubs(&$string) {
+function lastMinuteSubs($string) {
+  if (u\abbreviates('%ymd', $string)) return subAgo($string, '%Y-%m-%d');
   if (u\abbreviates('%dmy', $string)) return subAgo($string, '%d-%b-%Y');
   if (u\abbreviates('%dm', $string)) return subAgo($string, '%d-%b');
-  if ($string == '%chk') return ($string = '&#10004;');
-  if ($string == '%ctty') return ($string = R_REGION_NAME);
+  if ($string == '%chk') return '&#10004;';
+  if ($string == '%ctty') return R_REGION_NAME;
 }
   
-  
-function subAgo(&$string, $fmt) {
+/**
+ * Return the date, formatted as desired.
+ * @param string $string: a named date format, dash, how long ago (eg %dmy-3d means 3 days ago "dmy" format)
+ * @param string $fmt: what strftime format to use
+ */ 
+function subAgo($string, $fmt) {
   if (!strpos($string, '-')) $string .= '-0d';
   $lastC = substr($string, strlen($string) - 1);
-  list ($a, $b) = explode('-', $string);
+  list ($a, $b) = explode('-', $string); // $a is ignored
   $bPreC = substr($b, 0, strlen($b) - 1);
   $periods = array('d' => 'days', 'w' => 'weeks', 'm' => 'months', 'y' => 'years');
   $period = $periods[$lastC];
 //  debug(compact(u\ray('string fmt lastC a b bPreC period')));
-  return ($string = strftime($fmt, strtotime("$bPreC $period ago")));
+  return (strftime($fmt, strtotime("$bPreC $period ago")));
 }
 
 function hitServer($op, $agent, $code = '', $account_id = '', $extra = array()) {
@@ -697,7 +702,7 @@ function shownWith($content, $type = 'text', $showDebugs = TRUE) {
   $xi = $i = 0;
 
   foreach ($content as $fields) {
-    foreach ($fields as $key => $one) if (strpos($one, '%') !== FALSE) t\lastMinuteSubs($fields[$key]);
+    foreach ($fields as $key => $one) if (strpos($one, '%') !== FALSE) $fields[$key] = t\lastMinuteSubs($one);
     if ($showDebugs) debug("EXPECT page with " . print_r($fields, 1)); // keep this
     foreach ($fields as $one) { // ignore the keys here
       if ($one !== '') $i = strpos($model, $one, $xi = $i);

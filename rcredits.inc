@@ -149,11 +149,6 @@ define('PERM_SELL', 2);
 define('PERM_BUY', 3);
 define('PERM_MANAGE', 4);
 
-define('FLOW_NONE', 0); // which way can credit flow, with another account
-define('FLOW_TO', 1);
-define('FLOW_FROM', 2);
-define('FLOW_BOTH', 3);
-
 define('B_RELATED', 100); // has a relationship record
 define('B_READ', B_RELATED + PERM_READ);
 define('B_SELL', B_RELATED + PERM_SELL);
@@ -163,12 +158,20 @@ $GLOBALS['share permissions'] = array(t('no access'), t('read transactions'), t(
 
 // Other special pseudo-bit values for acct::can()
 define('B_MANAGING_CTTY', 120); // ctty_admin is actually managing a qualified account
+define('B_SELL_OK', 121); // sell and ok
+define('B_BUY_OK', 122); // buy and ok
 define('B_SHOW_ALL', 999); // special signal to acct::can() to return all permissions
 $GLOBALS['permissions'] = 'related read sell buy manage - company charge - member partner steward - rtrader - - managing_ctty ctty_admin - admin';
 
-// Transaction states
-define('TX_STATES', 'deleted done pending disputed denied');
+define('FLOW_NONE', 0); // which way can credit flow, with another account
+define('FLOW_TO', 1);
+define('FLOW_FROM', 2);
+define('FLOW_BOTH', 3);
 
+// Transaction states
+define('TX_STATES', 'denied deleted pending done tentative disputed');
+
+define('TX_STATE0', -2); // lowest index
 define('TX_DENIED', -2); // invoice rejected by the non-originator
 define('TX_DELETED', -1);
 define('TX_PENDING', 0); // charged, waiting for confirmation (in all other states, transaction is complete)
@@ -412,8 +415,10 @@ function transactionSetup($info) {
 
   $specs = " -- payer=$payer payee=$payee";
   u\EXPECT(compact(u\ray('amount payer payee')), 'float zid zid');
-  u\EXPECT($payer and $payee and $payer != $payee, 'null or self trading in txSetup' . $specs);
-  u\EXPECT(($payer < 0 or r\acct($payer)->hasBit(B_MEMBER)) and ($payee < 0 or r\acct($payee)->hasBit(B_OK)), 'non rTraders in txsetup' . $specs);
+  u\EXPECT($payer and $payee and $payer != $payee, 'null or self trading' . $specs);
+  list ($a1, $a2) = array(r\acct($payer), r\acct($payee));
+  u\EXPECT($payer < 0 or $a1->hasBit(B_MEMBER), 'non-member payer' . $specs);
+  u\EXPECT(($payer < 0 and $a2->hasBit(B_MEMBER)) or $a2->hasBit(B_OK), 'unqualified payee' . $specs);
   
   u\setDft($type, TX_TRANSFER);
   u\setDft($r, $amount);
@@ -496,7 +501,7 @@ function cacheTotals($uid, $txs) {
     } elseif ($payee != $uid) continue; // neither to nor from me
     $rs += $r;
     $usd += $amount - $r;
-    if ($amount - $r > DWOLLA_FEE_THRESHOLD) $usd -= DWOLLA_FEE;
+    if (!$toOther and $amount - $r > DWOLLA_FEE_THRESHOLD) $usd -= DWOLLA_FEE;
     $usd = round($usd, 2);    
     if ($type != TX_TRANSFER) {
       if ($type == TX_REBATE or $type == TX_BONUS) $committed = round($committed + $amount * $acct->share / 100, 2);

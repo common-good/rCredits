@@ -344,7 +344,6 @@ EOF;
       WHERE r.other=:id AND r.draw
 EOF;
     $row = r\dbQ($sql, compact('id'))->fetchAssoc();
-    debug(compact('sql','row','type','id','sums'));
     if (!$row['count']) $this->setBit(B_DRAWS, FALSE); // doesn't really have any drawable accounts
     return avail($type, $row);
   }
@@ -394,10 +393,19 @@ EOF;
    * Return an auxiliary filename for the account.
    * @param string $type: picture or proof
    */
-  function auxFilename($type = 'picture') {
+  public function auxFilename($type = 'picture') {
     return ($type == 'picture' ? R_PICTURE_DIR : R_PROOF_DIR) . "/$this->id-$this->created";
   }
   
+  /**
+   * Return TRUE if a connected funding source is verified.
+   */
+  public function verified() {
+    $usA = new r\usd($this);
+    $source = $usA->source($err);
+    return @$source['Verified'];
+  }
+    
   /**
    * Return the amount waiting to be transferred to (or from if negative) the bank.
    */
@@ -434,7 +442,7 @@ EOF;
       for ($i = B_RELATED; $i <= B_MANAGE; $i++) $perms[$i] = ($i <= $can); // set all permissions, even the false ones
       if (!$perms[B_OK]) $perms[B_SELL] = FALSE; // no ASIFs! (read here kills acct dropdown)
       if (!$perms[B_MEMBER]) $perms[B_BUY] = FALSE; // no spending even the SIGNUP GIFT for non-members
-
+      
       if ($perms[B_ADMIN]) {
         if (R_ADMIN_CAN_MANAGE_CTTYS) {
           $perms[B_CTTY_ADMIN] = TRUE; // temporary extra power, until communities are independent
@@ -446,6 +454,10 @@ EOF;
 
       $perms[B_MANAGING_CTTY] = ($perms[B_CTTY_ADMIN] and $id == $this->community);
       if ($perms[B_MANAGING_CTTY] and !$perms[B_ADMIN]) $perms[B_BUY] = $perms[B_SELL] = FALSE; // ctty admin can manage but not buy/sell
+
+      // composite permissions
+      $perms[B_SELL_OK] = ($perms[B_SELL] and $perms[B_OK]); // not-OK members can only be charged
+      $perms[B_BUY_OK] = ($perms[B_BUY] and $perms[B_OK]);
       
       ksort($perms); // easier to debug
       self::$perms[$id][$this->agentId] = $perms;
