@@ -65,6 +65,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'nothing done' => t('Nothing was done.'),
   'nothing undone' => t('Nothing undone.'),
   'event' => t('Account @fullName (@quid) is now @status.'),
+  'you are approved' => t('Your account has been approved! You may now buy and sell through the rCredits system, including using your rCard for purchases at member businesses.'),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),
@@ -116,6 +117,8 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'short cash from' => t('@otherName does not have enough rCredits for that exchange.'),
   'short to' => t('You are @short short, for that payment. Increase your minimum!'),
   'short from' => t('@otherName does not have enough funds for this request.'),
+  'min too low' => t('Your minimum is set too low, causing conflicting deposits and withdrawals from your bank account. To increase your minimum to @suggestion, visit the @page page (under Settings).'),
+  'click option' => t('OR <a href="@url">click here</a>'),
 //  'shortr to' => t('You do not have enough rCredits, for that transaction. Type "get r <amount>" to get more rCredits.'),
 //  'shortr from' => t('@otherName does not have enough rCredits for that transaction at this time.'),
 //  'demand too small' => t('NOTE: The minimum amount of rCredits you can actually buy at a time is $@min.', array('@min' => R_MIN_DEMAND)),
@@ -151,6 +154,9 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'cannot offload' => t('A temporary technical problem prevented some of your excess rCredits from being exchanged for US Dollars. The system will try again tomorrow.'),
   'usd failed' => t('A temporary technical problem prevented the transfer of US Dollars. No transaction took place.'),
   'cannot bank' => t('The rCredits system was unable to @action your bank: @error (You need to connect your Dwolla account to your checking account.)'),
+  'no source' => t('there is no valid funding source'),
+  'not verified' => t('the funding source has not yet been verified by entering the two tiny deposit amounts'),
+  
   'new-charge' => t('<b>Charge:</b> @otherName charged you @amount for "@payerPurpose".'),
   'new-payment' => t('<b>Payment:</b> @otherName paid you @amount for "@payeePurpose".'),
   'new-invoice' => t('<b>Invoice:</b> @otherName invoiced you @amount for "@payerPurpose". To pay (or deny) this invoice, visit your Transactions page.'),

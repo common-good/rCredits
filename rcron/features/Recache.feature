@@ -9,6 +9,7 @@ Setup:
   | id   | fullName   | dwolla             | email         | flags           | minimum | maximum |
   | .ZZA | Abe One    | %DW_TESTER_ACCOUNT | a@example.com | dft,ok,personal |       5 |       1 |
   | .ZZB | Bea Two    | %DW_TEST_ACCOUNT   | b@example.com | dft,ok,personal |     100 |      50 |
+  | .ZZC | Corner Pub |                    | c@example.com | dft,ok,company  |     100 |       0 |
   And transactions: 
   | xid   | created   | type       | amount | from      | to   | purpose | taking |
   | .AAAB | %today-6m | %TX_SIGNUP |     10 | community | .ZZA | signup  | 0      |

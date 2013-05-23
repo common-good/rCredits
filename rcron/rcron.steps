@@ -139,6 +139,7 @@ function cronRuns($op) {
  *     Bank AMemberIsOverMaximumButAlreadyRequestedThatBarelyEnoughFundsGoToTheBank TEST
  *     Bank AMemberIsOverMaximumAndHasRequestedInsufficientFundsToGoToTheBank TEST
  *     Bank AMemberIsOverMaximumButHasRequestedFundsFROMTheBank TEST
+ *     Bank AMemberPaysVirtually TEST
  *     Bank AMemberIsOverMaximumButMostlyInRCredits TEST
  */
 function bankTransfers($tx) {
@@ -157,7 +158,6 @@ function bankTransfers($tx) {
  *     Bank AMemberIsOverMaximumButAlreadyRequestedThatBarelyEnoughFundsGoToTheBank TEST
  *     Bank AMemberIsOverMaximumButHasRequestedFundsFROMTheBank TEST
  *     Bank AMemberHasNoMaximum TEST
- *     Bank AMemberPaysVirtually TEST
  *     Bank AMemberIsOverMaximumButDoesntWantAutomaticDeposits TEST
  *     Bank AMemberIsOverPlentyOverMaximumButNotEnoughOverFloor TEST
  */

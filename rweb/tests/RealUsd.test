@@ -76,11 +76,11 @@ class rwebRealUsd extends DrupalWebTestCase {
     When_('member "NEW.ZZA" visits page "transactions/period=365"');
     Then_('we show "Transaction History" with: "DATA'
     . '\\| Start Date | End Date | Start Balance | To You | From You | Rewards | End Balance |'
-    . '\\| %dmy-12m   | %dmy     | $0.00         | 0.00   |    10.00 |   10.50 |       $0.50 |'
+    . '\\| %dmy-12m   | %dmy     | $0.00         | 0.00   |    10.20 |   10.50 |       $0.30 |'
     . '\\|            |          | PENDING       | 0.00   |     0.00 |    0.00 |     + $0.00 |"');
     And__('we show "Transaction History" with: "DATA'
     . '\\| tid | Date | Name    | From you | To you | r%   | Status  | Buttons | Purpose | Rewards |'
-    . '\\| 2   | %dm  | Bea Two | 10.00    | --     | 98.0 | %chk    | X       | labor   |    0.50 |"');
+    . '\\| 2   | %dm  | Bea Two | 10.20    | --     | 98.0 | %chk    | X       | labor   |    0.50 |"');
   }
 
   // Scenario: A member confirms payment with insufficient USD balance

@@ -177,14 +177,18 @@ array (
 )
    */
   function bank($amount, &$error = NULL) {
+    u\EXPECT($amount <> 0, 'bank zero');
     $dw = $this->dwolla();
     if (useDwolla())
-    if (!$sources = $dw->fundingSources()) return dwError($dw, $error);
+    if (!($source = $this->source($err)) or !@$source['Id'] or $err) return dwError($err ?: 'no source', $error);
+    if (useDwolla())
+    if (!@$source['Verified']) return dwError('not verified', $error);
+    
     $function = $amount < 0 ? 'deposit' : 'withdraw';
-    // debug("Transferring USD $amount from Dwolla account to the bank for account uid=" . $this->acct->id);
+// debug("Transferring USD $amount from Dwolla account to the bank for account uid=" . $this->acct->id);
     self::beginAtom();
     if (useDwolla())
-    if (!$result = $dw->$function(@$sources[0]['Id'], $this->pin, abs($amount))) {
+    if (!$result = $dw->$function(@$source['Id'], $this->pin, abs($amount))) {
       self::rollback();
       return dwError($dw, $error);
     }
@@ -341,6 +345,7 @@ function dwError($dw, &$error = '') {
     $created = REQUEST_TIME;
     r\dbInsert('r_usderror', compact(u\ray('error op created')));
   }
+  $error = u\tt($error); // get long version, if any
   return FALSE;
 }
 

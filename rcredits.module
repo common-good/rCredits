@@ -199,8 +199,8 @@ function rcredits_mail($index, &$msg_array, $info) {
   6 => '#post_render',
  */
 function rcredits_page_alter($page) {
-  //debug($page['#type']);
-  //debug(strip_tags($page['content']['system_main']['main']['#markup']));
+// debug($page['#type']);
+// debug(strip_tags($page['content']['system_main']['main']['#markup']));
 }
 
 /**
@@ -221,17 +221,19 @@ function rcredits_cron_queue_info() {
 
 function bs($n) {
   $bits = u\ray(B_LIST);
+  $result = '';
   for ($i=0; $i <= B_MAX; $i++) if ($n & u\bit($i)) {
-    echo $bits[$i] . ' ';
+    $result .= $bits[$i] . ' ';
   }
+  return $result;
 } // keep here
 
 function test() {
   include_once __DIR__ . '/usd.class';
   $usdW = new r\usd($w = r\acct(410044001));
   $usdA = new r\usd($a = r\acct(410061551));
-  debug($usdW->bal()); // keep
+/**/ debug($usdW->bal()); // keep
   $tx = $usdW->bank(-1, $err);
-  debug($tx.$err); // keep
+/**/ debug($tx.$err); // keep
   $usdW->each('test1', strtotime('60 days ago'), array('deposit'), TRUE);
 }

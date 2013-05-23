@@ -27,8 +27,11 @@ DAILY (every 5 mins for 5 mins, starting at 2am)
   . 1mo: suggest another contribution if first was small
   . 6mo: allow cashing out rewards if system stable
 - [later] statements for those who want daily statements
-- * notices(): send notices (daily digest)
 - (later) weekly / monthly / quarterly / annual stuff
+- * notices(): send notices (daily, weekly, or monthly digest)
+
+WEEKLY
+- after first month, lower floor according to sales (only if B_DEBT_OK)
 
 MONTHLY
 - inflation adjustment (monthly, calculating daily bals from history) is credited to the new month. calculated as the sum of t*bal*APR, where bal is each balance they had during the preceding month and t is the number of years that balance lasted. (see daily notify and fine, above)
@@ -48,10 +51,8 @@ use rCredits\Backend as be;
 
 include_once __DIR__ . '/../usd.class';
 
-define('R_DAILY_TASKS', 'START usdTxs recache checkAccts totals paySuppliers payEmployees gifts redistribute bank notices lessOften END');
+define('R_DAILY_TASKS', 'START usdTxs recache checkAccts totals paySuppliers payEmployees gifts redistribute bank lessOften notices END');
 //define ('R_DAILY_TASKS', 'START redistribute END');
-define('R_EXCESS', 'GREATEST(0, IF(maximum=0, 0, r+usd-GREATEST(floor, maximum)))'); // sql for excess in account
-define('R_SHORTFALL', 'GREATEST(0, minimum-(r+usd))'); // sql for shortfall in account
 
 /**
  * Do a queued task
@@ -67,7 +68,7 @@ function doTask($item) {
  * Queue: Check to see if it's time for a less-often periodic activity.
  */
 function periodic() {
-  if (!isDEV) return; // DEBUG (don't activate this until we're sure it will work smoothly)
+  if (STAGING) return; // don't cron on pre-production server
   $lastDaily = \variable_get('daily', 0);
 //  $lastDaily = 0; // DEBUG
   r\dbQ("DELETE FROM queue WHERE name='q'");
@@ -152,7 +153,7 @@ function bankFollowup($info) {
  */
 function recache() {
   $fields = 'uid, r, usd, rewards, maximum, minimum';
-  queueEach('recache1', "SELECT $fields FROM users WHERE uid>0 AND :IS_MEMBER");
+  queueEach('recache1', "SELECT $fields FROM users WHERE uid>0 AND :IS_OK"); // make this IS_MEMBER if early gift
   queueNextAfter('recache');
 }
 
@@ -168,7 +169,7 @@ function recache1($item) {
   $usdActual = $usAcct->bal($err);
   if (!$err) $usd = $usdActual;
   
-  if ($maximum and $maximum < max($rewards, $minimum)) {
+  if ($maximum > 0 and $maximum < max($rewards, $minimum)) { // >0 required
     r\tellStaff('corrupt max', $item);
     $maximum = max($rewards, $minimum);
   }
@@ -180,7 +181,7 @@ function recache1($item) {
  * Check accounts for consistency, scams, whatever.
  */
 function checkAccts() {
-  queueEach('checkAcct', "SELECT uid, maximum, minimum, rewards FROM users WHERE uid>0 AND :IS_MEMBER");
+  queueEach('checkAcct', "SELECT uid, maximum, minimum, rewards FROM users WHERE uid>0 AND :IS_OK"); //IS_MEMBER?
   queueNextAfter('checkAccts');
 }
 
@@ -224,19 +225,20 @@ function payEmployeesEND() {queueNextAfter('payEmployees');}
 function doCompanies($which) {
   $rightType = $which == 'EMPLOYEES' ? 'employerOk' : 'NOT employerOk';
   $sql = <<< EOF
-    SELECT u.uid, u.minimum, u.r, u.floor,
+    SELECT u.uid, u.minimum, u.r, u.floor, u.committed,
       SUM(r.amount) AS amounts, 
       SUM(IF($rightType, r.amount, 0)) AS tothese 
     FROM r_relations r 
     LEFT JOIN users u ON u.uid=r.main
-    WHERE amount>0 and :IS_VIRTUAL and :IS_OK
+    LEFT JOIN users u2 ON u2.uid=r.other
+    WHERE r.amount>0 and (u.flags&(1<<:B_VIRTUAL)) AND (u.flags&(1<<:B_OK)) AND (u2.flags&(1<<:B_OK))
     GROUP BY r.main
 EOF;
-	$result = r\dbQ($sql);
+	$result = r\dbQ($sql); // (can't use IS_ in query because flags field is ambiguous)
 
 	while($row = $result->fetchAssoc()) {
 	  extract($row);
-	  $kitty = ($r - $minimum - max(0, $floor)); // amount to pay out today for this group
+	  $kitty = max(0, $r - max($minimum, $committed) - max(0, $floor)); // amount to pay out today for this group
     if ($which != 'EMPLOYEES') $kitty *= $tothese / $amounts; // limit suppliers to their share
 	  if ($kitty > 0 and $tothese > 0) queue('virtualPayments1', compact(u\ray('uid kitty tothese slack rightType'))); 
 	}
@@ -290,7 +292,7 @@ function virtualPayment($item) {
   $excess = round(max(0, $max2 ? ($newR - $max2) : 0, $offer - $acct2->usd), 2); // r excess or USD shortfall (= r to exchange for USD in a 3-way trade)
   r\usd::beginAtom();
   $traded = $excess ? getUsd($excess, $acct2, $usAcct1) : 0; // give company partial USD through rCredits sale to 3rd party
-  //debug(compact(u\ray('main other offer max2 newR excess traded')));
+//debug(compact(u\ray('main other offer max2 newR excess traded')));
   if ($traded >= $excess and ($offer == $traded or $txid = $usAcct2->send($offer - $traded, $usAcct1, 'virtual payment exchange'))) { // other partially pays main in USD if not totally left to 3rd parties
     $info = u\assoc('amount r payer payee for goods usdXid', 0, $offer, $main, $other, t('virtual payment'), TRUE, @$txid);
     r\transact($info); // total rCredits from company to other
@@ -322,7 +324,8 @@ function gifts() {
 function gift1($item) {r\acceptGift($item);}
 
 function redistribute() {
-  $sql = 'SELECT uid, :R_CHUNK*FLOOR((:R_EXCESS-usd)/:R_CHUNK) AS excess FROM users WHERE :R_EXCESS-usd>=:R_CHUNK AND NOT :IS_VIRTUAL AND uid>0 AND :IS_OK';
+  $excess = ':R_CHUNK*FLOOR((:R_EXCESS-usd)/:R_CHUNK)';
+  $sql = "SELECT uid, $excess AS excess FROM users WHERE $excess>=0 AND NOT :IS_VIRTUAL AND uid>0 AND :IS_OK";
   queueEach('sellR', $sql);
   queueNextAfter('redistribute');
 }
@@ -337,13 +340,13 @@ function sellR($item) {
  * Transfer funds from Dwolla to bank account or vice versa, according to account's settings
  */
 function bank() {
+  $excess = 'LEAST(usd, :R_EXCESS)';
   $sql = <<<EOF
-  SELECT uid, LEAST(usd, :R_EXCESS) AS excess, :R_SHORTFALL AS shortfall
+  SELECT uid, $excess AS excess, :R_SHORTFALL AS shortfall
   FROM users 
-  WHERE ((LEAST(usd, :R_EXCESS)>=:R_BANK_MIN AND :IS_TO_BANK AND NOT :IS_VIRTUAL) OR :R_SHORTFALL>0)
+  WHERE (($excess>=:R_BANK_MIN AND :IS_TO_BANK) OR :R_SHORTFALL>0)
     AND uid>0 AND :IS_OK
 EOF;
-  // AND (flags&(1<<:B_BANKABLE))
   queueEach('bank1', $sql);
   queueNextAfter('bank');
 }
@@ -353,11 +356,17 @@ function bank1($item) {
   if ($excess > 0 and $shortfall > 0) return r\tellStaff('min > max', $item, $uid); // should never happen
   $acct = r\acct($uid);
   $waiting = $acct->waitingToBank(); // amount already requested (if any)
-  $amount = ($excess ?: -$shortfall) - $waiting;
   if ($excess > 0) {
+    $amount = $excess - $waiting;
     if ($amount < R_BANK_MIN or $waiting < 0) return; // too little, considering what's waiting, or flip-flop
   } else { // shortfall
-    if ($amount >= 0 or $waiting > 0) return; // already plenty or flip-flop
+    if ($waiting > 0) {
+      $suggestion = u\formatAmount(round($acct->minimum + min($acct->minimum * .2, 50, $shortfall), -1));
+      r\suggest($acct, 'min too low', compact('suggestion'));
+      return;
+    }
+    $amount = -$shortfall - $waiting; // normally negative (meaning transfer TO Dwolla)
+    if ($amount >= 0) return; // already plenty
     $amount = min($amount, -R_BANK_MIN);
   }
   $action = $excess > 0 ? 'deposit to' : 'draw from';
@@ -371,22 +380,30 @@ function bank1($item) {
 }
 
 /**
- * Send daily message digests. (no other choice at this time)
+ * Send daily, weekly, or monthly message digests.
  */
 function notices() {
-  queueEach('notice', 'SELECT DISTINCT uid FROM r_notices WHERE NOT sent');
+  $weekly = (strftime('%A') == R_WEEKLY_DAY);
+  $monthly = (strftime('%d') == R_MONTHLY_DAY);
+  $where = '(NOT :IS_NOTICE_WEEKLY AND NOT :IS_NOTICE_MONTHLY)';
+  if ($weekly) $where .= ' OR :IS_NOTICE_WEEKLY';
+  if ($monthly) $where .= ' OR :IS_NOTICE_MONTHLY';
+  $sql = "SELECT DISTINCT u.uid, :IS_NOTICE_WEEKLY AS weekly, :IS_NOTICE_MONTHLY AS monthly FROM r_notices n JOIN users u ON u.uid=n.uid WHERE NOT sent AND ($where)";
+  queueEach('notice', $sql);
   queueNextAfter('notices');
 }
 
 function notice($item) {
-  $uid = $item['uid'];
-  $result = r\dbQ('SELECT message FROM r_notices WHERE uid=:uid AND NOT sent', $item);
+  extract(u\just('uid weekly monthly', $item));
+  $result = r\dbQ('SELECT message FROM r_notices WHERE uid=:uid AND NOT sent', compact('uid'));
   $messages = '';
   while ($row = $result->fetch()) $messages .= "<li>$row->message</li>\n";
   if ($messages) {
-    $yesterday = u\formatDate(REQUEST_TIME - 1 * DAY_SECS);
-    r\notify($uid, 'notices', compact('messages', 'yesterday'), TRUE);
-    r\dbQ('UPDATE r_notices SET sent=:REQUEST_TIME WHERE uid=:uid AND NOT sent', $item);
+    $unit = $weekly ? 'week' : ($monthly ? 'month' : 'day');
+    $yestertime = u\formatDate($start = strtotime("-1 $unit", REQUEST_TIME));
+    $range = $weekly ? "the week of $yestertime" : ($monthly ? strftime('%B %Y', $start) : $yestertime);
+    r\notify($uid, 'notices', compact(u\ray('messages unit range yestertime')), TRUE);
+    r\dbQ('UPDATE r_notices SET sent=:REQUEST_TIME WHERE uid=:uid AND NOT sent', compact('uid'));
   }
 }
 
@@ -426,6 +443,7 @@ function getUsd($request, $acct, $usAcct) {
  *   otherwise -- seek R_CHUNK (leaving R_CHUNK/2 or more for other buyers
  * return: the best account to handle the trade (there may be none that wants so many)
  *    if no account wants to buy any, return FALSE (this would be really bad and should never ever happen)
+ *    NOTE that CGF is the buyer of last resort.
  */
 function nextRBuyer(&$amount, $except) {
   if ($amount > R_CHUNK * 1.5) $amount = R_CHUNK;
@@ -435,7 +453,7 @@ function nextRBuyer(&$amount, $except) {
     SELECT u.uid, $offer AS got FROM users u
     LEFT JOIN r_txs t ON t.payee=u.uid
     WHERE $where AND ((t.type=:TX_TRANSFER AND NOT t.goods) OR t.xid IS NULL)
-    ORDER BY ($offer>=:amount) DESC, t.completed LIMIT 1
+    ORDER BY (u.name='cgf'), ($offer>=:amount) DESC, t.completed LIMIT 1
 EOF;
   if (!$row = r\dbQ($sql1, compact('amount', 'except'))->fetchAssoc()) { // find out who (preferably who who wants enough) has waited the longest
     r\tellStaff('no buyers', compact('amount')); // this is a really bad thing (nobody wants any at all)

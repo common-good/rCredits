@@ -8,6 +8,11 @@ function toggleMain(me) {
   jQuery("#main, #help, #menu").hide();
   jQuery(was ? "#main" : me).show();
 }
+function hideMax() {
+  var max=jQuery("div.form-item-maximum");
+  if(jQuery("#edit-payvirtual-0").attr("checked")) max.show(); else max.hide();
+}
+hideMax();
 jQuery("#which, #help").addClass("popup");
 jQuery("#help-close, #which-close").addClass("popup-close");
 jQuery("#help-link").click(function() {jQuery("fieldset#help").show();});
@@ -15,4 +20,5 @@ jQuery("#edit-acct-showhelp").click(function() {toggleMain("#help");});
 jQuery("#edit-acct-showmenu").click(function() {toggleMain("#menu");});
 jQuery(".popup-close").click(function() {jQuery(this).parents("fieldset").hide();});
 jQuery("#which-cancel").click(function() {jQuery("fieldset#which").hide();});
+jQuery("div#edit-payvirtual").click(function() {hideMax();});
 jQuery("#idcard").click(function() {window.open("Advance-ID-Card", "tempcard","height=250,width=600,left=100,location=0,menubar=0,resizable=0,scrollbars=0,status=0,toolbar=0");}); // unused

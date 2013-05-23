@@ -33,7 +33,7 @@ function rcredits_install() {
     $info = array_combine($keys, $values);
     list ($mail, $phone, $address, $city, $state) = array('wspademan@gmail.com', '+14136283336', 'PO Box 305', 'Ashfield', R_STATE_ID);
     $info += compact(u\ray('mail phone address city state'));
-    new r\acct($info);
+    $wws = new r\acct($info);
     
     $values = array(r\unQuid(R_SERVER_ID . '.AAB'), $server, 'cgf', 'Common Good Finance', '01330', R_COUNTRY_ID, 0, R_REBATE, B_DFT | u\bit(B_MEMBER) | u\bit(B_OK) | u\bit(B_COMPANY));
     $info = array_combine($keys, $values);
@@ -41,12 +41,15 @@ function rcredits_install() {
     $info += compact(u\ray('mail phone address city state'));
     $cgf = new r\acct($info);
     \variable_set('cgf_uid', $cgf->id);
+    
+    list ($main, $other, $permission) = array($cgf->id, $wws->id, PERM_MANAGE);
+    r\dbInsert('r_relations', compact(u\ray('main other permission'))); // wws can manage CGF
   }
 
   // set up system admin record (uid=1)
   $fullName = t('System Administrator');
   $acct1 = r\acct(1);
-  foreach (array(B_NOTIFY_EMAIL, B_ADMIN, B_COMPANY) as $bit) $acct1->setBit($bit, TRUE, FALSE);
+  foreach (array(B_ADMIN, B_COMPANY) as $bit) $acct1->setBit($bit, TRUE, FALSE);
   $acct1->update(compact(u\ray('fullName')));
 
   variable_set('date_default_timezone', 'America/New_York');

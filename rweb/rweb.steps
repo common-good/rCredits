@@ -60,7 +60,7 @@ function memberCompletesFormWithValues($id, $page, $values, $confirmed = FALSE) 
   global $testOp; $testOp = @$values[0]['op'];
   global $testConfirmation; // confirmation message output, if any
   global $formSta;
-//debug(compact(u\ray('id page values confirmed testOnly'))); // keep
+// debug(compact(u\ray('id page values confirmed testOnly'))); // keep
 
   $values = $values[0];
   t\fixCountryAndState($values);
@@ -94,7 +94,7 @@ function memberCompletesFormWithValues($id, $page, $values, $confirmed = FALSE) 
 
   if (count($errors = t\getErrors()) > count($errorsBefore)) {
     // NO! if (!empty($errors)) return FALSE;
-    //debug(compact(u\ray('id page values confirmed one errors')));
+// debug(compact(u\ray('id page values confirmed one errors')));
   } else {
     $testConfirmation = @$formSta['confirm'];
     $lastIdentifierTag = '</div identifiers>';
@@ -433,6 +433,7 @@ function relations($relations) {return t\relations($relations);}
  *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
  *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance TEST
  *     Relations Setup TEST
+ *     Signup AMemberRegistersACompany TEST
  *     Summary Setup TEST
  *     Transactions Setup TEST
  *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
@@ -718,7 +719,7 @@ function weDownloadWith($name, $rows) {
   $headers = array_shift($testCSV2);
   if ($headers[0] == '#') $headers[0] = 't#';
   foreach ($testCSV2 as $csvRow) {
-    //debug(compact('headers', 'csvRow'));
+// debug(compact('headers', 'csvRow'));
     $csvRow = array_combine($headers, $csvRow); // add keys
     if (!$row = array_shift($rows)) return t\testOutput('extra row in CSV: ' . print_r($csvRow, 1));
     foreach ($row as $key => $value) {
@@ -741,7 +742,7 @@ function withDownloadColumns($columns) {
   if (!is_array($testCSV) or empty($testCSV)) return FALSE;
   $testCSV2 = $testCSV; // don't alter this (just in case)
   $headers = array_shift($testCSV2);
-  //debug(compact('headers','testCSV','columns'));
+// debug(compact('headers','testCSV','columns'));
   foreach ($columns as $one) if (array_search($one['column'], $headers) === FALSE) return FALSE;
   return TRUE;
 }

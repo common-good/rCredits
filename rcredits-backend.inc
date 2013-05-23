@@ -693,7 +693,7 @@ function creditInfo($args = array()) {
     SELECT 
     SUM(IF(t.payer=:uid, amount, 0)) AS `out`, 
     SUM(IF(t.payee=:uid, amount, 0)) AS `in`,
-    SUM(IF(t.type=:TX_TRANSFER, 0, amount)) AS rewards,
+    SUM(IF(t.type=:TX_TRANSFER OR t.type > :TX_INFLATION, 0, amount)) AS rewards,
     
     SUM(IF(t.payer=:uid, r, 0)) AS rOut, 
     SUM(IF(t.payee=:uid, r, 0)) AS rIn
@@ -853,7 +853,7 @@ function testbe($function = '', $arg1 = '', $arg2 = '', $arg3 = '') {
   if (!$function) return $testing_backend;
   $function = "rCredits\\be\\$function";
   $testing_backend = TRUE;
-  debug($function($arg1, $arg2, $arg3)); // keep this
+/**/ debug($function($arg1, $arg2, $arg3)); // keep this
 }
 
 /**

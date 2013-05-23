@@ -29,8 +29,8 @@ Scenario: A company agent clicks on the membership link
   Given member ".ZZC" supplies "physical": "planet Earth"
   When member "NEW:ZZA" visits page "membership"
   Then we show "Congratulations on signing up" with:
-  | Step 1 | Step 2    | Step 3       | Step 4 | Step 5   | Step 6      |
-  | photo  | Agreement | contribution | Dwolla | identity | Preferences |
+  | Step 1 | Step 2    | Step 3       | Step 4 | Step 5      |
+  | photo  | Agreement | contribution | Dwolla | Preferences |
   And we show "Congratulations on signing up" without:
   | Step 4            |
   | Choose two people |
@@ -57,6 +57,11 @@ Scenario: A member does it all
   And we tell staff "event" with subs:
   | fullName | quid | status |
   | Abe One  | .ZZA | member |
+#  And members:
+#  | id   | floor                               |
+#  | .ZZA | %(%R_SIGNUP_BONUS - %R_SIGNUP_GIFT) |
+  # card and letter sent to new member 
+  # mentioning how to spend their $5 with the card?
 
   When member ".ZZA" has done step "dwolla"
   And member ".ZZA" visits page "membership"

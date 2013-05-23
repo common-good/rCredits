@@ -1,15 +1,12 @@
-Feature: Totals
-AS a member
-I WANT accurate system totals
-SO I can see how well the rCredits system is doing for myself, for my ctty, and for the world.
-#   r floor rewards usd minimum maximum 
-#   signup rebate bonus inflation grant loan fine maxRebate
-#   balance (-r) demand (minimum - r)
+Feature: MiniLaunch
+AS a group of pioneering members
+I WANT the first few transactions of the mini-launch to go as expected
+SO I will have confidence to continue using the rCredits system.
 
 Setup:
   Given members:
   | id   | fullName   | email         | flags           | minimum | maximum | floor |
-  | .ZZA | Abe One    | a@example.com | dft,ok,personal |       5 |       1 |     0 |
+  | .A | Abe One    | a@example.com | dft,ok,personal |       5 |       1 |     0 |
   | .ZZB | Bea Two    | b@example.com | dft,ok,personal |    1000 |      50 |   -20 |
   | .ZZC | Corner Pub | b@example.com | dft,ok,company  |    2000 |       0 |    10 |
   And relations:

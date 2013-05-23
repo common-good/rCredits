@@ -282,7 +282,7 @@ function diff($a, $b) {
 }
 
 /**
- * Get the long version of the indicated message(s), make any substitutions,
+ * Get the long version of the indicated message(s) (if any), make any substitutions,
  * and return the result.
  * Channel determines which message set to use (each simpler channel provides a fallback)
  *
@@ -432,10 +432,10 @@ function EXPECT($assertion, $message = '', $ret = FALSE) {
   if (is_array($assertion)) {
     list ($args, $types) = array($assertion, $message); // for clarity
 //    EXPECT(compact(ray('args types')), 'assoc string'); // can't do this because infinite recursion
-//if (strpos($types, '|')) {debug(array_keys($args)); debug($types);}
+// if (strpos($types, '|')) {debug(array_keys($args)); debug($types);}
 //    EXPECT(count($args) != count($types = explode(' ', $types)), 'wrong number of types expected'); // infinite recursion
 //    if(count($args) != count($types = explode(' ', $types))) die('wrong number of types expected: ' . print_r(debug_backtrace(), 1));
-    if (count($args) != count(explode(' ', $types))) debug(debug_backtrace()); // keep
+/**/ if (count($args) != count(explode(' ', $types))) debug(debug_backtrace()); // keep
     $types = array_combine(array_keys($args), explode(' ', $types)); // not ray() here, $types may have '|'
     foreach ($args as $key => $value) if ($error = expect1($key, $value, $types[$key], $ret)) return $error;
   } elseif (!$assertion) {
@@ -697,7 +697,7 @@ function import_gfld() {
         $record = compact('industry');
         db_query("INSERT INTO r_industries (industry) VALUES (:industry)", $record);
 //        $iid = r\dbInsert('r_industries', $record);
-//        debug(r\dbInsert('r_industries', $record));
+// debug(r\dbInsert('r_industries', $record));
       }
       db_query("INSERT INTO r_user_industries (iid, uid) VALUES (:iid, :uid)", prefixKeys(':', compact('iid', 'uid')));
 //      r\dbInsert('r_user_industries', compact(ray('iid uid')));
@@ -725,11 +725,11 @@ function get_company_pictures() {
     if (in_array($uid, array(549, 551, 552, 779, 791))) continue; // these apparently kill it
     echo "$uid<br>"; // in case it dies
 
-    if (strlen($website) < 4) {debug($uid); continue;} // keep this
+//    if (strlen($website) < 4) {debug($uid); continue;} // keep this
     $homepage = 'http://' . $website;
     $s = @file_get_contents($homepage);
     if (!$s) $s = @file_get_contents($homepage = ('http://www.' . $website));
-    if (!$s) {debug("Can't open $homepage"); continue;} // keep this
+//    if (!$s) {debug("Can't open $homepage"); continue;} // keep this
     
     if (!$description) {
       $got = preg_match('/<meta\s+name\s*=\s*[\'"]description[\'"]\s+content\s*=\s*[\'"](.*?)[\'"]/msi', $s, $matches);
@@ -759,7 +759,7 @@ function get_company_pictures() {
       r\dbQ('UPDATE users SET data=:data WHERE uid=:uid', compact(ray('data uid')));
     }
   }
-  debug('done'); // keep this
+//  debug('done'); // keep this
 }
 */
 

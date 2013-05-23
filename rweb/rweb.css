@@ -188,8 +188,8 @@ form.rweb  .form-no {color:red;}
 
 /* Register (New account) */
 #user-register-form #edit-company-text label {font-weight:normal; width:100%;}
-#user-register-form .form-type-radio {display:inline-block;}
-#user-register-form .form-type-radio input {display:inline-block; margin-left:0; vertical-align:bottom;}
+#user-register-form .form-type-radios {border-bottom:0;}
+/*#user-register-form .form-type-radio input {display:inline-block; margin-left:0; vertical-align:bottom;} */
 /*#user-register-form .form-type-radio label {display:inline; width:10em; margin-left:.2em; text-align:left;}*/
 #user-register-form  fieldset.form-wrapper {margin-left:0; border-color:darkgreen; background-color:lightyellow;}
 #user-register-form  #edit-company-text label {text-align:left;}
@@ -199,6 +199,7 @@ form.rweb  .form-no {color:red;}
 /* ask even companies! #user-register-form .form-item-buysAt {display:none;} */
 #user-register-form  .form-checkboxes {margin-left:8em;}
 #user-register-form .form-item-companyOptions-contractor label {width:auto;}
+#user-register-form .form-item-acctType .description {margin-bottom:20px;}
 
 /* New password */
 #user-pass #edit-name {width:20em;}
@@ -225,10 +226,9 @@ form.rweb  .form-no {color:red;}
 
 #rcreditswebformcompany input#edit-submit {margin-top:2em; display:inline-block;}
 #rcreditswebformcompany #edit-links {display:block; width:30em;}
-#rcreditswebformcompany.labeled #edit-links {margin-left:8em;}
+/*#rcreditswebformcompany.labeled #edit-links {margin-left:8em;}*/
 #rcreditswebformcompany #edit-links label {width:100%; text-align:left; font-weight:normal;}
-
-#rcreditswebformcompany.labeled .form-item-categories label {position:relative; top:-3.5em;} /* dunno why top is off */
+#rcreditswebformcompany.labeled .form-item-categories label {vertical-align:top;}
 
 /* Account Info */
 #rcreditswebformaccount .form-type-textfield label {display:block;}
@@ -260,6 +260,8 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformgetr #edit-subtext .r-amounts {text-align:right; max-width:425px;}
 
 /* Contribute */
+#rcreditswebformcontribute #edit-title,
+#rcreditswebformcontribute #edit-subtext {margin-left:0;}
 #rcreditswebformcontribute .form-item-other {display:none;}
 #rcreditswebformcontribute #edit-other,
 #rcreditswebformcontribute #edit-share {width:50px;}
@@ -271,7 +273,8 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformcontribute .form-item-honored {display:inline-block;}
 
 /* Proxies */
-#rcreditswebformproxies #edit-subtext  {font-weight:normal; font-size:85%;}
+#rcreditswebformproxies #edit-title {margin-left:0;}
+#rcreditswebformproxies #edit-subtext  {font-weight:normal; font-size:85%; margin-left:0;}
 
 /* Reports */
 #rcreditswebformreports .form-item-agents,
@@ -321,6 +324,9 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformreports td:first-child +td+td+td+td+td+td+td+td+td+td+td+td {display:none;} /* col 13 */
 
 /* Transactions */
+#rcreditswebformtxs #edit-title,
+#rcreditswebformtxs #edit-subtext {margin-left:0;}
+
 #rcreditswebformtxs .form-type-checkbox {max-width:120px;}
 #rcreditswebformtxs .form-item-agents,
 #rcreditswebformtxs .form-item-channels {display:inline-block;}
@@ -498,6 +504,8 @@ html.js input.throbbing {background-position:right -2.4em;}
 #rcreditswebformagreement #agreement ol {margin-left:25px;}
 
 /* Invite */
+#rcreditswebforminvite #edit-title,
+#rcreditswebforminvite #edit-subtext {margin-left:0;}
 #rcreditswebforminvite .form-item-trusted {border:0;}
 #rcreditswebforminvite .form-item-subject {margin-top:20px;}
 
@@ -524,17 +532,26 @@ html.js input.throbbing {background-position:right -2.4em;}
 /*#rcreditswebformoptions .form-item-secretBal input {margin-left:105px;} */
 #rcreditswebformoptions .form-item-payVirtual {border-bottom:0;}
 #rcreditswebformoptions .form-item-debtOk .description {max-width:700px;}
+#rcreditswebformoptions #edit-notices div {display:inline-block;}
+#rcreditswebformoptions #edit-submit {margin-top:50px;}
 
-/* Dwolla */
+/* Dwolla (USD) */
+#rcreditswebformusd #edit-title,
+#rcreditswebformusd #edit-subtext {margin-left:0;}
 #rcreditswebformusd .form-radios {max-width:80%;}
 #rcreditswebformusd  .form-type-radio label {font-weight:normal;}
+#rcreditswebformusd  #edit-usdaccount {display:none;}
+
+/* ID Proof */
+#rcreditswebformproof #edit-title,
+#rcreditswebformproof #edit-subtext {margin-left:0;}
 
 /* form I */
-#rcreditswebformi .user-picture {float:left; max-width:35%; margin-right:1em;}
-#rcreditswebformi #id-other {float:left; clear:right; max-width:48%; margin-bottom:1em; margin-right:2em;}
-#rcreditswebformi .form-item {float:left; max-width:48%;}
-#rcreditswebformi .form-item input {font-size:1.5em; padding:.2em 1em;}
-#rcreditswebformi #edit-all {width:30em; max-width:100%;}
+#rcreditswebformi .user-picture {float:left; max-width:48%; margin-left:0px; margin-top:0px;}
+#rcreditswebformi #id-other {float:left; clear:right; margin-bottom:1em; margin-left:10px;}
+#rcreditswebformi .form-item {float:left;}
+#rcreditswebformi .form-item input.form-submit {font-size:18px; padding:4px 2px; margin:0 0 0 10px; min-width:140px;}
+#rcreditswebformi #edit-all {max-width:100%; margin-left:0px;}
 #rcreditswebformi #edit-all .form-type-item {max-width:100%;}
 #rcreditswebformi #id-name {margin-top:2.5em; font-weight:bold; font-size:1.5em; color:darkgreen;}
 #rcreditswebformi #edit-identifiers {margin-bottom:0;}
@@ -595,9 +612,10 @@ and (max-device-width : 480px) { */
   #edit-acct-showhelp input {width:3.5em;}
 
   #menu {position:absolute; left:0; top:125px; width:100%; margin:0; background-color:white; padding-top:0; border:0;} /* don't show unless button pressed (dunno why this has to be absolute, but top-margin otherwise fails) */
-  #menu .fieldset-wrapper {padding:0 0 0 .2em;}
-  #menu .form-item {width:48%; display:inline-block;}
-  #menu input  {width:90%; font-size:1.2em; padding-top:.4em; padding-bottom:.4em;}
+  #settings {width:100%; margin:0; background-color:white; border:0;}
+  #menu .fieldset-wrapper, #settings .fieldset-wrapper {padding:0 0 0 .2em;}
+  #menu .form-item, #settings .form-item {width:48%; display:inline-block;}
+  #menu input, #settings input  {width:90%; font-size:1.2em; padding-top:.4em; padding-bottom:.4em;}
   #menu input#edit-help {margin-bottom:8em;}
   #user-login input#edit-name,
   #user-login input#edit-pass {width:17em;}
@@ -621,12 +639,18 @@ and (max-device-width : 480px) { */
 
   #rcreditswebformdirectory ul {margin-left:0; padding-left:0;}
   
-  #rcreditswebformi input.form-submit {width:6em; margin:.1em auto 0 auto;}
-  #rcreditswebformi #id-name {margin-top:.5em;}
-  #rcreditswebformi .user-picture {margin-right:.4em; margin-bottom:10em;}
+  body.page-i #main .section,
+  body.page-i #main .content,
+  #rcreditswebformi #edit-all {margin:0; padding:0;}
+  #rcreditswebformi #id-other {max-width:47%;}
+  #rcreditswebformi #id-name {margin-top:12px;}
+  #rcreditswebformi .user-picture {margin-bottom:10em;}
   
   #rcreditswebformmembership #edit-steps {margin-left:0;}
-  #rcreditswebformtx .form-type-radio {display:block;}
+  #rcreditswebformtx .form-type-radios {display:inline-block; margin-left:25px; max-width:160px; border:2px solid darkblue;}
+  #rcreditswebformtx .form-type-radio, {display:block;}
+  #rcreditswebformtx #edit-amount {width:100px;}
+  #rcreditswebformtx .form-item-amount {display:inline-block;}
   
   #rcreditswebformphoto #edit-submit {left:0px; top:0px;}
 }

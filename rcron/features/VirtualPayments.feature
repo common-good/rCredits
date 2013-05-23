@@ -1,9 +1,8 @@
 Feature: Virtual Payments
 AS a member company
 I WANT to pay my employees and suppliers rCredits automatically
-SO I don't have to do change my current payroll and accounting system.
-and
-SO I don't build up a pile of credit I can't use yet.
+SO I don't have to do change my current payroll and accounting system
+and SO I don't build up a pile of credit I can't use yet.
 
 Setup:
   Given members:
@@ -12,11 +11,13 @@ Setup:
   | .ZZB | Bea Two    | b@example.com |    0 |     100 |     200 | dft,personal,company,ok |
   | .ZZC | Corner Pub | c@example.com |    0 |      10 |       0 | dft,company,virtual,ok  |
   | .ZZD | Dee Four   | d@example.com |    0 |     100 |     100 | dft,personal,ok         |
+  | .ZZE | Ezra Five  | e@example.com |    0 |     200 |       0 | dft,personal,member     |
   And relations:
-  | id      | main    | agent   | employerOk | permission | amount |
-  | NEW:ZZA | .ZZC | .ZZA |          1 | sell       |   1800 |
-  | NEW:ZZB | .ZZC | .ZZB |          0 |            |    200 |
-#90/10 split
+  | id      | main | agent | employerOk | permission | amount |
+  | NEW:ZZA | .ZZC | .ZZA  |          1 | sell       |   1800 |
+  | NEW:ZZB | .ZZC | .ZZB  |          0 |            |    200 |
+  | NEW:ZZE | .ZZC | .ZZE  |          1 |            |   2000 |
+# 90/10 split (E is not an rTrader, so doesn't count)
   
 Scenario: a member company pays suppliers virtually
   Given balances:
@@ -25,6 +26,7 @@ Scenario: a member company pays suppliers virtually
   | .ZZB | 60 |   0 |      20 |
   | .ZZC | 50 |   0 |      20 |
   | .ZZD |  0 | 100 |      20 |
+  | .ZZE |  5 | 500 |       5 |
   When cron runs "paySuppliers"
   Then transactions:
   | xid   | created | type     | state | amount | r    | from | to   | purpose               |
@@ -47,6 +49,7 @@ Scenario: a member company pays employees virtually
   | .ZZB | 60              |   0 |      20 |
   | .ZZC | %(10 + %chunk4) |   0 |      20 |
   | .ZZD |  0              | 100 |      20 |
+  | .ZZE |  5              | 500 |       5 |
   When cron runs "payEmployees"
   Then transactions:
   | xid   | created | type     | state | amount         | r              | from | to   | purpose               |
@@ -63,4 +66,3 @@ Scenario: a member company pays employees virtually
   And we notice "virtual payment received" to member ".ZZA" with subs:
   | amount       | fullName   | bonus              |
   | $%(%chunk4)r | Corner Pub | $%(.10*%chunk4).00 |
-  

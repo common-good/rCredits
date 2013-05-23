@@ -8,9 +8,9 @@ SO I can pay it to non-members.
 
 Setup:
   Given members:
-  | id   | fullName   | floor | minimum | maximum | flags                           |
-  | .ZZA | Abe One    |     0 |     100 |     200 | dft,personal,company,ok,to_bank |
-
+  | id   | fullName | floor | minimum | maximum | flags                           |
+  | .ZZA | Abe One  |     0 |     100 |     200 | dft,personal,company,ok,to_bank |
+  
 Scenario: a member is barely below minimum
   Given balances:
   | id   | r  | usd   | rewards |
@@ -147,13 +147,15 @@ Scenario: a member has no maximum
 Scenario: a member pays virtually
   Given members:
   | id   | fullName   | floor | minimum | maximum | flags                           |
-  | .ZZC | Corner Pub |     0 |     100 |      10 | dft,company,ok,virtual,to_bank  |
+  | .ZZC | Corner Pub |     0 |      10 |       5 | dft,company,ok,virtual,to_bank  |
   And balances:
   | id   | r  | usd | rewards |
   | .ZZA | 50 |  50 |      20 |
-  | .ZZC | 20 | 500 |      20 |
+  | .ZZC | 20 | 100 |      70 |
   When cron runs "bank"
-  Then bank transfer count is 0
+  Then bank transfers:
+  | payer | amount |
+  | .ZZC  |     50 |
 
 Scenario: a member is over maximum but mostly in rCredits
   Given balances:

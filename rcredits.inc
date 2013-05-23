@@ -25,6 +25,7 @@ define('R_VERSION', '1.0a'); // software version
 define('R_SEPARATE_BACKEND', FALSE);
 define('R_ROOT', DRUPAL_ROOT . '/sites/all/modules/rcredits');
 define('R_CONCEALED_FIELDS', 'code password pass oneTimeLoginUrl'); // fields to leave out of log
+define('R_DATE_FIELDS', 'created completed sent invited giftDate signed login access yesterday'); // date field names for testing
 define('R_DATA_FIELDS', ''); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'usd r rewards floor committed'); // financial amount fields in account record
 define('R_COMPANY_FIELDS', 'website description selling structure'); // fields in r_companies
@@ -111,9 +112,10 @@ define('B_u9', 9); //
 define('B_VIRTUAL', 10); // automatically pay employees and suppliers virtually
 define('B_u11', 11); // 
 define('B_PAYROLL', 12); // automatically pay employees their total daily salary - employer chooses pay period)
-define('B_u13', 13); // 
-define('B_u14', 14); // 
-define('B_NOTIFY_EMAIL', 15); // notifications by email
+define('B_NOTICE_WEEKLY', 13); // send notices only weekly
+define('B_NOTICE_MONTHLY', 14); // send notices only monthly
+//define('B_NOTIFY_EMAIL', 15); // notifications by email
+define('B_u15', 15); //
 define('B_NOTIFY_SMS', 16); // notifications by SMS
 define('B_ELECTRONIC', 17); // will accept electronic statements
 define('B_SECRET_BAL', 18); // don't let merchants tell me my balance on request
@@ -131,9 +133,13 @@ define('B_CTTY_ADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
 define('B_CLOSED', 31); // account is closed (data[new_account] has new qid)
 define('B_MAX', 31); // maximum bit number
-define('B_DFT', (1 << B_NOTIFY_EMAIL) | 0); // set what bits when creating a new account
+//define('B_DFT', (1 << B_NOTIFY_EMAIL) | 0); // set what bits when creating a new account
+define('B_DFT', 0 | 0); // set what bits when creating a new account
 define('B_ADMINABLE', 'personal company member ctty_admin closed'); // for cttyAdmin to set
-define('B_LIST', 'member ready ok bona u4 personal company u7 charge u9 virtual u11 payroll u13 u14 notify_email notify_sms electronic secret_bal to_bank debt_ok draws u22 u23 u24 u25 u26 u27 u28 ctty_admin admin closed');
+define('B_LIST', 'member ready ok bona u4 person company u7 charge u9 virtu u11 payroll weekly monthly u15 sms electro secret bank debt draws u22 u23 u24 u25 u26 u27 u28 cadmin admin closed');
+
+define('R_EXCESS', 'GREATEST(0, IF(maximum=0 AND (flags&(1<<' . B_VIRTUAL . '))=0, 0, r+usd-GREATEST(floor, maximum, minimum, rewards+committed)))'); // sql for excess in account (for redistribution or employee offloading) -- companies that pay virtually have, in effect, max=min
+define('R_SHORTFALL', 'GREATEST(0, minimum-(r+usd))'); // sql for shortfall in account
 
 // for :IS_OK etc. -- see u\SUBS()
 
@@ -222,7 +228,7 @@ $GLOBALS['emailSubjects'] = array(
   'welcome' => t('Welcome to rCredits!'),
   'password-reset' => t('New rCredits PASSWORD'),
   'tell-staff' => t('rCredits STAFF ALERT: {topic}'),
-  'notices' => t('rCredits Notices for {yesterday}'),
+  'notices' => t('rCredits Notices for {range}'),
 );
 
 include_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
@@ -503,10 +509,10 @@ function cacheTotals($uid, $txs) {
     $usd += $amount - $r;
     if (!$toOther and $amount - $r > DWOLLA_FEE_THRESHOLD) $usd -= DWOLLA_FEE;
     $usd = round($usd, 2);    
-    if ($type != TX_TRANSFER) {
+    if ($type != TX_TRANSFER and $type <= TX_INFLATION) {
       if ($type == TX_REBATE or $type == TX_BONUS) $committed = round($committed + $amount * $acct->share / 100, 2);
       $rewards = round($rewards + $r, 2);
-      if (@$maximum) $maximum = round(max($maximum, $rewards), 2); // @ is for testing
+      if (@$maximum > 0) $maximum = round(max($maximum, $rewards), 2); // @ is for testing
     }
   }
 ///  unfreeze($available, $frozen); // update expired frozen amounts
@@ -597,14 +603,13 @@ function notify($uid, $index, $info = array(), $force = FALSE) {
   
   if ($force) {
     $mailed = \drupal_mail('rCredits', $index, $acct->mail, '', $info); // no need to pass $acct->language
-  } elseif ($acct->hasBit(B_NOTIFY_EMAIL)) {
+  } else { //if ($acct->hasBit(B_NOTIFY_EMAIL)) {
     list ($message, $created) = array(u\tt($index, $info), REQUEST_TIME);
     r\dbInsert('r_notices', compact(u\ray('uid message created')));
   }
   
   if ($acct->hasBit(B_NOTIFY_SMS)) {
-    $number = dbLookup('number', 'r_sms', 'uid=:uid AND status=:SMS_PRIMARY', compact('uid'));
-    if ($number) $smsed = SMS\send($number, u\tt($index, $info, TX_SMS));
+    if ($num = $acct->smsNumber) $smsed = SMS\send($num, u\tt($index, $info, TX_SMS));
   }
   if (FALSE and !@$mailed and !@$smsed and array_search($index, $warnIndexes) !== FALSE) {
     $notification = str_replace('-', ' ', $index);
@@ -612,8 +617,8 @@ function notify($uid, $index, $info = array(), $force = FALSE) {
   }
   if (@$warning) {
     if ($channel == TX_WEB) Web\say($warning);
-    if ($channel == TX_SMS) { } // dunno how to handle this (send a second message?)
-    if ($channel == TX_SMART) { } // dunno how to handle this, but easier than SMS
+    if ($channel == TX_SMS) SMS\send(r\acct()->smsNumber, $warning);
+    if ($channel == TX_SMART) { } // dunno how to handle this
   }
 }
 
@@ -629,12 +634,13 @@ function membershipEvent($acct, $status, $do = TRUE) {
   if ($do and ($bit === FALSE or !$acct->hasBit($bit))) { // met the prerequisite and hasn't previously
     $DBTX = \db_transaction();
     if ($bit !== FALSE) $acct->setBit($bit); // set the bit, if any
-    if ($status == 'bona') be\fund($acct->id, TX_SIGNUP, R_SIGNUP_BONUS);
+    if ($status == 'bona' and $acct->can(B_PERSONAL)) be\fund($acct->id, TX_SIGNUP, R_SIGNUP_BONUS);
 /*      $amount = r\dbLookup('amount', 'r_gifts', 'uid=:id', array('id' => $acct->id));
       list ($payer, $payee, $for) = array($acct->id, \variable_get('cgf_uid'), t('membership contribution'));
       r\transact(compact(u\ray('amount payer payee for')));
     } */
-    if ($status == 'member') be\fund($acct->id, TX_SIGNUP, R_SIGNUP_GIFT);
+//    if ($status == 'member') be\fund($acct->id, TX_SIGNUP, R_SIGNUP_GIFT);
+    if ($status == 'ok') r\notify($acct->id, 'you are approved');
     unset($DBTX);
     
     $fullName = $acct->fullName;
@@ -659,7 +665,7 @@ function acceptGift($info) {
 
   r\usd::beginAtom();
   list ($msg, $args, $confirm) = be\transfer('payment', $a, $cgf, $amount, 'contribution', TRUE);
-  //debug(compact('msg','args','confirm'));
+// debug(compact('msg','args','confirm'));
   if (@$args['success']) {
     $completed = REQUEST_TIME;
     r\dbUpdate('r_gifts', compact('donid', 'completed'), 'donid');
@@ -1206,9 +1212,10 @@ function totals($ctty = 'ALL', $calculate = FALSE) {
  *   balance (-r) demand (minimum - r)
  */
 function getTotals($ctty) {
-  $where = (@$ctty ? "community=:ctty" : 1) . ' AND :IS_MEMBER';
+  $where = (@$ctty ? "community=:ctty" : 1) . ' AND uid>0 AND :IS_OK';
   $fields = u\sumAs('r floor rewards usd minimum maximum');
-  $result1 = r\dbQ("SELECT $fields, SUM(r+usd-GREATEST(floor, maximum)) AS excess FROM users WHERE $where", compact('ctty'))->fetchAssoc();
+  $sql = "SELECT $fields, SUM(GREATEST(0, r-maximum)) AS excess, SUM(GREATEST(0, minimum-r)) AS demand FROM users WHERE $where";
+  $result1 = r\dbQ($sql, compact('ctty'))->fetchAssoc();
 
   $where = @$ctty ? '(payer=:ctty OR payee=:ctty)' : 1;
   $sums = '';
@@ -1220,8 +1227,7 @@ function getTotals($ctty) {
   $sql = "SELECT $sums MAX(IF(type=:TX_REBATE, amount, 0)) AS maxRebate FROM r_txs WHERE $where AND state IN(':TX_DONE,:TX_DISPUTED')";
   $result2 = r\dbQ($sql, compact('ctty'))->fetchAssoc();
   $balance = -$result1['r'];
-  $demand = $result1['minimum'] - $result1['r'];
-  return $result1 + $result2 + compact(u\ray('balance demand'));
+  return $result1 + $result2 + compact(u\ray('balance'));
 }
 
 /**
@@ -1343,7 +1349,17 @@ function error($logid) {
   if (isDEV) {
     print_r($info); 
   } else r\go('/user/login/err=' . R_SYS_ERR);
+}
 
+/**
+ * Send the account a notice for the suggested action, with a direct link to do it.
+ * The link does not require the user to sign in.
+ * FOR NOW: just suggest it, with no direct link. (never a link if channel is SMS)
+ */
+function suggest($a, $index, $subs, $page = 'Preferences') {
+  // $subs['url'] = 
+  // $index .= '|click option';
+  r\notify($a->id, $index, $subs + compact('page'));
 }
 
 /**
@@ -1362,7 +1378,7 @@ function changeIt($a) {
   $secure = $a->secure;
   $secure['cardCode'] = u\randomString(20, 'word');
   unset($secure['card_code']);
-  debug(array('id' => $a->id, 'secure' => $secure)); // keep
+/**/ debug(array('id' => $a->id, 'secure' => $secure)); // keep
   //$a->update(compact('secure'));
 }
 

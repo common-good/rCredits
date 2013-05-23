@@ -310,7 +310,7 @@ EOF;
     $ray = (array) $this->account(R_MONEY_FIELDS);
     $ray['fees'] = 0;
     $avail = avail($type, $ray);
-    //debug(compact('need','avail','get'));
+// debug(compact('need','avail','get'));
     if ($avail >= $need) return 0; // plenty without drawing from other accounts
 
     if ($get) { // get what we need (should have already checked to see if it's there)
@@ -319,7 +319,7 @@ EOF;
       if ($avail < $need) $avail += $this->draw($type, $need - $avail, 'usd'); // the remainder in USD
       r\usd::commit($avail >= $need); // rollback if failure
     } else $avail += $this->canDraw($type); // just asking
-    //debug(compact('need','avail','get'));
+// debug(compact('need','avail','get'));
     return max(0, $need - $avail); // the shortfall
   }
   
@@ -414,7 +414,16 @@ EOF;
     list ($id, $ancient) = array($this->id, REQUEST_TIME - 4 * DAY_SECS);
     return r\dbLookup('SUM(amount)', 'r_usd', $where, compact('id', 'ancient')) + 0;
   }
-  
+
+  /**
+   * Return an SMS number for the account.
+   * @return: the number or null if none
+   */
+  public function smsNumber() {  
+    $id = $this->id;
+    return dbLookup('number', 'r_sms', 'uid=:id AND status=:SMS_PRIMARY', compact('id'));
+  }
+
   /**
    * Say whether this account/agent has the permission.
    * @param int $permission: the permission in question (DEFAULT B_READ)
@@ -449,7 +458,7 @@ EOF;
           $perms[B_READ] = $perms[B_SELL] = $perms[B_BUY] = $perms[B_MANAGE] = TRUE;
         }
 //        $perms[B_PERSONAL] = TRUE; // manage show PERSONAL settings (for debugging)
-        $perms[B_COMPANY] |= $this->proSe(); // show company settings on own account (for debugging)
+        if ($this->proSe()) $perms[B_COMPANY] = TRUE; // show company settings on own account (for debugging)
       };
 
       $perms[B_MANAGING_CTTY] = ($perms[B_CTTY_ADMIN] and $id == $this->community);
@@ -502,14 +511,14 @@ function IA($quid = '', $no_abbrev = TRUE) {
  * @return: the actual data (if RETRIEVING) or record key (if STORING)
  */
 function offsiteData($id, $data = NULL) {
-  //debug(strlen(u\ezencrypt(serialize($orig = $data), R_WORD)));
+// debug(strlen(u\ezencrypt(serialize($orig = $data), R_WORD)));
   if (isset($data)) $data = bin2hex(u\ezencrypt(serialize($data), R_WORD));
-  //debug(strlen($data));
-  //debug($data);
-  //debug(u\ezencrypt(serialize($orig), R_WORD) == hex2bin($data));
-  //debug(R_SECRET_URL . '/offsite.php');
+// debug(strlen($data));
+// debug($data);
+// debug(u\ezencrypt(serialize($orig), R_WORD) == hex2bin($data));
+// debug(R_SECRET_URL . '/offsite.php');
   $result = u\httpRequest(R_SECRET_URL . '/offsite.php', compact('id', 'data'));
-  //debug($result);
+// debug($result);
   return isset($data) ? $result : unserialize(u\ezdecrypt(hex2bin($result), R_WORD)); // hex2bin = pack('H*'
 }  
 

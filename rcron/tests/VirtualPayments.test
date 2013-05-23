@@ -3,9 +3,8 @@
 // Feature: Virtual Payments
 //   AS a member company
 //   I WANT to pay my employees and suppliers rCredits automatically
-//   SO I don't have to do change my current payroll and accounting system.
-//   and
-//   SO I don't build up a pile of credit I can't use yet.
+//   SO I don't have to do change my current payroll and accounting system
+//   and SO I don't build up a pile of credit I can't use yet.
 
 require_once __DIR__ . '/../../../gherkin/test-defs.php';
 require_once __DIR__ . '/../rcron.steps';
@@ -50,11 +49,13 @@ class rcronVirtualPayments extends DrupalWebTestCase {
     . '\\| .ZZA | Abe One    | a@example.com |    0 |      20 |      20 | dft,personal,ok         |'
     . '\\| .ZZB | Bea Two    | b@example.com |    0 |     100 |     200 | dft,personal,company,ok |'
     . '\\| .ZZC | Corner Pub | c@example.com |    0 |      10 |       0 | dft,company,virtual,ok  |'
-    . '\\| .ZZD | Dee Four   | d@example.com |    0 |     100 |     100 | dft,personal,ok         |"');
+    . '\\| .ZZD | Dee Four   | d@example.com |    0 |     100 |     100 | dft,personal,ok         |'
+    . '\\| .ZZE | Ezra Five  | e@example.com |    0 |     200 |       0 | dft,personal,member     |"');
     And__('relations: "DATA'
-    . '\\| id      | main    | agent   | employerOk | permission | amount |'
-    . '\\| NEW:ZZA | .ZZC | .ZZA |          1 | sell       |   1800 |'
-    . '\\| NEW:ZZB | .ZZC | .ZZB |          0 |            |    200 |"');
+    . '\\| id      | main | agent | employerOk | permission | amount |'
+    . '\\| NEW:ZZA | .ZZC | .ZZA  |          1 | sell       |   1800 |'
+    . '\\| NEW:ZZB | .ZZC | .ZZB  |          0 |            |    200 |'
+    . '\\| NEW:ZZE | .ZZC | .ZZE  |          1 |            |   2000 |"');
     break;
 
 
@@ -69,7 +70,8 @@ class rcronVirtualPayments extends DrupalWebTestCase {
     . '\\| .ZZA | 10 | 100 |       5 |'
     . '\\| .ZZB | 60 |   0 |      20 |'
     . '\\| .ZZC | 50 |   0 |      20 |'
-    . '\\| .ZZD |  0 | 100 |      20 |"');
+    . '\\| .ZZD |  0 | 100 |      20 |'
+    . '\\| .ZZE |  5 | 500 |       5 |"');
     When_('cron runs "paySuppliers"');
     Then_('transactions: "DATA'
     . '\\| xid   | created | type     | state | amount | r    | from | to   | purpose               |'
@@ -94,7 +96,8 @@ class rcronVirtualPayments extends DrupalWebTestCase {
     . '\\| .ZZA | %(21 - %chunk)  | 100 |       5 |'
     . '\\| .ZZB | 60              |   0 |      20 |'
     . '\\| .ZZC | %(10 + %chunk4) |   0 |      20 |'
-    . '\\| .ZZD |  0              | 100 |      20 |"');
+    . '\\| .ZZD |  0              | 100 |      20 |'
+    . '\\| .ZZE |  5              | 500 |       5 |"');
     When_('cron runs "payEmployees"');
     Then_('transactions: "DATA'
     . '\\| xid   | created | type     | state | amount         | r              | from | to   | purpose               |'

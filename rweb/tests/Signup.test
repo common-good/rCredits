@@ -81,15 +81,15 @@ class rwebSignup extends DrupalWebTestCase {
     . '\\| fullName | email         | phone | country | postalCode | state | city  | acctType | code        |'
     . '\\| Abe One | a@example.com | (413) 253-0000 | US | 01001 | MA | Amherst | %R_PERSONAL  | s0M3_rAnd0M_c0D3 |"');
     Then_('members: "DATA'
-    . '\\| id      | fullName | email         | phone        | country | postalCode | state | city    | flags |'
-    . '\\| NEW.AAC | Abe One  | a@example.com | +14132530000 | US | 01001       | MA    | Amherst | dft,personal |"');
+    . '\\| id   | fullName | email         | phone        | country | postalCode | state | city | flags | floor |'
+    . '\\| .AAC | Abe One  | a@example.com | +14132530000 | US | 01001 | MA | Amherst | dft,personal | 0 |"');
     And__('we say "status": "your account is ready" with subs: "DATA'
-    . '\\| quid    |'
-    . '\\| NEW.AAC |"');
+    . '\\| quid    | bonus            |'
+    . '\\| NEW.AAC |  |"');
     And__('we email "welcome" to member "a@example.com" with subs: "DATA'
-    . '\\| fullName | name   | quid    | region | pass     |'
-    . '\\| Abe One  | abeone | NEW.AAC | new    | (varies) |"');
-    And__('member "NEW.AAC" one-time password is set');
+    . '\\| fullName | name   | quid    | region | pass     | bonus           |'
+    . '\\| Abe One  | abeone | NEW.AAC | new    | (varies) |  |"');
+    And__('member ".AAC" one-time password is set');
     And__('we show "Sign In" with: "DATA'
     . '\\| oldpass      | pass1        | pass2                |'
     . '\\| Tmp password | New password | Confirm new password |"');
@@ -144,8 +144,8 @@ class rwebSignup extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"');
     Given('members: "DATA'
-    . '\\| id      | fullName  | phone  | email         | city  | state | country |'
-    . '\\| NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | AK    | US      |"');
+    . '\\| id   | fullName  | phone  | email         | city  | state | country |'
+    . '\\| .ZZA | Abe One    | +20001 | a@example.com | Atown | AK    | US      |"');
     When_('member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values: "DATA'
     . '\\| fullName | email         | phone | country | postalCode | state | city    | acctType | code |'
     . '\\| Bea Two   | a@example.com | 413-253-0002 | US | 01001 | MA | Amherst | %R_PERSONAL | s0M3_rAnd0M_c0D3 |"');
@@ -158,15 +158,15 @@ class rwebSignup extends DrupalWebTestCase {
   public function testAMemberRegistersWithAnExistingCompany_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('members: "DATA'
-    . '\\| id      | fullName | email         | postalCode | phone        | country | city     | flags        |'
-    . '\\| NEW.AAD | AAAme Co | myco@example.com | 01330   | +14136280000 | US      | Ashfield | dft,company  |"');
+    . '\\| id   | fullName | email         | postalCode | phone        | country | city     | flags        |'
+    . '\\| .AAD | AAAme Co | myco@example.com | 01330   | +14136280000 | US      | Ashfield | dft,company  |"');
     And__('invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"');
     When_('member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values: "DATA'
     . '\\| fullName | email         | phone | country | state | postalCode | city    | acctType | company  | companyPhone | companyOptions |'
     . '\\| Abe One  | a@example.com | 413-253-9876 | US | MA | 01001 | Amherst | %R_PERSONAL | AAAme Co | (413)628-0000 | isOwner=>1,contractor=>1 |"');
     Then_('members: "DATA'
-    . '\\| id      | fullName | email         | postalCode | phone         | city    | flags        |'
-    . '\\| NEW.AAC | Abe One  | a@example.com | 01001       | +14132539876 | Amherst | dft,personal |"');
+    . '\\| id   | fullName | email         | postalCode | phone         | city    | flags        |'
+    . '\\| .AAC | Abe One  | a@example.com | 01001       | +14132539876 | Amherst | dft,personal |"');
     And__('relations: "DATA'
     . '\\| id | main | agent | permission | employerOk | employeeOk | isOwner | amount | draw |'
     . '\\| 1  | .AAD | .AAC  |            |          0 |          1 |       1 |      0 |    0 |"');
@@ -180,8 +180,8 @@ class rwebSignup extends DrupalWebTestCase {
     . '\\| fullName | email         | phone | country | state | postalCode | city    | acctType | company  | companyPhone | companyOptions |'
     . '\\| Abe One  | a@example.com | 413-253-9876 | US | MA | 01001 | Amherst | %R_PERSONAL | AAAme Co | (413)628-0000 | employeeOk=>1     |"');
     Then_('members: "DATA'
-    . '\\| id      | fullName | email         | postalCode | phone         | city    | flags        |'
-    . '\\| NEW.AAC | Abe One  | a@example.com | 01001       | +14132539876 | Amherst | dft,personal |"');
+    . '\\| id   | fullName | email         | postalCode | phone         | city    | flags        |'
+    . '\\| .AAC | Abe One  | a@example.com | 01001       | +14132539876 | Amherst | dft,personal |"');
     And__('no relation: "DATA'
     . '\\| main | agent |'
     . '\\| .AAD | .AAC  |"');
@@ -247,8 +247,8 @@ class rwebSignup extends DrupalWebTestCase {
   public function testAMemberRegistersACompany_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('members: "DATA'
-    . '\\| id      | fullName | email         | postalCode | phone        | country | city     | flags        |'
-    . '\\| NEW.AAC | Abe One  | a@example.com | 01330   | +14136280000 | US      | Ashfield | dft,personal  |"');
+    . '\\| id   | fullName | email         | postalCode | phone        | country | city     | flags        |'
+    . '\\| .AAC | Abe One  | a@example.com | 01330   | +14136280000 | US      | Ashfield | dft,personal  |"');
     And__('invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"');
     When_('member "?" visits page "/user/register/code=s0M3_rAnd0M_c0D3&by=NEW.AAC&flow=from&isOwner=1&employeeOk=1"');
     Then_('we show "Sign up for rCredits" with: "DATA'
@@ -261,13 +261,16 @@ class rwebSignup extends DrupalWebTestCase {
     . '\\| fullName | email         | phone | country | state | postalCode | city    | acctType | company  | companyPhone | companyOptions |'
     . '\\| AAcme Co | aco@example.com | 413-253-9876 | US | MA | 01001 | Amherst | %R_COMMERCIAL | | | |"');
     Then_('members: "DATA'
-    . '\\| id      | fullName | email         | postalCode | phone         | city    | flags        |'
-    . '\\| NEW.AAD | AAcme Co | aco@example.com | 01001       | +14132539876 | Amherst | dft,company |"');
+    . '\\| id   | fullName | email         | postalCode | phone         | city    | flags        | floor |'
+    . '\\| .AAD | AAcme Co | aco@example.com | 01001       | +14132539876 | Amherst | dft,company |    0 |"');
     And__('relations: "DATA'
     . '\\| id | main | agent | permission | employerOk | employeeOk | isOwner | amount | draw |'
     . '\\| 1  | .AAD | .AAC  | manage     |          1 |          1 |       1 |      0 |    1 |"');
+    And__('balances: "DATA'
+    . '\\| id   | r | usd | rewards |'
+    . '\\| .AAD | 0 |   0 |       0 |"');
     And__('we say "status": "company is ready" with subs: "DATA'
-    . '\\| quid    |'
+    . '\\| quid |'
     . '\\| NEW.AAD |"');
     And__('we show "Sign In" with: ""');
   }
@@ -283,10 +286,10 @@ class rwebSignup extends DrupalWebTestCase {
     . '\\| id      | fullName | email         | phone        | country | postalCode | state | city    | flags |'
     . '\\| NEN.AAA | Abe One  | a@example.com | +13332530000 | US | 03768-2345 | NH | Lyme | dft,personal |"');
     And__('we say "status": "your account is ready" with subs: "DATA'
-    . '\\| quid    |'
+    . '\\| quid |'
     . '\\| NEN.AAA |"');
     And__('we email "welcome" to member "a@example.com" with subs: "DATA'
-    . '\\| fullName | name   | quid    | region | pass     |'
+    . '\\| fullName | name   | quid | region | pass     |'
     . '\\| Abe One  | abeone | NEN.AAA | new    | (varies) |"');
     And__('we show "Sign In" with: ""');
   }

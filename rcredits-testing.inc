@@ -246,10 +246,10 @@ function usd($list) {
 function uidCredit($uid) {
   $info = be\creditInfo(compact('uid'));
   $a = r\acct($uid);
-  if ($uid >0) foreach (u\ray('r rewards') as $one) { // (community amounts don't get cached)
+  if ($uid >0) foreach (u\ray('r rewards') as $one) { // (community amounts don't get cached) (don't include usd)
     if (!t\eq($v1 = $info->$one, $v2 = $a->$one + 0)) {
       testOutput("Calculated $one different from cache: $v1 <> $v2");
-      return (object) array($one => 'error');
+      $info->$one = 'error';
     }
   }
   return $info;
@@ -303,9 +303,9 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
   testOutput(array('EXPECT' => '') + $fields, @$subject ? 'email' : 'output'); // keep this
   $info = json_encode($fields, JSON_UNESCAPED_SLASHES);
   $crit = "channel=:channel AND type=:type AND myid<=>:myid AND agent<=>:agent ORDER BY logid DESC";
-  //debug(compact(u\ray('info type myid agent channel crit'))); // for debugging mysterious email mismatches
-//  debug(compact(u\ray('info type myid agent channel')), '', 1);
-  //debug("info=:info AND $crit"); debug(compact(u\ray('info type myid agent')));
+// debug(compact(u\ray('info type myid agent channel crit'))); // for debugging mysterious email mismatches
+// debug(compact(u\ray('info type myid agent channel')), '', 1);
+// debug("info=:info AND $crit"); debug(compact(u\ray('info type myid agent')));
   return r\dbExists('r_log', "info=:info AND $crit", compact(u\ray('info type myid agent channel')));
 }
 
@@ -450,12 +450,11 @@ function verifyRecord($table, $info) {
   if (!is_array($info)) die('in verifyRecord: ' . print_r(debug_backtrace(), 1)); // keep
   
   unset($info['data']);
-  $dateFields = '. created completed sent signed login access yesterday ';
   foreach ($info as $key => $value) {
     $crit[] = $value === '' ? "($key IS NULL or $key='')"
-    : ((strpos($dateFields, " $key ") or stripos($key, 'date') !== FALSE) ? 
+    : ((in_array($key, u\ray(R_DATE_FIELDS)) or stripos($key, 'date') !== FALSE) ? 
       "$key-($key%:DAY_SECS)<=>:$key-(:$key%:DAY_SECS)" 
-    : "$key<=>:$key"); // null-safe ==
+      : "$key<=>:$key"); // null-safe ==
   }
   $crit = join(' AND ', $crit);
   $result = r\dbExists($table, $crit, $info);
@@ -501,7 +500,7 @@ function pageForm($page) {
 function getFormOut($out) {
   global $formOut;
   $formOut = array();
-  $formOut['options'] = t\dropdownOptions($out);
+  $formOut['options'] = t\dropdownOptions($out) . PHP_EOL . t\radioOptions($out);
   $formOut['steps'] = t\getSteps($out);
   $formOut['done'] = join('', t\getSteps($out, TRUE));
   $formOut['text'] = t\strip($out);
@@ -562,6 +561,11 @@ function dropdownOptions($form) {
   if (!preg_match_all('~<option [^>]*>.*?</option>~sm', $form, $matches)) return '';
   return strip_tags(join(PHP_EOL, $matches[0]));
 }
+
+function radioOptions($form) {
+  if (!preg_match_all('~<label class="option" [^>]*>.*? </label>~sm', $form, $matches)) return '';
+  return strip_tags(join(PHP_EOL, $matches[0]));
+}  
 
 function strip($form) {
 
@@ -635,6 +639,7 @@ function clear($ch) {
   global $sms_devel; $sms_devel = TRUE;
   r\dbQ('DELETE FROM users WHERE uid>:cgfUid OR (uid>1 AND uid<:cgfUid-1)', compact('cgfUid'));
   foreach (u\ray($files) as $one) r\dbQ("TRUNCATE $one");
+  r\dbQ('UPDATE users SET floor=0,minimum=0,maximum=0,r=0,usd=0,rewards=0,committed=0');
 
   r\acct::_clear(); // empty the acct cache
   \drupal_static_reset(); // clear out drupal central storage
@@ -703,13 +708,13 @@ function shownWith($content, $type = 'text', $showDebugs = TRUE) {
 
   foreach ($content as $fields) {
     foreach ($fields as $key => $one) if (strpos($one, '%') !== FALSE) $fields[$key] = t\lastMinuteSubs($one);
-    if ($showDebugs) debug("EXPECT page with " . print_r($fields, 1)); // keep this
+/**/ if ($showDebugs) debug("EXPECT page with " . print_r($fields, 1)); // keep this
     foreach ($fields as $one) { // ignore the keys here
       if ($one !== '') $i = strpos($model, $one, $xi = $i);
       if ($showDebugs) t\testOutput(compact('xi','i','one'));
       if ($i === FALSE) {
         if ($showDebugs) t\testOutput(substr($model, 0, $xi) . ' <b style="font-size:200%;">[OK until here]</b> ' . substr($model, $xi));
-        //debug($formOut['notags']);
+// debug($formOut['notags']);
         return FALSE;
       } else $i += strlen($one);
     }

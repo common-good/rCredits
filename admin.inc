@@ -12,11 +12,10 @@ use rCredits\Util as u;
 /**
  * List the USD account status of each account.
  */
-function usdAccts($where = 'uid>1') {
-  debug(r\acct());
-  //if (!r\acct()->can(B_ADMIN)) return;
+function usdAccts($where = "postalCode LIKE '013%'") {
+  if (!r\acct()->can(B_ADMIN)) return;
   $result = r\dbQ("SELECT uid FROM users WHERE $where ORDER BY fullName");
-  $list = '';
+  $head = u\ray('Name Dwolla? Type Verified OK Chg Co Bal');
   while ($row = $result->fetch()) {
     $usA = new r\usd($a = r\acct($row->uid));
     $bal = $usA->bal($err);
@@ -25,13 +24,34 @@ function usdAccts($where = 'uid>1') {
     $type = @$source['Type'];
     $verified = @$source['Verified'] ? 'Yes' : '-';
     $count = @$source['count'];
-    $list .= "<tr><td>$a->fullName</td><td>$count</td><td>$hasDwolla</td><td>$type</td><td>$verified</td><td>$bal</td></tr>\n";
+    $ok = $a->can(B_OK) ? 'ok' : '';
+    $charge = $a->can(B_CHARGE) ? 'Chg' : '';
+    $company = $a->can(B_COMPANY) ? 'Co' : '';
+    $line = array($a->fullName, $hasDwolla, $type, $verified, $ok, $charge, $company, $bal);
+    $lines[] = array_combine($head, $line);
   }
-  \drupal_set_message(<<<EOF
-  <table>
-  <tr><th>Name</th><th>#</th><th>Dwolla?</th><th>Type</th><th>Verified</th><th>Bal</th></tr>
-  $list
-  </table>
-EOF
-  );
+  return showTable($lines);
+}
+
+function showTable($ray) {
+  if (!$ray or empty($ray)) return 'data set is empty';
+  $lines[] = '<tr><th>' . join('</th><th>', array_keys((array) $ray[0])) . "</th></tr>\n";
+  foreach ($ray as $row) {
+    $line = '';
+    foreach ($row as $key => $value) {
+      if ($value and in_array($key, u\ray('id uid payer payee main other inviter invitee proxy person owner defaultAgent'))) $value = $value < 0 ? 'ctty' : r\acct($value)->fullName;
+      if ($value and in_array($key, u\ray(R_DATE_FIELDS))) $value = u\formatDate($value);
+      if ($key == 'flags') $value = "<div style='text-transform:capitalize; font-size:7px; line-height:11px;'>" . bs($value) . '</div>';
+      if ($key == 'payeeFor' and $value == $row->payerFor) $value = 'same';
+      $line .= "<td>$value</td>";
+    }
+    $lines[] = "<tr>$line</tr>";
+  }
+  return "<table>\n<tr>" . join("</tr>\n<tr>", $lines) . "</tr>\n</table>";
+}
+
+function showTableQ($sql, $subs = array()) {
+  if (!strpos($sql, ' ')) {$sql = "SELECT * FROM $sql " . ($subs ?: ''); $subs = array();}
+  if (!$result = r\dbQ($sql, $subs)) return \drupal_set_message('bad query');
+  return showTable($result->fetchAll());
 }

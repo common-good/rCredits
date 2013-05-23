@@ -78,7 +78,7 @@ function formTxs($form, &$sta, $args = '') {
   
   if ($report) {
     $agents = $summary = NULL;
-  } else $summary = formField('markup', '', '', array('markup' => tx_summary($starting, $ending)));
+  } else $summary = formField('markup', '', '', array('markup' => tx_summary($starting, $ending, $currency)));
 
   $opts2 = boxField('opts', t('Show:'), '', $optDefaults, $opts);
   $divider = item('<hr>');
@@ -91,7 +91,7 @@ function formTxs($form, &$sta, $args = '') {
   $downloadDates = submit(t('Download'));
   $title = "";
   $title = item(t('rCredits Transaction History'));
-  $subtext = item(t('The "r%" column tells what percentage of the total transaction amount is rCredits. Hover over that figure to see the total, rCredits, and US Dollar amounts. Use the "rCredits" and "USD" checkboxes to control what is shown in the "From you" and "To you" columns. Show "pendings" to include open invoices. "Channel" is Web, Smartphone, or SMS. "Agent" is who did the transaction on your behalf.'));
+  $subtext = item(t('The "r%" column tells what percentage of the total transaction amount is rCredits. Hover over that figure to see the total, rCredits, and US Dollar amounts. Use the "rCredits" and "USD" checkboxes to control what is shown in the Summary and in the "From you" and "To you" columns. Show "pendings" to include open invoices. "Channel" is Web, Smartphone, or SMS. "Agent" is who did the transaction on your behalf.'));
 
   $form = compact(u\ray('title subtext opts2 divider period submitPeriod downloadPeriod starting ending submitDates downloadDates summary transactions'));
   if (@$downloaded) js("window.open(\"$url0&download=1\")", 'inline', 'footer');
@@ -190,12 +190,12 @@ function doRow($tx, $report, $csv, $classes, $channels, $agents, $currency, $url
     $reward = @$data[$toMe ? 'bonus' : 'rebate'];
     $net = number_format(($toMe ? $total : -$total) + $reward, 2);
     txNeatAmounts($amount, $reward, $is_reward);
-    list ($to_you, $from_you) = $toMe ? array($amount, R_NONE) : array(R_NONE, $amount);
+    list ($toYou, $fromYou) = $toMe ? array($amount, R_NONE) : array(R_NONE, $amount);
     $button1 = (!$byMe and okableState($tx_state)) ? button('OK', "$url&do=ok", tx_action('ok', $tx_state, $toMe, $byMe)) : '';
     $button2 = ((!$is_reward or $mya->can(B_CTTY_ADMIN)) and !@$data['undoneBy']) ? button(' X ', "$url&do=no", tx_action('no', $tx_state, $toMe, $byMe)) : '';
     $button3 = ($mya->can($tx_taking ? B_SELL : B_BUY) and !$is_reward) ? "<a href='$url&do=edit' title='Edit Purpose'><img src='$rUrl/images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
     $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
-    $row = array($tid, strftime('%d-%b', $date), $tx_name, $from_you, $to_you, $rpct, $amount, $usd, $tx_usdXid, $state, $buttons, $tx_purpose, $reward, $net);
+    $row = array($tid, strftime('%d-%b', $date), $tx_name, $fromYou, $toYou, $rpct, $amount, $usd, $tx_usdXid, $state, $buttons, $tx_purpose, $reward, $net);
   }
 
   if (@$agents) $row[] = ($agent == $myid or $agent < 0) ? R_NONE 
@@ -370,29 +370,36 @@ function txBal($bal, $plus = '', $minus = '- ') {return ($bal < 0 ? $minus : $pl
 /**
  * Return the transaction summary table
  */
-function tx_summary($starting, $ending) {
+function tx_summary($starting, $ending, $currency) {
   $mya = r\acct();
   $myid = $mya->id;
   $previous_ending = $starting - 1;
-  extract($nowInfo = (array) be\creditInfo(array('asof' => $ending)), EXTR_PREFIX_ALL, 'now');
-  extract($pendingInfo = (array) be\creditInfo(array('state' => ':TX_PENDING', 'asof' => $ending)), EXTR_PREFIX_ALL, 'pending');
-  extract($oldInfo = (array) be\creditInfo(array('asof' => $previous_ending)), EXTR_PREFIX_ALL, 'old');
+  extract($nowInfo = (array) be\creditInfo(array('asof' => $ending)), EXTR_PREFIX_ALL, 'n');
+  extract($pendingInfo = (array) be\creditInfo(array('state' => ':TX_PENDING', 'asof' => $ending)), EXTR_PREFIX_ALL, 'p');
+  extract($oldInfo = (array) be\creditInfo(array('asof' => $previous_ending)), EXTR_PREFIX_ALL, 'o');
 //  debug(compact('nowInfo','oldInfo'));
-  $dif = $pfancy = array();
-  foreach (u\ray('rInProper rOut rewards') as $key) {
-    $dif[$key] = number_format($nowInfo[$key] - $oldInfo[$key], 2);
-    $pfancy[$key] = number_format($pendingInfo[$key], 2);
-  }
-  extract($dif, EXTR_PREFIX_ALL, 'dif');
-  extract($pfancy, EXTR_PREFIX_ALL, 'pfancy');
-  $pending_committed = $mya->committed; // this will include all pending commitments
-  $pfancy_committed = u\formatAmount($pending_committed);
+
+  $dif = array();
+  foreach (u\ray('inProper out rInProper rOut usdIn usdOut rewards') as $key) $dif[$key] = $nowInfo[$key] - $oldInfo[$key];
+  extract($dif, EXTR_PREFIX_ALL, 'd');
+  $p_committed = $mya->committed; // this will include all pending commitments
   
+  $fields = 'old in out rewards new';
+  $pFields = 'p_inProper p_out p_rewards p_committed p_balance';
+  $values =
+    ($currency == 'both' ? array($o_balance, $d_inProper, $d_out, $d_rewards, $n_balance)
+  : ($currency == 'r' ? array($o_r, $d_rInProper, $d_rOut, $d_rewards, $n_r)
+  : ($currency == 'usd' ? array($o_usd, $d_usdIn, $d_usdOut, 0, $n_usd) : '')));
+  $p_balance = $p_rInProper - $p_rOut + $p_rewards - $p_committed;
+  $values = array_combine(u\ray($fields), $values) + compact(u\ray($pFields));
+  foreach ($values as $key => $value) $$key = number_format($value, 2);
+ 
+  $p_balance = txBal($p_balance, '+ '); // add +/-/$ to these, as appropriate
+  $new = txBal($new);
+  $old = txBal($old);
+
   $starting = u\formatDate($starting);
   $ending = u\formatDate($ending);
-  $pending_balance = txBal($pending_rInProper - $pending_rOut + $pending_rewards - $pending_committed, '+ ');
-  $now_balance = txBal($now_r);
-  $old_balance = txBal($old_r);
   $summary_title = "<div id='txsum-title'>SUMMARY</div>";
   
   $classes = u\prefixValues('txsum-', u\ray('one tosign toyou fromsign fromyou rewardssign rewards sharesign share balancesign balance'));
@@ -401,11 +408,11 @@ function tx_summary($starting, $ending) {
     array('id' => 'txsum-headers', 'data' => u\ray('Starting balance,,To You,,From You,,Rewards,,To CGF,,Ending balance')),
     array(
       'id' => 'txsum-now', 
-      'data' => u\ray("$old_balance | + | $dif_rInProper | - | $dif_rOut | + | $dif_rewards |  |  | = | $now_balance"),
+      'data' => u\ray("$old | + | $in | - | $out | + | $rewards |  |  | = | $new"),
     ),
     array(
       'id' => 'txsum-pending',
-      'data' => u\ray("<b>PENDING:</b> | + | $pfancy_rInProper | - | $pfancy_rOut | + | $pfancy_rewards | - | $pfancy_committed | = | $pending_balance"),
+      'data' => u\ray("<b>PENDING:</b> | + | $p_inProper | - | $p_out | + | $p_rewards | - | $p_committed | = | $p_balance"),
     ),
   );
   $attributes = array('id' => 'txsum');

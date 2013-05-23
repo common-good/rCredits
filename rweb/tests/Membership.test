@@ -81,8 +81,8 @@ class rwebMembership extends DrupalWebTestCase {
     Given('member ".ZZC" supplies "physical": "planet Earth"');
     When_('member "NEW:ZZA" visits page "membership"');
     Then_('we show "Congratulations on signing up" with: "DATA'
-    . '\\| Step 1 | Step 2    | Step 3       | Step 4 | Step 5   | Step 6      |'
-    . '\\| photo  | Agreement | contribution | Dwolla | identity | Preferences |"');
+    . '\\| Step 1 | Step 2    | Step 3       | Step 4 | Step 5      |'
+    . '\\| photo  | Agreement | contribution | Dwolla | Preferences |"');
     And__('we show "Congratulations on signing up" without: "DATA'
     . '\\| Step 4            |'
     . '\\| Choose two people |"');

@@ -30,18 +30,24 @@ Scenario: A newbie registers
   | fullName | email         | phone | country | postalCode | state | city  | acctType | code        |
   | Abe One | a@example.com | (413) 253-0000 | US | 01001 | MA | Amherst | %R_PERSONAL  | s0M3_rAnd0M_c0D3 |
   Then members:
-  | id      | fullName | email         | phone        | country | postalCode | state | city    | flags | 
-  | NEW.AAC | Abe One  | a@example.com | +14132530000 | US | 01001       | MA    | Amherst | dft,personal |
+  | id   | fullName | email         | phone        | country | postalCode | state | city | flags | floor |
+  | .AAC | Abe One  | a@example.com | +14132530000 | US | 01001 | MA | Amherst | dft,personal | 0 |
+#  | .AAC | Abe One  | a@example.com | +14132530000 | US | 01001 | MA | Amherst | dft,personal | %R_SIGNUP_BONUS |
   And we say "status": "your account is ready" with subs:
-  | quid    |
-  | NEW.AAC |
+  | quid    | bonus            |
+  | NEW.AAC |  |
+#  | .AAC | $%R_SIGNUP_BONUS |
   And we email "welcome" to member "a@example.com" with subs:
-  | fullName | name   | quid    | region | pass     |
-  | Abe One  | abeone | NEW.AAC | new    | (varies) |
-  And member "NEW.AAC" one-time password is set
+  | fullName | name   | quid    | region | pass     | bonus           |
+  | Abe One  | abeone | NEW.AAC | new    | (varies) |  |
+#  | Abe One  | abeone | .AAC | new    | (varies) | %R_SIGNUP_BONUS |
+  And member ".AAC" one-time password is set
   And we show "Sign In" with:
   | oldpass      | pass1        | pass2                |
   | Tmp password | New password | Confirm new password |
+#  And balances:
+#  | id   | r               | usd | rewards         |
+#  | .AAC | %R_SIGNUP_BONUS |   0 | %R_SIGNUP_BONUS |
 # Should check for name defaulting to "abeone" (but doesn't work yet in test)
 # Formatting and links are ignored
 
@@ -80,8 +86,8 @@ Scenario: A member registers bad zip
 Scenario: A member registers again
   Given invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"
   Given members:
-  | id      | fullName  | phone  | email         | city  | state | country | 
-  | NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | AK    | US      |
+  | id   | fullName  | phone  | email         | city  | state | country | 
+  | .ZZA | Abe One    | +20001 | a@example.com | Atown | AK    | US      |
   When member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values:
   | fullName | email         | phone | country | postalCode | state | city    | acctType | code |
   | Bea Two   | a@example.com | 413-253-0002 | US | 01001 | MA | Amherst | %R_PERSONAL | s0M3_rAnd0M_c0D3 |
@@ -93,15 +99,15 @@ Scenario: A member registers again
 
 Scenario: A member registers with an existing company
   Given members:
-  | id      | fullName | email         | postalCode | phone        | country | city     | flags        |
-  | NEW.AAD | AAAme Co | myco@example.com | 01330   | +14136280000 | US      | Ashfield | dft,company  |
+  | id   | fullName | email         | postalCode | phone        | country | city     | flags        |
+  | .AAD | AAAme Co | myco@example.com | 01330   | +14136280000 | US      | Ashfield | dft,company  |
   And invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"
   When member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values:
   | fullName | email         | phone | country | state | postalCode | city    | acctType | company  | companyPhone | companyOptions |
   | Abe One  | a@example.com | 413-253-9876 | US | MA | 01001 | Amherst | %R_PERSONAL | AAAme Co | (413)628-0000 | isOwner=>1,contractor=>1 |
   Then members:
-  | id      | fullName | email         | postalCode | phone         | city    | flags        |
-  | NEW.AAC | Abe One  | a@example.com | 01001       | +14132539876 | Amherst | dft,personal |
+  | id   | fullName | email         | postalCode | phone         | city    | flags        |
+  | .AAC | Abe One  | a@example.com | 01001       | +14132539876 | Amherst | dft,personal |
   And relations:
   | id | main | agent | permission | employerOk | employeeOk | isOwner | amount | draw |
   | 1  | .AAD | .AAC  |            |          0 |          1 |       1 |      0 |    0 |
@@ -112,8 +118,8 @@ Scenario: A member registers with an unknown company
   | fullName | email         | phone | country | state | postalCode | city    | acctType | company  | companyPhone | companyOptions |
   | Abe One  | a@example.com | 413-253-9876 | US | MA | 01001 | Amherst | %R_PERSONAL | AAAme Co | (413)628-0000 | employeeOk=>1     |
   Then members:
-  | id      | fullName | email         | postalCode | phone         | city    | flags        |
-  | NEW.AAC | Abe One  | a@example.com | 01001       | +14132539876 | Amherst | dft,personal |
+  | id   | fullName | email         | postalCode | phone         | city    | flags        |
+  | .AAC | Abe One  | a@example.com | 01001       | +14132539876 | Amherst | dft,personal |
   And no relation:
   | main | agent |
   | .AAD | .AAC  |
@@ -161,8 +167,8 @@ Scenario: A member registers with a bad company phone
 
 Scenario: A member registers a company
   Given members:
-  | id      | fullName | email         | postalCode | phone        | country | city     | flags        |
-  | NEW.AAC | Abe One  | a@example.com | 01330   | +14136280000 | US      | Ashfield | dft,personal  |
+  | id   | fullName | email         | postalCode | phone        | country | city     | flags        |
+  | .AAC | Abe One  | a@example.com | 01330   | +14136280000 | US      | Ashfield | dft,personal  |
   And invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"
   When member "?" visits page "/user/register/code=s0M3_rAnd0M_c0D3&by=NEW.AAC&flow=from&isOwner=1&employeeOk=1"
   Then we show "Sign up for rCredits" with:
@@ -175,13 +181,16 @@ Scenario: A member registers a company
   | fullName | email         | phone | country | state | postalCode | city    | acctType | company  | companyPhone | companyOptions |
   | AAcme Co | aco@example.com | 413-253-9876 | US | MA | 01001 | Amherst | %R_COMMERCIAL | | | |
   Then members:
-  | id      | fullName | email         | postalCode | phone         | city    | flags        |
-  | NEW.AAD | AAcme Co | aco@example.com | 01001       | +14132539876 | Amherst | dft,company |
+  | id   | fullName | email         | postalCode | phone         | city    | flags        | floor |
+  | .AAD | AAcme Co | aco@example.com | 01001       | +14132539876 | Amherst | dft,company |    0 |
   And relations:
   | id | main | agent | permission | employerOk | employeeOk | isOwner | amount | draw |
   | 1  | .AAD | .AAC  | manage     |          1 |          1 |       1 |      0 |    1 |
+  And balances:
+  | id   | r | usd | rewards |
+  | .AAD | 0 |   0 |       0 |
   And we say "status": "company is ready" with subs:
-  | quid    |
+  | quid |
   | NEW.AAD |
   And we show "Sign In" with: ""
   
@@ -194,10 +203,10 @@ Scenario: A newbie registers from elsewhere
   | id      | fullName | email         | phone        | country | postalCode | state | city    | flags | 
   | NEN.AAA | Abe One  | a@example.com | +13332530000 | US | 03768-2345 | NH | Lyme | dft,personal |
   And we say "status": "your account is ready" with subs:
-  | quid    |
+  | quid |
   | NEN.AAA |
   And we email "welcome" to member "a@example.com" with subs:
-  | fullName | name   | quid    | region | pass     |
+  | fullName | name   | quid | region | pass     |
   | Abe One  | abeone | NEN.AAA | new    | (varies) |
   And we show "Sign In" with: ""
 # Should check for name defaulting to "abeone" (but doesn't work yet in test)
