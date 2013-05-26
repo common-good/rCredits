@@ -68,6 +68,7 @@ function doTask($item) {
  * Queue: Check to see if it's time for a less-often periodic activity.
  */
 function periodic() {
+  if (!isDEV) return; // don't cron on pre-production server
   if (STAGING) return; // don't cron on pre-production server
   $lastDaily = \variable_get('daily', 0);
 //  $lastDaily = 0; // DEBUG
@@ -150,6 +151,7 @@ function bankFollowup($info) {
 
 /**
  * Recalculate and update cached financial balances for each account.
+ * Also give signup bonus, if appropriate.
  */
 function recache() {
   $fields = 'uid, r, usd, rewards, maximum, minimum';
@@ -165,16 +167,20 @@ function recache1($item) {
     r\tellStaff("Cron: Cache <> calc $key: $value <> " . $info->$key, array(), $uid);
     $$key = $info->$key;
   }
-  $usAcct = new r\usd($acct = r\acct($uid));
-  $usdActual = $usAcct->bal($err);
-  if (!$err) $usd = $usdActual;
-  
+
   if ($maximum > 0 and $maximum < max($rewards, $minimum)) { // >0 required
     r\tellStaff('corrupt max', $item);
     $maximum = max($rewards, $minimum);
   }
 
+  $usAcct = new r\usd($acct = r\acct($uid));
+  $usdActual = $usAcct->bal($err);
+
+  $DBTX = \db_transaction();
+  if (!$err) $usd = $usdActual;
   $acct->update(compact(array_keys($item)));
+  r\membershipEvent($acct, 'bona', $usd > 0); // this works for testing too
+  unset($DBTX);
 }
 
 /**
@@ -325,7 +331,7 @@ function gift1($item) {r\acceptGift($item);}
 
 function redistribute() {
   $excess = ':R_CHUNK*FLOOR((:R_EXCESS-usd)/:R_CHUNK)';
-  $sql = "SELECT uid, $excess AS excess FROM users WHERE $excess>=0 AND NOT :IS_VIRTUAL AND uid>0 AND :IS_OK";
+  $sql = "SELECT uid, $excess AS excess FROM users WHERE $excess>0 AND NOT :IS_VIRTUAL AND uid>0 AND :IS_OK";
   queueEach('sellR', $sql);
   queueNextAfter('redistribute');
 }
@@ -481,7 +487,7 @@ function queueNextAfter($task) {
   global $cronOp;
   $tasks = u\ray(R_DAILY_TASKS);
 
-  if (t\EST() and @$cronOp) {
+  if (t\EST() and @$cronOp and $cronOp != 'ALL') {
     queue($task == $cronOp ? 'END' : $cronOp);
   } else queue($tasks[array_search($task, $tasks) + 1]);
 }

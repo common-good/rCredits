@@ -69,8 +69,8 @@ define('R_CTTY_UID0', -R_REGION_MAX); // community uids are less than this (fart
 define('R_DWOLLA_LINK', 'http://refer.dwolla.com/a/clk/3bf8cy'); // (credits CGF for referral)
 define('R_SIGNIN_HOURS', 24); // window for signing in after registering or resetting password
 
-define('DW_TEST_ACCOUNT', '8127139234'); // "reflector" account totally reimburses anything under $10
-define('DW_TESTER_ACCOUNT', '8124486052');
+define('DW_TEST_ACCT', '8127139234'); // "reflector" account totally reimburses anything under $10
+define('DW_TESTER_ACCT', '8124486052');
 define('DWOLLA_FEE_THRESHOLD', 10); // over this amount, Dwolla charges a fee
 define('DWOLLA_FEE', .25); // the fee
 
@@ -175,7 +175,7 @@ define('FLOW_FROM', 2);
 define('FLOW_BOTH', 3);
 
 // Transaction states
-define('TX_STATES', 'denied deleted pending done tentative disputed');
+define('TX_STATES', t('denied deleted pending done tentative disputed'));
 
 define('TX_STATE0', -2); // lowest index
 define('TX_DENIED', -2); // invoice rejected by the non-originator
@@ -192,7 +192,7 @@ define('TX_WEB', 2);
 define('TX_SMART', 3); // smart phone or other computer-like device
 define('TX_TOUCH', 4); // touch tone phone
 define('TX_CRON', 5);
-define('TX_CHANNELS', 'System SMS Web App Touch Cron');
+define('TX_CHANNELS', t('System SMS Web App Touch Cron'));
 
 // Transaction types
 define('TX_SIGNUP', 0); // signup incentive reward
@@ -493,10 +493,10 @@ function cacheBothTotals($txs) {
 function cacheTotals($uid, $txs) {
   if ($uid < 0) return; // don't cache community and region totals
   if ($txs[0]['state'] <= TX_PENDING) return; // don't change totals if transaction doesn't count (yet)
-  $acct = acct($uid);
+  $a = acct($uid);
   $cache = 'usd r rewards committed maximum';
-  extract((array) $acct->account($cache));
-  //foreach ($cache as $one) $$one = $acct->$one;
+  extract((array) $a->account($cache));
+  //foreach ($cache as $one) $$one = $a->$one;
   $rs = $r; // don't confuse this with r field in txs
   
   foreach ($txs as $tx) {
@@ -510,14 +510,15 @@ function cacheTotals($uid, $txs) {
     if (!$toOther and $amount - $r > DWOLLA_FEE_THRESHOLD) $usd -= DWOLLA_FEE;
     $usd = round($usd, 2);    
     if ($type != TX_TRANSFER and $type <= TX_INFLATION) {
-      if ($type == TX_REBATE or $type == TX_BONUS) $committed = round($committed + $amount * $acct->share / 100, 2);
+      if ($type == TX_REBATE or $type == TX_BONUS) $committed = round($committed + $amount * $a->share / 100, 2);
       $rewards = round($rewards + $r, 2);
       if (@$maximum > 0) $maximum = round(max($maximum, $rewards), 2); // @ is for testing
     }
   }
 ///  unfreeze($available, $frozen); // update expired frozen amounts
   $r = round($rs, 2);
-  $acct->update(compact(u\ray($cache)));
+  $a->update(compact(u\ray($cache)));
+  if ($amount > 0) r\membershipEvent($a, 'bona', TRUE);
 }
 
 /**
@@ -624,27 +625,22 @@ function notify($uid, $index, $info = array(), $force = FALSE) {
 
 /**
  * If appropriate, update an account's membership status and send the staff an alert.
- * @param acct $acct: the account
+ * @param acct $a: the account
  * @param string $status: what milestone or event to alert about
  * @param bool $do: prerequisite for the alert
  * If there is an appropriate bit to set, it will be set as appropriate.
  */
-function membershipEvent($acct, $status, $do = TRUE) {
+function membershipEvent($a, $status, $do = TRUE) {
   $bit = @constant('B_' . strtoupper($status)); // get the appropriate bit, if any
-  if ($do and ($bit === FALSE or !$acct->hasBit($bit))) { // met the prerequisite and hasn't previously
+  if ($do and ($bit === FALSE or !$a->hasBit($bit))) { // met the prerequisite and hasn't previously
     $DBTX = \db_transaction();
-    if ($bit !== FALSE) $acct->setBit($bit); // set the bit, if any
-    if ($status == 'bona' and $acct->can(B_PERSONAL)) be\fund($acct->id, TX_SIGNUP, R_SIGNUP_BONUS);
-/*      $amount = r\dbLookup('amount', 'r_gifts', 'uid=:id', array('id' => $acct->id));
-      list ($payer, $payee, $for) = array($acct->id, \variable_get('cgf_uid'), t('membership contribution'));
-      r\transact(compact(u\ray('amount payer payee for')));
-    } */
-//    if ($status == 'member') be\fund($acct->id, TX_SIGNUP, R_SIGNUP_GIFT);
-    if ($status == 'ok') r\notify($acct->id, 'you are approved');
+    if ($bit !== FALSE) $a->setBit($bit); // set the bit, if any
+    if ($status == 'bona' and $a->can(B_PERSONAL)) be\fund($a->id);
+    if ($status == 'ok') r\notify($a->id, 'you are approved');
     unset($DBTX);
     
-    $fullName = $acct->fullName;
-    $quid = $acct->mainQid;
+    $fullName = $a->fullName;
+    $quid = $a->mainQid;
     tellStaff('event', compact(u\ray('fullName quid status')));
 	  return TRUE;
   } else return FALSE;

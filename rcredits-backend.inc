@@ -452,7 +452,7 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   : ($taking // selling
       and $a1->can(B_CHARGE) // seller can charge unilaterally
       and !$undoing // not reversing a payment
-      and !($a2->can(B_PERSONAL) and $a2->proSe()) // not selling to a company directly (without its agent)
+      and !(!$a2->can(B_PERSONAL) and $a2->proSe()) // not selling to a company directly (without its agent)
       and ($channel == TX_SMART or $scanned or $channel == TX_SMS) // in person: scanned (web or smart) or by SMS
   );
   $preapproved = (@$data['preapproved'] or !$taking or $unilateral); // paying OR permitted to charge unilaterally
@@ -511,11 +511,6 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
         ($preapproved ? ($virtual ? 'offer' : 'transaction') : 'invoice')
       : ($preapproved ? 'exchange' : 'exchange request'); // no possible shortfall on confirmed cash exchange (see above)
     $message = "report $message";
-    $bona = ($preapproved and $toAcct->r + $toAcct->usd > $toAcct->rewards); // 1st time acct got non-incentive
-    if (r\membershipEvent($toAcct, 'bona', $bona)) { // ($bona was r\checkBona())
-      r\notify($uid, 'signup bonus');
-// ?      if ($uid == $a1->id) $message .= '|signup bonus';
-    }
   } else {
     $message = $goods ? $ttype : 'exchange';
   }
@@ -545,6 +540,9 @@ function fund($uid, $type = TX_SIGNUP, $amount = R_SIGNUP_BONUS, $for = NULL, $c
   $taking = ($type >= TX_FINE);
   u\setDft($for, $GLOBALS['txTypes'][$type]);
   r\transact(compact(u\ray('type amount payer payee payerAgent payeeAgent for taking')));
+  $amount = u\formatAmount($amount);
+  $type = $type == TX_SIGNUP ? t('signup bonus') : $for;
+  r\notify($uid, 'got funding', compact('amount', 'type'));
   return $amount;
 }
 

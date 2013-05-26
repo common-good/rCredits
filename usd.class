@@ -106,7 +106,7 @@ class usd {
    */
   function bal(&$error = NULL) {
     $dw = $this->dwolla();
-    if (!useDwolla() and !(t\EST() and $this->number == DW_TESTER_ACCOUNT)) return $this->acct->usd + 0;
+    if (!useDwolla() and !(t\EST() and $this->number == DW_TESTER_ACCT)) return $this->acct->usd + 0;
     $result = $dw->balance();
     dwError($dw, $error); // get error message, if any
     return $result;
@@ -133,7 +133,7 @@ class usd {
     $source = $direct ? 'Dwolla' : 'ERROR'; // no delayed payments at present
     $notes = USD_NOTE_PREFIX . $notes;
     $dw = $this->dwolla();
-    if (!useDwolla() and !(t\EST() and $this->number == DW_TESTER_ACCOUNT)) {
+    if (!useDwolla() and !(t\EST() and $this->number == DW_TESTER_ACCT and $other->number == DW_TEST_ACCT)) {
       $txid = \user_password();
       self::addToAtom($txid, $amount, $this->acct->id, $other->acct->id);
       return $txid;
@@ -192,7 +192,7 @@ array (
       self::rollback();
       return dwError($dw, $error);
     }
-    if (!useDwolla()) $txid = \user_password(); else
+    if (!useDwolla()) $txid = t\seq(); else
     $txid = $result['Id'];
     self::addToAtom($txid, $amount, $this->acct->id, 0, 0);
     self::commit();

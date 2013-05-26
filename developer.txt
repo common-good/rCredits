@@ -7,7 +7,11 @@ BEFORE MINI LAUNCH:
 
 To do: (* = before launch ** = earlier)
 
-- in formI put buttons on separate lines (margin-right 100%?)
+- warn nubes about how long signup will take, including waiting for Dwolla, for the bank, for CGF,...
+- recommend password practices
+- rethink nested usd transaction atoms (is the logic right?)
+- retest SMS
+- allow clerks to sign in with card, with no password (option for companies)
 - * Get r/USD tab
 - * in daily: alert staff if deposit / withdrawal not complete after 3 days
 - * help for all pages

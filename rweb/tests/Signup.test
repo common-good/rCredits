@@ -95,6 +95,18 @@ class rwebSignup extends DrupalWebTestCase {
     . '\\| Tmp password | New password | Confirm new password |"');
   }
 
+  // Scenario: A newbie registers with no case
+  public function testANewbieRegistersWithNoCase_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"');
+    When_('member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values: "DATA'
+    . '\\| fullName | email         | phone          | country | postalCode | state | city    | address | physical        | acctType    | code             |'
+    . '\\| abe one  | a@example.com | (413) 253-0000 | US      | 01001      | MA    | AMHERST | 21 A ST | 21 a st., amherst | %R_PERSONAL | s0M3_rAnd0M_c0D3 |"');
+    Then_('members: "DATA'
+    . '\\| id   | fullName | email         | phone        | country | postalCode | state | city | address | physical | flags | floor |'
+    . '\\| .AAC | Abe One  | a@example.com | +14132530000 | US | 01001 | MA | Amherst | 21 A St | 21 A St., Amherst | dft,personal | 0 |"');
+  }
+
   // Scenario: A member registers bad email
   public function testAMemberRegistersBadEmail_0() {
     $this->setUp2(__FUNCTION__, 0);

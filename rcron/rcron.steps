@@ -54,6 +54,7 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     Bank AMemberIsOverPlentyOverMaximumButNotEnoughOverFloor MAKE
  *     Gifts Setup MAKE
  *     Notices Setup MAKE
+ *     Pilot Setup BOTH
  *     Recache Setup MAKE
  *     Redistribute Setup MAKE
  *     Totals Setup MAKE
@@ -81,6 +82,7 @@ function members($list) {return t\members($list);}
  *     Bank AMemberIsOverMaximumButDoesntWantAutomaticDeposits MAKE
  *     Bank AMemberIsOverPlentyOverMaximumButNotEnoughOverFloor MAKE
  *     Gifts Setup MAKE
+ *     Pilot Setup MAKE
  *     Recache Setup TEST
  *     Recache BalancesGetOutOfWhack BOTH
  *     Redistribute AMemberHasTooMuchR MAKE
@@ -112,6 +114,7 @@ function balances($list) {return t\balances($list);}
  *     Gifts AContributionCanBeCompleted MAKE
  *     Gifts ARecurringContributionCanBeCompleted MAKE
  *     Notices AMemberGetsSomeNotices MAKE
+ *     Pilot CronRunsForTheFirstTime MAKE
  *     Recache BalancesGetOutOfWhack MAKE
  *     Redistribute AMemberHasTooMuchR MAKE
  *     Redistribute AMemberHasTooMuchRButTooFewBuyers MAKE
@@ -169,7 +172,8 @@ function bankTransferCountIs($count) {
 /**
  * relations: (ARG)
  *
- * in: Totals Setup MAKE
+ * in: Pilot Setup MAKE
+ *     Totals Setup MAKE
  *     VirtualPayments Setup MAKE
  */
 function relations($relations) {return t\relations($relations);}
@@ -180,6 +184,7 @@ function relations($relations) {return t\relations($relations);}
  *
  * in: Gifts AContributionCanBeCompleted TEST
  *     Gifts ARecurringContributionCanBeCompleted TEST
+ *     Pilot CronRunsForTheFirstTime TEST
  *     Recache Setup MAKE
  *     Redistribute AMemberHasTooMuchR TEST
  *     Redistribute AMemberHasTooMuchRButTooFewBuyers TEST
@@ -208,6 +213,7 @@ function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice,
  *
  * in: Gifts AContributionCanBeCompleted BOTH
  *     Gifts ARecurringContributionCanBeCompleted BOTH
+ *     Pilot Setup MAKE
  */
 function gifts($gifts) {return t\gifts($gifts);}
 
@@ -264,3 +270,12 @@ function notices($list) {return t\notices($list);}
  * in: Notices AMemberGetsSomeNotices TEST
  */
 function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, $email, $subs);}
+
+/**
+ * notice count is (ARG)
+ *
+ * in: Redistribute AMemberHasTooMuchR TEST
+ */
+function noticeCountIs($count) {
+  return (r\dbLookup('COUNT(*)', 'r_notices') == $count);
+}

@@ -663,17 +663,15 @@ function randomString($len = 16, $choices = '') {
  * Change something to the proper case, unless it is already right.
  * @param mixed $what: a string or array of strings to fix
  * @param string $proper: the PHP function to use, to fix the case
- * @return: the argument with case fixed (the argument itself is changed directly also)
+ * @return: the argument with case fixed
  */
-function normalizeCase(&$what, $proper = 'ucwords') {
+function normalizeCase($what, $proper = 'ucwords') {
   if (is_array($what)) {
-    foreach ($what as $key => $value) normalizeCase($what[$key]);
+    foreach ($what as $key => $value) $what[$key] = normalizeCase($what[$key], $proper);
     return $what;
   }
-  $upper = strtoupper($what);
-  $lower = strtolower($what);
   if ($proper = 'ucwords' and $what != strtolower($what) and $what != strtoupper($what)) return $what; // already mixed case
-  return ($what = $proper($what));
+  return $proper(strtolower($what));
 }
 
 /*

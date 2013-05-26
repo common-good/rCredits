@@ -98,7 +98,7 @@ class rwebTransactions extends DrupalWebTestCase {
   // Scenario: A member looks at transactions for the past year
   public function testAMemberLooksAtTransactionsForThePastYear_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ".ZZA" visits page "transactions/period=365&rCredits=1"');
+    When_('member ".ZZA" visits page "transactions/period=365&currency=0"');
     Then_('we show "Transaction History" with: "DATA'
     . '\\| Start Date | End Date | Start Balance | To You | From You | Rewards | End Balance |'
     . '\\| %dmy-12m   | %dmy     | $0.00         | 30.00  | 120.00   | 256.00  | $166.00     |'
@@ -124,7 +124,7 @@ class rwebTransactions extends DrupalWebTestCase {
   // Scenario: A member looks at transactions for the past few days
   public function testAMemberLooksAtTransactionsForThePastFewDays_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ".ZZA" visits page "transactions/period=15&rCredits=1"');
+    When_('member ".ZZA" visits page "transactions/period=15&currency=0"');
     Then_('we show "Transaction History" with: "DATA'
     . '\\| Start Date | End Date | Start Balance | To You | From You | Rewards | End Balance |'
     . '\\| %dmy-15d   | %dmy     | $242.00       | 0.00   | 80.00    | 4.00    | $166.00     |'
@@ -167,7 +167,7 @@ class rwebTransactions extends DrupalWebTestCase {
     . '\\| .ZZA   |     190 |'
     . '\\| .ZZB   |     279 |'
     . '\\| .ZZC   |     311 |"');
-    When_('member ".ZZA" visits page "transactions/period=5&rCredits=1"');
+    When_('member ".ZZA" visits page "transactions/period=5&currency=0"');
     Then_('we show "Transaction History" with: "DATA'
     . '\\| tid | Date   | Name       | From you | To you | Status   | Buttons | Purpose | Rewards |'
     . '\\| 15  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X       | cash CL | --      |'
@@ -179,7 +179,7 @@ class rwebTransactions extends DrupalWebTestCase {
     . '\\| never   |'
     . '\\| rebate  |'
     . '\\| bonus   |"');
-    When_('member ".ZZC" visits page "transactions/period=5&rCredits=1"');
+    When_('member ".ZZC" visits page "transactions/period=5&currency=0"');
     Then_('we show "Transaction History" with: "DATA'
     . '\\| tid | Date   | Name       | From you | To you | Status   | Buttons | Purpose | Rewards |'
     . '\\| 10  | %dm-5d | Abe One    | 100.00   | --     | disputed | OK      | cash CL | --      |'

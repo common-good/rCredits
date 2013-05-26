@@ -51,6 +51,15 @@ Scenario: A newbie registers
 # Should check for name defaulting to "abeone" (but doesn't work yet in test)
 # Formatting and links are ignored
 
+Scenario: A newbie registers with no case
+  Given invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"
+  When member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values:
+  | fullName | email         | phone          | country | postalCode | state | city    | address | physical        | acctType    | code             |
+  | abe one  | a@example.com | (413) 253-0000 | US      | 01001      | MA    | AMHERST | 21 A ST | 21 a st., amherst | %R_PERSONAL | s0M3_rAnd0M_c0D3 |
+  Then members:
+  | id   | fullName | email         | phone        | country | postalCode | state | city | address | physical | flags | floor |
+  | .AAC | Abe One  | a@example.com | +14132530000 | US | 01001 | MA | Amherst | 21 A St | 21 A St., Amherst | dft,personal | 0 |
+
 Scenario: A member registers bad email
   Given invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"
   When member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values:

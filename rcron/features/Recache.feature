@@ -6,9 +6,9 @@ SO I don't lose money or get confused.
 
 Setup:
   Given members:
-  | id   | fullName   | dwolla             | email         | flags           | minimum | maximum |
-  | .ZZA | Abe One    | %DW_TESTER_ACCOUNT | a@example.com | dft,ok,personal |       5 |       1 |
-  | .ZZB | Bea Two    | %DW_TEST_ACCOUNT   | b@example.com | dft,ok,personal |     100 |      50 |
+  | id   | fullName   | dwolla          | email         | flags           | minimum | maximum |
+  | .ZZA | Abe One    | %DW_TESTER_ACCT | a@example.com | dft,ok,personal |       5 |       1 |
+  | .ZZB | Bea Two    | %DW_TEST_ACCT   | b@example.com | dft,ok,personal |     100 |      50 |
   | .ZZC | Corner Pub |                    | c@example.com | dft,ok,company  |     100 |       0 |
   And transactions: 
   | xid   | created   | type       | amount | from      | to   | purpose | taking |

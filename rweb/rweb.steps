@@ -123,6 +123,7 @@ function memberCompletesFormWithValues($id, $page, $values, $confirmed = FALSE) 
  *     Signin AMemberSignsInForTheFirstTime MAKE
  *     Signin AMemberGivesTheWrongPassword MAKE
  *     Signup ANewbieRegisters MAKE
+ *     Signup ANewbieRegistersWithNoCase MAKE
  *     Signup AMemberRegistersBadEmail MAKE
  *     Signup AMemberRegistersBadPhone MAKE
  *     Signup AMemberRegistersBadName MAKE
@@ -194,6 +195,7 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  *     Signin AMemberSignsInForTheFirstTime TEST
  *     Signin AMemberGivesTheWrongPassword MAKE
  *     Signup ANewbieRegisters TEST
+ *     Signup ANewbieRegistersWithNoCase TEST
  *     Signup AMemberRegistersAgain MAKE
  *     Signup AMemberRegistersWithAnExistingCompany BOTH
  *     Signup AMemberRegistersWithAnUnknownCompany TEST
@@ -519,6 +521,7 @@ function memberIsLoggedOut() {
  *     Signup ANewbieVisitsTheRegistrationPageWithNoInvite MAKE
  *     Signup AnInvitedNewbieVisitsTheRegistrationPage MAKE
  *     Signup ANewbieRegisters MAKE
+ *     Signup ANewbieRegistersWithNoCase MAKE
  *     Signup AMemberRegistersBadEmail MAKE
  *     Signup AMemberRegistersBadPhone MAKE
  *     Signup AMemberRegistersBadName MAKE
@@ -723,6 +726,7 @@ function weDownloadWith($name, $rows) {
     $csvRow = array_combine($headers, $csvRow); // add keys
     if (!$row = array_shift($rows)) return t\testOutput('extra row in CSV: ' . print_r($csvRow, 1));
     foreach ($row as $key => $value) {
+//    debug(compact('row','csvRow'));
       if (strpos($value, '%') !== FALSE) $value = t\lastMinuteSubs($value);
       if (!t\eq($csvValue = $csvRow[$key], $value)) return t\testOutput("key=$key csvValue<>value: $csvValue<>$value");
     }

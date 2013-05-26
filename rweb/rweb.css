@@ -107,8 +107,9 @@ ul.tabs.primary {padding:0; margin-left:4em; margin-top:.8em; font-size:85%;}
 /* Help */
 #help-link {width:100%;}
 #help-link label {width:10em; font-size:.8em; float:right; text-align:left; padding-left:2em; background-image:url(../images/icons/question-mark.gif); background-repeat:no-repeat;}
-#rcreditswebformhelp #edit-title {font-weight:bold;}
-#rcreditswebformhelp h2 {font-weight:bold; color:darkblue;}
+#rcreditswebformhelp #edit-title {font-weight:normal;}
+#rcreditswebformhelp #edit-text {font-size:85%;}
+#rcreditswebformhelp h2 {font-weight:normal; color:darkblue;}
 #rcreditswebformhelp b {color:darkgreen;}
 #rcreditswebformhelp i {color:darkblue;}
 
@@ -277,8 +278,11 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformproxies #edit-subtext  {font-weight:normal; font-size:85%; margin-left:0;}
 
 /* Reports */
-#rcreditswebformreports .form-item-agents,
-#rcreditswebformreports .form-item-channels {display:inline-block;}
+#rcreditswebformreports .form-type-checkboxes {margin-bottom:0;}
+#rcreditswebformreports .form-type-checkbox {width:100px;}
+#rcreditswebformreports .form-type-radios {border:0;}
+#rcreditswebformreports .form-type-radio {display:inline-block;}
+
 #rcreditswebformreports .form-item-period {display:inline-block;}
 #rcreditswebformreports .form-item-ending {display:inline-block;}
 #rcreditswebformreports .form-item-starting {margin-bottom:0;}
@@ -327,9 +331,11 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformtxs #edit-title,
 #rcreditswebformtxs #edit-subtext {margin-left:0;}
 
-#rcreditswebformtxs .form-type-checkbox {max-width:120px;}
-#rcreditswebformtxs .form-item-agents,
-#rcreditswebformtxs .form-item-channels {display:inline-block;}
+/* #rcreditswebformtxs #edit-opts {max-width:248px;} /* force display in pairs */
+#rcreditswebformtxs .form-type-checkboxes {margin-bottom:0;}
+#rcreditswebformtxs .form-type-checkbox {width:100px;}
+#rcreditswebformtxs .form-type-radios {border:0;}
+#rcreditswebformtxs .form-type-radio {display:inline-block;}
 #rcreditswebformtxs .form-item-period {display:inline-block;}
 #rcreditswebformtxs .form-item-ending {display:inline-block;}
 #rcreditswebformtxs .form-item-starting {margin-bottom:0;}

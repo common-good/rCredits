@@ -52,7 +52,7 @@ Setup:
   | .ZZC |  323 |  3004.50 |     258 |
 
 Scenario: A member looks at transactions for the past year
-  When member ".ZZA" visits page "transactions/period=365&rCredits=1"
+  When member ".ZZA" visits page "transactions/period=365&currency=0"
   Then we show "Transaction History" with:
   | Start Date | End Date | Start Balance | To You | From You | Rewards | End Balance |
   | %dmy-12m   | %dmy     | $0.00         | 30.00  | 120.00   | 256.00  | $166.00     |
@@ -75,7 +75,7 @@ Scenario: A member looks at transactions for the past year
   | bonus   |
 
 Scenario: A member looks at transactions for the past few days
-  When member ".ZZA" visits page "transactions/period=15&rCredits=1"
+  When member ".ZZA" visits page "transactions/period=15&currency=0"
   Then we show "Transaction History" with:
   | Start Date | End Date | Start Balance | To You | From You | Rewards | End Balance |
   | %dmy-15d   | %dmy     | $242.00       | 0.00   | 80.00    | 4.00    | $166.00     |
@@ -115,7 +115,7 @@ Scenario: Transactions with other states show up properly
   | .ZZA   |     190 |
   | .ZZB   |     279 |
   | .ZZC   |     311 |
-  When member ".ZZA" visits page "transactions/period=5&rCredits=1"
+  When member ".ZZA" visits page "transactions/period=5&currency=0"
   Then we show "Transaction History" with:
   | tid | Date   | Name       | From you | To you | Status   | Buttons | Purpose | Rewards |
   | 15  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X       | cash CL | --      |
@@ -127,7 +127,7 @@ Scenario: Transactions with other states show up properly
   | never   |
   | rebate  |
   | bonus   |
-  When member ".ZZC" visits page "transactions/period=5&rCredits=1"
+  When member ".ZZC" visits page "transactions/period=5&currency=0"
   Then we show "Transaction History" with:
   | tid | Date   | Name       | From you | To you | Status   | Buttons | Purpose | Rewards |
   | 10  | %dm-5d | Abe One    | 100.00   | --     | disputed | OK      | cash CL | --      |

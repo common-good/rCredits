@@ -60,6 +60,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
     u\setDft($pass, '123');
     u\setDft($mail, ''); // Don't use "$name@example.com"
     u\setDft($community, r\serverUid());
+    u\setDft($postalCode, '01301');
     $moneyFields = 'share committed maximum floor r usd rewards'; // not minimum because NULL means not set, in Membership page
     foreach (u\ray($moneyFields) as $one) u\setDft($$one, 0);
     $testFields = ' rebate fullName name pass mail community ' . $moneyFields;
@@ -100,7 +101,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
 
   if ($usdAccount = str_replace('-', '', @$dwolla)) {
     $acct->update(compact('usdAccount')); // this gets crunched, so save before compare
-    if ($usdAccount != DW_TEST_ACCOUNT) {
+    if ($usdAccount != DW_TEST_ACCT) {
       $num = r\dbLookup('usdAccount', 'users', 'uid=:uid', compact('uid')); // get crunched version
       if ($tester = r\dbLookup('uid', 'users', 'usdAccount=:num', compact('num'))) {
         $secure = r\acct($tester)->secure;
@@ -125,7 +126,7 @@ function makeTx($info, $testOnly = FALSE) {
   global $channel;
   extract($info);
 
-  if (@$xid) $xid = u\a2n(substr(strpbrk($xid, '.:'), 1));
+  if (@$xid and !is_numeric($xid)) $xid = u\a2n(substr(strpbrk($xid, '.:'), 1));
   u\setDft($type, TX_TRANSFER);
   u\setDft($state, TX_DONE);
   u\setDft($created, REQUEST_TIME);
@@ -133,7 +134,7 @@ function makeTx($info, $testOnly = FALSE) {
   $payer = uid($from);
   $payerAgent = uid(@$fromAgent ?: ($type == TX_TRANSFER ? $from : r\communityUid()));
   $payee = uid($to); 
-  $payeeAgent = uid(@$toAgent ?: ($type == TX_TRANSFER ? $to : r\communityUid()));
+  $payeeAgent = uid(@$toAgent ?: $to );
   u\setDft($r, $amount);
   u\setDft($taking, 0);
   
@@ -189,12 +190,12 @@ function notice($notice, $id, $subs) {
 }
   
 /**
- * Make the cached balances be thus and such.
+ * Make the cached balances and other numeric fields be thus and such.
  * Note that this will be at odds with any calculated balances, 
- *   so a scenario cannot test balances with "balances:" after setting them up this way.
+ *   so a scenario cannot test r, usd, and rewards with "balances:" after setting them up this way.
  */
 function makeBalances($one, $testOnly) {
-  extract(u\just('id r usd rewards maximum minimum', $one));
+  extract(u\just('id r usd rewards maximum minimum share committed', $one));
   $a = r\acct($id = t\uid($id));
   if (!$testOnly) {
     print_r($one);
@@ -222,8 +223,9 @@ function makeBalances($one, $testOnly) {
 // (can't tell because it starts nonzero) if (!t\eq($calc->usd, $usd)) return t\testOutput('bad calc usd');
     if (t\badEq('cached usd', $a->usd, $usd, $id)) return FALSE;
   }
-  if (isset($minimum)) if (t\badEq('db minimum', $a->minimum, $minimum, $id)) return FALSE;
-  if (isset($maximum)) if (t\badEq('db maximum', $a->maximum, $maximum, $id)) return FALSE;
+  foreach (u\ray('minimum maximum share committed') as $one) {
+    if (isset($$one)) if (t\badEq("db $one", $a->$one, $$one, $id)) return FALSE;
+  }
   return TRUE;
 }
 
@@ -728,4 +730,9 @@ function constants($list) {
     extract(u\just('name value', $one));
     
   }
+}
+
+function seq($i = 0) {
+  global $testSeq;
+  return u\n2a($testSeq[$i] = @$testSeq[$i] ? $testSeq[$i] + 1 : 1, -4);
 }

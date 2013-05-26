@@ -66,6 +66,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'nothing undone' => t('Nothing undone.'),
   'event' => t('Account @fullName (@quid) is now @status.'),
   'you are approved' => t('Your account has been approved! You may now buy and sell through the rCredits system, including using your rCard for purchases at member businesses.'),
+  'got funding' => t('You have received a @type of @amount from your rCredits community.'),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),
@@ -293,7 +294,7 @@ function setup_name($acct, $fullName) {
   $fullName = str_replace('  ', ' ', trim($fullName));
   if (strlen($fullName) > 60) throw new rSMSexception(tt('name too long'));
   if (!u\validName($fullName)) throw new rSMSexception(tt("what's your name really?"));
-  u\normalizeCase($fullName);
+  $fullName = u\normalizeCase($fullName);
   $name = r\uniqueName($fullName);
 //  if (r\userField(1, 'name=:name', compact('name'))) throw new rSMSexception(tt('duplicate name'));
   $acct->update(compact('name', 'fullName'));

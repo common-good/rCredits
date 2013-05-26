@@ -44,10 +44,11 @@ class rcronRedistribute extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id   | fullName   | floor | minimum | maximum | flags                   |'
-    . '\\| .ZZA | Abe One    |     0 |     100 |     200 | dft,personal,ok         |'
-    . '\\| .ZZB | Bea Two    |     0 |     100 |     200 | dft,personal,ok         |'
-    . '\\| .ZZC | Corner Pub |     0 |     100 |     200 | dft,personal,company,ok |"');
+    . '\\| id   | fullName | floor | minimum | maximum | flags                   |'
+    . '\\| .ZZA | Abe One  |     0 |     100 |     200 | dft,personal,ok         |'
+    . '\\| .ZZB | Bea Two  |     0 |     100 |     200 | dft,personal,ok         |'
+    . '\\| .ZZC | Our Pub  |     0 |     100 |     200 | dft,personal,company,ok |'
+    . '\\| .ZZD | Dee Four |     0 |     100 |       0 | dft,personal,ok         |"');
     break;
 
 
@@ -61,14 +62,16 @@ class rcronRedistribute extends DrupalWebTestCase {
     . '\\| id   | r                | usd | rewards |'
     . '\\| .ZZA | %(201 + %chunk3) |  20 |      20 |'
     . '\\| .ZZB |                5 | 120 |      20 |'
-    . '\\| .ZZC |                5 |  60 |      20 |"');
+    . '\\| .ZZC |                5 |  60 |      20 |'
+    . '\\| .ZZD |                0 |   0 |       0 |"');
     When_('cron runs "redistribute"');
     Then_('transactions: "DATA'
-    . '\\| xid   | type     | state | amount | r       | from      | to        | purpose               |'
-    . '\\| .AAAB | transfer | done  |      0 | %chunk  | community | .ZZB      | rCredits/USD exchange |'
-    . '\\| .AAAC | transfer | done  |      0 | %chunk  | community | .ZZC      | rCredits/USD exchange |'
-    . '\\| .AAAD | transfer | done  |      0 | %chunk  | community | .ZZB      | rCredits/USD exchange |'
-    . '\\| .AAAE | transfer | done  |      0 | %chunk3 | .ZZA      | community | rCredits/USD exchange |"');
+    . '\\| xid   | type     | state | amount | r       | from | to   | purpose               |'
+    . '\\| .AAAB | transfer | done  |      0 | %chunk  | ctty | .ZZB | rCredits/USD exchange |'
+    . '\\| .AAAC | transfer | done  |      0 | %chunk  | ctty | .ZZC | rCredits/USD exchange |'
+    . '\\| .AAAD | transfer | done  |      0 | %chunk  | ctty | .ZZB | rCredits/USD exchange |'
+    . '\\| .AAAE | transfer | done  |      0 | %chunk3 | .ZZA | ctty | rCredits/USD exchange |"');
+    And__('notice count is 0');
   }
 
   // Scenario: a member has too much r but too few buyers
@@ -81,10 +84,10 @@ class rcronRedistribute extends DrupalWebTestCase {
     . '\\| .ZZC |              100 |  60 |      20 |"');
     When_('cron runs "redistribute"');
     Then_('transactions: "DATA'
-    . '\\| xid   | type     | state | amount | r       | from      | to        | purpose               |'
-    . '\\| .AAAB | transfer | done  |      0 | %chunk  | community | .ZZB      | rCredits/USD exchange |'
-    . '\\| .AAAC | transfer | done  |      0 | %chunk  | community | .ZZB      | rCredits/USD exchange |'
-    . '\\| .AAAD | transfer | done  |      0 | %chunk2 | .ZZA      | community | rCredits/USD exchange |"');
+    . '\\| xid   | type     | state | amount | r       | from | to   | purpose               |'
+    . '\\| .AAAB | transfer | done  |      0 | %chunk  | ctty | .ZZB | rCredits/USD exchange |'
+    . '\\| .AAAC | transfer | done  |      0 | %chunk  | ctty | .ZZB | rCredits/USD exchange |'
+    . '\\| .AAAD | transfer | done  |      0 | %chunk2 | .ZZA | ctty | rCredits/USD exchange |"');
     And__('we tell staff "no buyers" with subs: "DATA'
     . '\\| amount |'
     . '\\| %chunk |"');

@@ -227,6 +227,7 @@ EOF;
   <div id="edit-$tag" class="form-checkboxes">
 $boxes
 </div></div>
+<div class="description">$desc</div>
 EOF
   );
 }
@@ -949,7 +950,7 @@ function formInvite($form, &$sta) {
 //  $subtext = item(strtr($subtext, array('<a>' => "<a href=\"$base_url/membership\">")));
 //  $contact = textField(t('Email or Cell:'), t('An email address or cell number for the person you want to invite'), required());
   $email = textField(t('Email:'), t('An email address for the person you want to invite'), required());
-  $trusted = boolField(t('Trusty?'), t('If you lent this person $250, would you trust them to pay it back?'));
+  $trusted = boolField(t('Trusted?'), t('If you lent this person $250, would you trust them to pay it back?'));
   $subject = textField(t('Subject:'), t('The subject of your message'), required($mya->fullName . t(' invites you to rCredits')));
 
   $default = "rCredits looks amazing. I signed up. Check it out!\n\n$mya->fullName";
@@ -1019,13 +1020,13 @@ function formSummary($form, &$sta) {
   $floorDesc = t('Your balance can go this low') . ($mya->floor < 0 ? t(' for up to 30 days') : '')
     . '. ' . t('See "Debt Okay" in') . " <a href=\"$base_url/account/preferences\">Preferences</a>.";
   
-  if ($mya->can(B_CTTY_ADMIN) and !$mya->proSe() and $mya->can(B_PERSONAL)) {
+  if ($mya->can(B_CTTY_ADMIN) and !$mya->proSe()) {
 // FAILS on mobile    $idLink = 'id="idcard"'; // use jQuery to create popup (see inc/misc.js)
     $address .= '<br>' . u\formatPhone($mya->phone) . " ($mya->faxetc)";
     $idLink = 'href="print-rcard" target="_blank"';
-    $card = "<a $idLink>" . t('Print ID Card') . '</a>'; // no card for community accounts
-    if ($mya->can(B_ADMIN)) $card .= ' [<a href="http://localhost/devcore/rcredits/test?module=rcredits/rweb&feature=Signup&scene=&restart=1">run current test</a>]'; // DEBUG (keep)
-  } else $card = ''; //t("To request employee ID cards, visit the <a href=\"$base_url/account/relations\">Account Relations</a> page.");
+    $card = $mya->can(B_PERSONAL) ? "<a $idLink>" . t('Print ID Card') . '</a>' : '';
+    if ($mya->can(B_ADMIN)) $card .= ' [<a href="http://localhost/devcore/rcredits/test?module=rcredits/rweb&feature=Signup&scene=&restart=1">run current test</a>]'; // DEBOG (keep)
+  } else $card = '';
 
   $title = item(t('Account Summary'));
 //  'subtext = basic_account_info();
@@ -1441,7 +1442,7 @@ function formAdmin_submit($form, &$sta) {
   $op = op($sta);
   if ($op == 'USD_Accounts') return say(usdAccts());
 
-  $where = "uid>1 AND name<>'cgf'";
+  $where = "uid>1";
   $userSql = "SELECT uid, MID(phone,3) AS phone, flags, r, usd, rewards, minimum AS min, maximum AS max, committed AS comit, share, floor, address, city, postalCode AS zip FROM users WHERE $where ORDER BY name";
   if ($op == 'users') return say(showTableQ($userSql));
   $userSql = str_replace($where, "postalCode LIKE '013%'", $userSql);
@@ -1790,7 +1791,7 @@ function formRegister(&$form, &$sta, $args = '') {
 
 function formRegister_validate($form, &$sta) {
   if (!isset($sta['buttons'])) $sta['buttons'] = array(); // for testing (keep Drupal from griping)
-  extract(u\just('args phone mail country company companyPhone companyOptions fullName postalCode physical code', $values = u\trimAll($sta['input'])));
+  extract(u\just('args phone mail country city address company companyPhone companyOptions fullName postalCode physical code', $values = u\trimAll($sta['input'])));
   if (@$args) extract(u\just('code', $args));
   $sta['input'] = array(); // make sure Drupal doesn't save the record when WE find an error (no longer needed?)
   //if (r\dbExists('users', "name='abeone'")) die('1 ' . print_r(debug_backtrace(), 1));
@@ -1822,13 +1823,12 @@ function formRegister_validate($form, &$sta) {
 //  if (r\userField(1, 'name=:name', compact('name'))) return say('duplicate name'); // require unique fullName
   if (stripos(@$physical, ' box ') or stripos(@$physical, 'pob ') !== FALSE) return say('po in location', 'physical');
 
-  $params = u\ray('fullName city address'); // prepare for pass-by-reference
-  list ($fullName, $city, $address) = u\normalizeCase($params);
+  extract(u\normalizeCase(compact(u\ray($normals = 'fullName city address physical'))));
   $community = r\communityUid($postalCode);
   $flags = B_DFT;
   $administer_users = FALSE; // for testing (keep Drupal from griping)
   $status = 1;
-  $sta['input'] = compact(u\ray('name data community flags administer_users status phone')) + $values;
+  $sta['input'] = compact(u\ray("name data $normals community flags administer_users status phone")) + $values;
   //if (r\dbExists('users', "name='abeone'")) die('1 ' . print_r(debug_backtrace(), 1));
 }
 
@@ -2052,6 +2052,8 @@ function formContact_validate($form, &$sta) {
 function formContact_submit($form, &$sta) {
   extract($info = u\just('fullName name phone fax country postalCode state city address physical', $sta['input']));
   if (r\acct()->id == 1) unset($info['name']); // don't change 'admin'
+  $info = u\normalizeCase(u\just('fullName city address physical', $info)) + $info;
+
   r\acct()->update($info);
 //  be\mergeCheck(compact(u\ray('name phone fax'))); // check before and after
   say('info saved');
@@ -3083,7 +3085,7 @@ EOF
   }
   $secretBal = formField('checkbox', t('Secret Balance:'), t("Don't let qualified merchants tell me my balance, when I ask."), $mya->hasBit(B_SECRET_BAL));
   // Double confirmation: by SMS, by email, either. require extra confirmation of crucial account changes
-  $debtOk = formField('checkbox', t('Debt Okay:'), tt('Allow my account balance to go negative, limited by my current "credit floor". I understand there will be a substantial fee (currently $@R_DEBT_FEE plus @R_DEBT_PERCENT%/month) if I fail to bring my balance back up to zero within @R_DEBT_DAYS days.'), $mya->hasBit(B_DEBT_OK));
+  $debtOk = formField('checkbox', t('Debt Okay:'), tt('Allow my account balance to go negative, limited by my current "credit floor". I understand there will be a substantial fee (currently $@R_DEBT_FEE plus @R_DEBT_PERCENT% per month) if I fail to bring my balance back up to zero within @R_DEBT_DAYS days.'), $mya->hasBit(B_DEBT_OK));
   $submit = submit(t('Update options'));
   
   $form = compact(u\ray('title payVirtual minimum maximum toBank smsNotices notices statements secretBal debtOk submit'));
@@ -3135,8 +3137,9 @@ function formReports($form, &$sta, $args = '') {
   $demand = item(u\formatAmount($demand) . $demandPct, t('Margin:'), t('Community demand for additional rCredits')); // ($xxx worldwide)
 //  $moreLater = item('', t('After rCredits is launched, this page will also report progress statistics.'));
   if (strpos($args, 'variety=') === FALSE) $args .= '&variety=report';
-  $form = compact(u\ray('title subtext issued demand')) + formTxs('', $sta, $args);
-  return labeled($form);
+  $form = labeled(compact(u\ray('title subtext issued demand')));
+  if ($mya->can(B_CTTY_ADMIN)) $form += formTxs('', $sta, $args);
+  return $form;
 }
 
 function formReports_validate($form, &$sta) {
