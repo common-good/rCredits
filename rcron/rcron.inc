@@ -361,7 +361,7 @@ function bank1($item) {
   extract(u\just('uid excess shortfall', $item));
   if ($excess > 0 and $shortfall > 0) return r\tellStaff('min > max', $item, $uid); // should never happen
   $acct = r\acct($uid);
-  if (!$amount = r\toBank($excess > 0 ? $excess : -$shortfall, $acct, $err)) return;
+  if (!$amount = r\toBank($excess > 0 ? $excess : -$shortfall, $acct)) return;
   $action = $excess > 0 ? 'deposit to' : 'draw from';
 
   $usAcct = new r\usd($acct);
@@ -370,6 +370,24 @@ function bank1($item) {
     $amount = u\formatAmount(abs(@$amount));
     r\notify($uid, 'minmax status|banked', compact(u\ray('action status amount')));
   } elseif (time() - $acct->created > 3 * DAY_SECS) r\notify($uid, 'cannot bank', compact('action', 'error'));
+}
+
+/**
+ * Given a desired amount to transfer to the bank, return the amount to actually transfer.
+ * @param float $amount: the amount wanting to go to or (if negative) from the bank
+ * @param acct $acct: which account
+ * @return: the amount to deposit or (if negative) withdraw (zero if none).
+ */
+function toBank($amount, $acct) {
+  $waiting = $acct->waitingToBank(); // amount already requested (if any)
+  if ($waiting * $amount < 0) { // flip flop -- user could choose better settings (but continue anyway)
+    $suggestion = u\formatAmount(round($acct->minimum + max($acct->minimum * .2, 50, abs($amount), abs($waiting)), -1));
+    r\suggest($acct, 'min too low', compact('suggestion'));
+  }
+  $amount -= $waiting;
+  if ($amount > 0) { // excess
+    return $amount > R_BANK_MIN ? $amount : 0;
+  } else return min($amount, -R_BANK_MIN);
 }
 
 /**

@@ -12,6 +12,13 @@ use rCredits as r;
 
 define('TX_OPT_AGENTS', 1);
 define('TX_OPT_CHANNELS', 2);
+define('TX_OPT_EXCHANGES', 3);
+
+define('STATES_DONE', 0); // show just completed transactions
+define('STATES_PENDING', 1); // show just open invoices
+define('STATES_BOTH', 2); // show both completed and pending transactions
+
+define('CURRENCIES_BOTH', 2); // show both rCredits (0) and USD (1)
 
 /**
  * List Transactions
@@ -20,25 +27,25 @@ function formTxs($form, &$sta, $args = '') {
   global $base_url;
   $mya = r\acct();
   
-  extract(u\just('currency states agents channels period starting ending do xid download downloaded variety', $args)); 
+  extract(u\just('currency states agents channels exchanges period starting ending do xid download downloaded variety', $args)); 
   $report = $mya->can(B_CTTY_ADMIN) ? (@$variety == 'report') : FALSE; // no community reports yet for non-admins
   if (!$report and @$do) if ($result = handleTx($do, $xid, $sta, $args)) return $result;
 
   $page = $report ? 'reports' : 'transactions';
   u\setDft($period, TX_DEFAULT_PERIOD);
-  u\setDft($states, 2); // both  
+  u\setDft($states, STATES_BOTH); // both  
   u\setDft($currency, 2); // both
   if (@$download) $currency = 2; // always both for download
   
   // set up option fields (must come before $currency and $url0)
   $optDefaults = $opts = array();
-  foreach (u\ray('agents channels') as $one) {
+  foreach (u\ray('agents channels exchanges') as $one) {
     $opts[constant('TX_OPT_' . strtoupper($one))] = $one; // set TX_OPT_CHANNELS etc.
     if (@$$one) $optDefaults[] = $one;
   }
   if (!isset($agents) and !$mya->can(B_PERSONAL)) {$agents = TRUE; $optDefaults[] = 'agents';}
   
-  $url0 = @"$base_url/$page/period=$period&currency=$currency&states=$states&agents=$agents&channels=$channels&variety=$variety";
+  $url0 = @"$base_url/$page/period=$period&currency=$currency&states=$states&agents=$agents&channels=$channels&exchanges=$exchanges&variety=$variety";
   list ($classes, $header, $downloadHeader) = txFields($report, @$download, @$agents, @$channels);
  
   $txDays = array('1' => 'today', '4' => '4 days', '30' => '30 days', '90' => '90 days', '180' => '6 months', '365' => '12 months', '-1' => 'Year to date');
@@ -51,7 +58,10 @@ function formTxs($form, &$sta, $args = '') {
   } else $csv = FALSE;
 
   // build the transaction list
-  $result = be\myTransactions($starting, $ending, $report ? 'ctty' : $mya->id, $states == 0);
+  $dones = ($states != STATES_PENDING);
+  $pendings = ($states != STATES_DONE);
+  $options = compact(u\ray('dones pendings exchanges'));
+  $result = be\myTransactions($starting, $ending, $report ? 'ctty' : $mya->id, $options);
   $rows = array();
   for ($rowNum = 0; $rowNum < $maxRows; $rowNum++) {
     if (!$tx = $result->fetchAssoc()) break;
@@ -60,9 +70,9 @@ function formTxs($form, &$sta, $args = '') {
   }
   if ($tx and $result->fetchAssoc()) say('transaction list truncated'); // there was more than we could show
   if (@$download) {
-    if ($states == 2) { // get proper totals in $totDone
+    if ($states == STATES_BOTH) { // get proper totals in $totDone
       foreach ($totPending as $key => $value) if ($totDone[$key] !== FALSE) $totDone[$key] += $value;
-    } elseif ($states == 1) $totDone = $totPending;
+    } elseif ($states == STATES_PENDING) $totDone = $totPending;
     
     $txid = $created = $date = FALSE;
     u\splice($totDone, 'date', 1, compact(u\ray('txid created date')));
@@ -93,7 +103,7 @@ function formTxs($form, &$sta, $args = '') {
   $currency = hidField(2); //formField('radios', t('Currency:'), '', dft($currency), $radios); 
   $radios = array(t('completed'), t('open invoices'), t('both'));
   $states = formField('radios', t('Types:'), '', dft($states), $radios);
-  $opts2 = boxField('opts', t('Show:'), t('Agent is who did the transaction on your behalf. Channel ("Via") is Web, Smartphone, or SMS.'), $optDefaults, $opts);
+  $opts2 = boxField('opts', t('Show:'), t('Agent is who did the transaction on your behalf. Channel ("Via") is Web, Smartphone, SMS, or Automatic. Exchanges are 1-to-1 trades of rCredits for US Dollars.'), $optDefaults, $opts);
   
   $divider = item('<hr>');
   $period = formField('select', t('For the past:'), '', dft($period), $txDays);
@@ -182,7 +192,7 @@ function doRow($tx, $report, $csv, $classes, $agents, $channels, $currency, $url
   $r = number_format($tx_r, 2);
   $total = number_format($tx_amount, 2);
   $usd = number_format($tx_amount - $tx_r, 2);
-  $rpct = $tx_amount ? number_format(100 * $tx_r / $tx_amount, 1) : R_NONE;
+  $rpct = $tx_amount > 0 ? number_format(100 * $tx_r / $tx_amount, 1) : R_NONE;
   if ($rpct == '100.0') $rpct = '100'; // keep the field narrow (4 chars max)
 //  $rpct = sprintf('<span title="$%sr + $%sus = $%s">%s</span>', $r, $usd, $total, $rpct);
   $rpct = sprintf('<span title="$%sr + $%sus">%s</span>', $r, $usd, $rpct);
@@ -274,9 +284,10 @@ function formTxs_validate($form, &$sta) {
 function formTxs_submit($form, &$sta, $page = 'transactions') {
   if (confirming_s($sta)) return;
   extract(u\just('currency states period starting ending opts op', $sta['input']));
-  $channels = @$opts[TX_OPT_CHANNELS] ? 1 : 0;
   $agents = @$opts[TX_OPT_AGENTS] ? 1 : 0;
-  $url = @"$page/period=$period&starting=$starting&ending=$ending&currency=$currency&states=$states&agents=$agents&channels=$channels";
+  $channels = @$opts[TX_OPT_CHANNELS] ? 1 : 0;
+  $exchanges = @$opts[TX_OPT_EXCHANGES] ? 1 : 0;
+  $url = @"$page/period=$period&starting=$starting&ending=$ending&currency=$currency&states=$states&agents=$agents&channels=$channels&exchanges=$exchanges";
   if ($op == t('Download')) {
     say('downloading');
     if ($currency != 2) say('download always both');

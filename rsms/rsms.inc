@@ -114,6 +114,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'ambiguous other' => t('"@who" is associated with more than one rCredits account. You will need to identify them differently. Type "more" for options.'),
   'ambiguous other2' => t('You can identify a member by phone, email, fullname (no punctuation or spaces), or account ID.'),
   'what relationship' => t('You forgot to say whether you are an employee, owner, or both.'),
+  'short deposit' => t('The most you can transfer to your bank at this time is @max.'),
   'short cash to' => t('You are @short short, for that exchange.'),
   'short cash from' => t('@otherName does not have enough rCredits for that exchange.'),
   'short to' => t('You are @short short, for that payment. Increase your minimum!'),

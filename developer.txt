@@ -2,13 +2,16 @@ rCredits Software
 Notes for developers
 
 BEFORE MINI LAUNCH:
-- account checks: auto-deposit or minimum>0 but not connected to checking account yet: notice to user
+- employee card no password (double card code)
+- automatic (suggested) ops
+- warn nubes about how long signup will take, including waiting for Dwolla, for the bank, for CGF,...
+- pilot test, including formI
 - * no signup on rcredits.org! (just mailing list)
 
 To do: (* = before launch ** = earlier)
 
-- extra setting in Txs: show rCredits/USD exchanges (normally off)
-- warn nubes about how long signup will take, including waiting for Dwolla, for the bank, for CGF,...
+- account checks: auto-deposit or minimum>0 but not connected to checking account yet: notice to user
+- block repeated 404s
 - recommend password practices
 - rethink nested usd transaction atoms (is the logic right?)
 - retest SMS

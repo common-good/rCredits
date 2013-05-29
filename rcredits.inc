@@ -186,7 +186,7 @@ define('TX_WEB', 2);
 define('TX_SMART', 3); // smart phone or other computer-like device
 define('TX_TOUCH', 4); // touch tone phone
 define('TX_CRON', 5);
-define('TX_CHANNELS', t('System SMS Web App Touch Cron'));
+define('TX_CHANNELS', t('System SMS Web App Touch Auto'));
 
 // Transaction types
 define('TX_SIGNUP', 0); // signup incentive reward
@@ -1262,32 +1262,6 @@ function avail($type, $ray, $withUsd = TRUE) {
   if ($type != 'buy') $floor = max(0, $floor, $rewards); // no exchanging into debt
   u\setDft($fees, $usd > DWOLLA_FEE_THRESHOLD ? DWOLLA_FEE : 0);
   return $usd + $r - $committed - $floor - $fees;
-}
-
-/**
- * Given a desired amount to transfer to the bank, return the amount to actually transfer.
- * Negative means transfer FROM the bank.
- * @param float $amount: the amount wanting to go to or (if negative) from the bank
- * @param acct $acct: which account
- * @param bool $noFlipFlop: don't reverse outstanding requests for transfers in the other direction
- * @param string $err: (returned) the error message, if any
- * @return: the amount to deposit or (if negative) withdraw (zero if none).
- */
-function toBank($amount, $acct, $noFlipFlop = TRUE; &$err = '') {
-  $waiting = $acct->waitingToBank(); // amount already requested (if any)
-  $requested = u\formatAmount(abs($waiting));
-  if ($amount > 0) { // excess
-    if ($waiting < 0 and $noFlipFlop) {$err = 'flip-flop'; return 0;} // ignore flips or reverse them
-    $amount -= $waiting;
-    if ($amount < R_BANK_MIN) {$err = tt('The amount you asked to transfer is less than the minimum ($@R_BANK_MIN), considering @requested already requested', compact('requested')); return 0;}
-  } else { // shortfall
-    if ($waiting > 0 and $noFlipFlop) { // flip flop -- user could choose better settings
-      $suggestion = u\formatAmount(round($acct->minimum + min($acct->minimum * .2, 50, -$amount), -1));
-      r\suggest($acct, 'min too low', compact('suggestion'));
-    }
-    $amount -= $waiting;
-    return $amount >= 0 ? 0 : min($amount, -R_BANK_MIN); // none, if already plenty, else at least the minimum
-  }
 }
 
 function passHash($pass) {

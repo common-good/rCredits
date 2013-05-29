@@ -1624,34 +1624,44 @@ function formGet($form, &$sta) {
 //  $minimum = textField(t('Minimum:'), tt('prompt min'), dft(u\formatAmount($isSetUp ? $mya->minimum : R_MINR_DEFAULT, 's')));
   $ray = (array) $mya->account(R_MONEY_FIELDS);
   $toSpend = u\formatAmount(r\avail('buy', $ray));
-  $toCash = u\formatAmount(r\avail('cash', $ray));
+  $toCash = u\formatAmount($avail = r\avail('cash', $ray));
+  $waiting = u\formatAmount(abs($way = $mya->waitingToBank()));
+  $way = $way < 0 ? 'from' : 'to';
+  $waiting = item(tt('You have total pending transfer requests of @waiting @way your bank account.', compact('waiting', 'way')), t('Pending:')); // amount already requested (if any)
+  $avail = hidField($avail);
   $balance = item(tt('balances', compact('toSpend', 'toCash')), t('Balance:'));
   $amount = textField(t('Amount:'), t('Transfer how much?'), dft(u\formatAmount(max(0, $mya->overMax()), 's')));
-  $getNow = submit('Transfer FROM bank');
+  $getNow = submit('FROM bank');
 //  $fromBank = formField('checkbox', t('Automate:'), t('(recommended) Refill my rCredits account from my bank account automatically, as needed.'), dft($isSetUp ? $mya->can(B_FROM_BANK) : TRUE));
   
 //  $maximum = textField(t('Maximum:'), tt('prompt max'), dft(u\formatAmount($isSetUp ? $mya->maximum : R_MAXR_DEFAULT, 's')));
 //  $excess = textField(t('Excess'), '', dft(u\formatAmount($mya->overMax(), 's')));
 //  $toBank = formField('checkbox', t('Automate:'), t('Transfer any excess to my bank account automatically every few days.'), dft($isSetUp ? $mya->can(B_TO_BANK) : TRUE));
-  $putNow = submit('Transfer TO bank');
+  $putNow = submit('TO bank');
 
-  return labeled(compact(u\ray('title subtext balance amount getNow putNow')));
+  return labeled(compact(u\ray('title subtext waiting balance amount getNow putNow avail')));
 }
   
 function formGet_validate($form, &$sta) {
+  extract(u\just('amount avail', $sta['input']));
   if ($err = amtErr('amount', $sta)) return say($err, 'amount');
+  if ($amount > $avail) {
+    $max = u\formatAmount($avail, '');
+    return say('short deposit', compact('max'), 'amount');
+  }
+  if (abs($amount) < R_BANK_MIN) return say('The amount you asked to transfer is less than the minimum ($@R_BANK_MIN).', 'amount');
 }
-
+  
 function formGet_submit($form, &$sta) {
   $mya = r\acct();
   extract(u\just('amount', $sta['input']));
-  if (!$amount = r\toBank(op($sta) == 'getNow' ? -$amount : $amount, $mya, $err)) return say($err, 'amount');
+
   $action = $amount > 0 ? 'deposit to' : 'draw from';
   $usAcct = new r\usd($mya);
   if ($usAcct->bank($amount, $error)) {
     $amount = u\formatAmount(abs(@$amount));
     say('banked', compact(u\ray('action amount')));
-  } else return say('cannot bank', compact('action', 'error'));
+  } else return say('cannot bank', compact('action', 'error'), 'amount');
 }
 
 /**

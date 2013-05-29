@@ -99,46 +99,56 @@ function backend2($args = FALSE) {
 
 /**
  * Return the user's transactions for the given period (inclusive)
- * @param array $args: associative array of options. 
- *   Required arguments:
- *     starting (numeric): starting date
- *     ending (numeric): ending date
- *   Optional arguments:
- *     include_bonuses (boolean)
+ * @param int $starting: starting date
+ * @param int $ending: ending date
+ * @param int $id: account id for which to return transactions (defaults to current account)
+ * @param assoc $opts: array of options
+ *   bool $dones: include completed transactions (default TRUE)
+ *   bool $pendings: include open invoices (default TRUE)
+ *   bool $bonuses: don't inlude rebate and bonus transactions (default FALSE)
+ *   bool $exchanges: don't include exchanges of rCredits credit for USD credit (default FALSE)
+ *    (but DO include other rewards/loans etc)
  * @return the recordset (FALSE if none)
  * NOTE: Denied invoices are included only for the payee, otherwise all complete or tentative transactions
  * other than rebates and bonuses are included (even those will be included if the 'include_bonuses' option is set).
  */
-function myTransactions($starting, $ending, $id = NULL, $omitPending = FALSE, $omitBonuses = TRUE) {
+function myTransactions($starting, $ending, $id = NULL, $opts = array()) {
+  extract(u\just('dones pendings bonuses exchanges', $opts));
+  u\setDft($dones, TRUE);
+  u\setDft($pendings, TRUE);
+  u\setDft($bonuses, FALSE);
+  u\setDft($exchanges, FALSE);
   $mya = r\acct();
-  $omitBonuses = $omitBonuses ? 'AND t.type NOT IN (:TX_REBATE, :TX_BONUS)' : '';
-  $commonCriteria = 't.created>=:starting AND t.created<=:ending ORDER BY t.xid DESC';
-  if (@$id == 'ctty' or (@$id and @$id < 0)) {
-    $states = ':TX_DONE, :TX_DISPUTED';
-    if (!$omitPending) $states .= ', :TX_PENDING';
+  if (!@$id) $id = $mya->id; elseif ($id == 'ctty') $id = $mya->community;
+  $commonCriteria = 't.created>=:starting AND t.created<=:ending';
+  if (!$bonuses) $commonCriteria .= ' AND t.type NOT IN (:TX_REBATE, :TX_BONUS)';
+  if (!$exchanges) $commonCriteria .= ' AND t.amount > 0';
+  $commonCriteria .= ' ORDER BY t.xid DESC';
+  $states = array();
+  if ($dones) $states += array(TX_DONE, TX_DISPUTED);
+  if ($pendings) $states += array(TX_PENDING);
+  $states = 't.state IN (' . join(',', $states) . ')';
+  
+  if ($id < 0) { // community or region
     $sql = <<<EOF
       SELECT t.*, IF(taking, t.payeeFor, t.payerFor) AS purpose
       FROM r_txs t LEFT JOIN users u1 ON u1.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
       WHERE (u1.community=:id OR u2.community=:id)
-      $omitBonuses
-      AND t.state IN($states)
+      AND $states
       AND $commonCriteria
 EOF;
-    $myCriteria = '(community=:id)';
-    $id = @$id == 'ctty' ? $mya->community : $id;
-  } else {
-    $otherStates = $omitPending ? 'FALSE' : 't.state=:TX_PENDING OR (t.state=:TX_DENIED AND t.payee=:id)';
+  } else { // normal account
+    if ($pendings) $states .= ' OR (t.state=:TX_DENIED AND t.payee=:id)';
+    // Denied invoices are not exactly pending, but user will want to see them, before deleting
     $sql = <<<EOF
       SELECT t.*,
       (SELECT fullName FROM users WHERE uid=IF(t.payer=:id, t.payee, t.payer)) AS name,
       IF(t.payer=:id, t.payerFor, t.payeeFor) AS purpose
       FROM r_txs t 
       WHERE :id IN (t.payer, t.payee)
-      $omitBonuses
-      AND (t.state IN(:TX_DONE, :TX_DISPUTED) OR $otherStates)
+      AND ($states)
       AND $commonCriteria
 EOF;
-    if (!@$id) $id = $mya->id;
   }
 
   return r\dbQ($sql, compact(u\ray('starting ending id'))); 
