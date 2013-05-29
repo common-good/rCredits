@@ -60,6 +60,10 @@ EOF
   'gift transfer later' => t('Your funds will be transferred when you have money in your account.'),
   'repeat gift' => t('If you wish to make a contribution again sometime, click on "Membership" in the upper right corner, then on "Contribute".'),
   'setup complete' => t('Your account setup is complete. Expect an email within the next 24 hours, saying your account is activated. Thank you for joining!'),
+
+  // prompts
+  'prompt min' => t('Keep this much in my rCredits account, for purchases or inflation-proof savings. (When your balance goes below this amount, the system refills it for you from your bank account. Refilling may take 3-4 days &mdash; 10 days for Savings and Money Market accounts. Choose 0 if you prefer to refill it yourself.)'),
+  'prompt max' => t('Keep AT MOST this much in my rCredits account. (When your rCredits balance goes above this amount by $@R_CHUNK or more, the system transfers the extra to your bank account. 0 means no automatic transfers &mdash; recommended in most cases).'),
   
   // confirm
   'yes or no' =>  '@yesNo', // to replace with yesNo(url)
@@ -1608,6 +1612,51 @@ function formBuy_submit($form, &$sta) {
 /**
  * Exchange USD for rCredits or vice-versa
  * @todo: validate amount
+ */
+function formGet($form, &$sta) {
+  global $base_url;
+  $mya = r\acct();
+  $myid = $mya->id;
+  $isSetUp = !is_null($mya->minimum); // user has already saved some options
+  $title = item(t('Get rCredits or US Dollars'));
+  $subtext = item(t('Transfer funds to or from your connected bank account. Normally these transfers are controlled automatically by your "minimum" and "maximum" settings on the <a href="' . $base_url . '/account/preferences">Preferences</a> page. But you can do it yourself here. Transfers to or from your checking account may take 3-4 days (10 days for savings and money market accounts).'));
+
+//  $minimum = textField(t('Minimum:'), tt('prompt min'), dft(u\formatAmount($isSetUp ? $mya->minimum : R_MINR_DEFAULT, 's')));
+  $ray = (array) $mya->account(R_MONEY_FIELDS);
+  $toSpend = u\formatAmount(r\avail('buy', $ray));
+  $toCash = u\formatAmount(r\avail('cash', $ray));
+  $balance = item(tt('balances', compact('toSpend', 'toCash')), t('Balance:'));
+  $amount = textField(t('Amount:'), t('Transfer how much?'), dft(u\formatAmount(max(0, $mya->overMax()), 's')));
+  $getNow = submit('Transfer FROM bank');
+//  $fromBank = formField('checkbox', t('Automate:'), t('(recommended) Refill my rCredits account from my bank account automatically, as needed.'), dft($isSetUp ? $mya->can(B_FROM_BANK) : TRUE));
+  
+//  $maximum = textField(t('Maximum:'), tt('prompt max'), dft(u\formatAmount($isSetUp ? $mya->maximum : R_MAXR_DEFAULT, 's')));
+//  $excess = textField(t('Excess'), '', dft(u\formatAmount($mya->overMax(), 's')));
+//  $toBank = formField('checkbox', t('Automate:'), t('Transfer any excess to my bank account automatically every few days.'), dft($isSetUp ? $mya->can(B_TO_BANK) : TRUE));
+  $putNow = submit('Transfer TO bank');
+
+  return labeled(compact(u\ray('title subtext balance amount getNow putNow')));
+}
+  
+function formGet_validate($form, &$sta) {
+  if ($err = amtErr('amount', $sta)) return say($err, 'amount');
+}
+
+function formGet_submit($form, &$sta) {
+  $mya = r\acct();
+  extract(u\just('amount', $sta['input']));
+  if (!$amount = r\toBank(op($sta) == 'getNow' ? -$amount : $amount, $mya, $err)) return say($err, 'amount');
+  $action = $amount > 0 ? 'deposit to' : 'draw from';
+  $usAcct = new r\usd($mya);
+  if ($usAcct->bank($amount, $error)) {
+    $amount = u\formatAmount(abs(@$amount));
+    say('banked', compact(u\ray('action amount')));
+  } else return say('cannot bank', compact('action', 'error'));
+}
+
+/**
+ * Exchange USD for rCredits or vice-versa
+ * @todo: validate amount
  *//*
 function formGetR($form, &$sta) {
   $mya = r\acct();
@@ -3057,13 +3106,9 @@ function formOptions($form, &$sta) {
   $title = item(t('Account Preferences'));
   $virtualMaxMessage = $mya->can(B_COMPANY) ? t(' If you choose to make automatic "virtual" payments, your maximum is the same as your minimum and this setting has no effect.') : '';
 
-  $minimum = textField(t('Minimum:'), t('How much to keep in your rCredits account, for purchases or inflation-proof savings. When your balance goes below this amount, the system refills it for you automatically from your bank account, then trades US Dollars for rCredits whenever possible, up to this amount. Refilling may take 3 days (10 days for Savings and Money Market accounts).'), required(u\formatAmount($isSetUp ? $mya->minimum : R_MINR_DEFAULT, 's')));
-  $maximum = textField(t('Maximum:'), u\SUBS(t('How much to keep in your rCredits account AT MOST. When your rCredits balance goes above this amount by $:R_CHUNK or more, the extra rCredits are automatically exchanged for US Dollars. 0 means no limit (recommended in most cases).')) . $virtualMaxMessage, required(u\formatAmount($isSetUp ? $mya->maximum : R_MAXR_DEFAULT, 's')));
-  $toBank = formField('checkbox', t('To bank:'), t('Automatically transfer the excess to your bank account (recommended). [<a href="../help/to-bank">why ever not?</a>]'), dft($isSetUp ? $mya->can(B_TO_BANK) : TRUE));
-//  $max_usd = textField(t('USD Max:'), u\SUBS(t('Keep at most this much in your Dwolla account. When your Dwolla balance goes above this amount by $:R_CHUNK or more, the system will automatically initiate a transfer to your bank account. 0 means no limit.'), required(u\formatAmount(u\nn($mya->max_usd, R_MAXUSD_DEFAULT), 's'))));
-//  $notifyBys = array(t('no notifications'), t('by email'), t('by SMS'), t('by both email and SMS'));
-//  $dft = $mya->hasBit(B_NOTIFY_EMAIL) + 2 * $mya->hasBit(B_NOTIFY_SMS);
-//  $notifyBy = formField('radios', t('Notifications:'), t('How do you want to be notified about new charges to your account, adminstrative requests, and other such things?'), required($dft), $notifyBys);
+  $minimum = textField(t('Minimum:'), tt('prompt min'), required(u\formatAmount($isSetUp ? $mya->minimum : R_MINR_DEFAULT, 's')));
+  $maximum = textField(t('Maximum:'), tt('prompt max') . $virtualMaxMessage, required(u\formatAmount($isSetUp ? $mya->maximum : R_MAXR_DEFAULT, 's')));
+//  $toBank = formField('checkbox', t('To bank:'), t('(recommended) Automatically transfer the excess to your bank account. [<a href="../help/to-bank">why ever not?</a>]'), dft($isSetUp ? $mya->can(B_TO_BANK) : TRUE));
   $noticeRadios = array(t('daily'), t('weekly'), t('monthly'));
   $dft = $mya->can(B_NOTICE_WEEKLY) ? 1 : ($mya->can(B_NOTICE_MONTHLY) ? 2 : 0);
   $notices = formField('radios', t('Email notices:'), t('How often do you want to receive an email digest of rCredits messages?'), required($dft), $noticeRadios);
@@ -3088,7 +3133,8 @@ EOF
   $debtOk = formField('checkbox', t('Debt Okay:'), tt('Allow my account balance to go negative, limited by my current "credit floor". I understand there will be a substantial fee (currently $@R_DEBT_FEE plus @R_DEBT_PERCENT% per month) if I fail to bring my balance back up to zero within @R_DEBT_DAYS days.'), $mya->hasBit(B_DEBT_OK));
   $submit = submit(t('Update options'));
   
-  $form = compact(u\ray('title payVirtual minimum maximum toBank smsNotices notices statements secretBal debtOk submit'));
+  $form = compact(u\ray('title payVirtual minimum maximum smsNotices notices statements secretBal debtOk submit'));
+  js('showMax();', 'inline', 'footer');
   return labeled($form);
 }
 
@@ -3105,9 +3151,9 @@ function formOptions_validate($form, &$sta) {
 function formOptions_submit($form, $sta) {
   global $base_url;
   $mya = r\acct();
-  extract(u\just('minimum maximum smsNotices notices toBank statements payVirtual debtOk secretBal', $sta['input']));
+  extract(u\just('minimum maximum smsNotices notices statements payVirtual debtOk secretBal', $sta['input']));
 
-  $mya->setBit(B_TO_BANK, @$toBank, FALSE); 
+//  $mya->setBit(B_TO_BANK, @$toBank, FALSE); 
   $mya->setBit(B_VIRTUAL, @$payVirtual, FALSE);
 //  $mya->setBit(B_NOTIFY_EMAIL, $notifyBy & 1, FALSE);
   $mya->setBit(B_NOTIFY_SMS, @$smsNotices, FALSE);

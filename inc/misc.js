@@ -12,7 +12,6 @@ function hideMax() {
   var max=jQuery("div.form-item-maximum");
   if(jQuery("#edit-payvirtual-0").attr("checked")) max.show(); else max.hide();
 }
-hideMax();
 jQuery("#which, #help").addClass("popup");
 jQuery("#help-close, #which-close").addClass("popup-close");
 jQuery("#help-link").click(function() {jQuery("fieldset#help").show();});

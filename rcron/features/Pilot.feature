@@ -12,20 +12,20 @@ Setup:
   | .AAB | Common Good Finance | dft,ok,company,charge,bona |
   Given members:
   | id   | fullName   | email | flags                         |
-  | .AAD | John Root  | d@ex  | dft,ok,personal,to_bank       |
-  | .AAE | Janet H    | e@ex  | dft,ok,personal,to_bank       |
-  | .AAF | John Eich  | f@ex  | dft,ok,personal,to_bank       |
-  | .AAG | Alden B    | g@ex  | dft,ok,personal,to_bank       |
-  | .AAH | Becca King | h@ex  | dft,ok,personal,to_bank       |
-  | .AAI | Barbara F  | i@ex  | dft,ok,personal,to_bank       |
-  | .AAJ | Julia E    | j@ex  | dft,ok,personal,to_bank       |
-  | .AAK | Gary S     | k@ex  | dft,ok,personal,to_bank       |
-  | .AAL | Diane M    | l@ex  | dft,ok,personal,to_bank       |
+  | .AAD | John Root  | d@ex  | dft,ok,personal               |
+  | .AAE | Janet H    | e@ex  | dft,ok,personal               |
+  | .AAF | John Eich  | f@ex  | dft,ok,personal               |
+  | .AAG | Alden B    | g@ex  | dft,ok,personal               |
+  | .AAH | Becca King | h@ex  | dft,ok,personal               |
+  | .AAI | Barbara F  | i@ex  | dft,ok,personal               |
+  | .AAJ | Julia E    | j@ex  | dft,ok,personal               |
+  | .AAK | Gary S     | k@ex  | dft,ok,personal               |
+  | .AAL | Diane M    | l@ex  | dft,ok,personal               |
   | .AAM | Peter L    | m@ex  | dft,ok,personal               |
-  | .AAO | Nancy H    | o@ex  | dft,ok,personal,to_bank       |
+  | .AAO | Nancy H    | o@ex  | dft,ok,personal               |
   | .AAQ | Snow's     | q@ex  | dft,ok,company,charge         |
-  | .AAR | Pint       | r@ex  | dft,ok,company,charge,to_bank |
-  | .AAS | GFM        | s@ex  | dft,ok,company,charge,to_bank |
+  | .AAR | Pint       | r@ex  | dft,ok,company,charge         |
+  | .AAS | GFM        | s@ex  | dft,ok,company,charge         |
   # not testing flags SMS and SECRET
   And balances:
   | id   | r | usd | rewards | minimum | maximum | share | committed |
@@ -83,36 +83,37 @@ Scenario: cron runs for the first time
   | 3   | %today  | signup    | done  |     20 |   20 | ctty | .AAJ | signup       | 0      |
   | 4   | %today  | signup    | done  |     20 |   20 | ctty | .AAM | signup       | 0      |
   | 5   | %today  | signup    | done  |     20 |   20 | ctty | .AAO | signup       | 0      |
-  | 6   | %today  | transfer  | done  |     50 |    0 | .AAA | .AAB | contribution | 1      |
-  | 7   | %today  | rebate    | done  |   2.50 | 2.50 | ctty | .AAA | rebate on #1 | 1      |
-  | 8   | %today  | rebate    | done  |   5.00 | 5.00 | ctty | .AAB | bonus  on #1 | 1      |
-  | 6   | %today  | transfer  | done  |     50 |   20 | .AAH | .AAB | contribution | 1      |
-  | 7   | %today  | rebate    | done  |   2.50 | 2.50 | ctty | .AAA | rebate on #1 | 1      |
-  | 8   | %today  | rebate    | done  |   5.00 | 5.00 | ctty | .AAB | bonus  on #1 | 1      |
-  | 6   | %today  | transfer  | done  |     50 |    0 | .AAA | .AAB | contribution | 1      |
-  | 7   | %today  | rebate    | done  |   2.50 | 2.50 | ctty | .AAA | rebate on #1 | 1      |
-  | 8   | %today  | rebate    | done  |   5.00 | 5.00 | ctty | .AAB | bonus  on #1 | 1      |
-  | 6   | %today  | transfer  | done  |     50 |    0 | .AAA | .AAB | contribution | 1      |
-  | 7   | %today  | rebate    | done  |   2.50 | 2.50 | ctty | .AAA | rebate on #1 | 1      |
-  | 8   | %today  | rebate    | done  |   5.00 | 5.00 | ctty | .AAB | bonus  on #1 | 1      |
-  | 6   | %today  | transfer  | done  |     50 |    0 | .AAA | .AAB | contribution | 1      |
-  | 7   | %today  | rebate    | done  |   2.50 | 2.50 | ctty | .AAA | rebate on #1 | 1      |
-  | 8   | %today  | rebate    | done  |   5.00 | 5.00 | ctty | .AAB | bonus  on #1 | 1      |
-7	2	ctty	William Spademan	2.50	2.50	rebate on #1	same		
-8	3	ctty	Common Good Finance	5.00	5.00	bonus on #1	same		
-9	1	Becca King	Common Good Finance	50.00	20.00	contribution	same	2	2
-10	2	ctty	Becca King	2.50	2.50	rebate on #2	same		
-11	3	ctty	Common Good Finance	5.00	5.00	bonus on #2	same		
-12	1	Julia E	Common Good Finance	25.00	20.00	contribution	same	2	3
-13	2	ctty	Julia E	1.25	1.25	rebate on #2	same		
-14	3	ctty	Common Good Finance	2.50	2.50	bonus on #3	same		
-15	1	Peter L	Common Good Finance	100.00	20.00	contribution	same	2	4
-16	2	ctty	Peter L	5.00	5.00	rebate on #2	same		
-17	3	ctty	Common Good Finance	10.00	10.00	bonus on #4	same		
-18	1	Nancy H	Common Good Finance	100.00	20.00	contribution	same	2	5
-19	2	ctty	Nancy H	5.00	5.00	rebate on #2	same		
-20	3	ctty	Common Good Finance	10.00	10.00	bonus on #5	same		
-  
+  | 6   | %today  | transfer  | done  |     50 |    0 | .AAA | .AAB | contribution | 0      |
+  | 7   | %today  | rebate    | done  |   2.50 | 2.50 | ctty | .AAA | rebate on #1 | 0      |
+  | 8   | %today  | bonus     | done  |   5.00 | 5.00 | ctty | .AAB | bonus on #1  | 0      |
+  | 9   | %today  | transfer  | done  |  50.00 |   20 | .AAH | .AAB | contribution | 0      |
+  | 10  | %today  | rebate    | done  |   2.50 | 2.50 | ctty | .AAH | rebate on #2 | 0      |
+  | 11  | %today  | bonus     | done  |   5.00 | 5.00 | ctty | .AAB | bonus on #2  | 0      |
+  | 12  | %today  | transfer  | done  |  25.00 |   20 | .AAJ | .AAB | contribution | 0      |
+  | 13  | %today  | rebate    | done  |   1.25 | 1.25 | ctty | .AAJ | rebate on #2 | 0      |
+  | 14  | %today  | bonus     | done  |   2.50 | 2.50 | ctty | .AAB | bonus on #3  | 0      |
+  | 15  | %today  | transfer  | done  | 100.00 |   20 | .AAM | .AAB | contribution | 0      |
+  | 16  | %today  | rebate    | done  |   5.00 | 5.00 | ctty | .AAM | rebate on #2 | 0      |
+  | 17  | %today  | bonus     | done  |     10 |   10 | ctty | .AAB | bonus on #4  | 0      |
+  | 18  | %today  | transfer  | done  | 100.00 |   20 | .AAO | .AAB | contribution | 0      |
+  | 19  | %today  | rebate    | done  |   5.00 | 5.00 | ctty | .AAO | rebate on #2 | 0      |
+  | 20  | %today  | bonus     | done  |     10 |   10 | ctty | .AAB | bonus on #5  | 0      |
+  And bank transfers:
+  | payer | amount  |
+  | .AAA  |  -47.50 |
+  | .AAD  | -179.80 |
+  | .AAH  |  -47.50 |
+  | .AAE  |  -10.00 |
+  | .AAF  | -200.00 |
+  | .AAG  | -200.00 |
+  | .AAI  |  -50.00 |
+  | .AAK  |  -50.00 |
+  | .AAM  |  -85.00 |
+  | .AAO  |  -85.00 |
+  | .AAQ  |  -10.00 |
+  | .AAR  | -200.00 |
+  | .AAS  | -200.00 |
+
 #  | .AAAE | %today-5m | transfer  | done    |     10 |  10 | .ZZB | .ZZA | cash E  | 0      |
 #  | .AAAF | %today-4m | transfer  | done    |    100 |  20 | .ZZC | .ZZA | usd F   | 1      |
 #  Then balances:

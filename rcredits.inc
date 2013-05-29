@@ -119,10 +119,10 @@ define('B_u15', 15); //
 define('B_NOTIFY_SMS', 16); // notifications by SMS
 define('B_ELECTRONIC', 17); // will accept electronic statements
 define('B_SECRET_BAL', 18); // don't let merchants tell me my balance on request
-define('B_TO_BANK', 19); // automatically transfer excess US Dollars from Dwolla to bank account
+define('B_u19', 19); //
 define('B_DEBT_OK', 20); // member chose to permit sub-zero balances
 define('B_DRAWS', 21); // this account draws on one or more others
-define('B_u22', 22); // 
+define('B_u22', 22); //
 define('B_u23', 23); // 
 define('B_u24', 24); // 
 define('B_u25', 25); // 
@@ -141,13 +141,7 @@ define('B_LIST', 'member ready ok bona u4 person company u7 charge u9 virtu u11 
 define('R_EXCESS', 'GREATEST(0, IF(maximum=0 AND (flags&(1<<' . B_VIRTUAL . '))=0, 0, r+usd-GREATEST(floor, maximum, minimum, rewards+committed)))'); // sql for excess in account (for redistribution or employee offloading) -- companies that pay virtually have, in effect, max=min
 define('R_SHORTFALL', 'GREATEST(0, minimum-(r+usd))'); // sql for shortfall in account
 
-// for :IS_OK etc. -- see u\SUBS()
-
-/*define('IS_OK', '(flags&(1<<' . B_OK . '))');
-define('IS_VIRTUAL', '(flags&(1<<' . B_VIRTUAL . '))');
-define('IS_PERSONAL', '(flags&(1<<' . B_PERSONAL . '))');
-define('IS_COMPANY', '(flags&(1<<' . B_COMPANY . '))');
-define('IS_TO_BANK', '(flags&(1<<' . B_TO_BANK . '))'); */
+// for IS_OK etc. -- see u\SUBS()
 
 // Relationship permissions used in calls to acct::can() -- the first 5 are stored, negated, in r_relations
 define('PERM_READ', 1);
@@ -396,7 +390,8 @@ function transactionRewards(&$txs) {
 }
 
 function txRewardSetup($serial, $type, $payee, $state, $amount, $tid, $created) {
-  $payer = $payerAgent = $payeeAgent = userField('community', $payee);
+  $payer = $payerAgent = userField('community', $payee);
+  $payeeAgent = $payee;
   $taking = FALSE;
   $goods = FALSE;
   $for = ($type == TX_REBATE ? t('rebate') : t('bonus')) . t( ' on #') . $tid;
@@ -1253,6 +1248,46 @@ function tableField($field, $table, $which = '', $subs = array()) {
   u\EXPECT(count($result) == 1, "ambiguous in tableField(): $which");
   u\EXPECT(is_object($result[0]), 'bad object array in tableField(): ' . print_r($result, 1)); // keep this
   return strpos($field, ',') ? ((array) $result[0]) : $result[0]->$field;
+}
+
+/**
+ * Return the amount available for the given operation.
+ * @param string $type: purpose of the draw (see acct::shortfall())
+ * @param assoc $ray: array of all relevant money fields (possibly including dwolla "fees")
+ * @param bool $withUsd: whether to include usd amounts
+ */
+function avail($type, $ray, $withUsd = TRUE) {
+  extract($ray);
+  if ($type == 'exch' or !$withUsd) $usd = 0; // no exchanging USD credit for USD credit
+  if ($type != 'buy') $floor = max(0, $floor, $rewards); // no exchanging into debt
+  u\setDft($fees, $usd > DWOLLA_FEE_THRESHOLD ? DWOLLA_FEE : 0);
+  return $usd + $r - $committed - $floor - $fees;
+}
+
+/**
+ * Given a desired amount to transfer to the bank, return the amount to actually transfer.
+ * Negative means transfer FROM the bank.
+ * @param float $amount: the amount wanting to go to or (if negative) from the bank
+ * @param acct $acct: which account
+ * @param bool $noFlipFlop: don't reverse outstanding requests for transfers in the other direction
+ * @param string $err: (returned) the error message, if any
+ * @return: the amount to deposit or (if negative) withdraw (zero if none).
+ */
+function toBank($amount, $acct, $noFlipFlop = TRUE; &$err = '') {
+  $waiting = $acct->waitingToBank(); // amount already requested (if any)
+  $requested = u\formatAmount(abs($waiting));
+  if ($amount > 0) { // excess
+    if ($waiting < 0 and $noFlipFlop) {$err = 'flip-flop'; return 0;} // ignore flips or reverse them
+    $amount -= $waiting;
+    if ($amount < R_BANK_MIN) {$err = tt('The amount you asked to transfer is less than the minimum ($@R_BANK_MIN), considering @requested already requested', compact('requested')); return 0;}
+  } else { // shortfall
+    if ($waiting > 0 and $noFlipFlop) { // flip flop -- user could choose better settings
+      $suggestion = u\formatAmount(round($acct->minimum + min($acct->minimum * .2, 50, -$amount), -1));
+      r\suggest($acct, 'min too low', compact('suggestion'));
+    }
+    $amount -= $waiting;
+    return $amount >= 0 ? 0 : min($amount, -R_BANK_MIN); // none, if already plenty, else at least the minimum
+  }
 }
 
 function passHash($pass) {

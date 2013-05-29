@@ -9,7 +9,7 @@ SO I can pay it to non-members.
 Setup:
   Given members:
   | id   | fullName | floor | minimum | maximum | flags                           |
-  | .ZZA | Abe One  |     0 |     100 |     200 | dft,personal,company,ok,to_bank |
+  | .ZZA | Abe One  |     0 |     100 |     200 | dft,personal,company,ok         |
   
 Scenario: a member is barely below minimum
   Given balances:
@@ -136,7 +136,7 @@ Scenario: a member is over maximum but has requested funds FROM the bank
 Scenario: a member has no maximum
   Given members:
   | id   | fullName   | floor | minimum | maximum | flags                           |
-  | .ZZB | Bea Two    |     0 |     100 |       0 | dft,personal,ok,to_bank         |
+  | .ZZB | Bea Two    |     0 |     100 |       0 | dft,personal,ok                 |
   And balances:
   | id   | r  | usd | rewards |
   | .ZZA | 50 |  50 |      20 |
@@ -147,7 +147,7 @@ Scenario: a member has no maximum
 Scenario: a member pays virtually
   Given members:
   | id   | fullName   | floor | minimum | maximum | flags                           |
-  | .ZZC | Corner Pub |     0 |      10 |       5 | dft,company,ok,virtual,to_bank  |
+  | .ZZC | Corner Pub |     0 |      10 |       5 | dft,company,ok,virtual          |
   And balances:
   | id   | r  | usd | rewards |
   | .ZZA | 50 |  50 |      20 |
@@ -180,7 +180,7 @@ Scenario: a member is over maximum but doesn't want automatic deposits
 Scenario: a member is over plenty over maximum but not enough over floor
   Given members:
   | id   | fullName   | floor | minimum | maximum | flags                   |
-  | .ZZC | Corner Pub |   100 |     100 |      10 | dft,company,ok,to_bank  |
+  | .ZZC | Corner Pub |   100 |     100 |      10 | dft,company,ok          |
   And balances:
   | id   | r           | usd   | rewards |
   | .ZZA |          50 |    50 |      20 |

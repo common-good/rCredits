@@ -350,7 +350,7 @@ function bank() {
   $sql = <<<EOF
   SELECT uid, $excess AS excess, :R_SHORTFALL AS shortfall
   FROM users 
-  WHERE (($excess>=:R_BANK_MIN AND :IS_TO_BANK) OR :R_SHORTFALL>0)
+  WHERE ($excess>=:R_BANK_MIN OR :R_SHORTFALL>0)
     AND uid>0 AND :IS_OK
 EOF;
   queueEach('bank1', $sql);
@@ -361,27 +361,14 @@ function bank1($item) {
   extract(u\just('uid excess shortfall', $item));
   if ($excess > 0 and $shortfall > 0) return r\tellStaff('min > max', $item, $uid); // should never happen
   $acct = r\acct($uid);
-  $waiting = $acct->waitingToBank(); // amount already requested (if any)
-  if ($excess > 0) {
-    $amount = $excess - $waiting;
-    if ($amount < R_BANK_MIN or $waiting < 0) return; // too little, considering what's waiting, or flip-flop
-  } else { // shortfall
-    if ($waiting > 0) {
-      $suggestion = u\formatAmount(round($acct->minimum + min($acct->minimum * .2, 50, $shortfall), -1));
-      r\suggest($acct, 'min too low', compact('suggestion'));
-      return;
-    }
-    $amount = -$shortfall - $waiting; // normally negative (meaning transfer TO Dwolla)
-    if ($amount >= 0) return; // already plenty
-    $amount = min($amount, -R_BANK_MIN);
-  }
+  if (!$amount = r\toBank($excess > 0 ? $excess : -$shortfall, $acct, $err)) return;
   $action = $excess > 0 ? 'deposit to' : 'draw from';
 
   $usAcct = new r\usd($acct);
   if ($usAcct->bank($amount, $error)) {
     $status = @$excess > 0 ? 'over the maximum you set' : 'under the minimum you set';
     $amount = u\formatAmount(abs(@$amount));
-    r\notify($uid, 'banked', compact(u\ray('action status amount')));
+    r\notify($uid, 'minmax status|banked', compact(u\ray('action status amount')));
   } elseif (time() - $acct->created > 3 * DAY_SECS) r\notify($uid, 'cannot bank', compact('action', 'error'));
 }
 

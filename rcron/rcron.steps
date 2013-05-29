@@ -144,6 +144,7 @@ function cronRuns($op) {
  *     Bank AMemberIsOverMaximumButHasRequestedFundsFROMTheBank TEST
  *     Bank AMemberPaysVirtually TEST
  *     Bank AMemberIsOverMaximumButMostlyInRCredits TEST
+ *     Pilot CronRunsForTheFirstTime TEST
  */
 function bankTransfers($tx) {
   global $testOnly; if(!$testOnly) return FALSE;

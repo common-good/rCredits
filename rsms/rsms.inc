@@ -170,10 +170,12 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'invoice-canceled' => t('<p><b>Invoice CANCELED:</b> Your invoice from @otherName has been canceled:</p>
   <blockquote>@created @amount for "@payerPurpose"</blockquote>
   <p>This invoice will no longer appear in your list of transactions.'),
-  'banked' => t('Your combined USD and rCredits balance is @status, so a request has been made to @action your bank a total of @amount. This request may take up to 3 days to go through.'),
+  'minmax status' => t('Your combined USD and rCredits balance is @status.'),
+  'banked' => t('A request has been made to @action your bank a total of @amount. This request may take up to 3 days to go through.'),
   'virtual payment received' => t('You received from @fullName a virtual payment of @amount -- that is, you traded that much US Dollars for rCredits, receiving a bonus of @bonus on the exchange.'),
   'virtual payments offered' => t('You made virtual payment offers to @offers @whom, totaling @total.'),
   'card ordered' => t('Your rCard has been ordered and will be mailed directly to @name.'),
+  'balances' => t('Your rCredits balance available to spend is @toSpend. You can exchange up to @toCash for US Dollars.'),
   
   // notices to staff
   'corrupt max' => t('Max for account @uid is corrupt: max=@maximum min=@minimum rewards=@rewards'),

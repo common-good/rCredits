@@ -134,7 +134,7 @@ class usd {
     $notes = USD_NOTE_PREFIX . $notes;
     $dw = $this->dwolla();
     if (!useDwolla() and !(t\EST() and $this->number == DW_TESTER_ACCT and $other->number == DW_TEST_ACCT)) {
-      $txid = \user_password();
+      $txid = t\seq();
       self::addToAtom($txid, $amount, $this->acct->id, $other->acct->id);
       return $txid;
     }

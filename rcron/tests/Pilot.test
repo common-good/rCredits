@@ -120,12 +120,42 @@ class rcronPilot extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('cron runs "ALL"');
     Then_('transactions: "DATA'
-    . '\\| xid | created | type      | state | amount | r  | from | to   | purpose | taking |'
-    . '\\| 1   | %today  | signup    | done  |     20 | 20 | ctty | .AAD | signup  | 0      |'
-    . '\\| 2   | %today  | signup    | done  |     20 | 20 | ctty | .AAH | signup  | 0      |'
-    . '\\| 3   | %today  | signup    | done  |     20 | 20 | ctty | .AAJ | signup  | 0      |'
-    . '\\| 4   | %today  | signup    | done  |     20 | 20 | ctty | .AAM | signup  | 0      |'
-    . '\\| 5   | %today  | signup    | done  |     20 | 20 | ctty | .AAO | signup  | 0      |"');
+    . '\\| xid | created | type      | state | amount | r    | from | to   | purpose      | taking |'
+    . '\\| 1   | %today  | signup    | done  |     20 |   20 | ctty | .AAD | signup       | 0      |'
+    . '\\| 2   | %today  | signup    | done  |     20 |   20 | ctty | .AAH | signup       | 0      |'
+    . '\\| 3   | %today  | signup    | done  |     20 |   20 | ctty | .AAJ | signup       | 0      |'
+    . '\\| 4   | %today  | signup    | done  |     20 |   20 | ctty | .AAM | signup       | 0      |'
+    . '\\| 5   | %today  | signup    | done  |     20 |   20 | ctty | .AAO | signup       | 0      |'
+    . '\\| 6   | %today  | transfer  | done  |     50 |    0 | .AAA | .AAB | contribution | 0      |'
+    . '\\| 7   | %today  | rebate    | done  |   2.50 | 2.50 | ctty | .AAA | rebate on #1 | 0      |'
+    . '\\| 8   | %today  | bonus     | done  |   5.00 | 5.00 | ctty | .AAB | bonus on #1  | 0      |'
+    . '\\| 9   | %today  | transfer  | done  |  50.00 |   20 | .AAH | .AAB | contribution | 0      |'
+    . '\\| 10  | %today  | rebate    | done  |   2.50 | 2.50 | ctty | .AAH | rebate on #2 | 0      |'
+    . '\\| 11  | %today  | bonus     | done  |   5.00 | 5.00 | ctty | .AAB | bonus on #2  | 0      |'
+    . '\\| 12  | %today  | transfer  | done  |  25.00 |   20 | .AAJ | .AAB | contribution | 0      |'
+    . '\\| 13  | %today  | rebate    | done  |   1.25 | 1.25 | ctty | .AAJ | rebate on #2 | 0      |'
+    . '\\| 14  | %today  | bonus     | done  |   2.50 | 2.50 | ctty | .AAB | bonus on #3  | 0      |'
+    . '\\| 15  | %today  | transfer  | done  | 100.00 |   20 | .AAM | .AAB | contribution | 0      |'
+    . '\\| 16  | %today  | rebate    | done  |   5.00 | 5.00 | ctty | .AAM | rebate on #2 | 0      |'
+    . '\\| 17  | %today  | bonus     | done  |     10 |   10 | ctty | .AAB | bonus on #4  | 0      |'
+    . '\\| 18  | %today  | transfer  | done  | 100.00 |   20 | .AAO | .AAB | contribution | 0      |'
+    . '\\| 19  | %today  | rebate    | done  |   5.00 | 5.00 | ctty | .AAO | rebate on #2 | 0      |'
+    . '\\| 20  | %today  | bonus     | done  |     10 |   10 | ctty | .AAB | bonus on #5  | 0      |"');
+    And__('bank transfers: "DATA'
+    . '\\| payer | amount  |'
+    . '\\| .AAA  |  -47.50 |'
+    . '\\| .AAD  | -179.80 |'
+    . '\\| .AAH  |  -47.50 |'
+    . '\\| .AAE  |  -10.00 |'
+    . '\\| .AAF  | -200.00 |'
+    . '\\| .AAG  | -200.00 |'
+    . '\\| .AAI  |  -50.00 |'
+    . '\\| .AAK  |  -50.00 |'
+    . '\\| .AAM  |  -85.00 |'
+    . '\\| .AAO  |  -85.00 |'
+    . '\\| .AAQ  |  -10.00 |'
+    . '\\| .AAR  | -200.00 |'
+    . '\\| .AAS  | -200.00 |"');
   }
 
 }

@@ -309,7 +309,7 @@ EOF;
   function shortfall($type, $need = 0, $get = FALSE) {
     $ray = (array) $this->account(R_MONEY_FIELDS);
     $ray['fees'] = 0;
-    $avail = avail($type, $ray);
+    $avail = r\avail($type, $ray);
 // debug(compact('need','avail','get'));
     if ($avail >= $need) return 0; // plenty without drawing from other accounts
 
@@ -326,12 +326,12 @@ EOF;
   /**
    * Return how much rCredits is available in this account, without drawing on other accounts.
    */
-  function rAvailable($type) {return avail($type, (array) $this->account(R_MONEY_FIELDS), FALSE);}
+  function rAvailable($type) {return r\avail($type, (array) $this->account(R_MONEY_FIELDS), FALSE);}
   
   /**
    * Return the amount this account can draw from other accounts.
    * Repairs the B_DRAWS bit if all such relations have ended.
-   * @param string $type: purpose of the draw (see $this->available())
+   * @param string $type: purpose of the draw (see $this->shortfall))
    */
   private function canDraw($type) {
     if (!$this->can(B_DRAWS)) return FALSE;
@@ -345,7 +345,7 @@ EOF;
 EOF;
     $row = r\dbQ($sql, compact('id'))->fetchAssoc();
     if (!$row['count']) $this->setBit(B_DRAWS, FALSE); // doesn't really have any drawable accounts
-    return avail($type, $row);
+    return r\avail($type, $row);
   }
   
   /**
@@ -369,7 +369,7 @@ EOF;
     $result = r\dbQ($sql, compact('id'));
     while ($row = $result->fetchAssoc()) {
       extract($row);
-      $avail = avail($type, $row, $wantUsd);
+      $avail = r\avail($type, $row, $wantUsd);
       if ($amount = max(0, min($left, $avail))) {
         list ($fromQuid, $toQuid) = array(r\quid($uid), $this->mainQid);
         if ($wantUsd) {
@@ -424,6 +424,14 @@ EOF;
     return dbLookup('number', 'r_sms', 'uid=:id AND status=:SMS_PRIMARY', compact('id'));
   }
 
+  /**
+   * Return the excess that could be transferred to the bank
+   * This formula is duplicated for MySQL in R_EXCESS.
+   */
+  public function overMax() {
+    return max(0, ($this->maximum == 0 and !$this->can(B_VIRTUAL)) ? 0 : $this->r + $this->usd - max($this->floor, $this->maximum, $this->minimum, $this->rewards + $this->committed));
+  }
+  
   /**
    * Say whether this account/agent has the permission.
    * @param int $permission: the permission in question (DEFAULT B_READ)
@@ -534,16 +542,3 @@ function acct($uid = '', $agent = '', &$error = '') {
 
 function agent($uid = '') {return @acct($uid)->agent;}
 
-/**
- * Return the amount available for the given operation.
- * @param string $type: purpose of the draw (see acct::available())
- * @param assoc $ray: array of all relevant money fields (possibly including dwolla "fees")
- * @param bool $withUsd: whether to include usd amounts
- */
-function avail($type, $ray, $withUsd = TRUE) {
-  extract($ray);
-  if ($type == 'exch' or !$withUsd) $usd = 0; // no exchanging USD credit for USD credit
-  if ($type != 'buy') $floor = max(0, $floor); // no exchanging into debt
-  u\setDft($fees, $usd > DWOLLA_FEE_THRESHOLD ? DWOLLA_FEE : 0);
-  return $usd + $r - $committed - $floor - $fees;
-}

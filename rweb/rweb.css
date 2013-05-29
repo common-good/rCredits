@@ -541,6 +541,15 @@ html.js input.throbbing {background-position:right -2.4em;}
 #rcreditswebformoptions #edit-notices div {display:inline-block;}
 #rcreditswebformoptions #edit-submit {margin-top:50px;}
 
+/* Get */
+#rcreditswebformget .form-item-shortfall,
+#rcreditswebformget .form-item-excess {display:inline-block;}
+#rcreditswebformget #edit-getnow,
+#rcreditswebformget #edit-putnow {margin-left:20px;}
+#rcreditswebformget #edit-save {display:block;}
+#rcreditswebformget .form-item-fromBank {margin-bottom:15px; padding-bottom:15px; border-bottom:1px solid darkgreen;}
+#rcreditswebformget input.form-text {width:150px;}
+
 /* Dwolla (USD) */
 #rcreditswebformusd #edit-title,
 #rcreditswebformusd #edit-subtext {margin-left:0;}
