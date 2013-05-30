@@ -24,6 +24,7 @@ function usdAccts($where = "postalCode LIKE '013%'") {
     $type = @$source['Type'];
     $verified = @$source['Verified'] ? 'Yes' : '-';
     $count = @$source['count'];
+    
     $ok = $a->can(B_OK) ? 'ok' : '';
     $charge = $a->can(B_CHARGE) ? 'Chg' : '';
     $company = $a->can(B_COMPANY) ? 'Co' : '';
@@ -34,12 +35,13 @@ function usdAccts($where = "postalCode LIKE '013%'") {
 }
 
 function showTable($ray) {
+  $cgfUid = \variable_get('cgf_uid');
   if (!$ray or empty($ray)) return 'data set is empty';
   $lines[] = '<tr><th>' . join('</th><th>', array_keys((array) $ray[0])) . "</th></tr>\n";
   foreach ($ray as $row) {
     $line = '';
     foreach ($row as $key => $value) {
-      if ($value and in_array($key, u\ray('id uid payer payee main other inviter invitee proxy person owner defaultAgent'))) $value = $value < 0 ? 'ctty' : r\acct($value)->fullName;
+      if ($value and in_array($key, u\ray('id uid payer payee main other inviter invitee proxy person owner defaultAgent'))) $value = $value < 0 ? 'ctty' : ($value == $cgfUid ? 'CGF' : r\acct($value)->fullName);
       if ($value and in_array($key, u\ray(R_DATE_FIELDS))) $value = u\formatDate($value);
       if ($key == 'flags') $value = "<div style='text-transform:capitalize; font-size:7px; line-height:11px;'>" . bs($value) . '</div>';
       if ($key == 'payeeFor' and $value == $row->payerFor) $value = 'same';
@@ -54,4 +56,25 @@ function showTableQ($sql, $subs = array()) {
   if (!strpos($sql, ' ')) {$sql = "SELECT * FROM $sql " . ($subs ?: ''); $subs = array();}
   if (!$result = r\dbQ($sql, $subs)) return \drupal_set_message('bad query');
   return showTable($result->fetchAll());
+}
+
+/**
+ * Utility to do something to each member account (see example below)
+ */
+function eachAccount($callBack) {
+  $result = r\dbQ('SELECT uid FROM users WHERE uid>1')->fetchCol();
+  $callBack = 'rCredits\\' . $callBack;
+  foreach ($result as $one) $callBack(r\acct($one));
+}
+
+/**
+ * General purpose utility.
+ * For example eachAccount('changeIt');
+ */
+function changeIt($a) {
+  $secure = $a->secure;
+  $secure['cardCode'] = u\randomString(20, 'word');
+  unset($secure['card_code']);
+/**/ debug(array('id' => $a->id, 'secure' => $secure)); // keep
+  //$a->update(compact('secure'));
 }

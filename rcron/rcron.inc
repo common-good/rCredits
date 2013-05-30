@@ -177,7 +177,7 @@ function recache1($item) {
   $usdActual = $usAcct->bal($err);
 
   $DBTX = \db_transaction();
-  if (!$err) $usd = $usdActual;
+  if (!$err and !t\EST()) $usd = $usdActual;
   $acct->update(compact(array_keys($item)));
   r\membershipEvent($acct, 'bona', $usd > 0); // this works for testing too
   unset($DBTX);
@@ -361,7 +361,7 @@ function bank1($item) {
   extract(u\just('uid excess shortfall', $item));
   if ($excess > 0 and $shortfall > 0) return r\tellStaff('min > max', $item, $uid); // should never happen
   $acct = r\acct($uid);
-  if (!$amount = r\toBank($excess > 0 ? $excess : -$shortfall, $acct)) return;
+  if (!$amount = toBank($excess > 0 ? $excess : -$shortfall, $acct)) return;
   $action = $excess > 0 ? 'deposit to' : 'draw from';
 
   $usAcct = new r\usd($acct);

@@ -463,7 +463,7 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
       and $a1->can(B_CHARGE) // seller can charge unilaterally
       and !$undoing // not reversing a payment
       and !(!$a2->can(B_PERSONAL) and $a2->proSe()) // not selling to a company directly (without its agent)
-      and ($channel == TX_SMART or $scanned or $channel == TX_SMS) // in person: scanned (web or smart) or by SMS
+      and ($channel == TX_SMART or @$scanned or $channel == TX_SMS) // in person: scanned (web or smart) or by SMS
   );
   $preapproved = (@$data['preapproved'] or !$taking or $unilateral); // paying OR permitted to charge unilaterally
 //  $state = ($preapproved and !@$data['pay_all'])? TX_DONE : TX_PENDING;

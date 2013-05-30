@@ -1425,6 +1425,9 @@ EOF;
 
 define('R_SHOWABLE_TABLES', 'users txs usd gifts invites notices proxies relations sms');
 
+/**
+ * Make various administrative operations available to the admin.
+ */
 function formAdmin($form, &$sta, $args = '') {
 //  $form = u\insertBefore(compact('communities'), formCommunity(array(), &$sta, $args), 'count');
 
@@ -1435,17 +1438,34 @@ function formAdmin($form, &$sta, $args = '') {
   $community = formField('select', t('Manage:'), t('Select a community to manage'), '', $cttyChoices);
 */
   $title = item(t('System Administration'));
-  $form = compact(u\ray('title community submit'));
+  $account = textField(t('Account:'), t('Account to do something to'),auto());
+  $printId = submit(t('Print ID'));
+  $form = compact(u\ray('title account printId'));
   foreach (u\ray('USD_Accounts Gfld ' . R_SHOWABLE_TABLES) as $one) $form[$one] = submit(str_replace('_', ' ', $one));
   return $form;
 }
 
 function formAdmin_submit($form, &$sta) {
   include_once __DIR__ . '/../admin.inc';
-  extract(u\just('', $sta['input']));
+  extract(u\just('account', $sta['input']));
   $op = op($sta);
   if ($op == 'USD_Accounts') return say(usdAccts());
-
+  if (@$account) $acct = r\acct(strtoupper($account)); // should use whois first
+  
+  if ($op == 'printId') {
+    $qid = $acct->qid();
+    $agent = $acct->agent;
+    $field = strpos($qid, '=') ? 'cardCode2' : 'cardCode';
+    if (!$code = $agent->$field) {
+      u\EXPECT($field == 'cardCode2', 'missing cardCode'); // only cardCode2 gets created here
+      $secure = $agent->secure;
+      $code = $$field = u\randomString(R_CARDCODE_LEN, 'word'); // create an rCard security code
+      $secure += compact($field); // add an rcard code for this agent's relationships
+      $agent->update(compact('secure')); // resave the secure fields
+    }
+    return r\go('print-rcard/' . $qid);
+  }
+  
   $where = "uid>1";
   $userSql = "SELECT uid, MID(phone,3) AS phone, flags, r, usd, rewards, minimum AS min, maximum AS max, committed AS comit, share, floor, address, city, postalCode AS zip FROM users WHERE $where ORDER BY name";
   if ($op == 'users') return say(showTableQ($userSql));
@@ -1627,7 +1647,7 @@ function formGet($form, &$sta) {
   $toCash = u\formatAmount($avail = r\avail('cash', $ray));
   $waiting = u\formatAmount(abs($way = $mya->waitingToBank()));
   $way = $way < 0 ? 'from' : 'to';
-  $waiting = item(tt('You have total pending transfer requests of @waiting @way your bank account.', compact('waiting', 'way')), t('Pending:')); // amount already requested (if any)
+  $waiting = item($waiting == '$0' ? t('You have no pending transfer requests.') : tt('You have total pending transfer requests of @waiting @way your bank account.', compact('waiting', 'way')), t('Pending:')); // amount already requested (if any)
   $avail = hidField($avail);
   $balance = item(tt('balances', compact('toSpend', 'toCash')), t('Balance:'));
   $amount = textField(t('Amount:'), t('Transfer how much?'), dft(u\formatAmount(max(0, $mya->overMax()), 's')));
@@ -3043,7 +3063,8 @@ function formI($form, &$sta, $who) {
     say('signin to scan', 'zot');
     return r\go('');
   }
-  if ($acct->secure['cardCode'] != $code and !$mya->can(B_ADMIN)) return hack('i code2');
+  $field = strpos($who, '=') ? 'cardCode2' : 'cardCode';
+  if ($acct->secure[$field] != $code and !$mya->can(B_ADMIN)) return hack('i code2');
   
   list ($myid, $myAgent) = array($mya->id, $mya->agentId);
   list ($otherId, $otherAgent) = array($acct->id, $acct->agentId);
@@ -3247,20 +3268,27 @@ function memberID($quid = '', $big = FALSE) {
   define('PHOTO_MAX', 90); // maximum height and width of photo
 
   $mya = r\acct();
-  $acct = $quid ? r\acct($mya->id, $quid) 
-    : (($mya->can(B_CTTY_ADMIN) and $mya->can(B_MANAGE)) ? r\acct($mya->id) : $mya);
+  $acct = strpos($quid, '=') ? r\acct($quid)
+    : ($quid ? r\acct($mya->id, $quid) 
+    : (($mya->can(B_CTTY_ADMIN) and $mya->can(B_MANAGE)) ? r\acct($mya->id) : $mya));
   if (!$acct) return 'No such account. Your hack attempt has been logged.';
   
   $fullName = $acct->fullName;
   $regionName = r\acct($acct->community)->fullName;
+  $qid = $acct->qid();
+  
   if (!$acct->proSe()) {
-    $agent_name = r\acct($acct->agentId)->fullName;
-    $fullName = "$agent_name<br>$fullName";
+    $acct = $acct->agent; // hereafter it's all about the agent
+    $fullName = "$acct->fullName<br>$fullName"; // agent and company
     $nameSize = '72px';
-  } else $nameSize = strlen($fullName) > 22 ? '100px' : '120px';
-  $qid = str_replace(':', '=', $acct->qid()); // "=" to avoid GoDaddy's 'Bad Request' death redirecting RC2.ME with a ":" qid
+    $qid = str_replace(':', '=', $qid); // "=" to avoid GoDaddy's 'Bad Request' death redirecting RC2.ME with a ":" qid
+    $cardField = 'cardCode2';
+  } else {
+    $nameSize = strlen($fullName) > 22 ? '100px' : '120px';
+    $cardfield = 'cardCode';
+  }
   $qrServer = 'http://' . R_SERVER_ID . '.rC2.me/I/';
-  $qrUrl = $qrServer . $qid . '-' . $acct->secure['cardCode'];
+  $qrUrl = $qrServer . $qid . '-' . $acct->secure[$cardField];
   $photo = DRUPAL_ROOT . $acct->auxFilename('picture');
 
   $info = @getimagesize($photo);

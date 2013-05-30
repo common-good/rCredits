@@ -10,6 +10,7 @@ BEFORE MINI LAUNCH:
 
 To do: (* = before launch ** = earlier)
 
+- reduce picture size and make thumbnails (for upper right corner)
 - account checks: auto-deposit or minimum>0 but not connected to checking account yet: notice to user
 - block repeated 404s
 - recommend password practices

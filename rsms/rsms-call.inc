@@ -66,7 +66,7 @@ class call {
    */
   function validate_caller() {
     $number = $this->number;
-    debug($number);
+//    debug($number);
     $myid = $this->uid = uid($number);
     if (!$myid) {
       return tt('you must setup');

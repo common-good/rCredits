@@ -48,7 +48,7 @@ class rcronBank extends DrupalWebTestCase {
     case(0):
     Given('members: "DATA'
     . '\\| id   | fullName | floor | minimum | maximum | flags                           |'
-    . '\\| .ZZA | Abe One  |     0 |     100 |     200 | dft,personal,company,ok,to_bank |"');
+    . '\\| .ZZA | Abe One  |     0 |     100 |     200 | dft,personal,company,ok         |"');
     break;
 
 
@@ -211,7 +211,7 @@ class rcronBank extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('members: "DATA'
     . '\\| id   | fullName   | floor | minimum | maximum | flags                           |'
-    . '\\| .ZZB | Bea Two    |     0 |     100 |       0 | dft,personal,ok,to_bank         |"');
+    . '\\| .ZZB | Bea Two    |     0 |     100 |       0 | dft,personal,ok                 |"');
     And__('balances: "DATA'
     . '\\| id   | r  | usd | rewards |'
     . '\\| .ZZA | 50 |  50 |      20 |'
@@ -225,7 +225,7 @@ class rcronBank extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('members: "DATA'
     . '\\| id   | fullName   | floor | minimum | maximum | flags                           |'
-    . '\\| .ZZC | Corner Pub |     0 |      10 |       5 | dft,company,ok,virtual,to_bank  |"');
+    . '\\| .ZZC | Corner Pub |     0 |      10 |       5 | dft,company,ok,virtual          |"');
     And__('balances: "DATA'
     . '\\| id   | r  | usd | rewards |'
     . '\\| .ZZA | 50 |  50 |      20 |'
@@ -267,7 +267,7 @@ class rcronBank extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('members: "DATA'
     . '\\| id   | fullName   | floor | minimum | maximum | flags                   |'
-    . '\\| .ZZC | Corner Pub |   100 |     100 |      10 | dft,company,ok,to_bank  |"');
+    . '\\| .ZZC | Corner Pub |   100 |     100 |      10 | dft,company,ok          |"');
     And__('balances: "DATA'
     . '\\| id   | r           | usd   | rewards |'
     . '\\| .ZZA |          50 |    50 |      20 |'

@@ -258,7 +258,7 @@ function uidCredit($uid) {
 }
 
 function uid($id) {
-  return is_numeric($id) ? $id 
+  return is_numeric($id) ? $id // this should handle zero, too
     : (($id == 'community' or $id == 'ctty') ? r\serverUid() 
     : ($id == 'cgf' ? \variable_get('cgf_uid')
     : r\unQuid(fullQid($id))));

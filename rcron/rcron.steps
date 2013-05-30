@@ -82,7 +82,8 @@ function members($list) {return t\members($list);}
  *     Bank AMemberIsOverMaximumButDoesntWantAutomaticDeposits MAKE
  *     Bank AMemberIsOverPlentyOverMaximumButNotEnoughOverFloor MAKE
  *     Gifts Setup MAKE
- *     Pilot Setup MAKE
+ *     Pilot Setup BOTH
+ *     Pilot All TEST
  *     Recache Setup TEST
  *     Recache BalancesGetOutOfWhack BOTH
  *     Redistribute AMemberHasTooMuchR MAKE
@@ -114,7 +115,7 @@ function balances($list) {return t\balances($list);}
  *     Gifts AContributionCanBeCompleted MAKE
  *     Gifts ARecurringContributionCanBeCompleted MAKE
  *     Notices AMemberGetsSomeNotices MAKE
- *     Pilot CronRunsForTheFirstTime MAKE
+ *     Pilot All MAKE
  *     Recache BalancesGetOutOfWhack MAKE
  *     Redistribute AMemberHasTooMuchR MAKE
  *     Redistribute AMemberHasTooMuchRButTooFewBuyers MAKE
@@ -144,13 +145,14 @@ function cronRuns($op) {
  *     Bank AMemberIsOverMaximumButHasRequestedFundsFROMTheBank TEST
  *     Bank AMemberPaysVirtually TEST
  *     Bank AMemberIsOverMaximumButMostlyInRCredits TEST
- *     Pilot CronRunsForTheFirstTime TEST
+ *     Pilot All TEST
  */
 function bankTransfers($tx) {
   global $testOnly; if(!$testOnly) return FALSE;
-  extract(u\just('payer amount', $tx[0]));
+  extract(u\just('payer payee amount', $tx[0]));
   $payer = t\uid($payer);
-  return r\dbExists('r_usd', 'payer=:payer AND amount=:amount and payee=0', compact('payer', 'amount'));
+  $payee =(@$payee and !is_numeric($payee)) ? t\uid($payee) : 0;
+  return r\dbExists('r_usd', 'payer=:payer AND amount=:amount and payee=:payee', compact(u\ray('payer payee amount')));
 }
 
 /**
@@ -185,7 +187,8 @@ function relations($relations) {return t\relations($relations);}
  *
  * in: Gifts AContributionCanBeCompleted TEST
  *     Gifts ARecurringContributionCanBeCompleted TEST
- *     Pilot CronRunsForTheFirstTime TEST
+ *     Pilot Setup MAKE
+ *     Pilot All TEST
  *     Recache Setup MAKE
  *     Redistribute AMemberHasTooMuchR TEST
  *     Redistribute AMemberHasTooMuchRButTooFewBuyers TEST
@@ -279,4 +282,16 @@ function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, 
  */
 function noticeCountIs($count) {
   return (r\dbLookup('COUNT(*)', 'r_notices') == $count);
+}
+
+/**
+ * member (ARG) charges member (ARG) $(ARG) for (ARG)
+ *
+ * in: Pilot All MAKE
+ */
+function memberChargesMemberFor($payee, $payer, $amount, $for) {
+  global $testOnly; if ($testOnly) return FALSE;
+  global $scanned; $scanned = TRUE;
+  be\transfer('charge', r\acct(t\uid($payee)), r\acct(t\uid($payer)), $amount, $for, TRUE);
+  return TRUE;
 }

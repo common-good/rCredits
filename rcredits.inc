@@ -29,7 +29,7 @@ define('R_DATE_FIELDS', 'created completed sent invited giftDate signed login ac
 define('R_DATA_FIELDS', ''); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'usd r rewards floor committed'); // financial amount fields in account record
 define('R_COMPANY_FIELDS', 'website description selling structure'); // fields in r_companies
-define('R_SECURE_FIELDS', 'type pin auth cardCode'); // non-personal encrypted fields
+define('R_SECURE_FIELDS', 'type pin auth cardCode cardCode2'); // non-personal encrypted fields
 define('R_SECRET_FIELDS', 'federalId dob idProof answer'); // personal identifying information
 define('R_SECRET_URL', isDEV ? 'http://localhost/rcredits-promo' 
   : (STAGING ? ('http://' . STAGE) : 'http://rcredits.org')); // where to store secrets
@@ -510,10 +510,9 @@ function cacheTotals($uid, $txs) {
       if (@$maximum > 0) $maximum = round(max($maximum, $rewards), 2); // @ is for testing
     }
   }
-///  unfreeze($available, $frozen); // update expired frozen amounts
   $r = round($rs, 2);
   $a->update(compact(u\ray($cache)));
-  if ($amount > 0) r\membershipEvent($a, 'bona', TRUE);
+  if ($type == TX_TRANSFER and $amount > 0) r\membershipEvent($a, 'bona', TRUE);
 }
 
 /**
@@ -854,8 +853,8 @@ function quid($uid, $agentId = '') {
     $i = ($uid - 1) - $region * R_REGION_MAX; // -1 because uids are all bumped up by 1
     return u\n2a($region, -3) . '.' . u\n2a($i, -3);
   } else {
-    $uid = -relation('reid', $uid, $agentId); // compound quid
-    return R_SERVER_ID . '=' . u\n2a($id, -3);
+    $uid = relation('reid', $uid, $agentId); // compound quid
+    return R_SERVER_ID . '=' . u\n2a($uid, -3);
   }
 }
 
@@ -1254,11 +1253,11 @@ function tableField($field, $table, $which = '', $subs = array()) {
  * Return the amount available for the given operation.
  * @param string $type: purpose of the draw (see acct::shortfall())
  * @param assoc $ray: array of all relevant money fields (possibly including dwolla "fees")
- * @param bool $withUsd: whether to include usd amounts
+ * @param bool $withUsd: whether to include usd amounts (if not, don't reserve "committed" amounts)
  */
 function avail($type, $ray, $withUsd = TRUE) {
   extract($ray);
-  if ($type == 'exch' or !$withUsd) $usd = 0; // no exchanging USD credit for USD credit
+  if ($type == 'exch' or !$withUsd) $usd = $committed = 0; // no exchanging USD credit for USD credit
   if ($type != 'buy') $floor = max(0, $floor, $rewards); // no exchanging into debt
   u\setDft($fees, $usd > DWOLLA_FEE_THRESHOLD ? DWOLLA_FEE : 0);
   return $usd + $r - $committed - $floor - $fees;
@@ -1365,26 +1364,6 @@ function suggest($a, $index, $subs, $page = 'Preferences') {
   // $subs['url'] = 
   // $index .= '|click option';
   r\notify($a->id, $index, $subs + compact('page'));
-}
-
-/**
- * Utility to do something to each member account (see example below)
- */
-function eachAccount($callBack) {
-  $result = r\dbQ('SELECT uid FROM users WHERE uid>1')->fetchCol();
-  $callBack = 'rCredits\\' . $callBack;
-  foreach ($result as $one) $callBack(r\acct($one));
-}
-
-/**
- * For example eachAccount('changeIt');
- */
-function changeIt($a) {
-  $secure = $a->secure;
-  $secure['cardCode'] = u\randomString(20, 'word');
-  unset($secure['card_code']);
-/**/ debug(array('id' => $a->id, 'secure' => $secure)); // keep
-  //$a->update(compact('secure'));
 }
 
 // Single line functions that need no explanation

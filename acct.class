@@ -10,6 +10,12 @@ use rCredits\Testing as t;
  * rCredits Account class
  */
 
+define('DW_NO', 0); // no Dwolla account yet
+define('DW_YES', 1); // has a connected Dwolla account (required for all members)
+define('DW_BANK', 2); // has a bank account, not yet verified
+define('DW_VSAVINGS', 3); // verified savings/money market account
+define('DW_VCHECKING', 4); // verified checking account (this or savings required for all human members)
+ 
 class acct {
   var $id; // the account's record id
   var $agentId; // record id (in the agent's regional server) of whoever is acting on behalf of the account
@@ -252,7 +258,6 @@ class acct {
     global $base_url;
     if ($unique) $unique = '?' . REQUEST_TIME;
     $picFile = $this->auxFilename('picture');
-    if (!file_exists(DRUPAL_ROOT . $picFile)) $picFile = $this->can(B_PERSONAL) ? R_DFT_PICTURE : R_DFT_PICTURE_WIDE;
     return <<<EOF
     <div class="user-picture"><img src="$base_url/$picFile$unique" alt="profile picture" /></div>
 EOF;
@@ -394,7 +399,10 @@ EOF;
    * @param string $type: picture or proof
    */
   public function auxFilename($type = 'picture') {
-    return ($type == 'picture' ? R_PICTURE_DIR : R_PROOF_DIR) . "/$this->id-$this->created";
+    $dir = $type == 'picture' ? R_PICTURE_DIR : R_PROOF_DIR;
+    $result = "$dir/$this->id-$this->created";
+    if (!file_exists(DRUPAL_ROOT . $result)) $result = $this->can(B_PERSONAL) ? R_DFT_PICTURE : R_DFT_PICTURE_WIDE;
+    return $result;
   }
   
   /**
@@ -424,6 +432,18 @@ EOF;
     return dbLookup('number', 'r_sms', 'uid=:id AND status=:SMS_PRIMARY', compact('id'));
   }
 
+  /**
+   * Return the account's Dwolla status (see definitions above)
+   */
+  public function dwStatus() {
+    if (!@$this->usdAccount) return DW_NO;
+    $usA = new r\usd($this);
+    $source = $usA->source($err);
+    if ($source['count'] < 1) return DW_YES; // Dwolla but no bank
+    if (!@$source['Verified']) return DW_BANK;
+    return @$source['Type'] == 'Checking' ? DW_VCHECKING : DW_VSAVINGS;
+  }
+  
   /**
    * Return the excess that could be transferred to the bank
    * This formula is duplicated for MySQL in R_EXCESS.
@@ -541,4 +561,3 @@ function acct($uid = '', $agent = '', &$error = '') {
 }
 
 function agent($uid = '') {return @acct($uid)->agent;}
-
