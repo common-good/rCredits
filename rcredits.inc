@@ -138,8 +138,10 @@ define('B_DFT', 0 | 0); // set what bits when creating a new account
 define('B_ADMINABLE', 'personal company member ctty_admin closed'); // for cttyAdmin to set
 define('B_LIST', 'member ready ok bona u4 person company u7 charge u9 virtu u11 payroll weekly monthly u15 sms electro secret bank debt draws u22 u23 u24 u25 u26 u27 u28 cadmin admin closed');
 
-define('R_EXCESS', 'GREATEST(0, IF(maximum=0 AND (flags&(1<<' . B_VIRTUAL . '))=0, 0, r+usd-GREATEST(floor, maximum, minimum, rewards+committed)))'); // sql for excess in account (for redistribution or employee offloading) -- companies that pay virtually have, in effect, max=min
-define('R_SHORTFALL', 'GREATEST(0, minimum-(r+usd))'); // sql for shortfall in account
+define('R_EXCESS', 'IF(maximum<0, 0, GREATEST(0, r+usd-GREATEST(floor, maximum, minimum, rewards+committed)))'); // sql for excess in account (for redistribution or employee offloading -- NOT for company virtual payments)
+define('R_SHORTFALL', 'GREATEST(0, minimum-(r+usd))'); // sql for shortfall in account (to draw in)
+define('R_DEMAND', 'LEAST(u.usd, u.minimum-u.r)'); // definitely wants this many rCredits (sometimes negative)
+define('R_CAPACITY', 'IF(u.maximum<0, u.usd, LEAST(u.usd, GREATEST(0, u.maximum-(u.r+u.usd))))'); // will buy
 
 // for IS_OK etc. -- see u\SUBS()
 
@@ -507,7 +509,7 @@ function cacheTotals($uid, $txs) {
     if ($type != TX_TRANSFER and $type <= TX_INFLATION) {
       if ($type == TX_REBATE or $type == TX_BONUS) $committed = round($committed + $amount * $a->share / 100, 2);
       $rewards = round($rewards + $r, 2);
-      if (@$maximum > 0) $maximum = round(max($maximum, $rewards), 2); // @ is for testing
+      if (@$maximum >= 0) $maximum = round(max($maximum, $rewards), 2); // @ is for testing
     }
   }
   $r = round($rs, 2);
@@ -1202,10 +1204,12 @@ function totals($ctty = 'ALL', $calculate = FALSE) {
  *   balance (-r) demand (minimum - r)
  */
 function getTotals($ctty) {
+  $subs = @$ctty ? compact('ctty') : array();
   $where = (@$ctty ? "community=:ctty" : 1) . ' AND uid>0 AND :IS_OK';
-  $fields = u\sumAs('r floor rewards usd minimum maximum');
-  $sql = "SELECT $fields, SUM(GREATEST(0, r-maximum)) AS excess, SUM(GREATEST(0, minimum-r)) AS demand FROM users WHERE $where";
-  $result1 = r\dbQ($sql, compact('ctty'))->fetchAssoc();
+  $fields = u\sumAs('r floor rewards usd minimum');
+  $max = 'GREATEST(0, maximum)';
+  $sql = "SELECT $fields, SUM($max) AS maximum, SUM(:R_EXCESS) AS excess, SUM(:R_DEMAND) AS demand, SUM(:R_CAPACITY) AS capacity FROM users u WHERE $where";
+  $result1 = r\dbQ($sql, $subs)->fetchAssoc();
 
   $where = @$ctty ? '(payer=:ctty OR payee=:ctty)' : 1;
   $sums = '';
@@ -1215,7 +1219,7 @@ function getTotals($ctty) {
     $sums .= "SUM(IF(type=:TX_$ONE, 1, 0)) AS {$one}Count, ";
   }
   $sql = "SELECT $sums MAX(IF(type=:TX_REBATE, amount, 0)) AS maxRebate FROM r_txs WHERE $where AND state IN(':TX_DONE,:TX_DISPUTED')";
-  $result2 = r\dbQ($sql, compact('ctty'))->fetchAssoc();
+  $result2 = r\dbQ($sql, $subs)->fetchAssoc();
   $balance = -$result1['r'];
   return $result1 + $result2 + compact(u\ray('balance'));
 }

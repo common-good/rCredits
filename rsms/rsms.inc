@@ -179,7 +179,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'balances' => t('Your rCredits balance available to spend is @toSpend. You can exchange up to @toCash for US Dollars.'),
   
   // notices to staff
-  'corrupt max' => t('Max for account @uid is corrupt: max=@maximum min=@minimum rewards=@rewards'),
+  'corrupt minmax' => t('Min or Max for account @uid is corrupt: max=@maximum min=@minimum rewards=@rewards floor=@floor'),
   
 );
 

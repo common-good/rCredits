@@ -258,7 +258,7 @@ function uidCredit($uid) {
 }
 
 function uid($id) {
-  return is_numeric($id) ? $id // this should handle zero, too
+  return is_numeric($id) ? $id
     : (($id == 'community' or $id == 'ctty') ? r\serverUid() 
     : ($id == 'cgf' ? \variable_get('cgf_uid')
     : r\unQuid(fullQid($id))));
@@ -641,7 +641,7 @@ function clear($ch) {
   global $sms_devel; $sms_devel = TRUE;
   r\dbQ('DELETE FROM users WHERE uid>:cgfUid OR (uid>1 AND uid<:cgfUid-1)', compact('cgfUid'));
   foreach (u\ray($files) as $one) r\dbQ("TRUNCATE $one");
-  r\dbQ('UPDATE users SET floor=0,minimum=0,maximum=0,r=0,usd=0,rewards=0,committed=0');
+  r\dbQ('UPDATE users SET floor=0,minimum=NULL,maximum=-1,r=0,usd=0,rewards=0,committed=0');
 
   r\acct::_clear(); // empty the acct cache
   \drupal_static_reset(); // clear out drupal central storage

@@ -6,7 +6,6 @@
 
 define('R_REGION_NAME', 'Western Massachusetts Region');
 define('R_SERVER_ID', 'NEW'); // qid header for this region's server (New England / Western MA)
-//define('CT_SERVER_ID', 'NEC'); // a temporary fake server
 // other 3rd letters: M=ME H=NH V=VT C=CT R=RI P=PA Y=NY A=NYC (apple) B=Boston
 define('R_ORG_PHONE', '413-628-1723');
 define('R_ORG_EMAIL', strpos($_SERVER['HTTP_HOST'], '.') < 3 ? 'wspademan+cgf@gmail.com' : (strtolower(R_SERVER_ID) . '@rCredits.org'));
@@ -17,13 +16,10 @@ define('R_REGION_POSTAL_AREA', '^01.*'); // anyone with a postal code that match
 date_default_timezone_set('America/New_York'); // server handles just one timezone
 define('R_COUNTRY_ID', 1228); // United States
 define('R_STATE_ID', 1020); // Massachusetts
-define('R_INITIAL_DEMAND', 25000); // total escrowed rCredits during TRIAL RUN
 define('R_REBATE', 5);
 define('R_MIN_REBATE', .05); // members get this even for purchase with no rcredits (subject to dwindling)
 define('R_BONUS_FACTOR', 2); // standard bonus is this times standard rebate
-//define('R_GETR_ADVANCE', 0.10); // fraction of get rCredits request we take as advance
 define('R_MAX_AMOUNT', 100000); // transaction request size limit (some smaller limits also apply)
-//define('R_MIN_DEMAND', 10); // you can't buy less rCredits than this at a time
 define('R_SIGNUP_GIFT', 5); // how much to give people to play with, even before they are fully set up
 define('R_SIGNUP_BONUS', 20); // how much people start with at this time
 define('R_FLOOR', 0); // how low can user's balance go, by default

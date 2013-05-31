@@ -449,9 +449,9 @@ EOF;
    * This formula is duplicated for MySQL in R_EXCESS.
    */
   public function overMax() {
-    return max(0, ($this->maximum == 0 and !$this->can(B_VIRTUAL)) ? 0 : $this->r + $this->usd - max($this->floor, $this->maximum, $this->minimum, $this->rewards + $this->committed));
+    return $this->maximum < 0 ? 0 : max(0, $this->r + $this->usd - max($this->floor, $this->maximum, $this->minimum, $this->rewards + $this->committed));
   }
-  
+
   /**
    * Say whether this account/agent has the permission.
    * @param int $permission: the permission in question (DEFAULT B_READ)

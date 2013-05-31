@@ -50,7 +50,6 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  * in: Bank Setup MAKE
  *     Bank AMemberHasNoMaximum MAKE
  *     Bank AMemberPaysVirtually MAKE
- *     Bank AMemberIsOverMaximumButDoesntWantAutomaticDeposits MAKE
  *     Bank AMemberIsOverPlentyOverMaximumButNotEnoughOverFloor MAKE
  *     Gifts Setup MAKE
  *     Notices Setup MAKE
@@ -75,11 +74,10 @@ function members($list) {return t\members($list);}
  *     Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank MAKE
  *     Bank AMemberIsOverMaximumButAlreadyRequestedThatBarelyEnoughFundsGoToTheBank MAKE
  *     Bank AMemberIsOverMaximumAndHasRequestedInsufficientFundsToGoToTheBank MAKE
- *     Bank AMemberIsOverMaximumButHasRequestedFundsFROMTheBank MAKE
+ *     Bank AMemberIsOverMaximumAndHasRequestedFundsFROMTheBank MAKE
  *     Bank AMemberHasNoMaximum MAKE
  *     Bank AMemberPaysVirtually MAKE
  *     Bank AMemberIsOverMaximumButMostlyInRCredits MAKE
- *     Bank AMemberIsOverMaximumButDoesntWantAutomaticDeposits MAKE
  *     Bank AMemberIsOverPlentyOverMaximumButNotEnoughOverFloor MAKE
  *     Gifts Setup MAKE
  *     Pilot Setup BOTH
@@ -106,11 +104,10 @@ function balances($list) {return t\balances($list);}
  *     Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank MAKE
  *     Bank AMemberIsOverMaximumButAlreadyRequestedThatBarelyEnoughFundsGoToTheBank MAKE
  *     Bank AMemberIsOverMaximumAndHasRequestedInsufficientFundsToGoToTheBank MAKE
- *     Bank AMemberIsOverMaximumButHasRequestedFundsFROMTheBank MAKE
+ *     Bank AMemberIsOverMaximumAndHasRequestedFundsFROMTheBank MAKE
  *     Bank AMemberHasNoMaximum MAKE
  *     Bank AMemberPaysVirtually MAKE
  *     Bank AMemberIsOverMaximumButMostlyInRCredits MAKE
- *     Bank AMemberIsOverMaximumButDoesntWantAutomaticDeposits MAKE
  *     Bank AMemberIsOverPlentyOverMaximumButNotEnoughOverFloor MAKE
  *     Gifts AContributionCanBeCompleted MAKE
  *     Gifts ARecurringContributionCanBeCompleted MAKE
@@ -127,7 +124,7 @@ function cronRuns($op) {
   global $testOnly; if($testOnly) return FALSE;
   global $cronOp; $cronOp = $op;
   if (strftime('%H') < R_DAILY_HOUR) die('Developer: For testing between midnight and :R_DAILY_HOUR:00, you need to temporarily change R_DAILY_HOUR in -settings.');
-  \variable_set('daily', 0);
+  \variable_set('daily', REQUEST_TIME - 24 * 60 * 60);
   \drupal_cron_run();
   return TRUE;
 }
@@ -142,7 +139,7 @@ function cronRuns($op) {
  *     Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank TEST
  *     Bank AMemberIsOverMaximumButAlreadyRequestedThatBarelyEnoughFundsGoToTheBank TEST
  *     Bank AMemberIsOverMaximumAndHasRequestedInsufficientFundsToGoToTheBank TEST
- *     Bank AMemberIsOverMaximumButHasRequestedFundsFROMTheBank TEST
+ *     Bank AMemberIsOverMaximumAndHasRequestedFundsFROMTheBank TEST
  *     Bank AMemberPaysVirtually TEST
  *     Bank AMemberIsOverMaximumButMostlyInRCredits TEST
  *     Pilot All TEST
@@ -162,9 +159,7 @@ function bankTransfers($tx) {
  *     Bank AMemberIsBarelyOverMaximum TEST
  *     Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank TEST
  *     Bank AMemberIsOverMaximumButAlreadyRequestedThatBarelyEnoughFundsGoToTheBank TEST
- *     Bank AMemberIsOverMaximumButHasRequestedFundsFROMTheBank TEST
  *     Bank AMemberHasNoMaximum TEST
- *     Bank AMemberIsOverMaximumButDoesntWantAutomaticDeposits TEST
  *     Bank AMemberIsOverPlentyOverMaximumButNotEnoughOverFloor TEST
  */
 function bankTransferCountIs($count) {

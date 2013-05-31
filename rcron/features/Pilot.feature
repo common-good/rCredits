@@ -27,19 +27,19 @@ Setup:
   # not testing flags SMS and SECRET
   And balances:
   | id   | r | usd | rewards | minimum | maximum | share | committed |
-  | .AAA | 0 | 200 |       0 |     200 |       0 |    50 |         0 |
-  | .AAB | 0 |   0 |       0 |       0 |       0 |     0 |         0 |
-  | .AAF | 0 |   0 |       0 |     200 |       0 |     1 |         0 |
-  | .AAG | 0 | 200 |       0 |     200 |       0 |    50 |         0 |
-  | .AAH | 0 | 100 |       0 |     100 |       0 |    10 |         0 |
+  | .AAA | 0 | 200 |       0 |     200 |      -1 |    50 |         0 |
+  | .AAB | 0 |   0 |       0 |       0 |      -1 |     0 |         0 |
+  | .AAF | 0 |   0 |       0 |     200 |      -1 |     1 |         0 |
+  | .AAG | 0 | 200 |       0 |     200 |      -1 |    50 |         0 |
+  | .AAH | 0 | 100 |       0 |     100 |      -1 |    10 |         0 |
   | .AAI | 0 |   0 |       0 |      50 |     100 |    50 |         0 |
   | .AAJ | 0 |  20 |       0 |      20 |      50 |    10 |         0 |
   | .AAK | 0 |   0 |       0 |      50 |     100 |    25 |         0 |
   | .AAL | 0 |   5 |       0 |       0 |      20 |     0 |         0 |
-  | .AAM | 0 | 100 |       0 |     100 |       0 |    50 |         0 |
+  | .AAM | 0 | 100 |       0 |     100 |      -1 |    50 |         0 |
   | .AAO | 0 | 200 |       0 |     200 |     200 |   100 |         0 |
-  | .AAQ | 0 |   0 |       0 |      10 |       0 |    25 |         0 |
-  | .AAR | 0 |   0 |       0 |     200 |       0 |   100 |         0 |
+  | .AAQ | 0 |   0 |       0 |      10 |      -1 |    25 |         0 |
+  | .AAR | 0 |   0 |       0 |     200 |      -1 |   100 |         0 |
   | .AAS | 0 |   0 |       0 |     200 |    1000 |     2 |         0 |
   And relations:
   | id   | main | agent | draw | amount | employerOk | employeeOk | isOwner | permission |
@@ -72,7 +72,7 @@ Setup:
   |   1 | %today-8d | signup    | done  |     20 |   20 | ctty | .AAA | signup       | 0      |
   Then balances:
   | id   | r  | usd | rewards | minimum | maximum | share | committed |
-  | .AAA | 20 | 200 |      20 |     200 |       0 |    50 |         0 |
+  | .AAA | 20 | 200 |      20 |     200 |      -1 |    50 |         0 |
   
 Scenario: all
   When member ".AAS" charges member ".AAA" $40 for "groceries"
@@ -83,7 +83,7 @@ Scenario: all
   |   4 | %today  | bonus     | done  |      2 |    2 | ctty | .AAS | bonus on #1  |      0 |
   And balances:
   | id   | r  | usd | rewards | minimum | maximum | share | committed |
-  | .AAA |  1 | 180 |      21 |     200 |       0 |    50 |      0.50 |
+  | .AAA |  1 | 180 |      21 |     200 |      -1 |    50 |      0.50 |
   # You are HERE
 
   When cron runs "ALL"

@@ -244,7 +244,7 @@ EOF
     <img src="$rUrl/images/virtual-payments-companies.png" align="right"><p>Every day, customers pay you with rCredits and US Dollars. You get a 10% bonus on the rCredits part. Then at night, all the rCredits you took in get traded automatically to your employees and suppliers, in exchange for US Dollars. You get a 5% rebate on the exchange.</p>
     <p>How much does each employee and supplier get? They should get their usual share. On the "Relations" page, estimate how much you normally pay each employee or supplier in a typical month. Divide each one by 30 and that's their maximum daily share of the rCredits you pay out. At first you will have only small amounts of rCredits to pay out, so everyone gets proportionately less (automatically).</p>
     <p>Someday, when rCredits become very popular, there may be accounting programs that make it easy to do payroll directly in rCredits. Meanwhile, virtual payments let you keep using your current payroll and accounting systems without change, and still have the effect of paying people in rCredits. The net effect for you is that you receive extra US Dollar income from using the rCredits system.</p>
-    <p>Your estimates of average monthly payments do NOT have to be exact. If an employee or supplier ends up buying more rCredits from you than their exact share, it's not a big problem for anyone.</p>
+    <p>Your estimates of average monthly payments do NOT have to be exact. If an employee or supplier ends up buying more rCredits from you than their exact share, it's no big problem for anyone.</p>
 EOF
     ),
   );

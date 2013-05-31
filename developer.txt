@@ -6,10 +6,15 @@ BEFORE MINI LAUNCH:
 - automatic (suggested) ops
 - warn nubes about how long signup will take, including waiting for Dwolla, for the bank, for CGF,...
 - pilot test, including formI
+- exchange anything up to MAXIMUM for rCredits!
 - * no signup on rcredits.org! (just mailing list)
+- fix flags
 
 To do: (* = before launch ** = earlier)
 
+- leave max blank for "no limit" (stored as -1) (change in database) and enforce max=min for virtuals
+- add correction of min<floor to recache test
+- give user a chance to name the machine (or change the name), saved in a cookie and in each tx (box)
 - reduce picture size and make thumbnails (for upper right corner)
 - account checks: auto-deposit or minimum>0 but not connected to checking account yet: notice to user
 - block repeated 404s
@@ -311,6 +316,26 @@ G. Special rCredits datatypes
  qxid: a qid (8 characters or more) representing an xid (currently used only in rSmart)
  quid: a qid (7 characters or more) representing a uid acting as its own agent (. separator) OR an reid (: separator)
 
+  The first two characters of a qid are a code for the country or region of population 5.7 million+. They are unused most of the time, when doing business locally. 
+
+  The third and possibly fourth character specify a smaller region within that country or region. For example NEW is Western Massachusetts. Each of these smaller regions may (or may not) have its own server. Next comes a dot (period), followed by as many letters as needed (no fewer than 3) to identify the account. An agent acting on behalf of an account gets a similar code with an equals sign instead of a dot.
+
+  Here are the top-level codes for US regions:
+
+  States: AZ  CA  FL  GA  IL  IN  MD  MI  MO  NJ  NY  OH  PA  TN  TX  WI (16)
+
+  Regions: 
+  NE	ME, NH, VT, MA, CT, RI (New England) (6)
+  VR	VA, WV (Virginias) (2)
+  CL	NC, SC (Carolinas) (2)
+  NW	WA, OR (Northwest) (2)
+    RM	MT, ID, NV, UT, WY, CO, NM (Rocky Mountains plus NM) (7)
+    MW	ND, SD, NE, KS, MN, IA (Midwest, west of the Mississippi River) (6)
+    US	DE, KY, AL, MS, LA, AR, OK, DC (southeast continental miscellany) (7+1)
+    U2	AK, HI + territories (PR, VI, AS, GU, MP, etc) (non-contiguous) (2+5+)
+
+  Other countries or groups of countries will also have region codes, which will default (for now) to their 2-letter country code.
+ 
 H. Notes on transaction record system:
   - "rewards" are defined as signup bonuses, transaction rebates, transaction bonuses, and inflation adjustment. Transfers, grants, loans, and fines are not rewards.
   - uids now contain the region info, so no need for recording "foreign" info in the data field

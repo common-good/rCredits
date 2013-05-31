@@ -45,12 +45,12 @@ class rcronVirtualPayments extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id   | fullName   | email         |floor | minimum | maximum | flags                   |'
-    . '\\| .ZZA | Abe One    | a@example.com |    0 |      20 |      20 | dft,personal,ok         |'
-    . '\\| .ZZB | Bea Two    | b@example.com |    0 |     100 |     200 | dft,personal,company,ok |'
-    . '\\| .ZZC | Corner Pub | c@example.com |    0 |      10 |       0 | dft,company,virtual,ok  |'
-    . '\\| .ZZD | Dee Four   | d@example.com |    0 |     100 |     100 | dft,personal,ok         |'
-    . '\\| .ZZE | Ezra Five  | e@example.com |    0 |     200 |       0 | dft,personal,member     |"');
+    . '\\| id   | fullName   | email         |floor | minimum | maximum | flags                        |'
+    . '\\| .ZZA | Abe One    | a@example.com |    0 |      20 |     100 | dft,personal,ok,bona         |'
+    . '\\| .ZZB | Bea Two    | b@example.com |    0 |     100 |     200 | dft,personal,company,ok,bona |'
+    . '\\| .ZZC | Corner Pub | c@example.com |    0 |      10 |      10 | dft,company,virtual,ok,bona  |'
+    . '\\| .ZZD | Dee Four   | d@example.com |    0 |     100 |     100 | dft,personal,ok,bona         |'
+    . '\\| .ZZE | Ezra Five  | e@example.com |    0 |     200 |      -1 | dft,personal,member          |"');
     And__('relations: "DATA'
     . '\\| id      | main | agent | employerOk | permission | amount |'
     . '\\| NEW:ZZA | .ZZC | .ZZA  |          1 | sell       |   1800 |'
@@ -67,7 +67,7 @@ class rcronVirtualPayments extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('balances: "DATA'
     . '\\| id   | r  | usd | rewards |'
-    . '\\| .ZZA | 10 | 100 |       5 |'
+    . '\\| .ZZA | 10 |  40 |       5 |'
     . '\\| .ZZB | 60 |   0 |      20 |'
     . '\\| .ZZC | 50 |   0 |      20 |'
     . '\\| .ZZD |  0 | 100 |      20 |'
@@ -92,12 +92,12 @@ class rcronVirtualPayments extends DrupalWebTestCase {
   public function testAMemberCompanyPaysEmployeesVirtually_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('balances: "DATA'
-    . '\\| id   | r               | usd | rewards |'
-    . '\\| .ZZA | %(21 - %chunk)  | 100 |       5 |'
-    . '\\| .ZZB | 60              |   0 |      20 |'
-    . '\\| .ZZC | %(10 + %chunk4) |   0 |      20 |'
-    . '\\| .ZZD |  0              | 100 |      20 |'
-    . '\\| .ZZE |  5              | 500 |       5 |"');
+    . '\\| id   | r               | usd | rewards | minimum | maximum |'
+    . '\\| .ZZA | %(21 - %chunk)  | 100 |       5 |      10 |      10 |'
+    . '\\| .ZZB | 60              |   0 |      20 |     100 |     200 |'
+    . '\\| .ZZC | %(10 + %chunk4) |   0 |      20 |      10 |      10 |'
+    . '\\| .ZZD |  0              | 100 |      20 |     100 |     150 |'
+    . '\\| .ZZE |  5              | 500 |       5 |     200 |      -1 |"');
     When_('cron runs "payEmployees"');
     Then_('transactions: "DATA'
     . '\\| xid   | created | type     | state | amount         | r              | from | to   | purpose               |'

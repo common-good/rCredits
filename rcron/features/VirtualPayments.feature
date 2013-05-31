@@ -6,23 +6,23 @@ and SO I don't build up a pile of credit I can't use yet.
 
 Setup:
   Given members:
-  | id   | fullName   | email         |floor | minimum | maximum | flags                   |
-  | .ZZA | Abe One    | a@example.com |    0 |      20 |      20 | dft,personal,ok         |
-  | .ZZB | Bea Two    | b@example.com |    0 |     100 |     200 | dft,personal,company,ok |
-  | .ZZC | Corner Pub | c@example.com |    0 |      10 |       0 | dft,company,virtual,ok  |
-  | .ZZD | Dee Four   | d@example.com |    0 |     100 |     100 | dft,personal,ok         |
-  | .ZZE | Ezra Five  | e@example.com |    0 |     200 |       0 | dft,personal,member     |
+  | id   | fullName   | email         |floor | minimum | maximum | flags                        |
+  | .ZZA | Abe One    | a@example.com |    0 |      20 |     100 | dft,personal,ok,bona         |
+  | .ZZB | Bea Two    | b@example.com |    0 |     100 |     200 | dft,personal,company,ok,bona |
+  | .ZZC | Corner Pub | c@example.com |    0 |      10 |      10 | dft,company,virtual,ok,bona  |
+  | .ZZD | Dee Four   | d@example.com |    0 |     100 |     100 | dft,personal,ok,bona         |
+  | .ZZE | Ezra Five  | e@example.com |    0 |     200 |      -1 | dft,personal,member          |
   And relations:
   | id      | main | agent | employerOk | permission | amount |
   | NEW:ZZA | .ZZC | .ZZA  |          1 | sell       |   1800 |
   | NEW:ZZB | .ZZC | .ZZB  |          0 |            |    200 |
   | NEW:ZZE | .ZZC | .ZZE  |          1 |            |   2000 |
-# 90/10 split (E is not an rTrader, so doesn't count)
+# 90/10 split (E is not an rTrader, so doesn't count in the split)
   
 Scenario: a member company pays suppliers virtually
   Given balances:
   | id   | r  | usd | rewards |
-  | .ZZA | 10 | 100 |       5 |
+  | .ZZA | 10 |  40 |       5 |
   | .ZZB | 60 |   0 |      20 |
   | .ZZC | 50 |   0 |      20 |
   | .ZZD |  0 | 100 |      20 |
@@ -44,12 +44,13 @@ Scenario: a member company pays suppliers virtually
 
 Scenario: a member company pays employees virtually
   Given balances:
-  | id   | r               | usd | rewards |
-  | .ZZA | %(21 - %chunk)  | 100 |       5 |
-  | .ZZB | 60              |   0 |      20 |
-  | .ZZC | %(10 + %chunk4) |   0 |      20 |
-  | .ZZD |  0              | 100 |      20 |
-  | .ZZE |  5              | 500 |       5 |
+  | id   | r               | usd | rewards | minimum | maximum |
+  | .ZZA | %(21 - %chunk)  | 100 |       5 |      10 |      10 |
+  | .ZZB | 60              |   0 |      20 |     100 |     200 |
+  | .ZZC | %(10 + %chunk4) |   0 |      20 |      10 |      10 |
+  | .ZZD |  0              | 100 |      20 |     100 |     150 |
+  | .ZZE |  5              | 500 |       5 |     200 |      -1 |
+  # %chunk4 is 4 * %chunk
   When cron runs "payEmployees"
   Then transactions:
   | xid   | created | type     | state | amount         | r              | from | to   | purpose               |

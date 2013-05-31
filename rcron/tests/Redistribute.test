@@ -48,7 +48,7 @@ class rcronRedistribute extends DrupalWebTestCase {
     . '\\| .ZZA | Abe One  |     0 |     100 |     200 | dft,personal,ok         |'
     . '\\| .ZZB | Bea Two  |     0 |     100 |     200 | dft,personal,ok         |'
     . '\\| .ZZC | Our Pub  |     0 |     100 |     200 | dft,personal,company,ok |'
-    . '\\| .ZZD | Dee Four |     0 |     100 |       0 | dft,personal,ok         |"');
+    . '\\| .ZZD | Dee Four |     0 |     100 |      -1 | dft,personal,ok         |"');
     break;
 
 

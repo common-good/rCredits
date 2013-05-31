@@ -71,7 +71,6 @@ function periodic() {
   if (!isDEV) return; // don't cron on pre-production server
   if (STAGING) return; // don't cron on pre-production server
   $lastDaily = \variable_get('daily', 0);
-//  $lastDaily = 0; // DEBUG
   r\dbQ("DELETE FROM queue WHERE name='q'");
   if (strftime('%H') >= R_DAILY_HOUR and strftime('%d') != strftime('%d', $lastDaily)) everyDay();
   if (strftime('%M') == '00') everyHour();
@@ -154,7 +153,7 @@ function bankFollowup($info) {
  * Also give signup bonus, if appropriate.
  */
 function recache() {
-  $fields = 'uid, r, usd, rewards, maximum, minimum';
+  $fields = 'uid, r, usd, rewards, maximum, minimum, floor';
   queueEach('recache1', "SELECT $fields FROM users WHERE uid>0 AND :IS_OK"); // make this IS_MEMBER if early gift
   queueNextAfter('recache');
 }
@@ -168,8 +167,13 @@ function recache1($item) {
     $$key = $info->$key;
   }
 
+  if ($minimum < $floor or $minimum < 0) {
+    r\tellStaff('corrupt minmax', $item);
+    $minimum = $floor;
+  }
+  
   if ($maximum > 0 and $maximum < max($rewards, $minimum)) { // >0 required
-    r\tellStaff('corrupt max', $item);
+    r\tellStaff('corrupt minmax', $item);
     $maximum = max($rewards, $minimum);
   }
 
@@ -177,7 +181,8 @@ function recache1($item) {
   $usdActual = $usAcct->bal($err);
 
   $DBTX = \db_transaction();
-  if (!$err and !t\EST()) $usd = $usdActual;
+  if (t\EST()) {global $sceneTest; $scene = (object) $sceneTest->getInfo();}
+  if (!$err and (!t\EST() or $scene->short_name == 'Recache')) $usd = $usdActual;
   $acct->update(compact(array_keys($item)));
   r\membershipEvent($acct, 'bona', $usd > 0); // this works for testing too
   unset($DBTX);
@@ -295,7 +300,7 @@ function virtualPayment($item) {
   // if recipient is also an employer that pays people virtually, no maximum
   $max2 = $acct2->hasBit(B_VIRTUAL) ? 0 : $acct2->maximum;
   $newR = $acct2->r + $offer; // what $acct2 r balance will be after the offer is received
-  $excess = round(max(0, $max2 ? ($newR - $max2) : 0, $offer - $acct2->usd), 2); // r excess or USD shortfall (= r to exchange for USD in a 3-way trade)
+  $excess = round(max(0, $max2 > 0 ? ($newR - $max2) : 0, $offer - $acct2->usd), 2); // r excess or USD shortfall (= r to exchange for USD in a 3-way trade)
   r\usd::beginAtom();
   $traded = $excess ? getUsd($excess, $acct2, $usAcct1) : 0; // give company partial USD through rCredits sale to 3rd party
 //debug(compact(u\ray('main other offer max2 newR excess traded')));
@@ -384,10 +389,13 @@ function toBank($amount, $acct) {
     $suggestion = u\formatAmount(round($acct->minimum + max($acct->minimum * .2, 50, abs($amount), abs($waiting)), -1));
     r\suggest($acct, 'min too low', compact('suggestion'));
   }
+  debug(compact('amount','waiting'));
   $amount -= $waiting;
   if ($amount > 0) { // excess
-    return $amount > R_BANK_MIN ? $amount : 0;
-  } else return min($amount, -R_BANK_MIN);
+    return $amount >= R_BANK_MIN ? $amount : 0;
+  } elseif ($amount < 0) { // shortfall
+    return min($amount, -R_BANK_MIN);
+  } else return 0;
 }
 
 /**
@@ -448,30 +456,35 @@ function getUsd($request, $acct, $usAcct) {
 }
 
 /**
- * Return the uid of the next account in line willing and able to trade enough US Dollars for rCredits.
+ * Return the uid of the next account in line wanting/willing and able to trade enough US Dollars for rCredits.
+ * If you trade rCredits for USD or vice versa, you go to the end of the line.
  * @param float $amount: the amount we're looking for. Returned with the amount actually available from the returned account. The amount sought depends on the $amount passed as follows:
  *   $amount < R_CHUNK*1.5 -- seek $amount
  *   otherwise -- seek R_CHUNK (leaving R_CHUNK/2 or more for other buyers
- * return: the best account to handle the trade (there may be none that wants so many)
+ * return: the best account to handle the trade (there may be none that wants so many rCredits)
  *    if no account wants to buy any, return FALSE (this would be really bad and should never ever happen)
  *    NOTE that CGF is the buyer of last resort.
  */
 function nextRBuyer(&$amount, $except) {
   if ($amount > R_CHUNK * 1.5) $amount = R_CHUNK;
-  $offer = 'LEAST(u.minimum-u.r, u.usd)'; // how much they want or how much they can buy, whichever is less
-  $where = "($offer>0 AND u.uid>0 AND u.uid<>:except AND :IS_OK)";
-  $sql1 = <<<EOF
-    SELECT u.uid, $offer AS got FROM users u
+//  $offer = 'LEAST(u.minimum-u.r, u.usd)'; // how much they want or how much they can buy, whichever is less
+  // offer is how much they want (up to their max) or how much they can buy, whichever is less
+  $offer = R_CAPACITY;
+  $sql = <<<EOF
+    SELECT u.uid, $offer AS got, u.name FROM users u
     LEFT JOIN r_txs t ON t.payee=u.uid
-    WHERE $where AND ((t.type=:TX_TRANSFER AND NOT t.goods) OR t.xid IS NULL)
-    ORDER BY (u.name='cgf'), ($offer>=:amount) DESC, t.completed LIMIT 1
+    WHERE ($offer>0 AND u.uid>0 AND u.uid<>:except AND :IS_OK)
+      AND ((t.type=:TX_TRANSFER AND NOT t.goods) OR t.xid IS NULL)
+    ORDER BY (u.name='cgf'), ($offer>=:amount) DESC, (u.r+$offer<=u.minimum) DESC, t.completed LIMIT 1
 EOF;
-  if (!$row = r\dbQ($sql1, compact('amount', 'except'))->fetchAssoc()) { // find out who (preferably who who wants enough) has waited the longest
+  // preferred: not CGF, offering enough, definitely wanting that many, longest ago previous exchange
+  if (!$row = r\dbQ($sql, compact('amount', 'except'))->fetchAssoc()) { // find out who (preferably who who wants enough) has waited the longest
     r\tellStaff('no buyers', compact('amount')); // this is a really bad thing (nobody wants any at all)
     return FALSE;
   }
 
-  extract($row); // uid and got
+  extract($row); // uid, got, and name
+  if ($name =='cgf') r\tellStaff('cgf sole buyer', compact('amount'));
   $amount = min($amount, round($got, 2)); // take what we could get
   return r\acct($uid);
 }

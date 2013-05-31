@@ -19,7 +19,7 @@ Scenario: a member is barely below minimum
   Then bank transfers:
   | payer | amount       |
   | .ZZA | -%R_BANK_MIN |
-  And we notice "banked" to member ".ZZA" with subs:
+  And we notice "minmax status|banked" to member ".ZZA" with subs:
   | action    | status                    | amount       |
   | draw from | under the minimum you set | $%R_BANK_MIN |
   
@@ -38,7 +38,7 @@ Scenario: a member is well below minimum
   Then bank transfers:
   | payer | amount |
   | .ZZA |    -74 |
-  And we notice "banked" to member ".ZZA" with subs:
+  And we notice "minmax status|banked" to member ".ZZA" with subs:
   | action    | status                    | amount |
   | draw from | under the minimum you set |    $74 |
 
@@ -50,7 +50,7 @@ Scenario: a member is over maximum
   Then bank transfers:
   | payer | amount |
   | .ZZA |     10 |
-  And we notice "banked" to member ".ZZA" with subs:
+  And we notice "minmax status|banked" to member ".ZZA" with subs:
   | action     | status                   | amount |
   | deposit to | over the maximum you set |    $10 |
 
@@ -119,24 +119,26 @@ Scenario: a member is over maximum and has requested insufficient funds to go to
   | payer | amount      |
   | .ZZA  | %R_BANK_MIN |
 
-Scenario: a member is over maximum but has requested funds FROM the bank
+Scenario: a member is over maximum and has requested funds FROM the bank
   Given balances:
   | id   | r  | usd | rewards |
   | .ZZA | 20 |   5 |      20 |
   When cron runs "bank"
   Then bank transfers:
   | payer | amount |
-  | .ZZA |    -75 |
+  | .ZZA  |    -75 |
   Given balances:
   | id   | r  | usd | rewards |
   | .ZZA | 20 | 500 |      20 |
   When cron runs "bank"
-  Then bank transfer count is 1
+  Then bank transfers:
+  | payer | amount |
+  | .ZZA  |    395 |
 
 Scenario: a member has no maximum
   Given members:
   | id   | fullName   | floor | minimum | maximum | flags                           |
-  | .ZZB | Bea Two    |     0 |     100 |       0 | dft,personal,ok                 |
+  | .ZZB | Bea Two    |     0 |     100 |      -1 | dft,personal,ok                 |
   And balances:
   | id   | r  | usd | rewards |
   | .ZZA | 50 |  50 |      20 |
@@ -165,17 +167,6 @@ Scenario: a member is over maximum but mostly in rCredits
   Then bank transfers:
   | payer | amount |
   | .ZZA  |  25.67 |
-
-Scenario: a member is over maximum but doesn't want automatic deposits
-  Given members:
-  | id   | fullName   | floor | minimum | maximum | flags           |
-  | .ZZC | Corner Pub |     0 |     100 |      10 | dft,company,ok  |
-  And balances:
-  | id   | r  | usd | rewards |
-  | .ZZA | 50 |  50 |      20 |
-  | .ZZC | 20 | 500 |      20 |
-  When cron runs "bank"
-  Then bank transfer count is 0
 
 Scenario: a member is over plenty over maximum but not enough over floor
   Given members:

@@ -1423,7 +1423,7 @@ EOF;
   return $form;
 }
 
-define('R_SHOWABLE_TABLES', 'users txs usd gifts invites notices proxies relations sms');
+define('R_SHOWABLE_TABLES', 'users txs usd gifts invites notices proxies relations sms log');
 
 /**
  * Make various administrative operations available to the admin.
@@ -1466,13 +1466,16 @@ function formAdmin_submit($form, &$sta) {
     return r\go('print-rcard/' . $qid);
   }
   
+  // handle all other buttons with showTableQ()
   $where = "uid>1";
   $userSql = "SELECT uid, MID(phone,3) AS phone, flags, r, usd, rewards, minimum AS min, maximum AS max, committed AS comit, share, floor, address, city, postalCode AS zip FROM users WHERE $where ORDER BY name";
   if ($op == 'users') return say(showTableQ($userSql));
   $userSql = str_replace($where, "postalCode LIKE '013%'", $userSql);
 
+  if ($op == 'log') return say(showTableQ("SELECT channel,type,myid,agent, REPLACE(special, ',', ', ') AS special, REPLACE(info, ',', ', ') AS info FROM r_log"));
   if ($op == 'Gfld') return say(showTableQ($userSql));
-  if ($op == 'txs') return say(showTableQ('SELECT xid, type, payer, payee, amount, r, payerFor, payeeFor, payerTid, payeeTid FROM r_txs'));
+  if ($op == 'txs') return say(showTableQ('SELECT xid, type, state, payer, payee, amount, r, payerFor, payeeFor, payerTid, payeeTid FROM r_txs'));
+
   foreach (u\ray(R_SHOWABLE_TABLES) as $one) if ($op == $one) return say(showTableQ("r_$one"));
 //  list ($community) = explode('-', $community, 2); // get the absolute value of community
 //  if ($community) svar('myid', -$community); // make it the new current account
@@ -1484,8 +1487,8 @@ function formAdmin_submit($form, &$sta) {
  */
 function formTx($form, &$sta, $args = '') {
   if ($confirm = sureForm($sta)) return $confirm;
-  
   extract(u\just('who amount goods purpose scanned', $args));
+
   $type = $args === '' ? basename(current_path()) : basename(dirname(current_path())); // pay, charge, etc.
   $role = in_array($type, u\ray('charge fine')) ? 'payee' : 'payer';
   $incentive = in_array($type, u\ray('fine grant loan'));
@@ -2475,10 +2478,7 @@ EOF;
   }
   $sta['original_settings'] = compact('raws0', 'raws');
   
-  $help = t(<<<EOF
-    Connect individual rCredits participants to your account &mdash; either as owners, employees, or others, with limited or full access to the account. For employees and suppliers, say how much you typically pay them in 4 weeks. You do not have to be <a href="$base_url/help/virtual-payments">exact</a>.
-EOF
-  );
+  $help = t('Connect individual rCredits participants to your account &mdash; either as owners, employees, or others, with limited or full access to the account. For employees and suppliers, say how much you typically pay them in 4 weeks. You do not have to be <a>exact</a>.', array('<a>' => "<a href=\"$base_url/help/virtual-payments\">"));
   $subtext = '<span id="account-label">' . t('Current Account') . ":</span> <span id='account-identifiers'>$acctIdentifiers</span><br><br>$help";
 
   $attributes = array('id' => 'relations');
@@ -3135,10 +3135,12 @@ function formOptions($form, &$sta) {
   $mya = r\acct();
   $isSetUp = !is_null($mya->minimum); // user has already saved some options
   $title = item(t('Account Preferences'));
-  $virtualMaxMessage = $mya->can(B_COMPANY) ? t(' If you choose to make automatic "virtual" payments, your maximum is the same as your minimum and this setting has no effect.') : '';
+  $virtualMaxMessage = $mya->can(B_COMPANY) ? t(' If you choose to make automatic "virtual" payments, this setting is moot (irrelevant and unused).') : '';
 
   $minimum = textField(t('Minimum:'), tt('prompt min'), required(u\formatAmount($isSetUp ? $mya->minimum : R_MINR_DEFAULT, 's')));
-  $maximum = textField(t('Maximum:'), tt('prompt max') . $virtualMaxMessage, required(u\formatAmount($isSetUp ? $mya->maximum : R_MAXR_DEFAULT, 's')));
+  $maxDft = $isSetUp ? $mya->maximum : R_MAXR_DEFAULT;
+  $maxDft = $maxDft < 0 ? '' : u\formatAmount($maxDft, 's');
+  $maximum = textField(t('Maximum:'), tt('prompt max') . $virtualMaxMessage, dft($maxDft));
 //  $toBank = formField('checkbox', t('To bank:'), t('(recommended) Automatically transfer the excess to your bank account. [<a href="../help/to-bank">why ever not?</a>]'), dft($isSetUp ? $mya->can(B_TO_BANK) : TRUE));
   $noticeRadios = array(t('daily'), t('weekly'), t('monthly'));
   $dft = $mya->can(B_NOTICE_WEEKLY) ? 1 : ($mya->can(B_NOTICE_MONTHLY) ? 2 : 0);
@@ -3161,7 +3163,8 @@ EOF
   }
   $secretBal = formField('checkbox', t('Secret Balance:'), t("Don't let qualified merchants tell me my balance, when I ask."), $mya->hasBit(B_SECRET_BAL));
   // Double confirmation: by SMS, by email, either. require extra confirmation of crucial account changes
-  $debtOk = formField('checkbox', t('Debt Okay:'), tt('Allow my account balance to go negative, limited by my current "credit floor". I understand there will be a substantial fee (currently $@R_DEBT_FEE plus @R_DEBT_PERCENT% per month) if I fail to bring my balance back up to zero within @R_DEBT_DAYS days.'), $mya->hasBit(B_DEBT_OK));
+  $floor = u\formatAmount($mya->floor);
+  $debtOk = formField('checkbox', t('Debt Okay:'), tt('Allow my account balance to go negative, limited by my current "credit floor" (which starts at zero, then gets lower and lower as time goes by &mdash; currently @floor). I understand there will be a substantial fee (currently $@R_DEBT_FEE plus @R_DEBT_PERCENT% per month) if I fail to bring my balance back up to zero within @R_DEBT_DAYS days.', compact('floor')), $mya->hasBit(B_DEBT_OK));
   $submit = submit(t('Update options'));
   
   $form = compact(u\ray('title payVirtual minimum maximum smsNotices notices statements secretBal debtOk submit'));
@@ -3174,9 +3177,9 @@ function formOptions_validate($form, &$sta) {
   $floor = u\formatAmount($mya->floor);
   if ($err = amtErr('minimum', $sta)) return say($err, 'minimum');
   if ($err = amtErr('maximum', $sta)) return say($err, 'maximum');
-  extract(u\just('minimum maximum', $sta['input'])); // after amtErr checks
+  extract(u\just('minimum maximum payVirtual', $sta['input'])); // after amtErr checks
   if ($minimum < $mya->floor) say('bad minr', compact('floor'), 'minimum');
-  if ($maximum != 0 and ($maximum < min($minimum, $mya->rewards))) say('bad maxr', 'maximum');
+  if (!$payVirtual and $maximum >= 0 and ($maximum < min($minimum, $mya->rewards))) say('bad maxr', 'maximum');
 }
 
 function formOptions_submit($form, $sta) {
@@ -3193,6 +3196,8 @@ function formOptions_submit($form, $sta) {
   $mya->setBit(B_ELECTRONIC, @$statements, FALSE);
   $mya->setBit(B_DEBT_OK, @$debtOk, FALSE);
   $mya->setBit(B_SECRET_BAL, @$secretBal, FALSE);
+  
+  if ($payVirtual) $maximum = $minimum;
   $mya->update(compact(u\ray('minimum maximum'))); // flag bits get saved automatically
   if ($mya->can(B_OK)) return say('options saved');
   
