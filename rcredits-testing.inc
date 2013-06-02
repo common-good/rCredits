@@ -61,7 +61,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
     u\setDft($mail, ''); // Don't use "$name@example.com"
     u\setDft($community, r\serverUid());
     u\setDft($postalCode, '01301');
-    $moneyFields = 'share committed maximum floor r usd rewards'; // not minimum because NULL means not set, in Membership page
+    $moneyFields = 'share committed floor r usd rewards'; // not minimum because NULL means not set, in Membership page
     foreach (u\ray($moneyFields) as $one) u\setDft($$one, 0);
     $testFields = ' rebate fullName name pass mail community ' . $moneyFields;
   } else $testFields = '';
@@ -183,10 +183,17 @@ function makeRelation($info, $testOnly = FALSE) {
 function notice($notice, $id, $subs) {
   global $testOnly; if (!$testOnly) return FALSE;
   $uid = uid($id);
-  $message = u\tt($notice, @$subs[0]);
-  $sent = @$subs[0]['sent'] ?: 0;
+  if (is_array($subs = @$subs[0])) foreach ($subs as $key => $value) {
+    if (preg_match('/^\$(.*)(r|us)?$/U', $value, $matches)) {
+      list ($num, $currency) = array($matches[1], @$matches[2]);
+      if ($currency == 'us') $currency = 'u';
+      $subs[$key] = u\formatAmount($num, 's$' . $currency);
+    }
+  }
+  $message = u\tt($notice, @$subs);
+  $sent = @$subs['sent'] ?: 0;
   $info = compact(u\ray('uid message sent'));
-  return r\dbExists('r_notices', $info);
+  return r\dbExists('r_notices', $info) ?: t\testOutput('Expected notice ' . print_r($info, 1));
 }
   
 /**
@@ -195,10 +202,10 @@ function notice($notice, $id, $subs) {
  *   so a scenario cannot test r, usd, and rewards with "balances:" after setting them up this way.
  */
 function makeBalances($one, $testOnly) {
-  extract(u\just('id r usd rewards maximum minimum share committed', $one));
+  extract(u\just('id r usd rewards minimum share committed', $one));
   $a = r\acct($id = t\uid($id));
   if (!$testOnly) {
-    print_r($one);
+    if (!is_array($one)) echo 'makeBalances: ' . print_r($one, 1) . print_r(debug_backtrace(), 1);
     unset($one['id']);
     if (@$usd and !is_numeric($usd)) list ($one['usd']) = t\parseAmt($usd, $a);
     return ($a->update($one));
@@ -223,7 +230,7 @@ function makeBalances($one, $testOnly) {
 // (can't tell because it starts nonzero) if (!t\eq($calc->usd, $usd)) return t\testOutput('bad calc usd');
     if (t\badEq('cached usd', $a->usd, $usd, $id)) return FALSE;
   }
-  foreach (u\ray('minimum maximum share committed') as $one) {
+  foreach (u\ray('minimum share committed') as $one) {
     if (isset($$one)) if (t\badEq("db $one", $a->$one, $$one, $id)) return FALSE;
   }
   return TRUE;
@@ -641,7 +648,7 @@ function clear($ch) {
   global $sms_devel; $sms_devel = TRUE;
   r\dbQ('DELETE FROM users WHERE uid>:cgfUid OR (uid>1 AND uid<:cgfUid-1)', compact('cgfUid'));
   foreach (u\ray($files) as $one) r\dbQ("TRUNCATE $one");
-  r\dbQ('UPDATE users SET floor=0,minimum=NULL,maximum=-1,r=0,usd=0,rewards=0,committed=0');
+  r\dbQ('UPDATE users SET floor=0,minimum=NULL,r=0,usd=0,rewards=0,committed=0');
 
   r\acct::_clear(); // empty the acct cache
   \drupal_static_reset(); // clear out drupal central storage
@@ -673,10 +680,8 @@ function fixPageArgs($page) {
  */
 function parseAmt($var, $a) {
   u\EXPECT(!is_numeric($var), 'expected non-numeric var');
-
-  include_once __DIR__ . '/usd.class';
-  $usdAcct = new r\usd($a);
-  $bal = $usdAcct->bal();
+  
+  $bal = $a->actualUsd();
 
   if (($i = strpos($var, '+')) or ($i = strpos($var, '-'))) {
     $op = substr($var, $i, 1);

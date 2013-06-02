@@ -7,10 +7,10 @@ SO I can buy and sell stuff.
 
 Setup:
   Given members:
-  | id      | fullName   | address | city  | state  | postalCode | country | email         | flags           |
-  | NEW.ZZA | Abe One    | POB 1   | Atown | Alaska | 01000      | US      | a@example.com | dft,ok,personal |
-  | NEW.ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000      | US      | b@example.com | dft,ok,personal |
-  | NEW.ZZC | Corner Pub | POB 3   | Ctown | Cher   |            | France  | c@example.com | dft,ok,company  |
+  | id   | fullName   | address | city  | state  | postalCode | country | email         | flags           |
+  | .ZZA | Abe One    | POB 1   | Atown | Alaska | 01000      | US      | a@example.com | dft,ok,personal,bona |
+  | .ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000      | US      | b@example.com | dft,ok,personal,bona |
+  | .ZZC | Corner Pub | POB 3   | Ctown | Cher   |            | France  | c@example.com | dft,ok,company,bona  |
   And relations:
   | id      | main    | agent   | permission |
   | NEW:ZZA | NEW.ZZA | NEW.ZZB | buy        |

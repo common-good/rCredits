@@ -48,14 +48,10 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  * members: (ARG)
  *
  * in: Bank Setup MAKE
- *     Bank AMemberHasNoMaximum MAKE
- *     Bank AMemberPaysVirtually MAKE
- *     Bank AMemberIsOverPlentyOverMaximumButNotEnoughOverFloor MAKE
  *     Gifts Setup MAKE
  *     Notices Setup MAKE
  *     Pilot Setup BOTH
  *     Recache Setup MAKE
- *     Redistribute Setup MAKE
  *     Totals Setup MAKE
  *     VirtualPayments Setup MAKE
  */
@@ -68,24 +64,13 @@ function members($list) {return t\members($list);}
  * in: Bank AMemberIsBarelyBelowMinimum MAKE
  *     Bank AMemberIsAtMinimum MAKE
  *     Bank AMemberIsWellBelowMinimum MAKE
- *     Bank AMemberIsOverMaximum MAKE
- *     Bank AMemberIsBarelyOverMaximum MAKE
  *     Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank MAKE
  *     Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank MAKE
- *     Bank AMemberIsOverMaximumButAlreadyRequestedThatBarelyEnoughFundsGoToTheBank MAKE
- *     Bank AMemberIsOverMaximumAndHasRequestedInsufficientFundsToGoToTheBank MAKE
- *     Bank AMemberIsOverMaximumAndHasRequestedFundsFROMTheBank MAKE
- *     Bank AMemberHasNoMaximum MAKE
- *     Bank AMemberPaysVirtually MAKE
- *     Bank AMemberIsOverMaximumButMostlyInRCredits MAKE
- *     Bank AMemberIsOverPlentyOverMaximumButNotEnoughOverFloor MAKE
  *     Gifts Setup MAKE
  *     Pilot Setup BOTH
  *     Pilot All TEST
  *     Recache Setup TEST
  *     Recache BalancesGetOutOfWhack BOTH
- *     Redistribute AMemberHasTooMuchR MAKE
- *     Redistribute AMemberHasTooMuchRButTooFewBuyers MAKE
  *     Totals Setup TEST
  *     VirtualPayments AMemberCompanyPaysSuppliersVirtually MAKE
  *     VirtualPayments AMemberCompanyPaysEmployeesVirtually MAKE
@@ -98,24 +83,13 @@ function balances($list) {return t\balances($list);}
  * in: Bank AMemberIsBarelyBelowMinimum MAKE
  *     Bank AMemberIsAtMinimum MAKE
  *     Bank AMemberIsWellBelowMinimum MAKE
- *     Bank AMemberIsOverMaximum MAKE
- *     Bank AMemberIsBarelyOverMaximum MAKE
  *     Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank MAKE
  *     Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank MAKE
- *     Bank AMemberIsOverMaximumButAlreadyRequestedThatBarelyEnoughFundsGoToTheBank MAKE
- *     Bank AMemberIsOverMaximumAndHasRequestedInsufficientFundsToGoToTheBank MAKE
- *     Bank AMemberIsOverMaximumAndHasRequestedFundsFROMTheBank MAKE
- *     Bank AMemberHasNoMaximum MAKE
- *     Bank AMemberPaysVirtually MAKE
- *     Bank AMemberIsOverMaximumButMostlyInRCredits MAKE
- *     Bank AMemberIsOverPlentyOverMaximumButNotEnoughOverFloor MAKE
  *     Gifts AContributionCanBeCompleted MAKE
  *     Gifts ARecurringContributionCanBeCompleted MAKE
  *     Notices AMemberGetsSomeNotices MAKE
  *     Pilot All MAKE
  *     Recache BalancesGetOutOfWhack MAKE
- *     Redistribute AMemberHasTooMuchR MAKE
- *     Redistribute AMemberHasTooMuchRButTooFewBuyers MAKE
  *     Totals CronCalculatesTheTotals MAKE
  *     VirtualPayments AMemberCompanyPaysSuppliersVirtually MAKE
  *     VirtualPayments AMemberCompanyPaysEmployeesVirtually MAKE
@@ -134,15 +108,11 @@ function cronRuns($op) {
  *
  * in: Bank AMemberIsBarelyBelowMinimum TEST
  *     Bank AMemberIsWellBelowMinimum TEST
- *     Bank AMemberIsOverMaximum TEST
  *     Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank TEST
  *     Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank TEST
- *     Bank AMemberIsOverMaximumButAlreadyRequestedThatBarelyEnoughFundsGoToTheBank TEST
- *     Bank AMemberIsOverMaximumAndHasRequestedInsufficientFundsToGoToTheBank TEST
- *     Bank AMemberIsOverMaximumAndHasRequestedFundsFROMTheBank TEST
- *     Bank AMemberPaysVirtually TEST
- *     Bank AMemberIsOverMaximumButMostlyInRCredits TEST
  *     Pilot All TEST
+ *     VirtualPayments AMemberCompanyPaysSuppliersVirtually TEST
+ *     VirtualPayments AMemberCompanyPaysEmployeesVirtually TEST
  */
 function bankTransfers($tx) {
   global $testOnly; if(!$testOnly) return FALSE;
@@ -156,11 +126,7 @@ function bankTransfers($tx) {
  * bank transfer count is (ARG)
  *
  * in: Bank AMemberIsAtMinimum TEST
- *     Bank AMemberIsBarelyOverMaximum TEST
  *     Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank TEST
- *     Bank AMemberIsOverMaximumButAlreadyRequestedThatBarelyEnoughFundsGoToTheBank TEST
- *     Bank AMemberHasNoMaximum TEST
- *     Bank AMemberIsOverPlentyOverMaximumButNotEnoughOverFloor TEST
  */
 function bankTransferCountIs($count) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -185,8 +151,6 @@ function relations($relations) {return t\relations($relations);}
  *     Pilot Setup MAKE
  *     Pilot All TEST
  *     Recache Setup MAKE
- *     Redistribute AMemberHasTooMuchR TEST
- *     Redistribute AMemberHasTooMuchRButTooFewBuyers TEST
  *     Totals Setup MAKE
  *     VirtualPayments AMemberCompanyPaysSuppliersVirtually TEST
  *     VirtualPayments AMemberCompanyPaysEmployeesVirtually TEST
@@ -198,10 +162,8 @@ function transactions($list) {return t\transactions($list);}
  *
  * in: Bank AMemberIsBarelyBelowMinimum TEST
  *     Bank AMemberIsWellBelowMinimum TEST
- *     Bank AMemberIsOverMaximum TEST
  *     Gifts AContributionCanBeCompleted TEST
  *     Gifts ARecurringContributionCanBeCompleted TEST
- *     Redistribute AMemberHasTooMuchRButTooFewBuyers TEST
  *     VirtualPayments AMemberCompanyPaysSuppliersVirtually TEST
  *     VirtualPayments AMemberCompanyPaysEmployeesVirtually TEST
  */
@@ -221,7 +183,6 @@ function gifts($gifts) {return t\gifts($gifts);}
  *
  * in: Gifts AContributionCanBeCompleted TEST
  *     Gifts ARecurringContributionCanBeCompleted TEST
- *     Redistribute AMemberHasTooMuchRButTooFewBuyers TEST
  */
 function weTellStaffWithSubs($topic, $subs) {return t\weTellStaff($topic, $subs);}
 
@@ -273,7 +234,7 @@ function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, 
 /**
  * notice count is (ARG)
  *
- * in: Redistribute AMemberHasTooMuchR TEST
+ * in: 
  */
 function noticeCountIs($count) {
   return (r\dbLookup('COUNT(*)', 'r_notices') == $count);

@@ -15,7 +15,7 @@ Setup:
 Scenario: a member has too much r
   Given balances:
   | id   | r                | usd | rewards |
-  | .ZZA | %(201 + %chunk3) |  20 |      20 |
+  | .ZZA | %(201 + %chunk3) |   0 |      20 |
   | .ZZB |                5 | 120 |      20 |
   | .ZZC |                5 |  60 |      20 |
   | .ZZD |                0 |   0 |       0 |
@@ -26,14 +26,20 @@ Scenario: a member has too much r
   | .AAAC | transfer | done  |      0 | %chunk  | ctty | .ZZC | rCredits/USD exchange |
   | .AAAD | transfer | done  |      0 | %chunk  | ctty | .ZZB | rCredits/USD exchange |
   | .AAAE | transfer | done  |      0 | %chunk3 | .ZZA | ctty | rCredits/USD exchange |
+  And bank transfers:
+  | payer | payee | amount         |
+  | .ZZC  |  .ZZA |         %chunk |
+  | .ZZB  |  .ZZA |         %chunk |
+  | .ZZC  |  .ZZA |         %chunk |
   And notice count is 0
   
 Scenario: a member has too much r but too few buyers
   Given balances:
-  | id   | r                | usd | rewards |
-  | .ZZA | %(201 + %chunk3) |  20 |      20 |
-  | .ZZB | %(100 - %chunk2) | 120 |      20 |
-  | .ZZC |              100 |  60 |      20 |
+  | id   | r                | usd     | rewards |
+  | .ZZA | %(201 + %chunk3) |       0 |      20 |
+  | .ZZB | %(100 - %chunk2) | %chunk2 |      20 |
+  | .ZZC |              100 |     160 |      20 |
+  | .ZZD |                0 |       0 |      20 |
   When cron runs "redistribute"
   Then transactions:
   | xid   | type     | state | amount | r       | from | to   | purpose               |

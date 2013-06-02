@@ -13,9 +13,9 @@ SO I don't lose money or get confused.
 
 Setup:
   Given members:
-  | id      | fullName   | dwolla          | country | email         | flags           |
-  | NEW.ZZA | Abe One    | %DW_TESTER_ACCT | US      | a@example.com | dft,ok,personal |
-  | NEW.ZZB | Bea Two    | %DW_TEST_ACCT   | US      | b@example.com | dft,ok,personal |
+  | id      | fullName   | dwolla          | country | email         | flags                |
+  | NEW.ZZA | Abe One    | %DW_TESTER_ACCT | US      | a@example.com | dft,ok,personal,bona |
+  | NEW.ZZB | Bea Two    | %DW_TEST_ACCT   | US      | b@example.com | dft,ok,personal,bona |
   And transactions: 
   | xid      | created   | type       | amount | from      | to      | purpose | taking |
   | NEW.AAAB | %today-6m | %TX_SIGNUP |     10 | community | NEW.ZZA | signup  | 0      |

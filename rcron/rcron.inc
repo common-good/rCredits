@@ -10,12 +10,12 @@ DAILY (every 5 mins for 5 mins, starting at 2am)
 - * usdTxs() rollback lost USD transactions, mark completed deposits/withdrawals
 - ** recache() check / recalc cached r, rewards, and usd
 - [later] checkAccts() thorough security / scam checks
-- [later] * totals() get community and system totals: variable_set('totals', )
+- ** totals() get community and system totals: variable_set('totals', )
 - ** paySuppliers(): automatic virtual payments to suppliers
-- ** payEmployees(): Each employee gets relieved of their excess rCredits immediately if they are over their "maximum" after getting paid.
+- ** payEmployees(): Each employee (and supplier) gets relieved of their excess rCredits immediately if they don't have enough USD to trade the employer for them.
 - ** gifts(): contributions to CGF (not shares)
-- * redistribute(): (selling of unwanted rCredits) looks at accounts over their maximum (maximum is ignored for companies that pay virtually)
-- ** bank(): automatic transfers to/from bank accounts
+- NO! * redistribute(): (selling of unwanted rCredits) looks at accounts over their maximum (maximum is ignored for companies that pay virtually)
+- ** bank(): automatic transfers from bank accounts
 - (later) calculate credit line (for overdrafts, Dwolla outage (eg 503), etc.): give the payer (r)credit up to the amount they earned or bought in the past 5 days if they have been a member for a month, 30 days for 6 months
 - [later] notify and maybe fine late borrowers (might figure interest at the same time, since it requires examining each balance -- but only actually credit the interest monthly, otherwise discard it)
 - [later] things to do 30/60/90 (etc) days after opening account:
@@ -51,7 +51,7 @@ use rCredits\Backend as be;
 
 include_once __DIR__ . '/../usd.class';
 
-define('R_DAILY_TASKS', 'START usdTxs recache checkAccts totals paySuppliers payEmployees gifts redistribute bank lessOften notices END');
+define('R_DAILY_TASKS', 'START usdTxs recache checkAccts totals paySuppliers payEmployees gifts bank lessOften notices END');
 //define ('R_DAILY_TASKS', 'START redistribute END');
 
 /**
@@ -153,7 +153,7 @@ function bankFollowup($info) {
  * Also give signup bonus, if appropriate.
  */
 function recache() {
-  $fields = 'uid, r, usd, rewards, maximum, minimum, floor';
+  $fields = 'uid, r, usd, rewards, minimum, floor';
   queueEach('recache1', "SELECT $fields FROM users WHERE uid>0 AND :IS_OK"); // make this IS_MEMBER if early gift
   queueNextAfter('recache');
 }
@@ -172,17 +172,15 @@ function recache1($item) {
     $minimum = $floor;
   }
   
-  if ($maximum > 0 and $maximum < max($rewards, $minimum)) { // >0 required
+  /*if ($maximum > 0 and $maximum < max($rewards, $minimum)) { // >0 required
     r\tellStaff('corrupt minmax', $item);
     $maximum = max($rewards, $minimum);
-  }
+  }*/
 
-  $usAcct = new r\usd($acct = r\acct($uid));
-  $usdActual = $usAcct->bal($err);
+  $acct = r\acct($uid);
 
   $DBTX = \db_transaction();
-  if (t\EST()) {global $sceneTest; $scene = (object) $sceneTest->getInfo();}
-  if (!$err and (!t\EST() or $scene->short_name == 'Recache')) $usd = $usdActual;
+  $usd = $acct->actualUsd();
   $acct->update(compact(array_keys($item)));
   r\membershipEvent($acct, 'bona', $usd > 0); // this works for testing too
   unset($DBTX);
@@ -192,7 +190,7 @@ function recache1($item) {
  * Check accounts for consistency, scams, whatever.
  */
 function checkAccts() {
-  queueEach('checkAcct', "SELECT uid, maximum, minimum, rewards FROM users WHERE uid>0 AND :IS_OK"); //IS_MEMBER?
+  queueEach('checkAcct', "SELECT uid, minimum, rewards FROM users WHERE uid>0 AND :IS_OK"); //IS_MEMBER?
   queueNextAfter('checkAccts');
 }
 
@@ -297,19 +295,18 @@ function virtualPayment($item) {
   $usAcct1 = new r\usd($acct1 = r\acct($main)); // from
   $usAcct2 = new r\usd($acct2 = r\acct($other)); // to
   
-  // if recipient is also an employer that pays people virtually, no maximum
-  $max2 = $acct2->hasBit(B_VIRTUAL) ? 0 : $acct2->maximum;
+  //$max2 = $acct2->hasBit(B_VIRTUAL) ? 0 : $acct2->maximum;
   $newR = $acct2->r + $offer; // what $acct2 r balance will be after the offer is received
-  $excess = round(max(0, $max2 > 0 ? ($newR - $max2) : 0, $offer - $acct2->usd), 2); // r excess or USD shortfall (= r to exchange for USD in a 3-way trade)
+  $excess = round(max(0, $offer - $acct2->usd), 2); // USD shortfall = r to exchange for USD in a 3-way trade
   r\usd::beginAtom();
-  $traded = $excess ? getUsd($excess, $acct2, $usAcct1) : 0; // give company partial USD through rCredits sale to 3rd party
-//debug(compact(u\ray('main other offer max2 newR excess traded')));
+  $traded = $excess ? r\getUsd($excess, $acct2, $usAcct1) : 0; // give company partial USD through rCredits sale to 3rd party
+//debug(compact(u\ray('main other offer newR excess traded')));
   if ($traded >= $excess and ($offer == $traded or $txid = $usAcct2->send($offer - $traded, $usAcct1, 'virtual payment exchange'))) { // other partially pays main in USD if not totally left to 3rd parties
     $info = u\assoc('amount r payer payee for goods usdXid', 0, $offer, $main, $other, t('virtual payment'), TRUE, @$txid);
     r\transact($info); // total rCredits from company to other
     $amount = u\formatAmount($offer, 's$r');
     $fullName = $acct1->fullName;
-    $bonus = u\formatAmount(r\bonus($other, $offer), '$');
+    $bonus = u\formatAmount(r\bonus($other, $offer));
     r\notify($other, 'virtual payment received', compact(u\ray('amount fullName bonus')));
     r\usd::commit();
   } else {
@@ -334,6 +331,7 @@ function gifts() {
  */
 function gift1($item) {r\acceptGift($item);}
 
+/*
 function redistribute() {
   $excess = ':R_CHUNK*FLOOR((:R_EXCESS-usd)/:R_CHUNK)';
   $sql = "SELECT uid, $excess AS excess FROM users WHERE $excess>0 AND NOT :IS_VIRTUAL AND uid>0 AND :IS_OK";
@@ -344,27 +342,27 @@ function redistribute() {
 function sellR($item) {
   extract(u\just('uid excess', $item));
   $usAcct = new r\usd($acct = r\acct($uid));
-  if (!$got = getUsd($excess, $acct, $usAcct) or $got < $excess) r\notify($uid, 'cannot offload');
-}
+  if (!$got = r\getUsd($excess, $acct, $usAcct) or $got < $excess) r\notify($uid, 'cannot offload');
+}*/
 
 /**
  * Transfer funds from Dwolla to bank account or vice versa, according to account's settings
  */
 function bank() {
-  $excess = 'LEAST(usd, :R_EXCESS)';
+//  $excess = 'LEAST(usd, :R_EXCESS)';
   $sql = <<<EOF
-  SELECT uid, $excess AS excess, :R_SHORTFALL AS shortfall
+  SELECT uid, :R_SHORTFALL AS shortfall
   FROM users 
-  WHERE ($excess>=:R_BANK_MIN OR :R_SHORTFALL>0)
-    AND uid>0 AND :IS_OK
+  WHERE :R_SHORTFALL>0 AND uid>0 AND :IS_OK
 EOF;
   queueEach('bank1', $sql);
   queueNextAfter('bank');
 }
 
 function bank1($item) {
-  extract(u\just('uid excess shortfall', $item));
-  if ($excess > 0 and $shortfall > 0) return r\tellStaff('min > max', $item, $uid); // should never happen
+  extract(u\just('uid shortfall', $item));
+  $excess = 0;
+//  if ($excess > 0 and $shortfall > 0) return r\tellStaff('min > max', $item, $uid); // should never happen
   $acct = r\acct($uid);
   if (!$amount = toBank($excess > 0 ? $excess : -$shortfall, $acct)) return;
   $action = $excess > 0 ? 'deposit to' : 'draw from';
@@ -385,17 +383,17 @@ function bank1($item) {
  */
 function toBank($amount, $acct) {
   $waiting = $acct->waitingToBank(); // amount already requested (if any)
-  if ($waiting * $amount < 0) { // flip flop -- user could choose better settings (but continue anyway)
+/*  if ($waiting * $amount < 0) { // flip flop -- user could choose better settings (but continue anyway)
     $suggestion = u\formatAmount(round($acct->minimum + max($acct->minimum * .2, 50, abs($amount), abs($waiting)), -1));
     r\suggest($acct, 'min too low', compact('suggestion'));
-  }
-  debug(compact('amount','waiting'));
+  } */
   $amount -= $waiting;
-  if ($amount > 0) { // excess
+  return $amount < 0 ? min($amount, -R_BANK_MIN) : 0;
+/*  if ($amount > 0) { // excess
     return $amount >= R_BANK_MIN ? $amount : 0;
   } elseif ($amount < 0) { // shortfall
     return min($amount, -R_BANK_MIN);
-  } else return 0;
+  } else return 0; */
 }
 
 /**
@@ -424,69 +422,6 @@ function notice($item) {
     r\notify($uid, 'notices', compact(u\ray('messages unit range yestertime')), TRUE);
     r\dbQ('UPDATE r_notices SET sent=:REQUEST_TIME WHERE uid=:uid AND NOT sent', compact('uid'));
   }
-}
-
-/**
- * Trade some rCredits for USD, from somebody. 
- * The rCredits always travel by way of the community.
- * @param float $request: how much to try to get
- * @param acct $acct: rCredits account that is trading rCredits to third parties
- * @param usd $usAcct: USD account that is receiving USD from the third parties (might be different owner from $acct)
- * @return how much USD we actually delivered
- */
-function getUsd($request, $acct, $usAcct) {
-  $need = $request;
-  $threeway = ($acct->id != $usAcct->acct->id);
-  r\usd::beginAtom();
-  while ($need > 0) {
-    $part = $need;
-    if (!$acct3 = nextRBuyer($part, $acct->id)) break; // asks for what we need, returns the part we got in $part
-    u\EXPECT($part > 0, 'got nothing');
-    $usAcct3 = new r\usd($acct3); // "third party" Dwolla account
-    r\usd::beginAtom();
-    if ($txid = $usAcct3->send($part, $usAcct)) { // $part NOT R_CHUNK
-      r\exchange($part, $acct->community, $acct3->id, $txid); // use first party's community as go-between
-      r\usd::commit();
-      $need = round($need - $part, 2);
-    } else r\usd::rollback();
-  }
-  if ($got = round($request - $need, 2)) r\exchange($got, $acct->id, $acct->community, $txid);
-  r\usd::commit($got); // accept partial success
-  return $got;
-}
-
-/**
- * Return the uid of the next account in line wanting/willing and able to trade enough US Dollars for rCredits.
- * If you trade rCredits for USD or vice versa, you go to the end of the line.
- * @param float $amount: the amount we're looking for. Returned with the amount actually available from the returned account. The amount sought depends on the $amount passed as follows:
- *   $amount < R_CHUNK*1.5 -- seek $amount
- *   otherwise -- seek R_CHUNK (leaving R_CHUNK/2 or more for other buyers
- * return: the best account to handle the trade (there may be none that wants so many rCredits)
- *    if no account wants to buy any, return FALSE (this would be really bad and should never ever happen)
- *    NOTE that CGF is the buyer of last resort.
- */
-function nextRBuyer(&$amount, $except) {
-  if ($amount > R_CHUNK * 1.5) $amount = R_CHUNK;
-//  $offer = 'LEAST(u.minimum-u.r, u.usd)'; // how much they want or how much they can buy, whichever is less
-  // offer is how much they want (up to their max) or how much they can buy, whichever is less
-  $offer = R_CAPACITY;
-  $sql = <<<EOF
-    SELECT u.uid, $offer AS got, u.name FROM users u
-    LEFT JOIN r_txs t ON t.payee=u.uid
-    WHERE ($offer>0 AND u.uid>0 AND u.uid<>:except AND :IS_OK)
-      AND ((t.type=:TX_TRANSFER AND NOT t.goods) OR t.xid IS NULL)
-    ORDER BY (u.name='cgf'), ($offer>=:amount) DESC, (u.r+$offer<=u.minimum) DESC, t.completed LIMIT 1
-EOF;
-  // preferred: not CGF, offering enough, definitely wanting that many, longest ago previous exchange
-  if (!$row = r\dbQ($sql, compact('amount', 'except'))->fetchAssoc()) { // find out who (preferably who who wants enough) has waited the longest
-    r\tellStaff('no buyers', compact('amount')); // this is a really bad thing (nobody wants any at all)
-    return FALSE;
-  }
-
-  extract($row); // uid, got, and name
-  if ($name =='cgf') r\tellStaff('cgf sole buyer', compact('amount'));
-  $amount = min($amount, round($got, 2)); // take what we could get
-  return r\acct($uid);
 }
 
 /**

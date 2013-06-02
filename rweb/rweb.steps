@@ -601,7 +601,7 @@ function memberHasDoneStep($uid, $step) {
   global $testOnly; if ($testOnly) return FALSE;
   $a = r\acct($uid = t\uid($uid));
 
-  if ($step == 'photo') return file_put_contents(DRUPAL_ROOT . $a->auxFilename('picture'), 'whatever');
+  if ($step == 'photo') return file_put_contents(DRUPAL_ROOT . $a->auxFilename('picture', TRUE), 'whatever');
   if ($step == 'agreement') return $a->update(u\assoc('signed', REQUEST_TIME));
   if ($step == 'contribution') return r\dbInsert('r_gifts', u\assoc('uid amount', $uid, 123));
   if ($step == 'proxies') return r\dbQ('INSERT INTO r_proxies (person, proxy) VALUES (:uid, 2),(:uid, 3)', compact('uid'));
@@ -614,7 +614,7 @@ function memberHasDoneStep($uid, $step) {
   if ($step == 'proof') {
     list ($dob, $federalId) = array(REQUEST_TIME - DAY_SECS*365*40, 123456789);
     $a->update(compact('dob', 'federalId'));
-    return file_put_contents(DRUPAL_ROOT . $a->auxFilename('proof'), 'whatever') and $a->dob and $a->federalId;
+    return file_put_contents(DRUPAL_ROOT . $a->auxFilename('proof', TRUE), 'whatever') and $a->dob and $a->federalId;
   }
   if ($step == 'preferences') return $a->update(u\assoc('minimum', 0));
   if ($step == 'invitation') return r\dbInsert('r_invites', u\assoc('inviter email code', $uid, 'any@example.com', 'whatever'));

@@ -124,9 +124,8 @@ function myTransactions($starting, $ending, $id = NULL, $opts = array()) {
   if (!$bonuses) $commonCriteria .= ' AND t.type NOT IN (:TX_REBATE, :TX_BONUS)';
   if (!$exchanges) $commonCriteria .= ' AND t.amount > 0';
   $commonCriteria .= ' ORDER BY t.xid DESC';
-  $states = array();
-  if ($dones) $states += array(TX_DONE, TX_DISPUTED);
-  if ($pendings) $states += array(TX_PENDING);
+  $states = $dones ? array(TX_DONE, TX_DISPUTED) : array();
+  if ($pendings) $states[] = TX_PENDING;
   $states = 't.state IN (' . join(',', $states) . ')';
   
   if ($id < 0) { // community or region
@@ -499,7 +498,7 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
     $payerFee = R_FEE_FOR_CASH ? (!$goods) : FALSE; // cash-getter pays the transaction fee
     if ($state = TX_DONE and $usd > 0 and !$usdXid = $fromUsAcct->send($usd, $toUsAcct, $for, $payerFee)) {
       r\usd::rollback();
-      r\updateUsdCache($fromAcct); // didn't have the funds we thought. fix it.
+      $fromAcct->actualUsd(); // fix cached USD, if needed (after rollback of course)
       return array('usd failed', array(), FALSE);
     }
     $txs = r\transact($txArgs + compact('usdXid'));

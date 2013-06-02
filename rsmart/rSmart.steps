@@ -208,7 +208,7 @@ function memberHasPicture($id, $picture) {
  */
 function weRespondToMemberWithPicture($id, $picture) {
   global $testOnly;
-  $message = bin2hex(substr(r\acct(t\uid($id))->auxFilename(), 0, 50));
+  $message = bin2hex(substr(r\acct(t\uid($id))->auxFilename('picture'), 0, 50));
   return t\findMessage('out', compact('message'));
 }
 

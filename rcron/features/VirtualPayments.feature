@@ -6,12 +6,12 @@ and SO I don't build up a pile of credit I can't use yet.
 
 Setup:
   Given members:
-  | id   | fullName   | email         |floor | minimum | maximum | flags                        |
-  | .ZZA | Abe One    | a@example.com |    0 |      20 |     100 | dft,personal,ok,bona         |
-  | .ZZB | Bea Two    | b@example.com |    0 |     100 |     200 | dft,personal,company,ok,bona |
-  | .ZZC | Corner Pub | c@example.com |    0 |      10 |      10 | dft,company,virtual,ok,bona  |
-  | .ZZD | Dee Four   | d@example.com |    0 |     100 |     100 | dft,personal,ok,bona         |
-  | .ZZE | Ezra Five  | e@example.com |    0 |     200 |      -1 | dft,personal,member          |
+  | id   | fullName   | email         |floor | flags                        |
+  | .ZZA | Abe One    | a@example.com |    0 | dft,personal,ok,bona         |
+  | .ZZB | Bea Two    | b@example.com |    0 | dft,personal,company,ok,bona |
+  | .ZZC | Corner Pub | c@example.com |    0 | dft,company,virtual,ok,bona  |
+  | .ZZD | Dee Four   | d@example.com |    0 | dft,personal,ok,bona         |
+  | .ZZE | Ezra Five  | e@example.com |    0 | dft,personal,member          |
   And relations:
   | id      | main | agent | employerOk | permission | amount |
   | NEW:ZZA | .ZZC | .ZZA  |          1 | sell       |   1800 |
@@ -21,35 +21,39 @@ Setup:
   
 Scenario: a member company pays suppliers virtually
   Given balances:
-  | id   | r  | usd | rewards |
-  | .ZZA | 10 |  40 |       5 |
-  | .ZZB | 60 |   0 |      20 |
-  | .ZZC | 50 |   0 |      20 |
-  | .ZZD |  0 | 100 |      20 |
-  | .ZZE |  5 | 500 |       5 |
+  | id   | r                 | usd | rewards | minimum |
+  | .ZZA |                10 |  40 |       5 |     100 |
+  | .ZZB |                60 |   0 |      20 |     100 |
+  | .ZZC | %(12 + 10*%chunk) |   0 |      20 |      12 |
+  | .ZZD |                 0 | 100 |      20 |     100 |
+  | .ZZE |                 5 | 500 |       5 |     200 |
   When cron runs "paySuppliers"
   Then transactions:
-  | xid   | created | type     | state | amount | r    | from | to   | purpose               |
-  | .AAAB | %today  | transfer | done  |      0 |    4 | ctty | .ZZA | rCredits/USD exchange |
-  | .AAAC | %today  | transfer | done  |      0 |    4 | .ZZB | ctty | rCredits/USD exchange |
-  | .AAAD | %today  | transfer | done  |      0 |    4 | .ZZC | .ZZB | virtual payment       |
-  | .AAAE | %today  | rebate   | done  |   0.20 | 0.20 | ctty | .ZZC | rebate on #1          |
-  | .AAAF | %today  | bonus    | done  |   0.40 | 0.40 | ctty | .ZZB | bonus on #2           |
+  | xid   | created | type     | state | amount        | r             | from | to   | purpose               |
+  | .AAAB | %today  | transfer | done  |             0 |        %chunk | ctty | .ZZA | rCredits/USD exchange |
+  | .AAAC | %today  | transfer | done  |             0 |        %chunk | .ZZB | ctty | rCredits/USD exchange |
+  | .AAAD | %today  | transfer | done  |             0 |        %chunk | .ZZC | .ZZB | virtual payment       |
+  | .AAAE | %today  | rebate   | done  | %(.05*%chunk) | %(.05*%chunk) | ctty | .ZZC | rebate on #1          |
+  | .AAAF | %today  | bonus    | done  | %(.10*%chunk) | %(.10*%chunk) | ctty | .ZZB | bonus on #2           |
+  And bank transfers:
+  | payer | payee | amount |
+  | .ZZA  |  .ZZC | %chunk |
+  | .ZZB  |  .ZZC | %chunk |
   And we notice "virtual payments offered" to member ".ZZC" with subs:
-  | offers | total | whom      |
-  |      1 |   $4r | suppliers |
+  | offers | total       | whom      |
+  |      1 | $%(%chunk)r | suppliers |
   And we notice "virtual payment received" to member ".ZZB" with subs:
-  | amount | fullName   | bonus |
-  |    $4r | Corner Pub | $0.40 |
+  | amount      | fullName   | bonus          |
+  | $%(%chunk)r | Corner Pub | $%(.10*%chunk) |
 
 Scenario: a member company pays employees virtually
   Given balances:
-  | id   | r               | usd | rewards | minimum | maximum |
-  | .ZZA | %(21 - %chunk)  | 100 |       5 |      10 |      10 |
-  | .ZZB | 60              |   0 |      20 |     100 |     200 |
-  | .ZZC | %(10 + %chunk4) |   0 |      20 |      10 |      10 |
-  | .ZZD |  0              | 100 |      20 |     100 |     150 |
-  | .ZZE |  5              | 500 |       5 |     200 |      -1 |
+  | id   | r               | usd           | rewards | minimum |
+  | .ZZA |             200 | %(%chunk - 1) |       5 |      10 |
+  | .ZZB |              60 |             0 |      20 |     100 |
+  | .ZZC | %(10 + %chunk4) |             0 |      20 |      10 |
+  | .ZZD |               0 |           100 |      20 |     100 |
+  | .ZZE |               5 |           500 |       5 |     200 |
   # %chunk4 is 4 * %chunk
   When cron runs "payEmployees"
   Then transactions:
@@ -61,9 +65,15 @@ Scenario: a member company pays employees virtually
   | .AAAF | %today  | transfer | done  |              0 | %chunk4        | .ZZC | .ZZA | virtual payment       |
   | .AAAG | %today  | rebate   | done  | %(.05*%chunk4) | %(.05*%chunk4) | ctty | .ZZC | rebate on #1          |
   | .AAAH | %today  | bonus    | done  | %(.10*%chunk4) | %(.10*%chunk4) | ctty | .ZZA | bonus on #2           |
+  And bank transfers:
+  | payer | payee | amount        |
+  | .ZZD  |  .ZZC |        %chunk |
+  | .ZZD  |  .ZZC |        %chunk |
+  | .ZZD  |  .ZZC | %(%chunk + 1) |
+  | .ZZA  |  .ZZC | %(%chunk - 1) |
   And we notice "virtual payments offered" to member ".ZZC" with subs:
   | offers | total        | whom      |
   |      1 | $%(%chunk4)r | employees |
   And we notice "virtual payment received" to member ".ZZA" with subs:
-  | amount       | fullName   | bonus              |
-  | $%(%chunk4)r | Corner Pub | $%(.10*%chunk4).00 |
+  | amount       | fullName   | bonus           |
+  | $%(%chunk4)r | Corner Pub | $%(.10*%chunk4) |

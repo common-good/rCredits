@@ -47,7 +47,7 @@ function tableDefs($schema = array()) {
     'rebate' => setupField('current rebate percentage (sales bonus is double)', 'numeric 4,3', 5),
     'floor' => setupField('how low can balance go (normally zero or less)', 'numeric 11,2', R_FLOOR),
     'minimum' => setupField('chosen minimum balance (savings + 3 days, fill automatically)', 'numeric 11,2', NULL), // NULL means preferences not set yet
-    'maximum' => setupField('maximum rCredits balance (send excess to bank), 0=none)', 'numeric 11,2', -1), // -1 means no limit
+//    'maximum' => setupField('maximum rCredits balance (send excess to bank), 0=none)', 'numeric 11,2', -1), // -1 means no limit
     'share' => setupField('percentage of rebates/bonuses to contribute to CGF', 'numeric 6,3', NULL),
     'usd' => setupField('balance in related USD account (probable)', 'numeric 11,2', 0),
     'r' => setupField('rCredits balance, including rewards (cached)', 'numeric 11,2', 0),

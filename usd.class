@@ -130,6 +130,8 @@ class usd {
     u\EXPECT(is_object($this->acct) and is_object($other->acct), 'empty account');
     u\EXPECT($this->acct->hasBit(B_OK) and $other->acct->hasBit(B_OK), 'non rTraders in usd send');
 
+    if ($this->acct->usd < $amount or is_null($this->number)) return dwError('not enough');
+
     $source = $direct ? 'Dwolla' : 'ERROR'; // no delayed payments at present
     $notes = USD_NOTE_PREFIX . $notes;
     $dw = $this->dwolla();
@@ -184,7 +186,7 @@ array (
     if (useDwolla())
     if (!@$source['Verified']) return dwError('not verified', $error);
     
-    $function = $amount < 0 ? 'deposit' : 'withdraw';
+    $function = $amount < 0 ? 'deposit' : 'withdraw'; // seems backwards (it's from Dwolla perspective)
 // debug("Transferring USD $amount from Dwolla account to the bank for account uid=" . $this->acct->id);
     self::beginAtom();
     if (useDwolla())
@@ -196,6 +198,7 @@ array (
     $txid = $result['Id'];
     self::addToAtom($txid, $amount, $this->acct->id, 0, 0);
     self::commit();
+    if ($amount > 0) $this->acct->actualUsd(); // treat the money as already gone, if depositing in bank
     return $txid;
   }
 
@@ -319,10 +322,10 @@ array (
         // failure (probably insufficient Dwolla balance).
         $info = u\assoc('payer payee amount for taking', $payee, $payer, $amount, $notes, FALSE);
         r\transact($info); // reverse it in rCredits instead (this should not have USD txid though)
-        if ($amount > DWOLLA_FEE_THRESHOLD) be\fund($payerFee ? $payer : $payee, TX_GRANT, DWOLLA_FEE, $grantNote);
+        if ($amount > DW_FEE_THRESHOLD) be\fund($payerFee ? $payer : $payee, TX_GRANT, DW_FEE, $grantNote);
       } else {
         self::addToAtom($txid, $amount, $payee, $payer);
-        if ($amount > DWOLLA_FEE_THRESHOLD) foreach (array($payer, $payee) as $one) be\fund($one, TX_GRANT, DWOLLA_FEE, $grantNote);
+        if ($amount > DW_FEE_THRESHOLD) foreach (array($payer, $payee) as $one) be\fund($one, TX_GRANT, DW_FEE, $grantNote);
       }
       self::commit();
     }

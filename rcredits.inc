@@ -49,7 +49,7 @@ define('R_URL_SLASH', '%_%'); // Drupal gets confused by slashes in a url, even 
 define('R_MAX_DAILY_EXCHANGE', 1000); // per Common Good Finance policy and to avoid formal FinCEN regulation
 define('R_INVITE_DAYS', 7); // number of days to accept invitation to membership
 define('R_MINR_DEFAULT', 200); // suggested minimum amount to hold in rCredits
-define('R_MAXR_DEFAULT', 0); // suggested maximum amount to hold in rCredits
+//define('R_MAXR_DEFAULT', -1); // suggested maximum amount to hold in rCredits (-1 = no limit)
 define('R_CARDCODE_LEN', 20); // length of rCard security code (long to deter easy copying)
 define('R_CARD_COST', 5); // cost to order a company or replacement rCard
 define('R_FREEZE_TIME', FALSE); // how long to freeze newly bought rCredits (was '2 weeks')
@@ -66,13 +66,13 @@ define('R_BUYS_BEFORE_BONUS', MINI_LAUNCH ? 1 : 3); // number of purchases requi
 define('R_REGION_MAX', isDEV ? 46000 : 3000000000); // maximum uids in a region (46k,3T ~sqrt(PHP_INT_MAX))
 define('R_ACCT_REGION', '(-FLOOR((uid-1)/' . R_REGION_MAX . ')-1)'); // SQL region expression
 define('R_CTTY_UID0', -R_REGION_MAX); // community uids are less than this (farther from zero)
-define('R_DWOLLA_LINK', 'http://refer.dwolla.com/a/clk/3bf8cy'); // (credits CGF for referral)
+define('R_DW_LINK', 'http://refer.dwolla.com/a/clk/3bf8cy'); // (credits CGF for referral)
 define('R_SIGNIN_HOURS', 24); // window for signing in after registering or resetting password
 
 define('DW_TEST_ACCT', '8127139234'); // "reflector" account totally reimburses anything under $10
 define('DW_TESTER_ACCT', '8124486052');
-define('DWOLLA_FEE_THRESHOLD', 10); // over this amount, Dwolla charges a fee
-define('DWOLLA_FEE', .25); // the fee
+define('DW_FEE_THRESHOLD', 10); // over this amount, Dwolla charges a fee
+define('DW_FEE', .25); // the fee
 
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
@@ -138,10 +138,11 @@ define('B_DFT', 0 | 0); // set what bits when creating a new account
 define('B_ADMINABLE', 'personal company member ctty_admin closed'); // for cttyAdmin to set
 define('B_LIST', 'member ready ok bona u4 person company u7 charge u9 virtu u11 payroll weekly monthly u15 sms electro secret bank debt draws u22 u23 u24 u25 u26 u27 u28 cadmin admin closed');
 
-define('R_EXCESS', 'IF(maximum<0, 0, GREATEST(0, r+usd-GREATEST(floor, maximum, minimum, rewards+committed)))'); // sql for excess in account (for redistribution or employee offloading -- NOT for company virtual payments)
+//define('R_EXCESS', 'IF(maximum<0, 0, GREATEST(0, r+usd-GREATEST(floor, maximum, minimum, rewards+committed)))'); // sql for excess in account (for redistribution or employee offloading -- NOT for company virtual payments)
 define('R_SHORTFALL', 'GREATEST(0, minimum-(r+usd))'); // sql for shortfall in account (to draw in)
 define('R_DEMAND', 'LEAST(u.usd, u.minimum-u.r)'); // definitely wants this many rCredits (sometimes negative)
-define('R_CAPACITY', 'IF(u.maximum<0, u.usd, LEAST(u.usd, GREATEST(0, u.maximum-(u.r+u.usd))))'); // will buy
+//define('R_CAPACITY', 'IF(u.maximum<0, u.usd, LEAST(u.usd, GREATEST(0, u.maximum-(u.r+u.usd))))'); // will buy
+define('R_CAPACITY', 'IF(flags&(1<<' . B_VIRTUAL . '), LEAST(u.usd, GREATEST(0, u.minimum-(u.r+u.usd))), u.usd)'); // will buy
 
 // for IS_OK etc. -- see u\SUBS()
 
@@ -490,8 +491,8 @@ function cacheBothTotals($txs) {
 function cacheTotals($uid, $txs) {
   if ($uid < 0) return; // don't cache community and region totals
   if ($txs[0]['state'] <= TX_PENDING) return; // don't change totals if transaction doesn't count (yet)
-  $a = acct($uid);
-  $cache = 'usd r rewards committed maximum';
+  $a = r\acct($uid);
+  $cache = 'usd r rewards committed';
   extract((array) $a->account($cache));
   //foreach ($cache as $one) $$one = $a->$one;
   $rs = $r; // don't confuse this with r field in txs
@@ -504,12 +505,12 @@ function cacheTotals($uid, $txs) {
     } elseif ($payee != $uid) continue; // neither to nor from me
     $rs += $r;
     $usd += $amount - $r;
-    if (!$toOther and $amount - $r > DWOLLA_FEE_THRESHOLD) $usd -= DWOLLA_FEE;
+    if (!$toOther and $amount - $r > DW_FEE_THRESHOLD) $usd -= DW_FEE;
     $usd = round($usd, 2);    
     if ($type != TX_TRANSFER and $type <= TX_INFLATION) {
       if ($type == TX_REBATE or $type == TX_BONUS) $committed = round($committed + $amount * $a->share / 100, 2);
       $rewards = round($rewards + $r, 2);
-      if (@$maximum >= 0) $maximum = round(max($maximum, $rewards), 2); // @ is for testing
+      //if (@$maximum >= 0 and !a->can(B_VIRTUAL)) $maximum = round(max($maximum, $rewards), 2);
     }
   }
   $r = round($rs, 2);
@@ -542,17 +543,6 @@ function usdPart($requestAmount, $acct, $preapproved, $goods, $confirmed, &$shor
   
   $r = min($requestAmount, $acct->rAvailable($goods ? 'buy' : 'cash')); // how much can we get in r?
   return round($requestAmount - $r, 2);
-}
-
-/**
- * Update the account's cached USD amount and return TRUE if successful.
- */
-function updateUsdCache($a) {
-  $usAcct = new usd($a);
-  $usd = $usAcct->bal($err);
-  if ($err) return FALSE;
-  return ($usd == $a->usd) ?: $a->update(compact('usd')); // update cache
-  
 }
 
 /**
@@ -1090,7 +1080,7 @@ function changeUid($oldUid, $newUid = FALSE) {
   list ($uid, $name, $mail) = array($oldUid, "unusable-$oldQuid", "unusable$oldQuid@rcredits.org");
   r\dbInsert('users', compact(u\ray('uid name mail'))); // mark old uid unusable
   foreach (u\ray('picture proof') as $one) { // this cannot be rolled back, so must follow db ops
-    $new = DRUPAL_ROOT . r\acct($newUid)->auxFilename($one);
+    $new = DRUPAL_ROOT . r\acct($newUid)->auxFilename($one, TRUE);
     $old = str_replace("/$newUid-", "/$oldUid-", $new);
     if (file_exists($old)) rename($old, $new);
   }
@@ -1153,12 +1143,78 @@ function proxy($person, $priority = 1, $proxy = NULL) {
 }
 
 /**
+ * Trade some rCredits for USD, from somebody. 
+ * The rCredits always travel by way of the community.
+ * @param float $request: how much to try to get
+ * @param acct $acct: rCredits account that is trading rCredits to third parties
+ * @param usd $usAcct: USD account that is receiving USD from the third parties (might be different owner from $acct)
+ * @return how much USD we actually delivered
+ */
+function getUsd($request, $acct, $usAcct) {
+  $need = $request;
+  $threeway = ($acct->id != $usAcct->acct->id);
+  r\usd::beginAtom();
+  while ($need > 0) {
+    $part = $need;
+    if (!$acct3 = nextRBuyer($part, $acct->id)) break; // asks for what we need, returns the part we got in $part
+    u\EXPECT($part > 0, 'got nothing');
+    $usAcct3 = new r\usd($acct3); // "third party" Dwolla account
+    r\usd::beginAtom();
+    if ($txid = $usAcct3->send($part, $usAcct)) { // $part NOT R_CHUNK
+      r\exchange($part, $acct->community, $acct3->id, $txid); // use first party's community as go-between
+      r\usd::commit();
+      $need = round($need - $part, 2);
+    } else {
+      r\usd::rollback();
+      $acct3->actualUsd(); // fix cached USD, if needed (after rollback)
+    }
+  }
+  if ($got = round($request - $need, 2)) r\exchange($got, $acct->id, $acct->community, $txid);
+  r\usd::commit($got); // accept partial success
+  return $got;
+}
+
+/**
+ * Return the uid of the next account in line wanting/willing and able to trade enough US Dollars for rCredits.
+ * If you trade rCredits for USD or vice versa, you go to the end of the line.
+ * @param float $amount: the amount we're looking for. Returned with the amount actually available from the returned account. The amount sought depends on the $amount passed as follows:
+ *   $amount < R_CHUNK*1.5 -- seek $amount
+ *   otherwise -- seek R_CHUNK (leaving R_CHUNK/2 or more for other buyers
+ * return: the best account to handle the trade (there may be none that wants so many rCredits)
+ *    if no account wants to buy any, return FALSE (this would be really bad and should never ever happen)
+ *    NOTE that CGF is the buyer of last resort.
+ */
+function nextRBuyer(&$amount, $except) {
+  if ($amount > R_CHUNK * 1.5) $amount = R_CHUNK;
+//  $offer = 'LEAST(u.minimum-u.r, u.usd)'; // how much they want or how much they can buy, whichever is less
+  // offer is how much they want (up to their max) or how much they can buy, whichever is less
+  $offer = R_CAPACITY;
+  $sql = <<<EOF
+    SELECT u.uid, $offer AS got, u.name FROM users u
+    LEFT JOIN r_txs t ON t.payee=u.uid
+    WHERE ($offer>0 AND u.uid>0 AND u.uid<>:except AND :IS_OK)
+      AND ((t.type=:TX_TRANSFER AND NOT t.goods) OR t.xid IS NULL)
+    ORDER BY (u.name='cgf'), ($offer>=:amount) DESC, (u.r+$offer<=u.minimum) DESC, t.completed, u.uid LIMIT 1
+EOF;
+  // preferred: not CGF, offering enough, definitely wanting that many, longest ago previous exchange, low uid
+  if (!$row = r\dbQ($sql, compact('amount', 'except'))->fetchAssoc()) { // find out who (preferably who who wants enough) has waited the longest
+    r\tellStaff('no buyers', compact('amount')); // this is a really bad thing (nobody wants any at all)
+    return FALSE;
+  }
+
+  extract($row); // uid, got, and name
+  if ($name =='cgf') r\tellStaff('cgf sole buyer', compact('amount'));
+  $amount = min($amount, round($got, 2)); // take what we could get
+  return r\acct($uid);
+}
+
+/**
  * Say whether the account is nearly a member.
  * That is, have they satisfied all membership requirement except possibly choosing proxies.
  * @return assoc of the component steps: gotPhoto, signed, and donated, with a summary in "nearly"
  */
 function nearlyMember($acct) {
-  $gotPhoto = file_exists(DRUPAL_ROOT . $acct->auxFilename('picture'));
+  $gotPhoto = $acct->hasAux('picture');
   $signed = (bool) $acct->signed;
 //  $donated = ($acct->share > 0 or r\share($acct)); // r\share() also updates the database
   $donated = r\dbExists('r_gifts', 'uid=:myid', array('myid' => $acct->id));
@@ -1199,7 +1255,7 @@ function totals($ctty = 'ALL', $calculate = FALSE) {
  * Return totals for the given community
  * @param int $ctty: the community account id (NULL means all communities)
  * @return assoc (ctty or system-wide totals of):
- *   r floor rewards usd minimum maximum excess
+ *   r floor rewards usd minimum excess
  *   signup rebate bonus inflation grant loan fine maxRebate
  *   balance (-r) demand (minimum - r)
  */
@@ -1207,8 +1263,8 @@ function getTotals($ctty) {
   $subs = @$ctty ? compact('ctty') : array();
   $where = (@$ctty ? "community=:ctty" : 1) . ' AND uid>0 AND :IS_OK';
   $fields = u\sumAs('r floor rewards usd minimum');
-  $max = 'GREATEST(0, maximum)';
-  $sql = "SELECT $fields, SUM($max) AS maximum, SUM(:R_EXCESS) AS excess, SUM(:R_DEMAND) AS demand, SUM(:R_CAPACITY) AS capacity FROM users u WHERE $where";
+  //$max = 'GREATEST(0, maximum)';
+  $sql = "SELECT $fields, SUM(:R_DEMAND) AS demand, SUM(:R_CAPACITY) AS capacity FROM users u WHERE $where";
   $result1 = r\dbQ($sql, $subs)->fetchAssoc();
 
   $where = @$ctty ? '(payer=:ctty OR payee=:ctty)' : 1;
@@ -1263,7 +1319,7 @@ function avail($type, $ray, $withUsd = TRUE) {
   extract($ray);
   if ($type == 'exch' or !$withUsd) $usd = $committed = 0; // no exchanging USD credit for USD credit
   if ($type != 'buy') $floor = max(0, $floor, $rewards); // no exchanging into debt
-  u\setDft($fees, $usd > DWOLLA_FEE_THRESHOLD ? DWOLLA_FEE : 0);
+  u\setDft($fees, $usd > DW_FEE_THRESHOLD ? DW_FEE : 0);
   return $usd + $r - $committed - $floor - $fees;
 }
 

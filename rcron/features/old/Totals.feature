@@ -8,10 +8,10 @@ SO I can see how well the rCredits system is doing for myself, for my ctty, and 
 
 Setup:
   Given members:
-  | id   | fullName   | email         | flags                       | minimum | floor |
-  | .ZZA | Abe One    | a@example.com | dft,ok,personal,bona        |       5 |     0 |
-  | .ZZB | Bea Two    | b@example.com | dft,ok,personal,bona        |    1000 |   -20 |
-  | .ZZC | Corner Pub | b@example.com | dft,ok,company,bona,virtual |    2000 |    10 |
+  | id   | fullName   | email         | flags                | minimum | maximum | floor |
+  | .ZZA | Abe One    | a@example.com | dft,ok,personal,bona |       5 |       5 |     0 |
+  | .ZZB | Bea Two    | b@example.com | dft,ok,personal,bona |    1000 |    1200 |   -20 |
+  | .ZZC | Corner Pub | b@example.com | dft,ok,company,bona  |    2000 |      -1 |    10 |
   And relations:
   | id   | main | agent | permission |
   | .ZZA | .ZZA | .ZZB  | buy        |
@@ -54,25 +54,29 @@ Setup:
   | .AABA | %today-2d | loan      | done    |      5 |   3 | ctty | .ZZB | loan    | 0      |
   | .AABB | %today-2d | fine      | done    |      6 |   4 | .ZZC | ctty | fine    | 1      |
   Then balances:
-  | id   | r    | usd      | rewards |
-  | ctty | -775 | 10000.00 |       0 |
-  | .ZZA |  169 |   741.75 |     257 |
-  | .ZZB |  284 |  2256.50 |     256 |
-  | .ZZC |  322 |  3002.50 |     261 |
+  | id   | r    | usd      | rewards | maximum |
+  | ctty | -775 | 10000.00 |       0 |      -1 |
+  | .ZZA |  169 |   741.75 |     257 |     257 |
+  | .ZZB |  284 |  2256.50 |     256 |    1200 |
+  | .ZZC |  322 |  3002.50 |     261 |      -1 |
   
 Scenario: cron calculates the totals
   When cron runs "totals"
   Then totals:
-  | r   | floor | rewards | usd     | minimum | signup | rebate | bonus | inflation | grant | loan | fine | maxRebate | balance | demand | capacity |
-  | 775 |   -10 |     774 | 6000.75 |    3005 |    750 |      6 |    12 |         6 |     4 |    5 |    6 |        4 |    -775 |   2230 |  2998.25 |
+  | r   | floor | rewards | usd     | minimum | maximum | excess  | signup | rebate | bonus | inflation | grant | loan | fine | maxRebate | balance | demand | capacity |
+  | 775 |   -10 |     774 | 6000.75 |    3005 |    1457 | 1994.25 | 750    |      6 |    12 |         6 |     4 |    5 |   6 |          4 |    -775 |   2230 | 3002.50  |
   # Here's why:
+  #
+  # excess (N/A if no maximum) is r+usd-max(floor, maximum, rewards+committed)
+  #   = 169 + 741.75 - max(0, 257, 257)
+  #   + 384 + 2256.50 - max(-20, 1200, 256)
   #
   # demand is min(usd, minimum-r)
   #   = min(741.75, 5 - 169)
   #   + min(2256.50, 1000 - 284)
   #   + min(3002.50, 2000 - 322)
   #
-  # capacity is usd or (if virtual) minimum-(r+usd), whichever is less -- but never less than zero
-  #   = 741.75
-  #   + 2256.50
-  #   + min(3002.50, max(0, 2000 - (322 + 3002.50)))  (zero)
+  # capacity is usd or (if there is a maximum) maximum-(r+usd), whichever is less -- but never less than zero
+  #   = min(741.75, 257 - (169 + 741.75))    (zero)
+  #   + min(2256.50, 1200 - (284 + 2256.50)) (zero)
+  #   + 3002.50

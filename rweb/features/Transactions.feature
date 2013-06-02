@@ -5,22 +5,22 @@ SO I can see what happened, accept or refuse offers, adjust descriptions, and co
 
 Setup:
   Given members:
-  | id   | fullName   | floor | acctType      | flags                   |
-  | .ZZA | Abe One    | -100  | %R_PERSONAL   | dft,ok,personal         |
-  | .ZZB | Bea Two    | -200  | %R_PERSONAL   | dft,ok,personal,company |
-  | .ZZC | Corner Pub | -300  | %R_COMMERCIAL | dft,ok,company          |
+  | id   | fullName   | floor | acctType      | flags                        |
+  | .ZZA | Abe One    | -100  | %R_PERSONAL   | dft,ok,personal,bona         |
+  | .ZZB | Bea Two    | -200  | %R_PERSONAL   | dft,ok,personal,company,bona |
+  | .ZZC | Corner Pub | -300  | %R_COMMERCIAL | dft,ok,company,bona          |
   And relations:
-  | id      | main    | agent   | permission |
-  | .ZZA | .ZZA | .ZZB | buy        |
-  | .ZZB | .ZZB | .ZZA | read       |
-  | .ZZC | .ZZC | .ZZB | buy        |
-  | .ZZD | .ZZC | .ZZA | sell       |
+  | id   | main | agent | permission |
+  | .ZZA | .ZZA | .ZZB  | buy        |
+  | .ZZB | .ZZB | .ZZA  | read       |
+  | .ZZC | .ZZC | .ZZB  | buy        |
+  | .ZZD | .ZZC | .ZZA  | sell       |
   And usd:
-  | id        | usd   |
+  | id   | usd   |
   | ctty | 10000 |
-  | .ZZA   |  1000 |
-  | .ZZB   |  2000 |
-  | .ZZC   |  3000 |
+  | .ZZA |  1000 |
+  | .ZZB |  2000 |
+  | .ZZC |  3000 |
   And transactions: 
   | xid   | created   | type     | state   | amount | r   | from | to   | purpose | taking |
   | .AAAB | %today-7m | signup   | done    |    250 | 250 | ctty | .ZZA | signup  | 0      |
@@ -110,11 +110,11 @@ Scenario: Transactions with other states show up properly
   | .AACI | %today-5d | transfer | deleted  |    200 | .ZZA | .ZZC | never    | 1      |
   | .AACL | %today-5d | transfer | disputed |    100 | .ZZC | .ZZA | cash CL  | 1      |
   Then balances:
-  | id        | balance |
+  | id   | balance |
   | ctty |    -780 |
-  | .ZZA   |     190 |
-  | .ZZB   |     279 |
-  | .ZZC   |     311 |
+  | .ZZA |     190 |
+  | .ZZB |     279 |
+  | .ZZC |     311 |
   When member ".ZZA" visits page "transactions/period=5&currency=0"
   Then we show "Transaction History" with:
   | tid | Date   | Name       | From you | To you | Status   | Buttons | Purpose | Rewards |

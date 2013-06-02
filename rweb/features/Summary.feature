@@ -5,10 +5,10 @@ SO I know where it stands.
 
 Setup:
   Given members:
-  | id   | fullName   | address | city  | state  | postalCode | country | floor | flags                   |
-  | .ZZA | Abe One    | POB 1   | Atown | Alaska | 01000      | US      | -100  | dft,ok,personal         |
-  | .ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000      | US      | -200  | dft,ok,personal,company |
-  | .ZZC | Corner Pub | POB 3   | Ctown | Cher   |            | France  | -300  | dft,ok,company          |
+  | id   | fullName   | address | city  | state  | postalCode | country | floor | flags                        |
+  | .ZZA | Abe One    | POB 1   | Atown | Alaska | 01000      | US      | -100  | dft,ok,personal,bona         |
+  | .ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000      | US      | -200  | dft,ok,personal,company,bona |
+  | .ZZC | Corner Pub | POB 3   | Ctown | Cher   |            | France  | -300  | dft,ok,company,bona          |
 
   And relations:
   | id   | main | agent | permission |

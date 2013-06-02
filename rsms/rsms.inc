@@ -176,10 +176,10 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'virtual payment received' => t('You received from @fullName a virtual payment of @amount -- that is, you traded that much US Dollars for rCredits, receiving a bonus of @bonus on the exchange.'),
   'virtual payments offered' => t('You made virtual payment offers to @offers @whom, totaling @total.'),
   'card ordered' => t('Your rCard has been ordered and will be mailed directly to @name.'),
-  'balances' => t('Your rCredits balance available to spend is @toSpend. You can exchange up to @toCash for US Dollars.'),
+  'balances' => t('Your rCredits balance available to spend is @toSpend. You can move up to @toCash to your bank account.'),
   
   // notices to staff
-  'corrupt minmax' => t('Min or Max for account @uid is corrupt: max=@maximum min=@minimum rewards=@rewards floor=@floor'),
+  'corrupt minmax' => t('Min or Max for account @uid is corrupt: min=@minimum rewards=@rewards floor=@floor'),
   
 );
 

@@ -5,10 +5,10 @@ SO I can spend up to my total credit line.
 
 Setup:
   Given members:
-  | id   | fullName   | email         | flags           |
-  | .ZZA | Abe One    | a@example.com | dft,ok,personal |
-  | .ZZB | Bea Two    | b@example.com | dft,ok,personal |
-  | .ZZC | Corner Pub | c@example.com | dft,ok,company  |
+  | id   | fullName   | email         | flags                |
+  | .ZZA | Abe One    | a@example.com | dft,ok,personal,bona |
+  | .ZZB | Bea Two    | b@example.com | dft,ok,personal,bona |
+  | .ZZC | Corner Pub | c@example.com | dft,ok,company,bona  |
   And relations:
   | id      | main | agent | permission | draw |
   | NEW:ZZA | .ZZC | .ZZA  | manage     |    1 |
@@ -24,23 +24,23 @@ Scenario: A member overdraws
   | op  | who  | amount | goods | purpose |
   | pay | .ZZB |     30 |     1 | food    |
   Then transactions:
-  | xid   | type     | amount | from      | to   | purpose      | r    |
-  | .AAAB | transfer |     10 | .ZZC      | .ZZA | automatic transfer to NEW.ZZA,automatic transfer from NEW.ZZC | 10 |
-  | .AAAC | transfer |     30 | .ZZA      | .ZZB | food         |   30 |
-  | .AAAD | rebate   |   1.50 | community | .ZZA | rebate on #2 | 1.50 |
-  | .AAAE | bonus    |   3.00 | community | .ZZB | bonus on #1  | 3.00 |
+  | xid | type     | amount | from | to   | purpose      | r    |
+  |   1 | transfer |     10 | .ZZC | .ZZA | automatic transfer to NEW.ZZA,automatic transfer from NEW.ZZC | 10 |
+  |   2 | transfer |     30 | .ZZA | .ZZB | food         |   30 |
+  |   3 | rebate   |   1.50 | ctty | .ZZA | rebate on #2 | 1.50 |
+  |   4 | bonus    |   3.00 | ctty | .ZZB | bonus on #1  | 3.00 |
   
 Scenario: A member overdraws and draws from both r and USD
   When member ".ZZA" confirms form "pay" with values:
   | op  | who  | amount | goods | purpose |
   | pay | .ZZB |    130 |     1 | food    |
   Then transactions:
-  | xid   | type     | amount | from      | to   | purpose      | r    |
-  | .AAAB | transfer |     20 | .ZZC      | .ZZA | automatic transfer to NEW.ZZA,automatic transfer from NEW.ZZC | 20 |
-  | .AAAC | transfer |     90 | .ZZC      | .ZZA | automatic transfer to NEW.ZZA,automatic transfer from NEW.ZZC |  0 |
-  | .AAAD | transfer |    130 | .ZZA      | .ZZB | food         |   40 |
-  | .AAAE | rebate   |   2.00 | community | .ZZA | rebate on #3 | 2.00 |
-  | .AAAF | bonus    |   4.00 | community | .ZZB | bonus on #1  | 4.00 |
+  | xid | type     | amount | from | to   | purpose      | r    |
+  |   1 | transfer |     20 | .ZZC | .ZZA | automatic transfer to NEW.ZZA,automatic transfer from NEW.ZZC | 20 |
+  |   2 | transfer |     90 | .ZZC | .ZZA | automatic transfer to NEW.ZZA,automatic transfer from NEW.ZZC |  0 |
+  |   3 | transfer |    130 | .ZZA | .ZZB | food         |   40 |
+  |   4 | rebate   |   2.00 | ctty | .ZZA | rebate on #3 | 2.00 |
+  |   5 | bonus    |   4.00 | ctty | .ZZB | bonus on #1  | 4.00 |
 
 Scenario: A member overdraws with not enough to draw on
   When member ".ZZA" completes form "pay" with values:

@@ -136,7 +136,7 @@ EOF
     ),
     'dwolla-account-setup' => u\SUBS(t(<<<EOF
     <p>In partnership with Veridian Federal Credit Union, Dwolla communicates with your US Dollar bank account. Whenever you buy something, any rCredits you have are used first and the remainder is paid in US Dollars &mdash; just like a typical debit card, but with rebates and bonuses!</p>
-    <p>This help window will stay open while you set up your Dwolla account. So you can come back here for tips and next steps.  <a href=":R_DWOLLA_LINK" target="_blank"></p>
+    <p>This help window will stay open while you set up your Dwolla account. So you can come back here for tips and next steps.  <a href=":R_DW_LINK" target="_blank"></p>
     <p>Click here now to set up your Dwolla account</a> (following the tips below). When you're done, <a href="$base_url/account/usd">click here to continue </a> your rCredits account setup.</p>
     <h2>Tips:</h2>
     <ol>

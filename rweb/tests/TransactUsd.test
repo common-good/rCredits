@@ -45,9 +45,9 @@ class rwebTransactUsd extends DrupalWebTestCase {
     case(0):
     Given('members: "DATA'
     . '\\| id   | fullName   | country | email         | flags                |'
-    . '\\| .ZZA | Abe One    | US      | a@example.com | dft,ok,personal      |'
+    . '\\| .ZZA | Abe One    | US      | a@example.com | dft,ok,personal,bona |'
     . '\\| .ZZB | Bea Two    | US      | b@example.com | dft,ok,personal,bona |'
-    . '\\| .ZZC | Corner Pub | France  | c@example.com | dft,ok,company       |"');
+    . '\\| .ZZC | Corner Pub | France  | c@example.com | dft,ok,company,bona  |"');
     And__('relations: "DATA'
     . '\\| id      | main | agent | permission |'
     . '\\| NEW:ZZA | .ZZA | .ZZB  | buy        |'

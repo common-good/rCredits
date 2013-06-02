@@ -44,22 +44,22 @@ class rwebTransactions extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id   | fullName   | floor | acctType      | flags                   |'
-    . '\\| .ZZA | Abe One    | -100  | %R_PERSONAL   | dft,ok,personal         |'
-    . '\\| .ZZB | Bea Two    | -200  | %R_PERSONAL   | dft,ok,personal,company |'
-    . '\\| .ZZC | Corner Pub | -300  | %R_COMMERCIAL | dft,ok,company          |"');
+    . '\\| id   | fullName   | floor | acctType      | flags                        |'
+    . '\\| .ZZA | Abe One    | -100  | %R_PERSONAL   | dft,ok,personal,bona         |'
+    . '\\| .ZZB | Bea Two    | -200  | %R_PERSONAL   | dft,ok,personal,company,bona |'
+    . '\\| .ZZC | Corner Pub | -300  | %R_COMMERCIAL | dft,ok,company,bona          |"');
     And__('relations: "DATA'
-    . '\\| id      | main    | agent   | permission |'
-    . '\\| .ZZA | .ZZA | .ZZB | buy        |'
-    . '\\| .ZZB | .ZZB | .ZZA | read       |'
-    . '\\| .ZZC | .ZZC | .ZZB | buy        |'
-    . '\\| .ZZD | .ZZC | .ZZA | sell       |"');
+    . '\\| id   | main | agent | permission |'
+    . '\\| .ZZA | .ZZA | .ZZB  | buy        |'
+    . '\\| .ZZB | .ZZB | .ZZA  | read       |'
+    . '\\| .ZZC | .ZZC | .ZZB  | buy        |'
+    . '\\| .ZZD | .ZZC | .ZZA  | sell       |"');
     And__('usd: "DATA'
-    . '\\| id        | usd   |'
+    . '\\| id   | usd   |'
     . '\\| ctty | 10000 |'
-    . '\\| .ZZA   |  1000 |'
-    . '\\| .ZZB   |  2000 |'
-    . '\\| .ZZC   |  3000 |"');
+    . '\\| .ZZA |  1000 |'
+    . '\\| .ZZB |  2000 |'
+    . '\\| .ZZC |  3000 |"');
     And__('transactions: "DATA'
     . '\\| xid   | created   | type     | state   | amount | r   | from | to   | purpose | taking |'
     . '\\| .AAAB | %today-7m | signup   | done    |    250 | 250 | ctty | .ZZA | signup  | 0      |'
@@ -162,11 +162,11 @@ class rwebTransactions extends DrupalWebTestCase {
     . '\\| .AACI | %today-5d | transfer | deleted  |    200 | .ZZA | .ZZC | never    | 1      |'
     . '\\| .AACL | %today-5d | transfer | disputed |    100 | .ZZC | .ZZA | cash CL  | 1      |"');
     Then_('balances: "DATA'
-    . '\\| id        | balance |'
+    . '\\| id   | balance |'
     . '\\| ctty |    -780 |'
-    . '\\| .ZZA   |     190 |'
-    . '\\| .ZZB   |     279 |'
-    . '\\| .ZZC   |     311 |"');
+    . '\\| .ZZA |     190 |'
+    . '\\| .ZZB |     279 |'
+    . '\\| .ZZC |     311 |"');
     When_('member ".ZZA" visits page "transactions/period=5&currency=0"');
     Then_('we show "Transaction History" with: "DATA'
     . '\\| tid | Date   | Name       | From you | To you | Status   | Buttons | Purpose | Rewards |'

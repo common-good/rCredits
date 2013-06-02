@@ -26,21 +26,21 @@ Setup:
   | .AAS | GFM        | s@ex  | dft,ok,company,charge         |
   # not testing flags SMS and SECRET
   And balances:
-  | id   | r | usd | rewards | minimum | share | committed |
-  | .AAA | 0 | 200 |       0 |     200 |    50 |         0 |
-  | .AAB | 0 |   0 |       0 |       0 |     0 |         0 |
-  | .AAF | 0 |   0 |       0 |     200 |     1 |         0 |
-  | .AAG | 0 | 200 |       0 |     200 |    50 |         0 |
-  | .AAH | 0 | 100 |       0 |     100 |    10 |         0 |
-  | .AAI | 0 |   0 |       0 |      50 |    50 |         0 |
-  | .AAJ | 0 |  20 |       0 |      20 |    10 |         0 |
-  | .AAK | 0 |   0 |       0 |      50 |    25 |         0 |
-  | .AAL | 0 |   5 |       0 |       0 |     0 |         0 |
-  | .AAM | 0 | 100 |       0 |     100 |    50 |         0 |
-  | .AAO | 0 | 200 |       0 |     200 |   100 |         0 |
-  | .AAQ | 0 |   0 |       0 |      10 |    25 |         0 |
-  | .AAR | 0 |   0 |       0 |     200 |   100 |         0 |
-  | .AAS | 0 |   0 |       0 |     200 |     2 |         0 |
+  | id   | r | usd | rewards | minimum | maximum | share | committed |
+  | .AAA | 0 | 200 |       0 |     200 |      -1 |    50 |         0 |
+  | .AAB | 0 |   0 |       0 |       0 |      -1 |     0 |         0 |
+  | .AAF | 0 |   0 |       0 |     200 |      -1 |     1 |         0 |
+  | .AAG | 0 | 200 |       0 |     200 |      -1 |    50 |         0 |
+  | .AAH | 0 | 100 |       0 |     100 |      -1 |    10 |         0 |
+  | .AAI | 0 |   0 |       0 |      50 |     100 |    50 |         0 |
+  | .AAJ | 0 |  20 |       0 |      20 |      50 |    10 |         0 |
+  | .AAK | 0 |   0 |       0 |      50 |     100 |    25 |         0 |
+  | .AAL | 0 |   5 |       0 |       0 |      20 |     0 |         0 |
+  | .AAM | 0 | 100 |       0 |     100 |      -1 |    50 |         0 |
+  | .AAO | 0 | 200 |       0 |     200 |     200 |   100 |         0 |
+  | .AAQ | 0 |   0 |       0 |      10 |      -1 |    25 |         0 |
+  | .AAR | 0 |   0 |       0 |     200 |      -1 |   100 |         0 |
+  | .AAS | 0 |   0 |       0 |     200 |    1000 |     2 |         0 |
   And relations:
   | id   | main | agent | draw | amount | employerOk | employeeOk | isOwner | permission |
   | .AAB | .AAB | .AAA  |    0 |   1000 |          0 |          0 |       0 | manage     |

@@ -253,14 +253,13 @@ class acct {
    * Return specified account's profile picture, with markup
    * @param bool $unique: should the markup force reloading the image
    * @return: markup to display the account's picture (with a default image if none)
+   * Use $result with DRUPAL_ROOT . $result OR $base_url . $result
    */
   function picture($unique = FALSE) {
     global $base_url;
     if ($unique) $unique = '?' . REQUEST_TIME;
     $picFile = $this->auxFilename('picture');
-    return <<<EOF
-    <div class="user-picture"><img src="$base_url/$picFile$unique" alt="profile picture" /></div>
-EOF;
+    return '<div class="user-picture"><img src="' . "$base_url$picFile$unique" . '" alt="profile picture" /></div>';
   }
 
   public function hasBit($bit) {return (bool) ($this->flags & u\bit($bit + 0));}
@@ -344,7 +343,7 @@ EOF;
     $id = $this->id;
     $sums = u\sumAs(R_MONEY_FIELDS, 'u.');
     $sql = <<<EOF
-      SELECT $sums, SUM(IF(u.usd>:DWOLLA_FEE_THRESHOLD, :DWOLLA_FEE, 0)) AS fees, COUNT(*) as count
+      SELECT $sums, SUM(IF(u.usd>:DW_FEE_THRESHOLD, :DW_FEE, 0)) AS fees, COUNT(*) as count
       FROM users u INNER JOIN r_relations r ON r.main=u.uid
       WHERE r.other=:id AND r.draw
 EOF;
@@ -378,12 +377,15 @@ EOF;
       if ($amount = max(0, min($left, $avail))) {
         list ($fromQuid, $toQuid) = array(r\quid($uid), $this->mainQid);
         if ($wantUsd) {
-          $usFrom = new r\usd(r\acct($uid));
+          $usFrom = new r\usd($from = r\acct($uid));
           $usTo = new r\usd($this);
           $note = t('automatic transfer from ') . $fromQuid . t(' to ') . $toQuid;
-          if (!$usdXid = $usFrom->send($amount, $usTo, $note)) continue;
+          if (!$usdXid = $usFrom->send($amount, $usTo, $note)) {
+            $from->actualUsd(); // fix cached USD, if needed
+            continue;
+          }
           $r = 0;
-          if ($amount > DWOLLA_FEE_THRESHOLD) {$left += DWOLLA_FEE; $need += DWOLLA_FEE;}
+          if ($amount > DW_FEE_THRESHOLD) {$left += DW_FEE; $need += DW_FEE;}
         } else $r = $amount;
         list ($payer, $payee) = array($uid, $this->id);
         $for = array(t('automatic transfer to ') . $toQuid, t('automatic transfer from ') . $fromQuid);
@@ -397,13 +399,17 @@ EOF;
   /**
    * Return an auxiliary filename for the account.
    * @param string $type: picture or proof
+   * @param bool $ideal: return the ideal normal name, even if the file does not exist (default FALSE)
+   * @return: the relative file path (relative to Drupal)
    */
-  public function auxFilename($type = 'picture') {
+  public function auxFilename($type = 'picture', $ideal = FALSE) {
     $dir = $type == 'picture' ? R_PICTURE_DIR : R_PROOF_DIR;
     $result = "$dir/$this->id-$this->created";
-    if (!file_exists(DRUPAL_ROOT . $result)) $result = $this->can(B_PERSONAL) ? R_DFT_PICTURE : R_DFT_PICTURE_WIDE;
+    if (!$ideal and !$this->hasAux($type)) $result = $this->can(B_PERSONAL) ? R_DFT_PICTURE : R_DFT_PICTURE_WIDE;
     return $result;
   }
+  
+  public function hasAux($type = 'picture') {return file_exists(DRUPAL_ROOT . $this->auxFilename($type, TRUE));}
   
   /**
    * Return TRUE if a connected funding source is verified.
@@ -415,10 +421,28 @@ EOF;
   }
     
   /**
-   * Return the amount waiting to be transferred to (or from if negative) the bank.
+   * Update the account's cached USD amount and return it.
    */
-  public function waitingToBank() {
+  public function actualUsd() {
+    $usAcct = new usd($this);
+    $usd = max(0, $usAcct->bal($err) - $this->waitingToBank(TRUE)); // $err is inaccessibility (usd=0)
+
+    if (t\EST()) {
+      global $sceneTest; 
+      $scene = (object) $sceneTest->getInfo();
+      if ($scene->short_name != 'Recache') return $this->usd; // only one test adjusts cached usd
+    }
+    if ($usd != $this->usd) $this->update(compact('usd')); // somehow balance got off
+    return $usd;
+  }
+
+  /**
+   * Return the amount waiting to be transferred to (or from if negative) the bank.
+   * @param bool $justTo: ignore withdrawals from bank
+   */
+  public function waitingToBank($justTo = FALSE) {
     $where = 'payer=:id AND payee=0 AND NOT completed AND created>:ancient';
+    if ($justTo) $where .= ' AND amount>0';
     list ($id, $ancient) = array($this->id, REQUEST_TIME - 4 * DAY_SECS);
     return r\dbLookup('SUM(amount)', 'r_usd', $where, compact('id', 'ancient')) + 0;
   }
@@ -444,14 +468,6 @@ EOF;
     return @$source['Type'] == 'Checking' ? DW_VCHECKING : DW_VSAVINGS;
   }
   
-  /**
-   * Return the excess that could be transferred to the bank
-   * This formula is duplicated for MySQL in R_EXCESS.
-   */
-  public function overMax() {
-    return $this->maximum < 0 ? 0 : max(0, $this->r + $this->usd - max($this->floor, $this->maximum, $this->minimum, $this->rewards + $this->committed));
-  }
-
   /**
    * Say whether this account/agent has the permission.
    * @param int $permission: the permission in question (DEFAULT B_READ)

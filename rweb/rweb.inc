@@ -62,8 +62,8 @@ EOF
   'setup complete' => t('Your account setup is complete. Expect an email within the next 24 hours, saying your account is activated. Thank you for joining!'),
 
   // prompts
-  'prompt min' => t('Keep this much in my rCredits account, for purchases or inflation-proof savings. (When your balance goes below this amount, the system refills it for you from your bank account. Refilling may take 3-4 days &mdash; 10 days for Savings and Money Market accounts. Choose 0 if you prefer to refill it yourself.)'),
-  'prompt max' => t('Keep AT MOST this much in my rCredits account. (When your rCredits balance goes above this amount by $@R_CHUNK or more, the system transfers the extra to your bank account. 0 means no automatic transfers &mdash; recommended in most cases).'),
+  'prompt min' => t('Keep this much in my rCredits account, for purchases or inflation-proof savings. (When your balance goes below this amount, the system refills it for you from your bank account. Refilling may take 3-4 days.)'),
+//  'prompt max' => t('Keep AT MOST this much in my rCredits account. (When your rCredits balance goes above this amount by $@R_CHUNK or more, the system transfers the extra to your bank account. Blank means no automatic transfers &mdash; recommended in most cases).'),
   
   // confirm
   'yes or no' =>  '@yesNo', // to replace with yesNo(url)
@@ -116,7 +116,7 @@ EOF
   'bad signature' => t('That signature does not match your full legal name ("@fullName").'),
   'bad invite' => t('To sign up for rCredits, you must be invited and you must use the invitation link (just once) within @R_INVITE_DAYS days.<br><br>If you already have an rCredits account set up and want to open an additional account for yourself, your business, or a family member, sign in to your personal account and use the "Open Another Account" on the Summary page.'),
   'bad minr' => t('Your chosen rCredits minimum cannot be less than your assigned minimum balance (@floor).'),
-  'bad maxr' => t('Your chosen rCredits maximum cannot be less than your rCredits minimum. Nor can it be less than your total amount of incentive rewards to date.'),
+//  'bad maxr' => t('Your chosen rCredits maximum cannot be less than your rCredits minimum. Nor can it be less than your total amount of incentive rewards to date.'),
 //  'bad maxusd' => t('Your chosen USD maximum cannot be less than your rCredits minimum.'),
   'info not saved' => t('We apologize. Your information could not be saved at this time. Please try again in an hour or so.'),
   'no page permission' => t('You do not have permission to visit this page.'),
@@ -148,6 +148,7 @@ EOF
   'missing currency' => t('You must choose rCredits, USD, or both.'),
   'download always both' => t('Note: Downloads always include both rCredits and USD amounts.'),
   'signin to scan' => t('You must sign in BEFORE scanning a card.'),
+  'change min first' => t('That request would leave you with less than your minimum balance. <@a1>Lower your minimum</a> first.'),
 );
 
 /**
@@ -360,7 +361,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     }
 
     $formArray = $form2 = $form; $rent = \render($form2);
-//    if ($function == 'Usd') $rent = str_replace('Dwolla', '<a href="' . R_DWOLLA_LINK . '" target="_blank">Dwolla</a>', $rent);
+//    if ($function == 'Usd') $rent = str_replace('Dwolla', '<a href="' . R_DW_LINK . '" target="_blank">Dwolla</a>', $rent);
     if (strpos($rent, 'form-type-checkbox') or strpos($rent, 'form-type-radio')) js('inc/radiocheck.js', 'file', 'footer');
     
     if ($colgroup = @$form['#colgroup']) {
@@ -686,7 +687,7 @@ function formMembership($updating, &$sta = '', $code = '') {
     $gotProxies = $nonperson ?: (r\dbLookup('COUNT(*)', 'r_proxies', 'person=:myid', compact('myid')) >= 2);
     r\membershipEvent($mya, 'member', $nearly and $gotProxies);
     $gotUsdInfo = (($secure = @$mya->secure) and @$secure['auth']);
-    $gotIdProof = (($nonperson ?: file_exists(DRUPAL_ROOT . $mya->auxFilename('proof'))) and @$mya->dob and @$mya->federalId);
+    $gotIdProof = (@$mya->dob and @$mya->federalId and ($nonperson ?: $mya->hasAux('proof')));
     $gotPreferences = !is_null($mya->minimum);
     $ready = ($nearly and $gotProxies and $gotUsdInfo and $gotIdProof and $gotPreferences);
     r\membershipEvent($mya, 'ready', $ready);
@@ -730,7 +731,7 @@ EOF
     if (!$nonperson) 
     $message2 .= memberStep($stepNum++, $gotProxies, $stepProxies, array('membership/proxies', 'invite'));
           
-    $message2 .= memberStep($stepNum++, $gotUsdInfo, $stepDwolla, R_DWOLLA_LINK, TRUE);
+    $message2 .= memberStep($stepNum++, $gotUsdInfo, $stepDwolla, R_DW_LINK, TRUE);
     
     if (!$nonperson)
     $message2 .= memberStep($stepNum++, $gotIdProof, $stepProof, 'account/id-proof');
@@ -1131,7 +1132,7 @@ function formPhoto($form, &$sta) {
   extract(u\just('picture_upload picture_current', $form0['picture']));
   $title = item(t('Profile Photo'));
   
-  $got = file_exists(DRUPAL_ROOT . $mya->auxFilename('picture'));
+  $has = $mya->hasAux('picture');
   $picture_current['#markup'] = $mya->picture(TRUE);
 
   list ($width, $height) = explode(':', $mya->can(B_PERSONAL) ? R_PERSONAL_ASPECT : R_COMMERCIAL_ASPECT);
@@ -1143,7 +1144,7 @@ function formPhoto($form, &$sta) {
       : tt('Upload a picture to represent your company in rCredits promotions. The picture must be wider than tall (@R_COMMERCIAL_ASPECT ratio is ideal).')) 
     . tt(' File size must be under 3MB. The picture will be cropped and resized to @width x @height pixels.', compact('width', 'height'));
   
-  if ($got and $mya->can(B_MEMBER)) {
+  if ($has and $mya->can(B_MEMBER)) {
     $picture_upload = item(R_ON_FILE);
   } else $submit = submit(t('Upload and Save'));
 
@@ -1171,7 +1172,7 @@ function formPhoto_submit($form, &$sta) {
   }  
 
   $mya = r\acct();
-  $pictureFilename = DRUPAL_ROOT . $mya->auxFilename('picture');
+  $pictureFilename = DRUPAL_ROOT . $mya->auxFilename('picture', TRUE);
 
   r\dbQ('DELETE FROM file_managed');
   $tempName = str_replace('temporary://', \file_directory_temp() . '/', $picture->uri);
@@ -1181,10 +1182,6 @@ function formPhoto_submit($form, &$sta) {
     return say($err, 'picture');
   }
   if (!rename($tempName, $pictureFilename)) return say('file save error', 'picture'); // (rename fails)
-//  if (!unlink($tempName)) say('cannot delete tmp file');
-//  if (!unlink($pictureFilename)) say('cannot delete old picture'); return;
-
-  //  if (@$values['picture_delete'] and file_exists($pictureFilename)) unlink($pictureFilename);
   $link = "$base_url/membership";
   $completed = $mya->can(B_OK)? '' : '|step completed';
   say("photo saved$completed|return to membership", compact('link'));
@@ -1269,7 +1266,7 @@ function formAccounts($form, &$sta) {
   
   if (!$mya->proSe() or $mya->hasBit(B_PERSONAL)) {
     $src = $mya->agent->auxFilename('picture');
-    $thumb = item("<img src=\"$base_url/$src\"/>");
+    $thumb = item("<img src=\"$base_url$src\"/>");
   }
   $account = count($choices) == 1 ? 
       textField('', '', dft($oneText) + attrib(array('disabled' => TRUE, 'size' => strlen($oneText)+2)))
@@ -1468,7 +1465,7 @@ function formAdmin_submit($form, &$sta) {
   
   // handle all other buttons with showTableQ()
   $where = "uid>1";
-  $userSql = "SELECT uid, MID(phone,3) AS phone, flags, r, usd, rewards, minimum AS min, maximum AS max, committed AS comit, share, floor, address, city, postalCode AS zip FROM users WHERE $where ORDER BY name";
+  $userSql = "SELECT uid, MID(phone,3) AS phone, flags, r, usd, rewards, minimum AS min, committed AS comit, share, floor, address, city, postalCode AS zip FROM users WHERE $where ORDER BY name";
   if ($op == 'users') return say(showTableQ($userSql));
   $userSql = str_replace($where, "postalCode LIKE '013%'", $userSql);
 
@@ -1642,7 +1639,7 @@ function formGet($form, &$sta) {
   $myid = $mya->id;
   $isSetUp = !is_null($mya->minimum); // user has already saved some options
   $title = item(t('Get rCredits or US Dollars'));
-  $subtext = item(t('Transfer funds to or from your connected bank account. Normally these transfers are controlled automatically by your "minimum" and "maximum" settings on the <a href="' . $base_url . '/account/preferences">Preferences</a> page. But you can do it yourself here. Transfers to or from your checking account may take 3-4 days (10 days for savings and money market accounts).'));
+  $subtext = item(t('Transfer funds to or from your connected bank account. For automatic transfers from your bank account, as needed, adjust your "minimum" setting on the <a href="' . $base_url . '/account/preferences">Preferences</a> page. Transfers may take 3-4 days.') . ($mya->dwStatus() == DW_VSAVINGS ? t(' Savings and Money Market accounts (like yours) are limited by law to 6 transfers per month.') : ''));
 
 //  $minimum = textField(t('Minimum:'), tt('prompt min'), dft(u\formatAmount($isSetUp ? $mya->minimum : R_MINR_DEFAULT, 's')));
   $ray = (array) $mya->account(R_MONEY_FIELDS);
@@ -1653,34 +1650,45 @@ function formGet($form, &$sta) {
   $waiting = item($waiting == '$0' ? t('You have no pending transfer requests.') : tt('You have total pending transfer requests of @waiting @way your bank account.', compact('waiting', 'way')), t('Pending:')); // amount already requested (if any)
   $avail = hidField($avail);
   $balance = item(tt('balances', compact('toSpend', 'toCash')), t('Balance:'));
-  $amount = textField(t('Amount:'), t('Transfer how much?'), dft(u\formatAmount(max(0, $mya->overMax()), 's')));
-  $getNow = submit('FROM bank');
+  $amount = textField(t('Amount:'), t('Transfer how much?'));
+  $get = submit('FROM bank');
 //  $fromBank = formField('checkbox', t('Automate:'), t('(recommended) Refill my rCredits account from my bank account automatically, as needed.'), dft($isSetUp ? $mya->can(B_FROM_BANK) : TRUE));
   
 //  $maximum = textField(t('Maximum:'), tt('prompt max'), dft(u\formatAmount($isSetUp ? $mya->maximum : R_MAXR_DEFAULT, 's')));
 //  $excess = textField(t('Excess'), '', dft(u\formatAmount($mya->overMax(), 's')));
 //  $toBank = formField('checkbox', t('Automate:'), t('Transfer any excess to my bank account automatically every few days.'), dft($isSetUp ? $mya->can(B_TO_BANK) : TRUE));
-  $putNow = submit('TO bank');
+  $put = submit('TO bank');
 
-  return labeled(compact(u\ray('title subtext waiting balance amount getNow putNow avail')));
+  return labeled(compact(u\ray('title subtext waiting balance amount get put avail')));
 }
   
 function formGet_validate($form, &$sta) {
+  global $base_url;
+  $mya = r\acct();
   extract(u\just('amount avail', $sta['input']));
   if ($err = amtErr('amount', $sta)) return say($err, 'amount');
+  if (abs($amount) < R_BANK_MIN) return say('The amount you asked to transfer is less than the minimum ($@R_BANK_MIN).', 'amount');
+  if (op($sta) == 'get') return;
+  
   if ($amount > $avail) {
-    $max = u\formatAmount($avail, '');
+    $max = u\formatAmount($avail);
     return say('short deposit', compact('max'), 'amount');
   }
-  if (abs($amount) < R_BANK_MIN) return say('The amount you asked to transfer is less than the minimum ($@R_BANK_MIN).', 'amount');
+  $a1 = 'a href="' . $base_url . '/account/preferences"';
+  if ($mya->r + $mya->usd - $amount < $mya->minimum) return say('change min first', compact('a1'), 'amount');
 }
   
 function formGet_submit($form, &$sta) {
-  $mya = r\acct();
+  $usAcct = new r\usd($mya = r\acct());
   extract(u\just('amount', $sta['input']));
 
-  $action = $amount > 0 ? 'deposit to' : 'draw from';
-  $usAcct = new r\usd($mya);
+  if (op($sta) == 'put') {
+    $action = 'deposit to';
+    if ($need = max(0, $amount - $mya->usd)) {
+      if (!$got = r\getUsd($need, $mya, $usAcct) or $got < $need) return say('cannot offload', 'amount');
+    }
+  } else list ($action, $amount) = array('draw from', -$amount);
+  
   if ($usAcct->bank($amount, $error)) {
     $amount = u\formatAmount(abs(@$amount));
     say('banked', compact(u\ray('action amount')));
@@ -2202,15 +2210,15 @@ function no_selection($list) {
 function formProof($form, &$sta, $args = '') {
   extract(u\just('show', $args));
   $mya = r\acct();
-  $got = file_exists(DRUPAL_ROOT . $mya->auxFilename('proof'));
+  $has = $mya->hasAux('proof');
   $proofType = $mya->can(B_PERSONAL) ? t("driver's license or other official ID such as birth certificate or passport, showing your social security number (or the equivalent)") : t("EIN documentation from the IRS (or the equivalent) -- This could also be a letter from an officer or owner of the organization (who is an rCredits member), on the organization's letterhead, authorizing opening this rCredits account.");
   $form = array(
     'title' => item(t('Proof of Identity')),
     'subtext' => item(t('Just like for a bank account, we need to verify your identity. The file you upload can be either an image or a PDF. Please be patient while the file is encrypted &mdash; it may take several seconds.')),
-    'idProof' => $got ? 
+    'idProof' => $has ? 
         formField('item', t('Photo ID:'), '', R_ON_FILE . ($mya->hasBit(B_OK) ? '' : t(' (pending approval)')))
       : formField('file', t('Photo ID:'), tt('Upload an image of your @proofType. (maximum @R_MAX_UPLOAD_SIZE MB)', compact('proofType')), attrib(array('enctype' => "multipart/form-data"))),
-    'submit' => $got ? NULL : submit(t('Upload and Save')),
+    'submit' => $has ? NULL : submit(t('Upload and Save')),
   );
 
   if ($mya->can(B_CTTY_ADMIN)) {
@@ -2222,7 +2230,7 @@ function formProof($form, &$sta, $args = '') {
 
 function formProof_validate($form, &$sta) {
   $mya = r\acct();
-  $proofFilename = DRUPAL_ROOT . $mya->auxFilename('proof');
+  $proofFilename = DRUPAL_ROOT . $mya->auxFilename('proof', TRUE);
 
   if (@$_FILES['files']['name']['idProof']) { // fine to let this be uploaded separately
     $validators = array('file_validate_size' => array(R_MAX_UPLOAD_SIZE * 1024000));
@@ -2231,7 +2239,7 @@ function formProof_validate($form, &$sta) {
     $tempfile = file_directory_temp() . '/' . $file->filename;
     if (!$key = $sta['input']['idProof'] = bin2hex(u\encryptFile($tempfile, $proofFilename, r\passSalt()))) return say('encryption failure', 'idProof');
     \file_delete($file);
-  } elseif(file_exists($proofFilename)) {
+  } elseif ($mya->hasAux('proof')) {
     $sta['input']['idProof'] = R_ON_FILE; // flag for no change
   } else return say('nothing done', 'idProof');
 }
@@ -3138,9 +3146,9 @@ function formOptions($form, &$sta) {
   $virtualMaxMessage = $mya->can(B_COMPANY) ? t(' If you choose to make automatic "virtual" payments, this setting is moot (irrelevant and unused).') : '';
 
   $minimum = textField(t('Minimum:'), tt('prompt min'), required(u\formatAmount($isSetUp ? $mya->minimum : R_MINR_DEFAULT, 's')));
-  $maxDft = $isSetUp ? $mya->maximum : R_MAXR_DEFAULT;
-  $maxDft = $maxDft < 0 ? '' : u\formatAmount($maxDft, 's');
-  $maximum = textField(t('Maximum:'), tt('prompt max') . $virtualMaxMessage, dft($maxDft));
+  //$maxDft = $isSetUp ? $mya->maximum : R_MAXR_DEFAULT;
+  //$maxDft = $maxDft < 0 ? '' : u\formatAmount($maxDft, 's');
+//  $maximum = textField(t('Maximum:'), tt('prompt max') . $virtualMaxMessage, dft($maxDft));
 //  $toBank = formField('checkbox', t('To bank:'), t('(recommended) Automatically transfer the excess to your bank account. [<a href="../help/to-bank">why ever not?</a>]'), dft($isSetUp ? $mya->can(B_TO_BANK) : TRUE));
   $noticeRadios = array(t('daily'), t('weekly'), t('monthly'));
   $dft = $mya->can(B_NOTICE_WEEKLY) ? 1 : ($mya->can(B_NOTICE_MONTHLY) ? 2 : 0);
@@ -3154,10 +3162,12 @@ function formOptions($form, &$sta) {
   $statements = formField('radios', t('Statements:'), '', required($statements), $statementRadios);
 
   if ($mya->can(B_COMPANY)) {
-    $desc = t(<<<EOF
-    Saying "yes" to <a href="$base_url/help/virtual-payments">virtual payments</a> (<b>highly recommended</b>) means you trade your rCredits to your employees and vendors automatically every day, in exchange for US Dollars, without any change to your normal US Dollar payments! You still get the 5% rebate, minus 25 cents for each payment. For example, a $100 virtual payment gives you a net rebate of $5.00 - 0.25 = $4.75. To make the virtual payments automatic, you need to set up <a href="$base_url/help/virtual-payments">average</a> monthly payment amounts on the <a href="$base_url/account/relations">Relations</a> page. "No" here means you pay everyone directly in mixed rCredits/USD transactions.
+    $a1 = "a href=\"$base_url/help/virtual-payments\"";
+    $a3 = "a href=\"$base_url/account/relations\"";
+    $desc = tt(<<<EOF
+    Saying "<b>Yes</b>" to <@a1>virtual payments</a> (<b>highly recommended</b>) means you trade your rCredits to your employees and vendors automatically every day, in exchange for US Dollars, without any change to your normal US Dollar payments. You still get the 5% rebate, minus 25 cents for each payment larger than $@DW_FEE_THRESHOLD. For example, a $100 virtual payment gives you a net rebate of $5.00 - 0.25 = $4.75. To make the virtual payments automatic, you need to set up <@a1>average</a> monthly payment amounts on the <@a3>Relations</a> page. "<b>No</b>" here means you pay everyone directly, one at a time, in mixed rCredits/USD transactions.
 EOF
-    );
+    , compact('a1', 'a3'));
     $dft = $isSetUp ? $mya->hasBit(B_VIRTUAL) : TRUE;
     $payVirtual = boolField(t('Pay virtually:'), $desc, $dft);
   }
@@ -3165,9 +3175,9 @@ EOF
   // Double confirmation: by SMS, by email, either. require extra confirmation of crucial account changes
   $floor = u\formatAmount($mya->floor);
   $debtOk = formField('checkbox', t('Debt Okay:'), tt('Allow my account balance to go negative, limited by my current "credit floor" (which starts at zero, then gets lower and lower as time goes by &mdash; currently @floor). I understand there will be a substantial fee (currently $@R_DEBT_FEE plus @R_DEBT_PERCENT% per month) if I fail to bring my balance back up to zero within @R_DEBT_DAYS days.', compact('floor')), $mya->hasBit(B_DEBT_OK));
-  $submit = submit(t('Update options'));
+  $submit = submit(t('Update Preferences'));
   
-  $form = compact(u\ray('title payVirtual minimum maximum smsNotices notices statements secretBal debtOk submit'));
+  $form = compact(u\ray('title payVirtual minimum smsNotices notices statements secretBal debtOk submit'));
   js('showMax();', 'inline', 'footer');
   return labeled($form);
 }
@@ -3175,17 +3185,19 @@ EOF
 function formOptions_validate($form, &$sta) {
   $mya = r\acct();
   $floor = u\formatAmount($mya->floor);
+//  extract(u\just('maximum', $sta['input']));
+//  if (trim($maximum) == '') $sta['input']['maximum'] = -1;
   if ($err = amtErr('minimum', $sta)) return say($err, 'minimum');
-  if ($err = amtErr('maximum', $sta)) return say($err, 'maximum');
-  extract(u\just('minimum maximum payVirtual', $sta['input'])); // after amtErr checks
+//  if ($err = amtErr('maximum', $sta)) return say($err, 'maximum');
+  extract(u\just('minimum payVirtual', $sta['input'])); // after amtErr checks
   if ($minimum < $mya->floor) say('bad minr', compact('floor'), 'minimum');
-  if (!$payVirtual and $maximum >= 0 and ($maximum < min($minimum, $mya->rewards))) say('bad maxr', 'maximum');
+//  if (!$payVirtual and $maximum >= 0 and ($maximum < min($minimum, $mya->rewards))) say('bad maxr', 'maximum');
 }
 
 function formOptions_submit($form, $sta) {
   global $base_url;
   $mya = r\acct();
-  extract(u\just('minimum maximum smsNotices notices statements payVirtual debtOk secretBal', $sta['input']));
+  extract(u\just('minimum smsNotices notices statements payVirtual debtOk secretBal', $sta['input']));
 
 //  $mya->setBit(B_TO_BANK, @$toBank, FALSE); 
   $mya->setBit(B_VIRTUAL, @$payVirtual, FALSE);
@@ -3197,8 +3209,8 @@ function formOptions_submit($form, $sta) {
   $mya->setBit(B_DEBT_OK, @$debtOk, FALSE);
   $mya->setBit(B_SECRET_BAL, @$secretBal, FALSE);
   
-  if ($payVirtual) $maximum = $minimum;
-  $mya->update(compact(u\ray('minimum maximum'))); // flag bits get saved automatically
+//  if ($payVirtual) $maximum = $minimum;
+  $mya->update(compact(u\ray('minimum'))); // flag bits get saved automatically
   if ($mya->can(B_OK)) return say('options saved');
   
   say('options saved|step completed');

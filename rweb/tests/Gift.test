@@ -44,8 +44,8 @@ class rwebGift extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id   | fullName   | address | city  | state  | postalCode | country | email         | flags           |'
-    . '\\| .ZZA | Abe One    | POB 1   | Atown | Alaska | 01000      | US      | a@example.com | dft,ok,personal |"');
+    . '\\| id   | fullName   | address | city  | state  | postalCode | country | email         | flags                |'
+    . '\\| .ZZA | Abe One    | POB 1   | Atown | Alaska | 01000      | US      | a@example.com | dft,ok,personal,bona |"');
     And__('balances: "DATA'
     . '\\| id     | usd  | r   | rewards |'
     . '\\| cgf    |    0 |   0 |       0 |'
