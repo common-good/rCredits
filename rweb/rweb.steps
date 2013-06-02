@@ -47,6 +47,8 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  * member (ARG) completes form (ARG) with values: (ARG)
  *
  * in: Flow AMemberOverdrawsWithNotEnoughToDrawOn MAKE
+ *     Get AMemberMovesCreditToTheBank MAKE
+ *     Get AMemberDrawsCreditFromTheBank MAKE
  *     Gift AMemberContributes MAKE
  *     Gift AMemberContributesPartlyInUSD MAKE
  *     Gift AMemberContributesWithInsufficientFunds MAKE
@@ -188,6 +190,7 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  *
  * in: Download Setup MAKE
  *     Flow Setup MAKE
+ *     Get Setup MAKE
  *     Gift Setup MAKE
  *     Membership Setup MAKE
  *     RealUsd Setup MAKE
@@ -431,6 +434,8 @@ function relations($relations) {return t\relations($relations);}
  *
  * in: Download Setup TEST
  *     Flow Setup MAKE
+ *     Get AMemberMovesCreditToTheBank MAKE
+ *     Get AMemberDrawsCreditFromTheBank MAKE
  *     Gift Setup MAKE
  *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
  *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance TEST

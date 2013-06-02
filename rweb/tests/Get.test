@@ -1,0 +1,83 @@
+<?php
+//
+// Feature: Get rCredits/USD
+//   AS a member
+//   I WANT to transfer credit to my bank account
+//   SO I can pay it to non-members
+//   OR
+//   I WANT to transfer credit from my bank account
+//   SO I can spend it through the rCredits system or hold it in the rCredits system as savings.
+
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rweb.steps';
+
+class rwebGet extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
+  var $sceneName;
+  const SHORT_NAME = 'Get';
+  const FEATURE_NAME = 'rweb Test - Get';
+  const DESCRIPTION = 'Get rCredits/USD';
+  const MODULE = 'rweb';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
+  }
+  
+  public static function getInfo() {
+    return array(
+      'short_name' => self::SHORT_NAME,
+      'name' => self::FEATURE_NAME,
+      'description' => self::DESCRIPTION,
+      'group' => ucwords(self::MODULE)
+    );
+  }
+
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
+    global $sceneTest; $sceneTest = $this;
+    parent::setUp(self::MODULE);
+
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rweb.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
+    default: // fall through to case(0)
+    case(0):
+    Given('members: "DATA'
+    . '\\| id   | fullName | floor | minimum | flags                   |'
+    . '\\| .ZZA | Abe One  |     0 |     100 | dft,personal,ok,bank    |'
+    . '\\| .ZZB | Bea Two  |     0 |     100 | dft,personal,ok         |'
+    . '\\| .ZZC | Our Pub  |     0 |     100 | dft,personal,company,ok |'
+    . '\\| .ZZD | Dee Four |     0 |     100 | dft,personal,ok         |"');
+    break;
+
+
+    }
+  }
+
+  // Scenario: a member moves credit to the bank
+  public function testAMemberMovesCreditToTheBank_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "DATA'
+    . '\\| id   | r | usd | rewards |'
+    . '\\| .ZZA | 0 | 500 |      20 |"');
+    When_('member ".ZZA" completes form "get" with values: "DATA'
+    . '\\| op  | amount |'
+    . '\\| put |      8 |"');
+  }
+
+  // Scenario: a member draws credit from the bank
+  public function testAMemberDrawsCreditFromTheBank_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "DATA'
+    . '\\| id   | r | usd | rewards |'
+    . '\\| .ZZA | 0 |   0 |      20 |"');
+    When_('member ".ZZA" completes form "get" with values: "DATA'
+    . '\\| op  | amount |'
+    . '\\| get |      8 |"');
+  }
+
+}

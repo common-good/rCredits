@@ -31,3 +31,4 @@ files[] = tests/Signin.test
 files[] = tests/Gift.test
 files[] = tests/Flow.test
 files[] = tests/Download.test
+files[] = tests/Get.test

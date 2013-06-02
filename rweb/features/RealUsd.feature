@@ -9,7 +9,7 @@ SO I don't lose money or get confused.
 #	Facebook	dwolla.reflector
 #	Twitter	@DwollaReflector
 
-# Next: pay AMT1+10 USD and make sure the transaction totally fails
+# Assumes real TESTER balance is at least $0.20
 
 Setup:
   Given members:

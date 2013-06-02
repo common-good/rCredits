@@ -103,7 +103,7 @@ define('B_MEMBER', 0); // signed the membership agreement, etc.
 define('B_READY', 1); // completed all steps
 define('B_OK', 2); // approved to use rCredits for real (set by admin when READY)
 define('B_BONA', 3); // got signup bonus (good circles - somehow got more r+usd than the initial gift)
-define('B_u4', 4); // 
+define('B_BANK', 4); // has an effective connected bank account
 define('B_PERSONAL', 5); // personal account
 define('B_COMPANY', 6); // company account (could be personal also, for independent contractor)
 define('B_u7', 7); // 
@@ -136,7 +136,7 @@ define('B_MAX', 31); // maximum bit number
 //define('B_DFT', (1 << B_NOTIFY_EMAIL) | 0); // set what bits when creating a new account
 define('B_DFT', 0 | 0); // set what bits when creating a new account
 define('B_ADMINABLE', 'personal company member ctty_admin closed'); // for cttyAdmin to set
-define('B_LIST', 'member ready ok bona u4 person company u7 charge u9 virtu u11 payroll weekly monthly u15 sms electro secret bank debt draws u22 u23 u24 u25 u26 u27 u28 cadmin admin closed');
+define('B_LIST', 'member ready ok bona u4 person company u7 charge u9 virtu u11 payroll weekly monthly u15 sms electro secret u19 debt draws u22 u23 u24 u25 u26 u27 u28 cadmin admin closed');
 
 //define('R_EXCESS', 'IF(maximum<0, 0, GREATEST(0, r+usd-GREATEST(floor, maximum, minimum, rewards+committed)))'); // sql for excess in account (for redistribution or employee offloading -- NOT for company virtual payments)
 define('R_SHORTFALL', 'GREATEST(0, minimum-(r+usd))'); // sql for shortfall in account (to draw in)
@@ -161,8 +161,7 @@ $GLOBALS['share permissions'] = array(t('no access'), t('read transactions'), t(
 
 // Other special pseudo-bit values for acct::can()
 define('B_MANAGING_CTTY', 120); // ctty_admin is actually managing a qualified account
-define('B_SELL_OK', 121); // sell and ok
-define('B_BUY_OK', 122); // buy and ok
+define('B_USD', 121); // account has an effective connected bank account
 define('B_SHOW_ALL', 999); // special signal to acct::can() to return all permissions
 $GLOBALS['permissions'] = 'related read sell buy manage - company charge - member partner steward - rtrader - - managing_ctty ctty_admin - admin';
 

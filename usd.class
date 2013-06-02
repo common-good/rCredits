@@ -130,8 +130,8 @@ class usd {
     u\EXPECT(is_object($this->acct) and is_object($other->acct), 'empty account');
     u\EXPECT($this->acct->hasBit(B_OK) and $other->acct->hasBit(B_OK), 'non rTraders in usd send');
 
-    if ($this->acct->usd < $amount or is_null($this->number)) return dwError('not enough');
-
+    if ($this->acct->usd < $amount) return dwError('not enough');
+    
     $source = $direct ? 'Dwolla' : 'ERROR'; // no delayed payments at present
     $notes = USD_NOTE_PREFIX . $notes;
     $dw = $this->dwolla();
@@ -139,7 +139,7 @@ class usd {
       $txid = t\seq();
       self::addToAtom($txid, $amount, $this->acct->id, $other->acct->id);
       return $txid;
-    }
+    } else u\EXPECT(!is_null($this->number) and !is_null($other->number), 'null dw number');
     if ($this->number == $other->number) return dwError(u\tt('no self-trading')); // AFTER t\EST() check
 
     if ($txid = $dw->send($this->pin, self::format($other->number), $amount, $source, $notes, 0, $payerFee)) {

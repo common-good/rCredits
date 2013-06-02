@@ -2,9 +2,6 @@ Feature: Bank
 AS a member
 I WANT credit to flow from my bank account
 SO I can spend it with my rCard.
-and
-I WANT credit to flow to my bank account
-SO I can pay it to non-members.
 
 Setup:
   Given members:

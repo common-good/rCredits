@@ -682,6 +682,7 @@ function parseAmt($var, $a) {
   u\EXPECT(!is_numeric($var), 'expected non-numeric var');
   
   $bal = $a->actualUsd();
+//  debug(compact('a','bal','var'));
 
   if (($i = strpos($var, '+')) or ($i = strpos($var, '-'))) {
     $op = substr($var, $i, 1);

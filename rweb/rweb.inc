@@ -2869,6 +2869,7 @@ function loginFollowup($edit, $account) {
   r\setCook('loginto', '', REQUEST_TIME-1); // no more default login
   $data = $mya->data ?: array();
   unset($data['oneTimePass']);
+  if (!$mya->can(B_BANK) and $mya->dwStatus() >= DW_VSAVINGS) $mya->setBit(B_BANK, TRUE, FALSE);
   $mya->update(compact(u\ray('pass data')));
 
   u\loga('login', compact('name'), $myid);
