@@ -496,7 +496,7 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   r\usd::beginAtom();
   if ($confirmed) {
     $payerFee = R_FEE_FOR_CASH ? (!$goods) : FALSE; // cash-getter pays the transaction fee
-    if ($state = TX_DONE and $usd > 0 and !$usdXid = $fromUsAcct->send($usd, $toUsAcct, $for, $payerFee)) {
+    if ($state = TX_DONE and $usd > 0 and !$usdXid = $fromUsAcct->send($usd, $toUsAcct, $for, $err, $payerFee)) {
       r\usd::rollback();
       $fromAcct->actualUsd(); // fix cached USD, if needed (after rollback of course)
       return array('usd failed', array(), FALSE);

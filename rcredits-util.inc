@@ -406,7 +406,7 @@ function SUBS($string, $prefix = ':', $flagField = 'flags') {
   $string = preg_replace("/\\{$prefix}IS_([A-Z0-9_]*)/ms", "($flagField&(1<<:B_$1))", $string);
   preg_match_all("/\\$prefix([A-Z_][A-Z0-9_]*)/ms", $string, $matches);
   $map = array();
-  foreach ($matches[1] as $one) $map["$prefix$one"] = constant($one);
+  foreach ($matches[1] as $one) if (defined($one)) $map["$prefix$one"] = constant($one);
   return strtr($string, $map);
 }
 

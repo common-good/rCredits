@@ -1437,8 +1437,9 @@ function formAdmin($form, &$sta, $args = '') {
   $title = item(t('System Administration'));
   $account = textField(t('Account:'), t('Account to do something to'),auto());
   $printId = submit(t('Print ID'));
-  $form = compact(u\ray('title account printId'));
+  $form = compact(u\ray('title'));
   foreach (u\ray('USD_Accounts Gfld ' . R_SHOWABLE_TABLES) as $one) $form[$one] = submit(str_replace('_', ' ', $one));
+  $form += compact(u\ray('account printId'));
   return $form;
 }
 

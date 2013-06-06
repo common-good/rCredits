@@ -646,7 +646,7 @@ function acceptGift($info) {
 
   r\usd::beginAtom();
   list ($msg, $args, $confirm) = be\transfer('payment', $a, $cgf, $amount, 'contribution', TRUE);
-// debug(compact('msg','args','confirm'));
+//  debug(compact('msg','args','confirm'));
   if (@$args['success']) {
     $completed = REQUEST_TIME;
     r\dbUpdate('r_gifts', compact('donid', 'completed'), 'donid');
@@ -658,6 +658,7 @@ function acceptGift($info) {
     }
     r\usd::commit();
     r\tellStaff('gift accepted', $info + $args);
+    r\notify($uid, 'gift sent', $args);
     return TRUE;
   } else r\usd::rollback();
   return FALSE;

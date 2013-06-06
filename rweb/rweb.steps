@@ -755,3 +755,33 @@ function withDownloadColumns($columns) {
   foreach ($columns as $one) if (array_search($one['column'], $headers) === FALSE) return FALSE;
   return TRUE;
 }
+
+/**
+ * incomplete transaction count (ARG)
+ *
+ * in: 
+ */
+function incompleteTransactionCount($arg1) {
+  global $testOnly;
+  todo;
+}
+
+/**
+ * cron runs (ARG)
+ *
+ * in: 
+ */
+function cronRuns($arg1) {
+  global $testOnly;
+  todo;
+}
+
+/**
+ * bank transfers: (ARG)
+ *
+ * in: 
+ */
+function bankTransfers($arg1) {
+  global $testOnly;
+  todo;
+}

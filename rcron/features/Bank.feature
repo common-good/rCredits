@@ -34,7 +34,7 @@ Scenario: a member is well below minimum
   When cron runs "bank"
   Then bank transfers:
   | payer | amount |
-  | .ZZA |    -74 |
+  | .ZZA  |    -74 |
   And we notice "minmax status|banked" to member ".ZZA" with subs:
   | action    | status                    | amount |
   | draw from | under the minimum you set |    $74 |

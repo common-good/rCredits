@@ -8,15 +8,13 @@ use rCredits\Testing as t;
  * @file
  * rCredits USD (official currency) account class
  *
- * This class has no awareness of the Drupal database
- * @todo? make $dw a usd object var?
+ * Note that if Dwolla is not reachable: bal(), bank(), and send() have a fallback.
  */
 
 require_once __DIR__ . '/../dwolla/dwolla.php';
 require_once __DIR__ . '/rcredits-testing.inc'; // required during cron
 
 define('USD_NOTE_PREFIX', 'rC: '); // prefix USD transaction notes so we know they are ours
-define('NO_DWOLLA', FALSE);
 
 class usd {
   var $acct; // the associated rCredits account
@@ -68,14 +66,14 @@ class usd {
    * @param int $uid: rCredits account id, passed in return uri
    */
   public static function getAuth2($uid) {
-    if (!useDwolla()) unset($_GET['error']);
+    if (t\EST()) unset($_GET['error']);
     if (@$_GET['error']) return authReturn($_GET['error_description']);
 
     $mya = r\acct();
     if ($uid != @$mya->id) return authReturn(u\tt('wrong user'));
     $usdAcct = new usd($mya);
     $dw = $usdAcct->dwolla(FALSE, R_GET_AUTH_URI); // URI must match the one in getAuth
-    if (!useDwolla()) $authToken = \user_password(); else
+    if (t\EST()) $authToken = \user_password(); else
     if (!$authToken = $dw->requestToken(@$_GET['code'])) return authReturn($dw);
 
     $secure = $mya->secure;
@@ -106,46 +104,49 @@ class usd {
    */
   function bal(&$error = NULL) {
     $dw = $this->dwolla();
-    if (!useDwolla() and !(t\EST() and $this->number == DW_TESTER_ACCT)) return $this->acct->usd + 0;
+    if (t\EST() and $this->number != DW_TESTER_ACCT) return $this->acct->usd + 0;
     $result = $dw->balance();
+    if (noDwolla($dw)) return $this->acct->usd + 0;
     dwError($dw, $error); // get error message, if any
     return $result;
   }
-
+  
   /**
    * Transfer funds from this account to another.
    * @param float $amount: the amount to transfer
    * @param usd $other: the other account
    * @param string $notes: description of transaction (to be prefixed with "r: "), limited to 250-4 characters
+   * @param string $err: (RETURNED) an error message on failure (UNUSED for now)
    * @param bool $payerFee: the payer pays the transaction fee (if any) -- otherwise (default) the payee pays it
    * $param bool $direct: the funds must already be in the Dwolla account (no 3-day delay) (UNUSED for now)
-   * @param string $error: (RETURNED) an error message on failure (UNUSED for now)
    * @return:
-   *   success: Dwolla transaction ID string
+   *   success: Dwolla transaction ID string OR -1 if Dwolla is down
    *   fail: FALSE
    *   maybe: '?' (UNUSED for now)
    */
-  function send($amount, $other, $notes = R_DEFAULT_PURPOSE, $payerFee = FALSE, $direct = TRUE, &$error = NULL) {
+  function send($amount, $other, $notes = R_DEFAULT_PURPOSE, &$err = NULL, $payerFee = FALSE, $direct = TRUE) {
     u\EXPECT(self::inAtom(), 'usd transfer outside atom');
     u\EXPECT(is_object($this->acct) and is_object($other->acct), 'empty account');
     u\EXPECT($this->acct->hasBit(B_OK) and $other->acct->hasBit(B_OK), 'non rTraders in usd send');
 
-    if ($this->acct->usd < $amount) return dwError('not enough');
+    debug('usd='.$this->acct->usd);
+    debug($amount);
+    if ($this->acct->usd < $amount) return dwError('not enough', $err);
     
     $source = $direct ? 'Dwolla' : 'ERROR'; // no delayed payments at present
     $notes = USD_NOTE_PREFIX . $notes;
     $dw = $this->dwolla();
-    if (!useDwolla() and !(t\EST() and $this->number == DW_TESTER_ACCT and $other->number == DW_TEST_ACCT)) {
+    if (t\EST() and !($this->number == DW_TESTER_ACCT and $other->number == DW_TEST_ACCT)) {
       $txid = t\seq();
       self::addToAtom($txid, $amount, $this->acct->id, $other->acct->id);
       return $txid;
     } else u\EXPECT(!is_null($this->number) and !is_null($other->number), 'null dw number');
-    if ($this->number == $other->number) return dwError(u\tt('no self-trading')); // AFTER t\EST() check
+    if ($this->number == $other->number) return dwError(u\tt('no self-trading'), $err); // AFTER t\EST() check
 
     if ($txid = $dw->send($this->pin, self::format($other->number), $amount, $source, $notes, 0, $payerFee)) {
-      self::addToAtom($txid, $amount, $this->acct->id, $other->acct->id);
+      self::addToAtom($txid, $amount, $this->acct->id, $other->acct->id); // -1 for noDwolla
       return $txid;
-    } else return dwError($dw);
+    } else return noDwolla($dw) ? -1 : dwError($dw, $err);
   }
   
   /**
@@ -181,24 +182,27 @@ array (
   function bank($amount, &$error = NULL) {
     u\EXPECT($amount <> 0, 'bank zero');
     $dw = $this->dwolla();
-    if (useDwolla())
+    if (!t\EST())
     if (!($source = $this->source($err)) or !@$source['Id'] or $err) return dwError($err ?: 'no source', $error);
-    if (useDwolla())
+    if (!t\EST())
     if (!@$source['Verified']) return dwError('not verified', $error);
     
     $function = $amount < 0 ? 'deposit' : 'withdraw'; // seems backwards (it's from Dwolla perspective)
 // debug("Transferring USD $amount from Dwolla account to the bank for account uid=" . $this->acct->id);
     self::beginAtom();
-    if (useDwolla())
-    if (!$result = $dw->$function(@$source['Id'], $this->pin, abs($amount))) {
-      self::rollback();
-      return dwError($dw, $error);
+    if (t\EST()) $txid = t\seq(); else
+    {
+      $result = $dw->$function(@$source['Id'], $this->pin, abs($amount));
+      if (!$result and !noDwolla($dw)) {
+        self::rollback();
+        return dwError($dw, $error);
+      }
+      $txid = @$result['Id'] ?: -1; // -1 for noDwolla
     }
-    if (!useDwolla()) $txid = t\seq(); else
-    $txid = $result['Id'];
-    self::addToAtom($txid, $amount, $this->acct->id, 0, 0);
+    
+    if ($txid != -1) self::addToAtom($txid, $amount, $this->acct->id, 0, 0);
     self::commit();
-    if ($amount > 0) $this->acct->actualUsd(); // treat the money as already gone, if depositing in bank
+    if ($amount > 0) $this->acct->actualUsd(-$amount); // treat the money as already gone, if depositing in bank
     return $txid;
   }
 
@@ -334,6 +338,15 @@ array (
 } // end of class
 
 /**
+ * Return TRUE if Dwolla is down
+ * @param object $dw: the Dwolla request object or error message
+ */
+function noDwolla($dw) {
+  if (!is_object($dw)) return FALSE;
+  return ($dw->getError() == 'Request failed. Server responded with: 0');
+}
+
+/**
  * Set error to the Dwolla error, check for unknown errors.
  * @param mixed $dw: the dwolla REST object, an error string, or ''
  * @param string $error: (returned) the error message if any, else ''
@@ -362,5 +375,3 @@ function authReturn($dw = '') {
   dwError($dw, $err);
   return r\go($uri . ($err ?: 'yes'));
 }
-
-function useDwolla() {return (!NO_DWOLLA and !t\EST());}

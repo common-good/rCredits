@@ -86,7 +86,7 @@ class rcronBank extends DrupalWebTestCase {
     When_('cron runs "bank"');
     Then_('bank transfers: "DATA'
     . '\\| payer | amount |'
-    . '\\| .ZZA |    -74 |"');
+    . '\\| .ZZA  |    -74 |"');
     And__('we notice "minmax status|banked" to member ".ZZA" with subs: "DATA'
     . '\\| action    | status                    | amount |'
     . '\\| draw from | under the minimum you set |    $74 |"');

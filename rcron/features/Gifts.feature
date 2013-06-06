@@ -5,12 +5,12 @@ SO I can enjoy the rCredit system's rapid growth and be a part of that.
 
 Setup:
   Given members:
-  | id      | fullName   | address | city  | state  | postalCode | country | email         | flags           |
+  | id   | fullName   | address | city  | state  | postalCode | country | email         | flags           |
   | .ZZA | Abe One    | POB 1   | Atown | Alaska | 01000      | US      | a@example.com | dft,ok,personal |
   And balances:
-  | id        | usd  | r   | rewards |
-  | cgf       |    0 |   0 |       0 |
-  | .ZZA   |  100 |  20 |      20 |
+  | id   | usd  | r   | rewards |
+  | cgf  |    0 |   0 |       0 |
+  | .ZZA |  100 |  20 |      20 |
 
 Scenario: A contribution can be completed
   Given gifts:
@@ -28,6 +28,9 @@ Scenario: A contribution can be completed
   And we notice "new payment" to member "cgf" with subs:
   | otherName | amount | payeePurpose |
   | Abe One   |    $10 | contribution |
+  And we notice "gift sent" to member ".ZZA" with subs:
+  | amount | rewardAmount |
+  |    $10 |        $0.50 |
   And we tell staff "gift accepted" with subs:
   | amount | often | myName  | rewardType |
   |     10 |     1 | Abe One | rebate     |

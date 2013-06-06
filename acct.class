@@ -427,15 +427,19 @@ EOF;
     
   /**
    * Update the account's cached USD amount and return it.
+   * @param float $change: if non-zero, update the USD cache by this much, without checking Dwolla or r_usd
    */
-  public function actualUsd() {
-    $usAcct = new usd($this);
-    $usd = max(0, $usAcct->bal($err) - $this->waitingToBank(TRUE)); // $err is inaccessibility (usd=0)
+  public function actualUsd($change = 0) {
+    if ($change) {
+      $usd = $this->usd + $change; // manual update
+    } else {
+      $usAcct = new usd($this);
+      $usd = max(0, $usAcct->bal($err) - $this->waitingToBank(TRUE)); // $err is inaccessibility (usd=0)
 
-    if (t\EST()) {
-      global $sceneTest; 
-      $scene = (object) $sceneTest->getInfo();
-      if (!in_array($scene->short_name, u\ray('Recache RealUsd'))) return $this->usd; // only these tests adjust
+      if (t\EST()) { // only these tests adjust according to Dwolla
+        global $sceneTest; $scene = (object) $sceneTest->getInfo();
+        if (!in_array($scene->short_name, u\ray('Recache RealUsd IncompleteUsdTxs'))) return $this->usd;
+      }
     }
     if ($usd != $this->usd) $this->update(compact('usd')); // somehow balance got off
     return $usd;
@@ -500,6 +504,8 @@ EOF;
       for ($i = B_RELATED; $i <= B_MANAGE; $i++) $perms[$i] = ($i <= $can); // set all permissions, even the false ones
       if (!$perms[B_OK]) $perms[B_SELL] = FALSE; // no ASIFs! (read here kills acct dropdown)
       if (!$perms[B_MEMBER]) $perms[B_BUY] = FALSE; // no spending even the SIGNUP GIFT for non-members
+      if ($perms[B_OK]) $perms[B_READY] = TRUE; // make sure nobody gets downgraded
+      if ($perms[B_READY]) $perms[B_MEMBER] = TRUE;
       
       if ($perms[B_ADMIN]) {
         if (R_ADMIN_CAN_MANAGE_CTTYS) {

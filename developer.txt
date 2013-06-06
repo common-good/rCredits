@@ -7,23 +7,23 @@ Notes for developers
   . new feature failure, if new feature is disabled.
   . admin.inc can normally be uploaded without testing
 - Find and delete all temporary debugging statements:
-  . Search for "debug(", "print_r(", and "die(" (all such lines should begin with // or (if keepers) /**/
+//. Search for "debug(", "print_r(", and "die(" (all such lines should begin with // or (if keepers) /**/
   . Sometime write a macro to do the finding. 
 - Upload first to ws.rcredits.org and make sure SOMETHING works
 - Upload to new.rcredits.org and make sure SOMETHING works.
 ***
 
 BEFORE MINI LAUNCH:
-- getr/USD form fails (loops?)
-- employee card no password (double card code)
+- employee card no password (double card code?)
 - automatic (suggested) ops
 - warn nubes about how long signup will take, including waiting for Dwolla, for the bank, for CGF,...
 - pilot test, including formI
 - * no signup on rcredits.org! (just mailing list)
-- fix flags on production server (-1s)
 
 To do: (* = before launch ** = earlier)
 
+- option to never convert r to us (eg for war tax refusers). rCredits cannot be seized except by the CGC.
+- include address in "new payment" digest notices to nonprofits OR just CGF (warn on pay screen if the former)
 - add correction of min<floor to recache test
 - give user a chance to name the machine (or change the name), saved in a cookie and in each tx (box)
 - reduce picture size and make thumbnails (for upper right corner)
@@ -33,7 +33,6 @@ To do: (* = before launch ** = earlier)
 - rethink nested usd transaction atoms (is the logic right?)
 - retest SMS
 - allow clerks to sign in with card, with no password (option for companies)
-- * Get r/USD tab
 - * in daily: alert staff if deposit / withdrawal not complete after 3 days
 - * help for all pages
 - handle 10-day interval for deposits/withdrawals for non-checking accounts

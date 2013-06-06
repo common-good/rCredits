@@ -44,12 +44,12 @@ class rcronGifts extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id      | fullName   | address | city  | state  | postalCode | country | email         | flags           |'
+    . '\\| id   | fullName   | address | city  | state  | postalCode | country | email         | flags           |'
     . '\\| .ZZA | Abe One    | POB 1   | Atown | Alaska | 01000      | US      | a@example.com | dft,ok,personal |"');
     And__('balances: "DATA'
-    . '\\| id        | usd  | r   | rewards |'
-    . '\\| cgf       |    0 |   0 |       0 |'
-    . '\\| .ZZA   |  100 |  20 |      20 |"');
+    . '\\| id   | usd  | r   | rewards |'
+    . '\\| cgf  |    0 |   0 |       0 |'
+    . '\\| .ZZA |  100 |  20 |      20 |"');
     break;
 
 
@@ -74,6 +74,9 @@ class rcronGifts extends DrupalWebTestCase {
     And__('we notice "new payment" to member "cgf" with subs: "DATA'
     . '\\| otherName | amount | payeePurpose |'
     . '\\| Abe One   |    $10 | contribution |"');
+    And__('we notice "gift sent" to member ".ZZA" with subs: "DATA'
+    . '\\| amount | rewardAmount |'
+    . '\\|    $10 |        $0.50 |"');
     And__('we tell staff "gift accepted" with subs: "DATA'
     . '\\| amount | often | myName  | rewardType |'
     . '\\|     10 |     1 | Abe One | rebate     |"');

@@ -7,7 +7,8 @@
  ** = tested
  
 DAILY (every 5 mins for 5 mins, starting at 2am)
-- * usdTxs() rollback lost USD transactions, mark completed deposits/withdrawals
+- * usdTxsHere() complete USD transactions that didn't go through because of Dwolla outage
+- * usdTxsThere() rollback lost USD transactions, mark completed deposits/withdrawals
 - ** recache() check / recalc cached r, rewards, and usd
 - [later] checkAccts() thorough security / scam checks
 - ** totals() get community and system totals: variable_set('totals', )
@@ -51,7 +52,7 @@ use rCredits\Backend as be;
 
 include_once __DIR__ . '/../usd.class';
 
-define('R_DAILY_TASKS', 'START usdTxs recache checkAccts totals paySuppliers payEmployees gifts bank lessOften notices END');
+define('R_DAILY_TASKS', 'START usdTxsHere usdTxsThere recache checkAccts totals paySuppliers payEmployees gifts bank lessOften notices END');
 //define ('R_DAILY_TASKS', 'START redistribute END');
 
 /**
@@ -68,10 +69,9 @@ function doTask($item) {
  * Queue: Check to see if it's time for a less-often periodic activity.
  */
 function periodic() {
-  if (!isDEV) return; // don't cron on pre-production server
+//  if (!isDEV) return; // don't cron on pre-production server
   if (STAGING) return; // don't cron on pre-production server
   $lastDaily = \variable_get('daily', 0);
-  r\dbQ("DELETE FROM queue WHERE name='q'");
   if (strftime('%H') >= R_DAILY_HOUR and strftime('%d') != strftime('%d', $lastDaily)) everyDay();
   if (strftime('%M') == '00') everyHour();
   // stuff to do every time cron is called (normally every 5 minutes)
@@ -114,14 +114,39 @@ function everyYear() {
 
 //****************************************************
 
-
-function usdTxs() {
-  queueEach('usdTx', 'SELECT uid FROM users WHERE :IS_OK');
-  queue('usdTxsEND');
+/**
+ * Complete queued USD transactions that have not gone through yet.
+ * Maybe this should be the only time they are done!
+ */
+function usdTxsHere() {
+  queueEach('usdTxHere', 'SELECT * FROM r_txs WHERE usdXid=-1 AND r<amount AND state IN(:TX_DONE,:TX_DISPUTED)');
+  queue('usdTxsHereEND');
 }
-function usdTxsEND() {queueNextAfter('usdTxs');}
+function usdTxsHereEND() {queueNextAfter('usdTxsHere');}
 
-function usdTx($item) {
+function usdTxHere($item) {
+  extract($item); // tx with not-yet-done USD transfer
+  $usFromAcct = new r\usd($fromAcct = r\acct($payer));
+  $usToAcct = new r\usd($toAcct = r\acct($payee));
+  r\usd::beginAtom();
+  if (($usdXid = $usFromAcct->send($amount - $r, $usToAcct, $taking ? $payeeFor : $payerFor, $err)) and $usdXid != -1) {
+    r\dbUpdate('r_txs', compact('xid', 'usdXid'), 'xid');
+    r\usd::commit();
+//  } else r\usd::rollback();
+  } else {debug($err); r\usd::rollback();}
+}
+
+/**
+ * (1) Identify inconsistencies caused by system crashes and reconcile them.
+ * (2) Notice and record completion of EFTs.
+ */
+function usdTxsThere() {
+  queueEach('usdTxThere', 'SELECT uid FROM users WHERE :IS_OK');
+  queue('usdTxsThereEND');
+}
+function usdTxsThereEND() {queueNextAfter('usdTxsThere');}
+
+function usdTxThere($item) {
   $uid = $item['uid'];
   $usAcct = new r\usd($acct = r\acct($uid));
   $usAcct->each('rCredits\\Cron\\usdTxQ', strtotime('4 days ago'), array('money_sent','deposit','withdrawal'));
@@ -319,7 +344,7 @@ function virtualPayment($item) {
  * Handle one-time and recurring gifts that it's time to handle.
  */
 function gifts() {
-  queueEach('gift1', "SELECT * FROM r_gifts g INNER JOIN users u ON u.uid=g.uid WHERE NOT completed and giftDate<=:REQUEST_TIME AND :IS_OK");
+  queueEach('gift1', "SELECT g.* FROM r_gifts g INNER JOIN users u ON u.uid=g.uid WHERE NOT completed and giftDate<=:REQUEST_TIME AND :IS_OK");
   queueNextAfter('gifts');
 }
 

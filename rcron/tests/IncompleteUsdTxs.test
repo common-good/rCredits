@@ -1,0 +1,85 @@
+<?php
+//
+// Feature: Incomplete USD Txs
+//   AS a member
+//   I WANT my transactions to go through regardless of whether Dwolla is up
+//   SO I can depend on having access to the money I have in the rCredits system
+
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rcron.steps';
+
+class rcronIncompleteUsdTxs extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
+  var $sceneName;
+  const SHORT_NAME = 'IncompleteUsdTxs';
+  const FEATURE_NAME = 'rcron Test - IncompleteUsdTxs';
+  const DESCRIPTION = 'Incomplete USD Txs';
+  const MODULE = 'rcron';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
+  }
+  
+  public static function getInfo() {
+    return array(
+      'short_name' => self::SHORT_NAME,
+      'name' => self::FEATURE_NAME,
+      'description' => self::DESCRIPTION,
+      'group' => ucwords(self::MODULE)
+    );
+  }
+
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
+    global $sceneTest; $sceneTest = $this;
+    parent::setUp(self::MODULE);
+
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rcron.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
+    default: // fall through to case(0)
+    case(0):
+    Given('members: "DATA'
+    . '\\| id   | fullName   | dwolla          | country | email         | flags                |'
+    . '\\| .ZZA | Abe One    | %DW_TESTER_ACCT | US      | a@example.com | dft,ok,personal,bona |'
+    . '\\| .ZZB | Bea Two    | %DW_TEST_ACCT   | US      | b@example.com | dft,ok,personal,bona |"');
+    And__('transactions: "DATA'
+    . '\\| xid | created   | type   | amount | from | to   | purpose |'
+    . '\\| 1   | %today-7m | signup |      9 | ctty | .ZZA | signup  |'
+    . '\\| 2   | %today-7m | signup |      5 | ctty | .ZZB | signup  |"');
+    And__('balances: "DATA'
+    . '\\| id   | r | usd   |'
+    . '\\| .ZZA | 9 | +AMT1 |'
+    . '\\| .ZZB | 5 |    10 |"');
+    And__('transactions: "DATA'
+    . '\\| xid | created   | type     | amount | r | from | to   | purpose | taking | usdXid | goods |'
+    . '\\| 3   | %today-6m | transfer |      5 | 3 | .ZZA | .ZZB | loan    | 0      |     -1 |     0 |"');
+    Then_('incomplete transaction count 1');
+    And__('balances: "DATA'
+    . '\\| id   | r | usd    |'
+    . '\\| .ZZB | 8 |     12 |"');
+    break;
+
+
+    }
+  }
+
+  // Scenario: a Dwolla outage leaves a transaction incomplete
+  public function testADwollaOutageLeavesATransactionIncomplete_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('cron runs "usdTxsHere"');
+    Then_('incomplete transaction count 0');
+    And__('bank transfers: "DATA'
+    . '\\| payer | payee | amount |'
+    . '\\| .ZZA  |  .ZZB |      2 |"');
+    And__('balances: "DATA'
+    . '\\| id   | r | usd    |'
+    . '\\| .ZZA | 6 | AMT1-2 |'
+    . '\\| .ZZB | 8 |     12 |"');
+  }
+
+}

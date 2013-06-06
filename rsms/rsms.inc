@@ -67,6 +67,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'event' => t('Account @fullName (@quid) is now @status.'),
   'you are approved' => t('Your account has been approved! You may now buy and sell through the rCredits system, including using your rCard for purchases at member businesses.'),
   'got funding' => t('You have received a @type of @amount from your rCredits community.'),
+  'gift sent' => t('Your chosen gift of @amount to Common Good Finance has gone through. Your rebate is @rewardAmount.'),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),
@@ -159,16 +160,16 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'no source' => t('there is no valid funding source'),
   'not verified' => t('the funding source has not yet been verified by entering the two tiny deposit amounts'),
   
-  'new-charge' => t('<b>Charge:</b> @otherName charged you @amount for "@payerPurpose".'),
-  'new-payment' => t('<b>Payment:</b> @otherName paid you @amount for "@payeePurpose".'),
-  'new-invoice' => t('<b>Invoice:</b> @otherName invoiced you @amount for "@payerPurpose". To pay (or deny) this invoice, visit your Transactions page.'),
-  'invoice-denied' => t('<p><b>Invoice DENIED:</b> Your customer @otherName has declined to pay the following invoice:</p>
+  'new charge' => t('<b>Charge:</b> @otherName charged you @amount for "@payerPurpose".'),
+  'new payment' => t('<b>Payment:</b> @otherName paid you @amount for "@payeePurpose".'),
+  'new invoice' => t('<b>Invoice:</b> @otherName invoiced you @amount for "@payerPurpose". To pay (or deny) this invoice, visit your Transactions page.'),
+  'invoice denied' => t('<p><b>Invoice DENIED:</b> Your customer @otherName has declined to pay the following invoice:</p>
   <blockquote>@created @amount for "@payerPurpose"</blockquote>
   <p>You may want to contact the customer directly, to resolve any dispute.</p>'),
-  'charge-disputed' => t('<p><b>Charge DISPUTED:</b> Your customer @otherName disputes the following charge:</p>
+  'charge disputed' => t('<p><b>Charge DISPUTED:</b> Your customer @otherName disputes the following charge:</p>
   <blockquote>@created @amount for "@payeePurpose"</blockquote>
   <p>You may want to contact the customer directly, to resolve this dispute.</p>'),
-  'invoice-canceled' => t('<p><b>Invoice CANCELED:</b> Your invoice from @otherName has been canceled:</p>
+  'invoice canceled' => t('<p><b>Invoice CANCELED:</b> Your invoice from @otherName has been canceled:</p>
   <blockquote>@created @amount for "@payerPurpose"</blockquote>
   <p>This invoice will no longer appear in your list of transactions.'),
   'minmax status' => t('Your combined USD and rCredits balance is @status.'),

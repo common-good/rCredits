@@ -49,6 +49,7 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *
  * in: Bank Setup MAKE
  *     Gifts Setup MAKE
+ *     IncompleteUsdTxs Setup MAKE
  *     Notices Setup MAKE
  *     Pilot Setup BOTH
  *     Recache Setup MAKE
@@ -67,6 +68,8 @@ function members($list) {return t\members($list);}
  *     Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank MAKE
  *     Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank MAKE
  *     Gifts Setup MAKE
+ *     IncompleteUsdTxs Setup BOTH
+ *     IncompleteUsdTxs ADwollaOutageLeavesATransactionIncomplete TEST
  *     Pilot Setup BOTH
  *     Pilot All TEST
  *     Recache Setup TEST
@@ -87,6 +90,7 @@ function balances($list) {return t\balances($list);}
  *     Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank MAKE
  *     Gifts AContributionCanBeCompleted MAKE
  *     Gifts ARecurringContributionCanBeCompleted MAKE
+ *     IncompleteUsdTxs ADwollaOutageLeavesATransactionIncomplete MAKE
  *     Notices AMemberGetsSomeNotices MAKE
  *     Pilot All MAKE
  *     Recache BalancesGetOutOfWhack MAKE
@@ -98,6 +102,7 @@ function cronRuns($op) {
   global $testOnly; if($testOnly) return FALSE;
   global $cronOp; $cronOp = $op;
   if (strftime('%H') < R_DAILY_HOUR) die('Developer: For testing between midnight and :R_DAILY_HOUR:00, you need to temporarily change R_DAILY_HOUR in -settings.');
+  r\dbQ("DELETE FROM queue WHERE name='q'");
   \variable_set('daily', REQUEST_TIME - 24 * 60 * 60);
   \drupal_cron_run();
   return TRUE;
@@ -110,6 +115,7 @@ function cronRuns($op) {
  *     Bank AMemberIsWellBelowMinimum TEST
  *     Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank TEST
  *     Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank TEST
+ *     IncompleteUsdTxs ADwollaOutageLeavesATransactionIncomplete TEST
  *     Pilot All TEST
  *     VirtualPayments AMemberCompanyPaysSuppliersVirtually TEST
  *     VirtualPayments AMemberCompanyPaysEmployeesVirtually TEST
@@ -148,6 +154,7 @@ function relations($relations) {return t\relations($relations);}
  *
  * in: Gifts AContributionCanBeCompleted TEST
  *     Gifts ARecurringContributionCanBeCompleted TEST
+ *     IncompleteUsdTxs Setup MAKE
  *     Pilot Setup MAKE
  *     Pilot All TEST
  *     Recache Setup MAKE
@@ -250,4 +257,15 @@ function memberChargesMemberFor($payee, $payer, $amount, $for) {
   global $scanned; $scanned = TRUE;
   be\transfer('charge', r\acct(t\uid($payee)), r\acct(t\uid($payer)), $amount, $for, TRUE);
   return TRUE;
+}
+
+/**
+ * incomplete transaction count (ARG)
+ *
+ * in: IncompleteUsdTxs Setup TEST
+ *     IncompleteUsdTxs ADwollaOutageLeavesATransactionIncomplete TEST
+ */
+function incompleteTransactionCount($count) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  return (r\dbLookup('COUNT(*)', 'r_txs', 'usdXid=-1 AND state IN(:TX_DONE,:TX_DISPUTED) AND r<amount') == $count);
 }

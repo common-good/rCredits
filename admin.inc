@@ -60,10 +60,12 @@ function showTableQ($sql, $subs = array()) {
 
 /**
  * Utility to do something to each member account (see example below)
+ include __DIR__ . '/../rcredits/admin.inc';
+ eachAccount();
  */
-function eachAccount($callBack) {
+function eachAccount($callBack = 'changeIt') {
   $result = r\dbQ('SELECT uid FROM users WHERE uid>1')->fetchCol();
-  $callBack = 'rCredits\\' . $callBack;
+  if (!function_exists($callBack)) $callBack = 'rCredits\\' . $callBack;
   foreach ($result as $one) $callBack(r\acct($one));
 }
 
@@ -72,9 +74,6 @@ function eachAccount($callBack) {
  * For example eachAccount('changeIt');
  */
 function changeIt($a) {
-  $secure = $a->secure;
-  $secure['cardCode'] = u\randomString(20, 'word');
-  unset($secure['card_code']);
-/**/ debug(array('id' => $a->id, 'secure' => $secure)); // keep
-  //$a->update(compact('secure'));
+  $a->setBit(B_u15, FALSE);
+  $a->setBit(B_u19, FALSE);
 }
