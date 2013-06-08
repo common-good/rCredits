@@ -74,7 +74,7 @@ function error($message, $subs = '', $success = 0) {
 function apiOut($args) {
   $result = json_encode($args, JSON_UNESCAPED_SLASHES);
   u\loga('out', $args);
-  if (t\EST()) {t\testOutput($args, 'output'); return $result;}
+  if (t\est()) {t\testOutput($args, 'output'); return $result;}
   exit($result);
 }
 
@@ -442,11 +442,11 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   // Check permissions
   u\EXPECT(compact(u\ray('ttype a1 a2 confirmed data')), 'string acct acct bool assoc');
   $otherName = $a2->fullName;
-  if (!$a2->can(B_MEMBER)) return array('non member', compact('otherName'), FALSE);
+  if (!$a2->can(B_OK)) return array('non member', compact('otherName'), FALSE);
   list ($myAccess, $otherAccess) = u\order($taking, B_SELL, B_BUY);
   list ($myAccessErr, $otherAccessErr) = u\order($taking, 'sell', 'buy');
   if (!$a1->can($myAccess)) return array("no $myAccessErr", array(), FALSE);
-  if (!$a2->can($otherAccess)) return array("other no $otherAccessErr", array(), FALSE);
+  if (!$a2->can($otherAccess)) return array("other no $otherAccessErr", compact('otherName'), FALSE);
   
   // Analyze who's buying or selling
   if ($uid == $myid) return array('no self-trading', array(), FALSE);
@@ -466,7 +466,7 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   );
   $preapproved = (@$data['preapproved'] or !$taking or $unilateral); // paying OR permitted to charge unilaterally
 //  $state = ($preapproved and !@$data['pay_all'])? TX_DONE : TX_PENDING;
-//  $virtual = ($goods and !$taking and $a1->hasBit(B_VIRTUAL) and r\isEmployee($uid));
+//  $virtual = ($goods and !$taking and $a1->can(B_VIRTUAL) and r\isEmployee($uid));
   $virtual = FALSE; // this is done only automatically
   $state = ($preapproved and !$virtual)? TX_DONE : TX_PENDING; // may be changed to TX_TENTATIVE below
   
@@ -896,8 +896,7 @@ function backend($op, $info = array(), $cache = FALSE) {
 //  foreach ($info as $key => $value) if (strpos($key, 'uid') !== FALSE) $info[$key] = r\quid($value); // convert to qid
 //  $basic = array('agent' => r\quid($agent), 'myid' => r\quid($myid));
   $info += compact(u\ray('myid agent op password firewall')); // operation, credentials, and account
-  $host = strpos($base_url, 'localhost/') !== FALSE ? 'http://localhost/devcore' : R_SITE_URL;
-  $api_result = R_SEPARATE_BACKEND ? u\httpRequest("$hostrcredits/api/", $info, 'json') : backend2($info);
+  $api_result = R_SEPARATE_BACKEND ? u\httpRequest("$base_url/rcredits/api/", $info, 'json') : backend2($info);
 //debug($api_result);
   u\loga('out', $info + compact('api_result'));
   if ($cache) r\Web\svar($skey, $api_result);

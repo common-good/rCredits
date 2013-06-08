@@ -14,9 +14,9 @@ Setup:
   | .ZZE | Ezra Five  | e@example.com |    0 | dft,personal,member          |
   And relations:
   | id      | main | agent | employerOk | permission | amount |
-  | NEW:ZZA | .ZZC | .ZZA  |          1 | sell       |   1800 |
-  | NEW:ZZB | .ZZC | .ZZB  |          0 |            |    200 |
-  | NEW:ZZE | .ZZC | .ZZE  |          1 |            |   2000 |
+  | NEW.ZZA | .ZZC | .ZZA  |          1 | sell       |   1800 |
+  | NEW.ZZB | .ZZC | .ZZB  |          0 |            |    200 |
+  | NEW.ZZE | .ZZC | .ZZE  |          1 |            |   2000 |
 # 90/10 split (E is not an rTrader, so doesn't count in the split)
   
 Scenario: a member company pays suppliers virtually
@@ -35,7 +35,7 @@ Scenario: a member company pays suppliers virtually
   | .AAAD | %today  | transfer | done  |             0 |        %chunk | .ZZC | .ZZB | virtual payment       |
   | .AAAE | %today  | rebate   | done  | %(.05*%chunk) | %(.05*%chunk) | ctty | .ZZC | rebate on #1          |
   | .AAAF | %today  | bonus    | done  | %(.10*%chunk) | %(.10*%chunk) | ctty | .ZZB | bonus on #2           |
-  And bank transfers:
+  And usd transfers:
   | payer | payee | amount |
   | .ZZA  |  .ZZC | %chunk |
   | .ZZB  |  .ZZC | %chunk |
@@ -65,7 +65,7 @@ Scenario: a member company pays employees virtually
   | .AAAF | %today  | transfer | done  |              0 | %chunk4        | .ZZC | .ZZA | virtual payment       |
   | .AAAG | %today  | rebate   | done  | %(.05*%chunk4) | %(.05*%chunk4) | ctty | .ZZC | rebate on #1          |
   | .AAAH | %today  | bonus    | done  | %(.10*%chunk4) | %(.10*%chunk4) | ctty | .ZZA | bonus on #2           |
-  And bank transfers:
+  And usd transfers:
   | payer | payee | amount        |
   | .ZZD  |  .ZZC |        %chunk |
   | .ZZD  |  .ZZC |        %chunk |

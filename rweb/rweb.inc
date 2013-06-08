@@ -60,6 +60,7 @@ EOF
   'gift transfer later' => t('Your funds will be transferred when you have money in your account.'),
   'repeat gift' => t('If you wish to make a contribution again sometime, click on "Membership" in the upper right corner, then on "Contribute".'),
   'setup complete' => t('Your account setup is complete. Expect an email within the next 24 hours, saying your account is activated. Thank you for joining!'),
+  'ready to charge' => t('You successfully scanned in as "@agentName" to charge customers on behalf of @companyName'),
 
   // prompts
   'prompt min' => t('Keep this much in my rCredits account, for purchases or inflation-proof savings. (When your balance goes below this amount, the system refills it for you from your bank account. Refilling may take 3-4 days.)'),
@@ -239,8 +240,6 @@ EOF
 
 function test($arg) {
   global $user;
-//  cache_set('t_resume', FALSE); // cleanup after potential previous failures
-//  cache_set('t_messages', FALSE);
   include __DIR__ . '/../../gherkin/test.php';
 /*  $adminPass = '123';
   $account = user_authenticate('admin', $adminPass);
@@ -251,25 +250,15 @@ function test($arg) {
 
 function util($arg) {
 //  if ($arg == 'modal') drupal_goto('modal');
-  if ($arg == 'reset') {
-    r\reset();
-/*    $uid = variable_get('rcredits_communityUid') + 1;
-    $uid2 = $uid + 1; $uid3 = $uid2 + 1;
-    $pass = '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae';
-    $sql = <<<EOF
-      INSERT INTO users (uid, name, pass, mail, fullName, status, postalCode) VALUES
-      ($uid, 'uten', '$pass', 'uten@ex.com', 'U Ten', 1, '01301'),
-      ($uid2, 'btwo', '$pass', 'btwo@ex.com', 'B Two', 1, '01301'),
-      ($uid3, 'cornerstore', '$pass', 'cstore@ex.com', 'Corner Store', 1, '01301');
-      
-      INSERT INTO r_sms (number, uid, status) VALUES
-      (10, $uid, 2),
-      (2, $uid2, 2);
-EOF;
-    r\dbQ($sql);
-    be\fund($uid, TX_SIGNUP);
-    be\fund($uid2, TX_SIGNUP);
-*/
+  if ($arg == 'reset') r\reset();
+  if ($arg == 'changeAgent') {
+    //session_destroy();
+    $mya = r\acct('NEW.ZZB');
+    svar('myid', $mya->id);
+    global $user; $user = $mya->account();
+    $user->roles = array();
+    setupGlobals();
+    r\go('');
   }
 
   if ($arg == 'clear_sessions') r\dbQ('TRUNCATE table SESSIONS');
@@ -285,6 +274,7 @@ function handy_links() {
 
   $links = array(
     'rcredits/test?menu=1|Test Menu|',
+    'rcredits/util/changeAgent|Change Agent to Bea|',
     'reinstall|Reinstall rCredits|',//    "$test_path/gherkin/compile.php?module=rcredits/rsms&return=1|Compile rSMS|",
     'sms|Simulate an SMS transaction|Simulate SMS',
 //    'admin/config/development/testing|Test|Test',
@@ -797,7 +787,7 @@ function formAgreement($form, &$sta) {
     $date = u\formatDate($date);
     say('signed agreement', compact('date'));
     $signedBy = item("Signed by <b>$mya->signedBy</b>, $date");
-  } elseif ($mya->hasBit(B_PERSONAL) and !$mya->proSe()) { // can't sign for someone else!
+  } elseif ($mya->can(B_PERSONAL) and !$mya->proSe()) { // can't sign for someone else!
     say('self must sign', 'signedBy');
   } else {
     $aacct = $mya->agent;
@@ -816,7 +806,7 @@ EOF
     );
   }
 
-  $personOnly = !$mya->hasBit(B_PERSONAL) ? '' : <<<EOF
+  $personOnly = !$mya->can(B_PERSONAL) ? '' : <<<EOF
   <li>[6] I agree to participate responsibly in managing the Common Good Economy to the best of my ability and as my life circumstances allow, including:
     <ol style="list-style-type:lower-alpha;">
       <li><a href="$base_url/help/paying-attention">paying attention</a> and understanding how the Common Good Economy works</li>
@@ -864,7 +854,7 @@ EOF;
 
 function formAgreement_validate($form, &$sta) {
   $mya = r\acct();
-  $i9 = $mya->hasBit(B_PERSONAL) ? R_AGREE_9 : R_AGREE_9 - 1;
+  $i9 = $mya->can(B_PERSONAL) ? R_AGREE_9 : R_AGREE_9 - 1;
   for ($i = R_AGREE_0; $i <= $i9; $i++) if (!@$sta['input']["check$i"]) return say('incomplete agreement', "check$i");
   $fullName = r\agent()->fullName;
   if (strcasecmp(trim($sta['input']['signedBy']), $fullName) != 0) return say('bad signature', compact('fullName'), 'signedBy');
@@ -1079,7 +1069,7 @@ function formSummary($form, &$sta) {
     $submit1 = $submit2 = submit(t('Go'));
   }
 
-  $form = compact(u\ray('title who submit1 accountName accountId another balance rewards floor canCharge rTrader adminable2 notes count submit2'));
+  $form = $mya->can(B_MANAGE) ? compact(u\ray('title who submit1 accountName accountId another balance rewards floor canCharge rTrader adminable2 notes count submit2')) : compact(u\ray('title accountName accountId submit2'));
   return labeled($form);
 }
 
@@ -1249,7 +1239,7 @@ function formAccounts($form, &$sta) {
   global $base_url;
   if (!$mya = r\acct()) return NULL; // no account selector before login
   $myid = @$mya->id;
-  if (!$accounts = be\accountChoices()) return FALSE;
+  if (!$accounts = svar('scanned_in') ? array($myid) : be\accountChoices()) return FALSE;
   if (!in_array($myid, @$accounts) and $mya->can()) array_splice($accounts, 1, 0, $myid); // admin or ctty_admin
   $choices = array();
   foreach ($accounts as $uid) {
@@ -1264,7 +1254,7 @@ function formAccounts($form, &$sta) {
   $onchange = "this.form.submit();";
   $oneText = $choices[$myid];
   
-  if (!$mya->proSe() or $mya->hasBit(B_PERSONAL)) {
+  if (!$mya->proSe() or $mya->can(B_PERSONAL)) {
     $src = $mya->agent->auxFilename('picture');
     $thumb = item("<img src=\"$base_url$src\"/>");
   }
@@ -1322,7 +1312,7 @@ function formMenu($page) {
         + goButton(t('Reports'), 'reports', t('rCredits system-wide or community-wide activity reports'))
         + goButtonIf(B_MANAGE, t('Membership'), 'membership', t('Your rCredits membership progress'))
         + goButtonIf(B_MANAGE, t('Settings'), 'settings', t('Account settings'))
-        + goButton(t('Logout'), 'user/logout', t('End your rCredits session'))
+        + goButton(t('Log out'), 'user/logout', t('End your rCredits session'))
   ;
   $menu = formField('fieldset', '', '', array('id' => 'menu')) + compact('menu');
   return compact('menu');
@@ -1380,7 +1370,7 @@ function goButtonIf($perms, $label, $goto, $title) {
 function formProfile($form, &$sta, $company) {
   $uid = r\userField('uid', 'name=:company', compact('company'));
   $acct = r\acct($uid);
-  if (!$uid or !$acct->hasBit(B_COMPANY)) return say('no such company', 'zot');
+  if (!$uid or !$acct->can(B_COMPANY)) return say('no such company', 'zot');
 
   $pic = $acct->picture();
   $state = r\realState($acct->state);
@@ -1454,7 +1444,7 @@ function formAdmin_submit($form, &$sta) {
     $qid = $acct->qid();
     $agent = $acct->agent;
     $field = strpos($qid, '=') ? 'cardCode2' : 'cardCode';
-    if (!$code = $agent->$field) {
+    if (!$code = $agent->secure[$field]) {
       u\EXPECT($field == 'cardCode2', 'missing cardCode'); // only cardCode2 gets created here
       $secure = $agent->secure;
       $code = $$field = u\randomString(R_CARDCODE_LEN, 'word'); // create an rCard security code
@@ -1528,7 +1518,7 @@ function formTx_submit($form, &$sta) {
   if ($i = strpos($path, '/who=')) $path = substr($path, 0, $i);
   $sta['redirect'] = $path;
 //  $sta['redirect'] = 'http://www.youtube.com/v/pOCxegQupMU&autoplay=1';
-//  if (!t\EST()) r\go(current_path());
+//  if (!t\est()) r\go(current_path());
 }
 
 /**
@@ -2217,7 +2207,7 @@ function formProof($form, &$sta, $args = '') {
     'title' => item(t('Proof of Identity')),
     'subtext' => item(t('Just like for a bank account, we need to verify your identity. The file you upload can be either an image or a PDF. Please be patient while the file is encrypted &mdash; it may take several seconds.')),
     'idProof' => $has ? 
-        formField('item', t('Photo ID:'), '', R_ON_FILE . ($mya->hasBit(B_OK) ? '' : t(' (pending approval)')))
+        formField('item', t('Photo ID:'), '', R_ON_FILE . ($mya->can(B_OK) ? '' : t(' (pending approval)')))
       : formField('file', t('Photo ID:'), tt('Upload an image of your @proofType. (maximum @R_MAX_UPLOAD_SIZE MB)', compact('proofType')), attrib(array('enctype' => "multipart/form-data"))),
     'submit' => $has ? NULL : submit(t('Upload and Save')),
   );
@@ -2577,7 +2567,7 @@ function formRelations_submit($form, &$sta) {
   }
 //  debug($changes);
   if (!empty($changes)) say(be\updateRelations($changes));
-  if (t\EST()) return r\go('account/relations');
+  if (t\est()) return r\go('account/relations');
 }
 
 function dropdown($name, $value, $options, $id) {
@@ -2772,7 +2762,7 @@ function password_confirm0($element) {return password_confirm($element, FALSE);}
  * @param bool $regular: is this the full-page login form (default TRUE) -- otherwise the narrower login block
  */
 function formLogin(&$form, &$sta, $regular = TRUE) {
-  $args = basename(t\EST() ? t\SERVER('REQUEST_URI') : $_SERVER['REQUEST_URI']);
+  $args = basename(t\est() ? t\SERVER('REQUEST_URI') : $_SERVER['REQUEST_URI']);
   extract(u\just('err', $args));
   if (@$err) say($err, 'zot');
 
@@ -2826,7 +2816,7 @@ function login_extra_validate($form, &$sta) {
   if (!$uid = r\loginString($name)) return FALSE; // not a user
 
   if ($name == 'abeone' and @$newPass['pass1'] == 123) {
-    $sta['uid'] = $uid; // for testing
+    $sta['flood_control_user_identifier'] = $sta['uid'] = $uid; // for testing
   } else {
     $uidOnly = variable_get('user_failed_login_identifier_uid_only', FALSE);
     $userLimit = variable_get('user_failed_login_user_limit', 5);
@@ -2835,7 +2825,7 @@ function login_extra_validate($form, &$sta) {
     $identifier = $uidOnly ? $uid : $uid . '-' . ip_address();
     $sta['flood_control_user_identifier'] = $identifier;
 
-    if(0) if (!t\EST() and !flood_is_allowed('failed_login_attempt_user', $userLimit, $userWindow, $identifier)) {
+    if(0) if (!t\est() and !flood_is_allowed('failed_login_attempt_user', $userLimit, $userWindow, $identifier)) {
       $sta['flood_control_triggered'] = 'user';
       return FALSE;
     }
@@ -2855,7 +2845,7 @@ function passwordOkay($a, $password) {
   return ($hash and $stored_hash == $hash) ? TRUE : say('wrong pass', 'current_pass');
 }
 
-function loginFollowup($edit, $account) {
+function loginFollowup($edit, $account, $goto = 'summary') {
   extract(u\just('newPass name', $edit['values'])); // values not input
   $resetPass = svar('reset_pass'); // svar gets unset by unset($_SESSION[$key]) just below
   if (!$pass = $resetPass ?: @$newPass) unset($pass);
@@ -2865,6 +2855,7 @@ function loginFollowup($edit, $account) {
 
   $mya = r\acct($myid = $account->uid);
   svar('myid', $myid);
+  svar('scanned_in', FALSE);
   setupGlobals();
 
   r\setCook('loginto', '', REQUEST_TIME-1); // no more default login
@@ -2874,7 +2865,7 @@ function loginFollowup($edit, $account) {
   $mya->update(compact(u\ray('pass data')));
 
   u\loga('login', compact('name'), $myid);
-  return r\go('summary');
+  return r\go($goto);
 }
 
 function passAlter(&$form, $sta, $id = '') {
@@ -3069,16 +3060,33 @@ function formI($form, &$sta, $who) {
   if (!strpos($who, '-')) return r\go('');
   list ($who, $code) = explode('-', $who);
   if (!$acct = r\acct($who)) return hack('i code'); // not a real code -- just go to home page
-  if (!$mya = r\acct()) {
-    say('signin to scan', 'zot');
-    return r\go('');
-  }
   $field = strpos($who, '=') ? 'cardCode2' : 'cardCode';
-  if ($acct->secure[$field] != $code and !$mya->can(B_ADMIN)) return hack('i code2');
-  
-  list ($myid, $myAgent) = array($mya->id, $mya->agentId);
+
+  $mya = r\acct();
+  if ($code != 'zot')
+  if ($acct->agent->secure[$field] != $code and !($mya and $mya->can(B_ADMIN))) return hack('i code2');
   list ($otherId, $otherAgent) = array($acct->id, $acct->agentId);
-  if ($otherId == $myid) {
+
+  if (!$mya and !$acct->proSe()) { // not signed in, company agent scanning in
+    $mya = $acct;
+    svar('myid', $mya->id);
+
+    // Tell Drupal who is now logged in
+    global $user; $user = $mya->agent->account();
+    $user->roles = array();
+    $user->uid = $mya->agent->id;
+    drupal_session_regenerate();
+
+    setupGlobals();
+    svar('scanned_in', TRUE);
+    $agentName = $mya->agent->fullName;
+    $companyName = $mya->fullName;
+    say('ready to charge', $subs = compact('agentName', 'companyName'));
+    u\loga('login', $subs, $mya->agentId);
+    return r\go('charge');
+  } elseif (!$mya) return say('sign in', 'zot');
+  
+  if ($otherId == @$myid) {
     say('no self-trading', array(), 'error');
     return r\go('');
   }
@@ -3087,11 +3095,12 @@ function formI($form, &$sta, $who) {
   if ($acct->can(B_COMPANY)) $site = goButton(t('Show Webpage'), "member/$shortName", t("See this company's rCredits webpage"));
 
   if ($mya) { // can charge, pay, or change account or agent only if signed in
+    list ($myid, $myAgent) = array($mya->id, $mya->agentId);
     $theId = hidField($otherId);
     $theAgent = hidField($otherAgent);
     if ($mya->can(B_SELL)) $charge = goButton(t('Charge'), "charge/who=$shortName&scanned=1", t('Charge someone'));
     if ($mya->can(B_BUY)) $pay = goButton(t('Pay'), "pay/who=$shortName&scanned=1", t('Pay someone'));
-    if (r\acct($myid, $otherAgent)->can()) $changeAgent = goButton(t('Change Agent'), "user/logout/who=$shortName", t('Use this button when your shift begins'));
+//    if (r\acct($myid, $otherAgent)->can()) $changeAgent = goButton(t('Change Agent'), "user/logout/who=$shortName", t('Use this button when your shift begins'));
     if (r\acct($otherId, $myAgent)->can()) $changeAccount = goButton(t('Change Acct'), "change-account/who=" . $acct->mainQid, t('Manage a different account'));
     $zot = compact(u\ray('charge pay changeAgent changeAccount site'));
     $all = identifiers($acct) . render($zot);
@@ -3170,13 +3179,13 @@ function formOptions($form, &$sta) {
     Saying "<b>Yes</b>" to <@a1>virtual payments</a> (<b>highly recommended</b>) means you trade your rCredits to your employees and vendors automatically every day, in exchange for US Dollars, without any change to your normal US Dollar payments. You still get the 5% rebate, minus 25 cents for each payment larger than $@DW_FEE_THRESHOLD. For example, a $100 virtual payment gives you a net rebate of $5.00 - 0.25 = $4.75. To make the virtual payments automatic, you need to set up <@a1>average</a> monthly payment amounts on the <@a3>Relations</a> page. "<b>No</b>" here means you pay everyone directly, one at a time, in mixed rCredits/USD transactions.
 EOF
     , compact('a1', 'a3'));
-    $dft = $isSetUp ? $mya->hasBit(B_VIRTUAL) : TRUE;
+    $dft = $isSetUp ? $mya->can(B_VIRTUAL) : TRUE;
     $payVirtual = boolField(t('Pay virtually:'), $desc, $dft);
   }
-  $secretBal = formField('checkbox', t('Secret Balance:'), t("Don't let qualified merchants tell me my balance, when I ask."), $mya->hasBit(B_SECRET_BAL));
+  $secretBal = formField('checkbox', t('Secret Balance:'), t("Don't let qualified merchants tell me my balance, when I ask."), $mya->can(B_SECRET_BAL));
   // Double confirmation: by SMS, by email, either. require extra confirmation of crucial account changes
   $floor = u\formatAmount($mya->floor);
-  $debtOk = formField('checkbox', t('Debt Okay:'), tt('Allow my account balance to go negative, limited by my current "credit floor" (which starts at zero, then gets lower and lower as time goes by &mdash; currently @floor). I understand there will be a substantial fee (currently $@R_DEBT_FEE plus @R_DEBT_PERCENT% per month) if I fail to bring my balance back up to zero within @R_DEBT_DAYS days.', compact('floor')), $mya->hasBit(B_DEBT_OK));
+  $debtOk = formField('checkbox', t('Debt Okay:'), tt('Allow my account balance to go negative, limited by my current "credit floor" (which starts at zero, then gets lower and lower as time goes by &mdash; currently @floor). I understand there will be a substantial fee (currently $@R_DEBT_FEE plus @R_DEBT_PERCENT% per month) if I fail to bring my balance back up to zero within @R_DEBT_DAYS days.', compact('floor')), $mya->can(B_DEBT_OK));
   $submit = submit(t('Update Preferences'));
   
   $form = compact(u\ray('title payVirtual minimum smsNotices notices statements secretBal debtOk submit'));
@@ -3221,14 +3230,15 @@ function formOptions_submit($form, $sta) {
 
 function formReports($form, &$sta, $args = '') {
   if (!$mya = r\acct()) return NULL;
-  if (!$ctty = r\acct($mya->community)) return NULL;
-  $totals = r\totals($ctty->id);
+  $admin = $mya->can(B_ADMIN);
+  if (!$admin and !$ctty = r\acct($mya->community)) return NULL;
+  $totals = r\totals($admin ? 'ALL' : $ctty->id);
   $issued = -$totals->balance;
   $demand = $totals->demand;
   $demandPct = $issued ? (' (' . number_format(100 * $demand / $issued, 1) . '% beyond amount issued)') : '';
    
   $title = item(t('Reports'));
-  $subtext = item(t('for ') . $ctty->fullName);
+  $subtext = item(t('for ') . ($admin ? t('rCredits System OVERALL') : $ctty->fullName));
   $issued = item(u\formatAmount($issued), t('rCredits issued:'), t('How many rCredits have been issued')); // ($xxx worldwide)
   $demand = item(u\formatAmount($demand) . $demandPct, t('Margin:'), t('Community demand for additional rCredits')); // ($xxx worldwide)
 //  $moreLater = item('', t('After rCredits is launched, this page will also report progress statistics.'));
@@ -3251,7 +3261,7 @@ function formReports_submit($form, &$sta) {
  */
 function formRequestRCard($form, &$sta, $other = '') {
   if (!$acct = r\acct(r\acct()->id, @$other)) return hack('request rCard');
-  if (!$acct->hasBit(B_COMPANY) or !$acct->can(B_MANAGE)) return say('no account permission');
+  if (!$acct->can(B_COMPANY) or !$acct->can(B_MANAGE)) return say('no account permission');
   $fullName = $acct->agent->fullName;
   
   $form = array(
@@ -3296,11 +3306,11 @@ function memberID($quid = '', $big = FALSE) {
   $regionName = r\acct($acct->community)->fullName;
   $qid = $acct->qid();
   
-  if (!$acct->proSe()) {
+  if (!$proSe = $acct->proSe()) {
     $acct = $acct->agent; // hereafter it's all about the agent
     $fullName = "$acct->fullName<br>$fullName"; // agent and company
     $nameSize = '72px';
-    $qid = str_replace(':', '=', $qid); // "=" to avoid GoDaddy's 'Bad Request' death redirecting RC2.ME with a ":" qid
+//    $qid = str_replace(':', '=', $qid); // "=" to avoid GoDaddy's 'Bad Request' death redirecting RC2.ME with a ":" qid
     $cardField = 'cardCode2';
   } else {
     $nameSize = strlen($fullName) > 22 ? '100px' : '120px';
@@ -3329,10 +3339,11 @@ function memberID($quid = '', $big = FALSE) {
   );
 
   // Image params: $file, $x='', $y='', $w=0, $h=0, $type='', $link='', $align='', $resize=false, $dpi=300, $palign='', $ismask=false, $imgmask=false, $border=0, $fitbox=false, $hidden=false, $fitonpage=false, $alt=false, $altimgs=array())
-  $pdf->Image(__DIR__ . '/../images/idcard/background.jpg', 0, 0, 202, 128, '', '', '', true, 150, '', false, false, 0, false, false, false);
+  if ($proSe) {
+    $pdf->Image(__DIR__ . '/../images/idcard/background.jpg', 0, 0, 202, 128, '', '', '', true, 150, '', false, false, 0, false, false, false); // white background for company cards
+  } else $pdf->Image(__DIR__ . '/../images/idcard/rlogo.png', 162, 40.5, 28, 42, '', '', '', true, 150, '', false, false, 0, false, false, false);
   $pdf->Image($photo, 0, 0, $photoW, $photoH, '', './account', '', true, 300, '', false, false, 1, false, false, false);
   $pdf->write2DBarcode($qrUrl, 'QRCODE,Q', 96, 40, 50, 50, $style, 'N'); // L,M,Q,H are low-high error-correction
-//  $pdf->Image(__DIR__ . '/../images/idcard/rlogo-sky.jpg', 162, 40.5, 28, 42, '', '', '', true, 150, '', false, false, 0, false, false, false);
 
   $html = strtr('<span style="font-size:44px;">Member<br><span style="font-size:76px; color:darkred;">@CODE</span><br>@REGION</span>', array('@CODE' => $qid, '@REGION' => $regionName));
   $pdf->writeHTMLCell(100, 30, 94, 10, $html); // w, h, x, y
@@ -3681,16 +3692,17 @@ function formFooter() {
   $year = date('Y');
 
   //<a href="?layout=$layout">$layout layout</a> |
-  $loggedInLinks = !r\acct() ? '' : <<<EOF
+  $mya = r\acct();
+  $loggedInLinks = !($mya and $mya->can(B_MANAGE)) ? '' : <<<EOF
     <a href="$base_url/membership/contribute">Contribute</a> |
     <a href="$base_url/invite">Invite Someone</a> |
+    <a href="$base_url/membership/agreement">The Agreement</a> |
 EOF;
 
   $markup =<<<EOF
 <hr>
 $loggedInLinks
 <a href="http://rCredits.org">About rCredits</a> |
-<a href="$base_url/membership/agreement">The Agreement</a> |
 <a href="$base_url/help">Help</a>
 <br><br>
 website copyright &copy; $year <a href="http://CommonGoodFinance.org">Common Good Finance&trade;</a>, a 501(c)(3) nonprofit<br/>
@@ -3760,4 +3772,4 @@ function attrib($attribs) {return array('attributes' => $attribs);}
 function autocomplete($type = '') {return array('autocomplete_path' => "autocomplete/$type/" . @r\acct()->id);}
 function required($dft = NULL) {return array('required' => TRUE) + (isset($dft) ? dft($dft) : array());}
 // UNUSED function check($array, $type = 'plain') {return array_map("check_$type", $array);} // Check an array for plain or markup.
-function op($sta) {global $testOp; return t\EST() ? $testOp : $sta['clicked_button']['#parents'][0];}
+function op($sta) {global $testOp; return t\est() ? $testOp : $sta['clicked_button']['#parents'][0];}

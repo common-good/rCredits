@@ -40,6 +40,7 @@ function extraSubs(&$subs) {
   $subs['%fancyYesterday'] = u\formatDate(strtotime('yesterday'));
   $subs['%chunk'] = R_CHUNK;
   for ($i = 2; $i <= 5; $i++) $subs["%chunk$i"] = R_CHUNK * $i;
+  for ($i = 1; $i <= 3; $i++) $subs["%id$i"] = mt_rand(variable_get('cgf_uid') + R_REGION_MAX, PHP_INT_MAX);
 }
 
 function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, $info);}
@@ -50,6 +51,7 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  * in: Bank Setup MAKE
  *     Gifts Setup MAKE
  *     IncompleteUsdTxs Setup MAKE
+ *     LostUsdTxs Setup MAKE
  *     Notices Setup MAKE
  *     Pilot Setup BOTH
  *     Recache Setup MAKE
@@ -91,6 +93,7 @@ function balances($list) {return t\balances($list);}
  *     Gifts AContributionCanBeCompleted MAKE
  *     Gifts ARecurringContributionCanBeCompleted MAKE
  *     IncompleteUsdTxs ADwollaOutageLeavesATransactionIncomplete MAKE
+ *     LostUsdTxs ASystemCrashLeavesATransactionIncomplete MAKE
  *     Notices AMemberGetsSomeNotices MAKE
  *     Pilot All MAKE
  *     Recache BalancesGetOutOfWhack MAKE
@@ -109,7 +112,7 @@ function cronRuns($op) {
 }
 
 /**
- * bank transfers: (ARG)
+ * usd transfers: (ARG)
  *
  * in: Bank AMemberIsBarelyBelowMinimum TEST
  *     Bank AMemberIsWellBelowMinimum TEST
@@ -120,13 +123,7 @@ function cronRuns($op) {
  *     VirtualPayments AMemberCompanyPaysSuppliersVirtually TEST
  *     VirtualPayments AMemberCompanyPaysEmployeesVirtually TEST
  */
-function bankTransfers($tx) {
-  global $testOnly; if(!$testOnly) return FALSE;
-  extract(u\just('payer payee amount', $tx[0]));
-  $payer = t\uid($payer);
-  $payee =(@$payee and !is_numeric($payee)) ? t\uid($payee) : 0;
-  return r\dbExists('r_usd', 'payer=:payer AND amount=:amount and payee=:payee', compact(u\ray('payer payee amount')));
-}
+function usdTransfers($tx) {return t\usdTransfers($tx);}
 
 /**
  * bank transfer count is (ARG)
@@ -134,10 +131,7 @@ function bankTransfers($tx) {
  * in: Bank AMemberIsAtMinimum TEST
  *     Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank TEST
  */
-function bankTransferCountIs($count) {
-  global $testOnly; if (!$testOnly) return FALSE;
-  return (r\dbLookup('COUNT(*)', 'r_usd', 'payee=0') == $count);
-}
+function bankTransferCountIs($count) {return (t\usdTransferCount('payee=0') == $count);}
 
 /**
  * relations: (ARG)
@@ -155,6 +149,7 @@ function relations($relations) {return t\relations($relations);}
  * in: Gifts AContributionCanBeCompleted TEST
  *     Gifts ARecurringContributionCanBeCompleted TEST
  *     IncompleteUsdTxs Setup MAKE
+ *     LostUsdTxs Setup MAKE
  *     Pilot Setup MAKE
  *     Pilot All TEST
  *     Recache Setup MAKE
@@ -196,7 +191,8 @@ function weTellStaffWithSubs($topic, $subs) {return t\weTellStaff($topic, $subs)
 /**
  * usd: (ARG)
  *
- * in: Recache Setup MAKE
+ * in: IncompleteUsdTxs ADwollaOutageLeavesATransactionIncomplete MAKE
+ *     Recache Setup MAKE
  *     Totals Setup MAKE
  */
 function usd($list) {return t\usd($list);}
@@ -268,4 +264,22 @@ function memberChargesMemberFor($payee, $payer, $amount, $for) {
 function incompleteTransactionCount($count) {
   global $testOnly; if (!$testOnly) return FALSE;
   return (r\dbLookup('COUNT(*)', 'r_txs', 'usdXid=-1 AND state IN(:TX_DONE,:TX_DISPUTED) AND r<amount') == $count);
+}
+
+/**
+ * member (ARG) confirms form (ARG) with values: (ARG)
+ *
+ * in: LostUsdTxs ASystemCrashLeavesATransactionIncomplete MAKE
+ */
+function memberConfirmsFormWithValues($id, $page, $values) {return t\completeForm($id, $page, $values, TRUE);}
+
+/**
+ * USD payment by member (ARG) is not recorded
+ *
+ * in: 
+ */
+function uSDPaymentByMemberIsNotRecorded($id) {
+  global $testOnly; if ($testOnly) return FALSE;
+  $id = t\uid($id);
+  return r\dbQ('DELETE FROM r_usd WHERE payer=:id LIMIT 1', compact('id'));
 }

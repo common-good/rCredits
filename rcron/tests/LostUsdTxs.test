@@ -1,0 +1,69 @@
+<?php
+//
+// Feature: Lost USD Txs
+//   AS a member
+//   I WANT my inconsistent USD transaction data to be made consistent ASAP
+//   SO I can depend on the accuracy of rCredits system records
+
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rcron.steps';
+
+class rcronLostUsdTxs extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
+  var $sceneName;
+  const SHORT_NAME = 'LostUsdTxs';
+  const FEATURE_NAME = 'rcron Test - LostUsdTxs';
+  const DESCRIPTION = 'Lost USD Txs';
+  const MODULE = 'rcron';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
+  }
+  
+  public static function getInfo() {
+    return array(
+      'short_name' => self::SHORT_NAME,
+      'name' => self::FEATURE_NAME,
+      'description' => self::DESCRIPTION,
+      'group' => ucwords(self::MODULE)
+    );
+  }
+
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
+    global $sceneTest; $sceneTest = $this;
+    parent::setUp(self::MODULE);
+
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rcron.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
+    default: // fall through to case(0)
+    case(0):
+    Given('members: "DATA'
+    . '\\| id   | fullName   | dwolla          | country | email         | flags                | usd |'
+    . '\\| %id1 | Abe One    | %DW_TESTER_ACCT | US      | a@example.com | dft,ok,personal,bona |   1 |'
+    . '\\| %id2 | Bea Two    | %DW_TEST_ACCT   | US      | b@example.com | dft,ok,personal,bona |   0 |"');
+    And__('transactions: "DATA'
+    . '\\| xid | created   | type     | amount | r  | from | to   | purpose |'
+    . '\\| 1   | %today-7m | signup   |     10 | 10 | ctty | %id1 | signup  |'
+    . '\\| 2   | %today-7m | signup   |     10 | 10 | ctty | %id2 | signup  |"');
+    break;
+
+
+    }
+  }
+
+  // Scenario: a system crash leaves a transaction incomplete
+  public function testASystemCrashLeavesATransactionIncomplete_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('member "%id1" confirms form "pay" with values: "DATA'
+    . '\\| op  | who     | amount | goods | purpose |'
+    . '\\| pay | Bea Two | 10.20  | 1     | labor   |"');
+    When_('cron runs "usdTxsThere"');
+  }
+
+}

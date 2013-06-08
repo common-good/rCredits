@@ -53,7 +53,7 @@ class rsmartStartup extends DrupalWebTestCase {
     . '\\| NEW.ZZA | codeA |"');
     And__('relations: "DATA'
     . '\\| id      | main    | agent   | permissions  |'
-    . '\\| NEW:ZZA | NEW.ZZA | NEW.ZZB |              |"');
+    . '\\| NEW.ZZA | NEW.ZZA | NEW.ZZB |              |"');
     break;
 
 

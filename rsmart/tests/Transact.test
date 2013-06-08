@@ -55,15 +55,15 @@ class rsmartTransact extends DrupalWebTestCase {
     . '\\| NEW.ZZC | codeC |"');
     And__('relations: "DATA'
     . '\\| id      | main    | agent   | permission        |'
-    . '\\| NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |'
-    . '\\| NEW:ZZB | NEW.ZZB | NEW.ZZA | read transactions |'
-    . '\\| NEW:ZZC | NEW.ZZC | NEW.ZZB | buy and sell      |'
-    . '\\| NEW:ZZD | NEW.ZZC | NEW.ZZA | sell              |"');
+    . '\\| NEW.ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |'
+    . '\\| NEW.ZZB | NEW.ZZB | NEW.ZZA | read transactions |'
+    . '\\| NEW.ZZC | NEW.ZZC | NEW.ZZB | buy and sell      |'
+    . '\\| NEW.ZZD | NEW.ZZC | NEW.ZZA | sell              |"');
     And__('transactions: "DATA'
     . '\\| xid      | created   | type       | amount | from      | to      | purpose | taking |'
-    . '\\| NEW:AAAB | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |'
-    . '\\| NEW:AAAC | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZB | signup  | 0      |'
-    . '\\| NEW:AAAD | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZC | signup  | 0      |"');
+    . '\\| NEW.AAAB | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |'
+    . '\\| NEW.AAAC | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZB | signup  | 0      |'
+    . '\\| NEW.AAAD | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZC | signup  | 0      |"');
     Then_('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community |    -750 |'
@@ -80,7 +80,7 @@ class rsmartTransact extends DrupalWebTestCase {
   public function testAMemberAsksToChargeAnotherMember_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member " NEW.ZZA" asks device "codeA" to do this: "charge" "NEW.ZZC" $100 ("goods": "labor")');
-    Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$250" other_balance "" and message "report invoice" with subs: "DATA'
+    Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$250" other_balance "" and message "report invoice" with subs: "DATA'
     . '\\| action  | otherName | amount | tid |'
     . '\\| charged | Corner Pub | $100   | 2   |"');
     And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
@@ -97,7 +97,7 @@ class rsmartTransact extends DrupalWebTestCase {
   public function testAMemberAsksToPayAnotherMember_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member " NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $100 ("goods": "groceries")');
-    Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$155" other_balance "" and message "report transaction" with subs: "DATA'
+    Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$155" other_balance "" and message "report transaction" with subs: "DATA'
     . '\\| action | otherName | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| paid   | Corner Pub | $100   | rebate      | $5            | $155    | 2   |"');
     And__('we email "new-payment" to member "c@example.com" with subs: "DATA'
@@ -115,7 +115,7 @@ class rsmartTransact extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('member "NEW.ZZC" can charge unilaterally');
     When_('member " NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $100 ("goods": "groceries")');
-    Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$360" other_balance "$155" and message "report transaction" with subs: "DATA'
+    Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$360" other_balance "$155" and message "report transaction" with subs: "DATA'
     . '\\| action  | otherName | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| charged | Abe One    | $100   | bonus       | $10           | $360    | 2   |"');
     And__('we email "new-charge" to member "a@example.com" with subs: "DATA'
@@ -133,7 +133,7 @@ class rsmartTransact extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('member "NEW.ZZC" can charge unilaterally');
     When_('member " NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $300 ("goods": "groceries")');
-    Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$525" other_balance "$12.50" and message "report short invoice" with subs: "DATA'
+    Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$525" other_balance "$12.50" and message "report short invoice" with subs: "DATA'
     . '\\| action  | otherName | amount | short | balance | tid | t2id |'
     . '\\| charged | Abe One   | $250   | $50   | $525    | 2   | 3    |"');
     And__('balances: "DATA'
@@ -147,7 +147,7 @@ class rsmartTransact extends DrupalWebTestCase {
   public function testAMemberAsksToPayAnotherMemberWithInsufficientBalance_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member " NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $300 ("goods": "groceries")');
-    Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$12.50" other_balance "" and message "report short payment" with subs: "DATA'
+    Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$12.50" other_balance "" and message "report short payment" with subs: "DATA'
     . '\\| action | otherName | amount | short | balance | tid |'
     . '\\| paid   | Corner Pub | $250   | $50   | $12.50  | 2   |"');
     And__('balances: "DATA'
@@ -269,7 +269,7 @@ class rsmartTransact extends DrupalWebTestCase {
   public function testAMemberAsksToChargeAnotherMember_1() {
     $this->setUp2(__FUNCTION__, 1);
     When_('member " NEW.ZZA" asks device "codeA" to do this: "charge" "NEW.ZZC" $100 ("goods": "labor")');
-    Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$250" other_balance "" and message "report invoice" with subs: "DATA'
+    Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$250" other_balance "" and message "report invoice" with subs: "DATA'
     . '\\| action  | otherName | amount | tid |'
     . '\\| charged | Corner Pub | $100   | 2   |"');
     And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
@@ -286,7 +286,7 @@ class rsmartTransact extends DrupalWebTestCase {
   public function testAMemberAsksToPayAnotherMember_1() {
     $this->setUp2(__FUNCTION__, 1);
     When_('member " NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $100 ("goods": "groceries")');
-    Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$155" other_balance "" and message "report transaction" with subs: "DATA'
+    Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$155" other_balance "" and message "report transaction" with subs: "DATA'
     . '\\| action | otherName | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| paid   | Corner Pub | $100   | rebate      | $5            | $155    | 2   |"');
     And__('we email "new-payment" to member "c@example.com" with subs: "DATA'
@@ -304,7 +304,7 @@ class rsmartTransact extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 1);
     Given('member "NEW.ZZC" can charge unilaterally');
     When_('member " NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $100 ("goods": "groceries")');
-    Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$360" other_balance "$155" and message "report transaction" with subs: "DATA'
+    Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$360" other_balance "$155" and message "report transaction" with subs: "DATA'
     . '\\| action  | otherName | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| charged | Abe One    | $100   | bonus       | $10           | $360    | 2   |"');
     And__('we email "new-charge" to member "a@example.com" with subs: "DATA'
@@ -322,7 +322,7 @@ class rsmartTransact extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 1);
     Given('member "NEW.ZZC" can charge unilaterally');
     When_('member " NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $300 ("goods": "groceries")');
-    Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$525" other_balance "$12.50" and message "report short invoice" with subs: "DATA'
+    Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$525" other_balance "$12.50" and message "report short invoice" with subs: "DATA'
     . '\\| action  | otherName | amount | short | balance | tid | t2id |'
     . '\\| charged | Abe One   | $250   | $50   | $525    | 2   | 3    |"');
     And__('balances: "DATA'
@@ -336,7 +336,7 @@ class rsmartTransact extends DrupalWebTestCase {
   public function testAMemberAsksToPayAnotherMemberWithInsufficientBalance_1() {
     $this->setUp2(__FUNCTION__, 1);
     When_('member " NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $300 ("goods": "groceries")');
-    Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$12.50" other_balance "" and message "report short payment" with subs: "DATA'
+    Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$12.50" other_balance "" and message "report short payment" with subs: "DATA'
     . '\\| action | otherName | amount | short | balance | tid |'
     . '\\| paid   | Corner Pub | $250   | $50   | $12.50  | 2   |"');
     And__('balances: "DATA'
@@ -457,8 +457,8 @@ class rsmartTransact extends DrupalWebTestCase {
   // Scenario: A member asks to charge another member
   public function testAMemberAsksToChargeAnotherMember_2() {
     $this->setUp2(__FUNCTION__, 2);
-    When_('member " NEW.ZZA" asks device "codeA" to do this: "charge" "NEW:ZZC" $100 ("goods": "labor")');
-    Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$250" other_balance "" and message "report invoice" with subs: "DATA'
+    When_('member " NEW.ZZA" asks device "codeA" to do this: "charge" "NEW.ZZC" $100 ("goods": "labor")');
+    Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$250" other_balance "" and message "report invoice" with subs: "DATA'
     . '\\| action  | otherName | amount | tid |'
     . '\\| charged | Corner Pub | $100   | 2   |"');
     And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
@@ -474,8 +474,8 @@ class rsmartTransact extends DrupalWebTestCase {
   // Scenario: A member asks to pay another member
   public function testAMemberAsksToPayAnotherMember_2() {
     $this->setUp2(__FUNCTION__, 2);
-    When_('member " NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZC" $100 ("goods": "groceries")');
-    Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$155" other_balance "" and message "report transaction" with subs: "DATA'
+    When_('member " NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $100 ("goods": "groceries")');
+    Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$155" other_balance "" and message "report transaction" with subs: "DATA'
     . '\\| action | otherName | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| paid   | Corner Pub | $100   | rebate      | $5            | $155    | 2   |"');
     And__('we email "new-payment" to member "c@example.com" with subs: "DATA'
@@ -492,8 +492,8 @@ class rsmartTransact extends DrupalWebTestCase {
   public function testAMemberAsksToChargeAnotherMemberUnilaterally_2() {
     $this->setUp2(__FUNCTION__, 2);
     Given('member "NEW.ZZC" can charge unilaterally');
-    When_('member " NEW.ZZC" asks device "codeC" to do this: "charge" "NEW:ZZA" $100 ("goods": "groceries")');
-    Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$360" other_balance "$155" and message "report transaction" with subs: "DATA'
+    When_('member " NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $100 ("goods": "groceries")');
+    Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$360" other_balance "$155" and message "report transaction" with subs: "DATA'
     . '\\| action  | otherName | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| charged | Abe One    | $100   | bonus       | $10           | $360    | 2   |"');
     And__('we email "new-charge" to member "a@example.com" with subs: "DATA'
@@ -510,8 +510,8 @@ class rsmartTransact extends DrupalWebTestCase {
   public function testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance_2() {
     $this->setUp2(__FUNCTION__, 2);
     Given('member "NEW.ZZC" can charge unilaterally');
-    When_('member " NEW.ZZC" asks device "codeC" to do this: "charge" "NEW:ZZA" $300 ("goods": "groceries")');
-    Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$525" other_balance "$12.50" and message "report short invoice" with subs: "DATA'
+    When_('member " NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $300 ("goods": "groceries")');
+    Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$525" other_balance "$12.50" and message "report short invoice" with subs: "DATA'
     . '\\| action  | otherName | amount | short | balance | tid | t2id |'
     . '\\| charged | Abe One   | $250   | $50   | $525    | 2   | 3    |"');
     And__('balances: "DATA'
@@ -524,8 +524,8 @@ class rsmartTransact extends DrupalWebTestCase {
   // Scenario: A member asks to pay another member, with insufficient balance
   public function testAMemberAsksToPayAnotherMemberWithInsufficientBalance_2() {
     $this->setUp2(__FUNCTION__, 2);
-    When_('member " NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZC" $300 ("goods": "groceries")');
-    Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$12.50" other_balance "" and message "report short payment" with subs: "DATA'
+    When_('member " NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $300 ("goods": "groceries")');
+    Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$12.50" other_balance "" and message "report short payment" with subs: "DATA'
     . '\\| action | otherName | amount | short | balance | tid |'
     . '\\| paid   | Corner Pub | $250   | $50   | $12.50  | 2   |"');
     And__('balances: "DATA'
@@ -538,7 +538,7 @@ class rsmartTransact extends DrupalWebTestCase {
   // Scenario: A member asks to pay self
   public function testAMemberAsksToPaySelf_2() {
     $this->setUp2(__FUNCTION__, 2);
-    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZA" $300 ("goods": "groceries")');
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZA" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
     . '\\| 0       | no self-trading |"');
@@ -565,7 +565,7 @@ class rsmartTransact extends DrupalWebTestCase {
   // Scenario: Device gives no amount
   public function testDeviceGivesNoAmount_2() {
     $this->setUp2(__FUNCTION__, 2);
-    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZC" $"" ("goods": "groceries")');
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $"" ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message        |'
     . '\\| 0       | missing amount |"');
@@ -574,7 +574,7 @@ class rsmartTransact extends DrupalWebTestCase {
   // Scenario: Device gives bad amount
   public function testDeviceGivesBadAmount_2() {
     $this->setUp2(__FUNCTION__, 2);
-    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZC" $%whatever ("goods": "groceries")');
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $%whatever ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message    |'
     . '\\| 0       | bad amount |"');
@@ -583,7 +583,7 @@ class rsmartTransact extends DrupalWebTestCase {
   // Scenario: Device gives nonpositive amount
   public function testDeviceGivesNonpositiveAmount_2() {
     $this->setUp2(__FUNCTION__, 2);
-    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZC" $-100 ("goods": "groceries")');
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $-100 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message    |'
     . '\\| 0       | nonpositive amount |"');
@@ -592,7 +592,7 @@ class rsmartTransact extends DrupalWebTestCase {
   // Scenario: Device gives too big an amount
   public function testDeviceGivesTooBigAnAmount_2() {
     $this->setUp2(__FUNCTION__, 2);
-    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZC" $10,000,000 ("goods": "groceries")');
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $10,000,000 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message    |'
     . '\\| 0       | amount too big |"');
@@ -601,7 +601,7 @@ class rsmartTransact extends DrupalWebTestCase {
   // Scenario: Device gives no type
   public function testDeviceGivesNoType_2() {
     $this->setUp2(__FUNCTION__, 2);
-    When_('member "NEW.ZZA" asks device "codeA" to do this: "" "NEW:ZZC" $300 ("goods": "groceries")');
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "" "NEW.ZZC" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message                  |'
     . '\\| 0       | missing transaction type |"');
@@ -610,7 +610,7 @@ class rsmartTransact extends DrupalWebTestCase {
   // Scenario: Device gives bad type
   public function testDeviceGivesBadType_2() {
     $this->setUp2(__FUNCTION__, 2);
-    When_('member "NEW.ZZA" asks device "codeA" to do this: %whatever "NEW:ZZC" $300 ("goods": "groceries")');
+    When_('member "NEW.ZZA" asks device "codeA" to do this: %whatever "NEW.ZZC" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message |'
     . '\\| 0       | bad transaction type |"');
@@ -619,7 +619,7 @@ class rsmartTransact extends DrupalWebTestCase {
   // Scenario: Device gives no purpose for goods and services
   public function testDeviceGivesNoPurposeForGoodsAndServices_2() {
     $this->setUp2(__FUNCTION__, 2);
-    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZC" $300 ("goods": "")');
+    When_('member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $300 ("goods": "")');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
     . '\\| 0       | missing purpose |"');
@@ -637,7 +637,7 @@ class rsmartTransact extends DrupalWebTestCase {
   // Scenario: Seller agent lacks permission to sell
   public function testSellerAgentLacksPermissionToSell_2() {
     $this->setUp2(__FUNCTION__, 2);
-    When_('member " NEW.ZZA " asks device "codeB" to do this: "charge" "NEW:ZZC" $300 ("goods": "groceries")');
+    When_('member " NEW.ZZA " asks device "codeB" to do this: "charge" "NEW.ZZC" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message |'
     . '\\| 0       | no sell |"');
@@ -646,8 +646,8 @@ class rsmartTransact extends DrupalWebTestCase {
   // Scenario: A member asks to charge another member
   public function testAMemberAsksToChargeAnotherMember_3() {
     $this->setUp2(__FUNCTION__, 3);
-    When_('member " NEW.ZZA" asks device "codeA" to do this: "charge" "NEW:ZZC" $100 ("goods": "labor")');
-    Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$250" other_balance "" and message "report invoice" with subs: "DATA'
+    When_('member " NEW.ZZA" asks device "codeA" to do this: "charge" "NEW.ZZC" $100 ("goods": "labor")');
+    Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$250" other_balance "" and message "report invoice" with subs: "DATA'
     . '\\| action  | otherName | amount | tid |'
     . '\\| charged | Corner Pub | $100   | 2   |"');
     And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
@@ -663,8 +663,8 @@ class rsmartTransact extends DrupalWebTestCase {
   // Scenario: A member asks to pay another member
   public function testAMemberAsksToPayAnotherMember_3() {
     $this->setUp2(__FUNCTION__, 3);
-    When_('member " NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZC" $100 ("goods": "groceries")');
-    Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$155" other_balance "" and message "report transaction" with subs: "DATA'
+    When_('member " NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $100 ("goods": "groceries")');
+    Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$155" other_balance "" and message "report transaction" with subs: "DATA'
     . '\\| action | otherName | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| paid   | Corner Pub | $100   | rebate      | $5            | $155    | 2   |"');
     And__('we email "new-payment" to member "c@example.com" with subs: "DATA'
@@ -681,8 +681,8 @@ class rsmartTransact extends DrupalWebTestCase {
   public function testAMemberAsksToChargeAnotherMemberUnilaterally_3() {
     $this->setUp2(__FUNCTION__, 3);
     Given('member "NEW.ZZC" can charge unilaterally');
-    When_('member " NEW.ZZC" asks device "codeC" to do this: "charge" "NEW:ZZA" $100 ("goods": "groceries")');
-    Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$360" other_balance "$155" and message "report transaction" with subs: "DATA'
+    When_('member " NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $100 ("goods": "groceries")');
+    Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$360" other_balance "$155" and message "report transaction" with subs: "DATA'
     . '\\| action  | otherName | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| charged | Abe One    | $100   | bonus       | $10           | $360    | 2   |"');
     And__('we email "new-charge" to member "a@example.com" with subs: "DATA'
@@ -699,8 +699,8 @@ class rsmartTransact extends DrupalWebTestCase {
   public function testAMemberAsksToChargeAnotherMemberUnilaterallyWithInsufficientBalance_3() {
     $this->setUp2(__FUNCTION__, 3);
     Given('member "NEW.ZZC" can charge unilaterally');
-    When_('member " NEW.ZZC" asks device "codeC" to do this: "charge" "NEW:ZZA" $300 ("goods": "groceries")');
-    Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$525" other_balance "$12.50" and message "report short invoice" with subs: "DATA'
+    When_('member " NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $300 ("goods": "groceries")');
+    Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$525" other_balance "$12.50" and message "report short invoice" with subs: "DATA'
     . '\\| action  | otherName | amount | short | balance | tid | t2id |'
     . '\\| charged | Abe One   | $250   | $50   | $525    | 2   | 3    |"');
     And__('balances: "DATA'
@@ -713,8 +713,8 @@ class rsmartTransact extends DrupalWebTestCase {
   // Scenario: A member asks to pay another member, with insufficient balance
   public function testAMemberAsksToPayAnotherMemberWithInsufficientBalance_3() {
     $this->setUp2(__FUNCTION__, 3);
-    When_('member " NEW.ZZA" asks device "codeA" to do this: "pay" "NEW:ZZC" $300 ("goods": "groceries")');
-    Then_('we respond success 1 tx_id "NEW:AAAE" my_balance "$12.50" other_balance "" and message "report short payment" with subs: "DATA'
+    When_('member " NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $300 ("goods": "groceries")');
+    Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$12.50" other_balance "" and message "report short payment" with subs: "DATA'
     . '\\| action | otherName | amount | short | balance | tid |'
     . '\\| paid   | Corner Pub | $250   | $50   | $12.50  | 2   |"');
     And__('balances: "DATA'
@@ -727,7 +727,7 @@ class rsmartTransact extends DrupalWebTestCase {
   // Scenario: A member asks to pay self
   public function testAMemberAsksToPaySelf_3() {
     $this->setUp2(__FUNCTION__, 3);
-    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW:ZZA" $300 ("goods": "groceries")');
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW.ZZA" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
     . '\\| 0       | no self-trading |"');
@@ -754,7 +754,7 @@ class rsmartTransact extends DrupalWebTestCase {
   // Scenario: Device gives no amount
   public function testDeviceGivesNoAmount_3() {
     $this->setUp2(__FUNCTION__, 3);
-    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW:ZZC" $"" ("goods": "groceries")');
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW.ZZC" $"" ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message        |'
     . '\\| 0       | missing amount |"');
@@ -763,7 +763,7 @@ class rsmartTransact extends DrupalWebTestCase {
   // Scenario: Device gives bad amount
   public function testDeviceGivesBadAmount_3() {
     $this->setUp2(__FUNCTION__, 3);
-    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW:ZZC" $%whatever ("goods": "groceries")');
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW.ZZC" $%whatever ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message    |'
     . '\\| 0       | bad amount |"');
@@ -772,7 +772,7 @@ class rsmartTransact extends DrupalWebTestCase {
   // Scenario: Device gives nonpositive amount
   public function testDeviceGivesNonpositiveAmount_3() {
     $this->setUp2(__FUNCTION__, 3);
-    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW:ZZC" $-100 ("goods": "groceries")');
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW.ZZC" $-100 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message    |'
     . '\\| 0       | nonpositive amount |"');
@@ -781,7 +781,7 @@ class rsmartTransact extends DrupalWebTestCase {
   // Scenario: Device gives too big an amount
   public function testDeviceGivesTooBigAnAmount_3() {
     $this->setUp2(__FUNCTION__, 3);
-    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW:ZZC" $10,000,000 ("goods": "groceries")');
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW.ZZC" $10,000,000 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message    |'
     . '\\| 0       | amount too big |"');
@@ -790,7 +790,7 @@ class rsmartTransact extends DrupalWebTestCase {
   // Scenario: Device gives no type
   public function testDeviceGivesNoType_3() {
     $this->setUp2(__FUNCTION__, 3);
-    When_('member "NEW.ZZB" asks device "codeA" to do this: "" "NEW:ZZC" $300 ("goods": "groceries")');
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "" "NEW.ZZC" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message                  |'
     . '\\| 0       | missing transaction type |"');
@@ -799,7 +799,7 @@ class rsmartTransact extends DrupalWebTestCase {
   // Scenario: Device gives bad type
   public function testDeviceGivesBadType_3() {
     $this->setUp2(__FUNCTION__, 3);
-    When_('member "NEW.ZZB" asks device "codeA" to do this: %whatever "NEW:ZZC" $300 ("goods": "groceries")');
+    When_('member "NEW.ZZB" asks device "codeA" to do this: %whatever "NEW.ZZC" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message |'
     . '\\| 0       | bad transaction type |"');
@@ -808,7 +808,7 @@ class rsmartTransact extends DrupalWebTestCase {
   // Scenario: Device gives no purpose for goods and services
   public function testDeviceGivesNoPurposeForGoodsAndServices_3() {
     $this->setUp2(__FUNCTION__, 3);
-    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW:ZZC" $300 ("goods": "")');
+    When_('member "NEW.ZZB" asks device "codeA" to do this: "pay" "NEW.ZZC" $300 ("goods": "")');
     Then_('we respond with: "DATA'
     . '\\| success | message         |'
     . '\\| 0       | missing purpose |"');
@@ -826,7 +826,7 @@ class rsmartTransact extends DrupalWebTestCase {
   // Scenario: Seller agent lacks permission to sell
   public function testSellerAgentLacksPermissionToSell_3() {
     $this->setUp2(__FUNCTION__, 3);
-    When_('member " NEW.ZZA " asks device "codeB" to do this: "charge" "NEW:ZZC" $300 ("goods": "groceries")');
+    When_('member " NEW.ZZA " asks device "codeB" to do this: "charge" "NEW.ZZC" $300 ("goods": "groceries")');
     Then_('we respond with: "DATA'
     . '\\| success | message |'
     . '\\| 0       | no sell |"');

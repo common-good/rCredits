@@ -19,8 +19,8 @@ Setup:
   | NEW.ZZA | codeA |
   And relations:
   | id      | main    | agent   | permissions  |
-  | NEW:ZZA | NEW.ZZC | NEW.ZZB | buy and sell |
-  | NEW:ZZB | NEW.ZZC | NEW.ZZA | sell         |
+  | NEW.ZZA | NEW.ZZC | NEW.ZZB | buy and sell |
+  | NEW.ZZB | NEW.ZZC | NEW.ZZA | sell         |
   And transactions: 
   | created   | type       | amount | from      | to      | purpose | taking |
   | %today-6m | %TX_SIGNUP | 250    | community | NEW.ZZA | signup  | 0      |
@@ -56,7 +56,7 @@ Scenario: Member asks us to identify a QR and member can show balances
   | 1       | Bea Two   | Btown, UT | 250           |
 
 Scenario: Member asks us to identify a QR for a company agent
-  When member "NEW.ZZA" asks device "codeA" to identify QR "NEW:ZZA"
+  When member "NEW.ZZA" asks device "codeA" to identify QR "NEW.ZZA"
   Then we respond with:
   | success | fullName | location             | company_name |
   | 1       | Bea Two   | Ctown, Corse, France | Corner Pub   |

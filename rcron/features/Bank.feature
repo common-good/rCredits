@@ -13,7 +13,7 @@ Scenario: a member is barely below minimum
   | id   | r  | usd   | rewards |
   | .ZZA | 50 | 49.99 |      20 |
   When cron runs "bank"
-  Then bank transfers:
+  Then usd transfers:
   | payer | amount       |
   | .ZZA | -%R_BANK_MIN |
   And we notice "minmax status|banked" to member ".ZZA" with subs:
@@ -32,7 +32,7 @@ Scenario: a member is well below minimum
   | id   | r  | usd | rewards |
   | .ZZA | 20 |   6 |      20 |
   When cron runs "bank"
-  Then bank transfers:
+  Then usd transfers:
   | payer | amount |
   | .ZZA  |    -74 |
   And we notice "minmax status|banked" to member ".ZZA" with subs:
@@ -44,7 +44,7 @@ Scenario: a member is under minimum but already requested barely enough funds fr
   | id   | r   | usd    | rewards |
   | .ZZA | 10  |     10 |      20 |
   When cron runs "bank"
-  Then bank transfers:
+  Then usd transfers:
   | payer | amount |
   | .ZZA  |    -80 |
   When cron runs "bank"
@@ -56,14 +56,14 @@ Scenario: a member is under minimum and has requested insufficient funds from th
   | id   | r    | usd    | rewards |
   | .ZZA |   10 |     10 |      20 |
   When cron runs "bank"
-  Then bank transfers:
+  Then usd transfers:
   | payer | amount |
   | .ZZA  |    -80 |
   Given balances:
   | id   | r    | usd | rewards |
   | .ZZA | 9.99 |  10 |      20 |
   When cron runs "bank"
-  Then bank transfers:
+  Then usd transfers:
   | payer | amount       |
   | .ZZA  | -%R_BANK_MIN |
 

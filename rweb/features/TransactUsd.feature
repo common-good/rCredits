@@ -11,10 +11,10 @@ Setup:
   | .ZZC | Corner Pub | France  | c@example.com | dft,ok,company,bona  |
   And relations:
   | id      | main | agent | permission |
-  | NEW:ZZA | .ZZA | .ZZB  | buy        |
-  | NEW:ZZB | .ZZB | .ZZA  | read       |
-  | NEW:ZZC | .ZZC | .ZZB  | buy        |
-  | NEW:ZZD | .ZZC | .ZZA  | sell       |
+  | NEW.ZZA | .ZZA | .ZZB  | buy        |
+  | NEW.ZZB | .ZZB | .ZZA  | read       |
+  | NEW.ZZC | .ZZC | .ZZB  | buy        |
+  | NEW.ZZD | .ZZC | .ZZA  | sell       |
   And usd:
   | id   | usd  |
   | ctty | 1000 |

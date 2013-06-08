@@ -53,9 +53,9 @@ class rcronVirtualPayments extends DrupalWebTestCase {
     . '\\| .ZZE | Ezra Five  | e@example.com |    0 | dft,personal,member          |"');
     And__('relations: "DATA'
     . '\\| id      | main | agent | employerOk | permission | amount |'
-    . '\\| NEW:ZZA | .ZZC | .ZZA  |          1 | sell       |   1800 |'
-    . '\\| NEW:ZZB | .ZZC | .ZZB  |          0 |            |    200 |'
-    . '\\| NEW:ZZE | .ZZC | .ZZE  |          1 |            |   2000 |"');
+    . '\\| NEW.ZZA | .ZZC | .ZZA  |          1 | sell       |   1800 |'
+    . '\\| NEW.ZZB | .ZZC | .ZZB  |          0 |            |    200 |'
+    . '\\| NEW.ZZE | .ZZC | .ZZE  |          1 |            |   2000 |"');
     break;
 
 
@@ -80,7 +80,7 @@ class rcronVirtualPayments extends DrupalWebTestCase {
     . '\\| .AAAD | %today  | transfer | done  |             0 |        %chunk | .ZZC | .ZZB | virtual payment       |'
     . '\\| .AAAE | %today  | rebate   | done  | %(.05*%chunk) | %(.05*%chunk) | ctty | .ZZC | rebate on #1          |'
     . '\\| .AAAF | %today  | bonus    | done  | %(.10*%chunk) | %(.10*%chunk) | ctty | .ZZB | bonus on #2           |"');
-    And__('bank transfers: "DATA'
+    And__('usd transfers: "DATA'
     . '\\| payer | payee | amount |'
     . '\\| .ZZA  |  .ZZC | %chunk |'
     . '\\| .ZZB  |  .ZZC | %chunk |"');
@@ -112,7 +112,7 @@ class rcronVirtualPayments extends DrupalWebTestCase {
     . '\\| .AAAF | %today  | transfer | done  |              0 | %chunk4        | .ZZC | .ZZA | virtual payment       |'
     . '\\| .AAAG | %today  | rebate   | done  | %(.05*%chunk4) | %(.05*%chunk4) | ctty | .ZZC | rebate on #1          |'
     . '\\| .AAAH | %today  | bonus    | done  | %(.10*%chunk4) | %(.10*%chunk4) | ctty | .ZZA | bonus on #2           |"');
-    And__('bank transfers: "DATA'
+    And__('usd transfers: "DATA'
     . '\\| payer | payee | amount        |'
     . '\\| .ZZD  |  .ZZC |        %chunk |'
     . '\\| .ZZD  |  .ZZC |        %chunk |'

@@ -25,9 +25,13 @@ Setup:
   | .ZZB | 8 |     12 |
 
 Scenario: a Dwolla outage leaves a transaction incomplete
+  Given usd:
+  | id   | usd   |
+  | .ZZA | +AMT2 |
+  # reset cache
   When cron runs "usdTxsHere"
   Then incomplete transaction count 0
-  And bank transfers:
+  And usd transfers:
   | payer | payee | amount |
   | .ZZA  |  .ZZB |      2 |
   And balances:

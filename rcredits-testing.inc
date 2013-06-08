@@ -126,7 +126,7 @@ function makeTx($info, $testOnly = FALSE) {
   global $channel;
   extract($info);
 
-  if (@$xid and !is_numeric($xid)) $xid = u\a2n(substr(strpbrk($xid, '.:'), 1));
+  if (@$xid and !is_numeric($xid)) $xid = u\a2n(substr(strpbrk($xid, '.='), 1));
   u\setDft($type, TX_TRANSFER);
   u\setDft($state, TX_DONE);
   u\setDft($created, REQUEST_TIME);
@@ -236,6 +236,16 @@ function makeBalances($one, $testOnly) {
   return TRUE;
 }
 
+function usdTransferCount($where = '') {return r\dbLookup('COUNT(*)', 'r_usd', 'payee=0');}
+
+function usdTransfers($tx) {
+  global $testOnly; if(!$testOnly) return FALSE;
+  extract(u\just('payer payee amount', $tx[0]));
+  $payer = t\uid($payer);
+  $payee =(@$payee and !is_numeric($payee)) ? t\uid($payee) : 0;
+  return r\dbExists('r_usd', 'payer=:payer AND amount=:amount and payee=:payee', compact(u\ray('payer payee amount')));
+}
+
 function usd($list) {
   global $testOnly;
   foreach ($list as $one) {
@@ -278,7 +288,7 @@ function uid($id) {
  */
 function fullQid($q) {
   $c1 = substr($q, 0, 1);
-  return ($c1 == '.' or $c1 == ':') ? (R_SERVER_ID . $q) : $q;
+  return ($c1 == '.' or $c1 == '=') ? (R_SERVER_ID . $q) : $q;
 }
 
 function getErrors() {
@@ -403,7 +413,7 @@ function hitServer($op, $agent, $code = '', $account_id = '', $extra = array()) 
   if (!$account_id) unset($account_id); else $account_id = trim($account_id);
   if ($op != 'startup') { // startup RETURNS my_id rather than asking for it
     $agent = trim($agent);
-    if (strpos($agent, ':') or !@$code) {
+    if (strpos($agent, '=') or !@$code) {
       $my_id = $agent;
     } else {
       $acct = r\acct(r\dbLookup('owner', 'r_smarts', 'code=:code', compact('code')), $agent);
@@ -469,6 +479,71 @@ function verifyRecord($table, $info) {
   $result = r\dbExists($table, $crit, $info);
   if (!$result) testOutput("verifyRecord failed. table=$table crit=$crit EXPECTED info=" . print_r($info, 1)); // keep
   return $result;
+}
+
+/**
+ * Simulate completion (and possible confirmation) of a form.
+ * @param string $id: quid for the user (or company agent) completing the form
+ * @param string $page: path to form from drupal root
+ * @param array $values: field names/values
+ * @param bool $confirmed: whether the user has confirmed the values (default FALSE)
+ * @return TRUE on success
+ */
+function completeForm($id, $page, $values, $confirmed = FALSE) {
+  global $testOnly; if ($testOnly) return FALSE;
+  global $testOp; $testOp = @$values[0]['op'];
+  global $testConfirmation; // confirmation message output, if any
+  global $formSta;
+// debug(compact(u\ray('id page values confirmed testOnly'))); // keep
+
+  $values = $values[0];
+  t\fixCountryAndState($values);
+  if (isset($values['amount']) and !is_numeric($values['amount'])) {
+    $a = r\acct(t\fullQid($id));
+    list ($values['amount']) = t\parseAmt($values['amount'], $a);
+  }
+  if (@$values['email']) $values = u\changeKey('email', 'mail', $values);
+  
+  t\logIn($id);
+
+  $validate = TRUE;
+  if (!$form = t\pageForm(t\fixPageArgs($page), FALSE)) {
+    return FALSE; // probably access error
+  }
+  
+  if ($page == 'pay' or $page == 'charge') {
+    $page = 'Tx';
+    if ($confirmed) $validate = FALSE;
+  }
+
+  $errorsBefore = t\getErrors();
+  
+  $dfts = array();
+  foreach ($form as $key => $field) if (substr($key, 0, 1) != '#') {
+//    u\setDft($dft, @$field['#default_value']);
+    if ($field['#type'] == 'hidden') $dfts[$key] = $field['#value'];
+  }
+  $formSta['values'] = $formSta['input'] = $values + $dfts; // add to whatever status the form left off in
+  if ($validate) foreach (t\postProcess($form, $page, 'validate') as $one) $one($form, $formSta);
+
+  if (count($errors = t\getErrors()) > count($errorsBefore)) {
+    // NO! if (!empty($errors)) return FALSE;
+// debug(compact(u\ray('id page values confirmed one errors')));
+  } else {
+    $testConfirmation = @$formSta['confirm'];
+    $lastIdentifierTag = '</div identifiers>';
+    if ($i = strpos($testConfirmation, $lastIdentifierTag)) $testConfirmation = substr($testConfirmation, $i + strlen($lastIdentifierTag));
+    foreach (t\postProcess($form, $page, 'submit') as $one) {
+      $one($form, $formSta);
+    }
+    if ($page == '/user/login') { // fudge this test until we can take over the login process from Drupal
+      if (!$id = @$formSta['uid']) return FALSE;
+      t\logIn($id);
+      r\Web\loginFollowup($formSta, r\acct($id)->account());
+    }
+  }
+
+  return TRUE;
 }
 
 /**
@@ -601,7 +676,7 @@ function eq($a, $b) {
  * Fake $_SERVER params for testing
  */
 function SERVER($key, $value = NULL) {
-  if (!t\EST()) return $_SERVER[$key];
+  if (!t\est()) return $_SERVER[$key];
   global $T_SERVER;
   if (isset($value)) $T_SERVER[$key] = $value; else return $T_SERVER[$key];
 }
@@ -629,11 +704,15 @@ function color($msg, $color = 'normal') {
  * Return FALSE (meaning error in returns from callers) unless a color is specified.
  */
 function testOutput($msg, $color = 'error') {
-  if (t\EST()) \drupal_set_message(color($msg, $color));
+  if (t\est()) \drupal_set_message(color($msg, $color));
   return $color == 'error' ? FALSE : TRUE;
 }
 
-function EST() {return (@TESTING == 1);}
+/**
+ * Return 't' (also meaning TRUE) if we are testing, otherwise FALSE. The 't' is used with USD_NOTE_PREFIX
+ * call by t\est()
+ */
+function est() {return (@TESTING == 1 ? 't' : FALSE);}
 
 /**
  * Clear out all possible data, so as to start the test fresh
@@ -656,7 +735,7 @@ function clear($ch) {
 
 function fixPageArgs($page) {
   $special = array(
-    '(by|id)=([A-Z]{3}?[\.:][A-Z]{3})',
+    '(by|id)=([A-Z]{3}?[\.=][A-Z]{3})',
     '(flow)=(.*?)',
   );
   foreach ($special as $one) if (preg_match($pat = "`(/|&)$one(&|$)`", $page, $matches)) {

@@ -14,7 +14,7 @@ use rCredits\Testing as t;
 require_once __DIR__ . '/../dwolla/dwolla.php';
 require_once __DIR__ . '/rcredits-testing.inc'; // required during cron
 
-define('USD_NOTE_PREFIX', 'rC: '); // prefix USD transaction notes so we know they are ours
+define('USD_NOTE_PREFIX', 'rC: '); // prefix USD tx notes so we know they're ours (preceded by "1" when testing)
 
 class usd {
   var $acct; // the associated rCredits account
@@ -66,14 +66,14 @@ class usd {
    * @param int $uid: rCredits account id, passed in return uri
    */
   public static function getAuth2($uid) {
-    if (t\EST()) unset($_GET['error']);
+    if (t\est()) unset($_GET['error']);
     if (@$_GET['error']) return authReturn($_GET['error_description']);
 
     $mya = r\acct();
     if ($uid != @$mya->id) return authReturn(u\tt('wrong user'));
     $usdAcct = new usd($mya);
     $dw = $usdAcct->dwolla(FALSE, R_GET_AUTH_URI); // URI must match the one in getAuth
-    if (t\EST()) $authToken = \user_password(); else
+    if (t\est()) $authToken = \user_password(); else
     if (!$authToken = $dw->requestToken(@$_GET['code'])) return authReturn($dw);
 
     $secure = $mya->secure;
@@ -104,11 +104,9 @@ class usd {
    */
   function bal(&$error = NULL) {
     $dw = $this->dwolla();
-    if (t\EST() and $this->number != DW_TESTER_ACCT) return $this->acct->usd + 0;
+    if (t\est() and $this->number != DW_TESTER_ACCT) return $this->acct->usd + 0;
     $result = $dw->balance();
-    if (noDwolla($dw)) return $this->acct->usd + 0;
-    dwError($dw, $error); // get error message, if any
-    return $result;
+    return noDwolla($dw, $error) ? $this->acct->usd + 0 : $result;
   }
   
   /**
@@ -125,28 +123,27 @@ class usd {
    *   maybe: '?' (UNUSED for now)
    */
   function send($amount, $other, $notes = R_DEFAULT_PURPOSE, &$err = NULL, $payerFee = FALSE, $direct = TRUE) {
+    global $dwollaDown;
     u\EXPECT(self::inAtom(), 'usd transfer outside atom');
     u\EXPECT(is_object($this->acct) and is_object($other->acct), 'empty account');
-    u\EXPECT($this->acct->hasBit(B_OK) and $other->acct->hasBit(B_OK), 'non rTraders in usd send');
+    u\EXPECT($this->acct->can(B_OK) and $other->acct->can(B_OK), 'non rTraders in usd send');
 
-    debug('usd='.$this->acct->usd);
-    debug($amount);
     if ($this->acct->usd < $amount) return dwError('not enough', $err);
     
     $source = $direct ? 'Dwolla' : 'ERROR'; // no delayed payments at present
-    $notes = USD_NOTE_PREFIX . $notes;
+    $notes = t\est() . USD_NOTE_PREFIX . $notes;
     $dw = $this->dwolla();
-    if (t\EST() and !($this->number == DW_TESTER_ACCT and $other->number == DW_TEST_ACCT)) {
+    if (t\est() and !($this->number == DW_TESTER_ACCT and $other->number == DW_TEST_ACCT)) {
       $txid = t\seq();
       self::addToAtom($txid, $amount, $this->acct->id, $other->acct->id);
       return $txid;
     } else u\EXPECT(!is_null($this->number) and !is_null($other->number), 'null dw number');
-    if ($this->number == $other->number) return dwError(u\tt('no self-trading'), $err); // AFTER t\EST() check
+    if ($this->number == $other->number) return dwError(u\tt('no self-trading'), $err); // AFTER t\est() check
 
-    if ($txid = $dw->send($this->pin, self::format($other->number), $amount, $source, $notes, 0, $payerFee)) {
-      self::addToAtom($txid, $amount, $this->acct->id, $other->acct->id); // -1 for noDwolla
+    if (!$dwollaDown and $txid = $dw->send($this->pin, self::format($other->number), $amount, $source, $notes, 0, $payerFee)) {
+      self::addToAtom($txid, $amount, $this->acct->id, $other->acct->id);
       return $txid;
-    } else return noDwolla($dw) ? -1 : dwError($dw, $err);
+    } else return noDwolla($dw, $err) ? -1 : NULL;
   }
   
   /**
@@ -182,20 +179,20 @@ array (
   function bank($amount, &$error = NULL) {
     u\EXPECT($amount <> 0, 'bank zero');
     $dw = $this->dwolla();
-    if (!t\EST())
+    if (!t\est())
     if (!($source = $this->source($err)) or !@$source['Id'] or $err) return dwError($err ?: 'no source', $error);
-    if (!t\EST())
+    if (!t\est())
     if (!@$source['Verified']) return dwError('not verified', $error);
     
     $function = $amount < 0 ? 'deposit' : 'withdraw'; // seems backwards (it's from Dwolla perspective)
 // debug("Transferring USD $amount from Dwolla account to the bank for account uid=" . $this->acct->id);
     self::beginAtom();
-    if (t\EST()) $txid = t\seq(); else
+    if (t\est()) $txid = t\seq(); else
     {
       $result = $dw->$function(@$source['Id'], $this->pin, abs($amount));
-      if (!$result and !noDwolla($dw)) {
+      if (!$result and !noDwolla($dw, $error)) {
         self::rollback();
-        return dwError($dw, $error);
+        return NULL;
       }
       $txid = @$result['Id'] ?: -1; // -1 for noDwolla
     }
@@ -231,7 +228,7 @@ array (
     $atATime = 50; // arbitrary, up to 200 (Dwolla limit)
     while ($listings = $dw->listings(strftime('%d-%m-%Y', $start), $type, $atATime, $skip)) {
       foreach ($listings as $one) {
-        if ($anybody ?: u\abbreviates(USD_NOTE_PREFIX, $one['Notes'])) $callback($one);
+        if ($anybody ?: u\abbreviates(t\est() . USD_NOTE_PREFIX, $one['Notes'])) $callback($one);
       }
       $skip += $atATime;
     }   
@@ -319,7 +316,7 @@ array (
       extract(u\just('Success Response', $dw->transaction($txid)));
       if (!@$Success) {self::rollback(); continue;}
       //$payerFee = FALSE; // don't know yet how to extract this from $Response['Fees'][0]['Type'] (?todo)
-      $payerFee = R_FEE_FOR_CASH ? ($Response['Notes'] == USD_NOTE_PREFIX . 'cash') : FALSE;
+      $payerFee = R_FEE_FOR_CASH ? ($Response['Notes'] == t\est() . USD_NOTE_PREFIX . 'cash') : FALSE;
       
       $dw = $usAcct2->dwolla();
       if (!$txid = $dw->send($usAcct2->pin, $usAcct1->number, $amount, 'Dwolla', $notes, 0, $payerFee)) {
@@ -340,10 +337,14 @@ array (
 /**
  * Return TRUE if Dwolla is down
  * @param object $dw: the Dwolla request object or error message
+ * @param string $err: the error message to return (set to NULL if no error OR Dwolla is down)
  */
-function noDwolla($dw) {
-  if (!is_object($dw)) return FALSE;
-  return ($dw->getError() == 'Request failed. Server responded with: 0');
+function noDwolla($dw, &$err) {
+  global $dwollaDown; if (@$dwollaDown) return TRUE; // allows testing or greater efficiency in extended outages
+  if (is_object($dw) and u\abbreviates('Request failed. Server responded with:', $err = $dw->getError())) {
+    $err = NULL;
+    return TRUE;
+  } else return FALSE;
 }
 
 /**

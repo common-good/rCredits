@@ -109,7 +109,7 @@ class acct {
   public static function ok($id0, $agent0='', &$error='', $test = TRUE) {
     if ($error = u\EXPECT(compact(u\ray('id0 agent0')), 'zid|qid|assoc empty|id|qid', $test)) return FALSE;
     if ($error = u\EXPECT((bool) $id0, 'null uid in new acct()', $test)) return FALSE;
-    if ($error = u\EXPECT(!(strpos($id0, ':') and $agent0), 'agent already specified in qid', $test)) return FALSE;
+    if ($error = u\EXPECT(!(strpos($id0, '=') and $agent0), 'agent already specified in qid', $test)) return FALSE;
     list ($id, $agent) = u\isZid($id0) ? array($id0, $agent0 ?: $id0) : IA($id0); // handle
     if (u\isQid($agent0)) {
       list ($agent, $zot) = IA($agent0);
@@ -434,9 +434,12 @@ EOF;
       $usd = $this->usd + $change; // manual update
     } else {
       $usAcct = new usd($this);
-      $usd = max(0, $usAcct->bal($err) - $this->waitingToBank(TRUE)); // $err is inaccessibility (usd=0)
+      $bal = $usAcct->bal($err);
+      if ($err) return $this->usd; // can't get the figure from Dwolla
+      
+      $usd = max(0, $bal - $this->waitingToBank(TRUE)); // $err is inaccessibility (usd=0)
 
-      if (t\EST()) { // only these tests adjust according to Dwolla
+      if (t\est()) { // only these tests adjust according to Dwolla
         global $sceneTest; $scene = (object) $sceneTest->getInfo();
         if (!in_array($scene->short_name, u\ray('Recache RealUsd IncompleteUsdTxs'))) return $this->usd;
       }
@@ -482,7 +485,8 @@ EOF;
    * @param int $permission: the permission in question (DEFAULT B_READ)
    */
   public function can($permission = B_READ) {
-//    if (0 <= $permission and $permission <= B_MAX) return $this->hasBit($permission);
+    // For permissions based on flag bits that never get turned off in this function, be efficient:
+    if (0 <= $permission and $permission <= B_CTTY_ADMIN and $this->hasBit($permission)) return TRUE;
     $id = $this->id;
     if (!@self::$perms[$id]) self::$perms[$id] = array();
     if (!@self::$perms[$id][$this->agentId]) { // set up perms if we haven't yet (setBit() resets this)
@@ -506,6 +510,7 @@ EOF;
       if (!$perms[B_MEMBER]) $perms[B_BUY] = FALSE; // no spending even the SIGNUP GIFT for non-members
       if ($perms[B_OK]) $perms[B_READY] = TRUE; // make sure nobody gets downgraded
       if ($perms[B_READY]) $perms[B_MEMBER] = TRUE;
+      if (r\Web\svar('scanned_in') and $this == r\acct()) $perms[B_BUY] = $perms[B_MANAGE] = $perms[B_ADMIN] = $perms[B_CTTY_ADMIN] = FALSE;
       
       if ($perms[B_ADMIN]) {
         if (R_ADMIN_CAN_MANAGE_CTTYS) {
@@ -521,12 +526,6 @@ EOF;
 
       ksort($perms); // easier to debug
       self::$perms[$id][$this->agentId] = $perms;
-    } //elseif ($permission >=0 and $permission <= B_MAX) return $this->hasBit($permission);
-
-    if ($permission == -1) {
-      $p = u\ray($GLOBALS['permissions']);
-      for ($i = 0; $i < count($p); $i++) if ($p[$i] != '-') $result[$p[$i]] = @self::$perms[$id][$this->agentId][$i];
-      return $result; // for debugging
     }
 
     return self::$perms[$id][$this->agentId][$permission];
@@ -544,7 +543,7 @@ function IA($quid = '', $no_abbrev = TRUE) {
   if (!u\isQid($quid) and !$no_abbrev) $quid = R_SERVER_ID . $quid;
   if (!u\isQid($quid)) return FALSE;
 
-  list ($zuid, $regionUid) = unQid($quid);
+  list ($zuid, $regionUid) = r\unQid($quid);
   if (($reid = -$zuid) > 0) {
     if (!$record = relation('main,other', 'reid=:reid', compact('reid'))) return FALSE;
     $result = array_values($record);

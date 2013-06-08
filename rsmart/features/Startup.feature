@@ -14,7 +14,7 @@ Setup:
   | NEW.ZZA | codeA |
   And relations:
   | id      | main    | agent   | permissions  |
-  | NEW:ZZA | NEW.ZZA | NEW.ZZB |              |
+  | NEW.ZZA | NEW.ZZA | NEW.ZZB |              |
 
 Scenario: Member logs in successfully to initialize device
   Given member "NEW.ZZA" password is %whatever1

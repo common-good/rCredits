@@ -10,32 +10,36 @@ SO I don't lose money or get confused.
 #	Twitter	@DwollaReflector
 
 # Assumes real TESTER balance is at least $0.20
+# TESTER must have a Dwolla account set up and connected
 
 Setup:
   Given members:
-  | id      | fullName   | dwolla          | country | email         | flags                |
-  | NEW.ZZA | Abe One    | %DW_TESTER_ACCT | US      | a@example.com | dft,ok,personal,bona |
-  | NEW.ZZB | Bea Two    | %DW_TEST_ACCT   | US      | b@example.com | dft,ok,personal,bona |
+  | id   | fullName   | dwolla          | country | email         | flags                |
+  | .ZZA | Abe One    | %DW_TESTER_ACCT | US      | a@example.com | dft,ok,personal,bona |
+  | .ZZB | Bea Two    | %DW_TEST_ACCT   | US      | b@example.com | dft,ok,personal,bona |
   And transactions: 
-  | xid      | created   | type       | amount | from      | to      | purpose | taking |
-  | NEW.AAAB | %today-6m | %TX_SIGNUP |     10 | community | NEW.ZZA | signup  | 0      |
+  | xid | created   | type   | amount | from | to   | purpose | taking |
+  |   1 | %today-6m | signup |     10 | ctty | .ZZA | signup  | 0      |
   And usd:
-  | id        | usd   |
-  | NEW.ZZA   | +AMT1 |
+  | id   | usd   |
+  | .ZZA | +AMT1 |
   
 Scenario: A mixed rCredits/USD transaction happens
-  When member "NEW.ZZA" confirms form "pay" with values:
+  When member ".ZZA" confirms form "pay" with values:
   | op  | who     | amount | goods | purpose |
   | pay | Bea Two | 10.20  | 1     | labor   |
   Then transactions: 
-  | xid      | type         | state    | amount | r    | from      | to      | purpose      | taking |
-  | NEW:AAAC | %TX_TRANSFER | %TX_DONE |  10.20 |   10 | NEW.ZZA   | NEW.ZZB | labor        | 0      |
-  | NEW:AAAD | %TX_REBATE   | %TX_DONE |    .50 |  .50 | community | NEW.ZZA | rebate on #2 | 0      |
-  | NEW:AAAE | %TX_BONUS    | %TX_DONE |   1.00 | 1.00 | community | NEW.ZZB | bonus on #1  | 0      |
+  | xid | type     | state | amount | r    | from | to   | purpose      | taking |
+  |   2 | transfer | done  |  10.20 |   10 | .ZZA | .ZZB | labor        | 0      |
+  |   3 | rebate   | done  |    .50 |  .50 | ctty | .ZZA | rebate on #2 | 0      |
+  |   4 | bonus    | done  |   1.00 | 1.00 | ctty | .ZZB | bonus on #1  | 0      |
+  And usd transfers:
+  | payer | payee | amount |
+  | .ZZA  |  .ZZB |   0.20 |
   And balances:
-  | id        | r    | usd      | rewards |
-  | NEW.ZZA   | 0.50 | AMT1-.20 |   10.50 |
-  When member "NEW.ZZA" visits page "transactions/period=365"
+  | id   | r    | usd      | rewards |
+  | .ZZA | 0.50 | AMT1-.20 |   10.50 |
+  When member ".ZZA" visits page "transactions/period=365"
   Then we show "Transaction History" with:
   | Start Date | End Date | Start Balance | To You | From You | Rewards | End Balance |
   | %dmy-12m   | %dmy     | $0.00         | 0.00   |    10.20 |   10.50 |       $0.30 |
@@ -46,15 +50,31 @@ Scenario: A mixed rCredits/USD transaction happens
 
 Scenario: A member confirms payment with insufficient USD balance
   Given usd:
-  | id        | usd       |
-  | NEW.ZZA   | +AMT1+100 |
+  | id   | usd       |
+  | .ZZA | +AMT1+100 |
 # meaning the cached usd amount is $100 higher than the actual USD balance
-  When member "NEW.ZZA" confirms form "pay" with values:
+  When member ".ZZA" confirms form "pay" with values:
   | op  | who     | amount     | goods | purpose |
   | pay | Bea Two | AMT1+10.01 | 1     | labor   |
   Then we say "error": "short to" with subs:
   | short |
   | $0.01 |
   And balances:
-  | id        | r  | usd  | rewards |
-  | NEW.ZZA   | 10 | AMT1 |      10 |
+  | id   | r  | usd  | rewards |
+  | .ZZA | 10 | AMT1 |      10 |
+  
+Scenario: A member buys something when Dwolla is down
+  Given Dwolla is down
+  When member ".ZZA" confirms form "pay" with values:
+  | op  | who     | amount | goods | purpose |
+  | pay | Bea Two | 10.20  | 1     | labor   |
+  Then transactions: 
+  | xid | type     | state | amount | r    | from | to   | purpose      | taking | usdXid |
+  |   2 | transfer | done  |  10.20 |   10 | .ZZA | .ZZB | labor        | 0      |     -1 |
+  |   3 | rebate   | done  |    .50 |  .50 | ctty | .ZZA | rebate on #2 | 0      |        |
+  |   4 | bonus    | done  |   1.00 | 1.00 | ctty | .ZZB | bonus on #1  | 0      |        |
+  And balances:
+  | id   | r    | usd      | rewards |
+  | .ZZA | 0.50 | AMT1-.20 |   10.50 |
+  And usd transfer count is 0
+  

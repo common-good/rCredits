@@ -57,62 +57,7 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     TransactUsd AMemberAsksToChargeAnotherMember MAKE
  *     TransactUsd AMemberAsksToPayAnotherMember MAKE
  */
-function memberCompletesFormWithValues($id, $page, $values, $confirmed = FALSE) {
-  global $testOnly; if ($testOnly) return FALSE;
-  global $testOp; $testOp = @$values[0]['op'];
-  global $testConfirmation; // confirmation message output, if any
-  global $formSta;
-// debug(compact(u\ray('id page values confirmed testOnly'))); // keep
-
-  $values = $values[0];
-  t\fixCountryAndState($values);
-  if (isset($values['amount']) and !is_numeric($values['amount'])) {
-    $a = r\acct(t\fullQid($id));
-    list ($values['amount']) = t\parseAmt($values['amount'], $a);
-  }
-  if (@$values['email']) $values = u\changeKey('email', 'mail', $values);
-  
-  t\logIn($id);
-
-  $validate = TRUE;
-  if (!$form = t\pageForm(t\fixPageArgs($page), FALSE)) {
-    return FALSE; // probably access error
-  }
-  
-  if ($page == 'pay' or $page == 'charge') {
-    $page = 'Tx';
-    if ($confirmed) $validate = FALSE;
-  }
-
-  $errorsBefore = t\getErrors();
-  
-  $dfts = array();
-  foreach ($form as $key => $field) if (substr($key, 0, 1) != '#') {
-//    u\setDft($dft, @$field['#default_value']);
-    if ($field['#type'] == 'hidden') $dfts[$key] = $field['#value'];
-  }
-  $formSta['values'] = $formSta['input'] = $values + $dfts; // add to whatever status the form left off in
-  if ($validate) foreach (t\postProcess($form, $page, 'validate') as $one) $one($form, $formSta);
-
-  if (count($errors = t\getErrors()) > count($errorsBefore)) {
-    // NO! if (!empty($errors)) return FALSE;
-// debug(compact(u\ray('id page values confirmed one errors')));
-  } else {
-    $testConfirmation = @$formSta['confirm'];
-    $lastIdentifierTag = '</div identifiers>';
-    if ($i = strpos($testConfirmation, $lastIdentifierTag)) $testConfirmation = substr($testConfirmation, $i + strlen($lastIdentifierTag));
-    foreach (t\postProcess($form, $page, 'submit') as $one) {
-      $one($form, $formSta);
-    }
-    if ($page == '/user/login') { // fudge this test until we can take over the login process from Drupal
-      if (!$id = @$formSta['uid']) return FALSE;
-      t\logIn($id);
-      r\Web\loginFollowup($formSta, r\acct($id)->account());
-    }
-  }
-
-  return TRUE;
-}
+function memberCompletesFormWithValues($id, $page, $values) {return t\completeForm($id, $page, $values);}
 
 /**
  * member (ARG) confirms form (ARG) with values: (ARG)
@@ -121,6 +66,7 @@ function memberCompletesFormWithValues($id, $page, $values, $confirmed = FALSE) 
  *     Flow AMemberOverdrawsAndDrawsFromBothRAndUSD MAKE
  *     RealUsd AMixedRCreditsUSDTransactionHappens MAKE
  *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance MAKE
+ *     RealUsd AMemberBuysSomethingWhenDwollaIsDown MAKE
  *     Relations AMemberAddsARelation MAKE
  *     Signin AMemberSignsInForTheFirstTime MAKE
  *     Signin AMemberGivesTheWrongPassword MAKE
@@ -145,10 +91,7 @@ function memberCompletesFormWithValues($id, $page, $values, $confirmed = FALSE) 
  *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember MAKE
  *     TransactUsd AMemberConfirmsRequestToPayAnotherMember MAKE
  */
-function memberConfirmsFormWithValues($id, $page, $values) {
-  global $testOnly; if ($testOnly) return FALSE;
-  return memberCompletesFormWithValues($id, $page, $values, TRUE);
-}
+function memberConfirmsFormWithValues($id, $page, $values) {return t\completeForm($id, $page, $values, TRUE);}
 
 /**
  * a member confirms form (ARG) (which logs out) with values: (ARG)
@@ -221,6 +164,7 @@ function members($list) {return t\members($list);}
  *     Gift AMemberContributesPartlyInUSD TEST
  *     RealUsd Setup MAKE
  *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
+ *     RealUsd AMemberBuysSomethingWhenDwollaIsDown TEST
  *     Relations Setup MAKE
  *     Summary Setup MAKE
  *     Transactions Setup MAKE
@@ -354,6 +298,7 @@ function weShowWithSubs($page, $subs) {
  *     Signup AMemberRegistersACompany TEST
  *     Signup ANewbieRegistersFromElsewhere TEST
  *     Summary AMemberClicksOnTheSummaryTab TEST
+ *     Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage TEST
  *     Summary AForeignRTraderClicksOnTheSummaryTab TEST
  *     Transactions AMemberLooksAtTransactionsForThePastYear TEST
  *     Transactions AMemberLooksAtTransactionsForThePastFewDays TEST
@@ -373,6 +318,7 @@ function weShowWith($title, $content = FALSE, $showDebugs = TRUE) {
  *     Membership AMemberDoesItAll TEST
  *     Relations MemberCompanyHasRelations TEST
  *     Relations ItsComplicated TEST
+ *     Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage TEST
  *     Transactions AMemberLooksAtTransactionsForThePastYear TEST
  *     Transactions AMemberLooksAtTransactionsForThePastFewDays TEST
  *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
@@ -439,6 +385,7 @@ function relations($relations) {return t\relations($relations);}
  *     Gift Setup MAKE
  *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
  *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance TEST
+ *     RealUsd AMemberBuysSomethingWhenDwollaIsDown TEST
  *     Relations Setup TEST
  *     Signup AMemberRegistersACompany TEST
  *     Summary Setup TEST
@@ -491,6 +438,7 @@ function usd($list) {return t\usd($list);}
  *     Signup AnInvitedNewbieVisitsTheRegistrationPage MAKE
  *     Signup AMemberRegistersACompany MAKE
  *     Summary AMemberClicksOnTheSummaryTab MAKE
+ *     Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage MAKE
  *     Summary AForeignRTraderClicksOnTheSummaryTab MAKE
  *     Summary MembersAccountIsNotActive MAKE
  *     Transactions AMemberLooksAtTransactionsForThePastYear MAKE
@@ -757,31 +705,26 @@ function withDownloadColumns($columns) {
 }
 
 /**
- * incomplete transaction count (ARG)
+ * Dwolla is down
  *
- * in: 
+ * in: RealUsd AMemberBuysSomethingWhenDwollaIsDown MAKE
  */
-function incompleteTransactionCount($arg1) {
-  global $testOnly;
-  todo;
+function dwollaIsDown() {
+  global $testOnly; if ($testOnly) return FALSE;
+  global $dwollaDown; return $dwollaDown = TRUE;
 }
 
 /**
- * cron runs (ARG)
+ * usd transfers: (ARG)
  *
- * in: 
+ * in: RealUsd AMixedRCreditsUSDTransactionHappens TEST
  */
-function cronRuns($arg1) {
-  global $testOnly;
-  todo;
-}
+function usdTransfers($tx) {return t\usdTransfers($tx);}
+
 
 /**
- * bank transfers: (ARG)
+ * usd transfer count is (ARG)
  *
- * in: 
+ * in: RealUsd AMemberBuysSomethingWhenDwollaIsDown TEST
  */
-function bankTransfers($arg1) {
-  global $testOnly;
-  todo;
-}
+function usdTransferCountIs($count) {return (t\usdTransferCount() == $count);}

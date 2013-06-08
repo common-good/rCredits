@@ -7,7 +7,7 @@
  ** = tested
  
 DAILY (every 5 mins for 5 mins, starting at 2am)
-- * usdTxsHere() complete USD transactions that didn't go through because of Dwolla outage
+- ** usdTxsHere() complete USD transactions that didn't go through because of Dwolla outage
 - * usdTxsThere() rollback lost USD transactions, mark completed deposits/withdrawals
 - ** recache() check / recalc cached r, rewards, and usd
 - [later] checkAccts() thorough security / scam checks
@@ -66,15 +66,22 @@ function doTask($item) {
 }
 
 /**
- * Queue: Check to see if it's time for a less-often periodic activity.
+ *  Do this stuff every time cron is called (normally every 5 minutes)
+ *  Check to see if it's time for a less-often periodic activity (and if so do it).
  */
 function periodic() {
 //  if (!isDEV) return; // don't cron on pre-production server
   if (STAGING) return; // don't cron on pre-production server
+  
+  if ($row = r\dbQ('SELECT * FROM queue WHERE expire<>0 LIMIT 1')->fetchAssoc()) {
+    r\tellStaff('task timed out', $row); // shouldn't happen. Drupal's queue processing hangs until we delete.
+    $item = $row['item_id'];
+    // r\dbQ('DELETE FROM queue WHERE item_id=:item', compact('item'));
+  }
+  
   $lastDaily = \variable_get('daily', 0);
   if (strftime('%H') >= R_DAILY_HOUR and strftime('%d') != strftime('%d', $lastDaily)) everyDay();
   if (strftime('%M') == '00') everyHour();
-  // stuff to do every time cron is called (normally every 5 minutes)
 }
 
 function everyHour() {
@@ -141,6 +148,7 @@ function usdTxHere($item) {
  * (2) Notice and record completion of EFTs.
  */
 function usdTxsThere() {
+  if (FALSE) // until debugged
   queueEach('usdTxThere', 'SELECT uid FROM users WHERE :IS_OK');
   queue('usdTxsThereEND');
 }
@@ -148,26 +156,34 @@ function usdTxsThereEND() {queueNextAfter('usdTxsThere');}
 
 function usdTxThere($item) {
   $uid = $item['uid'];
+  if (t\est() and $uid <= variable_get('cgf_uid')) return; // ignore real accounts in tests
+//  $cgf = variable_get('cgf_uid');
   $usAcct = new r\usd($acct = r\acct($uid));
+//  debug(compact('uid','cgf','item'));
   $usAcct->each('rCredits\\Cron\\usdTxQ', strtotime('4 days ago'), array('money_sent','deposit','withdrawal'));
 }
 
 function usdTxQ($info) {queue($info['Type'] == 'money_sent' ? 'lostUsdTx' : 'bankFollowup', $info);}
 
 function lostUsdTx($info) {
+//print_r($info); die();
   extract(u\just('Id Notes Amount SourceId DestinationId Date', $info));
-  if (!u\abbreviates(USD_NOTE_PREFIX, $Notes)) return; // not one of ours
+  if (!u\abbreviates(t\est() . USD_NOTE_PREFIX, $Notes)) return; // not one of ours
   if (r\dbExists('r_usd', 'txid=:Id', compact('Id'))) return;
-  
   list ($txid, $amount) = array($Id, $Amount);
-  $payer = r\whoseUsd($SourceId);
-  $payee = r\whoseUsd($DestinationId);
+  $omit = t\est() ? (variable_get('cgf_uid') - 1) : NULL; // ignore tester's account
+  $payer = r\whoseUsd($SourceId, $omit);
+  $payee = r\whoseUsd($DestinationId, $omit);
+  if (t\est() and (!$payer or !$payee)) return;
+  u\EXPECT($payer and $payee, "missing person in lost tx: payer=$payer payee=$payee");
   $created = strtotime($Date);
+//  debug(compact(u\ray('info txid amount omit payer payee created'))); return;
   r\tellStaff('lost USD tx: #@txid $@amount', compact('txid', 'amount'), FALSE);
   r\usd::rollback(array(compact(u\ray('txid amount payer payee created'))));
 }
 
 function bankFollowup($info) {
+  debug('bankFU'); return;
   extract(u\just('Id Amount ClearingDate Status', $info));
   list ($txid, $amount, $completed) = array($Id, $Amount, strtotime($ClearingDate));
   if ($Status == 'processed') r\dbUpdate('r_usd', compact(u\ray('txid amount completed')), 'txid');
@@ -465,7 +481,7 @@ function queueNextAfter($task) {
   global $cronOp;
   $tasks = u\ray(R_DAILY_TASKS);
 
-  if (t\EST() and @$cronOp and $cronOp != 'ALL') {
+  if (t\est() and @$cronOp and $cronOp != 'ALL') {
     queue($task == $cronOp ? 'END' : $cronOp);
   } else queue($tasks[array_search($task, $tasks) + 1]);
 }

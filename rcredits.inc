@@ -291,7 +291,8 @@ function txReportArgs($acct, $tx, $getMyBalance = FALSE, $shortfall = 0) {
  */
 function whoseUsd($usdAccountId, $omit = NULL) {
   $usdAccount = bin2hex(u\ezencrypt($usdAccountId, R_WORD));
-  $where = 'usdAccount=:usdAccount' . ($omit ? ' AND uid<>:omit' : '');
+  $where = 'usdAccount=:usdAccount' . (@$omit ? ' AND uid<>:omit' : '');
+  $subs = compact('usdAccount') + (@$omit ? compact('omit') : array());
   return r\dbLookup('uid', 'users', $where, compact('usdAccount', 'omit'));
 }
 
@@ -301,7 +302,7 @@ function whoseUsd($usdAccountId, $omit = NULL) {
 function otherBalance($uid) {
   $mya = acct();
   $acct = acct($uid);
-  if ($acct and $mya->can(B_CHARGE) and !$acct->hasBit(B_SECRET_BAL)) {
+  if ($acct and $mya->can(B_CHARGE) and !$acct->can(B_SECRET_BAL)) {
     return u\formatAmount($acct->r);
     //return be\creditInfo(compact('uid'))->fancy['balance'];
   } else return FALSE;
@@ -420,8 +421,8 @@ function transactionSetup($info) {
   u\EXPECT(compact(u\ray('amount payer payee')), 'float zid zid');
   u\EXPECT($payer and $payee and $payer != $payee, 'null or self trading' . $specs);
   list ($a1, $a2) = array(r\acct($payer), r\acct($payee));
-  u\EXPECT($payer < 0 or $a1->hasBit(B_MEMBER), 'non-member payer' . $specs);
-  u\EXPECT(($payer < 0 and $a2->hasBit(B_MEMBER)) or $a2->hasBit(B_OK), 'unqualified payee' . $specs);
+  u\EXPECT($payer < 0 or $a1->can(B_MEMBER), 'non-member payer' . $specs);
+  u\EXPECT(($payer < 0 and $a2->can(B_MEMBER)) or $a2->can(B_OK), 'unqualified payee' . $specs);
   
   u\setDft($type, TX_TRANSFER);
   u\setDft($r, $amount);
@@ -589,12 +590,12 @@ function notify($uid, $index, $info = array(), $force = FALSE) {
   
   if ($force) {
     $mailed = \drupal_mail('rCredits', $index, $acct->mail, '', $info); // no need to pass $acct->language
-  } else { //if ($acct->hasBit(B_NOTIFY_EMAIL)) {
+  } else { //if ($acct->can(B_NOTIFY_EMAIL)) {
     list ($message, $created) = array(u\tt($index, $info), REQUEST_TIME);
     r\dbInsert('r_notices', compact(u\ray('uid message created')));
   }
   
-  if ($acct->hasBit(B_NOTIFY_SMS)) {
+  if ($acct->can(B_NOTIFY_SMS)) {
     if ($num = $acct->smsNumber) $smsed = SMS\send($num, u\tt($index, $info, TX_SMS));
   }
   if (FALSE and !@$mailed and !@$smsed and array_search($index, $warnIndexes) !== FALSE) {
@@ -800,12 +801,12 @@ function dbLookup($fieldName, $table, $where = '1', $subs = array()) {
  * Return a qid for the zid
  * @param $zid: a zid
  * @param string $regionId: the 3-character regional server ID (defaults to this server)
- * @param int $min_len: minimum length of the part of the qid after the "." or ":"
+ * @param int $min_len: minimum length of the part of the qid after the "." or "="
  * @return the qid, FALSE if wrong format
  */
 function qid($zid = '', $regionId = R_SERVER_ID, $min_len = 1) {
   if (!u\isZid($zid)) return FALSE;
-  return $regionId . ($zid < 0 ? (':' . u\n2a(-$zid, -$min_len)) : ('.' . u\n2a($zid, -$min_len)));
+  return $regionId . ($zid < 0 ? ('=' . u\n2a(-$zid, -$min_len)) : ('.' . u\n2a($zid, -$min_len)));
 }
 
 /**
@@ -824,7 +825,7 @@ function definiteName($uid) {
  */
 function unQid($qid) {
   if (!u\isQid($qid)) return FALSE;
-  list ($regionId, $type, $iid) = preg_split('/(\.+|=|:)/', $qid, 0, PREG_SPLIT_DELIM_CAPTURE); // allow a horizontal colon
+  list ($regionId, $type, $iid) = preg_split('/(\.\.?|=)/U', $qid, 0, PREG_SPLIT_DELIM_CAPTURE); // allow a horizontal colon
   $id = u\a2n($iid);
   return array($type == '.' ? $id : -$id, serverUid($regionId));
 }
@@ -868,7 +869,7 @@ function qxid($xid, $regionId = R_SERVER_ID) {return qid($xid, $regionId = R_SER
 
 function setCook($key, $value, $expires) {
   setcookie($key, $value, $expires, '/'); // make it easy (fails without '/')
-  if (t\EST()) $_COOKIE[$key] = $value;
+  if (t\est()) $_COOKIE[$key] = $value;
 }
 
 /**
@@ -1125,7 +1126,7 @@ function invite($email, $inviter, $code = '', $subject = '', $message = '') {
  * Drupal urlencodes the parameters (= and &), so the target page will have to sort that out.
  */
 function go($page) {
-  if (t\EST()) return t\pageForm($page);
+  if (t\est()) return t\pageForm($page);
   foreach (u\ray('login register password reset') as $one) if (strpos($page, "user/$one") !== FALSE) {
     if (\drupal_session_started()) session_destroy();
   }

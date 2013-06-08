@@ -18,16 +18,16 @@ Setup:
   | NEW.ZZC | codeC | NEW.ZZB       |
   And relations:
   | id      | main    | agent   | permission        |
-  | NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |
-  | NEW:ZZB | NEW.ZZB | NEW.ZZC | sell              |
-  | NEW:ZZC | NEW.ZZC | NEW.ZZA | read transactions |
-  | NEW:ZZD | NEW.ZZC | NEW.ZZB |                   |
-  | NEW:ZZE | NEW.ZZB | NEW.ZZA | read transactions |
-  | NEW:ZZF | NEW.ZZA | NEW.ZZC | sell              |
+  | NEW.ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |
+  | NEW.ZZB | NEW.ZZB | NEW.ZZC | sell              |
+  | NEW.ZZC | NEW.ZZC | NEW.ZZA | read transactions |
+  | NEW.ZZD | NEW.ZZC | NEW.ZZB |                   |
+  | NEW.ZZE | NEW.ZZB | NEW.ZZA | read transactions |
+  | NEW.ZZF | NEW.ZZA | NEW.ZZC | sell              |
 
 Scenario: A member changes account
   Given device "codeA" account is "NEW.ZZB" and agent is "NEW.ZZA"
   When a member asks device "codeA" to change "account" to "NEW.ZZC"
-  Then we respond success 1, my_id "NEW:ZZC", account_name "Corner Pub~Agent: Abe One", show_buttons 0, and message "changed account", with subs:
+  Then we respond success 1, my_id "NEW.ZZC", account_name "Corner Pub~Agent: Abe One", show_buttons 0, and message "changed account", with subs:
   | what    | accountName |
   | account | Corner Pub  |

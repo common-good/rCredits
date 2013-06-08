@@ -22,23 +22,23 @@ Setup:
   | NEW.ZZC | codeC |
   And relations:
   | id      | main    | agent   | permission   |
-  | NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell |
-  | NEW:ZZB | NEW.ZZB | NEW.ZZA |              |
-  | NEW:ZZC | NEW.ZZC | NEW.ZZB | buy and sell |
-  | NEW:ZZD | NEW.ZZC | NEW.ZZA | sell         |
+  | NEW.ZZA | NEW.ZZA | NEW.ZZB | buy and sell |
+  | NEW.ZZB | NEW.ZZB | NEW.ZZA |              |
+  | NEW.ZZC | NEW.ZZC | NEW.ZZB | buy and sell |
+  | NEW.ZZD | NEW.ZZC | NEW.ZZA | sell         |
   And transactions: 
   | xid      | created   | type         | state       | amount | from      | to      | purpose      | taking |
-  | NEW:AAAB | %today-7m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZA | signup       | 0      |
-  | NEW:AAAC | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZB | signup       | 0      |
-  | NEW:AAAD | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZC | signup       | 0      |
-  | NEW:AAAE | %today-3w | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZA   | NEW.ZZB | pie E        | 0      |
-  | NEW:AAAF | %today-3w | %TX_REBATE   | %TX_PENDING |      5 | community | NEW.ZZC | rebate on #2 | 0      |
-  | NEW:AAAG | %today-3w | %TX_BONUS    | %TX_PENDING |     10 | community | NEW.ZZA | bonus on #2  | 0      |
-  | NEW:AAAH | %today-2w | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZC   | NEW.ZZA | labor H      | 1      |
-  | NEW:AAAI | %today-2w | %TX_REBATE   | %TX_PENDING |      5 | community | NEW.ZZC | rebate on #2 | 0      |
-  | NEW:AAAJ | %today-2w | %TX_BONUS    | %TX_PENDING |     10 | community | NEW.ZZA | bonus on #3  | 0      |
-  | NEW:AAAK | %today-3d | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZA   | NEW.ZZB | cash given   | 0      |
-  | NEW:AAAL | %today-2d | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZB   | NEW.ZZA | cash request | 1      |
+  | NEW.AAAB | %today-7m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZA | signup       | 0      |
+  | NEW.AAAC | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZB | signup       | 0      |
+  | NEW.AAAD | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZC | signup       | 0      |
+  | NEW.AAAE | %today-3w | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZA   | NEW.ZZB | pie E        | 0      |
+  | NEW.AAAF | %today-3w | %TX_REBATE   | %TX_PENDING |      5 | community | NEW.ZZC | rebate on #2 | 0      |
+  | NEW.AAAG | %today-3w | %TX_BONUS    | %TX_PENDING |     10 | community | NEW.ZZA | bonus on #2  | 0      |
+  | NEW.AAAH | %today-2w | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZC   | NEW.ZZA | labor H      | 1      |
+  | NEW.AAAI | %today-2w | %TX_REBATE   | %TX_PENDING |      5 | community | NEW.ZZC | rebate on #2 | 0      |
+  | NEW.AAAJ | %today-2w | %TX_BONUS    | %TX_PENDING |     10 | community | NEW.ZZA | bonus on #3  | 0      |
+  | NEW.AAAK | %today-3d | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZA   | NEW.ZZB | cash given   | 0      |
+  | NEW.AAAL | %today-2d | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZB   | NEW.ZZA | cash request | 1      |
   Then balances:
   | id        | balance |
   | community | -750 |
@@ -47,7 +47,7 @@ Setup:
   | NEW.ZZC   |  250 |
 
 Scenario: A member asks to refuse to pay invoice
-  When member "NEW.ZZC" asks device "codeC" to undo transaction "NEW:AAAH", with the request "unconfirmed"
+  When member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "unconfirmed"
   Then we respond with success 1, message "confirm undo", and subs:
   | created   | amount | tofrom  | otherName | purpose |
   | %today-2w | $100   | to      | Abe One    | labor H |
@@ -59,7 +59,7 @@ Scenario: A member asks to refuse to pay invoice
   | NEW.ZZC   |  250 |
   
 Scenario: A member confirms request to refuse to pay invoice
-  When member "NEW.ZZC" asks device "codeC" to undo transaction "NEW:AAAH", with the request "confirmed"
+  When member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "confirmed"
   Then we respond success 1 tx_id "" my_balance "$250" other_balance "" and message "report undo" with subs:
   | solution          |
   | marked ''denied'' |
@@ -74,7 +74,7 @@ Scenario: A member confirms request to refuse to pay invoice
   | NEW.ZZC   |  250 |
 
 Scenario: A member asks to refuse payment offer
-  When member "NEW.ZZB" asks device "codeB" to undo transaction "NEW:AAAE", with the request "unconfirmed"
+  When member "NEW.ZZB" asks device "codeB" to undo transaction "NEW.AAAE", with the request "unconfirmed"
   Then we respond with success 1, message "confirm undo", and subs:
   | created   | amount | tofrom  | otherName | purpose |
   | %today-3w | $100   | from    | Abe One    | pie E   |
@@ -86,7 +86,7 @@ Scenario: A member asks to refuse payment offer
   | NEW.ZZC   |  250 |
   
 Scenario: A member confirms request to refuse payment offer
-  When member "NEW.ZZB" asks device "codeB" to undo transaction "NEW:AAAE", with the request "confirmed"
+  When member "NEW.ZZB" asks device "codeB" to undo transaction "NEW.AAAE", with the request "confirmed"
   Then we respond success 1 tx_id "" my_balance "$250" other_balance "" and message "report undo" with subs:
   | solution          |
   | marked ''denied'' |
@@ -101,13 +101,13 @@ Scenario: A member confirms request to refuse payment offer
   | NEW.ZZC   |  250 |
 
 Scenario: A member asks to cancel an invoice
-  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAH", with the request "unconfirmed"
+  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "unconfirmed"
   Then we respond with success 1, message "confirm undo", and subs:
   | created   | amount | tofrom | otherName | purpose |
   | %today-2w | $100   | from   | Corner Pub | labor H |
 
 Scenario: A member confirms request to cancel an invoice
-  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAH", with the request "confirmed"
+  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "confirmed"
   Then we respond success 1 tx_id "" my_balance "$250" other_balance "" and message "report undo" with subs:
   | solution |
   | deleted  |
@@ -116,13 +116,13 @@ Scenario: A member confirms request to cancel an invoice
   | %today-2w | Corner Pub | Abe One    | $100   | labor H       |
   
 Scenario: A member asks to cancel an offer
-  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAE", with the request "unconfirmed"
+  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAE", with the request "unconfirmed"
   Then we respond with success 1, message "confirm undo", and subs:
   | created   | amount | tofrom | otherName | purpose |
   | %today-3w | $100   | to     | Bea Two    | pie E |
 
 Scenario: A member confirms request to cancel an offer
-  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAE", with the request "confirmed"
+  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAE", with the request "confirmed"
   Then we respond success 1 tx_id "" my_balance "$250" other_balance "" and message "report undo" with subs:
   | solution |
   | deleted  |

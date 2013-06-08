@@ -56,23 +56,23 @@ class rsmartUndoPending extends DrupalWebTestCase {
     . '\\| NEW.ZZC | codeC |"');
     And__('relations: "DATA'
     . '\\| id      | main    | agent   | permission   |'
-    . '\\| NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell |'
-    . '\\| NEW:ZZB | NEW.ZZB | NEW.ZZA |              |'
-    . '\\| NEW:ZZC | NEW.ZZC | NEW.ZZB | buy and sell |'
-    . '\\| NEW:ZZD | NEW.ZZC | NEW.ZZA | sell         |"');
+    . '\\| NEW.ZZA | NEW.ZZA | NEW.ZZB | buy and sell |'
+    . '\\| NEW.ZZB | NEW.ZZB | NEW.ZZA |              |'
+    . '\\| NEW.ZZC | NEW.ZZC | NEW.ZZB | buy and sell |'
+    . '\\| NEW.ZZD | NEW.ZZC | NEW.ZZA | sell         |"');
     And__('transactions: "DATA'
     . '\\| xid      | created   | type         | state       | amount | from      | to      | purpose      | taking |'
-    . '\\| NEW:AAAB | %today-7m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZA | signup       | 0      |'
-    . '\\| NEW:AAAC | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZB | signup       | 0      |'
-    . '\\| NEW:AAAD | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZC | signup       | 0      |'
-    . '\\| NEW:AAAE | %today-3w | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZA   | NEW.ZZB | pie E        | 0      |'
-    . '\\| NEW:AAAF | %today-3w | %TX_REBATE   | %TX_PENDING |      5 | community | NEW.ZZC | rebate on #2 | 0      |'
-    . '\\| NEW:AAAG | %today-3w | %TX_BONUS    | %TX_PENDING |     10 | community | NEW.ZZA | bonus on #2  | 0      |'
-    . '\\| NEW:AAAH | %today-2w | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZC   | NEW.ZZA | labor H      | 1      |'
-    . '\\| NEW:AAAI | %today-2w | %TX_REBATE   | %TX_PENDING |      5 | community | NEW.ZZC | rebate on #2 | 0      |'
-    . '\\| NEW:AAAJ | %today-2w | %TX_BONUS    | %TX_PENDING |     10 | community | NEW.ZZA | bonus on #3  | 0      |'
-    . '\\| NEW:AAAK | %today-3d | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZA   | NEW.ZZB | cash given   | 0      |'
-    . '\\| NEW:AAAL | %today-2d | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZB   | NEW.ZZA | cash request | 1      |"');
+    . '\\| NEW.AAAB | %today-7m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZA | signup       | 0      |'
+    . '\\| NEW.AAAC | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZB | signup       | 0      |'
+    . '\\| NEW.AAAD | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZC | signup       | 0      |'
+    . '\\| NEW.AAAE | %today-3w | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZA   | NEW.ZZB | pie E        | 0      |'
+    . '\\| NEW.AAAF | %today-3w | %TX_REBATE   | %TX_PENDING |      5 | community | NEW.ZZC | rebate on #2 | 0      |'
+    . '\\| NEW.AAAG | %today-3w | %TX_BONUS    | %TX_PENDING |     10 | community | NEW.ZZA | bonus on #2  | 0      |'
+    . '\\| NEW.AAAH | %today-2w | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZC   | NEW.ZZA | labor H      | 1      |'
+    . '\\| NEW.AAAI | %today-2w | %TX_REBATE   | %TX_PENDING |      5 | community | NEW.ZZC | rebate on #2 | 0      |'
+    . '\\| NEW.AAAJ | %today-2w | %TX_BONUS    | %TX_PENDING |     10 | community | NEW.ZZA | bonus on #3  | 0      |'
+    . '\\| NEW.AAAK | %today-3d | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZA   | NEW.ZZB | cash given   | 0      |'
+    . '\\| NEW.AAAL | %today-2d | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZB   | NEW.ZZA | cash request | 1      |"');
     Then_('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community | -750 |'
@@ -94,23 +94,23 @@ class rsmartUndoPending extends DrupalWebTestCase {
     . '\\| NEW.ZZC | codeC |"');
     And__('relations: "DATA'
     . '\\| id      | main    | agent   | permission   |'
-    . '\\| NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell |'
-    . '\\| NEW:ZZB | NEW.ZZB | NEW.ZZA |              |'
-    . '\\| NEW:ZZC | NEW.ZZC | NEW.ZZB | buy and sell |'
-    . '\\| NEW:ZZD | NEW.ZZC | NEW.ZZA | sell         |"');
+    . '\\| NEW.ZZA | NEW.ZZA | NEW.ZZB | buy and sell |'
+    . '\\| NEW.ZZB | NEW.ZZB | NEW.ZZA |              |'
+    . '\\| NEW.ZZC | NEW.ZZC | NEW.ZZB | buy and sell |'
+    . '\\| NEW.ZZD | NEW.ZZC | NEW.ZZA | sell         |"');
     And__('transactions: "DATA'
     . '\\| xid      | created   | type         | state       | amount | from      | to      | purpose      | taking |'
-    . '\\| NEW:AAAB | %today-7m | %TX_SIGNUP   | %TX_DISPUTED    |    250 | community | NEW.ZZA | signup       | 0      |'
-    . '\\| NEW:AAAC | %today-6m | %TX_SIGNUP   | %TX_DISPUTED    |    250 | community | NEW.ZZB | signup       | 0      |'
-    . '\\| NEW:AAAD | %today-6m | %TX_SIGNUP   | %TX_DISPUTED    |    250 | community | NEW.ZZC | signup       | 0      |'
-    . '\\| NEW:AAAE | %today-3w | %TX_TRANSFER | %TX_DENIED |    100 | NEW.ZZA   | NEW.ZZB | pie E        | 0      |'
-    . '\\| NEW:AAAF | %today-3w | %TX_REBATE   | %TX_DENIED |      5 | community | NEW.ZZC | rebate on #2 | 0      |'
-    . '\\| NEW:AAAG | %today-3w | %TX_BONUS    | %TX_DENIED |     10 | community | NEW.ZZA | bonus on #2  | 0      |'
-    . '\\| NEW:AAAH | %today-2w | %TX_TRANSFER | %TX_DENIED |    100 | NEW.ZZC   | NEW.ZZA | labor H      | 1      |'
-    . '\\| NEW:AAAI | %today-2w | %TX_REBATE   | %TX_DENIED |      5 | community | NEW.ZZC | rebate on #2 | 0      |'
-    . '\\| NEW:AAAJ | %today-2w | %TX_BONUS    | %TX_DENIED |     10 | community | NEW.ZZA | bonus on #3  | 0      |'
-    . '\\| NEW:AAAK | %today-3d | %TX_TRANSFER | %TX_DENIED |    100 | NEW.ZZA   | NEW.ZZB | cash given   | 0      |'
-    . '\\| NEW:AAAL | %today-2d | %TX_TRANSFER | %TX_DENIED |    100 | NEW.ZZB   | NEW.ZZA | cash request | 1      |"');
+    . '\\| NEW.AAAB | %today-7m | %TX_SIGNUP   | %TX_DISPUTED    |    250 | community | NEW.ZZA | signup       | 0      |'
+    . '\\| NEW.AAAC | %today-6m | %TX_SIGNUP   | %TX_DISPUTED    |    250 | community | NEW.ZZB | signup       | 0      |'
+    . '\\| NEW.AAAD | %today-6m | %TX_SIGNUP   | %TX_DISPUTED    |    250 | community | NEW.ZZC | signup       | 0      |'
+    . '\\| NEW.AAAE | %today-3w | %TX_TRANSFER | %TX_DENIED |    100 | NEW.ZZA   | NEW.ZZB | pie E        | 0      |'
+    . '\\| NEW.AAAF | %today-3w | %TX_REBATE   | %TX_DENIED |      5 | community | NEW.ZZC | rebate on #2 | 0      |'
+    . '\\| NEW.AAAG | %today-3w | %TX_BONUS    | %TX_DENIED |     10 | community | NEW.ZZA | bonus on #2  | 0      |'
+    . '\\| NEW.AAAH | %today-2w | %TX_TRANSFER | %TX_DENIED |    100 | NEW.ZZC   | NEW.ZZA | labor H      | 1      |'
+    . '\\| NEW.AAAI | %today-2w | %TX_REBATE   | %TX_DENIED |      5 | community | NEW.ZZC | rebate on #2 | 0      |'
+    . '\\| NEW.AAAJ | %today-2w | %TX_BONUS    | %TX_DENIED |     10 | community | NEW.ZZA | bonus on #3  | 0      |'
+    . '\\| NEW.AAAK | %today-3d | %TX_TRANSFER | %TX_DENIED |    100 | NEW.ZZA   | NEW.ZZB | cash given   | 0      |'
+    . '\\| NEW.AAAL | %today-2d | %TX_TRANSFER | %TX_DENIED |    100 | NEW.ZZB   | NEW.ZZA | cash request | 1      |"');
     Then_('balances: "DATA'
     . '\\| id        | balance |'
     . '\\| community | -750 |'
@@ -126,7 +126,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
   // Scenario: A member asks to refuse to pay invoice
   public function testAMemberAsksToRefuseToPayInvoice_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW:AAAH", with the request "unconfirmed"');
+    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom  | otherName | purpose |'
     . '\\| %today-2w | $100   | to      | Abe One    | labor H |"');
@@ -141,7 +141,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
   // Scenario: A member confirms request to refuse to pay invoice
   public function testAMemberConfirmsRequestToRefuseToPayInvoice_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW:AAAH", with the request "confirmed"');
+    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "confirmed"');
     Then_('we respond success 1 tx_id "" my_balance "$250" other_balance "" and message "report undo" with subs: "DATA'
     . '\\| solution          |'
     . '\\| marked \'\'denied\'\' |"');
@@ -159,7 +159,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
   // Scenario: A member asks to refuse payment offer
   public function testAMemberAsksToRefusePaymentOffer_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "NEW.ZZB" asks device "codeB" to undo transaction "NEW:AAAE", with the request "unconfirmed"');
+    When_('member "NEW.ZZB" asks device "codeB" to undo transaction "NEW.AAAE", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom  | otherName | purpose |'
     . '\\| %today-3w | $100   | from    | Abe One    | pie E   |"');
@@ -174,7 +174,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
   // Scenario: A member confirms request to refuse payment offer
   public function testAMemberConfirmsRequestToRefusePaymentOffer_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "NEW.ZZB" asks device "codeB" to undo transaction "NEW:AAAE", with the request "confirmed"');
+    When_('member "NEW.ZZB" asks device "codeB" to undo transaction "NEW.AAAE", with the request "confirmed"');
     Then_('we respond success 1 tx_id "" my_balance "$250" other_balance "" and message "report undo" with subs: "DATA'
     . '\\| solution          |'
     . '\\| marked \'\'denied\'\' |"');
@@ -192,7 +192,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
   // Scenario: A member asks to cancel an invoice
   public function testAMemberAsksToCancelAnInvoice_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAH", with the request "unconfirmed"');
+    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom | otherName | purpose |'
     . '\\| %today-2w | $100   | from   | Corner Pub | labor H |"');
@@ -201,7 +201,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
   // Scenario: A member confirms request to cancel an invoice
   public function testAMemberConfirmsRequestToCancelAnInvoice_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAH", with the request "confirmed"');
+    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "confirmed"');
     Then_('we respond success 1 tx_id "" my_balance "$250" other_balance "" and message "report undo" with subs: "DATA'
     . '\\| solution |'
     . '\\| deleted  |"');
@@ -213,7 +213,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
   // Scenario: A member asks to cancel an offer
   public function testAMemberAsksToCancelAnOffer_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAE", with the request "unconfirmed"');
+    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAE", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom | otherName | purpose |'
     . '\\| %today-3w | $100   | to     | Bea Two    | pie E |"');
@@ -222,7 +222,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
   // Scenario: A member confirms request to cancel an offer
   public function testAMemberConfirmsRequestToCancelAnOffer_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAE", with the request "confirmed"');
+    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAE", with the request "confirmed"');
     Then_('we respond success 1 tx_id "" my_balance "$250" other_balance "" and message "report undo" with subs: "DATA'
     . '\\| solution |'
     . '\\| deleted  |"');
@@ -234,7 +234,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
   // Scenario: A member asks to refuse to pay invoice
   public function testAMemberAsksToRefuseToPayInvoice_1() {
     $this->setUp2(__FUNCTION__, 1);
-    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW:AAAH", with the request "unconfirmed"');
+    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom  | otherName | purpose |'
     . '\\| %today-2w | $100   | to      | Abe One    | labor H |"');
@@ -249,7 +249,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
   // Scenario: A member confirms request to refuse to pay invoice
   public function testAMemberConfirmsRequestToRefuseToPayInvoice_1() {
     $this->setUp2(__FUNCTION__, 1);
-    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW:AAAH", with the request "confirmed"');
+    When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "confirmed"');
     Then_('we respond success 1 tx_id "" my_balance "$250" other_balance "" and message "report undo" with subs: "DATA'
     . '\\| solution          |'
     . '\\| marked \'\'denied\'\' |"');
@@ -267,7 +267,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
   // Scenario: A member asks to refuse payment offer
   public function testAMemberAsksToRefusePaymentOffer_1() {
     $this->setUp2(__FUNCTION__, 1);
-    When_('member "NEW.ZZB" asks device "codeB" to undo transaction "NEW:AAAE", with the request "unconfirmed"');
+    When_('member "NEW.ZZB" asks device "codeB" to undo transaction "NEW.AAAE", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom  | otherName | purpose |'
     . '\\| %today-3w | $100   | from    | Abe One    | pie E   |"');
@@ -282,7 +282,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
   // Scenario: A member confirms request to refuse payment offer
   public function testAMemberConfirmsRequestToRefusePaymentOffer_1() {
     $this->setUp2(__FUNCTION__, 1);
-    When_('member "NEW.ZZB" asks device "codeB" to undo transaction "NEW:AAAE", with the request "confirmed"');
+    When_('member "NEW.ZZB" asks device "codeB" to undo transaction "NEW.AAAE", with the request "confirmed"');
     Then_('we respond success 1 tx_id "" my_balance "$250" other_balance "" and message "report undo" with subs: "DATA'
     . '\\| solution          |'
     . '\\| marked \'\'denied\'\' |"');
@@ -300,7 +300,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
   // Scenario: A member asks to cancel an invoice
   public function testAMemberAsksToCancelAnInvoice_1() {
     $this->setUp2(__FUNCTION__, 1);
-    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAH", with the request "unconfirmed"');
+    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom | otherName | purpose |'
     . '\\| %today-2w | $100   | from   | Corner Pub | labor H |"');
@@ -309,7 +309,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
   // Scenario: A member confirms request to cancel an invoice
   public function testAMemberConfirmsRequestToCancelAnInvoice_1() {
     $this->setUp2(__FUNCTION__, 1);
-    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAH", with the request "confirmed"');
+    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAH", with the request "confirmed"');
     Then_('we respond success 1 tx_id "" my_balance "$250" other_balance "" and message "report undo" with subs: "DATA'
     . '\\| solution |'
     . '\\| deleted  |"');
@@ -321,7 +321,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
   // Scenario: A member asks to cancel an offer
   public function testAMemberAsksToCancelAnOffer_1() {
     $this->setUp2(__FUNCTION__, 1);
-    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAE", with the request "unconfirmed"');
+    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAE", with the request "unconfirmed"');
     Then_('we respond with success 1, message "confirm undo", and subs: "DATA'
     . '\\| created   | amount | tofrom | otherName | purpose |'
     . '\\| %today-3w | $100   | to     | Bea Two    | pie E |"');
@@ -330,7 +330,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
   // Scenario: A member confirms request to cancel an offer
   public function testAMemberConfirmsRequestToCancelAnOffer_1() {
     $this->setUp2(__FUNCTION__, 1);
-    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAE", with the request "confirmed"');
+    When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAE", with the request "confirmed"');
     Then_('we respond success 1 tx_id "" my_balance "$250" other_balance "" and message "report undo" with subs: "DATA'
     . '\\| solution |'
     . '\\| deleted  |"');

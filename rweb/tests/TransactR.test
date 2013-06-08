@@ -50,10 +50,10 @@ class rwebTransactR extends DrupalWebTestCase {
     . '\\| .ZZC | Corner Pub | POB 3   | Ctown | Cher   |            | France  | c@example.com | dft,ok,company,bona  |"');
     And__('relations: "DATA'
     . '\\| id      | main    | agent   | permission |'
-    . '\\| NEW:ZZA | NEW.ZZA | NEW.ZZB | buy        |'
-    . '\\| NEW:ZZB | NEW.ZZB | NEW.ZZA | read       |'
-    . '\\| NEW:ZZC | NEW.ZZC | NEW.ZZB | buy        |'
-    . '\\| NEW:ZZD | NEW.ZZC | NEW.ZZA | sell       |"');
+    . '\\| NEW.ZZA | NEW.ZZA | NEW.ZZB | buy        |'
+    . '\\| NEW.ZZB | NEW.ZZB | NEW.ZZA | read       |'
+    . '\\| NEW.ZZC | NEW.ZZC | NEW.ZZB | buy        |'
+    . '\\| NEW.ZZD | NEW.ZZC | NEW.ZZA | sell       |"');
     And__('transactions: "DATA'
     . '\\| xid      | created   | type       | amount | from      | to      | purpose | taking |'
     . '\\| NEW.AAAB | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |'

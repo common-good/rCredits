@@ -28,16 +28,16 @@ Setup:
   | NEW.ZZC | codeC |
   And relations:
   | id      | main    | agent   | permission        |
-  | NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |
-  | NEW:ZZB | NEW.ZZB | NEW.ZZA | read transactions |
-  | NEW:ZZC | NEW.ZZC | NEW.ZZB | buy and sell      |
-  | NEW:ZZD | NEW.ZZC | NEW.ZZA | sell              |
+  | NEW.ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |
+  | NEW.ZZB | NEW.ZZB | NEW.ZZA | read transactions |
+  | NEW.ZZC | NEW.ZZC | NEW.ZZB | buy and sell      |
+  | NEW.ZZD | NEW.ZZC | NEW.ZZA | sell              |
   And transactions: 
   | xid      | created   | type         | state       | amount | from      | to      | purpose      | taking |
-  | NEW:AAAB | %today-7m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZA | signup       | 0      |
-  | NEW:AAAC | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZB | signup       | 0      |
-  | NEW:AAAD | %today-2d | %TX_TRANSFER | %TX_DONE    |      5 | NEW.ZZB   | NEW.ZZC | cash given   | 0      |
-  | NEW:AAAE | %today-1d | %TX_TRANSFER | %TX_DONE    |     80 | NEW.ZZA   | NEW.ZZC | whatever54   | 1      |
+  | NEW.AAAB | %today-7m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZA | signup       | 0      |
+  | NEW.AAAC | %today-6m | %TX_SIGNUP   | %TX_DONE    |    250 | community | NEW.ZZB | signup       | 0      |
+  | NEW.AAAD | %today-2d | %TX_TRANSFER | %TX_DONE    |      5 | NEW.ZZB   | NEW.ZZC | cash given   | 0      |
+  | NEW.AAAE | %today-1d | %TX_TRANSFER | %TX_DONE    |     80 | NEW.ZZA   | NEW.ZZC | whatever54   | 1      |
   Then balances:
   | id        | balance |
   | community |    -500 |
@@ -66,39 +66,39 @@ Scenario: Device gives bad transaction id
   | 0       | bad transaction id |
 
 Scenario: Device gives nonexistent transaction id
-  When member " NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAZ", with the request "confirmed"
+  When member " NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAZ", with the request "confirmed"
   #no variant on first member because (1) balance should be shown when confirmed and (3) showing balance requires B_MANAGE 
   Then we respond with:
   | success | message       | my_balance |
   | 0       | undo no match | $170       |
 
 Scenario: Device gives no confirmation status
-  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAB", with the request ""
+  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAB", with the request ""
   Then we respond with:
   | success | message                 |
   | 0       | bad confirmation status |
 
 Scenario: Device gives bad confirmation status
-  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAB", with the request %random
+  When member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAB", with the request %random
   Then we respond with:
   | success | message                 |
   | 0       | bad confirmation status |
 
 Scenario: Member asks to undo someone else's transaction
-  When member " NEW.ZZA" asks device "codeA" to undo transaction "NEW:AAAC", with the request "confirmed"
+  When member " NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAC", with the request "confirmed"
   #no variant on first member because (1) balance should be shown when confirmed and (3) showing balance requires B_MANAGE 
   Then we respond with:
   | success | message       | my_balance |
   | 0       | undo no match | $170       |
   
 Scenario: Buyer agent lacks permission to reverse sale
-  When member "NEW.ZZA" asks device "codeC" to undo transaction "NEW:AAAE", with the request "unconfirmed"
+  When member "NEW.ZZA" asks device "codeC" to undo transaction "NEW.AAAE", with the request "unconfirmed"
   Then we respond with:
   | success | message         |
   | 0       | no buy          |
 
 Scenario: Seller agent lacks permission to reverse purchase
-  When member "NEW.ZZA" asks device "codeB" to undo transaction "NEW:AAAD", with the request "unconfirmed"
+  When member "NEW.ZZA" asks device "codeB" to undo transaction "NEW.AAAD", with the request "unconfirmed"
   Then we respond with:
   | success | message |
   | 0       | no sell |

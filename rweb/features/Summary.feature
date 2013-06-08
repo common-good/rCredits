@@ -37,15 +37,20 @@ Setup:
   | .ZZB |     279 |
   | .ZZC |     323 |
 
-Variants: with/without an agent
-  | ".ZZA" | ".ZZC" | # member pro se     |
-  | ":ZZA" | ":ZZC" | # agent for account |
-
 Scenario: A member clicks on the summary tab
   When member ".ZZA" visits page "summary"
   Then we show "Account Summary" with:
-  | Name             | Address                | Account ID      |  Balance | Rewards | Floor |
-  | Abe One (abeone) | POB 1, Atown, AK 01000 | .ZZA (personal) | $166     | $256    | $-100 |
+  | Name             | Address                | Account ID      | Balance | Rewards | Floor |
+  | Abe One (abeone) | POB 1, Atown, AK 01000 | .ZZA (personal) | $166    | $256    | $-100 |
+
+Scenario: An agent clicks on the summary tab without permission to manage
+  When member "=ZZA" visits page "summary"
+  Then we show "Account Summary" with:
+  | Name             | Account ID         |
+  | Abe One (abeone) | NEW.ZZA (personal) |
+  And we show "Account Summary" without:
+  | label1  | label2  | label3 |
+  | Balance | Rewards | Floor  |
 
 Scenario: A foreign rTrader clicks on the summary tab
   When member ".ZZC" visits page "summary"

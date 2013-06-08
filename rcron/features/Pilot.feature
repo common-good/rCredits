@@ -122,7 +122,7 @@ Scenario: all
   |  29 | %today    | transfer  | done  |    100 |   20 | .AAO | .AAB | contribution | 0      |
   |  30 | %today    | rebate    | done  |      5 |    5 | ctty | .AAO | rebate on #2 | 0      |
   |  31 | %today    | bonus     | done  |     10 |   10 | ctty | .AAB | bonus on #7  | 0      |
-  And bank transfers:
+  And usd transfers:
   | payer | amount  | payee |
   | .AAA  |   20.00 | .AAS  |
   | .AAA  |   49.00 | .AAB  |

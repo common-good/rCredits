@@ -80,7 +80,7 @@ function formTxs($form, &$sta, $args = '') {
     $totDone['name'] = 'TOTALS';
 //    foreach($totDone as $key => $value) if ($value === FALSE) $totDone[$key] = '-';
     csv($csv, array_values($totDone)); // not STDOUT
-    if (t\EST()) return; else exit();
+    if (t\est()) return; else exit();
   }
 
   // prepare screen display

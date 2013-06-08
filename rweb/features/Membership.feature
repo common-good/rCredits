@@ -27,7 +27,7 @@ Scenario: A member clicks on the membership link
 
 Scenario: A company agent clicks on the membership link
   Given member ".ZZC" supplies "physical": "planet Earth"
-  When member "NEW:ZZA" visits page "membership"
+  When member "=ZZA" visits page "membership"
   Then we show "Congratulations on signing up" with:
   | Step 1 | Step 2    | Step 3       | Step 4 | Step 5      |
   | photo  | Agreement | contribution | Dwolla | Preferences |

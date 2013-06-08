@@ -18,21 +18,21 @@ Setup:
   | NEW.ZZC | codeC | NEW.ZZB       |
   And relations:
   | id      | main    | agent   | permission        |
-  | NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |
-  | NEW:ZZB | NEW.ZZB | NEW.ZZC | sell              |
-  | NEW:ZZC | NEW.ZZC | NEW.ZZA | read transactions |
-  | NEW:ZZD | NEW.ZZC | NEW.ZZB |                   |
-  | NEW:ZZE | NEW.ZZB | NEW.ZZA | read transactions |
-  | NEW:ZZF | NEW.ZZA | NEW.ZZC | sell              |
+  | NEW.ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |
+  | NEW.ZZB | NEW.ZZB | NEW.ZZC | sell              |
+  | NEW.ZZC | NEW.ZZC | NEW.ZZA | read transactions |
+  | NEW.ZZD | NEW.ZZC | NEW.ZZB |                   |
+  | NEW.ZZE | NEW.ZZB | NEW.ZZA | read transactions |
+  | NEW.ZZF | NEW.ZZA | NEW.ZZC | sell              |
 
 #Variants: changing to compound account/agent
 #  | NEW. |
-#  | NEW: |
+#  | NEW. |
 
 Scenario: A member changes agent
   Given device "codeB" account is "NEW.ZZB" and agent is "NEW.ZZB"
   When a member asks device "codeB" to change "agent" to "NEW.ZZC"
-  Then we respond success 1, my_id "NEW:ZZB", account_name "Bea Two~Agent: Corner Pub", show_buttons 1, and message "changed agent", with subs:
+  Then we respond success 1, my_id "NEW.ZZB", account_name "Bea Two~Agent: Corner Pub", show_buttons 1, and message "changed agent", with subs:
   | what  | agentName  |
   | agent | Corner Pub |
 # tilda is a stand-in for EOL
@@ -40,14 +40,14 @@ Scenario: A member changes agent
 Scenario: A member changes account
   Given device "codeA" account is "NEW.ZZA" and agent is "NEW.ZZA"
   When a member asks device "codeA" to change "account" to "NEW.ZZC"
-  Then we respond success 1, my_id "NEW:ZZC", account_name "Corner Pub~Agent: Abe One", show_buttons 0, and message "changed account", with subs:
+  Then we respond success 1, my_id "NEW.ZZC", account_name "Corner Pub~Agent: Abe One", show_buttons 0, and message "changed account", with subs:
   | what    | accountName |
   | account | Corner Pub  |
 
 Scenario: A member changes to different account AND agent
   Given device "codeC" account is "NEW.ZZB" and agent is "NEW.ZZC"
   When a member asks device "codeC" to change "agent" to "NEW.ZZA"
-  Then we respond success 1, my_id "NEW:ZZE", account_name "Bea Two~Agent: Abe One", show_buttons 0, and message "changed agent", with subs:
+  Then we respond success 1, my_id "NEW.ZZE", account_name "Bea Two~Agent: Abe One", show_buttons 0, and message "changed agent", with subs:
   | what  | agentName  |
   | agent | Abe One    |
   

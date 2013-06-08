@@ -11,10 +11,10 @@ Setup:
   | .ZZC | Corner Pub | %R_COMMERCIAL    | dft,ok,company,bona          |
   | .ZZD | Dee Four   | %R_PERSONAL      | dft,ok,personal,bona         |
   And transactions: 
-  | xid   | created   | type       | amount | from      | to   | purpose | taking |
-  | :AAAB | %today-6m | %TX_SIGNUP |    250 | community | .ZZA | signup  | 0      |
-  | :AAAC | %today-6m | %TX_SIGNUP |    250 | community | .ZZB | signup  | 0      |
-  | :AAAD | %today-6m | %TX_SIGNUP |    250 | community | .ZZC | signup  | 0      |
+  | xid | created   | type       | amount | from      | to   | purpose | taking |
+  |   1 | %today-6m | %TX_SIGNUP |    250 | community | .ZZA | signup  | 0      |
+  |   2 | %today-6m | %TX_SIGNUP |    250 | community | .ZZB | signup  | 0      |
+  |   3 | %today-6m | %TX_SIGNUP |    250 | community | .ZZC | signup  | 0      |
   Then balances:
   | id        | balance |
   | community |    -750 |
@@ -92,9 +92,9 @@ Scenario: Member has access to employee account
 
 Scenario: Member company has relations
   Given relations:
-  | id    | main | agent | permission | amount | employerOk | employeeOk | isOwner |
-  | :ZZA  | .ZZC | .ZZA  | manage     |     10 | 1           | 1           | 1        |
-  When member ":ZZA" visits page "account/relations"
+  | id   | main | agent | permission | amount | employerOk | employeeOk | isOwner |
+  | .ZZA | .ZZC | .ZZA  | manage     |     10 | 1           | 1           | 1        |
+  When member "=ZZA" visits page "account/relations"
   Then we show "Relations" with:
   | Person  | Amount | My employee? | Is owner? | Permission     | Request rCard |
   | Abe One | 10     | Yes          | Yes       | manage account | request rCard |
@@ -109,12 +109,12 @@ Scenario: Member company has relations
 Scenario: It's complicated
   Given relations:
   | id   | main | agent | permission | amount | employerOk | employeeOk | isOwner |
-  | :ZZA | .ZZA | .ZZD  | sell       |     10 | 1           | 0           | 1        |
-  | :ZZB | .ZZD | .ZZA  |            |     20 | 0           | 1           | 0        |
-  | :ZZC | .ZZA | .ZZC  | buy        |     30 | 0           | 1           | 0        |
-  | :ZZD | .ZZC | .ZZA  | manage     |     40 | 1           | 0           | 0        |
-  | :ZZE | .ZZA | .ZZB  | sell       |     10 | 1           | 0           | 1        |
-  | :ZZF | .ZZB | .ZZA  |            |     20 | 1           | 1           | 0        |
+  | .ZZA | .ZZA | .ZZD  | sell       |     10 | 1           | 0           | 1        |
+  | .ZZB | .ZZD | .ZZA  |            |     20 | 0           | 1           | 0        |
+  | .ZZC | .ZZA | .ZZC  | buy        |     30 | 0           | 1           | 0        |
+  | .ZZD | .ZZC | .ZZA  | manage     |     40 | 1           | 0           | 0        |
+  | .ZZE | .ZZA | .ZZB  | sell       |     10 | 1           | 0           | 1        |
+  | .ZZF | .ZZB | .ZZA  |            |     20 | 1           | 1           | 0        |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
   | Person     | My employer? | My employee? | Family? | Permission   | Request rCard |
@@ -132,7 +132,7 @@ Scenario: It's complicated
   And we show "Relations" with:
   | Header  |
   | Family? |
-  When member ":ZZD" visits page "account/relations"
+  When member "=ZZD" visits page "account/relations"
   Then we show "Relations" with:
   | Person  | Amount | My employee? | Is owner? | Permission     | Request rCard      |
   | Abe One | 40     | Yes          | No        | manage account | --            |

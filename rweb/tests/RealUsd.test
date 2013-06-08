@@ -44,15 +44,15 @@ class rwebRealUsd extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id      | fullName   | dwolla          | country | email         | flags                |'
-    . '\\| NEW.ZZA | Abe One    | %DW_TESTER_ACCT | US      | a@example.com | dft,ok,personal,bona |'
-    . '\\| NEW.ZZB | Bea Two    | %DW_TEST_ACCT   | US      | b@example.com | dft,ok,personal,bona |"');
+    . '\\| id   | fullName   | dwolla          | country | email         | flags                |'
+    . '\\| .ZZA | Abe One    | %DW_TESTER_ACCT | US      | a@example.com | dft,ok,personal,bona |'
+    . '\\| .ZZB | Bea Two    | %DW_TEST_ACCT   | US      | b@example.com | dft,ok,personal,bona |"');
     And__('transactions: "DATA'
-    . '\\| xid      | created   | type       | amount | from      | to      | purpose | taking |'
-    . '\\| NEW.AAAB | %today-6m | %TX_SIGNUP |     10 | community | NEW.ZZA | signup  | 0      |"');
+    . '\\| xid | created   | type   | amount | from | to   | purpose | taking |'
+    . '\\|   1 | %today-6m | signup |     10 | ctty | .ZZA | signup  | 0      |"');
     And__('usd: "DATA'
-    . '\\| id        | usd   |'
-    . '\\| NEW.ZZA   | +AMT1 |"');
+    . '\\| id   | usd   |'
+    . '\\| .ZZA | +AMT1 |"');
     break;
 
 
@@ -62,18 +62,21 @@ class rwebRealUsd extends DrupalWebTestCase {
   // Scenario: A mixed rCredits/USD transaction happens
   public function testAMixedRCreditsUSDTransactionHappens_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" confirms form "pay" with values: "DATA'
+    When_('member ".ZZA" confirms form "pay" with values: "DATA'
     . '\\| op  | who     | amount | goods | purpose |'
     . '\\| pay | Bea Two | 10.20  | 1     | labor   |"');
     Then_('transactions: "DATA'
-    . '\\| xid      | type         | state    | amount | r    | from      | to      | purpose      | taking |'
-    . '\\| NEW:AAAC | %TX_TRANSFER | %TX_DONE |  10.20 |   10 | NEW.ZZA   | NEW.ZZB | labor        | 0      |'
-    . '\\| NEW:AAAD | %TX_REBATE   | %TX_DONE |    .50 |  .50 | community | NEW.ZZA | rebate on #2 | 0      |'
-    . '\\| NEW:AAAE | %TX_BONUS    | %TX_DONE |   1.00 | 1.00 | community | NEW.ZZB | bonus on #1  | 0      |"');
+    . '\\| xid | type     | state | amount | r    | from | to   | purpose      | taking |'
+    . '\\|   2 | transfer | done  |  10.20 |   10 | .ZZA | .ZZB | labor        | 0      |'
+    . '\\|   3 | rebate   | done  |    .50 |  .50 | ctty | .ZZA | rebate on #2 | 0      |'
+    . '\\|   4 | bonus    | done  |   1.00 | 1.00 | ctty | .ZZB | bonus on #1  | 0      |"');
+    And__('usd transfers: "DATA'
+    . '\\| payer | payee | amount |'
+    . '\\| .ZZA  |  .ZZB |   0.20 |"');
     And__('balances: "DATA'
-    . '\\| id        | r    | usd      | rewards |'
-    . '\\| NEW.ZZA   | 0.50 | AMT1-.20 |   10.50 |"');
-    When_('member "NEW.ZZA" visits page "transactions/period=365"');
+    . '\\| id   | r    | usd      | rewards |'
+    . '\\| .ZZA | 0.50 | AMT1-.20 |   10.50 |"');
+    When_('member ".ZZA" visits page "transactions/period=365"');
     Then_('we show "Transaction History" with: "DATA'
     . '\\| Start Date | End Date | Start Balance | To You | From You | Rewards | End Balance |'
     . '\\| %dmy-12m   | %dmy     | $0.00         | 0.00   |    10.20 |   10.50 |       $0.30 |'
@@ -87,17 +90,35 @@ class rwebRealUsd extends DrupalWebTestCase {
   public function testAMemberConfirmsPaymentWithInsufficientUSDBalance_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('usd: "DATA'
-    . '\\| id        | usd       |'
-    . '\\| NEW.ZZA   | +AMT1+100 |"');
-    When_('member "NEW.ZZA" confirms form "pay" with values: "DATA'
+    . '\\| id   | usd       |'
+    . '\\| .ZZA | +AMT1+100 |"');
+    When_('member ".ZZA" confirms form "pay" with values: "DATA'
     . '\\| op  | who     | amount     | goods | purpose |'
     . '\\| pay | Bea Two | AMT1+10.01 | 1     | labor   |"');
     Then_('we say "error": "short to" with subs: "DATA'
     . '\\| short |'
     . '\\| $0.01 |"');
     And__('balances: "DATA'
-    . '\\| id        | r  | usd  | rewards |'
-    . '\\| NEW.ZZA   | 10 | AMT1 |      10 |"');
+    . '\\| id   | r  | usd  | rewards |'
+    . '\\| .ZZA | 10 | AMT1 |      10 |"');
+  }
+
+  // Scenario: A member buys something when Dwolla is down
+  public function testAMemberBuysSomethingWhenDwollaIsDown_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('Dwolla is down');
+    When_('member ".ZZA" confirms form "pay" with values: "DATA'
+    . '\\| op  | who     | amount | goods | purpose |'
+    . '\\| pay | Bea Two | 10.20  | 1     | labor   |"');
+    Then_('transactions: "DATA'
+    . '\\| xid | type     | state | amount | r    | from | to   | purpose      | taking | usdXid |'
+    . '\\|   2 | transfer | done  |  10.20 |   10 | .ZZA | .ZZB | labor        | 0      |     -1 |'
+    . '\\|   3 | rebate   | done  |    .50 |  .50 | ctty | .ZZA | rebate on #2 | 0      |        |'
+    . '\\|   4 | bonus    | done  |   1.00 | 1.00 | ctty | .ZZB | bonus on #1  | 0      |        |"');
+    And__('balances: "DATA'
+    . '\\| id   | r    | usd      | rewards |'
+    . '\\| .ZZA | 0.50 | AMT1-.20 |   10.50 |"');
+    And__('usd transfer count is 0');
   }
 
 }

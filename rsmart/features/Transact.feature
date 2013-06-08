@@ -18,15 +18,15 @@ Setup:
   | NEW.ZZC | codeC |
   And relations:
   | id      | main    | agent   | permission        |
-  | NEW:ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |
-  | NEW:ZZB | NEW.ZZB | NEW.ZZA | read transactions |
-  | NEW:ZZC | NEW.ZZC | NEW.ZZB | buy and sell      |
-  | NEW:ZZD | NEW.ZZC | NEW.ZZA | sell              |
+  | NEW.ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |
+  | NEW.ZZB | NEW.ZZB | NEW.ZZA | read transactions |
+  | NEW.ZZC | NEW.ZZC | NEW.ZZB | buy and sell      |
+  | NEW.ZZD | NEW.ZZC | NEW.ZZA | sell              |
   And transactions: 
   | xid      | created   | type       | amount | from      | to      | purpose | taking |
-  | NEW:AAAB | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |
-  | NEW:AAAC | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZB | signup  | 0      |
-  | NEW:AAAD | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZC | signup  | 0      |
+  | NEW.AAAB | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |
+  | NEW.AAAC | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZB | signup  | 0      |
+  | NEW.AAAD | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZC | signup  | 0      |
   Then balances:
   | id        | balance |
   | community |    -750 |
@@ -37,14 +37,14 @@ Setup:
 Variants: with/without an agent
   | "NEW.ZZA" asks device "codeA" | "NEW.ZZC" asks device "codeC" | "NEW.ZZA" $ | "NEW.ZZC" $ | # member to member (pro se) |
   | "NEW.ZZB" asks device "codeA" | "NEW.ZZB" asks device "codeC" | "NEW.ZZA" $ | "NEW.ZZC" $ | # agent to member           |
-  | "NEW.ZZA" asks device "codeA" | "NEW.ZZC" asks device "codeC" | "NEW:ZZA" $ | "NEW:ZZC" $ | # member to agent           |
-  | "NEW.ZZB" asks device "codeA" | "NEW.ZZB" asks device "codeC" | "NEW:ZZA" $ | "NEW:ZZC" $ | # agent to agent            |
+  | "NEW.ZZA" asks device "codeA" | "NEW.ZZC" asks device "codeC" | "NEW.ZZA" $ | "NEW.ZZC" $ | # member to agent           |
+  | "NEW.ZZB" asks device "codeA" | "NEW.ZZB" asks device "codeC" | "NEW.ZZA" $ | "NEW.ZZC" $ | # agent to agent            |
 
 Scenario: A member asks to charge another member
   When member " NEW.ZZA" asks device "codeA" to do this: "charge" "NEW.ZZC" $100 ("goods": "labor")
   # cash exchange would be ("cash": "")
   #no variant on first member because showing balance requires B_MANAGE
-  Then we respond success 1 tx_id "NEW:AAAE" my_balance "$250" other_balance "" and message "report invoice" with subs:
+  Then we respond success 1 tx_id "NEW.AAAE" my_balance "$250" other_balance "" and message "report invoice" with subs:
   | action  | otherName | amount | tid |
   | charged | Corner Pub | $100   | 2   |
   # "You charged Corner Pub $100 (bonus: $10). Your balance is unchanged, pending payment. Invoice #2"
@@ -60,7 +60,7 @@ Scenario: A member asks to charge another member
 Scenario: A member asks to pay another member
   When member " NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $100 ("goods": "groceries")
   #no variant on first member because showing balance requires B_MANAGE
-  Then we respond success 1 tx_id "NEW:AAAE" my_balance "$155" other_balance "" and message "report transaction" with subs:
+  Then we respond success 1 tx_id "NEW.AAAE" my_balance "$155" other_balance "" and message "report transaction" with subs:
   | action | otherName | amount | rewardType | rewardAmount | balance | tid |
   | paid   | Corner Pub | $100   | rebate      | $5            | $155    | 2   |
   # "You paid Corner Pub $100 (rebate: $5). Your new balance is $155. Transaction #2"
@@ -92,7 +92,7 @@ Scenario: A member asks to charge another member unilaterally
   Given member "NEW.ZZC" can charge unilaterally
   When member " NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $100 ("goods": "groceries")
   #no variant on first member because showing balance requires B_MANAGE
-  Then we respond success 1 tx_id "NEW:AAAE" my_balance "$360" other_balance "$155" and message "report transaction" with subs:
+  Then we respond success 1 tx_id "NEW.AAAE" my_balance "$360" other_balance "$155" and message "report transaction" with subs:
   | action  | otherName | amount | rewardType | rewardAmount | balance | tid |
   | charged | Abe One    | $100   | bonus       | $10           | $360    | 2   |
   # "You charged Corner Pub $100 (bonus: $10). Your new balance is $360. Transaction #2"
@@ -109,7 +109,7 @@ Scenario: A member asks to charge another member unilaterally, with insufficient
   Given member "NEW.ZZC" can charge unilaterally
   When member " NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $300 ("goods": "groceries")
   #no variant on first member because showing balance requires B_MANAGE
-  Then we respond success 1 tx_id "NEW:AAAE" my_balance "$525" other_balance "$12.50" and message "report short invoice" with subs:
+  Then we respond success 1 tx_id "NEW.AAAE" my_balance "$525" other_balance "$12.50" and message "report short invoice" with subs:
   | action  | otherName | amount | short | balance | tid | t2id |
   | charged | Abe One   | $250   | $50   | $525    | 2   | 3    |
   # "SPLIT TRANSACTION! You paid Corner Pub $250 (rebate: $12.50). You will need to use US Dollars for the remaining $50. Your new balance is $12.50. Transaction #2"
@@ -122,7 +122,7 @@ Scenario: A member asks to charge another member unilaterally, with insufficient
 Scenario: A member asks to pay another member, with insufficient balance
   When member " NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $300 ("goods": "groceries")
   #no variant on first member because showing balance requires B_MANAGE
-  Then we respond success 1 tx_id "NEW:AAAE" my_balance "$12.50" other_balance "" and message "report short payment" with subs:
+  Then we respond success 1 tx_id "NEW.AAAE" my_balance "$12.50" other_balance "" and message "report short payment" with subs:
   | action | otherName | amount | short | balance | tid |
   | paid   | Corner Pub | $250   | $50   | $12.50  | 2   |
   # "SPLIT TRANSACTION! You paid Corner Pub $250 (rebate: $12.50). You will need to use US Dollars for the remaining $50. Your new balance is $12.50. Transaction #2"

@@ -13,10 +13,10 @@ Setup:
   | .ZZC | Corner Pub | POB 3   | Ctown | Cher   |            | France  | c@example.com | dft,ok,company,bona  |
   And relations:
   | id      | main    | agent   | permission |
-  | NEW:ZZA | NEW.ZZA | NEW.ZZB | buy        |
-  | NEW:ZZB | NEW.ZZB | NEW.ZZA | read       |
-  | NEW:ZZC | NEW.ZZC | NEW.ZZB | buy        |
-  | NEW:ZZD | NEW.ZZC | NEW.ZZA | sell       |
+  | NEW.ZZA | NEW.ZZA | NEW.ZZB | buy        |
+  | NEW.ZZB | NEW.ZZB | NEW.ZZA | read       |
+  | NEW.ZZC | NEW.ZZC | NEW.ZZB | buy        |
+  | NEW.ZZD | NEW.ZZC | NEW.ZZA | sell       |
   And transactions: 
   | xid      | created   | type       | amount | from      | to      | purpose | taking |
   | NEW.AAAB | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |
@@ -37,7 +37,7 @@ Setup:
 
 # (rightly fails, so do this in a separate feature) Variants: with/without an agent
 #  | "NEW.ZZA" | # member to member (pro se) |
-#  | "NEW:ZZA" | # agent to member           |
+#  | "NEW.ZZA" | # agent to member           |
 
 Scenario: A member asks to charge another member
   When member "NEW.ZZA" completes form "charge" with values:

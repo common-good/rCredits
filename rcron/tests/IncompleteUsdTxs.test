@@ -71,9 +71,12 @@ class rcronIncompleteUsdTxs extends DrupalWebTestCase {
   // Scenario: a Dwolla outage leaves a transaction incomplete
   public function testADwollaOutageLeavesATransactionIncomplete_0() {
     $this->setUp2(__FUNCTION__, 0);
+    Given('usd: "DATA'
+    . '\\| id   | usd   |'
+    . '\\| .ZZA | +AMT2 |"');
     When_('cron runs "usdTxsHere"');
     Then_('incomplete transaction count 0');
-    And__('bank transfers: "DATA'
+    And__('usd transfers: "DATA'
     . '\\| payer | payee | amount |'
     . '\\| .ZZA  |  .ZZB |      2 |"');
     And__('balances: "DATA'

@@ -14,9 +14,9 @@ Setup:
   | .ZZE | Ezra Five  | e@example.com |    0 |     200 |      -1 | dft,personal,member          |
   And relations:
   | id      | main | agent | employerOk | permission | amount |
-  | NEW:ZZA | .ZZC | .ZZA  |          1 | sell       |   1800 |
-  | NEW:ZZB | .ZZC | .ZZB  |          0 |            |    200 |
-  | NEW:ZZE | .ZZC | .ZZE  |          1 |            |   2000 |
+  | NEW.ZZA | .ZZC | .ZZA  |          1 | sell       |   1800 |
+  | NEW.ZZB | .ZZC | .ZZB  |          0 |            |    200 |
+  | NEW.ZZE | .ZZC | .ZZE  |          1 |            |   2000 |
 # 90/10 split (E is not an rTrader, so doesn't count in the split)
   
 Scenario: a member company pays suppliers virtually

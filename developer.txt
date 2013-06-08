@@ -22,7 +22,9 @@ BEFORE MINI LAUNCH:
 
 To do: (* = before launch ** = earlier)
 
-- option to never convert r to us (eg for war tax refusers). rCredits cannot be seized except by the CGC.
+- add a login field to relations and record last login time of agent/company pair
+- return error from u\httpRequest() (instead of u\EXPECT), throw hiddenData error in acct::offsiteData(). Catch it on Summary screen at least (display gentle Warning message).
+- option to never convert r to us. rCredits can then be seized only by the CGC. No. this is still problematic because it invites abuse and might pit the community against the individual or against the larger society.
 - include address in "new payment" digest notices to nonprofits OR just CGF (warn on pay screen if the former)
 - add correction of min<floor to recache test
 - give user a chance to name the machine (or change the name), saved in a cookie and in each tx (box)
@@ -41,7 +43,6 @@ To do: (* = before launch ** = earlier)
 - * don't allow clicking on links in emails (send to new.rcredits_org.com/whatever, which looks like rcredits.org but scolds the user for clicking on an email link, then offers a link to the real site (don't accept that one either). Exception: links that do not require sign-in (for example, suggested account changes and merchant charges -- merchant creates invoice. no shipping until you accept it -- like paypal).
 - test cron call to r\suggest (should just notify, for now)
 - settle where email links go and what they do
-- use can() consistently, but have it do hasBit (for efficiency) when possible (bit < B_MAX)
 - for admin, put initial gift and share% on member's Summary page (attached to addr)
 - * membership tests: New Pass, Photo, Agreement, Contribute, Proxies, Usd, proof of ID, Options
 - create region records as needed, when a new member is outside NEW. Handle region totals in r\total()

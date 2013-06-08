@@ -11,8 +11,8 @@ Setup:
   | .ZZC | Corner Pub | c@example.com | dft,ok,company,bona  |
   And relations:
   | id      | main | agent | permission | draw |
-  | NEW:ZZA | .ZZC | .ZZA  | manage     |    1 |
-  | NEW:ZZB | .ZZC | .ZZB  | sell       |    0 |
+  | NEW.ZZA | .ZZC | .ZZA  | manage     |    1 |
+  | NEW.ZZB | .ZZC | .ZZB  | sell       |    0 |
   And balances:
   | id   | usd  | r   | rewards |
   | .ZZA |    0 |  20 |      20 |
