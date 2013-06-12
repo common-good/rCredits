@@ -14,7 +14,6 @@ Notes for developers
 ***
 
 BEFORE MINI LAUNCH:
-- employee card no password (double card code?)
 - automatic (suggested) ops
 - warn nubes about how long signup will take, including waiting for Dwolla, for the bank, for CGF,...
 - pilot test, including formI
@@ -22,12 +21,14 @@ BEFORE MINI LAUNCH:
 
 To do: (* = before launch ** = earlier)
 
+- formI tests
+- open another account when managing a company: open for other employees
+- order a sign-in card: option to print or get a plastic version
+- give user a chance to name the machine (or change the name), saved in a cookie and in each tx (box)
+- include address in "new payment" digest notices to nonprofits OR just CGF (warn on pay screen if the former)
 - add a login field to relations and record last login time of agent/company pair
 - return error from u\httpRequest() (instead of u\EXPECT), throw hiddenData error in acct::offsiteData(). Catch it on Summary screen at least (display gentle Warning message).
 - option to never convert r to us. rCredits can then be seized only by the CGC. No. this is still problematic because it invites abuse and might pit the community against the individual or against the larger society.
-- include address in "new payment" digest notices to nonprofits OR just CGF (warn on pay screen if the former)
-- add correction of min<floor to recache test
-- give user a chance to name the machine (or change the name), saved in a cookie and in each tx (box)
 - reduce picture size and make thumbnails (for upper right corner)
 - account checks: auto-deposit or minimum>0 but not connected to checking account yet: notice to user
 - block repeated 404s

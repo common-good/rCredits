@@ -150,6 +150,10 @@ EOF
   'download always both' => t('Note: Downloads always include both rCredits and USD amounts.'),
   'signin to scan' => t('You must sign in BEFORE scanning a card.'),
   'change min first' => t('That request would leave you with less than your minimum balance. <@a1>Lower your minimum</a> first.'),
+  'bad member id' => t('That is not a valid member ID!'),
+  'bad card' => t('That is not a valid member ID.'),
+  'bad card code' => t('This rCard is not valid.'),
+  'sign in' => t('You must sign in before scanning someone else\'s rCredits QR code.'),
 );
 
 /**
@@ -1217,7 +1221,7 @@ function formAccount_validate($form, &$sta) {
   // Drupal checks that pass1 == pass2
   if ($pass and !$strong) return say('weak pass', 'pass');
   if (!emailOkay($sta['values']['mail'] = $mail = trim($mail), $mya->id)) return say('bad email', 'mail');
-  if (!passwordOkay($mya, $pass)) return FALSE;
+  if (!passwordOkay($mya, $current_pass)) return FALSE;
 }
 
 function formAccount_submit($form, &$sta) {
@@ -1443,12 +1447,13 @@ function formAdmin_submit($form, &$sta) {
   if ($op == 'printId') {
     $qid = $acct->qid();
     $agent = $acct->agent;
-    $field = strpos($qid, '=') ? 'cardCode2' : 'cardCode';
-    if (!$code = $agent->secure[$field]) {
-      u\EXPECT($field == 'cardCode2', 'missing cardCode'); // only cardCode2 gets created here
-      $secure = $agent->secure;
+    $field = strpos($qid, R_AGENT_MARK) ? 'cardCode2' : 'cardCode';
+    $secure = $agent->secure;
+    if ($field == 'cardCode2') if (isDEV or !($code = @$secure[$field]) or strlen($code) > R_CARDCODE_LEN) { // DEBUG
+      if (!isDEV) u\EXPECT($field == 'cardCode2', 'missing cardCode'); // only cardCode2 gets created here
       $code = $$field = u\randomString(R_CARDCODE_LEN, 'word'); // create an rCard security code
-      $secure += compact($field); // add an rcard code for this agent's relationships
+      //$secure += compact($field); // add an rcard code for this agent's relationships
+      $secure = compact($field) + $secure;
       $agent->update(compact('secure')); // resave the secure fields
     }
     return r\go('print-rcard/' . $qid);
@@ -3056,15 +3061,17 @@ function formCompany_submit($form, &$sta) {
  *   Charging / Paying with Webcam (signed in) -- show pic and name, and ask whether to charge or pay
  * @param string $who: some account's short qid (without the R_SERVER_ID prefix) REVERSED, followed by bin2hex of a R_CARDCODE_LEN-long rCard security code that must match the one stored in the secure field of the account record.
  */
-function formI($form, &$sta, $who) {
-  if (!strpos($who, '-')) return r\go('');
-  list ($who, $code) = explode('-', $who);
-  if (!$acct = r\acct($who)) return hack('i code'); // not a real code -- just go to home page
-  $field = strpos($who, '=') ? 'cardCode2' : 'cardCode';
+function formI($form, &$sta, $who = '') {
+  $parts = preg_split('/(' . R_MARKS . ')/', $who, 0, PREG_SPLIT_DELIM_CAPTURE);
+  if (count($parts) < 5) return say('bad member id', 'zot'); // not an ID QR
+  list ($region, $mark, $who, $zot, $code) = $parts;
+  $who = $region . str_replace(R_AGENT_URL_MARK, R_AGENT_MARK, $mark) . $who;
+  if (!$acct = r\acct($who)) return say('bad card', 'zot'); // not a real code -- just go to home page
+  $field = strpos($who, R_AGENT_MARK) ? 'cardCode2' : 'cardCode';
 
   $mya = r\acct();
   if ($code != 'zot')
-  if ($acct->agent->secure[$field] != $code and !($mya and $mya->can(B_ADMIN))) return hack('i code2');
+  if ($acct->agent->secure[$field] != $code and !($mya and $mya->can(B_ADMIN))) return say('bad card code', 'zot');
   list ($otherId, $otherAgent) = array($acct->id, $acct->agentId);
 
   if (!$mya and !$acct->proSe()) { // not signed in, company agent scanning in
@@ -3116,7 +3123,7 @@ function formI($form, &$sta, $who) {
 
 function hack($message, $info = array()) {
   u\loga('hack', $_SERVER, $message);
-  return r\go('/user/logout');
+  return r\go(r\acct() ? '/user/logout' : '');
 }
 
 function changeAccount($quid = '') {
@@ -3296,11 +3303,7 @@ function memberID($quid = '', $big = FALSE) {
   require_once(__DIR__ . "/../../tcpdf/tcpdf.php");
   define('PHOTO_MAX', 90); // maximum height and width of photo
 
-  $mya = r\acct();
-  $acct = strpos($quid, '=') ? r\acct($quid)
-    : ($quid ? r\acct($mya->id, $quid) 
-    : (($mya->can(B_CTTY_ADMIN) and $mya->can(B_MANAGE)) ? r\acct($mya->id) : $mya));
-  if (!$acct) return 'No such account. Your hack attempt has been logged.';
+  if (!$acct = r\acct(strtoupper($quid))) return 'No such account.';
   
   $fullName = $acct->fullName;
   $regionName = r\acct($acct->community)->fullName;
@@ -3310,14 +3313,14 @@ function memberID($quid = '', $big = FALSE) {
     $acct = $acct->agent; // hereafter it's all about the agent
     $fullName = "$acct->fullName<br>$fullName"; // agent and company
     $nameSize = '72px';
-//    $qid = str_replace(':', '=', $qid); // "=" to avoid GoDaddy's 'Bad Request' death redirecting RC2.ME with a ":" qid
-    $cardField = 'cardCode2';
+    list ($cardField, $lower, $role) = array('cardCode2', 5, 'Agent');
   } else {
     $nameSize = strlen($fullName) > 22 ? '100px' : '120px';
-    $cardfield = 'cardCode';
+    list ($cardField, $lower, $role) = array('cardCode', 0, 'Member');
   }
+  $mark = constant(strtoupper("R_{$role}_MARK"));
   $qrServer = 'http://' . R_SERVER_ID . '.rC2.me/I/';
-  $qrUrl = $qrServer . $qid . '-' . $acct->secure[$cardField];
+  $qrUrl = strtoupper($qrServer . str_replace(R_AGENT_MARK, R_AGENT_URL_MARK, $qid . $mark)) . $acct->secure[$cardField];
   $photo = DRUPAL_ROOT . $acct->auxFilename('picture');
 
   $info = @getimagesize($photo);
@@ -3342,11 +3345,16 @@ function memberID($quid = '', $big = FALSE) {
   if ($proSe) {
     $pdf->Image(__DIR__ . '/../images/idcard/background.jpg', 0, 0, 202, 128, '', '', '', true, 150, '', false, false, 0, false, false, false); // white background for company cards
   } else $pdf->Image(__DIR__ . '/../images/idcard/rlogo.png', 162, 40.5, 28, 42, '', '', '', true, 150, '', false, false, 0, false, false, false);
-  $pdf->Image($photo, 0, 0, $photoW, $photoH, '', './account', '', true, 300, '', false, false, 1, false, false, false);
-  $pdf->write2DBarcode($qrUrl, 'QRCODE,Q', 96, 40, 50, 50, $style, 'N'); // L,M,Q,H are low-high error-correction
+  
+  $pdf->SetLineStyle(array('width' => 0.5, 'cap' => 'butt', 'join' => 'miter', 'dash' => 0, 'color' => array(0, 0, 0)));
+  if ($proSe) $pdf->RoundedRect(91, 30, 60, 60, 3.50, '1111', 'DF', NULL, array(255, 255, 255)); // x, y, w, h, ?, fill?
 
-  $html = strtr('<span style="font-size:44px;">Member<br><span style="font-size:76px; color:darkred;">@CODE</span><br>@REGION</span>', array('@CODE' => $qid, '@REGION' => $regionName));
-  $pdf->writeHTMLCell(100, 30, 94, 10, $html); // w, h, x, y
+  
+  $pdf->Image($photo, 0, 0, $photoW, $photoH, '', './account', '', true, 300, '', false, false, 1, false, false, false);
+  $pdf->write2DBarcode($qrUrl, 'QRCODE,Q', 96, 35 + $lower, 50, 50, $style, 'N'); // L,M,Q,H are low-high error-correction
+
+  $html = strtr('<span style="font-size:44px;">@ROLE<br><span style="font-size:76px; color:darkred; font-weight:bold;">@CODE</span><br>@REGION</span>', array('@ROLE' => $role, '@CODE' => $qid, '@REGION' => $regionName));
+  $pdf->writeHTMLCell(100, 30, 94, 3 + $lower, $html); // w, h, x, y
   $pdf->writeHTMLCell(40, 10, 160, 84.5, '<div style="font-size:44px;">rCredits.org</div>');
   $pdf->writeHTMLCell(182, 40, 10, 100, "<div style=\"font-size:$nameSize; text-align:center; color:midnightblue; font-weight:bold;\">$fullName</div>");
   /*
@@ -3374,7 +3382,7 @@ function identifiers($acct) {
   $mya = r\acct();
   list ($agent, $company) = $acct->proSe() ? array($acct, '') : array(r\acct($acct->agentId), $acct->fullName);
   $location = r\location($acct);
-  $pic = ($mya and $mya->can(B_CHARGE)) ? $acct->picture() : ''; // let qualified companies see the picture
+  $pic = ($mya and $mya->can(B_CHARGE)) ? $acct->agent->picture() : ''; // let qualified companies see the picture
   return <<<EOF
     $pic
     <div id="id-other">
@@ -3730,7 +3738,10 @@ EOF;
 function webAccess($accesses) {
   setupGlobals(); // remember who we are (the main reason for this function)
   if (!$mya = r\acct()) return FALSE;
-  foreach (u\ray($accesses) as $one) if (!$mya->can(constant('B_' . strtoupper($one)))) return FALSE;
+  foreach (u\ray($accesses) as $one) {
+//    debug("accesses=$accesses, can=". $mya->can(constant('B_' . strtoupper($one))));
+    if (!$mya->can(constant('B_' . strtoupper($one)))) return FALSE;
+  }
   return TRUE;
 }
 

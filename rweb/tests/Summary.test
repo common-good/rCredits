@@ -92,7 +92,7 @@ class rwebSummary extends DrupalWebTestCase {
   // Scenario: An agent clicks on the summary tab without permission to manage
   public function testAnAgentClicksOnTheSummaryTabWithoutPermissionToManage_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "=ZZA" visits page "summary"');
+    When_('member ":ZZA" visits page "summary"');
     Then_('we show "Account Summary" with: "DATA'
     . '\\| Name             | Account ID         |'
     . '\\| Abe One (abeone) | NEW.ZZA (personal) |"');

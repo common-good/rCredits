@@ -32,8 +32,8 @@ Scenario: A contribution can be completed
   | amount | rewardAmount |
   |    $10 |        $0.50 |
   And we tell staff "gift accepted" with subs:
-  | amount | often | myName  | rewardType |
-  |     10 |     1 | Abe One | rebate     |
+  | amount | often | rewardType | myName  |
+  |     10 |     1 | rebate     | Abe One |
   # and many other fields
 
 Scenario: A recurring contribution can be completed
@@ -54,6 +54,6 @@ Scenario: A recurring contribution can be completed
   | otherName | amount | payeePurpose |
   | Abe One   |    $10 | contribution |
   And we tell staff "gift accepted" with subs:
-  | amount | often | myName  | rewardType |
-  |     10 |     1 | Abe One | rebate     |
+  | amount | often | rewardType | myName  |
+  |     10 |     1 | rebate     | Abe One |
   # and many other fields

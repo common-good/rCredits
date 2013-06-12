@@ -168,6 +168,7 @@ function members($list) {return t\members($list);}
  *     Relations Setup MAKE
  *     Summary Setup MAKE
  *     Transactions Setup MAKE
+ *     Transactions AMemberLooksAtTotalAmountsInTransactionsForThePastYear MAKE
  *     Transactions TransactionsWithOtherStatesShowUpProperly MAKE
  *     TransactR Setup MAKE
  *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
@@ -300,7 +301,8 @@ function weShowWithSubs($page, $subs) {
  *     Summary AMemberClicksOnTheSummaryTab TEST
  *     Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage TEST
  *     Summary AForeignRTraderClicksOnTheSummaryTab TEST
- *     Transactions AMemberLooksAtTransactionsForThePastYear TEST
+ *     Transactions AMemberLooksAtRCreditsInTransactionsForThePastYear TEST
+ *     Transactions AMemberLooksAtTotalAmountsInTransactionsForThePastYear TEST
  *     Transactions AMemberLooksAtTransactionsForThePastFewDays TEST
  *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
  */
@@ -319,7 +321,8 @@ function weShowWith($title, $content = FALSE, $showDebugs = TRUE) {
  *     Relations MemberCompanyHasRelations TEST
  *     Relations ItsComplicated TEST
  *     Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage TEST
- *     Transactions AMemberLooksAtTransactionsForThePastYear TEST
+ *     Transactions AMemberLooksAtRCreditsInTransactionsForThePastYear TEST
+ *     Transactions AMemberLooksAtTotalAmountsInTransactionsForThePastYear TEST
  *     Transactions AMemberLooksAtTransactionsForThePastFewDays TEST
  *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
  */
@@ -441,7 +444,8 @@ function usd($list) {return t\usd($list);}
  *     Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage MAKE
  *     Summary AForeignRTraderClicksOnTheSummaryTab MAKE
  *     Summary MembersAccountIsNotActive MAKE
- *     Transactions AMemberLooksAtTransactionsForThePastYear MAKE
+ *     Transactions AMemberLooksAtRCreditsInTransactionsForThePastYear MAKE
+ *     Transactions AMemberLooksAtTotalAmountsInTransactionsForThePastYear MAKE
  *     Transactions AMemberLooksAtTransactionsForThePastFewDays MAKE
  *     Transactions TransactionsWithOtherStatesShowUpProperly MAKE
  */

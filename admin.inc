@@ -77,3 +77,15 @@ function changeIt($a) {
   $a->setBit(B_u15, FALSE);
   $a->setBit(B_u19, FALSE);
 }
+
+/*
+https://rcredits.org:2083/cpsess4564554376/frontend/x3/mail/addfwd.html
+
+<form method="post" name="fwdf" id="fwdf" action="doaddfwd.html">
+<input id="email" type="text" name="email" size="25" value="new" />
+<input name="domain" value="new.rcredits.org">
+<input name="fwdopt" id="fwd_radio" type="radio" value="fwd" checked="checked" />
+<input name="fwdemail" id="fwdemail"  type="text" size="40" value="new@rcredits.org" />
+<input class="input-button" type="submit" id="submit" value="Add Forwarder" />
+</form>
+*/

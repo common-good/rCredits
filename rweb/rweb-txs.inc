@@ -18,6 +18,8 @@ define('STATES_DONE', 0); // show just completed transactions
 define('STATES_PENDING', 1); // show just open invoices
 define('STATES_BOTH', 2); // show both completed and pending transactions
 
+define('CURRENCIES_R', 0);
+define('CURRENCIES_USD', 1);
 define('CURRENCIES_BOTH', 2); // show both rCredits (0) and USD (1)
 
 /**
@@ -216,6 +218,7 @@ function doRow($tx, $report, $csv, $classes, $agents, $channels, $currency, $url
     $net = number_format(($toMe ? $total : -$total) + $reward, 2);
     txNeatAmounts($amount, $reward, $is_reward);
     list ($toYou, $fromYou) = $toMe ? array($amount, R_NONE) : array(R_NONE, $amount);
+    if ($total + 0 == 0) $toYou = $fromYou = "<span class=\"virtual\">$r</span>"; // make virtual payments clear
     $button1 = (!$byMe and okableState($tx_state)) ? button('OK', "$url&do=ok", tx_action('ok', $tx_state, $toMe, $byMe)) : '';
     $button2 = ((!$is_reward or $mya->can(B_CTTY_ADMIN)) and !@$data['undoneBy']) ? button(' X ', "$url&do=no", tx_action('no', $tx_state, $toMe, $byMe)) : '';
     $button3 = ($mya->can($tx_taking ? B_SELL : B_BUY) and !$is_reward) ? "<a href='$url&do=edit' title='Edit Purpose'><img src='$rUrl/images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
@@ -224,7 +227,7 @@ function doRow($tx, $report, $csv, $classes, $agents, $channels, $currency, $url
   }
 
   if (@$agents) $row[] = ($agent == $myid or $agent < 0) ? R_NONE 
-  : ($csv ? r\quid($agent) : str_replace(R_SERVER_ID . '.', '.', r\quid($agent)));
+  : ($csv ? r\quid($agent) : str_replace(R_SERVER_ID . R_MEMBER_MARK, R_MEMBER_MARK, r\quid($agent)));
   // might optionally show both agents for reports someday
   if (@$channels) $row[] = $txChannels[$tx_channel];
 
@@ -249,6 +252,7 @@ function finishCsvRow($csv, $row, $tx, $amount, $r, $usd, $toMe, &$tot) {
   foreach (u\ray('date state r usd') as $key) $row[$key] = $$key; // don't compact()+$row (maintain order!)
   
   foreach ($row as $key => $value) $row[$key] = $value == R_NONE ? '' : strip_tags($value);
+  if ($row['fromyou'] == $row['toyou']) $row['fromyou'] = $row['toyou'] = 0; // don't report gross on virtual pay
 
   foreach (u\ray('fromyou toyou amount r usd reward net') as $key) {
     if (isset($row[$key])) $tot[$key] = ($tot[$key] ?: 0) + $row[$key];
@@ -433,17 +437,17 @@ function tx_summary($starting, $ending, $currency) {
   $ending = u\formatDate($ending);
   $summary_title = "<div id='txsum-title'>SUMMARY</div>";
   
-  $classes = u\prefixValues('txsum-', u\ray('one tosign toyou fromsign fromyou rewardssign rewards sharesign share balancesign balance'));
+  $classes = u\prefixValues('txsum-', u\ray('one tosign fromyou fromsign toyou rewardssign rewards sharesign share balancesign balance'));
   $rows = array(
     array('id' => 'txsum-dates', 'data' => u\ray("$starting,,,,,,,,,,$ending")),
-    array('id' => 'txsum-headers', 'data' => u\ray('Starting balance,,To You,,From You,,Rewards,,To CGF,,Ending balance')),
+    array('id' => 'txsum-headers', 'data' => u\ray('Starting balance,,From You,,To You,,Rewards,,To CGF,,Ending balance')),
     array(
       'id' => 'txsum-now', 
-      'data' => u\ray("$old | + | $in | - | $out | + | $rewards |  |  | = | $new"),
+      'data' => u\ray("$old | - | $out | + | $in | + | $rewards |  |  | = | $new"),
     ),
     array(
       'id' => 'txsum-pending',
-      'data' => u\ray("<b>PENDING:</b> | + | $p_inProper | - | $p_out | + | $p_rewards | - | $p_committed | = | $p_balance"),
+      'data' => u\ray("<b>PENDING:</b> | - | $p_out | + | $p_inProper | + | $p_rewards | - | $p_committed | = | $p_balance"),
     ),
   );
   $attributes = array('id' => 'txsum');

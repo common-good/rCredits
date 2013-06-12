@@ -94,7 +94,7 @@ Scenario: Member company has relations
   Given relations:
   | id   | main | agent | permission | amount | employerOk | employeeOk | isOwner |
   | .ZZA | .ZZC | .ZZA  | manage     |     10 | 1           | 1           | 1        |
-  When member "=ZZA" visits page "account/relations"
+  When member ":ZZA" visits page "account/relations"
   Then we show "Relations" with:
   | Person  | Amount | My employee? | Is owner? | Permission     | Request rCard |
   | Abe One | 10     | Yes          | Yes       | manage account | request rCard |
@@ -132,7 +132,7 @@ Scenario: It's complicated
   And we show "Relations" with:
   | Header  |
   | Family? |
-  When member "=ZZD" visits page "account/relations"
+  When member ":ZZD" visits page "account/relations"
   Then we show "Relations" with:
   | Person  | Amount | My employee? | Is owner? | Permission     | Request rCard      |
   | Abe One | 40     | Yes          | No        | manage account | --            |

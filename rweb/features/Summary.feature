@@ -44,7 +44,7 @@ Scenario: A member clicks on the summary tab
   | Abe One (abeone) | POB 1, Atown, AK 01000 | .ZZA (personal) | $166    | $256    | $-100 |
 
 Scenario: An agent clicks on the summary tab without permission to manage
-  When member "=ZZA" visits page "summary"
+  When member ":ZZA" visits page "summary"
   Then we show "Account Summary" with:
   | Name             | Account ID         |
   | Abe One (abeone) | NEW.ZZA (personal) |

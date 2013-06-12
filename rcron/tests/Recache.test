@@ -44,10 +44,10 @@ class rcronRecache extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id   | fullName   | dwolla          | email         | flags                | minimum |'
-    . '\\| .ZZA | Abe One    | %DW_TESTER_ACCT | a@example.com | dft,ok,personal,bona |       5 |'
-    . '\\| .ZZB | Bea Two    | %DW_TEST_ACCT   | b@example.com | dft,ok,personal      |     100 |'
-    . '\\| .ZZC | Corner Pub |                 | c@example.com | dft,ok,company       |     100 |"');
+    . '\\| id   | fullName   | dwolla          | email         | flags                |'
+    . '\\| .ZZA | Abe One    | %DW_TESTER_ACCT | a@example.com | dft,ok,personal,bona |'
+    . '\\| .ZZB | Bea Two    | %DW_TEST_ACCT   | b@example.com | dft,ok,personal      |'
+    . '\\| .ZZC | Corner Pub |                 | c@example.com | dft,ok,company       |"');
     And__('transactions: "DATA'
     . '\\| xid   | created   | type       | amount | from      | to   | purpose | taking |'
     . '\\| .AAAB | %today-6m | %TX_SIGNUP |     10 | community | .ZZA | signup  | 0      |"');
@@ -68,13 +68,31 @@ class rcronRecache extends DrupalWebTestCase {
   public function testBalancesGetOutOfWhack_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('balances: "DATA'
-    . '\\| id     | r | usd     | rewards |'
-    . '\\| .ZZA   | 0 | AMT1+99 |       0 |"');
+    . '\\| id     | r  | usd     | rewards | minimum | floor |'
+    . '\\| .ZZA   |  0 | AMT1+99 |       0 |       0 |     2 |'
+    . '\\| .ZZB   | 20 |       0 |       0 |     -10 |   -50 |"');
     When_('cron runs "recache"');
-    Then_('balances: "DATA'
+    Then_('we tell staff "cache mismatch" with subs: "DATA'
+    . '\\| id   | key     | is      | shouldBe |'
+    . '\\| .ZZA | r       |       0 |       10 |'
+    . '\\| .ZZA | rewards |       0 |       10 |'
+    . '\\| .ZZA | minimum |       0 |        2 |'
+    . '\\| .ZZB | r       |      20 |        0 |'
+    . '\\| .ZZB | minimum |     -10 |        0 |"');
+    And__('balances: "DATA'
     . '\\| id     | r  | usd  | rewards | minimum |'
-    . '\\| .ZZA   | 10 | AMT1 |      10 |       5 |'
-    . '\\| .ZZB   |  0 |    0 |       0 |     100 |"');
+    . '\\| .ZZA   | 10 | AMT1 |      10 |       2 |'
+    . '\\| .ZZB   |  0 |    0 |       0 |       0 |"');
+  }
+
+  // Scenario: Balances get a tiny bit out of whack
+  public function testBalancesGetATinyBitOutOfWhack_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "DATA'
+    . '\\| id     | r       |'
+    . '\\| .ZZA   | 10.0001 |"');
+    When_('cron runs "recache"');
+    Then_('we do not tell staff "cache mismatch"');
   }
 
 }

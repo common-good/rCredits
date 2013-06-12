@@ -76,6 +76,7 @@ function members($list) {return t\members($list);}
  *     Pilot All TEST
  *     Recache Setup TEST
  *     Recache BalancesGetOutOfWhack BOTH
+ *     Recache BalancesGetATinyBitOutOfWhack MAKE
  *     Totals Setup TEST
  *     VirtualPayments AMemberCompanyPaysSuppliersVirtually MAKE
  *     VirtualPayments AMemberCompanyPaysEmployeesVirtually MAKE
@@ -97,6 +98,7 @@ function balances($list) {return t\balances($list);}
  *     Notices AMemberGetsSomeNotices MAKE
  *     Pilot All MAKE
  *     Recache BalancesGetOutOfWhack MAKE
+ *     Recache BalancesGetATinyBitOutOfWhack MAKE
  *     Totals CronCalculatesTheTotals MAKE
  *     VirtualPayments AMemberCompanyPaysSuppliersVirtually MAKE
  *     VirtualPayments AMemberCompanyPaysEmployeesVirtually MAKE
@@ -185,6 +187,7 @@ function gifts($gifts) {return t\gifts($gifts);}
  *
  * in: Gifts AContributionCanBeCompleted TEST
  *     Gifts ARecurringContributionCanBeCompleted TEST
+ *     Recache BalancesGetOutOfWhack TEST
  */
 function weTellStaffWithSubs($topic, $subs) {return t\weTellStaff($topic, $subs);}
 
@@ -283,3 +286,21 @@ function uSDPaymentByMemberIsNotRecorded($id) {
   $id = t\uid($id);
   return r\dbQ('DELETE FROM r_usd WHERE payer=:id LIMIT 1', compact('id'));
 }
+
+/**
+ * we tell staff nothing
+ *
+ * in: 
+ */
+function weTellStaffNothing() {
+  global $testOnly; if (!$testOnly) return FALSE;
+  $info = '%"index":"tell-staff"%';
+  return !r\dbLookup('info', 'r_log', "info LIKE '$info' ORDER BY logid DESC");
+}
+
+/**
+ * we do not tell staff (ARG)
+ *
+ * in: Recache BalancesGetATinyBitOutOfWhack TEST
+ */
+function weDoNotTellStaff($topic) {return !t\weTellStaff($topic);}

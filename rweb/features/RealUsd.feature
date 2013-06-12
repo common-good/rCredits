@@ -41,9 +41,9 @@ Scenario: A mixed rCredits/USD transaction happens
   | .ZZA | 0.50 | AMT1-.20 |   10.50 |
   When member ".ZZA" visits page "transactions/period=365"
   Then we show "Transaction History" with:
-  | Start Date | End Date | Start Balance | To You | From You | Rewards | End Balance |
-  | %dmy-12m   | %dmy     | $0.00         | 0.00   |    10.20 |   10.50 |       $0.30 |
-  |            |          | PENDING       | 0.00   |     0.00 |    0.00 |     + $0.00 |
+  | Start Date | End Date | Start Balance | From You | To You | Rewards | End Balance |
+  | %dmy-12m   | %dmy     | $0.00         | 10.20    |   0.00 |   10.50 |       $0.30 |
+  |            |          | PENDING       | 0.00     |   0.00 |    0.00 |     + $0.00 |
   And we show "Transaction History" with:
   | tid | Date | Name    | From you | To you | r%   | Status  | Buttons | Purpose | Rewards |
   | 2   | %dm  | Bea Two | 10.20    | --     | 98.0 | %chk    | X       | labor   |    0.50 |

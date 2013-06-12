@@ -51,12 +51,12 @@ Setup:
   | .ZZB |  279 |  2254.50 |     254 |
   | .ZZC |  323 |  3004.50 |     258 |
 
-Scenario: A member looks at transactions for the past year
-  When member ".ZZA" visits page "transactions/period=365&currency=0"
+Scenario: A member looks at rCredits in transactions for the past year
+  When member ".ZZA" visits page "transactions/period=365&currency=%CURRENCIES_R"
   Then we show "Transaction History" with:
-  | Start Date | End Date | Start Balance | To You | From You | Rewards | End Balance |
-  | %dmy-12m   | %dmy     | $0.00         | 30.00  | 120.00   | 256.00  | $166.00     |
-  |            |          | PENDING       | 200.00 | 200.00   | 15.00   | + $15.00    |
+  | Start Date | End Date | Start Balance | From You | To You | Rewards | End Balance |
+  | %dmy-12m   | %dmy     | $0.00         | 120.00   | 30.00  | 256.00  | $166.00     |
+  |            |          | PENDING       | 200.00   | 200.00 | 15.00   | + $15.00    |
   And we show "Transaction History" with:
   | tid | Date   | Name       | From you | To you | r%   | Status  | Buttons | Purpose | Rewards |
   | 10  | %dm-6d | Bea Two    | 0.00     | --     | 0.0  | %chk    | X       | cash V  | --      |
@@ -74,12 +74,41 @@ Scenario: A member looks at transactions for the past year
   | rebate  |
   | bonus   |
 
-Scenario: A member looks at transactions for the past few days
-  When member ".ZZA" visits page "transactions/period=15&currency=0"
+Scenario: A member looks at total amounts in transactions for the past year
+  Given transactions: 
+  | xid   | created   | type     | state   | amount | r   | from | to   | purpose | taking |
+  | .AAAW | %today-3d | transfer | done    |      0 | 100 | .ZZC | .ZZA | virtual | 0      |
+  # plus rebate and bonus transactions
+  When member ".ZZA" visits page "transactions/period=365"
+  #  (explicit:) When member ".ZZA" visits page "transactions/period=365&currency=%CURRENCIES_BOTH"
   Then we show "Transaction History" with:
-  | Start Date | End Date | Start Balance | To You | From You | Rewards | End Balance |
-  | %dmy-15d   | %dmy     | $242.00       | 0.00   | 80.00    | 4.00    | $166.00     |
-  |            |          | PENDING       | 200.00 | 200.00   | 15.00   | + $15.00    |
+  | Start Date | End Date | Start Balance | From You | To You | Rewards | End Balance |
+  | %dmy-12m   | %dmy     | $0.00         | 460.00   | 110.00 | 266.00  | - $84.00      |
+  |            |          | PENDING       | 200.00   | 200.00 | 15.00   | + $15.00    |
+  And we show "Transaction History" with:
+  | tid | Date   | Name       | From you | To you | r%   | Status  | Buttons | Purpose | Rewards |
+  | 11  | %dm-3d | Corner Pub | 100.00   | 100.00 | --   | %chk    | X       | virtual | 10.00   |
+  | 10  | %dm-6d | Bea Two    | 100.00   | --     | 0.0  | %chk    | X       | cash V  | --      |
+  | 9   | %dm-6d | Bea Two    | --       | 100.00 | 100  | pending | X       | cash U  | --      |
+  | 8   | %dm-6d | Bea Two    | 100.00   | --     | 100  | pending | X       | cash T  | --      |
+  | 7   | %dm-1w | Corner Pub | 120.00   | --     | 66.7 | %chk    | X       | this Q  | 4.00    |
+  | 6   | %dm-2w | Corner Pub | --       | 100.00 | 100  | ok?     | OK X    | labor M | 10.00   |
+  | 5   | %dm-3w | Bea Two    | 100.00   | --     | 100  | ok?     | OK X    | pie N   | 5.00    |
+  | 4   | %dm-3m | Bea Two    | 240.00   | --     | 16.7 | %chk    | X       | what G  | 2.00    |
+  | 3   | %dm-4m | Corner Pub | --       | 100.00 | 20.0 | %chk    | X       | usd F   | --      |
+  | 2   | %dm-5m | Bea Two    | --       | 10.00  | 100  | %chk    | X       | cash E  | --      |
+  | 1   | %dm-7m | %ctty      | --       | --     | 100  | %chk    |         | signup  | 250.00  |
+  And we show "Transaction History" without:
+  | Purpose |
+  | rebate  |
+  | bonus   |
+
+Scenario: A member looks at transactions for the past few days
+  When member ".ZZA" visits page "transactions/period=15&currency=%CURRENCIES_R"
+  Then we show "Transaction History" with:
+  | Start Date | End Date | Start Balance | From You | To You | Rewards | End Balance |
+  | %dmy-15d   | %dmy     | $242.00       | 80.00    | 0.00   | 4.00    | $166.00     |
+  |            |          | PENDING       | 200.00   | 200.00 | 15.00   | + $15.00    |
   And we show "Transaction History" with:
   | tid | Date   | Name       | From you | To you | Status  | Buttons | Purpose | Rewards |
   | 10  | %dm-6d | Bea Two    | 0.00     | --     | %chk    | X       | cash V  | --      |
@@ -115,7 +144,7 @@ Scenario: Transactions with other states show up properly
   | .ZZA |     190 |
   | .ZZB |     279 |
   | .ZZC |     311 |
-  When member ".ZZA" visits page "transactions/period=5&currency=0"
+  When member ".ZZA" visits page "transactions/period=5&currency=%CURRENCIES_R"
   Then we show "Transaction History" with:
   | tid | Date   | Name       | From you | To you | Status   | Buttons | Purpose | Rewards |
   | 15  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X       | cash CL | --      |
@@ -127,7 +156,7 @@ Scenario: Transactions with other states show up properly
   | never   |
   | rebate  |
   | bonus   |
-  When member ".ZZC" visits page "transactions/period=5&currency=0"
+  When member ".ZZC" visits page "transactions/period=5&currency=%CURRENCIES_R"
   Then we show "Transaction History" with:
   | tid | Date   | Name       | From you | To you | Status   | Buttons | Purpose | Rewards |
   | 10  | %dm-5d | Abe One    | 100.00   | --     | disputed | OK      | cash CL | --      |

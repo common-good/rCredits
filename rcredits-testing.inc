@@ -126,7 +126,7 @@ function makeTx($info, $testOnly = FALSE) {
   global $channel;
   extract($info);
 
-  if (@$xid and !is_numeric($xid)) $xid = u\a2n(substr(strpbrk($xid, '.='), 1));
+  if (@$xid and !is_numeric($xid)) $xid = u\a2n(substr(strpbrk($xid, R_MEMBER_MARK . R_AGENT_MARK), 1));
   u\setDft($type, TX_TRANSFER);
   u\setDft($state, TX_DONE);
   u\setDft($created, REQUEST_TIME);
@@ -288,7 +288,7 @@ function uid($id) {
  */
 function fullQid($q) {
   $c1 = substr($q, 0, 1);
-  return ($c1 == '.' or $c1 == '=') ? (R_SERVER_ID . $q) : $q;
+  return ($c1 == R_MEMBER_MARK or $c1 == R_AGENT_MARK) ? (R_SERVER_ID . $q) : $q;
 }
 
 function getErrors() {
@@ -328,20 +328,24 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
   return r\dbExists('r_log', "info=:info AND $crit", compact(u\ray('info type myid agent channel')));
 }
 
-function weTellStaff($topic, $subs) {
+function weTellStaff($topic, $subs = array()) {
   global $testOnly; if (!$testOnly) return FALSE;
-  $subs = @$subs[0] ?: array();
-  $index = 'tell-staff';
-  $subject = str_replace('{topic}', $topic, $GLOBALS['emailSubjects'][$index]);
-  $where = <<<EOF
-  info LIKE '%"index":"@index","email":"@R_ORG_EMAIL","subject":"@subject"%'
-  ORDER BY logid DESC
-EOF;
-  $where = u\tt($where, compact('index', 'subject'));
-  if (!$last = r\dbLookup('info', 'r_log', $where)) return FALSE;
-  foreach ($subs as $k => $value) if (strpos($last, $value) === FALSE) {
-    testOutput("missing $k=$value");
-    return FALSE;
+  if (!@$subs[0]) $subs[0] = array();
+  foreach ($subs as $one) {
+    $index = 'tell-staff';
+    $subject = str_replace('{topic}', $topic, $GLOBALS['emailSubjects'][$index]);
+    $find = '%"index":"@index","email":"@R_ORG_EMAIL","subject":"@subject"%';
+    if ($id = @$one['id']) {
+      $id = t\uid($id);
+      $find .= "(#$id)%";
+      unset($one['id']);
+    }
+    $find = u\tt($find, compact('index', 'subject'));
+    foreach ($one as $k => $value) $find .= "$value%";
+    if (!$last = r\dbLookup('info', 'r_log', "info LIKE '$find' ORDER BY logid DESC")) {
+      if (count($subs) > 1) testOutput("tell-staff can't find $find");
+      return FALSE;
+    }
   }
   return TRUE;
 }
@@ -413,7 +417,7 @@ function hitServer($op, $agent, $code = '', $account_id = '', $extra = array()) 
   if (!$account_id) unset($account_id); else $account_id = trim($account_id);
   if ($op != 'startup') { // startup RETURNS my_id rather than asking for it
     $agent = trim($agent);
-    if (strpos($agent, '=') or !@$code) {
+    if (strpos($agent, R_AGENT_MARK) or !@$code) {
       $my_id = $agent;
     } else {
       $acct = r\acct(r\dbLookup('owner', 'r_smarts', 'code=:code', compact('code')), $agent);
@@ -665,7 +669,7 @@ function strip($form) {
 
 function eq($a, $b) {
   $result = (is_numeric($a) and is_numeric($b)) ? 
-      (($a - $b) * ($a - $b) < .001)
+      (abs($a - $b) < .0001)
     : ($a == $b or (empty($a) and empty($b)));
   if (!$result) echo 'not equal: ' . print_r(compact('a','b'), 1); // keep for now
   if (!$result) testOutput("unequal: a=$a b=$b", 'error'); // keep for now
@@ -722,12 +726,17 @@ function clear($ch) {
   global $channel; 
   $channel = $ch;
   $cgfUid = \variable_get('cgf_uid');
-  $files = 'r_notices r_sms r_txs r_relations r_log r_invites r_companies r_gifts r_smarts r_proxies r_usd r_user_industries';
-
+  $tables = 'r_notices r_sms r_txs r_relations r_log r_invites r_companies r_gifts r_smarts r_proxies r_usd r_user_industries';
   global $sms_devel; $sms_devel = TRUE;
+
   r\dbQ('DELETE FROM users WHERE uid>:cgfUid OR (uid>1 AND uid<:cgfUid-1)', compact('cgfUid'));
-  foreach (u\ray($files) as $one) r\dbQ("TRUNCATE $one");
+  foreach (u\ray($tables) as $one) r\dbQ("TRUNCATE $one");
   r\dbQ('UPDATE users SET floor=0,minimum=NULL,r=0,usd=0,rewards=0,committed=0');
+
+  $files = glob(DRUPAL_ROOT . R_PICTURE_DIR . "/*"); // get all picture file names
+  foreach($files as $file){ // iterate files
+    if (is_numeric($basename = basename($file)) and $basename > $cgfUid) unlink($file);
+  }
 
   r\acct::_clear(); // empty the acct cache
   \drupal_static_reset(); // clear out drupal central storage
@@ -735,7 +744,7 @@ function clear($ch) {
 
 function fixPageArgs($page) {
   $special = array(
-    '(by|id)=([A-Z]{3}?[\.=][A-Z]{3})',
+    '(by|id)=([A-Z]{3}?' . R_MARKS . '[A-Z]{3})',
     '(flow)=(.*?)',
   );
   foreach ($special as $one) if (preg_match($pat = "`(/|&)$one(&|$)`", $page, $matches)) {

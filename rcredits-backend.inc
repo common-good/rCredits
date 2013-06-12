@@ -122,7 +122,7 @@ function myTransactions($starting, $ending, $id = NULL, $opts = array()) {
   if (!@$id) $id = $mya->id; elseif ($id == 'ctty') $id = $mya->community;
   $commonCriteria = 't.created>=:starting AND t.created<=:ending';
   if (!$bonuses) $commonCriteria .= ' AND t.type NOT IN (:TX_REBATE, :TX_BONUS)';
-  if (!$exchanges) $commonCriteria .= ' AND t.amount > 0';
+  if (!$exchanges) $commonCriteria .= " AND (t.amount > 0 OR data LIKE '%rebate%')";
   $commonCriteria .= ' ORDER BY t.xid DESC';
   $states = $dones ? array(TX_DONE, TX_DISPUTED) : array();
   if ($pendings) $states[] = TX_PENDING;

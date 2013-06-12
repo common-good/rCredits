@@ -161,7 +161,7 @@ class rwebRelations extends DrupalWebTestCase {
     Given('relations: "DATA'
     . '\\| id   | main | agent | permission | amount | employerOk | employeeOk | isOwner |'
     . '\\| .ZZA | .ZZC | .ZZA  | manage     |     10 | 1           | 1           | 1        |"');
-    When_('member "=ZZA" visits page "account/relations"');
+    When_('member ":ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
     . '\\| Person  | Amount | My employee? | Is owner? | Permission     | Request rCard |'
     . '\\| Abe One | 10     | Yes          | Yes       | manage account | request rCard |"');
@@ -202,7 +202,7 @@ class rwebRelations extends DrupalWebTestCase {
     And__('we show "Relations" with: "DATA'
     . '\\| Header  |'
     . '\\| Family? |"');
-    When_('member "=ZZD" visits page "account/relations"');
+    When_('member ":ZZD" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
     . '\\| Person  | Amount | My employee? | Is owner? | Permission     | Request rCard      |'
     . '\\| Abe One | 40     | Yes          | No        | manage account | --            |"');

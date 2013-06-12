@@ -78,8 +78,8 @@ class rcronGifts extends DrupalWebTestCase {
     . '\\| amount | rewardAmount |'
     . '\\|    $10 |        $0.50 |"');
     And__('we tell staff "gift accepted" with subs: "DATA'
-    . '\\| amount | often | myName  | rewardType |'
-    . '\\|     10 |     1 | Abe One | rebate     |"');
+    . '\\| amount | often | rewardType | myName  |'
+    . '\\|     10 |     1 | rebate     | Abe One |"');
   }
 
   // Scenario: A recurring contribution can be completed
@@ -102,8 +102,8 @@ class rcronGifts extends DrupalWebTestCase {
     . '\\| otherName | amount | payeePurpose |'
     . '\\| Abe One   |    $10 | contribution |"');
     And__('we tell staff "gift accepted" with subs: "DATA'
-    . '\\| amount | often | myName  | rewardType |'
-    . '\\|     10 |     1 | Abe One | rebate     |"');
+    . '\\| amount | often | rewardType | myName  |'
+    . '\\|     10 |     1 | rebate     | Abe One |"');
   }
 
 }

@@ -180,7 +180,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'balances' => t('Your rCredits balance available to spend is @toSpend. You can move up to @toCash to your bank account.'),
   
   // notices to staff
-  'corrupt minmax' => t('Min or Max for account @uid is corrupt: min=@minimum rewards=@rewards floor=@floor'),
+  'cache mismatch' => 'Cron cache mismatch: @key=@is (cache) <> @shouldBe (calc)',
   
 );
 

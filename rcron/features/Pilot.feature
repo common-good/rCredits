@@ -7,9 +7,9 @@ SO I will have confidence to continue using the rCredits system.
 # (2) Assuming that William lends Snow's $100 US directly through Dwolla (and adjust the caches accordingly) ?
 Setup:
   Then members:
-  | id   | fullName            | flags                      |
-  | .AAA | William Spademan    | dft,ok,personal,bona       |
-  | .AAB | Common Good Finance | dft,ok,company,charge,bona |
+  | id   | fullName            | flags                             |
+  | .AAA | William Spademan    | dft,member,ok,personal,bona,bank  |
+  | .AAB | Common Good Finance | dft,member,ok,company,charge,bona |
   Given members:
   | id   | fullName   | email | flags                         |
   | .AAF | John Eich  | f@ex  | dft,ok,personal               |

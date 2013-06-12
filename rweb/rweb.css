@@ -330,6 +330,7 @@ form.rweb  .form-no {color:red;}
 /* Transactions */
 #rcreditswebformtxs #edit-title,
 #rcreditswebformtxs #edit-subtext {margin-left:0;}
+#rcreditswebformtxs .virtual {color:LightSteelBlue; font-weight:normal;}
 
 /* #rcreditswebformtxs #edit-opts {max-width:248px;} /* force display in pairs */
 #rcreditswebformtxs .form-type-checkboxes {margin-bottom:0;}
@@ -562,11 +563,11 @@ html.js input.throbbing {background-position:right -2.4em;}
 
 /* form I */
 #rcreditswebformi .user-picture {float:left; max-width:48%; margin-left:0px; margin-top:0px;}
-#rcreditswebformi #id-other {float:left; clear:right; margin-bottom:1em; margin-left:10px;}
+#rcreditswebformi #id-other {float:left; margin-bottom:1em; margin-left:10px; width:50%;}
 #rcreditswebformi .form-item {float:left;}
 #rcreditswebformi .form-item input.form-submit {font-size:18px; padding:4px 2px; margin:0 0 0 10px; min-width:140px;}
 #rcreditswebformi #edit-all {max-width:100%; margin-left:0px;}
-#rcreditswebformi #edit-all .form-type-item {max-width:100%;}
+#rcreditswebformi #edit-all .form-type-item {width:50%; max-width:100%;}
 #rcreditswebformi #id-name {margin-top:2.5em; font-weight:bold; font-size:1.5em; color:darkgreen;}
 #rcreditswebformi #edit-identifiers {margin-bottom:0;}
 

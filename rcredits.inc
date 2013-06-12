@@ -50,7 +50,7 @@ define('R_MAX_DAILY_EXCHANGE', 1000); // per Common Good Finance policy and to a
 define('R_INVITE_DAYS', 7); // number of days to accept invitation to membership
 define('R_MINR_DEFAULT', 200); // suggested minimum amount to hold in rCredits
 //define('R_MAXR_DEFAULT', -1); // suggested maximum amount to hold in rCredits (-1 = no limit)
-define('R_CARDCODE_LEN', 20); // length of rCard security code (long to deter easy copying)
+define('R_CARDCODE_LEN', 11); // length of rCard security code (long to deter easy copying, max 11 for small QR)
 define('R_CARD_COST', 5); // cost to order a company or replacement rCard
 define('R_FREEZE_TIME', FALSE); // how long to freeze newly bought rCredits (was '2 weeks')
 define('R_DEFAULT_PURPOSE', 'rCredits/USD exchange'); // default transaction purpose
@@ -68,6 +68,10 @@ define('R_ACCT_REGION', '(-FLOOR((uid-1)/' . R_REGION_MAX . ')-1)'); // SQL regi
 define('R_CTTY_UID0', -R_REGION_MAX); // community uids are less than this (farther from zero)
 define('R_DW_LINK', 'http://refer.dwolla.com/a/clk/3bf8cy'); // (credits CGF for referral)
 define('R_SIGNIN_HOURS', 24); // window for signing in after registering or resetting password
+define('R_MEMBER_MARK', '.'); // divides region from specific identifier in member IDs
+define('R_AGENT_MARK', ':'); // divides region from specific identifier in relational IDs
+define('R_AGENT_URL_MARK', '-'); // use this as a substitute for R_AGENT_MARK in URLs (else domain forwarding fails)
+define('R_MARKS', '[\\' . R_MEMBER_MARK . '\\' . R_AGENT_MARK . '\\' . R_AGENT_URL_MARK . ']'); // any of those
 
 define('DW_TEST_ACCT', '8127139234'); // "reflector" account totally reimburses anything under $10
 define('DW_TESTER_ACCT', '8124486052');
@@ -136,7 +140,7 @@ define('B_MAX', 31); // maximum bit number
 //define('B_DFT', (1 << B_NOTIFY_EMAIL) | 0); // set what bits when creating a new account
 define('B_DFT', 0 | 0); // set what bits when creating a new account
 define('B_ADMINABLE', 'personal company member ctty_admin closed'); // for cttyAdmin to set
-define('B_LIST', 'member ready ok bona u4 person company u7 charge u9 virtu u11 payroll weekly monthly u15 sms electro secret u19 debt draws u22 u23 u24 u25 u26 u27 u28 cadmin admin closed');
+define('B_LIST', 'member ready ok bona bank person company u7 charge u9 virtu u11 payroll weekly monthly u15 sms electro secret u19 debt draws u22 u23 u24 u25 u26 u27 u28 cadmin admin closed');
 
 //define('R_EXCESS', 'IF(maximum<0, 0, GREATEST(0, r+usd-GREATEST(floor, maximum, minimum, rewards+committed)))'); // sql for excess in account (for redistribution or employee offloading -- NOT for company virtual payments)
 define('R_SHORTFALL', 'GREATEST(0, minimum-(r+usd))'); // sql for shortfall in account (to draw in)
@@ -801,12 +805,12 @@ function dbLookup($fieldName, $table, $where = '1', $subs = array()) {
  * Return a qid for the zid
  * @param $zid: a zid
  * @param string $regionId: the 3-character regional server ID (defaults to this server)
- * @param int $min_len: minimum length of the part of the qid after the "." or "="
+ * @param int $min_len: minimum length of the part of the qid after the R_MEMBER_MARK or R_AGENT_MARK
  * @return the qid, FALSE if wrong format
  */
 function qid($zid = '', $regionId = R_SERVER_ID, $min_len = 1) {
   if (!u\isZid($zid)) return FALSE;
-  return $regionId . ($zid < 0 ? ('=' . u\n2a(-$zid, -$min_len)) : ('.' . u\n2a($zid, -$min_len)));
+  return $regionId . ($zid < 0 ? (R_AGENT_MARK . u\n2a(-$zid, -$min_len)) : (R_MEMBER_MARK . u\n2a($zid, -$min_len)));
 }
 
 /**
@@ -825,9 +829,9 @@ function definiteName($uid) {
  */
 function unQid($qid) {
   if (!u\isQid($qid)) return FALSE;
-  list ($regionId, $type, $iid) = preg_split('/(\.\.?|=)/U', $qid, 0, PREG_SPLIT_DELIM_CAPTURE); // allow a horizontal colon
+  list ($regionId, $type, $iid) = preg_split('/(' . R_MARKS . ')/U', $qid, 0, PREG_SPLIT_DELIM_CAPTURE);
   $id = u\a2n($iid);
-  return array($type == '.' ? $id : -$id, serverUid($regionId));
+  return array($type == R_MEMBER_MARK ? $id : -$id, serverUid($regionId));
 }
   
 /**
@@ -844,10 +848,10 @@ function quid($uid, $agentId = '') {
   if (!$agentId or $agentId == $uid) { // proSe
     $region = -uidRegion($uid) - 1;
     $i = ($uid - 1) - $region * R_REGION_MAX; // -1 because uids are all bumped up by 1
-    return u\n2a($region, -3) . '.' . u\n2a($i, -3);
+    return u\n2a($region, -3) . R_MEMBER_MARK . u\n2a($i, -3);
   } else {
     $uid = relation('reid', $uid, $agentId); // compound quid
-    return R_SERVER_ID . '=' . u\n2a($uid, -3);
+    return R_SERVER_ID . R_AGENT_MARK . u\n2a($uid, -3);
   }
 }
 
@@ -856,14 +860,14 @@ function quid($uid, $agentId = '') {
  */
 function unQuid($quid) {
   if (!u\isQid($quid)) $quid = R_SERVER_ID . $quid; // if local, complete it
-  list ($region, $i) = explode('.', $quid);
+  list ($region, $i) = explode(R_MEMBER_MARK, $quid);
   return 1 + R_REGION_MAX * u\a2n($region) + u\a2n($i);
 }
 
 /**
  * Return a "local version" pro se quid without the region but with a leading dot.
  */
-function quid2($uid) {return strstr(quid($uid), '.');}
+function quid2($uid) {return strstr(quid($uid), R_MEMBER_MARK);}
 
 function qxid($xid, $regionId = R_SERVER_ID) {return qid($xid, $regionId = R_SERVER_ID, 4);} // Convert xid to qxid
 

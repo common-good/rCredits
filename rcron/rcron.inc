@@ -140,7 +140,7 @@ function usdTxHere($item) {
     r\dbUpdate('r_txs', compact('xid', 'usdXid'), 'xid');
     r\usd::commit();
 //  } else r\usd::rollback();
-  } else {debug($err); r\usd::rollback();}
+  } else r\usd::rollback();
 }
 
 /**
@@ -156,7 +156,7 @@ function usdTxsThereEND() {queueNextAfter('usdTxsThere');}
 
 function usdTxThere($item) {
   $uid = $item['uid'];
-  if (t\est() and $uid <= variable_get('cgf_uid')) return; // ignore real accounts in tests
+  if (t\est() and realId($uid)) return; // ignore real accounts in tests
 //  $cgf = variable_get('cgf_uid');
   $usAcct = new r\usd($acct = r\acct($uid));
 //  debug(compact('uid','cgf','item'));
@@ -183,7 +183,6 @@ function lostUsdTx($info) {
 }
 
 function bankFollowup($info) {
-  debug('bankFU'); return;
   extract(u\just('Id Amount ClearingDate Status', $info));
   list ($txid, $amount, $completed) = array($Id, $Amount, strtotime($ClearingDate));
   if ($Status == 'processed') r\dbUpdate('r_usd', compact(u\ray('txid amount completed')), 'txid');
@@ -201,27 +200,21 @@ function recache() {
 
 function recache1($item) {
   extract($item);
-
-  $info = be\creditInfo(compact('uid'));
-  foreach (u\just('r rewards', $item) as $key => $value) if ($value != $info->$key) {
-    r\tellStaff("Cron: Cache <> calc $key: $value <> " . $info->$key, array(), $uid);
-    $$key = $info->$key;
-  }
-
-  if ($minimum < $floor or $minimum < 0) {
-    r\tellStaff('corrupt minmax', $item);
-    $minimum = $floor;
-  }
-  
-  /*if ($maximum > 0 and $maximum < max($rewards, $minimum)) { // >0 required
-    r\tellStaff('corrupt minmax', $item);
-    $maximum = max($rewards, $minimum);
-  }*/
-
+  if (t\est() and realId($uid)) return; // ignore real accounts in tests
   $acct = r\acct($uid);
 
+  $info = be\creditInfo(compact('uid'));
+  foreach (u\just('r usd rewards minimum', $item) as $key => $is) {
+    $shouldBe = $key == 'usd' ? $acct->actualUsd()
+      : ($key == 'minimum' ? max(0, $floor, $minimum) 
+      : $info->$key);
+    if ($is != round($shouldBe, 2)) {
+      r\tellStaff('cache mismatch', compact(u\ray('key is shouldBe')), $uid);
+      $$key = round($shouldBe, 2);
+    }
+  }
+
   $DBTX = \db_transaction();
-  $usd = $acct->actualUsd();
   $acct->update(compact(array_keys($item)));
   r\membershipEvent($acct, 'bona', $usd > 0); // this works for testing too
   unset($DBTX);
@@ -505,3 +498,5 @@ function queueEach($op, $sql, $subs = array()) {
   $result = r\dbQ($sql, $subs);
   while ($row = $result->fetchAssoc()) queue($op, $row);
 }
+
+function realId($uid) {return ($uid <= variable_get('cgf_uid'));}

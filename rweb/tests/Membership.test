@@ -79,7 +79,7 @@ class rwebMembership extends DrupalWebTestCase {
   public function testACompanyAgentClicksOnTheMembershipLink_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('member ".ZZC" supplies "physical": "planet Earth"');
-    When_('member "=ZZA" visits page "membership"');
+    When_('member ":ZZA" visits page "membership"');
     Then_('we show "Congratulations on signing up" with: "DATA'
     . '\\| Step 1 | Step 2    | Step 3       | Step 4 | Step 5      |'
     . '\\| photo  | Agreement | contribution | Dwolla | Preferences |"');
