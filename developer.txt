@@ -21,6 +21,15 @@ BEFORE MINI LAUNCH:
 
 To do: (* = before launch ** = earlier)
 
+- add tells to formAdmin
+- virtual transactions should have option to be invisible (until Sunday or until 1st of month?) (but rewards still count)
+- so for now add virtual to viewing options on history page
+- scanning own card should fill in username on login form
+- scanning non-member card should complain immediately
+- scanning read-only company card should bring up history
+- read, sell or buy permission company card should allow history, but without current balance
+- clicking OK fails on trans history
+- trans history: default today on starting/ending and/or pass true defaults properly for period, currency, and states
 - formI tests
 - open another account when managing a company: open for other employees
 - order a sign-in card: option to print or get a plastic version
@@ -185,7 +194,7 @@ function eachAccount($queries, $ons, $where = 'TRUE', $subs = array()) {
 @todo: we also need some kind of confirmation on foreign transactions (from the other server)
 @todo: store city code (rather than city), with a code for "other" -- store other in data or r_other (same for country/state) MAYBE
 @todo: reporting for a community or server (a form that anyone can use)
-@todo: download transactions in standard formats
+@todo: download transactions in other standard formats
 @todo: Finish separating backend. Front end should have no registered users. This should maybe wait until after launch.
 @todo: use popups for some things
 @todo: make help divs draggable
@@ -208,20 +217,24 @@ A. Development environment
    If you use Notepad++ for PHP, Go to Settings/Style Configurator/Language, select php, add the following list to User Ext.:
       inc module test class install steps
    Also go to Settings/Preferences/Tab Settings and set the tab size to 2, replace with spaces
+ - TESTING:
+   . offline (isDEV): The only place to run the feature tests (sign in as admin, click on Handy, then Run Tests). Dwolla is active, but only the tester's dwolla account (DW_TESTER_ACCOUNT) will be used (and only for small amounts sent to Dwolla's "reflector" account). When Dwolla has a sandbox we will use it here.
+   . staging server (STAGING): copy production database to the staging server (for example ws.rcredits.org), then do something to see what will happen when it happens for real on the production server. Ideally, we should have (1) an API that allows a list of events to be automated and (2) a "what happened since xxx" report. Emails are disabled except to the organization and the tester. USD transactions are disabled completely (so no testing of real Dwolla transactions is possible here) -- when Dwolla has a sandbox we will use it here.
+   . production server (PRODUCTION): keep an eye on results, but don't mess with it
  
 B. Coding style and strategies:
-  - isDev (defined at the top of rcredits.inc) is TRUE only under Windows
+  - isDEV (defined at the top of rcredits.inc) is TRUE only under Windows
   - Mostly follow generally-accepted coding practices (For example, all of the Eclipse's defaults.)
   - Exceptions: 
     . Indent two spaces instead of one tab.
-    . A simple if then can go all on one line.
+    . A simple if-then can go all on one line.
     . A simple else can immediately follow the closing brace of the if part. For example: } else zot();
     . Simple, single-line functions can go all on one line, without a documentation header.
   - Use camelCase for all internal variables and function names.
   - Use lowercase-and-hyphens for filenames and URLs.
-  - Use lowercase_and_underscores for database fields, API paramaters, and other public/external identifiers.
+  - Use lowercase_and_underscores only where necessary to keep Drupal happy.
   - Keep the code as short as possible without losing clarity.
-  - In particular, avoid redundant code patterns by creating small, low-level functions.
+  - In particular, avoid redundant code patterns, by creating small, low-level functions.
   - Make the tools easy to use -- that is, allow variations in number and type of arguments if that is convenient for the caller.
   - Avoid high-level Drupal functions -- for example don't use Views, Fields, and complex modules. Eventually we expect to
     drop Drupal, so avoid unnecessary dependency and entanglement.
@@ -241,10 +254,11 @@ D. rCredits namespaces and how they are abbreviated in calling files:
    (u) rCredits/Utilities: helper functions that are not clearly specific to rCredits
    (be) rCredits/Backend: business logic functions called directly by the interfaces
         The separation of r from be is incomplete and muddy. We might wanna just use "r" for these backend functions
+   (db) rCredits/DB: planned new home for our lowest level database functions (dbLookup, etc.) NYI
  
 E. Database clues
    - All rCredits tables begin with "r_", except `offsite` and `users`, which we have added many fields to.
-   - users (accounts)
+   - users (we use this as a table of accounts, not of users)
      . Common Good Communities (CGCs) and regional servers have uid < 0.
          -1 to -17576: regional servers (the numeric version plus one of the region's 3-letter qid, negated)
            the software can treat any or all servers as virtual independent servers, 

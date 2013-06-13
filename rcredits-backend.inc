@@ -515,6 +515,7 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   if ($confirmed) { // notify other party by email about any confirmed transaction
     $notice = $taking ? ($preapproved ? 'new charge' : 'new invoice')
       : ($virtual ? 'new offer' : 'new payment');
+    if ($args['rewardAmount'] > 0) $notice .= '|reward';
     r\notify($uid, $notice, $args);
     $message = $goods ?
         ($preapproved ? ($virtual ? 'offer' : 'transaction') : 'invoice')

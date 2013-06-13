@@ -213,7 +213,7 @@ $GLOBALS['txTypes'] = array(
 define('TX_DEFAULT_PERIOD', 30); // number of days to show in transaction history, by default
 
 $GLOBALS['emailSubjects'] = array(
-  'new-payment' => t('rCredits PAYMENT from {otherName}'),
+/*  'new-payment' => t('rCredits PAYMENT from {otherName}'),
   'new-charge' => t('rCredits CHARGE from {otherName}'),
   'charge-disputed' => t('rCredits Charge DISPUTED by {otherName}'),
 
@@ -224,7 +224,7 @@ $GLOBALS['emailSubjects'] = array(
   'new-offer' => t('rCredits PAYMENT OFFER from {otherName}'),
   'offer-refused' => t('rCredits Payment REJECTED by {otherName}'),
   'offer-canceled' => t('rCredits Invoice CANCELED by {otherName}'),
-  
+*/
   'welcome' => t('Welcome to rCredits!'),
   'password-reset' => t('New rCredits PASSWORD'),
   'tell-staff' => t('rCredits STAFF ALERT: {topic}'),
@@ -294,10 +294,10 @@ function txReportArgs($acct, $tx, $getMyBalance = FALSE, $shortfall = 0) {
  * @param int $omit: an account id to ignore (optional)
  */
 function whoseUsd($usdAccountId, $omit = NULL) {
-  $usdAccount = bin2hex(u\ezencrypt($usdAccountId, R_WORD));
+  $usdAccount = bin2hex(u\ezencrypt(str_replace('-', '', $usdAccountId), R_WORD));
   $where = 'usdAccount=:usdAccount' . (@$omit ? ' AND uid<>:omit' : '');
   $subs = compact('usdAccount') + (@$omit ? compact('omit') : array());
-  return r\dbLookup('uid', 'users', $where, compact('usdAccount', 'omit'));
+  return r\dbLookup('uid', 'users', $where, $subs);
 }
 
 /**
@@ -576,6 +576,15 @@ function payEmployees($amount0, $for, $confirmed) {
 */
 
 /**
+ * Wrap all email, so it doesn't go out when testing.
+ */
+function rMail($index, $email, $lingo, $info) {
+  $info['email'] = $email;
+  if (isDEV or STAGING) if ($email != R_ORG_EMAIL and $email != R_TESTER_EMAIL) $email = 'none@example.com'; // black hole
+  \drupal_mail('rCredits', $index, $email, '', $info);
+}
+
+/**
  * Notify the specified user, according to their preferences
  * @param integer $uid: account record id
  * @param string $index: message index
@@ -593,7 +602,7 @@ function notify($uid, $index, $info = array(), $force = FALSE) {
   $warnIndexes = u\ray('new invoice,new offer,charge disputed');
   
   if ($force) {
-    $mailed = \drupal_mail('rCredits', $index, $acct->mail, '', $info); // no need to pass $acct->language
+    $mailed = r\rMail($index, $acct->mail, '', $info); // no need to pass $acct->language
   } else { //if ($acct->can(B_NOTIFY_EMAIL)) {
     list ($message, $created) = array(u\tt($index, $info), REQUEST_TIME);
     r\dbInsert('r_notices', compact(u\ray('uid message created')));
@@ -626,7 +635,7 @@ function membershipEvent($a, $status, $do = TRUE) {
     $DBTX = \db_transaction();
     if ($bit !== FALSE) $a->setBit($bit); // set the bit, if any
     if ($status == 'bona' and $a->can(B_PERSONAL)) be\fund($a->id);
-    if ($status == 'ok') r\notify($a->id, 'you are approved');
+    if ($status == 'ok') r\notify($a->id, 'you are approved', array(), TRUE);
     unset($DBTX);
     
     $fullName = $a->fullName;
@@ -687,7 +696,7 @@ function tellStaff($index, $subs = array(), $uid = TRUE) {
   $noFrame = TRUE;
   $topic = strlen($index) < 20 ? strip_tags($index) : '';
   $email = R_ORG_EMAIL;
-  \drupal_mail('rCredits', 'tell-staff', $email, '', compact(u\ray('email message topic noFrame uid')));
+  r\rMail('tell-staff', $email, '', compact(u\ray('email message topic noFrame uid')));
 }
 
 /**
@@ -1431,10 +1440,19 @@ function suggest($a, $index, $subs, $page = 'Preferences') {
   r\notify($a->id, $index, $subs + compact('page'));
 }
 
+/**
+ * Return the rebate on the given amount for the given account.
+ * Never less than R_MIN_REBATE unless the account is a nonperson.
+ */
+function rebate($uid, $amount = 1) {
+  $a = r\acct($uid);
+  return max($a->can(B_PERSONAL) ? R_MIN_REBATE : 0, round($amount * $a->rebate / 100, 2));
+}
+
+function bonus($uid, $amount = 1) {return round($amount * R_BONUS_FACTOR * r\acct($uid)->rebate / 100, 2);}
+
 // Single line functions that need no explanation
 function userField($field, $who = '', $subs = array()) {return tableField($field, 'users', $who, $subs);}
-function rebate($uid, $amount = 1) {return max(R_MIN_REBATE, round($amount * r\acct($uid)->rebate / 100, 2));}
-function bonus($uid, $amount = 1) {return round($amount * R_BONUS_FACTOR * r\acct($uid)->rebate / 100, 2);}
 function txField($field, $which, $subs = array()) {return tableField($field, 'r_txs', $which, $subs);}
 function setTxState($newValue, $zserial) {setTxField('state', $newValue, $zserial, TRUE);}
 function serverUid($regionId = R_SERVER_ID) {return -u\a2n($regionId) - 1;}

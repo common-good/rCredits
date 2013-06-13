@@ -139,13 +139,12 @@ function rcredits_mail($index, &$msg_array, $info) {
     $acct = r\acct($uid);
     $info += (array) $acct->account();
     $info['quid'] = $acct->mainQid;
-    $info['oneTimeLoginUrl'] = \user_pass_reset_url($acct->account());
+// NOT USED (by policy)  $info['oneTimeLoginUrl'] = \user_pass_reset_url($acct->account());
     $info['site'] = R_SITE_URL;
     $info['region'] = strtolower(R_SERVER_ID);
     $info['shortName'] = $acct->name;
 
-    //$info['fullName'] = $info['fullName']; // these are not always the name and email of the account
-    $email = $info['email'] = @$info['email'] ?: $info['mail'];
+    $email = $info['email'];
     foreach ($info as $k => $value) $subs['{' . $k . '}'] = $value;
     $langcode = $acct->language->language; // instead of $language = $msg_array['language']; 
     $msg_array['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed'; // default is plain text

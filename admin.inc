@@ -88,4 +88,12 @@ https://rcredits.org:2083/cpsess4564554376/frontend/x3/mail/addfwd.html
 <input name="fwdemail" id="fwdemail"  type="text" size="40" value="new@rcredits.org" />
 <input class="input-button" type="submit" id="submit" value="Add Forwarder" />
 </form>
+
+list ($txid, $amount, $payer, $payee, $created) = array(3198706, 1.81, 26742000000001, 26742000000018, strtotime('6/12/2013'));
+$list = array(compact(rCredits\Util\ray('txid amount payer payee created')));
+$a = rCredits\acct('NEW.AAA');
+$us = new rCredits\usd($a);
+$us->rollback($list);
+
 */
+

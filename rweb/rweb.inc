@@ -983,7 +983,7 @@ function formInvite_submit($form, &$sta) {
     'CODE' => r\invite($email, $mya->id, '', $subject, $message),
   );
   if ($mya->id == 26742000000001 or !MINI_LAUNCH) {
-    \drupal_mail('rCredits', 'invite', $email, '', $info);
+    r\rMail('invite', $email, '', $info);
     say('invite sent|repeat invite', compact('email'));
   } else say('Your invitation has been saved and will be sent after this Pilot Phase is completed and membership is open to the public.|repeat invite');
   r\tellStaff('invited', $info + compact('email'));
@@ -1432,7 +1432,7 @@ function formAdmin($form, &$sta, $args = '') {
   $account = textField(t('Account:'), t('Account to do something to'),auto());
   $printId = submit(t('Print ID'));
   $form = compact(u\ray('title'));
-  foreach (u\ray('USD_Accounts Gfld ' . R_SHOWABLE_TABLES) as $one) $form[$one] = submit(str_replace('_', ' ', $one));
+  foreach (u\ray('USD_Accounts Gfld tells ' . R_SHOWABLE_TABLES) as $one) $form[$one] = submit(str_replace('_', ' ', $one));
   $form += compact(u\ray('account printId'));
   return $form;
 }
@@ -1465,7 +1465,9 @@ function formAdmin_submit($form, &$sta) {
   if ($op == 'users') return say(showTableQ($userSql));
   $userSql = str_replace($where, "postalCode LIKE '013%'", $userSql);
 
-  if ($op == 'log') return say(showTableQ("SELECT channel,type,myid,agent, REPLACE(special, ',', ', ') AS special, REPLACE(info, ',', ', ') AS info FROM r_log"));
+  $logQuery = "SELECT channel,type,myid,agent, REPLACE(special, ',', ', ') AS special, REPLACE(info, ',', ', ') AS info FROM r_log";
+  if ($op == 'log') return say(showTableQ($logQuery));
+  if ($op == 'tells') return say(showTableQ("$logQuery WHERE info LIKE '%tell-staff%' ORDER BY logid DESC LIMIT 50"));
   if ($op == 'Gfld') return say(showTableQ($userSql));
   if ($op == 'txs') return say(showTableQ('SELECT xid, type, state, payer, payee, amount, r, payerFor, payeeFor, payerTid, payeeTid FROM r_txs'));
 

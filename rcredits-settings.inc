@@ -8,7 +8,8 @@ define('R_REGION_NAME', 'Western Massachusetts Region');
 define('R_SERVER_ID', 'NEW'); // qid header for this region's server (New England / Western MA)
 // other 3rd letters: M=ME H=NH V=VT C=CT R=RI P=PA Y=NY A=NYC (apple) B=Boston
 define('R_ORG_PHONE', '413-628-1723');
-define('R_ORG_EMAIL', strpos($_SERVER['HTTP_HOST'], '.') < 3 ? 'wspademan+cgf@gmail.com' : (strtolower(R_SERVER_ID) . '@rCredits.org'));
+define('R_TESTER_EMAIL', 'wspademan@gmail.com'); // tester's personal email
+define('R_ORG_EMAIL', strpos($_SERVER['HTTP_HOST'], '.') < 3 ? str_replace('@', '_cgf@', R_TESTER_EMAIL) : (strtolower(R_SERVER_ID) . '@rCredits.org'));
 define('R_SITE_URL', 'https://new.rCredits.org');
 
 // (you don't get an ID card unless you are in this geographic area)
@@ -17,7 +18,7 @@ date_default_timezone_set('America/New_York'); // server handles just one timezo
 define('R_COUNTRY_ID', 1228); // United States
 define('R_STATE_ID', 1020); // Massachusetts
 define('R_REBATE', 5);
-define('R_MIN_REBATE', .05); // members get this even for purchase with no rcredits (subject to dwindling)
+define('R_MIN_REBATE', .05); // members get this even for a purchase with no rcredits (subject to dwindling)
 define('R_BONUS_FACTOR', 2); // standard bonus is this times standard rebate
 define('R_MAX_AMOUNT', 100000); // transaction request size limit (some smaller limits also apply)
 define('R_SIGNUP_GIFT', 5); // how much to give people to play with, even before they are fully set up

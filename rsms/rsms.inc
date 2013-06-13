@@ -44,13 +44,8 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'report exchange request' => t("You requested @amount from @otherName. Your balance is unchanged, pending approval. Invoice #@tid"),
   'report funding' => t("You successfully @action @amount to @otherName."),
   'paid employees' => t('You distributed @total to @successes of @employeeCount employees. See your transactions page for details.'),
-  'new-invoice' => t('@otherName requests @amount for "@payerPurpose". Type "pay" or "undo".'),
-  'new-offer' => t('@otherName is offering you a virtual payment of @amount for "@payeePurpose". Type "accept" or "undo".'),
-  'new charge' => t('@otherName has charged you @amount for "@payerPurpose".'),
-  'new payment' => t('@otherName has paid you @amount for "@payeePurpose".'),
-  'charge disputed' => t('@otherName disputes a @created charge of @amount for "@payeePurpose".'),
-  'invoice denied' => t('@otherName has declined to pay your @created invoice of @amount for "@payeePurpose".'),
-  'offer refused' => t('@otherName has declined to accept your @created offer of @amount for "@payerPurpose".'),
+//  'new-invoice' => t('@otherName requests @amount for "@payerPurpose". Type "pay" or "undo".'),
+//  'new-offer' => t('@otherName is offering you a virtual payment of @amount for "@payeePurpose". Type "accept" or "undo".'),
   'report undo' => t('Transaction has been @solution.'),
 //  'report get usd' => t('@Exchange approved. @request will be transferred directly to your bank account within 24 hours.'),
 //  'get usd inactive' => t('If you were an Active Participant in the rCredits system, your request would transfer @amount directly to your bank account. Alas, you are not yet an Active Participant.'),
@@ -160,6 +155,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'no source' => t('there is no valid funding source'),
   'not verified' => t('the funding source has not yet been verified by entering the two tiny deposit amounts'),
   
+  'reward' => t('Your @rewardType is @rewardAmount.'),
   'new charge' => t('<b>Charge:</b> @otherName charged you @amount for "@payerPurpose".'),
   'new payment' => t('<b>Payment:</b> @otherName paid you @amount for "@payeePurpose".'),
   'new invoice' => t('<b>Invoice:</b> @otherName invoiced you @amount for "@payerPurpose". To pay (or deny) this invoice, visit your Transactions page.'),
@@ -172,10 +168,12 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'invoice canceled' => t('<p><b>Invoice CANCELED:</b> Your invoice from @otherName has been canceled:</p>
   <blockquote>@created @amount for "@payerPurpose"</blockquote>
   <p>This invoice will no longer appear in your list of transactions.'),
+  'offer refused' => t('@otherName has declined to accept your @created offer of @amount for "@payerPurpose".'),
+  'offer canceled' => t('NYI'),
   'minmax status' => t('Your combined USD and rCredits balance is @status.'),
   'banked' => t('A request has been made to @action your bank a total of @amount. This request may take up to 3 days to go through.'),
   'virtual payment received' => t('You received from @fullName a virtual payment of @amount -- that is, you traded that much US Dollars for rCredits, receiving a bonus of @bonus on the exchange.'),
-  'virtual payments offered' => t('You made virtual payment offers to @offers @whom, totaling @total.'),
+  'virtual payments offered' => t('You made virtual payments to @offers @whom, totaling @total.'),
   'card ordered' => t('Your rCard has been ordered and will be mailed directly to @name.'),
   'balances' => t('Your rCredits balance available to spend is @toSpend. You can move up to @toCash to your bank account.'),
   

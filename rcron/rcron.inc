@@ -43,6 +43,10 @@ MONTHLY
 YEARLY
 - 1099s
 
+NOTES:
+- Timer Cron is disabled on the staging site. Here's what the cron job would be:
+  <star>/5 * * * * /usr/bin/lynx -source http://ws.rcredits.org/cron.php?cron_key=w8x3lfzNQK1bxMz6RMTuF54mMInAs4b8SiVJO9zvWYg
+  where <star> means * (not the same as for the production site)
  */
 namespace rCredits\Cron;
 use rCredits as r;
@@ -70,13 +74,9 @@ function doTask($item) {
  *  Check to see if it's time for a less-often periodic activity (and if so do it).
  */
 function periodic() {
-//  if (!isDEV) return; // don't cron on pre-production server
-  if (STAGING) return; // don't cron on pre-production server
-  
   if ($row = r\dbQ('SELECT * FROM queue WHERE expire<>0 LIMIT 1')->fetchAssoc()) {
     r\tellStaff('task timed out', $row); // shouldn't happen. Drupal's queue processing hangs until we delete.
-    $item = $row['item_id'];
-    // r\dbQ('DELETE FROM queue WHERE item_id=:item', compact('item'));
+    r\dbQ('DELETE FROM queue WHERE item_id=:item_id', u\just('item_id', $row));
   }
   
   $lastDaily = \variable_get('daily', 0);
@@ -148,7 +148,6 @@ function usdTxHere($item) {
  * (2) Notice and record completion of EFTs.
  */
 function usdTxsThere() {
-  if (FALSE) // until debugged
   queueEach('usdTxThere', 'SELECT uid FROM users WHERE :IS_OK');
   queue('usdTxsThereEND');
 }
@@ -160,7 +159,7 @@ function usdTxThere($item) {
 //  $cgf = variable_get('cgf_uid');
   $usAcct = new r\usd($acct = r\acct($uid));
 //  debug(compact('uid','cgf','item'));
-  $usAcct->each('rCredits\\Cron\\usdTxQ', strtotime('4 days ago'), array('money_sent','deposit','withdrawal'));
+  $usAcct->each('rCredits\\Cron\\usdTxQ', strtotime('4 days ago'), u\ray('money_sent deposit withdrawal'));
 }
 
 function usdTxQ($info) {queue($info['Type'] == 'money_sent' ? 'lostUsdTx' : 'bankFollowup', $info);}
@@ -463,8 +462,8 @@ function notice($item) {
  */
 function END() {
   $elapsed = time() - REQUEST_TIME;
-  echo "Daily cron done after $elapsed seconds"; // keep
-  r\tellStaff('Daily cron ended successfully', '', FALSE);
+//  echo "Daily cron done after $elapsed seconds"; // keep
+  r\tellStaff("Daily cron ended successfully after $elapsed seconds", '', FALSE);
 }
 
 /**

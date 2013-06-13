@@ -38,6 +38,15 @@ class usd {
     return $dw;
   }
 
+  /**
+   * Return the fee to the given USD account associated with the specified transaction.
+   */
+  private function fee($txid) {
+    $dw = $this->dwolla();
+    $theTx = $dw->transaction($txid);
+    return $theTx['Fees'];
+  }
+  
   public static function format($n) {return preg_replace('/(\d{3})(\d{3})(\d{4})/', '$1-$2-$3', $n);}
   
   /**
@@ -102,11 +111,11 @@ class usd {
    * UNUSED @param string $error: (RETURNED) an error message on failure
    * @return: current balance
    */
-  function bal(&$error = NULL) {
+  public function bal(&$error = NULL) {
     $dw = $this->dwolla();
     if (t\est() and $this->number != DW_TESTER_ACCT) return $this->acct->usd + 0;
-    $result = $dw->balance();
-    return noDwolla($dw, $error) ? $this->acct->usd + 0 : $result;
+    if (!noDw($dw)) $result = $dw->balance();
+    return noDw($dw, $error) ? $this->acct->usd + 0 : $result;
   }
   
   /**
@@ -122,8 +131,7 @@ class usd {
    *   fail: FALSE
    *   maybe: '?' (UNUSED for now)
    */
-  function send($amount, $other, $notes = R_DEFAULT_PURPOSE, &$err = NULL, $payerFee = FALSE, $direct = TRUE) {
-    global $dwollaDown;
+  public function send($amount, $other, $notes = R_DEFAULT_PURPOSE, &$err = NULL, $payerFee = FALSE, $direct = TRUE) {
     u\EXPECT(self::inAtom(), 'usd transfer outside atom');
     u\EXPECT(is_object($this->acct) and is_object($other->acct), 'empty account');
     u\EXPECT($this->acct->can(B_OK) and $other->acct->can(B_OK), 'non rTraders in usd send');
@@ -140,10 +148,10 @@ class usd {
     } else u\EXPECT(!is_null($this->number) and !is_null($other->number), 'null dw number');
     if ($this->number == $other->number) return dwError(u\tt('no self-trading'), $err); // AFTER t\est() check
 
-    if (!$dwollaDown and $txid = $dw->send($this->pin, self::format($other->number), $amount, $source, $notes, 0, $payerFee)) {
+    if (!noDw($dw) and $txid = $dw->send($this->pin, self::format($other->number), $amount, $source, $notes, 0, $payerFee)) {
       self::addToAtom($txid, $amount, $this->acct->id, $other->acct->id);
       return $txid;
-    } else return noDwolla($dw, $err) ? -1 : NULL;
+    } else return noDw($dw, $err) ? -1 : NULL;
   }
   
   /**
@@ -176,7 +184,7 @@ array (
   'Fees' => NULL,
 )
    */
-  function bank($amount, &$error = NULL) {
+  public function bank($amount, &$error = NULL) {
     u\EXPECT($amount <> 0, 'bank zero');
     $dw = $this->dwolla();
     if (!t\est())
@@ -188,14 +196,13 @@ array (
 // debug("Transferring USD $amount from Dwolla account to the bank for account uid=" . $this->acct->id);
     self::beginAtom();
     if (t\est()) $txid = t\seq(); else
-    {
+    if (!noDw($dw)) {
       $result = $dw->$function(@$source['Id'], $this->pin, abs($amount));
-      if (!$result and !noDwolla($dw, $error)) {
+      if (!$result and !noDw($dw, $error)) {
         self::rollback();
         return NULL;
-      }
-      $txid = @$result['Id'] ?: -1; // -1 for noDwolla
-    }
+      } else $txid = @$result['Id'] ?: -1; // -1 for noDw
+    } else $txid = -1;
     
     if ($txid != -1) self::addToAtom($txid, $amount, $this->acct->id, 0, 0);
     self::commit();
@@ -206,9 +213,9 @@ array (
   /**
    * Get funding source info
    */
-  function source(&$error = NULL) {
+  public function source(&$error = NULL) {
     $dw = $this->dwolla();
-    if (!$sources = $dw->fundingSources()) return dwError($dw, $error);
+    if (!noDw($dw) and !$sources = $dw->fundingSources()) return dwError($dw, $error);
     $sources[0]['count'] = count($sources);
     return $sources[0];
   }
@@ -222,16 +229,16 @@ array (
    * @param bool $anybody: include all transactions, otherwise only ones marked as originating with us
    * Passes to the callback function an assoc with complete transaction details, including transaction id
    */
-  function each($callback, $start = 0, $type = FALSE, $anybody = FALSE) {
+  public function each($callback, $start = 0, $type = FALSE, $anybody = FALSE) {
     $dw = $this->dwolla();
     $skip = 0; // how many transactions to skip, in call to $dw->listings()
     $atATime = 50; // arbitrary, up to 200 (Dwolla limit)
-    while ($listings = $dw->listings(strftime('%d-%m-%Y', $start), $type, $atATime, $skip)) {
+    while ($listings = $dw->listings(strftime('%m-%d-%Y', $start), $type, $atATime, $skip)) {
       foreach ($listings as $one) {
         if ($anybody ?: u\abbreviates(t\est() . USD_NOTE_PREFIX, $one['Notes'])) $callback($one);
       }
       $skip += $atATime;
-    }   
+    }
   }
 
 // Atomic Data Transaction Handling for mixed rCredits/USD financial transactions
@@ -256,20 +263,21 @@ array (
   
   /**
    * Remember a Dwolla transaction to commit or rollback (passed as individual params or as an assoc)
-   *   txid: the Dwolla transaction id
-   *   amount: the amount of a Dwolla transaction or bank transfer (negative for a withdrawal)
-   *   payer: rCredits account id of the sender
-   *   payee: rCredits account id of the other (0 for bank transfers)
-   *   created: (int) creation date/time
-   *   completed: completion date/time (default same as created)
+   * @param int $txid: the Dwolla transaction id
+   *     OR assoc $txid: array of all the args for this function
+   * @param float $amount: the amount of a Dwolla transaction or bank transfer (negative for a withdrawal)
+   * @param int $payer: rCredits account id of the sender
+   * @param int $payee: rCredits account id of the other (0 for bank transfers)
+   * @param int $created: (int) creation date/time
+   * @param int $completed: completion date/time (default same as created)
    */
   private static function addToAtom($txid, $amount = '', $payer = '', $payee = '', $completed = NULL, $created = REQUEST_TIME) {
     u\EXPECT(self::inAtom(), 'addToAtom outside atom');
     if ($payer) {
-      if (!isset($completed)) $completed = $created;
-      $one = compact(u\ray('txid amount payer payee created completed'));
-    } else $one = $txid;
-    self::$atoms[] = $one;
+      $tx = compact(u\ray('txid amount payer payee created completed'));
+    } else $tx = $txid;
+    if (!isset($tx['completed'])) $tx['completed'] = $created;
+    self::$atoms[] = $tx;
   }
 
   /**
@@ -301,33 +309,32 @@ array (
       while (!is_object($one = array_pop(self::$atoms))) $list[] = $one;
       $one->rollback(); // got Drupal transaction object last (and removed it from list)
     }
-    $grantNote = t('reimbursement of Dwolla fee for reversed transaction');
     
     foreach ($list as $one) { // create a compensating usd transaction for each transaction in $list
       extract($one); // (see fields listed above in addToAtom)
-      $usAcct1 = new usd(r\acct($payer));
-      $usAcct2 = new usd(r\acct($payee));
-  
+      $reversedNote = t('reversed Dwolla transaction #') . $txid;
+      $grantNote = t('reimbursement of fee for ') . $reversedNote;
+
+      $usA1 = new usd(r\acct($payer));
+      $fee1 = $usA1->fee($txid);
+      $usA2 = new usd(r\acct($payee));
+      $fee2 = $usA2->fee($txid);
+
+      $dw = $usA2->dwolla();
+
       self::beginAtom();
       self::addToAtom($one); // record original transaction
-      $txid = $one['transactionID'];
-      $notes = "reversing Dwolla transaction #$txid";
-      $dw = $usAcct1->dwolla();
-      extract(u\just('Success Response', $dw->transaction($txid)));
-      if (!@$Success) {self::rollback(); continue;}
-      //$payerFee = FALSE; // don't know yet how to extract this from $Response['Fees'][0]['Type'] (?todo)
-      $payerFee = R_FEE_FOR_CASH ? ($Response['Notes'] == t\est() . USD_NOTE_PREFIX . 'cash') : FALSE;
       
-      $dw = $usAcct2->dwolla();
-      if (!$txid = $dw->send($usAcct2->pin, $usAcct1->number, $amount, 'Dwolla', $notes, 0, $payerFee)) {
-        // failure (probably insufficient Dwolla balance).
-        $info = u\assoc('payer payee amount for taking', $payee, $payer, $amount, $notes, FALSE);
-        r\transact($info); // reverse it in rCredits instead (this should not have USD txid though)
-        if ($amount > DW_FEE_THRESHOLD) be\fund($payerFee ? $payer : $payee, TX_GRANT, DW_FEE, $grantNote);
-      } else {
+      if (!noDw($dw) and $txid = $dw->send($usA2->pin, $usA1->number, $amount, 'Dwolla', $reversedNote)) {
         self::addToAtom($txid, $amount, $payee, $payer);
-        if ($amount > DW_FEE_THRESHOLD) foreach (array($payer, $payee) as $one) be\fund($one, TX_GRANT, DW_FEE, $grantNote);
+        $fee1 += usdFee($usA1, $txid);
+        $fee2 += usdFee($usA2, $txid);
+      } else { // failure (probably insufficient Dwolla balance)
+        $info = u\assoc('payer payee amount for taking', $payee, $payer, $amount, $reversedNote, FALSE);
+        r\transact($info); // reverse it in rCredits instead
       }
+      if ($fee1 > 0) be\fund($payer, TX_GRANT, $fee1, $grantNote);
+      if ($fee2 > 0) be\fund($payee, TX_GRANT, $fee2, $grantNote);
       self::commit();
     }
   }
@@ -339,8 +346,9 @@ array (
  * @param object $dw: the Dwolla request object or error message
  * @param string $err: the error message to return (set to NULL if no error OR Dwolla is down)
  */
-function noDwolla($dw, &$err) {
-  global $dwollaDown; if (@$dwollaDown) return TRUE; // allows testing or greater efficiency in extended outages
+function noDw($dw, &$err = '') {
+  global $dwollaDown; 
+  if (STAGING or @$dwollaDown) return TRUE; // allows testing or greater efficiency in extended outages
   if (is_object($dw) and u\abbreviates('Request failed. Server responded with:', $err = $dw->getError())) {
     $err = NULL;
     return TRUE;
