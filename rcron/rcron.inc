@@ -307,14 +307,14 @@ function virtualPayments1($item) {
   while($row = $result->fetchAssoc()) {
     extract($row);
     $offer = round($amount * $kitty / $tothese, 2);
-    if ($offer > 0) {
+    if ($offer >= R_VPAYMENT_MIN) {
       queue('virtualPayment', compact(u\ray('main other offer')));
       $offers += 1;
       $total += $offer;
     }
   }
   $whom = $rightType == 'employerOk' ? 'employees' : 'suppliers';
-  $total = u\formatAmount($total, 's$r');
+  $total = u\fmtAmt($total, 's$r');
   if ($offers) r\notify($uid, 'virtual payments offered', compact(u\ray('offers total whom')));
 }
 
@@ -337,9 +337,9 @@ function virtualPayment($item) {
   if ($traded >= $excess and ($offer == $traded or $txid = $usAcct2->send($offer - $traded, $usAcct1, 'virtual payment exchange'))) { // other partially pays main in USD if not totally left to 3rd parties
     $info = u\assoc('amount r payer payee for goods usdXid', 0, $offer, $main, $other, t('virtual payment'), TRUE, @$txid);
     r\transact($info); // total rCredits from company to other
-    $amount = u\formatAmount($offer, 's$r');
+    $amount = u\fmtAmt($offer, 's$r');
     $fullName = $acct1->fullName;
-    $bonus = u\formatAmount(r\bonus($other, $offer));
+    $bonus = u\fmtAmt(r\bonus($other, $main, $offer));
     r\notify($other, 'virtual payment received', compact(u\ray('amount fullName bonus')));
     r\usd::commit();
   } else {
@@ -403,7 +403,7 @@ function bank1($item) {
   $usAcct = new r\usd($acct);
   if ($usAcct->bank($amount, $error)) {
     $status = @$excess > 0 ? 'over the maximum you set' : 'under the minimum you set';
-    $amount = u\formatAmount(abs(@$amount));
+    $amount = u\fmtAmt(abs(@$amount));
     r\notify($uid, 'minmax status|banked', compact(u\ray('action status amount')));
   } elseif (time() - $acct->created > 3 * DAY_SECS) r\notify($uid, 'cannot bank', compact('action', 'error'));
 }
@@ -417,7 +417,7 @@ function bank1($item) {
 function toBank($amount, $acct) {
   $waiting = $acct->waitingToBank(); // amount already requested (if any)
 /*  if ($waiting * $amount < 0) { // flip flop -- user could choose better settings (but continue anyway)
-    $suggestion = u\formatAmount(round($acct->minimum + max($acct->minimum * .2, 50, abs($amount), abs($waiting)), -1));
+    $suggestion = u\fmtAmt(round($acct->minimum + max($acct->minimum * .2, 50, abs($amount), abs($waiting)), -1));
     r\suggest($acct, 'min too low', compact('suggestion'));
   } */
   $amount -= $waiting;

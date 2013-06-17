@@ -25,15 +25,15 @@ Scenario: A contribution can be completed
   And gifts:
   | id   | giftDate   | amount | often | honor  | honored | share | completed |
   | .ZZA | %yesterday |     10 |     1 | memory | Jane Do |    10 | %today    |
-  And we notice "new payment" to member "cgf" with subs:
-  | otherName | amount | payeePurpose |
-  | Abe One   |    $10 | contribution |
+  And we notice "new payment|reward other" to member "cgf" with subs:
+  | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |
+  | Abe One   |    $10 | contribution | bonus           |                $1 |
   And we notice "gift sent" to member ".ZZA" with subs:
   | amount | rewardAmount |
   |    $10 |        $0.50 |
   And we tell staff "gift accepted" with subs:
-  | amount | often | rewardType | myName  |
-  |     10 |     1 | rebate     | Abe One |
+  | amount | myName  | often | rewardType | 
+  |     10 | Abe One |     1 | rebate     |
   # and many other fields
 
 Scenario: A recurring contribution can be completed
@@ -50,10 +50,10 @@ Scenario: A recurring contribution can be completed
   | id   | giftDate      | amount | often | honor  | honored | completed |
   | .ZZA | %yesterday    |     10 |     Q | memory | Jane Do | %today    |
   | .ZZA | %yesterday+3m |     10 |     Q |        |         |         0 |
-  And we notice "new payment" to member "cgf" with subs:
-  | otherName | amount | payeePurpose |
-  | Abe One   |    $10 | contribution |
+  And we notice "new payment|reward other" to member "cgf" with subs:
+  | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |
+  | Abe One   |    $10 | contribution | bonus           |                $1 |
   And we tell staff "gift accepted" with subs:
-  | amount | often | rewardType | myName  |
-  |     10 |     1 | rebate     | Abe One |
+  | amount | myName  | often | rewardType |
+  |     10 | Abe One |     Q | rebate     |
   # and many other fields

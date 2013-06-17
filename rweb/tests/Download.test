@@ -107,7 +107,7 @@ class rwebDownload extends DrupalWebTestCase {
   // Scenario: A member downloads transactions for the past year
   public function testAMemberDownloadsTransactionsForThePastYear_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ".ZZA" visits page "transactions/period=365&download=1&states=2"');
+    When_('member ".ZZA" visits page "transactions/period=365&download=1&options=%CURRENCIES_BOTH%STATES_BOTH 000"');
     Then_('we download "rcredits%todayn-12m-%todayn.csv" with: "DATA'
     . '\\| t# | Created | Name    | From you | To you | rCredits | USD  | Status   | Purpose | Reward | Net  |'
     . '\\| 15 | %ymd-5d | Our Pub |          |    100 |       80 |   20 | disputed | cash CJ |        |  100 |'
@@ -133,7 +133,7 @@ class rwebDownload extends DrupalWebTestCase {
   // Scenario: A member downloads completed transactions for the past year
   public function testAMemberDownloadsCompletedTransactionsForThePastYear_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ".ZZA" visits page "transactions/period=365&download=1&states=0"');
+    When_('member ".ZZA" visits page "transactions/period=365&download=1&options=%CURRENCIES_BOTH%STATES_DONE 000"');
     Then_('we download "rcredits%todayn-12m-%todayn.csv" with: "DATA'
     . '\\| Tx#  | t# | Created | Name    | From you | To you | rCredits | USD  | Status   | Purpose | Reward | Net  |'
     . '\\| AACJ | 15 | %ymd-5d | Our Pub |          |    100 |       80 |   20 | disputed | cash CJ |        |  100 |'

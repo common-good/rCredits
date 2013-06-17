@@ -328,9 +328,12 @@ class acct {
   }
   
   /**
-   * Return how much rCredits is available in this account, without drawing on other accounts.
+   * Return how much is available in this account, without drawing on other accounts.
+   * @param string $type: buy, exch, or cash
+   * @param bool $usdToo: if TRUE, include any USD available
    */
-  function rAvailable($type) {return r\avail($type, (array) $this->account(R_MONEY_FIELDS), FALSE);}
+  function rAvailable($type, $usdToo = FALSE) {return r\avail($type, (array) $this->account(R_MONEY_FIELDS), $usdToo);}
+  function usdAvailable($type) {return $this->rAvailable($type, TRUE) - $this->rAvailable($type);}
   
   /**
    * Return the amount this account can draw from other accounts.

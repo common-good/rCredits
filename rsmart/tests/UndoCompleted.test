@@ -158,7 +158,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAK", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAN" my_balance "$166" other_balance "" and message "report undo|report invoice" with subs: "DATA'
-    . '\\| solution | action  | otherName | amount | tid |'
+    . '\\| solution | did     | otherName | amount | tid |'
     . '\\| reversed | charged | Corner Pub | $80    | 6   |"');
     And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'
@@ -185,7 +185,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAK", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAN" my_balance "$235" other_balance "" and message "report undo|report transaction" with subs: "DATA'
-    . '\\| solution | action | otherName | amount | tid | rewardType | rewardAmount | balance |'
+    . '\\| solution | did    | otherName | amount | tid | rewardType | rewardAmount | balance |'
     . '\\| reversed | paid   | Abe One    | $80    | 5   | rebate      | $-8           | $235    |"');
     And__('we email "new-payment" to member "a@example.com" with subs: "DATA'
     . '\\| created | fullName | otherName  | amount | payeePurpose |'
@@ -212,7 +212,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('member "NEW.ZZB" asks device "codeB" to undo transaction "NEW.AAAJ", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAN" my_balance "$279" other_balance "" and message "report undo|report exchange request" with subs: "DATA'
-    . '\\| solution | action  | otherName | amount | tid |'
+    . '\\| solution | did     | otherName | amount | tid |'
     . '\\| reversed | charged | Corner Pub | $5     | 5   |"');
     And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'
@@ -239,7 +239,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAJ", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAN" my_balance "$318" other_balance "" and message "report undo|report exchange" with subs: "DATA'
-    . '\\| solution | action | otherName | amount | tid | balance |'
+    . '\\| solution | did    | otherName | amount | tid | balance |'
     . '\\| reversed | gave   | Bea Two   | $5     | 5   | $318    |"');
     And__('we email "new-payment" to member "b@example.com" with subs: "DATA'
     . '\\| created | fullName | otherName  | amount | payeePurpose |'
@@ -258,7 +258,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
     Given('member "NEW.ZZA" can charge unilaterally');
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAK", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAN" my_balance "$166" other_balance "$323" and message "report undo|report invoice" with subs: "DATA'
-    . '\\| solution | action  | otherName  | amount | rewardType | rewardAmount | balance | tid |'
+    . '\\| solution | did     | otherName  | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| reversed | charged | Corner Pub | $80    | bonus      | $-4          | $166    | 6   |"');
     And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'
@@ -291,7 +291,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 1);
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAK", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAN" my_balance "$166" other_balance "" and message "report undo|report invoice" with subs: "DATA'
-    . '\\| solution | action  | otherName | amount | tid |'
+    . '\\| solution | did     | otherName | amount | tid |'
     . '\\| reversed | charged | Corner Pub | $80    | 6   |"');
     And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'
@@ -318,7 +318,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 1);
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAK", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAN" my_balance "$235" other_balance "" and message "report undo|report transaction" with subs: "DATA'
-    . '\\| solution | action | otherName | amount | tid | rewardType | rewardAmount | balance |'
+    . '\\| solution | did    | otherName | amount | tid | rewardType | rewardAmount | balance |'
     . '\\| reversed | paid   | Abe One    | $80    | 5   | rebate      | $-8           | $235    |"');
     And__('we email "new-payment" to member "a@example.com" with subs: "DATA'
     . '\\| created | fullName | otherName  | amount | payeePurpose |'
@@ -345,7 +345,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 1);
     When_('member "NEW.ZZB" asks device "codeB" to undo transaction "NEW.AAAJ", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAN" my_balance "$279" other_balance "" and message "report undo|report exchange request" with subs: "DATA'
-    . '\\| solution | action  | otherName | amount | tid |'
+    . '\\| solution | did     | otherName | amount | tid |'
     . '\\| reversed | charged | Corner Pub | $5     | 5   |"');
     And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'
@@ -372,7 +372,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 1);
     When_('member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAJ", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAN" my_balance "$318" other_balance "" and message "report undo|report exchange" with subs: "DATA'
-    . '\\| solution | action | otherName | amount | tid | balance |'
+    . '\\| solution | did    | otherName | amount | tid | balance |'
     . '\\| reversed | gave   | Bea Two   | $5     | 5   | $318    |"');
     And__('we email "new-payment" to member "b@example.com" with subs: "DATA'
     . '\\| created | fullName | otherName  | amount | payeePurpose |'
@@ -391,7 +391,7 @@ class rsmartUndoCompleted extends DrupalWebTestCase {
     Given('member "NEW.ZZA" can charge unilaterally');
     When_('member "NEW.ZZA" asks device "codeA" to undo transaction "NEW.AAAK", with the request "confirmed"');
     Then_('we respond success 1 tx_id "NEW.AAAN" my_balance "$166" other_balance "$323" and message "report undo|report invoice" with subs: "DATA'
-    . '\\| solution | action  | otherName  | amount | rewardType | rewardAmount | balance | tid |'
+    . '\\| solution | did     | otherName  | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| reversed | charged | Corner Pub | $80    | bonus      | $-4          | $166    | 6   |"');
     And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'

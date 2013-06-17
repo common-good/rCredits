@@ -74,7 +74,7 @@ function error($message, $subs = '', $success = 0) {
 function apiOut($args) {
   $result = json_encode($args, JSON_UNESCAPED_SLASHES);
   u\loga('out', $args);
-  if (t\est()) {t\testOutput($args, 'output'); return $result;}
+  if (t\est()) {t\output($args, 'output'); return $result;}
   exit($result);
 }
 
@@ -105,25 +105,30 @@ function backend2($args = FALSE) {
  * @param assoc $opts: array of options
  *   bool $dones: include completed transactions (default TRUE)
  *   bool $pendings: include open invoices (default TRUE)
- *   bool $bonuses: don't inlude rebate and bonus transactions (default FALSE)
- *   bool $exchanges: don't include exchanges of rCredits credit for USD credit (default FALSE)
- *    (but DO include other rewards/loans etc)
+ *   bool $bonuses: include rebate and bonus transactions (default FALSE)
+ *   bool $exchanges: include exchanges of rCredits credit for USD credit (default FALSE)
+ *    (but ALWAYS include other rewards/loans etc)
+ *   bool $vpayments: include virtual payments (to employees/suppliers or from company) (default FALSE)
  * @return the recordset (FALSE if none)
  * NOTE: Denied invoices are included only for the payee, otherwise all complete or tentative transactions
  * other than rebates and bonuses are included (even those will be included if the 'include_bonuses' option is set).
  */
 function myTransactions($starting, $ending, $id = NULL, $opts = array()) {
-  extract(u\just('dones pendings bonuses exchanges', $opts));
+  extract(u\just('dones pendings bonuses exchanges vpayments', $opts));
   u\setDft($dones, TRUE);
   u\setDft($pendings, TRUE);
   u\setDft($bonuses, FALSE);
   u\setDft($exchanges, FALSE);
+  u\setDft($vpayments, FALSE);
   $mya = r\acct();
   if (!@$id) $id = $mya->id; elseif ($id == 'ctty') $id = $mya->community;
-  $commonCriteria = 't.created>=:starting AND t.created<=:ending';
-  if (!$bonuses) $commonCriteria .= ' AND t.type NOT IN (:TX_REBATE, :TX_BONUS)';
-  if (!$exchanges) $commonCriteria .= " AND (t.amount > 0 OR data LIKE '%rebate%')";
-  $commonCriteria .= ' ORDER BY t.xid DESC';
+  $where = 't.created>=:starting AND t.created<=:ending';
+  if (!$bonuses) $where .= ' AND t.type NOT IN (:TX_REBATE, :TX_BONUS)';
+  if (!$exchanges or !$vpayments) {
+    $maybe = $exchanges ? 'NOT' : '';
+    $where .= ($exchanges or $vpayments) ? " AND (amount>0 OR t.data $maybe LIKE '%rebate%')" : ' AND amount>0';
+  }
+  $where .= ' ORDER BY t.xid DESC';
   $states = $dones ? array(TX_DONE, TX_DISPUTED) : array();
   if ($pendings) $states[] = TX_PENDING;
   $states = 't.state IN (' . join(',', $states) . ')';
@@ -134,7 +139,7 @@ function myTransactions($starting, $ending, $id = NULL, $opts = array()) {
       FROM r_txs t LEFT JOIN users u1 ON u1.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
       WHERE (u1.community=:id OR u2.community=:id)
       AND $states
-      AND $commonCriteria
+      AND $where
 EOF;
   } else { // normal account
     if ($pendings) $states .= ' OR (t.state=:TX_DENIED AND t.payee=:id)';
@@ -146,7 +151,7 @@ EOF;
       FROM r_txs t 
       WHERE :id IN (t.payer, t.payee)
       AND ($states)
-      AND $commonCriteria
+      AND $where
 EOF;
   }
 
@@ -266,7 +271,7 @@ function undoTx($xid) {
   // handle undo of a partial unilateral charge (let the merchant undo the invoice, then the partial payment)
   global $lastXid; $lastXid = @$old_data['undoes']; // previous related transaction or FALSE
   
-  $amount = u\formatAmount($old_amount);
+  $amount = u\fmtAmt($old_amount);
   $tofrom = !$old_toMe ? t('to') : t('from');
   $otherUid = $old_otherUid;
   $other = r\userField('fullName', $otherUid);
@@ -332,7 +337,7 @@ function get($currency, &$amount, $confirmed) {
   // (No, include this in rTrader requirements) if (r\isRTrader() and !$mya->can(B_DWOLLA)) return array('no usd account', array(), FALSE);
   $usd = new usd();
   if (!$usd->canTrade()) return array('no usd account', array(), FALSE);
-  $request = u\formatAmount($amount);
+  $request = u\fmtAmt($amount);
   $success = TRUE;
   if ($currency == 'r') {
     if ($my_amount < R_MIN_DEMAND) return array('demand too small', array(), FALSE);
@@ -364,7 +369,7 @@ function get($currency, &$amount, $confirmed) {
   $DBTX = db_transaction();
   r\transact(compact(u\ray('type amount payer payee payerAgent payeeAgent for taking')));
   //DWOLLA: transfer from Dwolla account(s) of next rTrader(s) in line to community account (may take a few days)
-  $balance = u\formatAmount($info_balance - $amount);
+  $balance = u\fmtAmt($info_balance - $amount);
   if ($confirmed) {
     unset($DBTX); // commit
     return array('report get usd', compact(u\ray('request balance success')), FALSE);
@@ -386,7 +391,7 @@ function payInvoice($xid) {
 
   $mya = r\acct();
   if (!$mya->can(B_BUY)) return array('no buy', array());
-  if (!$result = lastTx('xid=:xid AND state=:TX_PENDING', compact('xid'))) return array('no such tx', array());
+  if (!$result = lastTx('xid=:xid AND state IN (:TX_PENDING,:TX_DISPUTED)', compact('xid'))) return array('no such tx', array());
   extract($result, EXTR_PREFIX_ALL, 'old');
   $acct = r\acct($old_payee, $old_payeeAgent);
   $undoes = $xid;
@@ -477,7 +482,7 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   $usd = r\usdPart($totalHit, $taking ? $a2 : $a1, $preapproved, $goods, $confirmed, $shortfall); // short payment or unilateral charge
 
   if ($shortfall) {
-    $short = u\formatAmount($shortfall);
+    $short = u\fmtAmt($shortfall);
     if (is_null($usd)) {
       $msg = $taking ? 'shortr from' : 'shortr to';
       $how = 'exchange'; // for 'shortr to' message on web interface
@@ -496,7 +501,8 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   r\usd::beginAtom();
   if ($confirmed) {
     $payerFee = R_FEE_FOR_CASH ? (!$goods) : FALSE; // cash-getter pays the transaction fee
-    if ($state = TX_DONE and $usd > 0 and !$usdXid = $fromUsAcct->send($usd, $toUsAcct, $for, $err, $payerFee)) {
+    $note = is_array($for) ? $for[$taking ? 1 : 0] : $for;
+    if ($state == TX_DONE and $usd > 0 and !$usdXid = $fromUsAcct->send($usd, $toUsAcct, $note, $err, $payerFee)) {
       r\usd::rollback();
       $fromAcct->actualUsd(); // fix cached USD, if needed (after rollback of course)
       return array('usd failed', array(), FALSE);
@@ -515,7 +521,10 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   if ($confirmed) { // notify other party by email about any confirmed transaction
     $notice = $taking ? ($preapproved ? 'new charge' : 'new invoice')
       : ($virtual ? 'new offer' : 'new payment');
-    if ($args['rewardAmount'] > 0) $notice .= '|reward';
+    if ($notice == 'new payment' and $payee == \variable_get('cgf_uid')) { // should be any nonprofit
+      // 
+    }
+    if (@$args['otherRewardAmount']) $notice .= '|reward other';
     r\notify($uid, $notice, $args);
     $message = $goods ?
         ($preapproved ? ($virtual ? 'offer' : 'transaction') : 'invoice')
@@ -550,7 +559,7 @@ function fund($uid, $type = TX_SIGNUP, $amount = R_SIGNUP_BONUS, $for = NULL, $c
   $taking = ($type >= TX_FINE);
   u\setDft($for, $GLOBALS['txTypes'][$type]);
   r\transact(compact(u\ray('type amount payer payee payerAgent payeeAgent for taking')));
-  $amount = u\formatAmount($amount);
+  $amount = u\fmtAmt($amount);
   $type = $type == TX_SIGNUP ? t('signup bonus') : $for;
   r\notify($uid, 'got funding', compact('amount', 'type'));
   return $amount;
@@ -729,7 +738,7 @@ EOF;
   $resultKeys = 'in out inProper balance rewards rIn rOut rInProper r usdIn usdOut usd';
   $result = compact(u\ray($resultKeys));
   $fancy = array();
-  foreach ($result as $key => $value) $fancy[$key] = u\formatAmount(@$value + 0);
+  foreach ($result as $key => $value) $fancy[$key] = u\fmtAmt(@$value + 0);
   $result['fancy'] = $fancy;
   return (object) $result;
 }
@@ -812,9 +821,9 @@ function lastTx($where = 1, $subs = array(), $cache = FALSE) {
   if (!$result = r\dbQ($sql, $subs)->fetchAssoc()) return FALSE;
   $toMe = ($result['payee'] == $myid);
   $byMe = ($result['taking'] == $toMe);
-  $tid = u\order($toMe, $result['payeeTid'], $result['payerTid']);
+  list ($tid, $otherTid) = u\order($toMe, $result['payeeTid'], $result['payerTid']);
   $otherUid = $result[$toMe ? 'payer' : 'payee'];
-  return $result + compact(u\ray('byMe toMe tid otherUid'));
+  return $result + compact(u\ray('byMe toMe tid otherTid otherUid'));
 }
 
 function accountName($uid) {

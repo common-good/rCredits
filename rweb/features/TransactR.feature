@@ -52,7 +52,7 @@ Scenario: A member confirms request to charge another member
   | op     | who     | amount | goods | purpose |
   | charge | Bea Two | 100    | 1     | labor   |
   Then we say "status": "report invoice" with subs:
-  | action  | otherName | amount | tid |
+  | did     | otherName | amount | tid |
   | charged | Bea Two   | $100   | 2   |
   And we notice "new invoice" to member "NEW.ZZB" with subs:
   | created | fullName | otherName | amount | payerPurpose |
@@ -82,11 +82,11 @@ Scenario: A member confirms request to pay another member
   | op  | who     | amount | goods | purpose |
   | pay | Bea Two | 100    | 1     | labor   |
   Then we say "status": "report transaction" with subs:
-  | action | otherName | amount | tid | rewardType | rewardAmount | balance |
-  | paid   | Bea Two   | $100   | 2   | rebate     | $5           | $155    |
-  And we notice "new payment" to member "NEW.ZZB" with subs:
-  | created | fullName | otherName | amount | payeePurpose |
-  | %today  | Bea Two  | Abe One   | $100   | labor        |
+  | did    | otherName | amount | tid | rewardType | rewardAmount |
+  | paid   | Bea Two   | $100   | 2   | rebate     | $5           |
+  And we notice "new payment|reward other" to member "NEW.ZZB" with subs:
+  | created | fullName | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |
+  | %today  | Bea Two  | Abe One   | $100   | labor        | bonus           |               $10 |
   And transactions:
   | xid      | created   | type      | state    | amount | from      | to      | purpose      | taking |
   | NEW.AAAE | %today | %TX_TRANSFER | %TX_DONE |    100 | NEW.ZZA   | NEW.ZZB | labor        | 0      |

@@ -27,9 +27,12 @@ Scenario: A member contributes
   And gifts:
   | id   | giftDate | amount | often | honor  | honored | share | completed |
   | .ZZA | %today   |     10 |     1 | memory | Jane Do |    10 | %today    |
-  And we notice "new payment" to member "cgf" with subs:
-  | otherName | amount | payeePurpose |
-  | Abe One   |    $10 | contribution |
+  And we notice "gift sent" to member ".ZZA" with subs:
+  | amount | rewardAmount |
+  |    $10 |        $0.50 | 
+  And we notice "new payment|reward other" to member "cgf" with subs:
+  | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |
+  | Abe One   |    $10 | contribution |           bonus |                $1 |
   And we tell staff "gift accepted" with subs:
   | amount | often | txField  |
   |     10 |     1 | payerTid |

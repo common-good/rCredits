@@ -46,7 +46,7 @@ Scenario: The caller confirms a payment
   Then the community has r$-765
   And phone +20003 has r$360
   And we say to phone +20001 "report transaction" with subs:
-  | action | otherName | amount | rewardType | rewardAmount | balance | tid |
+  | did    | otherName | amount | rewardType | rewardAmount | balance | tid |
   | paid   | Corner Pub | $100   | rebate      | $5            | $155    | 2   |
   # "You paid Corner Pub $100 (rebate: $5). Your new balance is $155. Transaction #2"
 
@@ -55,7 +55,7 @@ Scenario: The caller confirms a request to charge
   Then phone +20003 has r$250
   And phone +20001 has r$250
   And we say to phone +20001 "report invoice" with subs:
-  | action  | otherName | amount | tid |
+  | did     | otherName | amount | tid |
   | charged | Corner Pub | $100   | 2   |
   # "You charged Corner Pub $100 (bonus: $10). Your balance is unchanged, pending payment. Invoice #2"
   And we email "new-invoice" to member "c@example.com" with subs:
@@ -68,7 +68,7 @@ Scenario: The caller confirms a unilateral charge
   Then the community has r$-765
   And phone +20003 has r$155
   And we say to phone +20001 "report transaction" with subs:
-  | action  | otherName | amount | rewardType | rewardAmount | balance | tid |
+  | did     | otherName | amount | rewardType | rewardAmount | balance | tid |
   | charged | Corner Pub | $100   | bonus       | $10           | $360    | 2   |
   # "You charged Corner Pub $100 (bonus: $10). Your new balance is $110. Transaction #1"
   And we email "new-charge" to member "c@example.com" with subs:
@@ -80,7 +80,7 @@ Scenario: The caller confirms a payment with insufficient balance
   Then the community has r$-787.50
   And phone +20003 has r$525
   And we say to phone +20001 "report short payment" with subs:
-  | action | otherName | amount | short | balance | tid |
+  | did    | otherName | amount | short | balance | tid |
   | paid   | Corner Pub | $250   | $50   | $12.50  | 2   |
   # "SPLIT TRANSACTION! You paid Corner Pub $100 (rebate: $5). You will need to use US Dollars for the remainder. Your new balance is $5. Transaction #2"
 
@@ -102,7 +102,7 @@ Scenario: The caller confirms payment of the latest invoice
   Then the community has r$-765
   And phone +20001 has r$360
   And we say to phone +20003 "report transaction" with subs:
-  | action| otherName | amount | rewardType | rewardAmount | balance | tid |
+  | did   | otherName | amount | rewardType | rewardAmount | balance | tid |
   | paid  | Abe One    | $100   | rebate      | $5            | $155    | 3   |
   # "You paid Abe One $100 (rebate: $5). Your new balance is $55. Transaction #3" (#3 not #2, because the [deleted] invoice was #2)
 

@@ -61,7 +61,7 @@ Setup:
   | .ZZC |  265 |  3044.25 |     260 |
 
 Scenario: A member downloads transactions for the past year
-  When member ".ZZA" visits page "transactions/period=365&download=1&states=2"
+  When member ".ZZA" visits page "transactions/period=365&download=1&options=%CURRENCIES_BOTH%STATES_BOTH 000"
   Then we download "rcredits%todayn-12m-%todayn.csv" with:
   # For example rcredits20120525-20130524.csv
   | t# | Created | Name    | From you | To you | rCredits | USD  | Status   | Purpose | Reward | Net  |
@@ -85,7 +85,7 @@ Scenario: A member downloads transactions for the past year
   | USD#   |
 
 Scenario: A member downloads completed transactions for the past year
-  When member ".ZZA" visits page "transactions/period=365&download=1&states=0"
+  When member ".ZZA" visits page "transactions/period=365&download=1&options=%CURRENCIES_BOTH%STATES_DONE 000"
   Then we download "rcredits%todayn-12m-%todayn.csv" with:
   | Tx#  | t# | Created | Name    | From you | To you | rCredits | USD  | Status   | Purpose | Reward | Net  |
   | AACJ | 15 | %ymd-5d | Our Pub |          |    100 |       80 |   20 | disputed | cash CJ |        |  100 |

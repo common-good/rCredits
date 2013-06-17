@@ -33,16 +33,16 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'account info' => t("Your balance for account @quid is @balance, including @rewards of incentive rewards. Total demand for rCredits is @totalDemand."),
 //  'account info2' => t("More account info"), // not used yet
   'your account is ready' => t('Your starting balance is @balance. Pretend to buy and sell as you would in a typical month (we need that info). Have fun! Type "helpme" to get started.'), // separate out the last sentence
-  'report transaction' => t("You @action @otherName @amount (@rewardType: @rewardAmount). Transaction #@tid"),
+  'report transaction' => t("You @did @otherName @amount (@rewardType: @rewardAmount). Transaction #@tid"),
   'report offer' => t("You offered @otherName @amount (@rewardType: @rewardAmount). Your balance is unchanged, pending acceptance. Transaction #@tid"),
-  'report invoice' => t("You @action @otherName @amount. Your balance is unchanged, pending agreement. Invoice #@tid"),
+  'report invoice' => t("You @did @otherName @amount. Your balance is unchanged, pending agreement. Invoice #@tid"),
   'report broke invoice' => t("@otherName does not have enough rCredits at this time, so an invoice has been sent, for @short. Invoice #@tid"), // UNUSED probably
   'report short payment' => t("SPLIT! You paid @otherName @amount (@short remains to be paid). Transaction #@tid"),
 //  'report short invoice' => t("SPLIT! You charged @otherName @amount (@short has been invoiced). Transaction #@tid, Invoice #@t2id"),
   'report short invoice' => t("SPLIT! You charged @otherName @amount (@short remains to be paid). Transaction #@tid"),
-   'report exchange' => t("You @action @otherName @amount for cash/loan/gift/etc. Transaction #@tid"),
+   'report exchange' => t("You @did @otherName @amount for cash/loan/gift/etc. Transaction #@tid"),
   'report exchange request' => t("You requested @amount from @otherName. Your balance is unchanged, pending approval. Invoice #@tid"),
-  'report funding' => t("You successfully @action @amount to @otherName."),
+  'report funding' => t("You successfully @did @amount to @otherName."),
   'paid employees' => t('You distributed @total to @successes of @employeeCount employees. See your transactions page for details.'),
 //  'new-invoice' => t('@otherName requests @amount for "@payerPurpose". Type "pay" or "undo".'),
 //  'new-offer' => t('@otherName is offering you a virtual payment of @amount for "@payeePurpose". Type "accept" or "undo".'),
@@ -63,6 +63,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'you are approved' => t('Your account has been approved! You may now buy and sell through the rCredits system, including using your rCard for purchases at member businesses.'),
   'got funding' => t('You have received a @type of @amount from your rCredits community.'),
   'gift sent' => t('Your chosen gift of @amount to Common Good Finance has gone through. Your rebate is @rewardAmount.'),
+  'tx summary' => t('@otherName @otherDid you @amount for "@purpose" on @created.'),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),
@@ -82,6 +83,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'confirm funding' => t('@confirmAction @amount to @otherName?'),
   'please confirm' => t('To confirm, type @nonce.'),
   'verification code' => t('Your verification code for using rCredits online is: @nonce'), // used in rWeb
+  'confirm tx action' => t('Okay to @txAction?'),
   
   // error messages
   'syntax' => t('Wrong syntax!'),
@@ -156,6 +158,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'not verified' => t('the funding source has not yet been verified by entering the two tiny deposit amounts'),
   
   'reward' => t('Your @rewardType is @rewardAmount.'),
+  'reward other' => t('Your @otherRewardType is @otherRewardAmount.'),
   'new charge' => t('<b>Charge:</b> @otherName charged you @amount for "@payerPurpose".'),
   'new payment' => t('<b>Payment:</b> @otherName paid you @amount for "@payeePurpose".'),
   'new invoice' => t('<b>Invoice:</b> @otherName invoiced you @amount for "@payerPurpose". To pay (or deny) this invoice, visit your Transactions page.'),

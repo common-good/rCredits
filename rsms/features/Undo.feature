@@ -61,14 +61,14 @@ Scenario: The caller confirms undoing a charge
   Then the community has r$-763.34
   And phone +20002 has r$242.22
   And we say to phone +20001 "report undo|report exchange" with subs:
-  | solution | action | otherName | amount | balance | tid |
+  | solution | did    | otherName | amount | balance | tid |
   | reversed | gave   | Bea Two    | $11.11 | $187.79 | 6   |
   # "You gave Corner Pub $100 cash/loan/etc. Your new balance is $150. Transaction #2"
 
 Scenario: The caller confirms undoing a payment
   When phone +20001 confirms "undo to .ZZB"
   And we say to phone +20001 "report undo|report invoice" with subs:
-  | solution | action  | otherName | amount | tid |
+  | solution | did     | otherName | amount | tid |
   | reversed | charged | Bea Two    | $33.33 | 6   |
   # "You gave Corner Pub $100 cash/loan/etc. Your new balance is $150. Transaction #2"
 

@@ -72,7 +72,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
   } else { */
   $flags = 0;
   if (@$flags0) foreach (u\ray($flags0) as $one) {
-    $bit = constant('B_' . strtoupper($one));
+    $bit = u\consta('b', $one);
     $flags |= u\eq($bit, B_DFT, u\bit($bit));
   }
   if ($flags & u\bit(B_OK)) $flags |= u\bit(B_MEMBER);
@@ -87,11 +87,11 @@ function makeAccount($info = array(), $testOnly = FALSE) {
   foreach (u\ray('id email acctType dwolla') as $one) unset($info[$one]);
   $info = compact(u\ray('uid flags ' . $testFields)) + $info;
   if ($testOnly) {
-    if (!$acct = r\acct($uid)) return testOutput("No such uid: $uid");
+    if (!$acct = r\acct($uid)) return output("No such uid: $uid");
     foreach ($info as $key => $value) {
       if (!eq($acct->$key, $value)) {
         if ($key == 'pass' and (!isset($pass) or r\Web\passwordOkay($acct, @$pass))) continue;
-        return testOutput("Wrong value for $key. Expected:$value Got:" . $acct->$key);
+        return output("Wrong value for $key. Expected:$value Got:" . $acct->$key);
       }
     }
     return TRUE;
@@ -130,7 +130,7 @@ function makeTx($info, $testOnly = FALSE) {
   u\setDft($type, TX_TRANSFER);
   u\setDft($state, TX_DONE);
   u\setDft($created, REQUEST_TIME);
-  foreach (u\ray('type state') as $one) if (!is_numeric($$one)) $$one = constant('TX_' . strtoupper($$one));
+  foreach (u\ray('type state') as $one) if (!is_numeric($$one)) $$one = u\consta('tx', $$one);
   $payer = uid($from);
   $payerAgent = uid(@$fromAgent ?: ($type == TX_TRANSFER ? $from : r\communityUid()));
   $payee = uid($to); 
@@ -142,7 +142,7 @@ function makeTx($info, $testOnly = FALSE) {
   if (strpos($for, ',')) $for = explode(',', $for); // specifying both payerFor and payeeFor
 
   u\setDft($goods, ($type != TX_TRANSFER or u\forCash($for)) ? 0 : 1);
-  if ($goods) list ($rebate, $bonus) = array(r\rebate($payer, $r), r\bonus($payee, $r));
+  if ($goods) list ($rebate, $bonus) = array(r\rebate($payer, $payee, $r), r\bonus($payee, $payer, $r));
   foreach (u\ray('from to purpose for') as $one) unset($info[$one]);
   
   $info = compact(u\ray('xid created r payer payerAgent payee payeeAgent for type state channel goods taking data')) + $info;
@@ -164,12 +164,12 @@ function makeRelation($info, $testOnly = FALSE) {
   extract($info);
   
   $reid = u\num($id, u\a2n(substr($id, -3)));
-  if (!$mainAcct = r\acct(t\uid($main))) return testOutput("main:$main is not an id");
-  if (!$agtAcct = r\acct(t\uid($agent))) return testOutput("agent:$agent is not an id");
+  if (!$mainAcct = r\acct(t\uid($main))) return output("main:$main is not an id");
+  if (!$agtAcct = r\acct(t\uid($agent))) return output("agent:$agent is not an id");
   u\EXPECT(!r\foreignServer(r\uidRegion($mainAcct->id)) or !r\foreignServer(r\uidRegion($agtAcct->id)));
   u\EXPECT($mainAcct->proSe() and $agtAcct->proSe());
   list ($main, $other) = array($mainAcct->id, $agtAcct->id);
-  $info['permission'] = @$permission ? constant('PERM_' . strtoupper($permission)) : 0;
+  $info['permission'] = @$permission ? u\consta('perm', $permission) : 0;
   if (@$draw) $agtAcct->setBit(B_DRAWS);
   
   foreach (u\ray('id main agent') as $one) unset($info[$one]);
@@ -187,13 +187,13 @@ function notice($notice, $id, $subs) {
     if (preg_match('/^\$(.*)(r|us)?$/U', $value, $matches)) {
       list ($num, $currency) = array($matches[1], @$matches[2]);
       if ($currency == 'us') $currency = 'u';
-      $subs[$key] = u\formatAmount($num, 's$' . $currency);
+      $subs[$key] = u\fmtAmt($num, 's$' . $currency);
     }
   }
   $message = u\tt($notice, @$subs);
   $sent = @$subs['sent'] ?: 0;
   $info = compact(u\ray('uid message sent'));
-  return r\dbExists('r_notices', $info) ?: t\testOutput('Expected notice ' . print_r($info, 1));
+  return r\dbExists('r_notices', $info) ?: t\output('Expected notice ' . print_r($info, 1));
 }
   
 /**
@@ -227,7 +227,7 @@ function makeBalances($one, $testOnly) {
       list ($usd, $bal) = t\parseAmt($usd, $a);
       if (t\badEq('REAL usd', $bal, $usd, $id)) return FALSE;
     }
-// (can't tell because it starts nonzero) if (!t\eq($calc->usd, $usd)) return t\testOutput('bad calc usd');
+// (can't tell because it starts nonzero) if (!t\eq($calc->usd, $usd)) return t\output('bad calc usd');
     if (t\badEq('cached usd', $a->usd, $usd, $id)) return FALSE;
   }
   foreach (u\ray('minimum share committed') as $one) {
@@ -267,7 +267,7 @@ function uidCredit($uid) {
   $a = r\acct($uid);
   if ($uid >0) foreach (u\ray('r rewards') as $one) { // (community amounts don't get cached) (don't include usd)
     if (!t\eq($v1 = $info->$one, $v2 = $a->$one + 0)) {
-      testOutput("Calculated $one different from cache: $v1 <> $v2");
+      output("Calculated $one different from cache: $v1 <> $v2");
       $info->$one = 'error';
     }
   }
@@ -319,7 +319,7 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
     }
   } else unset($fields['message']); // empty message in features means NO message
   $agent = @r\acct()->agentId;
-  testOutput(array('EXPECT' => '') + $fields, @$subject ? 'email' : 'output'); // keep this
+  output(array('EXPECT' => '') + $fields, @$subject ? 'email' : 'output'); // keep this
   $info = json_encode($fields, JSON_UNESCAPED_SLASHES);
   $crit = "channel=:channel AND type=:type AND myid<=>:myid AND agent<=>:agent ORDER BY logid DESC";
 // debug(compact(u\ray('info type myid agent channel crit'))); // for debugging mysterious email mismatches
@@ -343,7 +343,7 @@ function weTellStaff($topic, $subs = array()) {
     $find = u\tt($find, compact('index', 'subject'));
     foreach ($one as $k => $value) $find .= "$value%";
     if (!$last = r\dbLookup('info', 'r_log', "info LIKE '$find' ORDER BY logid DESC")) {
-      if (count($subs) > 1) testOutput("tell-staff can't find $find");
+      if (count($subs) > 1) output("tell-staff can't find $find");
       return FALSE;
     }
   }
@@ -425,7 +425,7 @@ function hitServer($op, $agent, $code = '', $account_id = '', $extra = array()) 
     }
   }
   $json = json_encode(compact(u\ray('op my_id code account_id')) + $extra, JSON_UNESCAPED_SLASHES);
-  testOutput($json, 'input'); // keep this
+  output($json, 'input'); // keep this
   r\Smart\api(compact('json'));
 //  be\send($json); // remember the server's response (this is the real test, once most bugs are gone)
   return TRUE;
@@ -435,7 +435,7 @@ function snapShot(&$form) { // (additional sta values have no effect at this sta
   addAttribs($form);
   return; // the rest is redundant
   //global $formOut['text']; $zot = $form; $formOut['text'] = strip(\render($zot)); // for testing
-  //testOutput('ACTUAL or EXPECTED: ' . $formOut['text'], 'screen');
+  //output('ACTUAL or EXPECTED: ' . $formOut['text'], 'screen');
 }
 
 function addAttribs(&$thing) {
@@ -481,7 +481,7 @@ function verifyRecord($table, $info) {
   }
   $crit = join(' AND ', $crit);
   $result = r\dbExists($table, $crit, $info);
-  if (!$result) testOutput("verifyRecord failed. table=$table crit=$crit EXPECTED info=" . print_r($info, 1)); // keep
+  if (!$result) output("verifyRecord failed. table=$table crit=$crit EXPECTED info=" . print_r($info, 1)); // keep
   return $result;
 }
 
@@ -489,18 +489,18 @@ function verifyRecord($table, $info) {
  * Simulate completion (and possible confirmation) of a form.
  * @param string $id: quid for the user (or company agent) completing the form
  * @param string $page: path to form from drupal root
- * @param array $values: field names/values
+ * @param array $values: array of assoc of field names/values (or empty)
  * @param bool $confirmed: whether the user has confirmed the values (default FALSE)
  * @return TRUE on success
  */
-function completeForm($id, $page, $values, $confirmed = FALSE) {
+function completeForm($id, $page, $values = '', $confirmed = FALSE) {
   global $testOnly; if ($testOnly) return FALSE;
   global $testOp; $testOp = @$values[0]['op'];
   global $testConfirmation; // confirmation message output, if any
   global $formSta;
 // debug(compact(u\ray('id page values confirmed testOnly'))); // keep
 
-  $values = $values[0];
+  $values = @$values[0] ?: array();
   t\fixCountryAndState($values);
   if (isset($values['amount']) and !is_numeric($values['amount'])) {
     $a = r\acct(t\fullQid($id));
@@ -511,39 +511,40 @@ function completeForm($id, $page, $values, $confirmed = FALSE) {
   t\logIn($id);
 
   $validate = TRUE;
-  if (!$form = t\pageForm(t\fixPageArgs($page), FALSE)) {
-    return FALSE; // probably access error
+  if (u\abbreviates('transactions/', $page) and $confirmed) {
+    $validate = FALSE;
+    $formSta['confirm'] = TRUE;
   }
+
+  if (!$form = t\pageForm(t\fixPageArgs($page), FALSE)) return FALSE; // probably access error
+  $sta = $formSta; $formSta = NULL; // don't let $formSta influence other forms that get invoked
   
   if ($page == 'pay' or $page == 'charge') {
     $page = 'Tx';
     if ($confirmed) $validate = FALSE;
   }
-
   $errorsBefore = t\getErrors();
   
   $dfts = array();
   foreach ($form as $key => $field) if (substr($key, 0, 1) != '#') {
 //    u\setDft($dft, @$field['#default_value']);
-    if ($field['#type'] == 'hidden') $dfts[$key] = $field['#value'];
+    if (@$field['#type'] == 'hidden') $dfts[$key] = $field['#value'];
   }
-  $formSta['values'] = $formSta['input'] = $values + $dfts; // add to whatever status the form left off in
-  if ($validate) foreach (t\postProcess($form, $page, 'validate') as $one) $one($form, $formSta);
-
+  $sta['values'] = $sta['input'] = $values + $dfts; // add to whatever status the form left off in
+  if ($validate) foreach (t\postProcess($form, $page, 'validate') as $one) $one($form, $sta);
   if (count($errors = t\getErrors()) > count($errorsBefore)) {
     // NO! if (!empty($errors)) return FALSE;
 // debug(compact(u\ray('id page values confirmed one errors')));
   } else {
-    $testConfirmation = @$formSta['confirm'];
+//    $testConfirmation = @$sta['confirm'];
     $lastIdentifierTag = '</div identifiers>';
     if ($i = strpos($testConfirmation, $lastIdentifierTag)) $testConfirmation = substr($testConfirmation, $i + strlen($lastIdentifierTag));
-    foreach (t\postProcess($form, $page, 'submit') as $one) {
-      $one($form, $formSta);
-    }
+    foreach (t\postProcess($form, $page, 'submit') as $one) $one($form, $sta);
+
     if ($page == '/user/login') { // fudge this test until we can take over the login process from Drupal
-      if (!$id = @$formSta['uid']) return FALSE;
+      if (!$id = @$sta['uid']) return FALSE;
       t\logIn($id);
-      r\Web\loginFollowup($formSta, r\acct($id)->account());
+      r\Web\loginFollowup($sta, r\acct($id)->account());
     }
   }
 
@@ -563,7 +564,7 @@ function pageForm($page) {
   $args = basename($page);
 
   if (u\abbreviates('/user/', $page)) {
-    $sta = array();
+    $sta = @$formSta ?: array();
     list ($form, $function) = strpos($page, '/register') ? array('user_register_form', 'formRegister')
       : ($login ? array('user_login', 'formLogin') : array());
     $function = 'rCredits\\Web\\' . $function;
@@ -580,20 +581,21 @@ function pageForm($page) {
   if (is_numeric($result)) {
     $result = $result == MENU_NOT_FOUND ? 'not found' 
       : ($result == MENU_ACCESS_DENIED ? 'access error' : "error #$result");
-    t\testOutput("page \"$page\": $result in t\\pageForm()");
+    t\output("page \"$page\": $result in t\\pageForm()");
   } else getFormOut($result);
   return $formArray;
 }
 
 function getFormOut($out) {
   global $formOut;
+
   $formOut = array();
   $formOut['options'] = t\dropdownOptions($out) . PHP_EOL . t\radioOptions($out);
   $formOut['steps'] = t\getSteps($out);
   $formOut['done'] = join('', t\getSteps($out, TRUE));
   $formOut['text'] = t\strip($out);
   $formOut['notags'] = strip_tags($out);
-  t\testOutput('ACTUAL: ' . $formOut['text'], 'screen');
+  t\output('ACTUAL: ' . $formOut['text'], 'screen');
 }
 
 /**
@@ -672,7 +674,7 @@ function eq($a, $b) {
       (abs($a - $b) < .0001)
     : ($a == $b or (empty($a) and empty($b)));
   if (!$result) echo 'not equal: ' . print_r(compact('a','b'), 1); // keep for now
-  if (!$result) testOutput("unequal: a=$a b=$b", 'error'); // keep for now
+  if (!$result) output("unequal: a=$a b=$b", 'error'); // keep for now
   return $result;
 }
 
@@ -707,7 +709,7 @@ function color($msg, $color = 'normal') {
  * Output the message with the given background color.
  * Return FALSE (meaning error in returns from callers) unless a color is specified.
  */
-function testOutput($msg, $color = 'error') {
+function output($msg, $color = 'error') {
   if (t\est()) \drupal_set_message(color($msg, $color));
   return $color == 'error' ? FALSE : TRUE;
 }
@@ -723,11 +725,13 @@ function est() {return (@TESTING == 1 ? 't' : FALSE);}
  * @param int $ch: the channel (web, sms, etc.)
  */
 function clear($ch) {
+  global $formOut, $formArray, $formSta, $testOp, $testConfirmation;
+  $formOut = $formArray = $formSta = $testOp = $testConfirmation = NULL;
+  global $sms_devel; $sms_devel = TRUE;
   global $channel; 
   $channel = $ch;
   $cgfUid = \variable_get('cgf_uid');
   $tables = 'r_notices r_sms r_txs r_relations r_log r_invites r_companies r_gifts r_smarts r_proxies r_usd r_user_industries';
-  global $sms_devel; $sms_devel = TRUE;
 
   r\dbQ('DELETE FROM users WHERE uid>:cgfUid OR (uid>1 AND uid<:cgfUid-1)', compact('cgfUid'));
   foreach (u\ray($tables) as $one) r\dbQ("TRUNCATE $one");
@@ -750,7 +754,7 @@ function fixPageArgs($page) {
   foreach ($special as $one) if (preg_match($pat = "`(/|&)$one(&|$)`", $page, $matches)) {
     list ($zot, $start, $word, $what, $end) = $matches;
     if ($word == 'by' or $word == 'id') $what = t\uid($what);
-    if ($word == 'flow') $what = constant('FLOW_' . strtoupper($what));
+    if ($word == 'flow') $what = u\consta('flow', $what);
     $page = preg_replace($pat, "$start$word=$what$end", $page);
   }
   return $page;
@@ -786,7 +790,7 @@ function parseAmt($var, $a) {
 
 function badEq($type, $v1, $v2, $id) {
   if (t\eq($v1, $v2)) return FALSE;
-  t\testOutput("bad $type v1=$v1 v2=$v2 uid=$id");
+  t\output("bad $type v1=$v1 v2=$v2 uid=$id");
   return TRUE;
 }
 
@@ -800,6 +804,7 @@ function badEq($type, $v1, $v2, $id) {
 function shownWith($content, $type = 'text', $showDebugs = TRUE) {
   global $formOut;
   $model = $formOut[$type];
+  //debug(compact('formOut', 'content'));
   $xi = $i = 0;
 
   foreach ($content as $fields) {
@@ -807,9 +812,9 @@ function shownWith($content, $type = 'text', $showDebugs = TRUE) {
 /**/ if ($showDebugs) debug("EXPECT page with " . print_r($fields, 1)); // keep this
     foreach ($fields as $one) { // ignore the keys here
       if ($one !== '') $i = strpos($model, $one, $xi = $i);
-      if ($showDebugs) t\testOutput(compact('xi','i','one'));
+      if ($showDebugs) t\output(compact('xi','i','one'));
       if ($i === FALSE) {
-        if ($showDebugs) t\testOutput(substr($model, 0, $xi) . ' <b style="font-size:200%;">[OK until here]</b> ' . substr($model, $xi));
+        if ($showDebugs) t\output(substr($model, 0, $xi) . ' <b style="font-size:200%;">[OK until here]</b> ' . substr($model, $xi));
 // debug($formOut['notags']);
         return FALSE;
       } else $i += strlen($one);

@@ -83,9 +83,7 @@ class rwebSignup extends DrupalWebTestCase {
     Then_('members: "DATA'
     . '\\| id   | fullName | email         | phone        | country | postalCode | state | city | flags | floor |'
     . '\\| .AAC | Abe One  | a@example.com | +14132530000 | US | 01001 | MA | Amherst | dft,personal | 0 |"');
-    And__('we say "status": "your account is ready" with subs: "DATA'
-    . '\\| quid    | bonus            |'
-    . '\\| NEW.AAC |  |"');
+    And__('we say "status": "your account is ready"');
     And__('we email "welcome" to member "a@example.com" with subs: "DATA'
     . '\\| fullName | name   | quid    | region | pass     | bonus           |'
     . '\\| Abe One  | abeone | NEW.AAC | new    | (varies) |  |"');
@@ -281,9 +279,7 @@ class rwebSignup extends DrupalWebTestCase {
     And__('balances: "DATA'
     . '\\| id   | r | usd | rewards |'
     . '\\| .AAD | 0 |   0 |       0 |"');
-    And__('we say "status": "company is ready" with subs: "DATA'
-    . '\\| quid |'
-    . '\\| NEW.AAD |"');
+    And__('we say "status": "company is ready"');
     And__('we show "Sign In" with: ""');
   }
 
@@ -297,11 +293,9 @@ class rwebSignup extends DrupalWebTestCase {
     Then_('members: "DATA'
     . '\\| id      | fullName | email         | phone        | country | postalCode | state | city    | flags |'
     . '\\| NEN.AAA | Abe One  | a@example.com | +13332530000 | US | 03768-2345 | NH | Lyme | dft,personal |"');
-    And__('we say "status": "your account is ready" with subs: "DATA'
-    . '\\| quid |'
-    . '\\| NEN.AAA |"');
+    And__('we say "status": "your account is ready"');
     And__('we email "welcome" to member "a@example.com" with subs: "DATA'
-    . '\\| fullName | name   | quid | region | pass     |'
+    . '\\| fullName | name   | quid    | region | pass     |'
     . '\\| Abe One  | abeone | NEN.AAA | new    | (varies) |"');
     And__('we show "Sign In" with: ""');
   }

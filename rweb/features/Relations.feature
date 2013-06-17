@@ -141,11 +141,13 @@ Scenario: It's complicated
   | employer? |
 
 Scenario: A member adds a relation
-  When member ".ZZA" visits page "account/relations"
-  And member ".ZZA" confirms form "account/relations" with values:
+  When member ".ZZA" completes form "account/relations" with values:
   | newPerson |
   | beatwo    |
-  Then we show "Relations" with:
+  Then we say "status": "report new relation" with subs:
+  | who     |
+  | Bea Two |
+  And we show "Relations" with:
   | Person     | Draw | My employer? | My employee? | Family? | Permission   | Request rCard |
   | Bea Two    | No   | No           | --           | No      | no access    |               |
   

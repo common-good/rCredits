@@ -10,9 +10,12 @@ use rCredits as r;
  * Forms for managing transactions, and related functions
  */
 
+define('TX_OPT_KEYS' , 'agents channels exchanges vpayments');
+define('TX_URL_OPTS', 'currency states ' . TX_OPT_KEYS);
 define('TX_OPT_AGENTS', 1);
 define('TX_OPT_CHANNELS', 2);
 define('TX_OPT_EXCHANGES', 3);
+define('TX_OPT_VPAYMENTS', 4);
 
 define('STATES_DONE', 0); // show just completed transactions
 define('STATES_PENDING', 1); // show just open invoices
@@ -29,30 +32,33 @@ function formTxs($form, &$sta, $args = '') {
   global $base_url;
   $mya = r\acct();
   
-  extract(u\just('currency states agents channels exchanges period starting ending do xid download downloaded variety', $args)); 
+  extract(u\just('options period starting ending do xid download downloaded variety', $args)); 
   $report = $mya->can(B_CTTY_ADMIN) ? (@$variety == 'report') : FALSE; // no community reports yet for non-admins
   if (!$report and @$do) if ($result = handleTx($do, $xid, $sta, $args)) return $result;
 
   $page = $report ? 'reports' : 'transactions';
-  u\setDft($period, TX_DEFAULT_PERIOD);
-  u\setDft($states, STATES_BOTH); // both  
-  u\setDft($currency, 2); // both
-  if (@$download) $currency = 2; // always both for download
+  if (!@$period) $period = TX_DEFAULT_PERIOD;
+  if (strlen(@$options) != count($urlOpts = u\ray(TX_URL_OPTS))) $options = $mya->can(B_PERSONAL) ? '220000' : '221000'; // defaults for TX_OPT_KEYS options (2=both)
+  $options = array_combine($urlOpts, str_split($options));
+//  u\setDft($states, STATES_BOTH); // both  
+//  u\setDft($currency, 2); // both
+  if (@$download) $options['currency']  = CURRENCIES_BOTH; // always both for download
+  extract($options);
+  $options = join('', array_values($options));
   
-  // set up option fields (must come before $currency and $url0)
   $optDefaults = $opts = array();
-  foreach (u\ray('agents channels exchanges') as $one) {
-    $opts[constant('TX_OPT_' . strtoupper($one))] = $one; // set TX_OPT_CHANNELS etc.
-    if (@$$one) $optDefaults[] = $one;
+  foreach (u\ray(TX_OPT_KEYS) as $one) {
+    $opts[u\consta('tx_opt', $one)] = $one; // set TX_OPT_CHANNELS etc.
+    if (@$$one) $optDefaults[] = $one; // set up option field values
   }
-  if (!isset($agents) and !$mya->can(B_PERSONAL)) {$agents = TRUE; $optDefaults[] = 'agents';}
   
-  $url0 = @"$base_url/$page/period=$period&currency=$currency&states=$states&agents=$agents&channels=$channels&exchanges=$exchanges&variety=$variety";
   list ($classes, $header, $downloadHeader) = txFields($report, @$download, @$agents, @$channels);
  
   $txDays = array('1' => 'today', '4' => '4 days', '30' => '30 days', '90' => '90 days', '180' => '6 months', '365' => '12 months', '-1' => 'Year to date');
   list ($starting, $ending) = txDates($txDays, @$period, @$starting, @$ending);
-  $maxRows = @$download ? PHP_INT_MAX : 20; // don't overwhelm the screen
+  $url0 = @"$base_url/$page/period=$period&starting=$starting&ending=$ending&options=$options&variety=$variety";
+
+  $maxRows = @$download ? PHP_INT_MAX : TX_MAX_ROWS; // don't overwhelm the screen
   if (@$download) {
     $csv = setupDownload($starting, $ending);
     csv($csv, $downloadHeader);
@@ -62,8 +68,8 @@ function formTxs($form, &$sta, $args = '') {
   // build the transaction list
   $dones = ($states != STATES_PENDING);
   $pendings = ($states != STATES_DONE);
-  $options = compact(u\ray('dones pendings exchanges'));
-  $result = be\myTransactions($starting, $ending, $report ? 'ctty' : $mya->id, $options);
+  $txOpts = compact(u\ray('dones pendings exchanges vpayments'));
+  $result = be\myTransactions($starting, $ending, $report ? 'ctty' : $mya->id, $txOpts);
   $rows = array();
   for ($rowNum = 0; $rowNum < $maxRows; $rowNum++) {
     if (!$tx = $result->fetchAssoc()) break;
@@ -80,7 +86,8 @@ function formTxs($form, &$sta, $args = '') {
     u\splice($totDone, 'date', 1, compact(u\ray('txid created date')));
     u\splice($totDone, 'buttons', 1); // don't download buttons
     $totDone['name'] = 'TOTALS';
-//    foreach($totDone as $key => $value) if ($value === FALSE) $totDone[$key] = '-';
+    foreach(u\just(TX_MONEY_FIELDS, $totDone) as $key => $value) $totDone[$key] = round($value, 2);
+    //if ($value === FALSE) $totDone[$key] = '-';
     csv($csv, array_values($totDone)); // not STDOUT
     if (t\est()) return; else exit();
   }
@@ -94,27 +101,26 @@ function formTxs($form, &$sta, $args = '') {
   $caption = $sticky = '';
   $empty = tt('no txs');
   $list = theme_table(compact(u\ray('header rows attributes caption colgroups sticky empty')));
-//  $transactions = formField('markup', '', '', array('markup' => "<div id=\"txs-title\">TRANSACTIONS</div>$list <br>&nbsp;"));
   $transactions = item("<div id=\"txs-title\">TRANSACTIONS</div>$list <br>&nbsp;");
   
   if ($report) {
     $agents = $summary = NULL;
-  } else $summary = formField('markup', '', '', array('markup' => tx_summary($starting, $ending, $currency)));
+  } else $summary = formField('markup', '', '', array('markup' => txSummary($starting, $ending, $currency)));
 
   $radios = array(t('rCredits'), t('USD'), t('both'));
   $currency = hidField(2); //formField('radios', t('Currency:'), '', dft($currency), $radios); 
   $radios = array(t('completed'), t('open invoices'), t('both'));
   $states = formField('radios', t('Types:'), '', dft($states), $radios);
-  $opts2 = boxField('opts', t('Show:'), t('Agent is who did the transaction on your behalf. Channel ("Via") is Web, Smartphone, SMS, or Automatic. Exchanges are 1-to-1 trades of rCredits for US Dollars.'), $optDefaults, $opts);
+  $opts2 = boxField('opts', t('Show:'), t('Agent is who did the transaction on your behalf. Channel ("Via") is Web, Smartphone, SMS, or Automatic. Exchanges are 1-to-1 trades of rCredits for US Dollars. VPayments are virtual 1-to-1 trades with a company, employee, or supplier.'), $optDefaults, $opts);
   
   $divider = item('<hr>');
   $period = formField('select', t('For the past:'), '', dft($period), $txDays);
   $submitPeriod = submit(t('Show ')); // label has to be different from submitDates (see below)
-  $downloadPeriod = submit(t('Download'));
+  $downloadPeriod = submit(t('Download '));
   $starting = textField(t('OR Starting:'), '', dft(u\formatDate($starting)));
   $ending = textField(t('Ending:'), '', dft(u\formatDate($ending)));
   $submitDates = submit(t(' Show')); // label has to be different (Drupal bug -- else can't tell which is clicked)
-  $downloadDates = submit(t('Download'));
+  $downloadDates = submit(t(' Download'));
   $title = "";
   $title = item(t('rCredits Transaction History'));
   $subtext = item(t('The "r%" column tells what percentage of the total transaction amount is rCredits. Hover over that figure to see the breakdown.'));
@@ -135,18 +141,6 @@ function setupDownload($starting, $ending) {
   return fopen('php://output', 'w');
 }
 
-function handleTx($do, $xid, $sta, $args) {
-  if (!$xid = (int) @$xid) return FALSE;
-  if ($do == 'edit') return tx_edit($xid);
-  if ($do == 'ok' or $do == 'no') {
-    if ($confirm = txConfirm($do, $xid, $sta)) return $confirm;
-    if (!$sta['rebuild']) txOKorNO($do, $xid); // don't do anything if canceling
-    $url = str_replace('&do=', '&did=', "transactions/$args"); // don't do it again
-    r\go($url); // back to the normal form
-  }
-  return FALSE;
-}
- 
 /**
  * Return classes and headers for the appropriate set of fields.
  */
@@ -219,8 +213,8 @@ function doRow($tx, $report, $csv, $classes, $agents, $channels, $currency, $url
     txNeatAmounts($amount, $reward, $is_reward);
     list ($toYou, $fromYou) = $toMe ? array($amount, R_NONE) : array(R_NONE, $amount);
     if ($total + 0 == 0) $toYou = $fromYou = "<span class=\"virtual\">$r</span>"; // make virtual payments clear
-    $button1 = (!$byMe and okableState($tx_state)) ? button('OK', "$url&do=ok", tx_action('ok', $tx_state, $toMe, $byMe)) : '';
-    $button2 = ((!$is_reward or $mya->can(B_CTTY_ADMIN)) and !@$data['undoneBy']) ? button(' X ', "$url&do=no", tx_action('no', $tx_state, $toMe, $byMe)) : '';
+    $button1 = (!$byMe and okableState($tx_state)) ? button('OK', "$url&do=ok", txAct('ok', $tx_state, $toMe, $byMe)) : '';
+    $button2 = ((!$is_reward or $mya->can(B_CTTY_ADMIN)) and !@$data['undoneBy']) ? button(' X ', "$url&do=no", txAct('no', $tx_state, $toMe, $byMe)) : '';
     $button3 = ($mya->can($tx_taking ? B_SELL : B_BUY) and !$is_reward) ? "<a href='$url&do=edit' title='Edit Purpose'><img src='$rUrl/images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
     $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
     $row = array($tid, strftime('%d-%b', $date), $tx_name, $fromYou, $toYou, $rpct, $amount, $usd, $tx_usdXid, $state, $buttons, $tx_purpose, $reward, $net);
@@ -253,8 +247,7 @@ function finishCsvRow($csv, $row, $tx, $amount, $r, $usd, $toMe, &$tot) {
   
   foreach ($row as $key => $value) $row[$key] = $value == R_NONE ? '' : strip_tags($value);
   if ($row['fromyou'] == $row['toyou']) $row['fromyou'] = $row['toyou'] = 0; // don't report gross on virtual pay
-
-  foreach (u\ray('fromyou toyou amount r usd reward net') as $key) {
+  foreach (u\ray(TX_MONEY_FIELDS) as $key) {
     if (isset($row[$key])) $tot[$key] = ($tot[$key] ?: 0) + $row[$key];
   }
   csv($csv, array_values($row)); // not STDOUT
@@ -271,28 +264,46 @@ function finishCsvRow($csv, $row, $tx, $amount, $r, $usd, $toMe, &$tot) {
 function txConfirm($do, $xid, &$sta) {
   $mya = r\acct();
   $myid = $mya->id;
+  if (t\est() and @$sta['confirm']) return FALSE;
   if (confirming_v($sta)) return FALSE;
-  if (!$details = be\lastTx('xid=:xid', compact('xid'), TRUE)) return FALSE; // bail on hack attempt
-  extract(r\txReportArgs($mya, $details), EXTR_PREFIX_ALL, 'my');
-  $action = tx_action($do, $my_state, $my_toMe, $my_byMe);
-  confirm(t('Are you sure you want to ') . "$action?<br>($my_summary)", $sta); // sets 'confirm'
+  if (!$details = be\lastTx('xid=:xid', compact('xid'), TRUE)) return 'bad tx id'; // bail on hack attempt
+  $subs = r\txReportArgs($mya, $details);
+  $summary = u\tt('tx summary', $subs);
+  extract(u\just('state toMe byMe', $subs));
+  $txAction = txAct($do, $state, $toMe, $byMe);
+  confirm(u\tt('tx summary|confirm tx action', $subs + compact('txAction')), $sta); // sets 'confirm'
   return sureForm($sta);
 }
 
+function handleTx($do, $xid, &$sta, $args) {
+  if (!$xid = (int) @$xid) return FALSE;
+  if ($do == 'edit') return tx_edit($xid);
+  if ($do == 'ok' or $do == 'no') {
+    if ($confirm = txConfirm($do, $xid, $sta)) return $confirm;
+    if (!$sta['rebuild']) txOKorNO($do, $xid); // don't do anything if canceling
+    $url = str_replace('&do=', '&did=', "transactions/$args"); // don't do it again
+    return r\go($url); // back to the normal form
+  }
+  return FALSE;
+}
+ 
 function formTxs_validate($form, &$sta) {
   $txDays = @$form['period']['#options'];
-  extract(u\just('period starting ending opts op', $sta['input']));
-  list ($sta['input']['starting'], $sta['input']['ending']) = op($sta) == 'submitPeriod' ? txDates($txDays, @$period) : txDates($txDays, '', @$starting, @$ending);
+  extract(u\just('period starting ending opts', $sta['input']));
+  $op = op($sta);
+  list ($sta['input']['starting'], $sta['input']['ending']) = ($op == 'submitPeriod' or $op == 'downloadPeriod') ? txDates($txDays, @$period) : txDates($txDays, '', @$starting, @$ending);
 }
 
 function formTxs_submit($form, &$sta, $page = 'transactions') {
   if (confirming_s($sta)) return;
-  extract(u\just('currency states period starting ending opts op', $sta['input']));
-  $agents = @$opts[TX_OPT_AGENTS] ? 1 : 0;
-  $channels = @$opts[TX_OPT_CHANNELS] ? 1 : 0;
-  $exchanges = @$opts[TX_OPT_EXCHANGES] ? 1 : 0;
-  $url = @"$page/period=$period&starting=$starting&ending=$ending&currency=$currency&states=$states&agents=$agents&channels=$channels&exchanges=$exchanges";
-  if ($op == t('Download')) {
+  extract(u\just('currency states period starting ending opts options do xid', $sta['input']));
+  if (isset($states)) { // $options summarizes everything when clicking on OK or NO or EDIT
+    $options = $currency . $states;
+    foreach (u\ray(TX_OPT_KEYS) as $one) $options .= (@$opts[u\consta('TX_OPT', $one)] ? 1 : 0);
+  }
+  $url = @"$page/period=$period&starting=$starting&ending=$ending&options=$options";
+  $op = op($sta);
+  if (u\abbreviates($op, 'download')) {
     say('downloading');
     if ($currency != 2) say('download always both');
     $url .= '&downloaded=1';    
@@ -335,11 +346,12 @@ function txColoredState($state, $sayPending = TRUE) {
  * @param bool $byMe: user originated the transaction
  * @return string: how to describe the ok or no
  */
-function tx_action($do, $state, $toMe, $byMe) {
+function txAct($do, $state, $toMe, $byMe) {
   if ($do == 'ok') return $toMe ? t('ACCEPT this payment') : t('APPROVE this charge');
   
+  $state += 0; // otherwise string != int
   if ($toMe) {
-    if ($state == TX_DISPUTED) return t('REVERSE this disputed transaction'); // let the customer win
+    if ($state == TX_DISPUTED) return t('REVERSE this disputed charge'); // let the customer win
     if ($state == TX_PENDING) return $byMe ? t('CANCEL this invoice') : t('REFUSE this payment');
     return t('REVERSE this charge'); // let the customer win
   } else {
@@ -356,7 +368,7 @@ function txOKorNO($tx_task, $xid) {
   if (!$result = be\lastTx('xid=:xid', compact('xid'), TRUE)) return FALSE; // bail on hack attempt
   extract(u\just('state amount toMe', $result));
   if ($tx_task == 'ok') { // OK
-    u\EXPECT($state == TX_PENDING);
+    u\EXPECT($state == TX_PENDING or $state == TX_DISPUTED, "bad state for #$xid: $state");
     if ($toMe) {
       r\setTxState(TX_DONE, $xid); // accept the payment
       // DWOLLA: initiate transfer from user to community
@@ -379,7 +391,7 @@ function tx_edit($xid) {
   
   $form = array(
     'title' => formField('item', t('Edit Description')),
-//    'review' => formField('item', $tx_summary),
+//    'review' => formField('item', $summary),
     'purpose' => textField(t('Purpose'), '', dft($purpose)),
     'go' => formField('submit', NULL, t('Submit button'), 'Update'),
     'xid' => formField('hidden', $xid),
@@ -405,7 +417,7 @@ function txBal($bal, $plus = '', $minus = '- ') {return ($bal < 0 ? $minus : $pl
 /**
  * Return the transaction summary table
  */
-function tx_summary($starting, $ending, $currency) {
+function txSummary($starting, $ending, $currency) {
   $mya = r\acct();
   $myid = $mya->id;
   $previous_ending = $starting - 1;

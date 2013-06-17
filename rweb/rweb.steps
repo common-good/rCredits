@@ -52,6 +52,7 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     Gift AMemberContributes MAKE
  *     Gift AMemberContributesPartlyInUSD MAKE
  *     Gift AMemberContributesWithInsufficientFunds MAKE
+ *     Relations AMemberAddsARelation MAKE
  *     TransactR AMemberAsksToChargeAnotherMember MAKE
  *     TransactR AMemberAsksToPayAnotherMember MAKE
  *     TransactUsd AMemberAsksToChargeAnotherMember MAKE
@@ -67,7 +68,6 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     RealUsd AMixedRCreditsUSDTransactionHappens MAKE
  *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance MAKE
  *     RealUsd AMemberBuysSomethingWhenDwollaIsDown MAKE
- *     Relations AMemberAddsARelation MAKE
  *     Signin AMemberSignsInForTheFirstTime MAKE
  *     Signin AMemberGivesTheWrongPassword MAKE
  *     Signup ANewbieRegisters MAKE
@@ -86,6 +86,9 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     Signup AMemberRegistersWithABadCompanyPhone MAKE
  *     Signup AMemberRegistersACompany MAKE
  *     Signup ANewbieRegistersFromElsewhere MAKE
+ *     Transactions AMemberConfirmsOK MAKE
+ *     Transactions AMemberConfirmsOKForADisputedTransaction MAKE
+ *     Transactions AMemberConfirmsNO MAKE
  *     TransactR AMemberConfirmsRequestToChargeAnotherMember MAKE
  *     TransactR AMemberConfirmsRequestToPayAnotherMember MAKE
  *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember MAKE
@@ -138,6 +141,7 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  *     Membership Setup MAKE
  *     RealUsd Setup MAKE
  *     Relations Setup MAKE
+ *     ScanCard Setup MAKE
  *     Signin AMemberSignsInForTheFirstTime TEST
  *     Signin AMemberGivesTheWrongPassword MAKE
  *     Signup ANewbieRegisters TEST
@@ -166,10 +170,16 @@ function members($list) {return t\members($list);}
  *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
  *     RealUsd AMemberBuysSomethingWhenDwollaIsDown TEST
  *     Relations Setup MAKE
+ *     ScanCard Setup MAKE
  *     Summary Setup MAKE
  *     Transactions Setup MAKE
  *     Transactions AMemberLooksAtTotalAmountsInTransactionsForThePastYear MAKE
  *     Transactions TransactionsWithOtherStatesShowUpProperly MAKE
+ *     Transactions AMemberClicksOK MAKE
+ *     Transactions AMemberConfirmsOK MAKE
+ *     Transactions AMemberConfirmsOKForADisputedTransaction MAKE
+ *     Transactions AMemberClicksNO MAKE
+ *     Transactions AMemberConfirmsNO MAKE
  *     TransactR Setup MAKE
  *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
  *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
@@ -185,7 +195,7 @@ function transactions($list) {return t\transactions($list);}
  *     Gift AMemberContributes TEST
  *     Gift AMemberContributesWithInsufficientFunds TEST
  *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance TEST
- *     Signup ANewbieRegisters TEST
+ *     Relations AMemberAddsARelation TEST
  *     Signup AMemberRegistersBadEmail TEST
  *     Signup AMemberRegistersBadName TEST
  *     Signup AMemberRegistersAgain TEST
@@ -193,8 +203,7 @@ function transactions($list) {return t\transactions($list);}
  *     Signup AMemberRegistersWithAMissingCompanyPhone TEST
  *     Signup AMemberRegistersWithABadCompany TEST
  *     Signup AMemberRegistersWithABadCompanyPhone TEST
- *     Signup AMemberRegistersACompany TEST
- *     Signup ANewbieRegistersFromElsewhere TEST
+ *     Transactions AMemberConfirmsOK TEST
  *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
  *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
  *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
@@ -207,11 +216,15 @@ function weSayWithSubs($type, $index, $subs) {
   if (isset($subs['email'])) {
     $subs['email'] = str_replace("'", '&#039;', htmlspecialchars($subs['email'])); // Drupal does this in user_register()
   }
+  $msg0 = u\tt($index);
   $msg = u\tt($index, $subs);
+  foreach ($subs as $key => $value) {
+    if (strpos($msg0, "@$key") === FALSE) return t\output("missing sub '$key' in message '$index'");
+  }
   $msgs = \drupal_get_messages($type ?: NULL, FALSE);
   $result = (@$msgs[$type] and array_search($msg, $msgs[$type]) !== FALSE);
 //  if (!$result) debug(compact('msg','msgs')); // keep
-  t\testOutput("EXPECT: $msg", 'output'); // this must come after array_search!
+  t\output("EXPECT: $msg", 'output'); // this must come after array_search!
   return $result;
 }
 
@@ -220,9 +233,12 @@ function weSayWithSubs($type, $index, $subs) {
  *
  * in: Signin AMemberSignsInForTheFirstTime TEST
  *     Signin AMemberGivesTheWrongPassword MAKE
+ *     Signup ANewbieRegisters TEST
  *     Signup AMemberRegistersBadPhone TEST
  *     Signup AMemberRegistersBadZip TEST
  *     Signup AMemberRegistersWithACompanyWithNoRelation TEST
+ *     Signup AMemberRegistersACompany TEST
+ *     Signup ANewbieRegistersFromElsewhere TEST
  *     Summary MembersAccountIsNotActive TEST
  */
 function weSay($type, $index) {
@@ -250,7 +266,9 @@ function weTellStaffWithSubs($topic, $subs) {return t\weTellStaff($topic, $subs)
 /**
  * we show (ARG) with subs: (ARG)
  *
- * in: TransactR AMemberAsksToChargeAnotherMember TEST
+ * in: Transactions AMemberClicksOK TEST
+ *     Transactions AMemberClicksNO TEST
+ *     TransactR AMemberAsksToChargeAnotherMember TEST
  *     TransactR AMemberAsksToPayAnotherMember TEST
  *     TransactUsd AMemberAsksToChargeAnotherMember TEST
  *     TransactUsd AMemberAsksToPayAnotherMember TEST
@@ -259,15 +277,17 @@ function weShowWithSubs($page, $subs) {
   global $testOnly;
   global $testConfirmation; // confirmation message output, if any
   global $formOut; // for testing
-  
+
   $subs = @$subs[0] ?: array(); // comes in as "" if no subs
-  if (u\abbreviates('confirm', $page)) {
+  if (strpos($page, 'confirm ') !== FALSE) {
+    foreach (u\just(R_DATE_FIELDS, $subs) as $k => $v) if (is_numeric($v)) $subs[$k] = u\formatDate($v);
     $wanted = u\tt($page, $subs);
-    t\testOutput("<b>WANTED: </b>$wanted", 'screen');
+    t\output("<b>WANTED: </b>$wanted", 'screen');
+/**/ debug(compact('wanted','testConfirmation')); // redundant but very easy
     return ($wanted == $testConfirmation);
   }
   $form = strtr(t\strip(r\Web\showForm($page, @$subs['arg1'], @$subs['arg2'])), $subs);
-  t\testOutput("<b>WANTED: </b>$form", 'screen');
+  t\output("<b>WANTED: </b>$form", 'screen');
   if ($form != $formOut['text']) return FALSE;
   unset($subs['arg1']);
   unset($subs['arg2']);
@@ -292,6 +312,7 @@ function weShowWithSubs($page, $subs) {
  *     Relations MemberCompanyHasRelations TEST
  *     Relations ItsComplicated TEST
  *     Relations AMemberAddsARelation TEST
+ *     ScanCard AMemberUsesAnRCardToPay TEST
  *     Signin AMemberSignsInForTheFirstTime TEST
  *     Signup ANewbieVisitsTheRegistrationPageWithNoInvite TEST
  *     Signup AnInvitedNewbieVisitsTheRegistrationPage TEST
@@ -305,6 +326,11 @@ function weShowWithSubs($page, $subs) {
  *     Transactions AMemberLooksAtTotalAmountsInTransactionsForThePastYear TEST
  *     Transactions AMemberLooksAtTransactionsForThePastFewDays TEST
  *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
+ *     Transactions AMemberClicksOK TEST
+ *     Transactions AMemberConfirmsOK TEST
+ *     Transactions AMemberConfirmsOKForADisputedTransaction TEST
+ *     Transactions AMemberClicksNO TEST
+ *     Transactions AMemberConfirmsNO TEST
  */
 function weShowWith($title, $content = FALSE, $showDebugs = TRUE) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -369,6 +395,7 @@ function withoutOptions($options) {
  *     Relations MemberHasAccessToEmployeeAccount MAKE
  *     Relations MemberCompanyHasRelations MAKE
  *     Relations ItsComplicated MAKE
+ *     ScanCard Setup MAKE
  *     Signup AMemberRegistersWithAnExistingCompany TEST
  *     Signup AMemberRegistersACompany TEST
  *     Summary Setup MAKE
@@ -390,10 +417,13 @@ function relations($relations) {return t\relations($relations);}
  *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance TEST
  *     RealUsd AMemberBuysSomethingWhenDwollaIsDown TEST
  *     Relations Setup TEST
+ *     ScanCard Setup TEST
  *     Signup AMemberRegistersACompany TEST
  *     Summary Setup TEST
  *     Transactions Setup TEST
  *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
+ *     Transactions AMemberClicksNO MAKE
+ *     Transactions AMemberConfirmsNO MAKE
  *     TransactR Setup TEST
  *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
  *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
@@ -409,6 +439,7 @@ function balances($list) {return t\balances($list);}
  * in: Download Setup MAKE
  *     RealUsd Setup MAKE
  *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance MAKE
+ *     ScanCard Setup MAKE
  *     Transactions Setup MAKE
  *     TransactR Setup MAKE
  *     TransactUsd Setup MAKE
@@ -434,7 +465,7 @@ function usd($list) {return t\usd($list);}
  *     Relations MemberHasAccessToEmployeeAccount MAKE
  *     Relations MemberCompanyHasRelations MAKE
  *     Relations ItsComplicated MAKE
- *     Relations AMemberAddsARelation MAKE
+ *     ScanCard AMemberUsesAnRCardToPay MAKE
  *     Signin AMemberSignsInForTheFirstTime MAKE
  *     Signin AMemberGivesTheWrongPassword MAKE
  *     Signup ANewbieVisitsTheRegistrationPageWithNoInvite MAKE
@@ -448,10 +479,11 @@ function usd($list) {return t\usd($list);}
  *     Transactions AMemberLooksAtTotalAmountsInTransactionsForThePastYear MAKE
  *     Transactions AMemberLooksAtTransactionsForThePastFewDays MAKE
  *     Transactions TransactionsWithOtherStatesShowUpProperly MAKE
+ *     Transactions AMemberClicksOK MAKE
+ *     Transactions AMemberClicksNO MAKE
  */
 function memberVisitsPage($id, $page) { // pass options in URL
   global $testOnly; if ($testOnly) return FALSE;
-
   if (!t\login($id)) return FALSE;
   t\pageForm(t\fixPageArgs($page), FALSE);
   return TRUE;
@@ -611,7 +643,7 @@ function memberSupplies($uid, $field, $value) {
  */
 function memberHasPermission($uid, $permission) {
   global $testOnly; if ($testOnly) return FALSE;
-  return r\acct(t\uid($uid))->setBit(constant('B_' . strtoupper($permission)), TRUE);
+  return r\acct(t\uid($uid))->setBit(u\consta('b', $permission), TRUE);
 }
 
 /**
@@ -648,6 +680,7 @@ function memberOnetimePasswordIs($id, $pass) {
  * we notice (ARG) to member (ARG) with subs: (ARG)
  *
  * in: Gift AMemberContributes TEST
+ *     Transactions AMemberConfirmsOK TEST
  *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
  *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
  *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
@@ -673,19 +706,19 @@ function weDownloadWith($name, $rows) {
   global $testOnly;
   global $testCSV, $testCSVname;
 
-  if (@$testCSVname != $name) return t\testOutput("$testCSVname <> $name");
-  if (!is_array($testCSV) or empty($testCSV)) return t\testOutput('testCSV empty');
+  if (@$testCSVname != $name) return t\output("$testCSVname <> $name");
+  if (!is_array($testCSV) or empty($testCSV)) return t\output('testCSV empty');
   $testCSV2 = $testCSV; // don't alter this (withDownloadColumns() needs it)
   $headers = array_shift($testCSV2);
   if ($headers[0] == '#') $headers[0] = 't#';
   foreach ($testCSV2 as $csvRow) {
 // debug(compact('headers', 'csvRow'));
     $csvRow = array_combine($headers, $csvRow); // add keys
-    if (!$row = array_shift($rows)) return t\testOutput('extra row in CSV: ' . print_r($csvRow, 1));
+    if (!$row = array_shift($rows)) return t\output('extra row in CSV: ' . print_r($csvRow, 1));
     foreach ($row as $key => $value) {
 //    debug(compact('row','csvRow'));
       if (strpos($value, '%') !== FALSE) $value = t\lastMinuteSubs($value);
-      if (!t\eq($csvValue = $csvRow[$key], $value)) return t\testOutput("key=$key csvValue<>value: $csvValue<>$value");
+      if (!t\eq($csvValue = $csvRow[$key], $value)) return t\output("key=$key csvValue<>value: $csvValue<>$value");
     }
   }
   return TRUE;
@@ -732,3 +765,26 @@ function usdTransfers($tx) {return t\usdTransfers($tx);}
  * in: RealUsd AMemberBuysSomethingWhenDwollaIsDown TEST
  */
 function usdTransferCountIs($count) {return (t\usdTransferCount() == $count);}
+
+/**
+ * member (ARG) scans member card (ARG)
+ *
+ * in: 
+ */
+function memberScansMemberCard($id1, $id2) {
+  global $testOnly; if ($testOnly) return FALSE;
+  t\logIn($id1);
+  
+}
+
+/**
+ * member (ARG) card code is (ARG)
+ *
+ * in: ScanCard AMemberUsesAnRCardToPay MAKE
+ */
+function memberCardCodeIs($id, $cardCode) {
+  global $testOnly; if ($testOnly) return FALSE;
+  $a = r\acct(t\fullQid($id));
+  $secure = compact('cardCode') + ($a->secure ?: array());
+  return $a->update(compact('secure'));
+}

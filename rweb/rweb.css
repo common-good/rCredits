@@ -334,14 +334,14 @@ form.rweb  .form-no {color:red;}
 
 /* #rcreditswebformtxs #edit-opts {max-width:248px;} /* force display in pairs */
 #rcreditswebformtxs .form-type-checkboxes {margin-bottom:0;}
-#rcreditswebformtxs .form-type-checkbox {width:100px;}
+#rcreditswebformtxs .form-type-checkbox {width:110px;}
 #rcreditswebformtxs .form-type-radios {border:0;}
 #rcreditswebformtxs .form-type-radio {display:inline-block;}
 #rcreditswebformtxs .form-item-period {display:inline-block;}
 #rcreditswebformtxs .form-item-ending {display:inline-block;}
 #rcreditswebformtxs .form-item-starting {margin-bottom:0;}
-#rcreditswebformtxs .form-submit {margin-left:10px;}
 #rcreditswebformtxs input {max-width:110px;}
+#rcreditswebformtxs .form-submit {margin-left:10px; max-width:120px;}
 /*#rcreditswebformtxs {display:inline-block; width:100%; text-align:left;}
 #rcreditswebformtxs .form-item-tx-period {margin-top:2em; display:inline-block;}*/
 #rcreditswebformtxs .form-item-x-task {display:inline-block;}

@@ -69,7 +69,7 @@ Scenario: A member asks to undo a completed payment, with insufficient balance
 Scenario: A member confirms request to undo a completed payment, with insufficient balance
   When member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "confirmed"
   Then we respond success 1 tx_id "NEW.AAAL" my_balance "$155" other_balance "" and message "report undo|report invoice" with subs:
-  | solution | action  | otherName | amount | balance | tid |
+  | solution | did     | otherName | amount | balance | tid |
   | reversed | charged | Abe One    | $100   | $525    | 3   |
   And we email "new-invoice" to member "a@example.com" with subs:
   | created | fullName  | otherName  | amount | payerPurpose |
@@ -97,7 +97,7 @@ Scenario: A member confirms request to undo a completed payment unilaterally, wi
   Given member "NEW.ZZC" can charge unilaterally
   When member "NEW.ZZC" asks device "codeC" to undo transaction "NEW.AAAH", with the request "confirmed"
   Then we respond success 1 tx_id "NEW.AAAL" my_balance "$155" other_balance "$70" and message "report undo|report invoice" with subs:
-  | solution | action  | otherName | amount | balance | tid |
+  | solution | did     | otherName | amount | balance | tid |
   | reversed | charged | Abe One   | $100   | $155    | 3   |
   And we email "new-invoice" to member "a@example.com" with subs:
   | created | fullName | otherName  | amount | payerPurpose |
@@ -134,7 +134,7 @@ Scenario: A member confirms request to undo a completed charge, with insufficien
 
 #Partial reversal is too complex for now
 #  Then we respond success 1 tx_id "NEW.AAAL" my_balance "$0" other_balance "" and message "report undo|report short payment" with subs:
-#  | solution | action| otherName  | amount | balance | tid | short |
+#  | solution | did   | otherName  | amount | balance | tid | short |
 #  | reversed | paid  | Corner Pub | $60    | $0      | 5   | $40   |
 #  And we email "new-payment" to member "c@example.com" with subs:
 #  | created | fullName   | otherName | amount | payeePurpose |

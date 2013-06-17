@@ -33,9 +33,7 @@ Scenario: A newbie registers
   | id   | fullName | email         | phone        | country | postalCode | state | city | flags | floor |
   | .AAC | Abe One  | a@example.com | +14132530000 | US | 01001 | MA | Amherst | dft,personal | 0 |
 #  | .AAC | Abe One  | a@example.com | +14132530000 | US | 01001 | MA | Amherst | dft,personal | %R_SIGNUP_BONUS |
-  And we say "status": "your account is ready" with subs:
-  | quid    | bonus            |
-  | NEW.AAC |  |
+  And we say "status": "your account is ready"
 #  | .AAC | $%R_SIGNUP_BONUS |
   And we email "welcome" to member "a@example.com" with subs:
   | fullName | name   | quid    | region | pass     | bonus           |
@@ -198,9 +196,7 @@ Scenario: A member registers a company
   And balances:
   | id   | r | usd | rewards |
   | .AAD | 0 |   0 |       0 |
-  And we say "status": "company is ready" with subs:
-  | quid |
-  | NEW.AAD |
+  And we say "status": "company is ready"
   And we show "Sign In" with: ""
   
 Scenario: A newbie registers from elsewhere
@@ -211,11 +207,9 @@ Scenario: A newbie registers from elsewhere
  Then members:
   | id      | fullName | email         | phone        | country | postalCode | state | city    | flags | 
   | NEN.AAA | Abe One  | a@example.com | +13332530000 | US | 03768-2345 | NH | Lyme | dft,personal |
-  And we say "status": "your account is ready" with subs:
-  | quid |
-  | NEN.AAA |
+  And we say "status": "your account is ready"
   And we email "welcome" to member "a@example.com" with subs:
-  | fullName | name   | quid | region | pass     |
+  | fullName | name   | quid    | region | pass     |
   | Abe One  | abeone | NEN.AAA | new    | (varies) |
   And we show "Sign In" with: ""
 # Should check for name defaulting to "abeone" (but doesn't work yet in test)

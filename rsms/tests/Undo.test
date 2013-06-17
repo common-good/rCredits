@@ -115,7 +115,7 @@ class rsmsUndo extends DrupalWebTestCase {
     Then_('the community has r$-763.34');
     And__('phone +20002 has r$242.22');
     And__('we say to phone +20001 "report undo|report exchange" with subs: "DATA'
-    . '\\| solution | action | otherName | amount | balance | tid |'
+    . '\\| solution | did    | otherName | amount | balance | tid |'
     . '\\| reversed | gave   | Bea Two    | $11.11 | $187.79 | 6   |"');
   }
 
@@ -124,7 +124,7 @@ class rsmsUndo extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('phone +20001 confirms "undo to .ZZB"');
     And__('we say to phone +20001 "report undo|report invoice" with subs: "DATA'
-    . '\\| solution | action  | otherName | amount | tid |'
+    . '\\| solution | did     | otherName | amount | tid |'
     . '\\| reversed | charged | Bea Two    | $33.33 | 6   |"');
   }
 

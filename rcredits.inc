@@ -56,6 +56,7 @@ define('R_FREEZE_TIME', FALSE); // how long to freeze newly bought rCredits (was
 define('R_DEFAULT_PURPOSE', 'rCredits/USD exchange'); // default transaction purpose
 define('R_CHUNK', 5); // chunk size for buying rCredits (sales amounts are a multiple of this)
 define('R_BANK_MIN', 4); // minimum deposit or withdrawal from bank account
+define('R_VPAYMENT_MIN', 0.05); // minimum virtual payment (where bonus rounds to .01)
 define('R_COMMERCIAL_ASPECT', '4:3'); // width-to-height ratio for commercial profile picture
 define('R_PERSONAL_ASPECT', '3:4'); // width-to-height ratio for personal profile picture
 define('R_PIXEL_FACTOR', 200); // what to multiply the aspect ratio components by, to get pixel dimensions
@@ -211,6 +212,8 @@ $GLOBALS['txTypes'] = array(
   t('signup'), t('transfer'), t('rebate'), t('bonus'), '', t('inflation'), t('grant'), t('loan'), '', t('fine'),
 );
 define('TX_DEFAULT_PERIOD', 30); // number of days to show in transaction history, by default
+define('TX_MAX_ROWS', 100); // maximum number of transactions to show on one screen
+define('TX_MONEY_FIELDS', 'fromyou toyou amount r usd reward net');
 
 $GLOBALS['emailSubjects'] = array(
 /*  'new-payment' => t('rCredits PAYMENT from {otherName}'),
@@ -256,37 +259,40 @@ function stage($acct = '', $numeric = FALSE) {
  */
 function txReportArgs($acct, $tx, $getMyBalance = FALSE, $shortfall = 0) {
   extract($tx); // any or all standard transaction fields
-  if ($data) if ($data = unserialize($data)) extract($data, EXTR_PREFIX_ALL, 'data');
+  if ($data) if ($data = unserialize($data)) extract(u\just('rebate bonus', $data));
   global $lastXid; $lastXid = $xid; // remember last transaction for current user, for potential undo (here and on undo)
 
   $toMe = ($payee == $acct->id);
   
   $role = $toMe ? 'payee' : 'payer';
-  list ($purpose, $otherPurpose) = u\order($toMe, $payeeFor, $payerFor);
-  list ($tid, $otherTid) = u\order($toMe, $payeeTid, $payerTid);
+  u\both($tx, 'purpose', $toMe, $payeeFor, $payerFor);
+  u\both($tx, 'tid', $toMe, $payeeTid, $payerTid);
   list ($payerPurpose, $payeePurpose) = array($payerFor, $payeeFor); // clearer names, for substitutions
   $tofrom = $toMe ? t('from') : t('to');
   $uid = $otherUid = ($toMe ? $payer : $payee);
-  $action = $taking ? t('charged') : ($goods ? t('paid') : t('gave'));
-  $confirmAction = $taking ? t('charge') : ($goods ? t('pay') : t('give'));
-  $summary_word = $taking ? t('Charge') : t('Payment');
-  $amount = u\formatAmount($amount);
-  $short = u\formatAmount($shortfall);
-  if (@$data_rebate and !$toMe) list ($rewardType, $rewardAmount) = array(t('rebate'), u\formatAmount($data_rebate));
-  if (@$data_bonus and $toMe) list ($rewardType, $rewardAmount) = array(t('bonus'), u\formatAmount($data_bonus));
+  u\both($tx, 'did', $toMe, t('charged'), $goods ? t('paid') : t('gave'));
+  $confirmAction = $toMe ? t('charge') : ($goods ? t('pay') : t('give'));
+  $amount = u\fmtAmt($amount);
+  $short = u\fmtAmt($shortfall);
+  
+  if ($state != TX_PENDING and $state != TX_DISPUTED and $goods) {
+    u\both($tx, 'rewardType', $toMe, t('bonus'), t('rebate'));
+    u\both($tx, 'rewardAmount', $toMe, fmtPosAmt($bonus), fmtPosAmt($rebate));
+  }
   $myName = $acct->fullName;
   $otherName = userField('fullName', $otherUid);
   $created = u\formatDate($created);
 
   if ($getMyBalance) {
-    if ($acct->can(B_BUY)) $balance = u\formatAmount($acct->r);
+    if ($acct->can(B_BUY)) $balance = u\fmtAmt($acct->rAvailable('buy', TRUE));
   }
 
-  $summary = "$summary_word of $amount $tofrom $otherName for \"$purpose\" on $created";
   $success = TRUE;
   foreach (u\ray('r payer payee') as $one) unset($tx[$one]); // else preempts all subs that start thus
-  return array_merge($tx, compact(u\ray('created xid action role payerPurpose payeePurpose purpose otherPurpose toMe confirmAction amount tofrom rewardType rewardAmount balance tid otherTid otherUid myName otherName short summary success')));
+  return compact(u\ray('created xid role payerPurpose payeePurpose toMe confirmAction amount tofrom balance otherUid myName otherName short success')) + $tx;
 }
+
+function fmtPosAmt($n) {return @$n > 0 ? u\fmtAmt($n) : NULL;}
 
 /**
  * Return the rCredits account id for the given USD account id.
@@ -307,7 +313,7 @@ function otherBalance($uid) {
   $mya = acct();
   $acct = acct($uid);
   if ($acct and $mya->can(B_CHARGE) and !$acct->can(B_SECRET_BAL)) {
-    return u\formatAmount($acct->r);
+    return u\fmtAmt($acct->r);
     //return be\creditInfo(compact('uid'))->fancy['balance'];
   } else return FALSE;
 }
@@ -391,7 +397,7 @@ function transactionRewards(&$txs) {
     $amount = $rewards[$type];
     $to = $type == 'rebate' ? $payer : $payee;
     $tid = $type == 'rebate' ? $payerTid : $payeeTid;
-    $type = constant('TX_' . strtoupper($type));
+    $type = u\consta('tx', $type);
     if ($amount and $to > 0) $txs[] = txSave(txRewardSetup($serial, $type, $to, $state, $amount, $tid, $created));
   }
 }
@@ -456,8 +462,8 @@ function transactionSetup($info) {
 function dataSetup($payer, $payee, $r, $goods, $data = array()) {
   u\EXPECT(is_array($data), 'data should be array');
   if ($goods and !isset($data['rebate'])) {
-    $rebate = (string) ($goods ? r\rebate($payer, $r) : 0); // force string, to avoid long serializations
-    $bonus = (string) ($goods ? r\bonus($payee, $r) : 0);
+    $rebate = (string) ($goods ? r\rebate($payer, $payee, $r) : 0); // force string, to avoid long serializations
+    $bonus = (string) ($goods ? r\bonus($payee, $payer, $r) : 0);
     $data += compact('rebate', 'bonus');
   }
   unset($data['preapproved']); // don't need these (but keep 'undoes' and original rebate/bonus, if any)
@@ -539,14 +545,16 @@ function unfreeze(&$available, &$frozen) {
  * Return how much of a transaction will be in USD.
  * @param float $shortfall (RETURNED) how much too little the payer has
  * @return float: how much of the transaction will be in USD (NULL if no USD account)
+ *   For non-goods transactions USD will be used first, otherwise rCredits will be used first.
  */
-function usdPart($requestAmount, $acct, $preapproved, $goods, $confirmed, &$shortfall) {
+function usdPart($requestAmount, $a, $preapproved, $goods, $confirmed, &$shortfall) {
   $shortfall = 0; // no shortfall if not preapproved
   if (!$preapproved) return 0; // if just an invoice, funds don't have to be there yet (no shortfall, no usd)
-  if ($shortfall = $acct->shortfall($goods ? 'buy' : 'cash', $requestAmount, $confirmed)) return 0; // not enough!
+  if ($shortfall = $a->shortfall($goods ? 'buy' : 'cash', $requestAmount, $confirmed)) return 0; // not enough!
   
-  $r = min($requestAmount, $acct->rAvailable($goods ? 'buy' : 'cash')); // how much can we get in r?
-  return round($requestAmount - $r, 2);
+  //$r = min($requestAmount, $a->rAvailable($goods ? 'buy' : 'cash')); // how much can we get in r?
+  $usd = $goods ? max(0, $requestAmount - $a->rAvailable('buy')) : $a->usdAvailable('cash');
+  return round(min($requestAmount, $usd), 2);
 }
 
 /**
@@ -557,11 +565,11 @@ function payEmployees($amount0, $for, $confirmed) {
   $employees = employees();
   if (!$employeeCount = count($employees)) return array('no employees', array(), array());
   if ($shortfall = shortfall(acct()->id, $amount0 * $employeeCount, TRUE, isRTrader())) {
-     $short = u\formatAmount($shortfall);
+     $short = u\fmtAmt($shortfall);
      return array('short to', compact('short'), FALSE); // no partial payment of employees
   }
-  $total = u\formatAmount($amount0 * $employeeCount);
-  $amount = u\formatAmount($amount0);
+  $total = u\fmtAmt($amount0 * $employeeCount);
+  $amount = u\fmtAmt($amount0);
   if (!$confirmed) return array('pay employees', compact(u\ray('employeeCount amount total')), TRUE);
   $pay_all = TRUE;
   $results = array();
@@ -605,6 +613,7 @@ function notify($uid, $index, $info = array(), $force = FALSE) {
     $mailed = r\rMail($index, $acct->mail, '', $info); // no need to pass $acct->language
   } else { //if ($acct->can(B_NOTIFY_EMAIL)) {
     list ($message, $created) = array(u\tt($index, $info), REQUEST_TIME);
+    if (t\est()) t\output("Notice to $fullName: $message");
     r\dbInsert('r_notices', compact(u\ray('uid message created')));
   }
   
@@ -630,7 +639,7 @@ function notify($uid, $index, $info = array(), $force = FALSE) {
  * If there is an appropriate bit to set, it will be set as appropriate.
  */
 function membershipEvent($a, $status, $do = TRUE) {
-  $bit = @constant('B_' . strtoupper($status)); // get the appropriate bit, if any
+  $bit = @u\consta('b', $status); // get the appropriate bit, if any
   if ($do and ($bit === FALSE or !$a->hasBit($bit))) { // met the prerequisite and hasn't previously
     $DBTX = \db_transaction();
     if ($bit !== FALSE) $a->setBit($bit); // set the bit, if any
@@ -687,6 +696,7 @@ function acceptGift($info) {
 function tellStaff($index, $subs = array(), $uid = TRUE) {
   if (empty($subs)) $subs = array(); // accept ''
   unset($subs['secure']); unset($subs['pass']); // nobody should see these
+  ksort($subs); // put the keys in a predictable order, for testing and easy reading
   $message = strpos($raw = u\tt($index), '@') === FALSE ? ($raw . u\seeAssoc($subs)) : u\tt($index, $subs);
 
   if ($uid) {
@@ -1254,7 +1264,7 @@ function totals($ctty = 'ALL', $calculate = FALSE) {
     $totals[$ctty] = getTotals($ctty == 'ALL' ? NULL : $ctty);
     \variable_set('totals', serialize($totals));
   }
-  foreach ($totals[$ctty] as $key => $value) $fancy[$key] = u\formatAmount(@$value + 0);
+  foreach ($totals[$ctty] as $key => $value) $fancy[$key] = u\fmtAmt(@$value + 0);
   $demand = $totals[$ctty]['demand'];
   if ($demand >= 1000000) $fancy['demand'] = '$' . number_format(($demand - 9999) / 1000000, 2) . ' million';
   return (object) ($totals[$ctty] + $fancy);
@@ -1325,7 +1335,7 @@ function tableField($field, $table, $which = '', $subs = array()) {
 
 /**
  * Return the amount available for the given operation.
- * @param string $type: purpose of the draw (see acct::shortfall())
+ * @param string $type: purpose of the draw (buy, cash, or exch -- see acct::shortfall())
  * @param assoc $ray: array of all relevant money fields (possibly including dwolla "fees")
  * @param bool $withUsd: whether to include usd amounts (if not, don't reserve "committed" amounts)
  */
@@ -1443,13 +1453,16 @@ function suggest($a, $index, $subs, $page = 'Preferences') {
 /**
  * Return the rebate on the given amount for the given account.
  * Never less than R_MIN_REBATE unless the account is a nonperson.
+ * @todo? or manager of company with no (other) employees (set bit?)
  */
-function rebate($uid, $amount = 1) {
-  $a = r\acct($uid);
+function rebate($from, $to, $amount = 1) {
+  if (relation(1, $to, $from, $where = 'isOwner OR draw')) return 0;
+  if (relation(1, $from, $to, $where = 'isOwner OR draw')) return 0;
+  $a = r\acct($from);
   return max($a->can(B_PERSONAL) ? R_MIN_REBATE : 0, round($amount * $a->rebate / 100, 2));
 }
 
-function bonus($uid, $amount = 1) {return round($amount * R_BONUS_FACTOR * r\acct($uid)->rebate / 100, 2);}
+function bonus($to, $from, $amount = 1) {return round($amount * R_BONUS_FACTOR * r\acct($to)->rebate / 100, 2);}
 
 // Single line functions that need no explanation
 function userField($field, $who = '', $subs = array()) {return tableField($field, 'users', $who, $subs);}

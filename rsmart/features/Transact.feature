@@ -45,7 +45,7 @@ Scenario: A member asks to charge another member
   # cash exchange would be ("cash": "")
   #no variant on first member because showing balance requires B_MANAGE
   Then we respond success 1 tx_id "NEW.AAAE" my_balance "$250" other_balance "" and message "report invoice" with subs:
-  | action  | otherName | amount | tid |
+  | did     | otherName | amount | tid |
   | charged | Corner Pub | $100   | 2   |
   # "You charged Corner Pub $100 (bonus: $10). Your balance is unchanged, pending payment. Invoice #2"
   And we email "new-invoice" to member "c@example.com" with subs:
@@ -61,7 +61,7 @@ Scenario: A member asks to pay another member
   When member " NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $100 ("goods": "groceries")
   #no variant on first member because showing balance requires B_MANAGE
   Then we respond success 1 tx_id "NEW.AAAE" my_balance "$155" other_balance "" and message "report transaction" with subs:
-  | action | otherName | amount | rewardType | rewardAmount | balance | tid |
+  | did    | otherName | amount | rewardType | rewardAmount | balance | tid |
   | paid   | Corner Pub | $100   | rebate      | $5            | $155    | 2   |
   # "You paid Corner Pub $100 (rebate: $5). Your new balance is $155. Transaction #2"
   And we email "new-payment" to member "c@example.com" with subs:
@@ -93,7 +93,7 @@ Scenario: A member asks to charge another member unilaterally
   When member " NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $100 ("goods": "groceries")
   #no variant on first member because showing balance requires B_MANAGE
   Then we respond success 1 tx_id "NEW.AAAE" my_balance "$360" other_balance "$155" and message "report transaction" with subs:
-  | action  | otherName | amount | rewardType | rewardAmount | balance | tid |
+  | did     | otherName | amount | rewardType | rewardAmount | balance | tid |
   | charged | Abe One    | $100   | bonus       | $10           | $360    | 2   |
   # "You charged Corner Pub $100 (bonus: $10). Your new balance is $360. Transaction #2"
   And we email "new-charge" to member "a@example.com" with subs:
@@ -110,7 +110,7 @@ Scenario: A member asks to charge another member unilaterally, with insufficient
   When member " NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $300 ("goods": "groceries")
   #no variant on first member because showing balance requires B_MANAGE
   Then we respond success 1 tx_id "NEW.AAAE" my_balance "$525" other_balance "$12.50" and message "report short invoice" with subs:
-  | action  | otherName | amount | short | balance | tid | t2id |
+  | did     | otherName | amount | short | balance | tid | t2id |
   | charged | Abe One   | $250   | $50   | $525    | 2   | 3    |
   # "SPLIT TRANSACTION! You paid Corner Pub $250 (rebate: $12.50). You will need to use US Dollars for the remaining $50. Your new balance is $12.50. Transaction #2"
   And balances:
@@ -123,7 +123,7 @@ Scenario: A member asks to pay another member, with insufficient balance
   When member " NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $300 ("goods": "groceries")
   #no variant on first member because showing balance requires B_MANAGE
   Then we respond success 1 tx_id "NEW.AAAE" my_balance "$12.50" other_balance "" and message "report short payment" with subs:
-  | action | otherName | amount | short | balance | tid |
+  | did    | otherName | amount | short | balance | tid |
   | paid   | Corner Pub | $250   | $50   | $12.50  | 2   |
   # "SPLIT TRANSACTION! You paid Corner Pub $250 (rebate: $12.50). You will need to use US Dollars for the remaining $50. Your new balance is $12.50. Transaction #2"
   And balances:

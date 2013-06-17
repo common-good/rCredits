@@ -40,7 +40,7 @@ Scenario: A member confirms request to charge another member
   | op     | who     | amount | goods | purpose |
   | charge | Bea Two | 100    | 1     | labor   |
   Then we say "status": "report invoice" with subs:
-  | action  | otherName | amount | tid |
+  | did     | otherName | amount | tid |
   | charged | Bea Two   | $100   | 1   |
   And we notice "new invoice" to member ".ZZB" with subs:
   | created | fullName | otherName | amount | payerPurpose |
@@ -69,7 +69,7 @@ Scenario: A member confirms request to pay another member
   | op  | who     | amount | goods | purpose |
   | pay | Bea Two | 100    | 1     | labor   |
   Then we say "status": "report transaction" with subs:
-  | action | otherName | amount | tid | rewardType | rewardAmount |
+  | did    | otherName | amount | tid | rewardType | rewardAmount |
   | paid   | Bea Two   | $100   | 1   | rebate     | $0.05        |
   And we notice "new payment" to member ".ZZB" with subs:
   | created | fullName | otherName | amount | payeePurpose |

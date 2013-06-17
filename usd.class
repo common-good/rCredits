@@ -312,8 +312,8 @@ array (
     
     foreach ($list as $one) { // create a compensating usd transaction for each transaction in $list
       extract($one); // (see fields listed above in addToAtom)
-      $reversedNote = t('reversed Dwolla transaction #') . $txid;
-      $grantNote = t('reimbursement of fee for ') . $reversedNote;
+      $reverseNote = t('reversed Dwolla transaction #') . $txid;
+      $grantNote = t('reimbursement of fee for ') . $reverseNote;
 
       $usA1 = new usd(r\acct($payer));
       $fee1 = $usA1->fee($txid);
@@ -325,13 +325,13 @@ array (
       self::beginAtom();
       self::addToAtom($one); // record original transaction
       
-      if (!noDw($dw) and $txid = $dw->send($usA2->pin, $usA1->number, $amount, 'Dwolla', $reversedNote)) {
+      if (!noDw($dw) and $txid = $dw->send($usA2->pin, $usA1->number, $amount, 'Dwolla', $reverseNote)) {
         self::addToAtom($txid, $amount, $payee, $payer);
         $fee1 += usdFee($usA1, $txid);
         $fee2 += usdFee($usA2, $txid);
-      } else { // failure (probably insufficient Dwolla balance)
-        $info = u\assoc('payer payee amount for taking', $payee, $payer, $amount, $reversedNote, FALSE);
-        r\transact($info); // reverse it in rCredits instead
+      } else { // failure (probably insufficient Dwolla balance) so reverse it in rCredits instead
+        $info = u\assoc('payer payee amount r for taking', $payee, $payer, 0, $amount, $reverseNote, FALSE);
+        r\transact($info);
       }
       if ($fee1 > 0) be\fund($payer, TX_GRANT, $fee1, $grantNote);
       if ($fee2 > 0) be\fund($payee, TX_GRANT, $fee2, $grantNote);

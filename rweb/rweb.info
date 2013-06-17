@@ -33,3 +33,4 @@ files[] = tests/Flow.test
 files[] = tests/Download.test
 files[] = tests/Get.test
 files[] = tests/IncompleteUsdTxs.test
+files[] = tests/ScanCard.test

@@ -15,49 +15,47 @@ Notes for developers
 
 BEFORE MINI LAUNCH:
 - automatic (suggested) ops
-- warn nubes about how long signup will take, including waiting for Dwolla, for the bank, for CGF,...
 - pilot test, including formI
 - * no signup on rcredits.org! (just mailing list)
 
 To do: (* = before launch ** = earlier)
 
-- add tells to formAdmin
-- virtual transactions should have option to be invisible (until Sunday or until 1st of month?) (but rewards still count)
-- so for now add virtual to viewing options on history page
-- scanning own card should fill in username on login form
-- scanning non-member card should complain immediately
-- scanning read-only company card should bring up history
-- read, sell or buy permission company card should allow history, but without current balance
-- clicking OK fails on trans history
-- trans history: default today on starting/ending and/or pass true defaults properly for period, currency, and states
-- formI tests
-- open another account when managing a company: open for other employees
-- order a sign-in card: option to print or get a plastic version
+- monthly inflation adjustment
+- implement r\suggest (use this for merchant invoices too. user gets an email invoice from rCredits, they can just click on a link to accept or decline. merchant gets notified). test cron call to r\suggest (should just notify, for now)
 - give user a chance to name the machine (or change the name), saved in a cookie and in each tx (box)
 - include address in "new payment" digest notices to nonprofits OR just CGF (warn on pay screen if the former)
+- trans history: default today on starting/ending and/or pass true defaults properly for period
+- more formI tests
+- prefs: show phone# or (more importantly) physical addr when paying someone (so they can ship or call)
+- make sure we're handling all bad GET data gracefully
+- scanning own card should fill in username on login form
+- scanning non-member card should complain immediately
+- scanning read-only company card should bring up history. Should sell card have read?
+- read, sell or buy permission company card should allow history, but without current balance
+- open another account when managing a company: open for other employees
+- order a sign-in card: option to print or get a plastic version
+- no rebate / bonus for manager of company with no (other) employees (set bit?)
 - add a login field to relations and record last login time of agent/company pair
 - return error from u\httpRequest() (instead of u\EXPECT), throw hiddenData error in acct::offsiteData(). Catch it on Summary screen at least (display gentle Warning message).
 - option to never convert r to us. rCredits can then be seized only by the CGC. No. this is still problematic because it invites abuse and might pit the community against the individual or against the larger society.
 - reduce picture size and make thumbnails (for upper right corner)
 - account checks: auto-deposit or minimum>0 but not connected to checking account yet: notice to user
 - block repeated 404s
+- pagination for trans history
 - recommend password practices
 - rethink nested usd transaction atoms (is the logic right?)
 - retest SMS
-- allow clerks to sign in with card, with no password (option for companies)
 - * in daily: alert staff if deposit / withdrawal not complete after 3 days
 - * help for all pages
 - handle 10-day interval for deposits/withdrawals for non-checking accounts
-- implement r\suggest (use this for merchant invoices too. user gets an email invoice from rCredits, they can just click on a link to accept or decline. merchant gets notified)
 - Hilary's list
 - * don't allow clicking on links in emails (send to new.rcredits_org.com/whatever, which looks like rcredits.org but scolds the user for clicking on an email link, then offers a link to the real site (don't accept that one either). Exception: links that do not require sign-in (for example, suggested account changes and merchant charges -- merchant creates invoice. no shipping until you accept it -- like paypal).
-- test cron call to r\suggest (should just notify, for now)
 - settle where email links go and what they do
 - for admin, put initial gift and share% on member's Summary page (attached to addr)
 - * membership tests: New Pass, Photo, Agreement, Contribute, Proxies, Usd, proof of ID, Options
 - create region records as needed, when a new member is outside NEW. Handle region totals in r\total()
 - in r\transact() we should rollback the transaction if it leaves the payer in unauthorized debt (due to a timing error that might be exploited intentionally by a determined hacker)
-- Maybe remove r\acct class from public view (see https://help.github.com/articles/remove-sensitive-data)
+- Maybe remove security algorithms from public view (see https://help.github.com/articles/remove-sensitive-data)
 - add share to summary page, for admins (or allow $0 donation and don't record it)
 - receive deposit/withrawal callbacks to set "completed" in r_usd. alert staff if fails.
 - demo button on rcredits.org goes to login with options to log in as abeone, beatwo (self-employed), cornerpub, or townarts (which should have a "Contribute" form on its member/townarts page)

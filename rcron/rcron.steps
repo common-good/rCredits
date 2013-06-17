@@ -209,7 +209,7 @@ function totals($ray) {
   global $testOnly; if(!$testOnly) return FALSE;
   $totals = r\totals();
   foreach ($ray[0] as $key => $value) if ($value != $totals->$key) {
-    t\testOutput("Total mismatch ($key): value $value <> calc " . $totals->$key);
+    t\output("Total mismatch ($key): value $value <> calc " . $totals->$key);
     return FALSE;
   }
   return TRUE;

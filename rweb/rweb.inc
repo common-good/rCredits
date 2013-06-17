@@ -24,12 +24,13 @@ define('R_AGREE_9', 6); // number of the last point in the rCredits Agreement
 
 $GLOBALS[TX_WEB . ' messages'] = array(
 //  'atid' => t('#@atid: '), // avoid duplicate verbage, don't say "transaction #"
+// Then if you have another account to create, use the "Create Another Account" button on the Summary page.
 
   // reports
   'report new relation' => t('@who is now related to this account. You will need to adjust the permissions or other settings.'),
   'report new cell' => t('Cell number @number is now connected to this account.'),
   'report delete cell' => t('Cell number @number has been removed from this account.'),
-  'your account is ready' => t('<p></p><p>Welcome to rCredits! We sent you an email with your user ID and password (if you don\'t see it within 60 seconds, check your spam folder). Come back here <b style="color:red;">within the next @R_SIGNIN_HOURS hours</b> to sign in and finish your account setup. Then if you have another account to create, use the "Create Another Account" button on the Summary page.</p>'),
+  'your account is ready' => t('<p></p><p>Welcome to rCredits! We sent you an email with your user ID and password (if you don\'t see it within 60 seconds, check your spam folder). Come back here <b style="color:red;">within the next @R_SIGNIN_HOURS hours</b> to sign in and finish your account setup.</p>'),
   'company is ready' => t(<<<EOF
     <p></p><p>To finish setting up this company account:</p>
     <ol>
@@ -61,6 +62,7 @@ EOF
   'repeat gift' => t('If you wish to make a contribution again sometime, click on "Membership" in the upper right corner, then on "Contribute".'),
   'setup complete' => t('Your account setup is complete. Expect an email within the next 24 hours, saying your account is activated. Thank you for joining!'),
   'ready to charge' => t('You successfully scanned in as "@agentName" to charge customers on behalf of @companyName'),
+  'transaction list truncated' => t('There are too many transactions to show all at once, so only the first @TX_MAX_ROWS are shown (choose a different date range to see the rest).'),
 
   // prompts
   'prompt min' => t('Keep this much in my rCredits account, for purchases or inflation-proof savings. (When your balance goes below this amount, the system refills it for you from your bank account. Refilling may take 3-4 days.)'),
@@ -318,11 +320,10 @@ EOF;
 
 /**
  * Retrieve the specified form, called with the args, and return it rendered.
- * Also sets $formArray and $formSta, for testing.
+ * Also sets up $formArray and $formSta, for testing.
  */
 function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   global $formArray, $formSta;
- 
   try {
     setupGlobals(); // in case it's an anonymous form, so webAccess doesn't have a chance to set up
 //    $layout = @$_GET['layout'] ?: svar('layout');
@@ -335,10 +336,9 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     $formName = substr($function, 0, 1) == '/' ? substr($function, 1) : "rCredits\\Web\\form$function";
 //    if ($newLayout) svar('layout', $layout); // do this before drupal_get_form, so forms can know the current layout
 
-    $formSta = array(); // next few lines are from \drupal_get_form()
-    $args = func_get_args();
+    $args = func_get_args(); // this and next few lines are from \drupal_get_form()
     array_shift($args); // Remove $function from the arguments.
-    $formSta['build_info']['args'] = $args;
+    $formSta['build_info'] = compact('args');
     $form = drupal_build_form($formName, $formSta);
 
 //    $form = \drupal_get_form($formName, $arg1, $arg2, $arg3, $arg4);
@@ -629,7 +629,7 @@ function formContribute_submit($form, &$sta) {
     r\tellStaff('gift', $info);
     $msg .= '|gift transfer later';
   }
-  $amount = u\formatAmount($info['amount']);
+  $amount = u\fmtAmt($info['amount']);
   if (!$mya->can(B_OK)) {
     say("$msg|step completed", compact('amount'));
     r\go('membership');
@@ -700,7 +700,7 @@ function formMembership($updating, &$sta = '', $code = '') {
           t("<h2>You're getting there!</h2><p>")
         : t('<h2>Congratulations on signing up for rCredits!</h2><p>Thanks for joining us. ');
     $message1 .= $nonperson ? t('Before you can begin accepting rCredits payments, you must complete the following steps:</p>') 
-      : t('Before we can send your rCard, and before you can vote on community funding, you must complete the following steps:</p>');
+      : t('Before we can send your rCard, and before you can vote on community funding, you must complete the following steps. This usually takes at least 30 minutes of your time, with a 3-day wait for the bank connection.</p>');
 
 //    $step1 = t('Complete your <a>contact information</a>.'); // keep this in case
     $stepPhoto = t('<a>Upload a photo</a> for your ') . ($nonperson ? t('company profile.') : t('Member ID Card.'));
@@ -1030,9 +1030,9 @@ function formSummary($form, &$sta) {
   $title = item(t('Account Summary'));
 //  'subtext = basic_account_info();
   $accountName = formField('item', t('Name:'), $address, $mya->fullName . ' ' . u\hug($name));
-  $balance = u\formatAmount($mya->r);
-  $usdBalance = u\formatAmount($mya->usd);
-  $total = u\formatAmount($mya->r + $mya->usd);
+  $balance = u\fmtAmt($mya->r);
+  $usdBalance = u\fmtAmt($mya->usd);
+  $total = u\fmtAmt($mya->r + $mya->usd);
   $balance = formField('item', t('Balance:'), '', "$balance<span class='r'>r</span> + $usdBalance<span class='us'>us</span> = $total" . ($mya->rewards ? " [<a href=\"$base_url/transactions\">" . t('see Transaction History') . '</a>]' : ''));
   
   if ($mya->id > 0) {
@@ -1043,8 +1043,8 @@ function formSummary($form, &$sta) {
     $extra = r\agent()->can(B_ADMIN) ? " id#$mya->id" : '';
     $accountId = formField('item', t('ID:'), $card, ($mya->mainQid ?: 'N/A') . ' (' . $acctType . ")$extra");
     if ($mya->can(B_MEMBER) and $mya->can(B_PERSONAL)) $another = submit(t('Open Another Account'));
-    $floor = formField('item', t('Credit floor:'), $floorDesc, u\formatAmount($mya->floor));
-    $rewards = formField('item', t('Rewards:'), t('(to date)'), u\formatAmount($mya->rewards));
+    $floor = formField('item', t('Credit floor:'), $floorDesc, u\fmtAmt($mya->floor));
+    $rewards = formField('item', t('Rewards:'), t('(to date)'), u\fmtAmt($mya->rewards));
   }
 
   if (r\agent()->can(B_CTTY_ADMIN) and (!$mya->proSe() or $mya->id == 1)) { // ctty admin not managing own personal account
@@ -1054,13 +1054,13 @@ function formSummary($form, &$sta) {
     } else { // managing some individual community member account
 //      $acctType = formField('select', t('Account type:'), '', $mya->acctType+0, $GLOBALS['account types']); // +0 for admin
       if ($mya->can(B_COMPANY)) $canCharge = boolField(t('Can charge'), t('This account can charge others unilaterally (in person)'), $mya->can(B_CHARGE) + 0);
-      $floor = textField(t('Credit floor:'), $floorDesc, dft(u\formatAmount($mya->floor)));
+      $floor = textField(t('Credit floor:'), $floorDesc, dft(u\fmtAmt($mya->floor)));
       $rTrader = boolField(t('rTrader?'), t('Does the submitted proof of ID pass muster? Is this account approved to use rCredits?'), $mya->can(B_OK) + 0);
 
       $bits = u\ray(B_ADMINABLE . ($mya->can(B_ADMIN) ? ' admin' : ''));
       $adminableDefaults = array();
       foreach ($bits as $bitName) {
-        $bit = constant('B_' . strtoupper($bitName));
+        $bit = u\consta('b', $bitName);
         $adminables[$bit] = $bitName;
         if ($mya->hasBit($bit)) $adminableDefaults[] = $bitName;
       }
@@ -1109,7 +1109,7 @@ function formSummary_submit($form, &$sta) {
     $mya->setBit(B_OK, $rTrader, FALSE);
 
     foreach (u\ray(B_ADMINABLE) as $bitName) {
-      $bit = constant('B_' . strtoupper($bitName));
+      $bit = u\consta('b', $bitName);
       $mya->setBit($bit, isset($adminable[$bit]), FALSE);
     }
     $mya->update(compact(u\ray('floor notes')));
@@ -1248,7 +1248,7 @@ function formAccounts($form, &$sta) {
   $choices = array();
   foreach ($accounts as $uid) {
     $acct = r\acct($uid);
-//    $balance = u\formatAmount($acct->balance());
+//    $balance = u\fmtAmt($acct->balance());
 //    $choices[$uid] = "$acct->fullName: $balance";
     $choices[$uid] = substr($acct->fullName, 0, 20); // keep it short
   }
@@ -1639,11 +1639,11 @@ function formGet($form, &$sta) {
   $title = item(t('Get rCredits or US Dollars'));
   $subtext = item(t('Transfer funds to or from your connected bank account. For automatic transfers from your bank account, as needed, adjust your "minimum" setting on the <a href="' . $base_url . '/account/preferences">Preferences</a> page. Transfers may take 3-4 days.') . ($mya->dwStatus() == DW_VSAVINGS ? t(' Savings and Money Market accounts (like yours) are limited by law to 6 transfers per month.') : ''));
 
-//  $minimum = textField(t('Minimum:'), tt('prompt min'), dft(u\formatAmount($isSetUp ? $mya->minimum : R_MINR_DEFAULT, 's')));
+//  $minimum = textField(t('Minimum:'), tt('prompt min'), dft(u\fmtAmt($isSetUp ? $mya->minimum : R_MINR_DEFAULT, 's')));
   $ray = (array) $mya->account(R_MONEY_FIELDS);
-  $toSpend = u\formatAmount(r\avail('buy', $ray));
-  $toCash = u\formatAmount($avail = r\avail('cash', $ray));
-  $waiting = u\formatAmount(abs($way = $mya->waitingToBank()));
+  $toSpend = u\fmtAmt(r\avail('buy', $ray));
+  $toCash = u\fmtAmt($avail = r\avail('cash', $ray));
+  $waiting = u\fmtAmt(abs($way = $mya->waitingToBank()));
   $way = $way < 0 ? 'from' : 'to';
   $waiting = item($waiting == '$0' ? t('You have no pending transfer requests.') : tt('You have total pending transfer requests of @waiting @way your bank account.', compact('waiting', 'way')), t('Pending:')); // amount already requested (if any)
   $avail = hidField($avail);
@@ -1652,8 +1652,8 @@ function formGet($form, &$sta) {
   $get = submit('FROM bank');
 //  $fromBank = formField('checkbox', t('Automate:'), t('(recommended) Refill my rCredits account from my bank account automatically, as needed.'), dft($isSetUp ? $mya->can(B_FROM_BANK) : TRUE));
   
-//  $maximum = textField(t('Maximum:'), tt('prompt max'), dft(u\formatAmount($isSetUp ? $mya->maximum : R_MAXR_DEFAULT, 's')));
-//  $excess = textField(t('Excess'), '', dft(u\formatAmount($mya->overMax(), 's')));
+//  $maximum = textField(t('Maximum:'), tt('prompt max'), dft(u\fmtAmt($isSetUp ? $mya->maximum : R_MAXR_DEFAULT, 's')));
+//  $excess = textField(t('Excess'), '', dft(u\fmtAmt($mya->overMax(), 's')));
 //  $toBank = formField('checkbox', t('Automate:'), t('Transfer any excess to my bank account automatically every few days.'), dft($isSetUp ? $mya->can(B_TO_BANK) : TRUE));
   $put = submit('TO bank');
 
@@ -1669,7 +1669,7 @@ function formGet_validate($form, &$sta) {
   if (op($sta) == 'get') return;
   
   if ($amount > $avail) {
-    $max = u\formatAmount($avail);
+    $max = u\fmtAmt($avail);
     return say('short deposit', compact('max'), 'amount');
   }
   $a1 = 'a href="' . $base_url . '/account/preferences"';
@@ -1688,7 +1688,7 @@ function formGet_submit($form, &$sta) {
   } else list ($action, $amount) = array('draw from', -$amount);
   
   if ($usAcct->bank($amount, $error)) {
-    $amount = u\formatAmount(abs(@$amount));
+    $amount = u\fmtAmt(abs(@$amount));
     say('banked', compact(u\ray('action amount')));
   } else return say('cannot bank', compact('action', 'error'), 'amount');
 }
@@ -1701,9 +1701,9 @@ function formGetR($form, &$sta) {
   $mya = r\acct();
   $myid = $mya->id;
   if ($confirm = sureForm($sta)) return $confirm; // confirm only getUSD
-  $request = u\formatAmount($mya->demand);
+  $request = u\fmtAmt($mya->demand);
   $demand = be\creditInfo()->fancy['totalDemand'];
-  $minR = u\formatAmount($mya->minimum);
+  $minR = u\fmtAmt($mya->minimum);
   $subtext = tt(<<<EOF
 <div class="r-explain">The amounts you request here are one-time requests for rCredits beyond the minimum level you set in your <a href="account/preferences">Account Preferences</a>. You will probably get at least part of your request within a week or so and can spend your new rCredits two weeks later. [<a href="help/why-wait">why the wait?</a>]</div><br>
 <div class="r-amounts">
@@ -2484,7 +2484,8 @@ EOF;
   }
   $sta['original_settings'] = compact('raws0', 'raws');
   
-  $help = t('Connect individual rCredits participants to your account &mdash; either as owners, employees, or others, with limited or full access to the account. For employees and suppliers, say how much you typically pay them in 4 weeks. You do not have to be <a>exact</a>.', array('<a>' => "<a href=\"$base_url/help/virtual-payments\">"));
+  $a1 = "a href=\"$base_url/help/virtual-payments\"";
+  $help = tt('Connect individual rCredits participants to your account &mdash; either as owners, employees, or others, with limited or full access to the account. For employees and suppliers, say how much you typically pay them in 4 weeks. You do not have to be <@a1>exact</a>.', compact('a1'));
   $subtext = '<span id="account-label">' . t('Current Account') . ":</span> <span id='account-identifiers'>$acctIdentifiers</span><br><br>$help";
 
   $attributes = array('id' => 'relations');
@@ -3072,8 +3073,9 @@ function formI($form, &$sta, $who = '') {
   $field = strpos($who, R_AGENT_MARK) ? 'cardCode2' : 'cardCode';
 
   $mya = r\acct();
-  if ($code != 'zot')
-  if ($acct->agent->secure[$field] != $code and !($mya and $mya->can(B_ADMIN))) return say('bad card code', 'zot');
+  if (!$gotCode = @$acct->agent->secure[$field]) return say('bad card code', 'zot');
+  if ($gotCode != 'zot')
+  if ($gotCode != $code and !($mya and $mya->can(B_ADMIN))) return say('bad card code', 'zot');
   list ($otherId, $otherAgent) = array($acct->id, $acct->agentId);
 
   if (!$mya and !$acct->proSe()) { // not signed in, company agent scanning in
@@ -3165,9 +3167,9 @@ function formOptions($form, &$sta) {
   $title = item(t('Account Preferences'));
   $virtualMaxMessage = $mya->can(B_COMPANY) ? t(' If you choose to make automatic "virtual" payments, this setting is moot (irrelevant and unused).') : '';
 
-  $minimum = textField(t('Minimum:'), tt('prompt min'), required(u\formatAmount($isSetUp ? $mya->minimum : R_MINR_DEFAULT, 's')));
+  $minimum = textField(t('Minimum:'), tt('prompt min'), required(u\fmtAmt($isSetUp ? $mya->minimum : R_MINR_DEFAULT, 's')));
   //$maxDft = $isSetUp ? $mya->maximum : R_MAXR_DEFAULT;
-  //$maxDft = $maxDft < 0 ? '' : u\formatAmount($maxDft, 's');
+  //$maxDft = $maxDft < 0 ? '' : u\fmtAmt($maxDft, 's');
 //  $maximum = textField(t('Maximum:'), tt('prompt max') . $virtualMaxMessage, dft($maxDft));
 //  $toBank = formField('checkbox', t('To bank:'), t('(recommended) Automatically transfer the excess to your bank account. [<a href="../help/to-bank">why ever not?</a>]'), dft($isSetUp ? $mya->can(B_TO_BANK) : TRUE));
   $noticeRadios = array(t('daily'), t('weekly'), t('monthly'));
@@ -3193,7 +3195,7 @@ EOF
   }
   $secretBal = formField('checkbox', t('Secret Balance:'), t("Don't let qualified merchants tell me my balance, when I ask."), $mya->can(B_SECRET_BAL));
   // Double confirmation: by SMS, by email, either. require extra confirmation of crucial account changes
-  $floor = u\formatAmount($mya->floor);
+  $floor = u\fmtAmt($mya->floor);
   $debtOk = formField('checkbox', t('Debt Okay:'), tt('Allow my account balance to go negative, limited by my current "credit floor" (which starts at zero, then gets lower and lower as time goes by &mdash; currently @floor). I understand there will be a substantial fee (currently $@R_DEBT_FEE plus @R_DEBT_PERCENT% per month) if I fail to bring my balance back up to zero within @R_DEBT_DAYS days.', compact('floor')), $mya->can(B_DEBT_OK));
   $submit = submit(t('Update Preferences'));
   
@@ -3204,7 +3206,7 @@ EOF
 
 function formOptions_validate($form, &$sta) {
   $mya = r\acct();
-  $floor = u\formatAmount($mya->floor);
+  $floor = u\fmtAmt($mya->floor);
 //  extract(u\just('maximum', $sta['input']));
 //  if (trim($maximum) == '') $sta['input']['maximum'] = -1;
   if ($err = amtErr('minimum', $sta)) return say($err, 'minimum');
@@ -3244,12 +3246,12 @@ function formReports($form, &$sta, $args = '') {
   $totals = r\totals($admin ? 'ALL' : $ctty->id);
   $issued = -$totals->balance;
   $demand = $totals->demand;
-  $demandPct = $issued ? (' (' . number_format(100 * $demand / $issued, 1) . '% beyond amount issued)') : '';
+  $demandPct = $issued ? (' (' . number_format(100 * $demand / $issued, 0) . '% beyond amount issued)') : '';
    
   $title = item(t('Reports'));
   $subtext = item(t('for ') . ($admin ? t('rCredits System OVERALL') : $ctty->fullName));
-  $issued = item(u\formatAmount($issued), t('rCredits issued:'), t('How many rCredits have been issued')); // ($xxx worldwide)
-  $demand = item(u\formatAmount($demand) . $demandPct, t('Margin:'), t('Community demand for additional rCredits')); // ($xxx worldwide)
+  $issued = item(u\fmtAmt($issued), t('rCredits issued:'), t('How many rCredits have been issued')); // ($xxx worldwide)
+  $demand = item(u\fmtAmt($demand) . $demandPct, t('Margin:'), t('Community demand for additional rCredits')); // ($xxx worldwide)
 //  $moreLater = item('', t('After rCredits is launched, this page will also report progress statistics.'));
   if (strpos($args, 'variety=') === FALSE) $args .= '&variety=report';
   $form = labeled(compact(u\ray('title subtext issued demand')));
@@ -3320,7 +3322,7 @@ function memberID($quid = '', $big = FALSE) {
     $nameSize = strlen($fullName) > 22 ? '100px' : '120px';
     list ($cardField, $lower, $role) = array('cardCode', 0, 'Member');
   }
-  $mark = constant(strtoupper("R_{$role}_MARK"));
+  $mark = u\consta("r_$role", 'mark');
   $qrServer = 'http://' . R_SERVER_ID . '.rC2.me/I/';
   $qrUrl = strtoupper($qrServer . str_replace(R_AGENT_MARK, R_AGENT_URL_MARK, $qid . $mark)) . $acct->secure[$cardField];
   $photo = DRUPAL_ROOT . $acct->auxFilename('picture');
@@ -3480,10 +3482,40 @@ function form_args($function, $args = '') {
 */
 
 /**
- * Replacement for \confirm_form
+ * Say whether user has submitted the confirmation form (as opposed to the primary form)
+ * The "v" verion is called from _validate, the "s" version from _submit.
+ */
+function confirming_s(&$sta) {return ($sta['rebuild'] = isset($sta['confirm']));}
+function confirming_v(&$sta) {
+  if(@$sta['confirm']) {
+    extract($sta['input']);
+    $sta = $sta['submitted_state'];
+    if ($op == 'Cancel') {
+      $sta['rebuild'] = TRUE;
+      say('op canceled'); // not an error message, else confirmation form persists
+    }
+    return TRUE;
+  }
+  $sta['submitted_state'] = $sta;
+  return FALSE;
+}
+
+function confirm($msg, &$sta) {
+  global $testConfirmation; $testConfirmation = $msg;
+//  t\output(preg_replace('/\s*$\s*/sm', PHP_EOL, strip_tags($msg)), 'screen');
+  return ($sta['confirm'] = $msg);
+}
+
+/**
+ * Replacement for \confirm_form: ask a confirmation question, with choices Okay or Cancel
+ * @param assoc $sta: the form's status array
+ *   'confirm': the question to 
+ * @param string $title: header for the question (normally none)
+ * @return a confirmation form (FALSE if there is no question to ask)
  */
 function sureForm(&$sta, $title = '') {
-  if (!isset($sta['confirm'])) return FALSE;
+  if (!@$sta['confirm']) return FALSE;
+//  if (!isset($sta['confirm'])) return FALSE;
   
   $form = array(
     'title' => $title ? item($title) : NULL,
@@ -3585,12 +3617,12 @@ function transfer($op, $info, $confirmed) {
  *    confirm: boolean "this needs to be confirmed"
  */
 function communityTransfer($type, $acct, $amount, $purpose, $confirmed) {
-  $success = (bool) be\fund($acct->id, constant(strtoupper("TX_$type")), $amount, $purpose, $confirmed);
+  $success = (bool) be\fund($acct->id, u\consta('tx', $type), $amount, $purpose, $confirmed);
   $msg = $success ? ($confirmed ? 'report funding' : 'funding') : 'funding error';
   $confirmAction = ucwords($type);
   $action = $confirmAction . 'ed';
   $otherName = r\userField('fullName', $acct->id);
-  $amount = u\formatAmount($amount);
+  $amount = u\fmtAmt($amount);
   return array($msg, compact(u\ray('success action confirmAction amount otherName')), $success and !$confirmed);
 }  
 
@@ -3617,30 +3649,6 @@ function menu($title, $type, $function = NULL, $args = array(), $accesses = '', 
     'module' => 'rweb',
     'file' => 'rweb.inc',
   ), $other); // $other overwrites, if there is a conflict
-}
-
-/**
- * Say whether user has submitted the confirmation form (as opposed to the primary form)
- * The "v" verion is called from _validate, the "s" version from _submit.
- */
-function confirming_s(&$sta) {return ($sta['rebuild'] = isset($sta['confirm']));}
-function confirming_v(&$sta) {
-  if(@$sta['confirm']) {
-    extract($sta['input']);
-    $sta = $sta['submitted_state'];
-    if ($op == 'Cancel') {
-      $sta['rebuild'] = TRUE;
-      say('op canceled'); // not an error message, else confirmation form persists
-    }
-    return TRUE;
-  }
-  $sta['submitted_state'] = $sta;
-  return FALSE;
-}
-
-function confirm($msg, &$sta) {
-  t\testOutput(preg_replace('/\s*$\s*/sm', PHP_EOL, strip_tags($msg)), 'screen');
-  return ($sta['confirm'] = $msg);
 }
 
 /**
@@ -3742,7 +3750,7 @@ function webAccess($accesses) {
   if (!$mya = r\acct()) return FALSE;
   foreach (u\ray($accesses) as $one) {
 //    debug("accesses=$accesses, can=". $mya->can(constant('B_' . strtoupper($one))));
-    if (!$mya->can(constant('B_' . strtoupper($one)))) return FALSE;
+    if (!$mya->can(u\consta('b', $one))) return FALSE;
   }
   return TRUE;
 }

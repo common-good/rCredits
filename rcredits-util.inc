@@ -126,7 +126,7 @@ function badAmount(&$amount, $restriction = '', $fractionLimit = 2) {
  * @return
  *   the formatted amount
  */
-function formatAmount($amount, $options = 's$') {
+function fmtAmt($amount, $options = 's$') {
   $options = ' ' . $options; // simplify strpos check
   $amount = cleanAmount(nn($amount, 0));
 //  if (!is_numeric($amount)) $amount = -999999;
@@ -832,7 +832,8 @@ function equy($a, $b) {return small($a - $b);} // sort of equal
 function valid_url($url) {return (\valid_url($url) and preg_match('/^[A-Z0-9\-_]+\.[A-Z0-9\-_]+/i', $url) and strpos($url, '@') === FALSE);}
 function abbreviates($s, $string) {return (substr($string, 0, strlen($s)) == $s);}
 function prlog($log = 'rCredits') {print_r(loga($log));} // keep this
-function order($first_first, $choice1, $choice2) {return $first_first ? array($choice1, $choice2) : array($choice2, $choice1);}
+function order($one1st, $one, $two) {return $one1st ? array($one, $two) : array($two, $one);}
+function both(&$vars, $k, $one1st, $one, $two) {list ($vars[$k], $vars['other' . ucwords($k)]) = u\order($one1st, $one, $two);}
 function wargs($s, $args, $prefix = '') {return strtr($s, prefixKeys($prefix, $args));} // for debugging
 function myInt($n) {return (is_numeric($n) and $n == (int) $n);}
 function myFloat($n) {return (is_numeric($n) and $n == (float) $n);}
@@ -853,3 +854,4 @@ function prefix(&$var, $prefix) {$var = $prefix . $var;}
 function setDft(&$param, $value) {if (!isset($param)) $param = $value;}
 function bit($bit) {return 1 << $bit;}
 function log($message, $type = 'state', $info = array()) {return u\loga($type, compact('message') + $info);}
+function consta($prefix, $var) {return constant(strtoupper($prefix . "_$var"));}

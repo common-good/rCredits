@@ -91,7 +91,7 @@ class call {
     } elseif ($todo == 'setup email' and !$mya->mail) {
       setup_email($mya, $this->message);
       be\todo($number, '', '');
-      $balance = u\formatAmount(be\fund($this->uid, TX_SIGNUP));
+      $balance = u\fmtAmt(be\fund($this->uid, TX_SIGNUP));
       return tt('your account is ready', compact('balance'));
 /*    } elseif (!\user_access('transact via sms')) { // user does not have permission to use the rCredits SMS interface
       // send the user an email here?

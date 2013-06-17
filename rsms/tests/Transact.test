@@ -97,7 +97,7 @@ class rsmsTransact extends DrupalWebTestCase {
     Then_('the community has r$-765');
     And__('phone +20003 has r$360');
     And__('we say to phone +20001 "report transaction" with subs: "DATA'
-    . '\\| action | otherName | amount | rewardType | rewardAmount | balance | tid |'
+    . '\\| did    | otherName | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| paid   | Corner Pub | $100   | rebate      | $5            | $155    | 2   |"');
   }
 
@@ -108,7 +108,7 @@ class rsmsTransact extends DrupalWebTestCase {
     Then_('phone +20003 has r$250');
     And__('phone +20001 has r$250');
     And__('we say to phone +20001 "report invoice" with subs: "DATA'
-    . '\\| action  | otherName | amount | tid |'
+    . '\\| did     | otherName | amount | tid |'
     . '\\| charged | Corner Pub | $100   | 2   |"');
     And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'
@@ -123,7 +123,7 @@ class rsmsTransact extends DrupalWebTestCase {
     Then_('the community has r$-765');
     And__('phone +20003 has r$155');
     And__('we say to phone +20001 "report transaction" with subs: "DATA'
-    . '\\| action  | otherName | amount | rewardType | rewardAmount | balance | tid |'
+    . '\\| did     | otherName | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| charged | Corner Pub | $100   | bonus       | $10           | $360    | 2   |"');
     And__('we email "new-charge" to member "c@example.com" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'
@@ -137,7 +137,7 @@ class rsmsTransact extends DrupalWebTestCase {
     Then_('the community has r$-787.50');
     And__('phone +20003 has r$525');
     And__('we say to phone +20001 "report short payment" with subs: "DATA'
-    . '\\| action | otherName | amount | short | balance | tid |'
+    . '\\| did    | otherName | amount | short | balance | tid |'
     . '\\| paid   | Corner Pub | $250   | $50   | $12.50  | 2   |"');
   }
 
@@ -163,7 +163,7 @@ class rsmsTransact extends DrupalWebTestCase {
     Then_('the community has r$-765');
     And__('phone +20001 has r$360');
     And__('we say to phone +20003 "report transaction" with subs: "DATA'
-    . '\\| action| otherName | amount | rewardType | rewardAmount | balance | tid |'
+    . '\\| did   | otherName | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| paid  | Abe One    | $100   | rebate      | $5            | $155    | 3   |"');
   }
 
