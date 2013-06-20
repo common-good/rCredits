@@ -60,7 +60,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'nothing done' => t('Nothing was done.'),
   'nothing undone' => t('Nothing undone.'),
   'event' => t('Account @fullName (@quid) is now @status.'),
-  'you are approved' => t('Your account has been approved! You may now buy and sell through the rCredits system, including using your rCard for purchases at member businesses.'),
+  'welcome' => t('Your account has been approved! You may now buy and sell through the rCredits system, including using your rCard for purchases at member businesses.'),
   'got funding' => t('You have received a @type of @amount from your rCredits community.'),
   'gift sent' => t('Your chosen gift of @amount to Common Good Finance has gone through. Your rebate is @rewardAmount.'),
   'tx summary' => t('@otherName @otherDid you @amount for "@purpose" on @created.'),
@@ -156,6 +156,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'cannot bank' => t('The rCredits system was unable to @action your bank: @error (You need to connect your Dwolla account to your checking account.)'),
   'no source' => t('there is no valid funding source'),
   'not verified' => t('the funding source has not yet been verified by entering the two tiny deposit amounts'),
+  'agreement required' => t('You must agree to Dwolla\'s terms of service or you cannot participate in the rCredits system.'),
   
   'reward' => t('Your @rewardType is @rewardAmount.'),
   'reward other' => t('Your @otherRewardType is @otherRewardAmount.'),

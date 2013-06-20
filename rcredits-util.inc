@@ -321,13 +321,14 @@ function tt($message, $subs = array(), $adhocChannel = '') {
  * The word will not be a valid command or command abbreviation.
  * @todo: get these r\'s out of here.
  */
-function nonce() {
-  $offset = r\dbLookup('FLOOR(RAND() * COUNT(*))', 'r_nonces');
-  $nonce = r\dbLookup('nonce', 'r_nonces', "1 LIMIT $offset, 1");
+function nonce($minLen = 1) {
+  list ($where, $subs) = array('LENGTH(nonce)>=:minLen', compact('minLen'));
+  $offset = r\dbLookup('FLOOR(RAND() * COUNT(*))', 'r_nonces', $where, $subs);
+  $nonce = r\dbLookup('nonce', 'r_nonces', "$where LIMIT $offset, 1", $subs);
 
   $impossible = join(' ', $GLOBALS['SMS not a nonce']);
   if (strpos(". $impossible ", " $nonce ")) return nonce(); // reserved word? try again
-  if (strlen($nonce) > 6) return nonce(); // too long
+  if (strlen($nonce) > 6) return nonce(); // too long (currently never happens because all are <= 6)
   return $nonce;
 }
 
@@ -660,6 +661,19 @@ function randomString($len = 16, $choices = '') {
 }
 
 /**
+ * Parse the name, returning the first and last names separately.
+ * @param string $name: the name to parse
+ * @return array: [$first, $last]
+ */
+function parseName($name) {
+  $name = trim(preg_replace('/  /', ' ', $name));
+  if ($i = strpos($name, ',')) $name = substr($name, $i);
+  $names = explode(' ', $name);
+  $last = array_pop($names);
+  return array(join(' ', $names), $last);
+}
+
+/**
  * Change something to the proper case, unless it is already right.
  * @param mixed $what: a string or array of strings to fix
  * @param string $proper: the PHP function to use, to fix the case
@@ -845,6 +859,7 @@ function isNonce($nonce) {return preg_match('/^[A-Z]{3,}$/', $nonce);}
 function isName($value) {return preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $value);}
 function isAcct($acct) {return (is_object($acct) and get_class($acct) == 'rCredits\acct');}
 function hug($s, $arms = '()') {return substr($arms, 0, 1) . $s . substr($arms, -1, 1);}
+function s2t($s) {return strtotime(str_replace('-', '/', $s));}
 function formatDate($time = REQUEST_TIME) {return strftime('%d-%b-%Y', $time);}
 function formatTime($time = REQUEST_TIME) {return strtolower(strftime('%I:%M%p', $time));}
 function lastCall($far = 4) {$back = debug_backtrace(); return array_slice($back, 1, $far);}

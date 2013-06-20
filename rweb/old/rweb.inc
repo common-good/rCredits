@@ -64,7 +64,6 @@ EOF
   'ready to charge' => t('You successfully scanned in as "@agentName" to charge customers on behalf of @companyName'),
   'transaction list truncated' => t('There are too many transactions to show all at once, so only the first @TX_MAX_ROWS are shown (choose a different date range to see the rest).'),
   'address info' => t('<a1>Click here</a> for address information.'),
-  'open dwolla' => t('Our partner organization, Dwolla, sent you a link in an email. Click on the link, sign in with your phone number and temporary password "@usdPass", then come back here once you have confirmed your phone number. (We are working to eliminate this step, but in the meantime, there is no way around it.)'),
 
   // prompts
   'prompt min' => t('Keep this much in my rCredits account, for purchases or inflation-proof savings. (When your balance goes below this amount, the system refills it for you from your bank account. Refilling may take 3-4 days.)'),
@@ -158,9 +157,6 @@ EOF
   'bad card' => t('That is not a valid member ID.'),
   'bad card code' => t('This rCard is not valid.'),
   'sign in' => t('You must sign in before scanning someone else\'s rCredits QR code.'),
-  'upload required' => t('You must upload a file.'),
-  'missing contact info' => t("<h2>Missing Contact Information</h2><p>Please complete your <@a1>Contact Information</a> before continuing.</p>"),
-  'correct and retry' => t('Please correct the problem and resubmit this form.'),
 );
 
 /**
@@ -679,7 +675,7 @@ function formMembership($updating, &$sta = '', $code = '') {
   $myid = $mya->id;  
   $nonperson = !$mya->can(B_PERSONAL);
   $mempage = is_numeric($code) ? $code : FALSE;
-  $gotContact = $mya->gotContact();
+  $gotContact = ($mya->phone and $mya->address and $mya->physical and $mya->city and $mya->country);
 
   if ($mempage or !$mya->can(B_MEMBER) or !$mya->can(B_OK)) {
     extract(u\just('gotPhoto signed donated nearly', r\nearlyMember($mya)));
@@ -699,8 +695,7 @@ function formMembership($updating, &$sta = '', $code = '') {
   $message1 = $message2 = $message3 = '';
 
   if ($mempage == .5 or (!$gotContact and !$mempage)) { // did all the initial steps, but somehow didn't complete contact info
-    $a1 = "a href=\"$base_url/account/contact\"";
-    $message1 = u\tt('missing contact info');
+    $message1 = t("<h2>Missing Contact Information</h2><p>Please complete your <a href=\"$base_url/account/contact\">Contact Information</a> before continuing.</p>");
   } elseif ($mempage == '4' or ($ready and !$mya->can(B_OK) and !$mempage)) {
     $message1 = t('<h2>Your Account Setup Is Complete</h2><p>You have done everything you need to do. You can expect your account to be activated within the next 24 hours.</p><p>Thank you for joining us!</p>');
   } elseif ($mempage == '1' or (!$mya->can(B_OK) and !$mempage)) { // not a member yet (no rCard, no vote)
@@ -2218,55 +2213,58 @@ function no_selection($list) {
  * Upload a photo ID
  */
 function formUsd($form, &$sta, $args = '') {
+  extract(u\just('show', $args));
   $mya = r\acct();
-  $typeOptions = array('checking', 'savings or money market');
-  extract(u\just('bankAccount isSavings', $mya->secure));
-  
-  if ($mya->country == R_COUNTRY_ID) {
-    $routingNumber = substr(@$bankAccount, 4, 9); // chop of USkk
-    $bankAccount = substr(@$bankAccount, 4 + 9); // everything after the routing number
-    $routingNumber = textField(t('Routing:'), t('What is the 9-digit routing number (type carefully)'), required($routingNumber));
-  }
-  
-  $title = item(t('Bank Information'));
-  $subtext = item(t('Complete this form to connect your rCredits account to your bank and the mainstream economy. Checking accounts work best because of legal restrictions on other types.'));
-  $bankAccount = textField(t('Account:'), t('What is the account number? (be sure to get this right)'), required(@$bankAccount));
-  $accountType = formField('radios', t('Type:'), '', required(@$isSavings), $typeOptions);
-  $submit = submit();
+  $has = $mya->hasAux('proof');
+  $proofType = $mya->can(B_PERSONAL) ? t("driver's license or other official ID such as birth certificate or passport, showing your social security number (or the equivalent)") : t("EIN documentation from the IRS (or the equivalent) -- This could also be a letter from an officer or owner of the organization (who is an rCredits member), on the organization's letterhead, authorizing opening this rCredits account.");
+  $form = array(
+    'title' => item(t('Proof of Identity')),
+    'subtext' => item(t('Just like for a bank account, we need to verify your identity. The file you upload can be either an image or a PDF. Please be patient while the file is encrypted &mdash; it may take several seconds.')),
+    'idProof' => $has ? 
+        formField('item', t('Photo ID:'), '', R_ON_FILE . ($mya->can(B_OK) ? '' : t(' (pending approval)')))
+      : formField('file', t('Photo ID:'), tt('Upload an image of your @proofType. (maximum @R_MAX_UPLOAD_SIZE MB)', compact('proofType')), attrib(array('enctype' => "multipart/form-data"))),
+    'submit' => $has ? NULL : submit(t('Upload and Save')),
+  );
 
-  return labeled(compact(u\ray('title subtext routingNumber bankAccount accountType submit')));
+  if ($mya->can(B_CTTY_ADMIN)) {
+    $field = 'idProof';
+    u\prefix($form[$field]['#description'], show($field, @$show));
+  }
+  return labeled($form);
 }
 
 function formUsd_validate($form, &$sta) {
-  extract(u\just('routingNumber bankAccount', u\trimAll($sta['input'])));
-  if (!preg_match('/^(|[0-9]{9})$/', $routingNumber)) say('bad routing number', 'routingNumber');
-  if (!preg_match('/^[0-9]{3,20}$/', $bankAccount)) say('bad account number', 'bankAccount');
+  $mya = r\acct();
+  $proofFilename = DRUPAL_ROOT . $mya->auxFilename('proof', TRUE);
+
+  if (@$_FILES['files']['name']['idProof']) { // fine to let this be uploaded separately
+    $validators = array('file_validate_size' => array(R_MAX_UPLOAD_SIZE * 1024000));
+    if (!$file = file_save_upload('idProof', $validators, '', FILE_EXISTS_REPLACE)) return say('Try again.', 'idProof');
+    if (!u\abbreviates('image/', @$file->filemime) and @$file->filemime != 'application/pdf') return say('bad file type', 'idProof');
+    $tempfile = file_directory_temp() . '/' . $file->filename;
+    if (!$key = $sta['input']['idProof'] = bin2hex(u\encryptFile($tempfile, $proofFilename, r\passSalt()))) return say('encryption failure', 'idProof');
+    \file_delete($file);
+  } elseif ($mya->hasAux('proof')) {
+    $sta['input']['idProof'] = R_ON_FILE; // flag for no change
+  } else return say('nothing done', 'idProof');
 }
 
 function formUsd_submit($form, &$sta) {
   $mya = r\acct();
-  extract(u\just('routingNumber bankAccount accountType', $sta['input']));
-  if ($mya->country == R_COUNTRY_ID) $bankAccount = "USkk$routingNumber$bankAccount";
-  $isSavings = (bool) $accountType;
-  $secure = compact(u\ray('bankAccount isSavings')) + $mya->secure;
-  $mya->update(compact('secure'));
-  say('info saved');
+  extract(u\just('idProof', $sta['input']));
+  if (@$idProof != R_ON_FILE) {
+    if (!$mya->update(compact('idProof'))) return say('info not saved', 'idProof');
+  }
+  say('info saved'); // don't say anything if getting auth
+  r\go('membership');
 }
 
 /**
- * Get the member's security info and proof of ID, open a Dwolla account.
+ * Get the Dwolla account info
  * @param string $args: params or report from Dwolla (via usd::callback()) on success of getting auth token
  */
 function formSecurity($form, &$sta, $args = '') {
   global $base_url;
-
-  $mya = r\acct();
-  if (!$mya->gotContact()) {
-    $a1 = "a href=\"$base_url/account/contact\"";
-    $missing = item(u\tt('missing contact info', compact('a1')));
-    return compact('missing');
-  }
-  
   extract(u\just('show connected', $args));
   if (@$connected == 'yes') {
     $link = "$base_url/membership";
@@ -2274,57 +2272,35 @@ function formSecurity($form, &$sta, $args = '') {
     say("got token$completed|return to membership", compact('link'));
     r\tellStaff('connected to Dwolla');
   } elseif (@$connected) say("There was an error. Dwolla said: $connected", 'zot');
-  $cttyAdmin = $mya->can(B_CTTY_ADMIN);
+  $mya = r\acct();
+  
+  if ($mya->offsite) $federalId = $dob = $answer = R_ON_FILE;
+  if ($mya->usdAccount) $usdAccount = R_ON_FILE;
+  if (@$mya->secure['pin']) $pin = R_ON_FILE;
+  if (!@$mya->secure['auth']) say('no auth yet', 'pin');
 
-  if ($mya->offsite) { // already got all this stuff
-    if ($cttyAdmin and !@$mya->usdAccount) {
-      say('Not yet connected to Dwolla. Resubmit.');
-       // !@$secure['auth']) { // no Dwolla account yet
-//      exit($usd->getAuth()); // get (new) auth token (does not return until after a visit to Dwolla)
-    }
-    $federalId = $dob = $answer = R_ON_FILE;
-  }
-  
-  $has = $mya->hasAux('proof');
-  $proofType = $mya->can(B_PERSONAL) ? t("driver's license or other official ID such as birth certificate or passport, showing your social security number (or the equivalent)") : t("EIN documentation from the IRS (or the equivalent) -- This could also be a letter from an officer or owner of the organization (who is an rCredits member), on the organization's letterhead, authorizing opening this rCredits account.");
-  $aTerms = 'a href="https://www.dwolla.com/tos?nolayout=true" target="_blank"';
-  
   $form = array(
-    'title' => item(t('Security Information')),
-//    'subtext' => item(t('Have you set up your <a href="' . "$base_url/help/dwolla-account-setup" . '">Dwolla</a> account? Great! Now connect it to your rCredits account. Enter your PIN and security information here. When you click "Save", you will be sent again to the Dwolla site, to sign in and "Allow" the needed permissions.')),
-    'subtext' => item(t('Just like for a bank account, we need to verify your identity. The photo ID file you upload can be either an image or a PDF. Please be patient while the file is encrypted &mdash; it may take several seconds.')),
-    
-    'usdAccount' => adminField(t('Account:')),
-    'usdPass' => adminField(t('USD Pass:')),
-    'pin' => adminField(t('PIN:')),
-    
-    'federalId' => $mya->can(B_PERSONAL) ? // always textfield so user doesn't have to retype on error
-        formField(@$federalId == R_ON_FILE ? 'textfield' : 'textfield', t('Soc Sec #:'), t('Your social security number (for required annual reporting)'), required(@$federalId))
+    'title' => item(t('USD Account and Security Info')),
+    'subtext' => item(t('Have you set up your <a href="' . "$base_url/help/dwolla-account-setup" . '">Dwolla</a> account? Great! Now connect it to your rCredits account. Enter your PIN and security information here. When you click "Save", you will be sent again to the Dwolla site, to sign in and "Allow" the needed permissions.')),
+    'usdAccount' => $mya->can(B_ADMIN) ? textField(t('Account:'), t('(This field shows up for administrators only)')) : NULL,
+    'pin' => formField(@$pin == R_ON_FILE ? 'textfield' : 'password', t('PIN'), t('Your 4-digit Dwolla PIN'), required(@$pin)),
+    'federalId' => $mya->can(B_PERSONAL) ?
+        formField(@$federalId == R_ON_FILE ? 'textfield' : 'password', t('Soc Sec #:'), t('Your social security number (for required annual reporting)'), required(@$federalId))
       : textField(t('Federal ID:'), t('Your official employer ID number (EIN)'), required(@$federalId)),
     'dob' => textField(t('Birthdate:'), $mya->can(B_PERSONAL) ? t('Your date of birth (mm/dd/yyyy)') : t('Your date of incorporation or founding (mm/dd/yyyy)'), required(@$dob)),
     'question' => $mya->can(B_PERSONAL) ? textField(t('Question:'), t('Type a question that no one but you could ever guess the answer to.'), required($mya->question)) : NULL,
     'answer' => $mya->can(B_PERSONAL) ? textField(t('Answer:'), t('The answer to that question'), required(@$answer)) : NULL,
-    'idProof' => $has ? 
-        formField('item', t('Photo ID:'), '', R_ON_FILE . ($mya->can(B_OK) ? '' : t(' (pending approval)')))
-      : formField('file', t('Photo ID:'), tt('Upload an image of your @proofType. (maximum @R_MAX_UPLOAD_SIZE MB)', compact('proofType')), attrib(array('enctype' => "multipart/form-data"))),
-    'agreed' => formField('checkbox', t('Agreed:'), tt("I accept Dwolla's <@aTerms>terms of service</a> (we partner with Dwolla to handle the US Dollars you spend and receive).", compact('aTerms')), $has),
-//    'posttext' => item(t('We partner with Dwolla to handle the US Dollars you spend and receive. When you click "Save" here, you will be sent to the Dwolla site, to "Allow" the needed permissions.')),
-    'submit' => submit($has ? t('Save') : t('Upload and Save')),
+    'submit' => submit(),
   );
 
-  if ($cttyAdmin) {
-    foreach (u\ray('usdAccount usdPass pin federalId dob answer idProof') as $field) {
+  if ($mya->can(B_CTTY_ADMIN)) {
+    foreach (u\ray('usdAccount pin federalId dob answer') as $field) {
       u\prefix($form[$field]['#description'], show($field, @$show));
     }
     if (!$mya->can(B_ADMIN)) unset($form['subtext']);
   }
   
   return labeled($form);
-}
-
-function adminField($label) {
-  $mya = r\acct();
-  return ($mya->can(B_CTTY_ADMIN) and $mya->usdAccount) ? item(R_ON_FILE, $label) : NULL;
 }
 
 /**
@@ -2336,6 +2312,7 @@ function adminField($label) {
 function show($field, $show = '') {
   global $base_url;
   $mya = r\acct();
+  $page = $field == 'idProof' ? 'id-proof' : 'usd'; 
   
   if ($field == $show) {
     if (strpos(R_SECURE_FIELDS, $field) !== FALSE) {
@@ -2352,7 +2329,7 @@ function show($field, $show = '') {
     } elseif (strpos(R_SECRET_FIELDS . ' usdAccount', $field) !== FALSE) {
       $result = $mya->$field;
     }
-  } else $result = "<a href=\"$base_url/account/security/show=$field\">show</a>";
+  } else $result = "<a href=\"$base_url/account/$page/show=$field\">SHOW</a>";
   return "[$result] ";
 }
 
@@ -2361,78 +2338,52 @@ function onFile($field, $sta) {
 }
 
 function formSecurity_validate($form, &$sta) {
-  $mya = r\acct();
-  extract(u\just('pin federalId dob agreed', $sta['input']));
+  extract(u\just('pin federalId dob', $sta['input']));
 /*  if (!onFile('usdAccount', $sta)) {
     $usdAccount = $sta['input']['usdAccount'] = u\digits($usdAccount);
     if (!preg_match('/^[0-9]{10}$/', $usdAccount)) return say('bad account number', 'usdAccount');
   } */
-/*  if (!onFile('pin', $sta)) {
+  if (!onFile('pin', $sta)) {
     $pin = $sta['input']['pin'] = u\digits($pin);
     if (!preg_match('/^[0-9]{4}$/', $pin)) return say('bad pin', 'pin');
-  }*/
-  if (!@$agreed) return say('agreement required', 'agreed');
-  if (!onFile('dob', $sta)) { // 12/14/1901 is the earliest
-    if (!$dob = $sta['input']['dob'] = u\s2t($dob) or $dob > REQUEST_TIME) return say('bad date', 'dob');
   }
   if (!onFile('federalId', $sta)) {
     $federalId = $sta['input']['federalId'] = u\digits($federalId);
     $what = r\acct()->can(B_PERSONAL) ? 'social security number' : 'federal ID';
     if (!preg_match('/^[0-9]{9}$/', $federalId)) return say('bad federal id', compact('what'), 'federalId');
   }
-  
-  $proofFilename = DRUPAL_ROOT . $mya->auxFilename('proof', TRUE);
-
-  if (@$_FILES['files']['name']['idProof']) {
-    $validators = array('file_validate_size' => array(R_MAX_UPLOAD_SIZE * 1024000));
-    if (!$file = \file_save_upload('idProof', $validators, '', FILE_EXISTS_REPLACE)) return say('Try again.', 'idProof');
-    if (!u\abbreviates('image/', @$file->filemime) and @$file->filemime != 'application/pdf') return say('bad file type', 'idProof');
-    $tempfile = file_directory_temp() . '/' . $file->filename;
-    if (!$key = $sta['input']['idProof'] = bin2hex(u\encryptFile($tempfile, $proofFilename, r\passSalt()))) return say('encryption failure', 'idProof');
-    \file_delete($file);
-  } elseif ($mya->hasAux('proof')) {
-    $sta['input']['idProof'] = R_ON_FILE; // flag for no change
-  } else return say('upload required', 'idProof');
+  if (!onFile('dob', $sta)) { // 12/14/1901 is the earliest
+    if (!$dob = $sta['input']['dob'] = strtotime($dob) or $dob > REQUEST_TIME) return say('bad date', 'dob');
+  }
 }
 
 function formSecurity_submit($form, &$sta) {
+  include_once __DIR__ . '/../usd.class'; // treat this as an extension of this file, just to make menu ['file'] consistent
+
+  $usd = new r\usd(r\acct());
+  $usdFields = '';
   $mya = r\acct();
-  $info = u\just('federalId dob question answer idProof', $sta['input']);
+  $info = u\just('type pin auth federalId dob question answer', $sta['input']);
+  $secure = @$mya->secure ?: array();
+  $retry = ((!@$secure['auth'] or !@$secure['usdAccount']) and $info['pin'] == R_ON_FILE);
+//  $retry = FALSE; // DEBUG
 
   foreach ($info as $key => $value) if ($value == R_ON_FILE or $value == @$form[$key]['#default_value']) unset($info[$key]); // don't change if on file or unchanged
   extract($info); // extract just the ones that changed
 
   $info = u\just(R_SECRET_FIELDS . ' question', $info);
   if (!empty($info) and !$mya->update($info)) return say('info not saved', 'zot');
-
-  if (!$mya->usdAccount) { // Dwolla account not set up yet (already saved federalId and dob in $mya)
-//    $usdPass = '.rC5' . \user_password(20); // make sure it satisfies Dwolla's upper/lower/digit/punc limits
-    $usdPass = strtolower(u\nonce(5)) . '*B2'; // make sure it satisfies Dwolla's upper/lower/digit/punc limits
-//    $email = $mya->mainQid . (isDEV ? $usdPass : '') . '@rcredits-org.com'; // isDEV means testing
-    $email = isDEV ? ($mya->mainQid . \user_password(20) . "@rcredits-org.com") : $mya->mail; // isDEV means testing
-    //debug(compact('email','usdPass'));
-    $pin = u\randomString(4, 'digits');
-    list ($first, $last) = u\parseName($mya->fullName);
-    extract(u\just('address city postalCode', $mya->account()));
-    $state = r\realState($mya->state, $mya->country); // state abbrev
-    $phone = u\formatPhone($mya->phone, 'n');
-    $dob = date('m-d-Y', $mya->dob);
-    $acceptTerms = TRUE;
-    $address2 = '';
-    $acctType = $mya->isNonprofit() ? 'NonProfit' : ($mya->can(B_COMPANY) ? 'Commercial' : 'Personal');
-    $org = $mya->can(B_PERSONAL) ? '' : $fullName;
-    $ein = $mya->can(B_PERSONAL) ? '' : $mya->federalId;
-
-    list ($first, $last) = u\parseName('test user');
-    $usd = $mya->usd(compact(u\ray('email usdPass pin first last address city state postalCode phone dob acceptTerms address2 acctType org ein')), $err);
-    if ($err) return say("$err|correct and retry", 'zot');
-
-    $usdType = 'Dwolla';
-    $secure = compact(u\ray('usdType pin usdPass')) + (@$mya->secure ?: array()); // secure includes more than these
+  
+  if (isset($pin) or $retry) { // this must be last, because it redirects to Dwolla
+    $type = 'Dwolla';
+    $auth = ''; // no valid auth token until Dwolla calls us back
+    $secure = compact(u\ray('type pin auth')) + $secure; // secure includes more than these
     $mya->update(compact('secure'));
-    say('info saved|open dwolla', compact('usdPass'));
-  } else say('info saved');
-
+    $usd = new r\usd($mya);
+    exit($usd->getAuth()); // get (new) auth token (does not return until after a visit to Dwolla)
+  }
+  
+  say('info saved'); // don't say anything if getting auth
   r\go('membership');
 }
 
@@ -2449,17 +2400,17 @@ function formBank($form, &$sta) {
   
   $form = array();
   if ($my_country == R_COUNTRY_ID) {
-    $my_routingNumber = substr($my_bankAccount, 4, 9); // chop of USkk
-    $my_bankAccount = substr($my_bankAccount, 4 + 9); // everything after the routing number
-    $routingNumber = textField(t('Routing number:'), t('What is the 9-digit routing number (type carefully)'), required($my_routingNumber));
-  } else $routingNumber = NULL;
+    $my_routing_number = substr($my_bank_account_number, 4, 9); // chop of USkk
+    $my_bank_account_number = substr($my_bank_account_number, 4 + 9); // everything after the routing number
+    $routing_number = textField(t('Routing number:'), t('What is the 9-digit routing number (type carefully)'), required($my_routing_number));
+  } else $routing_number = NULL;
   
   $form = array(
     'title' => item(t('Bank Information')),
 //    'subtext' => ,
     'bank_account_name' => textField(t('Account name:'), t('What is the name on this bank account?'), required($my_bank_account_name)),
-    'routingNumber' => $routingNumber,
-    'bankAccount' => textField(t('Account number:'), t('What is the account number? (be sure to get this right)'), required($my_bankAccount)),
+    'routing_number' => $routing_number,
+    'bank_account_number' => textField(t('Account number:'), t('What is the account number? (be sure to get this right)'), required($my_bank_account_number)),
     'submit' => submit(),
   );
 
@@ -2469,14 +2420,14 @@ function formBank($form, &$sta) {
 function formBank_validate($form, &$sta) {
   extract(u\trimAll($sta['input']));
   if (!u\validName($bank_account_name, FALSE, FALSE)) say('bad name', 'bank_account_name');
-  if (!preg_match('/^(|[0-9]{9})$/', $routingNumber)) say('bad routing number', 'routingNumber');
-  if (!preg_match('/^[0-9]{3,20}$/', $bankAccount)) say('bad account number', 'bankAccount');
+  if (!preg_match('/^(|[0-9]{9})$/', $routing_number)) say('bad routing number', 'routing_number');
+  if (!preg_match('/^[0-9]{3,20}$/', $bank_account_number)) say('bad account number', 'bank_account_number');
 }
 
 function formBank_submit($form, &$sta) {
   extract($sta['input']);
-  if (r\acct()->country == R_COUNTRY_ID) $bankAccount = "USkk$routingNumber$bankAccount";
-  r\acct()->update(compact(u\ray('bank_account_name bankAccount')));
+  if (r\acct()->country == R_COUNTRY_ID) $bank_account_number = "USkk$routing_number$bank_account_number";
+  r\acct()->update(compact(u\ray('bank_account_name bank_account_number')));
   say('info saved');
 }
 */

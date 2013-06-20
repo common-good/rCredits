@@ -29,7 +29,7 @@ define('R_DATE_FIELDS', 'created completed sent invited giftDate signed login ac
 define('R_DATA_FIELDS', ''); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'usd r rewards floor committed'); // financial amount fields in account record
 define('R_COMPANY_FIELDS', 'website description selling structure'); // fields in r_companies
-define('R_SECURE_FIELDS', 'type pin auth cardCode cardCode2'); // non-personal encrypted fields
+define('R_SECURE_FIELDS', 'usdType pin usdPass auth cardCode cardCode2'); // non-personal encrypted fields
 define('R_SECRET_FIELDS', 'federalId dob idProof answer'); // personal identifying information
 define('R_SECRET_URL', isDEV ? 'http://localhost/rcredits-promo' 
   : (STAGING ? ('http://' . STAGE) : 'http://rcredits.org')); // where to store secrets
@@ -94,6 +94,7 @@ define('R_COMMERCIAL', 2); // not personal (used in testing)
 $GLOBALS['account types'] = array(t('personal'), t('personal AND commercial'), t('commercial (but not publicly traded)'), t('publicly traded corporation'), t('nonprofit or government'));
 
 // Commercial Account structure (bits)
+// R_SELF_EMPLOYED 1 -- already defined above
 define('R_PARTNERSHIP', 2);
 define('R_CORPORATION', 3);
 define('R_NONPROFIT', 4);
@@ -644,7 +645,7 @@ function membershipEvent($a, $status, $do = TRUE) {
     $DBTX = \db_transaction();
     if ($bit !== FALSE) $a->setBit($bit); // set the bit, if any
     if ($status == 'bona' and $a->can(B_PERSONAL)) be\fund($a->id);
-    if ($status == 'ok') r\notify($a->id, 'you are approved', array(), TRUE);
+    if ($status == 'ok') r\notify($a->id, 'welcome', array(), TRUE);
     unset($DBTX);
     
     $fullName = $a->fullName;
@@ -812,7 +813,7 @@ function dbLookup($fieldName, $table, $where = '1', $subs = array()) {
   u\EXPECT(compact(u\ray('fieldName table where subs')), 'notempty notempty notempty assoc');
   if (!strpos($where, ' LIMIT ')) $where .= ' LIMIT 1';
   $sql = "SELECT $fieldName FROM $table WHERE $where";
-//  debug(compact('sql','subs'));
+  //if (strpos($table, 'nonce')) debug(compact('sql','subs'));
   $result = dbQ($sql, $subs);
   $fieldCount = strpos($fieldName, '(') ? 1 : substr_count($fieldName, ',') + 1; // function or array, not both
   $result = $fieldCount > 1 ? $result->fetchAssoc() : $result->fetchField();
@@ -1045,8 +1046,7 @@ function relation($field, $main, $other = array(), $where = 'TRUE', $subs = arra
  */
 function passSalt($acct = '') {
   $acct = $acct ?: r\acct();
-  require(DRUPAL_ROOT . '/sites/default/settings.php');
-  $pass = $databases['default']['default']['password'];
+  $pass = R_SALTY_PASSWORD;
   $salt = $acct->created;
   return compact('pass', 'salt');
 }

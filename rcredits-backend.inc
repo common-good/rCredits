@@ -521,10 +521,12 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   if ($confirmed) { // notify other party by email about any confirmed transaction
     $notice = $taking ? ($preapproved ? 'new charge' : 'new invoice')
       : ($virtual ? 'new offer' : 'new payment');
-    if ($notice == 'new payment' and $payee == \variable_get('cgf_uid')) { // should be any nonprofit
-      // 
-    }
     if (@$args['otherRewardAmount']) $notice .= '|reward other';
+    if (u\abbreviates('new payment', $notice)) {
+    //and $payee == \variable_get('cgf_uid')) { // should be any nonprofit? anyone?
+//      $a1 = 
+//      $notice .= u\tt('address info', compact('a1'));
+    }
     r\notify($uid, $notice, $args);
     $message = $goods ?
         ($preapproved ? ($virtual ? 'offer' : 'transaction') : 'invoice')

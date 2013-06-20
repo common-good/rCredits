@@ -33,7 +33,7 @@ class usd {
   private function dwolla($setToken = TRUE, $redirectUri = 'usd-callback') {
     global $base_url;
     $redirectUri = "$base_url/$redirectUri/" . $this->acct->id;
-    $dw = new \DwollaRestClient(DWOLLA_API_KEY, DWOLLA_API_SECRET, $redirectUri);
+    $dw = new \DwollaRestClient(DW_API_KEY, DW_API_SECRET, $redirectUri);
     if ($setToken) $dw->setToken(@$this->acct->secure['auth']);
     return $dw;
   }
@@ -52,12 +52,24 @@ class usd {
   /**
    * Instantiate (and return) a new USD account object
    * @param acct $acct: the rCredits account that has this USD account
+   * @param assoc $info: registration info (optional), if registering
+   * @param string $err: (returned) error message if any
    */
-  function __construct($acct) {
+  function __construct($acct, $info = FALSE, &$err = '') {
     $this->acct = $acct;
-    $this->number = $acct->usdAccount; // usually empty at first
-    $secure = $acct->secure;
-    foreach (u\ray('type pin auth') as $one) $this->$one = @$secure[$one];
+    
+    if ($info) { // presence of usdAccount is the indication of success or failure after registration
+      $dw = $this->dwolla();
+      extract($info); // exactly the args in the function call on the next line
+      $user = $dw->register($email, $usdPass, $pin, $first, $last, $address, $city, $state, $postalCode, $phone, $dob, $acceptTerms, @$address2, $acctType, $org, $ein);
+      dwError($dw, $err); // set error message, if any
+      if ($this->number = $usdAccount = str_replace('-', '', @$user['Id'])) $acct->update(compact('usdAccount'));
+      list ($this->type, $this->pin, $this->auth) = array('Dwolla', $pin, FALSE);
+    } else {
+      $this->number = $acct->usdAccount; // may be empty
+      $secure = $acct->secure;
+      foreach (u\ray('type pin auth') as $one) $this->$one = @$secure[$one];
+    }
   }
   
   /**

@@ -13,7 +13,7 @@ Notes for developers
 - Upload to new.rcredits.org and make sure SOMETHING works.
 ***
 
-BEFORE MINI LAUNCH:
+BEFORE FRIENDS LAUNCH:
 - automatic (suggested) ops
 - pilot test, including formI
 - * no signup on rcredits.org! (just mailing list)
@@ -22,11 +22,14 @@ To do: (* = before launch ** = earlier)
 
 - monthly inflation adjustment
 - implement r\suggest (use this for merchant invoices too. user gets an email invoice from rCredits, they can just click on a link to accept or decline. merchant gets notified). test cron call to r\suggest (should just notify, for now)
+- change companies field "id" to "uid" (for consistency)
 - give user a chance to name the machine (or change the name), saved in a cookie and in each tx (box)
 - include address in "new payment" digest notices to nonprofits OR just CGF (warn on pay screen if the former)
 - trans history: default today on starting/ending and/or pass true defaults properly for period
+- * help for all pages
+- * membership tests: New Pass, Photo, Agreement, Contribute, Proxies, Usd, proof of ID, Options
 - more formI tests
-- prefs: show phone# or (more importantly) physical addr when paying someone (so they can ship or call)
+- * prefs: show phone# or (more importantly) physical addr when paying someone (so they can ship or call)
 - make sure we're handling all bad GET data gracefully
 - scanning own card should fill in username on login form
 - scanning non-member card should complain immediately
@@ -46,13 +49,11 @@ To do: (* = before launch ** = earlier)
 - rethink nested usd transaction atoms (is the logic right?)
 - retest SMS
 - * in daily: alert staff if deposit / withdrawal not complete after 3 days
-- * help for all pages
 - handle 10-day interval for deposits/withdrawals for non-checking accounts
 - Hilary's list
 - * don't allow clicking on links in emails (send to new.rcredits_org.com/whatever, which looks like rcredits.org but scolds the user for clicking on an email link, then offers a link to the real site (don't accept that one either). Exception: links that do not require sign-in (for example, suggested account changes and merchant charges -- merchant creates invoice. no shipping until you accept it -- like paypal).
 - settle where email links go and what they do
 - for admin, put initial gift and share% on member's Summary page (attached to addr)
-- * membership tests: New Pass, Photo, Agreement, Contribute, Proxies, Usd, proof of ID, Options
 - create region records as needed, when a new member is outside NEW. Handle region totals in r\total()
 - in r\transact() we should rollback the transaction if it leaves the payer in unauthorized debt (due to a timing error that might be exploited intentionally by a determined hacker)
 - Maybe remove security algorithms from public view (see https://help.github.com/articles/remove-sensitive-data)
@@ -242,17 +243,18 @@ C. rCredits module structure
    Each interface (rWeb, rSmart, and rSMS) has its sub-module in its own folder, with its own features and tests.
    Code that is unlikely ever to apply to more than one interface, should not go in the main rcredits folder and vice versa.
    
-D. rCredits namespaces and how they are abbreviated in calling files:
+D. rCredits namespaces and how they are abbreviated in calling files. Functions that are called outside their named space should be preceded by these namespace identifiers even when called from within the named space. For example, write t\est() not est() even within rcredits-testing.inc.
    (r) rCredits: shared business logic code
-         (r/Web) rCredits/Web
-         (r/Smart) rCredits/Smart
-         (r/SMS) rCredits/SMS
-         (r/Cron) rCredits/Cron
-   (t) rCredits/Testing
-   (u) rCredits/Utilities: helper functions that are not clearly specific to rCredits
-   (be) rCredits/Backend: business logic functions called directly by the interfaces
+         (r\Web) rCredits\Web
+         (r\Smart) rCredits\Smart
+         (r\SMS) rCredits\SMS
+         (r\Cron) rCredits\Cron
+   (t) rCredits\Testing
+   (u) rCredits\Utilities: helper functions that are not clearly specific to rCredits
+   (be) rCredits\Backend: business logic functions called directly by the interfaces
         The separation of r from be is incomplete and muddy. We might wanna just use "r" for these backend functions
-   (db) rCredits/DB: planned new home for our lowest level database functions (dbLookup, etc.) NYI
+   (db) rCredits\DB: planned new home for our lowest level database functions (dbLookup, etc.) NYI
+   ()   Drupal functions are marked with a (technically superfluous) leading backslash
  
 E. Database clues
    - All rCredits tables begin with "r_", except `offsite` and `users`, which we have added many fields to.

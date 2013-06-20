@@ -245,9 +245,11 @@ class acct {
     return dbUpdate('users', $info, 'uid');
   }
 
+  public function usd($info = FALSE, &$err = '') {return new r\usd($this, $info, $err);}
   public function proSe() {return ($this->id == $this->agentId);}  
-
   public function qid() {return $this->proSe() ? $this->mainQid : r\quid($this->id, $this->agentId);}
+  public function isNonprofit() {return (bool) (r\dbLookup('structure', 'r_companies', 'id=:id', array('id' => $this->id)) & u\bit(R_NONPROFIT));}
+  public function gotContact() {return ($this->phone and $this->address and $this->physical and $this->city and $this->country);}
   
   /**
    * Return specified account's profile picture, with markup
