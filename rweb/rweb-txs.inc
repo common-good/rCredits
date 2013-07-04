@@ -69,12 +69,16 @@ function formTxs($form, &$sta, $args = '') {
   $dones = ($states != STATES_PENDING);
   $pendings = ($states != STATES_DONE);
   $txOpts = compact(u\ray('dones pendings exchanges vpayments'));
-  $result = be\myTransactions($starting, $ending, $report ? 'ctty' : $mya->id, $txOpts);
   $rows = array();
-  for ($rowNum = 0; $rowNum < $maxRows; $rowNum++) {
-    if (!$tx = $result->fetchAssoc()) break;
-    $tot = $tx['state'] <= TX_PENDING ? 'totPending' : 'totDone';
-    $rows[] = doRow($tx, $report, $csv, $classes, @$agents, @$channels, $currency, $url0, $$tot);
+  
+  foreach (u\ray('bankTransfers myTransactions') as $func) { // transfers first (usually not many)
+    $func = "rCredits\\Backend\\$func";
+    $result = $func($starting, $ending, $report ? 'ctty' : $mya->id, $txOpts);
+    while (count($rows) < $maxRows) {
+      if (!$tx = $result->fetchAssoc()) break;
+      $tot = $tx['completed'] ? 'totDone' : 'totPending';
+      $rows[] = doRow($tx, $report, $csv, $classes, @$agents, @$channels, $currency, $url0, $$tot);
+    }
   }
   if ($tx and $result->fetchAssoc()) say('transaction list truncated'); // there was more than we could show
   if (@$download) {
@@ -183,41 +187,44 @@ function doRow($tx, $report, $csv, $classes, $agents, $channels, $currency, $url
 
   extract($tx, EXTR_PREFIX_ALL, 'tx');
   $xid = $tx_xid;
-  $data = unserialize($tx_data);
-  $is_reward = ($tx_type != TX_TRANSFER);
-  $r = number_format($tx_r, 2);
+  $r = number_format(@$tx_r, 2);
   $total = number_format($tx_amount, 2);
-  $usd = number_format($tx_amount - $tx_r, 2);
-  $rpct = $tx_amount > 0 ? number_format(100 * $tx_r / $tx_amount, 1) : R_NONE;
+  $usd = number_format($tx_amount - $r, 2);
+  $rpct = $tx_amount > 0 ? number_format(100 * $r / $tx_amount, 1) : R_NONE;
   if ($rpct == '100.0') $rpct = '100'; // keep the field narrow (4 chars max)
-//  $rpct = sprintf('<span title="$%sr + $%sus = $%s">%s</span>', $r, $usd, $total, $rpct);
   $rpct = sprintf('<span title="$%sr + $%sus">%s</span>', $r, $usd, $rpct);
   $date = @$tx_completed ?: $tx_created;
   $amount = $currency == 0 ? $r : ($currency == 1 ? $usd : $total);
   
+  if ($banking = ($tx_type == TX_BANK)) {
+    $tx_purpose = ($amount < 0 ? t('from') : t('to')) . ' ' . t('bank account');
+  } else $data = unserialize($tx_data);
+  $is_reward = $banking ? FALSE : ($tx_type != TX_TRANSFER);
+  
   if ($report) { // community transaction history
-    $reward = @$data['bonus'] + @$data['rebate'];
+    $reward = $banking ? 0 : (@$data['bonus'] + @$data['rebate']);
     txNeatAmounts($amount, $reward, $is_reward);
     $state = txColoredState($tx_state);
     $tid = $xid; // for community use the actual transaction numbers
-    $row = array($tid, strftime('%d-%b-%Y', $date), r\acct($tx_payer)->fullName, r\acct($tx_payee)->fullName, $total, $rpct, $amount, $usd, $tx_usdXid, $state, $tx_purpose, $reward);
+    $payeeName = $banking ? '' : r\acct($tx_payee)->fullName;
+    $row = array($tid, strftime('%d-%b-%Y', $date), r\acct($tx_payer)->fullName, $payeeName, $total, $rpct, $amount, $usd, $tx_usdXid, $state, $tx_purpose, $reward);
   } else { // individual account transaction history
     $url = $url0 . "&xid=$xid";
-    $toMe = ($tx_payee == $myid);
-    $byMe = ($tx_taking == $toMe);
-    $tid = $toMe ? $tx_payeeTid : $tx_payerTid;
-    $agent = $toMe ? $tx_payeeAgent : $tx_payerAgent;
+    u\setDft($toMe, $tx_payee == $myid);
+    $byMe = $banking ?: (@$tx_taking == $toMe);
+    $tid = $toMe ? $tx_payeeTid : @$tx_payerTid;
+    $agent = $toMe ? @$tx_payeeAgent : @$tx_payerAgent;
     $state = txColoredState($tx_state, $byMe);
-    $reward = @$data[$toMe ? 'bonus' : 'rebate'];
+    $reward = $banking ? 0 : @$data[$toMe ? 'bonus' : 'rebate'];
     $net = number_format(($toMe ? $total : -$total) + $reward, 2);
     txNeatAmounts($amount, $reward, $is_reward);
     list ($toYou, $fromYou) = $toMe ? array($amount, R_NONE) : array(R_NONE, $amount);
     if ($total + 0 == 0) $toYou = $fromYou = "<span class=\"virtual\">$r</span>"; // make virtual payments clear
     $button1 = (!$byMe and okableState($tx_state)) ? button('OK', "$url&do=ok", txAct('ok', $tx_state, $toMe, $byMe)) : '';
     $button2 = ((!$is_reward or $mya->can(B_CTTY_ADMIN)) and !@$data['undoneBy']) ? button(' X ', "$url&do=no", txAct('no', $tx_state, $toMe, $byMe)) : '';
-    $button3 = ($mya->can($tx_taking ? B_SELL : B_BUY) and !$is_reward) ? "<a href='$url&do=edit' title='Edit Purpose'><img src='$rUrl/images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
-    $buttons = "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
-    $row = array($tid, strftime('%d-%b', $date), $tx_name, $fromYou, $toYou, $rpct, $amount, $usd, $tx_usdXid, $state, $buttons, $tx_purpose, $reward, $net);
+    $button3 = ($mya->can(@$tx_taking ? B_SELL : B_BUY) and !$is_reward) ? "<a href='$url&do=edit' title='Edit Purpose'><img src='$rUrl/images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
+    $buttons = $banking ? '' : "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
+    $row = array($tid, strftime('%d-%b', $date), @$tx_name, $fromYou, $toYou, $rpct, $amount, $usd, $tx_usdXid, $state, $buttons, $tx_purpose, $reward, $net);
   }
 
   if (@$agents) $row[] = ($agent == $myid or $agent < 0) ? R_NONE 
@@ -311,18 +318,24 @@ function formTxs_submit($form, &$sta, $page = 'transactions') {
   $sta['redirect'] = $url;
 }
 
+/**
+ * Return usable starting and ending dates.
+ * @param assoc $txDays: descriptions of time periods relative to now, for example "[the past] 30 days"
+ * @param int $period: index into $txDays -- for calculating starting and ending if none explicitly specified
+ * @param int $starting: explicit starting date (optional)
+ * @param int $ending: explicit ending date (optional)
+ * @return array($starting, $ending), where $starting is adjusted to start of day and $ending to end of day
+ */
 function txDates($txDays, $period, $starting = '', $ending = '') {
-  if (@$starting and !is_numeric($starting) and !($starting = strtotime(@$starting))) say('bad date', 'starting');
+  if (@$starting and !is_numeric($starting) and !$starting = strtotime($starting)) say('bad date', 'starting');
   if (@$starting > REQUEST_TIME) say('beyond today', 'starting');
-  if (@$ending and !is_numeric($ending) and !($ending = strtotime($ending))) say('bad date', 'ending');
+  if (@$ending and !is_numeric($ending) and !$ending = strtotime($ending)) say('bad date', 'ending');
   if (!@$ending or $ending > REQUEST_TIME) $ending = REQUEST_TIME;
-  $ending = strtotime('tomorrow', $ending) - 1; // last second of the day
 
   $period = (int) (@$period ?: TX_DEFAULT_PERIOD);
   $ago = @$txDays[$period] ?: ($period . ' days');
   if (!@$starting) $starting = strtotime($period == '-1' ? '1jan' : "$ago ago");
-  $starting = strtotime(date("m/d/Y", $starting)); // chop off time of day
-  return array($starting, $ending);
+  return array(strtotime('today', $starting), strtotime('tomorrow', $ending) - 1);
 }  
 
 function txNeatAmounts(&$amount, &$reward, $is_reward) {
@@ -416,29 +429,32 @@ function txBal($bal, $plus = '', $minus = '- ') {return ($bal < 0 ? $minus : $pl
 
 /**
  * Return the transaction summary table
+ * @param int $starting: starting time (the start of some day)
+ * @param int $ending: ending time (the end of some day)
  */
 function txSummary($starting, $ending, $currency) {
   $mya = r\acct();
   $myid = $mya->id;
   $previous_ending = $starting - 1;
   extract($nowInfo = (array) be\creditInfo(array('asof' => $ending)), EXTR_PREFIX_ALL, 'n');
-  extract($pendingInfo = (array) be\creditInfo(array('state' => ':TX_PENDING', 'asof' => $ending)), EXTR_PREFIX_ALL, 'p');
+  extract($pendingInfo = (array) be\creditInfo(u\assoc('pending asof', TRUE, $ending)), EXTR_PREFIX_ALL, 'p');
   extract($oldInfo = (array) be\creditInfo(array('asof' => $previous_ending)), EXTR_PREFIX_ALL, 'o');
 //  debug(compact('nowInfo','oldInfo'));
 
   $dif = array();
-  foreach (u\ray('inProper out rInProper rOut usdIn usdOut rewards') as $key) $dif[$key] = $nowInfo[$key] - $oldInfo[$key];
+  foreach (u\ray('inProper out rInProper rOut usdIn usdOut rewards bank fees') as $key) $dif[$key] = $nowInfo[$key] - $oldInfo[$key];
   extract($dif, EXTR_PREFIX_ALL, 'd');
   $p_committed = $mya->committed; // this will include all pending commitments
   
-  $fields = 'old in out rewards new';
-  $pFields = 'p_inProper p_out p_rewards p_committed p_balance';
+  $fields = 'old bank in out fees rewards new';
   $values =
-    ($currency == 2 ? array($o_balance, $d_inProper, $d_out, $d_rewards, $n_balance)
-  : ($currency == 0 ? array($o_r, $d_rInProper, $d_rOut, $d_rewards, $n_r)
-  : ($currency == 1 ? array($o_usd, $d_usdIn, $d_usdOut, 0, $n_usd) : '')));
-  $p_balance = $p_rInProper - $p_rOut + $p_rewards - $p_committed;
-  $values = array_combine(u\ray($fields), $values) + compact(u\ray($pFields));
+    ($currency == 2 ? array($o_balance, $d_bank, $d_inProper, $d_out, $d_fees, $d_rewards, $n_balance) // both
+  : ($currency == 0 ? array($o_r, 0, $d_rInProper, $d_rOut, 0, $d_rewards, $n_r) // r
+  : ($currency == 1 ? array($o_usd, $d_bank, $d_usdIn, $d_usdOut, $d_fees, 0, $n_usd) : ''))); // usd
+  $values = array_combine(u\ray($fields), $values);
+
+  $p_balance = $p_bank + $p_rInProper - $p_rOut - $p_fees + $p_rewards - $p_committed;
+  $values += compact(u\ray('p_inProper p_bank p_out p_fees p_rewards p_committed p_balance'));
   foreach ($values as $key => $value) $$key = number_format($value, 2);
  
   $p_balance = txBal($p_balance, '+ '); // add +/-/$ to these, as appropriate
@@ -451,15 +467,15 @@ function txSummary($starting, $ending, $currency) {
   
   $classes = u\prefixValues('txsum-', u\ray('one tosign fromyou fromsign toyou rewardssign rewards sharesign share balancesign balance'));
   $rows = array(
-    array('id' => 'txsum-dates', 'data' => u\ray("$starting,,,,,,,,,,$ending")),
-    array('id' => 'txsum-headers', 'data' => u\ray('Starting balance,,From You,,To You,,Rewards,,To CGF,,Ending balance')),
+    array('id' => 'txsum-dates', 'data' => u\ray("$starting,,,,,,,,,,,,,,$ending")),
+    array('id' => 'txsum-headers', 'data' => u\ray('Starting balance,,From Bank,,From You,,To You,,Fees,,Rewards,,To CGF,,Ending balance')),
     array(
       'id' => 'txsum-now', 
-      'data' => u\ray("$old | - | $out | + | $in | + | $rewards |  |  | = | $new"),
+      'data' => u\ray("$old | + | $bank | - | $out | + | $in | - | $fees | + | $rewards |  |  | = | $new"),
     ),
     array(
       'id' => 'txsum-pending',
-      'data' => u\ray("<b>PENDING:</b> | - | $p_out | + | $p_inProper | + | $p_rewards | - | $p_committed | = | $p_balance"),
+      'data' => u\ray("<b>PENDING:</b> | + | $p_bank | - | $p_out | + | $p_inProper | - | $p_fees | + | $p_rewards | - | $p_committed | = | $p_balance"),
     ),
   );
   $attributes = array('id' => 'txsum');

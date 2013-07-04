@@ -81,7 +81,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'confirm pay employees' => t('Pay @employeeCount employees @amount each (a total of @total)?'),
   'confirm undo' => t('Undo @created transfer of @amount @tofrom @otherName?'),
   'confirm funding' => t('@confirmAction @amount to @otherName?'),
-  'please confirm' => t('To confirm, type @nonce.'),
+  'please confirm' => t('To confirm, type: @nonce'),
   'verification code' => t('Your verification code for using rCredits online is: @nonce'), // used in rWeb
   'confirm tx action' => t('Okay to @txAction?'),
   

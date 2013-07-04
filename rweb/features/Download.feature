@@ -54,11 +54,18 @@ Setup:
   | .AACI | %today-5d | transfer | deleted  |    200 |  50 | .ZZA | .ZZC | USD nope | 1      |
   | .AACJ | %today-5d | transfer | disputed |    100 |  80 | .ZZC | .ZZA | cash CJ  | 1      |
   Then balances:
-  | id   | r    | usd      | rewards |
-  | ctty | -771 | 10000.00 |       0 |
-  | .ZZA |  227 |   699.50 |     257 |
-  | .ZZB |  279 |  2254.50 |     254 |
-  | .ZZC |  265 |  3044.25 |     260 |
+  | id   | r    | usd   | rewards |
+  | ctty | -771 | 10000 |       0 |
+  | .ZZA |  227 |   700 |     257 |
+  | .ZZB |  279 |  2255 |     254 |
+  | .ZZC |  265 |  3045 |     260 |
+  When cron runs ""
+  Then balances:
+  | id   | r       | usd      | rewards    |
+  | ctty | -772.75 | 10000.00 |          0 |
+  | .ZZA |  227.50 |   699.50 |     257.50 |
+  | .ZZB |  279.50 |  2254.50 |     254.50 |
+  | .ZZC |  265.75 |  3044.25 |     260.75 |
 
 Scenario: A member downloads transactions for the past year
   When member ".ZZA" visits page "transactions/period=365&download=1&options=%CURRENCIES_BOTH%STATES_BOTH 000"

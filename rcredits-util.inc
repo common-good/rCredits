@@ -507,7 +507,7 @@ function loga($type, $info = array(), $special = '', $adhocChannel = FALSE) {
   if ($adhocChannel and $adhocChannel != $channel and !$special) $special = "via ch$adhocChannel";
   
   // make it easy to match the message when searching
-  if (isNonce($special) and @$info['message']) $info['message'] = str_replace($special, '@nonce', $info['message']);
+  if (isNonce($special) and @$info['message']) $info['message'] = str_replace(": $special", ': @nonce', $info['message']);
   // don't make code, password, and secret links any more accessible than they are
   foreach (u\ray(R_CONCEALED_FIELDS) as $one) if (@$info[$one]) $info[$one] = '(varies)';
   $info = json_encode($info, JSON_UNESCAPED_SLASHES);

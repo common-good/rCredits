@@ -29,15 +29,15 @@ Scenario: a member is at minimum
   
 Scenario: a member is well below minimum
   Given balances:
-  | id   | r  | usd | rewards |
-  | .ZZA | 20 |   6 |      20 |
+  | id   | r           | usd         | rewards     | minimum                |
+  | .ZZA | %R_BANK_MIN | %R_BANK_MIN | %R_BANK_MIN | %(5 * %R_BANK_MIN + 1) |
   When cron runs "bank"
   Then usd transfers:
-  | payer | amount |
-  | .ZZA  |    -74 |
+  | payer | amount              |
+  | .ZZA  | %(-4 * %R_BANK_MIN) |
   And we notice "minmax status|banked" to member ".ZZA" with subs:
-  | action    | status                    | amount |
-  | draw from | under the minimum you set |    $74 |
+  | action    | status                    | amount              |
+  | draw from | under the minimum you set | $%(4 * %R_BANK_MIN) |
 
 Scenario: a member is under minimum but already requested barely enough funds from the bank
   Given balances:

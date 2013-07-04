@@ -47,6 +47,7 @@ function tableDefs($schema = array()) {
     'rebate' => setupField('current rebate percentage (sales bonus is double)', 'numeric 4,3', 5),
     'floor' => setupField('how low can balance go (normally zero or less)', 'numeric 11,2', R_FLOOR),
     'minimum' => setupField('chosen minimum balance (savings + 3 days, fill automatically)', 'numeric 11,2', NULL), // NULL means preferences not set yet
+//    'chunk' => setupField('granularity of transfers from bank account', 'numeric 11,2', R_BANK_CHUNK),
 //    'maximum' => setupField('maximum rCredits balance (send excess to bank), 0=none)', 'numeric 11,2', -1), // -1 means no limit
     'share' => setupField('percentage of rebates/bonuses to contribute to CGF', 'numeric 6,3', NULL),
     'usd' => setupField('balance in related USD account (probable)', 'numeric 11,2', 0),
@@ -120,7 +121,7 @@ function tableDefs($schema = array()) {
     'xid' => setupField('the unique transaction ID', 'serial 11'), 
     'serial' => setupField('serial number of related transactions (=xid of first transaction in the group)', 'int 11'), 
     'usdXid' => setupField('the unique transaction ID for USD part', 'varchar 255'), 
-    'type' => setupField('transaction type (transfer, rebate, etc.)', 'int tiny'), 
+    'type' => setupField('transaction type (transfer, rebate, etc.)', 'int tiny'),
     'taking' => setupField('was the transaction initiated by the payee', 'int tiny'), 
     'goods' => setupField('is this transfer an exchange for real goods and services?', 'int tiny', 0), 
     'state' => setupField('done, pending, disputed, etc', 'int tiny'), 
@@ -135,7 +136,8 @@ function tableDefs($schema = array()) {
     'payerTid' => setupField("payer's transaction ID", 'int 11'),
     'payeeTid' => setupField("payee's transaction ID", 'int 11'),
     'data' => setupField('info stored elsewhere, duplicated here for convenience (serialized array)', 'text big'), 
-    'channel' => setupField('through what medium was the transaction entered', 'int tiny'), 
+    'channel' => setupField('through what medium was the transaction entered', 'int tiny'),
+    'box' => setupField('on what machine was the transaction entered', 'int 11', 0), // 0 = none
     'created' => setupField('Unixtime transaction was created', 'int 11', 0),
     'completed' => setupField('Unixtime transaction was completed', 'int 11', 0),
   );

@@ -45,17 +45,24 @@ Setup:
   | .AAAU | %today-6d | transfer | pending |    100 | 100 | .ZZB | .ZZA | cash U  | 1      |
   | .AAAV | %today-6d | transfer | done    |    100 |   0 | .ZZA | .ZZB | cash V  | 0      |
   Then balances:
-  | id   | r    | usd      | rewards |
-  | ctty | -768 | 10000.00 |       0 |
-  | .ZZA |  166 |   739.75 |     256 |
-  | .ZZB |  279 |  2254.50 |     254 |
-  | .ZZC |  323 |  3004.50 |     258 |
+  | id   | r    | usd   | rewards |
+  | ctty | -768 | 10000 |       0 |
+  | .ZZA |  166 |   740 |     256 |
+  | .ZZB |  279 |  2255 |     254 |
+  | .ZZC |  323 |  3005 |     258 |
+  When cron runs ""
+  Then balances:
+  | id   | r       | usd      | rewards    |
+  | ctty | -769.25 | 10000.00 |       0.00 |
+  | .ZZA |  166.25 |   739.75 |     256.25 |
+  | .ZZB |  279.50 |  2254.50 |     254.50 |
+  | .ZZC |  323.50 |  3004.50 |     258.50 |  
 
 Scenario: A member looks at rCredits in transactions for the past year
   When member ".ZZA" visits page "transactions/period=365&options=%CURRENCIES_R%STATES_BOTH 000"
   Then we show "Transaction History" with:
   | Start Date | End Date | Start Balance | From You | To You | Rewards | End Balance |
-  | %dmy-12m   | %dmy     | $0.00         | 120.00   | 30.00  | 256.00  | $166.00     |
+  | %dmy-12m   | %dmy     | $0.00         | 120.00   | 30.00  | 256.25  | $166.25     |
   |            |          | PENDING       | 200.00   | 200.00 | 15.00   | + $15.00    |
   And we show "Transaction History" with:
   | tid | Date   | Name       | From you | To you | r%   | Status  | Buttons | Purpose | Rewards |
@@ -75,43 +82,15 @@ Scenario: A member looks at rCredits in transactions for the past year
   | bonus   |
 
 Scenario: A member looks at total amounts in transactions for the past year
-  Given transactions: 
-  | xid   | created   | type     | state   | amount | r   | from | to   | purpose | taking |
-  | .AAAW | %today-3d | transfer | done    |      0 | 100 | .ZZC | .ZZA | virtual | 0      |
-  # plus rebate and bonus transactions
-  When member ".ZZA" visits page "transactions/period=365"
-  #  (explicit:) When member ".ZZA" visits page "transactions/period=365&currency=%CURRENCIES_BOTH"
-  Then we show "Transaction History" with:
-  | Start Date | End Date | Start Balance | From You | To You | Rewards | End Balance |
-  | %dmy-12m   | %dmy     | $0.00         | 460.00   | 110.00 | 266.00  | - $84.00      |
-  |            |          | PENDING       | 200.00   | 200.00 | 15.00   | + $15.00    |
-  And we show "Transaction History" with:
-  | tid | Date   | Name       | From you | To you | r%   | Status  | Buttons | Purpose | Rewards |
-  | 10  | %dm-6d | Bea Two    | 100.00   | --     | 0.0  | %chk    | X       | cash V  | --      |
-  | 9   | %dm-6d | Bea Two    | --       | 100.00 | 100  | pending | X       | cash U  | --      |
-  | 8   | %dm-6d | Bea Two    | 100.00   | --     | 100  | pending | X       | cash T  | --      |
-  | 7   | %dm-1w | Corner Pub | 120.00   | --     | 66.7 | %chk    | X       | this Q  | 4.00    |
-  | 6   | %dm-2w | Corner Pub | --       | 100.00 | 100  | ok?     | OK X    | labor M | 10.00   |
-  | 5   | %dm-3w | Bea Two    | 100.00   | --     | 100  | ok?     | OK X    | pie N   | 5.00    |
-  | 4   | %dm-3m | Bea Two    | 240.00   | --     | 16.7 | %chk    | X       | what G  | 2.00    |
-  | 3   | %dm-4m | Corner Pub | --       | 100.00 | 20.0 | %chk    | X       | usd F   | --      |
-  | 2   | %dm-5m | Bea Two    | --       | 10.00  | 100  | %chk    | X       | cash E  | --      |
-  | 1   | %dm-7m | %ctty      | --       | --     | 100  | %chk    |         | signup  | 250.00  |
-  And we show "Transaction History" without:
-  | Purpose |
-  | rebate  |
-  | bonus   |
-
-Scenario: A member looks at total amounts in transactions for the past year
 # Same result as above, but with tid#11 added
   Given transactions: 
-  | xid   | created   | type     | state   | amount | r   | from | to   | purpose | taking |
-  | .AAAW | %today-3d | transfer | done    |      0 | 100 | .ZZC | .ZZA | virtual | 0      |
+  | xid | created   | type     | state   | amount | r   | from | to   | purpose | taking |
+  | 100 | %today-3d | transfer | done    |      0 | 100 | .ZZC | .ZZA | virtual | 0      |
   # plus rebate and bonus transactions
   When member ".ZZA" visits page "transactions/period=365&options=%CURRENCIES_BOTH%STATES_BOTH 001"
   Then we show "Transaction History" with:
   | Start Date | End Date | Start Balance | From You | To You | Rewards | End Balance |
-  | %dmy-12m   | %dmy     | $0.00         | 460.00   | 110.00 | 266.00  | - $84.00      |
+  | %dmy-12m   | %dmy     | $0.00         | 460.00   | 110.00 | 266.25  | - $83.75    |
   |            |          | PENDING       | 200.00   | 200.00 | 15.00   | + $15.00    |
   And we show "Transaction History" with:
   | tid | Date   | Name       | From you | To you | r%   | Status  | Buttons | Purpose | Rewards |
@@ -206,7 +185,7 @@ Scenario: A member clicks OK
   When member ".ZZA" visits page "transactions/period=5"
   Then we show "Transaction History" with:
   | tid | Date   | Name       | From you | To you | Status | Buttons | Purpose | Rewards |
-  | 11  | %dm-5d | Corner Pub | 80.00    | --     | ok?    | OK      | this CF | 4.00    |
+  | 12  | %dm-5d | Corner Pub | 80.00    | --     | ok?    | OK      | this CF | 4.00    |
   When member ".ZZA" visits page "transactions/period=5&do=ok&xid=100"
   Then we show "tx summary|confirm tx action" with subs:
   | amount | otherName  | otherDid | purpose | created   | txAction            |
@@ -227,7 +206,7 @@ Scenario: A member confirms OK
   | %today  | Corner Pub | Abe One   | $80    | this CF      | bonus           | $8                |
   And we show "Transaction History" with:
   | tid | Date   | Name       | From you | To you | Status | Buttons | Purpose | Rewards |
-  | 12  | %dm    | Corner Pub | 80.00    | --     | %chk   | X       | this CF | 4.00    |
+  | 14  | %dm    | Corner Pub | 80.00    | --     | %chk   | X       | this CF | 4.00    |
   
 Scenario: A member confirms OK for a disputed transaction
   Given transactions:
@@ -238,7 +217,7 @@ Scenario: A member confirms OK for a disputed transaction
   When member ".ZZA" confirms form "transactions/period=5&do=ok&xid=100" with values: ""
   Then we show "Transaction History" with:
   | tid | Date   | Name       | From you | To you | Status | Buttons | Purpose | Rewards |
-  | 11  | %dm-5d | Corner Pub | 80.00    | --     | %chk   | X       | this CF | 4.00    |
+  | 13  | %dm-5d | Corner Pub | 80.00    | --     | %chk   | X       | this CF | 4.00    |
   
 Scenario: A member clicks NO
   Given transactions:
@@ -251,7 +230,7 @@ Scenario: A member clicks NO
   When member ".ZZA" visits page "transactions/period=5"
   Then we show "Transaction History" with:
   | tid | Date   | Name       | From you | To you | Status   | Buttons | Purpose | Rewards |
-  | 11  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X       | cash CL | --      |
+  | 12  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X       | cash CL | --      |
   # expand this to have rewards, for a better test
   When member ".ZZA" visits page "transactions/period=5&do=no&xid=100"
   Then we show "tx summary|confirm tx action" with subs:
@@ -268,5 +247,5 @@ Scenario: A member confirms NO
   When member ".ZZA" confirms form "transactions/period=5&do=no&xid=100" with values: ""
   Then we show "Transaction History" with:
   | tid | Date   | Name       | From you | To you | r%  | Status   | Buttons | Purpose               | Rewards |
-  | 12  | %dm    | Corner Pub | 101.00   | --     | 0.0 | %chk     | X       | reverses #11              | --  |
-  | 11  | %dm-5d | Corner Pub | --       | 101.00 | 100 | disputed |         | (reversed by #12) cash CL | --  |
+  | 13  | %dm    | Corner Pub | 101.00   | --     | 0.0 | %chk     | X       | reverses #11              | --  |
+  | 12  | %dm-5d | Corner Pub | --       | 101.00 | 100 | disputed |         | (reversed by #12) cash CL | --  |

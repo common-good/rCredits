@@ -92,9 +92,16 @@ class rcronTotals extends DrupalWebTestCase {
     Then_('balances: "DATA'
     . '\\| id   | r    | usd      | rewards |'
     . '\\| ctty | -775 | 10000.00 |       0 |'
-    . '\\| .ZZA |  169 |   741.75 |     257 |'
-    . '\\| .ZZB |  284 |  2256.50 |     256 |'
-    . '\\| .ZZC |  322 |  3002.50 |     261 |"');
+    . '\\| .ZZA |  169 |   742.00 |     257 |'
+    . '\\| .ZZB |  284 |  2257.00 |     256 |'
+    . '\\| .ZZC |  322 |  3003.00 |     261 |"');
+    When_('cron runs ""');
+    Then_('balances: "DATA'
+    . '\\| id   | r       | usd      | rewards    |'
+    . '\\| ctty | -776.25 | 10000.00 |       0.00 |'
+    . '\\| .ZZA |  169.25 |   741.75 |     257.25 |'
+    . '\\| .ZZB |  284.50 |  2256.50 |     256.50 |'
+    . '\\| .ZZC |  322.50 |  3002.50 |     261.50 |"');
     break;
 
 
@@ -106,8 +113,8 @@ class rcronTotals extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('cron runs "totals"');
     Then_('totals: "DATA'
-    . '\\| r   | floor | rewards | usd     | minimum | signup | rebate | bonus | inflation | grant | loan | fine | maxRebate | balance | demand | capacity |'
-    . '\\| 775 |   -10 |     774 | 6000.75 |    3005 |    750 |      6 |    12 |         6 |     4 |    5 |    6 |        4 |    -775 |   2230 |  2998.25 |"');
+    . '\\| r      | floor | rewards    | usd     | minimum | signup | rebate | bonus | inflation | grant | loan | fine | maxRebate | balance    | demand   | capacity |'
+    . '\\| 776.25 |   -10 |     775.25 | 6000.75 |    3005 |    750 |      6 |    12 |         6 |     4 |    5 |    6 |        4 |    -776.25 |   2228.75 |  2998.25 |"');
   }
 
 }

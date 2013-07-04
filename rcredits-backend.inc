@@ -99,8 +99,40 @@ function backend2($args = FALSE) {
 
 /**
  * Return the user's transactions for the given period (inclusive)
- * @param int $starting: starting date
- * @param int $ending: ending date
+ * @param int $starting: starting time (the beginning of some day)
+ * @param int $ending: ending time (the end of some day)
+ * @param int $uid: account id for which to return transactions (defaults to current account)
+ * @param assoc $opts: array of options
+ *   bool $dones: include completed transactions (default TRUE)
+ *   bool $pendings: include open invoices (default TRUE)
+ * @return the recordset (FALSE if none)
+ */
+function bankTransfers($starting, $ending, $uid = NULL, $opts = array()) {
+  extract(u\just('dones pendings', $opts));
+  u\setDft($dones, TRUE);
+  u\setDft($pendings, TRUE);
+  $mya = r\acct();
+  if (!@$uid) $uid = $mya->id; elseif ($uid == 'ctty') $uid = $mya->community;
+  $date = $pendings ? 'GREATEST(t.created, t.completed)' : 't.completed';
+  $where = "$date BETWEEN :starting AND :ending ORDER BY $date DESC";
+  if (!$dones) $where = "NOT completed AND $where";
+  $fields = "t.txid AS usdXid, -t.txid AS xid, ABS(t.amount) AS amount, t.payer, t.payee, :TX_BANK AS type, t.created, t.completed, IF(t.completed, :TX_DONE, :TX_PENDING) AS state, IF(t.amount<0, 1, 0) AS toMe";
+  
+  if ($uid < 0) { // community or region
+    $sql = <<<EOF
+      SELECT $fields
+      FROM r_txs t LEFT JOIN users u1 ON u1.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
+      WHERE (u1.community=:uid OR u2.community=:uid) AND $where
+EOF;
+  } else $sql = "SELECT $fields FROM r_usd t WHERE payer=:uid AND $where"; // normal account
+
+  return r\dbQ($sql, compact(u\ray('starting ending uid'))); 
+}
+
+/**
+ * Return the user's transactions for the given period (inclusive)
+ * @param int $starting: starting time (the beginning of some day)
+ * @param int $ending: ending time (the end of some day)
  * @param int $id: account id for which to return transactions (defaults to current account)
  * @param assoc $opts: array of options
  *   bool $dones: include completed transactions (default TRUE)
@@ -123,7 +155,7 @@ function myTransactions($starting, $ending, $id = NULL, $opts = array()) {
   $mya = r\acct();
   if (!@$id) $id = $mya->id; elseif ($id == 'ctty') $id = $mya->community;
   $where = 't.created>=:starting AND t.created<=:ending';
-  if (!$bonuses) $where .= ' AND t.type NOT IN (:TX_REBATE, :TX_BONUS)';
+  if (!$bonuses) $where .= ' AND t.type>=0';
   if (!$exchanges or !$vpayments) {
     $maybe = $exchanges ? 'NOT' : '';
     $where .= ($exchanges or $vpayments) ? " AND (amount>0 OR t.data $maybe LIKE '%rebate%')" : ' AND amount>0';
@@ -541,25 +573,24 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
 /**
  * Record a transfer (of rCredits) to or from the community.
  * @param int $uid: uid of the account to credit or debit
- * @param int $type: what type of transfer (defaults to signup)
- * @param int $amount: how much to transfer (standardized default for signup)
- * @param string $for: purpose of funding (defaults to description of funding type)
+ * @param int $type: what type of transfer
+ * @param int $amount: how much to transfer
+ * @param string $for: purpose of funding
  * @param bool $confirmed: actually do it? (otherwise just see if it can be done)
  * @return int: the incentive amount (FALSE if the current account does not have permission to do this)
  */
-function fund($uid, $type = TX_SIGNUP, $amount = R_SIGNUP_BONUS, $for = NULL, $confirmed = TRUE) {
+function fund($uid, $type, $amount, $for, $confirmed = TRUE) {
   if (isFrontend()) return backend('fund', compact(u\ray('uid type amount')));
   if (is_array($uid)) extract($uid); // called from api or backend
 
   $payeeAgent = $payee = $uid;
   $mya = r\acct(); // (null, if just registering or running as cron)
-  u\EXPECT($type <= TX_AUTOMATIC or $mya->can(B_MANAGING_CTTY), 'non-automatic reward by non ctty agent');
+  u\EXPECT($type == TX_SIGNUP or $mya->can(B_MANAGING_CTTY), 'non-automatic reward by non ctty agent');
   if (!$confirmed) return $amount;
   
   $payer = r\acct($payee)->community;
   $payerAgent = (@$mya and $mya->id < 0) ? $mya->agentId : $payer; // take note if funded by community admin
   $taking = ($type >= TX_FINE);
-  u\setDft($for, $GLOBALS['txTypes'][$type]);
   r\transact(compact(u\ray('type amount payer payee payerAgent payeeAgent for taking')));
   $amount = u\fmtAmt($amount);
   $type = $type == TX_SIGNUP ? t('signup bonus') : $for;
@@ -682,10 +713,10 @@ EOF;
 
 /**
  * Return financial information about the given account on this server
- * @param assoc $args: non-default options:
+ * @param assoc $args: options:
  *   uid: uid for the account to return information for (DEFAULTS to myid)
- *   state: string list of transaction states to return (DEFAULT ':TX_DONE,:TX_DISPUTED')
- *   asof: last date to include (defaults to '', meaning unrestricted)
+ *   pending: show pending transaction totals instead
+ *   asof: last date to include (defaults to tomorrow, meaning unrestricted)
  * @return
  *   standard object of credit account information (see $resultKeys, below)
  *   with corresponding number-formatted information in ->fancy
@@ -696,52 +727,59 @@ function creditInfo($args = array()) {
     $info = backend('creditInfo', $args);
     $info->fancy = (array) $info->fancy; // backend turns the whole shebang into an object
   }
-  extract(u\just('uid state asof', $args));
+  extract(u\just('uid pending asof', $args));
 
   if ($mya = r\acct()) u\setDft($uid, $mya->id);
   if (!$acct = r\acct(@$uid)) return NULL;
 
-  u\setDft($state, ':TX_DONE,:TX_DISPUTED');
-  u\setDft($asof, '');
-  u\setDft($currency, 'r');
+  $state = @$pending ? '=:TX_PENDING' : '>=:TX_DONE';
+  u\setDft($asof, REQUEST_TIME + DAY_SECS);
+  $subs = compact(u\ray('uid asof'));
   
   $dateField = 'GREATEST(t.created,IF(ISNULL(t.completed), 0, t.completed))';
-  $monthStart = u\monthDay1();
-
   $sql = <<<EOF
     SELECT 
-    SUM(IF(t.payer=:uid, amount, 0)) AS `out`, 
     SUM(IF(t.payee=:uid, amount, 0)) AS `in`,
-    SUM(IF(t.type=:TX_TRANSFER OR t.type > :TX_INFLATION, 0, amount)) AS rewards,
+    SUM(IF(t.payer=:uid, amount, 0)) AS `out`, 
+    SUM(IF(t.type=:TX_TRANSFER OR t.type > :TX_REWARDS, 0, r)) AS rewards,
+    SUM(IF(t.type=:TX_REFUND, amount, 0)) AS fees,
     
-    SUM(IF(t.payer=:uid, r, 0)) AS rOut, 
-    SUM(IF(t.payee=:uid, r, 0)) AS rIn
+    SUM(IF(t.payee=:uid, r, 0)) AS rIn,
+    SUM(IF(t.payer=:uid, r, 0)) AS rOut 
     
     FROM r_txs t
-    WHERE (t.payer=:uid OR t.payee=:uid) AND t.state IN($state)
+    WHERE (t.payer=:uid OR t.payee=:uid) AND t.state$state AND $dateField<=:asof
 EOF;
-  if ($asof) $sql .= " AND $dateField<=:asof";
-//    SUM(IF(t.type IN(:TX_REBATE,:TX_BONUS) AND $dateField>=$monthStart, amount, 0)) AS committed
+//  debug(str_replace(':uid', $uid, u\SUBS($sql)));
+  // rewards is based on r, not amount, because REFUNDs have amount=0
+  
+  $sums = r\dbQ($sql, $subs)->fetchAssoc();
 
-  $sums = r\dbQ($sql, compact(u\ray('uid asof')))->fetchAssoc();
+  $dates = @$pending ? 'NOT completed AND created <=:asof' : 'completed AND completed<=:asof';
+  $sql = "SELECT SUM(amount) AS bank FROM r_usd WHERE payer=:uid AND payee=0 AND $dates";
+  $sums += r\dbQ($sql, $subs)->fetchAssoc();
+
   foreach ($sums as $key => $value) $sums[$key] = $value + 0; // no nulls
   extract($sums);
-  $balance = $in - $out;
-  $inProper = $in - $rewards;
+
+  $bank = -$bank; // make it "from bank" instead of "to bank"
+  $balance = $bank + $in - $fees - $out;
+  $inProper = $in - ($rewards - $fees);
 
   $r = $rIn - $rOut;
-  $rInProper = $rIn - $rewards;
+  $rInProper = $rIn - ($rewards - $fees);
 
   $usdIn = $in - $rIn;
   $usdOut = $out - $rOut;
   $usd = $usdIn - $usdOut;
-
-//  $committed = round($committed * $acct->share / 100, 2);
-  $resultKeys = 'in out inProper balance rewards rIn rOut rInProper r usdIn usdOut usd';
+  
+  $resultKeys = 'in out rewards fees rIn rOut inProper balance rInProper r usdIn usdOut usd bank';
   $result = compact(u\ray($resultKeys));
+  
   $fancy = array();
   foreach ($result as $key => $value) $fancy[$key] = u\fmtAmt(@$value + 0);
   $result['fancy'] = $fancy;
+  
   return (object) $result;
 }
 
@@ -818,7 +856,7 @@ function lastTx($where = 1, $subs = array(), $cache = FALSE) {
   if (is_array($where)) extract($where); // called from api or backend
 
   $myid = r\acct()->id;
-  $basic = "$myid IN (payer, payee) AND type NOT IN (:TX_DELETED, :TX_REBATE, :TX_BONUS)"; // make sure it's for $myid
+  $basic = "$myid IN (payer, payee) AND type>=0 AND state<>:TX_DELETED"; // make sure it's for $myid
   $sql = "SELECT * FROM r_txs WHERE ($basic) AND ($where) ORDER BY xid DESC LIMIT 1";
   if (!$result = r\dbQ($sql, $subs)->fetchAssoc()) return FALSE;
   $toMe = ($result['payee'] == $myid);

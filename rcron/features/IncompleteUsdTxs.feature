@@ -3,6 +3,8 @@ AS a member
 I WANT my transactions to go through regardless of whether Dwolla is up
 SO I can depend on having access to the money I have in the rCredits system
 
+# Requires DW_TESTER_ACCT to have at least $2 in it.
+
 Setup:
   Given members:
   | id   | fullName   | dwolla          | country | email         | flags                |

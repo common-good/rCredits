@@ -119,6 +119,31 @@ function everyMonth() {
 function everyYear() {
 }
 
+//************
+// Ad hoc (soon, as needed) tasks
+
+/**
+ * Reimburse the Dwolla fee (if any) of a recent transaction.
+ * @param assoc $item:
+ *   txid: payer's USD transaction id (payee's txid is one less)
+ *   payee: uid of recipient
+ */ 
+function coverFee($item) {
+  extract(u\just('txid payee', $item));
+  $usA = new r\usd($a = r\acct($payee));
+  $txid--; // get the payee's txid
+  if (!$fee = $usA->fee($txid)) return;
+  if ($fee == '?') {
+    r\tellStaff('no Dwolla for coverFee', $item);
+    sleep(60); // wait a minute, so we don't tie up our server or Dwolla's
+    return r\queue(__FUNCTION__, $item); // Dwolla is down -- keep trying
+  }
+  $for = t('Dwolla fee (reimbursed)');
+  $keys = 'payer payee type amount r for taking usdXid';
+  $info = u\assoc($keys, $a->community, $payee, TX_REFUND, 0, $fee, $for, 0, $txid);
+  r\transact($info);
+}
+
 //****************************************************
 
 /**
@@ -127,20 +152,19 @@ function everyYear() {
  */
 function usdTxsHere() {
   queueEach('usdTxHere', 'SELECT * FROM r_txs WHERE usdXid=-1 AND r<amount AND state IN(:TX_DONE,:TX_DISPUTED)');
-  queue('usdTxsHereEND');
+  r\queue('usdTxsHereEND');
 }
 function usdTxsHereEND() {queueNextAfter('usdTxsHere');}
 
 function usdTxHere($item) {
   extract($item); // tx with not-yet-done USD transfer
-  $usFromAcct = new r\usd($fromAcct = r\acct($payer));
-  $usToAcct = new r\usd($toAcct = r\acct($payee));
+  $usa1 = new r\usd($fromAcct = r\acct($payer));
+  $usa2 = new r\usd($toAcct = r\acct($payee));
   r\usd::beginAtom();
-  if (($usdXid = $usFromAcct->send($amount - $r, $usToAcct, $taking ? $payeeFor : $payerFor, $err)) and $usdXid != -1) {
+  if (($usdXid = $usa1->send($amount - $r, $usa2, $taking ? $payeeFor : $payerFor, $err)) and $usdXid != -1) {
     r\dbUpdate('r_txs', compact('xid', 'usdXid'), 'xid');
     r\usd::commit();
-//  } else r\usd::rollback();
-  } else r\usd::rollback();
+  } else r\usd::rollback(); // if ($err == 'not enough') (or any other err) just wait for more USD to be there
 }
 
 /**
@@ -149,7 +173,7 @@ function usdTxHere($item) {
  */
 function usdTxsThere() {
   queueEach('usdTxThere', 'SELECT uid FROM users WHERE :IS_OK');
-  queue('usdTxsThereEND');
+  r\queue('usdTxsThereEND');
 }
 function usdTxsThereEND() {queueNextAfter('usdTxsThere');}
 
@@ -159,32 +183,40 @@ function usdTxThere($item) {
 //  $cgf = variable_get('cgf_uid');
   $usAcct = new r\usd($acct = r\acct($uid));
 //  debug(compact('uid','cgf','item'));
-  $usAcct->each('rCredits\\Cron\\usdTxQ', strtotime('4 days ago'), u\ray('money_sent deposit withdrawal'));
+  $since = strtotime('10 days ago'); // bank transfers sometimes take 7 days or more
+  $usAcct->each('rCredits\\Cron\\usdTxQ', $since, u\ray('money_sent deposit withdrawal'));
 }
 
-function usdTxQ($info) {queue($info['Type'] == 'money_sent' ? 'lostUsdTx' : 'bankFollowup', $info);}
+function usdTxQ($info) {r\queue($info['Type'] == 'money_sent' ? 'lostUsdTx' : 'bankFollowup', $info);}
 
+/**
+ * Reverse any uncommitted USD transaction (any that has no record in r_usd).
+ */
 function lostUsdTx($info) {
 //print_r($info); die();
   extract(u\just('Id Notes Amount SourceId DestinationId Date', $info));
   if (!u\abbreviates(t\est() . USD_NOTE_PREFIX, $Notes)) return; // not one of ours
   if (r\dbExists('r_usd', 'txid=:Id', compact('Id'))) return;
+  $created = strtotime($Date) + DW_LAG;
+  if (REQUEST_TIME - $created < 60) return; // too recent, maybe still in process? (handle tomorrow)
   list ($txid, $amount) = array($Id, $Amount);
   $omit = t\est() ? (variable_get('cgf_uid') - 1) : NULL; // ignore tester's account
   $payer = r\whoseUsd($SourceId, $omit);
   $payee = r\whoseUsd($DestinationId, $omit);
   if (t\est() and (!$payer or !$payee)) return;
   u\EXPECT($payer and $payee, "missing person in lost tx: payer=$payer payee=$payee");
-  $created = strtotime($Date);
 //  debug(compact(u\ray('info txid amount omit payer payee created'))); return;
-  r\tellStaff('lost USD tx: #@txid $@amount', compact('txid', 'amount'), FALSE);
+  r\tellStaff("lost USD tx: #$txid $amount ($payer to $payee)", $info, FALSE);
   r\usd::rollback(array(compact(u\ray('txid amount payer payee created'))));
 }
 
+/**
+ * Mark recently completed bank transfers complete.
+ */
 function bankFollowup($info) {
   extract(u\just('Id Amount ClearingDate Status', $info));
-  list ($txid, $amount, $completed) = array($Id, $Amount, strtotime($ClearingDate));
-  if ($Status == 'processed') r\dbUpdate('r_usd', compact(u\ray('txid amount completed')), 'txid');
+  if ($Status != 'processed') return; // not 'pending'
+  r\dbUpdate('r_usd', u\assoc('txid amount completed', $Id, -$Amount, strtotime($ClearingDate) + DW_LAG), 'txid');
 }
 
 /**
@@ -247,7 +279,7 @@ function totals() {
  */
 function paySuppliers() {
   doCompanies('SUPPLIERS');
-  queue('paySuppliersEND'); // let specific tasks go on queue before queueing more stuff 
+  r\queue('paySuppliersEND'); // let specific tasks go on queue before queueing more stuff 
 }
 function paySuppliersEND() {queueNextAfter('paySuppliers');}
 
@@ -256,7 +288,7 @@ function paySuppliersEND() {queueNextAfter('paySuppliers');}
  */
 function payEmployees() {
   doCompanies('EMPLOYEES');
-  queue('payEmployeesEND'); // let specific tasks go on queue before queueing more stuff 
+  r\queue('payEmployeesEND'); // let specific tasks go on queue before queueing more stuff 
 }
 function payEmployeesEND() {queueNextAfter('payEmployees');}
 
@@ -282,7 +314,7 @@ EOF;
 	  extract($row);
 	  $kitty = max(0, $r - max($minimum, $committed) - max(0, $floor)); // amount to pay out today for this group
     if ($which != 'EMPLOYEES') $kitty *= $tothese / $amounts; // limit suppliers to their share
-	  if ($kitty > 0 and $tothese > 0) queue('virtualPayments1', compact(u\ray('uid kitty tothese slack rightType'))); 
+	  if ($kitty > 0 and $tothese > 0) r\queue('virtualPayments1', compact(u\ray('uid kitty tothese slack rightType'))); 
 	}
 }
 
@@ -308,7 +340,7 @@ function virtualPayments1($item) {
     extract($row);
     $offer = round($amount * $kitty / $tothese, 2);
     if ($offer >= R_VPAYMENT_MIN) {
-      queue('virtualPayment', compact(u\ray('main other offer')));
+      r\queue('virtualPayment', compact(u\ray('main other offer')));
       $offers += 1;
       $total += $offer;
     }
@@ -405,7 +437,7 @@ function bank1($item) {
     $status = @$excess > 0 ? 'over the maximum you set' : 'under the minimum you set';
     $amount = u\fmtAmt(abs(@$amount));
     r\notify($uid, 'minmax status|banked', compact(u\ray('action status amount')));
-  } elseif (time() - $acct->created > 3 * DAY_SECS) r\notify($uid, 'cannot bank', compact('action', 'error'));
+  } elseif (REQUEST_TIME - $acct->created > 3 * DAY_SECS) r\notify($uid, 'cannot bank', compact('action', 'error'));
 }
 
 /**
@@ -421,7 +453,7 @@ function toBank($amount, $acct) {
     r\suggest($acct, 'min too low', compact('suggestion'));
   } */
   $amount -= $waiting;
-  return $amount < 0 ? min($amount, -R_BANK_MIN) : 0;
+  return $amount < 0 ? R_BANK_MIN * floor($amount / R_BANK_MIN) : 0;
 /*  if ($amount > 0) { // excess
     return $amount >= R_BANK_MIN ? $amount : 0;
   } elseif ($amount < 0) { // shortfall
@@ -474,8 +506,8 @@ function queueNextAfter($task) {
   $tasks = u\ray(R_DAILY_TASKS);
 
   if (t\est() and @$cronOp and $cronOp != 'ALL') {
-    queue($task == $cronOp ? 'END' : $cronOp);
-  } else queue($tasks[array_search($task, $tasks) + 1]);
+    r\queue($task == $cronOp ? 'END' : $cronOp);
+  } else r\queue($tasks[array_search($task, $tasks) + 1]);
 }
 
 function virtualPaymentError($acct1, $acct2) {
@@ -489,13 +521,9 @@ function virtualPaymentError1($acct1, $way, $acct2) {
   r\notify($acct1->id, 'pay virtual error', compact('way', 'other'));
 }
 
-function queue($op, $item = array()) {
-  \DrupalQueue::get('q')->createItem(compact('op') + $item);
-}
-
 function queueEach($op, $sql, $subs = array()) {
   $result = r\dbQ($sql, $subs);
-  while ($row = $result->fetchAssoc()) queue($op, $row);
+  while ($row = $result->fetchAssoc()) r\queue($op, $row);
 }
 
 function realId($uid) {return ($uid <= variable_get('cgf_uid'));}

@@ -2221,6 +2221,7 @@ function formUsd($form, &$sta, $args = '') {
   $mya = r\acct();
   $typeOptions = array('checking', 'savings or money market');
   extract(u\just('bankAccount isSavings', $mya->secure));
+  if (isset($isSavings)) $isSavings += 0; // needed, to reflect current setting
   
   if ($mya->country == R_COUNTRY_ID) {
     $routingNumber = substr(@$bankAccount, 4, 9); // chop of USkk
@@ -2278,7 +2279,7 @@ function formSecurity($form, &$sta, $args = '') {
 
   if ($mya->offsite) { // already got all this stuff
     if ($cttyAdmin and !@$mya->usdAccount) {
-      say('Not yet connected to Dwolla. Resubmit.');
+      say('There was a temporary technical problem. Please try again (click the Save button).');
        // !@$secure['auth']) { // no Dwolla account yet
 //      exit($usd->getAuth()); // get (new) auth token (does not return until after a visit to Dwolla)
     }
@@ -3242,8 +3243,9 @@ function formOptions($form, &$sta) {
   if ($mya->can(B_COMPANY)) {
     $a1 = "a href=\"$base_url/help/virtual-payments\"";
     $a3 = "a href=\"$base_url/account/relations\"";
+    // , minus 25 cents for each payment larger than $@DW_FEE_THRESHOLD. For example, a $100 virtual payment gives you a net rebate of $5.00 - 0.25 = $4.75. 
     $desc = tt(<<<EOF
-    Saying "<b>Yes</b>" to <@a1>virtual payments</a> (<b>highly recommended</b>) means you trade your rCredits to your employees and vendors automatically every day, in exchange for US Dollars, without any change to your normal US Dollar payments. You still get the 5% rebate, minus 25 cents for each payment larger than $@DW_FEE_THRESHOLD. For example, a $100 virtual payment gives you a net rebate of $5.00 - 0.25 = $4.75. To make the virtual payments automatic, you need to set up <@a1>average</a> monthly payment amounts on the <@a3>Relations</a> page. "<b>No</b>" here means you pay everyone directly, one at a time, in mixed rCredits/USD transactions.
+    Saying "<b>Yes</b>" to <@a1>virtual payments</a> (<b>highly recommended</b>) means you trade your rCredits to your employees and vendors automatically every day, in exchange for US Dollars, without any change to your normal US Dollar payments. You still get the 5% rebate. To make the virtual payments automatic, you need to set up <@a1>average</a> monthly payment amounts on the <@a3>Relations</a> page. "<b>No</b>" here means you pay everyone directly, one at a time, in mixed rCredits/USD transactions.
 EOF
     , compact('a1', 'a3'));
     $dft = $isSetUp ? $mya->can(B_VIRTUAL) : TRUE;

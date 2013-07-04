@@ -236,5 +236,5 @@ function test() {
 /**/ debug($usdW->bal()); // keep
   $tx = $usdW->bank(-1, $err);
 /**/ debug($tx.$err); // keep
-  $usdW->each('test1', strtotime('60 days ago'), array('deposit'), TRUE);
+  $usdW->each('test1', strtotime('60 days ago'), array('deposit'));
 }

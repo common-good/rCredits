@@ -84,11 +84,18 @@ class rwebTransactions extends DrupalWebTestCase {
     . '\\| .AAAU | %today-6d | transfer | pending |    100 | 100 | .ZZB | .ZZA | cash U  | 1      |'
     . '\\| .AAAV | %today-6d | transfer | done    |    100 |   0 | .ZZA | .ZZB | cash V  | 0      |"');
     Then_('balances: "DATA'
-    . '\\| id   | r    | usd      | rewards |'
-    . '\\| ctty | -768 | 10000.00 |       0 |'
-    . '\\| .ZZA |  166 |   739.75 |     256 |'
-    . '\\| .ZZB |  279 |  2254.50 |     254 |'
-    . '\\| .ZZC |  323 |  3004.50 |     258 |"');
+    . '\\| id   | r    | usd   | rewards |'
+    . '\\| ctty | -768 | 10000 |       0 |'
+    . '\\| .ZZA |  166 |   740 |     256 |'
+    . '\\| .ZZB |  279 |  2255 |     254 |'
+    . '\\| .ZZC |  323 |  3005 |     258 |"');
+    When_('cron runs ""');
+    Then_('balances: "DATA'
+    . '\\| id   | r       | usd      | rewards    |'
+    . '\\| ctty | -769.25 | 10000.00 |       0.00 |'
+    . '\\| .ZZA |  166.25 |   739.75 |     256.25 |'
+    . '\\| .ZZB |  279.50 |  2254.50 |     254.50 |'
+    . '\\| .ZZC |  323.50 |  3004.50 |     258.50 |"');
     break;
 
 
@@ -101,7 +108,7 @@ class rwebTransactions extends DrupalWebTestCase {
     When_('member ".ZZA" visits page "transactions/period=365&options=%CURRENCIES_R%STATES_BOTH 000"');
     Then_('we show "Transaction History" with: "DATA'
     . '\\| Start Date | End Date | Start Balance | From You | To You | Rewards | End Balance |'
-    . '\\| %dmy-12m   | %dmy     | $0.00         | 120.00   | 30.00  | 256.00  | $166.00     |'
+    . '\\| %dmy-12m   | %dmy     | $0.00         | 120.00   | 30.00  | 256.25  | $166.25     |'
     . '\\|            |          | PENDING       | 200.00   | 200.00 | 15.00   | + $15.00    |"');
     And__('we show "Transaction History" with: "DATA'
     . '\\| tid | Date   | Name       | From you | To you | r%   | Status  | Buttons | Purpose | Rewards |'
@@ -125,12 +132,12 @@ class rwebTransactions extends DrupalWebTestCase {
   public function testAMemberLooksAtTotalAmountsInTransactionsForThePastYear_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('transactions: "DATA'
-    . '\\| xid   | created   | type     | state   | amount | r   | from | to   | purpose | taking |'
-    . '\\| .AAAW | %today-3d | transfer | done    |      0 | 100 | .ZZC | .ZZA | virtual | 0      |"');
+    . '\\| xid | created   | type     | state   | amount | r   | from | to   | purpose | taking |'
+    . '\\| 100 | %today-3d | transfer | done    |      0 | 100 | .ZZC | .ZZA | virtual | 0      |"');
     When_('member ".ZZA" visits page "transactions/period=365&options=%CURRENCIES_BOTH%STATES_BOTH 001"');
     Then_('we show "Transaction History" with: "DATA'
     . '\\| Start Date | End Date | Start Balance | From You | To You | Rewards | End Balance |'
-    . '\\| %dmy-12m   | %dmy     | $0.00         | 460.00   | 110.00 | 266.00  | - $84.00      |'
+    . '\\| %dmy-12m   | %dmy     | $0.00         | 460.00   | 110.00 | 266.25  | - $83.75    |'
     . '\\|            |          | PENDING       | 200.00   | 200.00 | 15.00   | + $15.00    |"');
     And__('we show "Transaction History" with: "DATA'
     . '\\| tid | Date   | Name       | From you | To you | r%   | Status  | Buttons | Purpose | Rewards |'
@@ -234,7 +241,7 @@ class rwebTransactions extends DrupalWebTestCase {
     When_('member ".ZZA" visits page "transactions/period=5"');
     Then_('we show "Transaction History" with: "DATA'
     . '\\| tid | Date   | Name       | From you | To you | Status | Buttons | Purpose | Rewards |'
-    . '\\| 11  | %dm-5d | Corner Pub | 80.00    | --     | ok?    | OK      | this CF | 4.00    |"');
+    . '\\| 12  | %dm-5d | Corner Pub | 80.00    | --     | ok?    | OK      | this CF | 4.00    |"');
     When_('member ".ZZA" visits page "transactions/period=5&do=ok&xid=100"');
     Then_('we show "tx summary|confirm tx action" with subs: "DATA'
     . '\\| amount | otherName  | otherDid | purpose | created   | txAction            |'
@@ -258,7 +265,7 @@ class rwebTransactions extends DrupalWebTestCase {
     . '\\| %today  | Corner Pub | Abe One   | $80    | this CF      | bonus           | $8                |"');
     And__('we show "Transaction History" with: "DATA'
     . '\\| tid | Date   | Name       | From you | To you | Status | Buttons | Purpose | Rewards |'
-    . '\\| 12  | %dm    | Corner Pub | 80.00    | --     | %chk   | X       | this CF | 4.00    |"');
+    . '\\| 14  | %dm    | Corner Pub | 80.00    | --     | %chk   | X       | this CF | 4.00    |"');
   }
 
   // Scenario: A member confirms OK for a disputed transaction
@@ -272,7 +279,7 @@ class rwebTransactions extends DrupalWebTestCase {
     When_('member ".ZZA" confirms form "transactions/period=5&do=ok&xid=100" with values: ""');
     Then_('we show "Transaction History" with: "DATA'
     . '\\| tid | Date   | Name       | From you | To you | Status | Buttons | Purpose | Rewards |'
-    . '\\| 11  | %dm-5d | Corner Pub | 80.00    | --     | %chk   | X       | this CF | 4.00    |"');
+    . '\\| 13  | %dm-5d | Corner Pub | 80.00    | --     | %chk   | X       | this CF | 4.00    |"');
   }
 
   // Scenario: A member clicks NO
@@ -287,7 +294,7 @@ class rwebTransactions extends DrupalWebTestCase {
     When_('member ".ZZA" visits page "transactions/period=5"');
     Then_('we show "Transaction History" with: "DATA'
     . '\\| tid | Date   | Name       | From you | To you | Status   | Buttons | Purpose | Rewards |'
-    . '\\| 11  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X       | cash CL | --      |"');
+    . '\\| 12  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X       | cash CL | --      |"');
     When_('member ".ZZA" visits page "transactions/period=5&do=no&xid=100"');
     Then_('we show "tx summary|confirm tx action" with subs: "DATA'
     . '\\| amount | otherName  | otherDid | purpose | created   | txAction                     |'
@@ -306,8 +313,8 @@ class rwebTransactions extends DrupalWebTestCase {
     When_('member ".ZZA" confirms form "transactions/period=5&do=no&xid=100" with values: ""');
     Then_('we show "Transaction History" with: "DATA'
     . '\\| tid | Date   | Name       | From you | To you | r%  | Status   | Buttons | Purpose               | Rewards |'
-    . '\\| 12  | %dm    | Corner Pub | 101.00   | --     | 0.0 | %chk     | X       | reverses #11              | --  |'
-    . '\\| 11  | %dm-5d | Corner Pub | --       | 101.00 | 100 | disputed |         | (reversed by #12) cash CL | --  |"');
+    . '\\| 13  | %dm    | Corner Pub | 101.00   | --     | 0.0 | %chk     | X       | reverses #11              | --  |'
+    . '\\| 12  | %dm-5d | Corner Pub | --       | 101.00 | 100 | disputed |         | (reversed by #12) cash CL | --  |"');
   }
 
 }

@@ -788,3 +788,11 @@ function memberCardCodeIs($id, $cardCode) {
   $secure = compact('cardCode') + ($a->secure ?: array());
   return $a->update(compact('secure'));
 }
+
+/**
+ * cron runs (ARG)
+ *
+ * in: Download Setup MAKE
+ *     Transactions Setup MAKE
+ */
+function cronRuns($op) {return t\cronRuns($op);}

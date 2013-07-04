@@ -38,15 +38,6 @@ class usd {
     return $dw;
   }
 
-  /**
-   * Return the fee to the given USD account associated with the specified transaction.
-   */
-  private function fee($txid) {
-    $dw = $this->dwolla();
-    $theTx = $dw->transaction($txid);
-    return $theTx['Fees'];
-  }
-  
   public static function format($n) {return preg_replace('/(\d{3})(\d{3})(\d{4})/', '$1-$2-$3', $n);}
   
   /**
@@ -154,18 +145,27 @@ class usd {
     $notes = t\est() . USD_NOTE_PREFIX . $notes;
     $dw = $this->dwolla();
     if (t\est() and !($this->number == DW_TESTER_ACCT and $other->number == DW_TEST_ACCT)) {
-      $txid = t\seq();
-      self::addToAtom($txid, $amount, $this->acct->id, $other->acct->id);
-      return $txid;
+      return $this->afterTx(t\seq(), $amount, $other);
     } else u\EXPECT(!is_null($this->number) and !is_null($other->number), 'null dw number');
     if ($this->number == $other->number) return dwError(u\tt('no self-trading'), $err); // AFTER t\est() check
 
     if (!noDw($dw) and $txid = $dw->send($this->pin, self::format($other->number), $amount, $source, $notes, 0, $payerFee)) {
-      self::addToAtom($txid, $amount, $this->acct->id, $other->acct->id);
-      return $txid;
+      return $this->afterTx($txid, $amount, $other);
     } else return noDw($dw, $err) ? -1 : NULL;
   }
-  
+
+  /**
+   * Queue a task to reimburse the Dwolla fee, if any, and add the tx to the current USD atom.
+   * (@todo: maybe reimburse immediately if daily cron has begun)
+   * @return the transaction id
+   */
+  private function afterTx($txid, $amount, $other) {
+    list ($payer, $payee) = array($this->acct->id, $other->acct->id);
+    self::addToAtom($txid, $amount, $payer, $payee);
+    if ($amount > DW_FEE_THRESHOLD) r\queue('coverFee', compact(u\ray('txid payee')));
+    return $txid;
+  }
+
   /**
    * Handle callbacks from the USD institution
    * The calling institution is expected to be explicit in the callback info.
@@ -238,21 +238,41 @@ array (
    * @param int $start: earliest second to consider (defaults to day 1 of the Unix Epoch).
    * @param string $type: what type of transactions to handle 
    *   default: [money_sent,money_received,deposit,withdrawal,fee]
-   * @param bool $anybody: include all transactions, otherwise only ones marked as originating with us
+   * @param bool $anybody: UNUSED include all transactions, otherwise only ones marked as originating with us
    * Passes to the callback function an assoc with complete transaction details, including transaction id
    */
-  public function each($callback, $start = 0, $type = FALSE, $anybody = FALSE) {
+  public function each($callback, $start = 0, $type = FALSE) {
     $dw = $this->dwolla();
     $skip = 0; // how many transactions to skip, in call to $dw->listings()
     $atATime = 50; // arbitrary, up to 200 (Dwolla limit)
-    while ($listings = $dw->listings(strftime('%m-%d-%Y', $start), $type, $atATime, $skip)) {
-      foreach ($listings as $one) {
-        if ($anybody ?: u\abbreviates(t\est() . USD_NOTE_PREFIX, $one['Notes'])) $callback($one);
-      }
+    while ($listings = $dw->listings(strftime('%m-%d-%Y', $start - DW_LAG), $type, $atATime, $skip)) {
+      foreach ($listings as $one) $callback($one);
+      // if ($anybody ?: u\abbreviates(t\est() . USD_NOTE_PREFIX, $one['Notes']))
       $skip += $atATime;
     }
   }
 
+  /**
+   * Return the net fee on the given transaction.
+   * @param string $txid: the payee's transaction id for the transaction about which to inquire
+   * @return 0 if the transaction had no fee OR if the fee was reimbursed, '?' if no Dwolla, otherwise DW_FEE
+   */
+  public function fee($txid) {
+    $dw = $this->dwolla();
+    if (t\est()) return DW_FEE; // no way to test Dwolla reimbursements yet, but called only if amount>threshold
+    if (!$tx = $dw->transaction($txid)) {
+      u\EXPECT(noDw($dw), "bad txid: $txid");
+      return '?';
+    }
+    debug($tx);
+    if (!$fees = @$tx['Fees']) return 0; 
+    u\EXPECT($fees[0]['Id'] == $txid + 2, 'misnumbered fee'); // $txid+1 is the payer's copy
+    u\EXPECT($fees[0]['Amount'] + 0 == DW_FEE, 'wrong fee amount');
+    if (!$tx = $dw->transaction($txid + 3)) return TRUE; // no reimbursement transaction
+    debug($tx);
+    return ($tx['Type'] == 'fee' ? 0 : DW_FEE); // found a reimbursement ? no fee, else return fee amount
+  }
+  
 // Atomic Data Transaction Handling for mixed rCredits/USD financial transactions
 // Strategy: Allow inconsistent USD transfers for up to 24 hours after system failure.
 // Record committed USD transactions in the r_usd table. 
@@ -323,14 +343,13 @@ array (
     }
     
     foreach ($list as $one) { // create a compensating usd transaction for each transaction in $list
-      extract($one); // (see fields listed above in addToAtom)
+      extract($one); // same fields as listed above in addToAtom: txid amount payer payee created completed
       $reverseNote = t('reversed Dwolla transaction #') . $txid;
       $grantNote = t('reimbursement of fee for ') . $reverseNote;
 
       $usA1 = new usd(r\acct($payer));
-      $fee1 = $usA1->fee($txid);
       $usA2 = new usd(r\acct($payee));
-      $fee2 = $usA2->fee($txid);
+      if ($feeable = ($amount > DW_FEE_THRESHOLD)) r\queue('coverFee', compact(u\ray('txid payee')));
 
       $dw = $usA2->dwolla();
 
@@ -339,14 +358,11 @@ array (
       
       if (!noDw($dw) and $txid = $dw->send($usA2->pin, $usA1->number, $amount, 'Dwolla', $reverseNote)) {
         self::addToAtom($txid, $amount, $payee, $payer);
-        $fee1 += usdFee($usA1, $txid);
-        $fee2 += usdFee($usA2, $txid);
+        if ($feeable) r\queue('coverFee', u\assoc('txid payee', $txid, $payer));
       } else { // failure (probably insufficient Dwolla balance) so reverse it in rCredits instead
         $info = u\assoc('payer payee amount r for taking', $payee, $payer, 0, $amount, $reverseNote, FALSE);
         r\transact($info);
       }
-      if ($fee1 > 0) be\fund($payer, TX_GRANT, $fee1, $grantNote);
-      if ($fee2 > 0) be\fund($payee, TX_GRANT, $fee2, $grantNote);
       self::commit();
     }
   }
@@ -358,7 +374,7 @@ array (
  * @param object $dw: the Dwolla request object or error message
  * @param string $err: the error message to return (set to NULL if no error OR Dwolla is down)
  */
-function noDw($dw, &$err = '') {
+function noDw($dw, &$err = NULL) {
   global $dwollaDown; 
   if (STAGING or @$dwollaDown) return TRUE; // allows testing or greater efficiency in extended outages
   if (is_object($dw) and u\abbreviates('Request failed. Server responded with:', $err = $dw->getError())) {

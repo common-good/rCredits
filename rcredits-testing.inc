@@ -137,7 +137,7 @@ function makeTx($info, $testOnly = FALSE) {
   $payeeAgent = uid(@$toAgent ?: $to );
   u\setDft($r, $amount);
   u\setDft($taking, 0);
-  
+  if ($amount != $r) u\setDft($usdXid, 10000 + $xid);
   $for = @$purpose ?: 'cash';
   if (strpos($for, ',')) $for = explode(',', $for); // specifying both payerFor and payeeFor
 
@@ -152,6 +152,10 @@ function makeTx($info, $testOnly = FALSE) {
     return $info;
   }
   
+  if (abs($usd = $amount - $r) > DW_FEE_THRESHOLD and $state >= TX_DONE) {
+//    debug(compact('xid','usdXid','payee','usd'));
+    r\queue('coverFee', u\assoc('txid payee', t\seq(), $usd > 0 ? $payee : $payer));
+  }
   $txs = r\transact($info);
   return $txs[0]['xid'];
 }
@@ -254,6 +258,21 @@ function usd($list) {
     if (!is_numeric($usd)) list ($usd) = t\parseAmt($usd, $a);
     if ($testOnly ? ($a->usd != $usd) : !$a->update(compact('usd'))) return FALSE;
   }
+  return TRUE;
+}
+
+/**
+ * Run the op in the background, return TRUE.
+ */
+function cronRuns($op) {
+  global $testOnly; if($testOnly) return FALSE;
+  if ($op == 'ALL' or strpos(R_DAILY_TASKS, " $op ")) {
+    global $cronOp; $cronOp = $op;
+    if (strftime('%H') < R_DAILY_HOUR) die('Developer: For testing between midnight and :R_DAILY_HOUR:00, you need to temporarily change R_DAILY_HOUR in -settings.');
+    r\dbQ("DELETE FROM queue WHERE name='q'");
+    \variable_set('daily', REQUEST_TIME - 24 * 60 * 60);
+  }
+  \drupal_cron_run();
   return TRUE;
 }
 
@@ -731,7 +750,7 @@ function clear($ch) {
   global $channel; 
   $channel = $ch;
   $cgfUid = \variable_get('cgf_uid');
-  $tables = 'r_notices r_sms r_txs r_relations r_log r_invites r_companies r_gifts r_smarts r_proxies r_usd r_user_industries';
+  $tables = 'r_notices r_sms r_txs r_relations r_log r_invites r_companies r_gifts r_smarts r_proxies r_usd r_user_industries queue';
 
   r\dbQ('DELETE FROM users WHERE uid>:cgfUid OR (uid>1 AND uid<:cgfUid-1)', compact('cgfUid'));
   foreach (u\ray($tables) as $one) r\dbQ("TRUNCATE $one");
@@ -790,7 +809,7 @@ function parseAmt($var, $a) {
 
 function badEq($type, $v1, $v2, $id) {
   if (t\eq($v1, $v2)) return FALSE;
-  t\output("bad $type v1=$v1 v2=$v2 uid=$id");
+  t\output("bad $type v1=$v1, expected v2=$v2 uid=$id");
   return TRUE;
 }
 

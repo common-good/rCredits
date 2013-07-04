@@ -1,0 +1,4 @@
+2013-07-04
+  . added "From Bank" and "Fees" to Transaction History
+  . all Dwolla fees will now be reimbursed by the community (unless reimbursed by Dwolla). This also fixes problems with accurate USD balance caching
+  . fixed bug in r\nextRBuyer() that prevented members from buying rCredits if they had transactions but had never traded USD for rCredits (patched on production server)

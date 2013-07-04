@@ -56,23 +56,32 @@ Setup:
   Then balances:
   | id   | r    | usd      | rewards |
   | ctty | -775 | 10000.00 |       0 |
-  | .ZZA |  169 |   741.75 |     257 |
-  | .ZZB |  284 |  2256.50 |     256 |
-  | .ZZC |  322 |  3002.50 |     261 |
+  | .ZZA |  169 |   742.00 |     257 |
+  | .ZZB |  284 |  2257.00 |     256 |
+  | .ZZC |  322 |  3003.00 |     261 |
+  # total rewards < total r, because we made a grant, a loan, and a fine.
+  When cron runs ""
+  # causes coverFee() to run
+  Then balances:
+  | id   | r       | usd      | rewards    |
+  | ctty | -776.25 | 10000.00 |       0.00 |
+  | .ZZA |  169.25 |   741.75 |     257.25 |
+  | .ZZB |  284.50 |  2256.50 |     256.50 |
+  | .ZZC |  322.50 |  3002.50 |     261.50 |
   
 Scenario: cron calculates the totals
   When cron runs "totals"
   Then totals:
-  | r   | floor | rewards | usd     | minimum | signup | rebate | bonus | inflation | grant | loan | fine | maxRebate | balance | demand | capacity |
-  | 775 |   -10 |     774 | 6000.75 |    3005 |    750 |      6 |    12 |         6 |     4 |    5 |    6 |        4 |    -775 |   2230 |  2998.25 |
+  | r      | floor | rewards    | usd     | minimum | signup | rebate | bonus | inflation | grant | loan | fine | maxRebate | balance    | demand   | capacity |
+  | 776.25 |   -10 |     775.25 | 6000.75 |    3005 |    750 |      6 |    12 |         6 |     4 |    5 |    6 |        4 |    -776.25 |   2228.75 |  2998.25 |
   # Here's why:
   #
   # demand is min(usd, minimum-r)
-  #   = min(741.75, 5 - 169)
-  #   + min(2256.50, 1000 - 284)
-  #   + min(3002.50, 2000 - 322)
+  #   = min(741.75, 5 - 169.25)
+  #   + min(2256.50, 1000 - 284.50)
+  #   + min(3002.50, 2000 - 322.50)
   #
   # capacity is usd or (if virtual) minimum-(r+usd), whichever is less -- but never less than zero
   #   = 741.75
   #   + 2256.50
-  #   + min(3002.50, max(0, 2000 - (322 + 3002.50)))  (zero)
+  #   + min(3002.50, max(0, 2000 - (322.50 + 3002.50)))  (zero)
