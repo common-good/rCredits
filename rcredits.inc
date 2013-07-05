@@ -56,7 +56,7 @@ define('R_FREEZE_TIME', FALSE); // how long to freeze newly bought rCredits (was
 define('R_DEFAULT_PURPOSE', 'rCredits/USD exchange'); // default transaction purpose
 define('R_CHUNK', 5); // chunk size for buying rCredits (sales amounts are a multiple of this)
 define('R_BANK_CHUNK', 100); // UNUSED default chunk size for withdrawals from bank
-define('R_BANK_MIN', 20); // granularity of withdrawals from bank account
+define('R_BANK_MIN', 10); // granularity of withdrawals from bank account
 define('R_VPAYMENT_MIN', 0.05); // minimum virtual payment (where bonus rounds to .01)
 define('R_COMMERCIAL_ASPECT', '4:3'); // width-to-height ratio for commercial profile picture
 define('R_PERSONAL_ASPECT', '3:4'); // width-to-height ratio for personal profile picture
@@ -426,7 +426,7 @@ function txRewardSetup($serial, $type, $payee, $state, $amount, $tid, $created) 
  * Give full rewards for contributions to CGF, whether in r or USD
  */
 function transactionSetup($info) {
-  global $channel; // through what medium was the transaction requested (web, SMS, etc.).
+  global $channel, $boxUser; // through what medium was the transaction requested (web, SMS, etc.), what machine
   $fields = 'type r state data taking goods amount payer payee payerAgent payeeAgent created';
   extract(u\just($fields . ' for', $info));
 
@@ -451,11 +451,12 @@ function transactionSetup($info) {
   if (@$state !== TX_PENDING) $completed = $created;
   $taking += 0;
   $goods += 0;
+  $box = $boxUser;
 
   list ($payerFor, $payeeFor) = is_array($for) ? $for : array($for, $for);
   unset($info['for']);
 
-  return compact(u\ray($fields . ' completed payerFor payeeFor channel')) + $info;
+  return compact(u\ray($fields . ' completed payerFor payeeFor channel box')) + $info;
 }
 
 /**
@@ -893,9 +894,16 @@ function quid2($uid) {return strstr(quid($uid), R_MEMBER_MARK);}
 
 function qxid($xid, $regionId = R_SERVER_ID) {return qid($xid, $regionId = R_SERVER_ID, 4);} // Convert xid to qxid
 
-function setCook($key, $value, $expires) {
+/**
+ * Set a cookie
+ * @param int $expires: time when cookie expires (defaults to never -- about 1000 years from now)
+ * @return: the value
+ */
+function setCook($key, $value, $expires = NULL) {
+  u\setDft($expires, REQUEST_TIME + 365250 * DAY_SECS);
   setcookie($key, $value, $expires, '/'); // make it easy (fails without '/')
   if (t\est()) $_COOKIE[$key] = $value;
+  return $value;
 }
 
 /**
@@ -1067,8 +1075,9 @@ function changeUid($oldUid, $newUid = FALSE) {
   if (!$newUid) $newUid = newUid($base);
   $subs = array( // all tables are listed, to be sure we don't leave any out
   // r_areas
+    'r_boxes:uid',
   // r_countries,
-    'r_companies:id',
+    'r_companies:uid',
     'r_gifts:uid',
   // r_industries
     'r_invites:inviter',

@@ -121,7 +121,7 @@ function bankTransfers($starting, $ending, $uid = NULL, $opts = array()) {
   if ($uid < 0) { // community or region
     $sql = <<<EOF
       SELECT $fields
-      FROM r_txs t LEFT JOIN users u1 ON u1.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
+      FROM r_usd t LEFT JOIN users u1 ON u1.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
       WHERE (u1.community=:uid OR u2.community=:uid) AND $where
 EOF;
   } else $sql = "SELECT $fields FROM r_usd t WHERE payer=:uid AND $where"; // normal account

@@ -1,6 +1,9 @@
 rCredits Software
 Notes for developers
 
+QUESTIONS:
+. do box cookies need to be encrypted to avoid spoofing?
+
 *** Update procedures (for upgrading software on the production server new.rcredits.org)
 - Run all tests before upload. No upload if not 100% pass. 
   Exceptions: 
@@ -21,21 +24,23 @@ BEFORE FRIENDS LAUNCH:
 To do: (* = before launch ** = earlier)
 
 *** convert type field in r_txs (0=> 1, 1=>0, 2=>-1, 3=>-2)
+  r\dbQ('UPDATE r_txs SET type=IF(type=0,1, IF(type=1,0, IF(type=2,-1, IF(type=3,-2))))');
+*** change companies field "id" to "uid"
+  r\dbQ('UPDATE r_companies SET uid=id');
 
-- don't require new password if user logs in with valid old
-- on Transaction History include transfers to/from bank (both in summary and in detail) and FEES!
+- disallow min between 0 and 20 (bank_min)?
+- handle lost USD deposits/withdrawals/fees
+- implement r\suggest (use this for merchant invoices too. user gets an email invoice from rCredits, they can just click on a link to accept or decline. merchant gets notified). test cron call to r\suggest (should just notify, for now)
+- give user a chance to name the machine (or change the name), saved in a cookie and in each tx (box)
+- include address in "new payment" digest notices to nonprofits OR just CGF (warn on pay screen if the former)
+- on MSIE, sign-in CSS has alignment problem, menu failure in MSIE 8, autocomplete looks funny
+- monthly inflation adjustment
 - make a way for user to see notices online
 - help messages hovering over practically ANYTHING on Transaction History screen (and elsewhere)
 - on Transaction History never mix pending with done? (low priority)
 - let user choose chunk size for automatic bank transfers? not yet. This should eventually be an optional parameter in an "options" field or maybe in "data" in the users table.
-- on MSIE, sign-in CSS has alignment problem, menu failure in MSIE 8, autocomplete looks funny
 - anti-scam: if USD goes out of an account twice in quick succession, set an "always check USD bal" flag (then don't allow a tx if Dwolla is down) and/or change coverFee() to afterUsdTx() and check both parties' real USD balances
 - warn people about their tax liability (ask what their tax year is? warn in December?)
-- monthly inflation adjustment
-- implement r\suggest (use this for merchant invoices too. user gets an email invoice from rCredits, they can just click on a link to accept or decline. merchant gets notified). test cron call to r\suggest (should just notify, for now)
-- change companies field "id" to "uid" (for consistency)
-- give user a chance to name the machine (or change the name), saved in a cookie and in each tx (box)
-- include address in "new payment" digest notices to nonprofits OR just CGF (warn on pay screen if the former)
 - trans history: default today on starting/ending and/or pass true defaults properly for period
 - * help for all pages
 - * membership tests: New Pass, Photo, Agreement, Contribute, Proxies, Usd, proof of ID, Options

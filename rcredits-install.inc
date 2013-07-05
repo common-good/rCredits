@@ -75,15 +75,27 @@ function tableDefs($schema = array()) {
 
   // table r_companies
   $fields = array(
-    'id' => setupField('account record id', 'int big'),
+    'uid' => setupField('account record id', 'int big'),
     'website' => setupField('primary website', 'varchar 255'),
     'description' => setupField('markup text describing the company', 'text medium'),
     'selling' => setupField('typical description of what this company sells (default transaction purpose)', 'varchar 255'),
     'structure' => setupField('organizational structure bits', 'int big', 0, '010'),
   );
-  $foreignKeys = foreignKey('id');
+  $foreignKeys = foreignKey('uid');
   $indexes = NULL;
-  $schema['r_companies'] = setupTable('Information about non-personal accounts', $fields, 'id', $foreignKeys, $indexes);
+  $schema['r_companies'] = setupTable('Information about non-personal accounts', $fields, 'uid', $foreignKeys, $indexes);
+
+  // table r_boxnames
+  $fields = array(
+    'id' => setupField('box name record id', 'serial big'),
+    'boxid' => setupField('machine id', 'int big'),
+    'uid' => setupField('account record id', 'int big'),
+    'boxName' => setupField('chosen name for this machine, for this account', 'varchar 255'),
+    'created' => setupField('Unixtime record was created', 'int 11', 0),
+  );
+  $foreignKeys = foreignKey('uid');
+  $indexes = index('uid');
+  $schema['r_boxnames'] = setupTable('Names for devices', $fields, 'id', $foreignKeys, $indexes);
   
   // table offsite
   $fields = array(

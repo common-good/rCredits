@@ -377,12 +377,26 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   } catch(u\fit $e) {r\Web\exception_handler($e);}
 }
 
+function box() {
+  if ($box = @$_COOKIE['box']) return $box;
+  \variable_set('box', $box = \variable_get('box', 0) + 1); // this is prone to timing collisions
+  return r\setCook('box', $box);
+}
+
+function boxUser($boxid, $uid) {
+  if ($boxUser = @$_COOKIE[$cookid = 'box' . $uid]) return $boxUser;
+  $boxName = r\dbLookup('COUNT(*)', 'r_boxnames', 'uid=:uid', compact('uid'));
+  $id = r\dbInsert('r_boxnames', u\assoc('boxid uid boxName created', $boxid, $uid, $boxName + 1, REQUEST_TIME));
+  r\setCook($cookid, $id);
+}
+
 function setupGlobals($agent = '') {
-  global $user, $channel;
+  global $user, $channel, $boxUser;
   if (@$channel) return; // already setup
   if (!$agent) $agent = @$user->uid; // register_submit supplies agent (no one else does)
   $myid = svar('myid') ?: $agent;
   r\acct::setDefault(r\acct($myid, $agent)); // set default for r\acct()
+  if ($myid) $boxUser = boxUser(box(), $myid);
   $channel = TX_WEB;
 }
 
@@ -1391,7 +1405,7 @@ function formProfile($form, &$sta, $company) {
   $pic = $acct->picture();
   $state = r\realState($acct->state);
   $country = r\realCountry($acct->country);
-  if ($info = r\dbLookup('website,description', 'r_companies', 'id=:uid', compact('uid'))) extract($info);
+  if ($info = r\dbLookup('website,description', 'r_companies', 'uid=:uid', compact('uid'))) extract($info);
   $siteList = '';
   if (@$website) foreach (u\ray($website) as $one) $siteList .= "<a href='http://$one' target='_blank'>$one</a><br>";
   $description = @$description ?: '';
@@ -2840,7 +2854,7 @@ function formLogin(&$form, &$sta, $regular = TRUE) {
   }
   if (($name = @$_COOKIE['loginto']) and ($uid = r\loginString($name))) {
     //$process = array('form_process_password_confirm', 'user_form_process_password_confirm'); // 'rCredits\\Web\\password_confirm0');
-    $newPass = formField('password_confirm', '', '', required() + compact('process'));
+    $newPass = formField('password_confirm', '', '', compact('process')); // not required!!
   }
   $name = textField(t('Username/ID:'), $regular ? t('Your username (the letters of your legal name, all lowercase) OR your rCredits account ID.') : '', required(@$name));
   $pass = formField('password', @$newPass ? t('Tmp password:') : t('Password:'), @$newPass ? t('Your temporary one-time password (the one just emailed to you).') : '', required());
@@ -3025,7 +3039,7 @@ function directoryList($which, $region) {
   $sql = <<<EOF
     SELECT DISTINCT u.uid, IFNULL(i.industry, '~Other') AS industry, u.name AS short_name, u.fullName, c.website 
     FROM users u 
-    INNER JOIN r_companies c ON c.id=u.uid
+    INNER JOIN r_companies c ON c.uid=u.uid
     LEFT JOIN r_user_industries ui ON ui.uid=u.uid
     LEFT JOIN r_industries i ON i.iid=ui.iid
     WHERE :IS_COMPANY AND u.$field LIKE :region AND (u.fullName LIKE :which OR i.industry LIKE :which OR c.description LIKE :which)
@@ -3102,7 +3116,6 @@ function formCompany_submit($form, &$sta) {
   $website = str_ireplace('http://', '', @$website);
   u\setDft($selling, '');
   $mya->update(compact(u\ray('description website selling')));
-//  r\dbUpdate('r_companies', compact(u\ray('id description website selling')), 'id');
   
   $DBTX = db_transaction();
   r\dbQ('DELETE FROM r_user_industries WHERE uid=:id', compact('id')); // out with the old
@@ -3304,7 +3317,7 @@ function formReports($form, &$sta, $args = '') {
   $totals = r\totals($admin ? 'ALL' : $ctty->id);
   $issued = -$totals->balance;
   $demand = $totals->demand;
-  $demandPct = $issued ? (' (' . number_format(100 * $demand / $issued, 0) . '% beyond amount issued)') : '';
+  $demandPct = $issued ? (' (' . number_format(100 * $demand / $issued - 1, 0) . t('% beyond amount issued)')) : '';
    
   $title = item(t('Reports'));
   $subtext = item(t('for ') . ($admin ? t('rCredits System OVERALL') : $ctty->fullName));

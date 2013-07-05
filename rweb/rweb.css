@@ -279,14 +279,14 @@ form.rweb  .form-no {color:red;}
 
 /* Reports */
 #rcreditswebformreports .form-type-checkboxes {margin-bottom:0;}
-#rcreditswebformreports .form-type-checkbox {width:100px;}
+#rcreditswebformreports .form-type-checkbox {width:110px;}
 #rcreditswebformreports .form-type-radios {border:0;}
 #rcreditswebformreports .form-type-radio {display:inline-block;}
 
 #rcreditswebformreports .form-item-period {display:inline-block;}
 #rcreditswebformreports .form-item-ending {display:inline-block;}
 #rcreditswebformreports .form-item-starting {margin-bottom:0;}
-#rcreditswebformreports .form-submit {margin-left:10px;}
+#rcreditswebformreports .form-submit {margin-left:10px; max-width:120px;}
 #rcreditswebformreports input {max-width:110px;}
 
 #rcreditswebformreports .tx-selector {width:1em;}

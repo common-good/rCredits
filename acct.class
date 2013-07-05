@@ -85,7 +85,7 @@ class acct {
     }
 
     if (!empty($companyInfo)) {
-      $companyInfo['id'] = $uid;
+      $companyInfo['uid'] = $uid;
       if ($flags & u\bit(B_COMPANY)) r\dbInsert('r_companies', $companyInfo);
     }
     
@@ -154,7 +154,7 @@ class acct {
       return @$result ? unserialize($result) : array();
     } elseif (in_array($field, u\ray(R_COMPANY_FIELDS))) {
       $id = $this->id;
-      return @$result ?: (@self::$records[$this->id]->$field = r\dbLookup($field, 'r_companies', 'id=:id', compact('id')));
+      return @$result ?: (@self::$records[$this->id]->$field = r\dbLookup($field, 'r_companies', 'uid=:id', compact('id')));
     } elseif ($field == 'secure') {
       return @$result ? unserialize(u\ezdecrypt($result, R_WORD)) : NULL;
     } elseif ($field == 'usdAccount') {
@@ -236,8 +236,8 @@ class acct {
       if ($key and is_numeric($key)) $info['offsite'] = $key; else return FALSE; // if attempt to store fails, save nothing
     }
     if (count($companyInfo = u\just(R_COMPANY_FIELDS, $info))) {
-      $companyInfo['id'] = $this->id;
-      r\dbUpdate('r_companies', $companyInfo, 'id', TRUE);
+      $companyInfo['uid'] = $this->id;
+      r\dbUpdate('r_companies', $companyInfo, 'uid', TRUE);
     }
     u\setDft($info['flags'], $this->flags); // accommodate setBit caching flags to be set/unset
     $info['uid'] = $this->id; // make sure dbUpdate gets this
@@ -248,7 +248,7 @@ class acct {
   public function usd($info = FALSE, &$err = '') {return new r\usd($this, $info, $err);}
   public function proSe() {return ($this->id == $this->agentId);}  
   public function qid() {return $this->proSe() ? $this->mainQid : r\quid($this->id, $this->agentId);}
-  public function isNonprofit() {return (bool) (r\dbLookup('structure', 'r_companies', 'id=:id', array('id' => $this->id)) & u\bit(R_NONPROFIT));}
+  public function isNonprofit() {return (bool) (r\dbLookup('structure', 'r_companies', 'uid=:id', array('id' => $this->id)) & u\bit(R_NONPROFIT));}
   public function gotContact() {return ($this->phone and $this->address and $this->physical and $this->city and $this->country);}
   
   /**

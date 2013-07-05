@@ -10,12 +10,13 @@ use rCredits as r;
  * Forms for managing transactions, and related functions
  */
 
-define('TX_OPT_KEYS' , 'agents channels exchanges vpayments');
+define('TX_OPT_KEYS' , 'agents channels boxes exchanges vpayments');
 define('TX_URL_OPTS', 'currency states ' . TX_OPT_KEYS);
 define('TX_OPT_AGENTS', 1);
 define('TX_OPT_CHANNELS', 2);
-define('TX_OPT_EXCHANGES', 3);
-define('TX_OPT_VPAYMENTS', 4);
+define('TX_OPT_BOXES', 3);
+define('TX_OPT_EXCHANGES', 4);
+define('TX_OPT_VPAYMENTS', 5);
 
 define('STATES_DONE', 0); // show just completed transactions
 define('STATES_PENDING', 1); // show just open invoices
@@ -38,7 +39,7 @@ function formTxs($form, &$sta, $args = '') {
 
   $page = $report ? 'reports' : 'transactions';
   if (!@$period) $period = TX_DEFAULT_PERIOD;
-  if (strlen(@$options) != count($urlOpts = u\ray(TX_URL_OPTS))) $options = $mya->can(B_PERSONAL) ? '220000' : '221000'; // defaults for TX_OPT_KEYS options (2=both)
+  if (strlen(@$options) != count($urlOpts = u\ray(TX_URL_OPTS))) $options = $mya->can(B_PERSONAL) ? '2200000' : '2210000'; // defaults for TX_OPT_KEYS options (2=both)
   $options = array_combine($urlOpts, str_split($options));
 //  u\setDft($states, STATES_BOTH); // both  
 //  u\setDft($currency, 2); // both
@@ -52,7 +53,7 @@ function formTxs($form, &$sta, $args = '') {
     if (@$$one) $optDefaults[] = $one; // set up option field values
   }
   
-  list ($classes, $header, $downloadHeader) = txFields($report, @$download, @$agents, @$channels);
+  list ($classes, $header, $downloadHeader) = txFields($report, @$download, @$agents, @$channels, @$boxes);
  
   $txDays = array('1' => 'today', '4' => '4 days', '30' => '30 days', '90' => '90 days', '180' => '6 months', '365' => '12 months', '-1' => 'Year to date');
   list ($starting, $ending) = txDates($txDays, @$period, @$starting, @$ending);
@@ -77,7 +78,7 @@ function formTxs($form, &$sta, $args = '') {
     while (count($rows) < $maxRows) {
       if (!$tx = $result->fetchAssoc()) break;
       $tot = $tx['completed'] ? 'totDone' : 'totPending';
-      $rows[] = doRow($tx, $report, $csv, $classes, @$agents, @$channels, $currency, $url0, $$tot);
+      $rows[] = doRow($tx, $report, $csv, $classes, @$agents, @$channels, @$boxes, $currency, $url0, $$tot);
     }
   }
   if ($tx and $result->fetchAssoc()) say('transaction list truncated'); // there was more than we could show
@@ -148,7 +149,7 @@ function setupDownload($starting, $ending) {
 /**
  * Return classes and headers for the appropriate set of fields.
  */
-function txFields($report, $download, $agents, $channels) {
+function txFields($report, $download, $agents, $channels, $boxes) {
   if ($report) { // community transaction history
     $classes = 'tid date from to amount rpct r usd usdTid state purpose reward';
     $headers = t('#,Date,From,To,Total,r%,rCredits,USD,USD#,Status,Purpose,Rewards');
@@ -161,6 +162,7 @@ function txFields($report, $download, $agents, $channels) {
 
   if (@$agents) $header['agent'] = t('Agent'); // (not applicable for reports)
   if (@$channels) $header['channel'] = t('Via');
+  if (@$boxes) $header['box'] = t('Box');
 
   if (@$download) { // downloading -- modify standard individual or community field list
     $downloadHeader = $header;
@@ -179,7 +181,7 @@ function txFields($report, $download, $agents, $channels) {
  *
  * @return: the row
  */
-function doRow($tx, $report, $csv, $classes, $agents, $channels, $currency, $url0, &$tot) {
+function doRow($tx, $report, $csv, $classes, $agents, $channels, $boxes, $currency, $url0, &$tot) {
   global $base_url, $rUrl;
   $mya = r\acct();
   $myid = $mya->id;
@@ -231,6 +233,7 @@ function doRow($tx, $report, $csv, $classes, $agents, $channels, $currency, $url
   : ($csv ? r\quid($agent) : str_replace(R_SERVER_ID . R_MEMBER_MARK, R_MEMBER_MARK, r\quid($agent)));
   // might optionally show both agents for reports someday
   if (@$channels) $row[] = $txChannels[$tx_channel];
+  if (@$boxes) $row[] = r\dbLookup('boxName', 'r_boxnames', 'id=:tx_box', compact('tx_box'));
 
   return $csv ? finishCsvRow($csv, array_combine($classes, $row), $tx, $amount, $r, $usd, $toMe, $tot) : $row;
 }
