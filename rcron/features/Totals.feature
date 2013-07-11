@@ -8,10 +8,10 @@ SO I can see how well the rCredits system is doing for myself, for my ctty, and 
 
 Setup:
   Given members:
-  | id   | fullName   | email         | flags                       | minimum | floor |
-  | .ZZA | Abe One    | a@example.com | dft,ok,personal,bona        |       5 |     0 |
-  | .ZZB | Bea Two    | b@example.com | dft,ok,personal,bona        |    1000 |   -20 |
-  | .ZZC | Corner Pub | b@example.com | dft,ok,company,bona,virtual |    2000 |    10 |
+  | id   | fullName   | email         | flags                       | minimum | floor | share |
+  | .ZZA | Abe One    | a@example.com | dft,ok,personal,bona        |       5 |     0 |    10 |
+  | .ZZB | Bea Two    | b@example.com | dft,ok,personal,bona        |    1000 |   -20 |    20 |
+  | .ZZC | Corner Pub | b@example.com | dft,ok,company,bona,virtual |    2000 |    10 |    30 |
   And relations:
   | id   | main | agent | permission |
   | .ZZA | .ZZA | .ZZB  | buy        |
@@ -54,11 +54,11 @@ Setup:
   | .AABA | %today-2d | loan      | done    |      5 |   3 | ctty | .ZZB | loan    | 0      |
   | .AABB | %today-2d | fine      | done    |      6 |   4 | .ZZC | ctty | fine    | 1      |
   Then balances:
-  | id   | r    | usd      | rewards |
-  | ctty | -775 | 10000.00 |       0 |
-  | .ZZA |  169 |   742.00 |     257 |
-  | .ZZB |  284 |  2257.00 |     256 |
-  | .ZZC |  322 |  3003.00 |     261 |
+  | id   | r    | usd      | rewards | committed |
+  | ctty | -775 | 10000.00 |       0 |         0 |
+  | .ZZA |  169 |   742.00 |     257 |      0.60 |
+  | .ZZB |  284 |  2257.00 |     256 |      0.80 |
+  | .ZZC |  322 |  3003.00 |     261 |      2.40 |
   # total rewards < total r, because we made a grant, a loan, and a fine.
   When cron runs ""
   # causes coverFee() to run
@@ -72,8 +72,8 @@ Setup:
 Scenario: cron calculates the totals
   When cron runs "totals"
   Then totals:
-  | r      | floor | rewards    | usd     | minimum | signup | rebate | bonus | inflation | grant | loan | fine | maxRebate | balance    | demand   | capacity |
-  | 776.25 |   -10 |     775.25 | 6000.75 |    3005 |    750 |      6 |    12 |         6 |     4 |    5 |    6 |        4 |    -776.25 |   2228.75 |  2998.25 |
+  | r      | floor | rewards    | usd     | minimum | signup | rebate | bonus | committed | inflation | grant | loan | fine | maxRebate | balance    | demand   | capacity |
+  | 776.25 |   -10 |     775.25 | 6000.75 |    3005 |    750 |      6 |    12 |      3.80 |         6 |     4 |    5 |    6 |        4 |    -776.25 |   2228.75 |  6000.75 |
   # Here's why:
   #
   # demand is min(usd, minimum-r)
@@ -81,7 +81,7 @@ Scenario: cron calculates the totals
   #   + min(2256.50, 1000 - 284.50)
   #   + min(3002.50, 2000 - 322.50)
   #
-  # capacity is usd or (if virtual) minimum-(r+usd), whichever is less -- but never less than zero
+  # capacity now is usd [was usd or (if virtual) minimum-(r+usd), whichever is less -- but never less than zero]
   #   = 741.75
   #   + 2256.50
   #   + min(3002.50, max(0, 2000 - (322.50 + 3002.50)))  (zero)

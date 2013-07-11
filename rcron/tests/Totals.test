@@ -44,10 +44,10 @@ class rcronTotals extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id   | fullName   | email         | flags                       | minimum | floor |'
-    . '\\| .ZZA | Abe One    | a@example.com | dft,ok,personal,bona        |       5 |     0 |'
-    . '\\| .ZZB | Bea Two    | b@example.com | dft,ok,personal,bona        |    1000 |   -20 |'
-    . '\\| .ZZC | Corner Pub | b@example.com | dft,ok,company,bona,virtual |    2000 |    10 |"');
+    . '\\| id   | fullName   | email         | flags                       | minimum | floor | share |'
+    . '\\| .ZZA | Abe One    | a@example.com | dft,ok,personal,bona        |       5 |     0 |    10 |'
+    . '\\| .ZZB | Bea Two    | b@example.com | dft,ok,personal,bona        |    1000 |   -20 |    20 |'
+    . '\\| .ZZC | Corner Pub | b@example.com | dft,ok,company,bona,virtual |    2000 |    10 |    30 |"');
     And__('relations: "DATA'
     . '\\| id   | main | agent | permission |'
     . '\\| .ZZA | .ZZA | .ZZB  | buy        |'
@@ -90,11 +90,11 @@ class rcronTotals extends DrupalWebTestCase {
     . '\\| .AABA | %today-2d | loan      | done    |      5 |   3 | ctty | .ZZB | loan    | 0      |'
     . '\\| .AABB | %today-2d | fine      | done    |      6 |   4 | .ZZC | ctty | fine    | 1      |"');
     Then_('balances: "DATA'
-    . '\\| id   | r    | usd      | rewards |'
-    . '\\| ctty | -775 | 10000.00 |       0 |'
-    . '\\| .ZZA |  169 |   742.00 |     257 |'
-    . '\\| .ZZB |  284 |  2257.00 |     256 |'
-    . '\\| .ZZC |  322 |  3003.00 |     261 |"');
+    . '\\| id   | r    | usd      | rewards | committed |'
+    . '\\| ctty | -775 | 10000.00 |       0 |         0 |'
+    . '\\| .ZZA |  169 |   742.00 |     257 |      0.60 |'
+    . '\\| .ZZB |  284 |  2257.00 |     256 |      0.80 |'
+    . '\\| .ZZC |  322 |  3003.00 |     261 |      2.40 |"');
     When_('cron runs ""');
     Then_('balances: "DATA'
     . '\\| id   | r       | usd      | rewards    |'
@@ -113,8 +113,8 @@ class rcronTotals extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('cron runs "totals"');
     Then_('totals: "DATA'
-    . '\\| r      | floor | rewards    | usd     | minimum | signup | rebate | bonus | inflation | grant | loan | fine | maxRebate | balance    | demand   | capacity |'
-    . '\\| 776.25 |   -10 |     775.25 | 6000.75 |    3005 |    750 |      6 |    12 |         6 |     4 |    5 |    6 |        4 |    -776.25 |   2228.75 |  2998.25 |"');
+    . '\\| r      | floor | rewards    | usd     | minimum | signup | rebate | bonus | committed | inflation | grant | loan | fine | maxRebate | balance    | demand   | capacity |'
+    . '\\| 776.25 |   -10 |     775.25 | 6000.75 |    3005 |    750 |      6 |    12 |      3.80 |         6 |     4 |    5 |    6 |        4 |    -776.25 |   2228.75 |  6000.75 |"');
   }
 
 }

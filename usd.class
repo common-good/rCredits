@@ -205,7 +205,7 @@ array (
     if (!@$source['Verified']) return dwError('not verified', $error);
     
     $function = $amount < 0 ? 'deposit' : 'withdraw'; // seems backwards (it's from Dwolla perspective)
-// debug("Transferring USD $amount from Dwolla account to the bank for account uid=" . $this->acct->id);
+/// debug("Transferring USD $amount from Dwolla account to the bank for account uid=" . $this->acct->id);
     self::beginAtom();
     if (t\est()) $txid = t\seq(); else
     if (!noDw($dw)) {
@@ -264,12 +264,10 @@ array (
       u\EXPECT(noDw($dw), "bad txid: $txid");
       return '?';
     }
-    debug($tx);
     if (!$fees = @$tx['Fees']) return 0; 
     u\EXPECT($fees[0]['Id'] == $txid + 2, 'misnumbered fee'); // $txid+1 is the payer's copy
     u\EXPECT($fees[0]['Amount'] + 0 == DW_FEE, 'wrong fee amount');
     if (!$tx = $dw->transaction($txid + 3)) return TRUE; // no reimbursement transaction
-    debug($tx);
     return ($tx['Type'] == 'fee' ? 0 : DW_FEE); // found a reimbursement ? no fee, else return fee amount
   }
   

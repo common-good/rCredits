@@ -199,13 +199,13 @@ EOF;
  * employeeOk can be updated only by other, all else only by main
  */
 function updateRelations($updates) {
-//debug($updates);
+///  debug($updates);
   $myid = r\acct()->id;
   $report = '';
   foreach ($updates as $reid => $data) {
     extract(u\just('main other fullName', $data['original'])); 
     unset($data['original']);
-//    debug(compact('updates','data','employeeOk2'));
+///    debug(compact('updates','data','employeeOk2'));
     
     if ($isAgent = ($myid != $main)) {
       r\reverseRelations($main, $other, $data, 'permission employerOk isOwner draw'); // giving employer permission?(!) -- create (or update?) a proper record (originally was just the employer's record)
@@ -233,7 +233,7 @@ function updateRelations($updates) {
       $pot = '(:main, :other)';
       if (!r\relation(1, "main IN $pot AND other IN $pot", compact('main', 'other'))) $msg = 'deleted relation';
     } else {
-      setCttyAdmin(@$data['permission'] >= PERM_MANAGE, $main, $other);
+      setCttyAdmin(@$data['permission'] >= r\perm(B_MANAGE), $main, $other);
     }    
     $otherName = $fullName;
     $report .= u\tt($msg, compact('otherName')) . '<br>';
@@ -279,7 +279,7 @@ function undoTx($xid) {
 
   if ($old_state == TX_PENDING or $old_state == TX_DENIED) { // it's an invoice - cancel simply by changing the transaction state
 // function undo_invoice($xid, $oldRecord, $old_otherUid, $byMe) // return $solution
-//debug(compact('old_byme','old_state','oldRecord','data'));
+///  debug(compact('old_byme','old_state','oldRecord','data'));
     if ($old_byMe) {
       list ($new_state, $solution) = array(TX_DELETED, t('deleted')); // abandon the attempt to invoice
       r\notify($old_otherUid, $old_toMe ? 'invoice canceled' : 'offer canceled', r\txReportArgs($mya, $oldRecord));
@@ -585,7 +585,7 @@ function fund($uid, $type, $amount, $for, $confirmed = TRUE) {
 
   $payeeAgent = $payee = $uid;
   $mya = r\acct(); // (null, if just registering or running as cron)
-  u\EXPECT($type == TX_SIGNUP or $mya->can(B_MANAGING_CTTY), 'non-automatic reward by non ctty agent');
+  u\EXPECT($type <= TX_REWARDS or $mya->can(B_MANAGING_CTTY), 'non-automatic reward by non ctty agent');
   if (!$confirmed) return $amount;
   
   $payer = r\acct($payee)->community;
@@ -593,8 +593,7 @@ function fund($uid, $type, $amount, $for, $confirmed = TRUE) {
   $taking = ($type >= TX_FINE);
   r\transact(compact(u\ray('type amount payer payee payerAgent payeeAgent for taking')));
   $amount = u\fmtAmt($amount);
-  $type = $type == TX_SIGNUP ? t('signup bonus') : $for;
-  r\notify($uid, 'got funding', compact('amount', 'type'));
+  r\notify($uid, 'got funding', u\assoc('amount type', $amount, $for));
   return $amount;
 }
 
@@ -688,7 +687,7 @@ function identify($who, $self_message = 'no self-trading') {
     WHERE (:who IN (s.number, u.phone, u.mail) OR INSTR(u.name, :short)) AND u.uid>0
     ORDER BY u.fullName
 EOF;
-//debug(compact('sql', 'who', 'phone', 'short'));
+///  debug(compact('sql', 'who', 'phone', 'short'));
   $result = r\dbQ($sql, compact(u\ray('who short')))->fetchAllKeyed(0, 1);
 //  $list = '';
   foreach ($result as $uid => $fullName) {
@@ -742,7 +741,7 @@ function creditInfo($args = array()) {
     SUM(IF(t.payee=:uid, amount, 0)) AS `in`,
     SUM(IF(t.payer=:uid, amount, 0)) AS `out`, 
     SUM(IF(t.type=:TX_TRANSFER OR t.type > :TX_REWARDS, 0, r)) AS rewards,
-    SUM(IF(t.type=:TX_REFUND, amount, 0)) AS fees,
+    SUM(IF(t.type=:TX_REFUND, r, 0)) AS fees,
     
     SUM(IF(t.payee=:uid, r, 0)) AS rIn,
     SUM(IF(t.payer=:uid, r, 0)) AS rOut 
@@ -750,7 +749,7 @@ function creditInfo($args = array()) {
     FROM r_txs t
     WHERE (t.payer=:uid OR t.payee=:uid) AND t.state$state AND $dateField<=:asof
 EOF;
-//  debug(str_replace(':uid', $uid, u\SUBS($sql)));
+///  debug(str_replace(':uid', $uid, u\SUBS($sql)));
   // rewards is based on r, not amount, because REFUNDs have amount=0
   
   $sums = r\dbQ($sql, $subs)->fetchAssoc();
@@ -763,7 +762,7 @@ EOF;
   extract($sums);
 
   $bank = -$bank; // make it "from bank" instead of "to bank"
-  $balance = $bank + $in - $fees - $out;
+  $balance = $bank + $in - $out;
   $inProper = $in - ($rewards - $fees);
 
   $r = $rIn - $rOut;
@@ -779,7 +778,7 @@ EOF;
   $fancy = array();
   foreach ($result as $key => $value) $fancy[$key] = u\fmtAmt(@$value + 0);
   $result['fancy'] = $fancy;
-  
+
   return (object) $result;
 }
 
@@ -910,7 +909,7 @@ function testbe($function = '', $arg1 = '', $arg2 = '', $arg3 = '') {
   if (!$function) return $testing_backend;
   $function = "rCredits\\be\\$function";
   $testing_backend = TRUE;
-/**/ debug($function($arg1, $arg2, $arg3)); // keep this
+/*/*/ debug($function($arg1, $arg2, $arg3)); // keep this
 }
 
 /**
@@ -927,27 +926,27 @@ function backend($op, $info = array(), $cache = FALSE) {
   global $base_url, $firewall;
   u\EXPECT(isFrontend(), 'backend recursion');
   if (!user_is_logged_in()) return FALSE; // probably checking permission
-//  if ($op == 'getRecords' and !$cache) die(print_r(debug_backtrace(), 1));
+///  if ($op == 'getRecords' and !$cache) die(print_r(debug_backtrace(), 1));
 
   $myid = r\acct()->id;
   u\EXPECT(@$myid, 'no myid in backend!');
   if (empty($info)) $cache = TRUE;
   
   $agent = r\acct()->agentId;
-//  $cache = FALSE; // debug
-//  debug("cache=$cache cachekey=rcredits_$op$myid:" . serialize($info));
+///  $cache = FALSE; // debug
+///  debug("cache=$cache cachekey=rcredits_$op$myid:" . serialize($info));
   $skey = "{$op}_{$agent}_{$myid}_" . base64_encode(serialize($info)); // htmlspecialchars prevents session key failure (PHP bug?)
   if ($cache and (($result = r\Web\svar($skey)) !== NULL)) return $result;
-//  debug($skey . $result);
-//  debug("cache:$cache $op: " . json_encode($info) . ($cache ? " result:$result" : ''));
-//  debug($result);
+///  debug($skey . $result);
+///  debug("cache:$cache $op: " . json_encode($info) . ($cache ? " result:$result" : ''));
+///  debug($result);
   $password = r\acct($agent)->pass;
   $firewall = R_WORD;
 //  foreach ($info as $key => $value) if (strpos($key, 'uid') !== FALSE) $info[$key] = r\quid($value); // convert to qid
 //  $basic = array('agent' => r\quid($agent), 'myid' => r\quid($myid));
   $info += compact(u\ray('myid agent op password firewall')); // operation, credentials, and account
   $api_result = R_SEPARATE_BACKEND ? u\httpRequest("$base_url/rcredits/api/", $info, 'json') : backend2($info);
-//debug($api_result);
+///  debug($api_result);
   u\loga('out', $info + compact('api_result'));
   if ($cache) r\Web\svar($skey, $api_result);
   return $api_result;

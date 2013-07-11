@@ -1,0 +1,121 @@
+<?php
+//
+// Feature: Summary
+//   AS a member
+//   I WANT to see an overview of an account
+//   SO I know where it stands.
+
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rweb2.steps';
+
+class rweb2Summary extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
+  var $sceneName;
+  const SHORT_NAME = 'Summary';
+  const FEATURE_NAME = 'rweb2 Test - Summary';
+  const DESCRIPTION = 'Summary';
+  const MODULE = 'rweb2';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
+  }
+  
+  public static function getInfo() {
+    return array(
+      'short_name' => self::SHORT_NAME,
+      'name' => self::FEATURE_NAME,
+      'description' => self::DESCRIPTION,
+      'group' => ucwords(self::MODULE)
+    );
+  }
+
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
+    global $sceneTest; $sceneTest = $this;
+    parent::setUp(self::MODULE);
+
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rweb2.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
+    default: // fall through to case(0)
+    case(0):
+    Given('members: "DATA'
+    . '\\| id   | fullName   | address | city  | state  | postalCode | country | floor | flags                        |'
+    . '\\| .ZZA | Abe One    | POB 1   | Atown | Alaska | 01000      | US      | -100  | dft,ok,personal,bona         |'
+    . '\\| .ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000      | US      | -200  | dft,ok,personal,company,bona |'
+    . '\\| .ZZC | Corner Pub | POB 3   | Ctown | Cher   |            | France  | -300  | dft,ok,company,bona          |"');
+    And__('relations: "DATA'
+    . '\\| id   | main | agent | permission |'
+    . '\\| .ZZA | .ZZA | .ZZB  | buy        |'
+    . '\\| .ZZB | .ZZB | .ZZA  | read       |'
+    . '\\| .ZZC | .ZZC | .ZZB  | buy        |'
+    . '\\| .ZZD | .ZZC | .ZZA  | sell       |"');
+    And__('transactions: "DATA'
+    . '\\| xid   | created   | type     | state | amount | from | to   | purpose      | taking |'
+    . '\\| .AAAB | %today-7m | signup   | done  |    250 | ctty | .ZZA | signup       | 000000 |'
+    . '\\| .AAAC | %today-6m | signup   | done  |    250 | ctty | .ZZB | signup       | 000000 |'
+    . '\\| .AAAD | %today-6m | signup   | done  |    250 | ctty | .ZZC | signup       | 000000 |'
+    . '\\| .AAAE | %today-2m | transfer | done  |     10 | .ZZB | .ZZA | cash E       | 000000 |'
+    . '\\| .AAAF | %today-3w | transfer | done  |     20 | .ZZC | .ZZA | usd F        | 000000 |'
+    . '\\| .AAAG | %today-3d | transfer | done  |     40 | .ZZA | .ZZB | whatever43   | 000000 |'
+    . '\\| .AAAH | %today-3d | rebate   | done  |      2 | ctty | .ZZA | rebate on #4 | 000000 |'
+    . '\\| .AAAI | %today-3d | bonus    | done  |      4 | ctty | .ZZB | bonus on #3  | 000000 |'
+    . '\\| .AAAJ | %today-2d | transfer | done  |      5 | .ZZB | .ZZC | cash J       | 000000 |'
+    . '\\| .AAAK | %today-1d | transfer | done  |     80 | .ZZA | .ZZC | whatever54   | 000000 |'
+    . '\\| .AAAL | %today-1d | rebate   | done  |      4 | ctty | .ZZA | rebate on #5 | 000000 |'
+    . '\\| .AAAM | %today-1d | bonus    | done  |      8 | ctty | .ZZC | bonus on #4  | 000000 |"');
+    Then_('balances: "DATA'
+    . '\\| id   | balance |'
+    . '\\| ctty |    -768 |'
+    . '\\| .ZZA |     166 |'
+    . '\\| .ZZB |     279 |'
+    . '\\| .ZZC |     323 |"');
+    break;
+
+
+    }
+  }
+
+  // Scenario: A member clicks on the summary tab
+  public function testAMemberClicksOnTheSummaryTab_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member ".ZZA" visits page "summary"');
+    Then_('we show "Account Summary" with: "DATA'
+    . '\\| Name             | Address                | Account ID      | Balance | Rewards | Floor |'
+    . '\\| Abe One (abeone) | POB 1, Atown, AK 01000 | .ZZA (personal) | $166    | $256    | $-100 |"');
+  }
+
+  // Scenario: An agent clicks on the summary tab without permission to manage
+  public function testAnAgentClicksOnTheSummaryTabWithoutPermissionToManage_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member ":ZZA" visits page "summary"');
+    Then_('we show "Account Summary" with: "DATA'
+    . '\\| Name             | Account ID         |'
+    . '\\| Abe One (abeone) | NEW.ZZA (personal) |"');
+    And__('we show "Account Summary" without: "DATA'
+    . '\\| label1  | label2  | label3 |'
+    . '\\| Balance | Rewards | Floor  |"');
+  }
+
+  // Scenario: A foreign rTrader clicks on the summary tab
+  public function testAForeignRTraderClicksOnTheSummaryTab_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member ".ZZC" visits page "summary"');
+    Then_('we show "Account Summary" with: "DATA'
+    . '\\| Name                   | Address                    | Account ID     | Balance | Rewards |  Floor |'
+    . '\\| Corner Pub (cornerpub) | POB 3, Ctown, Cher, FRANCE | .ZZC (company) | $323    | $258    |  $-300 |"');
+  }
+
+  // Scenario: Member's account is not active
+  public function testMembersAccountIsNotActive_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('member ".ZZA" account is not active');
+    When_('member ".ZZA" visits page "summary"');
+    Then_('we say "status": "take a step"');
+  }
+
+}

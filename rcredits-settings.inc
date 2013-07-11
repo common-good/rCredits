@@ -15,7 +15,7 @@ define('R_SITE_URL', 'https://new.rCredits.org');
 // (you don't get an ID card unless you are in this geographic area)
 define('R_REGION_POSTAL_AREA', '^01.*'); // anyone with a postal code that matches this regular expression is in the region
 date_default_timezone_set('America/New_York'); // server handles just one timezone
-define('DW_LAG', 1 * HOUR_SECS); // how many seconds later than us Dwolla's server sees the sun
+define('DW_LAG', 1 * HOUR_SECS); // how many seconds later than us Dwolla's (Mountain Time) server sees the sun
 define('R_COUNTRY_ID', 1228); // United States
 define('R_STATE_ID', 1020); // Massachusetts
 define('R_REBATE', 5); // standard initial rebate percentage
@@ -33,3 +33,4 @@ define('R_DEBT_FEE', 25); // fee for overdue reserve credit
 define('R_DEBT_PERCENT', 1.5); // percentage fee for overdue reserve credit
 define('R_DEBT_DAYS', 30); // how long to pay back reserve credit
 define('R_STATEMENT_COST', 10); // how much member must pay (in rCredits dollars) for monthly and annual statements by mail
+define('R_INFLATION_RATE', .05); // annual USD inflation rate (but never less than zero) (extra big is okay)

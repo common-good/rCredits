@@ -6,15 +6,15 @@
 //   SO I can buy and sell stuff.
 
 require_once __DIR__ . '/../../../gherkin/test-defs.php';
-require_once __DIR__ . '/../rweb.steps';
+require_once __DIR__ . '/../rweb2.steps';
 
-class rwebTransactUsd extends DrupalWebTestCase {
+class rweb2TransactUsd extends DrupalWebTestCase {
   var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
   var $sceneName;
   const SHORT_NAME = 'TransactUsd';
-  const FEATURE_NAME = 'rweb Test - TransactUsd';
+  const FEATURE_NAME = 'rweb2 Test - TransactUsd';
   const DESCRIPTION = 'Transact';
-  const MODULE = 'rweb';
+  const MODULE = 'rweb2';
 
   public function gherkin($statement, $type) {
     $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
@@ -37,7 +37,7 @@ class rwebTransactUsd extends DrupalWebTestCase {
 
     $this->subs = usualSubs();
     $this->sceneName = __FUNCTION__;
-    if (function_exists('extraSetup')) extraSetup($this); // defined in rweb.steps
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rweb2.steps
     $this->sceneName = $sceneName;
 
     switch ($variant) {

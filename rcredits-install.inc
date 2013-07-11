@@ -104,12 +104,26 @@ function tableDefs($schema = array()) {
   );
 //  $indexes = index('data');
   $schema['offsite'] = setupTable('secret data on some other server', $fields, 'id', NULL, NULL);
-  
-  // table proxies
+
+  // table r_do
+  $fields = array(
+    'doid' => setupField('record id', 'serial 11'),
+    'uid' => setupField('account record id', 'int big'),
+    'box' => setupField('machine id', 'int big'),
+    'created' => setupField('Unixtime record was created', 'int 11', 0),
+    'completed' => setupField('Unixtime action was completed', 'int 11', 0), // expiration time if <0
+    'action' => setupField('serialized array describing action to take', 'text medium'),
+    'code' => setupField('security code', 'varchar 255'),
+  );
+  $foreignKeys = foreignKey('uid');
+  $indexes = index('uid');
+  $schema['r_do'] = setupTable('Clickable actions with no signin', $fields, 'doid', $foreignKeys, $indexes);
+    
+  // table r_proxies
   $fields = array(
     'id' => setupField('record id', 'serial 11'),
     'person' => setupField('account record id', 'int big'),
-    'proxy' => setupField('account rercord id of proxy', 'int big'),
+    'proxy' => setupField('account record id of proxy', 'int big'),
     'priority' => setupField('precedence of this proxy (1=top priority)', 'int tiny'),
   );
   $foreignKeys = foreignKey('person') + foreignKey('proxy');
@@ -164,7 +178,7 @@ function tableDefs($schema = array()) {
     'txid' => setupField('the unique transaction ID', 'varchar 255'), 
     'amount' => setupField('amount in rCredits', 'numeric 11,2'), 
     'payer' => setupField('user id of the payer', 'int big'), 
-    'payee' => setupField('user id of the payee', 'int big'), // 0 for deposits / withdrawals
+    'payee' => setupField('user id of the payee', 'int big', 0), // 0 for deposits / withdrawals
     'created' => setupField('Unixtime transaction was created', 'int 11', 0),
     'completed' => setupField('Unixtime transaction was completed', 'int 11', 0), // for deposits / withdrawals
   );
@@ -192,9 +206,9 @@ function tableDefs($schema = array()) {
     'uid' => setupField('uid of account that made the gift', 'int big'),
     'amount' => setupField('amount of gift', 'numeric 11,2'),
     'often' => setupField('recurring how often (Y, Q, M, 1)', 'varchar 1'),
-    'honor' => setupField('what type of honor', 'varchar 10'),
+    'honor' => setupField('what type of honor', 'varchar 10'), // "share" = gift is "sharing" rewards with CGF
     'honored' => setupField('who is honored', 'text medium'),
-    'share' => setupField('percentage of rebates/bonuses to contribute to CGF', 'numeric 6,3'),
+    'share' => setupField('percentage of rebates/bonuses to contribute to CGF', 'numeric 6,3'), // -1 = /A
   );
   $foreignKeys = foreignKey('uid');
   $indexes = index('uid');

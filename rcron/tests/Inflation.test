@@ -1,0 +1,159 @@
+<?php
+//
+// Feature: Inflation
+//   AS a member
+//   I WANT to receive an inflation adjustment on my average rCredits account balance over the past month
+//   SO I maintain the value of my earnings and savings.
+
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rcron.steps';
+
+class rcronInflation extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
+  var $sceneName;
+  const SHORT_NAME = 'Inflation';
+  const FEATURE_NAME = 'rcron Test - Inflation';
+  const DESCRIPTION = 'Inflation';
+  const MODULE = 'rcron';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
+  }
+  
+  public static function getInfo() {
+    return array(
+      'short_name' => self::SHORT_NAME,
+      'name' => self::FEATURE_NAME,
+      'description' => self::DESCRIPTION,
+      'group' => ucwords(self::MODULE)
+    );
+  }
+
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
+    global $sceneTest; $sceneTest = $this;
+    parent::setUp(self::MODULE);
+
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rcron.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
+    default: // fall through to case(0)
+    case(0):
+    Given('members: "DATA'
+    . '\\| id   | fullName   | floor | acctType      | flags                        |'
+    . '\\| .ZZA | Abe One    | -100  | %R_PERSONAL   | dft,ok,personal,bona         |'
+    . '\\| .ZZB | Bea Two    | -200  | %R_PERSONAL   | dft,ok,personal,company,bona |'
+    . '\\| .ZZC | Corner Pub | -300  | %R_COMMERCIAL | dft,ok,company,bona          |"');
+    When_('transactions: "DATA'
+    . '\\| xid | created   | type     | state    | amount | r  | from | to   | purpose |'
+    . '\\|   1 | %today-2m | signup   | done     |    500 | 100 | ctty | .ZZA | signup  |'
+    . '\\|   2 | %today-2m | signup   | done     |    200 | 100 | ctty | .ZZB | signup  |'
+    . '\\|   3 | %today-2m | signup   | done     |    400 | 100 | ctty | .ZZC | signup  |"');
+    Then_('balances: "DATA'
+    . '\\| id   | r   | usd |'
+    . '\\| .ZZA | 100 | 400 |'
+    . '\\| .ZZB | 100 | 100 |'
+    . '\\| .ZZC | 100 | 300 |"');
+    When_('transactions: "DATA'
+    . '\\| xid | created   | type     | state    | amount | r | from | to   | purpose |'
+    . '\\|   4 | %today-9d | transfer | done     |     10 |10 | .ZZB | .ZZA | cash E  |"');
+    Then_('balances: "DATA'
+    . '\\| id   | r   | usd |'
+    . '\\| .ZZA | 110 | 400 |'
+    . '\\| .ZZB |  90 | 100 |'
+    . '\\| .ZZC | 100 | 300 |"');
+    When_('transactions: "DATA'
+    . '\\| xid | created   | type     | state    | amount | r   | from | to   | purpose |'
+    . '\\|   5 | %today-8d | transfer | done     |    100 |  20 | .ZZC | .ZZA | usd F   |"');
+    Then_('balances: "DATA'
+    . '\\| id   | r   | usd |'
+    . '\\| .ZZA | 130 | 480 |'
+    . '\\| .ZZB |  90 | 100 |'
+    . '\\| .ZZC |  80 | 220 |"');
+    When_('transactions: "DATA'
+    . '\\| xid | created   | type     | state    | amount | r   | from | to   | purpose |'
+    . '\\|   6 | %today-7d | transfer | done     |    240 |  40 | .ZZA | .ZZB | what G  |'
+    . '\\|   7 | %today-7d | rebate   | done     |      2 |   2 | ctty | .ZZA | rebate  |'
+    . '\\|   8 | %today-7d | bonus    | done     |      4 |   4 | ctty | .ZZB | bonus   |"');
+    Then_('balances: "DATA'
+    . '\\| id   | r   | usd |'
+    . '\\| .ZZA |  92 | 280 |'
+    . '\\| .ZZB | 134 | 300 |'
+    . '\\| .ZZC |  80 | 220 |"');
+    When_('transactions: "DATA'
+    . '\\| xid | created   | type     | state    | amount | r   | from | to   | purpose |'
+    . '\\|   9 | %today-6d | transfer | done     |    100 | 100 | .ZZA | .ZZB | pie N   |'
+    . '\\|  10 | %today-6d | rebate   | done     |      5 |   5 | ctty | .ZZA | rebate  |'
+    . '\\|  11 | %today-6d | bonus    | done     |     10 |  10 | ctty | .ZZB | bonus   |"');
+    Then_('balances: "DATA'
+    . '\\| id   | r   | usd |'
+    . '\\| .ZZA |  -3 | 280 |'
+    . '\\| .ZZB | 244 | 300 |'
+    . '\\| .ZZC |  80 | 220 |"');
+    When_('transactions: "DATA'
+    . '\\| xid | created   | type     | state    | amount | r   | from | to   | purpose |'
+    . '\\|  12 | %today-5d | transfer | done     |    100 | 100 | .ZZC | .ZZA | labor M |'
+    . '\\|  13 | %today-5d | rebate   | done     |      5 |   5 | ctty | .ZZC | rebate  |'
+    . '\\|  14 | %today-5d | bonus    | done     |     10 |  10 | ctty | .ZZA | bonus   |"');
+    Then_('balances: "DATA'
+    . '\\| id   | r   | usd |'
+    . '\\| .ZZA | 107 | 280 |'
+    . '\\| .ZZB | 244 | 300 |'
+    . '\\| .ZZC | -15 | 220 |"');
+    When_('transactions: "DATA'
+    . '\\| xid | created   | type     | state    | amount | r   | from | to   | purpose |'
+    . '\\|  15 | %today-4d | transfer | done     |     50 |   5 | .ZZB | .ZZC | cash P  |"');
+    Then_('balances: "DATA'
+    . '\\| id   | r   | usd |'
+    . '\\| .ZZA | 107 | 280 |'
+    . '\\| .ZZB | 239 | 255 |'
+    . '\\| .ZZC | -10 | 265 |"');
+    When_('transactions: "DATA'
+    . '\\| xid | created   | type     | state    | amount | r   | from | to   | purpose |'
+    . '\\|  16 | %today-3d | transfer | done     |    120 |  80 | .ZZA | .ZZC | this Q  |'
+    . '\\|  17 | %today-3d | rebate   | done     |      4 |   4 | ctty | .ZZA | rebate  |'
+    . '\\|  18 | %today-3d | bonus    | done     |      8 |   8 | ctty | .ZZC | bonus   |"');
+    Then_('balances: "DATA'
+    . '\\| id   | r   | usd |'
+    . '\\| .ZZA |  31 | 240 |'
+    . '\\| .ZZB | 239 | 255 |'
+    . '\\| .ZZC |  78 | 305 |"');
+    When_('transactions: "DATA'
+    . '\\| xid | created   | type     | state    | amount | r   | from | to   | purpose |'
+    . '\\|  19 | %today-2d | transfer | pending  |    123 |  70 | .ZZA | .ZZB | cash T  |'
+    . '\\|  20 | %today-2d | transfer | denied   |     86 |  50 | .ZZB | .ZZA | cash U  |"');
+    Then_('balances: "DATA'
+    . '\\| id   | r   | usd |'
+    . '\\| .ZZA |  31 | 240 |'
+    . '\\| .ZZB | 239 | 255 |'
+    . '\\| .ZZC |  78 | 305 |"');
+    When_('transactions: "DATA'
+    . '\\| xid | created   | type     | state    | amount | r   | from | to   | purpose |'
+    . '\\|  21 | %today-1d | transfer | done     |    100 |   0 | .ZZA | .ZZB | cash V  |"');
+    Then_('balances: "DATA'
+    . '\\| id   | r   | usd |'
+    . '\\| .ZZA |  31 | 140 |'
+    . '\\| .ZZB | 239 | 355 |'
+    . '\\| .ZZC |  78 | 305 |"');
+    break;
+
+
+    }
+  }
+
+  // Scenario: Inflation adjustments are distributed
+  public function testInflationAdjustmentsAreDistributed_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('cron runs "lessOften"');
+    Then_('transactions: "DATA'
+    . '\\| xid| created| type      | state | amount                               | from | to   | purpose |'
+    . '\\| 22 | %today | inflation | done  | %(round(%R_INFLATION_RATE*38.21, 2)) | ctty | .ZZA | inflation adjustment |'
+    . '\\| 23 | %today | inflation | done  | %(round(%R_INFLATION_RATE*22.72, 2)) | ctty | .ZZB | inflation adjustment |'
+    . '\\| 24 | %today | inflation | done  | %(round(%R_INFLATION_RATE*31.41, 2)) | ctty | .ZZC | inflation adjustment |"');
+  }
+
+}

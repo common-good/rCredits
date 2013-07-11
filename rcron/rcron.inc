@@ -56,7 +56,7 @@ use rCredits\Backend as be;
 
 include_once __DIR__ . '/../usd.class';
 
-define('R_DAILY_TASKS', 'START usdTxsHere usdTxsThere recache checkAccts totals paySuppliers payEmployees gifts bank lessOften notices END');
+define('R_DAILY_TASKS', 'START usdTxsHere usdTxsThere recache checkAccts totals paySuppliers payEmployees lessOften gifts bank notices END');
 //define ('R_DAILY_TASKS', 'START redistribute END');
 
 /**
@@ -78,39 +78,63 @@ function periodic() {
     r\tellStaff('task timed out', $row); // shouldn't happen. Drupal's queue processing hangs until we delete.
     r\dbQ('DELETE FROM queue WHERE item_id=:item_id', u\just('item_id', $row));
   }
-  
-  $lastDaily = \variable_get('daily', 0);
-  if (strftime('%H') >= R_DAILY_HOUR and strftime('%d') != strftime('%d', $lastDaily)) everyDay();
-  if (strftime('%M') == '00') everyHour();
+  often('hour', 'M', '00', HOUR_SECS);
+  often('day', 'H', R_DAILY_HOUR, DAY_SECS); // longer periods get queued in lessOften(), so notices are last
+//  $lastDaily = \variable_get('daily', 0);
+//  if (strftime('%H') >= R_DAILY_HOUR and strftime('%d') != strftime('%d', $lastDaily)) everyDay();
+//  if (strftime('%M') == '00') everyHour();
 }
 
 function everyHour() {
   // stuff to do every hour
+  r\tellStaff('hourly cron');
 }
 
 function everyDay() {
   queueNextAfter('START');
-  \variable_set('daily', REQUEST_TIME);
+//  \variable_set('daily', REQUEST_TIME);
   // miscellaneous quick stuff to do every day
   $time = time() - 7 * DAY_SECS;
   r\dbQ('DELETE FROM r_log WHERE time<:time', compact('time')); // zap log except for the past few days
 }
 
 function lessOften() {
-  if (strftime('%A') == R_WEEKLY_DAY) everyWeek();
-  if (strftime('%d') == R_MONTHLY_DAY) everyMonth();
+  often('week', 'A', R_WEEKLY_DAY, 7 * DAY_SECS);
+  often('month', 'd', R_MONTHLY_DAY, 30 * DAY_SECS);
+  often('year', 'm', '01', 365 * DAY_SECS);  
+//  if (strftime('%A') == R_WEEKLY_DAY) everyWeek();
+//  if (strftime('%d') == R_MONTHLY_DAY) everyMonth();
   queueNextAfter('lessOften');
+}
+
+/**
+ * Do something periodically if it's time and hasn't been done yet.
+ * @param string $period: the period
+ * @param string $code: the strftime code for the smaller period to match or exceed
+ * @param string $value: the value to match or exceed
+ * @param int $periodLen: approximate length of the period, in seconds
+ */
+function often($period, $code, $value, $periodLen) {
+  $lastCron = \variable_get('r_last_cron', array());
+  if (strftime("%$code") >= $value and REQUEST_TIME - @$lastCron[$period] > $periodLen / 2) { // it's time
+    $lastCron[$period] = REQUEST_TIME;
+    \variable_set('r_last_cron', $lastCron); // remember that this periodic activity has been done
+    $function = 'rCredits\\Cron\\every' . ucwords($period);
+    $function(); // do it
+  }
 }
 
 function everyWeek() {
 }
 
 /**
- * inflation (calculate and credit)
+ * Do monthly tasks.
  */
 function everyMonth() {
-  if (strftime('%m') == '01') everyYear();
-  // stuff to do every month
+  $start = u\monthDay1($end = u\monthDay1() - 1);
+  if (t\est()) $start = strtotime('-30 days', $end = strtotime('today') - 1) + 1; // the past 30 days
+  queueEach('inflationAdjust', "SELECT uid, $start AS start, $end AS end FROM users WHERE :IS_OK");  
+  queueEach('shareCommitted', 'SELECT uid, committed FROM users WHERE :IS_OK AND committed>0');
 }
 
 /**
@@ -145,6 +169,31 @@ function coverFee($item) {
 }
 
 //****************************************************
+
+/**
+ * Calculate and credit inflation adjustment to each account.
+ */
+function inflationAdjust($item) {
+  extract(u\just('uid start end', $item));
+  for ($ave = 0, $asof = $start + DAY_SECS - 1; $asof <= $end; $asof += DAY_SECS) {
+    $ave += be\creditInfo(compact('uid', 'asof'))->balance;
+  }
+  $ave /= ($end + 1 - $start) / DAY_SECS; // average end-of-day balance
+  $adjustment = round($ave * R_INFLATION_RATE / 12, 2);
+  if ($adjustment > 0) be\fund($uid, TX_INFLATION, $adjustment, t('inflation adjustment')); // don't adjust debts
+}
+
+/**
+ * Share committed rewards with CGF.
+ */
+function shareCommitted($item) {
+  extract(u\just('uid committed', $item));
+  $info = u\assoc('giftDate uid amount often honor share', REQUEST_TIME, $uid, $committed, 1, 'share', -1);
+  $DBTX = \db_transaction();
+  r\dbInsert('r_gifts', $info);
+  r\acct($uid)->update(array('committed' => 0));
+  unset($DBTX);
+}
 
 /**
  * Complete queued USD transactions that have not gone through yet.
@@ -182,7 +231,7 @@ function usdTxThere($item) {
   if (t\est() and realId($uid)) return; // ignore real accounts in tests
 //  $cgf = variable_get('cgf_uid');
   $usAcct = new r\usd($acct = r\acct($uid));
-//  debug(compact('uid','cgf','item'));
+///  debug(compact('uid','cgf','item'));
   $since = strtotime('10 days ago'); // bank transfers sometimes take 7 days or more
   $usAcct->each('rCredits\\Cron\\usdTxQ', $since, u\ray('money_sent deposit withdrawal'));
 }
@@ -191,10 +240,11 @@ function usdTxQ($info) {r\queue($info['Type'] == 'money_sent' ? 'lostUsdTx' : 'b
 
 /**
  * Reverse any uncommitted USD transaction (any that has no record in r_usd).
+ * @param assoc $tx: the lost transaction
  */
-function lostUsdTx($info) {
-//print_r($info); die();
-  extract(u\just('Id Notes Amount SourceId DestinationId Date', $info));
+function lostUsdTx($tx) {
+//print_r($tx); die();
+  extract(u\just('Id Notes Amount SourceId DestinationId Date', $tx));
   if (!u\abbreviates(t\est() . USD_NOTE_PREFIX, $Notes)) return; // not one of ours
   if (r\dbExists('r_usd', 'txid=:Id', compact('Id'))) return;
   $created = strtotime($Date) + DW_LAG;
@@ -205,18 +255,25 @@ function lostUsdTx($info) {
   $payee = r\whoseUsd($DestinationId, $omit);
   if (t\est() and (!$payer or !$payee)) return;
   u\EXPECT($payer and $payee, "missing person in lost tx: payer=$payer payee=$payee");
-//  debug(compact(u\ray('info txid amount omit payer payee created'))); return;
-  r\tellStaff("lost USD tx: #$txid $amount ($payer to $payee)", $info, FALSE);
+///  debug(compact(u\ray('tx txid amount omit payer payee created'))); return;
+  r\tellStaff("lost USD tx: #$txid $amount ($payer to $payee)", $tx, FALSE);
   r\usd::rollback(array(compact(u\ray('txid amount payer payee created'))));
 }
 
 /**
  * Mark recently completed bank transfers complete.
+ * @param assoc $tx: the USD deposit or withdrawal transaction
  */
-function bankFollowup($info) {
-  extract(u\just('Id Amount ClearingDate Status', $info));
+function bankFollowup($tx) {
+  extract(u\just('Id Amount Date SourceId ClearingDate Status', $tx));
   if ($Status != 'processed') return; // not 'pending'
-  r\dbUpdate('r_usd', u\assoc('txid amount completed', $Id, -$Amount, strtotime($ClearingDate) + DW_LAG), 'txid');
+  $info = u\assoc('txid amount completed', $Id, -$Amount, strtotime($ClearingDate) + DW_LAG);
+  if (!r\dbExists('r_usd', array('txid' => $Id))) { // system crash before request got recorded
+    $omit = t\est() ? (variable_get('cgf_uid') - 1) : NULL; // ignore tester's account
+    if (!$payer = r\whoseUsd($SourceId, $omit)) return; // probably tester
+    $info += u\assoc('created payer payee', strtotime($Date) + DW_LAG, $payer, 0);
+  }
+  r\dbUpdate('r_usd', $info, 'txid', TRUE); // update or (if crash) insert
 }
 
 /**
@@ -365,7 +422,7 @@ function virtualPayment($item) {
   $excess = round(max(0, $offer - $acct2->usd), 2); // USD shortfall = r to exchange for USD in a 3-way trade
   r\usd::beginAtom();
   $traded = $excess ? r\getUsd($excess, $acct2, $usAcct1) : 0; // give company partial USD through rCredits sale to 3rd party
-//debug(compact(u\ray('main other offer newR excess traded')));
+///  debug(compact(u\ray('main other offer newR excess traded')));
   if ($traded >= $excess and ($offer == $traded or $txid = $usAcct2->send($offer - $traded, $usAcct1, 'virtual payment exchange'))) { // other partially pays main in USD if not totally left to 3rd parties
     $info = u\assoc('amount r payer payee for goods usdXid', 0, $offer, $main, $other, t('virtual payment'), TRUE, @$txid);
     r\transact($info); // total rCredits from company to other

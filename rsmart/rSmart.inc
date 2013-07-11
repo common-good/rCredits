@@ -191,7 +191,7 @@ function photo($args) {
   $message = bin2hex(substr($pic, 0, 50)); // this allows identifying the picture without a big db hit
   u\loga('out', compact('message'));
 
-/**/ if (t\est()) {debug($message); return $message;} else exit($pic); // keep
+/*/*/ if (t\est()) {debug($message); return $message;} else exit($pic); // keep
 }
 
 /*

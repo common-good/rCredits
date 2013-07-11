@@ -153,7 +153,7 @@ function makeTx($info, $testOnly = FALSE) {
   }
   
   if (abs($usd = $amount - $r) > DW_FEE_THRESHOLD and $state >= TX_DONE) {
-//    debug(compact('xid','usdXid','payee','usd'));
+///    debug(compact('xid','usdXid','payee','usd'));
     r\queue('coverFee', u\assoc('txid payee', t\seq(), $usd > 0 ? $payee : $payer));
   }
   $txs = r\transact($info);
@@ -270,7 +270,7 @@ function cronRuns($op) {
     global $cronOp; $cronOp = $op;
     if (strftime('%H') < R_DAILY_HOUR) die('Developer: For testing between midnight and :R_DAILY_HOUR:00, you need to temporarily change R_DAILY_HOUR in -settings.');
     r\dbQ("DELETE FROM queue WHERE name='q'");
-    \variable_set('daily', REQUEST_TIME - 24 * 60 * 60);
+    \variable_set('r_last_cron', array('day' => REQUEST_TIME - DAY_SECS));
   }
   \drupal_cron_run();
   return TRUE;
@@ -341,9 +341,9 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
   output(array('EXPECT' => '') + $fields, @$subject ? 'email' : 'output'); // keep this
   $info = json_encode($fields, JSON_UNESCAPED_SLASHES);
   $crit = "channel=:channel AND type=:type AND myid<=>:myid AND agent<=>:agent ORDER BY logid DESC";
-// debug(compact(u\ray('info type myid agent channel crit'))); // for debugging mysterious email mismatches
-// debug(compact(u\ray('info type myid agent channel')), '', 1);
-// debug("info=:info AND $crit"); debug(compact(u\ray('info type myid agent')));
+/// debug(compact(u\ray('info type myid agent channel crit'))); // for debugging mysterious email mismatches
+/// debug(compact(u\ray('info type myid agent channel')), '', 1);
+/// debug("info=:info AND $crit"); debug(compact(u\ray('info type myid agent')));
   return r\dbExists('r_log', "info=:info AND $crit", compact(u\ray('info type myid agent channel')));
 }
 
@@ -427,7 +427,7 @@ function subAgo($string, $fmt) {
   $bPreC = substr($b, 0, strlen($b) - 1);
   $periods = array('d' => 'days', 'w' => 'weeks', 'm' => 'months', 'y' => 'years');
   $period = $periods[$lastC];
-//  debug(compact(u\ray('string fmt lastC a b bPreC period')));
+///  debug(compact(u\ray('string fmt lastC a b bPreC period')));
   return (strftime($fmt, strtotime("$bPreC $period ago")));
 }
 
@@ -517,7 +517,7 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
   global $testOp; $testOp = @$values[0]['op'];
   global $testConfirmation; // confirmation message output, if any
   global $formSta;
-// debug(compact(u\ray('id page values confirmed testOnly'))); // keep
+/// debug(compact(u\ray('id page values confirmed testOnly'))); // keep
 
   $values = @$values[0] ?: array();
   t\fixCountryAndState($values);
@@ -553,7 +553,7 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
   if ($validate) foreach (t\postProcess($form, $page, 'validate') as $one) $one($form, $sta);
   if (count($errors = t\getErrors()) > count($errorsBefore)) {
     // NO! if (!empty($errors)) return FALSE;
-// debug(compact(u\ray('id page values confirmed one errors')));
+/// debug(compact(u\ray('id page values confirmed one errors')));
   } else {
 //    $testConfirmation = @$sta['confirm'];
     $lastIdentifierTag = '</div identifiers>';
@@ -573,11 +573,13 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
 /**
  * Simulate a visit to the page, return its form.
  * @param string $page: the Drupal URL to visit
+ * @param string $err: error message to output, if any
  * @return: the form before rendering
  */
-function pageForm($page) {
+function pageForm($page, $err = '') {
   global $formArray, $formSta;
   
+  if ($err) r\Web\say($err, 'zot');
   $login = (strpos($page, 'user/login') !== FALSE);
   t\SERVER('REQUEST_URI', $page);
   $args = basename($page);
@@ -729,7 +731,8 @@ function color($msg, $color = 'normal') {
  * Return FALSE (meaning error in returns from callers) unless a color is specified.
  */
 function output($msg, $color = 'error') {
-  if (t\est()) \drupal_set_message(color($msg, $color));
+  global $testModule;
+  if (t\est() and !@$testModule) \drupal_set_message(color($msg, $color));
   return $color == 'error' ? FALSE : TRUE;
 }
 
@@ -793,7 +796,7 @@ function parseAmt($var, $a) {
   u\EXPECT(!is_numeric($var), 'expected non-numeric var');
   
   $bal = $a->actualUsd();
-//  debug(compact('a','bal','var'));
+///  debug(compact('a','bal','var'));
 
   if (($i = strpos($var, '+')) or ($i = strpos($var, '-'))) {
     $op = substr($var, $i, 1);
@@ -803,7 +806,7 @@ function parseAmt($var, $a) {
   if (substr($var, 0, 1) == '+') list ($set, $var) = array(TRUE, substr($var, 1));
   global $$var;
   if (@$set) $$var = $bal; // not defined yet, set the var to actual USD balance
-//  debug(compact(u\ray('var a bal i op value')));
+///  debug(compact(u\ray('var a bal i op value')));
   return array($$var + $value, $bal);
 }
 
@@ -823,18 +826,18 @@ function badEq($type, $v1, $v2, $id) {
 function shownWith($content, $type = 'text', $showDebugs = TRUE) {
   global $formOut;
   $model = $formOut[$type];
-  //debug(compact('formOut', 'content'));
+///  debug(compact('formOut', 'content'));
   $xi = $i = 0;
 
   foreach ($content as $fields) {
     foreach ($fields as $key => $one) if (strpos($one, '%') !== FALSE) $fields[$key] = t\lastMinuteSubs($one);
-/**/ if ($showDebugs) debug("EXPECT page with " . print_r($fields, 1)); // keep this
+/*/*/ if ($showDebugs) debug("EXPECT page with " . print_r($fields, 1)); // keep this
     foreach ($fields as $one) { // ignore the keys here
       if ($one !== '') $i = strpos($model, $one, $xi = $i);
       if ($showDebugs) t\output(compact('xi','i','one'));
       if ($i === FALSE) {
         if ($showDebugs) t\output(substr($model, 0, $xi) . ' <b style="font-size:200%;">[OK until here]</b> ' . substr($model, $xi));
-// debug($formOut['notags']);
+/// debug($formOut['notags']);
         return FALSE;
       } else $i += strlen($one);
     }

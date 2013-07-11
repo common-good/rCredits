@@ -61,7 +61,7 @@ function rweb_menu() {
     'help' => r\Web\menu(t('Help'), MENU_CALLBACK, 'showForm', array('Help', 1), '', $anyone),
     'summary' => r\Web\menu(t('Summary'), MENU_NORMAL_ITEM, 'showForm', array('Summary'), '', $anyone),
     'transactions' => r\Web\menu(t('Transactions'), MENU_NORMAL_ITEM, 'showForm', array('Txs', 1), 'read'),
-    'charge' => r\Web\menu(t('Charge'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), 'sell ok'),
+    'charge' => r\Web\menu(t('Charge'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), 'scan ok'),
     'pay' => r\Web\menu(t('Pay'), MENU_NORMAL_ITEM, 'showForm', array('Tx', 1), 'buy ok'),
 
     'grant' => r\Web\menu(t('Grant'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), 'managing_ctty'),
@@ -117,6 +117,7 @@ function rweb_menu() {
     'rcredits/util' => r\Web\menu('Util', MENU_CALLBACK, 'util', array(2), 'admin'),
     'rcredits/test' => r\Web\menu('Util', MENU_CALLBACK, 'test', array(2), '', $anyone),
     'autocomplete' => r\Web\menu('Identify', MENU_CALLBACK, 'auto', array(1, 2, 3), '', $anyone),
+    'do' => r\Web\menu('Do', MENU_CALLBACK, 'rdo', array(2), '', $anyone),
 
     'rcredits/backend' => r\Web\menu('API', 0, 'rCredits\\be\\backend2', array(), '', $anyone),
     'api' => r\Web\menu('API', 0, 'rCredits\\Smart\\api', array(), '', $anyone),
@@ -125,7 +126,7 @@ function rweb_menu() {
     'secret' => r\Web\menu('Secret', 0, 'secrets', array(), '', $anyone),
     'error' => r\Web\menu('System Error', 0, 'rCredits\\error', array(1), '', $anyone),
     
-    'pay-with-rcredits' => r\Web\menu('Pay With rCredits', MENU_CALLBACK, 'showForm', array('Buy'), '', $anyone), // form will require login
+//    'pay-with-rcredits' => r\Web\menu('Pay With rCredits', MENU_CALLBACK, 'showForm', array('Buy'), '', $anyone), // form will require login
 
 //    'example-store' => r\Web\menu('Example Store', MENU_NORMAL_ITEM, 'showForm', array('example_store'), '', $anyone),
 //    'modal' => r\Web\menu('Modal Test', MENU_CALLBACK, 'drupal_get_form', array('modal_form'), '', $anyone + $modal),
@@ -141,10 +142,10 @@ function rweb_menu_alter(&$items) {
 }
 
 function rweb_form_alter(&$form, &$sta, $form_id) {
-//debug($form);
-//debug($sta);
-//debug($form_id);
-//debug($_SERVER);
+///debug($form);
+///debug($sta);
+///debug($form_id);
+///debug($_SERVER);
   if ($form_id == 'user_pass_reset') return r\Web\resetAlter($form, $sta);
   if ($form_id == 'user_login') {return r\Web\formLogin($form, $sta);}
   // (has no effect, keep as comment) if ($form_id == 'user_register') {return r\Web\formRegister($form, $sta);}

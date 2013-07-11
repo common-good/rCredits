@@ -432,11 +432,10 @@ function SUBS($string, $prefix = ':', $flagField = 'flags') {
 function EXPECT($assertion, $message = '', $ret = FALSE) {
   if (is_array($assertion)) {
     list ($args, $types) = array($assertion, $message); // for clarity
-//    EXPECT(compact(ray('args types')), 'assoc string'); // can't do this because infinite recursion
-// if (strpos($types, '|')) {debug(array_keys($args)); debug($types);}
-//    EXPECT(count($args) != count($types = explode(' ', $types)), 'wrong number of types expected'); // infinite recursion
+///    EXPECT(compact(ray('args types')), 'assoc string'); // can't do this because infinite recursion
+///    EXPECT(count($args) != count($types = explode(' ', $types)), 'wrong number of types expected'); // infinite recursion
 //    if(count($args) != count($types = explode(' ', $types))) die('wrong number of types expected: ' . print_r(debug_backtrace(), 1));
-/**/ if (count($args) != count(explode(' ', $types))) debug(debug_backtrace()); // keep
+/*/*/ if (count($args) != count(explode(' ', $types))) debug(debug_backtrace()); // keep
     $types = array_combine(array_keys($args), explode(' ', $types)); // not ray() here, $types may have '|'
     foreach ($args as $key => $value) if ($error = expect1($key, $value, $types[$key], $ret)) return $error;
   } elseif (!$assertion) {
@@ -688,36 +687,6 @@ function normalizeCase($what, $proper = 'ucwords') {
   return $proper(strtolower($what));
 }
 
-/*
-function import_gfld() {
-  $result = \db_query("SELECT * FROM companies ORDER BY fullName");
-  while ($row = $result->fetchAssoc()) {
-    extract($row);
-    $short_name = shortName($fullName);
-    $phone = $phone ? "+1$phone" : NULL;
-    $fax = $fax ? "+1$fax" : NULL;
-    $state = stateAbbrev($state);
-    $website = str_replace('https://', '', str_replace('http://', '', str_replace('www.', '', $website)));
-    $acctType = r\dbExists('r_user_industries', "iid IN (121,61) AND uid=:uid", compact('uid')) ? 2 : 1;
-    $sql = "UPDATE companies SET phone=:phone, fax=:fax, status=1, website=:website, name=:short_name, short_name=:short_name, state=:state, country='United States', timezone='America/New_York', acctType=:acctType WHERE uid=:uid";
-    r\dbQ($sql, compact(ray('short_name uid phone fax state website acctType')));
-
-    $cats = unserialize($categories);
-    foreach ($cats as $industry) {
-      $industry = ucwords(strtolower($industry));
-      if (!$iid = r\dbLookup('iid', 'r_industries', 'industry=:industry', compact('industry'))) {
-        $record = compact('industry');
-        db_query("INSERT INTO r_industries (industry) VALUES (:industry)", $record);
-//        $iid = r\dbInsert('r_industries', $record);
-// debug(r\dbInsert('r_industries', $record));
-      }
-      db_query("INSERT INTO r_user_industries (iid, uid) VALUES (:iid, :uid)", prefixKeys(':', compact('iid', 'uid')));
-//      r\dbInsert('r_user_industries', compact(ray('iid uid')));
-    }
-  }
-}
-*/
-
 function gzdecode($data){
     $g=tempnam('./','gz');
     file_put_contents($g,$data);
@@ -727,53 +696,6 @@ function gzdecode($data){
     unlink($g);
     return $d;
 }
-
-// rCredits\Util\get_company_pictures();
-/*
-function get_company_pictures() {
-  $result = r\dbQ("SELECT uid,website,data,description FROM users WHERE uid>791 AND website<>'' ORDER BY uid");
-  while ($row = $result->fetchAssoc()) {
-    extract($row);
-    if (in_array($uid, array(549, 551, 552, 779, 791))) continue; // these apparently kill it
-    echo "$uid<br>"; // in case it dies
-
-//    if (strlen($website) < 4) {debug($uid); continue;} // keep this
-    $homepage = 'http://' . $website;
-    $s = @file_get_contents($homepage);
-    if (!$s) $s = @file_get_contents($homepage = ('http://www.' . $website));
-//    if (!$s) {debug("Can't open $homepage"); continue;} // keep this
-    
-    if (!$description) {
-      $got = preg_match('/<meta\s+name\s*=\s*[\'"]description[\'"]\s+content\s*=\s*[\'"](.*?)[\'"]/msi', $s, $matches);
-      if (!$got) {
-        $s = gzdecode($s);
-        if (!preg_match('/<meta\s+name\s*=\s*[\'"]description[\'"]\s+content\s*=\s*[\'"](.*?)[\'"]/msi', $s, $matches)) continue;
-      }
-      $description = htmlspecialchars_decode(@$matches[1]);
-      if ($description) r\dbQ('UPDATE users SET description=:description WHERE uid=:uid', compact(ray('description uid')));
-    }
-
-    if (strlen($data) > 3) continue;    
-    preg_match_all('/<img\s.*?src\s*?=\s*?[\'"](.*?)[\'"]/ism', $s, $matches);
-    $biggest = 0; $best = '';
-    foreach ($matches[1] as $one) {
-      if (!stripos($one, '.jpg') and !stripos($one, '.png')) continue;
-      if (strpos($one, 'http:') === FALSE) $one = "$homepage/$one";
-      $info = @getimagesize($one);
-      list ($width, $height) = is_array($info) ? $info : array(0, 0);
-//      if (($len = fsize($one)) > @$biggest) list ($biggest, $best) = array($len, $one);
-      if (($len = $width * $height) > @$biggest) list ($biggest, $best) = array($len, $one);
-      if ($biggest > 50000 and $width > 100 and $height > 100 and $width*$height > 20000) break;
-    }
-    if (@$biggest) {
-      $picture = $best;
-      $data = serialize(compact(ray('picture width height')));
-      r\dbQ('UPDATE users SET data=:data WHERE uid=:uid', compact(ray('data uid')));
-    }
-  }
-//  debug('done'); // keep this
-}
-*/
 
 /*
 function weakPass($pass) {  

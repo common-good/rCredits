@@ -22,14 +22,22 @@ define('STATES_DONE', 0); // show just completed transactions
 define('STATES_PENDING', 1); // show just open invoices
 define('STATES_BOTH', 2); // show both completed and pending transactions
 
-define('CURRENCIES_R', 0);
-define('CURRENCIES_USD', 1);
-define('CURRENCIES_BOTH', 2); // show both rCredits (0) and USD (1)
+define('_N', 0); // used in tests
+define('_XCH', 1);
+define('_VPAY', 1);
+
+define('RUSD_R', 0);
+define('RUSD_USD', 1);
+define('RUSD_BOTH', 2); // show both rCredits (0) and USD (1)
 
 /**
  * List Transactions
  */
 function formTxs($form, &$sta, $args = '') {
+  global $agtViaBox;
+  $agtViaBox = t('Agent is who did the transaction on your behalf.|Channel (Via) is where the transaction originated -- what type of device: Web, Smartphone, SMS, or Automatic.|Box is where the transaction originated -- which specific device.');
+  $optHelp = $agtViaBox . '|' . t('Exchanges are 1-to-1 trades of US Dollars for rCredits (usually automatic).|Vpayments are daily automatic virtual payments of rCredits by a company to an employee. The company pays the employee in US Dollars, then the employee trades back some US Dollars 1-to-1 for rCredits. The net effect is that the employee gets paid partly in US Dollars, partly in rCredits.');
+
   global $base_url;
   $mya = r\acct();
   
@@ -43,16 +51,16 @@ function formTxs($form, &$sta, $args = '') {
   $options = array_combine($urlOpts, str_split($options));
 //  u\setDft($states, STATES_BOTH); // both  
 //  u\setDft($currency, 2); // both
-  if (@$download) $options['currency']  = CURRENCIES_BOTH; // always both for download
+  if (@$download) $options['currency']  = RUSD_BOTH; // always both for download
   extract($options);
   $options = join('', array_values($options));
   
   $optDefaults = $opts = array();
-  foreach (u\ray(TX_OPT_KEYS) as $one) {
-    $opts[u\consta('tx_opt', $one)] = $one; // set TX_OPT_CHANNELS etc.
-    if (@$$one) $optDefaults[] = $one; // set up option field values
+  $optHelp = array_combine($keys = u\ray(TX_OPT_KEYS), u\ray($optHelp));
+  foreach ($keys as $one) {
+    $value = $opts[u\consta('tx_opt', $one)] = popHelp($one, $optHelp[$one]); // set TX_OPT_CHANNELS etc.
+    if (@$$one) $optDefaults[] = $value; // set up option field values
   }
-  
   list ($classes, $header, $downloadHeader) = txFields($report, @$download, @$agents, @$channels, @$boxes);
  
   $txDays = array('1' => 'today', '4' => '4 days', '30' => '30 days', '90' => '90 days', '180' => '6 months', '365' => '12 months', '-1' => 'Year to date');
@@ -116,7 +124,8 @@ function formTxs($form, &$sta, $args = '') {
   $currency = hidField(2); //formField('radios', t('Currency:'), '', dft($currency), $radios); 
   $radios = array(t('completed'), t('open invoices'), t('both'));
   $states = formField('radios', t('Types:'), '', dft($states), $radios);
-  $opts2 = boxField('opts', t('Show:'), t('Agent is who did the transaction on your behalf. Channel ("Via") is Web, Smartphone, SMS, or Automatic. Exchanges are 1-to-1 trades of rCredits for US Dollars. VPayments are virtual 1-to-1 trades with a company, employee, or supplier.'), $optDefaults, $opts);
+  $opts2Desc = TRUE ? '' : t('Agent is who did the transaction on your behalf. Channel ("Via") is Web, Smartphone, SMS, or Automatic. Exchanges are 1-to-1 trades of rCredits for US Dollars. VPayments are virtual 1-to-1 trades with a company, employee, or supplier.');
+  $opts2 = boxField('opts', t('Show:'), $opts2Desc, $optDefaults, $opts);
   
   $divider = item('<hr>');
   $period = formField('select', t('For the past:'), '', dft($period), $txDays);
@@ -128,7 +137,7 @@ function formTxs($form, &$sta, $args = '') {
   $downloadDates = submit(t(' Download'));
   $title = "";
   $title = item(t('rCredits Transaction History'));
-  $subtext = item(t('The "r%" column tells what percentage of the total transaction amount is rCredits. Hover over that figure to see the breakdown.'));
+//  $subtext = item(t('The "r%" column tells what percentage of the total transaction amount is rCredits. Hover over that figure to see the breakdown.'));
 
   $form = compact(u\ray('title subtext currency states opts2 divider period submitPeriod downloadPeriod starting ending submitDates downloadDates summary transactions'));
   if (@$downloaded) js("window.open(\"$url0&download=1\")", 'inline', 'footer');
@@ -150,8 +159,11 @@ function setupDownload($starting, $ending) {
  * Return classes and headers for the appropriate set of fields.
  */
 function txFields($report, $download, $agents, $channels, $boxes) {
+  global $agtViaBox;
+  $headHelp = t('Transaction number|Date transaction was initiated or completed|Payer name|Payee name|Transaction amount|What percentage of the amount transferred was rCredits (hover over a percentage to see the breakdown)|rCredits amount|US Dollars amount|Transaction number of internal US Dollar transfer|Current state of transaction -- check mark means completed, pending means awaiting approval by payer.|What is the purpose of the transaction (usually the item or service purchased)|How much incentive rewards were awarded for this transaction|Who did you pay or receive from|Amounts you spent|Amounts you received|Click on a symbol to approve, deny, or reverse a transaction or to edit the purpose|The net change in account balance|') . $agtViaBox;
+  $classes = 'tid date from to amount rpct r usd usdTid state purpose reward';
+  $headHelp = array_combine(u\ray($classes . ' name fromyou toyou buttons net agent channel box'), u\ray($headHelp));
   if ($report) { // community transaction history
-    $classes = 'tid date from to amount rpct r usd usdTid state purpose reward';
     $headers = t('#,Date,From,To,Total,r%,rCredits,USD,USD#,Status,Purpose,Rewards');
   } else { // individual account transaction history
     $classes = 'tid date name fromyou toyou rpct r usd usdTid state buttons purpose reward net';
@@ -159,7 +171,7 @@ function txFields($report, $download, $agents, $channels, $boxes) {
   }
 
   $header = array_combine(u\ray($classes), u\ray($headers)); // make splices and additions easy and clear
-
+  
   if (@$agents) $header['agent'] = t('Agent'); // (not applicable for reports)
   if (@$channels) $header['channel'] = t('Via');
   if (@$boxes) $header['box'] = t('Box');
@@ -171,6 +183,8 @@ function txFields($report, $download, $agents, $channels, $boxes) {
     u\splice($downloadHeader, 'date', 0, compact('txid', 'created')); // insert txid and creation date
   }
 
+  foreach ($header as $key => $value) $header[$key] = popHelp($value, $headHelp[$key]);
+  
   return array(array_keys($header), array_values($header), @array_values($downloadHeader));
 }
 
@@ -222,10 +236,11 @@ function doRow($tx, $report, $csv, $classes, $agents, $channels, $boxes, $curren
     txNeatAmounts($amount, $reward, $is_reward);
     list ($toYou, $fromYou) = $toMe ? array($amount, R_NONE) : array(R_NONE, $amount);
     if ($total + 0 == 0) $toYou = $fromYou = "<span class=\"virtual\">$r</span>"; // make virtual payments clear
+    if ($tx_type == TX_REFUND) list ($reward, $toYou) = array($toYou, R_NONE);
     $button1 = (!$byMe and okableState($tx_state)) ? button('OK', "$url&do=ok", txAct('ok', $tx_state, $toMe, $byMe)) : '';
     $button2 = ((!$is_reward or $mya->can(B_CTTY_ADMIN)) and !@$data['undoneBy']) ? button(' X ', "$url&do=no", txAct('no', $tx_state, $toMe, $byMe)) : '';
     $button3 = ($mya->can(@$tx_taking ? B_SELL : B_BUY) and !$is_reward) ? "<a href='$url&do=edit' title='Edit Purpose'><img src='$rUrl/images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
-    $buttons = $banking ? '' : "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
+    $buttons = ($banking or $toYou == $fromYou) ? '' : "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
     $row = array($tid, strftime('%d-%b', $date), @$tx_name, $fromYou, $toYou, $rpct, $amount, $usd, $tx_usdXid, $state, $buttons, $tx_purpose, $reward, $net);
   }
 
@@ -239,7 +254,7 @@ function doRow($tx, $report, $csv, $classes, $agents, $channels, $boxes, $curren
 }
 
 function finishCsvRow($csv, $row, $tx, $amount, $r, $usd, $toMe, &$tot) {
-  extract(u\just('xid created completed state', $tx));
+  extract(u\just('xid type created completed state', $tx));
 
   $txid = u\n2a($xid, 4); // world-unique transaction id (later add region code, maybe like NEW-AAAB)
   $created = strftime('%Y-%m-%d', $created);
@@ -251,9 +266,10 @@ function finishCsvRow($csv, $row, $tx, $amount, $r, $usd, $toMe, &$tot) {
   $state = $txStates[$state - TX_STATE0]; // transaction state (human-readable)
 
   if ($amount == R_NONE) {
-    $r = $usd = ''; // showing incentives (other than rebate/bonus) as rewards
+    $r = ''; // showing refunds and other incentives (other than rebate/bonus) as rewards
   } elseif (!$toMe) {$r = '-' . $r; $usd = '-' . $usd;}
   foreach (u\ray('date state r usd') as $key) $row[$key] = $$key; // don't compact()+$row (maintain order!)
+///  if ($xid == 37) debug(compact('row','amount','r','usd','toMe','tot'));
   
   foreach ($row as $key => $value) $row[$key] = $value == R_NONE ? '' : strip_tags($value);
   if ($row['fromyou'] == $row['toyou']) $row['fromyou'] = $row['toyou'] = 0; // don't report gross on virtual pay
@@ -343,7 +359,7 @@ function txDates($txDays, $period, $starting = '', $ending = '') {
 
 function txNeatAmounts(&$amount, &$reward, $is_reward) {
   $reward = $reward ? number_format($reward, 2) : R_NONE;
-  if ($is_reward) list ($amount, $reward) = array(R_NONE, $amount); // show inflation, grants, fines, and signup bonus as rewards
+  if ($is_reward) list ($amount, $reward) = array(R_NONE, $amount); // show refunds, inflation, grants, fines, and signup bonus as rewards
 }
 function txColoredState($state, $sayPending = TRUE) {
   $states = array(TX_DONE => '&#10004;', TX_PENDING => 'ok?', TX_DENIED => 'denied', TX_DISPUTED => 'disputed');
@@ -442,7 +458,7 @@ function txSummary($starting, $ending, $currency) {
   extract($nowInfo = (array) be\creditInfo(array('asof' => $ending)), EXTR_PREFIX_ALL, 'n');
   extract($pendingInfo = (array) be\creditInfo(u\assoc('pending asof', TRUE, $ending)), EXTR_PREFIX_ALL, 'p');
   extract($oldInfo = (array) be\creditInfo(array('asof' => $previous_ending)), EXTR_PREFIX_ALL, 'o');
-//  debug(compact('nowInfo','oldInfo'));
+///  debug(compact('nowInfo','oldInfo'));
 
   $dif = array();
   foreach (u\ray('inProper out rInProper rOut usdIn usdOut rewards bank fees') as $key) $dif[$key] = $nowInfo[$key] - $oldInfo[$key];
@@ -469,16 +485,21 @@ function txSummary($starting, $ending, $currency) {
   $summary_title = "<div id='txsum-title'>SUMMARY</div>";
   
   $classes = u\prefixValues('txsum-', u\ray('one tosign fromyou fromsign toyou rewardssign rewards sharesign share balancesign balance'));
+  $heads = u\ray(t('Starting balance,,From Bank,,From You,,To You,,Fees,,Rewards,,To CGF,,Ending balance'));
+  $headHelp = u\ray(t('Your account balance at the start of this time period||How much was transferred from your bank account to your rCredits account||How much you spent||How much you received||Transaction fees (these fees are always reimbursed with an offsetting reward)||How incentive rewards did you receive||Amount of rewards you committed to share with Common Good Finance||Your account balance at the end of this time period'));
+  foreach ($heads as $key => $value) if ($value) $heads[$key] = popHelp($value, $headHelp[$key]);
+  $PENDING = popHelp(t('PENDING'), t('Pending transfers, transaction requests, and commitments as of ') . $ending);
+  
   $rows = array(
     array('id' => 'txsum-dates', 'data' => u\ray("$starting,,,,,,,,,,,,,,$ending")),
-    array('id' => 'txsum-headers', 'data' => u\ray('Starting balance,,From Bank,,From You,,To You,,Fees,,Rewards,,To CGF,,Ending balance')),
+    array('id' => 'txsum-headers', 'data' => $heads),
     array(
       'id' => 'txsum-now', 
       'data' => u\ray("$old | + | $bank | - | $out | + | $in | - | $fees | + | $rewards |  |  | = | $new"),
     ),
     array(
       'id' => 'txsum-pending',
-      'data' => u\ray("<b>PENDING:</b> | + | $p_bank | - | $p_out | + | $p_inProper | - | $p_fees | + | $p_rewards | - | $p_committed | = | $p_balance"),
+      'data' => u\ray("<b>$PENDING:</b> | + | $p_bank | - | $p_out | + | $p_inProper | - | $p_fees | + | $p_rewards | - | $p_committed | = | $p_balance"),
     ),
   );
   $attributes = array('id' => 'txsum');
@@ -496,3 +517,5 @@ function csv($csv, $a) {
   fputcsv($csv, $a);
   $testCSV[] = $a;
 }
+
+function popHelp($text, $help) {return "<span title=\"$help\">$text</span>";}

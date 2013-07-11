@@ -9,8 +9,9 @@ QUESTIONS:
   Exceptions: 
   . new feature failure, if new feature is disabled.
   . admin.inc can normally be uploaded without testing
+  . temporary debugging statements can be added if they are first tested on ws.rcredits.org
 - Find and delete all temporary debugging statements:
-//. Search for "debug(", "print_r(", and "die(" (all such lines should begin with // or (if keepers) /**/
+///. Search for "debug(", "print_r(", and "die(" (all such lines should begin with /// or (if keepers) /*/*/
   . Sometime write a macro to do the finding. 
 - Upload first to ws.rcredits.org and make sure SOMETHING works
 - Upload to new.rcredits.org and make sure SOMETHING works.
@@ -18,7 +19,6 @@ QUESTIONS:
 
 BEFORE FRIENDS LAUNCH:
 - automatic (suggested) ops
-- pilot test, including formI
 - * no signup on rcredits.org! (just mailing list), but have a link to "member signin'
 
 To do: (* = before launch ** = earlier)
@@ -27,19 +27,22 @@ To do: (* = before launch ** = earlier)
   r\dbQ('UPDATE r_txs SET type=IF(type=0,1, IF(type=1,0, IF(type=2,-1, IF(type=3,-2))))');
 *** change companies field "id" to "uid"
   r\dbQ('UPDATE r_companies SET uid=id');
+*** disable cron inflationAdjust until bank transfers are marked completed (appropriately)
+*** convert permission permissions
+  r\dbQ('UPDATE r_relations SET permission=5 WHERE permission=4');
 
-- disallow min between 0 and 20 (bank_min)?
-- handle lost USD deposits/withdrawals/fees
+- enforce $1,000 FINCEN limits
+- move SMS notices option to cell form (and add field to r_sms)
+- disallow min between 0 and 10 (bank_min)?
 - implement r\suggest (use this for merchant invoices too. user gets an email invoice from rCredits, they can just click on a link to accept or decline. merchant gets notified). test cron call to r\suggest (should just notify, for now)
-- give user a chance to name the machine (or change the name), saved in a cookie and in each tx (box)
 - include address in "new payment" digest notices to nonprofits OR just CGF (warn on pay screen if the former)
-- on MSIE, sign-in CSS has alignment problem, menu failure in MSIE 8, autocomplete looks funny
-- monthly inflation adjustment
+- on MSIE 8, sign-in CSS has alignment problem, menu failure in MSIE 8, autocomplete looks funny
+- give user a chance to name the machine (later)
 - make a way for user to see notices online
-- help messages hovering over practically ANYTHING on Transaction History screen (and elsewhere)
 - on Transaction History never mix pending with done? (low priority)
 - let user choose chunk size for automatic bank transfers? not yet. This should eventually be an optional parameter in an "options" field or maybe in "data" in the users table.
 - anti-scam: if USD goes out of an account twice in quick succession, set an "always check USD bal" flag (then don't allow a tx if Dwolla is down) and/or change coverFee() to afterUsdTx() and check both parties' real USD balances
+- combine channel and box on Transaction History?
 - warn people about their tax liability (ask what their tax year is? warn in December?)
 - trans history: default today on starting/ending and/or pass true defaults properly for period
 - * help for all pages
@@ -64,7 +67,7 @@ To do: (* = before launch ** = earlier)
 - recommend password practices
 - rethink nested usd transaction atoms (is the logic right?)
 - retest SMS
-- * in daily: alert staff if deposit / withdrawal not complete after 3 days
+- * in daily: alert staff if deposit / withdrawal not complete after 5 days
 - handle 10-day interval for deposits/withdrawals for non-checking accounts
 - Hilary's list
 - * don't allow clicking on links in emails (send to new.rcredits_org.com/whatever, which looks like rcredits.org but scolds the user for clicking on an email link, then offers a link to the real site (don't accept that one either). Exception: links that do not require sign-in (for example, suggested account changes and merchant charges -- merchant creates invoice. no shipping until you accept it -- like paypal).
@@ -107,8 +110,7 @@ To do: (* = before launch ** = earlier)
   . (when the member buys something online from a foreign site, from an unusual machine, ALWAYS require confirmation by email. Do not show settings except from home machine)
 - relation.class
 - Coding security policy: never show any personal identifying info (R_SECRET_FIELDS) in the HTML. EVER. For example, when verifying someone's identity, the staff member should ask for the last 4 of their ss#, type it in and press submit. The code does a compare and returns just yes or no. Even the member cannot ever see what they earlier typed in. We might want to have a similar but weaker restriction on phone numbers and addresses -- like maybe those are protected for personal accounts. When 1099 time comes, the reports go out electronically only (no preview, etc.) Even user 1 and other admins don't have access to PII. Also put in some safe-guards to prevent repetitive guessing.
-- beef up security - immediate:
-  . Show the agent's picture below Help/Menu (below accounts dropdown in fullscreen). 
+- beef up security 
 - I figure we can continue without interruption or pain for a few days whenever Dwolla goes down. The current plan is to give everyone (everyone who has been a member for at least a month) one month of reserve credit -- that is, however much rCredits they earned in the past 30 days plus however much rCredits they typically buy (with US Dollars) in 30 days. No fees for that loan as long as it is paid back within 30 days or within 3 days after Dwolla comes back up, whichever is later.
 
   It would be good to have an alternate way to trade rCredits for USD before that happens.

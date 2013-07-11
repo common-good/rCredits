@@ -1,3 +1,10 @@
+2013-07-11
+- scan permission
+- popup help throughout Transaction History page
+- handle lost USD deposits/withdrawals/fees
+- monthly inflation adjustment (and tests)
+- sharing rewards with CGF (and tests)
+
 2013-07-05
 - added optional box column to Transaction History
 - changed companies field "id" to "uid" (for consistency)

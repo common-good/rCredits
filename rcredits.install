@@ -42,7 +42,7 @@ function rcredits_install() {
     $cgf = new r\acct($info);
     \variable_set('cgf_uid', $cgf->id);
     
-    list ($main, $other, $permission) = array($cgf->id, $wws->id, PERM_MANAGE);
+    list ($main, $other, $permission) = array($cgf->id, $wws->id, r\perm(B_MANAGE));
     r\dbInsert('r_relations', compact(u\ray('main other permission'))); // wws can manage CGF
   }
 
@@ -123,7 +123,7 @@ function rcredits_schema() {
  * This is where tables structures get changed, rather than deleted and rebuilt.
  */
 function rcredits_schema_alter(&$schema) {
-//  $t = r\tableDefs($schema); debug($t['users']);
+///  $t = r\tableDefs($schema); debug($t['users']);
   $schema = r\tableDefs($schema);
 }
  

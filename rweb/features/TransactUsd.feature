@@ -82,5 +82,11 @@ Scenario: A member confirms request to pay another member
   | id   | r     | usd    | rewards |
   | ctty | -0.05 |      - |       - |
   | .ZZA |  0.05 |   0.00 |    0.05 |
-  | .ZZB |     0 | 299.75 |       0 |
+  | .ZZB |     0 | 300.00 |       0 |
   | .ZZC |     0 | 300.00 |       0 |
+  When cron runs ""
+  Then balances:
+  | id   | r     | usd    | rewards |
+  | ctty | -0.30 |      - |       - |
+  | .ZZB |  0.25 | 299.75 |    0.25 |
+  

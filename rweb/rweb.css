@@ -409,18 +409,11 @@ form.rweb  .form-no {color:red;}
 #txsum td {text-align:right !important; border:0px;}
 #txsum tr#txsum-dates {background:none; line-height:.9; border:0px;}
 #txsum tr#txsum-headers {font-weight:bold; background:none; border-bottom:1px solid black;}
+#rcreditswebformtxs #txsum th, #rcreditswebformtxs #txsum td {display:table-cell;}
 /*one tosign toyou fromsign fromyou rewardssign rewards balancesign balance*/
 /* .txsum-one, .txsum-balance {width:120px;} */
-.txsum-tosign, .txsum-fromsign, .txsum-rewardssign, .txsum-sharesign, .txsum-balancesign {min-width:1em;}
-.txsum-toyou, .txsum-fromyou, .txsum-share, .txsum-rewards {min-width:7em;}
-
-#rcreditswebformtxs #txsum th:first-child +th+th+th+th+th+th {display:table-cell;} /* col 7 */
-#rcreditswebformtxs #txsum th:first-child +th+th+th+th+th+th+th {display:table-cell;} /* col 8 */
-#rcreditswebformtxs #txsum th:first-child +th+th+th+th+th+th+th+th {display:table-cell;} /* col 9 */
-
-#rcreditswebformtxs #txsum td:first-child +td+td+td+td+td+td {display:table-cell;} /* col 7 */
-#rcreditswebformtxs #txsum td:first-child +td+td+td+td+td+td+td {display:table-cell;} /* col 8 */
-#rcreditswebformtxs #txsum td:first-child +td+td+td+td+td+td+td+td {display:table-cell;} /* col 9 */
+.txsum-banksign, .txsum-tosign, .txsum-fromsign, .txsum-feessign, .txsum-rewardssign, .txsum-sharesign, .txsum-balancesign {min-width:1em;}
+.txsum-bank, .txsum-toyou, .txsum-fromyou, .txsum-fees, .txsum-share, .txsum-rewards {min-width:7em;}
 
 /* Relation form */
 /*#rcreditswebformrelations #edit-subtext label {width:450px;}*/

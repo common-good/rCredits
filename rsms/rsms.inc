@@ -288,7 +288,7 @@ function infer_nonce($message) {
 function create($number, $uid, $status = SMS_PRIMARY) {
   u\EXPECT(compact(u\ray('number uid status')), 'string&notempty id int');
   $number = u\formatPhone($number, '+n');
-//  debug("creating SMS record for number $number, uid $uid");
+///  debug("creating SMS record for number $number, uid $uid");
   return r\dbInsert('r_sms', compact(u\ray('number uid status')));
 }
 

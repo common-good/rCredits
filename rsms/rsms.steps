@@ -167,7 +167,7 @@ function weSayToPhone($number, $message) {
  */
 function weSayToPhoneWithSubs($number, $message, $subs) {
   global $testOnly;
-//  debug(array(r\SMS\tt($message), r\SMS\tt($message, $subs[0]), $subs));
+///  debug(array(r\SMS\tt($message), r\SMS\tt($message, $subs[0]), $subs));
   return t\findMessage('out', compact('number'), RSMS_PREFIX . trim(r\SMS\tt($message, @$subs[0])));
 }
 
@@ -264,7 +264,7 @@ function phoneEmailIs($number, $email) {
  */
 function phoneHasR($number, $amount) {
   global $testOnly;
-//  debug(t\uidCredit(r\SMS\uid($number))->balance);
+///  debug(t\uidCredit(r\SMS\uid($number))->balance);
   if ($testOnly) return t\eq(t\uidCredit(r\SMS\uid($number))->balance, $amount);
   return FALSE;
 }
@@ -304,7 +304,7 @@ function phoneHasRIncludingRewardsOf($number, $bal, $rewards) {
  */
 function theCommunityHasR($amount) {
   global $testOnly;
-//  debug(t\uidCredit(r\serverUid())->balance);
+///  debug(t\uidCredit(r\serverUid())->balance);
   return t\eq(t\uidCredit(r\serverUid())->balance, $amount);
 }
 
@@ -394,8 +394,8 @@ function transactions($list) {
 function phoneConfirms($number, $request) {
   global $testOnly; if ($testOnly) return FALSE;
   phoneSays($number, $request);
-//  debug(be\todo($number));
-//  if (!$nonce = be\todo($number)->nonce) debug(print_r(compact('number','request','nonce'), 1));
+///  debug(be\todo($number));
+///  if (!$nonce = be\todo($number)->nonce) debug(print_r(compact('number','request','nonce'), 1));
   if (!$nonce = be\todo($number)->nonce) return FALSE; // (null kills phoneSays)
   phoneSays($number, $nonce);
   return TRUE;

@@ -161,7 +161,7 @@ function members($list) {return t\members($list);}
 /**
  * transactions: (ARG)
  *
- * in: Download Setup MAKE
+ * in: Download Setup BOTH
  *     Flow AMemberOverdraws TEST
  *     Flow AMemberOverdrawsAndDrawsFromBothRAndUSD TEST
  *     Gift AMemberContributes TEST
@@ -173,7 +173,7 @@ function members($list) {return t\members($list);}
  *     ScanCard Setup MAKE
  *     Summary Setup MAKE
  *     Transactions Setup MAKE
- *     Transactions AMemberLooksAtTotalAmountsInTransactionsForThePastYear MAKE
+ *     Transactions AMemberLooksAtTransactionsForThePastYear MAKE
  *     Transactions TransactionsWithOtherStatesShowUpProperly MAKE
  *     Transactions AMemberClicksOK MAKE
  *     Transactions AMemberConfirmsOK MAKE
@@ -223,7 +223,7 @@ function weSayWithSubs($type, $index, $subs) {
   }
   $msgs = \drupal_get_messages($type ?: NULL, FALSE);
   $result = (@$msgs[$type] and array_search($msg, $msgs[$type]) !== FALSE);
-//  if (!$result) debug(compact('msg','msgs')); // keep
+///  if (!$result) debug(compact('msg','msgs')); // keep
   t\output("EXPECT: $msg", 'output'); // this must come after array_search!
   return $result;
 }
@@ -283,7 +283,7 @@ function weShowWithSubs($page, $subs) {
     foreach (u\just(R_DATE_FIELDS, $subs) as $k => $v) if (is_numeric($v)) $subs[$k] = u\formatDate($v);
     $wanted = u\tt($page, $subs);
     t\output("<b>WANTED: </b>$wanted", 'screen');
-/**/ debug(compact('wanted','testConfirmation')); // redundant but very easy
+/*/*/ debug(compact('wanted','testConfirmation')); // redundant but very easy
     return ($wanted == $testConfirmation);
   }
   $form = strtr(t\strip(r\Web\showForm($page, @$subs['arg1'], @$subs['arg2'])), $subs);
@@ -322,8 +322,7 @@ function weShowWithSubs($page, $subs) {
  *     Summary AMemberClicksOnTheSummaryTab TEST
  *     Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage TEST
  *     Summary AForeignRTraderClicksOnTheSummaryTab TEST
- *     Transactions AMemberLooksAtRCreditsInTransactionsForThePastYear TEST
- *     Transactions AMemberLooksAtTotalAmountsInTransactionsForThePastYear TEST
+ *     Transactions AMemberLooksAtTransactionsForThePastYear TEST
  *     Transactions AMemberLooksAtTransactionsForThePastFewDays TEST
  *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
  *     Transactions AMemberClicksOK TEST
@@ -343,12 +342,10 @@ function weShowWith($title, $content = FALSE, $showDebugs = TRUE) {
  * we show (ARG) without: (ARG)
  *
  * in: Membership ACompanyAgentClicksOnTheMembershipLink TEST
- *     Membership AMemberDoesItAll TEST
  *     Relations MemberCompanyHasRelations TEST
  *     Relations ItsComplicated TEST
  *     Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage TEST
- *     Transactions AMemberLooksAtRCreditsInTransactionsForThePastYear TEST
- *     Transactions AMemberLooksAtTotalAmountsInTransactionsForThePastYear TEST
+ *     Transactions AMemberLooksAtTransactionsForThePastYear TEST
  *     Transactions AMemberLooksAtTransactionsForThePastFewDays TEST
  *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
  */
@@ -475,8 +472,7 @@ function usd($list) {return t\usd($list);}
  *     Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage MAKE
  *     Summary AForeignRTraderClicksOnTheSummaryTab MAKE
  *     Summary MembersAccountIsNotActive MAKE
- *     Transactions AMemberLooksAtRCreditsInTransactionsForThePastYear MAKE
- *     Transactions AMemberLooksAtTotalAmountsInTransactionsForThePastYear MAKE
+ *     Transactions AMemberLooksAtTransactionsForThePastYear MAKE
  *     Transactions AMemberLooksAtTransactionsForThePastFewDays MAKE
  *     Transactions TransactionsWithOtherStatesShowUpProperly MAKE
  *     Transactions AMemberClicksOK MAKE
@@ -595,15 +591,18 @@ function memberHasDoneStep($uid, $step) {
   if ($step == 'contribution') return r\dbInsert('r_gifts', u\assoc('uid amount', $uid, 123));
   if ($step == 'proxies') return r\dbQ('INSERT INTO r_proxies (person, proxy) VALUES (:uid, 2),(:uid, 3)', compact('uid'));
   
-  if ($step == 'dwolla') {
+  if ($step == 'security') {
     $secure = @$a->secure;
     $secure['auth'] = 'whatever';
-    return $a->update(compact('secure'));
-  }
-  if ($step == 'proof') {
+    $a->update(compact('secure'));
     list ($dob, $federalId) = array(REQUEST_TIME - DAY_SECS*365*40, 123456789);
     $a->update(compact('dob', 'federalId'));
     return file_put_contents(DRUPAL_ROOT . $a->auxFilename('proof', TRUE), 'whatever') and $a->dob and $a->federalId;
+  }
+  if ($step == 'connect') {
+    $secure = @$a->secure;
+    $secure['bankAccount'] = 'whatever';
+    return $a->update(compact('secure'));
   }
   if ($step == 'preferences') return $a->update(u\assoc('minimum', 0));
   if ($step == 'invitation') return r\dbInsert('r_invites', u\assoc('inviter email code', $uid, 'any@example.com', 'whatever'));
@@ -639,7 +638,7 @@ function memberSupplies($uid, $field, $value) {
 /**
  * member (ARG) has permission (ARG)
  *
- * in: Membership AMemberDoesItAll MAKE
+ * in: 
  */
 function memberHasPermission($uid, $permission) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -712,11 +711,11 @@ function weDownloadWith($name, $rows) {
   $headers = array_shift($testCSV2);
   if ($headers[0] == '#') $headers[0] = 't#';
   foreach ($testCSV2 as $csvRow) {
-// debug(compact('headers', 'csvRow'));
+/// debug(compact('headers', 'csvRow'));
     $csvRow = array_combine($headers, $csvRow); // add keys
     if (!$row = array_shift($rows)) return t\output('extra row in CSV: ' . print_r($csvRow, 1));
     foreach ($row as $key => $value) {
-//    debug(compact('row','csvRow'));
+///    debug(compact('row','csvRow'));
       if (strpos($value, '%') !== FALSE) $value = t\lastMinuteSubs($value);
       if (!t\eq($csvValue = $csvRow[$key], $value)) return t\output("key=$key csvValue<>value: $csvValue<>$value");
     }
@@ -736,7 +735,7 @@ function withDownloadColumns($columns) {
   if (!is_array($testCSV) or empty($testCSV)) return FALSE;
   $testCSV2 = $testCSV; // don't alter this (just in case)
   $headers = array_shift($testCSV2);
-// debug(compact('headers','testCSV','columns'));
+/// debug(compact('headers','testCSV','columns'));
   foreach ($columns as $one) if (array_search($one['column'], $headers) === FALSE) return FALSE;
   return TRUE;
 }
@@ -794,5 +793,6 @@ function memberCardCodeIs($id, $cardCode) {
  *
  * in: Download Setup MAKE
  *     Transactions Setup MAKE
+ *     TransactUsd AMemberConfirmsRequestToPayAnotherMember MAKE
  */
 function cronRuns($op) {return t\cronRuns($op);}

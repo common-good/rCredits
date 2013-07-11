@@ -316,7 +316,7 @@ class acct {
     $ray = (array) $this->account(R_MONEY_FIELDS);
     $ray['fees'] = 0;
     $avail = r\avail($type, $ray);
-// debug(compact('need','avail','get','ray'));
+/// debug(compact('need','avail','get','ray'));
     if ($avail >= $need) return 0; // plenty without drawing from other accounts
 
     if ($get) { // get what we need (should have already checked to see if it's there)
@@ -325,7 +325,7 @@ class acct {
       if ($avail < $need) $avail += $this->draw($type, $need - $avail, 'usd'); // the remainder in USD
       r\usd::commit($avail >= $need); // rollback if failure
     } else $avail += $this->canDraw($type); // just asking
-// debug(compact('need','avail','get'));
+/// debug(compact('need','avail','get'));
     return max(0, $need - $avail); // the shortfall
   }
   
@@ -532,7 +532,7 @@ EOF;
       ksort($perms); // easier to debug
       self::$perms[$id][$this->agentId] = $perms;
     }
-//  debug("id=$id agent=$this->agentId permissions=" . print_r(self::$perms[$id][$this->agentId], 1));
+///  debug("id=$id agent=$this->agentId permissions=" . print_r(self::$perms[$id][$this->agentId], 1));
     return self::$perms[$id][$this->agentId][$permission];
   }
 } // end of class
@@ -566,14 +566,14 @@ function IA($quid = '', $no_abbrev = TRUE) {
  * @return: the actual data (if RETRIEVING) or record key (if STORING)
  */
 function offsiteData($id, $data = NULL) {
-// debug(strlen(u\ezencrypt(serialize($orig = $data), R_WORD)));
+/// debug(strlen(u\ezencrypt(serialize($orig = $data), R_WORD)));
   if (isset($data)) $data = bin2hex(u\ezencrypt(serialize($data), R_WORD));
-// debug(strlen($data));
-// debug($data);
-// debug(u\ezencrypt(serialize($orig), R_WORD) == hex2bin($data));
-// debug(R_SECRET_URL . '/offsite.php');
+/// debug(strlen($data));
+/// debug($data);
+/// debug(u\ezencrypt(serialize($orig), R_WORD) == hex2bin($data));
+/// debug(R_SECRET_URL . '/offsite.php');
   $result = u\httpRequest(R_SECRET_URL . '/offsite.php', compact('id', 'data'));
-// debug($result);
+/// debug($result);
   return isset($data) ? $result : unserialize(u\ezdecrypt(hex2bin($result), R_WORD)); // hex2bin = pack('H*'
 }  
 

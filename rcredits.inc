@@ -145,26 +145,20 @@ define('B_DFT', 0 | 0); // set what bits when creating a new account
 define('B_ADMINABLE', 'personal company member ctty_admin closed'); // for cttyAdmin to set
 define('B_LIST', 'member ready ok bona bank person company u7 charge u9 virtu u11 payroll weekly monthly u15 sms electro secret u19 debt draws u22 u23 u24 u25 u26 u27 u28 cadmin admin closed');
 
-//define('R_EXCESS', 'IF(maximum<0, 0, GREATEST(0, r+usd-GREATEST(floor, maximum, minimum, rewards+committed)))'); // sql for excess in account (for redistribution or employee offloading -- NOT for company virtual payments)
 define('R_SHORTFALL', 'GREATEST(0, minimum-(r+usd))'); // sql for shortfall in account (to draw in)
-define('R_DEMAND', 'LEAST(u.usd, u.minimum-u.r)'); // definitely wants this many rCredits (sometimes negative)
-//define('R_CAPACITY', 'IF(u.maximum<0, u.usd, LEAST(u.usd, GREATEST(0, u.maximum-(u.r+u.usd))))'); // will buy
-define('R_CAPACITY', 'IF(flags&(1<<' . B_VIRTUAL . '), LEAST(u.usd, GREATEST(0, u.minimum-(u.r+u.usd))), u.usd)'); // will buy
+define('R_DEMAND', 'LEAST(u.usd, u.minimum-u.r)'); // definitely WANTS this many rCredits (sometimes negative)
+define('R_CAPACITY', 'u.usd'); // how much rCredits is each account WILLING and able to buy
 
-// for IS_OK etc. -- see u\SUBS()
+// for documentation of IS_OK etc. see u\SUBS()
 
-// Relationship permissions used in calls to acct::can() -- the first 5 are stored, negated, in r_relations
-define('PERM_READ', 1);
-define('PERM_SELL', 2);
-define('PERM_BUY', 3);
-define('PERM_MANAGE', 4);
-
+// Relationship permissions used in calls to acct::can() -- stored (less B_RELATED) in r_relations
 define('B_RELATED', 100); // has a relationship record
-define('B_READ', B_RELATED + PERM_READ);
-define('B_SELL', B_RELATED + PERM_SELL);
-define('B_BUY', B_RELATED + PERM_BUY);
-define('B_MANAGE', B_RELATED + PERM_MANAGE);
-$GLOBALS['share permissions'] = array(t('no access'), t('read transactions'), t('sell'), t('buy and sell'), t('manage account'));
+define('B_READ', 101); // can view Transaction History
+define('B_SCAN', 102); // can scan rCard (or view -- permissions are cummulative)
+define('B_SELL', 103); // can send invoices (or scan or view)
+define('B_BUY', 104); // can make purchase for the account (or sell or scan or view)
+define('B_MANAGE', 105); // can manage all aspects of the account
+$GLOBALS['share permissions'] = array(t('no access'), t('read transactions'), t('scan rCards'), t('send invoices'), t('buy and sell'), t('manage account'));
 
 // Other special pseudo-bit values for acct::can()
 define('B_MANAGING_CTTY', 120); // ctty_admin is actually managing a qualified account
@@ -328,7 +322,7 @@ function otherBalance($uid) {
  * @return string: the user's transaction number
  */
 function xid2tid($xid, $uid) {
-  $where =  ":uid IN (payer, payee) AND xid<:xid AND type>=0 AND state<>:TX_DELETED";
+  $where =  ":uid IN (payer, payee) AND xid<:xid AND type>=0";
   return r\dbLookup('COUNT(xid)', 'r_txs', $where, compact('uid', 'xid')) + 1;
 }
 
@@ -647,7 +641,7 @@ function membershipEvent($a, $status, $do = TRUE) {
   if ($do and ($bit === FALSE or !$a->hasBit($bit))) { // met the prerequisite and hasn't previously
     $DBTX = \db_transaction();
     if ($bit !== FALSE) $a->setBit($bit); // set the bit, if any
-    if ($status == 'bona' and $a->can(B_PERSONAL)) be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup'));
+    if ($status == 'bona' and $a->can(B_PERSONAL)) be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
     if ($status == 'ok') r\notify($a->id, 'welcome', array(), TRUE);
     unset($DBTX);
     
@@ -664,7 +658,7 @@ function membershipEvent($a, $status, $do = TRUE) {
  * @return TRUE if the funds were successfully transferred.
  */
 function acceptGift($info) {
-  extract(u\just('donid uid giftDate amount often', $info));
+  extract(u\just('donid uid giftDate amount often honor', $info));
   $a = r\acct($uid);
   if ($a->shortfall('buy', $amount)) return FALSE; // wait until tomorrow, if not enough
   if ($a->shortfall('buy', $amount, TRUE)) return FALSE; // actually draw from other accounts, as needed
@@ -672,15 +666,16 @@ function acceptGift($info) {
   $cgf = r\acct(\variable_get('cgf_uid'));
 
   r\usd::beginAtom();
-  list ($msg, $args, $confirm) = be\transfer('payment', $a, $cgf, $amount, 'contribution', TRUE);
-//  debug(compact('msg','args','confirm'));
+  $purpose = $honor == 'share' ? t('sharing rewards with CGF') : t('contribution');
+  list ($msg, $args, $confirm) = be\transfer('payment', $a, $cgf, $amount, $purpose, TRUE);
+///  debug(compact('msg','args','confirm'));
   if (@$args['success']) {
     $completed = REQUEST_TIME;
     r\dbUpdate('r_gifts', compact('donid', 'completed'), 'donid');
     if ($often != 1) {
       $months = $often == 'M' ? 1 : ($often == 'Q' ? 3 : 12);
       $giftDate = strtotime($months . ' months', $giftDate);
-      $share = -1; // mark this field irrelevant
+      $share = -1; // mark this field N/A (irrelevant)
       r\dbInsert('r_gifts', compact(u\ray('uid giftDate amount often share')));
     }
     r\usd::commit();
@@ -816,7 +811,7 @@ function dbLookup($fieldName, $table, $where = '1', $subs = array()) {
   u\EXPECT(compact(u\ray('fieldName table where subs')), 'notempty notempty notempty assoc');
   if (!strpos($where, ' LIMIT ')) $where .= ' LIMIT 1';
   $sql = "SELECT $fieldName FROM $table WHERE $where";
-  //if (strpos($table, 'nonce')) debug(compact('sql','subs'));
+///  if (strpos($table, 'nonce')) debug(compact('sql','subs'));
   $result = dbQ($sql, $subs);
   $fieldCount = strpos($fieldName, '(') ? 1 : substr_count($fieldName, ',') + 1; // function or array, not both
   $result = $fieldCount > 1 ? $result->fetchAssoc() : $result->fetchField();
@@ -1158,12 +1153,15 @@ function invite($email, $inviter, $code = '', $subject = '', $message = '') {
  * Go to the specified page
  * Accommodate testing, if that's what's happening.
  * Drupal urlencodes the parameters (= and &), so the target page will have to sort that out.
+ * @param string $page: page to go to
+ * @param string $err: error message to output, if any
  */
-function go($page) {
-  if (t\est()) return t\pageForm($page);
+function go($page, $err = '') {
+  if (t\est()) return t\pageForm($page, $err);
   foreach (u\ray('login register password reset') as $one) if (strpos($page, "user/$one") !== FALSE) {
     if (\drupal_session_started()) session_destroy();
   }
+  if ($err) r\Web\say($err, 'zot');
   \drupal_goto(substr($page, 0, 1) == '/' ? substr($page, 1) : $page);
 }
 
@@ -1267,10 +1265,10 @@ function nearlyMember($acct) {
  * @param int $ctty: the community account id for which to return totals (default ALL)
  */
 function totals($ctty = 'ALL', $calculate = FALSE) {
-  $totals = unserialize(\variable_get('totals'));
+  $totals = unserialize(\variable_get('r_totals'));
   if ($calculate) {
     $totals[$ctty] = getTotals($ctty == 'ALL' ? NULL : $ctty);
-    \variable_set('totals', serialize($totals));
+    \variable_set('r_totals', serialize($totals));
   }
   foreach ($totals[$ctty] as $key => $value) $fancy[$key] = u\fmtAmt(@$value + 0);
   $demand = $totals[$ctty]['demand'];
@@ -1294,7 +1292,7 @@ function totals($ctty = 'ALL', $calculate = FALSE) {
 function getTotals($ctty) {
   $subs = @$ctty ? compact('ctty') : array();
   $where = (@$ctty ? "community=:ctty" : 1) . ' AND uid>0 AND :IS_OK';
-  $fields = u\sumAs('r floor rewards usd minimum');
+  $fields = u\sumAs('r floor rewards usd minimum committed');
   //$max = 'GREATEST(0, maximum)';
   $sql = "SELECT $fields, SUM(:R_DEMAND) AS demand, SUM(:R_CAPACITY) AS capacity FROM users u WHERE $where";
   $result1 = r\dbQ($sql, $subs)->fetchAssoc();
@@ -1483,3 +1481,4 @@ function realCountry($country) {return dbLookup('name', 'r_countries', 'id=:coun
 function realState($state, $country = R_COUNTRY_ID) {return dbLookup($country == R_COUNTRY_ID ? 'abbreviation' : 'name', 'r_states', 'id=:state and country_id=:country', compact('state', 'country'));}
 function makeQueue($callback, $time = 15) {return array('worker callback' => "rCredits\\Cron\\$callback", 'time' => $time);}
 function queue($op, $item = array()) {\DrupalQueue::get('q')->createItem(compact('op') + $item);}
+function perm($bit) {return $bit - B_RELATED;}
