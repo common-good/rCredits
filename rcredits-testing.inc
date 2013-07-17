@@ -173,7 +173,7 @@ function makeRelation($info, $testOnly = FALSE) {
   u\EXPECT(!r\foreignServer(r\uidRegion($mainAcct->id)) or !r\foreignServer(r\uidRegion($agtAcct->id)));
   u\EXPECT($mainAcct->proSe() and $agtAcct->proSe());
   list ($main, $other) = array($mainAcct->id, $agtAcct->id);
-  $info['permission'] = @$permission ? u\consta('perm', $permission) : 0;
+  $info['permission'] = @$permission ? u\consta('b', $permission) - B_RELATED : 0;
   if (@$draw) $agtAcct->setBit(B_DRAWS);
   
   foreach (u\ray('id main agent') as $one) unset($info[$one]);
@@ -551,10 +551,11 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
   }
   $sta['values'] = $sta['input'] = $values + $dfts; // add to whatever status the form left off in
   if ($validate) foreach (t\postProcess($form, $page, 'validate') as $one) $one($form, $sta);
-  if (count($errors = t\getErrors()) > count($errorsBefore)) {
+//  if (count($errors = t\getErrors()) > count($errorsBefore)) {
     // NO! if (!empty($errors)) return FALSE;
 /// debug(compact(u\ray('id page values confirmed one errors')));
-  } else {
+//    return FALSE; // ? (added 7/17/2013)
+//  } else {
 //    $testConfirmation = @$sta['confirm'];
     $lastIdentifierTag = '</div identifiers>';
     if ($i = strpos($testConfirmation, $lastIdentifierTag)) $testConfirmation = substr($testConfirmation, $i + strlen($lastIdentifierTag));
@@ -565,7 +566,7 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
       t\logIn($id);
       r\Web\loginFollowup($sta, r\acct($id)->account());
     }
-  }
+//  }
 
   return TRUE;
 }

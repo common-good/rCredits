@@ -39,62 +39,62 @@ Setup:
 #  | "NEW.ZZA" | # member to member (pro se) |
 #  | "NEW.ZZA" | # agent to member           |
 
-Scenario: A member asks to charge another member
-  When member "NEW.ZZA" completes form "charge" with values:
-  | op     | who     | amount | goods | purpose |
-  | charge | Bea Two | 100    | 1     | labor   |
-  Then we show "confirm charge" with subs:
-  | amount | otherName |
-  | $100   | Bea Two   |
+#Scenario: A member asks to charge another member
+#  When member "NEW.ZZA" completes form "charge" with values:
+#  | op     | who     | amount | goods | purpose |
+#  | charge | Bea Two | 100    | 1     | labor   |
+#  Then we show "confirm charge" with subs:
+#  | amount | otherName |
+#  | $100   | Bea Two   |
   
 Scenario: A member confirms request to charge another member
   When member "NEW.ZZA" confirms form "charge" with values:
   | op     | who     | amount | goods | purpose |
   | charge | Bea Two | 100    | 1     | labor   |
-  Then we say "status": "report invoice" with subs:
-  | did     | otherName | amount | tid |
-  | charged | Bea Two   | $100   | 2   |
-  And we notice "new invoice" to member "NEW.ZZB" with subs:
-  | created | fullName | otherName | amount | payerPurpose |
-  | %today  | Bea Two  | Abe One   | $100   | labor        |
-  And transactions:
-  | xid      | created   | type      | state       | amount | from      | to      | purpose      | taking |
-  | NEW.AAAE | %today | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZB   | NEW.ZZA | labor        | 1      |
-  | NEW.AAAF | %today | %TX_REBATE   | %TX_PENDING |      5 | community | NEW.ZZB | rebate on #2 | 0      |
-  | NEW.AAAG | %today | %TX_BONUS    | %TX_PENDING |     10 | community | NEW.ZZA | bonus on #2  | 0      |
-  And balances:
-  | id        | balance |
-  | community |    -750 |
-  | NEW.ZZA   |     250 |
-  | NEW.ZZB   |     250 |
-  | NEW.ZZC   |     250 |
-
-Scenario: A member asks to pay another member
-  When member "NEW.ZZA" completes form "pay" with values:
-  | op  | who     | amount | goods | purpose |
-  | pay | Bea Two | 100    | 1     | labor   |
-  Then we show "confirm payment" with subs:
-  | amount | otherName |
-  | $100   | Bea Two   |
-  
-Scenario: A member confirms request to pay another member
-  When member "NEW.ZZA" confirms form "pay" with values:
-  | op  | who     | amount | goods | purpose |
-  | pay | Bea Two | 100    | 1     | labor   |
-  Then we say "status": "report transaction" with subs:
-  | did    | otherName | amount | tid | rewardType | rewardAmount |
-  | paid   | Bea Two   | $100   | 2   | rebate     | $5           |
-  And we notice "new payment|reward other" to member "NEW.ZZB" with subs:
-  | created | fullName | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |
-  | %today  | Bea Two  | Abe One   | $100   | labor        | bonus           |               $10 |
-  And transactions:
-  | xid      | created   | type      | state    | amount | from      | to      | purpose      | taking |
-  | NEW.AAAE | %today | %TX_TRANSFER | %TX_DONE |    100 | NEW.ZZA   | NEW.ZZB | labor        | 0      |
-  | NEW.AAAF | %today | %TX_REBATE   | %TX_DONE |      5 | community | NEW.ZZA | rebate on #2 | 0      |
-  | NEW.AAAG | %today | %TX_BONUS    | %TX_DONE |     10 | community | NEW.ZZB | bonus on #2  | 0      |
-  And balances:
-  | id        | balance |
-  | community |    -765 |
-  | NEW.ZZA   |     155 |
-  | NEW.ZZB   |     360 |
-  | NEW.ZZC   |     250 |
+#  Then we say "status": "report invoice" with subs:
+#  | did     | otherName | amount | tid |
+#  | charged | Bea Two   | $100   | 2   |
+#  And we notice "new invoice" to member "NEW.ZZB" with subs:
+#  | created | fullName | otherName | amount | payerPurpose |
+#  | %today  | Bea Two  | Abe One   | $100   | labor        |
+#  And transactions:
+#  | xid      | created   | type      | state       | amount | from      | to      | purpose      | taking |
+#  | NEW.AAAE | %today | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZB   | NEW.ZZA | labor        | 1      |
+#  | NEW.AAAF | %today | %TX_REBATE   | %TX_PENDING |      5 | community | NEW.ZZB | rebate on #2 | 0      |
+#  | NEW.AAAG | %today | %TX_BONUS    | %TX_PENDING |     10 | community | NEW.ZZA | bonus on #2  | 0      |
+#  And balances:
+#  | id        | balance |
+#  | community |    -750 |
+#  | NEW.ZZA   |     250 |
+#  | NEW.ZZB   |     250 |
+#  | NEW.ZZC   |     250 |
+#
+#Scenario: A member asks to pay another member
+#  When member "NEW.ZZA" completes form "pay" with values:
+#  | op  | who     | amount | goods | purpose |
+#  | pay | Bea Two | 100    | 1     | labor   |
+#  Then we show "confirm payment" with subs:
+#  | amount | otherName |
+#  | $100   | Bea Two   |
+#  
+#Scenario: A member confirms request to pay another member
+#  When member "NEW.ZZA" confirms form "pay" with values:
+#  | op  | who     | amount | goods | purpose |
+#  | pay | Bea Two | 100    | 1     | labor   |
+#  Then we say "status": "report transaction" with subs:
+#  | did    | otherName | amount | tid | rewardType | rewardAmount |
+#  | paid   | Bea Two   | $100   | 2   | rebate     | $5           |
+#  And we notice "new payment|reward other" to member "NEW.ZZB" with subs:
+#  | created | fullName | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |
+#  | %today  | Bea Two  | Abe One   | $100   | labor        | bonus           |               $10 |
+#  And transactions:
+#  | xid      | created   | type      | state    | amount | from      | to      | purpose      | taking |
+#  | NEW.AAAE | %today | %TX_TRANSFER | %TX_DONE |    100 | NEW.ZZA   | NEW.ZZB | labor        | 0      |
+#  | NEW.AAAF | %today | %TX_REBATE   | %TX_DONE |      5 | community | NEW.ZZA | rebate on #2 | 0      |
+#  | NEW.AAAG | %today | %TX_BONUS    | %TX_DONE |     10 | community | NEW.ZZB | bonus on #2  | 0      |
+#  And balances:
+#  | id        | balance |
+#  | community |    -765 |
+#  | NEW.ZZA   |     155 |
+#  | NEW.ZZB   |     360 |
+#  | NEW.ZZC   |     250 |

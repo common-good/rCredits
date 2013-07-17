@@ -17,6 +17,10 @@ QUESTIONS:
 - Upload to new.rcredits.org and make sure SOMETHING works.
 ***
 
+SOMETIME SOON RETROFIT:
+The following accounts need to have Dwolla switched to us ("integrated into the rCredits backend"):
+Alden, Barbara, cgf, diane, fccoop, gary, jennifer, john E, julia, nancy, peter, snow's, pint, wm, jgr, becky, adam
+
 BEFORE FRIENDS LAUNCH:
 - automatic (suggested) ops
 - * no signup on rcredits.org! (just mailing list), but have a link to "member signin'
@@ -31,6 +35,9 @@ To do: (* = before launch ** = earlier)
 *** convert permission permissions
   r\dbQ('UPDATE r_relations SET permission=5 WHERE permission=4');
 
+- make sure recovery from lost usdtxs includes recovery from any fees
+- monthly PDF statement (printable)
+- record life calling (at least by email)
 - enforce $1,000 FINCEN limits
 - move SMS notices option to cell form (and add field to r_sms)
 - disallow min between 0 and 10 (bank_min)?

@@ -244,7 +244,7 @@ function doRow($tx, $report, $csv, $classes, $agents, $channels, $boxes, $curren
     $row = array($tid, strftime('%d-%b', $date), @$tx_name, $fromYou, $toYou, $rpct, $amount, $usd, $tx_usdXid, $state, $buttons, $tx_purpose, $reward, $net);
   }
 
-  if (@$agents) $row[] = ($agent == $myid or $agent < 0) ? R_NONE 
+  if (@$agents) $row[] = (!@$agent or $agent == $myid or $agent < 0) ? R_NONE 
   : ($csv ? r\quid($agent) : str_replace(R_SERVER_ID . R_MEMBER_MARK, R_MEMBER_MARK, r\quid($agent)));
   // might optionally show both agents for reports someday
   if (@$channels) $row[] = $txChannels[$tx_channel];

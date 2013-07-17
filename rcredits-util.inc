@@ -130,12 +130,41 @@ function fmtAmt($amount, $options = 's$') {
   $options = ' ' . $options; // simplify strpos check
   $amount = cleanAmount(nn($amount, 0));
 //  if (!is_numeric($amount)) $amount = -999999;
+  u\EXPECT(compact('amount'), 'float', 'bad num');
   $amount = number_format($amount, 2);
   if (strpos($options, '$')) $amount = '$' . $amount;
   if (strpos($options, 's')) $amount = str_replace('.00', '', $amount);
   if (strpos($options, 'r')) $amount .= 'r';
   if (strpos($options, 'u')) $amount .= 'us';
   return $amount;
+}
+
+/**
+ * Return HTML for a visual calculator.
+ */
+function calculator() {
+  $s = <<<EOF
+<div id="calc">
+<div id="calc_top"><input type="text" name="amount" id="calc_amount" /></div>
+<div id="calc_bottom">
+
+EOF;
+  $symbols = '123|456|789|c0+';
+  $field = 'this.form.amount.value';
+  for ($i = 0; $i < strlen($symbols); $i++) {
+    $c = substr($symbols, $i, 1);
+    $formula = "$field+=$c;"; // default to adding a digit
+    if ($c == '|') {
+      $s .= "<br>\n";
+      continue;
+    } elseif ($c == 'c') {
+      $formula = "$field='';";
+    } elseif ($c == '+') {
+      $formula = "if($field!='') $field=eval($field+'/100').toFixed(2)+' + ';";
+    }
+    $s .= "<input type=\"button\" value=\"$c\" onclick=\"$formula\" />\n";
+  }
+  return $s . '</div></div>';
 }
 
 /**

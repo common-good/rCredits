@@ -106,7 +106,7 @@ define('R_PUBLICLY_TRADED', 8);
 
 // Permissions, options, and flags (flags field in account record)
 // If we need more bits, create a flags2 field and make the B_ defs negative for acct::hasBit and setBit
-define('B_MEMBER', 0); // signed the membership agreement, etc.
+define('B_MEMBER', 0); // signed the membership agreement, etc. (enough to get a card and vote)
 define('B_READY', 1); // completed all steps
 define('B_OK', 2); // approved to use rCredits for real (set by admin when READY)
 define('B_BONA', 3); // got signup bonus (good circles - somehow got more r+usd than the initial gift)
@@ -666,7 +666,7 @@ function acceptGift($info) {
   $cgf = r\acct(\variable_get('cgf_uid'));
 
   r\usd::beginAtom();
-  $purpose = $honor == 'share' ? t('sharing rewards with CGF') : t('contribution');
+  $purpose = @$honor == 'share' ? t('sharing rewards with CGF') : t('contribution');
   list ($msg, $args, $confirm) = be\transfer('payment', $a, $cgf, $amount, $purpose, TRUE);
 ///  debug(compact('msg','args','confirm'));
   if (@$args['success']) {

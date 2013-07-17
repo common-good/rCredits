@@ -53,8 +53,6 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     Gift AMemberContributesPartlyInUSD MAKE
  *     Gift AMemberContributesWithInsufficientFunds MAKE
  *     Relations AMemberAddsARelation MAKE
- *     TransactR AMemberAsksToChargeAnotherMember MAKE
- *     TransactR AMemberAsksToPayAnotherMember MAKE
  *     TransactUsd AMemberAsksToChargeAnotherMember MAKE
  *     TransactUsd AMemberAsksToPayAnotherMember MAKE
  */
@@ -90,7 +88,6 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     Transactions AMemberConfirmsOKForADisputedTransaction MAKE
  *     Transactions AMemberConfirmsNO MAKE
  *     TransactR AMemberConfirmsRequestToChargeAnotherMember MAKE
- *     TransactR AMemberConfirmsRequestToPayAnotherMember MAKE
  *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember MAKE
  *     TransactUsd AMemberConfirmsRequestToPayAnotherMember MAKE
  */
@@ -181,8 +178,6 @@ function members($list) {return t\members($list);}
  *     Transactions AMemberClicksNO MAKE
  *     Transactions AMemberConfirmsNO MAKE
  *     TransactR Setup MAKE
- *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
- *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
  *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
  *     TransactUsd AMemberConfirmsRequestToPayAnotherMember TEST
  */
@@ -204,8 +199,6 @@ function transactions($list) {return t\transactions($list);}
  *     Signup AMemberRegistersWithABadCompany TEST
  *     Signup AMemberRegistersWithABadCompanyPhone TEST
  *     Transactions AMemberConfirmsOK TEST
- *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
- *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
  *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
  *     TransactUsd AMemberConfirmsRequestToPayAnotherMember TEST
  */
@@ -268,8 +261,6 @@ function weTellStaffWithSubs($topic, $subs) {return t\weTellStaff($topic, $subs)
  *
  * in: Transactions AMemberClicksOK TEST
  *     Transactions AMemberClicksNO TEST
- *     TransactR AMemberAsksToChargeAnotherMember TEST
- *     TransactR AMemberAsksToPayAnotherMember TEST
  *     TransactUsd AMemberAsksToChargeAnotherMember TEST
  *     TransactUsd AMemberAsksToPayAnotherMember TEST
  */
@@ -342,6 +333,7 @@ function weShowWith($title, $content = FALSE, $showDebugs = TRUE) {
  * we show (ARG) without: (ARG)
  *
  * in: Membership ACompanyAgentClicksOnTheMembershipLink TEST
+ *     Membership AMemberDoesItAll TEST
  *     Relations MemberCompanyHasRelations TEST
  *     Relations ItsComplicated TEST
  *     Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage TEST
@@ -422,8 +414,6 @@ function relations($relations) {return t\relations($relations);}
  *     Transactions AMemberClicksNO MAKE
  *     Transactions AMemberConfirmsNO MAKE
  *     TransactR Setup TEST
- *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
- *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
  *     TransactUsd AMemberAsksToChargeAnotherMember TEST
  *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
  *     TransactUsd AMemberConfirmsRequestToPayAnotherMember TEST
@@ -638,7 +628,7 @@ function memberSupplies($uid, $field, $value) {
 /**
  * member (ARG) has permission (ARG)
  *
- * in: 
+ * in: Membership AMemberDoesItAll MAKE
  */
 function memberHasPermission($uid, $permission) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -680,8 +670,6 @@ function memberOnetimePasswordIs($id, $pass) {
  *
  * in: Gift AMemberContributes TEST
  *     Transactions AMemberConfirmsOK TEST
- *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
- *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
  *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
  *     TransactUsd AMemberConfirmsRequestToPayAnotherMember TEST
  */

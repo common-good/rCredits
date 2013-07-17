@@ -85,11 +85,11 @@ class rcronVirtualPayments extends DrupalWebTestCase {
     . '\\| .ZZA  |  .ZZC | %chunk |'
     . '\\| .ZZB  |  .ZZC | %chunk |"');
     And__('we notice "virtual payments offered" to member ".ZZC" with subs: "DATA'
-    . '\\| offers | total       | whom      |'
-    . '\\|      1 | $%(%chunk)r | suppliers |"');
+    . '\\| offers | total        | whom      |'
+    . '\\|      1 | $%(%chunk) r | suppliers |"');
     And__('we notice "virtual payment received" to member ".ZZB" with subs: "DATA'
-    . '\\| amount      | fullName   | bonus          |'
-    . '\\| $%(%chunk)r | Corner Pub | $%(.10*%chunk) |"');
+    . '\\| amount       | fullName   | bonus          |'
+    . '\\| $%(%chunk) r | Corner Pub | $%(.10*%chunk) |"');
   }
 
   // Scenario: a member company pays employees virtually
@@ -119,11 +119,11 @@ class rcronVirtualPayments extends DrupalWebTestCase {
     . '\\| .ZZD  |  .ZZC | %(%chunk + 1) |'
     . '\\| .ZZA  |  .ZZC | %(%chunk - 1) |"');
     And__('we notice "virtual payments offered" to member ".ZZC" with subs: "DATA'
-    . '\\| offers | total        | whom      |'
-    . '\\|      1 | $%(%chunk4)r | employees |"');
+    . '\\| offers | total         | whom      |'
+    . '\\|      1 | $%(%chunk4) r | employees |"');
     And__('we notice "virtual payment received" to member ".ZZA" with subs: "DATA'
-    . '\\| amount       | fullName   | bonus           |'
-    . '\\| $%(%chunk4)r | Corner Pub | $%(.10*%chunk4) |"');
+    . '\\| amount        | fullName   | bonus           |'
+    . '\\| $%(%chunk4) r | Corner Pub | $%(.10*%chunk4) |"');
   }
 
 }

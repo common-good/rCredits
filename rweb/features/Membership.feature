@@ -74,17 +74,17 @@ Scenario: A member does it all
   | pending approval |
   And with done "123456"
 
-#  When member ".ZZA" has done step "preferences"
-#  And member ".ZZA" visits page "membership"
-#  Then we show "Your Account Setup Is Complete"
-#  And with done ""
-#  And we tell staff "event" with subs:
-#  | fullName | quid | status |
-#  | Abe One  | .ZZA | ready  |
-#
-#  When member ".ZZA" has permission "ok"
-#  And member ".ZZA" visits page "membership"
-#  Then we show "Your account is Activated" without:
-#  | note             |
-#  | pending approval |
+  When member ".ZZA" has done step "preferences"
+  And member ".ZZA" visits page "membership"
+  Then we show "Your Account Setup Is Complete"
+  And with done ""
+  And we tell staff "event" with subs:
+  | fullName | quid | status |
+  | Abe One  | .ZZA | ready  |
+
+  When member ".ZZA" has permission "ok"
+  And member ".ZZA" visits page "membership"
+  Then we show "Your account is Activated" without:
+  | note             |
+  | pending approval |
 

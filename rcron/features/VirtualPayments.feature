@@ -40,11 +40,11 @@ Scenario: a member company pays suppliers virtually
   | .ZZA  |  .ZZC | %chunk |
   | .ZZB  |  .ZZC | %chunk |
   And we notice "virtual payments offered" to member ".ZZC" with subs:
-  | offers | total       | whom      |
-  |      1 | $%(%chunk)r | suppliers |
+  | offers | total        | whom      |
+  |      1 | $%(%chunk) r | suppliers |
   And we notice "virtual payment received" to member ".ZZB" with subs:
-  | amount      | fullName   | bonus          |
-  | $%(%chunk)r | Corner Pub | $%(.10*%chunk) |
+  | amount       | fullName   | bonus          |
+  | $%(%chunk) r | Corner Pub | $%(.10*%chunk) |
 
 Scenario: a member company pays employees virtually
   Given balances:
@@ -72,8 +72,8 @@ Scenario: a member company pays employees virtually
   | .ZZD  |  .ZZC | %(%chunk + 1) |
   | .ZZA  |  .ZZC | %(%chunk - 1) |
   And we notice "virtual payments offered" to member ".ZZC" with subs:
-  | offers | total        | whom      |
-  |      1 | $%(%chunk4)r | employees |
+  | offers | total         | whom      |
+  |      1 | $%(%chunk4) r | employees |
   And we notice "virtual payment received" to member ".ZZA" with subs:
-  | amount       | fullName   | bonus           |
-  | $%(%chunk4)r | Corner Pub | $%(.10*%chunk4) |
+  | amount        | fullName   | bonus           |
+  | $%(%chunk4) r | Corner Pub | $%(.10*%chunk4) |

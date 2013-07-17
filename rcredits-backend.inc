@@ -815,8 +815,10 @@ function accountChoices() {
   
   if (!$mya = r\acct()) return FALSE;
   $result = array($aid = $mya->agentId);
-  if ($mya->can(B_ADMIN)) $result += @r\dbQ('SELECT uid FROM users WHERE uid<:R_CTTY_UID0')->fetchAllKeyed(0, 0);
-  $result += @r\dbQ('SELECT main FROM r_relations WHERE other=:aid AND permission>0', compact('aid'))->fetchAllKeyed(0, 0);
+  if ($mya->can(B_ADMIN)) {
+    $result += @r\dbQ('SELECT uid FROM users WHERE uid<:R_CTTY_UID0')->fetchAllKeyed(0, 0);
+    $result += @r\dbQ('SELECT uid FROM users WHERE uid>1')->fetchAllKeyed(0, 0);
+  } else $result += @r\dbQ('SELECT main FROM r_relations WHERE other=:aid AND permission>0', compact('aid'))->fetchAllKeyed(0, 0);
   return array_values($result);
 }
 

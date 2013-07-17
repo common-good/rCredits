@@ -701,7 +701,7 @@ function formMembership($updating, &$sta = '', $code = '') {
     r\membershipEvent($mya, 'member', $nearly and $gotProxies);
 //    $gotIdProof = (@$mya->dob and @$mya->federalId and ($nonperson ?: $mya->hasAux('proof')));
     $gotSecurity = (($secure = @$mya->secure) and @$secure['auth'] and @$mya->dob and @$mya->federalId and ($nonperson ?: $mya->hasAux('proof')));
-    $gotUsdInfo = $nonperson ?: @$secure['bankAccount'];
+    $gotUsdInfo = $nonperson ?: (bool) @$secure['bankAccount'];
     $gotPreferences = !is_null($mya->minimum);
 //    $ready = ($nearly and $gotProxies and $gotUsdInfo and $gotIdProof and $gotPreferences);
     $ready = ($nearly and $gotProxies and $gotSecurity and $gotUsdInfo and $gotPreferences);
@@ -1050,10 +1050,10 @@ function formSummary($form, &$sta) {
   if ($mya->can(B_CTTY_ADMIN) and !$mya->proSe()) {
 // FAILS on mobile    $idLink = 'id="idcard"'; // use jQuery to create popup (see inc/misc.js)
     $address .= '<br>' . u\formatPhone($mya->phone) . " ($mya->faxetc)";
-    $idLink = 'href="print-rcard" target="_blank"';
-    $card = $mya->can(B_PERSONAL) ? "<a $idLink>" . t('Print ID Card') . '</a>' : '';
-    if ($mya->can(B_ADMIN)) $card .= ' [<a href="http://localhost/devcore/rcredits/test?module=rcredits/rweb&feature=Signup&scene=&restart=1">run current test</a>]'; // DEBOG (keep)
-  } else $card = '';
+//    $idLink = 'href="print-rcard" target="_blank"';
+//    $card = $mya->can(B_PERSONAL) ? "<a $idLink>" . t('Print ID Card') . '</a>' : '';
+//    if ($mya->can(B_ADMIN)) $card = ' [<a href="http://localhost/devcore/rcredits/test?module=rcredits/rweb&feature=Signup&scene=&restart=1">run current test</a>]'; // DEBOG (keep)
+  } //else $card = '';
 
   $title = item(t('Account Summary'));
 //  'subtext = basic_account_info();
@@ -1069,7 +1069,7 @@ function formSummary($form, &$sta) {
 //    $acctType = formField('item', t('Account type:'), '', $acctType);
 
     $extra = r\agent()->can(B_ADMIN) ? " id#$mya->id" : '';
-    $accountId = formField('item', t('ID:'), $card, ($mya->mainQid ?: 'N/A') . ' (' . $acctType . ")$extra");
+    $accountId = formField('item', t('ID:'), '', ($mya->mainQid ?: 'N/A') . ' (' . $acctType . ")$extra");
     if ($mya->can(B_MEMBER) and $mya->can(B_PERSONAL)) $another = submit(t('Open Another Account'));
     $floor = formField('item', t('Credit floor:'), $floorDesc, u\fmtAmt($mya->floor));
     $rewards = formField('item', t('Rewards:'), t('(to date)'), u\fmtAmt($mya->rewards));
@@ -1512,7 +1512,7 @@ function formTx($form, &$sta, $args = '') {
   if ($confirm = sureForm($sta)) return $confirm;
   extract(u\just('who amount goods purpose scanned', $args));
   $mya = r\acct();
-  if (!$scanned and !$mya->can(B_SELL)) return r\go('summary');
+  if (!@$scanned and !$mya->can(B_SELL)) return r\go('summary');
 
   $type = $args === '' ? basename(current_path()) : basename(dirname(current_path())); // pay, charge, etc.
   $role = in_array($type, u\ray('charge fine')) ? 'payee' : 'payer';
@@ -1550,11 +1550,10 @@ function formTx_validate($form, &$sta) {
 
 function formTx_submit($form, &$sta) {
   if (confirming_s($sta)) return;
-  transfer(op($sta), $sta['input'], TRUE); // op who amount goods what
-  $path = current_path(); // clean out the fields
-  if ($i = strpos($path, '/who=')) $path = substr($path, 0, $i);
+  transfer($op = op($sta), $sta['input'], TRUE); // op who amount goods what
 //  $sta['redirect'] = @$sta['input']['scanned'] ? 'empty' : $path; // shun tx page after scan regardless of perms
-  return r\go(@$sta['input']['scanned'] ? 'empty' : $path); // shun tx page after scan regardless of perms
+  // use $op not current_path(), because the latter fails in tests
+  return r\go(@$sta['input']['scanned'] ? 'empty' : $op); // shun tx page after scan regardless of perms
 }
 
 /**

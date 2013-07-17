@@ -118,6 +118,18 @@ class rwebMembership extends DrupalWebTestCase {
     . '\\| note             |'
     . '\\| pending approval |"');
     And__('with done "123456"');
+    When_('member ".ZZA" has done step "preferences"');
+    And__('member ".ZZA" visits page "membership"');
+    Then_('we show "Your Account Setup Is Complete"');
+    And__('with done ""');
+    And__('we tell staff "event" with subs: "DATA'
+    . '\\| fullName | quid | status |'
+    . '\\| Abe One  | .ZZA | ready  |"');
+    When_('member ".ZZA" has permission "ok"');
+    And__('member ".ZZA" visits page "membership"');
+    Then_('we show "Your account is Activated" without: "DATA'
+    . '\\| note             |'
+    . '\\| pending approval |"');
   }
 
 }

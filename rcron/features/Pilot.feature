@@ -69,7 +69,7 @@ Setup:
   | .AAS |     50 |     1 |          0 |
   When transactions:
   | xid | created   | type      | state | amount | r    | from | to   | purpose      | taking |
-  |   1 | %today-8d | signup    | done  |     20 |   20 | ctty | .AAA | signup       | 0      |
+  |   1 | %today-8d | signup    | done  |     20 |   20 | ctty | .AAA | signup bonus | 0      |
   Then balances:
   | id   | r  | usd | rewards | minimum | maximum | share | committed |
   | .AAA | 20 | 200 |      20 |     200 |      -1 |    50 |         0 |
@@ -91,46 +91,48 @@ Scenario: all
   # recache
   Then transactions: 
   | xid | created   | type      | state | amount | r    | from | to   | purpose      | taking |
-  |   5 | %today    | signup    | done  |     20 |   20 | ctty | .AAG | signup       | 0      |
-  |   6 | %today    | signup    | done  |     20 |   20 | ctty | .AAH | signup       | 0      |
-  |   7 | %today    | signup    | done  |     20 |   20 | ctty | .AAJ | signup       | 0      |
-  |   8 | %today    | signup    | done  |     20 |   20 | ctty | .AAL | signup       | 0      |
-  |   9 | %today    | signup    | done  |     20 |   20 | ctty | .AAM | signup       | 0      |
-  |  10 | %today    | signup    | done  |     20 |   20 | ctty | .AAO | signup       | 0      |
+  |   5 | %today    | signup    | done  |     20 |   20 | ctty | .AAG | signup bonus | 0      |
+  |   6 | %today    | signup    | done  |     20 |   20 | ctty | .AAH | signup bonus | 0      |
+  |   7 | %today    | signup    | done  |     20 |   20 | ctty | .AAJ | signup bonus | 0      |
+  |   8 | %today    | signup    | done  |     20 |   20 | ctty | .AAL | signup bonus | 0      |
+  |   9 | %today    | signup    | done  |     20 |   20 | ctty | .AAM | signup bonus | 0      |
+  |  10 | %today    | signup    | done  |     20 |   20 | ctty | .AAO | signup bonus | 0      |
+  |  11 | %today    | inflation | done  |   0.02 | 0.02 | ctty | .AAA | inflation adjustment | 0 |
 
   # gifts
   And transactions: 
   | xid | created   | type      | state | amount | r    | from | to   | purpose      | taking |
-  |  11 | %today    | transfer  | done  |     50 |    1 | .AAA | .AAB | contribution | 0      |
-  |  12 | %today    | rebate    | done  |   2.50 | 2.50 | ctty | .AAA | rebate on #3 | 0      |
-  |  13 | %today    | bonus     | done  |      5 |    5 | ctty | .AAB | bonus on #1  | 0      |
-  |  14 | %today    | transfer  | done  |      5 |    5 | .AAG | .AAB | contribution | 0      |
-  |  15 | %today    | rebate    | done  |   0.25 | 0.25 | ctty | .AAG | rebate on #2 | 0      |
-  |  16 | %today    | bonus     | done  |   0.50 | 0.50 | ctty | .AAB | bonus on #2  | 0      |
-  |  17 | %today    | transfer  | done  |     50 |   20 | .AAH | .AAB | contribution | 0      |
-  |  18 | %today    | rebate    | done  |   2.50 | 2.50 | ctty | .AAH | rebate on #2 | 0      |
-  |  19 | %today    | bonus     | done  |      5 |    5 | ctty | .AAB | bonus on #3  | 0      |
-  |  20 | %today    | transfer  | done  |     25 |   20 | .AAJ | .AAB | contribution | 0      |
-  |  21 | %today    | rebate    | done  |   1.25 | 1.25 | ctty | .AAJ | rebate on #2 | 0      |
-  |  22 | %today    | bonus     | done  |   2.50 | 2.50 | ctty | .AAB | bonus on #4  | 0      |
-  |  23 | %today    | transfer  | done  |      1 |    1 | .AAL | .AAB | contribution | 0      |
-  |  24 | %today    | rebate    | done  |   0.05 | 0.05 | ctty | .AAL | rebate on #2 | 0      |
-  |  25 | %today    | bonus     | done  |   0.10 | 0.10 | ctty | .AAB | bonus on #5  | 0      |
-  |  26 | %today    | transfer  | done  |    100 |   20 | .AAM | .AAB | contribution | 0      |
-  |  27 | %today    | rebate    | done  |      5 |    5 | ctty | .AAM | rebate on #2 | 0      |
-  |  28 | %today    | bonus     | done  |     10 |   10 | ctty | .AAB | bonus on #6  | 0      |
-  |  29 | %today    | transfer  | done  |    100 |   20 | .AAO | .AAB | contribution | 0      |
-  |  30 | %today    | rebate    | done  |      5 |    5 | ctty | .AAO | rebate on #2 | 0      |
-  |  31 | %today    | bonus     | done  |     10 |   10 | ctty | .AAB | bonus on #7  | 0      |
+  |  12 | %today    | transfer  | done  |     50 | 1.02 | .AAA | .AAB | contribution | 0      |
+  |  13 | %today    | rebate    | done  |   2.50 | 2.50 | ctty | .AAA | rebate on #4 | 0      |
+  |  14 | %today    | bonus     | done  |      5 |    5 | ctty | .AAB | bonus on #1  | 0      |
+  |  15 | %today    | transfer  | done  |      5 |    5 | .AAG | .AAB | contribution | 0      |
+  |  16 | %today    | rebate    | done  |   0.25 | 0.25 | ctty | .AAG | rebate on #2 | 0      |
+  |  17 | %today    | bonus     | done  |   0.50 | 0.50 | ctty | .AAB | bonus on #2  | 0      |
+  |  18 | %today    | transfer  | done  |     50 |   20 | .AAH | .AAB | contribution | 0      |
+  |  19 | %today    | rebate    | done  |   2.50 | 2.50 | ctty | .AAH | rebate on #2 | 0      |
+  |  20 | %today    | bonus     | done  |      5 |    5 | ctty | .AAB | bonus on #3  | 0      |
+  |  21 | %today    | transfer  | done  |     25 |   20 | .AAJ | .AAB | contribution | 0      |
+  |  22 | %today    | rebate    | done  |   1.25 | 1.25 | ctty | .AAJ | rebate on #2 | 0      |
+  |  23 | %today    | bonus     | done  |   2.50 | 2.50 | ctty | .AAB | bonus on #4  | 0      |
+  |  24 | %today    | transfer  | done  |      1 |    1 | .AAL | .AAB | contribution | 0      |
+  |  25 | %today    | rebate    | done  |   0.05 | 0.05 | ctty | .AAL | rebate on #2 | 0      |
+  |  26 | %today    | bonus     | done  |   0.10 | 0.10 | ctty | .AAB | bonus on #5  | 0      |
+  |  27 | %today    | transfer  | done  |    100 |   20 | .AAM | .AAB | contribution | 0      |
+  |  28 | %today    | rebate    | done  |      5 |    5 | ctty | .AAM | rebate on #2 | 0      |
+  |  29 | %today    | bonus     | done  |     10 |   10 | ctty | .AAB | bonus on #6  | 0      |
+  |  30 | %today    | transfer  | done  |    100 |   20 | .AAO | .AAB | contribution | 0      |
+  |  31 | %today    | rebate    | done  |      5 |    5 | ctty | .AAO | rebate on #2 | 0      |
+  |  32 | %today    | bonus     | done  |     10 |   10 | ctty | .AAB | bonus on #7  | 0      |
+  # then sharing rewards and fee reimbursements
   And usd transfers:
   | payer | amount  | payee |
   | .AAA  |   20.00 | .AAS  |
-  | .AAA  |   49.00 | .AAB  |
+  | .AAA  |   48.98 | .AAB  |
   | .AAH  |   30.00 | .AAB  |
   | .AAJ  |    5.00 | .AAB  |
   | .AAM  |   80.00 | .AAB  |
   | .AAO  |   80.00 | .AAB  |
-  | .AAA  |  -66.50 |    0  |
+  | .AAA  |  -66.48 |    0  |
   | .AAF  | -200.00 |    0  |
   | .AAH  |  -27.50 |    0  |
   | .AAI  |  -50.00 |    0  |
