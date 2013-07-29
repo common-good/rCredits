@@ -52,7 +52,7 @@ EOF
   'downloading' => t('Your download will begin shortly...'),
   'changed account' => t('You are now managing the account for @newAcct.'),
   'lost old changes' => t('Any unsaved changes to account @oldAcct have been discarded.'),
-  'take a step' => t('Your account is <b style="color:red;">not yet activated</b>. <a href="membership"><span id="nextstep">Take the next step!</span> Click here</a> to see where you are in your membership progress and what to do next.'),
+  'take a step' => t('Your account is <b style="color:red;">not yet activated</b>. <a href="status"><span id="nextstep">Take the next step!</span> Click here</a> to see where you are in your status progress and what to do next.'),
   'got token' => t('Your rCredits and US Dollar accounts have been successfully connected!'),
   'company rcard' => t('Send a <a href="@href">company rCard</a> to @name at @address.'),
   'amount rounded' => t('"@amount" was rounded to the nearest integer value.'),
@@ -278,13 +278,17 @@ function util($arg) {
   \drupal_goto('handy');
 }
 
-function handy_links() {
+function testMenu() {
+  r\go('http://localhost/devcore/rcredits/test?menu=1');
+}
+
+function handyLinks() {
   global $base_path, $base_url, $base_root;
 
   $test_path = "$base_url/sites/all/modules";
 
   $links = array(
-    'rcredits/test?menu=1|Test Menu|',
+//    'rcredits/test?menu=1|Test Menu|',
     'rcredits/util/changeAgent|Change Agent to Bea|',
     'reinstall|Reinstall rCredits|',//    "$test_path/gherkin/compile.php?module=rcredits/rsms&return=1|Compile rSMS|",
     'sms|Simulate an SMS transaction|Simulate SMS',
@@ -651,7 +655,7 @@ function formContribute_submit($form, &$sta) {
   $amount = u\fmtAmt($info['amount']);
   if (!$mya->can(B_OK)) {
     say("$msg|step completed", compact('amount'));
-    r\go('membership');
+    r\go('status');
   } else say($msg, compact('amount'));
 }
 
@@ -746,11 +750,11 @@ EOF
 
     $stepNum = 1;
     $message2 = memberStep($stepNum++, $gotPhoto, $stepPhoto, 'account/photo')
-              . memberStep($stepNum++, $signed, $stepAgree, 'membership/agreement')
-              . memberStep($stepNum++, $donated, $stepGift, 'membership/contribute');
+              . memberStep($stepNum++, $signed, $stepAgree, 'agreement')
+              . memberStep($stepNum++, $donated, $stepGift, 'contribute');
 
     if (!$nonperson) 
-    $message2 .= memberStep($stepNum++, $gotProxies, $stepProxies, array('membership/proxies', 'invite'));
+    $message2 .= memberStep($stepNum++, $gotProxies, $stepProxies, array('account/proxies', 'invite'));
 
     $message2 .= memberStep($stepNum++, $gotSecurity, $stepSecurity, 'account/security');
 //    $message2 .= memberStep($stepNum++, $gotUsdInfo, $stepDwolla, R_DW_LINK, TRUE);
@@ -771,7 +775,7 @@ EOF
   }
   $message = $message1 . "<table width=\"100%\">$message2</table>" . @$message3;
   
-//  $title = item(t('Membership Status'));
+  $title = item(t('Membership Steps'));
 //  $subtext = item(t('for ') . $mya->fullName);
 
   $steps = formField('item', '', '', $message);
@@ -898,7 +902,7 @@ function formAgreement_submit($form, &$sta) {
   r\acct()->update($info = compact('signed', 'signedBy'));
   say('info saved|step completed');
   r\tellStaff('agreement signed', $info);
-  r\go('membership');
+  r\go('status');
 }
 
 /**
@@ -959,7 +963,7 @@ function formProxies_submit($form, &$sta) {
   if ($proxy1) r\proxy($myid, 1, $proxy1);
   if ($proxy2) r\proxy($myid, 2, $proxy2);
   if ($proxy1 and $proxy2) {
-    r\go('membership');
+    r\go('status');
     r\tellStaff('chose proxies', $info);
     say('info saved');
   } else say('proxy to go');
@@ -971,10 +975,10 @@ function formProxies_submit($form, &$sta) {
 function formInvite($form, &$sta) {
   global $base_url, $rUrl;
   $mya = r\acct();
-  $title = item(t('Invite Someone to Sign Up for rCredits'));
+  $title = item(t('Invite Someone to rCredits'));
   extract(u\just('nearly', r\nearlyMember($mya)));
-  $subtext = item(!$nearly ? t("We're sorry, you cannot invite someone to sign up until you have completed your other membership steps.<br><br>Return to the <a href=\"$base_url/membership\">Membership</a> page to see where you stand.") : (t('Adjust the subject and message, then click on "Send".') . (MINI_LAUNCH ?  t(' NOTE: Your invitation will be saved and sent <span style="color:red;">after this Pilot Phase</span> is completed.') : '')));
-//  $subtext = item(strtr($subtext, array('<a>' => "<a href=\"$base_url/membership\">")));
+  $subtext = item(!$nearly ? t("We're sorry, you cannot invite someone to sign up until you have completed your other membership steps.<br><br>Return to the <a href=\"$base_url/status\">Membership Status</a> page to see where you stand.") : (t('Adjust the subject and message, then click on "Send".') . (MINI_LAUNCH ?  t(' NOTE: Your invitation will be saved and sent <span style="color:red;">after this Pilot Phase</span> is completed.') : '')));
+//  $subtext = item(strtr($subtext, array('<a>' => "<a href=\"$base_url/status\">")));
 //  $contact = textField(t('Email or Cell:'), t('An email address or cell number for the person you want to invite'), required());
   $email = textField(t('Email:'), t('An email address for the person you want to invite'), required());
   $trusted = boolField(t('Trusted?'), t('If you lent this person $250, would you trust them to pay it back?'));
@@ -1190,7 +1194,7 @@ function formPhoto_submit($form, &$sta) {
   global $base_url;
   if (!$picture = @$sta['values']['picture_upload']) {
     say('nothing done');
-    r\go('membership');
+    r\go('status');
   }  
 
   $mya = r\acct();
@@ -1204,7 +1208,7 @@ function formPhoto_submit($form, &$sta) {
     return say($err, 'picture');
   }
   if (!rename($tempName, $pictureFilename)) return say('file save error', 'picture'); // (rename fails)
-  $link = "$base_url/membership";
+  $link = "$base_url/status";
   $completed = $mya->can(B_OK)? '' : '|step completed';
   say("photo saved$completed|return to membership", compact('link'));
 }
@@ -1268,7 +1272,7 @@ function formAccount_submit($form, &$sta) {
  * @todo: make help form say what it is help FOR
  */
 function formAccounts($form, &$sta) {
-  global $base_url;
+  global $base_url, $rUrl;
   if (!$mya = r\acct()) return NULL; // no account selector before login
   $myid = @$mya->id;
   if (!$accounts = svar('scanned_in') ? array($myid) : be\accountChoices()) return FALSE;
@@ -1285,11 +1289,13 @@ function formAccounts($form, &$sta) {
   
   $onchange = "this.form.submit();";
   $oneText = $choices[$myid];
-  
-  if (!$mya->proSe() or $mya->can(B_PERSONAL)) {
-    $src = $mya->agent->auxFilename('picture');
-    $thumb = item("<img src=\"$base_url$src\"/>");
-  }
+
+  $settings = item(imageButton('account/settings', 'Settings', 'gear.png'));
+
+  $src = $mya->agent->auxFilename('picture');
+  $signOut = t('Sign out');
+  $icon = item("<a href=\"$base_url\user\logout\"><img id=\"my_icon\" title=\"$signOut\" src=\"$base_url$src\"/></a>");
+
   $account = count($choices) == 1 ? 
       textField('', '', dft($oneText) + attrib(array('disabled' => TRUE, 'size' => strlen($oneText)+2)))
     : formField('select', '', '', dft($myid) + attrib(compact('onchange')), $choices);
@@ -1299,21 +1305,35 @@ function formAccounts($form, &$sta) {
   $chunks = explode('/', $_SERVER['REQUEST_URI']);
   if (isDEV) array_shift($chunks); // site is in a subfolder on the dev server
   $function = $chunks[1]; // normally just one part of URI is the page (but sometimes two)
-  foreach (u\ray('account user membership') as $one) {
+  foreach (u\ray('account user') as $one) {
     if (in_array($one, $chunks) and @$chunks[2]) $function .= '/' . $chunks[2];
   }
 
-  $showMenu = formField('item', '', '', button('Menu', '', 'Show the menu'));
-  $showHelp = formField('item', '', '', button('Help', '', 'Help for ' . ucwords($function)));
+  $functionName = ucwords($function);
+  $help = imageButton("help/$function", "Help for $functionName", 'qmark-white.png');
+  $menu = imageButton('menu', 'Show Menu', 'menu.png');
+  
+//  $showMenu = formField('item', '', '', button('Menu', '', 'Show the menu'));
+//  $showHelp = formField('item', '', '', button('Help', '', 'Help for ' . ucwords($function)));
+  $showMenu = item($menu);
+  $showHelp = item($help);
 //  $version = item(t('v 0.1d'));
-  $form = u\prefixKeys('acct_', compact(u\ray('thumb account showMenu showHelp submit'))); // always give a dropdown
+  $form = u\prefixKeys('acct_', compact(u\ray('settings account icon showMenu showHelp submit')));
 
-  $menu = formMenu($function);
+//  $menu = formMenu($function);
 
   $help = help($function);
-  $form += $help + $menu;
+  $form += $help; // + $menu;
 
   return $form;
+}
+
+function imageButton($href, $title, $src) {
+  global $base_url, $rUrl;
+  if (strpos($href, 'http') === FALSE) $href = "$base_url/$href";
+  return  <<<EOF
+<a href="$href" title="$title"><img src="$rUrl/images/icons/$src" border="0" /></a>
+EOF;
 }
 
 function formAccounts_submit($form, &$sta) {
@@ -1327,7 +1347,7 @@ function formAccounts_submit($form, &$sta) {
   } else svar('myid', $acct_account); // this gets checked ONLY in setupGlobals()
 }
 
-function formMenu($page) {
+function formMenu2($page) {
   $menu = array()
         + goButtonIf(B_SELL, t('Charge'), 'charge', t('Charge someone'))
         + goButtonIf(B_BUY, t('Pay'), 'pay', t('Pay someone'))
@@ -1342,7 +1362,7 @@ function formMenu($page) {
         + goButton(t('Find Company'), 'directory', t('Find an rCredits member company'))
 //        + goButton(t('Help'), "help/$page", t('Help with this page'))
         + goButton(t('Reports'), 'reports', t('rCredits system-wide or community-wide activity reports'))
-        + goButtonIf(B_MANAGE, t('Membership'), 'membership', t('Your rCredits membership progress'))
+        + goButtonIf(B_MANAGE, t('Membership'), 'status', t('Your rCredits membership progress'))
         + goButtonIf(B_MANAGE, t('Settings'), 'settings', t('Account settings'))
         + goButton(t('Log out'), 'user/logout', t('End your rCredits session'))
   ;
@@ -1353,12 +1373,12 @@ function formMenu($page) {
 /**
  * Settings form for mobile.
  */
-function formSettings($form, &$sta) {
+function formSettings2($form, &$sta) {
   $menu = array()
     + goButtonIf(B_MANAGE, t('Basic'), 'account/basic', t('Email and password'))
     + goButtonIf(B_MANAGE, t('Contact Info'), 'account/contact', t('Tell us where to find you'))
     + goButtonIf(B_MANAGE, t('Photo'), 'account/photo', t('Upload a photo for your rCard'))
-    + goButtonIf(array(B_PERSONAL, B_MANAGE), t('Proxies'), 'membership/proxies', t('Choose two people as your representatives'))
+    + goButtonIf(array(B_PERSONAL, B_MANAGE), t('Proxies'), 'account/proxies', t('Choose two people as your representatives'))
     + goButtonIf(B_MANAGE, t('Cells'), 'account/cells', t('Authorize mobile devices for this account'))
     + goButtonIf(B_MANAGE, t('Relations'), 'account/relations', t('Connect other members to this account'))
     + goButtonIf(array(B_COMPANY, B_MANAGE), t('Company Info'), 'account/company', t('Describe this company'))
@@ -1522,23 +1542,28 @@ function formTx($form, &$sta, $args = '') {
   focusOn(@$who ? 'amount' : 'who');
 
   //$onchange = "nixwhat();";
-  $radios = array(t('cash/loan/etc.'), t('goods & services'));
+  $radios = array(t('cash/loan/etc.'), t('goods & services:'));
   
   // set up form fields
   $title = item(ucwords($type));
   $whoLabel = ($type == 'loan' ? 'Lend to' : ucwords($type)) . ' whom:';
 
-  $onchange = $incentive ? '' : "if(this.value.toUpperCase() == 'ALL') jQuery('#edit-purpose').val('payroll');";
-  $who = textField($whoLabel, t('Type a name, id, email, or phone'), dft(@$who) + autocomplete($role) + attrib(compact('onchange')));
+//  $onchange = $incentive ? '' : "if(this.value.toUpperCase() == 'ALL') jQuery('#edit-purpose').val('payroll');";
+  $who = textField($whoLabel, t('Type a name, id, email, or phone'), dft(@$who) + autocomplete($role));
 
   $amount = textField('Amount: $', t('Amount to ') . $type, dft(@$amount));
+  $dollarSign = item('$'); // for mobile
   $goods = $incentive ? hidField(FALSE) : formField('radios', '&nbsp;', '', dft(isset($goods) ? $goods : 1), $radios); //  + attrib(compact('onchange'))
-  $purpose = textField('Purpose:', t('Description of goods and services or purpose'), dft(@$purpose));
+  $purpose = textField('For:', t('Description of goods and services or purpose'), dft(@$purpose));
+  $calc = item(u\calculator('amount'));
+  $scanClass = @$scanned ? 'scanned' : 'not-scanned';
+  $scanClass = 'scanned'; // debug(
   $scanned = hidField(@$scanned); // scanned means user already saw a name and photo
   $$type = submit(ucwords($type));
 
-  $form = labeled(compact(u\ray("title who amount goods purpose $type scanned")));
-  
+  $form = labeled(compact(u\ray("title who amount dollarSign goods purpose calc $type scanned")));
+  $form['#attributes']['class'][] = $scanClass;
+
   return keep_values($form); // get defaults from which('info')
 }
 
@@ -1589,9 +1614,9 @@ function remainder() {
   r\go('empty');
 }
 
-function formEmpty($form, &$sta) {
-  return array('title' => item('rCredits'));
-}
+function formMenu($form, &$sta) {return array('title' => item('Menu'));}
+function formEmpty($form, &$sta) {return formMenu($form, $sta);}
+function formSettings($form, &$sta) {return array('title' => item('Settings'));}
 
 /**
  * Pay with rCredits, arriving from some other site.
@@ -1909,7 +1934,7 @@ function formRegister_validate($form, &$sta) {
   if (!isset($sta['buttons'])) $sta['buttons'] = array(); // for testing (keep Drupal from griping)
   extract(u\just('args phone mail country city address company companyPhone companyOptions fullName postalCode physical code', $values = u\trimAll($sta['input'])));
   if (@$args) extract(u\just('code', $args));
-  $sta['input'] = array(); // make sure Drupal doesn't save the record when WE find an error (no longer needed?)
+//  $sta['input'] = array(); // make sure Drupal doesn't save the record when WE find an error (no longer needed?)
   //if (r\dbExists('users', "name='abeone'")) die('1 ' . print_r(debug_backtrace(), 1));
   if (!invitation(@$code) and @$code != bin2hex(R_WORD) and @$code != 'w') return r\go('/user/register'); // in case user resubmits
   //if (r\dbExists('users', "name='abeone'")) die('1 ' . print_r(debug_backtrace(), 1));
@@ -1955,6 +1980,10 @@ function formRegister_submit($form, &$sta) {
 
   $values = $sta['input'];
   extract(u\just("name acctType $fields1", $values));
+  if (t\est()) { // testing
+    if (!@$args) $args = basename(t\SERVER('REQUEST_URI'));
+    if (!@$data) $data = array();
+  }
   u\EXPECT($args, 'no args');
   extract(u\just('code', $args));
 
@@ -2175,65 +2204,15 @@ function formContact_submit($form, &$sta) {
   say('info saved');
 }
 
-/**
- * Draft an individual or company into the database.
- * Called when a member tries to pay or charge a non-member.
- */
- /*
-function formDraft($form, &$sta, $args = '') {
-  extract($info = u\just('who return amount goods purpose', $args));
-  $fullnameDesc = t('Their full legal name, properly capitalized');
-  unset($info['return']); // be neat
-  if (!$phone = u\formatPhone($who)) $fullName = $who;
-  
-  $form = array(
-    'title' => item(t('Draft a Potential New rCredits Member')),
-    'subtext' => item(t('Complete both fields and click on "Submit" OR "Cancel".')),
-//    'subtext' => basic_account_info(),
-    'fullName' => textField(t('Full name:'), $fullnameDesc, required(@$fullName)),
-    'phone' => textField(t('Phone:'), t('Their primary phone (landline or cell)'), required($phone)),
-    'argString' => hidField(http_build_query($info)),
-    'return' => hidField(str_replace(R_URL_SLASH, '/', urldecode($return))), // undo original Drupal-anomaly workaround
-    'submit' => submit(),
-    'cancel' => submit(t('Cancel')),
-  );
-
-  return labeled($form);
-}
-
-function formDraft_validate($form, &$sta) {
-  global $base_url;
-  extract(u\just('op fullName phone argString return', $sta['input'])); // (trim ALL values for later)
-  if (op($sta) == 'cancel') {
-    drupal_get_messages('error'); // don't complain about blank fields
-    return r\go("$return/$argString");
-  }
-  if ($phone and !($phone = u\formatPhone($phone, '+n'))) say('bad phone', 'phone'); else $sta['input']['phone'] = $phone;
-  if (!u\validName($fullName, FALSE, FALSE)) say('bad name', 'name');
-  $sta['input']['fullName'] = u\normalizeCase($fullName);
-  $shortName = u\shortName($fullName);
-  if (($otherName = r\userField('fullName', 'name=:shortName or phone=:phone', compact('shortName', 'phone')))) {
-    $draftLink = "$base_url/$return/who=$otherName&$argString";
-    say('similar found', compact(u\ray('otherName phone draftLink')), u\shortName($otherName) == $shortName ? 'fullName' : 'phone');
-  } else $sta['input']['name'] = $shortName;
-}
-
-function formDraft_submit($form, &$sta) {
-  extract(u\just('argString return name', $info = $sta['input']));
-  $acct = new r\acct($info);
-  say('info saved|ok to continue');
-  $sta['redirect'] = "$return/who=$name&$argString";
-}
-*/
 function no_selection($list) {
   foreach ($list as $one) if ($one) return FALSE;
   return TRUE;
 }
 
 /**
- * Upload a photo ID
+ * Connect a bank account.
  */
-function formUsd($form, &$sta, $args = '') {
+function formBank($form, &$sta, $args = '') {
   $mya = r\acct();
   $typeOptions = array('checking', 'savings or money market');
   extract(u\just('bankAccount isSavings', $mya->secure));
@@ -2254,13 +2233,13 @@ function formUsd($form, &$sta, $args = '') {
   return labeled(compact(u\ray('title subtext routingNumber bankAccount accountType submit')));
 }
 
-function formUsd_validate($form, &$sta) {
+function formBank_validate($form, &$sta) {
   extract(u\just('routingNumber bankAccount', u\trimAll($sta['input'])));
   if (!preg_match('/^(|[0-9]{9})$/', $routingNumber)) say('bad routing number', 'routingNumber');
   if (!preg_match('/^[0-9]{3,20}$/', $bankAccount)) say('bad account number', 'bankAccount');
 }
 
-function formUsd_submit($form, &$sta) {
+function formBank_submit($form, &$sta) {
   $mya = r\acct();
   extract(u\just('routingNumber bankAccount accountType', $sta['input']));
   if ($mya->country == R_COUNTRY_ID) $bankAccount = "USkk$routingNumber$bankAccount";
@@ -2286,7 +2265,7 @@ function formSecurity($form, &$sta, $args = '') {
   
   extract(u\just('show connected', $args));
   if (@$connected == 'yes') {
-    $link = "$base_url/membership";
+    $link = "$base_url/status";
     $completed = r\acct()->can(B_OK)? '' : '|step completed';
     say("got token$completed|return to membership", compact('link'));
     r\tellStaff('connected to Dwolla');
@@ -2452,7 +2431,7 @@ function formSecurity_submit($form, &$sta) {
     say('info saved|open dwolla', compact('usdPass'));
   } else say('info saved');
 
-  r\go('membership');
+  r\go('status');
 }
 
 define('R_REL_EMPLOYER_COL', 2); // number of amount/employer column
@@ -2815,7 +2794,7 @@ function formLogin(&$form, &$sta, $regular = TRUE) {
     //$process = array('form_process_password_confirm', 'user_form_process_password_confirm'); // 'rCredits\\Web\\password_confirm0');
     $newPass = formField('password_confirm', '', '', compact('process')); // not required!!
   }
-  $name = textField(t('Username/ID:'), $regular ? t('Your username (the letters of your legal name, all lowercase) OR your rCredits account ID.') : '', required(@$name));
+  $name = textField(t('Username/ID:'), $regular ? t('Your username (the letters of your legal name, all lowercase), account ID, or email.') : '', required(@$name));
   $pass = formField('password', @$newPass ? t('Tmp password:') : t('Password:'), @$newPass ? t('Your temporary one-time password (the one just emailed to you).') : '', required());
   $strong = hidField(0, attrib(array('id' => 'edit-strong')));
 
@@ -3266,7 +3245,7 @@ function formOptions_submit($form, $sta) {
   if ($mya->can(B_OK)) return say('options saved');
   
   say('options saved|step completed');
-  r\go('membership');
+  r\go('status');
 }
 
 function formReports($form, &$sta, $args = '') {
@@ -3717,14 +3696,16 @@ function blank_field($fields, $prefix = '') {
  *   say(array(index, args), 'optional error field')
  * @return FALSE (transfer() depends on this)
  */
-function say($index, $args = array(), $error_field = '') {
+function say($index, $args = array(), $errField = '') {
+  global $fieldErr; // used in tests
   if (!@$index) return;
 ///  if (is_array($index) and !isset($index[0])) debug($index);
-  if (is_array($index)) list ($index, $args, $error_field) = array($index[0], $index[1], $args); // error returned from a function
-  if (!is_array($args)) list ($args, $error_field) = array($error_field, $args); // allow either order, for easy 2-param calls
+  if (is_array($index)) list ($index, $args, $errField) = array($index[0], $index[1], $args); // error returned from a function
+  if (!is_array($args)) list ($args, $errField) = array($errField, $args); // allow either order, for easy 2-param calls
   $message = tt($index, $args);
-  if ($error_field) \form_set_error($error_field, $message); else \drupal_set_message($message);
-  u\loga($error_field ? 'say error' : 'say', compact('message'));
+  $fieldErr = (bool) $errField;
+  if ($fieldErr) \form_set_error($errField, $message); else \drupal_set_message($message);
+  u\loga($fieldErr ? 'say error' : 'say', compact('message'));
   return FALSE;
 }
 
@@ -3754,9 +3735,9 @@ function formFooter() {
   //<a href="?layout=$layout">$layout layout</a> |
   $mya = r\acct();
   $loggedInLinks = !($mya and $mya->can(B_MANAGE)) ? '' : <<<EOF
-    <a href="$base_url/membership/contribute">Contribute</a> |
+    <a href="$base_url/contribute">Contribute</a> |
     <a href="$base_url/invite">Invite Someone</a> |
-    <a href="$base_url/membership/agreement">The Agreement</a> |
+    <a href="$base_url/agreement">The Agreement</a> |
 EOF;
 
   $markup =<<<EOF

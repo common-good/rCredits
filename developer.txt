@@ -19,7 +19,7 @@ QUESTIONS:
 
 SOMETIME SOON RETROFIT:
 The following accounts need to have Dwolla switched to us ("integrated into the rCredits backend"):
-Alden, Barbara, cgf, diane, fccoop, gary, jennifer, john E, julia, nancy, peter, snow's, pint, wm, jgr, becky, adam
+Alden, Barbara, diane, fccoop, gary, jennifer, john E, nancy, peter, snow's, pint, jgr, becky, adam
 
 BEFORE FRIENDS LAUNCH:
 - automatic (suggested) ops
@@ -35,6 +35,8 @@ To do: (* = before launch ** = earlier)
 *** convert permission permissions
   r\dbQ('UPDATE r_relations SET permission=5 WHERE permission=4');
 
+- Becca King gets chosen every time, for buying rCredits -- why?!
+- add "immediate refunds" permission after "scan"
 - make sure recovery from lost usdtxs includes recovery from any fees
 - monthly PDF statement (printable)
 - record life calling (at least by email)

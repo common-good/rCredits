@@ -6,22 +6,23 @@ fieldset {-webkit-margin-start:0; -webkit-margin-end:0; -webkit-padding-before:0
 legend {-webkit-padding-start: 2px; -webkit-padding-end: 2px;}
 select {font-size:.85em;}
 label.option {font-weight:bold;}
+/* #square{width:100em;height:100em} depends on setting font-size in misc.js */
 
 #messages #nextstep,
 .page-account #completed,
-.page-membership #completed {font-weight:bold; font-size:200%; color:green;}
+.page-status #completed {font-weight:bold; font-size:200%; color:green;}
 
 div#shout {position:absolute; z-level:2; left:300px; top:100px; background-color:yellow; color:darkgreen; font-size:500%;}
 #site-name {visibility:hidden;}
 #page-wrapper {
-  margin:auto; max-width:960px; 
+  margin:auto; max-width:961px; 
   background:white; /* Drupal messes this up otherwise, in Bartik theme */
-  -moz-box-shadow:    3px 3px 15px 0 black;
   -webkit-box-shadow: 3px 3px 15px 0 black;
   box-shadow:         3px 3px 15px 0 black;
-  min-height:0;
+  -moz-box-shadow:    3px 3px 15px 0 black;
+  min-height:0px;
 }
-#secondary-menu {padding-bottom:0;}
+#secondary-menu {display:none; padding-bottom:0;}
 #footer-wrapper {background:white;}
 #footer-wrapper a, #footer-wrapper a:focus {color:lightslategray;}
 #footer-wrapper a:hover {color:black;}
@@ -68,7 +69,7 @@ body.logged-in.one-sidebar #content {width:100%;}
 
 .region-header {margin: 1em 5px 1.5em;}
 #logo {padding: 1em 1em 1em .8em;}
-#logo img {height:6em; width:4.5em;}
+#logo img {height:6em;}
 #name-and-slogan {margin:3.3em 0 1em 0; padding-top:0;}
 #breadcrumb, .breadcrumb {display:none;}
 .develw div {display:inline;}
@@ -85,19 +86,21 @@ ul.tabs.primary {padding:0; margin-left:4em; margin-top:.8em; font-size:85%;}
 #main-menu-links li a {padding:.5em .8em;}
 .tabs ul.primary li {margin:0;}
 .tabs ul.primary li a {padding:0 .5em .1em; font-size:1em;}
+.tabs ul.primary li:last-child {display:none;}
 
 .r {font-weight:bold; color:green;}
 .us {font-weight:bold; color:blue;}
 
 /* Accounts Selector */
-#accounts {position:absolute; left:0; top:2em; width:100%;}
-#accounts .region-accounts {float:right; margin-right:1em; width:100%;}
+#accounts {position:absolute; left:0; top:0; width:100%;}
+#accounts .region-accounts {float:right; margin-right:0px; width:100%;}
 #accounts .content, #accounts .form-item-acct-account {margin:0; padding:0;}
-#accounts .form-type-textfield, #accounts .form-type-select {float:right;}
-#accounts #edit-acct-thumb {float:right;} 
-#accounts #edit-acct-thumb img {height:23px; margin-left:5px;}
-#accounts #edit-acct-account {font-size:1em; padding:0; float:right;}
-#accounts input#edit-acct-account {padding:2px; width:auto; max-height:20px; margin:0; font-size:95%;}
+#accounts .form-type-textfield, #accounts .form-type-select,
+#accounts #edit-acct-settings,
+#accounts #edit-acct-icon {float:right; margin:0 5px 0 0;} 
+#rcreditswebformaccounts img {height:24px;}
+#accounts #edit-acct-icon #my_icon {border:1px solid white;}
+#accounts #edit-acct-account {float:right; padding:0 2px; width:auto; height:27px; margin:0; font-size:100%; border:0; background-color:white;}
 #rcreditswebformaccounts #edit-acct-submit {display:none;} /* Drupal requires unused button to be there, so make it invisible */
 #edit-acct-showmenu, #edit-acct-showhelp {display:none;}
 
@@ -166,8 +169,10 @@ form.rweb  .form-no {color:red;}
   form.labeled  .form-type-checkbox .description {margin-left:5px;}
 }
 @media (max-width:27.99em) {
-  form.rweb .form-type-textfield label {display:block;}
+  form.labeled .form-type-textfield,
+  form.rweb .form-type-textfield label {display:block; margin-right:0;}
   form.rweb input {display:block;}
+  #rcreditswebformtx #calc input {display:inline;}
 }
 
 /* Menu */
@@ -253,6 +258,8 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformtx.confirmation #id-other {float:left; clear:right; min-width:200px; max-width:300px; font-weight:normal; font-size:20px;}
 #rcreditswebformtx.confirmation #id-name {margin-top:30px; font-weight:bold; font-size:30px; color:darkgreen;}
 #rcreditswebformtx.confirmation #edit-question label {font-weight:normal;}
+#rcreditswebformtx #edit-dollarsign {display:none;}
+#calc {display:none;}
 
 /* Exchange form (labeled) Get r */
 /* #rcreditswebformgetr #edit-request label {font-weight:normal; text-align:left; margin-left:100px; width:100%} */
@@ -475,6 +482,7 @@ html.js input.throbbing {background-position:right -2.4em;}
 
 /* Membership */
 /* #rcreditswebformmembership #next-steps {width:500px; margin:-13px;} */
+#rcreditswebformmembership #edit-title {display:none;}
 #rcreditswebformmembership #edit-steps,
 #rcreditswebformmembership #edit-addendum {margin-left:3.2em;}
 #rcreditswebformmembership #edit-steps table {margin-top:-12px;}
@@ -522,6 +530,7 @@ html.js input.throbbing {background-position:right -2.4em;}
 
 /* Options (Preferences) */
 #rcreditswebformoptions .description {margin-bottom:1em;}
+#rcreditswebformoptions .form-item-smsNotices {display:none;}
 #rcreditswebformoptions .form-item-statements label div {margin-left:27px; font-weight:normal;}
 /*#rcreditswebformoptions .form-item-toBank {border-bottom:1px solid darkgreen;}
 #rcreditswebformoptions .form-item-toBank .description {margin-bottom:auto;}
@@ -531,6 +540,7 @@ html.js input.throbbing {background-position:right -2.4em;}
 /*#rcreditswebformoptions .form-item-secretBal {margin-top:80px;}*/
 /*#rcreditswebformoptions .form-item-secretBal input {margin-left:105px;} */
 #rcreditswebformoptions .form-item-payVirtual {border-bottom:0;}
+#rcreditswebformoptions .form-item-debtOk {display:inline-block;}
 #rcreditswebformoptions .form-item-debtOk .description {max-width:700px;}
 #rcreditswebformoptions #edit-notices div {display:inline-block;}
 #rcreditswebformoptions #edit-submit {margin-top:50px;}
@@ -597,25 +607,45 @@ fieldset.popup select {width:36em; overflow:auto;}
 and (min-device-width : 320px)
 and (max-device-width : 480px) { */
 @media (max-width:40em) {
-  body {font-size:100%;}
+  #toolbar {display:none; height:0px;} /* dev toolbar */
+  body {font-size:100%; height:auto; background:white;}
+  #page-wrapper {box-shadow:none; -webkit-box-shadow:none;}
+  #header {background:none; height:38px;}
+  #content {min-width:100%; margin-top:60px;}
   #main .section {margin-left:0; padding:0 .4em;}
-  #main-wrapper {min-height:26em;} /* below the menu */
-  #logo {padding:.8em 0 .5em .4em;}
-  #name-and-slogan {font-size:.8em; padding-left:.1em; margin-top:4.5em;}
+/*  #main-wrapper {min-height:26em;} /* below the menu */
+  body.page-account-settings #footer-wrapper, body.page-menu #footer-wrapper {display:none;}
+  #logo {height:26px; padding:1px;}
+  #logo img {height:24px;}
+  #name-and-slogan {display:none; font-size:.8em; padding-left:.1em; margin-top:4.5em;}
   #site-slogan {width:14em; font-size:1em;}
+
   #secondary-menu, /* upper right corner menu */
   #main-menu {display:none;}
-  body.logged-in .tabs {display:none;}
-  body.not-logged-in .tabs ul {margin-left:0;}
+
+  body.page-menu #main-menu {display:block; position:absolute; left:0; top:72px; width:100%; padding:0;}
+  #main-menu-links {margin:0; padding:0; width:100%; font-size:110%;}
+  #main-menu-links li {margin:1px 0; clear:left; width:100%; height:44px;}
+  #main-menu-links li a {margin:0 0; text-indent:10px; width:100%; padding:7px 0; text-decoration:none; background-color:lightblue; border-radius:0;}
+  #main-menu-links li a:hover {background:yellow;}
+
+  body .tabs {display:none;}
+  .not-logged-in .tabs ul {margin-left:0;}
   .not-logged-in #sidebar-first {width:200px; margin-left:0;}
-  
-  
-  #accounts {top:.05em;} /* account dropdown */
-  #accounts .region-accounts {margin:0;}
+
+  body.page-account-settings .tabs {display:block; position:absolute; left:0; top:32px; width:100%; padding:0;}
+  body.page-account-settings .tabs ul {margin:0; padding:0; width:100%; font-size:110%;}
+  body.page-account-settings .tabs ul li {margin:1px 0; clear:left; width:100%; height:44px;}
+  body.page-account-settings .tabs ul li a {margin:0 0; text-indent:10px; width:100%; padding:7px 0; text-decoration:none; background-color:lightblue; border-radius:0;}
+  body.page-account-settings .tabs ul li a:hover {background:yellow;}
+
+  #accounts {top:0;} /* account dropdown */
+  #accounts .region-accounts {margin:0; padding-right:10px;}
   #accounts select, #accounts input {font-size:1.5em; overflow:none;}
   #edit-acct-showmenu,
-  #edit-acct-showhelp {display:inline-block; float:right; font-size:14px; margin:0 0 0 0;}
-  #edit-acct-showmenu {clear:right;}
+  #edit-acct-showhelp {display:block; position:absolute; left:100%; top:32px; font-size:14px; margin:5px 0 0 0; z-index:2;}
+  #edit-acct-showmenu {margin-left:-35px;}
+  #edit-acct-showhelp {margin-left:-70px;}
   #edit-acct-showmenu input,
   #edit-acct-showhelp input {width:3.5em;}
 
@@ -632,7 +662,7 @@ and (max-device-width : 480px) { */
   #help {top:125px; width:100%;}
   #help-close {display:none;}
 
-  #edit-title, form.labeled #edit-title {display:block; margin:-10px -10px 10px -10px; padding:2px 0 2px 15px; background:silver;}
+  #edit-title, form.labeled #edit-title {display:block; position:absolute; left:0; top:28px; margin:0; padding:2px 0 2px 15px; background:silver; z-index:1; height:42px;}
   #edit-title label, form.rweb #edit-title label {font-size:20px;}
   
   fieldset.popup, fieldset.popup legend {border:0; box-shadow:none; -webkit-box-shadow:none; -moz-box-shadow:none; border-radius:0; -moz-border-radius:0; -webkit-border-radius:0;}
@@ -655,12 +685,39 @@ and (max-device-width : 480px) { */
   #rcreditswebformi .user-picture {margin-bottom:10em;}
   
   #rcreditswebformmembership #edit-steps {margin-left:0;}
-  #rcreditswebformtx .form-type-radios {display:inline-block; margin-left:25px; max-width:160px; border:2px solid darkblue;}
-  #rcreditswebformtx .form-type-radio, {display:block;}
-  #rcreditswebformtx #edit-amount {width:100px;}
-  #rcreditswebformtx .form-item-amount {display:inline-block;}
   
+  #rcreditswebformtx {width:100%;}
+//  #rcreditswebformtx .form-type-radios {display:inline-block; margin-left:25px; max-width:160px; border:2px solid darkblue;}
+//  #rcreditswebformtx .form-type-radio, {display:block;}
+  #rcreditswebformtx #edit-amount {width:100px; background:transparent; font-size:144%;}
+
+  #rcreditswebformtx .form-item-amount,
+  #rcreditswebformtx #edit-dollarsign,
+  #rcreditswebformtx input[type="submit"] {position:absolute; top:29px; margin:0; font-size:150%; height:45px;z-index:2;}
+  #rcreditswebformtx #edit-amount {height:32px;}
+  
+  #rcreditswebformtx .form-item-amount {display:block; left:150px; margin-top:-1px;}
+  #rcreditswebformtx .form-item-amount label {display:none;}
+  #rcreditswebformtx #edit-dollarsign {display:block; left:130px; font-size:150%; font-weight:bold;}
+  #rcreditswebformtx input[type="submit"] {left:0px;}
+  #rcreditswebformtx .form-item-goods {width:282px; margin:0 auto; padding:0;}
+  #rcreditswebformtx #edit-goods .form-item-goods {width:auto;}
+  #rcreditswebformtx label[for="edit-goods"] {display:none;}
+  #rcreditswebformtx .form-type-radio {width:auto;}
+  #rcreditswebformtx .form-item-purpose {width:277px; margin:0 auto;}
+  #rcreditswebformtx .form-item-purpose label,
+  #rcreditswebformtx  .description {display:none;}
+  #rcreditswebformtx #edit-purpose {width:277px;  font-size:150%;}
+  #calc {display:block; width:96%; margin:10px auto; border:1px solid darkgray; height:400px; min-width:262px;}
+  #calc input {border:0; width:31.2%; height:23.7%; margin:1% 0 0 1%; font-size:300%; padding:0; background-color:cadetblue; color:white; font-weight:bold;}
+  #calc #calcc {background-color:black;}
+  #calc #calcb {background-color:crimson;}
+  
+  #rcreditswebformtx.scanned .form-item-who {display:none;}
+  
+  #rcreditswebformmembership #edit-title {display:block;}
   #rcreditswebformphoto #edit-submit {left:0px; top:0px;}
+  #rcreditswebformoptions #edit-submit {margin-top:90px;}
 }
 
 /* Smartphones (landscape) ----------- */

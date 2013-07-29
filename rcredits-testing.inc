@@ -514,6 +514,7 @@ function verifyRecord($table, $info) {
  */
 function completeForm($id, $page, $values = '', $confirmed = FALSE) {
   global $testOnly; if ($testOnly) return FALSE;
+  global $fieldErr;
   global $testOp; $testOp = @$values[0]['op'];
   global $testConfirmation; // confirmation message output, if any
   global $formSta;
@@ -550,23 +551,25 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
     if (@$field['#type'] == 'hidden') $dfts[$key] = $field['#value'];
   }
   $sta['values'] = $sta['input'] = $values + $dfts; // add to whatever status the form left off in
+  $fieldErr = FALSE; // no field errors yet
   if ($validate) foreach (t\postProcess($form, $page, 'validate') as $one) $one($form, $sta);
-//  if (count($errors = t\getErrors()) > count($errorsBefore)) {
+//  if (count($errors = t\getErrors()) > count($errorsBefore)) return TRUE;
     // NO! if (!empty($errors)) return FALSE;
 /// debug(compact(u\ray('id page values confirmed one errors')));
 //    return FALSE; // ? (added 7/17/2013)
 //  } else {
 //    $testConfirmation = @$sta['confirm'];
-    $lastIdentifierTag = '</div identifiers>';
-    if ($i = strpos($testConfirmation, $lastIdentifierTag)) $testConfirmation = substr($testConfirmation, $i + strlen($lastIdentifierTag));
-    foreach (t\postProcess($form, $page, 'submit') as $one) $one($form, $sta);
+  $lastIdentifierTag = '</div identifiers>';
+  if ($i = strpos($testConfirmation, $lastIdentifierTag)) $testConfirmation = substr($testConfirmation, $i + strlen($lastIdentifierTag));
+  if ($fieldErr) return TRUE; // no submit if field error
 
-    if ($page == '/user/login') { // fudge this test until we can take over the login process from Drupal
-      if (!$id = @$sta['uid']) return FALSE;
-      t\logIn($id);
-      r\Web\loginFollowup($sta, r\acct($id)->account());
-    }
-//  }
+  foreach (t\postProcess($form, $page, 'submit') as $one) $one($form, $sta);
+
+  if ($page == '/user/login') { // fudge this test until we can take over the login process from Drupal
+    if (!$id = @$sta['uid']) return TRUE; // login failed, but test succeeded
+    t\logIn($id);
+    r\Web\loginFollowup($sta, r\acct($id)->account());
+  }
 
   return TRUE;
 }

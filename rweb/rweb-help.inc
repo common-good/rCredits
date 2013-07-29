@@ -30,30 +30,23 @@ EOF
   $helps = array(
     'general' => tt(<<<EOF
     <p>Help is also available for the <a href="$base_url/help/sms">Text Messaging Interface</a>.
-    Use the tabs above and the links at the top right, to try all the features of the rCredits system. Here's an overview of what's where:</p>
+    Use the tabs above and the icons at the top right, to try all the features of the rCredits system. Here's an overview of what's where:</p>
     <h2>Tabs:</h2>
     <ul>
-      <li><b>Summary</b> gives you an overview of your account.</li>
-      <li><b>Transactions</b> shows your recent transactions so you can accept, edit, print, or undo them.</li>
-      <li><b>Charge</b> lets you invoice another participant (to be paid in rCredits and/or US Dollars). Or, if you have a qualified business account, you can charge them. Normally, both buyer and seller get an incentive reward of additional rCredits.</li>
-      <li><b>Pay</b> lets you transfer your rCredits to another participant. Normally, both buyer and seller get an incentive reward of additional rCredits.</li>
-      <li><b>Find Businesses</b>. This is where you can find out who takes rCredits for what you want.</li>
+      <li><b>Summary</b>: an overview of your account.</li>
+      <li><b>Transactions</b>: shows your recent transactions so you can accept, edit, print, or undo them.</li>
+      <li><b>Charge</b>: Invoice another participant (to be paid in rCredits and/or US Dollars). Or, if you have a qualified business account, you can charge them. Normally, both buyer and seller get an incentive reward of additional rCredits.</li>
+      <li><b>Pay</b>: Transfer your rCredits to another participant. Normally, both buyer and seller get an incentive reward of additional rCredits.</li>
+      <li><b>Get r/USD</b> Transfer money to or from your bank account.</li>
+      <li><b>Find Companies</b>. Find out who takes rCredits for what you want.</li>
+      <li><b>Reports</b>. See how the rCredits economy is doing in your community.</li>
     </ul>
-    <h2>Upper Right Links</h2>
+    <h2>Icons, etc.</h2>
     <ul>
-      <li><b>Settings</b> has several subtabs:
-      <ul>
-        <li><b>Contact Info</b> is where you add or change your contact phone numbers and address.</li>
-        <li><b>Basic Account Settings</b> is where you change your email address, password, picture, or time zone.</li>
-        <li><b>Cell Phones</b> lets you connect your account to one or more cell phones, so you can use Text Messaging to buy and sell things with rCredits.</li>
-        <li><b>Relations</b> lets you connect individual rCredits participants to your account &mdash; as owners, employees, suppliers, or others, with limited or full access to the account. This is useful for authorizing sales clerks or setting up joint accounts.</li>
-        <li><b>Preferences</b> gives you several choices about how your rCredits account works.</li>
-      </ul>
-      </li>
-      <li><b>Membership</b> tells you where you are in the process of opening and activating your account. This section will give you links to your next steps.</li>
-      <li><b>Help</b> is this page.</li>
-      <li><b>Log out</b> protects your account from unauthorized passersby.</li>
+      <li><b>Sign out (Your icon)</b>: Click on the picture of yourself to sign out or change users.</li>
+      <li><b>Settings (Gear icon)</b>: Change your account settings, customize your company webpage (or make a Buy-with-rCredits button), make another contribution, or connect a mobile device.</li>
     </ul>
+
     <p>If you need help and can't find the answer here, please feel free to <a href="mailto:@R_ORG_EMAIL?subject=help with rCredits" target="_blank">email us</a>.</p>
 EOF
     ),
@@ -221,15 +214,15 @@ EOF
     <p>Requirements for certification as a Common Good Community are not yet finalized. They may include such things as qualified leadership, minimum size, experience using the rCredits system, diversity of participants, and successful completion of a training program.</p>
 EOF
     ),
-    'membership/agreement' => t(<<<EOF
+    'agreement' => t(<<<EOF
     <p>The rCredits Agreement is at the heart of the the rCredits system. It is our agreement to accept rCredits from each other that gives them value. Please read each section carefully and click the checkboxes to indicate your agreement. For more specific information, click on the hyperlinks in the text.</p>
 EOF
     ),
-    'membership/contribute' => t(<<<EOF
+    'contribute' => t(<<<EOF
     <p>Your contribution helps fund administration and promotion of the rCredits system during the pilot phase. It is also a formal "sealing" of your signature on the rCredits agreement.</p>
 EOF
     ),
-    'membership/proxies' => t(<<<EOF
+    'account/proxies' => t(<<<EOF
     <p>During the pilot phase, it may be hard to choose two proxies from among the other members, unless you invite them to join first. You can change your selections at any time, so no worries.</p>
 EOF
     ),

@@ -136,7 +136,7 @@ function formTxs($form, &$sta, $args = '') {
   $submitDates = submit(t(' Show')); // label has to be different (Drupal bug -- else can't tell which is clicked)
   $downloadDates = submit(t(' Download'));
   $title = "";
-  $title = item(t('rCredits Transaction History'));
+  $title = item(t('Transaction History'));
 //  $subtext = item(t('The "r%" column tells what percentage of the total transaction amount is rCredits. Hover over that figure to see the breakdown.'));
 
   $form = compact(u\ray('title subtext currency states opts2 divider period submitPeriod downloadPeriod starting ending submitDates downloadDates summary transactions'));

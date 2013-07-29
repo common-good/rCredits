@@ -42,6 +42,7 @@ function showTable($ray) {
     $line = '';
     foreach ($row as $key => $value) {
       if ($value and in_array($key, u\ray('id uid payer payee main other inviter invitee proxy person owner defaultAgent'))) $value = $value < 0 ? 'ctty' : ($value == $cgfUid ? 'CGF' : r\acct($value)->fullName);
+      if ($key == 'reid') $value = u\n2a($value, -3);
       if ($value and in_array($key, u\ray(R_DATE_FIELDS))) $value = u\formatDate($value);
       if ($key == 'flags') $value = "<div style='text-transform:capitalize; font-size:7px; line-height:11px;'>" . bs($value) . '</div>';
       if ($key == 'payeeFor' and $value == $row->payerFor) $value = 'same';

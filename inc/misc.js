@@ -8,6 +8,15 @@ function toggleMain(me) {
   jQuery("#main, #help, #menu").hide();
   jQuery(was ? "#main" : me).show();
 }
+function commafy(n) {
+  if(isNaN(n)) return '0.00';
+  n=parseFloat(n).toFixed(2).split(".");
+  n[0] = n[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return n.join(".");
+}
+
+//jQuery('body').css('font-size',jQuery(window).height()/100); // sets em=h/100 -- maybe do width instead
+
 /* function hideMax() {
   var max=jQuery("div.form-item-maximum");
   if(jQuery("#edit-payvirtual-0").attr("checked")) max.show(); else max.hide();
@@ -15,8 +24,8 @@ function toggleMain(me) {
 jQuery("#which, #help").addClass("popup");
 jQuery("#help-close, #which-close").addClass("popup-close");
 jQuery("#help-link").click(function() {jQuery("fieldset#help").show();});
-jQuery("#edit-acct-showhelp").click(function() {toggleMain("#help");});
-jQuery("#edit-acct-showmenu").click(function() {toggleMain("#menu");});
+//jQuery("#edit-acct-showhelp").click(function() {toggleMain("#help");});
+//jQuery("#edit-acct-showmenu").click(function() {toggleMain("#menu");});
 jQuery(".popup-close").click(function() {jQuery(this).parents("fieldset").hide();});
 jQuery("#which-cancel").click(function() {jQuery("fieldset#which").hide();});
 //jQuery("div#edit-payvirtual").click(function() {hideMax();});

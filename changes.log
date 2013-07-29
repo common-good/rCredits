@@ -1,3 +1,10 @@
+2013-07-29
+- use internal Dwolla sandbox (including changes to settings.php and dwolla.php)
+- calculator for mobile amount entry
+- simplified mobile header, menus, global links, and help
+- fixed mobile formatting on Preferences page
+- added addBank() and verifyBank() to usd class
+
 2013-07-11
 - scan permission
 - popup help throughout Transaction History page

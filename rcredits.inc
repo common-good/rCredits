@@ -75,6 +75,7 @@ define('R_AGENT_MARK', ':'); // divides region from specific identifier in relat
 define('R_AGENT_URL_MARK', '-'); // use this as a substitute for R_AGENT_MARK in URLs (else domain forwarding fails)
 define('R_MARKS', '[\\' . R_MEMBER_MARK . '\\' . R_AGENT_MARK . '\\' . R_AGENT_URL_MARK . ']'); // any of those
 
+define('DW_API_URL', isPRODUCTION ? 'https://www.dwolla.com/oauth/rest/' : 'https://uat.dwolla.com/oauth/rest/');
 define('DW_TEST_ACCT', '8127139234'); // "reflector" account totally reimburses anything under $10
 define('DW_TESTER_ACCT', '8124486052');
 define('DW_FEE_THRESHOLD', 10); // over this amount, Dwolla charges a fee
@@ -1014,7 +1015,7 @@ function uniqueName($fullName) {
  * @return the uid (FALSE if unsuccessful)
  */
 function loginString($id) {
-  if ($acct = acct(strtoupper($id))) return $acct->id; // try to interpret it as a qid
+  if (u\isQid($id = trim(strtoupper($id))) and $acct = acct($id)) return $acct->id; // try to interpret as a qid
   return userField('uid', 'name=:id OR mail=:id', compact('id'));
 }
   
