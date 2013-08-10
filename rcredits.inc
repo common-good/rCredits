@@ -21,6 +21,7 @@ define('CGF_PHONE', '+14136281723');
 define('CGF_ADDRESS', 'PO Box 21');
 define('CGF_CITY', 'Ashfield');
 
+define('US_COUNTRY_ID', 1228); // United States
 define('R_VERSION', '1.0a'); // software version
 define('R_SEPARATE_BACKEND', FALSE);
 define('R_ROOT', DRUPAL_ROOT . '/sites/all/modules/rcredits');
@@ -29,7 +30,7 @@ define('R_DATE_FIELDS', 'created completed sent invited giftDate signed login ac
 define('R_DATA_FIELDS', ''); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'usd r rewards floor committed'); // financial amount fields in account record
 define('R_COMPANY_FIELDS', 'website description selling structure'); // fields in r_companies
-define('R_SECURE_FIELDS', 'usdType pin usdPass auth cardCode cardCode2'); // non-personal encrypted fields
+define('R_SECURE_FIELDS', 'usdType usdEmail usdPass usdPin auth pin cardCode cardCode2'); // non-personal encrypted fields
 define('R_SECRET_FIELDS', 'federalId dob idProof answer'); // personal identifying information
 define('R_SECRET_URL', isDEV ? 'http://localhost/rcredits-promo' 
   : (STAGING ? ('http://' . STAGE) : 'http://rcredits.org')); // where to store secrets
@@ -57,7 +58,7 @@ define('R_DEFAULT_PURPOSE', 'rCredits/USD exchange'); // default transaction pur
 define('R_CHUNK', 5); // chunk size for buying rCredits (sales amounts are a multiple of this)
 define('R_BANK_CHUNK', 100); // UNUSED default chunk size for withdrawals from bank
 define('R_BANK_MIN', 10); // granularity of withdrawals from bank account
-define('R_VPAYMENT_MIN', 0.05); // minimum virtual payment (where bonus rounds to .01)
+define('R_VPAYMENT_MIN', 0.05); // minimum payment exchange (where bonus rounds to .01)
 define('R_COMMERCIAL_ASPECT', '4:3'); // width-to-height ratio for commercial profile picture
 define('R_PERSONAL_ASPECT', '3:4'); // width-to-height ratio for personal profile picture
 define('R_PIXEL_FACTOR', 200); // what to multiply the aspect ratio components by, to get pixel dimensions
@@ -74,12 +75,16 @@ define('R_MEMBER_MARK', '.'); // divides region from specific identifier in memb
 define('R_AGENT_MARK', ':'); // divides region from specific identifier in relational IDs
 define('R_AGENT_URL_MARK', '-'); // use this as a substitute for R_AGENT_MARK in URLs (else domain forwarding fails)
 define('R_MARKS', '[\\' . R_MEMBER_MARK . '\\' . R_AGENT_MARK . '\\' . R_AGENT_URL_MARK . ']'); // any of those
+define('R_ANCIENT_EFT', 10); // how long, at most, an EFT might take (transferring funds to/from bank)
 
-define('DW_API_URL', isPRODUCTION ? 'https://www.dwolla.com/oauth/rest/' : 'https://uat.dwolla.com/oauth/rest/');
+define('DW_SITE', useSANDBOX ? 'https://uat.dwolla.com' : 'https://www.dwolla.com');
+define('DW_API_URL', DW_SITE . '/oauth/rest/');
 define('DW_TEST_ACCT', '8127139234'); // "reflector" account totally reimburses anything under $10
-define('DW_TESTER_ACCT', '8124486052');
+define('DW_TESTER_ACCT', useSANDBOX ? '8127413762' : '8124486052');
 define('DW_FEE_THRESHOLD', 10); // over this amount, Dwolla charges a fee
 define('DW_FEE', .25); // the fee
+
+define('R_USPS_WEB_TOOLS_ID', '921COMMO5331'); // USPS API credentials
 
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
@@ -117,7 +122,7 @@ define('B_COMPANY', 6); // company account (could be personal also, for independ
 define('B_u7', 7); // 
 define('B_CHARGE', 8); // can charge customers without confirmation
 define('B_u9', 9); // 
-define('B_VIRTUAL', 10); // automatically pay employees and suppliers virtually
+define('B_PAYEX', 10); // automatically pay employees and suppliers virtually
 define('B_u11', 11); // 
 define('B_PAYROLL', 12); // automatically pay employees their total daily salary - employer chooses pay period)
 define('B_NOTICE_WEEKLY', 13); // send notices only weekly
@@ -429,8 +434,7 @@ function transactionSetup($info) {
   u\EXPECT(compact(u\ray('amount payer payee')), 'float zid zid');
   u\EXPECT($payer and $payee and $payer != $payee, 'null or self trading' . $specs);
   list ($a1, $a2) = array(r\acct($payer), r\acct($payee));
-  u\EXPECT($payer < 0 or $a1->can(B_MEMBER), 'non-member payer' . $specs);
-  u\EXPECT(($payer < 0 and $a2->can(B_MEMBER)) or $a2->can(B_OK), 'unqualified payee' . $specs);
+  u\EXPECT($a1->can(B_OK) and $a2->can(B_OK), 'non-member in tx' . $specs);
   
   u\setDft($type, TX_TRANSFER);
   u\setDft($r, $amount);
@@ -519,7 +523,7 @@ function cacheTotals($uid, $txs) {
     if ($type != TX_TRANSFER and $type <= TX_REWARDS) {
       if ($type == TX_REBATE or $type == TX_BONUS) $committed = round($committed + $amount * $a->share / 100, 2);
       $rewards = round($rewards + $r, 2);
-      //if (@$maximum >= 0 and !a->can(B_VIRTUAL)) $maximum = round(max($maximum, $rewards), 2);
+      //if (@$maximum >= 0 and !a->can(B_PAYEX)) $maximum = round(max($maximum, $rewards), 2);
     }
   }
   $r = round($rs, 2);
@@ -1479,7 +1483,7 @@ function serverUid($regionId = R_SERVER_ID) {return -u\a2n($regionId) - 1;}
 function emailTemplate($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}
 function emailBody($key) {return str_replace('{BODY}', emailTemplate($key), emailTemplate(R_EMAIL_FRAME));}
 function realCountry($country) {return dbLookup('name', 'r_countries', 'id=:country', compact('country'));}
-function realState($state, $country = R_COUNTRY_ID) {return dbLookup($country == R_COUNTRY_ID ? 'abbreviation' : 'name', 'r_states', 'id=:state and country_id=:country', compact('state', 'country'));}
+function realState($state, $country = R_COUNTRY_ID) {return dbLookup($country == US_COUNTRY_ID ? 'abbreviation' : 'name', 'r_states', 'id=:state and country_id=:country', compact('state', 'country'));}
 function makeQueue($callback, $time = 15) {return array('worker callback' => "rCredits\\Cron\\$callback", 'time' => $time);}
 function queue($op, $item = array()) {\DrupalQueue::get('q')->createItem(compact('op') + $item);}
 function perm($bit) {return $bit - B_RELATED;}

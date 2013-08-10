@@ -1,4 +1,4 @@
-Feature: Virtual Payments
+Feature: payment exchanges
 AS a member company
 I WANT to pay my employees and suppliers rCredits automatically
 SO I don't have to do change my current payroll and accounting system
@@ -9,7 +9,7 @@ Setup:
   | id   | fullName   | email         |floor | minimum | maximum | flags                        |
   | .ZZA | Abe One    | a@example.com |    0 |      20 |     100 | dft,personal,ok,bona         |
   | .ZZB | Bea Two    | b@example.com |    0 |     100 |     200 | dft,personal,company,ok,bona |
-  | .ZZC | Corner Pub | c@example.com |    0 |      10 |      10 | dft,company,virtual,ok,bona  |
+  | .ZZC | Corner Pub | c@example.com |    0 |      10 |      10 | dft,company,payex,ok,bona  |
   | .ZZD | Dee Four   | d@example.com |    0 |     100 |     100 | dft,personal,ok,bona         |
   | .ZZE | Ezra Five  | e@example.com |    0 |     200 |      -1 | dft,personal,member          |
   And relations:
@@ -32,13 +32,13 @@ Scenario: a member company pays suppliers virtually
   | xid   | created | type     | state | amount | r    | from | to   | purpose               |
   | .AAAB | %today  | transfer | done  |      0 |    4 | ctty | .ZZA | rCredits/USD exchange |
   | .AAAC | %today  | transfer | done  |      0 |    4 | .ZZB | ctty | rCredits/USD exchange |
-  | .AAAD | %today  | transfer | done  |      0 |    4 | .ZZC | .ZZB | virtual payment       |
+  | .AAAD | %today  | transfer | done  |      0 |    4 | .ZZC | .ZZB | payment exchange       |
   | .AAAE | %today  | rebate   | done  |   0.20 | 0.20 | ctty | .ZZC | rebate on #1          |
   | .AAAF | %today  | bonus    | done  |   0.40 | 0.40 | ctty | .ZZB | bonus on #2           |
-  And we notice "virtual payments offered" to member ".ZZC" with subs:
+  And we notice "payment exchanges offered" to member ".ZZC" with subs:
   | offers | total | whom      |
   |      1 |   $4r | suppliers |
-  And we notice "virtual payment received" to member ".ZZB" with subs:
+  And we notice "payment exchange received" to member ".ZZB" with subs:
   | amount | fullName   | bonus |
   |    $4r | Corner Pub | $0.40 |
 
@@ -58,12 +58,12 @@ Scenario: a member company pays employees virtually
   | .AAAC | %today  | transfer | done  |              0 | %chunk         | ctty | .ZZD | rCredits/USD exchange |
   | .AAAD | %today  | transfer | done  |              0 | %(%chunk + 1)  | ctty | .ZZD | rCredits/USD exchange |
   | .AAAE | %today  | transfer | done  |              0 | %(%chunk3 + 1) | .ZZA | ctty | rCredits/USD exchange |
-  | .AAAF | %today  | transfer | done  |              0 | %chunk4        | .ZZC | .ZZA | virtual payment       |
+  | .AAAF | %today  | transfer | done  |              0 | %chunk4        | .ZZC | .ZZA | payment exchange       |
   | .AAAG | %today  | rebate   | done  | %(.05*%chunk4) | %(.05*%chunk4) | ctty | .ZZC | rebate on #1          |
   | .AAAH | %today  | bonus    | done  | %(.10*%chunk4) | %(.10*%chunk4) | ctty | .ZZA | bonus on #2           |
-  And we notice "virtual payments offered" to member ".ZZC" with subs:
+  And we notice "payment exchanges offered" to member ".ZZC" with subs:
   | offers | total        | whom      |
   |      1 | $%(%chunk4)r | employees |
-  And we notice "virtual payment received" to member ".ZZA" with subs:
+  And we notice "payment exchange received" to member ".ZZA" with subs:
   | amount       | fullName   | bonus              |
   | $%(%chunk4)r | Corner Pub | $%(.10*%chunk4).00 |

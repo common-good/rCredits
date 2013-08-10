@@ -54,6 +54,7 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     Inflation Setup MAKE
  *     LostUsdTxs Setup MAKE
  *     Notices Setup MAKE
+ *     Pilot Setup BOTH
  *     Recache Setup MAKE
  *     Sharing Setup MAKE
  *     Totals Setup MAKE
@@ -74,6 +75,8 @@ function members($list) {return t\members($list);}
  *     IncompleteUsdTxs Setup BOTH
  *     IncompleteUsdTxs ADwollaOutageLeavesATransactionIncomplete TEST
  *     Inflation Setup TEST
+ *     Pilot Setup BOTH
+ *     Pilot All TEST
  *     Recache Setup TEST
  *     Recache BalancesGetOutOfWhack BOTH
  *     Recache BalancesGetATinyBitOutOfWhack MAKE
@@ -98,6 +101,7 @@ function balances($list) {return t\balances($list);}
  *     Inflation InflationAdjustmentsAreDistributed MAKE
  *     LostUsdTxs ASystemCrashLeavesATransactionIncomplete MAKE
  *     Notices AMemberGetsSomeNotices MAKE
+ *     Pilot All MAKE
  *     Recache BalancesGetOutOfWhack MAKE
  *     Recache BalancesGetATinyBitOutOfWhack MAKE
  *     Sharing InflationAdjustmentsAreDistributed MAKE
@@ -116,6 +120,7 @@ function cronRuns($op) {return t\cronRuns($op);}
  *     Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank TEST
  *     Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank TEST
  *     IncompleteUsdTxs ADwollaOutageLeavesATransactionIncomplete TEST
+ *     Pilot All TEST
  *     VirtualPayments AMemberCompanyPaysSuppliersVirtually TEST
  *     VirtualPayments AMemberCompanyPaysEmployeesVirtually TEST
  */
@@ -132,7 +137,8 @@ function bankTransferCountIs($count) {return (t\usdTransferCount('payee=0') == $
 /**
  * relations: (ARG)
  *
- * in: Totals Setup MAKE
+ * in: Pilot Setup MAKE
+ *     Totals Setup MAKE
  *     VirtualPayments Setup MAKE
  */
 function relations($relations) {return t\relations($relations);}
@@ -147,6 +153,8 @@ function relations($relations) {return t\relations($relations);}
  *     Inflation Setup MAKE
  *     Inflation InflationAdjustmentsAreDistributed TEST
  *     LostUsdTxs Setup MAKE
+ *     Pilot Setup MAKE
+ *     Pilot All TEST
  *     Recache Setup MAKE
  *     Sharing Setup MAKE
  *     Sharing InflationAdjustmentsAreDistributed TEST
@@ -173,6 +181,7 @@ function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice,
  *
  * in: Gifts AContributionCanBeCompleted BOTH
  *     Gifts ARecurringContributionCanBeCompleted BOTH
+ *     Pilot Setup MAKE
  *     Sharing InflationAdjustmentsAreDistributed TEST
  */
 function gifts($gifts) {return t\gifts($gifts);}
@@ -244,7 +253,7 @@ function noticeCountIs($count) {
 /**
  * member (ARG) charges member (ARG) $(ARG) for (ARG)
  *
- * in: 
+ * in: Pilot All MAKE
  */
 function memberChargesMemberFor($payee, $payer, $amount, $for) {
   global $testOnly; if ($testOnly) return FALSE;

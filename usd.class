@@ -52,7 +52,7 @@ class usd {
     if ($info) { // presence of usdAccount is the indication of success or failure after registration
       $dw = $this->dwolla();
       extract($info); // exactly the args in the function call on the next line
-      $user = $dw->register($email, $usdPass, $pin, $first, $last, $address, $city, $state, $postalCode, $phone, $dob, $acceptTerms, @$address2, $acctType, $org, $ein);
+      $user = $dw->register($usdEmail, $usdPass, $usdPin, $first, $last, $dob, $type, @$organization, $ein, $acceptTerms, $scope, 2);
       dwError($dw, $err); // set error message, if any
       if ($this->number = $usdAccount = str_replace('-', '', @$user['Id'])) $acct->update(compact('usdAccount'));
       list ($this->type, $this->pin, $this->auth) = array('Dwolla', $pin, FALSE);
@@ -68,7 +68,7 @@ class usd {
    * @return: does not return, but initiates callback to receive auth token
    */
   public function getAuth() {
-    if (!$dw = $this->dwolla(FALSE, R_GET_AUTH_URI)) return FALSE; // tell Dwolla where to wake us up
+    if (!$dw = $this->dwolla(FALSE, R_GET_AUTH_URI)) return FALSE; // tell Dwolla where to wake us up (getAuth2)
 	  header('Location: ' . $dw->getAuthUrl()); // request an auth token
     exit();
   }    
@@ -81,12 +81,13 @@ class usd {
     if (t\est()) unset($_GET['error']);
     if (@$_GET['error']) return authReturn($_GET['error_description']);
 
-    $mya = r\acct();
+    $mya = r\acct(isDEV ? $uid : ''); // let admin get auth for anyone
     if ($uid != @$mya->id) return authReturn(u\tt('wrong user'));
     $usdAcct = new usd($mya);
     $dw = $usdAcct->dwolla(FALSE, R_GET_AUTH_URI); // URI must match the one in getAuth
     if (t\est()) $authToken = \user_password(); else
     if (!$authToken = $dw->requestToken(@$_GET['code'])) return authReturn($dw);
+//  die("uid=$uid code=" . $_GET['code'] . $_GET['error']);
 
     $secure = $mya->secure;
     $secure['auth'] = $authToken;
@@ -138,8 +139,7 @@ class usd {
     u\EXPECT(self::inAtom(), 'usd transfer outside atom');
     u\EXPECT(is_object($this->acct) and is_object($other->acct), 'empty account');
     u\EXPECT($this->acct->can(B_OK) and $other->acct->can(B_OK), 'non rTraders in usd send');
-
-    if ($this->acct->usd < $amount) return dwError('not enough', $err);
+    if ($this->acct->usd < $amount and $this->bal() < $amount) return dwError('not enough', $err);
     
     $source = $direct ? 'Dwolla' : 'ERROR'; // no delayed payments at present
     $notes = t\est() . USD_NOTE_PREFIX . $notes;
@@ -375,9 +375,9 @@ array (
       
       if (!noDw($dw) and $txid = $dw->send($usA2->pin, $usA1->number, $amount, 'Dwolla', $reverseNote)) {
         self::addToAtom($txid, $amount, $payee, $payer);
-        if ($feeable) r\queue('coverFee', u\assoc('txid payee', $txid, $payer));
+        if ($feeable) r\queue('coverFee', u\ray('txid payee', $txid, $payer));
       } else { // failure (probably insufficient Dwolla balance) so reverse it in rCredits instead
-        $info = u\assoc('payer payee amount r for taking', $payee, $payer, 0, $amount, $reverseNote, FALSE);
+        $info = u\ray('payer payee amount r for taking', $payee, $payer, 0, $amount, $reverseNote, FALSE);
         r\transact($info);
       }
       self::commit();
@@ -425,7 +425,6 @@ function dwError($dw, &$error = '') {
  */
 function authReturn($dw = '') {
   global $base_url;
-  $uri = "$base_url/account/usd/connected=";
   dwError($dw, $err);
-  return r\go($uri . ($err ?: 'yes'));
+  return r\go('',  $err);
 }

@@ -61,7 +61,9 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
 /**
  * member (ARG) confirms form (ARG) with values: (ARG)
  *
- * in: Flow AMemberOverdraws MAKE
+ * in: Contact AMemberUpdatesContactInfo MAKE
+ *     Contact AMemberGivesABadPhone MAKE
+ *     Flow AMemberOverdraws MAKE
  *     Flow AMemberOverdrawsAndDrawsFromBothRAndUSD MAKE
  *     RealUsd AMixedRCreditsUSDTransactionHappens MAKE
  *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance MAKE
@@ -71,7 +73,6 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     Signup ANewbieRegisters MAKE
  *     Signup ANewbieRegistersWithNoCase MAKE
  *     Signup AMemberRegistersBadEmail MAKE
- *     Signup AMemberRegistersBadPhone MAKE
  *     Signup AMemberRegistersBadName MAKE
  *     Signup AMemberRegistersBadZip MAKE
  *     Signup AMemberRegistersAgain MAKE
@@ -131,7 +132,9 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
 /**
  * members: (ARG)
  *
- * in: Download Setup MAKE
+ * in: Contact Setup MAKE
+ *     Contact AMemberUpdatesContactInfo TEST
+ *     Download Setup MAKE
  *     Flow Setup MAKE
  *     Get Setup MAKE
  *     Gift Setup MAKE
@@ -224,10 +227,11 @@ function weSayWithSubs($type, $index, $subs) {
 /**
  * we say (ARG): (ARG)
  *
- * in: Signin AMemberSignsInForTheFirstTime TEST
+ * in: Contact AMemberUpdatesContactInfo TEST
+ *     Contact AMemberGivesABadPhone TEST
+ *     Signin AMemberSignsInForTheFirstTime TEST
  *     Signin AMemberGivesTheWrongPassword MAKE
  *     Signup ANewbieRegisters TEST
- *     Signup AMemberRegistersBadPhone TEST
  *     Signup AMemberRegistersBadZip TEST
  *     Signup AMemberRegistersWithACompanyWithNoRelation TEST
  *     Signup AMemberRegistersACompany TEST
@@ -289,7 +293,8 @@ function weShowWithSubs($page, $subs) {
 /**
  * we show (ARG) with: (ARG)
  *
- * in: Membership AMemberClicksOnTheMembershipLink TEST
+ * in: Contact AMemberVisitsTheContactInfoPage TEST
+ *     Membership AMemberClicksOnTheMembershipLink TEST
  *     Membership ACompanyAgentClicksOnTheMembershipLink TEST
  *     Membership AMemberDoesItAll TEST
  *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
@@ -436,7 +441,8 @@ function usd($list) {return t\usd($list);}
 /**
  * member (ARG) visits page (ARG)
  *
- * in: Download AMemberDownloadsTransactionsForThePastYear MAKE
+ * in: Contact AMemberVisitsTheContactInfoPage MAKE
+ *     Download AMemberDownloadsTransactionsForThePastYear MAKE
  *     Download AMemberDownloadsCompletedTransactionsForThePastYear MAKE
  *     Membership AMemberHasIncompleteContactInformation MAKE
  *     Membership AMemberClicksOnTheMembershipLink MAKE
@@ -498,7 +504,6 @@ function memberIsLoggedOut() {
  *     Signup ANewbieRegisters MAKE
  *     Signup ANewbieRegistersWithNoCase MAKE
  *     Signup AMemberRegistersBadEmail MAKE
- *     Signup AMemberRegistersBadPhone MAKE
  *     Signup AMemberRegistersBadName MAKE
  *     Signup AMemberRegistersBadZip MAKE
  *     Signup AMemberRegistersAgain MAKE
@@ -577,8 +582,8 @@ function memberHasDoneStep($uid, $step) {
   $a = r\acct($uid = t\uid($uid));
 
   if ($step == 'photo') return file_put_contents(DRUPAL_ROOT . $a->auxFilename('picture', TRUE), 'whatever');
-  if ($step == 'agreement') return $a->update(u\assoc('signed', REQUEST_TIME));
-  if ($step == 'contribution') return r\dbInsert('r_gifts', u\assoc('uid amount', $uid, 123));
+  if ($step == 'agreement') return $a->update(u\ray('signed', REQUEST_TIME));
+  if ($step == 'contribution') return r\dbInsert('r_gifts', u\ray('uid amount', $uid, 123));
   if ($step == 'proxies') return r\dbQ('INSERT INTO r_proxies (person, proxy) VALUES (:uid, 2),(:uid, 3)', compact('uid'));
   
   if ($step == 'security') {
@@ -594,8 +599,8 @@ function memberHasDoneStep($uid, $step) {
     $secure['bankAccount'] = 'whatever';
     return $a->update(compact('secure'));
   }
-  if ($step == 'preferences') return $a->update(u\assoc('minimum', 0));
-  if ($step == 'invitation') return r\dbInsert('r_invites', u\assoc('inviter email code', $uid, 'any@example.com', 'whatever'));
+  if ($step == 'preferences') return $a->update(u\ray('minimum', 0));
+  if ($step == 'invitation') return r\dbInsert('r_invites', u\ray('inviter email code', $uid, 'any@example.com', 'whatever'));
     
   return FALSE;
 }
@@ -622,7 +627,7 @@ function weShow($title) {
 function memberSupplies($uid, $field, $value) {
   global $testOnly; if ($testOnly) return FALSE;
   $a = r\acct($uid = t\uid($uid));
-  return $a->update(u\assoc($field, $value));
+  return $a->update(u\ray($field, $value));
 }
 
 /**

@@ -16,7 +16,7 @@ define('R_SITE_URL', 'https://new.rCredits.org');
 define('R_REGION_POSTAL_AREA', '^01.*'); // anyone with a postal code that matches this regular expression is in the region
 date_default_timezone_set('America/New_York'); // server handles just one timezone
 define('DW_LAG', 1 * HOUR_SECS); // how many seconds later than us Dwolla's (Mountain Time) server sees the sun
-define('R_COUNTRY_ID', 1228); // United States
+define('R_COUNTRY_ID', 1228); // this region's country: United States
 define('R_STATE_ID', 1020); // Massachusetts
 define('R_REBATE', 5); // standard initial rebate percentage
 define('R_BONUS_FACTOR', 2); // standard bonus is this times standard rebate

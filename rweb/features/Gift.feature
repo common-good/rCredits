@@ -13,7 +13,7 @@ Setup:
   | .ZZA   |  100 |  20 |      20 |
 
 Scenario: A member contributes
-  When member ".ZZA" completes form "membership/contribute" with values:
+  When member ".ZZA" completes form "contribute" with values:
   | gift | amount | often | honor  | honored | share |
   |    0 |     10 |     1 | memory | Jane Do |    10 |
   Then transactions:
@@ -40,7 +40,7 @@ Scenario: A member contributes
 
 Scenario: A member contributes partly in USD
 # Donations to CGF get full rewards, even if given in USD.
-  When member ".ZZA" completes form "membership/contribute" with values:
+  When member ".ZZA" completes form "contribute" with values:
   | gift | amount | often | honor  | honored | share |
   |    0 |     50 |     1 | memory | Jane Do |    10 |
   Then transactions:
@@ -50,7 +50,7 @@ Scenario: A member contributes partly in USD
   | .AAAD | %today  | bonus    | done  |   5.00 | ctty | cgf  | bonus on #1  | 5.00 |
   
 Scenario: A member contributes with insufficient funds
-  When member ".ZZA" completes form "membership/contribute" with values:
+  When member ".ZZA" completes form "contribute" with values:
   | gift | amount | often | honor  | honored | share |
   |    0 |    200 |     1 | memory | Jane Do |    10 |
   Then we say "status": "gift successful|gift transfer later" with subs:

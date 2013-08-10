@@ -12,10 +12,10 @@ DAILY (every 5 mins for 5 mins, starting at 2am)
 - ** recache() check / recalc cached r, rewards, and usd
 - [later] checkAccts() thorough security / scam checks
 - ** totals() get community and system totals: variable_set('totals', )
-- ** paySuppliers(): automatic virtual payments to suppliers
+- ** paySuppliers(): automatic payment exchanges to suppliers
 - ** payEmployees(): Each employee (and supplier) gets relieved of their excess rCredits immediately if they don't have enough USD to trade the employer for them.
 - ** gifts(): contributions to CGF (not shares)
-- NO! * redistribute(): (selling of unwanted rCredits) looks at accounts over their maximum (maximum is ignored for companies that pay virtually)
+- NO! * redistribute(): (selling of unwanted rCredits) looks at accounts over their maximum (maximum is ignored for companies that do payment exchanges)
 - ** bank(): automatic transfers from bank accounts
 - (later) calculate credit line (for overdrafts, Dwolla outage (eg 503), etc.): give the payer (r)credit up to the amount they earned or bought in the past 5 days if they have been a member for a month, 30 days for 6 months
 - [later] notify and maybe fine late borrowers (might figure interest at the same time, since it requires examining each balance -- but only actually credit the interest monthly, otherwise discard it)
@@ -164,7 +164,7 @@ function coverFee($item) {
   }
   $for = t('Dwolla fee (reimbursed)');
   $keys = 'payer payee type amount r for taking usdXid';
-  $info = u\assoc($keys, $a->community, $payee, TX_REFUND, 0, $fee, $for, 0, $txid);
+  $info = u\ray($keys, $a->community, $payee, TX_REFUND, 0, $fee, $for, 0, $txid);
   r\transact($info);
 }
 
@@ -188,7 +188,7 @@ function inflationAdjust($item) {
  */
 function shareCommitted($item) {
   extract(u\just('uid committed', $item));
-  $info = u\assoc('giftDate uid amount often honor share', REQUEST_TIME, $uid, $committed, 1, 'share', -1);
+  $info = u\ray('giftDate uid amount often honor share', REQUEST_TIME, $uid, $committed, 1, 'share', -1);
   $DBTX = \db_transaction();
   r\dbInsert('r_gifts', $info);
   r\acct($uid)->update(array('committed' => 0));
@@ -232,7 +232,7 @@ function usdTxThere($item) {
 //  $cgf = variable_get('cgf_uid');
   $usAcct = new r\usd($acct = r\acct($uid));
 ///  debug(compact('uid','cgf','item'));
-  $since = strtotime('10 days ago'); // bank transfers sometimes take 7 days or more
+  $since = strtotime(R_ANCIENT_EFT. ' days ago'); // bank transfers sometimes take many days
   $usAcct->each('rCredits\\Cron\\usdTxQ', $since, u\ray('money_sent deposit withdrawal'));
 }
 
@@ -267,11 +267,11 @@ function lostUsdTx($tx) {
 function bankFollowup($tx) {
   extract(u\just('Id Amount Date SourceId ClearingDate Status', $tx));
   if ($Status != 'processed') return; // not 'pending'
-  $info = u\assoc('txid amount completed', $Id, -$Amount, strtotime($ClearingDate) + DW_LAG);
+  $info = u\ray('txid amount completed', $Id, -$Amount, strtotime($ClearingDate) + DW_LAG);
   if (!r\dbExists('r_usd', array('txid' => $Id))) { // system crash before request got recorded
     $omit = t\est() ? (variable_get('cgf_uid') - 1) : NULL; // ignore tester's account
     if (!$payer = r\whoseUsd($SourceId, $omit)) return; // probably tester
-    $info += u\assoc('created payer payee', strtotime($Date) + DW_LAG, $payer, 0);
+    $info += u\ray('created payer payee', strtotime($Date) + DW_LAG, $payer, 0);
   }
   r\dbUpdate('r_usd', $info, 'txid', TRUE); // update or (if crash) insert
 }
@@ -350,7 +350,7 @@ function payEmployees() {
 function payEmployeesEND() {queueNextAfter('payEmployees');}
 
 /**
- * Identify companies that have the given payment option and queue them up for virtualPayments.
+ * Identify companies that have the given payment option and queue them up for paymentExchanges.
  * @param int $which: SUPPLIERS (queue up payments to suppliers) or EMPLOYEES (queue up payments to staff)
  */
 function doCompanies($which) {
@@ -362,7 +362,7 @@ function doCompanies($which) {
     FROM r_relations r 
     LEFT JOIN users u ON u.uid=r.main
     LEFT JOIN users u2 ON u2.uid=r.other
-    WHERE r.amount>0 and (u.flags&(1<<:B_VIRTUAL)) AND (u.flags&(1<<:B_OK)) AND (u2.flags&(1<<:B_OK))
+    WHERE r.amount>0 and (u.flags&(1<<:B_PAYEX)) AND (u.flags&(1<<:B_OK)) AND (u2.flags&(1<<:B_OK))
     GROUP BY r.main
 EOF;
 	$result = r\dbQ($sql); // (can't use IS_ in query because flags field is ambiguous)
@@ -371,7 +371,7 @@ EOF;
 	  extract($row);
 	  $kitty = max(0, $r - max($minimum, $committed) - max(0, $floor)); // amount to pay out today for this group
     if ($which != 'EMPLOYEES') $kitty *= $tothese / $amounts; // limit suppliers to their share
-	  if ($kitty > 0 and $tothese > 0) r\queue('virtualPayments1', compact(u\ray('uid kitty tothese slack rightType'))); 
+	  if ($kitty > 0 and $tothese > 0) r\queue('paymentExchanges1', compact(u\ray('uid kitty tothese slack rightType'))); 
 	}
 }
 
@@ -384,7 +384,7 @@ EOF;
  *   UNUSED slack: how much capacity the recipients have (collectively) to be paid, before reaching their max
  *   rightType: employerOk (for employees) or NOT employerOk (for vendors)
  */
-function virtualPayments1($item) {
+function paymentExchanges1($item) {
   extract(u\just('uid kitty tothese rightType', $item));
   //$limit = ($kitty < $slack); // if there is enough slack, don't put anyone over their max
   //  SUM(IF($which, GREATEST(o.maximum, o.rewards)-o.r, 0)) AS slack, 
@@ -397,43 +397,43 @@ function virtualPayments1($item) {
     extract($row);
     $offer = round($amount * $kitty / $tothese, 2);
     if ($offer >= R_VPAYMENT_MIN) {
-      r\queue('virtualPayment', compact(u\ray('main other offer')));
+      r\queue('paymentExchange', compact(u\ray('main other offer')));
       $offers += 1;
       $total += $offer;
     }
   }
   $whom = $rightType == 'employerOk' ? 'employees' : 'suppliers';
   $total = u\fmtAmt($total, 's$r');
-  if ($offers) r\notify($uid, 'virtual payments offered', compact(u\ray('offers total whom')));
+  if ($offers) r\notify($uid, 'payment exchanges offered', compact(u\ray('offers total whom')));
 }
 
 /**
- * Pay one employee or supplier virtually.
+ * Do a payment exchange for one employee or supplier.
  * We use "acct1" for the company (the "from" account) and "acct2" for the employee or supplier (the "to" account).
  */
-function virtualPayment($item) {
+function paymentExchange($item) {
   extract(u\just('main other offer', $item));
   
   $usAcct1 = new r\usd($acct1 = r\acct($main)); // from
   $usAcct2 = new r\usd($acct2 = r\acct($other)); // to
   
-  //$max2 = $acct2->hasBit(B_VIRTUAL) ? 0 : $acct2->maximum;
+  //$max2 = $acct2->hasBit(B_PAYEX) ? 0 : $acct2->maximum;
   $newR = $acct2->r + $offer; // what $acct2 r balance will be after the offer is received
   $excess = round(max(0, $offer - $acct2->usd), 2); // USD shortfall = r to exchange for USD in a 3-way trade
   r\usd::beginAtom();
   $traded = $excess ? r\getUsd($excess, $acct2, $usAcct1) : 0; // give company partial USD through rCredits sale to 3rd party
 ///  debug(compact(u\ray('main other offer newR excess traded')));
-  if ($traded >= $excess and ($offer == $traded or $txid = $usAcct2->send($offer - $traded, $usAcct1, 'virtual payment exchange'))) { // other partially pays main in USD if not totally left to 3rd parties
-    $info = u\assoc('amount r payer payee for goods usdXid', 0, $offer, $main, $other, t('virtual payment'), TRUE, @$txid);
+  if ($traded >= $excess and ($offer == $traded or $txid = $usAcct2->send($offer - $traded, $usAcct1, 'payment exchange exchange'))) { // other partially pays main in USD if not totally left to 3rd parties
+    $info = u\ray('amount r payer payee for goods usdXid', 0, $offer, $main, $other, t('payment exchange'), TRUE, @$txid);
     r\transact($info); // total rCredits from company to other
     $amount = u\fmtAmt($offer, 's$r');
     $fullName = $acct1->fullName;
     $bonus = u\fmtAmt(r\bonus($other, $main, $offer));
-    r\notify($other, 'virtual payment received', compact(u\ray('amount fullName bonus')));
+    r\notify($other, 'payment exchange received', compact(u\ray('amount fullName bonus')));
     r\usd::commit();
   } else {
     r\usd::rollback();
-    virtualPaymentError($acct1, $acct2);
+    paymentExchangeError($acct1, $acct2);
   }
 }
 
@@ -456,7 +456,7 @@ function gift1($item) {r\acceptGift($item);}
 /*
 function redistribute() {
   $excess = ':R_CHUNK*FLOOR((:R_EXCESS-usd)/:R_CHUNK)';
-  $sql = "SELECT uid, $excess AS excess FROM users WHERE $excess>0 AND NOT :IS_VIRTUAL AND uid>0 AND :IS_OK";
+  $sql = "SELECT uid, $excess AS excess FROM users WHERE $excess>0 AND NOT :IS_PAYEX AND uid>0 AND :IS_OK";
   queueEach('sellR', $sql);
   queueNextAfter('redistribute');
 }
@@ -567,15 +567,15 @@ function queueNextAfter($task) {
   } else r\queue($tasks[array_search($task, $tasks) + 1]);
 }
 
-function virtualPaymentError($acct1, $acct2) {
-  virtualPaymentError1($acct1, 'to', $acct2);
-  virtualPaymentError1($acct2, 'from', $acct1);
+function paymentExchangeError($acct1, $acct2) {
+  paymentExchangeError1($acct1, 'to', $acct2);
+  paymentExchangeError1($acct2, 'from', $acct1);
   return FALSE;
 }
 
-function virtualPaymentError1($acct1, $way, $acct2) {
+function paymentExchangeError1($acct1, $way, $acct2) {
   $other = $acct2->fullName;
-  r\notify($acct1->id, 'pay virtual error', compact('way', 'other'));
+  r\notify($acct1->id, 'payment exchange error', compact('way', 'other'));
 }
 
 function queueEach($op, $sql, $subs = array()) {

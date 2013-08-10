@@ -1,0 +1,85 @@
+<?php
+//
+// Feature: Contact Information
+//   AS a member
+//   I WANT to update my name, phone, postal address, or physical address
+//   SO I can complete my registration and/or make sure I can be contacted by system administrators as needed.
+
+require_once __DIR__ . '/../../../gherkin/test-defs.php';
+require_once __DIR__ . '/../rweb.steps';
+
+class rwebContact extends DrupalWebTestCase {
+  var $subs; // percent parameters (to Given(), etc.) and their replacements (eg: %random1 becomes some random string)
+  var $sceneName;
+  const SHORT_NAME = 'Contact';
+  const FEATURE_NAME = 'rweb Test - Contact';
+  const DESCRIPTION = 'Contact Information';
+  const MODULE = 'rweb';
+
+  public function gherkin($statement, $type) {
+    $this->assertTrue(gherkinGuts($statement, $type), $statement, $this->sceneName);
+  }
+  
+  public static function getInfo() {
+    return array(
+      'short_name' => self::SHORT_NAME,
+      'name' => self::FEATURE_NAME,
+      'description' => self::DESCRIPTION,
+      'group' => ucwords(self::MODULE)
+    );
+  }
+
+  public function setUp() {} // must be compatible with DrupalWebTestCase::setUp()
+  
+  public function setUp2($sceneName, $variant = '') {
+    global $sceneTest; $sceneTest = $this;
+    parent::setUp(self::MODULE);
+
+    $this->subs = usualSubs();
+    $this->sceneName = __FUNCTION__;
+    if (function_exists('extraSetup')) extraSetup($this); // defined in rweb.steps
+    $this->sceneName = $sceneName;
+
+    switch ($variant) {
+    default: // fall through to case(0)
+    case(0):
+    Given('members: "DATA'
+    . '\\| id   | fullName   | address | city  | state  | postalCode | country | physical | email         | phone |'
+    . '\\| .ZZA | Abe One    |         | Atown | Alaska | 99100      | US      |          | a@example.com |       |"');
+    break;
+
+
+    }
+  }
+
+  // Scenario: A member visits the contact info page
+  public function testAMemberVisitsTheContactInfoPage_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member ".ZZA" visits page "account/contact"');
+    Then_('we show "Contact Information" with: "DATA'
+    . '\\| Your Name |'
+    . '\\| Abe One   |"');
+  }
+
+  // Scenario: A member updates contact info
+  public function testAMemberUpdatesContactInfo_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member ".ZZA" confirms form "account/contact" with values: "DATA'
+    . '\\| fullName | phone        | country | postalCode | state | city    | address | physical  |'
+    . '\\| Abe One  | 413-253-0001 | US      | 01002      | MA    | Amherst | POB 1   | 2 Elm St. |"');
+    Then_('members: "DATA'
+    . '\\| id   | fullName   | address | city    | state | postalCode | country | physical  | phone       |'
+    . '\\| .ZZA | Abe One    | POB 1   | Amherst | MA    | 01002      | US      | 2 Elm St. | 14132530001 |"');
+    And__('we say "status": "info saved"');
+  }
+
+  // Scenario: A member gives a bad phone
+  public function testAMemberGivesABadPhone_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member ".ZZA" confirms form "account/contact" with values: "DATA'
+    . '\\| fullName | phone   | country | postalCode | state | city    | address | physical  |'
+    . '\\| Abe One  | %random | US      | 01002      | MA    | Amherst | POB 1   | 2 Elm St. |"');
+    Then_('we say "error": "bad phone"');
+  }
+
+}

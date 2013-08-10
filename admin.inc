@@ -79,6 +79,25 @@ function changeIt($a) {
   $a->setBit(B_u19, FALSE);
 }
 
+function suUsd() {
+  $testUsdMin = DW_FEE_THRESHOLD;
+  $a = r\acct('NEW.AAA');
+  $us = new r\usd($a);
+  if (isDEV) {
+    t\clear(TX_WEB); // make sure the usdAccount is not used by anyone else
+    $a->update(u\ray('usdAccount', DW_TESTER_ACCT));
+    $us->getAuth();
+    die('should not return to suUsd');
+  }
+  if (isPRODUCTION and $us->bal() < $testUsdMin) {
+    $cgf = r\acct('NEW.AAB');
+    $for = 'testing';
+    be\transfer('payment', $a, $cgf, $testUsdMin, $for);
+    be\transfer('payment', $cgf, $a, $testUsdMin, $for); // CGF sends back the whole amount in usd
+    debug("$$testUsdMin traded with CGF");
+  }
+}
+
 /*
 https://rcredits.org:2083/cpsess4564554376/frontend/x3/mail/addfwd.html
 

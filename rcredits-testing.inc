@@ -154,7 +154,7 @@ function makeTx($info, $testOnly = FALSE) {
   
   if (abs($usd = $amount - $r) > DW_FEE_THRESHOLD and $state >= TX_DONE) {
 ///    debug(compact('xid','usdXid','payee','usd'));
-    r\queue('coverFee', u\assoc('txid payee', t\seq(), $usd > 0 ? $payee : $payer));
+    r\queue('coverFee', u\ray('txid payee', t\seq(), $usd > 0 ? $payee : $payer));
   }
   $txs = r\transact($info);
   return $txs[0]['xid'];

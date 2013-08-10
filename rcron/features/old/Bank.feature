@@ -149,7 +149,7 @@ Scenario: a member has no maximum
 Scenario: a member pays virtually
   Given members:
   | id   | fullName   | floor | minimum | maximum | flags                           |
-  | .ZZC | Corner Pub |     0 |      10 |       5 | dft,company,ok,virtual          |
+  | .ZZC | Corner Pub |     0 |      10 |       5 | dft,company,ok,payex          |
   And balances:
   | id   | r  | usd | rewards |
   | .ZZA | 50 |  50 |      20 |

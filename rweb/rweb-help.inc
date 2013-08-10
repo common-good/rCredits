@@ -96,7 +96,7 @@ EOF
     <p>To change settings in a Yes/No column, click on + or -. To remove someone from the list, make them all "No"s, and no permissions (if they are already that way, change something and change it back). Be sure to "Save Changes".</p>
     <p>You can allow another account to "draw" from this one to avoid overdrafts (a 25 cent fee may apply).</p>
 EOF
-    ) . ($company ? t('<p>If you give the person at least "Sell" permission (and save the record), you can request a Member ID Card for them to use on behalf of this account.</p><p>"$/mo" is the most important column. Type the amount you pay each employee or supplier in a month &mdash; more or less. Then, if you select the virtual payment option on the preferences page, your rCredits will get distributed every night to those employees and suppliers in exchange for US Dollars.</p>') : ''),
+    ) . ($company ? t('<p>If you give the person at least "Sell" permission (and save the record), you can request a Member ID Card for them to use on behalf of this account.</p><p>"$/mo" is the most important column. Type the amount you pay each employee or supplier in a month &mdash; more or less. Then, if you select the payment exchange option on the preferences page, your rCredits will get distributed every night to those employees and suppliers in exchange for US Dollars.</p>') : ''),
     
     'account/contact' => t(<<<EOF
     <p><b>Full name</b> should be your full legal name. If you change the name on the account, you will need to buy a new rCard and your account will be disabled until you supply new proof of identity. For companies, your rCredits website address will also change.</p>
@@ -152,7 +152,7 @@ EOF
 EOF
     ),
     'to-bank' => t(<<<EOF
-    <p>This "To bank" setting is probably a good idea unless you use your Dwolla account outside the rCredits system. It can take up to 3 days for the bank to receive the funds, once they are sent.</p>
+    <p>This "To bank" setting is probably a good idea unless you use your Dwolla account outside the rCredits system. It can take up to 5 days for the bank to receive the funds, once they are sent.</p>
 EOF
     ),
     'issue-credit' => t(<<<EOF
@@ -231,12 +231,12 @@ EOF
     <p>Invite as many people as you like, but only people you trust.</p>
 EOF
     ),
-    'virtual-payments' => t(<<<EOF
-    <p>Virtual payments are designed to make it easy for business owners and managers to use rCredits &mdash; harder to understand than paying people directly in rCredits, but much easier to use. Basically, you pay your employees and suppliers the usual way, on the usual schedule, in US Dollars, with no change to your payroll or accounting systems. Then they trade some of those US Dollars back to you for rCredits.</p>
+    'payment-exchanges' => t(<<<EOF
+    <p>Payment exchanges are designed to make it easy for business owners and managers to use rCredits. Pay your employees and suppliers the usual way, on the usual schedule, in US Dollars, with no change to your payroll or accounting systems. Then they trade some of those US Dollars back to you for rCredits.</p>
     <p>Payments are automated, based on what you choose for your account settings. Here's how it works:</p>
-    <img src="$rUrl/images/virtual-payments-companies.png" align="right"><p>Every day, customers pay you with rCredits and US Dollars. You get a 10% bonus on the rCredits part. Then at night, all the rCredits you took in get traded automatically to your employees and suppliers, in exchange for US Dollars. You get a 5% rebate on the exchange.</p>
+    <img src="$rUrl/images/payment-exchanges-companies.png" align="right"><p>Every day, customers pay you with rCredits and US Dollars. You get a 10% bonus on the rCredits part. Then at night, all the rCredits you took in get traded automatically to your employees and suppliers, in exchange for US Dollars. You get a 5% rebate on the exchange.</p>
     <p>How much does each employee and supplier get? They should get their usual share. On the "Relations" page, estimate how much you normally pay each employee or supplier in a typical month. Divide each one by 30 and that's their maximum daily share of the rCredits you pay out. At first you will have only small amounts of rCredits to pay out, so everyone gets proportionately less (automatically).</p>
-    <p>Someday, when rCredits become very popular, there may be accounting programs that make it easy to do payroll directly in rCredits. Meanwhile, virtual payments let you keep using your current payroll and accounting systems without change, and still have the effect of paying people in rCredits. The net effect for you is that you receive extra US Dollar income from using the rCredits system.</p>
+    <p>Someday, when rCredits become very popular, there may be accounting programs that make it easy to do payroll directly in rCredits. Meanwhile, payment exchanges let you keep using your current payroll and accounting systems without change, and still have the effect of paying people in rCredits. The net effect for you is that you receive extra US Dollar income from using the rCredits system.</p>
     <p>Your estimates of average monthly payments do NOT have to be exact. If an employee or supplier ends up buying more rCredits from you than their exact share, it's no big problem for anyone.</p>
 EOF
     ),

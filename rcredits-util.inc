@@ -10,12 +10,27 @@ use rCredits as r; // get rid of this
 use rCredits\Util as u;
 
 // Some useful Drupal db methods: fetchAllKeyed(m, n), fetchAssoc and fetchAllAssoc(fld), fetchObject and fetchAll(), fetchCol(n), fetchField()
+
 /**
- * Split the given string into an array
- * delimited by space, comma, or semi-colon, followed by any number of spaces, or by a bar surrounded by optional spaces
- * Entries in a comma-delimited list that contain a colon will be split into key and value.
+ * Return an array built from the argument(s).
+ * Call by:
+ *    ray(keys, value1, value2, ...) // return an associative array
+ *    ray(keys) // return the given string split into an array
+ *
+ * Either way, keys may be delimited by space, comma, or semi-colon, 
+ *   followed by any number of spaces, or by a bar surrounded by optional spaces
+ *   Entries in a comma-delimited simple list that contain a colon will be split into key and value.
+ * @param string $keys: delimited list of identifier names
+ * @param mixed $value1,...: arbitrary values
  */
-function ray($s) {
+function ray($s, $value1 = NULL) {
+  if (func_num_args() > 1) { // multi-argument call -- return an associative array
+    $args = func_get_args();
+    $keys = u\ray(array_shift($args));
+    u\EXPECT(count($keys) == count($args), 'assoc arg count mismatch');
+    return array_combine($keys, $args);
+  }
+
   EXPECT(compact('s'), 'string');
   $pattern = strpos($s, '|') ? ' *\| *' : (strpos($s, ',') ? '\, *' : (strpos($s, ';') ? '; *' : (strpos($s, ' ') ? ' +' : '\, *')));
   $simple = mb_split($pattern, $s);
@@ -27,20 +42,6 @@ function ray($s) {
     $array[$key] = $value;
   }
   return $array;
-}
-
-/**
- * Return an associative array built from the arguments.
- * Call by:
- *   assoc(keys, value1, value2, ...)
- * @param string $keys: space-delimited list of identifier names
- * @return assoc array whose keys and values are as listed
- */
-function assoc($keys, $value1) {
-  $args = func_get_args();
-  $keys = u\ray(array_shift($args));
-  u\EXPECT(count($keys) == count($args), 'assoc arg count mismatch');
-  return array_combine($keys, $args);
 }
 
 /* this is probably a bad idea
@@ -709,7 +710,10 @@ function normalizeCase($what, $proper = 'ucwords') {
     foreach ($what as $key => $value) $what[$key] = normalizeCase($what[$key], $proper);
     return $what;
   }
-  if ($proper = 'ucwords' and $what != strtolower($what) and $what != strtoupper($what)) return $what; // already mixed case
+  if ($proper = 'ucwords') {
+    if ($what != strtolower($what) and $what != strtoupper($what)) return $what; // already mixed case
+    if (substr($what, 0, 4) == 'POB ') return $what; // special case for PO boxes
+  }
   return $proper(strtolower($what));
 }
 
@@ -781,6 +785,27 @@ function formatNum($num, $format) {
   $newFormat = '$1';
   for ($i = 2; $i <= substr_count($format, '-') + 1; $i++) $newFormat .= '-$' . $i;
   return preg_replace("|\\b$oldFormat\\b|", $newFormat, $num);
+}  
+
+/**
+ * Get State and City for a given postal code (using the USPS API)
+ * @param string $zip: the US postal code to interpret
+ * @return assoc [state->2-letter state code (or NULL), city->city name (or NULL)]
+ */
+function parseZip($zip) {
+  $server = 'http://production.shippingapis.com/ShippingAPI.dll';
+  $userId = R_USPS_WEB_TOOLS_ID;
+  $zip = substr($zip, 0, 5);
+  $request = <<<EOF
+?API=CityStateLookup&XML=<CityStateLookupRequest USERID="$userId">
+     <ZipCode ID ="0">
+         <Zip5>$zip</Zip5>
+     </ZipCode>
+</CityStateLookupRequest>
+EOF;
+  if (!$result = simplexml_load_file($server . $request)) return FALSE;
+  $result = (array) $result->ZipCode;
+  return u\ray('state city', @$result['State'], ucwords(strtolower(@$result['City'])));
 }  
 
 // Single line functions that need no explanation

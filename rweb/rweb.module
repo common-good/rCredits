@@ -92,8 +92,8 @@ function rweb_menu() {
     'account/company' => r\Web\menu(t('Company Info'), MENU_LOCAL_TASK, 'showForm', array('Company'), 'manage company'),
     'another' => r\Web\menu(t('Open Another Account'), MENU_CALLBACK, 'showForm', array('Another'), 'manage'),
 //    'account/bank-info' => r\Web\menu(t('Bank Info'), MENU_LOCAL_TASK, 'showForm', array('Bank'), 'manage'),
-    'account/security' => r\Web\menu(t('Security'), MENU_LOCAL_TASK, 'showForm', array('Security', 2), 'manage'),
     'account/bank' => r\Web\menu(t('Bank'), MENU_LOCAL_TASK, 'showForm', array('Bank', 2), 'manage'),
+    'account/security' => r\Web\menu(t('Security'), MENU_LOCAL_TASK, 'showForm', array('Security', 2), 'manage'),
     'account/preferences' => r\Web\menu(t('Preferences'), MENU_LOCAL_TASK, 'showForm', array('Options'), 'manage'),
     'account/relations' => r\Web\menu(t('Relations'), MENU_LOCAL_TASK, 'showForm', array('Relations'), 'manage'),
     'account/cells' => r\Web\menu(t('Cell Phones'), MENU_LOCAL_TASK, 'showForm', array('Cells'), 'manage'),
@@ -102,7 +102,8 @@ function rweb_menu() {
 
     'sadmin' => r\Web\menu(t('Admin'), MENU_NORMAL_ITEM, 'showForm', array('Admin'), 'admin'),
     'handy' => r\Web\menu('Handy', MENU_NORMAL_ITEM, 'handyLinks', array(), 'admin'),
-    'tests' => r\Web\menu('Tests', MENU_NORMAL_ITEM, 'testMenu', array(), 'admin'),
+    'tests' => r\Web\menu('Tests', MENU_NORMAL_ITEM, 'util', array('tests'), 'admin'),
+    'php' => r\Web\menu('PHP', MENU_NORMAL_ITEM, 'util', array('php'), 'admin'),
     
 //    'membership' => r\Web\menu(t('Membership Status'), MENU_CALLBACK, 'showForm', array('Membership'), 'manage'),
 //    'video' => r\Web\menu(t('Videos'), MENU_LOCAL_TASK, 'showForm', array('Videos', 2), '', $anyone),

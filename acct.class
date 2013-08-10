@@ -62,6 +62,9 @@ class acct {
     $fullName = @$my_fullName ?: $info['name'];
     $flags = @$my_flags ?: B_DFT;
     $rebate = @$rebate ?: R_REBATE;
+    if (@$my_state and !is_numeric($my_state)) { // allow state abbrevs within US
+      $state = dbLookup('id', 'r_states', 'abbreviation=:my_state and country_id=:US_COUNTRY_ID', compact('my_state'));
+    }
     $community = communityUid(@$my_postal); // defaults to current server
     $data = serialize(@$my_data ?: array());
 //    $frozen = serialize(array());
@@ -69,7 +72,7 @@ class acct {
     $companyInfo = u\just(R_COMPANY_FIELDS, $info);
     foreach ($companyInfo as $key => $value) unset($info[$key]);
 
-    $info = compact(u\ray('phone status mail init pass name fullName flags rebate community data created login access')) + $info;
+    $info = compact(u\ray('phone status mail init pass name fullName state flags rebate community data created login access')) + $info;
 
     $DBTX = db_transaction();
     if ($uid = @$my_uid) {
@@ -134,7 +137,11 @@ class acct {
     return self::$records[$id] = (object) (((array) $records[0]) + compact('access'));
   }
 
-  public function reread() {self::getRecord($this->id, TRUE);}
+  /**
+   * Read in the account record, if we haven't yet.
+   * This function should be called before any reference to self::$records[$this->id] (except in contructor).
+   */
+  public function reread() {if (!@self::$records[$this->id]) self::getRecord($this->id, TRUE);}
   
   /**
    * Return the value of the specified field that is not a simple property of the acct class.
@@ -144,7 +151,7 @@ class acct {
    *   language: returns what Drupal would
    */
   public function __get($field) {
-    if (!@self::$records[$this->id]) $this->reread(); // necessary when we pass an acct object to another page
+    $this->reread(); // necessary when we pass an acct object to another page
 //    u\EXPECT(property_exists(self::$records[$this->id], $field), "bad field for uid $this->id: $field" . print_r(self::$records[$this->id], 1));
     if ($field == 'agent') return acct($this->agentId);
     if (in_array($field, u\ray(R_SECRET_FIELDS))) $this->getHidden();
@@ -172,7 +179,7 @@ class acct {
    *   NOTE: getHidden is ignored if $just is specified
    */
   public function account($just = '', $getHidden = FALSE) {
-    if (!@self::$records[$this->id]) $this->reread(); // make sure we have read the record from the db
+    $this->reread(); // make sure we have read the record from the db
     if (($getHidden or $just) and !$this->gotOffsite()) {
       if ($just) $getHidden = (count(array_intersect(u\ray($just), u\ray(R_SECRET_FIELDS))) > 0);
       if ($getHidden) $this->getHidden();
@@ -182,6 +189,7 @@ class acct {
   }
 
   private function gotOffsite($set = FALSE) {
+    $this->reread();
     if ($set) {
       self::$records[$this->id]->gotOffsite = TRUE; // applies to all objects for the id
     } else return @self::$records[$this->id]->gotOffsite;
@@ -191,6 +199,7 @@ class acct {
    * Read protected personal identifying information fields into the account record
    */
   private function getHidden() {
+    $this->reread();
     if (!$this->offsite or $this->gotOffsite()) return; // no offsite data or already got it
     $data = (array) offsiteData($this->offsite); // get protected data from offsite
     foreach ($data as $key => $value) self::$records[$this->id]->$key = $value;
@@ -215,10 +224,9 @@ class acct {
    * @return: FALSE if update fails (saving either onsite or offsite)
    */
   public function update($info, $just = NULL) {
-    //if (!@self::$records[$this->id]->uid) self::$records[$this->id] = \user_load($this->id);
+    $this->reread();
     if (isset($just)) $info = u\just($just, $info);
     if (isset($info['data'])) $info['data'] = serialize($info['data']);
-//    if (isset($info['frozen'])) $info['frozen'] = serialize($info['frozen']);
     if (isset($info['secure'])) { // serialize and encrypt before updating this
       $usdArray = $info['secure'] + ($this->secure ?: array());
       $info['secure'] = u\ezencrypt(serialize($usdArray), R_WORD);
@@ -248,7 +256,7 @@ class acct {
   public function usd($info = FALSE, &$err = '') {return new r\usd($this, $info, $err);}
   public function proSe() {return ($this->id == $this->agentId);}  
   public function qid() {return $this->proSe() ? $this->mainQid : r\quid($this->id, $this->agentId);}
-  public function isNonprofit() {return (bool) (r\dbLookup('structure', 'r_companies', 'uid=:id', array('id' => $this->id)) & u\bit(R_NONPROFIT));}
+  public function isNonprofit() {return (bool) ($this->structure & u\bit(R_NONPROFIT));}
   public function gotContact() {return ($this->phone and $this->address and $this->physical and $this->city and $this->country);}
   
   /**
@@ -273,6 +281,7 @@ class acct {
    * @param boot $now: whether to write to the database (DEFAULT TRUE) or just to the cache (awaiting write)
    */
   public function setBit($bit, $on = TRUE, $now = TRUE) {
+    $this->reread();
 // gets caught anyway    u\EXPECT(compact('int', 'on'), 'int bool');
     u\EXPECT($bit <= B_MAX, 'setting too big a bit');
     $bit = u\bit($bit0 = $bit);
@@ -460,10 +469,33 @@ EOF;
   public function waitingToBank($justTo = FALSE) {
     $where = 'payer=:id AND payee=0 AND NOT completed AND created>:ancient';
     if ($justTo) $where .= ' AND amount>0';
-    list ($id, $ancient) = array($this->id, REQUEST_TIME - 4 * DAY_SECS);
+    list ($id, $ancient) = array($this->id, REQUEST_TIME - R_ANCIENT_EFT * DAY_SECS);
     return r\dbLookup('SUM(amount)', 'r_usd', $where, compact('id', 'ancient')) + 0;
   }
 
+  /**
+   * Create Dwolla account.
+   */
+  function createUsdAccount() {
+    $usdPass = strtolower(u\nonce(10)) . '*B2'; // satisfy Dwolla (and our own security)
+    $usdEmail = \username(3) . '.' . $this->mainQid . '@rcredits-org.com'; // isDEV means testing
+///    debug(compact('email','usdPass'));
+    $usdPin = u\randomString(4, 'digits');
+    $this->update(compact(u\ray('usdPass usdEmail usdPin')));
+    if ($this->can(B_PERSONAL)) {
+      $fullName = $this->fullName;
+      $type = 'Personal';
+    } else {
+      $fullName = r\acct($this->data['by'])->fullName;
+      $type = $this->isNonprofit() ? 'NonProfit' : 'Commercial';
+      $organization = $this->fullName;
+    }
+    list ($first, $last) = u\parseName($fullName);
+    list ($dob, $ein, $acceptTerms) = array($this->dob, $this->federalId, TRUE);
+    $scope = 'AccountInfoFull|Contacts|Transactions|Balance|Send|Request|Funding|ManageAccount';
+    $usd = new r\usd($this, compact(u\ray('usdEmail usdPass usdPin first last dob type organization ein acceptTerms scope')), $err);
+  }
+  
   /**
    * Return an SMS number for the account.
    * @return: the number or null if none

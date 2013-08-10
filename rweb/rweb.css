@@ -30,7 +30,7 @@ div#shout {position:absolute; z-level:2; left:300px; top:100px; background-color
 .sidebar-first #content {margin-left:0; float:right;}
 .logged-in #content {margin-left:0px; float:left; display:block;} /* keeps autocomplete from getting placed in a wacky position */
 .not-logged-in #content {clear:none; max-width:100%;}
-.not-logged-in #sidebar-first {display:inline-block; margin-left:20px; margin-top:0; width:215px; padding-top:5px; border:1px solid darkgreen; clear:none;}
+/*.not-logged-in #sidebar-first {display:inline-block; margin-left:20px; margin-top:0; width:215px; padding-top:5px; border:1px solid darkgreen; clear:none;} */
 .not-logged-in #sidebar-first .section {padding:0px;} */
 .not-logged-in #block-user-login {padding:0px; padding-left:12px; margin-bottom:0px;}
 
@@ -96,10 +96,11 @@ ul.tabs.primary {padding:0; margin-left:4em; margin-top:.8em; font-size:85%;}
 #accounts .region-accounts {float:right; margin-right:0px; width:100%;}
 #accounts .content, #accounts .form-item-acct-account {margin:0; padding:0;}
 #accounts .form-type-textfield, #accounts .form-type-select,
-#accounts #edit-acct-settings,
+#accounts #edit-acct-settings {float:right;}
+#accounts img {height:24px;}
+#accounts #edit-acct-settings div {width:20px; height:20px; background-image:url(../images/icons/gear-white.png); background-size:20px 20px; margin:3px 5px 0 5px;}
 #accounts #edit-acct-icon {float:right; margin:0 5px 0 0;} 
-#rcreditswebformaccounts img {height:24px;}
-#accounts #edit-acct-icon #my_icon {border:1px solid white;}
+#accounts #edit-acct-icon img {height:24px; border:1px solid white;}
 #accounts #edit-acct-account {float:right; padding:0 2px; width:auto; height:27px; margin:0; font-size:100%; border:0; background-color:white;}
 #rcreditswebformaccounts #edit-acct-submit {display:none;} /* Drupal requires unused button to be there, so make it invisible */
 #edit-acct-showmenu, #edit-acct-showhelp {display:none;}
@@ -163,7 +164,8 @@ form.rweb  .form-no {color:red;}
   form.labeled .form-textarea-wrapper {display:inline-block;}
 
   form.labeled  .form-radios {margin-left:0px; display:inline-block;}
-  form.labeled .form-type-radios {border-bottom:1px solid darkgreen; margin-bottom:.4em;}
+/*  form.labeled .form-type-radios {border-bottom:1px solid darkgreen; margin-bottom:.4em;} */
+  form.labeled .form-type-radios {margin-bottom:.4em;}
   form.labeled .form-type-radio {display:block;} /* less good for browser, better for mobile */
   form.labeled .yesno .form-type-radio {display:inline-block;}
   form.labeled  .form-type-checkbox .description {margin-left:5px;}
@@ -438,7 +440,7 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformrelations .rel-owner {width:13%;}
 #rcreditswebformrelations .rel-permission {width:18%;}
 #rcreditswebformrelations .rel-link {width:4%;}
-#rcreditswebformrelations .highlight input {background-image:url(../images/buttons/buttons-highlight.png);}
+#rcreditswebformrelations .highlight input {background-image:url(../images/icons/buttons-highlight.png);}
 
 /* Open Another Account form */
 #rcreditswebformanother #edit-relationprompt {font-weight:bold; margin-bottom:5px;}
@@ -516,6 +518,12 @@ html.js input.throbbing {background-position:right -2.4em;}
 #rcreditswebforminvite #edit-subtext {margin-left:0;}
 #rcreditswebforminvite .form-item-trusted {border:0;}
 #rcreditswebforminvite .form-item-subject {margin-top:20px;}
+
+/* Settings */
+#rcreditswebformsettings #edit-icons .form-item {display:inline-block; height:250px; width:150px; margin:15px;}
+#rcreditswebformsettings #edit-icons .img {vertical-align:middle; height:150px;}
+#rcreditswebformsettings #edit-icons .caption {text-align:center; font-size:150%; font-weight:bold; color:darkblue; margin-top:-20px;}
+#rcreditswebformsettings #edit-icons img {width:130px; margin:0 10px;}
 
 /* Photo */
 #rcreditswebformphoto .user-picture {display:inline-block; padding:0; margin-right:5px;}
@@ -642,6 +650,7 @@ and (max-device-width : 480px) { */
   #accounts {top:0;} /* account dropdown */
   #accounts .region-accounts {margin:0; padding-right:10px;}
   #accounts select, #accounts input {font-size:1.5em; overflow:none;}
+  #accounts #edit-acct-settings div {background-image:url(../images/icons/gear-gray.png);}
   #edit-acct-showmenu,
   #edit-acct-showhelp {display:block; position:absolute; left:100%; top:32px; font-size:14px; margin:5px 0 0 0; z-index:2;}
   #edit-acct-showmenu {margin-left:-35px;}
@@ -663,7 +672,7 @@ and (max-device-width : 480px) { */
   #help-close {display:none;}
 
   #edit-title, form.labeled #edit-title {display:block; position:absolute; left:0; top:28px; margin:0; padding:2px 0 2px 15px; background:silver; z-index:1; height:42px;}
-  #edit-title label, form.rweb #edit-title label {font-size:20px;}
+  #edit-title label, form.rweb #edit-title label {font-size:20px; margin-top:5px;}
   
   fieldset.popup, fieldset.popup legend {border:0; box-shadow:none; -webkit-box-shadow:none; -moz-box-shadow:none; border-radius:0; -moz-border-radius:0; -webkit-border-radius:0;}
   fieldset.popup, fieldset.popup select, fieldset.popup label, fieldset.popup legend {width:100%; left:0; border:0;}
@@ -685,6 +694,7 @@ and (max-device-width : 480px) { */
   #rcreditswebformi .user-picture {margin-bottom:10em;}
   
   #rcreditswebformmembership #edit-steps {margin-left:0;}
+  #rcreditswebformsettings #edit-icons {display:none;}
   
   #rcreditswebformtx {width:100%;}
 //  #rcreditswebformtx .form-type-radios {display:inline-block; margin-left:25px; max-width:160px; border:2px solid darkblue;}

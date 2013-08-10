@@ -140,25 +140,25 @@ EOF;
  *   bool $bonuses: include rebate and bonus transactions (default FALSE)
  *   bool $exchanges: include exchanges of rCredits credit for USD credit (default FALSE)
  *    (but ALWAYS include other rewards/loans etc)
- *   bool $vpayments: include virtual payments (to employees/suppliers or from company) (default FALSE)
+ *   bool $pexchanges: include payment exchanges (to employees/suppliers or from company) (default FALSE)
  * @return the recordset (FALSE if none)
  * NOTE: Denied invoices are included only for the payee, otherwise all complete or tentative transactions
  * other than rebates and bonuses are included (even those will be included if the 'include_bonuses' option is set).
  */
 function myTransactions($starting, $ending, $id = NULL, $opts = array()) {
-  extract(u\just('dones pendings bonuses exchanges vpayments', $opts));
+  extract(u\just('dones pendings bonuses exchanges pexchanges', $opts));
   u\setDft($dones, TRUE);
   u\setDft($pendings, TRUE);
   u\setDft($bonuses, FALSE);
   u\setDft($exchanges, FALSE);
-  u\setDft($vpayments, FALSE);
+  u\setDft($pexchanges, FALSE);
   $mya = r\acct();
   if (!@$id) $id = $mya->id; elseif ($id == 'ctty') $id = $mya->community;
   $where = 't.created>=:starting AND t.created<=:ending';
   if (!$bonuses) $where .= ' AND t.type>=0';
-  if (!$exchanges or !$vpayments) {
+  if (!$exchanges or !$pexchanges) {
     $maybe = $exchanges ? 'NOT' : '';
-    $where .= ($exchanges or $vpayments) ? " AND (amount>0 OR t.data $maybe LIKE '%rebate%')" : ' AND amount>0';
+    $where .= ($exchanges or $pexchanges) ? " AND (amount>0 OR t.data $maybe LIKE '%rebate%')" : ' AND amount>0';
   }
   $where .= ' ORDER BY t.xid DESC';
   $states = $dones ? array(TX_DONE, TX_DISPUTED) : array();
@@ -503,7 +503,7 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   );
   $preapproved = (@$data['preapproved'] or !$taking or $unilateral); // paying OR permitted to charge unilaterally
 //  $state = ($preapproved and !@$data['pay_all'])? TX_DONE : TX_PENDING;
-//  $virtual = ($goods and !$taking and $a1->can(B_VIRTUAL) and r\isEmployee($uid));
+//  $virtual = ($goods and !$taking and $a1->can(B_PAYEX) and r\isEmployee($uid));
   $virtual = FALSE; // this is done only automatically
   $state = ($preapproved and !$virtual)? TX_DONE : TX_PENDING; // may be changed to TX_TENTATIVE below
   
@@ -593,7 +593,7 @@ function fund($uid, $type, $amount, $for, $confirmed = TRUE) {
   $taking = ($type >= TX_FINE);
   r\transact(compact(u\ray('type amount payer payee payerAgent payeeAgent for taking')));
   $amount = u\fmtAmt($amount);
-  r\notify($uid, 'got funding', u\assoc('amount type', $amount, $for));
+  r\notify($uid, 'got funding', u\ray('amount type', $amount, $for));
   return $amount;
 }
 

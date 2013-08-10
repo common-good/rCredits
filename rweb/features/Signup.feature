@@ -27,11 +27,11 @@ Scenario: An invited newbie visits the registration page
 Scenario: A newbie registers
   Given invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"
   When member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values:
-  | fullName | email         | phone | country | postalCode | state | city  | acctType | code        |
-  | Abe One | a@example.com | (413) 253-0000 | US | 01001 | MA | Amherst | %R_PERSONAL  | s0M3_rAnd0M_c0D3 |
+  | fullName | email         | country | postalCode | acctType     | code             |
+  | Abe One  | a@example.com | US      | 01001      | %R_PERSONAL  | s0M3_rAnd0M_c0D3 |
   Then members:
-  | id   | fullName | email         | phone        | country | postalCode | state | city | flags | floor |
-  | .AAC | Abe One  | a@example.com | +14132530000 | US | 01001 | MA | Amherst | dft,personal | 0 |
+  | id   | fullName | email         | country | postalCode | state | city    | flags        | floor |
+  | .AAC | Abe One  | a@example.com | US      | 01001      | MA    | Amherst | dft,personal | 0     |
 #  | .AAC | Abe One  | a@example.com | +14132530000 | US | 01001 | MA | Amherst | dft,personal | %R_SIGNUP_BONUS |
   And we say "status": "your account is ready"
 #  | .AAC | $%R_SIGNUP_BONUS |
@@ -52,27 +52,20 @@ Scenario: A newbie registers
 Scenario: A newbie registers with no case
   Given invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"
   When member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values:
-  | fullName | email         | phone          | country | postalCode | state | city    | address | physical        | acctType    | code             |
-  | abe one  | a@example.com | (413) 253-0000 | US      | 01001      | MA    | AMHERST | 21 A ST | 21 a st., amherst | %R_PERSONAL | s0M3_rAnd0M_c0D3 |
+  | fullName | email         | country | postalCode | acctType     | code             |
+  | abe one  | a@example.com | US      | 01001      | %R_PERSONAL  | s0M3_rAnd0M_c0D3 |
   Then members:
-  | id   | fullName | email         | phone        | country | postalCode | state | city | address | physical | flags | floor |
-  | .AAC | Abe One  | a@example.com | +14132530000 | US | 01001 | MA | Amherst | 21 A St | 21 A St., Amherst | dft,personal | 0 |
+  | id   | fullName | email         | country | postalCode | state | city    | flags        | floor |
+  | .AAC | Abe One  | a@example.com | US      | 01001      | MA    | Amherst | dft,personal | 0     |
 
 Scenario: A member registers bad email
   Given invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"
   When member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values:
-  | fullName | email     | phone | country | postalCode | state | city    | acctType | code |
-  | Abe One   | %whatever | 413-253-0001 | US      | 01001       | MA    | Amherst | %R_PERSONAL  | s0M3_rAnd0M_c0D3 |
+  | fullName  | email     | country | postalCode | acctType    | code             |
+  | Abe One   | %whatever |  US     | 01001      | %R_PERSONAL | s0M3_rAnd0M_c0D3 |
   Then we say "error": "bad email" with subs:
   | email     |
   | %whatever |
-
-Scenario: A member registers bad phone
-  Given invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"
-  When member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values:
-  | fullName | email     | phone | country | postalCode | state | city    | acctType | code |
-  | Abe One   | a@example.com | %random | US      | 01001       | MA    | Amherst | %R_PERSONAL  | s0M3_rAnd0M_c0D3 |
-  Then we say "error": "bad phone"
 
 Scenario: A member registers bad name
   Given invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"

@@ -60,7 +60,7 @@ class rwebMembership extends DrupalWebTestCase {
   // Scenario: A member has incomplete contact information
   public function testAMemberHasIncompleteContactInformation_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ".ZZA" visits page "membership"');
+    When_('member ".ZZA" visits page "status"');
     Then_('we show "Missing Contact Information"');
   }
 
@@ -68,7 +68,7 @@ class rwebMembership extends DrupalWebTestCase {
   public function testAMemberClicksOnTheMembershipLink_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('member ".ZZA" supplies "physical": "planet Earth"');
-    When_('member ".ZZA" visits page "membership"');
+    When_('member ".ZZA" visits page "status"');
     Then_('we show "Congratulations on signing up" with: "DATA'
     . '\\| Step 1 | Step 2    | Step 3       | Step 4            | Step 5   | Step 6  | Step 7      |'
     . '\\| photo  | Agreement | contribution | Choose two people | security | Connect | Preferences |"');
@@ -79,7 +79,7 @@ class rwebMembership extends DrupalWebTestCase {
   public function testACompanyAgentClicksOnTheMembershipLink_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('member ".ZZC" supplies "physical": "planet Earth"');
-    When_('member ":ZZA" visits page "membership"');
+    When_('member ":ZZA" visits page "status"');
     Then_('we show "Congratulations on signing up" with: "DATA'
     . '\\| Step 1 | Step 2    | Step 3       | Step 4   | Step 5      |'
     . '\\| photo  | Agreement | contribution | security | Preferences |"');
@@ -94,39 +94,39 @@ class rwebMembership extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('member ".ZZA" supplies "physical": "planet Earth"');
     And__('member ".ZZA" has done step "agreement"');
-    When_('member ".ZZA" visits page "membership"');
+    When_('member ".ZZA" visits page "status"');
     Then_('we show "You\'re getting there"');
     And__('with done "2"');
     When_('member ".ZZA" has done step "contribution"');
-    And__('member ".ZZA" visits page "membership"');
+    And__('member ".ZZA" visits page "status"');
     Then_('with done "23"');
     When_('member ".ZZA" has done step "photo"');
-    And__('member ".ZZA" visits page "membership"');
+    And__('member ".ZZA" visits page "status"');
     Then_('with done "123"');
     When_('member ".ZZA" has done step "proxies"');
-    And__('member ".ZZA" visits page "membership"');
+    And__('member ".ZZA" visits page "status"');
     Then_('with done "1234"');
     And__('we tell staff "event" with subs: "DATA'
     . '\\| fullName | quid | status |'
     . '\\| Abe One  | .ZZA | member |"');
     When_('member ".ZZA" has done step "security"');
-    And__('member ".ZZA" visits page "membership"');
+    And__('member ".ZZA" visits page "status"');
     Then_('with done "12345"');
     When_('member ".ZZA" has done step "connect"');
-    And__('member ".ZZA" visits page "membership"');
+    And__('member ".ZZA" visits page "status"');
     Then_('we show "You\'re getting there" with: "DATA'
     . '\\| note             |'
     . '\\| pending approval |"');
     And__('with done "123456"');
     When_('member ".ZZA" has done step "preferences"');
-    And__('member ".ZZA" visits page "membership"');
+    And__('member ".ZZA" visits page "status"');
     Then_('we show "Your Account Setup Is Complete"');
     And__('with done ""');
     And__('we tell staff "event" with subs: "DATA'
     . '\\| fullName | quid | status |'
     . '\\| Abe One  | .ZZA | ready  |"');
     When_('member ".ZZA" has permission "ok"');
-    And__('member ".ZZA" visits page "membership"');
+    And__('member ".ZZA" visits page "status"');
     Then_('we show "Your account is Activated" without: "DATA'
     . '\\| note             |'
     . '\\| pending approval |"');

@@ -1,5 +1,11 @@
+2013-08-06
+. changed "virtual payments" to "payment exchanges”
+. Changed maximum bank delay to 10 days.  Patched on production server. Fixes double bank withdrawal bug. 
+. City and state zip code without using USPS API 
+. Icons on settings page 
+
 2013-07-29
-- use internal Dwolla sandbox (including changes to settings.php and dwolla.php)
+- Option to use internal Dwolla sandbox (including changes to settings.php and dwolla.php)
 - calculator for mobile amount entry
 - simplified mobile header, menus, global links, and help
 - fixed mobile formatting on Preferences page

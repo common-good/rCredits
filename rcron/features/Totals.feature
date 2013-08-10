@@ -11,7 +11,7 @@ Setup:
   | id   | fullName   | email         | flags                       | minimum | floor | share |
   | .ZZA | Abe One    | a@example.com | dft,ok,personal,bona        |       5 |     0 |    10 |
   | .ZZB | Bea Two    | b@example.com | dft,ok,personal,bona        |    1000 |   -20 |    20 |
-  | .ZZC | Corner Pub | b@example.com | dft,ok,company,bona,virtual |    2000 |    10 |    30 |
+  | .ZZC | Corner Pub | b@example.com | dft,ok,company,bona,payex |    2000 |    10 |    30 |
   And relations:
   | id   | main | agent | permission |
   | .ZZA | .ZZA | .ZZB  | buy        |

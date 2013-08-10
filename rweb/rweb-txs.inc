@@ -10,13 +10,13 @@ use rCredits as r;
  * Forms for managing transactions, and related functions
  */
 
-define('TX_OPT_KEYS' , 'agents channels boxes exchanges vpayments');
+define('TX_OPT_KEYS' , 'agents channels boxes exchanges pexchanges');
 define('TX_URL_OPTS', 'currency states ' . TX_OPT_KEYS);
 define('TX_OPT_AGENTS', 1);
 define('TX_OPT_CHANNELS', 2);
 define('TX_OPT_BOXES', 3);
 define('TX_OPT_EXCHANGES', 4);
-define('TX_OPT_VPAYMENTS', 5);
+define('TX_OPT_PEXCHANGES', 5);
 
 define('STATES_DONE', 0); // show just completed transactions
 define('STATES_PENDING', 1); // show just open invoices
@@ -36,7 +36,7 @@ define('RUSD_BOTH', 2); // show both rCredits (0) and USD (1)
 function formTxs($form, &$sta, $args = '') {
   global $agtViaBox;
   $agtViaBox = t('Agent is who did the transaction on your behalf.|Channel (Via) is where the transaction originated -- what type of device: Web, Smartphone, SMS, or Automatic.|Box is where the transaction originated -- which specific device.');
-  $optHelp = $agtViaBox . '|' . t('Exchanges are 1-to-1 trades of US Dollars for rCredits (usually automatic).|Vpayments are daily automatic virtual payments of rCredits by a company to an employee. The company pays the employee in US Dollars, then the employee trades back some US Dollars 1-to-1 for rCredits. The net effect is that the employee gets paid partly in US Dollars, partly in rCredits.');
+  $optHelp = $agtViaBox . '|' . t('Exchanges are 1-to-1 trades of US Dollars for rCredits (usually automatic).|Vpayments are daily automatic payment exchanges of rCredits by a company to an employee. The company pays the employee in US Dollars, then the employee trades back some US Dollars 1-to-1 for rCredits. The net effect is that the employee gets paid partly in US Dollars, partly in rCredits.');
 
   global $base_url;
   $mya = r\acct();
@@ -77,7 +77,7 @@ function formTxs($form, &$sta, $args = '') {
   // build the transaction list
   $dones = ($states != STATES_PENDING);
   $pendings = ($states != STATES_DONE);
-  $txOpts = compact(u\ray('dones pendings exchanges vpayments'));
+  $txOpts = compact(u\ray('dones pendings exchanges pexchanges'));
   $rows = array();
   
   foreach (u\ray('bankTransfers myTransactions') as $func) { // transfers first (usually not many)
@@ -124,7 +124,7 @@ function formTxs($form, &$sta, $args = '') {
   $currency = hidField(2); //formField('radios', t('Currency:'), '', dft($currency), $radios); 
   $radios = array(t('completed'), t('open invoices'), t('both'));
   $states = formField('radios', t('Types:'), '', dft($states), $radios);
-  $opts2Desc = TRUE ? '' : t('Agent is who did the transaction on your behalf. Channel ("Via") is Web, Smartphone, SMS, or Automatic. Exchanges are 1-to-1 trades of rCredits for US Dollars. VPayments are virtual 1-to-1 trades with a company, employee, or supplier.');
+  $opts2Desc = TRUE ? '' : t('Agent is who did the transaction on your behalf. Channel ("Via") is Web, Smartphone, SMS, or Automatic. Exchanges are 1-to-1 trades of rCredits for US Dollars. PExchanges are 1-to-1 trades that earn incentive rewards.');
   $opts2 = boxField('opts', t('Show:'), $opts2Desc, $optDefaults, $opts);
   
   $divider = item('<hr>');
@@ -235,11 +235,11 @@ function doRow($tx, $report, $csv, $classes, $agents, $channels, $boxes, $curren
     $net = number_format(($toMe ? $total : -$total) + $reward, 2);
     txNeatAmounts($amount, $reward, $is_reward);
     list ($toYou, $fromYou) = $toMe ? array($amount, R_NONE) : array(R_NONE, $amount);
-    if ($total + 0 == 0) $toYou = $fromYou = "<span class=\"virtual\">$r</span>"; // make virtual payments clear
+    if ($total + 0 == 0) $toYou = $fromYou = "<span class=\"virtual\">$r</span>"; // make payment exchanges clear
     if ($tx_type == TX_REFUND) list ($reward, $toYou) = array($toYou, R_NONE);
     $button1 = (!$byMe and okableState($tx_state)) ? button('OK', "$url&do=ok", txAct('ok', $tx_state, $toMe, $byMe)) : '';
     $button2 = ((!$is_reward or $mya->can(B_CTTY_ADMIN)) and !@$data['undoneBy']) ? button(' X ', "$url&do=no", txAct('no', $tx_state, $toMe, $byMe)) : '';
-    $button3 = ($mya->can(@$tx_taking ? B_SELL : B_BUY) and !$is_reward) ? "<a href='$url&do=edit' title='Edit Purpose'><img src='$rUrl/images/buttons/edit.png' width=20 height=20 border=0 /></a>" : '';
+    $button3 = ($mya->can(@$tx_taking ? B_SELL : B_BUY) and !$is_reward) ? "<a href='$url&do=edit' title='Edit Purpose'><img src='$rUrl/images/icons/edit.png' width=20 height=20 border=0 /></a>" : '';
     $buttons = ($banking or $toYou == $fromYou) ? '' : "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
     $row = array($tid, strftime('%d-%b', $date), @$tx_name, $fromYou, $toYou, $rpct, $amount, $usd, $tx_usdXid, $state, $buttons, $tx_purpose, $reward, $net);
   }
@@ -456,7 +456,7 @@ function txSummary($starting, $ending, $currency) {
   $myid = $mya->id;
   $previous_ending = $starting - 1;
   extract($nowInfo = (array) be\creditInfo(array('asof' => $ending)), EXTR_PREFIX_ALL, 'n');
-  extract($pendingInfo = (array) be\creditInfo(u\assoc('pending asof', TRUE, $ending)), EXTR_PREFIX_ALL, 'p');
+  extract($pendingInfo = (array) be\creditInfo(u\ray('pending asof', TRUE, $ending)), EXTR_PREFIX_ALL, 'p');
   extract($oldInfo = (array) be\creditInfo(array('asof' => $previous_ending)), EXTR_PREFIX_ALL, 'o');
 ///  debug(compact('nowInfo','oldInfo'));
 
