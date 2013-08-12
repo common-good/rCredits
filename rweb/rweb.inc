@@ -152,12 +152,11 @@ EOF
   'po in location' => t('Your physical location address cannot be a Post Office box.'),
   'missing currency' => t('You must choose rCredits, USD, or both.'),
   'download always both' => t('Note: Downloads always include both rCredits and USD amounts.'),
-  'signin to scan' => t('You must sign in BEFORE scanning a card.'),
+  'sign in to scan' => t('You must <a href="/user/login">sign in</a> (or scan yourself in) BEFORE scanning a customer card.'),
   'change min first' => t('That request would leave you with less than your minimum balance. <@a1>Lower your minimum</a> first.'),
   'bad member id' => t('That is not a valid member ID!'),
   'bad card' => t('That is not a valid member ID.'),
   'bad card code' => t('This rCard is not valid.'),
-  'sign in' => t('You must sign in before scanning someone else\'s rCredits QR code.'),
   'upload required' => t('You must upload a file.'),
   'missing contact info' => t("<h2>Missing Contact Information</h2><p>Please complete your <@a1>Contact Information</a> before continuing.</p>"),
   'correct and retry' => t('Please correct the problem and resubmit this form.'),
@@ -1566,7 +1565,6 @@ function formTx($form, &$sta, $args = '') {
   $purpose = textField('For:', t('Description of goods and services or purpose'), dft(@$purpose));
   $calc = item(u\calculator('amount'));
   $scanClass = @$scanned ? 'scanned' : 'not-scanned';
-  $scanClass = 'scanned'; // debug(
   $scanned = hidField(@$scanned); // scanned means user already saw a name and photo
   $$type = submit(ucwords($type));
 
@@ -1918,7 +1916,7 @@ function formRegister(&$form, &$sta, $args = '') {
   $acctTypeHelp = t('If you use your own social security number and photograph for a business, you can open a combined account ("personal and commercial"). Or you can open a separate business account later.');
 
   $federalId = $mya->can(B_PERSONAL) ? // always textfield so user doesn't have to retype on error
-        formField('textfield', t('Soc Sec #:'), t('Your social security number (for required annual reporting)'), required(@$federalId))
+        textField(t('Soc Sec #:'), t('Your social security number (for required annual reporting)'), required(@$federalId))
       : textField(t('Federal ID:'), t('Your official employer ID number (EIN)'), required(@$federalId));
   $dob = textField(t('Birthdate:'), $mya->can(B_PERSONAL) ? t('Your date of birth (mm/dd/yyyy)') : t('Your date of incorporation or founding (mm/dd/yyyy)'), required(@$dob));
 
@@ -2262,8 +2260,8 @@ function no_selection($list) {
  * Connect a bank account.
  */
 function formBank($form, &$sta, $args = '') {
-  return say('This option is temporarily disabled');
   $mya = r\acct();
+  if (!$mya->can(B_ADMIN)) return say('This option is temporarily disabled');
   $typeOptions = array('checking', 'savings or money market');
   extract(u\just('bankAccount isSavings bankStatus', $mya->secure));
   if (isset($isSavings)) $isSavings += 0; // needed, to reflect current setting
@@ -2321,10 +2319,10 @@ function formBank_submit($form, &$sta) {
  * @param string $args: params or report from Dwolla (via usd::callback()) on success of getting auth token
  */
 function formSecurity($form, &$sta, $args = '') {
-  return say('This option is temporarily disabled');
   global $base_url;
-
   $mya = r\acct();
+  if (!$mya->can(B_ADMIN)) return say('This option is temporarily disabled');
+
   if (!$mya->gotContact()) {
     $a1 = "a href=\"$base_url/account/contact\"";
     $missing = item(u\tt('missing contact info', compact('a1')));
@@ -2357,7 +2355,9 @@ function formSecurity($form, &$sta, $args = '') {
     'title' => item(t('Security Information')),
 //    'subtext' => item(t('Have you set up your <a href="' . "$base_url/help/dwolla-account-setup" . '">Dwolla</a> account? Great! Now connect it to your rCredits account. Enter your PIN and security information here. When you click "Save", you will be sent again to the Dwolla site, to sign in and "Allow" the needed permissions.')),
     'subtext' => item(t('Just like for a bank account, we need to verify your identity. The photo ID file you upload can be either an image or a PDF. Please be patient while the file is encrypted &mdash; it may take several seconds.')),
-    
+
+    'federalId' => $mya->can(B_PERSONAL) ? adminField(t('Soc Sec #:')) : textField(t('Federal ID:'), '', disabled(@$federalId)),
+    'dob' => $mya->can(B_PERSONAL) ? adminField(t('Birthdate:')) : textField(t('Founded:'), '', disabled(@$dob)),
     'usdAccount' => adminField(t('Dwolla Account:')),
     'usdPass' => adminField(t('Dwolla Pass:')),
     'usdPin' => adminField(t('Dwolla PIN:')),
@@ -3160,32 +3160,29 @@ function formI($form, &$sta, $who = '') {
     say('ready to charge', $subs = compact('agentName', 'companyName'));
     u\loga('login', $subs, $mya->agentId);
     return r\go('charge');
-  } elseif (!$mya) return say('sign in', 'zot');
-  
-  if ($otherId == @$myid) {
-    say('no self-trading', array(), 'error');
-    return r\go('');
+  } elseif (!$mya) return say('sign in to scan', 'zot');
+/*    $login = item(t('Please sign in, to Pay or Charge this account.'));
+    $zot = compact('login', 'site');
+    $all = render($zot);
   }
+  $all = formField('item', '', '', $all);
+  return compact('all');
+*/  
+  if ($otherId == @$myid) return r\go('', 'no self-trading');
   
   $shortName = $acct->name;
   if ($acct->can(B_COMPANY)) $site = goButton(t('Show Webpage'), "member/$shortName", t("See this company's rCredits webpage"));
 
-  if ($mya) { // can charge, pay, or change account or agent only if signed in
-    list ($myid, $myAgent) = array($mya->id, $mya->agentId);
-    $theId = hidField($otherId);
-    $theAgent = hidField($otherAgent);
-    if ($mya->can(B_SELL)) $charge = goButton(t('Charge'), "charge/who=$shortName&scanned=1", t('Charge someone'));
-    if ($mya->can(B_BUY)) $pay = goButton(t('Pay'), "pay/who=$shortName&scanned=1", t('Pay someone'));
+  list ($myid, $myAgent) = array($mya->id, $mya->agentId);
+  $theId = hidField($otherId);
+  $theAgent = hidField($otherAgent);
+  if ($mya->can(B_SELL)) $charge = goButton(t('Charge'), "charge/who=$shortName&scanned=1", t('Charge someone'));
+  if ($mya->can(B_BUY)) $pay = goButton(t('Pay'), "pay/who=$shortName&scanned=1", t('Pay someone'));
 //    if (r\acct($myid, $otherAgent)->can()) $changeAgent = goButton(t('Change Agent'), "user/logout/who=$shortName", t('Use this button when your shift begins'));
-    if (r\acct($otherId, $myAgent)->can()) $changeAccount = goButton(t('Change Acct'), "change-account/who=" . $acct->mainQid, t('Manage a different account'));
-    $zot = compact(u\ray('charge pay changeAgent changeAccount site'));
-    $all = identifiers($acct) . render($zot);
-    svar('lastCustomer', $acct);
-  } else {
-    $login = item(t('Please sign in, to Pay or Charge this account.'));
-    $zot = compact('login', 'site');
-    $all = render($zot);
-  }
+  if (r\acct($otherId, $myAgent)->can()) $changeAccount = goButton(t('Change Acct'), "change-account/who=" . $acct->mainQid, t('Manage a different account'));
+  $zot = compact(u\ray('charge pay changeAgent changeAccount site'));
+  $all = identifiers($acct) . render($zot);
+  svar('lastCustomer', $acct);
   $all = formField('item', '', '', $all);
   return compact('all');
 }

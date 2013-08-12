@@ -1,3 +1,11 @@
+2013-08-11
+. fixed nextRBuyer bug, which chose the same member every time (patched on production server)
+. fixed bankFollowup bug, which failed to mark transfers FROM bank completed (patched on production server and ran for each user, to fix data)
+. shortened numeric keypad so it fits better on mobile screen (patched on production server)
+. fixed bug that ran daily cron twice a day (patched on production server)
+. fixed download bug (kept downloads from working at all)
+. everything uploaded to production server
+
 2013-08-06
 . changed "virtual payments" to "payment exchanges”
 . Changed maximum bank delay to 10 days.  Patched on production server. Fixes double bank withdrawal bug. 

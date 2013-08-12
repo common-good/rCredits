@@ -1,23 +1,6 @@
 rCredits Software
 Notes for developers
 
-What we're doing:
-Ctty credit system, working along side US Dollars.
-Every member has a Dwolla account and some amount of local credits (rCredits).
-Every member gets a plastic photo id account card.
-When they buy something, Whatever rC they have are used first, then USD (from dw) whatever's left.
-There's no fee to the merchant and both get incentive rewards (rC). We cover the dw fees.
-
-What we offer Dwolla:
-(what's your business model? investing the deposits?)
-From dw's point of view it's bringing people into the system, requiring them to move some USD into their account, and providing a familiar, really easy interface, with unbeatable incentives.
-So also More and more $ into Dwolla (aiming for all of it)
-Inflation adjustment
-maybe CGF verify ID OR send photo ID (we have to anyway)
-
-  . disable rcredits signup, but add link to members section
-  . change rcredits subscription to link to CGF NL signup? else send REST msg (don't try to mod db cross-sites)
-  
 QUESTIONS:
 . do box cookies need to be encrypted to avoid spoofing?
 
@@ -40,39 +23,28 @@ Barbara, gary, jennifer, snow's, pint, adam (special case)
 
 BEFORE FRIENDS LAUNCH:
 - automatic (suggested) ops
-- * no signup on rcredits.org! (just mailing list), but have a link to "member signin'
+- * single signup on rcredits.org! (just mailing list), but have a link to "member signin'
 
 To do: (* = before launch ** = earlier)
 
-*** update settings.php
-*** convert type field in r_txs (0=> 1, 1=>0, 2=>-1, 3=>-2)
-  r\dbQ('UPDATE r_txs SET type=IF(type=0,1, IF(type=1,0, IF(type=2,-1, IF(type=3,-2))))');
-*** change companies field "id" to "uid"
-  r\dbQ('UPDATE r_companies SET uid=id');
-*** disable cron inflationAdjust until bank transfers are marked completed (appropriately)
-*** convert permission permissions
-  r\dbQ('UPDATE r_relations SET permission=5 WHERE permission=4');
-
-. Create Dwolla account upon first sign in 
+. reimburse dwolla fees for past transactions
+. - new reg API Create Dwolla account upon first sign in 
+- disallow min between 0 and 10 (bank_min)?
+- * help for all pages
 . Separate e-mail and password into contact and security; require PIN
 . warn admin when changing to rTrader prematurely, that it may cause double withdrawal from bank (happened to Dan)
 - change to r/$ ??
-- icons for Settings page (with text below on desktop browser, beside on mobile)
 - hide stuff on reg page as appropriate
 - warn if repeating the amount and other person as the previous transaction from this machine.
 - tell virtualemployees they missed out on keeping the r. also tell non-virtualemployees (individuals only) they missed out on buying r
 - when contesting a tx, ask for comment (add it to payer's "for"). The next day (and thereafter) don't allow editing the for. Include payer's note in notice to payee.
-- new reg API
-- tests with dev sandbox and reg sandbox!
-- bank account removal
-- Becca King gets chosen every time, for buying rCredits -- why?!
+- LATER (when available) tests with dev sandbox and reg sandbox!
+- LATER bank account removal
 - add "immediate refunds" permission after "scan"
 - make sure recovery from lost usdtxs includes recovery from any fees
 - monthly PDF statement (printable)
-- record life calling (at least by email)
 - enforce $1,000 FINCEN limits
 - move SMS notices option to cell form (and add field to r_sms)
-- disallow min between 0 and 10 (bank_min)?
 - implement r\suggest (use this for merchant invoices too. user gets an email invoice from rCredits, they can just click on a link to accept or decline. merchant gets notified). test cron call to r\suggest (should just notify, for now)
 - include address in "new payment" digest notices to nonprofits OR just CGF (warn on pay screen if the former)
 - on MSIE 8, sign-in CSS has alignment problem, menu failure in MSIE 8, autocomplete looks funny
@@ -84,7 +56,6 @@ To do: (* = before launch ** = earlier)
 - combine channel and box on Transaction History?
 - warn people about their tax liability (ask what their tax year is? warn in December?)
 - trans history: default today on starting/ending and/or pass true defaults properly for period
-- * help for all pages
 - * membership tests: New Pass, Photo, Agreement, Contribute, Proxies, Usd, proof of ID, Options
 - more formI tests
 - * prefs: show phone# or (more importantly) physical addr when paying someone (so they can ship or call)

@@ -316,11 +316,10 @@ form.rweb  .form-no {color:red;}
 /* #rcreditswebformreports th:first-child +th+th+th+th+th {text-align:right;} /* col 6: rpct */
 #rcreditswebformreports th:first-child +th+th+th+th+th+th {display:none;} /* col 7: r */
 #rcreditswebformreports th:first-child +th+th+th+th+th+th+th {display:none;} /* col 8: usd */
-#rcreditswebformreports th:first-child +th+th+th+th+th+th+th+th {display:none;} /* col 9: usdTid */
-/* #rcreditswebformreports th:first-child +th+th+th+th+th+th+th+th+th {text-align:right;} /* col 10: state */
-/* #rcreditswebformreports th:first-child +th+th+th+th+th+th+th+th+th+th {text-align:right;} /* col 11: purp */
-#rcreditswebformreports th:first-child +th+th+th+th+th+th+th+th+th+th+th {text-align:right;} /* col 12: reward */
-#rcreditswebformreports th:first-child +th+th+th+th+th+th+th+th+th+th+th+th {display:none;} /* col 13: net */
+/* #rcreditswebformreports th:first-child +th+th+th+th+th+th+th+th {text-align:right;} /* col 9: state */
+/* #rcreditswebformreports th:first-child +th+th+th+th+th+th+th+th+th {text-align:right;} /* col 10: purp */
+#rcreditswebformreports th:first-child +th+th+th+th+th+th+th+th+th+th {text-align:right;} /* col 11: reward */
+#rcreditswebformreports th:first-child +th+th+th+th+th+th+th+th+th+th+th {display:none;} /* col 12: net */
 
 #rcreditswebformreports td:first-child {text-align:right;} /* col 1 */
 /* #rcreditswebformreports td:first-child +td {text-align:right;} /* col 2 */
@@ -330,11 +329,10 @@ form.rweb  .form-no {color:red;}
 /* #rcreditswebformreports td:first-child +td+td+td+td+td {text-align:right;} /* col 6 */
 #rcreditswebformreports td:first-child +td+td+td+td+td+td {display:none;} /* col 7 */
 #rcreditswebformreports td:first-child +td+td+td+td+td+td+td {display:none;} /* col 8 */
-#rcreditswebformreports td:first-child +td+td+td+td+td+td+td+td {display:none;} /* col 9 */
+/* #rcreditswebformreports td:first-child +td+td+td+td+td+td+td+td {text-align:right;} /* col 9 */
 /* #rcreditswebformreports td:first-child +td+td+td+td+td+td+td+td+td {text-align:right;} /* col 10 */
-/* #rcreditswebformreports td:first-child +td+td+td+td+td+td+td+td+td+td {text-align:right;} /* col 11 */
-#rcreditswebformreports td:first-child +td+td+td+td+td+td+td+td+td+td+td {text-align:right;} /* col 12 */
-#rcreditswebformreports td:first-child +td+td+td+td+td+td+td+td+td+td+td+td {display:none;} /* col 13 */
+#rcreditswebformreports td:first-child +td+td+td+td+td+td+td+td+td+td {text-align:right;} /* col 11 */
+#rcreditswebformreports td:first-child +td+td+td+td+td+td+td+td+td+td+td {display:none;} /* col 12 */
 
 /* Transactions */
 #rcreditswebformtxs #edit-title,
@@ -372,10 +370,9 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformtxs .tx-rpct {width:5%; text-align:right;} /* 6 r% */
 #rcreditswebformtxs .tx-r,
 #rcreditswebformtxs .tx-usd,
-#rcreditswebformtxs .tx-usdTid,
 #rcreditswebformtxs .tx-net {width:0; display:none;}
-#rcreditswebformtxs .tx-state {width:5%; text-align:right;} /* 10 status */
-#rcreditswebformtxs .tx-buttons {width:12%; text-align:right;} /* 11 buttons */
+#rcreditswebformtxs .tx-state {width:5%; text-align:right;} /* 9 status */
+#rcreditswebformtxs .tx-buttons {width:12%; text-align:right;} /* 10 buttons */
 #rcreditswebformtxs .tx-reward {width:7.5%; text-align:right;} /* 12 rewards */
 
 #rcreditswebformtxs th,
@@ -389,12 +386,11 @@ form.rweb  .form-no {color:red;}
 /* #rcreditswebformtxs th:first-child +th+th+th+th+th {text-align:right;} /* col 6: rpct */
 #rcreditswebformtxs th:first-child +th+th+th+th+th+th {display:none;} /* col 7: r */
 #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th {display:none;} /* col 8: usd */
-#rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th {display:none;} /* col 9: usdTid */
-/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th+th {text-align:right;} /* col 10: state */
-/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th+th+th {text-align:right;} /* col 11: buttons */
-/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th+th+th+th {text-align:right;} /* col 12: purpose */
-#rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th+th+th+th+th {text-align:right;} /* col 13: reward */
-#rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th+th+th+th+th+th {display:none;} /* col 14: net */
+/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th {text-align:right;} /* col 9: state */
+/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th+th {text-align:right;} /* col 10: buttons */
+/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th+th+th {text-align:right;} /* col 11: purpose */
+#rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th+th+th+th {text-align:right;} /* col 12: reward */
+#rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th+th+th+th+th {display:none;} /* col 13: net */
 
 /* #rcreditswebformtxs td:first-child {text-align:right;} /* col 1 */
 /* #rcreditswebformtxs td:first-child +td {text-align:right;} /* col 2 */
@@ -404,12 +400,11 @@ form.rweb  .form-no {color:red;}
 /* #rcreditswebformtxs td:first-child +td+td+td+td+td {text-align:right;} /* col 6 */
 #rcreditswebformtxs td:first-child +td+td+td+td+td+td {display:none;} /* col 7 */
 #rcreditswebformtxs td:first-child +td+td+td+td+td+td+td {display:none;} /* col 8 */
-#rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td {display:none;} /* col 9 */
+/* #rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td {text-align:right;} /* col 9 */
 /* #rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td+td {text-align:right;} /* col 10 */
 /* #rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td+td+td {text-align:right;} /* col 11 */
-/* #rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td+td+td+td {text-align:right;} /* col 12 */
-#rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td+td+td+td+td {text-align:right;} /* col 13 */
-#rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td+td+td+td+td+td {display:none;} /* col 14 */
+#rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td+td+td+td {text-align:right;} /* col 12 */
+#rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td+td+td+td+td {display:none;} /* col 13 */
 
 /* Transaction Summary Table */
 #txsum, #txsum-title, #txs-title {width:100%; margin:0;} /* outline:2px solid darkgreen;} */
@@ -710,7 +705,7 @@ and (max-device-width : 480px) { */
   #rcreditswebformtx .form-item-amount label {display:none;}
   #rcreditswebformtx #edit-dollarsign {display:block; left:130px; font-size:150%; font-weight:bold;}
   #rcreditswebformtx input[type="submit"] {left:0px;}
-  #rcreditswebformtx .form-item-goods {width:282px; margin:0 auto; padding:0;}
+  #rcreditswebformtx .form-item-goods {width:292px; margin:0 auto; padding:0;}
   #rcreditswebformtx #edit-goods .form-item-goods {width:auto;}
   #rcreditswebformtx label[for="edit-goods"] {display:none;}
   #rcreditswebformtx .form-type-radio {width:auto;}
@@ -718,7 +713,7 @@ and (max-device-width : 480px) { */
   #rcreditswebformtx .form-item-purpose label,
   #rcreditswebformtx  .description {display:none;}
   #rcreditswebformtx #edit-purpose {width:277px;  font-size:150%;}
-  #calc {display:block; width:96%; margin:10px auto; border:1px solid darkgray; height:400px; min-width:262px;}
+  #calc {display:block; width:96%; margin:10px auto; border:1px solid darkgray; height:267px; min-width:262px;}
   #calc input {border:0; width:31.2%; height:23.7%; margin:1% 0 0 1%; font-size:300%; padding:0; background-color:cadetblue; color:white; font-weight:bold;}
   #calc #calcc {background-color:black;}
   #calc #calcb {background-color:crimson;}

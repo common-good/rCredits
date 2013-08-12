@@ -98,7 +98,7 @@ function backend2($args = FALSE) {
 }
 
 /**
- * Return the user's transactions for the given period (inclusive)
+ * Return the user's bank transactions for the given period (inclusive)
  * @param int $starting: starting time (the beginning of some day)
  * @param int $ending: ending time (the end of some day)
  * @param int $uid: account id for which to return transactions (defaults to current account)
@@ -116,7 +116,7 @@ function bankTransfers($starting, $ending, $uid = NULL, $opts = array()) {
   $date = $pendings ? 'GREATEST(t.created, t.completed)' : 't.completed';
   $where = "$date BETWEEN :starting AND :ending ORDER BY $date DESC";
   if (!$dones) $where = "NOT completed AND $where";
-  $fields = "t.txid AS usdXid, -t.txid AS xid, ABS(t.amount) AS amount, t.payer, t.payee, :TX_BANK AS type, t.created, t.completed, IF(t.completed, :TX_DONE, :TX_PENDING) AS state, IF(t.amount<0, 1, 0) AS toMe";
+  $fields = "t.txid AS usdXid, -t.txid AS xid, amount, t.payer, t.payee, :TX_BANK AS type, t.created, t.completed, IF(t.completed, :TX_DONE, :TX_PENDING) AS state, IF(t.amount<0, 1, 0) AS toMe";
   
   if ($uid < 0) { // community or region
     $sql = <<<EOF
@@ -124,7 +124,7 @@ function bankTransfers($starting, $ending, $uid = NULL, $opts = array()) {
       FROM r_usd t LEFT JOIN users u1 ON u1.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
       WHERE (u1.community=:uid OR u2.community=:uid) AND $where
 EOF;
-  } else $sql = "SELECT $fields FROM r_usd t WHERE payer=:uid AND $where"; // normal account
+  } else $sql = "SELECT $fields FROM r_usd t WHERE payer=:uid AND payee=0 AND $where"; // normal account
 
   return r\dbQ($sql, compact(u\ray('starting ending uid'))); 
 }
@@ -816,8 +816,8 @@ function accountChoices() {
   if (!$mya = r\acct()) return FALSE;
   $result = array($aid = $mya->agentId);
   if ($mya->can(B_ADMIN)) {
-    $result += @r\dbQ('SELECT uid FROM users WHERE uid<:R_CTTY_UID0')->fetchAllKeyed(0, 0);
-    $result += @r\dbQ('SELECT uid FROM users WHERE uid>1')->fetchAllKeyed(0, 0);
+    $result += @r\dbQ('SELECT uid FROM users WHERE uid<:R_CTTY_UID0 ORDER BY fullName')->fetchAllKeyed(0, 0);
+    $result += @r\dbQ('SELECT uid FROM users WHERE uid>1 ORDER BY fullName')->fetchAllKeyed(0, 0);
   } else $result += @r\dbQ('SELECT main FROM r_relations WHERE other=:aid AND permission>0', compact('aid'))->fetchAllKeyed(0, 0);
   return array_values($result);
 }

@@ -198,7 +198,7 @@ define('TX_CRON', 5);
 define('TX_CHANNELS', t('System SMS Web App Touch Auto'));
 
 // Transaction types (all but type TX_TRANSFER and TX_BANK create rCredits)
-define('TX_BANK', -3); // used only internally to mark bank transfers
+define('TX_BANK', -3); // used only internally, to mark bank transfers
 define('TX_BONUS', -2); // sales bonus (negative reward types are invisible on transaction history)
 define('TX_REBATE', -1);
 define('TX_TRANSFER', 0); // normal fund transfer (usually for actual goods and services) -- not creating rC
@@ -216,7 +216,7 @@ define('TX_FINE', 9);
 
 define('TX_DEFAULT_PERIOD', 30); // number of days to show in transaction history, by default
 define('TX_MAX_ROWS', 100); // maximum number of transactions to show on one screen
-define('TX_MONEY_FIELDS', 'fromyou toyou amount r usd reward net');
+define('TX_MONEY_FIELDS', 'frombank fromyou toyou amount r usd reward net');
 
 $GLOBALS['emailSubjects'] = array(
 /*  'new-payment' => t('rCredits PAYMENT from {otherName}'),
@@ -450,7 +450,7 @@ function transactionSetup($info) {
   if (@$state !== TX_PENDING) $completed = $created;
   $taking += 0;
   $goods += 0;
-  $box = $boxUser;
+  $box = @$boxUser ?: 0;
 
   list ($payerFor, $payeeFor) = is_array($for) ? $for : array($for, $for);
   unset($info['for']);
@@ -1227,16 +1227,15 @@ function nextRBuyer(&$amount, $except) {
   $offer = R_CAPACITY; // offer is how much they can buy
   $sql = <<<EOF
     SELECT u.uid, $offer AS got, u.name FROM users u
-    LEFT JOIN (SELECT payee, completed FROM r_txs WHERE type=:TX_TRANSFER AND NOT goods AND amount=0 AND r<>:DW_FEE) t ON t.payee=u.uid
+    LEFT JOIN (SELECT payee, MAX(completed) AS dt FROM r_txs WHERE type=:TX_SIGNUP OR (type=:TX_TRANSFER AND NOT goods AND amount=0 AND r<>:DW_FEE) GROUP BY payee) t ON t.payee=u.uid
     WHERE ($offer>0 AND u.uid>0 AND u.uid<>:except AND :IS_OK)
-    ORDER BY (u.name='cgf'), ($offer>=:amount) DESC, (u.r+$offer<=u.minimum) DESC, t.completed, u.uid LIMIT 1
+    ORDER BY :IS_PAYEX, (u.name='cgf') DESC, ($offer>=:amount) DESC, (u.r+$offer<=u.minimum) DESC, IFNULL(t.dt, 0), u.uid LIMIT 1
 EOF;
   // preferred: not CGF, offering enough, definitely wanting that many, longest ago previous exchange, low uid
   if (!$row = r\dbQ($sql, compact('amount', 'except'))->fetchAssoc()) { // find out who (preferably who who wants enough) has waited the longest
     r\tellStaff('no buyers', compact('amount')); // this is a really bad thing (nobody wants any at all)
     return FALSE;
   }
-
   extract($row); // uid, got, and name
   if ($name =='cgf') r\tellStaff('cgf sole buyer', compact('amount'));
   $amount = min($amount, round($got, 2)); // take what we could get

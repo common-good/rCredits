@@ -100,20 +100,19 @@ Scenario: A member downloads transactions for the past year
   And with download columns:
   | column |
   | Date   |
-  | USD#   |
 
 Scenario: A member downloads completed transactions for the past year
   When member ".ZZA" visits page "transactions/period=365&download=1&options=%RUSD_BOTH%STATES_DONE%_N%_N%_N%_XCH%_VPAY"
   Then we download "rcredits%todayn-12m-%todayn.csv" with:
-  | Tx#  | t# | Created | Name    | From you | To you | rCredits | USD     | Status   | Purpose | Reward | Net  |
-  | AABL | 17 | %ymd    | %ctty   |     0.25 |        |        0 |   -0.25 | done     | Dwolla fee (reimbursed) |   0.25 |    0 |
-  | AABF | 16 | %ymd    | %ctty   |     0.25 |        |        0 |   -0.25 | done     | Dwolla fee (reimbursed) |   0.25 |    0 |
-  | AABE | 15 | %ymd-5d | Our Pub |          |    100 |       80 |      20 | disputed | cash CJ |        |  100 |
-  | AABA | 13 | %ymd-5d | Our Pub |       80 |        |      -20 |     -60 | disputed | this CF |      1 |  -79 |
-  | AAAV | 10 | %ymd-6d | Bea Two |      100 |        |        0 |    -100 | done     | cash V  |        | -100 |
-  | AAAQ | 7  | %ymd-1w | Our Pub |      120 |        |      -80 |     -40 | done     | this Q  |      4 | -116 |
-  | AAAG | 4  | %ymd-3m | Bea Two |      240 |        |      -40 |    -200 | done     | what G  |      2 | -238 |
-  | AAAF | 3  | %ymd-4m | Our Pub |          |    100 |       20 |      80 | done     | usd F   |        |  100 |
-  | AAAE | 2  | %ymd-5m | Bea Two |          |     10 |       10 |       0 | done     | cash E  |        |   10 |
-  | AAAB | 1  | %ymd-7m | %ctty   |          |        |        0 |       0 | done     | signup  |    250 |  250 |
-  |      |    |         | TOTALS  |   540.50 |    210 |      -30 | -300.50 |          |         | 257.50 |  -73 |
+  | Tx#      | t# | Created | Name    | From you | To you | rCredits | USD | Status   | Purpose | Reward | Net  |
+  | NEW-AABL | 17 | %ymd    | %ctty   |     0.25 |        |    0 |   -0.25 | done     | Dwolla fee (reimbursed) |   0.25 |    0 |
+  | NEW-AABF | 16 | %ymd    | %ctty   |     0.25 |        |    0 |   -0.25 | done     | Dwolla fee (reimbursed) |   0.25 |    0 |
+  | NEW-AABE | 15 | %ymd-5d | Our Pub |          |    100 |   80 |      20 | disputed | cash CJ |        |  100 |
+  | NEW-AABA | 13 | %ymd-5d | Our Pub |       80 |        |  -20 |     -60 | disputed | this CF |      1 |  -79 |
+  | NEW-AAAV | 10 | %ymd-6d | Bea Two |      100 |        |    0 |    -100 | done     | cash V  |        | -100 |
+  | NEW-AAAQ | 7  | %ymd-1w | Our Pub |      120 |        |  -80 |     -40 | done     | this Q  |      4 | -116 |
+  | NEW-AAAG | 4  | %ymd-3m | Bea Two |      240 |        |  -40 |    -200 | done     | what G  |      2 | -238 |
+  | NEW-AAAF | 3  | %ymd-4m | Our Pub |          |    100 |   20 |      80 | done     | usd F   |        |  100 |
+  | NEW-AAAE | 2  | %ymd-5m | Bea Two |          |     10 |   10 |       0 | done     | cash E  |        |   10 |
+  | NEW-AAAB | 1  | %ymd-7m | %ctty   |          |        |    0 |       0 | done     | signup  |    250 |  250 |
+  |          |    |         | TOTALS  |   540.50 |    210 |  -30 | -300.50 |          |         | 257.50 |  -73 |

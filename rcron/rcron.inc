@@ -87,7 +87,7 @@ function periodic() {
 
 function everyHour() {
   // stuff to do every hour
-  r\tellStaff('hourly cron');
+  // r\tellStaff('hourly cron');
 }
 
 function everyDay() {
@@ -109,6 +109,9 @@ function lessOften() {
 
 /**
  * Do something periodically if it's time and hasn't been done yet.
+ * That is, if the chosen point in the period has been reached AND
+ *   (it has been at least a whole period since the last run OR
+ *   (it has been at least half a period and we're at no later a point than last time)
  * @param string $period: the period
  * @param string $code: the strftime code for the smaller period to match or exceed
  * @param string $value: the value to match or exceed
@@ -116,10 +119,14 @@ function lessOften() {
  */
 function often($period, $code, $value, $periodLen) {
   $lastCron = \variable_get('r_last_cron', array());
-  if (strftime("%$code") >= $value and REQUEST_TIME - @$lastCron[$period] > $periodLen / 2) { // it's time
+  $lastTime = @$lastCron[$period];
+  $elapsed = REQUEST_TIME - $lastTime;
+  list ($point, $lastPoint) = array(strftime("%$code", REQUEST_TIME), strftime("%$code", $lastTime));
+  if ($point >= $value and ($elapsed > $periodLen or ($elapsed > $periodLen / 2 and $point <= $lastPoint))) {
     $lastCron[$period] = REQUEST_TIME;
     \variable_set('r_last_cron', $lastCron); // remember that this periodic activity has been done
     $function = 'rCredits\\Cron\\every' . ucwords($period);
+    if ($period != 'hour') r\tellStaff("Running cron for $period at " . strftime('%I:%M%P', REQUEST_TIME));
     $function(); // do it
   }
 }
@@ -174,6 +181,7 @@ function coverFee($item) {
  * Calculate and credit inflation adjustment to each account.
  */
 function inflationAdjust($item) {
+  return; // until 8/12/2013
   extract(u\just('uid start end', $item));
   for ($ave = 0, $asof = $start + DAY_SECS - 1; $asof <= $end; $asof += DAY_SECS) {
     $ave += be\creditInfo(compact('uid', 'asof'))->balance;
@@ -265,14 +273,14 @@ function lostUsdTx($tx) {
  * @param assoc $tx: the USD deposit or withdrawal transaction
  */
 function bankFollowup($tx) {
-  extract(u\just('Id Amount Date SourceId ClearingDate Status', $tx));
-  if ($Status != 'processed') return; // not 'pending'
+  extract(u\just('Id Amount Date Type DestinationId SourceId ClearingDate Status', $tx));
+  if ($Status != 'processed') return; // pending
   $info = u\ray('txid amount completed', $Id, -$Amount, strtotime($ClearingDate) + DW_LAG);
-  if (!r\dbExists('r_usd', array('txid' => $Id))) { // system crash before request got recorded
+  if (!$old = r\dbLookup('completed+1', 'r_usd', 'txid=:txid', u\ray('txid', $Id))) { // system crashed before it got recorded
     $omit = t\est() ? (variable_get('cgf_uid') - 1) : NULL; // ignore tester's account
-    if (!$payer = r\whoseUsd($SourceId, $omit)) return; // probably tester
+    if (!$payer = r\whoseUsd($Type == 'deposit' ? $DestinationId : $SourceId, $omit)) return; // probably tester
     $info += u\ray('created payer payee', strtotime($Date) + DW_LAG, $payer, 0);
-  }
+  } elseif ($old > 1) return; // already marked completed
   r\dbUpdate('r_usd', $info, 'txid', TRUE); // update or (if crash) insert
 }
 

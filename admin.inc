@@ -60,23 +60,36 @@ function showTableQ($sql, $subs = array()) {
 }
 
 /**
+ * Utility to do something to each existing transaction
+ include __DIR__ . '/../rcredits/admin.inc';
+ eachTx();
+ */
+function eachTx($callBack = 'changeIt') {
+  $result = r\dbQ('SELECT * FROM r_txs')->fetchRow();
+  if (!function_exists($callBack)) $callBack = 'rCredits\\' . $callBack;
+  foreach ($result as $one) $callBack($one);
+}
+
+/**
  * Utility to do something to each member account (see example below)
  include __DIR__ . '/../rcredits/admin.inc';
- eachAccount();
+ eachAcct();
  */
-function eachAccount($callBack = 'changeIt') {
+function eachAcct($callBack = 'changeIt') {
   $result = r\dbQ('SELECT uid FROM users WHERE uid>1')->fetchCol();
   if (!function_exists($callBack)) $callBack = 'rCredits\\' . $callBack;
   foreach ($result as $one) $callBack(r\acct($one));
 }
 
 /**
- * General purpose utility.
- * For example eachAccount('changeIt');
+ * General purpose utility, usually called from eachAcct, as above.
+ * For example:
+ *    $us = new r\usd($a);
+ *    $us->each('rCredits\\Cron\\bankFollowup', 0, u\ray('deposit withdrawal'));
  */
 function changeIt($a) {
-  $a->setBit(B_u15, FALSE);
-  $a->setBit(B_u19, FALSE);
+  $us = new r\usd($a);
+  $us->each('rCredits\\Cron\\bankFollowup', 0, u\ray('deposit withdrawal'));
 }
 
 function suUsd() {
@@ -87,14 +100,14 @@ function suUsd() {
     t\clear(TX_WEB); // make sure the usdAccount is not used by anyone else
     $a->update(u\ray('usdAccount', DW_TESTER_ACCT));
     $us->getAuth();
-    die('should not return to suUsd');
+/*/*/  die('should not return to suUsd');
   }
   if (isPRODUCTION and $us->bal() < $testUsdMin) {
     $cgf = r\acct('NEW.AAB');
     $for = 'testing';
     be\transfer('payment', $a, $cgf, $testUsdMin, $for);
     be\transfer('payment', $cgf, $a, $testUsdMin, $for); // CGF sends back the whole amount in usd
-    debug("$$testUsdMin traded with CGF");
+/*/*/  debug("$$testUsdMin traded with CGF");
   }
 }
 
