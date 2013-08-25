@@ -99,6 +99,7 @@ function rweb_menu() {
     'account/cells' => r\Web\menu(t('Cell Phones'), MENU_LOCAL_TASK, 'showForm', array('Cells'), 'manage'),
     'account/proxies' => r\Web\menu(t('Proxies'), MENU_LOCAL_TASK, 'showForm', array('Proxies'), 'manage personal'),
     'account/settings' => r\Web\menu(t('Settings'), MENU_LOCAL_TASK, 'showForm', array('Settings'), '', $anyone),
+    'account/password' => r\Web\menu(t('Request New Password'), MENU_CALLBACK, 'showForm', array('Pass'), '', $anyone),
 
     'sadmin' => r\Web\menu(t('Admin'), MENU_NORMAL_ITEM, 'showForm', array('Admin'), 'admin'),
     'handy' => r\Web\menu('Handy', MENU_NORMAL_ITEM, 'handyLinks', array(), 'admin'),
@@ -115,7 +116,8 @@ function rweb_menu() {
     'agreement' => r\Web\menu(t('The Agreement'), MENU_CALLBACK, 'showForm', array('Agreement'), 'manage'),
     'contribute' => r\Web\menu(t('Contribute'), MENU_CALLBACK, 'showForm', array('Contribute'), 'manage'),
     'invite' => r\Web\menu(t('Invite'), MENU_CALLBACK, 'showForm', array('Invite'), 'manage'),
-    'settings' => r\Web\menu('Account Settings', MENU_CALLBACK, 'showForm', array('Settings'), 'manage'),
+    'signup' => r\Web\menu(t('Sign Up For rCredits'), MENU_CALLBACK, 'showForm', array('Signup'), '', $anyone),
+//    'settings' => r\Web\menu('Account Settings', MENU_CALLBACK, 'showForm', array('Settings'), 'manage'),
     'menu' => r\Web\menu('Main Menu', MENU_CALLBACK, 'showForm', array('Menu'), '', $anyone),
     'member' => r\Web\menu('Company Profile', MENU_CALLBACK, 'showForm', array('Profile'), '', $anyone),
     'rcredits/util' => r\Web\menu('Util', MENU_CALLBACK, 'util', array(2), 'admin'),
@@ -140,9 +142,7 @@ function rweb_menu() {
 }
 
 function rweb_menu_alter(&$items) {
-  unset($items['node']);
-  $items['user/password']['title'] = 'New password';
-  $items['user/register']['title'] = 'New account';
+  foreach (u\ray('node user/password user/register') as $one) unset($items[$one]);
 }
 
 function rweb_form_alter(&$form, &$sta, $form_id) {
@@ -150,17 +150,19 @@ function rweb_form_alter(&$form, &$sta, $form_id) {
 ///debug($sta);
 ///debug($form_id);
 ///debug($_SERVER);
-  if ($form_id == 'user_pass_reset') return r\Web\resetAlter($form, $sta);
+//  if ($form_id == 'user_pass_reset') return r\Web\resetAlter($form, $sta);
   if ($form_id == 'user_login') {return r\Web\formLogin($form, $sta);}
   // (has no effect, keep as comment) if ($form_id == 'user_register') {return r\Web\formRegister($form, $sta);}
-  if (basename($_SERVER['REQUEST_URI']) == 'user' and user_is_logged_in()) r\go('summary');
+  $req = basename($_SERVER['REQUEST_URI']);
+  if ($req == 'logout' and !user_is_logged_in()) r\go('user');
+  if ($req == 'user' and user_is_logged_in()) r\go('summary'); // summary not ''
 }
 
-function rweb_form_user_register_form_alter(&$form, &$sta, $form_id) {r\Web\formRegister($form, $sta);}
+//function rweb_form_user_register_form_alter(&$form, &$sta, $form_id) {r\Web\formRegister($form, $sta);}
 function rweb_form_user_login_block_alter(&$form, &$sta, $form_id) {return r\Web\formLogin($form, $sta, FALSE);}
 // (has no effect, keep as comment) function rweb_form_user_login_form_alter(&$form, &$sta, $form_id) {return r\Web\formLogin($form, $sta);}
 function rweb_user_login(&$edit, $account) {r\Web\loginFollowup($edit, $account);}
-function rweb_form_user_pass_alter(&$form, &$sta) {return r\Web\passAlter($form, $sta);}
+//function rweb_form_user_pass_alter(&$form, &$sta) {return r\Web\passAlter($form, $sta);}
 
 /*function rweb_form_user_profile_form_alter(&$form, &$sta, $form_id) {
   $form['account']['pass']['#process'] = array('expand_password_confirm', 'yourmodule_password_confirm');

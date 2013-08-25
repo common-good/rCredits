@@ -32,8 +32,7 @@ define('R_MONEY_FIELDS', 'usd r rewards floor committed'); // financial amount f
 define('R_COMPANY_FIELDS', 'website description selling structure'); // fields in r_companies
 define('R_SECURE_FIELDS', 'usdType usdEmail usdPass usdPin auth pin cardCode cardCode2'); // non-personal encrypted fields
 define('R_SECRET_FIELDS', 'federalId dob idProof answer'); // personal identifying information
-define('R_SECRET_URL', isDEV ? 'http://localhost/rcredits-promo' 
-  : (STAGING ? ('http://' . STAGE) : 'http://rcredits.org')); // where to store secrets
+define('R_SECRET_URL', isPRODUCTION ? 'http://rcredits.org' : (isDEV ? 'http://localhost/rcredits-promo' : 'http://' . STAGE)); // where to store secrets
 define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities can manage themselves
 define('R_CRON_PERIOD', 5*60); // how many seconds between cron runs (must divide an hour evenly)
 define('R_MAX_TASK_TIME', 1*60); // what's the longest a queued cron task might take
@@ -55,7 +54,7 @@ define('R_CARDCODE_LEN', 11); // length of rCard security code (long to deter ea
 define('R_CARD_COST', 5); // cost to order a company or replacement rCard
 define('R_FREEZE_TIME', FALSE); // how long to freeze newly bought rCredits (was '2 weeks')
 define('R_DEFAULT_PURPOSE', 'rCredits/USD exchange'); // default transaction purpose
-define('R_CHUNK', 5); // chunk size for buying rCredits (sales amounts are a multiple of this)
+define('R_CHUNK', 10); // chunk size for buying rCredits (sales amounts are a multiple of this)
 define('R_BANK_CHUNK', 100); // UNUSED default chunk size for withdrawals from bank
 define('R_BANK_MIN', 10); // granularity of withdrawals from bank account
 define('R_VPAYMENT_MIN', 0.05); // minimum payment exchange (where bonus rounds to .01)
@@ -76,13 +75,15 @@ define('R_AGENT_MARK', ':'); // divides region from specific identifier in relat
 define('R_AGENT_URL_MARK', '-'); // use this as a substitute for R_AGENT_MARK in URLs (else domain forwarding fails)
 define('R_MARKS', '[\\' . R_MEMBER_MARK . '\\' . R_AGENT_MARK . '\\' . R_AGENT_URL_MARK . ']'); // any of those
 define('R_ANCIENT_EFT', 10); // how long, at most, an EFT might take (transferring funds to/from bank)
+define('R_REQUIRED', ' <span class="form-required" title="This field is required.">*</span>');
 
-define('DW_SITE', useSANDBOX ? 'https://uat.dwolla.com' : 'https://www.dwolla.com');
-define('DW_API_URL', DW_SITE . '/oauth/rest/');
+define('DW_SITE', isPRODUCTION ? 'https://www.dwolla.com' : 'https://uat.dwolla.com');
+//                               : 'http://new.rcredits.org/stage.php?stageWord=' . R_STAGE_WORD . '&request=');
 define('DW_TEST_ACCT', '8127139234'); // "reflector" account totally reimburses anything under $10
-define('DW_TESTER_ACCT', useSANDBOX ? '8127413762' : '8124486052');
+define('DW_TESTER_ACCT', '8127413762'); // william's account on Dwolla sandbox
 define('DW_FEE_THRESHOLD', 10); // over this amount, Dwolla charges a fee
 define('DW_FEE', .25); // the fee
+define('DW_STEPS', 'Email Phone Address Ssn Kba AuthorizedRepresentative Finished'); // registration steps
 
 define('R_USPS_WEB_TOOLS_ID', '921COMMO5331'); // USPS API credentials
 
@@ -139,9 +140,9 @@ define('B_u22', 22); //
 define('B_u23', 23); // 
 define('B_u24', 24); // 
 define('B_u25', 25); // 
-define('B_u26', 26); // 
-define('B_u27', 27); // 
-define('B_u28', 28); // 
+define('B_SS_OK', 26); // 
+define('B_PHONE_OK', 27); // 
+define('B_EMAIL_OK', 28); // 
 define('B_CTTY_ADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
 define('B_CLOSED', 31); // account is closed (data[new_account] has new qid)
@@ -149,7 +150,7 @@ define('B_MAX', 31); // maximum bit number
 //define('B_DFT', (1 << B_NOTIFY_EMAIL) | 0); // set what bits when creating a new account
 define('B_DFT', 0 | 0); // set what bits when creating a new account
 define('B_ADMINABLE', 'personal company member ctty_admin closed'); // for cttyAdmin to set
-define('B_LIST', 'member ready ok bona bank person company u7 charge u9 virtu u11 payroll weekly monthly u15 sms electro secret u19 debt draws u22 u23 u24 u25 u26 u27 u28 cadmin admin closed');
+define('B_LIST', 'member ready OK bona bank person company u7 charge u9 virtu u11 payroll weekly monthly u15 sms electro secret u19 debt draws u22 u23 u24 u25 ss phone email cadmin admin closed');
 
 define('R_SHORTFALL', 'GREATEST(0, minimum-(r+usd))'); // sql for shortfall in account (to draw in)
 define('R_DEMAND', 'LEAST(u.usd, u.minimum-u.r)'); // definitely WANTS this many rCredits (sometimes negative)
@@ -591,7 +592,7 @@ function payEmployees($amount0, $for, $confirmed) {
  */
 function rMail($index, $email, $lingo, $info) {
   $info['email'] = $email;
-  if (isDEV or STAGING) if ($email != R_ORG_EMAIL and $email != R_TESTER_EMAIL) $email = 'none@example.com'; // black hole
+  if (isDEV or isSTAGE) if ($email != R_ORG_EMAIL and $email != R_TESTER_EMAIL) $email = 'none@example.com'; // black hole
   \drupal_mail('rCredits', $index, $email, '', $info);
 }
 
@@ -1221,6 +1222,12 @@ function getUsd($request, $acct, $usAcct) {
  * return: the best account to handle the trade (there may be none that wants so many rCredits)
  *    if no account wants to buy any, return FALSE (this would be really bad and should never ever happen)
  *    NOTE that CGF is the buyer of last resort.
+ 
+     SELECT u.uid, u.usd AS got, u.name FROM users u
+    LEFT JOIN (SELECT payee, MAX(completed) AS dt FROM r_txs WHERE type=1 OR (type=0 AND NOT goods AND amount=0 AND r<>0.25) GROUP BY payee) t ON t.payee=u.uid
+    WHERE (u.usd>0 AND u.uid>0 AND u.uid<>0 AND (flags & (1<<2)))
+    ORDER BY (flags & (1<<10)), (u.name='cgf') DESC, (u.usd>=1) DESC, (u.r+u.usd<=u.minimum) DESC, IFNULL(t.dt, 0), u.uid LIMIT 1
+    
  */
 function nextRBuyer(&$amount, $except) {
   if ($amount > R_CHUNK * 1.5) $amount = R_CHUNK;
@@ -1229,7 +1236,7 @@ function nextRBuyer(&$amount, $except) {
     SELECT u.uid, $offer AS got, u.name FROM users u
     LEFT JOIN (SELECT payee, MAX(completed) AS dt FROM r_txs WHERE type=:TX_SIGNUP OR (type=:TX_TRANSFER AND NOT goods AND amount=0 AND r<>:DW_FEE) GROUP BY payee) t ON t.payee=u.uid
     WHERE ($offer>0 AND u.uid>0 AND u.uid<>:except AND :IS_OK)
-    ORDER BY :IS_PAYEX, (u.name='cgf') DESC, ($offer>=:amount) DESC, (u.r+$offer<=u.minimum) DESC, IFNULL(t.dt, 0), u.uid LIMIT 1
+    ORDER BY :IS_PAYEX, (u.name='cgf') DESC, ($offer>=:amount) DESC, IFNULL(t.dt, 0), u.uid LIMIT 1
 EOF;
   // preferred: not CGF, offering enough, definitely wanting that many, longest ago previous exchange, low uid
   if (!$row = r\dbQ($sql, compact('amount', 'except'))->fetchAssoc()) { // find out who (preferably who who wants enough) has waited the longest
@@ -1245,15 +1252,15 @@ EOF;
 /**
  * Say whether the account is nearly a member.
  * That is, have they satisfied all membership requirement except possibly choosing proxies.
- * @return assoc of the component steps: gotPhoto, signed, and donated, with a summary in "nearly"
+ * @return assoc of the component steps: photoOk, signed, and donated, with a summary in "nearly"
  */
 function nearlyMember($acct) {
-  $gotPhoto = $acct->hasAux('picture');
+  $photoOk = $acct->hasAux('picture');
   $signed = (bool) $acct->signed;
 //  $donated = ($acct->share > 0 or r\share($acct)); // r\share() also updates the database
   $donated = r\dbExists('r_gifts', 'uid=:myid', array('myid' => $acct->id));
-  $nearly = ($gotPhoto and $signed and $donated);
-  return compact(u\ray('gotPhoto signed donated nearly'));
+  $nearly = ($photoOk and $signed and $donated);
+  return compact(u\ray('photoOk signed donated nearly'));
 }
 
 /**

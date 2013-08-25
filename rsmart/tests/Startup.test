@@ -45,9 +45,9 @@ class rsmartStartup extends DrupalWebTestCase {
     case(0):
     Given('members: "DATA'
     . '\\| id      | fullName  | phone  | email         |'
-    . '\\| NEW.ZZA | Abe One    | +20001 | a@example.com |'
-    . '\\| NEW.ZZB | Bea Two    | +20002 | b@example.com |'
-    . '\\| NEW.ZZC | Corner Pub | +20003 | c@example.com |"');
+    . '\\| NEW.ZZA | Abe One    | +20001 | a@ |'
+    . '\\| NEW.ZZB | Bea Two    | +20002 | b@ |'
+    . '\\| NEW.ZZC | Corner Pub | +20003 | c@ |"');
     And__('devices: "DATA'
     . '\\| id      | code  |'
     . '\\| NEW.ZZA | codeA |"');

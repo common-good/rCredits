@@ -37,8 +37,8 @@ Scenario: The newbie gives us an unlikely name
 
 Scenario: The newbie gives us his or her email address
   Given phone %number1 is waiting to "setup email"
-  When phone %number1 says " zot@example.com "
-  Then phone %number1 email is "zot@example.com"
+  When phone %number1 says " zot@ "
+  Then phone %number1 email is "zot@"
   And phone %number1 has r$250
   And we say to phone %number1 "your account is ready" with subs:
   | balance |

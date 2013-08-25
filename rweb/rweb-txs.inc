@@ -205,7 +205,7 @@ function doRow($tx, $report, $csv, $classes, $agents, $channels, $boxes, $curren
   $xid = $tx_xid;
 
   if ($banking = ($tx_type == TX_BANK)) {
-    $tx_purpose = ($amount < 0 ? t('from') : t('to')) . ' ' . t('bank account');
+    $tx_purpose = ($tx_amount < 0 ? t('from') : t('to')) . ' ' . t('bank account');
     if ($tx_amount < 0) list ($tx_amount, $tx_payee) = array(-$tx_amount, $myid);
   } else $data = unserialize($tx_data);
   
@@ -286,10 +286,7 @@ function finishCsvRow($csv, $row, $tx, $amount, $r, $usd, $toMe, &$tot) {
   foreach ($row as $key => $value) $row[$key] = $value == R_NONE ? '' : strip_tags($value);
   if ($row['fromyou'] == $row['toyou']) $row['fromyou'] = $row['toyou'] = ''; // don't report gross on payex
   foreach (u\ray(TX_MONEY_FIELDS) as $key) {
-    if (@$row[$key]) {
-      $tot[$key] = ($tot[$key] ?: 0) + $row[$key];
-      $row[$key] = number_format($row[$key], 2);
-    }
+    if (@$row[$key]) $tot[$key] = ($tot[$key] ?: 0) + $row[$key]; // formatting value is useless
   }
   csv($csv, array_values($row)); // not STDOUT
   return TRUE;
@@ -441,8 +438,8 @@ function tx_edit($xid) {
 //    'review' => formField('item', $summary),
     'purpose' => textField(t('Purpose'), '', dft($purpose)),
     'go' => formField('submit', NULL, t('Submit button'), 'Update'),
-    'xid' => formField('hidden', $xid),
-    'field' => formField('hidden', $role . '_for'),
+    'xid' => hidField($xid),
+    'field' => hidField($role . 'For'),
     
     '#validate' => array('rCredits\\Web\\tx_edit_validate'),
     '#submit' => array('rCredits\\Web\\tx_edit_submit'),
@@ -476,19 +473,19 @@ function txSummary($starting, $ending, $currency) {
 ///  debug(compact('nowInfo','oldInfo'));
 
   $dif = array();
-  foreach (u\ray('inProper out rInProper rOut usdIn usdOut rewards bank fees') as $key) $dif[$key] = $nowInfo[$key] - $oldInfo[$key];
+  foreach (u\ray('inProper outProper rInProper rOutProper usdIn usdOut rewards bank fees') as $key) $dif[$key] = $nowInfo[$key] - $oldInfo[$key];
   extract($dif, EXTR_PREFIX_ALL, 'd');
   $p_committed = $mya->committed; // this will include all pending commitments
   
   $fields = 'old bank in out fees rewards new';
   $values =
-    ($currency == 2 ? array($o_balance, $d_bank, $d_inProper, $d_out, $d_fees, $d_rewards, $n_balance) // both
-  : ($currency == 0 ? array($o_r, 0, $d_rInProper, $d_rOut, 0, $d_rewards, $n_r) // r
+    ($currency == 2 ? array($o_balance, $d_bank, $d_inProper, $d_outProper, $d_fees, $d_rewards, $n_balance) // both
+  : ($currency == 0 ? array($o_r, 0, $d_rInProper, $d_rOutProper, 0, $d_rewards, $n_r) // r
   : ($currency == 1 ? array($o_usd, $d_bank, $d_usdIn, $d_usdOut, $d_fees, 0, $n_usd) : ''))); // usd
   $values = array_combine(u\ray($fields), $values);
 
-  $p_balance = $p_bank + $p_rInProper - $p_rOut - $p_fees + $p_rewards - $p_committed;
-  $values += compact(u\ray('p_inProper p_bank p_out p_fees p_rewards p_committed p_balance'));
+  $p_balance = $p_bank + $p_rInProper - $p_rOutProper + $p_rewards - $p_committed;
+  $values += compact(u\ray('p_inProper p_bank p_outProper p_rewards p_committed p_balance'));
   foreach ($values as $key => $value) $$key = number_format($value, 2);
  
   $p_balance = txBal($p_balance, '+ '); // add +/-/$ to these, as appropriate
@@ -499,22 +496,22 @@ function txSummary($starting, $ending, $currency) {
   $ending = u\formatDate($ending);
   $summary_title = "<div id='txsum-title'>SUMMARY</div>";
   
-  $classes = u\prefixValues('txsum-', u\ray('one tosign fromyou fromsign toyou rewardssign rewards sharesign share balancesign balance'));
-  $heads = u\ray(t('Starting balance,,From Bank,,From You,,To You,,Fees,,Rewards,,To CGF,,Ending balance'));
-  $headHelp = u\ray(t('Your account balance at the start of this time period||How much was transferred from your bank account to your rCredits account||How much you spent||How much you received||Transaction fees (these fees are always reimbursed with an offsetting reward)||How incentive rewards did you receive||Amount of rewards you committed to share with Common Good Finance||Your account balance at the end of this time period'));
+  $classes = u\prefixValues('txsum-', u\ray('one banksign bank fromsign fromyou tosign toyou rewardssign rewards sharesign share balancesign balance'));
+  $heads = u\ray(t('Starting balance,,From Bank,,From You,,To You,,Rewards,,To CGF,,Ending balance'));
+  $headHelp = u\ray(t('Your account balance at the start of this time period||How much was transferred from your bank account to your rCredits account||How much you spent||How much you received||How much incentive rewards did you receive||Amount of rewards you committed to share with Common Good Finance||Your account balance at the end of this time period'));
   foreach ($heads as $key => $value) if ($value) $heads[$key] = popHelp($value, $headHelp[$key]);
   $PENDING = popHelp(t('PENDING'), t('Pending transfers, transaction requests, and commitments as of ') . $ending);
   
   $rows = array(
-    array('id' => 'txsum-dates', 'data' => u\ray("$starting,,,,,,,,,,,,,,$ending")),
+    array('id' => 'txsum-dates', 'data' => u\ray("$starting,,,,,,,,,,,,$ending")),
     array('id' => 'txsum-headers', 'data' => $heads),
     array(
       'id' => 'txsum-now', 
-      'data' => u\ray("$old | + | $bank | - | $out | + | $in | - | $fees | + | $rewards |  |  | = | $new"),
+      'data' => u\ray("$old | + | $bank | - | $out | + | $in | + | $rewards |  |  | = | $new"),
     ),
     array(
       'id' => 'txsum-pending',
-      'data' => u\ray("<b>$PENDING:</b> | + | $p_bank | - | $p_out | + | $p_inProper | - | $p_fees | + | $p_rewards | - | $p_committed | = | $p_balance"),
+      'data' => u\ray("<b>$PENDING:</b> | + | $p_bank | - | $p_outProper | + | $p_inProper | + | $p_rewards | - | $p_committed | = | $p_balance"),
     ),
   );
   $attributes = array('id' => 'txsum');

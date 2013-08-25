@@ -1,9 +1,27 @@
+2013-08-25
+. fixed creditInfo() so it handles fee amounts properly (and displays right on Transactions page)
+. fixed coverFee() so it creates a record in r_usd (and added missing reimbursements to production site)
+. assured that summary page, transactions page, and downloads all show the same amounts
+. fixed nextRBuyer bug (another bug) which mistakenly considered minimum balance (patched on production server)
+. added an admin feature to cobble up a new account while waiting for the new dwolla reg api to be done
+. system errors now email staff
+. now gives error message if repeating the amount and other person as the previous transaction from same machine.
+. fixed registration form javascript to show/hide fields depending on account type
+. fixed coverFee bug (if Dwolla was unavailable, it queued the wrong function name) (patched on production server)
+. fixed edit transaction purpose crash bug (patched on production server)
+. adjusted settings.php, dwolla.php, and usd class to handle Dwolla sandbox self-signing certificate
+. fixed tiny profile picture bug so user's photo now shows (patched on production server)
+. eliminated tabs on login screen / separated registration and password change from dwolla builtin functions
+. created new signup procedure, using Dwolla's new registration API (just the first step so far)
+. changed calculator buttons to <button> and adjusted format to work on iPhones
+
 2013-08-11
 . fixed nextRBuyer bug, which chose the same member every time (patched on production server)
 . fixed bankFollowup bug, which failed to mark transfers FROM bank completed (patched on production server and ran for each user, to fix data)
 . shortened numeric keypad so it fits better on mobile screen (patched on production server)
 . fixed bug that ran daily cron twice a day (patched on production server)
 . fixed download bug (kept downloads from working at all)
+. eliminated usdTid column in downloads
 . everything uploaded to production server
 
 2013-08-06

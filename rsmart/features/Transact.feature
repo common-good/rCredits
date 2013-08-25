@@ -8,9 +8,9 @@ SO I can buy and sell stuff.
 Setup:
   Given members:
   | id      | fullName  | phone  | email         | city  | state  | country       | 
-  | NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | Alaska | United States |
-  | NEW.ZZB | Bea Two    | +20002 | b@example.com | Btown | Utah   | United States |
-  | NEW.ZZC | Corner Pub | +20003 | c@example.com | Ctown | Corse  | France        |
+  | NEW.ZZA | Abe One    | +20001 | a@ | Atown | Alaska | United States |
+  | NEW.ZZB | Bea Two    | +20002 | b@ | Btown | Utah   | United States |
+  | NEW.ZZC | Corner Pub | +20003 | c@ | Ctown | Corse  | France        |
   And devices:
   | id      | code  |
   | NEW.ZZA | codeA |
@@ -48,7 +48,7 @@ Scenario: A member asks to charge another member
   | did     | otherName | amount | tid |
   | charged | Corner Pub | $100   | 2   |
   # "You charged Corner Pub $100 (bonus: $10). Your balance is unchanged, pending payment. Invoice #2"
-  And we email "new-invoice" to member "c@example.com" with subs:
+  And we email "new-invoice" to member "c@" with subs:
   | created | fullName   | otherName | amount | payerPurpose |
   | %today  | Corner Pub | Abe One    | $100   | labor         |
   And balances:
@@ -64,7 +64,7 @@ Scenario: A member asks to pay another member
   | did    | otherName | amount | rewardType | rewardAmount | balance | tid |
   | paid   | Corner Pub | $100   | rebate      | $5            | $155    | 2   |
   # "You paid Corner Pub $100 (rebate: $5). Your new balance is $155. Transaction #2"
-  And we email "new-payment" to member "c@example.com" with subs:
+  And we email "new-payment" to member "c@" with subs:
   | created | fullName   | otherName | amount | payeePurpose   |
   | %today  | Corner Pub | Abe One    | $100   | groceries       |
   And balances:
@@ -96,7 +96,7 @@ Scenario: A member asks to charge another member unilaterally
   | did     | otherName | amount | rewardType | rewardAmount | balance | tid |
   | charged | Abe One    | $100   | bonus       | $10           | $360    | 2   |
   # "You charged Corner Pub $100 (bonus: $10). Your new balance is $360. Transaction #2"
-  And we email "new-charge" to member "a@example.com" with subs:
+  And we email "new-charge" to member "a@" with subs:
   | created | fullName  | otherName | amount | payerPurpose   |
   | %today  | Abe One   | Corner Pub | $100   | groceries       |
   And balances:

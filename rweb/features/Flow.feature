@@ -6,9 +6,9 @@ SO I can spend up to my total credit line.
 Setup:
   Given members:
   | id   | fullName   | email         | flags                |
-  | .ZZA | Abe One    | a@example.com | dft,ok,personal,bona |
-  | .ZZB | Bea Two    | b@example.com | dft,ok,personal,bona |
-  | .ZZC | Corner Pub | c@example.com | dft,ok,company,bona  |
+  | .ZZA | Abe One    | a@ | dft,ok,personal,bona |
+  | .ZZB | Bea Two    | b@ | dft,ok,personal,bona |
+  | .ZZC | Corner Pub | c@ | dft,ok,company,bona  |
   And relations:
   | id      | main | agent | permission | draw |
   | NEW.ZZA | .ZZC | .ZZA  | manage     |    1 |

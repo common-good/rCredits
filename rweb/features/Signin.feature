@@ -7,23 +7,24 @@ Setup:
   Given member is logged out
 
 Scenario: A member signs in for the first time
-  Given invitation to email "a@example.com" is "s0M3_rAnd0M_c0D3"
-  When member "?" confirms form "/user/register/code=s0M3_rAnd0M_c0D3" with values:
-  | fullName | email         | phone | country | postalCode | state | city  | acctType | code        |
-  | Abe One | a@example.com | (413) 253-0000 | US | 01001 | MA | Amherst | %R_PERSONAL  | s0M3_rAnd0M_c0D3 |
+  Given invitation to email "a@" is "c0D3"
+  When member "?" confirms form "signup/code=c0D3" with values:
+  | fullName | email | phone | country | postalCode | federalId | dob      | acctType     | code |
+  | Abe One  | a@ | 413-253-0000 | US  | 01002    | 123-45-6789 | 1/2/1993 | %R_PERSONAL  | c0D3 |
   Then members:
-  | id      | fullName | email         | phone        | country | postalCode | state | city    | flags | 
-  | NEW.AAC | Abe One  | a@example.com | +14132530000 | US | 01001       | MA    | Amherst | dft,personal |
+  | id      | fullName | email   | country | postalCode | state | city    | flags        | 
+  | NEW.AAC | Abe One  | a@      | US      | 01002      | MA    | Amherst | dft,personal |
   And member "NEW.AAC" one-time password is set
   Given member "NEW.AAC" one-time password is %whatever
   When member "?" visits page "/user/login"
-  Then we show "Sign In" with:
+  Then we show "Welcome" with:
   | oldpass      | pass1        | pass2                |
   | Tmp password | New password | Confirm new password |
   When member "?" confirms form "/user/login" with values:
   | name   | pass      | pass1  | pass2  |
   | abeone | %whatever | Aa1!.. | Aa1!.. |
   Then we show "Account Summary"
+  And member "NEW.AAC" has a dwolla account, step "Email"
   And we say "status": "take a step"
   
 Scenario: A member gives the wrong password

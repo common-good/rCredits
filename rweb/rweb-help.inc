@@ -24,7 +24,6 @@ function helpText($page) {
   <p>For companies, upload a picture to represent your business. This picture will appear on your automatic rCredits webpage: <a target="_blank" href="$base_url/member/$mya->name">$site/member/$mya->name</a> &mdash; so choose wisely. See also the <a href="$base_url/account/company">Company Info</a> form.</p>
 EOF
   );
-  $paySpecial = t(' If you have employees you can say pay "ALL", to pay each employee the same amount.');
 
   // the <a href="$base_url/help/smartphone">Android Smartphone Interface</a> and 
   $helps = array(
@@ -72,7 +71,7 @@ EOF
 EOF
     ),
     'pay' => t(<<<EOF
-    <p><b>Whom:</b> Type all or part of the full name of the account you want to pay. You can leave out the punctuation, spaces, and capitals. Or you can type their phone number or email address or their account ID. Note that a period in the account ID (a regular account) is different from a colon (an agent acting on behalf of an account).$paySpecial</p>
+    <p><b>Whom:</b> Type all or part of the full name of the account you want to pay. You can leave out the punctuation, spaces, and capitals. Or you can type their phone number or email address or their account ID. Note that a period in the account ID (a regular account) is different from a colon (an agent acting on behalf of an account).</p>
     <p><b>Amount:</b> The amount of the transaction, measured in dollars, to be paid in rCredits.</p>
     <p><b>Purpose:</b> If this is a purely financial transaction, click on "cash/loan/etc". Otherwise, a description is required (for purchases and sales of real goods and services). Contributions to nonprofit organizations count as purchases of real services &mdash; services to society. For loans, cash exchanges, and other money deals, you can leave the purpose blank &mdash; your statements will call the purpose "cash".</p>
 EOF
@@ -240,9 +239,13 @@ EOF
     <p>Your estimates of average monthly payments do NOT have to be exact. If an employee or supplier ends up buying more rCredits from you than their exact share, it's no big problem for anyone.</p>
 EOF
     ),
+    'transactions' => t(<<<EOF
+    Hover over any option or column header for an explanation of what it means. Select some options, and the period or specific date range that interests you, then click on either "Show" or "Download". The downloaded spreadsheet (in CSV format) has more complete information, including column totals.
+EOF
+    ),
   );
 
-  $helps['charge'] = strtr($helps['pay'], array('pay' => 'charge', $paySpecial => ''));  
+  $helps['charge'] = strtr($helps['pay'], u\ray('pay', 'charge'));  
   return u\SUBS(@$helps[strtolower($page)]) ?: tt('no help', compact('page'));
   //        <p>Download the app from <a href="http://rCredits.org/rc.apk">rCredits.org/rc.apk</a>, install, run. Try all the buttons.</p>
 

@@ -45,9 +45,9 @@ class rsmsTransact extends DrupalWebTestCase {
     case(0):
     Given('members: "DATA'
     . '\\| id   | fullName  | cell   | email         |'
-    . '\\| .ZZA | Abe One    | +20001 | a@example.com |'
-    . '\\| .ZZB | Bea Two    | +20002 | b@example.com |'
-    . '\\| .ZZC | Corner Pub | +20003 | c@example.com |"');
+    . '\\| .ZZA | Abe One    | +20001 | a@ |'
+    . '\\| .ZZB | Bea Two    | +20002 | b@ |'
+    . '\\| .ZZC | Corner Pub | +20003 | c@ |"');
     And__('relations: "DATA'
     . '\\| id   | main | agent | permission   |'
     . '\\| :ZZA | .ZZC | .ZZB  | buy and sell |'
@@ -110,7 +110,7 @@ class rsmsTransact extends DrupalWebTestCase {
     And__('we say to phone +20001 "report invoice" with subs: "DATA'
     . '\\| did     | otherName | amount | tid |'
     . '\\| charged | Corner Pub | $100   | 2   |"');
-    And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
+    And__('we email "new-invoice" to member "c@" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'
     . '\\| %today  | Corner Pub | Abe One    | $100   | labor         |"');
   }
@@ -125,7 +125,7 @@ class rsmsTransact extends DrupalWebTestCase {
     And__('we say to phone +20001 "report transaction" with subs: "DATA'
     . '\\| did     | otherName | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| charged | Corner Pub | $100   | bonus       | $10           | $360    | 2   |"');
-    And__('we email "new-charge" to member "c@example.com" with subs: "DATA'
+    And__('we email "new-charge" to member "c@" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'
     . '\\| %today  | Corner Pub | Abe One    | $100   | labor         |"');
   }

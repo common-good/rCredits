@@ -8,9 +8,9 @@ SO I can use it (or assign someone) to buy and sell with rCredits, on behalf of 
 Setup:
   Given members:
   | id      | fullName  | phone  | email         | city  | state  | country       | 
-  | NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | Alaska | United States |
-  | NEW.ZZB | Bea Two    | +20002 | b@example.com | Btown | Utah   | United States |
-  | NEW.ZZC | Corner Pub | +20003 | c@example.com | Ctown | Corse  | France        |
+  | NEW.ZZA | Abe One    | +20001 | a@ | Atown | Alaska | United States |
+  | NEW.ZZB | Bea Two    | +20002 | b@ | Btown | Utah   | United States |
+  | NEW.ZZC | Corner Pub | +20003 | c@ | Ctown | Corse  | France        |
   And devices:
   | id      | code  | default_agent |
   | NEW.ZZA | codeA | NEW.ZZA       |

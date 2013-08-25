@@ -162,17 +162,20 @@ function everyYear() {
 function coverFee($item) {
   extract(u\just('txid payee', $item));
   $usA = new r\usd($a = r\acct($payee));
-  $txid--; // get the payee's txid
+  if (t\est()) $txid = t\seq() - 2; else $txid--; // get the payee's txid
   if (!$fee = $usA->fee($txid)) return;
   if ($fee == '?') {
     r\tellStaff('no Dwolla for coverFee', $item);
     sleep(60); // wait a minute, so we don't tie up our server or Dwolla's
-    return r\queue(__FUNCTION__, $item); // Dwolla is down -- keep trying
+    return r\queue('coverFee', $item); // Dwolla is down -- keep trying
   }
   $for = t('Dwolla fee (reimbursed)');
   $keys = 'payer payee type amount r for taking usdXid';
-  $info = u\ray($keys, $a->community, $payee, TX_REFUND, 0, $fee, $for, 0, $txid);
-  r\transact($info);
+  
+  r\usd::beginAtom();
+  r\transact(u\ray($keys, $a->community, $payee, TX_REFUND, 0, $fee, $for, 0, $txid + 2));
+  r\usd::addToAtom($txid + 2, $fee, $payee, -1, REQUEST_TIME); // -1 to distinguish from bank transfers
+  r\usd::commit();
 }
 
 //****************************************************
@@ -181,7 +184,6 @@ function coverFee($item) {
  * Calculate and credit inflation adjustment to each account.
  */
 function inflationAdjust($item) {
-  return; // until 8/12/2013
   extract(u\just('uid start end', $item));
   for ($ave = 0, $asof = $start + DAY_SECS - 1; $asof <= $end; $asof += DAY_SECS) {
     $ave += be\creditInfo(compact('uid', 'asof'))->balance;
@@ -222,6 +224,7 @@ function usdTxHere($item) {
     r\dbUpdate('r_txs', compact('xid', 'usdXid'), 'xid');
     r\usd::commit();
   } else r\usd::rollback(); // if ($err == 'not enough') (or any other err) just wait for more USD to be there
+//  debug(compact('usdXid','err'));
 }
 
 /**

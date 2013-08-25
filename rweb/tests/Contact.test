@@ -45,7 +45,7 @@ class rwebContact extends DrupalWebTestCase {
     case(0):
     Given('members: "DATA'
     . '\\| id   | fullName   | address | city  | state  | postalCode | country | physical | email         | phone |'
-    . '\\| .ZZA | Abe One    |         | Atown | Alaska | 99100      | US      |          | a@example.com |       |"');
+    . '\\| .ZZA | Abe One    |         | Atown | Alaska | 99100      | US      |          | a@ |       |"');
     break;
 
 

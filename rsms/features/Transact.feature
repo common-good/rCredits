@@ -6,9 +6,9 @@ SO I will get a rebate or bonus that I can spend once I am an active participant
 Setup:
   Given members:
   | id   | fullName  | cell   | email         |
-  | .ZZA | Abe One    | +20001 | a@example.com |
-  | .ZZB | Bea Two    | +20002 | b@example.com |
-  | .ZZC | Corner Pub | +20003 | c@example.com |
+  | .ZZA | Abe One    | +20001 | a@ |
+  | .ZZB | Bea Two    | +20002 | b@ |
+  | .ZZC | Corner Pub | +20003 | c@ |
   # later and elsewhere: name, country, minimum, community
   And relations:
   | id   | main | agent | permission   |
@@ -58,7 +58,7 @@ Scenario: The caller confirms a request to charge
   | did     | otherName | amount | tid |
   | charged | Corner Pub | $100   | 2   |
   # "You charged Corner Pub $100 (bonus: $10). Your balance is unchanged, pending payment. Invoice #2"
-  And we email "new-invoice" to member "c@example.com" with subs:
+  And we email "new-invoice" to member "c@" with subs:
   | created | fullName   | otherName | amount | payerPurpose |
   | %today  | Corner Pub | Abe One    | $100   | labor         |
 
@@ -71,7 +71,7 @@ Scenario: The caller confirms a unilateral charge
   | did     | otherName | amount | rewardType | rewardAmount | balance | tid |
   | charged | Corner Pub | $100   | bonus       | $10           | $360    | 2   |
   # "You charged Corner Pub $100 (bonus: $10). Your new balance is $110. Transaction #1"
-  And we email "new-charge" to member "c@example.com" with subs:
+  And we email "new-charge" to member "c@" with subs:
   | created | fullName   | otherName | amount | payerPurpose |
   | %today  | Corner Pub | Abe One    | $100   | labor         |
 

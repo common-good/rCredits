@@ -45,9 +45,9 @@ class rsmsUndo extends DrupalWebTestCase {
     case(0):
     Given('members: "DATA'
     . '\\| id   | fullName  | cell   | email         |'
-    . '\\| .ZZA | Abe One    | +20001 | a@example.com |'
-    . '\\| .ZZB | Bea Two    | +20002 | b@example.com |'
-    . '\\| .ZZC | Corner Pub | +20003 | c@example.com |"');
+    . '\\| .ZZA | Abe One    | +20001 | a@ |'
+    . '\\| .ZZB | Bea Two    | +20002 | b@ |'
+    . '\\| .ZZC | Corner Pub | +20003 | c@ |"');
     And__('transactions: "DATA'
     . '\\| created   | type         | amount | from      | to   | purpose      | taking |'
     . '\\| %today-6m | %TX_SIGNUP   | 250    | community | .ZZA | signup       | 0      |'
@@ -138,7 +138,7 @@ class rsmsUndo extends DrupalWebTestCase {
     Then_('we say to phone +20001 "report undo" with subs: "DATA'
     . '\\| solution          |'
     . '\\| marked \'\'denied\'\' |"');
-    And__('we email "invoice-denied" to member "b@example.com" with subs: "DATA'
+    And__('we email "invoice-denied" to member "b@" with subs: "DATA'
     . '\\| created | fullName | otherName | amount | payeePurpose  |'
     . '\\| %today  | Bea Two  | Abe One    | $100   | cleaning       |"');
   }
@@ -153,7 +153,7 @@ class rsmsUndo extends DrupalWebTestCase {
     Then_('we say to phone +20001 "report undo" with subs: "DATA'
     . '\\| solution          |'
     . '\\| marked \'\'denied\'\' |"');
-    And__('we email "offer-refused" to member "c@example.com" with subs: "DATA'
+    And__('we email "offer-refused" to member "c@" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'
     . '\\| %today  | Corner Pub | Abe One    | $100   | wages         |"');
   }

@@ -152,7 +152,7 @@ function calculator($field = 'amount') {
     $formula = "$field=commafy(10*$field.replace(/,/, '')+.0$c);"; // default to adding a digit
     $class = "calc$c";
     if ($c == '|') {
-      $s .= "<br>\n";
+      $s .= "<br>";
       continue;
     } elseif ($c == 'c') {
       $formula = "$field='0.00';";
@@ -160,7 +160,7 @@ function calculator($field = 'amount') {
       $formula = "$field=commafy(parseFloat($field.slice(0, -1).replace(/,/, ''))/10);"; // remove last digit
       $c = '&#x25C0;'; // unicode left arrow head
     }
-    $s .= "<input id=\"$class\" type=\"button\" value=\"$c\" onclick=\"$formula\" />\n";
+    $s .= "<button id=\"$class\" type=\"button\" onclick=\"$formula\">$c</button>"; // iPhone <input> looks bad
   }
   return $s . '</div>';
 }
@@ -843,3 +843,4 @@ function setDft(&$param, $value) {if (!isset($param)) $param = $value;}
 function bit($bit) {return 1 << $bit;}
 function log($message, $type = 'state', $info = array()) {return u\loga($type, compact('message') + $info);}
 function consta($prefix, $var) {return constant(strtoupper($prefix . "_$var"));}
+function isIPhone() {return preg_match('/iPhone/i', $_SERVER['HTTP_USER_AGENT']);}

@@ -64,10 +64,28 @@ function showTableQ($sql, $subs = array()) {
  include __DIR__ . '/../rcredits/admin.inc';
  eachTx();
  */
-function eachTx($callBack = 'changeIt') {
-  $result = r\dbQ('SELECT * FROM r_txs')->fetchRow();
-  if (!function_exists($callBack)) $callBack = 'rCredits\\' . $callBack;
-  foreach ($result as $one) $callBack($one);
+function eachTx($func = 'changeIt') {
+  $result = r\dbQ('SELECT * FROM r_txs');
+  if (!function_exists($func)) $func = 'rCredits\\' . $func;
+  while ($row = $result->fetchAssoc()) $func($row);
+}
+
+/**
+ * Use this to cobble together a new account, pending the new Dwolla reg API working
+ */
+function cobble($id, $federalId, $dob, $pin, $question = '', $answer = '') {
+  if (!is_numeric($id) and strlen($id) == 3) $id = 'NEW.' . $id;
+  if (!$mya = r\acct($id)) return print_r('bad id');
+  $secure = compact(u\ray('usdType pin')) + (@$mya->secure ?: array()); // secure includes more than these
+
+  $federalId = str_replace('-', '', $federalId);
+  if (!is_numeric($dob)) $dob = strtotime($dob);
+  $usdType = 'Dwolla';
+  $info = compact(u\ray('federalId dob question answer'));
+  $mya->update($info + compact('secure'));
+  print_r(compact('id', 'pin') + $info);
+  $us = new r\usd($mya);
+  $us->getAuth();
 }
 
 /**
@@ -75,21 +93,28 @@ function eachTx($callBack = 'changeIt') {
  include __DIR__ . '/../rcredits/admin.inc';
  eachAcct();
  */
-function eachAcct($callBack = 'changeIt') {
+function eachAcct($func = 'changeIt') {
   $result = r\dbQ('SELECT uid FROM users WHERE uid>1')->fetchCol();
-  if (!function_exists($callBack)) $callBack = 'rCredits\\' . $callBack;
-  foreach ($result as $one) $callBack(r\acct($one));
+  if (!function_exists($func)) $func = 'rCredits\\' . $func;
+  foreach ($result as $one) $func(r\acct($one));
 }
 
 /**
  * General purpose utility, usually called from eachAcct, as above.
  * For example:
+ *    changeIt($a):
  *    $us = new r\usd($a);
  *    $us->each('rCredits\\Cron\\bankFollowup', 0, u\ray('deposit withdrawal'));
+ 
+  include __DIR__ . '/../rcredits/admin.inc';
+foreach (array(3201932, 3244519, 3350610, 3510402) as $one) {
+  changeIt($one);
+}
+
  */
-function changeIt($a) {
-  $us = new r\usd($a);
-  $us->each('rCredits\\Cron\\bankFollowup', 0, u\ray('deposit withdrawal'));
+function changeIt($txid) {
+$payee = r\dbLookup('payee', 'r_usd', 'txid=:txid', compact('txid'));
+r\Cron\coverFee(compact('txid', 'payee'));
 }
 
 function suUsd() {

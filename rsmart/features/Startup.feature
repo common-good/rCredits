@@ -6,9 +6,9 @@ SO I can use it to buy and sell with rCredits.
 Setup:
   Given members:
   | id      | fullName  | phone  | email         |
-  | NEW.ZZA | Abe One    | +20001 | a@example.com |
-  | NEW.ZZB | Bea Two    | +20002 | b@example.com |
-  | NEW.ZZC | Corner Pub | +20003 | c@example.com |
+  | NEW.ZZA | Abe One    | +20001 | a@ |
+  | NEW.ZZB | Bea Two    | +20002 | b@ |
+  | NEW.ZZC | Corner Pub | +20003 | c@ |
   And devices:
   | id      | code  |
   | NEW.ZZA | codeA |

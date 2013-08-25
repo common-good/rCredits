@@ -45,9 +45,9 @@ class rsmartTransact extends DrupalWebTestCase {
     case(0):
     Given('members: "DATA'
     . '\\| id      | fullName  | phone  | email         | city  | state  | country       |'
-    . '\\| NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | Alaska | United States |'
-    . '\\| NEW.ZZB | Bea Two    | +20002 | b@example.com | Btown | Utah   | United States |'
-    . '\\| NEW.ZZC | Corner Pub | +20003 | c@example.com | Ctown | Corse  | France        |"');
+    . '\\| NEW.ZZA | Abe One    | +20001 | a@ | Atown | Alaska | United States |'
+    . '\\| NEW.ZZB | Bea Two    | +20002 | b@ | Btown | Utah   | United States |'
+    . '\\| NEW.ZZC | Corner Pub | +20003 | c@ | Ctown | Corse  | France        |"');
     And__('devices: "DATA'
     . '\\| id      | code  |'
     . '\\| NEW.ZZA | codeA |'
@@ -83,7 +83,7 @@ class rsmartTransact extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$250" other_balance "" and message "report invoice" with subs: "DATA'
     . '\\| did     | otherName | amount | tid |'
     . '\\| charged | Corner Pub | $100   | 2   |"');
-    And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
+    And__('we email "new-invoice" to member "c@" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'
     . '\\| %today  | Corner Pub | Abe One    | $100   | labor         |"');
     And__('balances: "DATA'
@@ -100,7 +100,7 @@ class rsmartTransact extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$155" other_balance "" and message "report transaction" with subs: "DATA'
     . '\\| did    | otherName | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| paid   | Corner Pub | $100   | rebate      | $5            | $155    | 2   |"');
-    And__('we email "new-payment" to member "c@example.com" with subs: "DATA'
+    And__('we email "new-payment" to member "c@" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payeePurpose   |'
     . '\\| %today  | Corner Pub | Abe One    | $100   | groceries       |"');
     And__('balances: "DATA'
@@ -118,7 +118,7 @@ class rsmartTransact extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$360" other_balance "$155" and message "report transaction" with subs: "DATA'
     . '\\| did     | otherName | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| charged | Abe One    | $100   | bonus       | $10           | $360    | 2   |"');
-    And__('we email "new-charge" to member "a@example.com" with subs: "DATA'
+    And__('we email "new-charge" to member "a@" with subs: "DATA'
     . '\\| created | fullName  | otherName | amount | payerPurpose   |'
     . '\\| %today  | Abe One   | Corner Pub | $100   | groceries       |"');
     And__('balances: "DATA'
@@ -272,7 +272,7 @@ class rsmartTransact extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$250" other_balance "" and message "report invoice" with subs: "DATA'
     . '\\| did     | otherName | amount | tid |'
     . '\\| charged | Corner Pub | $100   | 2   |"');
-    And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
+    And__('we email "new-invoice" to member "c@" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'
     . '\\| %today  | Corner Pub | Abe One    | $100   | labor         |"');
     And__('balances: "DATA'
@@ -289,7 +289,7 @@ class rsmartTransact extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$155" other_balance "" and message "report transaction" with subs: "DATA'
     . '\\| did    | otherName | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| paid   | Corner Pub | $100   | rebate      | $5            | $155    | 2   |"');
-    And__('we email "new-payment" to member "c@example.com" with subs: "DATA'
+    And__('we email "new-payment" to member "c@" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payeePurpose   |'
     . '\\| %today  | Corner Pub | Abe One    | $100   | groceries       |"');
     And__('balances: "DATA'
@@ -307,7 +307,7 @@ class rsmartTransact extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$360" other_balance "$155" and message "report transaction" with subs: "DATA'
     . '\\| did     | otherName | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| charged | Abe One    | $100   | bonus       | $10           | $360    | 2   |"');
-    And__('we email "new-charge" to member "a@example.com" with subs: "DATA'
+    And__('we email "new-charge" to member "a@" with subs: "DATA'
     . '\\| created | fullName  | otherName | amount | payerPurpose   |'
     . '\\| %today  | Abe One   | Corner Pub | $100   | groceries       |"');
     And__('balances: "DATA'
@@ -461,7 +461,7 @@ class rsmartTransact extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$250" other_balance "" and message "report invoice" with subs: "DATA'
     . '\\| did     | otherName | amount | tid |'
     . '\\| charged | Corner Pub | $100   | 2   |"');
-    And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
+    And__('we email "new-invoice" to member "c@" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'
     . '\\| %today  | Corner Pub | Abe One    | $100   | labor         |"');
     And__('balances: "DATA'
@@ -478,7 +478,7 @@ class rsmartTransact extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$155" other_balance "" and message "report transaction" with subs: "DATA'
     . '\\| did    | otherName | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| paid   | Corner Pub | $100   | rebate      | $5            | $155    | 2   |"');
-    And__('we email "new-payment" to member "c@example.com" with subs: "DATA'
+    And__('we email "new-payment" to member "c@" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payeePurpose   |'
     . '\\| %today  | Corner Pub | Abe One    | $100   | groceries       |"');
     And__('balances: "DATA'
@@ -496,7 +496,7 @@ class rsmartTransact extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$360" other_balance "$155" and message "report transaction" with subs: "DATA'
     . '\\| did     | otherName | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| charged | Abe One    | $100   | bonus       | $10           | $360    | 2   |"');
-    And__('we email "new-charge" to member "a@example.com" with subs: "DATA'
+    And__('we email "new-charge" to member "a@" with subs: "DATA'
     . '\\| created | fullName  | otherName | amount | payerPurpose   |'
     . '\\| %today  | Abe One   | Corner Pub | $100   | groceries       |"');
     And__('balances: "DATA'
@@ -650,7 +650,7 @@ class rsmartTransact extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$250" other_balance "" and message "report invoice" with subs: "DATA'
     . '\\| did     | otherName | amount | tid |'
     . '\\| charged | Corner Pub | $100   | 2   |"');
-    And__('we email "new-invoice" to member "c@example.com" with subs: "DATA'
+    And__('we email "new-invoice" to member "c@" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'
     . '\\| %today  | Corner Pub | Abe One    | $100   | labor         |"');
     And__('balances: "DATA'
@@ -667,7 +667,7 @@ class rsmartTransact extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$155" other_balance "" and message "report transaction" with subs: "DATA'
     . '\\| did    | otherName | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| paid   | Corner Pub | $100   | rebate      | $5            | $155    | 2   |"');
-    And__('we email "new-payment" to member "c@example.com" with subs: "DATA'
+    And__('we email "new-payment" to member "c@" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payeePurpose   |'
     . '\\| %today  | Corner Pub | Abe One    | $100   | groceries       |"');
     And__('balances: "DATA'
@@ -685,7 +685,7 @@ class rsmartTransact extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "NEW.AAAE" my_balance "$360" other_balance "$155" and message "report transaction" with subs: "DATA'
     . '\\| did     | otherName | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| charged | Abe One    | $100   | bonus       | $10           | $360    | 2   |"');
-    And__('we email "new-charge" to member "a@example.com" with subs: "DATA'
+    And__('we email "new-charge" to member "a@" with subs: "DATA'
     . '\\| created | fullName  | otherName | amount | payerPurpose   |'
     . '\\| %today  | Abe One   | Corner Pub | $100   | groceries       |"');
     And__('balances: "DATA'

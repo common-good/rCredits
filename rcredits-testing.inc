@@ -63,8 +63,8 @@ function makeAccount($info = array(), $testOnly = FALSE) {
     u\setDft($postalCode, '01301');
     $moneyFields = 'share committed floor r usd rewards'; // not minimum because NULL means not set, in Membership page
     foreach (u\ray($moneyFields) as $one) u\setDft($$one, 0);
-    $testFields = ' rebate fullName name pass mail community ' . $moneyFields;
-  } else $testFields = '';
+    $fixFields = ' rebate fullName name pass mail community postalCode ' . $moneyFields;
+  } else $fixFields = '';
 
   $flags0 = @$flags;
     /*if (strpos($flags0, '%') !== FALSE) {
@@ -82,10 +82,10 @@ function makeAccount($info = array(), $testOnly = FALSE) {
     if ($acctType >= R_SELF_EMPLOYED) $flags |= u\bit(B_COMPANY);
   }
   
-  fixCountryAndState($info);
-
   foreach (u\ray('id email acctType dwolla') as $one) unset($info[$one]);
-  $info = compact(u\ray('uid flags ' . $testFields)) + $info;
+  $info = compact(u\ray('uid flags ' . $fixFields)) + $info;
+  fixValues($info);
+
   if ($testOnly) {
     if (!$acct = r\acct($uid)) return output("No such uid: $uid");
     foreach ($info as $key => $value) {
@@ -154,7 +154,7 @@ function makeTx($info, $testOnly = FALSE) {
   
   if (abs($usd = $amount - $r) > DW_FEE_THRESHOLD and $state >= TX_DONE) {
 ///    debug(compact('xid','usdXid','payee','usd'));
-    r\queue('coverFee', u\ray('txid payee', t\seq(), $usd > 0 ? $payee : $payer));
+    r\queue('coverFee', u\ray('txid payee', 0, $usd > 0 ? $payee : $payer));
   }
   $txs = r\transact($info);
   return $txs[0]['xid'];
@@ -379,16 +379,29 @@ function findEmail($index, $email, $subs, $noBody = FALSE) {
   }
   $message = strtr($noBody ? r\emailTemplate($index) : r\emailBody($index), $esubs);
   $subject = strtr($GLOBALS['emailSubjects'][$index], $esubs);
+  t\fixEmail($email);
   return findMessage('email', compact(u\ray('index email subject')), $message, $subject, $subs);
 }
 
 /**
  * Convert country and state names or abbreviations to the corresponding indices
  */
-function fixCountryAndState(&$info) {
-  extract(u\just('country state', $info));
-  if (@$country) $info['country'] = $country = r\dbLookup('id', 'r_countries', ':country IN (name, iso_code)', compact('country'));
-  if (@$state) $info['state'] = r\dbLookup('id', 'r_states', ':state IN (name, abbreviation) AND country_id=:country', compact('state', 'country'));
+function fixValues(&$info) {
+  extract(u\just('postalCode country state email mail', $info));
+  if (@$postalCode or @$country or @$state) {
+    u\setDft($country, 'US');
+    if ($country == 'US' or $country == US_COUNTRY_ID) u\setDft($state, 'MA');
+  }
+  if (@$country) $info['country'] = $country = r\dbLookup('id', 'r_countries', ':country IN (name, iso_code)', compact('country')); else $country = US_COUNTRY_ID;
+  if (@$state) $info['state'] = r\dbLookup('id', 'r_states', ':state IN (name, abbreviation) AND country_id=:country', compact('state', 'country')); else $state = 0;
+  if (@$mail) t\fixEmail($info['mail']);
+  if (@$email) t\fixEmail($info['email']);
+}
+
+function fixEmail(&$email) {
+  $email = str_replace("'", '&#039;', htmlspecialchars($email)); // Drupal does this in user_register()
+  if (substr(@$email, -1, 1) == '@') $email .= 'example.com'; 
+  return $email;
 }
 
 function makePicture($picture, $acct) {
@@ -521,7 +534,7 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
 /// debug(compact(u\ray('id page values confirmed testOnly'))); // keep
 
   $values = @$values[0] ?: array();
-  t\fixCountryAndState($values);
+  t\fixValues($values);
   if (isset($values['amount']) and !is_numeric($values['amount'])) {
     $a = r\acct(t\fullQid($id));
     list ($values['amount']) = t\parseAmt($values['amount'], $a);
@@ -590,7 +603,8 @@ function pageForm($page, $err = '') {
 
   if (u\abbreviates('/user/', $page)) {
     $sta = @$formSta ?: array();
-    list ($form, $function) = strpos($page, '/register') ? array('user_register_form', 'formRegister')
+//    list ($form, $function) = strpos($page, '/signup') ? array('user_register_form', 'formRegister')
+    list ($form, $function) = FALSE ? array('user_register_form', 'formRegister')
       : ($login ? array('user_login', 'formLogin') : array());
     $function = 'rCredits\\Web\\' . $function;
     // (FAILS for user_login) $form = \drupal_get_form($form, $args);
@@ -754,8 +768,9 @@ function clear($ch) {
   global $formOut, $formArray, $formSta, $testOp, $testConfirmation;
   $formOut = $formArray = $formSta = $testOp = $testConfirmation = NULL;
   global $sms_devel; $sms_devel = TRUE;
-  global $channel; 
-  $channel = $ch;
+  global $testSeq; $testSeq = NULL;
+  global $channel; $channel = $ch;
+  
   $cgfUid = \variable_get('cgf_uid');
   $tables = 'r_notices r_sms r_txs r_relations r_log r_invites r_companies r_gifts r_smarts r_proxies r_usd r_user_industries queue';
 
@@ -763,11 +778,22 @@ function clear($ch) {
   foreach (u\ray($tables) as $one) r\dbQ("TRUNCATE $one");
   r\dbQ('UPDATE users SET floor=0,minimum=NULL,r=0,usd=0,rewards=0,committed=0');
 
+  $a = r\acct('NEW.AAA');
+  $secure = $a->secure;
+  $usdAccount = DW_TESTER_ACCT;
+  $usdPin = $pin = 9999;
+  $usdType = 'Dwolla';
+  $auth = 'lBtIKmAL/b9PzZhrPX0m5SwIGMtAIHcxXiEq2gTMYwtZ+LYK7x';
+  $secure = compact(u\ray('usdType usdPin pin auth'));
+  $info = compact(u\ray('usdAccount secure'));
+  $a->update($info);
+
   $files = glob(DRUPAL_ROOT . R_PICTURE_DIR . "/*"); // get all picture file names
   foreach($files as $file){ // iterate files
     if (is_numeric($basename = basename($file)) and $basename > $cgfUid) unlink($file);
   }
 
+  tlog('clearing');
   r\acct::_clear(); // empty the acct cache
   \drupal_static_reset(); // clear out drupal central storage
 }
@@ -857,7 +883,11 @@ function constants($list) {
   }
 }
 
-function seq($i = 0) {
+function seq($table = 'r_usd') {
   global $testSeq;
-  return u\n2a($testSeq[$i] = @$testSeq[$i] ? $testSeq[$i] + 1 : 1, -4);
+  $id = $testSeq[$table] = @$testSeq[$table] + 1;
+  $k = $table == 'r_usd' ? 'txid' : '';
+  tlog("seq table=$table id=$id");
+  u\EXPECT(!r\dbExists('r_usd', "$k=:id", compact('id')), "duplicate seq: $id in table $table");
+  return $id;
 }

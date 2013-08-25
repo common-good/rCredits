@@ -4742,7 +4742,7 @@ function print_state(ci, dft_state){
   var options = document.getElementById('edit-state');
   options.length=0; // zap any previous list items
   var x, i = 0;
-  for(x in ss) {
+  for(x in ss[ci]) {
     options.options[i] = new Option(ss[ci][x], x);
     if (dft_state == x) options.selectedIndex = i;
     i++;

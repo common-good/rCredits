@@ -763,16 +763,18 @@ EOF;
 
   $bank = -$bank; // make it "from bank" instead of "to bank"
   $balance = $bank + $in - $out;
+  $outProper = $out + $fees;
   $inProper = $in - ($rewards - $fees);
 
   $r = $rIn - $rOut;
+  $rOutProper = $rOut + $fees;
   $rInProper = $rIn - ($rewards - $fees);
 
   $usdIn = $in - $rIn;
   $usdOut = $out - $rOut;
   $usd = $usdIn - $usdOut;
   
-  $resultKeys = 'in out rewards fees rIn rOut inProper balance rInProper r usdIn usdOut usd bank';
+  $resultKeys = 'in out rewards fees rIn rOut inProper outProper balance rInProper rOutProper r usdIn usdOut usd bank';
   $result = compact(u\ray($resultKeys));
   
   $fancy = array();

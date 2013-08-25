@@ -86,6 +86,7 @@ function rcredits_exception_handler($e) {
   $msg = '<b>Exception:</b>' . R_SYS_ERR. "<br>\n($msg)<br>\n- $line0 ($file0)" . $trace_msg;
   $message = str_replace('&nbsp;', '', str_replace('<br>', '', $msg));
   $R_FATAL_ERROR = u\loga('FATAL', compact('message'));
+  if (isPRODUCTION) mail(R_TESTER_EMAIL, 'rCredits FATAL ERROR', $message);
   if (t\est()) print_r($msg, 1); // (KEEP) do this in any case (doesn't show up unless interface fails)
 
   switch (@$channel) {

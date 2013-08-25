@@ -5,10 +5,10 @@ SO I can buy and sell stuff.
 
 Setup:
   Given members:
-  | id   | fullName   | country | email         | flags                |
-  | .ZZA | Abe One    | US      | a@example.com | dft,ok,personal,bona |
-  | .ZZB | Bea Two    | US      | b@example.com | dft,ok,personal,bona |
-  | .ZZC | Corner Pub | France  | c@example.com | dft,ok,company,bona  |
+  | id   | fullName   | country | email | flags                |
+  | .ZZA | Abe One    | US      | a@    | dft,ok,personal,bona |
+  | .ZZB | Bea Two    | US      | b@    | dft,ok,personal,bona |
+  | .ZZC | Corner Pub | France  | c@    | dft,ok,company,bona  |
   And relations:
   | id      | main | agent | permission |
   | NEW.ZZA | .ZZA | .ZZB  | buy        |

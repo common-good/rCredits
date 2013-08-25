@@ -43,26 +43,75 @@ class usd {
   /**
    * Instantiate (and return) a new USD account object
    * @param acct $acct: the rCredits account that has this USD account
-   * @param assoc $info: registration info (optional), if registering
-   * @param string $err: (returned) error message if any
    */
-  function __construct($acct, $info = FALSE, &$err = '') {
+  function __construct($acct) {
     $this->acct = $acct;
-    
-    if ($info) { // presence of usdAccount is the indication of success or failure after registration
-      $dw = $this->dwolla();
-      extract($info); // exactly the args in the function call on the next line
-      $user = $dw->register($usdEmail, $usdPass, $usdPin, $first, $last, $dob, $type, @$organization, $ein, $acceptTerms, $scope, 2);
-      dwError($dw, $err); // set error message, if any
-      if ($this->number = $usdAccount = str_replace('-', '', @$user['Id'])) $acct->update(compact('usdAccount'));
-      list ($this->type, $this->pin, $this->auth) = array('Dwolla', $pin, FALSE);
-    } else {
-      $this->number = $acct->usdAccount; // may be empty
-      $secure = $acct->secure;
-      foreach (u\ray('type pin auth') as $one) $this->$one = @$secure[$one];
-    }
+    $this->number = $acct->usdAccount; // may be empty
+    $secure = $acct->secure;
+    foreach (u\ray('type pin auth') as $one) $this->$one = @$secure[$one];
+  } 
+  
+  /**
+   * Open a dwolla account
+   * @param string $err: (returned) error message if any
+   * @return: does not return, but initiates callback to receive auth token
+   */
+  public function register($type, $info, $acceptTerms = FALSE, &$err = '') {
+    $dw = $this->dwolla(FALSE, R_GET_AUTH_URI);
+    extract(u\just('usdPass usdEmail usdPin', $this->acct->secure));
+    extract(u\just($type == 'Personal' ? 'first last dob' : 'org ein', $info));
+    if (@$dob) $dob = date('m-d-Y', $dob);
+    $result = $dw->register2($usdEmail, $usdPass, $usdPin, @$first, @$last, @$dob, $type, @$org, @$ein, $acceptTerms);
+//    debug($result);
+    if (!$auth = @$result['OAuthToken']) return dwError($dw, $err); // set error message, if any
+    $me = $dw->me();
+    $usdAccount = str_replace('-', '', $me['Id']);
+    $a = $this->acct;
+    if (r\whoseUsd($usdAccount, $a->id)) return dwError(u\tt('usd account taken'));
+    $secure = $a->secure;
+    $secure['auth'] = $auth;
+    $a->update(compact(u\ray('secure usdAccount')));
+
+    list ($this->type, $this->pin, $this->auth) = array('Dwolla', $usdPin, $auth);
+//    print_r(compact('uid','_GET','mya','usdAcct','dw','auth','secure')); die();
+    return TRUE; // report success
+  }    
+
+  function step() {return $this->dwolla()->step();}
+
+  function resendEmail(&$err = '') {
+    $dw = $this->dwolla();
+    if (!$dw->resendEmail()) return dwError($dw, $err);
+    return TRUE;
   }
   
+  /**
+   * Add and verify primary phone.
+   * @param string $phone: primary phone number (no punctuation)
+   * @param string $verificationMethod: SMS or Voice
+   * @param string $err: (returned) the error message, if any
+   * @return string $phoneId or FALSE
+   */
+  function addPhone($phone, $verificationMethod, &$err = '') {
+    $dw = $this->dwolla();
+    if (!$phoneId = $dw->addPhone($phone, $verificationMethod)) return dwError($dw, $err);
+    return $phoneId;
+  }
+
+  /**
+   * Verify primary phone.
+   * @param string $phoneId: phone identifier
+   * @param integer $code: 5-digit verification code (sent earlier to phone by SMS or voice)
+   * @param string $err: (returned) the error message, if any
+   * @return TRUE if success
+   */
+  function verifyPhone($phoneId, $code, &$err = '') {
+    $dw = $this->dwolla();
+    if (!$dw->verifyPhone($phoneId, $code)) return dwError($dw, $err);
+    $this->acct->setBit(B_PHONE_OK);
+    return TRUE;
+  }
+
   /**
    * Handle updated usd information by requesting a new auth token from Dwolla
    * @return: does not return, but initiates callback to receive auth token
@@ -286,7 +335,7 @@ array (
     if (!$fees = @$tx['Fees']) return 0; 
     u\EXPECT($fees[0]['Id'] == $txid + 2, 'misnumbered fee'); // $txid+1 is the payer's copy
     u\EXPECT($fees[0]['Amount'] + 0 == DW_FEE, 'wrong fee amount');
-    if (!$tx = $dw->transaction($txid + 3)) return TRUE; // no reimbursement transaction
+    if (!$tx = $dw->transaction($txid + 3)) return DW_FEE; // no reimbursement transaction
     return ($tx['Type'] == 'fee' ? 0 : DW_FEE); // found a reimbursement ? no fee, else return fee amount
   }
   
@@ -316,11 +365,11 @@ array (
    *     OR assoc $txid: array of all the args for this function
    * @param float $amount: the amount of a Dwolla transaction or bank transfer (negative for a withdrawal)
    * @param int $payer: rCredits account id of the sender
-   * @param int $payee: rCredits account id of the other (0 for bank transfers)
+   * @param int $payee: rCredits account id of the other (0 for bank transfers, -1 for fees)
    * @param int $created: (int) creation date/time
    * @param int $completed: completion date/time (default same as created)
    */
-  private static function addToAtom($txid, $amount = '', $payer = '', $payee = '', $completed = NULL, $created = REQUEST_TIME) {
+  public static function addToAtom($txid, $amount = '', $payer = '', $payee = '', $completed = NULL, $created = REQUEST_TIME) {
     u\EXPECT(self::inAtom(), 'addToAtom outside atom');
     if ($payer) {
       $tx = compact(u\ray('txid amount payer payee created completed'));
@@ -393,7 +442,7 @@ array (
  */
 function noDw($dw, &$err = NULL) {
   global $dwollaDown; 
-  if (STAGING or @$dwollaDown) return TRUE; // allows testing or greater efficiency in extended outages
+  if (@$dwollaDown) return TRUE; // allows greater efficiency in extended outages
   if (is_object($dw) and u\abbreviates('Request failed. Server responded with:', $err = $dw->getError())) {
     $err = NULL;
     return TRUE;
@@ -420,11 +469,10 @@ function dwError($dw, &$error = '') {
 }
 
 /**
- * Redirect to the callback URI, with an error message or 'yes'
+ * Redirect to the default page, with an error message or 'yes'
  * @param mixed $dw: the dwolla REST object, an error string, or ''
  */
 function authReturn($dw = '') {
-  global $base_url;
   dwError($dw, $err);
   return r\go('',  $err);
 }

@@ -7,9 +7,9 @@ SO I don't lose money or get confused.
 Setup:
   Given members:
   | id   | fullName   | dwolla          | email         | flags                |
-  | .ZZA | Abe One    | %DW_TESTER_ACCT | a@example.com | dft,ok,personal,bona |
-  | .ZZB | Bea Two    | %DW_TEST_ACCT   | b@example.com | dft,ok,personal      |
-  | .ZZC | Corner Pub |                 | c@example.com | dft,ok,company       |
+  | .ZZA | Abe One    | %DW_TESTER_ACCT | a@ | dft,ok,personal,bona |
+  | .ZZB | Bea Two    | %DW_TEST_ACCT   | b@ | dft,ok,personal      |
+  | .ZZC | Corner Pub |                 | c@ | dft,ok,company       |
   And transactions: 
   | xid   | created   | type       | amount | from      | to   | purpose | taking |
   | .AAAB | %today-6m | %TX_SIGNUP |     10 | community | .ZZA | signup  | 0      |

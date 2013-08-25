@@ -45,8 +45,8 @@ class rcronLostUsdTxs extends DrupalWebTestCase {
     case(0):
     Given('members: "DATA'
     . '\\| id   | fullName   | dwolla          | country | email         | flags                | usd |'
-    . '\\| %id1 | Abe One    | %DW_TESTER_ACCT | US      | a@example.com | dft,ok,personal,bona |   1 |'
-    . '\\| %id2 | Bea Two    | %DW_TEST_ACCT   | US      | b@example.com | dft,ok,personal,bona |   0 |"');
+    . '\\| %id1 | Abe One    | %DW_TESTER_ACCT | US      | a@ | dft,ok,personal,bona |   1 |'
+    . '\\| %id2 | Bea Two    | %DW_TEST_ACCT   | US      | b@ | dft,ok,personal,bona |   0 |"');
     And__('transactions: "DATA'
     . '\\| xid | created   | type     | amount | r  | from | to   | purpose |'
     . '\\| 1   | %today-7m | signup   |     10 | 10 | ctty | %id1 | signup  |'

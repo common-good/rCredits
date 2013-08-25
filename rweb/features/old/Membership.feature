@@ -13,48 +13,47 @@ Setup:
   | id   | main | agent | permission |
   | .ZZA | .ZZC | .ZZA  | manage     |
   
+Scenario: A member has incomplete contact information
+  When member ".ZZA" visits page "status"
+  Then we show "Missing Contact Information"
+
 Scenario: A member clicks on the membership link
-#  Given member ".ZZA" supplies "physical": "planet Earth"
+  Given member ".ZZA" supplies "physical": "planet Earth"
   When member ".ZZA" visits page "status"
   Then we show "Congratulations on signing up" with:
-  | Step 1    | Step 2       | Step 3       | Step 4            | Step 5      | Step 6 | Step 7  |
-  | Agreement | Contact Info | contribution | Choose two people | Preferences | photo  | Connect |
+  | Step 1 | Step 2    | Step 3       | Step 4            | Step 5   | Step 6  | Step 7      |
+  | photo  | Agreement | contribution | Choose two people | security | Connect | Preferences |
   And with done ""
 
 Scenario: A company agent clicks on the membership link
-#  Given member ".ZZC" supplies "physical": "planet Earth"
+  Given member ".ZZC" supplies "physical": "planet Earth"
   When member ":ZZA" visits page "status"
   Then we show "Congratulations on signing up" with:
-  | Step 1    | Step 2       | Step 3       | Step 4      | Step 5 | Step 6  | Step 7       | Step 8    |
-  | Agreement | Contact Info | contribution | Preferences | photo  | Connect | company info | relations |
+  | Step 1 | Step 2    | Step 3       | Step 4   | Step 5      |
+  | photo  | Agreement | contribution | security | Preferences |
   And we show "Congratulations on signing up" without:
   | Step 4            |
   | Choose two people |
   And with done ""
 
 Scenario: A member does it all
-#  Given member ".ZZA" supplies "physical": "planet Earth"
+  Given member ".ZZA" supplies "physical": "planet Earth"
   And member ".ZZA" has done step "agreement"
   When member ".ZZA" visits page "status"
   Then we show "You're getting there"
-  And with done "1"
+  And with done "2"
 
   When member ".ZZA" has done step "contribution"
   And member ".ZZA" visits page "status"
-  Then we show "You're getting there"
-  And with done "13"
+  Then with done "23"
 
   When member ".ZZA" has done step "photo"
   And member ".ZZA" visits page "status"
-  Then with done "136"
-
-  When member ".ZZA" has done step "contact"
-  And member ".ZZA" visits page "status"
-  Then with done "1236"
+  Then with done "123"
 
   When member ".ZZA" has done step "proxies"
   And member ".ZZA" visits page "status"
-  Then with done "12346"
+  Then with done "1234"
   And we tell staff "event" with subs:
   | fullName | quid | status |
   | Abe One  | .ZZA | member |
@@ -64,11 +63,18 @@ Scenario: A member does it all
   # card and letter sent to new member 
   # mentioning how to spend their $5 with the card?
 
-  When member ".ZZA" has done step "preferences"
+  When member ".ZZA" has done step "security"
   And member ".ZZA" visits page "status"
-  Then with done "123456"
+  Then with done "12345"
 
   When member ".ZZA" has done step "connect"
+  And member ".ZZA" visits page "status"
+  Then we show "You're getting there" with:
+  | note             |
+  | pending approval |
+  And with done "123456"
+
+  When member ".ZZA" has done step "preferences"
   And member ".ZZA" visits page "status"
   Then we show "Your Account Setup Is Complete"
   And with done ""
@@ -78,5 +84,7 @@ Scenario: A member does it all
 
   When member ".ZZA" has permission "ok"
   And member ".ZZA" visits page "status"
-  Then we show "Your account is Activated"
-  And with done ""
+  Then we show "Your account is Activated" without:
+  | note             |
+  | pending approval |
+

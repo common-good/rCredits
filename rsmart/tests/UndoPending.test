@@ -46,9 +46,9 @@ class rsmartUndoPending extends DrupalWebTestCase {
     case(0):
     Given('members: "DATA'
     . '\\| id      | fullName  | phone  | email         | city  | state  | country       |'
-    . '\\| NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | Alaska | United States |'
-    . '\\| NEW.ZZB | Bea Two    | +20002 | b@example.com | Btown | Utah   | United States |'
-    . '\\| NEW.ZZC | Corner Pub | +20003 | c@example.com | Ctown | Corse  | France        |"');
+    . '\\| NEW.ZZA | Abe One    | +20001 | a@ | Atown | Alaska | United States |'
+    . '\\| NEW.ZZB | Bea Two    | +20002 | b@ | Btown | Utah   | United States |'
+    . '\\| NEW.ZZC | Corner Pub | +20003 | c@ | Ctown | Corse  | France        |"');
     And__('devices: "DATA'
     . '\\| id      | code  |'
     . '\\| NEW.ZZA | codeA |'
@@ -84,9 +84,9 @@ class rsmartUndoPending extends DrupalWebTestCase {
     case(1):
     Given('members: "DATA'
     . '\\| id      | fullName  | phone  | email         | city  | state  | country       |'
-    . '\\| NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | Alaska | United States |'
-    . '\\| NEW.ZZB | Bea Two    | +20002 | b@example.com | Btown | Utah   | United States |'
-    . '\\| NEW.ZZC | Corner Pub | +20003 | c@example.com | Ctown | Corse  | France        |"');
+    . '\\| NEW.ZZA | Abe One    | +20001 | a@ | Atown | Alaska | United States |'
+    . '\\| NEW.ZZB | Bea Two    | +20002 | b@ | Btown | Utah   | United States |'
+    . '\\| NEW.ZZC | Corner Pub | +20003 | c@ | Ctown | Corse  | France        |"');
     And__('devices: "DATA'
     . '\\| id      | code  |'
     . '\\| NEW.ZZA | codeA |'
@@ -145,7 +145,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "" my_balance "$250" other_balance "" and message "report undo" with subs: "DATA'
     . '\\| solution          |'
     . '\\| marked \'\'denied\'\' |"');
-    And__('we email "invoice-denied" to member "a@example.com" with subs: "DATA'
+    And__('we email "invoice-denied" to member "a@" with subs: "DATA'
     . '\\| created    | fullName | otherName | amount | payeePurpose |'
     . '\\| %today-2w  | Abe One  | Corner Pub | $100   | labor H       |"');
     And__('balances: "DATA'
@@ -178,7 +178,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "" my_balance "$250" other_balance "" and message "report undo" with subs: "DATA'
     . '\\| solution          |'
     . '\\| marked \'\'denied\'\' |"');
-    And__('we email "offer-refused" to member "a@example.com" with subs: "DATA'
+    And__('we email "offer-refused" to member "a@" with subs: "DATA'
     . '\\| created   | fullName | otherName | amount | payerPurpose |'
     . '\\| %today-3w | Abe One  | Bea Two    | $100   | pie E         |"');
     And__('balances: "DATA'
@@ -205,7 +205,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "" my_balance "$250" other_balance "" and message "report undo" with subs: "DATA'
     . '\\| solution |'
     . '\\| deleted  |"');
-    And__('we email "invoice-canceled" to member "c@example.com" with subs: "DATA'
+    And__('we email "invoice-canceled" to member "c@" with subs: "DATA'
     . '\\| created   | fullName   | otherName | amount | payerPurpose |'
     . '\\| %today-2w | Corner Pub | Abe One    | $100   | labor H       |"');
   }
@@ -226,7 +226,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "" my_balance "$250" other_balance "" and message "report undo" with subs: "DATA'
     . '\\| solution |'
     . '\\| deleted  |"');
-    And__('we email "offer-canceled" to member "b@example.com" with subs: "DATA'
+    And__('we email "offer-canceled" to member "b@" with subs: "DATA'
     . '\\| created   | fullName | otherName | amount | payeePurpose |'
     . '\\| %today-3w | Bea Two  | Abe One    | $100   | pie E       |"');
   }
@@ -253,7 +253,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "" my_balance "$250" other_balance "" and message "report undo" with subs: "DATA'
     . '\\| solution          |'
     . '\\| marked \'\'denied\'\' |"');
-    And__('we email "invoice-denied" to member "a@example.com" with subs: "DATA'
+    And__('we email "invoice-denied" to member "a@" with subs: "DATA'
     . '\\| created    | fullName | otherName | amount | payeePurpose |'
     . '\\| %today-2w  | Abe One  | Corner Pub | $100   | labor H       |"');
     And__('balances: "DATA'
@@ -286,7 +286,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "" my_balance "$250" other_balance "" and message "report undo" with subs: "DATA'
     . '\\| solution          |'
     . '\\| marked \'\'denied\'\' |"');
-    And__('we email "offer-refused" to member "a@example.com" with subs: "DATA'
+    And__('we email "offer-refused" to member "a@" with subs: "DATA'
     . '\\| created   | fullName | otherName | amount | payerPurpose |'
     . '\\| %today-3w | Abe One  | Bea Two    | $100   | pie E         |"');
     And__('balances: "DATA'
@@ -313,7 +313,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "" my_balance "$250" other_balance "" and message "report undo" with subs: "DATA'
     . '\\| solution |'
     . '\\| deleted  |"');
-    And__('we email "invoice-canceled" to member "c@example.com" with subs: "DATA'
+    And__('we email "invoice-canceled" to member "c@" with subs: "DATA'
     . '\\| created   | fullName   | otherName | amount | payerPurpose |'
     . '\\| %today-2w | Corner Pub | Abe One    | $100   | labor H       |"');
   }
@@ -334,7 +334,7 @@ class rsmartUndoPending extends DrupalWebTestCase {
     Then_('we respond success 1 tx_id "" my_balance "$250" other_balance "" and message "report undo" with subs: "DATA'
     . '\\| solution |'
     . '\\| deleted  |"');
-    And__('we email "offer-canceled" to member "b@example.com" with subs: "DATA'
+    And__('we email "offer-canceled" to member "b@" with subs: "DATA'
     . '\\| created   | fullName | otherName | amount | payeePurpose |'
     . '\\| %today-3w | Bea Two  | Abe One    | $100   | pie E       |"');
   }

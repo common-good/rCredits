@@ -7,7 +7,7 @@ SO I can complete my registration and/or make sure I can be contacted by system 
 Setup:
   Given members:
   | id   | fullName   | address | city  | state  | postalCode | country | physical | email         | phone |
-  | .ZZA | Abe One    |         | Atown | Alaska | 99100      | US      |          | a@example.com |       |
+  | .ZZA | Abe One    |         | Atown | Alaska | 99100      | US      |          | a@ |       |
 
 Scenario: A member visits the contact info page
   When member ".ZZA" visits page "account/contact"

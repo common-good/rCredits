@@ -46,11 +46,11 @@ class rcronVirtualPayments extends DrupalWebTestCase {
     case(0):
     Given('members: "DATA'
     . '\\| id   | fullName   | email         |floor | flags                        |'
-    . '\\| .ZZA | Abe One    | a@example.com |    0 | dft,personal,ok,bona         |'
-    . '\\| .ZZB | Bea Two    | b@example.com |    0 | dft,personal,company,ok,bona |'
-    . '\\| .ZZC | Corner Pub | c@example.com |    0 | dft,company,payex,ok,bona  |'
-    . '\\| .ZZD | Dee Four   | d@example.com |    0 | dft,personal,ok,bona         |'
-    . '\\| .ZZE | Ezra Five  | e@example.com |    0 | dft,personal,member          |"');
+    . '\\| .ZZA | Abe One    | a@ |    0 | dft,personal,ok,bona         |'
+    . '\\| .ZZB | Bea Two    | b@ |    0 | dft,personal,company,ok,bona |'
+    . '\\| .ZZC | Corner Pub | c@ |    0 | dft,company,payex,ok,bona  |'
+    . '\\| .ZZD | Dee Four   | d@ |    0 | dft,personal,ok,bona         |'
+    . '\\| .ZZE | Ezra Five  | e@ |    0 | dft,personal,member          |"');
     And__('relations: "DATA'
     . '\\| id      | main | agent | employerOk | permission | amount |'
     . '\\| NEW.ZZA | .ZZC | .ZZA  |          1 | sell       |   1800 |'

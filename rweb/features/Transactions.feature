@@ -58,6 +58,37 @@ Setup:
   | .ZZB |  279.50 |  2254.50 |     254.50 |
   | .ZZC |  323.50 |  3004.50 |     258.50 |  
   
+Scenario: A member clicks NO
+  Given transactions:
+  | xid | created   | type     | state    | amount | from | to   | purpose  | taking |
+  | 100 | %today-5d | transfer | disputed |    100 | .ZZC | .ZZA | cash CL  | 1      |
+  And balances:
+  | id   | r   |
+  | .ZZA | 500 |
+  # otherwise test dies for lack of Dwolla accounts
+  When member ".ZZA" visits page "transactions/period=5"
+  Then we show "Transaction History" with:
+  | tid | Date   | Name       | From you | To you | Status   | Buttons | Purpose | Rewards |
+  | 12  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X       | cash CL | --      |
+  # expand this to have rewards, for a better test
+  When member ".ZZA" visits page "transactions/period=5&do=no&xid=100"
+  Then we show "tx summary|confirm tx action" with subs:
+  | amount | otherName  | otherDid | purpose | created   | txAction                     |
+  | $100   | Corner Pub | gave     | cash CL | %today-5d | REVERSE this disputed charge |
+  
+Scenario: A member confirms NO
+  Given transactions:
+  | xid | created   | type     | state    | amount | from | to   | purpose  | taking |
+  | 100 | %today-5d | transfer | disputed |    101 | .ZZC | .ZZA | cash CL  | 1      |
+  And balances:
+  | id   | r   |
+  | .ZZA | 500 |
+  When member ".ZZA" confirms form "transactions/period=5&do=no&xid=100" with values: ""
+  Then we show "Transaction History" with:
+  | tid | Date   | Name       | From you | To you | r%  | Status   | Buttons | Purpose               | Rewards |
+  | 13  | %dm    | Corner Pub | 101.00   | --     | 0.0 | %chk     | X       | reverses #12              | --  |
+  | 12  | %dm-5d | Corner Pub | --       | 101.00 | 100 | disputed |         | (reversed by #13) cash CL | --  |
+
 Scenario: A member looks at transactions for the past year
 # Same result as above, but with tid#11 added
   Given transactions: 
@@ -66,9 +97,9 @@ Scenario: A member looks at transactions for the past year
   # plus rebate and bonus transactions
   When member ".ZZA" visits page "transactions/period=365&options=%RUSD_BOTH%STATES_BOTH%_N%_N%_N%_XCH%_VPAY"
   Then we show "Transaction History" with:
-  | Start Date | End Date | Start Balance | From Bank | From You | To You | Fees | Rewards | End Balance |
-  | %dmy-12m   | %dmy     | $0.00         | 0.00      | 460.00   | 110.00 | 0.25 | 266.25  | - $84.00    |
-  |            |          | PENDING       | 0.00      | 200.00   | 200.00 | 0.00 | 15.00   | + $15.00    |
+  | Start Date | End Date | Start Balance | From Bank | From You | To You | Rewards | End Balance |
+  | %dmy-12m   | %dmy     | $0.00         | 0.00      | 460.25   | 110.00 | 266.25  | - $84.00    |
+  |            |          | PENDING       | 0.00      | 200.00   | 200.00 | 15.00   | + $15.00    |
   And we show "Transaction History" with:
   | tid | Date   | Name       | From you | To you | r%   | Status  | Buttons | Purpose    | Rewards |
   | 12  | %dm-3d | Corner Pub | 100.00   | 100.00 | --   | %chk    |         | virtual    | 10.00   |
@@ -91,9 +122,9 @@ Scenario: A member looks at transactions for the past year
 Scenario: A member looks at transactions for the past few days
   When member ".ZZA" visits page "transactions/period=15&options=%RUSD_BOTH%STATES_BOTH%_N%_N%_N%_XCH%_VPAY"
   Then we show "Transaction History" with:
-  | Start Date | End Date | Start Balance | From You | To You | Fees | Rewards | End Balance |
-  | %dmy-15d   | %dmy     | $122.00       | 220.00   | 0.00   | 0.25 | 4.25    | - $94.00    |
-  |            |          | PENDING       | 200.00   | 200.00 |      | 15.00   | + $15.00   |
+  | Start Date | End Date | Start Balance | From You | To You | Rewards | End Balance |
+  | %dmy-15d   | %dmy     | $122.00       | 220.25   | 0.00   | 4.25    | - $94.00    |
+  |            |          | PENDING       | 200.00   | 200.00 | 15.00   | + $15.00   |
   And we show "Transaction History" with:
   | tid | Date   | Name       | From you | To you | r%   | Status  | Buttons | Purpose    | Rewards |
   | 11  | %dm    | %ctty      |   0.25   | --     | --   | %chk    |         | Dwolla fee | 0.25    |

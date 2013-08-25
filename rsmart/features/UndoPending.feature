@@ -12,9 +12,9 @@ Variants:
 Setup:
   Given members:
   | id      | fullName  | phone  | email         | city  | state  | country       | 
-  | NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | Alaska | United States |
-  | NEW.ZZB | Bea Two    | +20002 | b@example.com | Btown | Utah   | United States |
-  | NEW.ZZC | Corner Pub | +20003 | c@example.com | Ctown | Corse  | France        |
+  | NEW.ZZA | Abe One    | +20001 | a@ | Atown | Alaska | United States |
+  | NEW.ZZB | Bea Two    | +20002 | b@ | Btown | Utah   | United States |
+  | NEW.ZZC | Corner Pub | +20003 | c@ | Ctown | Corse  | France        |
   And devices:
   | id      | code  |
   | NEW.ZZA | codeA |
@@ -63,7 +63,7 @@ Scenario: A member confirms request to refuse to pay invoice
   Then we respond success 1 tx_id "" my_balance "$250" other_balance "" and message "report undo" with subs:
   | solution          |
   | marked ''denied'' |
-  And we email "invoice-denied" to member "a@example.com" with subs:
+  And we email "invoice-denied" to member "a@" with subs:
   | created    | fullName | otherName | amount | payeePurpose |
   | %today-2w  | Abe One  | Corner Pub | $100   | labor H       |
   And balances:
@@ -90,7 +90,7 @@ Scenario: A member confirms request to refuse payment offer
   Then we respond success 1 tx_id "" my_balance "$250" other_balance "" and message "report undo" with subs:
   | solution          |
   | marked ''denied'' |
-  And we email "offer-refused" to member "a@example.com" with subs:
+  And we email "offer-refused" to member "a@" with subs:
   | created   | fullName | otherName | amount | payerPurpose |
   | %today-3w | Abe One  | Bea Two    | $100   | pie E         |
   And balances:
@@ -111,7 +111,7 @@ Scenario: A member confirms request to cancel an invoice
   Then we respond success 1 tx_id "" my_balance "$250" other_balance "" and message "report undo" with subs:
   | solution |
   | deleted  |
-  And we email "invoice-canceled" to member "c@example.com" with subs:
+  And we email "invoice-canceled" to member "c@" with subs:
   | created   | fullName   | otherName | amount | payerPurpose |
   | %today-2w | Corner Pub | Abe One    | $100   | labor H       |
   
@@ -126,6 +126,6 @@ Scenario: A member confirms request to cancel an offer
   Then we respond success 1 tx_id "" my_balance "$250" other_balance "" and message "report undo" with subs:
   | solution |
   | deleted  |
-  And we email "offer-canceled" to member "b@example.com" with subs:
+  And we email "offer-canceled" to member "b@" with subs:
   | created   | fullName | otherName | amount | payeePurpose |
   | %today-3w | Bea Two  | Abe One    | $100   | pie E       |

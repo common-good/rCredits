@@ -16,9 +16,9 @@ Variants:
 Setup:
   Given members:
   | id      | fullName  | phone  | email         | city  | state  | country       | 
-  | NEW.ZZA | Abe One    | +20001 | a@example.com | Atown | Alaska | United States |
-  | NEW.ZZB | Bea Two    | +20002 | b@example.com | Btown | Utah   | United States |
-  | NEW.ZZC | Corner Pub | +20003 | c@example.com | Ctown | Corse  | France        |
+  | NEW.ZZA | Abe One    | +20001 | a@ | Atown | Alaska | United States |
+  | NEW.ZZB | Bea Two    | +20002 | b@ | Btown | Utah   | United States |
+  | NEW.ZZC | Corner Pub | +20003 | c@ | Ctown | Corse  | France        |
   And devices:
   | id      | code  |
   | NEW.ZZA | codeA |
@@ -71,7 +71,7 @@ Scenario: A member confirms request to undo a completed payment, with insufficie
   Then we respond success 1 tx_id "NEW.AAAL" my_balance "$155" other_balance "" and message "report undo|report invoice" with subs:
   | solution | did     | otherName | amount | balance | tid |
   | reversed | charged | Abe One    | $100   | $525    | 3   |
-  And we email "new-invoice" to member "a@example.com" with subs:
+  And we email "new-invoice" to member "a@" with subs:
   | created | fullName  | otherName  | amount | payerPurpose |
   | %today  | Abe One   | Corner Pub | $100   | reverses #3  |
   And balances:
@@ -99,7 +99,7 @@ Scenario: A member confirms request to undo a completed payment unilaterally, wi
   Then we respond success 1 tx_id "NEW.AAAL" my_balance "$155" other_balance "$70" and message "report undo|report invoice" with subs:
   | solution | did     | otherName | amount | balance | tid |
   | reversed | charged | Abe One   | $100   | $155    | 3   |
-  And we email "new-invoice" to member "a@example.com" with subs:
+  And we email "new-invoice" to member "a@" with subs:
   | created | fullName | otherName  | amount | payerPurpose |
   | %today  | Abe One  | Corner Pub | $100   | reverses #3  |
   And balances:
@@ -136,7 +136,7 @@ Scenario: A member confirms request to undo a completed charge, with insufficien
 #  Then we respond success 1 tx_id "NEW.AAAL" my_balance "$0" other_balance "" and message "report undo|report short payment" with subs:
 #  | solution | did   | otherName  | amount | balance | tid | short |
 #  | reversed | paid  | Corner Pub | $60    | $0      | 5   | $40   |
-#  And we email "new-payment" to member "c@example.com" with subs:
+#  And we email "new-payment" to member "c@" with subs:
 #  | created | fullName   | otherName | amount | payeePurpose |
 #  | %today  | Corner Pub | Abe One   | $60    | reverses #2  |
 #  And balances:

@@ -3,6 +3,7 @@
 /* ems for font-size, px for most else */
 body {background:silver; font-size:100%;}
 fieldset {-webkit-margin-start:0; -webkit-margin-end:0; -webkit-padding-before:0; -webkit-padding-start:0; -webkit-padding-end:0; -webkit-padding-after:0;}
+input {-webkit-appearance:none;} /* prevent iPhone and Mac from using their standard non-standard buttons */
 legend {-webkit-padding-start: 2px; -webkit-padding-end: 2px;}
 select {font-size:.85em;}
 label.option {font-weight:bold;}
@@ -27,7 +28,7 @@ div#shout {position:absolute; z-level:2; left:300px; top:100px; background-color
 #footer-wrapper a, #footer-wrapper a:focus {color:lightslategray;}
 #footer-wrapper a:hover {color:black;}
 #sidebar-first {width:0; display:none;}
-.sidebar-first #content {margin-left:0; float:right;}
+.sidebar-first #content {margin-left:0; float:none;}
 .logged-in #content {margin-left:0px; float:left; display:block;} /* keeps autocomplete from getting placed in a wacky position */
 .not-logged-in #content {clear:none; max-width:100%;}
 /*.not-logged-in #sidebar-first {display:inline-block; margin-left:20px; margin-top:0; width:215px; padding-top:5px; border:1px solid darkgreen; clear:none;} */
@@ -174,7 +175,7 @@ form.rweb  .form-no {color:red;}
   form.labeled .form-type-textfield,
   form.rweb .form-type-textfield label {display:block; margin-right:0;}
   form.rweb input {display:block;}
-  #rcreditswebformtx #calc input {display:inline;}
+  #rcreditswebformtx #calc button {display:inline;}
 }
 
 /* Menu */
@@ -182,41 +183,48 @@ form.rweb  .form-no {color:red;}
 
 /* Login */
 #user-login #edit-tip label {font-weight:normal; width:100%; text-align:left;}
-#user-login input#edit-name,
-#user-login input#edit-pass {width:20em;}
+#user-login #edit-name,
+#user-login #edit-pass {width:20em;}
 #user-login .confirm-parent, #user-login .password-parent, #user-login .password-suggestions {margin-left:125px;}
 #user-login .password-suggestions {background-color:lightyellow; width:240px;}
 #user-login .confirm-parent label, #user-login .password-parent label {text-align:left; width:auto;}
 #user-login .form-item-newPass label[for="edit-newpass"] {display:none;}
+#user-login #edit-forgot {display:inline-block; margin:5px 0 0 15px;}
+#user-login #edit-subtext {margin:5px 0;}
+#user-login #edit-subtext em {font-style:normal; color:red;}
 
 /* Login block */
 #user-login-form input#edit-name,
 #user-login-form input#edit-pass {width:12em;}
 #user-login-form #edit-tip label {font-weight:normal;}
 
-/* Register (New account) */
-#user-register-form #edit-company-text label {font-weight:normal; width:100%;}
-#user-register-form .form-type-radios {border-bottom:0;}
-/*#user-register-form .form-type-radio input {display:inline-block; margin-left:0; vertical-align:bottom;} */
-/*#user-register-form .form-type-radio label {display:inline; width:10em; margin-left:.2em; text-align:left;}*/
-#user-register-form  fieldset.form-wrapper {margin-left:0; border-color:darkgreen; background-color:lightyellow;}
-#user-register-form  #edit-company-text label {text-align:left;}
-#user-register-form .form-item-buysAt-15 label  {width:150px;}
-#user-register-form .form-item-buysAt label[for="edit-buysat"] {font-weight:normal; width:100%; text-align:left; margin-left:125px; margin-top:20px; border-top:1px solid darkgreen;}
-#user-register-form .form-item-buysAt label[for="edit-buysat"] b {color:darkgreen;}
-/* ask even companies! #user-register-form .form-item-buysAt {display:none;} */
-#user-register-form  .form-checkboxes {margin-left:8em;}
-#user-register-form .form-item-companyOptions-contractor label {width:auto;}
-#user-register-form .form-item-acctType .description {margin-bottom:20px;}
+/* Signup (New account) */
+#rcreditswebformsignup #edit-company-text label {font-weight:normal; width:100%;}
+#rcreditswebformsignup .form-type-radios {border-bottom:0;}
+/*#rcreditswebformsignup .form-type-radio input {display:inline-block; margin-left:0; vertical-align:bottom;} */
+/*#rcreditswebformsignup .form-type-radio label {display:inline; width:10em; margin-left:.2em; text-align:left;}*/
+/* #rcreditswebformsignup  #edit-personal,
+#rcreditswebformsignup  #edit-nonpersonal {margin-left:-10px; padding:0; border:0;}
+#rcreditswebformsignup  #edit-nonpersonal {display:none;} /* default (shown only if company) */
+#rcreditswebformsignup  #companyInfo {margin-left:0; border-color:darkgreen; background-color:lightyellow;}
+#rcreditswebformsignup  #edit-company-text label {text-align:left;}
+#rcreditswebformsignup .form-item-buysAt-15 label  {width:150px;}
+#rcreditswebformsignup .form-item-buysAt label[for="edit-buysat"] {font-weight:normal; width:100%; text-align:left; margin-left:125px;}
+#rcreditswebformsignup .form-item-buysAt label[for="edit-buysat"] b {color:darkgreen;}
+/* ask even companies! #rcreditswebformsignup .form-item-buysAt {display:none;} */
+#rcreditswebformsignup  .form-checkboxes {margin-left:8em;}
+#rcreditswebformsignup .form-item-companyOptions-contractor label {width:auto;}
+#rcreditswebformsignup .form-item-acctType .description {margin-bottom:20px;}
 
-/* New password */
-#user-pass #edit-name {width:20em;}
+/* Request New Password */
+#rcreditswebformpass #edit-name {width:20em;}
 
 /* Draft a new member */
 /*#rcreditswebformdraft #edit-cancel {margin-left:8em;} */
 
 /* Summary */
 #rcreditswebformsummary #edit-floor .description,
+#rcreditswebformsummary #edit-committed .description,
 #rcreditswebformsummary #edit-rewards .description {display:inline-block; margin-left:.25em;}
 #rcreditswebformsummary .form-type-radios {border-bottom:0;} /* yesno looks silly with bottom border */
 #rcreditswebformsummary  #edit-another {display:inline-block;}
@@ -609,14 +617,15 @@ fieldset.popup select {width:36em; overflow:auto;}
 /*@media only screen
 and (min-device-width : 320px)
 and (max-device-width : 480px) { */
-@media (max-width:40em) {
+@media only screen and (max-width:640px) {
   #toolbar {display:none; height:0px;} /* dev toolbar */
   body {font-size:100%; height:auto; background:white;}
   #page-wrapper {box-shadow:none; -webkit-box-shadow:none;}
-  #header {background:none; height:38px;}
-  #content {min-width:100%; margin-top:60px;}
+  #header {background-image:none; background-color:dodgerblue; height:38px;}
+  #content {min-width:100%; margin-top:40px;}
   #main .section {margin-left:0; padding:0 .4em;}
 /*  #main-wrapper {min-height:26em;} /* below the menu */
+  #block-system-main .content {margin:0;}
   body.page-account-settings #footer-wrapper, body.page-menu #footer-wrapper {display:none;}
   #logo {height:26px; padding:1px;}
   #logo img {height:24px;}
@@ -643,18 +652,20 @@ and (max-device-width : 480px) { */
   body.page-account-settings .tabs ul li a:hover {background:yellow;}
 
   #accounts {top:0;} /* account dropdown */
-  #accounts .region-accounts {margin:0; padding-right:10px;}
+  #accounts .region-accounts {margin:0; padding-right:4px;}
   #accounts select, #accounts input {font-size:1.5em; overflow:none;}
-  #accounts #edit-acct-settings div {background-image:url(../images/icons/gear-gray.png);}
+/*  #accounts #edit-acct-settings div {background-image:url(../images/icons/gear-gray.png);} */
   #edit-acct-showmenu,
-  #edit-acct-showhelp {display:block; position:absolute; left:100%; top:32px; font-size:14px; margin:5px 0 0 0; z-index:2;}
-  #edit-acct-showmenu {margin-left:-35px;}
-  #edit-acct-showhelp {margin-left:-70px;}
+  #edit-acct-showhelp {display:block; position:absolute; left:100%; top:30px; font-size:14px; margin:5px 0 0 0; z-index:2;}
+  #edit-acct-showmenu {margin-left:-40px;}
+  #edit-acct-showhelp {margin-left:-80px;}
   #edit-acct-showmenu input,
-  #edit-acct-showhelp input {width:3.5em;}
+  #edit-acct-showhelp input {width:56px;}
+  #edit-acct-showmenu img,
+  #edit-acct-showhelp img {height:35px;}
 
   #menu {position:absolute; left:0; top:125px; width:100%; margin:0; background-color:white; padding-top:0; border:0;} /* don't show unless button pressed (dunno why this has to be absolute, but top-margin otherwise fails) */
-  #settings {width:100%; margin:0; background-color:white; border:0;}
+  #settings {width:100%; margin:0; border:0;}
   #menu .fieldset-wrapper, #settings .fieldset-wrapper {padding:0 0 0 .2em;}
   #menu .form-item, #settings .form-item {width:48%; display:inline-block;}
   #menu input, #settings input  {width:90%; font-size:1.2em; padding-top:.4em; padding-bottom:.4em;}
@@ -698,13 +709,14 @@ and (max-device-width : 480px) { */
 
   #rcreditswebformtx .form-item-amount,
   #rcreditswebformtx #edit-dollarsign,
-  #rcreditswebformtx input[type="submit"] {position:absolute; top:29px; margin:0; font-size:150%; height:45px;z-index:2;}
+  #rcreditswebformtx input[type="submit"] {position:absolute; top:29px; margin:0; height:45px;z-index:2;}
   #rcreditswebformtx #edit-amount {height:32px;}
   
-  #rcreditswebformtx .form-item-amount {display:block; left:150px; margin-top:-1px;}
+  #rcreditswebformtx .form-item-amount {display:block; left:120px; margin-top:-1px;}
   #rcreditswebformtx .form-item-amount label {display:none;}
-  #rcreditswebformtx #edit-dollarsign {display:block; left:130px; font-size:150%; font-weight:bold;}
-  #rcreditswebformtx input[type="submit"] {left:0px;}
+  #rcreditswebformtx #edit-amount {width:100px; font-size:170%; font-family:Arial,Helvetica,Sans-serif;}
+  #rcreditswebformtx #edit-dollarsign {display:none; left:130px; font-size:150%; font-weight:bold;}
+  #rcreditswebformtx input[type="submit"] {left:0px; height:41px; top:31px; font-size:150%;}
   #rcreditswebformtx .form-item-goods {width:292px; margin:0 auto; padding:0;}
   #rcreditswebformtx #edit-goods .form-item-goods {width:auto;}
   #rcreditswebformtx label[for="edit-goods"] {display:none;}
@@ -713,8 +725,8 @@ and (max-device-width : 480px) { */
   #rcreditswebformtx .form-item-purpose label,
   #rcreditswebformtx  .description {display:none;}
   #rcreditswebformtx #edit-purpose {width:277px;  font-size:150%;}
-  #calc {display:block; width:96%; margin:10px auto; border:1px solid darkgray; height:267px; min-width:262px;}
-  #calc input {border:0; width:31.2%; height:23.7%; margin:1% 0 0 1%; font-size:300%; padding:0; background-color:cadetblue; color:white; font-weight:bold;}
+  #calc {display:block; width:96%; margin:10px auto; border:1px solid darkgray; height:250px; min-width:262px;}
+  #calc button {border:0; width:31.2%; height:23.6%; margin:1% 0 0 1%; font-size:300%; padding:0; background-color:cadetblue; color:white; font-weight:bold;}
   #calc #calcc {background-color:black;}
   #calc #calcb {background-color:crimson;}
   
@@ -765,10 +777,10 @@ and (min-width : 1224px) {
 and (min-width : 1824px) {
 /* Styles */
 }
+
 /* iPhone 4 ----------- */
 @media
 only screen and (-webkit-min-device-pixel-ratio : 1.5),
 only screen and (min-device-pixel-ratio : 1.5) {
-/* Styles */
+  /* #calc {height:200px;} NO! this prevents iphone from using ANY mobile css! */
 }
-

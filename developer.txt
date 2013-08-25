@@ -19,7 +19,7 @@ QUESTIONS:
 
 SOMETIME SOON RETROFIT:
 The following accounts need to have Dwolla switched to us ("integrated into the rCredits backend"):
-Barbara, gary, jennifer, snow's, pint, adam (special case)
+Barbara, gary, jennifer, snow's, adam (special case)
 
 BEFORE FRIENDS LAUNCH:
 - automatic (suggested) ops
@@ -27,15 +27,27 @@ BEFORE FRIENDS LAUNCH:
 
 To do: (* = before launch ** = earlier)
 
-. reimburse dwolla fees for past transactions
-. - new reg API Create Dwolla account upon first sign in 
-- disallow min between 0 and 10 (bank_min)?
+. before depending on anyone's cached USD balance, make sure the unavailability of their Dwolla account is not because they changed their PIN.
+. catch "you changed your password" and "you changed your email" emails from Dwolla (and disable the rC account with a misbehavior note in the data field)
+. add to misc.js: for each text input on the page, if the current value includes "XX-", make it silver. onEnter, zap the contents (set .length=0 ?)
+. show last four digits of bank account number
+. when there is an error, don't make user retype the hidden fields (so soc sec and dob should not be password type)
+. add committed amount to summary (on rewards line) "reserved for contributions to CGF"
+. Ellen K has no charge tab
+. coverFee from lost transaction cron
+. make invite a primary link
+. scan normal card to sign in (just add pword)
+. new reg API Create Dwolla account upon first sign in 
+. improve reports page (avg tx/member/mo); "change" the word margin on the reports page to demand
+. combine exchanges and pexchanges on Transactions page
+. for companies with no default purpose, add suggestion to no purpose message
+. retrofit old accounts, recording dwollapin, etc.
+. don't make account opener manager if by is ADMIN or CTTY_ADMIN (and give account a temp password)
+ disallow min between 0 and 10 (bank_min)?
 - * help for all pages
 . Separate e-mail and password into contact and security; require PIN
 . warn admin when changing to rTrader prematurely, that it may cause double withdrawal from bank (happened to Dan)
-- change to r/$ ??
 - hide stuff on reg page as appropriate
-- warn if repeating the amount and other person as the previous transaction from this machine.
 - tell virtualemployees they missed out on keeping the r. also tell non-virtualemployees (individuals only) they missed out on buying r
 - when contesting a tx, ask for comment (add it to payer's "for"). The next day (and thereafter) don't allow editing the for. Include payer's note in notice to payee.
 - LATER (when available) tests with dev sandbox and reg sandbox!
@@ -48,7 +60,7 @@ To do: (* = before launch ** = earlier)
 - implement r\suggest (use this for merchant invoices too. user gets an email invoice from rCredits, they can just click on a link to accept or decline. merchant gets notified). test cron call to r\suggest (should just notify, for now)
 - include address in "new payment" digest notices to nonprofits OR just CGF (warn on pay screen if the former)
 - on MSIE 8, sign-in CSS has alignment problem, menu failure in MSIE 8, autocomplete looks funny
-- give user a chance to name the machine (later)
+- LATER give user a chance to name the machine
 - make a way for user to see notices online
 - on Transaction History never mix pending with done? (low priority)
 - let user choose chunk size for automatic bank transfers? not yet. This should eventually be an optional parameter in an "options" field or maybe in "data" in the users table.
@@ -91,7 +103,7 @@ To do: (* = before launch ** = earlier)
 - demo button on rcredits.org goes to login with options to log in as abeone, beatwo (self-employed), cornerpub, or townarts (which should have a "Contribute" form on its member/townarts page)
 - "sign" our invite emails so gmail and others won't see them as spam (needed?)
 - give ctty admin a way to reset a member's password (assign them a one-time pass, set a one-time bit)
-- user/password should give error if user is logged in
+- /password should give error if user is logged in
 - in formAccount do away with Drupal basis
 - back button
 - revisit t\addAttrib and t\snapshot (does Drupal make ids lowercase?)
@@ -246,8 +258,8 @@ A. Development environment
    Also go to Settings/Preferences/Tab Settings and set the tab size to 2, replace with spaces
  - TESTING:
    . offline (isDEV): The only place to run the feature tests (sign in as admin, click on Handy, then Run Tests). Dwolla is active, but only the tester's dwolla account (DW_TESTER_ACCOUNT) will be used (and only for small amounts sent to Dwolla's "reflector" account). When Dwolla has a sandbox we will use it here.
-   . staging server (STAGING): copy production database to the staging server (for example ws.rcredits.org), then do something to see what will happen when it happens for real on the production server. Ideally, we should have (1) an API that allows a list of events to be automated and (2) a "what happened since xxx" report. Emails are disabled except to the organization and the tester. USD transactions are disabled completely (so no testing of real Dwolla transactions is possible here) -- when Dwolla has a sandbox we will use it here.
-   . production server (PRODUCTION): keep an eye on results, but don't mess with it
+   . staging server (!isDEV and !isPRODUCTION): copy production database to the staging server (for example ws.rcredits.org), then do something to see what will happen when it happens for real on the production server. Ideally, we should have (1) an API that allows a list of events to be automated and (2) a "what happened since xxx" report. Emails are disabled except to the organization and the tester. USD transactions are disabled completely (so no testing of real Dwolla transactions is possible here) -- when Dwolla has a sandbox we will use it here.
+   . production server (isPRODUCTION): keep an eye on results, but don't mess with it
  
 B. Coding style and strategies:
   - isDEV (defined at the top of rcredits.inc) is TRUE only under Windows
@@ -394,7 +406,7 @@ G. Special rCredits datatypes
   Other countries or groups of countries will also have region codes, which will default (for now) to their 2-letter country code.
  
 H. Notes on transaction record system:
-  - "rewards" are defined as signup bonuses, transaction rebates, transaction bonuses, and inflation adjustment. Transfers, grants, loans, and fines are not rewards.
+  - "rewards" are defined as signup bonuses, tx rebates, tx bonuses, inflation adjustment, and fee reimbursement. Transfers, grants, loans, and fines are not rewards.
   - uids now contain the region info, so no need for recording "foreign" info in the data field
     Specifically: when we on the AAA regional server receive a transaction request using a qid, the first 3 characters are the "region" -- they tell us what database to hit. For example, if AAA.AAAA pays ZZZ.AAAC, we record a payment from AAA.AAAA's uid (1)
   - We send the request to ZZZ's server and expect a confirmation 

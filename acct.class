@@ -62,8 +62,8 @@ class acct {
     $fullName = @$my_fullName ?: $info['name'];
     $flags = @$my_flags ?: B_DFT;
     $rebate = @$rebate ?: R_REBATE;
-    if (@$my_state and !is_numeric($my_state)) { // allow state abbrevs within US
-      $state = dbLookup('id', 'r_states', 'abbreviation=:my_state and country_id=:US_COUNTRY_ID', compact('my_state'));
+    if (($state = @$my_state) and !is_numeric($state)) { // allow state abbrevs within US
+      $state = dbLookup('id', 'r_states', 'abbreviation=:state and country_id=:US_COUNTRY_ID', compact('state'));
     }
     $community = communityUid(@$my_postal); // defaults to current server
     $data = serialize(@$my_data ?: array());
@@ -72,17 +72,18 @@ class acct {
     $companyInfo = u\just(R_COMPANY_FIELDS, $info);
     foreach ($companyInfo as $key => $value) unset($info[$key]);
 
-    $info = compact(u\ray('phone status mail init pass name fullName state flags rebate community data created login access')) + $info;
+    $record = compact(u\ray('phone status mail init pass name fullName state flags rebate community data created login access'));
+    foreach ($record as $key => $value) unset($info[$key]);
 
     $DBTX = db_transaction();
     if ($uid = @$my_uid) {
-      r\dbInsert('users', $info); // predestined uid (probably for testing)
+      r\dbInsert('users', $record += compact('uid')); // predestined uid (probably for testing)
       $region = communityUid();
     } else {
-      $region = r\region(@$my_country, @$my_state, @$my_postalCode);
+      $region = r\region(@$my_country, @$state, @$my_postalCode);
       for ($try = 0; $try < 20; $try++) { // limit the retries
-        $uid = $info['uid'] = self::nextId($region);
-        if (r\dbInsert('users', $info)) break;
+        $uid = $record['uid'] = self::nextId($region);
+        if (r\dbInsert('users', $record)) break;
       }
       u\EXPECT(@$try < 20, "failed to save user record after $try tries.");
     }
@@ -98,11 +99,11 @@ class acct {
     }
 
     list($this->id, $this->agentId) = array($uid, $uid);
-    self::$records[$this->id] = (object) $info;
+    self::$records[$this->id] = (object) ($record + $info);
     
     $cardCode = u\randomString(R_CARDCODE_LEN, 'word'); // create an rCard security code
     $secure = compact('cardCode');
-    $this->update(compact('secure')); // this is easier to do after saving the record
+    $this->update(compact('secure') + $info); // this is easier to do after saving the record
     unset($DBTX); // commit
   }
 
@@ -257,7 +258,7 @@ class acct {
   public function proSe() {return ($this->id == $this->agentId);}  
   public function qid() {return $this->proSe() ? $this->mainQid : r\quid($this->id, $this->agentId);}
   public function isNonprofit() {return (bool) ($this->structure & u\bit(R_NONPROFIT));}
-  public function gotContact() {return ($this->phone and $this->address and $this->physical and $this->city and $this->country);}
+  public function gotContact() {return ($this->can(B_PHONE_OK) and $this->address and $this->physical and $this->city and $this->country and $this->postalCode and $this->can(B_SS_OK));}
   
   /**
    * Return specified account's profile picture, with markup
@@ -475,25 +476,25 @@ EOF;
 
   /**
    * Create Dwolla account.
+   * @param string $err (returned): the error message, if any
+   * @return TRUE if success
    */
-  function createUsdAccount() {
-    $usdPass = strtolower(u\nonce(10)) . '*B2'; // satisfy Dwolla (and our own security)
-    $usdEmail = \username(3) . '.' . $this->mainQid . '@rcredits-org.com'; // isDEV means testing
-///    debug(compact('email','usdPass'));
+  function createUsdAccount(&$err) {
+    $usdPass = user_password(20) . '*B2'; // satisfy Dwolla (and our own security)
+    $usdEmail = \user_password(isDEV ? 4 : 4) . '.' . $this->mainQid . '@rcredits-org.com';
+    if (isDEV) $usdEmail = 'gordon+william+1@dwolla.com';
     $usdPin = u\randomString(4, 'digits');
-    $this->update(compact(u\ray('usdPass usdEmail usdPin')));
+    $secure = compact(u\ray('usdPass usdEmail usdPin')) + $this->secure;
+    $this->update(compact('secure'));
+    $us = new r\usd($this);
     if ($this->can(B_PERSONAL)) {
-      $fullName = $this->fullName;
-      $type = 'Personal';
+      list ($first, $last) = u\parseName($this->fullName);
+      return $us->register('Personal', u\ray('first last dob', @$first, @$last, $this->dob), TRUE, $err);
     } else {
-      $fullName = r\acct($this->data['by'])->fullName;
+// (move this to final step)     $fullName = r\acct($this->data['by'])->fullName;
       $type = $this->isNonprofit() ? 'NonProfit' : 'Commercial';
-      $organization = $this->fullName;
+      return $us->register($type, u\ray('org ein', $this->fullName, $this->federalId), TRUE, $err);
     }
-    list ($first, $last) = u\parseName($fullName);
-    list ($dob, $ein, $acceptTerms) = array($this->dob, $this->federalId, TRUE);
-    $scope = 'AccountInfoFull|Contacts|Transactions|Balance|Send|Request|Funding|ManageAccount';
-    $usd = new r\usd($this, compact(u\ray('usdEmail usdPass usdPin first last dob type organization ein acceptTerms scope')), $err);
   }
   
   /**
@@ -515,6 +516,13 @@ EOF;
     if ($source['count'] < 1) return DW_YES; // Dwolla but no bank
     if (!@$source['Verified']) return DW_BANK;
     return @$source['Type'] == 'Checking' ? DW_VCHECKING : DW_VSAVINGS;
+  }
+  
+  /**
+   * Set or unset the BANK bit
+   */
+  public function setBank() {
+    if (!$this->can(B_BANK) and $this->dwStatus() >= DW_VSAVINGS) $this->setBit(B_BANK, TRUE, FALSE);
   }
   
   /**
