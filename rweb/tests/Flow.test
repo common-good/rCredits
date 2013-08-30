@@ -45,8 +45,8 @@ class rwebFlow extends DrupalWebTestCase {
     case(0):
     Given('members: "DATA'
     . '\\| id   | fullName   | email         | flags                |'
-    . '\\| .ZZA | Abe One    | a@ | dft,ok,personal,bona |'
-    . '\\| .ZZB | Bea Two    | b@ | dft,ok,personal,bona |'
+    . '\\| .ZZA | Abe One    | a@ | dft,ok,person,bona |'
+    . '\\| .ZZB | Bea Two    | b@ | dft,ok,person,bona |'
     . '\\| .ZZC | Corner Pub | c@ | dft,ok,company,bona  |"');
     And__('relations: "DATA'
     . '\\| id      | main | agent | permission | draw |'

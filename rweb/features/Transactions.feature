@@ -6,8 +6,8 @@ SO I can see what happened, accept or refuse offers, adjust descriptions, and co
 Setup:
   Given members:
   | id   | fullName   | floor | acctType      | flags                        |
-  | .ZZA | Abe One    | -100  | %R_PERSONAL   | dft,ok,personal,bona         |
-  | .ZZB | Bea Two    | -200  | %R_PERSONAL   | dft,ok,personal,company,bona |
+  | .ZZA | Abe One    | -100  | %R_PERSONAL   | dft,ok,person,bona         |
+  | .ZZB | Bea Two    | -200  | %R_PERSONAL   | dft,ok,person,company,bona |
   | .ZZC | Corner Pub | -300  | %R_COMMERCIAL | dft,ok,company,bona          |
   And relations:
   | id   | main | agent | permission |

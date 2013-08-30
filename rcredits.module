@@ -229,6 +229,8 @@ function bs($n) {
 } // keep here
 
 function tm($n) {return date('m-d-Y H:i:s a', $n);}
+function aa($id = 'ZZA') {global $lastA; return $lastA = r\acct(strtoupper(strlen($id) == 3 ? 'NEW.' . $id : $id));}
+function us($a = '') {global $lastA; return new r\usd($a ?: $lastA);}
 
 /*
   SELECT 

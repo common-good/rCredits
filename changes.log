@@ -1,3 +1,21 @@
+2013-08-28
+. moved email (and email change) to contact form
+. require pin instead of password, to change email
+. moved password, pin, and photo change to their own pages, with links from security page
+. fixed bug in misc.js that undid all check box clicks (patched on production server)
+. added signout to account dropdown
+. re-ordered settings categories
+. changed r\go() to accept ordinary messages, not just errors
+. renamed "Get r/USD" to "Bank"
+. implemented bank addition and verification form
+. bank form shows only last four digits of bank account number
+. added committed amount to summary (on rewards line) "reserved for contributions to CGF"
+. fixed bug that hid charge tab for almost everyone
+. implemented automatic phone, address, and ssn verification (for Dwolla account)
+. fixed hiding of stuff on reg page as appropriate
+. changed QR code format to allow longer cardcodes (expanded feature tests accordingly, to make sure old cards continue working)
+- in formAccount did away with Drupal basis
+
 2013-08-25
 . fixed creditInfo() so it handles fee amounts properly (and displays right on Transactions page)
 . fixed coverFee() so it creates a record in r_usd (and added missing reimbursements to production site)

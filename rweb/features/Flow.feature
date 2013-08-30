@@ -6,8 +6,8 @@ SO I can spend up to my total credit line.
 Setup:
   Given members:
   | id   | fullName   | email         | flags                |
-  | .ZZA | Abe One    | a@ | dft,ok,personal,bona |
-  | .ZZB | Bea Two    | b@ | dft,ok,personal,bona |
+  | .ZZA | Abe One    | a@ | dft,ok,person,bona |
+  | .ZZB | Bea Two    | b@ | dft,ok,person,bona |
   | .ZZC | Corner Pub | c@ | dft,ok,company,bona  |
   And relations:
   | id      | main | agent | permission | draw |

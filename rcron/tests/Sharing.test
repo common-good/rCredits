@@ -45,8 +45,8 @@ class rcronSharing extends DrupalWebTestCase {
     case(0):
     Given('members: "DATA'
     . '\\| id   | fullName   | floor | acctType      | flags                        | share |'
-    . '\\| .ZZA | Abe One    | -100  | %R_PERSONAL   | dft,ok,personal,bona         |    50 |'
-    . '\\| .ZZB | Bea Two    | -200  | %R_PERSONAL   | dft,ok,personal,company,bona |    10 |'
+    . '\\| .ZZA | Abe One    | -100  | %R_PERSONAL   | dft,ok,person,bona         |    50 |'
+    . '\\| .ZZB | Bea Two    | -200  | %R_PERSONAL   | dft,ok,person,company,bona |    10 |'
     . '\\| .ZZC | Corner Pub | -300  | %R_COMMERCIAL | dft,ok,company,bona          |     0 |"');
     When_('transactions: "DATA'
     . '\\| xid | created | type     | state    | amount | r   | from | to   | purpose |'

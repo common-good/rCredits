@@ -30,7 +30,7 @@ class call {
   function __construct($number, $message) {
     global $channel, $rsms_number; 
     $channel = TX_SMS;
-    $rsms_number = $this->number = $number = u\formatPhone($number, '+n');
+    $rsms_number = $this->number = $number = u\fmtPhone($number, '+n');
     u\EXPECT(compact(u\ray('number message')), 'string&notempty string&notempty');
     $this->message = trim($message);
     $this->confirmed = FALSE;

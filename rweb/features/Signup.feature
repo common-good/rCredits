@@ -31,7 +31,7 @@ Scenario: A newbie registers
   | Abe One  | a@ | 413-253-0000 | US      | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | c0D3 |
   Then members:
   | id   | fullName | email | phone     | postalCode | country | state | city   | flags        | floor |
-  | .AAC | Abe One  | a@ | +14132530000 | 01001      | US      | MA    | Agawam | dft,personal | 0     |
+  | .AAC | Abe One  | a@ | +14132530000 | 01001      | US      | MA    | Agawam | dft,person   | 0     |
   And we say "status": "your account is ready"
   And we email "welcome" to member "a@" with subs:
   | fullName | name   | quid    | region | pass     | bonus           |
@@ -48,7 +48,7 @@ Scenario: A newbie registers with no case
   | abe one  | a@ | 413-253-0000 | 01002      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  | c0D3 |
   Then members:
   | id   | fullName | email | phone     | postalCode | state | city    | flags        | floor |
-  | .AAC | Abe One  | a@ | +14132530000 | 01002      | MA    | Amherst | dft,personal | 0     |
+  | .AAC | Abe One  | a@ | +14132530000 | 01002      | MA    | Amherst | dft,person   | 0     |
 
 Scenario: A member registers bad email
   Given invitation to email "a@" is "c0D3"
@@ -99,7 +99,7 @@ Scenario: A member registers with an existing company
   | Abe One  | a@    | 413-253-0002 | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co | (413)628-0000 | isOwner=>1,contractor=>1 |
   Then members:
   | id   | fullName | email | postalCode | state | city    | flags        |
-  | .AAC | Abe One  | a@    | 01002      | MA    | Amherst | dft,personal |
+  | .AAC | Abe One  | a@    | 01002      | MA    | Amherst | dft,person   |
   And relations:
   | id | main | agent | permission | employerOk | employeeOk | isOwner | amount | draw |
   | 1  | .AAD | .AAC  |            |          0 |          1 |       1 |      0 |    0 |
@@ -111,7 +111,7 @@ Scenario: A member registers with an unknown company
   | Abe One  | a@    | 413-253-9876 | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co | (413)628-0000 | employeeOk=>1  |
   Then members:
   | id   | fullName | email | postalCode | phone        | city    | flags        |
-  | .AAC | Abe One  | a@    | 01002      | +14132539876 | Amherst | dft,personal |
+  | .AAC | Abe One  | a@    | 01002      | +14132539876 | Amherst | dft,person |
   And no relation:
   | main | agent |
   | .AAD | .AAC  |
@@ -160,7 +160,7 @@ Scenario: A member registers with a bad company phone
 Scenario: A member registers a company
   Given members:
   | id   | fullName | email | postalCode | federalId   | phone        | flags        |
-  | .AAC | Abe One  | a@    | 01330      | 111-22-3333 | +14136280000 | dft,personal |
+  | .AAC | Abe One  | a@    | 01330      | 111-22-3333 | +14136280000 | dft,person   |
   And invitation to email "a@" is "c0D3"
   When member "?" visits page "signup/code=c0D3&by=NEW.AAC&flow=from&isOwner=1&employeeOk=1"
   Then we show "Sign up for rCredits" with:
@@ -191,7 +191,7 @@ Scenario: A newbie registers from elsewhere
   | Abe One  | a@ | (333) 253-0000 | 03768-2345 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | c0D3 |
  Then members:
   | id      | fullName | email | phone     | postalCode | state | city | flags        | 
-  | NEN.AAA | Abe One  | a@ | +13332530000 | 03768-2345 | NH    | Lyme | dft,personal |
+  | NEN.AAA | Abe One  | a@ | +13332530000 | 03768-2345 | NH    | Lyme | dft,person   |
   And we say "status": "your account is ready"
   And we email "welcome" to member "a@" with subs:
   | fullName | name   | quid    | region | pass     |

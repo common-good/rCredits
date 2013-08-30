@@ -6,8 +6,8 @@ SO I maintain the value of my earnings and savings.
 Setup:
   Given members:
   | id   | fullName   | floor | acctType      | flags                        |
-  | .ZZA | Abe One    | -100  | %R_PERSONAL   | dft,ok,personal,bona         |
-  | .ZZB | Bea Two    | -200  | %R_PERSONAL   | dft,ok,personal,company,bona |
+  | .ZZA | Abe One    | -100  | %R_PERSONAL   | dft,ok,person,bona         |
+  | .ZZB | Bea Two    | -200  | %R_PERSONAL   | dft,ok,person,company,bona |
   | .ZZC | Corner Pub | -300  | %R_COMMERCIAL | dft,ok,company,bona          |
   When transactions: 
   | xid | created   | type     | state    | amount | r  | from | to   | purpose |

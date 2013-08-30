@@ -6,10 +6,10 @@ SO I can buy and sell stuff on behalf of other accounts, and they on mine.
 Setup:
   Given members:
   | id   | fullName   | acctType         | flags                        |
-  | .ZZA | Abe One    | %R_PERSONAL      | dft,ok,personal,bona         |
-  | .ZZB | Bea Two    | %R_SELF_EMPLOYED | dft,ok,personal,company,bona |
+  | .ZZA | Abe One    | %R_PERSONAL      | dft,ok,person,bona         |
+  | .ZZB | Bea Two    | %R_SELF_EMPLOYED | dft,ok,person,company,bona |
   | .ZZC | Corner Pub | %R_COMMERCIAL    | dft,ok,company,bona          |
-  | .ZZD | Dee Four   | %R_PERSONAL      | dft,ok,personal,bona         |
+  | .ZZD | Dee Four   | %R_PERSONAL      | dft,ok,person,bona         |
   And transactions: 
   | xid | created   | type       | amount | from      | to   | purpose | taking |
   |   1 | %today-6m | %TX_SIGNUP |    250 | community | .ZZA | signup  | 0      |

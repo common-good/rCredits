@@ -50,7 +50,7 @@ define('R_MAX_DAILY_EXCHANGE', 1000); // per Common Good Finance policy and to a
 define('R_INVITE_DAYS', 7); // number of days to accept invitation to membership
 define('R_MINR_DEFAULT', 200); // suggested minimum amount to hold in rCredits
 //define('R_MAXR_DEFAULT', -1); // suggested maximum amount to hold in rCredits (-1 = no limit)
-define('R_CARDCODE_LEN', 11); // length of rCard security code (long to deter easy copying, max 11 for small QR)
+define('R_CARDCODE_LEN', 15); // length of rCard security code (long to deter easy copying, max 11 for small QR)
 define('R_CARD_COST', 5); // cost to order a company or replacement rCard
 define('R_FREEZE_TIME', FALSE); // how long to freeze newly bought rCredits (was '2 weeks')
 define('R_DEFAULT_PURPOSE', 'rCredits/USD exchange'); // default transaction purpose
@@ -81,8 +81,10 @@ define('DW_SITE', isPRODUCTION ? 'https://www.dwolla.com' : 'https://uat.dwolla.
 //                               : 'http://new.rcredits.org/stage.php?stageWord=' . R_STAGE_WORD . '&request=');
 define('DW_TEST_ACCT', '8127139234'); // "reflector" account totally reimburses anything under $10
 define('DW_TESTER_ACCT', '8127413762'); // william's account on Dwolla sandbox
+define('DW_TEST_ACCTS', '8127419900/Y6dveGxn4tFpaLCpYPy5p0Dr+fKS5yt1sQcdnMuZwd2fEFeha3/ XX YY'); // acct#/auth/pin for each of 3 test accounts
 define('DW_FEE_THRESHOLD', 10); // over this amount, Dwolla charges a fee
 define('DW_FEE', .25); // the fee
+define('DW_VERIFY_ROOF', 15); // bank verification deposits are less than this
 define('DW_STEPS', 'Email Phone Address Ssn Kba AuthorizedRepresentative Finished'); // registration steps
 
 define('R_USPS_WEB_TOOLS_ID', '921COMMO5331'); // USPS API credentials
@@ -118,7 +120,7 @@ define('B_READY', 1); // completed all steps
 define('B_OK', 2); // approved to use rCredits for real (set by admin when READY)
 define('B_BONA', 3); // got signup bonus (good circles - somehow got more r+usd than the initial gift)
 define('B_BANK', 4); // has an effective connected bank account
-define('B_PERSONAL', 5); // personal account
+define('B_PERSON', 5); // personal account
 define('B_COMPANY', 6); // company account (could be personal also, for independent contractor)
 define('B_u7', 7); // 
 define('B_CHARGE', 8); // can charge customers without confirmation
@@ -136,20 +138,20 @@ define('B_SECRET_BAL', 18); // don't let merchants tell me my balance on request
 define('B_u19', 19); //
 define('B_DEBT_OK', 20); // member chose to permit sub-zero balances
 define('B_DRAWS', 21); // this account draws on one or more others
-define('B_u22', 22); //
+define('B_SAVINGS', 22); // the connected bank account is a savings or money market account
 define('B_u23', 23); // 
 define('B_u24', 24); // 
 define('B_u25', 25); // 
-define('B_SS_OK', 26); // 
-define('B_PHONE_OK', 27); // 
-define('B_EMAIL_OK', 28); // 
+define('B_u26', 26); // 
+define('B_u27', 27); // 
+define('B_u28', 28); // 
 define('B_CTTY_ADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
 define('B_CLOSED', 31); // account is closed (data[new_account] has new qid)
 define('B_MAX', 31); // maximum bit number
 //define('B_DFT', (1 << B_NOTIFY_EMAIL) | 0); // set what bits when creating a new account
 define('B_DFT', 0 | 0); // set what bits when creating a new account
-define('B_ADMINABLE', 'personal company member ctty_admin closed'); // for cttyAdmin to set
+define('B_ADMINABLE', 'person company member ctty_admin closed'); // for cttyAdmin to set
 define('B_LIST', 'member ready OK bona bank person company u7 charge u9 virtu u11 payroll weekly monthly u15 sms electro secret u19 debt draws u22 u23 u24 u25 ss phone email cadmin admin closed');
 
 define('R_SHORTFALL', 'GREATEST(0, minimum-(r+usd))'); // sql for shortfall in account (to draw in)
@@ -169,7 +171,7 @@ $GLOBALS['share permissions'] = array(t('no access'), t('read transactions'), t(
 
 // Other special pseudo-bit values for acct::can()
 define('B_MANAGING_CTTY', 120); // ctty_admin is actually managing a qualified account
-define('B_USD', 121); // account has an effective connected bank account
+define('B_PERSONISH', 121); // personal account or is admin
 define('B_SHOW_ALL', 999); // special signal to acct::can() to return all permissions
 $GLOBALS['permissions'] = 'related read sell buy manage - company charge - member partner steward - rtrader - - managing_ctty ctty_admin - admin';
 
@@ -435,7 +437,7 @@ function transactionSetup($info) {
   u\EXPECT(compact(u\ray('amount payer payee')), 'float zid zid');
   u\EXPECT($payer and $payee and $payer != $payee, 'null or self trading' . $specs);
   list ($a1, $a2) = array(r\acct($payer), r\acct($payee));
-  u\EXPECT($a1->can(B_OK) and $a2->can(B_OK), 'non-member in tx' . $specs);
+  u\EXPECT($a1->ok() and $a2->ok(), 'non-member in tx' . $specs);
   
   u\setDft($type, TX_TRANSFER);
   u\setDft($r, $amount);
@@ -647,7 +649,7 @@ function membershipEvent($a, $status, $do = TRUE) {
   if ($do and ($bit === FALSE or !$a->hasBit($bit))) { // met the prerequisite and hasn't previously
     $DBTX = \db_transaction();
     if ($bit !== FALSE) $a->setBit($bit); // set the bit, if any
-    if ($status == 'bona' and $a->can(B_PERSONAL)) be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
+    if ($status == 'bona' and $a->person()) be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
     if ($status == 'ok') r\notify($a->id, 'welcome', array(), TRUE);
     unset($DBTX);
     
@@ -727,7 +729,7 @@ function tellStaff($index, $subs = array(), $uid = TRUE) {
 function tempName($info) {
   extract($info, EXTR_PREFIX_ALL, 'my');
   $phone = @$my_number ?: (@$my_phone ?: '');
-  if ($phone) return R_TEMP_NAME_PREFIX . u\formatPhone($phone, 'n');
+  if ($phone) return R_TEMP_NAME_PREFIX . u\fmtPhone($phone, 'n');
   if (isset($my_email)) return R_TEMP_NAME_PREFIX . str_replace('@', ' AT ', str_replace('.', ' DOT ', $my_email));
 // NO  if (isset($my_website)) return R_TEMP_NAME_PREFIX . str_replace('.', ' DOT ', str_replace('/', ' SLASH ', $my_website));
   return R_TEMP_NAME_PREFIX . substr(md5('zot' . strval(REQUEST_TIME)), 0, 10); // pseudo random
@@ -787,9 +789,9 @@ function mergeAccounts($oldUid) {
 */
 
 /**
- * Return the rough (postal) location of the entity with the given account (city, state, non-US country).
+ * Return the rough (physical) location of the entity with the given account (city, state, non-US country).
  * @param acct $acct: the account
- * @param bool $complete: if TRUE, include the postal address
+ * @param bool $complete: if TRUE, include the street address
  */
 function location($acct, $complete = FALSE) {
   $country = realCountry($acct->country);
@@ -894,6 +896,15 @@ function unQuid($quid) {
 function quid2($uid) {return strstr(quid($uid), R_MEMBER_MARK);}
 
 function qxid($xid, $regionId = R_SERVER_ID) {return qid($xid, $regionId = R_SERVER_ID, 4);} // Convert xid to qxid
+
+/**
+ * Return an rCard security code for the specified qid.
+ */
+function cardCode($qid) { 
+  $tail = substr(strpbrk($qid, R_MARKS), 1);
+  $codeLen = R_CARDCODE_LEN - (strlen($tail) - 3); // shorter code when qid tail len > 3
+  return u\randomString($codeLen, 'word'); // create an rCard security code
+}
 
 /**
  * Set a cookie
@@ -1160,14 +1171,15 @@ function invite($email, $inviter, $code = '', $subject = '', $message = '') {
  * Accommodate testing, if that's what's happening.
  * Drupal urlencodes the parameters (= and &), so the target page will have to sort that out.
  * @param string $page: page to go to
- * @param string $err: error message to output, if any
+ * @param string $msg: message to output, if any
+ * @param string $field: error field, if any
  */
-function go($page, $err = '') {
-  if (t\est()) return t\pageForm($page, $err);
-  foreach (u\ray('login register password reset') as $one) if (strpos($page, "user/$one") !== FALSE) {
+function go($page, $msg = '', $field = '') {
+  if (t\est()) return t\pageForm($page, $msg, $field);
+  foreach (u\ray('login signup password reset') as $one) if (strpos($page, "user/$one") !== FALSE) {
     if (\drupal_session_started()) session_destroy();
   }
-  if ($err) r\Web\say($err, 'zot');
+  if ($msg) r\Web\say($msg, $field);
   \drupal_goto(substr($page, 0, 1) == '/' ? substr($page, 1) : $page);
 }
 
@@ -1476,7 +1488,7 @@ function rebate($from, $to, $amount = 1) {
   if (relation(1, $to, $from, $where = 'isOwner OR draw')) return 0;
   if (relation(1, $from, $to, $where = 'isOwner OR draw')) return 0;
   $a = r\acct($from);
-  return max($a->can(B_PERSONAL) ? R_MIN_REBATE : 0, round($amount * $a->rebate / 100, 2));
+  return max($a->person() ? R_MIN_REBATE : 0, round($amount * $a->rebate / 100, 2));
 }
 
 function bonus($to, $from, $amount = 1) {return round($amount * R_BONUS_FACTOR * r\acct($to)->rebate / 100, 2);}

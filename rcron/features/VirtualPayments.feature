@@ -7,11 +7,11 @@ and SO I don't build up a pile of credit I can't use yet.
 Setup:
   Given members:
   | id   | fullName   | email         |floor | flags                        |
-  | .ZZA | Abe One    | a@ |    0 | dft,personal,ok,bona         |
-  | .ZZB | Bea Two    | b@ |    0 | dft,personal,company,ok,bona |
+  | .ZZA | Abe One    | a@ |    0 | dft,person,ok,bona         |
+  | .ZZB | Bea Two    | b@ |    0 | dft,person,company,ok,bona |
   | .ZZC | Corner Pub | c@ |    0 | dft,company,payex,ok,bona  |
-  | .ZZD | Dee Four   | d@ |    0 | dft,personal,ok,bona         |
-  | .ZZE | Ezra Five  | e@ |    0 | dft,personal,member          |
+  | .ZZD | Dee Four   | d@ |    0 | dft,person,ok,bona         |
+  | .ZZE | Ezra Five  | e@ |    0 | dft,person,member          |
   And relations:
   | id      | main | agent | employerOk | permission | amount |
   | NEW.ZZA | .ZZC | .ZZA  |          1 | sell       |   1800 |

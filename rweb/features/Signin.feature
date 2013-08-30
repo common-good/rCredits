@@ -13,7 +13,7 @@ Scenario: A member signs in for the first time
   | Abe One  | a@ | 413-253-0000 | US  | 01002    | 123-45-6789 | 1/2/1993 | %R_PERSONAL  | c0D3 |
   Then members:
   | id      | fullName | email   | country | postalCode | state | city    | flags        | 
-  | NEW.AAC | Abe One  | a@      | US      | 01002      | MA    | Amherst | dft,personal |
+  | NEW.AAC | Abe One  | a@      | US      | 01002      | MA    | Amherst | dft,person    |
   And member "NEW.AAC" one-time password is set
   Given member "NEW.AAC" one-time password is %whatever
   When member "?" visits page "/user/login"
@@ -30,7 +30,7 @@ Scenario: A member signs in for the first time
 Scenario: A member gives the wrong password
   Given members:
   | id      | fullName   | acctType    | flags           | pass       |
-  | NEW.ZZA | Abe One    | %R_PERSONAL | dft,ok,personal | %whatever1 |
+  | NEW.ZZA | Abe One    | %R_PERSONAL | dft,ok,person    | %whatever1 |
   And member "NEW.ZZA" one-time password is %whatever2
   When member "?" visits page "/user/login"
   And member "?" confirms form "/user/login" with values:

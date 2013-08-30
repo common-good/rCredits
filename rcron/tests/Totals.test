@@ -45,8 +45,8 @@ class rcronTotals extends DrupalWebTestCase {
     case(0):
     Given('members: "DATA'
     . '\\| id   | fullName   | email         | flags                       | minimum | floor | share |'
-    . '\\| .ZZA | Abe One    | a@ | dft,ok,personal,bona        |       5 |     0 |    10 |'
-    . '\\| .ZZB | Bea Two    | b@ | dft,ok,personal,bona        |    1000 |   -20 |    20 |'
+    . '\\| .ZZA | Abe One    | a@ | dft,ok,person,bona        |       5 |     0 |    10 |'
+    . '\\| .ZZB | Bea Two    | b@ | dft,ok,person,bona        |    1000 |   -20 |    20 |'
     . '\\| .ZZC | Corner Pub | b@ | dft,ok,company,bona,payex |    2000 |    10 |    30 |"');
     And__('relations: "DATA'
     . '\\| id   | main | agent | permission |'

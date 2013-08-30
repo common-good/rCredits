@@ -13,7 +13,7 @@ use rCredits\Util as u;
  * List the USD account status of each account.
  */
 function usdAccts($where = "postalCode LIKE '013%'") {
-  if (!r\acct()->can(B_ADMIN)) return;
+  if (!r\acct()->admin()) return;
   $result = r\dbQ("SELECT uid FROM users WHERE $where ORDER BY fullName");
   $head = u\ray('Name Dwolla? Type Verified OK Chg Co Bal');
   while ($row = $result->fetch()) {
@@ -25,9 +25,9 @@ function usdAccts($where = "postalCode LIKE '013%'") {
     $verified = @$source['Verified'] ? 'Yes' : '-';
     $count = @$source['count'];
     
-    $ok = $a->can(B_OK) ? 'ok' : '';
+    $ok = $a->ok() ? 'ok' : '';
     $charge = $a->can(B_CHARGE) ? 'Chg' : '';
-    $company = $a->can(B_COMPANY) ? 'Co' : '';
+    $company = $a->co() ? 'Co' : '';
     $line = array($a->fullName, $hasDwolla, $type, $verified, $ok, $charge, $company, $bal);
     $lines[] = array_combine($head, $line);
   }

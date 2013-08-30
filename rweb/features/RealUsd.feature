@@ -15,8 +15,8 @@ SO I don't lose money or get confused.
 Setup:
   Given members:
   | id   | fullName   | dwolla          | country | email         | flags                |
-  | .ZZA | Abe One    | %DW_TESTER_ACCT | US      | a@ | dft,ok,personal,bona |
-  | .ZZB | Bea Two    | %DW_TEST_ACCT   | US      | b@ | dft,ok,personal,bona |
+  | .ZZA | Abe One    | %DW_TESTER_ACCT | US      | a@ | dft,ok,person,bona |
+  | .ZZB | Bea Two    | %DW_TEST_ACCT   | US      | b@ | dft,ok,person,bona |
   And transactions: 
   | xid | created   | type   | amount | from | to   | purpose | taking |
   |   1 | %today-6m | signup |     10 | ctty | .ZZA | signup  | 0      |

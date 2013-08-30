@@ -6,9 +6,9 @@ SO I know where it stands.
 Setup:
   Given members:
   | id   | fullName   | address | city  | state  | postalCode | country | floor | flags                        |
-  | .ZZA | Abe One    | POB 1   | Atown | Alaska | 01000      | US      | -100  | dft,ok,personal,bona         |
-  | .ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000      | US      | -200  | dft,ok,personal,company,bona |
-  | .ZZC | Corner Pub | POB 3   | Ctown | Cher   |            | France  | -300  | dft,ok,company,bona          |
+  | .ZZA | Abe One    | 1 A St. | Atown | Alaska | 01000      | US      | -100  | dft,ok,person,bona         |
+  | .ZZB | Bea Two    | 2 B St. | Btown | Utah   | 02000      | US      | -200  | dft,ok,person,company,bona |
+  | .ZZC | Corner Pub | 3 C St. | Ctown | Cher   |            | France  | -300  | dft,ok,company,bona          |
 
   And relations:
   | id   | main | agent | permission |
@@ -40,8 +40,8 @@ Setup:
 Scenario: A member clicks on the summary tab
   When member ".ZZA" visits page "summary"
   Then we show "Account Summary" with:
-  | Name             | Address                | Account ID      | Balance | Rewards | Floor |
-  | Abe One (abeone) | POB 1, Atown, AK 01000 | .ZZA (personal) | $166    | $256    | $-100 |
+  | Name             | Address                  | Account ID      | Balance | Rewards | Floor |
+  | Abe One (abeone) | 1 A St., Atown, AK 01000 | .ZZA (personal) | $166    | $256    | $-100 |
 
 Scenario: An agent clicks on the summary tab without permission to manage
   When member ":ZZA" visits page "summary"
@@ -55,8 +55,8 @@ Scenario: An agent clicks on the summary tab without permission to manage
 Scenario: A foreign rTrader clicks on the summary tab
   When member ".ZZC" visits page "summary"
   Then we show "Account Summary" with:
-  | Name                   | Address                    | Account ID     | Balance | Rewards |  Floor |
-  | Corner Pub (cornerpub) | POB 3, Ctown, Cher, FRANCE | .ZZC (company) | $323    | $258    |  $-300 |
+  | Name                   | Address                      | Account ID     | Balance | Rewards |  Floor |
+  | Corner Pub (cornerpub) | 3 C St., Ctown, Cher, FRANCE | .ZZC (company) | $323    | $258    |  $-300 |
 
 Scenario: Member's account is not active
   Given member ".ZZA" account is not active

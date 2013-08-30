@@ -247,7 +247,7 @@ function a2n($string, $base = 26) {
 define('MAX_PHONE_DIGITS', 15);
 define('MIN_PHONE_DIGITS', 7);
 
-function formatPhone($phone, $how = '') {
+function fmtPhone($phone, $how = '') {
   $sep = '.'; // digit group separator
   $foreign = ''; // set to 'n' format if the phone is outside US
   $phone = (preg_replace('/[\(\) \-\.]/', '', $phone)); // ignore typical punctuation
@@ -836,7 +836,7 @@ function s2t($s) {return strtotime(str_replace('-', '/', $s));}
 function formatDate($time = REQUEST_TIME) {return strftime('%d-%b-%Y', $time);}
 function formatTime($time = REQUEST_TIME) {return strtolower(strftime('%I:%M%p', $time));}
 function lastCall($far = 4) {$back = debug_backtrace(); return array_slice($back, 1, $far);}
-function digits($n) {return preg_replace('/\D/', '', $n);}
+function digits(&$n) {return $n = preg_replace('/\D/', '', $n);}
 function monthDay1($time = REQUEST_TIME) {return strtotime(strftime('%b01', $time));}
 function prefix(&$var, $prefix) {$var = $prefix . $var;}
 function setDft(&$param, $value) {if (!isset($param)) $param = $value;}

@@ -9,10 +9,10 @@ SO I can spend it through the rCredits system or hold it in the rCredits system 
 Setup:
   Given members:
   | id   | fullName | floor | minimum | flags                   |
-  | .ZZA | Abe One  |     0 |     100 | dft,personal,ok,bank    |
-  | .ZZB | Bea Two  |     0 |     100 | dft,personal,ok         |
-  | .ZZC | Our Pub  |     0 |     100 | dft,personal,company,ok |
-  | .ZZD | Dee Four |     0 |     100 | dft,personal,ok         |
+  | .ZZA | Abe One  |     0 |     100 | dft,person,ok,bank    |
+  | .ZZB | Bea Two  |     0 |     100 | dft,person,ok         |
+  | .ZZC | Our Pub  |     0 |     100 | dft,person,company,ok |
+  | .ZZD | Dee Four |     0 |     100 | dft,person,ok         |
 
 Scenario: a member moves credit to the bank
   Given balances:

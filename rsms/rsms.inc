@@ -54,6 +54,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'deleted relation' => t('Deleted relation with @otherName'),
   'customer balance' => t('The current balance for @otherName is @balance.'),
   'info saved' => t('Your information has been saved.'),
+  'not saved' => t('No change has been made to your information.'),
   'payment accepted' => t('rCredits payment accepted. In exchange, us@amount will be refunded to the payer, from your Dwolla account.'),
   'gift successful' => t('Your contribution of @amount is successful. Thank you!'),
   'signup bonus' => t('-- and you got your signup bonus!'), // keep this short, cause it's an add-on
@@ -100,7 +101,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'no self-trading' => t("You can't exchange credit with yourself."),
   'no self-relation' => t("You can't relate yourself to your own account."),
   'funding error' => t("You do not have permission to fund that person."),
-  'no company relations' => t("Only individuals can be related to this account."),
+//  'no company relations' => t("Only individuals can be related to this account."),
 // not used  'no self-undo' => t("You can't undo transactions with yourself."),
   'no matching invoice' => t('There is no such invoice to be paid. Type "helpme pay".'),
   'undo no match' => t("You have no matching transactions to undo."),
@@ -150,6 +151,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'payment exchange error' => t('An unknown technical problem prevented your payment exchange @way @other.'),
   'no buyers' => t('Uh oh. Nobody wants to buy rCredits. Needed: $@amount.'),
   'usd account taken' => t('That Dwolla account is already used by another account.'),
+  'bad phone code' => t('That is not the correct verification code.'),
 
   'cannot offload' => t('A temporary technical problem prevented some of your excess rCredits from being exchanged for US Dollars. The system will try again tomorrow.'),
   'usd failed' => t('A temporary technical problem prevented the transfer of US Dollars. No transaction took place.'),
@@ -260,7 +262,7 @@ $GLOBALS['SMS command tokens'] = array(
  */
 function send($number, $message) {
   global $sms_devel;
-  $number = u\formatPhone($number, '+n');
+  $number = u\fmtPhone($number, '+n');
   $msg = substr($message, 0, 160-1); // minus one because Twilio splits messages 160 chars long (and may discard the first part)
   if ($msg != $message) $message .= ' — TOO LONG! (strlen ' . strlen($message) . ')';
   if (@$sms_devel) drupal_set_message("To $number: $message"); else \sms_send($number, $msg);
@@ -287,7 +289,7 @@ function infer_nonce($message) {
  */
 function create($number, $uid, $status = SMS_PRIMARY) {
   u\EXPECT(compact(u\ray('number uid status')), 'string&notempty id int');
-  $number = u\formatPhone($number, '+n');
+  $number = u\fmtPhone($number, '+n');
 ///  debug("creating SMS record for number $number, uid $uid");
   return r\dbInsert('r_sms', compact(u\ray('number uid status')));
 }

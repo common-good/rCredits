@@ -150,7 +150,7 @@ function startup($args = '') {
   $account_name = $mya->fullName;
   $allow_change_account = 0;
   $allow_change_agent = 1;
-  $require_agent = $mya->can(B_PERSONAL) ? 0 : 1;
+  $require_agent = $mya->person() ? 0 : 1;
   $show_buttons = buttons($mya, $owner);
   return compact(u\ray('my_id account_name update_link allow_change_account allow_change_agent require_agent show_buttons')); // standard fields to return on startup);
 }

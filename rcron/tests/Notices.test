@@ -45,8 +45,8 @@ class rcronNotices extends DrupalWebTestCase {
     case(0):
     Given('members: "DATA'
     . '\\| id   | fullName   | flags                   | email         |'
-    . '\\| .ZZA | Abe One    | dft,personal,ok         | a@ |'
-    . '\\| .ZZB | Bea Two    | dft,personal,company,ok | b@ |'
+    . '\\| .ZZA | Abe One    | dft,person,ok         | a@ |'
+    . '\\| .ZZB | Bea Two    | dft,person,company,ok | b@ |'
     . '\\| .ZZC | Corner Pub | dft,company,ok          | c@ |"');
     break;
 

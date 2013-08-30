@@ -479,7 +479,7 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   // Check permissions
   u\EXPECT(compact(u\ray('ttype a1 a2 confirmed data')), 'string acct acct bool assoc');
   $otherName = $a2->fullName;
-  if (!$a2->can(B_OK)) return array('non member', compact('otherName'), FALSE);
+  if (!$a2->ok()) return array('non member', compact('otherName'), FALSE);
   list ($myAccess, $otherAccess) = u\order($taking, B_SELL, B_BUY);
   list ($myAccessErr, $otherAccessErr) = u\order($taking, 'sell', 'buy');
   if (!$a1->can($myAccess)) return array("no $myAccessErr", array(), FALSE);
@@ -498,7 +498,7 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   : ($taking // selling
       and $a1->can(B_CHARGE) // seller can charge unilaterally
       and !$undoing // not reversing a payment
-      and !(!$a2->can(B_PERSONAL) and $a2->proSe()) // not selling to a company directly (without its agent)
+      and !(!$a2->person() and $a2->proSe()) // not selling to a company directly (without its agent)
       and ($channel == TX_SMART or @$scanned or $channel == TX_SMS) // in person: scanned (web or smart) or by SMS
   );
   $preapproved = (@$data['preapproved'] or !$taking or $unilateral); // paying OR permitted to charge unilaterally
@@ -606,8 +606,8 @@ function addCell($number, $validate = FALSE) {
   if (isFrontend()) return backend('addCell', compact(u\ray('number validate')));
   if (is_array($number)) extract($number); // called from api or backend
 
-  $numberInternal = u\formatPhone($number, '+n');
-  $numberPretty = u\formatPhone($number);
+  $numberInternal = u\fmtPhone($number, '+n');
+  $numberPretty = u\fmtPhone($number);
   $subs = compact('number'); // original format
 
   if ($validate) {
@@ -636,9 +636,9 @@ function deleteCell($number) {
   if (isFrontend()) return backend('deleteCell', compact(u\ray('number')));
   if (is_array($number)) extract($number); // called from api or backend
 
-  $number = u\formatPhone($number, '+n'); // internal format
+  $number = u\fmtPhone($number, '+n'); // internal format
   r\dbQ('DELETE FROM r_sms WHERE number=:number LIMIT 1', compact('number'));
-  $number = u\formatPhone($number); // pretty format
+  $number = u\fmtPhone($number); // pretty format
   return array('report delete cell', compact('number'));
 }
 
@@ -666,7 +666,7 @@ function identify($who, $self_message = 'no self-trading') {
 //  if (($all = strtoupper($who)) == 'ALL') return $allow_ALL ? $all : array('no ALL', array(), array());
   $myid = r\acct()->id;
 
-  if ($phone = u\formatPhone($who, '+n')) $who = $phone;
+  if ($phone = u\fmtPhone($who, '+n')) $who = $phone;
   
   $quid = strtoupper($who); // in case this is a quid (abbreviated or not)
   if (preg_match('/^([A-Z]{3})?[\.\:=][A-Z]{3,4}( |$)/i', $quid, $match)) { // allow quids or abbrevs within this region
@@ -817,7 +817,7 @@ function accountChoices() {
   
   if (!$mya = r\acct()) return FALSE;
   $result = array($aid = $mya->agentId);
-  if ($mya->can(B_ADMIN)) {
+  if ($mya->admin()) {
     $result += @r\dbQ('SELECT uid FROM users WHERE uid<:R_CTTY_UID0 ORDER BY fullName')->fetchAllKeyed(0, 0);
     $result += @r\dbQ('SELECT uid FROM users WHERE uid>1 ORDER BY fullName')->fetchAllKeyed(0, 0);
   } else $result += @r\dbQ('SELECT main FROM r_relations WHERE other=:aid AND permission>0', compact('aid'))->fetchAllKeyed(0, 0);

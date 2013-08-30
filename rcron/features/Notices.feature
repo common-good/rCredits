@@ -6,8 +6,8 @@ SO I can take appropriate action
 Setup:
   Given members:
   | id   | fullName   | flags                   | email         |
-  | .ZZA | Abe One    | dft,personal,ok         | a@ |
-  | .ZZB | Bea Two    | dft,personal,company,ok | b@ |
+  | .ZZA | Abe One    | dft,person,ok         | a@ |
+  | .ZZB | Bea Two    | dft,person,company,ok | b@ |
   | .ZZC | Corner Pub | dft,company,ok          | c@ |
 
 Scenario: a member gets some notices

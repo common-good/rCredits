@@ -14,9 +14,9 @@ SO I don't have to type my account ID or remember my password.
 Setup:
   Given members:
   | id   | fullName   | address | city  | state  | postalCode | country | email         | flags                |
-  | .ZZA | Abe One    | POB 1   | Atown | Alaska | 01000      | US      | a@ | dft,ok,personal,bona |
-  | .ZZB | Bea Two    | POB 2   | Btown | Utah   | 02000      | US      | b@ | dft,ok,personal,bona |
-  | .ZZC | Corner Pub | POB 3   | Ctown | Cher   |            | France  | c@ | dft,ok,company,bona  |
+  | .ZZA | Abe One    | 1 A St. | Atown | Alaska | 01000      | US      | a@ | dft,ok,person,bona |
+  | .ZZB | Bea Two    | 2 B St. | Btown | Utah   | 02000      | US      | b@ | dft,ok,person,bona |
+  | .ZZC | Corner Pub | 3 C St. | Ctown | Cher   |            | France  | c@ | dft,ok,company,bona  |
   And relations:
   | id   | main | agent | permission |
   | :ZZA | .ZZA | .ZZB  | buy        |
@@ -43,14 +43,21 @@ Setup:
 
 Scenario: A member uses an rCard to pay
   Given member ".ZZB" card code is "WhAt3v3r"
-  When member ":ZZD" visits page "I/NEW.ZZB-WhAt3v3r"
+  When member ":ZZD" visits page "I/ZZB.WhAt3v3r"
   Then we show "Bea Two" with:
-  | Location  |
-  | Btown, UT |
+  | Location  | Button |
+  | Btown, UT | Charge |
 
+Scenario: A company agent uses an rCard to pay
+  Given agent ".ZZB" card code is "WhAt3v3r"
+  And member ":ZZD" visits page "I/ZZA-WhAt3v3r"
+  Then we show "Bea Two" with:
+  | Company | Location  | Button |
+  | Abe One | Atown, AK | Charge |
+  
 Scenario: Cashier charges rCard
   Given member ".ZZB" card code is "WhAt3v3r"
-  And member ":ZZD" visits page "I/NEW.ZZB-WhAt3v3r"
+  And member ":ZZD" visits page "I/ZZB.WhAt3v3r"
   When member ":ZZD" confirms form "charge/scanned=1&who=NEW.ZZB" with values:
   | op     | who     | amount | goods | purpose | scanned |
   | charge | Bea Two | 100    | 1     | labor   | 1       |
@@ -58,3 +65,17 @@ Scenario: Cashier charges rCard
   | did     | otherName | amount | tid |
   | charged | Bea Two   | $100   | 2   |
   And we say "status": "to scan another"
+
+Scenario: A member uses an OLD rCard to pay
+  Given member ".ZZB" card code is "WhAt3v3r"
+  When member ":ZZD" visits page "I/NEW.ZZB-WhAt3v3r"
+  Then we show "Bea Two" with:
+  | Location  | Button |
+  | Btown, UT | Charge |
+
+Scenario: A company agent uses an OLD rCard to pay
+  Given agent ".ZZB" card code is "WhAt3v3r"
+  And member ":ZZD" visits page "I/NEW-ZZA-WhAt3v3r"
+  Then we show "Bea Two" with:
+  | Company | Location  | Button |
+  | Abe One | Atown, AK | Charge |

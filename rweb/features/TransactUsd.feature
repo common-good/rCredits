@@ -6,8 +6,8 @@ SO I can buy and sell stuff.
 Setup:
   Given members:
   | id   | fullName   | country | email | flags                |
-  | .ZZA | Abe One    | US      | a@    | dft,ok,personal,bona |
-  | .ZZB | Bea Two    | US      | b@    | dft,ok,personal,bona |
+  | .ZZA | Abe One    | US      | a@    | dft,ok,person,bona |
+  | .ZZB | Bea Two    | US      | b@    | dft,ok,person,bona |
   | .ZZC | Corner Pub | France  | c@    | dft,ok,company,bona  |
   And relations:
   | id      | main | agent | permission |

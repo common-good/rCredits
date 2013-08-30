@@ -16,7 +16,7 @@ use rCredits\Util as u;
 function helpText($page) {
   global $rUrl, $base_url;
   $mya = r\acct();
-  $company = !@$mya->can(B_PERSONAL);
+  $company = !@$mya->person();
   $acctName = @$mya->name; // @ is for SMS testing (when not signed in)
 
   $site = str_replace('https://', '', R_SITE_URL);

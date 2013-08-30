@@ -8,8 +8,8 @@ SO I can depend on the accuracy of rCredits system records
 Setup:
   Given members:
   | id   | fullName   | dwolla          | country | email         | flags                | usd |
-  | %id1 | Abe One    | %DW_TESTER_ACCT | US      | a@ | dft,ok,personal,bona |   1 |
-  | %id2 | Bea Two    | %DW_TEST_ACCT   | US      | b@ | dft,ok,personal,bona |   0 |
+  | %id1 | Abe One    | %DW_TESTER_ACCT | US      | a@ | dft,ok,person,bona |   1 |
+  | %id2 | Bea Two    | %DW_TEST_ACCT   | US      | b@ | dft,ok,person,bona |   0 |
   And transactions: 
   | xid | created   | type     | amount | r  | from | to   | purpose |
   | 1   | %today-7m | signup   |     10 | 10 | ctty | %id1 | signup  |

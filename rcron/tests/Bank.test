@@ -45,7 +45,7 @@ class rcronBank extends DrupalWebTestCase {
     case(0):
     Given('members: "DATA'
     . '\\| id   | fullName | floor | minimum | flags                   |'
-    . '\\| .ZZA | Abe One  |     0 |     100 | dft,personal,company,ok |"');
+    . '\\| .ZZA | Abe One  |     0 |     100 | dft,person,company,ok |"');
     break;
 
 

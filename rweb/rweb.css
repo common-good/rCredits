@@ -150,7 +150,7 @@ form.rweb  .form-no {color:red;}
   /* Labeled Forms (each field is preceded by a short label and the fields line up)
   /* form.rweb.labeled (this fails for Chrome) */
   form.labeled .form-type-textfield {display:block; margin-right:0;}
-  form.labeled label, form.labeled .form-type-item label {display:inline-block; width:8em; text-align:right; margin-right:0;} /* default label width */
+  form.labeled label, form.labeled .form-type-item label {display:inline-block; width:122px; text-align:right; margin-right:0;} /* default label width */
 
   form.labeled #edit-title,
   form.labeled input.form-submit,
@@ -260,6 +260,12 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformaccount .form-type-radio label {display:block;}*/
 
 /* Contact Info (labeled) */
+#rcreditswebformcontact .form-item-mail,
+#rcreditswebformcontact .form-item-pin {display:inline-block;}
+#rcreditswebformcontact .form-item-pin label {width:50px;}
+#rcreditswebformcontact .form-item-pin .description {margin-left:53px;}
+#rcreditswebformcontact #edit-pin {width:100px;}
+#rcreditswebformcontact .form-type-radio {display:inline-block;}
 
 /* Transact (tx) form (labeled) */
 #rcreditswebformtx .form-type-radios {border:0;}
@@ -564,10 +570,25 @@ html.js input.throbbing {background-position:right -2.4em;}
 #rcreditswebformget input.form-text {width:150px;}
 #rcreditswebformget .form-item-amount {display:inline-block;}
 
+/* Bank */
+#rcreditswebformbank .form-item-deposit1,
+#rcreditswebformbank .form-item-deposit2 {display:inline-block; width:auto;}
+#rcreditswebformbank #edit-deposit1,
+#rcreditswebformbank #edit-deposit2 {width:50px;}
+#rcreditswebformbank #edit-submit {display:block; clear:left;}
+
 /* Security */
 #rcreditswebformsecurity #edit-title,
 #rcreditswebformsecurity #edit-subtext {margin-left:0;}
 #rcreditswebformsecurity #edit-posttext {margin-left:125px; font-size:80%;}
+
+/* Change PIN */
+#rcreditswebformchangepin label {width:147px;}
+#rcreditswebformchangepin #edit-title,
+#rcreditswebformchangepin input.form-submit,
+#rcreditswebformchangepin .description {margin-left:150px;}
+#rcreditswebformchangepin #edit-currentpass {width:300px;}
+#rcreditswebformchangepin #edit-pin {width:60px;}
 
 /* Usd */
 #rcreditswebformusd #edit-title,
@@ -679,6 +700,8 @@ and (max-device-width : 480px) { */
 
   #edit-title, form.labeled #edit-title {display:block; position:absolute; left:0; top:28px; margin:0; padding:2px 0 2px 15px; background:silver; z-index:1; height:42px;}
   #edit-title label, form.rweb #edit-title label {font-size:20px; margin-top:5px;}
+  #rcreditswebformchangepin #edit-title,
+  #rcreditswebformchangepin #edit-submit {margin-left:0;}
   
   fieldset.popup, fieldset.popup legend {border:0; box-shadow:none; -webkit-box-shadow:none; -moz-box-shadow:none; border-radius:0; -moz-border-radius:0; -webkit-border-radius:0;}
   fieldset.popup, fieldset.popup select, fieldset.popup label, fieldset.popup legend {width:100%; left:0; border:0;}

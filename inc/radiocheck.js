@@ -3,8 +3,8 @@ jQuery(".form-type-checkbox > .description, .form-checkboxes .form-type-checkbox
   if(input.attr("checked")) jQuery(this).addClass("opt-on");
   jQuery(this).click(function() {
     jQuery(this).toggleClass("opt-on");
-    input.attr("checked", jQuery(this).hasClass("opt-on"));
     input.click();
+    input.attr("checked", jQuery(this).hasClass("opt-on"));
   });
 });
 

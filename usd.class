@@ -108,10 +108,82 @@ class usd {
   function verifyPhone($phoneId, $code, &$err = '') {
     $dw = $this->dwolla();
     if (!$dw->verifyPhone($phoneId, $code)) return dwError($dw, $err);
-    $this->acct->setBit(B_PHONE_OK);
     return TRUE;
   }
 
+  /**
+   * Specify user's address.
+   * @param string $address: Line one of user address. Precise data & format critical to geo-location data.
+   * @param string $city: User's City.
+   * @param string $state: USA state or territory two character code (2 Char Abbrv)
+   * @param string $zip: Postal code or zip code.
+   * @param string $err: (returned) the error message, if any
+   * @return TRUE if success
+   */
+  function address($address, $city, $state, $zip, &$err = '') {
+    $dw = $this->dwolla();
+    if (!$dw->address($address, $city, $state, $zip)) return dwError($dw, $err);
+    return TRUE;
+  }
+
+  /**
+   * Verify the user's social security number.
+   * @param string $ssn: the user's social security number
+   * @param string $err: (returned) the error message, if any
+   * @return TRUE if success, else FALSE with step() = AccountInfo (first failure) or Kba (second failure)
+   */
+  function ssn($ssn, &$err = '') {
+    $dw = $this->dwolla();
+    if (!$dw->ssn($ssn)) return dwError($dw, $err);
+    return TRUE;
+  }
+
+  /**
+   * Get KBA verification questions for the user.
+   * @param array $questions: (returned) simple array of [Id, Text, Choices]
+   *   where Choices is array of [answer id => answer text]
+   * @param string $err: (returned) the error message, if any
+   * @return transactionId
+   */
+  function kba(&$questions, &$err = '') {
+    $dw = $this->dwolla();
+    if (!$kba = $dw->kba()) return dwError($dw, $err);
+    $questions = $kba['Questions'];
+    return $kba['TransactionId'];
+  }
+
+  /**
+   * Verify the KBA questions.
+   * @param int $transactionId: the ID of the set of questions being answered
+   * @param assoc array $answers: [answerid, questionid]
+   * @param string $err: (returned) the error message, if any
+   * @return TRUE if success
+   */
+  function verifyKba($transactionId, $answers, &$err = '') {
+    $dw = $this->dwolla();
+    if (!$dw->verifyKba($transactionId, $answers)) return dwError($dw, $err);
+    return TRUE;
+  }
+
+  /**
+   * Add a funding source.
+   */
+  function addBank($accountNumber, $routingNumber, $accountType, &$error = NULL) {
+    $dw = $this->dwolla();
+    $accountName = \user_password(); // random account nickname
+    if (!noDw($dw) and !$dw->addFundingSource($accountNumber, $routingNumber, $accountType, $accountName)) return dwError($dw, $error);
+    return TRUE;
+  }
+  
+  /**
+   * Verify a funding source.
+   */
+  function verifyBank($fundingSourceId, $deposit1, $deposit2, &$error = NULL) {
+    $dw = $this->dwolla();
+    if (!noDw($dw) and !$dw->verifyFundingSource($fundingSourceId, $deposit1, $deposit2)) return dwError($dw, $error);
+    return TRUE;
+  }
+    
   /**
    * Handle updated usd information by requesting a new auth token from Dwolla
    * @return: does not return, but initiates callback to receive auth token
@@ -149,8 +221,8 @@ class usd {
     if (r\whoseUsd($usdAccount, $uid)) return authReturn(u\tt('usd account taken'));
     if ($mya->city != $me->City) r\Web\say('dw mismatch', array('field' => 'City'));
     if (r\realState($mya->state) != $me->State) r\Web\say('dw mismatch', array('field' => 'State'));
-    if ($mya->can(B_COMPANY) xor $me->Type != 'Personal') r\Web\say('dw mismatch', array('field' => 'Type'));
-    if ($me->Type == 'Non-profit' and $mya->can(B_COMPANY)) $structure = $mya->structure | u\bit(R_NONPROFIT);
+    if ($mya->co() xor $me->Type != 'Personal') r\Web\say('dw mismatch', array('field' => 'Type'));
+    if ($me->Type == 'Non-profit' and $mya->co()) $structure = $mya->structure | u\bit(R_NONPROFIT);
 
     $mya->update(compact('usdAccount', 'structure'));
 //    print_r(compact('uid','_GET','mya','usdAcct','dw','authToken','secure')); die();
@@ -187,7 +259,7 @@ class usd {
   public function send($amount, $other, $notes = R_DEFAULT_PURPOSE, &$err = NULL, $payerFee = FALSE, $direct = TRUE) {
     u\EXPECT(self::inAtom(), 'usd transfer outside atom');
     u\EXPECT(is_object($this->acct) and is_object($other->acct), 'empty account');
-    u\EXPECT($this->acct->can(B_OK) and $other->acct->can(B_OK), 'non rTraders in usd send');
+    u\EXPECT($this->acct->ok() and $other->acct->ok(), 'non rTraders in usd send');
     if ($this->acct->usd < $amount and $this->bal() < $amount) return dwError('not enough', $err);
     
     $source = $direct ? 'Dwolla' : 'ERROR'; // no delayed payments at present
@@ -279,25 +351,6 @@ array (
     if (!noDw($dw) and !$sources = $dw->fundingSources()) return dwError($dw, $error);
     $sources[0]['count'] = count($sources);
     return $sources[0];
-  }
-  
-  /**
-   * Add a funding source.
-   */
-  function addBank($accountNumber, $routingNumber, $accountType, &$error = NULL) {
-    $dw = $this->dwolla();
-    $accountName = \user_password(); // random account nickname
-    if (!noDw($dw) and !$dw->addFundingSource($accountNumber, $routingNumber, $accountType, $accountName)) return dwError($dw, $error);
-    return TRUE;
-  }
-  
-  /**
-   * Verify a funding source.
-   */
-  function verifyBank($fundingSourceId, $deposit1, $deposit2, &$error = NULL) {
-    $dw = $this->dwolla();
-    if (!noDw($dw) and !$dw->verifyFundingSource($fundingSourceId, $deposit1, $deposit2)) return dwError($dw, $error);
-    return TRUE;
   }
   
   /**

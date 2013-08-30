@@ -19,25 +19,30 @@ QUESTIONS:
 
 SOMETIME SOON RETROFIT:
 The following accounts need to have Dwolla switched to us ("integrated into the rCredits backend"):
-Barbara, gary, jennifer, snow's, adam (special case)
+Barbara, gary, jennifer, snow's, adam
 
 BEFORE FRIENDS LAUNCH:
 - automatic (suggested) ops
-- * single signup on rcredits.org! (just mailing list), but have a link to "member signin'
+- have a link on rcredits.org to "member signin'
+- change physical field to postalAddr (and fix data on production server) BEFORE running any new code
 
 To do: (* = before launch ** = earlier)
 
+. create form account/ssn
+. create form account/kba
+. feature test: scan fake QR (should go to default page or empty)
+. (later) write an app for Android and iPhone, so scanning a card from out of region will work (you sign in to your own regional server, so a scan that takes you to another region's site won't work)
+. no virtual rewards for mutual suppliers
+. txs should not show X on receipts, for non-buyers
+. settings should say you don't have permission, on mobile, if blank
+. (later) use rc4.me for login and email redirection (with forward.php). Database table accounts has fields email (primary), username (all lowercase letters), and region (3 or 4 uppercase letters). So user can log in at rc4.me (linked to by rcredits.org), which then forwards the request to the appropriate server. Scanned cards go directly to the proper server (new.rc2.me/A/AAAcode OR /a/... for agents, B&b for 4-letter users, etc.).
 . before depending on anyone's cached USD balance, make sure the unavailability of their Dwolla account is not because they changed their PIN.
 . catch "you changed your password" and "you changed your email" emails from Dwolla (and disable the rC account with a misbehavior note in the data field)
 . add to misc.js: for each text input on the page, if the current value includes "XX-", make it silver. onEnter, zap the contents (set .length=0 ?)
-. show last four digits of bank account number
-. when there is an error, don't make user retype the hidden fields (so soc sec and dob should not be password type)
-. add committed amount to summary (on rewards line) "reserved for contributions to CGF"
-. Ellen K has no charge tab
+. when there is an error, don't make user retype the hidden fields (so soc sec and dob should not be password type) (also when error happens in submit, because there is a dwolla error)
 . coverFee from lost transaction cron
 . make invite a primary link
-. scan normal card to sign in (just add pword)
-. new reg API Create Dwolla account upon first sign in 
+. scan normal card to sign in (just add pword)?
 . improve reports page (avg tx/member/mo); "change" the word margin on the reports page to demand
 . combine exchanges and pexchanges on Transactions page
 . for companies with no default purpose, add suggestion to no purpose message
@@ -45,9 +50,7 @@ To do: (* = before launch ** = earlier)
 . don't make account opener manager if by is ADMIN or CTTY_ADMIN (and give account a temp password)
  disallow min between 0 and 10 (bank_min)?
 - * help for all pages
-. Separate e-mail and password into contact and security; require PIN
 . warn admin when changing to rTrader prematurely, that it may cause double withdrawal from bank (happened to Dan)
-- hide stuff on reg page as appropriate
 - tell virtualemployees they missed out on keeping the r. also tell non-virtualemployees (individuals only) they missed out on buying r
 - when contesting a tx, ask for comment (add it to payer's "for"). The next day (and thereafter) don't allow editing the for. Include payer's note in notice to payee.
 - LATER (when available) tests with dev sandbox and reg sandbox!
@@ -69,8 +72,7 @@ To do: (* = before launch ** = earlier)
 - warn people about their tax liability (ask what their tax year is? warn in December?)
 - trans history: default today on starting/ending and/or pass true defaults properly for period
 - * membership tests: New Pass, Photo, Agreement, Contribute, Proxies, Usd, proof of ID, Options
-- more formI tests
-- * prefs: show phone# or (more importantly) physical addr when paying someone (so they can ship or call)
+- * prefs: show phone or (more importantly) postalAddr when paying someone (so they can ship or call)
 - make sure we're handling all bad GET data gracefully
 - scanning own card should fill in username on login form
 - scanning non-member card should complain immediately
@@ -104,7 +106,6 @@ To do: (* = before launch ** = earlier)
 - "sign" our invite emails so gmail and others won't see them as spam (needed?)
 - give ctty admin a way to reset a member's password (assign them a one-time pass, set a one-time bit)
 - /password should give error if user is logged in
-- in formAccount do away with Drupal basis
 - back button
 - revisit t\addAttrib and t\snapshot (does Drupal make ids lowercase?)
 - phase out tablefield and/or userfield
@@ -332,7 +333,6 @@ E. Database clues
          cardCode: security code for QR code on rCard
          cardCode2: security code for QR codes on person's rCard as an agent for a company
          bankAccount: IBN (or fake IBN for US accounts created from routing number and account number)
-         isSavings: (bool) the bank account is a savings or money market account
    - r_txs
      . xid: record id
      . payerTid: Transactions are identified to the user counting just their own transactions (1, 2, 3, ...), NOT as an xid.

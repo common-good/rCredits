@@ -6,15 +6,15 @@ SO I can participate actively.
 Setup:
   Given members:
   | id   | fullName   | phone    | address | city  | state | postalCode | country | floor | flags         |
-  | .ZZA | Abe One    | +2000001 | POB 1 | Atown | AK    | 01000 | US      |     0 | dft,personal,company |
-  | .ZZB | Bea Two    | +2000002 | POB 2 | Btown | UT    | 02000 | US      |  -200 | dft,personal,member  |
-  | .ZZC | Corner Pub | +2000003 | POB 3 | Ctown | Cher  | A1B23 | France  |     0 | dft,company          |
+  | .ZZA | Abe One    | +2000001 | 1 A St. | Atown | AK    | 01000 | US      |     0 | dft,person,company |
+  | .ZZB | Bea Two    | +2000002 | 2 B St. | Btown | UT    | 02000 | US      |  -200 | dft,person,member  |
+  | .ZZC | Corner Pub | +2000003 | 3 C St. | Ctown | Cher  | A1B23 | France  |     0 | dft,company          |
   And relations:
   | id   | main | agent | permission |
   | .ZZA | .ZZC | .ZZA  | manage     |
   
 Scenario: A member clicks on the membership link
-#  Given member ".ZZA" supplies "physical": "planet Earth"
+#  Given member ".ZZA" supplies "postalAddr": "planet Earth"
   When member ".ZZA" visits page "status"
   Then we show "Congratulations on signing up" with:
   | Step 1    | Step 2       | Step 3       | Step 4            | Step 5      | Step 6 | Step 7  |
@@ -22,7 +22,7 @@ Scenario: A member clicks on the membership link
   And with done ""
 
 Scenario: A company agent clicks on the membership link
-#  Given member ".ZZC" supplies "physical": "planet Earth"
+#  Given member ".ZZC" supplies "postalAddr": "planet Earth"
   When member ":ZZA" visits page "status"
   Then we show "Congratulations on signing up" with:
   | Step 1    | Step 2       | Step 3       | Step 4      | Step 5 | Step 6  | Step 7       | Step 8    |
@@ -33,7 +33,7 @@ Scenario: A company agent clicks on the membership link
   And with done ""
 
 Scenario: A member does it all
-#  Given member ".ZZA" supplies "physical": "planet Earth"
+#  Given member ".ZZA" supplies "postalAddr": "planet Earth"
   And member ".ZZA" has done step "agreement"
   When member ".ZZA" visits page "status"
   Then we show "You're getting there"

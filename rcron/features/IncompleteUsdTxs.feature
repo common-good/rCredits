@@ -8,8 +8,8 @@ SO I can depend on having access to the money I have in the rCredits system
 Setup:
   Given members:
   | id   | fullName   | dwolla          | country | email         | flags                |
-  | .ZZA | Abe One    | %DW_TESTER_ACCT | US      | a@ | dft,ok,personal,bona |
-  | .ZZB | Bea Two    | %DW_TEST_ACCT   | US      | b@ | dft,ok,personal,bona |
+  | .ZZA | Abe One    | %DW_TESTER_ACCT | US      | a@ | dft,ok,person,bona |
+  | .ZZB | Bea Two    | %DW_TEST_ACCT   | US      | b@ | dft,ok,person,bona |
   And transactions: 
   | xid | created   | type   | amount | from | to   | purpose |
   | 1   | %today-7m | signup |      9 | ctty | .ZZA | signup  |

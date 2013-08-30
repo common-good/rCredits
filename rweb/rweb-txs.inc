@@ -47,7 +47,7 @@ function formTxs($form, &$sta, $args = '') {
 
   $page = $report ? 'reports' : 'transactions';
   if (!@$period) $period = TX_DEFAULT_PERIOD;
-  if (strlen(@$options) != count($urlOpts = u\ray(TX_URL_OPTS))) $options = $mya->can(B_PERSONAL) ? '2200000' : '2210000'; // defaults for TX_OPT_KEYS options (2=both)
+  if (strlen(@$options) != count($urlOpts = u\ray(TX_URL_OPTS))) $options = $mya->person() ? '2200000' : '2210000'; // defaults for TX_OPT_KEYS options (2=both)
   $options = array_combine($urlOpts, str_split($options));
 //  u\setDft($states, STATES_BOTH); // both  
 //  u\setDft($currency, 2); // both

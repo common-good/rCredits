@@ -322,6 +322,9 @@ function weShowWithSubs($page, $subs) {
  *     Relations ItsComplicated TEST
  *     Relations AMemberAddsARelation TEST
  *     ScanCard AMemberUsesAnRCardToPay TEST
+ *     ScanCard ACompanyAgentUsesAnRCardToPay TEST
+ *     ScanCard AMemberUsesAnOLDRCardToPay TEST
+ *     ScanCard ACompanyAgentUsesAnOLDRCardToPay TEST
  *     Signin AMemberSignsInForTheFirstTime TEST
  *     Signup ANewbieVisitsTheRegistrationPageWithNoInvite TEST
  *     Signup AnInvitedNewbieVisitsTheRegistrationPage TEST
@@ -472,7 +475,10 @@ function usd($list) {return t\usd($list);}
  *     Relations MemberCompanyHasRelations MAKE
  *     Relations ItsComplicated MAKE
  *     ScanCard AMemberUsesAnRCardToPay MAKE
+ *     ScanCard ACompanyAgentUsesAnRCardToPay MAKE
  *     ScanCard CashierChargesRCard MAKE
+ *     ScanCard AMemberUsesAnOLDRCardToPay MAKE
+ *     ScanCard ACompanyAgentUsesAnOLDRCardToPay MAKE
  *     Signin AMemberSignsInForTheFirstTime MAKE
  *     Signin AMemberGivesTheWrongPassword MAKE
  *     Signup ANewbieVisitsTheRegistrationPageWithNoInvite MAKE
@@ -786,11 +792,25 @@ function memberScansMemberCard($id1, $id2) {
  *
  * in: ScanCard AMemberUsesAnRCardToPay MAKE
  *     ScanCard CashierChargesRCard MAKE
+ *     ScanCard AMemberUsesAnOLDRCardToPay MAKE
  */
 function memberCardCodeIs($id, $cardCode) {
   global $testOnly; if ($testOnly) return FALSE;
   $a = r\acct(t\fullQid($id));
   $secure = compact('cardCode') + ($a->secure ?: array());
+  return $a->update(compact('secure'));
+}
+
+/**
+ * agent (ARG) card code is (ARG)
+ *
+ * in: ScanCard ACompanyAgentUsesAnRCardToPay MAKE
+ *     ScanCard ACompanyAgentUsesAnOLDRCardToPay MAKE
+ */
+function agentCardCodeIs($id, $cardCode2) {
+  global $testOnly; if ($testOnly) return FALSE;
+  $a = r\acct(t\fullQid($id));
+  $secure = compact('cardCode2') + ($a->secure ?: array());
   return $a->update(compact('secure'));
 }
 

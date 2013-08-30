@@ -41,7 +41,7 @@ class acct {
   function __construct($id = array(), $agent = '') {
     if (is_array($info = $id)) { // referring to existing db record
       $this->createNew($info); // create new db record
-    } else list($this->id, $this->agentId) = acct::ok($id, $agent, $zot, FALSE);
+    } else list($this->id, $this->agentId) = acct::viable($id, $agent, $zot, FALSE);
     if ($this->id > 0) $this->mainQid = r\quid($this->id); // no quids for communities and regions!
   }    
 
@@ -52,7 +52,7 @@ class acct {
   private function createNew($info) {
     extract($info, EXTR_PREFIX_ALL, 'my');   
     if (isset($my_number) and !isset($my_phone)) $my_phone = $my_number;
-    if (isset($my_phone)) $phone = u\formatPhone($my_phone, '+n');
+    if (isset($my_phone)) $phone = u\fmtPhone($my_phone, '+n');
     
     $status = TRUE;
     $mail = $init = @$my_mail ?: (@$my_email ?: '');
@@ -65,7 +65,7 @@ class acct {
     if (($state = @$my_state) and !is_numeric($state)) { // allow state abbrevs within US
       $state = dbLookup('id', 'r_states', 'abbreviation=:state and country_id=:US_COUNTRY_ID', compact('state'));
     }
-    $community = communityUid(@$my_postal); // defaults to current server
+    $community = communityUid(@$my_postalCode); // defaults to current server
     $data = serialize(@$my_data ?: array());
 //    $frozen = serialize(array());
     $created = $login = $access = REQUEST_TIME;
@@ -101,7 +101,7 @@ class acct {
     list($this->id, $this->agentId) = array($uid, $uid);
     self::$records[$this->id] = (object) ($record + $info);
     
-    $cardCode = u\randomString(R_CARDCODE_LEN, 'word'); // create an rCard security code
+    $cardCode = r\cardCode(r\quid($uid));
     $secure = compact('cardCode');
     $this->update(compact('secure') + $info); // this is easier to do after saving the record
     unset($DBTX); // commit
@@ -110,7 +110,7 @@ class acct {
   /**
    * Setup acct variables, returning FALSE on error.
    */
-  public static function ok($id0, $agent0='', &$error='', $test = TRUE) {
+  public static function viable($id0, $agent0='', &$error='', $test = TRUE) {
     if ($error = u\EXPECT(compact(u\ray('id0 agent0')), 'zid|qid|assoc empty|id|qid', $test)) return FALSE;
     if ($error = u\EXPECT((bool) $id0, 'null uid in new acct()', $test)) return FALSE;
     if ($error = u\EXPECT(!(strpos($id0, R_AGENT_MARK) and $agent0), 'agent already specified in qid', $test)) return FALSE;
@@ -258,7 +258,7 @@ class acct {
   public function proSe() {return ($this->id == $this->agentId);}  
   public function qid() {return $this->proSe() ? $this->mainQid : r\quid($this->id, $this->agentId);}
   public function isNonprofit() {return (bool) ($this->structure & u\bit(R_NONPROFIT));}
-  public function gotContact() {return ($this->can(B_PHONE_OK) and $this->address and $this->physical and $this->city and $this->country and $this->postalCode and $this->can(B_SS_OK));}
+//  public function gotContact() {return ($this->can(B_PHONE_OK) and $this->address and $this->postalAddr and $this->city and $this->country and $this->postalCode and $this->can(B_SS_OK));}
   
   /**
    * Return specified account's profile picture, with markup
@@ -298,14 +298,15 @@ class acct {
 
   /**
    * Set the current account being managed
-   * @param acct $acct: the account to manage
-   * @return: the account (FALSE if $acct is empty)
+   * @param acct $a: the account to manage
+   * @return: the account (FALSE if $a is empty)
    */
-  public static function setDefault($acct) {
+  public static function setDefault($a) {
     global $currentAcct; 
-    global $user; if (empty($user)) $user = (object) ($acct ? $acct->account() : array('uid' => 0)); // probably needed only for rWeb login/registration form testing
-    if ($acct and ($login = REQUEST_TIME) != $acct->login) $acct->update(compact('login'));
-    return $currentAcct = $acct;
+    global $user; if (empty($user)) $user = (object) ($a ? $a->account() : array('uid' => 0)); // probably needed only for rWeb login form testing
+    $login = REQUEST_TIME;
+    if ($a and @$currentAcct != $a and $a->login != $login) $a->update(compact('login'));
+    return $currentAcct = $a;
   }
 
   /**
@@ -425,7 +426,7 @@ EOF;
   public function auxFilename($type = 'picture', $ideal = FALSE) {
     $dir = $type == 'picture' ? R_PICTURE_DIR : R_PROOF_DIR;
     $result = "$dir/$this->id-$this->created";
-    if (!$ideal and !$this->hasAux($type)) $result = $this->can(B_PERSONAL) ? R_DFT_PICTURE : R_DFT_PICTURE_WIDE;
+    if (!$ideal and !$this->hasAux($type)) $result = $this->can(B_PERSON) ? R_DFT_PICTURE : R_DFT_PICTURE_WIDE;
     return $result;
   }
   
@@ -487,7 +488,7 @@ EOF;
     $secure = compact(u\ray('usdPass usdEmail usdPin')) + $this->secure;
     $this->update(compact('secure'));
     $us = new r\usd($this);
-    if ($this->can(B_PERSONAL)) {
+    if ($this->can(B_PERSON)) {
       list ($first, $last) = u\parseName($this->fullName);
       return $us->register('Personal', u\ray('first last dob', @$first, @$last, $this->dob), TRUE, $err);
     } else {
@@ -539,12 +540,13 @@ EOF;
       $aacct = $this->agent;
       
       for ($bit = 0; $bit < B_MAX; $bit++) $perms[$bit] = $this->hasBit($bit);
-      if (!$perms[B_COMPANY]) $perms[B_PERSONAL] = TRUE; // make sure it's always at least one of these
+      if (!$perms[B_COMPANY]) $perms[B_PERSON] = TRUE; // make sure it's always at least one of these
       
       if (!$this->proSe()) { // admin permissions depend on agent, not account
         $perms[B_ADMIN] = $aacct->can(B_ADMIN);
         $perms[B_CTTY_ADMIN] = $aacct->can(B_CTTY_ADMIN);
       }
+      $perms[B_PERSONISH] = $perms[B_PERSON] or $perms[B_ADMIN];
 
       $can = $this->proSe() ?
           (($id < 0) ? 0 : B_MANAGE) // communities must be managed by an agent, never directly
@@ -555,14 +557,14 @@ EOF;
       if (!$perms[B_MEMBER]) $perms[B_BUY] = FALSE; // no spending even the SIGNUP GIFT for non-members
       if ($perms[B_OK]) $perms[B_READY] = TRUE; // make sure nobody gets downgraded
       if ($perms[B_READY]) $perms[B_MEMBER] = TRUE;
-      if (r\Web\svar('scanned_in') and $this == r\acct()) $perms[B_BUY] = $perms[B_MANAGE] = $perms[B_ADMIN] = $perms[B_CTTY_ADMIN] = FALSE;
+      if (r\Web\svar('scanned_in') and $this == r\acct()) $perms[B_BUY] = $perms[B_MANAGE] = $perms[B_ADMIN] = $perms[B_CTTY_ADMIN] = FALSE; // scanning in, you can read and scan, at most
       
       if ($perms[B_ADMIN]) {
         if (R_ADMIN_CAN_MANAGE_CTTYS) {
           $perms[B_CTTY_ADMIN] = TRUE; // temporary extra power, until communities are independent
           $perms[B_READ] = $perms[B_SELL] = $perms[B_BUY] = $perms[B_MANAGE] = TRUE;
         }
-//        $perms[B_PERSONAL] = TRUE; // manage show PERSONAL settings (for debugging)
+//        $perms[B_PERSON] = TRUE; // manage show PERSONAL settings (for debugging)
         if ($this->proSe()) $perms[B_COMPANY] = TRUE; // show company settings on own account (for debugging)
       };
       
@@ -575,6 +577,11 @@ EOF;
 ///  debug("id=$id agent=$this->agentId permissions=" . print_r(self::$perms[$id][$this->agentId], 1));
     return self::$perms[$id][$this->agentId][$permission];
   }
+  
+  public function co() {return $this->can(B_COMPANY);}
+  public function person() {return $this->can(B_PERSON);}
+  public function admin() {return $this->can(B_ADMIN);}
+  public function ok() {return $this->can(B_OK);}
 } // end of class
 
 /**
@@ -623,7 +630,7 @@ function acct($uid = '', $agent = '', &$error = '') {
     if (!$currentAcct) {$error = 'There is no current account.'; return FALSE;}
     return $currentAcct;
   }
-  if (!acct::ok($uid, $agent, $error, TRUE)) return FALSE;
+  if (!acct::viable($uid, $agent, $error, TRUE)) return FALSE;
   return new acct($uid, $agent);
 }
 

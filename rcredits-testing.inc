@@ -78,7 +78,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
   if ($flags & u\bit(B_OK)) $flags |= u\bit(B_MEMBER);
 
   if (isset($acctType)) {
-    if ($acctType <= R_SELF_EMPLOYED) $flags |= u\bit(B_PERSONAL);
+    if ($acctType <= R_SELF_EMPLOYED) $flags |= u\bit(B_PERSON);
     if ($acctType >= R_SELF_EMPLOYED) $flags |= u\bit(B_COMPANY);
   }
   
@@ -590,13 +590,14 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
 /**
  * Simulate a visit to the page, return its form.
  * @param string $page: the Drupal URL to visit
- * @param string $err: error message to output, if any
+ * @param string $msg: message to output, if any
+ * @param string $field: error field, if any
  * @return: the form before rendering
  */
-function pageForm($page, $err = '') {
+function pageForm($page, $msg = '', $field = '') {
   global $formArray, $formSta;
   
-  if ($err) r\Web\say($err, 'zot');
+  if ($msg) r\Web\say($msg, $field);
   $login = (strpos($page, 'user/login') !== FALSE);
   t\SERVER('REQUEST_URI', $page);
   $args = basename($page);

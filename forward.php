@@ -1,8 +1,91 @@
 #!/usr/local/bin/php -q 
 <?php
-$s = stream_get_contents(fopen('php://stdin', 'r'));
-preg_match('/Content-Transfer-Encoding: base64\s*([^=]*)=/ms', @$s, $matches);
-$msg = @$matches[1] ? base64_decode($matches[1]) : @$s;
 
-mail('orders@compract.com', 'indirect test', 'this is a test: ' . @$s);
-mail('wspademan@gmail.com', 'test', $msg);
+define('SYS_EMAIL', 'info@rcredits-org.com');
+
+$s = stream_get_contents(fopen('php://stdin', 'r'));
+$link = $response = '';
+list ($zot, $who, $subject, $text) = parseHeader($s);
+
+if (preg_match('/Content-Transfer-Encoding: base64(.*?)----boundary/ms', @$s, $matches)) {
+  $text = base64_decode($matches[1]);
+  if ($parsed = parseHeader($text) and $parsed[0]) list ($zot, $who, $subject, $text) = $parsed;
+}
+
+if ($text) {
+  if (strpos($text, '=3DW') and $text2 = quoted_printable_decode($text)) $text = $text2;
+  if (preg_match('~[<\s](http://email\.dwolla\.com.*?|https://www.dwolla.com.*?)[><\s]~ms', $text, $matches)) {
+    $link = $matches[1];
+    if (strpos($subject, 'TEST') !== FALSE) $link = str_replace('/www.', '/uat.', $link);
+    if (strpos($subject, 'Verify your email account') !== FALSE) $response = file_get_contents($link);
+  }
+}
+
+$s = <<<EOF
+link: $link<br>
+subject: $subject<br>
+to: $who<br>
+decoded: $text<br>
+original: $s<br>
+response: $response
+EOF;
+// response here is temporary?
+
+//echo $s;
+htmlmail('wspademan@gmail.com', "rC-org: $subject (to $who)", $s);
+
+/**
+ * Return the subject, recipient, and subsequent text
+ * @param string $msg: the email body
+ * @return [ignorethis, who, subject, text]
+ */
+function parseHeader($msg) {
+  if (preg_match('~$\\s*To: (.*?>).*Subject: (.*?)$(.*)~ms', $msg, $matches)) return $matches;
+  if (preg_match('~$\\s*Subject: (.*?)$.*To: (.*?)$(.*)~ms', $msg, $matches)) return array('', $matches[2], $matches[1], $matches[3]);
+  return array('', '', '', '');
+}
+
+function htmlmail($to, $subject, $htmlmsg) {
+  require_once('class.html2text.php');
+
+  $boundary = 'Msg_Boundary--';
+  $htmltype = 'text/html; charset="iso-8859-1"';
+  $plaintype = str_replace('html', 'plain', $htmltype);
+
+  if(stripos($htmlmsg, '<html') === FALSE) $htmlmsg = "<html>$htmlmsg</html>";
+  $h2t = new html2text($htmlmsg);
+  $plain = $h2t->get_text(); 
+
+  while(stripos($plain, $boundary) + stripos($htmlmsg, $boundary) > 0) $boundary .= rand(); // prevent malicious hacking
+
+  $msg = <<<EOF
+If you see this message, you may need a newer email program.
+--$boundary
+Content-Type: $plaintype
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+
+$plain
+--$boundary
+Mime-Version: 1.0
+Content-Type: $htmltype
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+
+$htmlmsg
+--$boundary--
+EOF;
+
+  $hdrs = array(
+    'From' => 'rC-org <' . SYS_EMAIL . '>',
+    'Return-Path' => SYS_EMAIL,
+    'Errors-To' => SYS_EMAIL,
+    'Content-Type' => "multipart/alternative; boundary=\"$boundary\"",
+  );
+	
+  $smhdrs = '';
+  foreach($hdrs as $key => $value) $smhdrs .= "$key: $value\n";
+  $smhdrs = substr($smhdrs, 0, strlen($smhdrs)-strlen("\n")); // omit final EOL
+
+  mail($to, $subject, $msg, $smhdrs, '-f' . SYS_EMAIL);
+}

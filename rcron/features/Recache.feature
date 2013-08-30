@@ -7,8 +7,8 @@ SO I don't lose money or get confused.
 Setup:
   Given members:
   | id   | fullName   | dwolla          | email         | flags                |
-  | .ZZA | Abe One    | %DW_TESTER_ACCT | a@ | dft,ok,personal,bona |
-  | .ZZB | Bea Two    | %DW_TEST_ACCT   | b@ | dft,ok,personal      |
+  | .ZZA | Abe One    | %DW_TESTER_ACCT | a@ | dft,ok,person,bona |
+  | .ZZB | Bea Two    | %DW_TEST_ACCT   | b@ | dft,ok,person         |
   | .ZZC | Corner Pub |                 | c@ | dft,ok,company       |
   And transactions: 
   | xid   | created   | type       | amount | from      | to   | purpose | taking |
