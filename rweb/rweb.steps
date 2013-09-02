@@ -65,6 +65,7 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *
  * in: Contact AMemberUpdatesContactInfo MAKE
  *     Contact AMemberGivesABadPhone MAKE
+ *     Contact AMemberGivesABadEmail MAKE
  *     Flow AMemberOverdraws MAKE
  *     Flow AMemberOverdrawsAndDrawsFromBothRAndUSD MAKE
  *     RealUsd AMixedRCreditsUSDTransactionHappens MAKE
@@ -203,7 +204,6 @@ function transactions($list) {return t\transactions($list);}
  *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance TEST
  *     Relations AMemberAddsARelation TEST
  *     ScanCard CashierChargesRCard TEST
- *     Signup AMemberRegistersBadEmail TEST
  *     Signup AMemberRegistersBadName TEST
  *     Signup AMemberRegistersAgain TEST
  *     Signup AMemberRegistersWithAMissingCompany TEST
@@ -240,10 +240,12 @@ function weSayWithSubs($type, $index, $subs) {
  *
  * in: Contact AMemberUpdatesContactInfo TEST
  *     Contact AMemberGivesABadPhone TEST
+ *     Contact AMemberGivesABadEmail TEST
  *     ScanCard CashierChargesRCard TEST
  *     Signin AMemberSignsInForTheFirstTime TEST
  *     Signin AMemberGivesTheWrongPassword MAKE
  *     Signup ANewbieRegisters TEST
+ *     Signup AMemberRegistersBadEmail TEST
  *     Signup AMemberRegistersBadZip TEST
  *     Signup AMemberRegistersWithACompanyWithNoRelation TEST
  *     Signup AMemberRegistersACompany TEST
@@ -447,7 +449,6 @@ function balances($list) {return t\balances($list);}
  *
  * in: Download Setup MAKE
  *     RealUsd Setup MAKE
- *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance MAKE
  *     ScanCard Setup MAKE
  *     Transactions Setup MAKE
  *     TransactR Setup MAKE

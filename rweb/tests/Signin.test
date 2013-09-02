@@ -64,11 +64,11 @@ class rwebSignin extends DrupalWebTestCase {
     Given('member "NEW.AAC" one-time password is %whatever');
     When_('member "?" visits page "/user/login"');
     Then_('we show "Welcome" with: "DATA'
-    . '\\| oldpass      | pass1        | pass2                |'
-    . '\\| Tmp password | New password | Confirm new password |"');
+    . '\\| oldpass      | pass1        | pass2                | pin           |'
+    . '\\| Tmp password | New password | Confirm new password | security code |"');
     When_('member "?" confirms form "/user/login" with values: "DATA'
-    . '\\| name   | pass      | pass1  | pass2  |'
-    . '\\| abeone | %whatever | Aa1!.. | Aa1!.. |"');
+    . '\\| name   | pass      | pass1  | pass2  | pin  |'
+    . '\\| abeone | %whatever | Aa1!.. | Aa1!.. | 1234 |"');
     Then_('we show "Account Summary"');
     And__('member "NEW.AAC" has a dwolla account, step "Email"');
     And__('we say "status": "take a step"');
@@ -83,8 +83,8 @@ class rwebSignin extends DrupalWebTestCase {
     And__('member "NEW.ZZA" one-time password is %whatever2');
     When_('member "?" visits page "/user/login"');
     And__('member "?" confirms form "/user/login" with values: "DATA'
-    . '\\| name   | pass    | pass1  | pass2  |'
-    . '\\| abeone | %random | Aa1!.. | Aa1!.. |"');
+    . '\\| name   | pass    | pass1  | pass2  | pin  |'
+    . '\\| abeone | %random | Aa1!.. | Aa1!.. | 1234 |"');
     And__('we say "error": "wrong pass"');
   }
 

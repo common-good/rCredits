@@ -18,11 +18,11 @@ Scenario: A member signs in for the first time
   Given member "NEW.AAC" one-time password is %whatever
   When member "?" visits page "/user/login"
   Then we show "Welcome" with:
-  | oldpass      | pass1        | pass2                |
-  | Tmp password | New password | Confirm new password |
+  | oldpass      | pass1        | pass2                | pin           |
+  | Tmp password | New password | Confirm new password | security code |
   When member "?" confirms form "/user/login" with values:
-  | name   | pass      | pass1  | pass2  |
-  | abeone | %whatever | Aa1!.. | Aa1!.. |
+  | name   | pass      | pass1  | pass2  | pin  |
+  | abeone | %whatever | Aa1!.. | Aa1!.. | 1234 |
   Then we show "Account Summary"
   And member "NEW.AAC" has a dwolla account, step "Email"
   And we say "status": "take a step"
@@ -34,6 +34,6 @@ Scenario: A member gives the wrong password
   And member "NEW.ZZA" one-time password is %whatever2
   When member "?" visits page "/user/login"
   And member "?" confirms form "/user/login" with values:
-  | name   | pass    | pass1  | pass2  |
-  | abeone | %random | Aa1!.. | Aa1!.. |
+  | name   | pass    | pass1  | pass2  | pin  |
+  | abeone | %random | Aa1!.. | Aa1!.. | 1234 |
   And we say "error": "wrong pass"

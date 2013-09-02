@@ -77,7 +77,11 @@ class usd {
     return TRUE; // report success
   }    
 
-  function step() {return $this->dwolla()->step();}
+  function step(&$err = '') {
+    $dw = $this->dwolla();
+    if (!$dw->step()) return dwError($dw, $err);
+    return TRUE;
+  }
 
   function resendEmail(&$err = '') {
     $dw = $this->dwolla();
@@ -166,6 +170,26 @@ class usd {
   }
 
   /**
+   * Specify an authorized representative for a company account (commercial or nonprofit).
+   * @param string $first
+   * @param string $last
+   * @param string $addr
+   * @param string $city
+   * @param string $state
+   * @param string $zip
+   * @param string $phone
+   * @param string $dob: the responsible person's date of birth mm-dd-yyyy
+   * @param string $ssn: the responsible person's social security number
+   * @return TRUE if success
+  */
+  function authorizedRep($first, $last, $addr, $city, $state, $zip, $phone, $dob, $ssn, &$err = '') {
+    $dw = $this->dwolla();
+    $dob = date('m-d-Y', $dob);
+    if (!$dw->authorizedRep($first, $last, $addr, $city, $state, $zip, $phone, $dob, $ssn)) return dwError($dw, $err);
+    return TRUE;
+  }
+  
+  /**
    * Add a funding source.
    */
   function addBank($accountNumber, $routingNumber, $accountType, &$error = NULL) {
@@ -233,14 +257,14 @@ class usd {
    * Return the account balance or its sufficiency
    * UNUSED  $usd->bal($want) - return FALSE=no/TRUE=yes/'?'=maybe (meaning there is a connected bank account)
    * UNUSED @param float $want: can the account give up this much money in a hypothetical immediate transaction?
-   * UNUSED @param string $error: (RETURNED) an error message on failure
+   * UNUSED @param string $err: (RETURNED) an error message on failure
    * @return: current balance
    */
-  public function bal(&$error = NULL) {
+  public function bal(&$err = NULL) {
     $dw = $this->dwolla();
-    if (t\est() and $this->number != DW_TESTER_ACCT) return $this->acct->usd + 0;
-    if (!noDw($dw)) $result = $dw->balance();
-    return noDw($dw, $error) ? $this->acct->usd + 0 : $result;
+    if (t\est() and !in_array($this->number, array(DW_TESTER_ACCT, DW_TEST_ACCT))) return $this->acct->usd + 0;
+    if (!noDw($dw)) $result = $dw->balance(); // this may set an error
+    return noDw($dw, $err) ? $this->acct->usd + 0 : $result;
   }
   
   /**
@@ -258,14 +282,15 @@ class usd {
    */
   public function send($amount, $other, $notes = R_DEFAULT_PURPOSE, &$err = NULL, $payerFee = FALSE, $direct = TRUE) {
     u\EXPECT(self::inAtom(), 'usd transfer outside atom');
-    u\EXPECT(is_object($this->acct) and is_object($other->acct), 'empty account');
+    u\EXPECT(is_object($this->acct), 'empty account: ' . print_r($this->acct, 1));
+    u\EXPECT(is_object($other->acct), 'empty other account: ' . print_r($other->acct, 1));
     u\EXPECT($this->acct->ok() and $other->acct->ok(), 'non rTraders in usd send');
     if ($this->acct->usd < $amount and $this->bal() < $amount) return dwError('not enough', $err);
     
     $source = $direct ? 'Dwolla' : 'ERROR'; // no delayed payments at present
     $notes = t\est() . USD_NOTE_PREFIX . $notes;
     $dw = $this->dwolla();
-    if (t\est() and !($this->number == DW_TESTER_ACCT and $other->number == DW_TEST_ACCT)) {
+    if (t\est() and !($this->number == DW_TEST_ACCT and $other->number == DW_TESTER_ACCT)) {
       return $this->afterTx(t\seq(), $amount, $other);
     } else u\EXPECT(!is_null($this->number) and !is_null($other->number), 'null dw number');
     if ($this->number == $other->number) return dwError(u\tt('no self-trading'), $err); // AFTER t\est() check
@@ -273,6 +298,30 @@ class usd {
     if (!noDw($dw) and $txid = $dw->send($this->pin, self::format($other->number), $amount, $source, $notes, 0, $payerFee)) {
       return $this->afterTx($txid, $amount, $other);
     } else return noDw($dw, $err) ? -1 : NULL;
+  }
+
+  /**
+   * Set the account's USD balance by transferring funds to/from DW_TESTER_ACCT
+   */
+  public function setbal($amount, &$err = '') {
+    //u\EXPECT(t\est(), 'putting back');
+    $amount -= $this->bal($err); if (@$err) return FALSE;
+    if ($amount < 0) {
+      $amount = -$amount;
+      $dw = $this->dwolla();
+      $other = self::format(DW_TESTER_ACCT);
+      $result = $dw->send($this->pin, $other, $amount, 'Dwolla', 'setbal down', 0, FALSE) ?: dwError($dw, $err);
+    } elseif ($amount > 0) {
+      $mainUid = r\dbLookup('uid', 'users', "mail=':R_TESTER_EMAIL'");
+      $a = r\acct($mainUid);
+      $us = new r\usd($a);
+      if ($amount > DW_FEE_THRESHOLD) $amount += DW_FEE;
+      $dw = $us->dwolla();
+      $other = self::format($this->number);
+      $result = $dw->send($us->pin, $other, $amount, 'Dwolla', 'setbal up', 0, FALSE) ?: dwError($dw, $err);
+    } else $result = TRUE;
+    t\output($err ?: $this->acct->mainQid . ' balance set to ' . $this->bal());
+    return (bool) $result;
   }
 
   /**

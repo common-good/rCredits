@@ -28,8 +28,8 @@ BEFORE FRIENDS LAUNCH:
 
 To do: (* = before launch ** = earlier)
 
-. create form account/ssn
-. create form account/kba
+. Person looking at a business (signed in, scanned company) - show Site button on the Pay page
+. if no permission to charge someone, scanning a card assumes payment! (requires confirmation)
 . feature test: scan fake QR (should go to default page or empty)
 . (later) write an app for Android and iPhone, so scanning a card from out of region will work (you sign in to your own regional server, so a scan that takes you to another region's site won't work)
 . no virtual rewards for mutual suppliers
@@ -42,7 +42,6 @@ To do: (* = before launch ** = earlier)
 . when there is an error, don't make user retype the hidden fields (so soc sec and dob should not be password type) (also when error happens in submit, because there is a dwolla error)
 . coverFee from lost transaction cron
 . make invite a primary link
-. scan normal card to sign in (just add pword)?
 . improve reports page (avg tx/member/mo); "change" the word margin on the reports page to demand
 . combine exchanges and pexchanges on Transactions page
 . for companies with no default purpose, add suggestion to no purpose message

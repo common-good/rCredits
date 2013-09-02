@@ -596,6 +596,12 @@ html.js input.throbbing {background-position:right -2.4em;}
 #rcreditswebformusd .form-item-accountType {border-bottom:0;}
 #rcreditswebformusd .form-type-radio {display:inline-block;}
 
+/* Kba */
+#rcreditswebformkba label {color:darkblue;}
+#rcreditswebformkba .form-type-radios {margin:20px 40px;}
+#rcreditswebformkba .form-type-radio {display:block; margin-left:20px;}
+#rcreditswebformkba .form-type-radio label {color:black; font-weight:normal;}
+
 /* form I */
 #rcreditswebformi .user-picture {float:left; max-width:48%; margin-left:0px; margin-top:0px;}
 #rcreditswebformi #id-other {float:left; margin-bottom:1em; margin-left:10px; width:50%;}

@@ -55,9 +55,7 @@ Scenario: A member registers bad email
   When member "?" confirms form "signup/code=c0D3" with values:
   | fullName  | email     | postalCode | acctType    | code |
   | Abe One   | %whatever | 01001      | %R_PERSONAL | c0D3 |
-  Then we say "error": "bad email" with subs:
-  | email     |
-  | %whatever |
+  Then we say "error": "bad email"
 
 Scenario: A member registers bad name
   Given invitation to email "a@" is "c0D3"

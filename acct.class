@@ -483,8 +483,8 @@ EOF;
   function createUsdAccount(&$err) {
     $usdPass = user_password(20) . '*B2'; // satisfy Dwolla (and our own security)
     $usdEmail = \user_password(isDEV ? 4 : 4) . '.' . $this->mainQid . '@rcredits-org.com';
-    if (isDEV) $usdEmail = 'gordon+william+1@dwolla.com';
     $usdPin = u\randomString(4, 'digits');
+//    if (isDEV) list ($usdEmail, $usdPass, $usdPin) = array('gordon+william+2@dwolla.com', 'Password1', 9999);
     $secure = compact(u\ray('usdPass usdEmail usdPin')) + $this->secure;
     $this->update(compact('secure'));
     $us = new r\usd($this);

@@ -116,7 +116,8 @@ EOF
   'no help' => t('There is no written help available for this page. Give it a try! If you are still puzzled, please feel free to give us a call at @R_ORG_PHONE. Or send your question by <a href="mailto:@R_ORG_EMAIL?subject=help with rCredits Members Site, @page page" target="_blank">email</a>.'),
   'no account permission' => t('You do not have permission to use that account.'),
   'bad transient id' => t('That QR code is out of date. Try again?'),
-  'bad email' => t('The e-mail address <em class="placeholder">@email</em> is not valid.'), // must match Drupal, for tests
+//  'bad email' => t('The e-mail address <em class="placeholder">@email</em> is not valid.'), // must match Drupal, for tests
+  'bad email' => t('That email address is not valid.'),
   'bad company phone' => t('You must give a valid phone number for your company.'),
   'what relation' => t('Are you an owner, employee, or contractor for the company? (please choose one or more)'),
   'shortr to' => t('You do not have enough rCredits, for that transaction. <a href="@how">Go here</a> to get more rCredits.'),
@@ -170,6 +171,7 @@ EOF
   'pin required' => t('You must choose a PIN.'),
   'only us banks' => t('Unfortunately, at this time, we can handle only U.S. banks.'),
   'bad deposit cents' => t('Each deposit is a number less than @DW_VERIFY_ROOF.'),
+  'no can scan' => t('You do not have permission to scan an individual\'s rCard.'),
 );
 
 /**
@@ -711,22 +713,7 @@ function formMembership($updating, &$sta = '', $code = '') {
   $mempage = is_numeric($code) ? $code : FALSE;
 
   if ($mempage or !$mya->can(B_MEMBER) or !$mya->ok()) {
-    $us = new r\usd($mya);
-    $step = $us->step();
-    
-    if ($mya->phone and $step == 'Phone') {
-      $phoneId = $us->addPhone(substr($mya->phone, 2), $mya->data['verifyBy'] ? 'Voice' : 'SMS', $err);
-      if ($err) return r\go('account/contact', $err, 'phone');
-      svar('phoneId', $phoneId);
-      return r\go('account/verify-phone');
-    } elseif ($mya->address and $step == 'Address') {
-      if (!$us->address($mya->address, $mya->city, r\realState($mya->state, $mya->country), $mya->postalCode, $err)) return r\go('account/contact', $err);
-    } elseif (!$nonperson and $step == 'Ssn') {
-      if (!$us->ssn($mya->federalId, $err)) return r\go('account/ssn', $err);
-    } elseif ($step == 'Kba') {
-      return r\go('account/kba');
-    }
-
+    if ($result = setupUs($step)) return $result;
     extract(u\just('photoOk signed donated nearly', r\nearlyMember($mya)));
     $gotProxies = $nonperson ?: (r\dbLookup('COUNT(*)', 'r_proxies', 'person=:myid', compact('myid')) >= 2);
     r\membershipEvent($mya, 'member', $nearly and $gotProxies);
@@ -842,6 +829,37 @@ function memberStep($step, $done, $text, $links = '', $newWindow = FALSE) {
   <td class="text"><div>$text</div></td>
 </tr>
 EOF;
+}
+
+/**
+ * Go to the next USD setup page (return the page if testing) or return FALSE.
+ * @param string $step: (returned) the next Dwolla setup step
+ */
+function setupUs(&$step) {
+  $us = new r\usd($mya = r\acct());
+  if (!$step = $us->step($err)) return say($err, 'zot'); // Dwolla probably down
+  
+  if ($step == 'Finished') {
+    return FALSE;
+  } elseif ($mya->phone and $step == 'Phone') {
+    $phoneId = $us->addPhone(substr($mya->phone, 2), $mya->data['verifyBy'] ? 'Voice' : 'SMS', $err);
+    if ($err) return r\go('account/contact', $err, 'phone');
+    svar('phoneId', $phoneId);
+    return r\go('account/verify-phone');
+  } elseif ($mya->address and $step == 'Address') {
+    if (!$us->address($mya->address, $mya->city, r\realState($mya->state, $mya->country), $mya->postalCode, $err)) return r\go('account/contact', $err);
+  } elseif ($step == 'Ssn') {
+    if (!$us->ssn($mya->federalId, $err)) return r\go('account/ssn', $err);
+  } elseif ($step == 'Kba') {
+    return r\go('account/kba');
+  } elseif ($step == 'AuthorizedRepresentative') {
+    u\EXPECT(!$mya->person(), 'verify rep for person?!');
+    $by = r\acct($mya->data['by']);
+    u\EXPECT($by, 'no by for non-person');
+    list ($first, $last) = u\parseName($by->fullName);
+    $state = r\realState($by->state, $by->country);
+    if (!$us->authorizedRep($first, $last, $by->address, $by->city, $state, $by->postalCode, substr($by->phone, 2), $by->dob, $by->federalId, $err)) return say($err, 'zot');
+  }
 }
 
 /**
@@ -1696,10 +1714,9 @@ function undo($confirmed = FALSE) {
  * Show remaining customer balance.
  */
 function remainder() {
-  $acct = svar('lastCustomer');
-  if ($acct) {
-    $otherName = $acct->fullName;
-    $uid = $acct->id;
+  if ($uid = svar('lastCustomer')) {
+    $a = r\acct($uid);
+    $otherName = $a->fullName;
     $balance = be\creditInfo(compact('uid'))->fancy['balance'];
     say('customer balance', compact('otherName', 'balance'));
   } else say('no last customer', 'zot');
@@ -2031,9 +2048,8 @@ EOF;
 
   $acctType = formField('radios', t('Account type:'), $acctTypeHelp, required() + $acctTypeAttrib, $acctTypes);
   $fullName = textField(t('Full name:'), tt('fullName desc'), required(@$fullName));
-  $federalId = textField(t('Soc Sec #:'), t('Your social security number or EIN (for required annual reporting)'), required(@$federalId)); // always textfield so user doesn't have to retype on error
-  $dob = textField(t('Birthdate:') . R_REQUIRED, t('Your date of birth (mm/dd/yyyy)'), dft(@$dob));
-//  $personal = formField('fieldset') + compact(u\ray('federalId dob'));
+
+  //  $personal = formField('fieldset') + compact(u\ray('federalId dob'));
 
 //  $ein = textField(t('Federal ID:'), t('Your official employer ID number (EIN)'), required($ein));
 //  $founded = textField(t('Founded:'), t('Your date of incorporation or founding (mm/dd/yyyy)'), required($founded));
@@ -2050,33 +2066,38 @@ EOF;
   $submit = submit(t('Signup'));
   $args = hidField(@$args);
   
-  $form = compact(u\ray('title subtext acctType fullName federalId dob mail')) 
-         + contactFields(FALSE)
+  $form = compact(u\ray('title subtext acctType fullName mail')) 
+         + ssnFields() + contactFields(FALSE)
          + compact(u\ray('agreed calling companyInfo buysAt submit args'));
 //  keep_values($form);
   return labeled($form);
 }
 
+/**
+ * Return the fields used to verify an individual's SSN.
+ * The dob field is not used for companies (but remains in the form, unseen), so it cannot be required.
+ */
+function ssnFields() {
+  $federalId = textField(t('Soc Sec #:'), t('Your social security number or EIN (for required annual reporting)'), required()); // always textfield so user doesn't have to retype on error
+  $dob = textField(t('Birthdate:') . R_REQUIRED, t('Your date of birth (mm/dd/yyyy)'));
+  return compact(u\ray('federalId dob'));
+}
+
 function formSignup_validate($form, &$sta) {
   if (!isset($sta['buttons'])) $sta['buttons'] = array(); // for testing (keep Drupal from griping)
-  extract(u\just('args acctType mail federalId dob phone country company companyPhone companyOptions fullName postalCode code', $values = u\trimAll($sta['input'])));
+  extract(u\just('args acctType mail phone country company companyPhone companyOptions fullName postalCode code', u\trimAll($sta['input'])));
   if (@$args) extract(u\just('code', $args));
 //  $sta['input'] = array(); // make sure Drupal doesn't save the record when WE find an error (no longer needed?)
   //if (r\dbExists('users', "name='abeone'")) die('1 ' . print_r(debug_backtrace(), 1));
   if (!invitation(@$code) and @$code != bin2hex(R_WORD) and @$code != 'w') return r\go('signup'); // in case user resubmits
   //if (r\dbExists('users', "name='abeone'")) die('1 ' . print_r(debug_backtrace(), 1));
   
-  $mail = str_replace("'", '&#039;', htmlspecialchars($mail)); // Drupal does this in user_register()
   if (!emailOkay($mail)) return;
   if (!phoneOk($phone, $country)) return;
   if ($country == US_COUNTRY_ID) {
     if (!preg_match('/^\d{5}(\-\d{4})?$/', $postalCode)) return say('bad zip', 'zot');
   }
-  if ($acctType < R_COMMERCIAL) { // personal (possibly self-employed)
-    if (!$dob = u\s2t(@$dob) or @$dob > REQUEST_TIME + 9 * 31 * DAY_SECS) return say('bad date', 'dob');
-  }
-  $what = $acctType < R_COMMERCIAL ? 'social security number' : 'federal ID';
-  if (strlen($federalId =  u\digits(@$federalId)) != 9) return say('bad federal id', compact('what'), 'federalId');;
+  if (!formSsn_validate($form, $sta, $acctType < R_COMMERCIAL)) return;
 
   if (@$companyOptions) extract(u\just('isOwner employeeOk contractor', $companyOptions));
   $gotrelation = (@$employeeOk or @$isOwner or @$contractor);
@@ -2084,13 +2105,13 @@ function formSignup_validate($form, &$sta) {
     foreach (u\ray('company companyPhone') as $one) {
       if (!@$$one) return say('missing field', array('field' => $one), $one);
     }
-    if ($err = badName($company)) return say($err, array('field' => 'Company'), 'company');
+    if ($err = u\badName($company)) return say($err, array('field' => 'Company'), 'company');
     if (!$companyPhone = u\fmtPhone($companyPhone, '+n')) return say('bad company phone', compact('companyPhone'), 'companyPhone');
     if (!$gotrelation) return say('what relation', 'company');
     $data = compact(u\ray('company companyPhone employeeOk isOwner contractor'));
   } else $data = array();
   
-  if ($err = badName($fullName)) return say($err, array('field' => 'fullName'), 'fullName');
+  if ($err = u\badName($fullName)) return say($err, array('field' => 'fullName'), 'fullName');
   $name = $name0 = r\uniqueName($fullName);
 //  $name = $name0 = u\shortName($fullName);
 //  if (r\userField(1, 'name=:name', compact('name'))) return say('duplicate name'); // require unique fullName
@@ -2100,14 +2121,13 @@ function formSignup_validate($form, &$sta) {
   $administer_users = FALSE; // for testing (keep Drupal from griping)
   $status = 1;
   $fullName = u\normalizeCase($fullName);
-  $sta['input'] = compact(u\ray("mail name data fullName federalId dob community flags administer_users status")) + $values;
+  u\preray(compact(u\ray("mail name data fullName community flags administer_users status")), $sta['input']);
   //if (r\dbExists('users', "name='abeone'")) die('1 ' . print_r(debug_backtrace(), 1));
 }
 
 function formSignup_submit($form, &$sta) {
   $fields = 'args data company buysAt name fullName mail phone federalId dob country postalCode';
   //if (r\dbExists('users', "name='abeone'")) die('s1 ' . print_r(debug_backtrace(), 1));
-
   $values = $sta['input'];
   extract(u\just("calling acctType $fields", $values));
   if (t\est()) { // testing
@@ -2209,32 +2229,21 @@ function suCreatorRelation($args, $myid) {
 
 /**
  * Check email format and duplication and complain if appropriate.
- * @param string $mail: the email address to check
+ * @param string $mail: the email address to check (also returned with improvements)
  * @param int $uid: account record id (optional), if changing email address rather than creating new account
  * @return: TRUE if email is okay to use, else FALSE
  */
-function emailOkay($mail, $uid = '') {
-  if ($error = \user_validate_mail($mail)) return say($error, 'mail');
-  if ($duplicateAccount = r\dbLookup('fullName', 'users', 'mail=:mail and uid<>:uid', compact('mail', 'uid'))) {
-    $passwordLink = \url("password/$mail");
+function emailOkay(&$mail, $uid = '') {
+  $email = str_replace("'", '&#039;', $mail);
+  if ($error = \user_validate_mail($email)) return say('bad email', compact('email'), 'mail');
+  if ($duplicateAccount = r\dbLookup('fullName', 'users', 'mail=:email and uid<>:uid', compact('email', 'uid'))) {
+    $passwordLink = \url("password/$email");
     $emailTagged = str_replace('@', '+whatever@', $mail);
     if (!$uid) $forgot = '|forgot password';
     return say('duplicate email' . @$forgot, compact(u\ray('emailTagged duplicateAccount passwordLink')), 'mail');
   }
+  $mail = $email;
   return TRUE;
-}
-
-/**
- * Verify the syntax of the given name. (replacement for \user_validate_name() )
- * Accept any printable character.
- * @param string $name: the field to test
- * @return: the error message (FALSE if $name is okay)
- */
-function badName($name) {
-  if (strpos($name, '  ') !== FALSE) return 'multiple spaces';
-  if (!ctype_print($name)) return 'illegal char';
-  if (drupal_strlen($name) > USERNAME_MAX_LENGTH) return 'too long';
-  return FALSE;
 }
 
 /**
@@ -2347,17 +2356,18 @@ function formContact_validate($form, &$sta) {
 //  js("print_country(\"$country\", \"$state\");", 'inline', 'footer'); // initialize dropdowns
 
   if ($fullName != r\acct()->fullName) {
+    if ($err = u\badName($fullName)) return say($err, array('field' => 'fullName'), 'fullName');
     $name = u\shortName($fullName);
     $otherName = r\userField('fullName', 'name=:name AND uid<>:myid', compact('name', 'myid'));
     if ($otherName) return say('shortname taken', compact('otherName'), 'fullName');
   }
 
-  if (!emailOkay($mail = trim($mail), $mya->id)) return say('bad email', 'mail');
+  if (!emailOkay($mail, $mya->id)) return; // say('bad email', u\ray('email', $mail), 'mail');
   if ($mail != $mya->mail and $pin != $mya->agent->secure['pin']) return say('bad pin', 'pin');
   if (!phoneOk($phone, $country)) return;
   if (stripos(@$address, ' box ') or stripos(@$address, 'pob ') !== FALSE) say('po in location', 'address');
   
-  $sta['input'] = compact(u\ray($normals . ' phone name')) + $info; // fix formatting and add name
+  $sta['input'] = compact(u\ray($normals . ' mail phone name')) + $info; // fix formatting and add name
 }
 
 function phoneOk(&$phone, $country) {
@@ -2404,6 +2414,111 @@ function formVerifyPhone_validate($form, &$sta) {
 
 function formVerifyPhone_submit($form, &$sta) {
   return r\go('status', 'step completed');
+}
+
+/**
+ * Offer to revise data that affects social security number verification.
+ */
+function formSsn($form, &$sta) {
+  $title = item(t('Retry SSN Verification'));
+  $subtext = item(t('Please re-type your social security number and birth date (carefully).'));
+  $submit = submit(t('Submit'));
+  return labeled(compact(u\ray('title subtext')) + ssnFields() + compact('submit'));
+}
+
+/**
+ * Validate the data that affects social security number verification.
+ * called from signup validation, as well as from formSsn()
+ */
+function formSsn_validate($form, &$sta, $personal = 'mya') {
+  $fields = 'federalId dob';
+  extract(u\just($fields, u\trimAll($sta['input'])));
+  if ((string) $personal == 'mya') $personal = r\acct()->person();
+  if ($personal) { // personal (possibly self-employed)
+    if (!$dob = u\s2t(@$dob) or @$dob > REQUEST_TIME + 9 * 31 * DAY_SECS) return say('bad date', 'dob');
+  }
+  $what = $personal ? 'social security number' : 'federal ID';
+  if (strlen(u\digits($federalId)) != 9) return say('bad federal id', compact('what'), 'federalId');
+  u\preray(compact(u\ray($fields)), $sta['input']);
+  return TRUE;
+}
+
+function formSsn_submit($form, &$sta) {
+  return r\go('status');
+}
+
+/**
+ * Ask a set of personal questions to confirm the person's identity.
+  $questions = json_decode ('[
+  {
+    "Id": "36848018",
+    "Text": "According to your DRIVER\'S LICENSE, what COLOR is your HAIR?",
+    "Choices": {
+      "181649905": "AUBURN",
+      "181649906": "BLOND",
+      "181649907": "GREY",
+      "181649908": "BROWN",
+      "181649909": "NONE OF THE ABOVE"
+    }
+  },
+  {
+    "Id": "36848019",
+    "Text": "Which of the following colleges have you PREVIOUSLY OR CURRENTLY attended?",
+    "Choices": {
+      "181649910": "TOCCOA FALLS COLLEGE",
+      "181649911": "ARKANSAS TECH UNIVERSITY",
+      "181649912": "CITY COLLEGES OF CHICAGO",
+      "181649913": "HUSSIAN SCHOOL OF ART",
+      "181649914": "NONE OF THE ABOVE"
+    }
+  },
+  {
+    "Id": "36848020",
+    "Text": "According to your DRIVER\'S LICENSE, what COLOR are your EYES?",
+    "Choices": {
+      "181649915": "BROWN",
+      "181649916": "GREEN",
+      "181649917": "BLACK",
+      "181649918": "BLUE",
+      "181649919": "NONE OF THE ABOVE"
+    }
+  },
+  {
+    "Id": "36848021",
+    "Text": "In which of the following CITIES have you NEVER lived or used in your address?",
+    "Choices": {
+      "181649920": "MOUNT VERNON",
+      "181649921": "WOODSIDE",
+      "181649922": "FLUSHING",
+      "181649923": "EAST ELMHURST",
+      "181649924": "ALL OF THE ABOVE"
+    }
+  }
+]');
+ */
+function formKba($form, &$sta) {
+  $us = new r\usd($mya = r\acct());
+  $form['title'] = item(t('Confirm Your Identity'));
+  if ($transactionId = $us->kba($questions, $err)) {
+    foreach ($questions as $qi => $question) {
+      extract(u\just('Id Text Choices', $question));
+      foreach ($Choices as $key => $value) $Choices->$key = ucwords(strtolower($value));
+      $form["q-$qi"] = formField('radios', $Text, '', required(), (array) $Choices);
+    }
+    $form['transactionId'] = hidField($transactionId);
+    $form['submit'] = submit(t('Submit answers'));
+  } else say(t('Confirmation questions are not available. Please try again later.') . " ($err)");
+  return $form;
+}
+
+function formKba_submit($form, &$sta) {
+  $us = new r\usd($mya = r\acct());
+  foreach ($sta['input'] as $key => $value) {
+    if (substr($key, 0, 2) == 'q-' and is_numeric($qi = substr($key, 2))) $answers[] = u\ray('answerid, questionid', $value, $qi);
+  }
+  
+  if (!$us->verifyKba($sta['input']['transactionId'], $answers, $err)) say($err, 'zot');
+  return r\go('status');
 }
 
 function no_selection($list) {
@@ -2556,7 +2671,7 @@ function formSecurity($form, &$sta, $args = '') {
   
   if ($cttyAdmin) {
     foreach (u\ray('pin answer') as $field) { // and idProof
-      u\prefix($form[$field]['#description'], show($field, @$show));
+      u\prefix(show($field, @$show), $form[$field]['#description']);
     }
 //    if (!$mya->admin()) unset($form['subtext']);
   }
@@ -2985,12 +3100,12 @@ function formLogin(&$form, &$sta, $regular = TRUE) {
 
   if ($regular) {
     $title = item(t('Welcome to rCredits!'));
-    $subtext = item(t('<b>TIP</b>: Try not to sign in to your financial accounts on a public computer. Or if you do, be careful! Check the address bar at the top of the screen to make sure you have the right site (<b><em>new.rcredits.org/</em>something</b>). And be sure to sign OUT when you\'re done!'));
+    $subtext = item(t('<p>Not yet a member? <@a>Check it out</a>!</p><p><b>TIP</b>: Try not to sign in to your financial accounts on a public computer. Or if you do, be careful! Check the address bar at the top of the screen to make sure you have the right site (<b><em>new.rcredits.org/</em>something</b>). And be sure to sign OUT when you\'re done!</p>', u\ray('@a', 'a href=http://rCredits.org')));
   }
   if (($name = @$_COOKIE['loginto']) and ($uid = r\loginString($name))) {
     //$process = array('form_process_password_confirm', 'user_form_process_password_confirm'); // 'rCredits\\Web\\password_confirm0');
     $newPass = formField('password_confirm', '', '', compact('process')); // not required!!
-    if (!r\acct($uid)->secure['pin']) $pin = formField('password', t('PIN:'), t('Choose a 4-character security code (to verify your identity quickly, when appropriate).')); // first time logging in, get PIN
+    if (!@r\acct($uid)->secure['pin']) $pin = formField('password', t('PIN:'), t('Choose a 4-character security code (to verify your identity quickly, when appropriate).')); // first time logging in, get PIN
   }
   $name = textField(t('Username/ID:'), $regular ? t('Your account ID, email, or username (the letters of your legal name, all lowercase)') : '', required(@$name));
   $pass = formField('password', @$newPass ? t('Tmp password:') : t('Password:'), @$newPass ? t('Your current or one-time password.') : '', required());
@@ -3020,7 +3135,7 @@ function formLogin(&$form, &$sta, $regular = TRUE) {
  * Sets $sta['uid'] to signify successful authentication.
  */
 function login_extra_validate($form, &$sta) {
-  extract(u\just('name pass newPass strong', $sta['input']));
+  extract(u\just('name pass newPass pin strong', $sta['input']));
   if (!$name or empty($pass)) return FALSE;
 
   $ipLimit = variable_get('user_failed_login_ip_limit', 50);
@@ -3047,7 +3162,7 @@ function login_extra_validate($form, &$sta) {
     }
 
     $mya = r\acct($uid);
-    if (!$mya->secure['pin']) return say('pin required', 'pin');
+    if (!@$mya->secure['pin'] and !@$pin) return say('pin required', 'pin');
     if (@$pin and strlen($pin) != 4) return say('wrong pin len', 'pin');
     if (@$newPass['pass1'] and !$strong) return say('weak pass', 'pass');
     $sta['uid'] = (passwordOkay($mya, $pass) ? $uid : FALSE);
@@ -3065,7 +3180,7 @@ function passwordOkay($a, $password, $passFieldName = 'current_pass') {
 }
 
 function loginFollowup($edit, $account, $goto = 'summary') {
-  extract(u\just('newPass name', $edit['values'])); // values not input
+  extract(u\just('newPass pin name', $edit['values'])); // values not input
   $resetPass = svar('reset_pass'); // svar gets unset by unset($_SESSION[$key]) just below
   if (!$pass = $resetPass ?: @$newPass) unset($pass);
   
@@ -3080,8 +3195,9 @@ function loginFollowup($edit, $account, $goto = 'summary') {
   r\setCook('loginto', '', REQUEST_TIME-1); // no more default login
   $data = $mya->data ?: array();
   unset($data['oneTimePass']);
+  if (@$pin) $secure = compact('pin') + $mya->secure;
   $mya->setBank();
-  $mya->update(compact(u\ray('pass data')));
+  $mya->update(compact(u\ray('pass data secure')));
 
   u\loga('login', compact('name'), $myid);
   if (!@$mya->admin() and !@$mya->secure['auth']) $mya->createUsdAccount($err); // create Dwolla account if this is first login
@@ -3272,12 +3388,18 @@ function formCompany_submit($form, &$sta) {
 
 /**
  * Show a page when someone scans an account ID QR, for example with QRDroid.
- * Cases (ideally):
- *   Scanning in
- *   Using Account ID card as a business card -- show the company's rCredits webpage
- *   Curious or trying to use the app -- say a bit about rCredits and how to get the app and how to sign up / sign in.
- *   Charging / Paying with Webcam (signed in) -- show pic and name, and ask whether to charge or pay
- * @param string $who: some account's short qid (without the R_SERVER_ID prefix), followed by "." or "-" (for an agent), and an R_CARDCODE_LEN-long rCard security code (shorter if the short qid is longer than 3) that must match the one stored in the secure field of the account record.
+ * Cases:
+ *   Scanning in (not signed in, scanned agent)
+ *   Signing in (not signed in, scanned person) - show login page with account id filled in
+ *   Curious about someone's card (not signed in, scanned person) also give a link to the promo site
+ *   Agent charging a customer (signed in, scanned any) - show photo and Charge button
+ *   Agent paying someone (signed in, scanned any) - show Pay button
+ *   Person paying someone (signed in, scanned any) - go to Pay page
+ *   Agent looking at a business (signed in, scanned company) - show Site button (to company's rCredits page)
+ *   Person looking at a business (signed in, scanned company) - show Site button on the Pay page (NYI)
+ * @param string $who: the part of a scanned rCard's QR code after the domain and '/I/':
+ *   the account's qid tail, then "." (pro se) or "-" (agent), then an rCard security code:
+ *   must match the cardCode (for pro se) or cardCode2 (for agent) stored in the account's secure field.
  */
 function formI($form, &$sta, $who = '') {
   $parts = preg_split('/(' . R_MARKS . ')/', $who, 0, PREG_SPLIT_DELIM_CAPTURE);
@@ -3294,30 +3416,36 @@ function formI($form, &$sta, $who = '') {
   } else $field = 'cardCode';
   
   $qid = "$region$mark$tail";
-  if (!$acct = r\acct($qid)) return say('bad card', 'zot'); // not a real code -- just go to home page
-
+  if (!$a = r\acct($qid)) return say('bad card', 'zot'); // not a real code -- just go to home page
+  $co = $a->co();
+  
   $mya = r\acct();
-  if (!$gotCode = @$acct->agent->secure[$field]) return say('bad card code', 'zot');
+  if (!$gotCode = @$a->agent->secure[$field]) return say('bad card code', 'zot');
   if ($gotCode != $code) return say('bad card code', 'zot');
-  list ($otherId, $otherAgent) = array($acct->id, $acct->agentId);
+  list ($otherId, $otherAgent) = array($a->id, $a->agentId);
 
-  if (!$mya) return $acct->proSe() ? say('sign in to scan', 'zot') : scanIn($acct);
-
+  if (!$mya) return $a->proSe() ? r\go('user/login?name=' . $a->name) : scanIn($a);
+  
+  $shortName = $a->name;
+  $txArgs = "/who=$shortName&scanned=1";
+  if ($mya->proSe() and !$mya->can(B_CHARGE) and !$co) return r\go("pay$txArgs");
+  
   list ($myid, $myAgent) = array($mya->id, $mya->agentId);
   if ($otherId == @$myid) return r\go('', 'no self-trading');
-  
-  $shortName = $acct->name;
-  if ($acct->co()) $site = goButton(t('Show Webpage'), "member/$shortName", t("See this company's rCredits webpage"));
 
+  if ($co) $site = goButton(t('Show Webpage'), $goSite = "member/$shortName", t("See this company's rCredits webpage"));
+  if ($mya->can(B_SCAN)) $charge = goButton(t('Charge'), "charge$txArgs", t('Charge someone'));
+  if ($mya->can(B_BUY)) $pay = goButton(t('Pay'), "pay$txArgs", t('Pay someone'));
+//    if (r\acct($myid, $otherAgent)->can()) $changeAgent = goButton(t('Change Agent'), "user/logout/who=$shortName", t('Use this button when your shift begins'));
+//  if (r\acct($otherId, $myAgent)->can()) $changeAccount = goButton(t('Change Acct'), "change-account/who=" . $a->mainQid, t('Manage a different account'));
   $theId = hidField($otherId);
   $theAgent = hidField($otherAgent);
-  if ($mya->can(B_SELL)) $charge = goButton(t('Charge'), "charge/who=$shortName&scanned=1", t('Charge someone'));
-  if ($mya->can(B_BUY)) $pay = goButton(t('Pay'), "pay/who=$shortName&scanned=1", t('Pay someone'));
-//    if (r\acct($myid, $otherAgent)->can()) $changeAgent = goButton(t('Change Agent'), "user/logout/who=$shortName", t('Use this button when your shift begins'));
-  if (r\acct($otherId, $myAgent)->can()) $changeAccount = goButton(t('Change Acct'), "change-account/who=" . $acct->mainQid, t('Manage a different account'));
-  $zot = compact(u\ray('charge pay changeAgent changeAccount site'));
-  $all = identifiers($acct) . render($zot);
-  svar('lastCustomer', $acct);
+
+  if (!@$charge) return $co ? r\go($goSite) : r\go('empty', 'no can scan');
+
+  $zot = compact(u\ray('charge pay site'));
+  $all = identifiers($a) . render($zot);
+  svar('lastCustomer', $a->id);
   $all = formField('item', '', '', $all);
   return compact('all');
 }
@@ -3811,7 +3939,7 @@ function transfer($op, $info, $confirmed) {
   if ($goods and trim($purpose) == '') return say('missing purpose', 'purpose');
   if ($error = u\badAmount($amount, '>0')) return say($error, 'amount');
   if (!$acct = whois($who, 'who', $info)) return FALSE;
-  svar('lastCustomer', $acct);
+  svar('lastCustomer', $acct->id);
   $lastOp = array($txType, $acct->id, $amount); 
   $op = $op == 'pay' ? t('paid') : ($op == 'charge' ? 'charged' : $op . 'ed'); // for possible error message
   if ($lastOp == svar('lastOp')) return say('duplicate transaction', compact('op'), 'who');

@@ -61,9 +61,11 @@ function makeAccount($info = array(), $testOnly = FALSE) {
     u\setDft($mail, ''); // Don't use "$name@example.com"
     u\setDft($community, r\serverUid());
     u\setDft($postalCode, '01301');
+    if (@$dob) $dob = u\s2t(@$dob);
+    if (@$federalId) u\digits($federalId);
     $moneyFields = 'share committed floor r usd rewards'; // not minimum because NULL means not set, in Membership page
     foreach (u\ray($moneyFields) as $one) u\setDft($$one, 0);
-    $fixFields = ' rebate fullName name pass mail community postalCode ' . $moneyFields;
+    $fixFields = ' rebate fullName name pass mail community postalCode dob federalId ' . $moneyFields;
   } else $fixFields = '';
 
   $flags0 = @$flags;
@@ -96,17 +98,15 @@ function makeAccount($info = array(), $testOnly = FALSE) {
     }
     return TRUE;
   }
-  
   if (!$acct = new r\acct($info)) return FALSE;
 
   if ($usdAccount = str_replace('-', '', @$dwolla)) {
     $acct->update(compact('usdAccount')); // this gets crunched, so save before compare
-    if ($usdAccount != DW_TEST_ACCT) {
-      $num = r\dbLookup('usdAccount', 'users', 'uid=:uid', compact('uid')); // get crunched version
-      if ($tester = r\dbLookup('uid', 'users', 'usdAccount=:num', compact('num'))) {
-        $secure = r\acct($tester)->secure;
-        $acct->update(compact('secure'));
-      }
+//    if ($usdAccount != DW_TEST_ACCT) {
+    $num = r\dbLookup('usdAccount', 'users', 'uid=:uid', compact('uid')); // get crunched version
+    if ($tester = r\dbLookup('uid', 'users', 'usdAccount=:num', compact('num'))) {
+      $secure = r\acct($tester)->secure;
+      $acct->update(compact('secure'));
     }
   }
   
@@ -255,8 +255,16 @@ function usd($list) {
   foreach ($list as $one) {
     extract(u\just('id usd', $one));
     $a = r\acct(t\uid($id));
-    if (!is_numeric($usd)) list ($usd) = t\parseAmt($usd, $a);
-    if ($testOnly ? ($a->usd != $usd) : !$a->update(compact('usd'))) return FALSE;
+    if ($getReal = !is_numeric($usd)) list ($usd) = t\parseAmt($usd, $a);
+    if ($testOnly) {
+      if ($a->usd != $usd) return FALSE;
+    } else {
+      if ($a->usdAccount == DW_TEST_ACCT and !$getReal) { // setReal if not getReal
+        $us = new r\usd($a);
+        if (!$us->setbal($usd, $err)) return t\output($err);
+      }
+      if (!$a->update(compact('usd'))) return FALSE;
+    }
   }
   return TRUE;
 }
@@ -575,7 +583,6 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
   $lastIdentifierTag = '</div identifiers>';
   if ($i = strpos($testConfirmation, $lastIdentifierTag)) $testConfirmation = substr($testConfirmation, $i + strlen($lastIdentifierTag));
   if ($fieldErr) return TRUE; // no submit if field error
-
   foreach (t\postProcess($form, $page, 'submit') as $one) $one($form, $sta);
 
   if ($page == '/user/login') { // fudge this test until we can take over the login process from Drupal
@@ -771,7 +778,7 @@ function clear($ch) {
   global $sms_devel; $sms_devel = TRUE;
   global $testSeq; $testSeq = NULL;
   global $channel; $channel = $ch;
-  
+
   $cgfUid = \variable_get('cgf_uid');
   $tables = 'r_notices r_sms r_txs r_relations r_log r_invites r_companies r_gifts r_smarts r_proxies r_usd r_user_industries queue';
 
@@ -779,24 +786,39 @@ function clear($ch) {
   foreach (u\ray($tables) as $one) r\dbQ("TRUNCATE $one");
   r\dbQ('UPDATE users SET floor=0,minimum=NULL,r=0,usd=0,rewards=0,committed=0');
 
-  $a = r\acct('NEW.AAA');
-  $secure = $a->secure;
-  $usdAccount = DW_TESTER_ACCT;
-  $usdPin = $pin = 9999;
-  $usdType = 'Dwolla';
-  $auth = 'lBtIKmAL/b9PzZhrPX0m5SwIGMtAIHcxXiEq2gTMYwtZ+LYK7x';
-  $secure = compact(u\ray('usdType usdPin pin auth'));
-  $info = compact(u\ray('usdAccount secure'));
-  $a->update($info);
-
   $files = glob(DRUPAL_ROOT . R_PICTURE_DIR . "/*"); // get all picture file names
   foreach($files as $file){ // iterate files
     if (is_numeric($basename = basename($file)) and $basename > $cgfUid) unlink($file);
   }
 
+//  t\setupDwAccts();
+
   tlog('clearing');
   r\acct::_clear(); // empty the acct cache
   \drupal_static_reset(); // clear out drupal central storage
+}
+
+/**
+ * Initialize the permanent accounts with connection to dwolla accounts
+ * (should need to be done only when adding more test accounts)
+ * rCredits\Testing\setupDwAccts(TRUE);
+ * @param bool $make: if FALSE, just put all the money back in the first account
+ */
+function setupDwAccts($make = FALSE) {
+  foreach (u\ray(DW_TEST_ACCTS) as $i => $account) { // reset wws and cgf connection to uat Dwolla
+    list ($email, $usdAccount, $auth, $usdPin) = u\ray($account);
+    $qid = R_SERVER_ID . '.' . u\n2a($i, 3);
+    $accts[$i] = $a = r\acct($qid);
+    if ($make) {
+      $usdType = 'Dwolla';
+      $pin = $usdPin;
+      $secure = compact(u\ray('usdType usdPin pin auth')) + ($a->secure ?: array());
+      $a->update(compact(u\ray('usdAccount secure')));
+    }
+    $us = new r\usd($a);
+    if ($i) $us->setbal(0, $err);
+    if (@$err) t\output($err);
+  }
 }
 
 function fixPageArgs($page) {

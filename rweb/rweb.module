@@ -101,6 +101,9 @@ function rweb_menu() {
     'account/change-pin' => r\Web\menu('Change PIN', MENU_CALLBACK, 'showForm', array('ChangePin'), 'manage'),
     'account/photo' => r\Web\menu('Photo', MENU_CALLBACK, 'showForm', array('Photo'), 'manage'),
     'account/verify-phone' => r\Web\menu('Verify Phone', MENU_CALLBACK, 'showForm', array('VerifyPhone'), 'manage'),
+    'account/ssn' => r\Web\menu('SSN', MENU_CALLBACK, 'showForm', array('Ssn'), 'manage'),
+    'account/kba' => r\Web\menu('Kba', MENU_CALLBACK, 'showForm', array('Kba'), 'manage'),
+    
     'another' => r\Web\menu(t('Open Another Account'), MENU_CALLBACK, 'showForm', array('Another'), 'manage'),
 
     'sadmin' => r\Web\menu(t('Admin'), MENU_NORMAL_ITEM, 'showForm', array('Admin'), 'admin'),

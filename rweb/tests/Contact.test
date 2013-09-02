@@ -65,11 +65,11 @@ class rwebContact extends DrupalWebTestCase {
   public function testAMemberUpdatesContactInfo_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" confirms form "account/contact" with values: "DATA'
-    . '\\| fullName | phone        | country | postalCode | state | city    | address   | postalAddr |'
-    . '\\| Abe One  | 413-253-0001 | US      | 01002      | MA    | Amherst | 2 Elm St. | PO Box 1   |"');
+    . '\\| fullName | phone        | country | postalCode | state | city    | address   | postalAddr | email |'
+    . '\\| Abe One  | 413-253-0001 | US      | 01002      | MA    | Amherst | 2 Elm St. | PO Box 1   | a@    |"');
     Then_('members: "DATA'
-    . '\\| id   | fullName   | address   | city    | state | postalCode | country | postalAddr | phone       |'
-    . '\\| .ZZA | Abe One    | 2 Elm St. | Amherst | MA    | 01002      | US      | PO Box 1   | 14132530001 |"');
+    . '\\| id   | fullName   | address   | city    | state | postalCode | country | postalAddr | phone       | email |'
+    . '\\| .ZZA | Abe One    | 2 Elm St. | Amherst | MA    | 01002      | US      | PO Box 1   | 14132530001 | a@    |"');
     And__('we say "status": "info saved"');
   }
 
@@ -77,9 +77,18 @@ class rwebContact extends DrupalWebTestCase {
   public function testAMemberGivesABadPhone_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" confirms form "account/contact" with values: "DATA'
-    . '\\| fullName | phone   | country | postalCode | state | city    | address   | postalAddr |'
-    . '\\| Abe One  | %random | US      | 01002      | MA    | Amherst | 2 Elm St. | PO Box 1   |"');
+    . '\\| fullName | phone   | country | postalCode | state | city    | address   | postalAddr | email |'
+    . '\\| Abe One  | %random | US      | 01002      | MA    | Amherst | 2 Elm St. | PO Box 1   | a@    |"');
     Then_('we say "error": "bad phone"');
+  }
+
+  // Scenario: A member gives a bad email
+  public function testAMemberGivesABadEmail_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member ".ZZA" confirms form "account/contact" with values: "DATA'
+    . '\\| fullName | phone        | country | postalCode | state | city    | address   | postalAddr | email   |'
+    . '\\| Abe One  | 413-253-0002 | US      | 01002      | MA    | Amherst | 2 Elm St. | PO Box 1   | %random |"');
+    Then_('we say "error": "bad email"');
   }
 
 }

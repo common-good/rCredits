@@ -15,8 +15,12 @@ use rCredits\Testing as t;
 use rCredits\Util as u;
 use rCredits\Backend as be;
 
+define('HOUR_SECS', 3600);
+define('DAY_SECS', 24 * 3600);
+require_once __DIR__ . '/rcredits-settings.inc'; // must precede other definitions
+
 define('MINI_LAUNCH', TRUE);
-define('CGF_EMAIL', isDEV ? 'wspademan@gmail.com' : 'info@CommonGoodFinance.org'); // Common Good Finance email and other data
+define('CGF_EMAIL', isDEV ? 'wspademan+cgf@gmail.com' : 'info@CommonGoodFinance.org'); // Common Good Finance email and other data
 define('CGF_PHONE', '+14136281723');
 define('CGF_ADDRESS', 'PO Box 21');
 define('CGF_CITY', 'Ashfield');
@@ -37,9 +41,6 @@ define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities ca
 define('R_CRON_PERIOD', 5*60); // how many seconds between cron runs (must divide an hour evenly)
 define('R_MAX_TASK_TIME', 1*60); // what's the longest a queued cron task might take
 define('DRUPAL_UID_TABLES', 'authmap file_managed history node node_revision sessions users_roles watchdog');
-
-define('HOUR_SECS', 3600);
-define('DAY_SECS', 24 * 3600);
 
 define('R_TEMP_NAME_PREFIX', 'unknown ');
 define('R_MIN_PHOTO_WIDTH', 240); // how wide to make profile pictures (unless too long)
@@ -79,9 +80,10 @@ define('R_REQUIRED', ' <span class="form-required" title="This field is required
 
 define('DW_SITE', isPRODUCTION ? 'https://www.dwolla.com' : 'https://uat.dwolla.com');
 //                               : 'http://new.rcredits.org/stage.php?stageWord=' . R_STAGE_WORD . '&request=');
-define('DW_TEST_ACCT', '8127139234'); // "reflector" account totally reimburses anything under $10
+//define('DW_TEST_ACCT', '8127139234'); // "reflector" account on www (totally reimburses anything under $10)
+define('DW_TEST_ACCT', '8127419900'); // "reflector" account on www (totally reimburses anything under $10)
 define('DW_TESTER_ACCT', '8127413762'); // william's account on Dwolla sandbox
-define('DW_TEST_ACCTS', '8127419900/Y6dveGxn4tFpaLCpYPy5p0Dr+fKS5yt1sQcdnMuZwd2fEFeha3/ XX YY'); // acct#/auth/pin for each of 3 test accounts
+define('DW_TEST_ACCTS', R_TESTER_EMAIL . ',' . DW_TESTER_ACCT . ',lBtIKmAL/b9PzZhrPX0m5SwIGMtAIHcxXiEq2gTMYwtZ+LYK7x,9999,Password1|gordon+william+1@dwolla.com,8127419900,Y6dveGxn4tFpaLCpYPy5p0Dr+fKS5yt1sQcdnMuZwd2fEFeha3,9999,Password1'); // usdEmail,usdAccount,auth,usdPin,usdPass for each test account on dwolla sandbox site
 define('DW_FEE_THRESHOLD', 10); // over this amount, Dwolla charges a fee
 define('DW_FEE', .25); // the fee
 define('DW_VERIFY_ROOF', 15); // bank verification deposits are less than this

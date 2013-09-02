@@ -687,6 +687,19 @@ function randomString($len = 16, $choices = '') {
 }
 
 /**
+ * Verify the syntax of the given name. (replacement for \user_validate_name() )
+ * Accept any printable character.
+ * @param string $name: the field to test
+ * @return: the error message (FALSE if $name is okay)
+ */
+function badName($name) {
+  if (strpos($name, '  ') !== FALSE) return 'multiple spaces';
+  if (!ctype_print($name)) return 'illegal char';
+  if (\drupal_strlen(u\shortName($name)) > USERNAME_MAX_LENGTH) return 'too long';
+  return FALSE;
+}
+
+/**
  * Parse the name, returning the first and last names separately.
  * @param string $name: the name to parse
  * @return array: [$first, $last]
@@ -836,9 +849,10 @@ function s2t($s) {return strtotime(str_replace('-', '/', $s));}
 function formatDate($time = REQUEST_TIME) {return strftime('%d-%b-%Y', $time);}
 function formatTime($time = REQUEST_TIME) {return strtolower(strftime('%I:%M%p', $time));}
 function lastCall($far = 4) {$back = debug_backtrace(); return array_slice($back, 1, $far);}
-function digits(&$n) {return $n = preg_replace('/\D/', '', $n);}
+function digits(&$n) {return $n = preg_replace('/\D/', '', @$n);}
 function monthDay1($time = REQUEST_TIME) {return strtotime(strftime('%b01', $time));}
-function prefix(&$var, $prefix) {$var = $prefix . $var;}
+function prefix($prefix, &$var) {$var = $prefix . $var;}
+function preray($prefix, &$var) {$var = $prefix + $var;}
 function setDft(&$param, $value) {if (!isset($param)) $param = $value;}
 function bit($bit) {return 1 << $bit;}
 function log($message, $type = 'state', $info = array()) {return u\loga($type, compact('message') + $info);}

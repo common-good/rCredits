@@ -1,4 +1,14 @@
-2013-08-28
+2013-09-02
+. simplification of options when scanning a card; for example, never any "change acct" button on formI
+. created form account/ssn
+. created form account/kba
+. "Not yet a member? <a>Check it out</a>!" on login
+. members can scan their own card to sign in (just add pword)
+. revised tests and usd class to use Dwolla sandbox effectively for testing
+. added verification of AuthorizedRepresentative (for that Dwolla registration step of that name)
+. passes all tests except Membership (tests need revision)
+
+2013-08-30
 . moved email (and email change) to contact form
 . require pin instead of password, to change email
 . moved password, pin, and photo change to their own pages, with links from security page
@@ -15,6 +25,8 @@
 . fixed hiding of stuff on reg page as appropriate
 . changed QR code format to allow longer cardcodes (expanded feature tests accordingly, to make sure old cards continue working)
 - in formAccount did away with Drupal basis
+- moved variable stuff from settings.php to boot.php
+- improved forward.php to parse drupal messages and send html-formatted emails
 
 2013-08-25
 . fixed creditInfo() so it handles fee amounts properly (and displays right on Transactions page)
