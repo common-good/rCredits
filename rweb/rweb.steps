@@ -294,7 +294,7 @@ function weShowWithSubs($page, $subs) {
     foreach (u\just(R_DATE_FIELDS, $subs) as $k => $v) if (is_numeric($v)) $subs[$k] = u\formatDate($v);
     $wanted = u\tt($page, $subs);
     t\output("<b>WANTED: </b>$wanted", 'screen');
-/*/*/ debug(compact('wanted','testConfirmation')); // redundant but very easy
+/**/ debug(compact('wanted','testConfirmation')); // redundant but very easy
     return ($wanted == $testConfirmation);
   }
   $form = strtr(t\strip(r\Web\showForm($page, @$subs['arg1'], @$subs['arg2'])), $subs);
@@ -419,25 +419,27 @@ function relations($relations) {return t\relations($relations);}
 /**
  * balances: (ARG)
  *
- * in: Download Setup TEST
+ * in: Download Setup BOTH
  *     Flow Setup MAKE
  *     Get AMemberMovesCreditToTheBank MAKE
  *     Get AMemberDrawsCreditFromTheBank MAKE
  *     Gift Setup MAKE
+ *     RealUsd Setup MAKE
  *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
  *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance TEST
  *     RealUsd AMemberBuysSomethingWhenDwollaIsDown TEST
  *     Relations Setup TEST
- *     ScanCard Setup TEST
+ *     ScanCard Setup BOTH
  *     Signup AMemberRegistersACompany TEST
  *     Summary Setup TEST
- *     Transactions Setup TEST
+ *     Transactions Setup BOTH
  *     Transactions AMemberClicksNO MAKE
  *     Transactions AMemberConfirmsNO MAKE
  *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
- *     TransactR Setup TEST
+ *     TransactR Setup BOTH
  *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
  *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
+ *     TransactUsd Setup MAKE
  *     TransactUsd AMemberAsksToChargeAnotherMember TEST
  *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
  *     TransactUsd AMemberConfirmsRequestToPayAnotherMember TEST
@@ -447,12 +449,7 @@ function balances($list) {return t\balances($list);}
 /**
  * usd: (ARG)
  *
- * in: Download Setup MAKE
- *     RealUsd Setup MAKE
- *     ScanCard Setup MAKE
- *     Transactions Setup MAKE
- *     TransactR Setup MAKE
- *     TransactUsd Setup MAKE
+ * in: 
  */
 function usd($list) {return t\usd($list);}
 

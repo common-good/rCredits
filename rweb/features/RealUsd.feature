@@ -14,15 +14,15 @@ SO I don't lose money or get confused.
 
 Setup:
   Given members:
-  | id   | fullName   | dwolla          | country | email         | flags                |
-  | .ZZA | Abe One    | %DW_TEST_ACCT   | US      | a@ | dft,ok,person,bona |
-  | .ZZB | Bea Two    | %DW_TESTER_ACCT | US      | b@ | dft,ok,person,bona |
+  | id   | fullName   | dw | country | email | flags              |
+  | .ZZA | Abe One    |  1 | US      | a@    | dft,ok,person,bona |
+  | .ZZB | Bea Two    |  0 | US      | b@    | dft,ok,person,bona |
   And transactions: 
   | xid | created   | type   | amount | from | to   | purpose | taking |
   |   1 | %today-6m | signup |     10 | ctty | .ZZA | signup  | 0      |
-  And usd:
-  | id   | usd |
-  | .ZZA | 5   |
+  And balances:
+  | id   | dw/usd |
+  | .ZZA |      5 |
   
 Scenario: A mixed rCredits/USD transaction happens
   When member ".ZZA" confirms form "pay" with values:
@@ -37,8 +37,8 @@ Scenario: A mixed rCredits/USD transaction happens
   | payer | payee | amount |
   | .ZZA  |  .ZZB |   0.20 |
   And balances:
-  | id   | r    | usd  | rewards |
-  | .ZZA | 0.50 | 4.80 |   10.50 |
+  | id   | r    | dw/usd | rewards |
+  | .ZZA | 0.50 |   4.80 |   10.50 |
   When member ".ZZA" visits page "transactions/period=365"
   Then we show "Transaction History" with:
   | Start Date | End Date | Start Balance | From You | To You | Rewards | End Balance |
@@ -56,8 +56,8 @@ Scenario: A member confirms payment with insufficient USD balance
   | short |
   | $0.01 |
   And balances:
-  | id   | r  | usd | rewards |
-  | .ZZA | 10 |   5 |      10 |
+  | id   | r  | dw/usd | rewards |
+  | .ZZA | 10 |      5 |      10 |
   
 Scenario: A member buys something when Dwolla is down
   Given Dwolla is down
@@ -70,7 +70,7 @@ Scenario: A member buys something when Dwolla is down
   |   3 | rebate   | done  |    .50 |  .50 | ctty | .ZZA | rebate on #2 | 0      |        |
   |   4 | bonus    | done  |   1.00 | 1.00 | ctty | .ZZB | bonus on #1  | 0      |        |
   And balances:
-  | id   | r    | usd  | rewards |
-  | .ZZA | 0.50 | 4.80 |   10.50 |
+  | id   | r    | dw/usd | rewards |
+  | .ZZA | 0.50 |   4.80 |   10.50 |
   And usd transfer count is 0
   

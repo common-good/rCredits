@@ -15,7 +15,7 @@ Setup:
   | .ZZB | .ZZB | .ZZA  | read       |
   | .ZZC | .ZZC | .ZZB  | buy        |
   | .ZZD | .ZZC | .ZZA  | sell       |
-  And usd:
+  And balances:
   | id   | usd   |
   | ctty | 10000 |
   | .ZZA |  1000 |

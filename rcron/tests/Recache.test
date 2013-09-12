@@ -44,20 +44,20 @@ class rcronRecache extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id   | fullName   | dwolla          | email         | flags                |'
-    . '\\| .ZZA | Abe One    | %DW_TESTER_ACCT | a@ | dft,ok,person,bona |'
-    . '\\| .ZZB | Bea Two    | %DW_TEST_ACCT   | b@ | dft,ok,person         |'
-    . '\\| .ZZC | Corner Pub |                 | c@ | dft,ok,company       |"');
+    . '\\| id   | fullName   | dw | email | flags              |'
+    . '\\| .ZZA | Abe One    |  1 | a@    | dft,ok,person,bona |'
+    . '\\| .ZZB | Bea Two    |  0 | b@    | dft,ok,person,bona |'
+    . '\\| .ZZC | Corner Pub |    | c@    | dft,ok,company     |"');
+    And__('balances: "DATA'
+    . '\\| id   | dw/usd |'
+    . '\\| .ZZA |      5 |"');
     And__('transactions: "DATA'
-    . '\\| xid   | created   | type       | amount | from      | to   | purpose | taking |'
-    . '\\| .AAAB | %today-6m | %TX_SIGNUP |     10 | community | .ZZA | signup  | 0      |"');
-    And__('usd: "DATA'
-    . '\\| id   | usd   |'
-    . '\\| .ZZA | +AMT1 |"');
+    . '\\| xid   | created   | type       | amount | from | to   | purpose | taking |'
+    . '\\| .AAAB | %today-6m | %TX_SIGNUP |     10 | ctty | .ZZA | signup  | 0      |"');
     Then_('balances: "DATA'
-    . '\\| id   | r  | usd  | rewards |'
-    . '\\| .ZZA | 10 | AMT1 |      10 |'
-    . '\\| .ZZB |  0 |    0 |       0 |"');
+    . '\\| id   | r  | usd | rewards |'
+    . '\\| .ZZA | 10 |   5 |      10 |'
+    . '\\| .ZZB |  0 |   0 |       0 |"');
     break;
 
 
@@ -68,29 +68,31 @@ class rcronRecache extends DrupalWebTestCase {
   public function testBalancesGetOutOfWhack_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('balances: "DATA'
-    . '\\| id     | r  | usd     | rewards | minimum | floor |'
-    . '\\| .ZZA   |  0 | AMT1+99 |       0 |       0 |     2 |'
-    . '\\| .ZZB   | 20 |       0 |       0 |     -10 |   -50 |"');
+    . '\\| id     | r  | usd  | rewards | minimum | floor |'
+    . '\\| .ZZA   |  0 | 8.52 |       0 |       0 |     2 |'
+    . '\\| .ZZB   | 20 |    0 |       0 |     -10 |   -50 |"');
     When_('cron runs "recache"');
     Then_('we tell staff "cache mismatch" with subs: "DATA'
-    . '\\| id   | key     | is      | shouldBe |'
-    . '\\| .ZZA | r       |       0 |       10 |'
-    . '\\| .ZZA | rewards |       0 |       10 |'
-    . '\\| .ZZA | minimum |       0 |        2 |'
-    . '\\| .ZZB | r       |      20 |        0 |'
-    . '\\| .ZZB | minimum |     -10 |        0 |"');
+    . '\\| id   | key     | is   | shouldBe |'
+    . '\\| .ZZA | r       |    0 |       10 |'
+    . '\\| .ZZA | usd     | 8.52 |        5 |'
+    . '\\| .ZZA | rewards |    0 |       10 |'
+    . '\\| .ZZA | minimum |    0 |        2 |'
+    . '\\| .ZZB | r       |   20 |        0 |'
+    . '\\| .ZZB | minimum |  -10 |        0 |"');
     And__('balances: "DATA'
-    . '\\| id     | r  | usd  | rewards | minimum |'
-    . '\\| .ZZA   | 10 | AMT1 |      10 |       2 |'
-    . '\\| .ZZB   |  0 |    0 |       0 |       0 |"');
+    . '\\| id     | r  | usd | rewards | minimum |'
+    . '\\| .ZZA   | 10 |   5 |      10 |       2 |'
+    . '\\| .ZZB   |  0 |   ? |       0 |       0 |"');
   }
 
   // Scenario: Balances get a tiny bit out of whack
   public function testBalancesGetATinyBitOutOfWhack_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('balances: "DATA'
-    . '\\| id     | r       |'
-    . '\\| .ZZA   | 10.0001 |"');
+    . '\\| id     | r       | usd |'
+    . '\\| .ZZA   | 10.0001 |   5 |'
+    . '\\| .ZZB   |       0 |   ? |"');
     When_('cron runs "recache"');
     Then_('we do not tell staff "cache mismatch"');
   }

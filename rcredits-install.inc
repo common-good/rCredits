@@ -50,8 +50,8 @@ function tableDefs($schema = array()) {
 //    'chunk' => setupField('granularity of transfers from bank account', 'numeric 11,2', R_BANK_CHUNK),
 //    'maximum' => setupField('maximum rCredits balance (send excess to bank), 0=none)', 'numeric 11,2', -1), // -1 means no limit
     'share' => setupField('percentage of rebates/bonuses to contribute to CGF', 'numeric 6,3', NULL),
-    'usd' => setupField('balance in related USD account (probable)', 'numeric 11,2', 0),
     'r' => setupField('rCredits balance, including rewards (cached)', 'numeric 11,2', 0),
+    'usd' => setupField('balance in related USD account (probable)', 'numeric 11,2', 0),
     'rewards' => setupField('total incentive rewards to date (cached)', 'numeric 11,2', 0),
     'committed' => setupField('amount committed (for donations to CGF)', 'numeric 11,2', 0),
 //    'frozen' => setupField('amount of rCredits currently unavailable until specific dates or indefinitely', 'text medium'),
@@ -85,6 +85,40 @@ function tableDefs($schema = array()) {
   $indexes = NULL;
   $schema['r_companies'] = setupTable('Information about non-personal accounts', $fields, 'uid', $foreignKeys, $indexes);
 
+  // table r_stats
+  $fields = array(
+    'id' => setupField('statistics record id', 'serial big'),
+    'ctty' => setupField('community or region record id', 'int big'),
+    'r' => setupField('amount of rCredits issued to date', 'numeric 11,2', 0),
+    'usd' => setupField('amount of US Dollars in the system', 'numeric 11,2', 0),
+    'signup' => setupField('amount of signup bonuses ever', 'numeric 11,2', 0),
+    'inflation' => setupField('amount of inflation adjustments ever', 'numeric 11,2', 0),
+    'rebate' => setupField('amount of rebate rewards ever', 'numeric 11,2', 0),
+    'bonus' => setupField('amount of transaction bonus rewards ever', 'numeric 11,2', 0),
+    'grant' => setupField('amount of grants ever', 'numeric 11,2', 0),
+    'loan' => setupField('amount of loans ever', 'numeric 11,2', 0),
+    'fine' => setupField('amount of fines ever', 'numeric 11,2', 0),
+    'shared' => setupField('amount of rewards shared ever', 'numeric 11,2', 0),
+    'pAccts' => setupField('number of personal accounts', 'int medium'),
+    'bAccts' => setupField('number of company accounts', 'int medium'),
+    'bankInPerMo' => setupField('amount transferred into the system in the past month', 'numeric 11,2', 0),
+    'bankOutPerMo' => setupField('amount transferred out of the system in the past month', 'numeric 11,2', 0),
+    'xchPerMo' => setupField('exchange volume in the past month', 'numeric 11,2', 0),
+    'perMo' => setupField('purchase volume in the past month', 'numeric 11,2', 0), // omits r/USD exchanges
+    'p2bPerMo' => setupField('customer purchase volume in the past month', 'numeric 11,2', 0),
+    'b2bPerMo' => setupField('b2b purchase volume in the past month', 'numeric 11,2', 0),
+    'b2pPerMo' => setupField('payroll volume in the past month', 'numeric 11,2', 0),
+    'xchTxsPerMo' => setupField('exchange volume in the past month', 'int medium', 0),
+    'txsPerMo' => setupField('number of purchases in the past month', 'int medium', 0), // omits r/USD exchanges
+    'p2bTxsPerMo' => setupField('customer purchases in the past month', 'int medium', 0),
+    'b2bTxsPerMo' => setupField('b2b purchases in the past month', 'int medium', 0),
+    'b2pTxsPerMo' => setupField('payments to employees and sole proprietors in the past month', 'int medium', 0),
+    'created' => setupField('Unixtime record was created', 'int 11', 0),
+  );
+  $foreignKeys = foreignKey('ctty');
+  $indexes = index('ctty');
+  $schema['r_stats'] = setupTable('Operating statistics for commununities and overall', $fields, 'id', $foreignKeys, $indexes);
+  
   // table r_boxnames
   $fields = array(
     'id' => setupField('box name record id', 'serial big'),

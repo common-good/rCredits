@@ -32,6 +32,7 @@ DAILY (every 5 mins for 5 mins, starting at 2am)
 - * notices(): send notices (daily, weekly, or monthly digest)
 
 WEEKLY
+- soldOut() and missedOut() tell members what they did that was dumb (sold rC or missed a chance to buy them)
 - after first month, lower floor according to sales (only if B_DEBT_OK)
 
 MONTHLY
@@ -46,7 +47,7 @@ YEARLY
 NOTES:
 - Timer Cron is disabled on the staging site. Here's what the cron job would be:
   <star>/5 * * * * /usr/bin/lynx -source http://ws.rcredits.org/cron.php?cron_key=w8x3lfzNQK1bxMz6RMTuF54mMInAs4b8SiVJO9zvWYg
-  where <star> means * (not the same as for the production site)
+  where <star> means * (not the same as for the production site) 
  */
 namespace rCredits\Cron;
 use rCredits as r;
@@ -126,12 +127,14 @@ function often($period, $code, $value, $periodLen) {
     $lastCron[$period] = REQUEST_TIME;
     \variable_set('r_last_cron', $lastCron); // remember that this periodic activity has been done
     $function = 'rCredits\\Cron\\every' . ucwords($period);
-    if ($period != 'hour') r\tellStaff("Running cron for $period at " . strftime('%I:%M%P', REQUEST_TIME));
+    if ($period != 'hour' and $period != 'day') r\tellStaff("Running cron for $period at " . strftime('%I:%M%P', REQUEST_TIME));
     $function(); // do it
   }
 }
 
 function everyWeek() {
+  queueEach('soldOut', 'SELECT payer, SUM(r) AS total FROM r_txs WHERE payer>0 AND amount=0 AND type=:TX_TRANSFER AND NOT goods AND state=:TX_DONE AND completed>:REQUEST_TIME-:WEEK_SECS GROUP BY payer');
+// queueEach('missedOut', ??
 }
 
 /**
@@ -179,6 +182,22 @@ function coverFee($item) {
 }
 
 //****************************************************
+
+/**
+ * Tell a member about missed opportunities to keep their rCredits and spend them for rebates.
+ * Suggest a specific easy remedy.
+ */
+function soldOut($item) {
+  extract(u\just('payer total', $item));
+  $a = r\acct($payer);
+  if (!$rebatePct = $a->rebate) return; // no potential rebates (later suggest reaching out)
+  if (r\dbExists('r_usd', 'payer=:payer AND payee=0 AND amount>0 AND created>:REQUEST_TIME-:WEEK_SECS', compact('payer'))) return; // member moved money to bank account this week
+  $suggested = u\fmtAmt($suggested0 = max(R_BANK_MIN, R_SUGGEST_BUMP * $a->minimum));
+  $rebates = u\fmtAmt($rebatePct * $total / 100);
+  $total = u\fmtAmt($total);
+  $a1 = 'a href="' . r\makeDo('min', $payer, $suggested0) . '"';
+  r\notify($payer, 'you sold out', compact(u\ray('total rebates suggested a1')));
+}
 
 /**
  * Calculate and credit inflation adjustment to each account.
@@ -259,14 +278,12 @@ function lostUsdTx($tx) {
   if (!u\abbreviates(t\est() . USD_NOTE_PREFIX, $Notes)) return; // not one of ours
   if (r\dbExists('r_usd', 'txid=:Id', compact('Id'))) return;
   $created = strtotime($Date) + DW_LAG;
-  if (REQUEST_TIME - $created < 60) return; // too recent, maybe still in process? (handle tomorrow)
+  if (!t\est() and time() - $created < 60) return; // too recent, maybe still in process? (handle tomorrow)
   list ($txid, $amount) = array($Id, $Amount);
-  $omit = t\est() ? (variable_get('cgf_uid') - 1) : NULL; // ignore tester's account
-  $payer = r\whoseUsd($SourceId, $omit);
-  $payee = r\whoseUsd($DestinationId, $omit);
+  $payer = r\whoseUsd($SourceId);
+  $payee = r\whoseUsd($DestinationId);
   if (t\est() and (!$payer or !$payee)) return;
   u\EXPECT($payer and $payee, "missing person in lost tx: payer=$payer payee=$payee");
-///  debug(compact(u\ray('tx txid amount omit payer payee created'))); return;
   r\tellStaff("lost USD tx: #$txid $amount ($payer to $payee)", $tx, FALSE);
   r\usd::rollback(array(compact(u\ray('txid amount payer payee created'))));
 }
@@ -428,7 +445,6 @@ function paymentExchange($item) {
   $usAcct1 = new r\usd($acct1 = r\acct($main)); // from
   $usAcct2 = new r\usd($acct2 = r\acct($other)); // to
   
-  //$max2 = $acct2->hasBit(B_PAYEX) ? 0 : $acct2->maximum;
   $newR = $acct2->r + $offer; // what $acct2 r balance will be after the offer is received
   $excess = round(max(0, $offer - $acct2->usd), 2); // USD shortfall = r to exchange for USD in a 3-way trade
   r\usd::beginAtom();
@@ -561,9 +577,10 @@ function notice($item) {
  * Last task queued once the everyDay() function has gotten things started.
  */
 function END() {
-  $elapsed = time() - REQUEST_TIME;
+  $lastCron = \variable_get('r_last_cron', array());
+  $elapsed = time() - @$lastCron['day'];
 //  echo "Daily cron done after $elapsed seconds"; // keep
-  r\tellStaff("Daily cron ended successfully after $elapsed seconds", '', FALSE);
+  r\tellStaff("Daily cron ended successfully at " . strftime('%I:%M%P') . ", after $elapsed seconds", '', FALSE);
 }
 
 /**
@@ -590,6 +607,7 @@ function paymentExchangeError1($acct1, $way, $acct2) {
 }
 
 function queueEach($op, $sql, $subs = array()) {
+//print_r(compact('op','sql','subs')); die('in queueEach');
   $result = r\dbQ($sql, $subs);
   while ($row = $result->fetchAssoc()) r\queue($op, $row);
 }

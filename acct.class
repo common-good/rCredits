@@ -61,7 +61,7 @@ class acct {
     $name =  @$my_name ?: (@$short_name ?: tempName($info));
     $fullName = @$my_fullName ?: $info['name'];
     $flags = @$my_flags ?: B_DFT;
-    $rebate = @$rebate ?: R_REBATE;
+    $rebate = @$my_rebate ?: R_REBATE;
     if (($state = @$my_state) and !is_numeric($state)) { // allow state abbrevs within US
       $state = dbLookup('id', 'r_states', 'abbreviation=:state and country_id=:US_COUNTRY_ID', compact('state'));
     }
@@ -251,7 +251,7 @@ class acct {
     u\setDft($info['flags'], $this->flags); // accommodate setBit caching flags to be set/unset
     $info['uid'] = $this->id; // make sure dbUpdate gets this
     foreach (u\ray(R_SECRET_FIELDS . ' ' . R_COMPANY_FIELDS) as $field) unset($info[$field]); // don't pass these to dbUpdate
-    return dbUpdate('users', $info, 'uid');
+    return r\dbUpdate('users', $info, 'uid');
   }
 
   public function usd($info = FALSE, &$err = '') {return new r\usd($this, $info, $err);}
@@ -476,6 +476,20 @@ EOF;
   }
 
   /**
+   * Say whether the account is nearly a member.
+   * That is, have they satisfied all the basic membership requirements except possibly choosing proxies.
+   * @param assoc $steps: (returned) the component steps: $signed and $donated
+   * @return TRUE if the account is nearly a member
+   */
+  public function nearlyMember(&$steps = '') {
+    $signed = (bool) $this->signed;
+  //  $donated = ($this->share > 0 or r\share($this)); // r\share() also updates the database
+    $donated = r\dbExists('r_gifts', 'uid=:myid', array('myid' => $this->id));
+    $steps = compact(u\ray('signed donated'));
+    return ($signed and $donated);
+  }
+  
+  /**
    * Create Dwolla account.
    * @param string $err (returned): the error message, if any
    * @return TRUE if success
@@ -483,8 +497,10 @@ EOF;
   function createUsdAccount(&$err) {
     $usdPass = user_password(20) . '*B2'; // satisfy Dwolla (and our own security)
     $usdEmail = \user_password(isDEV ? 4 : 4) . '.' . $this->mainQid . '@rcredits-org.com';
+    $usdEmail = $this->mail; // temporary for Dwolla compliance testing
     $usdPin = u\randomString(4, 'digits');
-//    if (isDEV) list ($usdEmail, $usdPass, $usdPin) = array('gordon+william+2@dwolla.com', 'Password1', 9999);
+    if (isDEV) list ($usdPass, $usdPin) = array('Password1', 9999);
+    if (isDEV and (!$usdEmail or !strpos('@dwolla.com', $usdEmail))) $usdEmail = 'gordon+william+5@dwolla.com';
     $secure = compact(u\ray('usdPass usdEmail usdPin')) + $this->secure;
     $this->update(compact('secure'));
     $us = new r\usd($this);
@@ -492,7 +508,6 @@ EOF;
       list ($first, $last) = u\parseName($this->fullName);
       return $us->register('Personal', u\ray('first last dob', @$first, @$last, $this->dob), TRUE, $err);
     } else {
-// (move this to final step)     $fullName = r\acct($this->data['by'])->fullName;
       $type = $this->isNonprofit() ? 'NonProfit' : 'Commercial';
       return $us->register($type, u\ray('org ein', $this->fullName, $this->federalId), TRUE, $err);
     }
@@ -554,9 +569,8 @@ EOF;
               B_MANAGE : (B_RELATED + relation('permission', $id, $this->agentId));
       for ($i = B_RELATED; $i <= B_MANAGE; $i++) $perms[$i] = ($i <= $can); // set all permissions, even the false ones
       if (!$perms[B_OK]) $perms[B_SELL] = FALSE; // no ASIFs! (read here kills acct dropdown)
+      if ($perms[B_OK]) $perms[B_MEMBER] = TRUE; // make sure nobody gets downgraded
       if (!$perms[B_MEMBER]) $perms[B_BUY] = FALSE; // no spending even the SIGNUP GIFT for non-members
-      if ($perms[B_OK]) $perms[B_READY] = TRUE; // make sure nobody gets downgraded
-      if ($perms[B_READY]) $perms[B_MEMBER] = TRUE;
       if (r\Web\svar('scanned_in') and $this == r\acct()) $perms[B_BUY] = $perms[B_MANAGE] = $perms[B_ADMIN] = $perms[B_CTTY_ADMIN] = FALSE; // scanning in, you can read and scan, at most
       
       if ($perms[B_ADMIN]) {
@@ -567,6 +581,7 @@ EOF;
 //        $perms[B_PERSON] = TRUE; // manage show PERSONAL settings (for debugging)
         if ($this->proSe()) $perms[B_COMPANY] = TRUE; // show company settings on own account (for debugging)
       };
+      $perms[B_DEV] = (isDEV or $perms[B_ADMIN]);
       
       $perms[B_MANAGING_CTTY] = ($perms[B_CTTY_ADMIN] and $id == $this->community);
       if ($perms[B_MANAGING_CTTY] and !$perms[B_ADMIN]) $perms[B_BUY] = $perms[B_SELL] = FALSE; // ctty admin can manage but not buy/sell

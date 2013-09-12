@@ -150,7 +150,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'must trust' => t('Do not invite someone unless you trust their integrity.'),
   'payment exchange error' => t('An unknown technical problem prevented your payment exchange @way @other.'),
   'no buyers' => t('Uh oh. Nobody wants to buy rCredits. Needed: $@amount.'),
-  'usd account taken' => t('That Dwolla account is already used by another account.'),
+  'usd account taken' => t('That Dwolla account number is already used by rCredits account #@other.'),
   'bad phone code' => t('That is not the correct verification code.'),
 
   'cannot offload' => t('A temporary technical problem prevented some of your excess rCredits from being exchanged for US Dollars. The system will try again tomorrow.'),
@@ -182,6 +182,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'payment exchanges offered' => t('You made payment exchanges to @offers @whom, totaling @total.'),
   'card ordered' => t('Your rCard has been ordered and will be mailed directly to @name.'),
   'balances' => t('Your rCredits balance available to spend is @toSpend. You can move up to @toCash to your bank account.'),
+  'you sold out' => t('This week you traded @total worth of rCredits for US Dollars, missing an opportunity for @rebates worth of rebates. To keep this from happening so much, <@a1>click here</a> to change your settings to the recommended minimum balance of @suggested.'),
   
   // notices to staff
   'cache mismatch' => 'Cron cache mismatch: @key=@is (cache) <> @shouldBe (calc)',

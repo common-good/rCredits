@@ -1,3 +1,18 @@
+2013-09-05
+. changed physical field to postalAddr (and fixed data on production server)
+. completed automation of dwolla account setup for companies
+. fixed problems with show/hide javascripts
+. created an "Agent Account" form
+. fixed problems with Open Another Account
+. PIN field now appears on Contact form ONLY if email changes
+. on mobile, made messages absolute position. Any platform, click the message to dismiss it
+. tell members they missed out on keeping their r (weekly) and give a clickable link to change their minimum to the suggested amount, without requiring signin
+. fixed bug which made SCAN-only cashiers unable to sell (patched on production server)
+. added an Undo tab (hidden except for mobile)
+. settings gear omitted if no permission to manage account
+. improved reports page drastically and renamed it "Statistics"
+. started a separate rCredits-theme project (see) to accommodate Undo menu item on mobile interface
+
 2013-09-02
 . simplification of options when scanning a card; for example, never any "change acct" button on formI
 . created form account/ssn

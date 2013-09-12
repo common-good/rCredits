@@ -55,9 +55,6 @@ Scenario: A member does it all
   When member ".ZZA" has done step "proxies"
   And member ".ZZA" visits page "status"
   Then with done "12346"
-  And we tell staff "event" with subs:
-  | fullName | quid | status |
-  | Abe One  | .ZZA | member |
 #  And members:
 #  | id   | floor                               |
 #  | .ZZA | %(%R_SIGNUP_BONUS - %R_SIGNUP_GIFT) |
@@ -74,7 +71,7 @@ Scenario: A member does it all
   And with done ""
   And we tell staff "event" with subs:
   | fullName | quid | status |
-  | Abe One  | .ZZA | ready  |
+  | Abe One  | .ZZA | member |
 
   When member ".ZZA" has permission "ok"
   And member ".ZZA" visits page "status"

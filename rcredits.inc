@@ -16,7 +16,8 @@ use rCredits\Util as u;
 use rCredits\Backend as be;
 
 define('HOUR_SECS', 3600);
-define('DAY_SECS', 24 * 3600);
+define('DAY_SECS', 24 * HOUR_SECS);
+define('WEEK_SECS', 7 * DAY_SECS);
 require_once __DIR__ . '/rcredits-settings.inc'; // must precede other definitions
 
 define('MINI_LAUNCH', TRUE);
@@ -58,6 +59,7 @@ define('R_DEFAULT_PURPOSE', 'rCredits/USD exchange'); // default transaction pur
 define('R_CHUNK', 10); // chunk size for buying rCredits (sales amounts are a multiple of this)
 define('R_BANK_CHUNK', 100); // UNUSED default chunk size for withdrawals from bank
 define('R_BANK_MIN', 10); // granularity of withdrawals from bank account
+define('R_SUGGEST_BUMP', 1.25); // suggested minimum multiplier, so as not to unnecessarily sell rCredits
 define('R_VPAYMENT_MIN', 0.05); // minimum payment exchange (where bonus rounds to .01)
 define('R_COMMERCIAL_ASPECT', '4:3'); // width-to-height ratio for commercial profile picture
 define('R_PERSONAL_ASPECT', '3:4'); // width-to-height ratio for personal profile picture
@@ -83,7 +85,6 @@ define('DW_SITE', isPRODUCTION ? 'https://www.dwolla.com' : 'https://uat.dwolla.
 //define('DW_TEST_ACCT', '8127139234'); // "reflector" account on www (totally reimburses anything under $10)
 define('DW_TEST_ACCT', '8127419900'); // "reflector" account on www (totally reimburses anything under $10)
 define('DW_TESTER_ACCT', '8127413762'); // william's account on Dwolla sandbox
-define('DW_TEST_ACCTS', R_TESTER_EMAIL . ',' . DW_TESTER_ACCT . ',lBtIKmAL/b9PzZhrPX0m5SwIGMtAIHcxXiEq2gTMYwtZ+LYK7x,9999,Password1|gordon+william+1@dwolla.com,8127419900,Y6dveGxn4tFpaLCpYPy5p0Dr+fKS5yt1sQcdnMuZwd2fEFeha3,9999,Password1'); // usdEmail,usdAccount,auth,usdPin,usdPass for each test account on dwolla sandbox site
 define('DW_FEE_THRESHOLD', 10); // over this amount, Dwolla charges a fee
 define('DW_FEE', .25); // the fee
 define('DW_VERIFY_ROOF', 15); // bank verification deposits are less than this
@@ -117,9 +118,9 @@ define('R_PUBLICLY_TRADED', 8);
 
 // Permissions, options, and flags (flags field in account record)
 // If we need more bits, create a flags2 field and make the B_ defs negative for acct::hasBit and setBit
-define('B_MEMBER', 0); // signed the membership agreement, etc. (enough to get a card and vote)
-define('B_READY', 1); // completed all steps
-define('B_OK', 2); // approved to use rCredits for real (set by admin when READY)
+define('B_MEMBER', 0); // signed the membership agreement, etc. (ready to be approved)
+define('B_u1', 1); //
+define('B_OK', 2); // approved to use rCredits for real (set by admin when ready)
 define('B_BONA', 3); // got signup bonus (good circles - somehow got more r+usd than the initial gift)
 define('B_BANK', 4); // has an effective connected bank account
 define('B_PERSON', 5); // personal account
@@ -154,7 +155,7 @@ define('B_MAX', 31); // maximum bit number
 //define('B_DFT', (1 << B_NOTIFY_EMAIL) | 0); // set what bits when creating a new account
 define('B_DFT', 0 | 0); // set what bits when creating a new account
 define('B_ADMINABLE', 'person company member ctty_admin closed'); // for cttyAdmin to set
-define('B_LIST', 'member ready OK bona bank person company u7 charge u9 virtu u11 payroll weekly monthly u15 sms electro secret u19 debt draws u22 u23 u24 u25 ss phone email cadmin admin closed');
+define('B_LIST', 'member u1 OK bona bank person company u7 charge u9 virtu u11 payroll weekly monthly u15 sms electro secret u19 debt draws savings u23 u24 u25 u26 u27 u28 cadmin admin closed');
 
 define('R_SHORTFALL', 'GREATEST(0, minimum-(r+usd))'); // sql for shortfall in account (to draw in)
 define('R_DEMAND', 'LEAST(u.usd, u.minimum-u.r)'); // definitely WANTS this many rCredits (sometimes negative)
@@ -174,6 +175,7 @@ $GLOBALS['share permissions'] = array(t('no access'), t('read transactions'), t(
 // Other special pseudo-bit values for acct::can()
 define('B_MANAGING_CTTY', 120); // ctty_admin is actually managing a qualified account
 define('B_PERSONISH', 121); // personal account or is admin
+define('B_DEV', 122); // isDEV or is admin
 define('B_SHOW_ALL', 999); // special signal to acct::can() to return all permissions
 $GLOBALS['permissions'] = 'related read sell buy manage - company charge - member partner steward - rtrader - - managing_ctty ctty_admin - admin';
 
@@ -592,6 +594,20 @@ function payEmployees($amount0, $for, $confirmed) {
 */
 
 /**
+ * Return a link to a "no signin required" action.
+ * @see also r\Web\rdo()
+ */
+function makeDo($type, $uid, $amount = 0, $timeLimit = WEEK_SECS, $subs = '', $sql = '') {
+//print_r(compact(u\ray('type uid amount timeLimit subs sql'))); die('makedo'); 
+  global $base_url, $testDoCode;
+  $action = serialize(compact(u\ray('type uid sql subs amount')));
+  list ($created, $completed) = array(REQUEST_TIME, -(REQUEST_TIME + $timeLimit));
+  $code = t\est() ? $testDoCode : \user_password(20);
+  $id = r\dbInsert('r_do', compact(u\ray('uid created completed action code')));
+  return "$base_url/do/id=$id&code=$code";
+}
+
+/**
  * Wrap all email, so it doesn't go out when testing.
  */
 function rMail($index, $email, $lingo, $info) {
@@ -957,8 +973,10 @@ function nonoUndo($oldRecord, &$subs = array()) {
 
   $acct = $toMe ? r\acct($payee, $payeeAgent) : r\acct($payer, $payerAgent);
   if ($mya->agentId != $acct->agentId) {
-    $perm = $taking ? B_BUY : B_SELL;
-    if (!acct($acct->id, $mya->agentId)->can($perm)) return $taking ? 'no buy' : 'no sell';
+    $aacct = acct($acct->id, $mya->agentId);
+    if ($taking) { // original transaction was a charge
+      if (!$aacct->can(B_BUY)) return 'no buy';
+    } elseif (!$aacct->can(B_SELL)) return 'no sell';
   }
   return FALSE;
 }
@@ -1264,20 +1282,6 @@ EOF;
 }
 
 /**
- * Say whether the account is nearly a member.
- * That is, have they satisfied all membership requirement except possibly choosing proxies.
- * @return assoc of the component steps: photoOk, signed, and donated, with a summary in "nearly"
- */
-function nearlyMember($acct) {
-  $photoOk = $acct->hasAux('picture');
-  $signed = (bool) $acct->signed;
-//  $donated = ($acct->share > 0 or r\share($acct)); // r\share() also updates the database
-  $donated = r\dbExists('r_gifts', 'uid=:myid', array('myid' => $acct->id));
-  $nearly = ($photoOk and $signed and $donated);
-  return compact(u\ray('photoOk signed donated nearly'));
-}
-
-/**
  * Return a system-wide or community-wide total.
  * As of the last daily cron, unless testing. For each community, and overall, the totals include:
  *    demand: the total unmet demand for rCredits
@@ -1299,7 +1303,8 @@ function totals($ctty = 'ALL', $calculate = FALSE) {
   $demand = $totals[$ctty]['demand'];
   if ($demand >= 1000000) $fancy['demand'] = '$' . number_format(($demand - 9999) / 1000000, 2) . ' million';
   return (object) ($totals[$ctty] + $fancy);
-/*
+
+  /*
   $result = dbLookup('SUM(minimum)', 'users', $ctty ? 'community=:ctty' : '1', compact('ctty')); // minima
   $result -= -r\balance($ctty); // less how many rCredits are in circulation
   $result -= r\totalUSD($ctty); // less how much official currency is in play
@@ -1333,6 +1338,87 @@ function getTotals($ctty) {
   $result2 = r\dbQ($sql, $subs)->fetchAssoc();
   $balance = -$result1['r'];
   return $result1 + $result2 + compact(u\ray('balance'));
+}
+
+/**
+ * Return system-wide or community-wide statistics.
+ * @param int $ctty: uid of community or region
+ * @param int $when: latest desired statistics (defaults to now)
+ *   if $when < 0, calculate the latest
+ * @return assoc of named statistics (see r_stats table def)
+ */
+function stats($ctty = 'ALL', $when = REQUEST_TIME) {
+  if ($when < 0) $when = getStats($ctty);
+
+  $sql = 'SELECT * FROM r_stats WHERE created<=:when AND ctty=:ctty ORDER BY id DESC LIMIT 1';
+  return r\dbQ($sql, compact('ctty', 'when'))->fetchAssoc();
+}
+  
+/**
+ * Calculate and record statistics for the given community.
+ * @param int $ctty: community or region
+ * @param int $created: creation date for the statistics record (defaults to current time)
+ * @return $created
+ */
+function getStats($ctty, $created = NULL) {
+  u\setDft($created, time());
+  $subs = compact('ctty', 'created');
+  $sql = <<<EOF
+    SELECT SUM(IF(:IS_PERSON, 1, 0)) AS pAccts, SUM(IF(:IS_PERSON, 0, 1)) AS bAccts, 
+    SUM(r) AS r, SUM(usd) AS usd
+    FROM users WHERE :IS_OK AND community=:ctty AND created<=:created
+EOF;
+  $result1 = r\dbQ($sql, $subs)->fetchAssoc() ?: array();
+  
+  $sums = '';
+  foreach (u\ray('signup rebate bonus inflation grant loan fine') as $one) {
+    $ONE = strtoupper($one);
+    $sums .= "SUM(IF(type=:TX_$ONE, amount, 0)) AS `$one`, ";
+//    $sums .= "SUM(IF(type=:TX_$ONE, 1, 0)) AS {$one}Count, ";
+  }
+  $sql = <<<EOF
+    SELECT $sums SUM(IF(channel=:TX_CRON AND payeeFor='sharing rewards with CGF', amount, 0)) AS shared
+    FROM r_txs t LEFT JOIN users u ON t.payer=u.uid LEFT JOIN users u2 ON t.payee=u.uid
+    WHERE (u.community=:ctty OR u2.community=:ctty) AND t.state>=:TX_DONE AND completed<=:created
+EOF;
+  $result2 = r\dbQ($sql, $subs)->fetchAssoc() ?: array();
+
+  $subs += u\ray('monthAgo', strtotime('-1 month', $created));
+  $amt = 'IF(amount=0, t.r, amount)'; // for payment exchanges, the amount is in r
+  
+  $sql = <<<EOF
+    SELECT 
+    SUM(IF(goods, $amt, 0)) AS perMo,
+    SUM(IF(goods AND u.:IS_PERSON AND NOT u2.:IS_PERSON, $amt, 0)) AS p2bPerMo,
+    SUM(IF(goods AND NOT u.:IS_PERSON AND NOT u2.:IS_PERSON, $amt, 0)) AS b2bPerMo,
+    SUM(IF(goods AND NOT u.:IS_PERSON AND u2.:IS_PERSON, $amt, 0)) AS b2pPerMo,
+    SUM(IF(amount=0 AND NOT goods, t.r, 0)) AS xchPerMo, 
+
+    SUM(IF(goods, 1, 0)) AS txsPerMo,
+    SUM(IF(goods AND u.:IS_PERSON AND NOT u2.:IS_PERSON, 1, 0)) AS p2bTxsPerMo,
+    SUM(IF(goods AND NOT u.:IS_PERSON AND NOT u2.:IS_PERSON, 1, 0)) AS b2bTxsPerMo,
+    SUM(IF(goods AND NOT u.:IS_PERSON AND u2.:IS_PERSON, 1, 0)) AS b2pTxsPerMo,
+    SUM(IF(amount=0 AND NOT goods, 1, 0)) AS xchTxsPerMo
+
+    FROM r_txs t LEFT JOIN users u ON t.payer=u.uid LEFT JOIN users u2 ON t.payee=u.uid
+    WHERE (u.community=:ctty OR u2.community=:ctty) AND t.state>=:TX_DONE 
+    AND completed BETWEEN :monthAgo AND :created
+EOF;
+  $result3 = r\dbQ($sql, $subs)->fetchAssoc() ?: array();
+  
+  $sql = <<<EOF
+    SELECT IF(amount<0, -amount, 0) AS bankInPerMo, IF(amount<0, 0, amount) AS bankOutPerMo
+    FROM r_usd t LEFT JOIN users u ON t.payer=u.uid
+    WHERE u.community=:ctty AND t.completed AND t.payee=0
+    AND completed BETWEEN :monthAgo AND :created
+EOF;
+  $result4 = r\dbQ($sql, $subs)->fetchAssoc() ?: array();
+
+//debug(compact(u\ray('result1 result2 result3 result4')));
+  $info = $result1 + $result2 + $result3 + $result4 + compact('created', 'ctty');
+  foreach ($info as $key => $value) {if (is_null($value)) $info[$key] = 0;}
+  r\dbInsert('r_stats', $info);
+  return $created;
 }
 
 /**
@@ -1405,7 +1491,9 @@ function dbQ($sql, $subs = array(), $log = TRUE) {
   u\EXPECT(compact(u\ray('sql subs')), 'notempty assoc');
   if (strpos($sql, 'INSERT INTO') !== FALSE) $return = \Database::RETURN_INSERT_ID;
   if ($log and !strpos($sql, 'r_log') and strpos($sql, 'SELECT ') === FALSE) u\loga('db', $subs, $sql);
-  return \db_query(u\SUBS($sql), u\prefixKeys(':', $subs), compact('return'));
+  try {
+    return \db_query(u\SUBS($sql), u\prefixKeys(':', $subs), compact('return'));
+  } catch (Exception $e) {die('here');}
 }
 
 /**
@@ -1413,7 +1501,7 @@ function dbQ($sql, $subs = array(), $log = TRUE) {
  * (replaces the functionality of drupal_write_record, which does not update bigint fields properly)
  * @param string $table: table name
  * @param assoc $info: data to update (must include record key, unless inserting)
- * @param string $key: record key name (if empty (called from dbInsert) insert record, otherwise update)
+ * @param string $key: record key name (if empty then insert record, otherwise update)
  * @param bool either: if TRUE, insert the record if it does not exist (otherwise update)
  * @return: if inserting, then the id of the inserted record, else TRUE (FALSE on failure)
  */
@@ -1422,8 +1510,9 @@ function dbUpdate($table, $info, $key, $either = FALSE) {
   if ($either and !r\dbExists($table, "$key=:$key", array($key => $info[$key]))) $key = '';
   $command = $key ? 'UPDATE' : 'INSERT INTO';
   $sql = '';
-  foreach ($info as $field => $value) if ($field != $key) $sql .= ",$field=:$field";
-  $sql = "$command $table SET " . substr($sql, 1) . ($key ? " WHERE $key=:$key" : '');
+  foreach ($info as $field => $value) if ($field != $key) $sql .= ",`$field`=:$field";
+  $sql = "$command $table SET " . substr($sql, 1) . ($key ? " WHERE `$key`=:$key" : '');
+//  if ($table=='r_do') {print_r(compact(u\ray('table info key either command sql'))); die('dbU');}
   try {
     $result = dbQ($sql, $info);
     if ($command == 'INSERT INTO') { // if there is no serial field, result will be false, so check
@@ -1434,16 +1523,16 @@ function dbUpdate($table, $info, $key, $either = FALSE) {
       u\EXPECT($id, 'no primary key in ' . __FUNCTION__);
       $field1 = reset($schema[$table]['fields']);
       if ($hasSerial = ($field1['type'] == 'serial')) return FALSE;
-      return dbLookup($id, $table, "$id=:$id", array($id => $info[$id])); // return the supplied id if success
+      return dbLookup($id, $table, "`$id`=:$id", array($id => $info[$id])); // return the supplied id if success
     } else return TRUE;
-  } catch (PDOException $e) {return FALSE;} 
+  } catch (PDOException $e) {u\EXPECT(FALSE, "PDOException: $e->message");} 
 }
 
 /**
  * Insert a database record (just one)
  * (replaces half the functionality of drupal_write_record)
  * @param string $table: table name
- * @param assoc $info: data to update
+ * @param assoc $info: data to insert
  * @return: record key of the inserted record (FALSE on failure)
  */
 function dbInsert($table, $info) {return dbUpdate($table, $info, '');}
@@ -1460,14 +1549,6 @@ function dbExists($table, $where = '1', $subs = array()) {
     $where = join(' AND ', $where);
   }
   return dbLookup(1, $table, $where, $subs);
-}
-
-function error($logid) {
-  $info = dbLookup('info', 'r_log', 'logid=:logid', compact('logid'));
-  if ($info) $info = json_decode(utf8_encode($info)); else $info = 'unknown error (probably too big for json -- see r_log)';
-  if (isDEV) {
-    print_r($info); 
-  } else r\go('/user/login/err=' . R_SYS_ERR);
 }
 
 /**

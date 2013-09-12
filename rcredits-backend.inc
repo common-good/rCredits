@@ -53,7 +53,7 @@ function send($data) {
 
 function prep($data) {
   global $my_id, $code;
-  return array('json' => json_encode(compact('my_id', 'code') + $data));
+  return array('json' => u\jsonEncode(compact('my_id', 'code') + $data));
 }
 
 function doOp($op0, $args, $interface = 'API', $success = 1) {
@@ -72,7 +72,7 @@ function error($message, $subs = '', $success = 0) {
 }
 
 function apiOut($args) {
-  $result = json_encode($args, JSON_UNESCAPED_SLASHES);
+  $result = u\jsonEncode($args);
   u\loga('out', $args);
   if (t\est()) {t\output($args, 'output'); return $result;}
   exit($result);
@@ -480,7 +480,7 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   u\EXPECT(compact(u\ray('ttype a1 a2 confirmed data')), 'string acct acct bool assoc');
   $otherName = $a2->fullName;
   if (!$a2->ok()) return array('non member', compact('otherName'), FALSE);
-  list ($myAccess, $otherAccess) = u\order($taking, B_SELL, B_BUY);
+  list ($myAccess, $otherAccess) = u\order($taking, $scanned ? B_SCAN : B_SELL, B_BUY);
   list ($myAccessErr, $otherAccessErr) = u\order($taking, 'sell', 'buy');
   if (!$a1->can($myAccess)) return array("no $myAccessErr", array(), FALSE);
   if (!$a2->can($otherAccess)) return array("other no $otherAccessErr", compact('otherName'), FALSE);
@@ -913,7 +913,7 @@ function testbe($function = '', $arg1 = '', $arg2 = '', $arg3 = '') {
   if (!$function) return $testing_backend;
   $function = "rCredits\\be\\$function";
   $testing_backend = TRUE;
-/*/*/ debug($function($arg1, $arg2, $arg3)); // keep this
+/**/ debug($function($arg1, $arg2, $arg3)); // keep this
 }
 
 /**
@@ -942,7 +942,7 @@ function backend($op, $info = array(), $cache = FALSE) {
   $skey = "{$op}_{$agent}_{$myid}_" . base64_encode(serialize($info)); // htmlspecialchars prevents session key failure (PHP bug?)
   if ($cache and (($result = r\Web\svar($skey)) !== NULL)) return $result;
 ///  debug($skey . $result);
-///  debug("cache:$cache $op: " . json_encode($info) . ($cache ? " result:$result" : ''));
+///  debug("cache:$cache $op: " . u\jsonEncode($info) . ($cache ? " result:$result" : ''));
 ///  debug($result);
   $password = r\acct($agent)->pass;
   $firewall = R_WORD;

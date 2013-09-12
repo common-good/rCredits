@@ -11,46 +11,51 @@ QUESTIONS:
   . admin.inc can normally be uploaded without testing
   . temporary debugging statements can be added if they are first tested on ws.rcredits.org
 - Find and delete all temporary debugging statements:
-///. Search for "debug(", "print_r(", and "die(" (all such lines should begin with /// or (if keepers) /*/*/
+///. Search for "debug(", "print_r(", and "die(" (all such lines should begin with /// or (if keepers) /**/
   . Sometime write a macro to do the finding. 
 - Upload first to ws.rcredits.org and make sure SOMETHING works
 - Upload to new.rcredits.org and make sure SOMETHING works.
+- When updating data directly through phpMyAdmin or the PHP window or other admin tools, back up the database or relevant tables first.
 ***
+
+membership procedure:
+mark the account as an rTrader (OK) (before printing card)
+print card and welcome materials, mail to new member
 
 SOMETIME SOON RETROFIT:
 The following accounts need to have Dwolla switched to us ("integrated into the rCredits backend"):
-Barbara, gary, jennifer, snow's, adam
+Barbara, gary, snow's, adam
 
 BEFORE FRIENDS LAUNCH:
 - automatic (suggested) ops
 - have a link on rcredits.org to "member signin'
-- change physical field to postalAddr (and fix data on production server) BEFORE running any new code
 
 To do: (* = before launch ** = earlier)
 
-. Person looking at a business (signed in, scanned company) - show Site button on the Pay page
-. if no permission to charge someone, scanning a card assumes payment! (requires confirmation)
+. hide advanced features on Transactions page
+. (later, if wanted) add undo permission between sell and buy?
+. (later) suggest reaching out to increase rebate pct
+. payment exchanges should be limited to not include accummulated rewards
+. do $us->getAuth for MIA.AAA, once dw approves us.
+. coverFee from lost transaction cron
+. make invite a primary link
+. retrofit old accounts, recording dwollapin, etc.
+. (later, if wanted) combine exchanges and pexchanges on Transactions page?
+. handle menu logout from restricted page (does not log out)
+. if no permission to charge someone, scanning a card assumes payment for individual, site for company (but put a prominent "Pay" button on the site)
 . feature test: scan fake QR (should go to default page or empty)
 . (later) write an app for Android and iPhone, so scanning a card from out of region will work (you sign in to your own regional server, so a scan that takes you to another region's site won't work)
 . no virtual rewards for mutual suppliers
 . txs should not show X on receipts, for non-buyers
-. settings should say you don't have permission, on mobile, if blank
 . (later) use rc4.me for login and email redirection (with forward.php). Database table accounts has fields email (primary), username (all lowercase letters), and region (3 or 4 uppercase letters). So user can log in at rc4.me (linked to by rcredits.org), which then forwards the request to the appropriate server. Scanned cards go directly to the proper server (new.rc2.me/A/AAAcode OR /a/... for agents, B&b for 4-letter users, etc.).
 . before depending on anyone's cached USD balance, make sure the unavailability of their Dwolla account is not because they changed their PIN.
 . catch "you changed your password" and "you changed your email" emails from Dwolla (and disable the rC account with a misbehavior note in the data field)
 . add to misc.js: for each text input on the page, if the current value includes "XX-", make it silver. onEnter, zap the contents (set .length=0 ?)
 . when there is an error, don't make user retype the hidden fields (so soc sec and dob should not be password type) (also when error happens in submit, because there is a dwolla error)
-. coverFee from lost transaction cron
-. make invite a primary link
-. improve reports page (avg tx/member/mo); "change" the word margin on the reports page to demand
-. combine exchanges and pexchanges on Transactions page
 . for companies with no default purpose, add suggestion to no purpose message
-. retrofit old accounts, recording dwollapin, etc.
 . don't make account opener manager if by is ADMIN or CTTY_ADMIN (and give account a temp password)
- disallow min between 0 and 10 (bank_min)?
 - * help for all pages
 . warn admin when changing to rTrader prematurely, that it may cause double withdrawal from bank (happened to Dan)
-- tell virtualemployees they missed out on keeping the r. also tell non-virtualemployees (individuals only) they missed out on buying r
 - when contesting a tx, ask for comment (add it to payer's "for"). The next day (and thereafter) don't allow editing the for. Include payer's note in notice to payee.
 - LATER (when available) tests with dev sandbox and reg sandbox!
 - LATER bank account removal

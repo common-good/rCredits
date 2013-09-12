@@ -54,7 +54,7 @@ class rwebTransactUsd extends DrupalWebTestCase {
     . '\\| NEW.ZZB | .ZZB | .ZZA  | read       |'
     . '\\| NEW.ZZC | .ZZC | .ZZB  | buy        |'
     . '\\| NEW.ZZD | .ZZC | .ZZA  | sell       |"');
-    And__('usd: "DATA'
+    And__('balances: "DATA'
     . '\\| id   | usd  |'
     . '\\| ctty | 1000 |'
     . '\\| .ZZA |  100 |'

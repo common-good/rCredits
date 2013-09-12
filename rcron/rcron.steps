@@ -56,6 +56,7 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     Notices Setup MAKE
  *     Recache Setup MAKE
  *     Sharing Setup MAKE
+ *     SoldOut Setup MAKE
  *     Totals Setup MAKE
  *     VirtualPayments Setup MAKE
  */
@@ -74,11 +75,12 @@ function members($list) {return t\members($list);}
  *     IncompleteUsdTxs Setup BOTH
  *     IncompleteUsdTxs ADwollaOutageLeavesATransactionIncomplete TEST
  *     Inflation Setup TEST
- *     Recache Setup TEST
+ *     LostUsdTxs Setup MAKE
+ *     Recache Setup BOTH
  *     Recache BalancesGetOutOfWhack BOTH
  *     Recache BalancesGetATinyBitOutOfWhack MAKE
  *     Sharing InflationAdjustmentsAreDistributed TEST
- *     Totals Setup TEST
+ *     Totals Setup BOTH
  *     VirtualPayments AMemberCompanyPaysSuppliersVirtually MAKE
  *     VirtualPayments AMemberCompanyPaysEmployeesVirtually MAKE
  */
@@ -101,6 +103,7 @@ function balances($list) {return t\balances($list);}
  *     Recache BalancesGetOutOfWhack MAKE
  *     Recache BalancesGetATinyBitOutOfWhack MAKE
  *     Sharing InflationAdjustmentsAreDistributed MAKE
+ *     SoldOut MemberSoldSomeRCreditsThisWeek MAKE
  *     Totals Setup MAKE
  *     Totals CronCalculatesTheTotals MAKE
  *     VirtualPayments AMemberCompanyPaysSuppliersVirtually MAKE
@@ -116,6 +119,7 @@ function cronRuns($op) {return t\cronRuns($op);}
  *     Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank TEST
  *     Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank TEST
  *     IncompleteUsdTxs ADwollaOutageLeavesATransactionIncomplete TEST
+ *     LostUsdTxs ASystemCrashLeavesATransactionIncomplete TEST
  *     VirtualPayments AMemberCompanyPaysSuppliersVirtually TEST
  *     VirtualPayments AMemberCompanyPaysEmployeesVirtually TEST
  */
@@ -150,6 +154,7 @@ function relations($relations) {return t\relations($relations);}
  *     Recache Setup MAKE
  *     Sharing Setup MAKE
  *     Sharing InflationAdjustmentsAreDistributed TEST
+ *     SoldOut Setup MAKE
  *     Totals Setup MAKE
  *     VirtualPayments AMemberCompanyPaysSuppliersVirtually TEST
  *     VirtualPayments AMemberCompanyPaysEmployeesVirtually TEST
@@ -163,6 +168,7 @@ function transactions($list) {return t\transactions($list);}
  *     Bank AMemberIsWellBelowMinimum TEST
  *     Gifts AContributionCanBeCompleted TEST
  *     Gifts ARecurringContributionCanBeCompleted TEST
+ *     SoldOut MemberSoldSomeRCreditsThisWeek TEST
  *     VirtualPayments AMemberCompanyPaysSuppliersVirtually TEST
  *     VirtualPayments AMemberCompanyPaysEmployeesVirtually TEST
  */
@@ -189,9 +195,7 @@ function weTellStaffWithSubs($topic, $subs) {return t\weTellStaff($topic, $subs)
 /**
  * usd: (ARG)
  *
- * in: IncompleteUsdTxs ADwollaOutageLeavesATransactionIncomplete MAKE
- *     Recache Setup MAKE
- *     Totals Setup MAKE
+ * in: 
  */
 function usd($list) {return t\usd($list);}
 
@@ -299,3 +303,22 @@ function weTellStaffNothing() {
  * in: Recache BalancesGetATinyBitOutOfWhack TEST
  */
 function weDoNotTellStaff($topic) {return !t\weTellStaff($topic);}
+
+/**
+ * usd transfer count is (ARG)
+ *
+ * in: LostUsdTxs Setup TEST
+ *     LostUsdTxs ASystemCrashLeavesATransactionIncomplete MAKE
+ */
+function usdTransferCountIs($count) {return (t\usdTransferCount() == $count);}
+
+/**
+ * next DO code is (ARG)
+ *
+ * in: SoldOut MemberSoldSomeRCreditsThisWeek MAKE
+ */
+function nextDOCodeIs($code) {
+  global $testOnly; if ($testOnly) return FALSE;
+  global $testDoCode;
+  return $testDoCode = $code;
+}

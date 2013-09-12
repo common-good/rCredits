@@ -145,11 +145,6 @@ EOF
     </ol>
 EOF
     )),
-    'why-wait' => t(<<<EOF
-    <p>Exchanges of rCredits for US Dollars reflect an incomplete economic circle. That is, the individual or company selling the rCredits does not yet have enough places to spend them.</p>
-    <p>The 2-week delay in spending rCredits that you buy takes that amount out of circulation temporarily, giving the seller time to find more places to spend rCredits, without meanwhile having to sell more and more of them.</p>
-EOF
-    ),
     'to-bank' => t(<<<EOF
     <p>This "To bank" setting is probably a good idea unless you use your Dwolla account outside the rCredits system. It can take up to 5 days for the bank to receive the funds, once they are sent.</p>
 EOF
@@ -243,6 +238,15 @@ EOF
     Hover over any option or column header for an explanation of what it means. Select some options, and the period or specific date range that interests you, then click on either "Show" or "Download". The downloaded spreadsheet (in CSV format) has more complete information, including column totals.
 EOF
     ),
+    'demand' => t(<<<EOF
+    The demand for additional rCredits gives us a reliable measure of the system's soundness. Generally, we can keep issuing rCredits as long as people have plenty of places to spend them %mdash and want more.
+EOF
+    ),
+    'trades' => t(<<<EOF
+    <p>Exchanges of rCredits for US Dollars reflect an incomplete economic circle. That is, the individual or company selling the rCredits does not yet have enough places to spend them. Generally, this means they are spending them outside the community (and outside the rCredits system). This is an opportunity for import-replacement &mdash that is, an opportunity to start new local businesses to supply goods or services that are not currently available in our region.</p>
+    <p>The total number and volume of trades is a measure of how well we are doing as a community, in our progress toward a sustainable local economy.</p>
+EOF
+    ),
   );
 
   $helps['charge'] = strtr($helps['pay'], u\ray('pay', 'charge'));  
@@ -250,6 +254,13 @@ EOF
   //        <p>Download the app from <a href="http://rCredits.org/rc.apk">rCredits.org/rc.apk</a>, install, run. Try all the buttons.</p>
 
 }
+
 /*
+    'why-wait' => t(<<<EOF
+    <p>Exchanges of rCredits for US Dollars reflect an incomplete economic circle. That is, the individual or company selling the rCredits does not yet have enough places to spend them.</p>
+    <p>The 2-week delay in spending rCredits that you buy takes that amount out of circulation temporarily, giving the seller time to find more places to spend rCredits, without meanwhile having to sell more and more of them.</p>
+EOF
+    ),
+    
       <p>If you are acting as an agent for someone else's account &mdash; for example if you are a sales clerk for a department store &mdash; the period will be a colon instead. Your company ID Card will show your picture, with the company name under yours. The second part of the account ID (and the scannable code) identifies both you and the company.</p>
 */

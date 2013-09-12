@@ -85,18 +85,11 @@ function rcredits_exception_handler($e) {
 //    $trace_msg .= "<!--$trace-->"; // source will contain the whole trace
   $msg = '<b>Exception:</b>' . R_SYS_ERR. "<br>\n($msg)<br>\n- $line0 ($file0)" . $trace_msg;
   $message = str_replace('&nbsp;', '', str_replace('<br>', '', $msg));
-  $R_FATAL_ERROR = u\loga('FATAL', compact('message'));
-  if (isPRODUCTION) mail(R_TESTER_EMAIL, 'rCredits FATAL ERROR', $message);
-  if (t\est()) print_r($msg, 1); // (KEEP) do this in any case (doesn't show up unless interface fails)
-
-  switch (@$channel) {
-    case TX_WEB:
-      \drupal_set_message($msg, 'error'); // this fails
-      \drupal_goto('error/' . $R_FATAL_ERROR); // this fails -- use shutdown function to show error page (getting message from log)
-    case TX_SMS: if (@$rsms_number) \sms_send($rsms_number, R_SYS_ERR); break;
-    case TX_SMART: be\api_error(R_SYS_ERR);
-    default: die('with no channel'); // (keep) definitely do the print_r first
-  }
+  if (!isDEV) {
+    if (isPRODUCTION) mail(R_TESTER_EMAIL, 'rCredits FATAL ERROR', $message);
+    $R_FATAL_ERROR = u\loga('FATAL', compact('message')); // this gets picked up by rcredits_shutdown()
+    die(); // invoke shutdown
+  } else echo 'FATAL ERROR: ' . $msg;
 }
 
 /**
@@ -263,8 +256,8 @@ function test() {
   include_once __DIR__ . '/usd.class';
   $usdW = new r\usd($w = r\acct(410044001));
   $usdA = new r\usd($a = r\acct(410061551));
-/*/*/ debug($usdW->bal()); // keep
+/**/ debug($usdW->bal()); // keep
   $tx = $usdW->bank(-1, $err);
-/*/*/ debug($tx.$err); // keep
+/**/ debug($tx.$err); // keep
   $usdW->each('test1', strtotime('60 days ago'), array('deposit'));
 }

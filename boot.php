@@ -4,6 +4,7 @@
  * Specialized settings
  * To be inserted in place of database settings in settings.php like this:
  * require_once __DIR__ . '/../all/modules/rcredits/boot.php';
+ * Also used by /do.php, for no-sign-in database changes
  */
  
 define('STAGE', 'ws.rcredits.org'); // staging site (for secrets, etc.)
@@ -50,4 +51,6 @@ if (preg_match('~^I/[A-Z]+[\.-]~', $uri)) $_GET['q'] = $_SERVER['REQUEST_URI'] =
 $drupal_hash_salt = $db_salt;
 $protocol = isPRODUCTION ? 'https://' : 'http://';
 $base_url = $protocol . $_SERVER['HTTP_HOST'] . (isDEV ? '/devcore' : ''); // NO trailing slash!
-global $rUrl; $rUrl = "$base_url/sites/all/modules/rcredits";
+define('BASE_URL', $base_url);
+define('R_PATH', '/sites/all/modules/rcredits');
+global $rUrl; $rUrl = $base_url . R_PATH;

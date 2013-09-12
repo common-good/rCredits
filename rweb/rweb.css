@@ -1,6 +1,7 @@
 /*img {max-width:100%; height:auto;}*/
 /* img {width:auto; height:auto;} */
 /* ems for font-size, px for most else */
+.clearfix {clear:both; width:100%;}
 body {background:silver; font-size:100%;}
 fieldset {-webkit-margin-start:0; -webkit-margin-end:0; -webkit-padding-before:0; -webkit-padding-start:0; -webkit-padding-end:0; -webkit-padding-after:0;}
 input {-webkit-appearance:none;} /* prevent iPhone and Mac from using their standard non-standard buttons */
@@ -23,6 +24,8 @@ div#shout {position:absolute; z-level:2; left:300px; top:100px; background-color
   -moz-box-shadow:    3px 3px 15px 0 black;
   min-height:0px;
 }
+
+#main-menu-links .menu-undo {display:none;}
 #secondary-menu {display:none; padding-bottom:0;}
 #footer-wrapper {background:white;}
 #footer-wrapper a, #footer-wrapper a:focus {color:lightslategray;}
@@ -43,14 +46,11 @@ div#shout {position:absolute; z-level:2; left:300px; top:100px; background-color
 .form-type-radio label {padding-left:1.5em;}
 .form-type-radio label {background:url(../images/radio.gif) no-repeat; background-size:1.3em;}
 
-/*form.rweb .form-type-checkbox label,
-.form-type-checkbox label, */
-.rweb .form-checkboxes .form-type-checkbox label,
-.rweb .form-type-checkbox .description {text-align:left; padding-left:2em; height:1.35em; background:url(../images/checkbox.gif) no-repeat; background-size:1.35em;}
+.rweb .form-type-checkbox .box {float:left; width:22px; height:22px; text-align:left; margin-right:10px; background:url(../images/checkbox.gif) no-repeat; background-size:22px;}
+.rweb .form-type-checkbox label div {float:left;}
 
-.rweb .form-type-checkbox .opt-on,
-.rweb .form-type-checkboxes label.opt-on,
-.form-type-radio label.opt-on {background-position:left bottom;}
+.rweb .form-type-checkbox .opt-on .box,
+.form-type-radio label.opt-on  {background-position:left bottom;}
 
 .form-type-checkbox  input,
 .form-type-radio input {position:absolute; left:-9999px;}
@@ -58,6 +58,7 @@ body.page-devel  .form-type-checkbox  input,
 body.page-devel  .form-type-radio  input,
 body.page-admin  .form-type-checkbox  input,
 body.page-admin  .form-type-radio  input {position:relative; left:0;}
+#nosignin .messages #subtext {margin:10px 0 0 0; font-size:80%; color:darkgray;}
 
 #main {margin:0 0 1em 0;}
 body.logged-in.one-sidebar #content {width:100%;}
@@ -70,7 +71,7 @@ body.logged-in.one-sidebar #content {width:100%;}
 
 .region-header {margin: 1em 5px 1.5em;}
 #logo {padding: 1em 1em 1em .8em;}
-#logo img {height:6em;}
+#logo img {height:96px;}
 #name-and-slogan {margin:3.3em 0 1em 0; padding-top:0;}
 #breadcrumb, .breadcrumb {display:none;}
 .develw div {display:inline;}
@@ -169,6 +170,7 @@ form.rweb  .form-no {color:red;}
   form.labeled .form-type-radios {margin-bottom:.4em;}
   form.labeled .form-type-radio {display:block;} /* less good for browser, better for mobile */
   form.labeled .yesno .form-type-radio {display:inline-block;}
+  form.labeled  .form-type-checkbox label {margin-left:0px; text-align:left;}
   form.labeled  .form-type-checkbox .description {margin-left:5px;}
 }
 @media (max-width:27.99em) {
@@ -201,6 +203,7 @@ form.rweb  .form-no {color:red;}
 /* Signup (New account) */
 #rcreditswebformsignup #edit-company-text label {font-weight:normal; width:100%;}
 #rcreditswebformsignup .form-type-radios {border-bottom:0;}
+#rcreditswebformsignup #edit-verifyby .form-type-radio {display:inline-block;}
 /*#rcreditswebformsignup .form-type-radio input {display:inline-block; margin-left:0; vertical-align:bottom;} */
 /*#rcreditswebformsignup .form-type-radio label {display:inline; width:10em; margin-left:.2em; text-align:left;}*/
 /* #rcreditswebformsignup  #edit-personal,
@@ -208,13 +211,18 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformsignup  #edit-nonpersonal {display:none;} /* default (shown only if company) */
 #rcreditswebformsignup  #companyInfo {margin-left:0; border-color:darkgreen; background-color:lightyellow;}
 #rcreditswebformsignup  #edit-company-text label {text-align:left;}
-#rcreditswebformsignup .form-item-buysAt-15 label  {width:150px;}
-#rcreditswebformsignup .form-item-buysAt label[for="edit-buysat"] {font-weight:normal; width:100%; text-align:left; margin-left:125px;}
-#rcreditswebformsignup .form-item-buysAt label[for="edit-buysat"] b {color:darkgreen;}
-/* ask even companies! #rcreditswebformsignup .form-item-buysAt {display:none;} */
-#rcreditswebformsignup  .form-checkboxes {margin-left:8em;}
+#rcreditswebformsignup  .form-item-copts-contractor label {width:320px;}
+#rcreditswebformsignup #edit-buysat {display:none;}
+#rcreditswebformsignup  #edit-buysat label[for="edit-ats"] {font-weight:normal; width:100%; text-align:left;}
+#rcreditswebformsignup  #edit-buysat label[for="edit-ats"] b {color:darkgreen;}
+#rcreditswebformsignup  #edit-ats {margin:10px 0 0 125px;}
+#rcreditswebformsignup  #edit-buysat .form-type-checkbox label {width:180px;}
 #rcreditswebformsignup .form-item-companyOptions-contractor label {width:auto;}
 #rcreditswebformsignup .form-item-acctType .description {margin-bottom:20px;}
+#rcreditswebformsignup #graphics div {width:360px; margin:0px auto;}
+#rcreditswebformsignup #graphics img {height:50px; margin:10px 20px 10px 0;}
+#rcreditswebformsignup #help-link,
+#rcreditswebformsignup .form-item-agreed label {display:none;}
 
 /* Request New Password */
 #rcreditswebformpass #edit-name {width:20em;}
@@ -260,11 +268,11 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformaccount .form-type-radio label {display:block;}*/
 
 /* Contact Info (labeled) */
-#rcreditswebformcontact .form-item-mail,
-#rcreditswebformcontact .form-item-pin {display:inline-block;}
+#rcreditswebformcontact .form-item-mail {}
+#rcreditswebformcontact .form-item-pin {display:none; margin-left:180px;}
 #rcreditswebformcontact .form-item-pin label {width:50px;}
-#rcreditswebformcontact .form-item-pin .description {margin-left:53px;}
-#rcreditswebformcontact #edit-pin {width:100px;}
+#rcreditswebformcontact .form-item-pin .description {margin-left:53px; font-size:90%;}
+#rcreditswebformcontact #edit-pin {width:100px; font-size:90%;}
 #rcreditswebformcontact .form-type-radio {display:inline-block;}
 
 /* Transact (tx) form (labeled) */
@@ -301,6 +309,9 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformproxies #edit-subtext  {font-weight:normal; font-size:85%; margin-left:0;}
 
 /* Reports */
+#rcreditswebformreports .form-type-item,
+#rcreditswebformreports #edit-title {margin-bottom:0;}
+#rcreditswebformreports #edit-subtext {margin-bottom:10px;} 
 #rcreditswebformreports .form-type-checkboxes {margin-bottom:0;}
 #rcreditswebformreports .form-type-checkbox {width:110px;}
 #rcreditswebformreports .form-type-radios {border:0;}
@@ -311,6 +322,8 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformreports .form-item-starting {margin-bottom:0;}
 #rcreditswebformreports .form-submit {margin-left:10px; max-width:120px;}
 #rcreditswebformreports input {max-width:110px;}
+#rcreditswebformreports .form-item-states,
+#rcreditswebformreports .form-item-states label {margin-top:15px;}
 
 #rcreditswebformreports .tx-selector {width:1em;}
 /* for IE; text-align in <col> should have no effect according to CSS 2.1 */ 
@@ -514,6 +527,7 @@ html.js input.throbbing {background-position:right -2.4em;}
 #rcreditswebformmembership #edit-steps .step9 div {background-position:right bottom;}
 #rcreditswebformmembership #edit-steps .text div {padding-top:18px; margin-left:0px;}
 #rcreditswebformmembership .pending {color:red;}
+#rcreditswebformmembership #edit-steps em {color:darkgreen; font-style:normal; font-weight:bold;}
 
 /* Membership Agreement */
 #rcreditswebformagreement #instructions {background:lightyellow;}
@@ -560,7 +574,6 @@ html.js input.throbbing {background-position:right -2.4em;}
 #rcreditswebformoptions .form-item-debtOk {display:inline-block;}
 #rcreditswebformoptions .form-item-debtOk .description {max-width:700px;}
 #rcreditswebformoptions #edit-notices div {display:inline-block;}
-#rcreditswebformoptions #edit-submit {margin-top:50px;}
 
 /* Get */
 #rcreditswebformget #edit-title,
@@ -651,11 +664,13 @@ and (max-device-width : 480px) { */
   #header {background-image:none; background-color:dodgerblue; height:38px;}
   #content {min-width:100%; margin-top:40px;}
   #main .section {margin-left:0; padding:0 .4em;}
-/*  #main-wrapper {min-height:26em;} /* below the menu */
+  #main-wrapper {min-height:0;} /* below the menu */
   #block-system-main .content {margin:0;}
   body.page-account-settings #footer-wrapper, body.page-menu #footer-wrapper {display:none;}
   #logo {height:26px; padding:1px;}
   #logo img {height:24px;}
+  #nosignin #header {text-align:center;}
+  #nosignin #logo {width:100%; margin-top:5px;}
   #name-and-slogan {display:none; font-size:.8em; padding-left:.1em; margin-top:4.5em;}
   #site-slogan {width:14em; font-size:1em;}
 
@@ -667,6 +682,7 @@ and (max-device-width : 480px) { */
   #main-menu-links li {margin:1px 0; clear:left; width:100%; height:44px;}
   #main-menu-links li a {margin:0 0; text-indent:10px; width:100%; padding:7px 0; text-decoration:none; background-color:lightblue; border-radius:0;}
   #main-menu-links li a:hover {background:yellow;}
+  #main-menu-links .menu-undo {display:block;}
 
   body .tabs {display:none;}
   .not-logged-in .tabs ul {margin-left:0;}
@@ -697,6 +713,10 @@ and (max-device-width : 480px) { */
   #menu .form-item, #settings .form-item {width:48%; display:inline-block;}
   #menu input, #settings input  {width:90%; font-size:1.2em; padding-top:.4em; padding-bottom:.4em;}
   #menu input#edit-help {margin-bottom:8em;}
+  
+  #messages {position:absolute; left:0; top:72px; padding:0;}
+  #messages .messages {margin:4px; padding:8px 8px 8px 40px;} 
+  
   #user-login input#edit-name,
   #user-login input#edit-pass {width:17em;}
   #user-login .confirm-parent, #user-login .password-parent, #user-login .password-suggestions {margin-left:0;}
@@ -704,7 +724,7 @@ and (max-device-width : 480px) { */
   #help {top:125px; width:100%;}
   #help-close {display:none;}
 
-  #edit-title, form.labeled #edit-title {display:block; position:absolute; left:0; top:28px; margin:0; padding:2px 0 2px 15px; background:silver; z-index:1; height:42px;}
+  #edit-title, form.labeled #edit-title {display:block; position:absolute; left:0; top:28px; margin:0; padding:6px 0 4px 15px; background:silver; z-index:1; max-height:42px; font-size:22px;}
   #edit-title label, form.rweb #edit-title label {font-size:20px; margin-top:5px;}
   #rcreditswebformchangepin #edit-title,
   #rcreditswebformchangepin #edit-submit {margin-left:0;}
@@ -763,7 +783,14 @@ and (max-device-width : 480px) { */
   
   #rcreditswebformmembership #edit-title {display:block;}
   #rcreditswebformphoto #edit-submit {left:0px; top:0px;}
-  #rcreditswebformoptions #edit-submit {margin-top:90px;}
+  
+  #rcreditswebformsignup  #edit-ats {margin-left:0;}
+  #rcreditswebformsignup  #edit-buysat .form-type-checkbox {width:160px;}
+  #rcreditswebformsignup  #edit-buysat .form-item-ats-15 {width:170px;}
+
+  #rcreditswebformcontact .form-item-pin {margin-left:20px;}
+  #rcreditswebformcontact .form-item-pin .description {margin-left:0px;}
+  
 }
 
 /* Smartphones (landscape) ----------- */

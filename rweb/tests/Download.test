@@ -54,7 +54,7 @@ class rwebDownload extends DrupalWebTestCase {
     . '\\| .ZZB | .ZZB | .ZZA  | read       |'
     . '\\| .ZZC | .ZZC | .ZZB  | buy        |'
     . '\\| .ZZD | .ZZC | .ZZA  | sell       |"');
-    And__('usd: "DATA'
+    And__('balances: "DATA'
     . '\\| id   | usd   |'
     . '\\| ctty | 10000 |'
     . '\\| .ZZA |  1000 |'

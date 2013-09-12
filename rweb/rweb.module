@@ -69,8 +69,8 @@ function rweb_menu() {
 
     'get' => r\Web\menu(t('Bank'), MENU_NORMAL_ITEM, 'showForm', array('Get'), 'manage bank ok'),
     'directory' => r\Web\menu(t('Find Companies'), MENU_NORMAL_ITEM, 'showForm', array('Directory'), 'sell'),
-    'reports' => r\Web\menu(t('Reports'), MENU_NORMAL_ITEM, 'showForm', array('Reports', 1), '', $anyone),
-    'undo' => r\Web\menu(t('Undo'), MENU_CALLBACK, 'undo', array(1), 'sell'),
+    'stats' => r\Web\menu(t('Statistics'), MENU_NORMAL_ITEM, 'showForm', array('Reports', 1), '', $anyone),
+    'undo' => r\Web\menu(t('Undo'), MENU_NORMAL_ITEM, 'undo', array(1), 'sell'), // only on mobile
     'remainder' => r\Web\menu(t('Show Customer Balance'), MENU_CALLBACK, 'remainder', array(1), 'sell'),
     'menu' => r\Web\menu(t('Menu'), MENU_CALLBACK, 'showForm', array('Menu'), '', $anyone),
     'empty' => r\Web\menu(t('Empty'), MENU_CALLBACK, 'showForm', array('Empty'), '', $anyone),
@@ -95,21 +95,23 @@ function rweb_menu() {
     'account/relations' => r\Web\menu(t('Relations'), MENU_LOCAL_TASK, 'showForm', array('Relations'), 'manage'),
     'account/cells' => r\Web\menu(t('Cell Phones'), MENU_LOCAL_TASK, 'showForm', array('Cells'), 'manage'),
     'account/proxies' => r\Web\menu(t('Proxies'), MENU_LOCAL_TASK, 'showForm', array('Proxies'), 'manage person'),
-    'account/settings' => r\Web\menu(t('Settings'), MENU_LOCAL_TASK, 'showForm', array('Settings'), '', $anyone),
-    'account/password' => r\Web\menu(t('Request New Password'), MENU_CALLBACK, 'showForm', array('Pass'), '', $anyone),
+    'account/settings' => r\Web\menu(t('Settings'), MENU_LOCAL_TASK, 'showForm', array('Settings'), 'manage'),
+    'account/password' => r\Web\menu(t('Request New Password'), MENU_CALLBACK, 'showForm', array('Pass', 2), '', $anyone),
     'account/change-password' => r\Web\menu('Change Password', MENU_CALLBACK, 'showForm', array('ChangePassword'), 'manage'),
     'account/change-pin' => r\Web\menu('Change PIN', MENU_CALLBACK, 'showForm', array('ChangePin'), 'manage'),
     'account/photo' => r\Web\menu('Photo', MENU_CALLBACK, 'showForm', array('Photo'), 'manage'),
     'account/verify-phone' => r\Web\menu('Verify Phone', MENU_CALLBACK, 'showForm', array('VerifyPhone'), 'manage'),
+    'account/readd-phone' => r\Web\menu('reAdd Phone', MENU_CALLBACK, 'addPhone', array(), 'manage'),
     'account/ssn' => r\Web\menu('SSN', MENU_CALLBACK, 'showForm', array('Ssn'), 'manage'),
     'account/kba' => r\Web\menu('Kba', MENU_CALLBACK, 'showForm', array('Kba'), 'manage'),
     
     'another' => r\Web\menu(t('Open Another Account'), MENU_CALLBACK, 'showForm', array('Another'), 'manage'),
+    'agent' => r\Web\menu(t('Open An Agent Account'), MENU_CALLBACK, 'showForm', array('Agent'), 'manage'),
 
-    'sadmin' => r\Web\menu(t('Admin'), MENU_NORMAL_ITEM, 'showForm', array('Admin'), 'admin'),
-    'handy' => r\Web\menu('Handy', MENU_NORMAL_ITEM, 'handyLinks', array(), 'admin'),
-    'tests' => r\Web\menu('Tests', MENU_NORMAL_ITEM, 'util', array('tests'), 'admin'),
-    'php' => r\Web\menu('PHP', MENU_NORMAL_ITEM, 'util', array('php'), 'admin'),
+    'sadmin' => r\Web\menu(t('Admin'), MENU_NORMAL_ITEM, 'showForm', array('Admin'), 'dev'),
+    'handy' => r\Web\menu('Handy', MENU_NORMAL_ITEM, 'handyLinks', array(), 'dev'),
+    'tests' => r\Web\menu('Tests', MENU_NORMAL_ITEM, 'util', array('tests'), 'dev'),
+    'php' => r\Web\menu('PHP', MENU_NORMAL_ITEM, 'util', array('php'), 'dev'),
     
 //    'video' => r\Web\menu(t('Videos'), MENU_LOCAL_TASK, 'showForm', array('Videos', 2), '', $anyone),
 
@@ -128,14 +130,14 @@ function rweb_menu() {
     'rcredits/util' => r\Web\menu('Util', MENU_CALLBACK, 'util', array(2), 'admin'),
     'rcredits/test' => r\Web\menu('Util', MENU_CALLBACK, 'test', array(2), '', $anyone),
     'autocomplete' => r\Web\menu('Identify', MENU_CALLBACK, 'auto', array(1, 2, 3), '', $anyone),
-    'do' => r\Web\menu('Do', MENU_CALLBACK, 'rdo', array(2), '', $anyone),
+    'do' => r\Web\menu('Do', MENU_CALLBACK, 'rdo', array(1), '', $anyone),
 
     'rcredits/backend' => r\Web\menu('API', 0, 'rCredits\\be\\backend2', array(), '', $anyone),
     'api' => r\Web\menu('API', 0, 'rCredits\\Smart\\api', array(), '', $anyone),
     R_GET_AUTH_URI => r\Web\menu('USD Get Auth', 0, 'usdCallback', array('getAuth2', 1), 'manage'),
     'usd-callback' => r\Web\menu('USD Other Callback', 0, 'usdCallback', array('callback', 1), '', $anyone),
     'secret' => r\Web\menu('Secret', 0, 'secrets', array(), '', $anyone),
-    'error' => r\Web\menu('System Error', 0, 'rCredits\\error', array(1), '', $anyone),
+    'error' => r\Web\menu('System Error', 0, 'error', array(1), '', $anyone),
     
 //    'pay-with-rcredits' => r\Web\menu('Pay With rCredits', MENU_CALLBACK, 'showForm', array('Buy'), '', $anyone), // form will require login
 
@@ -164,7 +166,7 @@ function rweb_form_alter(&$form, &$sta, $form_id) {
 }
 
 //function rweb_form_user_register_form_alter(&$form, &$sta, $form_id) {r\Web\formRegister($form, $sta);}
-function rweb_form_user_login_block_alter(&$form, &$sta, $form_id) {return r\Web\formLogin($form, $sta, FALSE);}
+//function rweb_form_user_login_block_alter(&$form, &$sta, $form_id) {return r\Web\formLogin($form, $sta, FALSE);}
 // (has no effect, keep as comment) function rweb_form_user_login_form_alter(&$form, &$sta, $form_id) {return r\Web\formLogin($form, $sta);}
 function rweb_user_login(&$edit, $account) {r\Web\loginFollowup($edit, $account);}
 //function rweb_form_user_pass_alter(&$form, &$sta) {return r\Web\passAlter($form, $sta);}

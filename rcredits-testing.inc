@@ -12,6 +12,17 @@ use rCredits\Backend as be;
 
 global $base_path;
 define('BASE_PATH', $base_path);
+define('DW_TEST_PASS', 'Password1'); // usdPass for sandbox accounts
+define('DW_TEST_PIN', '9999'); // usdPin
+define('DW_TEST_ACCTS', DW_TESTER_ACCT . ' ' . '8127419900 8127431130 8127423717 8127418871 8127401872'); // usdAccount
+define('DW_TEST_AUTHS',
+  'lBtIKmAL/b9PzZhrPX0m5SwIGMtAIHcxXiEq2gTMYwtZ+LYK7x '
+. 'Y6dveGxn4tFpaLCpYPy5p0Dr+fKS5yt1sQcdnMuZwd2fEFeha3 '
+. 'pxj/Lr+UEFRJIXdqykS6GK8eOwFb5RJacv6PRenp1c+GCJvTW6 '
+. 'ekRW2CfBdsuezuuZapK2mnWK1pqy157zoZnXmUXYoL2rBEEYWw ' // x0QfZr7LuNwt4XFPMh%2FWhSRsOyYXsNW0Ye8z0BpMZ%2FusVEVdEk ?
+. 'W6J/pu0Gu3aLD7htZ+2AKBjvi7dnHYXeU0VKHu0SRFoOZB3T7G '
+. 'v8bSxiLSb58y42i1lBeH7x1zxUrnygEnpe3AKFSy7HCjhTsC7V '
+);
 
 function makeRecords($list, $type, $testSeparate = FALSE) {
   global $testOnly;
@@ -46,7 +57,7 @@ function balances($list) {return makeRecords($list, 'Balances');}
  */
 function makeAccount($info = array(), $testOnly = FALSE) {
   if (!is_array($info)) {print_r($info); die(print_r(debug_backtrace(), 1)); } // keep for now
-  extract($info);
+  extract($info); // any user table fields, plus dw (dwolla test account number)
 
   u\setDft($id, r\acct::nextId()); // default to first available number
   $uid = uid($id); // change .AAB to 1, etc.
@@ -65,7 +76,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
     if (@$federalId) u\digits($federalId);
     $moneyFields = 'share committed floor r usd rewards'; // not minimum because NULL means not set, in Membership page
     foreach (u\ray($moneyFields) as $one) u\setDft($$one, 0);
-    $fixFields = ' rebate fullName name pass mail community postalCode dob federalId ' . $moneyFields;
+    $fixFields = 'rebate fullName name pass mail community postalCode dob federalId ' . $moneyFields;
   } else $fixFields = '';
 
   $flags0 = @$flags;
@@ -84,7 +95,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
     if ($acctType >= R_SELF_EMPLOYED) $flags |= u\bit(B_COMPANY);
   }
   
-  foreach (u\ray('id email acctType dwolla') as $one) unset($info[$one]);
+  foreach (u\ray('id email acctType dw') as $one) unset($info[$one]);
   $info = compact(u\ray('uid flags ' . $fixFields)) + $info;
   fixValues($info);
 
@@ -98,19 +109,23 @@ function makeAccount($info = array(), $testOnly = FALSE) {
     }
     return TRUE;
   }
-  if (!$acct = new r\acct($info)) return FALSE;
+  if (!$a = new r\acct($info)) return FALSE;
 
-  if ($usdAccount = str_replace('-', '', @$dwolla)) {
-    $acct->update(compact('usdAccount')); // this gets crunched, so save before compare
-//    if ($usdAccount != DW_TEST_ACCT) {
-    $num = r\dbLookup('usdAccount', 'users', 'uid=:uid', compact('uid')); // get crunched version
-    if ($tester = r\dbLookup('uid', 'users', 'usdAccount=:num', compact('num'))) {
-      $secure = r\acct($tester)->secure;
-      $acct->update(compact('secure'));
-    }
+  if (is_numeric(@$dw)) {
+    $accts = u\ray(DW_TEST_ACCTS);
+    $auths = u\ray(DW_TEST_AUTHS);
+    list ($usdAccount, $auth) = array($accts[$dw], $auths[$dw]);
+    list ($usdEmail, $usdPass, $usdPin) = array("gordon+william+$dw@dwolla.com", DW_TEST_PASS, DW_TEST_PIN);
+    $usdType = 'Dwolla';
+    $pin = $usdPin;
+    $secure = compact(u\ray('usdType usdPin pin auth')) + ($a->secure ?: array());
+    $a->update(compact(u\ray('usdAccount secure')));
+    $us = new r\usd($a);
+    //debug("dw=$dw usnum=$us->number test=" . DW_TESTER_ACCT); 
+    if ($us->number != DW_TESTER_ACCT) $us->setbal(0, $err);
   }
   
-  if (@$picture) if (!makePicture($picture, $acct)) return FALSE;
+  if (@$picture) if (!makePicture($picture, $a)) return FALSE;
 
   return $uid;
 }
@@ -202,85 +217,106 @@ function notice($notice, $id, $subs) {
   
 /**
  * Make the cached balances and other numeric fields be thus and such.
- * Note that this will be at odds with any calculated balances, 
- *   so a scenario cannot test r, usd, and rewards with "balances:" after setting them up this way.
+ * "dwolla" is a special field that sets or tests the actual dwolla balance for a test account
+ * "dw/usd" means set or test both dwolla and usd
+ * "?" in a field means ignore its value when testing
  */
 function makeBalances($one, $testOnly) {
-  extract(u\just('id r usd rewards minimum share committed', $one));
-  $a = r\acct($id = t\uid($id));
-  if (!$testOnly) {
-    if (!is_array($one)) echo 'makeBalances: ' . print_r($one, 1) . print_r(debug_backtrace(), 1);
+  if (isset($one['dw/usd'])) {
+    $one['usd'] = $one['dwolla'] = $one['dw/usd'];
+    unset($one['dw/usd']);
+  }
+  extract(u\just('id r usd dwolla rewards minimum share committed', $one));
+  $a = r\acct($id = t\uid($id0 = $id));
+  if ($hasdw = in_array($a->usdAccount, array(DW_TEST_ACCT, DW_TESTER_ACCT))) $us = new r\usd($a);
+  $dodw = (isset($dwolla) and $hasdw);
+
+  if (!$testOnly) { // setting the values
+    if ($dodw and !$us->setbal($dwolla, $err)) return t\output("Can't set dwolla bal for $id to $$dwolla -- $err");
+    if ($hasdw and @$usd == '?') {
+      $one['usd'] = $us->bal($err);
+      if (@$err) return t\output("Can't get dwolla bal for $id -- $err");
+    }
     unset($one['id']);
-    if (@$usd and !is_numeric($usd)) list ($one['usd']) = t\parseAmt($usd, $a);
+    unset($one['dwolla']);
     return ($a->update($one));
   }
 
   // verify
   $calc = t\uidCredit($id);
-  if (isset($r)) {
-    if (t\badEq('calc r', $calc->r, $r, $id)) return FALSE;
-    if ($id > 0 and t\badEq('cached r', $a->r, $r, $id)) return FALSE; // (ctty not cached)
-  }
-  if ($id < 0) return TRUE; // only r is tested for community (nothing is cached for ctty)
-  if (isset($rewards)) {
-    if (t\badEq('calc rewards', $calc->rewards, $rewards, $id)) return FALSE;
-    if (t\badEq('cached rewards', $a->rewards, $rewards, $id)) return FALSE;
-  }
-  if (isset($usd)) {
-    if (!is_numeric($usd)) {
-      list ($usd, $bal) = t\parseAmt($usd, $a);
-      if (t\badEq('REAL usd', $bal, $usd, $id)) return FALSE;
+  foreach (u\ray('r usd rewards') as $one) {
+    if (isset($$one) and $$one != '?') {
+      if ($id > 0 and t\badEq("cached $one", $a->$one, $$one, $id)) return FALSE;
+      if ($one != 'usd' and ($id > 0 or $one == 'r')) {
+        if (t\badEq("calc $one", $calc->$one, $$one, $id)) return FALSE;
+      }
     }
-// (can't tell because it starts nonzero) if (!t\eq($calc->usd, $usd)) return t\output('bad calc usd');
-    if (t\badEq('cached usd', $a->usd, $usd, $id)) return FALSE;
   }
+  if ($dodw and $dwolla != '?' and t\badEq('dwolla bal', $us->bal($err), $dwolla, $id)) return t\output("Dwolla err: $err");
   foreach (u\ray('minimum share committed') as $one) {
-    if (isset($$one)) if (t\badEq("db $one", $a->$one, $$one, $id)) return FALSE;
+    if (isset($$one) and $$one != '?' and $id > 0) if (t\badEq("db $one", $a->$one, $$one, $id)) return FALSE;
   }
   return TRUE;
 }
 
-function usdTransferCount($where = '') {return r\dbLookup('COUNT(*)', 'r_usd', 'payee=0');}
+function usdTransferCount($where = '1') {
+  global $testOnly;
+  
+  if($testOnly) {
+    return r\dbLookup('COUNT(*)', 'r_usd', $where);
+  } else {
+    r\dbQ("DELETE FROM r_usd WHERE $where");
+    return 0; // 0 is the only thing we can make it!
+  }
+}
 
 function usdTransfers($tx) {
   global $testOnly; if(!$testOnly) return FALSE;
   extract(u\just('payer payee amount', $tx[0]));
   $payer = t\uid($payer);
-  $payee =(@$payee and !is_numeric($payee)) ? t\uid($payee) : 0;
+  $payee = @$payee ? (is_numeric($payee) ? $payee : t\uid($payee)) : 0;
   return r\dbExists('r_usd', 'payer=:payer AND amount=:amount and payee=:payee', compact(u\ray('payer payee amount')));
 }
 
+/**
+ * Return FALSE if the cached and actual USD balances are not as expected.
+ *//*
 function usd($list) {
-  global $testOnly;
+  global $testOnly; if (!$testOnly) return t\output('usd cache/actual cannot be made');
   foreach ($list as $one) {
-    extract(u\just('id usd', $one));
-    $a = r\acct(t\uid($id));
-    if ($getReal = !is_numeric($usd)) list ($usd) = t\parseAmt($usd, $a);
-    if ($testOnly) {
-      if ($a->usd != $usd) return FALSE;
-    } else {
-      if ($a->usdAccount == DW_TEST_ACCT and !$getReal) { // setReal if not getReal
-        $us = new r\usd($a);
-        if (!$us->setbal($usd, $err)) return t\output($err);
-      }
-      if (!$a->update(compact('usd'))) return FALSE;
-    }
+    extract(u\just('id cached actual', $one));
+    $us = new r\usd($a = r\acct(t\uid($id)));
+    if (!in_array($a->usdAccount, array(DW_TEST_ACCT))) return t\output('bad account for usd');
+    if (t\badEq('cached usd', $a->usd, $cached, $id)) return FALSE;
+    if (t\badEq('actual usd', $us->bal($err), $actual, $id)) return t\output("Dwolla err: $err");
   }
   return TRUE;
 }
+*/
 
 /**
  * Run the op in the background, return TRUE.
  */
 function cronRuns($op) {
   global $testOnly; if($testOnly) return FALSE;
+  global $cronOp; $cronOp = $op;
+  $func = "rCredits\\Cron\\$op";
+
+  $now = REQUEST_TIME;
+  \variable_set('r_last_cron', u\ray('day week month', $now, $now, $now)); // normally don't run periodics
+
   if ($op == 'ALL' or strpos(R_DAILY_TASKS, " $op ")) {
-    global $cronOp; $cronOp = $op;
     if (strftime('%H') < R_DAILY_HOUR) die('Developer: For testing between midnight and :R_DAILY_HOUR:00, you need to temporarily change R_DAILY_HOUR in -settings.');
     r\dbQ("DELETE FROM queue WHERE name='q'");
-    \variable_set('r_last_cron', array('day' => REQUEST_TIME - DAY_SECS));
-  }
-  \drupal_cron_run();
+    \variable_set('r_last_cron', u\ray('day week month', $now - DAY_SECS, 0, 0));
+    \drupal_cron_run();
+  } elseif ($op == '') {
+    \drupal_cron_run();
+  } elseif ($op == 'everyWeek') {
+    $func(); // queue up weekly tasks
+    \drupal_cron_run();
+  } else $func();
+
   return TRUE;
 }
 
@@ -347,7 +383,7 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
   } else unset($fields['message']); // empty message in features means NO message
   $agent = @r\acct()->agentId;
   output(array('EXPECT' => '') + $fields, @$subject ? 'email' : 'output'); // keep this
-  $info = json_encode($fields, JSON_UNESCAPED_SLASHES);
+  $info = u\jsonEncode($fields);
   $crit = "channel=:channel AND type=:type AND myid<=>:myid AND agent<=>:agent ORDER BY logid DESC";
 /// debug(compact(u\ray('info type myid agent channel crit'))); // for debugging mysterious email mismatches
 /// debug(compact(u\ray('info type myid agent channel')), '', 1);
@@ -464,7 +500,7 @@ function hitServer($op, $agent, $code = '', $account_id = '', $extra = array()) 
       $my_id = $acct ? $acct->qid() : $agent; // accommodate bad agents
     }
   }
-  $json = json_encode(compact(u\ray('op my_id code account_id')) + $extra, JSON_UNESCAPED_SLASHES);
+  $json = u\jsonEncode(compact(u\ray('op my_id code account_id')) + $extra);
   output($json, 'input'); // keep this
   r\Smart\api(compact('json'));
 //  be\send($json); // remember the server's response (this is the real test, once most bugs are gone)
@@ -740,6 +776,7 @@ function SERVER($key, $value = NULL) {
  */
 function color($msg, $color = 'normal') {
   $colors = array(
+    '' => 'ivory',
     'normal' => 'ivory',
     'email' => 'lightblue',
     'input' => 'orange',
@@ -763,10 +800,11 @@ function output($msg, $color = 'error') {
 }
 
 /**
- * Return 't' (also meaning TRUE) if we are testing, otherwise FALSE. The 't' is used with USD_NOTE_PREFIX
+ * Return 't' and a number unique to the current test run (also meaning TRUE) if we are testing
+ * otherwise FALSE. The return is used with USD_NOTE_PREFIX in usd class
  * call by t\est()
  */
-function est() {return (@TESTING == 1 ? 't' : FALSE);}
+function est() {return (@TESTING == 1 ? 't' . REQUEST_TIME : FALSE);}
 
 /**
  * Clear out all possible data, so as to start the test fresh
@@ -780,7 +818,7 @@ function clear($ch) {
   global $channel; $channel = $ch;
 
   $cgfUid = \variable_get('cgf_uid');
-  $tables = 'r_notices r_sms r_txs r_relations r_log r_invites r_companies r_gifts r_smarts r_proxies r_usd r_user_industries queue';
+  $tables = 'r_do r_notices r_sms r_txs r_relations r_log r_invites r_companies r_gifts r_smarts r_proxies r_usd r_user_industries queue';
 
   r\dbQ('DELETE FROM users WHERE uid>:cgfUid OR (uid>1 AND uid<:cgfUid-1)', compact('cgfUid'));
   foreach (u\ray($tables) as $one) r\dbQ("TRUNCATE $one");
@@ -796,29 +834,6 @@ function clear($ch) {
   tlog('clearing');
   r\acct::_clear(); // empty the acct cache
   \drupal_static_reset(); // clear out drupal central storage
-}
-
-/**
- * Initialize the permanent accounts with connection to dwolla accounts
- * (should need to be done only when adding more test accounts)
- * rCredits\Testing\setupDwAccts(TRUE);
- * @param bool $make: if FALSE, just put all the money back in the first account
- */
-function setupDwAccts($make = FALSE) {
-  foreach (u\ray(DW_TEST_ACCTS) as $i => $account) { // reset wws and cgf connection to uat Dwolla
-    list ($email, $usdAccount, $auth, $usdPin) = u\ray($account);
-    $qid = R_SERVER_ID . '.' . u\n2a($i, 3);
-    $accts[$i] = $a = r\acct($qid);
-    if ($make) {
-      $usdType = 'Dwolla';
-      $pin = $usdPin;
-      $secure = compact(u\ray('usdType usdPin pin auth')) + ($a->secure ?: array());
-      $a->update(compact(u\ray('usdAccount secure')));
-    }
-    $us = new r\usd($a);
-    if ($i) $us->setbal(0, $err);
-    if (@$err) t\output($err);
-  }
 }
 
 function fixPageArgs($page) {
@@ -884,7 +899,7 @@ function shownWith($content, $type = 'text', $showDebugs = TRUE) {
 
   foreach ($content as $fields) {
     foreach ($fields as $key => $one) if (strpos($one, '%') !== FALSE) $fields[$key] = t\lastMinuteSubs($one);
-/*/*/ if ($showDebugs) debug("EXPECT page with " . print_r($fields, 1)); // keep this
+/**/ if ($showDebugs) debug("EXPECT page with " . print_r($fields, 1)); // keep this
     foreach ($fields as $one) { // ignore the keys here
       if ($one !== '') $i = strpos($model, $one, $xi = $i);
       if ($showDebugs) t\output(compact('xi','i','one'));

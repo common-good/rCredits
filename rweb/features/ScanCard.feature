@@ -28,7 +28,7 @@ Setup:
   |   1 | %today-6m | signup |    250 | ctty | .ZZA | signup  | 0      |
   |   2 | %today-6m | signup |    250 | ctty | .ZZB | signup  | 0      |
   |   3 | %today-6m | signup |    250 | ctty | .ZZC | signup  | 0      |
-  And usd:
+  And balances:
   | id   | usd  |
   | ctty | 1000 |
   | .ZZA |  100 |

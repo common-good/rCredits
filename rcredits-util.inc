@@ -332,7 +332,7 @@ function tt($message, $subs = array(), $adhocChannel = '') {
   foreach ($messages as $i => $message) {
     $ch1 = $adhocChannel ?: (count($channels) - 1);
     for ($ch = $ch1; $ch > 0; $ch--) if ($model = @$GLOBALS["$ch messages"][$message]) break;
-    if (!@$model) $model = $message;
+    if (!@$model) $model = u\redw($message);
     if($p = strpos($model, '. Type ')) {
       if ($channel != TX_SMS and $adhocChannel != TX_SMS) $model = substr($model, 0, $p + 1); // don't tell the user to type something unless it's SMS
     }
@@ -393,7 +393,7 @@ function httpRequest($url, $content = FALSE, $responseFormat = 'raw', $extra_hea
   if ($content) {
     $content = http_build_query($content);
     if ($method == 'POST') {
-      if ($request_format == 'json') $content = json_encode($content, JSON_UNESCAPED_SLASHES);
+      if ($request_format == 'json') $content = u\jsonEncode($content);
       $http += compact('content');
     } else $url .= '?' . $content;
   }
@@ -431,7 +431,8 @@ function randomInt($len = NULL) {
  * @return string: the string with constant names replaced by their values
  */
 function SUBS($string, $prefix = ':', $flagField = 'flags') {
-  $string = preg_replace("/\\{$prefix}IS_([A-Z0-9_]*)/ms", "($flagField&(1<<:B_$1))", $string);
+  $string = preg_replace("/([a-z]+[0-9]?\.)?{$prefix}IS_([A-Z0-9_]*)/ms", "($1$flagField&(1<<:B_$2))", $string);
+//  $string = preg_replace("/\\{$prefix}IS_([A-Z0-9_]*)/ms", "($flagField&(1<<:B_$1))", $string);
   preg_match_all("/\\$prefix([A-Z_][A-Z0-9_]*)/ms", $string, $matches);
   $map = array();
   foreach ($matches[1] as $one) if (defined($one)) $map["$prefix$one"] = constant($one);
@@ -462,7 +463,7 @@ function EXPECT($assertion, $message = '', $ret = FALSE) {
 ///    EXPECT(compact(ray('args types')), 'assoc string'); // can't do this because infinite recursion
 ///    EXPECT(count($args) != count($types = explode(' ', $types)), 'wrong number of types expected'); // infinite recursion
 //    if(count($args) != count($types = explode(' ', $types))) die('wrong number of types expected: ' . print_r(debug_backtrace(), 1));
-/*/*/ if (count($args) != count(explode(' ', $types))) debug(debug_backtrace()); // keep
+/**/ if (count($args) != count(explode(' ', $types))) debug(debug_backtrace()); // keep
     $types = array_combine(array_keys($args), explode(' ', $types)); // not ray() here, $types may have '|'
     foreach ($args as $key => $value) if ($error = expect1($key, $value, $types[$key], $ret)) return $error;
   } elseif (!$assertion) {
@@ -522,9 +523,9 @@ function expect1($arg, $value, $type, $ret) {
  * @return the log record id (for exception handler and shutdown function)
  */  
 function loga($type, $info = array(), $special = '', $adhocChannel = FALSE) {
-  if (strlen($type) >= 60) die($type); // (KEEP) don't use EXPECT here
+  if (strlen($type) >= 60) die('in loga: ' . $type); // (KEEP) don't use EXPECT here
   global $channel;
-  $useTextLogToo = isDEV;
+  $useTextLogToo = FALSE; // isDEV;
 
   $myid = @r\acct()->id;
   $agent = @r\acct()->agentId;
@@ -536,11 +537,19 @@ function loga($type, $info = array(), $special = '', $adhocChannel = FALSE) {
   if (isNonce($special) and @$info['message']) $info['message'] = str_replace(": $special", ': @nonce', $info['message']);
   // don't make code, password, and secret links any more accessible than they are
   foreach (u\ray(R_CONCEALED_FIELDS) as $one) if (@$info[$one]) $info[$one] = '(varies)';
-  $info = json_encode($info, JSON_UNESCAPED_SLASHES);
+  $info = u\jsonEncode($info);
   $channels = ray(TX_CHANNELS); 
   if ($useTextLogToo) file_put_contents($channels[$channel + 0] . '.log', "$date $type: $info\n", FILE_APPEND);
   $record = compact(ray('time channel type myid agent info special'));
-  return r\dbInsert('r_log', $record);
+//  if ($type == 'FATAL') {print_r($record); die(' in loga');}
+
+  if ($type == 'FATAL' and strpos($info, 'calling db_query() ')) {
+    return '';
+  } else {
+    $return = \Database::RETURN_INSERT_ID; // do NOT use r\dbInsert here (avoid loop in error handling)
+    return \db_query('INSERT INTO r_log (time, channel, type, myid, agent, info, special) VALUES (:time, :channel, :type, :myid, :agent, :info, :special)', u\prefixKeys(':', $record), compact('return'));
+  }
+//  return r\dbInsert('r_log', $record);
 }  
 
 function seeAssoc($info) {
@@ -666,6 +675,20 @@ function ezencrypt($data, $key = '', $encrypt = TRUE) {
 } 
 
 function ezdecrypt($data, $key = '') {return ezencrypt($data, $key, FALSE);}
+
+/**
+ * Reword a Dwolla error message.
+ * @param string $msg: the original message
+ * @return string: the revised message
+ */
+function redw($msg) {
+  $lame = t(' Some operations will be unavailable.');
+  $map = array(
+    'Access token is empty.' => t('Your account is not currently connected to Dwolla.' . $lame),
+    'Request failed. Server responded with: 0' => t('Dwolla is currently offline.' . $lame),
+  );
+  return strtr($msg, $map);
+}
 
 /**
  * Return a random ascii string (good for mcrypt key).
@@ -821,6 +844,13 @@ EOF;
   return u\ray('state city', @$result['State'], ucwords(strtolower(@$result['City'])));
 }  
 
+function purify($s) {
+  if (is_array($s)) {
+    foreach ($s as $key => $value) $s[$key] = purify($value);
+    return $s;
+  } return preg_replace('/( [\x00-\x7F] | [\xC0-\xDF][\x80-\xBF] | [\xE0-\xEF][\x80-\xBF]{2} | [\xF0-\xF7][\x80-\xBF]{3} ) | ./x', '$1', $s);
+}
+
 // Single line functions that need no explanation
 function nn($a, $else = '') {return is_null($a) ? $else : $a;}
 function num($a, $else = 0) {return is_numeric($a) ? $a : $else;}
@@ -858,3 +888,4 @@ function bit($bit) {return 1 << $bit;}
 function log($message, $type = 'state', $info = array()) {return u\loga($type, compact('message') + $info);}
 function consta($prefix, $var) {return constant(strtoupper($prefix . "_$var"));}
 function isIPhone() {return preg_match('/iPhone/i', $_SERVER['HTTP_USER_AGENT']);}
+function jsonEncode($s) {return json_encode($s) ?: json_encode(purify($s));} // , JSON_UNESCAPED_SLASHES

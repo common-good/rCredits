@@ -44,15 +44,15 @@ class rwebRealUsd extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id   | fullName   | dwolla          | country | email         | flags                |'
-    . '\\| .ZZA | Abe One    | %DW_TEST_ACCT   | US      | a@ | dft,ok,person,bona |'
-    . '\\| .ZZB | Bea Two    | %DW_TESTER_ACCT | US      | b@ | dft,ok,person,bona |"');
+    . '\\| id   | fullName   | dw | country | email | flags              |'
+    . '\\| .ZZA | Abe One    |  1 | US      | a@    | dft,ok,person,bona |'
+    . '\\| .ZZB | Bea Two    |  0 | US      | b@    | dft,ok,person,bona |"');
     And__('transactions: "DATA'
     . '\\| xid | created   | type   | amount | from | to   | purpose | taking |'
     . '\\|   1 | %today-6m | signup |     10 | ctty | .ZZA | signup  | 0      |"');
-    And__('usd: "DATA'
-    . '\\| id   | usd |'
-    . '\\| .ZZA | 5   |"');
+    And__('balances: "DATA'
+    . '\\| id   | dw/usd |'
+    . '\\| .ZZA |      5 |"');
     break;
 
 
@@ -74,8 +74,8 @@ class rwebRealUsd extends DrupalWebTestCase {
     . '\\| payer | payee | amount |'
     . '\\| .ZZA  |  .ZZB |   0.20 |"');
     And__('balances: "DATA'
-    . '\\| id   | r    | usd  | rewards |'
-    . '\\| .ZZA | 0.50 | 4.80 |   10.50 |"');
+    . '\\| id   | r    | dw/usd | rewards |'
+    . '\\| .ZZA | 0.50 |   4.80 |   10.50 |"');
     When_('member ".ZZA" visits page "transactions/period=365"');
     Then_('we show "Transaction History" with: "DATA'
     . '\\| Start Date | End Date | Start Balance | From You | To You | Rewards | End Balance |'
@@ -96,8 +96,8 @@ class rwebRealUsd extends DrupalWebTestCase {
     . '\\| short |'
     . '\\| $0.01 |"');
     And__('balances: "DATA'
-    . '\\| id   | r  | usd | rewards |'
-    . '\\| .ZZA | 10 |   5 |      10 |"');
+    . '\\| id   | r  | dw/usd | rewards |'
+    . '\\| .ZZA | 10 |      5 |      10 |"');
   }
 
   // Scenario: A member buys something when Dwolla is down
@@ -113,8 +113,8 @@ class rwebRealUsd extends DrupalWebTestCase {
     . '\\|   3 | rebate   | done  |    .50 |  .50 | ctty | .ZZA | rebate on #2 | 0      |        |'
     . '\\|   4 | bonus    | done  |   1.00 | 1.00 | ctty | .ZZB | bonus on #1  | 0      |        |"');
     And__('balances: "DATA'
-    . '\\| id   | r    | usd  | rewards |'
-    . '\\| .ZZA | 0.50 | 4.80 |   10.50 |"');
+    . '\\| id   | r    | dw/usd | rewards |'
+    . '\\| .ZZA | 0.50 |   4.80 |   10.50 |"');
     And__('usd transfer count is 0');
   }
 

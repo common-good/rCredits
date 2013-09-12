@@ -112,9 +112,14 @@ foreach (array(3201932, 3244519, 3350610, 3510402) as $one) {
 }
 
  */
-function changeIt($txid) {
-$payee = r\dbLookup('payee', 'r_usd', 'txid=:txid', compact('txid'));
-r\Cron\coverFee(compact('txid', 'payee'));
+function changeIt($a) {
+  $postalAddr = $a->address . ', ' . $a->city . ', ' . r\realState($a->state) . ' ' . $a->postalCode;
+  list ($address) = explode(',', $a->postalAddr);
+  if (!$address) $address = $a->address;
+  $a->update(compact('address', 'postalAddr'));
+
+//$payee = r\dbLookup('payee', 'r_usd', 'txid=:txid', compact('txid'));
+//r\Cron\coverFee(compact('txid', 'payee'));
 }
 
 function suUsd() {
@@ -125,14 +130,14 @@ function suUsd() {
     t\clear(TX_WEB); // make sure the usdAccount is not used by anyone else
     $a->update(u\ray('usdAccount', DW_TESTER_ACCT));
     $us->getAuth();
-/*/*/  die('should not return to suUsd');
+/**/  die('should not return to suUsd');
   }
   if (isPRODUCTION and $us->bal() < $testUsdMin) {
     $cgf = r\acct('NEW.AAB');
     $for = 'testing';
     be\transfer('payment', $a, $cgf, $testUsdMin, $for);
     be\transfer('payment', $cgf, $a, $testUsdMin, $for); // CGF sends back the whole amount in usd
-/*/*/  debug("$$testUsdMin traded with CGF");
+/**/  debug("$$testUsdMin traded with CGF");
   }
 }
 

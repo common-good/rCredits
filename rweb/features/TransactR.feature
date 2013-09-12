@@ -22,7 +22,7 @@ Setup:
   | NEW.AAAB | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |
   | NEW.AAAC | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZB | signup  | 0      |
   | NEW.AAAD | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZC | signup  | 0      |
-  And usd:
+  And balances:
   | id        | usd  |
   | community | 1000 |
   | NEW.ZZA   |  100 |

@@ -64,23 +64,33 @@ class usd {
     $result = $dw->register2($usdEmail, $usdPass, $usdPin, @$first, @$last, @$dob, $type, @$org, @$ein, $acceptTerms);
 //    debug($result);
     if (!$auth = @$result['OAuthToken']) return dwError($dw, $err); // set error message, if any
-    $me = $dw->me();
-    $usdAccount = str_replace('-', '', $me['Id']);
-    $a = $this->acct;
-    if (r\whoseUsd($usdAccount, $a->id)) return dwError(u\tt('usd account taken'));
-    $secure = $a->secure;
-    $secure['auth'] = $auth;
-    $a->update(compact(u\ray('secure usdAccount')));
+    $secure = compact('auth') + $this->acct->secure;
+    $this->acct->update(compact('secure'));
+    list ($this->type, $this->pin, $this->auth) = array('Dwolla', $usdPin, $auth); // must precede me()
+    $dw->me(); // set usdAccount and $this->number
 
-    list ($this->type, $this->pin, $this->auth) = array('Dwolla', $usdPin, $auth);
-//    print_r(compact('uid','_GET','mya','usdAcct','dw','auth','secure')); die();
     return TRUE; // report success
   }    
 
+  /**
+   * Return basic account information and set usdAccount, if it hasn't yet been set.
+   * @return an assoc of basic info. On error, return FALSE and set $err.
+   */
+  public function me(&$err = '') {
+    $dw = $this->dwolla();
+    if (!$me = $dw->me()) return dwError($dw, $err);
+    if ($a = $this->acct and !$a->usdAccount) {
+      $this->number = $usdAccount = str_replace('-', '', $me['Id']);
+      if ($other = r\whoseUsd($usdAccount, $a->id)) return dwError(u\tt('usd account taken', compact('other')), $err); // should probably be u\EXPECT() soon?
+      $a->update(compact('usdAccount'));
+    }
+    return $me;
+  }
+  
   function step(&$err = '') {
     $dw = $this->dwolla();
-    if (!$dw->step()) return dwError($dw, $err);
-    return TRUE;
+    if (!$step = $dw->step()) return dwError($dw, $err);
+    return $step;
   }
 
   function resendEmail(&$err = '') {
@@ -90,7 +100,7 @@ class usd {
   }
   
   /**
-   * Add and verify primary phone.
+   * Add primary phone.
    * @param string $phone: primary phone number (no punctuation)
    * @param string $verificationMethod: SMS or Voice
    * @param string $err: (returned) the error message, if any
@@ -102,6 +112,18 @@ class usd {
     return $phoneId;
   }
 
+  /**
+   * Resend phone verification code.
+   * @param string $phoneId: phone identifier
+   * @param string $err: (returned) the error message, if any
+   * @return TRUE if success
+   */
+  function reAddPhone($phoneId, &$err = '') {
+    $dw = $this->dwolla();
+    if (!$dw->reAddPhone($phoneId)) return dwError($dw, $err);
+    return TRUE;
+  }
+  
   /**
    * Verify primary phone.
    * @param string $phoneId: phone identifier
@@ -242,7 +264,7 @@ class usd {
     if ($me = $dw->me()) $me = (object) $me; else return authReturn($dw); // get dwolla Id, etc.
     
     $usdAccount = str_replace('-', '', $me->Id);
-    if (r\whoseUsd($usdAccount, $uid)) return authReturn(u\tt('usd account taken'));
+    if ($other = r\whoseUsd($usdAccount, $uid)) return authReturn(u\tt('usd account taken', compact('other')));
     if ($mya->city != $me->City) r\Web\say('dw mismatch', array('field' => 'City'));
     if (r\realState($mya->state) != $me->State) r\Web\say('dw mismatch', array('field' => 'State'));
     if ($mya->co() xor $me->Type != 'Personal') r\Web\say('dw mismatch', array('field' => 'Type'));
@@ -281,6 +303,7 @@ class usd {
    *   maybe: '?' (UNUSED for now)
    */
   public function send($amount, $other, $notes = R_DEFAULT_PURPOSE, &$err = NULL, $payerFee = FALSE, $direct = TRUE) {
+//  debug($this->acct->id . ' (' . $this->number . ') sending to ' . $other->acct->id . ' (' . $other->number . ')');
     u\EXPECT(self::inAtom(), 'usd transfer outside atom');
     u\EXPECT(is_object($this->acct), 'empty account: ' . print_r($this->acct, 1));
     u\EXPECT(is_object($other->acct), 'empty other account: ' . print_r($other->acct, 1));
@@ -303,9 +326,9 @@ class usd {
   /**
    * Set the account's USD balance by transferring funds to/from DW_TESTER_ACCT
    */
-  public function setbal($amount, &$err = '') {
+  public function setbal($target, &$err = '') {
     //u\EXPECT(t\est(), 'putting back');
-    $amount -= $this->bal($err); if (@$err) return FALSE;
+    $amount = $target - $this->bal($err); if (@$err) return FALSE;
     if ($amount < 0) {
       $amount = -$amount;
       $dw = $this->dwolla();
@@ -320,7 +343,7 @@ class usd {
       $other = self::format($this->number);
       $result = $dw->send($us->pin, $other, $amount, 'Dwolla', 'setbal up', 0, FALSE) ?: dwError($dw, $err);
     } else $result = TRUE;
-    t\output($err ?: $this->acct->mainQid . ' balance set to ' . $this->bal());
+    if (!@$err) t\output($this->acct->mainQid . ' balance set to ' . ($amount ? $this->bal() : $target), '');
     return (bool) $result;
   }
 
@@ -554,19 +577,21 @@ function noDw($dw, &$err = NULL) {
 /**
  * Set error to the Dwolla error, check for unknown errors.
  * @param mixed $dw: the dwolla REST object, an error string, or ''
- * @param string $error: (returned) the error message if any, else ''
+ * @param string $err: (returned) the error message if any, else ''
  * @return: FALSE if there is an error, else TRUE
  */
-function dwError($dw, &$error = '') {
-  if (!$error = is_object($dw) ? $dw->getError() : $dw) return TRUE;
+function dwError($dw, &$err = '') {
+  if (!$err = is_object($dw) ? $dw->getError() : $dw) return TRUE;
+  $error = substr($err, 0, 255); // avoid "too long" error
   if (!r\dbExists('r_usderror', 'error=:error and NOT ok', compact('error'))) {
     $stack = debug_backtrace();
     $op = $stack[1]['function'];
-    r\tellStaff('Unprecedented Dwolla error: @error in @op', compact('error', 'op'));
+    r\tellStaff('Unprecedented Dwolla error: @err in @op', compact('err', 'op'));
     $created = REQUEST_TIME;
     r\dbInsert('r_usderror', compact(u\ray('error op created')));
   }
-  $error = u\tt($error); // get long version, if any
+  $err = u\tt($err); // get long version, if any
+  if (t\est()) t\output('In dwError: ' . $err);
   return FALSE;
 }
 

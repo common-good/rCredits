@@ -42,10 +42,10 @@ function formTxs($form, &$sta, $args = '') {
   $mya = r\acct();
   
   extract(u\just('options period starting ending do xid download downloaded variety', $args)); 
-  $report = $mya->can(B_CTTY_ADMIN) ? (@$variety == 'report') : FALSE; // no community reports yet for non-admins
+  $report = $mya->can(B_CTTY_ADMIN) ? (@$variety == 'stats') : FALSE; // no community reports yet for non-admins
   if (!$report and @$do) if ($result = handleTx($do, $xid, $sta, $args)) return $result;
 
-  $page = $report ? 'reports' : 'transactions';
+  $page = $report ? 'stats' : 'transactions';
   if (!@$period) $period = TX_DEFAULT_PERIOD;
   if (strlen(@$options) != count($urlOpts = u\ray(TX_URL_OPTS))) $options = $mya->person() ? '2200000' : '2210000'; // defaults for TX_OPT_KEYS options (2=both)
   $options = array_combine($urlOpts, str_split($options));
@@ -125,7 +125,7 @@ function formTxs($form, &$sta, $args = '') {
   $radios = array(t('completed'), t('open invoices'), t('both'));
   $states = formField('radios', t('Types:'), '', dft($states), $radios);
   $opts2Desc = TRUE ? '' : t('Agent is who did the transaction on your behalf. Channel ("Via") is Web, Smartphone, SMS, or Automatic. Exchanges are 1-to-1 trades of rCredits for US Dollars. PExchanges are 1-to-1 trades that earn incentive rewards.');
-  $opts2 = boxField('opts', t('Show:'), $opts2Desc, $optDefaults, $opts);
+  $opts2 = boxesField('opts', t('Show:'), $opts2Desc, $optDefaults, $opts);
   
   $divider = item('<hr>');
   $period = formField('select', t('For the past:'), '', dft($period), $txDays);
