@@ -18,6 +18,8 @@ use rCredits\Backend as be;
 define('HOUR_SECS', 3600);
 define('DAY_SECS', 24 * HOUR_SECS);
 define('WEEK_SECS', 7 * DAY_SECS);
+define('R', '<span class="r">r</span>');
+define('US', '<span class="us">us</span>');
 require_once __DIR__ . '/rcredits-settings.inc'; // must precede other definitions
 
 define('MINI_LAUNCH', TRUE);
@@ -612,7 +614,7 @@ function makeDo($type, $uid, $amount = 0, $timeLimit = WEEK_SECS, $subs = '', $s
  */
 function rMail($index, $email, $lingo, $info) {
   $info['email'] = $email;
-  if (isDEV or isSTAGE) if ($email != R_ORG_EMAIL and $email != R_TESTER_EMAIL) $email = 'none@example.com'; // black hole
+  if (!isPRODUCTION) if ($email != R_ORG_EMAIL and $email != R_TESTER_EMAIL) $email = 'none@example.com'; // black hole
   \drupal_mail('rCredits', $index, $email, '', $info);
 }
 
@@ -776,7 +778,7 @@ function setTxField($fieldName, $newValue, $xid, $allRelated = FALSE) {
   $sql = "UPDATE r_txs SET $fieldName=:newValue,data=:data$completion WHERE $where";
   $sql2 = "UPDATE r_txs SET $fieldName=:newValue$completion WHERE serial=:xid AND type<>:TX_TRANSFER";
 //  $sql2 = str_replace(', data=:data', '', str_replace('xid=:xid', 'serial=:xid', $sql));
-  
+
   $DBTX = \db_transaction();
   dbQ($sql, compact(u\ray('newValue data xid')));
   if ($allRelated) dbQ($sql2, compact(u\ray('newValue xid'))); // gotta do the auxiliary records separately so as not to affect their data field (separate query, to avoid "unbuffered query" error -- known Drupal bug)
@@ -1352,6 +1354,8 @@ function stats($ctty = 'ALL', $when = REQUEST_TIME) {
 
   $sql = 'SELECT * FROM r_stats WHERE created<=:when AND ctty=:ctty ORDER BY id DESC LIMIT 1';
   return r\dbQ($sql, compact('ctty', 'when'))->fetchAssoc();
+//  $info['grant'] = $info['grants']; unset($info['grants']); // accommodate drupal bug (see table def)
+//  return $info;
 }
   
 /**
@@ -1364,16 +1368,16 @@ function getStats($ctty, $created = NULL) {
   u\setDft($created, time());
   $subs = compact('ctty', 'created');
   $sql = <<<EOF
-    SELECT SUM(IF(:IS_PERSON, 1, 0)) AS pAccts, SUM(IF(:IS_PERSON, 0, 1)) AS bAccts, 
-    SUM(r) AS r, SUM(usd) AS usd
-    FROM users WHERE :IS_OK AND community=:ctty AND created<=:created
+    SELECT SUM(IF(:IS_PERSON, 1, 0)) AS pAccts, SUM(IF(:IS_PERSON, 0, 1)) AS bAccts
+    FROM users WHERE :IS_OK AND uid>1 AND community=:ctty AND created<=:created
 EOF;
   $result1 = r\dbQ($sql, $subs)->fetchAssoc() ?: array();
+// (calculate instead, so getStats will work for old dates)    SUM(r) AS r, SUM(usd) AS usd
   
   $sums = '';
-  foreach (u\ray('signup rebate bonus inflation grant loan fine') as $one) {
+  foreach (u\ray('signup rebate bonus inflation refund grant loan fine') as $one) {
     $ONE = strtoupper($one);
-    $sums .= "SUM(IF(type=:TX_$ONE, amount, 0)) AS `$one`, ";
+    $sums .= "SUM(IF(type=:TX_$ONE, IF(amount=0, t.r, amount), 0)) AS `{$one}s`, ";
 //    $sums .= "SUM(IF(type=:TX_$ONE, 1, 0)) AS {$one}Count, ";
   }
   $sql = <<<EOF
@@ -1382,6 +1386,7 @@ EOF;
     WHERE (u.community=:ctty OR u2.community=:ctty) AND t.state>=:TX_DONE AND completed<=:created
 EOF;
   $result2 = r\dbQ($sql, $subs)->fetchAssoc() ?: array();
+  $result2['r'] = array_sum($result2) - $result2['shared'] - 2 * $result2['fines'];
 
   $subs += u\ray('monthAgo', strtotime('-1 month', $created));
   $amt = 'IF(amount=0, t.r, amount)'; // for payment exchanges, the amount is in r
@@ -1393,26 +1398,31 @@ EOF;
     SUM(IF(goods AND NOT u.:IS_PERSON AND NOT u2.:IS_PERSON, $amt, 0)) AS b2bPerMo,
     SUM(IF(goods AND NOT u.:IS_PERSON AND u2.:IS_PERSON, $amt, 0)) AS b2pPerMo,
     SUM(IF(amount=0 AND NOT goods, t.r, 0)) AS xchPerMo, 
+    SUM(IF(amount<>0 AND NOT goods, amount, 0)) AS cashPerMo,
 
     SUM(IF(goods, 1, 0)) AS txsPerMo,
     SUM(IF(goods AND u.:IS_PERSON AND NOT u2.:IS_PERSON, 1, 0)) AS p2bTxsPerMo,
     SUM(IF(goods AND NOT u.:IS_PERSON AND NOT u2.:IS_PERSON, 1, 0)) AS b2bTxsPerMo,
     SUM(IF(goods AND NOT u.:IS_PERSON AND u2.:IS_PERSON, 1, 0)) AS b2pTxsPerMo,
-    SUM(IF(amount=0 AND NOT goods, 1, 0)) AS xchTxsPerMo
+    SUM(IF(amount=0 AND NOT goods, 1, 0)) AS xchTxsPerMo,
+    SUM(IF(amount<>0 AND NOT goods, 1, 0)) AS cashTxsPerMo
 
-    FROM r_txs t LEFT JOIN users u ON t.payer=u.uid LEFT JOIN users u2 ON t.payee=u.uid
+    FROM r_txs t LEFT JOIN users u ON u.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
     WHERE (u.community=:ctty OR u2.community=:ctty) AND t.state>=:TX_DONE 
-    AND completed BETWEEN :monthAgo AND :created
+    AND completed>:monthAgo AND completed<=:created
 EOF;
   $result3 = r\dbQ($sql, $subs)->fetchAssoc() ?: array();
-  
+
   $sql = <<<EOF
-    SELECT IF(amount<0, -amount, 0) AS bankInPerMo, IF(amount<0, 0, amount) AS bankOutPerMo
+    SELECT SUM(IF(amount<0, -amount, 0)) AS bankInPerMo,
+    SUM(IF(amount<0, 0, amount)) AS bankOutPerMo
     FROM r_usd t LEFT JOIN users u ON t.payer=u.uid
     WHERE u.community=:ctty AND t.completed AND t.payee=0
-    AND completed BETWEEN :monthAgo AND :created
+    AND completed<=:created AND :monthAgo>0
 EOF;
-  $result4 = r\dbQ($sql, $subs)->fetchAssoc() ?: array();
+  $usdResult = r\dbQ($sql, $subs)->fetchAssoc() ?: array(); // "AND :monthAgo>0" just to match sub count
+  $result4 = r\dbQ($sql . ' AND completed>:monthAgo', $subs)->fetchAssoc() ?: array();
+  $result4['usd'] = $usdResult['bankInPerMo'] - $usdResult['bankOutPerMo'] - $result2['refunds']; // (actually ever, not perMo)
 
 //debug(compact(u\ray('result1 result2 result3 result4')));
   $info = $result1 + $result2 + $result3 + $result4 + compact('created', 'ctty');

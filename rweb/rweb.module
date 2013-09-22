@@ -69,7 +69,7 @@ function rweb_menu() {
 
     'get' => r\Web\menu(t('Bank'), MENU_NORMAL_ITEM, 'showForm', array('Get'), 'manage bank ok'),
     'directory' => r\Web\menu(t('Find Companies'), MENU_NORMAL_ITEM, 'showForm', array('Directory'), 'sell'),
-    'stats' => r\Web\menu(t('Statistics'), MENU_NORMAL_ITEM, 'showForm', array('Reports', 1), '', $anyone),
+    'community' => r\Web\menu(t('Community'), MENU_NORMAL_ITEM, 'showForm', array('Reports', 1), '', $anyone),
     'undo' => r\Web\menu(t('Undo'), MENU_NORMAL_ITEM, 'undo', array(1), 'sell'), // only on mobile
     'remainder' => r\Web\menu(t('Show Customer Balance'), MENU_CALLBACK, 'remainder', array(1), 'sell'),
     'menu' => r\Web\menu(t('Menu'), MENU_CALLBACK, 'showForm', array('Menu'), '', $anyone),

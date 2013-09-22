@@ -57,8 +57,6 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     Recache Setup MAKE
  *     Sharing Setup MAKE
  *     SoldOut Setup MAKE
- *     Totals Setup MAKE
- *     VirtualPayments Setup MAKE
  */
 function members($list) {return t\members($list);}
 
@@ -80,9 +78,6 @@ function members($list) {return t\members($list);}
  *     Recache BalancesGetOutOfWhack BOTH
  *     Recache BalancesGetATinyBitOutOfWhack MAKE
  *     Sharing InflationAdjustmentsAreDistributed TEST
- *     Totals Setup BOTH
- *     VirtualPayments AMemberCompanyPaysSuppliersVirtually MAKE
- *     VirtualPayments AMemberCompanyPaysEmployeesVirtually MAKE
  */
 function balances($list) {return t\balances($list);}
 
@@ -104,10 +99,6 @@ function balances($list) {return t\balances($list);}
  *     Recache BalancesGetATinyBitOutOfWhack MAKE
  *     Sharing InflationAdjustmentsAreDistributed MAKE
  *     SoldOut MemberSoldSomeRCreditsThisWeek MAKE
- *     Totals Setup MAKE
- *     Totals CronCalculatesTheTotals MAKE
- *     VirtualPayments AMemberCompanyPaysSuppliersVirtually MAKE
- *     VirtualPayments AMemberCompanyPaysEmployeesVirtually MAKE
  */
 function cronRuns($op) {return t\cronRuns($op);}
 
@@ -120,8 +111,6 @@ function cronRuns($op) {return t\cronRuns($op);}
  *     Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank TEST
  *     IncompleteUsdTxs ADwollaOutageLeavesATransactionIncomplete TEST
  *     LostUsdTxs ASystemCrashLeavesATransactionIncomplete TEST
- *     VirtualPayments AMemberCompanyPaysSuppliersVirtually TEST
- *     VirtualPayments AMemberCompanyPaysEmployeesVirtually TEST
  */
 function usdTransfers($tx) {return t\usdTransfers($tx);}
 
@@ -136,8 +125,7 @@ function bankTransferCountIs($count) {return (t\usdTransferCount('payee=0') == $
 /**
  * relations: (ARG)
  *
- * in: Totals Setup MAKE
- *     VirtualPayments Setup MAKE
+ * in: 
  */
 function relations($relations) {return t\relations($relations);}
 
@@ -155,9 +143,6 @@ function relations($relations) {return t\relations($relations);}
  *     Sharing Setup MAKE
  *     Sharing InflationAdjustmentsAreDistributed TEST
  *     SoldOut Setup MAKE
- *     Totals Setup MAKE
- *     VirtualPayments AMemberCompanyPaysSuppliersVirtually TEST
- *     VirtualPayments AMemberCompanyPaysEmployeesVirtually TEST
  */
 function transactions($list) {return t\transactions($list);}
 
@@ -169,8 +154,6 @@ function transactions($list) {return t\transactions($list);}
  *     Gifts AContributionCanBeCompleted TEST
  *     Gifts ARecurringContributionCanBeCompleted TEST
  *     SoldOut MemberSoldSomeRCreditsThisWeek TEST
- *     VirtualPayments AMemberCompanyPaysSuppliersVirtually TEST
- *     VirtualPayments AMemberCompanyPaysEmployeesVirtually TEST
  */
 function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice, $id, $subs);}
 
@@ -202,7 +185,7 @@ function usd($list) {return t\usd($list);}
 /**
  * totals: (ARG)
  *
- * in: Totals CronCalculatesTheTotals TEST
+ * in: 
  */
 function totals($ray) {
   global $testOnly; if(!$testOnly) return FALSE;

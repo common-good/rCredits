@@ -303,7 +303,7 @@ class usd {
    *   maybe: '?' (UNUSED for now)
    */
   public function send($amount, $other, $notes = R_DEFAULT_PURPOSE, &$err = NULL, $payerFee = FALSE, $direct = TRUE) {
-//  debug($this->acct->id . ' (' . $this->number . ') sending to ' . $other->acct->id . ' (' . $other->number . ')');
+  t\output(t('@id1 (@num1) sending @amt USD to @id2 (@num2)', u\ray('@id1 @num1 @amt @id2 @num2', $this->acct->id, $this->number, u\fmtAmt($amount), $other->acct->id, $other->number)));
     u\EXPECT(self::inAtom(), 'usd transfer outside atom');
     u\EXPECT(is_object($this->acct), 'empty account: ' . print_r($this->acct, 1));
     u\EXPECT(is_object($other->acct), 'empty other account: ' . print_r($other->acct, 1));
@@ -417,12 +417,12 @@ array (
 
   /**
    * Get funding source info
+   * @return the source array (FALSE if none)
    */
   public function source(&$error = NULL) {
     $dw = $this->dwolla();
     if (!noDw($dw) and !$sources = $dw->fundingSources()) return dwError($dw, $error);
-    $sources[0]['count'] = count($sources);
-    return $sources[0];
+    return $sources[0]['Id'] == 'Balance' ? @$sources[1] : $sources[0];
   }
   
   /**

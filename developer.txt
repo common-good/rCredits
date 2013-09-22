@@ -24,19 +24,29 @@ print card and welcome materials, mail to new member
 
 SOMETIME SOON RETROFIT:
 The following accounts need to have Dwolla switched to us ("integrated into the rCredits backend"):
-Barbara, gary, snow's, adam
-
-BEFORE FRIENDS LAUNCH:
-- automatic (suggested) ops
-- have a link on rcredits.org to "member signin'
+Barbara, gary, snow's, adam (just needs usd balance reconciled)
 
 To do: (* = before launch ** = earlier)
 
-. hide advanced features on Transactions page
+. don't list self as possible proxy
+. hover help on relations page and statistics page
+. if company agent tries to charge same company's agent, say "You need to sign out the previous cashier before scanning in."
+. scanning Emi's card should say "not (yet) authorized for purchases"
+. change Bank setting to Bank Info
+. on reversing a payment, rebate should show as negative, not empty
+. committed amount can go negative (on a refund). make sure cron handles it right.
+. sort txs by dt desc, by tid desc, before displaying
+. don't try to register admin (or any incomplete account)
+. show the right thing for bank transfers for ctty_admin statistics page or hide them
+. change "pexchanges" to "payex" and put it before exchanges on Transaction History page
+. add "Skip" and "Resume" to Gherkin (sets a "don't compile" flag for debugging, calls "And skip <# of steps>")
+. have Gherkin always send us the whole array, which must still be rectangular. use t\key() to make the first row or column keys for the others
+. drive xml error from USPS on Signin, and handle it gracefully
+. rewrite form testing system to use just menu_execute_active_handler, drupal_validate_form, etc. (assuring official behavior). For example, be able to test required fields.
+. hide advanced features on Transactions page (show either advanced or simple period selector, but not both)
 . (later, if wanted) add undo permission between sell and buy?
 . (later) suggest reaching out to increase rebate pct
 . payment exchanges should be limited to not include accummulated rewards
-. do $us->getAuth for MIA.AAA, once dw approves us.
 . coverFee from lost transaction cron
 . make invite a primary link
 . retrofit old accounts, recording dwollapin, etc.

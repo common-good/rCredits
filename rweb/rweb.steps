@@ -158,6 +158,7 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  *     Signup AMemberRegistersWithAnUnknownCompany TEST
  *     Signup AMemberRegistersACompany BOTH
  *     Signup ANewbieRegistersFromElsewhere TEST
+ *     Statistics Setup MAKE
  *     Summary Setup MAKE
  *     Transactions Setup MAKE
  *     TransactR Setup MAKE
@@ -178,6 +179,7 @@ function members($list) {return t\members($list);}
  *     RealUsd AMemberBuysSomethingWhenDwollaIsDown TEST
  *     Relations Setup MAKE
  *     ScanCard Setup MAKE
+ *     Statistics Setup MAKE
  *     Summary Setup MAKE
  *     Transactions Setup MAKE
  *     Transactions AMemberClicksNO MAKE
@@ -211,6 +213,7 @@ function transactions($list) {return t\transactions($list);}
  *     Signup AMemberRegistersWithABadCompany TEST
  *     Signup AMemberRegistersWithABadCompanyPhone TEST
  *     Transactions AMemberConfirmsOK TEST
+ *     Transactions AMemberConfirmsOKForADisputedTransaction TEST
  *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
  *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
  *     TransactR AMemberConfirmsRequestToPayTheSameMemberTheSameAmount TEST
@@ -333,6 +336,7 @@ function weShowWithSubs($page, $subs) {
  *     Signup ANewbieRegisters TEST
  *     Signup AMemberRegistersACompany TEST
  *     Signup ANewbieRegistersFromElsewhere TEST
+ *     Statistics CronCalculatesTheStatistics TEST
  *     Summary AMemberClicksOnTheSummaryTab TEST
  *     Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage TEST
  *     Summary AForeignRTraderClicksOnTheSummaryTab TEST
@@ -347,27 +351,8 @@ function weShowWithSubs($page, $subs) {
  */
 function weShowWith($title, $content = FALSE, $showDebugs = TRUE) {
   global $testOnly; if (!$testOnly) return FALSE;
-  if (empty($content)) $content = array(); // might be "" called directly from feature
-  array_unshift($content, compact('title'));
-  return t\shownWith($content, 'text', $showDebugs);
-}
-
-/**
- * we show (ARG) without: (ARG)
- *
- * in: Membership ACompanyAgentClicksOnTheMembershipLink TEST
- *     Relations MemberCompanyHasRelations TEST
- *     Relations ItsComplicated TEST
- *     Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage TEST
- *     Transactions AMemberLooksAtTransactionsForThePastYear TEST
- *     Transactions AMemberLooksAtTransactionsForThePastFewDays TEST
- *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
- */
-function weShowWithout($title, $content) {
-  global $testOnly; if (!$testOnly) return FALSE;
-  if (!weShowWith($title)) return FALSE;
-  foreach ($content as $one) if (weShowWith($title, array($one), FALSE)) return FALSE;
-  return TRUE;
+  if ($title and !weShow($title, $showDebugs)) return FALSE;
+  return weShow($content, $showDebugs);
 }
 
 /**
@@ -383,7 +368,7 @@ function withOptions($options, $showDebugs = TRUE) {
 /**
  * without options: (ARG)
  *
- * in: Signup AnInvitedNewbieVisitsTheRegistrationPage TEST
+ * in: 
  */
 function withoutOptions($options) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -409,6 +394,7 @@ function withoutOptions($options) {
  *     ScanCard Setup MAKE
  *     Signup AMemberRegistersWithAnExistingCompany TEST
  *     Signup AMemberRegistersACompany TEST
+ *     Statistics Setup MAKE
  *     Summary Setup MAKE
  *     Transactions Setup MAKE
  *     TransactR Setup MAKE
@@ -431,6 +417,7 @@ function relations($relations) {return t\relations($relations);}
  *     Relations Setup TEST
  *     ScanCard Setup BOTH
  *     Signup AMemberRegistersACompany TEST
+ *     Statistics Setup BOTH
  *     Summary Setup TEST
  *     Transactions Setup BOTH
  *     Transactions AMemberClicksNO MAKE
@@ -482,6 +469,7 @@ function usd($list) {return t\usd($list);}
  *     Signup ANewbieVisitsTheRegistrationPageWithNoInvite MAKE
  *     Signup AnInvitedNewbieVisitsTheRegistrationPage MAKE
  *     Signup AMemberRegistersACompany MAKE
+ *     Statistics CronCalculatesTheStatistics MAKE
  *     Summary AMemberClicksOnTheSummaryTab MAKE
  *     Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage MAKE
  *     Summary AForeignRTraderClicksOnTheSummaryTab MAKE
@@ -628,9 +616,10 @@ function memberHasDoneStep($uid, $step) {
  * in: Membership AMemberDoesItAll TEST
  *     Signin AMemberSignsInForTheFirstTime TEST
  */
-function weShow($title) {
+function weShow($what, $show = TRUE) {
   global $testOnly; if (!$testOnly) return FALSE;
-  return weShowWith($title, array());
+  if ($what === '') return TRUE;
+  return t\ShownWith(is_array($what) ? $what : array(u\ray('_', $what)), 'text', $show);
 }
 
 /**
@@ -763,6 +752,7 @@ function dwollaIsDown() {
  * usd transfers: (ARG)
  *
  * in: RealUsd AMixedRCreditsUSDTransactionHappens TEST
+ *     Statistics Setup MAKE
  */
 function usdTransfers($tx) {return t\usdTransfers($tx);}
 
@@ -816,6 +806,7 @@ function agentCardCodeIs($id, $cardCode2) {
  * cron runs (ARG)
  *
  * in: Download Setup MAKE
+ *     Statistics Setup MAKE
  *     Transactions Setup MAKE
  *     TransactUsd AMemberConfirmsRequestToPayAnotherMember MAKE
  */
@@ -832,3 +823,53 @@ function memberHasADwollaAccountStep($id, $step) {
   $us = new rCredits\usd($a);
   return ($us->step() == $step);
 }
+
+/**
+ * without: (ARG)
+ *
+ * in: Membership ACompanyAgentClicksOnTheMembershipLink TEST
+ *     Relations MemberCompanyHasRelations TEST
+ *     Relations ItsComplicated TEST
+ *     Signup AnInvitedNewbieVisitsTheRegistrationPage TEST
+ *     Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage TEST
+ *     Transactions AMemberLooksAtTransactionsForThePastYear TEST
+ *     Transactions AMemberLooksAtTransactionsForThePastFewDays TEST
+ *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
+ */
+function without($content) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  if (!is_array($content)) return !weShow($content, FALSE);
+  foreach ($content as $one) if (weShow(array($one), FALSE)) return FALSE;
+  return TRUE;
+}
+
+/**
+ * statistics get set (ARG)
+ *
+ * in: Statistics Setup MAKE
+ *     Statistics CronCalculatesTheStatistics MAKE
+ */
+function statisticsGetSet($time) {
+  global $testOnly; if ($testOnly) return FALSE;
+  return r\getStats(r\serverUid(), $time) ? TRUE : FALSE;
+}
+
+/**
+ * we show (ARG) without: (ARG)
+ *
+ * in: 
+ */
+function weShowWithout($arg1, $arg2) {
+  global $testOnly;
+  todo;
+}
+
+/**
+ * with: (ARG)
+ *
+ * in: RealUsd AMixedRCreditsUSDTransactionHappens TEST
+ *     Relations ItsComplicated TEST
+ *     Transactions AMemberLooksAtTransactionsForThePastYear TEST
+ *     Transactions AMemberLooksAtTransactionsForThePastFewDays TEST
+ */
+function with($content) {return weShow($content);}

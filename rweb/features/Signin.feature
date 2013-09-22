@@ -8,7 +8,7 @@ Setup:
 
 Scenario: A member signs in for the first time
   Given invitation to email "a@" is "c0D3"
-  When member "?" confirms form "signup/code=c0D3" with values:
+  When member "?" confirms form "signup/code=c0D3&dwok=1" with values:
   | fullName | email | phone | country | postalCode | federalId | dob      | acctType     | code |
   | Abe One  | a@ | 413-253-0000 | US  | 01002    | 123-45-6789 | 1/2/1993 | %R_PERSONAL  | c0D3 |
   Then members:
@@ -18,8 +18,10 @@ Scenario: A member signs in for the first time
   Given member "NEW.AAC" one-time password is %whatever
   When member "?" visits page "/user/login"
   Then we show "Welcome" with:
-  | oldpass      | pass1        | pass2                | pin           |
-  | Tmp password | New password | Confirm new password | security code |
+  | Tmp password |
+  | New password |
+  | Confirm new password |
+  | security code |
   When member "?" confirms form "/user/login" with values:
   | name   | pass      | pass1  | pass2  | pin  |
   | abeone | %whatever | Aa1!.. | Aa1!.. | 1234 |

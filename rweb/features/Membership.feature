@@ -16,19 +16,30 @@ Setup:
 Scenario: A member clicks on the membership link
 #  Given member ".ZZA" supplies "postalAddr": "planet Earth"
   When member ".ZZA" visits page "status"
-  Then we show "Congratulations on signing up" with:
-  | Step 1    | Step 2       | Step 3       | Step 4            | Step 5      | Step 6 | Step 7  |
-  | Agreement | Contact Info | contribution | Choose two people | Preferences | photo  | Connect |
+  Then we show "Membership Steps" with:
+  | 1 | Agreement |
+  | 2 | Contact Info |
+  | 3 | Contribution |
+  | 4 | Choose two people |
+  | 5 | Preferences |
+  | 6 | Photo |
+  | 7 | Bank Account |
   And with done ""
 
 Scenario: A company agent clicks on the membership link
 #  Given member ".ZZC" supplies "postalAddr": "planet Earth"
   When member ":ZZA" visits page "status"
-  Then we show "Congratulations on signing up" with:
-  | Step 1    | Step 2       | Step 3       | Step 4      | Step 5 | Step 6  | Step 7       | Step 8    |
-  | Agreement | Contact Info | contribution | Preferences | photo  | Connect | company info | relations |
-  And we show "Congratulations on signing up" without:
-  | Step 4            |
+  Then we show "Membership Steps" with:
+  | 1 | Agreement |
+  | 2 | Contact Info |
+  | 3 | Contribution |
+  | 4 | Preferences |
+  | 5 | Photo |
+  | 6 | Bank Account |
+  | _ | optional |
+  | 7 | Company Info |
+  | 8 | Relations |
+  And without:
   | Choose two people |
   And with done ""
 

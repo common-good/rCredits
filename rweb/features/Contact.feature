@@ -12,7 +12,7 @@ Setup:
 Scenario: A member visits the contact info page
   When member ".ZZA" visits page "account/contact"
   Then we show "Contact Information" with:
-  | Your Name |
+  | Full name |
   | Abe One   |
 
 Scenario: A member updates contact info

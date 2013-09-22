@@ -126,7 +126,7 @@ function rcredits_mail($index, &$msg_array, $info) {
 //    $data['user'] = r\acct()->account();
 //    user_mail_tokens($variables, $data, compact('language')); // adds links for password reset and account cancelation
     $index = str_replace('_', '-', $index); // correct Drupal template names to rCredits standard
-    if (rcredits_im_send($index, $msg_array, $info)) return; // If we can send by instant-message, do not send by email.
+//    if (rcredits_im_send($index, $msg_array, $info)) return; // If we can send by instant-message, do not send by email.
     
     $uid = (int) $info['uid'];
     u\EXPECT($uid, 'bad uid in mail');

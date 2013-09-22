@@ -38,7 +38,7 @@ Scenario: a member company pays suppliers virtually
   And usd transfers:
   | payer | payee | amount |
   | .ZZA  |  .ZZC | %chunk |
-  | .ZZB  |  .ZZC | %chunk |
+  And usd transfer count is 1
   And we notice "payment exchanges offered" to member ".ZZC" with subs:
   | offers | total        | whom      |
   |      1 | $%(%chunk) r | suppliers |

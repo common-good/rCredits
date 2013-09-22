@@ -91,7 +91,7 @@ ul.tabs.primary {padding:0; margin-left:4em; margin-top:.8em; font-size:85%;}
 .tabs ul.primary li:last-child {display:none;}
 
 .r {font-weight:bold; color:green;}
-.us {font-weight:bold; color:blue;}
+.us {font-weight:normal; color:blue;}
 
 /* Accounts Selector */
 #accounts {position:absolute; left:0; top:0; width:100%;}
@@ -157,6 +157,7 @@ form.rweb  .form-no {color:red;}
   form.labeled input.form-submit,
   form.labeled #edit-tip label,
   form.labeled .description,
+  form.labeled #edit-subheader,
   form.labeled #edit-subtext {margin-left:125px;}
 
 
@@ -221,6 +222,7 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformsignup .form-item-acctType .description {margin-bottom:20px;}
 #rcreditswebformsignup #graphics div {width:360px; margin:0px auto;}
 #rcreditswebformsignup #graphics img {height:50px; margin:10px 20px 10px 0;}
+#rcreditswebformsignup #veridian-logo {display:none;}
 #rcreditswebformsignup #help-link,
 #rcreditswebformsignup .form-item-agreed label {display:none;}
 
@@ -308,10 +310,13 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformproxies #edit-title {margin-left:0;}
 #rcreditswebformproxies #edit-subtext  {font-weight:normal; font-size:85%; margin-left:0;}
 
-/* Reports */
-#rcreditswebformreports .form-type-item,
-#rcreditswebformreports #edit-title {margin-bottom:0;}
-#rcreditswebformreports #edit-subtext {margin-bottom:10px;} 
+/* Reports (Statistics) */
+#rcreditswebformreports .form-type-item {margin-top:15px; margin-bottom:0;}
+#rcreditswebformreports #edit-title {margin-bottom:0; font-weight:bold;}
+#rcreditswebformreports #edit-subheader {margin-top:0px; margin-bottom:35px; font-size:110%;} 
+#rcreditswebformreports #edit-subtext {margin-left:0;} 
+#rcreditswebformreports #edit-subtext em {font-weight:bold; font-style:normal; color:darkred;}
+
 #rcreditswebformreports .form-type-checkboxes {margin-bottom:0;}
 #rcreditswebformreports .form-type-checkbox {width:110px;}
 #rcreditswebformreports .form-type-radios {border:0;}
@@ -324,6 +329,15 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformreports input {max-width:110px;}
 #rcreditswebformreports .form-item-states,
 #rcreditswebformreports .form-item-states label {margin-top:15px;}
+#rcreditswebformreports  label {color:darkblue;}
+#rcreditswebformreports #edit-p2p,
+#rcreditswebformreports #edit-p2b,
+#rcreditswebformreports #edit-b2b,
+#rcreditswebformreports #edit-b2p {font-size:85%; margin:0 0 0 32px;}
+#rcreditswebformreports #edit-p2p label,
+#rcreditswebformreports #edit-p2b label,
+#rcreditswebformreports #edit-b2b label,
+#rcreditswebformreports #edit-b2p label {color:darkgray;}
 
 #rcreditswebformreports .tx-selector {width:1em;}
 /* for IE; text-align in <col> should have no effect according to CSS 2.1 */ 
@@ -387,6 +401,8 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformtxs .form-type-radios label {display:inline-block;}
 #rcreditswebformtxs .form-type-radio {display:block;} /* less good for browser, better for mobile
 #rcreditswebformtxs .form-type-radio label {width:12em; height:17px;} */
+#rcreditswebformtxs .form-item-opts-4,
+#rcreditswebformtxs .form-item-opts-5 {display:none;}
 
 #rcreditswebformtxs .tx-selector {width:1em;}
 /* for IE; text-align in <col> should have no effect according to CSS 2.1 */ 
@@ -394,7 +410,7 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformtxs .tx-date {width:7.5%; text-align:right;} /* 2 date */
 #rcreditswebformtxs .tx-fromyou {width:9.5%; text-align:right;} /* 4 from you */
 #rcreditswebformtxs .tx-toyou {width:9.5%; text-align:right;} /* 5 to you */
-#rcreditswebformtxs .tx-rpct {width:5%; text-align:right;} /* 6 r% */
+#rcreditswebformtxs .tx-rpct {width:0; display:none; text-align:right;} /* 6 r% */
 #rcreditswebformtxs .tx-r,
 #rcreditswebformtxs .tx-usd,
 #rcreditswebformtxs .tx-net {width:0; display:none;}
@@ -410,7 +426,7 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformtxs th:first-child +th+th {text-align:left;} /* col 3: name */
 /* #rcreditswebformtxs th:first-child +th+th+th {text-align:right;} /* col 4: fromyou */
 /* #rcreditswebformtxs th:first-child +th+th+th+th {text-align:right;} /* col 5: toyou */
-/* #rcreditswebformtxs th:first-child +th+th+th+th+th {text-align:right;} /* col 6: rpct */
+#rcreditswebformtxs th:first-child +th+th+th+th+th {display:none;} /* col 6: rpct */
 #rcreditswebformtxs th:first-child +th+th+th+th+th+th {display:none;} /* col 7: r */
 #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th {display:none;} /* col 8: usd */
 /* #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th {text-align:right;} /* col 9: state */

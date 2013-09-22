@@ -47,7 +47,7 @@ function formTxs($form, &$sta, $args = '') {
 
   $page = $report ? 'stats' : 'transactions';
   if (!@$period) $period = TX_DEFAULT_PERIOD;
-  if (strlen(@$options) != count($urlOpts = u\ray(TX_URL_OPTS))) $options = $mya->person() ? '2200000' : '2210000'; // defaults for TX_OPT_KEYS options (2=both)
+  if (strlen(@$options) != count($urlOpts = u\ray(TX_URL_OPTS))) $options = $mya->person() ? '2200001' : '2210001'; // defaults for TX_OPT_KEYS options (2=both)
   $options = array_combine($urlOpts, str_split($options));
 //  u\setDft($states, STATES_BOTH); // both  
 //  u\setDft($currency, 2); // both
@@ -329,7 +329,8 @@ function formTxs_validate($form, &$sta) {
   $txDays = @$form['period']['#options'];
   extract(u\just('period starting ending opts', $sta['input']));
   $op = op($sta);
-  list ($sta['input']['starting'], $sta['input']['ending']) = ($op == 'submitPeriod' or $op == 'downloadPeriod') ? txDates($txDays, @$period) : txDates($txDays, '', @$starting, @$ending);
+  list ($starting, $ending, $period) = ($op == 'submitPeriod' or $op == 'downloadPeriod') ? txDates($txDays, @$period) : txDates($txDays, '', @$starting, @$ending);
+  u\preray(compact(u\ray('starting ending period')), $sta['input']);
 }
 
 function formTxs_submit($form, &$sta, $page = 'transactions') {
@@ -355,7 +356,7 @@ function formTxs_submit($form, &$sta, $page = 'transactions') {
  * @param int $period: index into $txDays -- for calculating starting and ending if none explicitly specified
  * @param int $starting: explicit starting date (optional)
  * @param int $ending: explicit ending date (optional)
- * @return array($starting, $ending), where $starting is adjusted to start of day and $ending to end of day
+ * @return array($starting, $ending, $period), where $starting is adjusted to start of day and $ending to end of day
  */
 function txDates($txDays, $period, $starting = '', $ending = '') {
   if (@$starting and !is_numeric($starting) and !$starting = strtotime($starting)) say('bad date', 'starting');
@@ -363,10 +364,10 @@ function txDates($txDays, $period, $starting = '', $ending = '') {
   if (@$ending and !is_numeric($ending) and !$ending = strtotime($ending)) say('bad date', 'ending');
   if (!@$ending or $ending > REQUEST_TIME) $ending = REQUEST_TIME;
 
-  $period = (int) (@$period ?: TX_DEFAULT_PERIOD);
+  $period = (int) @$starting ? ($ending - $starting) / DAY_SECS : (@$period ?: TX_DEFAULT_PERIOD);
   $ago = @$txDays[$period] ?: ($period . ' days');
   if (!@$starting) $starting = strtotime($period == '-1' ? '1jan' : "$ago ago");
-  return array(strtotime('today', $starting), strtotime('tomorrow', $ending) - 1);
+  return array(strtotime('today', $starting), strtotime('tomorrow', $ending) - 1, $period);
 }  
 
 function txNeatAmounts(&$amount, &$reward, $is_reward) {
@@ -407,16 +408,21 @@ function txAct($do, $state, $toMe, $byMe) {
 /**
  * Handle click on 'OK' or 'NO' (approving or undoing a transaction)
  */
-function txOKorNO($tx_task, $xid) {
+function txOKorNO($task, $xid) {
   $myid = r\acct()->id;
   if (!$result = be\lastTx('xid=:xid', compact('xid'), TRUE)) return FALSE; // bail on hack attempt
-  extract(u\just('state amount toMe', $result));
-  if ($tx_task == 'ok') { // OK
+  extract(u\just('state amount payer toMe', $result));
+
+  if ($task == 'ok') { // OK
     u\EXPECT($state == TX_PENDING or $state == TX_DISPUTED, "bad state for #$xid: $state");
-    if ($toMe) {
+    if ($toMe) { // accepting payment exchange offer (UNUSED)
+      u\EXPECT(FALSE, 'payment offer');
       r\setTxState(TX_DONE, $xid); // accept the payment
-      // DWOLLA: initiate transfer from user to community
       list ($message, $args) = array('payment accepted', compact('amount'));
+    } elseif ($state != TX_PENDING) { // already done (probably disputed), so just change the state
+      r\setTxState(TX_DONE, $xid); // accept the charge
+      $who = r\acct($payer)->fullName;
+      list ($message, $args) = array('charge accepted', compact('who'));
     } else list ($message, $args) = be\payInvoice($xid);
   } else list ($message, $args) = be\undoTx($xid); // NO
   say($message, $args);

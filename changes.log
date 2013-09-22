@@ -1,3 +1,11 @@
+2013-09-22
+. initialized stats on server: for ($dt = strtotime('5/23/2013'); $dt < time(); $dt += DAY_SECS) rCredits\getStats(-8915, $dt);
+. made tests check for presence of labels on weShow, with, and without.
+. allowed vertical arrays in tests
+. disabled payment exchanges (virtual payments) in cron
+. hid r% column and option to show/hide exchanges on Transactions page
+. changed usd::source() to handle Dwolla's new practice of returning Dwolla balance as a source
+
 2013-09-05
 . changed physical field to postalAddr (and fixed data on production server)
 . completed automation of dwolla account setup for companies

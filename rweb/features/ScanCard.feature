@@ -45,14 +45,14 @@ Scenario: A member uses an rCard to pay
   Given member ".ZZB" card code is "WhAt3v3r"
   When member ":ZZD" visits page "I/ZZB.WhAt3v3r"
   Then we show "Bea Two" with:
-  | Location  | Button |
+  |_Location  |_Button |
   | Btown, UT | Charge |
 
 Scenario: A company agent uses an rCard to pay
   Given agent ".ZZB" card code is "WhAt3v3r"
   And member ":ZZD" visits page "I/ZZA-WhAt3v3r"
   Then we show "Bea Two" with:
-  | Company | Location  | Button |
+  |_Company |_Location  |_Button |
   | Abe One | Atown, AK | Charge |
   
 Scenario: Cashier charges rCard
@@ -70,12 +70,12 @@ Scenario: A member uses an OLD rCard to pay
   Given member ".ZZB" card code is "WhAt3v3r"
   When member ":ZZD" visits page "I/NEW.ZZB-WhAt3v3r"
   Then we show "Bea Two" with:
-  | Location  | Button |
+  |_Location  |_Button |
   | Btown, UT | Charge |
 
 Scenario: A company agent uses an OLD rCard to pay
   Given agent ".ZZB" card code is "WhAt3v3r"
   And member ":ZZD" visits page "I/NEW-ZZA-WhAt3v3r"
   Then we show "Bea Two" with:
-  | Company | Location  | Button |
+  |_Company |_Location  |_Button |
   | Abe One | Atown, AK | Charge |

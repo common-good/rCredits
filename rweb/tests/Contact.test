@@ -57,7 +57,7 @@ class rwebContact extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" visits page "account/contact"');
     Then_('we show "Contact Information" with: "DATA'
-    . '\\| Your Name |'
+    . '\\| Full name |'
     . '\\| Abe One   |"');
   }
 

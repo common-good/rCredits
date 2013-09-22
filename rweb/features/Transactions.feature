@@ -68,8 +68,8 @@ Scenario: A member clicks NO
   # otherwise test dies for lack of Dwolla accounts
   When member ".ZZA" visits page "transactions/period=5"
   Then we show "Transaction History" with:
-  | tid | Date   | Name       | From you | To you | Status   | Buttons | Purpose | Rewards |
-  | 12  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X       | cash CL | --      |
+  |_tid | Date   | Name       | From you | To you | Status   | _ | Purpose | Reward |
+  | 12  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X | cash CL | --     |
   # expand this to have rewards, for a better test
   When member ".ZZA" visits page "transactions/period=5&do=no&xid=100"
   Then we show "tx summary|confirm tx action" with subs:
@@ -85,9 +85,9 @@ Scenario: A member confirms NO
   | .ZZA | 500 |
   When member ".ZZA" confirms form "transactions/period=5&do=no&xid=100" with values: ""
   Then we show "Transaction History" with:
-  | tid | Date   | Name       | From you | To you | r%  | Status   | Buttons | Purpose               | Rewards |
-  | 13  | %dm    | Corner Pub | 101.00   | --     | 0.0 | %chk     | X       | reverses #12              | --  |
-  | 12  | %dm-5d | Corner Pub | --       | 101.00 | 100 | disputed |         | (reversed by #13) cash CL | --  |
+  |_tid | Date   | Name       | From you | To you | r%  | Status   | _ | Purpose                   | Reward |
+  | 13  | %dm    | Corner Pub | 101.00   | --     | 0.0 | %chk     | X | reverses #12              | --     |
+  | 12  | %dm-5d | Corner Pub | --       | 101.00 | 100 | disputed |   | (reversed by #13) cash CL | --     |
 
 Scenario: A member looks at transactions for the past year
 # Same result as above, but with tid#11 added
@@ -97,24 +97,27 @@ Scenario: A member looks at transactions for the past year
   # plus rebate and bonus transactions
   When member ".ZZA" visits page "transactions/period=365&options=%RUSD_BOTH%STATES_BOTH%_N%_N%_N%_XCH%_VPAY"
   Then we show "Transaction History" with:
-  | Start Date | End Date | Start Balance | From Bank | From You | To You | Rewards | End Balance |
-  | %dmy-12m   | %dmy     | $0.00         | 0.00      | 460.25   | 110.00 | 266.25  | - $84.00    |
-  |            |          | PENDING       | 0.00      | 200.00   | 200.00 | 15.00   | + $15.00    |
-  And we show "Transaction History" with:
-  | tid | Date   | Name       | From you | To you | r%   | Status  | Buttons | Purpose    | Rewards |
-  | 12  | %dm-3d | Corner Pub | 100.00   | 100.00 | --   | %chk    |         | virtual    | 10.00   |
-  | 11  | %dm    | %ctty      |   0.25   | --     | --   | %chk    |         | Dwolla fee | 0.25    |
-  | 10  | %dm-6d | Bea Two    | 100.00   | --     | 0.0  | %chk    | X       | cash V     | --      |
-  | 9   | %dm-6d | Bea Two    | --       | 100.00 | 100  | pending | X       | cash U     | --      |
-  | 8   | %dm-6d | Bea Two    | 100.00   | --     | 100  | pending | X       | cash T     | --      |
-  | 7   | %dm-1w | Corner Pub | 120.00   | --     | 66.7 | %chk    | X       | this Q     | 4.00    |
-  | 6   | %dm-2w | Corner Pub | --       | 100.00 | 100  | ok?     | OK X    | labor M    | 10.00   |
-  | 5   | %dm-3w | Bea Two    | 100.00   | --     | 100  | ok?     | OK X    | pie N      | 5.00    |
-  | 4   | %dm-3m | Bea Two    | 240.00   | --     | 16.7 | %chk    | X       | what G     | 2.00    |
-  | 3   | %dm-4m | Corner Pub | --       | 100.00 | 20.0 | %chk    | X       | usd F      | --      |
-  | 2   | %dm-5m | Bea Two    | --       | 10.00  | 100  | %chk    | X       | cash E     | --      |
-  | 1   | %dm-7m | %ctty      | --       | --     | 100  | %chk    |         | signup     | 250.00  |
-  And we show "Transaction History" without:
+  |_Start Date |_End Date |
+  | %dmy-12m   | %dmy     |
+  And with:
+  | Start  | From Bank | From You | To You | Rewards | End      |
+  | $0.00  | 0.00      | 460.25   | 110.00 | 266.25  | - $84.00 |
+  | PENDING       | 0.00      | 200.00   | 200.00 | 15.00   | + $15.00    |
+  And with:
+  |_tid | Date   | Name       | From you | To you | r%   | Status  |      | Purpose    | Reward |
+  | 12  | %dm-3d | Corner Pub | 100.00   | 100.00 | --   | %chk    |      | virtual    | 10.00  |
+  | 11  | %dm    | %ctty      |   0.25   | --     | --   | %chk    |      | Dwolla fee | 0.25   |
+  | 10  | %dm-6d | Bea Two    | 100.00   | --     | 0.0  | %chk    | X    | cash V     | --     |
+  | 9   | %dm-6d | Bea Two    | --       | 100.00 | 100  | pending | X    | cash U     | --     |
+  | 8   | %dm-6d | Bea Two    | 100.00   | --     | 100  | pending | X    | cash T     | --     |
+  | 7   | %dm-1w | Corner Pub | 120.00   | --     | 66.7 | %chk    | X    | this Q     | 4.00   |
+  | 6   | %dm-2w | Corner Pub | --       | 100.00 | 100  | ok?     | OK X | labor M    | 10.00  |
+  | 5   | %dm-3w | Bea Two    | 100.00   | --     | 100  | ok?     | OK X | pie N      | 5.00   |
+  | 4   | %dm-3m | Bea Two    | 240.00   | --     | 16.7 | %chk    | X    | what G     | 2.00   |
+  | 3   | %dm-4m | Corner Pub | --       | 100.00 | 20.0 | %chk    | X    | usd F      | --     |
+  | 2   | %dm-5m | Bea Two    | --       | 10.00  | 100  | %chk    | X    | cash E     | --     |
+  | 1   | %dm-7m | %ctty      | --       | --     | 100  | %chk    |      | signup     | 250.00 |
+  And without:
   | Purpose |
   | rebate  |
   | bonus   |
@@ -122,18 +125,21 @@ Scenario: A member looks at transactions for the past year
 Scenario: A member looks at transactions for the past few days
   When member ".ZZA" visits page "transactions/period=15&options=%RUSD_BOTH%STATES_BOTH%_N%_N%_N%_XCH%_VPAY"
   Then we show "Transaction History" with:
-  | Start Date | End Date | Start Balance | From You | To You | Rewards | End Balance |
-  | %dmy-15d   | %dmy     | $122.00       | 220.25   | 0.00   | 4.25    | - $94.00    |
-  |            |          | PENDING       | 200.00   | 200.00 | 15.00   | + $15.00   |
-  And we show "Transaction History" with:
-  | tid | Date   | Name       | From you | To you | r%   | Status  | Buttons | Purpose    | Rewards |
-  | 11  | %dm    | %ctty      |   0.25   | --     | --   | %chk    |         | Dwolla fee | 0.25    |
-  | 10  | %dm-6d | Bea Two    | 100.00   | --     | 0.0  | %chk    | X       | cash V     | --      |
-  | 9   | %dm-6d | Bea Two    | --       | 100.00 | 100  | pending | X       | cash U     | --      |
-  | 8   | %dm-6d | Bea Two    | 100.00   | --     | 100  | pending | X       | cash T     | --      |
-  | 7   | %dm-1w | Corner Pub | 120.00   | --     | 66.7 | %chk    | X       | this Q     | 4.00    |
-  | 6   | %dm-2w | Corner Pub | --       | 100.00 | 100  | ok?     | OK X    | labor M    | 10.00   |
-  And we show "Transaction History" without:
+  |_Start Date |_End Date |
+  | %dmy-15d   | %dmy     |
+  And with:
+  | Start   | From You | To You | Rewards | End      |
+  | $122.00 | 220.25   | 0.00   | 4.25    | - $94.00 |
+  | PENDING       | 200.00   | 200.00 | 15.00   | + $15.00   |
+  And with:
+  |_tid | Date   | Name       | From you | To you | r%   | Status  | _    | Purpose    | Reward |
+  | 11  | %dm    | %ctty      |   0.25   | --     | --   | %chk    |      | Dwolla fee | 0.25   |
+  | 10  | %dm-6d | Bea Two    | 100.00   | --     | 0.0  | %chk    | X    | cash V     | --     |
+  | 9   | %dm-6d | Bea Two    | --       | 100.00 | 100  | pending | X    | cash U     | --     |
+  | 8   | %dm-6d | Bea Two    | 100.00   | --     | 100  | pending | X    | cash T     | --     |
+  | 7   | %dm-1w | Corner Pub | 120.00   | --     | 66.7 | %chk    | X    | this Q     | 4.00   |
+  | 6   | %dm-2w | Corner Pub | --       | 100.00 | 100  | ok?     | OK X | labor M    | 10.00  |
+  And without:
   | Purpose  |
   | pie N    |
   | whatever |
@@ -163,13 +169,13 @@ Scenario: Transactions with other states show up properly
   | .ZZC |     311 |
   When member ".ZZA" visits page "transactions/period=5&options=%RUSD_BOTH%STATES_BOTH%_N%_N%_N%_XCH%_VPAY"
   Then we show "Transaction History" with:
-  | tid | Date   | Name       | From you | To you | Status   | Buttons | Purpose    | Rewards |
-  | 15  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X       | cash CL    | --      |
-  | 14  | %dm-5d | Corner Pub | 80.00    | --     | disputed | OK      | this CF    | 4.00    |
-  | 12  | %dm-5d | Corner Pub | --       | 100.00 | denied   | X       | labor CA   | 10.00   |
-  | 11  | %dm    | %ctty      |   0.25   | --     | %chk     |         | Dwolla fee | 0.25    |
+  |_tid | Date   | Name       | From you | To you | Status   | _  | Purpose    | Reward |
+  | 16  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X  | cash CL    | --     |
+  | 14  | %dm-5d | Corner Pub | 80.00    | --     | disputed | OK | this CF    | 4.00   |
+  | 12  | %dm-5d | Corner Pub | --       | 100.00 | denied   | X  | labor CA   | 10.00  |
+  | 11  | %dm    | %ctty      |   0.25   | --     | %chk     |    | Dwolla fee | 0.25   |
   # 13 is missing because ZZA denied it
-  And we show "Transaction History" without:
+  And without:
   | Purpose |
   | cash CE |
   | never   |
@@ -177,13 +183,13 @@ Scenario: Transactions with other states show up properly
   | bonus   |
   When member ".ZZC" visits page "transactions/period=5&options=%RUSD_BOTH%STATES_BOTH%_N%_N%_N%_XCH%_VPAY"
   Then we show "Transaction History" with:
-  | tid | Date   | Name       | From you | To you | Status   | Buttons | Purpose    | Rewards |
-  | 12  | %dm-5d | Abe One    | 100.00   | --     | disputed | OK      | cash CL    | --      |
-  | 10  | %dm-5d | Abe One    | --       | 80.00  | disputed | X       | this CF    | 8.00    |
-  | 9   | %dm-5d | Abe One    | --       | 5.00   | denied   | X       | cash CE    | --      |
-  | 7   | %dm    | %ctty      |   0.25   | --     | %chk     |         | Dwolla fee | 0.25    |
-  | 6   | %dm    | %ctty      |   0.25   | --     | %chk     |         | Dwolla fee | 0.25    |
-  And we show "Transaction History" without:
+  |_tid | Date   | Name       | From you | To you | Status   | _  | Purpose    | Reward |
+  | 12  | %dm-5d | Abe One    | 100.00   | --     | disputed | OK | cash CL    | --     |
+  | 10  | %dm-5d | Abe One    | --       | 80.00  | disputed | X  | this CF    | 8.00   |
+  | 9   | %dm-5d | Abe One    | --       | 5.00   | denied   | X  | cash CE    | --     |
+  | 7   | %dm    | %ctty      |   0.25   | --     | %chk     |    | Dwolla fee | 0.25   |
+  | 6   | %dm    | %ctty      |   0.25   | --     | %chk     |    | Dwolla fee | 0.25   |
+  And without:
   | Purpose |
   | labor CA|
   | never   |
@@ -198,8 +204,8 @@ Scenario: A member clicks OK
   | 102 | %today-5d | bonus    | pending |      8 | ctty | .ZZC | bonus    | 0      |
   When member ".ZZA" visits page "transactions/period=5"
   Then we show "Transaction History" with:
-  | tid | Date   | Name       | From you | To you | Status | Buttons | Purpose | Rewards |
-  | 12  | %dm-5d | Corner Pub | 80.00    | --     | ok?    | OK      | this CF | 4.00    |
+  |_tid | Date   | Name       | From you | To you | Status | _  | Purpose | Reward |
+  | 12  | %dm-5d | Corner Pub | 80.00    | --     | ok?    | OK | this CF | 4.00   |
   When member ".ZZA" visits page "transactions/period=5&do=ok&xid=100"
   Then we show "tx summary|confirm tx action" with subs:
   | amount | otherName  | otherDid | purpose | created   | txAction            |
@@ -219,8 +225,8 @@ Scenario: A member confirms OK
   | created | fullName   | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |
   | %today  | Corner Pub | Abe One   | $80    | this CF      | bonus           | $8                |
   And we show "Transaction History" with:
-  | tid | Date   | Name       | From you | To you | Status | Buttons | Purpose | Rewards |
-  | 13  | %dm    | Corner Pub | 80.00    | --     | %chk   | X       | this CF | 4.00    |
+  |_tid | Date   | Name       | From you | To you | Status | _ | Purpose | Reward |
+  | 13  | %dm    | Corner Pub | 80.00    | --     | %chk   | X | this CF | 4.00   |
   
 Scenario: A member confirms OK for a disputed transaction
   Given transactions:
@@ -230,8 +236,11 @@ Scenario: A member confirms OK for a disputed transaction
   | 102 | %today-5d | bonus    | disputed |      8 | ctty | .ZZC | bonus    | 0      |
   When member ".ZZA" confirms form "transactions/period=5&do=ok&xid=100" with values: ""
   Then we show "Transaction History" with:
-  | tid | Date   | Name       | From you | To you | Status | Buttons | Purpose | Rewards |
-  | 13  | %dm-5d | Corner Pub | 80.00    | --     | %chk   | X       | this CF | 4.00    |
+  |_tid | Date   | Name       | From you | To you | Status | _ | Purpose | Reward |
+  | 12  | %dm-5d | Corner Pub | 80.00    | --     | %chk   | X | this CF | 4.00   |
+  And we say "status": "charge accepted" with subs:
+  | who     |
+  | Abe One |
   
 Scenario: A member clicks NO
   Given transactions:
@@ -243,8 +252,8 @@ Scenario: A member clicks NO
   # otherwise test dies for lack of Dwolla accounts
   When member ".ZZA" visits page "transactions/period=5"
   Then we show "Transaction History" with:
-  | tid | Date   | Name       | From you | To you | Status   | Buttons | Purpose | Rewards |
-  | 12  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X       | cash CL | --      |
+  |_tid | Date   | Name       | From you | To you | Status   | _ | Purpose | Reward |
+  | 12  | %dm-5d | Corner Pub | --       | 100.00 | disputed | X | cash CL | --     |
   # expand this to have rewards, for a better test
   When member ".ZZA" visits page "transactions/period=5&do=no&xid=100"
   Then we show "tx summary|confirm tx action" with subs:
@@ -260,6 +269,6 @@ Scenario: A member confirms NO
   | .ZZA | 500 |
   When member ".ZZA" confirms form "transactions/period=5&do=no&xid=100" with values: ""
   Then we show "Transaction History" with:
-  | tid | Date   | Name       | From you | To you | r%  | Status   | Buttons | Purpose               | Rewards |
-  | 13  | %dm    | Corner Pub | 101.00   | --     | 0.0 | %chk     | X       | reverses #12              | --  |
-  | 12  | %dm-5d | Corner Pub | --       | 101.00 | 100 | disputed |         | (reversed by #13) cash CL | --  |
+  |_tid | Date   | Name       | From you | To you | r%  | Status   | _ | Purpose                   | Reward |
+  | 13  | %dm    | Corner Pub | 101.00   | --     | 0.0 | %chk     | X | reverses #12              | --     |
+  | 12  | %dm-5d | Corner Pub | --       | 101.00 | 100 | disputed |   | (reversed by #13) cash CL | --     |

@@ -68,7 +68,7 @@ class acct {
     $community = communityUid(@$my_postalCode); // defaults to current server
     $data = serialize(@$my_data ?: array());
 //    $frozen = serialize(array());
-    $created = $login = $access = REQUEST_TIME;
+    $created = $login = $access = @$my_created ?: REQUEST_TIME;
     $companyInfo = u\just(R_COMPANY_FIELDS, $info);
     foreach ($companyInfo as $key => $value) unset($info[$key]);
 
@@ -496,8 +496,7 @@ EOF;
    */
   function createUsdAccount(&$err) {
     $usdPass = user_password(20) . '*B2'; // satisfy Dwolla (and our own security)
-    $usdEmail = \user_password(isDEV ? 4 : 4) . '.' . $this->mainQid . '@rcredits-org.com';
-    $usdEmail = $this->mail; // temporary for Dwolla compliance testing
+    $usdEmail = \user_password(4) . '.' . $this->mainQid . '@rc4.me';
     $usdPin = u\randomString(4, 'digits');
     if (isDEV) list ($usdPass, $usdPin) = array('Password1', 9999);
     if (isDEV and (!$usdEmail or !strpos('@dwolla.com', $usdEmail))) $usdEmail = 'gordon+william+5@dwolla.com';
@@ -506,10 +505,10 @@ EOF;
     $us = new r\usd($this);
     if ($this->can(B_PERSON)) {
       list ($first, $last) = u\parseName($this->fullName);
-      return $us->register('Personal', u\ray('first last dob', @$first, @$last, $this->dob), TRUE, $err);
+      return $us->register('Personal', u\ray('first last dob', @$first, @$last, $this->dob), 'true', $err);
     } else {
       $type = $this->isNonprofit() ? 'NonProfit' : 'Commercial';
-      return $us->register($type, u\ray('org ein', $this->fullName, $this->federalId), TRUE, $err);
+      return $us->register($type, u\ray('org ein', $this->fullName, $this->federalId), 'true', $err);
     }
   }
   
@@ -576,7 +575,7 @@ EOF;
       if ($perms[B_ADMIN]) {
         if (R_ADMIN_CAN_MANAGE_CTTYS) {
           $perms[B_CTTY_ADMIN] = TRUE; // temporary extra power, until communities are independent
-          $perms[B_READ] = $perms[B_SELL] = $perms[B_BUY] = $perms[B_MANAGE] = TRUE;
+          $perms[B_READ] = $perms[B_SCAN] = $perms[B_SELL] = $perms[B_BUY] = $perms[B_MANAGE] = TRUE;
         }
 //        $perms[B_PERSON] = TRUE; // manage show PERSONAL settings (for debugging)
         if ($this->proSe()) $perms[B_COMPANY] = TRUE; // show company settings on own account (for debugging)

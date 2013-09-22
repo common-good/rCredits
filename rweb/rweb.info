@@ -35,3 +35,4 @@ files[] = tests/Get.test
 files[] = tests/IncompleteUsdTxs.test
 files[] = tests/ScanCard.test
 files[] = tests/Contact.test
+files[] = tests/Statistics.test

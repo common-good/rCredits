@@ -1,7 +1,7 @@
 #!/usr/local/bin/php -q 
 <?php
 
-define('SYS_EMAIL', 'info@rcredits-org.com');
+define('SYS_EMAIL', 'info@rc4.me');
 
 $s = stream_get_contents(fopen('php://stdin', 'r'));
 $link = $response = '';
@@ -32,7 +32,7 @@ EOF;
 // response here is temporary?
 
 //echo $s;
-htmlmail('wspademan@gmail.com', "rC-org: $subject (to $who)", $s);
+htmlmail('wspademan@gmail.com', "rC4: $subject (to $who)", $s);
 
 /**
  * Return the subject, recipient, and subsequent text
@@ -77,7 +77,7 @@ $htmlmsg
 EOF;
 
   $hdrs = array(
-    'From' => 'rC-org <' . SYS_EMAIL . '>',
+    'From' => 'rC4 <' . SYS_EMAIL . '>',
     'Return-Path' => SYS_EMAIL,
     'Errors-To' => SYS_EMAIL,
     'Content-Type' => "multipart/alternative; boundary=\"$boundary\"",

@@ -239,12 +239,18 @@ EOF
 EOF
     ),
     'demand' => t(<<<EOF
-    The demand for additional rCredits gives us a reliable measure of the system's soundness. Generally, we can keep issuing rCredits as long as people have plenty of places to spend them %mdash and want more.
+    "Demand" for additional rCredits is the total amount of official currency people have moved into the rCredits system, that can then be traded for rCredits. Generally, as long as people have plenty of places to spend within the rCredits system, they will keep moving money in. So the demand gives us a reliable measure of the system's soundness. Generally, we can keep issuing rCredits as long as there is a net inflow of official currency (a increasing demand). If members need to make more purchase outside the rCredits network and are taking more official currency out of the system than they are putting in (a decreasing demand), then we must temporarily stop issuing rCredits. We can issue more rCredits again once people have more places to spend within the system (typically because more people and businesses have signed up) and
 EOF
     ),
-    'trades' => t(<<<EOF
-    <p>Exchanges of rCredits for US Dollars reflect an incomplete economic circle. That is, the individual or company selling the rCredits does not yet have enough places to spend them. Generally, this means they are spending them outside the community (and outside the rCredits system). This is an opportunity for import-replacement &mdash that is, an opportunity to start new local businesses to supply goods or services that are not currently available in our region.</p>
-    <p>The total number and volume of trades is a measure of how well we are doing as a community, in our progress toward a sustainable local economy.</p>
+    'to-bank' => t(<<<EOF
+    <p>Transfers from an rCredits account to a bank account often reflect an incomplete economic circle. That is, the individual or company moving rCredits to a bank account does not yet have enough places to spend them. Generally, this means they are spending them outside the community (and outside the rCredits system). This is an opportunity for import-replacement &mdash; that is, an opportunity to start new local businesses to supply goods or services that are not currently available in our region.</p>
+    <p>The total monthly volume of transfers to a bank account is a measure of how well we are doing as a community, in our progress toward a sustainable local economy.</p>
+    <p>As an individual, you can help by finding ways to spend within the rCredits system, instead of transferring your funds to a bank account. For all the money that circulates within the system, we can use rCredits, freeing up that much official currency to use for something else. So, in effect, when you can keep money in the system, we are all that much richer.</p>
+EOF
+    ),
+    'savings' => t(<<<EOF
+    <p>The value of rCredits, like any currency, is what you can get for them. When rCredits members save funds for spending a month or more in the future, they believe they will be able to spend them within the rCredits system OR that they will be able to trade them for US Dollars because other members have somewhere to spend them. That means savings are a <em>speculative</em> demand for rCredits, rather than a demand based in current reality. The speculation may indeed be accurate, but the circulation margin (monthly purchase volume beyond the amount of rCredits already issued) is a stronger measure of the system's capacity for additional rCredits.</p>
+    <p>The amount of savings among members is calculated (roughly) as the total amount of funds in the system minus the purchase volume over the past month.</p>
 EOF
     ),
   );

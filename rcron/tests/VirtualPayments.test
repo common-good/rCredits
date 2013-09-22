@@ -82,8 +82,8 @@ class rcronVirtualPayments extends DrupalWebTestCase {
     . '\\| .AAAF | %today  | bonus    | done  | %(.10*%chunk) | %(.10*%chunk) | ctty | .ZZB | bonus on #2           |"');
     And__('usd transfers: "DATA'
     . '\\| payer | payee | amount |'
-    . '\\| .ZZA  |  .ZZC | %chunk |'
-    . '\\| .ZZB  |  .ZZC | %chunk |"');
+    . '\\| .ZZA  |  .ZZC | %chunk |"');
+    And__('usd transfer count is 1');
     And__('we notice "payment exchanges offered" to member ".ZZC" with subs: "DATA'
     . '\\| offers | total        | whom      |'
     . '\\|      1 | $%(%chunk) r | suppliers |"');

@@ -1,6 +1,6 @@
-Feature: Totals
+Feature: Statistics
 AS a member
-I WANT accurate system totals
+I WANT accurate, up-to-date system statistics
 SO I can see how well the rCredits system is doing for myself, for my ctty, and for the world.
 #   r floor rewards usd minimum maximum 
 #   signup rebate bonus inflation grant loan fine maxRebate
@@ -8,10 +8,10 @@ SO I can see how well the rCredits system is doing for myself, for my ctty, and 
 
 Setup:
   Given members:
-  | id   | fullName   | email         | flags                       | minimum | floor | share |
-  | .ZZA | Abe One    | a@ | dft,ok,person,bona        |       5 |     0 |    10 |
-  | .ZZB | Bea Two    | b@ | dft,ok,person,bona        |    1000 |   -20 |    20 |
-  | .ZZC | Corner Pub | b@ | dft,ok,company,bona,payex |    2000 |    10 |    30 |
+  | id   | fullName   | email | flags                     | minimum | floor | share |
+  | .ZZA | Abe One    | a@    | dft,ok,person,bona        |       5 |     0 |    10 |
+  | .ZZB | Bea Two    | b@    | dft,ok,person,bona        |    1000 |   -20 |    20 |
+  | .ZZC | Corner Pub | b@    | dft,ok,company,bona,payex |    2000 |    10 |    30 |
   And relations:
   | id   | main | agent | permission |
   | .ZZA | .ZZA | .ZZB  | buy        |
@@ -69,11 +69,15 @@ Setup:
   | .ZZB |  284.50 |  2256.50 |     256.50 |
   | .ZZC |  322.50 |  3002.50 |     261.50 |
   
-Scenario: cron calculates the totals
-  When cron runs "totals"
-  Then totals:
-  | r      | floor | rewards    | usd     | minimum | signup | rebate | bonus | committed | inflation | grant | loan | fine | maxRebate | balance    | demand   | capacity |
-  | 776.25 |   -10 |     775.25 | 6000.75 |    3005 |    750 |      6 |    12 |      3.80 |         6 |     4 |    5 |    6 |        4 |    -776.25 |   2228.75 |  6000.75 |
+Scenario: cron calculates the statistics
+  Given cron runs "stats"
+  When member ".ZZA" visits page "stats"
+  Then we show "Statistics" with values: ""
+
+#  Then totals:
+#  | r      | floor | rewards    | usd     | minimum | signup | rebate | bonus | committed | inflation | grant | loan | fine | maxRebate | balance    | demand   | capacity |
+#  | 776.25 |   -10 |     775.25 | 6000.75 |    3005 |    750 |      6 |    12 |      3.80 |         6 |     4 |    5 |    6 |        4 |    -776.25 |   2228.75 |  6000.75 |
+
   # Here's why:
   #
   # demand is min(usd, minimum-r)

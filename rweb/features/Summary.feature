@@ -40,23 +40,30 @@ Setup:
 Scenario: A member clicks on the summary tab
   When member ".ZZA" visits page "summary"
   Then we show "Account Summary" with:
-  | Name             | Address                  | Account ID      | Balance | Rewards | Floor |
-  | Abe One (abeone) | 1 A St., Atown, AK 01000 | .ZZA (personal) | $166    | $256    | $-100 |
+  | Name         | Abe One (abeone) |
+  | _Address     | 1 A St., Atown, AK 01000 |
+  | ID           | .ZZA (personal) |
+  | Balance      | $166 |
+  | Rewards      | $256 |
+  | Credit floor | $-100 |
 
 Scenario: An agent clicks on the summary tab without permission to manage
   When member ":ZZA" visits page "summary"
   Then we show "Account Summary" with:
-  | Name             | Account ID         |
-  | Abe One (abeone) | NEW.ZZA (personal) |
-  And we show "Account Summary" without:
-  | label1  | label2  | label3 |
+  | Name | Abe One (abeone)   |
+  | ID   | NEW.ZZA (personal) |
+  And without:
   | Balance | Rewards | Floor  |
 
 Scenario: A foreign rTrader clicks on the summary tab
   When member ".ZZC" visits page "summary"
   Then we show "Account Summary" with:
-  | Name                   | Address                      | Account ID     | Balance | Rewards |  Floor |
-  | Corner Pub (cornerpub) | 3 C St., Ctown, Cher, FRANCE | .ZZC (company) | $323    | $258    |  $-300 |
+  | Name         | Corner Pub (cornerpub) |
+  | _Address     | 3 C St., Ctown, Cher, FRANCE |
+  | ID           | .ZZC (company)|
+  | Balance      | $323 |
+  | Rewards      | $258 |
+  | Credit floor | $-300 |
 
 Scenario: Member's account is not active
   Given member ".ZZA" account is not active

@@ -121,7 +121,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
     $secure = compact(u\ray('usdType usdPin pin auth')) + ($a->secure ?: array());
     $a->update(compact(u\ray('usdAccount secure')));
     $us = new r\usd($a);
-    //debug("dw=$dw usnum=$us->number test=" . DW_TESTER_ACCT); 
+//debug("dw=$dw usnum=$us->number test=" . DW_TESTER_ACCT); 
     if ($us->number != DW_TESTER_ACCT) $us->setbal(0, $err);
   }
   
@@ -270,12 +270,23 @@ function usdTransferCount($where = '1') {
   }
 }
 
-function usdTransfers($tx) {
-  global $testOnly; if(!$testOnly) return FALSE;
-  extract(u\just('payer payee amount', $tx[0]));
-  $payer = t\uid($payer);
-  $payee = @$payee ? (is_numeric($payee) ? $payee : t\uid($payee)) : 0;
-  return r\dbExists('r_usd', 'payer=:payer AND amount=:amount and payee=:payee', compact(u\ray('payer payee amount')));
+function usdTransfers($txs) {
+  global $testOnly;
+  
+  foreach ($txs as $tx) {
+    if ($testOnly) {
+      extract(u\just('payer payee amount', $tx));
+      $payer = t\uid($payer);
+      $payee = @$payee ? (is_numeric($payee) ? $payee : t\uid($payee)) : 0;
+      if (!r\dbExists('r_usd', 'payer=:payer AND amount=:amount and payee=:payee', compact(u\ray('payer payee amount')))) return FALSE;
+    } else {
+      foreach (u\just('payer payee', $tx) as $key => $value) {
+        if ($value) $tx[$key] = t\uid($value);
+      }
+      if (!r\dbInsert('r_usd', $tx)) return FALSE;
+    }
+  }
+  return TRUE;
 }
 
 /**
@@ -470,6 +481,7 @@ function lastMinuteSubs($string) {
   if (u\abbreviates('%dm', $string)) return subAgo($string, '%d-%b');
   if ($string == '%chk') return '&#10004;';
   if ($string == '%ctty') return R_REGION_NAME;
+  return $string;
 }
   
 /**
@@ -568,6 +580,9 @@ function verifyRecord($table, $info) {
  * @param array $values: array of assoc of field names/values (or empty)
  * @param bool $confirmed: whether the user has confirmed the values (default FALSE)
  * @return TRUE on success
+ *
+ * @todo: Rewrite this whole form testing system to use just menu_execute_active_handler,
+ *   drupal_validate_form, etc. (assuring official behavior)
  */
 function completeForm($id, $page, $values = '', $confirmed = FALSE) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -593,6 +608,7 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
     $formSta['confirm'] = TRUE;
   }
 
+  $_POST = $values;
   if (!$form = t\pageForm(t\fixPageArgs($page), FALSE)) return FALSE; // probably access error
   $sta = $formSta; $formSta = NULL; // don't let $formSta influence other forms that get invoked
   
@@ -609,7 +625,11 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
   }
   $sta['values'] = $sta['input'] = $values + $dfts; // add to whatever status the form left off in
   $fieldErr = FALSE; // no field errors yet
+  
+//  $form_id = "rCredits\\Web\\
+//  if ($validate) drupal_validate_form($form_id, $form, $formSta);
   if ($validate) foreach (t\postProcess($form, $page, 'validate') as $one) $one($form, $sta);
+  
 //  if (count($errors = t\getErrors()) > count($errorsBefore)) return TRUE;
     // NO! if (!empty($errors)) return FALSE;
 /// debug(compact(u\ray('id page values confirmed one errors')));
@@ -661,6 +681,7 @@ function pageForm($page, $msg = '', $field = '') {
   }     
 
   $result = \menu_execute_active_handler($page, FALSE);
+//  debug($result);
   if (is_numeric($result)) {
     $result = $result == MENU_NOT_FOUND ? 'not found' 
       : ($result == MENU_ACCESS_DENIED ? 'access error' : "error #$result");
@@ -757,7 +778,7 @@ function eq($a, $b) {
       (abs($a - $b) < .0001)
     : ($a == $b or (empty($a) and empty($b)));
   if (!$result) echo 'not equal: ' . print_r(compact('a','b'), 1); // keep for now
-  if (!$result) output("unequal: a=$a b=$b", 'error'); // keep for now
+//  if (!$result) output("unequal: a=$a b=$b", 'error'); // keep for now
   return $result;
 }
 
@@ -818,7 +839,7 @@ function clear($ch) {
   global $channel; $channel = $ch;
 
   $cgfUid = \variable_get('cgf_uid');
-  $tables = 'r_do r_notices r_sms r_txs r_relations r_log r_invites r_companies r_gifts r_smarts r_proxies r_usd r_user_industries queue';
+  $tables = 'r_do r_notices r_sms r_txs r_relations r_log r_invites r_companies r_gifts r_smarts r_proxies r_stats r_usd r_user_industries queue';
 
   r\dbQ('DELETE FROM users WHERE uid>:cgfUid OR (uid>1 AND uid<:cgfUid-1)', compact('cgfUid'));
   foreach (u\ray($tables) as $one) r\dbQ("TRUNCATE $one");
@@ -886,7 +907,9 @@ function badEq($type, $v1, $v2, $id) {
 
 /**
  * Say whether the most recent page included the given text or options.
- * @param array $content: array of assocs -- named values to check for (ignore the keys)
+ * @param array $content: array of assocs -- named values to check for
+ *   The names (labels) will be sought once also, unless preceded by underscore (_).
+ *   The array can go either way, horizontally or vertically
  * @param string $type: description of what to check for (default 'text')
  * @param bool $showDebugs: whether to report debugging info while looking
  * @return TRUE if all the content is included
@@ -894,21 +917,35 @@ function badEq($type, $v1, $v2, $id) {
 function shownWith($content, $type = 'text', $showDebugs = TRUE) {
   global $formOut;
   $model = $formOut[$type];
-///  debug(compact('formOut', 'content'));
-  $xi = $i = 0;
+  if (!$content) return FALSE; // probably an accidental single-row array with no labels
 
-  foreach ($content as $fields) {
-    foreach ($fields as $key => $one) if (strpos($one, '%') !== FALSE) $fields[$key] = t\lastMinuteSubs($one);
-/**/ if ($showDebugs) debug("EXPECT page with " . print_r($fields, 1)); // keep this
-    foreach ($fields as $one) { // ignore the keys here
-      if ($one !== '') $i = strpos($model, $one, $xi = $i);
-      if ($showDebugs) t\output(compact('xi','i','one'));
-      if ($i === FALSE) {
-        if ($showDebugs) t\output(substr($model, 0, $xi) . ' <b style="font-size:200%;">[OK until here]</b> ' . substr($model, $xi));
-/// debug($formOut['notags']);
-        return FALSE;
-      } else $i += strlen($one);
+  array_unshift($content, array_keys($content[0])); // look for labels, too (first line)
+
+  $new = array();
+  if ($vertical = (count($content) > 2 and count($content[1]) == 2)) { // keys on the left, so switch it
+    foreach ($content as $one) {
+      $one = array_values($one);
+      if (substr($one[0], 0, 1) == '_') $one[0] = ''; // ignore _label
+      foreach ($one as $oneV) if ($oneV !== '') $new[] = $oneV; // label and value(s)
     }
+  } else {
+    foreach ($content[0] as $i => $k) {if (substr($k, 0, 1) == '_') $content[0][$i] = '';} // ignore _label
+    $new = array();
+    foreach ($content as $one) foreach ($one as $v) $new[] = $v;
+  }
+  
+  $content = $new;
+  $xi = $i = 0;
+  foreach ($content as $one) {
+    if (strpos($one, '%') !== FALSE) $one = t\lastMinuteSubs($one);
+    if ($showDebugs) t\output("EXPECT page with " . u\purify($one, ''));
+    if (($one = u\redash($one)) !== '') $i = strpos($model, $one, $xi = $i);
+    if ($showDebugs) t\output(compact('xi','i','one'));
+    if ($i === FALSE) {
+      if ($showDebugs) t\output(substr($model, 0, $xi) . ' <b style="font-size:200%;">[OK until here]</b> ' . substr($model, $xi));
+// debug($formOut['notags']);
+      return FALSE;
+    } else $i += strlen($one);
   }
   return TRUE;
 }

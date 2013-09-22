@@ -41,12 +41,15 @@ Scenario: A mixed rCredits/USD transaction happens
   | .ZZA | 0.50 |   4.80 |   10.50 |
   When member ".ZZA" visits page "transactions/period=365"
   Then we show "Transaction History" with:
-  | Start Date | End Date | Start Balance | From You | To You | Rewards | End Balance |
-  | %dmy-12m   | %dmy     | $0.00         | 10.20    |   0.00 |   10.50 |       $0.30 |
-  |            |          | PENDING       | 0.00     |   0.00 |    0.00 |     + $0.00 |
-  And we show "Transaction History" with:
-  | tid | Date | Name    | From you | To you | r%   | Status  | Buttons | Purpose | Rewards |
-  | 2   | %dm  | Bea Two | 10.20    | --     | 98.0 | %chk    | X       | labor   |    0.50 |
+  |_Start Date |_End Date |
+  | %dmy-12m   | %dmy     |
+  And with:
+  | Starting | From You | To You | Rewards | Ending  |
+  | $0.00    | 10.20    |   0.00 |   10.50 |   $0.30 |
+  | PENDING  | 0.00     |   0.00 |    0.00 | + $0.00 |
+  And with:
+  |_tid | Date | Name    | From you | To you | r%   | Status  |_buttons | Purpose | Reward |
+  | 2   | %dm  | Bea Two | 10.20    | --     | 98.0 | %chk    | X       | labor   |   0.50 |
 
 Scenario: A member confirms payment with insufficient USD balance
   When member ".ZZA" confirms form "pay" with values:

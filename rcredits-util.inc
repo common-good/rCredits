@@ -440,6 +440,14 @@ function SUBS($string, $prefix = ':', $flagField = 'flags') {
 }
 
 /**
+ * Replace some common unprintable characters with their HTML equivalent
+ * (dash, magic quotes, )
+ *
+function wentities($s) {
+  return strtr($s, u\ray('— ‘ ’ “ ”'', '&mdash;', 
+  */
+
+/**
  * Assert an expectation or check parameters for validity
  * Throw an Exception if the expectation is not met.
  * call by:
@@ -882,10 +890,11 @@ function lastCall($far = 4) {$back = debug_backtrace(); return array_slice($back
 function digits(&$n) {return $n = preg_replace('/\D/', '', @$n);}
 function monthDay1($time = REQUEST_TIME) {return strtotime(strftime('%b01', $time));}
 function prefix($prefix, &$var) {$var = $prefix . $var;}
-function preray($prefix, &$var) {$var = $prefix + $var;}
+function preray($prefix, &$ray) {$ray = $prefix + $ray;}
 function setDft(&$param, $value) {if (!isset($param)) $param = $value;}
 function bit($bit) {return 1 << $bit;}
 function log($message, $type = 'state', $info = array()) {return u\loga($type, compact('message') + $info);}
 function consta($prefix, $var) {return constant(strtoupper($prefix . "_$var"));}
 function isIPhone() {return preg_match('/iPhone/i', $_SERVER['HTTP_USER_AGENT']);}
-function jsonEncode($s) {return json_encode($s) ?: json_encode(purify($s));} // , JSON_UNESCAPED_SLASHES
+function jsonEncode($s) {return json_encode($s) ?: json_encode(u\purify($s));} // , JSON_UNESCAPED_SLASHES
+function redash($s) {return str_replace('—', '&mdash;', $s);}
