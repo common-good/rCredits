@@ -10,6 +10,56 @@ use rCredits\Testing as t;
 use rCredits\Util as u;
 
 /**
+ * Handle results submitted on formAdmin.
+ */
+function adminForm($sta) {
+  extract(u\just('account', $sta['input']));
+  $op = r\Web\op($sta);
+  if ($op == 'USD_Accounts') return r\Web\say(usdAccts());
+  if ($op == 'suUsd') return suUsd();
+  if (@$account) $a = aa($account); // should use whois first
+  
+  if ($op == 'printId') {
+    $qid = $a->qid();
+    $agent = $a->agent;
+    $field = strpos($qid, R_AGENT_MARK) ? 'cardCode2' : 'cardCode';
+    $secure = $agent->secure;
+    if ($field == 'cardCode2') if (isDEV or !($code = @$secure[$field]) or strlen($code) > R_CARDCODE_LEN) {
+      if (!isDEV) u\EXPECT($field == 'cardCode2', 'missing cardCode'); // only cardCode2 gets created here
+      $secure = u\ray($field, r\cardCode($qid)) + $secure; // create an rCard security code
+      $agent->update(compact('secure')); // resave the secure fields
+    }
+    return r\go('print-rcard/' . $qid);
+  } elseif ($op == 'seeUsd') {
+    if (!@$a->secure['usdEmail']) {
+      $old = $a->secure;
+      $usdPass = user_password(20) . '*B2'; // satisfy Dwolla (and our own security)
+      $usdEmail = strtolower(\user_password(4) . '.' . $a->mainQid) . '@rc4.me';
+      $usdPin = u\randomString(4, 'digits');
+      $secure = compact(u\ray('old usdPass usdEmail usdPin')) + $old;
+      $a->update(compact('secure'));
+    }
+    return;
+  }
+  
+  // handle all other buttons with showTableQ()
+  $where = "uid>1";
+  $userSql = "SELECT uid, MID(phone,3) AS phone, flags, r, usd, rewards, minimum AS min, committed AS comit, share, floor, address, city, postalCode AS zip FROM users WHERE $where ORDER BY name";
+  if ($op == 'users') return r\Web\say(showTableQ($userSql));
+  $userSql = str_replace($where, "postalCode LIKE '013%'", $userSql);
+
+  $logQuery = "SELECT channel,type,myid,agent, REPLACE(special, ',', ', ') AS special, REPLACE(info, ',', ', ') AS info FROM r_log";
+  if ($op == 'log') return r\Web\say(showTableQ($logQuery));
+  if ($op == 'tells') return r\Web\say(showTableQ("$logQuery WHERE info LIKE '%tell-staff%' ORDER BY logid DESC LIMIT 50"));
+  if ($op == 'Gfld') return r\Web\say(showTableQ($userSql));
+  if ($op == 'txs') return r\Web\say(showTableQ('SELECT xid, type, state, goods, payer, payee, amount, r, payerFor, payeeFor, payerTid, payeeTid FROM r_txs'));
+
+  foreach (u\ray(R_SHOWABLE_TABLES) as $one) if ($op == $one) return r\Web\say(showTableQ("r_$one"));
+//  list ($community) = explode('-', $community, 2); // get the absolute value of community
+//  if ($community) svar('myid', -$community); // make it the new current account
+}
+
+/**
  * List the USD account status of each account.
  */
 function usdAccts($where = "postalCode LIKE '013%'") {
@@ -123,6 +173,7 @@ function changeIt($a) {
 }
 
 function suUsd() {
+  return; // unused
   $testUsdMin = DW_FEE_THRESHOLD;
   $a = r\acct('NEW.AAA');
   $us = new r\usd($a);

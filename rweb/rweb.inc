@@ -101,7 +101,7 @@ EOF
   'bad account id' => t('That is not a proper account ID.'),
   'bad account number' => t('Your bank account number must be 3-17 digits long.'),
   'bad pin' => t('Your PIN must be exactly 4 digits'),
-  'bad federal id' => t('Your @what must be exactly 9 digits'),
+  'bad federal id' => t('That is not a correct @what. Try again.'),
   'bad nonce' => t('That is not the right verification code. Try again (start over).'),
   'short to' => t('You are @short short for that transaction. <a href="account/preferences">Increase your minimum balance</a>!'),
   'no such company' => t('There is no such company.'),
@@ -165,7 +165,7 @@ EOF
   'missing currency' => t('You must choose rCredits, USD, or both.'),
   'download always both' => t('Note: Downloads always include both rCredits and USD amounts.'),
   'sign in to scan' => t('You must <a href="/user/login">sign in</a> (or scan yourself in) BEFORE scanning a customer card.'),
-  'change min first' => t('That request would leave you with less than your minimum balance. <@a1>Lower your minimum</a> first.'),
+  'change min first' => t('That request would leave you with less than your minimum balance. <a href="account/preferences">Lower your minimum</a> first.'),
   'bad member id' => t('That is not a valid member ID!'),
   'bad card' => t('That is not a valid member ID.'),
   'bad card code' => t('This rCard is not valid.'),
@@ -182,6 +182,9 @@ EOF
   'no can scan' => t('You do not have permission to scan an individual\'s rCard.'),
   'must opt' => t('You must not create a limited account for this person without giving him or her the opportunity to open a real rCredits account. <@a>Invite them</a>!', array('@a' => 'a href=invite')),
   'must agree' => t('Accept Terms checkbox field is required.'), // drupal shows this
+  'redo info' => t('We could not verify your personal information. Please try again, carefully.'),
+  'bad ssn or dob' => t('There is a problem verifying your personal information.'),
+  'bank too little' => t('The amount you asked to transfer is less than the minimum ($@R_BANK_MIN).'),
 );
 
 /**
@@ -584,8 +587,8 @@ EOF;
     } else $soundex = '';
     $string = u\shortName(" $string0 ", '%');
     $selection = <<<EOF
-      industry AS display FROM r_industries WHERE (industry LIKE :string $soundex)
-      UNION SELECT fullName AS display FROM users WHERE :IS_COMPANY AND name LIKE :string
+      industry COLLATE utf8_general_ci AS display FROM r_industries WHERE (industry LIKE :string $soundex)
+      UNION SELECT fullName COLLATE utf8_general_ci AS display FROM users WHERE :IS_COMPANY AND name LIKE :string
 EOF;
   } elseif ($role == 'company') {
     $selection = 'uid, fullName AS display FROM users WHERE :IS_COMPANY AND name LIKE :string)';
@@ -852,26 +855,32 @@ EOF;
  * @param string $step: (returned) the next Dwolla setup step
  * @return (if testing) a page to display as appropriate, else FALSE
  */
-function setupUs(&$step, $secondTime = FALSE) {
+function setupUs(&$step) {
   $us = new r\usd($mya = r\acct());
   if (!@$mya->secure['auth']) {
     if (!$mya->createUsdAccount($err)) return say($err, 'zot'); // set auth
 //    if ($mya->secure['usdEmail'] == $mya->mail) r\Web\say('Dwolla has sent you an email with a verification link. Please click on that link to confirm your email address, then come back here to continue setting up your account.'); // temporary, for Dwolla compliance testing
   }
   if (!$mya->usdAccount) if (!$us->me($err)) return say($err, 'zot'); // set usdAccount
-  if (!$step = $us->step($err)) return say($err, 'zot');
-  if ($step == 'Email') {
-    return FALSE; // await automatic or manual confirmation of email (meanwhile user can sign Agreement)
-  } elseif ($step == 'Finished') {
-    return FALSE;
-  } elseif ($mya->phone and $step == 'Phone') {
-    return addPhone();
-  } elseif ($mya->address and $step == 'Address') {
+  if (!$step = $us->step($err) or $step == 'PhotoId') {
+    r\tellStaff('null step', compact('err', 'step') + (array) $mya);
+    if (u\abbreviates('Invalid account status', $err)) { // sometimes "...for user of this access token"
+      //$mya->update(u\ray('federalId', '')); // prevent resumission of same ssn (temporary Dwolla bug)
+      return say('bad ssn or dob|Please contact rCredits customer support at +1 413 628 1723.', 'zot');
+    } else return say($err, 'zot');
+  }
+  if ($step == 'Email') return FALSE; // await automatic or manual confirmation of email (meanwhile user can sign Agreement)
+  if ($step == 'Finished') return FALSE;
+  if ($mya->phone and $step == 'Phone') return addPhone();
+  if ($step == 'AccountInfo') return r\go('account/basic', 'redo info', 'zot'); // here on ssn() failure
+  if ($step == 'Kba') return r\go('account/kba'); // here on accountInfo() failure
+
+  if ($mya->address and $step == 'Address') {
     if (!$us->address($mya->address, $mya->city, r\realState($mya->state, $mya->country), $mya->postalCode, $err)) return r\go('account/contact', $err);
   } elseif ($step == 'Ssn') {
-    if (!$us->ssn($mya->federalId, $err)) return r\go('account/ssn', $err);
-  } elseif ($step == 'Kba') {
-    return r\go('account/kba');
+    if (!$us->ssn($mya->federalId, $err)) {
+      if ($err) return say($err, 'zot');
+    } else u\EXPECT($us->step() != $step, 'weird ssn return');
   } elseif ($step == 'AuthorizedRepresentative') {
     u\EXPECT(!$mya->person(), 'verify rep for person?!');
     $by = r\acct($mya->data['by']);
@@ -880,7 +889,7 @@ function setupUs(&$step, $secondTime = FALSE) {
     $state = r\realState($by->state, $by->country);
     if (!$us->authorizedRep($first, $last, $by->address, $by->city, $state, $by->postalCode, substr($by->phone, 2), $by->dob, $by->federalId, $err)) return say($err, 'zot');
   }
-  if (!$secondTime) return setupUs($step, TRUE); // step may have progressed
+  if ($us->step() != $step) return setupUs($step); // step may have progressed
 }
 
 /**
@@ -1020,9 +1029,10 @@ EOF
   */
 
   $ctty = $mya->community;
-  $region = r\uidRegion($mya->id);
+  $myid = $mya->id;
+  $region = r\uidRegion($myid);
   $choices = array();
-  $result = r\dbQ('SELECT uid, fullName, city FROM users WHERE uid>1 AND :IS_PERSON AND community=:ctty AND :R_ACCT_REGION=:region ORDER BY postalCode, city, fullName', compact('ctty', 'region'));
+  $result = r\dbQ('SELECT uid, fullName, city FROM users WHERE uid>1 AND uid<>:myid AND :IS_PERSON AND community=:ctty AND :R_ACCT_REGION=:region ORDER BY postalCode, city, fullName', compact(u\ray('myid ctty region')));
   while ($row = $result->fetchAssoc()) {
     extract($row);
     $choices[$uid] = "$fullName ($city)";
@@ -1625,48 +1635,16 @@ function formAdmin($form, &$sta, $args = '') {
   $title = item(t('System Administration'));
   $account = textField(t('Account:'), t('Account to do something to'),auto());
   $printId = submit(t('Print ID'));
+  $seeUsd = submit(t('See USD'));
   $form = compact(u\ray('title'));
-  foreach (u\ray('USD_Accounts Gfld suUsd tells ' . R_SHOWABLE_TABLES) as $one) $form[$one] = submit(str_replace('_', ' ', $one));
-  $form += compact(u\ray('account printId'));
+  foreach (u\ray('USD_Accounts Gfld tells ' . R_SHOWABLE_TABLES) as $one) $form[$one] = submit(str_replace('_', ' ', $one));
+  $form += compact(u\ray('account printId seeUsd'));
   return $form;
 }
 
 function formAdmin_submit($form, &$sta) {
   include_once __DIR__ . '/../admin.inc';
-  extract(u\just('account', $sta['input']));
-  $op = op($sta);
-  if ($op == 'USD_Accounts') return say(usdAccts());
-  if ($op == 'suUsd') return suUsd();
-  if (@$account) $acct = r\acct(strtoupper($account)); // should use whois first
-  
-  if ($op == 'printId') {
-    $qid = $acct->qid();
-    $agent = $acct->agent;
-    $field = strpos($qid, R_AGENT_MARK) ? 'cardCode2' : 'cardCode';
-    $secure = $agent->secure;
-    if ($field == 'cardCode2') if (isDEV or !($code = @$secure[$field]) or strlen($code) > R_CARDCODE_LEN) {
-      if (!isDEV) u\EXPECT($field == 'cardCode2', 'missing cardCode'); // only cardCode2 gets created here
-      $secure = u\ray($field, r\cardCode($qid)) + $secure; // create an rCard security code
-      $agent->update(compact('secure')); // resave the secure fields
-    }
-    return r\go('print-rcard/' . $qid);
-  }
-  
-  // handle all other buttons with showTableQ()
-  $where = "uid>1";
-  $userSql = "SELECT uid, MID(phone,3) AS phone, flags, r, usd, rewards, minimum AS min, committed AS comit, share, floor, address, city, postalCode AS zip FROM users WHERE $where ORDER BY name";
-  if ($op == 'users') return say(showTableQ($userSql));
-  $userSql = str_replace($where, "postalCode LIKE '013%'", $userSql);
-
-  $logQuery = "SELECT channel,type,myid,agent, REPLACE(special, ',', ', ') AS special, REPLACE(info, ',', ', ') AS info FROM r_log";
-  if ($op == 'log') return say(showTableQ($logQuery));
-  if ($op == 'tells') return say(showTableQ("$logQuery WHERE info LIKE '%tell-staff%' ORDER BY logid DESC LIMIT 50"));
-  if ($op == 'Gfld') return say(showTableQ($userSql));
-  if ($op == 'txs') return say(showTableQ('SELECT xid, type, state, goods, payer, payee, amount, r, payerFor, payeeFor, payerTid, payeeTid FROM r_txs'));
-
-  foreach (u\ray(R_SHOWABLE_TABLES) as $one) if ($op == $one) return say(showTableQ("r_$one"));
-//  list ($community) = explode('-', $community, 2); // get the absolute value of community
-//  if ($community) svar('myid', -$community); // make it the new current account
+  adminForm($sta);
 }
 
 /**
@@ -1768,7 +1746,7 @@ function formEmpty($form, &$sta) {return formMenu($form, $sta);}
 function formSettings($form, &$sta) {
   $mya = r\acct();
   $tabs = u\ray('contact preferences security bank company relations cells proxies');
-  $captions = u\ray(t('Contact Preferences Security Bank Company Relations Cells Proxies'));
+  $captions = u\ray(t('Contact,Preferences,Security,Bank Info,Company,Relations,Cells,Proxies'));
   $title = item('Settings');
   foreach(array_combine($tabs, $captions) as $tab => $caption) {
     $img = imageButton("account/$tab", $caption, "$tab.png");
@@ -1848,20 +1826,24 @@ function formBuy_submit($form, &$sta) {
 
 /**
  * Exchange USD for rCredits or vice-versa
- * @todo: validate amount
  */
 function formGet($form, &$sta) {
   global $base_url;
   $mya = r\acct();
   $myid = $mya->id;
   $isSetUp = !is_null($mya->minimum); // user has already saved some options
-  $title = item(t('Get rCredits or US Dollars'));
+  $title = item(t('Bank Transfer'));
   $subtext = item(t('Transfer funds to or from your connected bank account. For automatic transfers from your bank account, as needed, adjust your "minimum" setting on the <a href="' . $base_url . '/account/preferences">Preferences</a> page. Transfers may take 3-5 days.') . ($mya->dwStatus() == DW_VSAVINGS ? t(' Savings and Money Market accounts (like yours) are limited by law to 6 transfers per month.') : ''));
 
 //  $minimum = textField(t('Minimum:'), tt('prompt min'), dft(u\fmtAmt($isSetUp ? $mya->minimum : R_MINR_DEFAULT, 's')));
   $ray = (array) $mya->account(R_MONEY_FIELDS);
   $toSpend = u\fmtAmt(r\avail('buy', $ray));
-  $toCash = u\fmtAmt($avail = r\avail('cash', $ray));
+  if (!r\dbExists('r_usd', 'payer=:myid AND payee=0 AND created>:dayAgo', u\ray('myid dayAgo', $myid, strtotime('-1 day')))) {
+    $myAvail = r\avail('cash', $ray); // drawing from connected accounts not allowed here
+    $avail = r\dbLookup('SUM(LEAST(usd, :DW_FEE_THRESHOLD))', 'users', 'community=:ctty and uid<>:myid', u\ray('ctty myid', $mya->community, $myid)); // remove this one-day limit if people complain (cost 25 cents)
+    $avail = min($myAvail, $mya->usd + min($mya->r, $avail));
+  } else $avail = 0;
+  $toCash = u\fmtAmt($avail);
   $waiting = u\fmtAmt(abs($way = $mya->waitingToBank()));
   $way = $way < 0 ? 'from' : 'to';
   $waiting = item($waiting == '$0' ? t('You have no pending transfer requests.') : tt('You have total pending transfer requests of @waiting @way your bank account.', compact('waiting', 'way')), t('Pending:')); // amount already requested (if any)
@@ -1884,15 +1866,15 @@ function formGet_validate($form, &$sta) {
   $mya = r\acct();
   extract(u\just('amount avail', $sta['input']));
   if ($err = amtErr('amount', $sta)) return say($err, 'amount');
-  if (abs($amount) < R_BANK_MIN) return say('The amount you asked to transfer is less than the minimum ($@R_BANK_MIN).', 'amount');
+  if (abs($amount) < R_BANK_MIN) return say('bank too little', 'amount');
   if (op($sta) == 'get') return;
   
   if ($amount > $avail) {
     $max = u\fmtAmt($avail);
     return say('short deposit', compact('max'), 'amount');
   }
-  $a1 = 'a href="' . $base_url . '/account/preferences"';
-  if ($mya->r + $mya->usd - $amount < $mya->minimum) return say('change min first', compact('a1'), 'amount');
+//  $a1 = 'a href="' . $base_url . '/account/preferences"';
+  if ($mya->r + $mya->usd - $amount < $mya->minimum) return say('change min first', 'amount');
 }
   
 function formGet_submit($form, &$sta) {
@@ -1902,7 +1884,7 @@ function formGet_submit($form, &$sta) {
   if (op($sta) == 'put') {
     $action = 'deposit to';
     if ($need = max(0, $amount - $mya->usd)) {
-      if (!$got = r\getUsd($need, $mya, $us) or $got < $need) return say('cannot offload', 'amount');
+      if (!$got = r\getUsd($need, $mya) or $got < $need) return say('cannot offload', 'amount');
     }
   } else list ($action, $amount) = array('draw from', -$amount);
   
@@ -2167,7 +2149,7 @@ function formSignup_validate($form, &$sta) {
   if ($country == US_COUNTRY_ID) {
     if (!preg_match('/^\d{5}(\-\d{4})?$/', $postalCode)) return say('bad zip', 'zot');
   }
-  if (!formSsn_validate($form, $sta, $acctType < R_COMMERCIAL)) return;
+  if (!formBasic_validate($form, $sta, $acctType < R_COMMERCIAL)) return;
 
   if (@$copts) extract(u\just('isOwner employeeOk contractor', $copts));
   $gotrelation = (@$employeeOk or @$isOwner or @$contractor);
@@ -2516,36 +2498,72 @@ function formVerifyPhone_submit($form, &$sta) {
 /**
  * Offer to revise data that affects social security number verification.
  */
-function formSsn($form, &$sta) {
-  $title = item(t('Retry SSN Verification'));
-  $subtext = item(t('Please re-type your social security number and birth date (carefully).'));
+function formBasic($form, &$sta) {
+  $mya = r\acct();
+  $title = item(t('Retry Verification'));
+  if ($mya->person()) {
+    list ($first, $last) = u\parseName($mya->fullName);
+    $first = textField(t('First name:'), t('Your first name (as on legal documents)'), required(@$first));
+    $last = textField(t('Last name:'), t('Your last name (as on legal documents)'), required(@$last));
+  } else $org = textField(t('Full name:'), tt('fullName desc'), required($mya->fullName));
   $submit = submit(t('Submit'));
-  return labeled(compact(u\ray('title subtext')) + ssnFields() + compact('submit'));
+
+  return labeled(compact(u\ray('title first last org federalId dob')) + ssnFields() + compact('submit'));
 }
+
+define('R_BASIC_FIELDS', 'first last org federalId dob');
 
 /**
  * Validate the data that affects social security number verification.
- * called from signup validation, as well as from formSsn()
+ * called from signup validation, as well as from formBasic()
+ * @param string/bool $personal: is this a personal account ('mya' means use the current account's type)
+ *   'mya' also means we are retrying basic information (the AccountInfo step) during signup
  */
-function formSsn_validate($form, &$sta, $personal = 'mya') {
-  $fields = 'federalId dob';
-  extract(u\just($fields, u\trimAll($sta['input'])));
-  if ((string) $personal == 'mya') $personal = r\acct()->person();
-  if ($personal) { // personal (possibly self-employed)
-    if (!$dob = u\s2t(@$dob) or @$dob > REQUEST_TIME + 9 * 31 * DAY_SECS) return say('bad date', 'dob');
+function formBasic_validate($form, &$sta, $personal = 'mya') {
+  extract(u\just(R_BASIC_FIELDS, u\trimAll($sta['input'])));
+  if ((string) $personal == 'mya') {
+    $us = new r\usd($mya = r\acct());
+    $personal = $mya->person();
   }
   $what = $personal ? 'social security number' : 'federal ID';
-  if (strlen(u\digits($federalId)) != 9) return say('bad federal id', compact('what'), 'federalId');
-  u\preray(compact(u\ray($fields)), $sta['input']);
+  if ($err = u\badSsn($federalId, $dob)) return say($err, compact('what'), 'federalId');
+
+  if ($personal) { // personal (possibly self-employed)
+    list ($min, $max) = array(REQUEST_TIME - 150 * 365.25 * DAY_SECS, REQUEST_TIME + 9 * 31 * DAY_SECS);
+    if ($err = u\badDate($dob, $min, $max)) return say($err, 'dob');
+    if (@$mya) {
+      if ($err = u\badName($first)) return say($err, 'first');
+      if ($err = u\badName($last)) return say($err, 'last');
+      $structure = 'Personal';
+      if (!$us->ssn($federalId, $err)) {
+        if ($err) return say($err, 'zot'); // this might never happen (might always go to accountInfo)
+        if (!$us->accountInfo($structure, $dob, '', $first, $last, '', $err)) {
+          if ($err) return say($err, 'zot'); // this might never happen (might always go to kba)
+        }
+      }
+    }
+  } elseif ($mya) { // nothing to check for org unless retrying account info
+    if ($err = u\badName($org)) return say($err, 'org');
+    $structure = $mya->isNonprofit() ? 'NonProfit' : 'Commercial';
+    if (!$us->accountInfo($structure, '', $federalId, '', '', $org, $err)) {
+      if ($err) return say($err, 'zot'); // this might never happen (might always or never go to kba)
+    }
+  }
+  u\preray(compact(u\ray(R_BASIC_FIELDS)), $sta['input']);
   return TRUE;
 }
 
-function formSsn_submit($form, &$sta) {
-  return r\go('status');
+function formBasic_submit($form, &$sta) {
+  $mya = r\acct();
+  extract(u\just(R_BASIC_FIELDS, $sta['input']));
+  $fullName = $mya->person() ? trim("$first $last") : $org;
+  if ($mya->update(compact(u\ray('fullName federalId dob')))) say('info saved');
+  return r\go('status'); // on to next step (or total failure)
 }
 
 /**
  * Ask a set of personal questions to confirm the person's identity.
+ * If the answers fail 3 times (or even if the user refreshes the screen 3 times), the PhotoId step is next.
   $questions = json_decode ('[
   {
     "Id": "36848018",
@@ -2596,14 +2614,19 @@ function formSsn_submit($form, &$sta) {
 function formKba($form, &$sta) {
   $us = new r\usd($mya = r\acct());
   $form['title'] = item(t('Confirm Your Identity'));
-  if ($transactionId = $us->kba($questions, $err)) {
+  if ($transactionId = $us->kba($questions, $err)) { // get the set of questions
     foreach ($questions as $qi => $question) {
       extract(u\just('Id Text Choices', $question));
-      foreach ($Choices as $key => $value) $Choices->$key = ucwords(strtolower($value));
-      $form["q-$qi"] = formField('radios', $Text, '', required(), (array) $Choices);
+      // Mysteriously, $Choices[$key] (or previously $Choices->$key) cannot be referenced
+      // For example, if $key is '181649905', "echo $Choices[$key];" gives "Undefined offset: 181649905..."
+      foreach ($Choices as &$value) $value = strlen($value) == 2 ? $value : u\titleCase($value);
+      unset($value);
+      $form["q-$qi"] = formField('radios', $Text, '', required(), $Choices);
     }
     $form['transactionId'] = hidField($transactionId);
     $form['submit'] = submit(t('Submit answers'));
+  } elseif ($us->step() != 'Kba') {
+    return r\go('status'); // let it fall through, for appropriate message on status page
   } else say(t('Confirmation questions are not available. Please try again later.') . " ($err)");
   return $form;
 }
@@ -2860,28 +2883,7 @@ function formSecurity_submit($form, &$sta) {
   $info = u\just(R_SECRET_FIELDS . ' question', $info);
   if (!empty($info) and !$mya->update($info)) return say('info not saved', 'zot');
 
-  if (!$mya->usdAccount) { // Dwolla account not set up yet (already saved federalId and dob in $mya)
-    extract(u\just('address city postalCode', $mya->account()));
-    $state = r\realState($mya->state, $mya->country); // state abbrev
-    $phone = u\fmtPhone($mya->phone, 'n');
-    $dob = date('m-d-Y', $mya->dob);
-    $acceptTerms = TRUE;
-    $address2 = '';
-    $acctType = $mya->isNonprofit() ? 'NonProfit' : ($mya->co() ? 'Commercial' : 'Personal');
-    $org = $mya->person() ? '' : $fullName;
-    $ein = $mya->person() ? '' : $mya->federalId;
-
-    list ($first, $last) = u\parseName('test user');
-    $usd = $mya->usd(compact(u\ray('email usdPass pin first last address city state postalCode phone dob acceptTerms address2 acctType org ein')), $err);
-    if ($err) return say("$err|correct and retry", 'zot');
-
-    $usdType = 'Dwolla';
-    $secure = compact(u\ray('usdType pin usdPass')) + (@$mya->secure ?: array()); // secure includes more than these
-    $mya->update(compact('secure'));
-    say('info saved|open dwolla', compact('usdPass'));
-  } else say('info saved');
-
-  //r\go('status');
+  say('info saved');
 }
 
 define('R_REL_EMPLOYER_COL', 2); // number of amount/employer column

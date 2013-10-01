@@ -116,6 +116,29 @@ function badAmount(&$amount, $restriction = '', $fractionLimit = 2) {
 }
 
 /**
+ * Say whether the given SSN is bad.
+ * @param string $ssn: the social security number to test (RETURNED stripped of all but the digits)
+ * @param int $bdate: the person's birth date
+ * @return an error index if the SSN is bad, else FALSE
+ * From the SSA site:
+     We do not assign a Social Security number with the first three digits of: 000, 666, 900 - 999.
+     Nor do we assign Social Security number with "00" in the fourth and fifth position, 
+     or "0000" in the last four positions of the numbers.
+     Additionally, prior to June 25, 2011, we had never assigned a Social Security number with the first three digits of: 000, 666, 772 - 799, 800 - 899, 900 - 999.
+ */
+function badSsn(&$ssn, $bdate) {
+  if (strlen(u\digits($ssn)) != 9) $bad = TRUE;
+  $c1 = substr($ssn, 0, 1);
+  $s1 = substr($ssn, 0, 3);
+  $s2 = substr($ssn, 3, 2);
+  $s3 = substr($ssn, 5);
+  if ($c1 == '9' or $s1 == '000' or $s1 == '666' or $s2 == '00' or $s3 == '0000') $bad = TRUE;
+  if (substr($ssn, 0, 8) == '98765432') $bad = TRUE; // advertising numbers, according to Wikipedia
+  if ($bdate < strtotime('25Jun2011')) if ($c1 == '8' or ($c1 == '7' and $s1 > '771')) $bad = TRUE;
+  return @$bad ? 'bad federal id' : FALSE;
+}
+
+/**
  * Format the given amount as currency.
  *
  * @param float $amount
@@ -731,6 +754,24 @@ function badName($name) {
 }
 
 /**
+ * Say whether the string date is bad.
+ * @param string $s: typed date (returned with date converted to internal format, unless error)
+ * @param int $min: minimum date (if any)
+ * @param int $max: maximum date (if any)
+ * @return FALSE if date is okay, else an error index
+ */
+function badDate(&$s, $min = '', $max = '') {
+  if (!$dt = u\s2t(@$s)) return 'bad date';
+  if ($min !== '' and ($dt < $min or $dt > $max)) {
+    $err = $dt < $min ? 'date too early' : 'date too late';
+    if (!is_numeric(@substr($s, -3, 1))) $err .= '|year is 4 digits';
+    return $err;
+  }
+  $s = $dt;
+  return FALSE;
+}
+
+/**
  * Parse the name, returning the first and last names separately.
  * @param string $name: the name to parse
  * @return array: [$first, $last]
@@ -759,6 +800,15 @@ function normalizeCase($what, $proper = 'ucwords') {
     if (substr($what, 0, 4) == 'POB ') return $what; // special case for PO boxes
   }
   return $proper(strtolower($what));
+}
+
+define('R_SMALL_WORDS', 'of|a|the|and|an|or|nor|but|is|if|then|else|when|at|from|by|on|off|for|in|out|over|to|into|with');
+
+/**
+ * Convert a string to title case.
+ */
+function titleCase($s) {
+  return preg_replace_callback('/\b(' . R_SMALL_WORDS . ')\b/i', function ($m) {return strtolower($m[0]);}, ucwords(strtolower($s)));
 }
 
 function gzdecode($data){

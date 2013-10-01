@@ -16,6 +16,8 @@ DAILY (every 5 mins for 5 mins, starting at 2am)
 - ** payEmployees(): Each employee (and supplier) gets relieved of their excess rCredits immediately if they don't have enough USD to trade the employer for them.
 - ** gifts(): contributions to CGF (not shares)
 - NO! * redistribute(): (selling of unwanted rCredits) looks at accounts over their maximum (maximum is ignored for companies that do payment exchanges)
+- homogenize: spread the USD out a little in the system
+- pool: hold some USD in the community account
 - ** bank(): automatic transfers from bank accounts
 - (later) calculate credit line (for overdrafts, Dwolla outage (eg 503), etc.): give the payer (r)credit up to the amount they earned or bought in the past 5 days if they have been a member for a month, 30 days for 6 months
 - [later] notify and maybe fine late borrowers (might figure interest at the same time, since it requires examining each balance -- but only actually credit the interest monthly, otherwise discard it)
@@ -57,7 +59,7 @@ use rCredits\Backend as be;
 
 include_once __DIR__ . '/../usd.class';
 
-define('R_DAILY_TASKS', 'START usdTxsHere usdTxsThere recache checkAccts stats lessOften gifts bank notices END');
+define('R_DAILY_TASKS', 'START usdTxsHere usdTxsThere recache checkAccts stats lessOften gifts homogenize pool bank notices END');
 //define ('R_DAILY_TASKS', 'START redistribute END');
 
 /**
@@ -172,7 +174,7 @@ function coverFee($item) {
     sleep(60); // wait a minute, so we don't tie up our server or Dwolla's
     return r\queue('coverFee', $item); // Dwolla is down -- keep trying
   }
-  $for = t('Dwolla fee (reimbursed)');
+  $for = t('Dwolla fee');
   $keys = 'payer payee type amount r for taking usdXid';
   
   r\usd::beginAtom();
@@ -310,7 +312,7 @@ function bankFollowup($tx) {
  */
 function recache() {
   $fields = 'uid, r, usd, rewards, minimum, floor';
-  queueEach('recache1', "SELECT $fields FROM users WHERE uid>0 AND :IS_OK"); // make this IS_MEMBER if early gift
+  queueEach('recache1', "SELECT $fields FROM users WHERE uid>1 AND :IS_OK"); // make this IS_MEMBER if early gift
   queueNextAfter('recache');
 }
 
@@ -340,7 +342,7 @@ function recache1($item) {
  * Check accounts for consistency, scams, whatever.
  */
 function checkAccts() {
-  queueEach('checkAcct', "SELECT uid, minimum, rewards FROM users WHERE uid>0 AND :IS_OK"); //IS_MEMBER?
+  queueEach('checkAcct', "SELECT uid, minimum, rewards FROM users WHERE uid>1 AND :IS_OK"); //IS_MEMBER?
   queueNextAfter('checkAccts');
 }
 
@@ -484,7 +486,7 @@ function gift1($item) {r\acceptGift($item);}
 /*
 function redistribute() {
   $excess = ':R_CHUNK*FLOOR((:R_EXCESS-usd)/:R_CHUNK)';
-  $sql = "SELECT uid, $excess AS excess FROM users WHERE $excess>0 AND NOT :IS_PAYEX AND uid>0 AND :IS_OK";
+  $sql = "SELECT uid, $excess AS excess FROM users WHERE $excess>0 AND NOT :IS_PAYEX AND uid>1 AND :IS_OK";
   queueEach('sellR', $sql);
   queueNextAfter('redistribute');
 }
@@ -496,6 +498,50 @@ function sellR($item) {
 }*/
 
 /**
+ * Spread the USD out a little among the membership
+ * Give each account some USD to share with other members after possibly sending some off to the community.
+ * Move only as much daily as we can without incurring Dwolla fees. And only one transfer to each account.
+ * Note that an account's rCredits balance (r) can go negative if merely trading for USD
+ */
+function homogenize() {
+  queueEach('homogenize1', 'SELECT uid, community FROM users WHERE uid>1 AND usd<2*:DW_FEE_THRESHOLD AND :IS_OK');
+  queueNextAfter('homogenize');
+}
+
+/**
+ * Get some USD for the account if it has less than $20us.
+ */
+function homogenize1($item) {
+  extract(u\just('uid community', $item));
+  list ($sourceId, $sourceUsd) = array_values(r\dbLookup('uid,usd', 'users', 'community=:community ORDER BY usd DESC', compact('community')));
+  if ($amount = max(0, min(DW_FEE_THRESHOLD, $sourceUsd - 2 * DW_FEE_THRESHOLD))) {
+    r\rTrade($amount, $uid, $sourceId);
+  }
+}
+
+/**
+ * Hold some of the community's USD in the community account
+ */
+function pool() {
+  $result = r\dbQ('SELECT SUM(usd) AS total, SUM(1) AS sources, community FROM users WHERE uid>1 AND :IS_OK AND usd>0 GROUP BY community');
+  while ($row = $result->fetchAssoc()) { // for each community
+    extract($row); // total, sources, community
+    $cttyUsd = r\acct($community)->usd;
+    $count = (int) min($sources, R_CTTY_USD_SHARE * ($cttyUsd + $total) / DW_FEE_THRESHOLD); // # of chunks to get
+    if ($count > 0) queueEach('pool1', 'SELECT uid, community, LEAST(:DW_FEE_THRESHOLD, usd-:DW_FEE_THRESHOLD) AS amount FROM users WHERE uid>1 AND :IS_OK and community=:community AND usd>:DW_FEE_THRESHOLD ORDER BY usd DESC LIMIT ' . $count, compact('community')); // can't use LIMIT :count
+  }
+  queueNextAfter('pool');
+}
+
+/**
+ * Trade $10us to the community, leaving the account with at least $10us (if possible).
+ */
+function pool1($item) {
+  extract(u\just('uid community amount', $item));
+  r\rTrade($amount, $community, $uid);
+}
+
+/**
  * Transfer funds from Dwolla to bank account or vice versa, according to account's settings
  */
 function bank() {
@@ -503,7 +549,7 @@ function bank() {
   $sql = <<<EOF
   SELECT uid, :R_SHORTFALL AS shortfall
   FROM users 
-  WHERE :R_SHORTFALL>0 AND uid>0 AND :IS_OK
+  WHERE :R_SHORTFALL>0 AND uid>1 AND :IS_OK
 EOF;
   queueEach('bank1', $sql);
   queueNextAfter('bank');

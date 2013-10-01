@@ -49,6 +49,11 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  * in: Flow AMemberOverdrawsWithNotEnoughToDrawOn MAKE
  *     Get AMemberMovesCreditToTheBank MAKE
  *     Get AMemberDrawsCreditFromTheBank MAKE
+ *     Get AMemberMovesTooLittleToTheBank MAKE
+ *     Get AMemberTriesToCashOutRewards MAKE
+ *     Get AMemberMovesInconvenientlyMuchToTheBank MAKE
+ *     Get AMemberTriesToGoBelowTheirMinimum MAKE
+ *     Get AMemberAsksToDoTwoTransfersOutInOneDay MAKE
  *     Gift AMemberContributes MAKE
  *     Gift AMemberContributesPartlyInUSD MAKE
  *     Gift AMemberContributesWithInsufficientFunds MAKE
@@ -201,6 +206,11 @@ function transactions($list) {return t\transactions($list);}
  * we say (ARG): (ARG) with subs: (ARG)
  *
  * in: Flow AMemberOverdrawsWithNotEnoughToDrawOn TEST
+ *     Get AMemberMovesCreditToTheBank TEST
+ *     Get AMemberDrawsCreditFromTheBank TEST
+ *     Get AMemberTriesToCashOutRewards TEST
+ *     Get AMemberMovesInconvenientlyMuchToTheBank TEST
+ *     Get AMemberAsksToDoTwoTransfersOutInOneDay TEST
  *     Gift AMemberContributes TEST
  *     Gift AMemberContributesWithInsufficientFunds TEST
  *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance TEST
@@ -244,6 +254,8 @@ function weSayWithSubs($type, $index, $subs) {
  * in: Contact AMemberUpdatesContactInfo TEST
  *     Contact AMemberGivesABadPhone TEST
  *     Contact AMemberGivesABadEmail TEST
+ *     Get AMemberMovesTooLittleToTheBank TEST
+ *     Get AMemberTriesToGoBelowTheirMinimum TEST
  *     ScanCard CashierChargesRCard TEST
  *     Signin AMemberSignsInForTheFirstTime TEST
  *     Signin AMemberGivesTheWrongPassword MAKE
@@ -313,6 +325,7 @@ function weShowWithSubs($page, $subs) {
  * we show (ARG) with: (ARG)
  *
  * in: Contact AMemberVisitsTheContactInfoPage TEST
+ *     Get AMemberAsksToDoTwoTransfersOutInOneDay TEST
  *     Membership AMemberClicksOnTheMembershipLink TEST
  *     Membership ACompanyAgentClicksOnTheMembershipLink TEST
  *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
@@ -407,8 +420,7 @@ function relations($relations) {return t\relations($relations);}
  *
  * in: Download Setup BOTH
  *     Flow Setup MAKE
- *     Get AMemberMovesCreditToTheBank MAKE
- *     Get AMemberDrawsCreditFromTheBank MAKE
+ *     Get Setup MAKE
  *     Gift Setup MAKE
  *     RealUsd Setup MAKE
  *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
@@ -715,6 +727,7 @@ function weDownloadWith($name, $rows) {
     foreach ($row as $key => $value) {
 ///    debug(compact('row','csvRow'));
       if (strpos($value, '%') !== FALSE) $value = t\lastMinuteSubs($value);
+///      if (!isset($csvRow[$key])) debug(compact('key', 'csvRow', 'value'));
       if (!t\eq($csvValue = $csvRow[$key], $value)) return t\output("key=$key csvValue<>value: $csvValue<>$value");
     }
   }
@@ -751,8 +764,14 @@ function dwollaIsDown() {
 /**
  * usd transfers: (ARG)
  *
- * in: RealUsd AMixedRCreditsUSDTransactionHappens TEST
+ * in: Download Setup MAKE
+ *     Get Setup MAKE
+ *     Get AMemberMovesCreditToTheBank TEST
+ *     Get AMemberDrawsCreditFromTheBank TEST
+ *     Get AMemberAsksToDoTwoTransfersOutInOneDay MAKE
+ *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
  *     Statistics Setup MAKE
+ *     Transactions Setup MAKE
  */
 function usdTransfers($tx) {return t\usdTransfers($tx);}
 

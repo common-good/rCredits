@@ -23,39 +23,39 @@ mark the account as an rTrader (OK) (before printing card)
 print card and welcome materials, mail to new member
 
 SOMETIME SOON RETROFIT:
-The following accounts need to have Dwolla switched to us ("integrated into the rCredits backend"):
-Barbara, gary, snow's, adam (just needs usd balance reconciled)
+change all passwords and pins to something random, change email addresses to random.quid@rc4.me (use the "See USD" button on Admin page)
 
 To do: (* = before launch ** = earlier)
 
-. don't list self as possible proxy
-. hover help on relations page and statistics page
+. why does dwolla fee show up on transaction test but not when i click on abe one's transactions tab?
+. any account can unilaterally charge an account is has permission to draw on
+. add personal stats to Summary page (effective APR, benefit to ctty, etc)
+. retrofit old accounts, recording dwollapin, etc.
+. give bank transactions a tid (b#) (requires a tid field in r_usd)
+. sort txs by dt desc, by tid desc, before displaying
+. company search on production server gets collation error (search for "food")
+. cron aim at equalizing r and usd in circulation by trading created r for usd (never the other way). Buy up to $10us from everyone who has some USD (even 1 cent)
+. before each tx, get enough r in the account (make a nextUsdBuyer function like nextRBuyer()). Use the same date order but with payer/payee reversed
+. hover help on relations page
 . if company agent tries to charge same company's agent, say "You need to sign out the previous cashier before scanning in."
 . scanning Emi's card should say "not (yet) authorized for purchases"
-. change Bank setting to Bank Info
 . on reversing a payment, rebate should show as negative, not empty
 . committed amount can go negative (on a refund). make sure cron handles it right.
-. sort txs by dt desc, by tid desc, before displaying
 . don't try to register admin (or any incomplete account)
 . show the right thing for bank transfers for ctty_admin statistics page or hide them
-. change "pexchanges" to "payex" and put it before exchanges on Transaction History page
-. add "Skip" and "Resume" to Gherkin (sets a "don't compile" flag for debugging, calls "And skip <# of steps>")
-. have Gherkin always send us the whole array, which must still be rectangular. use t\key() to make the first row or column keys for the others
+
+. have Gherkin always send us the whole array, which must still be rectangular. use t\enk() to make the first row or column keys for the others
 . drive xml error from USPS on Signin, and handle it gracefully
 . rewrite form testing system to use just menu_execute_active_handler, drupal_validate_form, etc. (assuring official behavior). For example, be able to test required fields.
 . hide advanced features on Transactions page (show either advanced or simple period selector, but not both)
 . (later, if wanted) add undo permission between sell and buy?
 . (later) suggest reaching out to increase rebate pct
-. payment exchanges should be limited to not include accummulated rewards
 . coverFee from lost transaction cron
 . make invite a primary link
-. retrofit old accounts, recording dwollapin, etc.
-. (later, if wanted) combine exchanges and pexchanges on Transactions page?
 . handle menu logout from restricted page (does not log out)
 . if no permission to charge someone, scanning a card assumes payment for individual, site for company (but put a prominent "Pay" button on the site)
 . feature test: scan fake QR (should go to default page or empty)
 . (later) write an app for Android and iPhone, so scanning a card from out of region will work (you sign in to your own regional server, so a scan that takes you to another region's site won't work)
-. no virtual rewards for mutual suppliers
 . txs should not show X on receipts, for non-buyers
 . (later) use rc4.me for login and email redirection (with forward.php). Database table accounts has fields email (primary), username (all lowercase letters), and region (3 or 4 uppercase letters). So user can log in at rc4.me (linked to by rcredits.org), which then forwards the request to the appropriate server. Scanned cards go directly to the proper server (new.rc2.me/A/AAAcode OR /a/... for agents, B&b for 4-letter users, etc.).
 . before depending on anyone's cached USD balance, make sure the unavailability of their Dwolla account is not because they changed their PIN.
@@ -273,7 +273,7 @@ A. Development environment
    Also go to Settings/Preferences/Tab Settings and set the tab size to 2, replace with spaces
  - TESTING:
    . offline (isDEV): The only place to run the feature tests (sign in as admin, click on Handy, then Run Tests). Dwolla is active, but only the tester's dwolla account (DW_TESTER_ACCOUNT) will be used (and only for small amounts sent to Dwolla's "reflector" account). When Dwolla has a sandbox we will use it here.
-   . staging server (!isDEV and !isPRODUCTION): copy production database to the staging server (for example ws.rcredits.org), then do something to see what will happen when it happens for real on the production server. Ideally, we should have (1) an API that allows a list of events to be automated and (2) a "what happened since xxx" report. Emails are disabled except to the organization and the tester. USD transactions are disabled completely (so no testing of real Dwolla transactions is possible here) -- when Dwolla has a sandbox we will use it here.
+   . staging server (!isDEV and !isPRODUCTION): copy production database to the staging server (for example ws.rcredits.org), then do something to see what will happen when it happens for real on the production server. Ideally, we should have (1) an API that allows a list of events to be automated and (2) a "what happened since xxx" report. Emails are disabled except to the organization and the tester. USD transactions are disabled completely (so no testing of real Dwolla transactions is possible here) -- when Dwolla has a real sandbox we will use it here.
    . production server (isPRODUCTION): keep an eye on results, but don't mess with it
  
 B. Coding style and strategies:
@@ -431,12 +431,22 @@ H. Notes on transaction record system:
   - Thus every inter-community transaction is stored in both communities. Both communities know their trade balance, which should be public through a RESTful query. Intra-community transactions should also be stored twice -- ideally in member's devices. Smartphones and desktop computers running an app should store all their own transactions. Encrypted backups of everything to the cloud too.
 
 I. Cron ops
-- Companies with the "pmt exchanges" option don't have to pay anyone consciously. Their rCredits are offered proportionately to all employees and suppliers. Amounts are truncated to the penny. All payment offers are accepted automatically, up to the amount in the accepter's Dwolla account. Unaccepted amounts are redistributed to others (not recursively, if the company is unable to distribute its funds). Companies must list for each employee and supplier the average amount they pay them per month ($/mo) on the relations screen.
+  - 
 
-J. Other thoughts:
+J. Handling USD
+  - General Strategy: Keep about half the total USD in the community account, trying to leave each active member at least $10us.
+  - Cron homogenize: daily transfer up to $10us from whoever has the most to each account under $20us
+  - Cron pool: daily transfer $10us from each member to the community, leaving it with at least $10us: max(0, min(10, usd-10)), until community has its target proportion of the total USD in the system.
+  - Before payment: if payer does not have enough rCredits, just transfer it as part rCredits (as much as the payer has), part USD (DONE!). Don't go into gyrations to do every transaction entirely in rCredits. Just issue enough rCredits that most transactions happen that way.
+  - Before cashing out: if account does not have enough USD, get it from other members (DONE, but limit the account to one withdrawal per day, limited to the amount we can currently get in $10 chunks without hitting anyone twice).
+  - Common Good Finance is not a "money transmitter" (and therefore exempt from FinCEN regulation as an MSB) because "The term “money transmitter” shall not include a person that only: (A) Provides the delivery, communication, or network access services used by a money transmitter to support money transmission services;"
+  - Each rCredits region is not a "money transmitter" because "The term “money transmitter” shall not include a person that only: (B) Acts as a payment processor to facilitate the purchase of, or payment of a bill for, a good or service through a clearance and settlement system by agreement with the creditor or seller;"
+  - FinCEN's $1,000 limit therefore does not apply to purchases, but it may apply to exchanges (FinCEN is only explicit about currencies of "other countries", but to be (somewhat) safe, we should not allow the regional server to exchange more than $1,000 of rCredits for USD (or vice versa) with any one member in one day. It will also help if there are more than one community per server, since the server itself does not have an account and could not be seen as belonging to a single community.
+
+K. Other thoughts:
   - Joining by dumb cellphone is for play only. Accounts and transactions created that way should get deleted after a week of inactivity.
   - Suppose I live in 413 (NEW), but my cell is 987 (NYC). Person B lives in 222 with cell 333. When I am traveling to AAA I pay person B with SMS, by calling the local rCredits number. The local server contacts NYC to process my side of the transactions, but gets redirected to NEW. Similarly for person B's side. So at most 5 servers are involved (three just redirecting). NEW.rcredits.org and other subdomains act similarly.
-  - in dwolla.php: replace "if ($" with "if (@$" and "if (!$" with "if (!@$"
+  - in dwolla.php: replace "if ($" with "if (@$" and "if (!$" with "if (!@$" (DONE)
 
 To clear cache:   http://localhost/devcore/devel/cache/clear?destination=node
   (or https://new.rcredits.org/devel/cache/clear?destination=node)

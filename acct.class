@@ -465,7 +465,7 @@ EOF;
   }
 
   /**
-   * Return the amount waiting to be transferred to (or from if negative) the bank.
+   * Return the amount waiting to be transferred to or (if negative) from the bank.
    * @param bool $justTo: ignore withdrawals from bank
    */
   public function waitingToBank($justTo = FALSE) {
@@ -496,7 +496,7 @@ EOF;
    */
   function createUsdAccount(&$err) {
     $usdPass = user_password(20) . '*B2'; // satisfy Dwolla (and our own security)
-    $usdEmail = \user_password(4) . '.' . $this->mainQid . '@rc4.me';
+    $usdEmail = strtolower(\user_password(4) . '.' . $this->mainQid) . '@rc4.me';
     $usdPin = u\randomString(4, 'digits');
     if (isDEV) list ($usdPass, $usdPin) = array('Password1', 9999);
     if (isDEV and (!$usdEmail or !strpos('@dwolla.com', $usdEmail))) $usdEmail = 'gordon+william+5@dwolla.com';
@@ -527,8 +527,7 @@ EOF;
   public function dwStatus() {
     if (!@$this->usdAccount) return DW_NO;
     $usA = new r\usd($this);
-    $source = $usA->source($err);
-    if ($source['count'] < 1) return DW_YES; // Dwolla but no bank
+    if (!$source = $usA->source($err)) return DW_YES; // Dwolla but no bank
     if (!@$source['Verified']) return DW_BANK;
     return @$source['Type'] == 'Checking' ? DW_VCHECKING : DW_VSAVINGS;
   }

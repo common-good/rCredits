@@ -81,6 +81,7 @@ define('R_AGENT_URL_MARK', '-'); // use this as a substitute for R_AGENT_MARK in
 define('R_MARKS', '[\\' . R_MEMBER_MARK . '\\' . R_AGENT_MARK . '\\' . R_AGENT_URL_MARK . ']'); // any of those
 define('R_ANCIENT_EFT', 10); // how long, at most, an EFT might take (transferring funds to/from bank)
 define('R_REQUIRED', ' <span class="form-required" title="This field is required.">*</span>');
+define('R_CTTY_USD_SHARE', .5); // fraction of a community's total USD to hold in the community account
 
 define('DW_SITE', isPRODUCTION ? 'https://www.dwolla.com' : 'https://uat.dwolla.com');
 //                               : 'http://new.rcredits.org/stage.php?stageWord=' . R_STAGE_WORD . '&request=');
@@ -225,7 +226,7 @@ define('TX_FINE', 9);
 
 define('TX_DEFAULT_PERIOD', 30); // number of days to show in transaction history, by default
 define('TX_MAX_ROWS', 100); // maximum number of transactions to show on one screen
-define('TX_MONEY_FIELDS', 'frombank fromyou toyou amount r usd reward net');
+define('TX_DOWNLOAD_MONEY_FIELDS', 'frombank fromyou toyou reward net');
 
 $GLOBALS['emailSubjects'] = array(
 /*  'new-payment' => t('rCredits PAYMENT from {otherName}'),
@@ -342,6 +343,30 @@ function xid2tid($xid, $uid) {
 }
 
 /**
+ * Trade r in one account for USD in another
+ * @param float $amount: the amount to trade
+ * @param int $uid1: uid of account with r to trade
+ * @param int $uid2: uid of account with USD to trade
+ * @return string $txid: USD transaction ID (from Dwolla) or FALSE on failure
+ * Caller is responsible for determining whether the accounts have enough r and USD for the trade.
+ */
+function rTrade($amount, $uid1, $uid2) {
+  $us1 = new r\usd($a1 = r\acct($uid1));
+  $us2 = new r\usd($a2 = r\acct($uid2));
+
+  r\usd::beginAtom();
+  if (!$txid = $us2->send($amount, $us1)) {
+    r\usd::rollback();
+    if ($uid1 > 0) $a1->actualUsd(); // fix cached USD, if needed (after rollback)
+    if ($uid2 > 0) $a2->actualUsd();
+    return FALSE;
+  }
+  r\exchange($amount, $uid1, $uid2, $txid);
+  r\usd::commit();
+  return $txid;
+}
+
+/**
  * Payer exchanges rCredits for USD. Record the rCredits transaction.
  * @param string $usdXid: (optional) related USD transaction ID
  */
@@ -454,8 +479,8 @@ function transactionSetup($info) {
   u\setDft($payerAgent, $payer);
   u\setDft($payeeAgent, $payee);
   u\setDft($created, REQUEST_TIME);
-  $rewardBasis = ($payee == \variable_get('cgf_uid') and $for == 'contribution') ? $amount : $r;
-  $data = dataSetup($payer, $payee, $rewardBasis, $goods, @$data ?: array());
+//  $rewardBasis = ($payee == \variable_get('cgf_uid') and $for == 'contribution') ? $amount : $r;
+  $data = dataSetup($payer, $payee, $amount, $goods, @$data ?: array());
   if (@$state !== TX_PENDING) $completed = $created;
   $taking += 0;
   $goods += 0;
@@ -1223,14 +1248,23 @@ function proxy($person, $priority = 1, $proxy = NULL) {
  * @param usd $usAcct: USD account that is receiving USD from the third parties (might be different owner from $acct)
  * @return how much USD we actually delivered
  */
-function getUsd($request, $acct, $usAcct) {
+function getUsd($request, $acct, $usAcct = '') {
+  u\EXPECT(!$usAcct or !$threeway = ($acct->id != $usAcct->acct->id), 'archaic 3-way trade');
   $need = $request;
-  $threeway = ($acct->id != $usAcct->acct->id);
   r\usd::beginAtom();
   while ($need > 0) {
     $part = $need;
     if (!$acct3 = nextRBuyer($part, $acct->id)) break; // asks for what we need, returns the part we got in $part
     u\EXPECT($part > 0, 'got nothing');
+    if ($txid = r\rTrade($part, $acct->community, $acct3->id)) $need = round($need - $part, 2);
+  }
+  if ($got = round($request - $need, 2)) r\exchange($got, $acct->id, $acct->community, $txid);
+  r\usd::commit($got); // accept partial success
+  return $got;
+}
+
+/*
+  here's what the call to r\rTrade replaced above:
     $usAcct3 = new r\usd($acct3); // "third party" Dwolla account
     r\usd::beginAtom();
     if ($txid = $usAcct3->send($part, $usAcct)) { // $part NOT R_CHUNK
@@ -1241,11 +1275,7 @@ function getUsd($request, $acct, $usAcct) {
       r\usd::rollback();
       $acct3->actualUsd(); // fix cached USD, if needed (after rollback)
     }
-  }
-  if ($got = round($request - $need, 2)) r\exchange($got, $acct->id, $acct->community, $txid);
-  r\usd::commit($got); // accept partial success
-  return $got;
-}
+*/
 
 /**
  * Return the uid of the next account in line wanting/willing and able to trade enough US Dollars for rCredits.
@@ -1470,7 +1500,8 @@ function avail($type, $ray, $withUsd = TRUE) {
   extract($ray);
   if ($type == 'exch' or !$withUsd) $usd = $committed = 0; // no exchanging USD credit for USD credit
   if ($type != 'buy') $floor = max(0, $floor, $rewards); // no exchanging into debt
-  u\setDft($fees, $usd > DW_FEE_THRESHOLD ? DW_FEE : 0);
+//  u\setDft($fees, $usd > DW_FEE_THRESHOLD ? DW_FEE : 0);
+  u\setDft($fees, 0);
   return $usd + $r - $committed - $floor - $fees;
 }
 
@@ -1487,6 +1518,17 @@ function median($field, $table = 'users', $where = 1, $subs = array()) {
   $middle = r\dbLookup('COUNT(*)', $table, $where, $subs) / 2;
   $limit = floor($middle) . (is_int($middle) ? ', 1' : ', 2');
   return r\dbLookup('AVG($field)', 'users', "$where ORDER BY $field LIMIT $limit", $subs);
+}
+
+/**
+ * Return the next sequential bank transfer number for an account.
+ * @param int $payer: the account uid
+ * @return int: the next unused positive integer (1 if there are no bank transfers yet)
+ */
+function getUsdTid($payer) {
+  if ($tid = r\dbLookup('MAX(tid)+1', 'r_usd', 'payer=:payer', compact('payer'))) return $tid;
+  $result = r\dbQ('UPDATE r_usd SET tid=(@tid:=IFNULL(@tid,0)+1) WHERE payer=:payer ORDER BY created', compact('payer'));
+  return $result->rowCount() + 1;
 }
 
 /**
@@ -1530,7 +1572,7 @@ function dbUpdate($table, $info, $key, $either = FALSE) {
       require_once __DIR__ . '/rcredits-install.inc';
       $schema = r\tableDefs();
       $id = $table == 'users' ? 'uid' : $schema[$table]['primary key'][0];
-      u\EXPECT($id, 'no primary key in ' . __FUNCTION__);
+      u\EXPECT($id and isset($info[$id]), 'no primary key ' . $id);
       $field1 = reset($schema[$table]['fields']);
       if ($hasSerial = ($field1['type'] == 'serial')) return FALSE;
       return dbLookup($id, $table, "`$id`=:$id", array($id => $info[$id])); // return the supplied id if success

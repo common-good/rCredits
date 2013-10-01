@@ -4,25 +4,31 @@
 define('SYS_EMAIL', 'info@rc4.me');
 
 $s = stream_get_contents(fopen('php://stdin', 'r'));
-$link = $response = '';
+$link = $response = $coding = '';
 list ($zot, $who, $subject, $text) = parseHeader($s);
 
 if (preg_match('/Content-Transfer-Encoding: base64(.*?)----boundary/ms', @$s, $matches)) {
   $text = base64_decode($matches[1]);
   if ($parsed = parseHeader($text) and $parsed[0]) list ($zot, $who, $subject, $text) = $parsed;
+  $coding .= ', base64';
 }
 
 if ($text) {
-  if (strpos($text, '=3DW') and $text2 = quoted_printable_decode($text)) $text = $text2;
-  if (preg_match('~[<\s](http://email\.dwolla\.com.*?|https://www.dwolla.com.*?)[><\s]~ms', $text, $matches)) {
+  if (strpos($text, '=3DW') and $text2 = quoted_printable_decode($text)) {
+    $text = $text2;
+    $coding .= ', quoted_printable';
+  }
+  if (preg_match('~(https://www.dwolla.com/.*?)["<\s]~ms', $text, $matches)) {
+    $coding .= ', linky';
     $link = $matches[1];
     if (strpos($subject, 'TEST') !== FALSE) $link = str_replace('/www.', '/uat.', $link);
-    if (strpos($subject, 'Verify your email account') !== FALSE) $response = file_get_contents($link);
+    if (stripos($subject . $text, 'Verify your e') !== FALSE and strpos($link, '/register/verify?')) $response = file_get_contents($link);
   }
 }
 
 $s = <<<EOF
 link: $link<br>
+coding: $coding<br>
 subject: $subject<br>
 to: $who<br>
 decoded: $text<br>

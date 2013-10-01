@@ -30,8 +30,6 @@ define('RUSD_R', 0);
 define('RUSD_USD', 1);
 define('RUSD_BOTH', 2); // show both rCredits (0) and USD (1)
 
-define('TX_TID_MAX', 10000); // zero-filler
-
 /**
  * List Transactions
  */
@@ -64,6 +62,7 @@ function formTxs($form, &$sta, $args = '') {
     if (@$$one) $optDefaults[] = $value; // set up option field values
   }
   list ($classes, $header, $downloadHeader) = txFields($report, @$download, @$agents, @$channels, @$boxes);
+ 
   $txDays = array('1' => 'today', '4' => '4 days', '30' => '30 days', '90' => '90 days', '180' => '6 months', '365' => '12 months', '-1' => 'Year to date');
   list ($starting, $ending) = txDates($txDays, @$period, @$starting, @$ending);
   $url0 = @"$base_url/$page/period=$period&starting=$starting&ending=$ending&options=$options&variety=$variety";
@@ -96,16 +95,16 @@ function formTxs($form, &$sta, $args = '') {
       foreach ($totPending as $key => $value) if ($totDone[$key] !== FALSE) $totDone[$key] += $value;
     } elseif ($states == STATES_PENDING) $totDone = $totPending;
     
-    u\splice($totDone, 'date', 1, u\ray('created date', FALSE, FALSE));
+    u\splice($totDone, 'date', 1, u\ray('txid created date', FALSE, FALSE, FALSE));
     u\splice($totDone, 'buttons', 1); // don't download buttons
     u\splice($totDone, 'fromyou', 0, u\ray('frombank', 0));
     $totDone['name'] = 'TOTALS';
-    foreach(u\just(TX_DOWNLOAD_MONEY_FIELDS, $totDone) as $key => $value) $totDone[$key] = round($value, 2);
+    foreach(u\just(TX_MONEY_FIELDS, $totDone) as $key => $value) $totDone[$key] = round($value, 2);
     //if ($value === FALSE) $totDone[$key] = '-';
     csv($csv, array_values($totDone)); // not STDOUT
     if (t\est()) return; else exit();
-  } else sortRows($rows);
-  
+  }
+
   // prepare screen display
   $classes = u\prefixValues('tx-', $classes);
   $attributes = array('id' => 'txlist');
@@ -145,17 +144,6 @@ function formTxs($form, &$sta, $args = '') {
   return labeled($form);
 }
 
-/**
- * Sort the rows descending by the first column and discard it.
- */
-function sortRows(&$rows) {
-  if (!@$rows) return; // no records
-  foreach ($rows as $i => $row) $keys[] = array_shift($rows[$i]);
-  $rows = array_combine($keys, $rows);
-  krsort($rows, SORT_STRING);
-  $rows = array_values($rows);
-}
-
 function setupDownload($starting, $ending) {
   global $testCSV, $testCSVname;
   $testCSV = array();
@@ -172,14 +160,14 @@ function setupDownload($starting, $ending) {
  */
 function txFields($report, $download, $agents, $channels, $boxes) {
   global $agtViaBox;
-  $headHelp = t('Transaction number|Date transaction was initiated or completed|Payer name|Payee name|Transaction amount|Current state of transaction -- check mark means completed, pending means awaiting approval by payer.|What is the purpose of the transaction (usually the item or service purchased)|How much incentive rewards were awarded for this transaction|Who did you pay or receive from|Amounts you spent|Amounts you received|Click on a symbol to approve, deny, or reverse a transaction or to edit the purpose|The net change in account balance|') . $agtViaBox;
-  $classes = 'tid date from to amount state purpose reward';
+  $headHelp = t('Transaction number|Date transaction was initiated or completed|Payer name|Payee name|Transaction amount|What percentage of the amount transferred was rCredits (hover over a percentage to see the breakdown)|rCredits amount|US Dollars amount|Current state of transaction -- check mark means completed, pending means awaiting approval by payer.|What is the purpose of the transaction (usually the item or service purchased)|How much incentive rewards were awarded for this transaction|Who did you pay or receive from|Amounts you spent|Amounts you received|Click on a symbol to approve, deny, or reverse a transaction or to edit the purpose|The net change in account balance|') . $agtViaBox;
+  $classes = 'tid date from to amount rpct r usd state purpose reward';
   $headHelp = array_combine(u\ray($classes . ' name fromyou toyou buttons net agent channel box'), u\ray($headHelp));
   if ($report) { // community transaction history
-    $headers = t('#,Date,From,To,Total,Status,Purpose,Rewards');
+    $headers = t('#,Date,From,To,Total,r%,rCredits,USD,Status,Purpose,Rewards');
   } else { // individual account transaction history
-    $classes = 'tid date name fromyou toyou state buttons purpose reward net';
-    $headers = t('#,Date,Name,From you,To you,Status,Action,Purpose,Reward,Net');
+    $classes = 'tid date name fromyou toyou rpct r usd state buttons purpose reward net';
+    $headers = t('#,Date,Name,From you,To you,r%,rCredits,USD,Status,Action,Purpose,Reward,Net');
   }
 
   $header = array_combine(u\ray($classes), u\ray($headers)); // make splices and additions easy and clear
@@ -191,8 +179,8 @@ function txFields($report, $download, $agents, $channels, $boxes) {
   if (@$download) { // downloading -- modify standard individual or community field list
     $downloadHeader = $header;
     u\splice($downloadHeader, 'buttons', 1); // don't download buttons
-    u\splice($downloadHeader, 'date', 0, u\ray('created', t('Created'))); // insert fields
-    u\splice($downloadHeader, 'fromyou', 0, u\ray('frombank', t('From bank')));
+    u\splice($downloadHeader, 'date', 0, u\ray('txid created', t('Tx#'), t('Created'))); // insert fields
+    u\splice($downloadHeader, 'fromyou', 0, u\ray('frombank', t('From Bank')));
   }
 
   foreach ($header as $key => $value) $header[$key] = popHelp($value, $headHelp[$key]);
@@ -217,7 +205,7 @@ function doRow($tx, $report, $csv, $classes, $agents, $channels, $boxes, $curren
   $xid = $tx_xid;
 
   if ($banking = ($tx_type == TX_BANK)) {
-    $tx_purpose = ($tx_amount < 0 ? t('from') : t('to')) . ' ' . t('bank');
+    $tx_purpose = ($tx_amount < 0 ? t('from') : t('to')) . ' ' . t('bank account');
     if ($tx_amount < 0) list ($tx_amount, $tx_payee) = array(-$tx_amount, $myid);
   } else $data = unserialize($tx_data);
   
@@ -233,30 +221,29 @@ function doRow($tx, $report, $csv, $classes, $agents, $channels, $boxes, $curren
   
   if ($report) { // community transaction history
     $reward = $banking ? 0 : (@$data['bonus'] + @$data['rebate']);
+    txNeatAmounts($amount, $reward, $is_reward);
     $state = txColoredState($tx_state);
     $tid = $xid; // for community use the actual transaction numbers
     $payeeName = $banking ? '' : r\acct($tx_payee)->fullName;
-    txNeatAmounts($amount, $reward, $is_reward);
     $row = array($tid, strftime('%d-%b-%Y', $date), r\acct($tx_payer)->fullName, $payeeName, $total, $rpct, $amount, $usd, $state, $tx_purpose, $reward);
   } else { // individual account transaction history
     $url = $url0 . "&xid=$xid";
     u\setDft($toMe, $tx_payee == $myid);
     $byMe = $banking ?: (@$tx_taking == $toMe);
-    $tid = $banking ? $xid : ($toMe ? @$tx_payeeTid : @$tx_payerTid);
+    $tid = $toMe ? $tx_payeeTid : @$tx_payerTid;
     $agent = $toMe ? @$tx_payeeAgent : @$tx_payerAgent;
     $state = txColoredState($tx_state, $byMe);
     $reward = $banking ? 0 : @$data[$toMe ? 'bonus' : 'rebate'];
-    $net = number_format(($toMe ? $tx_amount : -$tx_amount) + $reward, 2);
+    $net = number_format(($toMe ? $total : -$total) + $reward, 2);
     txNeatAmounts($amount, $reward, $is_reward);
     list ($toYou, $fromYou) = $toMe ? array($amount, R_NONE) : array(R_NONE, $amount);
-    if ($tx_amount == 0) $toYou = $fromYou = "<span class=\"virtual\">$r</span>"; // make payment exchanges clear
+    if ($total + 0 == 0) $toYou = $fromYou = "<span class=\"virtual\">$r</span>"; // make payment exchanges clear
     if ($tx_type == TX_REFUND) list ($reward, $toYou) = array($toYou, R_NONE);
     $button1 = (!$byMe and okableState($tx_state)) ? button('OK', "$url&do=ok", txAct('ok', $tx_state, $toMe, $byMe)) : '';
     $button2 = ((!$is_reward or $mya->can(B_CTTY_ADMIN)) and !@$data['undoneBy']) ? button(' X ', "$url&do=no", txAct('no', $tx_state, $toMe, $byMe)) : '';
     $button3 = ($mya->can(@$tx_taking ? B_SELL : B_BUY) and !$is_reward) ? "<a href='$url&do=edit' title='Edit Purpose'><img src='$rUrl/images/icons/edit.png' width=20 height=20 border=0 /></a>" : '';
     $buttons = ($banking or $toYou == $fromYou) ? '' : "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
-//    $row = array($tid, strftime('%d-%b', $date), @$tx_name, $fromYou, $toYou, $rpct, $amount, $usd, $state, $buttons, $tx_purpose, $reward, $net);
-    $row = array($tid, strftime('%d-%b', $date), @$tx_name, $fromYou, $toYou, $state, $buttons, $tx_purpose, $reward, $net);
+    $row = array($tid, strftime('%d-%b', $date), @$tx_name, $fromYou, $toYou, $rpct, $amount, $usd, $state, $buttons, $tx_purpose, $reward, $net);
   }
 
   if (@$agents) $row[] = (!@$agent or $agent == $myid or $agent < 0) ? R_NONE 
@@ -265,25 +252,24 @@ function doRow($tx, $report, $csv, $classes, $agents, $channels, $boxes, $curren
   if (@$channels) $row[] = $txChannels[$tx_channel];
   if (@$boxes) $row[] = r\dbLookup('boxName', 'r_boxnames', 'id=:tx_box', compact('tx_box'));
 
-  if ($csv) return finishCsvRow($csv, array_combine($classes, $row), $tx, $amount, $toMe, $tot);
-  if ($banking) $tid = substr($tid, 1);
-  $tid = substr(TX_TID_MAX + $tid, 1) . ($banking ? '5' : '0'); // 0 and 5 to be deterministic
-  array_unshift($row, $date . $tid); // fails around the year 2260
-  return $row;
+  return $csv ? finishCsvRow($csv, array_combine($classes, $row), $tx, $amount, $r, $usd, $toMe, $tot) : $row;
 }
 
-function finishCsvRow($csv, $row, $tx, $amount, $toMe, &$tot) {
+function finishCsvRow($csv, $row, $tx, $amount, $r, $usd, $toMe, &$tot) {
   extract(u\just('xid type created completed state', $tx));
 
-//  $txid = u\n2a(abs($xid), -4); // world-unique transaction id
+  $banking = ($type == TX_BANK);
+  $txid = u\n2a(abs($xid), -4); // world-unique transaction id
   $created = strftime('%Y-%m-%d', $created);
-  if ($type == TX_BANK) {
+  if ($banking) {
     $frombank = $toMe ? $amount : -$amount;
     $row['fromyou'] = $row['toyou'] = '';
-  } else $frombank = '';
-//    $txid = R_SERVER_ID . '-' . $txid;
+  } else {
+    $frombank = '';
+    $txid = R_SERVER_ID . '-' . $txid;
+  }
   
-  u\splice($row, 'date', 0, compact('created'));
+  u\splice($row, 'date', 0, compact(u\ray('txid created')));
   u\splice($row, 'buttons', 1); // don't download buttons
   u\splice($row, 'fromyou', 0, compact('frombank'));
 
@@ -291,17 +277,16 @@ function finishCsvRow($csv, $row, $tx, $amount, $toMe, &$tot) {
   $txStates = u\ray(TX_STATES);
   $state = $txStates[$state - TX_STATE0]; // transaction state (human-readable)
 
-//  if ($amount == R_NONE) {
-//    $r = ''; // showing refunds and other incentives (other than rebate/bonus) as rewards
-//  } elseif (!$toMe) {$r = '-' . $r; $usd = '-' . $usd;}
-  foreach (u\ray('date state') as $key) $row[$key] = $$key; // don't compact()+$row (maintain order!)
+  if ($amount == R_NONE) {
+    $r = ''; // showing refunds and other incentives (other than rebate/bonus) as rewards
+  } elseif (!$toMe) {$r = '-' . $r; $usd = '-' . $usd;}
+  foreach (u\ray('date state r usd') as $key) $row[$key] = $$key; // don't compact()+$row (maintain order!)
 ///  if ($xid == 37) debug(compact('row','amount','r','usd','toMe','tot'));
   
   foreach ($row as $key => $value) $row[$key] = $value == R_NONE ? '' : strip_tags($value);
   if ($row['fromyou'] == $row['toyou']) $row['fromyou'] = $row['toyou'] = ''; // don't report gross on payex
-  foreach (u\ray(TX_DOWNLOAD_MONEY_FIELDS) as $key) {
-    $row[$key] = u\cleanAmount(@$row[$key]) + 0;
-    $tot[$key] = (@$tot[$key] ?: 0) + $row[$key]; // formatting value is useless
+  foreach (u\ray(TX_MONEY_FIELDS) as $key) {
+    if (@$row[$key]) $tot[$key] = ($tot[$key] ?: 0) + $row[$key]; // formatting value is useless
   }
   csv($csv, array_values($row)); // not STDOUT
   return TRUE;
@@ -374,9 +359,9 @@ function formTxs_submit($form, &$sta, $page = 'transactions') {
  * @return array($starting, $ending, $period), where $starting is adjusted to start of day and $ending to end of day
  */
 function txDates($txDays, $period, $starting = '', $ending = '') {
-  if (@$starting and !is_numeric($starting) and $err = u\badDate($starting)) say($err, 'starting');
+  if (@$starting and !is_numeric($starting) and !$starting = strtotime($starting)) say('bad date', 'starting');
   if (@$starting > REQUEST_TIME) say('beyond today', 'starting');
-  if (@$ending and !is_numeric($ending) and $err = u\badDate($ending)) say($err, 'ending');
+  if (@$ending and !is_numeric($ending) and !$ending = strtotime($ending)) say('bad date', 'ending');
   if (!@$ending or $ending > REQUEST_TIME) $ending = REQUEST_TIME;
 
   $period = (int) @$starting ? ($ending - $starting) / DAY_SECS : (@$period ?: TX_DEFAULT_PERIOD);

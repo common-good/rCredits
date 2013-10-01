@@ -410,13 +410,10 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformtxs .tx-date {width:7.5%; text-align:right;} /* 2 date */
 #rcreditswebformtxs .tx-fromyou {width:9.5%; text-align:right;} /* 4 from you */
 #rcreditswebformtxs .tx-toyou {width:9.5%; text-align:right;} /* 5 to you */
-#rcreditswebformtxs .tx-rpct {width:0; display:none; text-align:right;} /* 6 r% */
-#rcreditswebformtxs .tx-r,
-#rcreditswebformtxs .tx-usd,
-#rcreditswebformtxs .tx-net {width:0; display:none;}
-#rcreditswebformtxs .tx-state {width:5%; text-align:right;} /* 9 status */
-#rcreditswebformtxs .tx-buttons {width:12%; text-align:right;} /* 10 buttons */
-#rcreditswebformtxs .tx-reward {width:7.5%; text-align:right;} /* 12 rewards */
+#rcreditswebformtxs .tx-state {width:5%; text-align:right;} /* 6 status */
+#rcreditswebformtxs .tx-buttons {width:12%; text-align:right;} /* 7 buttons */
+#rcreditswebformtxs .tx-reward {width:7.5%; text-align:right;} /* 9 rewards */
+#rcreditswebformtxs .tx-net {width:0; display:none;} /* 10 net */
 
 #rcreditswebformtxs th,
 #rcreditswebformtxs td {text-align:right;}
@@ -426,14 +423,11 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformtxs th:first-child +th+th {text-align:left;} /* col 3: name */
 /* #rcreditswebformtxs th:first-child +th+th+th {text-align:right;} /* col 4: fromyou */
 /* #rcreditswebformtxs th:first-child +th+th+th+th {text-align:right;} /* col 5: toyou */
-#rcreditswebformtxs th:first-child +th+th+th+th+th {display:none;} /* col 6: rpct */
-#rcreditswebformtxs th:first-child +th+th+th+th+th+th {display:none;} /* col 7: r */
-#rcreditswebformtxs th:first-child +th+th+th+th+th+th+th {display:none;} /* col 8: usd */
-/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th {text-align:right;} /* col 9: state */
-/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th+th {text-align:right;} /* col 10: buttons */
-/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th+th+th {text-align:right;} /* col 11: purpose */
-#rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th+th+th+th {text-align:right;} /* col 12: reward */
-#rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th+th+th+th+th {display:none;} /* col 13: net */
+/* #rcreditswebformtxs th:first-child +th+th+th+th+th {text-align:right;} /* col 6: state */
+/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th {text-align:right;} /* col 7: buttons */
+/* #rcreditswebformtxs th:first-child +th+th+th+th+th+th+th {text-align:right;} /* col 8: purpose */
+#rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th {text-align:right;} /* col 9: reward */
+#rcreditswebformtxs th:first-child +th+th+th+th+th+th+th+th+th {display:none;} /* col 10: net */
 
 /* #rcreditswebformtxs td:first-child {text-align:right;} /* col 1 */
 /* #rcreditswebformtxs td:first-child +td {text-align:right;} /* col 2 */
@@ -441,13 +435,10 @@ form.rweb  .form-no {color:red;}
 /* #rcreditswebformtxs td:first-child +td+td+td {text-align:right;} /* col 4 */
 /* #rcreditswebformtxs td:first-child +td+td+td+td {text-align:right;} /* col 5 */
 /* #rcreditswebformtxs td:first-child +td+td+td+td+td {text-align:right;} /* col 6 */
-#rcreditswebformtxs td:first-child +td+td+td+td+td+td {display:none;} /* col 7 */
-#rcreditswebformtxs td:first-child +td+td+td+td+td+td+td {display:none;} /* col 8 */
-/* #rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td {text-align:right;} /* col 9 */
-/* #rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td+td {text-align:right;} /* col 10 */
-/* #rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td+td+td {text-align:right;} /* col 11 */
-#rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td+td+td+td {text-align:right;} /* col 12 */
-#rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td+td+td+td+td {display:none;} /* col 13 */
+/* #rcreditswebformtxs td:first-child +td+td+td+td+td+td {text-align:right;} /* col 7 */
+/* #rcreditswebformtxs td:first-child +td+td+td+td+td+td+td {text-align:right;} /* col 8 */
+#rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td {text-align:right;} /* col 9 */
+#rcreditswebformtxs td:first-child +td+td+td+td+td+td+td+td+td {display:none;} /* col 10 */
 
 /* Transaction Summary Table */
 #txsum, #txsum-title, #txs-title {width:100%; margin:0;} /* outline:2px solid darkgreen;} */

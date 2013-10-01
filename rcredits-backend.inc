@@ -116,7 +116,7 @@ function bankTransfers($starting, $ending, $uid = NULL, $opts = array()) {
   $date = $pendings ? 'GREATEST(t.created, t.completed)' : 't.completed';
   $where = "$date BETWEEN :starting AND :ending ORDER BY $date DESC";
   if (!$dones) $where = "NOT completed AND $where";
-  $fields = "t.txid AS usdXid, -t.txid AS xid, amount, t.payer, t.payee, :TX_BANK AS type, t.created, t.completed, IF(t.completed, :TX_DONE, :TX_PENDING) AS state, IF(t.amount<0, 1, 0) AS toMe";
+  $fields = "t.txid AS usdXid, CONCAT('b', tid) AS xid, amount, t.payer, t.payee, :TX_BANK AS type, t.created, t.completed, IF(t.completed, :TX_DONE, :TX_PENDING) AS state, IF(t.amount<0, 1, 0) AS toMe";
   
   if ($uid < 0) { // community or region
     $sql = <<<EOF

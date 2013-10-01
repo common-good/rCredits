@@ -73,17 +73,16 @@ class usd {
   }    
 
   /**
-   * Return basic account information and set usdAccount, if it hasn't yet been set.
+   * Return basic account information and set usdAccount.
    * @return an assoc of basic info. On error, return FALSE and set $err.
    */
   public function me(&$err = '') {
     $dw = $this->dwolla();
     if (!$me = $dw->me()) return dwError($dw, $err);
-    if ($a = $this->acct and !$a->usdAccount) {
-      $this->number = $usdAccount = str_replace('-', '', $me['Id']);
-      if ($other = r\whoseUsd($usdAccount, $a->id)) return dwError(u\tt('usd account taken', compact('other')), $err); // should probably be u\EXPECT() soon?
-      $a->update(compact('usdAccount'));
-    }
+    $this->number = $usdAccount = str_replace('-', '', $me['Id']); // regardless of whether it already has a #
+    if ($other = r\whoseUsd($usdAccount, $this->acct->id)) return dwError(u\tt('usd account taken', compact('other')), $err); // should probably be u\EXPECT() soon?
+    $this->acct->update(compact('usdAccount'));
+
     return $me;
   }
   
@@ -156,7 +155,7 @@ class usd {
    * Verify the user's social security number.
    * @param string $ssn: the user's social security number
    * @param string $err: (returned) the error message, if any
-   * @return TRUE if success, else FALSE with step() = AccountInfo (first failure) or Kba (second failure)
+   * @return TRUE if success, else FALSE (in which case next step is normally "AccountInfo")
    */
   function ssn($ssn, &$err = '') {
     $dw = $this->dwolla();
@@ -164,6 +163,24 @@ class usd {
     return TRUE;
   }
 
+  /**
+   * Submit corrected personal information (because SSN could not be verified by ssn())
+   * @param string $structure: "Personal", "NonProfit", or "Commercial"
+   * @param string $dob: person's birth date (empty for companies)
+   * @param string $ein: organization's Employer Id Number (empty for individuals)
+   * @param string $first: person's first name (empty for companies)
+   * @param string $last: person's last name (empty for companies)
+   * @param string $org: organization name (empty for individuals)
+   * @param string $err: (returned) the error message, if any
+   * @return TRUE if success, else FALSE (in which case next step is normally "Kba")
+   */
+  function accountInfo($structure, $dob = '', $ein = '', $first = '', $last = '', $org = '', &$err = '') {
+    $dw = $this->dwolla();
+    if ($dob) $dob = date('m-d-Y', $dob);
+    if (!$dw->accountInfo($structure, @$dob, @$ein, @$first, @$last, @$org)) return dwError($dw, $err);
+    return TRUE;
+  }
+  
   /**
    * Get KBA verification questions for the user.
    * @param array $questions: (returned) simple array of [Id, Text, Choices]
@@ -403,7 +420,7 @@ array (
     if (t\est()) $txid = t\seq(); else
     if (!noDw($dw)) {
       $result = $dw->$function(@$source['Id'], $this->pin, abs($amount));
-      if (!$result and !noDw($dw, $error)) {
+      if (!$result and !noDw($dw, $error)) { // noDw in case Dwolla went down since two lines above
         self::rollback();
         return NULL;
       } else $txid = @$result['Id'] ?: -1; // -1 for noDw
@@ -417,7 +434,7 @@ array (
 
   /**
    * Get funding source info
-   * @return the source array (FALSE if none)
+   * @return the source array (FALSE if no connected bank account)
    */
   public function source(&$error = NULL) {
     $dw = $this->dwolla();
@@ -497,7 +514,8 @@ array (
   public static function addToAtom($txid, $amount = '', $payer = '', $payee = '', $completed = NULL, $created = REQUEST_TIME) {
     u\EXPECT(self::inAtom(), 'addToAtom outside atom');
     if ($payer) {
-      $tx = compact(u\ray('txid amount payer payee created completed'));
+      $tid = $payee == 0 ? getUsdTid($payer) : 0; // user sequenced tx number for banking only
+      $tx = compact(u\ray('txid tid amount payer payee created completed'));
     } else $tx = $txid;
     if (!isset($tx['completed'])) $tx['completed'] = $created;
     self::$atoms[] = $tx;

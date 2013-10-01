@@ -213,9 +213,10 @@ function tableDefs($schema = array()) {
   // table r_usd
   $fields = array(
     'txid' => setupField('the unique transaction ID', 'varchar 255'), 
+    'tid' => setupField("payer's transaction ID", 'int 11'), // used only for bank transfers
     'amount' => setupField('amount in rCredits', 'numeric 11,2'), 
     'payer' => setupField('user id of the payer', 'int big'), 
-    'payee' => setupField('user id of the payee', 'int big', 0), // 0 for deposits / withdrawals
+    'payee' => setupField('user id of the payee', 'int big', 0), // 0 for bank transfers
     'created' => setupField('Unixtime transaction was created', 'int 11', 0),
     'completed' => setupField('Unixtime transaction was completed', 'int 11', 0), // for deposits / withdrawals
   );

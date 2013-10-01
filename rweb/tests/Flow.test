@@ -87,9 +87,9 @@ class rwebFlow extends DrupalWebTestCase {
     . '\\| xid | type     | amount          | from | to   | purpose      | r    |'
     . '\\|   1 | transfer |              20 | .ZZC | .ZZA | automatic transfer to NEW.ZZA,automatic transfer from NEW.ZZC | 20 |'
     . '\\|   2 | transfer | %(90 + %DW_FEE) | .ZZC | .ZZA | automatic transfer to NEW.ZZA,automatic transfer from NEW.ZZC |  0 |'
-    . '\\|   3 | transfer |             130 | .ZZA | .ZZB | food         |   40 |'
-    . '\\|   4 | rebate   |            2.00 | ctty | .ZZA | rebate on #3 | 2.00 |'
-    . '\\|   5 | bonus    |            4.00 | ctty | .ZZB | bonus on #1  | 4.00 |"');
+    . '\\|   3 | transfer |             130 | .ZZA | .ZZB | food         |    40 |'
+    . '\\|   4 | rebate   |            6.50 | ctty | .ZZA | rebate on #3 |  6.50 |'
+    . '\\|   5 | bonus    |           13.00 | ctty | .ZZB | bonus on #1  | 13.00 |"');
   }
 
   // Scenario: A member overdraws with not enough to draw on

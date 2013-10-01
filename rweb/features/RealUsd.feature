@@ -31,25 +31,25 @@ Scenario: A mixed rCredits/USD transaction happens
   Then transactions: 
   | xid | type     | state | amount | r    | from | to   | purpose      | taking |
   |   2 | transfer | done  |  10.20 |   10 | .ZZA | .ZZB | labor        | 0      |
-  |   3 | rebate   | done  |    .50 |  .50 | ctty | .ZZA | rebate on #2 | 0      |
-  |   4 | bonus    | done  |   1.00 | 1.00 | ctty | .ZZB | bonus on #1  | 0      |
+  |   3 | rebate   | done  |    .51 |  .51 | ctty | .ZZA | rebate on #2 | 0      |
+  |   4 | bonus    | done  |   1.02 | 1.02 | ctty | .ZZB | bonus on #1  | 0      |
   And usd transfers:
   | payer | payee | amount |
   | .ZZA  |  .ZZB |   0.20 |
   And balances:
   | id   | r    | dw/usd | rewards |
-  | .ZZA | 0.50 |   4.80 |   10.50 |
+  | .ZZA | 0.51 |   4.80 |   10.51 |
   When member ".ZZA" visits page "transactions/period=365"
   Then we show "Transaction History" with:
   |_Start Date |_End Date |
   | %dmy-12m   | %dmy     |
   And with:
   | Starting | From You | To You | Rewards | Ending  |
-  | $0.00    | 10.20    |   0.00 |   10.50 |   $0.30 |
+  | $0.00    | 10.20    |   0.00 |   10.51 |   $0.31 |
   | PENDING  | 0.00     |   0.00 |    0.00 | + $0.00 |
   And with:
-  |_tid | Date | Name    | From you | To you | r%   | Status  |_buttons | Purpose | Reward |
-  | 2   | %dm  | Bea Two | 10.20    | --     | 98.0 | %chk    | X       | labor   |   0.50 |
+  |_tid | Date | Name    | From you | To you | Status  |_buttons | Purpose | Reward |
+  | 2   | %dm  | Bea Two | 10.20    | --     | %chk    | X       | labor   |   0.51 |
 
 Scenario: A member confirms payment with insufficient USD balance
   When member ".ZZA" confirms form "pay" with values:
@@ -70,10 +70,10 @@ Scenario: A member buys something when Dwolla is down
   Then transactions: 
   | xid | type     | state | amount | r    | from | to   | purpose      | taking | usdXid |
   |   2 | transfer | done  |  10.20 |   10 | .ZZA | .ZZB | labor        | 0      |     -1 |
-  |   3 | rebate   | done  |    .50 |  .50 | ctty | .ZZA | rebate on #2 | 0      |        |
-  |   4 | bonus    | done  |   1.00 | 1.00 | ctty | .ZZB | bonus on #1  | 0      |        |
+  |   3 | rebate   | done  |    .51 |  .51 | ctty | .ZZA | rebate on #2 | 0      |        |
+  |   4 | bonus    | done  |   1.02 | 1.02 | ctty | .ZZB | bonus on #1  | 0      |        |
   And balances:
   | id   | r    | dw/usd | rewards |
-  | .ZZA | 0.50 |   4.80 |   10.50 |
+  | .ZZA | 0.51 |   4.80 |   10.51 |
   And usd transfer count is 0
   

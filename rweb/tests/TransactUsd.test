@@ -100,7 +100,7 @@ class rwebTransactUsd extends DrupalWebTestCase {
     . '\\| .AAAC | %today  | rebate   | pending |      5 | ctty | .ZZB | rebate on #1 | 0      |'
     . '\\| .AAAD | %today  | bonus    | pending |     10 | ctty | .ZZA | bonus on #1  | 0      |"');
     And__('balances: "DATA'
-    . '\\| id      | r | usd | rewards |'
+    . '\\| id   | r | usd | rewards |'
     . '\\| .ZZA | 0 | 100 |       0 |'
     . '\\| .ZZB | 0 | 200 |       0 |'
     . '\\| .ZZC | 0 | 300 |       0 |"');
@@ -125,25 +125,26 @@ class rwebTransactUsd extends DrupalWebTestCase {
     . '\\| pay | Bea Two | 100    | 1     | labor   |"');
     Then_('we say "status": "report transaction" with subs: "DATA'
     . '\\| did    | otherName | amount | tid | rewardType | rewardAmount |'
-    . '\\| paid   | Bea Two   | $100   | 1   | rebate     | $0.05        |"');
-    And__('we notice "new payment" to member ".ZZB" with subs: "DATA'
-    . '\\| created | fullName | otherName | amount | payeePurpose |'
-    . '\\| %today  | Bea Two  | Abe One   | $100   | labor        |"');
+    . '\\| paid   | Bea Two   | $100   | 1   | rebate     | $5           |"');
+    And__('we notice "new payment|reward" to member ".ZZB" with subs: "DATA'
+    . '\\| created | fullName | otherName | amount | payeePurpose | rewardType |rewardAmount |'
+    . '\\| %today  | Bea Two  | Abe One   | $100   | labor        | bonus      | $10         |"');
     And__('transactions: "DATA'
-    . '\\| xid   | created | type     | state | amount | r    | from | to   | purpose      | taking |'
-    . '\\| .AAAB | %today  | transfer | done  |    100 | 0    | .ZZA | .ZZB | labor        | 0      |'
-    . '\\| .AAAC | %today  | rebate   | done  |   0.05 | 0.05 | ctty | .ZZA | rebate on #1 | 0      |"');
+    . '\\| xid   | created | type     | state | amount | r  | from | to   | purpose      | taking |'
+    . '\\| .AAAB | %today  | transfer | done  |    100 | 0  | .ZZA | .ZZB | labor        | 0      |'
+    . '\\| .AAAC | %today  | rebate   | done  |      5 | 5  | ctty | .ZZA | rebate on #1 | 0      |'
+    . '\\| .AAAD | %today  | bonus    | done  |     10 | 10 | ctty | .ZZB | bonus on #1  | 0      |"');
     And__('balances: "DATA'
-    . '\\| id   | r     | usd    | rewards |'
-    . '\\| ctty | -0.05 |      - |       - |'
-    . '\\| .ZZA |  0.05 |   0.00 |    0.05 |'
-    . '\\| .ZZB |     0 | 300.00 |       0 |'
-    . '\\| .ZZC |     0 | 300.00 |       0 |"');
+    . '\\| id   | r      | usd    | rewards |'
+    . '\\| ctty | -15.00 |      - |       - |'
+    . '\\| .ZZA |   5.00 |   0.00 |    5.00 |'
+    . '\\| .ZZB |  10.00 | 300.00 |   10.00 |'
+    . '\\| .ZZC |      0 | 300.00 |       0 |"');
     When_('cron runs ""');
     Then_('balances: "DATA'
-    . '\\| id   | r     | usd    | rewards |'
-    . '\\| ctty | -0.30 |      - |       - |'
-    . '\\| .ZZB |  0.25 | 299.75 |    0.25 |"');
+    . '\\| id   | r      | usd    | rewards |'
+    . '\\| ctty | -15.25 |      - |       - |'
+    . '\\| .ZZB |  10.25 | 299.75 |   10.25 |"');
   }
 
 }

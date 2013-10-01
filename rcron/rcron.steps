@@ -50,10 +50,12 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *
  * in: Bank Setup MAKE
  *     Gifts Setup MAKE
+ *     Homogenize Setup MAKE
  *     IncompleteUsdTxs Setup MAKE
  *     Inflation Setup MAKE
  *     LostUsdTxs Setup MAKE
  *     Notices Setup MAKE
+ *     Pool Setup MAKE
  *     Recache Setup MAKE
  *     Sharing Setup MAKE
  *     SoldOut Setup MAKE
@@ -70,10 +72,14 @@ function members($list) {return t\members($list);}
  *     Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank MAKE
  *     Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank MAKE
  *     Gifts Setup MAKE
+ *     Homogenize Setup MAKE
+ *     Homogenize NormalLevelingHappens TEST
  *     IncompleteUsdTxs Setup BOTH
  *     IncompleteUsdTxs ADwollaOutageLeavesATransactionIncomplete TEST
  *     Inflation Setup TEST
  *     LostUsdTxs Setup MAKE
+ *     Pool Setup MAKE
+ *     Pool NormalPoolingHappens TEST
  *     Recache Setup BOTH
  *     Recache BalancesGetOutOfWhack BOTH
  *     Recache BalancesGetATinyBitOutOfWhack MAKE
@@ -91,10 +97,12 @@ function balances($list) {return t\balances($list);}
  *     Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank MAKE
  *     Gifts AContributionCanBeCompleted MAKE
  *     Gifts ARecurringContributionCanBeCompleted MAKE
+ *     Homogenize NormalLevelingHappens MAKE
  *     IncompleteUsdTxs ADwollaOutageLeavesATransactionIncomplete MAKE
  *     Inflation InflationAdjustmentsAreDistributed MAKE
  *     LostUsdTxs ASystemCrashLeavesATransactionIncomplete MAKE
  *     Notices AMemberGetsSomeNotices MAKE
+ *     Pool NormalPoolingHappens MAKE
  *     Recache BalancesGetOutOfWhack MAKE
  *     Recache BalancesGetATinyBitOutOfWhack MAKE
  *     Sharing InflationAdjustmentsAreDistributed MAKE
@@ -135,10 +143,12 @@ function relations($relations) {return t\relations($relations);}
  *
  * in: Gifts AContributionCanBeCompleted TEST
  *     Gifts ARecurringContributionCanBeCompleted TEST
+ *     Homogenize Setup MAKE
  *     IncompleteUsdTxs Setup MAKE
  *     Inflation Setup MAKE
  *     Inflation InflationAdjustmentsAreDistributed TEST
  *     LostUsdTxs Setup MAKE
+ *     Pool Setup MAKE
  *     Recache Setup MAKE
  *     Sharing Setup MAKE
  *     Sharing InflationAdjustmentsAreDistributed TEST

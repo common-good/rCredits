@@ -1,3 +1,18 @@
+2013-09-
+. don't list self as possible proxy
+. tests expect tx rewards on entire amount, not just on the rCredits amount (r)
+. no r% column
+. no r/USD columns in download
+. hover help on statistics page
+. changed Bank setting to Bank Info
+. added "skip" and "resume" to Gherkin
+. added accountInfo step to dwolla and usd classes
+. badDate function
+. homogenize and pool functions in cron
+. amount to withdraw in one day is limited to $10 from each other member
+. gave bank transactions a tid (b#)
+. transactions are now sorted (descending) by date, by tid before displaying
+
 2013-09-22
 . initialized stats on server: for ($dt = strtotime('5/23/2013'); $dt < time(); $dt += DAY_SECS) rCredits\getStats(-8915, $dt);
 . made tests check for presence of labels on weShow, with, and without.

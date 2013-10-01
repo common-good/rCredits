@@ -58,20 +58,20 @@ Setup:
   | .AABF | %today-1d | transfer  | done    | 1 | 1 | .ZZC | .AAB | sharing rewards with CGF | 1 | %TX_CRON |
   Then balances:
   | id   | r       | usd      | rewards | committed |
-  | ctty | -784.65 | 10000.00 |    0.00 |         0 |
-  | .ZZA |  226.00 |   690.00 |  262.00 |      1.10 |
-  | .ZZB |  286.00 |  2255.00 |  256.00 |      0.80 |
-  | .ZZC |  271.55 |  3055.00 |  263.55 |      3.17 |
+  | ctty | -813.15 | 10000.00 |    0.00 |         0 |
+  | .ZZA |  233.00 |   690.00 |  269.00 |      1.80 |
+  | .ZZB |  306.00 |  2255.00 |  276.00 |      4.80 |
+  | .ZZC |  273.05 |  3055.00 |  265.05 |      3.62 |
   | .AAB |    1.10 |     0.00 |    0.10 |         0 |
   # total rewards < total r, because we made a grant, a loan, and a fine.
   When cron runs ""
   # causes coverFee() to run
   Then balances:
   | id   | r       | usd      | rewards    |
-  | ctty | -786.15 | 10000.00 |       0.00 |
-  | .ZZA |  226.25 |   689.75 |     262.25 |
-  | .ZZB |  286.50 |  2254.50 |     256.50 |
-  | .ZZC |  272.30 |  3054.25 |     264.30 |
+  | ctty | -814.65 | 10000.00 |       0.00 |
+  | .ZZA |  233.25 |   689.75 |     269.25 |
+  | .ZZB |  306.50 |  2254.50 |     276.50 |
+  | .ZZC |  273.80 |  3054.25 |     265.80 |
   | .AAB |    1.10 |     0.00 |       0.10 |
   
 Scenario: cron calculates the statistics
@@ -80,11 +80,11 @@ Scenario: cron calculates the statistics
   Then we show "Statistics" with:
   | | for %R_REGION_NAME |
   | Accounts        | 5 (3 personal, 2 companies) — up 5 from a month ago |
-  | rCredits issued | $786.15r — up $786.15r from a month ago |
-  | | signup: $750r, inflation adjustments: $6r, rebates/bonuses: $27.15r, grants: $4r, loans: $5r |
+  | rCredits issued | $814.65r — up $814.65r from a month ago |
+  | | signup: $750r, inflation adjustments: $6r, rebates/bonuses: $55.65r, grants: $4r, loans: $5r |
   | Demand          | $5,998.50 — up $5,998.50 from a month ago |
-  | Total funds     | $786.15r + $5,998.50us = $6,784.65 |
-  | | including about $6,613.65 in savings = 110.3% of demand (important) |
+  | Total funds     | $814.65r + $5,998.50us = $6,813.15 |
+  | | including about $6,642.15 in savings = 110.7% of demand (important) |
   | Banking / mo    | $6,050us (in) - $50us (out) - $1.50 (fees) = +$5,998.50us (net) |
   | Purchases / mo  | 3 ($171) / mo = $34.20 / acct |
   | p2p             | 0 ($0) / mo = $0 / acct |

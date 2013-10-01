@@ -160,7 +160,10 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'no source' => t('there is no valid funding source'),
   'not verified' => t('the funding source has not yet been verified by entering the two tiny deposit amounts'),
   'agreement required' => t('You must agree to Dwolla\'s terms of service or you cannot participate in the rCredits system.'),
-  
+  'year is 4 digits' => t('Be sure to type all four digits of the year.'),
+  'date too early' => t('That date is too early.'),
+  'date too late' => t('That date is too late.'),
+
   'reward' => t('Your @rewardType is @rewardAmount.'),
   'reward other' => t('Your @otherRewardType is @otherRewardAmount.'),
   'new charge' => t('<b>Charge:</b> @otherName charged you @amount for "@payerPurpose".'),
@@ -182,7 +185,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'payment exchange received' => t('You received from @fullName a payment exchange of @amount -- that is, you traded that much US Dollars for rCredits, receiving a bonus of @bonus on the exchange.'),
   'payment exchanges offered' => t('You made payment exchanges to @offers @whom, totaling @total.'),
   'card ordered' => t('Your rCard has been ordered and will be mailed directly to @name.'),
-  'balances' => t('Your rCredits balance available to spend is @toSpend. You can move up to @toCash to your bank account.'),
+  'balances' => t('Your balance available to spend is @toSpend. You can move up to @toCash today to your bank account.'),
   'you sold out' => t('This week you traded @total worth of rCredits for US Dollars, missing an opportunity for @rebates worth of rebates. To keep this from happening so much, <@a1>click here</a> to change your settings to the recommended minimum balance of @suggested.'),
   
   // notices to staff

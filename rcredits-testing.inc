@@ -283,6 +283,7 @@ function usdTransfers($txs) {
       foreach (u\just('payer payee', $tx) as $key => $value) {
         if ($value) $tx[$key] = t\uid($value);
       }
+      u\setDft($tx['txid'], t\seq());
       if (!r\dbInsert('r_usd', $tx)) return FALSE;
     }
   }
