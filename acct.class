@@ -1,6 +1,7 @@
 <?php
 namespace rCredits;
 use rCredits as r;
+use rCredits\DB as db;
 use rCredits\Backend as be;
 use rCredits\Util as u;
 use rCredits\Testing as t;
@@ -42,7 +43,7 @@ class acct {
     if (is_array($info = $id)) { // referring to existing db record
       $this->createNew($info); // create new db record
     } else list($this->id, $this->agentId) = acct::viable($id, $agent, $zot, FALSE);
-    if ($this->id > 0) $this->mainQid = r\quid($this->id); // no quids for communities and regions!
+    $this->mainQid = r\quid($this->id);
   }    
 
   /**
@@ -63,7 +64,7 @@ class acct {
     $flags = @$my_flags ?: B_DFT;
     $rebate = @$my_rebate ?: R_REBATE;
     if (($state = @$my_state) and !is_numeric($state)) { // allow state abbrevs within US
-      $state = dbLookup('id', 'r_states', 'abbreviation=:state and country_id=:US_COUNTRY_ID', compact('state'));
+      $state = db\lookup('id', 'r_states', 'abbreviation=:state and country_id=:US_COUNTRY_ID', compact('state'));
     }
     $community = communityUid(@$my_postalCode); // defaults to current server
     $data = serialize(@$my_data ?: array());
@@ -77,20 +78,20 @@ class acct {
 
     $DBTX = db_transaction();
     if ($uid = @$my_uid) {
-      r\dbInsert('users', $record += compact('uid')); // predestined uid (probably for testing)
+      db\insert('users', $record += compact('uid')); // predestined uid (probably for testing)
       $region = communityUid();
     } else {
       $region = r\region(@$my_country, @$state, @$my_postalCode);
       for ($try = 0; $try < 20; $try++) { // limit the retries
         $uid = $record['uid'] = self::nextId($region);
-        if (r\dbInsert('users', $record)) break;
+        if (db\insert('users', $record)) break;
       }
       u\EXPECT(@$try < 20, "failed to save user record after $try tries.");
     }
 
     if (!empty($companyInfo)) {
       $companyInfo['uid'] = $uid;
-      if ($flags & u\bit(B_COMPANY)) r\dbInsert('r_companies', $companyInfo);
+      if ($flags & u\bit(B_COMPANY)) db\insert('r_companies', $companyInfo);
     }
     
     if (isset($my_number)) {
@@ -162,7 +163,7 @@ class acct {
       return @$result ? unserialize($result) : array();
     } elseif (in_array($field, u\ray(R_COMPANY_FIELDS))) {
       $id = $this->id;
-      return @$result ?: (@self::$records[$this->id]->$field = r\dbLookup($field, 'r_companies', 'uid=:id', compact('id')));
+      return @$result ?: (@self::$records[$this->id]->$field = db\lookup($field, 'r_companies', 'uid=:id', compact('id')));
     } elseif ($field == 'secure') {
       return @$result ? unserialize(u\ezdecrypt($result, R_WORD)) : NULL;
     } elseif ($field == 'usdAccount') {
@@ -246,12 +247,12 @@ class acct {
     }
     if (count($companyInfo = u\just(R_COMPANY_FIELDS, $info))) {
       $companyInfo['uid'] = $this->id;
-      r\dbUpdate('r_companies', $companyInfo, 'uid', TRUE);
+      db\update('r_companies', $companyInfo, 'uid', TRUE);
     }
     u\setDft($info['flags'], $this->flags); // accommodate setBit caching flags to be set/unset
     $info['uid'] = $this->id; // make sure dbUpdate gets this
     foreach (u\ray(R_SECRET_FIELDS . ' ' . R_COMPANY_FIELDS) as $field) unset($info[$field]); // don't pass these to dbUpdate
-    return r\dbUpdate('users', $info, 'uid');
+    return db\update('users', $info, 'uid');
   }
 
   public function usd($info = FALSE, &$err = '') {return new r\usd($this, $info, $err);}
@@ -363,7 +364,7 @@ class acct {
       FROM users u INNER JOIN r_relations r ON r.main=u.uid
       WHERE r.other=:id AND r.draw
 EOF;
-    $row = r\dbQ($sql, compact('id'))->fetchAssoc();
+    $row = db\q($sql, compact('id'))->fetchAssoc();
     if (!$row['count']) $this->setBit(B_DRAWS, FALSE); // doesn't really have any drawable accounts
     return r\avail($type, $row);
   }
@@ -387,7 +388,7 @@ EOF;
       SELECT u.uid, $fields FROM users u INNER JOIN r_relations r ON r.main=u.uid
       WHERE r.other=:id AND r.draw
 EOF;
-    $result = r\dbQ($sql, compact('id'));
+    $result = db\q($sql, compact('id'));
     while ($row = $result->fetchAssoc()) {
       extract($row);
       if ($wantUsd and $left > DW_FEE_THRESHOLD) {$left += DW_FEE; $need += DW_FEE;}
@@ -472,7 +473,7 @@ EOF;
     $where = 'payer=:id AND payee=0 AND NOT completed AND created>:ancient';
     if ($justTo) $where .= ' AND amount>0';
     list ($id, $ancient) = array($this->id, REQUEST_TIME - R_ANCIENT_EFT * DAY_SECS);
-    return r\dbLookup('SUM(amount)', 'r_usd', $where, compact('id', 'ancient')) + 0;
+    return db\lookup('SUM(amount)', 'r_usd', $where, compact('id', 'ancient')) + 0;
   }
 
   /**
@@ -484,7 +485,7 @@ EOF;
   public function nearlyMember(&$steps = '') {
     $signed = (bool) $this->signed;
   //  $donated = ($this->share > 0 or r\share($this)); // r\share() also updates the database
-    $donated = r\dbExists('r_gifts', 'uid=:myid', array('myid' => $this->id));
+    $donated = db\exists('r_gifts', 'uid=:myid', array('myid' => $this->id));
     $steps = compact(u\ray('signed donated'));
     return ($signed and $donated);
   }
@@ -518,7 +519,7 @@ EOF;
    */
   public function smsNumber() {  
     $id = $this->id;
-    return dbLookup('number', 'r_sms', 'uid=:id AND status=:SMS_PRIMARY', compact('id'));
+    return db\lookup('number', 'r_sms', 'uid=:id AND status=:SMS_PRIMARY', compact('id'));
   }
 
   /**
@@ -565,9 +566,12 @@ EOF;
           (($id < 0) ? 0 : B_MANAGE) // communities must be managed by an agent, never directly
         : ($perms[B_CTTY_ADMIN] and $this->community == $aacct->community) ? 
               B_MANAGE : (B_RELATED + relation('permission', $id, $this->agentId));
-      for ($i = B_RELATED; $i <= B_MANAGE; $i++) $perms[$i] = ($i <= $can); // set all permissions, even the false ones
-      if (!$perms[B_OK]) $perms[B_SELL] = FALSE; // no ASIFs! (read here kills acct dropdown)
-      if ($perms[B_OK]) $perms[B_MEMBER] = TRUE; // make sure nobody gets downgraded
+      for ($i = B_RELATED; $i <= B_MANAGE; $i++) $perms[$i] = ($i <= $can); // set all, even the false ones
+
+      if ($perms[B_OK]) {
+        $perms[B_MEMBER] = TRUE; // make sure nobody gets downgraded
+      } else $perms[B_SELL] = $perms[B_BUY] = FALSE; // (read here kills acct dropdown)
+
       if (!$perms[B_MEMBER]) $perms[B_BUY] = FALSE; // no spending even the SIGNUP GIFT for non-members
       if (r\Web\svar('scanned_in') and $this == r\acct()) $perms[B_BUY] = $perms[B_MANAGE] = $perms[B_ADMIN] = $perms[B_CTTY_ADMIN] = FALSE; // scanning in, you can read and scan, at most
       
@@ -579,7 +583,7 @@ EOF;
 //        $perms[B_PERSON] = TRUE; // manage show PERSONAL settings (for debugging)
         if ($this->proSe()) $perms[B_COMPANY] = TRUE; // show company settings on own account (for debugging)
       };
-      $perms[B_DEV] = (isDEV or $perms[B_ADMIN]);
+      $perms[B_DEV] = (isDEV or $perms[B_ADMIN]); // is this used?
       
       $perms[B_MANAGING_CTTY] = ($perms[B_CTTY_ADMIN] and $id == $this->community);
       if ($perms[B_MANAGING_CTTY] and !$perms[B_ADMIN]) $perms[B_BUY] = $perms[B_SELL] = FALSE; // ctty admin can manage but not buy/sell

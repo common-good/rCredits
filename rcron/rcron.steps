@@ -14,6 +14,7 @@
  * never delete or alter code within a function.
  */
 use rCredits as r;
+use rCredits\DB as db;
 use rCredits\Testing as t;
 use rCredits\Util as u;
 use rCredits\Backend as be;
@@ -37,7 +38,7 @@ function extraSetup($feature) {
  */
 function extraSubs(&$subs) {
 //  $subs += u\prefixKeys('%', compact(u\ray('chunk chunk2 chunk3 fancyYesterday')));
-  $subs['%fancyYesterday'] = u\formatDate(strtotime('yesterday'));
+  $subs['%fancyYesterday'] = u\fmtDate(strtotime('yesterday'));
   $subs['%chunk'] = R_CHUNK;
   for ($i = 2; $i <= 5; $i++) $subs["%chunk$i"] = R_CHUNK * $i;
   for ($i = 1; $i <= 3; $i++) $subs["%id$i"] = mt_rand(variable_get('cgf_uid') + R_REGION_MAX, PHP_INT_MAX);
@@ -235,7 +236,7 @@ function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, 
  * in: 
  */
 function noticeCountIs($count) {
-  return (r\dbLookup('COUNT(*)', 'r_notices') == $count);
+  return (db\lookup('COUNT(*)', 'r_notices') == $count);
 }
 
 /**
@@ -258,7 +259,7 @@ function memberChargesMemberFor($payee, $payer, $amount, $for) {
  */
 function incompleteTransactionCount($count) {
   global $testOnly; if (!$testOnly) return FALSE;
-  return (r\dbLookup('COUNT(*)', 'r_txs', 'usdXid=-1 AND state IN(:TX_DONE,:TX_DISPUTED) AND r<amount') == $count);
+  return (db\lookup('COUNT(*)', 'r_txs', 'usdXid=-1 AND state IN(:TX_DONE,:TX_DISPUTED) AND r<amount') == $count);
 }
 
 /**
@@ -276,7 +277,7 @@ function memberConfirmsFormWithValues($id, $page, $values) {return t\completeFor
 function uSDPaymentByMemberIsNotRecorded($id) {
   global $testOnly; if ($testOnly) return FALSE;
   $id = t\uid($id);
-  return r\dbQ('DELETE FROM r_usd WHERE payer=:id LIMIT 1', compact('id'));
+  return db\q('DELETE FROM r_usd WHERE payer=:id LIMIT 1', compact('id'));
 }
 
 /**
@@ -287,7 +288,7 @@ function uSDPaymentByMemberIsNotRecorded($id) {
 function weTellStaffNothing() {
   global $testOnly; if (!$testOnly) return FALSE;
   $info = '%"index":"tell-staff"%';
-  return !r\dbLookup('info', 'r_log', "info LIKE '$info' ORDER BY logid DESC");
+  return !db\lookup('info', 'r_log', "info LIKE '$info' ORDER BY logid DESC");
 }
 
 /**

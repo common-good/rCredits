@@ -10,6 +10,7 @@ QUESTIONS:
   . new feature failure, if new feature is disabled.
   . admin.inc can normally be uploaded without testing
   . temporary debugging statements can be added if they are first tested on ws.rcredits.org
+  . cut and paste bug fixes on prod server when they are in just one or two clumps of 6 lines or less AND the functions being patched have not otherwise changed (on the DEV system) since the last update
 - Find and delete all temporary debugging statements:
 ///. Search for "debug(", "print_r(", and "die(" (all such lines should begin with /// or (if keepers) /**/
   . Sometime write a macro to do the finding. 
@@ -19,47 +20,38 @@ QUESTIONS:
 ***
 
 membership procedure:
+wait for READY status (once all steps are complete, including Dwolla account and bank connection request)
+make sure the photo is adequate
 mark the account as an rTrader (OK) (before printing card)
-print card and welcome materials, mail to new member
+print card and welcome materials, mail to new member (welcome includes reminder to verify bank account)
 
-SOMETIME SOON RETROFIT:
-change all passwords and pins to something random, change email addresses to random.quid@rc4.me (use the "See USD" button on Admin page)
-
-To do: (* = before launch ** = earlier)
-
-. why does dwolla fee show up on transaction test but not when i click on abe one's transactions tab?
-. any account can unilaterally charge an account is has permission to draw on
-. add personal stats to Summary page (effective APR, benefit to ctty, etc)
-. retrofit old accounts, recording dwollapin, etc.
-. give bank transactions a tid (b#) (requires a tid field in r_usd)
-. sort txs by dt desc, by tid desc, before displaying
+. redo averageBalance() with SUM(r+usd) GROUP BY date
+. hide the Dwolla fees (and reimbursements) in the Transactions Summary
+. any account can unilaterally charge an account it has permission to draw on
 . company search on production server gets collation error (search for "food")
-. cron aim at equalizing r and usd in circulation by trading created r for usd (never the other way). Buy up to $10us from everyone who has some USD (even 1 cent)
-. before each tx, get enough r in the account (make a nextUsdBuyer function like nextRBuyer()). Use the same date order but with payer/payee reversed
 . hover help on relations page
 . if company agent tries to charge same company's agent, say "You need to sign out the previous cashier before scanning in."
 . scanning Emi's card should say "not (yet) authorized for purchases"
 . on reversing a payment, rebate should show as negative, not empty
 . committed amount can go negative (on a refund). make sure cron handles it right.
-. don't try to register admin (or any incomplete account)
-. show the right thing for bank transfers for ctty_admin statistics page or hide them
+. don't try to register admin (or any incomplete account) with Dwolla
+. hide advanced features on Transactions page (show either advanced or simple period selector, but not both)
+. if no permission to charge someone, scanning a card assumes payment for individual, site for company (but put a prominent "Pay" button on the site)
+. feature test: scan fake QR (should go to default page or empty)
 
-. have Gherkin always send us the whole array, which must still be rectangular. use t\enk() to make the first row or column keys for the others
+. show the right thing for bank transfers for ctty_admin statistics page or hide them
+. have Gherkin always send us the whole array, which must still be rectangular. use t\hdrs() to make the first row or column keys/hdrs for the others
 . drive xml error from USPS on Signin, and handle it gracefully
 . rewrite form testing system to use just menu_execute_active_handler, drupal_validate_form, etc. (assuring official behavior). For example, be able to test required fields.
-. hide advanced features on Transactions page (show either advanced or simple period selector, but not both)
 . (later, if wanted) add undo permission between sell and buy?
 . (later) suggest reaching out to increase rebate pct
 . coverFee from lost transaction cron
 . make invite a primary link
 . handle menu logout from restricted page (does not log out)
-. if no permission to charge someone, scanning a card assumes payment for individual, site for company (but put a prominent "Pay" button on the site)
-. feature test: scan fake QR (should go to default page or empty)
-. (later) write an app for Android and iPhone, so scanning a card from out of region will work (you sign in to your own regional server, so a scan that takes you to another region's site won't work)
+. (later) write an app for Android and iPhone, so scanning a card from out of region will work (currently you sign in to your own regional server, so a scan that takes you to another region's site won't work)
 . txs should not show X on receipts, for non-buyers
 . (later) use rc4.me for login and email redirection (with forward.php). Database table accounts has fields email (primary), username (all lowercase letters), and region (3 or 4 uppercase letters). So user can log in at rc4.me (linked to by rcredits.org), which then forwards the request to the appropriate server. Scanned cards go directly to the proper server (new.rc2.me/A/AAAcode OR /a/... for agents, B&b for 4-letter users, etc.).
 . before depending on anyone's cached USD balance, make sure the unavailability of their Dwolla account is not because they changed their PIN.
-. catch "you changed your password" and "you changed your email" emails from Dwolla (and disable the rC account with a misbehavior note in the data field)
 . add to misc.js: for each text input on the page, if the current value includes "XX-", make it silver. onEnter, zap the contents (set .length=0 ?)
 . when there is an error, don't make user retype the hidden fields (so soc sec and dob should not be password type) (also when error happens in submit, because there is a dwolla error)
 . for companies with no default purpose, add suggestion to no purpose message
@@ -188,8 +180,8 @@ function health($where = 'TRUE') {
 
 // * @param string $measure: current, future, count, or growth
   if ($measure == 'current' or $measure == 'growth') {
-    $lastMonthSales = r\dbQ(salesSql(1, $where));
-    $prevMonthSales = r\dbQ(salesSql(2, $where)) - $lastMonthSales;
+    $lastMonthSales = db\q(salesSql(1, $where));
+    $prevMonthSales = db\q(salesSql(2, $where)) - $lastMonthSales;
   }
   if ($measure == 'growth') {
     return u\small($prevMonthSales) ? (u\small($lastMonthSales) ? 0 : 1) : ($lastMonthSales - $prevMonthSales) / $prevMonthSales;
@@ -240,7 +232,7 @@ function eachAccount($queries, $ons, $where = 'TRUE', $subs = array()) {
     $fields .= ",$q.*";
     $tables .= ",($query) $q ON $q.$on=u.uid";
   }
-  return r\dbQ("SELECT $fields FROM $tables WHERE $where", $subs);
+  return db\q("SELECT $fields FROM $tables WHERE $where", $subs);
 }
 
 @todo: move some util functions, like ray(), to rcredits-basic.inc and "USE" them everywhere without a namespace qualifier.
@@ -254,7 +246,7 @@ function eachAccount($queries, $ons, $where = 'TRUE', $subs = array()) {
 @todo: make help divs draggable
 @todo: option to suppress current balance in messages (make it a separate message) B_SHOWBAL (default TRUE)
 @todo: Miscellaneous other data to collect:
-  Names and Social Security Numbers of Dependents [why do we need this?]
+  Names and Social Security Numbers of Dependents [and answer: why do we need this?]
   If this is a joint account, do you want separate balances? (if so, it will be treated as separate accounts except that available funds may be transferred automatically to any of the joined accounts that dips below its credit limit.)
 @todo: closed accounts have only read perm and point (data[new_account]) at new account qid
 @todo: servers exchange info on which ss#s (or other ids) are dups
@@ -295,7 +287,7 @@ B. Coding style and strategies:
 
 C. rCredits module structure
    There are at least three distinct interfaces to rCredits, all sharing business logic code in the main rcredits folder.
-   Each interface (rWeb, rSmart, and rSMS) has its sub-module in its own folder, with its own features and tests.
+   Each interface (rWeb, rSmart, rSMS, and rCron) has its sub-module in its own folder, with its own features and tests. Actually rCron is not a Drupal module and rSmart and rSMS probably don't need to be either.
    Code that is unlikely ever to apply to more than one interface, should not go in the main rcredits folder and vice versa.
    
 D. rCredits namespaces and how they are abbreviated in calling files. Functions that are called outside their named space should be preceded by these namespace identifiers even when called from within the named space. For example, write t\est() not est() even within rcredits-testing.inc.
@@ -312,8 +304,9 @@ D. rCredits namespaces and how they are abbreviated in calling files. Functions 
    ()   Drupal functions are marked with a (technically superfluous) leading backslash
  
 E. Database clues
-   - All rCredits tables begin with "r_", except `offsite` and `users`, which we have added many fields to.
-   - users (we use this as a table of accounts, not of users)
+   - All rCredits tables begin with "r_", except `offsite` and `users`.
+   - Uid fields in every table are bigint (unlike standard Drupal)
+   - users (we use this as a table of accounts, not of users, and added many new fields)
      . Common Good Communities (CGCs) and regional servers have uid < 0.
          -1 to -17576: regional servers (the numeric version plus one of the region's 3-letter qid, negated)
            the software can treat any or all servers as virtual independent servers, 
@@ -434,14 +427,14 @@ I. Cron ops
   - 
 
 J. Handling USD
-  - General Strategy: Keep about half the total USD in the community account, trying to leave each active member at least $10us.
-  - Cron homogenize: daily transfer up to $10us from whoever has the most to each account under $20us
-  - Cron pool: daily transfer $10us from each member to the community, leaving it with at least $10us: max(0, min(10, usd-10)), until community has its target proportion of the total USD in the system.
+  - General Strategy: Keep about half the total USD in the community account, trying to leave each active member account with an equal share of the other half, but no more than R_MAX_DAILY_EXCHANGE===1000 (so we can take it all away quickly, at need).
+  - Cron homogenize: daily transfer up to $10us from each account that has too much to each account that has too little
+  - Cron pool: daily transfer $10us to the community, from each member account with more than its share -- until community has its target proportion of the total USD in the system.
   - Before payment: if payer does not have enough rCredits, just transfer it as part rCredits (as much as the payer has), part USD (DONE!). Don't go into gyrations to do every transaction entirely in rCredits. Just issue enough rCredits that most transactions happen that way.
   - Before cashing out: if account does not have enough USD, get it from other members (DONE, but limit the account to one withdrawal per day, limited to the amount we can currently get in $10 chunks without hitting anyone twice).
   - Common Good Finance is not a "money transmitter" (and therefore exempt from FinCEN regulation as an MSB) because "The term “money transmitter” shall not include a person that only: (A) Provides the delivery, communication, or network access services used by a money transmitter to support money transmission services;"
   - Each rCredits region is not a "money transmitter" because "The term “money transmitter” shall not include a person that only: (B) Acts as a payment processor to facilitate the purchase of, or payment of a bill for, a good or service through a clearance and settlement system by agreement with the creditor or seller;"
-  - FinCEN's $1,000 limit therefore does not apply to purchases, but it may apply to exchanges (FinCEN is only explicit about currencies of "other countries", but to be (somewhat) safe, we should not allow the regional server to exchange more than $1,000 of rCredits for USD (or vice versa) with any one member in one day. It will also help if there are more than one community per server, since the server itself does not have an account and could not be seen as belonging to a single community.
+  - FinCEN's $1,000 limit therefore does not apply to purchases, but it may apply to exchanges. FinCEN is only explicit about currencies of "other countries", but to be (somewhat) safe, we should not allow the regional server to exchange more than $1,000 of rCredits for USD (or vice versa) with any one member in one day. It will also help to have more than one community per server, since the server itself could not be seen as belonging to a single community.
 
 K. Other thoughts:
   - Joining by dumb cellphone is for play only. Accounts and transactions created that way should get deleted after a week of inactivity.

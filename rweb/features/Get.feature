@@ -71,8 +71,8 @@ Scenario: a member moves inconveniently much to the bank
   | op  | amount |
   | put |    200 |
   Then we say "error": "short deposit" with subs:
-  | max                     |
-  | $%(4*%DW_FEE_THRESHOLD) |
+  | max            |
+  | $%(4*%R_CHUNK) |
 
 Scenario: a member tries to go below their minimum
   When member ".ZZD" completes form "get" with values:

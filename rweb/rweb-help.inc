@@ -95,7 +95,7 @@ EOF
     <p>To change settings in a Yes/No column, click on + or -. To remove someone from the list, make them all "No"s, and no permissions (if they are already that way, change something and change it back). Be sure to "Save Changes".</p>
     <p>You can allow another account to "draw" from this one to avoid overdrafts (a 25 cent fee may apply).</p>
 EOF
-    ) . ($company ? t('<p>If you give the person at least "Sell" permission (and save the record), you can request a Member ID Card for them to use on behalf of this account.</p><p>"$/mo" is the most important column. Type the amount you pay each employee or supplier in a month &mdash; more or less. Then, if you select the payment exchange option on the preferences page, your rCredits will get distributed every night to those employees and suppliers in exchange for US Dollars.</p>') : ''),
+    ) . ($company ? t('<p>If you give the person at least "Sell" permission (and save the record), you can request a Member ID Card for them to use on behalf of this account.</p>') : ''),
     
     'account/contact' => t(<<<EOF
     <p><b>Full name</b> should be your full legal name. If you change the name on the account, you will need to buy a new rCard and your account will be disabled until you supply new proof of identity. For companies, your rCredits website address will also change.</p>
@@ -115,10 +115,9 @@ EOF
     'account/preferences' => t(<<<EOF
     <p>These settings start out as what most people prefer. Feel free to adjust them as you like. You can always come back and change them again later.</p>
     <ul>
-      <li><b>Minimum.</b> You will want to keep enough rCredits plus US Dollars in your account to cover the total amount you expect to spend at rCredits member businesses in a typical 3-day period. Add to this however much you want to hold as inflation-protected savings (the inflation adjustment is a monthly credit to your account).</li>
-      <li><b>To bank.</b> This setting is usually a good idea unless you use your Dwolla account outside the rCredits system.</li>
+      <li><b>Minimum.</b> You will want to keep enough in your account to cover the total amount you expect to spend at rCredits member businesses in a typical 3-day period. Add to this however much you want to hold as inflation-protected savings (the inflation adjustment is a monthly credit to your account).</li>
+      <li><b>Email notices.</b> We suggest you begin with daily notices, until you feel comfortable with the system. You will receive a "daily" notice only when there is something new that you will want to know about (such as a credit to your account).</li>
     </ul>
-    <p>If there are settings you would like to see here &mdash; that is, things you want to work differently &mdash; please let us know. We expect to offer many additional options over the next few months.</p>
 EOF
     ),
     'account/usd' => t(<<<EOF
@@ -126,7 +125,7 @@ EOF
     <p>Just as for opening any other financial account, you need to supply identifying information and proof of identity. Your information is then stored doubly-encrypted on a separate server.</p>
 EOF
     ),
-    'dwolla-account-setup' => u\SUBS(t(<<<EOF
+/*    'dwolla-account-setup' => u\SUBS(t(<<<EOF
     <p>In partnership with Veridian Federal Credit Union, Dwolla communicates with your US Dollar bank account. Whenever you buy something, any rCredits you have are used first and the remainder is paid in US Dollars &mdash; just like a typical debit card, but with rebates and bonuses!</p>
     <p>This help window will stay open while you set up your Dwolla account. So you can come back here for tips and next steps.  <a href=":R_DW_LINK" target="_blank"></p>
     <p>Click here now to set up your Dwolla account</a> (following the tips below). When you're done, <a href="$base_url/account/usd">click here to continue </a> your rCredits account setup.</p>
@@ -149,6 +148,7 @@ EOF
     <p>This "To bank" setting is probably a good idea unless you use your Dwolla account outside the rCredits system. It can take up to 5 days for the bank to receive the funds, once they are sent.</p>
 EOF
     ),
+    */
     'issue-credit' => t(<<<EOF
     <p>rCredits are a type of credit. Like any medium of exchange, they represent value. They make it possible for us to trade goods and services with each other in our community, without having to trade something directly with whoever has what we want, and without having to give them something of precisely the same value. The medium of exchange lets us give any amount of our goods or services to any participant in the economy, then receive the same value of goods or services from some other participant(s). If everyone both buys and sells, the credits move through the community in interconnected circles of exchange.</p>
 
@@ -249,8 +249,22 @@ EOF
 EOF
     ),
     'savings' => t(<<<EOF
-    <p>The value of rCredits, like any currency, is what you can get for them. When rCredits members save funds for spending a month or more in the future, they believe they will be able to spend them within the rCredits system OR that they will be able to trade them for US Dollars because other members have somewhere to spend them. That means savings are a <em>speculative</em> demand for rCredits, rather than a demand based in current reality. The speculation may indeed be accurate, but the circulation margin (monthly purchase volume beyond the amount of rCredits already issued) is a stronger measure of the system's capacity for additional rCredits.</p>
+    <p>The value of rCredits, like any currency, is what you can get for them. When rCredits members save funds for spending a month or more in the future, it means they are confident (1) that they will be able to spend them within the rCredits system OR (2) that they will be able to trade them for US Dollars because other members can spend them within the system. So savings are a <em>speculative</em> demand for rCredits, rather than a demand based in current reality. The speculation may indeed be accurate, but the circulation margin (monthly purchase volume beyond the amount of rCredits already issued) is a stronger measure of the system's capacity for additional rCredits.</p>
     <p>The amount of savings among members is calculated (roughly) as the total amount of funds in the system minus the purchase volume over the past month.</p>
+EOF
+    ),
+    'your-return' => tt(<<<EOF
+    <p>Your effective return is calculated as your monthly inflation adjustment (currently based on @R_INFLATION_RATE% APR) plus any incentive rewards you got in the period, all divided by your average balance for the period. The result is then annualized to give you an APR (annual percentage rate). Regular financial institutions give you interest on your <em>minimum</em> balance for the month, rather than your <em>average</em> balance, but that seems a bit petty.</p>
+EOF
+    ),
+    'social-return' => tt(<<<EOF
+    <p>The community's benefit from your participation is calculated as the sum of:</p>
+    <ul>
+      <li>The amount of money you moved into the system, minus the amount you moved out. By using rCredits in place of those funds, as they circulate among rCredits members, we can free up that much US Dollars for the community to grant, lend, or invest.</li>
+      <li>Your incentive rewards for buying and selling. Every time you get such a reward, someone somewhere gets the same amount.</li>
+      <li>A percentage (@R_CC_FEE%) of your purchase and sale amounts, equal to half the typical processing fee that businesses pay for credit card purchases. Together with the other party to the transaction, you kept that much money from leaking out of the community to the big banks.</li>
+    </ul>
+    </p>
 EOF
     ),
   );
@@ -262,6 +276,8 @@ EOF
 }
 
 /*
+<p>"$/mo" is the most important column. Type the amount you pay each employee or supplier in a month &mdash; more or less. Then, if you select the payment exchange option on the preferences page, your rCredits will get distributed every night to those employees and suppliers in exchange for US Dollars.</p>
+
     'why-wait' => t(<<<EOF
     <p>Exchanges of rCredits for US Dollars reflect an incomplete economic circle. That is, the individual or company selling the rCredits does not yet have enough places to spend them.</p>
     <p>The 2-week delay in spending rCredits that you buy takes that amount out of circulation temporarily, giving the seller time to find more places to spend rCredits, without meanwhile having to sell more and more of them.</p>

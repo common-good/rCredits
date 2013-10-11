@@ -37,6 +37,7 @@ Find where PlanarYUVLuminanceSource is instantiated in CameraManager. Its last p
 
 namespace rCredits\Smart;
 use rCredits as r;
+use rCredits\DB as db;
 use rCredits\Util as u;
 use rCredits\Backend as be;
 
@@ -73,7 +74,7 @@ function api($args = FALSE) {
   if (@$q_op != 'reset') // DEBUG
   if (@$q_op != 'first_time') {
     if (!@$q_code) return be\error('no code given');
-    if (!$smartInfo = r\dbLookup('owner,defaultAgent,transientId,access', 'r_smarts', 'code=:q_code', compact('q_code'))) return be\error('unknown device');
+    if (!$smartInfo = db\lookup('owner,defaultAgent,transientId,access', 'r_smarts', 'code=:q_code', compact('q_code'))) return be\error('unknown device');
     $args += $smartInfo; // pass these on to the op function
     extract($smartInfo, EXTR_PREFIX_ALL, 'q');
     r\acct::setDefault(r\acct($q_owner)); // set current account temporarily to owner, so that error log has it right
@@ -87,7 +88,7 @@ function api($args = FALSE) {
     r\acct::setDefault($mya);
     $args['mya'] = $mya;
     $edit = array('code' => $q_code, 'access' => REQUEST_TIME);
-    r\dbUpdate('r_smarts', $edit, 'code'); // remember time last accessed so we can drop the deadwood
+    db\update('r_smarts', $edit, 'code'); // remember time last accessed so we can drop the deadwood
   }
 
   // handle scanned QR, if any
@@ -96,7 +97,7 @@ function api($args = FALSE) {
     if ($account_id != $q_account_id) { // this is a transient id scanned from the other party's smart device
       $transientId = basename(dirname($q_account_id));
       $recent = REQUEST_TIME - R_TRANSIENCE;
-      if (dbLookup('transientId', 'r_smarts', 'code=:code AND access>=:recent') != $transientId) return be\error('bad transient id');
+      if (db\lookup('transientId', 'r_smarts', 'code=:code AND access>=:recent') != $transientId) return be\error('bad transient id');
     }
     if (!$acct = r\acct($account_id, '', $error)) return be\error($error);
     $args['acct'] = $acct;
@@ -106,7 +107,7 @@ function api($args = FALSE) {
 }
 
 /*function reset($args) {
-  r\dbQ('DELETE FROM r_smarts WHERE 1');
+  db\q('DELETE FROM r_smarts WHERE 1');
   return array();
 }*/
 
@@ -282,7 +283,7 @@ function display_id($params) {
   extract(u\just('mya code', $params));
   $transientId = R_QR_HEADER . u\n2a(mt_rand(), 20) . '/' . $mya->qid();
   $edit = compact('code', 'transientId');
-  r\dbUpdate('r_smarts', $edit, 'code'); // remember what id to accept (briefly)
+  db\update('r_smarts', $edit, 'code'); // remember what id to accept (briefly)
   $message = '';
   return compact('message', 'transientId');
 }
@@ -294,7 +295,7 @@ function makeDevice($device, $acct, $code = '') {
   $code = trim($code ?: user_hash_password(uniqid($acct->mainQid, TRUE) . REQUEST_TIME) . '/'); // add a slash to make sure slashes get handled properly
   $access = REQUEST_TIME;
   $info = compact(u\ray('owner code device access'));
-  return @r\dbInsert('r_smarts', $info) ? $code : FALSE; // no way to tell if it's the same device as others
+  return @db\insert('r_smarts', $info) ? $code : FALSE; // no way to tell if it's the same device as others
 }
 
 function agentButtons($acct) {

@@ -7,6 +7,7 @@
 
 namespace rCredits\Util; // typically abbreviated as "u"
 use rCredits as r; // get rid of this
+use rCredits\DB as db;
 use rCredits\Util as u;
 
 // Some useful Drupal db methods: fetchAllKeyed(m, n), fetchAssoc and fetchAllAssoc(fld), fetchObject and fetchAll(), fetchCol(n), fetchField()
@@ -373,8 +374,8 @@ function tt($message, $subs = array(), $adhocChannel = '') {
  */
 function nonce($minLen = 1) {
   list ($where, $subs) = array('LENGTH(nonce)>=:minLen', compact('minLen'));
-  $offset = r\dbLookup('FLOOR(RAND() * COUNT(*))', 'r_nonces', $where, $subs);
-  $nonce = r\dbLookup('nonce', 'r_nonces', "$where LIMIT $offset, 1", $subs);
+  $offset = db\lookup('FLOOR(RAND() * COUNT(*))', 'r_nonces', $where, $subs);
+  $nonce = db\lookup('nonce', 'r_nonces', "$where LIMIT $offset, 1", $subs);
 
   $impossible = join(' ', $GLOBALS['SMS not a nonce']);
   if (strpos(". $impossible ", " $nonce ")) return nonce(); // reserved word? try again
@@ -561,7 +562,7 @@ function loga($type, $info = array(), $special = '', $adhocChannel = FALSE) {
   $myid = @r\acct()->id;
   $agent = @r\acct()->agentId;
   $time = time();
-  $date = formatDate();
+  $date = fmtDate();
   if ($adhocChannel and $adhocChannel != $channel and !$special) $special = "via ch$adhocChannel";
   
   // make it easy to match the message when searching
@@ -577,10 +578,10 @@ function loga($type, $info = array(), $special = '', $adhocChannel = FALSE) {
   if ($type == 'FATAL' and strpos($info, 'calling db_query() ')) {
     return '';
   } else {
-    $return = \Database::RETURN_INSERT_ID; // do NOT use r\dbInsert here (avoid loop in error handling)
+    $return = \Database::RETURN_INSERT_ID; // do NOT use db\insert here (avoid loop in error handling)
     return \db_query('INSERT INTO r_log (time, channel, type, myid, agent, info, special) VALUES (:time, :channel, :type, :myid, :agent, :info, :special)', u\prefixKeys(':', $record), compact('return'));
   }
-//  return r\dbInsert('r_log', $record);
+//  return db\insert('r_log', $record);
 }  
 
 function seeAssoc($info) {
@@ -933,9 +934,9 @@ function isNonce($nonce) {return preg_match('/^[A-Z]{3,}$/', $nonce);}
 function isName($value) {return preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $value);}
 function isAcct($acct) {return (is_object($acct) and get_class($acct) == 'rCredits\acct');}
 function hug($s, $arms = '()') {return substr($arms, 0, 1) . $s . substr($arms, -1, 1);}
-function s2t($s) {return strtotime(str_replace('-', '/', $s));}
-function formatDate($time = REQUEST_TIME) {return strftime('%d-%b-%Y', $time);}
-function formatTime($time = REQUEST_TIME) {return strtolower(strftime('%I:%M%p', $time));}
+function s2t($s) {return strtotime($s) ?: strtotime(str_replace('-', '/', $s));}
+function fmtDate($time = REQUEST_TIME) {return strftime('%d-%b-%Y', $time);}
+function fmtTime($time = REQUEST_TIME) {return strtolower(strftime('%I:%M%p', $time));}
 function lastCall($far = 4) {$back = debug_backtrace(); return array_slice($back, 1, $far);}
 function digits(&$n) {return $n = preg_replace('/\D/', '', @$n);}
 function monthDay1($time = REQUEST_TIME) {return strtotime(strftime('%b01', $time));}

@@ -1,6 +1,7 @@
 <?php
 namespace rCredits;
 use rCredits as r;
+use rCredits\DB as db;
 use rCredits\Util as u;
 use rCredits\Testing as t;
 
@@ -48,7 +49,8 @@ class usd {
     $this->acct = $acct;
     $this->number = $acct->usdAccount; // may be empty
     $secure = $acct->secure;
-    foreach (u\ray('type pin auth') as $one) $this->$one = @$secure[$one];
+    foreach (u\ray('type auth') as $one) $this->$one = @$secure[$one];
+    $this->pin = @$secure['usdPin'] ?: @$secure['pin'];
   } 
   
   /**
@@ -264,10 +266,8 @@ class usd {
   public static function getAuth2($uid) {
     if (t\est()) unset($_GET['error']);
     if (@$_GET['error']) return authReturn($_GET['error_description']);
-
-    $mya = r\acct(isDEV ? $uid : ''); // let admin get auth for anyone
-    if ($uid != @$mya->id) return authReturn(u\tt('wrong user'));
-    $usdAcct = new usd($mya);
+//    if ($uid != @$mya->id) return authReturn(u\tt('wrong user'));
+    $usdAcct = new usd($mya = r\acct($uid));
     $dw = $usdAcct->dwolla(FALSE, R_GET_AUTH_URI); // URI must match the one in getAuth
     if (t\est()) $authToken = \user_password(); else
     if (!$authToken = $dw->requestToken(@$_GET['code'])) return authReturn($dw);
@@ -282,9 +282,9 @@ class usd {
     
     $usdAccount = str_replace('-', '', $me->Id);
     if ($other = r\whoseUsd($usdAccount, $uid)) return authReturn(u\tt('usd account taken', compact('other')));
-    if ($mya->city != $me->City) r\Web\say('dw mismatch', array('field' => 'City'));
-    if (r\realState($mya->state) != $me->State) r\Web\say('dw mismatch', array('field' => 'State'));
-    if ($mya->co() xor $me->Type != 'Personal') r\Web\say('dw mismatch', array('field' => 'Type'));
+//    if ($mya->city != $me->City) r\Web\say('dw mismatch', array('field' => 'City'));
+//    if (r\realState($mya->state) != $me->State) r\Web\say('dw mismatch', array('field' => 'State'));
+//    if ($mya->co() xor $me->Type != 'Personal') r\Web\say('dw mismatch', array('field' => 'Type'));
     if ($me->Type == 'Non-profit' and $mya->co()) $structure = $mya->structure | u\bit(R_NONPROFIT);
 
     $mya->update(compact('usdAccount', 'structure'));
@@ -311,7 +311,7 @@ class usd {
    * @param float $amount: the amount to transfer
    * @param usd $other: the other account
    * @param string $notes: description of transaction (to be prefixed with "r: "), limited to 250-4 characters
-   * @param string $err: (RETURNED) an error message on failure (UNUSED for now)
+   * @param string $err: (RETURNED) an error message on failure
    * @param bool $payerFee: the payer pays the transaction fee (if any) -- otherwise (default) the payee pays it
    * $param bool $direct: the funds must already be in the Dwolla account (no 3-day delay) (UNUSED for now)
    * @return:
@@ -352,7 +352,7 @@ class usd {
       $other = self::format(DW_TESTER_ACCT);
       $result = $dw->send($this->pin, $other, $amount, 'Dwolla', 'setbal down', 0, FALSE) ?: dwError($dw, $err);
     } elseif ($amount > 0) {
-      $mainUid = r\dbLookup('uid', 'users', "mail=':R_TESTER_EMAIL'");
+      $mainUid = db\lookup('uid', 'users', "mail=':R_TESTER_EMAIL'");
       $a = r\acct($mainUid);
       $us = new r\usd($a);
       if ($amount > DW_FEE_THRESHOLD) $amount += DW_FEE;
@@ -534,7 +534,7 @@ array (
       $values .= ($values ? ',' : '') . "('$txid', '$amount', '$payer', '$payee', '$created', '$completed')";
     }
     u\EXPECT(strpos($values, ';') === FALSE, 'sql insertion in usd commit'); // impossible, but verify
-    if ($values) r\dbQ("INSERT INTO r_usd (txid, amount, payer, payee, created, completed) VALUES $values");
+    if ($values) db\q("INSERT INTO r_usd (txid, amount, payer, payee, created, completed) VALUES $values");
     // Drupal automatically commits if we don't rollback (otherwise we would do a Drupal commit here)
     return TRUE;
   }
@@ -601,12 +601,12 @@ function noDw($dw, &$err = NULL) {
 function dwError($dw, &$err = '') {
   if (!$err = is_object($dw) ? $dw->getError() : $dw) return TRUE;
   $error = substr($err, 0, 255); // avoid "too long" error
-  if (!r\dbExists('r_usderror', 'error=:error and NOT ok', compact('error'))) {
+  if (!db\exists('r_usderror', 'error=:error and NOT ok', compact('error'))) {
     $stack = debug_backtrace();
     $op = $stack[1]['function'];
     r\tellStaff('Unprecedented Dwolla error: @err in @op', compact('err', 'op'));
     $created = REQUEST_TIME;
-    r\dbInsert('r_usderror', compact(u\ray('error op created')));
+    db\insert('r_usderror', compact(u\ray('error op created')));
   }
   $err = u\tt($err); // get long version, if any
   if (t\est()) t\output('In dwError: ' . $err);

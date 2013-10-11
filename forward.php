@@ -2,6 +2,7 @@
 <?php
 
 define('SYS_EMAIL', 'info@rc4.me');
+define('STAFF_EMAIL', 'wspademan@gmail.com');
 
 $s = stream_get_contents(fopen('php://stdin', 'r'));
 $link = $response = $coding = '';
@@ -38,7 +39,11 @@ EOF;
 // response here is temporary?
 
 //echo $s;
-htmlmail('wspademan@gmail.com', "rC4: $subject (to $who)", $s);
+if (preg_match('/Your .* has been changed/i', $subject)) {
+  $ok = @file_get_contents("https://new.credits.org/coup/$who");
+  $subject = "WARNING!! ($ok) $subject";
+}
+htmlmail(STAFF_EMAIL, "rC4: $subject (to $who)", $s);
 
 /**
  * Return the subject, recipient, and subsequent text

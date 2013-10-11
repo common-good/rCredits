@@ -7,6 +7,7 @@
 namespace rCredits\Testing;
 use rCredits\Testing as t;
 use rCredits as r;
+use rCredits\DB as db;
 use rCredits\Util as u;
 use rCredits\Backend as be;
 
@@ -40,7 +41,7 @@ function makeRecords($list, $type, $testSeparate = FALSE) {
 function makeThing($info, $testOnly, $table) {
   extract($info);
   $info['uid'] = t\uid($id); unset($info['id']);
-  return $testOnly ? verifyRecord($table, $info) : r\dbInsert($table, $info);
+  return $testOnly ? verifyRecord($table, $info) : db\insert($table, $info);
 }
 
 function gifts($list) {return makeRecords($list, 'Gift');}
@@ -49,6 +50,7 @@ function members($list) {return makeRecords($list, 'Account');}
 function relations($list) {return makeRecords($list, 'Relation');}
 function transactions($list) {return makeRecords($list, 'Tx', TRUE);}
 function balances($list) {return makeRecords($list, 'Balances');}
+function membersHave($list) {return makeRecords($list, 'MemberFields');}
 
 /**
  * Fabricate a bogus account.
@@ -64,7 +66,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
   if (@$email) $mail = $info['mail'] = $email;
 
   if (!$testOnly) { // when making, set many defaults
-    u\setDft($rebate, R_REBATE); 
+    u\setDft($rebate, 5); // should be R_REBATE, but many of the test would have to be written on changing it
     u\setDft($fullName, 'makeAccount ' . randomString(20, 'word'));
     $name = u\shortName($fullName);
   //  $pass = @$my_password ?: '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae'; // default to 123
@@ -193,7 +195,7 @@ function makeRelation($info, $testOnly = FALSE) {
   
   foreach (u\ray('id main agent') as $one) unset($info[$one]);
   $info += compact(u\ray('reid main other'));
-  return $testOnly ? verifyRecord('r_relations', $info) : r\dbInsert('r_relations', $info);
+  return $testOnly ? verifyRecord('r_relations', $info) : db\insert('r_relations', $info);
 }
 
 /**
@@ -212,9 +214,28 @@ function notice($notice, $id, $subs) {
   $message = u\tt($notice, @$subs);
   $sent = @$subs['sent'] ?: 0;
   $info = compact(u\ray('uid message sent'));
-  return r\dbExists('r_notices', $info) ?: t\output('Expected notice ' . print_r($info, 1));
+  return db\exists('r_notices', $info) ?: t\output('Expected notice ' . print_r($info, 1));
 }
   
+/**
+ * Make the member fields be thus and such OR test to see if they ARE thus and such.
+ * "?" in a field means ignore its value when testing
+ */
+function makeMemberFields($one, $testOnly) {
+  $balFields = u\just('id dw/usd r usd balance dwolla rewards minimum share committed', $one);
+  if (!makeBalances($balFields, $testOnly)) return;
+
+  $a = r\acct($id = t\uid($one['id']));
+  foreach ($balFields as $k => $v) unset($one[$k]); // don't rehandle balance fields, and already got id
+
+  if ($testOnly) {
+    foreach ($one as $key => $value) if ($value != '?') {
+      if (t\badEq("db $key", $a->$key, $value, $id)) return FALSE;
+    }
+    return TRUE;
+  } else return ($a->update($one));
+}
+
 /**
  * Make the cached balances and other numeric fields be thus and such.
  * "dwolla" is a special field that sets or tests the actual dwolla balance for a test account
@@ -226,7 +247,7 @@ function makeBalances($one, $testOnly) {
     $one['usd'] = $one['dwolla'] = $one['dw/usd'];
     unset($one['dw/usd']);
   }
-  extract(u\just('id r usd dwolla rewards minimum share committed', $one));
+  extract(u\just('id r usd balance dwolla rewards minimum share committed', $one));
   $a = r\acct($id = t\uid($id0 = $id));
   if ($hasdw = in_array($a->usdAccount, array(DW_TEST_ACCT, DW_TESTER_ACCT))) $us = new r\usd($a);
   $dodw = (isset($dwolla) and $hasdw);
@@ -244,9 +265,10 @@ function makeBalances($one, $testOnly) {
 
   // verify
   $calc = t\uidCredit($id);
-  foreach (u\ray('r usd rewards') as $one) {
+  foreach (u\ray('r usd balance rewards') as $one) {
     if (isset($$one) and $$one != '?') {
-      if ($id > 0 and t\badEq("cached $one", $a->$one, $$one, $id)) return FALSE;
+      $cachedVal = $one == 'balance' ? $a->r + $a->usd : $a->$one;
+      if ($id > 0 and t\badEq("cached $one", $cachedVal, $$one, $id)) return FALSE;
       if ($one != 'usd' and ($id > 0 or $one == 'r')) {
         if (t\badEq("calc $one", $calc->$one, $$one, $id)) return FALSE;
       }
@@ -263,9 +285,9 @@ function usdTransferCount($where = '1') {
   global $testOnly;
   
   if($testOnly) {
-    return r\dbLookup('COUNT(*)', 'r_usd', $where);
+    return db\lookup('COUNT(*)', 'r_usd', $where);
   } else {
-    r\dbQ("DELETE FROM r_usd WHERE $where");
+    db\q("DELETE FROM r_usd WHERE $where");
     return 0; // 0 is the only thing we can make it!
   }
 }
@@ -278,13 +300,13 @@ function usdTransfers($txs) {
       extract(u\just('payer payee amount', $tx));
       $payer = t\uid($payer);
       $payee = @$payee ? (is_numeric($payee) ? $payee : t\uid($payee)) : 0;
-      if (!r\dbExists('r_usd', 'payer=:payer AND amount=:amount and payee=:payee', compact(u\ray('payer payee amount')))) return FALSE;
+      if (!db\exists('r_usd', 'payer=:payer AND amount=:amount and payee=:payee', compact(u\ray('payer payee amount')))) return FALSE;
     } else {
       foreach (u\just('payer payee', $tx) as $key => $value) {
         if ($value) $tx[$key] = t\uid($value);
       }
       u\setDft($tx['txid'], t\seq());
-      if (!r\dbInsert('r_usd', $tx)) return FALSE;
+      if (!db\insert('r_usd', $tx)) return FALSE;
     }
   }
   return TRUE;
@@ -319,7 +341,7 @@ function cronRuns($op) {
 
   if ($op == 'ALL' or strpos(R_DAILY_TASKS, " $op ")) {
     if (strftime('%H') < R_DAILY_HOUR) die('Developer: For testing between midnight and :R_DAILY_HOUR:00, you need to temporarily change R_DAILY_HOUR in -settings.');
-    r\dbQ("DELETE FROM queue WHERE name='q'");
+    db\q("DELETE FROM queue WHERE name='q'");
     \variable_set('r_last_cron', u\ray('day week month', $now - DAY_SECS, 0, 0));
     \drupal_cron_run();
   } elseif ($op == '') {
@@ -400,7 +422,7 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
 /// debug(compact(u\ray('info type myid agent channel crit'))); // for debugging mysterious email mismatches
 /// debug(compact(u\ray('info type myid agent channel')), '', 1);
 /// debug("info=:info AND $crit"); debug(compact(u\ray('info type myid agent')));
-  return r\dbExists('r_log', "info=:info AND $crit", compact(u\ray('info type myid agent channel')));
+  return db\exists('r_log', "info=:info AND $crit", compact(u\ray('info type myid agent channel')));
 }
 
 function weTellStaff($topic, $subs = array()) {
@@ -417,7 +439,7 @@ function weTellStaff($topic, $subs = array()) {
     }
     $find = u\tt($find, compact('index', 'subject'));
     foreach ($one as $k => $value) $find .= "$value%";
-    if (!$last = r\dbLookup('info', 'r_log', "info LIKE '$find' ORDER BY logid DESC")) {
+    if (!$last = db\lookup('info', 'r_log', "info LIKE '$find' ORDER BY logid DESC")) {
       if (count($subs) > 1) output("tell-staff can't find $find");
       return FALSE;
     }
@@ -448,8 +470,8 @@ function fixValues(&$info) {
     u\setDft($country, 'US');
     if ($country == 'US' or $country == US_COUNTRY_ID) u\setDft($state, 'MA');
   }
-  if (@$country) $info['country'] = $country = r\dbLookup('id', 'r_countries', ':country IN (name, iso_code)', compact('country')); else $country = US_COUNTRY_ID;
-  if (@$state) $info['state'] = r\dbLookup('id', 'r_states', ':state IN (name, abbreviation) AND country_id=:country', compact('state', 'country')); else $state = 0;
+  if (@$country) $info['country'] = $country = db\lookup('id', 'r_countries', ':country IN (name, iso_code)', compact('country')); else $country = US_COUNTRY_ID;
+  if (@$state) $info['state'] = db\lookup('id', 'r_states', ':state IN (name, abbreviation) AND country_id=:country', compact('state', 'country')); else $state = 0;
   if (@$mail) t\fixEmail($info['mail']);
   if (@$email) t\fixEmail($info['email']);
 }
@@ -467,7 +489,7 @@ function makePicture($picture, $acct) {
   $status = 1;
   $picture = $uid = $fid = $acct->id;
   $info = compact(u\ray('fid uid filename uri filemime status'));
-//  if (!r\dbInsert('file_managed', $info)) return FALSE;
+//  if (!db\insert('file_managed', $info)) return FALSE;
 //  if (!$acct->update(compact('picture'))) return FALSE;
   return TRUE;
 }
@@ -509,7 +531,7 @@ function hitServer($op, $agent, $code = '', $account_id = '', $extra = array()) 
     if (strpos($agent, R_AGENT_MARK) or !@$code) {
       $my_id = $agent;
     } else {
-      $acct = r\acct(r\dbLookup('owner', 'r_smarts', 'code=:code', compact('code')), $agent);
+      $acct = r\acct(db\lookup('owner', 'r_smarts', 'code=:code', compact('code')), $agent);
       $my_id = $acct ? $acct->qid() : $agent; // accommodate bad agents
     }
   }
@@ -569,7 +591,7 @@ function verifyRecord($table, $info) {
       : "$key<=>:$key"); // null-safe ==
   }
   $crit = join(' AND ', $crit);
-  $result = r\dbExists($table, $crit, $info);
+  $result = db\exists($table, $crit, $info);
   if (!$result) output("verifyRecord failed. table=$table crit=$crit EXPECTED info=" . print_r($info, 1)); // keep
   return $result;
 }
@@ -842,9 +864,9 @@ function clear($ch) {
   $cgfUid = \variable_get('cgf_uid');
   $tables = 'r_do r_notices r_sms r_txs r_relations r_log r_invites r_companies r_gifts r_smarts r_proxies r_stats r_usd r_user_industries queue';
 
-  r\dbQ('DELETE FROM users WHERE uid>:cgfUid OR (uid>1 AND uid<:cgfUid-1)', compact('cgfUid'));
-  foreach (u\ray($tables) as $one) r\dbQ("TRUNCATE $one");
-  r\dbQ('UPDATE users SET floor=0,minimum=NULL,r=0,usd=0,rewards=0,committed=0');
+  db\q('DELETE FROM users WHERE uid>:cgfUid OR (uid>1 AND uid<:cgfUid-1)', compact('cgfUid'));
+  foreach (u\ray($tables) as $one) db\q("TRUNCATE $one");
+  db\q('UPDATE users SET floor=0,minimum=NULL,r=0,usd=0,rewards=0,committed=0');
 
   $files = glob(DRUPAL_ROOT . R_PICTURE_DIR . "/*"); // get all picture file names
   foreach($files as $file){ // iterate files
@@ -964,6 +986,6 @@ function seq($table = 'r_usd') {
   $id = $testSeq[$table] = @$testSeq[$table] + 1;
   $k = $table == 'r_usd' ? 'txid' : '';
   tlog("seq table=$table id=$id");
-  u\EXPECT(!r\dbExists('r_usd', "$k=:id", compact('id')), "duplicate seq: $id in table $table");
+  u\EXPECT(!db\exists('r_usd', "$k=:id", compact('id')), "duplicate seq: $id in table $table");
   return $id;
 }

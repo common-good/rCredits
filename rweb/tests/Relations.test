@@ -70,8 +70,8 @@ class rwebRelations extends DrupalWebTestCase {
   public function testMemberHasAnEmployeeConfirmed_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "DATA'
-    . '\\| id | main | agent | permission   | amount | employerOk | employeeOk | isOwner | draw |'
-    . '\\| 1  | .ZZA | .ZZD  | sell         |     10 | 1          | 1          | 1       | 0    |"');
+    . '\\| id | main | agent | permission   | employerOk | employeeOk | isOwner | draw |'
+    . '\\| 1  | .ZZA | .ZZD  | sell         | 1          | 1          | 1       | 0    |"');
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
     . '\\| Other      | Draw | My employer? | My employee? | Family? | Permission    |_request rCard |'
@@ -82,8 +82,8 @@ class rwebRelations extends DrupalWebTestCase {
   public function testMemberHasAnEmployeeUnconfirmed_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "DATA'
-    . '\\| id | main | agent | permission | amount | employerOk | employeeOk | isOwner |'
-    . '\\| 1  | .ZZA | .ZZD  | buy        |     50 | 1           | 0           | 0        |"');
+    . '\\| id | main | agent | permission | employerOk | employeeOk | isOwner |'
+    . '\\| 1  | .ZZA | .ZZD  | buy        | 1          | 0          | 0        |"');
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
     . '\\| Other      | My employer? | My employee? | Family? | Permission   |_request rCard |'
@@ -94,8 +94,8 @@ class rwebRelations extends DrupalWebTestCase {
   public function testMemberHasARelationWithAContractor_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "DATA'
-    . '\\| id | main | agent | permission | amount | employerOk | employeeOk | isOwner |'
-    . '\\| 1  | .ZZA | .ZZB  | buy        |     50 | 1           | 0           | 0        |"');
+    . '\\| id | main | agent | permission | employerOk | employeeOk | isOwner |'
+    . '\\| 1  | .ZZA | .ZZB  | buy        | 1          | 0          | 0        |"');
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
     . '\\| Other      | My employer? | My employee? | Family? | Permission   |_request rCard |'
@@ -106,8 +106,8 @@ class rwebRelations extends DrupalWebTestCase {
   public function testMemberHasAnEmployeeClaimed_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "DATA'
-    . '\\| id | main | agent | permission   | amount | employerOk | employeeOk | isOwner |'
-    . '\\| 1  | .ZZA | .ZZD  | sell         |     10 | 0          | 1          | 0       |"');
+    . '\\| id | main | agent | permission   | employerOk | employeeOk | isOwner |'
+    . '\\| 1  | .ZZA | .ZZD  | sell         | 0          | 1          | 0       |"');
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
     . '\\| Other      | My employer? | My employee? | Family? | Permission    |_request rCard |'
@@ -118,8 +118,8 @@ class rwebRelations extends DrupalWebTestCase {
   public function testEmployeeCanOnlyRead_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "DATA'
-    . '\\| id | main | agent | permission | amount | employerOk | employeeOk | isOwner |'
-    . '\\| 1  | .ZZA | .ZZD  | read       |     10 | 1          | 1          | 1       |"');
+    . '\\| id | main | agent | permission | employerOk | employeeOk | isOwner |'
+    . '\\| 1  | .ZZA | .ZZD  | read       | 1          | 1          | 1       |"');
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
     . '\\| Other      | My employer? | My employee? | Family? | Permission        |_request rCard |'
@@ -130,8 +130,8 @@ class rwebRelations extends DrupalWebTestCase {
   public function testMemberHasAnEmployer_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "DATA'
-    . '\\| id | main | agent | permission   | amount | employerOk | employeeOk | isOwner |'
-    . '\\| 1  | .ZZB | .ZZA  | sell         |     10 | 1           | 1           | 1        |"');
+    . '\\| id | main | agent | permission   | employerOk | employeeOk | isOwner |'
+    . '\\| 1  | .ZZB | .ZZA  | sell         | 1          | 1          | 1        |"');
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
     . '\\| Other      | My employer? | My employee? | Family? | Permission   |_request rCard |'
@@ -142,9 +142,9 @@ class rwebRelations extends DrupalWebTestCase {
   public function testMemberHasAccessToEmployeeAccount_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "DATA'
-    . '\\| id | main | agent | permission | amount | employerOk | employeeOk | isOwner |'
-    . '\\| 1  | .ZZA | .ZZD  |            |     10 | 1           | 1           | 1        |'
-    . '\\| 2  | .ZZD | .ZZA  | sell       |     20 | 0           | 0           | 0        |"');
+    . '\\| id | main | agent | permission | employerOk | employeeOk | isOwner |'
+    . '\\| 1  | .ZZA | .ZZD  |            | 1          | 1          | 1        |'
+    . '\\| 2  | .ZZD | .ZZA  | sell       | 0          | 0          | 0        |"');
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
     . '\\| Other      | My employer? | My employee? | Family? | Permission   |_request rCard |'
@@ -159,8 +159,8 @@ class rwebRelations extends DrupalWebTestCase {
   public function testMemberCompanyHasRelations_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "DATA'
-    . '\\| id   | main | agent | permission | amount | employerOk | employeeOk | isOwner |'
-    . '\\| .ZZA | .ZZC | .ZZA  | manage     |     10 | 1           | 1           | 1        |"');
+    . '\\| id   | main | agent | permission | employerOk | employeeOk | isOwner |'
+    . '\\| .ZZA | .ZZC | .ZZA  | manage     | 1          | 1          | 1        |"');
     When_('member ":ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
     . '\\| Other   | $/mo   | My employee? | Owner? | Permission     |_request rCard |'

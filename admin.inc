@@ -5,6 +5,7 @@
  */
 
 use rCredits as r;
+use rCredits\DB as db;
 use rCredits\Backend as be;
 use rCredits\Testing as t;
 use rCredits\Util as u;
@@ -31,14 +32,19 @@ function adminForm($sta) {
     }
     return r\go('print-rcard/' . $qid);
   } elseif ($op == 'seeUsd') {
-    if (!@$a->secure['usdEmail']) {
+    if (@$a->secure['auth'] and !@$a->secure['usdEmail']) {
       $old = $a->secure;
+      debug($old);
       $usdPass = user_password(20) . '*B2'; // satisfy Dwolla (and our own security)
       $usdEmail = strtolower(\user_password(4) . '.' . $a->mainQid) . '@rc4.me';
       $usdPin = u\randomString(4, 'digits');
-      $secure = compact(u\ray('old usdPass usdEmail usdPin')) + $old;
+      $usdPhone = $a->phone;
+      $secure = compact(u\ray('usdPass usdEmail usdPin usdPhone')) + $old;
+      if (isset($secure['old'])) $secure['old'] = '';
+      if (isset($secure['card_code'])) $secure['card_code'] = '';
       $a->update(compact('secure'));
     }
+    debug(u\purify($a->secure));
     return;
   }
   
@@ -64,7 +70,7 @@ function adminForm($sta) {
  */
 function usdAccts($where = "postalCode LIKE '013%'") {
   if (!r\acct()->admin()) return;
-  $result = r\dbQ("SELECT uid FROM users WHERE $where ORDER BY fullName");
+  $result = db\q("SELECT uid FROM users WHERE $where ORDER BY fullName");
   $head = u\ray('Name Dwolla? Type Verified OK Chg Co Bal');
   while ($row = $result->fetch()) {
     $usA = new r\usd($a = r\acct($row->uid));
@@ -93,7 +99,7 @@ function showTable($ray) {
     foreach ($row as $key => $value) {
       if ($value and in_array($key, u\ray('id uid payer payee main other inviter invitee proxy person owner defaultAgent'))) $value = $value < 0 ? 'ctty' : ($value == $cgfUid ? 'CGF' : r\acct($value)->fullName);
       if ($key == 'reid') $value = u\n2a($value, -3);
-      if ($value and in_array($key, u\ray(R_DATE_FIELDS))) $value = u\formatDate($value);
+      if ($value and in_array($key, u\ray(R_DATE_FIELDS))) $value = u\fmtDate($value);
       if ($key == 'flags') $value = "<div style='text-transform:capitalize; font-size:7px; line-height:11px;'>" . bs($value) . '</div>';
       if ($key == 'payeeFor' and $value == $row->payerFor) $value = 'same';
       $line .= "<td>$value</td>";
@@ -105,7 +111,7 @@ function showTable($ray) {
 
 function showTableQ($sql, $subs = array()) {
   if (!strpos($sql, ' ')) {$sql = "SELECT * FROM $sql " . ($subs ?: ''); $subs = array();}
-  if (!$result = r\dbQ($sql, $subs)) return \drupal_set_message('bad query');
+  if (!$result = db\q($sql, $subs)) return \drupal_set_message('bad query');
   return showTable($result->fetchAll());
 }
 
@@ -115,7 +121,7 @@ function showTableQ($sql, $subs = array()) {
  eachTx();
  */
 function eachTx($func = 'changeIt') {
-  $result = r\dbQ('SELECT * FROM r_txs');
+  $result = db\q('SELECT * FROM r_txs');
   if (!function_exists($func)) $func = 'rCredits\\' . $func;
   while ($row = $result->fetchAssoc()) $func($row);
 }
@@ -144,7 +150,7 @@ function cobble($id, $federalId, $dob, $pin, $question = '', $answer = '') {
  eachAcct();
  */
 function eachAcct($func = 'changeIt') {
-  $result = r\dbQ('SELECT uid FROM users WHERE uid>1')->fetchCol();
+  $result = db\q('SELECT uid FROM users WHERE uid>1')->fetchCol();
   if (!function_exists($func)) $func = 'rCredits\\' . $func;
   foreach ($result as $one) $func(r\acct($one));
 }
@@ -168,7 +174,7 @@ function changeIt($a) {
   if (!$address) $address = $a->address;
   $a->update(compact('address', 'postalAddr'));
 
-//$payee = r\dbLookup('payee', 'r_usd', 'txid=:txid', compact('txid'));
+//$payee = db\lookup('payee', 'r_usd', 'txid=:txid', compact('txid'));
 //r\Cron\coverFee(compact('txid', 'payee'));
 }
 

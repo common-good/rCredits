@@ -16,10 +16,10 @@ define('R_SITE_URL', 'https://new.rCredits.org');
 define('R_REGION_POSTAL_AREA', '^01.*'); // anyone with a postal code that matches this regular expression is in the region
 date_default_timezone_set('America/New_York'); // server handles just one timezone
 define('DW_LAG', 1 * HOUR_SECS); // how many seconds later than us Dwolla's (Mountain Time) server sees the sun
-define('R_COUNTRY_ID', 1228); // this region's country: United States
+define('R_COUNTRY_ID', US_COUNTRY_ID); // this region's country: United States
 define('R_STATE_ID', 1020); // Massachusetts
-define('R_REBATE', 5); // standard initial rebate percentage
-define('R_BONUS_FACTOR', 2); // standard bonus is this times standard rebate
+define('R_REBATE', 10); // standard initial rebate percentage
+define('R_BONUS_FACTOR', 1); // standard bonus is this times standard rebate
 define('R_MIN_REBATE', .05); // members get this even for a purchase with no rcredits (subject to dwindling)
 define('R_MAX_AMOUNT', 100000); // transaction request size limit (some smaller limits also apply)
 define('R_SIGNUP_GIFT', 5); // UNUSED how much to give people to play with, even before they are fully set up

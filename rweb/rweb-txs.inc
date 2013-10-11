@@ -4,6 +4,7 @@ use rCredits\Backend as be;
 use rCredits\Util as u;
 use rCredits\Testing as t;
 use rCredits as r;
+use rCredits\DB as db;
 
 /**
  * @file
@@ -132,8 +133,8 @@ function formTxs($form, &$sta, $args = '') {
   $period = formField('select', t('For the past:'), '', dft($period), $txDays);
   $submitPeriod = submit(t('Show ')); // label has to be different from submitDates (see below)
   $downloadPeriod = submit(t('Download '));
-  $starting = textField(t('OR Starting:'), '', dft(u\formatDate($starting)));
-  $ending = textField(t('Ending:'), '', dft(u\formatDate($ending)));
+  $starting = textField(t('OR Starting:'), '', dft(u\fmtDate($starting)));
+  $ending = textField(t('Ending:'), '', dft(u\fmtDate($ending)));
   $submitDates = submit(t(' Show')); // label has to be different (Drupal bug -- else can't tell which is clicked)
   $downloadDates = submit(t(' Download'));
   $title = "";
@@ -263,7 +264,7 @@ function doRow($tx, $report, $csv, $classes, $agents, $channels, $boxes, $curren
   : ($csv ? r\quid($agent) : str_replace(R_SERVER_ID . R_MEMBER_MARK, R_MEMBER_MARK, r\quid($agent)));
   // might optionally show both agents for reports someday
   if (@$channels) $row[] = $txChannels[$tx_channel];
-  if (@$boxes) $row[] = r\dbLookup('boxName', 'r_boxnames', 'id=:tx_box', compact('tx_box'));
+  if (@$boxes) $row[] = db\lookup('boxName', 'r_boxnames', 'id=:tx_box', compact('tx_box'));
 
   if ($csv) return finishCsvRow($csv, array_combine($classes, $row), $tx, $amount, $toMe, $tot);
   if ($banking) $tid = substr($tid, 1);
@@ -513,8 +514,8 @@ function txSummary($starting, $ending, $currency) {
   $new = txBal($new);
   $old = txBal($old);
 
-  $starting = u\formatDate($starting);
-  $ending = u\formatDate($ending);
+  $starting = u\fmtDate($starting);
+  $ending = u\fmtDate($ending);
   $summary_title = "<div id='txsum-title'>SUMMARY</div>";
   
   $classes = u\prefixValues('txsum-', u\ray('one banksign bank fromsign fromyou tosign toyou rewardssign rewards sharesign share balancesign balance'));

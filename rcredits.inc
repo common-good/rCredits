@@ -11,16 +11,21 @@
  
 namespace rCredits; // typically abbreviated as "r"
 use rCredits as r;
+use rCredits\DB as db;
 use rCredits\Testing as t;
 use rCredits\Util as u;
 use rCredits\Backend as be;
 
+// definitions used in settings file
 define('HOUR_SECS', 3600);
 define('DAY_SECS', 24 * HOUR_SECS);
 define('WEEK_SECS', 7 * DAY_SECS);
-define('R', '<span class="r">r</span>');
-define('US', '<span class="us">us</span>');
-require_once __DIR__ . '/rcredits-settings.inc'; // must precede other definitions
+define('YEAR_SECS', 365.25 * DAY_SECS);
+define('US_COUNTRY_ID', 1228); // United States
+
+require_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
+require_once __DIR__ . '/rcredits-db.inc';
+require_once __DIR__ . '/acct.class';
 
 define('MINI_LAUNCH', TRUE);
 define('CGF_EMAIL', isDEV ? 'wspademan+cgf@gmail.com' : 'info@CommonGoodFinance.org'); // Common Good Finance email and other data
@@ -28,9 +33,9 @@ define('CGF_PHONE', '+14136281723');
 define('CGF_ADDRESS', 'PO Box 21');
 define('CGF_CITY', 'Ashfield');
 
-define('US_COUNTRY_ID', 1228); // United States
+define('R', '<span class="r">r</span>');
+define('US', '<span class="us">us</span>');
 define('R_VERSION', '1.0a'); // software version
-define('R_SEPARATE_BACKEND', FALSE);
 define('R_ROOT', DRUPAL_ROOT . '/sites/all/modules/rcredits');
 define('R_CONCEALED_FIELDS', 'code password pass oneTimeLoginUrl'); // fields to leave out of log
 define('R_DATE_FIELDS', 'created completed sent invited giftDate signed login access yesterday'); // date field names for testing
@@ -51,6 +56,7 @@ define('R_MAX_PHOTO_WIDTH', 1024);
 define('R_MAX_UPLOAD_SIZE', 3); // maximum upload size in MB
 define('R_URL_SLASH', '%_%'); // Drupal gets confused by slashes in a url, even if urlencoded
 define('R_MAX_DAILY_EXCHANGE', 1000); // per Common Good Finance policy and to avoid formal FinCEN regulation
+define('R_MAX_RTX', 1000); // never transfer more rCredits than this at once (self-imposed limit for safety)
 define('R_INVITE_DAYS', 7); // number of days to accept invitation to membership
 define('R_MINR_DEFAULT', 200); // suggested minimum amount to hold in rCredits
 //define('R_MAXR_DEFAULT', -1); // suggested maximum amount to hold in rCredits (-1 = no limit)
@@ -82,6 +88,7 @@ define('R_MARKS', '[\\' . R_MEMBER_MARK . '\\' . R_AGENT_MARK . '\\' . R_AGENT_U
 define('R_ANCIENT_EFT', 10); // how long, at most, an EFT might take (transferring funds to/from bank)
 define('R_REQUIRED', ' <span class="form-required" title="This field is required.">*</span>');
 define('R_CTTY_USD_SHARE', .5); // fraction of a community's total USD to hold in the community account
+define('R_CC_RATE', 2.5); // typical credit card percentage rate
 
 define('DW_SITE', isPRODUCTION ? 'https://www.dwolla.com' : 'https://uat.dwolla.com');
 //                               : 'http://new.rcredits.org/stage.php?stageWord=' . R_STAGE_WORD . '&request=');
@@ -247,9 +254,6 @@ $GLOBALS['emailSubjects'] = array(
   'notices' => t('rCredits Notices for {range}'),
 );
 
-include_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
-include_once __DIR__ . '/acct.class';
-
 /**
  * Return the account's current stage in its progression toward rTrader
  *//*
@@ -294,7 +298,7 @@ function txReportArgs($acct, $tx, $getMyBalance = FALSE, $shortfall = 0) {
   }
   $myName = $acct->fullName;
   $otherName = userField('fullName', $otherUid);
-  $created = u\formatDate($created);
+  $created = u\fmtDate($created);
 
   if ($getMyBalance) {
     if ($acct->can(B_BUY)) $balance = u\fmtAmt($acct->rAvailable('buy', TRUE));
@@ -316,7 +320,7 @@ function whoseUsd($usdAccountId, $omit = NULL) {
   $usdAccount = bin2hex(u\ezencrypt(str_replace('-', '', $usdAccountId), R_WORD));
   $where = 'usdAccount=:usdAccount' . (@$omit ? ' AND uid<>:omit' : '');
   $subs = compact('usdAccount') + (@$omit ? compact('omit') : array());
-  return r\dbLookup('uid', 'users', $where, $subs);
+  return db\lookup('uid', 'users', $where, $subs);
 }
 
 /**
@@ -339,23 +343,25 @@ function otherBalance($uid) {
  */
 function xid2tid($xid, $uid) {
   $where =  ":uid IN (payer, payee) AND xid<:xid AND type>=0";
-  return r\dbLookup('COUNT(xid)', 'r_txs', $where, compact('uid', 'xid')) + 1;
+  return db\lookup('COUNT(xid)', 'r_txs', $where, compact('uid', 'xid')) + 1;
 }
 
 /**
  * Trade r in one account for USD in another
- * @param float $amount: the amount to trade
+ * @param float $amount: the amount to trade (limited to R_MAX_DAILY_EXCHANGE)
  * @param int $uid1: uid of account with r to trade
  * @param int $uid2: uid of account with USD to trade
+ * @param string $err: (RETURNED) an error message on failure
  * @return string $txid: USD transaction ID (from Dwolla) or FALSE on failure
  * Caller is responsible for determining whether the accounts have enough r and USD for the trade.
  */
-function rTrade($amount, $uid1, $uid2) {
+function tradeR($amount, $uid1, $uid2, &$err = '') {
+  if ($amount > R_MAX_DAILY_EXCHANGE) {$err = 'rTrade amount over max'; return FALSE;}
   $us1 = new r\usd($a1 = r\acct($uid1));
   $us2 = new r\usd($a2 = r\acct($uid2));
 
   r\usd::beginAtom();
-  if (!$txid = $us2->send($amount, $us1)) {
+  if (!$txid = $us2->send($amount, $us1, R_DEFAULT_PURPOSE, $err)) {
     r\usd::rollback();
     if ($uid1 > 0) $a1->actualUsd(); // fix cached USD, if needed (after rollback)
     if ($uid2 > 0) $a2->actualUsd();
@@ -407,13 +413,13 @@ function transact($info) {
  * @return the transaction array, with extra info added
  */
 function txSave($tx) {
-  $xid = r\dbInsert('r_txs', $tx);
+  $xid = db\insert('r_txs', $tx);
   if (!@$tx['serial']) { // main transaction needs some touching up, now that we know the xid
     extract(u\just('payer payee', $tx));
     $payerTid = $payer > 0 ? r\xid2tid($xid, $payer) : 0;
     $payeeTid = $payee > 0 ? r\xid2tid($xid, $payee) : 0;
     $sql = "UPDATE r_txs SET serial=:xid, payerTid=:payerTid, payeeTid=:payeeTid WHERE xid=:xid";
-    dbQ($sql, compact(u\ray('xid payerTid payeeTid')));
+    db\q($sql, compact(u\ray('xid payerTid payeeTid')));
     $serial = $xid; // set serial for this and remember it for dependents
   }
   return $tx + compact(u\ray('xid serial payerTid payeeTid'));
@@ -588,10 +594,11 @@ function usdPart($requestAmount, $a, $preapproved, $goods, $confirmed, &$shortfa
   $shortfall = 0; // no shortfall if not preapproved
   if (!$preapproved) return 0; // if just an invoice, funds don't have to be there yet (no shortfall, no usd)
   if ($shortfall = $a->shortfall($goods ? 'buy' : 'cash', $requestAmount, $confirmed)) return 0; // not enough!
-  
+  return max(0, $requestAmount - R_MAX_RTX); // never transfer too much rCredits at once (self-imposed)
   //$r = min($requestAmount, $a->rAvailable($goods ? 'buy' : 'cash')); // how much can we get in r?
-  $usd = $goods ? max(0, $requestAmount - $a->rAvailable('buy')) : $a->usdAvailable('cash');
-  return round(min($requestAmount, $usd), 2);
+  //$usd = $goods ? max(0, $requestAmount - $a->rAvailable('buy')) : $a->usdAvailable('cash');
+  //$usd = $requestAmount > R_FINCEN_MAX ? $requestAmount : 0;
+  //return round(min($requestAmount, $usd), 2);
 }
 
 /**
@@ -630,7 +637,7 @@ function makeDo($type, $uid, $amount = 0, $timeLimit = WEEK_SECS, $subs = '', $s
   $action = serialize(compact(u\ray('type uid sql subs amount')));
   list ($created, $completed) = array(REQUEST_TIME, -(REQUEST_TIME + $timeLimit));
   $code = t\est() ? $testDoCode : \user_password(20);
-  $id = r\dbInsert('r_do', compact(u\ray('uid created completed action code')));
+  $id = db\insert('r_do', compact(u\ray('uid created completed action code')));
   return "$base_url/do/id=$id&code=$code";
 }
 
@@ -665,7 +672,7 @@ function notify($uid, $index, $info = array(), $force = FALSE) {
   } else { //if ($acct->can(B_NOTIFY_EMAIL)) {
     list ($message, $created) = array(u\tt($index, $info), REQUEST_TIME);
     if (t\est()) t\output("Notice to $fullName: $message");
-    r\dbInsert('r_notices', compact(u\ray('uid message created')));
+    db\insert('r_notices', compact(u\ray('uid message created')));
   }
   
   if ($acct->can(B_NOTIFY_SMS)) {
@@ -724,12 +731,12 @@ function acceptGift($info) {
 ///  debug(compact('msg','args','confirm'));
   if (@$args['success']) {
     $completed = REQUEST_TIME;
-    r\dbUpdate('r_gifts', compact('donid', 'completed'), 'donid');
+    db\update('r_gifts', compact('donid', 'completed'), 'donid');
     if ($often != 1) {
       $months = $often == 'M' ? 1 : ($often == 'Q' ? 3 : 12);
       $giftDate = strtotime($months . ' months', $giftDate);
       $share = -1; // mark this field N/A (irrelevant)
-      r\dbInsert('r_gifts', compact(u\ray('uid giftDate amount often share')));
+      db\insert('r_gifts', compact(u\ray('uid giftDate amount often share')));
     }
     r\usd::commit();
     r\tellStaff('gift accepted', $info + $args);
@@ -794,7 +801,7 @@ function setTxField($fieldName, $newValue, $xid, $allRelated = FALSE) {
   u\EXPECT(compact(u\ray('fieldName xid allRelated')), 'name zid bool');
   
   $where = "xid=:xid and $myid in (payer, payee)"; // "$myid in" is a security measure
-  list ($oldValue, $oldState, $data) = array_values(dbLookup("$fieldName AS f1,state,data", 'r_txs', $where, compact(u\ray('xid')))); // f1 prevent Drupal from combining state results when $fieldName is 'state'
+  list ($oldValue, $oldState, $data) = array_values(db\lookup("$fieldName AS f1,state,data", 'r_txs', $where, compact(u\ray('xid')))); // f1 prevent Drupal from combining state results when $fieldName is 'state'
   $data = unserialize($data);
   $data['changes'][] = array(REQUEST_TIME, acct()->agentId, $fieldName, $oldValue);
   $data = serialize($data);
@@ -805,8 +812,8 @@ function setTxField($fieldName, $newValue, $xid, $allRelated = FALSE) {
 //  $sql2 = str_replace(', data=:data', '', str_replace('xid=:xid', 'serial=:xid', $sql));
 
   $DBTX = \db_transaction();
-  dbQ($sql, compact(u\ray('newValue data xid')));
-  if ($allRelated) dbQ($sql2, compact(u\ray('newValue xid'))); // gotta do the auxiliary records separately so as not to affect their data field (separate query, to avoid "unbuffered query" error -- known Drupal bug)
+  db\q($sql, compact(u\ray('newValue data xid')));
+  if ($allRelated) db\q($sql2, compact(u\ray('newValue xid'))); // gotta do the auxiliary records separately so as not to affect their data field (separate query, to avoid "unbuffered query" error -- known Drupal bug)
   unset($DBTX); // commit
 }
 
@@ -827,9 +834,9 @@ function mergeAccounts($oldUid) {
   foreach (u\ray('phone faxetc website address') as $one) if ($old->$one and !$new->$one) $update[$one] = $old->$one;
   acct()->update($update);
   newMemberId($oldUid, $newUid, TRUE);
-  dbQ('DELETE FROM users WHERE uid=:oldUid', compact('oldUid')); // must be last, for referential integrity
+  db\q('DELETE FROM users WHERE uid=:oldUid', compact('oldUid')); // must be last, for referential integrity
   return 1;
-//  dbQ("UPDATE users SET uid=IF(uid>0,-uid,uid), status=0 WHERE uid=:oldUid", compact('oldUid'));
+//  db\q("UPDATE users SET uid=IF(uid>0,-uid,uid), status=0 WHERE uid=:oldUid", compact('oldUid'));
 }
 */
 
@@ -848,28 +855,6 @@ function location($acct, $complete = FALSE) {
   if ($acct->country != R_COUNTRY_ID) $result[] = strtoupper($country);
   foreach ($result as $key => $value) if ($value === '') unset($result[$key]);
   return join(', ', $result);
-}
-
-/**
- * Look the field up in the table, returning the first record matching the criteria.
- * @param string $fieldName: field name, function, or list of field names
- *   A list of field names cannot contain a function or a left paren
- * @param string $table: table to look in
- * @param string $where: criteria (defaults to ALL)
- * @param assoc $subs: optional substitutions -- keys will be prefixed by ':'
- * @return: the value of what was looked up -- an assoc of values if a list of fields was requested
- *   FALSE if none
- */
-function dbLookup($fieldName, $table, $where = '1', $subs = array()) {
-  u\EXPECT(compact(u\ray('fieldName table where subs')), 'notempty notempty notempty assoc');
-  if (!strpos($where, ' LIMIT ')) $where .= ' LIMIT 1';
-  $sql = "SELECT $fieldName FROM $table WHERE $where";
-///  if (strpos($table, 'nonce')) debug(compact('sql','subs'));
-  $result = dbQ($sql, $subs);
-  $fieldCount = strpos($fieldName, '(') ? 1 : substr_count($fieldName, ',') + 1; // function or array, not both
-  $result = $fieldCount > 1 ? $result->fetchAssoc() : $result->fetchField();
-  u\EXPECT($fieldCount == 1 or !$result or count($result) == $fieldCount, 'field count is off'); // eg, if $fieldName == 'a,a'
-  return $result;
 }
 
 /**
@@ -915,8 +900,8 @@ function unQid($qid) {
  * @return the corresponding quid
  */
 function quid($uid, $agentId = '') {
-  u\EXPECT(compact('uid'), 'id');
   if (!$agentId or $agentId == $uid) { // proSe
+    if ($uid < 0) return u\n2a(-$uid - 1, -3); // -1 because region and ctty uids are bumped down by 1
     $region = -uidRegion($uid) - 1;
     $i = ($uid - 1) - $region * R_REGION_MAX; // -1 because uids are all bumped up by 1
     return u\n2a($region, -3) . R_MEMBER_MARK . u\n2a($i, -3);
@@ -976,8 +961,8 @@ function uidRegion($uid) {
  */
 function region($country = '', $state = '', $zip = '') {
   $where = "s.country_id=:country AND s.id=:state AND (r.zips='' OR :zip RLIKE r.zips)";
-  $region = r\dbLookup('region', 'r_regions r INNER JOIN r_states s ON r.state=s.abbreviation', $where, compact('state', 'zip', 'country'));
-  if (!$region) $region = r\dbLookup("CONCAT(iso_code, 'A')", 'r_countries', 'id=:country', compact('country'));
+  $region = db\lookup('region', 'r_regions r INNER JOIN r_states s ON r.state=s.abbreviation', $where, compact('state', 'zip', 'country'));
+  if (!$region) $region = db\lookup("CONCAT(iso_code, 'A')", 'r_countries', 'id=:country', compact('country'));
   return -u\a2n($region ?: 'ZZZ') - 1;
 }
 
@@ -1025,8 +1010,8 @@ function reverseRelations($other, $main, &$data, $fields) {
   $subs = compact('main', 'other') + u\just($fields, $data);
   if ($reid = relation('reid', $main, $other)) {
     $subs += compact('reid');
-    r\dbUpdate('r_relations', $subs, 'reid');
-  } else r\dbInsert('r_relations', $subs);
+    db\update('r_relations', $subs, 'reid');
+  } else db\insert('r_relations', $subs);
 
   foreach (u\ray($fields) as $field) unset($data[$field]); // don't get these fields mixed in with the reverse record
 }
@@ -1087,7 +1072,7 @@ function loginString($id) {
  */
 function employees() {
   $myid = r\acct()->id;
-  return r\dbQ('SELECT other FROM r_relations WHERE main=:myid AND employerOk', compact('myid'))->fetchCol();
+  return db\q('SELECT other FROM r_relations WHERE main=:myid AND employerOk', compact('myid'))->fetchCol();
 }
 
 /**
@@ -1107,7 +1092,7 @@ function relation($field, $main, $other = array(), $where = 'TRUE', $subs = arra
       $subs += compact('main', 'other');
     }
   } else list ($where, $subs) = array($main, $other); // called with alternate form
-  return dbLookup($field, 'r_relations', $where, $subs);
+  return db\lookup($field, 'r_relations', $where, $subs);
 }
 
 /**
@@ -1122,7 +1107,7 @@ function passSalt($acct = '') {
 
 function newUid($base) {
   $where = 'u.uid>=:base and u.uid <:base+:R_REGION_MAX AND u2.uid IS NULL ORDER BY u.uid';
-  $previous = dbLookup('u.uid', 'users u LEFT JOIN users u2 ON u2.uid=(u.uid+1)', $where, compact('base'));
+  $previous = db\lookup('u.uid', 'users u LEFT JOIN users u2 ON u2.uid=(u.uid+1)', $where, compact('base'));
   return $previous ? ($previous + 1) : $base;
 }
   
@@ -1168,11 +1153,11 @@ function changeUid($oldUid, $newUid = FALSE) {
   $DBTX = \db_transaction();
   foreach ($subs as $one) {
     list ($table, $field) = explode(':', $one);
-    dbQ("UPDATE $table SET $field=:newUid WHERE $field=:oldUid", compact('newUid', 'oldUid'));
+    db\q("UPDATE $table SET $field=:newUid WHERE $field=:oldUid", compact('newUid', 'oldUid'));
   }
   $oldQuid = r\quid($oldUid);
   list ($uid, $name, $mail) = array($oldUid, "unusable-$oldQuid", "unusable$oldQuid@rcredits.org");
-  r\dbInsert('users', compact(u\ray('uid name mail'))); // mark old uid unusable
+  db\insert('users', compact(u\ray('uid name mail'))); // mark old uid unusable
   foreach (u\ray('picture proof') as $one) { // this cannot be rolled back, so must follow db ops
     $new = DRUPAL_ROOT . r\acct($newUid)->auxFilename($one, TRUE);
     $old = str_replace("/$newUid-", "/$oldUid-", $new);
@@ -1190,8 +1175,8 @@ function changeUid($oldUid, $newUid = FALSE) {
 function checkBona($uid) {
   $acct = r\acct($uid);
   if ($acct->can(B_BONA)) return FALSE;
-  if (!r\dbExists('r_txs', 'payee=:uid and r>0 and payer>0 and state=:TX_DONE', compact('uid'))) return FALSE;
-  if (!r\dbLookup('COUNT(DISTINCT payee)', 'r_txs', 'payer=:uid and goods and state=:TX_DONE', compact('uid')) >= R_BUYS_BEFORE_BONUS) return FALSE;
+  if (!db\exists('r_txs', 'payee=:uid and r>0 and payer>0 and state=:TX_DONE', compact('uid'))) return FALSE;
+  if (!db\lookup('COUNT(DISTINCT payee)', 'r_txs', 'payer=:uid and goods and state=:TX_DONE', compact('uid')) >= R_BUYS_BEFORE_BONUS) return FALSE;
   return TRUE;
 }*/
 
@@ -1209,7 +1194,7 @@ function invite($email, $inviter, $code = '', $subject = '', $message = '') {
   $code = $code ?: \user_password(20);
   $invited = REQUEST_TIME;
   $info = compact(u\ray('code invited email inviter subject message'));
-  r\dbInsert('r_invites', $info);
+  db\insert('r_invites', $info);
   return $info['code'];
 }
 
@@ -1234,10 +1219,10 @@ function go($page, $msg = '', $field = '') {
  * Set or return the proxy for the person
  */
 function proxy($person, $priority = 1, $proxy = NULL) {
-  if (!@$proxy) return dbLookup('proxy', 'r_proxies', 'person=:person AND priority=:priority', compact('person', 'priority'));
-  dbQ('DELETE FROM r_proxies WHERE person=:person AND priority=:priority', compact('person', 'priority'));
+  if (!@$proxy) return db\lookup('proxy', 'r_proxies', 'person=:person AND priority=:priority', compact('person', 'priority'));
+  db\q('DELETE FROM r_proxies WHERE person=:person AND priority=:priority', compact('person', 'priority'));
   $info = compact(u\ray('person priority proxy'));
-  r\dbInsert('r_proxies', $info);
+  db\insert('r_proxies', $info);
 }
 
 /**
@@ -1256,7 +1241,7 @@ function getUsd($request, $acct, $usAcct = '') {
     $part = $need;
     if (!$acct3 = nextRBuyer($part, $acct->id)) break; // asks for what we need, returns the part we got in $part
     u\EXPECT($part > 0, 'got nothing');
-    if ($txid = r\rTrade($part, $acct->community, $acct3->id)) $need = round($need - $part, 2);
+    if ($txid = r\tradeR($part, $acct->community, $acct3->id)) $need = round($need - $part, 2);
   }
   if ($got = round($request - $need, 2)) r\exchange($got, $acct->id, $acct->community, $txid);
   r\usd::commit($got); // accept partial success
@@ -1294,7 +1279,7 @@ function getUsd($request, $acct, $usAcct = '') {
     
  */
 function nextRBuyer(&$amount, $except) {
-  if ($amount > R_CHUNK * 1.5) $amount = R_CHUNK;
+  if ($amount > R_CHUNK) $amount = R_CHUNK;
   $offer = R_CAPACITY; // offer is how much they can buy
   $sql = <<<EOF
     SELECT u.uid, $offer AS got, u.name FROM users u
@@ -1303,7 +1288,7 @@ function nextRBuyer(&$amount, $except) {
     ORDER BY :IS_PAYEX, (u.name='cgf') DESC, ($offer>=:amount) DESC, IFNULL(t.dt, 0), u.uid LIMIT 1
 EOF;
   // preferred: not CGF, offering enough, definitely wanting that many, longest ago previous exchange, low uid
-  if (!$row = r\dbQ($sql, compact('amount', 'except'))->fetchAssoc()) { // find out who (preferably who who wants enough) has waited the longest
+  if (!$row = db\q($sql, compact('amount', 'except'))->fetchAssoc()) { // find out who (preferably who who wants enough) has waited the longest
     r\tellStaff('no buyers', compact('amount')); // this is a really bad thing (nobody wants any at all)
     return FALSE;
   }
@@ -1337,7 +1322,7 @@ function totals($ctty = 'ALL', $calculate = FALSE) {
   return (object) ($totals[$ctty] + $fancy);
 
   /*
-  $result = dbLookup('SUM(minimum)', 'users', $ctty ? 'community=:ctty' : '1', compact('ctty')); // minima
+  $result = db\lookup('SUM(minimum)', 'users', $ctty ? 'community=:ctty' : '1', compact('ctty')); // minima
   $result -= -r\balance($ctty); // less how many rCredits are in circulation
   $result -= r\totalUSD($ctty); // less how much official currency is in play
   */
@@ -1357,7 +1342,7 @@ function getTotals($ctty) {
   $fields = u\sumAs('r floor rewards usd minimum committed');
   //$max = 'GREATEST(0, maximum)';
   $sql = "SELECT $fields, SUM(:R_DEMAND) AS demand, SUM(:R_CAPACITY) AS capacity FROM users u WHERE $where";
-  $result1 = r\dbQ($sql, $subs)->fetchAssoc();
+  $result1 = db\q($sql, $subs)->fetchAssoc();
 
   $where = @$ctty ? '(payer=:ctty OR payee=:ctty)' : 1;
   $sums = '';
@@ -1367,7 +1352,7 @@ function getTotals($ctty) {
     $sums .= "SUM(IF(type=:TX_$ONE, 1, 0)) AS {$one}Count, ";
   }
   $sql = "SELECT $sums MAX(IF(type=:TX_REBATE, amount, 0)) AS maxRebate FROM r_txs WHERE $where AND state IN(':TX_DONE,:TX_DISPUTED')";
-  $result2 = r\dbQ($sql, $subs)->fetchAssoc();
+  $result2 = db\q($sql, $subs)->fetchAssoc();
   $balance = -$result1['r'];
   return $result1 + $result2 + compact(u\ray('balance'));
 }
@@ -1383,25 +1368,27 @@ function stats($ctty = 'ALL', $when = REQUEST_TIME) {
   if ($when < 0) $when = getStats($ctty);
 
   $sql = 'SELECT * FROM r_stats WHERE created<=:when AND ctty=:ctty ORDER BY id DESC LIMIT 1';
-  return r\dbQ($sql, compact('ctty', 'when'))->fetchAssoc();
+  return db\q($sql, compact('ctty', 'when'))->fetchAssoc();
 //  $info['grant'] = $info['grants']; unset($info['grants']); // accommodate drupal bug (see table def)
 //  return $info;
 }
   
 /**
  * Calculate and record statistics for the given community.
+ * See the "// get" lines to see what statistics are collected and returned.
  * @param int $ctty: community or region
  * @param int $created: creation date for the statistics record (defaults to current time)
  * @return $created
  */
 function getStats($ctty, $created = NULL) {
-  u\setDft($created, time());
+  u\setDft($created, t\est() ? REQUEST_TIME : time());
   $subs = compact('ctty', 'created');
+  // get pAccts, bAccts
   $sql = <<<EOF
     SELECT SUM(IF(:IS_PERSON, 1, 0)) AS pAccts, SUM(IF(:IS_PERSON, 0, 1)) AS bAccts
     FROM users WHERE :IS_OK AND uid>1 AND community=:ctty AND created<=:created
 EOF;
-  $result1 = r\dbQ($sql, $subs)->fetchAssoc() ?: array();
+  $result1 = db\q($sql, $subs)->fetchAssoc() ?: array();
 // (calculate instead, so getStats will work for old dates)    SUM(r) AS r, SUM(usd) AS usd
   
   $sums = '';
@@ -1410,17 +1397,19 @@ EOF;
     $sums .= "SUM(IF(type=:TX_$ONE, IF(amount=0, t.r, amount), 0)) AS `{$one}s`, ";
 //    $sums .= "SUM(IF(type=:TX_$ONE, 1, 0)) AS {$one}Count, ";
   }
+  // get signups, rebates, bonuss, inflations, refunds, grants, loans, fines, shared
   $sql = <<<EOF
     SELECT $sums SUM(IF(channel=:TX_CRON AND payeeFor='sharing rewards with CGF', amount, 0)) AS shared
     FROM r_txs t LEFT JOIN users u ON t.payer=u.uid LEFT JOIN users u2 ON t.payee=u.uid
     WHERE (u.community=:ctty OR u2.community=:ctty) AND t.state>=:TX_DONE AND completed<=:created
 EOF;
-  $result2 = r\dbQ($sql, $subs)->fetchAssoc() ?: array();
+  $result2 = db\q($sql, $subs)->fetchAssoc() ?: array();
+  // get r
   $result2['r'] = array_sum($result2) - $result2['shared'] - 2 * $result2['fines'];
 
   $subs += u\ray('monthAgo', strtotime('-1 month', $created));
   $amt = 'IF(amount=0, t.r, amount)'; // for payment exchanges, the amount is in r
-  
+  // get perMo, txsPerMo, p2b(Txs)PerMo, b2b(Txs)PerMo, b2p(Txs)PerMo, xch(Txs)PerMo, cash(Txs)PerMo
   $sql = <<<EOF
     SELECT 
     SUM(IF(goods, $amt, 0)) AS perMo,
@@ -1441,8 +1430,9 @@ EOF;
     WHERE (u.community=:ctty OR u2.community=:ctty) AND t.state>=:TX_DONE 
     AND completed>:monthAgo AND completed<=:created
 EOF;
-  $result3 = r\dbQ($sql, $subs)->fetchAssoc() ?: array();
+  $result3 = db\q($sql, $subs)->fetchAssoc() ?: array();
 
+  // get bankInPerMo, bankOutPerMo
   $sql = <<<EOF
     SELECT SUM(IF(amount<0, -amount, 0)) AS bankInPerMo,
     SUM(IF(amount<0, 0, amount)) AS bankOutPerMo
@@ -1450,15 +1440,33 @@ EOF;
     WHERE u.community=:ctty AND t.completed AND t.payee=0
     AND completed<=:created AND :monthAgo>0
 EOF;
-  $usdResult = r\dbQ($sql, $subs)->fetchAssoc() ?: array(); // "AND :monthAgo>0" just to match sub count
-  $result4 = r\dbQ($sql . ' AND completed>:monthAgo', $subs)->fetchAssoc() ?: array();
+  $usdResult = db\q($sql, $subs)->fetchAssoc() ?: array(); // "AND :monthAgo>0" just to match sub count
+  $result4 = db\q($sql . ' AND completed>:monthAgo', $subs)->fetchAssoc() ?: array();
+  // get usd
   $result4['usd'] = $usdResult['bankInPerMo'] - $usdResult['bankOutPerMo'] - $result2['refunds']; // (actually ever, not perMo)
 
 //debug(compact(u\ray('result1 result2 result3 result4')));
   $info = $result1 + $result2 + $result3 + $result4 + compact('created', 'ctty');
   foreach ($info as $key => $value) {if (is_null($value)) $info[$key] = 0;}
-  r\dbInsert('r_stats', $info);
+  db\insert('r_stats', $info);
   return $created;
+}
+
+/**
+ * Return the average balance for the given account and given period.
+ * @param int $uid: account id
+ * @param int $start: starting date (should be 0 hours) -- first full day to include in the period
+ * @param int $end: ending date (should be 0 hours) -- last full day to include in the period
+ * @param float $days: number of days from start to end, inclusive
+ * @return float: the average balance for that period (possibly with fractional cents)
+ */
+function averageBalance($uid, $start, $end = REQUEST_TIME, &$days = '') {
+  u\EXPECT($uid > 1, 'bad uid for avg');
+  $days = ($end + 1 - $start) / DAY_SECS;
+  for ($avg = 0, $asof = $start + DAY_SECS - 1; $asof <= $end; $asof += DAY_SECS) {
+    $avg += be\creditInfo(compact('uid', 'asof'))->balance / $days;
+  }
+  return $avg; // average end-of-day balance
 }
 
 /**
@@ -1515,9 +1523,9 @@ function passHash($pass) {
  * Return the median (untested)
  */
 function median($field, $table = 'users', $where = 1, $subs = array()) {
-  $middle = r\dbLookup('COUNT(*)', $table, $where, $subs) / 2;
+  $middle = db\lookup('COUNT(*)', $table, $where, $subs) / 2;
   $limit = floor($middle) . (is_int($middle) ? ', 1' : ', 2');
-  return r\dbLookup('AVG($field)', 'users', "$where ORDER BY $field LIMIT $limit", $subs);
+  return db\lookup('AVG($field)', 'users', "$where ORDER BY $field LIMIT $limit", $subs);
 }
 
 /**
@@ -1526,81 +1534,9 @@ function median($field, $table = 'users', $where = 1, $subs = array()) {
  * @return int: the next unused positive integer (1 if there are no bank transfers yet)
  */
 function getUsdTid($payer) {
-  if ($tid = r\dbLookup('MAX(tid)+1', 'r_usd', 'payer=:payer', compact('payer'))) return $tid;
-  $result = r\dbQ('UPDATE r_usd SET tid=(@tid:=IFNULL(@tid,0)+1) WHERE payer=:payer ORDER BY created', compact('payer'));
+  if ($tid = db\lookup('MAX(tid)+1', 'r_usd', 'payer=:payer', compact('payer'))) return $tid;
+  $result = db\q('UPDATE r_usd SET tid=(@tid:=IFNULL(@tid,0)+1) WHERE payer=:payer ORDER BY created', compact('payer'));
   return $result->rowCount() + 1;
-}
-
-/**
- * Do a database query with easy substitutions.
- * @param string $sql: the raw query with substitution markers preceded by ':'
- *   These can be keys supplied in $subs OR constants (all uppercase and underscores)
- * @param assoc $subs: array of substitutions to make in $sql
- *   Each key, with a colon tacked on the front, is replaced (in $sql) with its value
- * @return: if inserting, then the id of the inserted record, else the query object (FALSE if failure)
- */
-function dbQ($sql, $subs = array(), $log = TRUE) {
-  u\EXPECT(compact(u\ray('sql subs')), 'notempty assoc');
-  if (strpos($sql, 'INSERT INTO') !== FALSE) $return = \Database::RETURN_INSERT_ID;
-  if ($log and !strpos($sql, 'r_log') and strpos($sql, 'SELECT ') === FALSE) u\loga('db', $subs, $sql);
-  try {
-    return \db_query(u\SUBS($sql), u\prefixKeys(':', $subs), compact('return'));
-  } catch (Exception $e) {die('here');}
-}
-
-/**
- * Update a database record 
- * (replaces the functionality of drupal_write_record, which does not update bigint fields properly)
- * @param string $table: table name
- * @param assoc $info: data to update (must include record key, unless inserting)
- * @param string $key: record key name (if empty then insert record, otherwise update)
- * @param bool either: if TRUE, insert the record if it does not exist (otherwise update)
- * @return: if inserting, then the id of the inserted record, else TRUE (FALSE on failure)
- */
-function dbUpdate($table, $info, $key, $either = FALSE) {
-  if ($table != 'r_log') u\loga('db', $info, "$table:$key" . ($either ? ' EITHER' : ''));
-  if ($either and !r\dbExists($table, "$key=:$key", array($key => $info[$key]))) $key = '';
-  $command = $key ? 'UPDATE' : 'INSERT INTO';
-  $sql = '';
-  foreach ($info as $field => $value) if ($field != $key) $sql .= ",`$field`=:$field";
-  $sql = "$command $table SET " . substr($sql, 1) . ($key ? " WHERE `$key`=:$key" : '');
-//  if ($table=='r_do') {print_r(compact(u\ray('table info key either command sql'))); die('dbU');}
-  try {
-    $result = dbQ($sql, $info);
-    if ($command == 'INSERT INTO') { // if there is no serial field, result will be false, so check
-      if ($result) return $result; // must have had a serial field -- return its value
-      require_once __DIR__ . '/rcredits-install.inc';
-      $schema = r\tableDefs();
-      $id = $table == 'users' ? 'uid' : $schema[$table]['primary key'][0];
-      u\EXPECT($id and isset($info[$id]), 'no primary key ' . $id);
-      $field1 = reset($schema[$table]['fields']);
-      if ($hasSerial = ($field1['type'] == 'serial')) return FALSE;
-      return dbLookup($id, $table, "`$id`=:$id", array($id => $info[$id])); // return the supplied id if success
-    } else return TRUE;
-  } catch (PDOException $e) {u\EXPECT(FALSE, "PDOException: $e->message");} 
-}
-
-/**
- * Insert a database record (just one)
- * (replaces half the functionality of drupal_write_record)
- * @param string $table: table name
- * @param assoc $info: data to insert
- * @return: record key of the inserted record (FALSE on failure)
- */
-function dbInsert($table, $info) {return dbUpdate($table, $info, '');}
-
-/**
- * Say whether the described record exists.
- * call by dbExists($table, $where, $subs)
- *      or dbExists($table, $subs) where $subs contains the required field names and their values
- */
-function dbExists($table, $where = '1', $subs = array()) {
-  if (is_array($where)) {
-    $subs = $where;
-    foreach ($where as $key => $value) $where[$key] = "$key=:$key";
-    $where = join(' AND ', $where);
-  }
-  return dbLookup(1, $table, $where, $subs);
 }
 
 /**
@@ -1616,17 +1552,19 @@ function suggest($a, $index, $subs, $page = 'Preferences') {
 
 /**
  * Return the rebate on the given amount for the given account.
- * Never less than R_MIN_REBATE unless the account is a nonperson.
+ * Never less than R_MIN_REBATE unless the account is a nonperson (no longer used)
  * @todo? or manager of company with no (other) employees (set bit?)
  */
 function rebate($from, $to, $amount = 1) {
-  if (relation(1, $to, $from, $where = 'isOwner OR draw')) return 0;
-  if (relation(1, $from, $to, $where = 'isOwner OR draw')) return 0;
+  if (relation(1, $to, $from, 'isOwner OR draw')) return 0;
+  if (relation(1, $from, $to, 'isOwner OR draw')) return 0;
   $a = r\acct($from);
-  return max($a->person() ? R_MIN_REBATE : 0, round($amount * $a->rebate / 100, 2));
+//  return max($a->person() ? R_MIN_REBATE : 0, round($amount * $a->rebate / 100, 2));
+  return round($amount * $a->rebate / 100, 2);
 }
 
-function bonus($to, $from, $amount = 1) {return round($amount * R_BONUS_FACTOR * r\acct($to)->rebate / 100, 2);}
+//function bonus($to, $from, $amount = 1) {return round($amount * (t\est() ? 2 : R_BONUS_FACTOR) * r\acct($to)->rebate / 100, 2);}
+function bonus($to, $from, $amount = 1) {return round($amount * (t\est() ? 2 : R_BONUS_FACTOR) * rebate($to, $from), 2);}
 
 // Single line functions that need no explanation
 function userField($field, $who = '', $subs = array()) {return tableField($field, 'users', $who, $subs);}
@@ -1635,8 +1573,8 @@ function setTxState($newValue, $zserial) {setTxField('state', $newValue, $zseria
 function serverUid($regionId = R_SERVER_ID) {return -u\a2n($regionId) - 1;}
 function emailTemplate($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}
 function emailBody($key) {return str_replace('{BODY}', emailTemplate($key), emailTemplate(R_EMAIL_FRAME));}
-function realCountry($country) {return dbLookup('name', 'r_countries', 'id=:country', compact('country'));}
-function realState($state, $country = R_COUNTRY_ID) {return dbLookup($country == US_COUNTRY_ID ? 'abbreviation' : 'name', 'r_states', 'id=:state and country_id=:country', compact('state', 'country'));}
+function realCountry($country) {return db\lookup('name', 'r_countries', 'id=:country', compact('country'));}
+function realState($state, $country = R_COUNTRY_ID) {return db\lookup($country == US_COUNTRY_ID ? 'abbreviation' : 'name', 'r_states', 'id=:state and country_id=:country', compact('state', 'country'));}
 function makeQueue($callback, $time = 15) {return array('worker callback' => "rCredits\\Cron\\$callback", 'time' => $time);}
 function queue($op, $item = array()) {\DrupalQueue::get('q')->createItem(compact('op') + $item);}
 function perm($bit) {return $bit - B_RELATED;}

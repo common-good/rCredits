@@ -1,6 +1,7 @@
 <?php
 namespace rCredits\SMS;
 use rCredits as r;
+use rCredits\DB as db;
 use rCredits\Backend as be;
 use rCredits\Util as u;
 require_once __DIR__ . '/../rcredits-backend.inc'; // Drupal bug (needs this explicit)
@@ -146,7 +147,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'cannot contact' => t('We are unable to contact @fullName by email or text message. You may want follow up directly.'),
   'no usd account' => t('To exchange rCredits for US Dollars (or vice versa), you must first connect your rCredits account to Dwolla (online).'),
   'no last customer' => t('The system does not know who your last customer was.'),
-  'max daily usd' => t('The amount of rCredits you can exchange for US Dollars in one day is limited to $@R_MAX_DAILY_EXCHANGE'),
+  'max daily usd' => t('The amount you can transfer or exchange in one day is limited to $@R_MAX_DAILY_EXCHANGE'),
   'beyond today' => t('The date cannot be any later than today.'),
   'must trust' => t('Do not invite someone unless you trust their integrity.'),
   'payment exchange error' => t('An unknown technical problem prevented your payment exchange @way @other.'),
@@ -156,7 +157,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
 
   'cannot offload' => t('A temporary technical problem prevented some of your excess rCredits from being exchanged for US Dollars. The system will try again tomorrow.'),
   'usd failed' => t('A temporary technical problem prevented the transfer of US Dollars. No transaction took place.'),
-  'cannot bank' => t('The rCredits system was unable to @action your bank: @error (You need to connect your Dwolla account to your checking account.)'),
+  'cannot bank' => t('The rCredits system was unable to @action your bank: @error (You need to connect to your checking account.)'),
   'no source' => t('there is no valid funding source'),
   'not verified' => t('the funding source has not yet been verified by entering the two tiny deposit amounts'),
   'agreement required' => t('You must agree to Dwolla\'s terms of service or you cannot participate in the rCredits system.'),
@@ -296,7 +297,7 @@ function create($number, $uid, $status = SMS_PRIMARY) {
   u\EXPECT(compact(u\ray('number uid status')), 'string&notempty id int');
   $number = u\fmtPhone($number, '+n');
 ///  debug("creating SMS record for number $number, uid $uid");
-  return r\dbInsert('r_sms', compact(u\ray('number uid status')));
+  return db\insert('r_sms', compact(u\ray('number uid status')));
 }
 
 /**
@@ -367,4 +368,4 @@ function intent($intent, $command, $pattern, $message) {
 function tt($message, $subs = array()) {return u\tt($message, $subs, TX_SMS);} // TX_SMS in case called from another interface
 
 // one-line functions that need no explanation
-function uid($number) {return (int) r\dbLookup('uid', 'r_sms', 'number=:number', compact('number'));}
+function uid($number) {return (int) db\lookup('uid', 'r_sms', 'number=:number', compact('number'));}

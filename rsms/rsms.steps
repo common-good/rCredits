@@ -14,6 +14,7 @@
  * never delete or alter code within a function.
  */
 use rCredits as r;
+use rCredits\DB as db;
 use rCredits\Testing as t;
 use rCredits\Util as u;
 use rCredits\Backend as be;
@@ -29,10 +30,10 @@ function extraSetup($feature) {
   global $sms_devel; $sms_devel = TRUE;
   $cgfUid = \variable_get('cgf_uid');
 
-  r\dbQ('DELETE FROM users WHERE uid>:cgfUid', compact('cgfUid'));
-  r\dbQ('DELETE FROM r_sms');
-  r\dbQ('DELETE FROM r_txs');
-  r\dbQ('DELETE FROM r_relations');
+  db\q('DELETE FROM users WHERE uid>:cgfUid', compact('cgfUid'));
+  db\q('DELETE FROM r_sms');
+  db\q('DELETE FROM r_txs');
+  db\q('DELETE FROM r_relations');
 
   if (!function_exists('multiline_tweak')) {function multiline_tweak(&$line) {
     $line = str_replace('%last_quid', r\quid(r\acct::nextId() - 1), $line);

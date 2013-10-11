@@ -243,6 +243,8 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformsummary  .form-type-checkbox {max-width:110px;}
 #rcreditswebformsummary #edit-adminable {margin-left:0;}
 #rcreditswebformsummary  label[for="edit-adminable"] {display:inline-block;}
+#rcreditswebformsummary #edit-returnmo,
+#rcreditswebformsummary #edit-cttybenemo {margin-bottom:0;}
 
 /* Company Info */
 #rcreditswebformcompany fieldset#edit-description-format {background-color:lightblue; max-width:45em;}

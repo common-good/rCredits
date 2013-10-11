@@ -1,4 +1,18 @@
-2013-09-
+2013-10-11
+. created an admin tool and retrofited old accounts on prod server, recording dwollapin, dwollaphone, etc.
+. changed r\quid to accept negative uids (quid is a single call to u\n2a() -- no dot)
+. doubleclick (instead of single) on messages to make them vanish
+. removed amount field from relations page
+. admin can remove last manager from a company account or add one to a company with none
+. clicking on photo no longer signs you out (patched on prod server)
+. catch "you changed your password" and "you changed your email" emails from Dwolla (and disable the rC account with a misbehavior note in the data field)
+. do transactions entirely in rCredits (even if the r balance goes negative). Distribute the USD evenly throughout the system (but with half in ctty account), for multiple cash-outs in one day.
+. separated database function into rcredits-db.inc, namespace rCredits\DB (db)
+. separated web subs into rweb-subs.inc
+. added personal statistics to Summary page
+. disabled soldOut function in cron (patched on production server)
+
+2013-10-01
 . don't list self as possible proxy
 . tests expect tx rewards on entire amount, not just on the rCredits amount (r)
 . no r% column

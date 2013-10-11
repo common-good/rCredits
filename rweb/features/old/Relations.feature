@@ -24,8 +24,8 @@ Setup:
 
 Scenario: Member has an employee, confirmed
   Given relations:
-  | id | main | agent | permission   | employerOk | employeeOk | isOwner | draw |
-  | 1  | .ZZA | .ZZD  | sell         | 1          | 1          | 1       | 0    |
+  | id | main | agent | permission   | amount | employerOk | employeeOk | isOwner | draw |
+  | 1  | .ZZA | .ZZD  | sell         |     10 | 1          | 1          | 1       | 0    |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
   | Other      | Draw | My employer? | My employee? | Family? | Permission    |_request rCard |
@@ -33,8 +33,8 @@ Scenario: Member has an employee, confirmed
 
 Scenario: Member has an employee, unconfirmed
   Given relations:
-  | id | main | agent | permission | employerOk | employeeOk | isOwner |
-  | 1  | .ZZA | .ZZD  | buy        | 1          | 0          | 0        |
+  | id | main | agent | permission | amount | employerOk | employeeOk | isOwner |
+  | 1  | .ZZA | .ZZD  | buy        |     50 | 1           | 0           | 0        |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
   | Other      | My employer? | My employee? | Family? | Permission   |_request rCard |
@@ -42,8 +42,8 @@ Scenario: Member has an employee, unconfirmed
 
 Scenario: Member has a relation with a contractor
   Given relations:
-  | id | main | agent | permission | employerOk | employeeOk | isOwner |
-  | 1  | .ZZA | .ZZB  | buy        | 1          | 0          | 0        |
+  | id | main | agent | permission | amount | employerOk | employeeOk | isOwner |
+  | 1  | .ZZA | .ZZB  | buy        |     50 | 1           | 0           | 0        |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
   | Other      | My employer? | My employee? | Family? | Permission   |_request rCard |
@@ -51,8 +51,8 @@ Scenario: Member has a relation with a contractor
   
 Scenario: Member has an employee, claimed
   Given relations:
-  | id | main | agent | permission   | employerOk | employeeOk | isOwner |
-  | 1  | .ZZA | .ZZD  | sell         | 0          | 1          | 0       |
+  | id | main | agent | permission   | amount | employerOk | employeeOk | isOwner |
+  | 1  | .ZZA | .ZZD  | sell         |     10 | 0          | 1          | 0       |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
   | Other      | My employer? | My employee? | Family? | Permission    |_request rCard |
@@ -60,8 +60,8 @@ Scenario: Member has an employee, claimed
   
 Scenario: Employee can only read
   Given relations:
-  | id | main | agent | permission | employerOk | employeeOk | isOwner |
-  | 1  | .ZZA | .ZZD  | read       | 1          | 1          | 1       |
+  | id | main | agent | permission | amount | employerOk | employeeOk | isOwner |
+  | 1  | .ZZA | .ZZD  | read       |     10 | 1          | 1          | 1       |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
   | Other      | My employer? | My employee? | Family? | Permission        |_request rCard |
@@ -69,8 +69,8 @@ Scenario: Employee can only read
   
 Scenario: Member has an employer
   Given relations:
-  | id | main | agent | permission   | employerOk | employeeOk | isOwner |
-  | 1  | .ZZB | .ZZA  | sell         | 1          | 1          | 1        |
+  | id | main | agent | permission   | amount | employerOk | employeeOk | isOwner |
+  | 1  | .ZZB | .ZZA  | sell         |     10 | 1           | 1           | 1        |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
   | Other      | My employer? | My employee? | Family? | Permission   |_request rCard |
@@ -78,9 +78,9 @@ Scenario: Member has an employer
   
 Scenario: Member has access to employee account
   Given relations:
-  | id | main | agent | permission | employerOk | employeeOk | isOwner |
-  | 1  | .ZZA | .ZZD  |            | 1          | 1          | 1        |
-  | 2  | .ZZD | .ZZA  | sell       | 0          | 0          | 0        |
+  | id | main | agent | permission | amount | employerOk | employeeOk | isOwner |
+  | 1  | .ZZA | .ZZD  |            |     10 | 1           | 1           | 1        |
+  | 2  | .ZZD | .ZZA  | sell       |     20 | 0           | 0           | 0        |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
   | Other      | My employer? | My employee? | Family? | Permission   |_request rCard |
@@ -92,8 +92,8 @@ Scenario: Member has access to employee account
 
 Scenario: Member company has relations
   Given relations:
-  | id   | main | agent | permission | employerOk | employeeOk | isOwner |
-  | .ZZA | .ZZC | .ZZA  | manage     | 1          | 1          | 1        |
+  | id   | main | agent | permission | amount | employerOk | employeeOk | isOwner |
+  | .ZZA | .ZZC | .ZZA  | manage     |     10 | 1           | 1           | 1        |
   When member ":ZZA" visits page "account/relations"
   Then we show "Relations" with:
   | Other   | $/mo   | My employee? | Owner? | Permission     |_request rCard |

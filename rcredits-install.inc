@@ -2,6 +2,7 @@
 
 namespace rCredits;
 use rCredits\Util as u;
+use rCredits\DB as db;
 
 /**
  * @file
@@ -44,7 +45,7 @@ function tableDefs($schema = array()) {
     'notes' => setupField('miscellaneous notes about the user or the account', 'text medium'),
     'signed' => setupField('when did this person sign the rCredits Agreement', 'int 11', 0),
     'signedBy' => setupField('who signed the agreement (on behalf of the account)', 'varchar 60'),
-    'rebate' => setupField('current rebate percentage (sales bonus is double)', 'numeric 4,3', 5),
+    'rebate' => setupField('current rebate percentage (sales bonus is double)', 'numeric 5,3', R_REBATE),
     'floor' => setupField('how low can balance go (normally zero or less)', 'numeric 11,2', R_FLOOR),
     'minimum' => setupField('chosen minimum balance (savings + 3 days, fill automatically)', 'numeric 11,2', NULL), // NULL means preferences not set yet
 //    'chunk' => setupField('granularity of transfers from bank account', 'numeric 11,2', R_BANK_CHUNK),
@@ -480,7 +481,7 @@ function makeGeoDropdowns() {
     $cid = $crow['id']; $cname = addslashes($crow['name']);
     $js .= "\n\ncs[$cid] = '$cname';";
     $js .= "\n\nss[$cid] = new Array();";
-    $sq = dbQ('SELECT * FROM r_states WHERE country_id=:cid', compact('cid'));
+    $sq = db\q('SELECT * FROM r_states WHERE country_id=:cid', compact('cid'));
     while ($srow = $sq->fetchAssoc()) {
       $sid = $srow['id']; $sname = addslashes($srow['name']);
       $js .= "\nss[$cid][$sid] = '$sname';";
@@ -526,8 +527,8 @@ EOF
  * @param string $when: run "before" or "after" all other installation tasks, or on "uninstall"
  */
 function oldVersion($version, $when) {
-  require_once 'rcredits.inc'; // must be explicit for dbLookup()
-  require_once 'rcredits-util.inc'; // must be explicit for dbLookup()
+  require_once 'rcredits.inc'; // must be explicit for db\lookup()
+  require_once 'rcredits-util.inc'; // must be explicit for db\lookup()
 
   //  if ($version >= '1.0b') return;
   

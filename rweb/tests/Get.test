@@ -129,8 +129,8 @@ class rwebGet extends DrupalWebTestCase {
     . '\\| op  | amount |'
     . '\\| put |    200 |"');
     Then_('we say "error": "short deposit" with subs: "DATA'
-    . '\\| max                     |'
-    . '\\| $%(4*%DW_FEE_THRESHOLD) |"');
+    . '\\| max            |'
+    . '\\| $%(4*%R_CHUNK) |"');
   }
 
   // Scenario: a member tries to go below their minimum

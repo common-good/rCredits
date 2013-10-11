@@ -75,7 +75,7 @@ Setup:
   | .AAB |    1.10 |     0.00 |       0.10 |
   
 Scenario: cron calculates the statistics
-  Given statistics get set "%REQUEST_TIME"
+#  Given cron runs "stats"
   When member ".ZZA" visits page "community"
   Then we show "Statistics" with:
   | | for %R_REGION_NAME |
@@ -92,20 +92,3 @@ Scenario: cron calculates the statistics
   | b2b             | 1 ($1) / mo = $0.50 / acct |
   | b2p             | 1 ($50) / mo = $25 / acct |
   | Velocity        | 2.5% per month |
-
-#  | Trades / mo     | 20 ($192.15) / mo = $38.43 / acct |
-#  Then totals:
-#  | r      | floor | rewards    | usd     | minimum | signup | rebate | bonus | committed | inflation | grant | loan | fine | maxRebate | balance    | demand   | capacity |
-#  | 776.25 |   -10 |     775.25 | 6000.75 |    3005 |    750 |      6 |    12 |      3.80 |         6 |     4 |    5 |    6 |        4 |    -776.25 |   2228.75 |  6000.75 |
-
-  # Here's why:
-  #
-  # demand is min(usd, minimum-r)
-  #   = min(741.75, 5 - 169.25)
-  #   + min(2256.50, 1000 - 284.50)
-  #   + min(3002.50, 2000 - 322.50)
-  #
-  # capacity now is usd [was usd or (if virtual) minimum-(r+usd), whichever is less -- but never less than zero]
-  #   = 741.75
-  #   + 2256.50
-  #   + min(3002.50, max(0, 2000 - (322.50 + 3002.50)))  (zero)

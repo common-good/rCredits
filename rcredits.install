@@ -5,6 +5,7 @@
  */
 
 use rCredits as r;
+use rCredits\DB as db;
 use rCredits\Util as u;
 use rCredits\Backend as be;
 
@@ -23,7 +24,7 @@ function rcredits_install() {
 
   // create server record if it doesn't exist yet. and Common Good Finance record too.
   $server = r\serverUid();
-  if (!r\dbExists('users', 'uid=:server', compact('server'))) {
+  if (!db\exists('users', 'uid=:server', compact('server'))) {
     $keys = u\ray('uid community name fullName postalCode country minimum rebate flags');
     $values = array($server, $server, R_SERVER_ID . '.', R_REGION_NAME, R_REGION_POSTAL_AREA, R_COUNTRY_ID, 0, 0, u\bit(B_OK));
     $info = array_combine($keys, $values);
@@ -43,7 +44,7 @@ function rcredits_install() {
     \variable_set('cgf_uid', $cgf->id);
     
     list ($main, $other, $permission) = array($cgf->id, $wws->id, r\perm(B_MANAGE));
-    r\dbInsert('r_relations', compact(u\ray('main other permission'))); // wws can manage CGF
+    db\insert('r_relations', compact(u\ray('main other permission'))); // wws can manage CGF
   }
 
   // set up system admin record (uid=1)
@@ -97,7 +98,7 @@ function rcredits_install() {
   foreach ($tables as $table) {
     $filename = "$sqlDir/$table";
     if ($sql = @file_get_contents("$filename-make.sql")) \db_query($sql); // read in a single CREATE TABLE (if exists) query
-    if (!@r\dbExists("$table", 'TRUE') and file_exists("$filename-insert.sql")) {
+    if (!@db\exists("$table", 'TRUE') and file_exists("$filename-insert.sql")) {
       $sql = file_get_contents("$filename-insert.sql"); // read in a single multi-record INSERT query
       if (!$db->query($sql)) die("Failed to insert records for $table."); // keep
 	  }
@@ -139,7 +140,7 @@ function rcredits_uninstall() {
 //  require_once 'rcredits-util.inc';
 
 //  r\make_fields('UNMAKE', $old_fields);
-// (DON'T DELETE record!)  r\dbQ('DELETE FROM users WHERE uid=:ctty', compact('ctty' => r\communityUid()));
+// (DON'T DELETE record!)  db\q('DELETE FROM users WHERE uid=:ctty', compact('ctty' => r\communityUid()));
 
 // (DON'T DELETE TABLES!) db_query('DROP TABLE IF EXISTS ' . R_TABLES);
 }
