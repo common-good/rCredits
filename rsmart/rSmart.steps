@@ -29,22 +29,10 @@ require_once __DIR__ . '/../rsmart/rsmart.inc';
  * The feature object contains information about the current feature and test, etc.
  */
 function extraSetup($feature) {
-  global $sms_devel; $sms_devel = TRUE;
-  $cgfUid = \variable_get('cgf_uid');
-
-  db\q('DELETE FROM users WHERE uid>:cgfUid', compact('cgfUid'));
-  db\q('TRUNCATE r_sms');
-  db\q('TRUNCATE r_txs');
-  db\q('DELETE FROM r_smarts WHERE owner>:cgfUid', compact('cgfUid'));
-  db\q('DELETE FROM file_managed WHERE uid>:cgfUid', compact('cgfUid'));
-  db\q('TRUNCATE r_relations');
-  db\q('TRUNCATE r_log'); // so we don't find results from the wrong test
-
+  t\clear(TX_SMART);
   if (!function_exists('multiline_tweak')) {function multiline_tweak(&$line) {
     $line = str_replace('%last_quid', r\quid(r\acct::nextId() - 1), $line);
   }}
-
-  r\acct::_clear(); // empty the acct cache
 }
 
 /**

@@ -99,6 +99,8 @@ function tableDefs($schema = array()) {
     'bonuss' => setupField('amount of transaction bonus rewards ever', 'numeric 11,2', 0),
     'grants' => setupField('amount of grants ever', 'numeric 11,2', 0), // drupal bug in addfield: this field cannot be named "grant" (gets "Duplicate column name" mysql error)
     'loans' => setupField('amount of loans ever', 'numeric 11,2', 0),
+    'transfers' => setupField('amount of purchases ever', 'numeric 11,2', 0),
+    'invests' => setupField('amount of equity investments ever', 'numeric 11,2', 0),
     'fines' => setupField('amount of fines ever', 'numeric 11,2', 0),
     'shared' => setupField('amount of rewards shared ever', 'numeric 11,2', 0),
     'pAccts' => setupField('number of personal accounts', 'int medium'),
@@ -322,16 +324,17 @@ function tableDefs($schema = array()) {
 
   // table r_smarts
   $fields = array(
+    'id' => setupField('record id', 'serial 11'),
     'code' => setupField('permanent secret identifier for the device', 'varchar 255'),
-    'owner' => setupField('uid of the smart device owner', 'int big'),
-    'defaultAgent' => setupField('uid of the default user of the device', 'int big'),
-    'device' => setupField('human-readable identifier for the smart device', 'varchar 60'),
-    'transientId' => setupField('once-use identifier displayed on the device as a QR for the current account/agent', 'varchar 255'),
+    'uid' => setupField('uid of the smart device owner', 'int big'),
+    'defaultAgent' => setupField('uid of the default user of the device', 'int big'), // unused
+    'device' => setupField('human-readable identifier for the smart device', 'varchar 255'),
+    'transientId' => setupField('once-use identifier displayed on the device as a QR for the current account/agent', 'varchar 255'), // not used YET
     'access' => setupField('date/time last used', 'int 11', 0), // to trigger deletion after several months
   );
-  $foreignKeys = foreignKey('owner') + foreignKey('defaultAgent');
-  $indexes = index('owner');
-  $schema['r_smarts'] = setupTable('Who owns what smart device', $fields, 'code', $foreignKeys, $indexes);
+  $foreignKeys = foreignKey('uid') + foreignKey('defaultAgent');
+  $indexes = index('uid');
+  $schema['r_smarts'] = setupTable('Who owns what smart device', $fields, 'id', $foreignKeys, $indexes);
   
   // table r_invites
   $fields = array(

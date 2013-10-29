@@ -523,6 +523,9 @@ function subAgo($string, $fmt) {
   return (strftime($fmt, strtotime("$bPreC $period ago")));
 }
 
+/**
+ * This needs works, since we revised rsmart.inc
+ */
 function hitServer($op, $agent, $code = '', $account_id = '', $extra = array()) {
   if (!$code) unset($code);
   if (!$account_id) unset($account_id); else $account_id = trim($account_id);
@@ -537,7 +540,7 @@ function hitServer($op, $agent, $code = '', $account_id = '', $extra = array()) 
   }
   $json = u\jsonEncode(compact(u\ray('op my_id code account_id')) + $extra);
   output($json, 'input'); // keep this
-  r\Smart\api(compact('json'));
+  r\Smart\pos(compact('json'));
 //  be\send($json); // remember the server's response (this is the real test, once most bugs are gone)
   return TRUE;
 }
@@ -856,6 +859,8 @@ function est() {return (@TESTING == 1 ? 't' . REQUEST_TIME : FALSE);}
  */
 function clear($ch) {
   global $formOut, $formArray, $formSta, $testOp, $testConfirmation;
+  global $sms_devel; $sms_devel = TRUE;
+    
   $formOut = $formArray = $formSta = $testOp = $testConfirmation = NULL;
   global $sms_devel; $sms_devel = TRUE;
   global $testSeq; $testSeq = NULL;

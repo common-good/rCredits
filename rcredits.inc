@@ -227,7 +227,7 @@ define('TX_REWARDS', 3); // from here on, it's not "rewards"
 define('TX_u4', 4);
 define('TX_GRANT', 5);
 define('TX_LOAN', 6);
-define('TX_BUY', 7); // equity investment
+define('TX_INVEST', 7); // equity investment (community purchase are TX_TRANSFER)
 define('TX_u8', 8);
 define('TX_FINE', 9);
 
@@ -287,8 +287,8 @@ function txReportArgs($acct, $tx, $getMyBalance = FALSE, $shortfall = 0) {
   list ($payerPurpose, $payeePurpose) = array($payerFor, $payeeFor); // clearer names, for substitutions
   $tofrom = $toMe ? t('from') : t('to');
   $uid = $otherUid = ($toMe ? $payer : $payee);
-  u\both($tx, 'did', $toMe, t('charged'), $goods ? t('paid') : t('gave'));
-  $confirmAction = $toMe ? t('charge') : ($goods ? t('pay') : t('give'));
+  u\both($tx, 'did', $toMe, t('charged'), $goods ? t('paid') : t('credited'));
+  $confirmAction = $toMe ? t('charge') : ($goods ? t('pay') : t('credit'));
   $amount = u\fmtAmt($amount);
   $short = u\fmtAmt($shortfall);
   
@@ -321,18 +321,6 @@ function whoseUsd($usdAccountId, $omit = NULL) {
   $where = 'usdAccount=:usdAccount' . (@$omit ? ' AND uid<>:omit' : '');
   $subs = compact('usdAccount') + (@$omit ? compact('omit') : array());
   return db\lookup('uid', 'users', $where, $subs);
-}
-
-/**
- * Return the customer's formatted balance only if we have permission
- */
-function otherBalance($uid) {
-  $mya = acct();
-  $acct = acct($uid);
-  if ($acct and $mya->can(B_CHARGE) and !$acct->can(B_SECRET_BAL)) {
-    return u\fmtAmt($acct->r);
-    //return be\creditInfo(compact('uid'))->fancy['balance'];
-  } else return FALSE;
 }
 
 /**
@@ -1136,7 +1124,7 @@ function changeUid($oldUid, $newUid = FALSE) {
   // r_regions
     'r_relations:main',
     'r_relations:other',
-    'r_smarts:owner',
+    'r_smarts:uid',
     'r_smarts:defaultAgent',
     'r_sms:uid',
   // r_states
@@ -1381,6 +1369,7 @@ function stats($ctty = 'ALL', $when = REQUEST_TIME) {
  * @return $created
  */
 function getStats($ctty, $created = NULL) {
+  \variable_set('cttyPaidEver', db\lookup('SUM(IF(r=0, amount, r))', 'r_txs', 'payer=:ctty AND type IN (:TX_TRANSFER, :TX_GRANT, :TX_LOAN, :TX_INVEST, :TX_REFUND)', compact('ctty')));
   u\setDft($created, t\est() ? REQUEST_TIME : time());
   $subs = compact('ctty', 'created');
   // get pAccts, bAccts
@@ -1392,12 +1381,13 @@ EOF;
 // (calculate instead, so getStats will work for old dates)    SUM(r) AS r, SUM(usd) AS usd
   
   $sums = '';
-  foreach (u\ray('signup rebate bonus inflation refund grant loan fine') as $one) {
+  foreach (u\ray('transfer signup rebate bonus inflation refund grant loan invest fine') as $one) {
     $ONE = strtoupper($one);
+    if ($ONE == 'TRANSFER') $ONE .= ' AND payer=:ctty';
     $sums .= "SUM(IF(type=:TX_$ONE, IF(amount=0, t.r, amount), 0)) AS `{$one}s`, ";
 //    $sums .= "SUM(IF(type=:TX_$ONE, 1, 0)) AS {$one}Count, ";
   }
-  // get signups, rebates, bonuss, inflations, refunds, grants, loans, fines, shared
+  // get purchases, signups, rebates, bonuss, inflations, refunds, grants, loans, investments, fines, shared
   $sql = <<<EOF
     SELECT $sums SUM(IF(channel=:TX_CRON AND payeeFor='sharing rewards with CGF', amount, 0)) AS shared
     FROM r_txs t LEFT JOIN users u ON t.payer=u.uid LEFT JOIN users u2 ON t.payee=u.uid

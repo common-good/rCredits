@@ -779,11 +779,11 @@ function without($content) {
 }
 
 /**
- * statistics get set at (ARG)
+ * statistics get set (ARG)
  *
- * in: 
+ * in: Community Setup MAKE
  */
-function statisticsGetSetAt($time) {
+function statisticsGetSet($time) {
   global $testOnly; if ($testOnly) return FALSE;
   return r\getStats(r\serverUid(), $time) ? TRUE : FALSE;
 }
@@ -805,16 +805,6 @@ function weShowWithout($arg1, $arg2) {
  *     Relations ItsComplicated TEST
  */
 function with($content) {return weShow($content);}
-
-/**
- * statistics get set (ARG)
- *
- * in: Community Setup MAKE
- */
-function statisticsGetSet($arg1) {
-  global $testOnly;
-  todo;
-}
 
 /**
  * members have: (ARG)

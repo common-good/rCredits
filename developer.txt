@@ -1,6 +1,11 @@
 rCredits Software
 Notes for developers
 
+LINKS:
+http://stackoverflow.com/questions/548892/tips-for-optimizing-a-website-for-androids-browser
+http://www.jquery4u.com/mobile/10-android-style-jquery-plugins/
+http://www.designshock.com/the-most-complete-android-style-icon-set-15000-icons/
+
 QUESTIONS:
 . do box cookies need to be encrypted to avoid spoofing?
 
@@ -25,6 +30,7 @@ make sure the photo is adequate
 mark the account as an rTrader (OK) (before printing card)
 print card and welcome materials, mail to new member (welcome includes reminder to verify bank account)
 
+. let account managers set a list of descriptions to choose from (to pass to POS app)
 . redo averageBalance() with SUM(r+usd) GROUP BY date
 . hide the Dwolla fees (and reimbursements) in the Transactions Summary
 . any account can unilaterally charge an account it has permission to draw on

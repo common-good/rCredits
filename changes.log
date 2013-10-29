@@ -1,3 +1,6 @@
+2013-10-
+. updated rsmart module to feed new POS app
+
 2013-10-11
 . created an admin tool and retrofited old accounts on prod server, recording dwollapin, dwollaphone, etc.
 . changed r\quid to accept negative uids (quid is a single call to u\n2a() -- no dot)

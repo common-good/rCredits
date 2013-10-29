@@ -258,13 +258,16 @@ EOF
 EOF
     ),
     'social-return' => tt(<<<EOF
-    <p>The community's benefit from your participation is calculated as the sum of:</p>
+    <p>The community's financial benefit from your participation is very loosely calculated as the sum of:</p>
     <ul>
-      <li>The amount of money you moved into the system, minus the amount you moved out. By using rCredits in place of those funds, as they circulate among rCredits members, we can free up that much US Dollars for the community to grant, lend, or invest.</li>
-      <li>Your incentive rewards for buying and selling. Every time you get such a reward, someone somewhere gets the same amount.</li>
-      <li>A percentage (@R_CC_FEE%) of your purchase and sale amounts, equal to half the typical processing fee that businesses pay for credit card purchases. Together with the other party to the transaction, you kept that much money from leaking out of the community to the big banks.</li>
+      <li>Your gifts to Common Good Finance (including shared rewards).</li>
+      <li>The amount of money you moved into the system, minus the amount you moved out (but not less than zero). By using rCredits in place of those funds, as they circulate among rCredits members, we can free up that much US Dollars for the community to grant, lend, or invest.</li>
+      <li>The amount of your incentive rewards for buying and selling &mdash; reflecting the value the community places on your using rCredits for purchases and sales.</li>
+      <li>Your per-capita share of the funds the community has already granted, loaned, or invested. The continued viability of that funding is supported by your participation. (counted as part of social benefits ever, but not in the past month)</li>
+      <li>A percentage (@R_CC_RATE%) of your purchase and sale amounts &mdash; the typical processing fee that businesses pay for credit card purchases. Together with the other party to the transaction, you kept that much money from leaking out of the community to the big banks.</li>
     </ul>
     </p>
+    <p>Of course the community benefits far more from your participation, by giving it (all of us together) greater control over our local economy, so we can plan and decide together how to use the power of money to make a better life for everyone.</p>
 EOF
     ),
   );

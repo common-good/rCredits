@@ -65,6 +65,7 @@ function rweb_menu() {
 
     'grant' => r\Web\menu(t('Grant'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), 'managing_ctty'),
     'loan' => r\Web\menu(t('Loan'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), 'managing_ctty'),
+    'invest' => r\Web\menu(t('Invest'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), 'managing_ctty'),
     'fine' => r\Web\menu(t('Fine'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), 'managing_ctty'),
 
     'get' => r\Web\menu(t('Bank'), MENU_NORMAL_ITEM, 'showForm', array('Get'), 'manage bank ok'),
@@ -127,11 +128,11 @@ function rweb_menu() {
     'do' => r\Web\menu('Do', MENU_CALLBACK, 'rdo', array(1), '', $anyone),
     'coup' => r\Web\menu(t('Disable account'), MENU_CALLBACK, 'coup', array(1), '', $anyone),    
 
-    'api' => r\Web\menu('API', 0, 'rCredits\\Smart\\api', array(), '', $anyone),
-    R_GET_AUTH_URI => r\Web\menu('USD Get Auth', 0, 'usdCallback', array('getAuth2', 1), 'manage'),
-    'usd-callback' => r\Web\menu('USD Other Callback', 0, 'usdCallback', array('callback', 1), '', $anyone),
-    'secret' => r\Web\menu('Secret', 0, 'secrets', array(), '', $anyone),
-    'error' => r\Web\menu('System Error', 0, 'error', array(1), '', $anyone),
+    'pos' => r\Web\menu('POS', MENU_CALLBACK, 'rCredits\\Smart\\pos', array(), '', $anyone),
+    R_GET_AUTH_URI => r\Web\menu('USD Get Auth', MENU_CALLBACK, 'usdCallback', array('getAuth2', 1), 'manage'),
+    'usd-callback' => r\Web\menu('USD Other Callback', MENU_CALLBACK, 'usdCallback', array('callback', 1), '', $anyone),
+    'secret' => r\Web\menu('Secret', MENU_CALLBACK, 'secrets', array(), '', $anyone),
+    'error' => r\Web\menu('System Error', MENU_CALLBACK, 'error', array(1), '', $anyone),
     
 //    'pay-with-rcredits' => r\Web\menu('Pay With rCredits', MENU_CALLBACK, 'showForm', array('Buy'), '', $anyone), // form will require login
 //    'example-store' => r\Web\menu('Example Store', MENU_NORMAL_ITEM, 'showForm', array('example_store'), '', $anyone),

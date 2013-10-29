@@ -4,6 +4,7 @@ use rCredits as r;
 use rCredits\Backend as be;
 use rCredits\Util as u;
 use rCredits\Testing as t;
+use rCredits\db as db;
 
 require_once __DIR__ . '/rweb-subs.inc';
 require_once __DIR__ . '/../rcredits-backend.inc';
@@ -655,19 +656,17 @@ function formSummary($form, &$sta) {
 //    if ($mya->admin()) $card = ' [<a href="http://localhost/devcore/rcredits/test?module=rcredits/rweb&feature=Signup&scene=&restart=1">run current test</a>]'; // DEBOG (keep)
   } //else $card = '';
   
-  extract(u\just('r usd', r\stats($mya->community)));
+  extract(u\just('r usd pAccts', r\stats($mya->community)));
   $usdPart = (@$usd + @$r) ? $usd / ($usd + $r) : 1; // fraction of total system funds that is USD
   // should this be usdIn-usdOut? both?
   
-  extract(u\just('beneLastMo beneEver avgBalLastMo avgBalEver giftsEver', $mya->data));
+  extract(u\just('benePastMo beneEver extraPastMo extraEver avgBalPastMo avgBalEver giftsEver', $mya->data));
   $years = (strtotime('today') - strtotime('today', $mya->created)) / YEAR_SECS;
-  $returnMo = number_format(100 * ((@$avgBalLastMo ? 12 * @$beneLastMo / $avgBalLastMo : 0) + R_INFLATION_RATE), 1);
-  $return = number_format(100 * (($years and @$avgBalEver) ? @$beneEver / $years / $avgBalEver : R_INFLATION_RATE), 1);
-  $cttyBeneMo = u\fmtAmt(@$beneLastMo * $mya->share / 100 + @$avgBalLastMo * $usdPart);
-  $cttyBene = u\fmtAmt(@$giftsEver + @$avgBalEver * $usdPart);
-  debug($mya->data);
-  debug(compact(u\ray('years returnMo return cttyBeneMo cttyBene usdPart r usd')));
-  
+  $returnMo = number_format(@$avgBalPastMo ? 100 * 12 * (@$benePastMo + @$extraPastMo) / $avgBalPastMo : 100 * R_INFLATION_RATE, 1);
+  $return = number_format(($years and @$avgBalEver) ? 100 * (@$beneEver +@$extraEver) / $avgBalEver / $years : 100 * R_INFLATION_RATE, 1);
+  $cttyBeneMo = u\fmtAmt(@$giftsPastMo + max(0, @$bankedPastMo) + @$benePastMo * (1 + R_CC_RATE / $mya->rebate));
+  $cttyBene = u\fmtAmt(@$giftsEver + max(0, @$bankedEver) + @$beneEver * (1 + R_CC_RATE / R_REBATE) + \variable_get('cttyPaidEver', 0) / (@$pAccts ?: 1));
+
   $title = item(t('Account Summary'));
 //  'subtext = basic_account_info();
   $accountName = item($mya->fullName . ' ' . u\hug($name), t('Name:'), $address);
@@ -691,9 +690,9 @@ function formSummary($form, &$sta) {
     $committed = formField('item', t('Committed:'), t('rewards reserved for contribution to Common Good Finance'), u\fmtAmt($mya->committed));
     // return and bene
     $returnMo = item("$returnMo% APR " . t('over the past month'), t('Your return:'));
-    $return = item("$return% APR " . t('overall (ever)'), ' ', t('Your effective rate of return on your average balance'));
+    $return = item("$return% APR " . t('overall (ever)'), ' ', t('Your effective rate of return on your average balance [<@a>details</a>]', u\ray('@a', 'a href=help/your-return')));
     $cttyBeneMo = item("$cttyBeneMo " . t('over the past month'), t('Social return:'));
-    $cttyBene = item("$cttyBene " . t('overall (ever)'), ' ', t('How much your participation has benefited the community financially'));
+    $cttyBene = item("$cttyBene " . t('overall (ever)'), ' ', t('How much your participation has benefited the community financially [<@a>details</a>]', u\ray('@a', 'a href=help/social-return')));
   }
 
   if (r\agent()->can(B_CTTY_ADMIN) and (!$mya->proSe() or $mya->id == 1)) { // ctty admin not managing own personal account
@@ -1121,7 +1120,7 @@ function formTx($form, &$sta, $args = '') {
 
   $type = $args === '' ? basename(current_path()) : basename(dirname(current_path())); // pay, charge, etc.
   $role = in_array($type, u\ray('charge fine')) ? 'payee' : 'payer';
-  $incentive = in_array($type, u\ray('fine grant loan'));
+  $incentive = in_array($type, u\ray('fine grant loan invest'));
   $purpose = @$purpose ?: ($type == 'charge' ? r\acct()->selling : ($type == 'pay' ? '' : $type));
   
   focusOn(@$who ? 'amount' : 'who');
@@ -2513,6 +2512,57 @@ function formI($form, &$sta, $who = '') {
   } elseif ($count == 3) { // new format: DEF.whatever or DEF-whatever (agent)
     list ($tail, $mark, $code) = $parts;
     $region = R_SERVER_ID;
+    debug(compact('region','tail','mark','code'));
+  } else return say('bad member id', 'zot'); // not an ID QR
+  
+  if ($mark == R_AGENT_URL_MARK) {
+    list ($mark, $field) = array(R_AGENT_MARK, 'cardCode2');
+  } else $field = 'cardCode';
+  
+  $qid = "$region$mark$tail";
+  if (!$a = r\acct($qid)) return say('bad card', 'zot'); // not a real code -- just go to home page
+  $co = $a->co();
+  
+  $mya = r\acct();
+  if (!$gotCode = @$a->agent->secure[$field]) return say('bad card code', 'zot');
+  if ($gotCode != $code) return say('bad card code', 'zot');
+  list ($otherId, $otherAgent) = array($a->id, $a->agentId);
+
+  if (!$mya) return $a->proSe() ? r\go('user/login?name=' . $a->name) : scanIn($a);
+  
+  $shortName = $a->name;
+  $txArgs = "/who=$shortName&scanned=1";
+  if ($mya->proSe() and !$mya->can(B_CHARGE) and !$co) return r\go("pay$txArgs");
+  
+  list ($myid, $myAgent) = array($mya->id, $mya->agentId);
+  if ($otherId == @$myid) return r\go('', 'no self-trading');
+
+  if ($co) $site = goButton(t('Show Webpage'), $goSite = "member/$shortName", t("See this company's rCredits webpage"));
+  if ($mya->can(B_SCAN)) $charge = goButton(t('Charge'), "charge$txArgs", t('Charge someone'));
+  if ($mya->can(B_BUY)) $pay = goButton(t('Pay'), "pay$txArgs", t('Pay someone'));
+//    if (r\acct($myid, $otherAgent)->can()) $changeAgent = goButton(t('Change Agent'), "user/logout/who=$shortName", t('Use this button when your shift begins'));
+//  if (r\acct($otherId, $myAgent)->can()) $changeAccount = goButton(t('Change Acct'), "change-account/who=" . $a->mainQid, t('Manage a different account'));
+  $theId = hidField($otherId);
+  $theAgent = hidField($otherAgent);
+
+  if (!@$charge) return $co ? r\go($goSite) : r\go('empty', 'no can scan');
+
+  $zot = compact(u\ray('charge pay site'));
+  $all = identifiers($a) . render($zot);
+  svar('lastCustomer', $a->id);
+  $all = formField('item', '', '', $all);
+  return compact('all');
+}
+
+function formJ($form, &$sta, $who = '') {
+  $parts = preg_split('/(' . R_MARKS . ')/', $who, 0, PREG_SPLIT_DELIM_CAPTURE);
+  $count = count($parts);
+  if ($count == 5) { // old fashioned format: ABC.DEF-whatever or ABC-DEF-whatever (agent)
+    list ($region, $mark, $tail, $zot, $code) = $parts;
+  } elseif ($count == 3) { // new format: DEF.whatever or DEF-whatever (agent)
+    list ($tail, $mark, $code) = $parts;
+    $region = R_SERVER_ID;
+    debug(compact('region','tail','mark','code'));
   } else return say('bad member id', 'zot'); // not an ID QR
   
   if ($mark == R_AGENT_URL_MARK) {

@@ -54,13 +54,13 @@ Scenario: A member clicks on the summary tab
   | Name          | Abe One (abeone) |
   | _Address      | 1 A St., Atown, AK 01000 |
   | ID            | .ZZA (personal) |
-  | Balance       | $166 |
+  | Balance       | $266 |
   | Rewards       | $256 |
   | Committed     | $0.60 |
-  | Your return   | 19.1% |
+  | Your return   | 14.1% |
   | _ever         | 124.2% |
-  | Social return | $0 |
-  | _ever         | $0 |
+  | Social return | $6 |
+  | _ever         | $7.50 |
   | Credit floor  | $-100 |
   Skip
 Scenario: An agent clicks on the summary tab without permission to manage

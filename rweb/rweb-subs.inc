@@ -1135,6 +1135,7 @@ function whois($who, $field_name, $info, $selfMsg = 'no self-trading') {
   
 /**
  * Transfer funds
+ * @param string $op: pay, charge, grant, loan, fine, or invest
  * @param array $info: associative array indexed by field names (op, who, amount, goods, and purpose)
  * @param boolean $confirmed: whether the transaction request has been confirmed
  * @return confirmation message (FALSE if confirmation not appropriate -- Note that say() returns FALSE)
@@ -1257,6 +1258,8 @@ function menu($title, $type, $function = NULL, $args = array(), $accesses = '', 
   $menuWeight += !@$menuWeight ?: 1;
    
   if (function_exists($localFunction = "rCredits\\Web\\$function")) $function = $localFunction;
+  $smart = strpos($function, '\\Smart\\');
+  
   return array_merge(array(
     'title' => $title,
     'type' => $type,
@@ -1267,8 +1270,8 @@ function menu($title, $type, $function = NULL, $args = array(), $accesses = '', 
     'access arguments' => array($accesses),
     'weight' => @$menuWeight - 1,
     'menu_name' => 'main-menu', 
-    'module' => 'rweb',
-    'file' => 'rweb.inc',
+    'module' => $smart ? 'rsmart' : 'rweb',
+    'file' => $smart ? '../rsmart/rsmart.inc' : 'rweb.inc',
     'options' => u\ray('class', $title),
   ), $other); // $other overwrites, if there is a conflict
 }

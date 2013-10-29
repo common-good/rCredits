@@ -221,6 +221,7 @@ function setCttyAdmin($value, $main, $other) {
  *     Someone invoiced me and I approved it: DISPUTED
  *     Someone charged me unilaterally: DISPUTED
  * @param int $xid: the transaction number
+ * @return array [message, subs] where subs is an assoc of [
  */
 function undoTx($xid) {
   $mya = r\acct();

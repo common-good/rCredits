@@ -100,13 +100,13 @@ class rwebSummary extends DrupalWebTestCase {
     . '\\| Name          | Abe One (abeone) |'
     . '\\| _Address      | 1 A St., Atown, AK 01000 |'
     . '\\| ID            | .ZZA (personal) |'
-    . '\\| Balance       | $166 |'
+    . '\\| Balance       | $266 |'
     . '\\| Rewards       | $256 |'
-    . '\\| Committed     | $0 |'
-    . '\\| Your return   | 5.0% |'
-    . '\\| _ever         | 5.0% |'
-    . '\\| Social return | $0 |'
-    . '\\| _ever         | $0 |'
+    . '\\| Committed     | $0.60 |'
+    . '\\| Your return   | 14.1% |'
+    . '\\| _ever         | 124.2% |'
+    . '\\| Social return | $6 |'
+    . '\\| _ever         | $7.50 |'
     . '\\| Credit floor  | $-100 |"');
   }
 

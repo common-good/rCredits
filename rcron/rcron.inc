@@ -368,17 +368,32 @@ function stats1($item) {
   $a = r\acct($uid);
   $today = strtotime('today');
   $monthAgo = strtotime('-1 month', $today);
-  $avgBalLastMo = r\averageBalance($uid, $monthAgo, $today);
+  $avgBalPastMo = r\averageBalance($uid, $monthAgo, $today);
   $avgBalEver = r\averageBalance($uid, strtotime('today', $a->created), $today);
-  $giftsEver = db\lookup('SUM(amount)', 'r_gifts', 'uid=:uid AND completed', compact('uid'));
-
+  $subs = compact('uid', 'monthAgo');
+  
   $sql = <<<EOF
-    SELECT SUM(r) AS beneEver, SUM(IF(completed<:monthAgo, 0, r)) AS beneLastMo
-    FROM r_txs WHERE payee=:uid AND state=:TX_DONE AND type<>:TX_TRANSFER
+    SELECT SUM(amount) AS giftsEver, SUM(IF(completed<:monthAgo, 0, amount)) AS giftsPastMo
+    FROM r_gifts WHERE uid=:uid AND completed
 EOF;
-  $row = db\q($sql, compact('uid', 'monthAgo'))->fetchAssoc(); // get beneEver, beneLastMo
-  $newData = compact(u\ray('avgBalLastMo avgBalEver giftsEver'));
-  $data = ($row ?: array()) + ($newData ?: array()) + ($a->data ?: array());
+  $row1 = db\q($sql, $subs)->fetchAssoc() ?: array(); // giftsEver, giftsPastMo
+  
+  $sql = <<<EOF
+    SELECT SUM(IF(type IN (:TX_REBATE,:TX_BONUS), amount, 0)) AS beneEver,
+    SUM(IF(type IN (:TX_REBATE,:TX_BONUS) AND completed>=:monthAgo, amount, 0)) AS benePastMo,
+    SUM(IF(type IN (:TX_SIGNUP,:TX_INFLATION,:TX_GRANT), amount, 0)) AS extraEver,
+    SUM(IF(type IN (:TX_SIGNUP,:TX_INFLATION,:TX_GRANT) AND completed>=:monthAgo, amount, 0)) AS extraPastMo
+    FROM r_txs WHERE payee=:uid AND state=:TX_DONE
+EOF;
+  $row2 = db\q($sql, $subs)->fetchAssoc() ?: array(); // get beneEver, benePastMo
+  
+  $sql = <<<EOF
+    SELECT SUM(amount) AS bankedEver, SUM(IF(completed<:monthAgo, 0, amount)) AS bankedPastMo
+    FROM r_usd WHERE payer=:uid AND completed
+EOF;
+  $row3 = db\q($sql, $subs)->fetchAssoc() ?: array(); // get bankedEver, bankedPastMo
+  $newData = compact(u\ray('avgBalPastMo avgBalEver'));
+  $data = $row1 + $row2 + $row3 + $newData + $a->data;
   $a->update(compact('data'));
 }
 
