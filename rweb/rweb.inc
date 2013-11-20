@@ -339,8 +339,8 @@ function formMembership($updating, &$sta = '', $code = '') {
           t("<h2>You're getting there!</h2><p>")
         : t('<h2>Welcome to rCredits</h2><p>Thanks for joining us. ');
     $message1 .= $nonperson ? t('Before you can begin accepting rCredits payments, you must complete the following steps.') 
-      : t('Before we can send your rCard, and before you can vote on community funding, you must complete the following steps. This usually takes at least 30 minutes of your time, with a 3-day wait for the bank connection.');
-    $message1 .= tt(' If you need help, please feel free to <a href="mailto:@R_ORG_EMAIL" target="_blank">send us an email</a>.</p>');
+      : t('Before we can send your rCard, and before you can vote on community funding, you must complete the following steps. This usually takes at least 20 minutes of your time, with a 3-day wait for the bank connection.');
+    $message1 .= tt(' If you need help, please <a href="mailto:@R_ORG_EMAIL" target="_blank">send us an email</a>.</p>');
 
 //    $step1 = t('Complete your <a>Contact Information</a>.'); // keep this in case
     $stepAgree = t('Sign the <a>rCredits Agreement</a>.');
@@ -701,7 +701,7 @@ function formSummary($form, &$sta) {
       $count = formField('item', t('Members:'), '', db\lookup('COUNT(*)', 'users', 'community=:ctty AND uid<>:ctty', compact('ctty')));
     } else { // managing some individual community member account
 //      $acctType = formField('select', t('Account type:'), '', $mya->acctType+0, $GLOBALS['account types']); // +0 for admin
-      if ($mya->co()) $canCharge = boolField(t('Can charge'), t('This account can charge others unilaterally (in person)'), $mya->can(B_CHARGE) + 0);
+//      if ($mya->co()) $canCharge = boolField(t('Can charge'), t('This account can charge others unilaterally (in person)'), $mya->can(B_CHARGE) + 0);
       $floor = textField(t('Credit floor:'), $floorDesc, dft(u\fmtAmt($mya->floor)));
       $rTrader = boolField(t('rTrader?'), t('Is this account approved to use rCredits?'), $mya->ok() + 0);
 
@@ -752,14 +752,11 @@ function formSummary_submit($form, &$sta) {
   } 
   
   if ($mya->id > 0) {
-    $mya->setBit(B_CHARGE, @$canCharge, FALSE);
+//    $mya->setBit(B_CHARGE, @$canCharge, FALSE);
     r\membershipEvent($mya, 'ok', $rTrader); // activate the account
     $mya->setBit(B_OK, $rTrader, FALSE);
 
-    foreach (u\ray(B_ADMINABLE) as $bitName) {
-      $bit = u\consta('b', $bitName);
-      $mya->setBit($bit, isset($adminable[$bit]), FALSE); // isset because bit 0 is 0 when checked
-    }
+    $mya->setBits(B_ADMINABLE, $adminable, 'b');
     $mya->update(compact(u\ray('floor notes')));
     say('info saved');
   }
@@ -844,8 +841,10 @@ function formPhoto_submit($form, &$sta) {
   $msg = 'photo saved' . ($mya->ok() ? '' : '|step completed');
   $link = "$base_url/status";
   say($msg, compact('link'));
-  $return = $mya->ok()? ($mya->person() ? 'account/security' : 'account/company') : 'status';
-  return r\go($return);
+  if ($mya->ok()) {
+    $return = $mya->person() ? 'account/security' : 'account/company';
+    return r\go($return);
+  }
 }
 
 function formChangePassword($form, &$sta) {
@@ -1024,7 +1023,7 @@ function formSettings2($form, &$sta) {
 //    + goButtonIf(B_MANAGE, t('Bank'), 'account/bank', t('Connect to your US Dollar bank account'))
     + goButtonIf(array(B_COMPANY, B_MANAGE), t('Company Info'), 'account/company', t('Describe this company'))
     + goButtonIf(B_MANAGE, t('Relations'), 'account/relations', t('Connect other members to this account'))
-    + goButtonIf(B_MANAGE, t('Cells'), 'account/cells', t('Authorize mobile devices for this account'))
+    + goButtonIf(B_MANAGE, t('Devices'), 'account/boxes', t('Authorize mobile devices for this account'))
     + goButtonIf(array(B_PERSON, B_MANAGE), t('Proxies'), 'account/proxies', t('Choose two people as your representatives'))
 //    + goButtonIf(array(B_PERSON, B_MANAGE), t('ID Proof'), 'account/id-proof', t('Provide proof of your identity'))
   ;
@@ -1173,8 +1172,8 @@ function formEmpty($form, &$sta) {return formMenu($form, $sta);}
 
 function formSettings($form, &$sta) {
   $mya = r\acct();
-  $tabs = u\ray('contact preferences security bank company relations cells proxies');
-  $captions = u\ray(t('Contact,Preferences,Security,Bank Info,Company,Relations,Cells,Proxies'));
+  $tabs = u\ray('contact preferences security bank company relations boxes proxies');
+  $captions = u\ray(t('Contact,Preferences,Security,Bank Info,Company,Relations,Devices,Proxies'));
   $title = item('Settings');
   foreach(array_combine($tabs, $captions) as $tab => $caption) {
     $img = imageButton("account/$tab", $caption, "$tab.png");
@@ -1738,10 +1737,8 @@ function formBasic_submit($form, &$sta) {
   return r\go('status'); // on to next step (or total failure)
 }
 
-/**
- * Ask a set of personal questions to confirm the person's identity.
- * If the answers fail 3 times (or even if the user refreshes the screen 3 times), the PhotoId step is next.
-  $questions = json_decode ('[
+function getqs() {
+  return json_decode ('[
   {
     "Id": "36848018",
     "Text": "According to your DRIVER\'S LICENSE, what COLOR is your HAIR?",
@@ -1786,11 +1783,17 @@ function formBasic_submit($form, &$sta) {
       "181649924": "ALL OF THE ABOVE"
     }
   }
-]');
+  ]');
+}
+
+/**
+ * Ask a set of personal questions to confirm the person's identity.
+ * If the answers fail 3 times (or even if the user refreshes the screen 3 times), the PhotoId step is next.
  */
 function formKba($form, &$sta) {
   $us = new r\usd($mya = r\acct());
   $form['title'] = item(t('Confirm Your Identity'));
+//  if ($questions = getqs() and $transactionId = 123) { // debug
   if ($transactionId = $us->kba($questions, $err)) { // get the set of questions
     foreach ($questions as $qi => $question) {
       extract(u\just('Id Text Choices', $question));
@@ -1798,13 +1801,14 @@ function formKba($form, &$sta) {
       // For example, if $key is '181649905', "echo $Choices[$key];" gives "Undefined offset: 181649905..."
       foreach ($Choices as &$value) $value = strlen($value) == 2 ? $value : u\titleCase($value);
       unset($value);
-      $form["q-$qi"] = formField('radios', $Text, '', required(), $Choices);
+      $form["q-$qi"] = formField('radios', $Text, '', required(), (array) $Choices);
     }
     $form['transactionId'] = hidField($transactionId);
     $form['submit'] = submit(t('Submit answers'));
   } elseif ($us->step() != 'Kba') {
     return r\go('status'); // let it fall through, for appropriate message on status page
   } else say(t('Confirmation questions are not available. Please try again later.') . " ($err)");
+
   return $form;
 }
 
@@ -1813,6 +1817,7 @@ function formKba_submit($form, &$sta) {
   foreach ($sta['input'] as $key => $value) {
     if (substr($key, 0, 2) == 'q-' and is_numeric($qi = substr($key, 2))) $answers[] = u\ray('answerid, questionid', $value, $qi);
   }
+  //debug($answers); return;
   
   if (!$us->verifyKba($sta['input']['transactionId'], $answers, $err)) say($err, 'zot');
   return r\go('status');
@@ -2174,88 +2179,90 @@ function formRelations_submit($form, &$sta) {
 /**
  * @todo: focus on code input
  */
-function formCells($form, &$sta) {
+function formBoxes($form, &$sta) {
   $myid = r\acct()->id;
   if ($confirm = sureForm($sta)) return $confirm; // confirm only deletion
   if (form_step($sta, $info) == 'prove') {
-    $number = u\fmtPhone($sta['storage']['values']['number']);
+    $new = u\fmtPhone($sta['storage']['values']['new']);
     $form = array(
       'title' => item(t('Verify')),
-      'subtext' => item(tt('verify cell', compact('number'))),
+      'subtext' => item(tt('verify cell', u\ray('number', $new))),
       'code' => textField(t('Code:')),
-      'number' => hidField($number),
+      'new' => hidField($new),
       'verify' => submit(t('Verify')),
     );
     return $form;
   }
 
-  $headers = array('Cell Number');
+  $headers = array('#', 'Device name', 'Restrict?', 'Last used');
 
-  $sql = "SELECT number FROM r_sms WHERE uid=:myid ORDER BY number";
+  $sql = "SELECT boxid, code, boxName, restricted, access FROM r_boxes WHERE uid=:myid ORDER BY boxid";
   $result = db\q($sql, compact('myid'));
   $list = array();
   while ($row = $result->fetchAssoc()) {
     extract($row);
-    $list["x$number"] = array(u\fmtPhone($number));
+    //$deviceId = u\fmtPhone($code) ?: $code ? 'POS device' : 'computer'; 
+    $list["x$boxid"] = array($boxid, $boxName, $restricted ? 'Yes' : 'No', u\fmtDate($access));
   }
 
+  unset($sta['input']['new']); // don't show number just added
   $form = array(
-    'title' => item(t('Cell Phones')),
-    'subtitle' => item(t('List here the authorized devices for this account. You may also have a cell phone listed on the <a href="account/contact">Contact Information</a> page, but you cannot use it for text message transactions until you list it here.')),
-    'cells' => formField('tableselect', '', '', array('header' => $headers, 'multiple' => TRUE, 'empty' => tt('no cells')), $list),
-    'delete' => submit(t('Remove Selected Numbers')),
-
-    'number' => textField(t('Add another cell phone:')),
-    'add' => submit(t('Add')),
+    'title' => item(t('Devices ("boxes")')),
+    'subtitle' => item(t('These are the devices used with this account.')),
+    'boxes' => formField('tableselect', '', '', array('header' => $headers, 'multiple' => TRUE, 'empty' => tt('no devices')), $list),
+    'new' => textField(t('Add a cell phone*: ')),
+    'save' => submit(t('Save changes')),
+//    'delete' => submit(t('Remove Selected')),
+    'postscript' => item(t('* You may have a cell phone listed on the <a href="account/contact">Contact Information</a> page, or even as a POS device on this page, but to use it for text message transactions you must add its phone number here.')),
   );
   return $form;
 }
 
-function formCells_validate($form, &$sta) {
+function formBoxes_validate($form, &$sta) {
   $myid = r\acct()->id;
   if (confirming_v($sta)) return;
-  extract(u\just('op code cells number', $sta['values'])); // values not input
+  extract(u\just('op code boxes new', $sta['values'])); // values not input
   $op = op($sta);
 
   if ($op == 'verify') {
     if (strtoupper($code) == svar('nonce')) return;
     previous_state($sta, 'bad nonce'); // can't just give error message, because then verification form persists
   } elseif ($op == 'delete') {
-    if (no_selection($cells)) {
-      if ($number) $op = 'add'; else return say('nothing selected'); // user probably pressed Enter after specifying a new cell
+    if (no_selection($boxes)) {
+      if ($new) $op = 'add'; else return say('nothing selected'); // user probably pressed Enter after specifying a new cell
     } else confirm(tt('confirm delete cell'), $sta);
   }
 
-  if ($op == 'add') {
-    if (blank_field(compact('number'))) return;
+  if ($op == 'save') {
+    if (blank_field(compact('new'))) return;
     $sta['values']['op'] = $op; // make it stick if user pressed Enter
-    say(be\addCell($number, 'VALIDATE'), 'number');
+    say(be\addCell($new, 'VALIDATE'), 'new');
   }
 }
 
-function formCells_submit($form, &$sta) {
+function formBoxes_submit($form, &$sta) {
   if (confirming_s($sta)) return;
   
-  extract(u\just('op code cells number', $sta['values'])); // values not input
+  extract(u\just('op code boxes new', $sta['values'])); // values not input
   $op = op($sta);
 
-  if ($op == 'add') {
-    if ($info = previous_state($sta)) return say($info, 'number'); // just returning from failed validation of step 2 ('prove')
+  if ($op == 'save') {
+    if ($info = previous_state($sta)) return say($info, 'new'); // just returning from failed validation of step 2 ('prove')
     svar('nonce', $nonce = u\nonce()); // don't use POST (user could peek)
-    r\SMS\send($number, tt('verification code', compact('nonce')));
+    r\SMS\send($new, tt('verification code', compact('nonce')));
 /**/ if (isDEV) debug("nonce is $nonce"); // (keep this) tell developer what code to type
-    $info = compact('number');
+    $info = compact('new');
     return form_step($sta, $info, 'prove');
   }
 
   if ($op == 'verify') {
     step_one($sta); // no next step (back to original form)
-    say(be\addCell($number));
-    $sta['redirect'] = 'account/cells';
+    say(be\addCell($new));
+    $sta['redirect'] = 'account/boxes';
   }
     
   if ($op == 'delete') {
-    foreach ($cells as $key => $number) if ($number) say(be\deleteCell(substr($number, 1))); // ignore the leading 'x'
+// needs work    foreach ($boxes as $key => $one) if ($one[1]) say(be\deleteCell(substr($one[1], 1))); // ignore the leading 'x'
   }
 }
 
@@ -2449,6 +2456,15 @@ EOF;
   $links = <<<EOF
   <a id='show-webpage' href="$base_url/member/$mya->name" target="_blank">Show my public rCredits web page</a> (in a new window)
 EOF;
+	$bits = u\ray(CO_CAN_BIT_DESCS);
+	$coCanDfts = array();
+	foreach ($bits as $bitName) {
+		if (substr($bitName, 0, 1) == 'u') continue; // undefined
+		$bit = u\consta('co', $bitName);
+		$cans[$bit] = $bitName;
+		if ($mya->coCan($bit)) $coCanDfts[] = $bitName;
+//    debug(compact('cans','bitName','bit','coCanDfts'));
+	}
 
   $form = array(
     'title' => item(t('Company Information')),
@@ -2456,7 +2472,8 @@ EOF;
     'name' => formField('item', t('Company name:'), '', $mya->fullName),
     'photo' => item(t('<@a>Change your photo</a>', u\ray('@a', 'a href=photo')), t('Photo')),
     'categories' => formField('select', t('Categories:'), t('Hold down the Ctrl key to select more than one'), $multiple + dft($myCats), $cats),
-    'selling' => textField(t('Selling:'), t('What is the typical description of what you sell? (This will appear as the default "purpose" when you charge someone).'), dft($mya->selling)),
+    'selling' => formField('textarea', t('Selling:'), t('Enter one or more transaction descriptions for when you make a sale &mdash; one line for each. Put the most common one first.'), required($mya->selling)),
+    'can2' => boxesField('can', t('Manager can:'), t('What can company agents do at the POS, when they have "buy" permission?'), $coCanDfts, $cans),
     'website' => textField(t('Website(s):'), t('Especially if you want to accept payments on your website, be sure to list it here.'), dft($mya->website)),
     'descPreface' => item(t('<br>What does this company do? The description you enter below will appear on your rCredits web page.')),
     'description' => formField('text_format', t('Description:'), '', $filtered_html + dft($mya->description)),
@@ -2467,17 +2484,25 @@ EOF;
 }
 
 function formCompany_validate($form, &$sta) {
-//  extract($sta['input']);
+  extract(u\just('selling', $sta['input']));
+  $selling = explode("\n", $selling);
+  foreach ($selling as $one) {
+    $one = trim(strtolower($one));
+    if (!in_array($one, array('', 'refund', 'cash in', 'cash out'))) $new[] = $one;
+  }
+  if (!@$new) return say('missing field', u\ray('field', 'selling'), 'selling');
+  $sta['input']['selling'] = join("\n", $new);
 }
 
 function formCompany_submit($form, &$sta) {
   $mya = r\acct();
   $id = $mya->id;
-  extract(u\just('description website selling categories', u\trimAll($sta['input'])));
+  extract(u\just('description website selling categories can', u\trimAll($sta['input'])));
 //  $description = \check_markup($description['value']);
   $description = @$description['value'];
   $website = str_ireplace('http://', '', @$website);
-  u\setDft($selling, '');
+
+  $mya->setBits(CO_CAN_BIT_DESCS, $can, 'co');
   $mya->update(compact(u\ray('description website selling')));
   
   $DBTX = db_transaction();
@@ -2507,6 +2532,7 @@ function formCompany_submit($form, &$sta) {
 function formI($form, &$sta, $who = '') {
   $parts = preg_split('/(' . R_MARKS . ')/', $who, 0, PREG_SPLIT_DELIM_CAPTURE);
   $count = count($parts);
+
   if ($count == 5) { // old fashioned format: ABC.DEF-whatever or ABC-DEF-whatever (agent)
     list ($region, $mark, $tail, $zot, $code) = $parts;
   } elseif ($count == 3) { // new format: DEF.whatever or DEF-whatever (agent)
@@ -2532,57 +2558,7 @@ function formI($form, &$sta, $who = '') {
   
   $shortName = $a->name;
   $txArgs = "/who=$shortName&scanned=1";
-  if ($mya->proSe() and !$mya->can(B_CHARGE) and !$co) return r\go("pay$txArgs");
-  
-  list ($myid, $myAgent) = array($mya->id, $mya->agentId);
-  if ($otherId == @$myid) return r\go('', 'no self-trading');
-
-  if ($co) $site = goButton(t('Show Webpage'), $goSite = "member/$shortName", t("See this company's rCredits webpage"));
-  if ($mya->can(B_SCAN)) $charge = goButton(t('Charge'), "charge$txArgs", t('Charge someone'));
-  if ($mya->can(B_BUY)) $pay = goButton(t('Pay'), "pay$txArgs", t('Pay someone'));
-//    if (r\acct($myid, $otherAgent)->can()) $changeAgent = goButton(t('Change Agent'), "user/logout/who=$shortName", t('Use this button when your shift begins'));
-//  if (r\acct($otherId, $myAgent)->can()) $changeAccount = goButton(t('Change Acct'), "change-account/who=" . $a->mainQid, t('Manage a different account'));
-  $theId = hidField($otherId);
-  $theAgent = hidField($otherAgent);
-
-  if (!@$charge) return $co ? r\go($goSite) : r\go('empty', 'no can scan');
-
-  $zot = compact(u\ray('charge pay site'));
-  $all = identifiers($a) . render($zot);
-  svar('lastCustomer', $a->id);
-  $all = formField('item', '', '', $all);
-  return compact('all');
-}
-
-function formJ($form, &$sta, $who = '') {
-  $parts = preg_split('/(' . R_MARKS . ')/', $who, 0, PREG_SPLIT_DELIM_CAPTURE);
-  $count = count($parts);
-  if ($count == 5) { // old fashioned format: ABC.DEF-whatever or ABC-DEF-whatever (agent)
-    list ($region, $mark, $tail, $zot, $code) = $parts;
-  } elseif ($count == 3) { // new format: DEF.whatever or DEF-whatever (agent)
-    list ($tail, $mark, $code) = $parts;
-    $region = R_SERVER_ID;
-    debug(compact('region','tail','mark','code'));
-  } else return say('bad member id', 'zot'); // not an ID QR
-  
-  if ($mark == R_AGENT_URL_MARK) {
-    list ($mark, $field) = array(R_AGENT_MARK, 'cardCode2');
-  } else $field = 'cardCode';
-  
-  $qid = "$region$mark$tail";
-  if (!$a = r\acct($qid)) return say('bad card', 'zot'); // not a real code -- just go to home page
-  $co = $a->co();
-  
-  $mya = r\acct();
-  if (!$gotCode = @$a->agent->secure[$field]) return say('bad card code', 'zot');
-  if ($gotCode != $code) return say('bad card code', 'zot');
-  list ($otherId, $otherAgent) = array($a->id, $a->agentId);
-
-  if (!$mya) return $a->proSe() ? r\go('user/login?name=' . $a->name) : scanIn($a);
-  
-  $shortName = $a->name;
-  $txArgs = "/who=$shortName&scanned=1";
-  if ($mya->proSe() and !$mya->can(B_CHARGE) and !$co) return r\go("pay$txArgs");
+  if ($mya->proSe() and !$co) return r\go("pay$txArgs");
   
   list ($myid, $myAgent) = array($mya->id, $mya->agentId);
   if ($otherId == @$myid) return r\go('', 'no self-trading');
@@ -2639,7 +2615,7 @@ function formOptions($form, &$sta) {
   $noticeRadios = array(t('daily'), t('weekly'), t('monthly'));
   $dft = $mya->can(B_NOTICE_WEEKLY) ? 1 : ($mya->can(B_NOTICE_MONTHLY) ? 2 : 0);
   $notices = formField('radios', t('Email notices:'), t('How often do you want to receive an email digest of rCredits messages?'), required($dft), $noticeRadios);
-  $smsNotices = boxField(t('SMS notices:'), tt('Send me a text message when I receive a payment, charge, or invoice (requires a <a href="' . $base_url . '/account/cells">connected cell phone</a>).'), $mya->can(B_NOTIFY_SMS));
+  $smsNotices = boxField(t('SMS notices:'), tt('Send me a text message when I receive a payment, charge, or invoice (requires a <a href="' . $base_url . '/account/boxes">connected cell phone</a>).'), $mya->can(B_NOTIFY_SMS));
   $statements = $mya->can(B_ELECTRONIC) + 0;
   $statementRadios = array(
     t('I will accept electronic statements.'), 

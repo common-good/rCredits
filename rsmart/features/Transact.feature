@@ -1,205 +1,146 @@
 Feature: Transact
-AS a member
-I WANT to transfer rCredits to or from another member (acting on their own behalf)
-SO I can buy and sell stuff.
-# We will eventually need variants or separate feature files for neighbor (member of different community within the region) to member, etc.
-# And foreigner (member on a different server) to member, etc.
+AS a company agent
+I WANT to transfer rCredits to or from another member
+SO my company can sell stuff and give refunds.
+
+# We will eventually need variants or separate feature files for neighbor (member of different community within the region) to member, etc. and foreigner (member on a different server) to member, etc.
+# cc means cardCode
+# while testing, bonus is artificially set at twice the rebate amount
 
 Setup:
   Given members:
-  | id      | fullName  | phone  | email         | city  | state  | country       | 
-  | NEW.ZZA | Abe One    | +20001 | a@ | Atown | Alaska | United States |
-  | NEW.ZZB | Bea Two    | +20002 | b@ | Btown | Utah   | United States |
-  | NEW.ZZC | Corner Pub | +20003 | c@ | Ctown | Corse  | France        |
+  | id   | fullName   | email | city  | state | cc  | cc2  | rebate | flags               | 
+  | .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 |     10 | dft,ok,person,bona  |
+  | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 |     10 | dft,ok,person,bona  |
+  | .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      |      5 | dft,ok,company,bona |
+  | .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 |     10 | dft,ok,person,bona  |
+  | .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 |     10 | dft,ok,person,bona,secret_bal |
+  | .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      |      5 | dft,ok,company,bona |
   And devices:
-  | id      | code  |
-  | NEW.ZZA | codeA |
-  | NEW.ZZB | codeB |
-  | NEW.ZZC | codeC |
+  | id   | code |
+  | .ZZC | devC |
+  And selling:
+  | id   | selling         |
+  | .ZZC | this,that,other |
+  And company flags:
+  | id   | flags            |
+  | .ZZC | refund,sell cash |
   And relations:
-  | id      | main    | agent   | permission        |
-  | NEW.ZZA | NEW.ZZA | NEW.ZZB | buy and sell      |
-  | NEW.ZZB | NEW.ZZB | NEW.ZZA | read transactions |
-  | NEW.ZZC | NEW.ZZC | NEW.ZZB | buy and sell      |
-  | NEW.ZZD | NEW.ZZC | NEW.ZZA | sell              |
+  | id   | main | agent | permission |
+  | :ZZA | .ZZC | .ZZA  | buy        |
+  | :ZZB | .ZZC | .ZZB  | scan       |
+  | :ZZD | .ZZC | .ZZD  | read       |
+  | :ZZE | .ZZF | .ZZE  | sell       |
   And transactions: 
-  | xid      | created   | type       | amount | from      | to      | purpose | taking |
-  | NEW.AAAB | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |
-  | NEW.AAAC | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZB | signup  | 0      |
-  | NEW.AAAD | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZC | signup  | 0      |
+  | xid | created   | type   | amount | from | to   | purpose | taking |
+  | 1   | %today-6m | signup |    250 | ctty | .ZZA | signup  | 0      |
+  | 2   | %today-6m | signup |    250 | ctty | .ZZB | signup  | 0      |
+  | 3   | %today-6m | signup |    250 | ctty | .ZZC | signup  | 0      |
   Then balances:
-  | id        | balance |
-  | community |    -750 |
-  | NEW.ZZA   |     250 |
-  | NEW.ZZB   |     250 |
-  | NEW.ZZC   |     250 |
+  | id   | balance |
+  | ctty |    -750 |
+  | .ZZA |     250 |
+  | .ZZB |     250 |
+  | .ZZC |     250 |
 
-Variants: with/without an agent
-  | "NEW.ZZA" asks device "codeA" | "NEW.ZZC" asks device "codeC" | "NEW.ZZA" $ | "NEW.ZZC" $ | # member to member (pro se) |
-  | "NEW.ZZB" asks device "codeA" | "NEW.ZZB" asks device "codeC" | "NEW.ZZA" $ | "NEW.ZZC" $ | # agent to member           |
-  | "NEW.ZZA" asks device "codeA" | "NEW.ZZC" asks device "codeC" | "NEW.ZZA" $ | "NEW.ZZC" $ | # member to agent           |
-  | "NEW.ZZB" asks device "codeA" | "NEW.ZZB" asks device "codeC" | "NEW.ZZA" $ | "NEW.ZZC" $ | # agent to agent            |
+#Variants: with/without an agent
+#  | ".ZZB" asks device "devC" | ".ZZB" asks device "codeC" | ".ZZA" $ | ".ZZC" $ | # agent to member |
+#  | ".ZZB" asks device "devC" | ".ZZB" asks device "codeC" | ".ZZA" $ | ".ZZC" $ | # agent to agent  |
 
-Scenario: A member asks to charge another member
-  When member " NEW.ZZA" asks device "codeA" to do this: "charge" "NEW.ZZC" $100 ("goods": "labor")
-  # cash exchange would be ("cash": "")
-  #no variant on first member because showing balance requires B_MANAGE
-  Then we respond success 1 tx_id "NEW.AAAE" my_balance "$250" other_balance "" and message "report invoice" with subs:
-  | did     | otherName | amount | tid |
-  | charged | Corner Pub | $100   | 2   |
-  # "You charged Corner Pub $100 (bonus: $10). Your balance is unchanged, pending payment. Invoice #2"
-  And we email "new-invoice" to member "c@" with subs:
-  | created | fullName   | otherName | amount | payerPurpose |
-  | %today  | Corner Pub | Abe One    | $100   | labor         |
+Scenario: A cashier asks to charge someone
+  When agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": "food"
+  # cash exchange would be for "cash": "cash out"
+  Then we respond ok with tx 4 and message "report transaction" with subs:
+  | did     | otherName | amount | rewardType | rewardAmount |
+  | charged | Bea Two   | $100   | reward     | $10          |
+  And with balance
+  | name    | balance | spendable | cashable | did     | amount | forCash |
+  | Bea Two | $160    |           | $0       | charged | $100   |         |
+  And with undo
+  | created | amount | tofrom | otherName |
+  | %dmy    | $100   | from   | Bea Two   |
+  And we notice "new charge|reward other" to member ".ZZB" with subs:
+  | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |
+  | %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $10               |
   And balances:
-  | id        | balance |
-  | community |    -750 |
-  | NEW.ZZA   |     250 |
-  | NEW.ZZC   |     250 |
+  | id   | balance |
+  | ctty |    -770 |
+  | .ZZA |     250 |
+  | .ZZB |     160 |
+  | .ZZC |     360 |
 
-Scenario: A member asks to pay another member
-  When member " NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $100 ("goods": "groceries")
-  #no variant on first member because showing balance requires B_MANAGE
-  Then we respond success 1 tx_id "NEW.AAAE" my_balance "$155" other_balance "" and message "report transaction" with subs:
-  | did    | otherName | amount | rewardType | rewardAmount | balance | tid |
-  | paid   | Corner Pub | $100   | rebate      | $5            | $155    | 2   |
-  # "You paid Corner Pub $100 (rebate: $5). Your new balance is $155. Transaction #2"
-  And we email "new-payment" to member "c@" with subs:
-  | created | fullName   | otherName | amount | payeePurpose   |
-  | %today  | Corner Pub | Abe One    | $100   | groceries       |
+Scenario: A cashier asks to refund someone
+  When agent ":ZZA" asks device "devC" to charge ".ZZB" $-100 for "goods": "food"
+  Then we respond ok with tx 4 and message "report transaction" with subs:
+  | did      | otherName | amount | rewardType | rewardAmount |
+  | refunded | Bea Two   | $100   | reward     | $-10         |
+  And with balance
+  | name    | balance | spendable | cashable | did      | amount | forCash |
+  | Bea Two | $340    |           | $100     | refunded | $100   |         |
+  And with undo
+  | created | amount | tofrom | otherName |
+  | %dmy    | $100   | to     | Bea Two   |
+  And we notice "new refund|reward other" to member ".ZZB" with subs:
+  | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |
+  | %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $-10              |
   And balances:
-  | id        | balance |
-  | community |    -765 |
-  | NEW.ZZA   |     155 |
-  | NEW.ZZC   |     360 |
-#Request: 
-#my_id (account ID of agent -- defaults to owner_id)
-#code (permanent code received in First Time response)
-#op=”transact”
-#type (“charge” or “pay”)
-#account_id (value of scanned QR code)
-#amount (numeric dollar amount)
-#goods=TRUE or FALSE (true unless user checks “cash, loan, etc.”)
-#purpose (description of goods and services)
-#Response: 
-#success=TRUE or FALSE
-#message (error message or success message)
-#tx_id (transaction ID number, if success, otherwise empty string)
-#my_balance (user’s new balance)
-#other_balance (new balance for the other party -- do not show the “Show Customer Balance” button if this is omitted)
+  | id   | balance |
+  | ctty |    -730 |
+  | .ZZA |     250 |
+  | .ZZB |     340 |
+  | .ZZC |     140 |
 
-Scenario: A member asks to charge another member unilaterally
-  Given member "NEW.ZZC" can charge unilaterally
-  When member " NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $100 ("goods": "groceries")
-  #no variant on first member because showing balance requires B_MANAGE
-  Then we respond success 1 tx_id "NEW.AAAE" my_balance "$360" other_balance "$155" and message "report transaction" with subs:
-  | did     | otherName | amount | rewardType | rewardAmount | balance | tid |
-  | charged | Abe One    | $100   | bonus       | $10           | $360    | 2   |
-  # "You charged Corner Pub $100 (bonus: $10). Your new balance is $360. Transaction #2"
-  And we email "new-charge" to member "a@" with subs:
-  | created | fullName  | otherName | amount | payerPurpose   |
-  | %today  | Abe One   | Corner Pub | $100   | groceries       |
-  And balances:
-  | id        | balance |
-  | community |    -765 |
-  | NEW.ZZA   |     155 |
-  | NEW.ZZC   |     360 |
+Scenario: A cashier asks to charge another member, with insufficient balance
+  When agent ":ZZA" asks device "devC" to charge ".ZZB" $300 for "goods": "food"
+  Then we return error "short from" with subs:
+  | otherName |
+  | Bea Two   |  
 
-Scenario: A member asks to charge another member unilaterally, with insufficient balance
-  Given member "NEW.ZZC" can charge unilaterally
-  When member " NEW.ZZC" asks device "codeC" to do this: "charge" "NEW.ZZA" $300 ("goods": "groceries")
-  #no variant on first member because showing balance requires B_MANAGE
-  Then we respond success 1 tx_id "NEW.AAAE" my_balance "$525" other_balance "$12.50" and message "report short invoice" with subs:
-  | did     | otherName | amount | short | balance | tid | t2id |
-  | charged | Abe One   | $250   | $50   | $525    | 2   | 3    |
-  # "SPLIT TRANSACTION! You paid Corner Pub $250 (rebate: $12.50). You will need to use US Dollars for the remaining $50. Your new balance is $12.50. Transaction #2"
-  And balances:
-  | id        | balance |
-  | community | -787.50 |
-  | NEW.ZZA   |   12.50 |
-  | NEW.ZZC   |  525.00 |
+Scenario: A cashier asks to refund another member, with insufficient balance
+  When agent ":ZZA" asks device "devC" to charge ".ZZB" $-300 for "goods": "food"
+  Then we return error "short to" with subs:
+  | short |
+  | $50   |
 
-Scenario: A member asks to pay another member, with insufficient balance
-  When member " NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $300 ("goods": "groceries")
-  #no variant on first member because showing balance requires B_MANAGE
-  Then we respond success 1 tx_id "NEW.AAAE" my_balance "$12.50" other_balance "" and message "report short payment" with subs:
-  | did    | otherName | amount | short | balance | tid |
-  | paid   | Corner Pub | $250   | $50   | $12.50  | 2   |
-  # "SPLIT TRANSACTION! You paid Corner Pub $250 (rebate: $12.50). You will need to use US Dollars for the remaining $50. Your new balance is $12.50. Transaction #2"
-  And balances:
-  | id        | balance |
-  | community | -787.50 |
-  | NEW.ZZA   |   12.50 |
-  | NEW.ZZC   |  525.00 |
+Scenario: A cashier asks to pay self
+  When agent ":ZZA" asks device "devC" to charge ".ZZC" $300 for "goods": "food"
+  Then we return error "shoulda been login"
 
-Scenario: A member asks to pay self
-  When member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZA" $300 ("goods": "groceries")
-  Then we respond with:
-  | success | message         |
-  | 0       | no self-trading |
-
-Scenario: Device gives no account id
-  When member "NEW.ZZA" asks device "codeA" to do this: "pay" "" $300 ("goods": "groceries")
-  Then we respond with:
-  | success | message            |
-  | 0       | missing account id |
+Scenario: Device gives no member id
+  When agent ":ZZA" asks device "devC" to charge "" $300 for "goods": "food"
+  Then we return error "missing member"
   
 Scenario: Device gives bad account id
-  When member "NEW.ZZA" asks device "codeA" to do this: "pay" %whatever $300 ("goods": "groceries")
-  Then we respond with:
-  | success | message        |
-  | 0       | bad account id |
+  When agent ":ZZA" asks device "devC" to charge %whatever $300 for "goods": "food"
+  Then we return error "bad member"
 
 Scenario: Device gives no amount
-  When member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $"" ("goods": "groceries")
-  Then we respond with:
-  | success | message        |
-  | 0       | missing amount |
+  When agent ":ZZA" asks device "devC" to charge ".ZZB" $"" for "goods": "food"
+  Then we return error "bad amount"
   
 Scenario: Device gives bad amount
-  When member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $%whatever ("goods": "groceries")
-  Then we respond with:
-  | success | message    |
-  | 0       | bad amount |
+  When agent ":ZZA" asks device "devC" to charge ".ZZB" $%whatever for "goods": "food"
+  Then we return error "bad amount"
   
-Scenario: Device gives nonpositive amount
-  When member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $-100 ("goods": "groceries")
-  Then we respond with:
-  | success | message    |
-  | 0       | nonpositive amount |
-
 Scenario: Device gives too big an amount
-  When member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $10,000,000 ("goods": "groceries")
-  Then we respond with:
-  | success | message    |
-  | 0       | amount too big |
-
-Scenario: Device gives no type
-  When member "NEW.ZZA" asks device "codeA" to do this: "" "NEW.ZZC" $300 ("goods": "groceries")
-  Then we respond with:
-  | success | message                  |
-  | 0       | missing transaction type |
-  
-Scenario: Device gives bad type
-  When member "NEW.ZZA" asks device "codeA" to do this: %whatever "NEW.ZZC" $300 ("goods": "groceries")
-  Then we respond with:
-  | success | message |
-  | 0       | bad transaction type |
+  When agent ":ZZA" asks device "devC" to charge ".ZZB" $10,000,000 for "goods": "food"
+  Then we return error "amount too big"
 
 Scenario: Device gives no purpose for goods and services
-  When member "NEW.ZZA" asks device "codeA" to do this: "pay" "NEW.ZZC" $300 ("goods": "")
-  Then we respond with:
-  | success | message         |
-  | 0       | missing purpose |
+  When agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": ""
+  Then we return error "missing description"
 
+Scenario: Seller agent lacks permission to buy
+  When agent ":ZZB" asks device "devC" to charge ".ZZB" $-100 for "goods": "refund"
+  Then we return error "no buy"
+
+Scenario: Seller agent lacks permission to scan and sell
+  When agent ":ZZD" asks device "devC" to charge ".ZZA" $100 for "goods": "food"
+  Then we return error "no sell"
+  
 Scenario: Buyer agent lacks permission to buy
-  When member " NEW.ZZA " asks device "codeC" to do this: "pay" "NEW.ZZB" $300 ("goods": "groceries")
-  Then we respond with:
-  | success | message         |
-  | 0       | no buy          |
+  When agent ":ZZA" asks device "devC" to charge ":ZZE" $100 for "goods": "food"
+  Then we return error "other no buy" with subs:
+  | otherName |
+  | Eve Five  |
 
-Scenario: Seller agent lacks permission to sell
-  When member " NEW.ZZA " asks device "codeB" to do this: "charge" "NEW.ZZC" $300 ("goods": "groceries")
-  Then we respond with:
-  | success | message |
-  | 0       | no sell |

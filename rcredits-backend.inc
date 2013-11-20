@@ -12,6 +12,7 @@ use rCredits\Util as u;
 use rCredits\Testing as t;
 
 define('REAL', @$_SERVER['SystemRoot'] != 'C:\\Windows');
+/*
 define('API_URL', REAL ? (R_SITE_URL . '/api') : 'http://localhost/devcore/api');
 
 function send($data) {
@@ -30,7 +31,9 @@ function prep($data) {
   global $my_id, $code;
   return array('json' => u\jsonEncode(compact('my_id', 'code') + $data));
 }
+*/
 
+/*
 function doOp($op0, $args, $interface = 'API', $success = 1) {
   if (!@$op0) return error('no op');
   $op = "rCredits\\$interface\\$op0";
@@ -52,6 +55,7 @@ function apiOut($args) {
   if (t\est()) {t\output($args, 'output'); return $result;}
   exit($result);
 }
+*/
 
 /**
  * Return the user's bank transactions for the given period (inclusive)
@@ -221,11 +225,13 @@ function setCttyAdmin($value, $main, $other) {
  *     Someone invoiced me and I approved it: DISPUTED
  *     Someone charged me unilaterally: DISPUTED
  * @param int $xid: the transaction number
+ * @param string $where: additional (security check) criteria, if any
+ * @param assoc $subs: additional substitions for $where
  * @return array [message, subs] where subs is an assoc of [
  */
-function undoTx($xid) {
+function undoTx($xid, $where = '1', $subs = array()) {
   $mya = r\acct();
-  $oldRecord = lastTx('xid=:xid', compact('xid'));
+  $oldRecord = lastTx("xid=:xid AND $where", compact('xid') + $subs);
   if ($error = r\nonoUndo($oldRecord, $subs)) return array($error, $subs); // check nono before confirm AND here
 
   extract($oldRecord, EXTR_PREFIX_ALL, 'old');
@@ -274,7 +280,7 @@ function reverse($xid, $amount, $acct, $data, $old_goods, $tid, $type, $otherTid
 
   if (!is_array($data)) $data = array();
   $old_data = $data; // remember original data from transaction we're reversing
-  $myFor = "reverses #$tid";
+  $myFor = t('reverses #') . $tid;
   $otherFor = str_replace($tid, $otherTid, $myFor);
   $what = u\order($type == 'payment', $myFor, $otherFor);
   if (@$data['rebate'] or @$data['bonus']) list ($data['rebate'], $data['bonus']) = array(-$data['bonus'], -$data['rebate']);
@@ -357,21 +363,22 @@ function payInvoice($xid) {
  */
 function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confirmed = TRUE, $data = array()) {
   include_once __DIR__ . '/usd.class';
-  global $lastXid, $scanned, $channel; 
+  global $lastXid, $scanned, $channel;
 
   u\EXPECT(in_array($ttype, u\ray('payment,charge,invoice payment')), 'bad transaction type');
 // disabled for now  if ($a2 == 'ALL') return $ttype == 'payment' ? r\payEmployees($requestAmount, $for, $confirmed) : array('no ALL', array(), FALSE);
   list ($myid, $uid) = array($a1->id, $a2->id);
   $taking = ($ttype == 'charge');
+  $reallyTaking = ($taking xor $requestAmount < 0); // not taking if charging a negative amount
 
   // Check permissions
   u\EXPECT(compact(u\ray('ttype a1 a2 confirmed data')), 'string acct acct bool assoc');
-  $otherName = $a2->fullName;
-  if (!$a2->ok()) return array('non member', compact('otherName'), FALSE);
-  list ($myAccess, $otherAccess) = u\order($taking, $scanned ? B_SCAN : B_SELL, B_BUY);
-  list ($myAccessErr, $otherAccessErr) = u\order($taking, 'sell', 'buy');
+  if (!$a2->ok()) return array('non member', u\ray('otherName', $a2->fullName), FALSE);
+  list ($myAccess, $otherAccess) = u\order($reallyTaking, $scanned ? B_SCAN : B_SELL, B_BUY);
+  list ($myAccessErr, $otherAccessErr) = u\order($reallyTaking, 'sell', 'buy');
+  //debug(compact('myAccess','otherAccess','myAccessErr','otherAccessErr','reallyTaking'));
   if (!$a1->can($myAccess)) return array("no $myAccessErr", array(), FALSE);
-  if (!$a2->can($otherAccess)) return array("other no $otherAccessErr", compact('otherName'), FALSE);
+  if (!$a2->can($otherAccess)) return array("other no $otherAccessErr", u\ray('otherName', $a2->agent->fullName), FALSE);
   
   // Analyze who's buying or selling
   if ($uid == $myid) return array('no self-trading', array(), FALSE);
@@ -384,10 +391,11 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   $type = TX_TRANSFER;
   $unilateral = isset($data['bilateral']) ? FALSE 
   : ($taking // selling
-      and $a1->can(B_CHARGE) // seller can charge unilaterally
-      and !$undoing // not reversing a payment
+      // (need this at POS!) and !$undoing // not reversing a payment
       and !(!$a2->person() and $a2->proSe()) // not selling to a company directly (without its agent)
-      and ($channel == TX_SMART or @$scanned or $channel == TX_SMS) // in person: scanned (web or smart) or by SMS
+      and (@$scanned // in person: scanned (web or smart)
+//        or ($channel == TX_SMS and $a1->can(B_CHARGE)) // or by SMS when qualified
+      )
   );
   $preapproved = (@$data['preapproved'] or !$taking or $unilateral); // paying OR permitted to charge unilaterally
 //  $state = ($preapproved and !@$data['pay_all'])? TX_DONE : TX_PENDING;
@@ -396,20 +404,22 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   $state = ($preapproved and !$virtual)? TX_DONE : TX_PENDING; // may be changed to TX_TENTATIVE below
   
   // Check the amount and calculate any balance shortfall
-  if ($error = u\badAmount($requestAmount, '>0')) return array($error, array(), FALSE);
+  if ($error = u\badAmount($requestAmount, $scanned ? '' : '>0')) return array($error, array(), FALSE);
   $totalHit = $requestAmount - @$data['rebate']; // leave room for reversing rewards (minus a negative)
   
-  $usd = r\usdPart($totalHit, $taking ? $a2 : $a1, $preapproved, $goods, $confirmed, $shortfall); // short payment or unilateral charge
+  $usd = r\usdPart(abs($totalHit), $reallyTaking ? $a2 : $a1, $preapproved, $goods, $confirmed, $shortfall); // short payment or unilateral charge
 
   if ($shortfall) {
     $short = u\fmtAmt($shortfall);
-    if (is_null($usd)) {
+    $otherName = $a2->fullName;
+    if (is_null($usd)) { // (never. unused.)
       $msg = $taking ? 'shortr from' : 'shortr to';
       $how = 'exchange'; // for 'shortr to' message on web interface
-    } else $msg = $taking ? 'short from' : 'short to';
+    } else $msg = $reallyTaking ? 'short from' : 'short to';
     return array($msg, compact(u\ray('otherName short how')), FALSE);
   }
   $amount = $requestAmount;
+  if ($amount < 0) $usd = -$usd;
   $r = round($amount - $usd, 2);
   
   // Figure rewards and other extra info
@@ -439,8 +449,8 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   $args = r\txReportArgs($a1, $txs[0], TRUE, $shortfall);
 
   if ($confirmed) { // notify other party by email about any confirmed transaction
-    $notice = $taking ? ($preapproved ? 'new charge' : 'new invoice')
-      : ($virtual ? 'new offer' : 'new payment');
+    $notice = $reallyTaking ? ($preapproved ? 'new charge' : 'new invoice')
+      : ($virtual ? 'new offer' : ($amount < 0 ? 'new refund' : 'new payment'));
     if (@$args['otherRewardAmount']) $notice .= '|reward other';
     if (u\abbreviates('new payment', $notice)) {
     //and $payee == \variable_get('cgf_uid')) { // should be any nonprofit? anyone?
@@ -495,7 +505,7 @@ function addCell($number, $validate = FALSE) {
 
   if ($validate) {
     if (!$numberPretty) return array('bad phone', $subs);
-    if ($result = db\q('SELECT * FROM r_sms WHERE number=:numberInternal', compact('numberInternal'))->fetchAssoc()) {
+    if ($result = db\q('SELECT * FROM r_boxes WHERE code=:numberInternal', compact('numberInternal'))->fetchAssoc()) {
       extract($result, EXTR_PREFIX_ALL, 'old');
       if ($old_uid == $myid) return array('already cell', $subs);
       $accountName = accountName($old_uid);
@@ -504,20 +514,15 @@ function addCell($number, $validate = FALSE) {
     return NULL;
   }
   
-  $uid = $myid;
-  $status = SMS_PRIMARY;
-  $phone = $number = $numberInternal;
-  $info = compact(u\ray('uid number status'));
-  //if (!mergeCheck(compact('number'))) 
-  db\insert('r_sms', $info);
-  if (!$mya->phone) $mya->update(compact('phone')); // use it as contact phone, if none yet
-  $number = $numberPretty;
-  return array('report new cell', compact('number'));
+  //$status = SMS_PRIMARY;
+  r\makeDevice($myid, '', $numberInternal);
+  if (!$mya->phone) $mya->update(u\ray('phone', $numberInternal)); // use it as contact phone, if none yet
+  return array('report new cell', u\ray('number', $numberPretty));
 }
 
 function deleteCell($number) {
   $number = u\fmtPhone($number, '+n'); // internal format
-  db\q('DELETE FROM r_sms WHERE number=:number LIMIT 1', compact('number'));
+  db\q('DELETE FROM r_boxes WHERE code=:number LIMIT 1', compact('number'));
   $number = u\fmtPhone($number); // pretty format
   return array('report delete cell', compact('number'));
 }
@@ -557,8 +562,8 @@ function identify($who, $self_message = 'no self-trading') {
   if (($short = u\shortName($who)) === '') $short = '-'; // abbreviations must not be null
   
   $sql = <<<EOF
-    SELECT DISTINCT u.uid, u.fullName FROM users u LEFT JOIN r_sms s ON u.uid = s.uid 
-    WHERE (:who IN (s.number, u.phone, u.mail) OR INSTR(u.name, :short)) AND u.uid>0
+    SELECT DISTINCT u.uid, u.fullName FROM users u LEFT JOIN r_boxes s ON u.uid = s.uid 
+    WHERE (:who IN (s.code, u.phone, u.mail) OR INSTR(u.name, :short)) AND u.uid>0
     ORDER BY u.fullName
 EOF;
 ///  debug(compact('sql', 'who', 'phone', 'short'));
@@ -678,10 +683,10 @@ function accountChoices() {
  */
 function todo($number, $todo = 'nothing', $nonce = 'whatever') {
   if ($todo == 'nothing') {
-    return (object) db\lookup('nonce,todo', 'r_sms', 'number=:number', compact('number'));
+    return (object) db\lookup('nonce,todo', 'r_boxes', 'code=:number', compact('number'));
   } else {
     $nonce = $nonce == 'whatever' ? u\nonce() : $nonce;
-    \db_update('r_sms')->fields(compact('nonce', 'todo'))->condition('number', $number)->execute();
+    \db_update('r_boxes')->fields(compact('nonce', 'todo'))->condition('code', $number)->execute();
     u\EXPECT(todo($number)->nonce == $nonce, 'setting nonce failed');
     return $nonce;
   }

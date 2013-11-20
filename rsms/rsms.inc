@@ -168,6 +168,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'reward' => t('Your @rewardType is @rewardAmount.'),
   'reward other' => t('Your @otherRewardType is @otherRewardAmount.'),
   'new charge' => t('<b>Charge:</b> @otherName charged you @amount for "@payerPurpose".'),
+  'new refund' => t('<b>Refund:</b> @otherName refunded you @amount for "@payerPurpose".'),
   'new payment' => t('<b>Payment:</b> @otherName paid you @amount for "@payeePurpose".'),
   'new invoice' => t('<b>Invoice:</b> @otherName invoiced you @amount for "@payerPurpose". To pay (or deny) this invoice, visit your Transactions page.'),
   'invoice denied' => t('<p><b>Invoice DENIED:</b> Your customer @otherName has declined to pay the following invoice:</p>
@@ -188,6 +189,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'card ordered' => t('Your rCard has been ordered and will be mailed directly to @name.'),
   'balances' => t('Your balance available to spend is @toSpend. You can move up to @toCash today to your bank account.'),
   'you sold out' => t('This week you traded @total worth of rCredits for US Dollars, missing an opportunity for @rebates worth of rebates. To keep this from happening so much, <@a1>click here</a> to change your settings to the recommended minimum balance of @suggested.'),
+  'restricted' => t('You are not authorized to use this device.'),
   
   // notices to staff
   'cache mismatch' => 'Cron cache mismatch: @key=@is (cache) <> @shouldBe (calc)',
@@ -296,8 +298,8 @@ function infer_nonce($message) {
 function create($number, $uid, $status = SMS_PRIMARY) {
   u\EXPECT(compact(u\ray('number uid status')), 'string&notempty id int');
   $number = u\fmtPhone($number, '+n');
-///  debug("creating SMS record for number $number, uid $uid");
-  return db\insert('r_sms', compact(u\ray('number uid status')));
+///  debug("creating SMS record for number $code, uid $uid");
+  return r\makeDevice($uid, '', $number);
 }
 
 /**
@@ -368,4 +370,4 @@ function intent($intent, $command, $pattern, $message) {
 function tt($message, $subs = array()) {return u\tt($message, $subs, TX_SMS);} // TX_SMS in case called from another interface
 
 // one-line functions that need no explanation
-function uid($number) {return (int) db\lookup('uid', 'r_sms', 'number=:number', compact('number'));}
+function uid($number) {return (int) db\lookup('uid', 'r_boxes', 'code=:number', compact('number'));}

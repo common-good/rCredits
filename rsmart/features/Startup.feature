@@ -1,78 +1,40 @@
 Feature: Start up
-As a member
-I WANT to run the rCredits mobile app on my device
-SO I can use it to buy and sell with rCredits.
+AS a member
+I WANT to run the rCredits POS app on my device
+SO I can use it to charge customers through the rCredits system.
 
 Setup:
   Given members:
-  | id      | fullName  | phone  | email         |
-  | NEW.ZZA | Abe One    | +20001 | a@ |
-  | NEW.ZZB | Bea Two    | +20002 | b@ |
-  | NEW.ZZC | Corner Pub | +20003 | c@ |
+  | id   | fullName   | phone  | email | cc  | cc2  | flags               |
+  | .ZZA | Abe One    | +20001 | a@    | ccA | ccA2 | dft,ok,person,bona  |
+  | .ZZB | Bea Two    | +20002 | b@    | ccB |      | dft,ok,person,bona  |
+  | .ZZC | Corner Pub | +20003 | c@    | ccC |      | dft,ok,company,bona |
+  | .ZZF | For Co     | +20006 | f@    | ccF |      | dft,company         |
   And devices:
-  | id      | code  |
-  | NEW.ZZA | codeA |
+  | id   | code |
+  | .ZZC | devC |
   And relations:
-  | id      | main    | agent   | permissions  |
-  | NEW.ZZA | NEW.ZZA | NEW.ZZB |              |
-
-Scenario: Member logs in successfully to initialize device
-  Given member "NEW.ZZA" password is %whatever1
-  When member initializes the device as member "NEW.ZZA" with password %whatever1
-  Then we respond with:
-  | success | message    | code       | my_id   | account_name | allow_change_account | allow_change_agent | require_agent | show_buttons |
-  | 1       | first time | (varies) | NEW.ZZA | Abe One      | 0                    | 1                  | 0             | 3             |
-#op="first_time"
-#update_link (URL of updated app or null if no update is available)
-#allow_change_account=TRUE or FALSE
-#allow_change_agent=TRUE or FALSE
-#require_agent=TRUE or FALSE
-#show_buttons=0, 1, 2, or 3
-
-Scenario: Member initializes with an ill-formed id
-  When member initializes the device as member %random with password %whatever
-  Then we respond with:
-  | success | message |
-  | 0       | bad id  |
-
-Scenario: Device owner is not a member
-  When member initializes the device as member "NEW.ZZZ" with password %whatever1
-  Then we respond with:
-  | success | message        |
-  | 0       | unknown member |
-  
-Scenario: Member types the wrong password
-  When member initializes the device as member "NEW.ZZA" with password %random
-  Then we respond with:
-  | success | message   |
-  | 0       | bad login |
-
-Scenario: Member reruns the app
-  Given member "NEW.ZZA" has initialized a device whose code is %whatever1
-  When the app starts up as code %whatever1
-  Then we respond with:
-  | success | message    | my_id   | account_name | allow_change_account | allow_change_agent | require_agent | show_buttons |
-  | 1       |            | NEW.ZZA | Abe One      | 0                    | 1                  | 0             | 3             |
-#op=”startup”
-#update_link (URL of updated app or null if no update is available)
-#allow_change_account=TRUE or FALSE
-#allow_change_agent=TRUE or FALSE
-#require_agent=TRUE or FALSE
+  | id   | main | agent | permission |
+  | :ZZA | .ZZC | .ZZA  | buy        |
+  | :ZZB | .ZZC | .ZZB  | scan       |
+  | :ZZE | .ZZF | .ZZA  | scan       |
 
 Scenario: Device requests a bad op
-  When the app requests op %random as member "NEW.ZZA" and code "codeA"
-  Then we respond with:
-  | success | message    |
-  | 0       | unknown op |
+  When agent ":ZZA" asks device "devC" for op %random with: ""
+  Then we return error "bad op"
 
-Scenario: Device gives no code
-  When the app starts up as code ""
-  Then we respond with:
-  | success | message       |
-  | 0       | no code given |
+Scenario: Device should have an identifier
+  When agent ":ZZA" asks device "" for op "charge" with:
+  | member | code |
+  | .ZZB   | ccB  |
+  Then we return error "missing device"
   
 Scenario: Device gives a bad code
-  When the app starts up as code %random
-  Then we respond with:
-  | success | message        |
-  | 0       | unknown device |
+  When agent ":ZZA" asks device %random for op "identify" with:
+  | member | code |
+  | .ZZB   | ccB  |
+  Then we return error "unknown device"
+
+Scenario: An Agent for an inactive company tries an op
+  When agent ":ZZE" asks device "devC" for op "charge" with: ""
+  Then we return error "company inactive"

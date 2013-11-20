@@ -80,7 +80,7 @@ function tableDefs($schema = array()) {
     'website' => setupField('primary website', 'varchar 255'),
     'description' => setupField('markup text describing the company', 'text medium'),
     'selling' => setupField('typical description of what this company sells (default transaction purpose)', 'varchar 255'),
-    'structure' => setupField('organizational structure bits', 'int big', 0, '010'),
+    'coFlags' => setupField('organizational structure and permission bits', 'int big', 0, '010'),
   );
   $foreignKeys = foreignKey('uid');
   $indexes = NULL;
@@ -125,17 +125,22 @@ function tableDefs($schema = array()) {
   $indexes = index('ctty');
   $schema['r_stats'] = setupTable('Operating statistics for commununities and overall', $fields, 'id', $foreignKeys, $indexes);
   
-  // table r_boxnames
+  // table r_boxes
   $fields = array(
     'id' => setupField('box name record id', 'serial big'),
-    'boxid' => setupField('machine id', 'int big'),
+    'boxid' => setupField('machine id', 'int medium'), // unique sequence number of this box for this user
+    'code' => setupField('device id', 'varchar 255'), // device identifier (unique to each device)
     'uid' => setupField('account record id', 'int big'),
     'boxName' => setupField('chosen name for this machine, for this account', 'varchar 255'),
+    'todo' => setupField('waiting for confirmation to complete this operation', 'text medium'),
+    'nonce' => setupField('waiting for this nonce, for confirmation', 'varchar 255'), // also transient QR ID
+    'restricted' => setupField('permit no new users of this device', 'int tiny', 0),
+    'access' => setupField('date/time last used', 'int 11', 0), // to trigger deletion after several months
     'created' => setupField('Unixtime record was created', 'int 11', 0),
   );
   $foreignKeys = foreignKey('uid');
-  $indexes = index('uid');
-  $schema['r_boxnames'] = setupTable('Names for devices', $fields, 'id', $foreignKeys, $indexes);
+  $indexes = index('uid') + index('boxid');
+  $schema['r_boxes'] = setupTable('Devices info1', $fields, 'id', $foreignKeys, $indexes);
   
   // table offsite
   $fields = array(
@@ -170,7 +175,7 @@ function tableDefs($schema = array()) {
   $indexes = index('person');
   $schema['r_proxies'] = setupTable('Who represents whom', $fields, 'id', $foreignKeys, $indexes);
   
-  // table r_sms 
+  /* table r_sms 
   $fields = array(
     'number' => setupField('international phone number (eg +12223334444)', 'varchar 16'),
     'uid' => setupField('uid of cell phone owner (one owner per number)', 'int big'),
@@ -181,6 +186,7 @@ function tableDefs($schema = array()) {
   $foreignKeys = foreignKey('uid');
   $indexes = index('uid');
   $schema['r_sms'] = setupTable('SMS cell numbers corresponding to user accounts', $fields, 'number', $foreignKeys, $indexes);
+  */
   
   // table r_txs
   $fields = array(
@@ -322,20 +328,6 @@ function tableDefs($schema = array()) {
   $schema['r_candidates']['description] = 'Candidates to become rTraders';
 */
 
-  // table r_smarts
-  $fields = array(
-    'id' => setupField('record id', 'serial 11'),
-    'code' => setupField('permanent secret identifier for the device', 'varchar 255'),
-    'uid' => setupField('uid of the smart device owner', 'int big'),
-    'defaultAgent' => setupField('uid of the default user of the device', 'int big'), // unused
-    'device' => setupField('human-readable identifier for the smart device', 'varchar 255'),
-    'transientId' => setupField('once-use identifier displayed on the device as a QR for the current account/agent', 'varchar 255'), // not used YET
-    'access' => setupField('date/time last used', 'int 11', 0), // to trigger deletion after several months
-  );
-  $foreignKeys = foreignKey('uid') + foreignKey('defaultAgent');
-  $indexes = index('uid');
-  $schema['r_smarts'] = setupTable('Who owns what smart device', $fields, 'id', $foreignKeys, $indexes);
-  
   // table r_invites
   $fields = array(
     'code' => setupField('secret invitation code', 'varchar 20'),

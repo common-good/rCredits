@@ -59,6 +59,10 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     Gift AMemberContributesPartlyInUSD MAKE
  *     Gift AMemberContributesWithInsufficientFunds MAKE
  *     Relations AMemberAddsARelation MAKE
+ *     TransactR AMemberAsksToChargeAnotherMember MAKE
+ *     TransactR AMemberAsksToPayAnotherMember MAKE
+ *     TransactUsd AMemberAsksToChargeAnotherMember MAKE
+ *     TransactUsd AMemberAsksToPayAnotherMember MAKE
  */
 function memberCompletesFormWithValues($id, $page, $values) {return t\completeForm($id, $page, $values);}
 
@@ -91,6 +95,15 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     Signup AMemberRegistersWithABadCompanyPhone MAKE
  *     Signup AMemberRegistersACompany MAKE
  *     Signup ANewbieRegistersFromElsewhere MAKE
+ *     Transactions AMemberConfirmsNO MAKE
+ *     Transactions AMemberConfirmsOK MAKE
+ *     Transactions AMemberConfirmsOKForADisputedTransaction MAKE
+ *     TransactR AMemberConfirmsRequestToChargeAnotherMember MAKE
+ *     TransactR AMemberConfirmsRequestToPayAnotherMember MAKE
+ *     TransactR AMemberConfirmsRequestToPayTheSameMemberTheSameAmount MAKE
+ *     TransactR AMemberConfirmsRequestToChargeTheSameMemberTheSameAmount MAKE
+ *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember MAKE
+ *     TransactUsd AMemberConfirmsRequestToPayAnotherMember MAKE
  */
 function memberConfirmsFormWithValues($id, $page, $values) {return t\completeForm($id, $page, $values, TRUE);}
 
@@ -153,6 +166,9 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  *     Signup AMemberRegistersACompany BOTH
  *     Signup ANewbieRegistersFromElsewhere TEST
  *     Summary Setup MAKE
+ *     Transactions Setup MAKE
+ *     TransactR Setup MAKE
+ *     TransactUsd Setup MAKE
  */
 function members($list) {return t\members($list);}
 
@@ -171,6 +187,19 @@ function members($list) {return t\members($list);}
  *     Relations Setup MAKE
  *     ScanCard Setup MAKE
  *     Summary Setup MAKE
+ *     Transactions Setup MAKE
+ *     Transactions AMemberClicksNO MAKE
+ *     Transactions AMemberConfirmsNO MAKE
+ *     Transactions AMemberLooksAtTransactionsForThePastYear MAKE
+ *     Transactions TransactionsWithOtherStatesShowUpProperly MAKE
+ *     Transactions AMemberClicksOK MAKE
+ *     Transactions AMemberConfirmsOK MAKE
+ *     Transactions AMemberConfirmsOKForADisputedTransaction MAKE
+ *     TransactR Setup MAKE
+ *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
+ *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
+ *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
+ *     TransactUsd AMemberConfirmsRequestToPayAnotherMember TEST
  */
 function transactions($list) {return t\transactions($list);}
 
@@ -194,6 +223,14 @@ function transactions($list) {return t\transactions($list);}
  *     Signup AMemberRegistersWithAMissingCompanyPhone TEST
  *     Signup AMemberRegistersWithABadCompany TEST
  *     Signup AMemberRegistersWithABadCompanyPhone TEST
+ *     Transactions AMemberConfirmsOK TEST
+ *     Transactions AMemberConfirmsOKForADisputedTransaction TEST
+ *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
+ *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
+ *     TransactR AMemberConfirmsRequestToPayTheSameMemberTheSameAmount TEST
+ *     TransactR AMemberConfirmsRequestToChargeTheSameMemberTheSameAmount TEST
+ *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
+ *     TransactUsd AMemberConfirmsRequestToPayAnotherMember TEST
  */
 function weSayWithSubs($type, $index, $subs) {
   global $testOnly;
@@ -255,7 +292,12 @@ function weTellStaffWithSubs($topic, $subs) {return t\weTellStaff($topic, $subs)
 /**
  * we show (ARG) with subs: (ARG)
  *
- * in: 
+ * in: Transactions AMemberClicksNO TEST
+ *     Transactions AMemberClicksOK TEST
+ *     TransactR AMemberAsksToChargeAnotherMember TEST
+ *     TransactR AMemberAsksToPayAnotherMember TEST
+ *     TransactUsd AMemberAsksToChargeAnotherMember TEST
+ *     TransactUsd AMemberAsksToPayAnotherMember TEST
  */
 function weShowWithSubs($page, $subs) {
   global $testOnly;
@@ -309,6 +351,14 @@ function weShowWithSubs($page, $subs) {
  *     Signup AMemberRegistersACompany TEST
  *     Signup ANewbieRegistersFromElsewhere TEST
  *     Summary AMemberClicksOnTheSummaryTab TEST
+ *     Transactions AMemberClicksNO TEST
+ *     Transactions AMemberConfirmsNO TEST
+ *     Transactions AMemberLooksAtTransactionsForThePastYear TEST
+ *     Transactions AMemberLooksAtTransactionsForThePastFewDays TEST
+ *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
+ *     Transactions AMemberClicksOK TEST
+ *     Transactions AMemberConfirmsOK TEST
+ *     Transactions AMemberConfirmsOKForADisputedTransaction TEST
  */
 function weShowWith($title, $content = FALSE, $showDebugs = TRUE) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -357,6 +407,9 @@ function withoutOptions($options) {
  *     Signup AMemberRegistersWithAnExistingCompany TEST
  *     Signup AMemberRegistersACompany TEST
  *     Summary Setup MAKE
+ *     Transactions Setup MAKE
+ *     TransactR Setup MAKE
+ *     TransactUsd Setup MAKE
  */
 function relations($relations) {return t\relations($relations);}
 
@@ -376,6 +429,17 @@ function relations($relations) {return t\relations($relations);}
  *     ScanCard Setup BOTH
  *     Signup AMemberRegistersACompany TEST
  *     Summary Setup TEST
+ *     Transactions Setup BOTH
+ *     Transactions AMemberClicksNO MAKE
+ *     Transactions AMemberConfirmsNO MAKE
+ *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
+ *     TransactR Setup BOTH
+ *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
+ *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
+ *     TransactUsd Setup MAKE
+ *     TransactUsd AMemberAsksToChargeAnotherMember TEST
+ *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
+ *     TransactUsd AMemberConfirmsRequestToPayAnotherMember TEST
  */
 function balances($list) {return t\balances($list);}
 
@@ -417,6 +481,11 @@ function usd($list) {return t\usd($list);}
  *     Signup AnInvitedNewbieVisitsTheRegistrationPage MAKE
  *     Signup AMemberRegistersACompany MAKE
  *     Summary AMemberClicksOnTheSummaryTab MAKE
+ *     Transactions AMemberClicksNO MAKE
+ *     Transactions AMemberLooksAtTransactionsForThePastYear MAKE
+ *     Transactions AMemberLooksAtTransactionsForThePastFewDays MAKE
+ *     Transactions TransactionsWithOtherStatesShowUpProperly MAKE
+ *     Transactions AMemberClicksOK MAKE
  */
 function memberVisitsPage($id, $page) { // pass options in URL
   global $testOnly; if ($testOnly) return FALSE;
@@ -615,6 +684,11 @@ function memberOnetimePasswordIs($id, $pass) {
  * we notice (ARG) to member (ARG) with subs: (ARG)
  *
  * in: Gift AMemberContributes TEST
+ *     Transactions AMemberConfirmsOK TEST
+ *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
+ *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
+ *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
+ *     TransactUsd AMemberConfirmsRequestToPayAnotherMember TEST
  */
 function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice, $id, $subs);}
 
@@ -693,6 +767,7 @@ function dwollaIsDown() {
  *     Get AMemberAsksToDoTwoTransfersOutInOneDay MAKE
  *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
  *     Summary Setup MAKE
+ *     Transactions Setup MAKE
  */
 function usdTransfers($tx) {return t\usdTransfers($tx);}
 
@@ -748,6 +823,8 @@ function agentCardCodeIs($id, $cardCode2) {
  * in: Community Setup MAKE
  *     Download Setup MAKE
  *     Summary Setup MAKE
+ *     Transactions Setup MAKE
+ *     TransactUsd AMemberConfirmsRequestToPayAnotherMember MAKE
  */
 function cronRuns($op) {return t\cronRuns($op);}
 
@@ -770,6 +847,9 @@ function memberHasADwollaAccountStep($id, $step) {
  *     Relations MemberCompanyHasRelations TEST
  *     Relations ItsComplicated TEST
  *     Signup AnInvitedNewbieVisitsTheRegistrationPage TEST
+ *     Transactions AMemberLooksAtTransactionsForThePastYear TEST
+ *     Transactions AMemberLooksAtTransactionsForThePastFewDays TEST
+ *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
  */
 function without($content) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -803,6 +883,8 @@ function weShowWithout($arg1, $arg2) {
  *
  * in: RealUsd AMixedRCreditsUSDTransactionHappens TEST
  *     Relations ItsComplicated TEST
+ *     Transactions AMemberLooksAtTransactionsForThePastYear TEST
+ *     Transactions AMemberLooksAtTransactionsForThePastFewDays TEST
  */
 function with($content) {return weShow($content);}
 

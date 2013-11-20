@@ -51,37 +51,39 @@ class acct {
    * @param assoc $info: array of field values for new account
    */
   private function createNew($info) {
-    extract($info, EXTR_PREFIX_ALL, 'my');   
-    if (isset($my_number) and !isset($my_phone)) $my_phone = $my_number;
-    if (isset($my_phone)) $phone = u\fmtPhone($my_phone, '+n');
+    $fields = 'phone number mail pass secure fullName name flags rebate country state postalCode data created uid';
+    extract(u\just($fields, $info));
+    u\setDft($phone, @$number);    
+    if ($phone) $phone = u\fmtPhone($phone, '+n');
     
     $status = TRUE;
-    $mail = $init = @$my_mail ?: (@$my_email ?: '');
-    $pass = r\passHash(trim(@$my_pass ?: \user_password()));
-    $short_name = @$my_fullName ? u\shortName($my_fullName) : '';
-    $name =  @$my_name ?: (@$short_name ?: tempName($info));
-    $fullName = @$my_fullName ?: $info['name'];
-    $flags = @$my_flags ?: B_DFT;
-    $rebate = @$my_rebate ?: R_REBATE;
-    if (($state = @$my_state) and !is_numeric($state)) { // allow state abbrevs within US
+    $init = $mail = @$mail ?: '';
+    $pass = r\passHash(trim(@$pass ?: \user_password()));
+    $short_name = @$fullName ? u\shortName($fullName) : '';
+    u\setDft($name, @$short_name ?: tempName($info));
+    u\setDft($fullName, $info['name']);
+    u\setDft($flags, B_DFT);
+    u\setDft($rebate, R_REBATE);
+    if (!is_numeric(@$state)) { // allow state abbrevs within US
       $state = db\lookup('id', 'r_states', 'abbreviation=:state and country_id=:US_COUNTRY_ID', compact('state'));
     }
-    $community = communityUid(@$my_postalCode); // defaults to current server
-    $data = serialize(@$my_data ?: array());
+    $community = communityUid(@$postalCode); // defaults to current server
+    $data = serialize(@$data ?: array());
 //    $frozen = serialize(array());
-    $created = $login = $access = @$my_created ?: REQUEST_TIME;
+    $created = $login = $access = @$created ?: REQUEST_TIME;
     $companyInfo = u\just(R_COMPANY_FIELDS, $info);
     foreach ($companyInfo as $key => $value) unset($info[$key]);
 
     $record = compact(u\ray('phone status mail init pass name fullName state flags rebate community data created login access'));
     foreach ($record as $key => $value) unset($info[$key]);
+    unset($info['secure']); // special case because of encryption (needed for testing)
 
     $DBTX = db_transaction();
-    if ($uid = @$my_uid) {
+    if (@$uid) {
       db\insert('users', $record += compact('uid')); // predestined uid (probably for testing)
       $region = communityUid();
     } else {
-      $region = r\region(@$my_country, @$state, @$my_postalCode);
+      $region = r\region(@$country, @$state, @$postalCode);
       for ($try = 0; $try < 20; $try++) { // limit the retries
         $uid = $record['uid'] = self::nextId($region);
         if (db\insert('users', $record)) break;
@@ -94,8 +96,8 @@ class acct {
       if ($flags & u\bit(B_COMPANY)) db\insert('r_companies', $companyInfo);
     }
     
-    if (isset($my_number)) {
-      $success = SMS\create($my_number, $uid);
+    if (isset($number)) {
+      $success = SMS\create($number, $uid);
       u\EXPECT($success, 'Unable to create SMS record.');
     }
 
@@ -103,7 +105,7 @@ class acct {
     self::$records[$this->id] = (object) ($record + $info);
     
     $cardCode = r\cardCode(r\quid($uid));
-    $secure = compact('cardCode');
+    u\setDft($secure, compact('cardCode'));
     $this->update(compact('secure') + $info); // this is easier to do after saving the record
     unset($DBTX); // commit
   }
@@ -223,7 +225,7 @@ class acct {
    * @param assoc $info: data to update
    * @param string $just: update only these fields (update all if NULL, none if '')
    *   The flags field will always be included.
-   * @return: FALSE if update fails (saving either onsite or offsite)
+   * @return: TRUE if update succeeds, FALSE if update fails (saving either onsite or offsite)
    */
   public function update($info, $just = NULL) {
     $this->reread();
@@ -258,7 +260,7 @@ class acct {
   public function usd($info = FALSE, &$err = '') {return new r\usd($this, $info, $err);}
   public function proSe() {return ($this->id == $this->agentId);}  
   public function qid() {return $this->proSe() ? $this->mainQid : r\quid($this->id, $this->agentId);}
-  public function isNonprofit() {return (bool) ($this->structure & u\bit(R_NONPROFIT));}
+  public function isNonprofit() {return (bool) ($this->coFlags & u\bit(CO_NONPROFIT));}
 //  public function gotContact() {return ($this->can(B_PHONE_OK) and $this->address and $this->postalAddr and $this->city and $this->country and $this->postalCode and $this->can(B_SS_OK));}
   
   /**
@@ -495,7 +497,7 @@ EOF;
    * @param string $err (returned): the error message, if any
    * @return TRUE if success
    */
-  function createUsdAccount(&$err) {
+  function createUsdAccount(&$err = '') {
     $usdPass = user_password(20) . '*B2'; // satisfy Dwolla (and our own security)
     $usdEmail = strtolower(\user_password(4) . '.' . $this->mainQid) . '@rc4.me';
     $usdPin = u\randomString(4, 'digits');
@@ -505,6 +507,7 @@ EOF;
     $this->update(compact('secure'));
     $us = new r\usd($this);
     if ($this->can(B_PERSON)) {
+      if (!isPRODUCTION and !$this->dob) return TRUE; // don't annoy us with errors we don't care about
       list ($first, $last) = u\parseName($this->fullName);
       return $us->register('Personal', u\ray('first last dob', @$first, @$last, $this->dob), 'true', $err);
     } else {
@@ -519,7 +522,7 @@ EOF;
    */
   public function smsNumber() {  
     $id = $this->id;
-    return db\lookup('number', 'r_sms', 'uid=:id AND status=:SMS_PRIMARY', compact('id'));
+    return db\lookup('code', 'r_boxes', "uid=:id AND code REGEX '+[:digit:]{7,15}'", compact('id')); // was status=:SMS_PRIMARY
   }
 
   /**
@@ -540,6 +543,40 @@ EOF;
     if (!$this->can(B_BANK) and $this->dwStatus() >= DW_VSAVINGS) $this->setBit(B_BANK, TRUE, FALSE);
   }
   
+  /**
+   * Say whether this company account has the bit.
+   * @param int $bit: the bit in question (return all, if omitted)
+   * @return TRUE if the bit is there, else FALSE (or an integer bit collection if no param)
+   */
+  public function coCan($bit = NULL) {
+    return is_null($bit) ? $this->coFlags : ($this->coFlags & u\bit($bit));
+  }
+  
+  /**
+   * Set the bit in the company field (coFlags) to the given value.
+   * @param int $bit: number of bit to set (0 - 31)
+   * @param bool $on: whether to set it ON or OFF
+   * @param boot $now: whether to write to the database (DEFAULT TRUE) or just to the cache (awaiting write)
+   */
+  public function setCoBit($bit, $on = TRUE) {
+    $bit = u\bit($bit0 = $bit);
+    $coFlags = $on ? ($this->coFlags | $bit) : ($this->coFlags & ~$bit);
+    $this->update(compact('coFlags'));
+  }
+  
+  /**
+   * Set all appropriate bits in the flags or coFlags field.
+   * (called in form _submit functions)
+   */
+  public function setBits($bits, $values, $prefix) {
+    foreach (u\ray($bits) as $bitName) {
+      if (substr($bitName, 0, 1) == 'u') continue; // undefined
+      $bit = u\consta($prefix, $bitName);
+      $value = isset($values[$bit]); // isset because bit 0 is 0 when checked
+      if ($prefix == 'co') $this->setCoBit($bit, $value); else $this->setBit($bit, $value, FALSE);
+    }	  
+  }  
+
   /**
    * Say whether this account/agent has the permission.
    * @param int $permission: the permission in question (DEFAULT B_READ)
@@ -612,15 +649,14 @@ function IA($quid = '', $no_abbrev = TRUE) {
   if (!u\isQid($quid) and !$no_abbrev) $quid = R_SERVER_ID . $quid;
   if (!u\isQid($quid)) return FALSE;
 
-  list ($zuid, $regionUid) = r\unQid($quid);
-  if (($reid = -$zuid) > 0) {
+  list ($zid, $regionUid) = r\unQid($quid); // unQid not unQuid
+  if (($reid = -$zid) > 0) { // company agent
     if (!$record = relation('main,other', 'reid=:reid', compact('reid'))) return FALSE;
-    $result = array_values($record);
+    return array_values($record);
   } else {
-    $zuid = r\unQuid($quid);
-    $result = array($zuid, $zuid);
+    $zuid = r\unQuid('', $zid, $regionUid); // unQuid not unQid
+    return array($zuid, $zuid); // pro Se
   }
-  return $result;
 }
 
 /**

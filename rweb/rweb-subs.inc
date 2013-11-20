@@ -85,7 +85,7 @@ EOF
   'missing field' => t('Missing a required field: @field'),
   'no txs' => t('There are no transactions in that period.'),
   'no relations' => t('There are not yet any relations for this account.'),
-  'no cells' => t('This account has no related cell phones.'),
+  'no devices' => t('Surprisingly, this account has no related devices.'),
   'required field' => t('@field must not be blank.'),
   'duplicate email' => t('"@duplicateAccount" is already using that email address. If you want to use the same email address for this account, add a tag to the local part, for example "@emailTagged".'), // used in user.module
 //  'duplicate email' => t('That email address is already taken by @duplicateAccount.'),
@@ -339,8 +339,8 @@ function box() {
 
 function boxUser($boxid, $uid) {
   if ($boxUser = @$_COOKIE[$cookid = 'box' . $uid]) return $boxUser;
-  $boxName = db\lookup('COUNT(*)', 'r_boxnames', 'uid=:uid', compact('uid'));
-  $id = db\insert('r_boxnames', u\ray('boxid uid boxName created', $boxid, $uid, $boxName + 1, REQUEST_TIME));
+  $boxName = db\lookup('COUNT(*)', 'r_boxes', 'uid=:uid', compact('uid'));
+  $id = db\insert('r_boxes', u\ray('boxid uid boxName created', $boxid, $uid, $boxName + 1, REQUEST_TIME));
   r\setCook($cookid, $id);
 }
 
@@ -625,12 +625,12 @@ function acctType($acctType) {
     
   if ($acctType >= R_SELF_EMPLOYED) { // company
     $type = $GLOBALS['account types'][$acctType];
-    $structure =
+    $coFlags =
         ($acctType == R_SELF_EMPLOYED ? u\bit(R_SELF_EMPLOYED)
-      : (strpos($type, 'nonprofit') !== FALSE ? u\bit(R_NONPROFIT)
-      : (strpos($type, 'corporation') !== FALSE ? (u\bit(R_CORPORATION) | u\bit(R_PUBLICLY_TRADED)) : 0)));
+      : (strpos($type, 'nonprofit') !== FALSE ? u\bit(CO_NONPROFIT)
+      : (strpos($type, 'corporation') !== FALSE ? (u\bit(CO_CORPORATION) | u\bit(CO_PUBLICLY_TRADED)) : 0)));
   }
-  return compact(u\ray('flags structure'));
+  return compact(u\ray('flags coFlags'));
 }
 
 /**
@@ -998,7 +998,7 @@ function identifiers($acct) {
   $mya = r\acct();
   list ($agent, $company) = $acct->proSe() ? array($acct, '') : array(r\acct($acct->agentId), $acct->fullName);
   $location = r\location($acct);
-  $pic = ($mya and $mya->can(B_CHARGE)) ? $acct->agent->picture() : ''; // let qualified companies see the picture
+  $pic = ($mya and $mya->co()) ? $acct->agent->picture() : ''; // let companies see the picture
   return <<<EOF
     $pic
     <div id="id-other">

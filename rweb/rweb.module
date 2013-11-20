@@ -92,7 +92,7 @@ function rweb_menu() {
     'account/bank' => r\Web\menu(t('Bank Info'), MENU_LOCAL_TASK, 'showForm', array('Bank', 2), 'manage'),
     'account/company' => r\Web\menu(t('Company Info'), MENU_LOCAL_TASK, 'showForm', array('Company'), 'manage company'),
     'account/relations' => r\Web\menu(t('Relations'), MENU_LOCAL_TASK, 'showForm', array('Relations'), 'manage'),
-    'account/cells' => r\Web\menu(t('Cell Phones'), MENU_LOCAL_TASK, 'showForm', array('Cells'), 'manage'),
+    'account/boxes' => r\Web\menu(t('Devices'), MENU_LOCAL_TASK, 'showForm', array('Boxes'), 'manage'),
     'account/proxies' => r\Web\menu(t('Proxies'), MENU_LOCAL_TASK, 'showForm', array('Proxies'), 'manage person'),
     'account/settings' => r\Web\menu(t('Settings'), MENU_LOCAL_TASK, 'showForm', array('Settings'), 'manage'),
     'account/password' => r\Web\menu(t('Request New Password'), MENU_CALLBACK, 'showForm', array('Pass', 2), '', $anyone),

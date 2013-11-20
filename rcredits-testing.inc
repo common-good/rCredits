@@ -49,8 +49,10 @@ function notices($list) {return makeRecords($list, 'Notice');}
 function members($list) {return makeRecords($list, 'Account');}
 function relations($list) {return makeRecords($list, 'Relation');}
 function transactions($list) {return makeRecords($list, 'Tx', TRUE);}
-function balances($list) {return makeRecords($list, 'Balances');}
+function balances($list) {return makeRecords($list, 'Balance');}
 function membersHave($list) {return makeRecords($list, 'MemberFields');}
+function selling($list) {return makeRecords($list, 'Selling');}
+function companyFlags($list) {return makeRecords($list, 'CompanyFlags');}
 
 /**
  * Fabricate a bogus account.
@@ -63,9 +65,10 @@ function makeAccount($info = array(), $testOnly = FALSE) {
 
   u\setDft($id, r\acct::nextId()); // default to first available number
   $uid = uid($id); // change .AAB to 1, etc.
+
   if (@$email) $mail = $info['mail'] = $email;
 
-  if (!$testOnly) { // when making, set many defaults
+  if (!$testOnly) { // when making, set many defaults and mods
     u\setDft($rebate, 5); // should be R_REBATE, but many of the test would have to be written on changing it
     u\setDft($fullName, 'makeAccount ' . randomString(20, 'word'));
     $name = u\shortName($fullName);
@@ -74,11 +77,16 @@ function makeAccount($info = array(), $testOnly = FALSE) {
     u\setDft($mail, ''); // Don't use "$name@example.com"
     u\setDft($community, r\serverUid());
     u\setDft($postalCode, '01301');
+    u\setDft($country, 'US');
     if (@$dob) $dob = u\s2t(@$dob);
     if (@$federalId) u\digits($federalId);
     $moneyFields = 'share committed floor r usd rewards'; // not minimum because NULL means not set, in Membership page
     foreach (u\ray($moneyFields) as $one) u\setDft($$one, 0);
-    $fixFields = 'rebate fullName name pass mail community postalCode dob federalId ' . $moneyFields;
+    foreach (u\ray('cc cc2') as $one) if (isset($$one)) {
+      $secure[str_replace('cc', 'cardCode', $one)] = $$one;
+      unset($info[$one]);
+    }
+    $fixFields = 'rebate fullName name pass mail secure community postalCode country dob federalId ' . $moneyFields;
   } else $fixFields = '';
 
   $flags0 = @$flags;
@@ -199,6 +207,25 @@ function makeRelation($info, $testOnly = FALSE) {
 }
 
 /**
+ * List what a company sells
+ */
+function makeSelling($info, $testOnly = FALSE) {
+  extract(u\just('id selling', $info));
+  $selling = str_replace(',', "\n", $selling);
+  return r\acct(t\uid($id))->update(compact('selling'));
+}
+
+/**
+ * List what flags the company has set
+ */
+function makeCompanyFlags($info, $testOnly = FALSE) {
+  extract(u\just('id flags', $info));
+  $coFlags = 0;
+  if ($flags) foreach (u\ray($flags) as $one) $coFlags |= u\bit(u\consta('co', $one));
+  return r\acct(t\uid($id))->update(compact('coFlags'));
+}
+
+/**
  * Return TRUE if the notice has been queued to member $id
  */
 function notice($notice, $id, $subs) {
@@ -223,7 +250,7 @@ function notice($notice, $id, $subs) {
  */
 function makeMemberFields($one, $testOnly) {
   $balFields = u\just('id dw/usd r usd balance dwolla rewards minimum share committed', $one);
-  if (!makeBalances($balFields, $testOnly)) return;
+  if (!makeBalance($balFields, $testOnly)) return;
 
   $a = r\acct($id = t\uid($one['id']));
   foreach ($balFields as $k => $v) unset($one[$k]); // don't rehandle balance fields, and already got id
@@ -242,7 +269,7 @@ function makeMemberFields($one, $testOnly) {
  * "dw/usd" means set or test both dwolla and usd
  * "?" in a field means ignore its value when testing
  */
-function makeBalances($one, $testOnly) {
+function makeBalance($one, $testOnly) {
   if (isset($one['dw/usd'])) {
     $one['usd'] = $one['dwolla'] = $one['dw/usd'];
     unset($one['dw/usd']);
@@ -375,7 +402,7 @@ function uid($id) {
   return is_numeric($id) ? $id
     : (($id == 'community' or $id == 'ctty') ? r\serverUid() 
     : ($id == 'cgf' ? \variable_get('cgf_uid')
-    : r\unQuid(fullQid($id))));
+    : r\unQuid($id)));
 }
 
 /**
@@ -482,18 +509,12 @@ function fixEmail(&$email) {
   return $email;
 }
 
-function makePicture($picture, $acct) {
-  $filename = "$picture.jpg";
-  $uri = "public://pictures/$filename";
-  $filemime = 'image/jpeg';
-  $status = 1;
-  $picture = $uid = $fid = $acct->id;
-  $info = compact(u\ray('fid uid filename uri filemime status'));
-//  if (!db\insert('file_managed', $info)) return FALSE;
-//  if (!$acct->update(compact('picture'))) return FALSE;
-  return TRUE;
+function makePicture($picture, $a) {
+  $filename = DRUPAL_ROOT . $a->auxFilename('picture', TRUE);
+  return (bool) file_put_contents($filename, $picture);
 }
 
+// UNUSED
 function getPicture($picture) {
   return file_get_contents(DRUPAL_ROOT . R_PICTURE_DIR . "/$picture.jpg");
 }
@@ -524,25 +545,24 @@ function subAgo($string, $fmt) {
 }
 
 /**
- * This needs works, since we revised rsmart.inc
+ * Send an RPC API request to the server, for rPOS.
  */
-function hitServer($op, $agent, $code = '', $account_id = '', $extra = array()) {
-  if (!$code) unset($code);
-  if (!$account_id) unset($account_id); else $account_id = trim($account_id);
-  if ($op != 'startup') { // startup RETURNS my_id rather than asking for it
-    $agent = trim($agent);
-    if (strpos($agent, R_AGENT_MARK) or !@$code) {
-      $my_id = $agent;
-    } else {
-      $acct = r\acct(db\lookup('owner', 'r_smarts', 'code=:code', compact('code')), $agent);
-      $my_id = $acct ? $acct->qid() : $agent; // accommodate bad agents
-    }
-  }
-  $json = u\jsonEncode(compact(u\ray('op my_id code account_id')) + $extra);
-  output($json, 'input'); // keep this
-  r\Smart\pos(compact('json'));
-//  be\send($json); // remember the server's response (this is the real test, once most bugs are gone)
+function hitServer($op, $extra = array(), $agent, $device = '', $version = '999') {
+  global $rposResult;
+  $agent = t\fullQid($agent);
+  if (@$extra['member']) $extra['member'] = t\fullQid($extra['member']);
+  $input = compact(u\ray('op agent device version')) + $extra;
+  t\output('request: ' . print_r($input, 1), 'input'); // keep this
+  $rposResult = r\Smart\pos($input);
+  if ($op != 'photo') $rposResult = (array) json_decode($rposResult);
+  t\output('answer: ' . print_r($rposResult, 1), 'output');
   return TRUE;
+}
+
+function parseQr($qr) {
+  list ($member, $m, $code) = preg_split('/([\.-])/', $qr, 0, PREG_SPLIT_DELIM_CAPTURE);
+  $member = R_SERVER_ID . ($m == '-' ? ':' : $m) . $member;
+  return array($member, $code);
 }
 
 function snapShot(&$form) { // (additional sta values have no effect at this stage)
@@ -867,16 +887,17 @@ function clear($ch) {
   global $channel; $channel = $ch;
 
   $cgfUid = \variable_get('cgf_uid');
-  $tables = 'r_do r_notices r_sms r_txs r_relations r_log r_invites r_companies r_gifts r_smarts r_proxies r_stats r_usd r_user_industries queue';
+  $tables = 'r_boxes r_companies r_do r_gifts r_invites r_log r_notices r_proxies r_relations r_txs r_stats r_usd r_user_industries queue';
 
   db\q('DELETE FROM users WHERE uid>:cgfUid OR (uid>1 AND uid<:cgfUid-1)', compact('cgfUid'));
   foreach (u\ray($tables) as $one) db\q("TRUNCATE $one");
   db\q('UPDATE users SET floor=0,minimum=NULL,r=0,usd=0,rewards=0,committed=0');
 
-  $files = glob(DRUPAL_ROOT . R_PICTURE_DIR . "/*"); // get all picture file names
-  foreach($files as $file){ // iterate files
-    if (is_numeric($basename = basename($file)) and $basename > $cgfUid) unlink($file);
-  }
+//  $files = glob(DRUPAL_ROOT . R_PICTURE_DIR . "/*"); // get all picture file names
+  $dir = DRUPAL_ROOT . R_PICTURE_DIR;
+  $zza = '' . r\unQuid('.ZZA');
+  $zza = substr($zza, 0, strlen($zza) - 1); // ignore last digit
+  shell_exec(str_replace('/', '\\', "DEL \"$dir/$zza*\""));
 
 //  t\setupDwAccts();
 
@@ -994,3 +1015,5 @@ function seq($table = 'r_usd') {
   u\EXPECT(!db\exists('r_usd', "$k=:id", compact('id')), "duplicate seq: $id in table $table");
   return $id;
 }
+
+function tlog($msg) {u\log($msg, 'debug');}

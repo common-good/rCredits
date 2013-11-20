@@ -41,7 +41,7 @@ define('R_CONCEALED_FIELDS', 'code password pass oneTimeLoginUrl'); // fields to
 define('R_DATE_FIELDS', 'created completed sent invited giftDate signed login access yesterday'); // date field names for testing
 define('R_DATA_FIELDS', ''); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'usd r rewards floor committed'); // financial amount fields in account record
-define('R_COMPANY_FIELDS', 'website description selling structure'); // fields in r_companies
+define('R_COMPANY_FIELDS', 'website description selling coFlags'); // fields in r_companies
 define('R_SECURE_FIELDS', 'usdType usdEmail usdPass usdPin auth pin cardCode cardCode2'); // non-personal encrypted fields
 define('R_SECRET_FIELDS', 'federalId dob idProof answer'); // personal identifying information
 define('R_SECRET_URL', isPRODUCTION ? 'http://rcredits.org' : (isDEV ? 'http://localhost/rcredits-promo' : 'http://' . STAGE)); // where to store secrets
@@ -112,19 +112,26 @@ define('R_DFT_PICTURE_WIDE', R_PICTURE_DIR . '/no-photo-available-wide.jpg'); //
 
 // account type bits
 define('R_PERSONAL', 0);
-define('R_SELF_EMPLOYED', 1); // this type is also used for commercial account structure
+define('R_SELF_EMPLOYED', 1); // this type is also used as a commercial account structure flag (see below)
 define('R_COMMERCIAL', 2); // not personal (used in testing)
 $GLOBALS['account types'] = array(t('personal'), t('personal AND commercial'), t('commercial (but not publicly traded)'), t('publicly traded corporation'), t('nonprofit or government'));
 
-// Commercial Account structure (bits)
+// Commercial Account flags (bits)
 // R_SELF_EMPLOYED 1 -- already defined above
-define('R_PARTNERSHIP', 2);
-define('R_CORPORATION', 3);
-define('R_NONPROFIT', 4);
-define('R_WORKER_COOP', 5);
-define('R_CONSUMER_COOP', 6);
-define('R_GOVERNMENT', 7);
-define('R_PUBLICLY_TRADED', 8);
+define('CO_PARTNERSHIP', 2);
+define('CO_CORPORATION', 3);
+define('CO_NONPROFIT', 4);
+define('CO_WORKER_COOP', 5);
+define('CO_CONSUMER_COOP', 6);
+define('CO_GOVERNMENT', 7);
+define('CO_PUBLICLY_TRADED', 8);
+
+define('CO_CAN_BITS', 15); // where the company permission bits start (for shifting). These match in rPOS!!
+define('CO_u0', 15);
+define('CO_REFUND', 16);
+define('CO_SELL_CASH', 17);
+define('CO_BUY_CASH', 18);
+define('CO_CAN_BIT_DESCS', 'u0,refund,sell cash,buy cash');
 
 // Permissions, options, and flags (flags field in account record)
 // If we need more bits, create a flags2 field and make the B_ defs negative for acct::hasBit and setBit
@@ -136,7 +143,7 @@ define('B_BANK', 4); // has an effective connected bank account
 define('B_PERSON', 5); // personal account
 define('B_COMPANY', 6); // company account (could be personal also, for independent contractor)
 define('B_u7', 7); // 
-define('B_CHARGE', 8); // can charge customers without confirmation
+define('B_CHARGE', 8); // UNUSED (any company can do this) can charge customers without confirmation
 define('B_u9', 9); // 
 define('B_PAYEX', 10); // automatically pay employees and suppliers virtually
 define('B_u11', 11); // 
@@ -280,36 +287,42 @@ function txReportArgs($acct, $tx, $getMyBalance = FALSE, $shortfall = 0) {
   global $lastXid; $lastXid = $xid; // remember last transaction for current user, for potential undo (here and on undo)
 
   $toMe = ($payee == $acct->id);
-  
+  $reverses = isset($data['undoes']);
   $role = $toMe ? 'payee' : 'payer';
   u\both($tx, 'purpose', $toMe, $payeeFor, $payerFor);
   u\both($tx, 'tid', $toMe, $payeeTid, $payerTid);
   list ($payerPurpose, $payeePurpose) = array($payerFor, $payeeFor); // clearer names, for substitutions
   $tofrom = $toMe ? t('from') : t('to');
   $uid = $otherUid = ($toMe ? $payer : $payee);
-  u\both($tx, 'did', $toMe, t('charged'), $goods ? t('paid') : t('credited'));
-  $confirmAction = $toMe ? t('charge') : ($goods ? t('pay') : t('credit'));
+  $confirmAction = $toMe ? t('charge') : t('credit');
+  u\both($tx, 'did', $toMe, t('charged'), t('credited'));
+
+  If ($amount < 0) { // for POS
+    $amount = -$amount; // rephrase as positive
+    $tofrom = t('to');
+    $confirmAction = $toMe ? t('credit') : t('charge');
+    u\both($tx, 'did', $toMe, $goods ?  t('refunded') : t('credited'), ($reverses and $goods) ? t('re-charged') : t('charged'));
+  }
+
   $amount = u\fmtAmt($amount);
   $short = u\fmtAmt($shortfall);
-  
-  if ($state != TX_PENDING and $state != TX_DISPUTED and $goods) {
-    u\both($tx, 'rewardType', $toMe, t('bonus'), t('rebate'));
-    u\both($tx, 'rewardAmount', $toMe, fmtPosAmt($bonus), fmtPosAmt($rebate));
-  }
-  $myName = $acct->fullName;
-  $otherName = userField('fullName', $otherUid);
-  $created = u\fmtDate($created);
-
   if ($getMyBalance) {
     if ($acct->can(B_BUY)) $balance = u\fmtAmt($acct->rAvailable('buy', TRUE));
   }
+  
+  if ($state != TX_PENDING and $state != TX_DISPUTED and $goods) {
+//    u\both($tx, 'rewardType', $toMe, t('bonus'), t('rebate'));
+    u\both($tx, 'rewardType', $toMe, t('reward'), t('reward'));
+    u\both($tx, 'rewardAmount', $toMe, u\fmtAmt(@$bonus + 0), u\fmtAmt(@$rebate + 0));
+  }
+  $myName = $acct->fullName;
+  $otherName = r\acct($otherUid)->fullName;
+  $created = u\fmtDate($created);
 
   $success = TRUE;
   foreach (u\ray('r payer payee') as $one) unset($tx[$one]); // else preempts all subs that start thus
   return compact(u\ray('created xid role payerPurpose payeePurpose toMe confirmAction amount tofrom balance otherUid myName otherName short success')) + $tx;
 }
-
-function fmtPosAmt($n) {return @$n > 0 ? u\fmtAmt($n) : NULL;}
 
 /**
  * Return the rCredits account id for the given USD account id.
@@ -544,6 +557,7 @@ function cacheTotals($uid, $txs) {
       $amount = -$amount;
       $r = -$r;
     } elseif ($payee != $uid) continue; // neither to nor from me
+  //if ($uid == r\acct('NEW.ZZA')->id) debug(compact('rs','r'));
     $rs += $r;
     $usd += $amount - $r;
 // NO!    if (!$toOther and $amount - $r > DW_FEE_THRESHOLD) $usd -= DW_FEE;
@@ -555,6 +569,7 @@ function cacheTotals($uid, $txs) {
     }
   }
   $r = round($rs, 2);
+
   $a->update(compact(u\ray($cache)));
   if ($type == TX_TRANSFER and $amount > 0) r\membershipEvent($a, 'bona', TRUE);
 }
@@ -578,15 +593,16 @@ function unfreeze(&$available, &$frozen) {
  * @return float: how much of the transaction will be in USD (NULL if no USD account)
  *   For non-goods transactions USD will be used first, otherwise rCredits will be used first.
  */
-function usdPart($requestAmount, $a, $preapproved, $goods, $confirmed, &$shortfall) {
+function usdPart($request, $a, $preapproved, $goods, $confirmed, &$shortfall) {
+  //if ($request < 0) return -usdPart(-$request, r\acct(), $preapproved, $goods, $confirmed, $shortfall);
   $shortfall = 0; // no shortfall if not preapproved
   if (!$preapproved) return 0; // if just an invoice, funds don't have to be there yet (no shortfall, no usd)
-  if ($shortfall = $a->shortfall($goods ? 'buy' : 'cash', $requestAmount, $confirmed)) return 0; // not enough!
-  return max(0, $requestAmount - R_MAX_RTX); // never transfer too much rCredits at once (self-imposed)
-  //$r = min($requestAmount, $a->rAvailable($goods ? 'buy' : 'cash')); // how much can we get in r?
-  //$usd = $goods ? max(0, $requestAmount - $a->rAvailable('buy')) : $a->usdAvailable('cash');
-  //$usd = $requestAmount > R_FINCEN_MAX ? $requestAmount : 0;
-  //return round(min($requestAmount, $usd), 2);
+  if ($shortfall = $a->shortfall($goods ? 'buy' : 'cash', $request, $confirmed)) return 0; // not enough!
+  return max(0, $request - R_MAX_RTX); // never transfer too much rCredits at once (self-imposed)
+  //$r = min($request, $a->rAvailable($goods ? 'buy' : 'cash')); // how much can we get in r?
+  //$usd = $goods ? max(0, $request - $a->rAvailable('buy')) : $a->usdAvailable('cash');
+  //$usd = $request > R_FINCEN_MAX ? $request : 0;
+  //return round(min($request, $usd), 2);
 }
 
 /**
@@ -869,10 +885,14 @@ function definiteName($uid) {
 
 /**
  * Return a zid and region for the qid
+ * @param string $qid: a qid of any length or type (the region part defaults to the server region)
  * @return [zid, regionUid]
  */
 function unQid($qid) {
-  if (!u\isQid($qid)) return FALSE;
+  if (!u\isQid($qid)) {
+    $qid = R_SERVER_ID . $qid; // if local, complete it
+    if (!u\isQid($qid)) return FALSE;
+  }
   list ($regionId, $type, $iid) = preg_split('/(' . R_MARKS . ')/U', $qid, 0, PREG_SPLIT_DELIM_CAPTURE);
   $id = u\a2n($iid);
   return array($type == R_MEMBER_MARK ? $id : -$id, serverUid($regionId));
@@ -902,10 +922,9 @@ function quid($uid, $agentId = '') {
 /**
  * Return the uid for a pro se quid (local or complete).
  */
-function unQuid($quid) {
-  if (!u\isQid($quid)) $quid = R_SERVER_ID . $quid; // if local, complete it
-  list ($region, $i) = explode(R_MEMBER_MARK, $quid);
-  return 1 + R_REGION_MAX * u\a2n($region) + u\a2n($i);
+function unQuid($quid, $zid = NULL, $region = NULL) {
+  if (is_null($zid)) list ($zid, $region) = r\unQid($quid); // break it down
+  return $zid < 0 ? FALSE : (1 + R_REGION_MAX * (-$region - 1) + $zid);
 }
 
 /**
@@ -963,7 +982,7 @@ function region($country = '', $state = '', $zip = '') {
 function nonoUndo($oldRecord, &$subs = array()) {
   if (!@$oldRecord) return 'undo no match';
   $mya = acct();
-  extract(u\just('toMe data payer payee payerAgent payeeAgent payerTid payeeTid taking', $oldRecord));
+  extract(u\just('amount toMe data payer payee payerAgent payeeAgent payerTid payeeTid taking', $oldRecord));
   $data = unserialize($data);
   if (@$data['undoneBy']) {
     $oldTid = $toMe ? $payeeTid : $payerTid;
@@ -974,7 +993,7 @@ function nonoUndo($oldRecord, &$subs = array()) {
   $acct = $toMe ? r\acct($payee, $payeeAgent) : r\acct($payer, $payerAgent);
   if ($mya->agentId != $acct->agentId) {
     $aacct = acct($acct->id, $mya->agentId);
-    if ($taking) { // original transaction was a charge
+    if ($taking xor $amount < 0) { // original transaction was a charge
       if (!$aacct->can(B_BUY)) return 'no buy';
     } elseif (!$aacct->can(B_SELL)) return 'no sell';
   }
@@ -1099,6 +1118,22 @@ function newUid($base) {
   return $previous ? ($previous + 1) : $base;
 }
   
+/*
+ * Get a permanent device code from the server.
+ * @param int $uid: record ID of related account
+ * @param string $namePrefix: how the boxName should begin
+ * @param string $code: phone # or device code (choose a random code if not specified)
+ * @return int: the device record ID
+ */
+function makeDevice($uid, $namePrefix = '', $code = '') {
+  if ($code === '') $code = \user_password(20);
+  $boxid = @db\lookup('MAX(boxid)', 'r_boxes', 'uid=:uid', compact('uid')) + 1;
+  $boxName = $namePrefix ? $namePrefix . $boxid : $code; // code is boxName for cell phones
+  $created = $access = REQUEST_TIME;
+  $info = compact(u\ray('uid code boxid boxName access created'));
+  return @db\insert('r_boxes', $info) ? $code : '';
+}
+
 /**
  * Assign the given account a new id.
  * @return the new uid
@@ -1124,9 +1159,6 @@ function changeUid($oldUid, $newUid = FALSE) {
   // r_regions
     'r_relations:main',
     'r_relations:other',
-    'r_smarts:uid',
-    'r_smarts:defaultAgent',
-    'r_sms:uid',
   // r_states
     'r_txs:payer',
     'r_txs:payee',

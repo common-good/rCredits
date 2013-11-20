@@ -46,9 +46,7 @@ function extraSubs(&$subs) {
  * members: (ARG)
  *
  * in: Identify Setup MAKE
- *     Startup Setup MAKE
- *     Transact Setup MAKE
- *     Undo Setup MAKE
+ *     Insufficient Setup MAKE
  */
 function members($list) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -60,9 +58,7 @@ function members($list) {
  * relations: (ARG)
  *
  * in: Identify Setup MAKE
- *     Startup Setup MAKE
- *     Transact Setup MAKE
- *     Undo Setup MAKE
+ *     Insufficient Setup MAKE
  */
 function relations($relations) {return t\relations($relations);}
 
@@ -70,17 +66,7 @@ function relations($relations) {return t\relations($relations);}
  * transactions: (ARG)
  *
  * in: Identify Setup MAKE
- *     Transact Setup MAKE
- *     Undo Setup MAKE
- *     Undo AnAgentAsksToUndoACharge MAKE
- *     Undo AnAgentAsksToUndoARefund MAKE
- *     Undo AnAgentAsksToUndoACashOutCharge MAKE
- *     Undo AnAgentAsksToUndoACashInPayment MAKE
- *     Undo AnAgentAsksToUndoAChargeWithInsufficientBalance MAKE
- *     Undo AnAgentAsksToUndoARefundWithInsufficientBalance MAKE
- *     Undo AnAgentAsksToUndoAChargeWithoutPermission MAKE
- *     Undo AnAgentAsksToUndoARefundWithoutPermission MAKE
- *     Undo AnAgentAsksToUndoSomeoneElsesTransaction MAKE
+ *     Insufficient Setup MAKE
  */
 function transactions($list) {return t\transactions($list);}
 
@@ -193,12 +179,42 @@ function memberHasNoPicture($id) {
 }
 
 /**
+ * member (ARG) password is (ARG)
+ *
+ * in: 
+ */
+function memberPasswordIs($id, $pass) {
+  global $testOnly; if ($testOnly) return FALSE;
+  require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
+  $pass = \user_hash_password(trim($pass));
+  return r\acct($id)->update(compact('pass'));
+}
+
+/**
+ * member initializes the device as member (ARG) with password (ARG)
+ *
+ * in: 
+ */
+function memberInitializesTheDeviceAsMemberWithPassword($agent, $password) {
+  global $testOnly; if ($testOnly) return FALSE;
+  return t\hitServer('first_time', $agent, '', '', compact('password'));
+}
+
+/**
+ * the app starts up as code (ARG)
+ *
+ * in: 
+ */
+function theAppStartsUpAsCode($code) {
+  global $testOnly; if ($testOnly) return FALSE;
+  return t\hitServer('startup', NULL, trim($code));
+}
+
+/**
  * devices: (ARG)
  *
  * in: Identify Setup MAKE
- *     Startup Setup MAKE
- *     Transact Setup MAKE
- *     Undo Setup MAKE
+ *     Insufficient Setup MAKE
  */
 function devices($list) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -209,53 +225,61 @@ function devices($list) {
 /**
  * balances: (ARG)
  *
- * in: Transact Setup TEST
- *     Transact ACashierAsksToChargeSomeone TEST
- *     Transact ACashierAsksToRefundSomeone TEST
+ * in: Insufficient Setup TEST
  */
-function balances($list) {return t\balances($list);}
+function balances($list) {
+  global $testOnly;
+  foreach ($list as $one) if (!t\eq(t\uidCredit(t\uid($one['id']))->balance, $one['balance'])) return FALSE;
+  return TRUE;
+}
 
 /**
- * agent (ARG) asks device (ARG) to charge (ARG) $(ARG) for (ARG): (ARG)
+ * cashier (ARG) asks device (ARG) to charge (ARG) $(ARG) for (ARG): (ARG)
  *
- * in: Transact ACashierAsksToChargeSomeone MAKE
- *     Transact ACashierAsksToRefundSomeone MAKE
- *     Transact ACashierAsksToChargeAnotherMemberWithInsufficientBalance MAKE
- *     Transact ACashierAsksToRefundAnotherMemberWithInsufficientBalance MAKE
- *     Transact ACashierAsksToPaySelf MAKE
- *     Transact DeviceGivesNoMemberId MAKE
- *     Transact DeviceGivesBadAccountId MAKE
- *     Transact DeviceGivesNoAmount MAKE
- *     Transact DeviceGivesBadAmount MAKE
- *     Transact DeviceGivesTooBigAnAmount MAKE
- *     Transact DeviceGivesNoPurposeForGoodsAndServices MAKE
- *     Transact SellerAgentLacksPermissionToBuy MAKE
- *     Transact SellerAgentLacksPermissionToScanAndSell MAKE
- *     Transact BuyerAgentLacksPermissionToBuy MAKE
+ * in: 
  */
-function agentAsksDeviceToChargeFor($agent, $device, $member, $amount, $goods, $description) {
+function cashierAsksDeviceToChargeFor($agent, $device, $member, $amount, $goods, $description) {
   global $testOnly; if ($testOnly) return FALSE;
   $goods = $goods == 'goods' ? "1" : "0";
   return t\hitServer('charge', compact(u\ray('member amount goods description')), $agent, $device);
 }
 
 /**
- * agent (ARG) asks device (ARG) to undo transaction (ARG)
+ * we respond ok with tx (ARG) and message (ARG) with subs: (ARG)
  *
- * in: Undo AnAgentAsksToUndoACharge MAKE
- *     Undo AnAgentAsksToUndoARefund MAKE
- *     Undo AnAgentAsksToUndoACashOutCharge MAKE
- *     Undo AnAgentAsksToUndoACashInPayment MAKE
- *     Undo AnAgentAsksToUndoAChargeWithInsufficientBalance MAKE
- *     Undo AnAgentAsksToUndoARefundWithInsufficientBalance MAKE
- *     Undo AnAgentAsksToUndoAChargeWithoutPermission MAKE
- *     Undo AnAgentAsksToUndoARefundWithoutPermission MAKE
- *     Undo AnAgentAsksToUndoSomeoneElsesTransaction MAKE
- *     Undo AnAgentAsksToUndoANonexistentTransaction MAKE
+ * in: 
  */
-function agentAsksDeviceToUndoTransaction($agent, $device, $tx) {
+function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, $email, $subs);}
+
+/**
+ * member (ARG) can charge unilaterally
+ *
+ * in: 
+ */
+function memberCanChargeUnilaterally($id) {
   global $testOnly; if ($testOnly) return FALSE;
-  return t\hitServer('undo', compact('tx'), $agent, $device);
+  return r\acct($id)->setBit(B_CHARGE);
+}
+
+/**
+ * the app requests op (ARG) as member (ARG) and code (ARG)
+ *
+ * in: 
+ */
+function theAppRequestsOpAsMemberAndCode($op, $agent, $code) {
+  global $testOnly; if ($testOnly) return FALSE;
+  return t\hitServer($op, $agent, $code);
+}
+
+/**
+ * member (ARG) asks device (ARG) to undo transaction (ARG), with the request (ARG)
+ *
+ * in: Insufficient AMemberAsksToUndoACompletedPaymentWithInsufficientBalance MAKE
+ */
+function memberAsksDeviceToUndoTransactionWithTheRequest($agent, $code, $tx_id, $confirmed) {
+  global $testOnly; if ($testOnly) return FALSE;
+  $confirmed = $confirmed == 'confirmed' ? 1 : ($confirmed == 'unconfirmed' ? 0 : $confirmed);
+  return t\hitServer('undo', $agent, $code, '', compact('tx_id', 'confirmed'));
 }
 
 /**
@@ -291,86 +315,19 @@ function weRespondSuccessMyidAccountnameShowbuttonsAndMessageWithSubs($success, 
 }
 
 /**
- * we respond ok with tx (ARG) and message (ARG) with subs: (ARG)
- *
- * in: Transact ACashierAsksToChargeSomeone TEST
- *     Transact ACashierAsksToRefundSomeone TEST
- */
-function weRespondOkWithTxAndMessageWithSubs($tx, $msg, $subs) {
-  global $testOnly; if (!$testOnly) return FALSE;
-  global $rposResult;
-  extract($rposResult, EXTR_PREFIX_ALL, 's');
-  list ($ok, $message) = array('1', u\tt($msg, $subs[0]));
-  t\output('Expecting: ' . print_r(compact(u\ray('ok tx message')), 1), 'cyan');
-  return ($s_ok == '1' and @$s_tx == $tx and $s_message == $message);
-}
-
-/**
- * we respond ok (ARG) with subs: (ARG)
- *
- * in: Undo AnAgentAsksToUndoACharge TEST
- *     Undo AnAgentAsksToUndoARefund TEST
- *     Undo AnAgentAsksToUndoACashOutCharge TEST
- *     Undo AnAgentAsksToUndoACashInPayment TEST
- */
-function weRespondOkWithSubs($msg, $subs) {return weRespondOkWithTxAndMessageWithSubs('', $msg, $subs);}
-
-/**
  * with balance (ARG)
  *
  * in: Identify ACashierScansACustomerCard TEST
  *     Identify ACashierScansACustomerCardWhoseBalanceIsSecret TEST
  *     Identify ACashierScansACompanyCustomerCard TEST
- *     Transact ACashierAsksToChargeSomeone TEST
- *     Transact ACashierAsksToRefundSomeone TEST
- *     Undo AnAgentAsksToUndoACharge TEST
- *     Undo AnAgentAsksToUndoARefund TEST
- *     Undo AnAgentAsksToUndoACashOutCharge TEST
- *     Undo AnAgentAsksToUndoACashInPayment TEST
  */
-function withBalance($subs) {
+function withBalance($balance) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $rposResult;
-  if (!$got = @$rposResult['balance']) return !$subs; else $subs = $subs[0];
-  $balance = u\tt('customer balance', $subs);
-  if (@$subs['did']) $balance .= u\tt('just did', $subs);
-  t\output('Expecting ' . print_r(compact('balance'), 1), 'cyan');
-  return ($got == $balance);
-}
-
-/**
- * with undo (ARG)
- *
- * in: Transact ACashierAsksToChargeSomeone TEST
- *     Transact ACashierAsksToRefundSomeone TEST
- *     Undo AnAgentAsksToUndoACharge TEST
- *     Undo AnAgentAsksToUndoARefund TEST
- *     Undo AnAgentAsksToUndoACashOutCharge TEST
- *     Undo AnAgentAsksToUndoACashInPayment TEST
- */
-function withUndo($subs) {
-  global $testOnly; if (!$testOnly) return FALSE;
-  global $rposResult;
-  if (!$got = @$rposResult['undo']) return !$subs; else $subs = $subs[0];
-  $subs['created'] = t\lastMinuteSubs($subs['created']);
-  $undo = u\tt('confirm undo', $subs);
-  t\output('Expecting ' . print_r(compact('undo'), 1), 'cyan');
-  return ($got == $undo);
-}
-
-/**
- * we return error (ARG) with subs: (ARG)
- *
- * in: Transact ACashierAsksToChargeAnotherMemberWithInsufficientBalance TEST
- *     Transact ACashierAsksToRefundAnotherMemberWithInsufficientBalance TEST
- *     Transact BuyerAgentLacksPermissionToBuy TEST
- *     Undo AnAgentAsksToUndoAChargeWithInsufficientBalance TEST
- *     Undo AnAgentAsksToUndoARefundWithInsufficientBalance TEST
- */
-function weReturnErrorWithSubs($msg, $subs) {
-  global $testOnly; if (!$testOnly) return FALSE;
-  global $rposResult;
-  return ($rposResult['ok'] == '0' and $rposResult['message'] == u\tt($msg, @$subs[0]));
+  $got = $rposResult['balance'];
+  debug(compact('got','balance'));
+//  debug(u\tt('customer balance', $balance[0]));
+  return ((!$balance and !$got) or ($got == u\tt('customer balance', $balance[0])));
 }
 
 /**
@@ -380,32 +337,17 @@ function weReturnErrorWithSubs($msg, $subs) {
  *     Identify AnUnauthorizedCashierScansIn TEST
  *     Identify ACashierScansACustomerCardBeforeSigningIn TEST
  *     Identify ACashierAsksUsToIdentifyTheCashiersOwnCard TEST
- *     Startup DeviceRequestsABadOp TEST
- *     Startup DeviceShouldHaveAnIdentifier TEST
- *     Startup DeviceGivesABadCode TEST
- *     Startup AnAgentForAnInactiveCompanyTriesAnOp TEST
- *     Transact ACashierAsksToPaySelf TEST
- *     Transact DeviceGivesNoMemberId TEST
- *     Transact DeviceGivesBadAccountId TEST
- *     Transact DeviceGivesNoAmount TEST
- *     Transact DeviceGivesBadAmount TEST
- *     Transact DeviceGivesTooBigAnAmount TEST
- *     Transact DeviceGivesNoPurposeForGoodsAndServices TEST
- *     Transact SellerAgentLacksPermissionToBuy TEST
- *     Transact SellerAgentLacksPermissionToScanAndSell TEST
- *     Undo AnAgentAsksToUndoAChargeWithoutPermission TEST
- *     Undo AnAgentAsksToUndoARefundWithoutPermission TEST
- *     Undo AnAgentAsksToUndoSomeoneElsesTransaction TEST
- *     Undo AnAgentAsksToUndoANonexistentTransaction TEST
  */
-function weReturnError($msg) {return weReturnErrorWithSubs($msg, array());}
+function weReturnError($msg) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  global $rposResult;
+  return ($rposResult['ok'] == '0' and $rposResult['message'] == u\tt($msg));
+}
 
 /**
  * selling: (ARG)
  *
  * in: Identify Setup MAKE
- *     Transact Setup MAKE
- *     Undo Setup MAKE
  */
 function selling($selling) {return t\selling($selling);}
 
@@ -413,18 +355,13 @@ function selling($selling) {return t\selling($selling);}
  * company flags: (ARG)
  *
  * in: Identify Setup MAKE
- *     Transact Setup MAKE
- *     Undo Setup MAKE
  */
 function companyFlags($flags) {return t\companyFlags($flags);}
 
 /**
  * agent (ARG) asks device (ARG) for op (ARG) with: (ARG)
  *
- * in: Startup DeviceRequestsABadOp MAKE
- *     Startup DeviceShouldHaveAnIdentifier MAKE
- *     Startup DeviceGivesABadCode MAKE
- *     Startup AnAgentForAnInactiveCompanyTriesAnOp MAKE
+ * in: 
  */
 function agentAsksDeviceForOpWith($agent, $device, $op, $extra) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -433,23 +370,21 @@ function agentAsksDeviceForOpWith($agent, $device, $op, $extra) {
 }
 
 /**
- * we notice (ARG) to member (ARG) with subs: (ARG)
- *
- * in: Transact ACashierAsksToChargeSomeone TEST
- *     Transact ACashierAsksToRefundSomeone TEST
- *     Undo AnAgentAsksToUndoACharge TEST
- *     Undo AnAgentAsksToUndoARefund TEST
- *     Undo AnAgentAsksToUndoACashOutCharge TEST
- *     Undo AnAgentAsksToUndoACashInPayment TEST
- */
-function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice, $id, $subs);}
-
-/**
- * member (ARG) asks device (ARG) to undo transaction (ARG), with the request (ARG)
+ * we respond success (ARG) tx_id (ARG) my_balance (ARG) other_balance (ARG) and message (ARG) with subs: (ARG)
  *
  * in: 
  */
-function memberAsksDeviceToUndoTransactionWithTheRequest($arg1, $arg2, $arg3, $arg4) {
+function weRespondSuccessTxidMybalanceOtherbalanceAndMessageWithSubs($arg1, $arg2, $arg3, $arg4, $arg5, $arg6) {
+  global $testOnly;
+  todo;
+}
+
+/**
+ * with undo: (ARG)
+ *
+ * in: 
+ */
+function withUndo($arg1) {
   global $testOnly;
   todo;
 }

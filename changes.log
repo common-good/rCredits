@@ -1,5 +1,13 @@
-2013-10-
+2013-11-07
+. added Spendable: to the customer balance for rSmart
+. expanded selling field to multiple lines
+. expanded structure field to include miscellaneous company flags (renamed it coFlags)
+. wrote all automated tests for rSmart (for the new rPOS) and they all pass!
+. rWeb and rCron tests probably no longer work (address that next)
+
+2013-10-28
 . updated rsmart module to feed new POS app
+. miscellaneous refactoring
 
 2013-10-11
 . created an admin tool and retrofited old accounts on prod server, recording dwollapin, dwollaphone, etc.

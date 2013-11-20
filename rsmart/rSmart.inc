@@ -19,20 +19,23 @@ use rCredits\Testing as t;
  * Basic request params (always sent):
  * op       the requested operation
  * device   the device ID (supplied once by the server) -- empty if none
- * agent    the already-scanned-in agent's agent ID (for example NEW:AAB) -- ignored for "update" op
+ * agent    the already-scanned-in agent's agent ID (for example NEW:AAB) -- empty if none yet
  *
  * REQUESTS:
- * update:	[version] => uri
- * identify:	[member, code] => [ok, message, logon="1", name, descriptions[], can, device]
- * identify:	[member, code] => [ok, message, logon="0", name, place, company]
+ * identify:	[member, code] => [ok, message, logon="1", name, descriptions[], can, device, update]
+ * identify:	[member, code] => [ok, message, logon="0", name, place, company, balance]
  * photo:	[member] => photo
- * charge:	[member, amount, description] => [ok, message, tx, balance, undo]
- * refund:	[member, amount, description="refund"] => [ok, message, tx, balance, undo]
+ * charge:	[member, amount, goods, description] => [ok, message, tx, balance, undo]
  * undo:	[tx] => [ok, message, balance]
  */
 
+define('RPOS_VERSION', 6); // lastest POS app version available for download (this should match the versionCode in the app's manifest. upload and test the app first, before bumping the number up here.)
+//define('RPOS_FILENAME', 'http://ws.rcredits.org/rPOS-' . rPOS_VERSION . '.apk');
+define('RPOS_FILENAME', 'http://rc4.me/rpos.apk');
+define('RPOS_FILENAMEB', 'http://rc4.me/rposb.apk'); // version for buggy front-camera-only machines
+define('RPOS_FILENAME_DEBUG', 'http://rc4.me/rPOS-debug-unaligned.apk');
 define('R_QR_HEADER', 'HTTP://RC2.ME/I/'); // for transient QR IDs
-define('R_TRANSIENCE', 60); // number of seconds for device's QR to be valid
+define('R_TRANSIENCE', 60); // number of seconds for device's transient QR to be valid
 
 $GLOBALS[TX_SMART . ' messages'] = array(
   'bad member' => t('That rCard is not valid.'),
@@ -42,8 +45,9 @@ $GLOBALS[TX_SMART . ' messages'] = array(
   'already scanned in' => t('You are already scanned in.'),
   'company inactive' => t('That company is not an active participant.'),
 //  'agent cannot sell' => t('That agent is not authorized to charge customers.'),
-  'customer balance' => t("The customer's balance is @spendable\n(@cashable can be exchanged for cash)."),
+  'customer balance' => t("Customer: @name\n\nBalance: @balance@spendable\nTradable for cash: @cashable"),
   'report exchange' => t("You @did @otherName @amount in exchange for cash."),
+  'just did' => t("\n\nWe just @did them @amount@forCash."),
 );
 
 /**
@@ -57,77 +61,87 @@ $GLOBALS[TX_SMART . ' messages'] = array(
 function pos($args = FALSE) {
   global $channel; $channel = TX_SMART;
   global $mya;
+  global $devHdr; $devHdr = t('POS Device #');
   
   if (!$args) $args = $_POST;
   u\loga('in', $args);
   extract(u\just('op device agent member', $args));
-  if (!in_array($op, u\ray('update identify photo charge undo refund'))) return posErr('bad op');
+  if (!in_array($op, u\ray('identify photo charge payment undo'))) return posErr('bad op');
 
-  if (!$mya = getAgent($agent ?: $member)) return posErr('bad agent'); // set "current" account for internals
+  if (!$mya = getAgent($agent ?: $member, $err)) return posErr($err); // set "current" account for internals
 
-  if (@$device) {
-    if (!$args['device'] = getDevice($device, $mya->id)) return posErr('unknown device');
-  } elseif ($op != 'identify') return posErr('missing device');
+  if (@$device) { // device was specified, substitute its record id, herein
+    if (!$deviceId = getDevice($device, $mya->id)) {
+      if ($op == 'identify' and !@$agent) { // use this device for a new company (only if identifying agent)
+        $restricted = db\lookup('restricted', 'r_boxes', 'code=:device', compact('device')); // 1 or 0
+        if (@$restricted === FALSE) return posErr('unknown device');
+        if ($restricted) return posErr('restricted');
+        r\makeDevice($mya->id, $devHdr, $device);
+      } else return posErr('unknown device');
+      $edit = u\ray('id access', $deviceId, REQUEST_TIME);
+      db\update('r_boxes', $edit, 'id'); // remember time last accessed so we can drop the deadwood
+    } 
+  } elseif ($op != 'identify' or @$agent) return posErr('missing device');
   
   $op = 'rCredits\\Smart\\' . $op;
   return $op($args);
 }
 
+/**
+ * Return a (normally successful) json result to the remote caller.
+ * @param assoc $args: named values to return
+ * @param string $ok: "1" for success, "0" for failure
+ * @return: does not return (when testing, return the json result)
+ */
 function ok($args, $ok = "1") {
   $result = u\jsonEncode(compact('ok') + $args);
   u\loga('out', $args);
-  if (t\est()) {t\output($args, 'output'); return $result;}
+  //{t\output($args, 'output'); 
+  if (t\est()) return $result;
   exit($result);
 }
 
-function posErr($message) {
-  $message = u\tt($message);
-  ok(compact('message'), "0");
-}
-
 /**
- * Update the Android app if appropriate.
- 
-// [version] => uri
- 
- * @params assoc $args:
- *   version: the app's current version number
- * @return string: the download URI for the update -- empty if none needed
+ * Return an error message to the remote caller.
+ * @param string $message: what to say
+ * @return: does not return (when testing, return the json result)
  */
-function update($args) {
-  if ($err = badArg($keys = 'device version', $args)) return posErr($err);
-  extract(u\just($keys, $args));
-  exit(''); // no update for now
+function posErr($message, $subs = array()) {
+  $message = u\tt($message, $subs);
+  return ok(compact('message'), "0");
 }
 
 /**
  * Identify the agent or customer.
 
-// [member, code] => [ok, message, logon=1, name, descriptions[], can, device]
-// [member, code] => [ok, message, logon=0, name, place, company]
+// [member, code] => [ok, message, logon=1, name, descriptions[], can, device, update]
+// [member, code] => [ok, message, logon=0, name, place, company, balance]
 
  * @params assoc $args:
  *   agent: agent ID of current agent -- empty if none yet
- *   device: r_smarts record id (if any) -- originally the device ID, but changed in pos() to record id
+ *   device: a unique device ID
  *   member: account ID of customer or new agent
  * @return json:
  *   logon: 1 if the app's operator is scanning himself or herself in, else 0
  *   device: a unique device identifier (if none passed)
  *   name: the individual's name
- *   company: the customer's company name (if any)
  *   place: the location of the company if customer is a company agent, otherwise of the individual
+ *   company: the customer's company name (if any)
+ *   balance: a message stating the customer's current balance
  *   descriptions: array of the agent's company's most common charge descriptions (most popular first)
- *   manager: true if the agent is allowed to make refunds and undo transactions
- * device, descriptions and manager are returned only if scanning in (logon is true)
+ *   can: bit permissions -- what the agent can do
+ *   update: URI of updated software package (if current version warrants)
+ * device, descriptions, can, and update are returned only if scanning in (logon is true)
  */
 function identify($args) {
   global $mya;
-  if ($err = badArg($keys = 'agent device member code', $args)) return posErr($err);
+  global $devHdr;
+  if ($err = badArg($keys = 'version agent device member code', $args)) return posErr($err);
   extract(u\just($keys, $args));
 
   if (!$a = @$agent ? getCustomer(@$member, $err) : $mya) return posErr(@$err ?: 'missing mya');
   $name = $a->agent->fullName;
-  $name .= " ($member)"; // debug
+//  $name .= " ($member)"; // debug
 
   if (@$agent) {
     if ($agent == $member) return posErr('already scanned in');
@@ -142,20 +156,21 @@ function identify($args) {
     if ($a->proSe()) return posErr('scan in first');
     if ($code != $cardCode) return posErr('bad agent');
     if (!$a->can(B_SCAN)) return posErr('agent cannot scan');
-    $descriptions = getDescriptions($a);
-    $can = $a->can(B_BUY) ? 0b11111 : 0; // pass all permission for now
-    $manager = $a->can(B_BUY) ? "1" : "0"; // should probably be B_REFUND (between B_SELL and B_BUY)
-    if (@$device) {
-      $edit = u\ray('id access', $device, REQUEST_TIME);
-      db\update('r_smarts', $edit, 'id'); // remember time last accessed so we can drop the deadwood
-    } else $device = makeDevice($a->id);
+    $descriptions = explode("\n", $a->selling) ?: array('?');
+    //$can = $a->can(B_BUY) ? 0b11111 : 0; // pass all permission for now
+    $can = $a->can(B_BUY) ? ($a->coCan() >> CO_CAN_BITS) : 0;
+    if ($version + 0 < RPOS_VERSION) $update = substr($version, 0, 1) == '0' ? RPOS_FILENAMEB : RPOS_FILENAME;
+    if (!@$device) $device = r\makeDevice($a->id, $devHdr);
+    //return posErr("version:$version v=".RPOS_VERSION." update=$update");
   } else { // identifying customer
     if ($code != $cardCode) return posErr('bad member');
     $company = $a->proSe() ? "" : $a->fullName;
     $place = r\location($a);
+    $balance = getBalance($a);
+    unset($device);
   }
   
-  return ok(compact(u\ray('logon device name company place descriptions can')));
+  return ok(compact(u\ray('logon device name place company balance descriptions can update')));
 }
 
 /*
@@ -166,31 +181,41 @@ function identify($args) {
  * @param array $args:
  *   member: the qid for the customer (individual or company rep)
  * @return:
- *   just the photo data (no json)
+ *   just the photo data (no json) or a short error message (50 characters or less)
  */
 function photo($args) {
-  if ($err = badArg($keys = 'member', $args)) return posErr($err);
+  if ($err = badArg($keys = 'member', $args)) return photoReturn($err);
   extract(u\just($keys, $args));
 
-  if (!$a = r\acct($member)) return posErr('bad member');
-  $picFilename = @$a ? $a->auxFilename('picture') : R_DFT_PICTURE;
+  if (!@$member) return photoReturn('missing member');
+  if (!$a = getCustomer($member, $err)) return photoReturn($err);
+  $picFilename = @$a ? $a->agent->auxFilename('picture') : R_DFT_PICTURE;
   $pic = file_get_contents(DRUPAL_ROOT . $picFilename);
-  $message = bin2hex(substr($pic, 0, 50)); // this allows identifying the picture without a big db hit
+  return photoReturn($pic, $picFilename);
+}
+
+function photoReturn($pic, $picFilename = '') {
+  $max = 50;
+  $message = strlen($pic) < $max ? $pic : bin2hex(substr($pic, 0, $max)); // identifies pic w/out a big db hit
   u\loga('out', compact('message'));
 
-/**/ if (t\est()) {debug($message); return $message;} else exit($pic); // keep
+  if (t\est()) {
+    if (strpos($picFilename, 'no-photo')) $message = 'no photo';
+    t\output($message); 
+    return $message;
+  } else exit($pic);
 }
 
 /*
  * Request a charge.
 
-// [member, amount, description] => [ok, message, tx, balance, undo]
+// [member, amount, goods, description] => [ok, message, tx, balance, undo]
 
  * @param array $args:
  *   agent: qid for the seller (company rep)
  *   member: qid for the customer (individual or company rep)
  *   amount: numeric dollar amount
- *   description: description of goods and services sold (empty if exchanging cash for rCredits)
+ *   description: description of goods and services sold
  * @param string $type: charge or pay (refund)
  * @return: json (ok, message, tx, balance, undo)
  */
@@ -198,27 +223,29 @@ function charge($args, $type = 'charge') {
   global $scanned; $scanned = true;
   global $mya;
   
-  if ($err = badArg($keys = 'agent member amount description', $args)) return posErr($err);
+  if ($err = badArg($keys = 'agent member amount goods description', $args)) return posErr($err);
   extract(u\just($keys, $args));
 
-  if (!$a = r\acct(@$member, $err)) return posErr($err);
-  if ($mya->id == $a->id) return posErr("shoulda been login. agent=$agent member=$member."); // debug
-  u\EXPECT($mya->id != $a->id, 'should have been a login');
-  if ($err = u\badAmount($amount, '>0')) return posErr($err);
-  $goods = (@$description === '');
+  if (!@$member) return posErr('missing member');
+  if (@$description === '') return posErr('missing description');
+  if (!$a = getCustomer($member, $err)) return posErr($err);
+  if ($mya->id == $a->id) return posErr("shoulda been login");
+  if ($err = u\badAmount($amount, '')) return posErr($err); // allow negatives! (for refund)
 
-  list ($msg, $subs, $zot) = be\transfer($type, $mya, $a, $amount, $description, $goods, TRUE);
-  if (!$subs['success']) return posErr($msg, $subs);
+  list ($msg, $subs, $zot) = be\transfer($type, $mya, $a, @$amount, @$description, @$goods, TRUE);
+  if (!@$subs['success']) return posErr($msg, $subs);
 
-  $balance = getBalance($a);
-  $tx = $subs['xid'];
-  $undo = u\tt('confirm undo', $subs);
   $message = u\tt($msg, $subs);
+  $undo = u\tt('confirm undo', $subs);
+  $forCash = $goods ? '' : t(' for cash');
+  $balance = getBalance($a) . u\tt('just did', $subs + compact('forCash'));
+  $tx = $subs['xid'];
+//  $message = print_r($subs, 1); // debug
   return ok(compact(u\ray('message tx balance undo')));
 }
 
-// [member, amount, description="refund"] => [ok, message, tx, balance, undo]
-function refund($args) {return charge($args, 'payment');}
+// [member, amount, goods, description] => [ok, message, tx, balance, undo]
+function payment($args) {return charge($args, 'payment');}
 
 /*
  * Undo the specified transaction
@@ -230,15 +257,18 @@ function refund($args) {return charge($args, 'payment');}
  * @return: json (ok, message, balance)
  */
 function undo($args) {
+  global $mya; $myid = $mya->id;
   global $scanned; $scanned = true;
   if ($err = badArg($keys = 'tx', $args)) return posErr($err);
   extract(u\just($keys, $args));
   
-  list ($msg, $subs) = be\undoTx($tx);
-  if (!$subs['success']) return posErr($msg, $subs);
-  $balance = getBalance(r\acct());
+  list ($msg, $subs) = be\undoTx($tx, ':myid IN (payer, payee)', compact('myid'));
+  if (!@$subs['success']) return posErr($msg, $subs);
+  
+  $id = db\lookup('IF(payer=:myid, payee, payer)', 'r_txs', 'xid=:tx', compact('myid', 'tx'));
+  $balance = getBalance(r\acct($id)); // get customer balance
   $message = u\tt($msg, $subs);
-  $undo = u\tt('confirm undo', $subs);
+// (no undo of an undo)  $undo = u\tt('confirm undo', $subs);
   return ok(compact(u\ray('message balance')));
 }
 
@@ -246,7 +276,7 @@ function undo($args) {
  * Report if an argument is missing.
  */
 function badArg($expected, $args) {
-  foreach ($expected as $one) if (!isset($args[$one])) return "Missing $one";
+  foreach (u\ray($expected) as $one) if (!isset($args[$one])) return "Missing $one";
 }
 
 /**
@@ -255,10 +285,10 @@ function badArg($expected, $args) {
  * @param string $err: (returned) error message, if any
  * @return: the agent's acct object (false if error)
  */
-function getAgent($agent, $err = '') {
-  if (!$mya = r\acct($agent)) return !$err = 'bad agent';
+function getAgent($agent, &$err = '') {
+  if (!$mya = r\acct($agent)) return !($err = 'bad agent');
 //  if (r\foreignServer(r\uidRegion($mya->agentId))) return !$err = 'wrong server for agent';
-  if (!$mya->ok()) return !$err = 'company inactive';
+  if (!$mya->ok()) return !($err = 'company inactive');
 //  if (!$mya->can(B_SELL)) return !$err = 'agent cannot sell';
   r\acct::setDefault($mya); // set current account temporarily to owner, so that error log has it right
   return $mya;
@@ -277,20 +307,29 @@ function getCustomer($customer, &$err = '') {
 //  if (!$a->can(B_BUY)) return !$err = 'customer cannot buy';
   return $a;
   
-//    if (!$smartInfo = db\lookup('owner,defaultAgent,transientId,access', 'r_smarts', 'code=:q_code', compact('q_code'))) return be\error('unknown device');
+//    if (!$smartInfo = db\lookup('owner,defaultAgent,transientId,access', 'r_boxes', 'code=:q_code', compact('q_code'))) return be\error('unknown device');
 
 /*    if ($account_id != $q_account_id) { // this is a transient id scanned from the other party's smart device
       $transientId = basename(dirname($q_account_id));
       $recent = REQUEST_TIME - R_TRANSIENCE;
-      if (db\lookup('transientId', 'r_smarts', 'code=:code AND access>=:recent') != $transientId) return be\error('bad transient id');
+      if (db\lookup('transientId', 'r_boxes', 'code=:code AND access>=:recent') != $transientId) return be\error('bad transient id');
     } */
 }
 
+/**
+ * Describe what the customer can spend on goods and cash.
+ * @param acct $a: customer account
+ * @return: a descriptive string
+ */
 function getBalance($a) {
   if ($a->can(B_SECRET_BAL)) return ''; // customer wants it secret
+  $name = $a->fullName;
+  if (!$a->proSe()) $name = $a->agent->fullName . t(", for ") . $name;
+  $balance = u\fmtAmt($a->r + $a->usd); // account balance
   $spendable = u\fmtAmt($a->rAvailable('buy', TRUE)); // amount spendable (without drawing on other accounts)
-  $cashable = u\fmtAmt($a->rAvailable('cash', TRUE)); // amount cashoutable
-  return u\tt('customer balance', compact('spendable', 'cashable'));
+  $spendable = $spendable == $balance ? '' : ("\n" . t('Spendable: ') . $spendable);
+  $cashable = u\fmtAmt(max(0, $a->rAvailable('cash', TRUE))); // amount cashoutable
+  return u\tt('customer balance', compact(u\ray('name balance spendable cashable')));
 }
 
 /**
@@ -305,20 +344,22 @@ function getDescriptions($a) {
   return $ray + (db\q($sql, u\ray('id', $a->id))->fetchCol() ?: array());
 }
 
-/*
- * Get a permanent device code from the server.
+/**
+ * Return the message with adjustments if it contains negative amounts (for refunds or unrefunds)
+ * @param string $msg: (returned) the message to adjust, if it has negative amounts
+ * @param string $phrase: what to replace
+ * @param string $rephrase: what to say instead
+ * @return the message, rephrased (if appropriate) without negative amounts
  */
-function makeDevice($uid) {
-  $code = \user_password(20);
-  $device = t('Smart Device');
-  $access = REQUEST_TIME;
-  $info = compact(u\ray('uid code device access'));
-  return @db\insert('r_smarts', $info) ? $code : '';
+function fixNegative(&$msg, $phrase, $rephrase) {
+  if ((strpos($msg, $phrase) === FALSE) or !strpos($msg, '$-')) return $msg;
+  $msg = preg_replace('/\$-/', '$', $msg, 1); // just one replacement (leave negative rewards alone)
+  return $msg = str_replace($phrase, $rephrase, $msg);
 }
 
 /**
  * Return the record id for the record of this company using this device.
  */
 function getDevice($code, $uid) {
-  return db\lookup('id', 'r_smarts', 'code=:code AND uid=:uid', compact('code', 'uid'));
+  return db\lookup('id', 'r_boxes', 'code=:code AND uid=:uid', compact('code', 'uid'));
 }

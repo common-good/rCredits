@@ -264,7 +264,7 @@ function doRow($tx, $report, $csv, $classes, $agents, $channels, $boxes, $curren
   : ($csv ? r\quid($agent) : str_replace(R_SERVER_ID . R_MEMBER_MARK, R_MEMBER_MARK, r\quid($agent)));
   // might optionally show both agents for reports someday
   if (@$channels) $row[] = $txChannels[$tx_channel];
-  if (@$boxes) $row[] = db\lookup('boxName', 'r_boxnames', 'id=:tx_box', compact('tx_box'));
+  if (@$boxes) $row[] = db\lookup('boxid', 'r_boxes', 'id=:tx_box', compact('tx_box'));
 
   if ($csv) return finishCsvRow($csv, array_combine($classes, $row), $tx, $amount, $toMe, $tot);
   if ($banking) $tid = substr($tid, 1);

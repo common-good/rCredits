@@ -71,7 +71,7 @@ function adminForm($sta) {
 function usdAccts($where = "postalCode LIKE '013%'") {
   if (!r\acct()->admin()) return;
   $result = db\q("SELECT uid FROM users WHERE $where ORDER BY fullName");
-  $head = u\ray('Name Dwolla? Type Verified OK Chg Co Bal');
+  $head = u\ray('Name Dwolla? Type Verified OK Co Bal');
   while ($row = $result->fetch()) {
     $usA = new r\usd($a = r\acct($row->uid));
     $bal = $usA->bal($err);
@@ -82,9 +82,9 @@ function usdAccts($where = "postalCode LIKE '013%'") {
     $count = @$source['count'];
     
     $ok = $a->ok() ? 'ok' : '';
-    $charge = $a->can(B_CHARGE) ? 'Chg' : '';
+//    $charge = $a->can(B_CHARGE) ? 'Chg' : '';
     $company = $a->co() ? 'Co' : '';
-    $line = array($a->fullName, $hasDwolla, $type, $verified, $ok, $charge, $company, $bal);
+    $line = array($a->fullName, $hasDwolla, $type, $verified, $ok, $company, $bal);
     $lines[] = array_combine($head, $line);
   }
   return showTable($lines);

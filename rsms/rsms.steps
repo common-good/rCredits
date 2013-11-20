@@ -31,7 +31,6 @@ function extraSetup($feature) {
   $cgfUid = \variable_get('cgf_uid');
 
   db\q('DELETE FROM users WHERE uid>:cgfUid', compact('cgfUid'));
-  db\q('DELETE FROM r_sms');
   db\q('DELETE FROM r_txs');
   db\q('DELETE FROM r_relations');
 
@@ -411,8 +410,9 @@ function phoneConfirms($number, $request) {
 function phoneCanChargeUnilaterally($number) {
   global $testOnly;
   if (!$acct = r\acct(r\SMS\uid($number))) return FALSE;
-  if ($testOnly) return $acct->can(B_CHARGE);
-  return $acct->setBit(B_CHARGE);
+  return $acct->co(); // any company can
+  //if ($testOnly) return $acct->can(B_CHARGE);
+  //return $acct->setBit(B_CHARGE);
 }
 
 /**

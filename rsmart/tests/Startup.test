@@ -1,9 +1,9 @@
 <?php
 //
 // Feature: Start up
-//   As a member
-//   I WANT to run the rCredits mobile app on my device
-//   SO I can use it to buy and sell with rCredits.
+//   AS a member
+//   I WANT to run the rCredits POS app on my device
+//   SO I can use it to charge customers through the rCredits system.
 
 require_once __DIR__ . '/../../../gherkin/test-defs.php';
 require_once __DIR__ . '/../rsmart.steps';
@@ -44,94 +44,55 @@ class rsmartStartup extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id      | fullName  | phone  | email         |'
-    . '\\| NEW.ZZA | Abe One    | +20001 | a@ |'
-    . '\\| NEW.ZZB | Bea Two    | +20002 | b@ |'
-    . '\\| NEW.ZZC | Corner Pub | +20003 | c@ |"');
+    . '\\| id   | fullName   | phone  | email | cc  | cc2  | flags               |'
+    . '\\| .ZZA | Abe One    | +20001 | a@    | ccA | ccA2 | dft,ok,person,bona  |'
+    . '\\| .ZZB | Bea Two    | +20002 | b@    | ccB |      | dft,ok,person,bona  |'
+    . '\\| .ZZC | Corner Pub | +20003 | c@    | ccC |      | dft,ok,company,bona |'
+    . '\\| .ZZF | For Co     | +20006 | f@    | ccF |      | dft,company         |"');
     And__('devices: "DATA'
-    . '\\| id      | code  |'
-    . '\\| NEW.ZZA | codeA |"');
+    . '\\| id   | code |'
+    . '\\| .ZZC | devC |"');
     And__('relations: "DATA'
-    . '\\| id      | main    | agent   | permissions  |'
-    . '\\| NEW.ZZA | NEW.ZZA | NEW.ZZB |              |"');
+    . '\\| id   | main | agent | permission |'
+    . '\\| :ZZA | .ZZC | .ZZA  | buy        |'
+    . '\\| :ZZB | .ZZC | .ZZB  | scan       |'
+    . '\\| :ZZE | .ZZF | .ZZA  | scan       |"');
     break;
 
 
     }
   }
 
-  // Scenario: Member logs in successfully to initialize device
-  public function testMemberLogsInSuccessfullyToInitializeDevice_0() {
-    $this->setUp2(__FUNCTION__, 0);
-    Given('member "NEW.ZZA" password is %whatever1');
-    When_('member initializes the device as member "NEW.ZZA" with password %whatever1');
-    Then_('we respond with: "DATA'
-    . '\\| success | message    | code       | my_id   | account_name | allow_change_account | allow_change_agent | require_agent | show_buttons |'
-    . '\\| 1       | first time | (varies) | NEW.ZZA | Abe One      | 0                    | 1                  | 0             | 3             |"');
-  }
-
-  // Scenario: Member initializes with an ill-formed id
-  public function testMemberInitializesWithAnIllformedId_0() {
-    $this->setUp2(__FUNCTION__, 0);
-    When_('member initializes the device as member %random with password %whatever');
-    Then_('we respond with: "DATA'
-    . '\\| success | message |'
-    . '\\| 0       | bad id  |"');
-  }
-
-  // Scenario: Device owner is not a member
-  public function testDeviceOwnerIsNotAMember_0() {
-    $this->setUp2(__FUNCTION__, 0);
-    When_('member initializes the device as member "NEW.ZZZ" with password %whatever1');
-    Then_('we respond with: "DATA'
-    . '\\| success | message        |'
-    . '\\| 0       | unknown member |"');
-  }
-
-  // Scenario: Member types the wrong password
-  public function testMemberTypesTheWrongPassword_0() {
-    $this->setUp2(__FUNCTION__, 0);
-    When_('member initializes the device as member "NEW.ZZA" with password %random');
-    Then_('we respond with: "DATA'
-    . '\\| success | message   |'
-    . '\\| 0       | bad login |"');
-  }
-
-  // Scenario: Member reruns the app
-  public function testMemberRerunsTheApp_0() {
-    $this->setUp2(__FUNCTION__, 0);
-    Given('member "NEW.ZZA" has initialized a device whose code is %whatever1');
-    When_('the app starts up as code %whatever1');
-    Then_('we respond with: "DATA'
-    . '\\| success | message    | my_id   | account_name | allow_change_account | allow_change_agent | require_agent | show_buttons |'
-    . '\\| 1       |            | NEW.ZZA | Abe One      | 0                    | 1                  | 0             | 3             |"');
-  }
-
   // Scenario: Device requests a bad op
   public function testDeviceRequestsABadOp_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('the app requests op %random as member "NEW.ZZA" and code "codeA"');
-    Then_('we respond with: "DATA'
-    . '\\| success | message    |'
-    . '\\| 0       | unknown op |"');
+    When_('agent ":ZZA" asks device "devC" for op %random with: ""');
+    Then_('we return error "bad op"');
   }
 
-  // Scenario: Device gives no code
-  public function testDeviceGivesNoCode_0() {
+  // Scenario: Device should have an identifier
+  public function testDeviceShouldHaveAnIdentifier_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('the app starts up as code ""');
-    Then_('we respond with: "DATA'
-    . '\\| success | message       |'
-    . '\\| 0       | no code given |"');
+    When_('agent ":ZZA" asks device "" for op "charge" with: "DATA'
+    . '\\| member | code |'
+    . '\\| .ZZB   | ccB  |"');
+    Then_('we return error "missing device"');
   }
 
   // Scenario: Device gives a bad code
   public function testDeviceGivesABadCode_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('the app starts up as code %random');
-    Then_('we respond with: "DATA'
-    . '\\| success | message        |'
-    . '\\| 0       | unknown device |"');
+    When_('agent ":ZZA" asks device %random for op "identify" with: "DATA'
+    . '\\| member | code |'
+    . '\\| .ZZB   | ccB  |"');
+    Then_('we return error "unknown device"');
+  }
+
+  // Scenario: An Agent for an inactive company tries an op
+  public function testAnAgentForAnInactiveCompanyTriesAnOp_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('agent ":ZZE" asks device "devC" for op "charge" with: ""');
+    Then_('we return error "company inactive"');
   }
 
 }

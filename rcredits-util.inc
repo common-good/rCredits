@@ -699,6 +699,7 @@ function decode($crypt, $key) {
  * @param string $key: a base64-encoded encryption key (maximum 24 characters, so the resultant key is at most 16 chars)
  */
 function ezencrypt($data, $key = '', $encrypt = TRUE) {
+  u\EXPECT(compact('data'), 'string');
   $function = $encrypt ? 'mcrypt_encrypt' : 'mcrypt_decrypt';
   $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_256, MCRYPT_MODE_ECB); 
   $iv = mcrypt_create_iv($iv_size, MCRYPT_RAND); 
@@ -945,7 +946,7 @@ function preray($prefix, &$ray) {$ray = $prefix + $ray;}
 function setDft(&$param, $value) {if (!isset($param)) $param = $value;}
 function bit($bit) {return 1 << $bit;}
 function log($message, $type = 'state', $info = array()) {return u\loga($type, compact('message') + $info);}
-function consta($prefix, $var) {return constant(strtoupper($prefix . "_$var"));}
+function consta($prefix, $var) {return constant(strtoupper($prefix . str_replace(' ', '_', "_$var")));}
 function isIPhone() {return preg_match('/iPhone/i', $_SERVER['HTTP_USER_AGENT']);}
 function jsonEncode($s) {return json_encode($s) ?: json_encode(u\purify($s));} // , JSON_UNESCAPED_SLASHES
 function redash($s) {return str_replace('—', '&mdash;', $s);}

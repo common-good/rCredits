@@ -285,9 +285,9 @@ class usd {
 //    if ($mya->city != $me->City) r\Web\say('dw mismatch', array('field' => 'City'));
 //    if (r\realState($mya->state) != $me->State) r\Web\say('dw mismatch', array('field' => 'State'));
 //    if ($mya->co() xor $me->Type != 'Personal') r\Web\say('dw mismatch', array('field' => 'Type'));
-    if ($me->Type == 'Non-profit' and $mya->co()) $structure = $mya->structure | u\bit(R_NONPROFIT);
+    if ($me->Type == 'Non-profit' and $mya->co()) $coFlags = $mya->coFlags | u\bit(CO_NONPROFIT);
 
-    $mya->update(compact('usdAccount', 'structure'));
+    $mya->update(compact('usdAccount', 'coFlags'));
 //    print_r(compact('uid','_GET','mya','usdAcct','dw','authToken','secure')); die();
     return authReturn(); // report success
   }

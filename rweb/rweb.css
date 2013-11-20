@@ -257,6 +257,8 @@ form.rweb  .form-no {color:red;}
 /*#rcreditswebformcompany.labeled #edit-links {margin-left:8em;}*/
 #rcreditswebformcompany #edit-links label {width:100%; text-align:left; font-weight:normal;}
 #rcreditswebformcompany.labeled .form-item-categories label {vertical-align:top;}
+#rcreditswebformcompany #edit-can2 {margin-top:12px;}
+#rcreditswebformcompany #edit-can2 div {margin-top:0; margin-bottom:0;}
 
 /* Account Info */
 #rcreditswebformaccount .form-type-textfield label {display:block;}
@@ -482,10 +484,11 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformanother .form-type-radio {margin-left:0px;}
 #rcreditswebformanother #edit-submit {margin-top:20px;}
 
-/* Cell */
-#rcreditswebformcell input#edit-delete {margin-right:100%;}
-#rcreditswebformcell table.table-select-processed {width:300px;}
-#rcreditswebformcells .form-type-checkbox input {position:relative; left:0;}
+/* Boxes Cell */
+#rcreditswebformboxes input#edit-delete {margin-right:100%;}
+#rcreditswebformboxes table.table-select-processed {max-width:500px;}
+#rcreditswebformboxes .form-type-checkbox input {position:relative; left:0;}
+#rcreditswebformboxes #edit-new {width:150px;}
 
 /* Example Store */
 #rcreditswebexample-store-form input.form-submit, #rcreditswebexample-store-form input.form-submit:hover {background:none; border:0;}

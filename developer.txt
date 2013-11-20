@@ -24,13 +24,31 @@ QUESTIONS:
 - When updating data directly through phpMyAdmin or the PHP window or other admin tools, back up the database or relevant tables first.
 ***
 
+NEXT UPDATE:
+delete r_smarts after reinstall
+create table r_boxes like r_boxnames; insert r_boxes select * from r_boxnames;
+(no need to change fieldnames)
+add r_sms records to r_boxes (query?)
+rename structure field "coFlags" in r_companies
+change all rebate pcts to 10
+update dwolla.php
+
 membership procedure:
 wait for READY status (once all steps are complete, including Dwolla account and bank connection request)
 make sure the photo is adequate
 mark the account as an rTrader (OK) (before printing card)
 print card and welcome materials, mail to new member (welcome includes reminder to verify bank account)
 
-. let account managers set a list of descriptions to choose from (to pass to POS app)
+. should be able to open another account before confirming bank deposits (and send card before that)
+. committed amount should not be displayed negative on Summary page
+. add option for company to disable access by others to their device(s). That way, an unsigned-in cashier can't accidentally sign in another company's agent. ("restricted" field in r_boxes)
+. use the coFlags field in r_companies for other co bits too, set by setCoBit and read with coCan(CO_REFUND) etc
+. make the company cards say "Company Agent"
+. printing card for new:aae shows org picture instead of gary!
+. employers should be able request rcards for anyone with scan permission or better
+. move all rsmart negative message fixing (along with the "just did" message) into r\reportArgs()
+. let account managers set a list of descriptions to choose from (to pass to POS app): implement as a textarea
+. in rsmart.inc/charge: if "$-" in success message and charge, change to "refund" (if payment, "unrefund") -- similar for balance
 . redo averageBalance() with SUM(r+usd) GROUP BY date
 . hide the Dwolla fees (and reimbursements) in the Transactions Summary
 . any account can unilaterally charge an account it has permission to draw on
@@ -67,11 +85,11 @@ print card and welcome materials, mail to new member (welcome includes reminder 
 - when contesting a tx, ask for comment (add it to payer's "for"). The next day (and thereafter) don't allow editing the for. Include payer's note in notice to payee.
 - LATER (when available) tests with dev sandbox and reg sandbox!
 - LATER bank account removal
-- add "immediate refunds" permission after "scan"
+- add "immediate refunds" permission after "scan"?
 - make sure recovery from lost usdtxs includes recovery from any fees
 - monthly PDF statement (printable)
 - enforce $1,000 FINCEN limits
-- move SMS notices option to cell form (and add field to r_sms)
+- move SMS notices option to cell form (and add field to r_boxes)?
 - implement r\suggest (use this for merchant invoices too. user gets an email invoice from rCredits, they can just click on a link to accept or decline. merchant gets notified). test cron call to r\suggest (should just notify, for now)
 - include address in "new payment" digest notices to nonprofits OR just CGF (warn on pay screen if the former)
 - on MSIE 8, sign-in CSS has alignment problem, menu failure in MSIE 8, autocomplete looks funny
@@ -458,7 +476,7 @@ To uninstall the rCredits modules manually (export first, since this DESTROYS AL
   DELETE FROM registry WHERE module IN ('rcredits','rweb','rsmart','rsms');
   DELETE FROM registry_file WHERE filename LIKE 'sites/all/modules/rcredits/%';
   DELETE FROM variable WHERE name LIKE 'rcredits%';
-  DROP TABLE IF EXISTS r_areas,r_candidates,r_industries,r_log,r_nonces,r_regions,r_relations,r_scores,r_smarts,r_sms,r_txs;
+  DROP TABLE IF EXISTS r_areas, r_boxes, r_candidates, r_industries, r_log, r_nonces, r_regions, r_relations, r_scores, r_txs;
   TRUNCATE cache;
   TRUNCATE cache_block;
   TRUNCATE cache_bootstrap;
