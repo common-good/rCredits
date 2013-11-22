@@ -67,6 +67,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'got funding' => t('You have received a @type of @amount from your rCredits community.'),
   'gift sent' => t('Your chosen gift of @amount to Common Good Finance has gone through. Your rebate is @rewardAmount.'),
   'tx summary' => t('@otherName @otherDid you @amount for "@purpose" on @created.'),
+  'share gift' => t('Your chosen ongoing gift of @share% of your rewards has been initiated for this month.'),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),
@@ -112,6 +113,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'unknown member' => t('Unknown member: "@who" (they need to sign up before we can recognize them). Type "helpme pay".'),
   'not an account' => t('That account does not exist.'), // this is usually a system error (or REST error)
   'non member' => t('@otherName does not have an active rCredits account.'),
+  'not yet active' => t('@name\'s account is not yet activated.'),
   'ambiguous other' => t('"@who" is associated with more than one rCredits account. You will need to identify them differently. Type "more" for options.'),
   'ambiguous other2' => t('You can identify a member by phone, email, fullname (no punctuation or spaces), or account ID.'),
   'what relationship' => t('You forgot to say whether you are an employee, owner, or both.'),

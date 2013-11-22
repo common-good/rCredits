@@ -73,13 +73,13 @@ class rcronGifts extends DrupalWebTestCase {
     . '\\| .ZZA | %yesterday |     10 |     1 | memory | Jane Do |    10 | %today    |"');
     And__('we notice "new payment|reward other" to member "cgf" with subs: "DATA'
     . '\\| otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |'
-    . '\\| Abe One   |    $10 | contribution | bonus           |                $1 |"');
+    . '\\| Abe One   |    $10 | contribution | reward          |                $1 |"');
     And__('we notice "gift sent" to member ".ZZA" with subs: "DATA'
     . '\\| amount | rewardAmount |'
     . '\\|    $10 |        $0.50 |"');
     And__('we tell staff "gift accepted" with subs: "DATA'
     . '\\| amount | myName  | often | rewardType |'
-    . '\\|     10 | Abe One |     1 | rebate     |"');
+    . '\\|     10 | Abe One |     1 | reward     |"');
   }
 
   // Scenario: A recurring contribution can be completed
@@ -100,10 +100,10 @@ class rcronGifts extends DrupalWebTestCase {
     . '\\| .ZZA | %yesterday+3m |     10 |     Q |        |         |         0 |"');
     And__('we notice "new payment|reward other" to member "cgf" with subs: "DATA'
     . '\\| otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |'
-    . '\\| Abe One   |    $10 | contribution | bonus           |                $1 |"');
+    . '\\| Abe One   |    $10 | contribution | reward          |                $1 |"');
     And__('we tell staff "gift accepted" with subs: "DATA'
     . '\\| amount | myName  | often | rewardType |'
-    . '\\|     10 | Abe One |     Q | rebate     |"');
+    . '\\|     10 | Abe One |     Q | reward     |"');
   }
 
 }

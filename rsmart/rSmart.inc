@@ -47,7 +47,7 @@ $GLOBALS[TX_SMART . ' messages'] = array(
 //  'agent cannot sell' => t('That agent is not authorized to charge customers.'),
   'customer balance' => t("Customer: @name\n\nBalance: @balance@spendable\nTradable for cash: @cashable"),
   'report exchange' => t("You @did @otherName @amount in exchange for cash."),
-  'just did' => t("\n\nWe just @did them @amount@forCash."),
+  'just did' => t("\n\nWe just @did @amount@forCash."),
 );
 
 /**
@@ -94,6 +94,7 @@ function pos($args = FALSE) {
  * @return: does not return (when testing, return the json result)
  */
 function ok($args, $ok = "1") {
+  if ($msg = @$args['message']) $args['message'] = strip_tags($msg);
   $result = u\jsonEncode(compact('ok') + $args);
   u\loga('out', $args);
   //{t\output($args, 'output'); 
@@ -136,11 +137,10 @@ function posErr($message, $subs = array()) {
 function identify($args) {
   global $mya;
   global $devHdr;
-  if ($err = badArg($keys = 'version agent device member code', $args)) return posErr($err);
-  extract(u\just($keys, $args));
+  if ($err = missingArg($keys = 'version device member code', $args)) return posErr($err); // no agent on scanin
+  extract(u\just($keys . ' agent', $args));
 
-  if (!$a = @$agent ? getCustomer(@$member, $err) : $mya) return posErr(@$err ?: 'missing mya');
-  $name = $a->agent->fullName;
+  if (!$a = @$agent ? getCustomer(@$member, $err) : getAgent(@$member, $err)) return posErr($err);
 //  $name .= " ($member)"; // debug
 
   if (@$agent) {
@@ -148,6 +148,7 @@ function identify($args) {
     $logon = ($a->id == $mya->id) ? "1" : "0"; // changing to another agent for the same company?
     //if ($logon == "0") die(print_r(compact(u\ray('args agent member a mya')), 1));
   } else $logon = "1";
+
 
   $cardCode = $a->agent->secure[$a->proSe() ? 'cardCode' : 'cardCode2'];
   if (isDEV and $code == 'zot') $cardCode = $code; // for debugging
@@ -169,6 +170,8 @@ function identify($args) {
     $balance = getBalance($a);
     unset($device);
   }
+
+  $name = $a->agent->fullName;
   
   return ok(compact(u\ray('logon device name place company balance descriptions can update')));
 }
@@ -184,7 +187,7 @@ function identify($args) {
  *   just the photo data (no json) or a short error message (50 characters or less)
  */
 function photo($args) {
-  if ($err = badArg($keys = 'member', $args)) return photoReturn($err);
+  if ($err = missingArg($keys = 'member', $args)) return photoReturn($err);
   extract(u\just($keys, $args));
 
   if (!@$member) return photoReturn('missing member');
@@ -223,7 +226,7 @@ function charge($args, $type = 'charge') {
   global $scanned; $scanned = true;
   global $mya;
   
-  if ($err = badArg($keys = 'agent member amount goods description', $args)) return posErr($err);
+  if ($err = missingArg($keys = 'agent member amount goods description', $args)) return posErr($err);
   extract(u\just($keys, $args));
 
   if (!@$member) return posErr('missing member');
@@ -259,7 +262,7 @@ function payment($args) {return charge($args, 'payment');}
 function undo($args) {
   global $mya; $myid = $mya->id;
   global $scanned; $scanned = true;
-  if ($err = badArg($keys = 'tx', $args)) return posErr($err);
+  if ($err = missingArg($keys = 'tx', $args)) return posErr($err);
   extract(u\just($keys, $args));
   
   list ($msg, $subs) = be\undoTx($tx, ':myid IN (payer, payee)', compact('myid'));
@@ -275,8 +278,8 @@ function undo($args) {
 /**
  * Report if an argument is missing.
  */
-function badArg($expected, $args) {
-  foreach (u\ray($expected) as $one) if (!isset($args[$one])) return "Missing $one";
+function missingArg($expected, $args) {
+  foreach (u\ray($expected) as $one) if (!isset($args[$one])) return "missing $one";
 }
 
 /**

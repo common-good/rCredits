@@ -661,7 +661,8 @@ function formSummary($form, &$sta) {
   // should this be usdIn-usdOut? both?
   
   extract(u\just('benePastMo beneEver extraPastMo extraEver avgBalPastMo avgBalEver giftsEver', $mya->data));
-  $years = (strtotime('today') - strtotime('today', $mya->created)) / YEAR_SECS;
+  $years = round((strtotime('today') - strtotime('today', $mya->created)) / DAY_SECS) * DAY_SECS / YEAR_SECS;
+  // rounding is to assure consistency for tests, despite daylight savings time changes
   $returnMo = number_format(@$avgBalPastMo ? 100 * 12 * (@$benePastMo + @$extraPastMo) / $avgBalPastMo : 100 * R_INFLATION_RATE, 1);
   $return = number_format(($years and @$avgBalEver) ? 100 * (@$beneEver +@$extraEver) / $avgBalEver / $years : 100 * R_INFLATION_RATE, 1);
   $cttyBeneMo = u\fmtAmt(@$giftsPastMo + max(0, @$bankedPastMo) + @$benePastMo * (1 + R_CC_RATE / $mya->rebate));
@@ -1334,23 +1335,23 @@ function formAgent($form, &$sta) {
   $fullName = textField(t('Name:'), t('The person\'s full name'), required());
   $permissions = formField('radios', t('Permissions:'), '', required(), u\ray('read only,charge customers'));
 //  $employee = boolField(t('Employee?'), t('Is this person an employee of the company?'));
-  $pay = textField(t('Pay:'), t('How much is this agent paid by the company each month (on average)?'), required());
+//  $pay = textField(t('Pay:'), t('How much is this agent paid by the company each month (on average)?'), required());
   $submit = submit(t('Create Account'));
-  return labeled(compact(u\ray('title subtext optedOut fullName permissions employee pay submit')));
+  return labeled(compact(u\ray('title subtext optedOut fullName permissions employee submit')));
 }
 
 function formAgent_validate($form, &$sta) {
-  extract(u\just('optedOut fullName pay', $sta['input']));
+  extract(u\just('optedOut fullName', $sta['input']));
   if (!$optedOut) return say('must opt', 'optedOut');
   if (u\badName($fullName)) return say('bad name', 'fullName');
-  if (u\badAmount($pay)) return say('bad amount', 'pay');
+//  if (u\badAmount($pay)) return say('bad amount', 'pay');
 }
 
 function formAgent_submit($form, &$sta) {
-  extract(u\just('fullName permissions pay', $sta['input']));
+  extract(u\just('fullName permissions', $sta['input']));
   $a = new r\acct(compact('fullName'));
   $perms = ($permissions ? B_SCAN : B_READ) - B_RELATED;
-  $info = u\ray('main other amount permission', r\acct()->id, $a->id, $pay, $perms);
+  $info = u\ray('main other permission', r\acct()->id, $a->id, $perms);
   if (db\insert('r_relations', $info)) return r\go('', 'agent created');
 }
 
@@ -2538,7 +2539,6 @@ function formI($form, &$sta, $who = '') {
   } elseif ($count == 3) { // new format: DEF.whatever or DEF-whatever (agent)
     list ($tail, $mark, $code) = $parts;
     $region = R_SERVER_ID;
-    debug(compact('region','tail','mark','code'));
   } else return say('bad member id', 'zot'); // not an ID QR
   
   if ($mark == R_AGENT_URL_MARK) {
@@ -2554,8 +2554,10 @@ function formI($form, &$sta, $who = '') {
   if ($gotCode != $code) return say('bad card code', 'zot');
   list ($otherId, $otherAgent) = array($a->id, $a->agentId);
 
-  if (!$mya) return $a->proSe() ? r\go('user/login?name=' . $a->name) : scanIn($a);
+  //  if (!$mya) return $a->proSe() ? r\go('user/login?name=' . $a->name) : scanIn($a);
+  return r\go($a->proSe() ? 'http://rCredits.org' : "member/$a->name");
   
+  /*
   $shortName = $a->name;
   $txArgs = "/who=$shortName&scanned=1";
   if ($mya->proSe() and !$co) return r\go("pay$txArgs");
@@ -2577,7 +2579,7 @@ function formI($form, &$sta, $who = '') {
   $all = identifiers($a) . render($zot);
   svar('lastCustomer', $a->id);
   $all = formField('item', '', '', $all);
-  return compact('all');
+  return compact('all'); */
 }
 
 function formSMS($form, &$sta) {
@@ -2688,7 +2690,7 @@ function formReports($form, &$sta, $args = '') {
   list ($bankNet, $txRewards, $total) = array(abs($bankInPerMo - $bankOutPerMo - $refundsPerMo), $rebates + $bonuss + $refunds, $r + $usd);
   $bankSign = ($bankInPerMo >= $bankOutPerMo + $refundsPerMo) ? '+' : '-';
   $savings = u\fmtAmt($total - $perMo);
-  $savingsPct = number_format(100 * ($total - $perMo) / $usd0, 1) . '%';
+  $savingsPct = ($usd0 + 0) ? number_format(100 * ($total - $perMo) / $usd0, 1) . '%' : t('n/a');
   $velocity = number_format(100 * $perMo / $total, 1) . t('% per month');
   foreach (u\ray('bankInPerMo bankOutPerMo refundsPerMo bankNet r usd total signups inflations txRewards grants loans fines') as $one) $$one = u\fmtAmt($$one);
   $p2pPerMo = $perMo - $p2bPerMo - $b2bPerMo - $b2pPerMo;
@@ -2779,15 +2781,15 @@ function memberID($quid = '', $big = FALSE) {
     $acct = $acct->agent; // hereafter it's all about the agent
     $fullName = "$acct->fullName<br>$fullName"; // agent and company
     $nameSize = '72px';
-    list ($cardField, $lower, $role) = array('cardCode2', 5, 'Agent');
+    list ($cardField, $lower, $role, $roleName) = array('cardCode2', 5, 'agent', 'Company Agent');
   } else {
     $nameSize = strlen($fullName) > 22 ? '100px' : '120px';
-    list ($cardField, $lower, $role) = array('cardCode', 0, 'Member');
+    list ($cardField, $lower, $role) = array('cardCode', 0, 'member', 'Member');
   }
   $mark = u\consta("r_$role", 'mark');
   list ($region, $tail) = explode($mark, $qid);
   $urlMark = $proSe ? $mark : R_AGENT_URL_MARK;
-  $qrUrl = "HTTP://$region.RC2.ME/$tail$urlMark" . r\cardCode($qid);
+  $qrUrl = "HTTP://$region.RC2.ME/$tail$urlMark" . $acct->secure[$cardField]; // NOT r\cardCode($qid);
 //  $qrServer = strtoupper('http://' . R_SERVER_ID . '.rC2.me/I/');
 //  $qrUrl = $qrServer . str_replace(R_AGENT_MARK, R_AGENT_URL_MARK, $qid . $mark) . $acct->secure[$cardField];
   $photo = DRUPAL_ROOT . $acct->auxFilename('picture');
@@ -2822,7 +2824,7 @@ function memberID($quid = '', $big = FALSE) {
   $pdf->Image($photo, 0, 0, $photoW, $photoH, '', './account', '', true, 300, '', false, false, 1, false, false, false);
   $pdf->write2DBarcode($qrUrl, 'QRCODE,Q', 96, 35 + $lower, 50, 50, $style, 'N'); // L,M,Q,H are low-high error-correction
 
-  $html = strtr('<span style="font-size:44px;">@ROLE<br><span style="font-size:76px; color:darkred; font-weight:bold;">@CODE</span><br>@REGION</span>', array('@ROLE' => $role, '@CODE' => $qid, '@REGION' => $regionName));
+  $html = strtr('<span style="font-size:44px;">@ROLE<br><span style="font-size:76px; color:darkred; font-weight:bold;">@CODE</span><br>@REGION</span>', array('@ROLE' => $roleName, '@CODE' => $qid, '@REGION' => $regionName));
   $pdf->writeHTMLCell(100, 30, 94, 3 + $lower, $html); // w, h, x, y
   $pdf->writeHTMLCell(40, 10, 160, 84.5, '<div style="font-size:44px;">rCredits.org</div>');
   $pdf->writeHTMLCell(182, 40, 10, 100, "<div style=\"font-size:$nameSize; text-align:center; color:midnightblue; font-weight:bold;\">$fullName</div>");

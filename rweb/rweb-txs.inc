@@ -478,7 +478,10 @@ function tx_edit_submit($form, &$sta) {
   $sta['redirect'] = 'transactions';
 }
 
-function txBal($bal, $plus = '', $minus = '- ') {return ($bal < 0 ? $minus : $plus) . '$' . number_format(abs($bal), 2);}
+function txBal($bal, $plus = '', $minus = '- ') {
+  $bal = str_replace(',', '', $bal);
+  return ($bal < 0 ? $minus : $plus) . '$' . number_format(abs($bal), 2);
+}
 
 /**
  * Return the transaction summary table

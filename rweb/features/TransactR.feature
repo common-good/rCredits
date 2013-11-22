@@ -22,14 +22,8 @@ Setup:
   | NEW.AAAB | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |
   | NEW.AAAC | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZB | signup  | 0      |
   | NEW.AAAD | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZC | signup  | 0      |
-  And balances:
-  | id        | usd  |
-  | community | 1000 |
-  | NEW.ZZA   |  100 |
-  | NEW.ZZB   |  200 |
-  | NEW.ZZC   |  300 |
   Then balances:
-  | id        | r    |
+  | id        | balance |
   | community | -750 |
   | NEW.ZZA   |  250 |
   | NEW.ZZB   |  250 |
@@ -52,8 +46,8 @@ Scenario: A member confirms request to charge another member
   | op     | who     | amount | goods | purpose |
   | charge | Bea Two | 100    | 1     | labor   |
   Then we say "status": "report invoice" with subs:
-  | did     | otherName | amount | tid |
-  | charged | Bea Two   | $100   | 2   |
+  | did     | otherName | amount |
+  | charged | Bea Two   | $100   |
   And we notice "new invoice" to member "NEW.ZZB" with subs:
   | created | fullName | otherName | amount | payerPurpose |
   | %today  | Bea Two  | Abe One   | $100   | labor        |
@@ -82,11 +76,11 @@ Scenario: A member confirms request to pay another member
   | op  | who     | amount | goods | purpose |
   | pay | Bea Two | 100    | 1     | labor   |
   Then we say "status": "report transaction" with subs:
-  | did    | otherName | amount | tid | rewardType | rewardAmount |
-  | paid   | Bea Two   | $100   | 2   | rebate     | $5           |
+  | did    | otherName | amount | rewardType | rewardAmount |
+  | paid   | Bea Two   | $100   | reward     | $5           |
   And we notice "new payment|reward other" to member "NEW.ZZB" with subs:
   | created | fullName | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |
-  | %today  | Bea Two  | Abe One   | $100   | labor        | bonus           |               $10 |
+  | %today  | Bea Two  | Abe One   | $100   | labor        | reward          |               $10 |
   And transactions:
   | xid      | created   | type      | state    | amount | from      | to      | purpose      | taking |
   | NEW.AAAE | %today | %TX_TRANSFER | %TX_DONE |    100 | NEW.ZZA   | NEW.ZZB | labor        | 0      |

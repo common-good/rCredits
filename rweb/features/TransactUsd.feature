@@ -40,8 +40,8 @@ Scenario: A member confirms request to charge another member
   | op     | who     | amount | goods | purpose |
   | charge | Bea Two | 100    | 1     | labor   |
   Then we say "status": "report invoice" with subs:
-  | did     | otherName | amount | tid |
-  | charged | Bea Two   | $100   | 1   |
+  | did     | otherName | amount |
+  | charged | Bea Two   | $100   |
   And we notice "new invoice" to member ".ZZB" with subs:
   | created | fullName | otherName | amount | payerPurpose |
   | %today  | Bea Two  | Abe One   | $100   | labor        |
@@ -69,25 +69,25 @@ Scenario: A member confirms request to pay another member
   | op  | who     | amount | goods | purpose |
   | pay | Bea Two | 100    | 1     | labor   |
   Then we say "status": "report transaction" with subs:
-  | did    | otherName | amount | tid | rewardType | rewardAmount |
-  | paid   | Bea Two   | $100   | 1   | rebate     | $5           |
+  | did    | otherName | amount | rewardType | rewardAmount |
+  | paid   | Bea Two   | $100   | reward     | $5           |
   And we notice "new payment|reward" to member ".ZZB" with subs:
   | created | fullName | otherName | amount | payeePurpose | rewardType |rewardAmount |
-  | %today  | Bea Two  | Abe One   | $100   | labor        | bonus      | $10         |
+  | %today  | Bea Two  | Abe One   | $100   | labor        | reward     | $10         |
   And transactions:
-  | xid   | created | type     | state | amount | r  | from | to   | purpose      | taking |
-  | .AAAB | %today  | transfer | done  |    100 | 0  | .ZZA | .ZZB | labor        | 0      |
-  | .AAAC | %today  | rebate   | done  |      5 | 5  | ctty | .ZZA | rebate on #1 | 0      |
-  | .AAAD | %today  | bonus    | done  |     10 | 10 | ctty | .ZZB | bonus on #1  | 0      |
+  | xid   | created | type     | state | amount | r   | from | to   | purpose      | taking |
+  | .AAAB | %today  | transfer | done  |    100 | 100 | .ZZA | .ZZB | labor        | 0      |
+  | .AAAC | %today  | rebate   | done  |      5 |   5 | ctty | .ZZA | rebate on #1 | 0      |
+  | .AAAD | %today  | bonus    | done  |     10 |  10 | ctty | .ZZB | bonus on #1  | 0      |
   And balances:
   | id   | r      | usd    | rewards |
   | ctty | -15.00 |      - |       - |
-  | .ZZA |   5.00 |   0.00 |    5.00 |
-  | .ZZB |  10.00 | 300.00 |   10.00 |
+  | .ZZA | -95.00 | 100.00 |    5.00 |
+  | .ZZB | 110.00 | 200.00 |   10.00 |
   | .ZZC |      0 | 300.00 |       0 |
-  When cron runs ""
-  Then balances:
-  | id   | r      | usd    | rewards |
-  | ctty | -15.25 |      - |       - |
-  | .ZZB |  10.25 | 299.75 |   10.25 |
+#  When cron runs ""
+#  Then balances:
+#  | id   | r      | usd    | rewards |
+#  | ctty | -15.25 |      - |       - |
+#  | .ZZB |  10.25 | 299.75 |   10.25 |
   

@@ -17,6 +17,7 @@ Setup:
   | .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 | dft,ok,person,bona  |
   | .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 | dft,ok,person,bona,secret_bal |
   | .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      | dft,ok,company,bona |
+  | .ZZG | Gil Seven  | g@    | Gtown | GA    | ccG |      | dft |
   And devices:
   | id   | code |
   | .ZZC | devC |
@@ -114,3 +115,9 @@ Scenario: Device asks for a picture but there isn't one
   Given member ".ZZB" has no picture
   When agent ":ZZA" asks device "devC" for a picture of member ".ZZB"
   Then we respond with picture "no photo"
+
+Scenario: A non-yet-active member card is scanned
+  When agent ":ZZB" asks device "devC" to identify "ZZF.ccF"
+  Then we return error "not yet active" with subs:
+  | name      |
+  | Gil Seven |

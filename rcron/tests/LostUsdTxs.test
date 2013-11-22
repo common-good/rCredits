@@ -44,16 +44,16 @@ class rcronLostUsdTxs extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id   | fullName   | dw | country | email | flags              |'
-    . '\\| %id1 | Abe One    |  1 | US      | a@    | dft,ok,person,bona |'
-    . '\\| %id2 | Bea Two    |  0 | US      | b@    | dft,ok,person,bona |"');
+    . '\\| id   | fullName   | dw | country | email | flags              | rebate |'
+    . '\\| %id1 | Abe One    |  1 | US      | a@    | dft,ok,person,bona |      5 |'
+    . '\\| %id2 | Bea Two    |  0 | US      | b@    | dft,ok,person,bona |      5 |"');
     And__('balances: "DATA'
     . '\\| id   | dw/usd |'
-    . '\\| %id1 |      1 |"');
+    . '\\| %id1 |      2 |"');
     And__('transactions: "DATA'
-    . '\\| xid | created   | type     | amount | r  | from | to   | purpose |'
-    . '\\| 1   | %today-7m | signup   |     10 | 10 | ctty | %id1 | signup  |'
-    . '\\| 2   | %today-7m | signup   |     10 | 10 | ctty | %id2 | signup  |"');
+    . '\\| xid | created   | type     | amount | r    | from | to   | purpose |'
+    . '\\| 1   | %today-7m | signup   |   1000 | 1000 | ctty | %id1 | signup  |'
+    . '\\| 2   | %today-7m | signup   |   1000 | 1000 | ctty | %id2 | signup  |"');
     Then_('usd transfer count is 0');
     break;
 
@@ -66,15 +66,15 @@ class rcronLostUsdTxs extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('member "%id1" confirms form "pay" with values: "DATA'
     . '\\| op  | who     | amount | goods | purpose |'
-    . '\\| pay | Bea Two | 10.20  | 1     | labor   |"');
+    . '\\| pay | Bea Two | 1001   | 1     | labor   |"');
     Then_('usd transfers: "DATA'
     . '\\| payer | payee | amount |'
-    . '\\| %id1  |  %id2 |   0.20 |"');
+    . '\\| %id1  |  %id2 |      1 |"');
     Given('usd transfer count is 0');
     When_('cron runs "usdTxsThere"');
     Then_('usd transfers: "DATA'
     . '\\| payer | payee | amount |'
-    . '\\| %id1  |  %id2 |   0.20 |"');
+    . '\\| %id1  |  %id2 |      1 |"');
   }
 
 }

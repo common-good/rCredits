@@ -40,6 +40,7 @@ function extraSubs(&$subs) {
 //  $subs['%replace_this'] = 'with this';
   $subs['%todayn-12m'] = t\subAgo('%todayn-365d', '%Y%m%d');
   $subs['%todayn'] = t\subAgo('%todayn', '%Y%m%d');
+  $subs['%name'] = \user_password(20); // suitable for email address
 }
 
 function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, $info);}
@@ -56,7 +57,6 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     Get AMemberTriesToGoBelowTheirMinimum MAKE
  *     Get AMemberAsksToDoTwoTransfersOutInOneDay MAKE
  *     Gift AMemberContributes MAKE
- *     Gift AMemberContributesPartlyInUSD MAKE
  *     Gift AMemberContributesWithInsufficientFunds MAKE
  *     Relations AMemberAddsARelation MAKE
  *     TransactR AMemberAsksToChargeAnotherMember MAKE
@@ -77,7 +77,6 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     RealUsd AMixedRCreditsUSDTransactionHappens MAKE
  *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance MAKE
  *     RealUsd AMemberBuysSomethingWhenDwollaIsDown MAKE
- *     ScanCard CashierChargesRCard MAKE
  *     Signin AMemberSignsInForTheFirstTime MAKE
  *     Signin AMemberGivesTheWrongPassword MAKE
  *     Signup ANewbieRegisters MAKE
@@ -180,7 +179,6 @@ function members($list) {return t\members($list);}
  *     Flow AMemberOverdraws TEST
  *     Flow AMemberOverdrawsAndDrawsFromBothRAndUSD TEST
  *     Gift AMemberContributes TEST
- *     Gift AMemberContributesPartlyInUSD TEST
  *     RealUsd Setup MAKE
  *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
  *     RealUsd AMemberBuysSomethingWhenDwollaIsDown TEST
@@ -216,7 +214,6 @@ function transactions($list) {return t\transactions($list);}
  *     Gift AMemberContributesWithInsufficientFunds TEST
  *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance TEST
  *     Relations AMemberAddsARelation TEST
- *     ScanCard CashierChargesRCard TEST
  *     Signup AMemberRegistersBadName TEST
  *     Signup AMemberRegistersAgain TEST
  *     Signup AMemberRegistersWithAMissingCompany TEST
@@ -257,7 +254,6 @@ function weSayWithSubs($type, $index, $subs) {
  *     Contact AMemberGivesABadEmail TEST
  *     Get AMemberMovesTooLittleToTheBank TEST
  *     Get AMemberTriesToGoBelowTheirMinimum TEST
- *     ScanCard CashierChargesRCard TEST
  *     Signin AMemberSignsInForTheFirstTime TEST
  *     Signin AMemberGivesTheWrongPassword MAKE
  *     Signup ANewbieRegisters TEST
@@ -266,6 +262,7 @@ function weSayWithSubs($type, $index, $subs) {
  *     Signup AMemberRegistersWithACompanyWithNoRelation TEST
  *     Signup AMemberRegistersACompany TEST
  *     Signup ANewbieRegistersFromElsewhere TEST
+ *     Summary MembersAccountIsNotActive TEST
  */
 function weSay($type, $index) {
   global $testOnly;
@@ -340,10 +337,8 @@ function weShowWithSubs($page, $subs) {
  *     Relations MemberCompanyHasRelations TEST
  *     Relations ItsComplicated TEST
  *     Relations AMemberAddsARelation TEST
- *     ScanCard AMemberUsesAnRCardToPay TEST
- *     ScanCard ACompanyAgentUsesAnRCardToPay TEST
- *     ScanCard AMemberUsesAnOLDRCardToPay TEST
- *     ScanCard ACompanyAgentUsesAnOLDRCardToPay TEST
+ *     ScanCard SomeoneScansACompanyAgentCard TEST
+ *     ScanCard SomeoneScansAnOldCompanyAgentCard TEST
  *     Signin AMemberSignsInForTheFirstTime TEST
  *     Signup ANewbieVisitsTheRegistrationPageWithNoInvite TEST
  *     Signup AnInvitedNewbieVisitsTheRegistrationPage TEST
@@ -351,6 +346,8 @@ function weShowWithSubs($page, $subs) {
  *     Signup AMemberRegistersACompany TEST
  *     Signup ANewbieRegistersFromElsewhere TEST
  *     Summary AMemberClicksOnTheSummaryTab TEST
+ *     Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage TEST
+ *     Summary AForeignRTraderClicksOnTheSummaryTab TEST
  *     Transactions AMemberClicksNO TEST
  *     Transactions AMemberConfirmsNO TEST
  *     Transactions AMemberLooksAtTransactionsForThePastYear TEST
@@ -433,7 +430,7 @@ function relations($relations) {return t\relations($relations);}
  *     Transactions AMemberClicksNO MAKE
  *     Transactions AMemberConfirmsNO MAKE
  *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
- *     TransactR Setup BOTH
+ *     TransactR Setup TEST
  *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
  *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
  *     TransactUsd Setup MAKE
@@ -470,17 +467,19 @@ function usd($list) {return t\usd($list);}
  *     Relations MemberHasAccessToEmployeeAccount MAKE
  *     Relations MemberCompanyHasRelations MAKE
  *     Relations ItsComplicated MAKE
- *     ScanCard AMemberUsesAnRCardToPay MAKE
- *     ScanCard ACompanyAgentUsesAnRCardToPay MAKE
- *     ScanCard CashierChargesRCard MAKE
- *     ScanCard AMemberUsesAnOLDRCardToPay MAKE
- *     ScanCard ACompanyAgentUsesAnOLDRCardToPay MAKE
+ *     ScanCard SomeoneScansAMemberCard MAKE
+ *     ScanCard SomeoneScansACompanyAgentCard MAKE
+ *     ScanCard SomeoneScansAnOldMemberCard MAKE
+ *     ScanCard SomeoneScansAnOldCompanyAgentCard MAKE
  *     Signin AMemberSignsInForTheFirstTime MAKE
  *     Signin AMemberGivesTheWrongPassword MAKE
  *     Signup ANewbieVisitsTheRegistrationPageWithNoInvite MAKE
  *     Signup AnInvitedNewbieVisitsTheRegistrationPage MAKE
  *     Signup AMemberRegistersACompany MAKE
  *     Summary AMemberClicksOnTheSummaryTab MAKE
+ *     Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage MAKE
+ *     Summary AForeignRTraderClicksOnTheSummaryTab MAKE
+ *     Summary MembersAccountIsNotActive MAKE
  *     Transactions AMemberClicksNO MAKE
  *     Transactions AMemberLooksAtTransactionsForThePastYear MAKE
  *     Transactions AMemberLooksAtTransactionsForThePastFewDays MAKE
@@ -562,7 +561,7 @@ function memberSignsInTheFirstTime($uid) {
 /**
  * member (ARG) account is not active
  *
- * in: 
+ * in: Summary MembersAccountIsNotActive MAKE
  */
 function memberAccountIsNotActive($id) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -793,9 +792,7 @@ function memberScansMemberCard($id1, $id2) {
 /**
  * member (ARG) card code is (ARG)
  *
- * in: ScanCard AMemberUsesAnRCardToPay MAKE
- *     ScanCard CashierChargesRCard MAKE
- *     ScanCard AMemberUsesAnOLDRCardToPay MAKE
+ * in: 
  */
 function memberCardCodeIs($id, $cardCode) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -807,8 +804,7 @@ function memberCardCodeIs($id, $cardCode) {
 /**
  * agent (ARG) card code is (ARG)
  *
- * in: ScanCard ACompanyAgentUsesAnRCardToPay MAKE
- *     ScanCard ACompanyAgentUsesAnOLDRCardToPay MAKE
+ * in: 
  */
 function agentCardCodeIs($id, $cardCode2) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -821,10 +817,10 @@ function agentCardCodeIs($id, $cardCode2) {
  * cron runs (ARG)
  *
  * in: Community Setup MAKE
+ *     Community CronCalculatesTheStatistics MAKE
  *     Download Setup MAKE
  *     Summary Setup MAKE
  *     Transactions Setup MAKE
- *     TransactUsd AMemberConfirmsRequestToPayAnotherMember MAKE
  */
 function cronRuns($op) {return t\cronRuns($op);}
 
@@ -847,6 +843,7 @@ function memberHasADwollaAccountStep($id, $step) {
  *     Relations MemberCompanyHasRelations TEST
  *     Relations ItsComplicated TEST
  *     Signup AnInvitedNewbieVisitsTheRegistrationPage TEST
+ *     Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage TEST
  *     Transactions AMemberLooksAtTransactionsForThePastYear TEST
  *     Transactions AMemberLooksAtTransactionsForThePastFewDays TEST
  *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
@@ -894,3 +891,15 @@ function with($content) {return weShow($content);}
  * in: Summary Setup MAKE
  */
 function membersHave($list) {return t\membersHave($list);}
+
+/**
+ * we redirect to (ARG)
+ *
+ * in: ScanCard SomeoneScansAMemberCard TEST
+ *     ScanCard SomeoneScansAnOldMemberCard TEST
+ */
+function weRedirectTo($page) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  global $lastGo;
+  return ($lastGo == $page);
+}

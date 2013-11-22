@@ -59,7 +59,6 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     Pool Setup MAKE
  *     Recache Setup MAKE
  *     Sharing Setup MAKE
- *     SoldOut Setup MAKE
  */
 function members($list) {return t\members($list);}
 
@@ -107,7 +106,6 @@ function balances($list) {return t\balances($list);}
  *     Recache BalancesGetOutOfWhack MAKE
  *     Recache BalancesGetATinyBitOutOfWhack MAKE
  *     Sharing InflationAdjustmentsAreDistributed MAKE
- *     SoldOut MemberSoldSomeRCreditsThisWeek MAKE
  */
 function cronRuns($op) {return t\cronRuns($op);}
 
@@ -153,7 +151,6 @@ function relations($relations) {return t\relations($relations);}
  *     Recache Setup MAKE
  *     Sharing Setup MAKE
  *     Sharing InflationAdjustmentsAreDistributed TEST
- *     SoldOut Setup MAKE
  */
 function transactions($list) {return t\transactions($list);}
 
@@ -164,7 +161,7 @@ function transactions($list) {return t\transactions($list);}
  *     Bank AMemberIsWellBelowMinimum TEST
  *     Gifts AContributionCanBeCompleted TEST
  *     Gifts ARecurringContributionCanBeCompleted TEST
- *     SoldOut MemberSoldSomeRCreditsThisWeek TEST
+ *     Sharing InflationAdjustmentsAreDistributed TEST
  */
 function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice, $id, $subs);}
 
@@ -309,7 +306,7 @@ function usdTransferCountIs($count) {return (t\usdTransferCount() == $count);}
 /**
  * next DO code is (ARG)
  *
- * in: SoldOut MemberSoldSomeRCreditsThisWeek MAKE
+ * in: 
  */
 function nextDOCodeIs($code) {
   global $testOnly; if ($testOnly) return FALSE;

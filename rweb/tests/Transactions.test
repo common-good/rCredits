@@ -54,53 +54,56 @@ class rwebTransactions extends DrupalWebTestCase {
     . '\\| .ZZB | .ZZB | .ZZA  | read       |'
     . '\\| .ZZC | .ZZC | .ZZB  | buy        |'
     . '\\| .ZZD | .ZZC | .ZZA  | sell       |"');
+    And__('usd transfers: "DATA'
+    . '\\| payer | payee | amount | tid | created    | completed  |'
+    . '\\|  .ZZA |     0 |  -1000 |   1 | %today-13m | %today-13m |'
+    . '\\|  .ZZB |     0 |  -2000 |   1 | %today-13m | %today-13m |'
+    . '\\|  .ZZC |     0 |  -3000 |   1 | %today-13m | %today-13m |'
+    . '\\|  .ZZA |     0 |    -11 |   2 | %today-1w  |         0  |'
+    . '\\|  .ZZA |     0 |     22 |   4 | %today-5d  |         0  |'
+    . '\\|  .ZZA |     0 |     33 |   3 | %today-5d  |         0  |"');
     And__('balances: "DATA'
     . '\\| id   | usd   |'
     . '\\| ctty | 10000 |'
     . '\\| .ZZA |  1000 |'
     . '\\| .ZZB |  2000 |'
     . '\\| .ZZC |  3000 |"');
-    And__('usd transfers: "DATA'
-    . '\\| payer | payee | amount | tid | created   | completed |'
-    . '\\|  .ZZA |     0 |    -11 |   2 | %today-1w |         0 |'
-    . '\\|  .ZZA |     0 |     22 |   4 | %today-5d |         0 |'
-    . '\\|  .ZZA |     0 |     33 |   3 | %today-5d |         0 |"');
     And__('transactions: "DATA'
-    . '\\| xid   | created   | type     | state   | amount | r   | from | to   | purpose | taking |'
-    . '\\| .AAAB | %today-7m | signup   | done    |    250 | 250 | ctty | .ZZA | signup  | 0      |'
-    . '\\| .AAAC | %today-6m | signup   | done    |    250 | 250 | ctty | .ZZB | signup  | 0      |'
-    . '\\| .AAAD | %today-6m | signup   | done    |    250 | 250 | ctty | .ZZC | signup  | 0      |'
-    . '\\| .AAAE | %today-5m | transfer | done    |     10 |  10 | .ZZB | .ZZA | cash E  | 0      |'
-    . '\\| .AAAF | %today-4m | transfer | done    |    100 |  20 | .ZZC | .ZZA | usd F   | 1      |'
-    . '\\| .AAAG | %today-3m | transfer | done    |    240 |  40 | .ZZA | .ZZB | what G  | 0      |'
-    . '\\| .AAAH | %today-3m | rebate   | done    |     12 |  12 | ctty | .ZZA | rebate  | 0      |'
-    . '\\| .AAAI | %today-3m | bonus    | done    |     24 |  24 | ctty | .ZZB | bonus   | 0      |'
-    . '\\| .AAAJ | %today-3w | transfer | pending |    100 | 100 | .ZZA | .ZZB | pie N   | 1      |'
-    . '\\| .AAAK | %today-3w | rebate   | pending |      5 |   5 | ctty | .ZZA | rebate  | 0      |'
-    . '\\| .AAAL | %today-3w | bonus    | pending |     10 |  10 | ctty | .ZZB | bonus   | 0      |'
-    . '\\| .AAAM | %today-2w | transfer | pending |    100 | 100 | .ZZC | .ZZA | labor M | 0      |'
-    . '\\| .AAAN | %today-2w | rebate   | pending |      5 |   5 | ctty | .ZZC | rebate  | 0      |'
-    . '\\| .AAAO | %today-2w | bonus    | pending |     10 |  10 | ctty | .ZZA | bonus   | 0      |'
-    . '\\| .AAAP | %today-2w | transfer | done    |     50 |   5 | .ZZB | .ZZC | cash P  | 0      |'
-    . '\\| .AAAQ | %today-1w | transfer | done    |    120 |  80 | .ZZA | .ZZC | this Q  | 1      |'
-    . '\\| .AAAR | %today-1w | rebate   | done    |      6 |   6 | ctty | .ZZA | rebate  | 0      |'
-    . '\\| .AAAS | %today-1w | bonus    | done    |     12 |  12 | ctty | .ZZC | bonus   | 0      |'
-    . '\\| .AAAT | %today-6d | transfer | pending |    100 | 100 | .ZZA | .ZZB | cash T  | 0      |'
-    . '\\| .AAAU | %today-6d | transfer | pending |    100 | 100 | .ZZB | .ZZA | cash U  | 1      |'
-    . '\\| .AAAV | %today-6d | transfer | done    |    100 |   0 | .ZZA | .ZZB | cash V  | 0      |"');
+    . '\\| xid   | created   | type     | state   | amount |  r   | from | to   | purpose | taking |'
+    . '\\| .AAAB | %today-7m | signup   | done    |    250 |  250 | ctty | .ZZA | signup  | 0      |'
+    . '\\| .AAAC | %today-6m | signup   | done    |    250 |  250 | ctty | .ZZB | signup  | 0      |'
+    . '\\| .AAAD | %today-6m | signup   | done    |    250 |  250 | ctty | .ZZC | signup  | 0      |'
+    . '\\| .AAAE | %today-5m | transfer | done    |     10 |   10 | .ZZB | .ZZA | cash E  | 0      |'
+    . '\\| .AAAF | %today-4m | transfer | done    |   1100 | 1000 | .ZZC | .ZZA | usd F   | 1      |'
+    . '\\| .AAAG | %today-3m | transfer | done    |    240 |  240 | .ZZA | .ZZB | what G  | 0      |'
+    . '\\| .AAAH | %today-3m | rebate   | done    |     12 |   12 | ctty | .ZZA | rebate  | 0      |'
+    . '\\| .AAAI | %today-3m | bonus    | done    |     24 |   24 | ctty | .ZZB | bonus   | 0      |'
+    . '\\| .AAAJ | %today-3w | transfer | pending |    100 |  100 | .ZZA | .ZZB | pie N   | 1      |'
+    . '\\| .AAAK | %today-3w | rebate   | pending |      5 |    5 | ctty | .ZZA | rebate  | 0      |'
+    . '\\| .AAAL | %today-3w | bonus    | pending |     10 |   10 | ctty | .ZZB | bonus   | 0      |'
+    . '\\| .AAAM | %today-2w | transfer | pending |    100 |  100 | .ZZC | .ZZA | labor M | 0      |'
+    . '\\| .AAAN | %today-2w | rebate   | pending |      5 |    5 | ctty | .ZZC | rebate  | 0      |'
+    . '\\| .AAAO | %today-2w | bonus    | pending |     10 |   10 | ctty | .ZZA | bonus   | 0      |'
+    . '\\| .AAAP | %today-2w | transfer | done    |     50 |   50 | .ZZB | .ZZC | cash P  | 0      |'
+    . '\\| .AAAQ | %today-1w | transfer | done    |    120 |  120 | .ZZA | .ZZC | this Q  | 1      |'
+    . '\\| .AAAR | %today-1w | rebate   | done    |      6 |    6 | ctty | .ZZA | rebate  | 0      |'
+    . '\\| .AAAS | %today-1w | bonus    | done    |     12 |   12 | ctty | .ZZC | bonus   | 0      |'
+    . '\\| .AAAT | %today-6d | transfer | pending |    100 |  100 | .ZZA | .ZZB | cash T  | 0      |'
+    . '\\| .AAAU | %today-6d | transfer | pending |    100 |  100 | .ZZB | .ZZA | cash U  | 1      |'
+    . '\\| .AAAV | %today-6d | transfer | done    |    100 |  100 | .ZZA | .ZZB | cash V  | 0      |"');
     Then_('balances: "DATA'
-    . '\\| id   | r    | usd   | rewards |'
-    . '\\| ctty | -804 | 10000 |       0 |'
-    . '\\| .ZZA |  178 |   740 |     268 |'
-    . '\\| .ZZB |  299 |  2255 |     274 |'
-    . '\\| .ZZC |  327 |  3005 |     262 |"');
+    . '\\| id   | balance | rewards | r    | usd   |'
+    . '\\| ctty |    9196 |       0 | -804 | 10000 |'
+    . '\\| .ZZA |    1918 |     268 |  818 |  1100 |'
+    . '\\| .ZZB |    2554 |     274 |  554 |  2000 |'
+    . '\\| .ZZC |    2332 |     262 | -568 |  2900 |"');
     When_('cron runs ""');
     Then_('balances: "DATA'
-    . '\\| id   | r       | usd      | rewards    |'
-    . '\\| ctty | -805.25 | 10000.00 |       0.00 |'
-    . '\\| .ZZA |  178.25 |   739.75 |     268.25 |'
-    . '\\| .ZZB |  299.50 |  2254.50 |     274.50 |'
-    . '\\| .ZZC |  327.50 |  3004.50 |     262.50 |"');
+    . '\\| id   | balance | rewards | r       | usd      |'
+    . '\\| ctty | 9195.75 |    0.00 | -804.25 | 10000.00 |'
+    . '\\| .ZZA | 1918.00 |  268.25 |  818.25 |  1099.75 |'
+    . '\\| .ZZB | 2554.00 |  274.00 |  554.00 |  2000.00 |'
+    . '\\| .ZZC | 2332.00 |  262.00 | -568.00 |  2900.00 |"');
     break;
 
 
@@ -123,7 +126,7 @@ class rwebTransactions extends DrupalWebTestCase {
     When_('member ".ZZA" visits page "transactions/period=5&do=no&xid=100"');
     Then_('we show "tx summary|confirm tx action" with subs: "DATA'
     . '\\| amount | otherName  | otherDid | purpose | created   | txAction                     |'
-    . '\\| $100   | Corner Pub | gave     | cash CL | %today-5d | REVERSE this disputed charge |"');
+    . '\\| $100   | Corner Pub | paid     | cash CL | %today-5d | REVERSE this disputed charge |"');
   }
 
   // Scenario: A member confirms NO
@@ -153,9 +156,9 @@ class rwebTransactions extends DrupalWebTestCase {
     . '\\|_Start Date |_End Date |'
     . '\\| %dmy-12m   | %dmy     |"');
     And__('with: "DATA'
-    . '\\| Start   | From Bank | From You | To You | Rewards | End      |'
-    . '\\| $0.00   | 0.00      | 460.25   | 110.00 | 268.25  | - $82.00 |'
-    . '\\| PENDING | -44.00    | 200.00   | 200.00 | 15.00   | - $29.00 |"');
+    . '\\| Start     | From Bank | From You | To You   | Rewards | End       |'
+    . '\\| $1,000.00 | 0.00      | 460.25   | 1,110.00 | 268.25  | $1,918.00 |'
+    . '\\| PENDING   | -44.00    | 200.00   |   200.00 | 15.00   |  - $29.00 |"');
     And__('with: "DATA'
     . '\\|_tid | Date   | Name       | From you | To you | Status  |      | Purpose    | Reward |'
     . '\\| 11  | %dm    | %ctty      |   0.25   | --     | %chk    |      | Dwolla fee | 0.25   |'
@@ -187,9 +190,9 @@ class rwebTransactions extends DrupalWebTestCase {
     . '\\|_Start Date |_End Date |'
     . '\\| %dmy-15d   | %dmy     |"');
     And__('with: "DATA'
-    . '\\| Start   | From Bank | From You | To You | Rewards | End      |'
-    . '\\| $132.00 |      0.00 | 220.25   | 0.00   |  6.25   | - $82.00 |'
-    . '\\| PENDING |    -44.00 | 200.00   | 200.00 | 15.00   | - $29.00 |"');
+    . '\\| Start     | From Bank | From You | To You | Rewards | End       |'
+    . '\\| $2,132.00 |      0.00 | 220.25   | 0.00   |  6.25   | $1,918.00 |'
+    . '\\| PENDING   |    -44.00 | 200.00   | 200.00 | 15.00   |  - $29.00 |"');
     And__('with: "DATA'
     . '\\|_tid | Date   | Name       | From you | To you | Status  | _    | Purpose    | Reward |'
     . '\\| 11  | %dm    | %ctty      |   0.25   | --     | %chk    |      | Dwolla fee | 0.25   |'
@@ -225,10 +228,10 @@ class rwebTransactions extends DrupalWebTestCase {
     . '\\| .AACL | %today-5d | transfer | disputed |    100 | .ZZC | .ZZA | cash CL  | 1      |"');
     Then_('balances: "DATA'
     . '\\| id   | balance |'
-    . '\\| ctty |    -780 |'
-    . '\\| .ZZA |     190 |'
-    . '\\| .ZZB |     279 |'
-    . '\\| .ZZC |     311 |"');
+    . '\\| ctty |    9220 |'
+    . '\\| .ZZA |    1942 |'
+    . '\\| .ZZB |    2554 |'
+    . '\\| .ZZC |    2320 |"');
     When_('member ".ZZA" visits page "transactions/period=5&options=%RUSD_BOTH%STATES_BOTH%_N%_N%_N%_XCH%_VPAY"');
     Then_('we show "Transaction History" with: "DATA'
     . '\\|_tid | Date   | Name       | From you | To you | Status   | _  | Purpose    | Reward |'
@@ -247,11 +250,9 @@ class rwebTransactions extends DrupalWebTestCase {
     When_('member ".ZZC" visits page "transactions/period=5&options=%RUSD_BOTH%STATES_BOTH%_N%_N%_N%_XCH%_VPAY"');
     Then_('we show "Transaction History" with: "DATA'
     . '\\|_tid | Date   | Name       | From you | To you | Status   | _  | Purpose    | Reward |'
-    . '\\| 7   | %dm    | %ctty      |   0.25   | --     | %chk     |    | Dwolla fee | 0.25   |'
-    . '\\| 6   | %dm    | %ctty      |   0.25   | --     | %chk     |    | Dwolla fee | 0.25   |'
-    . '\\| 12  | %dm-5d | Abe One    | 100.00   | --     | disputed | OK | cash CL    | --     |'
-    . '\\| 10  | %dm-5d | Abe One    | --       | 80.00  | disputed | X  | this CF    | 8.00   |'
-    . '\\| 9   | %dm-5d | Abe One    | --       | 5.00   | denied   | X  | cash CE    | --     |"');
+    . '\\| 10  | %dm-5d | Abe One    | 100.00   | --     | disputed | OK | cash CL    | --     |'
+    . '\\| 8   | %dm-5d | Abe One    | --       | 80.00  | disputed | X  | this CF    | 8.00   |'
+    . '\\| 7   | %dm-5d | Abe One    | --       | 5.00   | denied   | X  | cash CE    | --     |"');
     And__('without: "DATA'
     . '\\| Purpose |'
     . '\\| labor CA|'
@@ -288,11 +289,11 @@ class rwebTransactions extends DrupalWebTestCase {
     . '\\| 102 | %today-5d | bonus    | pending |      8 | ctty | .ZZC | bonus    | 0      |"');
     When_('member ".ZZA" confirms form "transactions/period=5&do=ok&xid=100" with values: ""');
     Then_('we say "status": "report transaction" with subs: "DATA'
-    . '\\| did    | otherName  | amount | tid | rewardType | rewardAmount |'
-    . '\\| paid   | Corner Pub | $80    | 13  | rebate     | $4           |"');
+    . '\\| did    | otherName  | amount | rewardType | rewardAmount |'
+    . '\\| paid   | Corner Pub | $80    | reward     | $4           |"');
     And__('we notice "new payment|reward other" to member ".ZZC" with subs: "DATA'
     . '\\| created | fullName   | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |'
-    . '\\| %today  | Corner Pub | Abe One   | $80    | this CF      | bonus           | $8                |"');
+    . '\\| %today  | Corner Pub | Abe One   | $80    | this CF      | reward          | $8                |"');
     And__('we show "Transaction History" with: "DATA'
     . '\\|_tid | Date   | Name       | From you | To you | Status | _ | Purpose | Reward |'
     . '\\| 13  | %dm    | Corner Pub | 80.00    | --     | %chk   | X | this CF | 4.00   |"');

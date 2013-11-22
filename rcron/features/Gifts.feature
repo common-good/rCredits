@@ -27,13 +27,13 @@ Scenario: A contribution can be completed
   | .ZZA | %yesterday |     10 |     1 | memory | Jane Do |    10 | %today    |
   And we notice "new payment|reward other" to member "cgf" with subs:
   | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |
-  | Abe One   |    $10 | contribution | bonus           |                $1 |
+  | Abe One   |    $10 | contribution | reward          |                $1 |
   And we notice "gift sent" to member ".ZZA" with subs:
   | amount | rewardAmount |
   |    $10 |        $0.50 |
   And we tell staff "gift accepted" with subs:
   | amount | myName  | often | rewardType | 
-  |     10 | Abe One |     1 | rebate     |
+  |     10 | Abe One |     1 | reward     |
   # and many other fields
 
 Scenario: A recurring contribution can be completed
@@ -52,8 +52,8 @@ Scenario: A recurring contribution can be completed
   | .ZZA | %yesterday+3m |     10 |     Q |        |         |         0 |
   And we notice "new payment|reward other" to member "cgf" with subs:
   | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |
-  | Abe One   |    $10 | contribution | bonus           |                $1 |
+  | Abe One   |    $10 | contribution | reward          |                $1 |
   And we tell staff "gift accepted" with subs:
   | amount | myName  | often | rewardType |
-  |     10 | Abe One |     Q | rebate     |
+  |     10 | Abe One |     Q | reward     |
   # and many other fields

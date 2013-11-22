@@ -1,4 +1,20 @@
-2013-11-07
+2013-11-22
+. all relevant tests pass
+. added a notice that reward-sharing has been initiated (to precede the notice about it going through)
+. got cron tests to pass again (given that nearly all transactions are in rCredits
+. simplified formI and ScanCard tests to just go to rcredits.org or member page (for company cards)
+. made the company cards say "Company Agent"
+. non-code changes:
+  - rename structure field "coFlags" in r_companies
+  - create table r_boxes like r_boxnames; insert r_boxes select * from r_boxnames;
+  - (no need to change fieldnames)
+  - reinstall
+  - delete r_smarts, r_boxnames after reinstall
+  - add r_sms records to r_boxes (query?)
+  - change all rebate pcts to 10
+  - update dwolla.php
+
+2013-11-19
 . added Spendable: to the customer balance for rSmart
 . expanded selling field to multiple lines
 . expanded structure field to include miscellaneous company flags (renamed it coFlags)

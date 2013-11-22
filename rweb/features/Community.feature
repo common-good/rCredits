@@ -75,7 +75,7 @@ Setup:
   | .AAB |    1.10 |     0.00 |       0.10 |
   
 Scenario: cron calculates the statistics
-#  Given cron runs "stats"
+  Given cron runs "stats"
   When member ".ZZA" visits page "community"
   Then we show "Statistics" with:
   | | for %R_REGION_NAME |

@@ -301,7 +301,7 @@ function weRespondOkWithTxAndMessageWithSubs($tx, $msg, $subs) {
   global $rposResult;
   extract($rposResult, EXTR_PREFIX_ALL, 's');
   list ($ok, $message) = array('1', u\tt($msg, $subs[0]));
-  t\output('Expecting: ' . print_r(compact(u\ray('ok tx message')), 1), 'cyan');
+  t\output('Expecting: ' . print_r(compact(u\ray('ok tx message')), 1), 'expect');
   return ($s_ok == '1' and @$s_tx == $tx and $s_message == $message);
 }
 
@@ -334,7 +334,7 @@ function withBalance($subs) {
   if (!$got = @$rposResult['balance']) return !$subs; else $subs = $subs[0];
   $balance = u\tt('customer balance', $subs);
   if (@$subs['did']) $balance .= u\tt('just did', $subs);
-  t\output('Expecting ' . print_r(compact('balance'), 1), 'cyan');
+  t\output('Expecting ' . print_r(compact('balance'), 1), 'expect');
   return ($got == $balance);
 }
 
@@ -354,7 +354,7 @@ function withUndo($subs) {
   if (!$got = @$rposResult['undo']) return !$subs; else $subs = $subs[0];
   $subs['created'] = t\lastMinuteSubs($subs['created']);
   $undo = u\tt('confirm undo', $subs);
-  t\output('Expecting ' . print_r(compact('undo'), 1), 'cyan');
+  t\output('Expecting ' . print_r(compact('undo'), 1), 'expect');
   return ($got == $undo);
 }
 
@@ -370,7 +370,7 @@ function withUndo($subs) {
 function weReturnErrorWithSubs($msg, $subs) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $rposResult;
-  return ($rposResult['ok'] == '0' and $rposResult['message'] == u\tt($msg, @$subs[0]));
+  return ($rposResult['ok'] == '0' and $rposResult['message'] == strip_tags(u\tt($msg, @$subs[0])));
 }
 
 /**

@@ -53,7 +53,7 @@ class acct {
   private function createNew($info) {
     $fields = 'phone number mail pass secure fullName name flags rebate country state postalCode data created uid';
     extract(u\just($fields, $info));
-    u\setDft($phone, @$number);    
+    u\setDft($phone, @$number);
     if ($phone) $phone = u\fmtPhone($phone, '+n');
     
     $status = TRUE;
@@ -64,7 +64,7 @@ class acct {
     u\setDft($fullName, $info['name']);
     u\setDft($flags, B_DFT);
     u\setDft($rebate, R_REBATE);
-    if (!is_numeric(@$state)) { // allow state abbrevs within US
+    if (@$state and !is_numeric(@$state)) { // allow state abbrevs within US
       $state = db\lookup('id', 'r_states', 'abbreviation=:state and country_id=:US_COUNTRY_ID', compact('state'));
     }
     $community = communityUid(@$postalCode); // defaults to current server

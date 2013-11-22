@@ -146,8 +146,8 @@ function everyWeek() {
 function everyMonth() {
   $start = u\monthDay1($end = u\monthDay1() - 1);
   if (t\est()) $start = strtotime('-30 days', $end = strtotime('today') - 1) + 1; // the past 30 days
-  queueEach('inflationAdjust', "SELECT uid, $start AS start, $end AS end FROM users WHERE :IS_OK");  
-  queueEach('shareCommitted', 'SELECT uid, committed FROM users WHERE :IS_OK AND committed>0');
+  queueEach('inflationAdjust', "SELECT uid, $start AS start, $end AS end FROM users WHERE :IS_OK AND uid>1");  
+  queueEach('shareCommitted', 'SELECT uid, committed, share FROM users WHERE :IS_OK AND committed>0');
 }
 
 /**
@@ -189,8 +189,10 @@ function coverFee($item) {
 /**
  * Tell a member about missed opportunities to keep their rCredits and spend them for rebates.
  * Suggest a specific easy remedy.
+ * UNUSED
  */
 function soldOut($item) {
+  return; // UNUSED
   extract(u\just('payer total', $item));
   $a = r\acct($payer);
   if (!$rebatePct = $a->rebate) return; // no potential rebates (later suggest reaching out)
@@ -203,7 +205,7 @@ function soldOut($item) {
 }
 
 /**
- * Calculate and credit inflation adjustment to each account.
+ * Calculate and credit inflation adjustment to each member account.
  */
 function inflationAdjust($item) {
   extract(u\just('uid start end', $item));
@@ -216,7 +218,9 @@ function inflationAdjust($item) {
  * Share committed rewards with CGF.
  */
 function shareCommitted($item) {
-  extract(u\just('uid committed', $item));
+  extract(u\just('uid committed share', $item));
+  $share = number_format($share, 1);
+  r\notify($uid, 'share gift', compact('share'));
   $info = u\ray('giftDate uid amount often honor share', REQUEST_TIME, $uid, $committed, 1, 'share', -1);
   $DBTX = \db_transaction();
   db\insert('r_gifts', $info);

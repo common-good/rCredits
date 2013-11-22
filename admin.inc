@@ -34,7 +34,6 @@ function adminForm($sta) {
   } elseif ($op == 'seeUsd') {
     if (@$a->secure['auth'] and !@$a->secure['usdEmail']) {
       $old = $a->secure;
-      debug($old);
       $usdPass = user_password(20) . '*B2'; // satisfy Dwolla (and our own security)
       $usdEmail = strtolower(\user_password(4) . '.' . $a->mainQid) . '@rc4.me';
       $usdPin = u\randomString(4, 'digits');
@@ -44,7 +43,6 @@ function adminForm($sta) {
       if (isset($secure['card_code'])) $secure['card_code'] = '';
       $a->update(compact('secure'));
     }
-    debug(u\purify($a->secure));
     return;
   }
   

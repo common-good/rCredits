@@ -96,8 +96,8 @@ Scenario: Member company has relations
   | .ZZA | .ZZC | .ZZA  | manage     | 1          | 1          | 1        |
   When member ":ZZA" visits page "account/relations"
   Then we show "Relations" with:
-  | Other   | $/mo   | My employee? | Owner? | Permission     |_request rCard |
-  | Abe One | 10     | Yes          | Yes    | manage account | request rCard |
+  | Other   | My employee? | Owner? | Permission     |_request rCard |
+  | Abe One | Yes          | Yes    | manage account | request rCard |
   And without:
   |_Header       |
   | My employer? |
@@ -123,8 +123,8 @@ Scenario: It's complicated
   | Dee Four   | Yes          | Yes          | Yes     | send invoices | --       |
   When member ".ZZB" visits page "account/relations"
   Then we show "Relations" with:
-  | Other   | $/mo   | My employee? | Family? | Permission |_request rCard |
-  | Abe One | 20     | Yes          | No      | no access  | --            |
+  | Other   | My employee? | Family? | Permission |_request rCard |
+  | Abe One | Yes          | No      | no access  | --            |
   When member ".ZZD" visits page "account/relations"
   Then we show "Relations" with:
   | Other   | My employer? | My employee? | Family? | Permission |_request rCard |
@@ -134,8 +134,8 @@ Scenario: It's complicated
   | Family? |
   When member ":ZZD" visits page "account/relations"
   Then we show "Relations" with:
-  | Other   | $/mo   | My employee? | Owner? | Permission     |_request rCard |
-  | Abe One | 40     | Yes          | No     | manage account | --            |
+  | Other   | My employee? | Owner? | Permission     |_request rCard |
+  | Abe One | Yes          | No     | manage account | --            |
   And without:
   |_Header    |
   | employer? |

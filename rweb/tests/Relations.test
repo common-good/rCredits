@@ -163,8 +163,8 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| .ZZA | .ZZC | .ZZA  | manage     | 1          | 1          | 1        |"');
     When_('member ":ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
-    . '\\| Other   | $/mo   | My employee? | Owner? | Permission     |_request rCard |'
-    . '\\| Abe One | 10     | Yes          | Yes    | manage account | request rCard |"');
+    . '\\| Other   | My employee? | Owner? | Permission     |_request rCard |'
+    . '\\| Abe One | Yes          | Yes    | manage account | request rCard |"');
     And__('without: "DATA'
     . '\\|_Header       |'
     . '\\| My employer? |"');
@@ -193,8 +193,8 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| Dee Four   | Yes          | Yes          | Yes     | send invoices | --       |"');
     When_('member ".ZZB" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
-    . '\\| Other   | $/mo   | My employee? | Family? | Permission |_request rCard |'
-    . '\\| Abe One | 20     | Yes          | No      | no access  | --            |"');
+    . '\\| Other   | My employee? | Family? | Permission |_request rCard |'
+    . '\\| Abe One | Yes          | No      | no access  | --            |"');
     When_('member ".ZZD" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
     . '\\| Other   | My employer? | My employee? | Family? | Permission |_request rCard |'
@@ -204,8 +204,8 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| Family? |"');
     When_('member ":ZZD" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
-    . '\\| Other   | $/mo   | My employee? | Owner? | Permission     |_request rCard |'
-    . '\\| Abe One | 40     | Yes          | No     | manage account | --            |"');
+    . '\\| Other   | My employee? | Owner? | Permission     |_request rCard |'
+    . '\\| Abe One | Yes          | No     | manage account | --            |"');
     And__('without: "DATA'
     . '\\|_Header    |'
     . '\\| employer? |"');

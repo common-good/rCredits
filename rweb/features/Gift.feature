@@ -32,22 +32,22 @@ Scenario: A member contributes
   |    $10 |        $0.50 | 
   And we notice "new payment|reward other" to member "cgf" with subs:
   | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |
-  | Abe One   |    $10 | contribution |           bonus |                $1 |
+  | Abe One   |    $10 | contribution | reward          | $1                |
   And we tell staff "gift accepted" with subs:
   | amount | often | txField  |
   |     10 |     1 | payerTid |
   # and many other fields
 
-Scenario: A member contributes partly in USD
-# Donations to CGF get full rewards, even if given in USD.
-  When member ".ZZA" completes form "contribute" with values:
-  | gift | amount | often | honor  | honored | share |
-  |    0 |     50 |     1 | memory | Jane Do |    10 |
-  Then transactions:
-  | xid   | created | type     | state | amount | from | to   | purpose      | r    |
-  | .AAAB | %today  | transfer | done  |     50 | .ZZA | cgf  | contribution |   20 |
-  | .AAAC | %today  | rebate   | done  |   2.50 | ctty | .ZZA | rebate on #1 | 2.50 |
-  | .AAAD | %today  | bonus    | done  |   5.00 | ctty | cgf  | bonus on #1  | 5.00 |
+#Scenario: A member contributes partly in USD
+## Donations to CGF get full rewards, even if given in USD.
+#  When member ".ZZA" completes form "contribute" with values:
+#  | gift | amount | often | honor  | honored | share |
+#  |    0 |     50 |     1 | memory | Jane Do |    10 |
+#  Then transactions:
+#  | xid   | created | type     | state | amount | from | to   | purpose      | r    |
+#  | .AAAB | %today  | transfer | done  |     50 | .ZZA | cgf  | contribution |   20 |
+#  | .AAAC | %today  | rebate   | done  |   2.50 | ctty | .ZZA | rebate on #1 | 2.50 |
+#  | .AAAD | %today  | bonus    | done  |   5.00 | ctty | cgf  | bonus on #1  | 5.00 |
   
 Scenario: A member contributes with insufficient funds
   When member ".ZZA" completes form "contribute" with values:

@@ -29,7 +29,10 @@ function makeRecords($list, $type, $testSeparate = FALSE) {
   global $testOnly;
   $table = 'r_' . strtolower($type) . 's';
   $function = 'rCredits\\Testing\\';
-  if (!function_exists($function . "make$type")) $type = 'Thing';
+  if (!function_exists($function . "make$type")) {
+    if ($testOnly) t\output("Expect $type: " . print_r($list, 1), 'expect');
+    $type = 'Thing';
+  }
   $function .= ($testSeparate and $testOnly) ? "verify$type" : "make$type";
   foreach ($list as $one) if (!$function($one, $testOnly, $table)) return FALSE;
   return TRUE;
@@ -62,7 +65,6 @@ function companyFlags($list) {return makeRecords($list, 'CompanyFlags');}
 function makeAccount($info = array(), $testOnly = FALSE) {
   if (!is_array($info)) {print_r($info); die(print_r(debug_backtrace(), 1)); } // keep for now
   extract($info); // any user table fields, plus dw (dwolla test account number)
-
   u\setDft($id, r\acct::nextId()); // default to first available number
   $uid = uid($id); // change .AAB to 1, etc.
 
@@ -845,6 +847,7 @@ function color($msg, $color = 'normal') {
   $colors = array(
     '' => 'ivory',
     'normal' => 'ivory',
+    'expect' => 'cyan',
     'email' => 'lightblue',
     'input' => 'orange',
     'output' => 'thistle',

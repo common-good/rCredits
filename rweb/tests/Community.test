@@ -116,6 +116,7 @@ class rwebCommunity extends DrupalWebTestCase {
   // Scenario: cron calculates the statistics
   public function testCronCalculatesTheStatistics_0() {
     $this->setUp2(__FUNCTION__, 0);
+    Given('cron runs "stats"');
     When_('member ".ZZA" visits page "community"');
     Then_('we show "Statistics" with: "DATA'
     . '\\| | for %R_REGION_NAME |'

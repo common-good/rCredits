@@ -5,10 +5,10 @@ SO CGF can continue to promote and maintain the rCredits system for my benefit a
 
 Setup:
   Given members:
-  | id   | fullName   | floor | acctType      | flags                        | share |
+  | id   | fullName   | floor | acctType      | flags                      | share |
   | .ZZA | Abe One    | -100  | %R_PERSONAL   | dft,ok,person,bona         |    50 |
   | .ZZB | Bea Two    | -200  | %R_PERSONAL   | dft,ok,person,company,bona |    10 |
-  | .ZZC | Corner Pub | -300  | %R_COMMERCIAL | dft,ok,company,bona          |     0 |
+  | .ZZC | Corner Pub | -300  | %R_COMMERCIAL | dft,ok,company,bona        |     0 |
   When transactions: 
   | xid | created | type     | state    | amount | r   | from | to   | purpose |
   |   1 | %today  | transfer | done     |     40 |  40 | .ZZA | .ZZB | what G  |
@@ -21,6 +21,12 @@ Scenario: Inflation adjustments are distributed
   | id   | giftDate | amount | often | honor  | share |
   | .ZZA | %today   |      1 |     1 | share  |    -1 |
   | .ZZB | %today   |   0.40 |     1 | share  |    -1 |
+  And we notice "share gift" to member ".ZZA" with subs:
+  | share |
+  | 50.0  |
+  And we notice "share gift" to member ".ZZB" with subs:
+  | share |
+  | 10.0  |
   And balances:
   | id   | committed |
   | .ZZA |         0 |
