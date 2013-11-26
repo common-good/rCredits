@@ -1,3 +1,10 @@
+2013-11-25
+. restored addPhone(), accidentally deleted during separation of rweb-subs.inc from rweb.inc
+. moved several functions back to rweb.inc from rweb-subs.inc that are called directly from URL
+. implemented businessStructure parameter in Dwolla registration of companies
+. eliminated "personal & commercial" account type (initial account is always personal)
+. reworked homogenizing and pooling
+
 2013-11-22
 . all relevant tests pass
 . added a notice that reward-sharing has been initiated (to precede the notice about it going through)

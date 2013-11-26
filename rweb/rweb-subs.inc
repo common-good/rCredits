@@ -62,6 +62,7 @@ EOF
   'open dwolla' => t('Our partner organization, Dwolla, sent you a link in an email. Click on the link, sign in with your phone number and temporary password "@usdPass", then come back here once you have confirmed your phone number. (We are working to eliminate this step, but in the meantime, there is no way around it.)'),
   'agent created' => t('The agent account was successfully created.'),
   'phone verified' => t('Your phone number has been verified.'),
+  'id verification pending' => t('Your photo ID has been uploaded successfully. Now we need to wait for our partner organization to verify your identity. Please feel free to email us if you have questions.'),
 
   // prompts
   'prompt min' => t('Keep this much in my rCredits account, for purchases or inflation-proof savings. (When your balance goes below this amount, the system refills it for you from your bank account. Refilling may take 3-5 days.)'),
@@ -95,7 +96,7 @@ EOF
   'bad phone' => t('That is not a proper phone number.'),
   'bad account id' => t('That is not a proper account ID.'),
   'bad account number' => t('Your bank account number must be 3-17 digits long.'),
-  'bad pin' => t('Your PIN must be exactly 4 digits'),
+//  'bad pin' => t('Your PIN must be exactly 4 digits'),
   'bad federal id' => t('That is not a correct @what. Try again.'),
   'bad nonce' => t('That is not the right verification code. Try again (start over).'),
   'short to' => t('You are @short short for that transaction. <a href="account/preferences">Increase your minimum balance</a>!'),
@@ -464,7 +465,7 @@ function setupUs(&$step) {
 //    if ($mya->secure['usdEmail'] == $mya->mail) r\Web\say('Dwolla has sent you an email with a verification link. Please click on that link to confirm your email address, then come back here to continue setting up your account.'); // temporary, for Dwolla compliance testing
   }
   if (!$mya->usdAccount) if (!$us->me($err)) return say($err, 'zot'); // set usdAccount
-  if (!$step = $us->step($err) or $step == 'PhotoId') {
+  if (!$step = $us->step($err)) {
     r\tellStaff('null step', compact('err', 'step') + (array) $mya);
     if (u\abbreviates('Invalid account status', $err)) { // sometimes "...for user of this access token"
       //$mya->update(u\ray('federalId', '')); // prevent resumission of same ssn (temporary Dwolla bug)
@@ -476,6 +477,7 @@ function setupUs(&$step) {
   if ($mya->phone and $step == 'Phone') return addPhone();
   if ($step == 'AccountInfo') return r\go('account/basic', 'redo info', 'zot'); // here on ssn() failure
   if ($step == 'Kba') return r\go('account/kba'); // here on accountInfo() failure
+  if ($step == 'PhotoId') return r\go('account/photo-id'); // here on Kba() success (else call Dwolla)
 
   if ($mya->address and $step == 'Address') {
     if (!$us->address($mya->address, $mya->city, r\realState($mya->state, $mya->country), $mya->postalCode, $err)) return r\go('account/contact', $err);
@@ -493,7 +495,6 @@ function setupUs(&$step) {
   }
   if ($us->step() != $step) return setupUs($step); // step may have progressed
 }
-
 
 function divButton($href, $title) {
   global $base_url, $rUrl;
@@ -539,7 +540,7 @@ function goButtonIf($perms, $label, $goto, $title) {
 
 /**
  * Undo the last transaction.
- */
+ *//*
 function undo($confirmed = FALSE) {
   if (!$xid = svar('lastXid')) u\EXPECT(!$confirmed, 'missing last xid');
   
@@ -556,10 +557,11 @@ function undo($confirmed = FALSE) {
   }
   r\go('empty'); // blank backdrop for result message
 }
+*/
 
 /**
- * Show remaining customer balance.
- */
+ * Show remaining customer balance. (smartphone)
+ *//*
 function remainder() {
   if ($uid = svar('lastCustomer')) {
     $a = r\acct($uid);
@@ -569,6 +571,7 @@ function remainder() {
   } else say('no last customer', 'zot');
   r\go('empty');
 }
+*/
 
 function boxOpt($field, $opts, $sta) {
 //debug(compact('field','opts','sta'));
@@ -619,16 +622,16 @@ function wants($ats) {
 }
 
 function acctType($acctType) {  
-  $flags = B_DFT
-    | ($acctType <= R_SELF_EMPLOYED ? u\bit(B_PERSON) : 0)
-    | ($acctType >= R_SELF_EMPLOYED ? u\bit(B_COMPANY) : 0);
+  $flags = B_DFT | ($acctType == R_PERSONAL ? u\bit(B_PERSON) : u\bit(B_COMPANY));
     
-  if ($acctType >= R_SELF_EMPLOYED) { // company
+  if ($acctType != R_PERSONAL) { // company
     $type = $GLOBALS['account types'][$acctType];
     $coFlags =
-        ($acctType == R_SELF_EMPLOYED ? u\bit(R_SELF_EMPLOYED)
+        ($acctType == CO_SOLE_PROPRIETOR ? u\bit(CO_SOLE_PROPRIETOR)
+      : ($acctType == CO_PARTNERSHIP ? u\bit(CO_PARTNERSHIP)
       : (strpos($type, 'nonprofit') !== FALSE ? u\bit(CO_NONPROFIT)
-      : (strpos($type, 'corporation') !== FALSE ? (u\bit(CO_CORPORATION) | u\bit(CO_PUBLICLY_TRADED)) : 0)));
+      : (u\bit(CO_CORPORATION) | (strpos($type, 'publicly') !== FALSE ? u\bit(CO_PUBLICLY_TRADED) : 0)
+    ))));
   }
   return compact(u\ray('flags coFlags'));
 }
@@ -884,7 +887,7 @@ function passwordOkay($a, $password, $passFieldName = 'current_pass') {
  */
 function oneTimePass($name, &$data) {
   $pass = strtolower(u\nonce()); // not a hash, easy to remember and type
-  if (isDEV) say('Password: ' . $pass);
+  if (isDEV) debug('Password: ' . $pass);
   $expires = REQUEST_TIME + HOUR_SECS * R_SIGNIN_HOURS;
   r\setCook('loginto', $name, $expires);
   $data['oneTimePass'] = compact('pass', 'expires');
@@ -939,7 +942,7 @@ EOF;
 
 /**
  * Sign the user in by their scanning their own company card
- */
+ *//*
 function scanIn($acct) {
   $mya = $acct;
   svar('myid', $mya->id);
@@ -958,13 +961,14 @@ function scanIn($acct) {
   u\loga('login', $subs, $mya->agentId);
   return r\go('empty', 'ready to charge', $subs);
 }
+*/
 
 function hack($message, $info = array()) {
   u\loga('hack', $_SERVER, $message);
   return r\go(r\acct() ? '/user/logout' : '');
 }
 
-function changeAccount($quid = '') {
+/*function changeAccount($quid = '') {
   setupGlobals();
   if (!$mya = r\acct()) return r\go('');
   if ((!$acct = r\acct($quid, $mya->id)) or !$acct->can()) return hack('i'); // hacker. so leave.
@@ -972,7 +976,7 @@ function changeAccount($quid = '') {
   $newAcct = $acct->fullName;
   say('changed account', compact('newAcct'));
   return r\go('');
-}
+}*/
 
 function fundRpt($now, $then, $type = '') {
   //$up = $then ? number_format(abs($now / $then - 1) * 100, 1) : '100';
@@ -1193,31 +1197,6 @@ function communityTransfer($type, $acct, $amount, $purpose, $confirmed) {
 }  
 
 /**
- * Complete a "no signin required" request (made by the user clicking on a link we sent).
- * @see also r\makeDo()
- */
-function rdo($args) {
-  extract(u\just('id code', $args));
-  if (!$info = db\lookup('action', 'r_do', 'doid=:id AND code=:code AND (completed=0 OR :REQUEST_TIME<-completed)', compact('id', 'code'))) doSay(t('That link has expired.'));
-  if (!$info = unserialize($info)) doSay(t());
-  
-  $DBTX = \db_transaction();
-  extract(u\just('type uid sql subs amount', $info));
-
-  if ($type == 'min') {
-    $result = r\acct($uid)->update(u\ray('minimum', $amount));
-  } elseif ($type == 'sql') {
-    $result = db\q($sql, $subs);
-  } else doSay(t('bad rdo'));
-
-  if (!$result) doSay(t('Request failed.'));
-  db\update('r_do', u\ray('doid box completed', $id, box(), REQUEST_TIME), 'doid');
-  unset($DBTX);
-
-  doSay(t('Your request was successfully completed.'), 'status');
-}
-
-/**
  * Output the No-signin result message and terminate.
  */
 function doSay($msg, $type = 'error') {
@@ -1248,11 +1227,6 @@ function error($logid) {
   r\go('/user/login/err=' . R_SYS_ERR);
 }
 
-function usdCallback($type, $uid) {
-  include_once __DIR__ . '/../usd.class';  
-  return r\usd::$type($uid);
-}
-  
 function menu($title, $type, $function = NULL, $args = array(), $accesses = '', $other = array()) {
   global $menuWeight;
   $menuWeight += !@$menuWeight ?: 1;
@@ -1329,26 +1303,6 @@ function focusOn($focusFieldName) {
   u\EXPECT(!empty($focusFieldName), 'focus on null');
   $focusFieldName = str_replace('_', '-', $focusFieldName);
   js("document.getElementById('edit-$focusFieldName').focus();", 'inline', 'footer');
-}
-
-/**
- * Automatically deactivate an account (called when the user changes the Dwolla email or password).
- */
-function coup($usdEmail) {
-  list ($email) = explode('@', $usdEmail);
-  list ($code, $region, $id) = explode('.', $email);
-  if (!$a = r\acct($quid = strtoupper("$region.$id"))) die('no1');
-  if (@$a->secure['usdEmail'] != $usdEmail) die('no2');
-  if ($a->usd > 0) { // store its USD in ctty fund
-    if (!r\tradeR(min(R_MAX_DAILY_EXCHANGE, $a->usd), $a->community, $a->id, $err) or $a->usd > R_MAX_DAILY_EXCHANGE) {
-      r\tellStaff("Immediate coup threat: $a-fullName $$a->usd ($err)");
-    }
-  }
-  $a->setBit(B_OK, FALSE);
-  $notes = u\fmtDate() . ': account suspended due to changed Dwolla PIN, email, and/or password.' . @$a->notes . "\n";
-  $a->update(compact('notes'));
-  r\tellStaff('account couped', compact('quid'));
-  exit('ok');
 }
 
 /**

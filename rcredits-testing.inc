@@ -102,10 +102,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
   }
   if ($flags & u\bit(B_OK)) $flags |= u\bit(B_MEMBER);
 
-  if (isset($acctType)) {
-    if ($acctType <= R_SELF_EMPLOYED) $flags |= u\bit(B_PERSON);
-    if ($acctType >= R_SELF_EMPLOYED) $flags |= u\bit(B_COMPANY);
-  }
+  if (isset($acctType)) $flags |= (($acctType == R_PERSONAL or $acctType == 'personal') ? u\bit(B_PERSON) : u\bit(B_COMPANY));
   
   foreach (u\ray('id email acctType dw') as $one) unset($info[$one]);
   $info = compact(u\ray('uid flags ' . $fixFields)) + $info;

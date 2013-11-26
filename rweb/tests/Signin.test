@@ -80,8 +80,8 @@ class rwebSignin extends DrupalWebTestCase {
   public function testAMemberGivesTheWrongPassword_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('members: "DATA'
-    . '\\| id      | fullName   | acctType    | flags           | pass       |'
-    . '\\| NEW.ZZA | Abe One    | %R_PERSONAL | dft,ok,person    | %whatever1 |"');
+    . '\\| id      | fullName   | acctType | flags           | pass       |'
+    . '\\| NEW.ZZA | Abe One    | personal | dft,ok,person    | %whatever1 |"');
     And__('member "NEW.ZZA" one-time password is %whatever2');
     When_('member "?" visits page "/user/login"');
     And__('member "?" confirms form "/user/login" with values: "DATA'

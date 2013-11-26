@@ -15,7 +15,7 @@ Setup:
   And balances:
   | id   | r   | usd |
   | ctty | -25 |   0 |
-  | .ZZA |   0 |  15 |
+  | .ZZA |   0 |  25 |
   | .ZZB |   0 |  10 |
   | .ZZC |  25 |  80 |
 
@@ -23,7 +23,7 @@ Scenario: Normal pooling happens
   When cron runs "pool"
   Then balances:
   | id   | r   | usd |
-  | ctty | -40 |   0 |
-  | .ZZA |   5 |  10 |
+  | ctty | -45 |  20 |
+  | .ZZA |  10 |  15 |
   | .ZZB |   0 |  10 |
   | .ZZC |  35 |  70 |

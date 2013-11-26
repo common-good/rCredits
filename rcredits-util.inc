@@ -259,6 +259,14 @@ function a2n($string, $base = 26) {
 }
 
 /**
+ * Return the ein in standard format (xx-xxxxxxx)
+ */
+function fmtEin($ein) {
+  $ein = str_replace('-', '', $ein);
+  return substr($ein, 0, 2) . '-' . substr($ein,2);
+}
+
+/**
  * Format the given phone number as wanted
  * @param string $phone
  * @param string $how: how to format it
@@ -717,8 +725,9 @@ function ezdecrypt($data, $key = '') {return ezencrypt($data, $key, FALSE);}
 function redw($msg) {
   $lame = t(' Some operations will be unavailable.');
   $map = array(
-    'Access token is empty.' => t('Your account is not currently connected to Dwolla.' . $lame),
-    'Request failed. Server responded with: 0' => t('Dwolla is currently offline.' . $lame),
+    'Access token is empty.' => t('Your account is not complete.' . $lame),
+    'Request failed. Server responded with: 0' => t('Our official currency module is temporarily offline.' . $lame),
+    'Unexpected error has occurred.' => t('Part of your current operation may not have completed. A staff member has been alerted, to look into it. No action on your part is required.'),
   );
   return strtr($msg, $map);
 }

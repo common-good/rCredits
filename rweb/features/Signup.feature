@@ -191,8 +191,8 @@ Scenario: A member registers a company
   |_acctType                             |
   | commercial (but not publicly traded) |
   When member "?" confirms form "signup/code=c0D3&dwok=1&by=NEW.AAC&flow=from&isOwner=1&employeeOk=1" with values:
-  | fullName | email       | phone | postalCode | federalId   | acctType      | company  | companyPhone | companyOptions |
-  | AAcme Co | aco@ | 413-253-9876 | 01002      | 111-22-3333 | %R_COMMERCIAL | | | |
+  | fullName | email       | phone | postalCode | federalId   | acctType        | company  | companyPhone | companyOptions |
+  | AAcme Co | aco@ | 413-253-9876 | 01002      | 111-22-3333 | %CO_CORPORATION | | | |
   Then members:
   | id   | fullName | email | postalCode | phone        | city    | flags       | floor |
   | .AAD | AAcme Co | aco@  | 01002      | +14132539876 | Amherst | dft,company |     0 |

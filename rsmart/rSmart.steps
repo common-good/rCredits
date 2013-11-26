@@ -45,7 +45,8 @@ function extraSubs(&$subs) {
 /**
  * members: (ARG)
  *
- * in: Identify Setup MAKE
+ * in: Exchange Setup MAKE
+ *     Identify Setup MAKE
  *     Startup Setup MAKE
  *     Transact Setup MAKE
  *     Undo Setup MAKE
@@ -59,7 +60,8 @@ function members($list) {
 /**
  * relations: (ARG)
  *
- * in: Identify Setup MAKE
+ * in: Exchange Setup MAKE
+ *     Identify Setup MAKE
  *     Startup Setup MAKE
  *     Transact Setup MAKE
  *     Undo Setup MAKE
@@ -69,7 +71,8 @@ function relations($relations) {return t\relations($relations);}
 /**
  * transactions: (ARG)
  *
- * in: Identify Setup MAKE
+ * in: Exchange Setup MAKE
+ *     Identify Setup MAKE
  *     Transact Setup MAKE
  *     Undo Setup MAKE
  *     Undo AnAgentAsksToUndoACharge MAKE
@@ -108,6 +111,7 @@ function memberHasInitializedADeviceWhoseCodeIs($id, $code) {
  *     Identify ACashierAsksUsToIdentifyTheCashiersOwnCard MAKE
  *     Identify ACashierScansACustomerCardWhoseBalanceIsSecret MAKE
  *     Identify ACashierScansACompanyCustomerCard MAKE
+ *     Identify ANonyetactiveMemberCardIsScanned MAKE
  */
 function agentAsksDeviceToIdentify($agent, $device, $qr) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -195,7 +199,8 @@ function memberHasNoPicture($id) {
 /**
  * devices: (ARG)
  *
- * in: Identify Setup MAKE
+ * in: Exchange Setup MAKE
+ *     Identify Setup MAKE
  *     Startup Setup MAKE
  *     Transact Setup MAKE
  *     Undo Setup MAKE
@@ -209,7 +214,10 @@ function devices($list) {
 /**
  * balances: (ARG)
  *
- * in: Transact Setup TEST
+ * in: Exchange Setup TEST
+ *     Exchange ACashierAsksToChargeSomeoneForCash TEST
+ *     Exchange ACashierAsksToRefundSomeone TEST
+ *     Transact Setup TEST
  *     Transact ACashierAsksToChargeSomeone TEST
  *     Transact ACashierAsksToRefundSomeone TEST
  */
@@ -218,7 +226,21 @@ function balances($list) {return t\balances($list);}
 /**
  * agent (ARG) asks device (ARG) to charge (ARG) $(ARG) for (ARG): (ARG)
  *
- * in: Transact ACashierAsksToChargeSomeone MAKE
+ * in: Exchange ACashierAsksToChargeSomeoneForCash MAKE
+ *     Exchange ACashierAsksToRefundSomeone MAKE
+ *     Exchange ACashierAsksToChargeAnotherMemberWithInsufficientBalance MAKE
+ *     Exchange ACashierAsksToRefundAnotherMemberWithInsufficientBalance MAKE
+ *     Exchange ACashierAsksToPaySelf MAKE
+ *     Exchange DeviceGivesNoMemberId MAKE
+ *     Exchange DeviceGivesBadAccountId MAKE
+ *     Exchange DeviceGivesNoAmount MAKE
+ *     Exchange DeviceGivesBadAmount MAKE
+ *     Exchange DeviceGivesTooBigAnAmount MAKE
+ *     Exchange DeviceGivesNoPurposeForGoodsAndServices MAKE
+ *     Exchange SellerAgentLacksPermissionToBuy MAKE
+ *     Exchange SellerAgentLacksPermissionToScanAndSell MAKE
+ *     Exchange BuyerAgentLacksPermissionToBuy MAKE
+ *     Transact ACashierAsksToChargeSomeone MAKE
  *     Transact ACashierAsksToRefundSomeone MAKE
  *     Transact ACashierAsksToChargeAnotherMemberWithInsufficientBalance MAKE
  *     Transact ACashierAsksToRefundAnotherMemberWithInsufficientBalance MAKE
@@ -293,7 +315,9 @@ function weRespondSuccessMyidAccountnameShowbuttonsAndMessageWithSubs($success, 
 /**
  * we respond ok with tx (ARG) and message (ARG) with subs: (ARG)
  *
- * in: Transact ACashierAsksToChargeSomeone TEST
+ * in: Exchange ACashierAsksToChargeSomeoneForCash TEST
+ *     Exchange ACashierAsksToRefundSomeone TEST
+ *     Transact ACashierAsksToChargeSomeone TEST
  *     Transact ACashierAsksToRefundSomeone TEST
  */
 function weRespondOkWithTxAndMessageWithSubs($tx, $msg, $subs) {
@@ -318,7 +342,9 @@ function weRespondOkWithSubs($msg, $subs) {return weRespondOkWithTxAndMessageWit
 /**
  * with balance (ARG)
  *
- * in: Identify ACashierScansACustomerCard TEST
+ * in: Exchange ACashierAsksToChargeSomeoneForCash TEST
+ *     Exchange ACashierAsksToRefundSomeone TEST
+ *     Identify ACashierScansACustomerCard TEST
  *     Identify ACashierScansACustomerCardWhoseBalanceIsSecret TEST
  *     Identify ACashierScansACompanyCustomerCard TEST
  *     Transact ACashierAsksToChargeSomeone TEST
@@ -341,7 +367,9 @@ function withBalance($subs) {
 /**
  * with undo (ARG)
  *
- * in: Transact ACashierAsksToChargeSomeone TEST
+ * in: Exchange ACashierAsksToChargeSomeoneForCash TEST
+ *     Exchange ACashierAsksToRefundSomeone TEST
+ *     Transact ACashierAsksToChargeSomeone TEST
  *     Transact ACashierAsksToRefundSomeone TEST
  *     Undo AnAgentAsksToUndoACharge TEST
  *     Undo AnAgentAsksToUndoARefund TEST
@@ -361,7 +389,11 @@ function withUndo($subs) {
 /**
  * we return error (ARG) with subs: (ARG)
  *
- * in: Transact ACashierAsksToChargeAnotherMemberWithInsufficientBalance TEST
+ * in: Exchange ACashierAsksToChargeAnotherMemberWithInsufficientBalance TEST
+ *     Exchange ACashierAsksToRefundAnotherMemberWithInsufficientBalance TEST
+ *     Exchange BuyerAgentLacksPermissionToBuy TEST
+ *     Identify ANonyetactiveMemberCardIsScanned TEST
+ *     Transact ACashierAsksToChargeAnotherMemberWithInsufficientBalance TEST
  *     Transact ACashierAsksToRefundAnotherMemberWithInsufficientBalance TEST
  *     Transact BuyerAgentLacksPermissionToBuy TEST
  *     Undo AnAgentAsksToUndoAChargeWithInsufficientBalance TEST
@@ -376,7 +408,16 @@ function weReturnErrorWithSubs($msg, $subs) {
 /**
  * we return error (ARG)
  *
- * in: Identify DeviceShouldHaveAnIdentifier TEST
+ * in: Exchange ACashierAsksToPaySelf TEST
+ *     Exchange DeviceGivesNoMemberId TEST
+ *     Exchange DeviceGivesBadAccountId TEST
+ *     Exchange DeviceGivesNoAmount TEST
+ *     Exchange DeviceGivesBadAmount TEST
+ *     Exchange DeviceGivesTooBigAnAmount TEST
+ *     Exchange DeviceGivesNoPurposeForGoodsAndServices TEST
+ *     Exchange SellerAgentLacksPermissionToBuy TEST
+ *     Exchange SellerAgentLacksPermissionToScanAndSell TEST
+ *     Identify DeviceShouldHaveAnIdentifier TEST
  *     Identify AnUnauthorizedCashierScansIn TEST
  *     Identify ACashierScansACustomerCardBeforeSigningIn TEST
  *     Identify ACashierAsksUsToIdentifyTheCashiersOwnCard TEST
@@ -403,7 +444,8 @@ function weReturnError($msg) {return weReturnErrorWithSubs($msg, array());}
 /**
  * selling: (ARG)
  *
- * in: Identify Setup MAKE
+ * in: Exchange Setup MAKE
+ *     Identify Setup MAKE
  *     Transact Setup MAKE
  *     Undo Setup MAKE
  */
@@ -412,7 +454,8 @@ function selling($selling) {return t\selling($selling);}
 /**
  * company flags: (ARG)
  *
- * in: Identify Setup MAKE
+ * in: Exchange Setup MAKE
+ *     Identify Setup MAKE
  *     Transact Setup MAKE
  *     Undo Setup MAKE
  */
@@ -435,7 +478,9 @@ function agentAsksDeviceForOpWith($agent, $device, $op, $extra) {
 /**
  * we notice (ARG) to member (ARG) with subs: (ARG)
  *
- * in: Transact ACashierAsksToChargeSomeone TEST
+ * in: Exchange ACashierAsksToChargeSomeoneForCash TEST
+ *     Exchange ACashierAsksToRefundSomeone TEST
+ *     Transact ACashierAsksToChargeSomeone TEST
  *     Transact ACashierAsksToRefundSomeone TEST
  *     Undo AnAgentAsksToUndoACharge TEST
  *     Undo AnAgentAsksToUndoARefund TEST

@@ -71,8 +71,8 @@ function rweb_menu() {
     'get' => r\Web\menu(t('Bank'), MENU_NORMAL_ITEM, 'showForm', array('Get'), 'manage bank ok'),
     'directory' => r\Web\menu(t('Find Companies'), MENU_NORMAL_ITEM, 'showForm', array('Directory'), 'sell'),
     'community' => r\Web\menu(t('Community'), MENU_NORMAL_ITEM, 'showForm', array('Reports', 1), '', $anyone),
-    'undo' => r\Web\menu(t('Undo'), MENU_NORMAL_ITEM, 'undo', array(1), 'sell'), // only on mobile
-    'remainder' => r\Web\menu(t('Show Customer Balance'), MENU_CALLBACK, 'remainder', array(1), 'sell'),
+    //'undo' => r\Web\menu(t('Undo'), MENU_NORMAL_ITEM, 'undo', array(1), 'sell'), // only on mobile
+    //'remainder' => r\Web\menu(t('Show Customer Balance'), MENU_CALLBACK, 'remainder', array(1), 'sell'),
     'menu' => r\Web\menu(t('Menu'), MENU_CALLBACK, 'showForm', array('Menu'), '', $anyone),
     'empty' => r\Web\menu(t('Empty'), MENU_CALLBACK, 'showForm', array('Empty'), '', $anyone),
 
@@ -82,7 +82,7 @@ function rweb_menu() {
     'request-employee-rcard' => r\Web\menu(t('Request Employee rCard'), MENU_CALLBACK, 'showForm', array('RequestRCard', 1), 'manage'),
     
     'I' => r\Web\menu('Scanned QR', MENU_CALLBACK, 'showForm', array('I'), '', $anyone),
-    'change-account' => r\Web\menu('Change Account', MENU_CALLBACK, 'changeAccount', array(1), '', $anyone),
+    //'change-account' => r\Web\menu('Change Account', MENU_CALLBACK, 'changeAccount', array(1), '', $anyone),
     'sms' => r\Web\menu('Test SMS', MENU_CALLBACK, 'showForm', array('SMS'), 'admin'),
 
     'account' => r\Web\menu(t('Account Settings'), MENU_CALLBACK, 'showForm', array('Contact'), 'manage'),
@@ -103,6 +103,7 @@ function rweb_menu() {
     'account/readd-phone' => r\Web\menu('reAdd Phone', MENU_CALLBACK, 'addPhone', array(), 'manage'),
     'account/basic' => r\Web\menu('Basic', MENU_CALLBACK, 'showForm', array('Basic'), 'manage'),
     'account/kba' => r\Web\menu('Kba', MENU_CALLBACK, 'showForm', array('Kba'), 'manage'),
+    'account/photo-id' => r\Web\menu('Kba', MENU_CALLBACK, 'showForm', array('PhotoId'), 'manage'),
     
     'another' => r\Web\menu(t('Open Another Account'), MENU_CALLBACK, 'showForm', array('Another'), 'manage'),
     'agent' => r\Web\menu(t('Open An Agent Account'), MENU_CALLBACK, 'showForm', array('Agent'), 'manage'),
@@ -123,7 +124,7 @@ function rweb_menu() {
     'menu' => r\Web\menu('Main Menu', MENU_CALLBACK, 'showForm', array('Menu'), '', $anyone),
     'member' => r\Web\menu('Company Profile', MENU_CALLBACK, 'showForm', array('Profile'), '', $anyone),
     'rcredits/util' => r\Web\menu('Util', MENU_CALLBACK, 'util', array(2), 'admin'),
-    'rcredits/test' => r\Web\menu('Util', MENU_CALLBACK, 'test', array(2), '', $anyone),
+    //'rcredits/test' => r\Web\menu('Util', MENU_CALLBACK, 'test', array(2), '', $anyone),
     'autocomplete' => r\Web\menu('Identify', MENU_CALLBACK, 'auto', array(1, 2, 3), '', $anyone),
     'do' => r\Web\menu('Do', MENU_CALLBACK, 'rdo', array(1), '', $anyone),
     'coup' => r\Web\menu(t('Disable account'), MENU_CALLBACK, 'coup', array(1), '', $anyone),    

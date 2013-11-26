@@ -5,10 +5,12 @@ SO we can do most transactions in rCredits and thereby avoid US Dollar transfers
 
 Setup:
   Given members:
-  | id   | fullName   | email | flags              |
-  | .ZZA | Abe One    | a@    | dft,ok,person,bona |
-  | .ZZB | Bea Two    | b@    | dft,ok,person,bona |
-  | .ZZC | Corner Pub | c@    | dft,ok,company     |
+  | id   | fullName   | email | flags              | floor |
+  | .ZZA | Abe One    | a@    | dft,ok,person,bona |     0 |
+  | .ZZB | Bea Two    | b@    | dft,ok,person,bona |   -20 |
+  | .ZZC | Corner Pub | c@    | dft,ok,company     |     0 |
+  | .ZZD | Dee Four   | d@    | dft,ok,person      |     1 |
+  | .ZZE | Eve Five   | e@    | dft,ok,person      |   -50 |
   And transactions: 
   | xid | created   | type   | amount | from | to   | purpose |
   |   1 | %today-6m | signup |     10 | ctty | .ZZA | signup  |
@@ -21,13 +23,17 @@ Setup:
   | .ZZA | 10 |  10 |
   | .ZZB |  2 |   0 |
   | .ZZC |  5 | 100 |
+  | .ZZD |  0 |   0 |
+  | .ZZE |  0 |  40 |
 
 Scenario: Normal leveling happens
   When cron runs "homogenize"
   Then balances:
   | id   | r   | usd |
-  | .AAA | -10 |  10 |
-  | .AAB | -10 |  10 |
+  | .AAA |   0 |   0 |
+  | .AAB |   0 |   0 |
   | .ZZA |   0 |  20 |
-  | .ZZB |  -8 |  10 |
-  | .ZZC |  45 |  60 |
+  | .ZZB | -18 |  20 |
+  | .ZZC |  35 |  70 |
+  | .ZZD |   0 |   0 |
+  | .ZZE |   0 |  40 |

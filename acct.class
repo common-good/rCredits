@@ -498,6 +498,7 @@ EOF;
    * @return TRUE if success
    */
   function createUsdAccount(&$err = '') {
+    if ($this->id == 1) return ($err = 'not registering admin');
     $usdPass = user_password(20) . '*B2'; // satisfy Dwolla (and our own security)
     $usdEmail = strtolower(\user_password(4) . '.' . $this->mainQid) . '@rc4.me';
     $usdPin = u\randomString(4, 'digits');
@@ -512,7 +513,8 @@ EOF;
       return $us->register('Personal', u\ray('first last dob', @$first, @$last, $this->dob), 'true', $err);
     } else {
       $type = $this->isNonprofit() ? 'NonProfit' : 'Commercial';
-      return $us->register($type, u\ray('org ein', $this->fullName, $this->federalId), 'true', $err);
+      $structure = $this->coCan(CO_CORPORATION) ? 'Corporation' : ($this->coCan(CO_PARTNERSHIP) ? 'Partnership' : 'SoleProprietorship');
+      return $us->register($type, u\ray('org ein structure', $this->fullName, u\fmtEin($this->federalId), $structure), 'true', $err);
     }
   }
   

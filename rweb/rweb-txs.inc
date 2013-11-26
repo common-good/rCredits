@@ -48,7 +48,7 @@ function formTxs($form, &$sta, $args = '') {
   $report = $mya->can(B_CTTY_ADMIN) ? (@$variety == 'stats') : FALSE; // no community reports yet for non-admins
   if (!$report and @$do) if ($result = handleTx($do, $xid, $sta, $args)) return $result;
 
-  $page = $report ? 'stats' : 'transactions';
+  $page = $report ? 'community' : 'transactions';
   if (!@$period) $period = TX_DEFAULT_PERIOD;
   if (strlen(@$options) != count($urlOpts = u\ray(TX_URL_OPTS))) $options = $mya->person() ? '2200001' : '2210001'; // defaults for TX_OPT_KEYS options (2=both)
   $options = array_combine($urlOpts, str_split($options));

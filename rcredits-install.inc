@@ -261,6 +261,16 @@ function tableDefs($schema = array()) {
   $indexes = index('uid');
   $schema['r_gifts'] = setupTable('Membership gift details', $fields, 'donid', $foreignKeys, $indexes);
 
+  // table r_user_industries
+  $fields = array(
+    'id' => setupField('user industry record id', 'serial 11'),
+    'iid' => setupField('industry id', 'int 11', 0),
+    'uid' => setupField('industry id', 'int big', 0),
+  );
+  $foreignKeys = foreignKey('uid');
+  $indexes = index('uid') + index('iid');
+  $schema['r_user_industries'] = setupTable('industries for each company', $fields, 'id', $foreignKeys, $indexes);
+  
   // table r_log
   $fields = array(
     'logid' => setupField('log record id', 'serial 11'),

@@ -61,9 +61,9 @@ class usd {
   public function register($type, $info, $acceptTerms = FALSE, &$err = '') {
     $dw = $this->dwolla(FALSE, R_GET_AUTH_URI);
     extract(u\just('usdPass usdEmail usdPin', $this->acct->secure));
-    extract(u\just($type == 'Personal' ? 'first last dob' : 'org ein', $info));
-    if (@$dob) $dob = date('m-d-Y', $dob);
-    $result = $dw->register2($usdEmail, $usdPass, $usdPin, @$first, @$last, @$dob, $type, @$org, @$ein, $acceptTerms);
+    extract(u\just($type == 'Personal' ? 'first last dob' : 'org ein structure', $info));
+    if (@$dob) $dob = date('m-d-Y', $dob + 0);
+    $result = $dw->register2($usdEmail, $usdPass, $usdPin, @$first, @$last, @$dob, $type, @$org, @$ein, @$structure, $acceptTerms);
 //    debug($result);
     if (!$auth = @$result['OAuthToken']) return dwError($dw, $err); // set error message, if any
     $secure = compact('auth') + $this->acct->secure;
@@ -210,6 +210,18 @@ class usd {
     return TRUE;
   }
 
+  /**
+   * Upload a photo ID
+   * @param string $file: full path of file to upload
+   * @param string $err: (returned) the error message, if any
+   * @return TRUE if success
+   */
+  function sendPhotoId($file, &$err = '') {
+    $dw = $this->dwolla();
+    if (!$dw->sendPhotoId($file)) return dwError($dw, $err);
+    return TRUE;
+  }
+  
   /**
    * Specify an authorized representative for a company account (commercial or nonprofit).
    * @param string $first

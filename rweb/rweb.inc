@@ -139,6 +139,56 @@ EOF;
   exit();
 }
 
+function usdCallback($type, $uid) {
+  include_once __DIR__ . '/../usd.class';  
+  return r\usd::$type($uid);
+}
+
+/**
+ * Complete a "no signin required" request (made by the user clicking on a link we sent).
+ * @see also r\makeDo()
+ */
+function rdo($args) {
+  extract(u\just('id code', $args));
+  if (!$info = db\lookup('action', 'r_do', 'doid=:id AND code=:code AND (completed=0 OR :REQUEST_TIME<-completed)', compact('id', 'code'))) doSay(t('That link has expired.'));
+  if (!$info = unserialize($info)) doSay(t());
+  
+  $DBTX = \db_transaction();
+  extract(u\just('type uid sql subs amount', $info));
+
+  if ($type == 'min') {
+    $result = r\acct($uid)->update(u\ray('minimum', $amount));
+  } elseif ($type == 'sql') {
+    $result = db\q($sql, $subs);
+  } else doSay(t('bad rdo'));
+
+  if (!$result) doSay(t('Request failed.'));
+  db\update('r_do', u\ray('doid box completed', $id, box(), REQUEST_TIME), 'doid');
+  unset($DBTX);
+
+  doSay(t('Your request was successfully completed.'), 'status');
+}
+
+/**
+ * Automatically deactivate an account (called when the user changes the Dwolla email or password).
+ */
+function coup($usdEmail) {
+  list ($email) = explode('@', $usdEmail);
+  list ($code, $region, $id) = explode('.', $email);
+  if (!$a = r\acct($quid = strtoupper("$region.$id"))) die('no1');
+  if (@$a->secure['usdEmail'] != $usdEmail) die('no2');
+  if ($a->usd > 0) { // store its USD in ctty fund
+    if (!r\tradeR(min(R_MAX_DAILY_EXCHANGE, $a->usd), $a->community, $a->id, $err) or $a->usd > R_MAX_DAILY_EXCHANGE) {
+      r\tellStaff("Immediate coup threat: $a-fullName $$a->usd ($err)");
+    }
+  }
+  $a->setBit(B_OK, FALSE);
+  $notes = u\fmtDate() . ': account suspended due to changed Dwolla PIN, email, and/or password.' . @$a->notes . "\n";
+  $a->update(compact('notes'));
+  r\tellStaff('account couped', compact('quid'));
+  exit('ok');
+}
+
 /**
  * Generate choices for a member autocomplete field
  * @param string $string: what the user has typed so far
@@ -678,8 +728,9 @@ function formSummary($form, &$sta) {
 //  $balance = item(tt("$balance@R + $usdBalance@US = $total") . ($mya->rewards ? " [<a href=\"$base_url/transactions\">" . t('see Transaction History') . '</a>]' : ''), t('Balance:'));
   
   if ($mya->id > 0) {
-    list ($personal, $co) = array($mya->person(), $mya->co());
-    $acctType = ($personal and $co) ? 'personal & company' : ($personal ? 'personal' : 'company');
+    $personal = $mya->person();
+    $acctType = $personal ? 'personal' : 'company';
+//    $acctType = ($personal and $co) ? 'personal & company' : ($personal ? 'personal' : 'company');
 //    $acctType = formField('item', t('Account type:'), '', $acctType);
     if ($mya->can(B_MEMBER)) $another = submit($mya->co() ? t('Open an Agent Account') : t('Open Another Account'));
 
@@ -764,19 +815,7 @@ function formSummary_submit($form, &$sta) {
 }
 
 /**
- * Upload a photo ID.
-
-Dwolla says: 
-We're having trouble confirming your information. We want to be absolutely sure that you are creating this account, not someone else creating an account under your name. Protecting your identity is our #1 concern.
-
-Personal Accounts or Sole Proprietors:
-Please upload a government-issued photo ID such as a U.S. driver's license or passport. 
-
-Businesses or Non-Profits:
-Please upload a copy of your EIN documentation or Non-Profit Status documentation. 
-
-2.5MB max
- 
+ * Upload a photo.
  */
 function formPhoto($form, &$sta) {
   global $base_url;
@@ -1449,7 +1488,7 @@ EOF;
 
   $acctTypes = $GLOBALS['account types'];
   if (!@$by) $acctTypes = u\just('0 1', $acctTypes);
-  $acctTypeHelp = @$by ? '' : t('If you use your own social security number and photograph for a business, you may want to open a combined account ("personal and commercial"). Or you can open a separate business account later.');
+//  $acctTypeHelp = @$by ? '' : t('If you use your own social security number and photograph for a business, you may want to open a combined account ("personal and commercial"). Or you can open a separate business account later.');
 
   $companyOptions = array(
     'isOwner' => t('owner'),
@@ -1468,7 +1507,7 @@ EOF;
   );
 //  If you want to use this address <b>for more than one account</b>, include a tag on the local part starting with "+" (for example, myemail<b>+whatever</b>@example.com).');
 
-  $acctType = formField('radios', t('Account type:'), $acctTypeHelp, required(@$by ? NULL : 0) + $acctTypeAttrib, $acctTypes);
+  $acctType = @$by ? formField('radios', t('Account type:'), '', required(@$by ? NULL : 0) + $acctTypeAttrib, $acctTypes) : hidField(R_PERSONAL);
   $fullName = textField(t('Full name:'), tt('fullName desc'), required(@$fullName));
 
   $mail = textField(t('Email:'), t('All emails from the system will be sent to this address. It will not be made public.'), required());
@@ -1501,7 +1540,7 @@ function formSignup_validate($form, &$sta) {
   if ($country == US_COUNTRY_ID) {
     if (!preg_match('/^\d{5}(\-\d{4})?$/', $postalCode)) return say('bad zip', 'zot');
   }
-  if (!formBasic_validate($form, $sta, $acctType < R_COMMERCIAL)) return;
+  if (!formBasic_validate($form, $sta, $acctType != R_PERSONAL)) return;
 
   if (@$copts) extract(u\just('isOwner employeeOk contractor', $copts));
   $gotrelation = (@$employeeOk or @$isOwner or @$contractor);
@@ -1546,7 +1585,7 @@ function formSignup_submit($form, &$sta) {
   $wants = wants(@$ats);
 
   $data += compact(u\ray('by wants calling verifyBy'));
-  if ($acctType <= R_SELF_EMPLOYED) $pass = oneTimePass($name, $data); // record one time pass in data
+  if ($acctType == R_PERSONAL) $pass = oneTimePass($name, $data); // record one time pass in data
   $where = u\parseZip($postalCode) ?: array(); // gets $state and $city
   $fullName = u\normalizeCase($fullName);
   $info = compact(u\ray('name fullName mail phone federalId dob country postalCode')) + $where + acctType($acctType);
@@ -1565,7 +1604,7 @@ function formSignup_submit($form, &$sta) {
   $quid = $mya->mainQid;
   tellStaffNewMember($info + $data + compact('acctType', 'quid'));
 
-  if ($acctType <= R_SELF_EMPLOYED) { // personal (possibly self-employed)
+  if ($acctType == R_PERSONAL) {
     say('your account is ready', compact('quid'));
     $region = strtolower(R_SERVER_ID);
     r\notify($myid, 'welcome', compact(u\ray('name quid pass region')), TRUE); 
@@ -1627,7 +1666,7 @@ function formContact_validate($form, &$sta) {
   }
 
   if (!emailOkay($mail, $mya->id)) return; // say('bad email', u\ray('email', $mail), 'mail');
-  if ($mail != $mya->mail and $pin != $mya->agent->secure['pin']) return say('bad pin', 'pin');
+  if (!$mya->admin() and $mail != $mya->mail and $pin != $mya->agent->secure['pin']) return say('bad pin', 'pin');
   if (!phoneOk($phone, $country)) return;
   if (stripos(@$address, ' box ') or stripos(@$address, 'pob ') !== FALSE) say('po in location', 'address');
   
@@ -1719,7 +1758,7 @@ function formBasic_validate($form, &$sta, $personal = 'mya') {
         }
       }
     }
-  } elseif ($mya) { // nothing to check for org unless retrying account info
+  } elseif (@$mya) { // nothing to check for org unless retrying account info
     if ($err = u\badName($org)) return say($err, 'org');
     $structure = $mya->isNonprofit() ? 'NonProfit' : 'Commercial';
     if (!$us->accountInfo($structure, '', $federalId, '', '', $org, $err)) {
@@ -1802,7 +1841,7 @@ function formKba($form, &$sta) {
       // For example, if $key is '181649905', "echo $Choices[$key];" gives "Undefined offset: 181649905..."
       foreach ($Choices as &$value) $value = strlen($value) == 2 ? $value : u\titleCase($value);
       unset($value);
-      $form["q-$qi"] = formField('radios', $Text, '', required(), (array) $Choices);
+      $form["q-$Id"] = formField('radios', $Text, '', required(), (array) $Choices);
     }
     $form['transactionId'] = hidField($transactionId);
     $form['submit'] = submit(t('Submit answers'));
@@ -1816,7 +1855,7 @@ function formKba($form, &$sta) {
 function formKba_submit($form, &$sta) {
   $us = new r\usd($mya = r\acct());
   foreach ($sta['input'] as $key => $value) {
-    if (substr($key, 0, 2) == 'q-' and is_numeric($qi = substr($key, 2))) $answers[] = u\ray('answerid, questionid', $value, $qi);
+    if (substr($key, 0, 2) == 'q-' and is_numeric($qid = substr($key, 2))) $answers[] = u\ray('answerid, questionid', $value, $qid);
   }
   //debug($answers); return;
   
@@ -1904,6 +1943,44 @@ function formBank_submit($form, &$sta) {
 }
 
 /**
+ * Get the member's photo ID, as part of Dwolla's registration process.
+ */
+function formPhotoId($form, &$sta) {
+  $mya = r\acct();
+  $person = $mya->person();
+
+  $proofType = $person ? t("driver's license or other official ID such as birth certificate or passport, showing your social security number (or the equivalent)") : t('EIN documentation from the IRS or proof of registration with state or local government');
+
+  //  -- This could also be a letter from an officer or owner of the organization (who is an rCredits member), on the organization's letterhead, authorizing opening this rCredits account.");
+  
+  $title = item(t('Photo ID Verification'));
+  $subtext = item(tt('<p>We are having trouble confirming your information. We want to be absolutely sure that you are creating this account, not someone else creating an account under your name.</p><p>Please upload  either a PDF or an image file of your @proofType.', compact('proofType')));
+  $idProof = formField('file', t('Photo ID:'), t('maximum') . tt('@R_MAX_PHOTOID_SIZE MB'), attrib(u\ray('enctype', "multipart/form-data")));
+  $submit = submit('Upload');
+
+  $form = compact(u\ray('title subtext idProof submit'));
+  return labeled($form);
+}
+
+function formPhotoId_validate($form, &$sta) {
+  if (@$_FILES['files']['name']['idProof']) {
+    $validators = array('file_validate_size' => array(R_MAX_PHOTOID_SIZE * 1024000));
+    if (!$file = \file_save_upload('idProof', $validators, '', FILE_EXISTS_REPLACE)) return say('Try again.', 'idProof');
+    if (!u\abbreviates('image/', @$file->filemime) and @$file->filemime != 'application/pdf') return say('bad file type', 'idProof');
+    $sta['input']['filename'] = $filePath = file_directory_temp() . '/' . $file->filename;
+    $us = new r\usd(r\acct());
+    if (!$us->sendPhotoId($filePath, $err)) return say($err, 'idProof');
+//    if (!$key = $sta['input']['idProof'] = bin2hex(u\encryptFile($tempfile, $proofFilename, r\passSalt()))) return say('encryption failure', 'idProof');
+  } return say('upload required', 'idProof');
+}
+
+function formPhotoId_submit($form, &$sta) {
+  unlink($sta['input']['filename']);
+  say('id verification pending');
+  return r\go('status');
+}
+
+/**
  * Get the member's security info and proof of ID, open a Dwolla account.
  * @param string $args: params or report from Dwolla (via usd::callback()) on success of getting auth token
  */
@@ -1939,6 +2016,18 @@ function formSecurity($form, &$sta, $args = '') {
     $federalId = $dob = $pin = $answer = R_ON_FILE;
   }
   
+/*
+Dwolla says: 
+We're having trouble confirming your information. We want to be absolutely sure that you are creating this account, not someone else creating an account under your name. Protecting your identity is our #1 concern.
+
+Personal Accounts or Sole Proprietors:
+Please upload a government-issued photo ID such as a U.S. driver's license or passport. 
+
+Businesses or Non-Profits:
+Please upload a copy of your EIN documentation or Non-Profit Status documentation. 
+
+2.5MB max
+*/
 //  $has = $mya->hasAux('proof');
 //  $proofType = $person ? t("driver's license or other official ID such as birth certificate or passport, showing your social security number (or the equivalent)") : t("EIN documentation from the IRS (or the equivalent) -- This could also be a letter from an officer or owner of the organization (who is an rCredits member), on the organization's letterhead, authorizing opening this rCredits account.");
   
@@ -1960,7 +2049,7 @@ function formSecurity($form, &$sta, $args = '') {
   $answer = $person ? textField(t('Answer:'), t('The answer to that question'), required(@$answer)) : NULL;
 /* KEEP   'idProof = $has ? 
         formField('item', t('Photo ID:'), '', R_ON_FILE . ($mya->ok() ? '' : t(' (pending approval)')))
-      : formField('file', t('Photo ID:'), tt('Upload an image of your @proofType. (maximum @R_MAX_UPLOAD_SIZE MB)', compact('proofType')), attrib(array('enctype = "multipart/form-data")));
+      : formField('file', t('Photo ID:'), tt('Upload an image of your @proofType. (maximum @R_MAX_PHOTOID_SIZE MB)', compact('proofType')), attrib(array('enctype = "multipart/form-data")));
       */
 //    'posttext = item(t('We partner with Dwolla to handle the US Dollars you spend and receive. When you click "Save" here, you will be sent to the Dwolla site, to "Allow" the needed permissions.'));
 //    $submit = submit($has ? t('Save') : t('Upload and Save'));  );
@@ -2002,7 +2091,7 @@ function formSecurity_validate($form, &$sta) {
 /*  $proofFilename = DRUPAL_ROOT . $mya->auxFilename('proof', TRUE);
 
   if (@$_FILES['files']['name']['idProof']) {
-    $validators = array('file_validate_size' => array(R_MAX_UPLOAD_SIZE * 1024000));
+    $validators = array('file_validate_size' => array(R_MAX_PHOTOID_SIZE * 1024000));
     if (!$file = \file_save_upload('idProof', $validators, '', FILE_EXISTS_REPLACE)) return say('Try again.', 'idProof');
     if (!u\abbreviates('image/', @$file->filemime) and @$file->filemime != 'application/pdf') return say('bad file type', 'idProof');
     $tempfile = file_directory_temp() . '/' . $file->filename;
@@ -2728,7 +2817,7 @@ function formReports_validate($form, &$sta) {
 }
 
 function formReports_submit($form, &$sta) {
-  formTxs_submit($form, $sta, 'stats');
+  formTxs_submit($form, $sta, 'community');
 }
 
 /**
@@ -2761,6 +2850,19 @@ function formRequestRCard_submit($form, &$sta) {
     say('card ordered', compact('name'));
   } else say('nothing done', 'zot');
   return r\go('account/relations');
+}
+
+/**
+ * Resubmit the phone number to Dwolla, to get a verification code.
+ * Called directly from /account/readd-phone, as well as from setupUs()
+ */
+function addPhone() {
+  $us = new r\usd($mya = r\acct());
+  if (!$phoneId = $us->addPhone(substr($mya->phone, 2), $mya->data['verifyBy'] ? 'Voice' : 'SMS', $err)) {
+    return r\go('account/contact', $err ?: t('Unknown error'), 'phone');
+  }
+  svar('phoneId', $phoneId);
+  return r\go('account/verify-phone');
 }
 
 /**

@@ -24,15 +24,21 @@ QUESTIONS:
 - When updating data directly through phpMyAdmin or the PHP window or other admin tools, back up the database or relevant tables first.
 ***
 
-NEXT UPDATE:
+TASKS FOR NEXT UPDATE:
+(no special tasks yet)
 
-membership procedure:
-wait for READY status (once all steps are complete, including Dwolla account and bank connection request)
+MEMBERSHIP PROCEDURE:
+wait for READY status (once all steps are complete, including Dwolla account and bank connection REQUEST)
 make sure the photo is adequate
 mark the account as an rTrader (OK) (before printing card)
 print card and welcome materials, mail to new member (welcome includes reminder to verify bank account)
 
-. separate invoices from r_txs
+. complete membership tests, now that it is possible
+. change all @rcredits-org.com email addresses to @rc4.me (see util in admin.inc)
+. company info does not get checked off on status page when complete (see Fosters, for example)
+. trying to change company name and email complains that phone is already taken
+. in admin aa() handle non-local regions right
+. separate invoices from r_txs (somewhat major change)
 . create an rPay app (modify rPOS) for members to pay other members (rather than be charged). It might be expanded later to include account features.
 . remove amount field from r_relations
 . write rweb feature tests for automatic one-click actions (see rcron/features/old/SoldOut.feature for an example)
@@ -477,3 +483,7 @@ To uninstall the rCredits modules manually (export first, since this DESTROYS AL
   TRUNCATE cache_path;
   TRUNCATE cache_update;  
   TRUNCATE sessions;
+
+To exit maintenance mode:
+  UPDATE variable SET value='0' WHERE name = 'maintenance_mode'
+  Then clear caches (see above)

@@ -22,3 +22,4 @@ files[] = tests/adhoc.test
 files[] = tests/Unilateral.test
 files[] = tests/IdentifyCustomer.test
 files[] = tests/Identify.test
+files[] = tests/Exchange.test

@@ -54,7 +54,7 @@ class rcronPool extends DrupalWebTestCase {
     And__('balances: "DATA'
     . '\\| id   | r   | usd |'
     . '\\| ctty | -25 |   0 |'
-    . '\\| .ZZA |   0 |  15 |'
+    . '\\| .ZZA |   0 |  25 |'
     . '\\| .ZZB |   0 |  10 |'
     . '\\| .ZZC |  25 |  80 |"');
     break;
@@ -69,8 +69,8 @@ class rcronPool extends DrupalWebTestCase {
     When_('cron runs "pool"');
     Then_('balances: "DATA'
     . '\\| id   | r   | usd |'
-    . '\\| ctty | -40 |   0 |'
-    . '\\| .ZZA |   5 |  10 |'
+    . '\\| ctty | -45 |  20 |'
+    . '\\| .ZZA |  10 |  15 |'
     . '\\| .ZZB |   0 |  10 |'
     . '\\| .ZZC |  35 |  70 |"');
   }

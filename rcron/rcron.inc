@@ -553,30 +553,33 @@ function homogenize() {
 
 /**
  * Offload some USD from an account, to others with less.
+ * Avoid lending an account USD beyond its credit limit (keep r >= floor).
  */
 function homogenize1($item) {
   extract(u\just('uid', $item));
   $a = r\acct($uid);
-  $result = db\q('SELECT uid AS uid2, usd AS usd2 FROM users WHERE community=:ctty AND usd<:usd AND uid>1 AND :IS_OK ORDER BY usd DESC', u\ray('ctty usd', $a->community, $a->usd));
+  $result = db\q('SELECT uid AS uid2 FROM users WHERE community=:ctty AND usd<:usd-:R_CHUNK AND uid>1 AND :IS_OK AND r>=floor+:R_CHUNK ORDER BY usd DESC', u\ray('ctty usd', $a->community, $a->usd));
   while ($row = $result->fetchAssoc()) {
     extract($row);
-    $amount = min(R_CHUNK, round(($a->usd - $usd2) / 2, 2));
-    if ($amount > 0) r\tradeR($amount, $uid2, $uid); else break;
+    //debug("uid=$uid usd=$a->usd uid2=$uid2 usd2=$usd2");
+    r\tradeR(R_CHUNK, $uid2, $uid);
   }
 }
 
 /**
- * Hold some of the community's USD in the community account
+ * Hold some of the community's USD in the community account.
+ * Leave each contributing account with at least R_CHUNK so it can help someone cash out the next day.
  */
 function pool() {
-//  queueNextAfter('pool'); return; // debug() wait until the regional account is activated
+  //debug('NOT ACTIVE'); queueNextAfter('pool'); return; // debug() wait until the regional account is activated
   $result = db\q('SELECT SUM(usd) AS total, SUM(1) AS sources, community FROM users WHERE uid>1 AND :IS_OK AND usd>0 GROUP BY community');
   while ($row = $result->fetchAssoc()) { // for each community
     extract($row); // total, sources, community
     $cttyUsd = r\acct($community)->usd;
 //    $count = (int) min($sources, R_CTTY_USD_SHARE * ($cttyUsd + $total) / R_CHUNK); // # of chunks to get
 //    if ($count > 0) queueEach('pool1', 'SELECT uid, community, LEAST(:R_CHUNK, usd-:R_CHUNK) AS amount FROM users WHERE uid>1 AND :IS_OK and community=:community AND usd>:R_CHUNK ORDER BY usd DESC LIMIT ' . $count, compact('community')); // can't use LIMIT :count
-    if ($cttyUsd / $total < R_CTTY_USD_SHARE) queueEach('pool1', 'SELECT uid, community, LEAST(:R_CHUNK, usd-:R_CHUNK) AS amount FROM users WHERE uid>1 AND :IS_OK and community=:community AND usd>:R_CHUNK ORDER BY usd DESC', compact('community')); // okay if ctty has a bit too much
+//debug(compact('cttyUsd','total'));
+    if ($cttyUsd / $total < R_CTTY_USD_SHARE) queueEach('pool1', 'SELECT uid, community FROM users WHERE uid>1 AND :IS_OK and community=:community AND usd>=2*:R_CHUNK ORDER BY usd DESC', compact('community')); // okay if ctty has a bit too much
   }
   queueNextAfter('pool');
 }
@@ -585,8 +588,8 @@ function pool() {
  * Trade $10us to the community, leaving the account with at least $10us (if possible).
  */
 function pool1($item) {
-  extract(u\just('uid community amount', $item));
-  r\tradeR($amount, $community, $uid);
+  extract(u\just('uid community', $item));
+  r\tradeR(R_CHUNK, $community, $uid);
 }
 
 /**

@@ -54,6 +54,7 @@ define('R_TEMP_NAME_PREFIX', 'unknown ');
 define('R_MIN_PHOTO_WIDTH', 240); // how wide to make profile pictures (unless too long)
 define('R_MAX_PHOTO_WIDTH', 1024);
 define('R_MAX_UPLOAD_SIZE', 3); // maximum upload size in MB
+define('R_MAX_PHOTOID_SIZE', 2.5); // Dwolla's limit (MB)
 define('R_URL_SLASH', '%_%'); // Drupal gets confused by slashes in a url, even if urlencoded
 define('R_MAX_DAILY_EXCHANGE', 1000); // per Common Good Finance policy and to avoid formal FinCEN regulation
 define('R_MAX_RTX', 1000); // never transfer more rCredits than this at once (self-imposed limit for safety)
@@ -112,12 +113,10 @@ define('R_DFT_PICTURE_WIDE', R_PICTURE_DIR . '/no-photo-available-wide.jpg'); //
 
 // account type bits
 define('R_PERSONAL', 0);
-define('R_SELF_EMPLOYED', 1); // this type is also used as a commercial account structure flag (see below)
-define('R_COMMERCIAL', 2); // not personal (used in testing)
-$GLOBALS['account types'] = array(t('personal'), t('personal AND commercial'), t('commercial (but not publicly traded)'), t('publicly traded corporation'), t('nonprofit or government'));
+$GLOBALS['account types'] = array(t('personal'), t('sole proprietor'), t('partnership'), t('private corporation'), t('nonprofit or government'), t('publicly-traded corporation'));
 
 // Commercial Account flags (bits)
-// R_SELF_EMPLOYED 1 -- already defined above
+define('CO_SOLE_PROPRIETOR', 1);
 define('CO_PARTNERSHIP', 2);
 define('CO_CORPORATION', 3);
 define('CO_NONPROFIT', 4);

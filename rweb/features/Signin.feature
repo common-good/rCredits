@@ -31,8 +31,8 @@ Scenario: A member signs in for the first time
   
 Scenario: A member gives the wrong password
   Given members:
-  | id      | fullName   | acctType    | flags           | pass       |
-  | NEW.ZZA | Abe One    | %R_PERSONAL | dft,ok,person    | %whatever1 |
+  | id      | fullName   | acctType | flags           | pass       |
+  | NEW.ZZA | Abe One    | personal | dft,ok,person    | %whatever1 |
   And member "NEW.ZZA" one-time password is %whatever2
   When member "?" visits page "/user/login"
   And member "?" confirms form "/user/login" with values:
