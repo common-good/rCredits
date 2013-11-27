@@ -503,7 +503,7 @@ EOF;
     $usdEmail = strtolower(\user_password(4) . '.' . $this->mainQid) . '@rc4.me';
     $usdPin = u\randomString(4, 'digits');
     if (isDEV) list ($usdPass, $usdPin) = array('Password1', 9999);
-    if (isDEV and (!$usdEmail or !strpos('@dwolla.com', $usdEmail))) $usdEmail = 'gordon+william+5@dwolla.com';
+    //if(isDEV and (!$usdEmail or !strpos('@dwolla.com', $usdEmail))) $usdEmail = 'gordon+william+5@dwolla.com';
     $secure = compact(u\ray('usdPass usdEmail usdPin')) + $this->secure;
     $this->update(compact('secure'));
     $us = new r\usd($this);

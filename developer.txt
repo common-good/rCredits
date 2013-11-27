@@ -33,18 +33,31 @@ make sure the photo is adequate
 mark the account as an rTrader (OK) (before printing card)
 print card and welcome materials, mail to new member (welcome includes reminder to verify bank account)
 
-. complete membership tests, now that it is possible
-. change all @rcredits-org.com email addresses to @rc4.me (see util in admin.inc)
-. company info does not get checked off on status page when complete (see Fosters, for example)
+. *** int admin/memberId don't change cardCode2 if it already exists!
+. app should know whether it is the test version and rsmart should update to rpos2.apk when it is
+. * when user has no access to the page, show login page if user is not logged in (requires a change to Drupal)
+. ** complete membership tests, now that it is possible
+. * change all @rcredits-org.com email addresses to @rc4.me (see util in admin.inc)
+. ** company info does not get checked off on status page when complete (see Fosters, for example)
 . trying to change company name and email complains that phone is already taken
 . in admin aa() handle non-local regions right
-. separate invoices from r_txs (somewhat major change)
+. * separate invoices from r_txs (somewhat major change)
 . create an rPay app (modify rPOS) for members to pay other members (rather than be charged). It might be expanded later to include account features.
 . remove amount field from r_relations
-. write rweb feature tests for automatic one-click actions (see rcron/features/old/SoldOut.feature for an example)
-. should be able to open another rCredits account before confirming bank deposits (and send card before that)
+. * write rweb feature tests for automatic one-click actions (see rcron/features/old/SoldOut.feature for an example)
+. * should be able to open another rCredits account before confirming bank deposits (and send card before that)
 . committed amount should not be displayed negative on Summary page
-. add option for company to disable access by others to their device(s). That way, an unsigned-in cashier can't accidentally sign in another company's agent. ("restricted" field in r_boxes)
+. * add option for company to enable access by others to their device(s). That way, an unsigned-in cashier can't accidentally sign in another company's agent. ("restricted" field in r_boxes)
+- * help for all pages
+- * reduce picture size and make thumbnails (for upper right corner)
+- * membership tests: New Pass, Photo, Agreement, Contribute, Proxies, Usd, proof of ID, Options
+- * prefs: show phone or (more importantly) postalAddr when paying someone (so they can ship or call)
+- * in daily: alert staff if deposit / withdrawal not complete after 5 days
+- * (recheck) enforce $1,000 FINCEN limits
+- * include address in "new payment" digest notices to nonprofits OR just CGF (warn on pay screen if the former)
+. * hide advanced features on Transactions page (show either advanced or simple period selector, but not both)
+. * add a Pay button to member company rCredits webpage
+
 . employers should be able request rcards for anyone with scan permission or better
 . redo averageBalance() with SUM(r+usd) GROUP BY date
 . hide the Dwolla fees (and reimbursements) in the Transactions Summary
@@ -55,38 +68,29 @@ print card and welcome materials, mail to new member (welcome includes reminder 
 . on reversing a payment, rebate should show as negative, not empty
 . committed amount can go negative (on a refund). make sure cron handles it right.
 . don't try to register admin (or any incomplete account) with Dwolla
-. hide advanced features on Transactions page (show either advanced or simple period selector, but not both)
-. add a Pay button to member company rCredits webpage
 
 . show the right thing for bank transfers for ctty_admin statistics page or hide them
 . have Gherkin always send us the whole array, which must still be rectangular. use t\hdrs() to make the first row or column keys/hdrs for the others
 . drive xml error from USPS on Signin, and handle it gracefully
 . rewrite form testing system to use just menu_execute_active_handler, drupal_validate_form, etc. (assuring official behavior). For example, be able to test required fields.
-. (later, if wanted) add undo permission between sell and buy?
 . (later) suggest reaching out to increase rebate pct
 . coverFee from lost transaction cron
 . make invite a primary link
 . handle menu logout from restricted page (does not log out)
-. (later) write an app for Android and iPhone, so scanning a card from out of region will work (currently you sign in to your own regional server, so a scan that takes you to another region's site won't work)
 . txs should not show X on receipts, for non-buyers
 . (later) use rc4.me for login and email redirection (with forward.php). Database table accounts has fields email (primary), username (all lowercase letters), and region (3 or 4 uppercase letters). So user can log in at rc4.me (linked to by rcredits.org), which then forwards the request to the appropriate server. Scanned cards go directly to the proper server (new.rc2.me/A/AAAcode OR /a/... for agents, B&b for 4-letter users, etc.).
 . before depending on anyone's cached USD balance, make sure the unavailability of their Dwolla account is not because they changed their PIN.
 . add to misc.js: for each text input on the page, if the current value includes "XX-", make it silver. onEnter, zap the contents (set .length=0 ?)
 . when there is an error, don't make user retype the hidden fields (so soc sec and dob should not be password type) (also when error happens in submit, because there is a dwolla error)
-. for companies with no default purpose, add suggestion to no purpose message
 . don't make account opener manager if by is ADMIN or CTTY_ADMIN (and give account a temp password)
-- * help for all pages
 . warn admin when changing to rTrader prematurely, that it may cause double withdrawal from bank (happened to Dan)
 - when contesting a tx, ask for comment (add it to payer's "for"). The next day (and thereafter) don't allow editing the for. Include payer's note in notice to payee.
 - LATER (when available) tests with dev sandbox and reg sandbox!
 - LATER bank account removal
-- add "immediate refunds" permission after "scan"?
 - make sure recovery from lost usdtxs includes recovery from any fees
 - monthly PDF statement (printable)
-- enforce $1,000 FINCEN limits
 - move SMS notices option to cell form (and add field to r_boxes)?
 - implement r\suggest (use this for merchant invoices too. user gets an email invoice from rCredits, they can just click on a link to accept or decline. merchant gets notified). test cron call to r\suggest (should just notify, for now)
-- include address in "new payment" digest notices to nonprofits OR just CGF (warn on pay screen if the former)
 - on MSIE 8, sign-in CSS has alignment problem, menu failure in MSIE 8, autocomplete looks funny
 - LATER give user a chance to name the machine
 - make a way for user to see notices online
@@ -96,10 +100,7 @@ print card and welcome materials, mail to new member (welcome includes reminder 
 - combine channel and box on Transaction History?
 - warn people about their tax liability (ask what their tax year is? warn in December?)
 - trans history: default today on starting/ending and/or pass true defaults properly for period
-- * membership tests: New Pass, Photo, Agreement, Contribute, Proxies, Usd, proof of ID, Options
-- * prefs: show phone or (more importantly) postalAddr when paying someone (so they can ship or call)
 - make sure we're handling all bad GET data gracefully
-- scanning own card should fill in username on login form
 - scanning non-member card should complain immediately
 - scanning read-only company card should bring up history. Should sell card have read?
 - read, sell or buy permission company card should allow history, but without current balance
@@ -109,14 +110,12 @@ print card and welcome materials, mail to new member (welcome includes reminder 
 - add a login field to relations and record last login time of agent/company pair
 - return error from u\httpRequest() (instead of u\EXPECT), throw hiddenData error in acct::offsiteData(). Catch it on Summary screen at least (display gentle Warning message).
 - option to never convert r to us. rCredits can then be seized only by the CGC. No. this is still problematic because it invites abuse and might pit the community against the individual or against the larger society.
-- reduce picture size and make thumbnails (for upper right corner)
 - account checks: auto-deposit or minimum>0 but not connected to checking account yet: notice to user
 - block repeated 404s
 - pagination for trans history
 - recommend password practices
 - rethink nested usd transaction atoms (is the logic right?)
 - retest SMS
-- * in daily: alert staff if deposit / withdrawal not complete after 5 days
 - handle 10-day interval for deposits/withdrawals for non-checking accounts
 - Hilary's list
 - * don't allow clicking on links in emails (send to new.rcredits_org.com/whatever, which looks like rcredits.org but scolds the user for clicking on an email link, then offers a link to the real site (don't accept that one either). Exception: links that do not require sign-in (for example, suggested account changes and merchant charges -- merchant creates invoice. no shipping until you accept it -- like paypal).

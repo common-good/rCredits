@@ -324,8 +324,6 @@ function weShowWithSubs($page, $subs) {
  * in: Community CronCalculatesTheStatistics TEST
  *     Contact AMemberVisitsTheContactInfoPage TEST
  *     Get AMemberAsksToDoTwoTransfersOutInOneDay TEST
- *     Membership AMemberClicksOnTheMembershipLink TEST
- *     Membership ACompanyAgentClicksOnTheMembershipLink TEST
  *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
  *     Relations MemberHasAnEmployeeConfirmed TEST
  *     Relations MemberHasAnEmployeeUnconfirmed TEST
@@ -454,8 +452,6 @@ function usd($list) {return t\usd($list);}
  *     Contact AMemberVisitsTheContactInfoPage MAKE
  *     Download AMemberDownloadsTransactionsForThePastYear MAKE
  *     Download AMemberDownloadsCompletedTransactionsForThePastYear MAKE
- *     Membership AMemberClicksOnTheMembershipLink MAKE
- *     Membership ACompanyAgentClicksOnTheMembershipLink MAKE
  *     Membership AMemberDoesItAll MAKE
  *     RealUsd AMixedRCreditsUSDTransactionHappens MAKE
  *     Relations MemberHasAnEmployeeConfirmed MAKE
@@ -574,9 +570,7 @@ function memberAccountIsNotActive($id) {
 /**
  * with done (ARG)
  *
- * in: Membership AMemberClicksOnTheMembershipLink TEST
- *     Membership ACompanyAgentClicksOnTheMembershipLink TEST
- *     Membership AMemberDoesItAll TEST
+ * in: Membership AMemberDoesItAll TEST
  */
 function withDone($steps) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -631,7 +625,7 @@ function weShow($what, $show = TRUE) {
 /**
  * member (ARG) supplies (ARG): (ARG)
  *
- * in: 
+ * in: Membership AMemberDoesItAll MAKE
  */
 function memberSupplies($uid, $field, $value) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -839,8 +833,7 @@ function memberHasADwollaAccountStep($id, $step) {
 /**
  * without: (ARG)
  *
- * in: Membership ACompanyAgentClicksOnTheMembershipLink TEST
- *     Relations MemberCompanyHasRelations TEST
+ * in: Relations MemberCompanyHasRelations TEST
  *     Relations ItsComplicated TEST
  *     Signup AnInvitedNewbieVisitsTheRegistrationPage TEST
  *     Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage TEST

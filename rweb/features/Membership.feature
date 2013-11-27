@@ -12,14 +12,14 @@ SO I can participate actively.
 
 Setup:
   Given members:
-  | id   | fullName   | phone    | address | city  | state | postalCode | country | floor | flags         |
-  | .ZZA | Abe One    | +2000001 | 1 A St. | Atown | AK    | 01000 | US      |     0 | dft,person,company |
-  | .ZZB | Bea Two    | +2000002 | 2 B St. | Btown | UT    | 02000 | US      |  -200 | dft,person,member  |
-  | .ZZC | Corner Pub | +2000003 | 3 C St. | Ctown | Cher  | A1B23 | France  |     0 | dft,company          |
+  | id  | fullName | phone    | email | address | city  | state | postalCode | country | floor | flags |
+  | .ZZA | Abe One | +2000001 | a@ | 1 A St. | Atown | AK | 01000 | US |     0 | dft,person,company |
+  | .ZZB | Bea Two | +2000002 | b@ | 2 B St. | Btown | UT | 02000 | US |  -200 | dft,person,member  |
+  | .ZZC | Our Pub | +2000003 | c@ | 3 C St. | Ctown | CA | 03000 | US |     0 | dft,company          |
   And relations:
   | id   | main | agent | permission |
   | .ZZA | .ZZC | .ZZA  | manage     |
-  
+Skip
 Scenario: A member clicks on the membership link
 #  Given member ".ZZA" supplies "postalAddr": "planet Earth"
   When member ".ZZA" visits page "status"
@@ -49,9 +49,9 @@ Scenario: A company agent clicks on the membership link
   And without:
   | Choose two people |
   And with done ""
-
+Resume
 Scenario: A member does it all
-#  Given member ".ZZA" supplies "postalAddr": "planet Earth"
+  Given member ".ZZA" supplies "postalAddr": "planet Earth"
   And member ".ZZA" has done step "agreement"
   When member ".ZZA" visits page "status"
   Then we show "You're getting there"

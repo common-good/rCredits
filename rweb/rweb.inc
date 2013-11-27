@@ -1716,11 +1716,12 @@ function formVerifyPhone_submit($form, &$sta) {
  */
 function formBasic($form, &$sta) {
   $mya = r\acct();
+  $nameDesc = t(', properly capitalized, as on your most recent government-issued ID');
   $title = item(t('Retry Verification'));
   if ($mya->person()) {
     list ($first, $last) = u\parseName($mya->fullName);
-    $first = textField(t('First name:'), t('Your first name (as on legal documents)'), required(@$first));
-    $last = textField(t('Last name:'), t('Your last name (as on legal documents)'), required(@$last));
+    $first = textField(t('First name:'), t('Your first name') . $nameDesc, required(@$first));
+    $last = textField(t('Last name:'), t('Your last name') . $nameDesc, required(@$last));
   } else $org = textField(t('Full name:'), tt('fullName desc'), required($mya->fullName));
   $submit = submit(t('Submit'));
 

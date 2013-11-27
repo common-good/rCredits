@@ -12,7 +12,7 @@ use rCredits\Testing as t;
  * Note that if Dwolla is not reachable: bal(), bank(), and send() have a fallback.
  */
 
-require_once __DIR__ . '/../dwolla/dwolla.php';
+require_once __DIR__ . '/dwolla.php';
 require_once __DIR__ . '/rcredits-testing.inc'; // required during cron
 
 define('USD_NOTE_PREFIX', 'rC: '); // prefix USD tx notes so we know they're ours (preceded by "1" when testing)

@@ -32,64 +32,65 @@ Setup:
   | :ZZD | .ZZC | .ZZD  | read       |
   | :ZZE | .ZZF | .ZZE  | sell       |
   And transactions: 
-  | xid | created   | type   | amount | from | to   | purpose | taking |
-  | 1   | %today-6m | signup |    250 | ctty | .ZZA | signup  | 0      |
-  | 2   | %today-6m | signup |    250 | ctty | .ZZB | signup  | 0      |
-  | 3   | %today-6m | signup |    250 | ctty | .ZZC | signup  | 0      |
+  | xid | created   | type     | amount | from | to   | purpose | taking |
+  | 1   | %today-6m | signup   |    350 | ctty | .ZZA | signup  | 0      |
+  | 2   | %today-6m | signup   |    150 | ctty | .ZZB | signup  | 0      |
+  | 3   | %today-6m | signup   |    250 | ctty | .ZZC | signup  | 0      |
+  | 4   | %today-5m | transfer |    100 | .ZZC | .ZZB | cash    | 0      |
+  | 5   | %today-5m | transfer |    200 | .ZZA | .ZZC | cash    | 0      |
   Then balances:
   | id   | balance |
-  | ctty |    -750 |
-  | .ZZA |     250 |
+  | ctty |    -500 |
+  | .ZZA |     150 |
   | .ZZB |     250 |
-  | .ZZC |     250 |
+  | .ZZC |     350 |
 
 #Variants: with/without an agent
 #  | ".ZZB" asks device "devC" | ".ZZB" asks device "codeC" | ".ZZA" $ | ".ZZC" $ | # agent to member |
 #  | ".ZZB" asks device "devC" | ".ZZB" asks device "codeC" | ".ZZA" $ | ".ZZC" $ | # agent to agent  |
-
+Skip
 Scenario: A cashier asks to charge someone for cash
   When agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "cash": "cash out"
-  # cash exchange would be for "cash": "cash out"
-  Then we respond ok with tx 4 and message "report transaction" with subs:
-  | did     | otherName | amount | rewardType | rewardAmount |
-  | charged | Bea Two   | $100   | reward     | $0           |
+  Then we respond ok with tx 6 and message "report exchange" with subs:
+  | did     | otherName | amount |
+  | charged | Bea Two   | $100   |
   And with balance
-  | name    | balance | spendable | cashable | did     | amount | forCash |
-  | Bea Two | $150    |           | $0       | charged | $100   |         |
+  | name    | balance | spendable | cashable | did     | amount | forCash  |
+  | Bea Two | $350    |           | $0       | charged | $100   | for cash |
   And with undo
   | created | amount | tofrom | otherName |
   | %dmy    | $100   | from   | Bea Two   |
-  And we notice "new charge|reward other" to member ".ZZB" with subs:
-  | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |
-  | %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $10               |
+  And we notice "new charge" to member ".ZZB" with subs:
+  | created | fullName | otherName  | amount | payerPurpose |
+  | %today  | Bea Two  | Corner Pub | $100   | cash out     |
   And balances:
   | id   | balance |
-  | ctty |    -770 |
-  | .ZZA |     250 |
-  | .ZZB |     160 |
-  | .ZZC |     360 |
-
+  | ctty |    -500 |
+  | .ZZA |     150 |
+  | .ZZB |     350 |
+  | .ZZC |     250 |
+Resume
 Scenario: A cashier asks to refund someone
-  When agent ":ZZA" asks device "devC" to charge ".ZZB" $-100 for "goods": "food"
-  Then we respond ok with tx 4 and message "report transaction" with subs:
-  | did      | otherName | amount | rewardType | rewardAmount |
-  | refunded | Bea Two   | $100   | reward     | $-10         |
+  When agent ":ZZA" asks device "devC" to charge ".ZZB" $-100 for "cash": "cash in"
+  Then we respond ok with tx 6 and message "report exchange" with subs:
+  | did      | otherName | amount |
+  | credited | Bea Two   | $100   |
   And with balance
-  | name    | balance | spendable | cashable | did      | amount | forCash |
-  | Bea Two | $340    |           | $100     | refunded | $100   |         |
+  | name    | balance | spendable | cashable | did      | amount | forCash  |
+  | Bea Two | $350    |           | $200     | credited | $100   | for cash |
   And with undo
   | created | amount | tofrom | otherName |
   | %dmy    | $100   | to     | Bea Two   |
-  And we notice "new refund|reward other" to member ".ZZB" with subs:
-  | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |
-  | %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $-10              |
+  And we notice "new payment" to member ".ZZB" with subs:
+  | created | fullName | otherName  | amount | payeePurpose |
+  | %today  | Bea Two  | Corner Pub | $100   | cash in      |
   And balances:
   | id   | balance |
-  | ctty |    -730 |
-  | .ZZA |     250 |
-  | .ZZB |     340 |
-  | .ZZC |     140 |
-
+  | ctty |    -500 |
+  | .ZZA |     150 |
+  | .ZZB |     350 |
+  | .ZZC |     250 |
+Skip
 Scenario: A cashier asks to charge another member, with insufficient balance
   When agent ":ZZA" asks device "devC" to charge ".ZZB" $300 for "goods": "food"
   Then we return error "short from" with subs:
