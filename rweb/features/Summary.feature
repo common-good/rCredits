@@ -7,10 +7,10 @@ SO I know where it stands.
 
 Setup:
   Given members:
-  | id   | fullName   | address | city  | state  | postalCode | country | floor | flags                      |
-  | .ZZA | Abe One    | 1 A St. | Atown | Alaska | 01000      | US      | -100  | dft,ok,person,bona         |
-  | .ZZB | Bea Two    | 2 B St. | Btown | Utah   | 02000      | US      | -200  | dft,ok,person,company,bona |
-  | .ZZC | Corner Pub | 3 C St. | Ctown | Cher   |            | France  | -300  | dft,ok,company,bona        |
+  | id   | fullName   | address | city  | state | postalCode | country | floor | flags               |
+  | .ZZA | Abe One    | 1 A St. | Atown | AK    | 01000      | US      | -100  | dft,ok,person,bona  |
+  | .ZZB | Bea Two    | 2 B St. | Btown | UT    | 02000      | US      | -200  | dft,ok,person,bona  |
+  | .ZZC | Corner Pub | 3 C St. | Ctown | Cher  |            | France  | -300  | dft,ok,company,bona |
   And members have:
   | id   | created   | share | usd |
   | ctty | %today-9w |     0 |   0 |

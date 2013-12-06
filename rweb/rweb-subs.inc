@@ -346,13 +346,14 @@ function boxUser($boxid, $uid) {
 }
 
 function setupGlobals($agent = '') {
-  global $user, $channel, $boxUser;
+  global $user, $channel, $boxUser, $verifyBys;
   if (@$channel) return; // already setup
   if (!$agent) $agent = @$user->uid; // register_submit supplies agent (no one else does)
   $myid = svar('myid') ?: $agent;
   r\acct::setDefault(r\acct($myid, $agent)); // set default for r\acct()
   if ($myid) $boxUser = boxUser(box(), $myid);
   $channel = TX_WEB;
+  $verifyBys = u\ray('SMS Voice'); // for Dwolla phone verification
 }
 
 /**
@@ -887,7 +888,7 @@ function passwordOkay($a, $password, $passFieldName = 'current_pass') {
  */
 function oneTimePass($name, &$data) {
   $pass = strtolower(u\nonce()); // not a hash, easy to remember and type
-  if (isDEV) debug('Password: ' . $pass);
+/**/ if (isDEV) debug('Password: ' . $pass);
   $expires = REQUEST_TIME + HOUR_SECS * R_SIGNIN_HOURS;
   r\setCook('loginto', $name, $expires);
   $data['oneTimePass'] = compact('pass', 'expires');

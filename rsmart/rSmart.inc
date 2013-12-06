@@ -29,7 +29,7 @@ use rCredits\Testing as t;
  * undo:	[tx] => [ok, message, balance]
  */
 
-define('RPOS_VERSION', 6); // lastest POS app version available for download (this should match the versionCode in the app's manifest. upload and test the app first, before bumping the number up here.)
+define('RPOS_VERSION', 10); // lastest POS app version available for download (this should match the versionCode in the app's manifest. upload and test the app first, before bumping the number up here.)
 //define('RPOS_FILENAME', 'http://ws.rcredits.org/rPOS-' . rPOS_VERSION . '.apk');
 define('RPOS_FILENAME', 'http://rc4.me/rpos.apk');
 define('RPOS_FILENAMEB', 'http://rc4.me/rposb.apk'); // version for buggy front-camera-only machines
@@ -43,6 +43,7 @@ $GLOBALS[TX_SMART . ' messages'] = array(
   'agent cannot scan' => t('That agent is not authorized to charge customers.'),
   'scan in first' => t('You have to scan yourself in before charging a customer.'),
   'already scanned in' => t('You are already scanned in.'),
+  'company inactive' => t('That company is not an active participant.'),
   'company inactive' => t('That company is not an active participant.'),
 //  'agent cannot sell' => t('That agent is not authorized to charge customers.'),
   'customer balance' => t("Customer: @name\n\nBalance: @balance@spendable\nTradable for cash: @cashable"),
@@ -73,9 +74,11 @@ function pos($args = FALSE) {
   if (@$device) { // device was specified, substitute its record id, herein
     if (!$deviceId = getDevice($device, $mya->id)) {
       if ($op == 'identify' and !@$agent) { // use this device for a new company (only if identifying agent)
-        $restricted = db\lookup('restricted', 'r_boxes', 'code=:device', compact('device')); // 1 or 0
-        if (@$restricted === FALSE) return posErr('unknown device');
-        if ($restricted) return posErr('restricted');
+        if (FALSE) { // should be if(!isPRODUCTION) {
+          $restricted = db\lookup('restricted', 'r_boxes', 'code=:device', compact('device')); // 1 or 0
+          if (@$restricted === FALSE) return posErr('unknown device');
+          if ($restricted) return posErr('restricted');
+        }
         r\makeDevice($mya->id, $devHdr, $device);
       } else return posErr('unknown device');
       $edit = u\ray('id access', $deviceId, REQUEST_TIME);
@@ -241,7 +244,7 @@ function charge($args, $type = 'charge') {
   $message = u\tt($msg, $subs);
   $undo = u\tt('confirm undo', $subs);
   $forCash = $goods ? '' : t(' for cash');
-  $balance = getBalance($a) . u\tt('just did', $subs + compact('forCash'));
+  if ($balance = getBalance($a)) $balance .= u\tt('just did', $subs + compact('forCash'));
   $tx = $subs['xid'];
 //  $message = print_r($subs, 1); // debug
   return ok(compact(u\ray('message tx balance undo')));
@@ -289,9 +292,9 @@ function missingArg($expected, $args) {
  * @return: the agent's acct object (false if error)
  */
 function getAgent($agent, &$err = '') {
-  if (!$mya = r\acct($agent)) return !($err = 'bad agent');
+  if (!$mya = r\acct($agent)) return !$err = 'bad agent';
 //  if (r\foreignServer(r\uidRegion($mya->agentId))) return !$err = 'wrong server for agent';
-  if (!$mya->ok()) return !($err = 'company inactive');
+  if (!$mya->ok()) return !$err = 'company inactive';
 //  if (!$mya->can(B_SELL)) return !$err = 'agent cannot sell';
   r\acct::setDefault($mya); // set current account temporarily to owner, so that error log has it right
   return $mya;

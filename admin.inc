@@ -14,10 +14,9 @@ use rCredits\Util as u;
  * Handle results submitted on formAdmin.
  */
 function adminForm($sta) {
-  extract(u\just('account', $sta['input']));
+  extract(u\just('account make', $sta['input']));
   $op = r\Web\op($sta);
   if ($op == 'USD_Accounts') return r\Web\say(usdAccts());
-  if ($op == 'suUsd') return suUsd();
   if (@$account) $a = aa($account); // should use whois first
   
   if ($op == 'printId') {
@@ -25,24 +24,28 @@ function adminForm($sta) {
     $agent = $a->agent;
     $field = strpos($qid, R_AGENT_MARK) ? 'cardCode2' : 'cardCode';
     $secure = $agent->secure;
-    if ($field == 'cardCode2') if (isDEV or !($code = @$secure[$field]) or strlen($code) > R_CARDCODE_LEN) {
-      if (!isDEV) u\EXPECT($field == 'cardCode2', 'missing cardCode'); // only cardCode2 gets created here
+//    if ($field == 'cardCode2') if (isDEV or !($code = @$secure[$field]) or strlen($code) > R_CARDCODE_LEN) {
+    if (@$make) {
+//      if (!isDEV) u\EXPECT($field == 'cardCode2', 'missing cardCode'); // only cardCode2 gets created here
+      seeSecure($a);
+      r\Web\svar(strtolower("x$field" . substr($agent->qid(), 4)), @$secure[$field]); // eg xcardcode2aab is old code
       $secure = u\ray($field, r\cardCode($qid)) + $secure; // create an rCard security code
       $agent->update(compact('secure')); // resave the secure fields
+      seeSecure($a);
     }
     return r\go('print-rcard/' . $qid);
-  } elseif ($op == 'seeUsd') {
-    if (@$a->secure['auth'] and !@$a->secure['usdEmail']) {
-      $old = $a->secure;
-      $usdPass = user_password(20) . '*B2'; // satisfy Dwolla (and our own security)
-      $usdEmail = strtolower(\user_password(4) . '.' . $a->mainQid) . '@rc4.me';
-      $usdPin = u\randomString(4, 'digits');
-      $usdPhone = $a->phone;
-      $secure = compact(u\ray('usdPass usdEmail usdPin usdPhone')) + $old;
-      if (isset($secure['old'])) $secure['old'] = '';
-      if (isset($secure['card_code'])) $secure['card_code'] = '';
-      $a->update(compact('secure'));
-    }
+  } elseif ($op == 'seeSecure') {
+    if (@$a) seeSecure($a);
+  } elseif ($op == 'newUsdEmail') {
+    seeSecure($a);
+    if (!@$a->secure['auth'] or !$make) return;
+    $usdPass = user_password(20) . '*B2'; // satisfy Dwolla (and our own security)
+    $usdEmail = strtolower(\user_password(4) . '.' . $a->mainQid) . '@rc4.me';
+    $usdPin = u\randomString(4, 'digits');
+    $usdPhone = $a->phone;
+    $secure = compact('usdEmail') + $a->secure + compact(u\ray('usdPass usdPin usdPhone')); // preempt only e
+    $a->update(compact('secure'));
+    seeSecure($a);
     return;
   }
   
@@ -61,6 +64,14 @@ function adminForm($sta) {
   foreach (u\ray(R_SHOWABLE_TABLES) as $one) if ($op == $one) return r\Web\say(showTableQ("r_$one"));
 //  list ($community) = explode('-', $community, 2); // get the absolute value of community
 //  if ($community) svar('myid', -$community); // make it the new current account
+}
+
+function seeSecure($a) {
+  $secure = $a->secure;
+  u\setDft($secure['usdType'], 'Dwolla');
+  foreach (u\ray(R_SECURE_FIELDS) as $one) if (isset($secure[$one])) $new[$one] = $secure[$one]; // reorder
+  $a->update(u\ray('secure', @$new ?: array()));
+/**/ debug($a->secure);    
 }
 
 /**
@@ -167,15 +178,36 @@ foreach (array(3201932, 3244519, 3350610, 3510402) as $one) {
 
  */
 function changeIt($a) {
+  if (!@$a->usdAccount or @$a->secure['usdPhone']) return;
+  $a->upSecure('usdPhone', $a->phone);
+  debug($a->secure);
+}
+/*
+
+  $rc4 = strpos(@$a->secure['usdEmail'], 'rc4') ? '' : ('not RC4! ' . @$a->secure['usdEmail']);
+  $vby = isset($a->data['verifyBy']) ? ($a->data['verifyBy'] ? 'Voice' : 'SMS') : 'not set';
+//debug("$a->fullName dob is $a->dob ssn is $a->federalId verifyBy is $vby $rc4");
+  if ($vby == 'not set') $vby = 'Voice';
+  if (@$a->dob and !is_numeric($a->dob)) {
+    $a->update(u\ray('dob', u\s2t($a->dob)));
+// debug("$a->fullName dob is now $a->dob");
+  }
+  if (strlen(@$a->data['verifyBy']) < 2) {
+    $data = u\ray('verifyBy', $vby) + $a->data;
+    $a->update(compact('data'));
+// debug("$a->fullName verifyBy is now " . $a->data['verifyBy']);
+*/
+
+/*
   $postalAddr = $a->address . ', ' . $a->city . ', ' . r\realState($a->state) . ' ' . $a->postalCode;
   list ($address) = explode(',', $a->postalAddr);
   if (!$address) $address = $a->address;
   $a->update(compact('address', 'postalAddr'));
-
+*/
 //$payee = db\lookup('payee', 'r_usd', 'txid=:txid', compact('txid'));
 //r\Cron\coverFee(compact('txid', 'payee'));
-}
 
+/*
 function suUsd() {
   return; // unused
   $testUsdMin = DW_FEE_THRESHOLD;
@@ -185,16 +217,17 @@ function suUsd() {
     t\clear(TX_WEB); // make sure the usdAccount is not used by anyone else
     $a->update(u\ray('usdAccount', DW_TESTER_ACCT));
     $us->getAuth();
-/**/  die('should not return to suUsd');
+//  die('should not return to suUsd');
   }
   if (isPRODUCTION and $us->bal() < $testUsdMin) {
     $cgf = r\acct('NEW.AAB');
     $for = 'testing';
     be\transfer('payment', $a, $cgf, $testUsdMin, $for);
     be\transfer('payment', $cgf, $a, $testUsdMin, $for); // CGF sends back the whole amount in usd
-/**/  debug("$$testUsdMin traded with CGF");
+//  debug("$$testUsdMin traded with CGF");
   }
 }
+*/
 
 /*
 https://rcredits.org:2083/cpsess4564554376/frontend/x3/mail/addfwd.html
@@ -215,3 +248,29 @@ $us->rollback($list);
 
 */
 
+function makeTestCards() {
+  if (isPRODUCTION) return;
+
+  $a = aa('aab');
+  $a->update(u\ray('fullName', 'Corner Store'));
+
+  $a = aa('aaa');
+  $a->update(u\ray('fullName', 'Bob Bossman'));
+  $a->upSecure('cardCode2', 'WeHlioM5JZv1O9G');
+  
+  $a = aa('aad');
+  $a->update(u\ray('fullName', 'Cathy Cashier'));
+  $a->upSecure('cardCode2', 'ME04nW44DHzxVDg');
+  
+  $a = aa('aaq');
+  $a->update(u\ray('fullName', 'Helga\'s Hardware'));
+  
+  $a = aa('aak');
+  $a->update(u\ray('fullName', 'Curt Customer'));
+  $a->upSecure('cardCode', 'NyCBBlUF1qWNZ2k');
+  $a->upSecure('cardCode2', 'utbYceW3KLLCcaw');
+  
+  $a = aa('abb');
+  $a->update(u\ray('fullName', 'Susan Shopper'));
+  $a->upSecure('cardCode', 'ZzhWMCq0zcBowqw');
+}

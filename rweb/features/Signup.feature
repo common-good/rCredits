@@ -44,7 +44,7 @@ Scenario: An invited newbie visits the registration page
 #  | properly capitalized |
 #  And without options:
 #  |_acctType                             |
-#  | commercial (but not publicly traded) |  
+#  | private corporation |  
 
 Scenario: A newbie registers
   Given invitation to email "a@" is "c0D3"
@@ -188,8 +188,8 @@ Scenario: A member registers a company
   |_nameDescription      |
   | properly capitalized |
   And with options:
-  |_acctType                             |
-  | commercial (but not publicly traded) |
+  |_acctType            |
+  | private corporation |
   When member "?" confirms form "signup/code=c0D3&dwok=1&by=NEW.AAC&flow=from&isOwner=1&employeeOk=1" with values:
   | fullName | email       | phone | postalCode | federalId   | acctType        | company  | companyPhone | companyOptions |
   | AAcme Co | aco@ | 413-253-9876 | 01002      | 111-22-3333 | %CO_CORPORATION | | | |

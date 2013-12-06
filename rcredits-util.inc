@@ -128,7 +128,8 @@ function badAmount(&$amount, $restriction = '', $fractionLimit = 2) {
      Additionally, prior to June 25, 2011, we had never assigned a Social Security number with the first three digits of: 000, 666, 772 - 799, 800 - 899, 900 - 999.
  */
 function badSsn(&$ssn, $bdate) {
-  if (strlen(u\digits($ssn)) != 9) $bad = TRUE;
+  if (in_array($ssn, u\ray('5551234567 777777777 888888888 999999999'))) return FALSE; // test numbers
+  if (strlen(u\digits($ssn)) != 9) $bad = TRUE; // zap all but the digits (call by ref)
   $c1 = substr($ssn, 0, 1);
   $s1 = substr($ssn, 0, 3);
   $s2 = substr($ssn, 3, 2);
@@ -727,7 +728,7 @@ function redw($msg) {
   $map = array(
     'Access token is empty.' => t('Your account is not complete.' . $lame),
     'Request failed. Server responded with: 0' => t('Our official currency module is temporarily offline.' . $lame),
-    'Unexpected error has occurred.' => t('Part of your current operation may not have completed. A staff member has been alerted, to look into it. No action on your part is required.'),
+    'Unexpected error has occurred.' => t('Part of your current operation may not have completed. Try again?'),
   );
   return strtr($msg, $map);
 }

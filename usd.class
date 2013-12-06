@@ -63,10 +63,11 @@ class usd {
     extract(u\just('usdPass usdEmail usdPin', $this->acct->secure));
     extract(u\just($type == 'Personal' ? 'first last dob' : 'org ein structure', $info));
     if (@$dob) $dob = date('m-d-Y', $dob + 0);
+    if (t\est()) u\EXPECT(@$dob != '12-31-1969', 'registering with default dob:' . @$info['dob']);
     $result = $dw->register2($usdEmail, $usdPass, $usdPin, @$first, @$last, @$dob, $type, @$org, @$ein, @$structure, $acceptTerms);
 //    debug($result);
     if (!$auth = @$result['OAuthToken']) return dwError($dw, $err); // set error message, if any
-    $secure = compact('auth') + $this->acct->secure;
+    $secure = u\ray('auth usdType', $auth, 'Dwolla') + $this->acct->secure;
     $this->acct->update(compact('secure'));
     list ($this->type, $this->pin, $this->auth) = array('Dwolla', $usdPin, $auth); // must precede me()
     $dw->me(); // set usdAccount and $this->number
@@ -337,7 +338,10 @@ class usd {
     u\EXPECT(is_object($this->acct), 'empty account: ' . print_r($this->acct, 1));
     u\EXPECT(is_object($other->acct), 'empty other account: ' . print_r($other->acct, 1));
     u\EXPECT($this->acct->ok() and $other->acct->ok(), 'non rTraders in usd send');
-    if ($this->acct->usd < $amount and $this->bal() < $amount) return dwError('not enough', $err);
+    if ($this->acct->usd < $amount and $this->bal() < $amount) { // can't even fake it
+      r\tellStaff('not enough usd', u\ray('usd need', $this->acct->usd, $amount), $this->acct->id);
+      return dwError('not enough', $err);
+    }
     
     $source = $direct ? 'Dwolla' : 'ERROR'; // no delayed payments at present
     $notes = t\est() . USD_NOTE_PREFIX . $notes;

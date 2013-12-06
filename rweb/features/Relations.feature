@@ -5,11 +5,11 @@ SO I can buy and sell stuff on behalf of other accounts, and they on mine.
 
 Setup:
   Given members:
-  | id   | fullName   | acctType         | flags                        |
-  | .ZZA | Abe One    | personal       | dft,ok,person,bona         |
-  | .ZZB | Bea Two    | %R_SELF_EMPLOYED | dft,ok,person,company,bona |
-  | .ZZC | Corner Pub | corporation    | dft,ok,company,bona          |
-  | .ZZD | Dee Four   | personal       | dft,ok,person,bona         |
+  | id   | fullName   | acctType    | flags               |
+  | .ZZA | Abe One    | personal    | dft,ok,person,bona  |
+  | .ZZB | Bea Two    | personal    | dft,ok,person,bona  |
+  | .ZZC | Corner Pub | corporation | dft,ok,company,bona |
+  | .ZZD | Dee Four   | personal    | dft,ok,person,bona  |
   And transactions: 
   | xid | created   | type       | amount | from      | to   | purpose | taking |
   |   1 | %today-6m | %TX_SIGNUP |    250 | community | .ZZA | signup  | 0      |
@@ -43,11 +43,11 @@ Scenario: Member has an employee, unconfirmed
 Scenario: Member has a relation with a contractor
   Given relations:
   | id | main | agent | permission | employerOk | employeeOk | isOwner |
-  | 1  | .ZZA | .ZZB  | buy        | 1          | 0          | 0        |
+  | 1  | .ZZA | .ZZB  | buy        | 0          | 0          | 0        |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
   | Other      | My employer? | My employee? | Family? | Permission   |_request rCard |
-  | Bea Two    | No           | --           | No      | buy and sell |               |
+  | Bea Two    | No           | No           | No      | buy and sell |               |
   
 Scenario: Member has an employee, claimed
   Given relations:
@@ -118,7 +118,7 @@ Scenario: It's complicated
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
   | Other      | My employer? | My employee? | Family? | Permission    |_request rCard |
-  | Bea Two    | Yes          | --           | Yes     | send invoices | --       |
+  | Bea Two    | Yes          | Yes          | Yes     | send invoices | --       |
   | Corner Pub | No           | --           | No      | --            | --       |
   | Dee Four   | Yes          | Yes          | Yes     | send invoices | --       |
   When member ".ZZB" visits page "account/relations"
@@ -149,5 +149,5 @@ Scenario: A member adds a relation
   | Bea Two |
   And we show "Relations" with:
   | Other      | Draw | My employer? | My employee? | Family? | Permission   |_request rCard |
-  | Bea Two    | No   | No           | --           | No      | no access    |               |
+  | Bea Two    | No   | No           | No           | No      | no access    |               |
   

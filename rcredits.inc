@@ -42,7 +42,7 @@ define('R_DATE_FIELDS', 'created completed sent invited giftDate signed login ac
 define('R_DATA_FIELDS', ''); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'usd r rewards floor committed'); // financial amount fields in account record
 define('R_COMPANY_FIELDS', 'website description selling coFlags'); // fields in r_companies
-define('R_SECURE_FIELDS', 'usdType usdEmail usdPass usdPin auth pin cardCode cardCode2'); // non-personal encrypted fields
+define('R_SECURE_FIELDS', 'usdType usdPhone usdEmail usdPass usdPin auth bankAccount pin cardCode cardCode2'); // non-personal encrypted fields (must be complete list)
 define('R_SECRET_FIELDS', 'federalId dob idProof answer'); // personal identifying information
 define('R_SECRET_URL', isPRODUCTION ? 'http://rcredits.org' : (isDEV ? 'http://localhost/rcredits-promo' : 'http://' . STAGE)); // where to store secrets
 define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities can manage themselves
@@ -61,7 +61,7 @@ define('R_MAX_RTX', 1000); // never transfer more rCredits than this at once (se
 define('R_INVITE_DAYS', 7); // number of days to accept invitation to membership
 define('R_MINR_DEFAULT', 200); // suggested minimum amount to hold in rCredits
 //define('R_MAXR_DEFAULT', -1); // suggested maximum amount to hold in rCredits (-1 = no limit)
-define('R_CARDCODE_LEN', 15); // length of rCard security code (long to deter easy copying, max 11 for small QR)
+define('R_CARDCODE_LEN', 14); // length of rCard security code (long to deter easy copying, max 14 for small QR)
 define('R_CARD_COST', 5); // cost to order a company or replacement rCard
 define('R_FREEZE_TIME', FALSE); // how long to freeze newly bought rCredits (was '2 weeks')
 define('R_DEFAULT_PURPOSE', 'rCredits/USD exchange'); // default transaction purpose
@@ -1404,6 +1404,8 @@ function stats($ctty = 'ALL', $when = REQUEST_TIME) {
  * @param int $ctty: community or region
  * @param int $created: creation date for the statistics record (defaults to current time)
  * @return $created
+ * Note that rCredits traded by the community for USD are not counted as issued
+ * (they aren't really issued until the USD are spent as a grant/loan/investment/purchase)
  */
 function getStats($ctty, $created = NULL) {
   \variable_set('cttyPaidEver', db\lookup('SUM(IF(r=0, amount, r))', 'r_txs', 'payer=:ctty AND type IN (:TX_TRANSFER, :TX_GRANT, :TX_LOAN, :TX_INVEST, :TX_REFUND)', compact('ctty')));
@@ -1419,10 +1421,13 @@ EOF;
   
   $sums = '';
   foreach (u\ray('transfer signup rebate bonus inflation refund grant loan invest fine') as $one) {
-    $ONE = strtoupper($one);
-    if ($ONE == 'TRANSFER') $ONE .= ' AND payer=:ctty';
-    $sums .= "SUM(IF(type=:TX_$ONE, IF(amount=0, t.r, amount), 0)) AS `{$one}s`, ";
-//    $sums .= "SUM(IF(type=:TX_$ONE, 1, 0)) AS {$one}Count, ";
+    $type = u\consta('tx', $one);
+    if ($type == TX_TRANSFER) $type .= ' AND payer=:ctty AND amount<>0';
+    $value = $type == TX_TRANSFER ? 
+        "IF(type=$type AND payer=:ctty, amount, 0)" // rCredits issued as ctty purchases
+      : "IF(type=$type, IF(amount=0, t.r, amount), 0)";
+    $sums .= "SUM($value) AS `{$one}s`, ";
+//    $sums .= "SUM(IF(type=$type, 1, 0)) AS {$one}Count, ";
   }
   // get purchases, signups, rebates, bonuss, inflations, refunds, grants, loans, investments, fines, shared
   $sql = <<<EOF

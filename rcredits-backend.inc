@@ -450,7 +450,7 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
 
   if ($confirmed) { // notify other party by email about any confirmed transaction
     $notice = $reallyTaking ? ($preapproved ? 'new charge' : 'new invoice')
-      : ($virtual ? 'new offer' : ($amount < 0 ? 'new refund' : 'new payment'));
+      : ($virtual ? 'new offer' : (($amount < 0 and $goods) ? 'new refund' : 'new payment'));
     if (@$args['otherRewardAmount']) $notice .= '|reward other';
     if (u\abbreviates('new payment', $notice)) {
     //and $payee == \variable_get('cgf_uid')) { // should be any nonprofit? anyone?

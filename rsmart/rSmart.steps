@@ -215,6 +215,7 @@ function devices($list) {
  * balances: (ARG)
  *
  * in: Exchange Setup TEST
+ *     Exchange ACashierAsksToChargeSomeoneForCash TEST
  *     Exchange ACashierAsksToRefundSomeone TEST
  *     Transact Setup TEST
  *     Transact ACashierAsksToChargeSomeone TEST
@@ -225,7 +226,8 @@ function balances($list) {return t\balances($list);}
 /**
  * agent (ARG) asks device (ARG) to charge (ARG) $(ARG) for (ARG): (ARG)
  *
- * in: Exchange ACashierAsksToRefundSomeone MAKE
+ * in: Exchange ACashierAsksToChargeSomeoneForCash MAKE
+ *     Exchange ACashierAsksToRefundSomeone MAKE
  *     Transact ACashierAsksToChargeSomeone MAKE
  *     Transact ACashierAsksToRefundSomeone MAKE
  *     Transact ACashierAsksToChargeAnotherMemberWithInsufficientBalance MAKE
@@ -301,7 +303,8 @@ function weRespondSuccessMyidAccountnameShowbuttonsAndMessageWithSubs($success, 
 /**
  * we respond ok with tx (ARG) and message (ARG) with subs: (ARG)
  *
- * in: Exchange ACashierAsksToRefundSomeone TEST
+ * in: Exchange ACashierAsksToChargeSomeoneForCash TEST
+ *     Exchange ACashierAsksToRefundSomeone TEST
  *     Transact ACashierAsksToChargeSomeone TEST
  *     Transact ACashierAsksToRefundSomeone TEST
  */
@@ -327,7 +330,8 @@ function weRespondOkWithSubs($msg, $subs) {return weRespondOkWithTxAndMessageWit
 /**
  * with balance (ARG)
  *
- * in: Exchange ACashierAsksToRefundSomeone TEST
+ * in: Exchange ACashierAsksToChargeSomeoneForCash TEST
+ *     Exchange ACashierAsksToRefundSomeone TEST
  *     Identify ACashierScansACustomerCard TEST
  *     Identify ACashierScansACustomerCardWhoseBalanceIsSecret TEST
  *     Identify ACashierScansACompanyCustomerCard TEST
@@ -354,7 +358,8 @@ function withBalance($subs) {
 /**
  * with undo (ARG)
  *
- * in: Exchange ACashierAsksToRefundSomeone TEST
+ * in: Exchange ACashierAsksToChargeSomeoneForCash TEST
+ *     Exchange ACashierAsksToRefundSomeone TEST
  *     Transact ACashierAsksToChargeSomeone TEST
  *     Transact ACashierAsksToRefundSomeone TEST
  *     Undo AnAgentAsksToUndoACharge TEST
@@ -452,7 +457,8 @@ function agentAsksDeviceForOpWith($agent, $device, $op, $extra) {
 /**
  * we notice (ARG) to member (ARG) with subs: (ARG)
  *
- * in: Exchange ACashierAsksToRefundSomeone TEST
+ * in: Exchange ACashierAsksToChargeSomeoneForCash TEST
+ *     Exchange ACashierAsksToRefundSomeone TEST
  *     Transact ACashierAsksToChargeSomeone TEST
  *     Transact ACashierAsksToRefundSomeone TEST
  *     Undo AnAgentAsksToUndoACharge TEST

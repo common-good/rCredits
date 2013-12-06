@@ -19,7 +19,7 @@ include_once __DIR__ . '/rweb-txs.inc'; // treat this as an extension of this fi
  * (anything that doesn't have to be in rweb.module)
  */
 
-function test($arg) {
+function test($arg = '') {
   global $user;
   include __DIR__ . '/../../gherkin/test.php';
 /*  $adminPass = '123';
@@ -42,7 +42,7 @@ function util($arg) {
     r\go('');
   }
   if ($arg == 'clear_sessions') db\q('TRUNCATE table SESSIONS');
-  if ($arg == 'tests') r\go('http://localhost/devcore/rcredits/test?menu=1');
+  //if ($arg == 'tests') r\go('http://localhost/devcore/rcredits/test?menu=1');
   if ($arg == 'php') r\go('devel/php');
   
   \drupal_set_message("Doing rCredits Util '$arg'...");
@@ -362,12 +362,13 @@ function formMembership($updating, &$sta = '', $code = '') {
 //    r\membershipEvent($mya, 'member', $nearly and $gotProxies);
 //    $gotIdProof = (@$mya->dob and @$mya->federalId and ($nonperson ?: $mya->hasAux('proof')));
 //    $gotSecurity = (($secure = @$mya->secure) and @$secure['auth'] and @$mya->dob and @$mya->federalId and ($nonperson ?: $mya->hasAux('proof')));
-    $contactOk = ($step and !in_array($step, u\ray('Email Phone Address')));
-    $bankOk = (bool) @$secure['bankAccount'];
+//    $contactOk = ($step and $mya->postalAddr and !in_array($step, u\ray('Email Phone Address')));
+    $contactOk = ((bool) $mya->postalAddr and $step == 'Finished');
+    $bankOk = (bool) @$mya->secure['bankAccount'];
     $prefsOk = !is_null($mya->minimum);
     $ready = ($nearly and $gotProxies and $contactOk and ($nonperson or $bankOk) and $prefsOk);
     if ($nonperson) {
-      $companyOk = (bool) @$mya->description;
+      $companyOk = (bool) @$mya->selling;
       $relationsOk = @$mya->data['relationsOk'];
       $ready = ($ready and $companyOk and $relationsOk);
     }
@@ -383,7 +384,8 @@ function formMembership($updating, &$sta = '', $code = '') {
     $message1 = u\tt('missing contact info', compact('a1'));
   } else */
   if ($mempage == '4' or ($ready and !$mya->ok() and !$mempage)) {
-    $message1 = t('<h2>Your Account Setup Is Complete</h2><p>You have done everything you need to do. Your account will probably be activated within 24 hours.</p><p>Thank you for joining us!</p>');
+    $nextMsg = $nonperson ? t('you can begin accepting rCredits payments') : t('you can expect to receive your rCard in the mail within a day or two');
+    $message1 = t("<h2>Your Account Setup Is Complete</h2><p>You have done everything you need to do. Once a staff member has approved your account, $nextMsg.</p><p>Thank you for joining us!</p>");
   } elseif ($mempage == '1' or (!$mya->ok() and !$mempage)) { // not a member yet (no rCard, no vote)
     $message1 = ($photoOk or $signed or $donated or ($gotProxies and !$nonperson) or $contactOk or ($bankOk and !$nonperson) or $prefsOk) ? 
           t("<h2>You're getting there!</h2><p>")
@@ -438,9 +440,9 @@ EOF
   } elseif ($mempage == 2 or (!$mya->ok() and !$mempage)) {
     $message1 = t('<h2>You have completed all membership steps.</h2><p>Within 24 hours, you should receive an email saying your account is approved and you can expect your rCard in the mail within a day or two. Hurray!</p>'); // UNUSED
   } else {
-    $message1 = t('<h2>Congratulations! Your account is Activated.</h2><p>You are authorized to use rCredits to buy and sell with other members.')
-      . ($mya->person() ? t(' You are also responsible for guiding your local economy, together with hundreds of other rCredits members -- setting investment and grant-making priorities, electing local directors for your Common Good Community, planning a sustainable local prosperity for all residents, and offering help to communities elsewhere.</p>') : '</p>')
-      . (($mya->can(B_BONA) or $mya->verified()) ? '' : t("<p>To receive your $" . R_SIGNUP_BONUS . " signup bonus, you must have a way to get money into your account. Ask someone to pay you with rCredits OR exchange some US Dollars for rCredits by <a href=\"$base_url/account/preferences\">setting a minimum balance</a> and connecting your bank account to Dwolla. As soon as you get some money in, your signup bonus will arrive."));
+    $bonusMsg = ($mya->can(B_BONA) or ($mya->verified() and $mya->minimum > 0)) ? '' : t("<p>To receive your $" . R_SIGNUP_BONUS . " signup bonus, you must have a way to get money into your account. Ask someone to pay you with rCredits OR <a href=\"$base_url/get\">transfer funds from you bank account</a>. As soon as you get some money in, your signup bonus will arrive.</p>");
+    $personMsg = $mya->person() ? t(' You are also responsible for guiding your local economy, together with hundreds of other rCredits members -- setting investment and grant-making priorities, electing local directors for your Common Good Community, planning a sustainable local prosperity for all residents, and offering help to communities elsewhere.</p>') . $bonusMsg : '</p>';
+    $message1 = t('<h2>Congratulations! Your account is Activated.</h2><p>You are authorized to use rCredits to buy and sell with other members.') . $personMsg;
   }
   $message = $message1 . "<table width=\"100%\">$message2</table>" . @$message3;
   
@@ -688,9 +690,11 @@ function formSummary($form, &$sta) {
 ///  debug($mya->can(B_ALL)); // keep
   $mya->refreshCan(); // update any permissions that may have been set elsewhere (superfluous?)
 
-  if (!formMembership(TRUE)) {
-    say('take a step');
-  } elseif (!$mya->ok()) say('setup complete');
+  if (!$mya->admin()) {
+    if (!formMembership(TRUE)) {
+      say('take a step');
+    } elseif (!$mya->ok()) say('setup complete');
+  }
 
   $name = $mya->name;
   $address = r\location($mya, TRUE);
@@ -1004,7 +1008,8 @@ function formAccounts($form, &$sta) {
   //  $oneText = $choices[$myid];
 //  $account = count($choices) == 1 ? 
 //      textField('', '', dft($oneText) + attrib(array('disabled' => TRUE, 'size' => strlen($oneText)+2)))
-  $onchange = "this.form.submit();";
+//  $onchange = "this.form.submit();";
+  $onchange = "location.href='$base_url/change-account?acct=' + this.options[this.selectedIndex].value + '&page=' + encodeURIComponent(document.URL);";
    $account = formField('select', '', '', dft($myid) + attrib(compact('onchange')), $choices);
 //  $link = item('<a href="http://rCredits.org">Main Site</a
   $submit = submit('Submit'); // default submission
@@ -1031,7 +1036,6 @@ function formAccounts($form, &$sta) {
 
   $help = help($function);
   $form += $help; // + $menu;
-
   return $form;
 }
 
@@ -1039,15 +1043,23 @@ function formAccounts_submit($form, &$sta) {
   extract(u\just('op acct_account', $sta['input']));
   $op = op($sta);
   if ($op == 'Menu') return r\go('menu'); 
-  
-  if ($acct_account == 'signout') return r\go('/user/logout');
-  $mya = r\acct();
-  if (!@$mya->admin() and !r\acct($acct_account, $mya->agentId)->can()) hack('accts');
-//  \drupal_get_messages(); // clear out messages from previously managed account
+}
 
-  $mya = r\acct($acct_account);
+/**
+ * Change the current account.
+ */
+function changeWho($args = '') {
+  extract(u\just('acct page', $_GET));
+  if ($acct == 'signout') r\go('/user/logout');
+  
+  setupGlobals();
+  $mya = r\acct();
+  if (!@$mya->admin() and !r\acct($acct, $mya->agentId)->can()) hack('accts');
+
+  $mya = r\acct($acct);
   svar('myid', $mya->id); // this gets checked ONLY in setupGlobals()
   $mya->setBank();
+  r\go($page);
 }
 
 /**
@@ -1134,11 +1146,13 @@ function formAdmin($form, &$sta, $args = '') {
 */
   $title = item(t('System Administration'));
   $account = textField(t('Account:'), t('Account to do something to'),auto());
+  $make = boxfield(t('Make:'));
   $printId = submit(t('Print ID'));
-  $seeUsd = submit(t('See USD'));
+  $seeSecure = submit(t('See Secure'));
+  $newUsdEmail = submit(t('New USD Email'));
   $form = compact(u\ray('title'));
   foreach (u\ray('USD_Accounts Gfld tells ' . R_SHOWABLE_TABLES) as $one) $form[$one] = submit(str_replace('_', ' ', $one));
-  $form += compact(u\ray('account printId seeUsd'));
+  $form += compact(u\ray('account make printId seeSecure newUsdEmail'));
   return $form;
 }
 
@@ -1372,11 +1386,11 @@ function formAgent($form, &$sta) {
   $subtext = item(t('Use this form only for company agents who do not wish to participate in the rCredits system as individuals.'));
   $optedOut = boolField(t('Opted out:'), t('Was this agent invited to open a personal rCredits account? And did this agent decide not to?'));
   $fullName = textField(t('Name:'), t('The person\'s full name'), required());
-  $permissions = formField('radios', t('Permissions:'), '', required(), u\ray('read only,charge customers'));
+  //$permissions = formField('radios', t('Permissions:'), '', required(), u\ray('read only,charge customers'));
 //  $employee = boolField(t('Employee?'), t('Is this person an employee of the company?'));
 //  $pay = textField(t('Pay:'), t('How much is this agent paid by the company each month (on average)?'), required());
   $submit = submit(t('Create Account'));
-  return labeled(compact(u\ray('title subtext optedOut fullName permissions employee submit')));
+  return labeled(compact(u\ray('title subtext optedOut fullName submit')));
 }
 
 function formAgent_validate($form, &$sta) {
@@ -1389,8 +1403,8 @@ function formAgent_validate($form, &$sta) {
 function formAgent_submit($form, &$sta) {
   extract(u\just('fullName permissions', $sta['input']));
   $a = new r\acct(compact('fullName'));
-  $perms = ($permissions ? B_SCAN : B_READ) - B_RELATED;
-  $info = u\ray('main other permission', r\acct()->id, $a->id, $perms);
+//  $perms = ($permissions ? B_SCAN : B_READ) - B_RELATED;
+  $info = u\ray('main other permission', r\acct()->id, $a->id, B_SCAN - B_RELATED);
   if (db\insert('r_relations', $info)) return r\go('', 'agent created');
 }
 
@@ -1540,7 +1554,7 @@ function formSignup_validate($form, &$sta) {
   if ($country == US_COUNTRY_ID) {
     if (!preg_match('/^\d{5}(\-\d{4})?$/', $postalCode)) return say('bad zip', 'zot');
   }
-  if (!formBasic_validate($form, $sta, $acctType != R_PERSONAL)) return;
+  if (!formBasic_validate($form, $sta, $acctType == R_PERSONAL)) return;
 
   if (@$copts) extract(u\just('isOwner employeeOk contractor', $copts));
   $gotrelation = (@$employeeOk or @$isOwner or @$contractor);
@@ -1568,6 +1582,7 @@ function formSignup_validate($form, &$sta) {
 }
 
 function formSignup_submit($form, &$sta) {
+  global $verifyBys;
   if (op($sta) == 'continue') return r\go('signup/' . urldecode(basename($_SERVER['REQUEST_URI'])) . '&dwok=1'); // got agreement, so continue
 
   $fields = 'args data company ats name fullName mail phone federalId dob country postalCode';
@@ -1584,7 +1599,7 @@ function formSignup_submit($form, &$sta) {
   $DBTX = \db_transaction();
   $wants = wants(@$ats);
 
-  $data += compact(u\ray('by wants calling verifyBy'));
+  $data += u\ray('by wants calling verifyBy', @$by, $wants, @$calling, $verifyBys[@$verifyBy + 0]); // +0 tests
   if ($acctType == R_PERSONAL) $pass = oneTimePass($name, $data); // record one time pass in data
   $where = u\parseZip($postalCode) ?: array(); // gets $state and $city
   $fullName = u\normalizeCase($fullName);
@@ -1674,12 +1689,13 @@ function formContact_validate($form, &$sta) {
 }
 
 function formContact_submit($form, &$sta) {
+  global $verifyBys;
   extract($info = u\just('fullName name phone verifyBy fax country postalCode state city address postalAddr', $sta['input']));
   $us = new r\usd($mya = r\acct());
   if ($mya->id == 1) unset($info['name']); // don't change 'admin'
 
   unset($info['verifyBy']);
-  if (isset($verifyBy)) $data = u\ray('verifyBy', $verifyBy) + $mya->data;
+  if (isset($verifyBy)) $data = u\ray('verifyBy', $verifyBys[@$verifyBy]) + $mya->data; // @ for testing
   $info = u\normalizeCase(u\just('fullName city address postalAddr', $info)) + $info + compact('data');
 
   if ($mya->update($info)) {
@@ -1743,27 +1759,27 @@ function formBasic_validate($form, &$sta, $personal = 'mya') {
     $personal = $mya->person();
   }
   $what = $personal ? 'social security number' : 'federal ID';
-  if ($err = u\badSsn($federalId, $dob)) return say($err, compact('what'), 'federalId');
-
-  if ($personal) { // personal (possibly self-employed)
+  if ($personal) {
     list ($min, $max) = array(REQUEST_TIME - 150 * 365.25 * DAY_SECS, REQUEST_TIME + 9 * 31 * DAY_SECS);
-    if ($err = u\badDate($dob, $min, $max)) return say($err, 'dob');
-    if (@$mya) {
+    if ($err = u\badDate($dob, $min, $max)) return say($err, 'dob'); // badDate makes dob internal
+  }
+  if ($err = u\badSsn($federalId, @$dob)) return say($err, compact('what'), 'federalId');
+
+  if (@$mya) { // retrying account info
+    if ($personal) { // personal (possibly self-employed)
       if ($err = u\badName($first)) return say($err, 'first');
       if ($err = u\badName($last)) return say($err, 'last');
-      $structure = 'Personal';
-      if (!$us->ssn($federalId, $err)) {
-        if ($err) return say($err, 'zot'); // this might never happen (might always go to accountInfo)
-        if (!$us->accountInfo($structure, $dob, '', $first, $last, '', $err)) {
-          if ($err) return say($err, 'zot'); // this might never happen (might always go to kba)
-        }
+      $emptyErr = t('There was a problem submitting your data. Try again?'); // (this happened early on)
+      if (!$us->ssn($federalId, $err)) return say(@$err ?: $emptyErr, 'zot');
+      if ($us->step() == 'AccountInfo' and !$us->accountInfo('Personal', $dob, '', $first, $last, '', $err)) {
+        return say(@$err ?: $emptyErr, 'zot');
       }
-    }
-  } elseif (@$mya) { // nothing to check for org unless retrying account info
-    if ($err = u\badName($org)) return say($err, 'org');
-    $structure = $mya->isNonprofit() ? 'NonProfit' : 'Commercial';
-    if (!$us->accountInfo($structure, '', $federalId, '', '', $org, $err)) {
-      if ($err) return say($err, 'zot'); // this might never happen (might always or never go to kba)
+    } else { // org
+      if ($err = u\badName($org)) return say($err, 'org');
+      $structure = $mya->isNonprofit() ? 'NonProfit' : 'Commercial';
+      if (!$us->accountInfo($structure, '', $federalId, '', '', $org, $err)) {
+        if ($err) return say($err ?: $emptyErr, 'zot');
+      }
     }
   }
   u\preray(compact(u\ray(R_BASIC_FIELDS)), $sta['input']);
@@ -1955,7 +1971,7 @@ function formPhotoId($form, &$sta) {
   //  -- This could also be a letter from an officer or owner of the organization (who is an rCredits member), on the organization's letterhead, authorizing opening this rCredits account.");
   
   $title = item(t('Photo ID Verification'));
-  $subtext = item(tt('<p>We are having trouble confirming your information. We want to be absolutely sure that you are creating this account, not someone else creating an account under your name.</p><p>Please upload  either a PDF or an image file of your @proofType.', compact('proofType')));
+  $subtext = item(tt('<p>We are having trouble confirming your information. We want to be absolutely sure that YOU are creating this account, not someone else using your name.</p><p>Please upload either a PDF or an image file of your @proofType.', compact('proofType')));
   $idProof = formField('file', t('Photo ID:'), t('maximum') . tt('@R_MAX_PHOTOID_SIZE MB'), attrib(u\ray('enctype', "multipart/form-data")));
   $submit = submit('Upload');
 
@@ -2859,9 +2875,11 @@ function formRequestRCard_submit($form, &$sta) {
  */
 function addPhone() {
   $us = new r\usd($mya = r\acct());
-  if (!$phoneId = $us->addPhone(substr($mya->phone, 2), $mya->data['verifyBy'] ? 'Voice' : 'SMS', $err)) {
+  if (!$phoneId = $us->addPhone(substr($mya->phone, 2), @$mya->data['verifyBy'], $err)) {
     return r\go('account/contact', $err ?: t('Unknown error'), 'phone');
   }
+  $mya->upSecure('usdPhone', $mya->phone);
+
   svar('phoneId', $phoneId);
   return r\go('account/verify-phone');
 }
@@ -2884,15 +2902,17 @@ function memberID($quid = '', $big = FALSE) {
     $acct = $acct->agent; // hereafter it's all about the agent
     $fullName = "$acct->fullName<br>$fullName"; // agent and company
     $nameSize = '72px';
-    list ($cardField, $lower, $role, $roleName) = array('cardCode2', 5, 'agent', 'Company Agent');
+    $fields = array('cardCode2', 5, 'agent', 'Company Agent');
   } else {
     $nameSize = strlen($fullName) > 22 ? '100px' : '120px';
-    list ($cardField, $lower, $role) = array('cardCode', 0, 'member', 'Member');
+    $fields = array('cardCode', 0, 'member', 'Member');
   }
+  list ($cardField, $lower, $role, $roleName) = $fields;
   $mark = u\consta("r_$role", 'mark');
   list ($region, $tail) = explode($mark, $qid);
   $urlMark = $proSe ? $mark : R_AGENT_URL_MARK;
-  $qrUrl = "HTTP://$region.RC2.ME/$tail$urlMark" . $acct->secure[$cardField]; // NOT r\cardCode($qid);
+  $server = isPRODUCTION ? 'RC2.ME' : 'RC4.ME';
+  $qrUrl = "HTTP://$region.$server/$tail$urlMark" . $acct->secure[$cardField]; // NOT r\cardCode($qid);
 //  $qrServer = strtoupper('http://' . R_SERVER_ID . '.rC2.me/I/');
 //  $qrUrl = $qrServer . str_replace(R_AGENT_MARK, R_AGENT_URL_MARK, $qid . $mark) . $acct->secure[$cardField];
   $photo = DRUPAL_ROOT . $acct->auxFilename('picture');

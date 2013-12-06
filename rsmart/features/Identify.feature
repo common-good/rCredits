@@ -117,7 +117,7 @@ Scenario: Device asks for a picture but there isn't one
   Then we respond with picture "no photo"
 
 Scenario: A non-yet-active member card is scanned
-  When agent ":ZZB" asks device "devC" to identify "ZZF.ccF"
-  Then we return error "not yet active" with subs:
+  When agent ":ZZB" asks device "devC" to identify "ZZG.ccG"
+  Then we return error "member inactive" with subs:
   | name      |
   | Gil Seven |

@@ -81,9 +81,10 @@ class acct {
     $DBTX = db_transaction();
     if (@$uid) {
       db\insert('users', $record += compact('uid')); // predestined uid (probably for testing)
+
       $region = communityUid();
     } else {
-      $region = r\region(@$country, @$state, @$postalCode);
+      $region = @$postalCode ? r\region(@$country, @$state, @$postalCode) : communityUid();
       for ($try = 0; $try < 20; $try++) { // limit the retries
         $uid = $record['uid'] = self::nextId($region);
         if (db\insert('users', $record)) break;
@@ -232,7 +233,7 @@ class acct {
     if (isset($just)) $info = u\just($just, $info);
     if (isset($info['data'])) $info['data'] = serialize($info['data']);
     if (isset($info['secure'])) { // serialize and encrypt before updating this
-      $usdArray = $info['secure'] + ($this->secure ?: array());
+      $usdArray = $info['secure']; // was " + ($this->secure ?: array())"
       $info['secure'] = u\ezencrypt(serialize($usdArray), R_WORD);
     }
     if (@$info['usdAccount']) $info['usdAccount'] = bin2hex(u\ezencrypt($info['usdAccount'], R_WORD));
@@ -241,6 +242,7 @@ class acct {
     $toHide = count(array_intersect(array_keys($info), u\ray(R_SECRET_FIELDS))); // how many fields to hide
     if ($toHide and !$this->gotOffsite()) $this->getHidden(); // get what's offsite before updating it
     foreach ($info as $field => $value) { // update account object with new info
+      if (!self::$records[$this->id]) self::$records[$this->id] = new \stdClass();
       if ($field != 'uid') self::$records[$this->id]->$field = $value;
     }
     if ($toHide) { // store protected information securely, offsite
@@ -257,6 +259,12 @@ class acct {
     return db\update('users', $info, 'uid');
   }
 
+  public function upSecure($key, $value) {
+    return $this->update(u\ray('secure', u\ray($key, $value) + $this->secure));
+  }
+  public function upData($key, $value) {
+    return $this->update(u\ray('data', u\ray($key, $value) + $this->data));
+  }
   public function usd($info = FALSE, &$err = '') {return new r\usd($this, $info, $err);}
   public function proSe() {return ($this->id == $this->agentId);}  
   public function qid() {return $this->proSe() ? $this->mainQid : r\quid($this->id, $this->agentId);}
@@ -501,9 +509,9 @@ EOF;
     if ($this->id == 1) return ($err = 'not registering admin');
     $usdPass = user_password(20) . '*B2'; // satisfy Dwolla (and our own security)
     $usdEmail = strtolower(\user_password(4) . '.' . $this->mainQid) . '@rc4.me';
+    //if (t\est()) $usdEmail = 'wspademan+' . strtolower(\user_password(4) . '.' . $this->mainQid) . '@gmail.com';
     $usdPin = u\randomString(4, 'digits');
     if (isDEV) list ($usdPass, $usdPin) = array('Password1', 9999);
-    //if(isDEV and (!$usdEmail or !strpos('@dwolla.com', $usdEmail))) $usdEmail = 'gordon+william+5@dwolla.com';
     $secure = compact(u\ray('usdPass usdEmail usdPin')) + $this->secure;
     $this->update(compact('secure'));
     $us = new r\usd($this);

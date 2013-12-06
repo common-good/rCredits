@@ -546,7 +546,7 @@ function homogenize() {
   $result = db\q('SELECT AVG(usd) AS avg, community FROM users WHERE uid>1 AND :IS_OK GROUP BY community');
   while ($row = $result->fetchAssoc()) {
     extract($row);
-    queueEach('homogenize1', 'SELECT uid FROM users WHERE community=:community AND uid>1 AND usd>:avg AND :IS_OK', compact('avg', 'community'));
+    queueEach('homogenize1', 'SELECT uid, usd FROM users WHERE community=:community AND uid>1 AND usd>:avg AND :IS_OK', compact('avg', 'community'));
   }
   queueNextAfter('homogenize');
 }
@@ -556,13 +556,13 @@ function homogenize() {
  * Avoid lending an account USD beyond its credit limit (keep r >= floor).
  */
 function homogenize1($item) {
-  extract(u\just('uid', $item));
+  extract(u\just('uid usd', $item));
   $a = r\acct($uid);
-  $result = db\q('SELECT uid AS uid2 FROM users WHERE community=:ctty AND usd<:usd-:R_CHUNK AND uid>1 AND :IS_OK AND r>=floor+:R_CHUNK ORDER BY usd DESC', u\ray('ctty usd', $a->community, $a->usd));
+  $result = db\q('SELECT uid AS uid2, usd as usd2 FROM users WHERE community=:ctty AND usd<:usd-:R_CHUNK AND uid>1 AND :IS_OK AND r>=floor+:R_CHUNK ORDER BY usd DESC', u\ray('ctty usd', $a->community, $a->usd));
   while ($row = $result->fetchAssoc()) {
     extract($row);
     //debug("uid=$uid usd=$a->usd uid2=$uid2 usd2=$usd2");
-    r\tradeR(R_CHUNK, $uid2, $uid);
+    if ($usd2 < $usd - R_CHUNK and $usd >= R_CHUNK) r\tradeR(R_CHUNK, $uid2, $uid);
   }
 }
 

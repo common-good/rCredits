@@ -110,12 +110,13 @@ function rweb_menu() {
 
     'sadmin' => r\Web\menu(t('Admin'), MENU_NORMAL_ITEM, 'showForm', array('Admin'), 'dev'),
     'handy' => r\Web\menu('Handy', MENU_NORMAL_ITEM, 'handyLinks', array(), 'dev'),
-    'tests' => r\Web\menu('Tests', MENU_NORMAL_ITEM, 'util', array('tests'), 'dev'),
+    'tests' => r\Web\menu('Tests', MENU_NORMAL_ITEM, 'test', array(2), 'dev'),
     'php' => r\Web\menu('PHP', MENU_NORMAL_ITEM, 'util', array('php'), 'dev'),
     
 //    'video' => r\Web\menu(t('Videos'), MENU_LOCAL_TASK, 'showForm', array('Videos', 2), '', $anyone),
 
     'help' => r\Web\menu(t('Help'), MENU_CALLBACK, 'showForm', array('Help', 1), '', $anyone),
+    'change-account' => r\Web\menu(t('Change Who'), MENU_CALLBACK, 'changeWho', array(1), '', $anyone),
     'status' => r\Web\menu('Status', MENU_CALLBACK, 'showForm', array('Membership', 2), 'manage'),
     'agreement' => r\Web\menu(t('The Agreement'), MENU_CALLBACK, 'showForm', array('Agreement'), 'manage'),
     'contribute' => r\Web\menu(t('Contribute'), MENU_CALLBACK, 'showForm', array('Contribute'), 'manage'),

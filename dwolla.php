@@ -1222,9 +1222,9 @@ class DwollaRestClient {
         $response = compact('Success', 'Message');
       } else $response = json_decode($rawData, true); // if no error, assume we got a json response
 
-/**/  if ($this->debugMode and !(bool) @$response['Success']) {
-        debug(compact('data','headers','method'));
-        debug(curl_getinfo($ch));
+      if ($this->debugMode and !(bool) @$response['Success']) {
+/**/    debug(compact('data','headers','method'));
+/**/    debug(curl_getinfo($ch));
       }
       curl_close($ch); // All done with CURL
       return $response;

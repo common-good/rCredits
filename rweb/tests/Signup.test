@@ -255,8 +255,8 @@ class rwebSignup extends DrupalWebTestCase {
     . '\\|_nameDescription      |'
     . '\\| properly capitalized |"');
     And__('with options: "DATA'
-    . '\\|_acctType                             |'
-    . '\\| commercial (but not publicly traded) |"');
+    . '\\|_acctType            |'
+    . '\\| private corporation |"');
     When_('member "?" confirms form "signup/code=c0D3&dwok=1&by=NEW.AAC&flow=from&isOwner=1&employeeOk=1" with values: "DATA'
     . '\\| fullName | email       | phone | postalCode | federalId   | acctType        | company  | companyPhone | companyOptions |'
     . '\\| AAcme Co | aco@ | 413-253-9876 | 01002      | 111-22-3333 | %CO_CORPORATION | | | |"');

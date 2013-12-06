@@ -1,6 +1,17 @@
 2013-11
 . moved dwolla.php to rcredits folder
-
+. changed how accounts form works so changing account and logging out always work right
+. Membership tests now mostly work!
+. fixed bug that kept dobs from getting recorded right
+. change personal account opening process so last step is not required before person is a member
+. began rsmart Exchange feature tests
+. tweaked cron's homogenize1() so it trades USD for r only when inappropriate
+. changed card code len to 14 (to avoid occasional complex QRs)
+. fixed bug whereby Community page mistakenly showed rCredits as issued, that the community exchanged for USD
+. non-code changes:
+	- fix dobs if not numeric (run eachAcct)
+	- fix data[verifyBy] to be if ('') SMS or (if 1 or not set) Voice (run eachAcct)
+	- change all @rcredits-org.com email addresses to @rc4.me (see util in admin.inc)
 
 2013-11-25
 . restored addPhone(), accidentally deleted during separation of rweb-subs.inc from rweb.inc

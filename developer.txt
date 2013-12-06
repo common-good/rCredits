@@ -19,13 +19,15 @@ QUESTIONS:
 - Find and delete all temporary debugging statements:
 ///. Search for "debug(", "print_r(", and "die(" (all such lines should begin with /// or (if keepers) /**/
   . Sometime write a macro to do the finding. 
-- Upload first to ws.rcredits.org and make sure SOMETHING works
-- Upload to new.rcredits.org and make sure SOMETHING works.
+  . Make sure debugMode in dwolla.php is FALSE.
+- Upload first to ws.rcredits.org, rebuild menus (and maybe reinstall) and make sure SOMETHING works
 - When updating data directly through phpMyAdmin or the PHP window or other admin tools, back up the database or relevant tables first.
+- Upload to new.rcredits.org, rebuild menus (and maybe reinstall) and make sure SOMETHING works.
 ***
 
 TASKS FOR NEXT UPDATE:
-(no special tasks yet)
+. change William's cardCode and print a new card
+(no other special tasks yet)
 
 MEMBERSHIP PROCEDURE:
 wait for READY status (once all steps are complete, including Dwolla account and bank connection REQUEST)
@@ -33,12 +35,11 @@ make sure the photo is adequate
 mark the account as an rTrader (OK) (before printing card)
 print card and welcome materials, mail to new member (welcome includes reminder to verify bank account)
 
+. *** "print rCard" for scan-only  "request rCard" for sell+
+. *** Sheila Clough got id ZZZ.AAA (should be NEW.whatever)
+. give stage server hidden fields! (currently crashes on $a->dob)
 . *** int admin/memberId don't change cardCode2 if it already exists!
-. app should know whether it is the test version and rsmart should update to rpos2.apk when it is
 . * when user has no access to the page, show login page if user is not logged in (requires a change to Drupal)
-. ** complete membership tests, now that it is possible
-. * change all @rcredits-org.com email addresses to @rc4.me (see util in admin.inc)
-. ** company info does not get checked off on status page when complete (see Fosters, for example)
 . trying to change company name and email complains that phone is already taken
 . in admin aa() handle non-local regions right
 . * separate invoices from r_txs (somewhat major change)

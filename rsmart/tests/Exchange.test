@@ -85,6 +85,30 @@ class rsmartExchange extends DrupalWebTestCase {
     }
   }
 
+  // Scenario: A cashier asks to charge someone for cash
+  public function testACashierAsksToChargeSomeoneForCash_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "cash": "cash out"');
+    Then_('we respond ok with tx 6 and message "report exchange" with subs: "DATA'
+    . '\\| did     | otherName | amount |'
+    . '\\| charged | Bea Two   | $100   |"');
+    And__('with balance "DATA'
+    . '\\| name    | balance | spendable | cashable | did     | amount | forCash  |'
+    . '\\| Bea Two | $150    |           | $0       | charged | $100   | for cash |"');
+    And__('with undo "DATA'
+    . '\\| created | amount | tofrom | otherName |'
+    . '\\| %dmy    | $100   | from   | Bea Two   |"');
+    And__('we notice "new charge" to member ".ZZB" with subs: "DATA'
+    . '\\| created | fullName | otherName  | amount | payerPurpose |'
+    . '\\| %today  | Bea Two  | Corner Pub | $100   | cash out     |"');
+    And__('balances: "DATA'
+    . '\\| id   | balance |'
+    . '\\| ctty |    -500 |'
+    . '\\| .ZZA |     150 |'
+    . '\\| .ZZB |     150 |'
+    . '\\| .ZZC |     450 |"');
+  }
+
   // Scenario: A cashier asks to refund someone
   public function testACashierAsksToRefundSomeone_0() {
     $this->setUp2(__FUNCTION__, 0);

@@ -51,7 +51,7 @@ htmlmail(STAFF_EMAIL, "rC4: $subject (to $who)", $s);
  * @return [ignorethis, who, subject, text]
  */
 function parseHeader($msg) {
-  if (preg_match('~$\\s*To: (.*?>).*Subject: (.*?)$(.*)~ms', $msg, $matches)) return $matches;
+  if (preg_match('~$\\s*To: (.*?)$.*Subject: (.*?)$(.*)~ms', $msg, $matches)) return $matches;
   if (preg_match('~$\\s*Subject: (.*?)$.*To: (.*?)$(.*)~ms', $msg, $matches)) return array('', $matches[2], $matches[1], $matches[3]);
   return array('', '', '', '');
 }

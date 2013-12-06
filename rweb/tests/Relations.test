@@ -44,11 +44,11 @@ class rwebRelations extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id   | fullName   | acctType         | flags                        |'
-    . '\\| .ZZA | Abe One    | personal       | dft,ok,person,bona         |'
-    . '\\| .ZZB | Bea Two    | %R_SELF_EMPLOYED | dft,ok,person,company,bona |'
-    . '\\| .ZZC | Corner Pub | corporation    | dft,ok,company,bona          |'
-    . '\\| .ZZD | Dee Four   | personal       | dft,ok,person,bona         |"');
+    . '\\| id   | fullName   | acctType    | flags               |'
+    . '\\| .ZZA | Abe One    | personal    | dft,ok,person,bona  |'
+    . '\\| .ZZB | Bea Two    | personal    | dft,ok,person,bona  |'
+    . '\\| .ZZC | Corner Pub | corporation | dft,ok,company,bona |'
+    . '\\| .ZZD | Dee Four   | personal    | dft,ok,person,bona  |"');
     And__('transactions: "DATA'
     . '\\| xid | created   | type       | amount | from      | to   | purpose | taking |'
     . '\\|   1 | %today-6m | %TX_SIGNUP |    250 | community | .ZZA | signup  | 0      |'
@@ -95,11 +95,11 @@ class rwebRelations extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('relations: "DATA'
     . '\\| id | main | agent | permission | employerOk | employeeOk | isOwner |'
-    . '\\| 1  | .ZZA | .ZZB  | buy        | 1          | 0          | 0        |"');
+    . '\\| 1  | .ZZA | .ZZB  | buy        | 0          | 0          | 0        |"');
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
     . '\\| Other      | My employer? | My employee? | Family? | Permission   |_request rCard |'
-    . '\\| Bea Two    | No           | --           | No      | buy and sell |               |"');
+    . '\\| Bea Two    | No           | No           | No      | buy and sell |               |"');
   }
 
   // Scenario: Member has an employee, claimed
@@ -188,7 +188,7 @@ class rwebRelations extends DrupalWebTestCase {
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
     . '\\| Other      | My employer? | My employee? | Family? | Permission    |_request rCard |'
-    . '\\| Bea Two    | Yes          | --           | Yes     | send invoices | --       |'
+    . '\\| Bea Two    | Yes          | Yes          | Yes     | send invoices | --       |'
     . '\\| Corner Pub | No           | --           | No      | --            | --       |'
     . '\\| Dee Four   | Yes          | Yes          | Yes     | send invoices | --       |"');
     When_('member ".ZZB" visits page "account/relations"');
@@ -222,7 +222,7 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| Bea Two |"');
     And__('we show "Relations" with: "DATA'
     . '\\| Other      | Draw | My employer? | My employee? | Family? | Permission   |_request rCard |'
-    . '\\| Bea Two    | No   | No           | --           | No      | no access    |               |"');
+    . '\\| Bea Two    | No   | No           | No           | No      | no access    |               |"');
   }
 
 }

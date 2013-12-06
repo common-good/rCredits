@@ -102,11 +102,11 @@ function makeAccount($info = array(), $testOnly = FALSE) {
   }
   if ($flags & u\bit(B_OK)) $flags |= u\bit(B_MEMBER);
 
-  if (isset($acctType)) $flags |= (($acctType == R_PERSONAL or $acctType == 'personal') ? u\bit(B_PERSON) : u\bit(B_COMPANY));
+  if (isset($acctType)) $flags |= (($acctType === R_PERSONAL or $acctType == 'personal') ? u\bit(B_PERSON) : u\bit(B_COMPANY)); // === required
   
   foreach (u\ray('id email acctType dw') as $one) unset($info[$one]);
   $info = compact(u\ray('uid flags ' . $fixFields)) + $info;
-  fixValues($info);
+  fixValues($info, TRUE);
 
   if ($testOnly) {
     if (!$acct = r\acct($uid)) return output("No such uid: $uid");
@@ -253,6 +253,7 @@ function makeMemberFields($one, $testOnly) {
 
   $a = r\acct($id = t\uid($one['id']));
   foreach ($balFields as $k => $v) unset($one[$k]); // don't rehandle balance fields, and already got id
+  fixValues($one, TRUE);
 
   if ($testOnly) {
     foreach ($one as $key => $value) if ($value != '?') {
@@ -488,18 +489,29 @@ function findEmail($index, $email, $subs, $noBody = FALSE) {
 }
 
 /**
- * Convert country and state names or abbreviations to the corresponding indices
+ * Convert country and state names or abbreviations to the corresponding indices, and other tweaks.
+ * @param assoc $info: field names and values
+ * @param bool $direct: directly to or from db, rather than user input (default FALSE)
  */
-function fixValues(&$info) {
-  extract(u\just('postalCode country state email mail', $info));
+function fixValues(&$info, $direct = FALSE) {
+  global $rUrl;
+  $fields = 'postalCode country state email mail phone dob federalId idProof';
+  extract(u\just($fields, $info));
   if (@$postalCode or @$country or @$state) {
     u\setDft($country, 'US');
     if ($country == 'US' or $country == US_COUNTRY_ID) u\setDft($state, 'MA');
   }
-  if (@$country) $info['country'] = $country = db\lookup('id', 'r_countries', ':country IN (name, iso_code)', compact('country')); else $country = US_COUNTRY_ID;
-  if (@$state) $info['state'] = db\lookup('id', 'r_states', ':state IN (name, abbreviation) AND country_id=:country', compact('state', 'country')); else $state = 0;
-  if (@$mail) t\fixEmail($info['mail']);
-  if (@$email) t\fixEmail($info['email']);
+  if (@$country) $country = db\lookup('id', 'r_countries', ':country IN (name, iso_code)', compact('country'));
+  if (@$state) $state = db\lookup('id', 'r_states', ':state IN (name, abbreviation) AND country_id=:country', compact('state', 'country'));
+  if (@$mail) t\fixEmail($mail);
+  if (@$email) t\fixEmail($email);
+  if (strlen(@$phone) == 1) u\prefix('+1413772000', $phone);
+  if (@$idProof) u\prefix("$rUrl/images/", $idProof);
+  if ($direct) {
+    if (@$federalId) u\digits($federalId);
+    if (@$dob) $dob = strtotime(str_replace('/', '-', $dob));
+  }
+  $info = compact(u\ray($fields)) + $info;
 }
 
 function fixEmail(&$email) {

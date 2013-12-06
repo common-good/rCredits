@@ -195,7 +195,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   
   // notices to staff
   'cache mismatch' => 'Cron cache mismatch: @key=@is (cache) <> @shouldBe (calc)',
-  
+  'not enough usd' => 'Not enough usd (@usd) to send @need.',
 );
 
   // help messages (for use with the help command)

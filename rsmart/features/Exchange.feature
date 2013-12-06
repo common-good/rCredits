@@ -48,7 +48,7 @@ Setup:
 #Variants: with/without an agent
 #  | ".ZZB" asks device "devC" | ".ZZB" asks device "codeC" | ".ZZA" $ | ".ZZC" $ | # agent to member |
 #  | ".ZZB" asks device "devC" | ".ZZB" asks device "codeC" | ".ZZA" $ | ".ZZC" $ | # agent to agent  |
-Skip
+
 Scenario: A cashier asks to charge someone for cash
   When agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "cash": "cash out"
   Then we respond ok with tx 6 and message "report exchange" with subs:
@@ -56,7 +56,7 @@ Scenario: A cashier asks to charge someone for cash
   | charged | Bea Two   | $100   |
   And with balance
   | name    | balance | spendable | cashable | did     | amount | forCash  |
-  | Bea Two | $350    |           | $0       | charged | $100   | for cash |
+  | Bea Two | $150    |           | $0       | charged | $100   | for cash |
   And with undo
   | created | amount | tofrom | otherName |
   | %dmy    | $100   | from   | Bea Two   |
@@ -67,9 +67,9 @@ Scenario: A cashier asks to charge someone for cash
   | id   | balance |
   | ctty |    -500 |
   | .ZZA |     150 |
-  | .ZZB |     350 |
-  | .ZZC |     250 |
-Resume
+  | .ZZB |     150 |
+  | .ZZC |     450 |
+
 Scenario: A cashier asks to refund someone
   When agent ":ZZA" asks device "devC" to charge ".ZZB" $-100 for "cash": "cash in"
   Then we respond ok with tx 6 and message "report exchange" with subs:
