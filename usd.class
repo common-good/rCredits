@@ -65,7 +65,6 @@ class usd {
     if (@$dob) $dob = date('m-d-Y', $dob + 0);
     if (t\est()) u\EXPECT(@$dob != '12-31-1969', 'registering with default dob:' . @$info['dob']);
     $result = $dw->register2($usdEmail, $usdPass, $usdPin, @$first, @$last, @$dob, $type, @$org, @$ein, @$structure, $acceptTerms);
-//    debug($result);
     if (!$auth = @$result['OAuthToken']) return dwError($dw, $err); // set error message, if any
     $secure = u\ray('auth usdType', $auth, 'Dwolla') + $this->acct->secure;
     $this->acct->update(compact('secure'));
@@ -174,13 +173,14 @@ class usd {
    * @param string $first: person's first name (empty for companies)
    * @param string $last: person's last name (empty for companies)
    * @param string $org: organization name (empty for individuals)
+   * @param string $businessStructure: SoleProprietorship, Corporation, or Partnership
    * @param string $err: (returned) the error message, if any
    * @return TRUE if success, else FALSE (in which case next step is normally "Kba")
    */
-  function accountInfo($structure, $dob = '', $ein = '', $first = '', $last = '', $org = '', &$err = '') {
+  function accountInfo($dob = '', $ein = '', $first = '', $last = '', $org = '', $structure = '', &$err = '') {
     $dw = $this->dwolla();
     if ($dob) $dob = date('m-d-Y', $dob);
-    if (!$dw->accountInfo($structure, @$dob, @$ein, @$first, @$last, @$org)) return dwError($dw, $err);
+    if (!$dw->accountInfo(@$dob, @$ein, @$first, @$last, @$org, $structure)) return dwError($dw, $err);
     return TRUE;
   }
   
@@ -333,7 +333,7 @@ class usd {
    *   maybe: '?' (UNUSED for now)
    */
   public function send($amount, $other, $notes = R_DEFAULT_PURPOSE, &$err = NULL, $payerFee = FALSE, $direct = TRUE) {
-  t\output(t('@id1 (@num1) sending @amt USD to @id2 (@num2)', u\ray('@id1 @num1 @amt @id2 @num2', $this->acct->id, $this->number, u\fmtAmt($amount), $other->acct->id, $other->number)));
+    t\output(t('@id1 (@num1) sending @amt USD to @id2 (@num2)', u\ray('@id1 @num1 @amt @id2 @num2', $this->acct->id, $this->number, u\fmtAmt($amount), $other->acct->id, $other->number)));
     u\EXPECT(self::inAtom(), 'usd transfer outside atom');
     u\EXPECT(is_object($this->acct), 'empty account: ' . print_r($this->acct, 1));
     u\EXPECT(is_object($other->acct), 'empty other account: ' . print_r($other->acct, 1));

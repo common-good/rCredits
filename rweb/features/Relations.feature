@@ -28,8 +28,8 @@ Scenario: Member has an employee, confirmed
   | 1  | .ZZA | .ZZD  | sell         | 1          | 1          | 1       | 0    |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
-  | Other      | Draw | My employer? | My employee? | Family? | Permission    |_request rCard |
-  | Dee Four   | No   | No           | Yes          | Yes     | send invoices | request rCard |
+  | Other      | Draw | My employer? | My employee? | Family? | Permission    |_requests      |
+  | Dee Four   | No   | No           | Yes          | Yes     | send invoices | print sign-in card |
 
 Scenario: Member has an employee, unconfirmed
   Given relations:
@@ -37,8 +37,8 @@ Scenario: Member has an employee, unconfirmed
   | 1  | .ZZA | .ZZD  | buy        | 1          | 0          | 0        |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
-  | Other      | My employer? | My employee? | Family? | Permission   |_request rCard |
-  | Dee Four   | No           | Yes          | No      | buy and sell |          |
+  | Other      | My employer? | My employee? | Family? | Permission   |_requests      |
+  | Dee Four   | No           | Yes          | No      | buy and sell | print sign-in card |
 
 Scenario: Member has a relation with a contractor
   Given relations:
@@ -46,7 +46,7 @@ Scenario: Member has a relation with a contractor
   | 1  | .ZZA | .ZZB  | buy        | 0          | 0          | 0        |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
-  | Other      | My employer? | My employee? | Family? | Permission   |_request rCard |
+  | Other      | My employer? | My employee? | Family? | Permission   |_requests      |
   | Bea Two    | No           | No           | No      | buy and sell |               |
   
 Scenario: Member has an employee, claimed
@@ -55,8 +55,8 @@ Scenario: Member has an employee, claimed
   | 1  | .ZZA | .ZZD  | sell         | 0          | 1          | 0       |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
-  | Other      | My employer? | My employee? | Family? | Permission    |_request rCard |
-  | Dee Four   | No           | No           | No      | send invoices |               |
+  | Other      | My employer? | My employee? | Family? | Permission    |_requests      |
+  | Dee Four   | No           | No           | No      | send invoices | print sign-in card |
   
 Scenario: Employee can only read
   Given relations:
@@ -64,7 +64,7 @@ Scenario: Employee can only read
   | 1  | .ZZA | .ZZD  | read       | 1          | 1          | 1       |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
-  | Other      | My employer? | My employee? | Family? | Permission        |_request rCard |
+  | Other      | My employer? | My employee? | Family? | Permission        |_requests      |
   | Dee Four   | No           | Yes          | Yes     | read transactions |          |
   
 Scenario: Member has an employer
@@ -73,8 +73,8 @@ Scenario: Member has an employer
   | 1  | .ZZB | .ZZA  | sell         | 1          | 1          | 1        |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
-  | Other      | My employer? | My employee? | Family? | Permission   |_request rCard |
-  | Bea Two    | Yes          | --           | No      | no access    | --       |
+  | Other      | My employer? | My employee? | Family? | Permission   |_requests      |
+  | Bea Two    | Yes          | No           | No      | no access    | --       |
   
 Scenario: Member has access to employee account
   Given relations:
@@ -83,12 +83,12 @@ Scenario: Member has access to employee account
   | 2  | .ZZD | .ZZA  | sell       | 0          | 0          | 0        |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
-  | Other      | My employer? | My employee? | Family? | Permission   |_request rCard |
+  | Other      | My employer? | My employee? | Family? | Permission   |_requests      |
   | Dee Four   | No           | Yes          | Yes     | no access    | --            |
   When member ".ZZD" visits page "account/relations"
   Then we show "Relations" with:
-  | Other      | My employer? | My employee? | Family? | Permission    |_request rCard |
-  | Abe One    | Yes          | No           | No      | send invoices | --            |
+  | Other      | My employer? | My employee? | Family? | Permission    |_requests      |
+  | Abe One    | Yes          | No           | No      | send invoices | print sign-in card |
 
 Scenario: Member company has relations
   Given relations:
@@ -96,14 +96,14 @@ Scenario: Member company has relations
   | .ZZA | .ZZC | .ZZA  | manage     | 1          | 1          | 1        |
   When member ":ZZA" visits page "account/relations"
   Then we show "Relations" with:
-  | Other   | My employee? | Owner? | Permission     |_request rCard |
-  | Abe One | Yes          | Yes    | manage account | request rCard |
+  | Other   | My employee? | Owner? | Permission     |_requests      |
+  | Abe One | Yes          | Yes    | manage account | print sign-in card  request rCard |
   And without:
   |_Header       |
   | My employer? |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
-  | Other      | My employer? | My employee? | Family? | Permission   |_request rCard |
+  | Other      | My employer? | My employee? | Family? | Permission   |_requests      |
   | Corner Pub | Yes          | --           | No      | --           | --            |
 
 Scenario: It's complicated
@@ -117,25 +117,25 @@ Scenario: It's complicated
   | .ZZF | .ZZB | .ZZA  |            |     20 | 1           | 1           | 0        |
   When member ".ZZA" visits page "account/relations"
   Then we show "Relations" with:
-  | Other      | My employer? | My employee? | Family? | Permission    |_request rCard |
-  | Bea Two    | Yes          | Yes          | Yes     | send invoices | --       |
+  | Other      | My employer? | My employee? | Family? | Permission    |_requests      |
+  | Bea Two    | Yes          | Yes          | Yes     | send invoices | print sign-in card |
   | Corner Pub | No           | --           | No      | --            | --       |
-  | Dee Four   | Yes          | Yes          | Yes     | send invoices | --       |
+  | Dee Four   | Yes          | Yes          | Yes     | send invoices | print sign-in card |
   When member ".ZZB" visits page "account/relations"
   Then we show "Relations" with:
-  | Other   | My employee? | Family? | Permission |_request rCard |
+  | Other   | My employee? | Family? | Permission |_requests      |
   | Abe One | Yes          | No      | no access  | --            |
   When member ".ZZD" visits page "account/relations"
   Then we show "Relations" with:
-  | Other   | My employer? | My employee? | Family? | Permission |_request rCard |
+  | Other   | My employer? | My employee? | Family? | Permission |_requests      |
   | Abe One | No           | No           | No      | no access  | --            |
   And with:
   |_Header  |
   | Family? |
   When member ":ZZD" visits page "account/relations"
   Then we show "Relations" with:
-  | Other   | My employee? | Owner? | Permission     |_request rCard |
-  | Abe One | Yes          | No     | manage account | --            |
+  | Other   | My employee? | Owner? | Permission     |_requests      |
+  | Abe One | Yes          | No     | manage account | print sign-in card |
   And without:
   |_Header    |
   | employer? |
@@ -148,6 +148,6 @@ Scenario: A member adds a relation
   | who     |
   | Bea Two |
   And we show "Relations" with:
-  | Other      | Draw | My employer? | My employee? | Family? | Permission   |_request rCard |
+  | Other      | Draw | My employer? | My employee? | Family? | Permission   |_requests      |
   | Bea Two    | No   | No           | No           | No      | no access    |               |
   

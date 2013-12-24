@@ -79,7 +79,7 @@ function randomInt($len = NULL) {
 }
 
 function offlog($line, $s) {
-  global $offlog;
+  global $offlog; // used only in this function
   $offlog = @$offlog . "\r\n $line: " . print_r($s, 1);
   file_put_contents('offlog.txt', $offlog);
   return $s;

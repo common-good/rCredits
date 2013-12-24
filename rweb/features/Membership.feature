@@ -5,7 +5,7 @@ SO I can participate actively.
 
 #Special Dwolla magic:
 #You can receive emails at any non-@dwolla.com email address.  That means you can make new accounts without me needing to forward the confirmation emails to you.
-#Phones are automatically verified, so you don’t need to call VerifyPhone anymore.  You can cause the Verify Phone stage to fail by setting the phone number to “5551234567” 
+#Phones are automatically verified, so you don’t need to call VerifyPhone anymore.  You can cause the Verify Phone stage to fail by setting the phone number to 5551234567
 #You can fail the SSN now with specific “always fail” SSNs:
 #777777777 - will put user in Kba if personal account (if used for commercial account on AuthorizedRep call, will put them in PhotoId since there is no Kba for business acts)
 #888888888 - will put user in PhotoId
@@ -268,6 +268,37 @@ Scenario: A member types the wrong account info (name, ssn, or dob)
   Then we show "You're getting there"
   And with done "2"
   
+Scenario: A member company types the wrong account info (name, ein, or business structure)
+  Given members have:
+  | id   | federalId |
+  | .ZZC | 999999999 |
+  # Dwolla's magic ssn for account info failure
+  And member ".ZZC" chose to verify phone by "Voice"
+  When member ".ZZC" visits page "status"
+  Then member ".ZZC" is on step "Phone" within 30 seconds
+
+  When member ".ZZC" visits page "status"
+  Then we show "Verify Phone"
+  When member ".ZZC" confirms form "account/verify-phone" with values:
+  | code  |
+  | 99999 |
+  Then we show "Contact Information"
+
+  Given members have:
+  | id   | address | postalAddr        | state |
+  | .ZZC | 3 C St. | 3 C St., CA 03000 | CA    |
+
+  When member ".ZZC" visits page "status"
+  # Dwolla bug (unexpected error on Address step completion) requires extra visit to status page
+  And member ".ZZC" visits page "status"
+  Then we show "Retry Verification"
+  And we say "error": "redo info"
+  
+  When member ".ZZC" confirms form "account/basic" with values:
+  | org          | federalId   | acctType       |
+  | Corner Store | 001-01-0001 | CO_PARTNERSHIP |
+  Then we show "You're getting there"
+  And with done "2"
 Skip
 Scenario: A member has to submit a photo ID
   Given members have:

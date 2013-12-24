@@ -376,7 +376,7 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   if (!$a2->ok()) return array('non member', u\ray('otherName', $a2->fullName), FALSE);
   list ($myAccess, $otherAccess) = u\order($reallyTaking, $scanned ? B_SCAN : B_SELL, B_BUY);
   list ($myAccessErr, $otherAccessErr) = u\order($reallyTaking, 'sell', 'buy');
-  //debug(compact('myAccess','otherAccess','myAccessErr','otherAccessErr','reallyTaking'));
+///debug(compact('myAccess','otherAccess','myAccessErr','otherAccessErr','reallyTaking'));
   if (!$a1->can($myAccess)) return array("no $myAccessErr", array(), FALSE);
   if (!$a2->can($otherAccess)) return array("other no $otherAccessErr", u\ray('otherName', $a2->agent->fullName), FALSE);
   
@@ -451,12 +451,11 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   if ($confirmed) { // notify other party by email about any confirmed transaction
     $notice = $reallyTaking ? ($preapproved ? 'new charge' : 'new invoice')
       : ($virtual ? 'new offer' : (($amount < 0 and $goods) ? 'new refund' : 'new payment'));
-    if (@$args['otherRewardAmount']) $notice .= '|reward other';
-    if (u\abbreviates('new payment', $notice)) {
-    //and $payee == \variable_get('cgf_uid')) { // should be any nonprofit? anyone?
-//      $a1 = 
-//      $notice .= u\tt('address info', compact('a1'));
+    if ($notice == 'new payment' and $a2->co()) { // not "new charge" (the most common)
+      $href = r\makeDo('addr', $myid); // add a link to address, so merchant can ship or nonprofit can thank
+      $args['myName'] = "<a href=\"$href\">$args[myName]</a>";
     }
+    if (@$args['otherRewardAmount']) $notice .= '|reward other';
     r\notify($uid, $notice, $args);
     $message = $goods ?
         ($preapproved ? ($virtual ? 'offer' : 'transaction') : 'invoice')

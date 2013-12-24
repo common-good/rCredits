@@ -145,6 +145,32 @@ class rwebTransactR extends DrupalWebTestCase {
     . '\\| NEW.ZZC   |     250 |"');
   }
 
+  // Scenario: A member confirms request to pay a member company
+  public function testAMemberConfirmsRequestToPayAMemberCompany_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('next DO code is "whatever"');
+    When_('member "NEW.ZZA" confirms form "pay" with values: "DATA'
+    . '\\| op  | who        | amount | goods | purpose |'
+    . '\\| pay | Corner Pub | 100    | 1     | stuff   |"');
+    Then_('we say "status": "report transaction" with subs: "DATA'
+    . '\\| did    | otherName  | amount | rewardType | rewardAmount |'
+    . '\\| paid   | Corner Pub | $100   | reward     | $5           |"');
+    And__('we notice "new payment|reward other" to member "NEW.ZZC" with subs: "DATA'
+    . '\\| created | fullName   | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |'
+    . '\\| %today  | Corner Pub | <a href=\'\'do/id=1&code=whatever\'\'>Abe One</a> | $100 | stuff | reward | $10 |"');
+    And__('transactions: "DATA'
+    . '\\| xid      | created   | type      | state    | amount | from      | to      | purpose      | taking |'
+    . '\\| NEW.AAAE | %today | %TX_TRANSFER | %TX_DONE |    100 | NEW.ZZA   | NEW.ZZC | stuff        | 0      |'
+    . '\\| NEW.AAAF | %today | %TX_REBATE   | %TX_DONE |      5 | community | NEW.ZZA | rebate on #2 | 0      |'
+    . '\\| NEW.AAAG | %today | %TX_BONUS    | %TX_DONE |     10 | community | NEW.ZZC | bonus on #2  | 0      |"');
+    And__('balances: "DATA'
+    . '\\| id        | balance |'
+    . '\\| community |    -765 |'
+    . '\\| NEW.ZZA   |     155 |'
+    . '\\| NEW.ZZB   |     250 |'
+    . '\\| NEW.ZZC   |     360 |"');
+  }
+
   // Scenario: A member confirms request to pay the same member the same amount
   public function testAMemberConfirmsRequestToPayTheSameMemberTheSameAmount_0() {
     $this->setUp2(__FUNCTION__, 0);

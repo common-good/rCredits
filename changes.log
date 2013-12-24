@@ -1,4 +1,23 @@
-2013-11
+2013-12-24
+. new non-member cashiers got uid ZZZ.AAA etc (should be NEW.whatever). fixed.
+. usd total is now cached for communities and regions (fixes a bug in pool in rcron)
+. fixed two homogenize bugs (it was transferring USD to the least needy first, then continuing until exhausted and beyond)
+. provided a link on relations page for member companies to print their own rPOS sign-in cards (no photo)
+. fixed relations page formatting
+. can now open another rCredits account before confirming bank deposits
+. for admin, we no longer try to register an account with Dwolla when visiting the summary page (you must go to the status page instead)
+. now we are notified by email whenever there are deposits or withdrawals
+. new payment notices now show both physical and postalAddr and sometimes phone number, so member can ship or thank.
+. administrator can now sign agreement for people and companies
+. made averageBalance() more efficient and accurate by looping after a single query
+. selecting "none of the above" on Open Another Account form now gives error message.
+. fixed bug that kept setBank() from working
+. fixed bug that allowed member "ready" status with no photo
+. now accepts photos in several formats (PNG etc)
+. verifyBy no longer defaults and is required
+. fixed bug: PIN "0000" didn't work
+
+2013-12-05
 . moved dwolla.php to rcredits folder
 . changed how accounts form works so changing account and logging out always work right
 . Membership tests now mostly work!
@@ -9,9 +28,10 @@
 . changed card code len to 14 (to avoid occasional complex QRs)
 . fixed bug whereby Community page mistakenly showed rCredits as issued, that the community exchanged for USD
 . non-code changes:
-	- fix dobs if not numeric (run eachAcct)
-	- fix data[verifyBy] to be if ('') SMS or (if 1 or not set) Voice (run eachAcct)
-	- change all @rcredits-org.com email addresses to @rc4.me (see util in admin.inc)
+	- fixed dobs if not numeric (run eachAcct)
+	- fixed data[verifyBy] to be if ('') SMS or (if 1 or not set) Voice (run eachAcct)
+	- changed all @rcredits-org.com email addresses to @rc4.me (see util in admin.inc)
+	- changed William's cardCode2 and printed him a new Company Agent card
 
 2013-11-25
 . restored addPhone(), accidentally deleted during separation of rweb-subs.inc from rweb.inc

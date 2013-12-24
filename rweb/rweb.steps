@@ -79,9 +79,11 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     Membership AMemberDoesItAll MAKE
  *     Membership AMemberOpensABusinessAccount MAKE
  *     Membership AMemberTypesTheWrongAccountInfonameSsnOrDob MAKE
+ *     Membership AMemberCompanyTypesTheWrongAccountInfonameEinOrBusinessStructure MAKE
  *     RealUsd AMixedRCreditsUSDTransactionHappens MAKE
  *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance MAKE
  *     RealUsd AMemberBuysSomethingWhenDwollaIsDown MAKE
+ *     Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite MAKE
  *     Signup ANewbieRegisters MAKE
  *     Signup ANewbieRegistersWithNoCase MAKE
  *     Signup AMemberRegistersBadEmail MAKE
@@ -102,6 +104,7 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     Transactions AMemberConfirmsOKForADisputedTransaction MAKE
  *     TransactR AMemberConfirmsRequestToChargeAnotherMember MAKE
  *     TransactR AMemberConfirmsRequestToPayAnotherMember MAKE
+ *     TransactR AMemberConfirmsRequestToPayAMemberCompany MAKE
  *     TransactR AMemberConfirmsRequestToPayTheSameMemberTheSameAmount MAKE
  *     TransactR AMemberConfirmsRequestToChargeTheSameMemberTheSameAmount MAKE
  *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember MAKE
@@ -198,6 +201,7 @@ function members($list) {return t\members($list);}
  *     TransactR Setup MAKE
  *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
  *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
+ *     TransactR AMemberConfirmsRequestToPayAMemberCompany TEST
  *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
  *     TransactUsd AMemberConfirmsRequestToPayAnotherMember TEST
  */
@@ -226,6 +230,7 @@ function transactions($list) {return t\transactions($list);}
  *     Transactions AMemberConfirmsOKForADisputedTransaction TEST
  *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
  *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
+ *     TransactR AMemberConfirmsRequestToPayAMemberCompany TEST
  *     TransactR AMemberConfirmsRequestToPayTheSameMemberTheSameAmount TEST
  *     TransactR AMemberConfirmsRequestToChargeTheSameMemberTheSameAmount TEST
  *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
@@ -259,6 +264,7 @@ function weSayWithSubs($type, $index, $subs) {
  *     Membership AMemberSignsInForTheFirstTime TEST
  *     Membership AMemberGivesTheWrongPassword MAKE
  *     Membership AMemberTypesTheWrongAccountInfonameSsnOrDob TEST
+ *     Membership AMemberCompanyTypesTheWrongAccountInfonameEinOrBusinessStructure TEST
  *     Signup ANewbieRegisters TEST
  *     Signup AMemberRegistersBadEmail TEST
  *     Signup AMemberRegistersBadZip TEST
@@ -345,6 +351,9 @@ function weShowWithSubs($page, $subs) {
  *     ScanCard SomeoneScansACompanyAgentCard TEST
  *     ScanCard SomeoneScansAnOldCompanyAgentCard TEST
  *     Signup ANewbieVisitsTheRegistrationPageWithNoInvite TEST
+ *     Signup ANewbieVisitsTheRegistrationPageWithBadInvite TEST
+ *     Signup ANewbieVisitsTheRegistrationPageWithExpiredInvite TEST
+ *     Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite TEST
  *     Signup AnInvitedNewbieVisitsTheRegistrationPage TEST
  *     Signup ANewbieRegisters TEST
  *     Signup AMemberRegistersACompany TEST
@@ -437,6 +446,7 @@ function relations($relations) {return t\relations($relations);}
  *     TransactR Setup TEST
  *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
  *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
+ *     TransactR AMemberConfirmsRequestToPayAMemberCompany TEST
  *     TransactUsd Setup MAKE
  *     TransactUsd AMemberAsksToChargeAnotherMember TEST
  *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
@@ -465,6 +475,7 @@ function usd($list) {return t\usd($list);}
  *     Membership AMemberDoesItAll MAKE
  *     Membership AMemberOpensABusinessAccount MAKE
  *     Membership AMemberTypesTheWrongAccountInfonameSsnOrDob MAKE
+ *     Membership AMemberCompanyTypesTheWrongAccountInfonameEinOrBusinessStructure MAKE
  *     RealUsd AMixedRCreditsUSDTransactionHappens MAKE
  *     Relations MemberHasAnEmployeeConfirmed MAKE
  *     Relations MemberHasAnEmployeeUnconfirmed MAKE
@@ -480,6 +491,9 @@ function usd($list) {return t\usd($list);}
  *     ScanCard SomeoneScansAnOldMemberCard MAKE
  *     ScanCard SomeoneScansAnOldCompanyAgentCard MAKE
  *     Signup ANewbieVisitsTheRegistrationPageWithNoInvite MAKE
+ *     Signup ANewbieVisitsTheRegistrationPageWithBadInvite MAKE
+ *     Signup ANewbieVisitsTheRegistrationPageWithExpiredInvite MAKE
+ *     Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite MAKE
  *     Signup AnInvitedNewbieVisitsTheRegistrationPage MAKE
  *     Signup AMemberRegistersACompany MAKE
  *     Summary AMemberClicksOnTheSummaryTab MAKE
@@ -518,6 +532,9 @@ function memberIsLoggedOut() {
  *
  * in: Membership AMemberSignsInForTheFirstTime MAKE
  *     Signup ANewbieVisitsTheRegistrationPageWithNoInvite MAKE
+ *     Signup ANewbieVisitsTheRegistrationPageWithBadInvite MAKE
+ *     Signup ANewbieVisitsTheRegistrationPageWithExpiredInvite MAKE
+ *     Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite MAKE
  *     Signup AnInvitedNewbieVisitsTheRegistrationPage MAKE
  *     Signup ANewbieRegisters MAKE
  *     Signup ANewbieRegistersWithNoCase MAKE
@@ -585,6 +602,7 @@ function memberAccountIsNotActive($id) {
  *     Membership AMemberDoesItAll TEST
  *     Membership AMemberOpensABusinessAccount TEST
  *     Membership AMemberTypesTheWrongAccountInfonameSsnOrDob TEST
+ *     Membership AMemberCompanyTypesTheWrongAccountInfonameEinOrBusinessStructure TEST
  */
 function withDone($steps) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -627,6 +645,7 @@ function memberHasDoneStep($uid, $step) {
  *     Membership AMemberDoesItAll TEST
  *     Membership AMemberOpensABusinessAccount TEST
  *     Membership AMemberTypesTheWrongAccountInfonameSsnOrDob TEST
+ *     Membership AMemberCompanyTypesTheWrongAccountInfonameEinOrBusinessStructure TEST
  */
 function weShow($what, $show = TRUE) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -693,6 +712,7 @@ function memberOnetimePasswordIs($id, $pass) {
  *     Transactions AMemberConfirmsOK TEST
  *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
  *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
+ *     TransactR AMemberConfirmsRequestToPayAMemberCompany TEST
  *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
  *     TransactUsd AMemberConfirmsRequestToPayAnotherMember TEST
  */
@@ -898,6 +918,7 @@ function with($content) {return weShow($content);}
  * in: Membership AMemberDoesItAll MAKE
  *     Membership AMemberOpensABusinessAccount MAKE
  *     Membership AMemberTypesTheWrongAccountInfonameSsnOrDob MAKE
+ *     Membership AMemberCompanyTypesTheWrongAccountInfonameEinOrBusinessStructure MAKE
  *     Summary Setup MAKE
  */
 function membersHave($list) {return t\membersHave($list);}
@@ -921,6 +942,7 @@ function weRedirectTo($page) {
  *     Membership AMemberDoesItAll TEST
  *     Membership AMemberOpensABusinessAccount TEST
  *     Membership AMemberTypesTheWrongAccountInfonameSsnOrDob TEST
+ *     Membership AMemberCompanyTypesTheWrongAccountInfonameEinOrBusinessStructure TEST
  */
 function memberIsOnStepWithinSeconds($id, $step, $secs) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -936,6 +958,7 @@ function memberIsOnStepWithinSeconds($id, $step, $secs) {
  * member (ARG) chose to verify phone by (ARG)
  *
  * in: Membership AMemberTypesTheWrongAccountInfonameSsnOrDob MAKE
+ *     Membership AMemberCompanyTypesTheWrongAccountInfonameEinOrBusinessStructure MAKE
  */
 function memberChoseToVerifyPhoneBy($id, $verifyBy) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -953,4 +976,27 @@ function accountWasSetUpByMember($coId, $id) {
   $by = t\uid($id);
   $co = r\acct(t\uid($coId));
   return $co->update(u\ray('data', compact('by') + $co->data));
+}
+
+/**
+ * next DO code is (ARG)
+ *
+ * in: Gift AMemberContributes MAKE
+ *     Transactions AMemberConfirmsOK MAKE
+ *     TransactR AMemberConfirmsRequestToPayAMemberCompany MAKE
+ */
+function nextDOCodeIs($code) {
+  global $testOnly; if ($testOnly) return FALSE;
+  global $testDoCode;
+  return $testDoCode = $code;
+}
+
+/**
+ * invitation (ARG) was sent on (ARG)
+ *
+ * in: Signup ANewbieVisitsTheRegistrationPageWithExpiredInvite MAKE
+ */
+function invitationWasSentOn($code, $dt) {
+  global $testOnly; if ($testOnly) return FALSE;
+  return db\q("UPDATE r_invites SET invited='$dt' WHERE code='$code'");
 }

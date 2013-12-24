@@ -14,6 +14,31 @@ Scenario: A newbie visits the registration page with no invite
   |_errorPhrase         |
   | you must be invited |
 
+Scenario: A newbie visits the registration page with bad invite
+  Given invitation to email "a@" is "c0D3"
+  When member "?" visits page "signup/code=WhAtEvEr"
+  Then we show "Sign up for rCredits" with:
+  |_errorPhrase         |
+  | you must be invited |
+
+Scenario: A newbie visits the registration page with expired invite
+  Given invitation to email "a@" is "c0D3"
+  And invitation "c0D3" was sent on "%today-3w"
+  When member "?" visits page "signup/code=c0D3"
+  Then we show "Sign up for rCredits" with:
+  |_errorPhrase            |
+  | invitation has expired |
+
+Scenario: A newbie visits the registration page with a used invite
+  Given invitation to email "a@" is "c0D3"
+  And member "?" confirms form "signup/code=c0D3&dwok=1" with values:
+  | fullName | email | phone     | country | postalCode | federalId   | dob      | acctType     |
+  | Abe One  | a@ | 413-253-0000 | US      | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  |
+  When member "?" visits page "signup/code=c0D3"
+  Then we show "Sign up for rCredits" with:
+  |_errorPhrase                      |
+  | invitation has already been used |
+
 Scenario: An invited newbie visits the registration page
   Given invitation to email "a@" is "c0D3"
   When member "?" visits page "signup/code=c0D3"
@@ -183,7 +208,7 @@ Scenario: A member registers a company
   | id   | fullName | email | postalCode | federalId   | phone        | flags        |
   | .AAC | Abe One  | a@    | 01330      | 111-22-3333 | +14136280000 | dft,person   |
   And invitation to email "a@" is "c0D3"
-  When member "?" visits page "signup/code=c0D3&dwok=1&by=NEW.AAC&flow=from&isOwner=1&employeeOk=1"
+  When member "?" visits page "signup/code=c0D3&dwok=1&personal=&by=NEW.AAC&flow=from&isOwner=1&employeeOk=1"
   Then we show "Sign up for rCredits" with:
   |_nameDescription      |
   | properly capitalized |

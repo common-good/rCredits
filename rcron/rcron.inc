@@ -314,7 +314,7 @@ function bankFollowup($tx) {
  */
 function recache() {
   $fields = 'uid, r, usd, rewards, minimum, floor';
-  queueEach('recache1', "SELECT $fields FROM users WHERE uid>1 AND :IS_OK"); // make this IS_MEMBER if early gift
+  queueEach('recache1', "SELECT $fields FROM users WHERE :IS_OK"); // make this IS_MEMBER if early gift
   queueNextAfter('recache');
 }
 
@@ -325,6 +325,7 @@ function recache1($item) {
 
   $info = be\creditInfo(compact('uid'));
   foreach (u\just('r usd rewards minimum', $item) as $key => $is) {
+    if ($uid < 0 and $key != 'usd') continue; // for communities and regions, only usd is cached
     $shouldBe = $key == 'usd' ? $acct->actualUsd()
       : ($key == 'minimum' ? max(0, $floor, $minimum) 
       : $info->$key);
@@ -546,7 +547,7 @@ function homogenize() {
   $result = db\q('SELECT AVG(usd) AS avg, community FROM users WHERE uid>1 AND :IS_OK GROUP BY community');
   while ($row = $result->fetchAssoc()) {
     extract($row);
-    queueEach('homogenize1', 'SELECT uid, usd FROM users WHERE community=:community AND uid>1 AND usd>:avg AND :IS_OK', compact('avg', 'community'));
+    queueEach('homogenize1', 'SELECT uid, usd, community AS ctty FROM users WHERE community=:community AND uid>1 AND usd>:avg AND :IS_OK', compact('avg', 'community'));
   }
   queueNextAfter('homogenize');
 }
@@ -556,13 +557,13 @@ function homogenize() {
  * Avoid lending an account USD beyond its credit limit (keep r >= floor).
  */
 function homogenize1($item) {
-  extract(u\just('uid usd', $item));
+  extract(u\just('uid usd ctty', $item));
   $a = r\acct($uid);
-  $result = db\q('SELECT uid AS uid2, usd as usd2 FROM users WHERE community=:ctty AND usd<:usd-:R_CHUNK AND uid>1 AND :IS_OK AND r>=floor+:R_CHUNK ORDER BY usd DESC', u\ray('ctty usd', $a->community, $a->usd));
+  $result = db\q('SELECT uid AS uid2, usd as usd2 FROM users WHERE community=:ctty AND usd<:usd-:R_CHUNK AND uid>1 AND :IS_OK AND r>=floor+:R_CHUNK ORDER BY usd', compact('ctty', 'usd'));
   while ($row = $result->fetchAssoc()) {
     extract($row);
-    //debug("uid=$uid usd=$a->usd uid2=$uid2 usd2=$usd2");
-    if ($usd2 < $usd - R_CHUNK and $usd >= R_CHUNK) r\tradeR(R_CHUNK, $uid2, $uid);
+    if ($usd2 < $a->usd - R_CHUNK and $a->usd >= R_CHUNK) r\tradeR(R_CHUNK, $uid2, $uid); // $a->usd NOT $usd!
+    // This trade might fail (gently) if a bank transfer goes through in between
   }
 }
 
@@ -571,15 +572,13 @@ function homogenize1($item) {
  * Leave each contributing account with at least R_CHUNK so it can help someone cash out the next day.
  */
 function pool() {
-  //debug('NOT ACTIVE'); queueNextAfter('pool'); return; // debug() wait until the regional account is activated
   $result = db\q('SELECT SUM(usd) AS total, SUM(1) AS sources, community FROM users WHERE uid>1 AND :IS_OK AND usd>0 GROUP BY community');
   while ($row = $result->fetchAssoc()) { // for each community
     extract($row); // total, sources, community
     $cttyUsd = r\acct($community)->usd;
 //    $count = (int) min($sources, R_CTTY_USD_SHARE * ($cttyUsd + $total) / R_CHUNK); // # of chunks to get
 //    if ($count > 0) queueEach('pool1', 'SELECT uid, community, LEAST(:R_CHUNK, usd-:R_CHUNK) AS amount FROM users WHERE uid>1 AND :IS_OK and community=:community AND usd>:R_CHUNK ORDER BY usd DESC LIMIT ' . $count, compact('community')); // can't use LIMIT :count
-//debug(compact('cttyUsd','total'));
-    if ($cttyUsd / $total < R_CTTY_USD_SHARE) queueEach('pool1', 'SELECT uid, community FROM users WHERE uid>1 AND :IS_OK and community=:community AND usd>=2*:R_CHUNK ORDER BY usd DESC', compact('community')); // okay if ctty has a bit too much
+    if ($cttyUsd / $total < R_CTTY_USD_SHARE) queueEach('pool1', 'SELECT uid, usd, community FROM users WHERE uid>1 AND :IS_OK and community=:community AND usd>=2*:R_CHUNK ORDER BY usd DESC', compact('community')); // okay if ctty has a bit too much
   }
   queueNextAfter('pool');
 }
@@ -588,8 +587,8 @@ function pool() {
  * Trade $10us to the community, leaving the account with at least $10us (if possible).
  */
 function pool1($item) {
-  extract(u\just('uid community', $item));
-  r\tradeR(R_CHUNK, $community, $uid);
+  extract(u\just('uid usd community', $item));
+  if ($usd >= R_CHUNK) r\tradeR(R_CHUNK, $community, $uid); // might fail (gently) if a bank transfer goes through in between
 }
 
 /**
@@ -678,7 +677,7 @@ function END() {
   $lastCron = \variable_get('r_last_cron', array());
   $elapsed = time() - @$lastCron['day'];
 //  echo "Daily cron done after $elapsed seconds"; // keep
-  r\tellStaff("Daily cron ended successfully at " . strftime('%I:%M%P') . ", after $elapsed seconds", '', FALSE);
+  r\tellStaff("At " . strftime('%I:%M%P') . ", after $elapsed secs, daily cron ended successfully.", '', FALSE);
 }
 
 /**

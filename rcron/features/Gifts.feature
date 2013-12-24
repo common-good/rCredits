@@ -16,6 +16,7 @@ Scenario: A contribution can be completed
   Given gifts:
   | id   | giftDate   | amount | often | honor  | honored | share | completed |
   | .ZZA | %yesterday |     10 |     1 | memory | Jane Do |    10 |         0 |
+  And next DO code is "whatever"
   When cron runs "gifts"
   Then transactions:
   | xid   | created | type     | state | amount | from      | to      | purpose      | r    |
@@ -26,8 +27,8 @@ Scenario: A contribution can be completed
   | id   | giftDate   | amount | often | honor  | honored | share | completed |
   | .ZZA | %yesterday |     10 |     1 | memory | Jane Do |    10 | %today    |
   And we notice "new payment|reward other" to member "cgf" with subs:
-  | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |
-  | Abe One   |    $10 | contribution | reward          |                $1 |
+  | otherName  | amount | payeePurpose | otherRewardType | otherRewardAmount |
+  | <a href=''do/id=1&code=whatever''>Abe One</a> | $10 | contribution | reward | $1 |
   And we notice "gift sent" to member ".ZZA" with subs:
   | amount | rewardAmount |
   |    $10 |        $0.50 |
@@ -40,6 +41,7 @@ Scenario: A recurring contribution can be completed
   Given gifts:
   | id   | giftDate   | amount | often | honor  | honored | share | completed |
   | .ZZA | %yesterday |     10 |     Q | memory | Jane Do |    10 |         0 |
+  And next DO code is "whatever"
   When cron runs "gifts"
   Then transactions:
   | xid   | created | type     | state | amount | from      | to      | purpose      | r    |
@@ -52,7 +54,7 @@ Scenario: A recurring contribution can be completed
   | .ZZA | %yesterday+3m |     10 |     Q |        |         |         0 |
   And we notice "new payment|reward other" to member "cgf" with subs:
   | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |
-  | Abe One   |    $10 | contribution | reward          |                $1 |
+  | <a href=''do/id=1&code=whatever''>Abe One</a> | $10 | contribution | reward | $1 |
   And we tell staff "gift accepted" with subs:
   | amount | myName  | often | rewardType |
   |     10 | Abe One |     Q | reward     |

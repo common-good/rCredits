@@ -22,7 +22,7 @@ use rCredits\Testing as t;
  * agent    the already-scanned-in agent's agent ID (for example NEW:AAB) -- empty if none yet
  *
  * REQUESTS:
- * identify:	[member, code] => [ok, message, logon="1", name, descriptions[], can, device, update]
+ * identify:	[member, code] => [ok, message, logon="1", name, descriptions[], can, device, agent, update]
  * identify:	[member, code] => [ok, message, logon="0", name, place, company, balance]
  * photo:	[member] => photo
  * charge:	[member, amount, goods, description] => [ok, message, tx, balance, undo]
@@ -124,7 +124,7 @@ function posErr($message, $subs = array()) {
  * @params assoc $args:
  *   agent: agent ID of current agent -- empty if none yet
  *   device: a unique device ID
- *   member: account ID of customer or new agent
+ *   member: account ID of customer or new agent ("default" to identify default agent)
  * @return json:
  *   logon: 1 if the app's operator is scanning himself or herself in, else 0
  *   device: a unique device identifier (if none passed)
@@ -134,6 +134,7 @@ function posErr($message, $subs = array()) {
  *   balance: a message stating the customer's current balance
  *   descriptions: array of the agent's company's most common charge descriptions (most popular first)
  *   can: bit permissions -- what the agent can do
+ *   agent: the default agent (if the member passed is "default")
  *   update: URI of updated software package (if current version warrants)
  * device, descriptions, can, and update are returned only if scanning in (logon is true)
  */
@@ -143,7 +144,9 @@ function identify($args) {
   if ($err = missingArg($keys = 'version device member code', $args)) return posErr($err); // no agent on scanin
   extract(u\just($keys . ' agent', $args));
 
-  if (!$a = @$agent ? getCustomer(@$member, $err) : getAgent(@$member, $err)) return posErr($err);
+  $dftA = ($member == 'default');
+  $a = @$agent ? getCustomer(@$member, $err) : ($dftA ? getDftAgent($device, $err) : getAgent(@$member, $err));
+  if (!$a) return posErr($err);
 //  $name .= " ($member)"; // debug
 
   if (@$agent) {
@@ -158,11 +161,13 @@ function identify($args) {
 
   if (@$logon) { //  identifying agent
     if ($a->proSe()) return posErr('scan in first');
-    if ($code != $cardCode) return posErr('bad agent');
+    if (!$dftA and $code != $cardCode) return posErr('bad agent');
     if (!$a->can(B_SCAN)) return posErr('agent cannot scan');
     $descriptions = explode("\n", $a->selling) ?: array('?');
     //$can = $a->can(B_BUY) ? 0b11111 : 0; // pass all permission for now
-    $can = $a->can(B_BUY) ? ($a->coCan() >> CO_CAN_BITS) : 0;
+    $can = $a->coCan();
+    if ($dft or !$a->can(B_BUY)) $can &= ~(CO_REFUND | CO_SELL_CASH | CO_BUY_CASH); // turn off permissions
+    
     if ($version + 0 < RPOS_VERSION) $update = substr($version, 0, 1) == '0' ? RPOS_FILENAMEB : RPOS_FILENAME;
     if (!@$device) $device = r\makeDevice($a->id, $devHdr);
     //return posErr("version:$version v=".RPOS_VERSION." update=$update");
@@ -286,8 +291,19 @@ function missingArg($expected, $args) {
 }
 
 /**
+ * Return the default agent's acct (that is, the company acting pro se).
+ * @param string $device: the unique device code
+ * @param string $err: (returned) error message, if any
+ * @return: the agent's acct object (false if error)
+ */
+function getDftAgent($device, &$err) {
+  if (!$uid = db\lookup('uid', 'r_boxes', 'code=:device', compact('device'))) return !$err = 'bad device';
+  return getAgent($uid, $err);
+}
+
+/**
  * Return the agent's acct.
- * @param string $agent: the agent's qid.
+ * @param string $agent: the agent's qid or company's uid (if company is pro se).
  * @param string $err: (returned) error message, if any
  * @return: the agent's acct object (false if error)
  */

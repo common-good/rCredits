@@ -17,23 +17,15 @@ function adminForm($sta) {
   extract(u\just('account make', $sta['input']));
   $op = r\Web\op($sta);
   if ($op == 'USD_Accounts') return r\Web\say(usdAccts());
-  if (@$account) $a = aa($account); // should use whois first
+  if (@$account) $a = a($account); // should use whois first
   
   if ($op == 'printId') {
-    $qid = $a->qid();
-    $agent = $a->agent;
-    $field = strpos($qid, R_AGENT_MARK) ? 'cardCode2' : 'cardCode';
-    $secure = $agent->secure;
-//    if ($field == 'cardCode2') if (isDEV or !($code = @$secure[$field]) or strlen($code) > R_CARDCODE_LEN) {
     if (@$make) {
-//      if (!isDEV) u\EXPECT($field == 'cardCode2', 'missing cardCode'); // only cardCode2 gets created here
       seeSecure($a);
-      r\Web\svar(strtolower("x$field" . substr($agent->qid(), 4)), @$secure[$field]); // eg xcardcode2aab is old code
-      $secure = u\ray($field, r\cardCode($qid)) + $secure; // create an rCard security code
-      $agent->update(compact('secure')); // resave the secure fields
+      r\makeCardCode($a);
       seeSecure($a);
     }
-    return r\go('print-rcard/' . $qid);
+    return r\go('print-rcard/' . $a->qid());
   } elseif ($op == 'seeSecure') {
     if (@$a) seeSecure($a);
   } elseif ($op == 'newUsdEmail') {
@@ -179,8 +171,8 @@ foreach (array(3201932, 3244519, 3350610, 3510402) as $one) {
  */
 function changeIt($a) {
   if (!@$a->usdAccount or @$a->secure['usdPhone']) return;
-  $a->upSecure('usdPhone', $a->phone);
-  debug($a->secure);
+//  $a->upSecure('usdPhone', $a->phone);
+/**/  debug($a->secure);
 }
 /*
 
@@ -251,26 +243,26 @@ $us->rollback($list);
 function makeTestCards() {
   if (isPRODUCTION) return;
 
-  $a = aa('aab');
+  $a = a('aab');
   $a->update(u\ray('fullName', 'Corner Store'));
 
-  $a = aa('aaa');
+  $a = a('aaa');
   $a->update(u\ray('fullName', 'Bob Bossman'));
   $a->upSecure('cardCode2', 'WeHlioM5JZv1O9G');
   
-  $a = aa('aad');
+  $a = a('aad');
   $a->update(u\ray('fullName', 'Cathy Cashier'));
   $a->upSecure('cardCode2', 'ME04nW44DHzxVDg');
   
-  $a = aa('aaq');
+  $a = a('aaq');
   $a->update(u\ray('fullName', 'Helga\'s Hardware'));
   
-  $a = aa('aak');
+  $a = a('aak');
   $a->update(u\ray('fullName', 'Curt Customer'));
   $a->upSecure('cardCode', 'NyCBBlUF1qWNZ2k');
   $a->upSecure('cardCode2', 'utbYceW3KLLCcaw');
   
-  $a = aa('abb');
+  $a = a('abb');
   $a->update(u\ray('fullName', 'Susan Shopper'));
   $a->upSecure('cardCode', 'ZzhWMCq0zcBowqw');
 }

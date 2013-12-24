@@ -228,13 +228,14 @@ Scenario: A member confirms OK
   | 100 | %today-5d | transfer | pending |     80 | .ZZA | .ZZC | this CF  | 1      |
   | 101 | %today-5d | rebate   | pending |      4 | ctty | .ZZA | rebate   | 0      |
   | 102 | %today-5d | bonus    | pending |      8 | ctty | .ZZC | bonus    | 0      |
+  And next DO code is "whatever"
   When member ".ZZA" confirms form "transactions/period=5&do=ok&xid=100" with values: ""
   Then we say "status": "report transaction" with subs:
   | did    | otherName  | amount | rewardType | rewardAmount |
   | paid   | Corner Pub | $80    | reward     | $4           |
   And we notice "new payment|reward other" to member ".ZZC" with subs:
   | created | fullName   | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |
-  | %today  | Corner Pub | Abe One   | $80    | this CF      | reward          | $8                |
+  | %today  | Corner Pub | <a href=''do/id=1&code=whatever''>Abe One</a> | $80 | this CF | reward | $8 |
   And we show "Transaction History" with:
   |_tid | Date   | Name       | From you | To you | Status | _ | Purpose | Reward |
   | 13  | %dm    | Corner Pub | 80.00    | --     | %chk   | X | this CF | 4.00   |

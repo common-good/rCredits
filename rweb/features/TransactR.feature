@@ -93,6 +93,29 @@ Scenario: A member confirms request to pay another member
   | NEW.ZZB   |     360 |
   | NEW.ZZC   |     250 |
 
+Scenario: A member confirms request to pay a member company
+  Given next DO code is "whatever"
+  When member "NEW.ZZA" confirms form "pay" with values:
+  | op  | who        | amount | goods | purpose |
+  | pay | Corner Pub | 100    | 1     | stuff   |
+  Then we say "status": "report transaction" with subs:
+  | did    | otherName  | amount | rewardType | rewardAmount |
+  | paid   | Corner Pub | $100   | reward     | $5           |
+  And we notice "new payment|reward other" to member "NEW.ZZC" with subs:
+  | created | fullName   | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |
+  | %today  | Corner Pub | <a href=''do/id=1&code=whatever''>Abe One</a> | $100 | stuff | reward | $10 |
+  And transactions:
+  | xid      | created   | type      | state    | amount | from      | to      | purpose      | taking |
+  | NEW.AAAE | %today | %TX_TRANSFER | %TX_DONE |    100 | NEW.ZZA   | NEW.ZZC | stuff        | 0      |
+  | NEW.AAAF | %today | %TX_REBATE   | %TX_DONE |      5 | community | NEW.ZZA | rebate on #2 | 0      |
+  | NEW.AAAG | %today | %TX_BONUS    | %TX_DONE |     10 | community | NEW.ZZC | bonus on #2  | 0      |
+  And balances:
+  | id        | balance |
+  | community |    -765 |
+  | NEW.ZZA   |     155 |
+  | NEW.ZZB   |     250 |
+  | NEW.ZZC   |     360 |
+
 Scenario: A member confirms request to pay the same member the same amount
   Given member "NEW.ZZA" confirms form "pay" with values:
   | op  | who     | amount | goods | purpose |

@@ -188,7 +188,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'banked' => t('A request has been made to @action your bank a total of @amount. This request may take up to 5 days to go through.'),
   'payment exchange received' => t('You received from @fullName a payment exchange of @amount -- that is, you traded that much US Dollars for rCredits, receiving a bonus of @bonus on the exchange.'),
   'payment exchanges offered' => t('You made payment exchanges to @offers @whom, totaling @total.'),
-  'card ordered' => t('Your rCard has been ordered and will be mailed directly to @name.'),
+  'card ordered' => t('A Company Agent rCard will be US mailed to @name.'),
   'balances' => t('Your balance available to spend is @toSpend. You can move up to @toCash today to your bank account.'),
   'you sold out' => t('This week you traded @total worth of rCredits for US Dollars, missing an opportunity for @rebates worth of rebates. To keep this from happening so much, <@a1>click here</a> to change your settings to the recommended minimum balance of @suggested.'),
   'restricted' => t('You are not authorized to use this device.'),
@@ -307,7 +307,7 @@ function create($number, $uid, $status = SMS_PRIMARY) {
 /**
  * Add the cell owner's full name to the account.
  * @return the full name
- */
+ *//*
 function setup_name($acct, $fullName) {
   $fullName = str_replace('  ', ' ', trim($fullName));
   if (strlen($fullName) > 60) throw new rSMSexception(tt('name too long'));
@@ -318,17 +318,18 @@ function setup_name($acct, $fullName) {
   $acct->update(compact('name', 'fullName'));
   return $fullName;
 }
+*/
 
 /**
  * Add the caller's email to the account.
  * @return object: the account
- */
+ *//*
 function setup_email($acct, $email) {
   if (!\valid_email_address($email)) throw new rSMSexception(tt("what's your email really?"));
   if (r\userField(1, 'mail=:email', compact('email'))) throw new rSMSexception(tt('duplicate email'));
   $mail = $init = $email;
   return $acct->update(compact('mail', 'init'));
-}
+}*/
 
 /**
  * Return a pattern that includes all abbreviations of the word.

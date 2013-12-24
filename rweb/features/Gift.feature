@@ -13,6 +13,7 @@ Setup:
   | .ZZA   |  100 |  20 |      20 |
 
 Scenario: A member contributes
+  Given next DO code is "whatever"
   When member ".ZZA" completes form "contribute" with values:
   | gift | amount | often | honor  | honored | share |
   |    0 |     10 |     1 | memory | Jane Do |    10 |
@@ -32,7 +33,7 @@ Scenario: A member contributes
   |    $10 |        $0.50 | 
   And we notice "new payment|reward other" to member "cgf" with subs:
   | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |
-  | Abe One   |    $10 | contribution | reward          | $1                |
+  | <a href=''do/id=1&code=whatever''>Abe One</a> | $10 | contribution | reward | $1 |
   And we tell staff "gift accepted" with subs:
   | amount | often | txField  |
   |     10 |     1 | payerTid |

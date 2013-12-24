@@ -95,7 +95,7 @@ class rwebCommunity extends DrupalWebTestCase {
     . '\\| .AABG | %today-1d | transfer  | done    | 1 | 1 | .ZZC | .AAB | sharing rewards with CGF | 1 | %TX_CRON |"');
     Then_('balances: "DATA'
     . '\\| id   | r       | usd      | rewards | committed |'
-    . '\\| ctty | -823.15 | 10010.00 |    0.00 |         0 |'
+    . '\\| ctty | -823.15 |    10.00 |    0.00 |         0 |'
     . '\\| .ZZA |  243.00 |   680.00 |  269.00 |      1.80 |'
     . '\\| .ZZB |  306.00 |  2255.00 |  276.00 |      4.80 |'
     . '\\| .ZZC |  273.05 |  3055.00 |  265.05 |      3.62 |'
@@ -103,7 +103,7 @@ class rwebCommunity extends DrupalWebTestCase {
     When_('cron runs ""');
     Then_('balances: "DATA'
     . '\\| id   | r       | usd      | rewards    |'
-    . '\\| ctty | -824.65 | 10010.00 |       0.00 |'
+    . '\\| ctty | -824.65 |    10.00 |       0.00 |'
     . '\\| .ZZA |  243.25 |   679.75 |     269.25 |'
     . '\\| .ZZB |  306.50 |  2254.50 |     276.50 |'
     . '\\| .ZZC |  273.80 |  3054.25 |     265.80 |'

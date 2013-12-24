@@ -281,16 +281,16 @@ class DwollaRestClient {
 
   /**
    * Submit corrected personal information (because SSN could not be verified by ssn())
-   * @param string $businessStructure: "Personal", "NonProfit", or "Commercial"
    * @param string $dateOfBirth: person's birth date (empty for companies)
    * @param string $ein: organization's Employer Id Number (empty for individuals)
    * @param string $firstName: person's first name (empty for companies)
    * @param string $lastName: person's last name (empty for companies)
    * @param string $organization: organization name (empty for individuals)
+   * @param string $businessStructure: SoleProprietorship, Corporation, or Partnership
    * @return TRUE if success, else FALSE (in which case next step is normally "Kba")
    */
-  function accountInfo($businessStructure, $dateOfBirth = '', $ein = '', $firstName = '', $lastName = '', $organization = '') {
-    $response = $this->post('register/general', compact(explode(' ', 'businessStructure dateOfBirth ein firstName lastName organization')));
+  function accountInfo($dateOfBirth = '', $ein = '', $firstName = '', $lastName = '', $organization = '', $businessStructure = '') {
+    $response = $this->post('register/general', compact(explode(' ', 'dateOfBirth ein firstName lastName organization businessStructure')));
     $this->parse($response);
     return ($this->step == 'Finished');
   }
@@ -1181,10 +1181,11 @@ class DwollaRestClient {
       $ch = curl_init(); // Set up our CURL request
       $timeout = isDEV ? 20 : 10; // cgf (was 5)
 
-      if (@$params['file']) { // cgf: no json for image file uploads
-        $data = array('file' => '@' . $params['file']);// . ';type=image/jpeg'); // magic curl syntax
+      if ($fileName = @$params['file']) { // cgf: no json for image file uploads
+        $data = array('fileName' => '@' . $fileName); // . ';type=image/jpeg'); // magic curl syntax
         //curl_setopt($ch, CURLOPT_POST, true);
-        $headers = array('Content-Type: multipart/form-data'); //image/jpeg');
+        //$url .= '&fileName=' . ($fileName);
+        $headers = array('Content-Type: image/jpeg'); // or multipart/form-data or image/jpeg
       } else {
         $data = u\jsonEncode($params); // Encode POST data
         $headers = array('Accept: application/json', 'Content-Type: application/json;charset=UTF-8');

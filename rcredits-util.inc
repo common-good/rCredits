@@ -119,7 +119,7 @@ function badAmount(&$amount, $restriction = '', $fractionLimit = 2) {
 /**
  * Say whether the given SSN is bad.
  * @param string $ssn: the social security number to test (RETURNED stripped of all but the digits)
- * @param int $bdate: the person's birth date
+ * @param int $dob: the person's birth date (null if the ssn is actually an EIN)
  * @return an error index if the SSN is bad, else FALSE
  * From the SSA site:
      We do not assign a Social Security number with the first three digits of: 000, 666, 900 - 999.
@@ -127,17 +127,19 @@ function badAmount(&$amount, $restriction = '', $fractionLimit = 2) {
      or "0000" in the last four positions of the numbers.
      Additionally, prior to June 25, 2011, we had never assigned a Social Security number with the first three digits of: 000, 666, 772 - 799, 800 - 899, 900 - 999.
  */
-function badSsn(&$ssn, $bdate) {
+function badSsn(&$ssn, $dob) {
   if (in_array($ssn, u\ray('5551234567 777777777 888888888 999999999'))) return FALSE; // test numbers
   if (strlen(u\digits($ssn)) != 9) $bad = TRUE; // zap all but the digits (call by ref)
   $c1 = substr($ssn, 0, 1);
   $s1 = substr($ssn, 0, 3);
   $s2 = substr($ssn, 3, 2);
   $s3 = substr($ssn, 5);
-  if ($c1 == '9' or $s1 == '000' or $s1 == '666' or $s2 == '00' or $s3 == '0000') $bad = TRUE;
-  if (substr($ssn, 0, 8) == '98765432') $bad = TRUE; // advertising numbers, according to Wikipedia
-  if ($bdate < strtotime('25Jun2011')) if ($c1 == '8' or ($c1 == '7' and $s1 > '771')) $bad = TRUE;
-  return @$bad ? 'bad federal id' : FALSE;
+  if (@$dob) { // ssn (not ein)
+    if ($c1 == '9' or $s1 == '000' or $s1 == '666' or $s2 == '00' or $s3 == '0000') $bad = TRUE;
+    if (substr($ssn, 0, 8) == '98765432') $bad = TRUE; // advertising numbers, according to Wikipedia
+    if ($dob < strtotime('25Jun2011')) if ($c1 == '8' or ($c1 == '7' and $s1 > '771')) $bad = TRUE;
+  }
+  return @$bad ? (@$dob ? 'bad ssn' : 'bad federal id') : FALSE;
 }
 
 /**
@@ -606,16 +608,24 @@ function seeAssoc($info) {
  * @param int $factor: normalized size is the aspect times $factor.
  * @param string $error: (returned) the error message, if any
  * @return: TRUE for success, else FALSE
+ * @todo: handle webp and xpm images?
  */
 function fixPicture($filename, $aspect, $factor, &$error) {
+  $acceptableImages = IMAGETYPE_GIF | IMAGETYPE_JPEG | IMAGETYPE_PNG | IMAGETYPE_WBMP | IMAGETYPE_XBM;
   if (!$info = @getimagesize($filename)) return (!$error = 'not an image');
-  list ($w, $h) = $info;
+  list ($w, $h, $type, $attr) = $info;
+  $ext = image_type_to_extension($type, FALSE);
+  if (!(imagetypes() & $type)) return (!$error = 'not an image');
+  if (!($acceptableImages & $type)) return (!$error = 'not an image');
   list ($w0, $h0) = explode(':', $aspect);
   $off = $w/$h - $w0/$h0; // how much is the aspect off by?
   if (abs($off) > .35) return (!$error = 'aspect');
   $k = 1 - $off * $h / $w; // wFactor, if we need to correct width
   list ($wFactor, $hFactor) = $off > 0 ? array($k, 1) : array(1, 1 / $k);
-  $img = imagecreatefromjpeg($filename);
+  
+  $function = 'imagecreatefrom' . ($ext == 'bmp' ? 'wbmp' : $ext);
+  if (!$img = $function($filename)) return (!$error = 'file save error');
+  
   cropImage($img, ($w-$w*$wFactor)/2, ($h-$h*$hFactor)/2, $w*$wFactor, $h*$hFactor); // narrow or shorten
   resizeImage($img, $w0 * $factor, $h0 * $factor);
   if (!imagejpeg($img, $filename, 100)) return (!$error = 'file save error');

@@ -228,9 +228,16 @@ function makeCompanyFlags($info, $testOnly = FALSE) {
  * Return TRUE if the notice has been queued to member $id
  */
 function notice($notice, $id, $subs) {
+  global $base_url;
   global $testOnly; if (!$testOnly) return FALSE;
+
+  $subs = @$subs[0];
+  if (strpos($nm = @$subs['otherName'], 'href="do/')) {
+    $subs['otherName'] = str_replace('href="do/', "href=\"$base_url/do/", $nm);
+  }
+
   $uid = uid($id);
-  if (is_array($subs = @$subs[0])) foreach ($subs as $key => $value) {
+  if (is_array($subs)) foreach ($subs as $key => $value) {
     if (preg_match('/^\$(.*)(r|us)?$/U', $value, $matches)) {
       list ($num, $currency) = array($matches[1], @$matches[2]);
       if ($currency == 'us') $currency = 'u';
@@ -295,7 +302,7 @@ function makeBalance($one, $testOnly) {
   foreach (u\ray('r usd balance rewards') as $one) {
     if (isset($$one) and $$one != '?') {
       $cachedVal = $one == 'balance' ? $a->r + $a->usd : $a->$one;
-      if ($id > 0 and t\badEq("cached $one", $cachedVal, $$one, $id)) return FALSE;
+      if (($id > 0 or $one == 'usd') and t\badEq("cached $one", $cachedVal, $$one, $id)) return FALSE;
       if ($one != 'usd' and ($id > 0 or $one == 'r')) {
         if (t\badEq("calc $one", $calc->$one, $$one, $id)) return FALSE;
       }

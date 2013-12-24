@@ -61,7 +61,7 @@ class acct {
     $pass = r\passHash(trim(@$pass ?: \user_password()));
     $short_name = @$fullName ? u\shortName($fullName) : '';
     u\setDft($name, @$short_name ?: tempName($info));
-    u\setDft($fullName, $info['name']);
+    u\setDft($fullName, @$info['name']);
     u\setDft($flags, B_DFT);
     u\setDft($rebate, R_REBATE);
     if (@$state and !is_numeric(@$state)) { // allow state abbrevs within US
@@ -242,7 +242,7 @@ class acct {
     $toHide = count(array_intersect(array_keys($info), u\ray(R_SECRET_FIELDS))); // how many fields to hide
     if ($toHide and !$this->gotOffsite()) $this->getHidden(); // get what's offsite before updating it
     foreach ($info as $field => $value) { // update account object with new info
-      if (!self::$records[$this->id]) self::$records[$this->id] = new \stdClass();
+      if (!@self::$records[$this->id]) self::$records[$this->id] = new \stdClass();
       if ($field != 'uid') self::$records[$this->id]->$field = $value;
     }
     if ($toHide) { // store protected information securely, offsite
@@ -499,7 +499,15 @@ EOF;
     $steps = compact(u\ray('signed donated'));
     return ($signed and $donated);
   }
-  
+
+  /**
+   * Return the rough business structure of a company, as required by Dwolla.
+   */
+  function businessStructure() {
+    u\EXPECT($this->co(), 'not a company');
+    return $this->coCan(CO_CORPORATION) ? 'Corporation' : ($this->coCan(CO_PARTNERSHIP) ? 'Partnership' : 'SoleProprietorship');
+  }
+   
   /**
    * Create Dwolla account.
    * @param string $err (returned): the error message, if any
@@ -512,7 +520,7 @@ EOF;
     //if (t\est()) $usdEmail = 'wspademan+' . strtolower(\user_password(4) . '.' . $this->mainQid) . '@gmail.com';
     $usdPin = u\randomString(4, 'digits');
     if (isDEV) list ($usdPass, $usdPin) = array('Password1', 9999);
-    $secure = compact(u\ray('usdPass usdEmail usdPin')) + $this->secure;
+    $secure = compact(u\ray('usdPass usdEmail usdPin')) + (@$this->secure ?: array());
     $this->update(compact('secure'));
     $us = new r\usd($this);
     if ($this->can(B_PERSON)) {
@@ -521,7 +529,7 @@ EOF;
       return $us->register('Personal', u\ray('first last dob', @$first, @$last, $this->dob), 'true', $err);
     } else {
       $type = $this->isNonprofit() ? 'NonProfit' : 'Commercial';
-      $structure = $this->coCan(CO_CORPORATION) ? 'Corporation' : ($this->coCan(CO_PARTNERSHIP) ? 'Partnership' : 'SoleProprietorship');
+      $structure = $this->businessStructure();
       return $us->register($type, u\ray('org ein structure', $this->fullName, u\fmtEin($this->federalId), $structure), 'true', $err);
     }
   }
@@ -550,7 +558,7 @@ EOF;
    * Set or unset the BANK bit
    */
   public function setBank() {
-    if (!$this->can(B_BANK) and $this->dwStatus() >= DW_VSAVINGS) $this->setBit(B_BANK, TRUE, FALSE);
+    if (!$this->can(B_BANK) and $this->dwStatus() >= DW_VSAVINGS) $this->setBit(B_BANK, TRUE);
   }
   
   /**
@@ -559,7 +567,7 @@ EOF;
    * @return TRUE if the bit is there, else FALSE (or an integer bit collection if no param)
    */
   public function coCan($bit = NULL) {
-    return is_null($bit) ? $this->coFlags : ($this->coFlags & u\bit($bit));
+    return is_null($bit) ? $this->coFlags : (bool) ($this->coFlags & u\bit($bit));
   }
   
   /**
@@ -577,6 +585,9 @@ EOF;
   /**
    * Set all appropriate bits in the flags or coFlags field.
    * (called in form _submit functions)
+   * @param string $bits: comma-delimited list of bit names (lowercase)
+   * @param array $values: simple array of bit values
+   * @param string $prefix: 'co' (for coFlags bits) or 'b' (for flags bits)
    */
   public function setBits($bits, $values, $prefix) {
     foreach (u\ray($bits) as $bitName) {

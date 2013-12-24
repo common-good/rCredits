@@ -139,7 +139,7 @@ function weRespondWith($args) {
     if ($key == 'descriptions') $value = u\ray($value);
     if ($key == 'can') {
       $flags = 0;
-      if ($value) foreach (u\ray($value) as $one) $flags |= (u\bit(u\consta('co', $one)) >> CO_CAN_BITS);
+      if ($value) foreach (u\ray($value) as $one) $flags |= u\bit(u\consta('co', $one));
       $value = $flags;
     }
     if ($key == 'device' and $value == '?' and $rposResult[$key]) continue; // any value will do for new dev

@@ -74,6 +74,7 @@ EOF
   'ssDesc' => t('Your social security number (for required annual reporting)'),
   'einDesc' => t('The company\'s Employer ID Number (EIN)'),
   'to scan another' => t('To scan another card, run the QR Scanner app again.'),
+  'no card ordered' => t('No rCard was ordered.'),
 
   // confirm
   'yes or no' =>  '@yesNo', // to replace with yesNo(url)
@@ -126,7 +127,9 @@ EOF
   'shortr to' => t('You do not have enough rCredits, for that transaction. <a href="@how">Go here</a> to get more rCredits.'),
   'incomplete agreement' => t('To sign this agreement, you must put a check in each box, meaning that you have read that section and agree to it.'),
   'bad signature' => t('That signature does not match your full legal name ("@fullName").'),
-  'bad invite' => t('To sign up for rCredits, you must be invited and you must use the invitation link (just once) within @R_INVITE_DAYS days.<br><br>If you already have an rCredits account set up and want to open an additional account for yourself, your business, or a family member, sign in to your personal account and use the "Open Another Account" on the Summary page.'),
+  'bad invite' => t('To sign up for rCredits, you must be invited. Ask someone you know to send you an invitation!'),
+  'used invite' => t('<p>That invitation has already been used, to open an rCredits account.</p><p>If you already have an rCredits account set up and want to open an additional account for yourself, your business, or a family member, sign in and use the "Open Another Account" button on the Summary page (for cashier accounts, first select your business from the dropdown in the upper right corner).</p><p>Otherwise ask someone you know to send you a new invitation!'),
+  'expired invite' => t('<p>That invitation has expired.</p><p><@a>Click here</a> to ask @inviterName for another invitation.</p>'),
   'min sub floor' => t('Your chosen rCredits minimum cannot be less than your <em>allowed</em> minimum (@floor).'),
 //  'min too small' => t('You minimum (if above zero) cannot be less than $@R_BANK_MIN.'),
 //  'bad maxr' => t('Your chosen rCredits maximum cannot be less than your rCredits minimum. Nor can it be less than your total amount of incentive rewards to date.'),
@@ -134,11 +137,11 @@ EOF
   'info not saved' => t('We apologize. Your information could not be saved at this time. Please try again in an hour or so.'),
   'no page permission' => t('You do not have permission to visit this page. Return to your <@a>Summary</a> page.', array('@a' => 'a href="/"')),
   'specific nonpositive' => t('The amount (@amount) must be a positive integer.'),
-  'insufficient relation' => t('You cannot open an account unless you have a closer relationship to it. Use the <a href="invite">invitation page</a> instead.'),
+  'insufficient relation' => t('You cannot open an account unless you have a close relationship to it. <a href="invite">Invite someone</a> instead.'),
 //  'humans sign' => t('You must be logged in to a personal account, to sign the agreement on behalf of a company.'),
   'bad spoof check' => t('You must confirm (<i>every time</i>) that you are on the real rCredits site.'),
 //  'no auth yet' => t('You have not yet authorized a connection with your Dwolla account. Please resubmit.'),
-  'not an image' => t('That is not an acceptable image format.'),
+  'not an image' => t('That is not an acceptable image format. You might try converting it to a JPG or PNG image.'),
   'bad commercial aspect' => t('Your company profile picture must be in landscape orientation, with a width-to-height ratio of about @R_COMMERCIAL_ASPECT.'),
   'bad personal aspect' => t('Your profile picture must be in portrait orientation, with a width-to-height ratio of about @R_PERSONAL_ASPECT.'),
   'need a manager' => t('A company account must have at least one person to manage it.'),
@@ -180,6 +183,7 @@ EOF
   'must agree' => t('Accept Terms checkbox field is required.'), // drupal shows this
   'redo info' => t('We could not verify your personal information. Please try again, carefully.'),
   'bad ssn or dob' => t('There is a problem verifying your personal information.'),
+  'bad ssn' => t('That is not a valid social security number.'),
   'bank too little' => t('The amount you asked to transfer is less than the minimum ($@R_BANK_MIN).'),
 );
 
@@ -271,6 +275,17 @@ $boxes
 <div class="description">$desc</div>
 EOF
   );
+}
+
+/**
+ * Return a radio selection for account type.
+ */
+function acctTypeField() {
+  $coAcctTypes = $GLOBALS['account types'];
+  unset($coAcctTypes[R_PERSONAL]);
+  $onclick = "attrClick(this);";
+  $acctTypeAttrib = attrib(compact('onclick'));  
+  return formField('radios', t('Account type:'), '', required() + $acctTypeAttrib, $coAcctTypes);
 }
 
 /**
@@ -488,8 +503,9 @@ function setupUs(&$step) {
     } else u\EXPECT($us->step() != $step, 'weird ssn return');
   } elseif ($step == 'AuthorizedRepresentative') {
     u\EXPECT(!$mya->person(), 'verify rep for person?!');
-    $by = r\acct($mya->data['by']);
-    u\EXPECT($by, 'no by for non-person');
+    $byId = @$mya->data['by'] ?: (t\est() ? $mya->agentId : FALSE);
+    u\EXPECT($byId, 'no by for non-person');
+    $by = r\acct($byId);
     list ($first, $last) = u\parseName($by->fullName);
     $state = r\realState($by->state, $by->country);
     if (!$us->authorizedRep($first, $last, $by->address, $by->city, $state, $by->postalCode, substr($by->phone, 2), $by->dob, $by->federalId, $err)) return say($err, 'zot');
@@ -575,7 +591,7 @@ function remainder() {
 */
 
 function boxOpt($field, $opts, $sta) {
-//debug(compact('field','opts','sta'));
+///debug(compact('field','opts','sta'));
   foreach ((@$sta['input'][$field] ?: array()) as $key => $value) $result[] = $opts[$key]; // note that key==value
   return @$result ?: array();
 }
@@ -584,10 +600,10 @@ function boxOpt($field, $opts, $sta) {
  * Return the fields used to verify an individual's SSN (also asked for in signup).
  * The dob field is not used for companies (but remains in the form, unseen), so it cannot be required.
  */
-function ssnFields() {
-  $ssTitle = tt('ssTitle');
-  $federalId = textField("<span class=\"title\">$ssTitle</span>", tt('ssDesc'), required()); // textfield so user doesn't have to retype on error
-  $dob = textField(t('Birthdate:') . R_REQUIRED, t('Your date of birth (mm/dd/yyyy)')); // don't use "required()" here
+function ssnFields($personal = TRUE) {
+  $ssTitle = tt($personal ? 'ssTitle' : 'einTitle');
+  $federalId = textField("<span class=\"title\">$ssTitle</span>", tt($personal ? 'ssDesc' : 'einDesc'), required()); // textfield so user doesn't have to retype on error
+  if ($personal) $dob = textField(t('Birthdate:'), t('Your date of birth (mm/dd/yyyy)'), required());
   return compact(u\ray('federalId dob'));
 }
 
@@ -622,6 +638,9 @@ function wants($ats) {
   return $wants;
 }
 
+/**
+ * Return an array of flags and coFlags, appropriate to the given account type.
+ */
 function acctType($acctType) {  
   $flags = B_DFT | ($acctType == R_PERSONAL ? u\bit(B_PERSON) : u\bit(B_COMPANY));
     
@@ -746,8 +765,7 @@ EOF;
   $zipAttrib = attrib(compact('onchange'));
   
   $phone = textField(t('Phone:'), t('Your primary phone (landline or cell). Cannot be the primary phone for another account.'), required(@$phone ? u\fmtPhone($phone): ''));
-  $dft = ($mya and isset($mya->data['verifyBy'])) ? dft(@$mya->data['verifyBy']) : NULL;
-  $verifyBy = formField('radios', t('Verify by:'), t('We will send a verification code to your phone, by text or voice.'), $dft, array(t('Text message'), t('Voice')));
+  $verifyBy = formField('radios', t('Verify by:'), t('We will send a verification code to your phone, by text or voice.'), required(isset($mya->data['verifyBy']) ? ($mya->data['verifyBy'] == 'Voice') : NULL), array(t('Text message'), t('Voice')));
   if ($mya) $faxetc = textField(t('Fax etc:'), t('List other ways to contact you: fax, cell, IM, etc. This field is NOT public.'), dft(@$faxetc));
   $country = formField('select', t('Country:'), t(''), dft(@$country) + $countryAttrib); // can't use required() here
   if ($mya) $address = textField(t('Street Address:'), t('Where is your building located (physical address)?'), required(@$address) + $addressAttrib);
@@ -846,29 +864,28 @@ EOF;
 
 /**
  * Return the recipient of a recent invitation OR mark an invitation USED
- * @param string $code: the invitation code
- * @param int $invitee: the invitee's uid
  * Call by:
- *   $email = invitation($code, $inviter) where $inviter is passed empty, returned with inviter uid
- *     returns the email address to which the invitation was sent and the inviter, if sent recently (else NULL)
- *   invitation($code, $invitee)
- *     marks the invitation USED by recording the invitee's account id
+ *   $email = invitation($code, '', $inviter) returned with $inviter=inviter uid
+ *   invitation($code, $invitee) marks the invitation USED by recording the invitee's account id
  * @param string $code: the invitation code
- * @param int $inviter: (returned, if empty) account id of the inviter
  * @param int $invitee: account id of the invited person
+ * @param int $inviter: (returned, if empty) account id of the inviter
+ * @param int $err: 
  * @return: email or nothing, as above (FALSE if no such invitation)
  */
-function invitation($code, &$invitee = '') {  
-  $lastweek = strtotime(R_INVITE_DAYS . ' days ago');
+function invitation($code, $invitee = '', &$inviter = '', &$err = '') {  
+  if (@$invitee) return db\update('r_invites', compact('code', 'invitee'), 'code'); // mark it used
+  // check validity and get details
+  $lastweek = strtotime((R_INVITE_DAYS + 2) . ' days ago'); // +2 for leniance
   $sql = 'code=:code AND invited>=:lastweek AND invitee IS NULL';
-  if (!$result = db\lookup('email,inviter', 'r_invites', $sql, compact('code', 'lastweek'))) return FALSE;
-  extract($result);
-  if (@$invitee) {
-    db\update('r_invites', compact('code', 'invitee'), 'code');
-  } else {
-    $invitee = $inviter;
-    return $email;
+  if (!$result = db\lookup('email,inviter', 'r_invites', $sql, compact('code', 'lastweek'))) {
+    if ($info = db\lookup('inviter,invitee', 'r_invites', 'code=:code', compact('code'))) extract($info);
+    $err = $info ? (@$invitee ? 'used invite' : 'expired invite') : 'bad invite';
+    return FALSE;
   }
+  extract($result); // email,inviter
+  return $email;
+
 }
 
 function passwordOkay($a, $password, $passFieldName = 'current_pass') {
@@ -1205,7 +1222,7 @@ function doSay($msg, $type = 'error') {
   $map = u\ray('TITLE BASE_URL VERSION MSGTYPE MESSAGE SUBTEXT',
     t('No-signin Action ') . ($type == 'error' ? t('ERROR') : t('Success!')),
     BASE_URL, R_VERSION, $type, $msg,
-    t('No sign-in was required for this action (rCredits will never ask you to click on a link then sign in).')
+    t('No sign-in was required for this action. The only safe link to rCredits sign-in is through rCredits.org.')
   );
   exit(strtr($template, $map));
 }

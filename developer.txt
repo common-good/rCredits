@@ -26,7 +26,6 @@ QUESTIONS:
 ***
 
 TASKS FOR NEXT UPDATE:
-. change William's cardCode and print a new card
 (no other special tasks yet)
 
 MEMBERSHIP PROCEDURE:
@@ -35,32 +34,46 @@ make sure the photo is adequate
 mark the account as an rTrader (OK) (before printing card)
 print card and welcome materials, mail to new member (welcome includes reminder to verify bank account)
 
-. *** "print rCard" for scan-only  "request rCard" for sell+
-. *** Sheila Clough got id ZZZ.AAA (should be NEW.whatever)
-. give stage server hidden fields! (currently crashes on $a->dob)
-. *** int admin/memberId don't change cardCode2 if it already exists!
-. * when user has no access to the page, show login page if user is not logged in (requires a change to Drupal)
-. trying to change company name and email complains that phone is already taken
-. in admin aa() handle non-local regions right
+. retest SMS
+. duplicate rPOS agent name crashes system (eg "Cashier"). Just add a digit to "name" field in users.
 . * separate invoices from r_txs (somewhat major change)
-. create an rPay app (modify rPOS) for members to pay other members (rather than be charged). It might be expanded later to include account features.
-. remove amount field from r_relations
-. * write rweb feature tests for automatic one-click actions (see rcron/features/old/SoldOut.feature for an example)
-. * should be able to open another rCredits account before confirming bank deposits (and send card before that)
-. committed amount should not be displayed negative on Summary page
-. * add option for company to enable access by others to their device(s). That way, an unsigned-in cashier can't accidentally sign in another company's agent. ("restricted" field in r_boxes)
-- * help for all pages
-- * reduce picture size and make thumbnails (for upper right corner)
-- * membership tests: New Pass, Photo, Agreement, Contribute, Proxies, Usd, proof of ID, Options
-- * prefs: show phone or (more importantly) postalAddr when paying someone (so they can ship or call)
-- * in daily: alert staff if deposit / withdrawal not complete after 5 days
-- * (recheck) enforce $1,000 FINCEN limits
-- * include address in "new payment" digest notices to nonprofits OR just CGF (warn on pay screen if the former)
 . * hide advanced features on Transactions page (show either advanced or simple period selector, but not both)
 . * add a Pay button to member company rCredits webpage
+- * reduce picture size and make thumbnails (for upper right corner)
+- * detailed membership tests: New Pass, Photo, Agreement, Contribute, Proxies, Usd, proof of ID, Options
 
-. employers should be able request rcards for anyone with scan permission or better
-. redo averageBalance() with SUM(r+usd) GROUP BY date
+. signing agreement last does not activate "ready" status
+. allow people whose accounts cannot be verified to have an account anyway.
+. allow anonymous cashier cards for any company (no "create agent account" needed). App should default to starting up in that account and reverting to it on signout of manager UNLESS cashier signs out (only then allow other companies to sign in)
+. check and correct deposit/withdrawal status (and balance) when visiting bank tab
+. selecting a new account when site has timed out and signed the user out, should do something reasonable
+. implement two-factor signin
+. fix community page transaction list for admin
+. take B_BONA off region and add B_COMPANY
+. fix layout of member webpage (description gets jammed into narrow div)
+. do not put exchanges of r for usd in r_txs -- delete them there. Use r_usd instead (maybe with an extra "exchange" field)
+. send a statement to each member monthly. if it bounces, call, then shut down the account 7 days later (with a notice) and send a text immediately and/or US Mail pcard later, saying we need a new email address (with easy instructions for doing it, including what to do if they don't remember their password (first make an exchange of a certain amount of cash for rC at a member business, as an identity check?, then go online and use that as their temp pw)
+. doing bank step out of order gives Dwolla error "User must be verified." Handle it or forbid form until then.
+. when opening "another account", pass type (personal or company) to signup form
+. revise AccountInfo form for companies, to include business structure
+. remove virtual payment option from company preferences
+. no cardcode for businesses (in acct class)
+. start with 0 bal, charge customer $20, then undo. fails.
+. *** why no "request rCard" for Diane Miller and Julia E?
+. *** omit "request rCard" on relations page if account has not been approved
+. *** why is no homog happening?
+. * add option for company to enable access by others to their device(s). But default to no access. That way, an unsigned-in cashier can't accidentally sign in another company's agent. ("restricted" field in r_boxes? B_READ means "can use our rPOS devices" in relations form?) May require a A.testDevice param in rPOS.
+. give stage server hidden fields! (currently crashes on $a->dob)
+. * when user has no access to the page, show login page if user is not logged in (requires a change to Drupal)
+. trying to change company name and email complains that phone is already taken
+. in admin a() handle non-local regions right
+. create an rPay app (modify rPOS) for members to pay other members (rather than be charged). It might be expanded later to include account features.
+. * write rweb feature tests for automatic one-click actions (see rcron/features/old/SoldOut.feature for an example)
+. committed amount should not be displayed negative on Summary page
+- * help for all pages
+- * in daily: alert staff if deposit / withdrawal not complete after 5 days
+- * (recheck) enforce $1,000 FINCEN limits
+
 . hide the Dwolla fees (and reimbursements) in the Transactions Summary
 . any account can unilaterally charge an account it has permission to draw on
 . company search on production server gets collation error (search for "food")
@@ -68,7 +81,6 @@ print card and welcome materials, mail to new member (welcome includes reminder 
 . scanning Emi's card should say "not (yet) authorized for purchases"
 . on reversing a payment, rebate should show as negative, not empty
 . committed amount can go negative (on a refund). make sure cron handles it right.
-. don't try to register admin (or any incomplete account) with Dwolla
 
 . show the right thing for bank transfers for ctty_admin statistics page or hide them
 . have Gherkin always send us the whole array, which must still be rectangular. use t\hdrs() to make the first row or column keys/hdrs for the others
@@ -94,6 +106,7 @@ print card and welcome materials, mail to new member (welcome includes reminder 
 - implement r\suggest (use this for merchant invoices too. user gets an email invoice from rCredits, they can just click on a link to accept or decline. merchant gets notified). test cron call to r\suggest (should just notify, for now)
 - on MSIE 8, sign-in CSS has alignment problem, menu failure in MSIE 8, autocomplete looks funny
 - LATER give user a chance to name the machine
+* LATER prefs: "Show address (show my address to companies I pay or donate to)" -- just assume TRUE for now. 
 - make a way for user to see notices online
 - on Transaction History never mix pending with done? (low priority)
 - let user choose chunk size for automatic bank transfers? not yet. This should eventually be an optional parameter in an "options" field or maybe in "data" in the users table.

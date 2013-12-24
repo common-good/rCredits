@@ -35,7 +35,7 @@ define('CGF_CITY', 'Ashfield');
 
 define('R', '<span class="r">r</span>');
 define('US', '<span class="us">us</span>');
-define('R_VERSION', '1.0a'); // software version
+define('R_VERSION', '1.1'); // software version
 define('R_ROOT', DRUPAL_ROOT . '/sites/all/modules/rcredits');
 define('R_CONCEALED_FIELDS', 'code password pass oneTimeLoginUrl'); // fields to leave out of log
 define('R_DATE_FIELDS', 'created completed sent invited giftDate signed login access yesterday'); // date field names for testing
@@ -125,11 +125,14 @@ define('CO_CONSUMER_COOP', 6);
 define('CO_GOVERNMENT', 7);
 define('CO_PUBLICLY_TRADED', 8);
 
-define('CO_CAN_BITS', 15); // where the company permission bits start (for shifting). These match in rPOS!!
-define('CO_u0', 15);
+define('CO_u15', 15);
 define('CO_REFUND', 16);
 define('CO_SELL_CASH', 17);
 define('CO_BUY_CASH', 18);
+define('CO_u19', 19);
+define('CO_SHARE_RPOS', 20); // allow other companies to use the company's rPOS devices
+define('CO_REQUIRE_CASHIER', 21); // prohibit anonymous use of rPOS devices
+
 define('CO_CAN_BIT_DESCS', 'u0,refund,sell cash,buy cash');
 
 // Permissions, options, and flags (flags field in account record)
@@ -543,12 +546,15 @@ function cacheBothTotals($txs) {
  * The USD balance is (definitively) what is actually in the Dwolla account.
  */
 function cacheTotals($uid, $txs) {
-  if ($uid < 0) return; // don't cache community and region totals
-  if ($txs[0]['state'] < TX_DONE) return; // don't change totals if transaction doesn't count (yet)
+  extract(u\just('amount r state type', $txs[0]), EXTR_PREFIX_ALL, 'tx0');
+  if ($tx0_state < TX_DONE) return; // don't change totals if transaction doesn't count (yet)
+  if ($uid < 0) { // cache only usd for community and region
+    if ($tx0_amount == $tx0_r or $tx0_type == TX_REFUND) return; // no usd OR Dwolla gets the usd
+  }
+
   $a = r\acct($uid);
   $cache = 'usd r rewards committed';
   extract((array) $a->account($cache));
-  //foreach ($cache as $one) $$one = $a->$one;
   $rs = $r; // don't confuse this with r field in txs
   
   foreach ($txs as $tx) {
@@ -557,7 +563,6 @@ function cacheTotals($uid, $txs) {
       $amount = -$amount;
       $r = -$r;
     } elseif ($payee != $uid) continue; // neither to nor from me
-  //if ($uid == r\acct('NEW.ZZA')->id) debug(compact('rs','r'));
     $rs += $r;
     $usd += $amount - $r;
 // NO!    if (!$toOther and $amount - $r > DW_FEE_THRESHOLD) $usd -= DW_FEE;
@@ -565,12 +570,11 @@ function cacheTotals($uid, $txs) {
     if ($type != TX_TRANSFER and $type <= TX_REWARDS) {
       if ($type == TX_REBATE or $type == TX_BONUS) $committed = round($committed + $amount * $a->share / 100, 2);
       $rewards = round($rewards + $r, 2);
-      //if (@$maximum >= 0 and !a->can(B_PAYEX)) $maximum = round(max($maximum, $rewards), 2);
     }
   }
   $r = round($rs, 2);
 
-  $a->update(compact(u\ray($cache)));
+  $a->update(compact(u\ray($uid < 0 ? 'usd' : $cache))); // for community or region track only usd
   if ($type == TX_TRANSFER and $amount > 0) r\membershipEvent($a, 'bona', TRUE);
 }
 
@@ -635,12 +639,12 @@ function payEmployees($amount0, $for, $confirmed) {
  * Return a link to a "no signin required" action.
  * @see also r\Web\rdo()
  */
-function makeDo($type, $uid, $amount = 0, $timeLimit = WEEK_SECS, $subs = '', $sql = '') {
-//print_r(compact(u\ray('type uid amount timeLimit subs sql'))); die('makedo'); 
+function makeDo($op, $uid, $amount = 0, $timeLimit = WEEK_SECS, $subs = '', $sql = '') {
+//print_r(compact(u\ray('op uid amount timeLimit subs sql'))); die('makedo'); 
   global $base_url, $testDoCode;
-  $action = serialize(compact(u\ray('type uid sql subs amount')));
+  $action = serialize(compact(u\ray('op uid sql subs amount')));
   list ($created, $completed) = array(REQUEST_TIME, -(REQUEST_TIME + $timeLimit));
-  $code = t\est() ? $testDoCode : \user_password(20);
+  $code = (t\est() and @$testDoCode) ? $testDoCode : \user_password(20);
   $id = db\insert('r_do', compact(u\ray('uid created completed action code')));
   return "$base_url/do/id=$id&code=$code";
 }
@@ -691,6 +695,15 @@ function notify($uid, $index, $info = array(), $force = FALSE) {
     if ($channel == TX_SMS) SMS\send(r\acct()->smsNumber, $warning);
     if ($channel == TX_SMART) { } // dunno how to handle this
   }
+}
+
+/**
+ * Create an rCard security code for the given account (either for an individual or a company agent).
+ * @param acct $a: the account
+ */
+function makeCardCode($a) {
+  $secure = u\ray($a->proSe() ? 'cardCode' : 'cardCode2', r\cardCode($a->qid())) + $a->agent->secure;
+  $a->agent->update(compact('secure')); // resave the secure fields
 }
 
 /**
@@ -760,6 +773,7 @@ function tellStaff($index, $subs = array(), $uid = TRUE) {
   if (empty($subs)) $subs = array(); // accept ''
   unset($subs['secure']); unset($subs['pass']); // nobody should see these
   ksort($subs); // put the keys in a predictable order, for testing and easy reading
+  foreach (u\ray('federalId dob answer') as $one) unset($subs[$one]); // secret stuff
   $message = strpos($raw = u\tt($index), '@') === FALSE ? ($raw . u\seeAssoc($subs)) : u\tt($index, $subs);
 
   if ($uid) {
@@ -1088,6 +1102,12 @@ function employees() {
  *   relation(field, main, other, where, subs) OR
  *   relation(field, where, subs)
  *   relation(field, reid)
+ * @param string $field: what field value(s) to return (see varieties at db\lookup())
+ * @param int $main: uid of main account
+ * @param int $other: uid of other (agent) account
+ * @param string $where: SQL criteria
+ * @param assoc $subs: criteria parameters
+ * @param int $reid: relations record id
  */
 function relation($field, $main, $other = array(), $where = 'TRUE', $subs = array()) {
   if (is_numeric($main)) {
@@ -1138,7 +1158,7 @@ function makeDevice($uid, $namePrefix = '', $code = '') {
  * Assign the given account a new id.
  * @return the new uid
  */
-function changeUid($oldUid, $newUid = FALSE) {
+function changeUid($oldUid, $newUid = FALSE, $unusable = TRUE) {
   if (!$newUid) $newUid = newUid($base);
   $subs = array( // all tables are listed, to be sure we don't leave any out
   // r_areas
@@ -1150,7 +1170,7 @@ function changeUid($oldUid, $newUid = FALSE) {
     'r_invites:inviter',
     'r_invites:invitee',
     'r_log:myid',
-    'r_log:other',
+    'r_log:agent',
   // r_nonces
   // r_nonmembers
     'r_notices:uid',
@@ -1177,7 +1197,7 @@ function changeUid($oldUid, $newUid = FALSE) {
   }
   $oldQuid = r\quid($oldUid);
   list ($uid, $name, $mail) = array($oldUid, "unusable-$oldQuid", "unusable$oldQuid@rcredits.org");
-  db\insert('users', compact(u\ray('uid name mail'))); // mark old uid unusable
+  if ($unusable) db\insert('users', compact(u\ray('uid name mail'))); // mark old uid unusable
   foreach (u\ray('picture proof') as $one) { // this cannot be rolled back, so must follow db ops
     $new = DRUPAL_ROOT . r\acct($newUid)->auxFilename($one, TRUE);
     $old = str_replace("/$newUid-", "/$oldUid-", $new);
@@ -1477,7 +1497,7 @@ EOF;
   // get usd
   $result4['usd'] = $usdResult['bankInPerMo'] - $usdResult['bankOutPerMo'] - $result2['refunds']; // (actually ever, not perMo)
 
-//debug(compact(u\ray('result1 result2 result3 result4')));
+///debug(compact(u\ray('result1 result2 result3 result4')));
   $info = $result1 + $result2 + $result3 + $result4 + compact('created', 'ctty');
   foreach ($info as $key => $value) {if (is_null($value)) $info[$key] = 0;}
   db\insert('r_stats', $info);
@@ -1494,12 +1514,27 @@ EOF;
  */
 function averageBalance($uid, $start, $end = REQUEST_TIME, &$days = '') {
   //u\EXPECT($uid > 1, 'bad uid for avg');
-  $days = ($end + 1 - $start) / DAY_SECS;
-  if (t\est()) $days = round($days, 0); // don't let daylight savings time changes screw up the tests
-  // this problem may go away when we rewrite this function
-  for ($avg = 0, $asof = $start + DAY_SECS - 1; $asof <= $end - HOUR_SECS; $asof += DAY_SECS) {
-    $avg += be\creditInfo(compact('uid', 'asof'))->balance / $days;
+  $days = round(($end + 1 - $start) / DAY_SECS); // rounding is for daylight savings time changes
+  $bal = be\creditInfo(u\ray('uid asof', $uid, $start))->balance;
+  $day = 0;
+  $avg = 0;
+  $sql = <<<EOF
+    SELECT SUM(IF(payee=:uid, amount, -amount)) AS total, FLOOR((completed-$start)/:DAY_SECS) AS day 
+    FROM r_txs 
+    WHERE :uid IN (payer, payee) AND state=:TX_DONE AND completed BETWEEN $start AND $end 
+    GROUP BY day
+EOF;
+  $result = db\q($sql, compact('uid'));
+  while($row = $result->fetchAssoc()) {
+    $dayx = $day;
+    extract($row); // total, day
+    $avg += $bal * ($day - $dayx) / $days;
+    $bal += $total;
   }
+  $dayx = $day;
+  $day = round(($end - $start) / DAY_SECS); // end of period
+  $avg += $bal * ($day - $dayx) / $days;
+
   return $avg; // average end-of-day balance
 }
 

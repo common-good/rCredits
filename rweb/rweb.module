@@ -76,7 +76,8 @@ function rweb_menu() {
     'menu' => r\Web\menu(t('Menu'), MENU_CALLBACK, 'showForm', array('Menu'), '', $anyone),
     'empty' => r\Web\menu(t('Empty'), MENU_CALLBACK, 'showForm', array('Empty'), '', $anyone),
 
-    'print-rcard' => r\Web\menu(t('Print ID Card'), MENU_CALLBACK, 'memberID', array(1), 'admin'),
+    'print-rcard' => r\Web\menu(t('Print ID Card'), MENU_CALLBACK, 'memberID', array(1, FALSE), 'admin'),
+    'print-signin-card' => r\Web\menu(t('Print Sign-in Card'), MENU_CALLBACK, 'memberID', array(1, 'scan'), 'manage'),
     'reinstall' => r\Web\menu(t('Reinstall rCredits'), MENU_CALLBACK, 'reinstall', array(), 'admin'),
 
     'request-employee-rcard' => r\Web\menu(t('Request Employee rCard'), MENU_CALLBACK, 'showForm', array('RequestRCard', 1), 'manage'),

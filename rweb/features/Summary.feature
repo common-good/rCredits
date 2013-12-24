@@ -60,7 +60,7 @@ Scenario: A member clicks on the summary tab
   | Rewards       | $256 |
   | Committed     | $0.60 |
   | Your return   | 20.6% |
-  | _ever         | 544.1% |
+  | _ever         | 761.1% |
   | Social return | $9 |
   | _ever         | $7.50 |
   | Credit floor  | $-100 |

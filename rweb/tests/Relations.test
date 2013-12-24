@@ -74,8 +74,8 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| 1  | .ZZA | .ZZD  | sell         | 1          | 1          | 1       | 0    |"');
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
-    . '\\| Other      | Draw | My employer? | My employee? | Family? | Permission    |_request rCard |'
-    . '\\| Dee Four   | No   | No           | Yes          | Yes     | send invoices | request rCard |"');
+    . '\\| Other      | Draw | My employer? | My employee? | Family? | Permission    |_requests      |'
+    . '\\| Dee Four   | No   | No           | Yes          | Yes     | send invoices | print sign-in card |"');
   }
 
   // Scenario: Member has an employee, unconfirmed
@@ -86,8 +86,8 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| 1  | .ZZA | .ZZD  | buy        | 1          | 0          | 0        |"');
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
-    . '\\| Other      | My employer? | My employee? | Family? | Permission   |_request rCard |'
-    . '\\| Dee Four   | No           | Yes          | No      | buy and sell |          |"');
+    . '\\| Other      | My employer? | My employee? | Family? | Permission   |_requests      |'
+    . '\\| Dee Four   | No           | Yes          | No      | buy and sell | print sign-in card |"');
   }
 
   // Scenario: Member has a relation with a contractor
@@ -98,7 +98,7 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| 1  | .ZZA | .ZZB  | buy        | 0          | 0          | 0        |"');
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
-    . '\\| Other      | My employer? | My employee? | Family? | Permission   |_request rCard |'
+    . '\\| Other      | My employer? | My employee? | Family? | Permission   |_requests      |'
     . '\\| Bea Two    | No           | No           | No      | buy and sell |               |"');
   }
 
@@ -110,8 +110,8 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| 1  | .ZZA | .ZZD  | sell         | 0          | 1          | 0       |"');
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
-    . '\\| Other      | My employer? | My employee? | Family? | Permission    |_request rCard |'
-    . '\\| Dee Four   | No           | No           | No      | send invoices |               |"');
+    . '\\| Other      | My employer? | My employee? | Family? | Permission    |_requests      |'
+    . '\\| Dee Four   | No           | No           | No      | send invoices | print sign-in card |"');
   }
 
   // Scenario: Employee can only read
@@ -122,7 +122,7 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| 1  | .ZZA | .ZZD  | read       | 1          | 1          | 1       |"');
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
-    . '\\| Other      | My employer? | My employee? | Family? | Permission        |_request rCard |'
+    . '\\| Other      | My employer? | My employee? | Family? | Permission        |_requests      |'
     . '\\| Dee Four   | No           | Yes          | Yes     | read transactions |          |"');
   }
 
@@ -134,8 +134,8 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| 1  | .ZZB | .ZZA  | sell         | 1          | 1          | 1        |"');
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
-    . '\\| Other      | My employer? | My employee? | Family? | Permission   |_request rCard |'
-    . '\\| Bea Two    | Yes          | --           | No      | no access    | --       |"');
+    . '\\| Other      | My employer? | My employee? | Family? | Permission   |_requests      |'
+    . '\\| Bea Two    | Yes          | No           | No      | no access    | --       |"');
   }
 
   // Scenario: Member has access to employee account
@@ -147,12 +147,12 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| 2  | .ZZD | .ZZA  | sell       | 0          | 0          | 0        |"');
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
-    . '\\| Other      | My employer? | My employee? | Family? | Permission   |_request rCard |'
+    . '\\| Other      | My employer? | My employee? | Family? | Permission   |_requests      |'
     . '\\| Dee Four   | No           | Yes          | Yes     | no access    | --            |"');
     When_('member ".ZZD" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
-    . '\\| Other      | My employer? | My employee? | Family? | Permission    |_request rCard |'
-    . '\\| Abe One    | Yes          | No           | No      | send invoices | --            |"');
+    . '\\| Other      | My employer? | My employee? | Family? | Permission    |_requests      |'
+    . '\\| Abe One    | Yes          | No           | No      | send invoices | print sign-in card |"');
   }
 
   // Scenario: Member company has relations
@@ -163,14 +163,14 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| .ZZA | .ZZC | .ZZA  | manage     | 1          | 1          | 1        |"');
     When_('member ":ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
-    . '\\| Other   | My employee? | Owner? | Permission     |_request rCard |'
-    . '\\| Abe One | Yes          | Yes    | manage account | request rCard |"');
+    . '\\| Other   | My employee? | Owner? | Permission     |_requests      |'
+    . '\\| Abe One | Yes          | Yes    | manage account | print sign-in card  request rCard |"');
     And__('without: "DATA'
     . '\\|_Header       |'
     . '\\| My employer? |"');
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
-    . '\\| Other      | My employer? | My employee? | Family? | Permission   |_request rCard |'
+    . '\\| Other      | My employer? | My employee? | Family? | Permission   |_requests      |'
     . '\\| Corner Pub | Yes          | --           | No      | --           | --            |"');
   }
 
@@ -187,25 +187,25 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| .ZZF | .ZZB | .ZZA  |            |     20 | 1           | 1           | 0        |"');
     When_('member ".ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
-    . '\\| Other      | My employer? | My employee? | Family? | Permission    |_request rCard |'
-    . '\\| Bea Two    | Yes          | Yes          | Yes     | send invoices | --       |'
+    . '\\| Other      | My employer? | My employee? | Family? | Permission    |_requests      |'
+    . '\\| Bea Two    | Yes          | Yes          | Yes     | send invoices | print sign-in card |'
     . '\\| Corner Pub | No           | --           | No      | --            | --       |'
-    . '\\| Dee Four   | Yes          | Yes          | Yes     | send invoices | --       |"');
+    . '\\| Dee Four   | Yes          | Yes          | Yes     | send invoices | print sign-in card |"');
     When_('member ".ZZB" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
-    . '\\| Other   | My employee? | Family? | Permission |_request rCard |'
+    . '\\| Other   | My employee? | Family? | Permission |_requests      |'
     . '\\| Abe One | Yes          | No      | no access  | --            |"');
     When_('member ".ZZD" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
-    . '\\| Other   | My employer? | My employee? | Family? | Permission |_request rCard |'
+    . '\\| Other   | My employer? | My employee? | Family? | Permission |_requests      |'
     . '\\| Abe One | No           | No           | No      | no access  | --            |"');
     And__('with: "DATA'
     . '\\|_Header  |'
     . '\\| Family? |"');
     When_('member ":ZZD" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
-    . '\\| Other   | My employee? | Owner? | Permission     |_request rCard |'
-    . '\\| Abe One | Yes          | No     | manage account | --            |"');
+    . '\\| Other   | My employee? | Owner? | Permission     |_requests      |'
+    . '\\| Abe One | Yes          | No     | manage account | print sign-in card |"');
     And__('without: "DATA'
     . '\\|_Header    |'
     . '\\| employer? |"');
@@ -221,7 +221,7 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| who     |'
     . '\\| Bea Two |"');
     And__('we show "Relations" with: "DATA'
-    . '\\| Other      | Draw | My employer? | My employee? | Family? | Permission   |_request rCard |'
+    . '\\| Other      | Draw | My employer? | My employee? | Family? | Permission   |_requests      |'
     . '\\| Bea Two    | No   | No           | No           | No      | no access    |               |"');
   }
 

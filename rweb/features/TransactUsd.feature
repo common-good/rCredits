@@ -80,11 +80,11 @@ Scenario: A member confirms request to pay another member
   | .AAAC | %today  | rebate   | done  |      5 |   5 | ctty | .ZZA | rebate on #1 | 0      |
   | .AAAD | %today  | bonus    | done  |     10 |  10 | ctty | .ZZB | bonus on #1  | 0      |
   And balances:
-  | id   | r      | usd    | rewards |
-  | ctty | -15.00 |      - |       - |
-  | .ZZA | -95.00 | 100.00 |    5.00 |
-  | .ZZB | 110.00 | 200.00 |   10.00 |
-  | .ZZC |      0 | 300.00 |       0 |
+  | id   | r      | usd     | rewards |
+  | ctty | -15.00 | 1000.00 |       - |
+  | .ZZA | -95.00 |  100.00 |    5.00 |
+  | .ZZB | 110.00 |  200.00 |   10.00 |
+  | .ZZC |      0 |  300.00 |       0 |
 #  When cron runs ""
 #  Then balances:
 #  | id   | r      | usd    | rewards |

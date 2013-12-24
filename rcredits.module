@@ -221,11 +221,11 @@ function bs($n) {
   return $result;
 } // keep here
 
-function tm($n) {return date('m-d-Y H:i:s a', $n);}
-function aa($id = 'ZZA') {global $lastA; return $lastA = r\acct(strtoupper(strlen($id) == 3 ? 'NEW.' . $id : $id));}
-function us($a = '') {global $lastA; return new r\usd($a ? (is_object($a) ? $a : aa($a)) : $lastA);}
-function daa($idfield) {list ($id, $field) = u\ray($idfield); debug(aa($id)->$field);}
-function step($a) {debug(us($a)->step());}
+/**/ function tm($n) {debug($result = date('m-d-Y H:i:s a', $n)); return $result;}
+function a($id = 'ZZA') {global $lastA; return $lastA = r\acct(strtoupper(strlen($id) == 3 ? 'NEW.' . $id : $id));}
+function us($a = '') {global $lastA; return new r\usd($a ? (is_object($a) ? $a : a($a)) : $lastA);}
+/**/ function da($idfield) {list ($id, $field) = u\ray($idfield); debug(a($id)->$field);}
+/**/ function step($a) {debug(us($a)->step());}
 
 /**
  * Show the function result in the debug window and return the result.

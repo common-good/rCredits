@@ -266,4 +266,33 @@ class rwebMembership extends DrupalWebTestCase {
     And__('with done "2"');
   }
 
+  // Scenario: A member company types the wrong account info (name, ein, or business structure)
+  public function testAMemberCompanyTypesTheWrongAccountInfonameEinOrBusinessStructure_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('members have: "DATA'
+    . '\\| id   | federalId |'
+    . '\\| .ZZC | 999999999 |"');
+    And__('member ".ZZC" chose to verify phone by "Voice"');
+    When_('member ".ZZC" visits page "status"');
+    Then_('member ".ZZC" is on step "Phone" within 30 seconds');
+    When_('member ".ZZC" visits page "status"');
+    Then_('we show "Verify Phone"');
+    When_('member ".ZZC" confirms form "account/verify-phone" with values: "DATA'
+    . '\\| code  |'
+    . '\\| 99999 |"');
+    Then_('we show "Contact Information"');
+    Given('members have: "DATA'
+    . '\\| id   | address | postalAddr        | state |'
+    . '\\| .ZZC | 3 C St. | 3 C St., CA 03000 | CA    |"');
+    When_('member ".ZZC" visits page "status"');
+    And__('member ".ZZC" visits page "status"');
+    Then_('we show "Retry Verification"');
+    And__('we say "error": "redo info"');
+    When_('member ".ZZC" confirms form "account/basic" with values: "DATA'
+    . '\\| org          | federalId   | acctType       |'
+    . '\\| Corner Store | 001-01-0001 | CO_PARTNERSHIP |"');
+    Then_('we show "You\'re getting there"');
+    And__('with done "2"');
+  }
+
 }

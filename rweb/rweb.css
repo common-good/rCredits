@@ -468,11 +468,12 @@ form.rweb  .form-no {color:red;}
 
 /*#rcreditswebformrelations {max-width:800px;} */
 #rcreditswebformrelations .rel-person {width:auto;}
-#rcreditswebformrelations .rel-employer {width:15%;}
-#rcreditswebformrelations .rel-employee {width:15.5%;}
-#rcreditswebformrelations .rel-owner {width:13%;}
+#rcreditswebformrelations .rel-draw {width:68px;}
+#rcreditswebformrelations .rel-employer {width:auto;}
+#rcreditswebformrelations .rel-employee {width:120px;}
+#rcreditswebformrelations .rel-owner {width:68px;}
 #rcreditswebformrelations .rel-permission {width:18%;}
-#rcreditswebformrelations .rel-link {width:4%;}
+#rcreditswebformrelations .rel-link {width:auto;}
 #rcreditswebformrelations .highlight input {background-image:url(../images/icons/buttons-highlight.png);}
 
 /* Open Another Account form */

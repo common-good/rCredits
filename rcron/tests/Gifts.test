@@ -62,6 +62,7 @@ class rcronGifts extends DrupalWebTestCase {
     Given('gifts: "DATA'
     . '\\| id   | giftDate   | amount | often | honor  | honored | share | completed |'
     . '\\| .ZZA | %yesterday |     10 |     1 | memory | Jane Do |    10 |         0 |"');
+    And__('next DO code is "whatever"');
     When_('cron runs "gifts"');
     Then_('transactions: "DATA'
     . '\\| xid   | created | type     | state | amount | from      | to      | purpose      | r    |'
@@ -72,8 +73,8 @@ class rcronGifts extends DrupalWebTestCase {
     . '\\| id   | giftDate   | amount | often | honor  | honored | share | completed |'
     . '\\| .ZZA | %yesterday |     10 |     1 | memory | Jane Do |    10 | %today    |"');
     And__('we notice "new payment|reward other" to member "cgf" with subs: "DATA'
-    . '\\| otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |'
-    . '\\| Abe One   |    $10 | contribution | reward          |                $1 |"');
+    . '\\| otherName  | amount | payeePurpose | otherRewardType | otherRewardAmount |'
+    . '\\| <a href=\'\'do/id=1&code=whatever\'\'>Abe One</a> | $10 | contribution | reward | $1 |"');
     And__('we notice "gift sent" to member ".ZZA" with subs: "DATA'
     . '\\| amount | rewardAmount |'
     . '\\|    $10 |        $0.50 |"');
@@ -88,6 +89,7 @@ class rcronGifts extends DrupalWebTestCase {
     Given('gifts: "DATA'
     . '\\| id   | giftDate   | amount | often | honor  | honored | share | completed |'
     . '\\| .ZZA | %yesterday |     10 |     Q | memory | Jane Do |    10 |         0 |"');
+    And__('next DO code is "whatever"');
     When_('cron runs "gifts"');
     Then_('transactions: "DATA'
     . '\\| xid   | created | type     | state | amount | from      | to      | purpose      | r    |'
@@ -100,7 +102,7 @@ class rcronGifts extends DrupalWebTestCase {
     . '\\| .ZZA | %yesterday+3m |     10 |     Q |        |         |         0 |"');
     And__('we notice "new payment|reward other" to member "cgf" with subs: "DATA'
     . '\\| otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |'
-    . '\\| Abe One   |    $10 | contribution | reward          |                $1 |"');
+    . '\\| <a href=\'\'do/id=1&code=whatever\'\'>Abe One</a> | $10 | contribution | reward | $1 |"');
     And__('we tell staff "gift accepted" with subs: "DATA'
     . '\\| amount | myName  | often | rewardType |'
     . '\\|     10 | Abe One |     Q | reward     |"');

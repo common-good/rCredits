@@ -73,7 +73,7 @@ function members($list) {return t\members($list);}
  *     Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank MAKE
  *     Gifts Setup MAKE
  *     Homogenize Setup MAKE
- *     Homogenize NormalLevelingHappens TEST
+ *     Homogenize LevelingHappens TEST
  *     IncompleteUsdTxs Setup BOTH
  *     IncompleteUsdTxs ADwollaOutageLeavesATransactionIncomplete TEST
  *     Inflation Setup TEST
@@ -97,7 +97,7 @@ function balances($list) {return t\balances($list);}
  *     Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank MAKE
  *     Gifts AContributionCanBeCompleted MAKE
  *     Gifts ARecurringContributionCanBeCompleted MAKE
- *     Homogenize NormalLevelingHappens MAKE
+ *     Homogenize LevelingHappens MAKE
  *     IncompleteUsdTxs ADwollaOutageLeavesATransactionIncomplete MAKE
  *     Inflation InflationAdjustmentsAreDistributed MAKE
  *     LostUsdTxs ASystemCrashLeavesATransactionIncomplete MAKE
@@ -306,7 +306,8 @@ function usdTransferCountIs($count) {return (t\usdTransferCount() == $count);}
 /**
  * next DO code is (ARG)
  *
- * in: 
+ * in: Gifts AContributionCanBeCompleted MAKE
+ *     Gifts ARecurringContributionCanBeCompleted MAKE
  */
 function nextDOCodeIs($code) {
   global $testOnly; if ($testOnly) return FALSE;
