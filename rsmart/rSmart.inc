@@ -22,8 +22,9 @@ use rCredits\Testing as t;
  * agent    the already-scanned-in agent's agent ID (for example NEW:AAB) -- empty if none yet
  *
  * REQUESTS:
- * identify:	[member, code] => [ok, message, logon="1", name, descriptions[], can, device, agent, update]
- * identify:	[member, code] => [ok, message, logon="0", name, place, company, balance]
+ * identify:	[member, code] 
+ *    => [ok, message, logon="1", name, descriptions[], can, device, default, company, update]
+ *    => [ok, message, logon="0", name, place, company, balance]
  * photo:	[member] => photo
  * charge:	[member, amount, goods, description] => [ok, message, tx, balance, undo]
  * undo:	[tx] => [ok, message, balance]
@@ -49,6 +50,7 @@ $GLOBALS[TX_SMART . ' messages'] = array(
   'customer balance' => t("Customer: @name\n\nBalance: @balance@spendable\nTradable for cash: @cashable"),
   'report exchange' => t("You @did @otherName @amount in exchange for cash."),
   'just did' => t("\n\nWe just @did @amount@forCash."),
+  'unknown device' => t('This device is not recognized. You must scan yourself in (at least once) before charging a customer.'),
 );
 
 /**
@@ -62,7 +64,6 @@ $GLOBALS[TX_SMART . ' messages'] = array(
 function pos($args = FALSE) {
   global $channel; $channel = TX_SMART;
   global $mya;
-  global $devHdr; $devHdr = t('POS Device #');
   
   if (!$args) $args = $_POST;
   u\loga('in', $args);
@@ -72,19 +73,11 @@ function pos($args = FALSE) {
   if (!$mya = getAgent($agent ?: $member, $err)) return posErr($err); // set "current" account for internals
 
   if (@$device) { // device was specified, substitute its record id, herein
-    if (!$deviceId = getDevice($device, $mya->id)) {
-      if ($op == 'identify' and !@$agent) { // use this device for a new company (only if identifying agent)
-        if (FALSE) { // should be if(!isPRODUCTION) {
-          $restricted = db\lookup('restricted', 'r_boxes', 'code=:device', compact('device')); // 1 or 0
-          if (@$restricted === FALSE) return posErr('unknown device');
-          if ($restricted) return posErr('restricted');
-        }
-        r\makeDevice($mya->id, $devHdr, $device);
-      } else return posErr('unknown device');
+    if ($deviceId = getDevice($device, $mya->id)) {
       $edit = u\ray('id access', $deviceId, REQUEST_TIME);
       db\update('r_boxes', $edit, 'id'); // remember time last accessed so we can drop the deadwood
-    } 
-  } elseif ($op != 'identify' or @$agent) return posErr('missing device');
+    } elseif ($op != 'identify') return posErr('unknown device');
+  } elseif (@$agent or $op != 'identify') return posErr('missing device');
   
   $op = 'rCredits\\Smart\\' . $op;
   return $op($args);
@@ -124,7 +117,7 @@ function posErr($message, $subs = array()) {
  * @params assoc $args:
  *   agent: agent ID of current agent -- empty if none yet
  *   device: a unique device ID
- *   member: account ID of customer or new agent ("default" to identify default agent)
+ *   member: account ID of customer or new agent
  * @return json:
  *   logon: 1 if the app's operator is scanning himself or herself in, else 0
  *   device: a unique device identifier (if none passed)
@@ -134,54 +127,57 @@ function posErr($message, $subs = array()) {
  *   balance: a message stating the customer's current balance
  *   descriptions: array of the agent's company's most common charge descriptions (most popular first)
  *   can: bit permissions -- what the agent can do
- *   agent: the default agent (if the member passed is "default")
+ *   default: the default agent (empty if none allowed)
+ *   company: the agent's company account ID
  *   update: URI of updated software package (if current version warrants)
  * device, descriptions, can, and update are returned only if scanning in (logon is true)
  */
 function identify($args) {
   global $mya;
-  global $devHdr;
   if ($err = missingArg($keys = 'version device member code', $args)) return posErr($err); // no agent on scanin
   extract(u\just($keys . ' agent', $args));
 
-  $dftA = ($member == 'default');
-  $a = @$agent ? getCustomer(@$member, $err) : ($dftA ? getDftAgent($device, $err) : getAgent(@$member, $err));
-  if (!$a) return posErr($err);
-//  $name .= " ($member)"; // debug
+  if (!$a = @$agent ? getCustomer(@$member, $err) : $mya) return posErr($err);
 
   if (@$agent) {
     if ($agent == $member) return posErr('already scanned in');
     $logon = ($a->id == $mya->id) ? "1" : "0"; // changing to another agent for the same company?
-    //if ($logon == "0") die(print_r(compact(u\ray('args agent member a mya')), 1));
   } else $logon = "1";
-
 
   $cardCode = $a->agent->secure[$a->proSe() ? 'cardCode' : 'cardCode2'];
   if (isDEV and $code == 'zot') $cardCode = $code; // for debugging
+  if (@$device) $deviceId = getDevice($device, $mya->id);
 
   if (@$logon) { //  identifying agent
-    if ($a->proSe()) return posErr('scan in first');
-    if (!$dftA and $code != $cardCode) return posErr('bad agent');
+    if ($a->proSe() and (!$a->co() or $a->coCan(CO_REQUIRE_CASHIER))) return posErr('scan in first');
+    if ($code != $cardCode) return posErr('bad agent');
     if (!$a->can(B_SCAN)) return posErr('agent cannot scan');
+    if (!@$deviceId) {
+      if ($owner = db\lookup('uid', 'r_boxes', 'code=:device', compact('device')) and !r\acct($owner)->coCan(CO_REQUIRE_CASHIER)) return posErr('restricted');
+      r\makeDevice($a->id, $device); // card is legit, so use device's code, if any (maybe from STAGE)
+    }
+/*  $restricted = db\lookup('restricted', 'r_boxes', 'code=:device', compact('device')); // 1 or 0
+    if (@$restricted === FALSE) return posErr('unknown device');
+    if ($restricted) return posErr('restricted'); */
+
     $descriptions = explode("\n", $a->selling) ?: array('?');
-    //$can = $a->can(B_BUY) ? 0b11111 : 0; // pass all permission for now
-    $can = $a->coCan();
-    if ($dft or !$a->can(B_BUY)) $can &= ~(CO_REFUND | CO_SELL_CASH | CO_BUY_CASH); // turn off permissions
+    $can = $a->can(B_BUY) ? $a->coCan() >> CO_CANS : 0;
+    $default = $a->coCan(CO_REQUIRE_CASHIER) ? '' : $a->mainQid;
+    $company = $a->fullName;
     
     if ($version + 0 < RPOS_VERSION) $update = substr($version, 0, 1) == '0' ? RPOS_FILENAMEB : RPOS_FILENAME;
-    if (!@$device) $device = r\makeDevice($a->id, $devHdr);
-    //return posErr("version:$version v=".RPOS_VERSION." update=$update");
   } else { // identifying customer
     if ($code != $cardCode) return posErr('bad member');
+    if (!@$deviceId) return posErr('unknown device'); // tried to scan a customer card before very first agent scan-in
     $company = $a->proSe() ? "" : $a->fullName;
     $place = r\location($a);
     $balance = getBalance($a);
-    unset($device);
+    unset($device); // don't pass it back
   }
 
   $name = $a->agent->fullName;
   
-  return ok(compact(u\ray('logon device name place company balance descriptions can update')));
+  return ok(compact(u\ray('logon device name place company balance descriptions can default update')));
 }
 
 /*
@@ -279,7 +275,7 @@ function undo($args) {
   $id = db\lookup('IF(payer=:myid, payee, payer)', 'r_txs', 'xid=:tx', compact('myid', 'tx'));
   $balance = getBalance(r\acct($id)); // get customer balance
   $message = u\tt($msg, $subs);
-// (no undo of an undo)  $undo = u\tt('confirm undo', $subs);
+/// (no undo of an undo)  $undo = u\tt('confirm undo', $subs);
   return ok(compact(u\ray('message balance')));
 }
 
@@ -288,17 +284,6 @@ function undo($args) {
  */
 function missingArg($expected, $args) {
   foreach (u\ray($expected) as $one) if (!isset($args[$one])) return "missing $one";
-}
-
-/**
- * Return the default agent's acct (that is, the company acting pro se).
- * @param string $device: the unique device code
- * @param string $err: (returned) error message, if any
- * @return: the agent's acct object (false if error)
- */
-function getDftAgent($device, &$err) {
-  if (!$uid = db\lookup('uid', 'r_boxes', 'code=:device', compact('device'))) return !$err = 'bad device';
-  return getAgent($uid, $err);
 }
 
 /**

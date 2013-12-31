@@ -88,24 +88,16 @@ function relations($relations) {return t\relations($relations);}
 function transactions($list) {return t\transactions($list);}
 
 /**
- * member (ARG) has initialized a device whose code is (ARG)
- *
- * in: 
- */
-function memberHasInitializedADeviceWhoseCodeIs($id, $code) {
-  global $testOnly; if ($testOnly) return FALSE;
-  return r\Smart\makeDevice(t('Test Device'), r\acct($id), $code);
-}
-
-/**
  * agent (ARG) asks device (ARG) to identify (ARG)
  *
  * in: Identify ACashierSignsIn MAKE
+ *     Identify ACashierSignsInAsRequired MAKE
  *     Identify DeviceHasNoIdentifierYet MAKE
  *     Identify DeviceShouldHaveAnIdentifier MAKE
  *     Identify ACashierSignsInSigningAnotherCashierOut MAKE
  *     Identify AManagerSignsIn MAKE
  *     Identify ACashierScansACustomerCard MAKE
+ *     Identify TheDefaultCashierScansACustomerCard MAKE
  *     Identify AnUnauthorizedCashierScansIn MAKE
  *     Identify ACashierScansACustomerCardBeforeSigningIn MAKE
  *     Identify ACashierAsksUsToIdentifyTheCashiersOwnCard MAKE
@@ -124,10 +116,12 @@ function agentAsksDeviceToIdentify($agent, $device, $qr) {
  * we respond with: (ARG)
  *
  * in: Identify ACashierSignsIn TEST
+ *     Identify ACashierSignsInAsRequired TEST
  *     Identify DeviceHasNoIdentifierYet TEST
  *     Identify ACashierSignsInSigningAnotherCashierOut TEST
  *     Identify AManagerSignsIn TEST
  *     Identify ACashierScansACustomerCard TEST
+ *     Identify TheDefaultCashierScansACustomerCard TEST
  *     Identify ACashierScansACustomerCardWhoseBalanceIsSecret TEST
  *     Identify ACashierScansACompanyCustomerCard TEST
  */
@@ -139,7 +133,7 @@ function weRespondWith($args) {
     if ($key == 'descriptions') $value = u\ray($value);
     if ($key == 'can') {
       $flags = 0;
-      if ($value) foreach (u\ray($value) as $one) $flags |= u\bit(u\consta('co', $one));
+      if ($value) foreach (u\ray($value) as $one) $flags |= (u\bit(u\consta('co', $one)) >> CO_CANS);
       $value = $flags;
     }
     if ($key == 'device' and $value == '?' and $rposResult[$key]) continue; // any value will do for new dev
@@ -207,7 +201,7 @@ function memberHasNoPicture($id) {
  */
 function devices($list) {
   global $testOnly; if ($testOnly) return FALSE;
-  foreach ($list as $one) if (!r\makeDevice(t\uid($one['id']), 'POS testdevice #', $one['code'])) return FALSE;
+  foreach ($list as $one) if (!r\makeDevice(t\uid($one['id']), $one['code'])) return FALSE;
   return TRUE;
 }
 
@@ -228,6 +222,18 @@ function balances($list) {return t\balances($list);}
  *
  * in: Exchange ACashierAsksToChargeSomeoneForCash MAKE
  *     Exchange ACashierAsksToRefundSomeone MAKE
+ *     Exchange ACashierAsksToChargeAnotherMemberWithInsufficientBalance MAKE
+ *     Exchange ACashierAsksToRefundAnotherMemberWithInsufficientBalance MAKE
+ *     Exchange ACashierAsksToPaySelf MAKE
+ *     Exchange DeviceGivesNoMemberId MAKE
+ *     Exchange DeviceGivesBadAccountId MAKE
+ *     Exchange DeviceGivesNoAmount MAKE
+ *     Exchange DeviceGivesBadAmount MAKE
+ *     Exchange DeviceGivesTooBigAnAmount MAKE
+ *     Exchange DeviceGivesNoPurposeForGoodsAndServices MAKE
+ *     Exchange SellerAgentLacksPermissionToBuy MAKE
+ *     Exchange SellerAgentLacksPermissionToScanAndSell MAKE
+ *     Exchange BuyerAgentLacksPermissionToBuy MAKE
  *     Transact ACashierAsksToChargeSomeone MAKE
  *     Transact ACashierAsksToRefundSomeone MAKE
  *     Transact ACashierAsksToChargeAnotherMemberWithInsufficientBalance MAKE
@@ -333,6 +339,7 @@ function weRespondOkWithSubs($msg, $subs) {return weRespondOkWithTxAndMessageWit
  * in: Exchange ACashierAsksToChargeSomeoneForCash TEST
  *     Exchange ACashierAsksToRefundSomeone TEST
  *     Identify ACashierScansACustomerCard TEST
+ *     Identify TheDefaultCashierScansACustomerCard TEST
  *     Identify ACashierScansACustomerCardWhoseBalanceIsSecret TEST
  *     Identify ACashierScansACompanyCustomerCard TEST
  *     Transact ACashierAsksToChargeSomeone TEST
@@ -380,7 +387,10 @@ function withUndo($subs) {
 /**
  * we return error (ARG) with subs: (ARG)
  *
- * in: Identify ANonyetactiveMemberCardIsScanned TEST
+ * in: Exchange ACashierAsksToChargeAnotherMemberWithInsufficientBalance TEST
+ *     Exchange ACashierAsksToRefundAnotherMemberWithInsufficientBalance TEST
+ *     Exchange BuyerAgentLacksPermissionToBuy TEST
+ *     Identify ANonyetactiveMemberCardIsScanned TEST
  *     Transact ACashierAsksToChargeAnotherMemberWithInsufficientBalance TEST
  *     Transact ACashierAsksToRefundAnotherMemberWithInsufficientBalance TEST
  *     Transact BuyerAgentLacksPermissionToBuy TEST
@@ -396,7 +406,16 @@ function weReturnErrorWithSubs($msg, $subs) {
 /**
  * we return error (ARG)
  *
- * in: Identify DeviceShouldHaveAnIdentifier TEST
+ * in: Exchange ACashierAsksToPaySelf TEST
+ *     Exchange DeviceGivesNoMemberId TEST
+ *     Exchange DeviceGivesBadAccountId TEST
+ *     Exchange DeviceGivesNoAmount TEST
+ *     Exchange DeviceGivesBadAmount TEST
+ *     Exchange DeviceGivesTooBigAnAmount TEST
+ *     Exchange DeviceGivesNoPurposeForGoodsAndServices TEST
+ *     Exchange SellerAgentLacksPermissionToBuy TEST
+ *     Exchange SellerAgentLacksPermissionToScanAndSell TEST
+ *     Identify DeviceShouldHaveAnIdentifier TEST
  *     Identify AnUnauthorizedCashierScansIn TEST
  *     Identify ACashierScansACustomerCardBeforeSigningIn TEST
  *     Identify ACashierAsksUsToIdentifyTheCashiersOwnCard TEST
@@ -435,6 +454,7 @@ function selling($selling) {return t\selling($selling);}
  *
  * in: Exchange Setup MAKE
  *     Identify Setup MAKE
+ *     Identify ACashierSignsInAsRequired MAKE
  *     Transact Setup MAKE
  *     Undo Setup MAKE
  */

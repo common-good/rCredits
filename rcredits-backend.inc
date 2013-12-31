@@ -514,7 +514,7 @@ function addCell($number, $validate = FALSE) {
   }
   
   //$status = SMS_PRIMARY;
-  r\makeDevice($myid, '', $numberInternal);
+  r\makeDevice($myid, $numberInternal);
   if (!$mya->phone) $mya->update(u\ray('phone', $numberInternal)); // use it as contact phone, if none yet
   return array('report new cell', u\ray('number', $numberPretty));
 }

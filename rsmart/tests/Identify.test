@@ -85,8 +85,20 @@ class rsmartIdentify extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('agent "" asks device "devC" to identify "ZZB-ccB2"');
     Then_('we respond with: "DATA'
-    . '\\| ok | name    | logon | descriptions    | can |'
-    . '\\| 1  | Bea Two | 1     | this,that,other |     |"');
+    . '\\| ok | name    | logon | descriptions    | can | default | company    |'
+    . '\\| 1  | Bea Two | 1     | this,that,other |     | NEW.ZZC | Corner Pub |"');
+  }
+
+  // Scenario: a cashier signs in as required
+  public function testACashierSignsInAsRequired_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('company flags: "DATA'
+    . '\\| id   | flags                            |'
+    . '\\| .ZZC | refund,sell cash,require cashier |"');
+    When_('agent "" asks device "devC" to identify "ZZB-ccB2"');
+    Then_('we respond with: "DATA'
+    . '\\| ok | name    | logon | descriptions    | can | default | company    |'
+    . '\\| 1  | Bea Two | 1     | this,that,other |     |         | Corner Pub |"');
   }
 
   // Scenario: Device has no identifier yet
@@ -94,8 +106,8 @@ class rsmartIdentify extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('agent "" asks device "" to identify "ZZB-ccB2"');
     Then_('we respond with: "DATA'
-    . '\\| ok | name    | logon | descriptions    | can | device |'
-    . '\\| 1  | Bea Two | 1     | this,that,other |     | ?      |"');
+    . '\\| ok | name    | logon | descriptions    | can | device | default | company    |'
+    . '\\| 1  | Bea Two | 1     | this,that,other |     | ?      | NEW.ZZC | Corner Pub |"');
   }
 
   // Scenario: Device should have an identifier
@@ -110,8 +122,8 @@ class rsmartIdentify extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('agent ":ZZA" asks device "devC" to identify "ZZB-ccB2"');
     Then_('we respond with: "DATA'
-    . '\\| ok | name    | logon | descriptions    | can |'
-    . '\\| 1  | Bea Two | 1     | this,that,other |     |"');
+    . '\\| ok | name    | logon | descriptions    | can | default | company    |'
+    . '\\| 1  | Bea Two | 1     | this,that,other |     | NEW.ZZC | Corner Pub |"');
   }
 
   // Scenario: a manager signs in
@@ -119,14 +131,26 @@ class rsmartIdentify extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('agent "" asks device "devC" to identify "ZZA-ccA2"');
     Then_('we respond with: "DATA'
-    . '\\| ok | name    | logon | descriptions    | can              |'
-    . '\\| 1  | Abe One | 1     | this,that,other | refund,sell cash |"');
+    . '\\| ok | name    | logon | descriptions    | can              | default | company    |'
+    . '\\| 1  | Abe One | 1     | this,that,other | refund,sell cash | NEW.ZZC | Corner Pub |"');
   }
 
   // Scenario: a cashier scans a customer card
   public function testACashierScansACustomerCard_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('agent ":ZZB" asks device "devC" to identify "ZZD.ccD"');
+    Then_('we respond with: "DATA'
+    . '\\| ok | name     | place     | company | logon |'
+    . '\\| 1  | Dee Four | Dtown, DE |         | 0     |"');
+    And__('with balance "DATA'
+    . '\\| name     | balance | spendable | cashable |'
+    . '\\| Dee Four | $250    |           | $0       |"');
+  }
+
+  // Scenario: the default cashier scans a customer card
+  public function testTheDefaultCashierScansACustomerCard_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('agent ".ZZC" asks device "devC" to identify "ZZD.ccD"');
     Then_('we respond with: "DATA'
     . '\\| ok | name     | place     | company | logon |'
     . '\\| 1  | Dee Four | Dtown, DE |         | 0     |"');

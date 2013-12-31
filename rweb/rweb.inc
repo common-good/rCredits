@@ -2341,15 +2341,16 @@ function formBoxes($form, &$sta) {
     return $form;
   }
 
-  $headers = array('#', 'Device name', 'Restrict?', 'Last used');
+  $headers = array('#', 'Device name', 'Last used');
 
-  $sql = "SELECT boxid, code, boxName, restricted, access FROM r_boxes WHERE uid=:myid ORDER BY boxid";
+  $sql = "SELECT boxid, code, boxName, access FROM r_boxes WHERE uid=:myid ORDER BY boxid";
   $result = db\q($sql, compact('myid'));
   $list = array();
   while ($row = $result->fetchAssoc()) {
     extract($row);
-    //$deviceId = u\fmtPhone($code) ?: $code ? 'POS device' : 'computer'; 
-    $list["x$boxid"] = array($boxid, $boxName, $restricted ? 'Yes' : 'No', u\fmtDate($access));
+    if (is_numeric($boxName)) $boxName = ($code ? t('POS Device #') : t('Computer #')) . $boxName;
+//    $list["x$boxid"] = array($boxid, $boxName, $restricted ? 'Yes' : 'No', u\fmtDate($access));
+    $list["x$boxid"] = array($boxid, $boxName, u\fmtDate($access));
   }
 
   unset($sta['input']['new']); // don't show number just added
@@ -2620,8 +2621,8 @@ EOF;
     'categories' => formField('select', t('Categories:'), t('Hold down the Ctrl key to select more than one'), $multiple + dft($myCats), $cats),
     'selling' => formField('textarea', t('Selling:'), t('Enter one or more transaction descriptions for when you make a sale &mdash; one line for each. Put the most common one first.'), required($mya->selling)),
     'can2' => boxesField('can', t('Manager can:'), t('What can company agents do at the POS, when they have "buy" permission?'), $coCanDfts, $cans),
-    'shareRpos' => boolField(t('Share rPOS:'), t('Allow other companies to use our POS device(s).'), dft($mya->coCan(CO_SHARE_RPOS) ?: 0)),
-    'requireCashier' => boolField(t('Must scan in:'), t('Require a cashier to sign in before using rPOS.'), dft($mya->coCan(CO_REQUIRE_CASHIER) ?: 0)),
+//    'shareRpos' => boolField(t('Share rPOS:'), t('Allow other companies to use our POS device(s).'), dft($mya->coCan(CO_SHARE_RPOS) ?: 0)),
+    'requireCashier' => boolField(t('Must scan in:'), t('Require a cashier to sign in before using rPOS (this also allows you to share the device with another company).'), dft($mya->coCan(CO_REQUIRE_CASHIER) ?: 0)),
     'website' => textField(t('Website(s):'), t('Especially if you want to accept payments on your website, be sure to list it here.'), dft($mya->website)),
     'descPreface' => item(t('<br>What does this company do? The description you enter below will appear on your rCredits web page.')),
     'description' => formField('text_format', t('Description:'), '', $filtered_html + dft($mya->description)),
@@ -2645,13 +2646,12 @@ function formCompany_validate($form, &$sta) {
 function formCompany_submit($form, &$sta) {
   $mya = r\acct();
   $id = $mya->id;
-  extract(u\just('description website selling categories can shareRpos requireCashier', u\trimAll($sta['input'])));
+  extract(u\just('description website selling categories can requireCashier', u\trimAll($sta['input'])));
 //  $description = \check_markup($description['value']);
   $description = @$description['value'];
   $website = str_ireplace('http://', '', @$website);
 
   $mya->setBits(CO_CAN_BIT_DESCS, $can, 'co');
-  $mya->setCoBit(CO_SHARE_RPOS, @$shareRpos);
   $mya->setCoBit(CO_REQUIRE_CASHIER, @$requireCashier);
   $mya->update(compact(u\ray('description website selling')));
   

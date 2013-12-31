@@ -353,11 +353,18 @@ function box() {
   return r\setCook('box', $box);
 }
 
+/**
+ * Return the box record id for the given boxid and account id.
+ * @param int $boxid: machine identifier
+ */
 function boxUser($boxid, $uid) {
-  if ($boxUser = @$_COOKIE[$cookid = 'box' . $uid]) return $boxUser;
-  $boxName = db\lookup('COUNT(*)', 'r_boxes', 'uid=:uid', compact('uid'));
-  $id = db\insert('r_boxes', u\ray('boxid uid boxName created', $boxid, $uid, $boxName + 1, REQUEST_TIME));
+  if ($id = @$_COOKIE[$cookid = 'box' . $uid]) {
+    if (db\exists('r_boxes', 'id=:id AND boxid=:boxid AND uid=:uid', compact(u\ray('id boxid uid')))) return $id;
+    debug(compact('boxid','uid','id'));
+  }
+  $id = r\makeDevice($uid, $zot, '0', $boxid);
   r\setCook($cookid, $id);
+  return $id;
 }
 
 function setupGlobals($agent = '') {

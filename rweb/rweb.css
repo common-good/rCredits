@@ -485,7 +485,7 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformanother .form-type-radio {margin-left:0px;}
 #rcreditswebformanother #edit-submit {margin-top:20px;}
 
-/* Boxes Cell */
+/* Boxes Cell (Devices) */
 #rcreditswebformboxes input#edit-delete {margin-right:100%;}
 #rcreditswebformboxes table.table-select-processed {max-width:500px;}
 #rcreditswebformboxes .form-type-checkbox input {position:relative; left:0;}

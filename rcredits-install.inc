@@ -134,7 +134,7 @@ function tableDefs($schema = array()) {
     'boxName' => setupField('chosen name for this machine, for this account', 'varchar 255'),
     'todo' => setupField('waiting for confirmation to complete this operation', 'text medium'),
     'nonce' => setupField('waiting for this nonce, for confirmation', 'varchar 255'), // also transient QR ID
-    'restricted' => setupField('permit no new users of this device', 'int tiny', 0),
+//    'restricted' => setupField('permit no new users of this device', 'int tiny', 0),
     'access' => setupField('date/time last used', 'int 11', 0), // to trigger deletion after several months
     'created' => setupField('Unixtime record was created', 'int 11', 0),
   );

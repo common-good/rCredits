@@ -602,6 +602,22 @@ function seeAssoc($info) {
 }
 
 /**
+ * Return the first unused id.
+ * @param string $key: name of field to search
+ * @param string $table: table name
+ * @param int $starting: lowest id to use (defaults to 1)
+ * @param int $before: first id not to use (if any)
+ * @param string $where: other criteria
+ * @param assoc $subs: substitutions for the other criteria
+ * @return: the id (null if none available)
+ */
+function firstUnusedId($key, $table, $starting = 1, $before = PHP_INT_MAX, $where0 = '1', $subs = array()) {
+  $where = "$where0 AND t1.$key>=$starting AND t1.$key <$before AND t2.$key IS NULL ORDER BY t1.$key";
+  $prev = db\lookup("t1.$key", "$table t1 LEFT JOIN $table t2 ON t2.$key=(t1.$key+1)", $where, $subs);
+  return $prev ? ($prev + 1) : (db\exists("$table t1", "$where0 AND t1.$key=$starting", $subs) ? NULL : $starting);
+}
+ 
+/**
  * Normalize an image file to the given aspect
  * @param string $filename: path of file to normalize (file will be replaced)
  * @param string $aspect: the desired width:height ratio

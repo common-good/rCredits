@@ -301,7 +301,7 @@ function create($number, $uid, $status = SMS_PRIMARY) {
   u\EXPECT(compact(u\ray('number uid status')), 'string&notempty id int');
   $number = u\fmtPhone($number, '+n');
 ///  debug("creating SMS record for number $code, uid $uid");
-  return r\makeDevice($uid, '', $number);
+  return r\makeDevice($uid, $number);
 }
 
 /**

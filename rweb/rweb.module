@@ -83,7 +83,6 @@ function rweb_menu() {
     'request-employee-rcard' => r\Web\menu(t('Request Employee rCard'), MENU_CALLBACK, 'showForm', array('RequestRCard', 1), 'manage'),
     
     'I' => r\Web\menu('Scanned QR', MENU_CALLBACK, 'showForm', array('I'), '', $anyone),
-    //'change-account' => r\Web\menu('Change Account', MENU_CALLBACK, 'changeAccount', array(1), '', $anyone),
     'sms' => r\Web\menu('Test SMS', MENU_CALLBACK, 'showForm', array('SMS'), 'admin'),
 
     'account' => r\Web\menu(t('Account Settings'), MENU_CALLBACK, 'showForm', array('Contact'), 'manage'),

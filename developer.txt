@@ -39,19 +39,19 @@ print card and welcome materials, mail to new member (welcome includes reminder 
 . * separate invoices from r_txs (somewhat major change)
 . * hide advanced features on Transactions page (show either advanced or simple period selector, but not both)
 . * add a Pay button to member company rCredits webpage
-- * reduce picture size and make thumbnails (for upper right corner)
 - * detailed membership tests: New Pass, Photo, Agreement, Contribute, Proxies, Usd, proof of ID, Options
 
+. allow user to change box name (can change computer box name only if currently on that computer)
+- * reduce picture size and make thumbnails (for upper right corner)
 . signing agreement last does not activate "ready" status
 . allow people whose accounts cannot be verified to have an account anyway.
-. allow anonymous cashier cards for any company (no "create agent account" needed). App should default to starting up in that account and reverting to it on signout of manager UNLESS cashier signs out (only then allow other companies to sign in)
+. do not put exchanges of r for usd in r_txs -- delete them there. Use r_usd instead (maybe with an extra "exchange" field)
 . check and correct deposit/withdrawal status (and balance) when visiting bank tab
 . selecting a new account when site has timed out and signed the user out, should do something reasonable
 . implement two-factor signin
 . fix community page transaction list for admin
 . take B_BONA off region and add B_COMPANY
 . fix layout of member webpage (description gets jammed into narrow div)
-. do not put exchanges of r for usd in r_txs -- delete them there. Use r_usd instead (maybe with an extra "exchange" field)
 . send a statement to each member monthly. if it bounces, call, then shut down the account 7 days later (with a notice) and send a text immediately and/or US Mail pcard later, saying we need a new email address (with easy instructions for doing it, including what to do if they don't remember their password (first make an exchange of a certain amount of cash for rC at a member business, as an identity check?, then go online and use that as their temp pw)
 . doing bank step out of order gives Dwolla error "User must be verified." Handle it or forbid form until then.
 . when opening "another account", pass type (personal or company) to signup form

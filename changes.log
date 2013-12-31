@@ -1,3 +1,8 @@
+2013-12-31
+. rPOS now handles default cashier (defaults to the company pro se)
+. company permission to share rPOS with other companies is now implicit in CO_REQUIRE_CASHIER
+. revamped gap finder as firstUnusedId function, but it has problems still (need tests)
+
 2013-12-24
 . new non-member cashiers got uid ZZZ.AAA etc (should be NEW.whatever). fixed.
 . usd total is now cached for communities and regions (fixes a bug in pool in rcron)
@@ -16,6 +21,7 @@
 . now accepts photos in several formats (PNG etc)
 . verifyBy no longer defaults and is required
 . fixed bug: PIN "0000" didn't work
+. began changing rPOS interface to handle default cashiers
 
 2013-12-05
 . moved dwolla.php to rcredits folder

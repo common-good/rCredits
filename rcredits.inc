@@ -125,13 +125,14 @@ define('CO_CONSUMER_COOP', 6);
 define('CO_GOVERNMENT', 7);
 define('CO_PUBLICLY_TRADED', 8);
 
+define('CO_CANS', 15); // company permission bits
 define('CO_u15', 15);
 define('CO_REFUND', 16);
 define('CO_SELL_CASH', 17);
 define('CO_BUY_CASH', 18);
 define('CO_u19', 19);
-define('CO_SHARE_RPOS', 20); // allow other companies to use the company's rPOS devices
-define('CO_REQUIRE_CASHIER', 21); // prohibit anonymous use of rPOS devices
+define('CO_u20', 20);
+define('CO_REQUIRE_CASHIER', 21); // prohibit anonymous use of rPOS devices AND allow other companies to use
 
 define('CO_CAN_BIT_DESCS', 'u0,refund,sell cash,buy cash');
 
@@ -1132,23 +1133,32 @@ function passSalt($acct = '') {
   return compact('pass', 'salt');
 }
 
-function newUid($base) {
-  $where = 'u.uid>=:base and u.uid <:base+:R_REGION_MAX AND u2.uid IS NULL ORDER BY u.uid';
+/**
+ * Return the first unused uid for the given base.
+ * @param int $base: lowest uid to use (first slot in a region)
+ * @return: the uid
+ */
+function newUid($base) {return u\firstUnusedId('uid', 'users', $base, $base + R_REGION_MAX);}
+
+/*  $where = 'u.uid>=:base and u.uid <:base+:R_REGION_MAX AND u2.uid IS NULL ORDER BY u.uid';
   $previous = db\lookup('u.uid', 'users u LEFT JOIN users u2 ON u2.uid=(u.uid+1)', $where, compact('base'));
   return $previous ? ($previous + 1) : $base;
-}
-  
-/*
- * Get a permanent device code from the server.
+}*/
+
+/**
+ * Record the relation of a device with an account.
  * @param int $uid: record ID of related account
- * @param string $namePrefix: how the boxName should begin
- * @param string $code: phone # or device code (choose a random code if not specified)
+ * @param string $code: phone # or device code (choose and return a random code if not specified)
+ * @param string $boxName: what the user will call the box (0=pick a positive integer, ''=use the code)
+ * @param int $boxid: a sequential number for the device (computers only)
  * @return int: the device record ID
  */
-function makeDevice($uid, $namePrefix = '', $code = '') {
-  if ($code === '') $code = \user_password(20);
-  $boxid = @db\lookup('MAX(boxid)', 'r_boxes', 'uid=:uid', compact('uid')) + 1;
-  $boxName = $namePrefix ? $namePrefix . $boxid : $code; // code is boxName for cell phones
+function makeDevice($uid, &$code = '', $boxName = '', $boxid = NULL) {
+  if (@$code === '') $code = \user_password(20);
+  if ($boxName === '0') {
+    $where = "t1.boxName REGEXP '^[0-9]+$' AND t1.uid=:uid";
+    $boxName = u\firstUnusedId('boxName', 'r_boxes', 1, PHP_INT_MAX, $where, compact('uid'));
+  } elseif (!$boxName) $boxName = $code; // code serves as boxName for dumb cell phones
   $created = $access = REQUEST_TIME;
   $info = compact(u\ray('uid code boxid boxName access created'));
   return @db\insert('r_boxes', $info) ? $code : '';
