@@ -275,7 +275,7 @@ function undoTx($xid, $where = '1', $subs = array()) {
  * Create an offsetting transaction.
  */
 function reverse($xid, $amount, $acct, $data, $old_goods, $tid, $type, $otherTid) {
-//    print_r(compact(u\ray('xid amount acct data tid toMe'))); die();
+///    print_r(compact(u\ray('xid amount acct data tid toMe'))); die();
   u\EXPECT(compact(u\ray('xid amount acct data tid type otherTid')), 'id float acct assoc|empty string string id');
 
   if (!is_array($data)) $data = array();
@@ -514,7 +514,7 @@ function addCell($number, $validate = FALSE) {
   }
   
   //$status = SMS_PRIMARY;
-  r\makeDevice($myid, $numberInternal);
+  r\makeDevice($myid, $numberInternal, TX_SMS);
   if (!$mya->phone) $mya->update(u\ray('phone', $numberInternal)); // use it as contact phone, if none yet
   return array('report new cell', u\ray('number', $numberPretty));
 }
@@ -725,7 +725,7 @@ function getRecords($table, $criteria, $subs = array(), $fields = '*', $cache = 
 EOF;
   $db = 'devcore'; // @todo: get proper db name
   $key = db\q($sql, compact('table', 'db')); */
-//  if (!$cache) die('no cache getRecords');
+///  if (!$cache) die('no cache getRecords');
 //  echo " SELECT $fields FROM $table WHERE $criteria ";
   return db\q("SELECT $fields FROM $table WHERE $criteria", $subs)->fetchAll(); // fetchAll means fetchAllObject
 }

@@ -30,7 +30,7 @@ use rCredits\Testing as t;
  * undo:	[tx] => [ok, message, balance]
  */
 
-define('RPOS_VERSION', 10); // lastest POS app version available for download (this should match the versionCode in the app's manifest. upload and test the app first, before bumping the number up here.)
+define('RPOS_VERSION', 102); // lastest POS app version available for download (this should match the versionCode in the app's manifest. upload and test the app first, before bumping the number up here.)
 //define('RPOS_FILENAME', 'http://ws.rcredits.org/rPOS-' . rPOS_VERSION . '.apk');
 define('RPOS_FILENAME', 'http://rc4.me/rpos.apk');
 define('RPOS_FILENAMEB', 'http://rc4.me/rposb.apk'); // version for buggy front-camera-only machines
@@ -153,8 +153,10 @@ function identify($args) {
     if ($code != $cardCode) return posErr('bad agent');
     if (!$a->can(B_SCAN)) return posErr('agent cannot scan');
     if (!@$deviceId) {
-      if ($owner = db\lookup('uid', 'r_boxes', 'code=:device', compact('device')) and !r\acct($owner)->coCan(CO_REQUIRE_CASHIER)) return posErr('restricted');
-      r\makeDevice($a->id, $device); // card is legit, so use device's code, if any (maybe from STAGE)
+      if ($device) {
+        if ($owner = db\lookup('uid', 'r_boxes', 'code=:device', compact('device')) and !r\acct($owner)->coCan(CO_REQUIRE_CASHIER)) return posErr('restricted');
+      } else $device = \user_password(R_CODE_LEN);
+      r\makeDevice($a->id, $device, TX_SMART); // card is legit, so use device's code, if any (maybe from STAGE)
     }
 /*  $restricted = db\lookup('restricted', 'r_boxes', 'code=:device', compact('device')); // 1 or 0
     if (@$restricted === FALSE) return posErr('unknown device');
@@ -247,7 +249,6 @@ function charge($args, $type = 'charge') {
   $forCash = $goods ? '' : t(' for cash');
   if ($balance = getBalance($a)) $balance .= u\tt('just did', $subs + compact('forCash'));
   $tx = $subs['xid'];
-//  $message = print_r($subs, 1); // debug
   return ok(compact(u\ray('message tx balance undo')));
 }
 

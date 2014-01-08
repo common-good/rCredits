@@ -132,7 +132,7 @@ function eachTx($func = 'changeIt') {
  */
 function cobble($id, $federalId, $dob, $pin, $question = '', $answer = '') {
   if (!is_numeric($id) and strlen($id) == 3) $id = 'NEW.' . $id;
-  if (!$mya = r\acct($id)) return print_r('bad id');
+/**/ if (!$mya = r\acct($id)) return print_r('bad id');
   $secure = compact(u\ray('usdType pin')) + (@$mya->secure ?: array()); // secure includes more than these
 
   $federalId = str_replace('-', '', $federalId);
@@ -140,7 +140,7 @@ function cobble($id, $federalId, $dob, $pin, $question = '', $answer = '') {
   $usdType = 'Dwolla';
   $info = compact(u\ray('federalId dob question answer'));
   $mya->update($info + compact('secure'));
-  print_r(compact('id', 'pin') + $info);
+/**/  print_r(compact('id', 'pin') + $info);
   $us = new r\usd($mya);
   $us->getAuth();
 }
@@ -200,28 +200,6 @@ function changeIt($a) {
 //r\Cron\coverFee(compact('txid', 'payee'));
 
 /*
-function suUsd() {
-  return; // unused
-  $testUsdMin = DW_FEE_THRESHOLD;
-  $a = r\acct('NEW.AAA');
-  $us = new r\usd($a);
-  if (isDEV) {
-    t\clear(TX_WEB); // make sure the usdAccount is not used by anyone else
-    $a->update(u\ray('usdAccount', DW_TESTER_ACCT));
-    $us->getAuth();
-//  die('should not return to suUsd');
-  }
-  if (isPRODUCTION and $us->bal() < $testUsdMin) {
-    $cgf = r\acct('NEW.AAB');
-    $for = 'testing';
-    be\transfer('payment', $a, $cgf, $testUsdMin, $for);
-    be\transfer('payment', $cgf, $a, $testUsdMin, $for); // CGF sends back the whole amount in usd
-//  debug("$$testUsdMin traded with CGF");
-  }
-}
-*/
-
-/*
 https://rcredits.org:2083/cpsess4564554376/frontend/x3/mail/addfwd.html
 
 <form method="post" name="fwdf" id="fwdf" action="doaddfwd.html">
@@ -240,11 +218,18 @@ $us->rollback($list);
 
 */
 
+/**
+ * Re-setup the test cards on the STAGING server, after importing data from the PRODUCTION server.
+include __DIR__ . '/../rcredits/admin.inc';
+makeTestCards();
+ */
 function makeTestCards() {
   if (isPRODUCTION) return;
 
   $a = a('aab');
-  $a->update(u\ray('fullName', 'Corner Store'));
+  $selling = "groceries\ngifts\nsundries\ndeli\nbaked goods";
+  $a->update(u\ray('fullName selling', 'Corner Store', $selling));
+  $a->setCoBit(CO_REQUIRE_CASHIER, FALSE);
 
   $a = a('aaa');
   $a->update(u\ray('fullName', 'Bob Bossman'));
@@ -256,6 +241,7 @@ function makeTestCards() {
   
   $a = a('aaq');
   $a->update(u\ray('fullName', 'Helga\'s Hardware'));
+  $a->setCoBit(CO_REQUIRE_CASHIER, TRUE);
   
   $a = a('aak');
   $a->update(u\ray('fullName', 'Curt Customer'));
@@ -266,3 +252,25 @@ function makeTestCards() {
   $a->update(u\ray('fullName', 'Susan Shopper'));
   $a->upSecure('cardCode', 'ZzhWMCq0zcBowqw');
 }
+
+// transient
+/*function releaseEmails() {
+//  db\q('DELETE FROM r_invites WHERE id IN (6,37,55,67,77,137,150,165,177,190)'); //135,63,68,40
+  $result = db\q("SELECT * FROM r_invites WHERE id NOT IN (40,125) AND inviter NOT IN (:wws, :janet, :diane) AND subject!='' ORDER BY invited", u\ray('wws janet diane', r\acct('NEW.AAA')->id, r\acct('NEW.AAE')->id, 26742000000012));
+  while ($row = $result->fetchAssoc()) {
+    extract(u\just('id code email subject message inviter invited', $row));
+    $a = r\acct($inviter);
+    
+    $info = array(
+      'uid' => $a->id,
+      'noFrame' => TRUE,
+      'subject' => $subject,
+      'PERSONAL_NOTE' => $message, 
+      'MEMBER_NAME' => $a->fullName, 
+      'DATE' => u\fmtDate($a->signed),
+      'CODE' => $code,
+    );
+    r\rMail('invite', $email, '', $info);
+    db\update('r_invites', u\ray('id invited', $id, REQUEST_TIME), 'id');
+  }
+}*/

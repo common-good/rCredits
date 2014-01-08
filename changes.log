@@ -1,3 +1,22 @@
+2014-01-08
+. devices are now handled consistently and elegantly on Devices page
+. firstUnusedId is used only for new users and works in all cases (r\acct::nextId() works fine)
+. removed the "Create Agent Account" feature. 
+. released held emails 
+. invites are now allowed
+. disabled Charge tab (until invoices are implemented properly)
+. added serial id field to r_invites
+. cleaned up r_boxes (added new int fields boxnum and channel before trying to reinstall)
+. deleted all cashier accounts and fixed transactions that had those agents
+. worked around Google Chrome bug that populates Company Phone field with user's phone, on signup
+. invites now always come from agent
+. multiple invite feature for admin only (uses William's info)
+. fixed bug that showed negative returns on Summary page when average balance was negative (now shows infinite APR)
+. admin and CGF company agents can see who is a member by clicking on a link on the Community page
+. committed amount will never be displayed negative on Summary page
+. temporarily disabled "charge" on SMS
+. fixed bug in averageBalance function -- it was failing to include deposits/withdrawals (patched)
+
 2013-12-31
 . rPOS now handles default cashier (defaults to the company pro se)
 . company permission to share rPOS with other companies is now implicit in CO_REQUIRE_CASHIER

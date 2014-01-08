@@ -71,7 +71,7 @@ Scenario: An invited newbie visits the registration page
 #  |_acctType                             |
 #  | private corporation |  
 
-Scenario: A newbie registers
+Scenario: A newbie registers in Western Massachusetts
   Given invitation to email "a@" is "c0D3"
   When member "?" confirms form "signup/code=c0D3&dwok=1" with values:
   | fullName | email | phone     | country | postalCode | federalId   | dob      | acctType     |
@@ -88,6 +88,20 @@ Scenario: A newbie registers
   | Tmp password |
   | New password |
   | Confirm new password |
+
+Scenario: A newbie registers elsewhere
+  Given invitation to email "a@" is "c0D3"
+  When member "?" confirms form "signup/code=c0D3&dwok=1" with values:
+  | fullName | email | phone     | country | postalCode | federalId   | dob      | acctType     |
+  | Abe One  | a@ | 212-253-0000 | US      | 10001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  |
+  Then members:
+  | id      | fullName | email | phone     | postalCode | country | state | city     | flags        |
+  | NYA.AAA | Abe One  | a@ | +12122530000 | 10001      | US      | NY    | New York | dft,person   |
+  And we say "status": "your account is ready"
+  And we email "welcome" to member "a@" with subs:
+  | fullName | name   | quid    | region | pass     | bonus           |
+  | Abe One  | abeone | NYA.AAA | new    | (varies) |  |
+  And member "NYA.AAA" one-time password is set
 
 Scenario: A newbie registers with no case
   Given invitation to email "a@" is "c0D3"
@@ -141,7 +155,7 @@ Scenario: A member registers with an existing company
   | .AAD | AAAme Co | myco@ | 01330      | +14136280000 | Ashfield | dft,company  |
   And invitation to email "a@" is "c0D3"
   When member "?" confirms form "signup/code=c0D3&dwok=1" with values:
-  | fullName | email | phone   | postalCode | federalId   | dob      | acctType    | company  | companyPhone  | copts                    |
+  | fullName | email | phone   | postalCode | federalId   | dob      | acctType    | company  | companyPhon  | copts                    |
   | Abe One  | a@    | 413-253-0002 | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co | (413)628-0000 | isOwner=>1,contractor=>1 |
   Then members:
   | id   | fullName | email | postalCode | state | city    | flags        |
@@ -153,7 +167,7 @@ Scenario: A member registers with an existing company
 Scenario: A member registers with an unknown company
   Given invitation to email "a@" is "c0D3"
   When member "?" confirms form "signup/code=c0D3&dwok=1" with values:
-  | fullName | email | phone   | postalCode | federalId   | dob      | acctType    | company  | companyPhone  | copts          |
+  | fullName | email | phone   | postalCode | federalId   | dob      | acctType    | company  | companyPhon  | copts          |
   | Abe One  | a@    | 413-253-9876 | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co | (413)628-0000 | employeeOk=>1  |
   Then members:
   | id   | fullName | email | postalCode | phone        | city    | flags        |
@@ -165,14 +179,14 @@ Scenario: A member registers with an unknown company
 Scenario: A member registers with a company with no relation
   Given invitation to email "a@" is "c0D3"
   When member "?" confirms form "signup/code=c0D3&dwok=1" with values:
-  | fullName | email | phone        | postalCode | federalId  | dob  | acctType    | company  | companyPhone  | companyOptions |
+  | fullName | email | phone        | postalCode | federalId  | dob  | acctType    | company  | companyPhon  | companyOptions |
   | Abe One  | a@    | 413-253-0002 | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co | (413)628-0000 |               |
   Then we say "error": "what relation"
 
 Scenario: A member registers with a missing company
   Given invitation to email "a@" is "c0D3"
   When member "?" confirms form "signup/code=c0D3&dwok=1" with values:
-  | fullName | email | phone   | postalCode | federalId   | dob      | acctType | company  | companyPhone | companyOptions |
+  | fullName | email | phone   | postalCode | federalId   | dob      | acctType | company  | companyPhon | companyOptions |
   | Abe One  | a@    | 413-253-0002 | 01001 | 111-22-3333 | 1/2/1990 | %R_PERSONAL |       | (413)628-0000 | isOwner=>1     |
   Then we say "error": "missing field" with subs:
   | field   |
@@ -181,16 +195,16 @@ Scenario: A member registers with a missing company
 Scenario: A member registers with a missing company phone
   Given invitation to email "a@" is "c0D3"
   When member "?" confirms form "signup/code=c0D3&dwok=1" with values:
-  | fullName | email | phone     | postalCode | federalId   | dob      | acctType    | company  | companyPhone | companyOptions |
+  | fullName | email | phone     | postalCode | federalId   | dob      | acctType    | company  | companyPhon | companyOptions |
   | Abe One  | a@ | 413-253-9876 | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co |             | isOwner=>1      |
   Then we say "error": "missing field" with subs:
   | field   |
-  | companyPhone |
+  | companyPhon |
 
 Scenario: A member registers with a bad company
   Given invitation to email "a@" is "c0D3"
   When member "?" confirms form "signup/code=c0D3&dwok=1" with values:
-  | fullName | email | phone     | postalCode | federalId   | dob      | acctType    | company  | companyPhone | companyOptions |
+  | fullName | email | phone     | postalCode | federalId   | dob      | acctType    | company  | companyPhon | companyOptions |
   | Abe One  | a@ | 413-253-9876 | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL | 2sp  ces | (413)628-0000 | isOwner=>1    |
   Then we say "error": "multiple spaces" with subs:
   | field   |
@@ -199,7 +213,7 @@ Scenario: A member registers with a bad company
 Scenario: A member registers with a bad company phone
   Given invitation to email "a@" is "c0D3"
   When member "?" confirms form "signup/code=c0D3&dwok=1" with values:
-  | fullName | email  | phone    | postalCode | federalId   | dob      | acctType    | company  | companyPhone | companyOptions |
+  | fullName | email  | phone    | postalCode | federalId   | dob      | acctType    | company  | companyPhon | companyOptions |
   | Abe One  | a@ | 413-253-9876 | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co | %random      | isOwner=>1     |
   Then we say "error": "bad company phone" with subs: ""
 
@@ -216,7 +230,7 @@ Scenario: A member registers a company
   |_acctType            |
   | private corporation |
   When member "?" confirms form "signup/code=c0D3&dwok=1&by=NEW.AAC&flow=from&isOwner=1&employeeOk=1" with values:
-  | fullName | email       | phone | postalCode | federalId   | acctType        | company  | companyPhone | companyOptions |
+  | fullName | email       | phone | postalCode | federalId   | acctType        | company  | companyPhon | companyOptions |
   | AAcme Co | aco@ | 413-253-9876 | 01002      | 111-22-3333 | %CO_CORPORATION | | | |
   Then members:
   | id   | fullName | email | postalCode | phone        | city    | flags       | floor |

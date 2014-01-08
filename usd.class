@@ -284,7 +284,6 @@ class usd {
     $dw = $usdAcct->dwolla(FALSE, R_GET_AUTH_URI); // URI must match the one in getAuth
     if (t\est()) $authToken = \user_password(); else
     if (!$authToken = $dw->requestToken(@$_GET['code'])) return authReturn($dw);
-//  die("uid=$uid code=" . $_GET['code'] . $_GET['error']);
 
     $secure = $mya->secure;
     $secure['auth'] = $authToken;
@@ -301,7 +300,6 @@ class usd {
     if ($me->Type == 'Non-profit' and $mya->co()) $coFlags = $mya->coFlags | u\bit(CO_NONPROFIT);
 
     $mya->update(compact('usdAccount', 'coFlags'));
-//    print_r(compact('uid','_GET','mya','usdAcct','dw','authToken','secure')); die();
     return authReturn(); // report success
   }
   
@@ -335,8 +333,8 @@ class usd {
   public function send($amount, $other, $notes = R_DEFAULT_PURPOSE, &$err = NULL, $payerFee = FALSE, $direct = TRUE) {
     t\output(t('@id1 (@num1) sending @amt USD to @id2 (@num2)', u\ray('@id1 @num1 @amt @id2 @num2', $this->acct->id, $this->number, u\fmtAmt($amount), $other->acct->id, $other->number)));
     u\EXPECT(self::inAtom(), 'usd transfer outside atom');
-    u\EXPECT(is_object($this->acct), 'empty account: ' . print_r($this->acct, 1));
-    u\EXPECT(is_object($other->acct), 'empty other account: ' . print_r($other->acct, 1));
+/**/ u\EXPECT(is_object($this->acct), 'empty account: ' . print_r($this->acct, 1));
+/**/ u\EXPECT(is_object($other->acct), 'empty other account: ' . print_r($other->acct, 1));
     u\EXPECT($this->acct->ok() and $other->acct->ok(), 'non rTraders in usd send');
     if ($this->acct->usd < $amount and $this->bal() < $amount) { // can't even fake it
       r\tellStaff('not enough usd', u\ray('usd need', $this->acct->usd, $amount), $this->acct->id);
@@ -601,7 +599,7 @@ array (
  */
 function noDw($dw, &$err = NULL) {
   global $dwollaDown; 
-  if (@$dwollaDown) return TRUE; // allows greater efficiency in extended outages
+  if (@$dwollaDown or (!isPRODUCTION and !isDEV)) return TRUE; // allows greater efficiency in extended outages
   if (is_object($dw) and u\abbreviates('Request failed. Server responded with:', $err = $dw->getError())) {
     $err = NULL;
     return TRUE;

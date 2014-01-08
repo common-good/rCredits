@@ -9,6 +9,7 @@ legend {-webkit-padding-start: 2px; -webkit-padding-end: 2px;}
 select {font-size:.85em;}
 label.option {font-weight:bold;}
 /* #square{width:100em;height:100em} depends on setting font-size in misc.js */
+.form-item {margin-bottom:25px;}
 
 #messages #nextstep,
 .page-account #completed,
@@ -136,7 +137,7 @@ form.rweb input {vertical-align:top;}
 form.rweb input[type="text"] {width:20em;}
 
 form.rweb .form-type-radio label {width:.93em;}
-form.rweb .form-type-radios {margin:0;}
+form.rweb .form-type-radios {margin-top:0;}
 form.rweb .form-radios {margin-bottom:0;}
 form.rweb .form-type-radio {display:inline-block; margin-top:0;}
 form.rweb .form-type-radio input {display:inline-block; margin-left:0; vertical-align:bottom;}
@@ -168,7 +169,7 @@ form.rweb  .form-no {color:red;}
 
   form.labeled  .form-radios {margin-left:0px; display:inline-block;}
 /*  form.labeled .form-type-radios {border-bottom:1px solid darkgreen; margin-bottom:.4em;} */
-  form.labeled .form-type-radios {margin-bottom:.4em;}
+/*  form.labeled .form-type-radios {margin-bottom:.4em;} */
   form.labeled .form-type-radio {display:block;} /* less good for browser, better for mobile */
   form.labeled .yesno .form-type-radio {display:inline-block;}
   form.labeled  .form-type-checkbox label {margin-left:0px; text-align:left;}
@@ -225,6 +226,7 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformsignup #veridian-logo {display:none;}
 #rcreditswebformsignup #help-link,
 #rcreditswebformsignup .form-item-agreed label {display:none;}
+#rcreditswebformsignup .form-item-companyPhon label span {display:none;}
 
 /* Request New Password */
 #rcreditswebformpass #edit-name {width:20em;}
@@ -314,7 +316,7 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformproxies #edit-title {margin-left:0;}
 #rcreditswebformproxies #edit-subtext  {font-weight:normal; font-size:85%; margin-left:0;}
 
-/* Reports (Statistics) */
+/* Reports (Statistics/Community) */
 #rcreditswebformreports .form-type-item {margin-top:15px; margin-bottom:0;}
 #rcreditswebformreports #edit-title {margin-bottom:0; font-weight:bold;}
 #rcreditswebformreports #edit-subheader {margin-top:0px; margin-bottom:35px; font-size:110%;} 
@@ -378,6 +380,11 @@ form.rweb  .form-no {color:red;}
 /* #rcreditswebformreports td:first-child +td+td+td+td+td+td+td+td+td {text-align:right;} /* col 10 */
 #rcreditswebformreports td:first-child +td+td+td+td+td+td+td+td+td+td {text-align:right;} /* col 11 */
 #rcreditswebformreports td:first-child +td+td+td+td+td+td+td+td+td+td+td {display:none;} /* col 12 */
+
+/* Member List */
+#memberlist {width:auto; cell-spacing:5px;}
+#memberlist .name {font-weight:bold;}
+#memberlist .co {color:darkred;}
 
 /* Transactions */
 #rcreditswebformtxs #edit-title,

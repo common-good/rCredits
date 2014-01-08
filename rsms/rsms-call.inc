@@ -35,7 +35,7 @@ class call {
     $this->message = trim($message);
     $this->confirmed = FALSE;
     u\loga('in', compact('message'), $number);
-//    die('in new call ' . print_r($this, 1));
+///    die('in new call ' . print_r($this, 1));
   }
 
   /**
@@ -73,7 +73,7 @@ class call {
       //$mya = new r\acct(compact('number')); // this will crash if someone (VERY) quickly calls again from the same number
       //$myid = $mya->id;
     } else $mya = r\acct($myid);
-//    print_r(compact('number','myid','mya')); die();
+///    print_r(compact('number','myid','mya')); die();
     u\EXPECT($mya, 'failed to get acct');
     r\acct::setDefault($mya);
     
@@ -294,6 +294,7 @@ class call {
    * Give funds to the caller from someone else.
    */
   function do_charge() {
+    return t('Invoicing another member is not permitted at this time.');
     return $this->do_transfer('charge');
   }
 

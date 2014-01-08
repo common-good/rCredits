@@ -30,7 +30,7 @@ function makeRecords($list, $type, $testSeparate = FALSE) {
   $table = 'r_' . strtolower($type) . 's';
   $function = 'rCredits\\Testing\\';
   if (!function_exists($function . "make$type")) {
-    if ($testOnly) t\output("Expect $type: " . print_r($list, 1), 'expect');
+/**/    if ($testOnly) t\output("Expect $type: " . print_r($list, 1), 'expect');
     $type = 'Thing';
   }
   $function .= ($testSeparate and $testOnly) ? "verify$type" : "make$type";
@@ -50,6 +50,7 @@ function makeThing($info, $testOnly, $table) {
 function gifts($list) {return makeRecords($list, 'Gift');}
 function notices($list) {return makeRecords($list, 'Notice');}
 function members($list) {return makeRecords($list, 'Account');}
+function devices($list) {return makeRecords($list, 'Boxe');}
 function relations($list) {return makeRecords($list, 'Relation');}
 function transactions($list) {return makeRecords($list, 'Tx', TRUE);}
 function balances($list) {return makeRecords($list, 'Balance');}
@@ -58,12 +59,23 @@ function selling($list) {return makeRecords($list, 'Selling');}
 function companyFlags($list) {return makeRecords($list, 'CompanyFlags');}
 
 /**
+ * Create device (box) records.
+ */
+function makeBoxe($info = array(), $testOnly = FALSE) {
+  global $channel; // be careful not to overwrite this with a local variable
+  //$boxName = $info['boxName'];
+  $info['channel'] = @strtr(@$info['channel'], u\ray('sms app web', TX_SMS, TX_SMART, TX_WEB)) ?: $channel;
+  //if ($testOnly) $boxName = htmlspecialchars(@$boxName);
+  return makeThing($info, $testOnly, 'r_boxes');
+}
+
+/**
  * Fabricate a bogus account.
  * Minimum parameters: none
  * @return uid
  */
 function makeAccount($info = array(), $testOnly = FALSE) {
-  if (!is_array($info)) {print_r($info); die(print_r(debug_backtrace(), 1)); } // keep for now
+/**/  if (!is_array($info)) {print_r($info); die(print_r(debug_backtrace(), 1)); } // keep for now
   extract($info); // any user table fields, plus dw (dwolla test account number)
   u\setDft($id, r\acct::nextId()); // default to first available number
   $uid = uid($id); // change .AAB to 1, etc.
@@ -80,15 +92,13 @@ function makeAccount($info = array(), $testOnly = FALSE) {
     u\setDft($community, r\serverUid());
     u\setDft($postalCode, '01301');
     u\setDft($country, 'US');
-    if (@$dob) $dob = u\s2t(@$dob);
-    if (@$federalId) u\digits($federalId);
     $moneyFields = 'share committed floor r usd rewards'; // not minimum because NULL means not set, in Membership page
     foreach (u\ray($moneyFields) as $one) u\setDft($$one, 0);
     foreach (u\ray('cc cc2') as $one) if (isset($$one)) {
       $secure[str_replace('cc', 'cardCode', $one)] = $$one;
       unset($info[$one]);
     }
-    $fixFields = 'rebate fullName name pass mail secure community postalCode country dob federalId ' . $moneyFields;
+    $fixFields = 'rebate fullName name pass mail secure community postalCode country ' . $moneyFields;
   } else $fixFields = '';
 
   $flags0 = @$flags;
@@ -107,6 +117,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
   foreach (u\ray('id email acctType dw') as $one) unset($info[$one]);
   $info = compact(u\ray('uid flags ' . $fixFields)) + $info;
   fixValues($info, TRUE);
+/**/ print_r($info);
 
   if ($testOnly) {
     if (!$acct = r\acct($uid)) return output("No such uid: $uid");
@@ -130,7 +141,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
     $secure = compact(u\ray('usdType usdPin pin auth')) + ($a->secure ?: array());
     $a->update(compact(u\ray('usdAccount secure')));
     $us = new r\usd($a);
-//debug("dw=$dw usnum=$us->number test=" . DW_TESTER_ACCT); 
+///debug("dw=$dw usnum=$us->number test=" . DW_TESTER_ACCT); 
     if ($us->number != DW_TESTER_ACCT) $us->setbal(0, $err);
   }
   
@@ -247,7 +258,7 @@ function notice($notice, $id, $subs) {
   $message = u\tt($notice, @$subs);
   $sent = @$subs['sent'] ?: 0;
   $info = compact(u\ray('uid message sent'));
-  return db\exists('r_notices', $info) ?: t\output('Expected notice ' . print_r($info, 1));
+/**/ return db\exists('r_notices', $info) ?: t\output('Expected notice ' . print_r($info, 1));
 }
   
 /**
@@ -374,7 +385,7 @@ function cronRuns($op) {
   \variable_set('r_last_cron', u\ray('day week month', $now, $now, $now)); // normally don't run periodics
 
   if ($op == 'ALL' or strpos(R_DAILY_TASKS, " $op ")) {
-    if (strftime('%H') < R_DAILY_HOUR) die('Developer: For testing between midnight and :R_DAILY_HOUR:00, you need to temporarily change R_DAILY_HOUR in -settings.');
+/**/  if (strftime('%H') < R_DAILY_HOUR) die('Developer: For testing between midnight and :R_DAILY_HOUR:00, you need to temporarily change R_DAILY_HOUR in -settings.');
     db\q("DELETE FROM queue WHERE name='q'");
     \variable_set('r_last_cron', u\ray('day week month', $now - DAY_SECS, 0, 0));
     \drupal_cron_run();
@@ -570,10 +581,10 @@ function hitServer($op, $extra = array(), $agent, $device = '', $version = '999'
   $agent = t\fullQid($agent);
   if (@$extra['member']) $extra['member'] = t\fullQid($extra['member']);
   $input = compact(u\ray('op agent device version')) + $extra;
-  t\output('request: ' . print_r($input, 1), 'input'); // keep this
+/**/ t\output('request: ' . print_r($input, 1), 'input'); // keep this
   $rposResult = r\Smart\pos($input);
   if ($op != 'photo') $rposResult = (array) json_decode($rposResult);
-  t\output('answer: ' . print_r($rposResult, 1), 'output');
+/**/ t\output('answer: ' . print_r($rposResult, 1), 'output');
   return TRUE;
 }
 
@@ -606,7 +617,12 @@ function addAttribs(&$thing) {
  * @return: successful (always successful for anonymous)
  */
 function logIn($id) {
-  return $id == '?' ? TRUE : r\acct::setDefault(r\acct(t\fullQid($id))); // fullQid not uid
+  global $boxUser;
+  if ($id != '?') {
+    r\acct::setDefault($a = r\acct(t\fullQid($id))); // fullQid not uid
+    $boxUser = r\Web\boxUser(r\Web\box(), $a->id);
+  }
+  return TRUE;
 }
 
 function verifyTx($info) {
@@ -622,7 +638,7 @@ function verifyTx($info) {
  *   return verifyRecord('relations', $info);
  */
 function verifyRecord($table, $info) {
-  if (!is_array($info)) die('in verifyRecord: ' . print_r(debug_backtrace(), 1)); // keep
+/**/  if (!is_array($info)) die('in verifyRecord: ' . print_r(debug_backtrace(), 1)); // keep
   
   unset($info['data']);
   foreach ($info as $key => $value) {
@@ -633,7 +649,7 @@ function verifyRecord($table, $info) {
   }
   $crit = join(' AND ', $crit);
   $result = db\exists($table, $crit, $info);
-  if (!$result) output("verifyRecord failed. table=$table crit=$crit EXPECTED info=" . print_r($info, 1)); // keep
+/**/ if (!$result) output("verifyRecord failed. table=$table crit=$crit EXPECTED info=" . print_r($info, 1)); // keep
   return $result;
 }
 
@@ -745,7 +761,6 @@ function pageForm($page, $msg = '', $field = '') {
   }     
 
   $result = \menu_execute_active_handler($page, FALSE);
-//  debug($result);
   if (is_numeric($result)) {
     $result = $result == MENU_NOT_FOUND ? 'not found' 
       : ($result == MENU_ACCESS_DENIED ? 'access error' : "error #$result");
@@ -841,7 +856,7 @@ function eq($a, $b) {
   $result = (is_numeric($a) and is_numeric($b)) ? 
       (abs($a - $b) < .0001)
     : ($a == $b or (empty($a) and empty($b)));
-  if (!$result) echo 'not equal: ' . print_r(compact('a','b'), 1); // keep for now
+/**/ if (!$result) echo 'not equal: ' . print_r(compact('a','b'), 1); // keep for now
 //  if (!$result) output("unequal: a=$a b=$b", 'error'); // keep for now
   return $result;
 }
@@ -871,7 +886,7 @@ function color($msg, $color = 'normal') {
     'error' => 'salmon',
   );
   $color = @$colors[$color] ?: $color;
-  $msg = print_r($msg, 1); // keep this
+/**/ $msg = print_r($msg, 1); // keep this
   return "<pre style='background-color:$color;'>$msg</pre>";
 }
 
@@ -1011,7 +1026,6 @@ function shownWith($content, $type = 'text', $showDebugs = TRUE) {
     if ($showDebugs) t\output(compact('xi','i','one'));
     if ($i === FALSE) {
       if ($showDebugs) t\output(substr($model, 0, $xi) . ' <b style="font-size:200%;">[OK until here]</b> ' . substr($model, $xi));
-// debug($formOut['notags']);
       return FALSE;
     } else $i += strlen($one);
   }

@@ -108,8 +108,8 @@ class rwebSignup extends DrupalWebTestCase {
     . '\\| Full name |"');
   }
 
-  // Scenario: A newbie registers
-  public function testANewbieRegisters_0() {
+  // Scenario: A newbie registers in Western Massachusetts
+  public function testANewbieRegistersInWesternMassachusetts_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('invitation to email "a@" is "c0D3"');
     When_('member "?" confirms form "signup/code=c0D3&dwok=1" with values: "DATA'
@@ -127,6 +127,23 @@ class rwebSignup extends DrupalWebTestCase {
     . '\\| Tmp password |'
     . '\\| New password |'
     . '\\| Confirm new password |"');
+  }
+
+  // Scenario: A newbie registers elsewhere
+  public function testANewbieRegistersElsewhere_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('invitation to email "a@" is "c0D3"');
+    When_('member "?" confirms form "signup/code=c0D3&dwok=1" with values: "DATA'
+    . '\\| fullName | email | phone     | country | postalCode | federalId   | dob      | acctType     |'
+    . '\\| Abe One  | a@ | 212-253-0000 | US      | 10001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  |"');
+    Then_('members: "DATA'
+    . '\\| id      | fullName | email | phone     | postalCode | country | state | city     | flags        |'
+    . '\\| NYA.AAA | Abe One  | a@ | +12122530000 | 10001      | US      | NY    | New York | dft,person   |"');
+    And__('we say "status": "your account is ready"');
+    And__('we email "welcome" to member "a@" with subs: "DATA'
+    . '\\| fullName | name   | quid    | region | pass     | bonus           |'
+    . '\\| Abe One  | abeone | NYA.AAA | new    | (varies) |  |"');
+    And__('member "NYA.AAA" one-time password is set');
   }
 
   // Scenario: A newbie registers with no case
@@ -196,7 +213,7 @@ class rwebSignup extends DrupalWebTestCase {
     . '\\| .AAD | AAAme Co | myco@ | 01330      | +14136280000 | Ashfield | dft,company  |"');
     And__('invitation to email "a@" is "c0D3"');
     When_('member "?" confirms form "signup/code=c0D3&dwok=1" with values: "DATA'
-    . '\\| fullName | email | phone   | postalCode | federalId   | dob      | acctType    | company  | companyPhone  | copts                    |'
+    . '\\| fullName | email | phone   | postalCode | federalId   | dob      | acctType    | company  | companyPhon  | copts                    |'
     . '\\| Abe One  | a@    | 413-253-0002 | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co | (413)628-0000 | isOwner=>1,contractor=>1 |"');
     Then_('members: "DATA'
     . '\\| id   | fullName | email | postalCode | state | city    | flags        |'
@@ -211,7 +228,7 @@ class rwebSignup extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('invitation to email "a@" is "c0D3"');
     When_('member "?" confirms form "signup/code=c0D3&dwok=1" with values: "DATA'
-    . '\\| fullName | email | phone   | postalCode | federalId   | dob      | acctType    | company  | companyPhone  | copts          |'
+    . '\\| fullName | email | phone   | postalCode | federalId   | dob      | acctType    | company  | companyPhon  | copts          |'
     . '\\| Abe One  | a@    | 413-253-9876 | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co | (413)628-0000 | employeeOk=>1  |"');
     Then_('members: "DATA'
     . '\\| id   | fullName | email | postalCode | phone        | city    | flags        |'
@@ -226,7 +243,7 @@ class rwebSignup extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('invitation to email "a@" is "c0D3"');
     When_('member "?" confirms form "signup/code=c0D3&dwok=1" with values: "DATA'
-    . '\\| fullName | email | phone        | postalCode | federalId  | dob  | acctType    | company  | companyPhone  | companyOptions |'
+    . '\\| fullName | email | phone        | postalCode | federalId  | dob  | acctType    | company  | companyPhon  | companyOptions |'
     . '\\| Abe One  | a@    | 413-253-0002 | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co | (413)628-0000 |               |"');
     Then_('we say "error": "what relation"');
   }
@@ -236,7 +253,7 @@ class rwebSignup extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('invitation to email "a@" is "c0D3"');
     When_('member "?" confirms form "signup/code=c0D3&dwok=1" with values: "DATA'
-    . '\\| fullName | email | phone   | postalCode | federalId   | dob      | acctType | company  | companyPhone | companyOptions |'
+    . '\\| fullName | email | phone   | postalCode | federalId   | dob      | acctType | company  | companyPhon | companyOptions |'
     . '\\| Abe One  | a@    | 413-253-0002 | 01001 | 111-22-3333 | 1/2/1990 | %R_PERSONAL |       | (413)628-0000 | isOwner=>1     |"');
     Then_('we say "error": "missing field" with subs: "DATA'
     . '\\| field   |'
@@ -248,11 +265,11 @@ class rwebSignup extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('invitation to email "a@" is "c0D3"');
     When_('member "?" confirms form "signup/code=c0D3&dwok=1" with values: "DATA'
-    . '\\| fullName | email | phone     | postalCode | federalId   | dob      | acctType    | company  | companyPhone | companyOptions |'
+    . '\\| fullName | email | phone     | postalCode | federalId   | dob      | acctType    | company  | companyPhon | companyOptions |'
     . '\\| Abe One  | a@ | 413-253-9876 | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co |             | isOwner=>1      |"');
     Then_('we say "error": "missing field" with subs: "DATA'
     . '\\| field   |'
-    . '\\| companyPhone |"');
+    . '\\| companyPhon |"');
   }
 
   // Scenario: A member registers with a bad company
@@ -260,7 +277,7 @@ class rwebSignup extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('invitation to email "a@" is "c0D3"');
     When_('member "?" confirms form "signup/code=c0D3&dwok=1" with values: "DATA'
-    . '\\| fullName | email | phone     | postalCode | federalId   | dob      | acctType    | company  | companyPhone | companyOptions |'
+    . '\\| fullName | email | phone     | postalCode | federalId   | dob      | acctType    | company  | companyPhon | companyOptions |'
     . '\\| Abe One  | a@ | 413-253-9876 | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL | 2sp  ces | (413)628-0000 | isOwner=>1    |"');
     Then_('we say "error": "multiple spaces" with subs: "DATA'
     . '\\| field   |'
@@ -272,7 +289,7 @@ class rwebSignup extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('invitation to email "a@" is "c0D3"');
     When_('member "?" confirms form "signup/code=c0D3&dwok=1" with values: "DATA'
-    . '\\| fullName | email  | phone    | postalCode | federalId   | dob      | acctType    | company  | companyPhone | companyOptions |'
+    . '\\| fullName | email  | phone    | postalCode | federalId   | dob      | acctType    | company  | companyPhon | companyOptions |'
     . '\\| Abe One  | a@ | 413-253-9876 | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co | %random      | isOwner=>1     |"');
     Then_('we say "error": "bad company phone" with subs: ""');
   }
@@ -292,7 +309,7 @@ class rwebSignup extends DrupalWebTestCase {
     . '\\|_acctType            |'
     . '\\| private corporation |"');
     When_('member "?" confirms form "signup/code=c0D3&dwok=1&by=NEW.AAC&flow=from&isOwner=1&employeeOk=1" with values: "DATA'
-    . '\\| fullName | email       | phone | postalCode | federalId   | acctType        | company  | companyPhone | companyOptions |'
+    . '\\| fullName | email       | phone | postalCode | federalId   | acctType        | company  | companyPhon | companyOptions |'
     . '\\| AAcme Co | aco@ | 413-253-9876 | 01002      | 111-22-3333 | %CO_CORPORATION | | | |"');
     Then_('members: "DATA'
     . '\\| id   | fullName | email | postalCode | phone        | city    | flags       | floor |'

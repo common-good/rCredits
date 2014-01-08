@@ -254,7 +254,7 @@ EOF
 EOF
     ),
     'your-return' => tt(<<<EOF
-    <p>Your effective return is calculated as your monthly inflation adjustment (currently based on @R_INFLATION_RATE% APR) plus any incentive rewards you got in the period, all divided by your average balance for the period. The result is then annualized to give you an APR (annual percentage rate). Regular financial institutions give you interest on your <em>minimum</em> balance for the month, rather than your <em>average</em> balance, but that seems a bit petty.</p>
+    <p>Your effective return is calculated as your monthly inflation adjustment (currently based on @R_INFLATION_RATE% APR) plus any incentive rewards you got in the period, all divided by your average balance for the period. The result is then annualized to give you an APR (annual percentage rate). Regular financial institutions give you interest on your <em>minimum</em> balance for the month, which is nearly always lower than your <em>average</em> balance.</p>
 EOF
     ),
     'social-return' => tt(<<<EOF

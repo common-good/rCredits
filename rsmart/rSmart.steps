@@ -128,7 +128,7 @@ function agentAsksDeviceToIdentify($agent, $device, $qr) {
 function weRespondWith($args) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $rposResult;
-  t\output('expecting: ' . print_r($args[0], 1));
+/**/ t\output('expecting: ' . print_r($args[0], 1));
   foreach ($args[0] as $key => $value) {
     if ($key == 'descriptions') $value = u\ray($value);
     if ($key == 'can') {
@@ -139,8 +139,8 @@ function weRespondWith($args) {
     if ($key == 'device' and $value == '?' and $rposResult[$key]) continue; // any value will do for new dev
     
     if ($value != $rposResult[$key]) {
-      $value = print_r($value, 1);
-      t\output("Expected $key=$value, got:" . print_r($rposResult[$key], 1));
+/**/  $value = print_r($value, 1);
+/**/  t\output("Expected $key=$value, got:" . print_r($rposResult[$key], 1));
       return FALSE;
     }
   }
@@ -199,11 +199,7 @@ function memberHasNoPicture($id) {
  *     Transact Setup MAKE
  *     Undo Setup MAKE
  */
-function devices($list) {
-  global $testOnly; if ($testOnly) return FALSE;
-  foreach ($list as $one) if (!r\makeDevice(t\uid($one['id']), $one['code'])) return FALSE;
-  return TRUE;
-}
+function devices($list) {return t\devices($list);}
 
 /**
  * balances: (ARG)
@@ -319,7 +315,7 @@ function weRespondOkWithTxAndMessageWithSubs($tx, $msg, $subs) {
   global $rposResult;
   extract($rposResult, EXTR_PREFIX_ALL, 's');
   list ($ok, $message) = array('1', u\tt($msg, $subs[0]));
-  t\output('Expecting: ' . print_r(compact(u\ray('ok tx message')), 1), 'expect');
+/**/ t\output('Expecting: ' . print_r(compact(u\ray('ok tx message')), 1), 'expect');
   return ($s_ok == '1' and @$s_tx == $tx and $s_message == $message);
 }
 
@@ -358,7 +354,7 @@ function withBalance($subs) {
     if (@$subs['forCash']) u\prefix(' ', $subs['forCash']);
     $balance .= u\tt('just did', $subs);
   }
-  t\output('Expecting ' . print_r(compact('balance'), 1), 'expect');
+/**/  t\output('Expecting ' . print_r(compact('balance'), 1), 'expect');
   return ($got == $balance);
 }
 
@@ -380,7 +376,7 @@ function withUndo($subs) {
   if (!$got = @$rposResult['undo']) return !$subs; else $subs = $subs[0];
   $subs['created'] = t\lastMinuteSubs($subs['created']);
   $undo = u\tt('confirm undo', $subs);
-  t\output('Expecting ' . print_r(compact('undo'), 1), 'expect');
+/**/  t\output('Expecting ' . print_r(compact('undo'), 1), 'expect');
   return ($got == $undo);
 }
 

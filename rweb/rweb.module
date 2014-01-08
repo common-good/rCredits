@@ -60,7 +60,7 @@ function rweb_menu() {
   $menu = array(
     'summary' => r\Web\menu(t('Summary'), MENU_NORMAL_ITEM, 'showForm', array('Summary'), '', $anyone),
     'transactions' => r\Web\menu(t('Transactions'), MENU_NORMAL_ITEM, 'showForm', array('Txs', 1), 'read'),
-    'charge' => r\Web\menu(t('Charge'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), 'scan ok'),
+    'charge' => r\Web\menu(t('Charge'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), 'admin'), // 'sell ok'),
     'pay' => r\Web\menu(t('Pay'), MENU_NORMAL_ITEM, 'showForm', array('Tx', 1), 'buy ok'),
 
     'grant' => r\Web\menu(t('Grant'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), 'managing_ctty'),
@@ -130,6 +130,7 @@ function rweb_menu() {
     'do' => r\Web\menu('Do', MENU_CALLBACK, 'rdo', array(1), '', $anyone),
     'coup' => r\Web\menu(t('Disable account'), MENU_CALLBACK, 'coup', array(1), '', $anyone),    
 
+    'member-list' => r\Web\menu('POS', MENU_CALLBACK, 'showForm', array('MemberList'), '', $anyone),
     'pos' => r\Web\menu('POS', MENU_CALLBACK, 'rCredits\\Smart\\pos', array(), '', $anyone),
     R_GET_AUTH_URI => r\Web\menu('USD Get Auth', MENU_CALLBACK, 'usdCallback', array('getAuth2', 1), 'manage'),
     'usd-callback' => r\Web\menu('USD Other Callback', MENU_CALLBACK, 'usdCallback', array('callback', 1), '', $anyone),

@@ -74,21 +74,21 @@ function rcredits_exception_handler($e) {
     $line = @$line ?: '';
     $file = basename(@$file);
     $function = basename(@$function);
-    $args = preg_replace('/Array\s+\(/sm', 'Array', print_r(@$args, 1)); // keep
+/**/ $args = preg_replace('/Array\s+\(/sm', 'Array', print_r(@$args, 1)); // keep
     $args = substr($args, 6); // discard the gratuitous "Array" at the start
     $args = preg_replace('/$\s*\)$\s$/sm', '', $args);
     $args = '    ' . str_replace("\n", "<br>\n    ", $args);
     $args = str_replace('  ', ' &nbsp;', $args);
     $trace_msg .= "<br>\n- $line in $file, calling $function() with:<br>\n$args";
   }
-//    $trace = str_replace('<!--', '<! --', print_r($trace, 1));
+///    $trace = str_replace('<!--', '<! --', print_r($trace, 1));
 //    $trace_msg .= "<!--$trace-->"; // source will contain the whole trace
   $msg = '<b>Exception:</b>' . R_SYS_ERR. "<br>\n($msg)<br>\n- $line0 ($file0)" . $trace_msg;
   $message = str_replace('&nbsp;', '', str_replace('<br>', '', $msg));
   if (!isDEV) {
     if (isPRODUCTION) mail(R_TESTER_EMAIL, 'rCredits FATAL ERROR', $message);
     $R_FATAL_ERROR = u\loga('FATAL', compact('message')); // this gets picked up by rcredits_shutdown()
-    die(); // invoke shutdown
+/**/  die(); // invoke shutdown
   } else echo 'FATAL ERROR: ' . $msg;
 }
 
@@ -263,9 +263,9 @@ function d($s) {
   SELECT u.fullName, SUM(t.r) AS virtual FROM r_txs t LEFT JOIN users u ON u.uid=t.payer WHERE t.state>=1 AND t.payerFor LIKE '%virtual%' GROUP BY u.uid
   
   $a = rCredits\acct('NEW.AAD');
-$usa = new rCredits\usd($a);
-$usa->each('print_r', 0, array('deposit','withdrawal','fee'));
-*/
+$usa = new rCredits\usd($a); */
+/// $usa->each('print_r', 0, array('deposit','withdrawal','fee'));
+
 function test() {
   include_once __DIR__ . '/usd.class';
   $usdW = new r\usd($w = r\acct(410044001));

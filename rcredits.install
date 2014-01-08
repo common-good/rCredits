@@ -89,7 +89,7 @@ function rcredits_install() {
   extract((array) $dbs[$db_name], EXTR_PREFIX_ALL, 'db');
   $db = new PDO("$db_driver:host=$db_host;port=$db_port;dbname=$db_name", $db_user, $db_pass);
 
-  $rTables = 'r_areas,r_regions,r_countries,r_states,r_nonces,r_industries,r_user_industries,r_nonmembers';
+  $rTables = 'r_areas,r_regions,r_countries,r_states,r_nonces,r_industries,r_nonmembers';
   $redoTables = 'filter,filter_format,role_permission';
   foreach (explode(',', $redoTables) as $table) \db_query("TRUNCATE $table");
   $sqlDir = __DIR__ . '/sql';
@@ -100,7 +100,7 @@ function rcredits_install() {
     if ($sql = @file_get_contents("$filename-make.sql")) \db_query($sql); // read in a single CREATE TABLE (if exists) query
     if (!@db\exists("$table", 'TRUE') and file_exists("$filename-insert.sql")) {
       $sql = file_get_contents("$filename-insert.sql"); // read in a single multi-record INSERT query
-      if (!$db->query($sql)) die("Failed to insert records for $table."); // keep
+/**/  if (!$db->query($sql)) die("Failed to insert records for $table."); // keep
 	  }
   }
 

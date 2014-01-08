@@ -127,11 +127,12 @@ function tableDefs($schema = array()) {
   
   // table r_boxes
   $fields = array(
-    'id' => setupField('box name record id', 'serial big'),
-    'boxid' => setupField('machine id', 'int medium'), // unique sequence number of this box for this user
-    'code' => setupField('device id', 'varchar 255'), // device identifier (unique to each device)
+    'id' => setupField('device record id', 'serial big'),
+    'channel' => setupField('channel', 'int tiny'), // web browser, rPOS app, or SMS
+    'code' => setupField('device id', 'varchar 255'), // device identifier (unique to each device/type combo)
+    'boxnum' => setupField('sequential device number for the account', 'int 11', 0),
     'uid' => setupField('account record id', 'int big'),
-    'boxName' => setupField('chosen name for this machine, for this account', 'varchar 255'),
+    'boxName' => setupField('member\'s chosen name for this device, for this account', 'varchar 255'),
     'todo' => setupField('waiting for confirmation to complete this operation', 'text medium'),
     'nonce' => setupField('waiting for this nonce, for confirmation', 'varchar 255'), // also transient QR ID
 //    'restricted' => setupField('permit no new users of this device', 'int tiny', 0),
@@ -139,7 +140,7 @@ function tableDefs($schema = array()) {
     'created' => setupField('Unixtime record was created', 'int 11', 0),
   );
   $foreignKeys = foreignKey('uid');
-  $indexes = index('uid') + index('boxid');
+  $indexes = index('uid') + index('boxnum');
   $schema['r_boxes'] = setupTable('Devices info1', $fields, 'id', $foreignKeys, $indexes);
   
   // table offsite
@@ -340,6 +341,7 @@ function tableDefs($schema = array()) {
 
   // table r_invites
   $fields = array(
+    'id' => setupField('record id', 'serial big'),
     'code' => setupField('secret invitation code', 'varchar 20'),
     'email' => setupField('email of invitee', 'varchar 60'),
     'inviter' => setupField('uid of inviting member', 'int big'),
@@ -349,8 +351,8 @@ function tableDefs($schema = array()) {
     'message' => setupField('email message body', 'text medium'),
   );
   $foreignKeys = foreignKey('inviter') + foreignKey('invitee');
-  $indexes = index('inviter');
-  $schema['r_invites'] = setupTable('Who invited whom', $fields, 'code', $foreignKeys, $indexes);
+  $indexes = index('inviter') + index('code');
+  $schema['r_invites'] = setupTable('Who invited whom', $fields, 'id', $foreignKeys, $indexes);
   
   // table r_notices
   $fields = array(

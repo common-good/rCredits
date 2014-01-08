@@ -505,7 +505,7 @@ function EXPECT($assertion, $message = '', $ret = FALSE) {
     list ($args, $types) = array($assertion, $message); // for clarity
 ///    EXPECT(compact(ray('args types')), 'assoc string'); // can't do this because infinite recursion
 ///    EXPECT(count($args) != count($types = explode(' ', $types)), 'wrong number of types expected'); // infinite recursion
-//    if(count($args) != count($types = explode(' ', $types))) die('wrong number of types expected: ' . print_r(debug_backtrace(), 1));
+///    if(count($args) != count($types = explode(' ', $types))) die('wrong number of types expected: ' . print_r(debug_backtrace(), 1));
 /**/ if (count($args) != count(explode(' ', $types))) debug(debug_backtrace()); // keep
     $types = array_combine(array_keys($args), explode(' ', $types)); // not ray() here, $types may have '|'
     foreach ($args as $key => $value) if ($error = expect1($key, $value, $types[$key], $ret)) return $error;
@@ -519,7 +519,7 @@ function EXPECT($assertion, $message = '', $ret = FALSE) {
 function expect1($arg, $value, $type, $ret) {
 //  EXPECT(compact(ray('arg type')), 'name string'); // can't do this because infinite recursion
 
-  $msg = "Expected \$$arg ('" . print_r($value, 1) . "') to be type '$type'."; // standard err message (keep this)
+/**/ $msg = "Expected \$$arg ('" . print_r($value, 1) . "') to be type '$type'."; // standard err message (keep this)
   if (strpos($type, '|')) {
     foreach (explode('|', $type) as $one) if (expect1($arg, $value, $one, TRUE) == '') return '';
     EXPECT(FALSE, $msg, $ret);
@@ -566,7 +566,7 @@ function expect1($arg, $value, $type, $ret) {
  * @return the log record id (for exception handler and shutdown function)
  */  
 function loga($type, $info = array(), $special = '', $adhocChannel = FALSE) {
-  if (strlen($type) >= 60) die('in loga: ' . $type); // (KEEP) don't use EXPECT here
+/**/  if (strlen($type) >= 60) die('in loga: ' . $type); // (KEEP) don't use EXPECT here
   global $channel;
   $useTextLogToo = FALSE; // isDEV;
 
@@ -584,7 +584,6 @@ function loga($type, $info = array(), $special = '', $adhocChannel = FALSE) {
   $channels = ray(TX_CHANNELS); 
   if ($useTextLogToo) file_put_contents($channels[$channel + 0] . '.log', "$date $type: $info\n", FILE_APPEND);
   $record = compact(ray('time channel type myid agent info special'));
-//  if ($type == 'FATAL') {print_r($record); die(' in loga');}
 
   if ($type == 'FATAL' and strpos($info, 'calling db_query() ')) {
     return '';
@@ -597,7 +596,7 @@ function loga($type, $info = array(), $special = '', $adhocChannel = FALSE) {
 
 function seeAssoc($info) {
   $result = '';
-  foreach ($info as $key => $value) $result .= "<b>$key</b>: " . print_r($value, 1) . "<br>\n"; // keep
+/**/ foreach ($info as $key => $value) $result .= "<b>$key</b>: " . print_r($value, 1) . "<br>\n"; // keep
   return "\n<br>$result";
 }
 
@@ -612,9 +611,10 @@ function seeAssoc($info) {
  * @return: the id (null if none available)
  */
 function firstUnusedId($key, $table, $starting = 1, $before = PHP_INT_MAX, $where0 = '1', $subs = array()) {
-  $where = "$where0 AND t1.$key>=$starting AND t1.$key <$before AND t2.$key IS NULL ORDER BY t1.$key";
+  if (!db\exists("$table t1", "$where0 AND t1.$key=$starting", $subs)) return $starting;
+  $where = "$where0 AND t1.$key>=$starting AND t1.$key<$before-1 AND t2.$key IS NULL ORDER BY t1.$key";
   $prev = db\lookup("t1.$key", "$table t1 LEFT JOIN $table t2 ON t2.$key=(t1.$key+1)", $where, $subs);
-  return $prev ? ($prev + 1) : (db\exists("$table t1", "$where0 AND t1.$key=$starting", $subs) ? NULL : $starting);
+  return $prev ? ($prev + 1) : NULL;
 }
  
 /**
@@ -893,7 +893,7 @@ function trimAll(&$array) {
 function deb($arg = '') {
   global $counterI;
   $msgCount = count(@$_SESSION['messages']['status'] ?: array());
-  log(($counterI = @$counterI + 1) . " ($msgCount messages): " . print_r($arg, 1), 'debug'); // keep
+/**/ log(($counterI = @$counterI + 1) . " ($msgCount messages): " . print_r($arg, 1), 'debug'); // keep
 }
 
 /**
@@ -957,7 +957,7 @@ function small($n) {return (abs($n) < .001);}
 function equy($a, $b) {return small($a - $b);} // sort of equal
 function valid_url($url) {return (\valid_url($url) and preg_match('/^[A-Z0-9\-_]+\.[A-Z0-9\-_]+/i', $url) and strpos($url, '@') === FALSE);}
 function abbreviates($s, $string) {return (substr($string, 0, strlen($s)) == $s);}
-function prlog($log = 'rCredits') {print_r(loga($log));} // keep this
+/**/ function prlog($log = 'rCredits') {print_r(loga($log));} // keep this
 function order($one1st, $one, $two) {return $one1st ? array($one, $two) : array($two, $one);}
 function both(&$vars, $k, $one1st, $one, $two) {list ($vars[$k], $vars['other' . ucwords($k)]) = u\order($one1st, $one, $two);}
 function wargs($s, $args, $prefix = '') {return strtr($s, prefixKeys($prefix, $args));} // for debugging

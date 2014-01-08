@@ -125,7 +125,7 @@ class DwollaRestClient {
       }
 */    
       if (!@$response['access_token']) { // mod by CGF
-        return $this->setError(@$response['Message'] ?: ('failed, no Message: ' . print_r($response, 1)));
+/**/    return $this->setError(@$response['Message'] ?: ('failed, no Message: ' . print_r($response, 1)));
       }
 
       return $response['access_token'];
@@ -1217,7 +1217,7 @@ class DwollaRestClient {
 
       $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); // get HTTP response
       if ($code !== 200) {
-        $curlErr = print_r(curl_error($ch), 1);
+/**/    $curlErr = print_r(curl_error($ch), 1);
         $Success = FALSE;
         $Message = "Request failed. Server responded with: {$code} -- {$curlErr}";
         $response = compact('Success', 'Message');

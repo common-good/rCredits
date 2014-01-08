@@ -40,6 +40,7 @@ function extraSubs(&$subs) {
 //  $subs['%replace_this'] = 'with this';
   $subs['%todayn-12m'] = t\subAgo('%todayn-365d', '%Y%m%d');
   $subs['%todayn'] = t\subAgo('%todayn', '%Y%m%d');
+  //$subs['%dmy'] = t\subAgo('%todayn', '%d-%b-%Y');
   $subs['%name'] = \user_password(20); // suitable for email address
 }
 
@@ -84,7 +85,8 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance MAKE
  *     RealUsd AMemberBuysSomethingWhenDwollaIsDown MAKE
  *     Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite MAKE
- *     Signup ANewbieRegisters MAKE
+ *     Signup ANewbieRegistersInWesternMassachusetts MAKE
+ *     Signup ANewbieRegistersElsewhere MAKE
  *     Signup ANewbieRegistersWithNoCase MAKE
  *     Signup AMemberRegistersBadEmail MAKE
  *     Signup AMemberRegistersBadName MAKE
@@ -150,7 +152,8 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
 /**
  * members: (ARG)
  *
- * in: Community Setup MAKE
+ * in: Boxes Setup MAKE
+ *     Community Setup MAKE
  *     Contact Setup MAKE
  *     Contact AMemberUpdatesContactInfo TEST
  *     Download Setup MAKE
@@ -162,7 +165,8 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  *     RealUsd Setup MAKE
  *     Relations Setup MAKE
  *     ScanCard Setup MAKE
- *     Signup ANewbieRegisters TEST
+ *     Signup ANewbieRegistersInWesternMassachusetts TEST
+ *     Signup ANewbieRegistersElsewhere TEST
  *     Signup ANewbieRegistersWithNoCase TEST
  *     Signup AMemberRegistersAgain MAKE
  *     Signup AMemberRegistersWithAnExistingCompany BOTH
@@ -265,7 +269,8 @@ function weSayWithSubs($type, $index, $subs) {
  *     Membership AMemberGivesTheWrongPassword MAKE
  *     Membership AMemberTypesTheWrongAccountInfonameSsnOrDob TEST
  *     Membership AMemberCompanyTypesTheWrongAccountInfonameEinOrBusinessStructure TEST
- *     Signup ANewbieRegisters TEST
+ *     Signup ANewbieRegistersInWesternMassachusetts TEST
+ *     Signup ANewbieRegistersElsewhere TEST
  *     Signup AMemberRegistersBadEmail TEST
  *     Signup AMemberRegistersBadZip TEST
  *     Signup AMemberRegistersWithACompanyWithNoRelation TEST
@@ -281,7 +286,8 @@ function weSay($type, $index) {
 /**
  * we email (ARG) to member (ARG) with subs: (ARG)
  *
- * in: Signup ANewbieRegisters TEST
+ * in: Signup ANewbieRegistersInWesternMassachusetts TEST
+ *     Signup ANewbieRegistersElsewhere TEST
  *     Signup ANewbieRegistersFromElsewhere TEST
  */
 function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, $email, $subs);}
@@ -331,7 +337,9 @@ function weShowWithSubs($page, $subs) {
 /**
  * we show (ARG) with: (ARG)
  *
- * in: Community CronCalculatesTheStatistics TEST
+ * in: Boxes AMemberVisitsTheDevicesPageWithNoDevicesYet TEST
+ *     Boxes AMemberHasAllKindsOfDevices TEST
+ *     Community CronCalculatesTheStatistics TEST
  *     Contact AMemberVisitsTheContactInfoPage TEST
  *     Get AMemberAsksToDoTwoTransfersOutInOneDay TEST
  *     Membership AMemberSignsInForTheFirstTime TEST
@@ -355,7 +363,7 @@ function weShowWithSubs($page, $subs) {
  *     Signup ANewbieVisitsTheRegistrationPageWithExpiredInvite TEST
  *     Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite TEST
  *     Signup AnInvitedNewbieVisitsTheRegistrationPage TEST
- *     Signup ANewbieRegisters TEST
+ *     Signup ANewbieRegistersInWesternMassachusetts TEST
  *     Signup AMemberRegistersACompany TEST
  *     Signup ANewbieRegistersFromElsewhere TEST
  *     Summary AMemberClicksOnTheSummaryTab TEST
@@ -464,7 +472,9 @@ function usd($list) {return t\usd($list);}
 /**
  * member (ARG) visits page (ARG)
  *
- * in: Community CronCalculatesTheStatistics MAKE
+ * in: Boxes AMemberVisitsTheDevicesPageWithNoDevicesYet MAKE
+ *     Boxes AMemberHasAllKindsOfDevices MAKE
+ *     Community CronCalculatesTheStatistics MAKE
  *     Contact AMemberVisitsTheContactInfoPage MAKE
  *     Download AMemberDownloadsTransactionsForThePastYear MAKE
  *     Download AMemberDownloadsCompletedTransactionsForThePastYear MAKE
@@ -536,7 +546,8 @@ function memberIsLoggedOut() {
  *     Signup ANewbieVisitsTheRegistrationPageWithExpiredInvite MAKE
  *     Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite MAKE
  *     Signup AnInvitedNewbieVisitsTheRegistrationPage MAKE
- *     Signup ANewbieRegisters MAKE
+ *     Signup ANewbieRegistersInWesternMassachusetts MAKE
+ *     Signup ANewbieRegistersElsewhere MAKE
  *     Signup ANewbieRegistersWithNoCase MAKE
  *     Signup AMemberRegistersBadEmail MAKE
  *     Signup AMemberRegistersBadName MAKE
@@ -679,7 +690,8 @@ function memberHasPermission($uid, $permission) {
  * member (ARG) one-time password is set
  *
  * in: Membership AMemberSignsInForTheFirstTime TEST
- *     Signup ANewbieRegisters TEST
+ *     Signup ANewbieRegistersInWesternMassachusetts TEST
+ *     Signup ANewbieRegistersElsewhere TEST
  */
 function memberOnetimePasswordIsSet($id) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -744,7 +756,7 @@ function weDownloadWith($name, $rows) {
   foreach ($testCSV2 as $csvRow) {
 /// debug(compact('headers', 'csvRow'));
     $csvRow = array_combine($headers, $csvRow); // add keys
-    if (!$row = array_shift($rows)) return t\output('extra row in CSV: ' . print_r($csvRow, 1));
+/**/ if (!$row = array_shift($rows)) return t\output('extra row in CSV: ' . print_r($csvRow, 1));
     foreach ($row as $key => $value) {
 ///    debug(compact('row','csvRow'));
       if (strpos($value, '%') !== FALSE) $value = t\lastMinuteSubs($value);
@@ -1000,3 +1012,10 @@ function invitationWasSentOn($code, $dt) {
   global $testOnly; if ($testOnly) return FALSE;
   return db\q("UPDATE r_invites SET invited='$dt' WHERE code='$code'");
 }
+
+/**
+ * devices: (ARG)
+ *
+ * in: Boxes AMemberHasAllKindsOfDevices MAKE
+ */
+function devices($list) {return t\devices($list);}

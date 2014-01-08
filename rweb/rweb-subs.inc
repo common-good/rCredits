@@ -23,8 +23,8 @@ $GLOBALS[TX_WEB . ' messages'] = array(
 
   // reports
   'report new relation' => t('@who is now related to this account. You will need to adjust the permissions or other settings.'),
-  'report new cell' => t('Cell number @number is now connected to this account.'),
-  'report delete cell' => t('Cell number @number has been removed from this account.'),
+  'report new cell' => t('Mobile number @number is now connected to this account.'),
+  'report delete cell' => t('Mobile number @number has been removed from this account.'),
   'your account is ready' => t('<p></p><p>Welcome to rCredits! We sent you an email with your user ID and password (if you don\'t see it within 60 seconds, check your spam folder). Come back here <b style="color:red;">within the next @R_SIGNIN_HOURS hours</b> to sign in and finish your account setup.</p>'),
   'company is ready' => t(<<<EOF
     <p></p><p>To finish setting up this company account:</p>
@@ -34,7 +34,7 @@ $GLOBALS[TX_WEB . ' messages'] = array(
     </ol>
 EOF
   ),
-  'verify cell' => t('We sent a verification code to your cell phone (@number).<br>Please type that code in the box below.'),
+  'verify cell' => t('We sent a verification code to your mobile phone (@number).<br>Please type that code in the box below.'),
   'options saved' => t('Your options have been saved'),
   'photo saved' => t('Your photo was successfully uploaded.'),
   'step completed' => t('<span id="completed"> Step completed!</span>'), // space intended
@@ -71,7 +71,7 @@ EOF
   'verify connection' => t('Your next step is to verify the connection.'),
   'ssTitle' => t('Soc Sec #:'),
   'einTitle' => t('Federal ID:'),
-  'ssDesc' => t('Your social security number (for required annual reporting)'),
+  'ssDesc' => t('Your social security number (for tax reporting)'),
   'einDesc' => t('The company\'s Employer ID Number (EIN)'),
   'to scan another' => t('To scan another card, run the QR Scanner app again.'),
   'no card ordered' => t('No rCard was ordered.'),
@@ -104,10 +104,10 @@ EOF
   'no such company' => t('There is no such company.'),
   'op canceled' => t('Operation Canceled.'),
   'demand not yet' => t('You will be notified when there are some rCredits for you to buy with US Dollars.'),
-  'confirm delete cell' => t('Are you sure you want to remove the selected cell phones from this account?'),
+  'confirm delete cell' => t('Are you sure you want to remove the selected mobile phones from this account?'),
   'already related' => t('That person is already related to this account. If you want to change the settings, find this person in the list and change the settings on that row.'),
-  'already cell' => t('That cell phone (@number) is already connected to this account.'),
-  'cell taken' => t('A cell phone can be connected to only one account. You are already using that cell phone (@number) in connection with account "@accountName". If you really want to switch that phone to this account, you must first sign in to the other account and release it.'),
+  'already cell' => t('That mobile phone (@number) is already connected to this account.'),
+  'cell taken' => t('A mobile phone can be connected to only one account. You are already using that phone (@number) in connection with account "@accountName". If you really want to switch that phone to this account, you must first sign in to the other account and release it.'),
   'bad routing number' => t('US bank routing numbers are 9 digits. Use the number on the lower left edge of your checks.'),
   'nothing selected' => t('You did not select anything'),
   'undo incomplete' => t('The undo operation is not yet complete.'),
@@ -185,6 +185,8 @@ EOF
   'bad ssn or dob' => t('There is a problem verifying your personal information.'),
   'bad ssn' => t('That is not a valid social security number.'),
   'bank too little' => t('The amount you asked to transfer is less than the minimum ($@R_BANK_MIN).'),
+  'members only' => t('You must be a member, to use this feature.'),
+  'dwolla terms required' => t("Please accept Dwolla's terms before you click Continue."),
 );
 
 /**
@@ -347,35 +349,35 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   } catch(u\fit $e) {r\Web\exception_handler($e);}
 }
 
+/**
+ * Return a unique persistant identifier for the current machine (set randomly, if none yet).
+ */
 function box() {
-  if ($box = @$_COOKIE['box']) return $box;
-  \variable_set('r_box', $box = \variable_get('r_box', 0) + 1); // this is prone to timing collisions
-  return r\setCook('box', $box);
+  if (strlen($box = @$_COOKIE['box']) == R_CODE_LEN) return $box; // old codes were shorter
+  //\variable_set('r_box', $box = \variable_get('r_box', 0) + 1); // this is prone to timing collisions
+  return r\setCook('box', $box = \user_password(R_CODE_LEN));
 }
 
 /**
- * Return the box record id for the given boxid and account id.
- * @param int $boxid: machine identifier
+ * Return the box record id for the given machine code and account id.
+ * @param int $code: machine identifier
  */
-function boxUser($boxid, $uid) {
-  if ($id = @$_COOKIE[$cookid = 'box' . $uid]) {
-    if (db\exists('r_boxes', 'id=:id AND boxid=:boxid AND uid=:uid', compact(u\ray('id boxid uid')))) return $id;
-    debug(compact('boxid','uid','id'));
-  }
-  $id = r\makeDevice($uid, $zot, '0', $boxid);
-  r\setCook($cookid, $id);
-  return $id;
+function boxUser($code, $uid) {
+  if ($id = @$_COOKIE[$cookid = 'boxnum' . $uid] and !t\est()) return $id; // we only get this if last set today
+  if ($id = db\lookup('id', 'r_boxes', 'code=:code AND uid=:uid', compact(u\ray('code uid')))) {
+    db\update('r_boxes', u\ray('id access', $id, REQUEST_TIME), 'id');
+  } else $id = r\makeDevice($uid, $code, TX_WEB);
+  return r\setCook($cookid, $id, strtotime('tomorrow'));
 }
 
 function setupGlobals($agent = '') {
-  global $user, $channel, $boxUser, $verifyBys;
+  global $user, $channel, $boxUser;
   if (@$channel) return; // already setup
   if (!$agent) $agent = @$user->uid; // register_submit supplies agent (no one else does)
   $myid = svar('myid') ?: $agent;
   r\acct::setDefault(r\acct($myid, $agent)); // set default for r\acct()
-  if ($myid) $boxUser = boxUser(box(), $myid);
   $channel = TX_WEB;
-  $verifyBys = u\ray('SMS Voice'); // for Dwolla phone verification
+  if ($myid) $boxUser = boxUser(box(), $myid); // so far used only when recording transactions
 }
 
 /**
@@ -618,9 +620,9 @@ function dwollaTerms() {
   global $rUrl;
   $title = item(t('Welcome to rCredits!'));
   $subtext = item(t(<<<EOF
-<p>Your rCredits account will contain both official currency and rCredits (incentive rewards we issue by agreement among ourselves, as members of the rCredits system).</p>
+<p>Your rCredits account will contain both US Dollars and rCredits (incentive rewards issued by the rCredits community).</p>
 
-<p>Our partnership with Dwolla connects you to the mainstream economy. We use the Dwolla network to handle transfers of official currency between rCredits members. A few required words about Dwolla:</p>
+<p>Our partnership with Dwolla connects you to the mainstream economy. We use the Dwolla network to transfer US Dollars between rCredits members. A few required words about Dwolla:</p>
 <div id="graphics"><div><img src="$rUrl/images/dwolla.jpg" /><img id="veridian-logo" src="$rUrl/images/veridian.jpg" /></div></div>
 <p>Financial institutions play an important role in the Dwolla network.</p>
 
@@ -631,7 +633,7 @@ EOF
   $aTerms = 'a href="https://www.dwolla.com/tos?nolayout=true" target="_blank"';
   $aPrivacy = 'a href="https://www.dwolla.com/privacy?nolayout=true" target="_blank"';
 
-  $agreed = boxField(t('Accept Terms checkbox'), tt("I accept Dwolla's <@aTerms>Terms of Service</a> and <@aPrivacy>Privacy Policy</a> and I authorize the rCredits system to open and manage a Dwolla account on my behalf.", compact('aTerms', 'aPrivacy')), suffix('&nbsp;') + required());
+  $agreed = boxField(t('Accept Terms checkbox'), tt("I accept Dwolla's <@aTerms>Terms of Service</a> and <@aPrivacy>Privacy Policy</a> and I authorize the rCredits system to open and manage a Dwolla account on my behalf.", compact('aTerms', 'aPrivacy')), suffix('&nbsp;'));
   $continue = submit(t('Continue'));
   return compact(u\ray('title subtext agreed continue'));
 }
@@ -771,9 +773,9 @@ EOF;
   $onchange = "var z3=jQuery('#edit-postalcode').val().substr(0, 3); if (z3=='013' || z3=='010') jQuery('#edit-buysat').show();";
   $zipAttrib = attrib(compact('onchange'));
   
-  $phone = textField(t('Phone:'), t('Your primary phone (landline or cell). Cannot be the primary phone for another account.'), required(@$phone ? u\fmtPhone($phone): ''));
-  $verifyBy = formField('radios', t('Verify by:'), t('We will send a verification code to your phone, by text or voice.'), required(isset($mya->data['verifyBy']) ? ($mya->data['verifyBy'] == 'Voice') : NULL), array(t('Text message'), t('Voice')));
-  if ($mya) $faxetc = textField(t('Fax etc:'), t('List other ways to contact you: fax, cell, IM, etc. This field is NOT public.'), dft(@$faxetc));
+  $phone = textField(t('Phone:'), t('Your primary phone (landline or mobile). Cannot be the primary phone for another account.'), required(@$phone ? u\fmtPhone($phone): ''));
+  $verifyBy = formField('radios', t('Verify by:'), t('We will send a verification code to your phone, by text or voice.'), required(isset($mya->data['verifyBy']) ? ($mya->data['verifyBy'] == 'Voice') : NULL), array(t('Text message'), t('Voice message')));
+  if ($mya) $faxetc = textField(t('Fax etc:'), t('List other ways to contact you: fax, mobile, IM, etc. This field is NOT public.'), dft(@$faxetc));
   $country = formField('select', t('Country:'), t(''), dft(@$country) + $countryAttrib); // can't use required() here
   if ($mya) $address = textField(t('Street Address:'), t('Where is your building located (physical address)?'), required(@$address) + $addressAttrib);
   if ($mya) $city = textField(t('City:'), t(''), required(@$city));
@@ -880,18 +882,17 @@ EOF;
  * @param int $err: 
  * @return: email or nothing, as above (FALSE if no such invitation)
  */
-function invitation($code, $invitee = '', &$inviter = '', &$err = '') {  
-  if (@$invitee) return db\update('r_invites', compact('code', 'invitee'), 'code'); // mark it used
-  // check validity and get details
+function invitation($code, $invitee = '', &$inviter = '', &$err = '') {
+  $fields = 'id,email,inviter,invitee,invited';
+  if (!$result = db\lookup($fields, 'r_invites', 'code=:code', compact('code'))) return !$err = 'bad invite';
+  $id = $result['id']; // don't extract yet
+  if (@$invitee) return db\update('r_invites', compact('id', 'invitee'), 'id'); // mark it used
+  
+  extract($result); // looking for email and inviter, so get details
   $lastweek = strtotime((R_INVITE_DAYS + 2) . ' days ago'); // +2 for leniance
-  $sql = 'code=:code AND invited>=:lastweek AND invitee IS NULL';
-  if (!$result = db\lookup('email,inviter', 'r_invites', $sql, compact('code', 'lastweek'))) {
-    if ($info = db\lookup('inviter,invitee', 'r_invites', 'code=:code', compact('code'))) extract($info);
-    $err = $info ? (@$invitee ? 'used invite' : 'expired invite') : 'bad invite';
-    return FALSE;
-  }
-  extract($result); // email,inviter
-  return $email;
+  if ($invitee) return !$err = 'used invite';
+  if ($invited < $lastweek) return !$err = 'expired invite';
+  return $email; // $inviter is returned implicitly
 
 }
 
@@ -1242,7 +1243,7 @@ function doSay($msg, $type = 'error') {
       \drupal_goto('error/' . $R_FATAL_ERROR); // this fails -- use shutdown function to show error page (getting message from log)
     case TX_SMS: if (@$rsms_number) \sms_send($rsms_number, R_SYS_ERR); break;
     case TX_SMART: be\api_error(R_SYS_ERR);
-    default: die('with no channel'); // (keep) definitely do the print_r first
+    default: di e('with no channel');
   }
  */
 function error($logid) {
@@ -1324,6 +1325,33 @@ function userMenuItem($router_path, $link_title) {
   menu_link_save($item);
 }
 
+/**
+ * Send an invitation to the email and optionally report it.
+ */
+function sendInvite($email, $subject, $message, $dupsOk = TRUE) {
+  $agent = r\agent();
+  if ($agent->admin()) $agent = r\agent('NEW.AAA'); // use William for admin invites
+  
+  if (!$dupsOk) {
+    if (db\exists('r_invites', 'email=:email', compact('email'))) return say("NOT sent to $email (dup).");
+    if (db\exists('users', 'mail=:email', compact('email'))) return say("NOT sent to $email (user).");
+  }
+
+  $info = array(
+    'uid' => $agent->id,
+    'noFrame' => TRUE,
+    'subject' => $subject,
+    'PERSONAL_NOTE' => str_replace("\n", "<br>\n", $message), 
+    'MEMBER_NAME' => $agent->fullName, 
+    'MEMBER_PHONE' => u\fmtPhone($agent->phone),
+    'DATE' => u\fmtDate($agent->signed),
+    'CODE' => r\invite($email, $agent->id, '', $subject, $message),
+  );
+  r\rMail('invite', $email, '', $info);
+  say(!$dupsOk ? 'Sent to @email' : 'invite sent|repeat invite', compact('email'));
+  r\tellStaff('invited', $info + compact('email'), $agent->id);
+}
+
 function focusOn($focusFieldName) {
   u\EXPECT(!empty($focusFieldName), 'focus on null');
   $focusFieldName = str_replace('_', '-', $focusFieldName);
@@ -1381,4 +1409,5 @@ function prefix($prefix) {return compact('prefix');}
 function autocomplete($type = '') {return array('autocomplete_path' => "autocomplete/$type/" . @r\acct()->id);}
 function required($dft = NULL) {return array('required' => TRUE) + (isset($dft) ? dft($dft) : array());}
 // UNUSED function check($array, $type = 'plain') {return array_map("check_$type", $array);} // Check an array for plain or markup.
-function op($sta) {global $testOp; return t\est() ? $testOp : $sta['clicked_button']['#parents'][0];}
+function op($sta) {global $testOp; return t\est() ? $testOp : @$sta['clicked_button']['#parents'][0];}
+function verifyBy($byVoice) {return $byVoice ? t('Voice') : t('SMS');}

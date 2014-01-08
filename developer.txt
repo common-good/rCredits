@@ -17,8 +17,7 @@ QUESTIONS:
   . temporary debugging statements can be added if they are first tested on ws.rcredits.org
   . cut and paste bug fixes on prod server when they are in just one or two clumps of 6 lines or less AND the functions being patched have not otherwise changed (on the DEV system) since the last update
 - Find and delete all temporary debugging statements:
-///. Search for "debug(", "print_r(", and "die(" (all such lines should begin with /// or (if keepers) /**/
-  . Sometime write a macro to do the finding. 
+///. Search for "debug(", "print_r(", and "die(" (all such lines should begin with /// or (if keepers) /**/ Sometime write a macro to do the finding. 
   . Make sure debugMode in dwolla.php is FALSE.
 - Upload first to ws.rcredits.org, rebuild menus (and maybe reinstall) and make sure SOMETHING works
 - When updating data directly through phpMyAdmin or the PHP window or other admin tools, back up the database or relevant tables first.
@@ -34,18 +33,21 @@ make sure the photo is adequate
 mark the account as an rTrader (OK) (before printing card)
 print card and welcome materials, mail to new member (welcome includes reminder to verify bank account)
 
+. *** do not put exchanges of r for usd in r_txs -- delete them there (and change the corresponding rebates/bonuses to pioneer rewards). Use r_usd only. All transactions between members should be rCredits only. This makes the "r" field in r_txs unused.
+. *** 1099s!
 . retest SMS
-. duplicate rPOS agent name crashes system (eg "Cashier"). Just add a digit to "name" field in users.
 . * separate invoices from r_txs (somewhat major change)
 . * hide advanced features on Transactions page (show either advanced or simple period selector, but not both)
 . * add a Pay button to member company rCredits webpage
 - * detailed membership tests: New Pass, Photo, Agreement, Contribute, Proxies, Usd, proof of ID, Options
 
+. tell cgf (remind us) how often a contribution happens and whether it is time to send a card (on the anniversary or quarterversary).
+. report proper balance on tellStaff about gift
+. withdrawal should disable minimum if necessary to avoid an automatic reversal of the withdrawal
+. allow companies and users who can't get a Dwolla account to open with rCredits-only (they still have to get money into their account somehow)
 . allow user to change box name (can change computer box name only if currently on that computer)
 - * reduce picture size and make thumbnails (for upper right corner)
-. signing agreement last does not activate "ready" status
-. allow people whose accounts cannot be verified to have an account anyway.
-. do not put exchanges of r for usd in r_txs -- delete them there. Use r_usd instead (maybe with an extra "exchange" field)
+. bug: signing agreement last does not activate "ready" status
 . check and correct deposit/withdrawal status (and balance) when visiting bank tab
 . selecting a new account when site has timed out and signed the user out, should do something reasonable
 . implement two-factor signin
@@ -61,15 +63,13 @@ print card and welcome materials, mail to new member (welcome includes reminder 
 . start with 0 bal, charge customer $20, then undo. fails.
 . *** why no "request rCard" for Diane Miller and Julia E?
 . *** omit "request rCard" on relations page if account has not been approved
-. *** why is no homog happening?
-. * add option for company to enable access by others to their device(s). But default to no access. That way, an unsigned-in cashier can't accidentally sign in another company's agent. ("restricted" field in r_boxes? B_READ means "can use our rPOS devices" in relations form?) May require a A.testDevice param in rPOS.
+. LATER add option for company to enable access by others to their device(s). But default to no access. That way, an unsigned-in cashier can't accidentally sign in another company's agent. ("restricted" field in r_boxes? B_READ means "can use our rPOS devices" in relations form?) May require a A.testDevice param in rPOS.
 . give stage server hidden fields! (currently crashes on $a->dob)
 . * when user has no access to the page, show login page if user is not logged in (requires a change to Drupal)
 . trying to change company name and email complains that phone is already taken
 . in admin a() handle non-local regions right
 . create an rPay app (modify rPOS) for members to pay other members (rather than be charged). It might be expanded later to include account features.
 . * write rweb feature tests for automatic one-click actions (see rcron/features/old/SoldOut.feature for an example)
-. committed amount should not be displayed negative on Summary page
 - * help for all pages
 - * in daily: alert staff if deposit / withdrawal not complete after 5 days
 - * (recheck) enforce $1,000 FINCEN limits
@@ -79,7 +79,6 @@ print card and welcome materials, mail to new member (welcome includes reminder 
 . company search on production server gets collation error (search for "food")
 . hover help on relations page
 . scanning Emi's card should say "not (yet) authorized for purchases"
-. on reversing a payment, rebate should show as negative, not empty
 . committed amount can go negative (on a refund). make sure cron handles it right.
 
 . show the right thing for bank transfers for ctty_admin statistics page or hide them
@@ -88,7 +87,7 @@ print card and welcome materials, mail to new member (welcome includes reminder 
 . rewrite form testing system to use just menu_execute_active_handler, drupal_validate_form, etc. (assuring official behavior). For example, be able to test required fields.
 . (later) suggest reaching out to increase rebate pct
 . coverFee from lost transaction cron
-. make invite a primary link
+. LATER make invite a primary link
 . handle menu logout from restricted page (does not log out)
 . txs should not show X on receipts, for non-buyers
 . (later) use rc4.me for login and email redirection (with forward.php). Database table accounts has fields email (primary), username (all lowercase letters), and region (3 or 4 uppercase letters). So user can log in at rc4.me (linked to by rcredits.org), which then forwards the request to the appropriate server. Scanned cards go directly to the proper server (new.rc2.me/A/AAAcode OR /a/... for agents, B&b for 4-letter users, etc.).

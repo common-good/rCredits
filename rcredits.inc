@@ -90,6 +90,7 @@ define('R_ANCIENT_EFT', 10); // how long, at most, an EFT might take (transferri
 define('R_REQUIRED', ' <span class="form-required" title="This field is required.">*</span>');
 define('R_CTTY_USD_SHARE', .5); // fraction of a community's total USD to hold in the community account
 define('R_CC_RATE', 2.5); // typical credit card percentage rate
+define('R_CODE_LEN', 20); // length of most random identifiers
 
 define('DW_SITE', isPRODUCTION ? 'https://www.dwolla.com' : 'https://uat.dwolla.com');
 //                               : 'http://new.rcredits.org/stage.php?stageWord=' . R_STAGE_WORD . '&request=');
@@ -220,9 +221,9 @@ define('TX_SYSTEM', 0);
 define('TX_SMS', 1); 
 define('TX_WEB', 2);
 define('TX_SMART', 3); // smart phone or other computer-like device
-define('TX_TOUCH', 4); // touch tone phone
+define('TX_TONE', 4); // touch tone phone
 define('TX_CRON', 5);
-define('TX_CHANNELS', t('System SMS Web App Touch Auto'));
+define('TX_CHANNELS', t('System SMS Web App Tone Auto'));
 
 // Transaction types (all but type TX_TRANSFER and TX_BANK create rCredits)
 define('TX_BANK', -3); // used only internally, to mark bank transfers
@@ -352,6 +353,7 @@ function xid2tid($xid, $uid) {
 }
 
 /**
+ * OLD
  * Trade r in one account for USD in another
  * @param float $amount: the amount to trade (limited to R_MAX_DAILY_EXCHANGE)
  * @param int $uid1: uid of account with r to trade
@@ -378,6 +380,32 @@ function tradeR($amount, $uid1, $uid2, &$err = '') {
 }
 
 /**
+ * Trade r in one account for USD in another
+ * @param float $amount: the amount to trade (limited to R_MAX_DAILY_EXCHANGE)
+ * @param int $uid1: uid of account with r to trade
+ * @param int $uid2: uid of account with USD to trade
+ * @param string $err: (RETURNED) an error message on failure
+ * @return string $txid: USD transaction ID (from Dwolla) or FALSE on failure
+ * Caller is responsible for determining whether the accounts have enough r and USD for the trade.
+ *//*NEW
+function tradeR($amount, $uid1, $uid2, &$err = '') {
+  if ($amount > R_MAX_DAILY_EXCHANGE) {$err = 'rTrade amount over max'; return FALSE;}
+  $us1 = new r\usd($a1 = r\acct($uid1));
+  $us2 = new r\usd($a2 = r\acct($uid2));
+
+  r\usd::beginAtom();
+  if (!$txid = $us2->send($amount, $us1, R_DEFAULT_PURPOSE, $err)) {
+    r\usd::rollback();
+    if ($uid1 > 0) $a1->actualUsd(); // fix cached USD, if needed (after rollback)
+    if ($uid2 > 0) $a2->actualUsd();
+    return FALSE;
+  }
+  r\usd::commit();
+  return $txid;
+}*/
+
+/**
+ * UNUSED
  * Payer exchanges rCredits for USD. Record the rCredits transaction.
  * @param string $usdXid: (optional) related USD transaction ID
  */
@@ -641,7 +669,7 @@ function payEmployees($amount0, $for, $confirmed) {
  * @see also r\Web\rdo()
  */
 function makeDo($op, $uid, $amount = 0, $timeLimit = WEEK_SECS, $subs = '', $sql = '') {
-//print_r(compact(u\ray('op uid amount timeLimit subs sql'))); die('makedo'); 
+///print_r(compact(u\ray('op uid amount timeLimit subs sql'))); die('makedo'); 
   global $base_url, $testDoCode;
   $action = serialize(compact(u\ray('op uid sql subs amount')));
   list ($created, $completed) = array(REQUEST_TIME, -(REQUEST_TIME + $timeLimit));
@@ -667,7 +695,6 @@ function rMail($index, $email, $lingo, $info) {
  * @param bool $force: send by email NOW
  */
 function notify($uid, $index, $info = array(), $force = FALSE) {
-  //print_r(compact('uid','index','info','force'));
   global $channel;
   $acct = acct($uid);
   u\EXPECT($acct, 'no account');
@@ -779,7 +806,7 @@ function tellStaff($index, $subs = array(), $uid = TRUE) {
 
   if ($uid) {
     if ($mya = r\acct($uid > 1 ? $uid : '')) $message = "$mya->fullName (#$mya->id): $message"; else $uid = 1;
-  } else $uid = 1;
+  } else $uid = 1; // default to sysadmin
 
   $noFrame = TRUE;
   $topic = strlen($index) < 20 ? strip_tags($index) : '';
@@ -844,7 +871,7 @@ function mergeAccounts($oldUid) {
   $newUid = acct()->id;
   if (!be\isTempAccount($oldUid)) return; // don't merge non-temp account
 //  u\EXPECT(be\access('manage account'), "unauthorized mergeAccounts: $newUid into $oldUid");
-//  if (!isTempName(userField('name', $oldUid))) die('merging non-temp account');
+///  if (!isTempName(userField('name', $oldUid))) die('merging non-temp account');
   // there are no other records for temporary accounts, than those below
 
   $new = acct($newUid);
@@ -1148,20 +1175,24 @@ function newUid($base) {return u\firstUnusedId('uid', 'users', $base, $base + R_
 /**
  * Record the relation of a device with an account.
  * @param int $uid: record ID of related account
- * @param string $code: phone # or device code (choose and return a random code if not specified)
- * @param string $boxName: what the user will call the box (0=pick a positive integer, ''=use the code)
- * @param int $boxid: a sequential number for the device (computers only)
+ * @param string $code: phone # or device code
+ * @param int $ch: channel (SMS, Web, or App)
  * @return int: the device record ID
  */
-function makeDevice($uid, &$code = '', $boxName = '', $boxid = NULL) {
-  if (@$code === '') $code = \user_password(20);
-  if ($boxName === '0') {
+function makeDevice($uid, $code = '', $ch = NULL) {
+  global $channel;
+  
+  u\setDft($ch, $channel);
+  if ($ch == TX_WEB and r\acct()->admin()) return 0; // don't create spurious devices as admin
+/*  if ($boxName === '0') {
     $where = "t1.boxName REGEXP '^[0-9]+$' AND t1.uid=:uid";
     $boxName = u\firstUnusedId('boxName', 'r_boxes', 1, PHP_INT_MAX, $where, compact('uid'));
-  } elseif (!$boxName) $boxName = $code; // code serves as boxName for dumb cell phones
+  } else */
+  //if (!$boxName) $boxName = $code; // code serves as boxName for dumb cell phones
   $created = $access = REQUEST_TIME;
-  $info = compact(u\ray('uid code boxid boxName access created'));
-  return @db\insert('r_boxes', $info) ? $code : '';
+  $boxnum = db\lookup('MAX(boxnum)', 'r_boxes', 'uid=:uid', compact('uid')) + 1;
+  $info = u\ray('channel', $ch) + compact(u\ray('uid code boxnum access created'));
+  return @db\insert('r_boxes', $info);
 }
 
 /**
@@ -1281,13 +1312,14 @@ function proxy($person, $priority = 1, $proxy = NULL) {
 }
 
 /**
+ * OLD getUsd
  * Trade some rCredits for USD, from somebody. 
  * The rCredits always travel by way of the community.
  * @param float $request: how much to try to get
  * @param acct $acct: rCredits account that is trading rCredits to third parties
  * @param usd $usAcct: USD account that is receiving USD from the third parties (might be different owner from $acct)
  * @return how much USD we actually delivered
- */
+*/
 function getUsd($request, $acct, $usAcct = '') {
   u\EXPECT(!$usAcct or !$threeway = ($acct->id != $usAcct->acct->id), 'archaic 3-way trade');
   $need = $request;
@@ -1302,6 +1334,26 @@ function getUsd($request, $acct, $usAcct = '') {
   r\usd::commit($got); // accept partial success
   return $got;
 }
+
+/**
+ * Trade some rCredits for USD, from somebody. 
+ * @param float $request: how much to try to get
+ * @param acct $acct: rCredits account that is trading rCredits to third parties
+ * @return how much USD we actually delivered
+ *//*NEW
+function getUsd($request, $acct) {
+  $need = $request;
+  r\usd::beginAtom();
+  while ($need > 0) {
+    $part = $need;
+    if (!$acct3 = nextRBuyer($part, $acct->id)) break; // asks for what we need, returns the part we got in $part
+    u\EXPECT($part > 0, 'got nothing');
+    if ($txid = r\tradeR($part, $acct->community, $acct3->id)) $need = round($need - $part, 2);
+  }
+  $got = round($request - $need, 2);
+  r\usd::commit($got); // accept partial success
+  return $got;
+}*/
 
 /*
   here's what the call to r\rTrade replaced above:
@@ -1530,10 +1582,13 @@ function averageBalance($uid, $start, $end = REQUEST_TIME, &$days = '') {
   $avg = 0;
   $sql = <<<EOF
     SELECT SUM(IF(payee=:uid, amount, -amount)) AS total, FLOOR((completed-$start)/:DAY_SECS) AS day 
-    FROM r_txs 
-    WHERE :uid IN (payer, payee) AND state=:TX_DONE AND completed BETWEEN $start AND $end 
+    FROM (
+      (SELECT payer,payee,amount,completed FROM r_txs WHERE state=:TX_DONE)
+      UNION (SELECT payer,payee,amount,completed FROM r_usd)
+    ) x WHERE :uid IN (payer, payee) AND completed BETWEEN $start AND $end 
     GROUP BY day
 EOF;
+
   $result = db\q($sql, compact('uid'));
   while($row = $result->fetchAssoc()) {
     $dayx = $day;
@@ -1573,7 +1628,7 @@ function tableField($field, $table, $which = '', $subs = array()) {
   $result = be\getRecords($table, is_numeric($which) ? "uid=$which" : $which, $subs, $field, TRUE);
   if (count($result) < 1) return FALSE;
   u\EXPECT(count($result) == 1, "ambiguous in tableField(): $which");
-  u\EXPECT(is_object($result[0]), 'bad object array in tableField(): ' . print_r($result, 1)); // keep this
+/**/ u\EXPECT(is_object($result[0]), 'bad object array in tableField(): ' . print_r($result, 1)); // keep this
   return strpos($field, ',') ? ((array) $result[0]) : $result[0]->$field;
 }
 

@@ -23,7 +23,7 @@ function q($sql, $subs = array(), $log = TRUE) {
   if ($log and !strpos($sql, 'r_log') and strpos($sql, 'SELECT ') === FALSE) u\loga('db', $subs, $sql);
   try {
     return \db_query(u\SUBS($sql), u\prefixKeys(':', $subs), compact('return'));
-  } catch (Exception $e) {die('here');}
+/**/ } catch (Exception $e) {die('here');}
 }
 
 /**
@@ -64,7 +64,7 @@ function update($table, $info, $key, $either = FALSE) {
   $sql = '';
   foreach ($info as $field => $value) if ($field != $key) $sql .= ",`$field`=:$field";
   $sql = "$command $table SET " . substr($sql, 1) . ($key ? " WHERE `$key`=:$key" : '');
-//  if ($table=='r_do') {print_r(compact(u\ray('table info key either command sql'))); die('dbU');}
+///  if ($table=='r_do') {print_r(compact(u\ray('table info key either command sql'))); die('dbU');}
   try {
     $result = db\q($sql, $info);
     if ($command == 'INSERT INTO') { // if there is no serial field, result will be false, so check

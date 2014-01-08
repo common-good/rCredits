@@ -247,7 +247,6 @@ function usdTxHere($item) {
     db\update('r_txs', compact('xid', 'usdXid'), 'xid');
     r\usd::commit();
   } else r\usd::rollback(); // if ($err == 'not enough') (or any other err) just wait for more USD to be there
-//  debug(compact('usdXid','err'));
 }
 
 /**
@@ -277,7 +276,6 @@ function usdTxQ($info) {r\queue($info['Type'] == 'money_sent' ? 'lostUsdTx' : 'b
  * @param assoc $tx: the lost transaction
  */
 function lostUsdTx($tx) {
-//print_r($tx); die();
   extract(u\just('Id Notes Amount SourceId DestinationId Date', $tx));
   if (!u\abbreviates(t\est() . USD_NOTE_PREFIX, $Notes)) return; // not one of ours
   if (db\exists('r_usd', 'txid=:Id', compact('Id'))) return;
@@ -704,7 +702,6 @@ function paymentExchangeError1($acct1, $way, $acct2) {
 }
 
 function queueEach($op, $sql, $subs = array()) {
-//print_r(compact('op','sql','subs')); die('in queueEach');
   $result = db\q($sql, $subs);
   while ($row = $result->fetchAssoc()) r\queue($op, $row);
 }

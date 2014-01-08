@@ -132,7 +132,7 @@ class acct {
   }
   
   private static function getRecord($id, $reread = FALSE) {
-    if (@self::$records[$id] and !property_exists(self::$records[$id], 'flags')) die("No flags field in record $id: " . print_r(self::$records, 1)); // keep this
+/**/ if (@self::$records[$id] and !property_exists(self::$records[$id], 'flags')) die("No flags field in record $id: " . print_r(self::$records, 1)); // keep this
     if (@self::$records[$id] and !$reread) return self::$records[$id];
     if (!$records = be\getRecords('users', "uid=:id LIMIT 1", compact('id'))) { // no such record here
       if (TRUE) return FALSE; // not foreign either
@@ -157,7 +157,7 @@ class acct {
    */
   public function __get($field) {
     $this->reread(); // necessary when we pass an acct object to another page
-//    u\EXPECT(property_exists(self::$records[$this->id], $field), "bad field for uid $this->id: $field" . print_r(self::$records[$this->id], 1));
+///    u\EXPECT(property_exists(self::$records[$this->id], $field), "bad field for uid $this->id: $field" . print_r(self::$records[$this->id], 1));
     if ($field == 'agent') return acct($this->agentId);
     if (in_array($field, u\ray(R_SECRET_FIELDS))) $this->getHidden();
     $result = @self::$records[$this->id]->$field; // returns NULL if field not set
