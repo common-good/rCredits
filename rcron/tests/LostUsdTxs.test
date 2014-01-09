@@ -51,9 +51,9 @@ class rcronLostUsdTxs extends DrupalWebTestCase {
     . '\\| id   | dw/usd |'
     . '\\| %id1 |      2 |"');
     And__('transactions: "DATA'
-    . '\\| xid | created   | type     | amount | r    | from | to   | purpose |'
-    . '\\| 1   | %today-7m | signup   |   1000 | 1000 | ctty | %id1 | signup  |'
-    . '\\| 2   | %today-7m | signup   |   1000 | 1000 | ctty | %id2 | signup  |"');
+    . '\\| xid | created   | type     | amount | from | to   | purpose |'
+    . '\\| 1   | %today-7m | signup   |   1000 | ctty | %id1 | signup  |'
+    . '\\| 2   | %today-7m | signup   |   1000 | ctty | %id2 | signup  |"');
     Then_('usd transfer count is 0');
     break;
 
@@ -64,12 +64,8 @@ class rcronLostUsdTxs extends DrupalWebTestCase {
   // Scenario: a system crash leaves a transaction incomplete
   public function testASystemCrashLeavesATransactionIncomplete_0() {
     $this->setUp2(__FUNCTION__, 0);
-    Given('member "%id1" confirms form "pay" with values: "DATA'
-    . '\\| op  | who     | amount | goods | purpose |'
-    . '\\| pay | Bea Two | 1001   | 1     | labor   |"');
-    Then_('usd transfers: "DATA'
-    . '\\| payer | payee | amount |'
-    . '\\| %id1  |  %id2 |      1 |"');
+    When_('member %id1 trades $1 USD to member %id2 for rCredits');
+    Then_('usd transfer count is 1');
     Given('usd transfer count is 0');
     When_('cron runs "usdTxsThere"');
     Then_('usd transfers: "DATA'

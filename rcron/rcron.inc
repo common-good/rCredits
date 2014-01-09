@@ -176,11 +176,12 @@ function coverFee($item) {
     return r\queue('coverFee', $item); // Dwolla is down -- keep trying
   }
   $for = t('Dwolla fee');
-  $keys = 'payer payee type amount r for taking usdXid';
+  $keys = 'payer payee type amount for taking';
   
   r\usd::beginAtom();
-  r\transact(u\ray($keys, $a->community, $payee, TX_REFUND, 0, $fee, $for, 0, $txid + 2));
+  r\transact(u\ray($keys, $a->community, $payee, TX_REFUND, $fee, $for, 0));
   r\usd::addToAtom($txid + 2, $fee, $payee, -1, REQUEST_TIME); // -1 to distinguish from bank transfers
+  $a->actualUsd(-$fee);
   r\usd::commit();
 }
 
@@ -226,27 +227,6 @@ function shareCommitted($item) {
   db\insert('r_gifts', $info);
   r\acct($uid)->update(array('committed' => 0));
   unset($DBTX);
-}
-
-/**
- * Complete queued USD transactions that have not gone through yet.
- * Maybe this should be the only time they are done!
- */
-function usdTxsHere() {
-  queueEach('usdTxHere', 'SELECT * FROM r_txs WHERE usdXid=-1 AND r<amount AND state IN(:TX_DONE,:TX_DISPUTED)');
-  r\queue('usdTxsHereEND');
-}
-function usdTxsHereEND() {queueNextAfter('usdTxsHere');}
-
-function usdTxHere($item) {
-  extract($item); // tx with not-yet-done USD transfer
-  $usa1 = new r\usd($fromAcct = r\acct($payer));
-  $usa2 = new r\usd($toAcct = r\acct($payee));
-  r\usd::beginAtom();
-  if (($usdXid = $usa1->send($amount - $r, $usa2, $taking ? $payeeFor : $payerFor, $err)) and $usdXid != -1) {
-    db\update('r_txs', compact('xid', 'usdXid'), 'xid');
-    r\usd::commit();
-  } else r\usd::rollback(); // if ($err == 'not enough') (or any other err) just wait for more USD to be there
 }
 
 /**
@@ -299,9 +279,10 @@ function bankFollowup($tx) {
   if ($Status != 'processed') return; // pending
   $info = u\ray('txid amount completed', $Id, -$Amount, strtotime($ClearingDate) + DW_LAG);
   if (!$old = db\lookup('completed+1', 'r_usd', 'txid=:txid', u\ray('txid', $Id))) { // system crashed before it got recorded
-    $omit = t\est() ? (variable_get('cgf_uid') - 1) : NULL; // ignore tester's account
+    $omit = t\est() ? (\variable_get('cgf_uid') - 1) : NULL; // ignore tester's account
     if (!$payer = r\whoseUsd($Type == 'deposit' ? $DestinationId : $SourceId, $omit)) return; // probably tester
     $info += u\ray('created payer payee', strtotime($Date) + DW_LAG, $payer, 0);
+    r\acct($payer)->actualUsd(-$Amount); // adjust cache
   } elseif ($old > 1) return; // already marked completed
   db\update('r_usd', $info, 'txid', TRUE); // update or (if crash) insert
 }
@@ -401,112 +382,6 @@ EOF;
 }
 
 /**
- * Queue up companies that pay automatically, to pay suppliers.
- *//*
-function paySuppliers() {
-  doCompanies('SUPPLIERS');
-  r\queue('paySuppliersEND'); // let specific tasks go on queue before queueing more stuff 
-}
-function paySuppliersEND() {queueNextAfter('paySuppliers');}
-
-/**
- * Queue up companies that pay automatically, to pay employees.
- *//*
-function payEmployees() {
-  doCompanies('EMPLOYEES');
-  r\queue('payEmployeesEND'); // let specific tasks go on queue before queueing more stuff 
-}
-function payEmployeesEND() {queueNextAfter('payEmployees');}
-
-/**
- * Identify companies that have the given payment option and queue them up for paymentExchanges.
- * @param int $which: SUPPLIERS (queue up payments to suppliers) or EMPLOYEES (queue up payments to staff)
- *//*
-function doCompanies($which) {
-  $rightType = $which == 'EMPLOYEES' ? 'employerOk' : 'NOT employerOk';
-  $sql = <<< EOF
-    SELECT u.uid, u.minimum, u.r, u.floor, u.committed,
-      SUM(r.amount) AS amounts, 
-      SUM(IF($rightType, r.amount, 0)) AS tothese 
-    FROM r_relations r 
-    LEFT JOIN users u ON u.uid=r.main
-    LEFT JOIN users u2 ON u2.uid=r.other
-    WHERE r.amount>0 and (u.flags&(1<<:B_PAYEX)) AND (u.flags&(1<<:B_OK)) AND (u2.flags&(1<<:B_OK))
-    GROUP BY r.main
-EOF;
-	$result = db\q($sql); // (can't use IS_ in query because flags field is ambiguous)
-
-	while($row = $result->fetchAssoc()) {
-	  extract($row);
-	  $kitty = max(0, $r - max($minimum, $committed) - max(0, $floor)); // amount to pay out today for this group
-    if ($which != 'EMPLOYEES') $kitty *= $tothese / $amounts; // limit suppliers to their share
-	  if ($kitty > 0 and $tothese > 0) r\queue('paymentExchanges1', compact(u\ray('uid kitty tothese slack rightType'))); 
-	}
-}
-
-/**
- * Pay suppliers or employees
- * @param assoc $item:
- *   uid: company account id
- *   kitty: amount to pay out
- *   tothese: total amounts paid to this type of recipient per month
- *   UNUSED slack: how much capacity the recipients have (collectively) to be paid, before reaching their max
- *   rightType: employerOk (for employees) or NOT employerOk (for vendors)
- *//*
-function paymentExchanges1($item) {
-  extract(u\just('uid kitty tothese rightType', $item));
-  //$limit = ($kitty < $slack); // if there is enough slack, don't put anyone over their max
-  //  SUM(IF($which, GREATEST(o.maximum, o.rewards)-o.r, 0)) AS slack, 
-  
-  $offers = $total = 0;
-  $main = $uid;
-  $sql = "SELECT other, amount FROM r_relations r INNER JOIN users u ON u.uid=r.other WHERE :IS_OK AND main=:main AND amount>0 AND $rightType";
-  $result = db\q($sql, compact('main')); // get each recipient's proportionate share of $tothese
-  while($row = $result->fetchAssoc()) {
-    extract($row);
-    $offer = round($amount * $kitty / $tothese, 2);
-    if ($offer >= R_VPAYMENT_MIN) {
-      r\queue('paymentExchange', compact(u\ray('main other offer')));
-      $offers += 1;
-      $total += $offer;
-    }
-  }
-  $whom = $rightType == 'employerOk' ? 'employees' : 'suppliers';
-  $total = u\fmtAmt($total, 's$r');
-  if ($offers) r\notify($uid, 'payment exchanges offered', compact(u\ray('offers total whom')));
-}
-
-/**
- * Do a payment exchange for one employee or supplier.
- * We use "acct1" for the company (the "from" account) and "acct2" for the employee or supplier (the "to" account).
- *//*
-function paymentExchange($item) {
-  extract(u\just('main other offer', $item));
-  
-  $usAcct1 = new r\usd($acct1 = r\acct($main)); // from
-  $usAcct2 = new r\usd($acct2 = r\acct($other)); // to
-  
-//  $newR = $acct2->r + $offer; // what $acct2 r balance will be after the offer is received
-  $excess = round(max(0, $offer - $acct2->usd), 2); // USD shortfall = r to exchange for USD in a 3-way trade
-  r\usd::beginAtom();
-  $traded = $excess ? r\getUsd($excess, $acct2, $usAcct1) : 0; // give company partial USD through rCredits sale to 3rd party
-
-  if ($traded >= $excess and ($offer == $traded or $txid = $usAcct2->send($offer - $traded, $usAcct1, 'payment exchange exchange'))) { // other partially pays main in USD if not totally left to 3rd parties
-    $info = u\ray('amount r payer payee for goods usdXid', 0, $offer, $main, $other, t('payment exchange'), TRUE, @$txid);
-    r\transact($info); // total rCredits from company to other
-    $amount = u\fmtAmt($offer, 's$r');
-    $fullName = $acct1->fullName;
-    $bonus = u\fmtAmt(r\bonus($other, $main, $offer));
-    r\notify($other, 'payment exchange received', compact(u\ray('amount fullName bonus')));
-    r\usd::commit();
-  } else {
-    r\usd::rollback();
-    paymentExchangeError($acct1, $acct2);
-  }
-}
-*/
-
-/**
  * Handle one-time and recurring gifts that it's time to handle.
  */
 function gifts() {
@@ -521,20 +396,6 @@ function gifts() {
  * Gifts happen as soon as the money is there, on or after the gift date.
  */
 function gift1($item) {r\acceptGift($item);}
-
-/*
-function redistribute() {
-  $excess = ':R_CHUNK*FLOOR((:R_EXCESS-usd)/:R_CHUNK)';
-  $sql = "SELECT uid, $excess AS excess FROM users WHERE $excess>0 AND NOT :IS_PAYEX AND uid>1 AND :IS_OK";
-  queueEach('sellR', $sql);
-  queueNextAfter('redistribute');
-}
-
-function sellR($item) {
-  extract(u\just('uid excess', $item));
-  $usAcct = new r\usd($acct = r\acct($uid));
-  if (!$got = r\getUsd($excess, $acct, $usAcct) or $got < $excess) r\notify($uid, 'cannot offload');
-}*/
 
 /**
  * Spread the USD out somewhat equally among the membership
@@ -557,10 +418,11 @@ function homogenize() {
 function homogenize1($item) {
   extract(u\just('uid usd ctty', $item));
   $a = r\acct($uid);
-  $result = db\q('SELECT uid AS uid2, usd as usd2 FROM users WHERE community=:ctty AND usd<:usd-:R_CHUNK AND uid>1 AND :IS_OK AND r>=floor+:R_CHUNK ORDER BY usd', compact('ctty', 'usd'));
+  $result = db\q('SELECT uid AS uid2 FROM users WHERE community=:ctty AND usd<:usd-:R_CHUNK AND uid>1 AND :IS_OK AND r>=floor+:R_CHUNK ORDER BY usd', compact('ctty', 'usd'));
   while ($row = $result->fetchAssoc()) {
     extract($row);
-    if ($usd2 < $a->usd - R_CHUNK and $a->usd >= R_CHUNK) r\tradeR(R_CHUNK, $uid2, $uid); // $a->usd NOT $usd!
+    $a2 = r\acct($uid2); // use the latest variables, because tradeR might have changed the values
+    if ($a2->usd < $a->usd - R_CHUNK and $a2->r >= $a2->floor + R_CHUNK) r\tradeR(R_CHUNK, $uid2, $uid);
     // This trade might fail (gently) if a bank transfer goes through in between
   }
 }

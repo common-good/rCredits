@@ -901,7 +901,7 @@ function passwordOkay($a, $password, $passFieldName = 'current_pass') {
   $stored_hash = $a->pass;
   $hash = \_password_crypt('sha512', $password, $stored_hash);
   if (@$a->data['oneTimePass']) extract(u\just('pass expires', $a->data['oneTimePass']));
-  if ($password == @$pass) return REQUEST_TIME < @$expires ? TRUE : say('pass expired', $passFieldName);
+  if ($password == @$pass) return ($a->admin() or REQUEST_TIME < @$expires) ? TRUE : say('pass expired', $passFieldName);
   return ($hash and $stored_hash == $hash) ? TRUE : say('wrong pass', $passFieldName);
 }
 

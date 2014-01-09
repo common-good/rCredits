@@ -19,10 +19,10 @@ Scenario: A contribution can be completed
   And next DO code is "whatever"
   When cron runs "gifts"
   Then transactions:
-  | xid   | created | type     | state | amount | from      | to      | purpose      | r    |
-  | .AAAB | %today  | transfer | done  |     10 | .ZZA      | cgf     | contribution |   10 |
-  | .AAAC | %today  | rebate   | done  |   0.50 | community | .ZZA    | rebate on #1 | 0.50 |
-  | .AAAD | %today  | bonus    | done  |   1.00 | community | cgf     | bonus on #1  | 1.00 |
+  | xid   | created | type     | state | amount | from      | to      | purpose      |
+  | .AAAB | %today  | transfer | done  |     10 | .ZZA      | cgf     | contribution |
+  | .AAAC | %today  | rebate   | done  |   0.50 | community | .ZZA    | rebate on #1 |
+  | .AAAD | %today  | bonus    | done  |   1.00 | community | cgf     | bonus on #1  |
   And gifts:
   | id   | giftDate   | amount | often | honor  | honored | share | completed |
   | .ZZA | %yesterday |     10 |     1 | memory | Jane Do |    10 | %today    |
@@ -44,10 +44,10 @@ Scenario: A recurring contribution can be completed
   And next DO code is "whatever"
   When cron runs "gifts"
   Then transactions:
-  | xid   | created | type     | state | amount | from      | to      | purpose      | r    |
-  | .AAAB | %today  | transfer | done  |     10 | .ZZA      | cgf     | contribution |   10 |
-  | .AAAC | %today  | rebate   | done  |   0.50 | community | .ZZA    | rebate on #1 | 0.50 |
-  | .AAAD | %today  | bonus    | done  |   1.00 | community | cgf     | bonus on #1  | 1.00 |
+  | xid   | created | type     | state | amount | from      | to      | purpose      |
+  | .AAAB | %today  | transfer | done  |     10 | .ZZA      | cgf     | contribution |
+  | .AAAC | %today  | rebate   | done  |   0.50 | community | .ZZA    | rebate on #1 |
+  | .AAAD | %today  | bonus    | done  |   1.00 | community | cgf     | bonus on #1  |
   And gifts:
   | id   | giftDate      | amount | often | honor  | honored | completed |
   | .ZZA | %yesterday    |     10 |     Q | memory | Jane Do | %today    |

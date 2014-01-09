@@ -101,36 +101,6 @@ class rcronHomogenize extends DrupalWebTestCase {
     . '\\| .ZZG |   35 |  15 |'
     . '\\| .ZZH |   45 |  16 |'
     . '\\| .ZZI |   55 |  17 |"');
-    When_('cron runs "homogenize"');
-    Then_('balances: "DATA'
-    . '\\| id   | r   | usd |'
-    . '\\| ctty | -218 |   0 |'
-    . '\\| .AAA |    0 |   0 |'
-    . '\\| .AAB |    0 |   0 |'
-    . '\\| .ZZA |    1 |  21 |'
-    . '\\| .ZZB |  -18 |  20 |'
-    . '\\| .ZZC |   85 |  22 |'
-    . '\\| .ZZD |    0 |   0 |'
-    . '\\| .ZZE |   20 |  23 |'
-    . '\\| .ZZF |   15 |  24 |'
-    . '\\| .ZZG |   25 |  25 |'
-    . '\\| .ZZH |   35 |  26 |'
-    . '\\| .ZZI |   55 |  17 |"');
-    When_('cron runs "homogenize"');
-    Then_('balances: "DATA'
-    . '\\| id   | r   | usd |'
-    . '\\| ctty | -218 |   0 |'
-    . '\\| .AAA |    0 |   0 |'
-    . '\\| .AAB |    0 |   0 |'
-    . '\\| .ZZA |    1 |  21 |'
-    . '\\| .ZZB |  -18 |  20 |'
-    . '\\| .ZZC |   85 |  22 |'
-    . '\\| .ZZD |    0 |   0 |'
-    . '\\| .ZZE |   20 |  23 |'
-    . '\\| .ZZF |   15 |  24 |'
-    . '\\| .ZZG |   25 |  25 |'
-    . '\\| .ZZH |   35 |  26 |'
-    . '\\| .ZZI |   55 |  17 |"');
   }
 
 }

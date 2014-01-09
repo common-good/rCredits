@@ -386,6 +386,8 @@ class usd {
   private function afterTx($txid, $amount, $other) {
     list ($payer, $payee) = array($this->acct->id, $other->acct->id);
     self::addToAtom($txid, $amount, $payer, $payee);
+    $this->acct->cacheR2Usd(-$amount);
+    $other->acct->cacheR2Usd(+$amount);
     if ($amount > DW_FEE_THRESHOLD) r\queue('coverFee', compact(u\ray('txid payee')));
     return $txid;
   }
@@ -440,9 +442,12 @@ array (
       } else $txid = @$result['Id'] ?: -1; // -1 for noDw
     } else $txid = -1;
     
-    if ($txid != -1) self::addToAtom($txid, $amount, $this->acct->id, 0, 0);
+    if ($txid != -1) {
+      self::addToAtom($txid, $amount, $this->acct->id, 0, 0);
+      if ($amount > 0) $this->acct->actualUsd(-$amount); // treat the money as already gone, if depositing in bank
+    }
+
     self::commit();
-    if ($amount > 0) $this->acct->actualUsd(-$amount); // treat the money as already gone, if depositing in bank
     return $txid;
   }
 

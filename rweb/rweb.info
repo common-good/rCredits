@@ -38,3 +38,4 @@ files[] = tests/Contact.test
 files[] = tests/Statistics.test
 files[] = tests/Community.test
 files[] = tests/Boxes.test
+files[] = tests/Bank.test

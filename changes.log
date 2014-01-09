@@ -1,3 +1,8 @@
+2014-01-09
+. exchanges of r for usd are no longer in r_txs -- they are in r_usd only. All transactions between members are rCredits only. This made the "r" and usdXid fields in r_txs moot so they are gone.
+. fixed bug that kept set-password from working for admin (patched)
+. fixed bug in formGet (Bank tab) that got USD for the community instead of the member (made new test for it)
+
 2014-01-08
 . devices are now handled consistently and elegantly on Devices page
 . firstUnusedId is used only for new users and works in all cases (r\acct::nextId() works fine)

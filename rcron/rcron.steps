@@ -52,7 +52,6 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  * in: Bank Setup MAKE
  *     Gifts Setup MAKE
  *     Homogenize Setup MAKE
- *     IncompleteUsdTxs Setup MAKE
  *     Inflation Setup MAKE
  *     LostUsdTxs Setup MAKE
  *     Notices Setup MAKE
@@ -74,8 +73,6 @@ function members($list) {return t\members($list);}
  *     Gifts Setup MAKE
  *     Homogenize Setup MAKE
  *     Homogenize LevelingHappens TEST
- *     IncompleteUsdTxs Setup BOTH
- *     IncompleteUsdTxs ADwollaOutageLeavesATransactionIncomplete TEST
  *     Inflation Setup TEST
  *     LostUsdTxs Setup MAKE
  *     Pool Setup MAKE
@@ -98,7 +95,6 @@ function balances($list) {return t\balances($list);}
  *     Gifts AContributionCanBeCompleted MAKE
  *     Gifts ARecurringContributionCanBeCompleted MAKE
  *     Homogenize LevelingHappens MAKE
- *     IncompleteUsdTxs ADwollaOutageLeavesATransactionIncomplete MAKE
  *     Inflation InflationAdjustmentsAreDistributed MAKE
  *     LostUsdTxs ASystemCrashLeavesATransactionIncomplete MAKE
  *     Notices AMemberGetsSomeNotices MAKE
@@ -116,7 +112,7 @@ function cronRuns($op) {return t\cronRuns($op);}
  *     Bank AMemberIsWellBelowMinimum TEST
  *     Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank TEST
  *     Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank TEST
- *     IncompleteUsdTxs ADwollaOutageLeavesATransactionIncomplete TEST
+ *     Inflation Setup MAKE
  *     LostUsdTxs ASystemCrashLeavesATransactionIncomplete TEST
  */
 function usdTransfers($tx) {return t\usdTransfers($tx);}
@@ -143,7 +139,6 @@ function relations($relations) {return t\relations($relations);}
  * in: Gifts AContributionCanBeCompleted TEST
  *     Gifts ARecurringContributionCanBeCompleted TEST
  *     Homogenize Setup MAKE
- *     IncompleteUsdTxs Setup MAKE
  *     Inflation Setup MAKE
  *     Inflation InflationAdjustmentsAreDistributed TEST
  *     LostUsdTxs Setup MAKE
@@ -249,20 +244,9 @@ function memberChargesMemberFor($payee, $payer, $amount, $for) {
 }
 
 /**
- * incomplete transaction count (ARG)
- *
- * in: IncompleteUsdTxs Setup TEST
- *     IncompleteUsdTxs ADwollaOutageLeavesATransactionIncomplete TEST
- */
-function incompleteTransactionCount($count) {
-  global $testOnly; if (!$testOnly) return FALSE;
-  return (db\lookup('COUNT(*)', 'r_txs', 'usdXid=-1 AND state IN(:TX_DONE,:TX_DISPUTED) AND r<amount') == $count);
-}
-
-/**
  * member (ARG) confirms form (ARG) with values: (ARG)
  *
- * in: LostUsdTxs ASystemCrashLeavesATransactionIncomplete MAKE
+ * in: 
  */
 function memberConfirmsFormWithValues($id, $page, $values) {return t\completeForm($id, $page, $values, TRUE);}
 
@@ -299,7 +283,7 @@ function weDoNotTellStaff($topic) {return !t\weTellStaff($topic);}
  * usd transfer count is (ARG)
  *
  * in: LostUsdTxs Setup TEST
- *     LostUsdTxs ASystemCrashLeavesATransactionIncomplete MAKE
+ *     LostUsdTxs ASystemCrashLeavesATransactionIncomplete BOTH
  */
 function usdTransferCountIs($count) {return (t\usdTransferCount() == $count);}
 
@@ -313,4 +297,14 @@ function nextDOCodeIs($code) {
   global $testOnly; if ($testOnly) return FALSE;
   global $testDoCode;
   return $testDoCode = $code;
+}
+
+/**
+ * member (ARG) trades $(ARG) USD to member (ARG) for rCredits
+ *
+ * in: LostUsdTxs ASystemCrashLeavesATransactionIncomplete MAKE
+ */
+function memberTradesUSDToMemberForRCredits($id1, $amount, $id2) {
+  global $testOnly; if ($testOnly) return FALSE;
+  return (bool) r\tradeR($amount, $id2, $id1);
 }

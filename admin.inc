@@ -274,3 +274,28 @@ function makeTestCards() {
     db\update('r_invites', u\ray('id invited', $id, REQUEST_TIME), 'id');
   }
 }*/
+
+/* transient
+include __DIR__ . '/../rcredits/admin.inc';
+echo splitoffUSD();
+
+  //db\insert('r_usd', u\ray('txid payer payee amount created completed', -1, 24960000000001, 0, 0.25, $oldDate));
+  SELECT * FROM r_txs t INNER JOIN r_usd u ON u.txid=t.usdXid WHERE u.amount!=ABS(t.amount-t.r)
+*/
+function splitoffUsd() {
+  $oldDate = strtotime('1-1-2013');
+
+
+  $result = db\q('SELECT uid FROM users WHERE uid>1')->fetchCol();
+  $msgs = '';
+  foreach ($result as $uid) {
+    $us = new r\usd($a = r\acct($uid));
+    $usd = $us->bal($err) + 0;
+    $where = ':uid IN (payer, payee) AND completed AND state=:TX_DONE';
+    $txUsd = db\lookup('SUM(IF(payee=:uid, amount-r, r-amount))', 'r_txs', $where, compact('uid'));
+    $usdUsd = db\lookup('SUM(IF(payee=:uid, amount, -amount))', 'r_usd', $where, compact('uid'));
+    if ($txUsd != $usdUsd or $usd != $txUsd) $msgs .= "uid=$uid usd=$usd txUsd=$txUsd usdUsd=$usdUsd<br>\n";
+  }
+  return $msgs;
+  
+}

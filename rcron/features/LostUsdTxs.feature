@@ -15,18 +15,14 @@ Setup:
   | id   | dw/usd |
   | %id1 |      2 |
   And transactions: 
-  | xid | created   | type     | amount | r    | from | to   | purpose |
-  | 1   | %today-7m | signup   |   1000 | 1000 | ctty | %id1 | signup  |
-  | 2   | %today-7m | signup   |   1000 | 1000 | ctty | %id2 | signup  |
+  | xid | created   | type     | amount | from | to   | purpose |
+  | 1   | %today-7m | signup   |   1000 | ctty | %id1 | signup  |
+  | 2   | %today-7m | signup   |   1000 | ctty | %id2 | signup  |
   Then usd transfer count is 0
 
 Scenario: a system crash leaves a transaction incomplete
-  Given member "%id1" confirms form "pay" with values:
-  | op  | who     | amount | goods | purpose |
-  | pay | Bea Two | 1001   | 1     | labor   |
-  Then usd transfers:
-  | payer | payee | amount |
-  | %id1  |  %id2 |      1 |
+  When member %id1 trades $1 USD to member %id2 for rCredits
+  Then usd transfer count is 1
   Given usd transfer count is 0
   When cron runs "usdTxsThere"
   Then usd transfers:

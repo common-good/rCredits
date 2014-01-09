@@ -25,6 +25,13 @@ QUESTIONS:
 ***
 
 TASKS FOR NEXT UPDATE:
+before reinstall:
+. assure that usd total in txs matches amount total in usd for each uid (experiment with STAGE server)
+. all tx_refund in txs: set amount=r
+. convert all to-be-orphaned rebates/bonuses to type TX_PIONEER with proper tid (not easy)
+. delete all txs that have amount=0
+after reinstall:
+. remove r and usdXid fields from r_txs
 (no other special tasks yet)
 
 MEMBERSHIP PROCEDURE:
@@ -33,7 +40,6 @@ make sure the photo is adequate
 mark the account as an rTrader (OK) (before printing card)
 print card and welcome materials, mail to new member (welcome includes reminder to verify bank account)
 
-. *** do not put exchanges of r for usd in r_txs -- delete them there (and change the corresponding rebates/bonuses to pioneer rewards). Use r_usd only. All transactions between members should be rCredits only. This makes the "r" field in r_txs unused.
 . *** 1099s!
 . retest SMS
 . * separate invoices from r_txs (somewhat major change)

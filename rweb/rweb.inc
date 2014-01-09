@@ -724,7 +724,7 @@ function formSummary($form, &$sta) {
   } //else $card = '';
   
   extract(u\just('r usd pAccts', r\stats($mya->community)));
-  $usdPart = (@$usd + @$r) ? $usd / ($usd + $r) : 1; // fraction of total system funds that is USD
+  // UNUSED $usdPart = (@$usd + @$r) ? $usd / ($usd + $r) : 1; // fraction of total system funds that is USD
   // should this be usdIn-usdOut? both?
   
   extract(u\just('benePastMo beneEver extraPastMo extraEver avgBalPastMo avgBalEver giftsEver', $mya->data));
@@ -1343,7 +1343,7 @@ function formGet($form, &$sta) {
   if (!db\exists('r_usd', 'payer=:myid AND payee=0 AND created>:dayAgo', u\ray('myid dayAgo', $myid, strtotime('-1 day')))) {
     $myAvail = r\avail('cash', $ray); // drawing from connected accounts not allowed here
     $avail = db\lookup('SUM(LEAST(usd, :DW_FEE_THRESHOLD))', 'users', 'community=:ctty and uid<>:myid', u\ray('ctty myid', $mya->community, $myid)); // remove this one-day limit if people complain (cost 25 cents)
-    $avail = min($myAvail, $mya->usd + min($mya->r, $avail));
+    $avail = min($myAvail, $mya->usd + $avail);
   } else $avail = 0;
   $toCash = u\fmtAmt(max(0, $avail));
   $waiting = u\fmtAmt(abs($way = $mya->waitingToBank()));
@@ -2072,9 +2072,9 @@ Please upload a copy of your EIN documentation or Non-Profit Status documentatio
   $usdPass = adminField(t('Dwolla Pass:'));
   $usdPin = adminField(t('Dwolla PIN:'));
   
-  $pw = item(t('<@a>Change your password</a>', u\ray('@a', 'a href=change-password')), ' ');
-  $pin = item(t('<@a>Change your PIN</a>', u\ray('@a', 'a href=change-pin')), ' ');
-  $photo = item(t('<@a>Change your photo</a>', u\ray('@a', 'a href=photo')), ' ');
+  $pw = item(t('<@a>Change your password</a>', u\ray('@a', 'a href=/account/change-password')), ' ');
+  $pin = item(t('<@a>Change your PIN</a>', u\ray('@a', 'a href=/account/change-pin')), ' ');
+  $photo = item(t('<@a>Change your photo</a>', u\ray('@a', 'a href=/account/photo')), ' ');
   $question = $person ? textField(t('Question:'), t('Type a question that no one but you could guess the answer to.'), required($mya->question)) : NULL;
   $answer = $person ? textField(t('Answer:'), t('The answer to that question'), required(@$answer)) : NULL;
 /* KEEP   'idProof = $has ? 
@@ -2803,7 +2803,7 @@ function formOptions_submit($form, $sta) {
   extract(u\just('minimum smsNotices notices statements payVirtual debtOk secretBal', $sta['input']));
 
 //  $mya->setBit(B_TO_BANK, @$toBank, FALSE); 
-  $mya->setBit(B_PAYEX, @$payVirtual, FALSE);
+//  $mya->setBit(B_PAYEX, @$payVirtual, FALSE);
 //  $mya->setBit(B_NOTIFY_EMAIL, $notifyBy & 1, FALSE);
   $mya->setBit(B_NOTIFY_SMS, @$smsNotices, FALSE);
   $mya->setBit(B_NOTICE_WEEKLY, $notices == 1, FALSE);

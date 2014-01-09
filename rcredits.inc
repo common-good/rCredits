@@ -149,7 +149,7 @@ define('B_COMPANY', 6); // company account (could be personal also, for independ
 define('B_u7', 7); // 
 define('B_CHARGE', 8); // UNUSED (any company can do this) can charge customers without confirmation
 define('B_u9', 9); // 
-define('B_PAYEX', 10); // automatically pay employees and suppliers virtually
+define('B_u10', 10); //
 define('B_u11', 11); // 
 define('B_PAYROLL', 12); // automatically pay employees their total daily salary - employer chooses pay period)
 define('B_NOTICE_WEEKLY', 13); // send notices only weekly
@@ -176,7 +176,7 @@ define('B_MAX', 31); // maximum bit number
 //define('B_DFT', (1 << B_NOTIFY_EMAIL) | 0); // set what bits when creating a new account
 define('B_DFT', 0 | 0); // set what bits when creating a new account
 define('B_ADMINABLE', 'person company member ctty_admin closed'); // for cttyAdmin to set
-define('B_LIST', 'member u1 OK bona bank person company u7 charge u9 virtu u11 payroll weekly monthly u15 sms electro secret u19 debt draws savings u23 u24 u25 u26 u27 u28 cadmin admin closed');
+define('B_LIST', 'member u1 OK bona bank person company u7 charge u9 u10 u11 payroll weekly monthly u15 sms electro secret u19 debt draws savings u23 u24 u25 u26 u27 u28 cadmin admin closed');
 
 define('R_SHORTFALL', 'GREATEST(0, minimum-(r+usd))'); // sql for shortfall in account (to draw in)
 define('R_DEMAND', 'LEAST(u.usd, u.minimum-u.r)'); // definitely WANTS this many rCredits (sometimes negative)
@@ -226,14 +226,15 @@ define('TX_CRON', 5);
 define('TX_CHANNELS', t('System SMS Web App Tone Auto'));
 
 // Transaction types (all but type TX_TRANSFER and TX_BANK create rCredits)
-define('TX_BANK', -3); // used only internally, to mark bank transfers
+define('TX_BANK', -9); // used only internally, to mark bank transfers
 define('TX_BONUS', -2); // sales bonus (negative reward types are invisible on transaction history)
 define('TX_REBATE', -1);
 define('TX_TRANSFER', 0); // normal fund transfer (usually for actual goods and services) -- not creating rC
 define('TX_SIGNUP', 1); // signup incentive reward
 define('TX_REFUND', 2); // refund of fees (Dwolla)
 define('TX_INFLATION', 3); // reward to conpensate for inflation
-define('TX_REWARDS', 3); // from here on, it's not "rewards"
+define('TX_PIONEER', 4); // pioneer reward (special early-stage rewards) -- might change later to TX_OTHER
+define('TX_REWARDS', 4); // from here on, it's not "rewards"
 
 define('TX_u4', 4);
 define('TX_GRANT', 5);
@@ -264,16 +265,6 @@ $GLOBALS['emailSubjects'] = array(
   'tell-staff' => t('rCredits STAFF ALERT: {topic}'),
   'notices' => t('rCredits Notices for {range}'),
 );
-
-/**
- * Return the account's current stage in its progression toward rTrader
- *//*
-function stage($acct = '', $numeric = FALSE) {  
-  if (!$acct = ($acct ?: acct())) return FALSE;
-  foreach (u\ray(R_STAGES) as $key => $one) if ($acct->can(constant('B_' . strtoupper($one)))) $stage = $numeric ? $key : $one;
-  return @$stage;
-}
-*/
 
 /**
  * Format and return args for reporting a transaction (old or new) to the current account.
@@ -353,7 +344,6 @@ function xid2tid($xid, $uid) {
 }
 
 /**
- * OLD
  * Trade r in one account for USD in another
  * @param float $amount: the amount to trade (limited to R_MAX_DAILY_EXCHANGE)
  * @param int $uid1: uid of account with r to trade
@@ -374,44 +364,8 @@ function tradeR($amount, $uid1, $uid2, &$err = '') {
     if ($uid2 > 0) $a2->actualUsd();
     return FALSE;
   }
-  r\exchange($amount, $uid1, $uid2, $txid);
   r\usd::commit();
   return $txid;
-}
-
-/**
- * Trade r in one account for USD in another
- * @param float $amount: the amount to trade (limited to R_MAX_DAILY_EXCHANGE)
- * @param int $uid1: uid of account with r to trade
- * @param int $uid2: uid of account with USD to trade
- * @param string $err: (RETURNED) an error message on failure
- * @return string $txid: USD transaction ID (from Dwolla) or FALSE on failure
- * Caller is responsible for determining whether the accounts have enough r and USD for the trade.
- *//*NEW
-function tradeR($amount, $uid1, $uid2, &$err = '') {
-  if ($amount > R_MAX_DAILY_EXCHANGE) {$err = 'rTrade amount over max'; return FALSE;}
-  $us1 = new r\usd($a1 = r\acct($uid1));
-  $us2 = new r\usd($a2 = r\acct($uid2));
-
-  r\usd::beginAtom();
-  if (!$txid = $us2->send($amount, $us1, R_DEFAULT_PURPOSE, $err)) {
-    r\usd::rollback();
-    if ($uid1 > 0) $a1->actualUsd(); // fix cached USD, if needed (after rollback)
-    if ($uid2 > 0) $a2->actualUsd();
-    return FALSE;
-  }
-  r\usd::commit();
-  return $txid;
-}*/
-
-/**
- * UNUSED
- * Payer exchanges rCredits for USD. Record the rCredits transaction.
- * @param string $usdXid: (optional) related USD transaction ID
- */
-function exchange($r, $payer, $payee, $usdXid = NULL) {
-  $amount = 0;
-  return r\transact(compact(u\ray('amount r payer payee usdXid')));
 }
 
 /**
@@ -500,7 +454,7 @@ function txRewardSetup($serial, $type, $payee, $state, $amount, $tid, $created) 
  */
 function transactionSetup($info) {
   global $channel, $boxUser; // through what medium was the transaction requested (web, SMS, etc.), what machine
-  $fields = 'type r state data taking goods amount payer payee payerAgent payeeAgent created';
+  $fields = 'type state data taking goods amount payer payee payerAgent payeeAgent created';
   extract(u\just($fields . ' for', $info));
 
   $specs = " -- payer=$payer payee=$payee";
@@ -510,7 +464,6 @@ function transactionSetup($info) {
   u\EXPECT($a1->ok() and $a2->ok(), 'non-member in tx' . $specs);
   
   u\setDft($type, TX_TRANSFER);
-  u\setDft($r, $amount);
   u\setDft($state, TX_DONE);
   u\setDft($taking, FALSE);
   u\setDft($goods, FALSE);
@@ -535,11 +488,11 @@ function transactionSetup($info) {
  * Set up and return the data field for a transaction.
  * @param assoc $data: forced values, if any
  */
-function dataSetup($payer, $payee, $r, $goods, $data = array()) {
+function dataSetup($payer, $payee, $amount, $goods, $data = array()) {
   u\EXPECT(is_array($data), 'data should be array');
   if ($goods and !isset($data['rebate'])) {
-    $rebate = (string) ($goods ? r\rebate($payer, $payee, $r) : 0); // force string, to avoid long serializations
-    $bonus = (string) ($goods ? r\bonus($payee, $payer, $r) : 0);
+    $rebate = (string) ($goods ? r\rebate($payer, $payee, $amount) : 0); // force string, to avoid long serializations
+    $bonus = (string) ($goods ? r\bonus($payee, $payer, $amount) : 0);
     $data += compact('rebate', 'bonus');
   }
   unset($data['preapproved']); // don't need these (but keep 'undoes' and original rebate/bonus, if any)
@@ -569,100 +522,51 @@ function cacheBothTotals($txs) {
 }
 
 /**
- * Keep track of r balance, USD balance, rewards, committed amount in the account record
+ * Keep track of r balance, rewards, committed amount in the account record
  * None of these figures is authoritative except 'committed'. 
  * The r balance and rewards are (definitively) the sum of the relevant fields in transactions.
  * The USD balance is (definitively) what is actually in the Dwolla account.
  */
 function cacheTotals($uid, $txs) {
-  extract(u\just('amount r state type', $txs[0]), EXTR_PREFIX_ALL, 'tx0');
+  extract(u\just('amount state type', $txs[0]), EXTR_PREFIX_ALL, 'tx0');
   if ($tx0_state < TX_DONE) return; // don't change totals if transaction doesn't count (yet)
-  if ($uid < 0) { // cache only usd for community and region
-    if ($tx0_amount == $tx0_r or $tx0_type == TX_REFUND) return; // no usd OR Dwolla gets the usd
-  }
+  if ($uid < 0) return; // cache only usd for community and region
 
   $a = r\acct($uid);
-  $cache = 'usd r rewards committed';
+  $cache = 'r rewards committed';
   extract((array) $a->account($cache));
-  $rs = $r; // don't confuse this with r field in txs
   
   foreach ($txs as $tx) {
-    extract(u\just('payer payee amount r type goods', $tx));
+    extract(u\just('payer payee amount type goods', $tx));
     if ($toOther = ($payer == $uid)) {
       $amount = -$amount;
-      $r = -$r;
     } elseif ($payee != $uid) continue; // neither to nor from me
-    $rs += $r;
-    $usd += $amount - $r;
-// NO!    if (!$toOther and $amount - $r > DW_FEE_THRESHOLD) $usd -= DW_FEE;
-    $usd = round($usd, 2);    
+    $r += $amount;
     if ($type != TX_TRANSFER and $type <= TX_REWARDS) {
       if ($type == TX_REBATE or $type == TX_BONUS) $committed = round($committed + $amount * $a->share / 100, 2);
-      $rewards = round($rewards + $r, 2);
+      $rewards = round($rewards + $amount, 2);
     }
   }
-  $r = round($rs, 2);
-
-  $a->update(compact(u\ray($uid < 0 ? 'usd' : $cache))); // for community or region track only usd
+  $r = round($r, 2);
+  $a->update(compact(u\ray($cache)));
   if ($type == TX_TRANSFER and $amount > 0) r\membershipEvent($a, 'bona', TRUE);
 }
 
 /**
- * Unfreeze expired frozen funds.
- * @param float $available: amount available to spend (returned updated)
- * @param assoc $frozen: list of amounts and what time they should get unfrozen (returned updated)
- */ /*
-function unfreeze(&$available, &$frozen) {
-  foreach ($frozen as $time => $amount) if (is_numeric($time) and time() > $time) {
-    $available = round($available + $amount, 2);
-    unset($frozen[$time]);
-  }
-}
-*/
-
-/**
- * Return how much of a transaction will be in USD.
- * @param float $shortfall (RETURNED) how much too little the payer has
- * @return float: how much of the transaction will be in USD (NULL if no USD account)
- *   For non-goods transactions USD will be used first, otherwise rCredits will be used first.
+ * Return the shortfall for the requested transaction.
+ * @param float $request: how much is requested
+ * @param acct $a: the payer's account
+ * @param bool $preapproved: is the transaction preapproved (otherwise it's an invoice)
+ * @param bool $confirmed: has the user confirmed his/her intent
+ * @param bool $goods: is the transaction for real goods and services
+ *
+ * @return float: how much too little the payer has
  */
-function usdPart($request, $a, $preapproved, $goods, $confirmed, &$shortfall) {
-  //if ($request < 0) return -usdPart(-$request, r\acct(), $preapproved, $goods, $confirmed, $shortfall);
+function shortfall($request, $a, $preapproved, $goods, $confirmed) {
   $shortfall = 0; // no shortfall if not preapproved
   if (!$preapproved) return 0; // if just an invoice, funds don't have to be there yet (no shortfall, no usd)
-  if ($shortfall = $a->shortfall($goods ? 'buy' : 'cash', $request, $confirmed)) return 0; // not enough!
-  return max(0, $request - R_MAX_RTX); // never transfer too much rCredits at once (self-imposed)
-  //$r = min($request, $a->rAvailable($goods ? 'buy' : 'cash')); // how much can we get in r?
-  //$usd = $goods ? max(0, $request - $a->rAvailable('buy')) : $a->usdAvailable('cash');
-  //$usd = $request > R_FINCEN_MAX ? $request : 0;
-  //return round(min($request, $usd), 2);
+  return $a->shortfall($goods ? 'buy' : 'cash', $request, $confirmed);
 }
-
-/**
- * Pay each employee the amount
- */
- /*
-function payEmployees($amount0, $for, $confirmed) {
-  $employees = employees();
-  if (!$employeeCount = count($employees)) return array('no employees', array(), array());
-  if ($shortfall = shortfall(acct()->id, $amount0 * $employeeCount, TRUE, isRTrader())) {
-     $short = u\fmtAmt($shortfall);
-     return array('short to', compact('short'), FALSE); // no partial payment of employees
-  }
-  $total = u\fmtAmt($amount0 * $employeeCount);
-  $amount = u\fmtAmt($amount0);
-  if (!$confirmed) return array('pay employees', compact(u\ray('employeeCount amount total')), TRUE);
-  $pay_all = TRUE;
-  $results = array();
-  $successes = 0;
-  foreach ($employees as $acct) {
-    $results[] = list ($message, $args, $confirm) = be\transfer('payment', r\acct(), $acct, $amount0, $for, !u\forCash($for), TRUE, compact('pay_all'));
-    if ($args['success']) $successes++;
-  }
-  $success = ($successes > 0);
-  return array('paid employees', compact(u\ray('total successes employeeCount results success')), FALSE);
-}
-*/
 
 /**
  * Return a link to a "no signin required" action.
@@ -1312,35 +1216,11 @@ function proxy($person, $priority = 1, $proxy = NULL) {
 }
 
 /**
- * OLD getUsd
- * Trade some rCredits for USD, from somebody. 
- * The rCredits always travel by way of the community.
- * @param float $request: how much to try to get
- * @param acct $acct: rCredits account that is trading rCredits to third parties
- * @param usd $usAcct: USD account that is receiving USD from the third parties (might be different owner from $acct)
- * @return how much USD we actually delivered
-*/
-function getUsd($request, $acct, $usAcct = '') {
-  u\EXPECT(!$usAcct or !$threeway = ($acct->id != $usAcct->acct->id), 'archaic 3-way trade');
-  $need = $request;
-  r\usd::beginAtom();
-  while ($need > 0) {
-    $part = $need;
-    if (!$acct3 = nextRBuyer($part, $acct->id)) break; // asks for what we need, returns the part we got in $part
-    u\EXPECT($part > 0, 'got nothing');
-    if ($txid = r\tradeR($part, $acct->community, $acct3->id)) $need = round($need - $part, 2);
-  }
-  if ($got = round($request - $need, 2)) r\exchange($got, $acct->id, $acct->community, $txid);
-  r\usd::commit($got); // accept partial success
-  return $got;
-}
-
-/**
  * Trade some rCredits for USD, from somebody. 
  * @param float $request: how much to try to get
  * @param acct $acct: rCredits account that is trading rCredits to third parties
  * @return how much USD we actually delivered
- *//*NEW
+ */
 function getUsd($request, $acct) {
   $need = $request;
   r\usd::beginAtom();
@@ -1348,26 +1228,12 @@ function getUsd($request, $acct) {
     $part = $need;
     if (!$acct3 = nextRBuyer($part, $acct->id)) break; // asks for what we need, returns the part we got in $part
     u\EXPECT($part > 0, 'got nothing');
-    if ($txid = r\tradeR($part, $acct->community, $acct3->id)) $need = round($need - $part, 2);
+    if ($txid = r\tradeR($part, $acct->id, $acct3->id)) $need = round($need - $part, 2);
   }
   $got = round($request - $need, 2);
   r\usd::commit($got); // accept partial success
   return $got;
-}*/
-
-/*
-  here's what the call to r\rTrade replaced above:
-    $usAcct3 = new r\usd($acct3); // "third party" Dwolla account
-    r\usd::beginAtom();
-    if ($txid = $usAcct3->send($part, $usAcct)) { // $part NOT R_CHUNK
-      r\exchange($part, $acct->community, $acct3->id, $txid); // use first party's community as go-between
-      r\usd::commit();
-      $need = round($need - $part, 2);
-    } else {
-      r\usd::rollback();
-      $acct3->actualUsd(); // fix cached USD, if needed (after rollback)
-    }
-*/
+}
 
 /**
  * Return the uid of the next account in line wanting/willing and able to trade enough US Dollars for rCredits.
@@ -1377,13 +1243,7 @@ function getUsd($request, $acct) {
  *   otherwise -- seek R_CHUNK (leaving R_CHUNK/2 or more for other buyers
  * return: the best account to handle the trade (there may be none that wants so many rCredits)
  *    if no account wants to buy any, return FALSE (this would be really bad and should never ever happen)
- *    NOTE that CGF is the buyer of last resort.
- 
-     SELECT u.uid, u.usd AS got, u.name FROM users u
-    LEFT JOIN (SELECT payee, MAX(completed) AS dt FROM r_txs WHERE type=1 OR (type=0 AND NOT goods AND amount=0 AND r<>0.25) GROUP BY payee) t ON t.payee=u.uid
-    WHERE (u.usd>0 AND u.uid>0 AND u.uid<>0 AND (flags & (1<<2)))
-    ORDER BY (flags & (1<<10)), (u.name='cgf') DESC, (u.usd>=1) DESC, (u.r+u.usd<=u.minimum) DESC, IFNULL(t.dt, 0), u.uid LIMIT 1
-    
+ *    NOTE that CGF is the buyer of last resort.    
  */
 function nextRBuyer(&$amount, $except) {
   if ($amount > R_CHUNK) $amount = R_CHUNK;
@@ -1392,7 +1252,7 @@ function nextRBuyer(&$amount, $except) {
     SELECT u.uid, $offer AS got, u.name FROM users u
     LEFT JOIN (SELECT payee, MAX(completed) AS dt FROM r_txs WHERE type=:TX_SIGNUP OR (type=:TX_TRANSFER AND NOT goods AND amount=0 AND r<>:DW_FEE) GROUP BY payee) t ON t.payee=u.uid
     WHERE ($offer>0 AND u.uid>0 AND u.uid<>:except AND :IS_OK)
-    ORDER BY :IS_PAYEX, (u.name='cgf') DESC, ($offer>=:amount) DESC, IFNULL(t.dt, 0), u.uid LIMIT 1
+    ORDER BY (u.name='cgf') DESC, ($offer>=:amount) DESC, IFNULL(t.dt, 0), u.uid LIMIT 1
 EOF;
   // preferred: not CGF, offering enough, definitely wanting that many, longest ago previous exchange, low uid
   if (!$row = db\q($sql, compact('amount', 'except'))->fetchAssoc()) { // find out who (preferably who who wants enough) has waited the longest
@@ -1584,7 +1444,7 @@ function averageBalance($uid, $start, $end = REQUEST_TIME, &$days = '') {
     SELECT SUM(IF(payee=:uid, amount, -amount)) AS total, FLOOR((completed-$start)/:DAY_SECS) AS day 
     FROM (
       (SELECT payer,payee,amount,completed FROM r_txs WHERE state=:TX_DONE)
-      UNION (SELECT payer,payee,amount,completed FROM r_usd)
+      UNION (SELECT payer,payee,amount,completed FROM r_usd WHERE payee=0)
     ) x WHERE :uid IN (payer, payee) AND completed BETWEEN $start AND $end 
     GROUP BY day
 EOF;
@@ -1594,11 +1454,13 @@ EOF;
     $dayx = $day;
     extract($row); // total, day
     $avg += $bal * ($day - $dayx) / $days;
+  ///debug(compact('uid','day','dayx','bal','avg','total'));
     $bal += $total;
   }
   $dayx = $day;
   $day = round(($end - $start) / DAY_SECS); // end of period
   $avg += $bal * ($day - $dayx) / $days;
+  ///debug(compact('uid','day','dayx','bal','avg'));
 
   return $avg; // average end-of-day balance
 }

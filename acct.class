@@ -223,13 +223,25 @@ class acct {
   
   /**
    * Update the saved record in the database with the given data.
+   * Call by:
+   *   update($info, $just); OR
+   *   update($fields, $value1, ...)
    * @param assoc $info: data to update
    * @param string $just: update only these fields (update all if NULL, none if '')
+   * @param string $fields: space-delimited list of field names
+   * @param mixed $value1 (etc): new values for those fields
    *   The flags field will always be included.
    * @return: TRUE if update succeeds, FALSE if update fails (saving either onsite or offsite)
    */
   public function update($info, $just = NULL) {
     $this->reread();
+    if (!is_array($info)) { // second syntax
+      $args = func_get_args();
+      $keys = u\ray(array_shift($args));
+      u\EXPECT(count($keys) == count($args), 'assoc arg count mismatch');
+      return $this->update(array_combine($keys, $args));
+    }
+
     if (isset($just)) $info = u\just($just, $info);
     if (isset($info['data'])) $info['data'] = serialize($info['data']);
     if (isset($info['secure'])) { // serialize and encrypt before updating this
@@ -338,16 +350,9 @@ class acct {
     $ray = (array) $this->account(R_MONEY_FIELDS);
     $ray['fees'] = 0;
     $avail = r\avail($type, $ray);
-/// debug(compact('need','avail','get','ray'));
     if ($avail >= $need) return 0; // plenty without drawing from other accounts
 
-    if ($get) { // get what we need (should have already checked to see if it's there)
-      r\usd::beginAtom();
-      $avail += $this->draw($type, $need - $avail, 'r'); // get as much in r as possible
-      if ($avail < $need) $avail += $this->draw($type, $need - $avail, 'usd'); // the remainder in USD
-      r\usd::commit($avail >= $need); // rollback if failure
-    } else $avail += $this->canDraw($type); // just asking
-/// debug(compact('need','avail','get'));
+    $avail += $get ? $this->draw($type, $need - $avail) : $this->canDraw($type); // get or just asking
     return max(0, $need - $avail); // the shortfall
   }
   
@@ -381,16 +386,12 @@ EOF;
   
   /**
    * Draw the needed amount from other accounts.
-   * Expects to be called within a usd class atom
    * @param string $type: purpose of the draw (see acct::available())
    * @param float $need: the amount needed
-   * @param string $currency: r or usd
    * @return float: the amount drawn
    */
-  private function draw($type, $need, $currency) {
-    u\EXPECT(r\usd::inAtom(), 'not in usd atom!');
+  private function draw($type, $need) {
     list ($from, $to, $auto) = array(t(' from '), t(' to '), t('automatic transfer'));
-    $wantUsd = ($currency == 'usd');
     $left = $need; // how much left to be drawn
     $id = $this->id;
     $fields = join(',', u\ray(R_MONEY_FIELDS));
@@ -401,25 +402,12 @@ EOF;
     $result = db\q($sql, compact('id'));
     while ($row = $result->fetchAssoc()) {
       extract($row);
-      if ($wantUsd and $left > DW_FEE_THRESHOLD) {$left += DW_FEE; $need += DW_FEE;}
-      $avail = r\avail($type, $row, $wantUsd);
+      $avail = r\avail($type, $row, FALSE);
       if ($amount = max(0, min($left, $avail))) {
         list ($fromQuid, $toQuid) = array(r\quid($uid), $this->mainQid);
-        if ($wantUsd) {
-          $r = 0;
-          $fromUsA = new r\usd($fromA = r\acct($uid));
-          $usTo = new r\usd($this);
-          $note = $auto . $from . $fromQuid . $to . $toQuid;
-          if (!$usdXid = $fromUsA->send($amount, $usTo, $note)) {
-            $fromA->actualUsd(); // fix cached USD, if needed
-            if ($left > DW_FEE_THRESHOLD) {$left -= DW_FEE; $need -= DW_FEE;} // undo bump
-            continue;
-          }
-          if ($left > DW_FEE_THRESHOLD and $amount <= DW_FEE_THRESHOLD) {$left -= DW_FEE; $need -= DW_FEE;} // undo bump
-        } else $r = $amount;
         list ($payer, $payee) = array($uid, $this->id);
         $for = array($auto . $to . $toQuid, $auto . $from . $fromQuid);
-        r\transact(compact(u\ray('amount r payer payee for usdXid')));
+        r\transact(compact(u\ray('amount payer payee for')));
         $left -= $amount;
         if ($left <= 0) break;
       }
@@ -451,7 +439,15 @@ EOF;
     $source = $usA->source($err);
     return @$source['Verified'];
   }
-    
+  
+  /**
+   * Update the account's caches to reflect a trade of r for usd
+   * @param float $change: how much rCredits got traded for usd (could be negative)
+   */
+  public function cacheR2Usd($change) {
+    return $this->update('r usd', $this->r - $change, $this->usd + $change);
+  }
+  
   /**
    * Update the account's cached USD amount and return it.
    * @param float $change: if non-zero, update the USD cache by this much, without checking Dwolla or r_usd

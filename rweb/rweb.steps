@@ -49,7 +49,8 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
 /**
  * member (ARG) completes form (ARG) with values: (ARG)
  *
- * in: Flow AMemberOverdrawsWithNotEnoughToDrawOn MAKE
+ * in: Bank AMemberTransfersFundsToTheBank MAKE
+ *     Flow AMemberOverdrawsWithNotEnoughToDrawOn MAKE
  *     Get AMemberMovesCreditToTheBank MAKE
  *     Get AMemberDrawsCreditFromTheBank MAKE
  *     Get AMemberMovesTooLittleToTheBank MAKE
@@ -152,7 +153,8 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
 /**
  * members: (ARG)
  *
- * in: Boxes Setup MAKE
+ * in: Bank Setup MAKE
+ *     Boxes Setup MAKE
  *     Community Setup MAKE
  *     Contact Setup MAKE
  *     Contact AMemberUpdatesContactInfo TEST
@@ -183,7 +185,8 @@ function members($list) {return t\members($list);}
 /**
  * transactions: (ARG)
  *
- * in: Community Setup MAKE
+ * in: Bank Setup MAKE
+ *     Community Setup MAKE
  *     Download Setup BOTH
  *     Flow AMemberOverdraws TEST
  *     Flow AMemberOverdrawsAndDrawsFromBothRAndUSD TEST
@@ -214,7 +217,8 @@ function transactions($list) {return t\transactions($list);}
 /**
  * we say (ARG): (ARG) with subs: (ARG)
  *
- * in: Flow AMemberOverdrawsWithNotEnoughToDrawOn TEST
+ * in: Bank AMemberTransfersFundsToTheBank TEST
+ *     Flow AMemberOverdrawsWithNotEnoughToDrawOn TEST
  *     Get AMemberMovesCreditToTheBank TEST
  *     Get AMemberDrawsCreditFromTheBank TEST
  *     Get AMemberTriesToCashOutRewards TEST
@@ -434,7 +438,8 @@ function relations($relations) {return t\relations($relations);}
 /**
  * balances: (ARG)
  *
- * in: Community Setup BOTH
+ * in: Bank Setup MAKE
+ *     Community Setup BOTH
  *     Download Setup BOTH
  *     Flow Setup MAKE
  *     Get Setup MAKE
@@ -797,7 +802,8 @@ function dwollaIsDown() {
 /**
  * usd transfers: (ARG)
  *
- * in: Community Setup MAKE
+ * in: Bank AMemberTransfersFundsToTheBank TEST
+ *     Community Setup MAKE
  *     Download Setup MAKE
  *     Get Setup MAKE
  *     Get AMemberMovesCreditToTheBank TEST

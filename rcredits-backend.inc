@@ -76,7 +76,7 @@ function bankTransfers($starting, $ending, $uid = NULL, $opts = array()) {
   $date = $pendings ? 'GREATEST(t.created, t.completed)' : 't.completed';
   $where = "$date BETWEEN :starting AND :ending ORDER BY $date DESC";
   if (!$dones) $where = "NOT completed AND $where";
-  $fields = "t.txid AS usdXid, CONCAT('b', tid) AS xid, amount, t.payer, t.payee, :TX_BANK AS type, t.created, t.completed, IF(t.completed, :TX_DONE, :TX_PENDING) AS state, IF(t.amount<0, 1, 0) AS toMe";
+  $fields = "CONCAT('b', tid) AS xid, amount, t.payer, t.payee, :TX_BANK AS type, t.created, t.completed, IF(t.completed, :TX_DONE, :TX_PENDING) AS state, IF(t.amount<0, 1, 0) AS toMe";
   
   if ($uid < 0) { // community or region
     $sql = <<<EOF
@@ -407,43 +407,20 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   if ($error = u\badAmount($requestAmount, $scanned ? '' : '>0')) return array($error, array(), FALSE);
   $totalHit = $requestAmount - @$data['rebate']; // leave room for reversing rewards (minus a negative)
   
-  $usd = r\usdPart(abs($totalHit), $reallyTaking ? $a2 : $a1, $preapproved, $goods, $confirmed, $shortfall); // short payment or unilateral charge
-
-  if ($shortfall) {
+  if ($shortfall = r\shortfall(abs($totalHit), $reallyTaking ? $a2 : $a1, $preapproved, $goods, $confirmed)) {
     $short = u\fmtAmt($shortfall);
     $otherName = $a2->fullName;
-    if (is_null($usd)) { // (never. unused.)
-      $msg = $taking ? 'shortr from' : 'shortr to';
-      $how = 'exchange'; // for 'shortr to' message on web interface
-    } else $msg = $reallyTaking ? 'short from' : 'short to';
+    $msg = $reallyTaking ? 'short from' : 'short to';
     return array($msg, compact(u\ray('otherName short how')), FALSE);
   }
   $amount = $requestAmount;
-  if ($amount < 0) $usd = -$usd;
-  $r = round($amount - $usd, 2);
   
   // Figure rewards and other extra info
   if (!$for) $for = $goods ? 'goods and services' : 'cash/loan/etc.';
 
   list ($fromAcct, $toAcct) = u\order($taking, $a2, $a1);
   list ($fromUsAcct, $toUsAcct) = array(new r\usd($fromAcct), new r\usd($toAcct));
-  $txArgs = compact(u\ray('type amount r payer payee payerAgent payeeAgent for data taking goods state'));
-  r\usd::beginAtom();
-  if ($confirmed) {
-    $payerFee = R_FEE_FOR_CASH ? (!$goods) : FALSE; // cash-getter pays the transaction fee
-    $note = is_array($for) ? $for[$taking ? 1 : 0] : $for;
-    if ($state == TX_DONE and $usd > 0 and !$usdXid = $fromUsAcct->send($usd, $toUsAcct, $note, $err, $payerFee)) {
-      r\usd::rollback();
-      $fromAcct->actualUsd(); // fix cached USD, if needed (after rollback of course)
-      return array('usd failed', array(), FALSE);
-    }
-    $txs = r\transact($txArgs + compact('usdXid'));
-    $lastXid = $txs[0]['xid'];
-    r\usd::commit();
-  } else {
-    $txs = r\transact($txArgs);
-    r\usd::rollback();
-  }
+  $txs = r\transact(compact(u\ray('type amount payer payee payerAgent payeeAgent for data taking goods state')));
   
   // Report results
   $args = r\txReportArgs($a1, $txs[0], TRUE, $shortfall);
@@ -611,43 +588,47 @@ function creditInfo($args = array()) {
   $dateField = 'GREATEST(t.created,IF(ISNULL(t.completed), 0, t.completed))';
   $sql = <<<EOF
     SELECT 
-    SUM(IF(t.payee=:uid, amount, 0)) AS `in`,
-    SUM(IF(t.payer=:uid, amount, 0)) AS `out`, 
-    SUM(IF(t.type=:TX_TRANSFER OR t.type > :TX_REWARDS, 0, r)) AS rewards,
-    SUM(IF(t.type=:TX_REFUND, r, 0)) AS fees,
-    
-    SUM(IF(t.payee=:uid, r, 0)) AS rIn,
-    SUM(IF(t.payer=:uid, r, 0)) AS rOut 
-    
+    SUM(IF(t.payee=:uid, amount, 0)) AS rIn,
+    SUM(IF(t.payer=:uid, amount, 0)) AS rOut, 
+    SUM(IF(t.type=:TX_REFUND, amount, 0)) AS refunds,
+    SUM(IF(t.type=:TX_TRANSFER OR t.type > :TX_REWARDS, 0, amount)) AS rewards
     FROM r_txs t
     WHERE (t.payer=:uid OR t.payee=:uid) AND t.state$state AND $dateField<=:asof
 EOF;
-///  debug(str_replace(':uid', $uid, u\SUBS($sql)));
-  // rewards is based on r, not amount, because REFUNDs have amount=0
   
   $sums = db\q($sql, $subs)->fetchAssoc();
 
   $dates = @$pending ? 'NOT completed AND created <=:asof' : 'completed AND completed<=:asof';
-  $sql = "SELECT SUM(amount) AS bank FROM r_usd WHERE payer=:uid AND payee=0 AND $dates";
+  $sql = <<<EOF
+    SELECT 
+    SUM(IF(payee=0, amount, 0)) AS bank,
+    SUM(IF(payee=-1, amount, 0)) AS fees,
+    SUM(IF(payee IN (0, -1, :uid), 0, amount)) AS usdOut,
+    SUM(IF(payer=:uid, 0, amount)) AS usdIn
+    FROM r_usd WHERE :uid IN (payer, payee) AND $dates
+EOF;
   $sums += db\q($sql, $subs)->fetchAssoc();
 
   foreach ($sums as $key => $value) $sums[$key] = $value + 0; // no nulls
   extract($sums);
+
+  if ($refunds != $fees) debug(compact(u\ray('uid fees refunds')));
+  $rIn += $usdOut;
+  $rOut += $usdIn;
+  $in = $rIn;
+  $out = $rOut;
 
   $bank = -$bank; // make it "from bank" instead of "to bank"
   $balance = $bank + $in - $out;
   $outProper = $out + $fees;
   $inProper = $in - ($rewards - $fees);
 
+  $usd = $usdIn - $usdOut;
   $r = $rIn - $rOut;
   $rOutProper = $rOut + $fees;
   $rInProper = $rIn - ($rewards - $fees);
-
-  $usdIn = $in - $rIn;
-  $usdOut = $out - $rOut;
-  $usd = $usdIn - $usdOut;
   
-  $resultKeys = 'in out rewards fees rIn rOut inProper outProper balance rInProper rOutProper r usdIn usdOut usd bank';
+  $resultKeys = 'in out rewards refunds fees rIn rOut inProper outProper balance rInProper rOutProper r usdIn usdOut usd bank';
   $result = compact(u\ray($resultKeys));
   
   $fancy = array();

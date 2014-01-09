@@ -117,7 +117,6 @@ function makeAccount($info = array(), $testOnly = FALSE) {
   foreach (u\ray('id email acctType dw') as $one) unset($info[$one]);
   $info = compact(u\ray('uid flags ' . $fixFields)) + $info;
   fixValues($info, TRUE);
-/**/ print_r($info);
 
   if ($testOnly) {
     if (!$acct = r\acct($uid)) return output("No such uid: $uid");
@@ -170,14 +169,14 @@ function makeTx($info, $testOnly = FALSE) {
   $payerAgent = uid(@$fromAgent ?: ($type == TX_TRANSFER ? $from : r\communityUid()));
   $payee = uid($to); 
   $payeeAgent = uid(@$toAgent ?: $to );
-  u\setDft($r, $amount);
+//  u\setDft($r, $amount);
   u\setDft($taking, 0);
-  if ($amount != $r) u\setDft($usdXid, 10000 + $xid);
+//  if ($amount != $r) u\setDft($usdXid, 10000 + $xid);
   $for = @$purpose ?: 'cash';
   if (strpos($for, ',')) $for = explode(',', $for); // specifying both payerFor and payeeFor
 
   u\setDft($goods, ($type != TX_TRANSFER or u\forCash($for)) ? 0 : 1);
-  if ($goods) list ($rebate, $bonus) = array(r\rebate($payer, $payee, $r), r\bonus($payee, $payer, $r));
+  if ($goods) list ($rebate, $bonus) = array(r\rebate($payer, $payee, $amount), r\bonus($payee, $payer, $amount));
   foreach (u\ray('from to purpose for') as $one) unset($info[$one]);
   
   $info = compact(u\ray('xid created r payer payerAgent payee payeeAgent for type state channel goods taking data')) + $info;
@@ -187,10 +186,9 @@ function makeTx($info, $testOnly = FALSE) {
     return $info;
   }
   
-  if (abs($usd = $amount - $r) > DW_FEE_THRESHOLD and $state >= TX_DONE) {
-///    debug(compact('xid','usdXid','payee','usd'));
+  /* if (abs($usd = $amount - $r) > DW_FEE_THRESHOLD and $state >= TX_DONE) {
     r\queue('coverFee', u\ray('txid payee', 0, $usd > 0 ? $payee : $payer));
-  }
+  } */
   $txs = r\transact($info);
   return $txs[0]['xid'];
 }
@@ -352,6 +350,15 @@ function usdTransfers($txs) {
       }
       u\setDft($tx['txid'], t\seq());
       if (!db\insert('r_usd', $tx)) return FALSE;
+      extract($tx);
+      $a1 = r\acct($payer);
+      $a1->update('usd', $a1->usd - $amount);
+      if ($payee != 0 and $payee != -1) {
+        $a2 = r\acct($payee);
+        $a2->update('usd', $a2->usd + $amount);
+        $a1->update('r', $a1->r + $amount);
+        $a2->update('r', $a2->r - $amount);
+      }
     }
   }
   return TRUE;
