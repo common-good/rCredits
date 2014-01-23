@@ -5,11 +5,11 @@ SO I can get money in and out of my rCredits account.
 
 Setup:
   Given members:
-  | id   | fullName | flags              |
-  | .ZZA | A Mem    | dft,ok,person,bona,bank |
-  | .ZZB | B Mem    | dft,ok,person,bona |
-  | .ZZC | C Mem    | dft,ok,person,bona |
-  | .ZZD | D Mem    | dft,ok,person,bona |
+  | id   | fullName | flags                 |
+  | .ZZA | A Mem    | dft,ok,dw,person,bona,bank |
+  | .ZZB | B Mem    | dft,ok,dw,person,bona |
+  | .ZZC | C Mem    | dft,ok,dw,person,bona |
+  | .ZZD | D Mem    | dft,ok,dw,person,bona |
 
   And transactions: 
   | xid | created   | type     | amount | from | to   | purpose |

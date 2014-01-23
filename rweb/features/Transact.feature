@@ -32,7 +32,7 @@ Setup:
 # (rightly fails, so do this in a separate feature) Variants: with/without an agent
 #  | "NEW.ZZA" | # member to member (pro se) |
 #  | "NEW.ZZA" | # agent to member           |
-
+Skip
 Scenario: A member asks to charge another member
   When member "NEW.ZZA" completes form "charge" with values:
   | op     | who     | amount | goods | purpose |
@@ -40,7 +40,7 @@ Scenario: A member asks to charge another member
   Then we show "confirm charge" with subs:
   | amount | otherName |
   | $100   | Bea Two   |
-  
+Resume
 Scenario: A member confirms request to charge another member
   When member "NEW.ZZA" confirms form "charge" with values:
   | op     | who     | amount | goods | purpose |
@@ -51,18 +51,16 @@ Scenario: A member confirms request to charge another member
   And we notice "new invoice" to member "NEW.ZZB" with subs:
   | created | fullName | otherName | amount | payerPurpose |
   | %today  | Bea Two  | Abe One   | $100   | labor        |
-  And transactions:
-  | xid      | created   | type      | state       | amount | from      | to      | purpose      | taking |
-  | NEW.AAAE | %today | %TX_TRANSFER | %TX_PENDING |    100 | NEW.ZZB   | NEW.ZZA | labor        | 1      |
-  | NEW.AAAF | %today | %TX_REBATE   | %TX_PENDING |      5 | community | NEW.ZZB | rebate on #2 | 0      |
-  | NEW.AAAG | %today | %TX_BONUS    | %TX_PENDING |     10 | community | NEW.ZZA | bonus on #2  | 0      |
+  And invoices:
+  | id | created | state   | amount | from      | to      | for   |
+  | 1  | %today  | pending |    100 | NEW.ZZB   | NEW.ZZA | labor |
   And balances:
   | id        | balance |
   | community |    -750 |
   | NEW.ZZA   |     250 |
   | NEW.ZZB   |     250 |
   | NEW.ZZC   |     250 |
-
+Skip
 Scenario: A member asks to pay another member
   When member "NEW.ZZA" completes form "pay" with values:
   | op  | who     | amount | goods | purpose |

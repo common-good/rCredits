@@ -10,7 +10,29 @@ select {font-size:.85em;}
 label.option {font-weight:bold;}
 /* #square{width:100em;height:100em} depends on setting font-size in misc.js */
 .form-item {margin-bottom:25px;}
+#saywait {
+  z-index:2; 
+  display:none;
+  position:fixed;
+  top:0;
+  bottom:0;
+  left:0;
+  right:0;
+  width:100px;
+  height:100px;
+  text-align:center;
+  valign:middle;
+  margin:auto;
+  padding:5px;
+  background:#006400;
+  color:white;
+  font-family:Arial;
+  border-radius:1em; -moz-border-radius:1em; -webkit-border-radius:1em;
+  box-shadow: 0px 0px 1em rgba(0,0,0,0.7); -webkit-box-shadow: 0 0 1em rgba(0,0,0,0.7); -moz-box-shadow: 0 0px 1em rgba(0,0,0,0.7);
+}
 
+.saywait img {width:32px; height:32px; margin:auto;}
+	
 #messages #nextstep,
 .page-account #completed,
 .page-status #completed {font-weight:bold; font-size:200%; color:green;}
@@ -203,6 +225,7 @@ form.rweb  .form-no {color:red;}
 #user-login-form #edit-tip label {font-weight:normal;}
 
 /* Signup (New account) */
+#rcreditswebformsignup #edit-subtext {margin-left:0;}
 #rcreditswebformsignup #edit-company-text label {font-weight:normal; width:100%;}
 #rcreditswebformsignup .form-type-radios {border-bottom:0;}
 #rcreditswebformsignup #edit-verifyby .form-type-radio {display:inline-block;}

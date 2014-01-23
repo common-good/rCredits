@@ -60,7 +60,7 @@ function rweb_menu() {
   $menu = array(
     'summary' => r\Web\menu(t('Summary'), MENU_NORMAL_ITEM, 'showForm', array('Summary'), '', $anyone),
     'transactions' => r\Web\menu(t('Transactions'), MENU_NORMAL_ITEM, 'showForm', array('Txs', 1), 'read'),
-    'charge' => r\Web\menu(t('Charge'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), 'admin'), // 'sell ok'),
+    'charge' => r\Web\menu(t('Charge'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), 'sell ok'),
     'pay' => r\Web\menu(t('Pay'), MENU_NORMAL_ITEM, 'showForm', array('Tx', 1), 'buy ok'),
 
     'grant' => r\Web\menu(t('Grant'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), 'managing_ctty'),
@@ -77,7 +77,7 @@ function rweb_menu() {
     'empty' => r\Web\menu(t('Empty'), MENU_CALLBACK, 'showForm', array('Empty'), '', $anyone),
 
     'print-rcard' => r\Web\menu(t('Print ID Card'), MENU_CALLBACK, 'memberID', array(1, FALSE), 'admin'),
-    'print-signin-card' => r\Web\menu(t('Print Sign-in Card'), MENU_CALLBACK, 'memberID', array(1, 'scan'), 'manage'),
+//    'print-signin-card' => r\Web\menu(t('Print Sign-in Card'), MENU_CALLBACK, 'memberID', array(1, 'scan'), 'manage'),
     'reinstall' => r\Web\menu(t('Reinstall rCredits'), MENU_CALLBACK, 'reinstall', array(), 'admin'),
 
     'request-employee-rcard' => r\Web\menu(t('Request Employee rCard'), MENU_CALLBACK, 'showForm', array('RequestRCard', 1), 'manage'),
@@ -89,7 +89,7 @@ function rweb_menu() {
     'account/contact' => r\Web\menu(t('Contact Info'), MENU_DEFAULT_LOCAL_TASK, 'showForm', array('Contact'), 'manage'),
     'account/preferences' => r\Web\menu(t('Preferences'), MENU_LOCAL_TASK, 'showForm', array('Options'), 'manage'),
     'account/security' => r\Web\menu(t('Security'), MENU_LOCAL_TASK, 'showForm', array('Security', 2), 'manage personish'),
-    'account/bank' => r\Web\menu(t('Bank Info'), MENU_LOCAL_TASK, 'showForm', array('Bank', 2), 'manage'),
+    'account/bank' => r\Web\menu(t('Bank Info'), MENU_LOCAL_TASK, 'showForm', array('Bank', 2), 'manage dw'),
     'account/company' => r\Web\menu(t('Company Info'), MENU_LOCAL_TASK, 'showForm', array('Company'), 'manage company'),
     'account/relations' => r\Web\menu(t('Relations'), MENU_LOCAL_TASK, 'showForm', array('Relations'), 'manage'),
     'account/boxes' => r\Web\menu(t('Devices'), MENU_LOCAL_TASK, 'showForm', array('Boxes'), 'manage'),
@@ -99,10 +99,10 @@ function rweb_menu() {
     'account/change-password' => r\Web\menu('Change Password', MENU_CALLBACK, 'showForm', array('ChangePassword'), 'manage'),
     'account/change-pin' => r\Web\menu('Change PIN', MENU_CALLBACK, 'showForm', array('ChangePin'), 'manage'),
     'account/photo' => r\Web\menu('Photo', MENU_CALLBACK, 'showForm', array('Photo'), 'manage'),
-    'account/verify-phone' => r\Web\menu('Verify Phone', MENU_CALLBACK, 'showForm', array('VerifyPhone'), 'manage'),
-    'account/readd-phone' => r\Web\menu('reAdd Phone', MENU_CALLBACK, 'addPhone', array(), 'manage'),
+    'account/verify-phone' => r\Web\menu('Verify Phone', MENU_CALLBACK, 'showForm', array('VerifyPhone'), 'manage dw'),
+    'account/readd-phone' => r\Web\menu('reAdd Phone', MENU_CALLBACK, 'addPhone', array(), 'manage dw'),
     'account/basic' => r\Web\menu('Basic', MENU_CALLBACK, 'showForm', array('Basic'), 'manage'),
-    'account/kba' => r\Web\menu('Kba', MENU_CALLBACK, 'showForm', array('Kba'), 'manage'),
+    'account/kba' => r\Web\menu('Kba', MENU_CALLBACK, 'showForm', array('Kba'), 'manage dw'),
     'account/photo-id' => r\Web\menu('Kba', MENU_CALLBACK, 'showForm', array('PhotoId'), 'manage'),
     
     'another' => r\Web\menu(t('Open Another Account'), MENU_CALLBACK, 'showForm', array('Another'), 'manage'),
@@ -130,7 +130,8 @@ function rweb_menu() {
     'do' => r\Web\menu('Do', MENU_CALLBACK, 'rdo', array(1), '', $anyone),
     'coup' => r\Web\menu(t('Disable account'), MENU_CALLBACK, 'coup', array(1), '', $anyone),    
 
-    'member-list' => r\Web\menu('POS', MENU_CALLBACK, 'showForm', array('MemberList'), '', $anyone),
+    'accept' => r\Web\menu('Accept Invitation', MENU_CALLBACK, 'showForm', array('Accept'), '', $anyone),
+    'member-list' => r\Web\menu('Member List', MENU_CALLBACK, 'showForm', array('MemberList'), '', $anyone),
     'pos' => r\Web\menu('POS', MENU_CALLBACK, 'rCredits\\Smart\\pos', array(), '', $anyone),
     R_GET_AUTH_URI => r\Web\menu('USD Get Auth', MENU_CALLBACK, 'usdCallback', array('getAuth2', 1), 'manage'),
     'usd-callback' => r\Web\menu('USD Other Callback', MENU_CALLBACK, 'usdCallback', array('callback', 1), '', $anyone),

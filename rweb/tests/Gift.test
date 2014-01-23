@@ -64,10 +64,10 @@ class rwebGift extends DrupalWebTestCase {
     . '\\| gift | amount | often | honor  | honored | share |'
     . '\\|    0 |     10 |     1 | memory | Jane Do |    10 |"');
     Then_('transactions: "DATA'
-    . '\\| xid   | created | type     | state | amount | from | to   | purpose      | r    |'
-    . '\\| .AAAB | %today  | transfer | done  |     10 | .ZZA | cgf  | contribution |   10 |'
-    . '\\| .AAAC | %today  | rebate   | done  |   0.50 | ctty | .ZZA | rebate on #1 | 0.50 |'
-    . '\\| .AAAD | %today  | bonus    | done  |   1.00 | ctty | cgf  | bonus on #1  | 1.00 |"');
+    . '\\| xid   | created | type     | state | amount | from | to   | purpose      |'
+    . '\\| .AAAB | %today  | transfer | done  |     10 | .ZZA | cgf  | contribution |'
+    . '\\| .AAAC | %today  | rebate   | done  |   0.50 | ctty | .ZZA | rebate on #1 |'
+    . '\\| .AAAD | %today  | bonus    | done  |   1.00 | ctty | cgf  | bonus on #1  |"');
     And__('we say "status": "gift successful" with subs: "DATA'
     . '\\| amount |'
     . '\\|    $10 |"');

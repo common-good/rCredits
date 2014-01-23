@@ -88,7 +88,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
     $name = u\shortName($fullName);
   //  $pass = @$my_password ?: '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae'; // default to 123
     u\setDft($pass, '123');
-    u\setDft($mail, ''); // Don't use "$name@example.com"
+    u\setDft($mail, chr(ord('a') + $uid - r\unQuid('.ZZA')) . '@example.com'); // a@example.com, etc.
     u\setDft($community, r\serverUid());
     u\setDft($postalCode, '01301');
     u\setDft($country, 'US');
@@ -186,9 +186,6 @@ function makeTx($info, $testOnly = FALSE) {
     return $info;
   }
   
-  /* if (abs($usd = $amount - $r) > DW_FEE_THRESHOLD and $state >= TX_DONE) {
-    r\queue('coverFee', u\ray('txid payee', 0, $usd > 0 ? $payee : $payer));
-  } */
   $txs = r\transact($info);
   return $txs[0]['xid'];
 }
@@ -352,13 +349,13 @@ function usdTransfers($txs) {
       if (!db\insert('r_usd', $tx)) return FALSE;
       extract($tx);
       $a1 = r\acct($payer);
-      $a1->update('usd', $a1->usd - $amount);
-      if ($payee != 0 and $payee != -1) {
+      
+      if (@$payee and $payee != -1) {
         $a2 = r\acct($payee);
-        $a2->update('usd', $a2->usd + $amount);
-        $a1->update('r', $a1->r + $amount);
-        $a2->update('r', $a2->r - $amount);
-      }
+        $a1->update('usd r', $a1->usd - $amount, $a1->r + $amount);
+        $a2->update('usd r', $a2->usd + $amount, $a2->r - $amount);
+        if ($amount > DW_FEE_THRESHOLD) r\queue('coverFee', compact(u\ray('txid payee')));
+      } elseif (@$completed) $a1->update('usd', $a1->usd - $amount);
     }
   }
   return TRUE;
@@ -510,6 +507,7 @@ function findEmail($index, $email, $subs, $noBody = FALSE) {
   $message = strtr($noBody ? r\emailTemplate($index) : r\emailBody($index), $esubs);
   $subject = strtr($GLOBALS['emailSubjects'][$index], $esubs);
   t\fixEmail($email);
+///  debug(compact('index','email','subs','esubs','message','subject'));
   return findMessage('email', compact(u\ray('index email subject')), $message, $subject, $subs);
 }
 

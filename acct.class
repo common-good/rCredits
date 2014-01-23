@@ -57,7 +57,8 @@ class acct {
     if ($phone) $phone = u\fmtPhone($phone, '+n');
     
     $status = TRUE;
-    $init = $mail = @$mail ?: '';
+    u\EXPECT($mail, 'account with no email address');
+    $init = $mail;
     $pass = r\passHash(trim(@$pass ?: \user_password()));
     $short_name = @$fullName ? u\shortName($fullName) : '';
     u\setDft($name, @$short_name ?: tempName($info));
@@ -375,7 +376,7 @@ class acct {
     $id = $this->id;
     $sums = u\sumAs(R_MONEY_FIELDS, 'u.');
     $sql = <<<EOF
-      SELECT $sums, SUM(IF(u.usd>:DW_FEE_THRESHOLD, :DW_FEE, 0)) AS fees, COUNT(*) as count
+      SELECT $sums, 0 AS fees, COUNT(*) as count
       FROM users u INNER JOIN r_relations r ON r.main=u.uid
       WHERE r.other=:id AND r.draw
 EOF;
@@ -402,7 +403,7 @@ EOF;
     $result = db\q($sql, compact('id'));
     while ($row = $result->fetchAssoc()) {
       extract($row);
-      $avail = r\avail($type, $row, FALSE);
+      $avail = r\avail($type, $row);
       if ($amount = max(0, min($left, $avail))) {
         list ($fromQuid, $toQuid) = array(r\quid($uid), $this->mainQid);
         list ($payer, $payee) = array($uid, $this->id);
@@ -416,6 +417,47 @@ EOF;
     return $need - $left;
   }
 
+  /**
+   * Check the account's actual balance(s).
+   * @return TRUE if the cached amounts are correct.
+   * Otherwise deactivate the account, tell the staff, and return FALSE.
+   */
+  public function cacheOk() {
+    $uid = $this->id;
+    $info = be\creditInfo(compact('uid'));
+    foreach (u\ray('r usd rewards minimum') as $key) {
+      $is = $this->$key;
+      if ($uid < 0 and $key != 'usd') continue; // for communities and regions, only usd is cached
+      $shouldBe = $key == 'usd' ? $this->actualUsd()
+        : ($key == 'minimum' ? max(0, $this->floor, $this->minimum) 
+        : $info->$key);
+      $shouldBe = round($shouldBe, 2);
+      if ($is != $shouldBe) {
+        r\tellStaff('cache mismatch', compact(u\ray('key is shouldBe')), $uid);
+        $this->update(u\ray($key, $shouldBe));
+        $suspend = (abs($is - $shouldBe) >= 1.00); // suspend on hacking
+      }
+    }
+    if (@$suspend) {
+// (disable temporarily)      $this->suspend('to protect data integrity.');
+      return FALSE;
+    } else return TRUE;
+  }
+
+  /**
+   * De-activate the account for reasons of security or data integrity.
+   * @param string $why: the reason for suspending (to tell member and staff)
+   */
+  public function suspend($why = '') {
+    $this->setBit(B_OK, FALSE); // suspend the account
+    if ($why) {
+      r\message($this->id, 'account suspended', compact('why'));
+      $notes = u\fmtDate() . ': ' . t('account suspended') . " $why\n" . @$this->notes;
+      $this->update(compact('notes'));
+      r\tellStaff('account suspended', u\ray('uid fullName why', $this->id, $this->fullName, $why));
+    }      
+  }
+  
   /**
    * Return an auxiliary filename for the account.
    * @param string $type: picture or proof
@@ -433,12 +475,12 @@ EOF;
   
   /**
    * Return TRUE if a connected funding source is verified.
-   */
+   */ /* UNUSED (but maybe useful?)
   public function verified() {
     $usA = new r\usd($this);
     $source = $usA->source($err);
     return @$source['Verified'];
-  }
+  }*/
   
   /**
    * Update the account's caches to reflect a trade of r for usd
@@ -453,14 +495,15 @@ EOF;
    * @param float $change: if non-zero, update the USD cache by this much, without checking Dwolla or r_usd
    */
   public function actualUsd($change = 0) {
+    $dw = $this->can(B_DW);
     if ($change) {
+      u\EXPECT($dw, 'no dw');
       $usd = $this->usd + $change; // manual update
     } else {
+      if (!$dw) return 0;
       $usAcct = new usd($this);
-      $bal = $usAcct->bal($err);
+      $usd = $usAcct->bal($err); // $err is inaccessibility (usd=0)
       if ($err) return $this->usd; // can't get the figure from Dwolla
-      
-      $usd = max(0, $bal - $this->waitingToBank(TRUE)); // $err is inaccessibility (usd=0)
 
       if (t\est()) { // only these tests adjust according to Dwolla
         global $sceneTest; $scene = (object) $sceneTest->getInfo();
@@ -622,12 +665,10 @@ EOF;
               B_MANAGE : (B_RELATED + relation('permission', $id, $this->agentId));
       for ($i = B_RELATED; $i <= B_MANAGE; $i++) $perms[$i] = ($i <= $can); // set all, even the false ones
 
-      if ($perms[B_OK]) {
-        $perms[B_MEMBER] = TRUE; // make sure nobody gets downgraded
-      } else $perms[B_SELL] = $perms[B_BUY] = FALSE; // (read here kills acct dropdown)
+      // (NO! this should never happen) if ($perms[B_OK]) $perms[B_MEMBER] = TRUE;
+      if (!$perms[B_OK]) $perms[B_SELL] = $perms[B_BUY] = FALSE; // (read here kills acct dropdown)
 
       if (!$perms[B_MEMBER]) $perms[B_BUY] = FALSE; // no spending even the SIGNUP GIFT for non-members
-      if (r\Web\svar('scanned_in') and $this == r\acct()) $perms[B_BUY] = $perms[B_MANAGE] = $perms[B_ADMIN] = $perms[B_CTTY_ADMIN] = FALSE; // scanning in, you can read and scan, at most
       
       if ($perms[B_ADMIN]) {
         if (R_ADMIN_CAN_MANAGE_CTTYS) {

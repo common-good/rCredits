@@ -6,9 +6,9 @@ SO we can use them for something as a community, while losing nothing as individ
 Setup:
   Given members:
   | id   | fullName   | email | flags              |
-  | .ZZA | Abe One    | a@    | dft,ok,person,bona |
-  | .ZZB | Bea Two    | b@    | dft,ok,person,bona |
-  | .ZZC | Corner Pub | c@    | dft,ok,company     |
+  | .ZZA | Abe One    | a@    | dft,ok,dw,person,bona |
+  | .ZZB | Bea Two    | b@    | dft,ok,dw,person,bona |
+  | .ZZC | Corner Pub | c@    | dft,ok,dw,company     |
   And transactions: 
   | xid | created   | type     | amount | from | to   | purpose |
   |   1 | %today-6m | signup   |     25 | ctty | .ZZC | signup  |

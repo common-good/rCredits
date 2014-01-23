@@ -590,8 +590,8 @@ function creditInfo($args = array()) {
     SELECT 
     SUM(IF(t.payee=:uid, amount, 0)) AS rIn,
     SUM(IF(t.payer=:uid, amount, 0)) AS rOut, 
-    SUM(IF(t.type=:TX_REFUND, amount, 0)) AS refunds,
-    SUM(IF(t.type=:TX_TRANSFER OR t.type > :TX_REWARDS, 0, amount)) AS rewards
+    SUM(IF(t.payee=:uid AND t.type=:TX_REFUND, amount, 0)) AS refunds,
+    SUM(IF(t.payer=:uid OR t.type=:TX_TRANSFER OR t.type > :TX_REWARDS, 0, amount)) AS rewards
     FROM r_txs t
     WHERE (t.payer=:uid OR t.payee=:uid) AND t.state$state AND $dateField<=:asof
 EOF;
@@ -612,21 +612,26 @@ EOF;
   foreach ($sums as $key => $value) $sums[$key] = $value + 0; // no nulls
   extract($sums);
 
-  if ($refunds != $fees) debug(compact(u\ray('uid fees refunds')));
+  if ($refunds != $fees) {
+    $info = compact(u\ray('uid fees refunds'));
+    t\output('ERROR: fee/refund mismatch: ' . print_r($info, 1));
+    r\tellStaff('fee/refund mismatch', $subs+$args+$info);
+  }
+  $rewards -= $refunds; // Dwolla fee refunds are a hidden reward
+  $in = $rIn - $refunds; // this includes (unhidden) rewards
+  $out = $rOut;
   $rIn += $usdOut;
   $rOut += $usdIn;
-  $in = $rIn;
-  $out = $rOut;
 
   $bank = -$bank; // make it "from bank" instead of "to bank"
   $balance = $bank + $in - $out;
-  $outProper = $out + $fees;
-  $inProper = $in - ($rewards - $fees);
+  $outProper = $out;
+  $inProper = $in - $rewards;
 
   $usd = $usdIn - $usdOut;
   $r = $rIn - $rOut;
-  $rOutProper = $rOut + $fees;
-  $rInProper = $rIn - ($rewards - $fees);
+  $rOutProper = $rOut;
+  $rInProper = $rIn - $rewards;
   
   $resultKeys = 'in out rewards refunds fees rIn rOut inProper outProper balance rInProper rOutProper r usdIn usdOut usd bank';
   $result = compact(u\ray($resultKeys));

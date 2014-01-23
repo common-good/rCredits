@@ -113,6 +113,8 @@ function tableDefs($schema = array()) {
     'p2bPerMo' => setupField('customer purchase volume in the past month', 'numeric 11,2', 0),
     'b2bPerMo' => setupField('b2b purchase volume in the past month', 'numeric 11,2', 0),
     'b2pPerMo' => setupField('payroll volume in the past month', 'numeric 11,2', 0),
+    'bankInTxsPerMo' => setupField('amount transferred into the system in the past month', 'numeric 11,2', 0),
+    'bankOutTxsPerMo' => setupField('amount transferred out of the system in the past month', 'numeric 11,2', 0),
     'xchTxsPerMo' => setupField('number of exchanges within system in the past month', 'int medium', 0),
     'cashTxsPerMo' => setupField('number of exchanges for cash in the past month', 'int medium', 0),
     'txsPerMo' => setupField('number of purchases in the past month', 'int medium', 0), // omits r/USD exchanges
@@ -217,6 +219,22 @@ function tableDefs($schema = array()) {
   $foreignKeys = foreignKey('payer') + foreignKey('payee') + foreignKey('payerAgent') + foreignKey('payeeAgent');
   $indexes = index('payer') + index('payee') + index('created') + index('completed'); // also serial/type/taking/goods/state/payerAgent/payeeAgent/channel/?
   $schema['r_txs'] = setupTable('Record of all rCredits transactions in the region', $fields, 'xid', $foreignKeys, $indexes);
+
+  // table r_invoices
+  $fields = array(
+    'id' => setupField('the unique invoice ID', 'serial 11'), 
+    'goods' => setupField('is this transfer an exchange for real goods and services?', 'int tiny', 0), 
+    'state' => setupField('done, pending, disputed, etc', 'int tiny'), 
+    'amount' => setupField('amount in rCredits', 'numeric 11,2'), 
+    'payer' => setupField('user id of the payer', 'int big'), 
+    'payee' => setupField('user id of the payee', 'int big'), 
+    'payeeFor' => setupField("payee's description", 'varchar 60'), 
+    'data' => setupField('info stored elsewhere, duplicated here for convenience (serialized array)', 'text big'), 
+    'created' => setupField('Unixtime invoice was created', 'int 11', 0),
+  );
+  $foreignKeys = foreignKey('payer') + foreignKey('payee');
+  $indexes = index('payer') + index('payee') + index('created');
+  $schema['r_invoices'] = setupTable('Record of all rCredits invoices in the region', $fields, 'id', $foreignKeys, $indexes);
 
 //  foreach (u\ray('type taking goods payerAgent payeeAgent payerFor payeeFor') as $one) unset($fields[$one]);
 

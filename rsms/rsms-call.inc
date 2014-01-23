@@ -46,6 +46,7 @@ class call {
    *   what to reply to the caller
    */
   function handle_call() {
+    if (!r\up()) return tt('system down');
     try {
       if($error_message = $this->validate_caller()) return $error_message;
       $this->parse();
@@ -229,7 +230,7 @@ class call {
 //    be\todo($this->number, 'account info2', ''); // queue up more info (not used yet)
     $quid = r\acct()->mainQid;
     $totalDemand = r\totals()->fancy['demand'];
-    return tt('account info', be\creditInfo()->fancy + compact('quid'));
+    return tt('account info', be\creditInfo()->fancy + compact('quid', 'totalDemand'));
   }
 
   /**

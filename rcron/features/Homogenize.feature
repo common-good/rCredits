@@ -6,15 +6,15 @@ SO we can do most transactions in rCredits and thereby avoid US Dollar transfers
 Setup:
   Given members:
   | id   | fullName   | email | flags              | floor |
-  | .ZZA | Abe One    | a@    | dft,ok,person,bona |     0 |
-  | .ZZB | Bea Two    | b@    | dft,ok,person,bona |   -20 |
-  | .ZZC | Corner Pub | c@    | dft,ok,company     |     0 |
-  | .ZZD | Dee Four   | d@    | dft,ok,person      |     1 |
-  | .ZZE | Eve Five   | e@    | dft,ok,person      |   -50 |
-  | .ZZF | Flo Six    | f@    | dft,ok,person      |     0 |
-  | .ZZG | Guy Seven  | g@    | dft,ok,person      |     0 |
-  | .ZZH | Hal Eight  | h@    | dft,ok,person      |     0 |
-  | .ZZI | Ida Nine   | i@    | dft,ok,person      |     0 |
+  | .ZZA | Abe One    | a@    | dft,ok,dw,person,bona |     0 |
+  | .ZZB | Bea Two    | b@    | dft,ok,dw,person,bona |   -20 |
+  | .ZZC | Corner Pub | c@    | dft,ok,dw,company     |     0 |
+  | .ZZD | Dee Four   | d@    | dft,ok,dw,person      |     1 |
+  | .ZZE | Eve Five   | e@    | dft,ok,dw,person      |   -50 |
+  | .ZZF | Flo Six    | f@    | dft,ok,dw,person      |     0 |
+  | .ZZG | Guy Seven  | g@    | dft,ok,dw,person      |     0 |
+  | .ZZH | Hal Eight  | h@    | dft,ok,dw,person      |     0 |
+  | .ZZI | Ida Nine   | i@    | dft,ok,dw,person      |     0 |
   And transactions: 
   | xid | created   | type   | amount | from | to   | purpose |
   |   1 | %today-6m | signup |     11 | ctty | .ZZA | signup  |

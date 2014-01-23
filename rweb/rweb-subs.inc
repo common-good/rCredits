@@ -38,7 +38,8 @@ EOF
   'options saved' => t('Your options have been saved'),
   'photo saved' => t('Your photo was successfully uploaded.'),
   'step completed' => t('<span id="completed"> Step completed!</span>'), // space intended
-  'return to membership' => t('<a href="@link">Click here to return to the checklist</a>.'),
+  'after emailing' => t('After you have sent us an email: '),
+  'return to membership' => t('<a href="/status">Click here to return to the checklist</a>.'),
   'ok to continue' => t('You may now continue what you were originally doing.'),
   'password reset' => t('A temporary password has been sent to your email address.'),
   'changed agent' => t('You successfully changed the agent to @agentName.'),
@@ -52,29 +53,30 @@ EOF
   'company rcard' => t('Send a <a href="@href">company rCard</a> to @name at @address.'),
   'amount rounded' => t('"@amount" was rounded to the nearest integer value.'),
   'invite sent' => t('Your invitation has been sent.'),
-  'repeat invite' => t('Come back any time, to send more invitations (click on "Invite Someone" at the bottom of any page).'),
+  'repeat invite' => t('Come back any time, to send more invitations (click "Invite Someone" at the bottom of any page).'),
   'gift transfer later' => t('Your funds will be transferred when you have money in your account.'),
-  'repeat gift' => t('If you wish to make a contribution again sometime, click on "Membership" in the upper right corner, then on "Contribute".'),
-  'setup complete' => t('Your account setup is complete. Expect an email within the next 24 hours, saying your account is activated. Thank you for joining!'),
+  'repeat gift' => t('If you wish to make a contribution again sometime, click "Membership" in the upper right corner, then on "Contribute".'),
+  'setup complete' => t('Your account setup is complete. Expect an email within the next 24 hours, saying your account is activated.<br>Thank you for joining!'),
   'ready to charge' => t('<p>You successfully scanned in as "@agentName" to charge customers on behalf of @companyName.</p><p>Now go back to your scanning app, to scan a customer\'s card. Sign out only when your shift ends.</p>'),
   'transaction list truncated' => t('There are too many transactions to show all at once, so only the first @TX_MAX_ROWS are shown (choose a different date range to see the rest).'),
   'address info' => t('<a1>Click here</a> for address information.'),
-  'open dwolla' => t('Our partner organization, Dwolla, sent you a link in an email. Click on the link, sign in with your phone number and temporary password "@usdPass", then come back here once you have confirmed your phone number. (We are working to eliminate this step, but in the meantime, there is no way around it.)'),
+  'open dwolla' => t('Our partner organization, Dwolla, sent you a link in an email. Click the link, sign in with your phone number and temporary password "@usdPass", then come back here once you have confirmed your phone number. (We are working to eliminate this step, but in the meantime, there is no way around it.)'),
   'agent created' => t('The agent account was successfully created.'),
   'phone verified' => t('Your phone number has been verified.'),
   'id verification pending' => t('Your photo ID has been uploaded successfully. Now we need to wait for our partner organization to verify your identity. Please feel free to email us if you have questions.'),
+  'verify bank' => t('In particular, you still need to verify the connection to your bank account. Contact your bank (by phone or online) to find out the two small deposit amounts (each less than @DW_VERIFY_ROOF cents). Then go to settings and click "Bank Info" or <a href="account/bank">click here</a> to go there directly.'),
+  'adjust settings' => t('You can adjust your settings by clicking the gear in the upper right corner. '),
 
   // prompts
   'prompt min' => t('Keep this much in my rCredits account, for purchases or inflation-proof savings. (When your balance goes below this amount, the system refills it for you from your bank account. Refilling may take 3-5 days.)'),
 //  'prompt max' => t('Keep AT MOST this much in my rCredits account. (When your rCredits balance goes above this amount by $@R_CHUNK or more, the system transfers the extra to your bank account. Blank means no automatic transfers &mdash; recommended in most cases).'),
   'fullName desc' => t('Your full legal name, properly capitalized.'),
-  'verify connection' => t('Your next step is to verify the connection.'),
+  'verify connection' => t('Two small deposits (under @DW_VERIFY_ROOF cents) have been sent to your bank. Call your bank after 3-5 business days, to find out the amounts. Then come back to the Bank Info page and fill in those amounts, to verify the connection to your bank account. Here\'s how: Go to rCredits.org, click "Members\'s Site", sign in, click the Settings gear in the upper right corner, then click "Bank Info". We will send you a reminder by email.'),
   'ssTitle' => t('Soc Sec #:'),
   'einTitle' => t('Federal ID:'),
   'ssDesc' => t('Your social security number (for tax reporting)'),
   'einDesc' => t('The company\'s Employer ID Number (EIN)'),
   'to scan another' => t('To scan another card, run the QR Scanner app again.'),
-  'no card ordered' => t('No rCard was ordered.'),
 
   // confirm
   'yes or no' =>  '@yesNo', // to replace with yesNo(url)
@@ -113,8 +115,8 @@ EOF
   'undo incomplete' => t('The undo operation is not yet complete.'),
 //  'unknown member' => t('"@who" has not yet signed up for rCredits. <a href="@draftLink">Click here to add them</a> to the list or <a href="" id="which-cancel">click here to cancel</a>.'),
   'unknown member' => t('"@who" has not yet signed up for rCredits.'),
-//  'ambiguous other' => t('"@who" might mean any of these rCredits accounts. Click on the one you want or, if you don\'t see them listed, <a href="@draftLink">Click here to add them</a> to the list or <a id="which-cancel">here to cancel</a>.'),
-  'ambiguous other' => t('"@who" might mean any of these rCredits accounts. Click on the one you want or <a id="which-cancel">here to cancel</a>.'),
+//  'ambiguous other' => t('"@who" might mean any of these rCredits accounts. Click the one you want or, if you don\'t see them listed, <a href="@draftLink">Click here to add them</a> to the list or <a id="which-cancel">here to cancel</a>.'),
+  'ambiguous other' => t('"@who" might mean any of these rCredits accounts. Click the one you want or <a id="which-cancel">here to cancel</a>.'),
 //  'similar found' => t('If you mean @otherName (@phone), <a href="@draftLink">click here for YES</a>. Otherwise, <a href="@cancelLink">click here to cancel</a>.'),
   'get app' => t('To scan Account ID cards with a smartphone, you need the app! You can download the Android app <a href="http://rCredits.org/rc.apk">here</a>. The iphone version is in the works (check again in January).'),
   'no help' => t('There is no written help available for this page. Give it a try! If you are still puzzled, please feel free to give us a call at @R_ORG_PHONE. Or send your question by <a href="mailto:@R_ORG_EMAIL?subject=help with rCredits Members Site, @page page" target="_blank">email</a>.'),
@@ -172,7 +174,8 @@ EOF
   'missing contact info' => t("<h2>Missing Contact Information</h2><p>Please complete your <@a1>Contact Information</a> before continuing.</p>"),
   'correct and retry' => t('Please correct the problem and resubmit this form.'),
   'duplicate transaction' => t('You already just @op that member that much.'),
-  'duplicate phone' => t('That phone number is already the primary phone for another account.'),
+  'duplicate phone' => t('That phone number is already the primary phone for another account. Choose a different phone number or check "Dup Ok" if this is your ONLY phone and you can make do without a connected bank account.'),
+  'not a duplicate phone' => t('That phone number is NOT the primary phone for another account.'),
   'bad pin' => t('That is not your correct PIN.'),
   'wrong pin len' => t('Your PIN must be exactly 4 characters long.'),
   'pin required' => t('You must choose a PIN.'),
@@ -187,6 +190,7 @@ EOF
   'bank too little' => t('The amount you asked to transfer is less than the minimum ($@R_BANK_MIN).'),
   'members only' => t('You must be a member, to use this feature.'),
   'dwolla terms required' => t("Please accept Dwolla's terms before you click Continue."),
+  'no card ordered' => t('No rCard was ordered.'),
 );
 
 /**
@@ -295,31 +299,26 @@ function acctTypeField() {
  * Also sets up $formArray and $formSta, for testing.
  */
 function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
-  global $formArray, $formSta;
+  global $formArray, $formSta, $rUrl;
   try {
     setupGlobals(); // in case it's an anonymous form, so webAccess doesn't have a chance to set up
-//    $layout = @$_GET['layout'] ?: svar('layout');
-//    if ($function == 'I') $layout = 'Mobile';
-//    $newLayout = ($layout != svar('layout'));
-    
     $args = 'arg1' . ($arg2 !== '' ? ' arg2' : '') . ($arg3 !== '' ? ' arg3' : '') . ($arg4 !== '' ? ' arg4' : '');
-//    if (!strpos(' accounts summary footer ', $function)) u\loga("show $function", compact(u\ray($args)));
-//    if ($layout == 'Mobile') css('mobile.css', 100);
     $formName = substr($function, 0, 1) == '/' ? substr($function, 1) : "rCredits\\Web\\form$function";
-//    if ($newLayout) svar('layout', $layout); // do this before drupal_get_form, so forms can know the current layout
+    $specialForm = in_array($function, u\ray('Help footer accounts Admin Login'));
 
     $args = func_get_args(); // this and next few lines are from \drupal_get_form()
     array_shift($args); // Remove $function from the arguments.
     $formSta['build_info'] = compact('args');
+    if (!r\up() and !$specialForm and $mya = r\acct()) {
+      if ($mya and $mya->admin()) {
+        say('The system is DOWN.');
+      } else $formName = 'rCredits\\Web\\formSystemDown';
+    }
     $form = drupal_build_form($formName, $formSta);
-
-//    $form = \drupal_get_form($formName, $arg1, $arg2, $arg3, $arg4);
-//    if (!is_array($form)) return $form; // form probably did return r\go() during testing
     \rweb_form_alter($form, $formSta, $formName);
-    $form['#attributes']['class'][] = 'rweb';
-//    if ($newLayout) $form['#cache'] = FALSE;
+    
     if (!@$form['confirm']) $form += which(); // add the choices popup form, if any
-    if (!in_array($function, u\ray('Help footer accounts'))) {
+    if (!$specialForm) {
       $extras = array('#id' => 'help-link', '#weight' => @$form['title']['#weight']);
       $help_link = item(t('<a><div></div>Help with this page</a>')) + $extras; // add a help link at top of page
       $form = compact('help_link') + $form;
@@ -331,8 +330,12 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
       if (u\isIPhone()) css('iphone.css', -100);
     }
 
-    $formArray = $form2 = $form; $rent = \render($form2);
-//    if ($function == 'Usd') $rent = str_replace('Dwolla', '<a href="' . R_DW_LINK . '" target="_blank">Dwolla</a>', $rent);
+    $form['#attributes']['class'][] = 'rweb';
+    $form['#attributes']['onSubmit'] = "jQuery('#saywait').show();";
+    $formArray = $form2 = $form; 
+
+    $rent = \render($form2);
+
     if (strpos($rent, 'form-type-checkbox') or strpos($rent, 'form-type-radio')) js('inc/radiocheck.js', 'file', 'footer');
     
     if ($colgroup = @$form['#colgroup']) {
@@ -486,21 +489,21 @@ EOF;
 function setupUs(&$step) {
   $us = new r\usd($mya = r\acct());
   if (!@$mya->secure['auth']) {
-    if (!$mya->createUsdAccount($err)) return say($err, 'zot'); // set auth
-//    if ($mya->secure['usdEmail'] == $mya->mail) r\Web\say('Dwolla has sent you an email with a verification link. Please click on that link to confirm your email address, then come back here to continue setting up your account.'); // temporary, for Dwolla compliance testing
+    if (!$mya->createUsdAccount($err)) return say($err, 'ERR'); // set auth
+//    if ($mya->secure['usdEmail'] == $mya->mail) r\Web\say('Dwolla has sent you an email with a verification link. Please click that link to confirm your email address, then come back here to continue setting up your account.'); // temporary, for Dwolla compliance testing
   }
-  if (!$mya->usdAccount) if (!$us->me($err)) return say($err, 'zot'); // set usdAccount
+  if (!$mya->usdAccount) if (!$us->me($err)) return say($err, 'ERR'); // set usdAccount
   if (!$step = $us->step($err)) {
     r\tellStaff('null step', compact('err', 'step') + (array) $mya);
     if (u\abbreviates('Invalid account status', $err)) { // sometimes "...for user of this access token"
       //$mya->update(u\ray('federalId', '')); // prevent resumission of same ssn (temporary Dwolla bug)
-      return say('bad ssn or dob|Please contact rCredits customer support at +1 413 628 1723.', 'zot');
-    } else return say($err, 'zot');
+      return say('bad ssn or dob|Please contact rCredits customer support at +1 413 628 1723.', 'ERR');
+    } else return say($err, 'ERR');
   }
   if ($step == 'Email') return FALSE; // await automatic or manual confirmation of email (meanwhile user can sign Agreement)
   if ($step == 'Finished') return FALSE;
   if ($mya->phone and $step == 'Phone') return addPhone();
-  if ($step == 'AccountInfo') return r\go('account/basic', 'redo info', 'zot'); // here on ssn() failure
+  if ($step == 'AccountInfo') return r\go('account/basic', 'redo info', 'ERR'); // here on ssn() failure
   if ($step == 'Kba') return r\go('account/kba'); // here on accountInfo() failure
   if ($step == 'PhotoId') return r\go('account/photo-id'); // here on Kba() success (else call Dwolla)
 
@@ -508,7 +511,7 @@ function setupUs(&$step) {
     if (!$us->address($mya->address, $mya->city, r\realState($mya->state, $mya->country), $mya->postalCode, $err)) return r\go('account/contact', $err);
   } elseif ($step == 'Ssn') {
     if (!$us->ssn($mya->federalId, $err)) {
-      if ($err) return say($err, 'zot');
+      if ($err) return say($err, 'ERR');
     } else u\EXPECT($us->step() != $step, 'weird ssn return');
   } elseif ($step == 'AuthorizedRepresentative') {
     u\EXPECT(!$mya->person(), 'verify rep for person?!');
@@ -517,7 +520,7 @@ function setupUs(&$step) {
     $by = r\acct($byId);
     list ($first, $last) = u\parseName($by->fullName);
     $state = r\realState($by->state, $by->country);
-    if (!$us->authorizedRep($first, $last, $by->address, $by->city, $state, $by->postalCode, substr($by->phone, 2), $by->dob, $by->federalId, $err)) return say($err, 'zot');
+    if (!$us->authorizedRep($first, $last, $by->address, $by->city, $state, $by->postalCode, substr($by->phone, 2), $by->dob, $by->federalId, $err)) return say($err, 'ERR');
   }
   if ($us->step() != $step) return setupUs($step); // step may have progressed
 }
@@ -594,7 +597,7 @@ function remainder() {
     $otherName = $a->fullName;
     $balance = be\creditInfo(compact('uid'))->fancy['balance'];
     say('customer balance', compact('otherName', 'balance'));
-  } else say('no last customer', 'zot');
+  } else say('no last customer', 'ERR');
   r\go('empty');
 }
 */
@@ -744,14 +747,15 @@ function findCompany($company, $companyPhone) {
 
 /**
  * Return the part of the form that is common to formContact and formSignup
- * @param assoc $defaults: initial field values (defaults to current values)
+ * @param assoc $defaults: initial field values (defaults to current values) - see list at "$fields ="...
  * include all fields (for Contact form) only if r\acct() is set
  */
 function contactFields($defaults = array()) {
   $country = $state = ''; // make sure these are not NULL
-  $fields = 'phone verifyBy faxetc country address city state postalCode';
+  $fields = 'phone dupOk verifyBy address city state country postalCode faxetc';
   $mya = r\acct();
   extract($mya ? (array) $mya->account($fields) : $defaults);
+  $dupPhone = @$defaults['dupPhone'];
 
   $onchange = "print_state(this.options[this.selectedIndex].value,'');";
   $countryAttrib = attrib(compact('onchange'));
@@ -773,7 +777,8 @@ EOF;
   $onchange = "var z3=jQuery('#edit-postalcode').val().substr(0, 3); if (z3=='013' || z3=='010') jQuery('#edit-buysat').show();";
   $zipAttrib = attrib(compact('onchange'));
   
-  $phone = textField(t('Phone:'), t('Your primary phone (landline or mobile). Cannot be the primary phone for another account.'), required(@$phone ? u\fmtPhone($phone): ''));
+  $phone = textField(t('Phone:'), t('Your phone number. This cannot be already used for another rCredits account unless you answer "Yes" to Dup Ok, below.'), required(@$phone ? u\fmtPhone($phone): ''));
+  $dupOk = boolField(t('Dup Ok:'), t('If this is already the phone number for another rCredits account, click Yes to use it for this account too. Without a unique phone number, though, you cannot connect a bank account to your rCredits account. We are lobbying our financial partner, Dwolla, to remove this limitation. But, for now, a duplicate phone means no connected bank account.'));
   $verifyBy = formField('radios', t('Verify by:'), t('We will send a verification code to your phone, by text or voice.'), required(isset($mya->data['verifyBy']) ? ($mya->data['verifyBy'] == 'Voice') : NULL), array(t('Text message'), t('Voice message')));
   if ($mya) $faxetc = textField(t('Fax etc:'), t('List other ways to contact you: fax, mobile, IM, etc. This field is NOT public.'), dft(@$faxetc));
   $country = formField('select', t('Country:'), t(''), dft(@$country) + $countryAttrib); // can't use required() here
@@ -785,11 +790,25 @@ EOF;
   return compact(u\ray($fields));
 }  
 
-function phoneOk(&$phone, $country) {
+/**
+ * Say whether the phone number is acceptable.
+ * @param string $phone: phone number in any format
+ * @param int $country: country code
+ * @param mixed $dupOk:
+ *   TRUE if duplicate phone is always ok
+ *   uid of inviter account, if only that duplicate phone is ok
+ *   FALSE if no duplicate is ok
+ * @return TRUE if the phone number is acceptable
+ */
+function phoneOk(&$phone, $country, $dupOk = TRUE) {
   $myid = @r\acct()->id ?: 0;
   if (!$phone = u\fmtPhone($phone, '+n')) return say('bad phone', 'phone');
   if ($country == US_COUNTRY_ID and strlen($phone) != 12) return say('bad phone', 'phone');
-  if (db\exists('users', 'phone=:phone and uid<>:myid', compact('phone', 'myid'))) return say('duplicate phone', 'phone');
+  if ($dupOk <> TRUE) {
+    $duplicate = db\lookup('uid', 'users', 'phone=:phone and uid<>:myid', compact('phone', 'myid'));
+    if ($duplicate and $duplicate != $dupOk) return say('duplicate phone', 'phone');
+    if (!$duplicate and $dupOk) return say('not a duplicate phone', 'phone');
+  }
   return TRUE;
 }
 
@@ -878,7 +897,7 @@ EOF;
  *   invitation($code, $invitee) marks the invitation USED by recording the invitee's account id
  * @param string $code: the invitation code
  * @param int $invitee: account id of the invited person
- * @param int $inviter: (returned, if empty) account id of the inviter
+ * @param int $inviter: (returned, if empty) account id of the inviter (always returned, even if error)
  * @param int $err: 
  * @return: email or nothing, as above (FALSE if no such invitation)
  */
@@ -1347,7 +1366,7 @@ function sendInvite($email, $subject, $message, $dupsOk = TRUE) {
     'DATE' => u\fmtDate($agent->signed),
     'CODE' => r\invite($email, $agent->id, '', $subject, $message),
   );
-  r\rMail('invite', $email, '', $info);
+  r\rMail('invite', $email, $info);
   say(!$dupsOk ? 'Sent to @email' : 'invite sent|repeat invite', compact('email'));
   r\tellStaff('invited', $info + compact('email'), $agent->id);
 }

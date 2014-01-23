@@ -44,10 +44,10 @@ class rcronRecache extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id   | fullName   | dw | email | flags              |'
-    . '\\| .ZZA | Abe One    |  1 | a@    | dft,ok,person,bona |'
-    . '\\| .ZZB | Bea Two    |  0 | b@    | dft,ok,person,bona |'
-    . '\\| .ZZC | Corner Pub |    | c@    | dft,ok,company     |"');
+    . '\\| id   | fullName   | dw | email | flags                 |'
+    . '\\| .ZZA | Abe One    |  1 | a@    | dft,ok,dw,person,bona |'
+    . '\\| .ZZB | Bea Two    |  0 | b@    | dft,ok,dw,person,bona |'
+    . '\\| .ZZC | Corner Pub |    | c@    | dft,ok,dw,company     |"');
     And__('balances: "DATA'
     . '\\| id   | dw/usd |'
     . '\\| .ZZA |      5 |"');
@@ -84,6 +84,12 @@ class rcronRecache extends DrupalWebTestCase {
     . '\\| id     | r  | usd | rewards | minimum |'
     . '\\| .ZZA   | 10 |   5 |      10 |       2 |'
     . '\\| .ZZB   |  0 |   ? |       0 |       0 |"');
+    And__('we message member ".ZZA" with topic "account suspended" and subs: "DATA'
+    . '\\| why                        |'
+    . '\\| to protect data integrity. |"');
+    And__('we message member ".ZZB" with topic "account suspended" and subs: "DATA'
+    . '\\| why                        |'
+    . '\\| to protect data integrity. |"');
   }
 
   // Scenario: Balances get a tiny bit out of whack
@@ -94,7 +100,9 @@ class rcronRecache extends DrupalWebTestCase {
     . '\\| .ZZA   | 10.0001 |   5 |'
     . '\\| .ZZB   |       0 |   ? |"');
     When_('cron runs "recache"');
-    Then_('we do not tell staff "cache mismatch"');
+    Then_('we tell staff "cache mismatch" with subs: "DATA'
+    . '\\| id   | key     | is      | shouldBe |'
+    . '\\| .ZZA | r       | 10.0001 |       10 |"');
   }
 
 }

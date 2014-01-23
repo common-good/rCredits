@@ -25,13 +25,7 @@ QUESTIONS:
 ***
 
 TASKS FOR NEXT UPDATE:
-before reinstall:
-. assure that usd total in txs matches amount total in usd for each uid (experiment with STAGE server)
-. all tx_refund in txs: set amount=r
-. convert all to-be-orphaned rebates/bonuses to type TX_PIONEER with proper tid (not easy)
-. delete all txs that have amount=0
 after reinstall:
-. remove r and usdXid fields from r_txs
 (no other special tasks yet)
 
 MEMBERSHIP PROCEDURE:
@@ -40,6 +34,9 @@ make sure the photo is adequate
 mark the account as an rTrader (OK) (before printing card)
 print card and welcome materials, mail to new member (welcome includes reminder to verify bank account)
 
+. *** fix put test in rWeb Get feature (appropriately fails due to data integrity problem)
+. ignore spaces in bank account number
+. remind people to confirm their bank account (and say how -- call the bank, etc.)
 . *** 1099s!
 . retest SMS
 . * separate invoices from r_txs (somewhat major change)
@@ -47,6 +44,22 @@ print card and welcome materials, mail to new member (welcome includes reminder 
 . * add a Pay button to member company rCredits webpage
 - * detailed membership tests: New Pass, Photo, Agreement, Contribute, Proxies, Usd, proof of ID, Options
 
+. make sure two accounts drawing from each other works (it should, since drawing is only one level deep)
+. invite people to email their photo instead of uploading it
+. make all submit buttons do a javascript alert "processing... (please wait)"
+. don't create account (in acct class) if email is a dup
+. accept "none" or "n/a" in lieu of blank, for some fields (eg company and companyPhon)
+. when admin reactivates an account, member gets an email with a bad password (it should send a new temporary password without altering the saved real password)
+. on member list, click "dw" to get current step
+. on Contact page, verifyby text does not update OR does not display (which?)
+. on Contact page, state does not update!
+. handle cards reported stolen at POS (how? ask Visa)
+. check cached r and usd before allowing transfer to bank
+. on transaction page: action on far left, reward next to "to you"
+. cash/loan/etc vs. goods & services: provide a link to help the member decide which
+. advanced feature: see breakdown of USD/rCredits for one's account (with explanation of why it changes)
+. automate account deletion and make sure it deletes related records
+. sort transactions by date before display or download
 . tell cgf (remind us) how often a contribution happens and whether it is time to send a card (on the anniversary or quarterversary).
 . report proper balance on tellStaff about gift
 . withdrawal should disable minimum if necessary to avoid an automatic reversal of the withdrawal
@@ -108,7 +121,7 @@ print card and welcome materials, mail to new member (welcome includes reminder 
 - make sure recovery from lost usdtxs includes recovery from any fees
 - monthly PDF statement (printable)
 - move SMS notices option to cell form (and add field to r_boxes)?
-- implement r\suggest (use this for merchant invoices too. user gets an email invoice from rCredits, they can just click on a link to accept or decline. merchant gets notified). test cron call to r\suggest (should just notify, for now)
+- implement r\suggest (use this for merchant invoices too. user gets an email invoice from rCredits, they can just click a link to accept or decline. merchant gets notified). test cron call to r\suggest (should just notify, for now)
 - on MSIE 8, sign-in CSS has alignment problem, menu failure in MSIE 8, autocomplete looks funny
 - LATER give user a chance to name the machine
 * LATER prefs: "Show address (show my address to companies I pay or donate to)" -- just assume TRUE for now. 
@@ -301,7 +314,7 @@ A. Development environment
       inc module test class install steps
    Also go to Settings/Preferences/Tab Settings and set the tab size to 2, replace with spaces
  - TESTING:
-   . offline (isDEV): The only place to run the feature tests (sign in as admin, click on Handy, then Run Tests). Dwolla is active, but only the tester's dwolla account (DW_TESTER_ACCOUNT) will be used (and only for small amounts sent to Dwolla's "reflector" account). When Dwolla has a sandbox we will use it here.
+   . offline (isDEV): The only place to run the feature tests (sign in as admin, click Handy, then Run Tests). Dwolla is active, but only the tester's dwolla account (DW_TESTER_ACCOUNT) will be used (and only for small amounts sent to Dwolla's "reflector" account). When Dwolla has a sandbox we will use it here.
    . staging server (!isDEV and !isPRODUCTION): copy production database to the staging server (for example ws.rcredits.org), then do something to see what will happen when it happens for real on the production server. Ideally, we should have (1) an API that allows a list of events to be automated and (2) a "what happened since xxx" report. Emails are disabled except to the organization and the tester. USD transactions are disabled completely (so no testing of real Dwolla transactions is possible here) -- when Dwolla has a real sandbox we will use it here.
    . production server (isPRODUCTION): keep an eye on results, but don't mess with it
  

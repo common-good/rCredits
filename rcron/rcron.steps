@@ -175,6 +175,7 @@ function gifts($gifts) {return t\gifts($gifts);}
  * in: Gifts AContributionCanBeCompleted TEST
  *     Gifts ARecurringContributionCanBeCompleted TEST
  *     Recache BalancesGetOutOfWhack TEST
+ *     Recache BalancesGetATinyBitOutOfWhack TEST
  */
 function weTellStaffWithSubs($topic, $subs) {return t\weTellStaff($topic, $subs);}
 
@@ -275,7 +276,7 @@ function weTellStaffNothing() {
 /**
  * we do not tell staff (ARG)
  *
- * in: Recache BalancesGetATinyBitOutOfWhack TEST
+ * in: 
  */
 function weDoNotTellStaff($topic) {return !t\weTellStaff($topic);}
 
@@ -307,4 +308,18 @@ function nextDOCodeIs($code) {
 function memberTradesUSDToMemberForRCredits($id1, $amount, $id2) {
   global $testOnly; if ($testOnly) return FALSE;
   return (bool) r\tradeR($amount, $id2, $id1);
+}
+
+/**
+ * we message member (ARG) with topic (ARG) and subs: (ARG)
+ *
+ * in: Recache BalancesGetOutOfWhack TEST
+ */
+function weMessageMemberWithTopicAndSubs($id, $topic, $subs) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  $a = r\acct(t\uid($id));
+  $message = u\tt($topic, $subs[0]);
+  $topic = $GLOBALS['topics'][$topic];
+  $fullName = $a->fullName;
+  return weEmailToMemberWithSubs('message', $a->mail, compact(u\ray('message topic fullName')));
 }

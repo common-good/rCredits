@@ -1,28 +1,14 @@
-  </div></div> <!-- /.section, /#header -->
+<script type="text/javascript" src="http://localhost/devcore/misc/jquery.js?v=1.4.4"></script>
 
-      <div id="messages"><div class="section clearfix">
-      <div class="messages status">
-<h2 class="element-invisible">Status message</h2>
- <ul>
-  <li><em class="placeholder">Debug</em>: <pre>&#039;tmBEK_GScslMAd5Pnjfp8aU6lyV7wzcZS5qITEKZQJs&#039;</pre> in <em class="placeholder">main()</em> (line <em class="placeholder">17</em> of <em class="placeholder">/home/ws/public_html/cron.php</em>).</li>
-  <li><em class="placeholder">Debug</em>: <pre>&#039;w8x3lfzNQK1bxMz6RMTuF54mMInAs4b8SiVJO9zvWYg&#039;</pre> in <em class="placeholder">main()</em> (line <em class="placeholder">18</em> of <em class="placeholder">/home/ws/public_html/cron.php</em>).</li>
- </ul>
+
+<div id="saywait" style="z-index:2; position:absolute; top:200px; left:200px; display:none">
+<img src="images/saywait.gif" />
 </div>
-    </div></div> <!-- /.section, /#messages -->
+<a href="">here</a>
 
-
-  <div id="main-wrapper" class="clearfix"><div id="main" class="clearfix">
-
-
-    <div id="content" class="column"><div class="section">
-            <a id="main-content"></a>
-                    <h1 class="title" id="page-title">
-          Access denied        </h1>
-                          <div class="tabs">
-                  </div>
-                          <div class="region region-content">
-    <div id="block-system-main" class="block block-system">
-
-
-  <div class="content">
-    You are not authorized to access this page.  </div>
+<script >
+jQuery('a').click(function() {
+  jQuery('#saywait').show();
+  alert('here');
+});
+</script>

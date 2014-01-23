@@ -32,10 +32,10 @@ function ray($s, $value1 = NULL) {
     return array_combine($keys, $args);
   }
 
-  EXPECT(compact('s'), 'string');
-  $pattern = strpos($s, '|') ? ' *\| *' : (strpos($s, ',') ? '\, *' : (strpos($s, ';') ? '; *' : (strpos($s, ' ') ? ' +' : '\, *')));
-  $simple = mb_split($pattern, $s);
-  if (strpos($s, '|') or !strpos($s, ',') or !strpos($s, ':')) return $simple;
+  u\EXPECT(compact('s'), 'string');
+  $pattern = strpos($s, "\n") ? '/\R/' : (strpos($s, '|') ? ' *\| *' : (strpos($s, ',') ? '\, *' : (strpos($s, ';') ? '; *' : (strpos($s, ' ') ? ' +' : FALSE))));
+  $simple = $pattern ? mb_split($pattern, $s) : array($s);
+  if (!strpos($pattern, ',') or !strpos($s, ':')) return $simple; // no subargs
 
   $array = array();
   foreach ($simple as $one) {
@@ -753,7 +753,7 @@ function redw($msg) {
   $lame = t(' Some operations will be unavailable.');
   $map = array(
     'Access token is empty.' => t('Your account is not complete.' . $lame),
-    'Request failed. Server responded with: 0' => t('Our official currency module is temporarily offline.' . $lame),
+    'Request failed. Server responded with: 0' => t('Our US Dollars module is temporarily offline.' . $lame),
     'Unexpected error has occurred.' => t('Part of your current operation may not have completed. Try again?'),
   );
   return strtr($msg, $map);
@@ -986,3 +986,5 @@ function consta($prefix, $var) {return constant(strtoupper(str_replace(' ', '_',
 function isIPhone() {return preg_match('/iPhone/i', $_SERVER['HTTP_USER_AGENT']);}
 function jsonEncode($s) {return json_encode($s) ?: json_encode(u\purify($s));} // , JSON_UNESCAPED_SLASHES
 function redash($s) {return str_replace('—', '&mdash;', $s);}
+function backButton() {return '<button onclick="history.go(-1); return false;">Go Back</button>';}
+

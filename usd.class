@@ -443,7 +443,7 @@ array (
     } else $txid = -1;
     
     if ($txid != -1) {
-      self::addToAtom($txid, $amount, $this->acct->id, 0, 0);
+      self::addToAtom($txid, $amount, $this->acct->id, 0, $amount < 0 ? 0 : REQUEST_TIME);
       if ($amount > 0) $this->acct->actualUsd(-$amount); // treat the money as already gone, if depositing in bank
     }
 
@@ -533,9 +533,9 @@ array (
   public static function addToAtom($txid, $amount = '', $payer = '', $payee = '', $completed = NULL, $created = REQUEST_TIME) {
     u\EXPECT(self::inAtom(), 'addToAtom outside atom');
     if ($payer) {
-      $tid = $payee == 0 ? getUsdTid($payer) : 0; // user sequenced tx number for banking only
+      $tid = ((int) $payee) == 0 ? r\getUsdTid($payer) : 0; // user sequenced tx number for banking only
       $tx = compact(u\ray('txid tid amount payer payee created completed'));
-    } else $tx = $txid;
+    } else $tx = $txid; // 2nd syntax
     if (!isset($tx['completed'])) $tx['completed'] = $created;
     self::$atoms[] = $tx;
   }
@@ -550,10 +550,11 @@ array (
     $values = '';
     while (!is_object($one = array_pop(self::$atoms))) {
       extract($one);
-      $values .= ($values ? ',' : '') . "('$txid', '$amount', '$payer', '$payee', '$created', '$completed')";
+      if (!@$tid) $tid = 'NULL'; // only tests fail without this but be consistent with reality
+      $values .= ($values ? ',' : '') . "('$txid','$amount','$payer','$payee',$tid,'$created','$completed')";
     }
     u\EXPECT(strpos($values, ';') === FALSE, 'sql insertion in usd commit'); // impossible, but verify
-    if ($values) db\q("INSERT INTO r_usd (txid, amount, payer, payee, created, completed) VALUES $values");
+    if ($values) db\q("INSERT INTO r_usd (txid, amount, payer, payee, tid, created, completed) VALUES $values");
     // Drupal automatically commits if we don't rollback (otherwise we would do a Drupal commit here)
     return TRUE;
   }

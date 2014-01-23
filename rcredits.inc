@@ -58,7 +58,7 @@ define('R_MAX_PHOTOID_SIZE', 2.5); // Dwolla's limit (MB)
 define('R_URL_SLASH', '%_%'); // Drupal gets confused by slashes in a url, even if urlencoded
 define('R_MAX_DAILY_EXCHANGE', 1000); // per Common Good Finance policy and to avoid formal FinCEN regulation
 define('R_MAX_RTX', 1000); // never transfer more rCredits than this at once (self-imposed limit for safety)
-define('R_INVITE_DAYS', 7); // number of days to accept invitation to membership
+define('R_INVITE_DAYS', 30); // number of days to accept invitation to membership
 define('R_MINR_DEFAULT', 200); // suggested minimum amount to hold in rCredits
 //define('R_MAXR_DEFAULT', -1); // suggested maximum amount to hold in rCredits (-1 = no limit)
 define('R_CARDCODE_LEN', 14); // length of rCard security code (long to deter easy copying, max 14 for small QR)
@@ -99,7 +99,7 @@ define('DW_TEST_ACCT', '8127419900'); // "reflector" account on www (totally rei
 define('DW_TESTER_ACCT', '8127413762'); // william's account on Dwolla sandbox
 define('DW_FEE_THRESHOLD', 10); // over this amount, Dwolla charges a fee
 define('DW_FEE', .25); // the fee
-define('DW_VERIFY_ROOF', 15); // bank verification deposits are less than this
+define('DW_VERIFY_ROOF', 20); // bank verification deposits are less than this (actually less than 15 cents)
 define('DW_STEPS', 'Email Phone Address Ssn Kba AuthorizedRepresentative Finished'); // registration steps
 
 define('R_USPS_WEB_TOOLS_ID', '921COMMO5331'); // USPS API credentials
@@ -140,13 +140,13 @@ define('CO_CAN_BIT_DESCS', 'u0,refund,sell cash,buy cash');
 // Permissions, options, and flags (flags field in account record)
 // If we need more bits, create a flags2 field and make the B_ defs negative for acct::hasBit and setBit
 define('B_MEMBER', 0); // signed the membership agreement, etc. (ready to be approved)
-define('B_u1', 1); //
+define('B_DW', 1); // has a connected Dwolla account
 define('B_OK', 2); // approved to use rCredits for real (set by admin when ready)
 define('B_BONA', 3); // got signup bonus (good circles - somehow got more r+usd than the initial gift)
 define('B_BANK', 4); // has an effective connected bank account
 define('B_PERSON', 5); // personal account
 define('B_COMPANY', 6); // company account (could be personal also, for independent contractor)
-define('B_u7', 7); // 
+define('B_PHOTOID', 7); // photoid required and not yet approved
 define('B_CHARGE', 8); // UNUSED (any company can do this) can charge customers without confirmation
 define('B_u9', 9); // 
 define('B_u10', 10); //
@@ -175,8 +175,8 @@ define('B_CLOSED', 31); // account is closed (data[new_account] has new qid)
 define('B_MAX', 31); // maximum bit number
 //define('B_DFT', (1 << B_NOTIFY_EMAIL) | 0); // set what bits when creating a new account
 define('B_DFT', 0 | 0); // set what bits when creating a new account
-define('B_ADMINABLE', 'person company member ctty_admin closed'); // for cttyAdmin to set
-define('B_LIST', 'member u1 OK bona bank person company u7 charge u9 u10 u11 payroll weekly monthly u15 sms electro secret u19 debt draws savings u23 u24 u25 u26 u27 u28 cadmin admin closed');
+define('B_ADMINABLE', 'person company member dw photoid ctty_admin closed'); // for cttyAdmin to set
+define('B_LIST', 'member dw ok bona bank person company photoid charge u9 u10 u11 payroll weekly monthly u15 sms electro secret u19 debt draws savings u23 u24 u25 u26 u27 u28 cadmin admin closed');
 
 define('R_SHORTFALL', 'GREATEST(0, minimum-(r+usd))'); // sql for shortfall in account (to draw in)
 define('R_DEMAND', 'LEAST(u.usd, u.minimum-u.r)'); // definitely WANTS this many rCredits (sometimes negative)
@@ -227,11 +227,11 @@ define('TX_CHANNELS', t('System SMS Web App Tone Auto'));
 
 // Transaction types (all but type TX_TRANSFER and TX_BANK create rCredits)
 define('TX_BANK', -9); // used only internally, to mark bank transfers
+define('TX_REFUND', -3); // refund of fees (Dwolla)
 define('TX_BONUS', -2); // sales bonus (negative reward types are invisible on transaction history)
 define('TX_REBATE', -1);
 define('TX_TRANSFER', 0); // normal fund transfer (usually for actual goods and services) -- not creating rC
 define('TX_SIGNUP', 1); // signup incentive reward
-define('TX_REFUND', 2); // refund of fees (Dwolla)
 define('TX_INFLATION', 3); // reward to conpensate for inflation
 define('TX_PIONEER', 4); // pioneer reward (special early-stage rewards) -- might change later to TX_OTHER
 define('TX_REWARDS', 4); // from here on, it's not "rewards"
@@ -264,6 +264,10 @@ $GLOBALS['emailSubjects'] = array(
   'password-reset' => t('New rCredits PASSWORD'),
   'tell-staff' => t('rCredits STAFF ALERT: {topic}'),
   'notices' => t('rCredits Notices for {range}'),
+  'message' => t('rCredits {topic}'),
+);
+$GLOBALS['topics'] = array( // topics for 'message' email
+  'account suspended' => t('Account SUSPENDED'),
 );
 
 /**
@@ -356,6 +360,7 @@ function tradeR($amount, $uid1, $uid2, &$err = '') {
   if ($amount > R_MAX_DAILY_EXCHANGE) {$err = 'rTrade amount over max'; return FALSE;}
   $us1 = new r\usd($a1 = r\acct($uid1));
   $us2 = new r\usd($a2 = r\acct($uid2));
+  u\EXPECT($a1->can(B_DW) and $a2->can(B_DW), 'no dw');
 
   r\usd::beginAtom();
   if (!$txid = $us2->send($amount, $us1, R_DEFAULT_PURPOSE, $err)) {
@@ -500,26 +505,7 @@ function dataSetup($payer, $payee, $amount, $goods, $data = array()) {
   return serialize($data);
 }
 
-/**
- * Set or report how much rCredits the user wants to buy with US Dollars.
- * @param integer $who: uid of the user
- * @param numeric $demand: the user's new demand amount (defaults to 0, meaning "just report")
- * @return the user's demand amount
- */
- /*
-function demand($uid, $demand = FALSE) {
-  $acct = acct($uid);
-  if ($demand === FALSE) return $acct->demand;
-  $demand = min(R_MAX_AMOUNT, $demand);
-  $acct->update(compact('demand')); 
-  return $demand;
-}
-*/
-
-function cacheBothTotals($txs) {
-  cacheTotals($txs[0]['payer'], $txs);
-  cacheTotals($txs[0]['payee'], $txs);
-}
+function cacheBothTotals($txs) {foreach(u\ray('payer payee') as $one) cacheTotals($txs[0][$one], $txs);}
 
 /**
  * Keep track of r balance, rewards, committed amount in the account record
@@ -544,7 +530,7 @@ function cacheTotals($uid, $txs) {
     $r += $amount;
     if ($type != TX_TRANSFER and $type <= TX_REWARDS) {
       if ($type == TX_REBATE or $type == TX_BONUS) $committed = round($committed + $amount * $a->share / 100, 2);
-      $rewards = round($rewards + $amount, 2);
+      if ($type != TX_REFUND) $rewards = round($rewards + $amount, 2);
     }
   }
   $r = round($r, 2);
@@ -585,10 +571,23 @@ function makeDo($op, $uid, $amount = 0, $timeLimit = WEEK_SECS, $subs = '', $sql
 /**
  * Wrap all email, so it doesn't go out when testing.
  */
-function rMail($index, $email, $lingo, $info) {
+function rMail($index, $email, $info, $lingo = '') {
   $info['email'] = $email;
   if (!isPRODUCTION) if ($email != R_ORG_EMAIL and $email != R_TESTER_EMAIL) $email = 'none@example.com'; // black hole
   \drupal_mail('rCredits', $index, $email, '', $info);
+}
+
+/**
+ * Email an arbitrary message to the member, now or later.
+ * @param int $uid: account record ID
+ * @param string $index: index to arbitrary HTML message body (between salutation and closing)
+ * @param assoc $subs: message parameters
+ * @param bool $now: TRUE to send the email now (otherwise later)
+ */
+function message($uid, $index, $subs = array(), $now = TRUE) {
+  $message = u\tt($index, $subs);
+  $topic = $GLOBALS['topics'][$index];
+  r\notify($uid, 'message', compact('message', 'topic'), $now);
 }
 
 /**
@@ -608,7 +607,7 @@ function notify($uid, $index, $info = array(), $force = FALSE) {
   $warnIndexes = u\ray('new invoice,new offer,charge disputed');
   
   if ($force) {
-    $mailed = r\rMail($index, $acct->mail, '', $info); // no need to pass $acct->language
+    $mailed = r\rMail($index, $acct->mail, $info); // no need to pass $acct->language
   } else { //if ($acct->can(B_NOTIFY_EMAIL)) {
     list ($message, $created) = array(u\tt($index, $info), REQUEST_TIME);
     if (t\est()) t\output("Notice to $fullName: $message");
@@ -651,7 +650,10 @@ function membershipEvent($a, $status, $do = TRUE) {
     $DBTX = \db_transaction();
     if ($bit !== FALSE) $a->setBit($bit); // set the bit, if any
     if ($status == 'bona' and $a->person()) be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
-    if ($status == 'ok') r\notify($a->id, 'welcome', array(), TRUE);
+    if ($status == 'ok') {
+      u\EXPECT($a->can(B_CTTY_ADMIN), 'should be ctty admin'); // only ctty admin can approve an account
+      r\notify($a->id, 'welcome', array(), TRUE);
+    }
     unset($DBTX);
     
     $fullName = $a->fullName;
@@ -715,7 +717,7 @@ function tellStaff($index, $subs = array(), $uid = TRUE) {
   $noFrame = TRUE;
   $topic = strlen($index) < 20 ? strip_tags($index) : '';
   $email = R_ORG_EMAIL;
-  r\rMail('tell-staff', $email, '', compact(u\ray('email message topic noFrame uid')));
+  r\rMail('tell-staff', $email, compact(u\ray('email message topic noFrame uid')));
 }
 
 /**
@@ -1251,7 +1253,7 @@ function nextRBuyer(&$amount, $except) {
   $sql = <<<EOF
     SELECT u.uid, $offer AS got, u.name FROM users u
     LEFT JOIN (SELECT payee, MAX(completed) AS dt FROM r_txs WHERE type=:TX_SIGNUP OR (type=:TX_TRANSFER AND NOT goods AND amount=0 AND r<>:DW_FEE) GROUP BY payee) t ON t.payee=u.uid
-    WHERE ($offer>0 AND u.uid>0 AND u.uid<>:except AND :IS_OK)
+    WHERE ($offer>0 AND u.uid>0 AND u.uid<>:except AND :IS_OK AND :IS_DW)
     ORDER BY (u.name='cgf') DESC, ($offer>=:amount) DESC, IFNULL(t.dt, 0), u.uid LIMIT 1
 EOF;
   // preferred: not CGF, offering enough, definitely wanting that many, longest ago previous exchange, low uid
@@ -1382,22 +1384,19 @@ EOF;
   $result2['r'] = array_sum($result2) - $result2['shared'] - 2 * $result2['fines'];
 
   $subs += u\ray('monthAgo', strtotime('-1 month', $created));
-  $amt = 'IF(amount=0, t.r, amount)'; // for payment exchanges, the amount is in r
-  // get perMo, txsPerMo, p2b(Txs)PerMo, b2b(Txs)PerMo, b2p(Txs)PerMo, xch(Txs)PerMo, cash(Txs)PerMo
+  // get perMo, txsPerMo, p2b(Txs)PerMo, b2b(Txs)PerMo, b2p(Txs)PerMo, cash(Txs)PerMo
   $sql = <<<EOF
     SELECT 
-    SUM(IF(goods, $amt, 0)) AS perMo,
-    SUM(IF(goods AND u.:IS_PERSON AND NOT u2.:IS_PERSON, $amt, 0)) AS p2bPerMo,
-    SUM(IF(goods AND NOT u.:IS_PERSON AND NOT u2.:IS_PERSON, $amt, 0)) AS b2bPerMo,
-    SUM(IF(goods AND NOT u.:IS_PERSON AND u2.:IS_PERSON, $amt, 0)) AS b2pPerMo,
-    SUM(IF(amount=0 AND NOT goods, t.r, 0)) AS xchPerMo, 
+    SUM(IF(goods, amount, 0)) AS perMo,
+    SUM(IF(goods AND u.:IS_PERSON AND NOT u2.:IS_PERSON, amount, 0)) AS p2bPerMo,
+    SUM(IF(goods AND NOT u.:IS_PERSON AND NOT u2.:IS_PERSON, amount, 0)) AS b2bPerMo,
+    SUM(IF(goods AND NOT u.:IS_PERSON AND u2.:IS_PERSON, amount, 0)) AS b2pPerMo,
     SUM(IF(amount<>0 AND NOT goods, amount, 0)) AS cashPerMo,
 
     SUM(IF(goods, 1, 0)) AS txsPerMo,
     SUM(IF(goods AND u.:IS_PERSON AND NOT u2.:IS_PERSON, 1, 0)) AS p2bTxsPerMo,
     SUM(IF(goods AND NOT u.:IS_PERSON AND NOT u2.:IS_PERSON, 1, 0)) AS b2bTxsPerMo,
     SUM(IF(goods AND NOT u.:IS_PERSON AND u2.:IS_PERSON, 1, 0)) AS b2pTxsPerMo,
-    SUM(IF(amount=0 AND NOT goods, 1, 0)) AS xchTxsPerMo,
     SUM(IF(amount<>0 AND NOT goods, 1, 0)) AS cashTxsPerMo
 
     FROM r_txs t LEFT JOIN users u ON u.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
@@ -1406,10 +1405,16 @@ EOF;
 EOF;
   $result3 = db\q($sql, $subs)->fetchAssoc() ?: array();
 
-  // get bankInPerMo, bankOutPerMo
+  // get bankIn(Txs)PerMo, bankOut(Txs)PerMo, xch(Txs)PerMo
   $sql = <<<EOF
     SELECT SUM(IF(amount<0, -amount, 0)) AS bankInPerMo,
-    SUM(IF(amount<0, 0, amount)) AS bankOutPerMo
+    SUM(IF(amount<0, 0, amount)) AS bankOutPerMo,
+    SUM(IF(payee>0, amount, 0)) AS xchPerMo,
+    
+    SUM(IF(amount<0, 1, 0)) AS bankInTxsPerMo,
+    SUM(IF(amount<0, 0, 1)) AS bankOutTxsPerMo,
+    SUM(IF(payee>0, 1, 0)) AS xchTxsPerMo
+
     FROM r_usd t LEFT JOIN users u ON t.payer=u.uid
     WHERE u.community=:ctty AND t.completed AND t.payee=0
     AND completed<=:created AND :monthAgo>0
@@ -1454,13 +1459,13 @@ EOF;
     $dayx = $day;
     extract($row); // total, day
     $avg += $bal * ($day - $dayx) / $days;
-  ///debug(compact('uid','day','dayx','bal','avg','total'));
+///debug(compact('uid','day','dayx','bal','avg','total'));
     $bal += $total;
   }
   $dayx = $day;
   $day = round(($end - $start) / DAY_SECS); // end of period
   $avg += $bal * ($day - $dayx) / $days;
-  ///debug(compact('uid','day','dayx','bal','avg'));
+///debug(compact('uid','day','dayx','bal','avg'));
 
   return $avg; // average end-of-day balance
 }
@@ -1530,9 +1535,7 @@ function median($field, $table = 'users', $where = 1, $subs = array()) {
  * @return int: the next unused positive integer (1 if there are no bank transfers yet)
  */
 function getUsdTid($payer) {
-  if ($tid = db\lookup('MAX(tid)+1', 'r_usd', 'payer=:payer', compact('payer'))) return $tid;
-  $result = db\q('UPDATE r_usd SET tid=(@tid:=IFNULL(@tid,0)+1) WHERE payer=:payer ORDER BY created', compact('payer'));
-  return $result->rowCount() + 1;
+  return db\lookup('MAX(tid)+1', 'r_usd', 'payer=:payer', compact('payer')) ?: 1;
 }
 
 /**
@@ -1574,3 +1577,4 @@ function realState($state, $country = R_COUNTRY_ID) {return db\lookup($country =
 function makeQueue($callback, $time = 15) {return array('worker callback' => "rCredits\\Cron\\$callback", 'time' => $time);}
 function queue($op, $item = array()) {\DrupalQueue::get('q')->createItem(compact('op') + $item);}
 function perm($bit) {return $bit - B_RELATED;}
+function up() {return \variable_get('up', TRUE);}

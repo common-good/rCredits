@@ -5,8 +5,8 @@ SO I can spend it with my rCard.
 
 Setup:
   Given members:
-  | id   | fullName | floor | minimum | flags                   |
-  | .ZZA | Abe One  |     0 |     100 | dft,person,company,ok |
+  | id   | fullName | floor | minimum | flags                    |
+  | .ZZA | Abe One  |     0 |     100 | dft,person,company,ok,dw |
   
 Scenario: a member is barely below minimum
   Given balances:

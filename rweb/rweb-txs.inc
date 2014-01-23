@@ -11,7 +11,7 @@ use rCredits\DB as db;
  * Forms for managing transactions, and related functions
  */
 
-define('TX_OPT_KEYS' , 'agents channels boxes exchanges pexchanges');
+define('TX_OPT_KEYS' , 'agents channels boxes exchanges pexchanges'); // these are all placeholders now
 define('TX_URL_OPTS', 'currency states ' . TX_OPT_KEYS);
 define('TX_OPT_AGENTS', 1);
 define('TX_OPT_CHANNELS', 2);
@@ -57,13 +57,15 @@ function formTxs($form, &$sta, $args = '') {
   if (@$download) $options['currency']  = RUSD_BOTH; // always both for download
   extract($options);
   $options = join('', array_values($options));
-  
+
+  // Setup option array, including defaults and help
   $optDefaults = $opts = array();
   $optHelp = array_combine($keys = u\ray(TX_OPT_KEYS), u\ray($optHelp));
   foreach ($keys as $one) {
     $value = $opts[u\consta('tx_opt', $one)] = popHelp($one, $optHelp[$one]); // set TX_OPT_CHANNELS etc.
     if (@$$one) $optDefaults[] = $value; // set up option field values
   }
+  
   list ($classes, $header, $downloadHeader) = txFields($report, @$download, @$agents, @$channels, @$boxes);
   $txDays = array('1' => 'today', '4' => '4 days', '30' => '30 days', '90' => '90 days', '180' => '6 months', '365' => '12 months', '-1' => 'Year to date');
   list ($starting, $ending) = txDates($txDays, @$period, @$starting, @$ending);
@@ -126,8 +128,8 @@ function formTxs($form, &$sta, $args = '') {
   $currency = hidField(2); //formField('radios', t('Currency:'), '', dft($currency), $radios); 
   $radios = array(t('completed'), t('open invoices'), t('both'));
   $states = formField('radios', t('Types:'), '', dft($states), $radios);
-  $opts2Desc = TRUE ? '' : t('Agent is who did the transaction on your behalf. Channel ("Via") is Web, Smartphone, SMS, or Automatic. Exchanges are 1-to-1 trades of rCredits for US Dollars. PExchanges are 1-to-1 trades that earn incentive rewards.');
-  $opts2 = boxesField('opts', t('Show:'), $opts2Desc, $optDefaults, $opts);
+  //$opts2Desc = TRUE ? '' : t('Agent is who did the transaction on your behalf. Channel ("Via") is Web, Smartphone, SMS, or Automatic. Exchanges are 1-to-1 trades of rCredits for US Dollars. PExchanges are 1-to-1 trades that earn incentive rewards.');
+  // (NOT USED YET) $opts2 = boxesField('opts', t('Show:'), $opts2Desc, $optDefaults, $opts);
   
   $divider = item('<hr>');
   $period = formField('select', t('For the past:'), '', dft($period), $txDays);
@@ -139,11 +141,35 @@ function formTxs($form, &$sta, $args = '') {
   $downloadDates = submit(t(' Download'));
   $title = "";
   $title = item(t('Transaction History'));
-//  $subtext = item(t('The "r%" column tells what percentage of the total transaction amount is rCredits. Hover over that figure to see the breakdown.'));
 
   $form = compact(u\ray('title subtext currency states opts2 divider period submitPeriod downloadPeriod starting ending submitDates downloadDates summary transactions'));
-  if (@$downloaded) js("window.open(\"$url0&download=1\")", 'inline', 'footer');
+  if (@$downloaded) js("window.open(\"$url0&download=1\", \"download\");", 'inline', 'footer');
   return labeled($form);
+}
+
+function formTxs_validate($form, &$sta) {
+  $txDays = @$form['period']['#options'];
+  extract(u\just('period starting ending', $sta['input']));
+  $op = op($sta);
+  list ($starting, $ending, $period) = ($op == 'submitPeriod' or $op == 'downloadPeriod') ? txDates($txDays, @$period) : txDates($txDays, '', @$starting, @$ending);
+  u\preray(compact(u\ray('starting ending period')), $sta['input']);
+}
+
+function formTxs_submit($form, &$sta, $page = 'transactions') {
+  if (confirming_s($sta)) return;
+  extract(u\just('currency states period starting ending opts options do xid', $sta['input']));
+  if (isset($states)) { // $options summarizes everything when clicking on OK or NO or EDIT
+    $options = $currency . $states;
+    // (NOT USED YET) foreach (u\ray(TX_OPT_KEYS) as $one) $options .= (@$opts[u\consta('TX_OPT', $one)] ? 1 : 0);
+  }
+  $url = @"$page/period=$period&starting=$starting&ending=$ending&options=$options";
+  $op = op($sta);
+  if (u\abbreviates('download', $op)) {
+    say('downloading');
+    if ($currency != 2) say('download always both');
+    $url .= '&downloaded=1';    
+  }
+  $sta['redirect'] = $url;
 }
 
 /**
@@ -159,12 +185,14 @@ function sortRows(&$rows) {
 
 function setupDownload($starting, $ending) {
   global $testCSV, $testCSVname;
+  $mya = r\acct();
   $testCSV = array();
   header('Content-type: text/plain');
   $dt1 = strftime('%Y%m%d', $starting);
   $dt2 = strftime('%Y%m%d', $ending);
-  $testCSVname = $filename = "rcredits$dt1-$dt2.csv";
-  header("Content-Disposition: attachment; filename=\"$filename\"");
+  $testCSVname = $filename = ($mya->admin() ? $mya->mainQid : 'rcredits') . "$dt1-$dt2.csv";
+  header("Content-Disposition: attachment; filename=\"$filename\";");
+  header('Content-Type: application/csv; charset=UTF-8'); // tell the browser it's going to be a csv file
   return fopen('php://output', 'w');
 }
 
@@ -173,7 +201,7 @@ function setupDownload($starting, $ending) {
  */
 function txFields($report, $download, $agents, $channels, $boxes) {
   global $agtViaBox;
-  $headHelp = t('Transaction number|Date transaction was initiated or completed|Payer name|Payee name|Transaction amount|Current state of transaction -- check mark means completed, pending means awaiting approval by payer.|What is the purpose of the transaction (usually the item or service purchased)|How much incentive rewards were awarded for this transaction|Who did you pay or receive from|Amounts you spent|Amounts you received|Click on a symbol to approve, deny, or reverse a transaction or to edit the purpose|The net change in account balance|') . $agtViaBox;
+  $headHelp = t('Transaction number|Date transaction was initiated or completed|Payer name|Payee name|Transaction amount|Current state of transaction -- check mark means completed, pending means awaiting approval by payer.|What is the purpose of the transaction (usually the item or service purchased)|How much incentive rewards were awarded for this transaction|Who did you pay or receive from|Amounts you spent|Amounts you received|Click a symbol to approve, deny, or reverse a transaction or to edit the purpose|The net change in account balance|') . $agtViaBox;
   $classes = 'tid date from to amount state purpose reward';
   $headHelp = array_combine(u\ray($classes . ' name fromyou toyou buttons net agent channel box'), u\ray($headHelp));
   if ($report) { // community transaction history
@@ -341,31 +369,6 @@ function handleTx($do, $xid, &$sta, $args) {
   return FALSE;
 }
  
-function formTxs_validate($form, &$sta) {
-  $txDays = @$form['period']['#options'];
-  extract(u\just('period starting ending opts', $sta['input']));
-  $op = op($sta);
-  list ($starting, $ending, $period) = ($op == 'submitPeriod' or $op == 'downloadPeriod') ? txDates($txDays, @$period) : txDates($txDays, '', @$starting, @$ending);
-  u\preray(compact(u\ray('starting ending period')), $sta['input']);
-}
-
-function formTxs_submit($form, &$sta, $page = 'transactions') {
-  if (confirming_s($sta)) return;
-  extract(u\just('currency states period starting ending opts options do xid', $sta['input']));
-  if (isset($states)) { // $options summarizes everything when clicking on OK or NO or EDIT
-    $options = $currency . $states;
-    foreach (u\ray(TX_OPT_KEYS) as $one) $options .= (@$opts[u\consta('TX_OPT', $one)] ? 1 : 0);
-  }
-  $url = @"$page/period=$period&starting=$starting&ending=$ending&options=$options";
-  $op = op($sta);
-  if (u\abbreviates('download', $op)) {
-    say('downloading');
-    if ($currency != 2) say('download always both');
-    $url .= '&downloaded=1';    
-  }
-  $sta['redirect'] = $url;
-}
-
 /**
  * Return usable starting and ending dates.
  * @param assoc $txDays: descriptions of time periods relative to now, for example "[the past] 30 days"
@@ -422,7 +425,7 @@ function txAct($do, $state, $toMe, $byMe) {
 }
 
 /**
- * Handle click on 'OK' or 'NO' (approving or undoing a transaction)
+ * Handle click 'OK' or 'NO' (approving or undoing a transaction)
  */
 function txOKorNO($task, $xid) {
   $myid = r\acct()->id;

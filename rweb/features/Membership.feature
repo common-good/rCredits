@@ -16,9 +16,9 @@ SO I can participate actively.
 Setup:
   Given members:
   | id  | fullName | phone | email | city  | state | postalCode | floor | flags              | pass |
-  | .ZZA | Abe One |     1 | a@    | Atown | AK    | 01000      |     0 | dft,person,company | %whatever |
+  | .ZZA | Abe One |     1 | a@    | Atown | AK    | 01000      |     0 | dft,person,dw      | %whatever |
   | .ZZB | Bea Two |     2 | b@    | Btown | UT    | 02000      |  -200 | dft,person,member  | |
-  | .ZZC | Our Pub |     3 | c@    | Ctown | CA    | 03000      |     0 | dft,company        | |
+  | .ZZC | Our Pub |     3 | c@    | Ctown | CA    | 03000      |     0 | dft,company,dw     | |
   And relations:
   | id   | main | agent | permission |
   | .ZZA | .ZZC | .ZZA  | manage     |
@@ -27,11 +27,11 @@ Scenario: A member signs in for the first time
   Given member is logged out
   And invitation to email "d@" is "c0D3"
   When member "?" confirms form "signup/code=c0D3&dwok=1" with values:
-  | fullName | email | phone | country | postalCode | federalId | dob      | acctType    | code | verifyBy |
-  | Dee Four | d@ | 413-253-0000 | US  | 01002    | 123-45-6789 | 1/2/1993 | %R_PERSONAL | c0D3 |        1 |
+  | fullName | email | phone | dupOk | country | postalCode | federalId | dob | acctType    | code | verifyBy |
+  | Dee Four | d@ | 413-253-0000 | 0 |US  | 01002    | 123-45-6789 | 1/2/1993 | %R_PERSONAL | c0D3 |        1 |
   Then members:
-  | id      | fullName | email   | country | postalCode | state | city    | flags        | 
-  | NEW.AAC | Dee Four | d@      | US      | 01002      | MA    | Amherst | dft,person   |
+  | id      | fullName | email   | country | postalCode | state | city    | flags         | 
+  | NEW.AAC | Dee Four | d@      | US      | 01002      | MA    | Amherst | dft,person,dw |
   And member "NEW.AAC" one-time password is set
   Given member "NEW.AAC" one-time password is %whatever
   When member "?" visits page "/user/login"
@@ -46,7 +46,9 @@ Scenario: A member signs in for the first time
   Then we show "Account Summary"
   # (sometimes it goes to Phone too fast!) And member ".AAC" has a dwolla account, step "Email"
   And we say "status": "take a step"
+  Skip (dwolla changed this Jan2014 so it doesn't work on their test server)
   And member ".AAC" is on step "Phone" within 10 seconds
+  Resume
 
 Scenario: A member gives the wrong password
   Given member "NEW.ZZA" one-time password is %whatever2
@@ -67,6 +69,17 @@ Scenario: A member clicks on the membership link
   | 5 | Preferences |
   | 6 | Photo |
   | 7 | Bank Account |
+  And with done ""
+  
+Scenario: A member without a Dwolla account clicks on the membership link
+  When member ".ZZB" visits page "status"
+  Then we show "Membership Steps" with:
+  | 1 | Agreement |
+  | 2 | Contact Info |
+  | 3 | Contribution |
+  | 4 | Choose two people |
+  | 5 | Preferences |
+  | 6 | Photo |
   And with done ""
 
 Scenario: A company agent clicks on the membership link

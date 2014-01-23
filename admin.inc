@@ -16,6 +16,12 @@ use rCredits\Util as u;
 function adminForm($sta) {
   extract(u\just('account make', $sta['input']));
   $op = r\Web\op($sta);
+
+  if ($op == 'start' or $op == 'stop') {
+    \variable_set('up', $op == 'start');
+    return r\up() ? r\Web\say('System is UP.') : r\Web\say('System is DOWN.', 'ERR');
+  }
+
   if ($op == 'USD_Accounts') return r\Web\say(usdAccts());
   if (@$account) $a = a($account); // should use whois first
   
@@ -101,7 +107,8 @@ function showTable($ray) {
       if ($value and in_array($key, u\ray('id uid payer payee main other inviter invitee proxy person owner defaultAgent'))) $value = $value < 0 ? 'ctty' : ($value == $cgfUid ? 'CGF' : r\acct($value)->fullName);
       if ($key == 'reid') $value = u\n2a($value, -3);
       if ($value and in_array($key, u\ray(R_DATE_FIELDS))) $value = u\fmtDate($value);
-      if ($key == 'flags') $value = "<div style='text-transform:capitalize; font-size:7px; line-height:11px;'>" . bs($value) . '</div>';
+//      if ($key == 'flags') $value = "<div style='text-transform:capitalize; font-size:7px; line-height:11px;'>" . bs($value) . '</div>';
+      if ($key == 'flags') $value = "<div style='text-transform:none; font-size:7px; line-height:11px;'>" . bs($value) . '</div>';
       if ($key == 'payeeFor' and $value == $row->payerFor) $value = 'same';
       $line .= "<td>$value</td>";
     }
@@ -170,24 +177,29 @@ foreach (array(3201932, 3244519, 3350610, 3510402) as $one) {
 
  */
 function changeIt($a) {
-  if (!@$a->usdAccount or @$a->secure['usdPhone']) return;
-//  $a->upSecure('usdPhone', $a->phone);
-/**/  debug($a->secure);
+  $a->setBit(B_DW);
+  return;
+  
+  $tid = 1;
+  while ($txid = db\lookup('txid', 'r_usd', 'payer=:id AND payee=0 AND tid IS NULL ORDER BY created', u\ray('id', $a->id))) {
+    db\update('r_usd', compact('txid', 'tid'), 'txid');
+    $tid++;
+  }
 }
 /*
 
   $rc4 = strpos(@$a->secure['usdEmail'], 'rc4') ? '' : ('not RC4! ' . @$a->secure['usdEmail']);
   $vby = isset($a->data['verifyBy']) ? ($a->data['verifyBy'] ? 'Voice' : 'SMS') : 'not set';
-//debug("$a->fullName dob is $a->dob ssn is $a->federalId verifyBy is $vby $rc4");
+//debug ("$a->fullName dob is $a->dob ssn is $a->federalId verifyBy is $vby $rc4");
   if ($vby == 'not set') $vby = 'Voice';
   if (@$a->dob and !is_numeric($a->dob)) {
     $a->update(u\ray('dob', u\s2t($a->dob)));
-// debug("$a->fullName dob is now $a->dob");
+// debug ("$a->fullName dob is now $a->dob");
   }
   if (strlen(@$a->data['verifyBy']) < 2) {
     $data = u\ray('verifyBy', $vby) + $a->data;
     $a->update(compact('data'));
-// debug("$a->fullName verifyBy is now " . $a->data['verifyBy']);
+// debug ("$a->fullName verifyBy is now " . $a->data['verifyBy']);
 */
 
 /*
@@ -270,7 +282,7 @@ function makeTestCards() {
       'DATE' => u\fmtDate($a->signed),
       'CODE' => $code,
     );
-    r\rMail('invite', $email, '', $info);
+    r\rMail('invite', $email, $info);
     db\update('r_invites', u\ray('id invited', $id, REQUEST_TIME), 'id');
   }
 }*/
@@ -298,4 +310,31 @@ function splitoffUsd() {
   }
   return $msgs;
   
+}
+
+/*
+debug (rCredits\Backend\creditInfo(array('uid' => 26742000000040)));
+*/
+
+/**
+ * Reimburse the Dwolla fee (if any) of a recent transaction.
+ * @param assoc $item:
+ *   txid: fee id (payee's txid is two less, payer's is one less)
+ *   payee: uid of recipient
+ */ 
+function cover($txid, $payee) {
+  $usA = new r\usd($a = r\acct($payee));
+  $txid -= 2; // get the payee's txid
+  if (!$fee = $usA->fee($txid)) return;
+  if ($fee == '?') {
+/// debug('no Dwolla for coverFee');
+  }
+  $for = t('Dwolla fee');
+  $keys = 'payer payee type amount for taking';
+  
+  r\usd::beginAtom();
+  r\transact(u\ray($keys, $a->community, $payee, TX_REFUND, $fee, $for, 0));
+  r\usd::addToAtom($txid + 2, $fee, $payee, -1, REQUEST_TIME); // -1 to distinguish from bank transfers
+  $a->actualUsd(-$fee);
+  r\usd::commit();
 }

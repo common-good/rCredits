@@ -130,10 +130,10 @@ class rwebTransactUsd extends DrupalWebTestCase {
     . '\\| created | fullName | otherName | amount | payeePurpose | rewardType |rewardAmount |'
     . '\\| %today  | Bea Two  | Abe One   | $100   | labor        | reward     | $10         |"');
     And__('transactions: "DATA'
-    . '\\| xid   | created | type     | state | amount | r   | from | to   | purpose      | taking |'
-    . '\\| .AAAB | %today  | transfer | done  |    100 | 100 | .ZZA | .ZZB | labor        | 0      |'
-    . '\\| .AAAC | %today  | rebate   | done  |      5 |   5 | ctty | .ZZA | rebate on #1 | 0      |'
-    . '\\| .AAAD | %today  | bonus    | done  |     10 |  10 | ctty | .ZZB | bonus on #1  | 0      |"');
+    . '\\| xid   | created | type     | state | amount | from | to   | purpose      | taking |'
+    . '\\| .AAAB | %today  | transfer | done  |    100 | .ZZA | .ZZB | labor        | 0      |'
+    . '\\| .AAAC | %today  | rebate   | done  |      5 | ctty | .ZZA | rebate on #1 | 0      |'
+    . '\\| .AAAD | %today  | bonus    | done  |     10 | ctty | .ZZB | bonus on #1  | 0      |"');
     And__('balances: "DATA'
     . '\\| id   | r      | usd     | rewards |'
     . '\\| ctty | -15.00 | 1000.00 |       - |'

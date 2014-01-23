@@ -31,6 +31,7 @@ define('RSMS_PREFIX', 'r: '); // identify us
 
 $GLOBALS[TX_SMS . ' messages'] = array(
   // reports
+  'system down' => t('The rCredits system is under maintenance at the moment. Try again in a minute or two?'),
   'account info' => t("Your balance for account @quid is @balance, including @rewards of incentive rewards. Total demand for rCredits is @totalDemand."),
 //  'account info2' => t("More account info"), // not used yet
   'your account is ready' => t('Your starting balance is @balance. Pretend to buy and sell as you would in a typical month (we need that info). Have fun! Type "helpme" to get started.'), // separate out the last sentence
@@ -68,6 +69,8 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'gift sent' => t('Your chosen gift of @amount to Common Good Finance has gone through. Your rebate is @rewardAmount.'),
   'tx summary' => t('@otherName @otherDid you @amount for "@purpose" on @created.'),
   'share gift' => t('Your chosen ongoing gift of @share% of your rewards has been initiated for this month.'),
+  'account suspended' => t('Your account has been temporarily suspended @why'),
+  'to protect data integrity.' => t('to protect data integrity.'),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),
@@ -117,7 +120,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'ambiguous other' => t('"@who" is associated with more than one rCredits account. You will need to identify them differently. Type "more" for options.'),
   'ambiguous other2' => t('You can identify a member by phone, email, fullname (no punctuation or spaces), or account ID.'),
   'what relationship' => t('You forgot to say whether you are an employee, owner, or both.'),
-  'short deposit' => t('The most you can transfer to your bank at this time is @max.'),
+  'short put' => t('The most you can transfer to your bank at this time is @max.'),
   'short cash to' => t('You are @short short, for that exchange.'),
   'short cash from' => t('@otherName does not have enough rCredits for that exchange.'),
   'short to' => t('You are @short short, for that payment. Increase your minimum!'),
@@ -159,7 +162,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
 
   'cannot offload' => t('A temporary technical problem prevented some of your excess rCredits from being exchanged for US Dollars. The system will try again tomorrow.'),
   'usd failed' => t('A temporary technical problem prevented the transfer of US Dollars. No transaction took place.'),
-  'cannot bank' => t('The rCredits system was unable to @action your bank: @error (You need to connect to your checking account.)'),
+  'cannot bank' => t('The rCredits system was unable to @action your bank: @error'),
   'no source' => t('there is no valid funding source'),
   'not verified' => t('the funding source has not yet been verified by entering the two tiny deposit amounts'),
   'agreement required' => t('You must agree to Dwolla\'s terms of service or you cannot participate in the rCredits system.'),
@@ -184,7 +187,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   <p>This invoice will no longer appear in your list of transactions.'),
   'offer refused' => t('@otherName has declined to accept your @created offer of @amount for "@payerPurpose".'),
   'offer canceled' => t('NYI'),
-  'minmax status' => t('Your combined USD and rCredits balance is @status.'),
+  'minmax status' => t('Your balance is @status.'),
   'banked' => t('A request has been made to @action your bank a total of @amount. This request may take up to 5 days to go through.'),
   'payment exchange received' => t('You received from @fullName a payment exchange of @amount -- that is, you traded that much US Dollars for rCredits, receiving a bonus of @bonus on the exchange.'),
   'payment exchanges offered' => t('You made payment exchanges to @offers @whom, totaling @total.'),
@@ -192,6 +195,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'balances' => t('Your balance available to spend is @toSpend. You can move up to @toCash today to your bank account.'),
   'you sold out' => t('This week you traded @total worth of rCredits for US Dollars, missing an opportunity for @rebates worth of rebates. To keep this from happening so much, <@a1>click here</a> to change your settings to the recommended minimum balance of @suggested.'),
   'restricted' => t('You are not authorized to use this device.'),
+  'cannot create account' => t('An error is preventing your account from being created.'),
   
   // notices to staff
   'cache mismatch' => 'Cron cache mismatch: @key=@is (cache) <> @shouldBe (calc)',

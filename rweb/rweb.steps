@@ -54,7 +54,7 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     Get AMemberMovesCreditToTheBank MAKE
  *     Get AMemberDrawsCreditFromTheBank MAKE
  *     Get AMemberMovesTooLittleToTheBank MAKE
- *     Get AMemberTriesToCashOutRewards MAKE
+ *     Get AMemberTriesToCashOutRewardsAndorPendingWithdrawals MAKE
  *     Get AMemberMovesInconvenientlyMuchToTheBank MAKE
  *     Get AMemberTriesToGoBelowTheirMinimum MAKE
  *     Get AMemberAsksToDoTwoTransfersOutInOneDay MAKE
@@ -96,8 +96,6 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     Signup AMemberRegistersWithAnExistingCompany MAKE
  *     Signup AMemberRegistersWithAnUnknownCompany MAKE
  *     Signup AMemberRegistersWithACompanyWithNoRelation MAKE
- *     Signup AMemberRegistersWithAMissingCompany MAKE
- *     Signup AMemberRegistersWithAMissingCompanyPhone MAKE
  *     Signup AMemberRegistersWithABadCompany MAKE
  *     Signup AMemberRegistersWithABadCompanyPhone MAKE
  *     Signup AMemberRegistersACompany MAKE
@@ -187,9 +185,10 @@ function members($list) {return t\members($list);}
  *
  * in: Bank Setup MAKE
  *     Community Setup MAKE
- *     Download Setup BOTH
+ *     Download Setup MAKE
  *     Flow AMemberOverdraws TEST
  *     Flow AMemberOverdrawsAndDrawsFromBothRAndUSD TEST
+ *     Get Setup MAKE
  *     Gift AMemberContributes TEST
  *     RealUsd Setup MAKE
  *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
@@ -200,7 +199,6 @@ function members($list) {return t\members($list);}
  *     Transactions Setup MAKE
  *     Transactions AMemberClicksNO MAKE
  *     Transactions AMemberConfirmsNO MAKE
- *     Transactions AMemberLooksAtTransactionsForThePastYear MAKE
  *     Transactions TransactionsWithOtherStatesShowUpProperly MAKE
  *     Transactions AMemberClicksOK MAKE
  *     Transactions AMemberConfirmsOK MAKE
@@ -221,7 +219,7 @@ function transactions($list) {return t\transactions($list);}
  *     Flow AMemberOverdrawsWithNotEnoughToDrawOn TEST
  *     Get AMemberMovesCreditToTheBank TEST
  *     Get AMemberDrawsCreditFromTheBank TEST
- *     Get AMemberTriesToCashOutRewards TEST
+ *     Get AMemberTriesToCashOutRewardsAndorPendingWithdrawals TEST
  *     Get AMemberMovesInconvenientlyMuchToTheBank TEST
  *     Get AMemberAsksToDoTwoTransfersOutInOneDay TEST
  *     Gift AMemberContributes TEST
@@ -230,8 +228,6 @@ function transactions($list) {return t\transactions($list);}
  *     Relations AMemberAddsARelation TEST
  *     Signup AMemberRegistersBadName TEST
  *     Signup AMemberRegistersAgain TEST
- *     Signup AMemberRegistersWithAMissingCompany TEST
- *     Signup AMemberRegistersWithAMissingCompanyPhone TEST
  *     Signup AMemberRegistersWithABadCompany TEST
  *     Signup AMemberRegistersWithABadCompanyPhone TEST
  *     Transactions AMemberConfirmsOK TEST
@@ -348,6 +344,7 @@ function weShowWithSubs($page, $subs) {
  *     Get AMemberAsksToDoTwoTransfersOutInOneDay TEST
  *     Membership AMemberSignsInForTheFirstTime TEST
  *     Membership AMemberClicksOnTheMembershipLink TEST
+ *     Membership AMemberWithoutADwollaAccountClicksOnTheMembershipLink TEST
  *     Membership ACompanyAgentClicksOnTheMembershipLink TEST
  *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
  *     Relations MemberHasAnEmployeeConfirmed TEST
@@ -372,7 +369,7 @@ function weShowWithSubs($page, $subs) {
  *     Signup ANewbieRegistersFromElsewhere TEST
  *     Summary AMemberClicksOnTheSummaryTab TEST
  *     Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage TEST
- *     Summary AForeignRTraderClicksOnTheSummaryTab TEST
+ *     Summary ACompanyAgentClicksOnTheSummaryTab TEST
  *     Transactions AMemberClicksNO TEST
  *     Transactions AMemberConfirmsNO TEST
  *     Transactions AMemberLooksAtTransactionsForThePastYear TEST
@@ -442,7 +439,8 @@ function relations($relations) {return t\relations($relations);}
  *     Community Setup BOTH
  *     Download Setup BOTH
  *     Flow Setup MAKE
- *     Get Setup MAKE
+ *     Get Setup TEST
+ *     Get AMemberMovesCreditToTheBank TEST
  *     Gift Setup MAKE
  *     RealUsd Setup MAKE
  *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
@@ -453,7 +451,6 @@ function relations($relations) {return t\relations($relations);}
  *     Signup AMemberRegistersACompany TEST
  *     Summary Setup TEST
  *     Transactions Setup BOTH
- *     Transactions AMemberClicksNO MAKE
  *     Transactions AMemberConfirmsNO MAKE
  *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
  *     TransactR Setup TEST
@@ -486,6 +483,7 @@ function usd($list) {return t\usd($list);}
  *     Membership AMemberSignsInForTheFirstTime MAKE
  *     Membership AMemberGivesTheWrongPassword MAKE
  *     Membership AMemberClicksOnTheMembershipLink MAKE
+ *     Membership AMemberWithoutADwollaAccountClicksOnTheMembershipLink MAKE
  *     Membership ACompanyAgentClicksOnTheMembershipLink MAKE
  *     Membership AMemberDoesItAll MAKE
  *     Membership AMemberOpensABusinessAccount MAKE
@@ -513,7 +511,7 @@ function usd($list) {return t\usd($list);}
  *     Signup AMemberRegistersACompany MAKE
  *     Summary AMemberClicksOnTheSummaryTab MAKE
  *     Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage MAKE
- *     Summary AForeignRTraderClicksOnTheSummaryTab MAKE
+ *     Summary ACompanyAgentClicksOnTheSummaryTab MAKE
  *     Summary MembersAccountIsNotActive MAKE
  *     Transactions AMemberClicksNO MAKE
  *     Transactions AMemberLooksAtTransactionsForThePastYear MAKE
@@ -561,8 +559,6 @@ function memberIsLoggedOut() {
  *     Signup AMemberRegistersWithAnExistingCompany MAKE
  *     Signup AMemberRegistersWithAnUnknownCompany MAKE
  *     Signup AMemberRegistersWithACompanyWithNoRelation MAKE
- *     Signup AMemberRegistersWithAMissingCompany MAKE
- *     Signup AMemberRegistersWithAMissingCompanyPhone MAKE
  *     Signup AMemberRegistersWithABadCompany MAKE
  *     Signup AMemberRegistersWithABadCompanyPhone MAKE
  *     Signup AMemberRegistersACompany MAKE
@@ -614,6 +610,7 @@ function memberAccountIsNotActive($id) {
  * with done (ARG)
  *
  * in: Membership AMemberClicksOnTheMembershipLink TEST
+ *     Membership AMemberWithoutADwollaAccountClicksOnTheMembershipLink TEST
  *     Membership ACompanyAgentClicksOnTheMembershipLink TEST
  *     Membership AMemberDoesItAll TEST
  *     Membership AMemberOpensABusinessAccount TEST
@@ -809,7 +806,6 @@ function dwollaIsDown() {
  *     Get AMemberMovesCreditToTheBank TEST
  *     Get AMemberDrawsCreditFromTheBank TEST
  *     Get AMemberAsksToDoTwoTransfersOutInOneDay MAKE
- *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
  *     Summary Setup MAKE
  *     Transactions Setup MAKE
  */
@@ -819,7 +815,8 @@ function usdTransfers($tx) {return t\usdTransfers($tx);}
 /**
  * usd transfer count is (ARG)
  *
- * in: RealUsd AMemberBuysSomethingWhenDwollaIsDown TEST
+ * in: RealUsd AMixedRCreditsUSDTransactionHappens TEST
+ *     RealUsd AMemberBuysSomethingWhenDwollaIsDown TEST
  */
 function usdTransferCountIs($count) {return (t\usdTransferCount() == $count);}
 
@@ -863,9 +860,7 @@ function agentCardCodeIs($id, $cardCode2) {
  *
  * in: Community Setup MAKE
  *     Community CronCalculatesTheStatistics MAKE
- *     Download Setup MAKE
  *     Summary Setup MAKE
- *     Transactions Setup MAKE
  */
 function cronRuns($op) {return t\cronRuns($op);}
 
@@ -889,6 +884,7 @@ function memberHasADwollaAccountStep($id, $step) {
  *     Relations ItsComplicated TEST
  *     Signup AnInvitedNewbieVisitsTheRegistrationPage TEST
  *     Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage TEST
+ *     Summary ACompanyAgentClicksOnTheSummaryTab TEST
  *     Transactions AMemberLooksAtTransactionsForThePastYear TEST
  *     Transactions AMemberLooksAtTransactionsForThePastFewDays TEST
  *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
@@ -956,8 +952,7 @@ function weRedirectTo($page) {
 /**
  * member (ARG) is on step (ARG) within (ARG) seconds
  *
- * in: Membership AMemberSignsInForTheFirstTime TEST
- *     Membership AMemberDoesItAll TEST
+ * in: Membership AMemberDoesItAll TEST
  *     Membership AMemberOpensABusinessAccount TEST
  *     Membership AMemberTypesTheWrongAccountInfonameSsnOrDob TEST
  *     Membership AMemberCompanyTypesTheWrongAccountInfonameEinOrBusinessStructure TEST

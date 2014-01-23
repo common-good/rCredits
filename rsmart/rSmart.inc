@@ -65,6 +65,7 @@ function pos($args = FALSE) {
   global $channel; $channel = TX_SMART;
   global $mya;
   
+  if (!r\up()) return posErr('system down');
   if (!$args) $args = $_POST;
   u\loga('in', $args);
   extract(u\just('op device agent member', $args));

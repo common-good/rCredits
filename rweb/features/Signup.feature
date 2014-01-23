@@ -23,7 +23,7 @@ Scenario: A newbie visits the registration page with bad invite
 
 Scenario: A newbie visits the registration page with expired invite
   Given invitation to email "a@" is "c0D3"
-  And invitation "c0D3" was sent on "%today-3w"
+  And invitation "c0D3" was sent on "%today-5w"
   When member "?" visits page "signup/code=c0D3"
   Then we show "Sign up for rCredits" with:
   |_errorPhrase            |
@@ -77,8 +77,8 @@ Scenario: A newbie registers in Western Massachusetts
   | fullName | email | phone     | country | postalCode | federalId   | dob      | acctType     |
   | Abe One  | a@ | 413-253-0000 | US      | 01001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  |
   Then members:
-  | id   | fullName | email | phone     | postalCode | country | state | city   | flags        | floor |
-  | .AAC | Abe One  | a@ | +14132530000 | 01001      | US      | MA    | Agawam | dft,person   | 0     |
+  | id   | fullName | email | phone     | postalCode | country | state | city   | flags         | floor |
+  | .AAC | Abe One  | a@ | +14132530000 | 01001      | US      | MA    | Agawam | dft,person,dw | 0     |
   And we say "status": "your account is ready"
   And we email "welcome" to member "a@" with subs:
   | fullName | name   | quid    | region | pass     | bonus           |
@@ -95,8 +95,8 @@ Scenario: A newbie registers elsewhere
   | fullName | email | phone     | country | postalCode | federalId   | dob      | acctType     |
   | Abe One  | a@ | 212-253-0000 | US      | 10001      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  |
   Then members:
-  | id      | fullName | email | phone     | postalCode | country | state | city     | flags        |
-  | NYA.AAA | Abe One  | a@ | +12122530000 | 10001      | US      | NY    | New York | dft,person   |
+  | id      | fullName | email | phone     | postalCode | country | state | city     | flags         |
+  | NYA.AAA | Abe One  | a@ | +12122530000 | 10001      | US      | NY    | New York | dft,person,dw |
   And we say "status": "your account is ready"
   And we email "welcome" to member "a@" with subs:
   | fullName | name   | quid    | region | pass     | bonus           |
@@ -109,8 +109,8 @@ Scenario: A newbie registers with no case
   | fullName | email | phone     | postalCode | federalId   | dob      | acctType     |
   | abe one  | a@ | 413-253-0000 | 01002      | 111-22-3333 | 1/2/1990 | %R_PERSONAL  |
   Then members:
-  | id   | fullName | email | phone     | postalCode | state | city    | flags        | floor |
-  | .AAC | Abe One  | a@ | +14132530000 | 01002      | MA    | Amherst | dft,person   | 0     |
+  | id   | fullName | email | phone     | postalCode | state | city    | flags         | floor |
+  | .AAC | Abe One  | a@ | +14132530000 | 01002      | MA    | Amherst | dft,person,dw | 0     |
 
 Scenario: A member registers bad email
   Given invitation to email "a@" is "c0D3"
@@ -151,15 +151,15 @@ Scenario: A member registers again
 
 Scenario: A member registers with an existing company
   Given members:
-  | id   | fullName | email | postalCode | phone        | city     | flags        |
-  | .AAD | AAAme Co | myco@ | 01330      | +14136280000 | Ashfield | dft,company  |
+  | id   | fullName | email | postalCode | phone        | city     | flags          |
+  | .AAD | AAAme Co | myco@ | 01330      | +14136280000 | Ashfield | dft,company,dw |
   And invitation to email "a@" is "c0D3"
   When member "?" confirms form "signup/code=c0D3&dwok=1" with values:
   | fullName | email | phone   | postalCode | federalId   | dob      | acctType    | company  | companyPhon  | copts                    |
   | Abe One  | a@    | 413-253-0002 | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co | (413)628-0000 | isOwner=>1,contractor=>1 |
   Then members:
-  | id   | fullName | email | postalCode | state | city    | flags        |
-  | .AAC | Abe One  | a@    | 01002      | MA    | Amherst | dft,person   |
+  | id   | fullName | email | postalCode | state | city    | flags         |
+  | .AAC | Abe One  | a@    | 01002      | MA    | Amherst | dft,person,dw |
   And relations:
   | id | main | agent | permission | employerOk | employeeOk | isOwner | amount | draw |
   | 1  | .AAD | .AAC  |            |          0 |          1 |       1 |      0 |    0 |
@@ -170,8 +170,8 @@ Scenario: A member registers with an unknown company
   | fullName | email | phone   | postalCode | federalId   | dob      | acctType    | company  | companyPhon  | copts          |
   | Abe One  | a@    | 413-253-9876 | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co | (413)628-0000 | employeeOk=>1  |
   Then members:
-  | id   | fullName | email | postalCode | phone        | city    | flags        |
-  | .AAC | Abe One  | a@    | 01002      | +14132539876 | Amherst | dft,person |
+  | id   | fullName | email | postalCode | phone        | city    | flags         |
+  | .AAC | Abe One  | a@    | 01002      | +14132539876 | Amherst | dft,person,dw |
   And no relation:
   | main | agent |
   | .AAD | .AAC  |
@@ -182,7 +182,7 @@ Scenario: A member registers with a company with no relation
   | fullName | email | phone        | postalCode | federalId  | dob  | acctType    | company  | companyPhon  | companyOptions |
   | Abe One  | a@    | 413-253-0002 | 01002 | 111-22-3333 | 1/2/1990 | %R_PERSONAL | AAAme Co | (413)628-0000 |               |
   Then we say "error": "what relation"
-
+Skip (requirement relaxed)
 Scenario: A member registers with a missing company
   Given invitation to email "a@" is "c0D3"
   When member "?" confirms form "signup/code=c0D3&dwok=1" with values:
@@ -200,7 +200,7 @@ Scenario: A member registers with a missing company phone
   Then we say "error": "missing field" with subs:
   | field   |
   | companyPhon |
-
+Resume
 Scenario: A member registers with a bad company
   Given invitation to email "a@" is "c0D3"
   When member "?" confirms form "signup/code=c0D3&dwok=1" with values:
@@ -219,8 +219,8 @@ Scenario: A member registers with a bad company phone
 
 Scenario: A member registers a company
   Given members:
-  | id   | fullName | email | postalCode | federalId   | phone        | flags        |
-  | .AAC | Abe One  | a@    | 01330      | 111-22-3333 | +14136280000 | dft,person   |
+  | id   | fullName | email | postalCode | federalId   | phone        | flags         |
+  | .AAC | Abe One  | a@    | 01330      | 111-22-3333 | +14136280000 | dft,person,dw |
   And invitation to email "a@" is "c0D3"
   When member "?" visits page "signup/code=c0D3&dwok=1&personal=&by=NEW.AAC&flow=from&isOwner=1&employeeOk=1"
   Then we show "Sign up for rCredits" with:
@@ -233,8 +233,8 @@ Scenario: A member registers a company
   | fullName | email       | phone | postalCode | federalId   | acctType        | company  | companyPhon | companyOptions |
   | AAcme Co | aco@ | 413-253-9876 | 01002      | 111-22-3333 | %CO_CORPORATION | | | |
   Then members:
-  | id   | fullName | email | postalCode | phone        | city    | flags       | floor |
-  | .AAD | AAcme Co | aco@  | 01002      | +14132539876 | Amherst | dft,company |     0 |
+  | id   | fullName | email | postalCode | phone        | city    | flags          | floor |
+  | .AAD | AAcme Co | aco@  | 01002      | +14132539876 | Amherst | dft,company,dw |     0 |
   And relations:
   | id | main | agent | permission | employerOk | employeeOk | isOwner | amount | draw |
   | 1  | .AAD | .AAC  | manage     |          1 |          1 |       1 |      0 |    1 |
@@ -250,8 +250,8 @@ Scenario: A newbie registers from elsewhere
   | fullName | email | phone       | postalCode | federalId   | dob      | acctType    |
   | Abe One  | a@ | (333) 253-0000 | 03768-2345 | 111-22-3333 | 1/2/1990 | %R_PERSONAL |
  Then members:
-  | id      | fullName | email | phone     | postalCode | state | city | flags        | 
-  | NEN.AAA | Abe One  | a@ | +13332530000 | 03768-2345 | NH    | Lyme | dft,person   |
+  | id      | fullName | email | phone     | postalCode | state | city | flags         | 
+  | NEN.AAA | Abe One  | a@ | +13332530000 | 03768-2345 | NH    | Lyme | dft,person,dw |
   And we say "status": "your account is ready"
   And we email "welcome" to member "a@" with subs:
   | fullName | name   | quid    | region | pass     |

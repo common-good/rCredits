@@ -6,10 +6,10 @@ SO I don't lose money or get confused.
 
 Setup:
   Given members:
-  | id   | fullName   | dw | email | flags              |
-  | .ZZA | Abe One    |  1 | a@    | dft,ok,person,bona |
-  | .ZZB | Bea Two    |  0 | b@    | dft,ok,person,bona |
-  | .ZZC | Corner Pub |    | c@    | dft,ok,company     |
+  | id   | fullName   | dw | email | flags                 |
+  | .ZZA | Abe One    |  1 | a@    | dft,ok,dw,person,bona |
+  | .ZZB | Bea Two    |  0 | b@    | dft,ok,dw,person,bona |
+  | .ZZC | Corner Pub |    | c@    | dft,ok,dw,company     |
   And balances:
   | id   | dw/usd |
   | .ZZA |      5 |
@@ -39,6 +39,12 @@ Scenario: Balances get out of whack
   | id     | r  | usd | rewards | minimum |
   | .ZZA   | 10 |   5 |      10 |       2 |
   | .ZZB   |  0 |   ? |       0 |       0 |
+  And we message member ".ZZA" with topic "account suspended" and subs:
+  | why                        |
+  | to protect data integrity. |
+  And we message member ".ZZB" with topic "account suspended" and subs:
+  | why                        |
+  | to protect data integrity. |
 
 Scenario: Balances get a tiny bit out of whack
   Given balances:
@@ -46,4 +52,6 @@ Scenario: Balances get a tiny bit out of whack
   | .ZZA   | 10.0001 |   5 |
   | .ZZB   |       0 |   ? |
   When cron runs "recache"
-  Then we do not tell staff "cache mismatch"
+  Then we tell staff "cache mismatch" with subs:
+  | id   | key     | is      | shouldBe |
+  | .ZZA | r       | 10.0001 |       10 |

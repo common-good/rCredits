@@ -24,30 +24,29 @@ Scenario: A member overdraws
   | op  | who  | amount | goods | purpose |
   | pay | .ZZB |     30 |     1 | food    |
   Then transactions:
-  | xid | type     | amount | from | to   | purpose      | r    |
-  |   1 | transfer |     10 | .ZZC | .ZZA | automatic transfer to NEW.ZZA,automatic transfer from NEW.ZZC | 10 |
-  |   2 | transfer |     30 | .ZZA | .ZZB | food         |   30 |
-  |   3 | rebate   |   1.50 | ctty | .ZZA | rebate on #2 | 1.50 |
-  |   4 | bonus    |   3.00 | ctty | .ZZB | bonus on #1  | 3.00 |
+  | xid | type     | amount | from | to   | purpose      |
+  |   1 | transfer |     10 | .ZZC | .ZZA | automatic transfer to NEW.ZZA,automatic transfer from NEW.ZZC |
+  |   2 | transfer |     30 | .ZZA | .ZZB | food         |
+  |   3 | rebate   |   1.50 | ctty | .ZZA | rebate on #2 |
+  |   4 | bonus    |   3.00 | ctty | .ZZB | bonus on #1  |
   
 Scenario: A member overdraws and draws from both r and USD
   When member ".ZZA" confirms form "pay" with values:
   | op  | who  | amount | goods | purpose |
   | pay | .ZZB |    130 |     1 | food    |
   Then transactions:
-  | xid | type     | amount          | from | to   | purpose      | r    |
-  |   1 | transfer |              20 | .ZZC | .ZZA | automatic transfer to NEW.ZZA,automatic transfer from NEW.ZZC | 20 |
-  |   2 | transfer | %(90 + %DW_FEE) | .ZZC | .ZZA | automatic transfer to NEW.ZZA,automatic transfer from NEW.ZZC |  0 |
-  |   3 | transfer |             130 | .ZZA | .ZZB | food         |   130 |
-  |   4 | rebate   |            6.50 | ctty | .ZZA | rebate on #3 |  6.50 |
-  |   5 | bonus    |           13.00 | ctty | .ZZB | bonus on #1  | 13.00 |
+  | xid | type     | amount | from | to   | purpose      |
+  |   1 | transfer |    110 | .ZZC | .ZZA | automatic transfer to NEW.ZZA,automatic transfer from NEW.ZZC |
+  |   2 | transfer |    130 | .ZZA | .ZZB | food         |
+  |   3 | rebate   |   6.50 | ctty | .ZZA | rebate on #2 |
+  |   4 | bonus    |  13.00 | ctty | .ZZB | bonus on #1  |
 
 Scenario: A member overdraws with not enough to draw on
   When member ".ZZA" completes form "pay" with values:
   | op  | who  | amount | goods | purpose |
   | pay | .ZZB |    200 |     1 | food    |
   Then we say "error": "short to" with subs:
-  | short            |
-  | $%(60 + %DW_FEE) |
+  | short |
+  | $60   |
   
 # add a scenario for drawing from two sources

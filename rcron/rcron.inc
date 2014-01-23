@@ -7,7 +7,6 @@
  ** = tested
  
 DAILY (every 5 mins for 5 mins, starting at 2am)
-- ** usdTxsHere() complete USD transactions that didn't go through because of Dwolla outage
 - * usdTxsThere() rollback lost USD transactions, mark completed deposits/withdrawals
 - ** recache() check / recalc cached r, rewards, and usd
 - [later] checkAccts() thorough security / scam checks
@@ -60,7 +59,7 @@ use rCredits\Backend as be;
 
 include_once __DIR__ . '/../usd.class';
 
-define('R_DAILY_TASKS', 'START usdTxsHere usdTxsThere recache checkAccts stats lessOften gifts homogenize pool bank notices END');
+define('R_DAILY_TASKS', 'START usdTxsThere recache checkAccts stats lessOften gifts homogenize pool bank notices END');
 //define ('R_DAILY_TASKS', 'START redistribute END');
 
 /**
@@ -234,7 +233,7 @@ function shareCommitted($item) {
  * (2) Notice and record completion of EFTs.
  */
 function usdTxsThere() {
-  queueEach('usdTxThere', 'SELECT uid FROM users WHERE :IS_OK');
+  queueEach('usdTxThere', 'SELECT uid FROM users WHERE :IS_OK AND :IS_DW');
   r\queue('usdTxsThereEND');
 }
 function usdTxsThereEND() {queueNextAfter('usdTxsThere');}
@@ -273,18 +272,27 @@ function lostUsdTx($tx) {
 /**
  * Mark recently completed bank transfers complete.
  * @param assoc $tx: the USD deposit or withdrawal transaction
+ * Note that transfers to the bank were marked complete immediately, but not with the correct ClearingDate.
  */
 function bankFollowup($tx) {
   extract(u\just('Id Amount Date Type DestinationId SourceId ClearingDate Status', $tx));
   if ($Status != 'processed') return; // pending
-  $info = u\ray('txid amount completed', $Id, -$Amount, strtotime($ClearingDate) + DW_LAG);
+  $Amount = $Type == 'deposit' ? -abs($Amount) : abs($Amount); // don't count on Dwolla's sign
+  $info = u\ray('txid amount completed', $Id, $Amount, strtotime($ClearingDate) + DW_LAG);
   if (!$old = db\lookup('completed+1', 'r_usd', 'txid=:txid', u\ray('txid', $Id))) { // system crashed before it got recorded
     $omit = t\est() ? (\variable_get('cgf_uid') - 1) : NULL; // ignore tester's account
     if (!$payer = r\whoseUsd($Type == 'deposit' ? $DestinationId : $SourceId, $omit)) return; // probably tester
     $info += u\ray('created payer payee', strtotime($Date) + DW_LAG, $payer, 0);
-    r\acct($payer)->actualUsd(-$Amount); // adjust cache
-  } elseif ($old > 1) return; // already marked completed
+  } elseif ($old == $info['completed']) return; // already correctly marked and dated complete
+
+  $DBTX = \db_transaction();
   db\update('r_usd', $info, 'txid', TRUE); // update or (if crash) insert
+  if ($TYPE == 'deposit') {
+    $a = r\acct($payer);
+    $a->actualUsd(-$Amount); // adjust cache when money finally comes in
+    r\membershipEvent($this, 'bona', $a->usd > 0); // this works for testing too
+  }
+  unset($DBTX);
 }
 
 /**
@@ -301,23 +309,8 @@ function recache1($item) {
   extract($item);
   if (t\est() and realId($uid)) return; // ignore real accounts in tests
   $acct = r\acct($uid);
-
-  $info = be\creditInfo(compact('uid'));
-  foreach (u\just('r usd rewards minimum', $item) as $key => $is) {
-    if ($uid < 0 and $key != 'usd') continue; // for communities and regions, only usd is cached
-    $shouldBe = $key == 'usd' ? $acct->actualUsd()
-      : ($key == 'minimum' ? max(0, $floor, $minimum) 
-      : $info->$key);
-    if ($is != round($shouldBe, 2)) {
-      r\tellStaff('cache mismatch', compact(u\ray('key is shouldBe')), $uid);
-      $$key = round($shouldBe, 2);
-    }
-  }
-
-  $DBTX = \db_transaction();
-  $acct->update(compact(array_keys($item)));
-  r\membershipEvent($acct, 'bona', $usd > 0); // this works for testing too
-  unset($DBTX);
+  $acct->cacheOk();
+  //$acct->update(compact(array_keys($item)));
 }
 
 /**
@@ -418,7 +411,7 @@ function homogenize() {
 function homogenize1($item) {
   extract(u\just('uid usd ctty', $item));
   $a = r\acct($uid);
-  $result = db\q('SELECT uid AS uid2 FROM users WHERE community=:ctty AND usd<:usd-:R_CHUNK AND uid>1 AND :IS_OK AND r>=floor+:R_CHUNK ORDER BY usd', compact('ctty', 'usd'));
+  $result = db\q('SELECT uid AS uid2 FROM users WHERE community=:ctty AND usd<:usd-:R_CHUNK AND uid>1 AND :IS_OK AND :IS_DW AND r>=floor+:R_CHUNK ORDER BY usd', compact('ctty', 'usd'));
   while ($row = $result->fetchAssoc()) {
     extract($row);
     $a2 = r\acct($uid2); // use the latest variables, because tradeR might have changed the values
@@ -432,7 +425,7 @@ function homogenize1($item) {
  * Leave each contributing account with at least R_CHUNK so it can help someone cash out the next day.
  */
 function pool() {
-  $result = db\q('SELECT SUM(usd) AS total, SUM(1) AS sources, community FROM users WHERE uid>1 AND :IS_OK AND usd>0 GROUP BY community');
+  $result = db\q('SELECT SUM(usd) AS total, SUM(1) AS sources, community FROM users WHERE uid>1 AND :IS_OK AND :IS_DW AND usd>0 GROUP BY community');
   while ($row = $result->fetchAssoc()) { // for each community
     extract($row); // total, sources, community
     $cttyUsd = r\acct($community)->usd;
@@ -459,7 +452,7 @@ function bank() {
   $sql = <<<EOF
   SELECT uid, :R_SHORTFALL AS shortfall
   FROM users 
-  WHERE :R_SHORTFALL>0 AND uid>1 AND :IS_OK
+  WHERE :R_SHORTFALL>0 AND uid>1 AND :IS_OK AND :IS_DW
 EOF;
   queueEach('bank1', $sql);
   queueNextAfter('bank');

@@ -44,11 +44,11 @@ class rwebBank extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id   | fullName | flags              |'
-    . '\\| .ZZA | A Mem    | dft,ok,person,bona,bank |'
-    . '\\| .ZZB | B Mem    | dft,ok,person,bona |'
-    . '\\| .ZZC | C Mem    | dft,ok,person,bona |'
-    . '\\| .ZZD | D Mem    | dft,ok,person,bona |"');
+    . '\\| id   | fullName | flags                 |'
+    . '\\| .ZZA | A Mem    | dft,ok,dw,person,bona,bank |'
+    . '\\| .ZZB | B Mem    | dft,ok,dw,person,bona |'
+    . '\\| .ZZC | C Mem    | dft,ok,dw,person,bona |'
+    . '\\| .ZZD | D Mem    | dft,ok,dw,person,bona |"');
     And__('transactions: "DATA'
     . '\\| xid | created   | type     | amount | from | to   | purpose |'
     . '\\| 1   | %today-7m | signup   |    100 | ctty | .ZZA | signup  |'

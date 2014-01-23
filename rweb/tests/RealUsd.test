@@ -66,16 +66,14 @@ class rwebRealUsd extends DrupalWebTestCase {
     . '\\| op  | who     | amount  | goods | purpose |'
     . '\\| pay | Bea Two | 1000.20 | 1     | labor   |"');
     Then_('transactions: "DATA'
-    . '\\| xid | type     | state | amount  | r      | from | to   | purpose      | taking |'
-    . '\\|   2 | transfer | done  | 1000.20 |   1000 | .ZZA | .ZZB | labor        | 0      |'
-    . '\\|   3 | rebate   | done  |   50.01 |  50.01 | ctty | .ZZA | rebate on #2 | 0      |'
-    . '\\|   4 | bonus    | done  |  100.02 | 100.02 | ctty | .ZZB | bonus on #1  | 0      |"');
-    And__('usd transfers: "DATA'
-    . '\\| payer | payee | amount |'
-    . '\\| .ZZA  |  .ZZB |   0.20 |"');
+    . '\\| xid | type     | state | amount  | from | to   | purpose      | taking |'
+    . '\\|   2 | transfer | done  | 1000.20 | .ZZA | .ZZB | labor        | 0      |'
+    . '\\|   3 | rebate   | done  |   50.01 | ctty | .ZZA | rebate on #2 | 0      |'
+    . '\\|   4 | bonus    | done  |  100.02 | ctty | .ZZB | bonus on #1  | 0      |"');
+    And__('usd transfer count is 0');
     And__('balances: "DATA'
     . '\\| id   | r     | dw/usd | rewards |'
-    . '\\| .ZZA | 50.01 |   4.80 | 1050.01 |"');
+    . '\\| .ZZA | 49.81 |      5 | 1050.01 |"');
     When_('member ".ZZA" visits page "transactions/period=365"');
     Then_('we show "Transaction History" with: "DATA'
     . '\\|_Start Date |_End Date |'
@@ -111,13 +109,13 @@ class rwebRealUsd extends DrupalWebTestCase {
     . '\\| op  | who     | amount  | goods | purpose |'
     . '\\| pay | Bea Two | 1000.20 | 1     | labor   |"');
     Then_('transactions: "DATA'
-    . '\\| xid | type     | state | amount  | r      | from | to   | purpose      | taking | usdXid |'
-    . '\\|   2 | transfer | done  | 1000.20 |   1000 | .ZZA | .ZZB | labor        | 0      |     -1 |'
-    . '\\|   3 | rebate   | done  |   50.01 |  50.01 | ctty | .ZZA | rebate on #2 | 0      |        |'
-    . '\\|   4 | bonus    | done  |  100.02 | 100.02 | ctty | .ZZB | bonus on #1  | 0      |        |"');
+    . '\\| xid | type     | state | amount  | from | to   | purpose      | taking |'
+    . '\\|   2 | transfer | done  | 1000.20 | .ZZA | .ZZB | labor        | 0      |'
+    . '\\|   3 | rebate   | done  |   50.01 | ctty | .ZZA | rebate on #2 | 0      |'
+    . '\\|   4 | bonus    | done  |  100.02 | ctty | .ZZB | bonus on #1  | 0      |"');
     And__('balances: "DATA'
     . '\\| id   | r     | dw/usd | rewards |'
-    . '\\| .ZZA | 50.01 |   4.80 | 1050.01 |"');
+    . '\\| .ZZA | 49.81 |      5 | 1050.01 |"');
     And__('usd transfer count is 0');
   }
 
