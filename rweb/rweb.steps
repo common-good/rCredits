@@ -61,8 +61,6 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     Gift AMemberContributes MAKE
  *     Gift AMemberContributesWithInsufficientFunds MAKE
  *     Relations AMemberAddsARelation MAKE
- *     TransactR AMemberAsksToChargeAnotherMember MAKE
- *     TransactR AMemberAsksToPayAnotherMember MAKE
  *     TransactUsd AMemberAsksToChargeAnotherMember MAKE
  *     TransactUsd AMemberAsksToPayAnotherMember MAKE
  */
@@ -74,6 +72,8 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  * in: Contact AMemberUpdatesContactInfo MAKE
  *     Contact AMemberGivesABadPhone MAKE
  *     Contact AMemberGivesABadEmail MAKE
+ *     Contact AMemberUpdatesToADifferentState MAKE
+ *     Contact AMemberUpdatesToADifferentName MAKE
  *     Flow AMemberOverdraws MAKE
  *     Flow AMemberOverdrawsAndDrawsFromBothRAndUSD MAKE
  *     Membership AMemberSignsInForTheFirstTime MAKE
@@ -87,6 +87,7 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     RealUsd AMemberBuysSomethingWhenDwollaIsDown MAKE
  *     Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite MAKE
  *     Signup ANewbieRegistersInWesternMassachusetts MAKE
+ *     Signup ANewbieRegistersWithAUseName MAKE
  *     Signup ANewbieRegistersElsewhere MAKE
  *     Signup ANewbieRegistersWithNoCase MAKE
  *     Signup AMemberRegistersBadEmail MAKE
@@ -100,14 +101,10 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     Signup AMemberRegistersWithABadCompanyPhone MAKE
  *     Signup AMemberRegistersACompany MAKE
  *     Signup ANewbieRegistersFromElsewhere MAKE
+ *     Transact AMemberConfirmsRequestToChargeAnotherMember MAKE
  *     Transactions AMemberConfirmsNO MAKE
  *     Transactions AMemberConfirmsOK MAKE
  *     Transactions AMemberConfirmsOKForADisputedTransaction MAKE
- *     TransactR AMemberConfirmsRequestToChargeAnotherMember MAKE
- *     TransactR AMemberConfirmsRequestToPayAnotherMember MAKE
- *     TransactR AMemberConfirmsRequestToPayAMemberCompany MAKE
- *     TransactR AMemberConfirmsRequestToPayTheSameMemberTheSameAmount MAKE
- *     TransactR AMemberConfirmsRequestToChargeTheSameMemberTheSameAmount MAKE
  *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember MAKE
  *     TransactUsd AMemberConfirmsRequestToPayAnotherMember MAKE
  */
@@ -156,6 +153,8 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  *     Community Setup MAKE
  *     Contact Setup MAKE
  *     Contact AMemberUpdatesContactInfo TEST
+ *     Contact AMemberUpdatesToADifferentState TEST
+ *     Contact AMemberUpdatesToADifferentName TEST
  *     Download Setup MAKE
  *     Flow Setup MAKE
  *     Get Setup MAKE
@@ -166,6 +165,7 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  *     Relations Setup MAKE
  *     ScanCard Setup MAKE
  *     Signup ANewbieRegistersInWesternMassachusetts TEST
+ *     Signup ANewbieRegistersWithAUseName TEST
  *     Signup ANewbieRegistersElsewhere TEST
  *     Signup ANewbieRegistersWithNoCase TEST
  *     Signup AMemberRegistersAgain MAKE
@@ -174,8 +174,8 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  *     Signup AMemberRegistersACompany BOTH
  *     Signup ANewbieRegistersFromElsewhere TEST
  *     Summary Setup MAKE
+ *     Transact Setup MAKE
  *     Transactions Setup MAKE
- *     TransactR Setup MAKE
  *     TransactUsd Setup MAKE
  */
 function members($list) {return t\members($list);}
@@ -196,6 +196,7 @@ function members($list) {return t\members($list);}
  *     Relations Setup MAKE
  *     ScanCard Setup MAKE
  *     Summary Setup MAKE
+ *     Transact Setup MAKE
  *     Transactions Setup MAKE
  *     Transactions AMemberClicksNO MAKE
  *     Transactions AMemberConfirmsNO MAKE
@@ -203,10 +204,6 @@ function members($list) {return t\members($list);}
  *     Transactions AMemberClicksOK MAKE
  *     Transactions AMemberConfirmsOK MAKE
  *     Transactions AMemberConfirmsOKForADisputedTransaction MAKE
- *     TransactR Setup MAKE
- *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
- *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
- *     TransactR AMemberConfirmsRequestToPayAMemberCompany TEST
  *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
  *     TransactUsd AMemberConfirmsRequestToPayAnotherMember TEST
  */
@@ -230,13 +227,9 @@ function transactions($list) {return t\transactions($list);}
  *     Signup AMemberRegistersAgain TEST
  *     Signup AMemberRegistersWithABadCompany TEST
  *     Signup AMemberRegistersWithABadCompanyPhone TEST
+ *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
  *     Transactions AMemberConfirmsOK TEST
  *     Transactions AMemberConfirmsOKForADisputedTransaction TEST
- *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
- *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
- *     TransactR AMemberConfirmsRequestToPayAMemberCompany TEST
- *     TransactR AMemberConfirmsRequestToPayTheSameMemberTheSameAmount TEST
- *     TransactR AMemberConfirmsRequestToChargeTheSameMemberTheSameAmount TEST
  *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
  *     TransactUsd AMemberConfirmsRequestToPayAnotherMember TEST
  */
@@ -263,6 +256,8 @@ function weSayWithSubs($type, $index, $subs) {
  * in: Contact AMemberUpdatesContactInfo TEST
  *     Contact AMemberGivesABadPhone TEST
  *     Contact AMemberGivesABadEmail TEST
+ *     Contact AMemberUpdatesToADifferentState TEST
+ *     Contact AMemberUpdatesToADifferentName TEST
  *     Get AMemberMovesTooLittleToTheBank TEST
  *     Get AMemberTriesToGoBelowTheirMinimum TEST
  *     Membership AMemberSignsInForTheFirstTime TEST
@@ -307,8 +302,6 @@ function weTellStaffWithSubs($topic, $subs) {return t\weTellStaff($topic, $subs)
  *
  * in: Transactions AMemberClicksNO TEST
  *     Transactions AMemberClicksOK TEST
- *     TransactR AMemberAsksToChargeAnotherMember TEST
- *     TransactR AMemberAsksToPayAnotherMember TEST
  *     TransactUsd AMemberAsksToChargeAnotherMember TEST
  *     TransactUsd AMemberAsksToPayAnotherMember TEST
  */
@@ -426,8 +419,8 @@ function withoutOptions($options) {
  *     Signup AMemberRegistersWithAnExistingCompany TEST
  *     Signup AMemberRegistersACompany TEST
  *     Summary Setup MAKE
+ *     Transact Setup MAKE
  *     Transactions Setup MAKE
- *     TransactR Setup MAKE
  *     TransactUsd Setup MAKE
  */
 function relations($relations) {return t\relations($relations);}
@@ -450,13 +443,11 @@ function relations($relations) {return t\relations($relations);}
  *     ScanCard Setup BOTH
  *     Signup AMemberRegistersACompany TEST
  *     Summary Setup TEST
+ *     Transact Setup TEST
+ *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
  *     Transactions Setup BOTH
  *     Transactions AMemberConfirmsNO MAKE
  *     Transactions TransactionsWithOtherStatesShowUpProperly TEST
- *     TransactR Setup TEST
- *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
- *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
- *     TransactR AMemberConfirmsRequestToPayAMemberCompany TEST
  *     TransactUsd Setup MAKE
  *     TransactUsd AMemberAsksToChargeAnotherMember TEST
  *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
@@ -550,6 +541,7 @@ function memberIsLoggedOut() {
  *     Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite MAKE
  *     Signup AnInvitedNewbieVisitsTheRegistrationPage MAKE
  *     Signup ANewbieRegistersInWesternMassachusetts MAKE
+ *     Signup ANewbieRegistersWithAUseName MAKE
  *     Signup ANewbieRegistersElsewhere MAKE
  *     Signup ANewbieRegistersWithNoCase MAKE
  *     Signup AMemberRegistersBadEmail MAKE
@@ -698,7 +690,7 @@ function memberHasPermission($uid, $permission) {
 function memberOnetimePasswordIsSet($id) {
   global $testOnly; if (!$testOnly) return FALSE;
   $a = r\acct($uid = t\uid($id));
-  return (isset($a->data['oneTimePass']['pass']) and $a->data['oneTimePass']['expires'] > REQUEST_TIME);
+  return (isset($a->oneTimePass['pass']) and $a->oneTimePass['expires'] > REQUEST_TIME);
 }
 
 /**
@@ -713,20 +705,17 @@ function memberOnetimePasswordIs($id, $pass) {
   if (!$testOnly) {
     $expires = REQUEST_TIME + R_SIGNIN_HOURS * HOUR_SECS;
     $oneTimePass = compact('pass', 'expires');
-    $data = compact('oneTimePass') + ($a->data ?: array());
-    $a->update(compact('data'));
+    $a->update(compact('oneTimePass'));
   }
-  return ($a->data['oneTimePass']['pass'] == $pass and $a->data['oneTimePass']['expires'] > REQUEST_TIME);
+  return ($a->oneTimePass['pass'] == $pass and $a->oneTimePass['expires'] > REQUEST_TIME);
 }
 
 /**
  * we notice (ARG) to member (ARG) with subs: (ARG)
  *
  * in: Gift AMemberContributes TEST
+ *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
  *     Transactions AMemberConfirmsOK TEST
- *     TransactR AMemberConfirmsRequestToChargeAnotherMember TEST
- *     TransactR AMemberConfirmsRequestToPayAnotherMember TEST
- *     TransactR AMemberConfirmsRequestToPayAMemberCompany TEST
  *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
  *     TransactUsd AMemberConfirmsRequestToPayAnotherMember TEST
  */
@@ -976,7 +965,7 @@ function memberIsOnStepWithinSeconds($id, $step, $secs) {
 function memberChoseToVerifyPhoneBy($id, $verifyBy) {
   global $testOnly; if ($testOnly) return FALSE;
   $a = r\acct(t\uid($id));
-  return $a->update(u\ray('data', compact('verifyBy') + $a->data));
+  return $a->update(compact('verifyBy'));
 }
 
 /**
@@ -988,7 +977,7 @@ function accountWasSetUpByMember($coId, $id) {
   global $testOnly; if ($testOnly) return FALSE;
   $by = t\uid($id);
   $co = r\acct(t\uid($coId));
-  return $co->update(u\ray('data', compact('by') + $co->data));
+  return $co->update(compact('by'));
 }
 
 /**
@@ -996,7 +985,6 @@ function accountWasSetUpByMember($coId, $id) {
  *
  * in: Gift AMemberContributes MAKE
  *     Transactions AMemberConfirmsOK MAKE
- *     TransactR AMemberConfirmsRequestToPayAMemberCompany MAKE
  */
 function nextDOCodeIs($code) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -1020,3 +1008,32 @@ function invitationWasSentOn($code, $dt) {
  * in: Boxes AMemberHasAllKindsOfDevices MAKE
  */
 function devices($list) {return t\devices($list);}
+
+/**
+ * invoices: (ARG)
+ *
+ * in: Transact AMemberConfirmsRequestToChargeAnotherMember TEST
+ */
+function invoices($arg1) {
+  global $testOnly;
+  todo;
+}
+
+/**
+ * signup company info is remembered
+ *
+ * in: 
+ */
+function signupCompanyInfoIsRemembered() {
+  global $testOnly; if (!$testOnly) return FALSE;
+}
+
+/**
+ * signup company info for account (ARG) is remembered
+ *
+ * in: Signup AMemberRegistersWithAnUnknownCompany TEST
+ */
+function signupCompanyInfoForAccountIsRemembered($id) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  return (bool) r\acct(t\uid($id))->signupCo;
+}

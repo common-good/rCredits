@@ -86,6 +86,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
     u\setDft($rebate, 5); // should be R_REBATE, but many of the test would have to be written on changing it
     u\setDft($fullName, 'makeAccount ' . randomString(20, 'word'));
     $name = u\shortName($fullName);
+    u\setDft($legalName, $fullName);
   //  $pass = @$my_password ?: '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae'; // default to 123
     u\setDft($pass, '123');
     u\setDft($mail, chr(ord('a') + $uid - r\unQuid('.ZZA')) . '@example.com'); // a@example.com, etc.
@@ -98,7 +99,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
       $secure[str_replace('cc', 'cardCode', $one)] = $$one;
       unset($info[$one]);
     }
-    $fixFields = 'rebate fullName name pass mail secure community postalCode country ' . $moneyFields;
+    $fixFields = 'rebate fullName legalName name pass mail secure community postalCode country ' . $moneyFields;
   } else $fixFields = '';
 
   $flags0 = @$flags;

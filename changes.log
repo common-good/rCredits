@@ -1,3 +1,19 @@
+2014-01-27
+. fixed bugs in usd::rollback, injected during separation of USD transactions from r_txs
+. fixed many cosmetic problems and minor bugs discovered by Mike
+. fixed state not updating problem on Contact page
+. fixed verifyBy=SMS default not showing on Contact page
+. refactored data field to include company fields and act (virtually) like any user table field
+. added legalName field
+. accepts "none" or "n/a" in lieu of blank, for some fields (eg company and companyPhon)
+. fixed bug: now ignores spaces in bank account number and routing number
+. data changes:
+  - move companies data to data field in users table
+  - move signupCo fields (company companyPhone isOwner contractor EmployeeOk) to signupCo in data field in users table
+  - move these data fields to data['stats']: giftsEver, giftsPastMo, beneEver, benePastMo, extraEver, extraPastMo, bankedEver, bankedPastMo, avgBalPastMo, avgBalEver 
+  - set legalName equal to fullName in each account
+. delete r_companies
+
 2014-01-23
 . exchanges of r for usd are no longer in r_txs -- they are in r_usd only. All transactions between members are rCredits only. This made the "r" and usdXid fields in r_txs moot so they are gone. (Can't put this on server until data changes are ready)
 . fixed bug that kept set-password from working for admin (patched)

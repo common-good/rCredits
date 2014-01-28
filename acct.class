@@ -51,7 +51,7 @@ class acct {
    * @param assoc $info: array of field values for new account
    */
   private function createNew($info) {
-    $fields = 'phone number mail pass secure fullName name flags rebate country state postalCode data created uid';
+    $fields = 'phone number mail pass secure fullName legalName name flags rebate country state postalCode created uid';
     extract(u\just($fields, $info));
     u\setDft($phone, @$number);
     if ($phone) $phone = u\fmtPhone($phone, '+n');
@@ -69,11 +69,10 @@ class acct {
       $state = db\lookup('id', 'r_states', 'abbreviation=:state and country_id=:US_COUNTRY_ID', compact('state'));
     }
     $community = communityUid(@$postalCode); // defaults to current server
-    $data = serialize(@$data ?: array());
-//    $frozen = serialize(array());
     $created = $login = $access = @$created ?: REQUEST_TIME;
-    $companyInfo = u\just(R_COMPANY_FIELDS, $info);
-    foreach ($companyInfo as $key => $value) unset($info[$key]);
+
+    if ($data0 = u\just(R_DATA_FIELDS, $info)) foreach ($data0 as $key => $value) unset($info[$key]);
+    $data = serialize($data0);
 
     $record = compact(u\ray('phone status mail init pass name fullName state flags rebate community data created login access'));
     foreach ($record as $key => $value) unset($info[$key]);
@@ -93,18 +92,13 @@ class acct {
       u\EXPECT(@$try < 20, "failed to save user record after $try tries.");
     }
 
-    if (!empty($companyInfo)) {
-      $companyInfo['uid'] = $uid;
-      if ($flags & u\bit(B_COMPANY)) db\insert('r_companies', $companyInfo);
-    }
-    
     if (isset($number)) {
       $success = SMS\create($number, $uid);
       u\EXPECT($success, 'Unable to create SMS record.');
     }
 
     list($this->id, $this->agentId) = array($uid, $uid);
-    self::$records[$this->id] = (object) ($record + $info);
+    self::$records[$this->id] = (object) ($record + $info + $data0);
     
     $cardCode = r\cardCode(r\quid($uid));
     u\setDft($secure, compact('cardCode'));
@@ -140,7 +134,9 @@ class acct {
       // contact other server here, for a subset of the record
     }
     $access = REQUEST_TIME;
-    return self::$records[$id] = (object) (((array) $records[0]) + compact('access'));
+    $data = @$records[0]->data; // treat data fields like any other
+    $data = $data ? unserialize($data) : array();
+    return self::$records[$id] = (object) (((array) $records[0]) + compact('access') + $data);
   }
 
   /**
@@ -165,11 +161,8 @@ class acct {
 
     if ($field == 'data') {
       return @$result ? unserialize($result) : array();
-    } elseif (in_array($field, u\ray(R_COMPANY_FIELDS))) {
-      $id = $this->id;
-      return @$result ?: (@self::$records[$this->id]->$field = db\lookup($field, 'r_companies', 'uid=:id', compact('id')));
     } elseif ($field == 'secure') {
-      return @$result ? unserialize(u\ezdecrypt($result, R_WORD)) : NULL;
+      return @$result ? unserialize(u\ezdecrypt($result, R_WORD)) : array();
     } elseif ($field == 'usdAccount') {
       return @$result ? u\ezdecrypt(hex2bin($result), R_WORD) : NULL;
     } elseif ($field == 'language') {
@@ -200,7 +193,7 @@ class acct {
       self::$records[$this->id]->gotOffsite = TRUE; // applies to all objects for the id
     } else return @self::$records[$this->id]->gotOffsite;
   }
-  
+ 
   /**
    * Read protected personal identifying information fields into the account record
    */
@@ -242,9 +235,11 @@ class acct {
       u\EXPECT(count($keys) == count($args), 'assoc arg count mismatch');
       return $this->update(array_combine($keys, $args));
     }
-
     if (isset($just)) $info = u\just($just, $info);
-    if (isset($info['data'])) $info['data'] = serialize($info['data']);
+    if ($data = @$info['data']) {
+      $info['data'] = serialize($data);
+    } elseif ($data = u\just(R_DATA_FIELDS, $info)) $info['data'] = serialize($data + $this->data);
+    
     if (isset($info['secure'])) { // serialize and encrypt before updating this
       $usdArray = $info['secure']; // was " + ($this->secure ?: array())"
       $info['secure'] = u\ezencrypt(serialize($usdArray), R_WORD);
@@ -262,18 +257,15 @@ class acct {
       $key = offsiteData(@$this->offsite, $this->account(R_SECRET_FIELDS));
       if ($key and is_numeric($key)) $info['offsite'] = $key; else return FALSE; // if attempt to store fails, save nothing
     }
-    if (count($companyInfo = u\just(R_COMPANY_FIELDS, $info))) {
-      $companyInfo['uid'] = $this->id;
-      db\update('r_companies', $companyInfo, 'uid', TRUE);
-    }
     u\setDft($info['flags'], $this->flags); // accommodate setBit caching flags to be set/unset
+
     $info['uid'] = $this->id; // make sure dbUpdate gets this
-    foreach (u\ray(R_SECRET_FIELDS . ' ' . R_COMPANY_FIELDS) as $field) unset($info[$field]); // don't pass these to dbUpdate
+    foreach (u\ray(R_SECRET_FIELDS . ' ' . R_DATA_FIELDS) as $field) unset($info[$field]); // don't pass these to dbUpdate
     return db\update('users', $info, 'uid');
   }
 
   public function upSecure($key, $value) {
-    return $this->update(u\ray('secure', u\ray($key, $value) + $this->secure));
+    return $this->update(u\ray('secure', u\ray($key, $value) + ($this->secure ?: array())));
   }
   public function upData($key, $value) {
     return $this->update(u\ray('data', u\ray($key, $value) + $this->data));
@@ -559,7 +551,8 @@ EOF;
     //if (t\est()) $usdEmail = 'wspademan+' . strtolower(\user_password(4) . '.' . $this->mainQid) . '@gmail.com';
     $usdPin = u\randomString(4, 'digits');
     if (isDEV) list ($usdPass, $usdPin) = array('Password1', 9999);
-    $secure = compact(u\ray('usdPass usdEmail usdPin')) + (@$this->secure ?: array());
+    $usdPhone = $this->phone;
+    $secure = compact(u\ray('usdPhone usdEmail usdPass usdPin')) + (@$this->secure ?: array());
     $this->update(compact('secure'));
     $us = new r\usd($this);
     if ($this->can(B_PERSON)) {

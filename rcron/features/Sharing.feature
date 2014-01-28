@@ -5,15 +5,15 @@ SO CGF can continue to promote and maintain the rCredits system for my benefit a
 
 Setup:
   Given members:
-  | id   | fullName   | floor | acctType      | flags                      | share |
+  | id   | fullName   | floor | acctType    | flags                      | share |
   | .ZZA | Abe One    | -100  | personal    | dft,ok,person,bona         |    50 |
   | .ZZB | Bea Two    | -200  | personal    | dft,ok,person,company,bona |    10 |
   | .ZZC | Corner Pub | -300  | corporation | dft,ok,company,bona        |     0 |
   When transactions: 
-  | xid | created | type     | state    | amount | r   | from | to   | purpose |
-  |   1 | %today  | transfer | done     |     40 |  40 | .ZZA | .ZZB | what G  |
-  |   2 | %today  | rebate   | done     |      2 |   2 | ctty | .ZZA | rebate  |
-  |   3 | %today  | bonus    | done     |      4 |   4 | ctty | .ZZB | bonus   |
+  | xid | created | type     | state    | amount | from | to   | purpose |
+  |   1 | %today  | transfer | done     |     40 | .ZZA | .ZZB | what G  |
+  |   2 | %today  | rebate   | done     |      2 | ctty | .ZZA | rebate  |
+  |   3 | %today  | bonus    | done     |      4 | ctty | .ZZB | bonus   |
 
 Scenario: Inflation adjustments are distributed
   When cron runs "lessOften"

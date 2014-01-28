@@ -63,6 +63,7 @@ $GLOBALS[TX_SMART . ' messages'] = array(
  */
 function pos($args = FALSE) {
   global $channel; $channel = TX_SMART;
+  global $scanned; $scanned = true;
   global $mya;
   
   if (!r\up()) return posErr('system down');
@@ -230,7 +231,6 @@ function photoReturn($pic, $picFilename = '') {
  * @return: json (ok, message, tx, balance, undo)
  */
 function charge($args, $type = 'charge') {
-  global $scanned; $scanned = true;
   global $mya;
   
   if ($err = missingArg($keys = 'agent member amount goods description', $args)) return posErr($err);
@@ -267,7 +267,6 @@ function payment($args) {return charge($args, 'payment');}
  */
 function undo($args) {
   global $mya; $myid = $mya->id;
-  global $scanned; $scanned = true;
   if ($err = missingArg($keys = 'tx', $args)) return posErr($err);
   extract(u\just($keys, $args));
   

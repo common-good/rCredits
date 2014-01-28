@@ -27,8 +27,8 @@ Scenario: A member signs in for the first time
   Given member is logged out
   And invitation to email "d@" is "c0D3"
   When member "?" confirms form "signup/code=c0D3&dwok=1" with values:
-  | fullName | email | phone | dupOk | country | postalCode | federalId | dob | acctType    | code | verifyBy |
-  | Dee Four | d@ | 413-253-0000 | 0 |US  | 01002    | 123-45-6789 | 1/2/1993 | %R_PERSONAL | c0D3 |        1 |
+  | legalName | email | phone | dupOk | country | postalCode | federalId | dob | acctType    | code | verifyBy |
+  | Dee Four  | d@ | 413-253-0000 | 0 |US  | 01002    | 123-45-6789 | 1/2/1993 | %R_PERSONAL | c0D3 |        1 |
   Then members:
   | id      | fullName | email   | country | postalCode | state | city    | flags         | 
   | NEW.AAC | Dee Four | d@      | US      | 01002      | MA    | Amherst | dft,person,dw |
@@ -118,8 +118,8 @@ Scenario: A member does it all
   Then we show "Contact Information"
 
   When member ".ZZA" confirms form "account/contact" with values:
-  | fullName | email | phone | address | state | country | postalCode | verifyBy | postalAddr  | faxetc    |
-  | Abe One  | a@    |     1 | 1 A St. | AK    | US      | 01002      |        1 | 1 A St., AK | %whatever |
+  | legalName | email | phone | address | state | country | postalCode | verifyBy | postalAddr  | faxetc    |
+  | Abe One   | a@    |     1 | 1 A St. | AK    | US      | 01002      |        1 | 1 A St., AK | %whatever |
 #  When member ".ZZA" visits page "status"
   Then we show "You're getting there"
   And with done "2"

@@ -48,7 +48,7 @@ EOF
   'downloading' => t('Your download will begin shortly...'),
   'changed account' => t('You are now managing the account for @newAcct.'),
   'lost old changes' => t('Any unsaved changes to account @oldAcct have been discarded.'),
-  'take a step' => t('Your account is <b style="color:red;">not yet activated</b>. <a href="status"><span id="nextstep">Take the next step!</span> Click here</a> to see where you are in your new account progress and what to do next.'),
+  'take a step' => t('Your account is <b style="color:red;">not yet activated</b>. <a href="status"><span id="nextstep">Take the next step!</span> Click here</a>.'),
   'got token' => t('Your rCredits and US Dollar accounts have been successfully connected!'),
   'company rcard' => t('Send a <a href="@href">company rCard</a> to @name at @address.'),
   'amount rounded' => t('"@amount" was rounded to the nearest integer value.'),
@@ -64,13 +64,14 @@ EOF
   'agent created' => t('The agent account was successfully created.'),
   'phone verified' => t('Your phone number has been verified.'),
   'id verification pending' => t('Your photo ID has been uploaded successfully. Now we need to wait for our partner organization to verify your identity. Please feel free to email us if you have questions.'),
-  'verify bank' => t('In particular, you still need to verify the connection to your bank account. Contact your bank (by phone or online) to find out the two small deposit amounts (each less than @DW_VERIFY_ROOF cents). Then go to settings and click "Bank Info" or <a href="account/bank">click here</a> to go there directly.'),
+  'verify bank' => t('In particular, you still need to verify the connection to your bank account. After 2-5 days, contact your bank (by phone or online) to find out the two small deposit amounts (each less than @DW_VERIFY_ROOF cents). Then go to settings and click "Bank Info" or <a href="account/bank">click here</a> to go there directly.'),
   'adjust settings' => t('You can adjust your settings by clicking the gear in the upper right corner. '),
 
   // prompts
   'prompt min' => t('Keep this much in my rCredits account, for purchases or inflation-proof savings. (When your balance goes below this amount, the system refills it for you from your bank account. Refilling may take 3-5 days.)'),
 //  'prompt max' => t('Keep AT MOST this much in my rCredits account. (When your rCredits balance goes above this amount by $@R_CHUNK or more, the system transfers the extra to your bank account. Blank means no automatic transfers &mdash; recommended in most cases).'),
-  'fullName desc' => t('Your full legal name, properly capitalized.'),
+  'legalname desc' => t('Your full legal name, properly capitalized.'),
+  'usename desc' => t('This should be the name you use in official emails, at work, on your checks and credit cards, etc.'),
   'verify connection' => t('Two small deposits (under @DW_VERIFY_ROOF cents) have been sent to your bank. Call your bank after 3-5 business days, to find out the amounts. Then come back to the Bank Info page and fill in those amounts, to verify the connection to your bank account. Here\'s how: Go to rCredits.org, click "Members\'s Site", sign in, click the Settings gear in the upper right corner, then click "Bank Info". We will send you a reminder by email.'),
   'ssTitle' => t('Soc Sec #:'),
   'einTitle' => t('Federal ID:'),
@@ -154,7 +155,7 @@ EOF
   'multiple spaces' => t('Field @field cannot have more than one space in a row.'),
   'illegal char' => t('Field @field contains an illegal character. Try retyping it'),
   'too long' => t('Field @field is too long: it must be @USERNAME_MAX_LENGTH characters or less.'),
-  'weak pass' => t('Your password must be a "Strong" one (or better).'),
+  'weak pass' => t('You need to choose a password that is harder to guess.'),
   'photo upload failed' => t('Your photo upload was not successful.'),
   'pass expired' => t('Your temporary password has expired.'),
   'inhuman proxy' => t('@name is a company. Your proxies must be people.'),
@@ -302,6 +303,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   global $formArray, $formSta, $rUrl;
   try {
     setupGlobals(); // in case it's an anonymous form, so webAccess doesn't have a chance to set up
+    $mya = r\acct();
     $args = 'arg1' . ($arg2 !== '' ? ' arg2' : '') . ($arg3 !== '' ? ' arg3' : '') . ($arg4 !== '' ? ' arg4' : '');
     $formName = substr($function, 0, 1) == '/' ? substr($function, 1) : "rCredits\\Web\\form$function";
     $specialForm = in_array($function, u\ray('Help footer accounts Admin Login'));
@@ -309,7 +311,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     $args = func_get_args(); // this and next few lines are from \drupal_get_form()
     array_shift($args); // Remove $function from the arguments.
     $formSta['build_info'] = compact('args');
-    if (!r\up() and !$specialForm and $mya = r\acct()) {
+    if (!r\up() and !$specialForm and $mya) {
       if ($mya and $mya->admin()) {
         say('The system is DOWN.');
       } else $formName = 'rCredits\\Web\\formSystemDown';
@@ -325,7 +327,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
       js('inc/misc.js', 'file', 'footer');
       if (@$form['country']) {
         js('inc/countries.js', 'file', 'header');
-        js("print_country(0, 0);", 'inline', 'footer'); // I don't know why, but this IS NEEDED on input errors
+        if (\form_get_errors()) js("print_country($mya->country, $mya->state);", 'inline', 'footer');
       }
       if (u\isIPhone()) css('iphone.css', -100);
     }
@@ -496,7 +498,7 @@ function setupUs(&$step) {
   if (!$step = $us->step($err)) {
     r\tellStaff('null step', compact('err', 'step') + (array) $mya);
     if (u\abbreviates('Invalid account status', $err)) { // sometimes "...for user of this access token"
-      //$mya->update(u\ray('federalId', '')); // prevent resumission of same ssn (temporary Dwolla bug)
+      //$mya->update(u\ray('federalId', '')); // prevent resubmission of same ssn (temporary Dwolla bug)
       return say('bad ssn or dob|Please contact rCredits customer support at +1 413 628 1723.', 'ERR');
     } else return say($err, 'ERR');
   }
@@ -515,7 +517,7 @@ function setupUs(&$step) {
     } else u\EXPECT($us->step() != $step, 'weird ssn return');
   } elseif ($step == 'AuthorizedRepresentative') {
     u\EXPECT(!$mya->person(), 'verify rep for person?!');
-    $byId = @$mya->data['by'] ?: (t\est() ? $mya->agentId : FALSE);
+    $byId = @$mya->by ?: (t\est() ? $mya->agentId : FALSE);
     u\EXPECT($byId, 'no by for non-person');
     $by = r\acct($byId);
     list ($first, $last) = u\parseName($by->fullName);
@@ -670,14 +672,15 @@ function acctType($acctType) {
 
 /**
  * Create relation for company relationship specified in registration form (if any)  
+ * @return TRUE if their is a formal relationship
  */
 function suCompanyRelation($company, $other, $data) {
   extract(u\just('companyPhone isOwner employeeOk contractor', $data));
   $isOwner = (int) @$isOwner; // POSTed as "isOwner" when TRUE
   $employeeOk = (int) (@$employeeOk or @$contractor);
   if ($main = findCompany($company, @$companyPhone)) { // company account exists
-    db\insert('r_relations', compact(u\ray('main other employeeOk isOwner')));
-  }
+    return db\insert('r_relations', compact(u\ray('main other employeeOk isOwner')));
+  } else return FALSE;
 }
 
 /**
@@ -779,7 +782,7 @@ EOF;
   
   $phone = textField(t('Phone:'), t('Your phone number. This cannot be already used for another rCredits account unless you answer "Yes" to Dup Ok, below.'), required(@$phone ? u\fmtPhone($phone): ''));
   $dupOk = boolField(t('Dup Ok:'), t('If this is already the phone number for another rCredits account, click Yes to use it for this account too. Without a unique phone number, though, you cannot connect a bank account to your rCredits account. We are lobbying our financial partner, Dwolla, to remove this limitation. But, for now, a duplicate phone means no connected bank account.'));
-  $verifyBy = formField('radios', t('Verify by:'), t('We will send a verification code to your phone, by text or voice.'), required(isset($mya->data['verifyBy']) ? ($mya->data['verifyBy'] == 'Voice') : NULL), array(t('Text message'), t('Voice message')));
+  $verifyBy = formField('radios', t('Verify by:'), t('We will send a verification code to your phone, by text or voice.'), required(@$mya->verifyBy ? (int) ($mya->verifyBy == 'Voice') : NULL), array(t('Text message'), t('Voice message')));
   if ($mya) $faxetc = textField(t('Fax etc:'), t('List other ways to contact you: fax, mobile, IM, etc. This field is NOT public.'), dft(@$faxetc));
   $country = formField('select', t('Country:'), t(''), dft(@$country) + $countryAttrib); // can't use required() here
   if ($mya) $address = textField(t('Street Address:'), t('Where is your building located (physical address)?'), required(@$address) + $addressAttrib);
@@ -919,7 +922,7 @@ function passwordOkay($a, $password, $passFieldName = 'current_pass') {
   require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
   $stored_hash = $a->pass;
   $hash = \_password_crypt('sha512', $password, $stored_hash);
-  if (@$a->data['oneTimePass']) extract(u\just('pass expires', $a->data['oneTimePass']));
+  if (@$a->oneTimePass) extract(u\just('pass expires', $a->oneTimePass));
   if ($password == @$pass) return ($a->admin() or REQUEST_TIME < @$expires) ? TRUE : say('pass expired', $passFieldName);
   return ($hash and $stored_hash == $hash) ? TRUE : say('wrong pass', $passFieldName);
 }
@@ -927,16 +930,16 @@ function passwordOkay($a, $password, $passFieldName = 'current_pass') {
 /**
  * Return a once-use password and record it in the data field.
  * @param string $name: login identifier (email, account ID, or shortname)
- * @param assoc $data: data field from account record, returned with "oneTimePass" set to [pass, expires]
- * @return string: the raw password.
+ * @return assoc: [pass, expires] where
+ *   pass: the once-use password
+ *   expires: when it expires
  */
-function oneTimePass($name, &$data) {
+function oneTimePass($name) {
   $pass = strtolower(u\nonce()); // not a hash, easy to remember and type
 /**/ if (isDEV) debug('Password: ' . $pass);
   $expires = REQUEST_TIME + HOUR_SECS * R_SIGNIN_HOURS;
   r\setCook('loginto', $name, $expires);
-  $data['oneTimePass'] = compact('pass', 'expires');
-  return $pass;
+  return compact('pass', 'expires');
 }  
 
 /**
@@ -951,19 +954,20 @@ function directoryList($which, $region) {
   $region = \db_like($region) . '%';
   $rows = array();
   $sql = <<<EOF
-    SELECT DISTINCT u.uid, IFNULL(i.industry, '~Other') AS industry, u.name AS short_name, u.fullName, c.website 
+    SELECT DISTINCT u.uid, IFNULL(i.industry, '~Other') AS industry, u.name AS short_name, u.fullName, u.data
     FROM users u 
-    INNER JOIN r_companies c ON c.uid=u.uid
     LEFT JOIN r_user_industries ui ON ui.uid=u.uid
     LEFT JOIN r_industries i ON i.iid=ui.iid
-    WHERE :IS_COMPANY AND u.$field LIKE :region AND (u.fullName LIKE :which OR i.industry LIKE :which OR c.description LIKE :which)
+    WHERE :IS_COMPANY AND u.$field LIKE :region AND (u.fullName LIKE :which OR i.industry LIKE :which)
     ORDER BY industry, u.fullName
 EOF;
   $result = db\q($sql, compact(u\ray('region which')));
   while ($row = $result->fetchAssoc()) $rows[] = $row;
   $cat = $headed = $list = '';
   for ($i = 0; $i < count($rows); $i++) {
-    extract($rows[$i]); // uid, industry, short_name, fullName, website
+    extract($rows[$i]); // uid, industry, short_name, fullName, data
+    $data = unserialize($data);
+    $website = @$data['website'];
     if ($industry != $cat) { // new category
       $cat = $industry;
       $headed = (@$rows[$i+1]['industry'] == $industry); // header for 2 or more businesses in the same industry
@@ -1190,10 +1194,10 @@ function whois($who, $field_name, $info, $selfMsg = 'no self-trading') {
  * @return confirmation message (FALSE if confirmation not appropriate -- Note that say() returns FALSE)
  */
 function transfer($op, $info, $confirmed) {
-  global $lastXid, $scanned, $lastOp;
+  global $lastXid, $lastOp;
   $mya = r\acct();
   $myid = $mya->id;
-  extract(u\just('who amount goods purpose scanned', $info)); // $scanned is global, for be\transfer
+  extract(u\just('who amount goods purpose', $info));
   $txType = $op == 'pay' ? 'payment' : strtolower($op);
   if (blank_field(compact(u\ray('who amount')))) return FALSE;
   if (!$acct = whois($who, 'who', $info)) return FALSE;
@@ -1207,10 +1211,6 @@ function transfer($op, $info, $confirmed) {
        be\transfer($txType, $mya, $acct, $amount, $purpose, $goods and !u\forCash($purpose), $confirmed)
      : communityTransfer($txType, $acct, $amount, $purpose, $confirmed);
 
-  if (FALSE and !@$scanned) { // not scanned -- We need to show identifying photo, name, etc. for the target account
-    $identifiers = identifiers($acct);
-    $identifiers = "<div id='identifiers' class='clearfix'>$identifiers</div identifiers>";
-  }
   if ($confirm) return @$identifiers . tt('confirm ' . $msg, $args);
   if (!@$args['success']) return say($msg, $args, 'amount');
 

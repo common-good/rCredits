@@ -177,14 +177,18 @@ foreach (array(3201932, 3244519, 3350610, 3510402) as $one) {
 
  */
 function changeIt($a) {
-  $a->setBit(B_DW);
-  return;
-  
-  $tid = 1;
-  while ($txid = db\lookup('txid', 'r_usd', 'payer=:id AND payee=0 AND tid IS NULL ORDER BY created', u\ray('id', $a->id))) {
-    db\update('r_usd', compact('txid', 'tid'), 'txid');
-    $tid++;
+  $data = $a->data;
+  $signupCo = u\just($k1 = 'company companyPhone EmployeeOk isOwner contractor', $data);
+  $stats = u\just($k2 = 'giftsEver giftsPastMo beneEver benePastMo extraEver extraPastMo bankedEver bankedPastMo avgBalPastMo avgBalEver', $data);
+  foreach (u\ray("$k1 $k2") as $one) unset($data[$one]);
+  $data += compact('signupCo', 'stats');
+  if ($a->co()) {
+    $coflds = db\lookup('website,selling,coFlags,description', 'r_companies', 'uid=:uid', u\ray('uid', $a->id));
+    $data += $coflds;
   }
+  $data['legalName'] = $a->fullName;
+  $a->update(compact('data'));
+  debug($a->data);
 }
 /*
 

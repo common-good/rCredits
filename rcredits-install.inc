@@ -74,18 +74,6 @@ function tableDefs($schema = array()) {
     'answer' => setupField('answer to security question', 'varchar ' . R_SECRET_ID_LEN), // secret
   */
 
-  // table r_companies
-  $fields = array(
-    'uid' => setupField('account record id', 'int big'),
-    'website' => setupField('primary website', 'varchar 255'),
-    'description' => setupField('markup text describing the company', 'text medium'),
-    'selling' => setupField('typical description of what this company sells (default transaction purpose)', 'varchar 255'),
-    'coFlags' => setupField('organizational structure and permission bits', 'int big', 0, '010'),
-  );
-  $foreignKeys = foreignKey('uid');
-  $indexes = NULL;
-  $schema['r_companies'] = setupTable('Information about non-personal accounts', $fields, 'uid', $foreignKeys, $indexes);
-
   // table r_stats
   $fields = array(
     'id' => setupField('statistics record id', 'serial big'),
@@ -223,13 +211,13 @@ function tableDefs($schema = array()) {
   // table r_invoices
   $fields = array(
     'id' => setupField('the unique invoice ID', 'serial 11'), 
-    'goods' => setupField('is this transfer an exchange for real goods and services?', 'int tiny', 0), 
     'state' => setupField('done, pending, disputed, etc', 'int tiny'), 
-    'amount' => setupField('amount in rCredits', 'numeric 11,2'), 
+    'amount' => setupField('amount to charge', 'numeric 11,2'), 
     'payer' => setupField('user id of the payer', 'int big'), 
     'payee' => setupField('user id of the payee', 'int big'), 
     'payeeFor' => setupField("payee's description", 'varchar 60'), 
-    'data' => setupField('info stored elsewhere, duplicated here for convenience (serialized array)', 'text big'), 
+    'payerReward' => setupField('reward amount for payer', 'numeric 11,2'), 
+    'payeeReward' => setupField('reward amount for payee', 'numeric 11,2'), 
     'created' => setupField('Unixtime invoice was created', 'int 11', 0),
   );
   $foreignKeys = foreignKey('payer') + foreignKey('payee');
@@ -274,7 +262,7 @@ function tableDefs($schema = array()) {
     'often' => setupField('recurring how often (Y, Q, M, 1)', 'varchar 1'),
     'honor' => setupField('what type of honor', 'varchar 10'), // "share" = gift is "sharing" rewards with CGF
     'honored' => setupField('who is honored', 'text medium'),
-    'share' => setupField('percentage of rebates/bonuses to contribute to CGF', 'numeric 6,3'), // -1 = /A
+    'share' => setupField('percentage of rebates/bonuses to contribute to CGF', 'numeric 6,3'), // -1 = N/A
   );
   $foreignKeys = foreignKey('uid');
   $indexes = index('uid');

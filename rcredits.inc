@@ -39,9 +39,8 @@ define('R_VERSION', '1.1'); // software version
 define('R_ROOT', DRUPAL_ROOT . '/sites/all/modules/rcredits');
 define('R_CONCEALED_FIELDS', 'code password pass oneTimeLoginUrl'); // fields to leave out of log
 define('R_DATE_FIELDS', 'created completed sent invited giftDate signed login access yesterday'); // date field names for testing
-define('R_DATA_FIELDS', ''); // fields stored in the account's "data" array field (serialized)
+define('R_DATA_FIELDS', 'newAccount by calling wants legalName website description selling coFlags stats verifyBy oneTimePass relationsOk signupCo'); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'usd r rewards floor committed'); // financial amount fields in account record
-define('R_COMPANY_FIELDS', 'website description selling coFlags'); // fields in r_companies
 define('R_SECURE_FIELDS', 'usdType usdPhone usdEmail usdPass usdPin auth bankAccount pin cardCode cardCode2'); // non-personal encrypted fields (must be complete list)
 define('R_SECRET_FIELDS', 'federalId dob idProof answer'); // personal identifying information
 define('R_SECRET_URL', isPRODUCTION ? 'http://rcredits.org' : (isDEV ? 'http://localhost/rcredits-promo' : 'http://' . STAGE)); // where to store secrets
@@ -66,7 +65,6 @@ define('R_CARD_COST', 5); // cost to order a company or replacement rCard
 define('R_FREEZE_TIME', FALSE); // how long to freeze newly bought rCredits (was '2 weeks')
 define('R_DEFAULT_PURPOSE', 'rCredits/USD exchange'); // default transaction purpose
 define('R_CHUNK', 10); // chunk size for buying rCredits (sales amounts are a multiple of this)
-define('R_BANK_CHUNK', 100); // UNUSED default chunk size for withdrawals from bank
 define('R_BANK_MIN', 10); // granularity of withdrawals from bank account
 define('R_SUGGEST_BUMP', 1.25); // suggested minimum multiplier, so as not to unnecessarily sell rCredits
 define('R_VPAYMENT_MIN', 0.05); // minimum payment exchange (where bonus rounds to .01)
@@ -171,7 +169,7 @@ define('B_u27', 27); //
 define('B_u28', 28); // 
 define('B_CTTY_ADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
-define('B_CLOSED', 31); // account is closed (data[new_account] has new qid)
+define('B_CLOSED', 31); // account is closed (data[newAccount] has new qid)
 define('B_MAX', 31); // maximum bit number
 //define('B_DFT', (1 << B_NOTIFY_EMAIL) | 0); // set what bits when creating a new account
 define('B_DFT', 0 | 0); // set what bits when creating a new account
@@ -364,9 +362,7 @@ function tradeR($amount, $uid1, $uid2, &$err = '') {
 
   r\usd::beginAtom();
   if (!$txid = $us2->send($amount, $us1, R_DEFAULT_PURPOSE, $err)) {
-    r\usd::rollback();
-    if ($uid1 > 0) $a1->actualUsd(); // fix cached USD, if needed (after rollback)
-    if ($uid2 > 0) $a2->actualUsd();
+    r\usd::rollback(); // pretend nothing ever happened
     return FALSE;
   }
   r\usd::commit();
@@ -676,7 +672,7 @@ function acceptGift($info) {
 
   $cgf = r\acct(\variable_get('cgf_uid'));
 
-  r\usd::beginAtom();
+//  r\usd::beginAtom();
   $purpose = @$honor == 'share' ? t('sharing rewards with CGF') : t('contribution');
   list ($msg, $args, $confirm) = be\transfer('payment', $a, $cgf, $amount, $purpose, TRUE);
 ///  debug(compact('msg','args','confirm'));
@@ -689,11 +685,11 @@ function acceptGift($info) {
       $share = -1; // mark this field N/A (irrelevant)
       db\insert('r_gifts', compact(u\ray('uid giftDate amount often share')));
     }
-    r\usd::commit();
+//    r\usd::commit();
     r\tellStaff('gift accepted', $info + $args);
     r\notify($uid, 'gift sent', $args);
     return TRUE;
-  } else r\usd::rollback();
+  } //else r\usd::rollback();
   return FALSE;
 }
 
@@ -1111,7 +1107,6 @@ function changeUid($oldUid, $newUid = FALSE, $unusable = TRUE) {
   // r_areas
     'r_boxes:uid',
   // r_countries,
-    'r_companies:uid',
     'r_gifts:uid',
   // r_industries
     'r_invites:inviter',
@@ -1248,16 +1243,16 @@ function getUsd($request, $acct) {
  *    NOTE that CGF is the buyer of last resort.    
  */
 function nextRBuyer(&$amount, $except) {
-  if ($amount > R_CHUNK) $amount = R_CHUNK;
-  $offer = R_CAPACITY; // offer is how much they can buy
+  if ($amount > R_CHUNK) $amount = R_CHUNK; // keep it cheap
   $sql = <<<EOF
-    SELECT u.uid, $offer AS got, u.name FROM users u
-    LEFT JOIN (SELECT payee, MAX(completed) AS dt FROM r_txs WHERE type=:TX_SIGNUP OR (type=:TX_TRANSFER AND NOT goods AND amount=0 AND r<>:DW_FEE) GROUP BY payee) t ON t.payee=u.uid
-    WHERE ($offer>0 AND u.uid>0 AND u.uid<>:except AND :IS_OK AND :IS_DW)
-    ORDER BY (u.name='cgf') DESC, ($offer>=:amount) DESC, IFNULL(t.dt, 0), u.uid LIMIT 1
+    SELECT u.uid, u.usd AS got, u.name,
+    (SELECT MAX(completed) FROM r_usd WHERE payer=u.uid and payee<>0) AS last
+    FROM users u
+    WHERE u.usd>0 AND u.uid<>:except AND :IS_OK AND :IS_DW
+    ORDER BY last DESC, u.usd DESC, u.uid LIMIT 1
 EOF;
-  // preferred: not CGF, offering enough, definitely wanting that many, longest ago previous exchange, low uid
-  if (!$row = db\q($sql, compact('amount', 'except'))->fetchAssoc()) { // find out who (preferably who who wants enough) has waited the longest
+
+  if (!$row = db\q($sql, compact('except'))->fetchAssoc()) { // find out who (preferably who who wants enough) has waited the longest
     r\tellStaff('no buyers', compact('amount')); // this is a really bad thing (nobody wants any at all)
     return FALSE;
   }
@@ -1352,7 +1347,7 @@ function stats($ctty = 'ALL', $when = REQUEST_TIME) {
  * (they aren't really issued until the USD are spent as a grant/loan/investment/purchase)
  */
 function getStats($ctty, $created = NULL) {
-  \variable_set('cttyPaidEver', db\lookup('SUM(IF(r=0, amount, r))', 'r_txs', 'payer=:ctty AND type IN (:TX_TRANSFER, :TX_GRANT, :TX_LOAN, :TX_INVEST, :TX_REFUND)', compact('ctty')));
+  \variable_set('cttyPaidEver', db\lookup('SUM(amount)', 'r_txs', 'payer=:ctty AND type IN (:TX_TRANSFER, :TX_GRANT, :TX_LOAN, :TX_INVEST, :TX_REFUND)', compact('ctty')));
   u\setDft($created, t\est() ? REQUEST_TIME : time());
   $subs = compact('ctty', 'created');
   // get pAccts, bAccts
@@ -1369,7 +1364,7 @@ EOF;
     if ($type == TX_TRANSFER) $type .= ' AND payer=:ctty AND amount<>0';
     $value = $type == TX_TRANSFER ? 
         "IF(type=$type AND payer=:ctty, amount, 0)" // rCredits issued as ctty purchases
-      : "IF(type=$type, IF(amount=0, t.r, amount), 0)";
+      : "IF(type=$type, amount, 0)";
     $sums .= "SUM($value) AS `{$one}s`, ";
 //    $sums .= "SUM(IF(type=$type, 1, 0)) AS {$one}Count, ";
   }

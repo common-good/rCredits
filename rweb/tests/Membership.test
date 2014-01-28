@@ -63,8 +63,8 @@ class rwebMembership extends DrupalWebTestCase {
     Given('member is logged out');
     And__('invitation to email "d@" is "c0D3"');
     When_('member "?" confirms form "signup/code=c0D3&dwok=1" with values: "DATA'
-    . '\\| fullName | email | phone | dupOk | country | postalCode | federalId | dob | acctType    | code | verifyBy |'
-    . '\\| Dee Four | d@ | 413-253-0000 | 0 |US  | 01002    | 123-45-6789 | 1/2/1993 | %R_PERSONAL | c0D3 |        1 |"');
+    . '\\| legalName | email | phone | dupOk | country | postalCode | federalId | dob | acctType    | code | verifyBy |'
+    . '\\| Dee Four  | d@ | 413-253-0000 | 0 |US  | 01002    | 123-45-6789 | 1/2/1993 | %R_PERSONAL | c0D3 |        1 |"');
     Then_('members: "DATA'
     . '\\| id      | fullName | email   | country | postalCode | state | city    | flags         |'
     . '\\| NEW.AAC | Dee Four | d@      | US      | 01002      | MA    | Amherst | dft,person,dw |"');
@@ -159,8 +159,8 @@ class rwebMembership extends DrupalWebTestCase {
     . '\\| 99999 |"');
     Then_('we show "Contact Information"');
     When_('member ".ZZA" confirms form "account/contact" with values: "DATA'
-    . '\\| fullName | email | phone | address | state | country | postalCode | verifyBy | postalAddr  | faxetc    |'
-    . '\\| Abe One  | a@    |     1 | 1 A St. | AK    | US      | 01002      |        1 | 1 A St., AK | %whatever |"');
+    . '\\| legalName | email | phone | address | state | country | postalCode | verifyBy | postalAddr  | faxetc    |'
+    . '\\| Abe One   | a@    |     1 | 1 A St. | AK    | US      | 01002      |        1 | 1 A St., AK | %whatever |"');
     Then_('we show "You\'re getting there"');
     And__('with done "2"');
     When_('member ".ZZA" has done step "agreement"');

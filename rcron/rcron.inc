@@ -10,7 +10,7 @@ DAILY (every 5 mins for 5 mins, starting at 2am)
 - * usdTxsThere() rollback lost USD transactions, mark completed deposits/withdrawals
 - ** recache() check / recalc cached r, rewards, and usd
 - [later] checkAccts() thorough security / scam checks
-- ** stats(): calculate daily statistics and record in r_stats and in the data field of user records
+- ** stats(): calculate daily statistics and record in r_stats and in the stats field of user records
 - ** paySuppliers(): automatic payment exchanges to suppliers
 - UNUSED ** payEmployees(): Each employee (and supplier) gets relieved of their excess rCredits immediately if they don't have enough USD to trade the employer for them.
 - ** gifts(): contributions to CGF (not shares)
@@ -251,7 +251,7 @@ function usdTxThere($item) {
 function usdTxQ($info) {r\queue($info['Type'] == 'money_sent' ? 'lostUsdTx' : 'bankFollowup', $info);}
 
 /**
- * Reverse any uncommitted USD transaction (any that has no record in r_usd).
+ * Record any unrecorded USD transaction (any that has no record in r_usd).
  * @param assoc $tx: the lost transaction
  */
 function lostUsdTx($tx) {
@@ -266,7 +266,9 @@ function lostUsdTx($tx) {
   if (t\est() and (!$payer or !$payee)) return;
   u\EXPECT($payer and $payee, "missing person in lost tx: payer=$payer payee=$payee");
   r\tellStaff("lost USD tx: #$txid $amount ($payer to $payee)", $tx, FALSE);
-  r\usd::rollback(array(compact(u\ray('txid amount payer payee created'))));
+  r\usd::beginAtom();
+  r\usd::addToAtom($txid, $amount, $payer, $payee, $created, $created);
+  r\usd::commit();
 }
 
 /**
@@ -345,8 +347,8 @@ function stats1($item) {
   $a = r\acct($uid);
   $today = strtotime('today');
   $monthAgo = strtotime('-1 month', $today);
-  $avgBalPastMo = r\averageBalance($uid, $monthAgo, $today);
-  $avgBalEver = r\averageBalance($uid, strtotime('today', $a->created), $today);
+  $avgBalPastMo = @number_format(r\averageBalance($uid, $monthAgo, $today), 2);
+  $avgBalEver = @number_format(r\averageBalance($uid, strtotime('today', $a->created), $today), 2);
   $subs = compact('uid', 'monthAgo');
   
   $sql = <<<EOF
@@ -370,8 +372,7 @@ EOF;
 EOF;
   $row3 = db\q($sql, $subs)->fetchAssoc() ?: array(); // get bankedEver, bankedPastMo
   $newData = compact(u\ray('avgBalPastMo avgBalEver'));
-  $data = $row1 + $row2 + $row3 + $newData + $a->data;
-  $a->update(compact('data'));
+  $a->update(u\ray('stats', $row1 + $row2 + $row3 + $newData));
 }
 
 /**

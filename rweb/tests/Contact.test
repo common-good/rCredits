@@ -57,7 +57,7 @@ class rwebContact extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" visits page "account/contact"');
     Then_('we show "Contact Information" with: "DATA'
-    . '\\| Full name |'
+    . '\\| Your name |'
     . '\\| Abe One   |"');
   }
 
@@ -89,6 +89,30 @@ class rwebContact extends DrupalWebTestCase {
     . '\\| fullName | phone        | country | postalCode | state | city    | address   | postalAddr | email   |'
     . '\\| Abe One  | 413-253-0002 | US      | 01002      | MA    | Amherst | 2 Elm St. | PO Box 1   | %random |"');
     Then_('we say "error": "bad email"');
+  }
+
+  // Scenario: A member updates to a different state
+  public function testAMemberUpdatesToADifferentState_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member ".ZZA" confirms form "account/contact" with values: "DATA'
+    . '\\| fullName | phone        | country | postalCode | state | city    | address   | postalAddr | email |'
+    . '\\| Abe One  | 413-253-0001 | US      | 01002      | MI    | Amherst | 2 Elm St. | PO Box 1   | a@    |"');
+    Then_('members: "DATA'
+    . '\\| id   | fullName   | address   | city    | state | postalCode | country | postalAddr | phone       | email |'
+    . '\\| .ZZA | Abe One    | 2 Elm St. | Amherst | MI    | 01002      | US      | PO Box 1   | 14132530001 | a@    |"');
+    And__('we say "status": "info saved"');
+  }
+
+  // Scenario: A member updates to a different name
+  public function testAMemberUpdatesToADifferentName_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member ".ZZA" confirms form "account/contact" with values: "DATA'
+    . '\\| fullName  | phone        | country | postalCode | state | city    | address   | postalAddr | email |'
+    . '\\| Abe Other | 413-253-0001 | US      | 01002      | MA    | Amherst | 2 Elm St. | PO Box 1   | a@    |"');
+    Then_('members: "DATA'
+    . '\\| id   | fullName  | legalName | address   | city    | state | postalCode | country | postalAddr |'
+    . '\\| .ZZA | Abe Other | Abe One   | 2 Elm St. | Amherst | MA    | 01002      | US      | PO Box 1   |"');
+    And__('we say "status": "info saved"');
   }
 
 }

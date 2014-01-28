@@ -461,7 +461,7 @@ function tx_edit($xid) {
   $form = array(
     'title' => formField('item', t('Edit Description')),
 //    'review' => formField('item', $summary),
-    'purpose' => textField(t('Purpose'), '', dft($purpose)),
+    'purpose' => textField(t('Purpose'), '', dft(u\nonish($purpose) ? '' : $purpose)),
     'go' => formField('submit', NULL, t('Submit button'), 'Update'),
     'xid' => hidField($xid),
     'field' => hidField($role . 'For'),

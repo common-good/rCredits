@@ -61,7 +61,7 @@ function preK($prefix, $s) {
  * If a key did not exist in the original array, it will no be in the returned array either.
  * @param string/array $these: array or space-delimited array of field names
  * @param array/object/string $args: possible key/value pairs to return (passed as array, object, or UrlArgString)
- * @return array of the results
+ * @return array of the results, trimmed
  */
 function just($these, $args) {
   $result = array();
@@ -93,6 +93,7 @@ function splice(&$input, $key, $len = 0, $replacement = NULL) {
 function cleanAmount($amount) {
   $amount = trim($amount);
   if (substr($amount, 0, 1) == '$') $amount = substr($amount, 1);
+  if (u\nonish($amount)) $amount = 0;
   return preg_replace('/[ \,]/', '', $amount); // ignore spaces and commas
 }
 
@@ -940,6 +941,16 @@ EOF;
   return u\ray('state city', @$result['State'], ucwords(strtolower(@$result['City'])));
 }  
 
+function caller($skip = 0) {
+  $trace = debug_backtrace();
+  for ($i = 0; $i <= $skip; $i++) array_shift($trace); // discard THIS call
+  $caller = (object) array_shift($trace); $file = basename(@$caller->file);
+  $precaller = (object) array_shift($trace); $prefile = basename(@$precaller->file);
+  $args = print_r(@$caller->args, 1);
+  $preargs = print_r(@$precaller->args, 1);
+  return " called $caller->function($args) ($caller->line in $file), from $precaller->function($preargs) ($precaller->line in $file)\n";
+}
+   
 function purify($s) {
   if (is_array($s)) {
     foreach ($s as $key => $value) $s[$key] = purify($value);
@@ -987,4 +998,4 @@ function isIPhone() {return preg_match('/iPhone/i', $_SERVER['HTTP_USER_AGENT'])
 function jsonEncode($s) {return json_encode($s) ?: json_encode(u\purify($s));} // , JSON_UNESCAPED_SLASHES
 function redash($s) {return str_replace('—', '&mdash;', $s);}
 function backButton() {return '<button onclick="history.go(-1); return false;">Go Back</button>';}
-
+function nonish($s) {return in_array(strtolower($s), array('n/a', 'nothing', 'na', 'none')); }

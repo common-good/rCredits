@@ -560,17 +560,14 @@ array (
   }
   
   /**
-   * Rollback a list of transactions
-   * If no $list is specified, rollback the most recent atom.
-   * @param array $list: array of assocs of USD transaction details (defaults to most recent atom)
-   * $list is specified when recovering from system failure during the daily (nightly) consistency checks
+   * Rollback the most recent atom. Rolling back happens ONLY when a single USD transaction has failed.
+   * So there is very little to do here.
    */
-  public static function rollback($list = array()) {
-    if (!$list) {
-      while (!is_object($one = array_pop(self::$atoms))) $list[] = $one;
-      $one->rollback(); // got Drupal transaction object last (and removed it from list)
-    }
-    
+  public static function rollback() {
+    array_pop(self::$atoms); // discard the transaction
+    u\EXPECT(is_object($DBTX = array_pop(self::$atoms)), 'atom error');
+    $DBTX->rollback(); // got Drupal transaction object last (and removed it from list). Roll it back.
+    /*
     foreach ($list as $one) { // create a compensating usd transaction for each transaction in $list
       extract($one); // same fields as listed above in addToAtom: txid amount payer payee created completed
       $reverseNote = t('reversed Dwolla transaction #') . $txid;
@@ -588,12 +585,13 @@ array (
       if (!noDw($dw) and $txid = $dw->send($usA2->pin, $usA1->number, $amount, 'Dwolla', $reverseNote)) {
         self::addToAtom($txid, $amount, $payee, $payer);
         if ($feeable) r\queue('coverFee', u\ray('txid payee', $txid, $payer));
-      } else { // failure (probably insufficient Dwolla balance) so reverse it in rCredits instead
-        $info = u\ray('payer payee amount r for taking', $payee, $payer, 0, $amount, $reverseNote, FALSE);
-        r\transact($info);
+      } else { // failure (probably insufficient Dwolla balance). Nothing to reverse.
+        //$info = u\ray('payer payee amount r for taking', $payee, $payer, 0, $amount, $reverseNote, FALSE);
+        //r\transact($info);
       }
       self::commit();
     }
+    */
   }
   
 } // end of class
