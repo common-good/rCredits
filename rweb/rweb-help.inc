@@ -47,7 +47,7 @@ EOF
       <li><b>Settings (Gear icon)</b>: Change your account settings, customize your company webpage (or make a Buy-with-rCredits button), make another contribution, or connect a mobile device.</li>
     </ul>
 
-    <p>If you need help and can't find the answer here, please feel free to <a href="mailto:@R_ORG_EMAIL?subject=help with rCredits" target="_blank">email us</a>.</p>
+    <p>If you need help and can't find the answer here, please feel free to <a href="mailto:@R_REGION_EMAIL?subject=help with rCredits" target="_blank">email us</a>.</p>
 EOF
     ),
     'smartphone' => t(<<<EOF
@@ -105,7 +105,7 @@ EOF
 EOF
     ),
     'account/photo' => tt(<<<EOF
-    <p>For an individual account you will need to upload a clear photo of your face, for identification. This is the photo that will appear on your Member ID card. If you have trouble coming up with a photo in a format that works, have a youngster take picture of you with their cell phone or tablet. Ask them to email you the picture, save that attachment to your desktop, then upload it here. If you still have trouble, email a description of your predicament to us at <a href="mailto:@R_ORG_EMAIL?subject=photo trouble" target="_blank">@R_ORG_EMAIL</a> and we will help.</p>
+    <p>For an individual account you will need to upload a clear photo of your face, for identification. This is the photo that will appear on your Member ID card. If you have trouble coming up with a photo in a format that works, have a youngster take picture of you with their cell phone or tablet. Ask them to email you the picture, save that attachment to your desktop, then upload it here. If you still have trouble, email a description of your predicament to us at <a href="mailto:@R_REGION_EMAIL?subject=photo trouble" target="_blank">@R_REGION_EMAIL</a> and we will help.</p>
     $companyAccount
 EOF
     ),
@@ -253,8 +253,8 @@ EOF
     ),
     'demand' => t(<<<EOF
     <p>"Demand" for additional rCredits is the total amount of US Dollars people have moved into the rCredits system, that can then be traded for rCredits. As long as people have plenty of places to spend within the rCredits system, they will generally keep moving money in. So the demand gives us a pretty reliable measure of the system's soundness.</p>
-    <p>We can keep issuing rCredits as long as there is a net inflow of US Dollars (an increasing demand). If members need to make more purchase outside the rCredits network and are taking more US Dollars out of the system than they are putting in (a decreasing demand), then we must temporarily stop issuing rCredits.</p>
-    <p>We can issue more rCredits again once people have more places to spend within the system (typically because more people and businesses have signed up) and they start moving money in again.</p>
+    <p>We can keep issuing rCredits as long as there is a net inflow of US Dollars (an increasing demand). If members need to make more purchases outside the rCredits network and are taking more US Dollars out of the system than they are putting in (a decreasing demand), then we must temporarily stop issuing rCredits. We can keep <i>using</i> the rCredits already in circulation, of course.</p>
+    <p>Once people have more places to spend within the system (typically because more people and businesses have signed up) and they start moving money in again, then we can begin again to issue additional rCredits.</p>
     $back
 EOF
     ),

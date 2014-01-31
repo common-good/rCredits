@@ -26,8 +26,10 @@ function rcredits_install() {
   $server = r\serverUid();
   if (!db\exists('users', 'uid=:server', compact('server'))) {
     $keys = u\ray('uid community name fullName postalCode country minimum rebate flags');
+
     $values = array($server, $server, R_SERVER_ID . '.', R_REGION_NAME, R_REGION_POSTAL_AREA, R_COUNTRY_ID, 0, 0, u\bit(B_OK) | u\bit(B_DW) | u\bit(B_COMPANY));
     $info = array_combine($keys, $values);
+    $info += u\ray('legalName postalAddr', R_REGION_LEGALNAME, R_REGION_ADDR);
     new r\acct($info);
 
     $values = array(r\unQuid(R_SERVER_ID . '.AAA'), $server, 'williamspademan', 'William Spademan', '01330', US_COUNTRY_ID, 0, R_REBATE, B_DFT | u\bit(B_MEMBER) | u\bit(B_DW) | u\bit(B_PERSON));

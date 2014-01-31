@@ -409,6 +409,12 @@ form.rweb  .form-no {color:red;}
 #memberlist .name {font-weight:bold;}
 #memberlist .co {color:darkred;}
 
+/* 1099-B */
+#f1099b td:first-child {width:45px;} /* date */
+#f1099b td:first-child +td {width:75px;} /* amount */
+#f1099b td:first-child +td+td {width:200px;} /* account */
+#f1099b .num {text-align:right;}
+
 /* Transactions */
 #rcreditswebformtxs #edit-title,
 #rcreditswebformtxs #edit-subtext {margin-left:0;}
@@ -617,6 +623,8 @@ html.js input.throbbing {background-position:right -2.4em;}
 #rcreditswebformoptions .form-item-debtOk {display:inline-block;}
 #rcreditswebformoptions .form-item-debtOk .description {max-width:700px;}
 #rcreditswebformoptions #edit-notices div {display:inline-block;}
+#rcreditswebformoptions #edit-posttext {margin-top:15px;}
+#rcreditswebformoptions #edit-posttext p {font-size:80%; margin:5px 20px;}
 
 /* Get */
 #rcreditswebformget #edit-title,

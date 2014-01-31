@@ -4,18 +4,21 @@
  * Specialized rCredits settings for this rCredits server
  */
 
-define('R_REGION_NAME', 'Western Massachusetts Region');
+define('R_REGION_NAME', 'rCredits Western Mass Region');
+define('R_REGION_LEGALNAME', 'rCredits Western Massachusetts Region');
 define('R_SERVER_ID', 'NEW'); // qid header for this region's server (New England / Western MA)
 // other 3rd letters: M=ME H=NH V=VT C=CT R=RI P=PA Y=NY A=NYC (apple) B=Boston
-define('R_ORG_PHONE', '413-628-1723');
+define('R_REGION_ADDR', 'c/o Common Good Finance, PO Box 21, Ashfield, MA 01330');
+define('R_REGION_PHONE', '+1 413.376.5021');
 define('R_TESTER_EMAIL', 'wspademan@gmail.com'); // tester's personal email
-define('R_ORG_EMAIL', strpos($_SERVER['HTTP_HOST'], '.') < 3 ? str_replace('@', '_cgf@', R_TESTER_EMAIL) : (strtolower(R_SERVER_ID) . '@rCredits.org'));
+define('R_REGION_EMAIL', strpos($_SERVER['HTTP_HOST'], '.') < 3 ? str_replace('@', '_cgf@', R_TESTER_EMAIL) : (strtolower(R_SERVER_ID) . '@rCredits.org'));
+define('R_REGION_EIN', '46-1821792');
 define('R_SITE_URL', 'https://new.rCredits.org');
 
 // (you don't get an ID card unless you are in this geographic area)
 define('R_REGION_POSTAL_AREA', '^01.*'); // anyone with a postal code that matches this regular expression is in the region
 date_default_timezone_set('America/New_York'); // server handles just one timezone
-define('DW_LAG', 1 * HOUR_SECS); // how many seconds later than us Dwolla's (Mountain Time) server sees the sun
+//define('DW_LAG', 1 * HOUR_SECS); // no longer used (Dwolla uses greenwich mean time, our PHP adjusts)
 define('R_COUNTRY_ID', US_COUNTRY_ID); // this region's country: United States
 define('R_STATE_ID', 1020); // Massachusetts
 define('R_REBATE', 10); // standard initial rebate percentage

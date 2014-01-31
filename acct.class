@@ -60,9 +60,9 @@ class acct {
     u\EXPECT($mail, 'account with no email address');
     $init = $mail;
     $pass = r\passHash(trim(@$pass ?: \user_password()));
+    u\setDft($fullName, @$legalName);
     $short_name = @$fullName ? u\shortName($fullName) : '';
     u\setDft($name, @$short_name ?: tempName($info));
-    u\setDft($fullName, @$info['name']);
     u\setDft($flags, B_DFT);
     u\setDft($rebate, R_REBATE);
     if (@$state and !is_numeric(@$state)) { // allow state abbrevs within US
@@ -337,16 +337,26 @@ class acct {
    *     (including US Dollars in Dwolla, not including credit lines and rewards)
    * @param float $need: the amount needed
    * @param bool $get: draw from other accounts as needed, then say whether there is enough
+   * @param bool $retrying: recursed after updating cache usd amount
    * @return how much short of what's needed is this account
    */
-  function shortfall($type, $need = 0, $get = FALSE) {
+  function shortfall($type, $need = 0, $get = FALSE, $retrying = FALSE) {
     $ray = (array) $this->account(R_MONEY_FIELDS);
     $ray['fees'] = 0;
     $avail = r\avail($type, $ray);
     if ($avail >= $need) return 0; // plenty without drawing from other accounts
 
     $avail += $get ? $this->draw($type, $need - $avail) : $this->canDraw($type); // get or just asking
-    return max(0, $need - $avail); // the shortfall
+    if ($shortfall = max(0, $need - $avail) and !$get and !$retrying) {
+      $lastWeek = strtotime('-10 days'); // EFTs never take this long
+      $where = "payer=:id AND payee=0 AND amount<0 AND completed=0 AND created>$lastWeek"; // recent USD in
+      if ($txid = db\lookup('txid', 'r_usd', $where, u\ray('id', $this->id))) { // found USD in
+        if ($tx = (new r\usd($this))->tx($txid)) {
+          if (r\usdTransferDone($tx)) return $this->shortfall($type, $need, $get, TRUE);
+        }
+      }
+    }
+    return $shortfall; 
   }
   
   /**

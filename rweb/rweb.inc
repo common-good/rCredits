@@ -362,7 +362,7 @@ function formHelp($form, &$sta, $what = '') {
  */
 function formMembership($a, &$sta = '', $code = '') {
   global $base_url;
-  ;
+
   if (!($updating = (bool) $a) and !$a = r\acct()) return NULL; // no account available
   if ($updating and $a->ok()) return TRUE;
 
@@ -372,7 +372,7 @@ function formMembership($a, &$sta = '', $code = '') {
   $dw = $a->can(B_DW);
 
   if ($mempage or !$a->can(B_MEMBER) or !$a->ok()) {
-    if ($dw and !$a->can(B_PHOTOID) and ($result = setupUs($step)) and t\est()) return $result;
+    if ($dw and !$a->can(B_PHOTOID) and ($result = setupUs($step, !$updating)) and t\est()) return $result;
     $nearly = $a->nearlyMember($steps);
     extract(u\just('signed donated', $steps));
     $photoOk = $a->hasAux('picture');
@@ -410,7 +410,7 @@ function formMembership($a, &$sta = '', $code = '') {
         : t('<h2>Welcome to rCredits</h2><p>Thanks for joining us. ');
     $message1 .= $nonperson ? t('Before you can begin accepting rCredits payments, you must complete the following steps.') 
       : t('Before we can send your rCard, and before you can vote on community funding, you must complete the following steps. This usually takes at least 20 minutes of your time, with a 3-day wait for the bank connection.');
-    $message1 .= tt(' If you need help, please <a href="mailto:@R_ORG_EMAIL" target="_blank">send us an email</a>.</p>');
+    $message1 .= tt(' If you need help, please <a href="mailto:@R_REGION_EMAIL" target="_blank">send us an email</a>.</p>');
 
 //    $step1 = t('Complete your <a>Contact Information</a>.'); // keep this in case
     $stepAgree = t('Sign the <a>rCredits Agreement</a>.');
@@ -704,9 +704,10 @@ function formSummary($form, &$sta) {
   $agent = $mya->agent;
   $mya->refreshCan(); // update any permissions that may have been set elsewhere (superfluous?)
 
-  if ($mya->admin() ? !$mya->can(B_MEMBER) : !formMembership($mya)) {
-      say('take a step');
+  if ($mya->admin() ? !$mya->can(B_MEMBER) : !$mem = formMembership($mya)) {
+    say('take a step');
   } else {
+    if ($mem !== TRUE and t\est()) return $mem; // redirected to another page
     if (!$mya->ok()) say('setup complete');
     say('adjust settings');
     if ($mya->can(B_DW) and !$mya->can(B_BANK)) say('verify bank');
@@ -1067,7 +1068,7 @@ function formAccounts_submit($form, &$sta) {
  */
 function changeWho($args = '') {
   extract(u\just('acct page', $_GET));
-  if ($acct == 'signout') r\go('/user/logout');
+  if ($acct == 'signout') return signout();
   
   setupGlobals();
   $mya = r\acct();
@@ -1172,9 +1173,10 @@ function formAdmin($form, &$sta, $args = '') {
   $printId = submit(t('Print ID'));
   $seeSecure = submit(t('See Secure'));
   $newUsdEmail = submit(t('New USD Email'));
+  $do1099b = submit('1099B');
   $form = compact(u\ray('title stop start'));
   foreach (u\ray('USD_Accounts Gfld tells ' . R_SHOWABLE_TABLES) as $one) $form[$one] = submit(str_replace('_', ' ', $one));
-  $form += compact(u\ray('account make printId seeSecure newUsdEmail'));
+  $form += compact(u\ray('account make printId seeSecure newUsdEmail do1099b'));
   return $form;
 }
 
@@ -1333,7 +1335,7 @@ function formGet($form, &$sta) {
   $myid = $mya->id;
   $isSetUp = !is_null($mya->minimum); // user has already saved some options
   $title = item(t('Bank Transfer'));
-  $subtext = item(t('Transfer funds to or from your connected bank account. For automatic transfers from your bank account, as needed, adjust your "minimum" setting on the <a href="' . $base_url . '/account/preferences">Preferences</a> page. Transfers may take 3-5 days.') . ($mya->dwStatus() == DW_VSAVINGS ? t(' Savings and Money Market accounts (like yours) are limited by law to 6 transfers per month.') : ''));
+  $subtext = item(t('Transfer funds to or from your connected bank account. For automatic transfers from your bank account, as needed, adjust your "minimum" setting on the <a href="' . $base_url . '/account/preferences">Preferences</a> page. Transfers may take 3-5 days to arrive.') . ($mya->dwStatus() == DW_VSAVINGS ? t(' Savings and Money Market accounts (like yours) are limited by law to 6 transfers per month.') : ''));
 
 //  $minimum = textField(t('Minimum:'), tt('prompt min'), dft(u\fmtAmt($isSetUp ? $mya->minimum : R_MINR_DEFAULT, 's')));
   $ray = (array) $mya->account(R_MONEY_FIELDS);
@@ -1554,7 +1556,7 @@ EOF
   $args = hidField(@$args);
   $by = hidField(@$inviter);
   
-  $form = compact(u\ray('title subtext acctType fullName legalName mail')) 
+  $form = compact(u\ray('title subtext acctType legalName fullName mail')) 
          + ssnFields($personal) + contactFields(compact('phone'))
          + compact(u\ray('calling companyInfo buysAt submit args by'));
 //  keep_values($form);
@@ -2070,7 +2072,8 @@ function formSecurity($form, &$sta, $args = '') {
        // !@$secure['auth']) { // no Dwolla account yet
 //      exit($usd->getAuth()); // get (new) auth token (does not return until after a visit to Dwolla)
     } */
-    $federalId = $dob = $pin = $answer = R_ON_FILE;
+    $federalId = $dob = $pin = R_ON_FILE;
+    $answer = $mya->question ? R_ON_FILE : '';
   }
   
 /*
@@ -2784,30 +2787,25 @@ function formOptions($form, &$sta) {
   $smsNotices = boxField(t('SMS notices:'), tt('Send me a text message when I receive a payment, charge, or invoice (requires a <a href="' . $base_url . '/account/boxes">connected cell phone</a>).'), $mya->can(B_NOTIFY_SMS));
   $statements = $mya->can(B_ELECTRONIC) + 0;
   $statementRadios = array(
-    t('I will accept electronic statements.'), 
+    t('I will accept electronic statements*.'), 
     t('I choose to receive printed statements by mail.') . u\SUBS(t('<div>I agree to pay $:R_STATEMENT_COST per month to cover the postage and handling costs for this service.</div>'))
   );
   $statements = formField('radios', t('Statements:'), '', required($statements), $statementRadios);
 
-  /*
-  if ($mya->co()) {
-    $a1 = "a href=\"$base_url/help/payment-exchanges\"";
-    $a3 = "a href=\"$base_url/account/relations\"";
-    // , minus 25 cents for each payment larger than $@DW_FEE_THRESHOLD. For example, a $100 payment exchange gives you a net rebate of $5.00 - 0.25 = $4.75. 
-    $desc = tt(<<<EOF
-    Saying "<b>Yes</b>" to <@a1>payment exchanges</a> (<b>highly recommended</b>) means you trade your rCredits to your employees and vendors automatically every day, in exchange for US Dollars (your total account balance does not change). You get a 5% bonus for these exchanges. To make the payment exchanges automatic, you need to set up <@a1>average</a> monthly payment amounts on the <@a3>Relations</a> page. As a result, US Dollars (rather than rCredits) will accumulate in your account until you spend them or move them to your bank account.
-EOF
-    , compact('a1', 'a3'));
-    //$dft = $isSetUp ? $mya->can(B_PAYEX) : TRUE;
-    //$payVirtual = boolField(t('Pay virtually:'), $desc, $dft);
-  } */
   $secretBal = boxField(t('Secret Balance:'), t("Don't let merchants see my balance, even if I ask."), $mya->can(B_SECRET_BAL));
   // Double confirmation: by SMS, by email, either. require extra confirmation of crucial account changes
   $floor = u\fmtAmt($mya->floor);
   $debtOk = boxField(t('Debt Okay:'), tt('Allow my account balance to go negative, limited by my current "credit floor" (which starts at zero, then gets lower and lower as time goes by &mdash; currently @floor). I understand there will be a substantial fee (currently $@R_DEBT_FEE plus @R_DEBT_PERCENT% per month) if I fail to bring my balance back up to zero within @R_DEBT_DAYS days.', compact('floor')), $mya->can(B_DEBT_OK));
   $submit = submit(t('Update Preferences'));
+  $posttext = item(tt(<<<EOF
+<h4>* Disclaimers required by the IRS:</h4>
+<p>Your choice of how to receive statements applies to all statements you receive from now on. You can change your preference at any time by returning to this Preferences page (using the Settings gear in the upper right corner) or by notifying the regional administrator by mail: @R_REGION_LEGALNAME, @R_REGION_ADDR. Any change will be confirmed in writing (electronically if you accept electronic statements, otherwise by US Mail).</p>
+<p>To view your electronic statements, you need an typical computer or mobile device connected to the internet, including an email program and a web browser. To print the statements, you need a printer.</p>
+<p>Your annual tax statements will be accessible online from January through December.</p>
+EOF
+  ));
   
-  $form = compact(u\ray('title subtext minimum smsNotices notices statements secretBal debtOk submit'));
+  $form = compact(u\ray('title subtext minimum smsNotices notices statements secretBal debtOk submit posttext'));
   js('showMax();', 'inline', 'footer');
   return labeled($form);
 }
@@ -2872,15 +2870,15 @@ function formReports($form, &$sta, $args = '') {
   $accounts = item($accounts, popHelp(t('Accounts:'), t('The number of accounts approved to buy and sell through the rCredits system, as of today.')));
   $issued = item(fundRpt($r0, @$lm_r, '$r'), popHelp(t('rCredits issued:'), t('Total number of rCredits in circulation, as of today (the breakdown shows how they were issued).')), $issuedAs);
   $shared = $admin ? item(fundRpt($shared, @$lm_shared, '$'), t('Shared w CGF:')) : NULL;
-  $demand = item(fundRpt($usd0, @$lm_usd, '$'), popHelp(t('Demand:'), t('Total amount of US Dollars that people have put into the system, available for the community to exchange for rCredits and possibly spend.')), t('community demand for additional rCredits (<@a>important</a>)', u\ray('@a', 'a href=help/demand')));
-  $total = item(tt("$r@R + $usd@US = $total"), popHelp(t('Total funds:'), t('Total amount of money (rCredits and US Dollars) in the system, as of today')), t('including about @savings in savings = @savingsPct of demand (<@a>important</a>)', u\ray('@savings @savingsPct @a', $savings, $savingsPct, 'a href=help/savings')));
-  $banking = item(tt("$bankInPerMo@US ($in) - $bankOutPerMo@US ($out) - $refundsPerMo ($fees) = $bankSign$bankNet@US ($net)"), popHelp(t('Banking / mo:'), t('How much money did members transfer in and out of the system, since this time last month')), t('transferring funds to or from a bank account (<@a>important</a>)', u\ray('@a', 'a href=help/to-bank')));
+  $demand = item(fundRpt($usd0, @$lm_usd, '$'), popHelp(t('Demand:'), t('Total amount of US Dollars that people have put into the system, available for the community to exchange for rCredits and possibly spend.')), t('community demand for additional rCredits (<@a>important why?</a>)', u\ray('@a', 'a href=help/demand')));
+  $total = item(tt("$r@R + $usd@US = $total"), popHelp(t('Total funds:'), t('Total amount of money (rCredits and US Dollars) in the system, as of today')), t('including about @savings in savings = @savingsPct of demand (<@a>important why?</a>)', u\ray('@savings @savingsPct @a', $savings, $savingsPct, 'a href=help/savings')));
+  $banking = item(tt("$bankInPerMo@US ($in) - $bankOutPerMo@US ($out) - $refundsPerMo ($fees) = $bankSign$bankNet@US ($net)"), popHelp(t('Banking / mo:'), t('How much money did members transfer in and out of the system, since this time last month')), t('transferring funds to or from a bank account (<@a>important why?</a>)', u\ray('@a', 'a href=help/to-bank')));
   $txs = item(txsRpt($perMo, $txsPerMo, $pAccts + $bAccts, ''), t('Purchases / mo:'));
   $p2p = item(txsRpt($p2pPerMo, $p2pTxsPerMo, $bAccts, 'p'), popHelp(t('p2p:'), t('Person-to-person transactions (individual members buying from other individual members)')));
   $p2b = item(txsRpt($p2bPerMo, $p2bTxsPerMo, $pAccts, 'p'), popHelp(t('p2b:'), t('Person-to-business transactions (customers buying from businesses, mostly using their rCard)')));
   $b2b = item(txsRpt($b2bPerMo, $b2bTxsPerMo, $bAccts, 'b'), popHelp(t('b2b:'), t('Business-to-business transactions (businesses paying their suppliers)')));
   $b2p = item(txsRpt($b2pPerMo, $b2pTxsPerMo, $bAccts, 'b'), popHelp(t('b2p:'), t('Business-to-person transactions (payroll)')));
-//  $exchanges = item(txsRpt($xchPerMo + $cashPerMo, $xchTxsPerMo + $cashTxsPerMo, $pAccts + $bAccts, ''), t('Trades / mo:'), t('exchanges of rCredits for US Dollars (<@a>important</a>)', u\ray('@a', 'a href=help/trades')));
+//  $exchanges = item(txsRpt($xchPerMo + $cashPerMo, $xchTxsPerMo + $cashTxsPerMo, $pAccts + $bAccts, ''), t('Trades / mo:'), t('exchanges of rCredits for US Dollars (<@a>important why?</a>)', u\ray('@a', 'a href=help/trades')));
   $velocity = item($velocity, popHelp(t('Velocity:'), t('How fast the money is circulating.')), t('how much of the total funds in the system (rCredits plus US Dollars) turns over every month'));
   
   $form = labeled(compact(u\ray('title subheader subtext accounts issued shared demand total banking txs p2p p2b b2b b2p exchanges velocity')));
@@ -2964,6 +2962,49 @@ EOF;
   $list = item($list);
   $emails = $mya->admin() ? item($emails, t('All emails')) : NULL;
   return compact(u\ray('title list emails'));
+}
+
+/**
+ * Show forms 1099-B for the previous calendar year.
+ 
+ figure 1099-INT amounts: SELECT sum(t.amount), u.fullName FROM users u LEFT JOIN r_txs t ON t.payee=u.uid WHERE t.payer=-8915 AND t.type=3 AND completed<1388552400 GROUP BY u.uid
+
+ */
+function form1099b($form, &$sta) {
+  $mya = r\acct();
+  $title = item(t('Your rCredits "Barter" Transactions for ') . (date('Y') - 1) . t(' (Forms 1099-B)'));
+  $subtext = item(t('This list includes all your rCredits system income for the past calendar year.'));
+
+  $list = "<table id='f1099b'>\n";
+  $list .= "<tr><th>Date</th><th class=\"num\">Income ($)</th><th>From</th><th>Description</th></tr>\n";
+  $total = 0;
+  
+  while ($row = be\get1099b($mya->id)) {
+    extract(u\just('completed amount uid for', $row));
+    $date = strftime('%d-%b', $completed);
+    $total += $amount;
+    $amount = str_replace('-', '- ', number_format($amount, 2));
+    $a = r\acct($uid);
+    $addr = str_replace(', Massachusetts', ', MA', $a->postalAddr);
+    $phone = str_replace('+1 ', '', u\fmtPhone($a->phone));
+    $text = htmlspecialchars("$a->fullName, $addr ($phone)");
+    $who = $a->fullName;
+    $list .= <<<EOF
+<tr>
+<td>$date</td>
+<td class="num">$amount</td>
+<td>$who</td>
+<td>$for</td>
+</tr>
+EOF;
+  }
+  $total = str_replace('-', '- ', number_format($total, 2));
+  $list .= "<tr><td><b>TOTAL</b></td><td class=\"num\"><b>$ $total</b></td><td></td><td></td></tr>\n</table>\n";
+  
+  $list = item($list);
+  $phone = str_replace('+1 ', '', u\fmtPhone(R_REGION_PHONE));
+  $posttext = item(tt('<p>This report is provided by @R_REGION_LEGALNAME, @R_REGION_ADDR (@phone): EIN #@R_REGION_EIN.</p><p>You can see it here until January 1 of next year (when the report for calendar year @thisYear replaces it). You are generally required to include this total rCredits income in the income you report to the IRS.</p><p>If you would rather receive reports by US Mail, you can change that setting in your <a href="account/preferences">Preferences</a>.', u\ray('phone thisYear', $phone, date('Y'))));
+  return compact(u\ray('title subtext list posttext'));
 }
 
 /**
@@ -3121,6 +3162,10 @@ EOF;
   $pdf->Output('rCredits-ID-Card.pdf', 'I'); //Close and output PDF document
 }
 
+function signout() {
+  return r\go('/user/logout');
+}
+
 function formFooter() {
   global $base_url, $rUrl;
 //  $layout = (svar('layout') == 'Mobile') ? 'Desktop' : 'Mobile';
@@ -3152,7 +3197,7 @@ EOF;
 
   $footerText = item($markup); // unique name for this page
 
-  $js = basename($_SERVER['REQUEST_URI']) == 'handy' ? '' : <<<EOF
+  $js = in_array(basename($_SERVER['REQUEST_URI']), u\ray('handy 1099-B')) ? '' : <<<EOF
 jQuery('a').click(function() { // #messages a, .links>li>a, .tabs>li>a, #edit-footertext>a
   jQuery('#saywait').show();
 });

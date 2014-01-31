@@ -55,7 +55,7 @@ Scenario: Leveling happens
   | .ZZG |   35 |  15 |
   | .ZZH |   45 |  16 |
   | .ZZI |   55 |  17 |
-Skip
+
   When cron runs "homogenize"
   Then balances:
   | id   | r   | usd |

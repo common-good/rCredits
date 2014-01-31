@@ -151,6 +151,44 @@ EOF;
 }
 
 /**
+ * Return the next relevant transaction for form 1099b, for an account.
+ * @param int $payee: the account record ID
+ * @return the next relevant row (NULL if no more)
+ */
+function get1099b($payee) {
+  global $q1099;
+  
+  if (!@$q1099) {
+    $tome = ':payee=payee';
+    $end = strtotime('january 1 2015') - 1;
+    $start = strtotime('-1 year', $end) + 1;
+    $sql = <<<EOF
+      SELECT completed, data, serial,
+        IF($tome, amount, -amount) AS amount, 
+        IF($tome, payer, payee) AS uid, 
+        IF($tome, payeeFor, payerFor) AS `for` ,
+        $tome AS tome
+      FROM r_txs WHERE :payee IN (payer, payee) AND completed BETWEEN $start AND $end 
+      AND (type NOT IN (:TX_TRANSFER, :TX_REFUND) OR goods)
+      ORDER BY completed
+EOF;
+    $q1099 = db\q($sql, compact('payee'));
+  }
+
+  while ($row = $q1099->fetchAssoc()) {
+    extract(u\just('data serial tome', $row));
+    $data = unserialize($data);
+    if (@$data['undoneBy'] or @$data['undoes'] or $serial == @$ignore) {
+      $ignore = $serial; // ignore undone txs and their rewards
+      continue;
+    }
+    if ($tome) return $row; // have to look at expenses, in case there's a reversed rebate, but don't return em
+  }
+
+  return $q1099 = NULL;
+}
+
+/**
  * Update relations
  * @param array $updates: list of records to update, indexed by reid
  *   each element is an associative array of new values, keyed by field name

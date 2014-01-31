@@ -999,3 +999,4 @@ function jsonEncode($s) {return json_encode($s) ?: json_encode(u\purify($s));} /
 function redash($s) {return str_replace('—', '&mdash;', $s);}
 function backButton() {return '<button onclick="history.go(-1); return false;">Go Back</button>';}
 function nonish($s) {return in_array(strtolower($s), array('n/a', 'nothing', 'na', 'none')); }
+function padto($s, $n) {return str_pad(substr($s, $n), $n);}

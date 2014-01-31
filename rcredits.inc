@@ -221,7 +221,7 @@ define('TX_WEB', 2);
 define('TX_SMART', 3); // smart phone or other computer-like device
 define('TX_TONE', 4); // touch tone phone
 define('TX_CRON', 5);
-define('TX_CHANNELS', t('System SMS Web App Tone Auto'));
+define('TX_CHANNELS', t('System SMS Web App Tone Cron'));
 
 // Transaction types (all but type TX_TRANSFER and TX_BANK create rCredits)
 define('TX_BANK', -9); // used only internally, to mark bank transfers
@@ -569,7 +569,7 @@ function makeDo($op, $uid, $amount = 0, $timeLimit = WEEK_SECS, $subs = '', $sql
  */
 function rMail($index, $email, $info, $lingo = '') {
   $info['email'] = $email;
-  if (!isPRODUCTION) if ($email != R_ORG_EMAIL and $email != R_TESTER_EMAIL) $email = 'none@example.com'; // black hole
+  if (!isPRODUCTION) if ($email != R_REGION_EMAIL and $email != R_TESTER_EMAIL) $email = 'none@example.com'; // black hole
   \drupal_mail('rCredits', $index, $email, '', $info);
 }
 
@@ -645,7 +645,10 @@ function membershipEvent($a, $status, $do = TRUE) {
   if ($do and ($bit === FALSE or !$a->hasBit($bit))) { // met the prerequisite and hasn't previously
     $DBTX = \db_transaction();
     if ($bit !== FALSE) $a->setBit($bit); // set the bit, if any
-    if ($status == 'bona' and $a->person()) be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
+    if ($status == 'bona' and $a->person()) {
+      be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
+      r\notify($a->id, 'account funded', array(), TRUE);
+    }
     if ($status == 'ok') {
       u\EXPECT($a->can(B_CTTY_ADMIN), 'should be ctty admin'); // only ctty admin can approve an account
       r\notify($a->id, 'welcome', array(), TRUE);
@@ -654,7 +657,7 @@ function membershipEvent($a, $status, $do = TRUE) {
     
     $fullName = $a->fullName;
     $quid = $a->mainQid;
-    tellStaff('event', compact(u\ray('fullName quid status')));
+    tellStaff('event', compact(u\ray('fullName quid status')), $a->id);
 	  return TRUE;
   } else return FALSE;
 }
@@ -712,7 +715,7 @@ function tellStaff($index, $subs = array(), $uid = TRUE) {
 
   $noFrame = TRUE;
   $topic = strlen($index) < 20 ? strip_tags($index) : '';
-  $email = R_ORG_EMAIL;
+  $email = R_REGION_EMAIL;
   r\rMail('tell-staff', $email, compact(u\ray('email message topic noFrame uid')));
 }
 
@@ -1083,9 +1086,10 @@ function newUid($base) {return u\firstUnusedId('uid', 'users', $base, $base + R_
  */
 function makeDevice($uid, $code = '', $ch = NULL) {
   global $channel;
+  $mya = r\acct();
   
   u\setDft($ch, $channel);
-  if ($ch == TX_WEB and r\acct()->admin()) return 0; // don't create spurious devices as admin
+  if ($ch == TX_WEB and $mya and $mya->admin()) return 0; // don't create spurious devices as admin
 /*  if ($boxName === '0') {
     $where = "t1.boxName REGEXP '^[0-9]+$' AND t1.uid=:uid";
     $boxName = u\firstUnusedId('boxName', 'r_boxes', 1, PHP_INT_MAX, $where, compact('uid'));
@@ -1492,6 +1496,36 @@ function tableField($field, $table, $which = '', $subs = array()) {
   u\EXPECT(count($result) == 1, "ambiguous in tableField(): $which");
 /**/ u\EXPECT(is_object($result[0]), 'bad object array in tableField(): ' . print_r($result, 1)); // keep this
   return strpos($field, ',') ? ((array) $result[0]) : $result[0]->$field;
+}
+
+/**
+ * Process a transfer of USD from a bank into the Dwolla/rCredits account or vice versa.
+ * @param assoc $tx: the Dwolla transaction
+ * @return TRUE if the transfer has been successfully processed.
+ */
+function usdTransferDone($tx) {
+  extract(u\just('Id Amount Date Type DestinationId SourceId ClearingDate Status', $tx));
+  if ($Status != 'processed') return FALSE; // pending
+  $Amount = $Type == 'deposit' ? -abs($Amount) : abs($Amount); // don't count on Dwolla's sign
+  $omit = t\est() ? (\variable_get('cgf_uid') - 1) : NULL; // ignore tester's account
+  if (!$payer = r\whoseUsd($Type == 'deposit' ? $DestinationId : $SourceId, $omit)) return FALSE; // tester
+  $info = u\ray('txid amount completed', $Id, $Amount, strtotime($ClearingDate));
+  if (!$old = db\lookup('completed+1', 'r_usd', 'txid=:txid', u\ray('txid', $Id))) { // system crashed before it got recorded
+    $info += u\ray('created payer payee', strtotime($Date), $payer, 0);
+  } elseif ($old == $info['completed']) return TRUE; // already correctly marked and dated complete
+
+  $DBTX = \db_transaction();
+  db\update('r_usd', $info, 'txid', TRUE); // update or (if crash) insert
+  if ($Type == 'deposit') {
+    $a = r\acct($payer);
+    $a->actualUsd(-$Amount); // adjust cache up (double minus) now that money finally came in
+    $hour = strftime('%H', strtotime($date)); // creation hour
+    $auto = $hour == R_DAILY_HOUR ? t(' automatic') : ''; // (space is intentional)
+    r\notify($a->id, 'transfer complete', u\ray('auto amount', $auto, $Amount));
+    r\membershipEvent($a, 'bona', $a->usd > 0); // this works for testing too
+  }
+  unset($DBTX);
+  return TRUE;
 }
 
 /**

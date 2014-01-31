@@ -1,33 +1,30 @@
 rCredits Software
 Notes for developers
 
-*** Update procedures (for upgrading software on the production server new.rcredits.org)
-- Run all tests before upload. No upload if not 100% pass. 
-  Exceptions: 
-  . new feature failure, if new feature is disabled.
-  . admin.inc can normally be uploaded without testing
-  . temporary debugging statements can be added if they are first tested on ws.rcredits.org
-  . cut and paste bug fixes on prod server when they are in just one or two clumps of 6 lines or less AND the functions being patched have not otherwise changed (on the DEV system) since the last update
-- Find and delete all temporary debugging statements:
-///. Search for "debug(", "print_r(", and "die(" (all such lines should begin with /// or (if keepers) /**/ Sometime write a macro to do the finding. 
-  . Make sure debugMode in dwolla.php is FALSE.
-- Upload first to ws.rcredits.org, rebuild menus (and maybe reinstall) and make sure SOMETHING works
-- When updating data directly through phpMyAdmin or the PHP window or other admin tools, back up the database or relevant tables first.
-- Upload to new.rcredits.org, rebuild menus (and maybe reinstall) and make sure SOMETHING works.
-***
+		*** Update procedures (for upgrading software on the production server new.rcredits.org)
+		- Run all tests before upload. No upload if not 100% pass. 
+		  Exceptions: 
+		  . new feature failure, if new feature is disabled.
+		  . admin.inc can normally be uploaded without testing
+		  . temporary debugging statements can be added if they are first tested on ws.rcredits.org
+		  . cut and paste bug fixes on prod server when they are in just one or two clumps of 6 lines or less AND the functions being patched have not otherwise changed (on the DEV system) since the last update
+		- Find and delete all temporary debugging statements:
+///       . Search for "debug(", "print_r(", and "die(" (all such lines should begin with /// or (if keepers) /**/ Sometime write a macro to do the finding. 
+		  . Make sure debugMode in dwolla.php is FALSE.
+		- Upload first to ws.rcredits.org, rebuild menus (and maybe reinstall) and make sure SOMETHING works
+		- When updating data directly through phpMyAdmin or the PHP window or other admin tools, back up the database or relevant tables first.
+		- Upload to new.rcredits.org, rebuild menus (and maybe reinstall) and make sure SOMETHING works.
+		***
 
+		MEMBERSHIP PROCEDURE:
+		. wait for READY status (once all steps are done, including Dwolla account and bank connection REQUEST)
+		. make sure the photo is adequate
+		. mark the account as an rTrader (OK) (before printing card)
+		. print card and welcome materials, mail to new member (welcome includes reminder to verify bank account)
+				
 TASKS FOR NEXT UPDATE:
-figure 1099-INT amounts: SELECT sum(t.amount), u.fullName FROM users u LEFT JOIN r_txs t ON t.payee=u.uid WHERE t.payer=-8915 AND t.type=3 AND completed<1388552400 GROUP BY u.uid
-1099-B count: SELECT u.fullName, COUNT(t1.xid)+COUNT(t2.xid) AS count FROM (users u LEFT JOIN r_txs t1 ON t1.payer=u.uid) LEFT JOIN r_txs t2 ON t2.payee=u.uid WHERE t.type=0 AND completed<1388552400 GROUP BY u.uid
-. upload user.module
 after reinstall:
 (no other special tasks yet)
-
-MEMBERSHIP PROCEDURE:
-wait for READY status (once all steps are complete, including Dwolla account and bank connection REQUEST)
-make sure the photo is adequate
-mark the account as an rTrader (OK) (before printing card)
-print card and welcome materials, mail to new member (welcome includes reminder to verify bank account)
 
 . remind people to confirm their bank account (and say how -- call the bank, etc.)
 . *** 1099-Bs!
@@ -38,18 +35,18 @@ print card and welcome materials, mail to new member (welcome includes reminder 
 - * detailed membership tests: New Pass, Photo, Agreement, Contribute, Proxies, Usd, proof of ID, Options
 
 . Suggestions from Mike:
- • Instead of “File” in the upload-photo page, how about “Photo”?
 • I think I had to click “Upload and Save” twice, once to upload-and-display, once to save. Is that correct?
 • The place which now shows a teeny photo was a [-] before. Confusing. Omit it from the web page entirely?
-• Please make “Sign out” a button, not a choice in a popup menu. Some users won’t think to click the menu.
 • The phrase “Checking accounts work best because of legal restrictions on other types” But why not attach that warning to the second radio button? Just “(these won’t work as well as checking accounts…)” ?
 • A picture of where to find routing and acct numbers would be nice. Sort of like http://www.nationwide.com/routing-and-account-numbers.jsp does. Or draw a mockup of a check and put those two fields in the right places.
 • The full-contact-info page asked again whether to verify by text or voice. Does it really need to know that?
-• Either way, could be nice to light up when I have the correct number of digits.
 • After I send the two 15c deposits, the Status page still shows "connect your bank account". Something should show me that there are two steps: Send the deposits and confirm them.
-• I didn’t give a security question, but it says "on file"
 
-. LATER make invite a primary link
+. when creating postal addr, use state abbrev
+• Instead of “Choose File” in the upload-photo page, how about “Choose Photo”? (make input an invisible overlay): http://stackoverflow.com/questions/5191375/a-file-input-button-for-all-browsers-is-this-possible/5191970#5191970
+• routing number and federal ID: could be nice to light up when I have the correct number of digits.
+. make proxy choices scrolling lists (with html size=20 ?), maybe the two choices side by side
+. write test or test procedure for updating usd cache when shortfall but funds have arrived in Dwolla (have to test it on production server)
 . create an rCredits charge&pay app (modify rPOS) for members to charge or pay other members (rather than be charged). It might be expanded later to include account features.
 . implement two-factor signin
 . write ajax to remember country and state in Contact form, on blank field error

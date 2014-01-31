@@ -91,6 +91,7 @@ class usd {
   function step(&$err = '') {
     $dw = $this->dwolla();
     if (!$step = $dw->step()) return dwError($dw, $err);
+    if ($step == 'Email') return 'Phone';
     return $step;
   }
 
@@ -452,6 +453,19 @@ array (
   }
 
   /**
+   * Get transaction info
+   * @param string $txid: transaction id
+   * @param string $error: (returned) the error message, if any
+   * @return assoc [Amount, Date, DestinationId, DestinationName, Id, SourceId, SourceName, Type, UserType, Status, ClearingDate, Notes, Fees] where
+   *   Fees: assoc [Id, Amount, Type]
+   */
+  public function tx($txid, &$error = NULL) {
+    $dw = $this->dwolla();
+    if (!noDw($dw) and !$tx = $dw->transaction($txid)) return dwError($dw, $error);
+    return $tx;
+  }
+  
+  /**
    * Get funding source info
    * @return the source array (FALSE if no connected bank account)
    */
@@ -474,7 +488,7 @@ array (
     $dw = $this->dwolla();
     $skip = 0; // how many transactions to skip, in call to $dw->listings()
     $atATime = 50; // arbitrary, up to 200 (Dwolla limit)
-    while ($listings = $dw->listings(strftime('%m-%d-%Y', $start - DW_LAG), $type, $atATime, $skip)) {
+    while ($listings = $dw->listings(strftime('%m-%d-%Y', $start), $type, $atATime, $skip)) {
       foreach ($listings as $one) $callback($one);
       // if ($anybody ?: u\abbreviates(t\est() . USD_NOTE_PREFIX, $one['Notes']))
       $skip += $atATime;

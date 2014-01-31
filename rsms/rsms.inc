@@ -71,6 +71,8 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'share gift' => t('Your chosen ongoing gift of @share% of your rewards has been initiated for this month.'),
   'account suspended' => t('Your account has been temporarily suspended @why'),
   'to protect data integrity.' => t('to protect data integrity.'),
+  'account funded' => t('Funds have arrived in your rCredits account! You may now use your rCard for purchases.'),
+  'transfer complete' => t('Your requested@auto transfer of @amount (into your rCredits account) has completed.'),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),
@@ -164,7 +166,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'usd failed' => t('A temporary technical problem prevented the transfer of US Dollars. No transaction took place.'),
   'cannot bank' => t('The rCredits system was unable to @action your bank: @error'),
   'no source' => t('there is no valid funding source'),
-  'not verified' => t('the funding source has not yet been verified by entering the two tiny deposit amounts'),
+  'not verified' => t('you have not yet verified the connection to your bank account. Check your bank statement online or call your bank (2-5 days after giving your routing and account numbers). There will be two small deposits made to your account, each less than @DW_VERIFY_ROOF cents. Go back to rCredits.org, click "Members\' Site", sign in, then follow the instructions there to supply those two deposit amounts.'),
   'agreement required' => t('You must agree to Dwolla\'s terms of service or you cannot participate in the rCredits system.'),
   'year is 4 digits' => t('Be sure to type all four digits of the year.'),
   'date too early' => t('That date is too early.'),

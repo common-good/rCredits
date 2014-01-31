@@ -481,7 +481,7 @@ function weTellStaff($topic, $subs = array()) {
   foreach ($subs as $one) {
     $index = 'tell-staff';
     $subject = str_replace('{topic}', $topic, $GLOBALS['emailSubjects'][$index]);
-    $find = '%"index":"@index","email":"@R_ORG_EMAIL","subject":"@subject"%';
+    $find = '%"index":"@index","email":"@R_REGION_EMAIL","subject":"@subject"%';
     if ($id = @$one['id']) {
       $id = t\uid($id);
       $find .= "(#$id)%";

@@ -1,3 +1,12 @@
+2014-01-31
+. made invite a primary link
+. made sign out a primary link
+. shortened transfer time from bank: when there are insuffient funds, now updates cached usd amount and retries.
+• fixed bug: "I didn’t give a security answer, but it says on file"
+. we now check hourly for deposits into the Dwolla/rCredits account
+. member is now alerted immediately when funds arrive in their account for the first time (bona)
+. created 1099B reports for members and for electronic filing with IRS and state
+
 2014-01-27
 . fixed bugs in usd::rollback, injected during separation of USD transactions from r_txs
 . fixed many cosmetic problems and minor bugs discovered by Mike
@@ -13,6 +22,7 @@
   - move these data fields to data['stats']: giftsEver, giftsPastMo, beneEver, benePastMo, extraEver, extraPastMo, bankedEver, bankedPastMo, avgBalPastMo, avgBalEver 
   - set legalName equal to fullName in each account
 . delete r_companies
+. improved password strength descriptions
 
 2014-01-23
 . exchanges of r for usd are no longer in r_txs -- they are in r_usd only. All transactions between members are rCredits only. This made the "r" and usdXid fields in r_txs moot so they are gone. (Can't put this on server until data changes are ready)

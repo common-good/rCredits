@@ -45,6 +45,9 @@ function adminForm($sta) {
     $a->update(compact('secure'));
     seeSecure($a);
     return;
+  } elseif ($op = 'do1099b') {
+    include __DIR__ . '/../rcredits/rcredits-yearly.inc';
+    r\Special\do1099bs();
   }
   
   // handle all other buttons with showTableQ()
@@ -188,51 +191,8 @@ function changeIt($a) {
   }
   $data['legalName'] = $a->fullName;
   $a->update(compact('data'));
-  debug($a->data);
+/**/debug($a->data);
 }
-/*
-
-  $rc4 = strpos(@$a->secure['usdEmail'], 'rc4') ? '' : ('not RC4! ' . @$a->secure['usdEmail']);
-  $vby = isset($a->data['verifyBy']) ? ($a->data['verifyBy'] ? 'Voice' : 'SMS') : 'not set';
-//debug ("$a->fullName dob is $a->dob ssn is $a->federalId verifyBy is $vby $rc4");
-  if ($vby == 'not set') $vby = 'Voice';
-  if (@$a->dob and !is_numeric($a->dob)) {
-    $a->update(u\ray('dob', u\s2t($a->dob)));
-// debug ("$a->fullName dob is now $a->dob");
-  }
-  if (strlen(@$a->data['verifyBy']) < 2) {
-    $data = u\ray('verifyBy', $vby) + $a->data;
-    $a->update(compact('data'));
-// debug ("$a->fullName verifyBy is now " . $a->data['verifyBy']);
-*/
-
-/*
-  $postalAddr = $a->address . ', ' . $a->city . ', ' . r\realState($a->state) . ' ' . $a->postalCode;
-  list ($address) = explode(',', $a->postalAddr);
-  if (!$address) $address = $a->address;
-  $a->update(compact('address', 'postalAddr'));
-*/
-//$payee = db\lookup('payee', 'r_usd', 'txid=:txid', compact('txid'));
-//r\Cron\coverFee(compact('txid', 'payee'));
-
-/*
-https://rcredits.org:2083/cpsess4564554376/frontend/x3/mail/addfwd.html
-
-<form method="post" name="fwdf" id="fwdf" action="doaddfwd.html">
-<input id="email" type="text" name="email" size="25" value="new" />
-<input name="domain" value="new.rcredits.org">
-<input name="fwdopt" id="fwd_radio" type="radio" value="fwd" checked="checked" />
-<input name="fwdemail" id="fwdemail"  type="text" size="40" value="new@rcredits.org" />
-<input class="input-button" type="submit" id="submit" value="Add Forwarder" />
-</form>
-
-list ($txid, $amount, $payer, $payee, $created) = array(3198706, 1.81, 26742000000001, 26742000000018, strtotime('6/12/2013'));
-$list = array(compact(rCredits\Util\ray('txid amount payer payee created')));
-$a = rCredits\acct('NEW.AAA');
-$us = new rCredits\usd($a);
-$us->rollback($list);
-
-*/
 
 /**
  * Re-setup the test cards on the STAGING server, after importing data from the PRODUCTION server.
@@ -268,57 +228,6 @@ function makeTestCards() {
   $a->update(u\ray('fullName', 'Susan Shopper'));
   $a->upSecure('cardCode', 'ZzhWMCq0zcBowqw');
 }
-
-// transient
-/*function releaseEmails() {
-//  db\q('DELETE FROM r_invites WHERE id IN (6,37,55,67,77,137,150,165,177,190)'); //135,63,68,40
-  $result = db\q("SELECT * FROM r_invites WHERE id NOT IN (40,125) AND inviter NOT IN (:wws, :janet, :diane) AND subject!='' ORDER BY invited", u\ray('wws janet diane', r\acct('NEW.AAA')->id, r\acct('NEW.AAE')->id, 26742000000012));
-  while ($row = $result->fetchAssoc()) {
-    extract(u\just('id code email subject message inviter invited', $row));
-    $a = r\acct($inviter);
-    
-    $info = array(
-      'uid' => $a->id,
-      'noFrame' => TRUE,
-      'subject' => $subject,
-      'PERSONAL_NOTE' => $message, 
-      'MEMBER_NAME' => $a->fullName, 
-      'DATE' => u\fmtDate($a->signed),
-      'CODE' => $code,
-    );
-    r\rMail('invite', $email, $info);
-    db\update('r_invites', u\ray('id invited', $id, REQUEST_TIME), 'id');
-  }
-}*/
-
-/* transient
-include __DIR__ . '/../rcredits/admin.inc';
-echo splitoffUSD();
-
-  //db\insert('r_usd', u\ray('txid payer payee amount created completed', -1, 24960000000001, 0, 0.25, $oldDate));
-  SELECT * FROM r_txs t INNER JOIN r_usd u ON u.txid=t.usdXid WHERE u.amount!=ABS(t.amount-t.r)
-*/
-function splitoffUsd() {
-  $oldDate = strtotime('1-1-2013');
-
-
-  $result = db\q('SELECT uid FROM users WHERE uid>1')->fetchCol();
-  $msgs = '';
-  foreach ($result as $uid) {
-    $us = new r\usd($a = r\acct($uid));
-    $usd = $us->bal($err) + 0;
-    $where = ':uid IN (payer, payee) AND completed AND state=:TX_DONE';
-    $txUsd = db\lookup('SUM(IF(payee=:uid, amount-r, r-amount))', 'r_txs', $where, compact('uid'));
-    $usdUsd = db\lookup('SUM(IF(payee=:uid, amount, -amount))', 'r_usd', $where, compact('uid'));
-    if ($txUsd != $usdUsd or $usd != $txUsd) $msgs .= "uid=$uid usd=$usd txUsd=$txUsd usdUsd=$usdUsd<br>\n";
-  }
-  return $msgs;
-  
-}
-
-/*
-debug (rCredits\Backend\creditInfo(array('uid' => 26742000000040)));
-*/
 
 /**
  * Reimburse the Dwolla fee (if any) of a recent transaction.

@@ -68,10 +68,10 @@ EOF
   'adjust settings' => t('You can adjust your settings by clicking the gear in the upper right corner. '),
 
   // prompts
-  'prompt min' => t('Keep this much in my rCredits account, for purchases or inflation-proof savings. (When your balance goes below this amount, the system refills it for you from your bank account. Refilling may take 3-5 days.)'),
+  'prompt min' => t('Keep this much in my rCredits account, for purchases or inflation-proof savings. When your balance goes below this amount, the system automatically refills it for you from your bank account. Whether you request a transfer explicitly on the "Bank" page or let the system do it automatically, refilling may take 3-5 business days (a couple days to leave the bank and a couple more to arrive in your rCredits account).'),
 //  'prompt max' => t('Keep AT MOST this much in my rCredits account. (When your rCredits balance goes above this amount by $@R_CHUNK or more, the system transfers the extra to your bank account. Blank means no automatic transfers &mdash; recommended in most cases).'),
-  'legalname desc' => t('Your full legal name, properly capitalized.'),
-  'usename desc' => t('This should be the name you use in official emails, at work, on your checks and credit cards, etc.'),
+  'legalname desc' => t('Your full legal name, properly capitalized, as on your government-issue ID.'),
+  'usename desc' => t('This should be the name you use in formal letters, at work, on your checks and credit cards, etc.'),
   'verify connection' => t('Two small deposits (under @DW_VERIFY_ROOF cents) have been sent to your bank. Call your bank after 3-5 business days, to find out the amounts. Then come back to the Bank Info page and fill in those amounts, to verify the connection to your bank account. Here\'s how: Go to rCredits.org, click "Members\'s Site", sign in, click the Settings gear in the upper right corner, then click "Bank Info". We will send you a reminder by email.'),
   'ssTitle' => t('Soc Sec #:'),
   'einTitle' => t('Federal ID:'),
@@ -120,7 +120,7 @@ EOF
   'ambiguous other' => t('"@who" might mean any of these rCredits accounts. Click the one you want or <a id="which-cancel">here to cancel</a>.'),
 //  'similar found' => t('If you mean @otherName (@phone), <a href="@draftLink">click here for YES</a>. Otherwise, <a href="@cancelLink">click here to cancel</a>.'),
   'get app' => t('To scan Account ID cards with a smartphone, you need the app! You can download the Android app <a href="http://rCredits.org/rc.apk">here</a>. The iphone version is in the works (check again in January).'),
-  'no help' => t('There is no written help available for this page. Give it a try! If you are still puzzled, please feel free to give us a call at @R_ORG_PHONE. Or send your question by <a href="mailto:@R_ORG_EMAIL?subject=help with rCredits Members Site, @page page" target="_blank">email</a>.'),
+  'no help' => t('There is no written help available for this page. Give it a try! If you are still puzzled, please feel free to give us a call at @R_REGION_PHONE. Or send your question by <a href="mailto:@R_REGION_EMAIL?subject=help with rCredits Members Site, @page page" target="_blank">email</a>.'),
   'no account permission' => t('You do not have permission to use that account.'),
   'bad transient id' => t('That QR code is out of date. Try again?'),
 //  'bad email' => t('The e-mail address <em class="placeholder">@email</em> is not valid.'), // must match Drupal, for tests
@@ -486,9 +486,10 @@ EOF;
 /**
  * Go to the next USD setup page (return the page if testing) or return FALSE.
  * @param string $step: (returned) the next Dwolla setup step
- * @return (if testing) a page to display as appropriate, else FALSE
+ * @param bool $redirectOk: okay to redirect to an appropriate page
+ * @return (if testing) a redirect page to display as appropriate, else FALSE
  */
-function setupUs(&$step) {
+function setupUs(&$step, $redirectOk = TRUE) {
   $us = new r\usd($mya = r\acct());
   if (!@$mya->secure['auth']) {
     if (!$mya->createUsdAccount($err)) return say($err, 'ERR'); // set auth
@@ -504,13 +505,13 @@ function setupUs(&$step) {
   }
   if ($step == 'Email') return FALSE; // await automatic or manual confirmation of email (meanwhile user can sign Agreement)
   if ($step == 'Finished') return FALSE;
-  if ($mya->phone and $step == 'Phone') return addPhone();
-  if ($step == 'AccountInfo') return r\go('account/basic', 'redo info', 'ERR'); // here on ssn() failure
-  if ($step == 'Kba') return r\go('account/kba'); // here on accountInfo() failure
-  if ($step == 'PhotoId') return r\go('account/photo-id'); // here on Kba() success (else call Dwolla)
+  if ($mya->phone and $step == 'Phone') return $redirectOk ? addPhone() : FALSE;
+  if ($step == 'AccountInfo') return $redirectOk ? r\go('account/basic', 'redo info', 'ERR') : FALSE; // here on ssn() failure
+  if ($step == 'Kba') return $redirectOk ? r\go('account/kba') : FALSE; // here on accountInfo() failure
+  if ($step == 'PhotoId') return $redirectOk ? r\go('account/photo-id') : FALSE; // here on Kba() success (else call Dwolla)
 
   if ($mya->address and $step == 'Address') {
-    if (!$us->address($mya->address, $mya->city, r\realState($mya->state, $mya->country), $mya->postalCode, $err)) return r\go('account/contact', $err);
+    if (!$us->address($mya->address, $mya->city, r\realState($mya->state, $mya->country), $mya->postalCode, $err)) return $redirectOk ? r\go('account/contact', $err) : FALSE;
   } elseif ($step == 'Ssn') {
     if (!$us->ssn($mya->federalId, $err)) {
       if ($err) return say($err, 'ERR');
@@ -1014,7 +1015,7 @@ function scanIn($acct) {
 
 function hack($message, $info = array()) {
   u\loga('hack', $_SERVER, $message);
-  return r\go(r\acct() ? '/user/logout' : '');
+  return r\acct() ? signout() : r\go('');
 }
 
 /*function changeAccount($quid = '') {

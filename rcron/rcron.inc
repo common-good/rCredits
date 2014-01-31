@@ -9,7 +9,7 @@
 DAILY (every 5 mins for 5 mins, starting at 2am)
 - * usdTxsThere() rollback lost USD transactions, mark completed deposits/withdrawals
 - ** recache() check / recalc cached r, rewards, and usd
-- [later] checkAccts() thorough security / scam checks
+- checkAccts() check for consistency, security, scams
 - ** stats(): calculate daily statistics and record in r_stats and in the stats field of user records
 - ** paySuppliers(): automatic payment exchanges to suppliers
 - UNUSED ** payEmployees(): Each employee (and supplier) gets relieved of their excess rCredits immediately if they don't have enough USD to trade the employer for them.
@@ -90,7 +90,17 @@ function periodic() {
 
 function everyHour() {
   // stuff to do every hour
+  queueEach('acctHourly', "SELECT uid FROM users");
   // r\tellStaff('hourly cron');
+}
+
+/**
+ * Account checks to do every hour.
+ */
+function acctHourly($item) {
+  extract(u\just('uid', $item));
+  $a = r\acct($uid);
+  $a->shortfall('buy', PHP_INT_MAX); // notice recent deposits, if any
 }
 
 function everyDay() {
@@ -258,7 +268,7 @@ function lostUsdTx($tx) {
   extract(u\just('Id Notes Amount SourceId DestinationId Date', $tx));
   if (!u\abbreviates(t\est() . USD_NOTE_PREFIX, $Notes)) return; // not one of ours
   if (db\exists('r_usd', 'txid=:Id', compact('Id'))) return;
-  $created = strtotime($Date) + DW_LAG;
+  $created = strtotime($Date);
   if (!t\est() and time() - $created < 60) return; // too recent, maybe still in process? (handle tomorrow)
   list ($txid, $amount) = array($Id, $Amount);
   $payer = r\whoseUsd($SourceId);
@@ -277,24 +287,7 @@ function lostUsdTx($tx) {
  * Note that transfers to the bank were marked complete immediately, but not with the correct ClearingDate.
  */
 function bankFollowup($tx) {
-  extract(u\just('Id Amount Date Type DestinationId SourceId ClearingDate Status', $tx));
-  if ($Status != 'processed') return; // pending
-  $Amount = $Type == 'deposit' ? -abs($Amount) : abs($Amount); // don't count on Dwolla's sign
-  $info = u\ray('txid amount completed', $Id, $Amount, strtotime($ClearingDate) + DW_LAG);
-  if (!$old = db\lookup('completed+1', 'r_usd', 'txid=:txid', u\ray('txid', $Id))) { // system crashed before it got recorded
-    $omit = t\est() ? (\variable_get('cgf_uid') - 1) : NULL; // ignore tester's account
-    if (!$payer = r\whoseUsd($Type == 'deposit' ? $DestinationId : $SourceId, $omit)) return; // probably tester
-    $info += u\ray('created payer payee', strtotime($Date) + DW_LAG, $payer, 0);
-  } elseif ($old == $info['completed']) return; // already correctly marked and dated complete
-
-  $DBTX = \db_transaction();
-  db\update('r_usd', $info, 'txid', TRUE); // update or (if crash) insert
-  if ($TYPE == 'deposit') {
-    $a = r\acct($payer);
-    $a->actualUsd(-$Amount); // adjust cache when money finally comes in
-    r\membershipEvent($this, 'bona', $a->usd > 0); // this works for testing too
-  }
-  unset($DBTX);
+  r\usdTransferDone($tx);
 }
 
 /**
@@ -319,13 +312,15 @@ function recache1($item) {
  * Check accounts for consistency, scams, whatever.
  */
 function checkAccts() {
-  queueEach('checkAcct', "SELECT uid, minimum, rewards FROM users WHERE uid>1 AND :IS_OK"); //IS_MEMBER?
+  queueEach('checkAcct', "SELECT uid, minimum, rewards FROM users WHERE uid<>0");
   queueNextAfter('checkAccts');
 }
 
 function checkAcct($item) {
   extract($item); // (prepared for additional tasks)
   $a = r\acct($uid);
+  if (r\membershipEvent($a, 'bona', $a->usd > 0)) r\tellStaff('noticed BONA late', NULL, $uid);
+  //look at agreement date and first transaction date and last transaction date. queue appropriate funcs
 }
 
 /**

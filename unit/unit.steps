@@ -1,0 +1,48 @@
+<?php
+/**
+ * @file
+ * rUnit Steps
+ *
+ * Provide step functions for functional testing.
+ * This file is created automatically by the Gherkin compiler.
+ *
+ * Note, therefore, that most of this file might be changed automatically
+ * when you run the compiler again. This @file description will not be affected,
+ * but all of the function header comments are (re)generated automatically.
+ *
+ * Be assured however, that no functions will be deleted and the compiler will
+ * never delete or alter code within a function (unless you introduce commenting errors).
+ */
+use rCredits as r;
+use rCredits\DB as db;
+use rCredits\Testing as t;
+use rCredits\Util as u;
+use rCredits\Backend as be;
+
+require_once __DIR__ . '/../rcredits.inc';
+require_once __DIR__ . '/../rcredits-testing.inc';
+
+/**
+ * Add additional setup for any or all features or tests
+ * The feature object contains information about the current feature and test, etc.
+ */
+function extraSetup($feature) {
+  t\clear(rand(0, count(TX_CHANNELS) - 1); // unit tests should work for any channel
+  if (!function_exists('multiline_tweak')) {function multiline_tweak(&$line) {
+    $line = str_replace('%last_quid', r\quid(r\acct::nextId() - 1), $line);
+  }}
+}
+
+/**
+ * Modify the standard list of magic substitutions (the %parameters)
+ */
+function extraSubs(&$subs) {
+//  $subs['%replace_this'] = 'with this';
+  $subs['%todayn-12m'] = t\subAgo('%todayn-365d', '%Y%m%d');
+  $subs['%todayn'] = t\subAgo('%todayn', '%Y%m%d');
+  //$subs['%dmy'] = t\subAgo('%todayn', '%d-%b-%Y');
+  $subs['%name'] = \user_password(20); // suitable for email address
+}
+
+function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, $info);}
+
