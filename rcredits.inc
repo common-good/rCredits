@@ -341,8 +341,8 @@ function whoseUsd($usdAccountId, $omit = NULL) {
  * @return string: the user's transaction number
  */
 function xid2tid($xid, $uid) {
-  $where =  ":uid IN (payer, payee) AND xid<:xid AND type>=0";
-  return db\lookup('COUNT(xid)', 'r_txs', $where, compact('uid', 'xid')) + 1;
+  $where = ':uid IN (payer, payee) AND xid<:xid AND type>=0';
+  return db\lookup('MAX(IF(payee=:uid, payeeTid, payerTid))', 'r_txs', $where, compact('uid', 'xid')) + 1;
 }
 
 /**
@@ -624,6 +624,16 @@ function notify($uid, $index, $info = array(), $force = FALSE) {
   }
 }
 
+/**
+ * Suggest a higher minimum (because of a failed purchase).
+ * @param acct $a: the account that needs a higher minimum
+ */
+function suggestMin($a) {
+  $suggested = u\fmtAmt($suggested0 = max(R_BANK_MIN, (R_SUGGEST_BUMP * $a->minimum) ?: R_MINR_DEFAULT));
+  $a1 = 'a href="' . r\makeDo('min', $a->id, $suggested0) . '"';
+  r\notify($a->id, 'you were short', compact(u\ray('suggested a1')));
+}
+  
 /**
  * Create an rCard security code for the given account (either for an individual or a company agent).
  * @param acct $a: the account
@@ -1106,15 +1116,22 @@ function makeDevice($uid, $code = '', $ch = NULL) {
  * @return the new uid
  */
 function changeUid($oldUid, $newUid = FALSE, $unusable = TRUE) {
-  if (!$newUid) $newUid = newUid($base);
+  if (!$newUid) {
+    $a = r\acct($oldUid);
+    $region = @$a->postalCode ? r\region(@$a->country, @$a->state, $a->postalCode) : communityUid();
+    $newUid = r\acct::nextId($region);
+  }
   $subs = array( // all tables are listed, to be sure we don't leave any out
   // r_areas
     'r_boxes:uid',
   // r_countries,
+    'r_do:uid',
     'r_gifts:uid',
   // r_industries
     'r_invites:inviter',
     'r_invites:invitee',
+    'r_invoices:payer',
+    'r_invoices:payee',
     'r_log:myid',
     'r_log:agent',
   // r_nonces
@@ -1126,13 +1143,17 @@ function changeUid($oldUid, $newUid = FALSE, $unusable = TRUE) {
     'r_relations:main',
     'r_relations:other',
   // r_states
+    'r_stats:ctty',
     'r_txs:payer',
     'r_txs:payee',
+    'r_txs:payerAgent',
+    'r_txs:payeeAgent',
     'r_usd:payer',
     'r_usd:payee',
   // r_usderror
     'r_user_industries:uid',
     'users:uid',
+    'users:community',
   );
   foreach (u\ray(DRUPAL_UID_TABLES) as $one) $subs[] = "$one:uid";
 
@@ -1142,8 +1163,10 @@ function changeUid($oldUid, $newUid = FALSE, $unusable = TRUE) {
     db\q("UPDATE $table SET $field=:newUid WHERE $field=:oldUid", compact('newUid', 'oldUid'));
   }
   $oldQuid = r\quid($oldUid);
-  list ($uid, $name, $mail) = array($oldUid, "unusable-$oldQuid", "unusable$oldQuid@rcredits.org");
-  if ($unusable) db\insert('users', compact(u\ray('uid name mail'))); // mark old uid unusable
+  if ($unusable) {
+    list ($uid, $name, $mail) = array($oldUid, "unusable-$oldQuid", "unusable$oldQuid@rcredits.org");
+    db\insert('users', compact(u\ray('uid name mail'))); // mark old uid unusable
+  }
   foreach (u\ray('picture proof') as $one) { // this cannot be rolled back, so must follow db ops
     $new = DRUPAL_ROOT . r\acct($newUid)->auxFilename($one, TRUE);
     $old = str_replace("/$newUid-", "/$oldUid-", $new);
@@ -1510,21 +1533,24 @@ function usdTransferDone($tx) {
   $omit = t\est() ? (\variable_get('cgf_uid') - 1) : NULL; // ignore tester's account
   if (!$payer = r\whoseUsd($Type == 'deposit' ? $DestinationId : $SourceId, $omit)) return FALSE; // tester
   $info = u\ray('txid amount completed', $Id, $Amount, strtotime($ClearingDate));
-  if (!$old = db\lookup('completed+1', 'r_usd', 'txid=:txid', u\ray('txid', $Id))) { // system crashed before it got recorded
-    $info += u\ray('created payer payee', strtotime($Date), $payer, 0);
-  } elseif ($old == $info['completed']) return TRUE; // already correctly marked and dated complete
+
+  $old = db\lookup('completed', 'r_usd', 'txid=:txid', u\ray('txid', $Id)); // existing completion date
+  if (is_null($old)) { // no record: system crashed before it got recorded
+    $info += u\ray('created payer payee', strtotime($Date), $payer, 0); // create whole record
+  } elseif ($old == $info['completed']) return TRUE; // already recorded and correctly dated complete
 
   $DBTX = \db_transaction();
   db\update('r_usd', $info, 'txid', TRUE); // update or (if crash) insert
+  
   if ($Type == 'deposit') {
     $a = r\acct($payer);
-    $a->actualUsd(-$Amount); // adjust cache up (double minus) now that money finally came in
+    if (!$old) $a->actualUsd(-$Amount); // adjust cache up (double minus) now that money finally came in
     $hour = strftime('%H', strtotime($date)); // creation hour
     $auto = $hour == R_DAILY_HOUR ? t(' automatic') : ''; // (space is intentional)
     r\notify($a->id, 'transfer complete', u\ray('auto amount', $auto, $Amount));
     r\membershipEvent($a, 'bona', $a->usd > 0); // this works for testing too
   }
-  unset($DBTX);
+  unset($DBTX); // if system crashes in the middle of that, user might get duplicate emails -- no biggie
   return TRUE;
 }
 

@@ -558,6 +558,7 @@ function lastMinuteSubs($string) {
   if (u\abbreviates('%ymd', $string)) return subAgo($string, '%Y-%m-%d');
   if (u\abbreviates('%dmy', $string)) return subAgo($string, '%d-%b-%Y');
   if (u\abbreviates('%dm', $string)) return subAgo($string, '%d-%b');
+  if (u\abbreviates('%md', $string)) return subAgo($string, '%b %d');
   if ($string == '%chk') return '&#10004;';
   if ($string == '%ctty') return R_REGION_NAME;
   return $string;
@@ -927,7 +928,7 @@ function clear($ch) {
   global $channel; $channel = $ch;
 
   $cgfUid = \variable_get('cgf_uid');
-  $tables = 'r_boxes r_companies r_do r_gifts r_invites r_log r_notices r_proxies r_relations r_txs r_stats r_usd r_user_industries queue';
+  $tables = 'r_boxes r_do r_gifts r_invites r_log r_notices r_proxies r_relations r_txs r_stats r_usd r_user_industries queue';
 
   db\q('DELETE FROM users WHERE uid>:cgfUid OR (uid>1 AND uid<:cgfUid-1)', compact('cgfUid'));
   foreach (u\ray($tables) as $one) db\q("TRUNCATE $one");

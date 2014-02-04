@@ -168,7 +168,7 @@ function lenCheck($rec) {
   $reclen = strlen($rec);
   $ideal = 750;
   if (strlen($rec) != $ideal) {
-    debug("ERROR: $type record #$seq is $reclen chars -- should be $ideal:\n" . breakup($rec));
+/**/ debug("ERROR: $type record #$seq is $reclen chars -- should be $ideal:\n" . breakup($rec));
     $err1099 = TRUE;
   }
   return $rec;

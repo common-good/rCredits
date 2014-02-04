@@ -88,7 +88,7 @@ Scenario: cron calculates the statistics
   | | signup: $750r, inflation adjustments: $6r, rebates/bonuses: $70.90r, grants: $4r, loans: $5r, fees: -$6r |
   | Demand          | $5,999.75 — up $5,999.75 from a month ago |
   | Total funds     | $835.90r + $5,999.75us = $6,835.65 |
-  | | including about $6,564.65 in savings = 109.4% of demand (important) |
+  | | including about $6,564.65 in savings = 109.4% of demand (important why?) |
   | Banking / mo    | $6,050us (in) - $50us (out) - $0.25 (fees) = +$5,999.75us (net) |
   | Purchases / mo  | 4 ($271) / mo = $54.20 / acct |
   | p2p             | 0 ($0) / mo = $0 / acct |

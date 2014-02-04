@@ -160,7 +160,7 @@ function get1099b($payee) {
   
   if (!@$q1099) {
     $tome = ':payee=payee';
-    $end = strtotime('january 1 2015') - 1;
+    $end = strtotime('january 1') - 1;
     $start = strtotime('-1 year', $end) + 1;
     $sql = <<<EOF
       SELECT completed, data, serial,
@@ -446,9 +446,11 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   $totalHit = $requestAmount - @$data['rebate']; // leave room for reversing rewards (minus a negative)
   
   if ($shortfall = r\shortfall(abs($totalHit), $reallyTaking ? $a2 : $a1, $preapproved, $goods, $confirmed)) {
+  //if ($shortfall = 200) {
     $short = u\fmtAmt($shortfall);
     $otherName = $a2->fullName;
     $msg = $reallyTaking ? 'short from' : 'short to';
+    if ($reallyTaking) r\suggestMin($a2);
     return array($msg, compact(u\ray('otherName short how')), FALSE);
   }
   $amount = $requestAmount;

@@ -37,7 +37,7 @@ define('TX_TID_MAX', 10000); // zero-filler
  * List Transactions
  */
 function formTxs($form, &$sta, $args = '') {
-  global $agtViaBox;
+  global $agtViaBox, $base_url;
   $agtViaBox = t('Agent is who did the transaction on your behalf.|Channel (Via) is where the transaction originated -- what type of device: Web, Smartphone, SMS, or Automatic.|Box is where the transaction originated -- which specific device.');
   $optHelp = $agtViaBox . '|' . t('Exchanges are 1-to-1 trades of US Dollars for rCredits (usually automatic).|PExchanges are daily automatic payment exchanges of rCredits between company and employee. The company pays the employee in US Dollars, then the employee trades back some US Dollars 1-to-1 for rCredits. The net effect is that the employee gets paid partly in US Dollars, partly in rCredits.');
 
@@ -52,7 +52,7 @@ function formTxs($form, &$sta, $args = '') {
   if (!@$period) $period = TX_DEFAULT_PERIOD;
   if (strlen(@$options) != count($urlOpts = u\ray(TX_URL_OPTS))) $options = $mya->person() ? '2200001' : '2210001'; // defaults for TX_OPT_KEYS options (2=both)
   $options = array_combine($urlOpts, str_split($options));
-//  u\setDft($states, STATES_BOTH); // both  
+  u\setDft($states, STATES_DONE);
 //  u\setDft($currency, 2); // both
   if (@$download) $options['currency']  = RUSD_BOTH; // always both for download
   extract($options);
@@ -122,12 +122,16 @@ function formTxs($form, &$sta, $args = '') {
   
   if ($report) {
     $agents = $summary = NULL;
-  } else $summary = formField('markup', '', '', array('markup' => txSummary($starting, $ending, $currency)));
+  } else {
+    $reports = item(t("<a href=\"$base_url/1099-B\">Annual Tax Report</a>"));
+    $summary = formField('markup', '', '', array('markup' => txSummary($starting, $ending, $currency)));
+  }
 
-  $radios = array(t('rCredits'), t('USD'), t('both'));
+  //$radios = array(t('rCredits'), t('USD'), t('both'));
   $currency = hidField(2); //formField('radios', t('Currency:'), '', dft($currency), $radios); 
-  $radios = array(t('completed'), t('open invoices'), t('both'));
-  $states = formField('radios', t('Types:'), '', dft($states), $radios);
+  $states = hidField($states);
+  //$radios = array(t('completed'), t('open invoices'), t('both'));
+//  $states = formField('radios', t('Types:'), '', dft($states), $radios);
   //$opts2Desc = TRUE ? '' : t('Agent is who did the transaction on your behalf. Channel ("Via") is Web, Smartphone, SMS, or Automatic. Exchanges are 1-to-1 trades of rCredits for US Dollars. PExchanges are 1-to-1 trades that earn incentive rewards.');
   // (NOT USED YET) $opts2 = boxesField('opts', t('Show:'), $opts2Desc, $optDefaults, $opts);
   
@@ -142,7 +146,7 @@ function formTxs($form, &$sta, $args = '') {
   $title = "";
   $title = item(t('Transaction History'));
 
-  $form = compact(u\ray('title subtext currency states opts2 divider period submitPeriod downloadPeriod starting ending submitDates downloadDates summary transactions'));
+  $form = compact(u\ray('title subtext reports currency states opts2 divider period submitPeriod downloadPeriod starting ending submitDates downloadDates summary transactions'));
   if (@$downloaded) js("window.open(\"$url0&download=1\", \"download\");", 'inline', 'footer');
   return labeled($form);
 }

@@ -33,7 +33,10 @@ function adminForm($sta) {
     }
     return r\go('print-rcard/' . $a->qid());
   } elseif ($op == 'seeSecure') {
-    if (@$a) seeSecure($a);
+    if (@$a) {
+/**/  debug(u\ray('legalName phone federalId postalAddr', @$a->legalName, substr(@$a->phone, 2), @$a->federalId, @$a->postalAddr));
+      seeSecure($a);
+    }
   } elseif ($op == 'newUsdEmail') {
     seeSecure($a);
     if (!@$a->secure['auth'] or !$make) return;
@@ -45,7 +48,7 @@ function adminForm($sta) {
     $a->update(compact('secure'));
     seeSecure($a);
     return;
-  } elseif ($op = 'do1099b') {
+  } elseif ($op == 'do1099b') {
     include __DIR__ . '/../rcredits/rcredits-yearly.inc';
     r\Special\do1099bs();
   }
@@ -180,18 +183,28 @@ foreach (array(3201932, 3244519, 3350610, 3510402) as $one) {
 
  */
 function changeIt($a) {
-  $data = $a->data;
-  $signupCo = u\just($k1 = 'company companyPhone EmployeeOk isOwner contractor', $data);
-  $stats = u\just($k2 = 'giftsEver giftsPastMo beneEver benePastMo extraEver extraPastMo bankedEver bankedPastMo avgBalPastMo avgBalEver', $data);
-  foreach (u\ray("$k1 $k2") as $one) unset($data[$one]);
-  $data += compact('signupCo', 'stats');
-  if ($a->co()) {
-    $coflds = db\lookup('website,selling,coFlags,description', 'r_companies', 'uid=:uid', u\ray('uid', $a->id));
-    $data += $coflds;
+  if (!$a->ok() or !$a->can(B_BONA) or $a->co()) return;
+  if (db\exists('r_txs', "payee=:uid AND payerFor='pioneer bonus'", u\ray('uid', $a->id))) return;
+  be\fund($a->id, TX_SIGNUP, 100, 'pioneer bonus');
+
+  /*
+  $q = db\q('SELECT xid, serial, data, payer, payee, payerTid, payeeTid, payerFor, payeeFor, (payee=:uid) AS tome FROM r_txs WHERE :uid IN (payer, payee) ORDER BY xid', u\ray('uid', $a->id));
+  $tid = 0;
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    if ($serial == @$serialx) { // rebate / bonus
+      $fornm = $tome ? 'payeeFor' : 'payerFor';
+      $$fornm = str_replace("#$oldtid", "#$tid", $$fornm);
+      db\update('r_txs', compact('xid', $fornm), 'xid');
+    } else { // main tx
+      $tidnm = $tome ? 'payeeTid' : 'payerTid';
+      $oldtid = $$tidnm;
+      $$tidnm = $tid = $tid + 1;
+      db\update('r_txs', compact('xid', $tidnm), 'xid');
+      $serialx = $serial;
+    }
   }
-  $data['legalName'] = $a->fullName;
-  $a->update(compact('data'));
-/**/debug($a->data);
+  */    
 }
 
 /**

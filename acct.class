@@ -542,6 +542,25 @@ EOF;
   }
 
   /**
+   * Return an assoc of individual account statistics.
+   * @return [returnMo, return, cttyBeneMo, cttyBene]
+   */
+  public function stats() {
+    extract($this->stats ?: array());
+    $years = round((strtotime('today') - strtotime('today', $this->created)) / DAY_SECS) * DAY_SECS / YEAR_SECS;
+    // rounding is to assure consistency for tests, despite daylight savings time changes
+    $returnMo = @$avgBalPastMo > 0 ? 
+        number_format(100 * 12 * (@$benePastMo + @$extraPastMo) / $avgBalPastMo, 1)
+      : (@$benePastMo + @$extraPastMo > 0 ? '&infin;' : number_format(100 * R_INFLATION_RATE, 1));
+    $return = ($years > 0 and @$avgBalEver > 0) ? 
+        number_format(100 * (@$beneEver + @$extraEver) / $avgBalEver / $years, 1)
+      : (@$beneEver + @$extraEver > 0 ? '&infin;' : number_format(100 * R_INFLATION_RATE, 1));
+    $cttyBeneMo = u\fmtAmt(@$giftsPastMo + max(0, @$bankedPastMo) + @$benePastMo * (1 + R_CC_RATE / $this->rebate));
+    $cttyBene = u\fmtAmt(@$giftsEver + max(0, @$bankedEver) + @$beneEver * (1 + R_CC_RATE / R_REBATE) + \variable_get('cttyPaidEver', 0) / (@$pAccts ?: 1));
+    return compact(u\ray('returnMo return cttyBeneMo cttyBene'));
+  }
+
+  /**
    * Return the rough business structure of a company, as required by Dwolla.
    */
   function businessStructure() {
@@ -567,12 +586,12 @@ EOF;
     $us = new r\usd($this);
     if ($this->can(B_PERSON)) {
       if (!isPRODUCTION and !$this->dob) return TRUE; // don't annoy us with errors we don't care about
-      list ($first, $last) = u\parseName($this->fullName);
+      list ($first, $last) = u\parseName($this->legalName);
       return $us->register('Personal', u\ray('first last dob', @$first, @$last, $this->dob), 'true', $err);
     } else {
       $type = $this->isNonprofit() ? 'NonProfit' : 'Commercial';
       $structure = $this->businessStructure();
-      return $us->register($type, u\ray('org ein structure', $this->fullName, u\fmtEin($this->federalId), $structure), 'true', $err);
+      return $us->register($type, u\ray('org ein structure', $this->legalName, u\fmtEin($this->federalId), $structure), 'true', $err);
     }
   }
   

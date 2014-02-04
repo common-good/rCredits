@@ -128,6 +128,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'short to' => t('You are @short short, for that payment. Increase your minimum!'),
   'short from' => t('@otherName does not have enough funds for this request.'),
   'min too low' => t('Your minimum is set too low, causing conflicting deposits and withdrawals from your bank account. To increase your minimum to @suggestion, visit the @page page (under Settings).'),
+  'you were short' => t('You tried to make a purchase but did not have enough funds in your account. A higher "minimum" setting might keep this from happening again. To increase your minimum to the recommended setting of @suggested, <@a1>click here</a>.'),
   'click option' => t('OR <a href="@url">click here</a>'),
 //  'shortr to' => t('You do not have enough rCredits, for that transaction. Type "get r <amount>" to get more rCredits.'),
 //  'shortr from' => t('@otherName does not have enough rCredits for that transaction at this time.'),

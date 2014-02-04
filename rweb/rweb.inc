@@ -182,7 +182,8 @@ function rdo($args) {
   } else return doSay(t('bad rdo'));
 
   if (!$result) return doSay(t('Request failed.'));
-  db\update('r_do', u\ray('doid box completed', $id, box(), REQUEST_TIME), 'doid');
+  $box = db\lookup('id', 'r_boxes', 'code=:code', u\ray('code', box())) ?: 0;
+  db\update('r_do', u\ray('doid box completed', $id, $box, REQUEST_TIME), 'doid');
   unset($DBTX);
 
   return doSay(t('Your request was successfully completed.'), 'status');
@@ -494,7 +495,7 @@ function formAgreement($form, &$sta) {
     say('self must sign', 'signedBy');
   } else {
     $aacct = $mya->admin() ? $mya : $mya->agent;
-    $signedBy = textField(t('Signed:'), t('Type your full name here ') . "($aacct->fullName)");
+    $signedBy = textField(t('Signed:'), t('Type your full name here ') . "($aacct->legalName)");
     $submit = submit(t('Sign'));
     $addendum = MINI_LAUNCH ? t('During the Pilot Phase, this means paying attention to your experience and making comments to improve the system before it goes public. The amount of rCredits circulating during this Pilot Phase will intentionally be kept small.') : '';
     $instructions = t(<<<EOF
@@ -559,8 +560,8 @@ function formAgreement_validate($form, &$sta) {
   $mya = r\acct();
   $i9 = $mya->person() ? R_AGREE_9 : R_AGREE_9 - 1;
   for ($i = R_AGREE_0; $i <= $i9; $i++) if (!@$sta['input']["check$i"]) return say('incomplete agreement', "check$i");
-  $fullName = r\agent()->fullName;
-  if (!$mya->admin() and strcasecmp(trim($sta['input']['signedBy']), $fullName) != 0) return say('bad signature', compact('fullName'), 'signedBy');
+  $legalName = r\agent()->legalName;
+  if (!$mya->admin() and strcasecmp(trim($sta['input']['signedBy']), $legalName) != 0) return say('bad signature', compact('legalName'), 'signedBy');
 }
 
 function formAgreement_submit($form, &$sta) {
@@ -704,14 +705,12 @@ function formSummary($form, &$sta) {
   $agent = $mya->agent;
   $mya->refreshCan(); // update any permissions that may have been set elsewhere (superfluous?)
 
-  if ($mya->admin() ? !$mya->can(B_MEMBER) : !$mem = formMembership($mya)) {
-    say('take a step');
-  } else {
+  if ($mem = $mya->admin() ? $mya->can(B_MEMBER) : formMembership($mya)) {
     if ($mem !== TRUE and t\est()) return $mem; // redirected to another page
     if (!$mya->ok()) say('setup complete');
     say('adjust settings');
     if ($mya->can(B_DW) and !$mya->can(B_BANK)) say('verify bank');
-  }
+  } else say('take a step');
 
   $name = $mya->name;
   $floorDesc = t('Your balance can go this low') . ($mya->floor < 0 ? t(' for up to 30 days') : '')
@@ -724,18 +723,7 @@ function formSummary($form, &$sta) {
   } 
   
   extract(u\just('r usd pAccts', r\stats($mya->community)));
-  
-  extract($mya->stats ?: array());
-  $years = round((strtotime('today') - strtotime('today', $mya->created)) / DAY_SECS) * DAY_SECS / YEAR_SECS;
-  // rounding is to assure consistency for tests, despite daylight savings time changes
-  $returnMo = @$avgBalPastMo > 0 ? 
-      number_format(100 * 12 * (@$benePastMo + @$extraPastMo) / $avgBalPastMo, 1)
-    : (@$benePastMo + @$extraPastMo > 0 ? '&infin;' : number_format(100 * R_INFLATION_RATE, 1));
-  $return = ($years > 0 and @$avgBalEver > 0) ? 
-      number_format(100 * (@$beneEver + @$extraEver) / $avgBalEver / $years, 1)
-    : (@$beneEver + @$extraEver > 0 ? '&infin;' : number_format(100 * R_INFLATION_RATE, 1));
-  $cttyBeneMo = u\fmtAmt(@$giftsPastMo + max(0, @$bankedPastMo) + @$benePastMo * (1 + R_CC_RATE / $mya->rebate));
-  $cttyBene = u\fmtAmt(@$giftsEver + max(0, @$bankedEver) + @$beneEver * (1 + R_CC_RATE / R_REBATE) + \variable_get('cttyPaidEver', 0) / (@$pAccts ?: 1));
+  extract(u\just('returnMo return cttyBeneMo cttyBene', $mya->stats()));
 
   $title = item(t('Account Summary'));
 //  'subtext = basic_account_info();
@@ -856,9 +844,9 @@ function formPhoto($form, &$sta) {
   $height *= R_PIXEL_FACTOR;
   $picture_upload['#description'] = 
     ($mya->person() ? 
-        tt('Upload a recent picture of yourself for your photo-ID rCard. It must be taller than wide (@R_PERSONAL_ASPECT ratio is ideal) and must show your full face clearly, filling most of the frame.')
-      : tt('Upload a picture to represent your company in rCredits promotions. The picture must be wider than tall (@R_COMMERCIAL_ASPECT ratio is ideal).')) 
-    . tt(' File size must be under 3MB. The picture will be cropped and resized to @width x @height pixels.', compact('width', 'height'));
+        tt('<p>Upload a recent picture of yourself for your photo-ID rCard. It must be taller than wide (@R_PERSONAL_ASPECT ratio is ideal) and must show your full face clearly, filling most of the frame.</p>')
+      : tt('<p>Upload a picture to represent your company in rCredits promotions. The picture must be wider than tall (@R_COMMERCIAL_ASPECT ratio is ideal).</p>')) 
+    . tt('<p>File size must be under 3MB. The picture will be cropped and resized to @width x @height pixels.</p><p>Please feel free to <a href="mailto:new@rCredits.org?subject=photo&body=Attached is a photo of me for my rCard. &nbsp; - @fullName">email it to us</a>, if that is easier for you.', u\ray('width height fullName', $width, $height, $mya->fullName));
   
   if ($has and $mya->person() and $mya->ok()) {
     $picture_upload['#description'] .= tt('<p><b>NOTE:</b> If you change your photo, a new rCard will be mailed to you and your account will be charged $@R_CARD_COST.</p>');
@@ -1335,7 +1323,7 @@ function formGet($form, &$sta) {
   $myid = $mya->id;
   $isSetUp = !is_null($mya->minimum); // user has already saved some options
   $title = item(t('Bank Transfer'));
-  $subtext = item(t('Transfer funds to or from your connected bank account. For automatic transfers from your bank account, as needed, adjust your "minimum" setting on the <a href="' . $base_url . '/account/preferences">Preferences</a> page. Transfers may take 3-5 days to arrive.') . ($mya->dwStatus() == DW_VSAVINGS ? t(' Savings and Money Market accounts (like yours) are limited by law to 6 transfers per month.') : ''));
+  $subtext = item(t('<p>Transfer funds to or from your connected bank account. Transfers may take 3-5 business days (a couple days to leave one account and a couple more to travel, before arriving).') . ($mya->dwStatus() == DW_VSAVINGS ? t(' Savings and Money Market accounts (like yours) are limited by law to 6 transfers per month.') : '') . t('</p><p>To refill your rCredits account automatically, as needed, adjust your "minimum" setting on the <a href="' . $base_url . '/account/preferences">Preferences</a> page.</p>'));
 
 //  $minimum = textField(t('Minimum:'), tt('prompt min'), dft(u\fmtAmt($isSetUp ? $mya->minimum : R_MINR_DEFAULT, 's')));
   $ray = (array) $mya->account(R_MONEY_FIELDS);
@@ -1439,14 +1427,15 @@ function formAgent_submit($form, &$sta) {
  * @see also: formAgent
  */
 function formAnother($form, &$sta) {
+  global $base_url;
   if (!r\agent()->can(B_MEMBER)) return r\go('', 'members only', 'ERR');
   
   $title = item('Open Another Account');
-  $relations = array(t('a company and I own at least 10% of it'), t('a company or organization that I work for, but I am not a 10%-or-more owner'), t('a family member or friend, with whom I have a primarily personal rather than financial relationship'), t('myself individually or jointly with others -- not for business'), t('none of the above'));
+  $relations = array(t('a company and I own at least 10% of it'), t('a company or organization whose accounts I manage, but I am not a 10%-or-more owner'), t('an additional personal account that I will manage'), t('none of the above (send an <a href="' . $base_url . '/invite">invitation</a> instead!)'));
   $relationPrompt = item(t('What is the new account for?'));
   $relation = formField('radios', t(''), '', '', $relations);
-  $flows = array(t('neither way'), t('current account can cover new account\'s debts and overdrafts'), t
-('new account can cover current account\'s debts and overdrafts'), t('both ways'));
+  $flows = array(t('neither way (recommended in most cases)'), t('Your personal account can cover the new account\'s debts and overdrafts.'), t
+('The new account can cover your personal account\'s debts and overdrafts.'), t('both ways'));
   $flowPrompt = item(t('Which way can the credit flow, when you need it to?'));
   $flow = formField('radios', t(''), '', '', $flows);
   $submit = submit(t('Open Account'));
@@ -1458,8 +1447,7 @@ function formAnother_validate($form, &$sta) {
     $$field = $sta['input'][$field]; // values fails here (?!!)
     if (!is_numeric($$field)) say('required field', compact('field'), $field);
   }
-//  if ($relation == 4 and $flow == 3) say('insufficient relation', 'relation');
-  if ($relation == 4) say('insufficient relation', 'relation');
+  if ($relation == 3) say('insufficient relation', 'relation');
 }
 
 function formAnother_submit($form, &$sta) {
@@ -2783,7 +2771,7 @@ function formOptions($form, &$sta) {
 //  $toBank = formField('checkbox', t('To bank:'), t('(recommended) Automatically transfer the excess to your bank account. [<a href="../help/to-bank">why ever not?</a>]'), dft($isSetUp ? $mya->can(B_TO_BANK) : TRUE));
   $noticeRadios = array(t('daily'), t('weekly'), t('monthly'));
   $dft = $mya->can(B_NOTICE_WEEKLY) ? 1 : ($mya->can(B_NOTICE_MONTHLY) ? 2 : 0);
-  $notices = formField('radios', t('Email notices:'), t('How often do you want to receive an email digest of rCredits messages?'), required($dft), $noticeRadios);
+  $notices = formField('radios', t('Email notices:'), t('How often, at most, do you want an email digest of your rCredits messages? (No email if no messages.)'), required($dft), $noticeRadios);
   $smsNotices = boxField(t('SMS notices:'), tt('Send me a text message when I receive a payment, charge, or invoice (requires a <a href="' . $base_url . '/account/boxes">connected cell phone</a>).'), $mya->can(B_NOTIFY_SMS));
   $statements = $mya->can(B_ELECTRONIC) + 0;
   $statementRadios = array(
@@ -2972,8 +2960,8 @@ EOF;
  */
 function form1099b($form, &$sta) {
   $mya = r\acct();
-  $title = item(t('Your rCredits "Barter" Transactions for ') . (date('Y') - 1) . t(' (Forms 1099-B)'));
-  $subtext = item(t('This list includes all your rCredits system income for the past calendar year.'));
+  $title = item(t('Your rCredits "Barter" Income for ') . (date('Y') - 1) . t(' (Forms 1099-B)'));
+  $subtext = item(tt('<p>This list includes all your rCredits system income for the past calendar year, for you to report to the IRS.</p><p>You are NOT required to file Form 1099-B itself, just the income total. Your rCredits region (@R_REGION_LEGALNAME) also reports the date, amount, and description of each transaction listed here, as required by the IRS.</p>'));
 
   $list = "<table id='f1099b'>\n";
   $list .= "<tr><th>Date</th><th class=\"num\">Income ($)</th><th>From</th><th>Description</th></tr>\n";
@@ -3003,7 +2991,7 @@ EOF;
   
   $list = item($list);
   $phone = str_replace('+1 ', '', u\fmtPhone(R_REGION_PHONE));
-  $posttext = item(tt('<p>This report is provided by @R_REGION_LEGALNAME, @R_REGION_ADDR (@phone): EIN #@R_REGION_EIN.</p><p>You can see it here until January 1 of next year (when the report for calendar year @thisYear replaces it). You are generally required to include this total rCredits income in the income you report to the IRS.</p><p>If you would rather receive reports by US Mail, you can change that setting in your <a href="account/preferences">Preferences</a>.', u\ray('phone thisYear', $phone, date('Y'))));
+  $posttext = item(tt('<p>This report is provided by @R_REGION_LEGALNAME, @R_REGION_ADDR (@phone): EIN #@R_REGION_EIN.</p><p>You can see it here until January 1 of next year (when the report for calendar year @thisYear replaces it).</p><p>If you would rather receive reports by US Mail, you can change that setting in your <a href="account/preferences">Preferences</a>.', u\ray('phone thisYear', $phone, date('Y'))));
   return compact(u\ray('title subtext list posttext'));
 }
 

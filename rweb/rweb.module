@@ -108,7 +108,7 @@ function rweb_menu() {
     'account/photo-id' => r\Web\menu('Kba', MENU_CALLBACK, 'showForm', array('PhotoId'), 'manage'),
     
     'another' => r\Web\menu(t('Open Another Account'), MENU_CALLBACK, 'showForm', array('Another'), 'manage'),
-    'agent' => r\Web\menu(t('Open An Agent Account'), MENU_CALLBACK, 'showForm', array('Agent'), 'manage'),
+//    'agent' => r\Web\menu(t('Open An Agent Account'), MENU_CALLBACK, 'showForm', array('Agent'), 'manage'),
 
     'sadmin' => r\Web\menu(t('Admin'), MENU_NORMAL_ITEM, 'showForm', array('Admin'), 'dev'),
     'handy' => r\Web\menu('Handy', MENU_NORMAL_ITEM, 'handyLinks', array(), 'dev'),

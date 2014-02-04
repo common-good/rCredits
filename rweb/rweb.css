@@ -410,7 +410,7 @@ form.rweb  .form-no {color:red;}
 #memberlist .co {color:darkred;}
 
 /* 1099-B */
-#f1099b td:first-child {width:45px;} /* date */
+#f1099b td:first-child {width:48px;} /* date */
 #f1099b td:first-child +td {width:75px;} /* amount */
 #f1099b td:first-child +td+td {width:200px;} /* account */
 #f1099b .num {text-align:right;}
@@ -419,6 +419,7 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformtxs #edit-title,
 #rcreditswebformtxs #edit-subtext {margin-left:0;}
 #rcreditswebformtxs .virtual {color:LightSteelBlue; font-weight:normal;}
+#rcreditswebformtxs #edit-reports {text-align:right;}
 
 /* #rcreditswebformtxs #edit-opts {max-width:248px;} /* force display in pairs */
 #rcreditswebformtxs .form-type-checkboxes {margin-bottom:0;}

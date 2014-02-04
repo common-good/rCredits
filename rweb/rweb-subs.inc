@@ -65,10 +65,10 @@ EOF
   'phone verified' => t('Your phone number has been verified.'),
   'id verification pending' => t('Your photo ID has been uploaded successfully. Now we need to wait for our partner organization to verify your identity. Please feel free to email us if you have questions.'),
   'verify bank' => t('In particular, you still need to verify the connection to your bank account. After 2-5 days, contact your bank (by phone or online) to find out the two small deposit amounts (each less than @DW_VERIFY_ROOF cents). Then go to settings and click "Bank Info" or <a href="account/bank">click here</a> to go there directly.'),
-  'adjust settings' => t('You can adjust your settings by clicking the gear in the upper right corner. '),
+  'adjust settings' => t('<b>TIP:</b> You can adjust your settings by clicking the gear in the upper right corner. '),
 
   // prompts
-  'prompt min' => t('Keep this much in my rCredits account, for purchases or inflation-proof savings. When your balance goes below this amount, the system automatically refills it for you from your bank account. Whether you request a transfer explicitly on the "Bank" page or let the system do it automatically, refilling may take 3-5 business days (a couple days to leave the bank and a couple more to arrive in your rCredits account).'),
+  'prompt min' => t('How much to keep in your rCredits account, for purchases or inflation-proof savings. When your balance goes below this amount, the system automatically refills it for you from your bank account. Refilling may take 3-5 business days (a couple days to leave the bank and a couple more to arrive in your rCredits account).'), // If you don\'t want any automation, type zero (then remember to refill your account explicitly when it gets low).'),
 //  'prompt max' => t('Keep AT MOST this much in my rCredits account. (When your rCredits balance goes above this amount by $@R_CHUNK or more, the system transfers the extra to your bank account. Blank means no automatic transfers &mdash; recommended in most cases).'),
   'legalname desc' => t('Your full legal name, properly capitalized, as on your government-issue ID.'),
   'usename desc' => t('This should be the name you use in formal letters, at work, on your checks and credit cards, etc.'),
@@ -356,6 +356,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
 
 /**
  * Return a unique persistant identifier for the current machine (set randomly, if none yet).
+ * @return the box ID string
  */
 function box() {
   if (strlen($box = @$_COOKIE['box']) == R_CODE_LEN) return $box; // old codes were shorter
@@ -689,6 +690,7 @@ function suCompanyRelation($company, $other, $data) {
  */
 function suCreatorRelation($args, $myid) {
   extract($params = u\just('isOwner employeeOk flow by', $args));
+  if (!@$isOwner and !@$employeeOk and !@$flow) return; // no useful relation (for example by true invitation)
 
   if (!$error = u\EXPECT($params, 'int int int id', TRUE)) { // if not a hack attempt
     list ($main, $other, $employerOk, $permission) = array($myid, $by, $employeeOk, r\perm(B_MANAGE));
@@ -773,7 +775,7 @@ var address = jQuery('#edit-address').val();
 var postalCode = jQuery('#edit-postalcode').val();
 var postalAddr = jQuery('#edit-postaladdr');
 if (postalAddr.val() == '') {
-  postalAddr.val(address + ', ' + city + ', ' + ss[country][state] + ' ' + postalCode);
+  postalAddr.val(address + ', ' + city + ', ' + ss[country][state].replace('Massachusetts', 'MA') + ' ' + postalCode);
 } // postalAddr.attr('selectionEnd',0); fails
 EOF;
   $addressAttrib = attrib(compact('onchange'));
@@ -1250,7 +1252,7 @@ function doSay($msg, $type = 'error') {
   $map = u\ray('TITLE BASE_URL VERSION MSGTYPE MESSAGE SUBTEXT',
     t('No-signin Action ') . ($type == 'error' ? t('ERROR') : t('Success!')),
     BASE_URL, R_VERSION, $type, $msg,
-    t('No sign-in was required for this action. The only safe link to rCredits sign-in is through rCredits.org.')
+    t('To protect your personal information, no sign-in was required for this action (the only safe link to rCredits sign-in is through rCredits.org).')
   );
   exit(strtr($template, $map));
 }

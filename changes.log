@@ -1,3 +1,11 @@
+2014-02-04
+. clarified that when user opens another account, they will manage it (with no separate login)
+. when someone is denied for NSF, sends a notice to them suggesting a higher minimum
+. requires agent's LEGAL name, signing agreement
+. when creating postal addr, use state abbrev (only for MA so far)
+. invites people to email their photo instead of uploading it
+. non-daily digests include date of notice
+
 2014-01-31
 . made invite a primary link
 . made sign out a primary link

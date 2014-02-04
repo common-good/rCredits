@@ -42,6 +42,7 @@ function extraSubs(&$subs) {
   $subs['%chunk'] = R_CHUNK;
   for ($i = 2; $i <= 5; $i++) $subs["%chunk$i"] = R_CHUNK * $i;
   for ($i = 1; $i <= 3; $i++) $subs["%id$i"] = mt_rand(variable_get('cgf_uid') + R_REGION_MAX, PHP_INT_MAX);
+  $subs['%md'] = strftime('%b %d'); // strangely, lastMinuteSubs fails for this in Notices multifield
 }
 
 function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, $info);}

@@ -90,7 +90,7 @@ function periodic() {
 
 function everyHour() {
   // stuff to do every hour
-  queueEach('acctHourly', "SELECT uid FROM users");
+  queueEach('acctHourly', "SELECT uid FROM users WHERE uid<>0");
   // r\tellStaff('hourly cron');
 }
 
@@ -203,15 +203,15 @@ function coverFee($item) {
  */
 function soldOut($item) {
   return; // UNUSED
+  /*
   extract(u\just('payer total', $item));
   $a = r\acct($payer);
   if (!$rebatePct = $a->rebate) return; // no potential rebates (later suggest reaching out)
   if (db\exists('r_usd', 'payer=:payer AND payee=0 AND amount>0 AND created>:REQUEST_TIME-:WEEK_SECS', compact('payer'))) return; // member moved money to bank account this week
-  $suggested = u\fmtAmt($suggested0 = max(R_BANK_MIN, R_SUGGEST_BUMP * $a->minimum));
   $rebates = u\fmtAmt($rebatePct * $total / 100);
   $total = u\fmtAmt($total);
-  $a1 = 'a href="' . r\makeDo('min', $payer, $suggested0) . '"';
-  r\notify($payer, 'you sold out', compact(u\ray('total rebates suggested a1')));
+  suggestMin($a);
+  */
 }
 
 /**
@@ -497,24 +497,31 @@ function toBank($amount, $acct) {
 function notices() {
   $weekly = (strftime('%A') == R_WEEKLY_DAY);
   $monthly = (strftime('%d') == R_MONTHLY_DAY);
-  $where = '(NOT :IS_NOTICE_WEEKLY AND NOT :IS_NOTICE_MONTHLY)';
+  $where = $dailySql = '(NOT :IS_NOTICE_WEEKLY AND NOT :IS_NOTICE_MONTHLY)';
   if ($weekly) $where .= ' OR :IS_NOTICE_WEEKLY';
   if ($monthly) $where .= ' OR :IS_NOTICE_MONTHLY';
-  $sql = "SELECT DISTINCT u.uid, :IS_NOTICE_WEEKLY AS weekly, :IS_NOTICE_MONTHLY AS monthly FROM r_notices n JOIN users u ON u.uid=n.uid WHERE NOT sent AND ($where)";
+  $sql = "SELECT DISTINCT u.uid, :IS_NOTICE_WEEKLY AS weekly, :IS_NOTICE_MONTHLY AS monthly, $dailySql AS daily, n.created FROM r_notices n JOIN users u ON u.uid=n.uid WHERE NOT sent AND ($where)";
   queueEach('notice', $sql);
   queueNextAfter('notices');
 }
 
 function notice($item) {
-  extract(u\just('uid weekly monthly', $item));
+  extract(u\just('uid daily weekly monthly created', $item));
+  $a = r\acct($uid);
   $result = db\q('SELECT message FROM r_notices WHERE uid=:uid AND NOT sent', compact('uid'));
   $messages = '';
-  while ($row = $result->fetch()) $messages .= "<li>$row->message</li>\n";
+  while ($row = $result->fetch()) {
+  $daily = false;
+    $date = $daily ? '' : (strftime('%b %d', $created) . ': ');
+    $messages .= "<li>$date$row->message</li>\n";
+  }
   if ($messages) {
     $unit = $weekly ? 'week' : ($monthly ? 'month' : 'day');
     $yestertime = u\fmtDate($start = strtotime("-1 $unit", REQUEST_TIME));
     $range = $weekly ? "the week of $yestertime" : ($monthly ? strftime('%B %Y', $start) : $yestertime);
-    r\notify($uid, 'notices', compact(u\ray('messages unit range yestertime')), TRUE);
+    extract(u\just('return', $a->stats()));
+    list ($balance, $rewards, $ourEmail) = array(u\fmtAmt($a->usd + $a->r), u\fmtAmt($a->rewards), R_REGION_EMAIL);
+    r\notify($uid, 'notices', compact(u\ray('messages unit range yestertime balance rewards return ourEmail')), TRUE);
     db\q('UPDATE r_notices SET sent=:REQUEST_TIME WHERE uid=:uid AND NOT sent', compact('uid'));
   }
 }
