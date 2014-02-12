@@ -849,7 +849,7 @@ function formPhoto($form, &$sta) {
     . tt('<p>File size must be under 3MB. The picture will be cropped and resized to @width x @height pixels.</p><p>Please feel free to <a href="mailto:new@rCredits.org?subject=photo&body=Attached is a photo of me for my rCard. &nbsp; - @fullName">email it to us</a>, if that is easier for you.', u\ray('width height fullName', $width, $height, $mya->fullName));
   
   if ($has and $mya->person() and $mya->ok()) {
-    $picture_upload['#description'] .= tt('<p><b>NOTE:</b> If you change your photo, a new rCard will be mailed to you and your account will be charged $@R_CARD_COST.</p>');
+    $picture_upload['#description'] .= tt("<p><b>NOTE:</b> If you change your photo, a new rCard will be mailed to you and your account will be charged $@R_CARD_COST.</p>");
     $picture_upload = item(R_ON_FILE);
   }
   $submit = submit(t('Upload and Save'));
@@ -1661,7 +1661,7 @@ function formContact($form, &$sta) {
   $mya = r\acct();
   extract((array) $mya->account('fullName mail postalAddr'));
   focusOn('fullName');
-  $fullNameDesc = tt('usename desc') . '<br>' . t('<b>NOTE:</b> If you change this, a new rCard will be mailed to you and your account will be charged $@R_CARD_COST. ') . ($mya->co() ? t('Your username and rCredits webpage address') : t('Your username')) . t(' will also change.');
+  $fullNameDesc = tt('usename desc') . '<br>' . t("<b>NOTE:</b> If you change this, a new rCard will be mailed to you and your account will be charged $@R_CARD_COST. ") . ($mya->co() ? t('Your username and rCredits webpage address') : t('Your username')) . t(' will also change.');
 
   $title = item(t('Contact Information'));
   $fullName = textField(t('Your name:'), $fullNameDesc, required(@$fullName));
@@ -3006,7 +3006,7 @@ function formRequestRCard($form, &$sta, $other = '') {
   
   $form = array(
     'title' => item(t('Request Employee rCard')),
-    'subtext' => item(tt('A Company Agent rCard will be US Mailed to @fullName, to be used for purchases on behalf of the company. Your company account will be charged $@R_CARD_COST.', compact('fullName'))),
+    'subtext' => item(tt("A Company Agent rCard will be US Mailed to @fullName, to be used for purchases on behalf of the company. Your company account will be charged $@R_CARD_COST.", compact('fullName'))),
     'other' => hidField($other),
     'request' => submit(t('Request Card')),
     'cancel' => submit(t('Cancel')),
