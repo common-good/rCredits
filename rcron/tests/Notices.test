@@ -44,10 +44,10 @@ class rcronNotices extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id   | fullName   | flags                   | email         |'
+    . '\\| id   | fullName   | flags                 | email         |'
     . '\\| .ZZA | Abe One    | dft,person,ok         | a@ |'
     . '\\| .ZZB | Bea Two    | dft,person,company,ok | b@ |'
-    . '\\| .ZZC | Corner Pub | dft,company,ok          | c@ |"');
+    . '\\| .ZZC | Corner Pub | dft,company,ok        | c@ |"');
     break;
 
 
@@ -64,7 +64,7 @@ class rcronNotices extends DrupalWebTestCase {
     When_('cron runs "notices"');
     Then_('we email "notices" to member "a@" with subs: "DATA'
     . '\\| fullName | shortName | unit | range           | yestertime      | region | messages             | balance | rewards | return | ourEmail |'
-    . '\\| Abe One  | abeone    | day  | %fancyYesterday | %fancyYesterday | new    | %md: You rock.,%md: You stone. | $0 | $0 | 5.0 | %R_REGION_EMAIL |"');
+    . '\\| Abe One  | abeone    | day  | %fancyYesterday | %fancyYesterday | new    | You rock.,You stone. | $0 | $0 | 5.0 | %R_REGION_EMAIL |"');
     And__('notices: "DATA'
     . '\\| id   | created | sent   | message    |'
     . '\\| .ZZA | %today  | %today | You rock.  |'

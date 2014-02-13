@@ -239,6 +239,10 @@ function d($s) {
   return $result;
 }
 
+function r($a, $b='', $c='', $d='', $e='', $f='', $g='', $h='', $i='', $j='', $k='', $l='', $m='') {
+  return u\ray($a, $b, $c, $d, $e, $f, $g, $h, $i, $j, $k, $l, $m);
+}
+
 /*
   SELECT 
     u.fullName, 

@@ -154,6 +154,7 @@ EOF;
  * Return the next relevant transaction for form 1099b, for an account.
  * @param int $payee: the account record ID
  * @return the next relevant row (NULL if no more)
+ * Note that the IRS prohibits reporting non-positive transactions (but requires all the others). So we compromise by weeding out the transactions with "undoneBy" or "undoes" in the data field. But we return other negative transactions so we can warn the member to report the total negative amount on line 2, Form C.
  */
 function get1099b($payee) {
   global $q1099;
@@ -169,7 +170,7 @@ function get1099b($payee) {
         IF($tome, payeeFor, payerFor) AS `for` ,
         $tome AS tome
       FROM r_txs WHERE :payee IN (payer, payee) AND completed BETWEEN $start AND $end 
-      AND (type NOT IN (:TX_TRANSFER, :TX_REFUND) OR goods)
+      AND (goods OR (type NOT IN (:TX_TRANSFER, :TX_REFUND)))
       ORDER BY completed
 EOF;
     $q1099 = db\q($sql, compact('payee'));
@@ -391,13 +392,12 @@ function payInvoice($xid) {
  *      (Typically upon recursion, to handle shortfall invoice -- currently UNUSED)
  * @return simple array: 
  *    index: index to result message string (if success, the index begins with "report ")
- *    parms: replacement parameters, specific to the message
+ *    subs: replacement parameters, specific to the message (in particular, success=TRUE or FALSE)
  *    confirm: boolean "this needs to be confirmed"
  *
  * Do something different, based on these boolean values: $taking (charge vs. payment), $preapproved (paying or authorized to charge), 
  * $confirmed (user confirmed the transaction request), $paying_invoice, $goods (the transaction is an exchange for real stuff),
  * $shortfall (how inadequate the payer's balance is)
- * @todo: write feature tests for partial transactions (paying/taking unilateral/not undoing/not broke/not)
  */
 function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confirmed = TRUE, $data = array()) {
   include_once __DIR__ . '/usd.class';
@@ -460,7 +460,8 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
 
   list ($fromAcct, $toAcct) = u\order($taking, $a2, $a1);
   list ($fromUsAcct, $toUsAcct) = array(new r\usd($fromAcct), new r\usd($toAcct));
-  $txs = r\transact(compact(u\ray('type amount payer payee payerAgent payeeAgent for data taking goods state')));
+  $info = compact(u\ray('type amount payer payee payerAgent payeeAgent for data taking goods state'));
+  $txs = $confirmed ? r\transact($info) : array(r\txSetup($info));
   
   // Report results
   $args = r\txReportArgs($a1, $txs[0], TRUE, $shortfall);
@@ -690,7 +691,9 @@ EOF;
 function accountChoices() {
   if (!$mya = r\acct()) return FALSE;
   $result = array($aid = $mya->agentId);
-  if ($mya->admin()) {
+  if ($mya->cttyAdmin()) {
+    $result += @db\q('SELECT uid FROM users WHERE community=:ctty ORDER BY (uid<0) DESC, fullName', u\ray('ctty', $mya->community))->fetchAllKeyed(0, 0);
+  } elseif ($mya->admin()) {
     $result += @db\q('SELECT uid FROM users WHERE uid<:R_CTTY_UID0 ORDER BY fullName')->fetchAllKeyed(0, 0);
     $result += @db\q('SELECT uid FROM users WHERE uid>1 ORDER BY fullName')->fetchAllKeyed(0, 0);
   } else $result += @db\q('SELECT main FROM r_relations WHERE other=:aid AND permission>0', compact('aid'))->fetchAllKeyed(0, 0);

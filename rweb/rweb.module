@@ -110,10 +110,11 @@ function rweb_menu() {
     'another' => r\Web\menu(t('Open Another Account'), MENU_CALLBACK, 'showForm', array('Another'), 'manage'),
 //    'agent' => r\Web\menu(t('Open An Agent Account'), MENU_CALLBACK, 'showForm', array('Agent'), 'manage'),
 
-    'sadmin' => r\Web\menu(t('Admin'), MENU_NORMAL_ITEM, 'showForm', array('Admin'), 'dev'),
+    'sadmin' => r\Web\menu(t('Admin'), MENU_NORMAL_ITEM, 'showForm', array('Admin'), 'ctty_admin'),
     'handy' => r\Web\menu('Handy', MENU_NORMAL_ITEM, 'handyLinks', array(), 'dev'),
-    'tests' => r\Web\menu('Test', MENU_NORMAL_ITEM, 'test', array(2), 'dev'),
+    'tests' => r\Web\menu('Test', MENU_NORMAL_ITEM, 'test', array(2), isDEV ? 'dev' : NULL),
     'php' => r\Web\menu('PHP', MENU_NORMAL_ITEM, 'util', array('php'), 'dev'),
+    'make-community' => r\Web\menu('Make a new community', MENU_CALLBACK, 'showForm', array('MakeCtty'), 'admin'),
     
 //    'video' => r\Web\menu(t('Videos'), MENU_LOCAL_TASK, 'showForm', array('Videos', 2), '', $anyone),
 
@@ -140,7 +141,7 @@ function rweb_menu() {
     'secret' => r\Web\menu('Secret', MENU_CALLBACK, 'secrets', array(), '', $anyone),
     'error' => r\Web\menu('System Error', MENU_CALLBACK, 'error', array(1), '', $anyone),
     
-//    'pay-with-rcredits' => r\Web\menu('Pay With rCredits', MENU_CALLBACK, 'showForm', array('Buy'), '', $anyone), // form will require login
+    'pay-with-rcredits' => r\Web\menu('Pay With rCredits', MENU_CALLBACK, 'showForm', array('Buy'), '', $anyone), // form will require PIN
 //    'example-store' => r\Web\menu('Example Store', MENU_NORMAL_ITEM, 'showForm', array('example_store'), '', $anyone),
 //    'modal' => r\Web\menu('Modal Test', MENU_CALLBACK, 'drupal_get_form', array('modal_form'), '', $anyone + $modal),
 //    'ok' => r\Web\menu('Please Confirm', MENU_CALLBACK, 'showForm', array('ok'), '', $anyone + $modal),

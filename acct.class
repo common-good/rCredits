@@ -715,6 +715,7 @@ EOF;
   public function co() {return $this->can(B_COMPANY);}
   public function person() {return $this->can(B_PERSON);}
   public function admin() {return $this->can(B_ADMIN);}
+  public function cttyAdmin() {return $this->can(B_CTTY_ADMIN);}
   public function ok() {return $this->can(B_OK);}
 } // end of class
 
@@ -763,6 +764,7 @@ function acct($uid = '', $agent = '', &$error = '') {
     if (!$currentAcct) {$error = 'There is no current account.'; return FALSE;}
     return $currentAcct;
   }
+  if (strpos($uid, '@')) $uid = db\lookup('uid', 'users', 'mail=:uid', compact('uid'));
   if (!acct::viable($uid, $agent, $error, TRUE)) return FALSE;
   return new acct($uid, $agent);
 }

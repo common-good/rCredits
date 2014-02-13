@@ -19,7 +19,8 @@ use rCredits\Testing as t;
  * Basic request params (always sent):
  * op       the requested operation
  * device   the device ID (supplied once by the server) -- empty if none
- * agent    the already-scanned-in agent's agent ID (for example NEW:AAB) -- empty if none yet
+ * agent    the already-scanned agent's ID (eg NEW:AAB) or company ID (eg NEW.AAB) -- empty if none yet
+ * version  the version number of the running app
  *
  * REQUESTS:
  * identify:	[member, code] 
@@ -28,6 +29,14 @@ use rCredits\Testing as t;
  * photo:	[member] => photo
  * charge:	[member, amount, goods, description] => [ok, message, tx, balance, undo]
  * undo:	[tx] => [ok, message, balance]
+ *
+ * To create json for app demo, do this from PHP window on STAGE server:
+   include __DIR__ . '/../rcredits/rsmart/rsmart.inc';
+   $args = rCredits\Util\ray('op device agent version member code', 'identify', '3i2ifsapEjwev3CwBCV7', 'NEW.AAB', RPOS_VERSION, 'NEW.ABB', 'ZzhWMCq0zcBowqw'); // cust
+   //$args = rCredits\Util\ray('op device agent version member code', 'identify', '3i2ifsapEjwev3CwBCV7', '', RPOS_VERSION, 'NEW:AAB', 'WeHlioM5JZv1O9G'); // agent login
+   //$args = rCredits\Util\ray('op device agent version member amount goods description', 'charge', '3i2ifsapEjwev3CwBCV7', 'NEW:AAB', RPOS_VERSION, 'NEW.ABB', AMOUNT, 1, 'zot');
+   //$args = rCredits\Util\ray('op device agent version tx', 'undo', '3i2ifsapEjwev3CwBCV7', 'NEW:AAB', RPOS_VERSION, '4069');
+///debug(rCredits\Smart\pos($args));
  */
 
 define('RPOS_VERSION', 102); // lastest POS app version available for download (this should match the versionCode in the app's manifest. upload and test the app first, before bumping the number up here.)
@@ -294,7 +303,7 @@ function missingArg($expected, $args) {
  * @return: the agent's acct object (false if error)
  */
 function getAgent($agent, &$err = '') {
-  if (!$mya = r\acct($agent)) return !$err = 'bad agent';
+  if (!$mya = r\acct($agent)) return !$err = 'bad agent'.$agent;
 //  if (r\foreignServer(r\uidRegion($mya->agentId))) return !$err = 'wrong server for agent';
   if (!$mya->ok()) return !$err = 'company inactive';
 //  if (!$mya->can(B_SELL)) return !$err = 'agent cannot sell';

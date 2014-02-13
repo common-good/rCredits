@@ -500,19 +500,18 @@ function notices() {
   $where = $dailySql = '(NOT :IS_NOTICE_WEEKLY AND NOT :IS_NOTICE_MONTHLY)';
   if ($weekly) $where .= ' OR :IS_NOTICE_WEEKLY';
   if ($monthly) $where .= ' OR :IS_NOTICE_MONTHLY';
-  $sql = "SELECT DISTINCT u.uid, :IS_NOTICE_WEEKLY AS weekly, :IS_NOTICE_MONTHLY AS monthly, $dailySql AS daily, n.created FROM r_notices n JOIN users u ON u.uid=n.uid WHERE NOT sent AND ($where)";
+  $sql = "SELECT DISTINCT u.uid, :IS_NOTICE_WEEKLY AS weekly, :IS_NOTICE_MONTHLY AS monthly, $dailySql AS daily FROM r_notices n JOIN users u ON u.uid=n.uid WHERE NOT sent AND ($where)";
   queueEach('notice', $sql);
   queueNextAfter('notices');
 }
 
 function notice($item) {
-  extract(u\just('uid daily weekly monthly created', $item));
+  extract(u\just('uid daily weekly monthly', $item));
   $a = r\acct($uid);
-  $result = db\q('SELECT message FROM r_notices WHERE uid=:uid AND NOT sent', compact('uid'));
+  $result = db\q('SELECT message, created FROM r_notices WHERE uid=:uid AND NOT sent', compact('uid'));
   $messages = '';
   while ($row = $result->fetch()) {
-  $daily = false;
-    $date = $daily ? '' : (strftime('%b %d', $created) . ': ');
+    $date = $daily ? '' : (strftime('%b %d', $row->created) . ': ');
     $messages .= "<li>$date$row->message</li>\n";
   }
   if ($messages) {

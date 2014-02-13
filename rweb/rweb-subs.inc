@@ -70,7 +70,7 @@ EOF
   // prompts
   'prompt min' => t('How much to keep in your rCredits account, for purchases or inflation-proof savings. When your balance goes below this amount, the system automatically refills it for you from your bank account. Refilling may take 3-5 business days (a couple days to leave the bank and a couple more to arrive in your rCredits account).'), // If you don\'t want any automation, type zero (then remember to refill your account explicitly when it gets low).'),
 //  'prompt max' => t('Keep AT MOST this much in my rCredits account. (When your rCredits balance goes above this amount by $@R_CHUNK or more, the system transfers the extra to your bank account. Blank means no automatic transfers &mdash; recommended in most cases).'),
-  'legalname desc' => t('Your full legal name, properly capitalized, as on your government-issue ID.'),
+  'legalname desc' => t('Your full legal name, properly capitalized, as on your government-issued ID.'),
   'usename desc' => t('This should be the name you use in formal letters, at work, on your checks and credit cards, etc.'),
   'verify connection' => t('Two small deposits (under @DW_VERIFY_ROOF cents) have been sent to your bank. Call your bank after 3-5 business days, to find out the amounts. Then come back to the Bank Info page and fill in those amounts, to verify the connection to your bank account. Here\'s how: Go to rCredits.org, click "Members\'s Site", sign in, click the Settings gear in the upper right corner, then click "Bank Info". We will send you a reminder by email.'),
   'ssTitle' => t('Soc Sec #:'),
@@ -99,6 +99,8 @@ EOF
   'bad login' => t('That account does not exist. Check your typing?'),
   'bad phone' => t('That is not a proper phone number.'),
   'bad account id' => t('That is not a proper account ID.'),
+  'bad account code' => t('That is not your account code.'),
+  'not your account' => t('That is not your account ID.'),
   'bad account number' => t('Your bank account number must be 3-17 digits long.'),
 //  'bad pin' => t('Your PIN must be exactly 4 digits'),
   'bad federal id' => t('That is not a correct @what. Try again.'),
@@ -192,6 +194,7 @@ EOF
   'members only' => t('You must be a member, to use this feature.'),
   'dwolla terms required' => t("Please accept Dwolla's terms before you click Continue."),
   'no card ordered' => t('No rCard was ordered.'),
+  'bad buy info' => t('To pay with rCredits, you must use the same @thing for the purchase as you use for your rCredits account.'),
 );
 
 /**
@@ -489,6 +492,10 @@ EOF;
  * @param string $step: (returned) the next Dwolla setup step
  * @param bool $redirectOk: okay to redirect to an appropriate page
  * @return (if testing) a redirect page to display as appropriate, else FALSE
+ 
+ a('whatever')->createUsdAccount($err);
+///debug($err);
+
  */
 function setupUs(&$step, $redirectOk = TRUE) {
   $us = new r\usd($mya = r\acct());
@@ -752,6 +759,16 @@ function findCompany($company, $companyPhone) {
 }
 
 /**
+ * Return form fields for name and email.
+ */
+function nameAndEmail($fullName = '') {
+  $legalName = textField(t('Legal name:'), tt('legalname desc'), required(@$fullName));
+  $fullName = textField(t('Common name:'), t('(if different) ') . tt('usename desc'));
+  $mail = textField(t('Email:'), t('All emails from the system will be sent to this address. It will not be made public.'), required());
+  return compact(u\ray('legalName fullName mail'));
+}
+
+/**
  * Return the part of the form that is common to formContact and formSignup
  * @param assoc $defaults: initial field values (defaults to current values) - see list at "$fields ="...
  * include all fields (for Contact form) only if r\acct() is set
@@ -760,7 +777,7 @@ function contactFields($defaults = array()) {
   $country = $state = ''; // make sure these are not NULL
   $fields = 'phone dupOk verifyBy address city state country postalCode faxetc';
   $mya = r\acct();
-  extract($mya ? (array) $mya->account($fields) : $defaults);
+  extract($defaults ?: ($mya ? (array) $mya->account($fields) : array()));
   $dupPhone = @$defaults['dupPhone'];
 
   $onchange = "print_state(this.options[this.selectedIndex].value,'');";
@@ -785,7 +802,7 @@ EOF;
   
   $phone = textField(t('Phone:'), t('Your phone number. This cannot be already used for another rCredits account unless you answer "Yes" to Dup Ok, below.'), required(@$phone ? u\fmtPhone($phone): ''));
   $dupOk = boolField(t('Dup Ok:'), t('If this is already the phone number for another rCredits account, click Yes to use it for this account too. Without a unique phone number, though, you cannot connect a bank account to your rCredits account. We are lobbying our financial partner, Dwolla, to remove this limitation. But, for now, a duplicate phone means no connected bank account.'));
-  $verifyBy = formField('radios', t('Verify by:'), t('We will send a verification code to your phone, by text or voice.'), required(@$mya->verifyBy ? (int) ($mya->verifyBy == 'Voice') : NULL), array(t('Text message'), t('Voice message')));
+//  $verifyBy = formField('radios', t('Verify by:'), t('We will send a verification code to your phone, by text or voice.'), required(@$mya->verifyBy ? (int) ($mya->verifyBy == 'Voice') : NULL), array(t('Text message'), t('Voice message')));
   if ($mya) $faxetc = textField(t('Fax etc:'), t('List other ways to contact you: fax, mobile, IM, etc. This field is NOT public.'), dft(@$faxetc));
   $country = formField('select', t('Country:'), t(''), dft(@$country) + $countryAttrib); // can't use required() here
   if ($mya) $address = textField(t('Street Address:'), t('Where is your building located (physical address)?'), required(@$address) + $addressAttrib);
@@ -1289,7 +1306,7 @@ function menu($title, $type, $function = NULL, $args = array(), $accesses = '', 
     'page arguments' => $args,
 //    'access callback' => TRUE,
     'access callback' => 'rCredits\\Web\\webAccess', // don't use be\access directly (rweb needs to remember $myid)
-    'access arguments' => array($accesses),
+    'access arguments' => $accesses ? array($accesses) : NULL,
     'weight' => @$menuWeight - 1,
     'menu_name' => 'main-menu', 
     'module' => $smart ? 'rsmart' : 'rweb',
@@ -1383,9 +1400,9 @@ function focusOn($focusFieldName) {
 /**
  * Return true if the current account has all the accesses listed.
  */
-function webAccess($accesses) {
+function webAccess($accesses = NULL) {
   setupGlobals(); // remember who we are (the main reason for this function)
-  if (!$mya = r\acct()) return FALSE;
+  if (!@$accesses or !$mya = r\acct()) return FALSE;
   foreach (u\ray($accesses) as $one) if (!$mya->can(u\consta('b', $one))) return FALSE;
   return TRUE;
 }

@@ -173,7 +173,7 @@ define('B_CLOSED', 31); // account is closed (data[newAccount] has new qid)
 define('B_MAX', 31); // maximum bit number
 //define('B_DFT', (1 << B_NOTIFY_EMAIL) | 0); // set what bits when creating a new account
 define('B_DFT', 0 | 0); // set what bits when creating a new account
-define('B_ADMINABLE', 'person company member dw photoid ctty_admin closed'); // for cttyAdmin to set
+define('B_ADMINABLE', 'person company member dw bona photoid ctty_admin closed'); // for cttyAdmin to set
 define('B_LIST', 'member dw ok bona bank person company photoid charge u9 u10 u11 payroll weekly monthly u15 sms electro secret u19 debt draws savings u23 u24 u25 u26 u27 u28 cadmin admin closed');
 
 define('R_SHORTFALL', 'GREATEST(0, minimum-(r+usd))'); // sql for shortfall in account (to draw in)
@@ -266,6 +266,7 @@ $GLOBALS['emailSubjects'] = array(
 );
 $GLOBALS['topics'] = array( // topics for 'message' email
   'account suspended' => t('Account SUSPENDED'),
+  'account funded' => t('Account FUNDED'),
 );
 
 /**
@@ -282,13 +283,13 @@ function txReportArgs($acct, $tx, $getMyBalance = FALSE, $shortfall = 0) {
   global $channel;
   extract($tx); // any or all standard transaction fields
   if ($data) if ($data = unserialize($data)) extract(u\just('rebate bonus', $data));
-  global $lastXid; $lastXid = $xid; // remember last transaction for current user, for potential undo (here and on undo)
+  global $lastXid; if (@$xid) $lastXid = $xid; // remember last transaction for current user, for potential undo (here and on undo)
 
   $toMe = ($payee == $acct->id);
   $reverses = isset($data['undoes']);
   $role = $toMe ? 'payee' : 'payer';
   u\both($tx, 'purpose', $toMe, $payeeFor, $payerFor);
-  u\both($tx, 'tid', $toMe, $payeeTid, $payerTid);
+  u\both($tx, 'tid', $toMe, @$payeeTid, @$payerTid); // no tid if unconfirmed
   list ($payerPurpose, $payeePurpose) = array($payerFor, $payeeFor); // clearer names, for substitutions
   $tofrom = $toMe ? t('from') : t('to');
   $uid = $otherUid = ($toMe ? $payer : $payee);
@@ -383,8 +384,8 @@ function transact($info) {
   $txs = array();
 
   $DBTX = db_transaction();
-  $txs[] = txSave(transactionSetup($info));
-  transactionRewards($txs);
+  $txs[] = txSave(txSetup($info));
+  txRewards($txs);
   cacheBothTotals($txs);
   unset($DBTX); // commit
 
@@ -416,7 +417,7 @@ function txSave($tx) {
 /**
  * Add rebate and bonus to the transaction set, if appropriate.
  */
-function transactionRewards(&$txs) {
+function txRewards(&$txs) {
   extract(u\just('type serial goods payer payee data state payerTid payeeTid created', $txs[0]));
   
   if ($type != TX_TRANSFER) return;
@@ -440,7 +441,7 @@ function txRewardSetup($serial, $type, $payee, $state, $amount, $tid, $created) 
   $goods = FALSE;
   $for = ($type == TX_REBATE ? t('rebate') : t('bonus')) . t( ' on #') . $tid;
 
-  return transactionSetup(compact(u\ray('serial type amount goods payer payee payerAgent payeeAgent for taking state created'))); // created is here mostly for testing
+  return txSetup(compact(u\ray('serial type amount goods payer payee payerAgent payeeAgent for taking state created'))); // created is here mostly for testing
 }
 
 /**
@@ -453,7 +454,7 @@ function txRewardSetup($serial, $type, $payee, $state, $amount, $tid, $created) 
  * @return the array, with some extra field information added
  * Give full rewards for contributions to CGF, whether in r or USD
  */
-function transactionSetup($info) {
+function txSetup($info) {
   global $channel, $boxUser; // through what medium was the transaction requested (web, SMS, etc.), what machine
   $fields = 'type state data taking goods amount payer payee payerAgent payeeAgent created';
   extract(u\just($fields . ' for', $info));
@@ -531,7 +532,7 @@ function cacheTotals($uid, $txs) {
   }
   $r = round($r, 2);
   $a->update(compact(u\ray($cache)));
-  if ($type == TX_TRANSFER and $amount > 0) r\membershipEvent($a, 'bona', TRUE);
+  if ($tx0_type == TX_TRANSFER and $tx0_amount > 0) r\membershipEvent($a, 'bona', TRUE);
 }
 
 /**
@@ -582,7 +583,7 @@ function rMail($index, $email, $info, $lingo = '') {
  */
 function message($uid, $index, $subs = array(), $now = TRUE) {
   $message = u\tt($index, $subs);
-  $topic = $GLOBALS['topics'][$index];
+  $topic = @$GLOBALS['topics'][$index] ?: $index; // index should never be used (wrong language) but don't fail
   r\notify($uid, 'message', compact('message', 'topic'), $now);
 }
 
@@ -590,28 +591,28 @@ function message($uid, $index, $subs = array(), $now = TRUE) {
  * Notify the specified user, according to their preferences
  * @param integer $uid: account record id
  * @param string $index: message index
- * @param assoc $info: substitutions for the message
+ * @param assoc $subs: substitutions for the message
  * @param bool $force: send by email NOW
  */
-function notify($uid, $index, $info = array(), $force = FALSE) {
+function notify($uid, $index, $subs = array(), $force = FALSE) {
   global $channel;
   $acct = acct($uid);
   u\EXPECT($acct, 'no account');
-  $info['uid'] = $uid;
-  $info['otherName'] = @$info['myName']; // notifying someone else about US, if anyone
+  $subs['uid'] = $uid;
+  $subs['otherName'] = @$subs['myName']; // notifying someone else about US, if anyone
   $fullName = $acct->fullName;
   $warnIndexes = u\ray('new invoice,new offer,charge disputed');
   
   if ($force) {
-    $mailed = r\rMail($index, $acct->mail, $info); // no need to pass $acct->language
+    $mailed = r\rMail($index, $acct->mail, $subs); // no need to pass $acct->language
   } else { //if ($acct->can(B_NOTIFY_EMAIL)) {
-    list ($message, $created) = array(u\tt($index, $info), REQUEST_TIME);
+    list ($message, $created) = array(u\tt($index, $subs), REQUEST_TIME);
     if (t\est()) t\output("Notice to $fullName: $message");
     db\insert('r_notices', compact(u\ray('uid message created')));
   }
   
   if ($acct->can(B_NOTIFY_SMS)) {
-    if ($num = $acct->smsNumber) $smsed = SMS\send($num, u\tt($index, $info, TX_SMS));
+    if ($num = $acct->smsNumber) $smsed = SMS\send($num, u\tt($index, $subs, TX_SMS));
   }
   if (FALSE and !@$mailed and !@$smsed and array_search($index, $warnIndexes) !== FALSE) {
     $notification = str_replace('-', ' ', $index);
@@ -657,7 +658,7 @@ function membershipEvent($a, $status, $do = TRUE) {
     if ($bit !== FALSE) $a->setBit($bit); // set the bit, if any
     if ($status == 'bona' and $a->person()) {
       be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
-      r\notify($a->id, 'account funded', array(), TRUE);
+      r\message($a->id, 'account funded', array(), TRUE);
     }
     if ($status == 'ok') {
       u\EXPECT($a->can(B_CTTY_ADMIN), 'should be ctty admin'); // only ctty admin can approve an account

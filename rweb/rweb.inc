@@ -297,9 +297,10 @@ function formContribute($form, &$sta) {
   $giftAttrib = attrib(compact('onchange'));
    
   $sharePct = round(db\lookup('AVG(share)', 'r_gifts', 'share>=0'), 1);
+  $delay = $mya->ok() ? '' : t(' The amount you choose will come from your account once it is activated and has enough funds.</p>');
   $form = array(
     'title' => item(t('Contribute to Common Good Finance')),
-    'subtext' => item($donated . t('<p>Make a gift of any size, to help support the rCredits system. Buy a BRICK or some other piece of the Common Good Economy, as a tax-deductible contribution (one-time, monthly, or quarterly). Also choose a percentage of your ongoing incentive rewards to share with Common Good Finance.') . ($mya->ok() ? '' : t(' The amount you choose will come from your account once it is activated and has enough funds.</p>')) . t('</p><p>Thank you for your support!</p>')),
+    'subtext' => item($donated . t('<p>Make a gift of any size, to help support the rCredits system. Buy a BRICK or some other piece of the Common Good Economy, as a tax-deductible contribution (one-time, monthly, or quarterly). <b class="loud">NOTE: This is a donation, not a deposit.</b>') . "$delay</p><p>" . t('Also choose a percentage of your ongoing incentive rewards to share with Common Good Finance.') . t('</p><p>Thank you for your support!</p>')),
     'gift' => formField('select', t('Contribution:'), '', required($mya->co() ? R_COMPANY_GIFT : R_INDIVIDUAL_GIFT) + $giftAttrib, $giftLevels),
     'amount' => textField(t('Other amount $'), ''),
     'often' => formField('select', t('When:'), '', required(), $oftens),
@@ -370,7 +371,8 @@ function formMembership($a, &$sta = '', $code = '') {
   $myid = $a->id;  
   $nonperson = !$a->person();
   $mempage = is_numeric($code) ? $code : FALSE;
-  $dw = $a->can(B_DW);
+  $dw = $dw0 = $a->can(B_DW);
+  $dw = FALSE;
 
   if ($mempage or !$a->can(B_MEMBER) or !$a->ok()) {
     if ($dw and !$a->can(B_PHOTOID) and ($result = setupUs($step, !$updating)) and t\est()) return $result;
@@ -383,7 +385,7 @@ function formMembership($a, &$sta = '', $code = '') {
 //    $gotSecurity = (($secure = @$a->secure) and @$secure['auth'] and @$a->dob and @$a->federalId and ($nonperson ?: $a->hasAux('proof')));
 //    $contactOk = ($step and $a->postalAddr and !in_array($step, u\ray('Email Phone Address')));
     $contactOk = ($a->postalAddr and (@$step == 'Finished' or !$dw));
-    $bankOk = (!$dw or @$a->secure['bankAccount']);
+    $bankOk = (!$dw0 or @$a->secure['bankAccount']);
     $prefsOk = !is_null($a->minimum);
     $ready = ($nearly and $gotProxies and $contactOk and $photoOk and ($nonperson or $bankOk) and $prefsOk);
     if ($nonperson) {
@@ -449,7 +451,7 @@ EOF
     $message2 .= memberStep($stepNum++, $prefsOk, $stepPrefs, 'account/preferences')
                . memberStep($stepNum++, $photoOk, $stepPhoto, 'account/photo');
 
-    if ($dw) $message2 .= memberStep($stepNum++, $bankOk, $stepBank, 'account/bank');
+    if ($dw or $dw0) $message2 .= memberStep($stepNum++, $bankOk, $stepBank, 'account/bank');
 //    if (!$nonperson) $message2 .= memberStep($stepNum++, $gotIdProof, $stepProof, 'account/id-proof');
     if ($nonperson)
     $message2 .= memberStep($stepNum++, $companyOk, $stepCompany, 'account/company')
@@ -716,7 +718,7 @@ function formSummary($form, &$sta) {
   $floorDesc = t('Your balance can go this low') . ($mya->floor < 0 ? t(' for up to 30 days') : '')
     . '. ' . t('See "Debt Okay" in') . " <a href=\"$base_url/account/preferences\">Preferences</a>.";
   
-  if ($mya->can(B_CTTY_ADMIN) and !$mya->proSe()) {
+  if ($mya->cttyAdmin() and !$mya->proSe()) {
     $extras = '<br>' . u\fmtPhone($mya->phone) . " ($mya->faxetc)";
     $idLink = 'href="print-rcard/' . $mya->mainQid . '" target="_blank"';
     if ($mya->person()) $extras .= " <a $idLink>" . t('Print ID Card') . '</a>';
@@ -739,7 +741,7 @@ function formSummary($form, &$sta) {
     $acctType = ($personal ? t('personal') : t('company')) . t(' account');
     if ($agent->can(B_MEMBER)) $another = submit(t('Open Another Account'));
 
-    $extra = $agent->admin() ? " id#$mya->id" : '';
+    $extra = $agent->cttyAdmin() ? " id#$mya->id" : '';
     $accountId = formField('item', t('ID:'), '', ($mya->mainQid ?: 'N/A') . ' (' . $acctType . ")$extra");
     $floor = formField('item', t('Credit floor:'), $floorDesc, u\fmtAmt($mya->floor));
     
@@ -752,7 +754,7 @@ function formSummary($form, &$sta) {
     $cttyBene = item("$cttyBene " . t('overall (ever)'), ' ', t('How much your participation has benefited the community financially [<@a>details</a>]', u\ray('@a', 'a href=help/social-return')));
   }
 
-  if ($agent->can(B_CTTY_ADMIN) and (!$mya->proSe() or $mya->id == 1)) { // ctty admin not managing own personal account
+  if ($agent->cttyAdmin() and (!$mya->proSe() or $mya->id == 1)) { // ctty admin not managing own account
     $ctty = $mya->community;
     if ($mya->id < 0) { // managing the community itself
       $count = formField('item', t('Members:'), '', db\lookup('COUNT(*)', 'users', 'community=:ctty AND uid<>:ctty', compact('ctty')));
@@ -801,7 +803,6 @@ function formSummary_validate($form, &$sta) {
 function formSummary_submit($form, &$sta) {
   $mya = r\acct();
   $agent = $mya->agent;
-//  if (op($sta) == 'another') return r\go($mya->co() ? 'agent' : 'another');
   if (op($sta) == 'another') return r\go('another');
 
   if (!$agent->can(B_CTTY_ADMIN)) return; // hack attempt
@@ -995,29 +996,19 @@ function formAccounts($form, &$sta) {
   $choices = array();
   foreach ($accounts as $uid) {
     $acct = r\acct($uid);
-//    $balance = u\fmtAmt($acct->balance());
-//    $choices[$uid] = "$acct->fullName: $balance";
     $choices[$uid] = substr($acct->fullName, 0, 25); // keep it short
-    if ($mya->admin()) $choices[$uid] = substr($acct->mainQid, -2, 2) . ' ' . $choices[$uid];
+    if ($mya->cttyAdmin()) u\prefix(substr($acct->mainQid, -2, 2) . ' ', $choices[$uid]);
   }
 
   $src = $base_url . $mya->agent->auxFilename('picture');
   $signOut = t('Sign out');
   $choices['signout'] = $signOut;
-//  $icon = item(imageButton('user/logout', t('Sign out'), $src)); // (should be a dropdown menu)
   $icon = item('<img id="my_icon" src="' . $src . '"/>');
 
-//  $qid = r\quid($mya->id, $mya->agentId, $mya->regionId);
-//  $settings = item(imageButton('account/settings', 'Settings', 'gear.png'));
   if ($mya->can(B_MANAGE)) $settings = item(divButton('account/settings', 'Settings'));
 
-  //  $oneText = $choices[$myid];
-//  $account = count($choices) == 1 ? 
-//      textField('', '', dft($oneText) + attrib(array('disabled' => TRUE, 'size' => strlen($oneText)+2)))
-//  $onchange = "this.form.submit();";
   $onchange = "location.href='$base_url/change-account?acct=' + this.options[this.selectedIndex].value + '&page=' + encodeURIComponent(document.URL); jQuery('#saywait').show();";
   $account = formField('select', '', '', dft($myid) + attrib(compact('onchange')), $choices);
-//  $link = item('<a href="http://rCredits.org">Main Site</a
   $submit = submit(); // default submission
 
   $chunks = explode('/', $_SERVER['REQUEST_URI']);
@@ -1134,7 +1125,7 @@ EOF;
   return $form;
 }
 
-define('R_SHOWABLE_TABLES', 'users txs usd gifts invites notices proxies relations sms log');
+define('R_SHOWABLE_TABLES', 'users gifts invites notices proxies relations');
 
 /**
  * Say the site is down
@@ -1142,7 +1133,7 @@ define('R_SHOWABLE_TABLES', 'users txs usd gifts invites notices proxies relatio
 function formSystemDown($form, &$sta) {return array('zot' => item(tt('system down')));}
 
 /**
- * Make various administrative operations available to the admin.
+ * Make various administrative operations available to the admin and cttyAdmin.
  */
 function formAdmin($form, &$sta, $args = '') {
 //  $form = u\insertBefore(compact('communities'), formCommunity(array(), &$sta, $args), 'count');
@@ -1153,18 +1144,23 @@ function formAdmin($form, &$sta, $args = '') {
   $cttyChoices = array_merge(array('ctty-0' => 'Select a community to manage'), u\prefixKeys('ctty', $rows));
   $community = formField('select', t('Manage:'), t('Select a community to manage'), '', $cttyChoices);
 */
+  $mya = r\acct();
+  $admin = $mya->admin();
+  
   $title = item(t('System Administration'));
-  if (r\up()) $stop = submit(t('STOP')); else $start = submit(t('START'));
+  if ($admin) {
+    if (r\up()) $stop = submit(t('STOP')); else $start = submit(t('START'));
+    $do1099b = submit('1099B');
+  }
   
   $account = textField(t('Account:'), t('Account to do something to'),auto());
   $make = boxfield(t('Make:'));
   $printId = submit(t('Print ID'));
   $seeSecure = submit(t('See Secure'));
   $newUsdEmail = submit(t('New USD Email'));
-  $do1099b = submit('1099B');
   $form = compact(u\ray('title stop start'));
-  foreach (u\ray('USD_Accounts Gfld tells ' . R_SHOWABLE_TABLES) as $one) $form[$one] = submit(str_replace('_', ' ', $one));
-  $form += compact(u\ray('account make printId seeSecure newUsdEmail do1099b'));
+  foreach (u\ray(R_SHOWABLE_TABLES) as $one) $form[$one] = submit(str_replace('_', ' ', $one));
+  $form += compact(u\ray('account make printId seeSecure do1099b'));
   return $form;
 }
 
@@ -1254,64 +1250,60 @@ function formSettings($form, &$sta) {
 
 /**
  * Pay with rCredits, arriving from some other site.
- * @todo: handle <user logged in> better
  */
 function formBuy($form, &$sta) {
-  $in = @$sta['input'] ?: (svar('external_input') ?: $_GET); // $_GET is always an array here
-  extract($in, EXTR_PREFIX_ALL, 'my'); // get input from outside site or (stored) from login
-  if (@$my_external_input) extract(unserialize($my_external_input), EXTR_PREFIX_ALL, 'my');
-  $confirmed = @$my_confirmed ?: (!@$sta['input'] and user_is_logged_in());
+  $fields = 'item amount company code verb return_to cust_name ship_zip cust_email';
+  extract(u\just($fields, @$sta['input'] ?: $_GET)); // get input from outside site
   
-  if (!$confirmed) {
-    foreach (u\ray('amount company item code') as $field) {
-      $my_field = "my_$field";
-      if (!@$$my_field) return say('missing field', compact('field'), $field); // handle hackers gracefully
-    }
-    if (!is_numeric($my_amount)) return say('bad amount', 'amount');
-    if (!u\isQid(@$my_company) or !($acct = r\acct($my_company))) return say('bad account id', 'company'); // qid?
-    
-    $company_name = $acct->fullName; 
-
-    $verbs = u\ray('Contribute, Donate, Pay');
-    $verb = in_array(ucwords(@$my_verb), $verbs) ? ucwords($my_verb) : 'Pay';
-
-    $button = user_is_logged_in() ? submit($verb)
-      : item(t('By typing your username and password, you agree to pay with rCredits, as detailed above.'));
-
-    $my_amount = @number_format($my_amount, 2);
-    $disabled = array('disabled' => 1);
-    $verblower = strtolower($verb);
+  foreach (u\ray($fields) as $field) {
+    if (!@$$field) return r\go('', 'missing field', compact('field'), 'zot'); // handle hackers gracefully
   }
+  if ($err = u\badAmount($amount, '>0')) return r\go('', $err, 'zot');
+  if (!u\isQid(@$company) or !($co = r\acct($company)) or !$co->co()) return r\go('', 'bad account id', 'zot');
+//  if ($code != @$co->data['cardCode']) return r\go('', 'bad account code', 'zot');
+  $cust_email = strtolower($cust_email);
+  if (($a = r\acct()) ? !u\similarEmail($a->mail, $cust_email) : (!$a = r\acct($cust_email))) return r\go('', u\tt('bad buy info', u\ray('thing', t('email'))), 'zot');
+//  if (!in_array(strtolower($cust_name), array(strtolower($a->fullName), strtolower($a->legalName)))) return r\go('', u\tt('bad buy info', u\ray('thing', t('name'))), 'zot');
+
+  if (!\valid_url($return_to, TRUE)) return r\go('', 'bad url', 'zot');
+
+  $verbs = u\ray(t('Contribute, Donate, Pay'));
+  $verb = in_array(ucwords(@$verb), $verbs) ? ucwords($verb) : t('Pay');
+  $disabled = array('disabled' => 1);
   
-  list ($amount, $goods) = array($my_amount, TRUE);
-  list ($who, $what) = @$my_confirmed ? array($my_who, $my_what) : array($my_company, $my_item);
+  $title = item(t('Confirm Payment'));
+  $subtext = item(t('To confirm payment, enter your account ID and PIN below.'));
+  $amountx = textField("$verb $", '', disabled(number_format($amount, 2)));
+  $companyx = textField(t('To:'), '', disabled($co->fullName));
+  $forx = textField(t('For:'), '', disabled($item));
+  $account = textField(t('Account ID:'), '', required());
+  $pin = textField(t('PIN:'), '', required());
+  if (substr($ship_zip, 0, 5) != substr($a->postalCode, 0, 3)) $answer = textField(t('Answer:'), $a->question, required());
 
-  if (@$confirmed) {
-    transfer('pay', compact(u\ray('who amount goods what')), TRUE);
-    if (u\valid_url(@$my_return_to)) return array(item("<a href='$my_return_to'>Click here</a> to return to the $company_name website."));
-    r\go('');
-  }
+  $for = $item; // note that disabled fields do not get passed
+  $hid = hidField(serialize(compact(u\ray('amount for return_to co a'))));
+  $submit = submit($verb);
 
-  $form = array(
-    'title' => item(t('Confirm Payment')),
-    'xwho' => textField('to:', t('Pay whom?'), disabled($company_name)),
-    'who' => hidField($who),
-    'xamount' => textField('$', t("Amount to $verblower"), disabled($amount)),
-    'amount' => hidField($amount),
-    'xwhat' => textField('for:', t('Description of goods and services'), disabled($what)),
-    'what' => hidField($what),
-    'goods' => hidField($goods),
-    'return_to' => hidField(@$my_return_to),
-    'confirmed' => hidField(TRUE),
-    'submit' => $button,
-  );
+  return labeled(compact(u\ray('title subtext amountx companyx forx account pin answer hid submit')));
+}
 
-  return labeled($form);
+function formBuy_validate($form, &$sta) {
+  extract(u\just('account pin answer hid', $sta['input']));
+  extract(u\just('a', unserialize($hid)));
+
+  if (strtoupper($account) != $a->mainQid) return r\go('', 'not your account', 'zot');
+  //if ($pin != $a->pin) return r\go('', 'wrong pin', 'zot');
+  //if ($answer != $a->answer) return r\go('', 'wrong answer', 'zot');
 }
 
 function formBuy_submit($form, &$sta) {
-//  formTx_submit($form, $sta);
-//  drupal_goto('charge'); // member page when done
+  extract(u\just('hid', $sta['input']));
+  extract(u\just('amount for co a return_to', unserialize($hid)));
+  
+  list ($index, $subs) = be\transfer('payment', $a, $co, $amount, $for, TRUE);
+  if (!@$subs['success']) return r\go('', tt($index, $subs), 'zot');
+
+  return r\go('', "Success! <a href='$my_return_to'>Click here</a> to return to the $company_name website.");
 }
 
 /**
@@ -1532,10 +1524,6 @@ EOF
     $acctType = acctTypeField();
   }
 
-  $legalName = textField(t('Legal name:'), tt('legalname desc'), required(@$fullName));
-  $fullName = textField(t('Use name:'), t('(if different) ') . tt('usename desc'));
-  $mail = textField(t('Email:'), t('All emails from the system will be sent to this address. It will not be made public.'), required());
-
   $buysAts = db\q('SELECT id, company FROM r_nonmembers')->fetchAllKeyed();
   $ats = boxOpt('ats', $buysAts, $sta);
   $buysAt = boxesField('ats', t('<br>Over 60 Greenfield businesses have already signed up. Which of these <b>Not-Yet-Member Businesses</b> do you frequent?'), '', @$ats, $buysAts);
@@ -1544,7 +1532,7 @@ EOF
   $args = hidField(@$args);
   $by = hidField(@$inviter);
   
-  $form = compact(u\ray('title subtext acctType legalName fullName mail')) 
+  $form = compact(u\ray('title subtext acctType')) + nameAndEmail(@$fullName)
          + ssnFields($personal) + contactFields(compact('phone'))
          + compact(u\ray('calling companyInfo buysAt submit args by'));
 //  keep_values($form);
@@ -1608,7 +1596,7 @@ function formSignup_submit($form, &$sta) {
 
   $DBTX = \db_transaction();
   $wants = wants(@$ats);
-  $verifyBy = verifyBy(@$verifyBy);
+//  $verifyBy = verifyBy(@$verifyBy);
   $where = u\parseZip($postalCode) ?: array(); // gets $state and $city
   $fullName = u\normalizeCase($fullName);
 
@@ -2360,7 +2348,7 @@ function formBoxes($form, &$sta) {
 
   unset($sta['input']['new']); // don't show number just added
   $form = array(
-    'title' => item(t('Devices ("computers, phones, tablets, etc.")')),
+    'title' => item(t('Devices (computers, phones, tablets, etc.)')),
     'subtitle' => item(t('These are the devices used with this account.')),
     'boxes' => formField('tableselect', '', '', array('header' => $headers, 'multiple' => TRUE, 'empty' => tt('no devices')), $list),
     'new' => textField(t('Add a cell phone*: ')),
@@ -2418,6 +2406,20 @@ function formBoxes_submit($form, &$sta) {
   if ($op == 'delete') {
 // needs work    foreach ($boxes as $key => $one) if ($one[1]) say(be\deleteCell(substr($one[1], 1))); // ignore the leading 'x'
   }
+}
+
+/**
+ * Create a new community or region.
+ */
+function formMakeCtty($form, &$sta) {
+  $title = item(t('Make a New Community or Region'));
+  $isRegion = boolField(t('Is Region?'));
+  $postalCode = textField(t('Zip Regex:'), t('Type a regular expression for all zipcodes to be included in the community or region. For example, "^013|01002" would include all zipcodes starting "013" plus zipcode "01002".'));
+  
+  $form = compact(u\ray('title subtext postalCode isRegion')) + nameAndEmail()
+         + ssnFields(FALSE) + contactFields(u\ray('zot', 0)) // prevent contact fields from defaulting
+         + compact('submit');
+  return labeled($form);
 }
 
 /**
@@ -2954,9 +2956,6 @@ EOF;
 
 /**
  * Show forms 1099-B for the previous calendar year.
- 
- figure 1099-INT amounts: SELECT sum(t.amount), u.fullName FROM users u LEFT JOIN r_txs t ON t.payee=u.uid WHERE t.payer=-8915 AND t.type=3 AND completed<1388552400 GROUP BY u.uid
-
  */
 function form1099b($form, &$sta) {
   $mya = r\acct();
@@ -2966,9 +2965,14 @@ function form1099b($form, &$sta) {
   $list = "<table id='f1099b'>\n";
   $list .= "<tr><th>Date</th><th class=\"num\">Income ($)</th><th>From</th><th>Description</th></tr>\n";
   $total = 0;
+  $negatives = 0; // total negative transactions (refunds that do not specifically reverse another tx)
   
   while ($row = be\get1099b($mya->id)) {
     extract(u\just('completed amount uid for', $row));
+    if ($amount <= 0) { // do not issue 1099-B for negative amounts (per IRC 1.6041-...(c)?)
+      $negatives += $amount;
+      continue;
+    }
     $date = strftime('%d-%b', $completed);
     $total += $amount;
     $amount = str_replace('-', '- ', number_format($amount, 2));
@@ -2991,7 +2995,8 @@ EOF;
   
   $list = item($list);
   $phone = str_replace('+1 ', '', u\fmtPhone(R_REGION_PHONE));
-  $posttext = item(tt('<p>This report is provided by @R_REGION_LEGALNAME, @R_REGION_ADDR (@phone): EIN #@R_REGION_EIN.</p><p>You can see it here until January 1 of next year (when the report for calendar year @thisYear replaces it).</p><p>If you would rather receive reports by US Mail, you can change that setting in your <a href="account/preferences">Preferences</a>.', u\ray('phone thisYear', $phone, date('Y'))));
+  $negatives = $negatives ? t('<p>You also had negative (refund) transactions totaling @NEG. These are not reported to the IRS, so you might include this negative transaction total on line 2 of 1040 Form C.</p>', array('@NEG' => u\fmtAmt($negatives))) : '';
+  $posttext = item($negatives . tt('<p>This report is provided by @R_REGION_LEGALNAME, @R_REGION_ADDR (@phone): EIN #@R_REGION_EIN.</p><p>You can see it here until January 1 of next year (when the report for calendar year @thisYear replaces it).</p><p>If you would rather receive reports by US Mail, you can change that setting in your <a href="account/preferences">Preferences</a>.', u\ray('phone thisYear', $phone, date('Y'))));
   return compact(u\ray('title subtext list posttext'));
 }
 

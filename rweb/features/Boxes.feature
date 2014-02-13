@@ -23,7 +23,7 @@ Scenario: A member has all kinds of devices
   When member ".ZZA" visits page "account/boxes"
   Then we show "Devices" with:
   |_# | Type | Device name     | Last used |
-  | 2 | SMS  | +1 200.200.2000 | %dmy-2d   |
+  | 2 | SMS  | +1 200 200 2000 | %dmy-2d   |
   | 3 | App  | POS Device #3   | %dmy-4w   |
   | 4 | SMS  | whatEver        | %dmy-3w   |
   | 5 | Web  | Browser #5      | %dmy      |

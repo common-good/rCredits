@@ -199,6 +199,9 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'you sold out' => t('This week you traded @total worth of rCredits for US Dollars, missing an opportunity for @rebates worth of rebates. To keep this from happening so much, <@a1>click here</a> to change your settings to the recommended minimum balance of @suggested.'),
   'restricted' => t('You are not authorized to use this device.'),
   'cannot create account' => t('An error is preventing your account from being created.'),
+  'wrong pin' => t('That is not your PIN.'),
+  'wrong answer' => t('That is the wrong answer.'),
+  'bad url' => t('That is not a valid URL.'),
   
   // notices to staff
   'cache mismatch' => 'Cron cache mismatch: @key=@is (cache) <> @shouldBe (calc)',

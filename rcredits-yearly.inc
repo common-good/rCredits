@@ -40,7 +40,8 @@ function do1099bs() {
   }
   
   $bCount = lpad($bCount, 8);
-  $totals = lpad(0, 6 * 18) . lpad(str_replace('.', '', $total), 18) . lpad(0, 9 * 18);
+  $totals = lpad(0, 6 * 18) . lpad(str_replace('.', '', number_format($total, 2)), 18) . lpad(0, 9 * 18);
+
   putRec(recC($bCount, $totals));
   putRec(recK($bCount, $totals));
   putRec(recF($bCount));
@@ -57,8 +58,9 @@ function do1099bs() {
 function do1099b($year, $payee, &$total) {
   while ($row = be\get1099b($payee)) {
     extract(u\just('completed amount for', $row));
+    if ($amount <= 0) continue; // IRS says do NOT report non-positive transactions
     $total += $amount;
-    putRec(recB($year, r\acct($payee), $completed, $amount, $for));
+    putRec(recB($year, r\acct($payee), $completed, number_format($amount, 2), $for));
   }
 }
 
@@ -107,7 +109,7 @@ function recB($year, $a, $completed, $amount, $for) {
   $payerOffice = pad('', 4);
   $amt = lpad(str_replace('.', '', $amount), 12);
   $foreignPayee = pad('', 1);
-  $payeeName = pad(noBreakAt(preg_replace('/[^A-Z&\-]i/', '', $a->legalName), 40), 2 * 40);
+  $payeeName = pad(noBreakAt(preg_replace('/[^A-Z &\-]/i', '', $a->legalName), 40), 2 * 40);
   list ($payeeFirst, $payeeLast) = u\parseName($payeeName);
   $nameControl = pad(preg_replace('/[^A-Z]/i', '', $payeeLast), 4);
   $payeeAddr = $a->postalAddr;
@@ -163,12 +165,12 @@ function noBreakAt($s, $chunk) {
  * @return the record
  */ 
 function lenCheck($rec) {
-  global $seq, $err1099;
+  global $seq1099, $err1099;
   $type = substr($rec, 0, 1);
   $reclen = strlen($rec);
   $ideal = 750;
   if (strlen($rec) != $ideal) {
-/**/ debug("ERROR: $type record #$seq is $reclen chars -- should be $ideal:\n" . breakup($rec));
+/**/ debug("ERROR: $type record #$seq1099 is $reclen chars -- should be $ideal:\n" . breakup($rec));
     $err1099 = TRUE;
   }
   return $rec;
@@ -187,8 +189,8 @@ function putRec($rec) {
  * Return the next record sequence number, formatted.
  */
 function seq() {
-  global $seq;
-  return $seq = lpad(@$seq ? $seq + 1 : 1, 8);
+  global $seq1099;
+  return $seq1099 = lpad(@$seq1099 ? $seq1099 + 1 : 1, 8);
 }
 
 /**

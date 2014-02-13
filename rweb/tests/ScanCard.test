@@ -91,7 +91,7 @@ class rwebScanCard extends DrupalWebTestCase {
     When_('member "?" visits page "I/ZZB-ccB2"');
     Then_('we show "Corner Pub" with: "DATA'
     . '\\|_Address  |_phone        |'
-    . '\\| Cton     | 200.000.0003 |"');
+    . '\\| Cton     | 200 000 0003 |"');
   }
 
   // Scenario: Someone scans an old member card
@@ -107,7 +107,7 @@ class rwebScanCard extends DrupalWebTestCase {
     When_('member "?" visits page "I/NEW-ZZB-ccB2"');
     Then_('we show "Corner Pub" with: "DATA'
     . '\\|_Address  |_phone        |'
-    . '\\| Cton     | 200.000.0003 |"');
+    . '\\| Cton     | 200 000 0003 |"');
   }
 
 }

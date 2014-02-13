@@ -23,10 +23,11 @@ Notes for developers
 		. print card and welcome materials, mail to new member (welcome includes reminder to verify bank account)
 				
 TASKS FOR NEXT UPDATE:
+. create new region: ^48(103|104|105|107|108|109|113|115|130|158|175|176|190|191|197|198) rCredits Washtenaw County, MI (MIA)
 after reinstall:
 (no other special tasks yet)
 
-. remind people to confirm their bank account (and say how -- call the bank, etc.)
+. remind people to confirm their bank account (and say how -- call the bank, etc.) -- also other reminders based on how long after particular events, such as signing the agreement, first tx, last sign-in, last invite, etc. (SELECT max(), max()... from users left join this on uid=uid left join that...)
 . *** 1099-Bs!
 . retest SMS
 . * separate invoices from r_txs (somewhat major change)
@@ -34,10 +35,18 @@ after reinstall:
 . * add a Pay button to member company rCredits webpage
 - * detailed membership tests: New Pass, Photo, Agreement, Contribute, Proxies, Usd, proof of ID, Options
 
+. Mary's "tried to draw" messages all said Feb 3.
+. Change "From Bank" to "From Bank to rCredits" and "To Bank" to "From rCredits to Bank"
+. Pay page does not figure shortfall properly (omits draw!)
+. add the agreement to rCredits.org
+. redo the Dup Ok (don't offer the option until dup)
+. rethink bank connection requirement
+. give admin tweak msg upon SHOWING bank form
+. don't alert staff when William invites someone
 . *** txs should not show X on receipts, for non-buyers
 . *** invoices (- on Transaction History never mix pending with done)
 . *** monthly pdf statements
-. **** 1099 to IRS
+. **** final 1099 to IRS
 - ** implement r\suggest (use this for merchant invoices too. user gets an email invoice from rCredits, they can just click a link to accept or decline. merchant gets notified). test cron call to r\suggest (should just notify, for now)
 - for admin, put initial gift and share% on member's Summary page (attached to addr)
 . when opening "another account", pass type (personal or company) to signup form (already does?)

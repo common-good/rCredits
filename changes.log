@@ -1,3 +1,27 @@
+2014-02-
+. fix data (already done on production server):
+	DELETE FROM r_txs WHERE xid IN (76,77,78);
+	
+	UPDATE r_txs t0 LEFT JOIN r_txs t1 ON t1.xid=t0.serial
+	  SET t0.payerTid=t1.payerTid, t0.type=1, t0.serial=t0.xid,
+	  t0.payerFor='payment exchange rebate', t0.payeeFor='payment exchange rebate'
+	  WHERE t0.type=-1 AND t1.payerFor='payment exchange' AND t1.amount=0;
+	  
+	UPDATE r_txs t0 LEFT JOIN r_txs t1 ON t1.xid=t0.serial
+	  SET t0.payeeTid=t1.payeeTid, t0.type=1, t0.serial=t0.xid,
+	  t0.payerFor='payment exchange bonus', t0.payeeFor='payment exchange bonus' 
+	  WHERE t0.type=-2 AND t1.payeeFor='payment exchange' AND t1.amount=0;
+	  
+    DELETE FROM r_txs WHERE amount=0
+. fixed bug in cacheTotals that did not recognize when an account was BONA
+. fixed new bug in transaction logic that treated unconfirmed web/SMS transactions as confirmed (resulting in a duplicate transaction)
+. made adjustments in formMembership (see $dw0) to work around Dwolla's broken Reg API
+. fixed bug in 1099 reporting that deleted a couple characters in each person's name, when reporting to the IRS
+. adjusted 1099 reports to omit non-positive transactions, as required by the IRS
+. added "this is a donation, not a deposit" to Contribution page.
+. changed default phone format separator to spaces not periods
+. fixed bug in cron notices that gave the same date for every item
+
 2014-02-04
 . clarified that when user opens another account, they will manage it (with no separate login)
 . when someone is denied for NSF, sends a notice to them suggesting a higher minimum

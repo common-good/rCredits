@@ -276,15 +276,14 @@ function fmtEin($ein) {
  * @param string $how: how to format it
  *   '+n' +1dddddddddd (AKA 'internal')
  *   'n'  dddddddddd
- *   '+'  +1 ddd ddd dddd (the international standard with spaces added)
- *   ''   +1 ddd.ddd.dddd (the default)
+ *   '+'  +1 ddd ddd dddd (the international standard with spaces added) (the default)
  * @return the formatted phone number (FALSE if the $phone is not a phone number or $how is bad)
  */
 define('MAX_PHONE_DIGITS', 15);
 define('MIN_PHONE_DIGITS', 7);
 
-function fmtPhone($phone, $how = '') {
-  $sep = '.'; // digit group separator
+function fmtPhone($phone, $how = '+') {
+  $sep = ' '; // digit group separator
   $foreign = ''; // set to 'n' format if the phone is outside US
   $phone = (preg_replace('/[\(\) \-\.]/', '', $phone)); // ignore typical punctuation
   if (substr($phone, 0, 2) == '+1') {
@@ -302,7 +301,7 @@ function fmtPhone($phone, $how = '') {
 
   $phone = substr($phone, 0, 3) . $sep . substr($phone, 3, 3) . $sep . substr($phone, 6);
 //  if ($how == '') return $phone;
-  if ($how == '+' or $how == '') {
+  if ($how == '+') {
     $len = substr($foreign, 0, 1) == '7' ? 1 // get length of country prefix
       : (strpos('. 21 22 23 24 25 26 29 35 37 38 42 51 59 67 68 69 85 87 88 96 97 99 ', ' ' . substr($foreign, 0, 2) . ' ') ? 3 : 2);
     return $foreign ? ('+' . substr($foreign, 0, $len) . ' ' . substr($foreign, $len)) : "+1 $phone";
@@ -756,6 +755,7 @@ function redw($msg) {
     'Access token is empty.' => t('Your account is not complete.' . $lame),
     'Request failed. Server responded with: 0' => t('Our US Dollars module is temporarily offline.' . $lame),
     'Unexpected error has occurred.' => t('Part of your current operation may not have completed. Try again?'),
+    'User must be verified.' => t('You have run into a temporary roadblock, due to a recent change in rCredits signup automation. An administrator will make the necessary adjustment and will send you an email when you can proceed with connecting your bank account &mdash; probably within a few hours. We apologize for the delay.'),
   );
   return strtr($msg, $map);
 }
@@ -1000,3 +1000,4 @@ function redash($s) {return str_replace('—', '&mdash;', $s);}
 function backButton() {return '<button onclick="history.go(-1); return false;">Go Back</button>';}
 function nonish($s) {return in_array(strtolower($s), array('n/a', 'nothing', 'na', 'none')); }
 function padto($s, $n) {return str_pad(substr($s, $n), $n);}
+function similarEmail($e1, $e2) {return (strtolower(preg_replace('/\+.*@/', '@', $e1)) == strtolower(preg_replace('/\+.*@/', '@', $e1)));}

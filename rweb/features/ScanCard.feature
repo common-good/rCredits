@@ -44,7 +44,7 @@ Scenario: Someone scans a company agent card
 #  |_Address  |_phone        | _Button |
 #  | Cton     | 200.000.0003 | Pay     |
   |_Address  |_phone        |
-  | Cton     | 200.000.0003 |
+  | Cton     | 200 000 0003 |
 
 Scenario: Someone scans an old member card
   When member "?" visits page "I/NEW.ZZB-ccB"
@@ -56,4 +56,4 @@ Scenario: Someone scans an old company agent card
 #  |_Address  |_phone        | _Button |
 #  | Cton     | 200.000.0003 | Pay     |
   |_Address  |_phone        |
-  | Cton     | 200.000.0003 |
+  | Cton     | 200 000 0003 |

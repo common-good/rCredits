@@ -7,15 +7,19 @@ only $23.50<br>
 <form action="http://localhost/devcore/pay-with-rCredits" method="POST" accept-charset="UTF-8">
 <input type="hidden" name="item" value="Awesome Apple Pie" />
 <input type="hidden" name="amount" value="23.50" />
-<input type="hidden" name="company" value="NEW.AAC" />
-<input type="hidden" name="code" value="cornerstore" />
+<input type="hidden" name="company" value="NEW.AAB" />
+<input type="hidden" name="code" value="fkljdElwpeoUr" />
 <input type="hidden" name="verb" value="Pay" />
-<input type="image" name="submit" src="http://devcore.rCredits.org/images/buttons/buynow.png" />
+<input type="hidden" name="return_to" value="http://mysite.com/thanks.php?request=dkjWEjfkjwPkjf" />
+<input type="hidden" name="cust_name" value="Jane Dough" />
+<input type="hidden" name="ship_zip" value="01000" />
+<input type="hidden" name="cust_email" value="jdough@example.com" />
+<input type="image" name="submit" src="http://new.rCredits.org/sites/all/modules/rcredits/images/icons/buynow.png" />
 </form>
 
 <hr>
 OR you can buy the same thing by clicking
-<a href="http://localhost/devcore/pay-with-rCredits?item=Awesome%20Apple%20Pie&amount=23.50&company=NEAAAAAD&code=cornerstore&verb=Pay">here</a>.
+<a href="http://localhost/devcore/pay-with-rCredits?item=Awesome%20Apple%20Pie&amount=23.50&company=NEW.AAB&code=fkljdElwpeoUr&verb=Pay&return_to=http://mysite.com/thanks.php%3Frequest=dkjWEjfkjwPkjf&cust_name=Jane%20Dough&ship_zip=01000&cust_email=jdough@example.com">here</a>.
 
 <!--
 Documentation:
@@ -26,12 +30,14 @@ Change the values according to the situation.
 Here are the possible fields:
 * item: a description of goods or services being sold
 * amount: the amount of rCredits to be paid
-* company: your 8-character rCredits account ID (all capitals)
-* code: Your account code. Find this code on the home page of the rCredits Members section when you log in.
-	NOTE: This code is not secret, so you can use this form anywhere.
+* company: your rCredits account ID
+* code: Your security code. Find this code on your Company settings page.
 * verb: Pay, Contribute, or Donate
     NOTE: If you ask for donations online, you are legally required to register with the state, first.
-* return_to: URL to go on successful completion (optional)
+* return_to: URL to go on successful completion. It is strongly recommended that you include an arbitrary request ID in the URL (as in the example), so you can be sure the confirmation is coming from the rCredits system
+* cust_name: the buyer's name (must match the dba name on the rCredits account or the "use" name of a permitted buying agent for that account)
+* ship_zip: the postal code to ship to -- or buyer's postal code if not shipping
+* cust_email: the buyer's email address (must match the email address on the rCredits account or the email address of a permitted buying agent for that account
 * submit: source can be any image file (as long as it's not misleading)
 	Here are some standard ones on the rCredits website (in http://members.rCredits.org/images/buttons):
 		buynow.png
@@ -41,4 +47,7 @@ Here are the possible fields:
 		comprar.png (not yet)
 	OR you can use a standard submit button something like this:
 		<input type="submit" name="submit" value="Buy With rCredits" />
+		
+The rCredits system asks the customer for their account number and PIN (also their security answer, if the shipping zip is nonlocal), then posts a message back to the return_to URL:
+* success: 1 (yes) or 0 (no)
 -->

@@ -14,6 +14,9 @@ use rCredits\Util as u;
  * Handle results submitted on formAdmin.
  */
 function adminForm($sta) {
+  $mya = r\acct();
+  $admin = $mya->admin(); // as distinct from merely ctty_admin
+  
   extract(u\just('account make', $sta['input']));
   $op = r\Web\op($sta);
 
@@ -22,7 +25,7 @@ function adminForm($sta) {
     return r\up() ? r\Web\say('System is UP.') : r\Web\say('System is DOWN.', 'ERR');
   }
 
-  if ($op == 'USD_Accounts') return r\Web\say(usdAccts());
+  //if ($op == 'USD_Accounts') return r\Web\say(usdAccts());
   if (@$account) $a = a($account); // should use whois first
   
   if ($op == 'printId') {
@@ -34,9 +37,10 @@ function adminForm($sta) {
     return r\go('print-rcard/' . $a->qid());
   } elseif ($op == 'seeSecure') {
     if (@$a) {
-/**/  debug(u\ray('legalName phone federalId postalAddr', @$a->legalName, substr(@$a->phone, 2), @$a->federalId, @$a->postalAddr));
+/**/  debug(u\ray('legalName phone federalId physicalAddr', @$a->legalName, substr(@$a->phone, 2), @$a->federalId, @$a->address . ' ' . $a->postalCode));
       seeSecure($a);
     }
+    /*
   } elseif ($op == 'newUsdEmail') {
     seeSecure($a);
     if (!@$a->secure['auth'] or !$make) return;
@@ -47,22 +51,24 @@ function adminForm($sta) {
     $secure = compact('usdEmail') + $a->secure + compact(u\ray('usdPass usdPin usdPhone')); // preempt only e
     $a->update(compact('secure'));
     seeSecure($a);
-    return;
+    return; */
   } elseif ($op == 'do1099b') {
     include __DIR__ . '/../rcredits/rcredits-yearly.inc';
     r\Special\do1099bs();
   }
   
   // handle all other buttons with showTableQ()
-  $where = "uid>1";
-  $userSql = "SELECT uid, MID(phone,3) AS phone, flags, r, usd, rewards, minimum AS min, committed AS comit, share, floor, address, city, postalCode AS zip FROM users WHERE $where ORDER BY name";
-  if ($op == 'users') return r\Web\say(showTableQ($userSql));
-  $userSql = str_replace($where, "postalCode LIKE '013%'", $userSql);
-
+  if ($op == 'users') {
+    $usersWhere = "uid>1";
+    $usersSql = "SELECT uid, MID(phone,3) AS phone, flags, r, usd, rewards, minimum AS min, committed AS comit, share, floor, address, city, postalCode AS zip FROM users WHERE $usersWhere ORDER BY name";
+    if (!$admin) $usersSql = str_replace($usersWhere, "community=$mya->community", $usersSql);
+    return r\Web\say(showTableQ($userSql));
+  }
+  
   $logQuery = "SELECT channel,type,myid,agent, REPLACE(special, ',', ', ') AS special, REPLACE(info, ',', ', ') AS info FROM r_log";
   if ($op == 'log') return r\Web\say(showTableQ($logQuery));
   if ($op == 'tells') return r\Web\say(showTableQ("$logQuery WHERE info LIKE '%tell-staff%' ORDER BY logid DESC LIMIT 50"));
-  if ($op == 'Gfld') return r\Web\say(showTableQ($userSql));
+
   if ($op == 'txs') return r\Web\say(showTableQ('SELECT xid, type, state, goods, payer, payee, amount, r, payerFor, payeeFor, payerTid, payeeTid FROM r_txs'));
 
   foreach (u\ray(R_SHOWABLE_TABLES) as $one) if ($op == $one) return r\Web\say(showTableQ("r_$one"));
@@ -80,7 +86,7 @@ function seeSecure($a) {
 
 /**
  * List the USD account status of each account.
- */
+ *//*
 function usdAccts($where = "postalCode LIKE '013%'") {
   if (!r\acct()->admin()) return;
   $result = db\q("SELECT uid FROM users WHERE $where ORDER BY fullName");
@@ -101,7 +107,7 @@ function usdAccts($where = "postalCode LIKE '013%'") {
     $lines[] = array_combine($head, $line);
   }
   return showTable($lines);
-}
+}*/
 
 function showTable($ray) {
   $cgfUid = \variable_get('cgf_uid');
@@ -184,7 +190,8 @@ foreach (array(3201932, 3244519, 3350610, 3510402) as $one) {
  */
 function changeIt($a) {
   if (!$a->ok() or !$a->can(B_BONA) or $a->co()) return;
-  if (db\exists('r_txs', "payee=:uid AND payerFor='pioneer bonus'", u\ray('uid', $a->id))) return;
+  if (db\exists('r_txs', "payee=:uid AND payer=-8915 AND amount=100", u\ray('uid', $a->id))) return;
+/**/debug("Pioneer bonus to $a->fullName");
   be\fund($a->id, TX_SIGNUP, 100, 'pioneer bonus');
 
   /*
