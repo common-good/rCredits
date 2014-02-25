@@ -15,9 +15,10 @@ use rCredits\Util as u;
  *   These can be keys supplied in $subs OR constants (all uppercase and underscores)
  * @param assoc $subs: array of substitutions to make in $sql
  *   Each key, with a colon tacked on the front, is replaced (in $sql) with its value
+ * @param bool $log: whether to log the operation
  * @return: if inserting, then the id of the inserted record, else the query object (FALSE if failure)
  */
-function q($sql, $subs = array(), $log = TRUE) {
+function q($sql, $subs = array(), $log = FALSE) {
   u\EXPECT(compact(u\ray('sql subs')), 'notempty assoc');
   if (strpos($sql, 'INSERT INTO') !== FALSE) $return = \Database::RETURN_INSERT_ID;
   if ($log and !strpos($sql, 'r_log') and strpos($sql, 'SELECT ') === FALSE) u\loga('db', $subs, $sql);
@@ -58,7 +59,7 @@ function lookup($fieldName, $table, $where = '1', $subs = array()) {
  * @return: if inserting, then the id of the inserted record, else TRUE (FALSE on failure)
  */
 function update($table, $info, $key, $either = FALSE) {
-  if ($table != 'r_log') u\loga('db', $info, "$table:$key" . ($either ? ' EITHER' : ''));
+  //if ($table != 'r_log') u\loga('db', $info, "$table:$key" . ($either ? ' EITHER' : ''));
   if ($either and !db\exists($table, "$key=:$key", array($key => $info[$key]))) $key = '';
   $command = $key ? 'UPDATE' : 'INSERT INTO';
   $sql = '';

@@ -52,7 +52,7 @@ function extraSubs(&$subs) {
 /**
  * phone (ARG) has no account
  *
- * in: OpenAnAccountForTheCaller ATotalNewbieCalls MAKE
+ * in: 
  */
 function phoneHasNoAccount($number) {
   global $testOnly;
@@ -62,26 +62,20 @@ function phoneHasNoAccount($number) {
 /**
  * phone (ARG) says (ARG)
  *
- * in: AbbreviationsWork ACallerAbbreviatesCommandWords MAKE
- *     AbbreviationsWork ACallerAbbreviatesWithWrongSyntax MAKE
- *     ExchangeForCash TheCallerRequestsAnImplicitTradeWithInsufficientBalance MAKE
- *     GetHelp ACallerWantsHelpWithASpecificCommand MAKE
- *     GetHelp ACallerWantsToKnowWhatsAvailable MAKE
- *     GetHelp ACallerTypesAnUnrecognizedCommand MAKE
- *     GetHelp CallerGivesTheWrongNonce MAKE
- *     GetHelp ACallerTypesTheWrongNumberOfArguments MAKE
- *     GetHelp CallerTypesAWrongArgument MAKE
- *     GetHelp AmountIsTooBig MAKE
- *     GetHelp AccountDoesNotExist MAKE
- *     GetInformation GettingInformation MAKE
- *     GetInformation GettingInformationLargerAmounts MAKE
- *     OfferToExchangeUSDollarsForRCredits MakeOrUpdateAnOffer MAKE
- *     OpenAnAccountForTheCaller ATotalNewbieCalls MAKE
- *     OpenAnAccountForTheCaller ANamelessNewbieCalls MAKE
- *     OpenAnAccountForTheCaller TheNewbieGivesUsHisOrHerName MAKE
- *     OpenAnAccountForTheCaller TheNewbieGivesUsAnUnlikelyName MAKE
- *     OpenAnAccountForTheCaller TheNewbieGivesUsHisOrHerEmailAddress MAKE
- *     OpenAnAccountForTheCaller TheNewbieGivesABadEmailAddress MAKE
+ * in: Abbreviations ACallerAbbreviatesCommandWords MAKE
+ *     Abbreviations ACallerAbbreviatesWithWrongSyntax MAKE
+ *     Exchange TheCallerAsksToTradeCashForRCredits MAKE
+ *     Exchange TheCallerRequestsAnImplicitTradeWithInsufficientBalance MAKE
+ *     Help ACallerWantsHelpWithASpecificCommand MAKE
+ *     Help ACallerWantsToKnowWhatsAvailable MAKE
+ *     Help ACallerTypesAnUnrecognizedCommand MAKE
+ *     Help CallerGivesTheWrongNonce MAKE
+ *     Help ACallerTypesTheWrongNumberOfArguments MAKE
+ *     Help CallerTypesAWrongArgument MAKE
+ *     Help AmountIsTooBig MAKE
+ *     Help AccountDoesNotExist MAKE
+ *     Information GettingInformation MAKE
+ *     Information GettingInformationLargerAmounts MAKE
  *     Transact TheCallerAsksToPayAMemberId MAKE
  *     Transact TheCallerAsksToPayAPlayerByName MAKE
  *     Transact TheCallerAsksToChargeAMemberId MAKE
@@ -101,8 +95,7 @@ function phoneSays($number, $message) {
 /**
  * phone (ARG) has an account
  *
- * in: OpenAnAccountForTheCaller ATotalNewbieCalls TEST
- *     OpenAnAccountForTheCaller ANamelessNewbieCalls MAKE
+ * in: 
  */
 function phoneHasAnAccount($number) {
   global $testOnly;
@@ -114,19 +107,16 @@ function phoneHasAnAccount($number) {
 /**
  * we say to phone (ARG) (ARG)
  *
- * in: AbbreviationsWork ACallerAbbreviatesCommandWords TEST
- *     AbbreviationsWork ACallerAbbreviatesWithWrongSyntax TEST
- *     GetHelp ACallerWantsHelpWithASpecificCommand TEST
- *     GetHelp ACallerWantsToKnowWhatsAvailable TEST
- *     GetHelp ACallerTypesAnUnrecognizedCommand TEST
- *     GetHelp CallerGivesTheWrongNonce TEST
- *     GetHelp ACallerTypesTheWrongNumberOfArguments TEST
- *     GetHelp CallerTypesAWrongArgument TEST
- *     GetHelp AmountIsTooBig TEST
- *     OpenAnAccountForTheCaller ATotalNewbieCalls TEST
- *     OpenAnAccountForTheCaller ANamelessNewbieCalls TEST
- *     OpenAnAccountForTheCaller TheNewbieGivesUsAnUnlikelyName TEST
- *     OpenAnAccountForTheCaller TheNewbieGivesABadEmailAddress TEST
+ * in: Abbreviations ACallerAbbreviatesCommandWords TEST
+ *     Abbreviations ACallerAbbreviatesWithWrongSyntax TEST
+ *     Exchange TheCallerAsksToTradeCashForRCredits TEST
+ *     Help ACallerWantsHelpWithASpecificCommand TEST
+ *     Help ACallerWantsToKnowWhatsAvailable TEST
+ *     Help ACallerTypesAnUnrecognizedCommand TEST
+ *     Help CallerGivesTheWrongNonce TEST
+ *     Help ACallerTypesTheWrongNumberOfArguments TEST
+ *     Help CallerTypesAWrongArgument TEST
+ *     Help AmountIsTooBig TEST
  */
 function weSayToPhone($number, $message) {
   return weSayToPhoneWithSubs($number, $message, array());
@@ -135,16 +125,11 @@ function weSayToPhone($number, $message) {
 /**
  * we say to phone (ARG) (ARG) with subs: (ARG)
  *
- * in: ExchangeForCash TheCallerConfirmsATradeOfRCreditsForCash TEST
- *     ExchangeForCash TheCallerConfirmsARequestToTradeCashForRCredits TEST
- *     ExchangeForCash TheCallerConfirmsAUnilateralTradeOfCashForRCredits TEST
- *     ExchangeForCash TheCallerRequestsAnImplicitTradeWithInsufficientBalance TEST
- *     GetHelp AccountDoesNotExist TEST
- *     GetInformation GettingInformation TEST
- *     GetInformation GettingInformationLargerAmounts TEST
- *     OfferToExchangeUSDollarsForRCredits MakeOrUpdateAnOffer TEST
- *     OpenAnAccountForTheCaller TheNewbieGivesUsHisOrHerName TEST
- *     OpenAnAccountForTheCaller TheNewbieGivesUsHisOrHerEmailAddress TEST
+ * in: Exchange TheCallerConfirmsATradeOfRCreditsForCash TEST
+ *     Exchange TheCallerRequestsAnImplicitTradeWithInsufficientBalance TEST
+ *     Help AccountDoesNotExist TEST
+ *     Information GettingInformation TEST
+ *     Information GettingInformationLargerAmounts TEST
  *     Transact TheCallerAsksToPayAMemberId TEST
  *     Transact TheCallerAsksToPayAPlayerByName TEST
  *     Transact TheCallerAsksToChargeAMemberId TEST
@@ -168,7 +153,7 @@ function weSayToPhone($number, $message) {
 function weSayToPhoneWithSubs($number, $message, $subs) {
   global $testOnly;
 ///  debug(array(r\SMS\tt($message), r\SMS\tt($message, $subs[0]), $subs));
-  return t\findMessage('out', compact('number'), RSMS_PREFIX . trim(r\SMS\tt($message, @$subs[0])));
+  return t\findMessage('out', compact('number'), RSMS_PREFIX . trim(u\tt($message, @$subs[0])));
 }
 
 /**
@@ -184,7 +169,7 @@ function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, 
 /**
  * phone (ARG) has no name
  *
- * in: OpenAnAccountForTheCaller ANamelessNewbieCalls MAKE
+ * in: 
  */
 function phoneHasNoName($number) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -194,7 +179,7 @@ function phoneHasNoName($number) {
 /**
  * phone (ARG) is not waiting to (ARG)
  *
- * in: OpenAnAccountForTheCaller ANamelessNewbieCalls MAKE
+ * in: 
  */
 function phoneIsNotWaitingTo($number, $todo) {
   global $testOnly;
@@ -206,11 +191,7 @@ function phoneIsNotWaitingTo($number, $todo) {
 /**
  * phone (ARG) is waiting to (ARG)
  *
- * in: OpenAnAccountForTheCaller ANamelessNewbieCalls TEST
- *     OpenAnAccountForTheCaller TheNewbieGivesUsHisOrHerName BOTH
- *     OpenAnAccountForTheCaller TheNewbieGivesUsAnUnlikelyName BOTH
- *     OpenAnAccountForTheCaller TheNewbieGivesUsHisOrHerEmailAddress BOTH
- *     OpenAnAccountForTheCaller TheNewbieGivesABadEmailAddress BOTH
+ * in: 
  */
 function phoneIsWaitingTo($number, $todo, $recalled = FALSE) {
   global $testOnly;
@@ -229,7 +210,7 @@ function phoneIsWaitingTo($number, $todo, $recalled = FALSE) {
 /**
  * phone (ARG) account name is (ARG)
  *
- * in: OpenAnAccountForTheCaller TheNewbieGivesUsHisOrHerName TEST
+ * in: 
  */
 function phoneAccountNameIs($number, $name) {
   global $testOnly;
@@ -239,7 +220,7 @@ function phoneAccountNameIs($number, $name) {
 /**
  * phone (ARG) email is (ARG)
  *
- * in: OpenAnAccountForTheCaller TheNewbieGivesUsHisOrHerEmailAddress TEST
+ * in: 
  */
 function phoneEmailIs($number, $email) {
   global $testOnly;
@@ -249,11 +230,8 @@ function phoneEmailIs($number, $email) {
 /**
  * phone (ARG) has r$(ARG)
  *
- * in: ExchangeForCash TheCallerConfirmsATradeOfRCreditsForCash TEST
- *     ExchangeForCash TheCallerConfirmsAnImplicitTradeOfRCreditsForCash TEST
- *     ExchangeForCash TheCallerConfirmsARequestToTradeCashForRCredits TEST
- *     ExchangeForCash TheCallerConfirmsAUnilateralTradeOfCashForRCredits TEST
- *     OpenAnAccountForTheCaller TheNewbieGivesUsHisOrHerEmailAddress TEST
+ * in: Exchange TheCallerConfirmsAnImplicitTradeOfRCreditsForCash TEST
+ *     Exchange TheCallerAsksToTradeCashForRCredits TEST
  *     Transact TheCallerConfirmsAPayment TEST
  *     Transact TheCallerConfirmsARequestToCharge TEST
  *     Transact TheCallerConfirmsAUnilateralCharge TEST
@@ -272,8 +250,8 @@ function phoneHasR($number, $amount) {
 /**
  * phone (ARG) has r$(ARG) including rewards of $(ARG)
  *
- * in: GetInformation GettingInformation MAKE
- *     GetInformation GettingInformationLargerAmounts MAKE
+ * in: Information GettingInformation MAKE
+ *     Information GettingInformationLargerAmounts MAKE
  */
 function phoneHasRIncludingRewardsOf($number, $bal, $rewards) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -281,21 +259,16 @@ function phoneHasRIncludingRewardsOf($number, $bal, $rewards) {
   $info = t\uidCredit($uid);
   list ($old_bal, $old_rewards) = array($info->balance, $info->rewards);
 
-  list ($amount, $from, $to, $type) = array($rewards - $info->rewards, 'community', $uid, TX_SIGNUP);
-  t\makeTransaction(compact(u\ray('amount from to type')));
-  
-  $id = $other = '.ZZM';
-  if (!t\makeAccount(compact('id'))) return FALSE;
-  list ($amount, $from, $to) = array($bal - ($info->balance + $rewards - $info->rewards), $other, $uid);
-  t\makeTransaction(compact(u\ray('amount from to')));
+  $a = r\acct($uid);
+  list ($r, $rewards) = array(str_replace(',', '', $bal) + 0, str_replace(',', '', $rewards) + 0);
+  $a->update(compact('r', 'rewards'));
   return TRUE;
 }
 
 /**
  * the community has r$(ARG)
  *
- * in: ExchangeForCash TheCallerConfirmsATradeOfRCreditsForCash TEST
- *     Transact TheCallerConfirmsAPayment TEST
+ * in: Transact TheCallerConfirmsAPayment TEST
  *     Transact TheCallerConfirmsAUnilateralCharge TEST
  *     Transact TheCallerConfirmsAPaymentWithInsufficientBalance TEST
  *     Transact TheCallerConfirmsPaymentOfTheLatestInvoice TEST
@@ -311,17 +284,16 @@ function theCommunityHasR($amount) {
 /**
  * phone (ARG) is a member
  *
- * in: AbbreviationsWork ACallerAbbreviatesCommandWords MAKE
- *     AbbreviationsWork ACallerAbbreviatesWithWrongSyntax MAKE
- *     GetHelp ACallerWantsHelpWithASpecificCommand MAKE
- *     GetHelp ACallerWantsToKnowWhatsAvailable MAKE
- *     GetHelp ACallerTypesAnUnrecognizedCommand MAKE
- *     GetHelp CallerGivesTheWrongNonce MAKE
- *     GetHelp ACallerTypesTheWrongNumberOfArguments MAKE
- *     GetHelp CallerTypesAWrongArgument MAKE
- *     GetHelp AmountIsTooBig MAKE
- *     GetHelp AccountDoesNotExist MAKE
- *     OfferToExchangeUSDollarsForRCredits MakeOrUpdateAnOffer MAKE
+ * in: Abbreviations ACallerAbbreviatesCommandWords MAKE
+ *     Abbreviations ACallerAbbreviatesWithWrongSyntax MAKE
+ *     Help ACallerWantsHelpWithASpecificCommand MAKE
+ *     Help ACallerWantsToKnowWhatsAvailable MAKE
+ *     Help ACallerTypesAnUnrecognizedCommand MAKE
+ *     Help CallerGivesTheWrongNonce MAKE
+ *     Help ACallerTypesTheWrongNumberOfArguments MAKE
+ *     Help CallerTypesAWrongArgument MAKE
+ *     Help AmountIsTooBig MAKE
+ *     Help AccountDoesNotExist MAKE
  */
 function phoneIsAMember($number) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -331,25 +303,25 @@ function phoneIsAMember($number) {
 /**
  * phone (ARG) is member (ARG)
  *
- * in: GetInformation GettingInformation MAKE
- *     GetInformation GettingInformationLargerAmounts MAKE
+ * in: 
  */
 function phoneIsMember($number, $id = NULL) {
   global $testOnly; if ($testOnly) return FALSE;
-  return t\makeAccount(compact('number', 'id'));
+  $flags = 'ok';
+  return t\makeAccount(compact(u\ray('number id flags')));
 }
 
 /**
  * members: (ARG)
  *
- * in: ExchangeForCash Setup MAKE
+ * in: Exchange Setup MAKE
+ *     Information Setup MAKE
  *     Transact Setup MAKE
  *     Undo Setup MAKE
  */
 function members($list) {
   global $testOnly; if ($testOnly) return FALSE;
   foreach ($list as $one) {
-    $one['number'] = $one['cell'];
     if (!t\makeAccount($one)) return FALSE;
   }
   return TRUE;
@@ -358,7 +330,7 @@ function members($list) {
 /**
  * transactions: (ARG)
  *
- * in: ExchangeForCash Setup MAKE
+ * in: Exchange Setup MAKE
  *     Transact Setup MAKE
  *     Transact TheCallerAsksToPayTheLatestInvoice MAKE
  *     Transact TheCallerConfirmsPaymentOfTheLatestInvoice MAKE
@@ -369,17 +341,15 @@ function members($list) {
  */
 function transactions($list) {
   global $testOnly; if ($testOnly) return FALSE;
-  foreach ($list as $one) if (!t\makeTransaction($one)) return FALSE;
+  foreach ($list as $one) if (!t\makeTx($one)) return FALSE;
   return TRUE;
 }
 
 /**
  * phone (ARG) confirms (ARG)
  *
- * in: ExchangeForCash TheCallerConfirmsATradeOfRCreditsForCash MAKE
- *     ExchangeForCash TheCallerConfirmsAnImplicitTradeOfRCreditsForCash MAKE
- *     ExchangeForCash TheCallerConfirmsARequestToTradeCashForRCredits MAKE
- *     ExchangeForCash TheCallerConfirmsAUnilateralTradeOfCashForRCredits MAKE
+ * in: Exchange TheCallerConfirmsATradeOfRCreditsForCash MAKE
+ *     Exchange TheCallerConfirmsAnImplicitTradeOfRCreditsForCash MAKE
  *     Transact TheCallerConfirmsAPayment MAKE
  *     Transact TheCallerConfirmsARequestToCharge MAKE
  *     Transact TheCallerConfirmsAUnilateralCharge MAKE
@@ -404,8 +374,7 @@ function phoneConfirms($number, $request) {
 /**
  * phone (ARG) can charge unilaterally
  *
- * in: ExchangeForCash TheCallerConfirmsAUnilateralTradeOfCashForRCredits MAKE
- *     Transact TheCallerConfirmsAUnilateralCharge MAKE
+ * in: Transact TheCallerConfirmsAUnilateralCharge MAKE
  */
 function phoneCanChargeUnilaterally($number) {
   global $testOnly;
@@ -418,8 +387,8 @@ function phoneCanChargeUnilaterally($number) {
 /**
  * the expected nonce for phone (ARG) is (ARG)
  *
- * in: GetHelp ACallerTypesAnUnrecognizedCommand MAKE
- *     GetHelp CallerGivesTheWrongNonce MAKE
+ * in: Help ACallerTypesAnUnrecognizedCommand MAKE
+ *     Help CallerGivesTheWrongNonce MAKE
  */
 function theExpectedNonceForPhoneIs($number, $nonce) {
   global $testOnly;
@@ -439,7 +408,7 @@ function theExpectedNonceForPhoneIs($number, $nonce) {
 /**
  * (ARG) is not an account id
  *
- * in: GetHelp AccountDoesNotExist MAKE
+ * in: Help AccountDoesNotExist MAKE
  */
 function isNotAnAccountId($id) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -449,19 +418,22 @@ function isNotAnAccountId($id) {
 /**
  * the total demand for rCredits is $(ARG)
  *
- * in: GetInformation GettingInformation MAKE
- *     GetInformation GettingInformationLargerAmounts MAKE
- *     OfferToExchangeUSDollarsForRCredits MakeOrUpdateAnOffer BOTH
+ * in: Information GettingInformation MAKE
+ *     Information GettingInformationLargerAmounts MAKE
  */
 function theTotalDemandForRCreditsIs($amount) {
   global $testOnly;
-  $old = r\totals()->demand;
+  
+  $amount = str_replace(',', '', $amount);
+  $old = r\totals('ALL', TRUE)->demand;
   $same = t\eq($old, $amount);
   if ($testOnly or $same) return $same;
   
-  if (!$uid = t\makeAccount()) return FALSE;
-  $demand = $amount - $old;
-  r\acct($uid)->update(compact('demand'));
+  if (!$uid = t\makeAccount(u\ray('id flags', '.ZZZ', 'person,ok'))) return FALSE;
+  $a = r\acct($uid);
+  $usd = $amount - $old - $a->usd;
+  $a->update(compact('usd'));
+  r\totals('ALL', TRUE);
   // NO - fails for disallowed high amounts. r\demand($uid, $demand);
   return TRUE;
 }
@@ -469,7 +441,7 @@ function theTotalDemandForRCreditsIs($amount) {
 /**
  * phone (ARG) demand for rCredits is $(ARG)
  *
- * in: OfferToExchangeUSDollarsForRCredits MakeOrUpdateAnOffer BOTH
+ * in: 
  */
 function phoneDemandForRCreditsIs($number, $demand) {
   global $testOnly;
@@ -489,3 +461,12 @@ function relations($relations) {
   foreach ($relations as $one) if (!t\makeRelation($one)) return FALSE;
   return TRUE;
 }
+
+/**
+ * balances: (ARG)
+ *
+ * in: Exchange Setup TEST
+ *     Exchange TheCallerConfirmsATradeOfRCreditsForCash TEST
+ */
+function balances($list) {return t\balances($list);}
+

@@ -44,7 +44,7 @@ class rcronPool extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id   | fullName   | email | flags              |'
+    . '\\| id   | fullName   | email | flags                 |'
     . '\\| .ZZA | Abe One    | a@    | dft,ok,dw,person,bona |'
     . '\\| .ZZB | Bea Two    | b@    | dft,ok,dw,person,bona |'
     . '\\| .ZZC | Corner Pub | c@    | dft,ok,dw,company     |"');
@@ -57,6 +57,9 @@ class rcronPool extends DrupalWebTestCase {
     . '\\| .ZZA |   0 |  25 |'
     . '\\| .ZZB |   0 |  10 |'
     . '\\| .ZZC |  25 |  80 |"');
+    And__('members have: "DATA'
+    . '\\| id   | usdAccount |'
+    . '\\| ctty | cttyAcct   |"');
     break;
 
 

@@ -275,7 +275,7 @@ function doRow($tx, $report, $csv, $classes, $agents, $channels, $boxes, $curren
     $url = $url0 . "&xid=$xid";
     u\setDft($toMe, $tx_payee == $myid);
     $byMe = $banking ?: (@$tx_taking == $toMe);
-    $tid = $banking ? $xid : ($toMe ? @$tx_payeeTid : @$tx_payerTid);
+    $tid = ($banking or $myid < 0) ? $xid : ($toMe ? @$tx_payeeTid : @$tx_payerTid);
     $agent = $toMe ? @$tx_payeeAgent : @$tx_payerAgent;
     $state = txColoredState($tx_state, $byMe);
     $reward = $banking ? 0 : @$data[$toMe ? 'bonus' : 'rebate'];

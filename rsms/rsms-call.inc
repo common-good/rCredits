@@ -228,9 +228,11 @@ class call {
    */
   function do_information() {
 //    be\todo($this->number, 'account info2', ''); // queue up more info (not used yet)
-    $quid = r\acct()->mainQid;
+    $mya = r\acct();
+    $quid = $mya->mainQid;
     $totalDemand = r\totals()->fancy['demand'];
-    return tt('account info', be\creditInfo()->fancy + compact('quid', 'totalDemand'));
+    list ($balance, $rewards) = array(u\fmtAmt($mya->r + $mya->usd), u\fmtAmt($mya->rewards));
+    return tt('account info', compact(u\ray('quid balance rewards totalDemand')));
   }
 
   /**
@@ -295,7 +297,7 @@ class call {
    * Give funds to the caller from someone else.
    */
   function do_charge() {
-    return t('Invoicing another member is not permitted at this time.');
+    return tt('no charging');
     return $this->do_transfer('charge');
   }
 

@@ -89,7 +89,11 @@ function makeAccount($info = array(), $testOnly = FALSE) {
     u\setDft($legalName, $fullName);
   //  $pass = @$my_password ?: '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae'; // default to 123
     u\setDft($pass, '123');
-    u\setDft($mail, chr(ord('a') + $uid - r\unQuid('.ZZA')) . '@example.com'); // a@example.com, etc.
+
+    $zza = r\unQuid('.ZZA');
+    $mailDft = ($zza <= $uid and $uid < $zza + 26) ? chr(ord('a') + $uid - $zza) : \user_password(10);
+    u\setDft($mail, $mailDft . '@example.com'); // a@example.com, etc.
+
     u\setDft($community, r\serverUid());
     u\setDft($postalCode, '01301');
     u\setDft($country, 'US');
@@ -290,6 +294,8 @@ function makeBalance($one, $testOnly) {
   }
   extract(u\just('id r usd balance dwolla rewards minimum share committed', $one));
   $a = r\acct($id = t\uid($id0 = $id));
+/**/ print_r(compact('a','id','id0'));
+  print_r(' unQuid=' . r\unQuid($id0));
   if ($hasdw = in_array($a->usdAccount, array(DW_TEST_ACCT, DW_TESTER_ACCT))) $us = new r\usd($a);
   $dodw = (isset($dwolla) and $hasdw);
 
@@ -469,9 +475,7 @@ function findMessage($type, $fields, $message = '', $subject = '', $subs = array
   output(array('EXPECT' => '') + $fields, @$subject ? 'email' : 'output'); // keep this
   $info = u\jsonEncode($fields);
   $crit = "channel=:channel AND type=:type AND myid<=>:myid AND agent<=>:agent ORDER BY logid DESC";
-/// debug(compact(u\ray('info type myid agent channel crit'))); // for debugging mysterious email mismatches
-/// debug(compact(u\ray('info type myid agent channel')), '', 1);
-/// debug("info=:info AND $crit"); debug(compact(u\ray('info type myid agent')));
+/// debug("info=:info AND $crit"); debug(compact(u\ray('info type myid agent channel')));
   return db\exists('r_log', "info=:info AND $crit", compact(u\ray('info type myid agent channel')));
 }
 
@@ -822,13 +826,13 @@ function postLogout($function) {
         }
       }
 //      cache_set('t_messages', FALSE);
-u\deb('postLogout returning TRUE, skipToStep was ='.@$skipToStep.' (now NULL)');
+//u\deb('postLogout returning TRUE, skipToStep was ='.@$skipToStep.' (now NULL)');
       $skipToStep = NULL; // strangely, this has to be = NULL not unset()
       return TRUE;
     }
   }
   */
-u\deb('postLogout returning FALSE, about to save skiptostep '.$function);
+//u\deb('postLogout returning FALSE, about to save skiptostep '.$function);
   $vars = array(
     'msgs' => @$_SESSION['messages'] ?: array(),
     'skipToStep' => $function, // tell gherkin function to skip steps in interrupted scene until this step

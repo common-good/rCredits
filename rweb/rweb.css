@@ -205,14 +205,19 @@ form.rweb  .form-no {color:red;}
   #rcreditswebformtx #calc button {display:inline;}
 }
 
+/* Admin */
+.page-sadmin div.status {background-image:none; margin:4px; padding:0px;}
+
 /* Menu */
 #menu {display:none;}
 
 /* Login */
+#user-login .form-item label {width:130px;}
+#user-login #edit-title {margin-left:133px;}
 #user-login #edit-tip label {font-weight:normal; width:100%; text-align:left;}
 #user-login #edit-name,
 #user-login #edit-pass {width:20em;}
-#user-login .confirm-parent, #user-login .password-parent, #user-login .password-suggestions {margin-left:125px;}
+#user-login .confirm-parent, #user-login .password-parent, #user-login .password-suggestions {margin-left:133px;}
 #user-login .password-suggestions {background-color:lightyellow; width:240px;}
 #user-login .confirm-parent label, #user-login .password-parent label {text-align:left; width:auto;}
 #user-login .form-item-newPass label[for="edit-newpass"] {display:none;}
@@ -409,12 +414,19 @@ form.rweb  .form-no {color:red;}
 #memberlist {width:auto; cell-spacing:5px;}
 #memberlist .name {font-weight:bold;}
 #memberlist .co {color:darkred;}
+#memberlist td:first-child +td+td {width:100px;} 
 
 /* 1099-B */
 #f1099b td:first-child {width:48px;} /* date */
 #f1099b td:first-child +td {width:75px;} /* amount */
 #f1099b td:first-child +td+td {width:200px;} /* account */
 #f1099b .num {text-align:right;}
+
+/* Invited Whom */
+#invitelist {width:auto; cell-spacing:5px;}
+/*#invitelist td:first-child {width:60px;} /* date */
+/*#invitelist td:first-child +td {width:200px;} /* who */
+/*#invitelist td:first-child +td+td {width:100px;} /* account */
 
 /* Transactions */
 #rcreditswebformtxs #edit-title,

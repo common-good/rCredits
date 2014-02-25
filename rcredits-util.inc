@@ -9,6 +9,7 @@ namespace rCredits\Util; // typically abbreviated as "u"
 use rCredits as r; // get rid of this
 use rCredits\DB as db;
 use rCredits\Util as u;
+use rCredits\Testing as t;
 
 // Some useful Drupal db methods: fetchAllKeyed(m, n), fetchAssoc and fetchAllAssoc(fld), fetchObject and fetchAll(), fetchCol(n), fetchField()
 
@@ -290,9 +291,9 @@ function fmtPhone($phone, $how = '+') {
     $phone = substr($phone, 2);
   } elseif (substr($phone, 0, 1) == '1') {
     $phone = substr($phone, 1);
-  } elseif (substr($phone, 0, 1) == '+') $foreign = substr($phone, 1);
+  } elseif (substr($phone, 0, 1) == '+') $foreign = $phone = substr($phone, 1);
 
-  if (!is_numeric($phone) or strlen($phone) < MIN_PHONE_DIGITS or strlen($phone) > MAX_PHONE_DIGITS) return FALSE;
+  if (!is_numeric($phone) or (!t\est() and strlen($phone) < MIN_PHONE_DIGITS) or strlen($phone) > MAX_PHONE_DIGITS) return FALSE;
   if (!$foreign and substr($phone, 0, 1) < 2) return FALSE; // US phone numbers cannot start with 0 or 1
   if (!$foreign and strlen($phone) != 10) return FALSE;
 
@@ -817,9 +818,12 @@ function badDate(&$s, $min = '', $max = '') {
  */
 function parseName($name) {
   $name = trim(preg_replace('/  /', ' ', $name));
-  if ($i = strpos($name, ',')) $name = substr($name, $i);
+  if ($i = strpos($name, ',')) {
+    $suffix = substr($name, $i);
+    $name = substr($name, 0, $i);
+  }
   $names = explode(' ', $name);
-  $last = array_pop($names);
+  $last = array_pop($names) . @$suffix;
   return array(join(' ', $names), $last);
 }
 
@@ -947,7 +951,7 @@ function caller($skip = 0) {
   $caller = (object) array_shift($trace); $file = basename(@$caller->file);
   $precaller = (object) array_shift($trace); $prefile = basename(@$precaller->file);
   $args = print_r(@$caller->args, 1);
-  $preargs = print_r(@$precaller->args, 1);
+/**/ $preargs = print_r(@$precaller->args, 1);
   return " called $caller->function($args) ($caller->line in $file), from $precaller->function($preargs) ($precaller->line in $file)\n";
 }
    
@@ -1001,3 +1005,5 @@ function backButton() {return '<button onclick="history.go(-1); return false;">G
 function nonish($s) {return in_array(strtolower($s), array('n/a', 'nothing', 'na', 'none')); }
 function padto($s, $n) {return str_pad(substr($s, $n), $n);}
 function similarEmail($e1, $e2) {return (strtolower(preg_replace('/\+.*@/', '@', $e1)) == strtolower(preg_replace('/\+.*@/', '@', $e1)));}
+//function rayo() {return (object) call_user_func_array('rCredits\\Util\\ray', func_get_args());}
+function rayv($a, $i) {return $a[$i];} // useful when $a is returned from a function

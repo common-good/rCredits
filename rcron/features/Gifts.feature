@@ -45,7 +45,7 @@ Scenario: A recurring contribution can be completed
   When cron runs "gifts"
   Then transactions:
   | xid   | created | type     | state | amount | from      | to      | purpose      |
-  | .AAAB | %today  | transfer | done  |     10 | .ZZA      | cgf     | contribution |
+  | .AAAB | %today  | transfer | done  |     10 | .ZZA      | cgf     | contribution (recurs Quarterly) |
   | .AAAC | %today  | rebate   | done  |   0.50 | community | .ZZA    | rebate on #1 |
   | .AAAD | %today  | bonus    | done  |   1.00 | community | cgf     | bonus on #1  |
   And gifts:
@@ -54,7 +54,7 @@ Scenario: A recurring contribution can be completed
   | .ZZA | %yesterday+3m |     10 |     Q |        |         |         0 |
   And we notice "new payment|reward other" to member "cgf" with subs:
   | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |
-  | <a href=''do/id=1&code=whatever''>Abe One</a> | $10 | contribution | reward | $1 |
+  | <a href=''do/id=1&code=whatever''>Abe One</a> | $10 | contribution (recurs Quarterly) | reward | $1 |
   And we tell staff "gift accepted" with subs:
   | amount | myName  | often | rewardType |
   |     10 | Abe One |     Q | reward     |

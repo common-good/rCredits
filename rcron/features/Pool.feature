@@ -5,7 +5,7 @@ SO we can use them for something as a community, while losing nothing as individ
 
 Setup:
   Given members:
-  | id   | fullName   | email | flags              |
+  | id   | fullName   | email | flags                 |
   | .ZZA | Abe One    | a@    | dft,ok,dw,person,bona |
   | .ZZB | Bea Two    | b@    | dft,ok,dw,person,bona |
   | .ZZC | Corner Pub | c@    | dft,ok,dw,company     |
@@ -18,6 +18,9 @@ Setup:
   | .ZZA |   0 |  25 |
   | .ZZB |   0 |  10 |
   | .ZZC |  25 |  80 |
+  And members have:
+  | id   | usdAccount |
+  | ctty | cttyAcct   |
 
 Scenario: Normal pooling happens
   When cron runs "pool"

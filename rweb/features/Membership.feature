@@ -36,7 +36,7 @@ Scenario: A member signs in for the first time
   Given member "NEW.AAC" one-time password is %whatever
   When member "?" visits page "/user/login"
   Then we show "Welcome" with:
-  | Tmp password |
+  | Temp password |
   | New password |
   | Confirm new password |
   | security code |
@@ -118,8 +118,8 @@ Scenario: A member does it all
   Then we show "Contact Information"
 
   When member ".ZZA" confirms form "account/contact" with values:
-  | legalName | email | phone | address | state | country | postalCode | verifyBy | postalAddr  | faxetc    |
-  | Abe One   | a@    |     1 | 1 A St. | AK    | US      | 01002      |        1 | 1 A St., AK | %whatever |
+  | fullName | email | phone | address | state | country | postalCode | verifyBy | postalAddr  | faxetc    |
+  | Abe One  | a@    |     1 | 1 A St. | AK    | US      | 01002      |        1 | 1 A St., AK | %whatever |
 #  When member ".ZZA" visits page "status"
   Then we show "You're getting there"
   And with done "2"

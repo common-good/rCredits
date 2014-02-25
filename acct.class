@@ -51,7 +51,8 @@ class acct {
    * @param assoc $info: array of field values for new account
    */
   private function createNew($info) {
-    $fields = 'phone number mail pass secure fullName legalName name flags rebate country state postalCode created uid';
+    $fields = 'phone number mail pass secure fullName legalName name flags rebate country state postalCode created uid community';
+    if (t\est()) $fields .= ' usdAccount';
     extract(u\just($fields, $info));
     u\setDft($phone, @$number);
     if ($phone) $phone = u\fmtPhone($phone, '+n');
@@ -68,11 +69,12 @@ class acct {
     if (@$state and !is_numeric(@$state)) { // allow state abbrevs within US
       $state = db\lookup('id', 'r_states', 'abbreviation=:state and country_id=:US_COUNTRY_ID', compact('state'));
     }
-    $community = communityUid(@$postalCode); // defaults to current server
+    u\setDft($community, communityUid(@$postalCode)); // defaults to current server
     $created = $login = $access = @$created ?: REQUEST_TIME;
 
     if ($data0 = u\just(R_DATA_FIELDS, $info)) foreach ($data0 as $key => $value) unset($info[$key]);
     $data = serialize($data0);
+    unset($info['number']);
 
     $record = compact(u\ray('phone status mail init pass name fullName state flags rebate community data created login access'));
     foreach ($record as $key => $value) unset($info[$key]);
@@ -212,7 +214,7 @@ class acct {
    */
   public static function nextId($region = '') {
     u\EXPECT($region <= 0, 'non-negative region in nextId');
-    return r\newUid(R_REGION_MAX * (-($region ?: r\serverUid()) - 1) + 1);
+    return r\newUid(-($region ?: r\serverUid()));
   }
   
   /**
@@ -344,6 +346,7 @@ class acct {
     $ray = (array) $this->account(R_MONEY_FIELDS);
     $ray['fees'] = 0;
     $avail = r\avail($type, $ray);
+///    debug(compact(u\ray('type need get retrying ray avail')));
     if ($avail >= $need) return 0; // plenty without drawing from other accounts
 
     $avail += $get ? $this->draw($type, $need - $avail) : $this->canDraw($type); // get or just asking
@@ -702,8 +705,8 @@ EOF;
       };
       $perms[B_DEV] = (isDEV or $perms[B_ADMIN]); // is this used?
       
-      $perms[B_MANAGING_CTTY] = ($perms[B_CTTY_ADMIN] and $id == $this->community);
-      if ($perms[B_MANAGING_CTTY] and !$perms[B_ADMIN]) $perms[B_BUY] = $perms[B_SELL] = FALSE; // ctty admin can manage but not buy/sell
+      if ($perms[B_MANAGING_CTTY] = ($perms[B_CTTY_ADMIN] and $id == $this->community)) $perms[B_BUY] = TRUE;
+      //if ($perms[B_MANAGING_CTTY] and !$perms[B_ADMIN]) $perms[B_BUY] = $perms[B_SELL] = FALSE; // ctty admin can manage but not buy/sell
 
       ksort($perms); // easier to debug
       self::$perms[$id][$this->agentId] = $perms;

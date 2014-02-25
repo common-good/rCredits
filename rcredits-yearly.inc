@@ -12,6 +12,7 @@ use rCredits\Backend as be;
 
 define('EOL', "\r\n"); // must be two characters long (make sure download doesn't change it)
 define('STATE_CODE', '25'); // Massachusetts code, for combined Federal/State filing
+define('TEST1099', FALSE); // must be set TRUE for a successful test
 
 /**
  * Create 1099-B reports for the IRS as a downloadable file to be uploaded to the IRS FIRE site.
@@ -40,7 +41,7 @@ function do1099bs() {
   }
   
   $bCount = lpad($bCount, 8);
-  $totals = lpad(0, 6 * 18) . lpad(str_replace('.', '', number_format($total, 2)), 18) . lpad(0, 9 * 18);
+  $totals = lpad(0, 6 * 18) . lpad(fmtAmt($total), 18) . lpad(0, 9 * 18);
 
   putRec(recC($bCount, $totals));
   putRec(recK($bCount, $totals));
@@ -60,7 +61,7 @@ function do1099b($year, $payee, &$total) {
     extract(u\just('completed amount for', $row));
     if ($amount <= 0) continue; // IRS says do NOT report non-positive transactions
     $total += $amount;
-    putRec(recB($year, r\acct($payee), $completed, number_format($amount, 2), $for));
+    putRec(recB($year, r\acct($payee), $completed, fmtAmt($amount), $for));
   }
 }
 
@@ -69,7 +70,7 @@ function recT($year) {
   $prior = pad('', 1); // P for prior year data, else ' '
   $cgfTIN = '205280780';
   $TCC = '08C20';
-  $testing = pad('T', 1); // T for testing, else ' '
+  $testing = pad(TEST1099 ? 'T' : ' ', 1);
   $foreign = pad(FALSE, 1); // 1 for foreign
   $coName = $transmitterName = pad('Society to Benefit Everyone, Inc.', 80);
   $coAddr = pad('PO Box 21', 40) . pad('Ashfield', 40) . 'MA' . pad('013300021', 9);
@@ -107,7 +108,7 @@ function recB($year, $a, $completed, $amount, $for) {
   $payeeTIN = pad($a->federalId, 9);
   $accountNum = pad($a->id, 20);
   $payerOffice = pad('', 4);
-  $amt = lpad(str_replace('.', '', $amount), 12);
+  $amt = lpad($amount, 12);
   $foreignPayee = pad('', 1);
   $payeeName = pad(noBreakAt(preg_replace('/[^A-Z &\-]/i', '', $a->legalName), 40), 2 * 40);
   list ($payeeFirst, $payeeLast) = u\parseName($payeeName);
@@ -206,3 +207,4 @@ function breakup($s, $len = 10) {
 function pad($s, $n) {return substr(str_pad($s, $n), 0, $n);}
 function lpad($s, $n) {return str_pad($s, $n, '0', STR_PAD_LEFT);}
 function sp($n) {return pad('', $n);}
+function fmtAmt($n) {return preg_replace('/[\,\.]/', '', number_format($n, 2));}

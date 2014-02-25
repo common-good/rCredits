@@ -61,7 +61,8 @@ function apiOut($args) {
  * Return the user's bank transactions for the given period (inclusive)
  * @param int $starting: starting time (the beginning of some day)
  * @param int $ending: ending time (the end of some day)
- * @param int $uid: account id for which to return transactions (defaults to current account)
+ * @param mixed $uid: account id for which to return transactions (defaults to current account)
+ *   'ctty' means return transactions for the current account's whole community
  * @param assoc $opts: array of options
  *   bool $dones: include completed transactions (default TRUE)
  *   bool $pendings: include open invoices (default TRUE)
@@ -72,13 +73,17 @@ function bankTransfers($starting, $ending, $uid = NULL, $opts = array()) {
   u\setDft($dones, TRUE);
   u\setDft($pendings, TRUE);
   $mya = r\acct();
-  if (!@$uid) $uid = $mya->id; elseif ($uid == 'ctty') $uid = $mya->community;
+
+  if ($uid == 'ctty') { // otherwise $uid can be positive for a member account or negative for a ctty account
+    $uid = $ctty = $mya->community;
+  } elseif (!@$uid) $uid = $mya->id;
+  
   $date = $pendings ? 'GREATEST(t.created, t.completed)' : 't.completed';
   $where = "$date BETWEEN :starting AND :ending ORDER BY $date DESC";
   if (!$dones) $where = "NOT completed AND $where";
   $fields = "CONCAT('b', tid) AS xid, amount, t.payer, t.payee, :TX_BANK AS type, t.created, t.completed, IF(t.completed, :TX_DONE, :TX_PENDING) AS state, IF(t.amount<0, 1, 0) AS toMe";
   
-  if ($uid < 0) { // community or region
+  if (@$ctty) { // community or region
     $sql = <<<EOF
       SELECT $fields
       FROM r_usd t LEFT JOIN users u1 ON u1.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
@@ -93,7 +98,8 @@ EOF;
  * Return the user's transactions for the given period (inclusive)
  * @param int $starting: starting time (the beginning of some day)
  * @param int $ending: ending time (the end of some day)
- * @param int $id: account id for which to return transactions (defaults to current account)
+ * @param mixed $id: account id for which to return transactions (defaults to current account)
+ *   'ctty' means return transactions for the current account's whole community
  * @param assoc $opts: array of options
  *   bool $dones: include completed transactions (default TRUE)
  *   bool $pendings: include open invoices (default TRUE)
@@ -113,7 +119,11 @@ function myTransactions($starting, $ending, $id = NULL, $opts = array()) {
   u\setDft($exchanges, FALSE);
   u\setDft($pexchanges, FALSE);
   $mya = r\acct();
-  if (!@$id) $id = $mya->id; elseif ($id == 'ctty') $id = $mya->community;
+  
+  if ($id == 'ctty') { // otherwise $id can be positive for a member account or negative for a ctty account
+    $id = $ctty = $mya->community;
+  } elseif (!@$id) $id = $mya->id;
+  
   $where = 't.created>=:starting AND t.created<=:ending';
   if (!$bonuses) $where .= ' AND t.type>=0';
   if (!$exchanges or !$pexchanges) {
@@ -125,7 +135,7 @@ function myTransactions($starting, $ending, $id = NULL, $opts = array()) {
   if ($pendings) $states[] = TX_PENDING;
   $states = 't.state IN (' . join(',', $states) . ')';
   
-  if ($id < 0) { // community or region
+  if (@$ctty) { // all transaction in the community or region
     $sql = <<<EOF
       SELECT t.*, IF(taking, t.payeeFor, t.payerFor) AS purpose
       FROM r_txs t LEFT JOIN users u1 ON u1.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
@@ -133,7 +143,7 @@ function myTransactions($starting, $ending, $id = NULL, $opts = array()) {
       AND $states
       AND $where
 EOF;
-  } else { // normal account
+  } else { // normal account (member or community)
     if ($pendings) $states .= ' OR (t.state=:TX_DENIED AND t.payee=:id)';
     // Denied invoices are not exactly pending, but user will want to see them, before deleting
     $sql = <<<EOF
@@ -446,11 +456,10 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   $totalHit = $requestAmount - @$data['rebate']; // leave room for reversing rewards (minus a negative)
   
   if ($shortfall = r\shortfall(abs($totalHit), $reallyTaking ? $a2 : $a1, $preapproved, $goods, $confirmed)) {
-  //if ($shortfall = 200) {
     $short = u\fmtAmt($shortfall);
     $otherName = $a2->fullName;
-    $msg = $reallyTaking ? 'short from' : 'short to';
-    if ($reallyTaking) r\suggestMin($a2);
+    $msg = ($goods ? 'short ' : 'short cash ') . ($reallyTaking ? 'from' : 'to');
+    r\suggestMin($reallyTaking ? $a2 : $a1);
     return array($msg, compact(u\ray('otherName short how')), FALSE);
   }
   $amount = $requestAmount;
@@ -655,7 +664,7 @@ EOF;
 
   if ($refunds != $fees) {
     $info = compact(u\ray('uid fees refunds'));
-    t\output('ERROR: fee/refund mismatch: ' . print_r($info, 1));
+/**/ t\output('ERROR: fee/refund mismatch: ' . print_r($info, 1));
     r\tellStaff('fee/refund mismatch', $subs+$args+$info);
   }
   $rewards -= $refunds; // Dwolla fee refunds are a hidden reward
@@ -691,11 +700,11 @@ EOF;
 function accountChoices() {
   if (!$mya = r\acct()) return FALSE;
   $result = array($aid = $mya->agentId);
-  if ($mya->cttyAdmin()) {
-    $result += @db\q('SELECT uid FROM users WHERE community=:ctty ORDER BY (uid<0) DESC, fullName', u\ray('ctty', $mya->community))->fetchAllKeyed(0, 0);
-  } elseif ($mya->admin()) {
+  if ($mya->admin()) {
     $result += @db\q('SELECT uid FROM users WHERE uid<:R_CTTY_UID0 ORDER BY fullName')->fetchAllKeyed(0, 0);
     $result += @db\q('SELECT uid FROM users WHERE uid>1 ORDER BY fullName')->fetchAllKeyed(0, 0);
+  } elseif ($mya->cttyAdmin()) {
+    $result += @db\q('SELECT uid FROM users WHERE community=:ctty ORDER BY (uid<0) DESC, fullName', u\ray('ctty', $mya->community))->fetchAllKeyed(0, 0);
   } else $result += @db\q('SELECT main FROM r_relations WHERE other=:aid AND permission>0', compact('aid'))->fetchAllKeyed(0, 0);
   return array_values($result);
 }

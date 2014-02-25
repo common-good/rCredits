@@ -71,7 +71,7 @@ EOF
   'prompt min' => t('How much to keep in your rCredits account, for purchases or inflation-proof savings. When your balance goes below this amount, the system automatically refills it for you from your bank account. Refilling may take 3-5 business days (a couple days to leave the bank and a couple more to arrive in your rCredits account).'), // If you don\'t want any automation, type zero (then remember to refill your account explicitly when it gets low).'),
 //  'prompt max' => t('Keep AT MOST this much in my rCredits account. (When your rCredits balance goes above this amount by $@R_CHUNK or more, the system transfers the extra to your bank account. Blank means no automatic transfers &mdash; recommended in most cases).'),
   'legalname desc' => t('Your full legal name, properly capitalized, as on your government-issued ID.'),
-  'usename desc' => t('This should be the name you use in formal letters, at work, on your checks and credit cards, etc.'),
+  'usename desc' => t('This should be the name you use in formal letters, at work, on your checks and credit cards, etc. &mdash; <b>NOT</b> your nickname.'),
   'verify connection' => t('Two small deposits (under @DW_VERIFY_ROOF cents) have been sent to your bank. Call your bank after 3-5 business days, to find out the amounts. Then come back to the Bank Info page and fill in those amounts, to verify the connection to your bank account. Here\'s how: Go to rCredits.org, click "Members\'s Site", sign in, click the Settings gear in the upper right corner, then click "Bank Info". We will send you a reminder by email.'),
   'ssTitle' => t('Soc Sec #:'),
   'einTitle' => t('Federal ID:'),
@@ -177,7 +177,7 @@ EOF
   'missing contact info' => t("<h2>Missing Contact Information</h2><p>Please complete your <@a1>Contact Information</a> before continuing.</p>"),
   'correct and retry' => t('Please correct the problem and resubmit this form.'),
   'duplicate transaction' => t('You already just @op that member that much.'),
-  'duplicate phone' => t('That phone number is already the primary phone for another account. Choose a different phone number or check "Dup Ok" if this is your ONLY phone and you can make do without a connected bank account.'),
+  'duplicate phone' => t('That phone number is already the primary phone for another account.<br><br>If this is your ONLY phone and you can make do without a connected bank account (that is, if you have some other easy way to get money into and out of your rCredits account): <input type="button" value="Continue With No Bank Connection" onclick="jQuery(\'#edit-dupOk\').val(1); jQuery(\'#rcreditswebform@form\').submit();" />'),
   'not a duplicate phone' => t('That phone number is NOT the primary phone for another account.'),
   'bad pin' => t('That is not your correct PIN.'),
   'wrong pin len' => t('Your PIN must be exactly 4 characters long.'),
@@ -304,8 +304,15 @@ function acctTypeField() {
  */
 function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   global $formArray, $formSta, $rUrl;
+  setupGlobals(); // in case it's an anonymous form, so webAccess doesn't have a chance to set up
+  if (!@$formSta['confirm'] and !in_array($function, u\ray('Admin Test Handy footer accounts'))) {
+    if ($logs = $_POST) {
+      foreach (u\ray('form_build_id form_token form_id') as $one) unset($logs[$one]);
+      u\loga('in', $logs);
+    } else u\loga('form', array(str_replace(base_path(), '', $_SERVER['REQUEST_URI'])));
+  }
+
   try {
-    setupGlobals(); // in case it's an anonymous form, so webAccess doesn't have a chance to set up
     $mya = r\acct();
     $args = 'arg1' . ($arg2 !== '' ? ' arg2' : '') . ($arg3 !== '' ? ' arg3' : '') . ($arg4 !== '' ? ' arg4' : '');
     $formName = substr($function, 0, 1) == '/' ? substr($function, 1) : "rCredits\\Web\\form$function";
@@ -315,7 +322,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     array_shift($args); // Remove $function from the arguments.
     $formSta['build_info'] = compact('args');
     if (!r\up() and !$specialForm and $mya) {
-      if ($mya and $mya->admin()) {
+      if ($mya->admin()) {
         say('The system is DOWN.');
       } else $formName = 'rCredits\\Web\\formSystemDown';
     }
@@ -330,7 +337,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
       js('inc/misc.js', 'file', 'footer');
       if (@$form['country']) {
         js('inc/countries.js', 'file', 'header');
-        if (\form_get_errors()) js("print_country($mya->country, $mya->state);", 'inline', 'footer');
+        if ($mya and \form_get_errors()) js("print_country($mya->country, $mya->state);", 'inline', 'footer');
       }
       if (u\isIPhone()) css('iphone.css', -100);
     }
@@ -762,20 +769,22 @@ function findCompany($company, $companyPhone) {
  * Return form fields for name and email.
  */
 function nameAndEmail($fullName = '') {
-  $legalName = textField(t('Legal name:'), tt('legalname desc'), required(@$fullName));
+  $onchange = "var common=jQuery('#edit-fullname'); if (common.val()=='') common.val(this.value);";
+  $legalName = textField(t('Legal name:'), tt('legalname desc'), required(@$fullName) + attrib(compact('onchange')));
   $fullName = textField(t('Common name:'), t('(if different) ') . tt('usename desc'));
-  $mail = textField(t('Email:'), t('All emails from the system will be sent to this address. It will not be made public.'), required());
+  $mail = textField(t('Email:'), t('All emails from the system will be sent to this address. It will not be made public. <b>Type carefully.</b>'), required());
   return compact(u\ray('legalName fullName mail'));
 }
 
 /**
  * Return the part of the form that is common to formContact and formSignup
  * @param assoc $defaults: initial field values (defaults to current values) - see list at "$fields ="...
+ * @param bool $makePostalAddr: the address and postalCode fields create the postal address
  * include all fields (for Contact form) only if r\acct() is set
  */
-function contactFields($defaults = array()) {
+function contactFields($defaults = array(), $makePostalAddr = FALSE) {
   $country = $state = ''; // make sure these are not NULL
-  $fields = 'phone dupOk verifyBy address city state country postalCode faxetc';
+  $fields = 'phone verifyBy dupOk address city state country postalCode faxetc';
   $mya = r\acct();
   extract($defaults ?: ($mya ? (array) $mya->account($fields) : array()));
   $dupPhone = @$defaults['dupPhone'];
@@ -783,26 +792,31 @@ function contactFields($defaults = array()) {
   $onchange = "print_state(this.options[this.selectedIndex].value,'');";
   $countryAttrib = attrib(compact('onchange'));
   js("print_country(\"$country\", \"$state\");", 'inline', 'footer');
-
-  $onchange = <<<EOF
+  $us = US_COUNTRY_ID;
+  
+  if ($makePostalAddr) {
+    $onchange = <<<EOF
 var country = jQuery('#edit-country').val();
 var state = jQuery('#edit-state').val();
 var city = jQuery('#edit-city').val();
 var address = jQuery('#edit-address').val();
 var postalCode = jQuery('#edit-postalcode').val();
 var postalAddr = jQuery('#edit-postaladdr');
-if (postalAddr.val() == '') {
-  postalAddr.val(address + ', ' + city + ', ' + ss[country][state].replace('Massachusetts', 'MA') + ' ' + postalCode);
+if (address != '' && postalCode != '' && postalAddr.val() == '') {
+  postalAddr.val(address + ', ' + city + ', ' + (country==$us ? STs[state] : ss[country][state]) + ' ' + postalCode + (country==$us ? '' : (' ' + cs[country])));
 } // postalAddr.attr('selectionEnd',0); fails
 EOF;
-  $addressAttrib = attrib(compact('onchange'));
-
-  $onchange = "var z3=jQuery('#edit-postalcode').val().substr(0, 3); if (z3=='013' || z3=='010') jQuery('#edit-buysat').show();";
-  $zipAttrib = attrib(compact('onchange'));
+    $addressAttrib = $zipAttrib = attrib(compact('onchange'));
+  } else {
+    $addressAttrib = array();
+    $onchange = "var z3=jQuery('#edit-postalcode').val().substr(0, 3); if (z3=='013' || z3=='010') jQuery('#edit-buysat').show();";
+    $zipAttrib = attrib(compact('onchange'));
+  }    
   
-  $phone = textField(t('Phone:'), t('Your phone number. This cannot be already used for another rCredits account unless you answer "Yes" to Dup Ok, below.'), required(@$phone ? u\fmtPhone($phone): ''));
-  $dupOk = boolField(t('Dup Ok:'), t('If this is already the phone number for another rCredits account, click Yes to use it for this account too. Without a unique phone number, though, you cannot connect a bank account to your rCredits account. We are lobbying our financial partner, Dwolla, to remove this limitation. But, for now, a duplicate phone means no connected bank account.'));
-//  $verifyBy = formField('radios', t('Verify by:'), t('We will send a verification code to your phone, by text or voice.'), required(@$mya->verifyBy ? (int) ($mya->verifyBy == 'Voice') : NULL), array(t('Text message'), t('Voice message')));
+  $phone = textField(t('Phone:'), $mya ? '' : t('Your phone number. This should not be a number already used for another rCredits account &mdash; unless you have no other phone number.'), required(@$phone ? u\fmtPhone($phone): ''));
+  $dupOk = hidField(0, attrib(u\ray('id', 'edit-dupOk')));
+//  $dupOk = boolField(t('Dup Ok:'), t('If this is already the phone number for another rCredits account, click Yes to use it for this account too. Without a unique phone number, though, you cannot connect a bank account to your rCredits account. We are lobbying our financial partner, Dwolla, to remove this limitation. But, for now, a duplicate phone means no connected bank account.'));
+  $verifyBy = $mya ? NULL : formField('radios', t('Verify by:'), t('We will send a verification code to your phone, by text or voice.'), required(@$mya->verifyBy ? (int) ($mya->verifyBy == 'Voice') : NULL), array(t('Text message'), t('Voice message')));
   if ($mya) $faxetc = textField(t('Fax etc:'), t('List other ways to contact you: fax, mobile, IM, etc. This field is NOT public.'), dft(@$faxetc));
   $country = formField('select', t('Country:'), t(''), dft(@$country) + $countryAttrib); // can't use required() here
   if ($mya) $address = textField(t('Street Address:'), t('Where is your building located (physical address)?'), required(@$address) + $addressAttrib);
@@ -817,21 +831,17 @@ EOF;
  * Say whether the phone number is acceptable.
  * @param string $phone: phone number in any format
  * @param int $country: country code
- * @param mixed $dupOk:
- *   TRUE if duplicate phone is always ok
- *   uid of inviter account, if only that duplicate phone is ok
- *   FALSE if no duplicate is ok
+ * @param mixed $dupOk: duplicate phone is ok
+ * @param string $form: the current form name, all lowercase, without "form" (in case of duplicate phone).
  * @return TRUE if the phone number is acceptable
  */
-function phoneOk(&$phone, $country, $dupOk = TRUE) {
+function phoneOk(&$phone, $country, $dupOk, $form = '') {
   $myid = @r\acct()->id ?: 0;
   if (!$phone = u\fmtPhone($phone, '+n')) return say('bad phone', 'phone');
   if ($country == US_COUNTRY_ID and strlen($phone) != 12) return say('bad phone', 'phone');
-  if ($dupOk <> TRUE) {
-    $duplicate = db\lookup('uid', 'users', 'phone=:phone and uid<>:myid', compact('phone', 'myid'));
-    if ($duplicate and $duplicate != $dupOk) return say('duplicate phone', 'phone');
-    if (!$duplicate and $dupOk) return say('not a duplicate phone', 'phone');
-  }
+  $dup = db\exists('users', 'phone=:phone and uid<>:myid', compact('phone', 'myid'));
+  if ($dup and !$dupOk) return say('duplicate phone', compact('form'), 'phone');
+  // NO! this makes contact form fail. if (!$dup and $dupOk) return say('not a duplicate phone', 'phone');
   return TRUE;
 }
 
@@ -1060,7 +1070,7 @@ function txsRpt($amt, $count, $accts, $type) {
   $type = $type == 'p' ? t('personal') : ($type == 'b' ? t('company') : '');
 //  list ($totaling, $account, $month, $per, $avg) = array(t('totaling'), t('account'), t('mo'), t('per'), t('avg'));
   list ($acct, $month) = array(t('acct'), t('mo'));
-  list ($amt, $perAcct) = array(u\fmtAmt($amt), u\fmtAmt($amt / $accts));
+  list ($amt, $perAcct) = array(u\fmtAmt($amt), u\fmtAmt($amt / ($accts ?: 1)));
   return "$count ($amt) / $month = $perAcct / $acct";
 }
 
@@ -1345,10 +1355,11 @@ function say($index, $args = array(), $errField = '') {
 ///  if (is_array($index) and !isset($index[0])) debug($index);
   if (is_array($index)) list ($index, $args, $errField) = array($index[0], $index[1], $args); // error returned from a function
   if (!is_array($args)) list ($args, $errField) = array($errField, $args); // allow either order, for easy 2-param calls
-  $message = tt($index, $args);
+  $noTable = (strpos($index, '<table') === FALSE);
+  $message = $noTable ? tt($index, $args) : $index;
   $fieldErr = (bool) $errField;
   if ($fieldErr) \form_set_error($errField, $message); else \drupal_set_message($message);
-  u\loga($fieldErr ? 'say error' : 'say', compact('message'));
+  if ($noTable) u\loga($fieldErr ? 'sayerr' : 'say', compact('message'));
   return FALSE;
 }
 
@@ -1369,7 +1380,7 @@ function userMenuItem($router_path, $link_title) {
  */
 function sendInvite($email, $subject, $message, $dupsOk = TRUE) {
   $agent = r\agent();
-  if ($agent->admin()) $agent = r\agent('NEW.AAA'); // use William for admin invites
+  if ($admin = $agent->admin()) $agent = r\agent('NEW.AAA'); // use William for admin invites
   
   if (!$dupsOk) {
     if (db\exists('r_invites', 'email=:email', compact('email'))) return say("NOT sent to $email (dup).");
@@ -1388,7 +1399,7 @@ function sendInvite($email, $subject, $message, $dupsOk = TRUE) {
   );
   r\rMail('invite', $email, $info);
   say(!$dupsOk ? 'Sent to @email' : 'invite sent|repeat invite', compact('email'));
-  r\tellStaff('invited', $info + compact('email'), $agent->id);
+  if (!$admin) r\tellStaff('invited', $info + compact('email'), $agent->id);
 }
 
 function focusOn($focusFieldName) {

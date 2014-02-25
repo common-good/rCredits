@@ -52,7 +52,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
 //  'report get usd' => t('@Exchange approved. @request will be transferred directly to your bank account within 24 hours.'),
 //  'get usd inactive' => t('If you were an Active Participant in the rCredits system, your request would transfer @amount directly to your bank account. Alas, you are not yet an Active Participant.'),
   'your demand' => t('Your total request for rCredits is now @request.'),
-  'updated relation' => t('Updated settings for @otherName'),
+  'updated relation' => t('Updated settings for relation to @otherName'),
   'deleted relation' => t('Deleted relation with @otherName'),
   'customer balance' => t('The current balance for @otherName is @balance.'),
   'info saved' => t('Your information has been saved.'),
@@ -64,7 +64,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'nothing done' => t('Nothing was done.'),
   'nothing undone' => t('Nothing undone.'),
   'event' => t('Account @fullName (@quid) is now @status.'),
-  'welcome' => t('Your account has been approved! You may now buy and sell through the rCredits system, including using your rCard for purchases at member businesses.'),
+  'approved' => t('Your account has been approved! You may now buy and sell through the rCredits system, including using your rCard for purchases at member businesses.'),
   'got funding' => t('You have received a @type of @amount from your rCredits community.'),
   'gift sent' => t('Your chosen gift of @amount to Common Good Finance has gone through. Your rebate is @rewardAmount.'),
   'tx summary' => t('@otherName @otherDid you @amount for "@purpose" on @created.'),
@@ -73,6 +73,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'to protect data integrity.' => t('to protect data integrity.'),
   'account funded' => t('Funds have arrived in your rCredits account! You may now use your rCard for purchases.'),
   'transfer complete' => t('Your requested@auto transfer of @amount (into your rCredits account) has completed.'),
+  'triggers new card' => t('<b>NOTE:</b> If you change your @field, a new rCard will be mailed to you and your account will be charged $@R_CARD_COST. '),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),
@@ -202,6 +203,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'wrong pin' => t('That is not your PIN.'),
   'wrong answer' => t('That is the wrong answer.'),
   'bad url' => t('That is not a valid URL.'),
+  'no charging' => t('Invoicing another member is not permitted at this time.'),
   
   // notices to staff
   'cache mismatch' => 'Cron cache mismatch: @key=@is (cache) <> @shouldBe (calc)',

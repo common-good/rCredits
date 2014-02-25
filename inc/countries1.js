@@ -2,8 +2,6 @@ var cs = new Array();
 
 var ss = new Array();
 
-var STs = new Array();
-
 cs[1001] = 'Afghanistan';
 
 ss[1001] = new Array();
@@ -4723,68 +4721,6 @@ ss[1245] = new Array();
 cs[1246] = 'Isle of Man';
 
 ss[1246] = new Array();
-
-
-STs[1000] = 'AL';
-STs[1001] = 'AK';
-STs[1002] = 'AZ';
-STs[1003] = 'AR';
-STs[1004] = 'CA';
-STs[1005] = 'CO';
-STs[1006] = 'CT';
-STs[1007] = 'DE';
-STs[1008] = 'FL';
-STs[1009] = 'GA';
-STs[1010] = 'HI';
-STs[1011] = 'ID';
-STs[1012] = 'IL';
-STs[1013] = 'IN';
-STs[1014] = 'IA';
-STs[1015] = 'KS';
-STs[1016] = 'KY';
-STs[1017] = 'LA';
-STs[1018] = 'ME';
-STs[1019] = 'MD';
-STs[1020] = 'MA';
-STs[1021] = 'MI';
-STs[1022] = 'MN';
-STs[1023] = 'MS';
-STs[1024] = 'MO';
-STs[1025] = 'MT';
-STs[1026] = 'NE';
-STs[1027] = 'NV';
-STs[1028] = 'NH';
-STs[1029] = 'NJ';
-STs[1030] = 'NM';
-STs[1031] = 'NY';
-STs[1032] = 'NC';
-STs[1033] = 'ND';
-STs[1034] = 'OH';
-STs[1035] = 'OK';
-STs[1036] = 'OR';
-STs[1037] = 'PA';
-STs[1038] = 'RI';
-STs[1039] = 'SC';
-STs[1040] = 'SD';
-STs[1041] = 'TN';
-STs[1042] = 'TX';
-STs[1043] = 'UT';
-STs[1044] = 'VT';
-STs[1045] = 'VA';
-STs[1046] = 'WA';
-STs[1047] = 'WV';
-STs[1048] = 'WI';
-STs[1049] = 'WY';
-STs[1050] = 'DC';
-STs[1052] = 'AS';
-STs[1053] = 'GU';
-STs[1055] = 'MP';
-STs[1056] = 'PR';
-STs[1057] = 'VI';
-STs[1058] = 'UM';
-STs[1059] = 'AE';
-STs[1060] = 'AA';
-STs[1061] = 'AP';
 
 function print_country(dft_country, dft_state){
   if (dft_country == "") {

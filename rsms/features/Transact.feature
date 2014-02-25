@@ -5,20 +5,20 @@ SO I will get a rebate or bonus that I can spend once I am an active participant
 
 Setup:
   Given members:
-  | id   | fullName  | cell   | email         |
-  | .ZZA | Abe One    | +20001 | a@ |
-  | .ZZB | Bea Two    | +20002 | b@ |
-  | .ZZC | Corner Pub | +20003 | c@ |
+  | id   | fullName   | number | flags           |
+  | .ZZA | Abe One    | +20001 | person,ok,bona  |
+  | .ZZB | Bea Two    | +20002 | person,ok,bona  |
+  | .ZZC | Corner Pub | +20003 | company,ok,bona |
   # later and elsewhere: name, country, minimum, community
   And relations:
-  | id   | main | agent | permission   |
-  | :ZZA | .ZZC | .ZZB  | buy and sell |
-  | :ZZB | .ZZC | .ZZA  | sell         |
+  | id   | main | agent | permission |
+  | :ZZA | .ZZC | .ZZB  | buy        |
+  | :ZZB | .ZZC | .ZZA  | sell       |
   And transactions: 
-  | created   | type       | amount | from      | to   | purpose |
-  | %today-1d | %TX_SIGNUP | 250    | community | .ZZA | signup  |
-  | %today-1d | %TX_SIGNUP | 250    | community | .ZZB | signup  |
-  | %today-1d | %TX_SIGNUP | 250    | community | .ZZC | signup  |
+  | created   | type   | amount | from | to   | purpose |
+  | %today-1d | signup | 250    | ctty | .ZZA | signup  |
+  | %today-1d | signup | 250    | ctty | .ZZB | signup  |
+  | %today-1d | signup | 250    | ctty | .ZZC | signup  |
 
 Scenario: The caller asks to pay a member id
   When phone +20001 says "123.45 to .ZZB for pie"
@@ -46,8 +46,8 @@ Scenario: The caller confirms a payment
   Then the community has r$-765
   And phone +20003 has r$360
   And we say to phone +20001 "report transaction" with subs:
-  | did    | otherName | amount | rewardType | rewardAmount | balance | tid |
-  | paid   | Corner Pub | $100   | rebate      | $5            | $155    | 2   |
+  | did    | otherName  | amount | rewardType | rewardAmount  | balance | tid |
+  | paid   | Corner Pub | $100   | reward     | $5            | $155    | 2   |
   # "You paid Corner Pub $100 (rebate: $5). Your new balance is $155. Transaction #2"
 
 Scenario: The caller confirms a request to charge

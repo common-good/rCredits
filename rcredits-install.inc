@@ -28,7 +28,7 @@ function tableDefs($schema = array()) {
   // table user (additions to Drupal standard)
   $fields = array( // additional/changed users fields
     'flags' => setupField('permissions and boolean state flags', 'int big', 0, '010'),
-    'community' => setupField("uid of this account's Common Good Community", 'int 11'),
+    'community' => setupField("uid of this account's Common Good Community", 'int big'),
     'question' => setupField('security question', 'varchar 255'),
     'usdAccount' => setupField('USD account number (hex of encrypted)', 'varchar 255'), // searchable
     'secure' => setupField('other non-personal encrypted data', 'blob normal'), 
@@ -39,7 +39,7 @@ function tableDefs($schema = array()) {
     'address' => setupField('physical street address', 'varchar 60'),
     'city' => setupField('municipality', 'varchar 60'),
     'state' => setupField('state/province index', 'int 5'),
-    'postalCode' => setupField('postal code for physical address (no punctuation)', 'varchar 20'),
+    'postalCode' => setupField('postal code for physical address (no punctuation)', 'varchar 255'),
     'country' => setupField('country index', 'int 4'),
     'postalAddr' => setupField('complete postal address', 'varchar 255'),
     'notes' => setupField('miscellaneous notes about the user or the account', 'text medium'),
@@ -371,7 +371,16 @@ function tableDefs($schema = array()) {
   $foreignKeys = foreignKey('uid');
   $indexes = index('uid');
   $schema['r_notices'] = setupTable('Message digest buffer', $fields, 'msgid', $foreignKeys, $indexes);
-  
+
+  // table r_regions
+  $fields = array(
+    'region' => setupField('region id', 'char 3'),
+    'state' => setupField('state or province abbreviation', 'char 2'),
+  );
+  $foreignKeys = array();
+  $indexes = index('state');
+  $schema['r_regions'] = setupTable('rCredits regions', $fields, 'region', $foreignKeys, $indexes);
+
   // table r_nonmembers (use -make instead)
 /*  $fields = array(
     'id' => setupField('non-member company record id', 'serial 11'),
@@ -407,8 +416,6 @@ function tableDefs($schema = array()) {
   setupField('r_areas', 'Area Code', 'telephone area code', 'char 3'); 
   setupField('r_areas', 'Region', 'state, province, or territory', 'varchar 24'); 
   
-  setupField('r_regions', 'Region', 'state or province', 'char 2');
-  setupField('r_regions', 'Credit Region', 'credit region id', 'char 2');
   */
   
   return $schema;

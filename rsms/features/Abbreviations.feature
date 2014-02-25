@@ -5,8 +5,8 @@ SO I can get stuff done fast
 
 Scenario: A caller abbreviates command words
   Given phone %number1 is a member
-  When phone %number1 says "h g"
-  Then we say to phone %number1 "help get"
+  When phone %number1 says "h p"
+  Then we say to phone %number1 "help payment"
 
 Scenario: A caller abbreviates with wrong syntax
   Given phone %number1 is a member

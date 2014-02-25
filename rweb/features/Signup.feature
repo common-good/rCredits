@@ -85,7 +85,7 @@ Scenario: A newbie registers in Western Massachusetts
   | Abe One  | abeone | NEW.AAC | new    | (varies) |  |
   And member ".AAC" one-time password is set
   And we show "Welcome" with:
-  | Tmp password |
+  | Temp password |
   | New password |
   | Confirm new password |
 

@@ -7,7 +7,8 @@
 define('R_REGION_NAME', 'rCredits Western Mass Region');
 define('R_REGION_LEGALNAME', 'rCredits Western Massachusetts Region');
 define('R_SERVER_ID', 'NEW'); // qid header for this region's server (New England / Western MA)
-// other 3rd letters: M=ME H=NH V=VT C=CT R=RI P=PA Y=NY A=NYC (apple) B=Boston
+// other 3rd letters: M=ME H=NH V=VT C=CT R=RI P=PA B=Boston
+define('R_REGION_SHORTNAME', R_SERVER_ID . '.');
 define('R_REGION_ADDR', 'c/o Common Good Finance, PO Box 21, Ashfield, MA 01330');
 define('R_REGION_PHONE', '+1 413.376.5021');
 define('R_TESTER_EMAIL', 'wspademan@gmail.com'); // tester's personal email

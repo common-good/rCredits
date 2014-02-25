@@ -44,24 +44,24 @@ class rsmsUndo extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id   | fullName  | cell   | email         |'
-    . '\\| .ZZA | Abe One    | +20001 | a@ |'
-    . '\\| .ZZB | Bea Two    | +20002 | b@ |'
-    . '\\| .ZZC | Corner Pub | +20003 | c@ |"');
+    . '\\| id   | fullName   | number | flags           |'
+    . '\\| .ZZA | Abe One    | +20001 | person,ok,bona  |'
+    . '\\| .ZZB | Bea Two    | +20002 | person,ok,bona  |'
+    . '\\| .ZZC | Corner Pub | +20003 | company,ok,bona |"');
     And__('transactions: "DATA'
-    . '\\| created   | type         | amount | from      | to   | purpose      | taking |'
-    . '\\| %today-6m | %TX_SIGNUP   | 250    | community | .ZZA | signup       | 0      |'
-    . '\\| %today-6m | %TX_SIGNUP   | 250    | community | .ZZB | signup       | 0      |'
-    . '\\| %today-6m | %TX_SIGNUP   | 250    | community | .ZZC | signup       | 0      |'
-    . '\\| %today-4m | %TX_TRANSFER | 11.11  | .ZZB      | .ZZA | cash for me  | 1      |'
-    . '\\| %today-3w | %TX_TRANSFER | 22.22  | .ZZC      | .ZZA | usd          | 1      |'
-    . '\\| %today-3d | %TX_TRANSFER | 33.33  | .ZZA      | .ZZB | whatever43   | 0      |'
-    . '\\| %today-3d | %TX_REBATE   | 1.67   | community | .ZZA | rebate on #4 | 0      |'
-    . '\\| %today-3d | %TX_BONUS    | 3.33   | community | .ZZB | bonus on #3  | 0      |'
-    . '\\| %today-2d | %TX_TRANSFER | 44.44  | .ZZB      | .ZZC | cash         | 0      |'
-    . '\\| %today-1d | %TX_TRANSFER | 55.55  | .ZZA      | .ZZC | whatever43   | 0      |'
-    . '\\| %today-1d | %TX_REBATE   | 2.78   | community | .ZZA | rebate on #5 | 0      |'
-    . '\\| %today-1d | %TX_BONUS    | 5.56   | community | .ZZC | bonus on #4  | 0      |"');
+    . '\\| created   | type         | amount | from | to   | purpose      | taking |'
+    . '\\| %today-6m | %TX_SIGNUP   | 250    | ctty | .ZZA | signup       | 0      |'
+    . '\\| %today-6m | %TX_SIGNUP   | 250    | ctty | .ZZB | signup       | 0      |'
+    . '\\| %today-6m | %TX_SIGNUP   | 250    | ctty | .ZZC | signup       | 0      |'
+    . '\\| %today-4m | %TX_TRANSFER | 11.11  | .ZZB | .ZZA | cash for me  | 1      |'
+    . '\\| %today-3w | %TX_TRANSFER | 22.22  | .ZZC | .ZZA | usd          | 1      |'
+    . '\\| %today-3d | %TX_TRANSFER | 33.33  | .ZZA | .ZZB | whatever43   | 0      |'
+    . '\\| %today-3d | %TX_REBATE   | 1.67   | ctty | .ZZA | rebate on #4 | 0      |'
+    . '\\| %today-3d | %TX_BONUS    | 3.33   | ctty | .ZZB | bonus on #3  | 0      |'
+    . '\\| %today-2d | %TX_TRANSFER | 44.44  | .ZZB | .ZZC | cash         | 0      |'
+    . '\\| %today-1d | %TX_TRANSFER | 55.55  | .ZZA | .ZZC | whatever43   | 0      |'
+    . '\\| %today-1d | %TX_REBATE   | 2.78   | ctty | .ZZA | rebate on #5 | 0      |'
+    . '\\| %today-1d | %TX_BONUS    | 5.56   | ctty | .ZZC | bonus on #4  | 0      |"');
     Then_('the community has r$-763.34');
     And__('phone +20001 has r$198.90');
     And__('phone +20002 has r$231.11');

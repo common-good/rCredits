@@ -41,7 +41,7 @@ define('R_CONCEALED_FIELDS', 'code password pass oneTimeLoginUrl'); // fields to
 define('R_DATE_FIELDS', 'created completed sent invited giftDate signed login access yesterday'); // date field names for testing
 define('R_DATA_FIELDS', 'newAccount by calling wants legalName website description selling coFlags stats verifyBy oneTimePass relationsOk signupCo'); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'usd r rewards floor committed'); // financial amount fields in account record
-define('R_SECURE_FIELDS', 'usdType usdPhone usdEmail usdPass usdPin auth bankAccount pin cardCode cardCode2'); // non-personal encrypted fields (must be complete list)
+define('R_SECURE_FIELDS', 'usdType usdPhone usdEmail usdPass usdPin auth bankAccount bankAccountType pin cardCode cardCode2'); // non-personal encrypted fields (must be complete list)
 define('R_SECRET_FIELDS', 'federalId dob idProof answer'); // personal identifying information
 define('R_SECRET_URL', isPRODUCTION ? 'http://rcredits.org' : (isDEV ? 'http://localhost/rcredits-promo' : 'http://' . STAGE)); // where to store secrets
 define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities can manage themselves
@@ -177,7 +177,7 @@ define('B_ADMINABLE', 'person company member dw bona photoid ctty_admin closed')
 define('B_LIST', 'member dw ok bona bank person company photoid charge u9 u10 u11 payroll weekly monthly u15 sms electro secret u19 debt draws savings u23 u24 u25 u26 u27 u28 cadmin admin closed');
 
 define('R_SHORTFALL', 'GREATEST(0, minimum-(r+usd))'); // sql for shortfall in account (to draw in)
-define('R_DEMAND', 'LEAST(u.usd, u.minimum-u.r)'); // definitely WANTS this many rCredits (sometimes negative)
+define('R_DEMAND', 'u.usd'); // definitely WANTS this many rCredits (was LEAST(u.usd, IFNULL(u.minimum,0)-u.r))
 define('R_CAPACITY', 'u.usd'); // how much rCredits is each account WILLING and able to buy
 
 // for documentation of IS_OK etc. see u\SUBS()
@@ -267,6 +267,7 @@ $GLOBALS['emailSubjects'] = array(
 $GLOBALS['topics'] = array( // topics for 'message' email
   'account suspended' => t('Account SUSPENDED'),
   'account funded' => t('Account FUNDED'),
+  'approved' => t('Account APPROVED!'),
 );
 
 /**
@@ -547,7 +548,7 @@ function cacheTotals($uid, $txs) {
  */
 function shortfall($request, $a, $preapproved, $goods, $confirmed) {
   $shortfall = 0; // no shortfall if not preapproved
-  if (!$preapproved) return 0; // if just an invoice, funds don't have to be there yet (no shortfall, no usd)
+  if (!$preapproved or $a->id < 0) return 0; // just an invoice or ctty, funds don't have to be there (yet)
   return $a->shortfall($goods ? 'buy' : 'cash', $request, $confirmed);
 }
 
@@ -662,7 +663,7 @@ function membershipEvent($a, $status, $do = TRUE) {
     }
     if ($status == 'ok') {
       u\EXPECT($a->can(B_CTTY_ADMIN), 'should be ctty admin'); // only ctty admin can approve an account
-      r\notify($a->id, 'welcome', array(), TRUE);
+      r\message($a->id, 'approved', array(), TRUE);
     }
     unset($DBTX);
     
@@ -687,18 +688,23 @@ function acceptGift($info) {
   $cgf = r\acct(\variable_get('cgf_uid'));
 
 //  r\usd::beginAtom();
-  $purpose = @$honor == 'share' ? t('sharing rewards with CGF') : t('contribution');
+  if ($often != 1) {
+    $months = $often == 'M' ? 1 : ($often == 'Q' ? 3 : 12);
+    $recurs = u\ray(t('Once Monthly Quarterly Yearly'));
+    $recurring = t(' (recurs @how)', u\ray('@how', $recurs[strpos('1MQY', $often)]));
+  }
+
+  $purpose = @$honor == 'share' ? t('sharing rewards with CGF') : (t('contribution') . @$recurring);
   list ($msg, $args, $confirm) = be\transfer('payment', $a, $cgf, $amount, $purpose, TRUE);
 ///  debug(compact('msg','args','confirm'));
   if (@$args['success']) {
     $completed = REQUEST_TIME;
     db\update('r_gifts', compact('donid', 'completed'), 'donid');
     if ($often != 1) {
-      $months = $often == 'M' ? 1 : ($often == 'Q' ? 3 : 12);
       $giftDate = strtotime($months . ' months', $giftDate);
       $share = -1; // mark this field N/A (irrelevant)
       db\insert('r_gifts', compact(u\ray('uid giftDate amount often share')));
-    }
+    };
 //    r\usd::commit();
     r\tellStaff('gift accepted', $info + $args);
     r\notify($uid, 'gift sent', $args);
@@ -867,13 +873,17 @@ function unQid($qid) {
  */
 function quid($uid, $agentId = '') {
   if (!$agentId or $agentId == $uid) { // proSe
-    if ($uid < 0) return u\n2a(-$uid - 1, -3); // -1 because region and ctty uids are bumped down by 1
-    $region = -uidRegion($uid) - 1;
-    $i = ($uid - 1) - $region * R_REGION_MAX; // -1 because uids are all bumped up by 1
-    return u\n2a($region, -3) . R_MEMBER_MARK . u\n2a($i, -3);
+    if ($uid < 0) return '!' . quid(-$uid);
+    //if ($uid < 0) return u\n2a(-$uid - 1, -3); // -1 because region and ctty uids are bumped down by 1
+    $region = uidRegion($uid);
+    $regionNum = (-$region - 1) / R_REGION_MAX;
+    $i = $uid - -$region;
+    //$region = -uidRegion($uid) - 1;
+    //$i = ($uid - 1) - $region * R_REGION_MAX; // -1 because uids are all bumped up by 1
+    return u\n2a($regionNum, -3) . R_MEMBER_MARK . u\n2a($i, -3);
   } else {
-    $uid = relation('reid', $uid, $agentId); // compound quid
-    return R_SERVER_ID . R_AGENT_MARK . u\n2a($uid, -3);
+    $reid = relation('reid', $uid, $agentId); // compound quid
+    return R_SERVER_ID . R_AGENT_MARK . u\n2a($reid, -3);
   }
 }
 
@@ -882,7 +892,7 @@ function quid($uid, $agentId = '') {
  */
 function unQuid($quid, $zid = NULL, $region = NULL) {
   if (is_null($zid)) list ($zid, $region) = r\unQid($quid); // break it down
-  return $zid < 0 ? FALSE : (1 + R_REGION_MAX * (-$region - 1) + $zid);
+  return $zid < 0 ? FALSE : (-$region + $zid);
 }
 
 /**
@@ -917,18 +927,24 @@ function setCook($key, $value, $expires = NULL) {
  * Return the rCredits region id for the given account id
  */
 function uidRegion($uid) {
-  u\EXPECT($uid > 0, 'non-positive uid in uidRegion');
-  return -floor(($uid - 1) / R_REGION_MAX) - 1; // -1 because uids are all bumped up by 1
+  $uid = abs($uid) - 1; // -1 because uids are all bumped up by 1
+  return -1 - ($uid - ($uid % R_REGION_MAX));
+  //return -floor(($uid - 1) / R_REGION_MAX) - 1; // -1 because uids are all bumped up by 1
 }
 
 /**
  * Return the rCredits region id for the given geographical location
+ * @param int $country: country ID
+ * @param int $state: state or province ID
+ * @param int $zip: postal code
+ * @param string $raw: (RETURNED) the alphabetic identifier for the region (usually 3 characters)
+ * @return int: the region uid
  */
-function region($country = '', $state = '', $zip = '') {
-  $where = "s.country_id=:country AND s.id=:state AND (r.zips='' OR :zip RLIKE r.zips)";
+function region($country = '', $state = '', $zip = '', &$raw = '') {
+  $where = "s.country_id=:country AND s.id=:state AND (r.zips='' OR :zip RLIKE r.zips) ORDER BY (r.zips='')";
   $region = db\lookup('region', 'r_regions r INNER JOIN r_states s ON r.state=s.abbreviation', $where, compact('state', 'zip', 'country'));
   if (!$region) $region = db\lookup("CONCAT(iso_code, 'A')", 'r_countries', 'id=:country', compact('country'));
-  return -u\a2n($region ?: 'ZZZ') - 1;
+  return -r\unQuid(($raw = $region ?: 'ZZZ') . '.AAA');
 }
 
 /**
@@ -1002,14 +1018,6 @@ function communityUid($postalCode = '') {
   if (!$postalCode) return serverUid();
   $where = "country=':R_COUNTRY_ID' AND :postalCode RLIKE postalCode AND uid=community";
   return userField('uid', $where, compact(u\ray('postalCode'))) ?: serverUid();
-}
-
-/**
- * Say whether the given account id is a foreign region.
- */
-function foreignServer($uid) {
-  if ($uid == serverUid()) return FALSE;
-  return ($uid < 0 and preg_match('/[A-Z]{3}\./', userField('name', $uid)));
 }
 
 /**
@@ -1303,15 +1311,17 @@ EOF;
  * @param int $ctty: the community account id for which to return totals (default ALL)
  */
 function totals($ctty = 'ALL', $calculate = FALSE) {
-  $totals = unserialize(\variable_get('r_totals'));
-  if ($calculate) {
+  $totals = \variable_get('r_totals');
+  if ($calculate or !@$totals or !@$totals[$ctty]) {
     $totals[$ctty] = getTotals($ctty == 'ALL' ? NULL : $ctty);
-    \variable_set('r_totals', serialize($totals));
+    \variable_set('r_totals', $totals);
   }
-  foreach ($totals[$ctty] as $key => $value) $fancy[$key] = u\fmtAmt(@$value + 0);
-  $demand = $totals[$ctty]['demand'];
-  if ($demand >= 1000000) $fancy['demand'] = '$' . number_format(($demand - 9999) / 1000000, 2) . ' million';
-  return (object) ($totals[$ctty] + $fancy);
+  foreach ($totals[$ctty] as $key => $value) {
+    $value = @$value + 0;
+    $fancy[$key] = $value >= 1000000 ? ('$' . number_format(($value - 9999) / 1000000, 2) . ' million') : u\fmtAmt($value);
+  }
+  
+  return (object) ($totals[$ctty] + compact('fancy'));
 
   /*
   $result = db\lookup('SUM(minimum)', 'users', $ctty ? 'community=:ctty' : '1', compact('ctty')); // minima
@@ -1360,9 +1370,10 @@ function stats($ctty = 'ALL', $when = REQUEST_TIME) {
   if ($when < 0) $when = getStats($ctty);
 
   $sql = 'SELECT * FROM r_stats WHERE created<=:when AND ctty=:ctty ORDER BY id DESC LIMIT 1';
-  return db\q($sql, compact('ctty', 'when'))->fetchAssoc();
-//  $info['grant'] = $info['grants']; unset($info['grants']); // accommodate drupal bug (see table def)
-//  return $info;
+  if ($info = db\q($sql, compact('ctty', 'when'))->fetchAssoc()) return $info;
+  
+  $keys = db\q("SELECT column_name FROM information_schema.columns WHERE table_name='r_stats'")->fetchCol();
+  return array_fill_keys($keys, 0);
 }
   
 /**
@@ -1548,7 +1559,8 @@ function usdTransferDone($tx) {
     if (!$old) $a->actualUsd(-$Amount); // adjust cache up (double minus) now that money finally came in
     $hour = strftime('%H', strtotime($date)); // creation hour
     $auto = $hour == R_DAILY_HOUR ? t(' automatic') : ''; // (space is intentional)
-    r\notify($a->id, 'transfer complete', u\ray('auto amount', $auto, $Amount));
+    $amount = u\fmtAmt(abs($Amount));
+    r\notify($a->id, 'transfer complete', compact('auto', 'amount'));
     r\membershipEvent($a, 'bona', $a->usd > 0); // this works for testing too
   }
   unset($DBTX); // if system crashes in the middle of that, user might get duplicate emails -- no biggie
@@ -1625,7 +1637,7 @@ function bonus($to, $from, $amount = 1) {return round($amount * (t\est() ? 2 : R
 function userField($field, $who = '', $subs = array()) {return tableField($field, 'users', $who, $subs);}
 function txField($field, $which, $subs = array()) {return tableField($field, 'r_txs', $which, $subs);}
 function setTxState($newValue, $zserial) {setTxField('state', $newValue, $zserial, TRUE);}
-function serverUid($regionId = R_SERVER_ID) {return -u\a2n($regionId) - 1;}
+function serverUid($regionId = R_SERVER_ID) {return -1 - R_REGION_MAX * u\a2n($regionId);} // -u\a2n($regionId) - 1;}
 function emailTemplate($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}
 function emailBody($key) {return str_replace('{BODY}', emailTemplate($key), emailTemplate(R_EMAIL_FRAME));}
 function realCountry($country) {return db\lookup('name', 'r_countries', 'id=:country', compact('country'));}
@@ -1634,3 +1646,4 @@ function makeQueue($callback, $time = 15) {return array('worker callback' => "rC
 function queue($op, $item = array()) {\DrupalQueue::get('q')->createItem(compact('op') + $item);}
 function perm($bit) {return $bit - B_RELATED;}
 function up() {return \variable_get('up', TRUE);}
+function foreignServer($uid) {return (r\uidRegion($uid) != serverUid());}

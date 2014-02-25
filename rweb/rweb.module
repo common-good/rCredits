@@ -60,7 +60,7 @@ function rweb_menu() {
   $menu = array(
     'summary' => r\Web\menu(t('Summary'), MENU_NORMAL_ITEM, 'showForm', array('Summary'), '', $anyone),
     'transactions' => r\Web\menu(t('Transactions'), MENU_NORMAL_ITEM, 'showForm', array('Txs', 1), 'read'),
-    'charge' => r\Web\menu(t('Charge'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), 'sell ok'),
+    'charge' => r\Web\menu(t('Charge'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), 'admin sell ok'),
     'pay' => r\Web\menu(t('Pay'), MENU_NORMAL_ITEM, 'showForm', array('Tx', 1), 'buy ok'),
 
     'grant' => r\Web\menu(t('Grant'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), 'managing_ctty'),
@@ -69,7 +69,7 @@ function rweb_menu() {
     'fine' => r\Web\menu(t('Fine'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), 'managing_ctty'),
 
     'get' => r\Web\menu(t('Bank'), MENU_NORMAL_ITEM, 'showForm', array('Get'), 'manage bank ok'),
-    'directory' => r\Web\menu(t('Find Companies'), MENU_NORMAL_ITEM, 'showForm', array('Directory'), 'sell'),
+    'directory' => r\Web\menu(t('Find Co'), MENU_NORMAL_ITEM, 'showForm', array('Directory'), 'sell'),
     'community' => r\Web\menu(t('Community'), MENU_NORMAL_ITEM, 'showForm', array('Reports', 1), '', $anyone),
     'invite' => r\Web\menu(t('Invite'), MENU_NORMAL_ITEM, 'showForm', array('Invite'), '', $anyone),
     'signout' => r\Web\menu(t('Sign out'), MENU_NORMAL_ITEM, 'signout', array(), '', $anyone),
@@ -78,7 +78,7 @@ function rweb_menu() {
     'menu' => r\Web\menu(t('Menu'), MENU_CALLBACK, 'showForm', array('Menu'), '', $anyone),
     'empty' => r\Web\menu(t('Empty'), MENU_CALLBACK, 'showForm', array('Empty'), '', $anyone),
 
-    'print-rcard' => r\Web\menu(t('Print ID Card'), MENU_CALLBACK, 'memberID', array(1, FALSE), 'admin'),
+    'print-rcard' => r\Web\menu(t('Print ID Card'), MENU_CALLBACK, 'memberID', array(1, FALSE), 'ctty_admin'),
 //    'print-signin-card' => r\Web\menu(t('Print Sign-in Card'), MENU_CALLBACK, 'memberID', array(1, 'scan'), 'manage'),
     'reinstall' => r\Web\menu(t('Reinstall rCredits'), MENU_CALLBACK, 'reinstall', array(), 'admin'),
 
@@ -132,6 +132,7 @@ function rweb_menu() {
     'do' => r\Web\menu('Do', MENU_CALLBACK, 'rdo', array(1), '', $anyone),
     'coup' => r\Web\menu(t('Disable account'), MENU_CALLBACK, 'coup', array(1), '', $anyone),    
     '1099-B' => r\Web\menu('1099-B Forms', MENU_CALLBACK, 'showForm', array('1099b'), 'read'),
+    'invited-whom' => r\Web\menu('Invited Whom', MENU_CALLBACK, 'showForm', array('InvitedWhom'), 'manage'),
 
     'accept' => r\Web\menu('Accept Invitation', MENU_CALLBACK, 'showForm', array('Accept'), '', $anyone),
     'member-list' => r\Web\menu('Member List', MENU_CALLBACK, 'showForm', array('MemberList'), '', $anyone),

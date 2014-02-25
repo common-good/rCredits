@@ -93,7 +93,7 @@ class rcronGifts extends DrupalWebTestCase {
     When_('cron runs "gifts"');
     Then_('transactions: "DATA'
     . '\\| xid   | created | type     | state | amount | from      | to      | purpose      |'
-    . '\\| .AAAB | %today  | transfer | done  |     10 | .ZZA      | cgf     | contribution |'
+    . '\\| .AAAB | %today  | transfer | done  |     10 | .ZZA      | cgf     | contribution (recurs Quarterly) |'
     . '\\| .AAAC | %today  | rebate   | done  |   0.50 | community | .ZZA    | rebate on #1 |'
     . '\\| .AAAD | %today  | bonus    | done  |   1.00 | community | cgf     | bonus on #1  |"');
     And__('gifts: "DATA'
@@ -102,7 +102,7 @@ class rcronGifts extends DrupalWebTestCase {
     . '\\| .ZZA | %yesterday+3m |     10 |     Q |        |         |         0 |"');
     And__('we notice "new payment|reward other" to member "cgf" with subs: "DATA'
     . '\\| otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |'
-    . '\\| <a href=\'\'do/id=1&code=whatever\'\'>Abe One</a> | $10 | contribution | reward | $1 |"');
+    . '\\| <a href=\'\'do/id=1&code=whatever\'\'>Abe One</a> | $10 | contribution (recurs Quarterly) | reward | $1 |"');
     And__('we tell staff "gift accepted" with subs: "DATA'
     . '\\| amount | myName  | often | rewardType |'
     . '\\|     10 | Abe One |     Q | reward     |"');

@@ -124,7 +124,7 @@ class rwebSignup extends DrupalWebTestCase {
     . '\\| Abe One  | abeone | NEW.AAC | new    | (varies) |  |"');
     And__('member ".AAC" one-time password is set');
     And__('we show "Welcome" with: "DATA'
-    . '\\| Tmp password |'
+    . '\\| Temp password |'
     . '\\| New password |'
     . '\\| Confirm new password |"');
   }

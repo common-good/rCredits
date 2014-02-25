@@ -525,7 +525,7 @@ function memberVisitsPage($id, $page) { // pass options in URL
  */
 function memberIsLoggedOut() {
   global $testOnly;
-  u\deb('memberIsLoggedOut top loggedin=' . \user_is_logged_in());
+  //u\deb('memberIsLoggedOut top loggedin=' . \user_is_logged_in());
   if ($testOnly) return !\user_is_logged_in();
   r\acct::setDefault(NULL);
   return TRUE; // never actually log out

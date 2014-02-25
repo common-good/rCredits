@@ -324,3 +324,11 @@ function weMessageMemberWithTopicAndSubs($id, $topic, $subs) {
   $fullName = $a->fullName;
   return weEmailToMemberWithSubs('message', $a->mail, compact(u\ray('message topic fullName')));
 }
+
+/**
+ * members have: (ARG)
+ *
+ * in: Pool Setup MAKE
+ */
+function membersHave($list) {return t\membersHave($list);}
+

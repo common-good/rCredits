@@ -1,4 +1,45 @@
-2014-02-
+2014-02-25
+. eliminated preemptive "dupOk" field in signup.
+. removed verifyBy from Contact page
+. changed automatic state in postal address to abbreviation
+. allowed entry of bank account info before there is a Dwolla account
+. added Admin tool to send bank account info to Dwolla
+. staff is no longer notified when admin sends an invitation
+. fixed account approval message (was sending welcome email)
+. created Invitee List link on Invite page
+. changed "From Bank" to "From Bank to Here" and "To Bank" to "From Here to Bank"
+. in notice digests, finishes with current balance, incentive rewards to date, effective return on your rCredits balance APR (averaged over the past month)
+. created admin tool to make a new region or community
+. limited community admin choices and results on Admin page
+. created new region: ^48(103|104|105|107|108|109|113|115|130|158|175|176|190|191|197|198) rCredits Washtenaw County, MI (MIW) on production server
+. fixed bug that kept Grants page from working
+. fixed bug that made community's summary page crash
+. added "recurs" note to recurring transactions
+. fixed bug: dollar sign in input caused problems on Bank page
+. now logs just i/o, not db ops
+. when administering region, Txs page no longer shows bank transfers nor everyone's transactions, distinguishing it from call on community page.
+. brought half the SMS tests up to date
+. changed region and community numbering to mirror account numbering (region is just -XXX.AAA; each community is within its region: -XXX.AAB, etc.)
+. bug fixed that created a relations record with NULL other upon signup
+. allow cadmin to print-id
+. cadmin should not have access to SeeSecure (or print-id) for out-of-region accounts
+. tells cgf how often a contribution happens
+. invite email message defaults to last used (store in data)
+. changed community field in users table to BIGINT
+. queries:
+  UPDATE users set postalAddr=REPLACE(postalAddr, ', Massachusetts', ', MA');
+  UPDATE users set postalAddr=REPLACE(postalAddr, ', Ma.', ', MA') WHERE name LIKE 'gop%';
+  UPDATE users set postalAddr=REPLACE(postalAddr, ', Michigan', ', MI');
+  UPDATE users set postalAddr=REPLACE(postalAddr, ', New Hampshire', ', NH');
+  UPDATE users set postalAddr=REPLACE(postalAddr, ', Vermont', ', VT');
+  DELETE FROM r_relations WHERE other IS NULL;
+. code:
+  rCredits\changeUid(-8915, -26742000000001, FALSE);
+  rCredits\changeUid(-8321, -25026000000001, FALSE);
+  for ($i = 1; $i <= 10; $i++) rCredits\changeUid(24960000000000 + $i, 25026000000000 + $i, FALSE);
+  \variable_set('r_totals', array());
+
+2014-02-12
 . fix data (already done on production server):
 	DELETE FROM r_txs WHERE xid IN (76,77,78);
 	

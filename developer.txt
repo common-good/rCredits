@@ -9,7 +9,8 @@ Notes for developers
 		  . temporary debugging statements can be added if they are first tested on ws.rcredits.org
 		  . cut and paste bug fixes on prod server when they are in just one or two clumps of 6 lines or less AND the functions being patched have not otherwise changed (on the DEV system) since the last update
 		- Find and delete all temporary debugging statements:
-///       . Search for "debug(", "print_r(", and "die(" (all such lines should begin with /// or (if keepers) /**/ Sometime write a macro to do the finding. 
+///       . Search for "debug(" and "die(". All such lines should begin with /// or (if keepers) /**/ 
+            Sometime write a macro to do the finding. 
 		  . Make sure debugMode in dwolla.php is FALSE.
 		- Upload first to ws.rcredits.org, rebuild menus (and maybe reinstall) and make sure SOMETHING works
 		- When updating data directly through phpMyAdmin or the PHP window or other admin tools, back up the database or relevant tables first.
@@ -23,36 +24,36 @@ Notes for developers
 		. print card and welcome materials, mail to new member (welcome includes reminder to verify bank account)
 				
 TASKS FOR NEXT UPDATE:
-. create new region: ^48(103|104|105|107|108|109|113|115|130|158|175|176|190|191|197|198) rCredits Washtenaw County, MI (MIA)
 after reinstall:
 (no other special tasks yet)
 
+. implement invoices as emails, as for "buy now with rCredits" buttons (a copy of the email goes to the sender, preficed by "you sent this invoice to XXX on YYY:")
+. new users data field: require PIN for purchases over $x. (requires a change to App also)
+. link to memberlist on admin page
+. option to send text message on purchase
+. let cadmin invite list of emails
+. let admin change goods status of a tx
+. * add a Pay button to member company rCredits webpage
 . remind people to confirm their bank account (and say how -- call the bank, etc.) -- also other reminders based on how long after particular events, such as signing the agreement, first tx, last sign-in, last invite, etc. (SELECT max(), max()... from users left join this on uid=uid left join that...)
-. *** 1099-Bs!
-. retest SMS
 . * separate invoices from r_txs (somewhat major change)
 . * hide advanced features on Transactions page (show either advanced or simple period selector, but not both)
-. * add a Pay button to member company rCredits webpage
 - * detailed membership tests: New Pass, Photo, Agreement, Contribute, Proxies, Usd, proof of ID, Options
 
-. Mary's "tried to draw" messages all said Feb 3.
-. Change "From Bank" to "From Bank to rCredits" and "To Bank" to "From rCredits to Bank"
+. allow cadmins to shut down system just for their community
+. Handle addresses better in contribution/payment notices (include inline?)
+. Avoid "attempt was made to transfer from your bank" message by selecting only users with IS_BANK, BUT starting one day after signup, notify member what the next step is AND give them daily messages until they have completed the signup.
 . Pay page does not figure shortfall properly (omits draw!)
 . add the agreement to rCredits.org
-. redo the Dup Ok (don't offer the option until dup)
 . rethink bank connection requirement
 . give admin tweak msg upon SHOWING bank form
 . don't alert staff when William invites someone
 . *** txs should not show X on receipts, for non-buyers
 . *** invoices (- on Transaction History never mix pending with done)
 . *** monthly pdf statements
-. **** final 1099 to IRS
 - ** implement r\suggest (use this for merchant invoices too. user gets an email invoice from rCredits, they can just click a link to accept or decline. merchant gets notified). test cron call to r\suggest (should just notify, for now)
 - for admin, put initial gift and share% on member's Summary page (attached to addr)
 . when opening "another account", pass type (personal or company) to signup form (already does?)
 . doing bank step out of order gives Dwolla error "User must be verified." Handle it or forbid form until then.
-. *** if user gets to Contact page before I open the Dwolla account manually, it says the user must be on the phone step. Maybe just set dw=FALSE for everyone, for now (until Dwolla fixes their Reg API)
-. in notice digests, always finish with current balance, incentive rewards to date, effective return on you rCredits balance APR (averaged over the past month).
 
 . Suggestions from Mike:
 • I think I had to click “Upload and Save” twice, once to upload-and-display, once to save. Is that correct?
@@ -63,6 +64,8 @@ after reinstall:
 • After I send the two 15c deposits, the Status page still shows "connect your bank account". Something should show me that there are two steps: Send the deposits and confirm them.
 • Instead of “Choose File” in the upload-photo page, how about “Choose Photo”? (make input an invisible overlay): http://stackoverflow.com/questions/5191375/a-file-input-button-for-all-browsers-is-this-possible/5191970#5191970
 
+. The software will need to provide an easy way for businesses to use rCredits for payroll. Adam suggests letting businesses upload a spreadsheet, for example.
+. To handle a “run” on rCredits, Community Admins should be able to freeze rCredits/USD exchanges until the community has an opportunity to meet to discuss solutions.
 • routing number and federal ID: could be nice to light up when I have the correct number of digits.
 . make proxy choices scrolling lists (with html size=20 ?), maybe the two choices side by side
 . write test or test procedure for updating usd cache when shortfall but funds have arrived in Dwolla (have to test it on production server)
@@ -70,7 +73,7 @@ after reinstall:
 . implement two-factor signin
 . write ajax to remember country and state in Contact form, on blank field error
  don't create account (in acct class) if email is a dup
-. when admin reactivates an account, member gets an email with a bad password (it should send a new temporary password without altering the saved real password)
+. when admin reactivates an account, member gets an email with a bad password (it should send a new temporary password without altering the saved real password) done?
 . on member list, click "dw" to get current step
 . handle cards reported stolen at POS (how? ask Visa)
 . on transaction page: action on far left, reward next to "to you"
@@ -78,7 +81,6 @@ after reinstall:
 . advanced feature: see breakdown of USD/rCredits for one's account (with explanation of why it changes)
 . automate account deletion and make sure it deletes related records
 . sort transactions by date before download (already does, for display)
-. tell cgf (remind us) how often a contribution happens and whether it is time to send a card (on the anniversary or quarterversary).
 . report proper balance on tellStaff about gift
 . withdrawal should disable minimum if necessary to avoid an automatic reversal of the withdrawal
 . allow user to change box name (can change computer box name only if currently on that computer)
@@ -90,6 +92,7 @@ after reinstall:
 . fix layout of member webpage (description gets jammed into narrow div)
 . send a statement to each member monthly. if it bounces, call, then shut down the account 7 days later (with a notice) and send a text immediately and/or US Mail pcard later, saying we need a new email address (with easy instructions for doing it, including what to do if they don't remember their password (first make an exchange of a certain amount of cash for rC at a member business, as an identity check?, then go online and use that as their temp pw)
 . no cardcode for businesses (in acct class)
+. no password for businesses
 . start with 0 bal, charge customer $20, then undo. fails.
 . explain yellow highlight on Relations page
 . *** omit "request rCard" on relations page if account has not been approved
@@ -352,12 +355,16 @@ E. Database clues
    - Uid fields in every table are bigint (unlike standard Drupal)
    - users (we use this as a table of accounts, not of users, and added many new fields)
      . Common Good Communities (CGCs) and regional servers have uid < 0.
-         -1 to -17576: regional servers (the numeric version plus one of the region's 3-letter qid, negated)
+         OLD: -1 to -17576: regional servers (the numeric version plus one of the region's 3-letter qid, negated)
            the software can treat any or all servers as virtual independent servers, 
            for example when CT started using rCredits for real before they had their own server, the NEW server gave them all "NEC." qids rather than NEW.
-         less than -500000: Common Good Communities (leaving room for all 4-character regions)
+         OLD: less than -500000: Common Good Communities (leaving room for all 4-character regions)
          1+0  to 3T: users in (not yet independent) region AAA (admin is technically in region AAA)
          1+3T to 6T: users in (not yet independent) region AAB etc.
+		 -1-0: the AAA region
+		 -1-1 to -3T: communities in the AAA region
+		 -1-3T: the AAB region etc.
+		 Normally we would have community records only for one region (but each community in the world would have its own ID).
      . Tests create users with uids starting at 1+xT + 17550 (ZZA, ZZB, etc.)
      . name is a lowercase, no-punctuation version of fullName, sometimes with a numeric suffix to disambiguate.
          Exceptions: 
@@ -394,23 +401,24 @@ E. Database clues
          cardCode: security code for QR code on rCard
          cardCode2: security code for QR codes on person's rCard as an agent for a company
          bankAccount: IBN (or fake IBN for US accounts created from routing number and account number)
+		 usdPhone: phone used when creating Dwolla account
+		 usdEmail: email used when creating Dwolla account
+		 usdPin: Dwolla PIN
    - r_txs
      . xid: record id
      . payerTid: Transactions are identified to the user counting just their own transactions (1, 2, 3, ...), NOT as an xid.
      . payeeTid: ditto
      . payer: the uid of the account being debited.
-     . amount: the total transaction amount. While waiting for a USD amount to clear, the entire transaction amount is
-         tentatively (TX_TENTATIVE) transferred in rCredits
-     . r: the amount of rCredits transferred. While waiting for a USD amount to clear, 
-         this field holds the expected amount of rCredits. This may change if the USD EFT does not clear.
+     . amount: the transaction amount
      . data: We use this to store non-essential and unusual essential information in a serialized associative array:
-       undoneBy: xid of the transaction that reversed this one (if it is reversed)
-       undoes: the transaction id of the undone transaction that this transaction reversed
-       bonus and rebate: the dollar amounts of any rewards associated with a payment
-       preapproved: (not in the table, just internally) transaction is preapproved by another server (a payment or an authorized business unilaterally charging a customer)
+		   undoneBy: xid of the transaction that reversed this one (if it is reversed)
+		   undoes: the transaction id of the undone transaction that this transaction reversed
+		   bonus and rebate: the dollar amounts of any rewards associated with a payment
+		   preapproved: (not in the table, just internally) transaction is preapproved by another server (a payment or an authorized business unilaterally charging a customer)
    (more to come...)
-   - r_usd: short term (7 days) record of USD transactions, so that can be rolled back if not in this table
-       ALSO a short term record of what deposits and withrawals (to/from the USD bank) have been made/completed
+   - r_usd: record of USD transactions, so that can be rolled back if not in this table
+       ALSO a record of what deposits and withrawals (to/from the USD bank) have been made/completed
+	   @todo: these two different uses should be separated if we continue to use Dwolla (not necessary if, as planned, we switch to doing our own EFTs to and from a single USD bank account)
    - offsite: protected personal identifying information from the NEW region
      . id: a random id that matches the type and length of the original data
      . data: the original data, encrypted, len=
@@ -440,13 +448,13 @@ G. Special rCredits datatypes
       There are also two accepted alternatives to a colon: .. OR =
     The region (XXX) can be omitted in SMS identifiers (eg "200 to .ABCDE for pie")
     For each region that exists, we have a user record with uid < 0, with name = the region name followed by a period (eg ABC.)
-    (Communities within the region also have negative uids, descending from -REGION_MAX, and do not need qids,
-    but could have a qid with a hyphen, like AAA-BBB, if needed.)
+    (Communities within the region have negative uids descending from their region's uid, and do not need qids,
+    but could have a qid with a hyphen, like AAA-AAB, if needed.)
   
  qxid: a qid (8 characters or more) representing an xid (currently used only in rSmart)
  quid: a qid (7 characters or more) representing a uid acting as its own agent (. separator) OR an reid (: separator)
 
-  The first two characters of a qid are a code for the country or region of population 5.7 million+. They are unused most of the time, when doing business locally. 
+  The first two characters of a qid are a code for the country or region of population 5.7 million+. They could be unused most of the time, when doing business locally. 
 
   The third and possibly fourth character specify a smaller region within that country or region. For example NEW is Western Massachusetts. Each of these smaller regions may (or may not) have its own server. Next comes a dot (period), followed by as many letters as needed (no fewer than 3) to identify the account. An agent acting on behalf of an account gets a similar code with an equals sign instead of a dot.
 
@@ -462,13 +470,14 @@ G. Special rCredits datatypes
     RM	MT, ID, NV, UT, WY, CO, NM (Rocky Mountains plus NM) (7)
     MW	ND, SD, NE, KS, MN, IA (Midwest, west of the Mississippi River) (6)
     US	DE, KY, AL, MS, LA, AR, OK, DC (southeast continental miscellany) (7+1)
-    U2	AK, HI + territories (PR, VI, AS, GU, MP, etc) (non-contiguous) (2+5+)
+    UA	AK, HI + territories (PR, VI, AS, GU, MP, etc) (non-contiguous) (2+5+)
 
   Other countries or groups of countries will also have region codes, which will default (for now) to their 2-letter country code.
+  US Population maps: http://www.towndesktop.com/images/states/michigan-pop-total.jpg
  
 H. Notes on transaction record system:
   - "rewards" are defined as signup bonuses, tx rebates, tx bonuses, inflation adjustment, and fee reimbursement. Transfers, grants, loans, and fines are not rewards.
-  - uids now contain the region info, so no need for recording "foreign" info in the data field
+  - uids contain the region info, so no need for recording "foreign" info in the data field
     Specifically: when we on the AAA regional server receive a transaction request using a qid, the first 3 characters are the "region" -- they tell us what database to hit. For example, if AAA.AAAA pays ZZZ.AAAC, we record a payment from AAA.AAAA's uid (1)
   - We send the request to ZZZ's server and expect a confirmation 
     (if no confirmation, roll back the transaction and give an error message OR queue the request).

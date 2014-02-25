@@ -72,7 +72,7 @@ class rwebMembership extends DrupalWebTestCase {
     Given('member "NEW.AAC" one-time password is %whatever');
     When_('member "?" visits page "/user/login"');
     Then_('we show "Welcome" with: "DATA'
-    . '\\| Tmp password |'
+    . '\\| Temp password |'
     . '\\| New password |'
     . '\\| Confirm new password |'
     . '\\| security code |"');
@@ -159,8 +159,8 @@ class rwebMembership extends DrupalWebTestCase {
     . '\\| 99999 |"');
     Then_('we show "Contact Information"');
     When_('member ".ZZA" confirms form "account/contact" with values: "DATA'
-    . '\\| legalName | email | phone | address | state | country | postalCode | verifyBy | postalAddr  | faxetc    |'
-    . '\\| Abe One   | a@    |     1 | 1 A St. | AK    | US      | 01002      |        1 | 1 A St., AK | %whatever |"');
+    . '\\| fullName | email | phone | address | state | country | postalCode | verifyBy | postalAddr  | faxetc    |'
+    . '\\| Abe One  | a@    |     1 | 1 A St. | AK    | US      | 01002      |        1 | 1 A St., AK | %whatever |"');
     Then_('we show "You\'re getting there"');
     And__('with done "2"');
     When_('member ".ZZA" has done step "agreement"');

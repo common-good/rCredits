@@ -424,10 +424,9 @@ function pool() {
   $result = db\q('SELECT SUM(usd) AS total, SUM(1) AS sources, community FROM users WHERE uid>1 AND :IS_OK AND :IS_DW AND usd>0 GROUP BY community');
   while ($row = $result->fetchAssoc()) { // for each community
     extract($row); // total, sources, community
-    $cttyUsd = r\acct($community)->usd;
-//    $count = (int) min($sources, R_CTTY_USD_SHARE * ($cttyUsd + $total) / R_CHUNK); // # of chunks to get
-//    if ($count > 0) queueEach('pool1', 'SELECT uid, community, LEAST(:R_CHUNK, usd-:R_CHUNK) AS amount FROM users WHERE uid>1 AND :IS_OK and community=:community AND usd>:R_CHUNK ORDER BY usd DESC LIMIT ' . $count, compact('community')); // can't use LIMIT :count
-    if ($cttyUsd / $total < R_CTTY_USD_SHARE) queueEach('pool1', 'SELECT uid, usd, community FROM users WHERE uid>1 AND :IS_OK and community=:community AND usd>=2*:R_CHUNK ORDER BY usd DESC', compact('community')); // okay if ctty has a bit too much
+    $ctty = r\acct($community);
+    if (!$ctty->usdAccount) continue; // not-yet-active region or community account
+    if ($ctty->usd / $total < R_CTTY_USD_SHARE) queueEach('pool1', 'SELECT uid, usd, community FROM users WHERE uid>1 AND :IS_OK AND community=:community AND usd>=2*:R_CHUNK ORDER BY usd DESC', compact('community')); // okay if ctty has a bit too much
   }
   queueNextAfter('pool');
 }
