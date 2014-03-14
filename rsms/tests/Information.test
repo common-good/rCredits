@@ -45,7 +45,7 @@ class rsmsInformation extends DrupalWebTestCase {
     case(0):
     Given('members: "DATA'
     . '\\| id   | fullName   | number   | flags           |'
-    . '\\| .ZZA | Abe One    | %number1 | person,ok,bona  |"');
+    . '\\| .ZZA | Abe One    | %number1 | ok,bona  |"');
     break;
 
 

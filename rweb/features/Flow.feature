@@ -5,10 +5,10 @@ SO I can spend up to my total credit line.
 
 Setup:
   Given members:
-  | id   | fullName   | email         | flags                |
-  | .ZZA | Abe One    | a@ | dft,ok,person,bona |
-  | .ZZB | Bea Two    | b@ | dft,ok,person,bona |
-  | .ZZC | Corner Pub | c@ | dft,ok,company,bona  |
+  | id   | fullName   | email | flags      |
+  | .ZZA | Abe One    | a@    | ok,bona    |
+  | .ZZB | Bea Two    | b@    | ok,bona    |
+  | .ZZC | Corner Pub | c@    | ok,co,bona |
   And relations:
   | id      | main | agent | permission | draw |
   | NEW.ZZA | .ZZC | .ZZA  | manage     |    1 |

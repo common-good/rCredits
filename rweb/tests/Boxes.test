@@ -44,8 +44,8 @@ class rwebBoxes extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id   | fullName   | flags  |'
-    . '\\| .ZZA | Abe One    | dft,ok |"');
+    . '\\| id   | fullName   | flags |'
+    . '\\| .ZZA | Abe One    | ok    |"');
     break;
 
 

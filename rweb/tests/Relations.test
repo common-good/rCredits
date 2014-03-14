@@ -44,11 +44,11 @@ class rwebRelations extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id   | fullName   | acctType    | flags               |'
-    . '\\| .ZZA | Abe One    | personal    | dft,ok,person,bona  |'
-    . '\\| .ZZB | Bea Two    | personal    | dft,ok,person,bona  |'
-    . '\\| .ZZC | Corner Pub | corporation | dft,ok,company,bona |'
-    . '\\| .ZZD | Dee Four   | personal    | dft,ok,person,bona  |"');
+    . '\\| id   | fullName   | acctType    | flags      |'
+    . '\\| .ZZA | Abe One    | personal    | ok,bona    |'
+    . '\\| .ZZB | Bea Two    | personal    | ok,bona    |'
+    . '\\| .ZZC | Corner Pub | corporation | ok,co,bona |'
+    . '\\| .ZZD | Dee Four   | personal    | ok,bona    |"');
     And__('transactions: "DATA'
     . '\\| xid | created   | type       | amount | from      | to   | purpose | taking |'
     . '\\|   1 | %today-6m | %TX_SIGNUP |    250 | community | .ZZA | signup  | 0      |'
@@ -163,8 +163,8 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| .ZZA | .ZZC | .ZZA  | manage     | 1          | 1          | 1        |"');
     When_('member ":ZZA" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
-    . '\\| Other   | My employee? | Owner? | Permission     |_requests      |'
-    . '\\| Abe One | Yes          | Yes    | manage account | request rCard |"');
+    . '\\| Other   | My employee? | Owns | Permission     |_requests      |'
+    . '\\| Abe One | Yes          | Yes  | manage account | request rCard |"');
     And__('without: "DATA'
     . '\\|_Header       |'
     . '\\| My employer? |"');
@@ -204,8 +204,8 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| Family? |"');
     When_('member ":ZZD" visits page "account/relations"');
     Then_('we show "Relations" with: "DATA'
-    . '\\| Other   | My employee? | Owner? | Permission     |_requests      |'
-    . '\\| Abe One | Yes          | No     | manage account | -- |"');
+    . '\\| Other   | My employee? | Owns | Permission     |_requests      |'
+    . '\\| Abe One | Yes          | No   | manage account | -- |"');
     And__('without: "DATA'
     . '\\|_Header    |'
     . '\\| employer? |"');

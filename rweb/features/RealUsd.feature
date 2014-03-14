@@ -14,9 +14,9 @@ SO I don't lose money or get confused.
 
 Setup:
   Given members:
-  | id   | fullName   | dw | country | email | flags              |
-  | .ZZA | Abe One    |  1 | US      | a@    | dft,ok,person,bona |
-  | .ZZB | Bea Two    |  0 | US      | b@    | dft,ok,person,bona |
+  | id   | fullName   | dw | country | email | flags   |
+  | .ZZA | Abe One    |  1 | US      | a@    | ok,bona |
+  | .ZZB | Bea Two    |  0 | US      | b@    | ok,bona |
   And transactions: 
   | xid | created   | type   | amount | from | to   | purpose | taking |
   |   1 | %today-6m | signup |   1000 | ctty | .ZZA | signup  | 0      |

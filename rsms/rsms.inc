@@ -31,7 +31,9 @@ define('RSMS_PREFIX', 'r: '); // identify us
 
 $GLOBALS[TX_SMS . ' messages'] = array(
   // reports
-  'system down' => t('The rCredits system is under maintenance at the moment. Try again in a minute or two?'),
+  'system down' => t('The rCredits system is under maintenance at the moment. Try again in a few minutes?'),
+  'your community down' => t('Your rCredits community is temporarily on hold. Contact your rCredits Community Admin for details: @contact'),
+  'other community down' => t('That rCredits community is temporarily on hold.'),
   'account info' => t("Your balance for account @quid is @balance, including @rewards of incentive rewards. Total demand for rCredits is @totalDemand."),
 //  'account info2' => t("More account info"), // not used yet
   'your account is ready' => t('Your starting balance is @balance. Pretend to buy and sell as you would in a typical month (we need that info). Have fun! Type "helpme" to get started.'), // separate out the last sentence
@@ -59,13 +61,14 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'not saved' => t('No change has been made to your information.'),
 //  'payment accepted' => t('rCredits payment accepted. In exchange, us@amount will be refunded to the payer, from your account.'), // UNUSED
   'charge accepted' => t('Your charge to @who\'s account has been approved (it is no longer in dispute). No action is necessary.'),
-  'gift successful' => t('Your contribution of @amount is successful. Thank you!'),
+  'gift successful' => t('Your donation of @amount is successful. Thank you!'),
   'signup bonus' => t('-- and you got your signup bonus!'), // keep this short, cause it's an add-on
   'nothing done' => t('Nothing was done.'),
   'nothing undone' => t('Nothing undone.'),
   'event' => t('Account @fullName (@quid) is now @status.'),
   'approved' => t('Your account has been approved! You may now buy and sell through the rCredits system, including using your rCard for purchases at member businesses.'),
-  'got funding' => t('You have received a @type of @amount from your rCredits community.'),
+  'got funding' => t('You have received a @type of @amount from your rCredits community for @purpose.'),
+  'got fine' => t('Your rCredits community charged you a fee of @amount for @purpose.'),
   'gift sent' => t('Your chosen gift of @amount to Common Good Finance has gone through. Your rebate is @rewardAmount.'),
   'tx summary' => t('@otherName @otherDid you @amount for "@purpose" on @created.'),
   'share gift' => t('Your chosen ongoing gift of @share% of your rewards has been initiated for this month.'),
@@ -191,7 +194,8 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   <p>This invoice will no longer appear in your list of transactions.'),
   'offer refused' => t('@otherName has declined to accept your @created offer of @amount for "@payerPurpose".'),
   'offer canceled' => t('NYI'),
-  'minmax status' => t('Your balance is @status.'),
+  'over max' => t('Your balance is over the maximum you set.'),
+  'under min' => t('Your balance has fallen below the minimum you set.'),
   'banked' => t('A request has been made to @action your bank a total of @amount. This request may take up to 5 days to go through.'),
   'payment exchange received' => t('You received from @fullName a payment exchange of @amount -- that is, you traded that much US Dollars for rCredits, receiving a bonus of @bonus on the exchange.'),
   'payment exchanges offered' => t('You made payment exchanges to @offers @whom, totaling @total.'),
@@ -204,6 +208,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'wrong answer' => t('That is the wrong answer.'),
   'bad url' => t('That is not a valid URL.'),
   'no charging' => t('Invoicing another member is not permitted at this time.'),
+  'community not active' => t('@whose rCredits community is not yet operational, so your request cannot be completed at this time.'),
   
   // notices to staff
   'cache mismatch' => 'Cron cache mismatch: @key=@is (cache) <> @shouldBe (calc)',

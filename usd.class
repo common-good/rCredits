@@ -69,7 +69,7 @@ class usd {
     $secure = u\ray('auth usdType', $auth, 'Dwolla') + $this->acct->secure;
     $this->acct->update(compact('secure'));
     list ($this->type, $this->pin, $this->auth) = array('Dwolla', $usdPin, $auth); // must precede me()
-    $dw->me(); // set usdAccount and $this->number
+    $this->me(); // set usdAccount and $this->number
 
     return TRUE; // report success
   }    
@@ -275,6 +275,7 @@ class usd {
 
   /**
    * Return here from requesting an auth code, to get the final code.
+   * Keep this function, for when members already have a Dwolla account.
    * @param int $uid: rCredits account id, passed in return uri
    */
   public static function getAuth2($uid) {
@@ -297,8 +298,8 @@ class usd {
     if ($other = r\whoseUsd($usdAccount, $uid)) return authReturn(u\tt('usd account taken', compact('other')));
 //    if ($mya->city != $me->City) r\Web\say('dw mismatch', array('field' => 'City'));
 //    if (r\realState($mya->state) != $me->State) r\Web\say('dw mismatch', array('field' => 'State'));
-//    if ($mya->co() xor $me->Type != 'Personal') r\Web\say('dw mismatch', array('field' => 'Type'));
-    if ($me->Type == 'Non-profit' and $mya->co()) $coFlags = $mya->coFlags | u\bit(CO_NONPROFIT);
+//    if ($mya->co xor $me->Type != 'Personal') r\Web\say('dw mismatch', array('field' => 'Type'));
+    if ($me->Type == 'Non-profit' and $mya->co) $coFlags = $mya->coFlags | u\bit(CO_NONPROFIT);
 
     $mya->update(compact('usdAccount', 'coFlags'));
     return authReturn(); // report success
@@ -336,7 +337,7 @@ class usd {
     u\EXPECT(self::inAtom(), 'usd transfer outside atom');
 /**/ u\EXPECT(is_object($this->acct), 'empty account: ' . print_r($this->acct, 1));
 /**/ u\EXPECT(is_object($other->acct), 'empty other account: ' . print_r($other->acct, 1));
-    u\EXPECT($this->acct->ok() and $other->acct->ok(), 'non rTraders in usd send');
+    u\EXPECT($this->acct->ok and $other->acct->ok, 'non rTraders in usd send');
     if ($this->acct->usd < $amount and $this->bal() < $amount) { // can't even fake it
       r\tellStaff('not enough usd', u\ray('usd need', $this->acct->usd, $amount), $this->acct->id);
       return dwError('not enough', $err);

@@ -13,7 +13,7 @@ DAILY (every 5 mins for 5 mins, starting at 2am)
 - ** stats(): calculate daily statistics and record in r_stats and in the stats field of user records
 - ** paySuppliers(): automatic payment exchanges to suppliers
 - UNUSED ** payEmployees(): Each employee (and supplier) gets relieved of their excess rCredits immediately if they don't have enough USD to trade the employer for them.
-- ** gifts(): contributions to CGF (not shares)
+- ** gifts(): donations to CGF (not shares)
 - UNUSED * redistribute(): (selling of unwanted rCredits) looks at accounts over their maximum (maximum is ignored for companies that do payment exchanges)
 - homogenize: spread the USD out a little in the system
 - pool: hold some USD in the community account
@@ -26,7 +26,7 @@ DAILY (every 5 mins for 5 mins, starting at 2am)
       $invited = ($nonperson or db\lookup('COUNT(*)', 'r_invites', 'inviter=:myid AND email<>:email', compact('myid', 'email')) >= 1);
           $step4 = t('<a>Invite someone</a> to sign up for rCredits! No one can join without an invitation. You can help by sending one. You might particularly want to invite companies and individuals you buy from or sell to (for example your employer or employees).');
 
-  . 1mo: suggest another contribution if first was small
+  . 1mo: suggest another donation if first was small
   . 6mo: allow cashing out rewards if system stable
 - [later] statements for those who want daily statements
 - (later) weekly / monthly / quarterly / annual stuff
@@ -229,7 +229,7 @@ function inflationAdjust($item) {
  */
 function shareCommitted($item) {
   extract(u\just('uid committed share', $item));
-  $share = number_format($share, 1);
+  $share = round($share, 1);
   r\notify($uid, 'share gift', compact('share'));
   $info = u\ray('giftDate uid amount often honor share', REQUEST_TIME, $uid, $committed, 1, 'share', -1);
   $DBTX = \db_transaction();
@@ -251,9 +251,7 @@ function usdTxsThereEND() {queueNextAfter('usdTxsThere');}
 function usdTxThere($item) {
   $uid = $item['uid'];
   if (t\est() and realId($uid)) return; // ignore real accounts in tests
-//  $cgf = variable_get('cgf_uid');
   $usAcct = new r\usd($acct = r\acct($uid));
-///  debug(compact('uid','cgf','item'));
   $since = strtotime(R_ANCIENT_EFT. ' days ago'); // bank transfers sometimes take many days
   $usAcct->each('rCredits\\Cron\\usdTxQ', $since, u\ray('money_sent deposit withdrawal'));
 }
@@ -342,8 +340,8 @@ function stats1($item) {
   $a = r\acct($uid);
   $today = strtotime('today');
   $monthAgo = strtotime('-1 month', $today);
-  $avgBalPastMo = @number_format(r\averageBalance($uid, $monthAgo, $today), 2);
-  $avgBalEver = @number_format(r\averageBalance($uid, strtotime('today', $a->created), $today), 2);
+  $avgBalPastMo = @round(r\averageBalance($uid, $monthAgo, $today), 2);
+  $avgBalEver = @round(r\averageBalance($uid, strtotime('today', $a->created), $today), 2);
   $subs = compact('uid', 'monthAgo');
   
   $sql = <<<EOF
@@ -455,17 +453,14 @@ EOF;
 
 function bank1($item) {
   extract(u\just('uid shortfall', $item));
-  $excess = 0;
-//  if ($excess > 0 and $shortfall > 0) return r\tellStaff('min > max', $item, $uid); // should never happen
   $acct = r\acct($uid);
-  if (!$amount = toBank($excess > 0 ? $excess : -$shortfall, $acct)) return;
-  $action = $excess > 0 ? 'deposit to' : 'draw from';
-
+  if (!$amount = toBank(-$shortfall, $acct)) return;
+  $action = 'draw from';
   $usAcct = new r\usd($acct);
+
   if ($usAcct->bank($amount, $error)) {
-    $status = @$excess > 0 ? 'over the maximum you set' : 'under the minimum you set';
     $amount = u\fmtAmt(abs(@$amount));
-    r\notify($uid, 'minmax status|banked', compact(u\ray('action status amount')));
+    r\notify($uid, 'under min|banked', compact(u\ray('action amount')));
   } elseif (REQUEST_TIME - $acct->created > 3 * DAY_SECS) r\notify($uid, 'cannot bank', compact('action', 'error'));
 }
 
@@ -562,4 +557,4 @@ function queueEach($op, $sql, $subs = array()) {
   while ($row = $result->fetchAssoc()) r\queue($op, $row);
 }
 
-function realId($uid) {return ($uid <= variable_get('cgf_uid'));}
+function realId($uid) {return ($uid <= r\cgfId());}

@@ -28,7 +28,7 @@ require_once __DIR__ . '/../rcredits-testing.inc';
  */
 function extraSetup($feature) {
   global $sms_devel; $sms_devel = TRUE;
-  $cgfUid = \variable_get('cgf_uid');
+  $cgfUid = r\cgfId();
 
   db\q('DELETE FROM users WHERE uid>:cgfUid', compact('cgfUid'));
   db\q('DELETE FROM r_txs');
@@ -159,10 +159,7 @@ function weSayToPhoneWithSubs($number, $message, $subs) {
 /**
  * we email (ARG) to member (ARG) with subs: (ARG)
  *
- * in: Transact TheCallerConfirmsARequestToCharge TEST
- *     Transact TheCallerConfirmsAUnilateralCharge TEST
- *     Undo TheCallerRefusesToPayTheLatestInvoice TEST
- *     Undo TheCallerRefusesAPendingPayment TEST
+ * in: 
  */
 function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, $email, $subs);}
 
@@ -308,7 +305,7 @@ function phoneIsAMember($number) {
 function phoneIsMember($number, $id = NULL) {
   global $testOnly; if ($testOnly) return FALSE;
   $flags = 'ok';
-  return t\makeAccount(compact(u\ray('number id flags')));
+  return t\doAccount(compact(u\ray('number id flags')));
 }
 
 /**
@@ -319,13 +316,7 @@ function phoneIsMember($number, $id = NULL) {
  *     Transact Setup MAKE
  *     Undo Setup MAKE
  */
-function members($list) {
-  global $testOnly; if ($testOnly) return FALSE;
-  foreach ($list as $one) {
-    if (!t\makeAccount($one)) return FALSE;
-  }
-  return TRUE;
-}
+function members($list) {return t\members($list);}
 
 /**
  * transactions: (ARG)
@@ -339,11 +330,7 @@ function members($list) {
  *     Undo TheCallerRefusesToPayTheLatestInvoice MAKE
  *     Undo TheCallerRefusesAPendingPayment MAKE
  */
-function transactions($list) {
-  global $testOnly; if ($testOnly) return FALSE;
-  foreach ($list as $one) if (!t\makeTx($one)) return FALSE;
-  return TRUE;
-}
+function transactions($list) {return t\transactions($list);}
 
 /**
  * phone (ARG) confirms (ARG)
@@ -379,7 +366,7 @@ function phoneConfirms($number, $request) {
 function phoneCanChargeUnilaterally($number) {
   global $testOnly;
   if (!$acct = r\acct(r\SMS\uid($number))) return FALSE;
-  return $acct->co(); // any company can
+  return $acct->co; // any company can
   //if ($testOnly) return $acct->can(B_CHARGE);
   //return $acct->setBit(B_CHARGE);
 }
@@ -429,7 +416,7 @@ function theTotalDemandForRCreditsIs($amount) {
   $same = t\eq($old, $amount);
   if ($testOnly or $same) return $same;
   
-  if (!$uid = t\makeAccount(u\ray('id flags', '.ZZZ', 'person,ok'))) return FALSE;
+  if (!$uid = t\doAccount(u\ray('id flags', '.ZZZ', 'ok'))) return FALSE;
   $a = r\acct($uid);
   $usd = $amount - $old - $a->usd;
   $a->update(compact('usd'));
@@ -456,11 +443,7 @@ function phoneDemandForRCreditsIs($number, $demand) {
  *
  * in: Transact Setup MAKE
  */
-function relations($relations) {
-  global $testOnly; if ($testOnly) return FALSE;
-  foreach ($relations as $one) if (!t\makeRelation($one)) return FALSE;
-  return TRUE;
-}
+function relations($relations) {return t\relations($relations);}
 
 /**
  * balances: (ARG)
@@ -470,3 +453,13 @@ function relations($relations) {
  */
 function balances($list) {return t\balances($list);}
 
+
+/**
+ * we notice (ARG) to member (ARG) with subs: (ARG)
+ *
+ * in: Transact TheCallerConfirmsARequestToCharge TEST
+ *     Transact TheCallerConfirmsAUnilateralCharge TEST
+ *     Undo TheCallerRefusesToPayTheLatestInvoice TEST
+ *     Undo TheCallerRefusesAPendingPayment TEST
+ */
+function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice, $id, $subs);}

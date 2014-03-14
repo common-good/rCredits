@@ -128,7 +128,7 @@ function myTransactions($starting, $ending, $id = NULL, $opts = array()) {
   if (!$bonuses) $where .= ' AND t.type>=0';
   if (!$exchanges or !$pexchanges) {
     $maybe = $exchanges ? 'NOT' : '';
-    $where .= ($exchanges or $pexchanges) ? " AND (amount>0 OR t.data $maybe LIKE '%rebate%')" : ' AND amount>0';
+    $where .= ($exchanges or $pexchanges) ? " AND (amount>0 OR type=:TX_FINE OR t.data $maybe LIKE '%rebate%')" : ' AND (amount>0 OR type=:TX_FINE)';
   }
   $where .= ' ORDER BY t.xid DESC';
   $states = $dones ? array(TX_DONE, TX_DISPUTED) : array();
@@ -251,7 +251,7 @@ function updateRelations($updates) {
 }
 
 function setCttyAdmin($value, $main, $other) {
-  if ($main < 0 and $main == r\acct($other)->community) r\acct($other)->setBit(B_CTTY_ADMIN, $value);
+  if ($main < 0 and $main == r\acct($other)->community) r\acct($other)->setBit(B_CADMIN, $value);
 }
 
 /**
@@ -421,13 +421,17 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
 
   // Check permissions
   u\EXPECT(compact(u\ray('ttype a1 a2 confirmed data')), 'string acct acct bool assoc');
-  if (!$a2->ok()) return array('non member', u\ray('otherName', $a2->fullName), FALSE);
+  if (!$a2->ok) return array('non member', u\ray('otherName', $a2->fullName), FALSE);
   list ($myAccess, $otherAccess) = u\order($reallyTaking, $scanned ? B_SCAN : B_SELL, B_BUY);
   list ($myAccessErr, $otherAccessErr) = u\order($reallyTaking, 'sell', 'buy');
 ///debug(compact('myAccess','otherAccess','myAccessErr','otherAccessErr','reallyTaking'));
   if (!$a1->can($myAccess)) return array("no $myAccessErr", array(), FALSE);
   if (!$a2->can($otherAccess)) return array("other no $otherAccessErr", u\ray('otherName', $a2->agent->fullName), FALSE);
-  
+  if (!$a1->cttyActive) return array('community not active', u\ray('whose', t('Your')), FALSE);
+  if (!$a2->cttyActive) return array('community not active', u\ray('whose', t('That account\'s')), FALSE);
+  if (!$a1->cttyUp) return array('your community down', u\ray('contact', $a1->cAdminContact()), FALSE);
+  if (!$a2->cttyUp) return array('other community down', FALSE);
+    
   // Analyze who's buying or selling
   if ($uid == $myid) return array('no self-trading', array(), FALSE);
   list ($payer, $payee) = u\order($taking, $uid, $myid);
@@ -440,7 +444,7 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   $unilateral = isset($data['bilateral']) ? FALSE 
   : ($taking // selling
       // (need this at POS!) and !$undoing // not reversing a payment
-      and !(!$a2->person() and $a2->proSe()) // not selling to a company directly (without its agent)
+      and !($a2->co and $a2->proSe) // not selling to a company directly (without its agent)
       and (@$scanned // in person: scanned (web or smart)
 //        or ($channel == TX_SMS and $a1->can(B_CHARGE)) // or by SMS when qualified
       )
@@ -465,7 +469,7 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   $amount = $requestAmount;
   
   // Figure rewards and other extra info
-  if (!$for) $for = $goods ? 'goods and services' : 'cash/loan/etc.';
+  if (!$for) $for = $goods ? R_FOR_GOODS : R_FOR_CASH;
 
   list ($fromAcct, $toAcct) = u\order($taking, $a2, $a1);
   list ($fromUsAcct, $toUsAcct) = array(new r\usd($fromAcct), new r\usd($toAcct));
@@ -478,8 +482,8 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
   if ($confirmed) { // notify other party by email about any confirmed transaction
     $notice = $reallyTaking ? ($preapproved ? 'new charge' : 'new invoice')
       : ($virtual ? 'new offer' : (($amount < 0 and $goods) ? 'new refund' : 'new payment'));
-    if ($notice == 'new payment' and $a2->co()) { // not "new charge" (the most common)
-      $href = r\makeDo('addr', $myid); // add a link to address, so merchant can ship or nonprofit can thank
+    if ($notice == 'new payment' and $a2->co) { // not "new charge" (the most common)
+      $href = r\makeDo('op id expires', 'addr', $myid, 90 * DAY_SECS); // add a link to address, so merchant can ship or nonprofit can thank
       $args['myName'] = "<a href=\"$href\">$args[myName]</a>";
     }
     if (@$args['otherRewardAmount']) $notice .= '|reward other';
@@ -507,14 +511,15 @@ function fund($uid, $type, $amount, $for, $confirmed = TRUE) {
   $payeeAgent = $payee = $uid;
   $mya = r\acct(); // (null, if just registering or running as cron)
   u\EXPECT($type <= TX_REWARDS or $mya->can(B_MANAGING_CTTY), 'non-automatic reward by non ctty agent');
+  if ($type == TX_FINE) $amount = -$amount;
   if (!$confirmed) return $amount;
   
   $payer = r\acct($payee)->community;
   $payerAgent = (@$mya and $mya->id < 0) ? $mya->agentId : $payer; // take note if funded by community admin
-  $taking = ($type >= TX_FINE);
   r\transact(compact(u\ray('type amount payer payee payerAgent payeeAgent for taking')));
-  $amount = u\fmtAmt($amount);
-  r\notify($uid, 'got funding', u\ray('amount type', $amount, $for));
+  $types = u\ray(TX_TYPES);
+  $subs = u\ray('amount type purpose', u\fmtAmt(abs($amount)), $types[$type], $for);
+  r\notify($uid, $type == TX_FINE ? 'got fine' : 'got funding', $subs);
   return $amount;
 }
 
@@ -700,10 +705,10 @@ EOF;
 function accountChoices() {
   if (!$mya = r\acct()) return FALSE;
   $result = array($aid = $mya->agentId);
-  if ($mya->admin()) {
+  if ($mya->admin) {
     $result += @db\q('SELECT uid FROM users WHERE uid<:R_CTTY_UID0 ORDER BY fullName')->fetchAllKeyed(0, 0);
     $result += @db\q('SELECT uid FROM users WHERE uid>1 ORDER BY fullName')->fetchAllKeyed(0, 0);
-  } elseif ($mya->cttyAdmin()) {
+  } elseif ($mya->cAdmin) {
     $result += @db\q('SELECT uid FROM users WHERE community=:ctty ORDER BY (uid<0) DESC, fullName', u\ray('ctty', $mya->community))->fetchAllKeyed(0, 0);
   } else $result += @db\q('SELECT main FROM r_relations WHERE other=:aid AND permission>0', compact('aid'))->fetchAllKeyed(0, 0);
   return array_values($result);

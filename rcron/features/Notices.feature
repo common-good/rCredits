@@ -5,10 +5,10 @@ SO I can take appropriate action
 
 Setup:
   Given members:
-  | id   | fullName   | flags                 | email         |
-  | .ZZA | Abe One    | dft,person,ok         | a@ |
-  | .ZZB | Bea Two    | dft,person,company,ok | b@ |
-  | .ZZC | Corner Pub | dft,company,ok        | c@ |
+  | id   | fullName   | flags | email |
+  | .ZZA | Abe One    | ok    | a@    |
+  | .ZZB | Bea Two    | co,ok | b@    |
+  | .ZZC | Corner Pub | co,ok | c@    |
 
 Scenario: a member gets some notices
   Given notices:

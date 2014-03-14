@@ -7,10 +7,10 @@ SO I can buy and sell stuff.
 
 Setup:
   Given members:
-  | id   | fullName   | address | city  | state  | postalCode | country | email         | flags           |
-  | .ZZA | Abe One    | 1 A St. | Atown | Alaska | 01000      | US      | a@ | dft,ok,person,bona |
-  | .ZZB | Bea Two    | 2 B St. | Btown | Utah   | 02000      | US      | b@ | dft,ok,person,bona |
-  | .ZZC | Corner Pub | 3 C St. | Ctown | Cher   |            | France  | c@ | dft,ok,company,bona  |
+  | id   | fullName   | address | city  | state  | postalCode | country | postalAddr | email | flags      |
+  | .ZZA | Abe One    | 1 A St. | Atown | Alaska | 01000      | US      | 1 A, A, AK | a@    | ok,bona    |
+  | .ZZB | Bea Two    | 2 B St. | Btown | Utah   | 02000      | US      | 2 B, B, UT | b@    | ok,bona    |
+  | .ZZC | Corner Pub | 3 C St. | Ctown | Cher   |            | France  | 3 C, C, FR | c@    | ok,co,bona |
   And relations:
   | id      | main    | agent   | permission |
   | NEW.ZZA | NEW.ZZA | NEW.ZZB | buy        |
@@ -101,7 +101,11 @@ Scenario: A member confirms request to pay a member company
   | paid   | Corner Pub | $100   | reward     | $5           |
   And we notice "new payment|reward other" to member "NEW.ZZC" with subs:
   | created | fullName   | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |
-  | %today  | Corner Pub | <a href=''do/id=1&code=whatever''>Abe One</a> | $100 | stuff | reward | $10 |
+  | %today  | Corner Pub | Abe One   | $100 | stuff | reward | $10 |
+  And that "notice" has link results:
+  | _name | Abe One |
+  | _postalAddr | 1 A, A, AK |
+  | Physical address: | 1 A St., Atown, AK 01000 |
   And transactions:
   | xid      | created   | type      | state    | amount | from      | to      | purpose      | taking |
   | NEW.AAAE | %today | %TX_TRANSFER | %TX_DONE |    100 | NEW.ZZA   | NEW.ZZC | stuff        | 0      |

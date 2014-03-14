@@ -6,9 +6,9 @@ SO I can buy the things I want, locally and elsewhere
 Setup:
   Given members:
   | id   | fullName   | number | flags           |
-  | .ZZA | Abe One    | +20001 | person,ok,bona  |
-  | .ZZB | Bea Two    | +20002 | person,ok,bona  |
-  | .ZZC | Corner Pub | +20003 | company,ok,bona |
+  | .ZZA | Abe One    | +20001 | ok,bona  |
+  | .ZZB | Bea Two    | +20002 | ok,bona  |
+  | .ZZC | Corner Pub | +20003 | co,ok,bona |
   # later and elsewhere: name, email, country, minimum, community
   And transactions: 
   | type     | amount | from | to   | purpose |

@@ -10,14 +10,14 @@ SO I can charge customers on behalf of my company.
 
 Setup:
   Given members:
-  | id   | fullName   | email | city  | state | cc  | cc2  | flags               |
-  | .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 | dft,ok,person,bona  |
-  | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 | dft,ok,person,bona  |
-  | .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      | dft,ok,company,bona |
-  | .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 | dft,ok,person,bona  |
-  | .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 | dft,ok,person,bona,secret_bal |
-  | .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      | dft,ok,company,bona |
-  | .ZZG | Gil Seven  | g@    | Gtown | GA    | ccG |      | dft |
+  | id   | fullName   | email | city  | state | cc  | cc2  | flags      |
+  | .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 | ok,bona    |
+  | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 | ok,bona    |
+  | .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      | ok,co,bona |
+  | .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 | ok,bona    |
+  | .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 | ok,bona,secret_bal |
+  | .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      | ok,co,bona |
+  | .ZZG | Gil Seven  | g@    | Gtown | GA    | ccG |      |            |
   And devices:
   | id   | code |
   | .ZZC | devC |

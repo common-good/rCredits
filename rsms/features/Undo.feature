@@ -6,9 +6,9 @@ SO I can easily correct a mistake
 Setup:
   Given members:
   | id   | fullName   | number | flags           |
-  | .ZZA | Abe One    | +20001 | person,ok,bona  |
-  | .ZZB | Bea Two    | +20002 | person,ok,bona  |
-  | .ZZC | Corner Pub | +20003 | company,ok,bona |
+  | .ZZA | Abe One    | +20001 | ok,bona  |
+  | .ZZB | Bea Two    | +20002 | ok,bona  |
+  | .ZZC | Corner Pub | +20003 | co,ok,bona |
   And transactions: 
   | created   | type         | amount | from | to   | purpose      | taking |
   | %today-6m | %TX_SIGNUP   | 250    | ctty | .ZZA | signup       | 0      |
@@ -80,7 +80,7 @@ Scenario: The caller refuses to pay the latest invoice
   Then we say to phone +20001 "report undo" with subs:
   | solution          |
   | marked ''denied'' |
-  And we email "invoice-denied" to member "b@" with subs:
+  And we notice "invoice denied" to member "b@" with subs:
   | created | fullName | otherName | amount | payeePurpose  |
   | %today  | Bea Two  | Abe One    | $100   | cleaning       |
 
@@ -92,6 +92,6 @@ Scenario: The caller refuses a pending payment
   Then we say to phone +20001 "report undo" with subs:
   | solution          |
   | marked ''denied'' |
-  And we email "offer-refused" to member "c@" with subs:
+  And we notice "offer refused" to member "c@" with subs:
   | created | fullName   | otherName | amount | payerPurpose |
   | %today  | Corner Pub | Abe One    | $100   | wages         |

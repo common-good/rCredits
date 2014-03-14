@@ -50,7 +50,7 @@ function tableDefs($schema = array()) {
     'minimum' => setupField('chosen minimum balance (savings + 3 days, fill automatically)', 'numeric 11,2', NULL), // NULL means preferences not set yet
 //    'chunk' => setupField('granularity of transfers from bank account', 'numeric 11,2', R_BANK_CHUNK),
 //    'maximum' => setupField('maximum rCredits balance (send excess to bank), 0=none)', 'numeric 11,2', -1), // -1 means no limit
-    'share' => setupField('percentage of rebates/bonuses to contribute to CGF', 'numeric 6,3', NULL),
+    'share' => setupField('percentage of rebates/bonuses to donate to CGF', 'numeric 6,3', NULL),
     'r' => setupField('rCredits balance, including rewards (cached)', 'numeric 11,2', 0),
     'usd' => setupField('balance in related USD account (probable)', 'numeric 11,2', 0),
     'rewards' => setupField('total incentive rewards to date (cached)', 'numeric 11,2', 0),
@@ -144,12 +144,9 @@ function tableDefs($schema = array()) {
   // table r_do
   $fields = array(
     'doid' => setupField('record id', 'serial 11'),
-    'uid' => setupField('account record id', 'int big'),
-    'box' => setupField('machine id', 'int big'),
-    'created' => setupField('Unixtime record was created', 'int 11', 0),
-    'completed' => setupField('Unixtime action was completed', 'int 11', 0), // expiration time if <0
-    'action' => setupField('serialized array describing action to take', 'text medium'),
-    'code' => setupField('security code', 'varchar 255'),
+    'before' => setupField('Unixtime expiration', 'int 11', 0), // 0 means never expires
+    'data' => setupField('serialized array of parameters', 'text medium'),
+    'uid' => setupField('related account record ID', 'int big', 0), // needed only for changeUid
   );
   $foreignKeys = foreignKey('uid');
   $indexes = index('uid');
@@ -194,8 +191,8 @@ function tableDefs($schema = array()) {
     'payee' => setupField('user id of the payee', 'int big'), 
     'payerAgent' => setupField("user id of payer's agent (who approved this transaction for the payer)", 'int big'), 
     'payeeAgent' => setupField("user id of payee's agent (who approved this transaction for the payee)", 'int big'), 
-    'payerFor' => setupField("payer's description", 'varchar 60'), 
-    'payeeFor' => setupField("payee's description", 'varchar 60'), 
+    'payerFor' => setupField("payer's description", 'varchar 255'), 
+    'payeeFor' => setupField("payee's description", 'varchar 255'), 
     'payerTid' => setupField("payer's transaction ID", 'int 11'),
     'payeeTid' => setupField("payee's transaction ID", 'int 11'),
     'data' => setupField('info stored elsewhere, duplicated here for convenience (serialized array)', 'text big'), 
@@ -215,7 +212,7 @@ function tableDefs($schema = array()) {
     'amount' => setupField('amount to charge', 'numeric 11,2'), 
     'payer' => setupField('user id of the payer', 'int big'), 
     'payee' => setupField('user id of the payee', 'int big'), 
-    'payeeFor' => setupField("payee's description", 'varchar 60'), 
+    'for' => setupField("payee's description", 'varchar 255'), 
     'payerReward' => setupField('reward amount for payer', 'numeric 11,2'), 
     'payeeReward' => setupField('reward amount for payee', 'numeric 11,2'), 
     'created' => setupField('Unixtime invoice was created', 'int 11', 0),
@@ -262,7 +259,7 @@ function tableDefs($schema = array()) {
     'often' => setupField('recurring how often (Y, Q, M, 1)', 'varchar 1'),
     'honor' => setupField('what type of honor', 'varchar 10'), // "share" = gift is "sharing" rewards with CGF
     'honored' => setupField('who is honored', 'text medium'),
-    'share' => setupField('percentage of rebates/bonuses to contribute to CGF', 'numeric 6,3'), // -1 = N/A
+    'share' => setupField('percentage of rebates/bonuses to donate to CGF', 'numeric 6,3'), // -1 = N/A
   );
   $foreignKeys = foreignKey('uid');
   $indexes = index('uid');

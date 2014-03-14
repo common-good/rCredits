@@ -8,11 +8,11 @@ SO I can spend it through the rCredits system or hold it in the rCredits system 
 
 Setup:
   Given members:
-  | id   | fullName | floor | minimum | flags                    |
-  | .ZZA | Abe One  |     0 |      10 | dft,person,ok,dw,bank    |
-  | .ZZB | Bea Two  |     0 |      10 | dft,person,ok,dw,bank    |
-  | .ZZC | Our Pub  |     0 |     100 | dft,person,company,ok,dw |
-  | .ZZD | Dee Four |     0 |     100 | dft,person,ok,dw,bank    |
+  | id   | fullName | floor | minimum | flags      |
+  | .ZZA | Abe One  |     0 |      10 | ok,dw,bank |
+  | .ZZB | Bea Two  |     0 |      10 | ok,dw,bank |
+  | .ZZC | Our Pub  |     0 |     100 | co,ok,dw   |
+  | .ZZD | Dee Four |     0 |     100 | ok,dw,bank |
   And transactions:
   | xid | created    | type   | state | amount | from | to   | purpose |
   | 1   | %today-10d | signup | done  |     20 | ctty | .ZZA | signup  |

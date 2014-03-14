@@ -25,48 +25,47 @@ define('DW_TEST_AUTHS',
 . 'v8bSxiLSb58y42i1lBeH7x1zxUrnygEnpe3AKFSy7HCjhTsC7V '
 );
 
-function makeRecords($list, $type, $testSeparate = FALSE) {
+function doRecords($list, $type) {
   global $testOnly;
-  $table = 'r_' . strtolower($type) . 's';
-  $function = 'rCredits\\Testing\\';
-  if (!function_exists($function . "make$type")) {
 /**/    if ($testOnly) t\output("Expect $type: " . print_r($list, 1), 'expect');
-    $type = 'Thing';
-  }
-  $function .= ($testSeparate and $testOnly) ? "verify$type" : "make$type";
-  foreach ($list as $one) if (!$function($one, $testOnly, $table)) return FALSE;
+
+  $function = 'rCredits\\Testing\\do';
+  $function .= function_exists($function . $type) ? $type : 'Thing';
+  foreach ($list as $one) if (!$function($one, $type)) return FALSE;
   return TRUE;
 }
 
 /*
  * Generic record-maker/record-tester.
  */
-function makeThing($info, $testOnly, $table) {
+function doThing($info, $type) {
+  global $testOnly;
   extract($info);
-  $info['uid'] = t\uid($id); unset($info['id']);
+  if (@$id) $info['uid'] = t\uid($id); unset($info['id']);
+  $table = 'r_' . strtolower($type) . 's';
   return $testOnly ? verifyRecord($table, $info) : db\insert($table, $info);
 }
 
-function gifts($list) {return makeRecords($list, 'Gift');}
-function notices($list) {return makeRecords($list, 'Notice');}
-function members($list) {return makeRecords($list, 'Account');}
-function devices($list) {return makeRecords($list, 'Boxe');}
-function relations($list) {return makeRecords($list, 'Relation');}
-function transactions($list) {return makeRecords($list, 'Tx', TRUE);}
-function balances($list) {return makeRecords($list, 'Balance');}
-function membersHave($list) {return makeRecords($list, 'MemberFields');}
-function selling($list) {return makeRecords($list, 'Selling');}
-function companyFlags($list) {return makeRecords($list, 'CompanyFlags');}
+function gifts($list) {return doRecords($list, 'Gift');}
+function notices($list) {return doRecords($list, 'Notice');}
+function members($list) {return doRecords($list, 'Account');}
+function devices($list) {return doRecords($list, 'Boxe');}
+function relations($list) {return doRecords($list, 'Relation');}
+function transactions($list) {return doRecords($list, 'Tx');}
+function balances($list) {return doRecords($list, 'Balance');}
+function membersHave($list) {return doRecords($list, 'MemberFields');}
+function selling($list) {return doRecords($list, 'Selling');}
+function companyFlags($list) {return doRecords($list, 'CompanyFlags');}
 
 /**
  * Create device (box) records.
  */
-function makeBoxe($info = array(), $testOnly = FALSE) {
-  global $channel; // be careful not to overwrite this with a local variable
+function doBoxe($info = array()) {
+  global $testOnly, $channel; // be careful not to overwrite channel with a local variable
   //$boxName = $info['boxName'];
   $info['channel'] = @strtr(@$info['channel'], u\ray('sms app web', TX_SMS, TX_SMART, TX_WEB)) ?: $channel;
   //if ($testOnly) $boxName = htmlspecialchars(@$boxName);
-  return makeThing($info, $testOnly, 'r_boxes');
+  return doThing($info, 'boxe');
 }
 
 /**
@@ -74,7 +73,8 @@ function makeBoxe($info = array(), $testOnly = FALSE) {
  * Minimum parameters: none
  * @return uid
  */
-function makeAccount($info = array(), $testOnly = FALSE) {
+function doAccount($info = array()) {
+  global $testOnly;
 /**/  if (!is_array($info)) {print_r($info); die(print_r(debug_backtrace(), 1)); } // keep for now
   extract($info); // any user table fields, plus dw (dwolla test account number)
   u\setDft($id, r\acct::nextId()); // default to first available number
@@ -84,7 +84,7 @@ function makeAccount($info = array(), $testOnly = FALSE) {
 
   if (!$testOnly) { // when making, set many defaults and mods
     u\setDft($rebate, 5); // should be R_REBATE, but many of the test would have to be written on changing it
-    u\setDft($fullName, 'makeAccount ' . randomString(20, 'word'));
+    u\setDft($fullName, 'doAccount ' . randomString(20, 'word'));
     $name = u\shortName($fullName);
     u\setDft($legalName, $fullName);
   //  $pass = @$my_password ?: '$S$D2YT5TTwLHHbbdO3Zpzi9EPcMt5WSuCTWAO274vjzYXyOxZ9kFae'; // default to 123
@@ -107,17 +107,11 @@ function makeAccount($info = array(), $testOnly = FALSE) {
   } else $fixFields = '';
 
   $flags0 = @$flags;
-    /*if (strpos($flags0, '%') !== FALSE) {
-    $flags = B_DFT | u\bit(isset($flags0) ? @$flags0 : (u\bit(B_MEMBER) | u\bit(B_OK)));
-  } else { */
   $flags = 0;
-  if (@$flags0) foreach (u\ray($flags0) as $one) {
-    $bit = u\consta('b', $one);
-    $flags |= u\eq($bit, B_DFT, u\bit($bit));
-  }
+  if (@$flags0) foreach (u\ray($flags0) as $one) $flags |= u\bit(u\consta('b', $one));
   if ($flags & u\bit(B_OK)) $flags |= u\bit(B_MEMBER);
 
-  if (isset($acctType)) $flags |= (($acctType === R_PERSONAL or $acctType == 'personal') ? u\bit(B_PERSON) : u\bit(B_COMPANY)); // === required
+  if (isset($acctType)) $flags |= (($acctType === R_PERSONAL or $acctType == 'personal') ? 0 : u\bit(B_CO)); // === required
   
   foreach (u\ray('id email acctType dw') as $one) unset($info[$one]);
   $info = compact(u\ray('uid flags ' . $fixFields)) + $info;
@@ -158,11 +152,12 @@ function makeAccount($info = array(), $testOnly = FALSE) {
  * Fabricate bogus transactions.
  * Minimum parameters: amount, from, to
  * @return:
- *   if called with $testOnly TRUE, return assoc with the information actually written (called from verifyTxs())
- *   otherwise return serial (treated as TRUE in test steps)
+ *   if $testOnly return TRUE if the data is as expected
+ *   otherwise return the serial of the created transaction(s) (treated as TRUE in test steps)
  */
-function makeTx($info, $testOnly = FALSE) {
-  global $channel;
+function doTx($info) {
+  global $testOnly, $channel;
+  
   extract($info);
 
   if (@$xid and !is_numeric($xid)) $xid = u\a2n(substr(strpbrk($xid, R_MEMBER_MARK . R_AGENT_MARK), 1));
@@ -186,9 +181,9 @@ function makeTx($info, $testOnly = FALSE) {
   
   $info = compact(u\ray('xid created r payer payerAgent payee payeeAgent for type state channel goods taking data')) + $info;
   if ($testOnly or $type == TX_REBATE or $type == TX_BONUS) {
-    list ($info['payerFor'], $info['payeeFor']) = is_array($for) ? $for : array($for, $for);
+    if ($testOnly) list ($info['payerFor'], $info['payeeFor']) = is_array($for) ? $for : array($for, $for);
     unset($info['for']);
-    return $info;
+    return verifyRecord('r_txs', $info); // fails if rebate/bonus description is wrong (so omit it on create)
   }
   
   $txs = r\transact($info);
@@ -199,14 +194,15 @@ function makeTx($info, $testOnly = FALSE) {
  * Fabricate bogus relations.
  * Minimum parameters: main, agent (both are quids -- at least one must be local)
  */
-function makeRelation($info, $testOnly = FALSE) {
+function doRelation($info) {
+  global $testOnly;
   extract($info);
   
   $reid = u\num($id, u\a2n(substr($id, -3)));
   if (!$mainAcct = r\acct(t\uid($main))) return output("main:$main is not an id");
   if (!$agtAcct = r\acct(t\uid($agent))) return output("agent:$agent is not an id");
   u\EXPECT(!r\foreignServer(r\uidRegion($mainAcct->id)) or !r\foreignServer(r\uidRegion($agtAcct->id)));
-  u\EXPECT($mainAcct->proSe() and $agtAcct->proSe());
+  u\EXPECT($mainAcct->proSe and $agtAcct->proSe);
   list ($main, $other) = array($mainAcct->id, $agtAcct->id);
   $info['permission'] = @$permission ? u\consta('b', $permission) - B_RELATED : 0;
   if (@$draw) $agtAcct->setBit(B_DRAWS);
@@ -219,7 +215,8 @@ function makeRelation($info, $testOnly = FALSE) {
 /**
  * List what a company sells
  */
-function makeSelling($info, $testOnly = FALSE) {
+function doSelling($info) {
+  global $testOnly;
   extract(u\just('id selling', $info));
   $selling = str_replace(',', "\n", $selling);
   return r\acct(t\uid($id))->update(compact('selling'));
@@ -228,7 +225,8 @@ function makeSelling($info, $testOnly = FALSE) {
 /**
  * List what flags the company has set
  */
-function makeCompanyFlags($info, $testOnly = FALSE) {
+function doCompanyFlags($info) {
+  global $testOnly;
   extract(u\just('id flags', $info));
   $coFlags = 0;
   if ($flags) foreach (u\ray($flags) as $one) $coFlags |= u\bit(u\consta('co', $one));
@@ -239,8 +237,8 @@ function makeCompanyFlags($info, $testOnly = FALSE) {
  * Return TRUE if the notice has been queued to member $id
  */
 function notice($notice, $id, $subs) {
-  global $base_url;
   global $testOnly; if (!$testOnly) return FALSE;
+  global $base_url, $thatThing;
 
   $subs = @$subs[0];
   if (strpos($nm = @$subs['otherName'], 'href="do/')) {
@@ -255,19 +253,26 @@ function notice($notice, $id, $subs) {
       $subs[$key] = u\fmtAmt($num, 's$' . $currency);
     }
   }
-  $message = u\tt($notice, @$subs);
-  $sent = @$subs['sent'] ?: 0;
-  $info = compact(u\ray('uid message sent'));
-/**/ return db\exists('r_notices', $info) ?: t\output('Expected notice ' . print_r($info, 1));
+  $message = strip_tags(u\tt($notice, @$subs));
+  $sql = 'SELECT message FROM r_notices WHERE uid=:uid AND sent=:sent ORDER BY msgid DESC';
+  $info = u\ray('uid sent', $uid, @$subs['sent'] ?: 0);
+  $msgs = db\q($sql, $info)->fetchCol();
+  foreach ($msgs as $msg) if (strip_tags($msg) == $message) {
+    $thatThing['notice'] = $msg; // remember for "And that <thing> blah blah blah"
+    return TRUE;
+  }
+  
+/**/ return t\output('Expected notice ' . print_r($info, 1));
 }
   
 /**
  * Make the member fields be thus and such OR test to see if they ARE thus and such.
  * "?" in a field means ignore its value when testing
  */
-function makeMemberFields($one, $testOnly) {
+function doMemberFields($one) {
+  global $testOnly;
   $balFields = u\just('id dw/usd r usd balance dwolla rewards minimum share committed', $one);
-  if (!makeBalance($balFields, $testOnly)) return;
+  if (!doBalance($balFields, $testOnly)) return;
 
   $a = r\acct($id = t\uid($one['id']));
   foreach ($balFields as $k => $v) unset($one[$k]); // don't rehandle balance fields, and already got id
@@ -287,7 +292,8 @@ function makeMemberFields($one, $testOnly) {
  * "dw/usd" means set or test both dwolla and usd
  * "?" in a field means ignore its value when testing
  */
-function makeBalance($one, $testOnly) {
+function doBalance($one) {
+  global $testOnly;
   if (isset($one['dw/usd'])) {
     $one['usd'] = $one['dwolla'] = $one['dw/usd'];
     unset($one['dw/usd']);
@@ -332,7 +338,7 @@ function usdTransferCount($where = '1') {
   global $testOnly;
   
   if($testOnly) {
-    return db\lookup('COUNT(*)', 'r_usd', $where);
+    return db\recCount('r_usd', $where);
   } else {
     db\q("DELETE FROM r_usd WHERE $where");
     return 0; // 0 is the only thing we can make it!
@@ -430,7 +436,7 @@ function uidCredit($uid) {
 function uid($id) {
   return is_numeric($id) ? $id
     : (($id == 'community' or $id == 'ctty') ? r\serverUid() 
-    : ($id == 'cgf' ? \variable_get('cgf_uid')
+    : ($id == 'cgf' ? r\cgfId()
     : r\unQuid($id)));
 }
 
@@ -636,16 +642,11 @@ function logIn($id) {
   return TRUE;
 }
 
-function verifyTx($info) {
-  $info2 = makeTx($info, TRUE);
-  return verifyRecord('r_txs', $info2);
-}
-
 /**
  * Compare the data to a corresponding record in the table.
  * Return TRUE if the record matches the data.
  * Example call:
- *   $info = makeRelation($info, TRUE);
+ *   $info = doRelation($info, TRUE);
  *   return verifyRecord('relations', $info);
  */
 function verifyRecord($table, $info) {
@@ -849,7 +850,7 @@ function dropdownOptions($form) {
 function radioOptions($form) {
   if (!preg_match_all('~<label class="option" [^>]*>.*? </label>~sm', $form, $matches)) return '';
   return strip_tags(join(PHP_EOL, $matches[0]));
-}  
+}
 
 function strip($form) {
 
@@ -931,7 +932,7 @@ function clear($ch) {
   global $testSeq; $testSeq = NULL;
   global $channel; $channel = $ch;
 
-  $cgfUid = \variable_get('cgf_uid');
+  $cgfUid = r\cgfId();
   $tables = 'r_boxes r_do r_gifts r_invites r_log r_notices r_proxies r_relations r_txs r_stats r_usd r_user_industries queue';
 
   db\q('DELETE FROM users WHERE uid>:cgfUid OR (uid>1 AND uid<:cgfUid-1)', compact('cgfUid'));
@@ -943,6 +944,8 @@ function clear($ch) {
   $zza = '' . r\unQuid('.ZZA');
   $zza = substr($zza, 0, strlen($zza) - 1); // ignore last digit
   shell_exec(str_replace('/', '\\', "DEL \"$dir/$zza*\""));
+  ctty('aaa')->setBit(B_MEMBER);
+  ctty('aaa')->setBit(B_OK);
 
 //  t\setupDwAccts();
 
@@ -1051,6 +1054,22 @@ function constants($list) {
   }
 }
 
+function weShow($what, $show = TRUE) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  if ($what === '') return TRUE;
+  return t\shownWith(is_array($what) ? $what : array(u\ray('_', $what)), 'text', $show);
+}
+
+function hasLinkResults($thing, $info) {
+  global $formOut;
+  global $testOnly; if (!$testOnly) return FALSE;
+
+  if (preg_match('/ href="([^"]*)"/', t\that($thing), $matches)) {
+    $formOut['text'] = file_get_contents($matches[1]);
+    return t\shownWith($info, 'text', TRUE);
+  }
+}
+
 function seq($table = 'r_usd') {
   global $testSeq;
   $id = $testSeq[$table] = @$testSeq[$table] + 1;
@@ -1061,3 +1080,4 @@ function seq($table = 'r_usd') {
 }
 
 function tlog($msg) {u\log($msg, 'debug');}
+function that($thing) {global $thatThing; return $thatThing[$thing];}

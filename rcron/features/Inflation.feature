@@ -5,10 +5,10 @@ SO I maintain the value of my earnings and savings.
 
 Setup:
   Given members:
-  | id   | fullName   | floor | acctType    | flags                        |
-  | .ZZA | Abe One    | -100  | personal    | dft,ok,person,bona         |
-  | .ZZB | Bea Two    | -200  | personal    | dft,ok,person,company,bona |
-  | .ZZC | Corner Pub | -300  | corporation | dft,ok,company,bona          |
+  | id   | fullName   | floor | acctType    | flags      |
+  | .ZZA | Abe One    | -100  | personal    | ok,bona    |
+  | .ZZB | Bea Two    | -200  | personal    | ok,co,bona |
+  | .ZZC | Corner Pub | -300  | corporation | ok,co,bona |
   And transactions: 
   | xid | created   | type     | state    | amount | from | to   | purpose |
   |   1 | %today-2m | signup   | done     |    100 | ctty | .ZZA | signup  |
@@ -46,8 +46,8 @@ Setup:
   When transactions: 
   | xid | created   | type     | state    | amount | from | to   | purpose |
   |   6 | %today-7d | transfer | done     |    240 | .ZZA | .ZZB | what G  |
-  |   7 | %today-7d | rebate   | done     |     12 | ctty | .ZZA | rebate  |
-  |   8 | %today-7d | bonus    | done     |     24 | ctty | .ZZB | bonus   |
+  |   7 | %today-7d | rebate   | done     |     12 | ctty | .ZZA | rebate on #4  |
+  |   8 | %today-7d | bonus    | done     |     24 | ctty | .ZZB | bonus on #3  |
     And usd transfers:
   | payer | payee | amount | completed |
   | .ZZA  | .ZZB  |    200 | %today-7d |
@@ -59,8 +59,8 @@ Setup:
   When transactions: 
   | xid | created   | type     | state    | amount | from | to   | purpose |
   |   9 | %today-6d | transfer | done     |    100 | .ZZA | .ZZB | pie N   |
-  |  10 | %today-6d | rebate   | done     |      5 | ctty | .ZZA | rebate  |
-  |  11 | %today-6d | bonus    | done     |     10 | ctty | .ZZB | bonus   |
+  |  10 | %today-6d | rebate   | done     |      5 | ctty | .ZZA | rebate on #5 |
+  |  11 | %today-6d | bonus    | done     |     10 | ctty | .ZZB | bonus on #4  |
   Then balances:
   | id   | r   | usd |
   | .ZZA |   7 | 280 |
@@ -69,8 +69,8 @@ Setup:
   When transactions: 
   | xid | created   | type     | state    | amount | from | to   | purpose |
   |  12 | %today-5d | transfer | done     |    100 | .ZZC | .ZZA | labor M |
-  |  13 | %today-5d | rebate   | done     |      5 | ctty | .ZZC | rebate  |
-  |  14 | %today-5d | bonus    | done     |     10 | ctty | .ZZA | bonus   |
+  |  13 | %today-5d | rebate   | done     |      5 | ctty | .ZZC | rebate on #3 |
+  |  14 | %today-5d | bonus    | done     |     10 | ctty | .ZZA | bonus on #6  |
   Then balances:
   | id   | r   | usd |
   | .ZZA | 117 | 280 |
@@ -91,8 +91,8 @@ Setup:
   When transactions: 
   | xid | created   | type     | state    | amount | from | to   | purpose |
   |  16 | %today-3d | transfer | done     |    120 | .ZZA | .ZZC | this Q  |
-  |  17 | %today-3d | rebate   | done     |      6 | ctty | .ZZA | rebate  |
-  |  18 | %today-3d | bonus    | done     |     12 | ctty | .ZZC | bonus   |
+  |  17 | %today-3d | rebate   | done     |      6 | ctty | .ZZA | rebate on #7 |
+  |  18 | %today-3d | bonus    | done     |     12 | ctty | .ZZC | bonus on #5  |
   And usd transfers:
   | payer | payee | amount | completed |
   | .ZZA  | .ZZC  |     40 | %today-3d |

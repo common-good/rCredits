@@ -51,11 +51,7 @@ function extraSubs(&$subs) {
  *     Transact Setup MAKE
  *     Undo Setup MAKE
  */
-function members($list) {
-  global $testOnly; if ($testOnly) return FALSE;
-  foreach ($list as $one) if (!t\makeAccount($one)) return FALSE;
-  return TRUE;
-}
+function members($list) {return t\members($list);}
 
 /**
  * relations: (ARG)
@@ -288,7 +284,7 @@ function weRespondWithSuccessMessageAndSubs($success, $message, $subs) {
 function deviceAccountIsAndAgentIs($code, $id, $agent) {
   global $testOnly; if ($testOnly) return FALSE;
   global $testMyIDs; 
-  return ($testMyIDs[$code] = r\acct($id, $agent)->qid()); // remember my_id for next steps
+  return ($testMyIDs[$code] = r\acct($id, $agent)->qid); // remember my_id for next steps
 }
 
 /**

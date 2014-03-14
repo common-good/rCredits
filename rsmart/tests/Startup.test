@@ -44,11 +44,11 @@ class rsmartStartup extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id   | fullName   | phone  | email | cc  | cc2  | flags               |'
-    . '\\| .ZZA | Abe One    | +20001 | a@    | ccA | ccA2 | dft,ok,person,bona  |'
-    . '\\| .ZZB | Bea Two    | +20002 | b@    | ccB |      | dft,ok,person,bona  |'
-    . '\\| .ZZC | Corner Pub | +20003 | c@    | ccC |      | dft,ok,company,bona |'
-    . '\\| .ZZF | For Co     | +20006 | f@    | ccF |      | dft,company         |"');
+    . '\\| id   | fullName   | phone  | email | cc  | cc2  | flags      |'
+    . '\\| .ZZA | Abe One    | +20001 | a@    | ccA | ccA2 | ok,bona    |'
+    . '\\| .ZZB | Bea Two    | +20002 | b@    | ccB |      | ok,bona    |'
+    . '\\| .ZZC | Corner Pub | +20003 | c@    | ccC |      | ok,co,bona |'
+    . '\\| .ZZF | For Co     | +20006 | f@    | ccF |      | co         |"');
     And__('devices: "DATA'
     . '\\| id   | code |'
     . '\\| .ZZC | devC |"');

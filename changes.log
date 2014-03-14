@@ -1,3 +1,23 @@
+2014-03-
+. hide federalId and dob in $_POST in log
+. membership status page now shows Verify bank account as a not-yet-done step.
+. added tellStaff to remaining signup steps.
+. created new system for no-signin links, including one-time links, addresses, and invoices
+. removed B_PERSON bit
+. added stepsDone assoc in users table data field, to track account-opening step completion
+. removed Connect to Bank step for companies
+. moved tellStaff to stepDone function
+. changed "Owner" to "Owns 10%+" on Relations page
+. now links to memberlist on admin page
+. added notes to CGF member list
+. now allows cadmins to shut down system just for their community: made the START/STOP button work for Community Admin (for that community/region), so members there can open account, move money to and from bank, but not transact until community is activated (and Community Admin can shut it down in an emergency). It tells members to contact the ctty admin (give telephone # and email)
+. stopped showing "processing" when user clicks on a help link
+. lets cadmin invite list of emails
+. fixed bug in Dwolla registration that neglected to record the Dwolla account number. Called usd::me() for each account, to catch up on any missing account numbers.
+. moved all admin stuff to a separate folder
+. introduced cAdmin2 (community sub admin) permission, to allow assistant to see member list and modify account notes
+. changed "recurs Monthly" to "4th monthly" etc.
+
 2014-02-25
 . eliminated preemptive "dupOk" field in signup.
 . removed verifyBy from Contact page
@@ -23,7 +43,7 @@
 . bug fixed that created a relations record with NULL other upon signup
 . allow cadmin to print-id
 . cadmin should not have access to SeeSecure (or print-id) for out-of-region accounts
-. tells cgf how often a contribution happens
+. tells cgf how often a donation happens
 . invite email message defaults to last used (store in data)
 . changed community field in users table to BIGINT
 . queries:
@@ -59,7 +79,7 @@
 . made adjustments in formMembership (see $dw0) to work around Dwolla's broken Reg API
 . fixed bug in 1099 reporting that deleted a couple characters in each person's name, when reporting to the IRS
 . adjusted 1099 reports to omit non-positive transactions, as required by the IRS
-. added "this is a donation, not a deposit" to Contribution page.
+. added "this is a donation, not a deposit" to Donation page.
 . changed default phone format separator to spaces not periods
 . fixed bug in cron notices that gave the same date for every item
 
@@ -294,7 +314,7 @@
 . renamed "Get r/USD" to "Bank"
 . implemented bank addition and verification form
 . bank form shows only last four digits of bank account number
-. added committed amount to summary (on rewards line) "reserved for contributions to CGF"
+. added committed amount to summary (on rewards line) "reserved for donations to CGF"
 . fixed bug that hid charge tab for almost everyone
 . implemented automatic phone, address, and ssn verification (for Dwolla account)
 . fixed hiding of stuff on reg page as appropriate

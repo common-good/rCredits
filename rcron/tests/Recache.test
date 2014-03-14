@@ -44,10 +44,10 @@ class rcronRecache extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id   | fullName   | dw | email | flags                 |'
-    . '\\| .ZZA | Abe One    |  1 | a@    | dft,ok,dw,person,bona |'
-    . '\\| .ZZB | Bea Two    |  0 | b@    | dft,ok,dw,person,bona |'
-    . '\\| .ZZC | Corner Pub |    | c@    | dft,ok,dw,company     |"');
+    . '\\| id   | fullName   | dw | email | flags      |'
+    . '\\| .ZZA | Abe One    |  1 | a@    | ok,dw,bona |'
+    . '\\| .ZZB | Bea Two    |  0 | b@    | ok,dw,bona |'
+    . '\\| .ZZC | Corner Pub |    | c@    | ok,dw,co   |"');
     And__('balances: "DATA'
     . '\\| id   | dw/usd |'
     . '\\| .ZZA |      5 |"');

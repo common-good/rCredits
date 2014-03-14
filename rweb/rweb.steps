@@ -58,8 +58,8 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     Get AMemberMovesInconvenientlyMuchToTheBank MAKE
  *     Get AMemberTriesToGoBelowTheirMinimum MAKE
  *     Get AMemberAsksToDoTwoTransfersOutInOneDay MAKE
- *     Gift AMemberContributes MAKE
- *     Gift AMemberContributesWithInsufficientFunds MAKE
+ *     Gift AMemberDonates MAKE
+ *     Gift AMemberDonatesWithInsufficientFunds MAKE
  *     Relations AMemberAddsARelation MAKE
  *     TransactUsd AMemberAsksToChargeAnotherMember MAKE
  *     TransactUsd AMemberAsksToPayAnotherMember MAKE
@@ -189,7 +189,7 @@ function members($list) {return t\members($list);}
  *     Flow AMemberOverdraws TEST
  *     Flow AMemberOverdrawsAndDrawsFromBothRAndUSD TEST
  *     Get Setup MAKE
- *     Gift AMemberContributes TEST
+ *     Gift AMemberDonates TEST
  *     RealUsd Setup MAKE
  *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
  *     RealUsd AMemberBuysSomethingWhenDwollaIsDown TEST
@@ -219,8 +219,8 @@ function transactions($list) {return t\transactions($list);}
  *     Get AMemberTriesToCashOutRewardsAndorPendingWithdrawals TEST
  *     Get AMemberMovesInconvenientlyMuchToTheBank TEST
  *     Get AMemberAsksToDoTwoTransfersOutInOneDay TEST
- *     Gift AMemberContributes TEST
- *     Gift AMemberContributesWithInsufficientFunds TEST
+ *     Gift AMemberDonates TEST
+ *     Gift AMemberDonatesWithInsufficientFunds TEST
  *     RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance TEST
  *     Relations AMemberAddsARelation TEST
  *     Signup AMemberRegistersBadName TEST
@@ -262,6 +262,7 @@ function weSayWithSubs($type, $index, $subs) {
  *     Get AMemberTriesToGoBelowTheirMinimum TEST
  *     Membership AMemberSignsInForTheFirstTime TEST
  *     Membership AMemberGivesTheWrongPassword MAKE
+ *     Membership AMemberDoesItAll TEST
  *     Membership AMemberTypesTheWrongAccountInfonameSsnOrDob TEST
  *     Membership AMemberCompanyTypesTheWrongAccountInfonameEinOrBusinessStructure TEST
  *     Signup ANewbieRegistersInWesternMassachusetts TEST
@@ -290,8 +291,8 @@ function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, 
 /**
  * we tell staff (ARG) with subs: (ARG)
  *
- * in: Gift AMemberContributes TEST
- *     Gift AMemberContributesWithInsufficientFunds TEST
+ * in: Gift AMemberDonates TEST
+ *     Gift AMemberDonatesWithInsufficientFunds TEST
  *     Membership AMemberDoesItAll TEST
  *     Membership AMemberOpensABusinessAccount TEST
  */
@@ -336,9 +337,11 @@ function weShowWithSubs($page, $subs) {
  *     Contact AMemberVisitsTheContactInfoPage TEST
  *     Get AMemberAsksToDoTwoTransfersOutInOneDay TEST
  *     Membership AMemberSignsInForTheFirstTime TEST
- *     Membership AMemberClicksOnTheMembershipLink TEST
- *     Membership AMemberWithoutADwollaAccountClicksOnTheMembershipLink TEST
+ *     Membership AMemberClicksTheMembershipLink TEST
+ *     Membership AMemberWithoutADwollaAccountClicksTheMembershipLink TEST
  *     Membership ACompanyAgentClicksOnTheMembershipLink TEST
+ *     Membership AMemberDoesItAll TEST
+ *     Membership AMemberOpensABusinessAccount TEST
  *     RealUsd AMixedRCreditsUSDTransactionHappens TEST
  *     Relations MemberHasAnEmployeeConfirmed TEST
  *     Relations MemberHasAnEmployeeUnconfirmed TEST
@@ -473,8 +476,8 @@ function usd($list) {return t\usd($list);}
  *     Download AMemberDownloadsCompletedTransactionsForThePastYear MAKE
  *     Membership AMemberSignsInForTheFirstTime MAKE
  *     Membership AMemberGivesTheWrongPassword MAKE
- *     Membership AMemberClicksOnTheMembershipLink MAKE
- *     Membership AMemberWithoutADwollaAccountClicksOnTheMembershipLink MAKE
+ *     Membership AMemberClicksTheMembershipLink MAKE
+ *     Membership AMemberWithoutADwollaAccountClicksTheMembershipLink MAKE
  *     Membership ACompanyAgentClicksOnTheMembershipLink MAKE
  *     Membership AMemberDoesItAll MAKE
  *     Membership AMemberOpensABusinessAccount MAKE
@@ -601,8 +604,8 @@ function memberAccountIsNotActive($id) {
 /**
  * with done (ARG)
  *
- * in: Membership AMemberClicksOnTheMembershipLink TEST
- *     Membership AMemberWithoutADwollaAccountClicksOnTheMembershipLink TEST
+ * in: Membership AMemberClicksTheMembershipLink TEST
+ *     Membership AMemberWithoutADwollaAccountClicksTheMembershipLink TEST
  *     Membership ACompanyAgentClicksOnTheMembershipLink TEST
  *     Membership AMemberDoesItAll TEST
  *     Membership AMemberOpensABusinessAccount TEST
@@ -624,22 +627,23 @@ function withDone($steps) {
 function memberHasDoneStep($uid, $step) {
   global $testOnly; if ($testOnly) return FALSE;
   $a = r\acct($uid = t\uid($uid));
-
+  return @$a->stepDone($step); // might have to do the steps below also
+  
   if ($step == 'photo') return file_put_contents(DRUPAL_ROOT . $a->auxFilename('picture', TRUE), 'whatever');
-  if ($step == 'agreement') return $a->update(u\ray('signed', REQUEST_TIME));
-  if ($step == 'contribution') return db\insert('r_gifts', u\ray('uid amount', $uid, 123));
+  if ($step == 'sign') return $a->update(u\ray('signed', REQUEST_TIME));
+  if ($step == 'donate') return db\insert('r_gifts', u\ray('uid amount', $uid, 123));
   if ($step == 'proxies') return db\q('INSERT INTO r_proxies (person, proxy) VALUES (:uid, 2),(:uid, 3)', compact('uid'));
   
-  if ($step == 'contact') {
-  }
+  if ($step == 'contact') return $a->update(u\ray('postalAddr', 'The World'));
   if ($step == 'connect') {
     $secure = @$a->secure;
     $secure['bankAccount'] = 'USkk123456789whatever';
     return $a->update(compact('secure'));
   }
-  if ($step == 'preferences') return $a->update(u\ray('minimum', 0));
-  if ($step == 'invitation') return db\insert('r_invites', u\ray('inviter email code', $uid, 'any@example.com', 'whatever'));
-  if ($step == 'company') return $a->update(u\ray('selling', 'stuff'));    
+  if ($step == 'prefs') return $a->update(u\ray('minimum', 0));
+  //if ($step == 'invite') return db\insert('r_invites', u\ray('inviter email code', $uid, 'any@example.com', 'whatever'));
+  if ($step == 'company') return $a->update(u\ray('selling', 'stuff'));
+  // if ($step == 'relations') ?
   return FALSE;
 }
 
@@ -652,11 +656,7 @@ function memberHasDoneStep($uid, $step) {
  *     Membership AMemberTypesTheWrongAccountInfonameSsnOrDob TEST
  *     Membership AMemberCompanyTypesTheWrongAccountInfonameEinOrBusinessStructure TEST
  */
-function weShow($what, $show = TRUE) {
-  global $testOnly; if (!$testOnly) return FALSE;
-  if ($what === '') return TRUE;
-  return t\ShownWith(is_array($what) ? $what : array(u\ray('_', $what)), 'text', $show);
-}
+function weShow($what, $show = TRUE) {return t\weShow($what, $show);}
 
 /**
  * member (ARG) supplies (ARG): (ARG)
@@ -713,7 +713,7 @@ function memberOnetimePasswordIs($id, $pass) {
 /**
  * we notice (ARG) to member (ARG) with subs: (ARG)
  *
- * in: Gift AMemberContributes TEST
+ * in: Gift AMemberDonates TEST
  *     Transact AMemberConfirmsRequestToChargeAnotherMember TEST
  *     Transactions AMemberConfirmsOK TEST
  *     TransactUsd AMemberConfirmsRequestToChargeAnotherMember TEST
@@ -724,8 +724,8 @@ function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice,
 /**
  * gifts: (ARG)
  *
- * in: Gift AMemberContributes TEST
- *     Gift AMemberContributesWithInsufficientFunds TEST
+ * in: Gift AMemberDonates TEST
+ *     Gift AMemberDonatesWithInsufficientFunds TEST
  */
 function gifts($gifts) {return t\gifts($gifts);}
 
@@ -941,10 +941,7 @@ function weRedirectTo($page) {
 /**
  * member (ARG) is on step (ARG) within (ARG) seconds
  *
- * in: Membership AMemberDoesItAll TEST
- *     Membership AMemberOpensABusinessAccount TEST
- *     Membership AMemberTypesTheWrongAccountInfonameSsnOrDob TEST
- *     Membership AMemberCompanyTypesTheWrongAccountInfonameEinOrBusinessStructure TEST
+ * in: 
  */
 function memberIsOnStepWithinSeconds($id, $step, $secs) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -983,7 +980,7 @@ function accountWasSetUpByMember($coId, $id) {
 /**
  * next DO code is (ARG)
  *
- * in: Gift AMemberContributes MAKE
+ * in: Gift AMemberDonates MAKE
  *     Transactions AMemberConfirmsOK MAKE
  */
 function nextDOCodeIs($code) {
@@ -1037,3 +1034,11 @@ function signupCompanyInfoForAccountIsRemembered($id) {
   global $testOnly; if (!$testOnly) return FALSE;
   return (bool) r\acct(t\uid($id))->signupCo;
 }
+
+/**
+ * that (ARG) has link results: (ARG)
+ *
+ * in: Gift AMemberDonates TEST
+ *     Transactions AMemberConfirmsOK TEST
+ */
+function thatHasLinkResults($thing, $info) {return t\hasLinkResults($thing, $info);}

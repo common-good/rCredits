@@ -37,9 +37,8 @@ define('R', '<span class="r">r</span>');
 define('US', '<span class="us">us</span>');
 define('R_VERSION', '1.1'); // software version
 define('R_ROOT', DRUPAL_ROOT . '/sites/all/modules/rcredits');
-define('R_CONCEALED_FIELDS', 'code password pass oneTimeLoginUrl'); // fields to leave out of log
 define('R_DATE_FIELDS', 'created completed sent invited giftDate signed login access yesterday'); // date field names for testing
-define('R_DATA_FIELDS', 'newAccount by calling wants legalName website description selling coFlags stats verifyBy oneTimePass relationsOk signupCo'); // fields stored in the account's "data" array field (serialized)
+define('R_DATA_FIELDS', 'newAccount by calling wants legalName website description selling coFlags stats verifyBy oneTimePass signupCo stepsDone chunk pinThreshold'); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'usd r rewards floor committed'); // financial amount fields in account record
 define('R_SECURE_FIELDS', 'usdType usdPhone usdEmail usdPass usdPin auth bankAccount bankAccountType pin cardCode cardCode2'); // non-personal encrypted fields (must be complete list)
 define('R_SECRET_FIELDS', 'federalId dob idProof answer'); // personal identifying information
@@ -48,6 +47,8 @@ define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities ca
 define('R_CRON_PERIOD', 5*60); // how many seconds between cron runs (must divide an hour evenly)
 define('R_MAX_TASK_TIME', 1*60); // what's the longest a queued cron task might take
 define('DRUPAL_UID_TABLES', 'authmap file_managed history node node_revision sessions users_roles watchdog');
+define('R_STEPS', 'sign contact dw donate proxies prefs photo connect verify company relations'); // membership steps
+define('R_NOLOG', R_SECURE_FIELDS . ' code oneTimeLoginUrl password pass newPass form_build_id form_token form_id ' . R_SECRET_FIELDS); // don't log these
 
 define('R_TEMP_NAME_PREFIX', 'unknown ');
 define('R_MIN_PHOTO_WIDTH', 240); // how wide to make profile pictures (unless too long)
@@ -63,7 +64,9 @@ define('R_MINR_DEFAULT', 200); // suggested minimum amount to hold in rCredits
 define('R_CARDCODE_LEN', 14); // length of rCard security code (long to deter easy copying, max 14 for small QR)
 define('R_CARD_COST', 5); // cost to order a company or replacement rCard
 define('R_FREEZE_TIME', FALSE); // how long to freeze newly bought rCredits (was '2 weeks')
-define('R_DEFAULT_PURPOSE', 'rCredits/USD exchange'); // default transaction purpose
+define('R_DEFAULT_PURPOSE', t('rCredits/USD exchange')); // default transaction purpose
+define('R_FOR_GOODS', t('goods and services')); // default purpose for goods
+define('R_FOR_CASH', t('cash/loan/etc.')); // default purpose for non-goods
 define('R_CHUNK', 10); // chunk size for buying rCredits (sales amounts are a multiple of this)
 define('R_BANK_MIN', 10); // granularity of withdrawals from bank account
 define('R_SUGGEST_BUMP', 1.25); // suggested minimum multiplier, so as not to unnecessarily sell rCredits
@@ -72,8 +75,8 @@ define('R_COMMERCIAL_ASPECT', '4:3'); // width-to-height ratio for commercial pr
 define('R_PERSONAL_ASPECT', '3:4'); // width-to-height ratio for personal profile picture
 define('R_PIXEL_FACTOR', 200); // what to multiply the aspect ratio components by, to get pixel dimensions
 define('R_GET_AUTH_URI', 'usd-get-auth'); // where Dwolla calls us back for getting auth code
-define('R_INDIVIDUAL_GIFT', 50); // suggested contribution for individuals
-define('R_COMPANY_GIFT', 250); // suggested contribution for companies
+define('R_INDIVIDUAL_GIFT', 50); // suggested donation for individuals
+define('R_COMPANY_GIFT', 250); // suggested donation for companies
 define('R_BUYS_BEFORE_BONUS', MINI_LAUNCH ? 1 : 3); // number of purchases required before signup bonus
 define('R_REGION_MAX', isDEV ? 46000 : 3000000000); // maximum uids in a region (46k,3T ~sqrt(PHP_INT_MAX))
 define('R_ACCT_REGION', '(-FLOOR((uid-1)/' . R_REGION_MAX . ')-1)'); // SQL region expression
@@ -142,8 +145,8 @@ define('B_DW', 1); // has a connected Dwolla account
 define('B_OK', 2); // approved to use rCredits for real (set by admin when ready)
 define('B_BONA', 3); // got signup bonus (good circles - somehow got more r+usd than the initial gift)
 define('B_BANK', 4); // has an effective connected bank account
-define('B_PERSON', 5); // personal account
-define('B_COMPANY', 6); // company account (could be personal also, for independent contractor)
+define('B_u5', 5); //
+define('B_CO', 6); // company account (could be personal also, for independent contractor)
 define('B_PHOTOID', 7); // photoid required and not yet approved
 define('B_CHARGE', 8); // UNUSED (any company can do this) can charge customers without confirmation
 define('B_u9', 9); // 
@@ -155,7 +158,7 @@ define('B_NOTICE_MONTHLY', 14); // send notices only monthly
 //define('B_NOTIFY_EMAIL', 15); // notifications by email
 define('B_u15', 15); //
 define('B_NOTIFY_SMS', 16); // notifications by SMS
-define('B_ELECTRONIC', 17); // will accept electronic statements
+define('B_PAPER', 17); // will not accept electronic statements
 define('B_SECRET_BAL', 18); // don't let merchants tell me my balance on request
 define('B_u19', 19); //
 define('B_DEBT_OK', 20); // member chose to permit sub-zero balances
@@ -166,15 +169,13 @@ define('B_u24', 24); //
 define('B_u25', 25); // 
 define('B_u26', 26); // 
 define('B_u27', 27); // 
-define('B_u28', 28); // 
-define('B_CTTY_ADMIN', 29); // is a community administrator
+define('B_CADMIN2', 28); // is a community sub-administrator
+define('B_CADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
 define('B_CLOSED', 31); // account is closed (data[newAccount] has new qid)
 define('B_MAX', 31); // maximum bit number
-//define('B_DFT', (1 << B_NOTIFY_EMAIL) | 0); // set what bits when creating a new account
-define('B_DFT', 0 | 0); // set what bits when creating a new account
-define('B_ADMINABLE', 'person company member dw bona photoid ctty_admin closed'); // for cttyAdmin to set
-define('B_LIST', 'member dw ok bona bank person company photoid charge u9 u10 u11 payroll weekly monthly u15 sms electro secret u19 debt draws savings u23 u24 u25 u26 u27 u28 cadmin admin closed');
+define('B_ADMINABLE', 'co member dw bona cadmin cadmin2 closed'); // for cAdmin to set
+define('B_LIST', 'member dw ok bona bank u5 co photoid charge u9 u10 u11 payroll weekly monthly u15 sms paper secret u19 debt draws savings u23 u24 u25 u26 u27 u28 cadmin admin closed');
 
 define('R_SHORTFALL', 'GREATEST(0, minimum-(r+usd))'); // sql for shortfall in account (to draw in)
 define('R_DEMAND', 'u.usd'); // definitely WANTS this many rCredits (was LEAST(u.usd, IFNULL(u.minimum,0)-u.r))
@@ -192,11 +193,13 @@ define('B_MANAGE', 105); // can manage all aspects of the account
 $GLOBALS['share permissions'] = array(t('no access'), t('read transactions'), t('scan rCards'), t('send invoices'), t('buy and sell'), t('manage account'));
 
 // Other special pseudo-bit values for acct::can()
-define('B_MANAGING_CTTY', 120); // ctty_admin is actually managing a qualified account
+define('B_MANAGING_CTTY', 120); // cadmin is actually managing a qualified account
 define('B_PERSONISH', 121); // personal account or is admin
 define('B_DEV', 122); // isDEV or is admin
+define('B_CTTYACTIVE', 123); // account's community is approved to operate
+define('B_CTTYUP', 124); // account's community is operating
 define('B_SHOW_ALL', 999); // special signal to acct::can() to return all permissions
-$GLOBALS['permissions'] = 'related read sell buy manage - company charge - member partner steward - rtrader - - managing_ctty ctty_admin - admin';
+$GLOBALS['permissions'] = 'related read sell buy manage - company charge - member partner steward - rtrader - - managing_ctty cadmin - admin';
 
 define('FLOW_NONE', 0); // which way can credit flow, with another account
 define('FLOW_TO', 1);
@@ -221,7 +224,8 @@ define('TX_WEB', 2);
 define('TX_SMART', 3); // smart phone or other computer-like device
 define('TX_TONE', 4); // touch tone phone
 define('TX_CRON', 5);
-define('TX_CHANNELS', t('System SMS Web App Tone Cron'));
+define('TX_LINK', 6); // user clicked a no-signin link
+define('TX_CHANNELS', t('System SMS Web App Tone Cron Link'));
 
 // Transaction types (all but type TX_TRANSFER and TX_BANK create rCredits)
 define('TX_BANK', -9); // used only internally, to mark bank transfers
@@ -230,16 +234,17 @@ define('TX_BONUS', -2); // sales bonus (negative reward types are invisible on t
 define('TX_REBATE', -1);
 define('TX_TRANSFER', 0); // normal fund transfer (usually for actual goods and services) -- not creating rC
 define('TX_SIGNUP', 1); // signup incentive reward
+define('TX_PIONEER', 2); // pioneer reward (special early-stage rewards) -- might change later to TX_OTHER
 define('TX_INFLATION', 3); // reward to conpensate for inflation
-define('TX_PIONEER', 4); // pioneer reward (special early-stage rewards) -- might change later to TX_OTHER
-define('TX_REWARDS', 4); // from here on, it's not "rewards"
+define('TX_u4', 4); //
+define('TX_REWARDS', 4); // above this, it's not "rewards"
 
-define('TX_u4', 4);
 define('TX_GRANT', 5);
 define('TX_LOAN', 6);
 define('TX_INVEST', 7); // equity investment (community purchase are TX_TRANSFER)
 define('TX_u8', 8);
 define('TX_FINE', 9);
+define('TX_TYPES', 'payment signup pioneer inflation u4 grant loan investment u8 fine'); // this might need tweaks
 
 define('TX_DEFAULT_PERIOD', 30); // number of days to show in transaction history, by default
 define('TX_MAX_ROWS', 100); // maximum number of transactions to show on one screen
@@ -453,7 +458,7 @@ function txRewardSetup($serial, $type, $payee, $state, $amount, $tid, $created) 
  *   for: purpose of the transaction OR a simple array (payer's purpose, payee's purpose)
  *   etc.
  * @return the array, with some extra field information added
- * Give full rewards for contributions to CGF, whether in r or USD
+ * Give full rewards for donations to CGF, whether in r or USD
  */
 function txSetup($info) {
   global $channel, $boxUser; // through what medium was the transaction requested (web, SMS, etc.), what machine
@@ -464,17 +469,17 @@ function txSetup($info) {
   u\EXPECT(compact(u\ray('amount payer payee')), 'float zid zid');
   u\EXPECT($payer and $payee and $payer != $payee, 'null or self trading' . $specs);
   list ($a1, $a2) = array(r\acct($payer), r\acct($payee));
-  u\EXPECT($a1->ok() and $a2->ok(), 'non-member in tx' . $specs);
+  u\EXPECT($a1->ok and $a2->ok, 'non-member in tx' . $specs);
   
   u\setDft($type, TX_TRANSFER);
   u\setDft($state, TX_DONE);
   u\setDft($taking, FALSE);
   u\setDft($goods, FALSE);
-  u\setDft($for, R_DEFAULT_PURPOSE);
+  u\setDft($for, $goods ? R_FOR_GOODS : R_FOR_CASH);
   u\setDft($payerAgent, $payer);
   u\setDft($payeeAgent, $payee);
   u\setDft($created, REQUEST_TIME);
-//  $rewardBasis = ($payee == \variable_get('cgf_uid') and $for == 'contribution') ? $amount : $r;
+//  $rewardBasis = ($payee == r\cgfId() and $for == 'donation') ? $amount : $r;
   $data = dataSetup($payer, $payee, $amount, $goods, @$data ?: array());
   if (@$state !== TX_PENDING) $completed = $created;
   $taking += 0;
@@ -554,16 +559,19 @@ function shortfall($request, $a, $preapproved, $goods, $confirmed) {
 
 /**
  * Return a link to a "no signin required" action.
+ * @param assoc $data:
+ *   op, once, expires, id, amount, sql, subs, etc.
+ * @return a clickable link that will do something without requiring the member to sign in
  * @see also r\Web\rdo()
  */
-function makeDo($op, $uid, $amount = 0, $timeLimit = WEEK_SECS, $subs = '', $sql = '') {
-///print_r(compact(u\ray('op uid amount timeLimit subs sql'))); die('makedo'); 
-  global $base_url, $testDoCode;
-  $action = serialize(compact(u\ray('op uid sql subs amount')));
-  list ($created, $completed) = array(REQUEST_TIME, -(REQUEST_TIME + $timeLimit));
-  $code = (t\est() and @$testDoCode) ? $testDoCode : \user_password(20);
-  $id = db\insert('r_do', compact(u\ray('uid created completed action code')));
-  return "$base_url/do/id=$id&code=$code";
+function makeDo($data) {
+  global $base_url;
+  extract($data = u\rayy(func_get_args()) ?: $data);
+  
+  if (@$expires) $end = REQUEST_TIME + $expires;
+  if (@$once) $data = u\ray('op', db\insert('r_do', u\ray('uid before data', @$id, @$end, serialize($data))));
+
+  return "$base_url/do/" . r\makeDoCode($data);
 }
 
 /**
@@ -631,8 +639,8 @@ function notify($uid, $index, $subs = array(), $force = FALSE) {
  * @param acct $a: the account that needs a higher minimum
  */
 function suggestMin($a) {
-  $suggested = u\fmtAmt($suggested0 = max(R_BANK_MIN, (R_SUGGEST_BUMP * $a->minimum) ?: R_MINR_DEFAULT));
-  $a1 = 'a href="' . r\makeDo('min', $a->id, $suggested0) . '"';
+  $suggested = u\fmtAmt($suggested0 = max(R_BANK_MIN, $a->rewards, (R_SUGGEST_BUMP * $a->minimum) ?: R_MINR_DEFAULT));
+  $a1 = 'a href="' . r\makeDo('op id amount once', 'min', $a->id, $suggested0, TRUE) . '"';
   r\notify($a->id, 'you were short', compact(u\ray('suggested a1')));
 }
   
@@ -641,7 +649,7 @@ function suggestMin($a) {
  * @param acct $a: the account
  */
 function makeCardCode($a) {
-  $secure = u\ray($a->proSe() ? 'cardCode' : 'cardCode2', r\cardCode($a->qid())) + $a->agent->secure;
+  $secure = u\ray($a->proSe ? 'cardCode' : 'cardCode2', r\cardCode($a->qid)) + $a->agent->secure;
   $a->agent->update(compact('secure')); // resave the secure fields
 }
 
@@ -657,12 +665,12 @@ function membershipEvent($a, $status, $do = TRUE) {
   if ($do and ($bit === FALSE or !$a->hasBit($bit))) { // met the prerequisite and hasn't previously
     $DBTX = \db_transaction();
     if ($bit !== FALSE) $a->setBit($bit); // set the bit, if any
-    if ($status == 'bona' and $a->person()) {
+    if ($status == 'bona' and !$a->co) {
       be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
       r\message($a->id, 'account funded', array(), TRUE);
     }
     if ($status == 'ok') {
-      u\EXPECT($a->can(B_CTTY_ADMIN), 'should be ctty admin'); // only ctty admin can approve an account
+      u\EXPECT($a->cAdmin, 'should be ctty admin'); // only ctty admin can approve an account
       r\message($a->id, 'approved', array(), TRUE);
     }
     unset($DBTX);
@@ -675,7 +683,7 @@ function membershipEvent($a, $status, $do = TRUE) {
 }
 
 /**
- * Try to transfer funds from contributor to CGF.
+ * Try to transfer funds from donor to CGF.
  * @param assoc $info: the gift record data
  * @return TRUE if the funds were successfully transferred.
  */
@@ -685,16 +693,17 @@ function acceptGift($info) {
   if ($a->shortfall('buy', $amount)) return FALSE; // wait until tomorrow, if not enough
   if ($a->shortfall('buy', $amount, TRUE)) return FALSE; // actually draw from other accounts, as needed
 
-  $cgf = r\acct(\variable_get('cgf_uid'));
+  $cgf = r\acct(r\cgfId());
 
 //  r\usd::beginAtom();
   if ($often != 1) {
     $months = $often == 'M' ? 1 : ($often == 'Q' ? 3 : 12);
-    $recurs = u\ray(t('Once Monthly Quarterly Yearly'));
-    $recurring = t(' (recurs @how)', u\ray('@how', $recurs[strpos('1MQY', $often)]));
+    $recurs = u\ray(t('once monthly quarterly annual'));
+    $count = db\recCount('r_gifts', 'uid=:uid AND often=:often', compact('uid', 'often'));
+    $recurring = t(' (@how gift #@count)', u\ray('@how @count', $recurs[strpos('1MQY', $often)], $count));
   }
 
-  $purpose = @$honor == 'share' ? t('sharing rewards with CGF') : (t('contribution') . @$recurring);
+  $purpose = @$honor == 'share' ? t('sharing rewards with CGF') : (t('donation') . @$recurring);
   list ($msg, $args, $confirm) = be\transfer('payment', $a, $cgf, $amount, $purpose, TRUE);
 ///  debug(compact('msg','args','confirm'));
   if (@$args['success']) {
@@ -1108,7 +1117,9 @@ function makeDevice($uid, $code = '', $ch = NULL) {
   $mya = r\acct();
   
   u\setDft($ch, $channel);
-  if ($ch == TX_WEB and $mya and $mya->admin()) return 0; // don't create spurious devices as admin
+
+  if ($ch == TX_WEB and $mya and $mya->admin) return 0; // don't create spurious devices as admin
+  //die(print_r(compact('code','mya','uid','ch'), 1));
 /*  if ($boxName === '0') {
     $where = "t1.boxName REGEXP '^[0-9]+$' AND t1.uid=:uid";
     $boxName = u\firstUnusedId('boxName', 'r_boxes', 1, PHP_INT_MAX, $where, compact('uid'));
@@ -1133,7 +1144,7 @@ function changeUid($oldUid, $newUid = FALSE, $unusable = TRUE) {
   $subs = array( // all tables are listed, to be sure we don't leave any out
   // r_areas
     'r_boxes:uid',
-  // r_countries,
+  // r_countries
     'r_do:uid',
     'r_gifts:uid',
   // r_industries
@@ -1391,7 +1402,7 @@ function getStats($ctty, $created = NULL) {
   $subs = compact('ctty', 'created');
   // get pAccts, bAccts
   $sql = <<<EOF
-    SELECT SUM(IF(:IS_PERSON, 1, 0)) AS pAccts, SUM(IF(:IS_PERSON, 0, 1)) AS bAccts
+    SELECT SUM(IF(:IS_CO, 0, 1)) AS pAccts, SUM(IF(:IS_CO, 1, 0)) AS bAccts
     FROM users WHERE :IS_OK AND uid>1 AND community=:ctty AND created<=:created
 EOF;
   $result1 = db\q($sql, $subs)->fetchAssoc() ?: array();
@@ -1422,15 +1433,15 @@ EOF;
   $sql = <<<EOF
     SELECT 
     SUM(IF(goods, amount, 0)) AS perMo,
-    SUM(IF(goods AND u.:IS_PERSON AND NOT u2.:IS_PERSON, amount, 0)) AS p2bPerMo,
-    SUM(IF(goods AND NOT u.:IS_PERSON AND NOT u2.:IS_PERSON, amount, 0)) AS b2bPerMo,
-    SUM(IF(goods AND NOT u.:IS_PERSON AND u2.:IS_PERSON, amount, 0)) AS b2pPerMo,
+    SUM(IF(goods AND NOT u.:IS_CO AND u2.:IS_CO, amount, 0)) AS p2bPerMo,
+    SUM(IF(goods AND u.:IS_CO AND u2.:IS_CO, amount, 0)) AS b2bPerMo,
+    SUM(IF(goods AND u.:IS_CO AND NOT u2.:IS_CO, amount, 0)) AS b2pPerMo,
     SUM(IF(amount<>0 AND NOT goods, amount, 0)) AS cashPerMo,
 
     SUM(IF(goods, 1, 0)) AS txsPerMo,
-    SUM(IF(goods AND u.:IS_PERSON AND NOT u2.:IS_PERSON, 1, 0)) AS p2bTxsPerMo,
-    SUM(IF(goods AND NOT u.:IS_PERSON AND NOT u2.:IS_PERSON, 1, 0)) AS b2bTxsPerMo,
-    SUM(IF(goods AND NOT u.:IS_PERSON AND u2.:IS_PERSON, 1, 0)) AS b2pTxsPerMo,
+    SUM(IF(goods AND NOT u.:IS_CO AND u2.:IS_CO, 1, 0)) AS p2bTxsPerMo,
+    SUM(IF(goods AND u.:IS_CO AND u2.:IS_CO, 1, 0)) AS b2bTxsPerMo,
+    SUM(IF(goods AND u.:IS_CO AND NOT u2.:IS_CO, 1, 0)) AS b2pTxsPerMo,
     SUM(IF(amount<>0 AND NOT goods, 1, 0)) AS cashTxsPerMo
 
     FROM r_txs t LEFT JOIN users u ON u.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
@@ -1542,7 +1553,7 @@ function usdTransferDone($tx) {
   extract(u\just('Id Amount Date Type DestinationId SourceId ClearingDate Status', $tx));
   if ($Status != 'processed') return FALSE; // pending
   $Amount = $Type == 'deposit' ? -abs($Amount) : abs($Amount); // don't count on Dwolla's sign
-  $omit = t\est() ? (\variable_get('cgf_uid') - 1) : NULL; // ignore tester's account
+  $omit = t\est() ? (r\cgfId() - 1) : NULL; // ignore tester's account
   if (!$payer = r\whoseUsd($Type == 'deposit' ? $DestinationId : $SourceId, $omit)) return FALSE; // tester
   $info = u\ray('txid amount completed', $Id, $Amount, strtotime($ClearingDate));
 
@@ -1592,7 +1603,7 @@ function passHash($pass) {
  * Return the median (untested)
  */
 function median($field, $table = 'users', $where = 1, $subs = array()) {
-  $middle = db\lookup('COUNT(*)', $table, $where, $subs) / 2;
+  $middle = db\recCount($table, $where, $subs) / 2;
   $limit = floor($middle) . (is_int($middle) ? ', 1' : ', 2');
   return db\lookup('AVG($field)', 'users', "$where ORDER BY $field LIMIT $limit", $subs);
 }
@@ -1618,6 +1629,17 @@ function suggest($a, $index, $subs, $page = 'Preferences') {
 }
 
 /**
+ * Start/Stop the system OR return the "up" status.
+ * @param bool $up: whether to start (TRUE), stop (FALSE), or query (NULL, the default)
+ * @return TRUE if the system is up
+ */
+function up($up = NULL) {
+  if (is_null($up)) return \variable_get('up', TRUE);
+  u\log('System is ' . ($up ? 'UP' : 'DOWN'));
+  return \variable_set('up', $up);
+}
+
+/**
  * Return the rebate on the given amount for the given account.
  * Never less than R_MIN_REBATE unless the account is a nonperson (no longer used)
  * @todo? or manager of company with no (other) employees (set bit?)
@@ -1626,7 +1648,7 @@ function rebate($from, $to, $amount = 1) {
   if (relation(1, $to, $from, 'isOwner OR draw')) return 0;
   if (relation(1, $from, $to, 'isOwner OR draw')) return 0;
   $a = r\acct($from);
-//  return max($a->person() ? R_MIN_REBATE : 0, round($amount * $a->rebate / 100, 2));
+//  return max(!$a->co ? R_MIN_REBATE : 0, round($amount * $a->rebate / 100, 2));
   return round($amount * $a->rebate / 100, 2);
 }
 
@@ -1645,5 +1667,7 @@ function realState($state, $country = R_COUNTRY_ID) {return db\lookup($country =
 function makeQueue($callback, $time = 15) {return array('worker callback' => "rCredits\\Cron\\$callback", 'time' => $time);}
 function queue($op, $item = array()) {\DrupalQueue::get('q')->createItem(compact('op') + $item);}
 function perm($bit) {return $bit - B_RELATED;}
-function up() {return \variable_get('up', TRUE);}
 function foreignServer($uid) {return (r\uidRegion($uid) != serverUid());}
+function doCode($code) {return @unserialize(@u\ezdecrypt(@u\deurlify($code)));}  
+function makeDoCode($a) {return u\urlify(u\ezencrypt(serialize($a)));}
+function cgfId() {return \variable_get('cgf_uid');}

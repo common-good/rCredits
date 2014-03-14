@@ -1,25 +1,25 @@
 Feature: Gift
 AS a member
-I WANT to contribute to CGF
+I WANT to donate to CGF
 SO I can enjoy the rCredit system's rapid growth and be a part of that.
 
 Setup:
   Given members:
-  | id   | fullName   | address | city  | state  | postalCode | country | email         | flags                |
-  | .ZZA | Abe One    | 1 A St. | Atown | Alaska | 01000      | US      | a@ | dft,ok,person,bona |
+  | id   | fullName   | address | city  | state  | postalCode | postalAddr | email | flags   |
+  | .ZZA | Abe One    | 1 A St. | Atown | Alaska | 01000      | 1 A, A, AK | a@    | ok,bona |
   And balances:
   | id     | usd  | r   | rewards |
   | cgf    |    0 |   0 |       0 |
   | .ZZA   |  100 |  20 |      20 |
 
-Scenario: A member contributes
+Scenario: A member donates
   Given next DO code is "whatever"
-  When member ".ZZA" completes form "contribute" with values:
+  When member ".ZZA" completes form "donate" with values:
   | gift | amount | often | honor  | honored | share |
   |    0 |     10 |     1 | memory | Jane Do |    10 |
   Then transactions:
   | xid   | created | type     | state | amount | from | to   | purpose      |
-  | .AAAB | %today  | transfer | done  |     10 | .ZZA | cgf  | contribution |
+  | .AAAB | %today  | transfer | done  |     10 | .ZZA | cgf  | donation |
   | .AAAC | %today  | rebate   | done  |   0.50 | ctty | .ZZA | rebate on #1 |
   | .AAAD | %today  | bonus    | done  |   1.00 | ctty | cgf  | bonus on #1  |
   And we say "status": "gift successful" with subs:
@@ -33,14 +33,18 @@ Scenario: A member contributes
   |    $10 |        $0.50 | 
   And we notice "new payment|reward other" to member "cgf" with subs:
   | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |
-  | <a href=''do/id=1&code=whatever''>Abe One</a> | $10 | contribution | reward | $1 |
+  | Abe One   | $10 | donation | reward | $1 |
+  And that "notice" has link results:
+  | _name | Abe One |
+  | _postalAddr | 1 A, A, AK |
+  | Physical address: | 1 A St., Atown, AK 01000 |
   And we tell staff "gift accepted" with subs:
   | amount | often | txField  |
   |     10 |     1 | payerTid |
   # and many other fields
 
-Scenario: A member contributes with insufficient funds
-  When member ".ZZA" completes form "contribute" with values:
+Scenario: A member donates with insufficient funds
+  When member ".ZZA" completes form "donate" with values:
   | gift | amount | often | honor  | honored | share |
   |    0 |    200 |     1 | memory | Jane Do |    10 |
   Then we say "status": "gift successful|gift transfer later" with subs:

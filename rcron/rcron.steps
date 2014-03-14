@@ -41,7 +41,7 @@ function extraSubs(&$subs) {
   $subs['%fancyYesterday'] = u\fmtDate(strtotime('yesterday'));
   $subs['%chunk'] = R_CHUNK;
   for ($i = 2; $i <= 5; $i++) $subs["%chunk$i"] = R_CHUNK * $i;
-  for ($i = 1; $i <= 3; $i++) $subs["%id$i"] = mt_rand(variable_get('cgf_uid') + R_REGION_MAX, PHP_INT_MAX);
+  for ($i = 1; $i <= 3; $i++) $subs["%id$i"] = mt_rand(r\cgfId() + R_REGION_MAX, PHP_INT_MAX);
   $subs['%md'] = strftime('%b %d'); // strangely, lastMinuteSubs fails for this in Notices multifield
 }
 
@@ -93,8 +93,8 @@ function balances($list) {return t\balances($list);}
  *     Bank AMemberIsWellBelowMinimum MAKE
  *     Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank MAKE
  *     Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank MAKE
- *     Gifts AContributionCanBeCompleted MAKE
- *     Gifts ARecurringContributionCanBeCompleted MAKE
+ *     Gifts ADonationCanBeCompleted MAKE
+ *     Gifts ARecurringDonationCanBeCompleted MAKE
  *     Homogenize LevelingHappens MAKE
  *     Inflation InflationAdjustmentsAreDistributed MAKE
  *     LostUsdTxs ASystemCrashLeavesATransactionIncomplete MAKE
@@ -137,8 +137,8 @@ function relations($relations) {return t\relations($relations);}
 /**
  * transactions: (ARG)
  *
- * in: Gifts AContributionCanBeCompleted TEST
- *     Gifts ARecurringContributionCanBeCompleted TEST
+ * in: Gifts ADonationCanBeCompleted TEST
+ *     Gifts ARecurringDonationCanBeCompleted TEST
  *     Homogenize Setup MAKE
  *     Inflation Setup MAKE
  *     Inflation InflationAdjustmentsAreDistributed TEST
@@ -155,8 +155,8 @@ function transactions($list) {return t\transactions($list);}
  *
  * in: Bank AMemberIsBarelyBelowMinimum TEST
  *     Bank AMemberIsWellBelowMinimum TEST
- *     Gifts AContributionCanBeCompleted TEST
- *     Gifts ARecurringContributionCanBeCompleted TEST
+ *     Gifts ADonationCanBeCompleted TEST
+ *     Gifts ARecurringDonationCanBeCompleted TEST
  *     Sharing InflationAdjustmentsAreDistributed TEST
  */
 function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice, $id, $subs);}
@@ -164,8 +164,8 @@ function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice,
 /**
  * gifts: (ARG)
  *
- * in: Gifts AContributionCanBeCompleted BOTH
- *     Gifts ARecurringContributionCanBeCompleted BOTH
+ * in: Gifts ADonationCanBeCompleted BOTH
+ *     Gifts ARecurringDonationCanBeCompleted BOTH
  *     Sharing InflationAdjustmentsAreDistributed TEST
  */
 function gifts($gifts) {return t\gifts($gifts);}
@@ -173,8 +173,8 @@ function gifts($gifts) {return t\gifts($gifts);}
 /**
  * we tell staff (ARG) with subs: (ARG)
  *
- * in: Gifts AContributionCanBeCompleted TEST
- *     Gifts ARecurringContributionCanBeCompleted TEST
+ * in: Gifts ADonationCanBeCompleted TEST
+ *     Gifts ARecurringDonationCanBeCompleted TEST
  *     Recache BalancesGetOutOfWhack TEST
  *     Recache BalancesGetATinyBitOutOfWhack TEST
  */
@@ -230,7 +230,7 @@ function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, 
  * in: 
  */
 function noticeCountIs($count) {
-  return (db\lookup('COUNT(*)', 'r_notices') == $count);
+  return (db\recCount('r_notices') == $count);
 }
 
 /**
@@ -292,8 +292,7 @@ function usdTransferCountIs($count) {return (t\usdTransferCount() == $count);}
 /**
  * next DO code is (ARG)
  *
- * in: Gifts AContributionCanBeCompleted MAKE
- *     Gifts ARecurringContributionCanBeCompleted MAKE
+ * in: 
  */
 function nextDOCodeIs($code) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -332,3 +331,10 @@ function weMessageMemberWithTopicAndSubs($id, $topic, $subs) {
  */
 function membersHave($list) {return t\membersHave($list);}
 
+/**
+ * that (ARG) has link results: (ARG)
+ *
+ * in: Gifts ADonationCanBeCompleted TEST
+ *     Gifts ARecurringDonationCanBeCompleted TEST
+ */
+function thatHasLinkResults($thing, $info) {return t\hasLinkResults($thing, $info);}

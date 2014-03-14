@@ -79,9 +79,10 @@ function pos($args = FALSE) {
   if (!$args) $args = $_POST;
   u\loga('in', $args);
   extract(u\just('op device agent member', $args));
-  if (!in_array($op, u\ray('identify photo charge payment undo'))) return posErr('bad op');
+  if (!$op or !in_array($op, u\ray('identify photo charge payment undo'))) return posErr('bad op');
 
   if (!$mya = getAgent($agent ?: $member, $err)) return posErr($err); // set "current" account for internals
+  if (!$mya->cttyUp) return posErr('your community down', u\ray('contact', $mya->cAdminContact()));
 
   if (@$device) { // device was specified, substitute its record id, herein
     if ($deviceId = getDevice($device, $mya->id)) {
@@ -155,12 +156,12 @@ function identify($args) {
     $logon = ($a->id == $mya->id) ? "1" : "0"; // changing to another agent for the same company?
   } else $logon = "1";
 
-  $cardCode = $a->agent->secure[$a->proSe() ? 'cardCode' : 'cardCode2'];
+  $cardCode = $a->agent->secure[$a->proSe ? 'cardCode' : 'cardCode2'];
   if (isDEV and $code == 'zot') $cardCode = $code; // for debugging
   if (@$device) $deviceId = getDevice($device, $mya->id);
 
   if (@$logon) { //  identifying agent
-    if ($a->proSe() and (!$a->co() or $a->coCan(CO_REQUIRE_CASHIER))) return posErr('scan in first');
+    if ($a->proSe and (!$a->co or $a->coCan(CO_REQUIRE_CASHIER))) return posErr('scan in first');
     if ($code != $cardCode) return posErr('bad agent');
     if (!$a->can(B_SCAN)) return posErr('agent cannot scan');
     if (!@$deviceId) {
@@ -182,7 +183,7 @@ function identify($args) {
   } else { // identifying customer
     if ($code != $cardCode) return posErr('bad member');
     if (!@$deviceId) return posErr('unknown device'); // tried to scan a customer card before very first agent scan-in
-    $company = $a->proSe() ? "" : $a->fullName;
+    $company = $a->proSe ? "" : $a->fullName;
     $place = r\location($a);
     $balance = getBalance($a);
     unset($device); // don't pass it back
@@ -305,7 +306,7 @@ function missingArg($expected, $args) {
 function getAgent($agent, &$err = '') {
   if (!$mya = r\acct($agent)) return !$err = 'bad agent'.$agent;
 //  if (r\foreignServer(r\uidRegion($mya->agentId))) return !$err = 'wrong server for agent';
-  if (!$mya->ok()) return !$err = 'company inactive';
+  if (!$mya->ok) return !$err = 'company inactive';
 //  if (!$mya->can(B_SELL)) return !$err = 'agent cannot sell';
   r\acct::setDefault($mya); // set current account temporarily to owner, so that error log has it right
   return $mya;
@@ -320,7 +321,7 @@ function getAgent($agent, &$err = '') {
 function getCustomer($customer, &$err = '') {
   if (!$a = r\acct($customer)) return !$err = 'bad member';
 //  if (r\foreignServer(r\uidRegion($a->agentId))) return !$err = 'wrong server for customer';
-  if (!$a->ok()) return !$err = 'member inactive';
+  if (!$a->ok) return !$err = 'member inactive';
 //  if (!$a->can(B_BUY)) return !$err = 'customer cannot buy';
   return $a;
   
@@ -341,7 +342,7 @@ function getCustomer($customer, &$err = '') {
 function getBalance($a) {
   if ($a->can(B_SECRET_BAL)) return ''; // customer wants it secret
   $name = $a->fullName;
-  if (!$a->proSe()) $name = $a->agent->fullName . t(", for ") . $name;
+  if (!$a->proSe) $name = $a->agent->fullName . t(", for ") . $name;
   $balance = u\fmtAmt($a->r + $a->usd); // account balance
   $spendable = u\fmtAmt($a->rAvailable('buy', TRUE)); // amount spendable (without drawing on other accounts)
   $spendable = $spendable == $balance ? '' : ("\n" . t('Spendable: ') . $spendable);

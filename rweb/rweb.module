@@ -43,9 +43,20 @@ function rweb_block_view($delta = '') {
   if (in_array($delta, u\ray(RWEB_BLOCKS))) return r\Web\blockView(NULL, r\Web\showForm($delta)); // no subject for blocks
 }
 
+function menuNorm($title, $args, $perms = '', $func = 'showForm') {
+  return r\Web\menu($title, MENU_NORMAL_ITEM, $func, $args, $perms);
+}
+function menuLocal($title, $args, $perms = '', $func = 'showForm') {
+  if ($dft = (substr($args, 0, 1) == '*')) $args = substr($args, 1);
+  return r\Web\menu($title, $dft ? MENU_DEFAULT_LOCAL_TASK : MENU_LOCAL_TASK, $func, $args, $perms);
+}
+function callback($title, $args, $perms = '', $func = 'showForm') {
+  return r\Web\menu($title, MENU_CALLBACK, $func, $args, $perms);
+}
+
 /**
  * Implements hook_menu().
- MENU_CALLBACK	Menu type -- A hidden, internal callback, typically used for API calls.
+MENU_CALLBACK	Menu type -- A hidden, internal callback, typically used for API calls.
 MENU_DEFAULT_LOCAL_TASK	Menu type -- The "default" local task, which is initially active.
 MENU_LOCAL_ACTION	Menu type -- An action specific to the parent, usually rendered as a link.
 MENU_LOCAL_TASK	Menu type -- A task specific to the parent item, usually rendered as a tab.
@@ -53,99 +64,93 @@ MENU_NORMAL_ITEM	Menu type -- A "normal" menu item that's shown in menu and brea
 MENU_SUGGESTED_ITEM	Menu type -- A normal menu item, hidden until enabled by an administrator.
  */
 function rweb_menu() {
-  $anyone = array('access callback' => TRUE, 'access arguments' => NULL);
-  $smart = array('module' => 'rsmart', 'file' => 'rsmart.inc');
-  $modal = array('modal' => TRUE);
+  //$smart = array('module' => 'rsmart', 'file' => 'rsmart.inc');
+  //$modal = array('modal' => TRUE);
   
   $menu = array(
-    'summary' => r\Web\menu(t('Summary'), MENU_NORMAL_ITEM, 'showForm', array('Summary'), '', $anyone),
-    'transactions' => r\Web\menu(t('Transactions'), MENU_NORMAL_ITEM, 'showForm', array('Txs', 1), 'read'),
-    'charge' => r\Web\menu(t('Charge'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), 'admin sell ok'),
-    'pay' => r\Web\menu(t('Pay'), MENU_NORMAL_ITEM, 'showForm', array('Tx', 1), 'buy ok'),
+    'summary' => menuNorm(t('Summary'), 'Summary', 'anyone'),
+    'transactions' => menuNorm(t('Transactions'), 'Txs 1', 'read'),
+    'charge' => menuNorm(t('Charge'), 'Tx', 'admin sell ok'),
+    'pay' => menuNorm(t('Pay'), 'Tx 1', 'buy ok'),
 
-    'grant' => r\Web\menu(t('Grant'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), 'managing_ctty'),
-    'loan' => r\Web\menu(t('Loan'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), 'managing_ctty'),
-    'invest' => r\Web\menu(t('Invest'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), 'managing_ctty'),
-    'fine' => r\Web\menu(t('Fine'), MENU_NORMAL_ITEM, 'showForm', array('Tx'), 'managing_ctty'),
+    'grant' => menuNorm(t('Grant'), 'Tx', 'managing_ctty'),
+    'loan' => menuNorm(t('Loan'), 'Tx', 'managing_ctty'),
+    'invest' => menuNorm(t('Invest'), 'Tx', 'managing_ctty'),
+    'fine' => menuNorm(t('Fine'), 'Tx', 'managing_ctty'),
 
-    'get' => r\Web\menu(t('Bank'), MENU_NORMAL_ITEM, 'showForm', array('Get'), 'manage bank ok'),
-    'directory' => r\Web\menu(t('Find Co'), MENU_NORMAL_ITEM, 'showForm', array('Directory'), 'sell'),
-    'community' => r\Web\menu(t('Community'), MENU_NORMAL_ITEM, 'showForm', array('Reports', 1), '', $anyone),
-    'invite' => r\Web\menu(t('Invite'), MENU_NORMAL_ITEM, 'showForm', array('Invite'), '', $anyone),
-    'signout' => r\Web\menu(t('Sign out'), MENU_NORMAL_ITEM, 'signout', array(), '', $anyone),
-    //'undo' => r\Web\menu(t('Undo'), MENU_NORMAL_ITEM, 'undo', array(1), 'sell'), // only on mobile
-    //'remainder' => r\Web\menu(t('Show Customer Balance'), MENU_CALLBACK, 'remainder', array(1), 'sell'),
-    'menu' => r\Web\menu(t('Menu'), MENU_CALLBACK, 'showForm', array('Menu'), '', $anyone),
-    'empty' => r\Web\menu(t('Empty'), MENU_CALLBACK, 'showForm', array('Empty'), '', $anyone),
+    'get' => menuNorm(t('Bank'), 'Get', 'manage bank ok'),
+    'directory' => menuNorm(t('Find Co'), 'Directory', 'sell'),
+    'community' => menuNorm(t('Community'), 'Reports 1', 'anyone'),
+    'invite' => menuNorm(t('Invite'), 'Invite', 'anyone'),
+    'signout' => menuNorm(t('Sign out'), '', 'anyone', 'signout'),
 
-    'print-rcard' => r\Web\menu(t('Print ID Card'), MENU_CALLBACK, 'memberID', array(1, FALSE), 'ctty_admin'),
-//    'print-signin-card' => r\Web\menu(t('Print Sign-in Card'), MENU_CALLBACK, 'memberID', array(1, 'scan'), 'manage'),
-    'reinstall' => r\Web\menu(t('Reinstall rCredits'), MENU_CALLBACK, 'reinstall', array(), 'admin'),
+    'menu' => callback(t('Menu'), 'Menu', 'anyone'),
+    'empty' => callback(t('Empty'), 'Empty', 'anyone'),
 
-    'request-employee-rcard' => r\Web\menu(t('Request Employee rCard'), MENU_CALLBACK, 'showForm', array('RequestRCard', 1), 'manage'),
+    'request-employee-rcard' => callback(t('Request Employee rCard'), 'RequestRCard 1', 'manage'),
     
-    'I' => r\Web\menu('Scanned QR', MENU_CALLBACK, 'showForm', array('I'), '', $anyone),
-    'sms' => r\Web\menu('Test SMS', MENU_CALLBACK, 'showForm', array('SMS'), 'admin'),
+    'I' => callback('Scanned QR', 'I', 'anyone'),
 
-    'account' => r\Web\menu(t('Account Settings'), MENU_CALLBACK, 'showForm', array('Contact'), 'manage'),
-    'account/contact' => r\Web\menu(t('Contact Info'), MENU_DEFAULT_LOCAL_TASK, 'showForm', array('Contact'), 'manage'),
-    'account/preferences' => r\Web\menu(t('Preferences'), MENU_LOCAL_TASK, 'showForm', array('Options'), 'manage'),
-    'account/security' => r\Web\menu(t('Security'), MENU_LOCAL_TASK, 'showForm', array('Security', 2), 'manage personish'),
-    'account/bank' => r\Web\menu(t('Bank Info'), MENU_LOCAL_TASK, 'showForm', array('Bank', 2), 'manage dw'),
-    'account/company' => r\Web\menu(t('Company Info'), MENU_LOCAL_TASK, 'showForm', array('Company'), 'manage company'),
-    'account/relations' => r\Web\menu(t('Relations'), MENU_LOCAL_TASK, 'showForm', array('Relations'), 'manage'),
-    'account/boxes' => r\Web\menu(t('Devices'), MENU_LOCAL_TASK, 'showForm', array('Boxes'), 'manage'),
-    'account/proxies' => r\Web\menu(t('Proxies'), MENU_LOCAL_TASK, 'showForm', array('Proxies'), 'manage person'),
-    'account/settings' => r\Web\menu(t('Settings'), MENU_LOCAL_TASK, 'showForm', array('Settings'), 'manage'),
-    'account/password' => r\Web\menu(t('Request New Password'), MENU_CALLBACK, 'showForm', array('Pass', 2), '', $anyone),
-    'account/change-password' => r\Web\menu('Change Password', MENU_CALLBACK, 'showForm', array('ChangePassword'), 'manage'),
-    'account/change-pin' => r\Web\menu('Change PIN', MENU_CALLBACK, 'showForm', array('ChangePin'), 'manage'),
-    'account/photo' => r\Web\menu('Photo', MENU_CALLBACK, 'showForm', array('Photo'), 'manage'),
-    'account/verify-phone' => r\Web\menu('Verify Phone', MENU_CALLBACK, 'showForm', array('VerifyPhone'), 'manage dw'),
-    'account/readd-phone' => r\Web\menu('reAdd Phone', MENU_CALLBACK, 'addPhone', array(), 'manage dw'),
-    'account/basic' => r\Web\menu('Basic', MENU_CALLBACK, 'showForm', array('Basic'), 'manage'),
-    'account/kba' => r\Web\menu('Kba', MENU_CALLBACK, 'showForm', array('Kba'), 'manage dw'),
-    'account/photo-id' => r\Web\menu('Kba', MENU_CALLBACK, 'showForm', array('PhotoId'), 'manage'),
+    'account' => callback(t('Account Settings'), 'Contact', 'manage'),
+    'account/contact' => menuLocal(t('Contact Info'), '*Contact', 'manage'),
+    'account/preferences' => menuLocal(t('Preferences'), 'Options', 'manage'),
+    'account/security' => menuLocal(t('Security'), 'Security 2', 'manage personish'),
+    'account/bank' => menuLocal(t('Bank Info'), 'Bank 2', 'manage dw'),
+    'account/company' => menuLocal(t('Company Info'), 'Company', 'manage co'),
+    'account/relations' => menuLocal(t('Relations'), 'Relations', 'manage'),
+    'account/boxes' => menuLocal(t('Devices'), 'Boxes', 'manage'),
+    'account/proxies' => menuLocal(t('Proxies'), 'Proxies', 'manage personish'),
+    'account/settings' => menuLocal(t('Settings'), 'Settings', 'manage'),
+
+    'user/password' => callback(t('Request New Password'), 'Pass 2', 'anyone'), // duplicates account/password (to handle built-in Drupal link)
+    'account/password' => callback(t('Request New Password'), 'Pass 2', 'anyone'),
+    'account/change-password' => callback('Change Password', 'ChangePassword', 'manage'),
+    'account/change-pin' => callback('Change PIN', 'ChangePin', 'manage'),
+    'account/photo' => callback('Photo', 'Photo', 'manage'),
+    'account/verify-phone' => callback('Verify Phone', 'VerifyPhone', 'manage dw'),
+    'account/readd-phone' => callback('reAdd Phone', '', 'manage dw', 'addPhone'),
+    'account/basic' => callback('Basic', 'Basic', 'manage'),
+    'account/kba' => callback('Kba', 'Kba', 'manage dw'),
+    'account/photo-id' => callback('Kba', 'PhotoId', 'manage'),
     
-    'another' => r\Web\menu(t('Open Another Account'), MENU_CALLBACK, 'showForm', array('Another'), 'manage'),
-//    'agent' => r\Web\menu(t('Open An Agent Account'), MENU_CALLBACK, 'showForm', array('Agent'), 'manage'),
+    'another' => callback(t('Open Another Account'), 'Another', 'manage'),
 
-    'sadmin' => r\Web\menu(t('Admin'), MENU_NORMAL_ITEM, 'showForm', array('Admin'), 'ctty_admin'),
-    'handy' => r\Web\menu('Handy', MENU_NORMAL_ITEM, 'handyLinks', array(), 'dev'),
-    'tests' => r\Web\menu('Test', MENU_NORMAL_ITEM, 'test', array(2), isDEV ? 'dev' : NULL),
-    'php' => r\Web\menu('PHP', MENU_NORMAL_ITEM, 'util', array('php'), 'dev'),
-    'make-community' => r\Web\menu('Make a new community', MENU_CALLBACK, 'showForm', array('MakeCtty'), 'admin'),
+    'sadmin' => menuNorm(t('Admin'), 'Admin', 'cadmin'),
+    'sadmin/panel' => menuLocal(t('Panel'), '*Admin', 'cadmin'),
+    'sadmin/member-list' => menuLocal(t('Member List'), 'MemberList', 'cadmin2'),
+    'sadmin/make-community' => menuLocal(t('Make Ctty'), 'MakeCtty', 'admin'),
+    'sadmin/sms' => menuLocal(t('Test SMS'), 'SMS', 'admin'),
+    'sadmin/reinstall' => menuLocal(t('Reinstall rCredits'), '', 'admin', 'reinstall'),
+    'sadmin/handy' => menuLocal(t('Handy'), '', 'dev', 'handyLinks'),
+    'sadmin/tests' => menuLocal(t('Test'), '2', isDEV ? 'dev' : NULL, 'test'),
+    'sadmin/php' => menuLocal(t('PHP'), 'php', 'dev', 'util'),
+    'sadmin/zot' => menuLocal('zot', '', 'admin'), // Drupal bug: last choice is omitted
+    'sadmin/member-info' => callback('Member Info', 'MemberInfo 2', 'cadmin2'),
+    'print-rcard' => callback(t('Print ID Card'), '1 FALSE', 'cadmin', 'memberID'),
+//    'rcredits/util' => callback('Util', '2', 'admin', 'util'),
     
-//    'video' => r\Web\menu(t('Videos'), MENU_LOCAL_TASK, 'showForm', array('Videos', 2), '', $anyone),
+    'help' => callback(t('Help'), 'Help 1', 'anyone'),
+    'change-account' => callback(t('Change Who'), '1', 'anyone', 'changeWho'),
+    'status' => callback('Status', 'Membership 2', 'manage'),
+    'agreement' => callback(t('The Agreement'), 'Agreement', 'manage'),
+    'donate' => callback(t('Donate'), 'Donate', 'manage'),
+    'signup' => callback(t('Sign Up For rCredits'), 'Signup', 'anyone'),
+    'menu' => callback('Main Menu', 'Menu', 'anyone'),
+    'member' => callback('Company Profile', 'Profile', 'anyone'),
+    'autocomplete' => callback('Identify', '1 2 3', 'anyone', 'auto'),
+    'do' => callback('Do', '1', 'anyone', 'rdo'),
+    'coup' => callback(t('Disable account'), '1', 'anyone', 'coup'),    
+    '1099-B' => callback('1099-B Forms', '1099b', 'read'),
+    'invited-whom' => callback('Invited Whom', 'InvitedWhom', 'manage'),
 
-    'help' => r\Web\menu(t('Help'), MENU_CALLBACK, 'showForm', array('Help', 1), '', $anyone),
-    'change-account' => r\Web\menu(t('Change Who'), MENU_CALLBACK, 'changeWho', array(1), '', $anyone),
-    'status' => r\Web\menu('Status', MENU_CALLBACK, 'showForm', array('Membership', 2), 'manage'),
-    'agreement' => r\Web\menu(t('The Agreement'), MENU_CALLBACK, 'showForm', array('Agreement'), 'manage'),
-    'contribute' => r\Web\menu(t('Contribute'), MENU_CALLBACK, 'showForm', array('Contribute'), 'manage'),
-    'signup' => r\Web\menu(t('Sign Up For rCredits'), MENU_CALLBACK, 'showForm', array('Signup'), '', $anyone),
-    'menu' => r\Web\menu('Main Menu', MENU_CALLBACK, 'showForm', array('Menu'), '', $anyone),
-    'member' => r\Web\menu('Company Profile', MENU_CALLBACK, 'showForm', array('Profile'), '', $anyone),
-    'rcredits/util' => r\Web\menu('Util', MENU_CALLBACK, 'util', array(2), 'admin'),
-    //'rcredits/test' => r\Web\menu('Util', MENU_CALLBACK, 'test', array(2), '', $anyone),
-    'autocomplete' => r\Web\menu('Identify', MENU_CALLBACK, 'auto', array(1, 2, 3), '', $anyone),
-    'do' => r\Web\menu('Do', MENU_CALLBACK, 'rdo', array(1), '', $anyone),
-    'coup' => r\Web\menu(t('Disable account'), MENU_CALLBACK, 'coup', array(1), '', $anyone),    
-    '1099-B' => r\Web\menu('1099-B Forms', MENU_CALLBACK, 'showForm', array('1099b'), 'read'),
-    'invited-whom' => r\Web\menu('Invited Whom', MENU_CALLBACK, 'showForm', array('InvitedWhom'), 'manage'),
-
-    'accept' => r\Web\menu('Accept Invitation', MENU_CALLBACK, 'showForm', array('Accept'), '', $anyone),
-    'member-list' => r\Web\menu('Member List', MENU_CALLBACK, 'showForm', array('MemberList'), '', $anyone),
-    'pos' => r\Web\menu('POS', MENU_CALLBACK, 'rCredits\\Smart\\pos', array(), '', $anyone),
-    R_GET_AUTH_URI => r\Web\menu('USD Get Auth', MENU_CALLBACK, 'usdCallback', array('getAuth2', 1), 'manage'),
-    'usd-callback' => r\Web\menu('USD Other Callback', MENU_CALLBACK, 'usdCallback', array('callback', 1), '', $anyone),
-    'secret' => r\Web\menu('Secret', MENU_CALLBACK, 'secrets', array(), '', $anyone),
-    'error' => r\Web\menu('System Error', MENU_CALLBACK, 'error', array(1), '', $anyone),
+    'accept' => callback('Accept Invitation', 'Accept', 'anyone'),
+    'pos' => callback('POS', '', 'anyone', 'rCredits\\Smart\\pos'),
+    R_GET_AUTH_URI => callback('USD Get Auth', 'getAuth2 1', 'manage', 'usdCallback'),
+    'usd-callback' => callback('USD Other Callback', 'callback 1', 'anyone', 'usdCallback'),
+    'secret' => callback('Secret', '', 'anyone', 'secrets'),
+    'error' => callback('System Error', '1', 'anyone', 'error'),
     
-    'pay-with-rcredits' => r\Web\menu('Pay With rCredits', MENU_CALLBACK, 'showForm', array('Buy'), '', $anyone), // form will require PIN
-//    'example-store' => r\Web\menu('Example Store', MENU_NORMAL_ITEM, 'showForm', array('example_store'), '', $anyone),
-//    'modal' => r\Web\menu('Modal Test', MENU_CALLBACK, 'drupal_get_form', array('modal_form'), '', $anyone + $modal),
-//    'ok' => r\Web\menu('Please Confirm', MENU_CALLBACK, 'showForm', array('ok'), '', $anyone + $modal),
+    'pay-with-rcredits' => callback('Pay With rCredits', 'Buy', 'anyone'), // form will require PIN
   );
   return $menu;
 }

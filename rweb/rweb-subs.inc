@@ -55,7 +55,7 @@ EOF
   'invite sent' => t('Your invitation has been sent.'),
   'repeat invite' => t('Come back any time, to send more invitations (click "Invite Someone" at the bottom of any page).'),
   'gift transfer later' => t('Your funds will be transferred when you have money in your account.'),
-  'repeat gift' => t('If you wish to make a contribution again sometime, click "Membership" in the upper right corner, then on "Contribute".'),
+  'repeat gift' => t('If you wish to make a donation again sometime, click "Membership" in the upper right corner, then on "Donate".'),
   'setup complete' => t('Your account setup is complete. Expect an email within the next 24 hours, saying your account is activated.<br>Thank you for joining!'),
   'ready to charge' => t('<p>You successfully scanned in as "@agentName" to charge customers on behalf of @companyName.</p><p>Now go back to your scanning app, to scan a customer\'s card. Sign out only when your shift ends.</p>'),
   'transaction list truncated' => t('There are too many transactions to show all at once, so only the first @TX_MAX_ROWS are shown (choose a different date range to see the rest).'),
@@ -195,6 +195,7 @@ EOF
   'dwolla terms required' => t("Please accept Dwolla's terms before you click Continue."),
   'no card ordered' => t('No rCard was ordered.'),
   'bad buy info' => t('To pay with rCredits, you must use the same @thing for the purchase as you use for your rCredits account.'),
+  'must be signed out' => t('You are already signed in.'),
 );
 
 /**
@@ -307,23 +308,23 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   setupGlobals(); // in case it's an anonymous form, so webAccess doesn't have a chance to set up
   if (!@$formSta['confirm'] and !in_array($function, u\ray('Admin Test Handy footer accounts'))) {
     if ($logs = $_POST) {
-      foreach (u\ray('form_build_id form_token form_id') as $one) unset($logs[$one]);
+      foreach (u\just(R_NOLOG, $logs) as $k => $zot) $logs[$k] = '?';
       u\loga('in', $logs);
-    } else u\loga('form', array(str_replace(base_path(), '', $_SERVER['REQUEST_URI'])));
+    } elseif ($formName = str_replace(base_path(), '', $_SERVER['REQUEST_URI'])) u\loga('form', array($formName));
   }
 
   try {
     $mya = r\acct();
     $args = 'arg1' . ($arg2 !== '' ? ' arg2' : '') . ($arg3 !== '' ? ' arg3' : '') . ($arg4 !== '' ? ' arg4' : '');
     $formName = substr($function, 0, 1) == '/' ? substr($function, 1) : "rCredits\\Web\\form$function";
-    $specialForm = in_array($function, u\ray('Help footer accounts Admin Login'));
-
+    $specialForm = in_array($function, u\ray('Help footer accounts Admin Login MemberList MemberInfo'));
     $args = func_get_args(); // this and next few lines are from \drupal_get_form()
     array_shift($args); // Remove $function from the arguments.
     $formSta['build_info'] = compact('args');
-    if (!r\up() and !$specialForm and $mya) {
-      if ($mya->admin()) {
-        say('The system is DOWN.');
+    if (!r\up() and !$specialForm) {
+      if ($mya and $mya->admin) {
+        say(t('The system is DOWN.'));
+        //if (!$mya->cttyUp) say(t('The community is DOWN.'));
       } else $formName = 'rCredits\\Web\\formSystemDown';
     }
     $form = drupal_build_form($formName, $formSta);
@@ -343,7 +344,6 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     }
 
     $form['#attributes']['class'][] = 'rweb';
-    $form['#attributes']['onSubmit'] = "jQuery('#saywait').show();";
     $formArray = $form2 = $form; 
 
     $rent = \render($form2);
@@ -361,7 +361,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
       $markup = "<colgroup>\n$markup</colgroup>\n";
       return str_replace('<thead>', $markup . '<thead>', $rent); // shore up Drupal lack of colgroups in tableselect
     } else return $rent;
-  } catch(u\fit $e) {r\Web\exception_handler($e);}
+  } catch(Exception $e) {r\Web\exception_handler($e);}
 }
 
 /**
@@ -504,35 +504,25 @@ EOF;
 ///debug($err);
 
  */
-function setupUs(&$step, $redirectOk = TRUE) {
+function setupUsd(&$step, $redirectOk = TRUE) {
   $us = new r\usd($mya = r\acct());
   if (!@$mya->secure['auth']) {
     if (!$mya->createUsdAccount($err)) return say($err, 'ERR'); // set auth
 //    if ($mya->secure['usdEmail'] == $mya->mail) r\Web\say('Dwolla has sent you an email with a verification link. Please click that link to confirm your email address, then come back here to continue setting up your account.'); // temporary, for Dwolla compliance testing
   }
   if (!$mya->usdAccount) if (!$us->me($err)) return say($err, 'ERR'); // set usdAccount
-  if (!$step = $us->step($err)) {
-    r\tellStaff('null step', compact('err', 'step') + (array) $mya);
-    if (u\abbreviates('Invalid account status', $err)) { // sometimes "...for user of this access token"
-      //$mya->update(u\ray('federalId', '')); // prevent resubmission of same ssn (temporary Dwolla bug)
-      return say('bad ssn or dob|Please contact rCredits customer support at +1 413 628 1723.', 'ERR');
-    } else return say($err, 'ERR');
+  if (!$step = $us->step($err)) return say($err, 'ERR');
+  if ($step == 'Finished') {
+    $mya->stepDone('dw');
+    return FALSE;
   }
-  if ($step == 'Email') return FALSE; // await automatic or manual confirmation of email (meanwhile user can sign Agreement)
-  if ($step == 'Finished') return FALSE;
-  if ($mya->phone and $step == 'Phone') return $redirectOk ? addPhone() : FALSE;
+
   if ($step == 'AccountInfo') return $redirectOk ? r\go('account/basic', 'redo info', 'ERR') : FALSE; // here on ssn() failure
   if ($step == 'Kba') return $redirectOk ? r\go('account/kba') : FALSE; // here on accountInfo() failure
   if ($step == 'PhotoId') return $redirectOk ? r\go('account/photo-id') : FALSE; // here on Kba() success (else call Dwolla)
 
-  if ($mya->address and $step == 'Address') {
-    if (!$us->address($mya->address, $mya->city, r\realState($mya->state, $mya->country), $mya->postalCode, $err)) return $redirectOk ? r\go('account/contact', $err) : FALSE;
-  } elseif ($step == 'Ssn') {
-    if (!$us->ssn($mya->federalId, $err)) {
-      if ($err) return say($err, 'ERR');
-    } else u\EXPECT($us->step() != $step, 'weird ssn return');
-  } elseif ($step == 'AuthorizedRepresentative') {
-    u\EXPECT(!$mya->person(), 'verify rep for person?!');
+  if ($step == 'AuthorizedRepresentative') {
+    u\EXPECT($mya->co, 'verify rep for person?!');
     $byId = @$mya->by ?: (t\est() ? $mya->agentId : FALSE);
     u\EXPECT($byId, 'no by for non-person');
     $by = r\acct($byId);
@@ -540,7 +530,7 @@ function setupUs(&$step, $redirectOk = TRUE) {
     $state = r\realState($by->state, $by->country);
     if (!$us->authorizedRep($first, $last, $by->address, $by->city, $state, $by->postalCode, substr($by->phone, 2), $by->dob, $by->federalId, $err)) return say($err, 'ERR');
   }
-  if ($us->step() != $step) return setupUs($step); // step may have progressed
+  if ($us->step() != $step) return setupUsd($step); // step may have progressed
 }
 
 function divButton($href, $title) {
@@ -672,7 +662,7 @@ function wants($ats) {
  * Return an array of flags and coFlags, appropriate to the given account type.
  */
 function acctType($acctType) {  
-  $flags = B_DFT | ($acctType == R_PERSONAL ? u\bit(B_PERSON) : u\bit(B_COMPANY));
+  $flags = ($acctType == R_PERSONAL ? 0 : u\bit(B_CO));
     
   if ($acctType != R_PERSONAL) { // company
     $type = $GLOBALS['account types'][$acctType];
@@ -756,11 +746,11 @@ function tellStaffNewMember($params) {
 
 function findCompany($company, $companyPhone) {
   $companyShortName = u\shortName($company);
-  $companyUid = db\lookup('uid', 'users', ':IS_COMPANY AND phone=:companyPhone', compact('companyPhone'));
-  if (!$companyUid) $companyUid = db\lookup('uid', 'users', ':IS_COMPANY AND name=:companyShortName', compact('companyShortName'));
+  $companyUid = db\lookup('uid', 'users', ':IS_CO AND phone=:companyPhone', compact('companyPhone'));
+  if (!$companyUid) $companyUid = db\lookup('uid', 'users', ':IS_CO AND name=:companyShortName', compact('companyShortName'));
   if (!$companyUid and strlen($companyShortName) > 8 ) {
     $companyShortName .= '%';
-    $companyUid = db\lookup('uid', 'users', ':IS_COMPANY AND name LIKE :companyShortName', compact('companyShortName'));
+    $companyUid = db\lookup('uid', 'users', ':IS_CO AND name LIKE :companyShortName', compact('companyShortName'));
   }
   return $companyUid;
 }
@@ -852,7 +842,7 @@ function no_selection($list) {
 
 function adminField($label) {
   $mya = r\acct();
-  return ($mya->can(B_CTTY_ADMIN) and $mya->usdAccount) ? item(R_ON_FILE, $label) : NULL;
+  return ($mya->cAdmin and $mya->usdAccount) ? item(R_ON_FILE, $label) : NULL;
 }
 
 /**
@@ -953,7 +943,7 @@ function passwordOkay($a, $password, $passFieldName = 'current_pass') {
   $stored_hash = $a->pass;
   $hash = \_password_crypt('sha512', $password, $stored_hash);
   if (@$a->oneTimePass) extract(u\just('pass expires', $a->oneTimePass));
-  if ($password == @$pass) return ($a->admin() or REQUEST_TIME < @$expires) ? TRUE : say('pass expired', $passFieldName);
+  if ($password == @$pass) return ($a->admin or REQUEST_TIME < @$expires) ? TRUE : say('pass expired', $passFieldName);
   return ($hash and $stored_hash == $hash) ? TRUE : say('wrong pass', $passFieldName);
 }
 
@@ -988,7 +978,7 @@ function directoryList($which, $region) {
     FROM users u 
     LEFT JOIN r_user_industries ui ON ui.uid=u.uid
     LEFT JOIN r_industries i ON i.iid=ui.iid
-    WHERE :IS_COMPANY AND u.$field LIKE :region AND (u.fullName LIKE :which OR i.industry LIKE :which)
+    WHERE :IS_CO AND u.$field LIKE :region AND (u.fullName LIKE :which OR i.industry LIKE :which)
     ORDER BY industry, u.fullName
 EOF;
   $result = db\q($sql, compact(u\ray('region which')));
@@ -1079,9 +1069,9 @@ function txsRpt($amt, $count, $accts, $type) {
  */
 function identifiers($acct) {
   $mya = r\acct();
-  list ($agent, $company) = $acct->proSe() ? array($acct, '') : array(r\acct($acct->agentId), $acct->fullName);
+  list ($agent, $company) = $acct->proSe ? array($acct, '') : array(r\acct($acct->agentId), $acct->fullName);
   $location = r\location($acct);
-  $pic = ($mya and $mya->co()) ? $acct->agent->picture() : ''; // let companies see the picture
+  $pic = ($mya and $mya->co) ? $acct->agent->picture() : ''; // let companies see the picture
   return <<<EOF
     $pic
     <div id="id-other">
@@ -1263,12 +1253,12 @@ function transfer($op, $info, $confirmed) {
  */
 function communityTransfer($type, $acct, $amount, $purpose, $confirmed) {
   $success = (bool) be\fund($acct->id, u\consta('tx', $type), $amount, $purpose, $confirmed);
-  $msg = $success ? ($confirmed ? 'report funding' : 'funding') : 'funding error';
+  $msg = $success ? ($confirmed ? 'report funding' : 'funding') : 'funding error'; // 'funding' not used?!
   $confirmAction = ucwords($type);
-  $action = $confirmAction . 'ed';
+  $did = $confirmAction . 'ed';
   $otherName = r\userField('fullName', $acct->id);
   $amount = u\fmtAmt($amount);
-  return array($msg, compact(u\ray('success action confirmAction amount otherName')), $success and !$confirmed);
+  return array($msg, compact(u\ray('success did confirmAction amount otherName')), $success and !$confirmed);
 }  
 
 /**
@@ -1279,7 +1269,7 @@ function doSay($msg, $type = 'error') {
   $map = u\ray('TITLE BASE_URL VERSION MSGTYPE MESSAGE SUBTEXT',
     t('No-signin Action ') . ($type == 'error' ? t('ERROR') : t('Success!')),
     BASE_URL, R_VERSION, $type, $msg,
-    t('To protect your personal information, no sign-in was required for this action (the only safe link to rCredits sign-in is through rCredits.org).')
+    t('To protect your account, no sign-in was required for this action. To sign in safely, go to rCredits.org and click Members\' Site.')
   );
   exit(strtr($template, $map));
 }
@@ -1302,27 +1292,38 @@ function error($logid) {
   r\go('/user/login/err=' . R_SYS_ERR);
 }
 
-function menu($title, $type, $function = NULL, $args = array(), $accesses = '', $other = array()) {
-  global $menuWeight;
-  $menuWeight += !@$menuWeight ?: 1;
-   
-  if (function_exists($localFunction = "rCredits\\Web\\$function")) $function = $localFunction;
-  $smart = strpos($function, '\\Smart\\');
+/**
+ * Add an item to the menu structure (called when reinstalling or rebuilding menus).
+ * @param string $title: human-readable label for operation
+ * @param int $type: menu item type (see hook_menu)
+ * @param string $function: what function to call when item is activated (with or without namespace qualifiers)
+ * @param string $args: space-delimited list of arguments to pass to the function
+ * @param string $perms: space-delimited list of permission bit names (lowercase without B_ )
+ * @return the menu item array as expected by Drupal for hook_menu
+ */
+function menu($title, $type, $function, $args, $perms = '') {
+  global $menuWeight; $menuWeight += !@$menuWeight ?: 1;
   
-  return array_merge(array(
+  if (strpos($function, '\\') === FALSE) $function = "rCredits\\Web\\$function";
+  $smart = strpos($function, '\\Smart\\');
+  $admin = ($perms == 'dev' or stripos($perms, 'admin') !== FALSE);
+  if ($perms == 'anyone') $perms = FALSE;
+  foreach ($args = u\ray($args) as $k => $value) if (is_numeric($value)) $args[$k] = (int) $value;
+  
+  $item = array(
     'title' => $title,
     'type' => $type,
     'page callback' => $function,
     'page arguments' => $args,
-//    'access callback' => TRUE,
-    'access callback' => 'rCredits\\Web\\webAccess', // don't use be\access directly (rweb needs to remember $myid)
-    'access arguments' => $accesses ? array($accesses) : NULL,
+    'access callback' => $perms ? 'rCredits\\Web\\webAccess' : TRUE,
+    'access arguments' => $perms ? array($perms) : NULL,
     'weight' => @$menuWeight - 1,
     'menu_name' => 'main-menu', 
     'module' => $smart ? 'rsmart' : 'rweb',
-    'file' => $smart ? '../rsmart/rsmart.inc' : 'rweb.inc',
+    'file' => $smart ? '../rsmart/rsmart.inc' : ($admin ? '../admin/admin-forms.inc' : 'rweb.inc'),
     'options' => u\ray('class', $title),
-  ), $other); // $other overwrites, if there is a conflict
+  );
+  return $item;
 }
 
 /**
@@ -1380,7 +1381,7 @@ function userMenuItem($router_path, $link_title) {
  */
 function sendInvite($email, $subject, $message, $dupsOk = TRUE) {
   $agent = r\agent();
-  if ($admin = $agent->admin()) $agent = r\agent('NEW.AAA'); // use William for admin invites
+  if ($admin = $agent->admin) $agent = r\agent('NEW.AAA'); // use William for admin invites
   
   if (!$dupsOk) {
     if (db\exists('r_invites', 'email=:email', compact('email'))) return say("NOT sent to $email (dup).");
@@ -1411,10 +1412,10 @@ function focusOn($focusFieldName) {
 /**
  * Return true if the current account has all the accesses listed.
  */
-function webAccess($accesses = NULL) {
+function webAccess($perms = NULL) {
   setupGlobals(); // remember who we are (the main reason for this function)
-  if (!@$accesses or !$mya = r\acct()) return FALSE;
-  foreach (u\ray($accesses) as $one) if (!$mya->can(u\consta('b', $one))) return FALSE;
+  if (!@$perms or !$mya = r\acct()) return FALSE;
+  foreach (u\ray($perms) as $one) if (!$mya->can(u\consta('b', $one))) return FALSE;
   return TRUE;
 }
 

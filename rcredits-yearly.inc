@@ -104,7 +104,7 @@ function recB($year, $a, $completed, $amount, $for) {
   global $bCount;  
 
   $corrected = pad('', 1); // G=first corrected tx of a group C=subsequent corrected tx of a group ' '=original
-  $tinType = pad($a->co() ? 1 : 2, 1);
+  $tinType = pad($a->co ? 1 : 2, 1);
   $payeeTIN = pad($a->federalId, 9);
   $accountNum = pad($a->id, 20);
   $payerOffice = pad('', 4);

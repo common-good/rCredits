@@ -64,7 +64,7 @@ class acct {
     u\setDft($fullName, @$legalName);
     $short_name = @$fullName ? u\shortName($fullName) : '';
     u\setDft($name, @$short_name ?: tempName($info));
-    u\setDft($flags, B_DFT);
+    u\setDft($flags, 0);
     u\setDft($rebate, R_REBATE);
     if (@$state and !is_numeric(@$state)) { // allow state abbrevs within US
       $state = db\lookup('id', 'r_states', 'abbreviation=:state and country_id=:US_COUNTRY_ID', compact('state'));
@@ -73,6 +73,7 @@ class acct {
     $created = $login = $access = @$created ?: REQUEST_TIME;
 
     if ($data0 = u\just(R_DATA_FIELDS, $info)) foreach ($data0 as $key => $value) unset($info[$key]);
+    $data0['stepsDone'] = array_fill_keys(u\ray(R_STEPS), FALSE);
     $data = serialize($data0);
     unset($info['number']);
 
@@ -83,13 +84,18 @@ class acct {
     $DBTX = db_transaction();
     if (@$uid) {
       db\insert('users', $record += compact('uid')); // predestined uid (probably for testing)
-
-      $region = communityUid();
     } else {
       $region = @$postalCode ? r\region(@$country, @$state, @$postalCode) : communityUid();
       for ($try = 0; $try < 20; $try++) { // limit the retries
         $uid = $record['uid'] = self::nextId($region);
-        if (db\insert('users', $record)) break;
+        try {
+          if (db\insert('users', $record)) break;
+        } catch (Exception $e) { // BIG MYSTERY: why does this happen sometimes with no collision?
+          if (db\lookup('mail', 'users', 'uid=:uid', compact('uid')) == $mail) {
+            r\tellStaff('another immaculate birth', $record, $uid);
+            break; // record magically exists
+          }
+        }
       }
       u\EXPECT(@$try < 20, "failed to save user record after $try tries.");
     }
@@ -153,24 +159,28 @@ class acct {
    * Special fields:
    *   agent: returns an account object for agentId
    *   language: returns what Drupal would
+   * @param string $field: name of field value to get
+   * @return the value if it exists, else NULL
    */
   public function __get($field) {
     $this->reread(); // necessary when we pass an acct object to another page
-///    u\EXPECT(property_exists(self::$records[$this->id], $field), "bad field for uid $this->id: $field" . print_r(self::$records[$this->id], 1));
+
+    if (in_array($field, u\ray('ok member co admin cAdmin cttyActive cttyUp'))) return $this->can(u\consta('b', $field)); 
     if ($field == 'agent') return acct($this->agentId);
+    if ($field == 'proSe') return ($this->id == $this->agentId);
+    if ($field == 'qid') return $this->proSe ? $this->mainQid : r\quid($this->id, $this->agentId);
+
     if (in_array($field, u\ray(R_SECRET_FIELDS))) $this->getHidden();
     $result = @self::$records[$this->id]->$field; // returns NULL if field not set
 
-    if ($field == 'data') {
-      return @$result ? unserialize($result) : array();
-    } elseif ($field == 'secure') {
-      return @$result ? unserialize(u\ezdecrypt($result, R_WORD)) : array();
-    } elseif ($field == 'usdAccount') {
-      return @$result ? u\ezdecrypt(hex2bin($result), R_WORD) : NULL;
-    } elseif ($field == 'language') {
+    if ($field == 'data') return @$result ? unserialize($result) : array();
+    if ($field == 'secure') return @$result ? unserialize(u\ezdecrypt($result, R_WORD)) : array();
+    if ($field == 'usdAccount') return @$result ? u\ezdecrypt(hex2bin($result), R_WORD) : NULL;
+    if ($field == 'language') {
       $language = $result;
       return \user_preferred_language((object) compact('language'));
-    } else return $result;
+    }
+    return $result;
   }
   
   /**
@@ -238,9 +248,6 @@ class acct {
       return $this->update(array_combine($keys, $args));
     }
     if (isset($just)) $info = u\just($just, $info);
-    if ($data = @$info['data']) {
-      $info['data'] = serialize($data);
-    } elseif ($data = u\just(R_DATA_FIELDS, $info)) $info['data'] = serialize($data + $this->data);
     
     if (isset($info['secure'])) { // serialize and encrypt before updating this
       $usdArray = $info['secure']; // was " + ($this->secure ?: array())"
@@ -251,10 +258,14 @@ class acct {
 
     $toHide = count(array_intersect(array_keys($info), u\ray(R_SECRET_FIELDS))); // how many fields to hide
     if ($toHide and !$this->gotOffsite()) $this->getHidden(); // get what's offsite before updating it
-    foreach ($info as $field => $value) { // update account object with new info
-      if (!@self::$records[$this->id]) self::$records[$this->id] = new \stdClass();
-      if ($field != 'uid') self::$records[$this->id]->$field = $value;
-    }
+    if (!@self::$records[$this->id]) self::$records[$this->id] = new \stdClass();
+    unset($info['uid']); // necessary?
+    if ($data = @$info['data']) {
+      $info['data'] = serialize($data);
+      u\preray($data, self::$records[$this->id]); // cache these individually
+    } elseif ($data = u\just(R_DATA_FIELDS, $info)) $info['data'] = serialize($data + ($this->data ?: array()));
+    u\preray($info, self::$records[$this->id]); // cache the field values
+
     if ($toHide) { // store protected information securely, offsite
       $key = offsiteData(@$this->offsite, $this->account(R_SECRET_FIELDS));
       if ($key and is_numeric($key)) $info['offsite'] = $key; else return FALSE; // if attempt to store fails, save nothing
@@ -273,8 +284,6 @@ class acct {
     return $this->update(u\ray('data', u\ray($key, $value) + $this->data));
   }
   public function usd($info = FALSE, &$err = '') {return new r\usd($this, $info, $err);}
-  public function proSe() {return ($this->id == $this->agentId);}  
-  public function qid() {return $this->proSe() ? $this->mainQid : r\quid($this->id, $this->agentId);}
   public function isNonprofit() {return (bool) ($this->coFlags & u\bit(CO_NONPROFIT));}
 //  public function gotContact() {return ($this->can(B_PHONE_OK) and $this->address and $this->postalAddr and $this->city and $this->country and $this->postalCode and $this->can(B_SS_OK));}
   
@@ -472,7 +481,7 @@ EOF;
   public function auxFilename($type = 'picture', $ideal = FALSE) {
     $dir = $type == 'picture' ? R_PICTURE_DIR : R_PROOF_DIR;
     $result = "$dir/$this->id-$this->created";
-    if (!$ideal and !$this->hasAux($type)) $result = $this->can(B_PERSON) ? R_DFT_PICTURE : R_DFT_PICTURE_WIDE;
+    if (!$ideal and !$this->hasAux($type)) $result = $this->co ? R_DFT_PICTURE_WIDE : R_DFT_PICTURE;
     return $result;
   }
   
@@ -531,19 +540,45 @@ EOF;
   }
 
   /**
-   * Say whether the account is nearly a member.
-   * That is, have they satisfied all the basic membership requirements except possibly choosing proxies.
-   * @param assoc $steps: (returned) the component steps: $signed and $donated
-   * @return TRUE if the account is nearly a member
+   * Mark a membership step as completed.
+   * @param string $step: a named step (see R_STEPS)
+   * @param assoc $details: any details to report to the staff
    */
-  public function nearlyMember(&$steps = '') {
-    $signed = (bool) $this->signed;
-  //  $donated = ($this->share > 0 or r\share($this)); // r\share() also updates the database
-    $donated = db\exists('r_gifts', 'uid=:myid', array('myid' => $this->id));
-    $steps = compact(u\ray('signed donated'));
-    return ($signed and $donated);
+  function stepDone($step, $details = array()) {
+    $stepsDone = $this->stepsDone;
+    $stepsDone[$step] = TRUE;
+    r\tellStaff('Step completed: ' . strtoupper($step), $details);
+    if (!$this->can(B_MEMBER)) {
+      if ($this->can(B_DW) and !@$this->secure['auth']) {
+        $this->createUsdAccount($err); // initialize Dwolla account
+        if ($err) r\tellStaff($err, $info, $this->id);
+      }
+      if ((new r\usd($this))->step() == 'Finished') $stepsDone['dw'] = TRUE; // happens externally so check here
+      if (!$this->nextStep()) r\membershipEvent($this, 'member');
+    }
+    return $this->update(compact('stepsDone'));
+  }
+  
+  /**
+   * Return the next step to do.
+   */
+  function nextStep() {
+    $steps = $this->stepsDone; // don't change the real data
+    $unset = $this->co ? 'proxies connect verify' : 'company relations';
+    foreach (u\ray($unset) as $one) unset($steps[$one]);
+    foreach ($steps as $step => $done) if (!$done) return $step;
+    return FALSE;
   }
 
+  /**
+   * Return the community admin's contact info.
+   */
+  function cAdminContact() {
+    if (!$result = db\lookup('fullName,mail,phone', 'users', 'community=:ctty AND :IS_CADMIN')) return t('(no Community Admin)');
+    extract($result);
+    return "$fullName - $mail";
+  }
+  
   /**
    * Return an assoc of individual account statistics.
    * @return [returnMo, return, cttyBeneMo, cttyBene]
@@ -567,7 +602,7 @@ EOF;
    * Return the rough business structure of a company, as required by Dwolla.
    */
   function businessStructure() {
-    u\EXPECT($this->co(), 'not a company');
+    u\EXPECT($this->co, 'not a company');
     return $this->coCan(CO_CORPORATION) ? 'Corporation' : ($this->coCan(CO_PARTNERSHIP) ? 'Partnership' : 'SoleProprietorship');
   }
    
@@ -587,14 +622,14 @@ EOF;
     $secure = compact(u\ray('usdPhone usdEmail usdPass usdPin')) + (@$this->secure ?: array());
     $this->update(compact('secure'));
     $us = new r\usd($this);
-    if ($this->can(B_PERSON)) {
-      if (!isPRODUCTION and !$this->dob) return TRUE; // don't annoy us with errors we don't care about
-      list ($first, $last) = u\parseName($this->legalName);
-      return $us->register('Personal', u\ray('first last dob', @$first, @$last, $this->dob), 'true', $err);
-    } else {
+    if ($this->co) {
       $type = $this->isNonprofit() ? 'NonProfit' : 'Commercial';
       $structure = $this->businessStructure();
       return $us->register($type, u\ray('org ein structure', $this->legalName, u\fmtEin($this->federalId), $structure), 'true', $err);
+    } else {
+      if (!isPRODUCTION and !$this->dob) return TRUE; // don't annoy us with errors we don't care about
+      list ($first, $last) = u\parseName($this->legalName);
+      return $us->register('Personal', u\ray('first last dob', @$first, @$last, $this->dob), 'true', $err);
     }
   }
   
@@ -667,59 +702,65 @@ EOF;
    * @param int $permission: the permission in question (DEFAULT B_READ)
    */
   public function can($permission = B_READ) {
-    // For permissions based on flag bits that never get turned off in this function, be efficient:
-    if (0 <= $permission and $permission <= B_CTTY_ADMIN and $this->hasBit($permission)) return TRUE;
     $id = $this->id;
     if (!@self::$perms[$id]) self::$perms[$id] = array();
-    if (!@self::$perms[$id][$this->agentId]) { // set up perms if we haven't yet (setBit() resets this)
-      $perms = array();
-      $aacct = $this->agent;
-      
-      for ($bit = 0; $bit < B_MAX; $bit++) $perms[$bit] = $this->hasBit($bit);
-      if (!$perms[B_COMPANY]) $perms[B_PERSON] = TRUE; // make sure it's always at least one of these
-      
-      if (!$this->proSe()) { // admin permissions depend on agent, not account
-        $perms[B_ADMIN] = $aacct->can(B_ADMIN);
-        $perms[B_CTTY_ADMIN] = $aacct->can(B_CTTY_ADMIN);
-      }
-      $perms[B_PERSONISH] = $perms[B_PERSON] or $perms[B_ADMIN];
+    $can = @self::$perms[$id][$this->agentId] ?: $this->getCan();
+    return $can[$permission];
+  }
 
-      $can = $this->proSe() ?
-          (($id < 0) ? 0 : B_MANAGE) // communities must be managed by an agent, never directly
-        : ($perms[B_CTTY_ADMIN] and $this->community == $aacct->community) ? 
-              B_MANAGE : (B_RELATED + relation('permission', $id, $this->agentId));
-      for ($i = B_RELATED; $i <= B_MANAGE; $i++) $perms[$i] = ($i <= $can); // set all, even the false ones
-
-      // (NO! this should never happen) if ($perms[B_OK]) $perms[B_MEMBER] = TRUE;
-      if (!$perms[B_OK]) $perms[B_SELL] = $perms[B_BUY] = FALSE; // (read here kills acct dropdown)
-
-      if (!$perms[B_MEMBER]) $perms[B_BUY] = FALSE; // no spending even the SIGNUP GIFT for non-members
-      
-      if ($perms[B_ADMIN]) {
-        if (R_ADMIN_CAN_MANAGE_CTTYS) {
-          $perms[B_CTTY_ADMIN] = TRUE; // temporary extra power, until communities are independent
-          $perms[B_READ] = $perms[B_SCAN] = $perms[B_SELL] = $perms[B_BUY] = $perms[B_MANAGE] = TRUE;
-        }
-//        $perms[B_PERSON] = TRUE; // manage show PERSONAL settings (for debugging)
-        if ($this->proSe()) $perms[B_COMPANY] = TRUE; // show company settings on own account (for debugging)
-      };
-      $perms[B_DEV] = (isDEV or $perms[B_ADMIN]); // is this used?
-      
-      if ($perms[B_MANAGING_CTTY] = ($perms[B_CTTY_ADMIN] and $id == $this->community)) $perms[B_BUY] = TRUE;
-      //if ($perms[B_MANAGING_CTTY] and !$perms[B_ADMIN]) $perms[B_BUY] = $perms[B_SELL] = FALSE; // ctty admin can manage but not buy/sell
-
-      ksort($perms); // easier to debug
-      self::$perms[$id][$this->agentId] = $perms;
+  /**
+   * Set up perms if we haven't yet (setBit() resets this)
+   * @return the permissions array for this account
+   */
+  private function getCan() {
+    $perms = array();
+    $aacct = $this->agent;
+    $id = $this->id;
+    
+    for ($bit = 0; $bit < B_MAX; $bit++) $perms[$bit] = $this->hasBit($bit);
+    
+    if (!$this->proSe) { // admin permissions depend on agent, not account
+      $perms[B_ADMIN] = $aacct->admin;
+      $perms[B_CADMIN] = $aacct->cAdmin;
+      $perms[B_CADMIN2] = $aacct->can(B_CADMIN2);
     }
-///  debug("id=$id agent=$this->agentId permissions=" . print_r(self::$perms[$id][$this->agentId], 1));
-    return self::$perms[$id][$this->agentId][$permission];
+    if ($perms[B_CADMIN]) $perms[B_CADMIN2] = TRUE; // community admin has subordinate powers also
+    $perms[B_PERSONISH] = !$perms[B_CO] or $perms[B_ADMIN];
+
+    $can = $this->proSe ?
+        (($id < 0) ? 0 : B_MANAGE) // communities must be managed by an agent, never directly
+      : ($perms[B_CADMIN] and $this->community == $aacct->community) ? 
+            B_MANAGE : (B_RELATED + relation('permission', $id, $this->agentId));
+    for ($i = B_RELATED; $i <= B_MANAGE; $i++) $perms[$i] = ($i <= $can); // set all, even the false ones
+
+    // (NO! this should never happen) if ($perms[B_OK]) $perms[B_MEMBER] = TRUE;
+    if (!$perms[B_OK]) $perms[B_SELL] = $perms[B_BUY] = FALSE; // (read here kills acct dropdown)
+
+    if (!$perms[B_MEMBER]) $perms[B_BUY] = FALSE; // no spending even the SIGNUP GIFT for non-members
+    
+    if ($perms[B_ADMIN]) {
+      if (R_ADMIN_CAN_MANAGE_CTTYS) {
+        $perms[B_CADMIN] = $perms[B_CADMIN2] = TRUE; // temporary extra power, until communities are independent
+        $perms[B_READ] = $perms[B_SCAN] = $perms[B_SELL] = $perms[B_BUY] = $perms[B_MANAGE] = TRUE;
+      }
+      if ($this->proSe) $perms[B_CO] = TRUE; // show company settings on own account (for debugging)
+    };
+    $perms[B_DEV] = (isDEV or $perms[B_ADMIN]); // used in menu system for tests page, etc.
+    
+    if ($perms[B_MANAGING_CTTY] = ($perms[B_CADMIN] and $id == $this->community)) $perms[B_BUY] = TRUE;
+    if ($id < 0) { // account IS a community, avoid infinite recursion
+      $perms[B_CTTYACTIVE] = $perms[B_MEMBER];
+      $perms[B_CTTYUP] = $perms[B_OK];
+    } else {
+      $ctty = $id < 0 ? $this : r\acct($this->community);
+      $perms[B_CTTYACTIVE] = $ctty->member; // recurses (_get calls can() for "member" and "ok")
+      $perms[B_CTTYUP] = $ctty->ok;
+    }
+    
+    ksort($perms); // easier to debug
+    return self::$perms[$id][$this->agentId] = $perms;
   }
   
-  public function co() {return $this->can(B_COMPANY);}
-  public function person() {return $this->can(B_PERSON);}
-  public function admin() {return $this->can(B_ADMIN);}
-  public function cttyAdmin() {return $this->can(B_CTTY_ADMIN);}
-  public function ok() {return $this->can(B_OK);}
 } // end of class
 
 /**

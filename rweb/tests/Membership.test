@@ -44,10 +44,10 @@ class rwebMembership extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id  | fullName | phone | email | city  | state | postalCode | floor | flags              | pass |'
-    . '\\| .ZZA | Abe One |     1 | a@    | Atown | AK    | 01000      |     0 | dft,person,dw      | %whatever |'
-    . '\\| .ZZB | Bea Two |     2 | b@    | Btown | UT    | 02000      |  -200 | dft,person,member  | |'
-    . '\\| .ZZC | Our Pub |     3 | c@    | Ctown | CA    | 03000      |     0 | dft,company,dw     | |"');
+    . '\\| id  | fullName | phone | email | city  | state | postalCode | floor | flags   | pass |'
+    . '\\| .ZZA | Abe One |     1 | a@    | Atown | AK    | 01000      |     0 | dw      | %whatever |'
+    . '\\| .ZZB | Bea Two |     2 | b@    | Btown | UT    | 02000      |  -200 | member  | |'
+    . '\\| .ZZC | Our Pub |     3 | c@    | Ctown | CA    | 03000      |     0 | co,dw   | |"');
     And__('relations: "DATA'
     . '\\| id   | main | agent | permission |'
     . '\\| .ZZA | .ZZC | .ZZA  | manage     |"');
@@ -67,7 +67,7 @@ class rwebMembership extends DrupalWebTestCase {
     . '\\| Dee Four  | d@ | 413-253-0000 | 0 |US  | 01002    | 123-45-6789 | 1/2/1993 | %R_PERSONAL | c0D3 |        1 |"');
     Then_('members: "DATA'
     . '\\| id      | fullName | email   | country | postalCode | state | city    | flags         |'
-    . '\\| NEW.AAC | Dee Four | d@      | US      | 01002      | MA    | Amherst | dft,person,dw |"');
+    . '\\| NEW.AAC | Dee Four | d@      | US      | 01002      | MA    | Amherst | dw |"');
     And__('member "NEW.AAC" one-time password is set');
     Given('member "NEW.AAC" one-time password is %whatever');
     When_('member "?" visits page "/user/login"');
@@ -94,14 +94,14 @@ class rwebMembership extends DrupalWebTestCase {
     And__('we say "error": "wrong pass"');
   }
 
-  // Scenario: A member clicks on the membership link
-  public function testAMemberClicksOnTheMembershipLink_0() {
+  // Scenario: A member clicks the membership link
+  public function testAMemberClicksTheMembershipLink_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" visits page "status"');
     Then_('we show "Membership Steps" with: "DATA'
     . '\\| 1 | Agreement |'
     . '\\| 2 | Contact Info |'
-    . '\\| 3 | Contribution |'
+    . '\\| 3 | Donation |'
     . '\\| 4 | Choose two people |'
     . '\\| 5 | Preferences |'
     . '\\| 6 | Photo |'
@@ -109,14 +109,14 @@ class rwebMembership extends DrupalWebTestCase {
     And__('with done ""');
   }
 
-  // Scenario: A member without a Dwolla account clicks on the membership link
-  public function testAMemberWithoutADwollaAccountClicksOnTheMembershipLink_0() {
+  // Scenario: A member without a Dwolla account clicks the membership link
+  public function testAMemberWithoutADwollaAccountClicksTheMembershipLink_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZB" visits page "status"');
     Then_('we show "Membership Steps" with: "DATA'
     . '\\| 1 | Agreement |'
     . '\\| 2 | Contact Info |'
-    . '\\| 3 | Contribution |'
+    . '\\| 3 | Donation |'
     . '\\| 4 | Choose two people |'
     . '\\| 5 | Preferences |'
     . '\\| 6 | Photo |"');
@@ -130,15 +130,14 @@ class rwebMembership extends DrupalWebTestCase {
     Then_('we show "Membership Steps" with: "DATA'
     . '\\| 1 | Agreement |'
     . '\\| 2 | Contact Info |'
-    . '\\| 3 | Contribution |'
+    . '\\| 3 | Donation |'
     . '\\| 4 | Preferences |'
     . '\\| 5 | Photo |'
-    . '\\| 6 | Bank Account |'
-    . '\\| _ | optional |'
-    . '\\| 7 | Company Info |'
-    . '\\| 8 | Relations |"');
+    . '\\| 6 | Company Info |'
+    . '\\| 7 | Relations |"');
     And__('without: "DATA'
-    . '\\| Choose two people |"');
+    . '\\|| Bank Account |'
+    . '\\|| Choose two people |"');
     And__('with done ""');
   }
 
@@ -151,23 +150,16 @@ class rwebMembership extends DrupalWebTestCase {
     When_('member ".ZZA" visits page "status"');
     Then_('we show "Membership Steps"');
     And__('with done ""');
-    And__('member ".ZZA" is on step "Phone" within 10 seconds');
-    When_('member ".ZZA" visits page "status"');
-    Then_('we show "Verify Phone"');
-    When_('member ".ZZA" confirms form "account/verify-phone" with values: "DATA'
-    . '\\| code  |'
-    . '\\| 99999 |"');
-    Then_('we show "Contact Information"');
     When_('member ".ZZA" confirms form "account/contact" with values: "DATA'
     . '\\| fullName | email | phone | address | state | country | postalCode | verifyBy | postalAddr  | faxetc    |'
     . '\\| Abe One  | a@    |     1 | 1 A St. | AK    | US      | 01002      |        1 | 1 A St., AK | %whatever |"');
     Then_('we show "You\'re getting there"');
     And__('with done "2"');
-    When_('member ".ZZA" has done step "agreement"');
+    When_('member ".ZZA" has done step "sign"');
     And__('member ".ZZA" visits page "status"');
     Then_('we show "You\'re getting there"');
     And__('with done "12"');
-    When_('member ".ZZA" has done step "contribution"');
+    When_('member ".ZZA" has done step "donate"');
     And__('member ".ZZA" visits page "status"');
     Then_('with done "123"');
     When_('member ".ZZA" has done step "photo"');
@@ -176,16 +168,30 @@ class rwebMembership extends DrupalWebTestCase {
     When_('member ".ZZA" has done step "proxies"');
     And__('member ".ZZA" visits page "status"');
     Then_('with done "12346"');
-    When_('member ".ZZA" has done step "preferences"');
+    When_('member ".ZZA" has done step "prefs"');
     And__('member ".ZZA" visits page "status"');
     Then_('with done "123456"');
     When_('member ".ZZA" has done step "connect"');
     And__('member ".ZZA" visits page "status"');
-    Then_('we show "Your Account Setup Is Complete"');
-    And__('with done ""');
-    And__('we tell staff "event" with subs: "DATA'
+    Then_('we show "Membership Steps" with: "DATA'
+    . '\\| 1 | Agreement |'
+    . '\\| 2 | Contact Info |'
+    . '\\| 3 | Donation |'
+    . '\\| 4 | Choose two people |'
+    . '\\| 5 | Preferences |'
+    . '\\| 6 | Photo |'
+    . '\\| 7 | Verify |"');
+    Given('member ".ZZA" has done step "dw"');
+    When_('member ".ZZA" has done step "verify"');
+    Then_('we tell staff "event" with subs: "DATA'
     . '\\| fullName | quid | status |'
     . '\\| Abe One  | .ZZA | member |"');
+    When_('member ".ZZA" visits page "summary"');
+    Then_('we say "status": "setup complete"');
+    And__('we say "status": "adjust settings"');
+    When_('member ".ZZA" visits page "status"');
+    Then_('we show "Your Account Setup Is Complete"');
+    And__('with done ""');
     When_('member ".ZZA" has permission "ok"');
     And__('member ".ZZA" visits page "status"');
     Then_('we show "Your account is Activated"');
@@ -201,11 +207,16 @@ class rwebMembership extends DrupalWebTestCase {
     . '\\| .ZZA | 001-01-0001 | 1/1/1990 |'
     . '\\| .ZZC | 01-0000001  |          |"');
     When_('member ":ZZA" visits page "status"');
-    Then_('we show "Membership Steps"');
+    Then_('we show "Membership Steps" with: "DATA'
+    . '\\| 1 | Agreement |'
+    . '\\| 2 | Contact Info |'
+    . '\\| 3 | Donation |'
+    . '\\| 4 | Preferences |'
+    . '\\| 5 | Photo |'
+    . '\\| 6 | Company |'
+    . '\\| 7 | Relations |"');
     And__('with done ""');
-    And__('member ".ZZC" is on step "Phone" within 10 seconds');
     When_('member ":ZZA" visits page "status"');
-    Then_('we show "Verify Phone"');
     When_('member ":ZZA" confirms form "account/verify-phone" with values: "DATA'
     . '\\| code  |'
     . '\\| 99999 |"');
@@ -218,25 +229,23 @@ class rwebMembership extends DrupalWebTestCase {
     . '\\| Our Pub  | c@    |     3 | 3 C St. | CA    | US      | 01003      |        1 | 3 C St., CA | %whatever |"');
     Then_('we show "You\'re getting there"');
     And__('with done "2"');
-    When_('member ".ZZC" has done step "agreement"');
+    When_('member ".ZZC" has done step "sign"');
     And__('member ":ZZA" visits page "status"');
     Then_('we show "You\'re getting there"');
     And__('with done "12"');
-    When_('member ".ZZC" has done step "contribution"');
+    When_('member ".ZZC" has done step "donate"');
     And__('member ":ZZA" visits page "status"');
     Then_('with done "123"');
     When_('member ".ZZC" has done step "photo"');
     And__('member ":ZZA" visits page "status"');
     Then_('with done "1235"');
-    When_('member ".ZZC" has done step "preferences"');
+    When_('member ".ZZC" has done step "prefs"');
     And__('member ":ZZA" visits page "status"');
     Then_('with done "12345"');
-    When_('member ".ZZC" has done step "connect"');
-    And__('member ":ZZA" visits page "status"');
-    Then_('with done "123456"');
     When_('member ".ZZC" has done step "company"');
     And__('member ":ZZA" visits page "status"');
-    Then_('with done "1234567"');
+    Then_('with done "123456"');
+    Given('member ":ZZA" has done step "dw"');
     When_('member ":ZZA" visits page "account/relations"');
     And__('member ":ZZA" visits page "status"');
     Then_('we show "Your Account Setup Is Complete"');
@@ -257,10 +266,6 @@ class rwebMembership extends DrupalWebTestCase {
     . '\\| id   | federalId | dob      |'
     . '\\| .ZZA | 999999999 | 1/1/1991 |"');
     And__('member ".ZZA" chose to verify phone by "Voice"');
-    When_('member ".ZZA" visits page "status"');
-    Then_('member ".ZZA" is on step "Phone" within 30 seconds');
-    When_('member ".ZZA" visits page "status"');
-    Then_('we show "Verify Phone"');
     When_('member ".ZZA" confirms form "account/verify-phone" with values: "DATA'
     . '\\| code  |'
     . '\\| 99999 |"');
@@ -286,10 +291,6 @@ class rwebMembership extends DrupalWebTestCase {
     . '\\| id   | federalId |'
     . '\\| .ZZC | 999999999 |"');
     And__('member ".ZZC" chose to verify phone by "Voice"');
-    When_('member ".ZZC" visits page "status"');
-    Then_('member ".ZZC" is on step "Phone" within 30 seconds');
-    When_('member ".ZZC" visits page "status"');
-    Then_('we show "Verify Phone"');
     When_('member ".ZZC" confirms form "account/verify-phone" with values: "DATA'
     . '\\| code  |'
     . '\\| 99999 |"');

@@ -5,10 +5,10 @@ SO I can see what happened and possbily integrate with an accounting program.
 
 Setup:
   Given members:
-  | id   | fullName | floor | acctType    | flags                         |
-  | .ZZA | Abe One  | -100  | personal    | dft,ok,dw,person,bona         |
-  | .ZZB | Bea Two  | -200  | personal    | dft,ok,dw,person,company,bona |
-  | .ZZC | Our Pub  | -300  | corporation | dft,ok,dw,company,bona        |
+  | id   | fullName | floor | acctType    | flags         |
+  | .ZZA | Abe One  | -100  | personal    | ok,dw,bona    |
+  | .ZZB | Bea Two  | -200  | personal    | ok,dw,co,bona |
+  | .ZZC | Our Pub  | -300  | corporation | ok,dw,co,bona |
   And relations:
   | id   | main | agent | permission |
   | .ZZA | .ZZA | .ZZB  | buy        |

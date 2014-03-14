@@ -13,13 +13,13 @@ Summary:
   
 Setup:
   Given members:
-  | id   | fullName   | email | city  | state | cc  | cc2  | rebate | flags               | 
-  | .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 |      5 | dft,ok,person,bona  |
-  | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 |      5 | dft,ok,person,bona  |
-  | .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      |      5 | dft,ok,company,bona |
-  | .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 |      5 | dft,ok,person,bona  |
-  | .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 |      5 | dft,ok,person,bona,secret_bal |
-  | .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      |      5 | dft,ok,company,bona |
+  | id   | fullName   | email | city  | state | cc  | cc2  | rebate | flags      | 
+  | .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 |      5 | ok,bona    |
+  | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 |      5 | ok,bona    |
+  | .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      |      5 | ok,co,bona |
+  | .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 |      5 | ok,bona    |
+  | .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 |      5 | ok,bona,secret_bal |
+  | .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      |      5 | ok,co,bona |
   And devices:
   | id   | code |
   | .ZZC | devC |
@@ -37,9 +37,9 @@ Setup:
   | :ZZE | .ZZF | .ZZE  | sell       |
   And transactions: 
   | xid | created   | type     | state | amount | from | to   | purpose      | taking |
-  | 1   | %today-7m | signup   | done  |    250 | ctty | .ZZA | signup       |      1 |
-  | 2   | %today-6m | signup   | done  |    250 | ctty | .ZZB | signup       |      1 |
-  | 3   | %today-6m | signup   | done  |    250 | ctty | .ZZC | signup       |      1 |
+  | 1   | %today-7m | signup   | done  |    250 | ctty | .ZZA | signup       |      0 |
+  | 2   | %today-6m | signup   | done  |    250 | ctty | .ZZB | signup       |      0 |
+  | 3   | %today-6m | signup   | done  |    250 | ctty | .ZZC | signup       |      0 |
 
 #Variants: with/without an agent
 #  | ".ZZA" asks device "devC" | ".ZZC" asks device "codeC" | ".ZZA" $ | ".ZZC" $ | # member to member (pro se) |
@@ -51,8 +51,8 @@ Scenario: An agent asks to undo a charge
   Given transactions: 
   | xid | created   | type     | state | amount | from | to   | purpose      | taking |
   | 4   | %today-1d | transfer | done  |     80 | .ZZA | .ZZC | whatever     |      1 |
-  | 5   | %today-1d | rebate   | done  |      4 | ctty | .ZZA | rebate on #2 |      1 |
-  | 6   | %today-1d | bonus    | done  |      8 | ctty | .ZZC | bonus on #2  |      1 |
+  | 5   | %today-1d | rebate   | done  |      4 | ctty | .ZZA | rebate on #2 |      0 |
+  | 6   | %today-1d | bonus    | done  |      8 | ctty | .ZZC | bonus on #2  |      0 |
   When agent ":ZZB" asks device "devC" to undo transaction 4
   Then we respond ok "report undo|report transaction" with subs:
   | solution | did      | otherName | amount | rewardType | rewardAmount |
@@ -69,8 +69,8 @@ Scenario: An agent asks to undo a refund
   Given transactions: 
   | xid | created   | type     | state | amount | from | to   | purpose      | taking |
   | 4   | %today-1d | transfer | done  |    -80 | .ZZA | .ZZC | refund       |      1 |
-  | 5   | %today-1d | rebate   | done  |     -4 | ctty | .ZZA | rebate on #2 |      1 |
-  | 6   | %today-1d | bonus    | done  |     -8 | ctty | .ZZC | bonus on #2  |      1 |
+  | 5   | %today-1d | rebate   | done  |     -4 | ctty | .ZZA | rebate on #2 |      0 |
+  | 6   | %today-1d | bonus    | done  |     -8 | ctty | .ZZC | bonus on #2  |      0 |
   When agent ":ZZB" asks device "devC" to undo transaction 4
   Then we respond ok "report undo|report transaction" with subs:
   | solution | did        | otherName | amount | rewardType | rewardAmount |
@@ -119,8 +119,8 @@ Scenario: An agent asks to undo a charge, with insufficient balance
   Given transactions: 
   | xid | created   | type     | state | amount | from | to   | purpose      | goods | taking |
   | 4   | %today-1d | transfer | done  |     80 | .ZZA | .ZZC | whatever     |     1 |      1 |
-  | 5   | %today-1d | rebate   | done  |      4 | ctty | .ZZA | rebate on #2 |     0 |      1 |
-  | 6   | %today-1d | bonus    | done  |      8 | ctty | .ZZC | bonus on #2  |     0 |      1 |
+  | 5   | %today-1d | rebate   | done  |      4 | ctty | .ZZA | rebate on #2 |     0 |      0 |
+  | 6   | %today-1d | bonus    | done  |      8 | ctty | .ZZC | bonus on #2  |     0 |      0 |
   | 7   | %today    | transfer | done  |    300 | .ZZC | .ZZB | labor        |     0 |      0 |
   When agent ":ZZB" asks device "devC" to undo transaction 4
   Then we return error "short to" with subs:
@@ -131,8 +131,8 @@ Scenario: An agent asks to undo a refund, with insufficient balance
   Given transactions: 
   | xid | created   | type     | state | amount | from | to   | purpose      | goods | taking |
   | 4   | %today-1d | transfer | done  |    -80 | .ZZA | .ZZC | refund       |     1 |      1 |
-  | 5   | %today-1d | rebate   | done  |     -4 | ctty | .ZZA | rebate on #2 |     0 |      1 |
-  | 6   | %today-1d | bonus    | done  |     -8 | ctty | .ZZC | bonus on #2  |     0 |      1 |
+  | 5   | %today-1d | rebate   | done  |     -4 | ctty | .ZZA | rebate on #2 |     0 |      0 |
+  | 6   | %today-1d | bonus    | done  |     -8 | ctty | .ZZC | bonus on #2  |     0 |      0 |
   | 7   | %today    | transfer | done  |    300 | .ZZA | .ZZB | labor        |     0 |      0 |
   When agent ":ZZB" asks device "devC" to undo transaction 4
   Then we return error "short from" with subs:
@@ -143,8 +143,8 @@ Scenario: An agent asks to undo a charge, without permission
   Given transactions: 
   | xid | created   | type     | state | amount | from | to   | purpose      | goods | taking |
   | 4   | %today-1d | transfer | done  |     80 | .ZZB | .ZZC | whatever     |     1 |      1 |
-  | 5   | %today-1d | rebate   | done  |      4 | ctty | .ZZB | rebate on #2 |     0 |      1 |
-  | 6   | %today-1d | bonus    | done  |      8 | ctty | .ZZC | bonus on #2  |     0 |      1 |
+  | 5   | %today-1d | rebate   | done  |      4 | ctty | .ZZB | rebate on #2 |     0 |      0 |
+  | 6   | %today-1d | bonus    | done  |      8 | ctty | .ZZC | bonus on #2  |     0 |      0 |
   When agent ":ZZA" asks device "devC" to undo transaction 4
   Then we return error "no buy"
 
@@ -152,8 +152,8 @@ Scenario: An agent asks to undo a refund, without permission
   Given transactions: 
   | xid | created   | type     | state | amount | from | to   | purpose      | goods | taking |
   | 4   | %today-1d | transfer | done  |    -80 | .ZZB | .ZZC | refund       |     1 |      1 |
-  | 5   | %today-1d | rebate   | done  |     -4 | ctty | .ZZB | rebate on #2 |     0 |      1 |
-  | 6   | %today-1d | bonus    | done  |     -8 | ctty | .ZZC | bonus on #2  |     0 |      1 |
+  | 5   | %today-1d | rebate   | done  |     -4 | ctty | .ZZB | rebate on #2 |     0 |      0 |
+  | 6   | %today-1d | bonus    | done  |     -8 | ctty | .ZZC | bonus on #2  |     0 |      0 |
   When agent ":ZZA" asks device "devC" to undo transaction 4
   Then we return error "no sell"
 

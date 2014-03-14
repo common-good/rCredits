@@ -6,7 +6,7 @@ SO I can make sound decisions about how much to pay and receive using the rCredi
 Setup:
   Given members:
   | id   | fullName   | number   | flags           |
-  | .ZZA | Abe One    | %number1 | person,ok,bona  |
+  | .ZZA | Abe One    | %number1 | ok,bona  |
   
 Scenario: Getting information
   Given phone %number1 has r$200 including rewards of $2.50

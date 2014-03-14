@@ -5,8 +5,8 @@ SO I can request transactions via SMS and/or track which devices were used for w
 
 Setup:
   Given members:
-  | id   | fullName   | flags  |
-  | .ZZA | Abe One    | dft,ok |
+  | id   | fullName   | flags |
+  | .ZZA | Abe One    | ok    |
 
 Scenario: A member visits the devices page with no devices yet
   When member ".ZZA" visits page "account/boxes"

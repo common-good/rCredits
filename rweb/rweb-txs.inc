@@ -45,12 +45,12 @@ function formTxs($form, &$sta, $args = '') {
   $mya = r\acct();
   
   extract(u\just('options period starting ending do xid download downloaded variety', $args)); 
-  $report = $mya->can(B_CTTY_ADMIN) ? (@$variety == 'stats') : FALSE; // no community reports yet for non-admins
+  $report = $mya->admin ? (@$variety == 'stats') : FALSE; // no community txs list yet for non-admins
   if (!$report and @$do) if ($result = handleTx($do, $xid, $sta, $args)) return $result;
 
   $page = $report ? 'community' : 'transactions';
   if (!@$period) $period = TX_DEFAULT_PERIOD;
-  if (strlen(@$options) != count($urlOpts = u\ray(TX_URL_OPTS))) $options = $mya->person() ? '2200001' : '2210001'; // defaults for TX_OPT_KEYS options (2=both)
+  if (strlen(@$options) != count($urlOpts = u\ray(TX_URL_OPTS))) $options = !$mya->co ? '2200001' : '2210001'; // defaults for TX_OPT_KEYS options (2=both)
   $options = array_combine($urlOpts, str_split($options));
   u\setDft($states, STATES_DONE);
 //  u\setDft($currency, 2); // both
@@ -194,7 +194,7 @@ function setupDownload($starting, $ending) {
   header('Content-type: text/plain');
   $dt1 = strftime('%Y%m%d', $starting);
   $dt2 = strftime('%Y%m%d', $ending);
-  $testCSVname = $filename = ($mya->admin() ? $mya->mainQid : 'rcredits') . "$dt1-$dt2.csv";
+  $testCSVname = $filename = ($mya->admin ? $mya->mainQid : 'rcredits') . "$dt1-$dt2.csv";
   header("Content-Disposition: attachment; filename=\"$filename\";");
   header('Content-Type: application/csv; charset=UTF-8'); // tell the browser it's going to be a csv file
   return fopen('php://output', 'w');
@@ -255,7 +255,7 @@ function doRow($tx, $report, $csv, $classes, $agents, $channels, $boxes, $curren
   } else $data = unserialize($tx_data);
   
   $is_reward = ($tx_type != TX_TRANSFER and $tx_type != TX_BANK);
-  $r = number_format(@$tx_r, 2);
+  $r = round(@$tx_r, 2);
   $total = number_format($tx_amount, 2);
   $usd = number_format($tx_amount - $r, 2);
   $rpct = $tx_amount == 0 ? R_NONE : number_format(100 * $r / $tx_amount, 1);
@@ -285,7 +285,7 @@ function doRow($tx, $report, $csv, $classes, $agents, $channels, $boxes, $curren
     if ($tx_amount == 0) $toYou = $fromYou = "<span class=\"virtual\">$r</span>"; // make payment exchanges clear
     if ($tx_type == TX_REFUND) list ($reward, $toYou) = array($toYou, R_NONE);
     $button1 = (!$byMe and okableState($tx_state)) ? button('OK', "$url&do=ok", txAct('ok', $tx_state, $toMe, $byMe)) : '';
-    $button2 = ((!$is_reward or $mya->can(B_CTTY_ADMIN)) and !@$data['undoneBy']) ? button(' X ', "$url&do=no", txAct('no', $tx_state, $toMe, $byMe)) : '';
+    $button2 = ((!$is_reward or $mya->cAdmin) and !@$data['undoneBy']) ? button(' X ', "$url&do=no", txAct('no', $tx_state, $toMe, $byMe)) : '';
     $button3 = ($mya->can(@$tx_taking ? B_SELL : B_BUY) and !$is_reward) ? "<a href='$url&do=edit' title='Edit Purpose'><img src='$rUrl/images/icons/edit.png' width=20 height=20 border=0 /></a>" : '';
     $buttons = ($banking or $toYou == $fromYou) ? '' : "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
 //    $row = array($tid, strftime('%d-%b', $date), @$tx_name, $fromYou, $toYou, $rpct, $amount, $usd, $state, $buttons, $tx_purpose, $reward, $net);

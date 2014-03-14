@@ -7,10 +7,10 @@ SO I know where it stands.
 
 Setup:
   Given members:
-  | id   | fullName   | postalAddr                   | floor | flags                  |
-  | .ZZA | Abe One    | 1 A St., Atown, AK 01000     | -100  | dft,ok,dw,person,bona  |
-  | .ZZB | Bea Two    | 2 B St., Btown, UT 02000     | -200  | dft,ok,dw,person,bona  |
-  | .ZZC | Corner Pub | 3 C St., Ctown, Cher, FRANCE | -300  | dft,ok,dw,company,bona |
+  | id   | fullName   | postalAddr                   | floor | flags         |
+  | .ZZA | Abe One    | 1 A St., Atown, AK 01000     | -100  | ok,dw,bona    |
+  | .ZZB | Bea Two    | 2 B St., Btown, UT 02000     | -200  | ok,dw,bona    |
+  | .ZZC | Corner Pub | 3 C St., Ctown, Cher, FRANCE | -300  | ok,dw,co,bona |
   And members have:
   | id   | created   | share |
   | ctty | %today-9w |     0 |
@@ -29,19 +29,19 @@ Setup:
   | :ZZC | .ZZC | .ZZB  | buy        |
   | :ZZD | .ZZC | .ZZA  | sell       |
   And transactions: 
-  | xid   | created   | type     | state | amount | from | to   | purpose      | taking |
-  | .AAAB | %today-7w | signup   | done  |    250 | ctty | .ZZA | signup       | 000000 |
-  | .AAAC | %today-6w | signup   | done  |    250 | ctty | .ZZB | signup       | 000000 |
-  | .AAAD | %today-6w | signup   | done  |    250 | ctty | .ZZC | signup       | 000000 |
-  | .AAAE | %today-5w | transfer | done  |     10 | .ZZB | .ZZA | cash E       | 000000 |
-  | .AAAF | %today-4w | transfer | done  |     20 | .ZZC | .ZZA | usd F        | 000000 |
-  | .AAAG | %today-3w | transfer | done  |     40 | .ZZA | .ZZB | whatever43   | 000000 |
-  | .AAAH | %today-3w | rebate   | done  |      2 | ctty | .ZZA | rebate on #4 | 000000 |
-  | .AAAI | %today-3d | bonus    | done  |      4 | ctty | .ZZB | bonus on #3  | 000000 |
-  | .AAAJ | %today-2d | transfer | done  |      5 | .ZZB | .ZZC | cash J       | 000000 |
-  | .AAAK | %today-1d | transfer | done  |     80 | .ZZA | .ZZC | whatever54   | 000000 |
-  | .AAAL | %today-1d | rebate   | done  |      4 | ctty | .ZZA | rebate on #5 | 000000 |
-  | .AAAM | %today-1d | bonus    | done  |      8 | ctty | .ZZC | bonus on #4  | 000000 |
+  | xid   | created   | type     | state | amount | from | to   | purpose      |
+  | .AAAB | %today-7w | signup   | done  |    250 | ctty | .ZZA | signup       |
+  | .AAAC | %today-6w | signup   | done  |    250 | ctty | .ZZB | signup       |
+  | .AAAD | %today-6w | signup   | done  |    250 | ctty | .ZZC | signup       |
+  | .AAAE | %today-5w | transfer | done  |     10 | .ZZB | .ZZA | cash E       |
+  | .AAAF | %today-4w | transfer | done  |     20 | .ZZC | .ZZA | usd F        |
+  | .AAAG | %today-3w | transfer | done  |     40 | .ZZA | .ZZB | whatever43   |
+  | .AAAH | %today-3w | rebate   | done  |      2 | ctty | .ZZA | rebate on #4 |
+  | .AAAI | %today-3w | bonus    | done  |      4 | ctty | .ZZB | bonus on #3  |
+  | .AAAJ | %today-2d | transfer | done  |      5 | .ZZB | .ZZC | cash J       |
+  | .AAAK | %today-1d | transfer | done  |     80 | .ZZA | .ZZC | whatever54   |
+  | .AAAL | %today-1d | rebate   | done  |      4 | ctty | .ZZA | rebate on #5 |
+  | .AAAM | %today-1d | bonus    | done  |      8 | ctty | .ZZC | bonus on #4  |
   Then balances:
   | id   | balance | r    |
   | ctty |    -768 | -768 |

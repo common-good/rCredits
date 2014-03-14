@@ -27,18 +27,18 @@ function rcredits_install() {
   if (!db\exists('users', 'uid=:server', compact('server'))) {
     $keys = u\ray('uid community name fullName postalCode country minimum rebate flags');
 
-    $values = array($server, $server, R_REGION_SHORTNAME, R_REGION_NAME, R_REGION_POSTAL_AREA, R_COUNTRY_ID, 0, 0, u\bit(B_OK) | u\bit(B_DW) | u\bit(B_COMPANY));
+    $values = array($server, $server, R_REGION_SHORTNAME, R_REGION_NAME, R_REGION_POSTAL_AREA, R_COUNTRY_ID, 0, 0, u\bit(B_OK) | u\bit(B_DW) | u\bit(B_CO));
     $info = array_combine($keys, $values);
     $info += u\ray('legalName postalAddr', R_REGION_LEGALNAME, R_REGION_ADDR);
     new r\acct($info);
 
-    $values = array(r\unQuid(R_SERVER_ID . '.AAA'), $server, 'williamspademan', 'William Spademan', '01330', US_COUNTRY_ID, 0, R_REBATE, B_DFT | u\bit(B_MEMBER) | u\bit(B_DW) | u\bit(B_PERSON));
+    $values = array(r\unQuid(R_SERVER_ID . '.AAA'), $server, 'williamspademan', 'William Spademan', '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit(B_MEMBER) | u\bit(B_DW));
     $info = array_combine($keys, $values);
     list ($mail, $phone, $address, $city, $state) = array(R_TESTER_EMAIL, '+14136283336', 'PO Box 305', 'Ashfield', R_STATE_ID);
     $info += compact(u\ray('mail phone address city state'));
     $wws = new r\acct($info);
     
-    $values = array(r\unQuid(R_SERVER_ID . '.AAB'), $server, 'cgf', 'Common Good Finance', '01330', US_COUNTRY_ID, 0, R_REBATE, B_DFT | u\bit(B_MEMBER) | u\bit(B_OK) | u\bit(B_DW) | u\bit(B_COMPANY));
+    $values = array(r\unQuid(R_SERVER_ID . '.AAB'), $server, 'cgf', 'Common Good Finance', '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit(B_MEMBER) | u\bit(B_OK) | u\bit(B_DW) | u\bit(B_CO));
     $info = array_combine($keys, $values);
     list ($mail, $phone, $address, $city, $state) = array(CGF_EMAIL, CGF_PHONE, CGF_ADDRESS, CGF_CITY, R_STATE_ID);
     $info += compact(u\ray('mail phone address city state'));
@@ -52,7 +52,7 @@ function rcredits_install() {
   // set up system admin record (uid=1)
   $fullName = t('System Administrator');
   $acct1 = r\acct(1);
-  foreach (array(B_ADMIN, B_COMPANY) as $bit) $acct1->setBit($bit, TRUE, FALSE);
+  foreach (array(B_ADMIN, B_CO) as $bit) $acct1->setBit($bit, TRUE, FALSE);
   $acct1->update(compact(u\ray('fullName')));
 
   variable_set('date_default_timezone', 'America/New_York');

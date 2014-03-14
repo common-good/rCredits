@@ -3,97 +3,13 @@
  * @file
  * rCredits admin
  */
+namespace rCredits\Web;
 
 use rCredits as r;
 use rCredits\DB as db;
 use rCredits\Backend as be;
 use rCredits\Testing as t;
 use rCredits\Util as u;
-
-/**
- * Handle results submitted on formAdmin.
- */
-function adminForm($sta) {
-  $mya = r\acct();
-  $admin = $mya->admin(); // as distinct from merely ctty_admin
-  
-  extract(u\just('account make', $sta['input']));
-  $op = r\Web\op($sta);
-
-  if ($op == 'start' or $op == 'stop') {
-    \variable_set('up', $op == 'start');
-    return r\up() ? say('System is UP.') : say('System is DOWN.', 'ERR');
-  }
-
-  if (@$account) {
-    $a = a($account); // should use whois first
-    if (!$admin and $a->community != $mya->community) return say('That account is not in your community.', 'ERR');
-  }
-  
-  if ($op == 'printId') {
-    if (@$make) {
-      seeSecure($a);
-      r\makeCardCode($a);
-      seeSecure($a);
-    }
-    return r\go('print-rcard/' . $a->qid());
-  } elseif ($op == 'seeSecure') {
-    if (@$a) {
-/**/  debug(u\ray('legalName phone federalId physicalAddr', @$a->legalName, substr(@$a->phone, 2), @$a->federalId, @$a->address . ' ' . $a->postalCode));
-      seeSecure($a);
-    }
-  } elseif ($op == 'connectBank') {
-    $secure = $a->secure;
-    if (!$bankAccount = @$secure['bankAccount']) return say(t('Member has not yet entered bank info.'), 'zot');
-    if ($a->country == US_COUNTRY_ID) {
-      $routingNumber = substr(@$bankAccount, 4, 9); // chop of USkk
-      $bankAccount = substr(@$bankAccount, 4 + 9); // everything after the routing number
-    }
-    if (!@$secure['auth']) return say(t('You must first set up the Dwolla account for this member.'), 'zot');
-    $us = new r\usd($a);
-    if (!$us->addBank($bankAccount, @$routingNumber, $secure['bankAccountType'], $err)) return say($err, 'zot');
-    say('info saved');
-  } elseif ($op == 'do1099b') {
-    include __DIR__ . '/../rcredits/rcredits-yearly.inc';
-    r\Special\do1099bs();
-  } elseif ($op == 'makeCtty') {
-    return r\go('make-community');
-  }
-  
-  // handle all other buttons with showQuery()
-  if ($op == 'users') {
-    $fields = 'uid, MID(phone,3) AS phone, flags, r, usd, rewards, minimum AS min, committed AS comit, share, floor, address, city, postalCode AS zip';
-    return say(showQuery('users', 1, 'name', $fields));
-  }
-  
-  $logFields = "channel,type,myid,agent, REPLACE(special, ',', ', ') AS special, REPLACE(info, ',', ', ') AS info";
-
-  if ($op == 'log') return say(showQuery('r_log', 1, 'logid DESC', $logFields));
-  if ($op == 'tells') return say(showQuery('r_log', "info LIKE '%tell-staff%' ORDER BY logid DESC LIMIT 50", 'logid DESC', $logFields));
-
-  if ($op == 'txs') return say(showQuery('r_txs', isDEV ? 1 : 'type NOT IN (:TX_REBATE,:TX_BONUS)', 'xid DESC', 'xid, t.created, type AS ty, t.state AS st, goods AS gd, payer, payee, amount, payerFor AS for1, payeeFor AS for2, payerTid AS tid1, payeeTid AS tid2', array('payer', 'payee')));
-
-  if ($op == 'gifts') return say(showQuery('r_gifts', "honor<>'share'", 'donid DESC', 'donid,giftDate,t.uid,amount,often,honor,honored,t.share,completed', 'uid'));
-  if ($op == 'invites') return say(showQuery('r_invites', 1, 'invited DESC', 'invited, inviter, invitee, email', 'inviter'));
-  if ($op == 'notices') return say(showQuery('r_notices', 1, 'msgid DESC'));
-  if ($op == 'proxies') return say(showQuery('r_proxies', 1, 'id DESC', 'person, proxy, priority', 'person'));
-  if ($op == 'relations') return say(showQuery('r_relations', 1, 'main, reid', 'reid,main,other,draw,permission,employerOk,employeeOk,isOwner', 'main'));
-  foreach (u\ray('boxes do stats usd') as $one) if ($op == $one) return say(showQuery("r_$one"));
-}
-
-    /*
-  } elseif ($op == 'newUsdEmail') {
-    seeSecure($a);
-    if (!@$a->secure['auth'] or !$make) return;
-    $usdPass = user_password(20) . '*B2'; // satisfy Dwolla (and our own security)
-    $usdEmail = strtolower(\user_password(4) . '.' . $a->mainQid) . '@rc4.me';
-    $usdPin = u\randomString(4, 'digits');
-    $usdPhone = $a->phone;
-    $secure = compact('usdEmail') + $a->secure + compact(u\ray('usdPass usdPin usdPhone')); // preempt only e
-    $a->update(compact('secure'));
-    seeSecure($a);
-    return; */
-
 
 function seeSecure($a) {
   $secure = $a->secure;
@@ -104,10 +20,106 @@ function seeSecure($a) {
 }
 
 /**
+ * Change a transaction amount (only if the transaction happened today and only for a non-rewardable type).
+ * @param int $xid: tx record ID
+ * @param float $oldAmt: the old amount (for a consistency check)
+ * @param float $newAmt: what the amount should be
+ */
+function changeTxAmt($xid, $oldAmt, $newAmt) {
+  if (!$rec = db\lookup('payer,payee,amount,created,goods', 'r_txs', 'xid=:xid', compact('xid'))) return say(t('No such transaction.'), 'err');
+  extract($rec);
+  if ($amount != $oldAmt) return say(t('The existing amount of that transaction is different.'), 'err');
+  if (u\fmtDate($created) != u\fmtDate(REQUEST_TIME)) return say(t('That transaction is not from today.'), 'err');
+  if ($goods) return say(t('That transaction has rewards.'), 'err');
+  $DBTX = \db_transaction();
+  if (!$amount = round($newAmt, 2)) return say(t('Bad new amount.'));
+  db\update('r_txs', compact('xid', 'amount'), 'xid');
+  $change = $newAmt - $oldAmt;
+  if ($payee > 0) db\q('UPDATE users SET r=r+:change WHERE uid=:payee', compact('change', 'payee'));
+  if ($payer > 0) db\q('UPDATE users SET r=r-:change WHERE uid=:payer', compact('change', 'payer'));
+  say(t('done'));
+  unset($DBTX);
+}
+
+/**
+ * Return a display of steps done and steps remaining (to open an account).
+ */
+function showSteps($a) {
+  $steps = '';
+  if (!$a->ok) foreach ($a->stepsDone as $k => $done) {
+    $color = $done ? 'silver' : 'red';
+    if ($a->co) {
+      if ($k == 'proxies') $color = 'white';
+    } elseif ($k == 'company' or $k == 'relations') $color = 'white';
+    $steps .= "<b style=\"color:$color;\">$k </b>";
+  }
+  if (!$a->ok) $steps .= ' [Next step: <b style="color:red;">' . ($a->nextStep() ?: 'NONE!') . '</b>] ';
+  return $steps;
+}
+
+/**
+ * Return a description of the account's recent purchase activity (sales activity for companies).
+ */
+function showActivity($a) {
+  $uid = $a->id;
+  $cgf = r\cgfId();
+  $when = strtotime('-3 months');
+  $count = $a->co ? db\recCount('r_txs', 'payee=:uid AND created>:when', compact('uid', 'when'))
+    : db\recCount('r_txs', 'payer=:uid AND payee<>:cgf AND created>:when', compact(u\ray('uid cgf when')));
+  $ret = t('@count @what', u\ray('@count @what', $count, $a->co ? t('sales') : t('purchases')));
+  $subs = u\ray('@signed', u\fmtDate($a->signed));
+  $ret .= (@$a->signed and $a->signed < $when) 
+    ? t(' in the past 3 months (member since @signed)', $subs)
+    : t(' since joining on @signed', $subs);
+  return $ret;
+}
+
+/**
+ * Return a list of the account's relations.
+ */
+function showRelations($a) {
+  $uid = $a->id;
+  $ret = '';
+  $sql = <<<EOF
+    SELECT IF(r.main=:uid, other, main) AS them, main, IF(r.main=:uid, u2.fullName, u1.fullName) as who, 
+      permission, employeeOk, employerOk, isOwner, draw,
+      u1.:IS_CO AS iCo, u2.:IS_CO AS uCo
+    FROM r_relations r LEFT JOIN users u1 ON u1.uid=r.main LEFT JOIN users u2 ON u2.uid=r.other
+    WHERE :uid IN (r.main, r.other)
+EOF;
+  $q = db\q($sql, compact('uid'));
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    $permission += B_RELATED; // shift to use bit names
+    if ($isOwner and !$iCo and !$uCo) {
+      $role = t('related to');
+    } elseif ($uid == $main) {
+      $role = $isOwner ? t('owned by')
+        : ($draw ? t('drawn on by')
+        : ($permission >= B_MANAGE ? t('managed by')
+        : (($permission >= B_SCAN or $employerOk) ? t('employs')
+        : ($employeeOk ? t('employs')
+        : ($permission >= B_READ ? t('readable by')
+        : t('? by'))))));
+    } else {
+      $role = $isOwner ? t('owns')
+        : ($draw ? t('draws from')
+        : ($permission >= B_MANAGE ? t('manages')
+        : (($permission >= B_SCAN or $employerOk) ? t('works for')
+        : ($employeeOk ? t('works for')
+        : ($permission >= B_READ ? t('can read')
+        : t('can ?'))))));
+    }
+    $ret .= ($ret ? ', ' : '') . "$role <a href=\"$them\">$who</a>";
+  }
+  return $ret;
+}
+
+/**
  * List the USD account status of each account.
  *//*
 function usdAccts($where = "postalCode LIKE '013%'") {
-  if (!r\acct()->admin()) return;
+  if (!r\acct()->admin) return;
   $result = db\q("SELECT uid FROM users WHERE $where ORDER BY fullName");
   $head = u\ray('Name Dwolla? Type Verified OK Co Bal');
   while ($row = $result->fetch()) {
@@ -119,9 +131,9 @@ function usdAccts($where = "postalCode LIKE '013%'") {
     $verified = @$source['Verified'] ? 'Yes' : '-';
     $count = @$source['count'];
     
-    $ok = $a->ok() ? 'ok' : '';
+    $ok = $a->ok ? 'ok' : '';
 //    $charge = $a->can(B_CHARGE) ? 'Chg' : '';
-    $company = $a->co() ? 'Co' : '';
+    $company = $a->co ? 'Co' : '';
     $line = array($a->fullName, $hasDwolla, $type, $verified, $ok, $company, $bal);
     $lines[] = array_combine($head, $line);
   }
@@ -129,13 +141,16 @@ function usdAccts($where = "postalCode LIKE '013%'") {
 }*/
 
 function showRecords($ray) {
-  $cgfUid = \variable_get('cgf_uid');
+  $cgfUid = r\cgfId();
+  $cgfLen = strlen(r\acct($cgfUid)->id);
   if (!$ray or empty($ray)) return 'data set is empty';
   $lines[] = '<tr><th>' . join('</th><th>', array_keys((array) $ray[0])) . "</th></tr>\n";
   foreach ($ray as $row) {
     $line = '';
     foreach ($row as $key => $value) {
-      if ($value and in_array($key, u\ray('id uid t.uid myid payer payee main other inviter invitee proxy person owner defaultAgent'))) $value = r\acct($value)->name; // don't include agent/payerAgent/etc. here
+      if ($value and in_array($key, u\ray('id uid t.uid myid payer payee main other inviter invitee proxy person owner defaultAgent')) and strlen($value) >= $cgfLen) {
+        if ($a = r\acct($value)) $value = $a->name; else $value .= t(' (missing)'); // eg, when uid is changed
+      } // member ID. Don't include agent/payerAgent/etc. here
       if ($value and $key == 'channel') $value = u\rayv(u\ray(TX_CHANNELS), $value);
       if ($key == 'reid') $value = u\n2a($value, -3);
       if ($value and in_array($key, u\ray(R_DATE_FIELDS))) $value = '<div style="line-height:65%;">' . strftime('%d%b', $value) . '<span style="font-size:50%;">\'' . strftime('%y', $value) . '<br>' . strftime(isDEV ? '%I:%M %p' : '%l:%M %P', $value) . '</span></div>';
@@ -161,7 +176,7 @@ function showQuery($table, $where = '1', $order = '', $fields = '*', $joinFields
   $limit = 500; // max records to show
   
   $mya = r\acct();
-  if (!$admin = $mya->admin()) {
+  if (!$admin = $mya->admin) {
     if ($table != 'users') {
       if (!is_array($joinFields)) $joinFields = array($joinFields);
       $fieldCount = count($joinFields);
@@ -233,29 +248,31 @@ OR changeIt(a('aaa'));
 
  */
 function changeIt($a) {
-  if (!$a->ok() or !$a->can(B_BONA) or $a->co()) return;
+  $a->setBit(B_u5, FALSE);
+  $stepsDone = array_fill_keys(u\ray(R_STEPS), FALSE);
+  $a->update(u\ray('data', compact('stepsDone') + $a->data));
+  if ($a->signed) $a->stepDone('sign');
+  if ($a->postalAddr) $a->stepDone('contact');
+  if (db\exists('r_gifts', 'uid=:uid', u\ray('uid', $a->id))) $a->stepDone('donate');
+  if (db\exists('r_proxies', 'person=:uid', u\ray('uid', $a->id))) $a->stepDone('proxies');
+  if (file_exists(DRUPAL_ROOT . $a->auxFilename('picture', TRUE))) $a->stepDone('photo');
+  if (!is_null($a->minimum)) $a->stepDone('prefs');
+  if (@$a->secure['bankAccount']) $a->stepDone('connect');
+  if ($a->can(B_BANK)) $a->stepDone('verify');
+  if ($a->selling) $a->stepDone('company');
+  if ($a->co and $a->member) $a->stepDone('relations');
+  
+}
+
+function fixdw($a) {
+  if ($a->ok and $a->can(B_DW)) {$a->stepDone('dw'); $a->stepDone('connect');}
+}
+
+function pioneerBonus($a) {
+  if (!$a->ok or !$a->can(B_BONA) or $a->co) return;
   if (db\exists('r_txs', "payee=:uid AND payer=-8915 AND amount=100", u\ray('uid', $a->id))) return;
 /**/debug("Pioneer bonus to $a->fullName");
   be\fund($a->id, TX_SIGNUP, 100, 'pioneer bonus');
-
-  /*
-  $q = db\q('SELECT xid, serial, data, payer, payee, payerTid, payeeTid, payerFor, payeeFor, (payee=:uid) AS tome FROM r_txs WHERE :uid IN (payer, payee) ORDER BY xid', u\ray('uid', $a->id));
-  $tid = 0;
-  while ($row = $q->fetchAssoc()) {
-    extract($row);
-    if ($serial == @$serialx) { // rebate / bonus
-      $fornm = $tome ? 'payeeFor' : 'payerFor';
-      $$fornm = str_replace("#$oldtid", "#$tid", $$fornm);
-      db\update('r_txs', compact('xid', $fornm), 'xid');
-    } else { // main tx
-      $tidnm = $tome ? 'payeeTid' : 'payerTid';
-      $oldtid = $$tidnm;
-      $$tidnm = $tid = $tid + 1;
-      db\update('r_txs', compact('xid', $tidnm), 'xid');
-      $serialx = $serial;
-    }
-  }
-  */    
 }
 
 /**
@@ -315,5 +332,3 @@ function cover($txid, $payee) {
   $a->actualUsd(-$fee);
   r\usd::commit();
 }
-
-function say($index, $args = array(), $errField = '') {return r\Web\say($index, $args, $errField);}

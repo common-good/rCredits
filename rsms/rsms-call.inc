@@ -47,6 +47,7 @@ class call {
    */
   function handle_call() {
     if (!r\up()) return tt('system down');
+    if ($mya = r\acct() and !$mya->cttyUp) return tt('your community down', u\ray('contact', $mya->cAdminContact()));
     try {
       if($error_message = $this->validate_caller()) return $error_message;
       $this->parse();

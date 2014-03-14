@@ -45,9 +45,9 @@ class rsmsExchange extends DrupalWebTestCase {
     case(0):
     Given('members: "DATA'
     . '\\| id   | fullName   | number | flags           |'
-    . '\\| .ZZA | Abe One    | +20001 | person,ok,bona  |'
-    . '\\| .ZZB | Bea Two    | +20002 | person,ok,bona  |'
-    . '\\| .ZZC | Corner Pub | +20003 | company,ok,bona |"');
+    . '\\| .ZZA | Abe One    | +20001 | ok,bona  |'
+    . '\\| .ZZB | Bea Two    | +20002 | ok,bona  |'
+    . '\\| .ZZC | Corner Pub | +20003 | co,ok,bona |"');
     And__('transactions: "DATA'
     . '\\| type     | amount | from | to   | purpose |'
     . '\\| signup   | 250    | ctty | .ZZA | signup  |'

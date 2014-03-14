@@ -38,7 +38,6 @@
 require_once 'rcredits.inc';
 require_once 'rcredits-backend.inc';
 require_once 'rcron/rcron.inc'; // required here by cron
-if (isDEV) include_once 'admin.inc';
 use rCredits as r;
 use rCredits\Util as u;
 use rCredits\Testing as t;
@@ -149,7 +148,7 @@ function rcredits_mail($index, &$msg_array, $info) {
     $message = $msg_array['body'][] = strtr($message, $subs);
 
     $message = str_replace("\r\n", '', $message); // easier reading for log and tests
-    foreach (u\ray(R_CONCEALED_FIELDS) as $one) $message = str_replace(@$info[$one], '(varies)', $message);
+    foreach (u\ray(R_NOLOG) as $one) $message = str_replace(@$info[$one], '(?)', $message);
     $fields = compact(u\ray('index email subject message'));
 /**/ t\output('Actual (in hook_mail) ' . print_r($fields, 1), 'email');
     
@@ -159,25 +158,6 @@ function rcredits_mail($index, &$msg_array, $info) {
       r\acct::setDefault($mya); // put it back (required at least for testing
     }
     u\loga('email', $fields);
-
-/* OLD:
-    $msg_array['body'][] = $message = strtr($message, $subs);
-    $msg_array['subject'] = $subject = @$info['subject'] ?: strtr($GLOBALS['emailSubjects'][$key], $subs);
-
-    $message = str_replace("\r\n", '', $message); // easier reading for log and tests
-    $message = str_replace($info['oneTimeLoginUrl'], '(varies)', $message);
-    $fields = compact(u\ray('key email subject message'));
-    if (t\est()) \drupal_set_message(t\color($fields, 'email')); // keep this
-    
-    if (!r\acct()) { // must be register/login/reset, so setup what u\log needs
-      r\acct::setDefault($acct);      
-      global $channel; if (!$channel) $channel = TX_WEB;
-    }
-    u\loga('email', $fields);
-*/    
-//    $msg_array['subject'] = t('Notification from !site', $variables, compact('langcode'));
-//    $msg_array['body'][] = t("Dear !username\n\nThere is new content available on the site.", $variables, compact('langcode'));
-    
 }
 
 /**
@@ -226,6 +206,7 @@ function a($id = 'ZZA') {global $lastA; return $lastA = r\acct(strtoupper(strlen
 function us($a = '') {global $lastA; return new r\usd($a ? (is_object($a) ? $a : a($a)) : $lastA);}
 /**/ function da($idfield) {list ($id, $field) = u\ray($idfield); debug(a($id)->$field);}
 /**/ function step($a) {debug(us($a)->step());}
+function ctty($id) {return a(a($id)->community);}
 
 /**
  * Show the function result in the debug window and return the result.

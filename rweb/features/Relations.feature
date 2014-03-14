@@ -5,11 +5,11 @@ SO I can buy and sell stuff on behalf of other accounts, and they on mine.
 
 Setup:
   Given members:
-  | id   | fullName   | acctType    | flags               |
-  | .ZZA | Abe One    | personal    | dft,ok,person,bona  |
-  | .ZZB | Bea Two    | personal    | dft,ok,person,bona  |
-  | .ZZC | Corner Pub | corporation | dft,ok,company,bona |
-  | .ZZD | Dee Four   | personal    | dft,ok,person,bona  |
+  | id   | fullName   | acctType    | flags      |
+  | .ZZA | Abe One    | personal    | ok,bona    |
+  | .ZZB | Bea Two    | personal    | ok,bona    |
+  | .ZZC | Corner Pub | corporation | ok,co,bona |
+  | .ZZD | Dee Four   | personal    | ok,bona    |
   And transactions: 
   | xid | created   | type       | amount | from      | to   | purpose | taking |
   |   1 | %today-6m | %TX_SIGNUP |    250 | community | .ZZA | signup  | 0      |
@@ -96,8 +96,8 @@ Scenario: Member company has relations
   | .ZZA | .ZZC | .ZZA  | manage     | 1          | 1          | 1        |
   When member ":ZZA" visits page "account/relations"
   Then we show "Relations" with:
-  | Other   | My employee? | Owner? | Permission     |_requests      |
-  | Abe One | Yes          | Yes    | manage account | request rCard |
+  | Other   | My employee? | Owns | Permission     |_requests      |
+  | Abe One | Yes          | Yes  | manage account | request rCard |
   And without:
   |_Header       |
   | My employer? |
@@ -134,8 +134,8 @@ Scenario: It's complicated
   | Family? |
   When member ":ZZD" visits page "account/relations"
   Then we show "Relations" with:
-  | Other   | My employee? | Owner? | Permission     |_requests      |
-  | Abe One | Yes          | No     | manage account | -- |
+  | Other   | My employee? | Owns | Permission     |_requests      |
+  | Abe One | Yes          | No   | manage account | -- |
   And without:
   |_Header    |
   | employer? |

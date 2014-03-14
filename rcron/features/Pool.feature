@@ -5,10 +5,10 @@ SO we can use them for something as a community, while losing nothing as individ
 
 Setup:
   Given members:
-  | id   | fullName   | email | flags                 |
-  | .ZZA | Abe One    | a@    | dft,ok,dw,person,bona |
-  | .ZZB | Bea Two    | b@    | dft,ok,dw,person,bona |
-  | .ZZC | Corner Pub | c@    | dft,ok,dw,company     |
+  | id   | fullName   | email | flags      |
+  | .ZZA | Abe One    | a@    | ok,dw,bona |
+  | .ZZB | Bea Two    | b@    | ok,dw,bona |
+  | .ZZC | Corner Pub | c@    | ok,dw,co   |
   And transactions: 
   | xid | created   | type     | amount | from | to   | purpose |
   |   1 | %today-6m | signup   |     25 | ctty | .ZZC | signup  |

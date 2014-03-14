@@ -5,10 +5,10 @@ SO I can see what happened, accept or refuse offers, adjust descriptions, and co
 
 Setup:
   Given members:
-  | id   | fullName   | floor | acctType    | flags                         |
-  | .ZZA | Abe One    | -100  | personal    | dft,ok,dw,person,bona         |
-  | .ZZB | Bea Two    | -200  | personal    | dft,ok,dw,person,company,bona |
-  | .ZZC | Corner Pub | -300  | corporation | dft,ok,dw,company,bona        |
+  | id   | fullName   | floor | acctType    | flags         |
+  | .ZZA | Abe One    | -100  | personal    | ok,dw,bona    |
+  | .ZZB | Bea Two    | -200  | personal    | ok,dw,co,bona |
+  | .ZZC | Corner Pub | -300  | corporation | ok,dw,co,bona |
   And relations:
   | id   | main | agent | permission |
   | .ZZA | .ZZA | .ZZB  | buy        |
@@ -146,13 +146,13 @@ Scenario: Transactions with other states show up properly
   | xid   | created   | type     | state    | amount | from | to   | purpose  | taking |
   | .AACA | %today-5d | transfer | denied   |    100 | .ZZC | .ZZA | labor CA | 0      |
   | .AACB | %today-5d | rebate   | denied   |      5 | ctty | .ZZC | rebate   | 0      |
-  | .AACD | %today-5d | bonus    | denied   |     10 | ctty | .ZZA | bonus    | 0      |
-  | .AACE | %today-5d | transfer | denied   |      5 | .ZZA | .ZZC | cash CE  | 1      |
-  | .AACF | %today-5d | transfer | disputed |     80 | .ZZA | .ZZC | this CF  | 1      |
-  | .AACG | %today-5d | rebate   | disputed |      4 | ctty | .ZZA | rebate   | 0      |
-  | .AACH | %today-5d | bonus    | disputed |      8 | ctty | .ZZC | bonus    | 0      |
-  | .AACI | %today-5d | transfer | deleted  |    200 | .ZZA | .ZZC | never    | 1      |
-  | .AACL | %today-5d | transfer | disputed |    100 | .ZZC | .ZZA | cash CL  | 1      |
+  | .AACC | %today-5d | bonus    | denied   |     10 | ctty | .ZZA | bonus    | 0      |
+  | .AACD | %today-5d | transfer | denied   |      5 | .ZZA | .ZZC | cash CE  | 1      |
+  | .AACE | %today-5d | transfer | disputed |     80 | .ZZA | .ZZC | this CF  | 1      |
+  | .AACF | %today-5d | rebate   | disputed |      4 | ctty | .ZZA | rebate   | 0      |
+  | .AACG | %today-5d | bonus    | disputed |      8 | ctty | .ZZC | bonus    | 0      |
+  | .AACH | %today-5d | transfer | deleted  |    200 | .ZZA | .ZZC | never    | 1      |
+  | .AACK | %today-5d | transfer | disputed |    100 | .ZZC | .ZZA | cash CL  | 1      |
   Then balances:
   | id   | balance |
   | ctty |    9220 |
@@ -213,12 +213,17 @@ Scenario: A member confirms OK
   Then we say "status": "report transaction" with subs:
   | did    | otherName  | amount | rewardType | rewardAmount |
   | paid   | Corner Pub | $80    | reward     | $4           |
-  And we notice "new payment|reward other" to member ".ZZC" with subs:
-  | created | fullName   | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |
-  | %today  | Corner Pub | <a href=''do/id=1&code=whatever''>Abe One</a> | $80 | this CF | reward | $8 |
   And we show "Transaction History" with:
   |_tid | Date   | Name       | From you | To you | Status | _ | Purpose | Reward |
   | 12  | %dm    | Corner Pub | 80.00    | --     | %chk   | X | this CF | 4.00   |
+  And we notice "new payment|reward other" to member ".ZZC" with subs:
+  | created | fullName   | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |
+  | %today  | Corner Pub | Abe One   | $80 | this CF | reward | $8 |
+  And that "notice" has link results:
+  | _name   | 
+  | Abe One |
+  # etc. (has to be vertical if just one value)
+  # notice must postcede we show Transaction History (so as not to overwrite formOut['text']) -- fix that
   
 Scenario: A member confirms OK for a disputed transaction
   Given transactions:

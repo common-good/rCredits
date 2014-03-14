@@ -2,7 +2,7 @@
 //
 // Feature: Sharing
 //   AS a member
-//   I WANT to contribute part of my rebates and bonuses to CGF monthly
+//   I WANT to donate part of my rebates and bonuses to CGF monthly
 //   SO CGF can continue to promote and maintain the rCredits system for my benefit and everyone's
 
 require_once __DIR__ . '/../../../gherkin/test-defs.php';
@@ -44,15 +44,15 @@ class rcronSharing extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id   | fullName   | floor | acctType    | flags                      | share |'
-    . '\\| .ZZA | Abe One    | -100  | personal    | dft,ok,person,bona         |    50 |'
-    . '\\| .ZZB | Bea Two    | -200  | personal    | dft,ok,person,company,bona |    10 |'
-    . '\\| .ZZC | Corner Pub | -300  | corporation | dft,ok,company,bona        |     0 |"');
+    . '\\| id   | fullName   | floor | acctType    | flags      | share |'
+    . '\\| .ZZA | Abe One    | -100  | personal    | ok,bona    |    50 |'
+    . '\\| .ZZB | Bea Two    | -200  | personal    | ok,co,bona |    10 |'
+    . '\\| .ZZC | Corner Pub | -300  | corporation | ok,co,bona |     0 |"');
     When_('transactions: "DATA'
     . '\\| xid | created | type     | state    | amount | from | to   | purpose |'
     . '\\|   1 | %today  | transfer | done     |     40 | .ZZA | .ZZB | what G  |'
-    . '\\|   2 | %today  | rebate   | done     |      2 | ctty | .ZZA | rebate  |'
-    . '\\|   3 | %today  | bonus    | done     |      4 | ctty | .ZZB | bonus   |"');
+    . '\\|   2 | %today  | rebate   | done     |      2 | ctty | .ZZA | rebate on #1 |'
+    . '\\|   3 | %today  | bonus    | done     |      4 | ctty | .ZZB | bonus on #1  |"');
     break;
 
 
@@ -69,10 +69,10 @@ class rcronSharing extends DrupalWebTestCase {
     . '\\| .ZZB | %today   |   0.40 |     1 | share  |    -1 |"');
     And__('we notice "share gift" to member ".ZZA" with subs: "DATA'
     . '\\| share |'
-    . '\\| 50.0  |"');
+    . '\\| 50    |"');
     And__('we notice "share gift" to member ".ZZB" with subs: "DATA'
     . '\\| share |'
-    . '\\| 10.0  |"');
+    . '\\| 10    |"');
     And__('balances: "DATA'
     . '\\| id   | committed |'
     . '\\| .ZZA |         0 |'
@@ -82,6 +82,12 @@ class rcronSharing extends DrupalWebTestCase {
     . '\\| xid | created| type     | state | amount | from | to   | purpose |'
     . '\\|   4 | %today | transfer | done  |      1 | .ZZA | cgf | sharing rewards with CGF |'
     . '\\|   7 | %today | transfer | done  |   0.40 | .ZZB | cgf | sharing rewards with CGF |"');
+    And__('we notice "gift sent" to member ".ZZA" with subs: "DATA'
+    . '\\| amount | rewardAmount |'
+    . '\\| $1     | $0.05        |"');
+    And__('we notice "gift sent" to member ".ZZB" with subs: "DATA'
+    . '\\| amount | rewardAmount |'
+    . '\\| $0.40  | $0.02        |"');
   }
 
 }

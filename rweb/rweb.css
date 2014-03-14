@@ -83,6 +83,7 @@ body.page-devel  .form-type-radio  input,
 body.page-admin  .form-type-checkbox  input,
 body.page-admin  .form-type-radio  input {position:relative; left:0;}
 #nosignin .messages #subtext {margin:10px 0 0 0; font-size:80%; color:darkgray;}
+#nosignin div.status {margin:20px; padding:10px; background-image:none;} 
 
 #main {margin:0 0 1em 0;}
 body.logged-in.one-sidebar #content {width:100%;}
@@ -328,18 +329,18 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformgetr #edit-subtext .r-explain {text-align:left; margin-left:30px; max-width:650px;}
 #rcreditswebformgetr #edit-subtext .r-amounts {text-align:right; max-width:425px;}
 
-/* Contribute */
-#rcreditswebformcontribute #edit-title,
-#rcreditswebformcontribute #edit-subtext {margin-left:0;}
-#rcreditswebformcontribute .form-item-other {display:none;}
-#rcreditswebformcontribute #edit-other,
-#rcreditswebformcontribute #edit-share {width:50px;}
-/* fails #rcreditswebformcontribute input#edit-share:after {content:"%"} */
-#rcreditswebformcontribute #edit-subtext {font-weight:normal; font-size:85%;}
-#rcreditswebformcontribute #edit-gift {font-family:monospace; font-size:120%;}
-#rcreditswebformcontribute .form-item-share .description {display:inline-block; max-width:470px; margin-left:5px;}
-#rcreditswebformcontribute .form-item-honor,
-#rcreditswebformcontribute .form-item-honored {display:inline-block;}
+/* Donate */
+#rcreditswebformdonate #edit-title,
+#rcreditswebformdonate #edit-subtext {margin-left:0;}
+#rcreditswebformdonate .form-item-other {display:none;}
+#rcreditswebformdonate #edit-other,
+#rcreditswebformdonate #edit-share {width:50px;}
+/* fails #rcreditswebformdonate input#edit-share:after {content:"%"} */
+#rcreditswebformdonate #edit-subtext {font-weight:normal; font-size:85%;}
+#rcreditswebformdonate #edit-gift {font-family:monospace; font-size:120%;}
+#rcreditswebformdonate .form-item-share .description {display:inline-block; max-width:470px; margin-left:5px;}
+#rcreditswebformdonate .form-item-honor,
+#rcreditswebformdonate .form-item-honored {display:inline-block;}
 
 /* Proxies */
 #rcreditswebformproxies #edit-title {margin-left:0;}
@@ -412,9 +413,13 @@ form.rweb  .form-no {color:red;}
 
 /* Member List */
 #memberlist {width:auto; cell-spacing:5px;}
-#memberlist .name {font-weight:bold;}
-#memberlist .co {color:darkred;}
+#memberlist .name a {font-weight:bold;}
+#memberlist .co a {color:darkred;}
 #memberlist td:first-child +td+td {width:100px;} 
+.page-member-list-info div.status {background-image:none; margin:4px; padding:0px;}
+
+/* Member Info */
+#rcreditswebformmemberinfo .form-item {margin-bottom:15px;}
 
 /* 1099-B */
 #f1099b td:first-child {width:48px;} /* date */

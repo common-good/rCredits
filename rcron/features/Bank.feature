@@ -5,8 +5,8 @@ SO I can spend it with my rCard.
 
 Setup:
   Given members:
-  | id   | fullName | floor | minimum | flags                    |
-  | .ZZA | Abe One  |     0 |     100 | dft,person,company,ok,dw |
+  | id   | fullName | floor | minimum | flags    |
+  | .ZZA | Abe One  |     0 |     100 | co,ok,dw |
   
 Scenario: a member is barely below minimum
   Given balances:
@@ -16,9 +16,9 @@ Scenario: a member is barely below minimum
   Then usd transfers:
   | payer | amount       |
   | .ZZA | -%R_BANK_MIN |
-  And we notice "minmax status|banked" to member ".ZZA" with subs:
-  | action    | status                    | amount       |
-  | draw from | under the minimum you set | $%R_BANK_MIN |
+  And we notice "under min|banked" to member ".ZZA" with subs:
+  | action    | amount       |
+  | draw from | $%R_BANK_MIN |
   
 Scenario: a member is at minimum
   Given balances:
@@ -35,9 +35,9 @@ Scenario: a member is well below minimum
   Then usd transfers:
   | payer | amount              |
   | .ZZA  | %(-4 * %R_BANK_MIN) |
-  And we notice "minmax status|banked" to member ".ZZA" with subs:
-  | action    | status                    | amount              |
-  | draw from | under the minimum you set | $%(4 * %R_BANK_MIN) |
+  And we notice "under min|banked" to member ".ZZA" with subs:
+  | action    | amount              |
+  | draw from | $%(4 * %R_BANK_MIN) |
 
 Scenario: a member is under minimum but already requested barely enough funds from the bank
   Given balances:

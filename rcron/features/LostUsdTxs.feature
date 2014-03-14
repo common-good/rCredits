@@ -8,9 +8,9 @@ SO I can depend on the accuracy of rCredits system records
 
 Setup:
   Given members:
-  | id   | fullName   | dw | country | email | flags                 | rebate |
-  | %id1 | Abe One    |  1 | US      | a@    | dft,ok,dw,person,bona |      5 |
-  | %id2 | Bea Two    |  0 | US      | b@    | dft,ok,dw,person,bona |      5 |
+  | id   | fullName   | dw | country | email | flags      | rebate |
+  | %id1 | Abe One    |  1 | US      | a@    | ok,dw,bona |      5 |
+  | %id2 | Bea Two    |  0 | US      | b@    | ok,dw,bona |      5 |
   And balances:
   | id   | dw/usd |
   | %id1 |      2 |

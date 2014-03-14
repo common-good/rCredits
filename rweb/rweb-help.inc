@@ -16,7 +16,7 @@ use rCredits\Util as u;
 function helpText($page) {
   global $rUrl, $base_url;
   $mya = r\acct();
-  $company = !@$mya->person();
+  $company = @$mya->co;
   $acctName = @$mya->name; // @ is for SMS testing (when not signed in)
 
   $site = str_replace('https://', '', R_SITE_URL);
@@ -44,7 +44,7 @@ EOF
     <h2>Icons, etc.</h2>
     <ul>
       <li><b>Sign out (Your icon)</b>: click the picture of yourself to sign out or change users.</li>
-      <li><b>Settings (Gear icon)</b>: Change your account settings, customize your company webpage (or make a Buy-with-rCredits button), make another contribution, or connect a mobile device.</li>
+      <li><b>Settings (Gear icon)</b>: Change your account settings, customize your company webpage (or make a Buy-with-rCredits button), make another donation, or connect a mobile device.</li>
     </ul>
 
     <p>If you need help and can't find the answer here, please feel free to <a href="mailto:@R_REGION_EMAIL?subject=help with rCredits" target="_blank">email us</a>.</p>
@@ -74,7 +74,7 @@ EOF
     'pay' => t(<<<EOF
     <p><b>Whom:</b> Type all or part of the full name of the account you want to pay. You can leave out the punctuation, spaces, and capitals. Or you can type their phone number or email address or their account ID. Note that a period in the account ID (a regular account) is different from a colon (an agent acting on behalf of an account).</p>
     <p><b>Amount:</b> The amount of the transaction, measured in dollars, to be paid in rCredits.</p>
-    <p><b>Purpose:</b> If this is a purely financial transaction, click "cash/loan/etc". Otherwise, a description is required (for purchases and sales of real goods and services). Contributions to nonprofit organizations count as purchases of real services &mdash; services to society. For loans, cash exchanges, and other money deals, you can leave the purpose blank &mdash; your statements will call the purpose "cash".</p>
+    <p><b>Purpose:</b> If this is a purely financial transaction, click "cash/loan/etc". Otherwise, a description is required (for purchases and sales of real goods and services). Donations to nonprofit organizations count as purchases of real services &mdash; services to society. For loans, cash exchanges, and other money deals, you can leave the purpose blank &mdash; your statements will call the purpose "cash".</p>
 EOF
     ),
     'directory' => t(<<<EOF
@@ -224,8 +224,8 @@ EOF
     <p>The rCredits Agreement is at the heart of the the rCredits system. It is our agreement to accept rCredits from each other that gives them value. Please read each section carefully and click the checkboxes to indicate your agreement. For more specific information, click the hyperlinks in the text.</p>
 EOF
     ),
-    'contribute' => t(<<<EOF
-    <p>Your contribution helps fund administration and promotion of the rCredits system during the pilot phase. It is also a formal "sealing" of your signature on the rCredits agreement.</p>
+    'donate' => t(<<<EOF
+    <p>Your donation helps fund administration and promotion of the rCredits system during the pilot phase. It is also a formal "sealing" of your signature on the rCredits agreement.</p>
 EOF
     ),
     'account/proxies' => t(<<<EOF

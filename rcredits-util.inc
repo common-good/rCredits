@@ -11,6 +11,9 @@ use rCredits\DB as db;
 use rCredits\Util as u;
 use rCredits\Testing as t;
 
+define ('URL_CHARS', 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.-_~'); // 66 valid URLchars
+define ('HEX_CHARS', '0123456789abcdef');
+
 // Some useful Drupal db methods: fetchAllKeyed(m, n), fetchAssoc and fetchAllAssoc(fld), fetchObject and fetchAll(), fetchCol(n), fetchField()
 
 /**
@@ -44,6 +47,17 @@ function ray($s, $value1 = NULL) {
     $array[$key] = $value;
   }
   return $array;
+}
+
+/**
+ * Let a called function receive a single assoc arg or several named args, simulating a call with u\ray(s,...).
+ * call by extract(u\rayy(func_get_args()));
+ * The called function cannot otherwise accept an assoc as its first argument.
+ * @param array $args: func_get_args() from the called function
+ * @return u\ray called with those args if viable, else array()
+ */
+function rayy($args) {
+  return (count($args) >= 2 and is_string($args[0])) ? call_user_func_array('rCredits\\Util\\ray', $args) : array();
 }
 
 /* this is probably a bad idea
@@ -261,6 +275,49 @@ function a2n($string, $base = 26) {
     $result = $result * $base + ord($string[$i]) - ord("A");
   }
   return $result;
+}
+
+/**
+ * Encode 3 hex digits as 2 legal URL characters: [A-Za-z0-9.-]
+ * @param string $s: the three digits to convert
+ * rCredits\Util\x32a2(rCredits\Util\a22x3('B7'));
+ */
+function x32a2($s) {
+  $chars = URL_CHARS;
+  foreach (str_split($s) as $c) $cs[] = stripos(HEX_CHARS, $c); // get hex values
+  return $chars[($cs[0] << 2) + ($cs[1] >> 2)] . $chars[(($cs[1] % 4) << 4) + $cs[2]];
+}
+
+/**
+ * Decode 2 legal URL characters as 3 hex digits (see x32a2, above).
+ * @param string $s: the two characters to convert -- only the first 64 chars in URL_CHARS are allowed,
+ */
+function a22x3($s) {
+  $chars = HEX_CHARS;
+  foreach (str_split($s) as $c) $cs[] = strpos(URL_CHARS, $c);
+  return $chars[$cs[0] >> 2] . $chars[(($cs[0] % 4) << 2) + ($cs[1] >> 4)] . $chars[$cs[1] % 16];
+}
+
+/**
+ * URL encode an arbitrary non-empty ascii string compactly
+ */
+function urlify($s) {
+  u\EXPECT($s !== '', 'empty string');
+  $len = strlen($s = bin2hex($s));
+  for ($i = 0, $result = ''; $i < $len - 2; $i += 3) $result .= x32a2(substr($s, $i, 3));
+  if ($taili = $len % 3) $result .= '~' . substr($s, -$taili);
+  return $result;
+}
+
+/**
+ * URL decode an arbitrary ascii string that was encoded with urlify (see above).
+ * @param string $s: the URLified string
+ * @return string: the original un-encoded string (FALSE if error)
+ */
+function deurlify($s) {
+  list ($s, $tail) = explode('~', $s . '~');
+  for ($i = 0, $result = ''; $i < strlen($s) - 1; $i += 2) $result .= a22x3(substr($s, $i, 2));
+  return hex2bin($result . $tail);
 }
 
 /**
@@ -580,7 +637,7 @@ function loga($type, $info = array(), $special = '', $adhocChannel = FALSE) {
   // make it easy to match the message when searching
   if (isNonce($special) and @$info['message']) $info['message'] = str_replace(": $special", ': @nonce', $info['message']);
   // don't make code, password, and secret links any more accessible than they are
-  foreach (u\ray(R_CONCEALED_FIELDS) as $one) if (@$info[$one]) $info[$one] = '(varies)';
+  foreach (u\ray(R_NOLOG) as $one) if (@$info[$one]) $info[$one] = '(?)';
   $info = u\jsonEncode($info);
   $channels = ray(TX_CHANNELS); 
   if ($useTextLogToo) file_put_contents($channels[$channel + 0] . '.log', "$date $type: $info\n", FILE_APPEND);
@@ -733,8 +790,10 @@ function decode($crypt, $key) {
 /**
  * Quicker encryption for often-used fields.
  * @param string $key: a base64-encoded encryption key (maximum 24 characters, so the resultant key is at most 16 chars)
+ * @return the encrypted string (or the decrypted string with trailing nulls deleted, if $encrypt is FALSE)
  */
-function ezencrypt($data, $key = '', $encrypt = TRUE) {
+function ezencrypt($data, $key = R_WORD, $encrypt = TRUE) {
+  if (empty($data)) return FALSE;
   u\EXPECT(compact('data'), 'string');
   $function = $encrypt ? 'mcrypt_encrypt' : 'mcrypt_decrypt';
   $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_256, MCRYPT_MODE_ECB); 
@@ -743,7 +802,7 @@ function ezencrypt($data, $key = '', $encrypt = TRUE) {
   return $encrypt ? $data : rtrim($data, "\0");
 } 
 
-function ezdecrypt($data, $key = '') {return ezencrypt($data, $key, FALSE);}
+function ezdecrypt($data, $key = R_WORD) {return ezencrypt($data, $key, FALSE);}
 
 /**
  * Reword a Dwolla error message.
@@ -962,7 +1021,7 @@ function purify($s) {
   } return preg_replace('/( [\x00-\x7F] | [\xC0-\xDF][\x80-\xBF] | [\xE0-\xEF][\x80-\xBF]{2} | [\xF0-\xF7][\x80-\xBF]{3} ) | ./x', '$1', $s);
 }
 
-// Single line functions that need no explanation
+// Single line functions that need little or no explanation
 function nn($a, $else = '') {return is_null($a) ? $else : $a;}
 function num($a, $else = 0) {return is_numeric($a) ? $a : $else;}
 function eq($a, $b, $else = FALSE) {return $a == $b ? $a : $else;}
@@ -993,7 +1052,7 @@ function lastCall($far = 4) {$back = debug_backtrace(); return array_slice($back
 function digits(&$n) {return $n = preg_replace('/\D/', '', @$n);}
 function monthDay1($time = REQUEST_TIME) {return strtotime(strftime('%b01', $time));}
 function prefix($prefix, &$var) {$var = $prefix . $var;}
-function preray($prefix, &$ray) {$ray = $prefix + $ray;}
+function preray($prefix, &$r0) {$r = $prefix + (array) $r0; $r0 = is_object($r0) ? (object) $r : $r;}
 function setDft(&$param, $value) {if (!isset($param)) $param = $value;}
 function bit($bit) {return 1 << $bit;}
 function log($message, $type = 'state', $info = array()) {return u\loga($type, compact('message') + $info);}
@@ -1007,3 +1066,4 @@ function padto($s, $n) {return str_pad(substr($s, $n), $n);}
 function similarEmail($e1, $e2) {return (strtolower(preg_replace('/\+.*@/', '@', $e1)) == strtolower(preg_replace('/\+.*@/', '@', $e1)));}
 //function rayo() {return (object) call_user_func_array('rCredits\\Util\\ray', func_get_args());}
 function rayv($a, $i) {return $a[$i];} // useful when $a is returned from a function
+function strip($a) {foreach ($a as $i => $v) $a[$i] = strip_tags($v); return $a;}

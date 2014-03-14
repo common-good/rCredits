@@ -19,12 +19,15 @@ use rCredits\Util as u;
  * @return: if inserting, then the id of the inserted record, else the query object (FALSE if failure)
  */
 function q($sql, $subs = array(), $log = FALSE) {
+  global $channel;
   u\EXPECT(compact(u\ray('sql subs')), 'notempty assoc');
   if (strpos($sql, 'INSERT INTO') !== FALSE) $return = \Database::RETURN_INSERT_ID;
   if ($log and !strpos($sql, 'r_log') and strpos($sql, 'SELECT ') === FALSE) u\loga('db', $subs, $sql);
   try {
     return \db_query(u\SUBS($sql), u\prefixKeys(':', $subs), compact('return'));
-/**/ } catch (Exception $e) {die('here');}
+  } catch (Exception $e) {
+    if (@$channel == TX_WEB) r\Web\exception_handler($e); else die('in q');
+  }
 }
 
 /**
@@ -68,16 +71,18 @@ function update($table, $info, $key, $either = FALSE) {
 ///  if ($table=='r_do') {print_r(compact(u\ray('table info key either command sql'))); die('dbU');}
   try {
     $result = db\q($sql, $info);
-    if ($command == 'INSERT INTO') { // if there is no serial field, result will be false, so check
-      if ($result) return $result; // must have had a serial field -- return its value
-      require_once __DIR__ . '/rcredits-install.inc';
-      $schema = r\tableDefs();
-      $id = $table == 'users' ? 'uid' : $schema[$table]['primary key'][0];
-      u\EXPECT($id and isset($info[$id]), 'no primary key ' . $id);
-      $field1 = reset($schema[$table]['fields']);
-      if ($hasSerial = ($field1['type'] == 'serial')) return FALSE;
-      return db\lookup($id, $table, "`$id`=:$id", array($id => $info[$id])); // return the supplied id if success
-    } else return TRUE;
+    if ($command != 'INSERT INTO') return TRUE;
+    if ($result) return $result; // if there is no serial field, result will be false, so check
+
+    require_once __DIR__ . '/rcredits-install.inc';
+    $schema = r\tableDefs();
+    $id = $table == 'users' ? 'uid' : $schema[$table]['primary key'][0];
+    u\EXPECT($id and isset($info[$id]), 'no primary key ' . $id);
+
+    $field1 = reset($schema[$table]['fields']);
+    if ($hasSerial = ($field1['type'] == 'serial')) return FALSE;
+
+    return db\lookup($id, $table, "`$id`=:id", u\ray('id', $info[$id])); // return the supplied id if success
   } catch (PDOException $e) {u\EXPECT(FALSE, "PDOException: $e->message");} 
 }
 
@@ -103,3 +108,5 @@ function exists($table, $where = '1', $subs = array()) {
   }
   return db\lookup(1, $table, $where, $subs);
 }
+
+function recCount($table, $where = '1', $subs = array()) {return db\lookup('COUNT(*)', $table, $where, $subs);}

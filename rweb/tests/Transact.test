@@ -46,10 +46,10 @@ class rwebTransact extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id   | fullName   | address | city  | state  | postalCode | country | email         | flags           |'
-    . '\\| .ZZA | Abe One    | 1 A St. | Atown | Alaska | 01000      | US      | a@ | dft,ok,person,bona |'
-    . '\\| .ZZB | Bea Two    | 2 B St. | Btown | Utah   | 02000      | US      | b@ | dft,ok,person,bona |'
-    . '\\| .ZZC | Corner Pub | 3 C St. | Ctown | Cher   |            | France  | c@ | dft,ok,company,bona  |"');
+    . '\\| id   | fullName   | address | city  | state  | postalCode | country | postalAddr | email | flags      |'
+    . '\\| .ZZA | Abe One    | 1 A St. | Atown | Alaska | 01000      | US      | 1 A, A, AK | a@    | ok,bona    |'
+    . '\\| .ZZB | Bea Two    | 2 B St. | Btown | Utah   | 02000      | US      | 2 B, B, UT | b@    | ok,bona    |'
+    . '\\| .ZZC | Corner Pub | 3 C St. | Ctown | Cher   |            | France  | 3 C, C, FR | c@    | ok,co,bona |"');
     And__('relations: "DATA'
     . '\\| id      | main    | agent   | permission |'
     . '\\| NEW.ZZA | NEW.ZZA | NEW.ZZB | buy        |'

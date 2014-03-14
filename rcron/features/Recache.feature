@@ -6,10 +6,10 @@ SO I don't lose money or get confused.
 
 Setup:
   Given members:
-  | id   | fullName   | dw | email | flags                 |
-  | .ZZA | Abe One    |  1 | a@    | dft,ok,dw,person,bona |
-  | .ZZB | Bea Two    |  0 | b@    | dft,ok,dw,person,bona |
-  | .ZZC | Corner Pub |    | c@    | dft,ok,dw,company     |
+  | id   | fullName   | dw | email | flags      |
+  | .ZZA | Abe One    |  1 | a@    | ok,dw,bona |
+  | .ZZB | Bea Two    |  0 | b@    | ok,dw,bona |
+  | .ZZC | Corner Pub |    | c@    | ok,dw,co   |
   And balances:
   | id   | dw/usd |
   | .ZZA |      5 |
