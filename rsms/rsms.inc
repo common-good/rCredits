@@ -39,7 +39,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'your account is ready' => t('Your starting balance is @balance. Pretend to buy and sell as you would in a typical month (we need that info). Have fun! Type "helpme" to get started.'), // separate out the last sentence
   'report transaction' => t("You @did @otherName @amount (@rewardType: @rewardAmount)."),
   'report offer' => t("You offered @otherName @amount (@rewardType: @rewardAmount). Your balance is unchanged, pending acceptance."), //  Transaction #@tid
-  'report invoice' => t("You @did @otherName @amount. Your balance is unchanged, pending agreement."), // Invoice #@tid
+  'report invoice' => t("You @did @otherName @amount. Your balance is unchanged, pending payment."), // Invoice #@tid
   'report broke invoice' => t("@otherName does not have enough rCredits at this time, so an invoice has been sent, for @short."), // UNUSED probably // Invoice #@tid
 //  'report short payment' => t("SPLIT! You paid @otherName @amount (@short remains to be paid). Transaction #@tid"),
 //  'report short invoice' => t("SPLIT! You charged @otherName @amount (@short has been invoiced). Transaction #@tid, Invoice #@t2id"),
@@ -67,7 +67,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'nothing undone' => t('Nothing undone.'),
   'event' => t('Account @fullName (@quid) is now @status.'),
   'approved' => t('Your account has been approved! You may now buy and sell through the rCredits system, including using your rCard for purchases at member businesses.'),
-  'got funding' => t('You have received a @type of @amount from your rCredits community for @purpose.'),
+  'got funding' => t('You have received a payment of @amount from your rCredits community for @purpose.'),
   'got fine' => t('Your rCredits community charged you a fee of @amount for @purpose.'),
   'gift sent' => t('Your chosen gift of @amount to Common Good Finance has gone through. Your rebate is @rewardAmount.'),
   'tx summary' => t('@otherName @otherDid you @amount for "@purpose" on @created.'),
@@ -182,7 +182,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'new charge' => t('<b>Charge:</b> @otherName charged you @amount for "@payerPurpose".'),
   'new refund' => t('<b>Refund:</b> @otherName refunded you @amount for "@payerPurpose".'),
   'new payment' => t('<b>Payment:</b> @otherName paid you @amount for "@payeePurpose".'),
-  'new invoice' => t('<b>Invoice:</b> @otherName invoiced you @amount for "@payerPurpose". To pay (or deny) this invoice, visit your Transactions page.'),
+  'new invoice' => t('<b>Invoice:</b> @otherName invoiced you @amount for "@purpose". To pay (or deny) this invoice, visit your Transactions page.'),
   'invoice denied' => t('<p><b>Invoice DENIED:</b> Your customer @otherName has declined to pay the following invoice:</p>
   <blockquote>@created @amount for "@payerPurpose"</blockquote>
   <p>You may want to contact the customer directly, to resolve any dispute.</p>'),
@@ -209,6 +209,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'bad url' => t('That is not a valid URL.'),
   'no charging' => t('Invoicing another member is not permitted at this time.'),
   'community not active' => t('@whose rCredits community is not yet operational, so your request cannot be completed at this time.'),
+  'duplicate transaction' => t('You already just @op this member that very amount. If you really want to do it again, wait a minute or charge a different amount.'),
   
   // notices to staff
   'cache mismatch' => 'Cron cache mismatch: @key=@is (cache) <> @shouldBe (calc)',

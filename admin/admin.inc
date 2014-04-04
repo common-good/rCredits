@@ -2,8 +2,9 @@
 /**
  * @file
  * rCredits admin
+   include __DIR__ . '/../rcredits/admin/admin.inc';
  */
-namespace rCredits\Web;
+namespace rCredits;
 
 use rCredits as r;
 use rCredits\DB as db;
@@ -11,34 +12,43 @@ use rCredits\Backend as be;
 use rCredits\Testing as t;
 use rCredits\Util as u;
 
-function seeSecure($a) {
-  $secure = $a->secure;
-  u\setDft($secure['usdType'], 'Dwolla');
-  foreach (u\ray(R_SECURE_FIELDS) as $one) if (isset($secure[$one])) $new[$one] = $secure[$one]; // reorder
-  $a->update(u\ray('secure', @$new ?: array()));
-/**/ debug($a->secure);    
-}
-
 /**
- * Change a transaction amount (only if the transaction happened today and only for a non-rewardable type).
- * @param int $xid: tx record ID
- * @param float $oldAmt: the old amount (for a consistency check)
- * @param float $newAmt: what the amount should be
+ * Set up the basic user accounts and relations on the server.
+ * called from installation and test setup
  */
-function changeTxAmt($xid, $oldAmt, $newAmt) {
-  if (!$rec = db\lookup('payer,payee,amount,created,goods', 'r_txs', 'xid=:xid', compact('xid'))) return say(t('No such transaction.'), 'err');
-  extract($rec);
-  if ($amount != $oldAmt) return say(t('The existing amount of that transaction is different.'), 'err');
-  if (u\fmtDate($created) != u\fmtDate(REQUEST_TIME)) return say(t('That transaction is not from today.'), 'err');
-  if ($goods) return say(t('That transaction has rewards.'), 'err');
-  $DBTX = \db_transaction();
-  if (!$amount = round($newAmt, 2)) return say(t('Bad new amount.'));
-  db\update('r_txs', compact('xid', 'amount'), 'xid');
-  $change = $newAmt - $oldAmt;
-  if ($payee > 0) db\q('UPDATE users SET r=r+:change WHERE uid=:payee', compact('change', 'payee'));
-  if ($payer > 0) db\q('UPDATE users SET r=r-:change WHERE uid=:payer', compact('change', 'payer'));
-  say(t('done'));
-  unset($DBTX);
+function setupBasicAccounts() {
+  $server = r\serverUid();
+  if (db\exists('users', 'uid=:server', compact('server'))) return; // already done
+  $keys = u\ray('uid community name fullName mail postalCode country minimum rebate flags');
+
+  $values = array($server, $server, R_REGION_SHORTNAME, R_REGION_NAME, R_REGION_EMAIL, R_REGION_POSTAL_AREA, R_COUNTRY_ID, 0, 0, u\bit(array(B_OK, B_DW, B_CO)));
+  $info = array_combine($keys, $values);
+  $info += u\ray('legalName postalAddr', R_REGION_LEGALNAME, R_REGION_ADDR);
+  new r\acct($info);
+
+  $values = array(r\unQuid('NEW.AAA'), $server, 'williamspademan', 'William Spademan', R_TESTER_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit(array(B_MEMBER, B_OK, B_DW)));
+  $info = array_combine($keys, $values);
+  list ($phone, $address, $city, $state) = array('+14136281021', 'PO Box 305', 'Ashfield', R_STATE_ID);
+  $info += compact(u\ray('mail phone address city state'));
+  $wws = new r\acct($info);
+  
+  $values = array(r\unQuid('NEW.AAB'), $server, 'cgf', 'Common Good Finance', CGF_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit(array(B_MEMBER, B_OK, B_DW, B_CO)));
+  $info = array_combine($keys, $values);
+  list ($phone, $address, $city, $state) = array(CGF_PHONE, CGF_ADDRESS, CGF_CITY, R_STATE_ID);
+  $info += compact(u\ray('mail phone address city state'));
+  $cgf = new r\acct($info);
+  \variable_set('cgf_uid', $cgf->id);
+  
+  list ($usdAccount, $auth, $usdEmail, $usdPhone, $usdPass, $usdPin) = array(DW_TESTER_ACCT, DW_TESTER_AUTH, R_TESTER_EMAIL, $wws->phone, DW_TEST_PASS, DW_TEST_PIN);
+  $secure = compact(u\ray('auth usdEmail usdPhone usdPass usdPin'));
+  $wws->update(compact('usdAccount', 'secure'));
+  
+  list ($main, $other, $permission) = array($cgf->id, $wws->id, r\perm(B_MANAGE));
+  db\insert('r_relations', compact(u\ray('main other permission'))); // wws can manage CGF
+
+  $a1 = r\acct(1); // set up system admin record (uid=1)
+  foreach (array(B_ADMIN, B_CO) as $bit) $a1->setBit($bit, TRUE, FALSE);
+  $a1->update(compact(u\ray('fullName', t('System Administrator'))));
 }
 
 /**
@@ -195,8 +205,8 @@ function showQuery($table, $where = '1', $order = '', $fields = '*', $joinFields
 
 /**
  * Utility to do something to each existing transaction
- include __DIR__ . '/../rcredits/admin.inc';
- eachTx();
+  include __DIR__ . '/../rcredits/admin/admin.inc';
+  eachTx();
  */
 function eachTx($func = 'changeIt') {
   $result = db\q('SELECT * FROM r_txs');
@@ -205,31 +215,16 @@ function eachTx($func = 'changeIt') {
 }
 
 /**
- * Use this to cobble together a new account, pending the new Dwolla reg API working
- */
-function cobble($id, $federalId, $dob, $pin, $question = '', $answer = '') {
-  if (!is_numeric($id) and strlen($id) == 3) $id = 'NEW.' . $id;
-/**/ if (!$mya = r\acct($id)) return print_r('bad id');
-  $secure = compact(u\ray('usdType pin')) + (@$mya->secure ?: array()); // secure includes more than these
-
-  $federalId = str_replace('-', '', $federalId);
-  if (!is_numeric($dob)) $dob = strtotime($dob);
-  $usdType = 'Dwolla';
-  $info = compact(u\ray('federalId dob question answer'));
-  $mya->update($info + compact('secure'));
-/**/  print_r(compact('id', 'pin') + $info);
-  $us = new r\usd($mya);
-  $us->getAuth();
-}
-
-/**
  * Utility to do something to each member account (see example below)
- include __DIR__ . '/../rcredits/admin.inc';
- eachAcct();
+  include __DIR__ . '/../rcredits/admin/admin.inc';
+  eachAcct();
  */
 function eachAcct($func = 'changeIt') {
   $result = db\q('SELECT uid FROM users WHERE uid>1')->fetchCol();
-  if (!function_exists($func)) $func = 'rCredits\\' . $func;
+  if (!function_exists($func)) {
+    if (function_exists($func2 = 'rCredits\\' . $func)) $func = $func2;
+    if (function_exists($func2 = 'rCredits\\Web\\' . $func)) $func = $func2;
+  }
   foreach ($result as $one) $func(r\acct($one));
 }
 
@@ -240,8 +235,8 @@ function eachAcct($func = 'changeIt') {
  *    $us = new r\usd($a);
  *    $us->each('rCredits\\Cron\\bankFollowup', 0, u\ray('deposit withdrawal'));
  
-  include __DIR__ . '/../rcredits/admin.inc';
-foreach (array(3201932, 3244519, 3350610, 3510402) as $one) {
+  include __DIR__ . '/../rcredits/admin/admin.inc';
+  foreach (array(3201932, 3244519, 3350610, 3510402) as $one) {
   changeIt($one);
 OR changeIt(a('aaa'));
 }
@@ -268,6 +263,22 @@ function fixdw($a) {
   if ($a->ok and $a->can(B_DW)) {$a->stepDone('dw'); $a->stepDone('connect');}
 }
 
+function fixStats() {
+  $r = $usd = 0;
+  $q = db\q("SELECT id, created, pAccts, bAccts FROM r_stats WHERE ctty=0 ORDER BY created");
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    $crit = 'BETWEEN :created AND :created+:DAY_SECS-1';
+    $r += db\lookup('SUM(amount)', 'r_txs', 'payer<0 AND created ' . $crit, compact('created'));
+    $usd += db\lookup('-SUM(amount)', 'r_usd', 'payee=0 AND completed ' . $crit, compact('created'));
+    $newbs = db\recCount('users', 'created<:created', compact('created')) - $pAccts - $bAccts;
+///    debug(compact(u\ray('id created r usd newbs users'))); break;
+    db\update('r_stats', compact(u\ray('r usd newbs id')), 'id');
+    $id = db\lookup('id', 'r_stats', 'created=:created AND ctty<>0', compact('created'));
+    db\update('r_stats', compact(u\ray('r usd newbs id')), 'id');
+  }
+}
+
 function pioneerBonus($a) {
   if (!$a->ok or !$a->can(B_BONA) or $a->co) return;
   if (db\exists('r_txs', "payee=:uid AND payer=-8915 AND amount=100", u\ray('uid', $a->id))) return;
@@ -277,8 +288,8 @@ function pioneerBonus($a) {
 
 /**
  * Re-setup the test cards on the STAGING server, after importing data from the PRODUCTION server.
-include __DIR__ . '/../rcredits/admin.inc';
-makeTestCards();
+  include __DIR__ . '/../rcredits/admin/admin.inc';
+  makeTestCards();
  */
 function makeTestCards() {
   if (isPRODUCTION) return;
@@ -308,27 +319,4 @@ function makeTestCards() {
   $a = a('abb');
   $a->update(u\ray('fullName', 'Susan Shopper'));
   $a->upSecure('cardCode', 'ZzhWMCq0zcBowqw');
-}
-
-/**
- * Reimburse the Dwolla fee (if any) of a recent transaction.
- * @param assoc $item:
- *   txid: fee id (payee's txid is two less, payer's is one less)
- *   payee: uid of recipient
- */ 
-function cover($txid, $payee) {
-  $usA = new r\usd($a = r\acct($payee));
-  $txid -= 2; // get the payee's txid
-  if (!$fee = $usA->fee($txid)) return;
-  if ($fee == '?') {
-/// debug('no Dwolla for coverFee');
-  }
-  $for = t('Dwolla fee');
-  $keys = 'payer payee type amount for taking';
-  
-  r\usd::beginAtom();
-  r\transact(u\ray($keys, $a->community, $payee, TX_REFUND, $fee, $for, 0));
-  r\usd::addToAtom($txid + 2, $fee, $payee, -1, REQUEST_TIME); // -1 to distinguish from bank transfers
-  $a->actualUsd(-$fee);
-  r\usd::commit();
 }

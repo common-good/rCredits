@@ -62,29 +62,29 @@ function phoneHasNoAccount($number) {
 /**
  * phone (ARG) says (ARG)
  *
- * in: Abbreviations ACallerAbbreviatesCommandWords MAKE
- *     Abbreviations ACallerAbbreviatesWithWrongSyntax MAKE
- *     Exchange TheCallerAsksToTradeCashForRCredits MAKE
- *     Exchange TheCallerRequestsAnImplicitTradeWithInsufficientBalance MAKE
- *     Help ACallerWantsHelpWithASpecificCommand MAKE
- *     Help ACallerWantsToKnowWhatsAvailable MAKE
- *     Help ACallerTypesAnUnrecognizedCommand MAKE
- *     Help CallerGivesTheWrongNonce MAKE
- *     Help ACallerTypesTheWrongNumberOfArguments MAKE
- *     Help CallerTypesAWrongArgument MAKE
- *     Help AmountIsTooBig MAKE
- *     Help AccountDoesNotExist MAKE
- *     Information GettingInformation MAKE
- *     Information GettingInformationLargerAmounts MAKE
- *     Transact TheCallerAsksToPayAMemberId MAKE
- *     Transact TheCallerAsksToPayAPlayerByName MAKE
- *     Transact TheCallerAsksToChargeAMemberId MAKE
- *     Transact TheCallerAsksToPayTheLatestInvoice MAKE
- *     Transact TheCallerAsksToPayTheLatestInvoiceFromAParticularMember MAKE
- *     Undo UndoTheLastTransaction MAKE
- *     Undo UndoTheLastTransactionWithSomeoneSpecific MAKE
- *     Undo UndoTheLastTransferToMe MAKE
- *     Undo UndoTheLastTransferToMeFromSomeoneSpecific MAKE
+ * in: MAKE Abbreviations ACallerAbbreviatesCommandWords
+ *     MAKE Abbreviations ACallerAbbreviatesWithWrongSyntax
+ *     MAKE Exchange TheCallerAsksToTradeCashForRCredits
+ *     MAKE Exchange TheCallerRequestsAnImplicitTradeWithInsufficientBalance
+ *     MAKE Help ACallerWantsHelpWithASpecificCommand
+ *     MAKE Help ACallerWantsToKnowWhatsAvailable
+ *     MAKE Help ACallerTypesAnUnrecognizedCommand
+ *     MAKE Help CallerGivesTheWrongNonce
+ *     MAKE Help ACallerTypesTheWrongNumberOfArguments
+ *     MAKE Help CallerTypesAWrongArgument
+ *     MAKE Help AmountIsTooBig
+ *     MAKE Help AccountDoesNotExist
+ *     MAKE Information GettingInformation
+ *     MAKE Information GettingInformationLargerAmounts
+ *     MAKE Transact TheCallerAsksToPayAMemberId
+ *     MAKE Transact TheCallerAsksToPayAPlayerByName
+ *     MAKE Transact TheCallerAsksToChargeAMemberId
+ *     MAKE Transact TheCallerAsksToPayTheLatestInvoice
+ *     MAKE Transact TheCallerAsksToPayTheLatestInvoiceFromAParticularMember
+ *     MAKE Undo UndoTheLastTransaction
+ *     MAKE Undo UndoTheLastTransactionWithSomeoneSpecific
+ *     MAKE Undo UndoTheLastTransferToMe
+ *     MAKE Undo UndoTheLastTransferToMeFromSomeoneSpecific
  */
 function phoneSays($number, $message) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -107,16 +107,16 @@ function phoneHasAnAccount($number) {
 /**
  * we say to phone (ARG) (ARG)
  *
- * in: Abbreviations ACallerAbbreviatesCommandWords TEST
- *     Abbreviations ACallerAbbreviatesWithWrongSyntax TEST
- *     Exchange TheCallerAsksToTradeCashForRCredits TEST
- *     Help ACallerWantsHelpWithASpecificCommand TEST
- *     Help ACallerWantsToKnowWhatsAvailable TEST
- *     Help ACallerTypesAnUnrecognizedCommand TEST
- *     Help CallerGivesTheWrongNonce TEST
- *     Help ACallerTypesTheWrongNumberOfArguments TEST
- *     Help CallerTypesAWrongArgument TEST
- *     Help AmountIsTooBig TEST
+ * in: TEST Abbreviations ACallerAbbreviatesCommandWords
+ *     TEST Abbreviations ACallerAbbreviatesWithWrongSyntax
+ *     TEST Exchange TheCallerAsksToTradeCashForRCredits
+ *     TEST Help ACallerWantsHelpWithASpecificCommand
+ *     TEST Help ACallerWantsToKnowWhatsAvailable
+ *     TEST Help ACallerTypesAnUnrecognizedCommand
+ *     TEST Help CallerGivesTheWrongNonce
+ *     TEST Help ACallerTypesTheWrongNumberOfArguments
+ *     TEST Help CallerTypesAWrongArgument
+ *     TEST Help AmountIsTooBig
  */
 function weSayToPhone($number, $message) {
   return weSayToPhoneWithSubs($number, $message, array());
@@ -125,30 +125,30 @@ function weSayToPhone($number, $message) {
 /**
  * we say to phone (ARG) (ARG) with subs: (ARG)
  *
- * in: Exchange TheCallerConfirmsATradeOfRCreditsForCash TEST
- *     Exchange TheCallerRequestsAnImplicitTradeWithInsufficientBalance TEST
- *     Help AccountDoesNotExist TEST
- *     Information GettingInformation TEST
- *     Information GettingInformationLargerAmounts TEST
- *     Transact TheCallerAsksToPayAMemberId TEST
- *     Transact TheCallerAsksToPayAPlayerByName TEST
- *     Transact TheCallerAsksToChargeAMemberId TEST
- *     Transact TheCallerConfirmsAPayment TEST
- *     Transact TheCallerConfirmsARequestToCharge TEST
- *     Transact TheCallerConfirmsAUnilateralCharge TEST
- *     Transact TheCallerConfirmsAPaymentWithInsufficientBalance TEST
- *     Transact TheCallerAsksToPayTheLatestInvoice TEST
- *     Transact TheCallerConfirmsPaymentOfTheLatestInvoice TEST
- *     Transact TheCallerAsksToPayTheLatestInvoiceFromAParticularMember TEST
- *     Transact TheCallerAsksToPayACompanyAgent TEST
- *     Undo UndoTheLastTransaction TEST
- *     Undo UndoTheLastTransactionWithSomeoneSpecific TEST
- *     Undo UndoTheLastTransferToMe TEST
- *     Undo UndoTheLastTransferToMeFromSomeoneSpecific TEST
- *     Undo TheCallerConfirmsUndoingACharge TEST
- *     Undo TheCallerConfirmsUndoingAPayment MAKE
- *     Undo TheCallerRefusesToPayTheLatestInvoice TEST
- *     Undo TheCallerRefusesAPendingPayment TEST
+ * in: TEST Exchange TheCallerConfirmsATradeOfRCreditsForCash
+ *     TEST Exchange TheCallerRequestsAnImplicitTradeWithInsufficientBalance
+ *     TEST Help AccountDoesNotExist
+ *     TEST Information GettingInformation
+ *     TEST Information GettingInformationLargerAmounts
+ *     TEST Transact TheCallerAsksToPayAMemberId
+ *     TEST Transact TheCallerAsksToPayAPlayerByName
+ *     TEST Transact TheCallerAsksToChargeAMemberId
+ *     TEST Transact TheCallerConfirmsAPayment
+ *     TEST Transact TheCallerConfirmsARequestToCharge
+ *     TEST Transact TheCallerConfirmsAUnilateralCharge
+ *     TEST Transact TheCallerConfirmsAPaymentWithInsufficientBalance
+ *     TEST Transact TheCallerAsksToPayTheLatestInvoice
+ *     TEST Transact TheCallerConfirmsPaymentOfTheLatestInvoice
+ *     TEST Transact TheCallerAsksToPayTheLatestInvoiceFromAParticularMember
+ *     TEST Transact TheCallerAsksToPayACompanyAgent
+ *     TEST Undo UndoTheLastTransaction
+ *     TEST Undo UndoTheLastTransactionWithSomeoneSpecific
+ *     TEST Undo UndoTheLastTransferToMe
+ *     TEST Undo UndoTheLastTransferToMeFromSomeoneSpecific
+ *     TEST Undo TheCallerConfirmsUndoingACharge
+ *     MAKE Undo TheCallerConfirmsUndoingAPayment
+ *     TEST Undo TheCallerRefusesToPayTheLatestInvoice
+ *     TEST Undo TheCallerRefusesAPendingPayment
  */
 function weSayToPhoneWithSubs($number, $message, $subs) {
   global $testOnly;
@@ -227,15 +227,15 @@ function phoneEmailIs($number, $email) {
 /**
  * phone (ARG) has r$(ARG)
  *
- * in: Exchange TheCallerConfirmsAnImplicitTradeOfRCreditsForCash TEST
- *     Exchange TheCallerAsksToTradeCashForRCredits TEST
- *     Transact TheCallerConfirmsAPayment TEST
- *     Transact TheCallerConfirmsARequestToCharge TEST
- *     Transact TheCallerConfirmsAUnilateralCharge TEST
- *     Transact TheCallerConfirmsAPaymentWithInsufficientBalance TEST
- *     Transact TheCallerConfirmsPaymentOfTheLatestInvoice TEST
- *     Undo Setup TEST
- *     Undo TheCallerConfirmsUndoingACharge TEST
+ * in: TEST Exchange TheCallerConfirmsAnImplicitTradeOfRCreditsForCash
+ *     TEST Exchange TheCallerAsksToTradeCashForRCredits
+ *     TEST Transact TheCallerConfirmsAPayment
+ *     TEST Transact TheCallerConfirmsARequestToCharge
+ *     TEST Transact TheCallerConfirmsAUnilateralCharge
+ *     TEST Transact TheCallerConfirmsAPaymentWithInsufficientBalance
+ *     TEST Transact TheCallerConfirmsPaymentOfTheLatestInvoice
+ *     TEST Undo Setup
+ *     TEST Undo TheCallerConfirmsUndoingACharge
  */
 function phoneHasR($number, $amount) {
   global $testOnly;
@@ -247,8 +247,8 @@ function phoneHasR($number, $amount) {
 /**
  * phone (ARG) has r$(ARG) including rewards of $(ARG)
  *
- * in: Information GettingInformation MAKE
- *     Information GettingInformationLargerAmounts MAKE
+ * in: MAKE Information GettingInformation
+ *     MAKE Information GettingInformationLargerAmounts
  */
 function phoneHasRIncludingRewardsOf($number, $bal, $rewards) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -265,12 +265,12 @@ function phoneHasRIncludingRewardsOf($number, $bal, $rewards) {
 /**
  * the community has r$(ARG)
  *
- * in: Transact TheCallerConfirmsAPayment TEST
- *     Transact TheCallerConfirmsAUnilateralCharge TEST
- *     Transact TheCallerConfirmsAPaymentWithInsufficientBalance TEST
- *     Transact TheCallerConfirmsPaymentOfTheLatestInvoice TEST
- *     Undo Setup TEST
- *     Undo TheCallerConfirmsUndoingACharge TEST
+ * in: TEST Transact TheCallerConfirmsAPayment
+ *     TEST Transact TheCallerConfirmsAUnilateralCharge
+ *     TEST Transact TheCallerConfirmsAPaymentWithInsufficientBalance
+ *     TEST Transact TheCallerConfirmsPaymentOfTheLatestInvoice
+ *     TEST Undo Setup
+ *     TEST Undo TheCallerConfirmsUndoingACharge
  */
 function theCommunityHasR($amount) {
   global $testOnly;
@@ -281,16 +281,16 @@ function theCommunityHasR($amount) {
 /**
  * phone (ARG) is a member
  *
- * in: Abbreviations ACallerAbbreviatesCommandWords MAKE
- *     Abbreviations ACallerAbbreviatesWithWrongSyntax MAKE
- *     Help ACallerWantsHelpWithASpecificCommand MAKE
- *     Help ACallerWantsToKnowWhatsAvailable MAKE
- *     Help ACallerTypesAnUnrecognizedCommand MAKE
- *     Help CallerGivesTheWrongNonce MAKE
- *     Help ACallerTypesTheWrongNumberOfArguments MAKE
- *     Help CallerTypesAWrongArgument MAKE
- *     Help AmountIsTooBig MAKE
- *     Help AccountDoesNotExist MAKE
+ * in: MAKE Abbreviations ACallerAbbreviatesCommandWords
+ *     MAKE Abbreviations ACallerAbbreviatesWithWrongSyntax
+ *     MAKE Help ACallerWantsHelpWithASpecificCommand
+ *     MAKE Help ACallerWantsToKnowWhatsAvailable
+ *     MAKE Help ACallerTypesAnUnrecognizedCommand
+ *     MAKE Help CallerGivesTheWrongNonce
+ *     MAKE Help ACallerTypesTheWrongNumberOfArguments
+ *     MAKE Help CallerTypesAWrongArgument
+ *     MAKE Help AmountIsTooBig
+ *     MAKE Help AccountDoesNotExist
  */
 function phoneIsAMember($number) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -311,42 +311,42 @@ function phoneIsMember($number, $id = NULL) {
 /**
  * members: (ARG)
  *
- * in: Exchange Setup MAKE
- *     Information Setup MAKE
- *     Transact Setup MAKE
- *     Undo Setup MAKE
+ * in: MAKE Exchange Setup
+ *     MAKE Information Setup
+ *     MAKE Transact Setup
+ *     MAKE Undo Setup
  */
 function members($list) {return t\members($list);}
 
 /**
  * transactions: (ARG)
  *
- * in: Exchange Setup MAKE
- *     Transact Setup MAKE
- *     Transact TheCallerAsksToPayTheLatestInvoice MAKE
- *     Transact TheCallerConfirmsPaymentOfTheLatestInvoice MAKE
- *     Transact TheCallerAsksToPayTheLatestInvoiceFromAParticularMember MAKE
- *     Undo Setup MAKE
- *     Undo TheCallerRefusesToPayTheLatestInvoice MAKE
- *     Undo TheCallerRefusesAPendingPayment MAKE
+ * in: MAKE Exchange Setup
+ *     MAKE Transact Setup
+ *     MAKE Transact TheCallerAsksToPayTheLatestInvoice
+ *     MAKE Transact TheCallerConfirmsPaymentOfTheLatestInvoice
+ *     MAKE Transact TheCallerAsksToPayTheLatestInvoiceFromAParticularMember
+ *     MAKE Undo Setup
+ *     MAKE Undo TheCallerRefusesToPayTheLatestInvoice
+ *     MAKE Undo TheCallerRefusesAPendingPayment
  */
 function transactions($list) {return t\transactions($list);}
 
 /**
  * phone (ARG) confirms (ARG)
  *
- * in: Exchange TheCallerConfirmsATradeOfRCreditsForCash MAKE
- *     Exchange TheCallerConfirmsAnImplicitTradeOfRCreditsForCash MAKE
- *     Transact TheCallerConfirmsAPayment MAKE
- *     Transact TheCallerConfirmsARequestToCharge MAKE
- *     Transact TheCallerConfirmsAUnilateralCharge MAKE
- *     Transact TheCallerConfirmsAPaymentWithInsufficientBalance MAKE
- *     Transact TheCallerConfirmsPaymentOfTheLatestInvoice MAKE
- *     Transact TheCallerAsksToPayACompanyAgent MAKE
- *     Undo TheCallerConfirmsUndoingACharge MAKE
- *     Undo TheCallerConfirmsUndoingAPayment MAKE
- *     Undo TheCallerRefusesToPayTheLatestInvoice MAKE
- *     Undo TheCallerRefusesAPendingPayment MAKE
+ * in: MAKE Exchange TheCallerConfirmsATradeOfRCreditsForCash
+ *     MAKE Exchange TheCallerConfirmsAnImplicitTradeOfRCreditsForCash
+ *     MAKE Transact TheCallerConfirmsAPayment
+ *     MAKE Transact TheCallerConfirmsARequestToCharge
+ *     MAKE Transact TheCallerConfirmsAUnilateralCharge
+ *     MAKE Transact TheCallerConfirmsAPaymentWithInsufficientBalance
+ *     MAKE Transact TheCallerConfirmsPaymentOfTheLatestInvoice
+ *     MAKE Transact TheCallerAsksToPayACompanyAgent
+ *     MAKE Undo TheCallerConfirmsUndoingACharge
+ *     MAKE Undo TheCallerConfirmsUndoingAPayment
+ *     MAKE Undo TheCallerRefusesToPayTheLatestInvoice
+ *     MAKE Undo TheCallerRefusesAPendingPayment
  */
 function phoneConfirms($number, $request) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -361,7 +361,7 @@ function phoneConfirms($number, $request) {
 /**
  * phone (ARG) can charge unilaterally
  *
- * in: Transact TheCallerConfirmsAUnilateralCharge MAKE
+ * in: MAKE Transact TheCallerConfirmsAUnilateralCharge
  */
 function phoneCanChargeUnilaterally($number) {
   global $testOnly;
@@ -374,8 +374,8 @@ function phoneCanChargeUnilaterally($number) {
 /**
  * the expected nonce for phone (ARG) is (ARG)
  *
- * in: Help ACallerTypesAnUnrecognizedCommand MAKE
- *     Help CallerGivesTheWrongNonce MAKE
+ * in: MAKE Help ACallerTypesAnUnrecognizedCommand
+ *     MAKE Help CallerGivesTheWrongNonce
  */
 function theExpectedNonceForPhoneIs($number, $nonce) {
   global $testOnly;
@@ -395,7 +395,7 @@ function theExpectedNonceForPhoneIs($number, $nonce) {
 /**
  * (ARG) is not an account id
  *
- * in: Help AccountDoesNotExist MAKE
+ * in: MAKE Help AccountDoesNotExist
  */
 function isNotAnAccountId($id) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -405,8 +405,8 @@ function isNotAnAccountId($id) {
 /**
  * the total demand for rCredits is $(ARG)
  *
- * in: Information GettingInformation MAKE
- *     Information GettingInformationLargerAmounts MAKE
+ * in: MAKE Information GettingInformation
+ *     MAKE Information GettingInformationLargerAmounts
  */
 function theTotalDemandForRCreditsIs($amount) {
   global $testOnly;
@@ -441,15 +441,15 @@ function phoneDemandForRCreditsIs($number, $demand) {
 /**
  * relations: (ARG)
  *
- * in: Transact Setup MAKE
+ * in: MAKE Transact Setup
  */
 function relations($relations) {return t\relations($relations);}
 
 /**
  * balances: (ARG)
  *
- * in: Exchange Setup TEST
- *     Exchange TheCallerConfirmsATradeOfRCreditsForCash TEST
+ * in: TEST Exchange Setup
+ *     TEST Exchange TheCallerConfirmsATradeOfRCreditsForCash
  */
 function balances($list) {return t\balances($list);}
 
@@ -457,9 +457,9 @@ function balances($list) {return t\balances($list);}
 /**
  * we notice (ARG) to member (ARG) with subs: (ARG)
  *
- * in: Transact TheCallerConfirmsARequestToCharge TEST
- *     Transact TheCallerConfirmsAUnilateralCharge TEST
- *     Undo TheCallerRefusesToPayTheLatestInvoice TEST
- *     Undo TheCallerRefusesAPendingPayment TEST
+ * in: TEST Transact TheCallerConfirmsARequestToCharge
+ *     TEST Transact TheCallerConfirmsAUnilateralCharge
+ *     TEST Undo TheCallerRefusesToPayTheLatestInvoice
+ *     TEST Undo TheCallerRefusesAPendingPayment
  */
 function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice, $id, $subs);}

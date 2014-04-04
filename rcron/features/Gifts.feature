@@ -18,10 +18,10 @@ Scenario: A donation can be completed
   | .ZZA | %yesterday |     10 |     1 | memory | Jane Do |    10 |         0 |
   When cron runs "gifts"
   Then transactions:
-  | xid   | created | type     | state | amount | from      | to      | purpose      |
-  | .AAAB | %today  | transfer | done  |     10 | .ZZA      | cgf     | donation |
-  | .AAAC | %today  | rebate   | done  |   0.50 | community | .ZZA    | rebate on #1 |
-  | .AAAD | %today  | bonus    | done  |   1.00 | community | cgf     | bonus on #1  |
+  | xid   | created | type     | amount | from      | to      | purpose      |
+  | .AAAB | %today  | transfer |     10 | .ZZA      | cgf     | donation |
+  | .AAAC | %today  | rebate   |   0.50 | community | .ZZA    | rebate on #1 |
+  | .AAAD | %today  | bonus    |   1.00 | community | cgf     | bonus on #1  |
   And gifts:
   | id   | giftDate   | amount | often | honor  | honored | share | completed |
   | .ZZA | %yesterday |     10 |     1 | memory | Jane Do |    10 | %today    |
@@ -47,10 +47,10 @@ Scenario: A recurring donation can be completed
   | .ZZA | %yesterday |     10 |     Q | memory | Jane Do |    10 |         0 |
   When cron runs "gifts"
   Then transactions:
-  | xid   | created | type     | state | amount | from | to   | purpose      |
-  | .AAAB | %today  | transfer | done  |     10 | .ZZA | cgf  | donation (quarterly gift #1) |
-  | .AAAC | %today  | rebate   | done  |   0.50 | ctty | .ZZA | rebate on #1 |
-  | .AAAD | %today  | bonus    | done  |   1.00 | ctty | cgf  | bonus on #1  |
+  | xid   | created | type     | amount | from | to   | purpose      |
+  | .AAAB | %today  | transfer |     10 | .ZZA | cgf  | donation (quarterly gift #1) |
+  | .AAAC | %today  | rebate   |   0.50 | ctty | .ZZA | rebate on #1 |
+  | .AAAD | %today  | bonus    |   1.00 | ctty | cgf  | bonus on #1  |
   And gifts:
   | id   | giftDate      | amount | often | honor  | honored | completed |
   | .ZZA | %yesterday    |     10 |     Q | memory | Jane Do | %today    |

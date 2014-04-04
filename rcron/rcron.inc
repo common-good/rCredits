@@ -145,7 +145,7 @@ function often($period, $code, $value, $periodLen) {
 }
 
 function everyWeek() {
-// This is no longer relevant  queueEach('soldOut', 'SELECT payer, SUM(r) AS total FROM r_txs WHERE payer>0 AND amount=0 AND type=:TX_TRANSFER AND NOT goods AND state=:TX_DONE AND completed>:REQUEST_TIME-:WEEK_SECS GROUP BY payer');
+// This is no longer relevant  queueEach('soldOut', 'SELECT payer, SUM(r) AS total FROM r_txs WHERE payer>0 AND amount=0 AND type=:TX_TRANSFER AND NOT goods AND created>:REQUEST_TIME-:WEEK_SECS GROUP BY payer');
 // queueEach('missedOut', ??
 }
 
@@ -326,9 +326,8 @@ function checkAcct($item) {
  */
 function stats() {
   queueEach('stats1', 'SELECT uid FROM users WHERE uid>1 AND :IS_OK');
-  r\getStats(r\serverUid());
-//  $result = db\q('SELECT uid FROM users WHERE uid<0');
-//  while ($uid = $result->fetchColumn()) r\totals($uid, TRUE);
+  r\getStats(0); // all communities
+  r\getStats(r\serverUid()); // just one community
   queueNextAfter('stats');
 }
 
@@ -352,10 +351,10 @@ EOF;
   
   $sql = <<<EOF
     SELECT SUM(IF(type IN (:TX_REBATE,:TX_BONUS), amount, 0)) AS beneEver,
-    SUM(IF(type IN (:TX_REBATE,:TX_BONUS) AND completed>=:monthAgo, amount, 0)) AS benePastMo,
+    SUM(IF(type IN (:TX_REBATE,:TX_BONUS) AND created>=:monthAgo, amount, 0)) AS benePastMo,
     SUM(IF(type IN (:TX_SIGNUP,:TX_INFLATION,:TX_GRANT), amount, 0)) AS extraEver,
-    SUM(IF(type IN (:TX_SIGNUP,:TX_INFLATION,:TX_GRANT) AND completed>=:monthAgo, amount, 0)) AS extraPastMo
-    FROM r_txs WHERE payee=:uid AND state=:TX_DONE
+    SUM(IF(type IN (:TX_SIGNUP,:TX_INFLATION,:TX_GRANT) AND created>=:monthAgo, amount, 0)) AS extraPastMo
+    FROM r_txs WHERE payee=:uid
 EOF;
   $row2 = db\q($sql, $subs)->fetchAssoc() ?: array(); // get beneEver, benePastMo
   

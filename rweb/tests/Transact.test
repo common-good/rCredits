@@ -51,49 +51,154 @@ class rwebTransact extends DrupalWebTestCase {
     . '\\| .ZZB | Bea Two    | 2 B St. | Btown | Utah   | 02000      | US      | 2 B, B, UT | b@    | ok,bona    |'
     . '\\| .ZZC | Corner Pub | 3 C St. | Ctown | Cher   |            | France  | 3 C, C, FR | c@    | ok,co,bona |"');
     And__('relations: "DATA'
-    . '\\| id      | main    | agent   | permission |'
-    . '\\| NEW.ZZA | NEW.ZZA | NEW.ZZB | buy        |'
-    . '\\| NEW.ZZB | NEW.ZZB | NEW.ZZA | read       |'
-    . '\\| NEW.ZZC | NEW.ZZC | NEW.ZZB | buy        |'
-    . '\\| NEW.ZZD | NEW.ZZC | NEW.ZZA | sell       |"');
+    . '\\| id   | main | agent | permission |'
+    . '\\| :ZZA | .ZZA | .ZZB  | buy        |'
+    . '\\| :ZZB | .ZZB | .ZZA  | read       |'
+    . '\\| :ZZC | .ZZC | .ZZB  | buy        |'
+    . '\\| :ZZD | .ZZC | .ZZA  | sell       |"');
     And__('transactions: "DATA'
-    . '\\| xid      | created   | type       | amount | from      | to      | purpose | taking |'
-    . '\\| NEW.AAAB | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZA | signup  | 0      |'
-    . '\\| NEW.AAAC | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZB | signup  | 0      |'
-    . '\\| NEW.AAAD | %today-6m | %TX_SIGNUP |    250 | community | NEW.ZZC | signup  | 0      |"');
+    . '\\| xid | created   | type   | amount | from | to   | purpose | taking |'
+    . '\\|   1 | %today-6m | signup |    250 | ctty | .ZZA | signup  | 0      |'
+    . '\\|   2 | %today-6m | signup |    250 | ctty | .ZZB | signup  | 0      |'
+    . '\\|   3 | %today-6m | signup |    250 | ctty | .ZZC | signup  | 0      |"');
     Then_('balances: "DATA'
-    . '\\| id        | balance |'
-    . '\\| community | -750 |'
-    . '\\| NEW.ZZA   |  250 |'
-    . '\\| NEW.ZZB   |  250 |'
-    . '\\| NEW.ZZC   |  250 |"');
+    . '\\| id   | balance |'
+    . '\\| ctty | -750 |'
+    . '\\| .ZZA |  250 |'
+    . '\\| .ZZB |  250 |'
+    . '\\| .ZZC |  250 |"');
     break;
 
 
     }
   }
 
+  // Scenario: A member asks to charge another member
+  public function testAMemberAsksToChargeAnotherMember_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member ".ZZA" completes form "charge" with values: "DATA'
+    . '\\| op     | who     | amount | goods | purpose |'
+    . '\\| charge | Bea Two | 100    | 1     | labor   |"');
+    Then_('we show "confirm charge" with subs: "DATA'
+    . '\\| amount | otherName |'
+    . '\\| $100   | Bea Two   |"');
+  }
+
   // Scenario: A member confirms request to charge another member
   public function testAMemberConfirmsRequestToChargeAnotherMember_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member "NEW.ZZA" confirms form "charge" with values: "DATA'
+    When_('member ".ZZA" confirms form "charge" with values: "DATA'
     . '\\| op     | who     | amount | goods | purpose |'
     . '\\| charge | Bea Two | 100    | 1     | labor   |"');
     Then_('we say "status": "report invoice" with subs: "DATA'
     . '\\| did     | otherName | amount |'
     . '\\| charged | Bea Two   | $100   |"');
-    And__('we notice "new invoice" to member "NEW.ZZB" with subs: "DATA'
-    . '\\| created | fullName | otherName | amount | payerPurpose |'
-    . '\\| %today  | Bea Two  | Abe One   | $100   | labor        |"');
+    And__('we notice "new invoice" to member ".ZZB" with subs: "DATA'
+    . '\\| created | fullName | otherName | amount | purpose |'
+    . '\\| %today  | Bea Two  | Abe One   | $100   | labor   |"');
     And__('invoices: "DATA'
-    . '\\| id | created | state   | amount | from      | to      | for   |'
-    . '\\| 1  | %today  | pending |    100 | NEW.ZZB   | NEW.ZZA | labor |"');
+    . '\\| nvid | created | status      | amount | from | to  | for   |'
+    . '\\|    1 | %today  | %TX_PENDING |    100 | .ZZB  | .ZZA | labor |"');
     And__('balances: "DATA'
-    . '\\| id        | balance |'
-    . '\\| community |    -750 |'
-    . '\\| NEW.ZZA   |     250 |'
-    . '\\| NEW.ZZB   |     250 |'
-    . '\\| NEW.ZZC   |     250 |"');
+    . '\\| id   | balance |'
+    . '\\| ctty |    -750 |'
+    . '\\| .ZZA |     250 |'
+    . '\\| .ZZB |     250 |'
+    . '\\| .ZZC |     250 |"');
+  }
+
+  // Scenario: A member asks to pay another member
+  public function testAMemberAsksToPayAnotherMember_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member ".ZZA" completes form "pay" with values: "DATA'
+    . '\\| op  | who     | amount | goods | purpose |'
+    . '\\| pay | Bea Two | 100    | 1     | labor   |"');
+    Then_('we show "confirm payment" with subs: "DATA'
+    . '\\| amount | otherName |'
+    . '\\| $100   | Bea Two   |"');
+  }
+
+  // Scenario: A member confirms request to pay another member
+  public function testAMemberConfirmsRequestToPayAnotherMember_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member ".ZZA" confirms form "pay" with values: "DATA'
+    . '\\| op  | who     | amount | goods | purpose |'
+    . '\\| pay | Bea Two | 100    | 1     | labor   |"');
+    Then_('we say "status": "report transaction" with subs: "DATA'
+    . '\\| did    | otherName | amount | rewardType | rewardAmount |'
+    . '\\| paid   | Bea Two   | $100   | reward     | $5           |"');
+    And__('we notice "new payment|reward other" to member ".ZZB" with subs: "DATA'
+    . '\\| created | fullName | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |'
+    . '\\| %today  | Bea Two  | Abe One   | $100   | labor        | reward          |               $10 |"');
+    And__('transactions: "DATA'
+    . '\\| xid | created | type     | amount | from  | to   | purpose      | taking |'
+    . '\\|   4 | %today  | transfer |    100 | .ZZA  | .ZZB | labor        | 0      |'
+    . '\\|   5 | %today  | rebate   |      5 | ctty  | .ZZA | rebate on #2 | 0      |'
+    . '\\|   6 | %today  | bonus    |     10 | ctty  | .ZZB | bonus on #2  | 0      |"');
+    And__('balances: "DATA'
+    . '\\| id   | balance |'
+    . '\\| ctty |    -765 |'
+    . '\\| .ZZA |     155 |'
+    . '\\| .ZZB |     360 |'
+    . '\\| .ZZC |     250 |"');
+  }
+
+  // Scenario: A member confirms request to pay a member company
+  public function testAMemberConfirmsRequestToPayAMemberCompany_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('next DO code is "whatever"');
+    When_('member ".ZZA" confirms form "pay" with values: "DATA'
+    . '\\| op  | who        | amount | goods | purpose |'
+    . '\\| pay | Corner Pub | 100    | 1     | stuff   |"');
+    Then_('we say "status": "report transaction" with subs: "DATA'
+    . '\\| did    | otherName  | amount | rewardType | rewardAmount |'
+    . '\\| paid   | Corner Pub | $100   | reward     | $5           |"');
+    And__('we notice "new payment|reward other" to member ".ZZC" with subs: "DATA'
+    . '\\| created | fullName   | otherName | amount | payeePurpose | otherRewardType | otherRewardAmount |'
+    . '\\| %today  | Corner Pub | Abe One   | $100 | stuff | reward | $10 |"');
+    And__('that "notice" has link results: "DATA'
+    . '\\| _name | Abe One |'
+    . '\\| _postalAddr | 1 A, A, AK |'
+    . '\\| Physical address: | 1 A St., Atown, AK 01000 |"');
+    And__('transactions: "DATA'
+    . '\\| xid | created | type     | amount | from  | to   | purpose      | taking |'
+    . '\\|   4 | %today  | transfer |    100 | .ZZA  | .ZZC | stuff        | 0      |'
+    . '\\|   5 | %today  | rebate   |      5 | ctty  | .ZZA | rebate on #2 | 0      |'
+    . '\\|   6 | %today  | bonus    |     10 | ctty  | .ZZC | bonus on #2  | 0      |"');
+    And__('balances: "DATA'
+    . '\\| id   | balance |'
+    . '\\| ctty |    -765 |'
+    . '\\| .ZZA |     155 |'
+    . '\\| .ZZB |     250 |'
+    . '\\| .ZZC |     360 |"');
+  }
+
+  // Scenario: A member confirms request to pay the same member the same amount
+  public function testAMemberConfirmsRequestToPayTheSameMemberTheSameAmount_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('member ".ZZA" confirms form "pay" with values: "DATA'
+    . '\\| op  | who     | amount | goods | purpose |'
+    . '\\| pay | Bea Two | 100    | 1     | labor   |"');
+    When_('member ".ZZA" confirms form "pay" with values: "DATA'
+    . '\\| op  | who     | amount | goods | purpose |'
+    . '\\| pay | Bea Two | 100    | 1     | labor   |"');
+    Then_('we say "error": "duplicate transaction" with subs: "DATA'
+    . '\\| op   |'
+    . '\\| paid |"');
+  }
+
+  // Scenario: A member confirms request to charge the same member the same amount
+  public function testAMemberConfirmsRequestToChargeTheSameMemberTheSameAmount_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('member ".ZZA" confirms form "charge" with values: "DATA'
+    . '\\| op     | who     | amount | goods | purpose |'
+    . '\\| charge | Bea Two | 100    | 1     | labor   |"');
+    When_('member ".ZZA" confirms form "charge" with values: "DATA'
+    . '\\| op     | who     | amount | goods | purpose |'
+    . '\\| charge | Bea Two | 100    | 1     | labor   |"');
+    Then_('we say "error": "duplicate transaction" with subs: "DATA'
+    . '\\| op      |'
+    . '\\| charged |"');
   }
 
 }

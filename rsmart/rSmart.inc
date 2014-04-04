@@ -252,7 +252,7 @@ function charge($args, $type = 'charge') {
   if ($mya->id == $a->id) return posErr("shoulda been login");
   if ($err = u\badAmount($amount, '')) return posErr($err); // allow negatives! (for refund)
 
-  list ($msg, $subs, $zot) = be\transfer($type, $mya, $a, @$amount, @$description, @$goods, TRUE);
+  list ($msg, $subs, $zot) = be\transfer($type, $mya, $a, @$amount, @$goods, @$description, TRUE);
   if (!@$subs['success']) return posErr($msg, $subs);
 
   $message = u\tt($msg, $subs);

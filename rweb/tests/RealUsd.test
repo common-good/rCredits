@@ -66,15 +66,15 @@ class rwebRealUsd extends DrupalWebTestCase {
     . '\\| op  | who     | amount  | goods | purpose |'
     . '\\| pay | Bea Two | 1000.20 | 1     | labor   |"');
     Then_('transactions: "DATA'
-    . '\\| xid | type     | state | amount  | from | to   | purpose      | taking |'
-    . '\\|   2 | transfer | done  | 1000.20 | .ZZA | .ZZB | labor        | 0      |'
-    . '\\|   3 | rebate   | done  |   50.01 | ctty | .ZZA | rebate on #2 | 0      |'
-    . '\\|   4 | bonus    | done  |  100.02 | ctty | .ZZB | bonus on #1  | 0      |"');
+    . '\\| xid | type     | amount  | from | to   | purpose      | taking |'
+    . '\\|   2 | transfer | 1000.20 | .ZZA | .ZZB | labor        | 0      |'
+    . '\\|   3 | rebate   |   50.01 | ctty | .ZZA | rebate on #2 | 0      |'
+    . '\\|   4 | bonus    |  100.02 | ctty | .ZZB | bonus on #1  | 0      |"');
     And__('usd transfer count is 0');
     And__('balances: "DATA'
     . '\\| id   | r     | dw/usd | rewards |'
     . '\\| .ZZA | 49.81 |      5 | 1050.01 |"');
-    When_('member ".ZZA" visits page "transactions/period=365"');
+    When_('member ".ZZA" visits page "history/period=365"');
     Then_('we show "Transaction History" with: "DATA'
     . '\\|_Start Date |_End Date |'
     . '\\| %dmy-12m   | %dmy     |"');
@@ -109,10 +109,10 @@ class rwebRealUsd extends DrupalWebTestCase {
     . '\\| op  | who     | amount  | goods | purpose |'
     . '\\| pay | Bea Two | 1000.20 | 1     | labor   |"');
     Then_('transactions: "DATA'
-    . '\\| xid | type     | state | amount  | from | to   | purpose      | taking |'
-    . '\\|   2 | transfer | done  | 1000.20 | .ZZA | .ZZB | labor        | 0      |'
-    . '\\|   3 | rebate   | done  |   50.01 | ctty | .ZZA | rebate on #2 | 0      |'
-    . '\\|   4 | bonus    | done  |  100.02 | ctty | .ZZB | bonus on #1  | 0      |"');
+    . '\\| xid | type     | amount  | from | to   | purpose      | taking |'
+    . '\\|   2 | transfer | 1000.20 | .ZZA | .ZZB | labor        | 0      |'
+    . '\\|   3 | rebate   |   50.01 | ctty | .ZZA | rebate on #2 | 0      |'
+    . '\\|   4 | bonus    |  100.02 | ctty | .ZZB | bonus on #1  | 0      |"');
     And__('balances: "DATA'
     . '\\| id   | r     | dw/usd | rewards |'
     . '\\| .ZZA | 49.81 |      5 | 1050.01 |"');

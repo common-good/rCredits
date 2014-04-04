@@ -209,16 +209,30 @@ function us($a = '') {global $lastA; return new r\usd($a ? (is_object($a) ? $a :
 function ctty($id) {return a(a($id)->community);}
 
 /**
+ * f('u.func arg1 arg2') OR f('u.func', arg1, arg2)
+ */
+function f($func) {
+  $args = func_get_args();
+  if (strpos($func, ' ') and count($args) == 1) $args = u\ray($args[0]);
+  $func = array_shift($args);
+  
+  list ($n, $func) = explode('.', $func);
+  $funcs = u\ray('r w s u be db t p', '', 'Web', 'Smart', 'Util', 'Backend', 'DB', 'Testing', 'SMS');
+  $func = 'rCredits\\' . ($funcs[$n] ? $funcs[$n] . '\\' : '') . $func;
+  return call_user_func_array($func, $args);
+}
+
+/**
  * Show the function result in the debug window and return the result.
  * For example, d('u.fmtAmt 35.2') would show and return rCredits\Util\fmtAmt(35.2) = "$35.20".
  */
-function d($s) {
-  $s = u\ray($s);
+/**/ function d($s) {debug($result = call_user_func_array('f', func_get_args()));}
+/*  $s = u\ray($s);
   $func = array_shift($s);
   $func = strtr("^$func", u\ray('^rw. ^u. ^be. ^. ^r. ^', '\\rCredits\\Web\\', '\\rCredits\\Util\\', '\\rCredits\\Backend\\', '\\rCredits\\Testing\\', '\\rCredits\\', ''));
-/**/  debug($result = call_user_func_array($func, $s));
+///  debug($result = call_user_func_array($func, $s));
   return $result;
-}
+}*/
 
 function r($a, $b='', $c='', $d='', $e='', $f='', $g='', $h='', $i='', $j='', $k='', $l='', $m='') {
   return u\ray($a, $b, $c, $d, $e, $f, $g, $h, $i, $j, $k, $l, $m);
@@ -232,7 +246,7 @@ function r($a, $b='', $c='', $d='', $e='', $f='', $g='', $h='', $i='', $j='', $k
     SUM(IF(t.type=1, 0, t.r)) AS rewards,
     u.r+u.usd AS bal, u.rewards AS rewards2
     FROM r_txs t, users u
-    WHERE (t.payer=u.uid OR t.payee=u.uid) AND t.state>=1 GROUP BY u.uid
+    WHERE (t.payer=u.uid OR t.payee=u.uid) GROUP BY u.uid
 
   SELECT 
     u.fullName, 
@@ -240,12 +254,12 @@ function r($a, $b='', $c='', $d='', $e='', $f='', $g='', $h='', $i='', $j='', $k
     SUM(IF(t.payer=u.uid, 1, 0)) AS `out`, 
     SUM(IF(t.type=1, 0, 1)) AS rewards
     FROM r_txs t, users u
-    WHERE (t.payer=u.uid OR t.payee=u.uid) AND t.amount>0 AND t.state>=1 GROUP BY u.uid
+    WHERE (t.payer=u.uid OR t.payee=u.uid) AND t.amount>0 GROUP BY u.uid
     
   SELECT u.fullName, SUM(-t.amount) AS bank FROM r_usd t, users u WHERE t.payer=u.uid AND t.payee=0 GROUP BY u.uid ORDER BY u.uid
   
-  SELECT u.fullName, SUM(t.r) AS virtual FROM r_txs t LEFT JOIN users u ON u.uid=t.payee WHERE t.state>=1 AND t.payeeFor LIKE '%virtual%' GROUP BY u.uid
-  SELECT u.fullName, SUM(t.r) AS virtual FROM r_txs t LEFT JOIN users u ON u.uid=t.payer WHERE t.state>=1 AND t.payerFor LIKE '%virtual%' GROUP BY u.uid
+  SELECT u.fullName, SUM(t.r) AS virtual FROM r_txs t LEFT JOIN users u ON u.uid=t.payee WHERE t.payeeFor LIKE '%virtual%' GROUP BY u.uid
+  SELECT u.fullName, SUM(t.r) AS virtual FROM r_txs t LEFT JOIN users u ON u.uid=t.payer WHERE t.payerFor LIKE '%virtual%' GROUP BY u.uid
   
   $a = rCredits\acct('NEW.AAD');
 $usa = new rCredits\usd($a); */

@@ -210,7 +210,7 @@ Scenario: A member registers with a missing company phone
   Then we say "error": "missing field" with subs:
   | field   |
   | companyPhon |
-Resume
+
 Scenario: A member registers with a bad company
   Given invitation to email "a@" is "c0D3"
   When member "?" confirms form "signup/code=c0D3&dwok=1" with values:

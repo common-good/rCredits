@@ -1054,7 +1054,7 @@ function monthDay1($time = REQUEST_TIME) {return strtotime(strftime('%b01', $tim
 function prefix($prefix, &$var) {$var = $prefix . $var;}
 function preray($prefix, &$r0) {$r = $prefix + (array) $r0; $r0 = is_object($r0) ? (object) $r : $r;}
 function setDft(&$param, $value) {if (!isset($param)) $param = $value;}
-function bit($bit) {return 1 << $bit;}
+function bit($bit) {return is_array($bit) ? (bit(array_shift($bit)) | ($bit ? bit($bit) : 0)) : (1 << $bit);}
 function log($message, $type = 'state', $info = array()) {return u\loga($type, compact('message') + $info);}
 function consta($prefix, $var) {return constant(strtoupper(str_replace(' ', '_', $prefix . "_$var")));}
 function isIPhone() {return preg_match('/iPhone/i', $_SERVER['HTTP_USER_AGENT']);}
@@ -1067,3 +1067,5 @@ function similarEmail($e1, $e2) {return (strtolower(preg_replace('/\+.*@/', '@',
 //function rayo() {return (object) call_user_func_array('rCredits\\Util\\ray', func_get_args());}
 function rayv($a, $i) {return $a[$i];} // useful when $a is returned from a function
 function strip($a) {foreach ($a as $i => $v) $a[$i] = strip_tags($v); return $a;}
+function initials($s) {return preg_replace('/[^A-Z]/', '', ucwords(strtr($s, u\ray('Jr', ''))));}
+function roughName($name) {return preg_replace("/[^A-Z '\-]/", '', strtoupper(trim(str_replace('  ', ' ', $name))));}

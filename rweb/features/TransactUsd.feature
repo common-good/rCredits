@@ -43,13 +43,11 @@ Scenario: A member confirms request to charge another member
   | did     | otherName | amount |
   | charged | Bea Two   | $100   |
   And we notice "new invoice" to member ".ZZB" with subs:
-  | created | fullName | otherName | amount | payerPurpose |
-  | %today  | Bea Two  | Abe One   | $100   | labor        |
-  And transactions:
-  | xid   | created | type     | state   | amount | from | to   | purpose      | taking |
-  | .AAAB | %today  | transfer | pending |    100 | .ZZB | .ZZA | labor        | 1      |
-  | .AAAC | %today  | rebate   | pending |      5 | ctty | .ZZB | rebate on #1 | 0      |
-  | .AAAD | %today  | bonus    | pending |     10 | ctty | .ZZA | bonus on #1  | 0      |
+  | created | fullName | otherName | amount | purpose |
+  | %today  | Bea Two  | Abe One   | $100   | labor   |
+  And invoices:
+  | nvid | created | status      | amount | from | to   | purpose      |
+  |    1 | %today  | %TX_PENDING |    100 | .ZZB | .ZZA | labor        |
   And balances:
   | id   | r | usd | rewards |
   | .ZZA | 0 | 100 |       0 |
@@ -75,10 +73,10 @@ Scenario: A member confirms request to pay another member
   | created | fullName | otherName | amount | payeePurpose | rewardType |rewardAmount |
   | %today  | Bea Two  | Abe One   | $100   | labor        | reward     | $10         |
   And transactions:
-  | xid   | created | type     | state | amount | from | to   | purpose      | taking |
-  | .AAAB | %today  | transfer | done  |    100 | .ZZA | .ZZB | labor        | 0      |
-  | .AAAC | %today  | rebate   | done  |      5 | ctty | .ZZA | rebate on #1 | 0      |
-  | .AAAD | %today  | bonus    | done  |     10 | ctty | .ZZB | bonus on #1  | 0      |
+  | xid   | created | type     | amount | from | to   | purpose      | taking |
+  | .AAAB | %today  | transfer |    100 | .ZZA | .ZZB | labor        | 0      |
+  | .AAAC | %today  | rebate   |      5 | ctty | .ZZA | rebate on #1 | 0      |
+  | .AAAD | %today  | bonus    |     10 | ctty | .ZZB | bonus on #1  | 0      |
   And balances:
   | id   | r      | usd     | rewards |
   | ctty | -15.00 | 1000.00 |       - |

@@ -48,7 +48,7 @@ function formTxs($form, &$sta, $args = '') {
   $report = $mya->admin ? (@$variety == 'stats') : FALSE; // no community txs list yet for non-admins
   if (!$report and @$do) if ($result = handleTx($do, $xid, $sta, $args)) return $result;
 
-  $page = $report ? 'community' : 'transactions';
+  $page = $report ? 'community' : 'history';
   if (!@$period) $period = TX_DEFAULT_PERIOD;
   if (strlen(@$options) != count($urlOpts = u\ray(TX_URL_OPTS))) $options = !$mya->co ? '2200001' : '2210001'; // defaults for TX_OPT_KEYS options (2=both)
   $options = array_combine($urlOpts, str_split($options));
@@ -89,8 +89,8 @@ function formTxs($form, &$sta, $args = '') {
     $result = $func($starting, $ending, $report ? 'ctty' : $mya->id, $txOpts);
     while (count($rows) < $maxRows) {
       if (!$tx = $result->fetchAssoc()) break;
-      $tot = $tx['completed'] ? 'totDone' : 'totPending';
-      $rows[] = doRow($tx, $report, $csv, $classes, @$agents, @$channels, @$boxes, $currency, $url0, $$tot);
+      //$tot = (strpos($func, 'myTrans') or $tx['completed']) ? 'totDone' : 'totPending';
+      $rows[] = doRow($tx, $report, $csv, $classes, @$agents, @$channels, @$boxes, $currency, $url0, $totDone);
     }
   }
   if ($tx and $result->fetchAssoc()) say('transaction list truncated'); // there was more than we could show
@@ -99,9 +99,9 @@ function formTxs($form, &$sta, $args = '') {
       foreach ($totPending as $key => $value) if ($totDone[$key] !== FALSE) $totDone[$key] += $value;
     } elseif ($states == STATES_PENDING) $totDone = $totPending;
     
-    u\splice($totDone, 'date', 1, u\ray('created date', FALSE, FALSE));
     u\splice($totDone, 'buttons', 1); // don't download buttons
     u\splice($totDone, 'fromyou', 0, u\ray('frombank', 0));
+    $totDone['date'] = '';
     $totDone['name'] = 'TOTALS';
     foreach(u\just(TX_DOWNLOAD_MONEY_FIELDS, $totDone) as $key => $value) $totDone[$key] = round($value, 2);
     //if ($value === FALSE) $totDone[$key] = '-';
@@ -123,7 +123,7 @@ function formTxs($form, &$sta, $args = '') {
   if ($report) {
     $agents = $summary = NULL;
   } else {
-    $reports = item(t("<a href=\"$base_url/1099-B\">Annual Tax Report</a>"));
+//    $reports = item(t("<a href=\"$base_url/history/1099-B\">Annual Tax Report</a>"));
     $summary = formField('markup', '', '', array('markup' => txSummary($starting, $ending, $currency)));
   }
 
@@ -146,7 +146,7 @@ function formTxs($form, &$sta, $args = '') {
   $title = "";
   $title = item(t('Transaction History'));
 
-  $form = compact(u\ray('title subtext reports currency states opts2 divider period submitPeriod downloadPeriod starting ending submitDates downloadDates summary transactions'));
+  $form = compact(u\ray('title subtext currency states opts2 divider period submitPeriod downloadPeriod starting ending submitDates downloadDates summary transactions'));
   if (@$downloaded) js("window.open(\"$url0&download=1\", \"download\");", 'inline', 'footer');
   return labeled($form);
 }
@@ -159,7 +159,7 @@ function formTxs_validate($form, &$sta) {
   u\preray(compact(u\ray('starting ending period')), $sta['input']);
 }
 
-function formTxs_submit($form, &$sta, $page = 'transactions') {
+function formTxs_submit($form, &$sta, $page = 'history') {
   if (confirming_s($sta)) return;
   extract(u\just('currency states period starting ending opts options do xid', $sta['input']));
   if (isset($states)) { // $options summarizes everything when clicking on OK or NO or EDIT
@@ -205,7 +205,7 @@ function setupDownload($starting, $ending) {
  */
 function txFields($report, $download, $agents, $channels, $boxes) {
   global $agtViaBox;
-  $headHelp = t('Transaction number|Date transaction was initiated or completed|Payer name|Payee name|Transaction amount|Current state of transaction -- check mark means completed, pending means awaiting approval by payer.|What is the purpose of the transaction (usually the item or service purchased)|How much incentive rewards were awarded for this transaction|Who did you pay or receive from|Amounts you spent|Amounts you received|Click a symbol to approve, deny, or reverse a transaction or to edit the purpose|The net change in account balance|') . $agtViaBox;
+  $headHelp = t('Transaction number|Date transaction was completed|Payer name|Payee name|Transaction amount|Current state of transaction -- check mark means completed.|What is the purpose of the transaction (usually the item or service purchased)|How much incentive rewards were awarded for this transaction|Who did you pay or receive from|Amounts you spent|Amounts you received|Click a symbol to approve, deny, or reverse a transaction or to edit the purpose|The net change in account balance|') . $agtViaBox;
   $classes = 'tid date from to amount state purpose reward';
   $headHelp = array_combine(u\ray($classes . ' name fromyou toyou buttons net agent channel box'), u\ray($headHelp));
   if ($report) { // community transaction history
@@ -224,7 +224,6 @@ function txFields($report, $download, $agents, $channels, $boxes) {
   if (@$download) { // downloading -- modify standard individual or community field list
     $downloadHeader = $header;
     u\splice($downloadHeader, 'buttons', 1); // don't download buttons
-    u\splice($downloadHeader, 'date', 0, u\ray('created', t('Created'))); // insert fields
     u\splice($downloadHeader, 'fromyou', 0, u\ray('frombank', t('From bank')));
   }
 
@@ -252,8 +251,9 @@ function doRow($tx, $report, $csv, $classes, $agents, $channels, $boxes, $curren
   if ($banking = ($tx_type == TX_BANK)) {
     $tx_purpose = ($tx_amount < 0 ? t('from') : t('to')) . ' ' . t('bank');
     if ($tx_amount < 0) list ($tx_amount, $tx_payee) = array(-$tx_amount, $myid);
-  } else $data = unserialize($tx_data);
+  }
   
+  $data = $tx_data ? unserialize($tx_data) : array();
   $is_reward = ($tx_type != TX_TRANSFER and $tx_type != TX_BANK);
   $r = round(@$tx_r, 2);
   $total = number_format($tx_amount, 2);
@@ -261,35 +261,33 @@ function doRow($tx, $report, $csv, $classes, $agents, $channels, $boxes, $curren
   $rpct = $tx_amount == 0 ? R_NONE : number_format(100 * $r / $tx_amount, 1);
   if ($rpct == '100.0') $rpct = '100'; // keep the field narrow (4 chars max)
   $rpct = sprintf('<span title="$%sr + $%sus">%s</span>', $r, $usd, $rpct);
-  $date = @$tx_completed ?: $tx_created;
   $amount = $currency == RUSD_R ? $r : ($currency == RUSD_USD ? $usd : $total);
+  $state = txColoredState($data);
   
   if ($report) { // community transaction history
     $reward = $banking ? 0 : (@$data['bonus'] + @$data['rebate']);
-    $state = txColoredState($tx_state);
     $tid = $xid; // for community use the actual transaction numbers
     $payeeName = $banking ? '' : r\acct($tx_payee)->fullName;
     txNeatAmounts($amount, $reward, $is_reward);
-    $row = array($tid, strftime('%d-%b-%Y', $date), r\acct($tx_payer)->fullName, $payeeName, $total, $rpct, $amount, $usd, $state, $tx_purpose, $reward);
+    $row = array($tid, strftime('%d-%b-%Y', $tx_created), r\acct($tx_payer)->fullName, $payeeName, $total, $rpct, $amount, $usd, $state, $tx_purpose, $reward);
   } else { // individual account transaction history
     $url = $url0 . "&xid=$xid";
     u\setDft($toMe, $tx_payee == $myid);
     $byMe = $banking ?: (@$tx_taking == $toMe);
     $tid = ($banking or $myid < 0) ? $xid : ($toMe ? @$tx_payeeTid : @$tx_payerTid);
     $agent = $toMe ? @$tx_payeeAgent : @$tx_payerAgent;
-    $state = txColoredState($tx_state, $byMe);
     $reward = $banking ? 0 : @$data[$toMe ? 'bonus' : 'rebate'];
     $net = number_format(($toMe ? $tx_amount : -$tx_amount) + $reward, 2);
     txNeatAmounts($amount, $reward, $is_reward);
     list ($toYou, $fromYou) = $toMe ? array($amount, R_NONE) : array(R_NONE, $amount);
     if ($tx_amount == 0) $toYou = $fromYou = "<span class=\"virtual\">$r</span>"; // make payment exchanges clear
     if ($tx_type == TX_REFUND) list ($reward, $toYou) = array($toYou, R_NONE);
-    $button1 = (!$byMe and okableState($tx_state)) ? button('OK', "$url&do=ok", txAct('ok', $tx_state, $toMe, $byMe)) : '';
-    $button2 = ((!$is_reward or $mya->cAdmin) and !@$data['undoneBy']) ? button(' X ', "$url&do=no", txAct('no', $tx_state, $toMe, $byMe)) : '';
+    $button1 = ''; //(!$byMe and okableState($tx_state)) ? button('OK', "$url&do=ok", txAct('ok', '', $toMe, $byMe)) : '';
+    $button2 = ((!$is_reward or $mya->cAdmin) and !@$data['undoneBy']) ? button(' X ', "$url&do=no", txAct('no', '', $toMe, $byMe)) : '';
     $button3 = ($mya->can(@$tx_taking ? B_SELL : B_BUY) and !$is_reward) ? "<a href='$url&do=edit' title='Edit Purpose'><img src='$rUrl/images/icons/edit.png' width=20 height=20 border=0 /></a>" : '';
     $buttons = ($banking or $toYou == $fromYou) ? '' : "<div class='txs-buttons'><div>$button1</div><div>$button2</div><div>$button3</div></div>";
-//    $row = array($tid, strftime('%d-%b', $date), @$tx_name, $fromYou, $toYou, $rpct, $amount, $usd, $state, $buttons, $tx_purpose, $reward, $net);
-    $row = array($tid, strftime('%d-%b', $date), @$tx_name, $fromYou, $toYou, $state, $buttons, $tx_purpose, $reward, $net);
+//    $row = array($tid, strftime('%d-%b', $tx_created), @$tx_name, $fromYou, $toYou, $rpct, $amount, $usd, $buttons, $tx_purpose, $reward, $net);
+    $row = array($tid, strftime($csv ? '%Y-%m-%d' : '%d-%b', $tx_created), @$tx_name, $fromYou, $toYou, $state, $buttons, $tx_purpose, $reward, $net);
   }
 
   if (@$agents) $row[] = (!@$agent or $agent == $myid or $agent < 0) ? R_NONE 
@@ -301,35 +299,21 @@ function doRow($tx, $report, $csv, $classes, $agents, $channels, $boxes, $curren
   if ($csv) return finishCsvRow($csv, array_combine($classes, $row), $tx, $amount, $toMe, $tot);
   if ($banking) $tid = substr($tid, 1);
   $tid = substr(TX_TID_MAX + $tid, 1) . ($banking ? '5' : '0'); // 0 and 5 to be deterministic
-  array_unshift($row, $date . $tid); // fails around the year 2260
+  array_unshift($row, $tx_created . $tid); // fails around the year 2260
   return $row;
 }
 
 function finishCsvRow($csv, $row, $tx, $amount, $toMe, &$tot) {
-  extract(u\just('xid type created completed state', $tx));
+  extract(u\just('xid type', $tx));
 
-//  $txid = u\n2a(abs($xid), -4); // world-unique transaction id
-  $created = strftime('%Y-%m-%d', $created);
   if ($type == TX_BANK) {
     $frombank = $toMe ? $amount : -$amount;
     $row['fromyou'] = $row['toyou'] = '';
   } else $frombank = '';
-//    $txid = R_SERVER_ID . '-' . $txid;
   
-  u\splice($row, 'date', 0, compact('created'));
   u\splice($row, 'buttons', 1); // don't download buttons
   u\splice($row, 'fromyou', 0, compact('frombank'));
 
-  $date = @$completed ? strftime('%Y-%m-%d', $completed) : '';
-  $txStates = u\ray(TX_STATES);
-  $state = $txStates[$state - TX_STATE0]; // transaction state (human-readable)
-
-//  if ($amount == R_NONE) {
-//    $r = ''; // showing refunds and other incentives (other than rebate/bonus) as rewards
-//  } elseif (!$toMe) {$r = '-' . $r; $usd = '-' . $usd;}
-  foreach (u\ray('date state') as $key) $row[$key] = $$key; // don't compact()+$row (maintain order!)
-///  if ($xid == 37) debug(compact('row','amount','r','usd','toMe','tot'));
-  
   foreach ($row as $key => $value) $row[$key] = $value == R_NONE ? '' : strip_tags($value);
   if ($row['fromyou'] == $row['toyou']) $row['fromyou'] = $row['toyou'] = ''; // don't report gross on payex
   foreach (u\ray(TX_DOWNLOAD_MONEY_FIELDS) as $key) {
@@ -355,8 +339,8 @@ function txConfirm($do, $xid, &$sta) {
   if (!$details = be\lastTx('xid=:xid', compact('xid'), TRUE)) return 'bad tx id'; // bail on hack attempt
   $subs = r\txReportArgs($mya, $details);
   $summary = u\tt('tx summary', $subs);
-  extract(u\just('state toMe byMe', $subs));
-  $txAction = txAct($do, $state, $toMe, $byMe);
+  extract(u\just('toMe byMe', $subs));
+  $txAction = txAct($do, '', $toMe, $byMe);
   confirm(u\tt('tx summary|confirm tx action', $subs + compact('txAction')), $sta); // sets 'confirm'
   return sureForm($sta);
 }
@@ -367,7 +351,7 @@ function handleTx($do, $xid, &$sta, $args) {
   if ($do == 'ok' or $do == 'no') {
     if ($confirm = txConfirm($do, $xid, $sta)) return $confirm;
     if (!$sta['rebuild']) txOKorNO($do, $xid); // don't do anything if canceling
-    $url = str_replace('&do=', '&did=', "transactions/$args"); // don't do it again
+    $url = str_replace('&do=', '&did=', "history/$args"); // don't do it again
     return r\go($url); // back to the normal form
   }
   return FALSE;
@@ -397,33 +381,34 @@ function txNeatAmounts(&$amount, &$reward, $is_reward) {
   $reward = $reward ? number_format($reward, 2) : R_NONE;
   if ($is_reward) list ($amount, $reward) = array(R_NONE, $amount); // show refunds, inflation, grants, fines, and signup bonus as rewards
 }
-function txColoredState($state, $sayPending = TRUE) {
-  $states = array(TX_DONE => '&#10004;', TX_PENDING => 'ok?', TX_DENIED => 'denied', TX_DISPUTED => 'disputed');
-  $colors = array('&#10004;' => 'green', 'ok?' => 'orange', 'pending' => 'darkgreen', 'denied' => 'red', 'disputed' => 'red');
-  $state = ($state == TX_PENDING and $sayPending) ? 'pending' : $states[$state];
+function txColoredState($data) {
+  $state = @$data['disputed'] ? 1 : 0;
+  $states = array('&#10004;', 'disputed');
+  $colors = array('green', 'red');
   $color = $colors[$state];
+  $state = $states[$state];
   return "<span style='color:$color;'>$state</span>";
 }
 
 /**
  * Return the action option for a transaction
  * (This has to match what be\undoTx() actually does.)
- * @param string $do: which major type of action ('ok' or 'no')
- * @param int $state: the current transaction state
+ * @param string $do: which major type of action (UNUSED)
+ * @param int $state: the current transaction state (UNUSED)
  * @param bool $toMe: user is the payee
  * @param bool $byMe: user originated the transaction
  * @return string: how to describe the ok or no
  */
 function txAct($do, $state, $toMe, $byMe) {
-  if ($do == 'ok') return $toMe ? t('ACCEPT this payment') : t('APPROVE this charge');
+  //if ($do == 'ok') return $toMe ? t('ACCEPT this payment') : t('APPROVE this charge');
   
-  $state += 0; // otherwise string != int
+  //$state += 0; // otherwise string != int
   if ($toMe) {
-    if ($state == TX_DISPUTED) return t('REVERSE this disputed charge'); // let the customer win
-    if ($state == TX_PENDING) return $byMe ? t('CANCEL this invoice') : t('REFUSE this payment');
+    //if ($state == TX_DISPUTED) return t('REVERSE this disputed charge'); // let the customer win
+    //if ($state == TX_PENDING) return $byMe ? t('CANCEL this invoice') : t('REFUSE this payment');
     return t('REVERSE this charge'); // let the customer win
   } else {
-    if ($state == TX_PENDING) return $byMe ? t('CANCEL this payment') : t('DECLINE to pay this invoice');
+    //if ($state == TX_PENDING) return $byMe ? t('CANCEL this payment') : t('DECLINE to pay this invoice');
     return $byMe ? t('REVERSE this payment') : t('DISPUTE this charge');
   }
 }
@@ -436,6 +421,7 @@ function txOKorNO($task, $xid) {
   if (!$result = be\lastTx('xid=:xid', compact('xid'), TRUE)) return FALSE; // bail on hack attempt
   extract(u\just('state amount payer toMe', $result));
 
+  /*
   if ($task == 'ok') { // OK
     u\EXPECT($state == TX_PENDING or $state == TX_DISPUTED, "bad state for #$xid: $state");
     if ($toMe) { // accepting payment exchange offer (UNUSED)
@@ -447,7 +433,8 @@ function txOKorNO($task, $xid) {
       $who = r\acct($payer)->fullName;
       list ($message, $args) = array('charge accepted', compact('who'));
     } else list ($message, $args) = be\payInvoice($xid);
-  } else list ($message, $args) = be\undoTx($xid); // NO
+  } else */
+  list ($message, $args) = be\undoTx($xid); // NO
   say($message, $args);
 }
 
@@ -482,7 +469,7 @@ function tx_edit_validate($form, &$sta) {
 function tx_edit_submit($form, &$sta) {
   extract($sta['input']);
   r\setTxField($field, $purpose, $xid);
-  $sta['redirect'] = 'transactions';
+  $sta['redirect'] = 'history';
 }
 
 function txBal($bal, $plus = '', $minus = '- ') {
@@ -516,6 +503,7 @@ function txSummary($starting, $ending, $currency) {
   : ($currency == 1 ? array($o_usd, $d_bank, $d_usdIn, $d_usdOut, $d_fees, 0, $n_usd) : ''))); // usd
   $values = array_combine(u\ray($fields), $values);
 
+  $p_rInProper = $p_rOutProper = $p_inProper = $p_outProper = $p_rewards = 0; // temporary until we implement invoices
   $p_balance = $p_bank + $p_rInProper - $p_rOutProper + $p_rewards - $p_committed;
   $values += compact(u\ray('p_inProper p_bank p_outProper p_rewards p_committed p_balance'));
   foreach ($values as $key => $value) $$key = number_format($value, 2);
@@ -553,8 +541,6 @@ function txSummary($starting, $ending, $currency) {
   $caption = $sticky = $empty = '';
   return $summary_title . theme_table(compact(u\ray('header rows attributes caption colgroups sticky empty')));
 }
-
-function okableState($state) {return ($state == TX_PENDING or $state == TX_DISPUTED);}
 
 function csv($csv, $a) {
   global $testCSV; if (!@$testCSV) $testCSV = array();

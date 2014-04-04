@@ -17,7 +17,7 @@ define('DW_TEST_PASS', 'Password1'); // usdPass for sandbox accounts
 define('DW_TEST_PIN', '9999'); // usdPin
 define('DW_TEST_ACCTS', DW_TESTER_ACCT . ' ' . '8127419900 8127431130 8127423717 8127418871 8127401872'); // usdAccount
 define('DW_TEST_AUTHS',
-  'lBtIKmAL/b9PzZhrPX0m5SwIGMtAIHcxXiEq2gTMYwtZ+LYK7x '
+  DW_TESTER_AUTH . ' '
 . 'Y6dveGxn4tFpaLCpYPy5p0Dr+fKS5yt1sQcdnMuZwd2fEFeha3 '
 . 'pxj/Lr+UEFRJIXdqykS6GK8eOwFb5RJacv6PRenp1c+GCJvTW6 '
 . 'ekRW2CfBdsuezuuZapK2mnWK1pqy157zoZnXmUXYoL2rBEEYWw ' // x0QfZr7LuNwt4XFPMh%2FWhSRsOyYXsNW0Ye8z0BpMZ%2FusVEVdEk ?
@@ -49,6 +49,7 @@ function doThing($info, $type) {
 function gifts($list) {return doRecords($list, 'Gift');}
 function notices($list) {return doRecords($list, 'Notice');}
 function members($list) {return doRecords($list, 'Account');}
+function invoices($list) {return doRecords($list, 'Invoice');}
 function devices($list) {return doRecords($list, 'Boxe');}
 function relations($list) {return doRecords($list, 'Relation');}
 function transactions($list) {return doRecords($list, 'Tx');}
@@ -83,7 +84,6 @@ function doAccount($info = array()) {
   if (@$email) $mail = $info['mail'] = $email;
 
   if (!$testOnly) { // when making, set many defaults and mods
-    u\setDft($rebate, 5); // should be R_REBATE, but many of the test would have to be written on changing it
     u\setDft($fullName, 'doAccount ' . randomString(20, 'word'));
     $name = u\shortName($fullName);
     u\setDft($legalName, $fullName);
@@ -149,45 +149,65 @@ function doAccount($info = array()) {
 }
 
 /**
+ * Fabricate a bogus invoice.
+ * Minimum parameters: amount, from, to
+ * @return:
+ *   if $testOnly return TRUE if the data is as expected
+ *   otherwise return the record ID of the created invoices (treated as TRUE in test steps)
+ */
+function doInvoice($info, $type) {return doTx($info, $type);}
+
+/**
  * Fabricate bogus transactions.
  * Minimum parameters: amount, from, to
  * @return:
  *   if $testOnly return TRUE if the data is as expected
  *   otherwise return the serial of the created transaction(s) (treated as TRUE in test steps)
  */
-function doTx($info) {
+function doTx($info, $thing) {
   global $testOnly, $channel;
   
+  $inv = ($thing == 'Invoice');
   extract($info);
 
-  if (@$xid and !is_numeric($xid)) $xid = u\a2n(substr(strpbrk($xid, R_MEMBER_MARK . R_AGENT_MARK), 1));
-  u\setDft($type, TX_TRANSFER);
-  u\setDft($state, TX_DONE);
   u\setDft($created, REQUEST_TIME);
-  foreach (u\ray('type state') as $one) if (!is_numeric($$one)) $$one = u\consta('tx', $$one);
   $payer = uid($from);
-  $payerAgent = uid(@$fromAgent ?: ($type == TX_TRANSFER ? $from : r\communityUid()));
   $payee = uid($to); 
-  $payeeAgent = uid(@$toAgent ?: $to );
 //  u\setDft($r, $amount);
-  u\setDft($taking, 0);
 //  if ($amount != $r) u\setDft($usdXid, 10000 + $xid);
   $for = @$purpose ?: 'cash';
   if (strpos($for, ',')) $for = explode(',', $for); // specifying both payerFor and payeeFor
 
-  u\setDft($goods, ($type != TX_TRANSFER or u\forCash($for)) ? 0 : 1);
-  if ($goods) list ($rebate, $bonus) = array(r\rebate($payer, $payee, $amount), r\bonus($payee, $payer, $amount));
-  foreach (u\ray('from to purpose for') as $one) unset($info[$one]);
+  foreach (u\ray('from to for') as $one) unset($info[$one]);
   
-  $info = compact(u\ray('xid created r payer payerAgent payee payeeAgent for type state channel goods taking data')) + $info;
-  if ($testOnly or $type == TX_REBATE or $type == TX_BONUS) {
+  if ($inv) {
+    u\setDft($goods, u\forCash($for) ? 0 : 1);
+  } else {
+    if (@$xid and !is_numeric($xid)) $xid = u\a2n(substr(strpbrk($xid, R_MEMBER_MARK . R_AGENT_MARK), 1));
+    u\setDft($type, TX_TRANSFER);
+    foreach (u\ray('type') as $one) if (!is_numeric($$one)) $$one = u\consta('tx', $$one);
+    u\setDft($goods, ($type != TX_TRANSFER or u\forCash($for)) ? 0 : 1);
+    if ($goods) list ($rebate, $bonus) = array(r\rebate($payer, $payee, $amount), r\bonus($payee, $payer, $amount));
+    $payerAgent = uid(@$fromAgent ?: ($type == TX_TRANSFER ? $from : r\communityUid()));
+    $payeeAgent = uid(@$toAgent ?: $to );
+    u\setDft($taking, 0);
+    unset($info['purpose']);
+    $info = compact(u\ray('xid created payer payerAgent payee payeeAgent type channel goods taking')) + $info;
+  }
+
+  if ($testOnly or @$type == TX_REBATE or @$type == TX_BONUS) {
+    if ($inv) return verifyRecord('r_invoices', $info);
     if ($testOnly) list ($info['payerFor'], $info['payeeFor']) = is_array($for) ? $for : array($for, $for);
     unset($info['for']);
     return verifyRecord('r_txs', $info); // fails if rebate/bonus description is wrong (so omit it on create)
   }
   
-  $txs = r\transact($info);
-  return $txs[0]['xid'];
+  if ($inv) {
+    return db\insert('r_invoices', $info);
+  } else {
+    $txs = r\transact($info + compact('for'));
+    return $txs[0]['xid'];
+  }
 }
 
 /**
@@ -201,7 +221,7 @@ function doRelation($info) {
   $reid = u\num($id, u\a2n(substr($id, -3)));
   if (!$mainAcct = r\acct(t\uid($main))) return output("main:$main is not an id");
   if (!$agtAcct = r\acct(t\uid($agent))) return output("agent:$agent is not an id");
-  u\EXPECT(!r\foreignServer(r\uidRegion($mainAcct->id)) or !r\foreignServer(r\uidRegion($agtAcct->id)));
+  //u\EXPECT(!r\foreignServer(r\uidRegion($mainAcct->id)) or !r\foreignServer(r\uidRegion($agtAcct->id)));
   u\EXPECT($mainAcct->proSe and $agtAcct->proSe);
   list ($main, $other) = array($mainAcct->id, $agtAcct->id);
   $info['permission'] = @$permission ? u\consta('b', $permission) - B_RELATED : 0;
@@ -300,8 +320,8 @@ function doBalance($one) {
   }
   extract(u\just('id r usd balance dwolla rewards minimum share committed', $one));
   $a = r\acct($id = t\uid($id0 = $id));
-/**/ print_r(compact('a','id','id0'));
-  print_r(' unQuid=' . r\unQuid($id0));
+/// print_r(compact('a','id','id0'));
+/// print_r(' unQuid=' . r\unQuid($id0));
   if ($hasdw = in_array($a->usdAccount, array(DW_TEST_ACCT, DW_TESTER_ACCT))) $us = new r\usd($a);
   $dodw = (isset($dwolla) and $hasdw);
 
@@ -353,6 +373,7 @@ function usdTransfers($txs) {
       extract(u\just('payer payee amount', $tx));
       $payer = t\uid($payer);
       $payee = @$payee ? (is_numeric($payee) ? $payee : t\uid($payee)) : 0;
+///      debug(compact(u\ray('payer payee amount')));
       if (!db\exists('r_usd', 'payer=:payer AND amount=:amount and payee=:payee', compact(u\ray('payer payee amount')))) return FALSE;
     } else {
       foreach (u\just('payer payee', $tx) as $key => $value) {
@@ -659,9 +680,13 @@ function verifyRecord($table, $info) {
       "$key-($key%:DAY_SECS)<=>:$key-(:$key%:DAY_SECS)" 
       : "$key<=>:$key"); // null-safe ==
   }
+
   $crit = join(' AND ', $crit);
-  $result = db\exists($table, $crit, $info);
-/**/ if (!$result) output("verifyRecord failed. table=$table crit=$crit EXPECTED info=" . print_r($info, 1)); // keep
+  if (!$result = db\exists($table, $crit, $info)) {
+    foreach ($info as $k => $value) $subs[$k] = "'$value'";
+    $sql = "SELECT * FROM $table WHERE " . strtr(u\SUBS($crit), u\prefixKeys(':', $subs));
+/**/ output("verifyRecord failed. sql=$sql<br>table=$table crit=$crit EXPECTED info=" . print_r($info, 1));
+  }
   return $result;
 }
 
@@ -695,7 +720,7 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
   t\logIn($id);
 
   $validate = TRUE;
-  if (u\abbreviates('transactions/', $page) and $confirmed) {
+  if (u\abbreviates('history/', $page) and $confirmed) {
     $validate = FALSE;
     $formSta['confirm'] = TRUE;
   }
@@ -933,9 +958,12 @@ function clear($ch) {
   global $channel; $channel = $ch;
 
   $cgfUid = r\cgfId();
-  $tables = 'r_boxes r_do r_gifts r_invites r_log r_notices r_proxies r_relations r_txs r_stats r_usd r_user_industries queue';
+  $tables = 'r_boxes r_do r_gifts r_invites r_log r_notices r_proxies r_relations r_txs r_invoices r_stats r_usd r_user_industries queue';
 
-  db\q('DELETE FROM users WHERE uid>:cgfUid OR (uid>1 AND uid<:cgfUid-1)', compact('cgfUid'));
+  //db\q('DELETE FROM users WHERE uid>:cgfUid OR (uid>1 AND uid<:cgfUid-1)', compact('cgfUid'));
+  db\q('DELETE FROM users WHERE uid>1 or uid<0');
+  r\setupBasicAccounts();
+
   foreach (u\ray($tables) as $one) db\q("TRUNCATE $one");
   db\q('UPDATE users SET floor=0,minimum=NULL,r=0,usd=0,rewards=0,committed=0');
 
@@ -949,7 +977,7 @@ function clear($ch) {
 
 //  t\setupDwAccts();
 
-  tlog('clearing');
+  t\log('clearing');
   r\acct::_clear(); // empty the acct cache
   \drupal_static_reset(); // clear out drupal central storage
 }
@@ -1074,10 +1102,10 @@ function seq($table = 'r_usd') {
   global $testSeq;
   $id = $testSeq[$table] = @$testSeq[$table] + 1;
   $k = $table == 'r_usd' ? 'txid' : '';
-  tlog("seq table=$table id=$id");
+  t\log("seq table=$table id=$id");
   u\EXPECT(!db\exists('r_usd', "$k=:id", compact('id')), "duplicate seq: $id in table $table");
   return $id;
 }
 
-function tlog($msg) {u\log($msg, 'debug');}
+function log($msg) {if (t\est()) u\log($msg, 'debug');}
 function that($thing) {global $thatThing; return $thatThing[$thing];}

@@ -18,10 +18,10 @@ Scenario: A member donates
   | gift | amount | often | honor  | honored | share |
   |    0 |     10 |     1 | memory | Jane Do |    10 |
   Then transactions:
-  | xid   | created | type     | state | amount | from | to   | purpose      |
-  | .AAAB | %today  | transfer | done  |     10 | .ZZA | cgf  | donation |
-  | .AAAC | %today  | rebate   | done  |   0.50 | ctty | .ZZA | rebate on #1 |
-  | .AAAD | %today  | bonus    | done  |   1.00 | ctty | cgf  | bonus on #1  |
+  | xid   | created | type     | amount | from | to   | purpose      |
+  | .AAAB | %today  | transfer |     10 | .ZZA | cgf  | donation |
+  | .AAAC | %today  | rebate   |   0.50 | ctty | .ZZA | rebate on #1 |
+  | .AAAD | %today  | bonus    |   1.00 | ctty | cgf  | bonus on #1  |
   And we say "status": "gift successful" with subs:
   | amount |
   |    $10 |

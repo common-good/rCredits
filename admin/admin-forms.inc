@@ -77,15 +77,15 @@ function formAdmin_submit($form, &$sta) {
   
   if ($op == 'printId') {
     if (@$make) {
-      seeSecure($a);
+      r\seeSecure($a);
       r\makeCardCode($a);
-      seeSecure($a);
+      r\seeSecure($a);
     }
     return r\go('print-rcard/' . $a->qid);
   } elseif ($op == 'seeSecure') {
     if (@$a) {
 /**/  debug(u\ray('legalName dwAccount phone federalId physicalAddr', @$a->legalName, @$a->usdAccount, substr(@$a->phone, 2), @$a->federalId, @$a->address . ' ' . $a->postalCode));
-      seeSecure($a);
+      r\seeSecure($a);
     }
   } elseif ($op == 'connectBank') {
     $secure = $a->secure;
@@ -109,22 +109,22 @@ function formAdmin_submit($form, &$sta) {
   // handle all other buttons with showQuery()
   if ($op == 'users') {
     $fields = 'uid, MID(phone,3) AS phone, flags, r, usd, rewards, minimum AS min, committed AS comit, share, floor, address, city, postalCode AS zip';
-    return say(showQuery('users', 1, 'name', $fields));
+    return say(r\showQuery('users', 1, 'name', $fields));
   }
   
   $logFields = "channel,type,myid,IF(agent=myid,'--',agent) AS agent, REPLACE(special, ',', ', ') AS special, REPLACE(info, ',', ', ') AS info";
 
-  if ($op == 'log') return say(showQuery('r_log', 1, 'logid DESC', $logFields));
-  if ($op == 'tells') return say(showQuery('r_log', "info LIKE '%tell-staff%' ORDER BY logid DESC LIMIT 50", 'logid DESC', $logFields));
+  if ($op == 'log') return say(r\showQuery('r_log', 1, 'logid DESC', $logFields));
+  if ($op == 'tells') return say(r\showQuery('r_log', "info LIKE '%tell-staff%' ORDER BY logid DESC LIMIT 50", 'logid DESC', $logFields));
 
-  if ($op == 'txs') return say(showQuery('r_txs', isDEV ? 1 : 'type NOT IN (:TX_REBATE,:TX_BONUS)', 'xid DESC', 'xid, t.created, type AS ty, t.state AS st, goods AS gd, payer, payee, amount, payerFor AS for1, payeeFor AS for2, payerTid AS tid1, payeeTid AS tid2', array('payer', 'payee')));
+  if ($op == 'txs') return say(r\showQuery('r_txs', isDEV ? 1 : 'type NOT IN (:TX_REBATE,:TX_BONUS)', 'xid DESC', 'xid, t.created, type AS ty, goods AS gd, payer, payee, amount, payerFor AS for1, payeeFor AS for2, payerTid AS tid1, payeeTid AS tid2', array('payer', 'payee')));
 
-  if ($op == 'gifts') return say(showQuery('r_gifts', "honor<>'share'", 'donid DESC', 'donid,giftDate,t.uid,amount,often,honor,honored,t.share,completed', 'uid'));
-  if ($op == 'invites') return say(showQuery('r_invites', 1, 'invited DESC', 'invited, inviter, invitee, email', 'inviter'));
-  if ($op == 'notices') return say(showQuery('r_notices', 1, 'msgid DESC'));
-  if ($op == 'proxies') return say(showQuery('r_proxies', 1, 'id DESC', 'person, proxy, priority', 'person'));
-  if ($op == 'relations') return say(showQuery('r_relations', 1, 'main, reid', 'reid,main,other,draw,permission,employerOk,employeeOk,isOwner', 'main'));
-  foreach (u\ray('boxes do stats usd') as $one) if ($op == $one) return say(showQuery("r_$one"));
+  if ($op == 'gifts') return say(r\showQuery('r_gifts', "honor<>'share'", 'donid DESC', 'donid,giftDate,t.uid,amount,often,honor,honored,t.share,completed', 'uid'));
+  if ($op == 'invites') return say(r\showQuery('r_invites', 1, 'invited DESC', 'invited, inviter, invitee, email', 'inviter'));
+  if ($op == 'notices') return say(r\showQuery('r_notices', 1, 'msgid DESC'));
+  if ($op == 'proxies') return say(r\showQuery('r_proxies', 1, 'id DESC', 'person, proxy, priority', 'person'));
+  if ($op == 'relations') return say(r\showQuery('r_relations', 1, 'main, reid', 'reid,main,other,draw,permission,employerOk,employeeOk,isOwner', 'main'));
+  foreach (u\ray('boxes do stats usd') as $one) if ($op == $one) return say(r\showQuery("r_$one"));
 }
 
 
@@ -214,26 +214,29 @@ function formMemberInfo($form, &$sta, $qid = '') {
   global $base_url;
   $a = r\acct($qid);
   $title = item($a->legalName);
+  $subtext = item(u\fmtPhone($a->phone));
   if ($showUsd = (r\acct()->cAdmin and !$a->stepsDone['dw'])) {
     extract((array) $a->secure, EXTR_PREFIX_ALL, 's'); // dunno why (array) is required (indirect mod error)
-    debug(u\ray('usdEmail usdPass phone SSN address zip usdPIN', @$s_usdEmail, @$s_usdPass, @substr(@$s_usdPhone, 2), $a->federalId, $a->address, $a->postalCode, @$s_usdPin), 1);
+/**/ debug(u\ray('usdEmail usdPass phone SSN address zip usdPIN', @$s_usdEmail, @$s_usdPass, @substr(@$s_usdPhone, 2), $a->federalId, $a->address, $a->postalCode, @$s_usdPin), 1);
   }
   $account = item($a->qid, t('Account code:'));
   $username = item($a->name, t('User name:'));
   $steps = $a->ok
-    ? item(showActivity($a), t('Activity:'))
-    : item(showSteps($a), t('To do (red):'), t('sign=agreement | contact=contact info | dw:for admin to do | connect=connect bank | verify=verify bank deposits'));
-  $relations = item(showRelations($a), t('Relations:'));
+    ? item(r\showActivity($a), t('Activity:'))
+    : item(r\showSteps($a), t('To do (red):'), t('sign=agreement | contact=contact info | dw:for admin to do | connect=connect bank | verify=verify bank deposits'));
+  $date = $a->ok ? item(u\fmtDate($a->access), t('Last use:')) : item(u\fmtDate($a->login), t('Last signin'));
+  if ($rels = r\showRelations($a)) $relations = item($rels, t('Relations:'));
   $notes = formField('textarea', t('Notes:'), '', dft($a->notes));
   $submit = submit();
   $back = item('<a href="' . $base_url . '/sadmin/member-list">Back to Member List</a>', ' ');
   $qid = hidField($qid);
-  return labeled(compact(u\ray('qid title account username steps relations notes submit back')));
+  return labeled(compact(u\ray('qid title subtext account username date steps relations notes submit back')));
 }
 
 function formMemberInfo_submit($form, &$sta) {
   extract(u\just('qid notes', $sta['input']));
   $a = r\acct($qid);
+  $a->stampNotes($notes);
   $a->update(compact('notes'));
   say('info saved');
 //  return r\go('member-list');
@@ -250,7 +253,7 @@ function formMemberList($form, &$sta) {
   $ctty = r\acct($mya->community);
 
   $title = item((($cAdmin and $ctty) ? $ctty->fullName : '') . t(' Member List'));
-  $sql = 'SELECT uid, fullName, notes, phone, mail AS email, postalAddr, :IS_CO AS co FROM users WHERE uid>1 AND community=:cttyId ORDER BY :IS_OK, fullName';
+  $sql = 'SELECT uid, login, access, fullName, notes, phone, mail AS email, postalAddr, :IS_CO AS co FROM users WHERE uid>1 AND community=:cttyId ORDER BY :IS_OK, IF(:IS_OK, fullName, -login)';
   $q = db\q($sql, u\ray('cttyId', $ctty->id));
   $list = "<table id='memberlist'>\n";
   $emails = '';
@@ -262,7 +265,8 @@ function formMemberList($form, &$sta) {
     $notes = str_replace('do:', '<b style="color:blue; font-size:130%;">do:</b>', $notes);
     $a = r\acct($uid);
     $fullName = "<a href=\"$base_url/sadmin/member-info/$a->mainQid\">$fullName</a>";
-    $steps = showSteps($a);
+    $steps = r\showSteps($a);
+    $date = u\fmtDate($a->ok ? $access : $login);
 
     if ($cAdmin) {
       $bits = array(); // zap previous value
@@ -270,7 +274,7 @@ function formMemberList($form, &$sta) {
       $bits = $bits ? ('<span style="color:darkgreen;">' . join(' ', $bits) . "</span><br>\n") : '';
     } else $bits = '';
     
-    $one = ($steps or $bits or $notes) ? "<tr><td colspan=4 style='font-size:70%; font-weight:normal; padding-left:20px;'> $steps$bits$notes</td></tr>\n" : '';
+    $one = "<tr><td colspan=4 style='font-size:70%; font-weight:normal; padding-left:20px;'>$date: $steps$bits$notes</td></tr>\n";
     $list .= <<<EOF
 <tr>
 <td class="$nameClass">$fullName</td>

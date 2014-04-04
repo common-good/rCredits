@@ -150,10 +150,11 @@ EOF
 EOF
     ),
     */
-    'issue-credit' => t(<<<EOF
+    'issuing-rcredits' => t(<<<EOF
     <p>rCredits are a type of credit. Like any medium of exchange, they represent value. They make it possible for us to trade goods and services with each other in our community, without having to trade something directly with whoever has what we want, and without having to give them something of precisely the same value. The medium of exchange lets us give any amount of our goods or services to any participant in the economy, then receive the same value of goods or services from some other participant(s). If everyone both buys and sells, the credits move through the community in interconnected circles of exchange.</p>
 
     <p>Issuing rCredits is a community responsibility. This is the key to creating a Common Good Economy. We must issue as much credit as we need, to enable our exchanges of goods and services -- but no more than the value that we as a community are capable of producing.  Once rCredits become well-established and popular in a community, we can issue them together, with careful planning, as grants, loans, and equity investments. Together we can fund whatever enterprises and activities we decide would be best -- for our community, for communities elsewhere, and for the world.</p>
+    <p>In the meantime, until then, rCredits are issued automatically as incentives for doing what will strengthen and grow the system.</p>
     $back
 EOF
     ),
@@ -237,7 +238,7 @@ EOF
     <p>Invite as many people as you like, but only people you trust.</p>
 EOF
     ),
-    'payment-exchanges' => t(<<<EOF
+/*    'payment-exchanges' => t(<<<EOF
     <p>Payment exchanges are designed to make it easy for business owners and managers to use rCredits. Pay your employees and suppliers the usual way, on the usual schedule, in US Dollars, with no change to your payroll or accounting systems. Then they trade some of those US Dollars back to you for rCredits.</p>
     <p>Payments are automated, based on what you choose for your account settings. Here's how it works:</p>
     <img src="$rUrl/images/payment-exchanges-companies.png" align="right"><p>Every day, customers pay you with rCredits and US Dollars. You get a 10% bonus on the rCredits part. Then at night, all the rCredits you took in get traded automatically to your employees and suppliers, in exchange for US Dollars. You get a 5% rebate on the exchange.</p>
@@ -246,29 +247,56 @@ EOF
     <p>Your estimates of average monthly payments do NOT have to be exact. If an employee or supplier ends up buying more rCredits from you than their exact share, it's no big problem for anyone.</p>
     $back
 EOF
-    ),
+    ),*/
     'transactions' => t(<<<EOF
     Hover over any option or column header for an explanation of what it means. Select some options, and the period or specific date range that interests you, then click either "Show" or "Download". The downloaded spreadsheet (in CSV format) has more complete information, including column totals.
 EOF
     ),
     'demand' => t(<<<EOF
-    <p>"Demand" for additional rCredits is the total amount of US Dollars people have moved into the rCredits system, that can then be traded for rCredits. As long as people have plenty of places to spend within the rCredits system, they will generally keep moving money in. So the demand gives us a pretty reliable measure of the system's soundness.</p>
+    <p>The "demand" for rCredits is the net amount of US Dollars people want to trade for rCredits. As long as people have plenty of places to spend within the rCredits system, they will generally keep moving money in. So the demand gives us a pretty reliable measure of the system's soundness.</p>
     <p>We can keep issuing rCredits as long as there is a net inflow of US Dollars (an increasing demand). If members need to make more purchases outside the rCredits network and are taking more US Dollars out of the system than they are putting in (a decreasing demand), then we must temporarily stop issuing rCredits. We can keep <i>using</i> the rCredits already in circulation, of course.</p>
     <p>Once people have more places to spend within the system (typically because more people and businesses have signed up) and they start moving money in again, then we can begin again to issue additional rCredits.</p>
-    $back
-EOF
-    ),
-    'to-bank' => t(<<<EOF
-    <p>Transfers from an rCredits account to a bank account often reflect an incomplete economic circle. That is, the individual or company moving rCredits to a bank account does not yet have enough places to spend them. Generally, this means they are spending them outside the community (and outside the rCredits system). This is an opportunity for import-replacement &mdash; that is, an opportunity to start new local businesses to supply goods or services that are not currently available in our region.</p>
+    <p>Transfers from an rCredits account to a bank account often reflect an incomplete <a href="$base_url/help/economic-circles">economic circle</a>. That is, the individual or company moving rCredits to a bank account does not yet have enough places to spend them. Generally, this means they are spending them outside the community (and outside the rCredits system). This is an opportunity for import-replacement &mdash; that is, an opportunity to start new local businesses to supply goods or services that are not currently available in our region.</p>
     <p>The total monthly volume of transfers to a bank account is a measure of how well we are doing as a community, in our progress toward a sustainable local economy.</p>
     <p>As an individual, you can help by finding ways to spend within the rCredits system, instead of transferring your funds to a bank account. For all the money that circulates within the system, we can use rCredits, freeing up that many US Dollars to use for something else. So, in effect, when you can keep money in the system, we are all that much richer.</p>
     $back
 EOF
     ),
-    'savings' => t(<<<EOF
-    <p>The value of rCredits, like any currency, is what you can get for them. When rCredits members save funds for spending a month or more in the future, it means they are confident (1) that they will be able to spend them within the rCredits system OR (2) that they will be able to trade them for US Dollars because other members can spend them within the system. So savings are a <em>speculative</em> demand for rCredits, rather than a demand based in current reality. The speculation may indeed be accurate, but the circulation margin (monthly purchase volume beyond the amount of rCredits already issued) is a stronger measure of the system's capacity for additional rCredits.</p>
-    <p>The amount of savings among members is calculated (roughly) as the total amount of funds in the system minus the purchase volume over the past month.</p>
+    'growth' => t(<<<EOF
+    <p>The real power and purpose of the rCredits system is in our gathering as a community to decide what our funding priorities should be &mdash; for sustainable agriculture and energy systems, for local self-reliance, for ensuring that everyone has healthy food, a home, health care, cultural enrichment, and satisfying work &mdash; then issuing rCredits to fund our decisions.</p>
+    <p>That community-level sovereignty requires broad participation. The rCredits system is designed to grow quickly, with very little overhead cost, so we can have community-centered economic democracy as soon as possible.</p>
+    <p>Almost everything is automated, once your account is set up. The one labor-intensive piece is opening the account.</p>
+    <p>You can help! Click the "<a href="$base_url/invite">Invite</a>" tab to invite your friends and the local businesses where you want to spend your rCredits. Sit with your friends while they sign up &mdash; it takes only half an hour, but without a nudge most people spend several weeks putting it off.</p>
     $back
+EOF
+    ),
+    'funds' => t(<<<EOF
+    <p>There are three categories of funds in the rCredits system:</p>
+    <ul>
+      <li><b>rCredits that circulate.</b> Members use some fraction of the rCredits every month, to make purchases from other members (check the <a href="$base_url/community">Velocity graph</a>, to see what the fraction is).</li>
+      <li><b>rCredits that sit.</b> You also keep some rCredits in your account, unspent for now. Maybe you plan to spend them next month. Or maybe you are holding them in your rCredits account as a hedge against inflation. In any case, we call funds that are unused for a month or more "savings".</li>
+      <li><b>US Dollars.</b> When you transfer funds from bank account to your rCredits account or when you trade US Dollars for rCredits at a member business, that money goes into the community's US Dollar bank account. The system issues you an equivalent amount of rCredits to spend or hold in your account. For now, the US Dollars just accummulate, unused. Once we have enough active participation to establish a Common Good Community, we can decide together how best to use that money &mdash; for grants, zero-interest loans, and equity investments for sustainability and the common good.</li>
+    </ul>
+    <p>The total funds in the rCredits system is the sum of the rCredits (whether circulating or sitting) and the US Dollars.</p>
+    <p>The distinction between "savings" and rCredits that are actually being used is important. The value of rCredits, like any currency, is what you can get for them. When rCredits members save funds for spending a month or more in the future, it means they are confident (1) that they will be able to spend them within the rCredits system OR (2) that they will be able to trade them for US Dollars because other members can spend them within the system. So savings are a <em>speculative</em> <a href="$base_url/help/demand">demand</a> for rCredits, rather than a demand based in current reality. The speculation may indeed be accurate, but the circulation margin (monthly purchase volume beyond the amount of rCredits already issued) is a stronger measure of the system's capacity for additional rCredits.</p>
+    <p>The amount of savings among members is calculated (roughly) as the total funds in the system minus the purchase volume over the past month.</p>
+    $back
+EOF
+    ),
+    'velocity' => t(<<<EOF
+    <p>In our society at large, how fast the money moves is an indicator of the health of our economy. Faster velocity implies more people spending more money per month.</p>
+    <p>More spending is not necessarily a good thing, if we all already have what we need. But when there are unmet needs, increased economic activity can be a sign of things getting better. In the rCredits system, economic activity means people are finding the rCredits system useful, which is always a good thing.</p>
+    <p>Notice that the faster money circulates, the less money we need, to buy the same stuff. Velocity is a money-stretcher! For example, suppose there are $1 million worth of rCredits in circulation. Let's say the velocity is 1 in April (the whole million gets spent) and 2 in May (the whole million gets spent twice). In May we used the same amount of money to buy twice as much.</p>
+    $back
+EOF
+    ),
+    'economic-circles' => t(<<<EOF
+    <p>Economic circles are crucial to a healthy regional economy. The more we can keep money circulating locally, the richer we are. Why? Because we can use that money over and over &mdash; in effect turning each dollar into millions.</p>
+    <p>In a typical economic circle, you buy something from a local store or pay for local services. That business then pays its local suppliers and its local employees. Those employees in turn become consumers like you &mdash; they buy something from a local store, etc. When at any point in this circle we lose the "local" and pay someone or some company outside our region, that money is gone. It has leaked out of our community and we are that much poorer.</p>
+    <p>The rCredits system gives us an easy way to track our economic circles and opportunities for improvement. For now, "local" means within the rCredits system, but we expect the definition to expand as rCredits membership continues to grow.</p>
+    <p>The Transaction Volume chart on the <a href="$base_url/community">Community page</a> shows four types of transactions. For strong economic circles, we should see the volume of person-to-business transactions matching the volume of business-to-person transactions. More p2b than b2p means business are not paying enough local employees (or other local businesses). More b2p than p2b means people are shopping elsewhere. As you can see, member businesses are just beginning pay their employees in rCredits (see our post on <a href="http://rc4.me/fb">FaceBook</a> about solving the payroll problem).</p>
+    <p>The Banking Activity chart also measures how well we are doing as a community, at keeping money in the system.</p>
+     $back
 EOF
     ),
     'your-return' => tt(<<<EOF

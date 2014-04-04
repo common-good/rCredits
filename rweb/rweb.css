@@ -348,6 +348,8 @@ form.rweb  .form-no {color:red;}
 
 /* Reports (Statistics/Community) */
 #rcreditswebformreports .form-type-item {margin-top:15px; margin-bottom:0;}
+#rcreditswebformreports .description {clear:none;}
+#rcreditswebformreports #edit-charts div {float:left;}
 #rcreditswebformreports #edit-title {margin-bottom:0; font-weight:bold;}
 #rcreditswebformreports #edit-subheader {margin-top:0px; margin-bottom:35px; font-size:110%;} 
 #rcreditswebformreports #edit-subtext {margin-left:0;} 
@@ -426,6 +428,7 @@ form.rweb  .form-no {color:red;}
 #f1099b td:first-child +td {width:75px;} /* amount */
 #f1099b td:first-child +td+td {width:200px;} /* account */
 #f1099b .num {text-align:right;}
+#rcreditswebform1099b #edit-posttext p {font-size:80%;}
 
 /* Invited Whom */
 #invitelist {width:auto; cell-spacing:5px;}

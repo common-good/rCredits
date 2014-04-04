@@ -49,7 +49,7 @@ if (isDEV) $uri = str_replace('/devcore/', '/', $uri);
 if (preg_match('~^I/[A-Z]+[\.-]~', $uri)) $_GET['q'] = $_SERVER['REQUEST_URI'] = $uri;
 
 $drupal_hash_salt = $db_salt;
-$protocol = isPRODUCTION ? 'https://' : 'http://';
+$protocol = isDEV ? 'http://' : 'https://';
 $base_url = $protocol . $_SERVER['HTTP_HOST'] . (isDEV ? '/devcore' : ''); // NO trailing slash!
 define('BASE_URL', $base_url);
 define('R_PATH', '/sites/all/modules/rcredits');

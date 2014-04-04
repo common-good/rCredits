@@ -322,7 +322,7 @@ class call {
     }
     
     // unconfirmed invoice payment
-    $where = 'state=:TX_PENDING AND payer=:myid';
+    $where = 'xid<=0 AND payer=:myid';
     if (isset($my_who)) {
       if (!u\isAcct($acct = be\identify($my_who))) return tt($acct); // return if error
       $otherUid = $acct->id;
@@ -342,7 +342,7 @@ class call {
     $acct = be\identify($my_who);
     if ($acct != 'ALL' and !u\isAcct($acct)) return tt($acct); // return the array if error
 
-    list ($message, $args, $confirm) = be\transfer($type, r\acct(), $acct, $my_amount, $my_what, !u\forCash($my_what), $this->confirmed);
+    list ($message, $args, $confirm) = be\transfer($type, r\acct(), $acct, $my_amount, !u\forCash($my_what), $my_what, $this->confirmed);
     return $confirm ? $this->confirm($message, $args) : tt($message, $args);
   }
   

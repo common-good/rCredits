@@ -540,23 +540,34 @@ EOF;
   }
 
   /**
+   * Add a date stamp and agent's initials to the given note (before updating the notes field with it).
+   */
+  public function stampNotes(&$notes) {
+    $rep = strtolower(u\initials(r\agent()->legalName) ?: 'WS');
+    $date = str_replace('-', '', u\fmtDate(REQUEST_TIME));
+    if ($notes != '' and $notes != $this->notes and substr($notes, 5, 2) != substr($date, 5, 2)) $notes = "$date  $rep: $notes"; // check century (will fail gently in 2100)
+  }
+
+  /**
    * Mark a membership step as completed.
    * @param string $step: a named step (see R_STEPS)
    * @param assoc $details: any details to report to the staff
+   * @return TRUE
    */
   function stepDone($step, $details = array()) {
+    if ($this->member) return TRUE; // no steps needed
     $stepsDone = $this->stepsDone;
     $stepsDone[$step] = TRUE;
-    r\tellStaff('Step completed: ' . strtoupper($step), $details);
-    if (!$this->can(B_MEMBER)) {
+    $this->update(compact('stepsDone'));
+    r\tellStaff('Step completed: ' . strtoupper($step), $details, $this->id);
+    if ($this->nextStep()) {
       if ($this->can(B_DW) and !@$this->secure['auth']) {
         $this->createUsdAccount($err); // initialize Dwolla account
-        if ($err) r\tellStaff($err, $info, $this->id);
+        if ($err) r\tellStaff($err, compact('step', 'details'), $this->id);
       }
-      if ((new r\usd($this))->step() == 'Finished') $stepsDone['dw'] = TRUE; // happens externally so check here
-      if (!$this->nextStep()) r\membershipEvent($this, 'member');
-    }
-    return $this->update(compact('stepsDone'));
+      if ($step != 'dw' and (new r\usd($this))->step() == 'Finished') $this->stepDone('dw'); // happens externally so check here
+    } else r\membershipEvent($this, 'member');
+    return TRUE;
   }
   
   /**
@@ -571,12 +582,19 @@ EOF;
   }
 
   /**
+   * Return the Community Admin's account ID.
+   */
+  function cAdminUid() {
+    return db\lookup('uid', 'users', 'community=:ctty AND :IS_CADMIN', u\ray('ctty', $this->community));
+  }
+  
+  /**
    * Return the community admin's contact info.
    */
   function cAdminContact() {
-    if (!$result = db\lookup('fullName,mail,phone', 'users', 'community=:ctty AND :IS_CADMIN')) return t('(no Community Admin)');
-    extract($result);
-    return "$fullName - $mail";
+    if (!$id = $this->cAdminUid()) return t('(no Community Admin)');
+    $a = r\acct($id);
+    return "$a->fullName - $a->mail";
   }
   
   /**
@@ -752,7 +770,7 @@ EOF;
       $perms[B_CTTYACTIVE] = $perms[B_MEMBER];
       $perms[B_CTTYUP] = $perms[B_OK];
     } else {
-      $ctty = $id < 0 ? $this : r\acct($this->community);
+      $ctty = r\acct($this->community);
       $perms[B_CTTYACTIVE] = $ctty->member; // recurses (_get calls can() for "member" and "ok")
       $perms[B_CTTYUP] = $ctty->ok;
     }

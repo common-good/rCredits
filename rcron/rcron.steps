@@ -45,20 +45,18 @@ function extraSubs(&$subs) {
   $subs['%md'] = strftime('%b %d'); // strangely, lastMinuteSubs fails for this in Notices multifield
 }
 
-function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, $info);}
-
 /**
  * members: (ARG)
  *
- * in: Bank Setup MAKE
- *     Gifts Setup MAKE
- *     Homogenize Setup MAKE
- *     Inflation Setup MAKE
- *     LostUsdTxs Setup MAKE
- *     Notices Setup MAKE
- *     Pool Setup MAKE
- *     Recache Setup MAKE
- *     Sharing Setup MAKE
+ * in: MAKE Bank Setup
+ *     MAKE Gifts Setup
+ *     MAKE Homogenize Setup
+ *     MAKE Inflation Setup
+ *     MAKE LostUsdTxs Setup
+ *     MAKE Notices Setup
+ *     MAKE Pool Setup
+ *     MAKE Recache Setup
+ *     MAKE Sharing Setup
  */
 function members($list) {return t\members($list);}
 
@@ -66,63 +64,63 @@ function members($list) {return t\members($list);}
 /**
  * balances: (ARG)
  *
- * in: Bank AMemberIsBarelyBelowMinimum MAKE
- *     Bank AMemberIsAtMinimum MAKE
- *     Bank AMemberIsWellBelowMinimum MAKE
- *     Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank MAKE
- *     Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank MAKE
- *     Gifts Setup MAKE
- *     Homogenize Setup MAKE
- *     Homogenize LevelingHappens TEST
- *     Inflation Setup TEST
- *     LostUsdTxs Setup MAKE
- *     Pool Setup MAKE
- *     Pool NormalPoolingHappens TEST
- *     Recache Setup BOTH
- *     Recache BalancesGetOutOfWhack BOTH
- *     Recache BalancesGetATinyBitOutOfWhack MAKE
- *     Sharing InflationAdjustmentsAreDistributed TEST
+ * in: MAKE Bank AMemberIsBarelyBelowMinimum
+ *     MAKE Bank AMemberIsAtMinimum
+ *     MAKE Bank AMemberIsWellBelowMinimum
+ *     MAKE Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank
+ *     MAKE Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank
+ *     MAKE Gifts Setup
+ *     MAKE Homogenize Setup
+ *     TEST Homogenize LevelingHappens
+ *     TEST Inflation Setup
+ *     MAKE LostUsdTxs Setup
+ *     MAKE Pool Setup
+ *     TEST Pool NormalPoolingHappens
+ *     BOTH Recache Setup
+ *     BOTH Recache BalancesGetOutOfWhack
+ *     MAKE Recache BalancesGetATinyBitOutOfWhack
+ *     TEST Sharing InflationAdjustmentsAreDistributed
  */
 function balances($list) {return t\balances($list);}
 
 /**
  * cron runs (ARG)
  *
- * in: Bank AMemberIsBarelyBelowMinimum MAKE
- *     Bank AMemberIsAtMinimum MAKE
- *     Bank AMemberIsWellBelowMinimum MAKE
- *     Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank MAKE
- *     Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank MAKE
- *     Gifts ADonationCanBeCompleted MAKE
- *     Gifts ARecurringDonationCanBeCompleted MAKE
- *     Homogenize LevelingHappens MAKE
- *     Inflation InflationAdjustmentsAreDistributed MAKE
- *     LostUsdTxs ASystemCrashLeavesATransactionIncomplete MAKE
- *     Notices AMemberGetsSomeNotices MAKE
- *     Pool NormalPoolingHappens MAKE
- *     Recache BalancesGetOutOfWhack MAKE
- *     Recache BalancesGetATinyBitOutOfWhack MAKE
- *     Sharing InflationAdjustmentsAreDistributed MAKE
+ * in: MAKE Bank AMemberIsBarelyBelowMinimum
+ *     MAKE Bank AMemberIsAtMinimum
+ *     MAKE Bank AMemberIsWellBelowMinimum
+ *     MAKE Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank
+ *     MAKE Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank
+ *     MAKE Gifts ADonationCanBeCompleted
+ *     MAKE Gifts ARecurringDonationCanBeCompleted
+ *     MAKE Homogenize LevelingHappens
+ *     MAKE Inflation InflationAdjustmentsAreDistributed
+ *     MAKE LostUsdTxs ASystemCrashLeavesATransactionIncomplete
+ *     MAKE Notices AMemberGetsSomeNotices
+ *     MAKE Pool NormalPoolingHappens
+ *     MAKE Recache BalancesGetOutOfWhack
+ *     MAKE Recache BalancesGetATinyBitOutOfWhack
+ *     MAKE Sharing InflationAdjustmentsAreDistributed
  */
 function cronRuns($op) {return t\cronRuns($op);}
 
 /**
  * usd transfers: (ARG)
  *
- * in: Bank AMemberIsBarelyBelowMinimum TEST
- *     Bank AMemberIsWellBelowMinimum TEST
- *     Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank TEST
- *     Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank TEST
- *     Inflation Setup MAKE
- *     LostUsdTxs ASystemCrashLeavesATransactionIncomplete TEST
+ * in: TEST Bank AMemberIsBarelyBelowMinimum
+ *     TEST Bank AMemberIsWellBelowMinimum
+ *     TEST Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank
+ *     TEST Bank AMemberIsUnderMinimumAndHasRequestedInsufficientFundsFromTheBank
+ *     MAKE Inflation Setup
+ *     TEST LostUsdTxs ASystemCrashLeavesATransactionIncomplete
  */
 function usdTransfers($tx) {return t\usdTransfers($tx);}
 
 /**
  * bank transfer count is (ARG)
  *
- * in: Bank AMemberIsAtMinimum TEST
- *     Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank TEST
+ * in: TEST Bank AMemberIsAtMinimum
+ *     TEST Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank
  */
 function bankTransferCountIs($count) {return (t\usdTransferCount('payee=0') == $count);}
 
@@ -137,46 +135,46 @@ function relations($relations) {return t\relations($relations);}
 /**
  * transactions: (ARG)
  *
- * in: Gifts ADonationCanBeCompleted TEST
- *     Gifts ARecurringDonationCanBeCompleted TEST
- *     Homogenize Setup MAKE
- *     Inflation Setup MAKE
- *     Inflation InflationAdjustmentsAreDistributed TEST
- *     LostUsdTxs Setup MAKE
- *     Pool Setup MAKE
- *     Recache Setup MAKE
- *     Sharing Setup MAKE
- *     Sharing InflationAdjustmentsAreDistributed TEST
+ * in: TEST Gifts ADonationCanBeCompleted
+ *     TEST Gifts ARecurringDonationCanBeCompleted
+ *     MAKE Homogenize Setup
+ *     MAKE Inflation Setup
+ *     TEST Inflation InflationAdjustmentsAreDistributed
+ *     MAKE LostUsdTxs Setup
+ *     MAKE Pool Setup
+ *     MAKE Recache Setup
+ *     MAKE Sharing Setup
+ *     TEST Sharing InflationAdjustmentsAreDistributed
  */
 function transactions($list) {return t\transactions($list);}
 
 /**
  * we notice (ARG) to member (ARG) with subs: (ARG)
  *
- * in: Bank AMemberIsBarelyBelowMinimum TEST
- *     Bank AMemberIsWellBelowMinimum TEST
- *     Gifts ADonationCanBeCompleted TEST
- *     Gifts ARecurringDonationCanBeCompleted TEST
- *     Sharing InflationAdjustmentsAreDistributed TEST
+ * in: TEST Bank AMemberIsBarelyBelowMinimum
+ *     TEST Bank AMemberIsWellBelowMinimum
+ *     TEST Gifts ADonationCanBeCompleted
+ *     TEST Gifts ARecurringDonationCanBeCompleted
+ *     TEST Sharing InflationAdjustmentsAreDistributed
  */
 function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice, $id, $subs);}
 
 /**
  * gifts: (ARG)
  *
- * in: Gifts ADonationCanBeCompleted BOTH
- *     Gifts ARecurringDonationCanBeCompleted BOTH
- *     Sharing InflationAdjustmentsAreDistributed TEST
+ * in: BOTH Gifts ADonationCanBeCompleted
+ *     BOTH Gifts ARecurringDonationCanBeCompleted
+ *     TEST Sharing InflationAdjustmentsAreDistributed
  */
 function gifts($gifts) {return t\gifts($gifts);}
 
 /**
  * we tell staff (ARG) with subs: (ARG)
  *
- * in: Gifts ADonationCanBeCompleted TEST
- *     Gifts ARecurringDonationCanBeCompleted TEST
- *     Recache BalancesGetOutOfWhack TEST
- *     Recache BalancesGetATinyBitOutOfWhack TEST
+ * in: TEST Gifts ADonationCanBeCompleted
+ *     TEST Gifts ARecurringDonationCanBeCompleted
+ *     TEST Recache BalancesGetOutOfWhack
+ *     TEST Recache BalancesGetATinyBitOutOfWhack
  */
 function weTellStaffWithSubs($topic, $subs) {return t\weTellStaff($topic, $subs);}
 
@@ -213,14 +211,14 @@ function constants($list) {return t\constants($list);}
 /**
  * notices: (ARG)
  *
- * in: Notices AMemberGetsSomeNotices BOTH
+ * in: BOTH Notices AMemberGetsSomeNotices
  */
 function notices($list) {return t\notices($list);}
 
 /**
  * we email (ARG) to member (ARG) with subs: (ARG)
  *
- * in: Notices AMemberGetsSomeNotices TEST
+ * in: TEST Notices AMemberGetsSomeNotices
  */
 function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, $email, $subs);}
 
@@ -241,7 +239,7 @@ function noticeCountIs($count) {
 function memberChargesMemberFor($payee, $payer, $amount, $for) {
   global $testOnly; if ($testOnly) return FALSE;
   global $scanned; $scanned = TRUE;
-  be\transfer('charge', r\acct(t\uid($payee)), r\acct(t\uid($payer)), $amount, $for, TRUE);
+  be\transfer('charge', r\acct(t\uid($payee)), r\acct(t\uid($payer)), $amount, TRUE, $for);
   return TRUE;
 }
 
@@ -284,8 +282,8 @@ function weDoNotTellStaff($topic) {return !t\weTellStaff($topic);}
 /**
  * usd transfer count is (ARG)
  *
- * in: LostUsdTxs Setup TEST
- *     LostUsdTxs ASystemCrashLeavesATransactionIncomplete BOTH
+ * in: TEST LostUsdTxs Setup
+ *     BOTH LostUsdTxs ASystemCrashLeavesATransactionIncomplete
  */
 function usdTransferCountIs($count) {return (t\usdTransferCount() == $count);}
 
@@ -303,7 +301,7 @@ function nextDOCodeIs($code) {
 /**
  * member (ARG) trades $(ARG) USD to member (ARG) for rCredits
  *
- * in: LostUsdTxs ASystemCrashLeavesATransactionIncomplete MAKE
+ * in: MAKE LostUsdTxs ASystemCrashLeavesATransactionIncomplete
  */
 function memberTradesUSDToMemberForRCredits($id1, $amount, $id2) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -313,7 +311,7 @@ function memberTradesUSDToMemberForRCredits($id1, $amount, $id2) {
 /**
  * we message member (ARG) with topic (ARG) and subs: (ARG)
  *
- * in: Recache BalancesGetOutOfWhack TEST
+ * in: TEST Recache BalancesGetOutOfWhack
  */
 function weMessageMemberWithTopicAndSubs($id, $topic, $subs) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -327,14 +325,14 @@ function weMessageMemberWithTopicAndSubs($id, $topic, $subs) {
 /**
  * members have: (ARG)
  *
- * in: Pool Setup MAKE
+ * in: MAKE Pool Setup
  */
 function membersHave($list) {return t\membersHave($list);}
 
 /**
  * that (ARG) has link results: (ARG)
  *
- * in: Gifts ADonationCanBeCompleted TEST
- *     Gifts ARecurringDonationCanBeCompleted TEST
+ * in: TEST Gifts ADonationCanBeCompleted
+ *     TEST Gifts ARecurringDonationCanBeCompleted
  */
 function thatHasLinkResults($thing, $info) {return t\hasLinkResults($thing, $info);}

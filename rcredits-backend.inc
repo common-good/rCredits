@@ -68,24 +68,19 @@ function apiOut($args) {
  *   bool $pendings: include open invoices (default TRUE)
  * @return the recordset (FALSE if none)
  */
-function bankTransfers($starting, $ending, $uid = NULL, $opts = array()) {
-  extract(u\just('dones pendings', $opts));
-  u\setDft($dones, TRUE);
-  u\setDft($pendings, TRUE);
+function bankTransfers($starting, $ending, $uid = NULL) {
   $mya = r\acct();
 
   if ($uid == 'ctty') { // otherwise $uid can be positive for a member account or negative for a ctty account
     $uid = $ctty = $mya->community;
   } elseif (!@$uid) $uid = $mya->id;
   
-  $date = $pendings ? 'GREATEST(t.created, t.completed)' : 't.completed';
-  $where = "$date BETWEEN :starting AND :ending ORDER BY $date DESC";
-  if (!$dones) $where = "NOT completed AND $where";
-  $fields = "CONCAT('b', tid) AS xid, amount, t.payer, t.payee, :TX_BANK AS type, t.created, t.completed, IF(t.completed, :TX_DONE, :TX_PENDING) AS state, IF(t.amount<0, 1, 0) AS toMe";
+  $where = "t.completed BETWEEN :starting AND :ending ORDER BY t.completed DESC";
+  $fields = "CONCAT('b', tid) AS xid, amount, t.payer, t.payee, :TX_BANK AS type, t.completed AS created, '' AS data, IF(t.amount<0, 1, 0) AS toMe";
   
   if (@$ctty) { // community or region
     $sql = <<<EOF
-      SELECT $fields
+      SELECT $fields, '' AS purpose
       FROM r_usd t LEFT JOIN users u1 ON u1.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
       WHERE (u1.community=:uid OR u2.community=:uid) AND $where
 EOF;
@@ -100,59 +95,36 @@ EOF;
  * @param int $ending: ending time (the end of some day)
  * @param mixed $id: account id for which to return transactions (defaults to current account)
  *   'ctty' means return transactions for the current account's whole community
- * @param assoc $opts: array of options
- *   bool $dones: include completed transactions (default TRUE)
- *   bool $pendings: include open invoices (default TRUE)
- *   bool $bonuses: include rebate and bonus transactions (default FALSE)
- *   bool $exchanges: include exchanges of rCredits credit for USD credit (default FALSE)
- *    (but ALWAYS include other rewards/loans etc)
- *   bool $pexchanges: include payment exchanges (to employees/suppliers or from company) (default FALSE)
  * @return the recordset (FALSE if none)
  * NOTE: Denied invoices are included only for the payee, otherwise all complete or tentative transactions
  * other than rebates and bonuses are included (even those will be included if the 'include_bonuses' option is set).
  */
-function myTransactions($starting, $ending, $id = NULL, $opts = array()) {
-  extract(u\just('dones pendings bonuses exchanges pexchanges', $opts));
-  u\setDft($dones, TRUE);
-  u\setDft($pendings, TRUE);
-  u\setDft($bonuses, FALSE);
-  u\setDft($exchanges, FALSE);
-  u\setDft($pexchanges, FALSE);
+function myTransactions($starting, $ending, $id = NULL) {
   $mya = r\acct();
   
   if ($id == 'ctty') { // otherwise $id can be positive for a member account or negative for a ctty account
     $id = $ctty = $mya->community;
   } elseif (!@$id) $id = $mya->id;
   
-  $where = 't.created>=:starting AND t.created<=:ending';
-  if (!$bonuses) $where .= ' AND t.type>=0';
-  if (!$exchanges or !$pexchanges) {
-    $maybe = $exchanges ? 'NOT' : '';
-    $where .= ($exchanges or $pexchanges) ? " AND (amount>0 OR type=:TX_FINE OR t.data $maybe LIKE '%rebate%')" : ' AND (amount>0 OR type=:TX_FINE)';
-  }
-  $where .= ' ORDER BY t.xid DESC';
-  $states = $dones ? array(TX_DONE, TX_DISPUTED) : array();
-  if ($pendings) $states[] = TX_PENDING;
-  $states = 't.state IN (' . join(',', $states) . ')';
+  $where = 't.created>=:starting AND t.created<=:ending'
+  . ' AND t.type>=0'
+  . ' AND (amount>0 OR type=:TX_FINE)'
+  . ' ORDER BY t.xid DESC';
   
-  if (@$ctty) { // all transaction in the community or region
+  if (@$ctty) { // all transactions in the community or region
     $sql = <<<EOF
       SELECT t.*, IF(taking, t.payeeFor, t.payerFor) AS purpose
       FROM r_txs t LEFT JOIN users u1 ON u1.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
       WHERE (u1.community=:id OR u2.community=:id)
-      AND $states
       AND $where
 EOF;
   } else { // normal account (member or community)
-    if ($pendings) $states .= ' OR (t.state=:TX_DENIED AND t.payee=:id)';
-    // Denied invoices are not exactly pending, but user will want to see them, before deleting
     $sql = <<<EOF
       SELECT t.*,
       (SELECT fullName FROM users WHERE uid=IF(t.payer=:id, t.payee, t.payer)) AS name,
       IF(t.payer=:id, t.payerFor, t.payeeFor) AS purpose
       FROM r_txs t 
       WHERE :id IN (t.payer, t.payee)
-      AND ($states)
       AND $where
 EOF;
   }
@@ -174,14 +146,14 @@ function get1099b($payee) {
     $end = strtotime('january 1') - 1;
     $start = strtotime('-1 year', $end) + 1;
     $sql = <<<EOF
-      SELECT completed, data, serial,
+      SELECT created, data, serial,
         IF($tome, amount, -amount) AS amount, 
         IF($tome, payer, payee) AS uid, 
         IF($tome, payeeFor, payerFor) AS `for` ,
         $tome AS tome
-      FROM r_txs WHERE :payee IN (payer, payee) AND completed BETWEEN $start AND $end 
+      FROM r_txs WHERE :payee IN (payer, payee) AND created BETWEEN $start AND $end 
       AND (goods OR (type NOT IN (:TX_TRANSFER, :TX_REFUND)))
-      ORDER BY completed
+      ORDER BY created
 EOF;
     $q1099 = db\q($sql, compact('payee'));
   }
@@ -257,17 +229,6 @@ function setCttyAdmin($value, $main, $other) {
 /**
  * Undo the given transaction.
  * Situations:
- *   Transaction PENDING
- *     I invoiced someone:        CANCELED
- *     Someone invoiced me:       DENIED
- *     I offered to pay someone:  CANCELED
- *     Someone offered to pay me: DENIED
- *   Transaction DENIED (same as for PENDING)
- *     I invoiced someone:        CANCELED
- *     Someone invoiced me:       DENIED
- *     I offered to pay someone:  CANCELED
- *     Someone offered to pay me: DENIED
- *   Transaction DONE or DISPUTED
  *     I paid someone:            REVERSE (with reverse rewards)
  *     I charged someone:         REVERSE
  *     Someone paid me:           REVERSE
@@ -286,9 +247,8 @@ function undoTx($xid, $where = '1', $subs = array()) {
   extract($oldRecord, EXTR_PREFIX_ALL, 'old');
   $data = unserialize($old_data);
 
-  if ($old_state == TX_PENDING or $old_state == TX_DENIED) { // it's an invoice - cancel simply by changing the transaction state
-// function undo_invoice($xid, $oldRecord, $old_otherUid, $byMe) // return $solution
-///  debug(compact('old_byme','old_state','oldRecord','data'));
+/* function undo_invoice($xid, $oldRecord, $old_otherUid, $byMe) // return $solution
+
     if ($old_byMe) {
       list ($new_state, $solution) = array(TX_DELETED, t('deleted')); // abandon the attempt to invoice
       r\notify($old_otherUid, $old_toMe ? 'invoice canceled' : 'offer canceled', r\txReportArgs($mya, $oldRecord));
@@ -297,9 +257,10 @@ function undoTx($xid, $where = '1', $subs = array()) {
       r\notify($old_otherUid, $old_toMe ? 'offer refused' : 'invoice denied', r\txReportArgs($mya, $oldRecord));
     }
     r\setTxState($new_state, $xid);
-  } elseif (!$old_toMe and !$old_byMe) { // someone charged (either unilaterally or I approved it)
+    */
+  if (!$old_toMe and !$old_byMe) { // someone charged (either unilaterally or I approved it)
 // function dispute($xid, $oldRecord, $old_otherUid)
-    r\setTxState(TX_DISPUTED, $xid); // mark it disputed
+    r\disputeTx($xid); // mark it disputed
     $solution = t('marked "disputed"');
     r\notify($old_otherUid, 'charge disputed', r\txReportArgs($mya, $oldRecord));
   } else {
@@ -309,9 +270,6 @@ function undoTx($xid, $where = '1', $subs = array()) {
     return reverse($xid, $old_amount, $otherAcct, $data, $old_goods, $old_tid, $type, $otherTid); // create an offsetting transaction
   }
 
-  // handle undo of a partial unilateral charge (let the merchant undo the invoice, then the partial payment)
-  global $lastXid; $lastXid = @$old_data['undoes']; // previous related transaction or FALSE
-  
   $amount = u\fmtAmt($old_amount);
   $tofrom = !$old_toMe ? t('to') : t('from');
   $otherUid = $old_otherUid;
@@ -334,7 +292,7 @@ function reverse($xid, $amount, $acct, $data, $old_goods, $tid, $type, $otherTid
   $what = u\order($type == 'payment', $myFor, $otherFor);
   if (@$data['rebate'] or @$data['bonus']) list ($data['rebate'], $data['bonus']) = array(-$data['bonus'], -$data['rebate']);
   $data['undoes'] = $xid; // remember what we're reversing (especially to get the realness right)
-  list ($message, $args, $confirm) = transfer($type, r\acct(), $acct, $amount, $what, $old_goods, TRUE, $data);
+  list ($message, $args, $confirm) = transfer($type, r\acct(), $acct, $amount, $old_goods, $what, TRUE, $data);
 
   if (@$args['success']) {
     extract(u\just('xid tid otherTid', $args), EXTR_PREFIX_ALL, 'new');
@@ -368,14 +326,13 @@ EOF;
 function payInvoice($xid) {
   $mya = r\acct();
   if (!$mya->can(B_BUY)) return array('no buy', array());
-  if (!$result = lastTx('xid=:xid AND state IN (:TX_PENDING,:TX_DISPUTED)', compact('xid'))) return array('no such tx', array());
+  if (!$result = lastTx('xid=:xid AND status IN (:TX_PENDING,:TX_DENIED)', compact('xid'))) return array('no such tx', array());
   extract($result, EXTR_PREFIX_ALL, 'old');
   $acct = r\acct($old_payee, $old_payeeAgent);
   $undoes = $xid;
   
   r\usd::beginAtom();
   list ($message, $args, $confirm) = transfer('invoice payment', $mya, $acct, $old_amount, $old_payeeFor, $old_goods, TRUE, compact('undoes'));
-  if (@$args['success']) r\setTxState(TX_DELETED, $xid); // delete the invoice
   r\usd::commit();
 
   return array($message, $args);
@@ -388,7 +345,7 @@ function payInvoice($xid) {
  * @param acct $a1: acct object for first party (usually current user)
  * @param acct $a2: acct object for the other party
  *   OR 'ALL' (paying employees) -- currently UNUSED
- * @param numeric $requestAmount: the transaction amount
+ * @param numeric $amount: the transaction amount
  * @param string $for OR array($payerFor, $payeeFor): description of the transaction's purpose (user input)
  * @param bool $goods: is this for real goods and services
  * @param bool $confirmed: has this transaction been confirmed by the user? (default TRUE)
@@ -408,38 +365,29 @@ function payInvoice($xid) {
  * Do something different, based on these boolean values: $taking (charge vs. payment), $preapproved (paying or authorized to charge), 
  * $confirmed (user confirmed the transaction request), $paying_invoice, $goods (the transaction is an exchange for real stuff),
  * $shortfall (how inadequate the payer's balance is)
- */
-function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confirmed = TRUE, $data = array()) {
-  include_once __DIR__ . '/usd.class';
-  global $lastXid, $scanned, $channel;
+  */
+function transfer($ttype, $a1, $a2, $amount, $goods = FALSE, $for, $confirmed = TRUE, $data = array()) {
+  global $scanned, $channel;
 
   u\EXPECT(in_array($ttype, u\ray('payment,charge,invoice payment')), 'bad transaction type');
-// disabled for now  if ($a2 == 'ALL') return $ttype == 'payment' ? r\payEmployees($requestAmount, $for, $confirmed) : array('no ALL', array(), FALSE);
+// disabled for now  if ($a2 == 'ALL') return $ttype == 'payment' ? r\payEmployees($amount, $for, $confirmed) : array('no ALL', array(), FALSE);
+  u\setDft($for, $goods ? R_FOR_GOODS : R_FOR_CASH);
+  u\EXPECT(compact(u\ray('a1 a2 goods confirmed data')), 'acct acct bool bool assoc');
+
   list ($myid, $uid) = array($a1->id, $a2->id);
   $taking = ($ttype == 'charge');
-  $reallyTaking = ($taking xor $requestAmount < 0); // not taking if charging a negative amount
+  if (r\dupTx($uid, $myid, $taking ? $amount : -$amount)) return array('duplicate transaction', u\ray('op', $taking ? t('charged') : t('paid')), FALSE);
+  $reallyTaking = ($taking xor $amount < 0); // not taking if charging a negative amount
 
   // Check permissions
-  u\EXPECT(compact(u\ray('ttype a1 a2 confirmed data')), 'string acct acct bool assoc');
-  if (!$a2->ok) return array('non member', u\ray('otherName', $a2->fullName), FALSE);
-  list ($myAccess, $otherAccess) = u\order($reallyTaking, $scanned ? B_SCAN : B_SELL, B_BUY);
-  list ($myAccessErr, $otherAccessErr) = u\order($reallyTaking, 'sell', 'buy');
-///debug(compact('myAccess','otherAccess','myAccessErr','otherAccessErr','reallyTaking'));
-  if (!$a1->can($myAccess)) return array("no $myAccessErr", array(), FALSE);
-  if (!$a2->can($otherAccess)) return array("other no $otherAccessErr", u\ray('otherName', $a2->agent->fullName), FALSE);
-  if (!$a1->cttyActive) return array('community not active', u\ray('whose', t('Your')), FALSE);
-  if (!$a2->cttyActive) return array('community not active', u\ray('whose', t('That account\'s')), FALSE);
-  if (!$a1->cttyUp) return array('your community down', u\ray('contact', $a1->cAdminContact()), FALSE);
-  if (!$a2->cttyUp) return array('other community down', FALSE);
-    
+  if ($err = r\txPermErr($a1, $a2, $reallyTaking)) return array($err, array(), FALSE);
+   
   // Analyze who's buying or selling
-  if ($uid == $myid) return array('no self-trading', array(), FALSE);
   list ($payer, $payee) = u\order($taking, $uid, $myid);
   list ($payerAgent, $payeeAgent) = u\order($taking, $a2->agentId, $a1->agentId);
 
   // Sort out what type of transfer this is
-  $paying_invoice = ($ttype == 'invoice payment');
-  $undoing = isset($data['undoes']);
+  //$undoing = isset($data['undoes']);
   $type = TX_TRANSFER;
   $unilateral = isset($data['bilateral']) ? FALSE 
   : ($taking // selling
@@ -450,14 +398,10 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
       )
   );
   $preapproved = (@$data['preapproved'] or !$taking or $unilateral); // paying OR permitted to charge unilaterally
-//  $state = ($preapproved and !@$data['pay_all'])? TX_DONE : TX_PENDING;
-//  $virtual = ($goods and !$taking and $a1->can(B_PAYEX) and r\isEmployee($uid));
-  $virtual = FALSE; // this is done only automatically
-  $state = ($preapproved and !$virtual)? TX_DONE : TX_PENDING; // may be changed to TX_TENTATIVE below
-  
+
   // Check the amount and calculate any balance shortfall
-  if ($error = u\badAmount($requestAmount, $scanned ? '' : '>0')) return array($error, array(), FALSE);
-  $totalHit = $requestAmount - @$data['rebate']; // leave room for reversing rewards (minus a negative)
+  if ($error = u\badAmount($amount, $scanned ? '' : '>0')) return array($error, array(), FALSE);
+  $totalHit = $amount - @$data['rebate']; // leave room for reversing rewards (minus a negative)
   
   if ($shortfall = r\shortfall(abs($totalHit), $reallyTaking ? $a2 : $a1, $preapproved, $goods, $confirmed)) {
     $short = u\fmtAmt($shortfall);
@@ -466,22 +410,16 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
     r\suggestMin($reallyTaking ? $a2 : $a1);
     return array($msg, compact(u\ray('otherName short how')), FALSE);
   }
-  $amount = $requestAmount;
   
-  // Figure rewards and other extra info
-  if (!$for) $for = $goods ? R_FOR_GOODS : R_FOR_CASH;
-
-  list ($fromAcct, $toAcct) = u\order($taking, $a2, $a1);
-  list ($fromUsAcct, $toUsAcct) = array(new r\usd($fromAcct), new r\usd($toAcct));
-  $info = compact(u\ray('type amount payer payee payerAgent payeeAgent for data taking goods state'));
-  $txs = $confirmed ? r\transact($info) : array(r\txSetup($info));
+  $info = compact(u\ray('type amount payer payee payerAgent payeeAgent for data taking goods'));
+  $txs = $confirmed ? r\transact($info, $preapproved) : array(r\txSetup($info));
   
   // Report results
   $args = r\txReportArgs($a1, $txs[0], TRUE, $shortfall);
 
   if ($confirmed) { // notify other party by email about any confirmed transaction
     $notice = $reallyTaking ? ($preapproved ? 'new charge' : 'new invoice')
-      : ($virtual ? 'new offer' : (($amount < 0 and $goods) ? 'new refund' : 'new payment'));
+      : (($amount < 0 and $goods) ? 'new refund' : 'new payment');
     if ($notice == 'new payment' and $a2->co) { // not "new charge" (the most common)
       $href = r\makeDo('op id expires', 'addr', $myid, 90 * DAY_SECS); // add a link to address, so merchant can ship or nonprofit can thank
       $args['myName'] = "<a href=\"$href\">$args[myName]</a>";
@@ -489,13 +427,48 @@ function transfer($ttype, $a1, $a2, $requestAmount, $for, $goods = FALSE, $confi
     if (@$args['otherRewardAmount']) $notice .= '|reward other';
     r\notify($uid, $notice, $args);
     $message = $goods ?
-        ($preapproved ? ($virtual ? 'offer' : 'transaction') : 'invoice')
+        ($preapproved ? 'transaction' : 'invoice')
       : ($preapproved ? 'exchange' : 'exchange request'); // no possible shortfall on confirmed cash exchange (see above)
     $message = "report $message";
   } else {
     $message = $goods ? $ttype : 'exchange';
   }
   return array($message, $args, !$confirmed);
+}
+
+/**
+ * Create an ivoice
+ * call by: list ($msg, $args, $confirm) = be\invoice(...);
+ * @param acct $a1: acct object for first party (usually current user)
+ * @param acct $a2: acct object for the other party
+ * @param numeric $amount: the invoiced amount
+ * @param bool $goods: is this for real goods and services
+ * @param string $purpose: description of the transaction's purpose (user input)
+ * @param bool $confirmed: has this invoice been confirmed by the user? (default TRUE)
+ * @return simple array: 
+ *    index: index to result message string (if success, the index begins with "report ")
+ *    subs: replacement parameters, specific to the message (in particular, success=TRUE or FALSE)
+ *    confirm: boolean "this needs to be confirmed"
+ */
+function invoice($a1, $a2, $amount, $goods = FALSE, $purpose = NULL, $confirmed = TRUE) {
+  u\setDft($purpose, $goods ? R_FOR_GOODS : R_FOR_CASH);
+  list ($payee, $payer) = array($a1->id, $a2->id);
+  if ($err = r\txPermErr($a1, $a2, TRUE)) return array($err, array(), FALSE);
+  if ($err = u\badAmount($amount, '>0')) return array($err, array(), FALSE);
+  u\EXPECT(compact(u\ray('a1 a2 amount goods purpose confirmed')), 'acct acct float bool string bool');
+  if (r\dupTx($payee, $payer, -$amount)) return array('duplicate transaction', u\ray('op', t('charged')), FALSE);
+
+  $subs = u\ray('myName otherName amount purpose did', $a1->fullName, $a2->fullName, u\fmtAmt($amount), $purpose, t('charged'));
+
+  if ($confirmed) {
+    $created = REQUEST_TIME;
+    $info = compact(u\ray('amount payer payee goods purpose created'));
+    $nvid = db\insert('r_invoices', $info);
+    $a1->update(u\ray('lastTx', array($nvid, $payer - $payee, round(-$amount, 2), $created, 'inv')));
+    //$a2->update(u\ray('lastTx', array($nvid, $payee - $payer, round($amount, 2), $created, 'inv')));
+    r\notify($payer, 'new invoice', $subs); // notify other party by email about this invoice
+    return array('report invoice', $subs + u\ray('success', TRUE), FALSE);
+  } else return array('charge', $subs, TRUE);
 }
 
 /**
@@ -517,8 +490,8 @@ function fund($uid, $type, $amount, $for, $confirmed = TRUE) {
   $payer = r\acct($payee)->community;
   $payerAgent = (@$mya and $mya->id < 0) ? $mya->agentId : $payer; // take note if funded by community admin
   r\transact(compact(u\ray('type amount payer payee payerAgent payeeAgent for taking')));
-  $types = u\ray(TX_TYPES);
-  $subs = u\ray('amount type purpose', u\fmtAmt(abs($amount)), $types[$type], $for);
+  //$types = u\ray(TX_TYPES);
+  $subs = u\ray('amount purpose', u\fmtAmt(abs($amount)), $for);
   r\notify($uid, $type == TX_FINE ? 'got fine' : 'got funding', $subs);
   return $amount;
 }
@@ -636,11 +609,9 @@ function creditInfo($args = array()) {
   if ($mya = r\acct()) u\setDft($uid, $mya->id);
   if (!$acct = r\acct(@$uid)) return NULL;
 
-  $state = @$pending ? '=:TX_PENDING' : '>=:TX_DONE';
   u\setDft($asof, REQUEST_TIME + DAY_SECS);
   $subs = compact(u\ray('uid asof'));
   
-  $dateField = 'GREATEST(t.created,IF(ISNULL(t.completed), 0, t.completed))';
   $sql = <<<EOF
     SELECT 
     SUM(IF(t.payee=:uid, amount, 0)) AS rIn,
@@ -648,7 +619,7 @@ function creditInfo($args = array()) {
     SUM(IF(t.payee=:uid AND t.type=:TX_REFUND, amount, 0)) AS refunds,
     SUM(IF(t.payer=:uid OR t.type=:TX_TRANSFER OR t.type > :TX_REWARDS, 0, amount)) AS rewards
     FROM r_txs t
-    WHERE (t.payer=:uid OR t.payee=:uid) AND t.state$state AND $dateField<=:asof
+    WHERE (t.payer=:uid OR t.payee=:uid) AND t.created<=:asof
 EOF;
   
   $sums = db\q($sql, $subs)->fetchAssoc();
@@ -743,7 +714,7 @@ function todo($number, $todo = 'nothing', $nonce = 'whatever') {
  */
 function lastTx($where = 1, $subs = array(), $cache = FALSE) {
   $myid = r\acct()->id;
-  $basic = "$myid IN (payer, payee) AND type>=0 AND state<>:TX_DELETED"; // make sure it's for $myid
+  $basic = "$myid IN (payer, payee) AND type>=0"; // make sure it's for $myid
   $sql = "SELECT * FROM r_txs WHERE ($basic) AND ($where) ORDER BY xid DESC LIMIT 1";
   if (!$result = db\q($sql, $subs)->fetchAssoc()) return FALSE;
   $toMe = ($result['payee'] == $myid);

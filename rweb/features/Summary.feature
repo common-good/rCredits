@@ -29,19 +29,19 @@ Setup:
   | :ZZC | .ZZC | .ZZB  | buy        |
   | :ZZD | .ZZC | .ZZA  | sell       |
   And transactions: 
-  | xid   | created   | type     | state | amount | from | to   | purpose      |
-  | .AAAB | %today-7w | signup   | done  |    250 | ctty | .ZZA | signup       |
-  | .AAAC | %today-6w | signup   | done  |    250 | ctty | .ZZB | signup       |
-  | .AAAD | %today-6w | signup   | done  |    250 | ctty | .ZZC | signup       |
-  | .AAAE | %today-5w | transfer | done  |     10 | .ZZB | .ZZA | cash E       |
-  | .AAAF | %today-4w | transfer | done  |     20 | .ZZC | .ZZA | usd F        |
-  | .AAAG | %today-3w | transfer | done  |     40 | .ZZA | .ZZB | whatever43   |
-  | .AAAH | %today-3w | rebate   | done  |      2 | ctty | .ZZA | rebate on #4 |
-  | .AAAI | %today-3w | bonus    | done  |      4 | ctty | .ZZB | bonus on #3  |
-  | .AAAJ | %today-2d | transfer | done  |      5 | .ZZB | .ZZC | cash J       |
-  | .AAAK | %today-1d | transfer | done  |     80 | .ZZA | .ZZC | whatever54   |
-  | .AAAL | %today-1d | rebate   | done  |      4 | ctty | .ZZA | rebate on #5 |
-  | .AAAM | %today-1d | bonus    | done  |      8 | ctty | .ZZC | bonus on #4  |
+  | xid   | created   | type     | amount | from | to   | purpose      |
+  | .AAAB | %today-7w | signup   |    250 | ctty | .ZZA | signup       |
+  | .AAAC | %today-6w | signup   |    250 | ctty | .ZZB | signup       |
+  | .AAAD | %today-6w | signup   |    250 | ctty | .ZZC | signup       |
+  | .AAAE | %today-5w | transfer |     10 | .ZZB | .ZZA | cash E       |
+  | .AAAF | %today-4w | transfer |     20 | .ZZC | .ZZA | usd F        |
+  | .AAAG | %today-3w | transfer |     40 | .ZZA | .ZZB | whatever43   |
+  | .AAAH | %today-3w | rebate   |      2 | ctty | .ZZA | rebate on #4 |
+  | .AAAI | %today-3w | bonus    |      4 | ctty | .ZZB | bonus on #3  |
+  | .AAAJ | %today-2d | transfer |      5 | .ZZB | .ZZC | cash J       |
+  | .AAAK | %today-1d | transfer |     80 | .ZZA | .ZZC | whatever54   |
+  | .AAAL | %today-1d | rebate   |      4 | ctty | .ZZA | rebate on #5 |
+  | .AAAM | %today-1d | bonus    |      8 | ctty | .ZZC | bonus on #4  |
   Then balances:
   | id   | balance | r    |
   | ctty |    -768 | -768 |
@@ -62,7 +62,7 @@ Scenario: A member clicks on the summary tab
   | Your return   | 20.6% |
   | _ever         | 544.1% |
   | Social return | $9 |
-  | _ever         | $7.50 |
+  | _ever         | $9 |
   | Credit floor  | $-100 |
 
 Scenario: An agent clicks on the summary tab without permission to manage

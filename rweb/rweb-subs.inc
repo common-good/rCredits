@@ -176,7 +176,6 @@ EOF
   'upload required' => t('You must upload a file.'),
   'missing contact info' => t("<h2>Missing Contact Information</h2><p>Please complete your <@a1>Contact Information</a> before continuing.</p>"),
   'correct and retry' => t('Please correct the problem and resubmit this form.'),
-  'duplicate transaction' => t('You already just @op that member that much.'),
   'duplicate phone' => t('That phone number is already the primary phone for another account.<br><br>If this is your ONLY phone and you can make do without a connected bank account (that is, if you have some other easy way to get money into and out of your rCredits account): <input type="button" value="Continue With No Bank Connection" onclick="jQuery(\'#edit-dupOk\').val(1); jQuery(\'#rcreditswebform@form\').submit();" />'),
   'not a duplicate phone' => t('That phone number is NOT the primary phone for another account.'),
   'bad pin' => t('That is not your correct PIN.'),
@@ -196,6 +195,12 @@ EOF
   'no card ordered' => t('No rCard was ordered.'),
   'bad buy info' => t('To pay with rCredits, you must use the same @thing for the purchase as you use for your rCredits account.'),
   'must be signed out' => t('You are already signed in.'),
+  'wrong payroll co' => t('The company name in cell A1 must match your company name exactly (@coName)'),
+  'not payroll csv' => t('This is not a payroll CSV. It must say "Payroll Details" in cell A2.'),
+  'bad payroll csv' => t('Incorrect payroll CSV format at line @line.'),
+  'empty payroll' => t('There are no employees listed as having received an rCredits payroll deduction.'),
+  'bad payroll employee' => t('@employee is not listed as an employee on your Relations page. Click the Settings gear, then click "Relations".'),
+  'payroll done' => t('Payroll upload was successful. You paid @count employees a total of @total.'),
 );
 
 /**
@@ -1052,7 +1057,8 @@ function fundRpt($now, $then, $type = '') {
   $RUS = strpos($type, 'r') === FALSE ? '' : '@R';
   $change = u\fmtAmt(abs($now - $then));
   $way = $now >= $then ? t('up') : t('down');
-  $s = u\fmtAmt($now) . tt("$RUS &mdash; @way @change$RUS from a month ago", compact('way', 'change'));
+//  $s = u\fmtAmt($now) . tt("$RUS &mdash; @way @change$RUS from a month ago", compact('way', 'change'));
+  $s = u\fmtAmt($now) . tt($RUS, compact('way', 'change'));
   return strpos($type, '$') === FALSE ? str_replace('$', '', $s) : $s;
 }
 
@@ -1214,28 +1220,25 @@ function whois($who, $field_name, $info, $selfMsg = 'no self-trading') {
  * @return confirmation message (FALSE if confirmation not appropriate -- Note that say() returns FALSE)
  */
 function transfer($op, $info, $confirmed) {
-  global $lastXid, $lastOp;
   $mya = r\acct();
   $myid = $mya->id;
   extract(u\just('who amount goods purpose', $info));
   $txType = $op == 'pay' ? 'payment' : strtolower($op);
   if (blank_field(compact(u\ray('who amount')))) return FALSE;
-  if (!$acct = whois($who, 'who', $info)) return FALSE;
+  if (!$a = whois($who, 'who', $info)) return FALSE;
   if ($goods and trim($purpose) == '') return say('missing purpose', 'purpose');
   if ($error = u\badAmount($amount, '>0')) return say($error, 'amount');
-  svar('lastCustomer', $acct->id);
-  $lastOp = array($txType, $acct->id, $amount); 
+  svar('lastCustomer', $a->id);
   $op = $op == 'pay' ? t('paid') : ($op == 'charge' ? 'charged' : $op . 'ed'); // for possible error message
-  if ($lastOp == svar('lastOp')) return say('duplicate transaction', compact('op'), 'who');
-  list ($msg, $args, $confirm) = in_array($txType, array('payment', 'charge')) ?
-       be\transfer($txType, $mya, $acct, $amount, $purpose, $goods and !u\forCash($purpose), $confirmed)
-     : communityTransfer($txType, $acct, $amount, $purpose, $confirmed);
+  $goods = ($goods and !u\forCash($purpose));
+  list ($msg, $args, $confirm) = 
+     $txType == 'payment' ? be\transfer($txType, $mya, $a, $amount, $goods, $purpose, $confirmed)
+     : ($txType == 'charge' ? be\invoice($mya, $a, $amount, $goods, $purpose, $confirmed)
+     : communityTransfer($txType, $a, $amount, $purpose, $confirmed));
 
   if ($confirm) return @$identifiers . tt('confirm ' . $msg, $args);
   if (!@$args['success']) return say($msg, $args, 'amount');
 
-  svar('lastXid', $lastXid); // remember identity of most recent transaction
-  svar('lastOp', $lastOp); // remember nature of last op
   return say($msg, $args);
 }
 
@@ -1427,7 +1430,7 @@ function css($sheet, $weight = -99) {
 
 function js($what, $type, $scope) {
   global $rUrl;
-  if ($type == 'file') $what = "$rUrl/$what";
+  if ($type == 'file' and strpos($what, 'http') === FALSE) $what = "$rUrl/$what";
   return drupal_add_js($what, compact('type', 'scope'));
 }
 
@@ -1462,3 +1465,4 @@ function required($dft = NULL) {return array('required' => TRUE) + (isset($dft) 
 // UNUSED function check($array, $type = 'plain') {return array_map("check_$type", $array);} // Check an array for plain or markup.
 function op($sta) {global $testOp; return t\est() ? $testOp : @$sta['clicked_button']['#parents'][0];}
 function verifyBy($byVoice) {return $byVoice ? t('Voice') : t('SMS');}
+function blurbLink() {global $rUrl; return "<a href=\"$rUrl/templates/invite.html\" target=\"_blank\">description of rCredits</a>";}

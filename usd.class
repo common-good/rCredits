@@ -369,8 +369,7 @@ class usd {
       $result = $dw->send($this->pin, $other, $amount, 'Dwolla', 'setbal down', 0, FALSE) ?: dwError($dw, $err);
     } elseif ($amount > 0) {
       $mainUid = db\lookup('uid', 'users', "mail=':R_TESTER_EMAIL'");
-      $a = r\acct($mainUid);
-      $us = new r\usd($a);
+      $us = new r\usd($a = r\acct($mainUid));
       if ($amount > DW_FEE_THRESHOLD) $amount += DW_FEE;
       $dw = $us->dwolla();
       $other = self::format($this->number);
@@ -579,34 +578,11 @@ array (
    * So there is very little to do here.
    */
   public static function rollback() {
-    array_pop(self::$atoms); // discard the transaction
-    u\EXPECT(is_object($DBTX = array_pop(self::$atoms)), 'atom error');
-    $DBTX->rollback(); // got Drupal transaction object last (and removed it from list). Roll it back.
-    /*
-    foreach ($list as $one) { // create a compensating usd transaction for each transaction in $list
-      extract($one); // same fields as listed above in addToAtom: txid amount payer payee created completed
-      $reverseNote = t('reversed Dwolla transaction #') . $txid;
-      $grantNote = t('reimbursement of fee for ') . $reverseNote;
-
-      $usA1 = new usd(r\acct($payer));
-      $usA2 = new usd(r\acct($payee));
-      if ($feeable = ($amount > DW_FEE_THRESHOLD)) r\queue('coverFee', compact(u\ray('txid payee')));
-
-      $dw = $usA2->dwolla();
-
-      self::beginAtom();
-      self::addToAtom($one); // record original transaction
-      
-      if (!noDw($dw) and $txid = $dw->send($usA2->pin, $usA1->number, $amount, 'Dwolla', $reverseNote)) {
-        self::addToAtom($txid, $amount, $payee, $payer);
-        if ($feeable) r\queue('coverFee', u\ray('txid payee', $txid, $payer));
-      } else { // failure (probably insufficient Dwolla balance). Nothing to reverse.
-        //$info = u\ray('payer payee amount r for taking', $payee, $payer, 0, $amount, $reverseNote, FALSE);
-        //r\transact($info);
-      }
-      self::commit();
+    if (!is_object($DBTX = array_pop(self::$atoms))) { // discard the transaction (if any)
+      $DBTX = array_pop(self::$atoms); // get Drupal transaction object last (and remove it from list)
+      u\EXPECT(is_object($DBTX), 'atom error');
     }
-    */
+    $DBTX->rollback();
   }
   
 } // end of class

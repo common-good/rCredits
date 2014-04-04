@@ -53,11 +53,11 @@ class rwebGet extends DrupalWebTestCase {
     . '\\| .ZZC | Our Pub  |     0 |     100 | co,ok,dw   |'
     . '\\| .ZZD | Dee Four |     0 |     100 | ok,dw,bank |"');
     And__('transactions: "DATA'
-    . '\\| xid | created    | type   | state | amount | from | to   | purpose |'
-    . '\\| 1   | %today-10d | signup | done  |     20 | ctty | .ZZA | signup  |'
-    . '\\| 2   | %today-10d | grant  | done  |    100 | ctty | .ZZB | grant   |'
-    . '\\| 3   | %today-10d | signup | done  |     10 | ctty | .ZZC | signup  |'
-    . '\\| 4   | %today-10d | signup | done  |     20 | ctty | .ZZD | signup  |"');
+    . '\\| xid | created    | type   | amount | from | to   | purpose |'
+    . '\\| 1   | %today-10d | signup |     20 | ctty | .ZZA | signup  |'
+    . '\\| 2   | %today-10d | grant  |    100 | ctty | .ZZB | grant   |'
+    . '\\| 3   | %today-10d | signup |     10 | ctty | .ZZC | signup  |'
+    . '\\| 4   | %today-10d | signup |     20 | ctty | .ZZD | signup  |"');
     And__('usd transfers: "DATA'
     . '\\| payer | payee | amount | tid | created   | completed |'
     . '\\|  .ZZA |     0 |    -99 |   1 | %today-7d | %today-5d |'

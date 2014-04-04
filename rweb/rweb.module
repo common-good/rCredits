@@ -69,9 +69,18 @@ function rweb_menu() {
   
   $menu = array(
     'summary' => menuNorm(t('Summary'), 'Summary', 'anyone'),
-    'transactions' => menuNorm(t('Transactions'), 'Txs 1', 'read'),
+    'history' => menuNorm(t('History'), 'Txs 1', 'read'),
+/*    'history/transactions' => menuLocal(t('Transactions'), '*Txs 1', 'read'),
+    'history/invoices-to' => menuLocal(t('Invoices TO You'), 'InvoicesTo', 'read'),
+    'history/invoices-from' => menuLocal(t('Invoices FROM You'), 'InvoicesFrom', 'read'),
+    'history/1099-B' => menuLocal(t('1099-B Forms'), '1099b', 'read'),
+    'history/zot' => menuLocal('zot', '', 'anyone'), // Drupal bug: last choice is omitted
+*/
     'charge' => menuNorm(t('Charge'), 'Tx', 'admin sell ok'),
     'pay' => menuNorm(t('Pay'), 'Tx 1', 'buy ok'),
+    'pay/one' => menuLocal(t('Pay One'), '*Tx', 'co buy ok'),
+    'pay/payroll' => menuLocal(t('Upload Payroll'), 'Payroll', 'co buy ok'),
+    'pay/zot' => menuLocal('zot', '', 'anyone'), // Drupal bug: last choice is omitted
 
     'grant' => menuNorm(t('Grant'), 'Tx', 'managing_ctty'),
     'loan' => menuNorm(t('Loan'), 'Tx', 'managing_ctty'),
@@ -84,6 +93,10 @@ function rweb_menu() {
     'invite' => menuNorm(t('Invite'), 'Invite', 'anyone'),
     'signout' => menuNorm(t('Sign out'), '', 'anyone', 'signout'),
 
+    'handy' => isDEV ? menuNorm(t('Handy'), '', 'dev', 'handyLinks') : NULL,
+    'tests' => isDEV ? menuNorm(t('Test'), '1', isDEV ? 'dev' : NULL, 'test') : NULL,
+    'php' => isDEV ? menuNorm(t('PHP'), 'php', 'dev', 'util') : NULL,
+    
     'menu' => callback(t('Menu'), 'Menu', 'anyone'),
     'empty' => callback(t('Empty'), 'Empty', 'anyone'),
 
@@ -126,9 +139,9 @@ function rweb_menu() {
     'sadmin/php' => menuLocal(t('PHP'), 'php', 'dev', 'util'),
     'sadmin/zot' => menuLocal('zot', '', 'admin'), // Drupal bug: last choice is omitted
     'sadmin/member-info' => callback('Member Info', 'MemberInfo 2', 'cadmin2'),
-    'print-rcard' => callback(t('Print ID Card'), '1 FALSE', 'cadmin', 'memberID'),
+    'print-rcard' => callback(t('Print ID Card'), '1 ', 'cadmin', 'memberID'),
 //    'rcredits/util' => callback('Util', '2', 'admin', 'util'),
-    
+
     'help' => callback(t('Help'), 'Help 1', 'anyone'),
     'change-account' => callback(t('Change Who'), '1', 'anyone', 'changeWho'),
     'status' => callback('Status', 'Membership 2', 'manage'),
@@ -140,7 +153,6 @@ function rweb_menu() {
     'autocomplete' => callback('Identify', '1 2 3', 'anyone', 'auto'),
     'do' => callback('Do', '1', 'anyone', 'rdo'),
     'coup' => callback(t('Disable account'), '1', 'anyone', 'coup'),    
-    '1099-B' => callback('1099-B Forms', '1099b', 'read'),
     'invited-whom' => callback('Invited Whom', 'InvitedWhom', 'manage'),
 
     'accept' => callback('Accept Invitation', 'Accept', 'anyone'),

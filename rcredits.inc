@@ -17,7 +17,8 @@ use rCredits\Util as u;
 use rCredits\Backend as be;
 
 // definitions used in settings file
-define('HOUR_SECS', 3600);
+define('MIN_SECS', 60);
+define('HOUR_SECS', 60 * MIN_SECS);
 define('DAY_SECS', 24 * HOUR_SECS);
 define('WEEK_SECS', 7 * DAY_SECS);
 define('YEAR_SECS', 365.25 * DAY_SECS);
@@ -38,7 +39,7 @@ define('US', '<span class="us">us</span>');
 define('R_VERSION', '1.1'); // software version
 define('R_ROOT', DRUPAL_ROOT . '/sites/all/modules/rcredits');
 define('R_DATE_FIELDS', 'created completed sent invited giftDate signed login access yesterday'); // date field names for testing
-define('R_DATA_FIELDS', 'newAccount by calling wants legalName website description selling coFlags stats verifyBy oneTimePass signupCo stepsDone chunk pinThreshold'); // fields stored in the account's "data" array field (serialized)
+define('R_DATA_FIELDS', 'newAccount by calling wants legalName website description selling coFlags stats verifyBy oneTimePass signupCo stepsDone chunk pinThreshold lastTx'); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'usd r rewards floor committed'); // financial amount fields in account record
 define('R_SECURE_FIELDS', 'usdType usdPhone usdEmail usdPass usdPin auth bankAccount bankAccountType pin cardCode cardCode2'); // non-personal encrypted fields (must be complete list)
 define('R_SECRET_FIELDS', 'federalId dob idProof answer'); // personal identifying information
@@ -92,12 +93,18 @@ define('R_REQUIRED', ' <span class="form-required" title="This field is required
 define('R_CTTY_USD_SHARE', .5); // fraction of a community's total USD to hold in the community account
 define('R_CC_RATE', 2.5); // typical credit card percentage rate
 define('R_CODE_LEN', 20); // length of most random identifiers
+define('R_DUPTX_MINS', 2); // number of minutes before a duplicate transaction is allowed
 
 define('DW_SITE', isPRODUCTION ? 'https://www.dwolla.com' : 'https://uat.dwolla.com');
 //                               : 'http://new.rcredits.org/stage.php?stageWord=' . R_STAGE_WORD . '&request=');
 //define('DW_TEST_ACCT', '8127139234'); // "reflector" account on www (totally reimburses anything under $10)
 define('DW_TEST_ACCT', '8127419900'); // "reflector" account on www (totally reimburses anything under $10)
 define('DW_TESTER_ACCT', '8127413762'); // william's account on Dwolla sandbox
+define('DW_TESTER_AUTH', 'lBtIKmAL/b9PzZhrPX0m5SwIGMtAIHcxXiEq2gTMYwtZ+LYK7x');
+/*  'usdPhone' => '+14136281021',
+  'usdEmail' => 'h8hg.new.aaa@rc4.me',
+  'usdPass' => 'a4P33bu8sXhy7mL27ebE*B2',
+  */
 define('DW_FEE_THRESHOLD', 10); // over this amount, Dwolla charges a fee
 define('DW_FEE', .25); // the fee
 define('DW_VERIFY_ROOF', 20); // bank verification deposits are less than this (actually less than 15 cents)
@@ -206,16 +213,9 @@ define('FLOW_TO', 1);
 define('FLOW_FROM', 2);
 define('FLOW_BOTH', 3);
 
-// Transaction states
-define('TX_STATES', t('denied deleted pending done tentative disputed'));
-
-define('TX_STATE0', -2); // lowest index
-define('TX_DENIED', -2); // invoice rejected by the non-originator
-define('TX_DELETED', -1);
+// Invoice status (use data['disputed'] for txs)
+define('TX_DENIED', -1); // invoice rejected by the non-originator
 define('TX_PENDING', 0); // charged, waiting for confirmation (in all other states, transaction is complete)
-define('TX_DONE', 1); // transactions with a positive state count as done
-define('TX_TENTATIVE', 2); // CURRENTLY UNUSED done in rCredits, but waiting for USD funds instead (amount minus r is the expected amount)
-define('TX_DISPUTED', 3); // unilaterally charged, but disputed by the payer (the charge stands, until settled)
 
 // Transaction channels (roughly in order of simplicity and generality of messages)
 define('TX_SYSTEM', 0);
@@ -289,7 +289,6 @@ function txReportArgs($acct, $tx, $getMyBalance = FALSE, $shortfall = 0) {
   global $channel;
   extract($tx); // any or all standard transaction fields
   if ($data) if ($data = unserialize($data)) extract(u\just('rebate bonus', $data));
-  global $lastXid; if (@$xid) $lastXid = $xid; // remember last transaction for current user, for potential undo (here and on undo)
 
   $toMe = ($payee == $acct->id);
   $reverses = isset($data['undoes']);
@@ -315,7 +314,7 @@ function txReportArgs($acct, $tx, $getMyBalance = FALSE, $shortfall = 0) {
     if ($acct->can(B_BUY)) $balance = u\fmtAmt($acct->rAvailable('buy', TRUE));
   }
   
-  if ($state != TX_PENDING and $state != TX_DISPUTED and $goods) {
+  if ($goods) {
 //    u\both($tx, 'rewardType', $toMe, t('bonus'), t('rebate'));
     u\both($tx, 'rewardType', $toMe, t('reward'), t('reward'));
     u\both($tx, 'rewardAmount', $toMe, u\fmtAmt(@$bonus + 0), u\fmtAmt(@$rebate + 0));
@@ -337,6 +336,7 @@ function txReportArgs($acct, $tx, $getMyBalance = FALSE, $shortfall = 0) {
 function whoseUsd($usdAccountId, $omit = NULL) {
   $usdAccount = bin2hex(u\ezencrypt(str_replace('-', '', $usdAccountId), R_WORD));
   $where = 'usdAccount=:usdAccount' . (@$omit ? ' AND uid<>:omit' : '');
+  if (t\est()) $where .= " AND mail<>':R_TESTER_EMAIL'";
   $subs = compact('usdAccount') + (@$omit ? compact('omit') : array());
   return db\lookup('uid', 'users', $where, $subs);
 }
@@ -384,9 +384,10 @@ function tradeR($amount, $uid1, $uid2, &$err = '') {
  *   payer, payee: (required) uids
  *   for: purpose of the transaction OR a simple array (payer's purpose, payee's purpose)
  *   etc.
+ * @param bool $done: whether this is a transaction (TRUE) or invoice (FALSE)
  * @return array: the list of transactions created (main, rebate, bonus)
  */
-function transact($info) {
+function transact($info, $done = TRUE) {
   $txs = array();
 
   $DBTX = db_transaction();
@@ -424,7 +425,7 @@ function txSave($tx) {
  * Add rebate and bonus to the transaction set, if appropriate.
  */
 function txRewards(&$txs) {
-  extract(u\just('type serial goods payer payee data state payerTid payeeTid created', $txs[0]));
+  extract(u\just('type serial goods payer payee data payerTid payeeTid created', $txs[0]));
   
   if ($type != TX_TRANSFER) return;
   if (!$goods) return; // quit unless rebates and bonuses apply
@@ -436,18 +437,18 @@ function txRewards(&$txs) {
     $to = $type == 'rebate' ? $payer : $payee;
     $tid = $type == 'rebate' ? $payerTid : $payeeTid;
     $type = u\consta('tx', $type);
-    if ($amount and $to > 0) $txs[] = txSave(txRewardSetup($serial, $type, $to, $state, $amount, $tid, $created));
+    if ($amount and $to > 0) $txs[] = txSave(txRewardSetup($serial, $type, $to, $amount, $tid, $created));
   }
 }
 
-function txRewardSetup($serial, $type, $payee, $state, $amount, $tid, $created) {
+function txRewardSetup($serial, $type, $payee, $amount, $tid, $created) {
   $payer = $payerAgent = userField('community', $payee);
   $payeeAgent = $payee;
   $taking = FALSE;
   $goods = FALSE;
   $for = ($type == TX_REBATE ? t('rebate') : t('bonus')) . t( ' on #') . $tid;
 
-  return txSetup(compact(u\ray('serial type amount goods payer payee payerAgent payeeAgent for taking state created'))); // created is here mostly for testing
+  return txSetup(compact(u\ray('serial type amount goods payer payee payerAgent payeeAgent for taking created'))); // created is here mostly for testing
 }
 
 /**
@@ -462,7 +463,7 @@ function txRewardSetup($serial, $type, $payee, $state, $amount, $tid, $created) 
  */
 function txSetup($info) {
   global $channel, $boxUser; // through what medium was the transaction requested (web, SMS, etc.), what machine
-  $fields = 'type state data taking goods amount payer payee payerAgent payeeAgent created';
+  $fields = 'type data taking goods amount payer payee payerAgent payeeAgent created';
   extract(u\just($fields . ' for', $info));
 
   $specs = " -- payer=$payer payee=$payee";
@@ -472,7 +473,6 @@ function txSetup($info) {
   u\EXPECT($a1->ok and $a2->ok, 'non-member in tx' . $specs);
   
   u\setDft($type, TX_TRANSFER);
-  u\setDft($state, TX_DONE);
   u\setDft($taking, FALSE);
   u\setDft($goods, FALSE);
   u\setDft($for, $goods ? R_FOR_GOODS : R_FOR_CASH);
@@ -481,7 +481,6 @@ function txSetup($info) {
   u\setDft($created, REQUEST_TIME);
 //  $rewardBasis = ($payee == r\cgfId() and $for == 'donation') ? $amount : $r;
   $data = dataSetup($payer, $payee, $amount, $goods, @$data ?: array());
-  if (@$state !== TX_PENDING) $completed = $created;
   $taking += 0;
   $goods += 0;
   $box = @$boxUser ?: 0;
@@ -489,7 +488,7 @@ function txSetup($info) {
   list ($payerFor, $payeeFor) = is_array($for) ? $for : array($for, $for);
   unset($info['for']);
 
-  return compact(u\ray($fields . ' completed payerFor payeeFor channel box')) + $info;
+  return compact(u\ray($fields . ' payerFor payeeFor channel box')) + $info;
 }
 
 /**
@@ -517,14 +516,16 @@ function cacheBothTotals($txs) {foreach(u\ray('payer payee') as $one) cacheTotal
  * The USD balance is (definitively) what is actually in the Dwolla account.
  */
 function cacheTotals($uid, $txs) {
-  extract(u\just('amount state type', $txs[0]), EXTR_PREFIX_ALL, 'tx0');
-  if ($tx0_state < TX_DONE) return; // don't change totals if transaction doesn't count (yet)
+  extract(u\just('amount type xid payer payee created', $txs[0]), EXTR_PREFIX_ALL, 't');
+//  if ($t_state < TX_DONE) return; // don't change totals if transaction doesn't count (yet)
   if ($uid < 0) return; // cache only usd for community and region
 
   $a = r\acct($uid);
-  $cache = 'r rewards committed';
+  $cache = 'r rewards committed lastTx';
   extract((array) $a->account($cache));
-  
+  $toMe = $uid == $t_payee ? -1 : 1;
+  if ($t_payer > 0) $lastTx = array($t_xid, $toMe * ($t_payee - $t_payer), round($toMe * $t_amount, 2), $t_created);
+ 
   foreach ($txs as $tx) {
     extract(u\just('payer payee amount type goods', $tx));
     if ($toOther = ($payer == $uid)) {
@@ -538,9 +539,24 @@ function cacheTotals($uid, $txs) {
   }
   $r = round($r, 2);
   $a->update(compact(u\ray($cache)));
-  if ($tx0_type == TX_TRANSFER and $tx0_amount > 0) r\membershipEvent($a, 'bona', TRUE);
+  if ($t_type == TX_TRANSFER and $t_amount > 0) r\membershipEvent($a, 'bona', TRUE);
 }
 
+/**
+ * Say whether an account's proposed transaction duplicates the last recent one.
+ * @param int $uid: the account's record ID
+ * @param int $other: the other account record ID
+ * @param float $amount: the amount proposed to transfer from the account to the other account (can be negative)
+ * @return TRUE if the proposed transaction duplicates the last one.
+ * @see also r\cacheTotals(), where the transaction data is recorded
+ */
+function dupTx($uid, $other, $amount) {
+  if (!$lastTx = r\acct($uid)->lastTx) return FALSE;
+  list ($xid, $dif, $oldAmt, $created) = $lastTx;
+  t\log(compact(u\ray('uid other amount lastTx')));
+  return ($dif == $other - $uid and $amount == $oldAmt and REQUEST_TIME - $created < R_DUPTX_MINS * MIN_SECS);
+}
+ 
 /**
  * Return the shortfall for the requested transaction.
  * @param float $request: how much is requested
@@ -558,6 +574,40 @@ function shortfall($request, $a, $preapproved, $goods, $confirmed) {
 }
 
 /**
+ * Say whether the named employee works for the account owner.
+ * @param string $name: the employee's name
+ * @param int $us: the employer's account ID (defaults to current account ID)
+ * @return int: the person's account ID if s/he does work for us, otherwise FALSE
+ */
+function worksForUs($name, $us = NULL) {
+  u\setDft($us, r\acct()->id);
+  $words = explode(' ', u\roughName($name)); // abbreviate middle names
+  if (strlen($words[0]) > 1) { // unless first name is already abbreviated
+    for ($i = 1; $i < count($words) - 1; $i++) $words[$i] = substr($words[$i], 0, 1) . '%';
+  }
+  $pattern = join(' ', $words);
+  
+  $sql = <<<EOF
+    SELECT u.uid, u.data FROM r_relations r
+    INNER JOIN users u ON u.uid=r.other
+    WHERE r.main=:us AND r.employerOk
+    ORDER BY (u.fullName LIKE :pattern) DESC
+EOF;
+  $q = db\q($sql, compact('us', 'pattern'));
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    $data = unserialize($data);
+    $legalWords = explode(' ', u\roughName($data['legalName']));
+    if (count($words) != count($legalWords)) continue;
+    for ($i = 0, $match = TRUE; $i < count($words) and $match; $i++) {
+      if (!u\abbreviates(str_replace('%', '', $words[$i]), $legalWords[$i])) $match = FALSE;
+    }
+    if ($match) return $uid;
+  }
+  return FALSE;
+}
+
+/**
  * Return a link to a "no signin required" action.
  * @param assoc $data:
  *   op, once, expires, id, amount, sql, subs, etc.
@@ -568,8 +618,8 @@ function makeDo($data) {
   global $base_url;
   extract($data = u\rayy(func_get_args()) ?: $data);
   
-  if (@$expires) $end = REQUEST_TIME + $expires;
-  if (@$once) $data = u\ray('op', db\insert('r_do', u\ray('uid before data', @$id, @$end, serialize($data))));
+  if (@$expires) $data['expires'] = ($expires += REQUEST_TIME);
+  if (@$once) $data = u\ray('op', db\insert('r_do', u\ray('uid expires data', @$id, @$expires, serialize($data))));
 
   return "$base_url/do/" . r\makeDoCode($data);
 }
@@ -692,7 +742,6 @@ function acceptGift($info) {
   $a = r\acct($uid);
   if ($a->shortfall('buy', $amount)) return FALSE; // wait until tomorrow, if not enough
   if ($a->shortfall('buy', $amount, TRUE)) return FALSE; // actually draw from other accounts, as needed
-
   $cgf = r\acct(r\cgfId());
 
 //  r\usd::beginAtom();
@@ -704,7 +753,7 @@ function acceptGift($info) {
   }
 
   $purpose = @$honor == 'share' ? t('sharing rewards with CGF') : (t('donation') . @$recurring);
-  list ($msg, $args, $confirm) = be\transfer('payment', $a, $cgf, $amount, $purpose, TRUE);
+  list ($msg, $args, $confirm) = be\transfer('payment', $a, $cgf, $amount, TRUE, $purpose);
 ///  debug(compact('msg','args','confirm'));
   if (@$args['success']) {
     $completed = REQUEST_TIME;
@@ -723,7 +772,7 @@ function acceptGift($info) {
 }
 
 /**
- * Notify rCredits staff
+ * Notify rCredits staff (Community Admin, if uid is in their area)
  * @param string $index: the message or message index
  * @param assoc $subs: substitutions for the message OR (if no subs in message) data to show
  * @param bool/int $uid: related account record id (defaults to current account), none if FALSE
@@ -735,14 +784,21 @@ function tellStaff($index, $subs = array(), $uid = TRUE) {
   foreach (u\ray('federalId dob answer') as $one) unset($subs[$one]); // secret stuff
   $message = strpos($raw = u\tt($index), '@') === FALSE ? ($raw . u\seeAssoc($subs)) : u\tt($index, $subs);
 
+  $email = R_REGION_EMAIL; // default (tell sysAdmin)
   if ($uid) {
-    if ($mya = r\acct($uid > 1 ? $uid : '')) $message = "$mya->fullName (#$mya->id): $message"; else $uid = 1;
+    if ($mya = r\acct($uid > 1 ? $uid : '')) {
+      $message = "$mya->fullName (#$mya->id): $message";
+      if ($ca = $mya->cAdminUid()) $email = $ca->mail; // tell Community Admin
+    } else $uid = 1;
   } else $uid = 1; // default to sysadmin
 
   $noFrame = TRUE;
   $topic = strlen($index) < 20 ? strip_tags($index) : '';
-  $email = R_REGION_EMAIL;
   r\rMail('tell-staff', $email, compact(u\ray('email message topic noFrame uid')));
+  if ($email != R_REGION_EMAIL) { // temporary until ctty admins get established
+    $email = R_REGION_EMAIL;
+    r\rMail('tell-staff', $email, compact(u\ray('email message topic noFrame uid')));
+  }
 }
 
 /**
@@ -778,14 +834,12 @@ function setTxField($fieldName, $newValue, $xid, $allRelated = FALSE) {
   u\EXPECT(compact(u\ray('fieldName xid allRelated')), 'name zid bool');
   
   $where = "xid=:xid and $myid in (payer, payee)"; // "$myid in" is a security measure
-  list ($oldValue, $oldState, $data) = array_values(db\lookup("$fieldName AS f1,state,data", 'r_txs', $where, compact(u\ray('xid')))); // f1 prevent Drupal from combining state results when $fieldName is 'state'
+  list ($oldValue, $data) = array_values(db\lookup("$fieldName,data", 'r_txs', $where, compact(u\ray('xid'))));
   $data = unserialize($data);
   $data['changes'][] = array(REQUEST_TIME, acct()->agentId, $fieldName, $oldValue);
   $data = serialize($data);
-  $newState = $fieldName == 'state' ? $newValue : $oldState;
-  $completion = (@$newState != TX_PENDING and !@$oldState) ? ',completed=:REQUEST_TIME' : ''; // update completion time
-  $sql = "UPDATE r_txs SET $fieldName=:newValue,data=:data$completion WHERE $where";
-  $sql2 = "UPDATE r_txs SET $fieldName=:newValue$completion WHERE serial=:xid AND type<>:TX_TRANSFER";
+  $sql = "UPDATE r_txs SET $fieldName=:newValue,data=:data WHERE $where";
+  $sql2 = "UPDATE r_txs SET $fieldName=:newValue WHERE serial=:xid AND type<>:TX_TRANSFER";
 //  $sql2 = str_replace(', data=:data', '', str_replace('xid=:xid', 'serial=:xid', $sql));
 
   $DBTX = \db_transaction();
@@ -1132,12 +1186,21 @@ function makeDevice($uid, $code = '', $ch = NULL) {
 }
 
 /**
- * Assign the given account a new id.
+ * Assign the given account a new id (or delete it).
+ * @param int $oldUid: the account's current record ID
+ * @param int $newUid: the new record ID to give the account (defaults to next available)
+ * @param bool $unusable: whether to mark the old account record ID as unusuable
+ * @param bool $delete: whether to delete the account rather than giving it a new ID (called by deleteAccount)
  * @return the new uid
  */
-function changeUid($oldUid, $newUid = FALSE, $unusable = TRUE) {
-  if (!$newUid) {
-    $a = r\acct($oldUid);
+function deleteAccount($uid) {r\changeUid($uid, FALSE, FALSE, TRUE);}
+function changeUid($oldUid, $newUid = FALSE, $unusable = TRUE, $delete = FALSE) {
+  $a = r\acct($oldUid);
+  if ($delete) {
+    foreach (u\ray('r_usd r_txs') as $table) {
+      if (db\exists($table, 'payer=:oldUid OR payee=:oldUid', compact('oldUid'))) return r\Web\say('Account "@name" has transactions in @table, so it cannot be deleted.', u\ray('name table', $a->fullName, $table), 'err');
+    }
+  } elseif (!$newUid) {
     $region = @$a->postalCode ? r\region(@$a->country, @$a->state, $a->postalCode) : communityUid();
     $newUid = r\acct::nextId($region);
   }
@@ -1176,21 +1239,26 @@ function changeUid($oldUid, $newUid = FALSE, $unusable = TRUE) {
     'users:community',
   );
   foreach (u\ray(DRUPAL_UID_TABLES) as $one) $subs[] = "$one:uid";
+  foreach (u\ray('picture proof') as $one) { // file ops cannot be rolled back, so they must follow db ops
+    $oldFilename = DRUPAL_ROOT . $a->auxFilename($one, TRUE); // get old name while account exists
+    $newFilename = str_replace("/$oldUid-", "/$newUid-", $oldFilename);
+    $files[$oldFilename] = $newFilename;
+  }
 
   $DBTX = \db_transaction();
   foreach ($subs as $one) {
     list ($table, $field) = explode(':', $one);
-    db\q("UPDATE $table SET $field=:newUid WHERE $field=:oldUid", compact('newUid', 'oldUid'));
+    if ($delete) {
+      db\q("DELETE FROM $table WHERE $field=:oldUid", compact('oldUid'));
+    } else db\q("UPDATE $table SET $field=:newUid WHERE $field=:oldUid", compact('newUid', 'oldUid'));
   }
   $oldQuid = r\quid($oldUid);
-  if ($unusable) {
+  if ($unusable and !$delete) {
     list ($uid, $name, $mail) = array($oldUid, "unusable-$oldQuid", "unusable$oldQuid@rcredits.org");
     db\insert('users', compact(u\ray('uid name mail'))); // mark old uid unusable
   }
-  foreach (u\ray('picture proof') as $one) { // this cannot be rolled back, so must follow db ops
-    $new = DRUPAL_ROOT . r\acct($newUid)->auxFilename($one, TRUE);
-    $old = str_replace("/$newUid-", "/$oldUid-", $new);
-    if (file_exists($old)) rename($old, $new);
+  foreach ($files as $old => $new) if (file_exists($old)) {
+    if ($delete) unlink($old); else rename($old, $new);
   }
   unset($DBTX); // commit
   return $newUid;
@@ -1204,8 +1272,8 @@ function changeUid($oldUid, $newUid = FALSE, $unusable = TRUE) {
 function checkBona($uid) {
   $acct = r\acct($uid);
   if ($acct->can(B_BONA)) return FALSE;
-  if (!db\exists('r_txs', 'payee=:uid and r>0 and payer>0 and state=:TX_DONE', compact('uid'))) return FALSE;
-  if (!db\lookup('COUNT(DISTINCT payee)', 'r_txs', 'payer=:uid and goods and state=:TX_DONE', compact('uid')) >= R_BUYS_BEFORE_BONUS) return FALSE;
+  if (!db\exists('r_txs', 'payee=:uid and r>0 and payer>0', compact('uid'))) return FALSE;
+  if (!db\lookup('COUNT(DISTINCT payee)', 'r_txs', 'payer=:uid and goods', compact('uid')) >= R_BUYS_BEFORE_BONUS) return FALSE;
   return TRUE;
 }*/
 
@@ -1364,7 +1432,7 @@ function getTotals($ctty) {
     $sums .= "SUM(IF(type=:TX_$ONE, amount, 0)) AS `$one`, ";
     $sums .= "SUM(IF(type=:TX_$ONE, 1, 0)) AS {$one}Count, ";
   }
-  $sql = "SELECT $sums MAX(IF(type=:TX_REBATE, amount, 0)) AS maxRebate FROM r_txs WHERE $where AND state IN(':TX_DONE,:TX_DISPUTED')";
+  $sql = "SELECT $sums MAX(IF(type=:TX_REBATE, amount, 0)) AS maxRebate FROM r_txs WHERE $where";
   $result2 = db\q($sql, $subs)->fetchAssoc();
   $balance = -$result1['r'];
   return $result1 + $result2 + compact(u\ray('balance'));
@@ -1372,17 +1440,17 @@ function getTotals($ctty) {
 
 /**
  * Return system-wide or community-wide statistics.
- * @param int $ctty: uid of community or region
+ * @param int $ctty: uid of community or region (0 means ALL)
  * @param int $when: latest desired statistics (defaults to now)
  *   if $when < 0, calculate the latest
  * @return assoc of named statistics (see r_stats table def)
  */
-function stats($ctty = 'ALL', $when = REQUEST_TIME) {
+function stats($ctty = 0, $when = REQUEST_TIME) {
   if ($when < 0) $when = getStats($ctty);
 
   $sql = 'SELECT * FROM r_stats WHERE created<=:when AND ctty=:ctty ORDER BY id DESC LIMIT 1';
   if ($info = db\q($sql, compact('ctty', 'when'))->fetchAssoc()) return $info;
-  
+
   $keys = db\q("SELECT column_name FROM information_schema.columns WHERE table_name='r_stats'")->fetchCol();
   return array_fill_keys($keys, 0);
 }
@@ -1390,43 +1458,45 @@ function stats($ctty = 'ALL', $when = REQUEST_TIME) {
 /**
  * Calculate and record statistics for the given community.
  * See the "// get" lines to see what statistics are collected and returned.
- * @param int $ctty: community or region
+ * @param int $ctty: community or region (0 means ALL)
  * @param int $created: creation date for the statistics record (defaults to current time)
  * @return $created
- * Note that rCredits traded by the community for USD are not counted as issued
- * (they aren't really issued until the USD are spent as a grant/loan/investment/purchase)
+ * @todo: change r field to bal and include replacements for USD
  */
 function getStats($ctty, $created = NULL) {
-  \variable_set('cttyPaidEver', db\lookup('SUM(amount)', 'r_txs', 'payer=:ctty AND type IN (:TX_TRANSFER, :TX_GRANT, :TX_LOAN, :TX_INVEST, :TX_REFUND)', compact('ctty')));
+  if ($ctty) \variable_set('cttyPaidEver', db\lookup('SUM(amount)', 'r_txs', 'payer=:ctty AND type IN (:TX_TRANSFER, :TX_GRANT, :TX_LOAN, :TX_INVEST, :TX_REFUND)', compact('ctty')));
   u\setDft($created, t\est() ? REQUEST_TIME : time());
-  $subs = compact('ctty', 'created');
+  $subs = compact('created', $ctty ? 'ctty' : '');
+  list ($cttyCrit, $payerCrit, $cttysCrit) = $ctty ? 
+    array('community=:ctty', 'payer=:ctty', '(u.community=:ctty OR u2.community=:ctty)')
+  : array('1', 'payer<1', '1');
+    
   // get pAccts, bAccts
   $sql = <<<EOF
-    SELECT SUM(IF(:IS_CO, 0, 1)) AS pAccts, SUM(IF(:IS_CO, 1, 0)) AS bAccts
-    FROM users WHERE :IS_OK AND uid>1 AND community=:ctty AND created<=:created
+    SELECT SUM(IF(:IS_OK AND NOT :IS_CO, 1, 0)) AS pAccts, SUM(IF(:IS_OK AND :IS_CO, 1, 0)) AS bAccts,
+      SUM(r) AS r, SUM(usd) AS usd, SUM(IF(:IS_OK, 0, 1)) AS newbs
+    FROM users WHERE uid NOT IN (0,1) AND $cttyCrit AND created<=:created
 EOF;
   $result1 = db\q($sql, $subs)->fetchAssoc() ?: array();
-// (calculate instead, so getStats will work for old dates)    SUM(r) AS r, SUM(usd) AS usd
   
   $sums = '';
   foreach (u\ray('transfer signup rebate bonus inflation refund grant loan invest fine') as $one) {
     $type = u\consta('tx', $one);
-    if ($type == TX_TRANSFER) $type .= ' AND payer=:ctty AND amount<>0';
+    if ($type == TX_TRANSFER) $type .= " AND $payerCrit AND amount<>0";
     $value = $type == TX_TRANSFER ? 
-        "IF(type=$type AND payer=:ctty, amount, 0)" // rCredits issued as ctty purchases
+        "IF(type=$type AND $payerCrit, amount, 0)" // rCredits issued as ctty purchases
       : "IF(type=$type, amount, 0)";
     $sums .= "SUM($value) AS `{$one}s`, ";
-//    $sums .= "SUM(IF(type=$type, 1, 0)) AS {$one}Count, ";
   }
   // get purchases, signups, rebates, bonuss, inflations, refunds, grants, loans, investments, fines, shared
   $sql = <<<EOF
     SELECT $sums SUM(IF(channel=:TX_CRON AND payeeFor='sharing rewards with CGF', amount, 0)) AS shared
     FROM r_txs t LEFT JOIN users u ON t.payer=u.uid LEFT JOIN users u2 ON t.payee=u.uid
-    WHERE (u.community=:ctty OR u2.community=:ctty) AND t.state>=:TX_DONE AND completed<=:created
+    WHERE $cttysCrit AND t.created<=:created
 EOF;
   $result2 = db\q($sql, $subs)->fetchAssoc() ?: array();
   // get r
-  $result2['r'] = array_sum($result2) - $result2['shared'] - 2 * $result2['fines'];
+  $result2['r'] = array_sum($result2) - $result2['shared'];
 
   $subs += u\ray('monthAgo', strtotime('-1 month', $created));
   // get perMo, txsPerMo, p2b(Txs)PerMo, b2b(Txs)PerMo, b2p(Txs)PerMo, cash(Txs)PerMo
@@ -1445,8 +1515,7 @@ EOF;
     SUM(IF(amount<>0 AND NOT goods, 1, 0)) AS cashTxsPerMo
 
     FROM r_txs t LEFT JOIN users u ON u.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
-    WHERE (u.community=:ctty OR u2.community=:ctty) AND t.state>=:TX_DONE 
-    AND completed>:monthAgo AND completed<=:created
+    WHERE $cttysCrit AND t.created>:monthAgo AND t.created<=:created
 EOF;
   $result3 = db\q($sql, $subs)->fetchAssoc() ?: array();
 
@@ -1461,13 +1530,11 @@ EOF;
     SUM(IF(payee>0, 1, 0)) AS xchTxsPerMo
 
     FROM r_usd t LEFT JOIN users u ON t.payer=u.uid
-    WHERE u.community=:ctty AND t.completed AND t.payee=0
+    WHERE $cttyCrit AND t.completed AND t.payee=0
     AND completed<=:created AND :monthAgo>0
 EOF;
   $usdResult = db\q($sql, $subs)->fetchAssoc() ?: array(); // "AND :monthAgo>0" just to match sub count
   $result4 = db\q($sql . ' AND completed>:monthAgo', $subs)->fetchAssoc() ?: array();
-  // get usd
-  $result4['usd'] = $usdResult['bankInPerMo'] - $usdResult['bankOutPerMo'] - $result2['refunds']; // (actually ever, not perMo)
 
 ///debug(compact(u\ray('result1 result2 result3 result4')));
   $info = $result1 + $result2 + $result3 + $result4 + compact('created', 'ctty');
@@ -1493,7 +1560,7 @@ function averageBalance($uid, $start, $end = REQUEST_TIME, &$days = '') {
   $sql = <<<EOF
     SELECT SUM(IF(payee=:uid, amount, -amount)) AS total, FLOOR((completed-$start)/:DAY_SECS) AS day 
     FROM (
-      (SELECT payer,payee,amount,completed FROM r_txs WHERE state=:TX_DONE)
+      (SELECT payer,payee,amount,created AS completed FROM r_txs)
       UNION (SELECT payer,payee,amount,completed FROM r_usd WHERE payee=0)
     ) x WHERE :uid IN (payer, payee) AND completed BETWEEN $start AND $end 
     GROUP BY day
@@ -1513,6 +1580,30 @@ EOF;
 ///debug(compact('uid','day','dayx','bal','avg'));
 
   return $avg; // average end-of-day balance
+}
+
+/**
+ * Check account permissions for a transaction or invoice
+ * @param acct $a1: the account paying or requesting payment
+ * @param acct $a2: the other account
+ * @param bool $taking: the first account is taking money from the second (charging or invoicing)
+ * @return [message, subs, confirmed] on error, else false
+ */
+function txPermErr($a1, $a2, $taking = TRUE) {
+  global $scanned;
+  if (!$a2->ok) return array('non member', u\ray('otherName', $a2->fullName), FALSE);
+  list ($myAccess, $otherAccess) = u\order($taking, $scanned ? B_SCAN : B_SELL, B_BUY);
+  list ($myAccessErr, $otherAccessErr) = u\order($taking, 'sell', 'buy');
+///debug(compact('myAccess','otherAccess','myAccessErr','otherAccessErr','taking'));
+  if (!$a1->can($myAccess)) return array("no $myAccessErr", array(), FALSE);
+  if (!$a2->can($otherAccess)) return array("other no $otherAccessErr", u\ray('otherName', $a2->agent->fullName), FALSE);
+
+  if (!$a1->cttyActive) return array('community not active', u\ray('whose', t('Your')), FALSE);
+  if (!$a2->cttyActive) return array('community not active', u\ray('whose', t('That account\'s')), FALSE);
+  if (!$a1->cttyUp) return array('your community down', u\ray('contact', $a1->cAdminContact()), FALSE);
+  if (!$a2->cttyUp) return array('other community down', array(), FALSE);
+  if ($a1->id == $a2->id) return array('no self-trading', array(), FALSE);
+  return FALSE;
 }
 
 /**
@@ -1640,6 +1731,20 @@ function up($up = NULL) {
 }
 
 /**
+ * Set new values in the data field of a record.
+ * @param string $table: what record the table is in
+ * @param string $id: the record ID
+ * @param assoc $values: values to add to the data field in that record
+ */
+function setData($table, $id, $values) {
+  $keys = u\ray('users r_txs r_invoices', 'uid', 'xid', 'nvid');
+  $key = $keys[$table];
+  u\EXPECT($key, 'bad table');
+  $data = $values + (db\lookup('data', $table, "$key=:id", compact('id')) ?: array());
+  return $table == 'users' ? r\acct($id)->update(compact('data')) : db\update($table, compact('data'));
+}
+
+/**
  * Return the rebate on the given amount for the given account.
  * Never less than R_MIN_REBATE unless the account is a nonperson (no longer used)
  * @todo? or manager of company with no (other) employees (set bit?)
@@ -1658,7 +1763,6 @@ function bonus($to, $from, $amount = 1) {return round($amount * (t\est() ? 2 : R
 // Single line functions that need no explanation
 function userField($field, $who = '', $subs = array()) {return tableField($field, 'users', $who, $subs);}
 function txField($field, $which, $subs = array()) {return tableField($field, 'r_txs', $which, $subs);}
-function setTxState($newValue, $zserial) {setTxField('state', $newValue, $zserial, TRUE);}
 function serverUid($regionId = R_SERVER_ID) {return -1 - R_REGION_MAX * u\a2n($regionId);} // -u\a2n($regionId) - 1;}
 function emailTemplate($key) {return file_get_contents(__DIR__ . R_TEMPLATE_DIR . "/$key.html");}
 function emailBody($key) {return str_replace('{BODY}', emailTemplate($key), emailTemplate(R_EMAIL_FRAME));}
@@ -1671,3 +1775,5 @@ function foreignServer($uid) {return (r\uidRegion($uid) != serverUid());}
 function doCode($code) {return @unserialize(@u\ezdecrypt(@u\deurlify($code)));}  
 function makeDoCode($a) {return u\urlify(u\ezencrypt(serialize($a)));}
 function cgfId() {return \variable_get('cgf_uid');}
+function disputeTx($xid) {return db\setData('r_txs', $xid, u\ray('disputed', TRUE));}
+function denyInv($nvid) {return db\setData('r_invoices', $nvid, u\ray('denied', TRUE));}

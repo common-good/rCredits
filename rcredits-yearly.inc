@@ -58,10 +58,10 @@ function do1099bs() {
  */
 function do1099b($year, $payee, &$total) {
   while ($row = be\get1099b($payee)) {
-    extract(u\just('completed amount for', $row));
+    extract(u\just('created amount for', $row));
     if ($amount <= 0) continue; // IRS says do NOT report non-positive transactions
     $total += $amount;
-    putRec(recB($year, r\acct($payee), $completed, fmtAmt($amount), $for));
+    putRec(recB($year, r\acct($payee), $created, fmtAmt($amount), $for));
   }
 }
 

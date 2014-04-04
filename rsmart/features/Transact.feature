@@ -144,3 +144,9 @@ Scenario: Buyer agent lacks permission to buy
   | otherName |
   | Eve Five  |
 
+Scenario: Seller tries to charge the customer twice
+  Given agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": "food"
+  When agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": "food"
+  Then we return error "duplicate transaction" with subs:
+  | op      |
+  | charged |

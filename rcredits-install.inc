@@ -91,8 +91,9 @@ function tableDefs($schema = array()) {
     'invests' => setupField('amount of equity investments ever', 'numeric 11,2', 0),
     'fines' => setupField('amount of fines ever', 'numeric 11,2', 0),
     'shared' => setupField('amount of rewards shared ever', 'numeric 11,2', 0),
-    'pAccts' => setupField('number of personal accounts', 'int medium'),
-    'bAccts' => setupField('number of company accounts', 'int medium'),
+    'pAccts' => setupField('number of personal accounts', 'int medium', 0),
+    'bAccts' => setupField('number of company accounts', 'int medium', 0),
+    'newbs' => setupField('number of not-yet-active accounts', 'int medium', 0),
     'bankInPerMo' => setupField('amount transferred into the system in the past month', 'numeric 11,2', 0),
     'bankOutPerMo' => setupField('amount transferred out of the system in the past month', 'numeric 11,2', 0),
     'xchPerMo' => setupField('exchange volume within system in the past month', 'numeric 11,2', 0),
@@ -144,7 +145,7 @@ function tableDefs($schema = array()) {
   // table r_do
   $fields = array(
     'doid' => setupField('record id', 'serial 11'),
-    'before' => setupField('Unixtime expiration', 'int 11', 0), // 0 means never expires
+    'expires' => setupField('Unixtime expiration', 'int 11', 0), // 0 means never expires
     'data' => setupField('serialized array of parameters', 'text medium'),
     'uid' => setupField('related account record ID', 'int big', 0), // needed only for changeUid
   );
@@ -178,13 +179,12 @@ function tableDefs($schema = array()) {
   
   // table r_txs
   $fields = array(
-    'xid' => setupField('the unique transaction ID', 'serial 11'), 
+    'xid' => setupField('the unique transaction ID', 'serial big'), 
     'serial' => setupField('serial number of related transactions (=xid of first transaction in the group)', 'int 11'), 
 //    'usdXid' => setupField('the unique transaction ID for USD part', 'varchar 255'), 
     'type' => setupField('transaction type (transfer, rebate, etc.)', 'int tiny'),
     'taking' => setupField('was the transaction initiated by the payee', 'int tiny'), 
     'goods' => setupField('is this transfer an exchange for real goods and services?', 'int tiny', 0), 
-    'state' => setupField('done, pending, disputed, etc', 'int tiny'), 
     'amount' => setupField('amount in rCredits', 'numeric 11,2'), 
 //    'r' => setupField('amount in rCredits', 'numeric 11,2'), 
     'payer' => setupField('user id of the payer', 'int big'), 
@@ -195,31 +195,30 @@ function tableDefs($schema = array()) {
     'payeeFor' => setupField("payee's description", 'varchar 255'), 
     'payerTid' => setupField("payer's transaction ID", 'int 11'),
     'payeeTid' => setupField("payee's transaction ID", 'int 11'),
-    'data' => setupField('info stored elsewhere, duplicated here for convenience (serialized array)', 'text big'), 
+    'data' => setupField('miscellaneous non-searchable data (serialized array)', 'text big'), 
     'channel' => setupField('through what medium was the transaction entered', 'int tiny'),
     'box' => setupField('on what machine was the transaction entered', 'int 11', 0), // 0 = none
     'created' => setupField('Unixtime transaction was created', 'int 11', 0),
-    'completed' => setupField('Unixtime transaction was completed', 'int 11', 0),
   );
   $foreignKeys = foreignKey('payer') + foreignKey('payee') + foreignKey('payerAgent') + foreignKey('payeeAgent');
-  $indexes = index('payer') + index('payee') + index('created') + index('completed'); // also serial/type/taking/goods/state/payerAgent/payeeAgent/channel/?
+  $indexes = index('payer') + index('payee') + index('created') + index('payerTid') + index('payeeTid'); // also serial/type/taking/goods/payerAgent/payeeAgent/channel/?
   $schema['r_txs'] = setupTable('Record of all rCredits transactions in the region', $fields, 'xid', $foreignKeys, $indexes);
 
   // table r_invoices
   $fields = array(
-    'id' => setupField('the unique invoice ID', 'serial 11'), 
-    'state' => setupField('done, pending, disputed, etc', 'int tiny'), 
+    'nvid' => setupField('the unique invoice ID', 'serial big'), 
+    'status' => setupField('transaction record ID or status (pending or refused)', 'int 11', TX_PENDING), // positive values are record IDs in r_txs (for paid invoices), non-positive values are status
     'amount' => setupField('amount to charge', 'numeric 11,2'), 
     'payer' => setupField('user id of the payer', 'int big'), 
     'payee' => setupField('user id of the payee', 'int big'), 
-    'for' => setupField("payee's description", 'varchar 255'), 
-    'payerReward' => setupField('reward amount for payer', 'numeric 11,2'), 
-    'payeeReward' => setupField('reward amount for payee', 'numeric 11,2'), 
+    'goods' => setupField('is this an invoice for real goods and services?', 'int tiny', 0), 
+    'purpose' => setupField("payee's description", 'varchar 255'), 
+    'data' => setupField('miscellaneous non-searchable data (serialized array)', 'text big'), 
     'created' => setupField('Unixtime invoice was created', 'int 11', 0),
   );
   $foreignKeys = foreignKey('payer') + foreignKey('payee');
-  $indexes = index('payer') + index('payee') + index('created');
-  $schema['r_invoices'] = setupTable('Record of all rCredits invoices in the region', $fields, 'id', $foreignKeys, $indexes);
+  $indexes = index('payer') + index('payee') + index('created') + index('status');
+  $schema['r_invoices'] = setupTable('Record of all rCredits invoices in the region', $fields, 'nvid', $foreignKeys, $indexes);
 
 //  foreach (u\ray('type taking goods payerAgent payeeAgent payerFor payeeFor') as $one) unset($fields[$one]);
 

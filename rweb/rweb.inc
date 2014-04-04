@@ -52,9 +52,9 @@ function rdo($code) {
     $info = unserialize($data);
     $info['id'] = $uid; // id is always uid, for one-time operations (required for integrity of changeUid)
   }
-  extract(u\just('op id before sql subs amount', $info));
+  extract(u\just('op id expires sql subs amount', $info));
 
-  if (@$before and time() >= $before) return doSay(t('That link has expired.'));
+  if (@$expires and time() >= $expires) return doSay(t('That link has expired.'));
 
   $channel = TX_LINK;
   $DBTX = \db_transaction();
@@ -69,10 +69,10 @@ function rdo($code) {
     $addr = t('Physical address: ') . r\location($a, TRUE);
     return doSay("$a->fullName<br>$a->postalAddr<br>$addr<br>$phone", 'status');
   } elseif ($op == 'pay') { // pay an invoice ($once is irrelevant here)
-    $fields = 'id,state,amount,payer,payee,for';
-    if (!$invoice = db\lookup($fields, 'r_invoices', 'id=:id', compact('id'))) return doSay(t('There is no such invoice.'));
+    $fields = 'nvid,status,amount,payer,payee,purpose';
+    if (!$invoice = db\lookup($fields, 'r_invoices', 'nvid=:nvid', compact('nvid'))) return doSay(t('There is no such invoice.'));
     extract(u\just($fields, $invoice));
-    if ($state == TX_DONE) return doSay(t('You already paid that invoice.'));
+    if ($status > 0) return doSay(t('You already paid that invoice.'));
     return showForm('PayInvoice', compact(u\ray($fields)));
   }
 
@@ -248,7 +248,7 @@ function formDonate_submit($form, &$sta) {
 
 function formHelp($form, &$sta, $what = '') {
   require_once __DIR__ . '/rweb-help.inc';
-  $title = item($what ? ('"' . ucwords(str_replace('-', ' ', $what)) . '"') : t('General Help'));
+  $title = item($what ? str_replace('Rcredits', 'rCredits', ucwords(str_replace('-', ' ', $what))) : t('General Help'));
   $text = formField('item', '', '', helpText($what ?: 'general'));
   return compact(u\ray('title text'));
 }
@@ -279,7 +279,7 @@ function formMembership($a, &$sta = '', $code = '') {
 //    $gotIdProof = (@$a->dob and @$a->federalId and ($co ?: $a->hasAux('proof')));
 //    $gotSecurity = (($secure = @$a->secure) and @$secure['auth'] and @$a->dob and @$a->federalId and ($co ?: $a->hasAux('proof')));
     $ready = ($ok_sign and $ok_contact and $ok_donate and $ok_photo and $ok_prefs and $ok_dw);
-    $ready = ($ready and ($co? ($ok_company and $ok_relations) : ($ok_proxies and ($ok_connect or !$dw0))));
+    $ready = ($ready and ($co? ($ok_company and $ok_relations) : ($ok_proxies and ($ok_verify or !$dw0))));
   } else $ready = TRUE;
 
   if ($updating) return $ready;
@@ -409,7 +409,7 @@ $instructions
 <h2>A. I recognize that:</h2>
 <ul>
   <li>[-2] rCredits are intended as the basis for the Common Good Economy -- a democratic, community-centered economic system that puts people and planet first.</li>
-  <li>[-1] Together as a community we have the power to <a href="$base_url/help/issue-credit">issue credit</a> for our own use as a medium of exchange. It is our promise to accept rCredits that gives them value.</li>
+  <li>[-1] Together as a community we have the power to <a href="$base_url/help/issuing-rcredits">issue credit</a> for our own use as a medium of exchange. It is our promise to accept rCredits that gives them value.</li>
   <li>[0] Governance by the people is essential for a just society.</li>
 </ul>
 
@@ -521,7 +521,7 @@ function formProxies_submit($form, &$sta) {
  * Invite someone to sign up for rCredits (on behalf of the account, not the agent).
  */
 function formInvite($form, &$sta) {
-  global $base_url, $rUrl;
+  global $base_url;
   $agent = r\agent();
   if ($admin = $agent->admin) $agent = r\acct('NEW.AAA'); // use William's info for admin invites
   $cAdmin = $agent->cAdmin;
@@ -539,10 +539,9 @@ function formInvite($form, &$sta) {
   $subject = textField(t('Subject:'), t('The subject of your message'), required($agent->fullName . t(' invites you to rCredits')));
 
   $default = $admin ? 
-      tt("rCredits is up and running. Check it out and sign up!\n\nWilliam")
+      tt("The rCredits system is up and running. Check it out and sign up!\n\nWilliam")
     : (@$agent->data['inviteBody'] ?: tt("rCredits looks amazing. I signed up. Check it out!\n\n@name", u\ray('name', $agent->fullName)));
-  $blurbLink = array('<a>' => "<a href=\"$rUrl/templates/invite.html\" target=\"_blank\">");
-  $messageHelp = strtr(t('Invite them to sign up, and say why. A <a>blurb about rCredits</a> will follow your message, with a signup link.'), $blurbLink);
+  $messageHelp = strtr(t('Invite them to sign up, and say why. A short @BLURB will follow your message, with a signup link.'), array('@BLURB' => blurbLink()));
   $message = formField('textarea', t('Message:'), $messageHelp, required($default));
   $submit = submit(t('Send'));
   $form = $nearly ? 
@@ -618,7 +617,7 @@ function formSummary($form, &$sta) {
     $balance = u\fmtAmt($mya->r);
     $usdBalance = u\fmtAmt($mya->usd);
     $total = u\fmtAmt($mya->r + $mya->usd);
-    $balance = item($total . ($mya->rewards ? " (see <a href=\"$base_url/transactions\">" . t('Transaction History') . '</a>)' : ''), t('Balance:'));
+    $balance = item($total . ($mya->rewards ? " (see <a href=\"$base_url/history\">" . t('Transaction History') . '</a>)' : ''), t('Balance:'));
   //  $balance = item(tt("$balance@R + $usdBalance@US = $total") . ($mya->rewards ? " [<a href=\"$base_url/transactions\">" . t('see Transaction History') . '</a>]' : ''), t('Balance:'));
 
   $personal = !$mya->co;
@@ -693,6 +692,7 @@ function formSummary_submit($form, &$sta) {
   if (!$agent->cAdmin) return; // hack attempt
   extract(u\just('who floor notes canCharge rTrader adminable', $sta['input']));
 
+  $mya->stampNotes($notes);
   if (@$who and ($who->community == $agent->community or $agent->id == 1)) {
     svar('myid', $who->id); // make it the new current account
     list ($newAcct, $oldAcct) = array($who->fullName, $mya->fullName);
@@ -1027,6 +1027,7 @@ function formTx($form, &$sta, $args = '') {
   if ($confirm = sureForm($sta)) return $confirm;
   extract(u\just('who amount goods purpose', $args));
   $mya = r\acct();
+
   if (!$mya->can(B_SELL)) return r\go('summary');
 
   $type = $args === '' ? basename(current_path()) : basename(dirname(current_path())); // pay, charge, etc.
@@ -1074,6 +1075,81 @@ function formTx_submit($form, &$sta) {
   if (!$fieldErr) { // this is especially important when skipping the confirmation (scanning)
     return r\go($op);
   }
+}
+
+/**
+ * Upload payroll spreadsheet to create partial payments in rCredits.
+ */
+function formPayroll($form, &$sta) {
+  $title = item(t('Payroll Upload'));
+  $subtext = item(t('<p>In QuickBooks, set the amount of rCredits to pay each participating employee as an after-tax payroll deduction of type "rCredits".</p><p>Run the payroll (for the US Dollars part of what people get paid). Then export the payroll report as a CSV file and upload it here (to pay the rCredits part of what people get paid).</p>'));
+  $payroll = formField('file', '', '', attrib(u\ray('enctype', "multipart/form-data")));
+  $submit = submit('Upload and Pay');
+
+  return compact(u\ray('title subtext payroll submit'));
+}
+
+function formPayroll_validate($form, &$sta) {
+  if (!@$_FILES['files']['name']['payroll']) return say('upload required', 'payroll');
+  $validators = array(
+    'file_validate_extensions' => array('csv'),
+    'file_validate_size' => array(R_MAX_PHOTOID_SIZE * 1024000),
+  );
+  if (!$file = \file_save_upload('payroll', $validators, '', FILE_EXISTS_REPLACE)) return say('Try again.', 'payroll');
+  if ($file->filemime != 'text/csv') return say('bad file type', 'payroll');
+  $sta['input']['filename'] = $filePath = file_directory_temp() . '/' . $file->filename;
+}
+
+function formPayroll_submit($form, &$sta) {
+  $mya = r\acct();
+  $filename = $sta['input']['filename'];
+  file_put_contents($filename, str_replace("\r", "\n", file_get_contents($filename)));
+  $fp = fopen($filename, "r"); 
+  while ($row = fgetcsv($fp)) $rows[] = $row; // get all rows, so we can look ahead
+  fclose($fp);
+  unlink($filename);
+  
+  debug($rows);
+  $coName = u\roughName($rows[0][0]);
+  if ($coName != u\roughName($mya->legalName) and $coName != u\roughName($mya->fullName)) return say('wrong payroll co', u\ray('coName', $mya->fullName == $mya->legalName ? $mya->fullName : "$mya->legalName or $mya->fullName"), 'payroll');
+  if (@$rows[1][0] != 'Payroll Details') return say('not payroll csv', 'payroll');
+  $total = 0;
+
+  foreach ($rows as $i => $row) {
+    $v0 = $row[0];
+    if ($v0 == 'Total') break;
+    $line = $i + 1;
+    $subs = compact('line');
+    
+    if (!@$deductionsCol) {
+      if ($v0 == 'Employee' and !$deductionsCol = array_search('Deductions', $row)) return say('bad payroll csv', $subs, 'payroll'); else continue;
+    }
+    if ($v0 and substr($v0, 0, 1) != ' ') { // all first cells except for employee name begin with space
+      if (!strpos($period = trim(@$rows[$i + 4][0]), '-')) return say('bad payroll csv', u\ray('line', $line + 4), 'payroll');
+      $employee = $v0;
+    }
+    if ($row[$deductionsCol] == 'rCredits') {
+      $amt = $row[$deductionsCol + 1];
+      if ($err = u\badAmount($amt, '>0')) return say('bad payroll csv|' . $err, $subs, 'payroll');
+      if (!@$employee) return say('bad payroll csv|' . t('Missing employee name.'), $subs, 'payroll');
+      if (!$uid = r\worksForUs($employee)) return say('bad payroll employee', $subs + u\ray('employee', $employee), 'payroll');
+      $toPay[] = array($uid, $amt, $period);
+      $total += $amt;
+      $employee = $amt = $period = '';
+    }
+  }
+  if (!@$deductionsCol) return say('bad payroll csv', u\ray('line', t('0 -- missing headers')), 'payroll');
+  if (!@$toPay) return say('empty payroll', 'payroll');
+  if ($shortfall = $mya->shortfall('buy', $total)) return say('short to', u\ray('short', u\fmtAmt($shortfall)), 'payroll');
+  
+  foreach ($toPay as $one) {
+    list ($uid, $amt, $period) = $one;
+    list ($msg, $subs) = be\transfer('payment', $mya, r\acct($uid), $amt, TRUE, t('labor: ') . $period);
+    say($msg, $subs);
+    if (!@$subs['success']) $err = TRUE;
+  }
+  
+  if (!@$err) return r\go('history', tt('payroll done', u\ray('total count', u\fmtAmt($total), count($toPay))));
 }
 
 function formMenu($form, &$sta) {return array('title' => item('Menu'));}
@@ -1151,7 +1227,7 @@ function formBuy_submit($form, &$sta) {
   extract(u\just('hid', $sta['input']));
   extract(u\just('amount for co a return_to', unserialize($hid)));
   
-  list ($index, $subs) = be\transfer('payment', $a, $co, $amount, $for, TRUE);
+  list ($index, $subs) = be\transfer('payment', $a, $co, $amount, TRUE, $for);
   if (!@$subs['success']) return r\go('', tt($index, $subs), 'zot');
 
   return r\go('', "Success! <a href='$my_return_to'>Click here</a> to return to the $company_name website.");
@@ -1160,11 +1236,13 @@ function formBuy_submit($form, &$sta) {
 /**
  * Pay an invoice, possibly by clicking a link without signing in (from rDo).
  * @param mixed $args: array of paramaters (from rDo) or invoice number (if signed in)
+ * @todo: check status (complain if status>0 -- don't double pay)
+ * @todo: record inv# in data field of tx and xid in status field of inv?
  */
 function formPayInvoice($form, &$sta, $args = '') {
-  extract(u\just($fields = 'id,state,amount,payer,payee,for', $args));
+  extract(u\just($fields = 'nvid,status,amount,payer,payee,purpose', $args));
   if (!@$payer) {
-    if (!$args = db\lookup($fields, 'r_invoices', 'id=:id', u\ray('id', @$id))) return doSay(t('There is no such invoice.'));
+    if (!$args = db\lookup($fields, 'r_invoices', 'nvid=:nvid', compact('nvid'))) return doSay(t('There is no such invoice.'));
     extract(u\just($fields, $args));
     if ($payer != r\acct()->id) return hack(t('bad payer in invoice payment'));
   }
@@ -1173,19 +1251,19 @@ function formPayInvoice($form, &$sta, $args = '') {
   $title = item(t('Confirm Payment'));
   $amountx = textField(t('Pay $'), '', disabled(number_format($amount, 2)));
   $payeex = textField(t('To:'), '', disabled($a2->fullName));
-  $payerFor = textField(t('For:'), '', dft($payeeFor = $for));
+  $purpose = textField(t('For:'), '', dft($purpose));
 
   $hid = hidField(serialize(compact(u\ray('amount payeeFor a1 a2'))));
   $submit = submit(t('Pay'));
 
-  return labeled(compact(u\ray('title amountx payeex payerFor hid submit')));
+  return labeled(compact(u\ray('title amountx payeex purpose hid submit')));
 }
 
 function formPayInvoice_submit($form, &$sta) {
   extract(u\just('hid payerFor', $sta['input']));
   extract(u\just('amount payeeFor a1 a2', unserialize($hid)));
   
-  list ($index, $subs) = be\transfer('payment', $a1, $a2, $amount, array($payerFor ?: '?', $payeeFor), TRUE);
+  list ($index, $subs) = be\transfer('payment', $a1, $a2, $amount, TRUE, $purpose);
   return r\go('', tt($index, $subs), @$subs['success'] ? '' : 'zot');
 }
 
@@ -1579,7 +1657,7 @@ function formContact_validate($form, &$sta) {
 }
 
 function formContact_submit($form, &$sta) {
-  extract($info = u\just('fullName name phone verifyBy faxetc country postalCode state city address postalAddr', $sta['input']));
+  extract($info = u\just('fullName name mail phone verifyBy faxetc country postalCode state city address postalAddr', $sta['input']));
   $mya = r\acct();
   if ($mya->id == 1) unset($info['name']); // don't change 'admin'
   
@@ -1597,8 +1675,9 @@ function formContact_submit($form, &$sta) {
  * Display a list of the member's invitees.
  */
 function formInvitedWhom($form, &$sta) {
-  $mya = r\acct();
-
+  $a = r\agent();
+  if ($a->admin) $a = r\acct('NEW.AAA');
+  
   $title = item(t('Your Invitees'));
   $sql = <<<EOF
     SELECT DISTINCT IFNULL(u1.fullName, IFNULL(u2.fullName, i.email)) AS who, invited,
@@ -1606,7 +1685,7 @@ function formInvitedWhom($form, &$sta) {
     FROM r_invites i LEFT JOIN users u1 ON u1.uid=i.invitee LEFT JOIN users u2 ON u2.mail=i.email
     WHERE i.inviter=:myid ORDER BY invited DESC
 EOF;
-  $q = db\q($sql, u\ray('myid', $mya->id));
+  $q = db\q($sql, u\ray('myid', $a->id));
 
   $list = "<table id='invitelist'>\n<tr><th>Invited</th><th>Whom</th><th>Status</th></tr>\n";
   while ($row = $q->fetchAssoc()) {
@@ -2714,51 +2793,151 @@ function formOptions_submit($form, $sta) {
 }
 
 function formReports($form, &$sta, $args = '') {
-  if (!$mya = r\acct()) return NULL;
-  $admin = $mya->admin;
-  if (!$myCtty = $mya->community) $myCtty = r\serverUid();
+  if ($mya = r\acct()) {
+    $admin = $mya->admin;
+    $cadmin2 = $mya->can(B_CADMIN2);
+    $myCtty = $mya->community ?: 0;
+  } else $myCtty = 0;
 
   list ($in, $out, $fees, $net, $personal, $companies) = array(t('in'), t('out'), t('fees'), t('net'), t('personal'), t('companies'));
   extract(r\stats($myCtty)); // careful with this (don't overwrite local vars)
-  extract(u\just('r usd refunds shared pAccts bAccts', r\stats($myCtty, strtotime('-1 month', REQUEST_TIME))), EXTR_PREFIX_ALL, 'lm');
+//  extract(u\just('r usd refunds shared pAccts bAccts', r\stats($myCtty, strtotime('-1 month', REQUEST_TIME))), EXTR_PREFIX_ALL, 'lm');
 
   list ($r0, $usd0) = array($r, $usd);
-  $refundsPerMo = $refunds - @$lm_refunds;
+//  $refundsPerMo = $refunds - @$lm_refunds;
 
-  list ($bankNet, $txRewards, $total) = array(abs($bankInPerMo - $bankOutPerMo - $refundsPerMo), $rebates + $bonuss + $refunds - $fines, ($r + $usd) ?: .001);
-  $bankSign = ($bankInPerMo >= $bankOutPerMo + $refundsPerMo) ? '+' : '-';
-  $savings = u\fmtAmt($total - $perMo);
-  $savingsPct = ($usd0 + 0) ? number_format(100 * ($total - $perMo) / $usd0, 1) . '%' : t('n/a');
+//  list ($bankNet, $txRewards, $total) = array(abs($bankInPerMo - $bankOutPerMo - $refundsPerMo), $rebates + $bonuss + $refunds + $fines, ($r + $usd) ?: .001);
+  list ($txRewards, $total) = array($rebates + $bonuss + $refunds + $fines, ($r + $usd) ?: .001);
+//  $bankSign = ($bankInPerMo >= $bankOutPerMo + $refundsPerMo) ? '+' : '-';
+//  $savings = u\fmtAmt($total - $perMo);
+//  $savingsPct = ($usd0 + 0) ? number_format(100 * ($total - $perMo) / $usd0, 1) . '%' : t('n/a');
   $velocity = number_format(100 * $perMo / $total, 1) . t('% per month');
-  foreach (u\ray('bankInPerMo bankOutPerMo refundsPerMo bankNet r usd total signups inflations txRewards grants loans fines') as $one) $$one = u\fmtAmt($$one);
-  $p2pPerMo = $perMo - $p2bPerMo - $b2bPerMo - $b2pPerMo;
-  $p2pTxsPerMo = $txsPerMo - $p2bTxsPerMo - $b2bTxsPerMo - $b2pTxsPerMo;
-  $issuedAs = tt("signup: @signups@R, inflation adjustments: @inflations@R, rebates/bonuses: @txRewards@R, grants: @grants@R, loans: @loans@R, fees: -@fines@R", compact(u\ray('signups inflations txRewards grants loans fines')));
+  //$p2pPerMo = $perMo - $p2bPerMo - $b2bPerMo - $b2pPerMo;
+  //$p2pTxsPerMo = $txsPerMo - $p2bTxsPerMo - $b2bTxsPerMo - $b2pTxsPerMo;
+
+  foreach (u\ray('bankInPerMo bankOutPerMo refundsPerMo r usd total signups inflations txRewards grants loans fines') as $one) {
+    ${$one . '0'} = $$one;
+    $$one = u\fmtAmt($$one);
+  }
+
+  $issuedData = array(
+    "['deposits',{v:$usd0,f:'$usd'}]",
+    "['inflation offset',{v:$inflations0,f:'$inflations'}]",
+    "['signup bonuses',{v:$signups0,f:'$signups'}]",
+    "['purchase rewards',{v:$txRewards0,f:'$txRewards'}]",
+    "['grants',{v:$grants0,f:'$grants'}]",
+    "['loans',{v:$loans0,f:'$loans'}]",
+  );
+  $superTotal = u\fmtAmt($total0 + $usd0);
+//    "['fees',{v:$usd0,f:'$usd'}$fines]" think of a way to handle this
+
+  $txTypes = u\ray('p2p p2b b2b b2p', t('Person-to-person'), t('Person-to-business (mostly rCard purchases)'), t('Business-to-business (paying suppliers)'), t('Business-to-person (including payroll)'));
+/*
+  foreach ($txTypes as $k => $desc) {
+    list ($xPerMo, $xPerMo0, $xTxsPerMo) = array(${$k . 'PerMo'}, ${$k . 'PerMo0'}, ${$k . 'TxsPerMo'});
+    $avg = u\fmtAmt($xTxsPerMo ? $xPerMo0 / $xTxsPerMo : 0);
+    $txData[] = "['$desc',{v:$xTxsPerMo,f:'$xTxsPerMo @ $avg avg'}]";
+  }
+*/
+  $avg = u\fmtAmt($txsPerMo ? $perMo / $txsPerMo : 0);
+  $txs = "$txsPerMo @ $avg avg";
+
+//  $issuedAs = tt("signup: @signups@R, inflation adjustments: @inflations@R, rebates/bonuses: @txRewards@R, grants: @grants@R, loans: @loans@R, fees: @fines@R", compact(u\ray('signups inflations txRewards grants loans fines')));
 //  $issuedAs = str_replace('$', '', $issuedAs);
-  $accounts = fundRpt($pAccts + $bAccts, @$lm_pAccts + @$lm_bAccts);
-  $accounts = str_replace(' &mdash;', " ($pAccts $personal, $bAccts $companies) &mdash;", $accounts);
-  $membership = ($mya->can(B_CADMIN2)) ? ' <a href="sadmin/member-list">member list</a>' : '';
+
+//  $accounts = fundRpt($accts = $pAccts + $bAccts, @$lm_pAccts + @$lm_bAccts);
+//  $accounts = str_replace(' &mdash;', " ($pAccts $personal, $bAccts $companies) &mdash;", $accounts);
+
+  $crit = $myCtty ? "ctty=$myCtty" : '1';
+  $relaunch = strtotime('12/15/2013');
+  $sql = <<<EOF
+    SELECT created, IF(r+usd=0, 0, perMo/(r+usd)) AS rate, r+usd AS funds, usd, r+usd-perMo AS savings,
+      pAccts, bAccts, pAccts+bAccts AS accts, newbs,
+      bankInPerMo, bankOutPerMo,
+      perMo, p2bPerMo, b2bPerMo, b2pPerMo,
+      txsPerMo, p2bTxsPerMo, b2bTxsPerMo, b2pTxsPerMo
+    FROM r_stats WHERE $crit AND created>$relaunch ORDER BY created
+EOF;
+  $q = db\q($sql);
+
+  $charts = u\ray('accts funds velocity banking tx issued', 'growth', 'funds', 'velocity', 'demand', 'economic-circles', 'issuing-rcredits');
+  foreach ($charts as $k => $zot) u\setDft(${$k . 'Data'}, array());
+  $moneyFields = u\ray('funds savings usd bankInPerMo bankOutPerMo p2pPerMo p2bPerMo b2bPerMo b2pPerMo');
+
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    list ($y, $m, $d) = u\ray(strftime('%Y %m %d', $created));
+    list ($m, $d) = array($m - 1, $d - 1); // javascript Date object month, day, etc. are zero-based
+    $date = "new Date($y,$m,$d)";
+    $p2pPerMo = $perMo - $p2bPerMo - $b2bPerMo - $b2pPerMo;
+    $p2pTxsPerMo = $txsPerMo - $p2bTxsPerMo - $b2bTxsPerMo - $b2pTxsPerMo;
+    foreach ($moneyFields as $k) ${$k . '2'} = u\fmtAmt($$k);
+    $rate2 = number_format(100 * $rate, 1) . '%';
+
+    $velocityData[] = "[$date,{v:$rate,f:'$rate2'}]";
+    $acctsData[] = "[$date,$pAccts,$bAccts,$newbs]";
+    $fundsData[] = "[$date,{v:$funds,f:'$funds2'},{v:$savings,f:'$savings2'},{v:$usd,f:'$usd2'}]";
+    $bankingData[] = "[$date,{v:$bankInPerMo,f:'$bankInPerMo2'},{v:$bankOutPerMo,f:'$bankOutPerMo2'}]";
+
+    $x2x = array();
+    foreach ($txTypes as $k => $desc) {
+      list ($x, $x2, $xTxs) = array(${"{$k}PerMo"}, u\fmtAmt(${"{$k}PerMo"}), ${"{$k}TxsPerMo"});
+      $x = max($x, 1); // to make the logarithmic scale look okay
+      $avg = $xTxs ? ' @ ' . u\fmtAmt($x / $xTxs) . ' avg' : '';
+      $x2x[] = "{v:$x,f:'$x2 ($xTxs$avg) $desc'}"; // eg "$123 (7 @ $6.25 avg)"
+    }
+    $x2x = join(',', $x2x);
+    $txData[] = "[$date,$x2x]";
+  }
+
+  $accts = "{$pAccts} personal + {$bAccts} co = $accts";
+  
+  $js = <<<EOF
+  var accts = '$accts';
+  var funds = '$superTotal';
+  var velocity = '$velocity';
+  var issued = '$total';
+  var fees = '(minus $fines in fees)';
+  var txs = '$txs';
+  google.setOnLoadCallback(drawCharts);  
+EOF;
+
+  foreach ($charts as $k => $zot) {
+    ${$k . 'Data'} = join(',', ${$k . 'Data'});
+    $js .= "var {$k}Data = [" . ${$k . 'Data'} . "];\n";
+  }
+
+  js('https://www.google.com/jsapi', 'file', 'header');
+  js('inc/charts.js', 'file', 'header');
+  js($js, 'inline', 'header');
+
+  foreach($charts as $k => $help) {
+    $charts[$k] = "<div><a href=\"help/$help\"><div id=\"{$k}Chart\"></div></a></div>";
+  }
+
+  $membership = @$cadmin2 ? ' <a href="sadmin/member-list">member list</a>' : '';
   
   $title = item(t('Community Statistics'));
-  $subheader = item(t('for ') . r\acct($myCtty)->fullName . $membership);
-  $subtext = item(t('This page is designed to give us the information we need to keep an eye on our economy and manage it effectively. Hover over any label, for a definition. <em>Key:</em> <b>mo</b>=month <b>acct</b>=account <b>/</b>=per'));
-  $accounts = item($accounts, popHelp(t('Accounts:'), t('The number of accounts approved to buy and sell through the rCredits system, as of today.')));
-  $issued = item(fundRpt($r0, @$lm_r, '$r'), popHelp(t('rCredits issued:'), t('Total number of rCredits in circulation, as of today (the breakdown shows how they were issued).')), $issuedAs);
-  $shared = $admin ? item(fundRpt($shared, @$lm_shared, '$'), t('Shared w CGF:')) : NULL;
-  $demand = item(fundRpt($usd0, @$lm_usd, '$'), popHelp(t('Demand:'), t('Total amount of US Dollars that people have put into the system, available for the community to exchange for rCredits and possibly spend.')), t('community demand for additional rCredits (<@a>important why?</a>)', u\ray('@a', 'a href=help/demand')));
-  $total = item(tt("$r@R + $usd@US = $total"), popHelp(t('Total funds:'), t('Total amount of money (rCredits and US Dollars) in the system, as of today')), t('including about @savings in savings = @savingsPct of demand (<@a>important why?</a>)', u\ray('@savings @savingsPct @a', $savings, $savingsPct, 'a href=help/savings')));
-  $banking = item(tt("$bankInPerMo@US ($in) - $bankOutPerMo@US ($out) - $refundsPerMo ($fees) = $bankSign$bankNet@US ($net)"), popHelp(t('Banking / mo:'), t('How much money did members transfer in and out of the system, since this time last month')), t('transferring funds to or from a bank account (<@a>important why?</a>)', u\ray('@a', 'a href=help/to-bank')));
-  $txs = item(txsRpt($perMo, $txsPerMo, $pAccts + $bAccts, ''), t('Purchases / mo:'));
-  $p2p = item(txsRpt($p2pPerMo, $p2pTxsPerMo, $bAccts, 'p'), popHelp(t('p2p:'), t('Person-to-person transactions (individual members buying from other individual members)')));
+  $subheader = item($myCtty ? t('for ') . r\acct($myCtty)->fullName . $membership : ' ');
+  $subtext = item(t('This page is designed to give us the information we need, to keep an eye on our economy and manage it effectively. Click on any chart for an explanation of why it is important, or hover for numeric details.'));
+  //$accounts = item($accounts, popHelp(t('Accounts:'), t('The number of accounts approved to buy and sell through the rCredits system, as of today.')));
+//  $issued = item(fundRpt($r0, @$lm_r, '$r'), popHelp(t('rCredits issued:'), t('Total number of rCredits in circulation, as of today (the breakdown shows how they were issued).')), $issuedAs);
+//  $shared = @$admin ? item(fundRpt($shared, @$lm_shared, '$'), t('Shared w CGF:')) : NULL;
+  $charts = item(join('', $charts));
+//  $demand = item(fundRpt($usd0, @$lm_usd, '$'), popHelp(t('Demand:'), t('Total amount of US Dollars that people have put into the system, available for the community to exchange for rCredits and possibly spend.')), t('community demand for additional rCredits (<@a>important why?</a>)', u\ray('@a', 'a href=help/demand')));
+//  $total = item(tt("$r@R + $usd@US = $total"), popHelp(t('Total funds:'), t('Total amount of money (rCredits and US Dollars) in the system, as of today')), t('including about @savings in savings = @savingsPct of demand (<@a>important why?</a>)', u\ray('@savings @savingsPct @a', $savings, $savingsPct, 'a href=help/savings')));
+  //$banking = item(tt("$bankInPerMo@US ($in) - $bankOutPerMo@US ($out) - $refundsPerMo ($fees) = $bankSign$bankNet@US ($net)"), popHelp(t('Banking / mo:'), t('How much money did members transfer in and out of the system, since this time last month')), t('transferring funds to or from a bank account (<@a>important why?</a>)', u\ray('@a', 'a href=help/to-bank')));
+  /*$txs = item(txsRpt($perMo, $txsPerMo, $pAccts + $bAccts, ''), t('Purchases / mo:'));
+  $p2p = item(txsRpt($p2pPerMo, $p2pTxsPerMo, $pAccts, 'p'), popHelp(t('p2p:'), t('Person-to-person transactions (individual members buying from other individual members)')));
   $p2b = item(txsRpt($p2bPerMo, $p2bTxsPerMo, $pAccts, 'p'), popHelp(t('p2b:'), t('Person-to-business transactions (customers buying from businesses, mostly using their rCard)')));
   $b2b = item(txsRpt($b2bPerMo, $b2bTxsPerMo, $bAccts, 'b'), popHelp(t('b2b:'), t('Business-to-business transactions (businesses paying their suppliers)')));
-  $b2p = item(txsRpt($b2pPerMo, $b2pTxsPerMo, $bAccts, 'b'), popHelp(t('b2p:'), t('Business-to-person transactions (payroll)')));
+  $b2p = item(txsRpt($b2pPerMo, $b2pTxsPerMo, $bAccts, 'b'), popHelp(t('b2p:'), t('Business-to-person transactions (payroll)')));*/
 //  $exchanges = item(txsRpt($xchPerMo + $cashPerMo, $xchTxsPerMo + $cashTxsPerMo, $pAccts + $bAccts, ''), t('Trades / mo:'), t('exchanges of rCredits for US Dollars (<@a>important why?</a>)', u\ray('@a', 'a href=help/trades')));
-  $velocity = item($velocity, popHelp(t('Velocity:'), t('How fast the money is circulating.')), t('how much of the total funds in the system (rCredits plus US Dollars) turns over every month'));
+  //$velocity = item($velocity, popHelp(t('Velocity:'), t('How fast the money is circulating.')), t('how much of the total funds in the system (rCredits plus US Dollars) turns over every month'));
   
-  $form = labeled(compact(u\ray('title subheader subtext accounts issued shared demand total banking txs p2p p2b b2b b2p exchanges velocity')));
+  $form = compact(u\ray('title subheader subtext charts'));
   if (strpos($args, 'variety=') === FALSE) $args .= '&variety=stats';
-  if ($mya->admin) $form += formTxs('', $sta, $args);
+  //if (@$admin) $form += formTxs('', $sta, $args);
   return $form;
 }
 
@@ -2775,9 +2954,10 @@ function formReports_submit($form, &$sta) {
  */
 function formAccept($form, &$sta) {
   $title = item(t('Accept Your Invitation'));
+  $subtext = item(strtr(t('A short @BLURB was sent with the invitation (click the link to see it).'), array('@BLURB' => blurbLink())));
   $email = textField(t('Your email:'), t('Type the email address to which the invitation was sent.'));
   $submit = submit(t('Continue'));
-  return labeled(compact(u\ray('title email submit')));
+  return labeled(compact(u\ray('title subtext email submit')));
 }
 
 function formAccept_validate($form, &$sta) {
@@ -2805,12 +2985,12 @@ function form1099b($form, &$sta) {
   $negatives = 0; // total negative transactions (refunds that do not specifically reverse another tx)
   
   while ($row = be\get1099b($mya->id)) {
-    extract(u\just('completed amount uid for', $row));
+    extract(u\just('created amount uid for', $row));
     if ($amount <= 0) { // do not issue 1099-B for negative amounts (per IRC 1.6041-...(c)?)
       $negatives += $amount;
       continue;
     }
-    $date = strftime('%d-%b', $completed);
+    $date = strftime('%d-%b', $created);
     $total += $amount;
     $amount = str_replace('-', '- ', number_format($amount, 2));
     $a = r\acct($uid);
@@ -2833,7 +3013,7 @@ EOF;
   $list = item($list);
   $phone = str_replace('+1 ', '', u\fmtPhone(R_REGION_PHONE));
   $negatives = $negatives ? t('<p>You also had negative (refund) transactions totaling @NEG. These are not reported to the IRS, so you might include this negative transaction total on line 2 of 1040 Form C.</p>', array('@NEG' => u\fmtAmt($negatives))) : '';
-  $posttext = item($negatives . tt('<p>This report is provided by @R_REGION_LEGALNAME, @R_REGION_ADDR (@phone): EIN #@R_REGION_EIN.</p><p>You can see this report here until January 1 of next year (when the report for calendar year @thisYear replaces it).</p><p>If you would rather receive reports by US Mail, you can change that setting in your <a href="account/preferences">Preferences</a>.', u\ray('phone thisYear', $phone, date('Y'))));
+  $posttext = item($negatives . tt('<p>This report is provided by @R_REGION_LEGALNAME (EIN #@R_REGION_EIN). Address: @R_REGION_ADDR (@phone, @R_REGION_EMAIL).</p><p>You can see this report here until January 1 of next year (when the report for calendar year @thisYear replaces it).</p><p>If you would rather receive reports by US Mail, you can change that setting in your <a href="account/preferences">Preferences</a>.', u\ray('phone thisYear', $phone, date('Y'))));
   return compact(u\ray('title subtext list posttext'));
 }
 

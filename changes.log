@@ -1,4 +1,23 @@
-2014-03-
+2014-04-04
+. added date/initial stamp to notes on Summary page and Member Info page
+. revised changeUid function to accommodate account deletion
+. fixed bug: member bit not getting set in acct::stepDone()
+. don't alert staff when admin invites someone
+. community admin gets an email when community's new members achieve milestones in their account opening
+. fixed $/acct for p2p on Community page
+. separated invoices from r_txs (somewhat major change)
+. changed Community page to charts
+. made Community page public (show all cttys if signed out)
+. added a payroll upload page
+. drop table r_invoices
+. duplicate r_stats for ctty=0, then:
+  UPDATE `r_stats` SET id=id-600 WHERE id >999 AND id<10000;
+  UPDATE `r_stats` SET id=id-9600 WHERE id >9999;
+. added newb field to stats
+. ran fixStats to update and correct r, usd, and newb data in stats
+. added relevant dates to MemberList form
+  
+2014-03-13
 . hide federalId and dob in $_POST in log
 . membership status page now shows Verify bank account as a not-yet-done step.
 . added tellStaff to remaining signup steps.
@@ -17,6 +36,11 @@
 . moved all admin stuff to a separate folder
 . introduced cAdmin2 (community sub admin) permission, to allow assistant to see member list and modify account notes
 . changed "recurs Monthly" to "4th monthly" etc.
+. db changes:
+	new.rcredits.org/devel/menu/reset
+	ctty('aaa')->setBit(B_MEMBER);
+	ctty('aaa')->setBit(B_OK);
+	ctty('miw.aaa')->setBit(B_OK);
 
 2014-02-25
 . eliminated preemptive "dupOk" field in signup.

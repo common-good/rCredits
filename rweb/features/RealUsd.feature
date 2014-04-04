@@ -29,15 +29,15 @@ Scenario: A mixed rCredits/USD transaction happens
   | op  | who     | amount  | goods | purpose |
   | pay | Bea Two | 1000.20 | 1     | labor   |
   Then transactions: 
-  | xid | type     | state | amount  | from | to   | purpose      | taking |
-  |   2 | transfer | done  | 1000.20 | .ZZA | .ZZB | labor        | 0      |
-  |   3 | rebate   | done  |   50.01 | ctty | .ZZA | rebate on #2 | 0      |
-  |   4 | bonus    | done  |  100.02 | ctty | .ZZB | bonus on #1  | 0      |
+  | xid | type     | amount  | from | to   | purpose      | taking |
+  |   2 | transfer | 1000.20 | .ZZA | .ZZB | labor        | 0      |
+  |   3 | rebate   |   50.01 | ctty | .ZZA | rebate on #2 | 0      |
+  |   4 | bonus    |  100.02 | ctty | .ZZB | bonus on #1  | 0      |
   And usd transfer count is 0
   And balances:
   | id   | r     | dw/usd | rewards |
   | .ZZA | 49.81 |      5 | 1050.01 |
-  When member ".ZZA" visits page "transactions/period=365"
+  When member ".ZZA" visits page "history/period=365"
   Then we show "Transaction History" with:
   |_Start Date |_End Date |
   | %dmy-12m   | %dmy     |
@@ -66,10 +66,10 @@ Scenario: A member buys something when Dwolla is down
   | op  | who     | amount  | goods | purpose |
   | pay | Bea Two | 1000.20 | 1     | labor   |
   Then transactions: 
-  | xid | type     | state | amount  | from | to   | purpose      | taking |
-  |   2 | transfer | done  | 1000.20 | .ZZA | .ZZB | labor        | 0      |
-  |   3 | rebate   | done  |   50.01 | ctty | .ZZA | rebate on #2 | 0      |
-  |   4 | bonus    | done  |  100.02 | ctty | .ZZB | bonus on #1  | 0      |
+  | xid | type     | amount  | from | to   | purpose      | taking |
+  |   2 | transfer | 1000.20 | .ZZA | .ZZB | labor        | 0      |
+  |   3 | rebate   |   50.01 | ctty | .ZZA | rebate on #2 | 0      |
+  |   4 | bonus    |  100.02 | ctty | .ZZB | bonus on #1  | 0      |
   And balances:
   | id   | r     | dw/usd | rewards |
   | .ZZA | 49.81 |      5 | 1050.01 |

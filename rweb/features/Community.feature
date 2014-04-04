@@ -31,31 +31,27 @@ Setup:
   | .ZZB |  2000 |
   | .ZZC |  3000 |
   And transactions: 
-  | xid | created   | type      | state   | amount | from | to   | purpose | goods |
-  |   1 | %today-4m | signup    | done    |    250 | ctty | .ZZA | signup  | 0     |
-  |   2 | %today-4m | signup    | done    |    250 | ctty | .ZZB | signup  | 0     |
-  |   3 | %today-4m | signup    | done    |    250 | ctty | .ZZC | signup  | 0     |
-  |   4 | %today-3m | transfer  | done    |     10 | .ZZB | .ZZA | cash E  | 0     |
-  |   5 | %today-3m | transfer  | done    |    100 | .ZZC | .ZZA | usd F   | 0     |
-  |   6 | %today-3m | transfer  | done    |    240 | .ZZA | .ZZB | what G  | 1     |
-  |   9 | %today-3m | transfer  | pending |    100 | .ZZA | .ZZB | pie N   | 1     |
-  |  12 | %today-2m | transfer  | pending |    100 | .ZZC | .ZZA | labor M | 1     |
+  | xid | created   | type      | amount | from | to   | purpose | goods |
+  |   1 | %today-4m | signup    |    250 | ctty | .ZZA | signup  | 0     |
+  |   2 | %today-4m | signup    |    250 | ctty | .ZZB | signup  | 0     |
+  |   3 | %today-4m | signup    |    250 | ctty | .ZZC | signup  | 0     |
+  |   4 | %today-3m | transfer  |     10 | .ZZB | .ZZA | cash E  | 0     |
+  |   5 | %today-3m | transfer  |    100 | .ZZC | .ZZA | usd F   | 0     |
+  |   6 | %today-3m | transfer  |    240 | .ZZA | .ZZB | what G  | 1     |
   And statistics get set "%tomorrow-1m"
   And transactions: 
-  | xid | created   | type      | state   | amount | from | to   | purpose | goods | channel  |
-  |  15 | %today-2w | transfer  | done    |     50 | .ZZB | .ZZC | p2b     | 1     | %TX_WEB  |
-  |  18 | %today-1w | transfer  | done    |    120 | .ZZA | .ZZC | this Q  | 1     | %TX_WEB  |
-  |  21 | %today-6d | transfer  | pending |    100 | .ZZA | .ZZB | cash T  | 0     | %TX_WEB  |
-  |  22 | %today-6d | transfer  | pending |    100 | .ZZB | .ZZA | cash U  | 0     | %TX_WEB  |
-  |  23 | %today-6d | transfer  | done    |    100 | .ZZA | .ZZB | cash V  | 0     | %TX_WEB  |
-  |  24 | %today-2d | inflation | done    |      1 | ctty | .ZZA | inflate | 0     | %TX_WEB  |
-  |  25 | %today-2d | inflation | done    |      2 | ctty | .ZZB | inflate | 0     | %TX_WEB  |
-  |  26 | %today-2d | inflation | done    |      3 | ctty | .ZZC | inflate | 0     | %TX_WEB  |
-  |  27 | %today-2d | grant     | done    |      4 | ctty | .ZZA | grant   | 0     | %TX_WEB  |
-  |  28 | %today-2d | loan      | done    |      5 | ctty | .ZZB | loan    | 0     | %TX_WEB  |
-  |  29 | %today-2d | fine      | done    |      6 | .ZZC | ctty | fine    | 0     | %TX_WEB  |
-  |  30 | %today-1d | transfer  | done    |    100 | .ZZC | .ZZA | payroll | 1     | %TX_WEB  |
-  |  33 | %today-1d | transfer  | done    |      1 | .ZZC | .AAB | sharing rewards with CGF | 1 | %TX_CRON |
+  | xid | created   | type      | amount | from | to   | purpose | goods | channel  |
+  |  15 | %today-2w | transfer  |     50 | .ZZB | .ZZC | p2b     | 1     | %TX_WEB  |
+  |  18 | %today-1w | transfer  |    120 | .ZZA | .ZZC | this Q  | 1     | %TX_WEB  |
+  |  23 | %today-6d | transfer  |    100 | .ZZA | .ZZB | cash V  | 0     | %TX_WEB  |
+  |  24 | %today-2d | inflation |      1 | ctty | .ZZA | inflate | 0     | %TX_WEB  |
+  |  25 | %today-2d | inflation |      2 | ctty | .ZZB | inflate | 0     | %TX_WEB  |
+  |  26 | %today-2d | inflation |      3 | ctty | .ZZC | inflate | 0     | %TX_WEB  |
+  |  27 | %today-2d | grant     |      4 | ctty | .ZZA | grant   | 0     | %TX_WEB  |
+  |  28 | %today-2d | loan      |      5 | ctty | .ZZB | loan    | 0     | %TX_WEB  |
+  |  29 | %today-2d | fine      |     -6 | ctty | .ZZC | fine    | 0     | %TX_WEB  |
+  |  30 | %today-1d | transfer  |    100 | .ZZC | .ZZA | payroll | 1     | %TX_WEB  |
+  |  33 | %today-1d | transfer  |      1 | .ZZC | .AAB | sharing rewards with CGF | 1 | %TX_CRON |
   And usd transfers:
   | completed | amount | payer | payee |
   | %today-1d |     10 | .ZZA  | ctty  |
@@ -85,7 +81,7 @@ Scenario: cron calculates the statistics
   | | for %R_REGION_NAME |
   | Accounts        | 5 (3 personal, 2 companies) — up 5 from a month ago |
   | rCredits issued | $835.90r — up $835.90r from a month ago |
-  | | signup: $750r, inflation adjustments: $6r, rebates/bonuses: $70.90r, grants: $4r, loans: $5r, fees: -$6r |
+  | | signup: $750r, inflation adjustments: $6r, rebates/bonuses: $70.90r, grants: $4r, loans: $5r, fees: $-6r |
   | Demand          | $5,999.75 — up $5,999.75 from a month ago |
   | Total funds     | $835.90r + $5,999.75us = $6,835.65 |
   | | including about $6,564.65 in savings = 109.4% of demand (important why?) |
