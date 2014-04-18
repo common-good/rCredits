@@ -109,4 +109,19 @@ function exists($table, $where = '1', $subs = array()) {
   return db\lookup(1, $table, $where, $subs);
 }
 
+/**
+ * Return an array of record objects
+ */
+function records($table, $where = '1', $subs = array(), $fields = '*', $cache = FALSE) {
+/*  $sql = <<<EOF
+    SELECT COLUMN_NAME FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=:db AND TABLE_NAME=:table AND COLUMN_KEY='PRI'
+EOF;
+  $db = 'devcore'; // @todo: get proper db name
+  $key = db\q($sql, compact('table', 'db')); */
+///  if (!$cache) die('no cache getRecords');
+//  echo " SELECT $fields FROM $table WHERE $where ";
+  return db\q("SELECT $fields FROM $table WHERE $where", $subs)->fetchAll(); // fetchAll means fetchAllObject
+}
+
 function recCount($table, $where = '1', $subs = array()) {return db\lookup('COUNT(*)', $table, $where, $subs);}

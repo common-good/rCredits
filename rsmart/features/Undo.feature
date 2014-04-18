@@ -32,7 +32,7 @@ Setup:
   And relations:
   | id   | main | agent | permission |
   | :ZZA | .ZZC | .ZZA  | scan       |
-  | :ZZB | .ZZC | .ZZB  | buy        |
+  | :ZZB | .ZZC | .ZZB  | refund     |
   | :ZZD | .ZZC | .ZZD  | read       |
   | :ZZE | .ZZF | .ZZE  | sell       |
   And transactions: 
@@ -56,14 +56,14 @@ Scenario: An agent asks to undo a charge
   When agent ":ZZB" asks device "devC" to undo transaction 4
   Then we respond ok "report undo|report transaction" with subs:
   | solution | did      | otherName | amount | rewardType | rewardAmount |
-  | reversed | credited | Abe One   | $80    | reward     | $-8          |
+  | reversed | refunded | Abe One   | $80    | reward     | $-8          |
   And with balance
   | name    | balance | spendable | cashable | did     | amount | forCash |
   | Abe One | $250    |           | $0       |         |        |         |
   And with undo ""
-  And we notice "new payment|reward other" to member ".ZZA" with subs:
-  | created | fullName | otherName  | amount | payeePurpose | otherRewardType | otherRewardAmount |
-  | %today  | Abe One  | Corner Pub | $80    | reverses #2  | reward          | $-4               |
+  And we notice "new refund|reward other" to member ".ZZA" with subs:
+  | created | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |
+  | %today  | Corner Pub | $80    | reverses #2  | reward          | $-4               |
 
 Scenario: An agent asks to undo a refund
   Given transactions: 
@@ -80,10 +80,10 @@ Scenario: An agent asks to undo a refund
   | Abe One | $250    |           | $0       |         |        |         |
   And with undo ""
   And we notice "new charge|reward other" to member ".ZZA" with subs:
-  | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |
-  | %today  | Abe One  | Corner Pub | $80    | reverses #2  | reward          | $4                |
+  | created | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |
+  | %today  | Corner Pub | $80    | reverses #2  | reward          | $4                |
 
-Scenario: An agent asks to undo a cash out charge
+Scenario: An agent asks to undo a cash-out charge
   Given transactions: 
   | xid | created   | type     | amount | from | to   | purpose  | goods | taking |
   | 4   | %today-1d | transfer |     80 | .ZZA | .ZZC | cash out |     0 |      1 |
@@ -99,14 +99,14 @@ Scenario: An agent asks to undo a cash out charge
   | created | fullName | otherName  | amount | payeePurpose |
   | %today  | Abe One  | Corner Pub | $80    | reverses #2  |
 
-Scenario: An agent asks to undo a cash in payment
+Scenario: An agent asks to undo a cash-in payment
   Given transactions: 
   | xid | created   | type     | amount | from | to   | purpose | goods | taking |
   | 4   | %today-1d | transfer |    -80 | .ZZA | .ZZC | cash in |     0 |      1 |
   When agent ":ZZB" asks device "devC" to undo transaction 4
   Then we respond ok "report undo|report exchange" with subs:
-  | solution | did     | otherName | amount |
-  | reversed | charged | Abe One   | $80    |
+  | solution | did        | otherName | amount |
+  | reversed | re-charged | Abe One   | $80    |
   And with balance
   | name    | balance | spendable | cashable | did     | amount | forCash |
   | Abe One | $250    |           | $0       |         |        |         |
@@ -125,7 +125,7 @@ Scenario: An agent asks to undo a charge, with insufficient balance
   When agent ":ZZB" asks device "devC" to undo transaction 4
   Then we return error "short to" with subs:
   | short |
-  | $50   |
+  | $38   |
 
 Scenario: An agent asks to undo a refund, with insufficient balance  
   Given transactions: 
@@ -146,7 +146,9 @@ Scenario: An agent asks to undo a charge, without permission
   | 5   | %today-1d | rebate   |      4 | ctty | .ZZB | rebate on #2 |     0 |      0 |
   | 6   | %today-1d | bonus    |      8 | ctty | .ZZC | bonus on #2  |     0 |      0 |
   When agent ":ZZA" asks device "devC" to undo transaction 4
-  Then we return error "no buy"
+  Then we return error "no perm" with subs:
+  | what    |
+  | refunds |
 
 Scenario: An agent asks to undo a refund, without permission
   Given transactions: 
@@ -154,8 +156,10 @@ Scenario: An agent asks to undo a refund, without permission
   | 4   | %today-1d | transfer |    -80 | .ZZB | .ZZC | refund       |     1 |      1 |
   | 5   | %today-1d | rebate   |     -4 | ctty | .ZZB | rebate on #2 |     0 |      0 |
   | 6   | %today-1d | bonus    |     -8 | ctty | .ZZC | bonus on #2  |     0 |      0 |
-  When agent ":ZZA" asks device "devC" to undo transaction 4
-  Then we return error "no sell"
+  When agent ":ZZD" asks device "devC" to undo transaction 4
+  Then we return error "no perm" with subs:
+  | what  |
+  | sales |
 
 Scenario: An agent asks to undo someone else's transaction
   Given transactions: 

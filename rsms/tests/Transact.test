@@ -144,7 +144,7 @@ class rsmsTransact extends DrupalWebTestCase {
   // Scenario: The caller asks to pay the latest invoice
   public function testTheCallerAsksToPayTheLatestInvoice_0() {
     $this->setUp2(__FUNCTION__, 0);
-    Given('transactions: "DATA'
+    Given('invoices: "DATA'
     . '\\| created   | state       | amount | from | to   | purpose| taking |'
     . '\\| %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  | 1      |"');
     When_('phone +20003 says "pay"');
@@ -156,7 +156,7 @@ class rsmsTransact extends DrupalWebTestCase {
   // Scenario: The caller confirms payment of the latest invoice
   public function testTheCallerConfirmsPaymentOfTheLatestInvoice_0() {
     $this->setUp2(__FUNCTION__, 0);
-    Given('transactions: "DATA'
+    Given('invoices: "DATA'
     . '\\| created   | state       | amount | from | to   | purpose| taking |'
     . '\\| %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  | 1      |"');
     When_('phone +20003 confirms "pay"');
@@ -170,7 +170,7 @@ class rsmsTransact extends DrupalWebTestCase {
   // Scenario: The caller asks to pay the latest invoice from a particular member
   public function testTheCallerAsksToPayTheLatestInvoiceFromAParticularMember_0() {
     $this->setUp2(__FUNCTION__, 0);
-    Given('transactions: "DATA'
+    Given('invoices: "DATA'
     . '\\| created   | state       | amount | from | to   | purpose| taking |'
     . '\\| %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  | 1      |'
     . '\\| %today-1d | %TX_PENDING | 100    | .ZZC | .ZZB | labor  | 1      |"');

@@ -265,17 +265,20 @@ function fixdw($a) {
 
 function fixStats() {
   $r = $usd = 0;
-  $q = db\q("SELECT id, created, pAccts, bAccts FROM r_stats WHERE ctty=0 ORDER BY created");
+  $q = db\q("SELECT id, created, pAccts, bAccts FROM r_stats WHERE ctty<>0 ORDER BY created");
+  $new = r\acct('NEW.AAA')->community;
   while ($row = $q->fetchAssoc()) {
     extract($row);
     $crit = 'BETWEEN :created AND :created+:DAY_SECS-1';
-    $r += db\lookup('SUM(amount)', 'r_txs', 'payer<0 AND created ' . $crit, compact('created'));
-    $usd += db\lookup('-SUM(amount)', 'r_usd', 'payee=0 AND completed ' . $crit, compact('created'));
-    $newbs = db\recCount('users', 'created<:created', compact('created')) - $pAccts - $bAccts;
+    //$r += db\lookup('SUM(amount)', 'r_txs', 'payer<0 AND created ' . $crit, compact('created'));
+    //$usd += db\lookup('-SUM(amount)', 'r_usd', 'payee=0 AND completed ' . $crit, compact('created'));
+    //$newbs = db\recCount('users', 'created<:created', compact('created')) - $pAccts - $bAccts;
 ///    debug(compact(u\ray('id created r usd newbs users'))); break;
-    db\update('r_stats', compact(u\ray('r usd newbs id')), 'id');
+//    db\update('r_stats', compact(u\ray('r usd newbs id')), 'id');
+
+    $newbs = db\recCount('users', 'created<:created AND community=:new', compact('created', 'new')) - $pAccts - $bAccts;
     $id = db\lookup('id', 'r_stats', 'created=:created AND ctty<>0', compact('created'));
-    db\update('r_stats', compact(u\ray('r usd newbs id')), 'id');
+    db\update('r_stats', compact(u\ray('newbs id')), 'id');
   }
 }
 

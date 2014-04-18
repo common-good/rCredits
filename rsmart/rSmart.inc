@@ -175,7 +175,7 @@ function identify($args) {
     if ($restricted) return posErr('restricted'); */
 
     $descriptions = explode("\n", $a->selling) ?: array('?');
-    $can = $a->can(B_BUY) ? $a->coCan() >> CO_CANS : 0;
+    $can = $a->can(B_REFUND) ? $a->coCan() >> CO_CANS : 0;
     $default = $a->coCan(CO_REQUIRE_CASHIER) ? '' : $a->mainQid;
     $company = $a->fullName;
     

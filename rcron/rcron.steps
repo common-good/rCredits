@@ -57,6 +57,7 @@ function extraSubs(&$subs) {
  *     MAKE Pool Setup
  *     MAKE Recache Setup
  *     MAKE Sharing Setup
+ *     MAKE Tickle Setup
  */
 function members($list) {return t\members($list);}
 
@@ -101,6 +102,9 @@ function balances($list) {return t\balances($list);}
  *     MAKE Recache BalancesGetOutOfWhack
  *     MAKE Recache BalancesGetATinyBitOutOfWhack
  *     MAKE Sharing InflationAdjustmentsAreDistributed
+ *     MAKE Tickle ANewbieHasNotTakenTheFirstStep
+ *     MAKE Tickle ANewbieHasTakenSomeStepsButNotAll
+ *     MAKE Tickle ANewbieIsOnTheVerifyStep
  */
 function cronRuns($op) {return t\cronRuns($op);}
 
@@ -156,8 +160,17 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Gifts ADonationCanBeCompleted
  *     TEST Gifts ARecurringDonationCanBeCompleted
  *     TEST Sharing InflationAdjustmentsAreDistributed
+ *     TEST Tickle ANewbieIsOnTheVerifyStep
  */
 function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice, $id, $subs);}
+
+/**
+ * we notice (ARG) to member (ARG)
+ *
+ * in: TEST Tickle ANewbieHasNotTakenTheFirstStep
+ *     TEST Tickle ANewbieHasTakenSomeStepsButNotAll
+ */
+function weNoticeToMember($notice, $id) {return t\notice($notice, $id);}
 
 /**
  * gifts: (ARG)
@@ -311,7 +324,7 @@ function memberTradesUSDToMemberForRCredits($id1, $amount, $id2) {
 /**
  * we message member (ARG) with topic (ARG) and subs: (ARG)
  *
- * in: TEST Recache BalancesGetOutOfWhack
+ * in: 
  */
 function weMessageMemberWithTopicAndSubs($id, $topic, $subs) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -336,3 +349,11 @@ function membersHave($list) {return t\membersHave($list);}
  *     TEST Gifts ARecurringDonationCanBeCompleted
  */
 function thatHasLinkResults($thing, $info) {return t\hasLinkResults($thing, $info);}
+
+/**
+ * member (ARG) has done step (ARG)
+ *
+ * in: MAKE Tickle ANewbieHasTakenSomeStepsButNotAll
+ *     MAKE Tickle ANewbieIsOnTheVerifyStep
+ */
+function memberHasDoneStep($uid, $step) {return t\doneStep($uid, $step);}

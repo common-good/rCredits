@@ -155,6 +155,7 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  *     TEST Contact AMemberUpdatesToADifferentState
  *     TEST Contact AMemberUpdatesToADifferentName
  *     MAKE Download Setup
+ *     MAKE EditTx Setup
  *     MAKE Flow Setup
  *     MAKE Get Setup
  *     MAKE Gift Setup
@@ -183,6 +184,7 @@ function members($list) {return t\members($list);}
  * in: MAKE Bank Setup
  *     MAKE Community Setup
  *     MAKE Download Setup
+ *     MAKE EditTx Setup
  *     TEST Flow AMemberOverdraws
  *     TEST Flow AMemberOverdrawsAndDrawsFromBothRAndUSD
  *     MAKE Get Setup
@@ -205,6 +207,7 @@ function transactions($list) {return t\transactions($list);}
  * we say (ARG): (ARG) with subs: (ARG)
  *
  * in: TEST Bank AMemberTransfersFundsToTheBank
+ *     TEST EditTx ABuyerTriesToDecreaseAPaymentAmount
  *     TEST Flow AMemberOverdrawsWithNotEnoughToDrawOn
  *     TEST Get AMemberMovesCreditToTheBank
  *     TEST Get AMemberDrawsCreditFromTheBank
@@ -250,6 +253,8 @@ function weSayWithSubs($type, $index, $subs) {
  *     TEST Contact AMemberGivesABadEmail
  *     TEST Contact AMemberUpdatesToADifferentState
  *     TEST Contact AMemberUpdatesToADifferentName
+ *     TEST EditTx ABuyerIncreasesAPaymentAmount
+ *     TEST EditTx ABuyerChangesTheGoodsStatus
  *     TEST Get AMemberMovesTooLittleToTheBank
  *     TEST Get AMemberTriesToGoBelowTheirMinimum
  *     TEST Membership AMemberSignsInForTheFirstTime
@@ -388,6 +393,7 @@ function withoutOptions($options) {
  *
  * in: MAKE Community Setup
  *     MAKE Download Setup
+ *     MAKE EditTx Setup
  *     MAKE Flow Setup
  *     MAKE Membership Setup
  *     MAKE Relations MemberHasAnEmployeeConfirmed
@@ -414,6 +420,9 @@ function relations($relations) {return t\relations($relations);}
  * in: MAKE Bank Setup
  *     BOTH Community Setup
  *     BOTH Download Setup
+ *     TEST EditTx Setup
+ *     TEST EditTx ABuyerIncreasesAPaymentAmount
+ *     TEST EditTx ABuyerChangesTheGoodsStatus
  *     MAKE Flow Setup
  *     TEST Get Setup
  *     TEST Get AMemberMovesCreditToTheBank
@@ -594,28 +603,7 @@ function withDone($steps) {
  * in: MAKE Membership AMemberDoesItAll
  *     MAKE Membership AMemberOpensABusinessAccount
  */
-function memberHasDoneStep($uid, $step) {
-  global $testOnly; if ($testOnly) return FALSE;
-  $a = r\acct($uid = t\uid($uid));
-  return @$a->stepDone($step); // might have to do the steps below also
-  
-  if ($step == 'photo') return file_put_contents(DRUPAL_ROOT . $a->auxFilename('picture', TRUE), 'whatever');
-  if ($step == 'sign') return $a->update(u\ray('signed', REQUEST_TIME));
-  if ($step == 'donate') return db\insert('r_gifts', u\ray('uid amount', $uid, 123));
-  if ($step == 'proxies') return db\q('INSERT INTO r_proxies (person, proxy) VALUES (:uid, 2),(:uid, 3)', compact('uid'));
-  
-  if ($step == 'contact') return $a->update(u\ray('postalAddr', 'The World'));
-  if ($step == 'connect') {
-    $secure = @$a->secure;
-    $secure['bankAccount'] = 'USkk123456789whatever';
-    return $a->update(compact('secure'));
-  }
-  if ($step == 'prefs') return $a->update(u\ray('minimum', 0));
-  //if ($step == 'invite') return db\insert('r_invites', u\ray('inviter email code', $uid, 'any@example.com', 'whatever'));
-  if ($step == 'company') return $a->update(u\ray('selling', 'stuff'));
-  // if ($step == 'relations') ?
-  return FALSE;
-}
+function memberHasDoneStep($uid, $step) {return t\doneStep($uid, $step);}
 
 /**
  * we show (ARG)
@@ -683,7 +671,9 @@ function memberOnetimePasswordIs($id, $pass) {
 /**
  * we notice (ARG) to member (ARG) with subs: (ARG)
  *
- * in: TEST Gift AMemberDonates
+ * in: TEST EditTx ABuyerIncreasesAPaymentAmount
+ *     TEST EditTx ABuyerChangesTheGoodsStatus
+ *     TEST Gift AMemberDonates
  *     TEST Transact AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Transact AMemberConfirmsRequestToPayAnotherMember
  *     TEST Transact AMemberConfirmsRequestToPayAMemberCompany
@@ -1009,3 +999,15 @@ function signupCompanyInfoForAccountIsRemembered($id) {
  *     TEST Transact AMemberConfirmsRequestToPayAMemberCompany
  */
 function thatHasLinkResults($thing, $info) {return t\hasLinkResults($thing, $info);}
+
+/**
+ * member (ARG) edits transaction (ARG) with values: (ARG)
+ *
+ * in: MAKE EditTx ABuyerIncreasesAPaymentAmount
+ *     MAKE EditTx ABuyerChangesTheGoodsStatus
+ *     MAKE EditTx ABuyerTriesToDecreaseAPaymentAmount
+ */
+function memberEditsTransactionWithValues($id, $xid, $values) {
+  $page = "history/xid=$xid&do=edit";
+  return memberConfirmsFormWithValues($id, $page, $values);
+}

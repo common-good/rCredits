@@ -143,6 +143,14 @@ ul.tabs.primary {padding:0; margin-left:4em; margin-top:.8em; font-size:85%;}
 #rcreditswebformhelp h2 {font-weight:normal; color:darkblue;}
 #rcreditswebformhelp b {color:darkgreen;}
 #rcreditswebformhelp i {color:darkblue;}
+#rcreditswebformhelp a div {float:right} /* for charts */
+#rcreditswebformhelp .p2p {color:orange;}
+#rcreditswebformhelp .p2b {color:green;}
+#rcreditswebformhelp .b2b {color:blue;}
+#rcreditswebformhelp .b2p {color:red;}
+#rcreditswebformhelp .in {color:green;}
+#rcreditswebformhelp .out {color:orange;}
+#rcreditswebformhelp ol {margin-left:20px;}
 
 /* Standard Forms */
 form.rweb {font-family:Arial;}
@@ -436,7 +444,7 @@ form.rweb  .form-no {color:red;}
 /*#invitelist td:first-child +td {width:200px;} /* who */
 /*#invitelist td:first-child +td+td {width:100px;} /* account */
 
-/* Transactions */
+/* Transactions History */
 #rcreditswebformtxs #edit-title,
 #rcreditswebformtxs #edit-subtext {margin-left:0;}
 #rcreditswebformtxs .virtual {color:LightSteelBlue; font-weight:normal;}
@@ -451,12 +459,13 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformtxs .form-item-ending {display:inline-block;}
 #rcreditswebformtxs .form-item-starting {margin-bottom:0;}
 #rcreditswebformtxs input {max-width:110px;}
-#rcreditswebformtxs .form-submit {margin-left:10px; max-width:120px;}
+#rcreditswebformtxs .form-submit:not([value="Update"]) {margin-left:10px; max-width:120px;}
+/*#rcreditswebformtxs  input[value="Update"] {margin-left:125px;}*/
 /*#rcreditswebformtxs {display:inline-block; width:100%; text-align:left;}
 #rcreditswebformtxs .form-item-tx-period {margin-top:2em; display:inline-block;}*/
 #rcreditswebformtxs .form-item-x-task {display:inline-block;}
-/*#rcreditswebformtxs .form-type-select label {display:inline-block; width:15em;} 
-#rcreditswebformtxs  input[type="submit"] {margin:2em 0 0 1em;} */
+/*#rcreditswebformtxs .form-type-select label {display:inline-block; width:15em;} */
+/*#rcreditswebformtxs  input[type="submit"] {margin:2em 0 0 1em;}*/
 #rcreditswebformtxs .txs-buttons div {display:inline-block; width:2em; text-align:center; vertical-align:middle;}
 #rcreditswebformtxs .txs-buttons div:first-child +div input {color:red; font-weight:bold;}
 /* #rcreditswebformtxs .form-radios {margin-left:0px; display:inline-block;}

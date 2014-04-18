@@ -51,7 +51,7 @@ class acct {
    * @param assoc $info: array of field values for new account
    */
   private function createNew($info) {
-    $fields = 'phone number mail pass secure fullName legalName name flags rebate country state postalCode created uid community';
+    $fields = 'phone number mail pass secure fullName legalName name flags rebate country state postalCode created login access uid community';
     if (t\est()) $fields .= ' usdAccount';
     extract(u\just($fields, $info));
     u\setDft($phone, @$number);
@@ -70,7 +70,9 @@ class acct {
       $state = db\lookup('id', 'r_states', 'abbreviation=:state and country_id=:US_COUNTRY_ID', compact('state'));
     }
     u\setDft($community, communityUid(@$postalCode)); // defaults to current server
-    $created = $login = $access = @$created ?: REQUEST_TIME;
+    u\setDft($created, REQUEST_TIME);
+    u\setDft($login, $created);
+    u\setDft($access, $login);
 
     if ($data0 = u\just(R_DATA_FIELDS, $info)) foreach ($data0 as $key => $value) unset($info[$key]);
     $data0['stepsDone'] = array_fill_keys(u\ray(R_STEPS), FALSE);
@@ -137,14 +139,13 @@ class acct {
   private static function getRecord($id, $reread = FALSE) {
 /**/ if (@self::$records[$id] and !property_exists(self::$records[$id], 'flags')) die("No flags field in record $id: " . print_r(self::$records, 1)); // keep this
     if (@self::$records[$id] and !$reread) return self::$records[$id];
-    if (!$records = be\getRecords('users', "uid=:id LIMIT 1", compact('id'))) { // no such record here
+    if (!$records = db\records('users', "uid=:id LIMIT 1", compact('id'))) { // no such record here
       if (TRUE) return FALSE; // not foreign either
       // contact other server here, for a subset of the record
     }
-    $access = REQUEST_TIME;
     $data = @$records[0]->data; // treat data fields like any other
     $data = $data ? unserialize($data) : array();
-    return self::$records[$id] = (object) (((array) $records[0]) + compact('access') + $data);
+    return self::$records[$id] = (object) (((array) $records[0]) + $data);
   }
 
   /**
@@ -293,11 +294,26 @@ class acct {
    * @return: markup to display the account's picture (with a default image if none)
    * Use $result with DRUPAL_ROOT . $result OR $base_url . $result
    */
-  function picture($unique = FALSE) {
+  public function picture($unique = FALSE) {
     global $base_url;
     if ($unique) $unique = '?' . REQUEST_TIME;
     $picFile = $this->auxFilename('picture');
     return '<div class="user-picture"><img src="' . "$base_url$picFile$unique" . '" alt="profile picture" /></div>';
+  }
+
+  /**
+   * Calculate updated r, rewards, and committed caches for a transaction (but do not write to db)
+   * @param assoc $tx: the transaction record (or at least these fields: payer, payee, amount, type)
+   * @param float $r: (UPDATED) the account's r balance
+   * @param float $rewards: (UPDATED) the account's rewards ever
+   * @param float $committed: (UPDATED) the account's reserve for sharing rewards with CGF
+   */
+  public function recache3($amount, $type, &$c) {
+    $c->r = round($c->r + $amount, 2);
+    if ($type != TX_TRANSFER and $type <= TX_REWARDS) {
+      if ($type == TX_REBATE or $type == TX_BONUS) $c->committed = round($c->committed + $amount * $this->share / 100, 2);
+      if ($type != TX_REFUND) $c->rewards = round($c->rewards + $amount, 2);
+    }
   }
 
   public function hasBit($bit) {return (bool) ($this->flags & u\bit($bit + 0));}
@@ -331,8 +347,10 @@ class acct {
   public static function setDefault($a) {
     global $currentAcct; 
     global $user; if (empty($user)) $user = (object) ($a ? $a->account() : array('uid' => 0)); // probably needed only for rWeb login form testing
-    $login = REQUEST_TIME;
-    if ($a and @$currentAcct != $a and $a->login != $login) $a->update(compact('login'));
+    if ($a and @$currentAcct != $a and !$a->cAdmin) { // admin access doesn't count
+      $login = $access = REQUEST_TIME;
+      if ($a->login != $login) $a->update(compact('login', 'access'));
+    }
     return $currentAcct = $a;
   }
 

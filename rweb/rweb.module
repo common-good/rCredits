@@ -76,7 +76,7 @@ function rweb_menu() {
     'history/1099-B' => menuLocal(t('1099-B Forms'), '1099b', 'read'),
     'history/zot' => menuLocal('zot', '', 'anyone'), // Drupal bug: last choice is omitted
 */
-    'charge' => menuNorm(t('Charge'), 'Tx', 'admin sell ok'),
+    'charge' => menuNorm(t('Charge'), 'Tx 1', 'sell ok'),
     'pay' => menuNorm(t('Pay'), 'Tx 1', 'buy ok'),
     'pay/one' => menuLocal(t('Pay One'), '*Tx', 'co buy ok'),
     'pay/payroll' => menuLocal(t('Upload Payroll'), 'Payroll', 'co buy ok'),

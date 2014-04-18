@@ -6,30 +6,37 @@ To Do
 Before growing fast:
 . ACH at TDBank (need EIN doc, cert from town, signers in person with ss#/dob/license/physAddr)
   (treasury management)
-. emails and invites don't get marked as spam
-. economic circle(s)
-. 4 new board members, including a business leader
-. ID verification by Nexis/Lexis
-. Software: invoices, sound admin tools
+. DONE emails and invites don't get marked as spam
+. DONE economic circle(s)
+. 2 more new board members, including a business leader
+. ID verification
+. Software: invoices, sound admin tools, bal not r
 
 TASKS FOR NEXT UPDATE:
-. reinstall
 after reinstall:
-. run r\fixStats()
 (no other special tasks yet)
 
-. new rCards to the following (when they say go):
-    David Pearson
 . add something to the website that mentions Ann Arbor and directs people to that facebook page (https://www.facebook.com/A2rcredits) and their email address. Is that something to ask the board?
 
+. fix EditTx test so it handles variable link ("?")
+. add tickler for invitations
+. track buyers and sellers in stats: SELECT DISTINCT uid,fullName FROM r_txs t, users u WHERE uid IN (payer, payee) AND uid>1 AND payee<>26742000000002 AND payer>0
+. scatter graph: sector II x-axis buyers (primarily) pay y-axis sellers (primarily). sector I y-axis sellers pay x-axis buyers (mostly payroll), order by how extreme ($bought-$sold), with extremes on the top/outside
+. added a "I connected them to Dwolla" button on Member Info page
+. move photos to /sites/photos and rename them uid-photoCode.jpg (photoCode is null for companies)
+. tell newbs their bank's phone number (to make it easy to confirm the deposits)
+. if state lookup fails, member gets uid USA.AAA and the default community. Should give an error message and "retry".
+. The meaning of "cashing out" should include only: (1) trading rCredits for USD at an official rCredits exchange (a member business that has agreed to provide that service) and (2) transferring funds to one's connected bank account.
+. don't update the access field in the users table when admin or cadmin or cadmin2 accesses the account (similar for login)
+. don't allow a one-word use-name easily. Also, ask for full name first, then legal name (if different).
+. Adam: I've noticed the rcredits member site keeps me logged in long after I've stopped using it, even after I close the tab and then reopen it hours or days later. For a financial site where money can be moved, I'd recommend either auto-logout after 10-20 minutes of inactivity, or (better) requiring me to re-enter my password before doing certain things like paying people if it's been more than 10-20 min since I last entered it. 
+. on NSF for cash/loan/etc., explain that rewards cannot be cashed out
 . "connect bank" button on memberdetails page
-. charts on help pages
 . implemented a FREEZE button for cttyadmins (disables transfers of USD out)
 . change cached "r" field in users to bal (total of r and usd)
 . tentatively implemented invoices as emails, as for "buy now with rCredits" buttons (a copy of the email goes to the sender, prefixed by "you sent this invoice to XXX on YYY:"). Invoices are permanent. Link has a weak security code -- maybe the account created date
 . use legalName on Relations page!!
 . now includes inviter in proxy list
-. send mail from noreply@new.rcredits.org reply-to:new@rcredits.org
 . implemented effective minimum for unbanked accounts that can draw on one or more others
 . Pay page does not figure shortfall properly (omits draw!)
 . If Matt leaves his phone untouched for X minutes and Sheila picks it up, should it insist that she sign in? Or at least say “Are you still Matt?” ?
@@ -43,7 +50,6 @@ after reinstall:
 - let user choose chunk size for automatic bank/draw transfers -- stored in "data" in the users table.
 . add a checkbox for "I don’t have a bank account" (and I can find another rCredits member to pay me in rCredits or trade rCredits for US Dollars or allow my account to draw from their account automatically) 
 . let other communities have a list of not-yet-members
-. move photos to /photos and rename them uid-cardCode.jpg
 . added a users data field: require PIN for purchases over $x. (requires a change to App also)
 . option to send text message on purchase
 . let admin change goods status of a tx?
@@ -256,7 +262,7 @@ function salesSql() {
     $monthi = strtotime("$i months ago", REQUEST_TIME);
     if ($i > 0) $fields .= ",SUM(IF(created>=$monthi AND created<$nextMonth, amount, 0)) AS sales$i";
   }
-  return "SELECT $fields FROM txs WHERE type=:TX_TRANSACT AND goods AND created>=$monthi AND payee=u.uid";
+  return "SELECT $fields FROM txs WHERE type=:TX_TRANSFER AND goods AND created>=$monthi AND payee=u.uid";
 }
 
 /**
@@ -271,7 +277,7 @@ function demandSql($other, $minRepeats, $months) {
   return <<<EOF
   SELECT SUM(GREATEST(0, minimum-r)) AS demand 
     FROM (SELECT $other, COUNT(*) AS count FROM txs 
-    WHERE type=:TX_TRANSACT AND goods AND created>=$earliest AND $other>0)
+    WHERE type=:TX_TRANSFER AND goods AND created>=$earliest AND $other>0)
     INNER JOIN users u ON u.uid=$me
     WHERE count>=$minRepeats
 EOF;

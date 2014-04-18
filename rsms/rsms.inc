@@ -77,6 +77,10 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'account funded' => t('Funds have arrived in your rCredits account! You may now use your rCard for purchases.'),
   'transfer complete' => t('Your requested@auto transfer of @amount (into your rCredits account) has completed.'),
   'triggers new card' => t('<b>NOTE:</b> If you change your @field, a new rCard will be mailed to you and your account will be charged $@R_CARD_COST. '),
+  'call bank' => t('Remember to call your bank @when and ask them for the two tiny deposit amounts to your account (both under 20 cents). Then sign in to your account and follow the links to enter those amounts, so we can send you your rCard!'),
+  'do step one' => t('Remember to sign back in to rCredits, to complete your account setup (you have several steps left to go).'),
+  'take another step' => t('Your rCredits account setup is not yet complete!'),
+  'sign in' => t('Go to rCredits.org, click "Members\' Site", then sign in with your username and password.'),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),
@@ -139,10 +143,12 @@ $GLOBALS[TX_SMS . ' messages'] = array(
 //  'demand too small' => t('NOTE: The minimum amount of rCredits you can actually buy at a time is $@min.', array('@min' => R_MIN_DEMAND)),
   'no access get' => t('You do not have permission to exchange rCredits for US Dollars or vice-versa.'),
 //  'no access create' => t('You do not have permission to create transactions.'),
-  'no sell' => t('You do not have permission to make sales for this account.'),
-  'no buy' => t('You do not have permission to make purchases for this account.'),
-  'other no sell' => t('@otherName does not have permission to make sales for that account.'),
-  'other no buy' => t('@otherName does not have permission to make purchases for that account.'),
+  'no perm' => t('You do not have permission to make @what for this account.'),
+  //'no sell' => t('You do not have permission to make sales for this account.'),
+  //'no buy' => t('You do not have permission to make purchases for this account.'),
+  'other no perm' => t('@otherName does not have permission to make @what for that account.'),
+  //'other no sell' => t('@otherName does not have permission to make sales for that account.'),
+  //'other no buy' => t('@otherName does not have permission to make purchases for that account.'),
   'bad amount' => t('The amount must be a number.'),
   'bad date' => t('That is not a valid date.'),
   'nonpositive amount' => t('The amount must be a positive number.'),
@@ -182,7 +188,8 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'new charge' => t('<b>Charge:</b> @otherName charged you @amount for "@payerPurpose".'),
   'new refund' => t('<b>Refund:</b> @otherName refunded you @amount for "@payerPurpose".'),
   'new payment' => t('<b>Payment:</b> @otherName paid you @amount for "@payeePurpose".'),
-  'new invoice' => t('<b>Invoice:</b> @otherName invoiced you @amount for "@purpose". To pay (or deny) this invoice, visit your Transactions page.'),
+  'new invoice' => t('<b>Invoice:</b> @otherName invoiced you @amount for "@purpose". To pay (or deny) this invoice, go to rCredits.org, click "Members\' Site" and sign in.'),
+//  'new invoice' => t('<b>Invoice:</b> @otherName invoiced you @amount for "@purpose". To pay (or deny) this invoice, <@a>click here</a>.'),
   'invoice denied' => t('<p><b>Invoice DENIED:</b> Your customer @otherName has declined to pay the following invoice:</p>
   <blockquote>@created @amount for "@payerPurpose"</blockquote>
   <p>You may want to contact the customer directly, to resolve any dispute.</p>'),

@@ -1,3 +1,14 @@
+2014-04-17
+. added charts to help pages
+. created a page to edit transactions (lets seller adjust amount down and buyer adjust the amount up.)
+. added a tickler cron function which give people nudges for taking next steps
+. modified rCredits Agreement by adding these two clauses:
+  - Once my geographic area becomes a Common Good Community, in the event of a cash crunch I will back rCredits up to my average balance over the past six months.
+  - that I can spend but cannot cash out.
+. created B_REFUND permission
+. changed permission=5 to 6: UPDATE r_relations SET permission=6 WHERE permission=5
+. changed the way undo is handled (now creates a negative charge instead of an offsetting payment)
+
 2014-04-04
 . added date/initial stamp to notes on Summary page and Member Info page
 . revised changeUid function to accommodate account deletion

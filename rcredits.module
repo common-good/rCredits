@@ -119,6 +119,9 @@ function rcredits_im_send($index, &$message, $subs) {
 
 /**
  * Implements hook_mail().
+ * @param string $index: filename of email template and index into subjects array
+ * @param assoc $msg_array: standard drupal message components: [subject, body, headers]
+ * @param assoc $info: substitutions for message body and subject
  * @see also: r\notify() and _user_mail_notify
  */
 function rcredits_mail($index, &$msg_array, $info) {

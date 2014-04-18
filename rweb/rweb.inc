@@ -201,7 +201,7 @@ function formDonate($form, &$sta) {
     'often' => formField('select', t('When:'), '', required(), $oftens),
     'honor' => formField('select', t('Honoring:'), '', '', $honors),
     'honored' => formField('textarea'),
-    'share' => textField(t('Share:'), t('What percentage of your ongoing rebates and bonuses would you like to donate to Common Good Finance, to support the rCredits system? This is another way to take responsibility for our community\'s future. You can put anything from 0% to 100%. The current average is sharePct%.', compact('sharePct')), required($mya->share)),
+    'share' => textField(t('Share:'), t('What percentage of your ongoing rebates and bonuses would you like to donate to Common Good Finance (and/or the rCredits community), to support the rCredits system? This is another way to take responsibility for our community\'s future. You can put anything from 0% to 100%. The current average is sharePct%.', compact('sharePct')), required($mya->share)),
     'submit' => submit('Donate'),
   );
 
@@ -416,9 +416,9 @@ $instructions
 <h2>B. As a responsible participant in the Common Good Economy:</h2>
 <ol>
   <li>[1] As long as I can spend my rCredits easily or exchange them easily for US Dollars, I will accept them without limit as payment for my goods and services. I will exchange rCredits for US Dollars only if I cannot spend them easily.</li>
-  <li>[2] I will accept rCredits from members of any <a href="$base_url/help/common-good-community">Common Good Community</a> in good standing.</li>
+  <li>[2] I will accept rCredits from members of any <a href="$base_url/help/common-good-community">Common Good Community</a> in good standing. Once my geographic area becomes a Common Good Community, in the event of a <a href="$base_url/help/cash-crunch">cash crunch</a> I will <a href="$base_url/help/backing-rcredits">back</a> rCredits up to my average balance over the past six months.</li>
   <li>[3] Whenever I exchange rCredits for US Dollars or vice versa, I will exchange them one for one, and I will price my goods and services the same in rCredits and in US Dollars. </li>
-  <li>[4] I understand that I will receive some rCredits from the community as Incentive Rewards. If I stop participating (or <a href="$base_url/help/graceful-failure">if the system ends</a>) within 6 months of receiving my first rCredits or before the community has enough revenue to cover the Incentive Rewards, I will <a href="$base_url/help/graceful-failure">immediately give back</a> whatever amount of Incentive Rewards I have received (while keeping any rCredits I received from other participants).</li>
+  <li>[4] I understand that I will receive some rCredits from the community as Incentive Rewards that I can spend but cannot <a href="$base_url/help/cashing-out">cash out</a>. If I stop participating (or <a href="$base_url/help/graceful-failure">if the system ends</a>) within 6 months of receiving my first rCredits or before the community has enough revenue to cover the Incentive Rewards, I will <a href="$base_url/help/graceful-failure">immediately give back</a> whatever amount of Incentive Rewards I have received (while keeping any rCredits I received from other participants).</li>
   <li>[5] I promise to maintain a high level of honesty, integrity, and <a href="$base_url/help/ethics">ethics</a> in my dealings with other rCredits participants and with the community (including the rCredits system itself). When there is a dispute, I will follow the <a href="$base_url/help/dispute-resolution-process">Dispute Resolution Process</a> and will honor its outcome.</li>
   $personOnly
 </ol>
@@ -530,7 +530,7 @@ function formInvite($form, &$sta) {
   $stepsDone = (object) $agent->stepsDone;
   $nearly = ($admin or $agent->can(B_MEMBER)) ?: (@$stepsDone->sign and @$stepsDone->donate);
   $inviteeList = "a href=$base_url/invited-whom";
-  $subtext = item(!$nearly ? t("We're sorry, you cannot invite someone to sign up until you have signed the <a href=\"$base_url/agreement\">Agreement</a> and made a <a href=\"$base_url/donate\">donation</a>.<br><br>Return to the <a href=\"$base_url/status\">Membership Steps</a> page to see where you stand.") : (t('Adjust the subject and message, then click "Send". For now, please invite only Greenfield-area companies and people who live, shop, or work in the area of Greenfield, Massachusetts. The invitation will include your contact info. [<@a1>Your invitees</a>]', u\ray('@a1', $inviteeList))));
+  $subtext = item(!$nearly ? t("We're sorry, you cannot invite someone to sign up until you have signed the <a href=\"$base_url/agreement\">Agreement</a> and made a <a href=\"$base_url/donate\">donation</a>.<br><br>Return to the <a href=\"$base_url/status\">Membership Steps</a> page to see where you stand.") : (t('Adjust the subject and message, then click "Send". For now, please invite only Greenfield-area companies and people who live, shop, or work in the area of Greenfield, Massachusetts or Ann Arbor, Michigan (our second pilot site). The invitation will include your contact info. [<@a1>See your invitees</a>]', u\ray('@a1', $inviteeList))));
 //  $subtext = item(strtr($subtext, array('<a>' => "<a href=\"$base_url/status\">")));
 //  $contact = textField(t('Email or Cell:'), t('An email address or cell number for the person you want to invite'), required());
   $email = formField($cAdmin ? 'textarea' : 'textfield', t('Email:'), $cAdmin ? t('A comma-separated list of email addresses to invite') : t('An email address for the person you want to invite'), required());
@@ -974,7 +974,7 @@ function formSettings2($form, &$sta) {
  * Display the member company's profile (no editable fields here)
  */
 function formProfile($form, &$sta, $company) {
-  $uid = r\userField('uid', 'name=:company', compact('company'));
+  $uid = db\lookup('uid', 'users', 'name=:company', compact('company'));
   $acct = r\acct($uid);
   if (!$uid or !$acct->co) return say('no such company', 'ERR');
 
@@ -1109,7 +1109,6 @@ function formPayroll_submit($form, &$sta) {
   fclose($fp);
   unlink($filename);
   
-  debug($rows);
   $coName = u\roughName($rows[0][0]);
   if ($coName != u\roughName($mya->legalName) and $coName != u\roughName($mya->fullName)) return say('wrong payroll co', u\ray('coName', $mya->fullName == $mya->legalName ? $mya->fullName : "$mya->legalName or $mya->fullName"), 'payroll');
   if (@$rows[1][0] != 'Payroll Details') return say('not payroll csv', 'payroll');
@@ -1644,7 +1643,7 @@ function formContact_validate($form, &$sta) {
   if ($fullName != $mya->fullName) {
     if ($err = u\badName($fullName)) return say($err, array('field' => 'fullName'), 'fullName');
     $name = u\shortName($fullName);
-    $otherName = r\userField('fullName', 'name=:name AND uid<>:myid', compact('name', 'myid'));
+    $otherName = db\lookup('fullName', 'users', 'name=:name AND uid<>:myid', compact('name', 'myid'));
     if ($otherName) return say('shortname taken', compact('otherName'), 'fullName');
   }
 
@@ -2554,9 +2553,9 @@ function formPass_submit($form, &$sta) {
 }
 
 function formDirectory($form, &$sta) {
-  $myid = r\acct()->id;
+  $mya = r\acct();
   $which = svar('which_companies') ?: '';
-  $region = svar('region') ?: substr(r\userField('postalCode', $myid), 0, 3);
+  $region = svar('region') ?: substr($mya->postalCode, 0, 3);
   
   $list = ($region !== FALSE or $which) ? directoryList($which, $region) : '';
   
@@ -2792,152 +2791,23 @@ function formOptions_submit($form, $sta) {
   return $mya->ok ? say('options saved') : r\go('status', 'options saved|step completed');
 }
 
-function formReports($form, &$sta, $args = '') {
+function formReports($form, &$sta) {
   if ($mya = r\acct()) {
     $admin = $mya->admin;
     $cadmin2 = $mya->can(B_CADMIN2);
     $myCtty = $mya->community ?: 0;
   } else $myCtty = 0;
 
-  list ($in, $out, $fees, $net, $personal, $companies) = array(t('in'), t('out'), t('fees'), t('net'), t('personal'), t('companies'));
-  extract(r\stats($myCtty)); // careful with this (don't overwrite local vars)
-//  extract(u\just('r usd refunds shared pAccts bAccts', r\stats($myCtty, strtotime('-1 month', REQUEST_TIME))), EXTR_PREFIX_ALL, 'lm');
-
-  list ($r0, $usd0) = array($r, $usd);
-//  $refundsPerMo = $refunds - @$lm_refunds;
-
-//  list ($bankNet, $txRewards, $total) = array(abs($bankInPerMo - $bankOutPerMo - $refundsPerMo), $rebates + $bonuss + $refunds + $fines, ($r + $usd) ?: .001);
-  list ($txRewards, $total) = array($rebates + $bonuss + $refunds + $fines, ($r + $usd) ?: .001);
-//  $bankSign = ($bankInPerMo >= $bankOutPerMo + $refundsPerMo) ? '+' : '-';
-//  $savings = u\fmtAmt($total - $perMo);
-//  $savingsPct = ($usd0 + 0) ? number_format(100 * ($total - $perMo) / $usd0, 1) . '%' : t('n/a');
-  $velocity = number_format(100 * $perMo / $total, 1) . t('% per month');
-  //$p2pPerMo = $perMo - $p2bPerMo - $b2bPerMo - $b2pPerMo;
-  //$p2pTxsPerMo = $txsPerMo - $p2bTxsPerMo - $b2bTxsPerMo - $b2pTxsPerMo;
-
-  foreach (u\ray('bankInPerMo bankOutPerMo refundsPerMo r usd total signups inflations txRewards grants loans fines') as $one) {
-    ${$one . '0'} = $$one;
-    $$one = u\fmtAmt($$one);
-  }
-
-  $issuedData = array(
-    "['deposits',{v:$usd0,f:'$usd'}]",
-    "['inflation offset',{v:$inflations0,f:'$inflations'}]",
-    "['signup bonuses',{v:$signups0,f:'$signups'}]",
-    "['purchase rewards',{v:$txRewards0,f:'$txRewards'}]",
-    "['grants',{v:$grants0,f:'$grants'}]",
-    "['loans',{v:$loans0,f:'$loans'}]",
-  );
-  $superTotal = u\fmtAmt($total0 + $usd0);
-//    "['fees',{v:$usd0,f:'$usd'}$fines]" think of a way to handle this
-
-  $txTypes = u\ray('p2p p2b b2b b2p', t('Person-to-person'), t('Person-to-business (mostly rCard purchases)'), t('Business-to-business (paying suppliers)'), t('Business-to-person (including payroll)'));
-/*
-  foreach ($txTypes as $k => $desc) {
-    list ($xPerMo, $xPerMo0, $xTxsPerMo) = array(${$k . 'PerMo'}, ${$k . 'PerMo0'}, ${$k . 'TxsPerMo'});
-    $avg = u\fmtAmt($xTxsPerMo ? $xPerMo0 / $xTxsPerMo : 0);
-    $txData[] = "['$desc',{v:$xTxsPerMo,f:'$xTxsPerMo @ $avg avg'}]";
-  }
-*/
-  $avg = u\fmtAmt($txsPerMo ? $perMo / $txsPerMo : 0);
-  $txs = "$txsPerMo @ $avg avg";
-
-//  $issuedAs = tt("signup: @signups@R, inflation adjustments: @inflations@R, rebates/bonuses: @txRewards@R, grants: @grants@R, loans: @loans@R, fees: @fines@R", compact(u\ray('signups inflations txRewards grants loans fines')));
-//  $issuedAs = str_replace('$', '', $issuedAs);
-
-//  $accounts = fundRpt($accts = $pAccts + $bAccts, @$lm_pAccts + @$lm_bAccts);
-//  $accounts = str_replace(' &mdash;', " ($pAccts $personal, $bAccts $companies) &mdash;", $accounts);
-
-  $crit = $myCtty ? "ctty=$myCtty" : '1';
-  $relaunch = strtotime('12/15/2013');
-  $sql = <<<EOF
-    SELECT created, IF(r+usd=0, 0, perMo/(r+usd)) AS rate, r+usd AS funds, usd, r+usd-perMo AS savings,
-      pAccts, bAccts, pAccts+bAccts AS accts, newbs,
-      bankInPerMo, bankOutPerMo,
-      perMo, p2bPerMo, b2bPerMo, b2pPerMo,
-      txsPerMo, p2bTxsPerMo, b2bTxsPerMo, b2pTxsPerMo
-    FROM r_stats WHERE $crit AND created>$relaunch ORDER BY created
-EOF;
-  $q = db\q($sql);
-
-  $charts = u\ray('accts funds velocity banking tx issued', 'growth', 'funds', 'velocity', 'demand', 'economic-circles', 'issuing-rcredits');
-  foreach ($charts as $k => $zot) u\setDft(${$k . 'Data'}, array());
-  $moneyFields = u\ray('funds savings usd bankInPerMo bankOutPerMo p2pPerMo p2bPerMo b2bPerMo b2pPerMo');
-
-  while ($row = $q->fetchAssoc()) {
-    extract($row);
-    list ($y, $m, $d) = u\ray(strftime('%Y %m %d', $created));
-    list ($m, $d) = array($m - 1, $d - 1); // javascript Date object month, day, etc. are zero-based
-    $date = "new Date($y,$m,$d)";
-    $p2pPerMo = $perMo - $p2bPerMo - $b2bPerMo - $b2pPerMo;
-    $p2pTxsPerMo = $txsPerMo - $p2bTxsPerMo - $b2bTxsPerMo - $b2pTxsPerMo;
-    foreach ($moneyFields as $k) ${$k . '2'} = u\fmtAmt($$k);
-    $rate2 = number_format(100 * $rate, 1) . '%';
-
-    $velocityData[] = "[$date,{v:$rate,f:'$rate2'}]";
-    $acctsData[] = "[$date,$pAccts,$bAccts,$newbs]";
-    $fundsData[] = "[$date,{v:$funds,f:'$funds2'},{v:$savings,f:'$savings2'},{v:$usd,f:'$usd2'}]";
-    $bankingData[] = "[$date,{v:$bankInPerMo,f:'$bankInPerMo2'},{v:$bankOutPerMo,f:'$bankOutPerMo2'}]";
-
-    $x2x = array();
-    foreach ($txTypes as $k => $desc) {
-      list ($x, $x2, $xTxs) = array(${"{$k}PerMo"}, u\fmtAmt(${"{$k}PerMo"}), ${"{$k}TxsPerMo"});
-      $x = max($x, 1); // to make the logarithmic scale look okay
-      $avg = $xTxs ? ' @ ' . u\fmtAmt($x / $xTxs) . ' avg' : '';
-      $x2x[] = "{v:$x,f:'$x2 ($xTxs$avg) $desc'}"; // eg "$123 (7 @ $6.25 avg)"
-    }
-    $x2x = join(',', $x2x);
-    $txData[] = "[$date,$x2x]";
-  }
-
-  $accts = "{$pAccts} personal + {$bAccts} co = $accts";
-  
-  $js = <<<EOF
-  var accts = '$accts';
-  var funds = '$superTotal';
-  var velocity = '$velocity';
-  var issued = '$total';
-  var fees = '(minus $fines in fees)';
-  var txs = '$txs';
-  google.setOnLoadCallback(drawCharts);  
-EOF;
-
-  foreach ($charts as $k => $zot) {
-    ${$k . 'Data'} = join(',', ${$k . 'Data'});
-    $js .= "var {$k}Data = [" . ${$k . 'Data'} . "];\n";
-  }
-
-  js('https://www.google.com/jsapi', 'file', 'header');
-  js('inc/charts.js', 'file', 'header');
-  js($js, 'inline', 'header');
-
-  foreach($charts as $k => $help) {
-    $charts[$k] = "<div><a href=\"help/$help\"><div id=\"{$k}Chart\"></div></a></div>";
-  }
-
   $membership = @$cadmin2 ? ' <a href="sadmin/member-list">member list</a>' : '';
   
   $title = item(t('Community Statistics'));
   $subheader = item($myCtty ? t('for ') . r\acct($myCtty)->fullName . $membership : ' ');
   $subtext = item(t('This page is designed to give us the information we need, to keep an eye on our economy and manage it effectively. Click on any chart for an explanation of why it is important, or hover for numeric details.'));
-  //$accounts = item($accounts, popHelp(t('Accounts:'), t('The number of accounts approved to buy and sell through the rCredits system, as of today.')));
-//  $issued = item(fundRpt($r0, @$lm_r, '$r'), popHelp(t('rCredits issued:'), t('Total number of rCredits in circulation, as of today (the breakdown shows how they were issued).')), $issuedAs);
+  $charts = item(showCharts('all'));
 //  $shared = @$admin ? item(fundRpt($shared, @$lm_shared, '$'), t('Shared w CGF:')) : NULL;
-  $charts = item(join('', $charts));
-//  $demand = item(fundRpt($usd0, @$lm_usd, '$'), popHelp(t('Demand:'), t('Total amount of US Dollars that people have put into the system, available for the community to exchange for rCredits and possibly spend.')), t('community demand for additional rCredits (<@a>important why?</a>)', u\ray('@a', 'a href=help/demand')));
-//  $total = item(tt("$r@R + $usd@US = $total"), popHelp(t('Total funds:'), t('Total amount of money (rCredits and US Dollars) in the system, as of today')), t('including about @savings in savings = @savingsPct of demand (<@a>important why?</a>)', u\ray('@savings @savingsPct @a', $savings, $savingsPct, 'a href=help/savings')));
-  //$banking = item(tt("$bankInPerMo@US ($in) - $bankOutPerMo@US ($out) - $refundsPerMo ($fees) = $bankSign$bankNet@US ($net)"), popHelp(t('Banking / mo:'), t('How much money did members transfer in and out of the system, since this time last month')), t('transferring funds to or from a bank account (<@a>important why?</a>)', u\ray('@a', 'a href=help/to-bank')));
-  /*$txs = item(txsRpt($perMo, $txsPerMo, $pAccts + $bAccts, ''), t('Purchases / mo:'));
-  $p2p = item(txsRpt($p2pPerMo, $p2pTxsPerMo, $pAccts, 'p'), popHelp(t('p2p:'), t('Person-to-person transactions (individual members buying from other individual members)')));
-  $p2b = item(txsRpt($p2bPerMo, $p2bTxsPerMo, $pAccts, 'p'), popHelp(t('p2b:'), t('Person-to-business transactions (customers buying from businesses, mostly using their rCard)')));
-  $b2b = item(txsRpt($b2bPerMo, $b2bTxsPerMo, $bAccts, 'b'), popHelp(t('b2b:'), t('Business-to-business transactions (businesses paying their suppliers)')));
-  $b2p = item(txsRpt($b2pPerMo, $b2pTxsPerMo, $bAccts, 'b'), popHelp(t('b2p:'), t('Business-to-person transactions (payroll)')));*/
-//  $exchanges = item(txsRpt($xchPerMo + $cashPerMo, $xchTxsPerMo + $cashTxsPerMo, $pAccts + $bAccts, ''), t('Trades / mo:'), t('exchanges of rCredits for US Dollars (<@a>important why?</a>)', u\ray('@a', 'a href=help/trades')));
-  //$velocity = item($velocity, popHelp(t('Velocity:'), t('How fast the money is circulating.')), t('how much of the total funds in the system (rCredits plus US Dollars) turns over every month'));
-  
+
   $form = compact(u\ray('title subheader subtext charts'));
-  if (strpos($args, 'variety=') === FALSE) $args .= '&variety=stats';
-  //if (@$admin) $form += formTxs('', $sta, $args);
+
   return $form;
 }
 

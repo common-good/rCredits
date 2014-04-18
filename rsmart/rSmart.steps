@@ -73,8 +73,8 @@ function relations($relations) {return t\relations($relations);}
  *     MAKE Undo Setup
  *     MAKE Undo AnAgentAsksToUndoACharge
  *     MAKE Undo AnAgentAsksToUndoARefund
- *     MAKE Undo AnAgentAsksToUndoACashOutCharge
- *     MAKE Undo AnAgentAsksToUndoACashInPayment
+ *     MAKE Undo AnAgentAsksToUndoACashoutCharge
+ *     MAKE Undo AnAgentAsksToUndoACashinPayment
  *     MAKE Undo AnAgentAsksToUndoAChargeWithInsufficientBalance
  *     MAKE Undo AnAgentAsksToUndoARefundWithInsufficientBalance
  *     MAKE Undo AnAgentAsksToUndoAChargeWithoutPermission
@@ -253,8 +253,8 @@ function agentAsksDeviceToChargeFor($agent, $device, $member, $amount, $goods, $
  *
  * in: MAKE Undo AnAgentAsksToUndoACharge
  *     MAKE Undo AnAgentAsksToUndoARefund
- *     MAKE Undo AnAgentAsksToUndoACashOutCharge
- *     MAKE Undo AnAgentAsksToUndoACashInPayment
+ *     MAKE Undo AnAgentAsksToUndoACashoutCharge
+ *     MAKE Undo AnAgentAsksToUndoACashinPayment
  *     MAKE Undo AnAgentAsksToUndoAChargeWithInsufficientBalance
  *     MAKE Undo AnAgentAsksToUndoARefundWithInsufficientBalance
  *     MAKE Undo AnAgentAsksToUndoAChargeWithoutPermission
@@ -321,8 +321,8 @@ function weRespondOkWithTxAndMessageWithSubs($tx, $msg, $subs) {
  *
  * in: TEST Undo AnAgentAsksToUndoACharge
  *     TEST Undo AnAgentAsksToUndoARefund
- *     TEST Undo AnAgentAsksToUndoACashOutCharge
- *     TEST Undo AnAgentAsksToUndoACashInPayment
+ *     TEST Undo AnAgentAsksToUndoACashoutCharge
+ *     TEST Undo AnAgentAsksToUndoACashinPayment
  */
 function weRespondOkWithSubs($msg, $subs) {return weRespondOkWithTxAndMessageWithSubs('', $msg, $subs);}
 
@@ -339,8 +339,8 @@ function weRespondOkWithSubs($msg, $subs) {return weRespondOkWithTxAndMessageWit
  *     TEST Transact ACashierAsksToRefundSomeone
  *     TEST Undo AnAgentAsksToUndoACharge
  *     TEST Undo AnAgentAsksToUndoARefund
- *     TEST Undo AnAgentAsksToUndoACashOutCharge
- *     TEST Undo AnAgentAsksToUndoACashInPayment
+ *     TEST Undo AnAgentAsksToUndoACashoutCharge
+ *     TEST Undo AnAgentAsksToUndoACashinPayment
  */
 function withBalance($subs) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -364,8 +364,8 @@ function withBalance($subs) {
  *     TEST Transact ACashierAsksToRefundSomeone
  *     TEST Undo AnAgentAsksToUndoACharge
  *     TEST Undo AnAgentAsksToUndoARefund
- *     TEST Undo AnAgentAsksToUndoACashOutCharge
- *     TEST Undo AnAgentAsksToUndoACashInPayment
+ *     TEST Undo AnAgentAsksToUndoACashoutCharge
+ *     TEST Undo AnAgentAsksToUndoACashinPayment
  */
 function withUndo($subs) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -382,14 +382,20 @@ function withUndo($subs) {
  *
  * in: TEST Exchange ACashierAsksToChargeAnotherMemberWithInsufficientBalance
  *     TEST Exchange ACashierAsksToRefundAnotherMemberWithInsufficientBalance
+ *     TEST Exchange SellerAgentLacksPermissionToBuy
+ *     TEST Exchange SellerAgentLacksPermissionToScanAndSell
  *     TEST Exchange BuyerAgentLacksPermissionToBuy
  *     TEST Identify ANonyetactiveMemberCardIsScanned
  *     TEST Transact ACashierAsksToChargeAnotherMemberWithInsufficientBalance
  *     TEST Transact ACashierAsksToRefundAnotherMemberWithInsufficientBalance
+ *     TEST Transact SellerAgentLacksPermissionToBuy
+ *     TEST Transact SellerAgentLacksPermissionToScanAndSell
  *     TEST Transact BuyerAgentLacksPermissionToBuy
  *     TEST Transact SellerTriesToChargeTheCustomerTwice
  *     TEST Undo AnAgentAsksToUndoAChargeWithInsufficientBalance
  *     TEST Undo AnAgentAsksToUndoARefundWithInsufficientBalance
+ *     TEST Undo AnAgentAsksToUndoAChargeWithoutPermission
+ *     TEST Undo AnAgentAsksToUndoARefundWithoutPermission
  */
 function weReturnErrorWithSubs($msg, $subs) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -407,8 +413,6 @@ function weReturnErrorWithSubs($msg, $subs) {
  *     TEST Exchange DeviceGivesBadAmount
  *     TEST Exchange DeviceGivesTooBigAnAmount
  *     TEST Exchange DeviceGivesNoPurposeForGoodsAndServices
- *     TEST Exchange SellerAgentLacksPermissionToBuy
- *     TEST Exchange SellerAgentLacksPermissionToScanAndSell
  *     TEST Identify DeviceShouldHaveAnIdentifier
  *     TEST Identify AnUnauthorizedCashierScansIn
  *     TEST Identify ACashierScansACustomerCardBeforeSigningIn
@@ -424,10 +428,6 @@ function weReturnErrorWithSubs($msg, $subs) {
  *     TEST Transact DeviceGivesBadAmount
  *     TEST Transact DeviceGivesTooBigAnAmount
  *     TEST Transact DeviceGivesNoPurposeForGoodsAndServices
- *     TEST Transact SellerAgentLacksPermissionToBuy
- *     TEST Transact SellerAgentLacksPermissionToScanAndSell
- *     TEST Undo AnAgentAsksToUndoAChargeWithoutPermission
- *     TEST Undo AnAgentAsksToUndoARefundWithoutPermission
  *     TEST Undo AnAgentAsksToUndoSomeoneElsesTransaction
  *     TEST Undo AnAgentAsksToUndoANonexistentTransaction
  */
@@ -477,8 +477,8 @@ function agentAsksDeviceForOpWith($agent, $device, $op, $extra) {
  *     TEST Transact ACashierAsksToRefundSomeone
  *     TEST Undo AnAgentAsksToUndoACharge
  *     TEST Undo AnAgentAsksToUndoARefund
- *     TEST Undo AnAgentAsksToUndoACashOutCharge
- *     TEST Undo AnAgentAsksToUndoACashInPayment
+ *     TEST Undo AnAgentAsksToUndoACashoutCharge
+ *     TEST Undo AnAgentAsksToUndoACashinPayment
  */
 function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice, $id, $subs);}
 

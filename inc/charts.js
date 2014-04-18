@@ -2,7 +2,7 @@ google.load('visualization', '1.0', {'packages':['corechart']});
 var chartWidth = 400;
 var chartHeight = 300;
 
-function drawCharts() {
+function allChart() {
   acctsChart();
   fundsChart();
   velocityChart();
@@ -89,7 +89,7 @@ function bankingChart() {
   var options = {
     title: 'Monthly Bank Transfers',
     width: chartWidth, height: chartHeight,
-    colors: ['green', 'red'],
+    colors: ['green', 'orange'],
     series: {
       1: {areaOpacity: 0.5}
     },
@@ -113,6 +113,7 @@ function txChart() {
   var options = {
     title: 'Monthly Transactions: ' + txs,
     width: chartWidth, height: chartHeight,
+    colors: ['orange', 'green', 'blue', 'red'],
     hAxis: {format: 'MMM d', gridlines: {count: 5}, title: '(logarithmic scale)', titleTextStyle: {color: 'darkgray'}},
     vAxis: {logScale: true},
     legend: {position: 'bottom'}

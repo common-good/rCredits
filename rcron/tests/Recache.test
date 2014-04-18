@@ -84,12 +84,6 @@ class rcronRecache extends DrupalWebTestCase {
     . '\\| id     | r  | usd | rewards | minimum |'
     . '\\| .ZZA   | 10 |   5 |      10 |       2 |'
     . '\\| .ZZB   |  0 |   ? |       0 |       0 |"');
-    And__('we message member ".ZZA" with topic "account suspended" and subs: "DATA'
-    . '\\| why                        |'
-    . '\\| to protect data integrity. |"');
-    And__('we message member ".ZZB" with topic "account suspended" and subs: "DATA'
-    . '\\| why                        |'
-    . '\\| to protect data integrity. |"');
   }
 
   // Scenario: Balances get a tiny bit out of whack

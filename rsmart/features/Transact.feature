@@ -132,17 +132,21 @@ Scenario: Device gives no purpose for goods and services
 
 Scenario: Seller agent lacks permission to buy
   When agent ":ZZB" asks device "devC" to charge ".ZZB" $-100 for "goods": "refund"
-  Then we return error "no buy"
+  Then we return error "no perm" with subs:
+  | what    |
+  | refunds |
 
 Scenario: Seller agent lacks permission to scan and sell
   When agent ":ZZD" asks device "devC" to charge ".ZZA" $100 for "goods": "food"
-  Then we return error "no sell"
+  Then we return error "no perm" with subs:
+  | what  |
+  | sales |
   
 Scenario: Buyer agent lacks permission to buy
   When agent ":ZZA" asks device "devC" to charge ":ZZE" $100 for "goods": "food"
-  Then we return error "other no buy" with subs:
-  | otherName |
-  | Eve Five  |
+  Then we return error "other no perm" with subs:
+  | otherName | what      |
+  | Eve Five  | purchases |
 
 Scenario: Seller tries to charge the customer twice
   Given agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": "food"

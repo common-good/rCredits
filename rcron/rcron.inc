@@ -20,16 +20,16 @@ DAILY (every 5 mins for 5 mins, starting at 2am)
 - ** bank(): automatic transfers from bank accounts
 - (later) calculate credit line (for overdrafts, Dwolla outage (eg 503), etc.): give the payer (r)credit up to the amount they earned or bought in the past 5 days if they have been a member for a month, 30 days for 6 months
 - [later] notify and maybe fine late borrowers (might figure interest at the same time, since it requires examining each balance -- but only actually credit the interest monthly, otherwise discard it)
-- [later] things to do 30/60/90 (etc) days after opening account:
+- tickle: things to do 2/30/60/90 (etc) days after login/access/created date
   . 1mo: notice - suggest sending invitations
       $email = $mya->mail;
       $invited = ($nonperson or db\lookup('COUNT(*)', 'r_invites', 'inviter=:myid AND email<>:email', compact('myid', 'email')) >= 1);
           $step4 = t('<a>Invite someone</a> to sign up for rCredits! No one can join without an invitation. You can help by sending one. You might particularly want to invite companies and individuals you buy from or sell to (for example your employer or employees).');
 
   . 1mo: suggest another donation if first was small
-  . 6mo: allow cashing out rewards if system stable
+  . 6mo: allow cashing out rewards if system stable? Probably not.
 - [later] statements for those who want daily statements
-- (later) weekly / monthly / quarterly / annual stuff
+- weekly / monthly / quarterly / annual stuff
 - * notices(): send notices (daily, weekly, or monthly digest)
 
 WEEKLY
@@ -59,7 +59,7 @@ use rCredits\Backend as be;
 
 include_once __DIR__ . '/../usd.class';
 
-define('R_DAILY_TASKS', 'START usdTxsThere recache checkAccts stats lessOften gifts homogenize pool bank notices END');
+define('R_DAILY_TASKS', 'START usdTxsThere recache checkAccts stats tickle lessOften gifts homogenize pool bank notices END');
 //define ('R_DAILY_TASKS', 'START redistribute END');
 
 /**
@@ -111,6 +111,34 @@ function everyDay() {
   db\q('DELETE FROM r_log WHERE time<:time', compact('time')); // zap log except for the past few days
 }
 
+/**
+ * Do things a certain number of days after the created, signed, invite, last login, or last access date:
+ */
+function tickle() {
+  $fibonacci = '1,2,3,5,8,13,21,34,55,89'; // Fibonacci progression of delays
+  $elapsed = '(FLOOR((:REQUEST_TIME-access)/:DAY_SECS)+1)';
+  $sql = "SELECT uid, 'access' AS `type`, $elapsed AS elapsed FROM users WHERE $elapsed IN ($fibonacci) AND uid>1";
+  queueEach('tickle1', $sql); // make this IS_MEMBER if early gift
+  queueNextAfter('tickle');
+}
+
+function tickle1($item) {
+  extract(u\just('uid type elapsed', $item));
+  $a = r\acct($uid);
+  if (!$a->member) {
+    $step = $a->nextStep();
+    $msg = $step == 'verify' ? 'call bank' : ($step == 'sign' ? 'do step one' : 'take another step');
+    $when = $elapsed < 3 ? t('tomorrow (how about 10am?)') : t('between 9am and 4pm today'); // for verify
+    if ($step != 'verify' or $elapsed > 1) r\notify($a->id, "$msg|sign in", compact('when'));
+  }
+  if (!$a->ok) {
+    return r\tellStaff('activate account', '', $a->uid);
+  }
+}
+
+/**
+ * Do periodic activities where the period is longer than a day.
+ */
 function lessOften() {
   often('week', 'A', R_WEEKLY_DAY, 7 * DAY_SECS);
   often('month', 'd', R_MONTHLY_DAY, 30 * DAY_SECS);
@@ -485,12 +513,12 @@ function toBank($amount, $acct) {
 }
 
 /**
- * Send daily, weekly, or monthly message digests.
+ * Send daily, weekly, or monthly message digests. (Newbies are always daily)
  */
 function notices() {
   $weekly = (strftime('%A') == R_WEEKLY_DAY);
   $monthly = (strftime('%d') == R_MONTHLY_DAY);
-  $where = $dailySql = '(NOT :IS_NOTICE_WEEKLY AND NOT :IS_NOTICE_MONTHLY)';
+  $where = $dailySql = '((NOT :IS_NOTICE_WEEKLY AND NOT :IS_NOTICE_MONTHLY) OR NOT :IS_MEMBER)';
   if ($weekly) $where .= ' OR :IS_NOTICE_WEEKLY';
   if ($monthly) $where .= ' OR :IS_NOTICE_MONTHLY';
   $sql = "SELECT DISTINCT u.uid, :IS_NOTICE_WEEKLY AS weekly, :IS_NOTICE_MONTHLY AS monthly, $dailySql AS daily FROM r_notices n JOIN users u ON u.uid=n.uid WHERE NOT sent AND ($where)";

@@ -95,6 +95,7 @@ E. Database clues
            Common Good Finance is cgf (second in the "NEW" region)
            For regions, name is (uppercase) the 3-char start of their qids, followed by "."
      . pass and mail should be called "password" and "email" but Drupal doesn't. So it's confusing. (just a heads-up)
+	 . access: tracks last transaction or login date/time (just major access)
      . we don't currently use theme, picture, timezone, signature, or signature format.
      . data: We use this to store auxiliary account information in a serialized associative array:
 	     - signupCo: assoc [company, companyPhone, employeeOk, isOwner, contractor] -- these are stored upon registration, if the company does not exist yet (otherwise the info goes in the relations table)

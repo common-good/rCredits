@@ -66,6 +66,10 @@ EOF
   'id verification pending' => t('Your photo ID has been uploaded successfully. Now we need to wait for our partner organization to verify your identity. Please feel free to email us if you have questions.'),
   'verify bank' => t('In particular, you still need to verify the connection to your bank account. After 2-5 days, contact your bank (by phone or online) to find out the two small deposit amounts (each less than @DW_VERIFY_ROOF cents). Then go to settings and click "Bank Info" or <a href="account/bank">click here</a> to go there directly.'),
   'adjust settings' => t('<b>TIP:</b> You can adjust your settings by clicking the gear in the upper right corner. '),
+  'payroll done' => t('Payroll upload was successful. You paid @count employees a total of @total.'),
+  'tx edited' => t('Your transaction #@tid was edited by @who.'),
+  'new tx goods' => t('It is now for @what.'),
+  'new tx amount' => t('The new amount is @amount.'),
 
   // prompts
   'prompt min' => t('How much to keep in your rCredits account, for purchases or inflation-proof savings. When your balance goes below this amount, the system automatically refills it for you from your bank account. Refilling may take 3-5 business days (a couple days to leave the bank and a couple more to arrive in your rCredits account).'), // If you don\'t want any automation, type zero (then remember to refill your account explicitly when it gets low).'),
@@ -200,7 +204,7 @@ EOF
   'bad payroll csv' => t('Incorrect payroll CSV format at line @line.'),
   'empty payroll' => t('There are no employees listed as having received an rCredits payroll deduction.'),
   'bad payroll employee' => t('@employee is not listed as an employee on your Relations page. Click the Settings gear, then click "Relations".'),
-  'payroll done' => t('Payroll upload was successful. You paid @count employees a total of @total.'),
+  'illegal amount change' => t('You cannot @action the original amount (@amount). <@a>Send an invoice</a> instead.'),
 );
 
 /**
@@ -1228,7 +1232,6 @@ function transfer($op, $info, $confirmed) {
   if (!$a = whois($who, 'who', $info)) return FALSE;
   if ($goods and trim($purpose) == '') return say('missing purpose', 'purpose');
   if ($error = u\badAmount($amount, '>0')) return say($error, 'amount');
-  svar('lastCustomer', $a->id);
   $op = $op == 'pay' ? t('paid') : ($op == 'charge' ? 'charged' : $op . 'ed'); // for possible error message
   $goods = ($goods and !u\forCash($purpose));
   list ($msg, $args, $confirm) = 
@@ -1259,7 +1262,7 @@ function communityTransfer($type, $acct, $amount, $purpose, $confirmed) {
   $msg = $success ? ($confirmed ? 'report funding' : 'funding') : 'funding error'; // 'funding' not used?!
   $confirmAction = ucwords($type);
   $did = $confirmAction . 'ed';
-  $otherName = r\userField('fullName', $acct->id);
+  $otherName = $acct->fullName;
   $amount = u\fmtAmt($amount);
   return array($msg, compact(u\ray('success did confirmAction amount otherName')), $success and !$confirmed);
 }  
@@ -1367,6 +1370,113 @@ function say($index, $args = array(), $errField = '') {
   return FALSE;
 }
 
+/**
+ * Display charts representing the condition of the rCredits system in the given community.
+ * @param string $whichChart: which chart or set of charts to display
+ * @return: html of the relevant charts, in their proper divs
+ */
+function showCharts($whichChart) {
+  if ($mya = r\acct()) {
+    $myCtty = $mya->community ?: 0;
+  } else $myCtty = 0;
+
+  list ($in, $out, $fees, $net, $personal, $companies) = array(t('in'), t('out'), t('fees'), t('net'), t('personal'), t('companies'));
+  extract(r\stats($myCtty)); // careful with this (don't overwrite local vars)
+  list ($r0, $usd0) = array($r, $usd);
+  list ($txRewards, $total) = array($rebates + $bonuss + $refunds + $fines, ($r + $usd) ?: .001);
+  $velocity = number_format(100 * $perMo / $total, 1) . t('% per mo.');
+
+  foreach (u\ray('bankInPerMo bankOutPerMo r usd total signups inflations txRewards grants loans fines') as $one) {
+    ${$one . '0'} = $$one;
+    $$one = u\fmtAmt($$one);
+  }
+
+  $issuedData = array(
+    "['in trade for USD',{v:$usd0,f:'$usd'}]",
+    "['inflation offset',{v:$inflations0,f:'$inflations'}]",
+    "['signup bonuses',{v:$signups0,f:'$signups'}]",
+    "['purchase rewards',{v:$txRewards0,f:'$txRewards'}]",
+    "['grants',{v:$grants0,f:'$grants'}]",
+    "['loans',{v:$loans0,f:'$loans'}]",
+  );
+  $superTotal = u\fmtAmt($total0 + $usd0);
+//    "['fees',{v:$usd0,f:'$usd'}$fines]" think of a way to handle this
+
+  $txTypes = u\ray('p2p p2b b2b b2p', t('Person-to-person'), t('Person-to-business (mostly rCard purchases)'), t('Business-to-business (paying suppliers)'), t('Business-to-person (including payroll)'));
+
+  $avg = u\fmtAmt($txsPerMo ? $perMo / $txsPerMo : 0);
+  $txs = "$txsPerMo @ $avg avg";
+
+  $crit = "ctty=$myCtty";
+  $relaunch = strtotime('12/15/2013');
+  $sql = <<<EOF
+    SELECT created, IF(r+usd=0, 0, perMo/(r+usd)) AS rate, r+usd AS funds, usd, r+usd-perMo AS savings,
+      pAccts, bAccts, pAccts+bAccts AS accts, newbs,
+      bankInPerMo, bankOutPerMo,
+      perMo, p2bPerMo, b2bPerMo, b2pPerMo,
+      txsPerMo, p2bTxsPerMo, b2bTxsPerMo, b2pTxsPerMo
+    FROM r_stats WHERE $crit AND created>$relaunch ORDER BY created
+EOF;
+  $q = db\q($sql);
+
+  $charts = u\ray('accts funds velocity banking tx issued', 'growth', 'funds', 'velocity', 'demand', 'economic-circles', 'issuing-rcredits');
+  if ($whichChart != 'all') $charts = u\just($whichChart, $charts);
+  foreach ($charts as $k => $zot) u\setDft(${$k . 'Data'}, array());
+  $moneyFields = u\ray('funds savings usd bankInPerMo bankOutPerMo p2pPerMo p2bPerMo b2bPerMo b2pPerMo');
+
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    list ($y, $m, $d) = u\ray(strftime('%Y %m %d', $created));
+    list ($m, $d) = array($m - 1, $d - 1); // javascript Date object month, day, etc. are zero-based
+    $date = "new Date($y,$m,$d)";
+    $p2pPerMo = $perMo - $p2bPerMo - $b2bPerMo - $b2pPerMo;
+    $p2pTxsPerMo = $txsPerMo - $p2bTxsPerMo - $b2bTxsPerMo - $b2pTxsPerMo;
+    foreach ($moneyFields as $k) ${$k . '2'} = u\fmtAmt($$k);
+    $rate2 = number_format(100 * $rate, 1) . '%';
+
+    $velocityData[] = "[$date,{v:$rate,f:'$rate2'}]";
+    $acctsData[] = "[$date,$pAccts,$bAccts,$newbs]";
+    $fundsData[] = "[$date,{v:$funds,f:'$funds2'},{v:$savings,f:'$savings2'},{v:$usd,f:'$usd2'}]";
+    $bankingData[] = "[$date,{v:$bankInPerMo,f:'$bankInPerMo2'},{v:$bankOutPerMo,f:'$bankOutPerMo2'}]";
+
+    $x2x = array();
+    foreach ($txTypes as $k => $desc) {
+      list ($x, $x2, $xTxs) = array(${"{$k}PerMo"}, u\fmtAmt(${"{$k}PerMo"}), ${"{$k}TxsPerMo"});
+      $x = max($x, 1); // to make the logarithmic scale look okay
+      $avg = $xTxs ? ' @ ' . u\fmtAmt($x / $xTxs) . ' avg' : '';
+      $x2x[] = "{v:$x,f:'$x2 ($xTxs$avg) $desc'}"; // eg "$123 (7 @ $6.25 avg)"
+    }
+    $x2x = join(',', $x2x);
+    $txData[] = "[$date,$x2x]";
+  }
+
+  $accts = "{$pAccts} personal + {$bAccts} co = " . ($pAccts + $bAccts);
+  
+  $js = <<<EOF
+  var accts = '$accts';
+  var funds = '$superTotal';
+  var velocity = '$velocity';
+  var issued = '$total';
+  var fees = '(minus $fines in fees)';
+  var txs = '$txs';
+  google.setOnLoadCallback({$whichChart}Chart);  
+EOF;
+
+  foreach ($charts as $k => $zot) {
+    ${$k . 'Data'} = join(',', ${$k . 'Data'});
+    $js .= "var {$k}Data = [" . ${$k . 'Data'} . "];\n";
+  }
+
+  js('https://www.google.com/jsapi', 'external', 'header');
+  js('inc/charts.js', 'file', 'header', 8);
+  js($js, 'inline', 'header', 9);
+
+  foreach($charts as $k => $help) {
+    $charts[$k] = "<div><a href=\"help/$help\"><div id=\"{$k}Chart\"></div></a></div>";
+  }
+  return join('', $charts);
+}
+
 function userMenuItem($router_path, $link_title) {
   $menu_name = 'user-menu';
   $link_path = $router_path;
@@ -1428,10 +1538,17 @@ function css($sheet, $weight = -99) {
   \drupal_add_css("$path/rweb/$sheet", array('group' => CSS_THEME) + weight($weight));
 }
 
-function js($what, $type, $scope) {
+/**
+ * Insert a javascript file or snippet into the form
+ * @param string $what: the filepath or snippet
+ * @param string $type: inline, file, or external
+ * @param string $scope: header or footer
+ * @param int $weight: low means load sooner (-18 and up, defaults to 0)
+ */
+function js($what, $type, $scope, $weight = 0) {
   global $rUrl;
-  if ($type == 'file' and strpos($what, 'http') === FALSE) $what = "$rUrl/$what";
-  return drupal_add_js($what, compact('type', 'scope'));
+  if ($type == 'file') $what = "$rUrl/$what";
+  return drupal_add_js($what, compact('type', 'scope', 'weight'));
 }
 
 function labeled($form) {

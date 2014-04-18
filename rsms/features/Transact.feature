@@ -85,7 +85,7 @@ Scenario: The caller confirms a payment with insufficient balance
   # "SPLIT TRANSACTION! You paid Corner Pub $100 (rebate: $5). You will need to use US Dollars for the remainder. Your new balance is $5. Transaction #2"
 
 Scenario: The caller asks to pay the latest invoice
-  Given transactions:
+  Given invoices:
   | created   | state       | amount | from | to   | purpose| taking |
   | %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  | 1      |
   When phone +20003 says "pay"
@@ -95,7 +95,7 @@ Scenario: The caller asks to pay the latest invoice
   # "Pay Abe One $100 for goods and services (invoice 14-May-2013)? Type MANGO to confirm."
 
 Scenario: The caller confirms payment of the latest invoice
-  Given transactions:
+  Given invoices:
   | created   | state       | amount | from | to   | purpose| taking |
   | %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  | 1      |
   When phone +20003 confirms "pay"
@@ -107,7 +107,7 @@ Scenario: The caller confirms payment of the latest invoice
   # "You paid Abe One $100 (rebate: $5). Your new balance is $55. Transaction #3" (#3 not #2, because the [deleted] invoice was #2)
 
 Scenario: The caller asks to pay the latest invoice from a particular member
-  Given transactions:
+  Given invoices:
   | created   | state       | amount | from | to   | purpose| taking |
   | %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  | 1      |
   | %today-1d | %TX_PENDING | 100    | .ZZC | .ZZB | labor  | 1      |

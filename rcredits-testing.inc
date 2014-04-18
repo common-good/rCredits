@@ -256,7 +256,7 @@ function doCompanyFlags($info) {
 /**
  * Return TRUE if the notice has been queued to member $id
  */
-function notice($notice, $id, $subs) {
+function notice($notice, $id, $subs = array()) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $base_url, $thatThing;
 
@@ -277,14 +277,46 @@ function notice($notice, $id, $subs) {
   $sql = 'SELECT message FROM r_notices WHERE uid=:uid AND sent=:sent ORDER BY msgid DESC';
   $info = u\ray('uid sent', $uid, @$subs['sent'] ?: 0);
   $msgs = db\q($sql, $info)->fetchCol();
+///  debug(compact(u\ray('message sql info msgs')));
   foreach ($msgs as $msg) if (strip_tags($msg) == $message) {
     $thatThing['notice'] = $msg; // remember for "And that <thing> blah blah blah"
     return TRUE;
   }
   
-/**/ return t\output('Expected notice ' . print_r($info, 1));
+/**/ return t\output('Expected notice ' . print_r($info + compact('message'), 1));
 }
+
+/**
+ * Pretend the account has complete the given steps.
+ */ 
+function doneStep($uid, $step) {
+  global $testOnly; if ($testOnly) return FALSE;
+  if (strpos($step, ' ')) {
+    foreach (u\ray($step) as $one) if (!doneStep($uid, $one)) return FALSE;
+    return TRUE;
+  }
   
+  $a = r\acct($uid = t\uid($uid));
+  return @$a->stepDone($step); // might have to do the steps below also
+  
+  if ($step == 'photo') return file_put_contents(DRUPAL_ROOT . $a->auxFilename('picture', TRUE), 'whatever');
+  if ($step == 'sign') return $a->update(u\ray('signed', REQUEST_TIME));
+  if ($step == 'donate') return db\insert('r_gifts', u\ray('uid amount', $uid, 123));
+  if ($step == 'proxies') return db\q('INSERT INTO r_proxies (person, proxy) VALUES (:uid, 2),(:uid, 3)', compact('uid'));
+  
+  if ($step == 'contact') return $a->update(u\ray('postalAddr', 'The World'));
+  if ($step == 'connect') {
+    $secure = @$a->secure;
+    $secure['bankAccount'] = 'USkk123456789whatever';
+    return $a->update(compact('secure'));
+  }
+  if ($step == 'prefs') return $a->update(u\ray('minimum', 0));
+  //if ($step == 'invite') return db\insert('r_invites', u\ray('inviter email code', $uid, 'any@example.com', 'whatever'));
+  if ($step == 'company') return $a->update(u\ray('selling', 'stuff'));
+  // if ($step == 'relations') ?
+  return FALSE;
+}
+
 /**
  * Make the member fields be thus and such OR test to see if they ARE thus and such.
  * "?" in a field means ignore its value when testing
@@ -352,6 +384,13 @@ function doBalance($one) {
     if (isset($$one) and $$one != '?' and $id > 0) if (t\badEq("db $one", $a->$one, $$one, $id)) return FALSE;
   }
   return TRUE;
+}
+
+/**
+ * Return a field for the account with the given cell number.
+ */
+function phoneField($field, $number) {
+  return @r\acct(r\SMS\uid($number))->$field;
 }
 
 function usdTransferCount($where = '1') {
@@ -671,6 +710,7 @@ function logIn($id) {
  *   return verifyRecord('relations', $info);
  */
 function verifyRecord($table, $info) {
+///debug(compact('table','info'));
 /**/  if (!is_array($info)) die('in verifyRecord: ' . print_r(debug_backtrace(), 1)); // keep
   
   unset($info['data']);
@@ -720,7 +760,7 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
   t\logIn($id);
 
   $validate = TRUE;
-  if (u\abbreviates('history/', $page) and $confirmed) {
+  if (u\abbreviates('history/', $page) and $confirmed and !strpos($page, '&do=')) {
     $validate = FALSE;
     $formSta['confirm'] = TRUE;
   }

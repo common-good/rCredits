@@ -12,6 +12,7 @@ use rCredits\Testing as t;
 use rCredits\db as db;
 
 include_once __DIR__ . '/admin.inc';
+include_once __DIR__ . '/admin-web.inc';
 
 /**
  * Make various administrative operations available to the admin and cAdmin.
@@ -77,15 +78,15 @@ function formAdmin_submit($form, &$sta) {
   
   if ($op == 'printId') {
     if (@$make) {
-      r\seeSecure($a);
+      seeSecure($a);
       r\makeCardCode($a);
-      r\seeSecure($a);
+      seeSecure($a);
     }
     return r\go('print-rcard/' . $a->qid);
   } elseif ($op == 'seeSecure') {
     if (@$a) {
 /**/  debug(u\ray('legalName dwAccount phone federalId physicalAddr', @$a->legalName, @$a->usdAccount, substr(@$a->phone, 2), @$a->federalId, @$a->address . ' ' . $a->postalCode));
-      r\seeSecure($a);
+      seeSecure($a);
     }
   } elseif ($op == 'connectBank') {
     $secure = $a->secure;

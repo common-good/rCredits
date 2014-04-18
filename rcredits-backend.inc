@@ -265,7 +265,7 @@ function undoTx($xid, $where = '1', $subs = array()) {
     r\notify($old_otherUid, 'charge disputed', r\txReportArgs($mya, $oldRecord));
   } else {
     $otherAcct = $old_toMe ? r\acct($old_payer, $old_payerAgent) : r\acct($old_payee, $old_payeeAgent);
-    $type = $old_toMe ? 'payment' : 'charge';
+    $type = $old_toMe ? 'charge' : 'payment';
     $otherTid = $old_toMe ? $old_payerTid : $old_payeeTid;
     return reverse($xid, $old_amount, $otherAcct, $data, $old_goods, $old_tid, $type, $otherTid); // create an offsetting transaction
   }
@@ -273,15 +273,16 @@ function undoTx($xid, $where = '1', $subs = array()) {
   $amount = u\fmtAmt($old_amount);
   $tofrom = !$old_toMe ? t('to') : t('from');
   $otherUid = $old_otherUid;
-  $other = r\userField('fullName', $otherUid);
+  $other = r\acct($otherUid)->fullName;
   $success = TRUE;
   return array("report undo", compact(u\ray('success old_tid new_tid amount other tofrom solution otherUid')));
 }
 
 /**
- * Create an offsetting transaction.
+ * Create an offsetting transaction (nearly the same as the original but with a negative amount).
  */
 function reverse($xid, $amount, $acct, $data, $old_goods, $tid, $type, $otherTid) {
+  $mya = r\acct();
 ///    print_r(compact(u\ray('xid amount acct data tid toMe'))); die();
   u\EXPECT(compact(u\ray('xid amount acct data tid type otherTid')), 'id float acct assoc|empty string string id');
 
@@ -290,14 +291,14 @@ function reverse($xid, $amount, $acct, $data, $old_goods, $tid, $type, $otherTid
   $myFor = t('reverses #') . $tid;
   $otherFor = str_replace($tid, $otherTid, $myFor);
   $what = u\order($type == 'payment', $myFor, $otherFor);
-  if (@$data['rebate'] or @$data['bonus']) list ($data['rebate'], $data['bonus']) = array(-$data['bonus'], -$data['rebate']);
+  if (@$data['rebate'] or @$data['bonus']) list ($data['rebate'], $data['bonus']) = array(-$data['rebate'], -$data['bonus']);
   $data['undoes'] = $xid; // remember what we're reversing (especially to get the realness right)
-  list ($message, $args, $confirm) = transfer($type, r\acct(), $acct, $amount, $old_goods, $what, TRUE, $data);
+  list ($message, $args, $confirm) = transfer($type, $mya, $acct, -$amount, $old_goods, $what, TRUE, $data);
 
   if (@$args['success']) {
     extract(u\just('xid tid otherTid', $args), EXTR_PREFIX_ALL, 'new');
     $old_data['undoneBy'] = $new_xid;
-    $old_data['changes'][] = array(REQUEST_TIME, r\acct()->agentId, 'undo', $new_xid);
+    $old_data['changes'][] = array(REQUEST_TIME, $mya->agentId, 'undo', $new_xid);
     $old_data = serialize($old_data);
     $myFor = "(reversed by #$new_tid) ";
     $otherFor = str_replace($new_tid, $new_otherTid, $myFor);
@@ -325,7 +326,7 @@ EOF;
  */
 function payInvoice($xid) {
   $mya = r\acct();
-  if (!$mya->can(B_BUY)) return array('no buy', array());
+  if (!$mya->can(B_BUY)) return array('no perm', u\ray('what', t('purchases')));
   if (!$result = lastTx('xid=:xid AND status IN (:TX_PENDING,:TX_DENIED)', compact('xid'))) return array('no such tx', array());
   extract($result, EXTR_PREFIX_ALL, 'old');
   $acct = r\acct($old_payee, $old_payeeAgent);
@@ -346,8 +347,8 @@ function payInvoice($xid) {
  * @param acct $a2: acct object for the other party
  *   OR 'ALL' (paying employees) -- currently UNUSED
  * @param numeric $amount: the transaction amount
- * @param string $for OR array($payerFor, $payeeFor): description of the transaction's purpose (user input)
  * @param bool $goods: is this for real goods and services
+ * @param string $for OR array($payerFor, $payeeFor): description of the transaction's purpose (user input)
  * @param bool $confirmed: has this transaction been confirmed by the user? (default TRUE)
  * @param array $data: associative array of info about the transaction this request is reversing (if any), 
  *   indexed by any of:
@@ -380,7 +381,8 @@ function transfer($ttype, $a1, $a2, $amount, $goods = FALSE, $for, $confirmed = 
   $reallyTaking = ($taking xor $amount < 0); // not taking if charging a negative amount
 
   // Check permissions
-  if ($err = r\txPermErr($a1, $a2, $reallyTaking)) return array($err, array(), FALSE);
+//  if ($err = r\txPermErr($a1, $a2, $reallyTaking)) return array($err, array(), FALSE);
+  if ($err = r\txPermErr($a1, $a2, $taking, $amount < 0)) return array($err, array(), FALSE);
    
   // Analyze who's buying or selling
   list ($payer, $payee) = u\order($taking, $uid, $myid);
@@ -638,7 +640,7 @@ EOF;
   foreach ($sums as $key => $value) $sums[$key] = $value + 0; // no nulls
   extract($sums);
 
-  if ($refunds != $fees) {
+  if (!@$pending and $refunds != $fees) {
     $info = compact(u\ray('uid fees refunds'));
 /**/ t\output('ERROR: fee/refund mismatch: ' . print_r($info, 1));
     r\tellStaff('fee/refund mismatch', $subs+$args+$info);
@@ -729,23 +731,8 @@ function accountName($uid) {
   return $acct->fullName . ' ' . u\hug($acct->mainQid);
 }
 
-/**
- * @return array of record objects
- */
-function getRecords($table, $criteria, $subs = array(), $fields = '*', $cache = FALSE) {
-/*  $sql = <<<EOF
-    SELECT COLUMN_NAME FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA=:db AND TABLE_NAME=:table AND COLUMN_KEY='PRI'
-EOF;
-  $db = 'devcore'; // @todo: get proper db name
-  $key = db\q($sql, compact('table', 'db')); */
-///  if (!$cache) die('no cache getRecords');
-//  echo " SELECT $fields FROM $table WHERE $criteria ";
-  return db\q("SELECT $fields FROM $table WHERE $criteria", $subs)->fetchAll(); // fetchAll means fetchAllObject
-}
-
 function isTempAccount($uid) {
-  return !r\userField('pass', $uid);
+  return !r\acct($uid)->pass;
 }
 
 function isTempName($name) {
