@@ -28,11 +28,11 @@ Setup:
   | id   | flags            |
   | .ZZC | refund,sell cash |
   And relations:
-  | id   | main | agent | permission |
-  | :ZZA | .ZZC | .ZZA  | buy        |
-  | :ZZB | .ZZC | .ZZB  | scan       |
-  | :ZZD | .ZZC | .ZZD  | read       |
-  | :ZZE | .ZZF | .ZZE  | buy        |
+  | id   | main | agent | permission | rCard |
+  | :ZZA | .ZZC | .ZZA  | buy        | yes   |
+  | :ZZB | .ZZC | .ZZB  | scan       | yes   |
+  | :ZZD | .ZZC | .ZZD  | read       |       |
+  | :ZZE | .ZZF | .ZZE  | buy        |       |
   And transactions: 
   | created   | type   | amount | from | to   | purpose |
   | %today-6m | signup | 250    | ctty | .ZZA | signup  |

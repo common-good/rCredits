@@ -104,13 +104,13 @@ class rwebGet extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZB" completes form "get" with values: "DATA'
     . '\\| op  | amount      |'
-    . '\\| get | %R_BANK_MIN |"');
+    . '\\| get | %R_ACHMIN |"');
     Then_('usd transfers: "DATA'
     . '\\| payer | payee | amount       | tid | created | completed |'
-    . '\\|  .ZZB |     0 | -%R_BANK_MIN |   2 | %today  |         0 |"');
+    . '\\|  .ZZB |     0 | -%R_ACHMIN |   2 | %today  |         0 |"');
     And__('we say "status": "banked" with subs: "DATA'
     . '\\| action     | amount       |'
-    . '\\| draw from  | $%R_BANK_MIN |"');
+    . '\\| draw from  | $%R_ACHMIN |"');
   }
 
   // Scenario: a member moves too little to the bank
@@ -118,7 +118,7 @@ class rwebGet extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" completes form "get" with values: "DATA'
     . '\\| op  | amount             |'
-    . '\\| put | %(%R_BANK_MIN-.01) |"');
+    . '\\| put | %(%R_ACHMIN-.01) |"');
     Then_('we say "error": "bank too little"');
   }
 

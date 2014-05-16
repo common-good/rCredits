@@ -6,7 +6,7 @@
  * An interface module for the rCredits financial system.
  *
  * Note: to display one of the blocks defined herein on a page, use
- * echo render(rweb_block_view('blockname'));)
+ * print render(rweb_block_view('blockname'));)
  */
 
 use rCredits as r;
@@ -115,7 +115,8 @@ function rweb_menu() {
     'account/proxies' => menuLocal(t('Proxies'), 'Proxies', 'manage personish'),
     'account/settings' => menuLocal(t('Settings'), 'Settings', 'manage'),
 
-    'user/password' => callback(t('Request New Password'), 'Pass 2', 'anyone'), // duplicates account/password (to handle built-in Drupal link)
+    'signin' => callback('Signin', 'Signin', 'anyone'),
+    'reset' => callback(t('Choose New Password'), 'ResetPassword 1', 'anyone'),
     'account/password' => callback(t('Request New Password'), 'Pass 2', 'anyone'),
     'account/change-password' => callback('Change Password', 'ChangePassword', 'manage'),
     'account/change-pin' => callback('Change PIN', 'ChangePin', 'manage'),
@@ -145,7 +146,7 @@ function rweb_menu() {
     'help' => callback(t('Help'), 'Help 1', 'anyone'),
     'change-account' => callback(t('Change Who'), '1', 'anyone', 'changeWho'),
     'status' => callback('Status', 'Membership 2', 'manage'),
-    'agreement' => callback(t('The Agreement'), 'Agreement', 'manage'),
+    'agreement' => callback(t('The Agreement'), 'Agreement', 'anyone'),
     'donate' => callback(t('Donate'), 'Donate', 'manage'),
     'signup' => callback(t('Sign Up For rCredits'), 'Signup', 'anyone'),
     'menu' => callback('Main Menu', 'Menu', 'anyone'),
@@ -164,6 +165,8 @@ function rweb_menu() {
     
     'pay-with-rcredits' => callback('Pay With rCredits', 'Buy', 'anyone'), // form will require PIN
   );
+// $menu['user/password'] = $menu['account/password']; // duplicates user/password (handles built-in Drupal link)
+
   return $menu;
 }
 
@@ -180,7 +183,7 @@ function rweb_form_alter(&$form, &$sta, $form_id) {
   if ($form_id == 'user_login') {return r\Web\formLogin($form, $sta);}
   // (has no effect, keep as comment) if ($form_id == 'user_register') {return r\Web\formRegister($form, $sta);}
   $req = basename($_SERVER['REQUEST_URI']);
-  if ($req == 'logout' and !user_is_logged_in()) r\go('user');
+  if ($req == 'logout' and !user_is_logged_in()) {header('location:' . (isDEV ? 'http://localhost/devcore' : R_SITE_URL)); exit();} // nothing else works
   if ($req == 'user' and user_is_logged_in()) r\go('summary'); // summary not ''
 }
 

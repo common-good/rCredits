@@ -28,8 +28,32 @@ Scenario: A newbie is on the verify step
   | tomorrow (how about 10am?) |
   And we notice "call bank|sign in" to member ".ZZD" with subs:
   | when                      |
-  | between 9am and 4pm today |
+  | today between 9am and 4pm |
 
 #  And we notice "gift sent" to member ".ZZA" with subs:
 #  | amount | rewardAmount |
 #  |    $10 |        $0.50 |
+
+Scenario: A nonmember has not accepted the invitation
+  Given invites:
+  | email           | inviter | code   | invited   |
+  | zot@example.com | .ZZA    | codeA1 | %today-8d |
+  When cron runs "tickle"
+  Then we email "nonmember" to member "zot@example.com" with subs:
+  | inviterName | code   | site        | nudge                                      | noFrame |
+  | Abe One     | codeA1 | %R_SITE_URL | We will send you just one more reminder(s) | 1       |
+
+Scenario: A nonmember has accepted the invitation
+  Given invites:
+  | email           | inviter | code   | invited   | invitee |
+  | zot@example.com | .ZZA    | codeA1 | %today-8d | .ZZB    |
+  When cron runs "tickle"
+  Then we do not email "nonmember" to member "b@example.com"
+  
+Scenario: A nonmember has accepted an invitation from someone else instead
+  Given invites:
+  | email         | inviter | code   | invited   | invitee |
+  | b@example.com | .ZZA    | codeA1 | %today-8d | 0       |
+  | b@example.com | .ZZD    | codeA1 | %today-8d | .ZZB    |
+  When cron runs "tickle"
+  Then we do not email "nonmember" to member "b@example.com"

@@ -23,7 +23,7 @@ function send($data) {
   curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); //enable RETURN_TRANSFER so curl_exec() returns result of the request
   $result = curl_exec($ch);
   curl_close($ch);
-  echo $result; // KEEP
+////  echo $result;
   exit();
 }
 
@@ -242,6 +242,7 @@ function setCttyAdmin($value, $main, $other) {
 function undoTx($xid, $where = '1', $subs = array()) {
   $mya = r\acct();
   $oldRecord = lastTx("xid=:xid AND $where", compact('xid') + $subs);
+///  debug(compact('xid','where','subs','oldRecord'));
   if ($error = r\nonoUndo($oldRecord, $subs)) return array($error, $subs); // check nono before confirm AND here
 
   extract($oldRecord, EXTR_PREFIX_ALL, 'old');
@@ -402,7 +403,7 @@ function transfer($ttype, $a1, $a2, $amount, $goods = FALSE, $for, $confirmed = 
   $preapproved = (@$data['preapproved'] or !$taking or $unilateral); // paying OR permitted to charge unilaterally
 
   // Check the amount and calculate any balance shortfall
-  if ($error = u\badAmount($amount, $scanned ? '' : '>0')) return array($error, array(), FALSE);
+  if ($error = u\badAmount($amount)) return array($error, array(), FALSE);
   $totalHit = $amount - @$data['rebate']; // leave room for reversing rewards (minus a negative)
   
   if ($shortfall = r\shortfall(abs($totalHit), $reallyTaking ? $a2 : $a1, $preapproved, $goods, $confirmed)) {
@@ -494,7 +495,9 @@ function fund($uid, $type, $amount, $for, $confirmed = TRUE) {
   r\transact(compact(u\ray('type amount payer payee payerAgent payeeAgent for taking')));
   //$types = u\ray(TX_TYPES);
   $subs = u\ray('amount purpose', u\fmtAmt(abs($amount)), $for);
-  r\notify($uid, $type == TX_FINE ? 'got fine' : 'got funding', $subs);
+  $index = $type == TX_FINE ? 'got fine' : 'got funding';
+  if ($type == TX_INFLATION) $index .= '|inflation details';
+  r\notify($uid, $index, $subs);
   return $amount;
 }
 
@@ -599,7 +602,7 @@ EOF;
  * Return financial information about the given account on this server
  * @param assoc $args: options:
  *   uid: uid for the account to return information for (DEFAULTS to myid)
- *   pending: show pending transaction totals instead
+ *   pending: (UNUSED) show pending transaction totals instead
  *   asof: last date to include (defaults to tomorrow, meaning unrestricted)
  * @return
  *   standard object of credit account information (see $resultKeys, below)
@@ -621,12 +624,12 @@ function creditInfo($args = array()) {
     SUM(IF(t.payee=:uid AND t.type=:TX_REFUND, amount, 0)) AS refunds,
     SUM(IF(t.payer=:uid OR t.type=:TX_TRANSFER OR t.type > :TX_REWARDS, 0, amount)) AS rewards
     FROM r_txs t
-    WHERE (t.payer=:uid OR t.payee=:uid) AND t.created<=:asof
+    WHERE (t.payer=:uid OR t.payee=:uid) AND t.created<:asof
 EOF;
   
   $sums = db\q($sql, $subs)->fetchAssoc();
 
-  $dates = @$pending ? 'NOT completed AND created <=:asof' : 'completed AND completed<=:asof';
+  $dates = @$pending ? 'NOT completed AND created <:asof' : 'completed AND completed<:asof';
   $sql = <<<EOF
     SELECT 
     SUM(IF(payee=0, amount, 0)) AS bank,
@@ -636,6 +639,7 @@ EOF;
     FROM r_usd WHERE :uid IN (payer, payee) AND $dates
 EOF;
   $sums += db\q($sql, $subs)->fetchAssoc();
+///if ($sums['usdOut'] or $sums['usdIn']) debug(compact('sql','subs','sums'));
 
   foreach ($sums as $key => $value) $sums[$key] = $value + 0; // no nulls
   extract($sums);
@@ -656,7 +660,7 @@ EOF;
   $outProper = $out;
   $inProper = $in - $rewards;
 
-  $usd = $usdIn - $usdOut;
+  $usd = $bank - $fees + $usdIn - $usdOut;
   $r = $rIn - $rOut;
   $rOutProper = $rOut;
   $rInProper = $rIn - $rewards;
@@ -667,7 +671,7 @@ EOF;
   $fancy = array();
   foreach ($result as $key => $value) $fancy[$key] = u\fmtAmt(@$value + 0);
   $result['fancy'] = $fancy;
-
+///debug($result);
   return (object) $result;
 }
 
@@ -718,6 +722,7 @@ function lastTx($where = 1, $subs = array(), $cache = FALSE) {
   $myid = r\acct()->id;
   $basic = "$myid IN (payer, payee) AND type>=0"; // make sure it's for $myid
   $sql = "SELECT * FROM r_txs WHERE ($basic) AND ($where) ORDER BY xid DESC LIMIT 1";
+///  debug(compact('where','subs','myid','basic','sql'));
   if (!$result = db\q($sql, $subs)->fetchAssoc()) return FALSE;
   $toMe = ($result['payee'] == $myid);
   $byMe = ($result['taking'] == $toMe);

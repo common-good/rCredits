@@ -37,7 +37,7 @@ function ray($s, $value1 = NULL) {
   }
 
   u\EXPECT(compact('s'), 'string');
-  $pattern = strpos($s, "\n") ? '/\R/' : (strpos($s, '|') ? ' *\| *' : (strpos($s, ',') ? '\, *' : (strpos($s, ';') ? '; *' : (strpos($s, ' ') ? ' +' : FALSE))));
+  $pattern = strpos($s, "\n") ? '/\R/' : (strpos($s, '|') ? ' *\| *' : (strpos($s, ',') ? '\, *' : (strpos($s, ';') ? '; *' : (strpos($s, ' ') ? '  *' : FALSE)))); // strangely ' +' fails but '  *' works
   $simple = $pattern ? mb_split($pattern, $s) : array($s);
   if (!strpos($pattern, ',') or !strpos($s, ':')) return $simple; // no subargs
 
@@ -235,7 +235,7 @@ function shortName($fullName, $filler = '') {
   $fullName = mb_convert_encoding($fullName, 'UTF-8', 'UTF-8'); // avoid iconv failure (bug in PHP 5.4.3)
 
   $result = preg_replace('/\W/', $filler, iconv('UTF-8', 'ASCII//TRANSLIT', $fullName));
-  return strtolower($result === '' ? \user_password() : $result);
+  return strtolower($result === '' ? u\code() : $result);
 }
 
 /**
@@ -619,17 +619,22 @@ function expect1($arg, $value, $type, $ret) {
  *
  * @param string $type: type of log entry (if FALSE, don't log anything)
  * @param array $info: the information to log
- * @param string $special: a special value if any (for example the nonce)
+ * @param string $special: a special value if any (for example the nonce or an account object)
  * @param int $adhocChannel: a second channel used from within the primary channel
  * @return the log record id (for exception handler and shutdown function)
  */  
 function loga($type, $info = array(), $special = '', $adhocChannel = FALSE) {
 /**/  if (strlen($type) >= 60) die('in loga: ' . $type); // (KEEP) don't use EXPECT here
   global $channel;
+  u\setDft($channel, -1);
   $useTextLogToo = FALSE; // isDEV;
 
-  $myid = @r\acct()->id;
-  $agent = @r\acct()->agentId;
+  if (is_object($special)) {
+    $mya = $special;
+    $special = '';
+  } else $mya = r\acct();
+  $myid = @$mya->id;
+  $agent = @$mya->agentId;
   $time = time();
   $date = fmtDate();
   if ($adhocChannel and $adhocChannel != $channel and !$special) $special = "via ch$adhocChannel";
@@ -766,7 +771,7 @@ file_put_contents($filepath, $text);
 //list ($stuff, $key) = rCredits\Util\encode('this is a test', compact('pass', 'salt'));
 //file_put_contents($file, $stuff);
 $stuff2 = file_get_contents($newFilepath);
-echo rCredits\Util\decode($stuff2, $key);
+//// echo rCredits\Util\decode($stuff2, $key);
 
  */
 function encode($content, $passSalt) {
@@ -1004,12 +1009,21 @@ EOF;
   return u\ray('state city', @$result['State'], ucwords(strtolower(@$result['City'])));
 }  
 
+/**
+ * Return a random upper/lowercase code.
+ * @param int $len: how long (defaults to 20)
+ */
+function code($len = 20) {
+  global $nextCode;
+  return (t\est() and @$nextCode) ? $nextCode : \user_password($len);
+}
+
 function caller($skip = 0) {
   $trace = debug_backtrace();
   for ($i = 0; $i <= $skip; $i++) array_shift($trace); // discard THIS call
   $caller = (object) array_shift($trace); $file = basename(@$caller->file);
   $precaller = (object) array_shift($trace); $prefile = basename(@$precaller->file);
-  $args = print_r(@$caller->args, 1);
+/**/ $args = print_r(@$caller->args, 1);
 /**/ $preargs = print_r(@$precaller->args, 1);
   return " called $caller->function($args) ($caller->line in $file), from $precaller->function($preargs) ($precaller->line in $file)\n";
 }
@@ -1019,6 +1033,16 @@ function purify($s) {
     foreach ($s as $key => $value) $s[$key] = purify($value);
     return $s;
   } return preg_replace('/( [\x00-\x7F] | [\xC0-\xDF][\x80-\xBF] | [\xE0-\xEF][\x80-\xBF]{2} | [\xF0-\xF7][\x80-\xBF]{3} ) | ./x', '$1', $s);
+}
+
+/**
+ * Return the name of the next business day. (for testing, all days are business days)
+ * @param int $start: how many days from now to start counting.
+ * @return the common speech term for the next business day starting then.
+ */
+function nextBusDay($start = 0) {
+  return (strftime('%u', REQUEST_TIME + $start) > 5 and !t\est()) ? t('Monday')
+  : ($start == 0 ? t('today') : ($start == 1 ? t('tomorrow') : strftime('%A', REQUEST_TIME + $start)));
 }
 
 // Single line functions that need little or no explanation
@@ -1069,3 +1093,4 @@ function rayv($a, $i) {return $a[$i];} // useful when $a is returned from a func
 function strip($a) {foreach ($a as $i => $v) $a[$i] = strip_tags($v); return $a;}
 function initials($s) {return preg_replace('/[^A-Z]/', '', ucwords(strtr($s, u\ray('Jr', ''))));}
 function roughName($name) {return preg_replace("/[^A-Z '\-]/", '', strtoupper(trim(str_replace('  ', ' ', $name))));}
+function urlArgs() {return basename(t\est() ? t\SERVER('REQUEST_URI') : $_SERVER['REQUEST_URI']);}

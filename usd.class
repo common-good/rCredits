@@ -249,7 +249,7 @@ class usd {
    */
   function addBank($accountNumber, $routingNumber, $accountType, &$error = NULL) {
     $dw = $this->dwolla();
-    $accountName = \user_password(); // random account nickname
+    $accountName = u\code(); // random account nickname
     if (!noDw($dw) and !$dw->addFundingSource($accountNumber, $routingNumber, $accountType, $accountName)) return dwError($dw, $error);
     return TRUE;
   }
@@ -284,7 +284,7 @@ class usd {
 //    if ($uid != @$mya->id) return authReturn(u\tt('wrong user'));
     $usdAcct = new usd($mya = r\acct($uid));
     $dw = $usdAcct->dwolla(FALSE, R_GET_AUTH_URI); // URI must match the one in getAuth
-    if (t\est()) $authToken = \user_password(); else
+    if (t\est()) $authToken = u\code(); else
     if (!$authToken = $dw->requestToken(@$_GET['code'])) return authReturn($dw);
 
     $secure = $mya->secure;

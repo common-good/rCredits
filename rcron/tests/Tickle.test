@@ -81,7 +81,40 @@ class rcronTickle extends DrupalWebTestCase {
     . '\\| tomorrow (how about 10am?) |"');
     And__('we notice "call bank|sign in" to member ".ZZD" with subs: "DATA'
     . '\\| when                      |'
-    . '\\| between 9am and 4pm today |"');
+    . '\\| today between 9am and 4pm |"');
+  }
+
+  // Scenario: A nonmember has not accepted the invitation
+  public function testANonmemberHasNotAcceptedTheInvitation_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('invites: "DATA'
+    . '\\| email           | inviter | code   | invited   |'
+    . '\\| zot@example.com | .ZZA    | codeA1 | %today-8d |"');
+    When_('cron runs "tickle"');
+    Then_('we email "nonmember" to member "zot@example.com" with subs: "DATA'
+    . '\\| inviterName | code   | site        | nudge                                      | noFrame |'
+    . '\\| Abe One     | codeA1 | %R_SITE_URL | We will send you just one more reminder(s) | 1       |"');
+  }
+
+  // Scenario: A nonmember has accepted the invitation
+  public function testANonmemberHasAcceptedTheInvitation_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('invites: "DATA'
+    . '\\| email           | inviter | code   | invited   | invitee |'
+    . '\\| zot@example.com | .ZZA    | codeA1 | %today-8d | .ZZB    |"');
+    When_('cron runs "tickle"');
+    Then_('we do not email "nonmember" to member "b@example.com"');
+  }
+
+  // Scenario: A nonmember has accepted an invitation from someone else instead
+  public function testANonmemberHasAcceptedAnInvitationFromSomeoneElseInstead_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('invites: "DATA'
+    . '\\| email         | inviter | code   | invited   | invitee |'
+    . '\\| b@example.com | .ZZA    | codeA1 | %today-8d | 0       |'
+    . '\\| b@example.com | .ZZD    | codeA1 | %today-8d | .ZZB    |"');
+    When_('cron runs "tickle"');
+    Then_('we do not email "nonmember" to member "b@example.com"');
   }
 
 }

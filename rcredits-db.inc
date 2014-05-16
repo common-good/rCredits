@@ -26,7 +26,7 @@ function q($sql, $subs = array(), $log = FALSE) {
   try {
     return \db_query(u\SUBS($sql), u\prefixKeys(':', $subs), compact('return'));
   } catch (Exception $e) {
-    if (@$channel == TX_WEB) r\Web\exception_handler($e); else die('in q');
+/**/ if (@$channel == TX_WEB) r\Web\exception_handler($e); else die('in q');
   }
 }
 
@@ -125,3 +125,17 @@ EOF;
 }
 
 function recCount($table, $where = '1', $subs = array()) {return db\lookup('COUNT(*)', $table, $where, $subs);}
+
+/**
+ * Set new values in the data field of a record.
+ * @param string $table: what record the table is in
+ * @param string $id: the record ID
+ * @param assoc $values: values to add to the data field in that record
+ */
+function setData($table, $id, $values) {
+  $keys = u\ray('users r_txs r_invoices', 'uid', 'xid', 'nvid');
+  $key = $keys[$table];
+  u\EXPECT($key, 'bad table');
+  $data = $values + (db\lookup('data', $table, "$key=:id", compact('id')) ?: array());
+  return $table == 'users' ? r\acct($id)->update(compact('data')) : db\update($table, compact('data'));
+}

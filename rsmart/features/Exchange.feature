@@ -32,18 +32,20 @@ Setup:
   | :ZZD | .ZZC | .ZZD  | read       |
   | :ZZE | .ZZF | .ZZE  | sell       |
   And transactions: 
-  | xid | created   | type     | amount | from | to   | purpose | taking |
-  | 1   | %today-6m | signup   |    350 | ctty | .ZZA | signup  | 0      |
-  | 2   | %today-6m | signup   |    150 | ctty | .ZZB | signup  | 0      |
-  | 3   | %today-6m | signup   |    250 | ctty | .ZZC | signup  | 0      |
-  | 4   | %today-5m | transfer |    100 | .ZZC | .ZZB | cash    | 0      |
-  | 5   | %today-5m | transfer |    200 | .ZZA | .ZZC | cash    | 0      |
+  | xid | created   | type     | amount | from | to   | purpose |
+  | 1   | %today-6m | signup   |    350 | ctty | .ZZA | signup  |
+  | 2   | %today-6m | signup   |    150 | ctty | .ZZB | signup  |
+  | 3   | %today-6m | signup   |    250 | ctty | .ZZC | signup  |
+  | 4   | %today-5m | transfer |    100 | .ZZC | .ZZB | cash    |
+  | 5   | %today-5m | transfer |    200 | .ZZA | .ZZC | cash    |
+  | 6   | %today-4m | grant    |    250 | ctty | .ZZF | stuff   |
   Then balances:
-  | id   | balance |
-  | ctty |    -500 |
-  | .ZZA |     150 |
-  | .ZZB |     250 |
-  | .ZZC |     350 |
+  | id   | balance | rewards |
+  | ctty |    -750 |         |
+  | .ZZA |     150 |     350 |
+  | .ZZB |     250 |     150 |
+  | .ZZC |     350 |     250 |
+  | .ZZF |     250 |       0 |
 
 #Variants: with/without an agent
 #  | ".ZZB" asks device "devC" | ".ZZB" asks device "codeC" | ".ZZA" $ | ".ZZC" $ | # agent to member |
@@ -51,7 +53,7 @@ Setup:
 
 Scenario: A cashier asks to charge someone for cash
   When agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "cash": "cash out"
-  Then we respond ok with tx 6 and message "report exchange" with subs:
+  Then we respond ok with tx 7 and message "report exchange" with subs:
   | did     | otherName | amount |
   | charged | Bea Two   | $100   |
   And with balance
@@ -72,7 +74,7 @@ Scenario: A cashier asks to charge someone for cash
 
 Scenario: A cashier asks to refund someone
   When agent ":ZZA" asks device "devC" to charge ".ZZB" $-100 for "cash": "cash in"
-  Then we respond ok with tx 6 and message "report exchange" with subs:
+  Then we respond ok with tx 7 and message "report exchange" with subs:
   | did      | otherName | amount |
   | credited | Bea Two   | $100   |
   And with balance
@@ -92,39 +94,39 @@ Scenario: A cashier asks to refund someone
   | .ZZC |     250 |
 
 Scenario: A cashier asks to charge another member, with insufficient balance
-  When agent ":ZZA" asks device "devC" to charge ".ZZB" $300 for "goods": "food"
-  Then we return error "short from" with subs:
+  When agent ":ZZA" asks device "devC" to charge ".ZZB" $300 for "cash": "cash out"
+  Then we return error "short cash from" with subs:
   | otherName |
   | Bea Two   |  
 
 Scenario: A cashier asks to refund another member, with insufficient balance
-  When agent ":ZZA" asks device "devC" to charge ".ZZB" $-400 for "goods": "food"
-  Then we return error "short to" with subs:
+  When agent ":ZZA" asks device "devC" to charge ".ZZB" $-400 for "cash": "cash in"
+  Then we return error "short cash to" with subs:
   | short |
-  | $50   |
+  | $300  |
 
 Scenario: A cashier asks to pay self
-  When agent ":ZZA" asks device "devC" to charge ".ZZC" $300 for "goods": "food"
+  When agent ":ZZA" asks device "devC" to charge ".ZZC" $300 for "cash": "cash out"
   Then we return error "shoulda been login"
 
 Scenario: Device gives no member id
-  When agent ":ZZA" asks device "devC" to charge "" $300 for "goods": "food"
+  When agent ":ZZA" asks device "devC" to charge "" $300 for "cash": "cash out"
   Then we return error "missing member"
   
 Scenario: Device gives bad account id
-  When agent ":ZZA" asks device "devC" to charge %whatever $300 for "goods": "food"
+  When agent ":ZZA" asks device "devC" to charge %whatever $300 for "cash": "cash out"
   Then we return error "bad member"
 
 Scenario: Device gives no amount
-  When agent ":ZZA" asks device "devC" to charge ".ZZB" $"" for "goods": "food"
+  When agent ":ZZA" asks device "devC" to charge ".ZZB" $"" for "cash": "cash out"
   Then we return error "bad amount"
   
 Scenario: Device gives bad amount
-  When agent ":ZZA" asks device "devC" to charge ".ZZB" $%whatever for "goods": "food"
+  When agent ":ZZA" asks device "devC" to charge ".ZZB" $%whatever for "cash": "cash out"
   Then we return error "bad amount"
   
 Scenario: Device gives too big an amount
-  When agent ":ZZA" asks device "devC" to charge ".ZZB" $10,000,000 for "goods": "food"
+  When agent ":ZZA" asks device "devC" to charge ".ZZB" $10,000,000 for "cash": "cash out"
   Then we return error "amount too big"
 
 Scenario: Device gives no purpose for goods and services
@@ -138,13 +140,13 @@ Scenario: Seller agent lacks permission to buy
   | refunds |
 
 Scenario: Seller agent lacks permission to scan and sell
-  When agent ":ZZD" asks device "devC" to charge ".ZZA" $100 for "goods": "food"
+  When agent ":ZZD" asks device "devC" to charge ".ZZA" $100 for "cash": "cash out"
   Then we return error "no perm" with subs:
   | what  |
   | sales |
   
 Scenario: Buyer agent lacks permission to buy
-  When agent ":ZZA" asks device "devC" to charge ":ZZE" $100 for "goods": "food"
+  When agent ":ZZA" asks device "devC" to charge ":ZZE" $100 for "cash": "cash out"
   Then we return error "other no perm" with subs:
   | otherName | what      |
   | Eve Five  | purchases |

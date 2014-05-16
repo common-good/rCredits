@@ -42,8 +42,214 @@ class rwebSignin extends DrupalWebTestCase {
 
     switch ($variant) {
     default: // fall through to case(0)
+    case(0):
+    Given('members: "DATA'
+    . '\\| id   | fullName | pass | email |'
+    . '\\| .ZZA | Abe One  | a1   | a@    |"');
+    And__('member is logged out');
+    break;
+
 
     }
+  }
+
+  // Scenario: A member visits the member site
+  public function testAMemberVisitsTheMemberSite_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member "?" visits page "/user/login"');
+    Then_('we show "Welcome to rCredits" with: "DATA'
+    . '\\| Username/ID | account ID, email, or username |'
+    . '\\| Password    | Password problems? |'
+    . '\\|_promo       | Not yet a member? |"');
+  }
+
+  // Scenario: A member signs in with username on the member site
+  public function testAMemberSignsInWithUsernameOnTheMemberSite_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member "?" confirms form "/user/login" with values: "DATA'
+    . '\\| name   | pass |'
+    . '\\| abeone | a1   |"');
+    Then_('member ".ZZA" is logged in');
+    And__('we show "Account Summary"');
+  }
+
+  // Scenario: A member signs in with account ID on the member site
+  public function testAMemberSignsInWithAccountIDOnTheMemberSite_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member "?" confirms form "/user/login" with values: "DATA'
+    . '\\| name    | pass |'
+    . '\\| new.zza | a1   |"');
+    Then_('member ".ZZA" is logged in');
+    And__('we show "Account Summary"');
+  }
+
+  // Scenario: A member signs in with email on the member site
+  public function testAMemberSignsInWithEmailOnTheMemberSite_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member "?" confirms form "/user/login" with values: "DATA'
+    . '\\| name          | pass |'
+    . '\\| a@example.com | a1   |"');
+    Then_('member ".ZZA" is logged in');
+    And__('we show "Account Summary"');
+  }
+
+  // Scenario: A member types the wrong password
+  public function testAMemberTypesTheWrongPassword_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member "?" confirms form "/user/login" with values: "DATA'
+    . '\\| name   | pass |'
+    . '\\| abeone | a2   |"');
+    Then_('we say "error": "bad login"');
+  }
+
+  // Scenario: A member types an unknown username/ID
+  public function testAMemberTypesAnUnknownUsernameID_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member "?" confirms form "/user/login" with values: "DATA'
+    . '\\| name  | pass |'
+    . '\\| bogus | a1   |"');
+    Then_('we say "error": "bad login"');
+  }
+
+  // Scenario: A member signs in with username from rCredits.org
+  public function testAMemberSignsInWithUsernameFromRCreditsorg_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('a member posts to "signin" with values: "DATA'
+    . '\\| id     | pw |'
+    . '\\| abeone | a1 |"');
+    Then_('member ".ZZA" is logged in');
+    And__('we show "Account Summary"');
+  }
+
+  // Scenario: A member signs in with account ID from rCredits.org
+  public function testAMemberSignsInWithAccountIDFromRCreditsorg_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('a member posts to "signin" with values: "DATA'
+    . '\\| id      | pw |'
+    . '\\| new.zza | a1 |"');
+    Then_('member ".ZZA" is logged in');
+    And__('we show "Account Summary"');
+  }
+
+  // Scenario: A member signs in with email from rCredits.org
+  public function testAMemberSignsInWithEmailFromRCreditsorg_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('a member posts to "signin" with values: "DATA'
+    . '\\| id            | pw |'
+    . '\\| a@example.com | a1 |"');
+    Then_('member ".ZZA" is logged in');
+    And__('we show "Account Summary"');
+  }
+
+  // Scenario: A member types the wrong password from rCredits.org
+  public function testAMemberTypesTheWrongPasswordFromRCreditsorg_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('a member posts to "signin" with values: "DATA'
+    . '\\| id     | pw |'
+    . '\\| abeone | a2 |"');
+    Then_('we show "Welcome to rCredits"');
+    And__('we say "error": "bad login"');
+  }
+
+  // Scenario: A member types an unknown username/ID from rCredits.org
+  public function testAMemberTypesAnUnknownUsernameIDFromRCreditsorg_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('a member posts to "signin" with values: "DATA'
+    . '\\| id    | pw |'
+    . '\\| bogus | a1 |"');
+    Then_('we show "Welcome to rCredits"');
+    And__('we say "error": "bad login"');
+  }
+
+  // Scenario: A member asks for a new password for username
+  public function testAMemberAsksForANewPasswordForUsername_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('next random code is "wHatEveR"');
+    When_('member "?" completes form "account/password" with values: "DATA'
+    . '\\| name   |'
+    . '\\| abeone |"');
+    Then_('we email "password-reset" to member "a@example.com" with subs: "DATA'
+    . '\\| fullName | site        | name   | code     |'
+    . '\\| Abe One  | %R_SITE_URL | abeone | wHatEveR |"');
+  }
+
+  // Scenario: A member asks for a new password for account ID
+  public function testAMemberAsksForANewPasswordForAccountID_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('next random code is "wHatEveR"');
+    When_('member "?" completes form "account/password" with values: "DATA'
+    . '\\| name    |'
+    . '\\| new.zza |"');
+    Then_('we email "password-reset" to member "a@example.com" with subs: "DATA'
+    . '\\| fullName | site        | name   | code     |'
+    . '\\| Abe One  | %R_SITE_URL | abeone | wHatEveR |"');
+  }
+
+  // Scenario: A member asks for a new password for email
+  public function testAMemberAsksForANewPasswordForEmail_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('next random code is "wHatEveR"');
+    When_('member "?" completes form "account/password" with values: "DATA'
+    . '\\| name          |'
+    . '\\| a@example.com |"');
+    Then_('we email "password-reset" to member "a@example.com" with subs: "DATA'
+    . '\\| fullName | site        | name   | code     |'
+    . '\\| Abe One  | %R_SITE_URL | abeone | wHatEveR |"');
+  }
+
+  // Scenario: A member asks for a new password for an unknown account
+  public function testAMemberAsksForANewPasswordForAnUnknownAccount_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    When_('member "?" completes form "account/password" with values: "DATA'
+    . '\\| name  |'
+    . '\\| bogus |"');
+    Then_('we say "error": "bad account id"');
+  }
+
+  // Scenario: A member clicks a link to reset password
+  public function testAMemberClicksALinkToResetPassword_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('next random code is "wHatEveR"');
+    When_('member "?" completes form "account/password" with values: "DATA'
+    . '\\| name          |'
+    . '\\| a@example.com |"');
+    And__('member "?" visits page "reset/id=abeone&code=wHatEveR"');
+    Then_('we show "Choose a New Password"');
+    When_('member "?" confirms form "reset/id=abeone&code=wHatEveR" with values: "DATA'
+    . '\\| newPass   | strong |'
+    . '\\| %whatever | 1      |"');
+    Then_('member ".ZZA" is logged in');
+    And__('we show "Account Summary"');
+    Given('member is logged out');
+    When_('member "?" confirms form "/user/login" with values: "DATA'
+    . '\\| name   | pass      |'
+    . '\\| abeone | %whatever |"');
+    Then_('we show "Account Summary"');
+    And__('member ".ZZA" is logged in');
+  }
+
+  // Scenario: A member clicks a link to reset password with wrong code
+  public function testAMemberClicksALinkToResetPasswordWithWrongCode_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('next random code is "wHatEveR"');
+    And__('member "?" completes form "account/password" with values: "DATA'
+    . '\\| name          |'
+    . '\\| a@example.com |"');
+    When_('member "?" visits page "reset/id=abeone&code=NOTwHatEveR"');
+    Then_('we say "error": "bad login"');
+    And__('we show "Welcome to rCredits"');
+  }
+
+  // Scenario: A member clicks a link to reset password for unknown account
+  public function testAMemberClicksALinkToResetPasswordForUnknownAccount_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('next random code is "wHatEveR"');
+    And__('member "?" completes form "account/password" with values: "DATA'
+    . '\\| name          |'
+    . '\\| a@example.com |"');
+    When_('member "?" visits page "reset/id=abeone&code=NOTwHatEveR"');
+    Then_('we say "error": "bad login"');
+    And__('we show "Welcome to rCredits"');
   }
 
 }

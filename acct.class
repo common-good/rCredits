@@ -51,7 +51,7 @@ class acct {
    * @param assoc $info: array of field values for new account
    */
   private function createNew($info) {
-    $fields = 'phone number mail pass secure fullName legalName name flags rebate country state postalCode created login access uid community';
+    $fields = 'phone number mail pass fullName legalName name flags rebate country state postalCode created login access uid community'; // used to include secure
     if (t\est()) $fields .= ' usdAccount';
     extract(u\just($fields, $info));
     u\setDft($phone, @$number);
@@ -60,7 +60,7 @@ class acct {
     $status = TRUE;
     u\EXPECT($mail, 'account with no email address');
     $init = $mail;
-    $pass = r\passHash(trim(@$pass ?: \user_password()));
+    $pass = (isset($pass) and trim($pass) !== '') ? r\passHash(trim($pass)) : ''; // no pass if none chosen yet
     u\setDft($fullName, @$legalName);
     $short_name = @$fullName ? u\shortName($fullName) : '';
     u\setDft($name, @$short_name ?: tempName($info));
@@ -73,21 +73,24 @@ class acct {
     u\setDft($created, REQUEST_TIME);
     u\setDft($login, $created);
     u\setDft($access, $login);
-
-    if ($data0 = u\just(R_DATA_FIELDS, $info)) foreach ($data0 as $key => $value) unset($info[$key]);
-    $data0['stepsDone'] = array_fill_keys(u\ray(R_STEPS), FALSE);
-    $data = serialize($data0);
-    unset($info['number']);
-
-    $record = compact(u\ray('phone status mail init pass name fullName state flags rebate community data created login access'));
+    u\setDft($data, array());
+    u\setDft($secure, array());
+    
+    if ($secure += u\just(R_SECURE_FIELDS, $info)) foreach ($secure as $key => $value) unset($info[$key]);
+    if ($data += u\just(R_DATA_FIELDS, $info)) foreach ($data as $key => $value) unset($info[$key]);
+    $data['stepsDone'] = array_fill_keys(u\ray(R_STEPS), FALSE);
+    
+    $record = compact(u\ray('phone status mail init pass name fullName state flags rebate community created login access'));
     foreach ($record as $key => $value) unset($info[$key]);
-    unset($info['secure']); // special case because of encryption (needed for testing)
+    foreach (u\ray('number secure data') as $one) unset($info[$one]); // special cases
 
     $DBTX = db_transaction();
     if (@$uid) {
       db\insert('users', $record += compact('uid')); // predestined uid (probably for testing)
+///      debug(compact('uid','postalCode','country','state','info','data','secure','record'));
     } else {
       $region = @$postalCode ? r\region(@$country, @$state, @$postalCode) : communityUid();
+///      debug(compact('region','postalCode','country','state','info','data','record'));
       for ($try = 0; $try < 20; $try++) { // limit the retries
         $uid = $record['uid'] = self::nextId($region);
         try {
@@ -108,11 +111,10 @@ class acct {
     }
 
     list($this->id, $this->agentId) = array($uid, $uid);
-    self::$records[$this->id] = (object) ($record + $info + $data0);
-    
-    $cardCode = r\cardCode(r\quid($uid));
-    u\setDft($secure, compact('cardCode'));
-    $this->update(compact('secure') + $info); // this is easier to do after saving the record
+    self::$records[$this->id] = (object) ($record + $info + $data);
+    if (!($flags & u\bit(B_CO))) u\setDft($secure['cardCode'], r\cardCode(r\quid($uid))); // must postcede $uid =
+
+    $this->update(compact('secure', 'data') + $info); // this is easier to do after saving the record
     unset($DBTX); // commit
   }
 
@@ -120,6 +122,7 @@ class acct {
    * Setup acct variables, returning FALSE on error.
    */
   public static function viable($id0, $agent0='', &$error='', $test = TRUE) {
+    if (is_numeric($id0) and is_numeric($agent0)) return array($id0, $agent0);
     if ($error = u\EXPECT(compact(u\ray('id0 agent0')), 'zid|qid|assoc empty|id|qid', $test)) return FALSE;
     if ($error = u\EXPECT((bool) $id0, 'null uid in new acct()', $test)) return FALSE;
     if ($error = u\EXPECT(!(strpos($id0, R_AGENT_MARK) and $agent0), 'agent already specified in qid', $test)) return FALSE;
@@ -132,7 +135,6 @@ class acct {
     $record = self::getRecord($id);
     if ($error = u\EXPECT((bool) $record, 'That account does not exist.', $test)) return FALSE; // don't use tt() here (many calls)
     u\EXPECT($id and $agent, "Missing acct property: [$id, $agent]");
-
     return array($id, $agent);
   }
   
@@ -345,11 +347,12 @@ class acct {
    * @return: the account (FALSE if $a is empty)
    */
   public static function setDefault($a) {
-    global $currentAcct; 
+    global $currentAcct, $channel; 
     global $user; if (empty($user)) $user = (object) ($a ? $a->account() : array('uid' => 0)); // probably needed only for rWeb login form testing
     if ($a and @$currentAcct != $a and !$a->cAdmin) { // admin access doesn't count
-      $login = $access = REQUEST_TIME;
-      if ($a->login != $login) $a->update(compact('login', 'access'));
+      $access = REQUEST_TIME;
+      if ($channel == TX_WEB) $login = $access;
+      $a->update(compact('login', 'access'));
     }
     return $currentAcct = $a;
   }
@@ -423,7 +426,7 @@ EOF;
    * @param float $need: the amount needed
    * @return float: the amount drawn
    */
-  private function draw($type, $need) {
+  public function draw($type, $need) {
     list ($from, $to, $auto) = array(t(' from '), t(' to '), t('automatic transfer'));
     $left = $need; // how much left to be drawn
     $id = $this->id;
@@ -432,6 +435,7 @@ EOF;
       SELECT u.uid, $fields FROM users u INNER JOIN r_relations r ON r.main=u.uid
       WHERE r.other=:id AND r.draw
 EOF;
+///debug(compact(u\ray('type need from to auto left id fields sql')));
     $result = db\q($sql, compact('id'));
     while ($row = $result->fetchAssoc()) {
       extract($row);
@@ -570,22 +574,20 @@ EOF;
    * Mark a membership step as completed.
    * @param string $step: a named step (see R_STEPS)
    * @param assoc $details: any details to report to the staff
-   * @return TRUE
+   * @return the next step (FALSE if none)
    */
   function stepDone($step, $details = array()) {
-    if ($this->member) return TRUE; // no steps needed
     $stepsDone = $this->stepsDone;
-    $stepsDone[$step] = TRUE;
-    $this->update(compact('stepsDone'));
-    r\tellStaff('Step completed: ' . strtoupper($step), $details, $this->id);
-    if ($this->nextStep()) {
-      if ($this->can(B_DW) and !@$this->secure['auth']) {
-        $this->createUsdAccount($err); // initialize Dwolla account
-        if ($err) r\tellStaff($err, compact('step', 'details'), $this->id);
-      }
-      if ($step != 'dw' and (new r\usd($this))->step() == 'Finished') $this->stepDone('dw'); // happens externally so check here
-    } else r\membershipEvent($this, 'member');
-    return TRUE;
+    if (!$this->member and !$stepsDone[$step]) { // unless already done
+      $stepsDone[$step] = TRUE;
+      $this->update(compact('stepsDone'));
+      r\tellStaff('Step completed: ' . strtoupper($step), $details, $this->id);
+
+      if ($step == 'dw' and $stepsDone['connect']) connectBank($this);
+    }
+    
+    if (!$nextStep = $this->nextStep()) r\membershipEvent($this, 'member');
+    return $nextStep;
   }
   
   /**
@@ -595,8 +597,17 @@ EOF;
     $steps = $this->stepsDone; // don't change the real data
     $unset = $this->co ? 'proxies connect verify' : 'company relations';
     foreach (u\ray($unset) as $one) unset($steps[$one]);
-    foreach ($steps as $step => $done) if (!$done) return $step;
-    return FALSE;
+    foreach ($steps as $step => $done) if (!$done) break;
+    if ($done) return FALSE;
+
+    if ($step == 'dw') {
+      if ($this->can(B_DW) and !@$this->secure['auth']) {
+        $this->createUsdAccount($err); // initialize Dwolla account
+        if ($err) r\tellStaff($err, compact('step', 'details'), $this->id);
+      }
+    } elseif ((new r\usd($this))->step() == 'Finished') $step = $this->stepDone('dw'); // happens externally
+
+    return $step;
   }
 
   /**
@@ -630,7 +641,7 @@ EOF;
         number_format(100 * (@$beneEver + @$extraEver) / $avgBalEver / $years, 1)
       : (@$beneEver + @$extraEver > 0 ? '&infin;' : number_format(100 * R_INFLATION_RATE, 1));
     $cttyBeneMo = u\fmtAmt(@$giftsPastMo + max(0, @$bankedPastMo) + @$benePastMo * (1 + R_CC_RATE / $this->rebate));
-    $cttyBene = u\fmtAmt(@$giftsEver + max(0, @$bankedEver) + @$beneEver * (1 + R_CC_RATE / R_REBATE) + \variable_get('cttyPaidEver', 0) / (@$pAccts ?: 1));
+    $cttyBene = u\fmtAmt(@$giftsEver + max(0, @$bankedEver) + @$beneEver * (1 + R_CC_RATE / R_REBATE) + r\cttyPaidEver($this->community) / (@$pAccts ?: 1));
     return compact(u\ray('returnMo return cttyBeneMo cttyBene'));
   }
 
@@ -649,8 +660,8 @@ EOF;
    */
   function createUsdAccount(&$err = '') {
     if ($this->id == 1) return ($err = 'not registering admin');
-    $usdPass = user_password(20) . '*B2'; // satisfy Dwolla (and our own security)
-    $usdEmail = strtolower(\user_password(4) . '.' . $this->mainQid) . '@rc4.me';
+    $usdPass = u\code() . '*B2'; // satisfy Dwolla (and our own security)
+    $usdEmail = strtolower(u\code(4) . '.' . $this->mainQid) . '@rc4.me';
     //if (t\est()) $usdEmail = 'wspademan+' . strtolower(\user_password(4) . '.' . $this->mainQid) . '@gmail.com';
     $usdPin = u\randomString(4, 'digits');
     if (isDEV) list ($usdPass, $usdPin) = array('Password1', 9999);
@@ -789,8 +800,8 @@ EOF;
       $perms[B_CTTYUP] = $perms[B_OK];
     } else {
       $ctty = r\acct($this->community);
-      $perms[B_CTTYACTIVE] = $ctty->member; // recurses (_get calls can() for "member" and "ok")
-      $perms[B_CTTYUP] = $ctty->ok;
+      $perms[B_CTTYACTIVE] = @$ctty->member; // recurses (_get calls can() for "member" and "ok")
+      $perms[B_CTTYUP] = @$ctty->ok;
     }
     
     ksort($perms); // easier to debug

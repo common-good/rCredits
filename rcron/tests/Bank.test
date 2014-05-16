@@ -44,8 +44,12 @@ class rcronBank extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "DATA'
-    . '\\| id   | fullName | floor | minimum | flags    |'
-    . '\\| .ZZA | Abe One  |     0 |     100 | co,ok,dw |"');
+    . '\\| id   | fullName | floor | minimum | flags    | achMin |'
+    . '\\| .ZZA | Abe One  |     0 |     100 | co,ok,dw | 30     |'
+    . '\\| .ZZB | Bea Two  |     0 |     100 | ok       | 30     |"');
+    And__('relations: "DATA'
+    . '\\| id | main | agent | draw |'
+    . '\\| 1  | .ZZA | .ZZB  | 1    |"');
     break;
 
 
@@ -60,11 +64,38 @@ class rcronBank extends DrupalWebTestCase {
     . '\\| .ZZA | 50 | 49.99 |      20 |"');
     When_('cron runs "bank"');
     Then_('usd transfers: "DATA'
-    . '\\| payer | amount       |'
-    . '\\| .ZZA | -%R_BANK_MIN |"');
+    . '\\| payer | amount |'
+    . '\\| .ZZA | -30     |"');
     And__('we notice "under min|banked" to member ".ZZA" with subs: "DATA'
-    . '\\| action    | amount       |'
-    . '\\| draw from | $%R_BANK_MIN |"');
+    . '\\| action    | amount |'
+    . '\\| draw from | $30    |"');
+  }
+
+  // Scenario: an unbanked member barely below minimum draws on another account
+  public function testAnUnbankedMemberBarelyBelowMinimumDrawsOnAnotherAccount_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "DATA'
+    . '\\| id   | r     | usd |'
+    . '\\| .ZZA | 200   |   0 |'
+    . '\\| .ZZB | 99.99 |   0 |"');
+    When_('cron runs "bank"');
+    Then_('transactions: "DATA'
+    . '\\| xid | type     | amount | from | to   | purpose      |'
+    . '\\|   1 | transfer |     30 | .ZZA | .ZZB | automatic transfer to NEW.ZZB,automatic transfer from NEW.ZZA |"');
+    And__('we notice "under min|drew" to member ".ZZB" with subs: "DATA'
+    . '\\| amount |'
+    . '\\| $30    |"');
+  }
+
+  // Scenario: an unbanked member barely below minimum cannot draw on another account
+  public function testAnUnbankedMemberBarelyBelowMinimumCannotDrawOnAnotherAccount_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "DATA'
+    . '\\| id   | r     | usd |'
+    . '\\| .ZZA | 0     |   0 |'
+    . '\\| .ZZB | 99.99 |   0 |"');
+    When_('cron runs "bank"');
+    Then_('we notice "under min|cannot draw" to member ".ZZB"');
   }
 
   // Scenario: a member is at minimum
@@ -81,15 +112,15 @@ class rcronBank extends DrupalWebTestCase {
   public function testAMemberIsWellBelowMinimum_0() {
     $this->setUp2(__FUNCTION__, 0);
     Given('balances: "DATA'
-    . '\\| id   | r           | usd         | rewards     | minimum                |'
-    . '\\| .ZZA | %R_BANK_MIN | %R_BANK_MIN | %R_BANK_MIN | %(5 * %R_BANK_MIN + 1) |"');
+    . '\\| id   | r  | usd | rewards | minimum |'
+    . '\\| .ZZA | 50 | 0   | 25      | 151     |"');
     When_('cron runs "bank"');
     Then_('usd transfers: "DATA'
-    . '\\| payer | amount              |'
-    . '\\| .ZZA  | %(-4 * %R_BANK_MIN) |"');
+    . '\\| payer | amount               |'
+    . '\\| .ZZA  | %(-100 - %R_ACHMIN) |"');
     And__('we notice "under min|banked" to member ".ZZA" with subs: "DATA'
-    . '\\| action    | amount              |'
-    . '\\| draw from | $%(4 * %R_BANK_MIN) |"');
+    . '\\| action    | amount                |'
+    . '\\| draw from | $%(100 + %R_ACHMIN) |"');
   }
 
   // Scenario: a member is under minimum but already requested barely enough funds from the bank
@@ -122,7 +153,7 @@ class rcronBank extends DrupalWebTestCase {
     When_('cron runs "bank"');
     Then_('usd transfers: "DATA'
     . '\\| payer | amount       |'
-    . '\\| .ZZA  | -%R_BANK_MIN |"');
+    . '\\| .ZZA  | -30 |"');
   }
 
 }

@@ -1,3 +1,41 @@
+2014-05-15
+. UPDATE r_invites SET invitee=0 WHERE invitee IS NULL
+. fixed bug: summary balance omitted usd
+. revamped "we send email" tests
+. comprehensive tests for signin and password reset
+. eliminated Contact step by including it in initial signup form, using Google's zipcode lookup api
+. anyone with refund permission now gets a "request card" link on Relations page
+. we now explain the 5% APR inflation adjustment as what we’re using until we have a realistic number.
+. we now figure savings as total of 30 day minimum balance
+. stats are now calculated in such a way that we can redo them all retroactively, using admin fixStats()
+. stats for all communities
+. improved help for charts
+. UPDATE users set r=0 WHERE uid<1
+. re-install
+. UPDATE r_txs t LEFT JOIN users u ON u.uid=t.payee
+  SET t.payer=u.community 
+  WHERE t.payer<0 AND t.payer<>u.community
+. include __DIR__ . '/../rcredits/admin/admin.inc';
+  rCredits\fixStats();
+  rCredits\fixStats(809); // where the previous run ran out of time
+. fixed bug: stepDone(dw) was looping
+  
+2014-05-02
+. asks for full name first, then legal name (if different), to discourage people from giving a nickname
+. fixed EditTx test so it handles variable link ("?")
+. added cron tickler for invitations
+. if state lookup fails in signup, state defaults to MA
+. when signed out, footer links now include community, agreement (no boxes) and help (for signing in or up)
+. don't update the access field in the users table when admin or cadmin or cadmin2 accesses the account (similar for login)
+. we now let user choose minimum size for automatic bank/draw transfers -- stored in "data" in the users table.
+. fixed signup page to clarify that full name and legal name are for the business (when they are)
+. stopped making user type one-time passwords (we now use a clickable link instead)
+. created a way to sign in from rCredits.org: formSignin
+. we now ask for PIN on signup form
+. password reset form is now separate from login form, but sends user on to summary page with no signin required
+. implemented effective minimum for unbanked accounts that can draw on one or more others
+. update user.module and user.js
+
 2014-04-17
 . added charts to help pages
 . created a page to edit transactions (lets seller adjust amount down and buyer adjust the amount up.)

@@ -14,16 +14,18 @@ function allChart() {
 function acctsChart() {
   var data = new google.visualization.DataTable();
   data.addColumn('date', 'Date');
-  data.addColumn('number', 'Personal');
-  data.addColumn('number', 'Company');
-  data.addColumn('number', 'Not-yet-active');
+  data.addColumn('number', 'Members');
+  data.addColumn('number', 'In process');
+  data.addColumn('number', 'Companies');
   data.addRows(acctsData);
 
   var options = {
     title: 'rCredits Accounts: ' + accts,
     width: chartWidth, height: chartHeight,
-    colors: ['green', 'yellow', 'red'],
+    colors: ['green', 'orange', 'blue'],
     series: {
+      0: {areaOpacity: 0},
+      1: {areaOpacity: 0},
       2: {areaOpacity: 0}
     },
     hAxis: {format: 'MMM d', gridlines: {count: 5}, title: '', titleTextStyle: {color: 'darkgray'}},
@@ -38,8 +40,8 @@ function fundsChart() {
   var data = new google.visualization.DataTable();
   data.addColumn('date', 'Date');
   data.addColumn('number', 'r');
-  data.addColumn('number', 'Held 30+ days');
-  data.addColumn('number', 'USD (unused)');
+  data.addColumn('number', 'Savings');
+  data.addColumn('number', 'USD (as yet unused)');
   data.addRows(fundsData);
 
   var options = {
@@ -87,7 +89,7 @@ function bankingChart() {
   data.addRows(bankingData);
 
   var options = {
-    title: 'Monthly Bank Transfers',
+    title: 'Monthly Bank Transfers: ' + netUsdIn,
     width: chartWidth, height: chartHeight,
     colors: ['green', 'orange'],
     series: {

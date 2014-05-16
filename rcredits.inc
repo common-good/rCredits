@@ -39,7 +39,7 @@ define('US', '<span class="us">us</span>');
 define('R_VERSION', '1.1'); // software version
 define('R_ROOT', DRUPAL_ROOT . '/sites/all/modules/rcredits');
 define('R_DATE_FIELDS', 'created completed sent invited giftDate signed login access yesterday'); // date field names for testing
-define('R_DATA_FIELDS', 'newAccount by calling wants legalName website description selling coFlags stats verifyBy oneTimePass signupCo stepsDone chunk pinThreshold lastTx'); // fields stored in the account's "data" array field (serialized)
+define('R_DATA_FIELDS', 'newAccount by calling wants legalName website description selling coFlags stats verifyBy oneTimePass signupCo stepsDone achMin pinThreshold lastTx'); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'usd r rewards floor committed'); // financial amount fields in account record
 define('R_SECURE_FIELDS', 'usdType usdPhone usdEmail usdPass usdPin auth bankAccount bankAccountType pin cardCode cardCode2'); // non-personal encrypted fields (must be complete list)
 define('R_SECRET_FIELDS', 'federalId dob idProof answer'); // personal identifying information
@@ -48,7 +48,7 @@ define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities ca
 define('R_CRON_PERIOD', 5*60); // how many seconds between cron runs (must divide an hour evenly)
 define('R_MAX_TASK_TIME', 1*60); // what's the longest a queued cron task might take
 define('DRUPAL_UID_TABLES', 'authmap file_managed history node node_revision sessions users_roles watchdog');
-define('R_STEPS', 'sign contact dw donate proxies prefs photo connect verify company relations'); // membership steps
+define('R_STEPS', 'contact sign dw donate proxies prefs photo connect verify company relations'); // membership steps
 define('R_NOLOG', R_SECURE_FIELDS . ' code oneTimeLoginUrl password pass newPass form_build_id form_token form_id ' . R_SECRET_FIELDS); // don't log these
 
 define('R_TEMP_NAME_PREFIX', 'unknown ');
@@ -69,7 +69,9 @@ define('R_DEFAULT_PURPOSE', t('rCredits/USD exchange')); // default transaction 
 define('R_FOR_GOODS', t('goods and services')); // default purpose for goods
 define('R_FOR_CASH', t('cash/loan/etc.')); // default purpose for non-goods
 define('R_CHUNK', 10); // chunk size for buying rCredits (sales amounts are a multiple of this)
-define('R_BANK_MIN', 10); // granularity of withdrawals from bank account
+define('R_ACHMIN', 10); // minimum granularity of withdrawals from bank account
+define('R_ACHMIN_DEFAULT', 100); // suggested achMin
+
 define('R_SUGGEST_BUMP', 1.25); // suggested minimum multiplier, so as not to unnecessarily sell rCredits
 define('R_VPAYMENT_MIN', 0.05); // minimum payment exchange (where bonus rounds to .01)
 define('R_COMMERCIAL_ASPECT', '4:3'); // width-to-height ratio for commercial profile picture
@@ -157,7 +159,7 @@ define('B_u5', 5); //
 define('B_CO', 6); // company account (could be personal also, for independent contractor)
 define('B_PHOTOID', 7); // photoid required and not yet approved
 define('B_CHARGE', 8); // UNUSED (any company can do this) can charge customers without confirmation
-define('B_u9', 9); // 
+define('B_NONUDGE', 9); // don't send reminders
 define('B_u10', 10); //
 define('B_u11', 11); // 
 define('B_PAYROLL', 12); // automatically pay employees their total daily salary - employer chooses pay period)
@@ -182,8 +184,8 @@ define('B_CADMIN', 29); // is a community administrator
 define('B_ADMIN', 30); // is a system administrator -- can manage server, including assigning ctty admins, but cannot manage communities or individual accounts (except temporarily)
 define('B_CLOSED', 31); // account is closed (data[newAccount] has new qid)
 define('B_MAX', 31); // maximum bit number
-define('B_ADMINABLE', 'co member dw bona cadmin cadmin2 closed'); // for cAdmin to set
-define('B_LIST', 'member dw ok bona bank u5 co photoid charge u9 u10 u11 payroll weekly monthly u15 sms paper secret u19 debt draws savings u23 u24 u25 u26 u27 u28 cadmin admin closed');
+define('B_ADMINABLE', 'co member dw bona cadmin cadmin2 nonudge closed'); // for cAdmin to set
+define('B_LIST', 'member dw ok bona bank u5 co photoid charge nonudge u10 u11 payroll weekly monthly u15 sms paper secret u19 debt draws savings u23 u24 u25 u26 u27 u28 cadmin admin closed');
 
 define('R_SHORTFALL', 'GREATEST(0, minimum-(r+usd))'); // sql for shortfall in account (to draw in)
 define('R_DEMAND', 'u.usd'); // definitely WANTS this many rCredits (was LEAST(u.usd, IFNULL(u.minimum,0)-u.r))
@@ -233,10 +235,10 @@ define('TX_CHANNELS', t('System SMS Web App Tone Cron Link'));
 define('TX_BANK', -9); // used only internally, to mark bank transfers
 define('TX_REFUND', -3); // refund of fees (Dwolla)
 define('TX_BONUS', -2); // sales bonus (negative reward types are invisible on transaction history)
-define('TX_REBATE', -1);
+define('TX_REBATE', -1); // sales rebate
 define('TX_TRANSFER', 0); // normal fund transfer (usually for actual goods and services) -- not creating rC
 define('TX_SIGNUP', 1); // signup incentive reward
-define('TX_PIONEER', 2); // pioneer reward (special early-stage rewards) -- might change later to TX_OTHER
+define('TX_u2', 2); // UNUSED pioneer reward (special early-stage rewards) -- might change later to TX_OTHER
 define('TX_INFLATION', 3); // reward to conpensate for inflation
 define('TX_u4', 4); //
 define('TX_REWARDS', 4); // above this, it's not "rewards"
@@ -246,7 +248,7 @@ define('TX_LOAN', 6);
 define('TX_INVEST', 7); // equity investment (community purchase are TX_TRANSFER)
 define('TX_u8', 8);
 define('TX_FINE', 9);
-define('TX_TYPES', 'payment signup pioneer inflation u4 grant loan investment u8 fine'); // this might need tweaks
+define('TX_TYPES', 'payment signup u2 inflation u4 grant loan investment u8 fine'); // this might need tweaks
 
 define('TX_DEFAULT_PERIOD', 30); // number of days to show in transaction history, by default
 define('TX_MAX_ROWS', 100); // maximum number of transactions to show on one screen
@@ -265,6 +267,7 @@ $GLOBALS['emailSubjects'] = array(
   'offer-refused' => t('rCredits Payment REJECTED by {otherName}'),
   'offer-canceled' => t('rCredits Invoice CANCELED by {otherName}'),
 */
+  'nonmember' => t('rCredits invitation followup'),
   'welcome' => t('Welcome to rCredits!'),
   'password-reset' => t('New rCredits PASSWORD'),
   'tell-staff' => t('rCredits STAFF ALERT: {topic}'),
@@ -624,18 +627,19 @@ function makeDo($data) {
 /**
  * Wrap all email, so it doesn't go out when testing.
  */
-function rMail($index, $email, $info, $lingo = '') {
-  $info['email'] = $email;
+function rMail($index, $email, $subs, $lingo = '') {
+  global $testEmails;
+  $subs['email'] = $email;
+  $testEmails[] = compact(u\ray('index email subs'));
   if (!isPRODUCTION) if ($email != R_REGION_EMAIL and $email != R_TESTER_EMAIL) $email = 'none@example.com'; // black hole
-  \drupal_mail('rCredits', $index, $email, '', $info);
+  \drupal_mail('rCredits', $index, $email, '', $subs);
 }
 
 /**
- * Email an arbitrary message to the member, now (otherwise use notify).
+ * Email an arbitrary message to the member, NOW (otherwise use notify).
  * @param int $uid: account record ID
  * @param string $index: index to arbitrary HTML message body (between salutation & closing) or the HTML itself
  * @param assoc $subs: message parameters
- * @param bool $now: TRUE to send the email now (otherwise later)
  */
 function message($uid, $index, $subs = array()) {
   $message = u\tt($index, $subs);
@@ -686,7 +690,7 @@ function notify($uid, $index, $subs = array(), $force = FALSE) {
  * @param acct $a: the account that needs a higher minimum
  */
 function suggestMin($a) {
-  $suggested = u\fmtAmt($suggested0 = max(R_BANK_MIN, $a->rewards, (R_SUGGEST_BUMP * $a->minimum) ?: R_MINR_DEFAULT));
+  $suggested = u\fmtAmt($suggested0 = max(R_ACHMIN, $a->rewards, (R_SUGGEST_BUMP * $a->minimum) ?: R_MINR_DEFAULT));
   $a1 = 'a href="' . r\makeDo('op id amount once', 'min', $a->id, $suggested0, TRUE) . '"';
   r\notify($a->id, 'you were short', compact(u\ray('suggested a1')));
 }
@@ -987,6 +991,16 @@ function unQuid($quid, $zid = NULL, $region = NULL) {
  */
 function quid2($uid) {return strstr(quid($uid), R_MEMBER_MARK);}
 
+/**
+ * Accept abbreviations of alphabetic ids for accounts, transactions, and relations
+ * @param string $q: the possibly-abbreviated id
+ * @return: the full id (if $q is numeric or an already-full alphabetic id, return it unchanged)
+ */
+function fullQid($q) {
+  $c1 = substr($q, 0, 1);
+  return strtoupper(($c1 == R_MEMBER_MARK or $c1 == R_AGENT_MARK) ? (R_SERVER_ID . $q) : $q);
+}
+
 function qxid($xid, $regionId = R_SERVER_ID) {return qid($xid, $regionId = R_SERVER_ID, 4);} // Convert xid to qxid
 
 /**
@@ -1117,6 +1131,7 @@ function uniqueName($fullName) {
 
 /**
  * Return the uid for the given qid or (short) name or email.
+ * @todo later: when regional prefix is required for signin, this function will ignore it in matching name field
  * @return the uid (FALSE if unsuccessful)
  */
 function loginString($id) {
@@ -1194,7 +1209,6 @@ function makeDevice($uid, $code = '', $ch = NULL) {
   u\setDft($ch, $channel);
 
   if ($ch == TX_WEB and $mya and $mya->admin) return 0; // don't create spurious devices as admin
-  //die(print_r(compact('code','mya','uid','ch'), 1));
 /*  if ($boxName === '0') {
     $where = "t1.boxName REGEXP '^[0-9]+$' AND t1.uid=:uid";
     $boxName = u\firstUnusedId('boxName', 'r_boxes', 1, PHP_INT_MAX, $where, compact('uid'));
@@ -1309,11 +1323,11 @@ function checkBona($uid) {
  * @return string: the code
  */
 function invite($email, $inviter, $code = '', $subject = '', $message = '') {
-  $code = $code ?: \user_password(20);
+  $code = $code ?: u\code();
   $invited = REQUEST_TIME;
   $info = compact(u\ray('code invited email inviter subject message'));
   db\insert('r_invites', $info);
-  return $info['code'];
+  return $code;
 }
 
 /**
@@ -1327,10 +1341,12 @@ function invite($email, $inviter, $code = '', $subject = '', $message = '') {
 function go($page, $msg = '', $field = '') {
   if (t\est()) {
     global $lastGo; $lastGo = $page; // for testing
+    $_POST = array(); // make sure it doesn't act like we submitted the target page
     if (strpos($page, 'http://') !== FALSE) $page = '';
+    t\output("Going to page $page (page0=$lastGo msg=$msg field=$field)");
     return  t\pageForm($page, $msg, $field);
   }
-  
+
   foreach (u\ray('login signup password reset') as $one) if (strpos($page, "user/$one") !== FALSE) {
     if (\drupal_session_started()) session_destroy();
   }
@@ -1475,6 +1491,14 @@ function stats($ctty = 0, $when = REQUEST_TIME) {
   $keys = db\q("SELECT column_name FROM information_schema.columns WHERE table_name='r_stats'")->fetchCol();
   return array_fill_keys($keys, 0);
 }
+
+/**
+ * Return the amount the community has ever paid out
+ */
+function cttyPaidEver($ctty = 0) {
+  $sum = 'cttyBuys+signups+rebates+bonuss+inflations+refunds+grants+loans+invests+fines+cttyOut';
+  return db\lookup($sum, 'r_stats', 'created=' . strtotime('today'));
+}
   
 /**
  * Calculate and record statistics for the given community.
@@ -1485,86 +1509,113 @@ function stats($ctty = 0, $when = REQUEST_TIME) {
  * @todo: change r field to bal and include replacements for USD
  */
 function getStats($ctty, $created = NULL) {
-  if ($ctty) \variable_set('cttyPaidEver', db\lookup('SUM(amount)', 'r_txs', 'payer=:ctty AND type IN (:TX_TRANSFER, :TX_GRANT, :TX_LOAN, :TX_INVEST, :TX_REFUND)', compact('ctty')));
   u\setDft($created, t\est() ? REQUEST_TIME : time());
   $subs = compact('created', $ctty ? 'ctty' : '');
   list ($cttyCrit, $payerCrit, $cttysCrit) = $ctty ? 
     array('community=:ctty', 'payer=:ctty', '(u.community=:ctty OR u2.community=:ctty)')
   : array('1', 'payer<1', '1');
     
-  // get pAccts, bAccts
+  // get pAccts, bAccts, newbs, savings
+//       SUM(r) AS r, SUM(usd) AS usd, 
   $sql = <<<EOF
-    SELECT SUM(IF(:IS_OK AND NOT :IS_CO, 1, 0)) AS pAccts, 
-      SUM(IF(:IS_OK AND :IS_CO, 1, 0)) AS bAccts,
-      SUM(r) AS r, SUM(usd) AS usd, 
-      SUM(IF(:IS_OK, 0, 1)) AS newbs
-    FROM users WHERE uid NOT IN (0,1) AND $cttyCrit AND created<=:created
+    SELECT SUM(IF(firstTx<:created AND NOT :IS_CO, 1, 0)) AS pAccts, 
+      SUM(IF(firstTx<:created AND :IS_CO, 1, 0)) AS bAccts,
+      SUM(IF(firstTx<:created, 0, 1)) AS newbs,
+      SUM(picture)/100 AS savings
+    FROM users u LEFT JOIN (
+      SELECT payee, MIN(created) AS firstTx
+      FROM r_txs GROUP BY payee
+    ) t ON t.payee=u.uid
+    WHERE uid NOT IN (0,1) AND $cttyCrit AND u.created<:created 
 EOF;
   $result1 = db\q($sql, $subs)->fetchAssoc() ?: array();
 
   // get buyers, sellers
-  $sql = <<<EOF
-    SELECT SUM(IF(:IS_OK AND NOT :IS_CO, 1, 0)) AS pAccts, 
-      SUM(IF(:IS_OK AND :IS_CO, 1, 0)) AS bAccts,
-      SUM(r) AS r, SUM(usd) AS usd, 
-      SUM(IF(:IS_OK, 0, 1)) AS newbs
-    FROM users WHERE uid NOT IN (0,1) AND $cttyCrit AND created<=:created
-EOF;
-  $result1 = db\q($sql, $subs)->fetchAssoc() ?: array();
+  // (@todo?)
     
   $sums = '';
-  foreach (u\ray('transfer signup rebate bonus inflation refund grant loan invest fine') as $one) {
-    $type = u\consta('tx', $one);
-    if ($type == TX_TRANSFER) $type .= " AND $payerCrit AND amount<>0";
+  foreach (u\ray('cttyBuy signup rebate bonus inflation refund grant loan invest fine') as $one) { // fine<=0
+    $type = $one == 'cttyBuy' ? TX_TRANSFER : u\consta('tx', $one);
+/*    if ($type == TX_TRANSFER) $type .= " AND $payerCrit AND amount<>0";
     $value = $type == TX_TRANSFER ? 
         "IF(type=$type AND $payerCrit, amount, 0)" // rCredits issued as ctty purchases
       : "IF(type=$type, amount, 0)";
-    $sums .= "SUM($value) AS `{$one}s`, ";
+*/
+    $sums .= "SUM(IF(type=$type AND $payerCrit, amount, 0)) AS `{$one}s`, ";
   }
   // get purchases, signups, rebates, bonuss, inflations, refunds, grants, loans, investments, fines, shared
+  $cttyInOut = $ctty == 0 ? '' : <<<EOF
+    SUM(IF(u2.community=:ctty AND u.community<>:ctty, amount, 0)) AS cttyIn,
+    SUM(IF(u.community=:ctty AND u2.community<>:ctty, amount, 0)) AS cttyOut,
+EOF;
+    
   $sql = <<<EOF
-    SELECT $sums SUM(IF(channel=:TX_CRON AND payeeFor='sharing rewards with CGF', amount, 0)) AS shared
-    FROM r_txs t LEFT JOIN users u ON t.payer=u.uid LEFT JOIN users u2 ON t.payee=u.uid
-    WHERE $cttysCrit AND t.created<=:created
+    SELECT $sums SUM(IF(channel=:TX_CRON AND payeeFor='sharing rewards with CGF', amount, 0)) AS shared,
+    $cttyInOut
+    SUM(IF(goods, amount, 0)) AS purchases, SUM(IF(payer>1 AND NOT goods, amount, 0)) AS forCashs
+    FROM r_txs t LEFT JOIN users u ON u.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
+    WHERE $cttysCrit AND t.created<:created
 EOF;
   $result2 = db\q($sql, $subs)->fetchAssoc() ?: array();
-  // get r
-  $result2['r'] = array_sum($result2) - $result2['shared'];
 
-  $subs += u\ray('monthAgo', strtotime('-1 month', $created));
+  // get r
+  $result2['r'] = array_sum($result2) - $result2['shared'] - $result2['purchases'] - $result2['forCashs'];
+  $result2['r'] -= 2 * @$result2['cttyOut'];
+
+  // get usd, modify r
+  
+  $cttyInOut = $ctty == 0 ? '' : <<<EOF
+    SUM(IF(u.community=:ctty AND t.payee NOT IN (-1,0), amount, 0)) AS usd2r,
+    SUM(IF(u2.community=:ctty, amount, 0)) AS r2usd,
+EOF;
+
+  $sql = <<<EOF
+    SELECT
+    $cttyInOut
+    SUM(IF(t.payee=0, -amount, 0)) AS usd,
+    SUM(IF(t.payee=-1, amount, 0)) AS fees
+    FROM r_usd t LEFT JOIN users u ON u.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
+    WHERE $cttysCrit AND t.completed AND t.completed<:created
+EOF;
+  $usdResult = db\q($sql, $subs)->fetchAssoc() ?: array();
+  $usdNetIn = @$usdResult['r2usd'] - @$usdResult['usd2r'];
+  $result2['usd'] = $usdResult['usd'] + $usdNetIn - $usdResult['fees'];
+  $result2['r'] -= $usdNetIn;
+///  debug(compact('ctty','result2','usdResult'));
+
   // get perMo, txsPerMo, p2b(Txs)PerMo, b2b(Txs)PerMo, b2p(Txs)PerMo, cash(Txs)PerMo
+  $subs += u\ray('monthAgo', strtotime('-1 month', $created));
+
   $sql = <<<EOF
     SELECT 
     SUM(IF(goods, amount, 0)) AS perMo,
     SUM(IF(goods AND NOT u.:IS_CO AND u2.:IS_CO, amount, 0)) AS p2bPerMo,
     SUM(IF(goods AND u.:IS_CO AND u2.:IS_CO, amount, 0)) AS b2bPerMo,
     SUM(IF(goods AND u.:IS_CO AND NOT u2.:IS_CO, amount, 0)) AS b2pPerMo,
-    SUM(IF(amount<>0 AND NOT goods, amount, 0)) AS cashPerMo,
+    SUM(IF(goods, 0, amount)) AS cashPerMo,
 
     SUM(IF(goods, 1, 0)) AS txsPerMo,
     SUM(IF(goods AND NOT u.:IS_CO AND u2.:IS_CO, 1, 0)) AS p2bTxsPerMo,
     SUM(IF(goods AND u.:IS_CO AND u2.:IS_CO, 1, 0)) AS b2bTxsPerMo,
     SUM(IF(goods AND u.:IS_CO AND NOT u2.:IS_CO, 1, 0)) AS b2pTxsPerMo,
-    SUM(IF(amount<>0 AND NOT goods, 1, 0)) AS cashTxsPerMo
+    SUM(IF(NOT goods, 1, 0)) AS cashTxsPerMo
 
     FROM r_txs t LEFT JOIN users u ON u.uid=t.payer LEFT JOIN users u2 ON u2.uid=t.payee
-    WHERE $cttysCrit AND t.created>:monthAgo AND t.created<=:created
+    WHERE $cttysCrit AND t.created>:monthAgo AND t.created<:created
 EOF;
   $result3 = db\q($sql, $subs)->fetchAssoc() ?: array();
 
-  // get bankIn(Txs)PerMo, bankOut(Txs)PerMo, xch(Txs)PerMo
+  // get bankIn(Txs)PerMo, bankOut(Txs)PerMo
   $sql = <<<EOF
     SELECT SUM(IF(amount<0, -amount, 0)) AS bankInPerMo,
     SUM(IF(amount<0, 0, amount)) AS bankOutPerMo,
-    SUM(IF(payee>0, amount, 0)) AS xchPerMo,
     
     SUM(IF(amount<0, 1, 0)) AS bankInTxsPerMo,
-    SUM(IF(amount<0, 0, 1)) AS bankOutTxsPerMo,
-    SUM(IF(payee>0, 1, 0)) AS xchTxsPerMo
+    SUM(IF(amount<0, 0, 1)) AS bankOutTxsPerMo
 
     FROM r_usd t LEFT JOIN users u ON t.payer=u.uid
     WHERE $cttyCrit AND t.completed AND t.payee=0
-    AND completed<=:created AND :monthAgo>0
+    AND completed<:created AND :monthAgo>0
 EOF;
   $usdResult = db\q($sql, $subs)->fetchAssoc() ?: array(); // "AND :monthAgo>0" just to match sub count
   $result4 = db\q($sql . ' AND completed>:monthAgo', $subs)->fetchAssoc() ?: array();
@@ -1581,13 +1632,14 @@ EOF;
  * @param int $uid: account id (can be a community or region too)
  * @param int $start: starting date (should be 0 hours) -- first full day to include in the period
  * @param int $end: ending date (should be 0 hours) -- last full day to include in the period
- * @param float $days: number of days from start to end, inclusive
+ * @param float $min: minimum end-of-day balance in the period
+ * @param float $days: (RETURNED) (UNUSED) number of days from start to end, inclusive
  * @return float: the average balance for that period (possibly with fractional cents)
  */
-function averageBalance($uid, $start, $end = REQUEST_TIME, &$days = '') {
+function averageBalance($uid, $start, $end = REQUEST_TIME, &$min = '', &$days = '') {
   //u\EXPECT($uid > 1, 'bad uid for avg');
   $days = round(($end + 1 - $start) / DAY_SECS); // rounding is for daylight savings time changes
-  $bal = be\creditInfo(u\ray('uid asof', $uid, $start))->balance;
+  $min = $bal = be\creditInfo(u\ray('uid asof', $uid, $start))->balance;
   $day = 0;
   $avg = 0;
   $sql = <<<EOF
@@ -1606,10 +1658,12 @@ EOF;
     $avg += $bal * ($day - $dayx) / $days;
 ///debug(compact('uid','day','dayx','bal','avg','total'));
     $bal += $total;
+    $min = min($min, $bal);
   }
   $dayx = $day;
   $day = round(($end - $start) / DAY_SECS); // end of period
   $avg += $bal * ($day - $dayx) / $days;
+  $min = round($min, 2);
 ///debug(compact('uid','day','dayx','bal','avg'));
 
   return $avg; // average end-of-day balance
@@ -1624,12 +1678,12 @@ EOF;
  * @return [message, subs, confirmed] on error, else false
  */
 function txPermErr($a1, $a2, $taking = TRUE, $neg = FALSE) {
-  u\EXPECT($taking or !$neg, 'paying neg');
   global $scanned;
   if (!$a2->ok) return array('non member', u\ray('otherName', $a2->fullName), FALSE);
-  list ($myAccess, $otherAccess) = u\order($taking xor $neg, $scanned ? B_SCAN : B_SELL, $scanned ? B_REFUND : B_BUY);
+  list ($myAccess, $otherAccess) = u\order($taking xor $neg, B_SELL, B_BUY);
   //list ($myAccessErr, $otherAccessErr) = u\order($taking, 'sell', 'buy');
-  list ($myWhat, $otherWhat) = u\order($taking xor $neg, 'sales', $scanned ? 'refunds' : 'purchases');
+  list ($myWhat, $otherWhat) = u\order($taking xor $neg, t('sales'), t('purchases'));
+  if ($scanned and $taking) list ($myAccess, $myWhat) = $neg ? array(B_REFUND, t('refunds')) : array(B_SCAN, t('sales'));
 ///  debug(compact(u\ray('taking neg scanned myAccess otherAccess myWhat otherWhat')));
   if (!$a1->can($myAccess)) return array("no perm", u\ray('what', $myWhat), FALSE);
   if (!$a2->can($otherAccess)) return array("other no perm", u\ray('otherName what', $a2->agent->fullName, $otherWhat), FALSE);
@@ -1767,20 +1821,6 @@ function up($up = NULL) {
   if (is_null($up)) return \variable_get('up', TRUE);
   u\log('System is ' . ($up ? 'UP' : 'DOWN'));
   return \variable_set('up', $up);
-}
-
-/**
- * Set new values in the data field of a record.
- * @param string $table: what record the table is in
- * @param string $id: the record ID
- * @param assoc $values: values to add to the data field in that record
- */
-function setData($table, $id, $values) {
-  $keys = u\ray('users r_txs r_invoices', 'uid', 'xid', 'nvid');
-  $key = $keys[$table];
-  u\EXPECT($key, 'bad table');
-  $data = $values + (db\lookup('data', $table, "$key=:id", compact('id')) ?: array());
-  return $table == 'users' ? r\acct($id)->update(compact('data')) : db\update($table, compact('data'));
 }
 
 /**

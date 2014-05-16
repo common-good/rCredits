@@ -48,7 +48,7 @@ Setup:
   | .ZZA |     266 |  166 |
   | .ZZB |     479 |  279 |
   | .ZZC |     623 |  323 |
-  Given cron runs "stats"
+  Given cron runs "acctStats"
 
 Scenario: A member clicks on the summary tab
   When member ".ZZA" visits page "summary"

@@ -38,3 +38,4 @@ define('R_DEBT_PERCENT', 1.5); // percentage fee for overdue reserve credit
 define('R_DEBT_DAYS', 30); // how long to pay back reserve credit
 define('R_STATEMENT_COST', 10); // how much member must pay (in rCredits dollars) for monthly and annual statements by mail
 define('R_INFLATION_RATE', .05); // annual USD inflation rate (but never less than zero) (extra big is okay)
+define('R_LAUNCH', strtotime('12/15/2013'));

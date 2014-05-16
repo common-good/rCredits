@@ -4786,12 +4786,17 @@ STs[1059] = 'AE';
 STs[1060] = 'AA';
 STs[1061] = 'AP';
 
+$ = jQuery;
+
+var USID = cs.indexOf('United States');
+var MAID = STs.indexOf('MA');
+
 function print_country(dft_country, dft_state){
   if (dft_country == "") {
-    dft_country = 1228; // 1228 is US
-    dft_state = 1020; // 1020 is MA
+    dft_country = USID; // 1228 is US
+    dft_state = 0; // 1020 is MA
   }
-  var options = document.getElementById('edit-country');
+  var options = $('#edit-country')[0];
   options.length=0; // zap any previous list items
   var x, i = 0;
   for(x in cs) {
@@ -4803,12 +4808,49 @@ function print_country(dft_country, dft_state){
 }
 
 function print_state(ci, dft_state){
-  var options = document.getElementById('edit-state');
+  var options = $('#edit-state')[0];
   options.length=0; // zap any previous list items
   var x, i = 0;
+  if (dft_state == 0) {options.options[i] = new Option('---', 0); i++;}
   for(x in ss[ci]) {
     options.options[i] = new Option(ss[ci][x], x);
     if (dft_state == x) options.selectedIndex = i;
     i++;
   }
 }
+
+function setPostalAddr() {
+	var country = $('#edit-country').val();
+	var state = $('#edit-state').val();
+	var city = $('#edit-city').val();
+	var address = $('#edit-address').val();
+	var postalCode = $('#edit-postalcode').val();
+	var postalAddr = $('#edit-postaladdr');
+	if (address != '' && postalCode != '' && city != '' && state != 0 && postalAddr.val() == '') {
+	  postalAddr.val(address + ', ' + city + ', ' + (country==USID ? STs[state] : ss[country][state]) + ' ' + postalCode + (country==USID ? '' : (' ' + cs[country])));
+	} // postalAddr.attr('selectionEnd',0); fails
+}
+
+function zipChange(z3s) {
+//    $.zipLookupSettings.libDirPath = 'http://ziplookup.googlecode.com/git/public/ziplookup/'; 
+    $.zipLookupSettings.libDirPath = '../sites/all/modules/rcredits/inc/'; 
+    $.zipLookup(
+      $('#edit-postalcode').val(),
+      function(cityName, stateName, stateShortName){ // success
+        $('#edit-city').val(cityName);
+//        $('#edit-state').val(stateName);
+//        $('#edit-state').val(stateShortName);
+        $('#edit-state').val(STs.indexOf(stateShortName));
+//        $('.message').html("Found Zipcode");
+      },
+      function(errMsg){ // zip couldn't be found,
+//	  alert(errMsg);
+//          $('.message').html("Error: " + errMsg);
+      }
+    );
+
+  var z3=$('#edit-postalcode').val().substr(0, 3);
+  if (z3s.indexOf(z3) >= 0) $('#edit-buysat').show();
+  setPostalAddr();
+}
+

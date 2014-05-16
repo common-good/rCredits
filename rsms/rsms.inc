@@ -36,7 +36,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'other community down' => t('That rCredits community is temporarily on hold.'),
   'account info' => t("Your balance for account @quid is @balance, including @rewards of incentive rewards. Total demand for rCredits is @totalDemand."),
 //  'account info2' => t("More account info"), // not used yet
-  'your account is ready' => t('Your starting balance is @balance. Pretend to buy and sell as you would in a typical month (we need that info). Have fun! Type "helpme" to get started.'), // separate out the last sentence
+//  'your account is ready' => t('Your starting balance is @balance. Pretend to buy and sell as you would in a typical month (we need that info). Have fun! Type "helpme" to get started.'), // separate out the last sentence
   'report transaction' => t("You @did @otherName @amount (@rewardType: @rewardAmount)."),
   'report offer' => t("You offered @otherName @amount (@rewardType: @rewardAmount). Your balance is unchanged, pending acceptance."), //  Transaction #@tid
   'report invoice' => t("You @did @otherName @amount. Your balance is unchanged, pending payment."), // Invoice #@tid
@@ -69,6 +69,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'approved' => t('Your account has been approved! You may now buy and sell through the rCredits system, including using your rCard for purchases at member businesses.'),
   'got funding' => t('You have received a payment of @amount from your rCredits community for @purpose.'),
   'got fine' => t('Your rCredits community charged you a fee of @amount for @purpose.'),
+  'inflation details' => t('Inflation adjustment is set at 5% APR pending a reliable measure of the true inflation rate.'),
   'gift sent' => t('Your chosen gift of @amount to Common Good Finance has gone through. Your rebate is @rewardAmount.'),
   'tx summary' => t('@otherName @otherDid you @amount for "@purpose" on @created.'),
   'share gift' => t('Your chosen ongoing gift of @share% of your rewards has been initiated for this month.'),
@@ -80,7 +81,34 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'call bank' => t('Remember to call your bank @when and ask them for the two tiny deposit amounts to your account (both under 20 cents). Then sign in to your account and follow the links to enter those amounts, so we can send you your rCard!'),
   'do step one' => t('Remember to sign back in to rCredits, to complete your account setup (you have several steps left to go).'),
   'take another step' => t('Your rCredits account setup is not yet complete!'),
-  'sign in' => t('Go to rCredits.org, click "Members\' Site", then sign in with your username and password.'),
+  'sign in' => t('Go to rCredits.org and click "Sign in" in the upper right corner.'),
+  'reward' => t('Your @rewardType is @rewardAmount.'),
+  'reward other' => t('Your @otherRewardType is @otherRewardAmount.'),
+  'new charge' => t('<b>Charge:</b> @otherName charged you @amount for "@payerPurpose".'),
+  'new refund' => t('<b>Refund:</b> @otherName refunded you @amount for "@payerPurpose".'),
+  'new payment' => t('<b>Payment:</b> @otherName paid you @amount for "@payeePurpose".'),
+  'new invoice' => t('<b>Invoice:</b> @otherName invoiced you @amount for "@purpose". To pay (or deny) this invoice, go to rCredits.org, click "Members\' Site" and sign in.'),
+//  'new invoice' => t('<b>Invoice:</b> @otherName invoiced you @amount for "@purpose". To pay (or deny) this invoice, <@a>click here</a>.'),
+  'invoice denied' => t('<p><b>Invoice DENIED:</b> Your customer @otherName has declined to pay the following invoice:</p>
+  <blockquote>@created @amount for "@payerPurpose"</blockquote>
+  <p>You may want to contact the customer directly, to resolve any dispute.</p>'),
+  'charge disputed' => t('<p><b>Charge DISPUTED:</b> Your customer @otherName disputes the following charge:</p>
+  <blockquote>@created @amount for "@payeePurpose"</blockquote>
+  <p>You may want to contact the customer directly, to resolve this dispute.</p>'),
+  'invoice canceled' => t('<p><b>Invoice CANCELED:</b> Your invoice from @otherName has been canceled:</p>
+  <blockquote>@created @amount for "@payerPurpose"</blockquote>
+  <p>This invoice will no longer appear in your list of transactions.'),
+  'offer refused' => t('@otherName has declined to accept your @created offer of @amount for "@payerPurpose".'),
+  'offer canceled' => t('NYI'),
+  'over max' => t('Your balance is over the maximum you set.'),
+  'under min' => t('Your balance has fallen below the minimum you set.'),
+  'banked' => t('A request has been made to @action your bank a total of @amount. This request may take up to 5 days to go through.'),
+  'drew' => t('A total of @amount has been drawn from your connected account(s).'),
+  'payment exchange received' => t('You received from @fullName a payment exchange of @amount -- that is, you traded that much US Dollars for rCredits, receiving a bonus of @bonus on the exchange.'),
+  'payment exchanges offered' => t('You made payment exchanges to @offers @whom, totaling @total.'),
+  'card ordered' => t('A Company Agent rCard will be US mailed to @name.'),
+  'balances' => t('Your balance available to spend is @toSpend. You can move up to @toCash today to your bank account.'),
+  'you sold out' => t('This week you traded @total worth of rCredits for US Dollars, missing an opportunity for @rebates worth of rebates. To keep this from happening so much, <@a1>click here</a> to change your settings to the recommended minimum balance of @suggested.'),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),
@@ -172,10 +200,10 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'no buyers' => t('Uh oh. Nobody wants to buy rCredits. Needed: $@amount.'),
   'usd account taken' => t('That Dwolla account number is already used by rCredits account #@other.'),
   'bad phone code' => t('That is not the correct verification code.'),
-
   'cannot offload' => t('A temporary technical problem prevented some of your excess rCredits from being exchanged for US Dollars. The system will try again tomorrow.'),
   'usd failed' => t('A temporary technical problem prevented the transfer of US Dollars. No transaction took place.'),
   'cannot bank' => t('The rCredits system was unable to @action your bank: @error'),
+  'cannot draw' => t('But the rCredits system was unable to draw from your connected account(s).'),
   'no source' => t('there is no valid funding source'),
   'not verified' => t('you have not yet verified the connection to your bank account. Check your bank statement online or call your bank (2-5 days after giving your routing and account numbers). There will be two small deposits made to your account, each less than @DW_VERIFY_ROOF cents. Go back to rCredits.org, click "Members\' Site", sign in, then follow the instructions there to supply those two deposit amounts.'),
   'agreement required' => t('You must agree to Dwolla\'s terms of service or you cannot participate in the rCredits system.'),
@@ -183,41 +211,6 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'date too early' => t('That date is too early.'),
   'date too late' => t('That date is too late.'),
 
-  'reward' => t('Your @rewardType is @rewardAmount.'),
-  'reward other' => t('Your @otherRewardType is @otherRewardAmount.'),
-  'new charge' => t('<b>Charge:</b> @otherName charged you @amount for "@payerPurpose".'),
-  'new refund' => t('<b>Refund:</b> @otherName refunded you @amount for "@payerPurpose".'),
-  'new payment' => t('<b>Payment:</b> @otherName paid you @amount for "@payeePurpose".'),
-  'new invoice' => t('<b>Invoice:</b> @otherName invoiced you @amount for "@purpose". To pay (or deny) this invoice, go to rCredits.org, click "Members\' Site" and sign in.'),
-//  'new invoice' => t('<b>Invoice:</b> @otherName invoiced you @amount for "@purpose". To pay (or deny) this invoice, <@a>click here</a>.'),
-  'invoice denied' => t('<p><b>Invoice DENIED:</b> Your customer @otherName has declined to pay the following invoice:</p>
-  <blockquote>@created @amount for "@payerPurpose"</blockquote>
-  <p>You may want to contact the customer directly, to resolve any dispute.</p>'),
-  'charge disputed' => t('<p><b>Charge DISPUTED:</b> Your customer @otherName disputes the following charge:</p>
-  <blockquote>@created @amount for "@payeePurpose"</blockquote>
-  <p>You may want to contact the customer directly, to resolve this dispute.</p>'),
-  'invoice canceled' => t('<p><b>Invoice CANCELED:</b> Your invoice from @otherName has been canceled:</p>
-  <blockquote>@created @amount for "@payerPurpose"</blockquote>
-  <p>This invoice will no longer appear in your list of transactions.'),
-  'offer refused' => t('@otherName has declined to accept your @created offer of @amount for "@payerPurpose".'),
-  'offer canceled' => t('NYI'),
-  'over max' => t('Your balance is over the maximum you set.'),
-  'under min' => t('Your balance has fallen below the minimum you set.'),
-  'banked' => t('A request has been made to @action your bank a total of @amount. This request may take up to 5 days to go through.'),
-  'payment exchange received' => t('You received from @fullName a payment exchange of @amount -- that is, you traded that much US Dollars for rCredits, receiving a bonus of @bonus on the exchange.'),
-  'payment exchanges offered' => t('You made payment exchanges to @offers @whom, totaling @total.'),
-  'card ordered' => t('A Company Agent rCard will be US mailed to @name.'),
-  'balances' => t('Your balance available to spend is @toSpend. You can move up to @toCash today to your bank account.'),
-  'you sold out' => t('This week you traded @total worth of rCredits for US Dollars, missing an opportunity for @rebates worth of rebates. To keep this from happening so much, <@a1>click here</a> to change your settings to the recommended minimum balance of @suggested.'),
-  'restricted' => t('You are not authorized to use this device.'),
-  'cannot create account' => t('An error is preventing your account from being created.'),
-  'wrong pin' => t('That is not your PIN.'),
-  'wrong answer' => t('That is the wrong answer.'),
-  'bad url' => t('That is not a valid URL.'),
-  'no charging' => t('Invoicing another member is not permitted at this time.'),
-  'community not active' => t('@whose rCredits community is not yet operational, so your request cannot be completed at this time.'),
-  'duplicate transaction' => t('You already just @op this member that very amount. If you really want to do it again, wait a minute or charge a different amount.'),
-  
   // notices to staff
   'cache mismatch' => 'Cron cache mismatch: @key=@is (cache) <> @shouldBe (calc)',
   'not enough usd' => 'Not enough usd (@usd) to send @need.',

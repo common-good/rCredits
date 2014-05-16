@@ -59,7 +59,7 @@ use rCredits\Backend as be;
 
 include_once __DIR__ . '/../usd.class';
 
-define('R_DAILY_TASKS', 'START usdTxsThere recache checkAccts stats tickle lessOften gifts homogenize pool bank notices END');
+define('R_DAILY_TASKS', 'START usdTxsThere recache checkAccts acctStats cttyStats tickle lessOften gifts homogenize pool bank notices END');
 //define ('R_DAILY_TASKS', 'START redistribute END');
 
 /**
@@ -115,27 +115,46 @@ function everyDay() {
  * Do things a certain number of days after the created, signed, invite, last login, or last access date:
  */
 function tickle() {
-  $fibonacci = '1,2,3,5,8,13,21,34,55,89'; // Fibonacci progression of delays
+  $delays = '1,2,3,5,8,13,21,34,55,89,144'; // Fibonacci progression of delays for account opening
   $elapsed = '(FLOOR((:REQUEST_TIME-access)/:DAY_SECS)+1)';
-  $sql = "SELECT uid, 'access' AS `type`, $elapsed AS elapsed FROM users WHERE $elapsed IN ($fibonacci) AND uid>1";
-  queueEach('tickle1', $sql); // make this IS_MEMBER if early gift
+  $sql = "SELECT uid, $elapsed AS elapsed FROM users WHERE $elapsed IN ($delays) AND uid>1 AND NOT :IS_NONUDGE";
+  queueEach('tickleStep', $sql);
+
+  $delays = '3,8,21';
+  $elapsed = str_replace('access', 'invited', $elapsed);
+  $sql = <<<EOF
+    SELECT email, inviter, code, $elapsed AS elapsed FROM r_invites i
+    LEFT JOIN users u ON u.mail=i.email
+    WHERE $elapsed IN ($delays) AND u.uid IS NULL AND invitee=0
+EOF;
+  queueEach('tickleSignup', $sql);
   queueNextAfter('tickle');
 }
 
-function tickle1($item) {
-  extract(u\just('uid type elapsed', $item));
+function tickleStep($item) {
+  extract(u\just('uid elapsed', $item));
   $a = r\acct($uid);
-  if (!$a->member) {
-    $step = $a->nextStep();
-    $msg = $step == 'verify' ? 'call bank' : ($step == 'sign' ? 'do step one' : 'take another step');
-    $when = $elapsed < 3 ? t('tomorrow (how about 10am?)') : t('between 9am and 4pm today'); // for verify
+  if (!$a->member and $step = $a->nextStep()) {
+    $msg = $step == 'verify' ? 'call bank' : (($step == 'sign' or $step == 'contact') ? 'do step one' : 'take another step');
+    $when = $elapsed < 3 ? 
+      (u\nextBusDay(+1) . t(' (how about 10am?)'))
+    : (u\nextBusDay(0) . t(' between 9am and 4pm')); // for verify
     if ($step != 'verify' or $elapsed > 1) r\notify($a->id, "$msg|sign in", compact('when'));
-  }
-  if (!$a->ok) {
+  } elseif (!$a->ok) {
     return r\tellStaff('activate account', '', $a->uid);
   }
 }
 
+function tickleSignup($item) {
+  global $base_url;
+  extract(u\just('email inviter code elapsed', $item));
+  $inviterName = r\acct($inviter)->fullName;
+  $count = $elapsed < 7 ? t('two') : ($elapsed < 14 ? t('one') : 0);
+  $nudge = $count ? u\tt("We will send you just @count more reminder(s)", compact('count')) : t('This is your last reminder');
+  r\rMail('nonmember', $email, u\ray('inviterName nudge code noFrame', $inviterName, $nudge, $code, TRUE));
+}
+
+ 
 /**
  * Do periodic activities where the period is longer than a day.
  */
@@ -279,7 +298,7 @@ function usdTxsThereEND() {queueNextAfter('usdTxsThere');}
 function usdTxThere($item) {
   $uid = $item['uid'];
   if (t\est() and realId($uid)) return; // ignore real accounts in tests
-  $usAcct = new r\usd($acct = r\acct($uid));
+  $usAcct = new r\usd($a = r\acct($uid));
   $since = strtotime(R_ANCIENT_EFT. ' days ago'); // bank transfers sometimes take many days
   $usAcct->each('rCredits\\Cron\\usdTxQ', $since, u\ray('money_sent deposit withdrawal'));
 }
@@ -329,9 +348,9 @@ function recache() {
 function recache1($item) {
   extract($item);
   if (t\est() and realId($uid)) return; // ignore real accounts in tests
-  $acct = r\acct($uid);
-  $acct->cacheOk();
-  //$acct->update(compact(array_keys($item)));
+  $a = r\acct($uid);
+  $a->cacheOk();
+  //$a->update(compact(array_keys($item)));
 }
 
 /**
@@ -350,30 +369,31 @@ function checkAcct($item) {
 }
 
 /**
- * Update system-wide and community-wide stats and individual user status
+ * Update individual account stats
  */
-function stats() {
-  queueEach('stats1', 'SELECT uid FROM users WHERE uid>1 AND :IS_OK');
-  r\getStats(0); // all communities
-  r\getStats(r\serverUid()); // just one community
-  queueNextAfter('stats');
+function acctStats() {
+  db\q('UPDATE users SET picture=0'); // clear temp field
+  queueEach('acctStats1', 'SELECT uid FROM users WHERE uid>1 AND :IS_OK');
+  queueNextAfter('acctStats');
 }
 
 /**
  * Update stats for one account.
+ * data[stats] will be an assoc: [avgBalPastMo, avgBalEver, minPastMo]
+ * picture (an otherwise unused field) will be minPastMo in cents (ready for r\stats to SUM)
  */
-function stats1($item) {
-  extract(u\just('uid', $item));
+function acctStats1($item, $asof = REQUEST_TIME) {
+  extract(u\just('uid asof', $item));
   $a = r\acct($uid);
-  $today = strtotime('today');
-  $monthAgo = strtotime('-1 month', $today);
-  $avgBalPastMo = @round(r\averageBalance($uid, $monthAgo, $today), 2);
-  $avgBalEver = @round(r\averageBalance($uid, strtotime('today', $a->created), $today), 2);
-  $subs = compact('uid', 'monthAgo');
+  $asof = strtotime('today', $asof);
+  $monthAgo = strtotime('-1 month', $asof);
+  $avgBalPastMo = @round(r\averageBalance($uid, $monthAgo, $asof, $minPastMo), 2);
+  $avgBalEver = @round(r\averageBalance($uid, strtotime('today', $a->created), $asof), 2);
+  $subs = compact('uid', 'monthAgo', 'asof');
   
   $sql = <<<EOF
     SELECT SUM(amount) AS giftsEver, SUM(IF(completed<:monthAgo, 0, amount)) AS giftsPastMo
-    FROM r_gifts WHERE uid=:uid AND completed
+    FROM r_gifts WHERE uid=:uid AND completed AND completed<:asof
 EOF;
   $row1 = db\q($sql, $subs)->fetchAssoc() ?: array(); // giftsEver, giftsPastMo
   
@@ -382,17 +402,31 @@ EOF;
     SUM(IF(type IN (:TX_REBATE,:TX_BONUS) AND created>=:monthAgo, amount, 0)) AS benePastMo,
     SUM(IF(type IN (:TX_SIGNUP,:TX_INFLATION,:TX_GRANT), amount, 0)) AS extraEver,
     SUM(IF(type IN (:TX_SIGNUP,:TX_INFLATION,:TX_GRANT) AND created>=:monthAgo, amount, 0)) AS extraPastMo
-    FROM r_txs WHERE payee=:uid
+    FROM r_txs WHERE payee=:uid AND created<:asof
 EOF;
   $row2 = db\q($sql, $subs)->fetchAssoc() ?: array(); // get beneEver, benePastMo
   
   $sql = <<<EOF
     SELECT SUM(amount) AS bankedEver, SUM(IF(completed<:monthAgo, 0, amount)) AS bankedPastMo
-    FROM r_usd WHERE payer=:uid AND completed
+    FROM r_usd WHERE payer=:uid AND completed AND completed<:asof
 EOF;
   $row3 = db\q($sql, $subs)->fetchAssoc() ?: array(); // get bankedEver, bankedPastMo
-  $newData = compact(u\ray('avgBalPastMo avgBalEver'));
-  $a->update(u\ray('stats', $row1 + $row2 + $row3 + $newData));
+  $newData = compact(u\ray('avgBalPastMo avgBalEver minPastMo'));
+  $a->update(u\ray('stats picture', $row1 + $row2 + $row3 + $newData, $minPastMo * 100));
+}
+
+/**
+ * Update system-wide and community-wide stats
+ */
+function cttyStats() {
+  r\getStats(0); // for all our communities at once
+  queueEach('cttyStats1', 'SELECT DISTINCT community AS ctty FROM users WHERE community IS NOT NULL');
+  queueNextAfter('cttyStats');
+}
+
+function cttyStats1($item) {
+  extract(u\just('ctty', $item));
+  r\getStats($ctty); // record stats for one community on the regional server
 }
 
 /**
@@ -475,40 +509,61 @@ function bank() {
   WHERE :R_SHORTFALL>0 AND uid>1 AND :IS_OK AND :IS_DW
 EOF;
   queueEach('bank1', $sql);
+  
+  $sql = <<<EOF
+  SELECT uid, :R_SHORTFALL AS shortfall, r.main as ma
+  FROM users u INNER JOIN r_relations r ON r.other=u.uid
+  WHERE :R_SHORTFALL>0 AND uid>1 AND :IS_OK AND NOT :IS_DW AND r.draw
+EOF;
+  queueEach('draw1', $sql);
   queueNextAfter('bank');
 }
 
 function bank1($item) {
   extract(u\just('uid shortfall', $item));
-  $acct = r\acct($uid);
-  if (!$amount = toBank(-$shortfall, $acct)) return;
+  $a = r\acct($uid);
+  if (!$amount = toBank(-$shortfall, $a)) return;
   $action = 'draw from';
-  $usAcct = new r\usd($acct);
+  $usAcct = new r\usd($a);
 
   if ($usAcct->bank($amount, $error)) {
     $amount = u\fmtAmt(abs(@$amount));
     r\notify($uid, 'under min|banked', compact(u\ray('action amount')));
-  } elseif (REQUEST_TIME - $acct->created > 3 * DAY_SECS) r\notify($uid, 'cannot bank', compact('action', 'error'));
+  } elseif (REQUEST_TIME - $a->created > 3 * DAY_SECS) r\notify($uid, 'cannot bank', compact('action', 'error'));
+}
+
+function draw1($item) {
+  extract(u\just('uid shortfall ma', $item));
+  $a = r\acct($uid);
+  if (!$amount = toBank(-$shortfall, $a, FALSE)) return;
+
+  if ($a->draw('cash', abs($amount))) {
+    $amount = u\fmtAmt(abs(@$amount));
+    r\notify($uid, 'under min|drew', compact('amount'));
+  } else r\notify($uid, 'under min|cannot draw');
 }
 
 /**
  * Given a desired amount to transfer to the bank, return the amount to actually transfer.
  * @param float $amount: the amount wanting to go to or (if negative) from the bank
- * @param acct $acct: which account
- * @return: the amount to deposit or (if negative) withdraw (zero if none).
+ * @param acct $a: which account
+ * @param bool $banky: the account has a connected bank account
+ * @return: the amount to deposit or (if negative (UNUSED)) withdraw (zero if none).
  */
-function toBank($amount, $acct) {
-  $waiting = $acct->waitingToBank(); // amount already requested (if any)
-/*  if ($waiting * $amount < 0) { // flip flop -- user could choose better settings (but continue anyway)
-    $suggestion = u\fmtAmt(round($acct->minimum + max($acct->minimum * .2, 50, abs($amount), abs($waiting)), -1));
-    r\suggest($acct, 'min too low', compact('suggestion'));
-  } */
-  $amount -= $waiting;
-  return $amount < 0 ? R_BANK_MIN * floor($amount / R_BANK_MIN) : 0;
+function toBank($amount, $a, $banky = TRUE) {
+  if ($banky) {
+    $waiting = $a->waitingToBank(); // amount already requested (if any)
+  /*  if ($waiting * $amount < 0) { // flip flop -- user could choose better settings (but continue anyway)
+      $suggestion = u\fmtAmt(round($a->minimum + max($a->minimum * .2, 50, abs($amount), abs($waiting)), -1));
+      r\suggest($a, 'min too low', compact('suggestion'));
+    } */
+    $amount -= $waiting;
+  }
+  return $amount < 0 ? min(-$a->achMin, R_ACHMIN * floor($amount / R_ACHMIN)) : 0;
 /*  if ($amount > 0) { // excess
-    return $amount >= R_BANK_MIN ? $amount : 0;
+    return $amount >= $a->achMin ? $amount : 0;
   } elseif ($amount < 0) { // shortfall
-    return min($amount, -R_BANK_MIN);
+    return min($amount, -$a->achMin);
   } else return 0; */
 }
 
@@ -516,23 +571,27 @@ function toBank($amount, $acct) {
  * Send daily, weekly, or monthly message digests. (Newbies are always daily)
  */
 function notices() {
-  $weekly = (strftime('%A') == R_WEEKLY_DAY);
-  $monthly = (strftime('%d') == R_MONTHLY_DAY);
-  $where = $dailySql = '((NOT :IS_NOTICE_WEEKLY AND NOT :IS_NOTICE_MONTHLY) OR NOT :IS_MEMBER)';
+  global $timeFor;
+  $weekly = (strftime('%A') == R_WEEKLY_DAY or @$timeFor['weekly']);
+  $monthly = (strftime('%d') == R_MONTHLY_DAY or @$timeFor['monthly']);
+
+  $where = $dailySql = '((NOT :IS_NOTICE_WEEKLY AND NOT :IS_NOTICE_MONTHLY) OR NOT :IS_MEMBER)'; // daily
   if ($weekly) $where .= ' OR :IS_NOTICE_WEEKLY';
   if ($monthly) $where .= ' OR :IS_NOTICE_MONTHLY';
-  $sql = "SELECT DISTINCT u.uid, :IS_NOTICE_WEEKLY AS weekly, :IS_NOTICE_MONTHLY AS monthly, $dailySql AS daily FROM r_notices n JOIN users u ON u.uid=n.uid WHERE NOT sent AND ($where)";
+  $sql = "SELECT DISTINCT u.uid, :IS_NOTICE_WEEKLY AS weekly, :IS_NOTICE_MONTHLY AS monthly FROM r_notices n JOIN users u ON u.uid=n.uid WHERE NOT sent AND ($where)";
   queueEach('notice', $sql);
   queueNextAfter('notices');
 }
 
 function notice($item) {
   extract(u\just('uid daily weekly monthly', $item));
+
   $a = r\acct($uid);
   $result = db\q('SELECT message, created FROM r_notices WHERE uid=:uid AND NOT sent', compact('uid'));
   $messages = '';
+
   while ($row = $result->fetch()) {
-    $date = $daily ? '' : (strftime('%b %d', $row->created) . ': ');
+    $date = ($weekly or $monthly) ? (strftime('%b %d', $row->created) . ': ') : '';
     $messages .= "<li>$date$row->message</li>\n";
   }
   if ($messages) {
@@ -568,15 +627,15 @@ function queueNextAfter($task) {
   } else r\queue($tasks[array_search($task, $tasks) + 1]);
 }
 
-function paymentExchangeError($acct1, $acct2) {
-  paymentExchangeError1($acct1, 'to', $acct2);
-  paymentExchangeError1($acct2, 'from', $acct1);
+function paymentExchangeError($a1, $a2) {
+  paymentExchangeError1($a1, 'to', $a2);
+  paymentExchangeError1($a2, 'from', $a1);
   return FALSE;
 }
 
-function paymentExchangeError1($acct1, $way, $acct2) {
-  $other = $acct2->fullName;
-  r\notify($acct1->id, 'payment exchange error', compact('way', 'other'));
+function paymentExchangeError1($a1, $way, $a2) {
+  $other = $a2->fullName;
+  r\notify($a1->id, 'payment exchange error', compact('way', 'other'));
 }
 
 function queueEach($op, $sql, $subs = array()) {

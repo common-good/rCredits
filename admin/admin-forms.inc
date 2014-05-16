@@ -85,21 +85,11 @@ function formAdmin_submit($form, &$sta) {
     return r\go('print-rcard/' . $a->qid);
   } elseif ($op == 'seeSecure') {
     if (@$a) {
-/**/  debug(u\ray('legalName dwAccount phone federalId physicalAddr', @$a->legalName, @$a->usdAccount, substr(@$a->phone, 2), @$a->federalId, @$a->address . ' ' . $a->postalCode));
+/**/  debug(u\ray('legalName dwAccount phone federalId dob physicalAddr', @$a->legalName, @$a->usdAccount, substr(@$a->phone, 2), @$a->federalId, u\fmtDate(@$a->dob), @$a->address . ' ' . $a->postalCode));
       seeSecure($a);
     }
   } elseif ($op == 'connectBank') {
-    $secure = $a->secure;
-    if (!$bankAccount = @$secure['bankAccount']) return say(t('Member has not yet entered bank info.'), 'zot');
-    if ($a->country == US_COUNTRY_ID) {
-      $routingNumber = substr(@$bankAccount, 4, 9); // chop of USkk
-      $bankAccount = substr(@$bankAccount, 4 + 9); // everything after the routing number
-    }
-    if (!@$secure['auth']) return say(t('You must first set up the Dwolla account for this member.'), 'zot');
-    $us = new r\usd($a);
-    if (!$us->addBank($bankAccount, @$routingNumber, $secure['bankAccountType'], $err)) return say($err, 'zot');
-    if (!$a->stepsDone['dw']) $a->stepDone('dw');
-    say('info saved');
+    $a->connectBank();
   } elseif ($op == 'do1099b') {
     include __DIR__ . '/../rcredits/rcredits-yearly.inc';
     r\Special\do1099bs();
@@ -139,7 +129,7 @@ function formMakeCtty($form, &$sta) {
   $postalAddr = textField(t('Postal Address:'), t('Where does the post office send your mail (usually)?'), required(@$postalAddr));
   $submit = submit();
   
-  $form = compact(u\ray('title subtext zips region')) + nameAndEmail()
+  $form = compact(u\ray('title subtext zips region')) + nameAndEmail(t('Community'))
          + ssnFields(FALSE) + contactFields(u\ray('zot', 0), TRUE) // prevent contact fields from defaulting
          + compact('postalAddr', 'submit');
   return labeled($form);
@@ -180,7 +170,7 @@ function formMakeCtty_validate($form, &$sta) {
 }
 
 function formMakeCtty_submit($form, &$sta) {
-  $dbFields = 'uid name fullName legalName mail flags phone faxetc federalId address country state city postalCode postalAddr verifyBy';
+  $dbFields = 'uid name fullName legalName mail flags phone faxetc federalId address country state city postalCode postalAddr'; // had verifyBy
   extract(u\just('zips region ' . $dbFields, $sta['input']));
 
   $flags = u\bit(B_CO) | u\bit(B_DW) | u\bit(B_OK);
@@ -192,7 +182,7 @@ function formMakeCtty_submit($form, &$sta) {
   $stateAbbrev = r\realState($state, $country);
   if ($region) db\insert('r_regions', u\ray('region state zips', $region, $stateAbbrev, $zips));
 
-  $verifyBy = verifyBy(@$verifyBy);
+//  $verifyBy = verifyBy(@$verifyBy);
   $postalCode = $zips; // store the regex defining the region or community
   
   $info = compact(u\ray($dbFields)) + acctType(CO_PARTNERSHIP) + u\ray('community rebate', $uid, 0);
@@ -218,7 +208,7 @@ function formMemberInfo($form, &$sta, $qid = '') {
   $subtext = item(u\fmtPhone($a->phone));
   if ($showUsd = (r\acct()->cAdmin and !$a->stepsDone['dw'])) {
     extract((array) $a->secure, EXTR_PREFIX_ALL, 's'); // dunno why (array) is required (indirect mod error)
-/**/ debug(u\ray('usdEmail usdPass phone SSN address zip usdPIN', @$s_usdEmail, @$s_usdPass, @substr(@$s_usdPhone, 2), $a->federalId, $a->address, $a->postalCode, @$s_usdPin), 1);
+/**/ say(print_r(u\ray('usdEmail usdPass phone SSN address zip usdPIN', @$s_usdEmail, @$s_usdPass, @substr(@$s_usdPhone, 2), $a->federalId, $a->address, $a->postalCode, @$s_usdPin), 1));
   }
   $account = item($a->qid, t('Account code:'));
   $username = item($a->name, t('User name:'));
@@ -294,37 +284,38 @@ EOF;
   return compact(u\ray('title list emails'));
 }
 
+define('PHOTO_MAX', 90); // maximum height and width of photo
+
 /**
  * Print an ID card
  * @param mixed $id: quid or uid of account to make a card for
- * @param bool $scan: create a scan-in card (for the currently managed company, with no photo)
  */
-function memberID($id, $scan) {
+function memberID($id) {
   require_once(__DIR__ . "/../../tcpdf/config/lang/eng.php");
   require_once(__DIR__ . "/../../tcpdf/tcpdf.php");
-  define('PHOTO_MAX', 90); // maximum height and width of photo
 
   if (!$mya = r\acct()) exit('You must sign in first.');
-  if ($scan) {
+/*  if ($scan) {
     $perm = r\relation('permission', $mya->id, $id);
     if ($perm < r\perm(B_SCAN)) exit('That is not an employee with scan permission.');
     $acct = r\acct($mya->id, $id);
     if ($acct->agent->co) exit('You may print scan-in cards only for employees.');
-  } elseif (!$acct = r\acct(strtoupper($id))) exit('No such account.');
+  } else */
+  if (!$acct = a($id)) exit('No such account: ' . $id);
   
   $fullName = $acct->fullName;
   $regionName = r\acct($acct->community)->fullName;
   $qid = $acct->qid;
   
-  if (!$proSe = $acct->proSe) {
+  if ($proSe = $acct->proSe) {
+    $nameSize = strlen($fullName) > 22 ? '100px' : '120px';
+    $fields = array('cardCode', 0, 'member', 'Member');
+  } else {
     if (!@$acct->agent->secure['cardCode2']) r\makeCardCode($acct);
     $acct = $acct->agent; // hereafter it's all about the agent
     $fullName = "$acct->fullName<br>$fullName"; // agent and company
     $nameSize = '72px';
     $fields = array('cardCode2', 5, 'agent', 'Company Agent');
-  } else {
-    $nameSize = strlen($fullName) > 22 ? '100px' : '120px';
-    $fields = array('cardCode', 0, 'member', 'Member');
   }
   list ($cardField, $lower, $role, $roleName) = $fields;
   $mark = u\consta("r_$role", 'mark');
@@ -354,7 +345,7 @@ function memberID($id, $scan) {
     'module_height' => 1, // height of a single module in points
   );
 
-  if ($scan) { // scale it down for member-printed cards
+/*  if ($scan) { // scale it down for member-printed cards
     $pdf->StartTransform();
     $scale = 43.75; // make it card-size
     $margin = .25; // print margin, in inches
@@ -362,7 +353,7 @@ function memberID($id, $scan) {
     $pdf->ScaleXY($scale, $offset, $offset);
     $pdf->Rect(0, 0, 200, 128.57, 'D');
     $pdf->writeHTMLCell(80, 50, 13, 35 + $lower, "<div style=\"font-size:180px; text-align:left; color:darkgreen; font-weight:bold;\">r<span style=\"color:darkblue;\">POS</span><br><span style=\"font-size:140px;\">SIGN-IN</span></div>");
-  }
+  } */
   // Image params: $file, $x='', $y='', $w=0, $h=0, $type='', $link='', $align='', $resize=false, $dpi=300, $palign='', $ismask=false, $imgmask=false, $border=0, $fitbox=false, $hidden=false, $fitonpage=false, $alt=false, $altimgs=array())
 
   if ($proSe) {
@@ -372,7 +363,8 @@ function memberID($id, $scan) {
   $pdf->SetLineStyle(array('width' => 0.5, 'cap' => 'butt', 'join' => 'miter', 'dash' => 0, 'color' => array(0, 0, 0)));
   if ($proSe) $pdf->RoundedRect(91, 30, 60, 60, 3.50, '1111', 'DF', NULL, array(255, 255, 255)); // x, y, w, h, ?, fill?
   
-  if (!$scan) $pdf->Image($photo, 0, 0, $photoW, $photoH, '', './account', '', true, 300, '', false, false, 1, false, false, false);
+  //if (!$scan) 
+  $pdf->Image($photo, 0, 0, $photoW, $photoH, '', './account', '', true, 300, '', false, false, 1, false, false, false);
   $pdf->write2DBarcode($qrUrl, 'QRCODE,Q', 96, 35 + $lower, 50, 50, $style, 'N'); // L,M,Q,H are low-high error-correction
 
   $html = strtr('<span style="font-size:44px;">@ROLE<br><span style="font-size:76px; color:darkred; font-weight:bold;">@CODE</span><br>@REGION</span>', array('@ROLE' => $roleName, '@CODE' => $qid, '@REGION' => $regionName));
@@ -395,8 +387,8 @@ EOF;
   // Add temporary symbol over image (maybe remove lower right corner and add "temp"), to discourage unauthorized use
 //  $pdf->Image(__DIR__ . '/../images/icons/print.png', 120, 30, 32, 32, '', '', '', true, 150, '', false, false, 0, false, false, false);
   
-  if ($scan) $pdf->StopTransform();
-  $pdf->Output('rCredits-ID-Card.pdf', 'I'); //Close and output PDF document
+//  if ($scan) $pdf->StopTransform();
+  if (t\est()) $pdf->Close(); else $pdf->Output('rCredits-ID-Card.pdf', 'I'); //Close and output PDF document
 }
 
 function formSMS($form, &$sta) {
@@ -423,9 +415,9 @@ function test($arg = '') {
   global $user;
   include __DIR__ . '/../../gherkin/test.php';
 /*  $adminPass = '123';
-  $account = user_authenticate('admin', $adminPass);
-  $user = user_load($account, TRUE);
-  drupal_session_regenerate(); */
+  $account = \user_authenticate('admin', $adminPass);
+  $user = \user_load($account, TRUE);
+  \drupal_session_regenerate(); */
   \drupal_goto('sadmin/handy');
 }
 

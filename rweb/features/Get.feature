@@ -55,18 +55,18 @@ Scenario: a member moves credit to the bank
 Scenario: a member draws credit from the bank
   When member ".ZZB" completes form "get" with values:
   | op  | amount      |
-  | get | %R_BANK_MIN |
+  | get | %R_ACHMIN |
   Then usd transfers:
   | payer | payee | amount       | tid | created | completed |
-  |  .ZZB |     0 | -%R_BANK_MIN |   2 | %today  |         0 |
+  |  .ZZB |     0 | -%R_ACHMIN |   2 | %today  |         0 |
   And we say "status": "banked" with subs:
   | action     | amount       |
-  | draw from  | $%R_BANK_MIN |
+  | draw from  | $%R_ACHMIN |
 
 Scenario: a member moves too little to the bank
   When member ".ZZA" completes form "get" with values:
   | op  | amount             |
-  | put | %(%R_BANK_MIN-.01) |
+  | put | %(%R_ACHMIN-.01) |
   Then we say "error": "bank too little"
 
 Scenario: a member tries to cash out rewards and/or pending withdrawals

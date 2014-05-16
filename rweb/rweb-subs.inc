@@ -17,6 +17,7 @@ define('R_ON_FILE', t('(on file)'));
 define('R_AGREE_0', -2); // number of the first point in the rCredits Agreement
 define('R_AGREE_9', 6); // number of the last point in the rCredits Agreement
 
+global $base_url;
 $GLOBALS[TX_WEB . ' messages'] = array(
 //  'atid' => t('#@atid: '), // avoid duplicate verbage, don't say "transaction #"
 // Then if you have another account to create, use the "Create Another Account" button on the Summary page.
@@ -41,7 +42,7 @@ EOF
   'after emailing' => t('After you have sent us an email: '),
   'return to membership' => t('<a href="/status">Click here to return to the checklist</a>.'),
   'ok to continue' => t('You may now continue what you were originally doing.'),
-  'password reset' => t('A temporary password has been sent to your email address.'),
+  'password reset' => t('A link has been emailed to you, to choose a new password.'),
   'changed agent' => t('You successfully changed the agent to @agentName.'),
   'changed account' => t('You successfully changed the account to @accountName.'),
   'signed agreement' => t('You signed the rCredits Agreement on @date.'),
@@ -74,8 +75,8 @@ EOF
   // prompts
   'prompt min' => t('How much to keep in your rCredits account, for purchases or inflation-proof savings. When your balance goes below this amount, the system automatically refills it for you from your bank account. Refilling may take 3-5 business days (a couple days to leave the bank and a couple more to arrive in your rCredits account).'), // If you don\'t want any automation, type zero (then remember to refill your account explicitly when it gets low).'),
 //  'prompt max' => t('Keep AT MOST this much in my rCredits account. (When your rCredits balance goes above this amount by $@R_CHUNK or more, the system transfers the extra to your bank account. Blank means no automatic transfers &mdash; recommended in most cases).'),
-  'legalname desc' => t('Your full legal name, properly capitalized, as on your government-issued ID.'),
-  'usename desc' => t('This should be the name you use in formal letters, at work, on your checks and credit cards, etc. &mdash; <b>NOT</b> your nickname.'),
+  'legalname desc' => t(' full legal name, properly capitalized, as on your government-issued ID.'),
+  'usename desc' => t('This should be the name you use in formal letters, at work, on your checks and credit cards, etc.'),
   'verify connection' => t('Two small deposits (under @DW_VERIFY_ROOF cents) have been sent to your bank. Call your bank after 3-5 business days, to find out the amounts. Then come back to the Bank Info page and fill in those amounts, to verify the connection to your bank account. Here\'s how: Go to rCredits.org, click "Members\'s Site", sign in, click the Settings gear in the upper right corner, then click "Bank Info". We will send you a reminder by email.'),
   'ssTitle' => t('Soc Sec #:'),
   'einTitle' => t('Federal ID:'),
@@ -100,10 +101,8 @@ EOF
 //  'duplicate email' => t('That email address is already taken by @duplicateAccount.'),
   'forgot password' => t('If you just forgot the password to the other account, <a href="@passwordLink">click here</a> to request a new password.'), // used in user.module
   'bad name' => t('That is not a plausible name.'),
-  'bad login' => t('That account does not exist. Check your typing?'),
   'bad phone' => t('That is not a proper phone number.'),
-  'bad account id' => t('That is not a proper account ID.'),
-  'bad account code' => t('That is not your account code.'),
+//  'bad account code' => t('That is not your account code.'),
   'not your account' => t('That is not your account ID.'),
   'bad account number' => t('Your bank account number must be 3-17 digits long.'),
 //  'bad pin' => t('Your PIN must be exactly 4 digits'),
@@ -140,9 +139,6 @@ EOF
   'used invite' => t('<p>That invitation has already been used, to open an rCredits account.</p><p>If you already have an rCredits account set up and want to open an additional account for yourself, your business, or a family member, sign in and use the "Open Another Account" button on the Summary page (for cashier accounts, first select your business from the dropdown in the upper right corner).</p><p>Otherwise ask someone you know to send you a new invitation!'),
   'expired invite' => t('<p>That invitation has expired.</p><p><@a>Click here</a> to ask @inviterName for another invitation.</p>'),
   'min sub floor' => t('Your chosen rCredits minimum cannot be less than your <em>allowed</em> minimum (@floor).'),
-//  'min too small' => t('You minimum (if above zero) cannot be less than $@R_BANK_MIN.'),
-//  'bad maxr' => t('Your chosen rCredits maximum cannot be less than your rCredits minimum. Nor can it be less than your total amount of incentive rewards to date.'),
-//  'bad maxusd' => t('Your chosen USD maximum cannot be less than your rCredits minimum.'),
   'info not saved' => t('We apologize. Your information could not be saved at this time. Please try again in an hour or so.'),
   'no page permission' => t('You do not have permission to visit this page. Return to your <@a>Summary</a> page.', array('@a' => 'a href="/"')),
   'specific nonpositive' => t('The amount (@amount) must be a positive integer.'),
@@ -157,10 +153,12 @@ EOF
   'self must sign' => t('You cannot sign this agreement on behalf of another person.'),
   'bad zip' => t('US zipcodes must be 5 digits, possibly followed by a hyphen and 4 more digits.'),
   'password required' => t('You must supply your current password, to change your email address or password.'),
+  'bad account id' => t('That account does not exist. Check your typing?'),
+  'bad login' => t('That account/password combination does not exist. Try again or <!a>ask for a new password</a>.', array('!a' => 'a href="' . url("$base_url/account/password") . '"')),
   'wrong pass' => t('That is not your correct password.'),
-  'multiple spaces' => t('Field @field cannot have more than one space in a row.'),
-  'illegal char' => t('Field @field contains an illegal character. Try retyping it'),
-  'too long' => t('Field @field is too long: it must be @USERNAME_MAX_LENGTH characters or less.'),
+  'multiple spaces' => t('@field cannot have more than one space in a row.'),
+  'illegal char' => t('@field contains an illegal character. Try retyping it'),
+  'too long' => t('@field is too long: it must be @USERNAME_MAX_LENGTH characters or less.'),
   'weak pass' => t('You need to choose a password that is harder to guess.'),
   'photo upload failed' => t('Your photo upload was not successful.'),
   'pass expired' => t('Your temporary password has expired.'),
@@ -180,6 +178,7 @@ EOF
   'upload required' => t('You must upload a file.'),
   'missing contact info' => t("<h2>Missing Contact Information</h2><p>Please complete your <@a1>Contact Information</a> before continuing.</p>"),
   'correct and retry' => t('Please correct the problem and resubmit this form.'),
+  'duplicate transaction' => t('You already just @op that member that much.'),
   'duplicate phone' => t('That phone number is already the primary phone for another account.<br><br>If this is your ONLY phone and you can make do without a connected bank account (that is, if you have some other easy way to get money into and out of your rCredits account): <input type="button" value="Continue With No Bank Connection" onclick="jQuery(\'#edit-dupOk\').val(1); jQuery(\'#rcreditswebform@form\').submit();" />'),
   'not a duplicate phone' => t('That phone number is NOT the primary phone for another account.'),
   'bad pin' => t('That is not your correct PIN.'),
@@ -193,7 +192,7 @@ EOF
   'redo info' => t('We could not verify your personal information. Please try again, carefully.'),
   'bad ssn or dob' => t('There is a problem verifying your personal information.'),
   'bad ssn' => t('That is not a valid social security number.'),
-  'bank too little' => t('The amount you asked to transfer is less than the minimum ($@R_BANK_MIN).'),
+  'bank too little' => t('The amount you asked to transfer is less than the minimum ($@R_ACHMIN).'),
   'members only' => t('You must be a member, to use this feature.'),
   'dwolla terms required' => t("Please accept Dwolla's terms before you click Continue."),
   'no card ordered' => t('No rCard was ordered.'),
@@ -205,7 +204,10 @@ EOF
   'empty payroll' => t('There are no employees listed as having received an rCredits payroll deduction.'),
   'bad payroll employee' => t('@employee is not listed as an employee on your Relations page. Click the Settings gear, then click "Relations".'),
   'illegal amount change' => t('You cannot @action the original amount (@amount). <@a>Send an invoice</a> instead.'),
+  'bad achmin' => t('The minimum transfer amount must be at least $@R_ACHMIN.'),
 );
+$GLOBALS[TX_WEB . ' messages']['flooded'] = $GLOBALS[TX_WEB . ' messages']['bad login'];
+
 
 /**
  * Return yes and no buttons.
@@ -314,8 +316,9 @@ function acctTypeField() {
  */
 function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   global $formArray, $formSta, $rUrl;
+  $anonForms = 'Admin Test Handy footer accounts';
   setupGlobals(); // in case it's an anonymous form, so webAccess doesn't have a chance to set up
-  if (!@$formSta['confirm'] and !in_array($function, u\ray('Admin Test Handy footer accounts'))) {
+  if (!@$formSta['confirm'] and !in_array($function, u\ray($anonForms))) {
     if ($logs = $_POST) {
       foreach (u\just(R_NOLOG, $logs) as $k => $zot) $logs[$k] = '?';
       u\loga('in', $logs);
@@ -324,9 +327,11 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
 
   try {
     $mya = r\acct();
+///    global $zot; $zot = @$zot . ' ' . $function; if (strlen(@$zot) > 50) die($zot);
+    if (!$mya and !in_array($function, u\ray("$anonForms Signup Signin Pass Empty ChangePassword Help Agreement Reports Menu I ResetPassword Profile Accept Buy Summary"))) r\go('');
     $args = 'arg1' . ($arg2 !== '' ? ' arg2' : '') . ($arg3 !== '' ? ' arg3' : '') . ($arg4 !== '' ? ' arg4' : '');
     $formName = substr($function, 0, 1) == '/' ? substr($function, 1) : "rCredits\\Web\\form$function";
-    $specialForm = in_array($function, u\ray('Help footer accounts Admin Login MemberList MemberInfo'));
+    $specialForm = in_array($function, u\ray('Help Empty footer accounts Admin Login MemberList MemberInfo'));
     $args = func_get_args(); // this and next few lines are from \drupal_get_form()
     array_shift($args); // Remove $function from the arguments.
     $formSta['build_info'] = compact('args');
@@ -380,7 +385,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
 function box() {
   if (strlen($box = @$_COOKIE['box']) == R_CODE_LEN) return $box; // old codes were shorter
   //\variable_set('r_box', $box = \variable_get('r_box', 0) + 1); // this is prone to timing collisions
-  return r\setCook('box', $box = \user_password(R_CODE_LEN));
+  return r\setCook('box', $box = u\code(R_CODE_LEN));
 }
 
 /**
@@ -395,9 +400,41 @@ function boxUser($code, $uid) {
   return r\setCook($cookid, $id, strtotime('tomorrow'));
 }
 
-function setupGlobals($agent = '') {
+/**
+ * See whether someone is trying too many logins.
+ * @param int $uid: account record ID
+ * @param assoc $sta: (MODIFIED) the form status, updated with relevant flood info
+ * @return mixed: FALSE only if we're not being flooded
+ */
+function flooding($uid, &$sta) {
+  if (t\est()) return !$uid;
+  $trigger = 'flood_control_triggered';
+  $limit = 50; //variable_get('user_failed_login_ip_limit', 50);
+  $window = HOUR_SECS; //variable_get('user_failed_login_ip_window', HOUR_SECS);
+  if (!\flood_is_allowed('failed_login_attempt_ip', $limit, $window)) return $sta[$trigger] = 'ip';
+  
+  if (!$uid) return TRUE;
+
+  $uidOnly = FALSE; //variable_get('user_failed_login_identifier_uid_only', FALSE);
+  $limit = 5; //variable_get('user_failed_login_user_limit', 5);
+  $window = 6 * HOUR_SECS; //variable_get('user_failed_login_user_window', 6 * HOUR_SECS);
+  
+  $sta['flood_control_user_identifier'] = $id = $uidOnly ? $uid : $uid . '-' . ip_address();
+  if (!\flood_is_allowed('failed_login_attempt_user', $limit, $window, $id)) return $sta[$trigger] = 'user';
+
+  return FALSE;
+}
+
+function noFlood(&$sta) {\flood_clear_event('failed_login_attempt_user', @$sta['flood_control_user_identifier']);}
+
+/**
+ * Set session variables and other globals.
+ * @param int $agent: the account agent, if any (defaults to the account ID)
+ * @param bool $force: resetup even if already done
+ */
+function setupGlobals($agent = '', $force = FALSE) {
   global $user, $channel, $boxUser;
-  if (@$channel) return; // already setup
+  if (@$channel and !$force) return; // already setup
   if (!$agent) $agent = @$user->uid; // register_submit supplies agent (no one else does)
   $myid = svar('myid') ?: $agent;
   r\acct::setDefault(r\acct($myid, $agent)); // set default for r\acct()
@@ -517,14 +554,9 @@ function setupUsd(&$step, $redirectOk = TRUE) {
   $us = new r\usd($mya = r\acct());
   if (!@$mya->secure['auth']) {
     if (!$mya->createUsdAccount($err)) return say($err, 'ERR'); // set auth
-//    if ($mya->secure['usdEmail'] == $mya->mail) r\Web\say('Dwolla has sent you an email with a verification link. Please click that link to confirm your email address, then come back here to continue setting up your account.'); // temporary, for Dwolla compliance testing
   }
   if (!$mya->usdAccount) if (!$us->me($err)) return say($err, 'ERR'); // set usdAccount
   if (!$step = $us->step($err)) return say($err, 'ERR');
-  if ($step == 'Finished') {
-    $mya->stepDone('dw');
-    return FALSE;
-  }
 
   if ($step == 'AccountInfo') return $redirectOk ? r\go('account/basic', 'redo info', 'ERR') : FALSE; // here on ssn() failure
   if ($step == 'Kba') return $redirectOk ? r\go('account/kba') : FALSE; // here on accountInfo() failure
@@ -631,9 +663,9 @@ function boxOpt($field, $opts, $sta) {
  */
 function ssnFields($personal = TRUE) {
   $ssTitle = tt($personal ? 'ssTitle' : 'einTitle');
-  $federalId = textField("<span class=\"title\">$ssTitle</span>", tt($personal ? 'ssDesc' : 'einDesc'), required()); // textfield so user doesn't have to retype on error
   if ($personal) $dob = textField(t('Birthdate:'), t('Your date of birth (mm/dd/yyyy)'), required());
-  return compact(u\ray('federalId dob'));
+  $federalId = textField("<span class=\"title\">$ssTitle</span>", tt($personal ? 'ssDesc' : 'einDesc'), required()); // textfield so user doesn't have to retype on error
+  return compact(u\ray('dob federalId'));
 }
 
 function dwollaTerms() {
@@ -766,62 +798,55 @@ function findCompany($company, $companyPhone) {
 
 /**
  * Return form fields for name and email.
+ * @param bool $what: prompt description of what the name is for ("Company", "Community", or "Full name")
+ * @param string $fullName: default full name
+ * @return the relevant form fields
  */
-function nameAndEmail($fullName = '') {
-  $onchange = "var common=jQuery('#edit-fullname'); if (common.val()=='') common.val(this.value);";
-  $legalName = textField(t('Legal name:'), tt('legalname desc'), required(@$fullName) + attrib(compact('onchange')));
-  $fullName = textField(t('Common name:'), t('(if different) ') . tt('usename desc'));
+function nameAndEmail($what, $fullName = '') {
+  $who = $what == t('Company') ? t('The company\'s') : ($what == t('Community') ? t('The community\'s') : t('Your'));
+  $onchange = "var legal=jQuery('#edit-legalname'); if (legal.val()=='') legal.val(this.value);";
+  $fullName = textField("$what:", tt('usename desc'), required(@$fullName) + attrib(compact('onchange')));
+  $legalName = textField(t('Legal name:'), t('(if different) ') . $who . tt('legalname desc'));
   $mail = textField(t('Email:'), t('All emails from the system will be sent to this address. It will not be made public. <b>Type carefully.</b>'), required());
-  return compact(u\ray('legalName fullName mail'));
+  return compact(u\ray('fullName legalName mail'));
 }
 
 /**
- * Return the part of the form that is common to formContact and formSignup
+ * Return the part of the form that is (mostly) common to formContact and formSignup
  * @param assoc $defaults: initial field values (defaults to current values) - see list at "$fields ="...
- * @param bool $makePostalAddr: the address and postalCode fields create the postal address
  * include all fields (for Contact form) only if r\acct() is set
  */
-function contactFields($defaults = array(), $makePostalAddr = FALSE) {
+function contactFields($defaults = array()) {
   $country = $state = ''; // make sure these are not NULL
-  $fields = 'phone verifyBy dupOk address city state country postalCode faxetc';
+  $fields = 'phone dupOk faxetc country postalCode address city state postalAddr'; // had verifyBy
   $mya = r\acct();
   extract($defaults ?: ($mya ? (array) $mya->account($fields) : array()));
-  $dupPhone = @$defaults['dupPhone'];
+//  $dupPhone = @$defaults['dupPhone'];
+
+//  js('http://ziplookup.googlecode.com/git/public/ziplookup/zipLookup.min.js', 'file', 'header');
+  js('inc/zipLookup.js', 'file', 'header');
+  js("print_country(\"$country\", \"$state\");", 'inline', 'footer');
 
   $onchange = "print_state(this.options[this.selectedIndex].value,'');";
   $countryAttrib = attrib(compact('onchange'));
-  js("print_country(\"$country\", \"$state\");", 'inline', 'footer');
-  $us = US_COUNTRY_ID;
   
-  if ($makePostalAddr) {
-    $onchange = <<<EOF
-var country = jQuery('#edit-country').val();
-var state = jQuery('#edit-state').val();
-var city = jQuery('#edit-city').val();
-var address = jQuery('#edit-address').val();
-var postalCode = jQuery('#edit-postalcode').val();
-var postalAddr = jQuery('#edit-postaladdr');
-if (address != '' && postalCode != '' && postalAddr.val() == '') {
-  postalAddr.val(address + ', ' + city + ', ' + (country==$us ? STs[state] : ss[country][state]) + ' ' + postalCode + (country==$us ? '' : (' ' + cs[country])));
-} // postalAddr.attr('selectionEnd',0); fails
-EOF;
-    $addressAttrib = $zipAttrib = attrib(compact('onchange'));
-  } else {
-    $addressAttrib = array();
-    $onchange = "var z3=jQuery('#edit-postalcode').val().substr(0, 3); if (z3=='013' || z3=='010') jQuery('#edit-buysat').show();";
-    $zipAttrib = attrib(compact('onchange'));
-  }    
+  $onchange = $onblur = 'setPostalAddr();';
+  $addressAttrib = $cityAttrib = attrib(compact('onchange'));
+  $stateAttrib = attrib(compact('onblur'));
+  $onchange = "zipChange('010 013');";
+  $zipAttrib = attrib(compact('onchange'));
   
   $phone = textField(t('Phone:'), $mya ? '' : t('Your phone number. This should not be a number already used for another rCredits account &mdash; unless you have no other phone number.'), required(@$phone ? u\fmtPhone($phone): ''));
   $dupOk = hidField(0, attrib(u\ray('id', 'edit-dupOk')));
 //  $dupOk = boolField(t('Dup Ok:'), t('If this is already the phone number for another rCredits account, click Yes to use it for this account too. Without a unique phone number, though, you cannot connect a bank account to your rCredits account. We are lobbying our financial partner, Dwolla, to remove this limitation. But, for now, a duplicate phone means no connected bank account.'));
-  $verifyBy = $mya ? NULL : formField('radios', t('Verify by:'), t('We will send a verification code to your phone, by text or voice.'), required(@$mya->verifyBy ? (int) ($mya->verifyBy == 'Voice') : NULL), array(t('Text message'), t('Voice message')));
+//  $verifyBy = $mya ? NULL : formField('radios', t('Verify by:'), t('We will send a verification code to your phone, by text or voice.'), required(@$mya->verifyBy ? (int) ($mya->verifyBy == 'Voice') : NULL), array(t('Text message'), t('Voice message')));
   if ($mya) $faxetc = textField(t('Fax etc:'), t('List other ways to contact you: fax, mobile, IM, etc. This field is NOT public.'), dft(@$faxetc));
   $country = formField('select', t('Country:'), t(''), dft(@$country) + $countryAttrib); // can't use required() here
-  if ($mya) $address = textField(t('Street Address:'), t('Where is your building located (physical address)?'), required(@$address) + $addressAttrib);
-  if ($mya) $city = textField(t('City:'), t(''), required(@$city));
-  if ($mya) $state = formField('select', t('State:'), t(''), dft(@$state)); // can't use required() here
   $postalCode = textField(t('Postal code:'), t('Postal code for your <em>physical location</em>'), required(@$postalCode) + $zipAttrib);
+  $address = textField(t('Street Address:'), t('Where is your building located (physical address)?'), required(@$address) + $addressAttrib);
+  $city = textField(t('City:'), t(''), required(@$city) + $cityAttrib);
+  $state = formField('select', t('State:'), t(''), dft(@$state) + $stateAttrib); // can't use required() here
+  $postalAddr = textField(t('Postal Address:'), t('Where does the post office send your mail (usually)?'), required(@$postalAddr));
 
   return compact(u\ray($fields));
 }  
@@ -947,13 +972,12 @@ function invitation($code, $invitee = '', &$inviter = '', &$err = '') {
 
 }
 
-function passwordOkay($a, $password, $passFieldName = 'current_pass') {
+function passwordOkay($a, $password, $passFieldName = 'pass') {
   require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
-  $stored_hash = $a->pass;
-  $hash = \_password_crypt('sha512', $password, $stored_hash);
   if (@$a->oneTimePass) extract(u\just('pass expires', $a->oneTimePass));
   if ($password == @$pass) return ($a->admin or REQUEST_TIME < @$expires) ? TRUE : say('pass expired', $passFieldName);
-  return ($hash and $stored_hash == $hash) ? TRUE : say('wrong pass', $passFieldName);
+  $hash = \_password_crypt('sha512', $password, $a->pass);
+  return ($hash and $a->pass == $hash) ? TRUE : say('bad login', $passFieldName);
 }
 
 /**
@@ -964,10 +988,11 @@ function passwordOkay($a, $password, $passFieldName = 'current_pass') {
  *   expires: when it expires
  */
 function oneTimePass($name) {
-  $pass = strtolower(u\nonce()); // not a hash, easy to remember and type
-/**/ if (isDEV) debug('Password: ' . $pass);
+//  $pass = strtolower(u\nonce()); // not a hash, easy to remember and type
+  $pass = u\code();
+/**/ if (isDEV) \drupal_set_message('Link: ' . "<a href='http://localhost/devcore/reset/id=$name&code=$pass'>reset</a>");
   $expires = REQUEST_TIME + HOUR_SECS * R_SIGNIN_HOURS;
-  r\setCook('loginto', $name, $expires);
+//  r\setCook('loginto', $name, $expires);
   return compact('pass', 'expires');
 }  
 
@@ -1044,6 +1069,11 @@ function scanIn($acct) {
 function hack($message, $info = array()) {
   u\loga('hack', $_SERVER, $message);
   return r\acct() ? signout() : r\go('');
+}
+
+function signout() {
+  @\session_destroy();
+  return r\go('');
 }
 
 /*function changeAccount($quid = '') {
@@ -1364,8 +1394,8 @@ function say($index, $args = array(), $errField = '') {
   if (!is_array($args)) list ($args, $errField) = array($errField, $args); // allow either order, for easy 2-param calls
   $noTable = (strpos($index, '<table') === FALSE);
   $message = $noTable ? tt($index, $args) : $index;
-  $fieldErr = (bool) $errField;
-  if ($fieldErr) \form_set_error($errField, $message); else \drupal_set_message($message);
+  $fieldErr = ($errField and $errField != 'ERR');
+  if ($fieldErr) \form_set_error($errField, $message); else \drupal_set_message($message, @$errField == 'ERR' ? 'error' : 'status', FALSE);
   if ($noTable) u\loga($fieldErr ? 'sayerr' : 'say', compact('message'));
   return FALSE;
 }
@@ -1408,14 +1438,14 @@ function showCharts($whichChart) {
   $txs = "$txsPerMo @ $avg avg";
 
   $crit = "ctty=$myCtty";
-  $relaunch = strtotime('12/15/2013');
+  // r+usd-perMo AS savings
   $sql = <<<EOF
-    SELECT created, IF(r+usd=0, 0, perMo/(r+usd)) AS rate, r+usd AS funds, usd, r+usd-perMo AS savings,
+    SELECT created, IF(r+usd=0, 0, perMo/(r+usd)) AS rate, r+usd AS funds, usd, savings,
       pAccts, bAccts, pAccts+bAccts AS accts, newbs,
       bankInPerMo, bankOutPerMo,
       perMo, p2bPerMo, b2bPerMo, b2pPerMo,
       txsPerMo, p2bTxsPerMo, b2bTxsPerMo, b2pTxsPerMo
-    FROM r_stats WHERE $crit AND created>$relaunch ORDER BY created
+    FROM r_stats WHERE $crit AND created>:R_LAUNCH ORDER BY created
 EOF;
   $q = db\q($sql);
 
@@ -1431,12 +1461,13 @@ EOF;
     $date = "new Date($y,$m,$d)";
     $p2pPerMo = $perMo - $p2bPerMo - $b2bPerMo - $b2pPerMo;
     $p2pTxsPerMo = $txsPerMo - $p2bTxsPerMo - $b2bTxsPerMo - $b2pTxsPerMo;
+//    $actives = abs($pAccts - $newbs); // active members
     foreach ($moneyFields as $k) ${$k . '2'} = u\fmtAmt($$k);
     $rate2 = number_format(100 * $rate, 1) . '%';
 
-    $velocityData[] = "[$date,{v:$rate,f:'$rate2'}]";
-    $acctsData[] = "[$date,$pAccts,$bAccts,$newbs]";
+    $acctsData[] = "[$date,$pAccts,$newbs,$bAccts]";
     $fundsData[] = "[$date,{v:$funds,f:'$funds2'},{v:$savings,f:'$savings2'},{v:$usd,f:'$usd2'}]";
+    $velocityData[] = "[$date,{v:$rate,f:'$rate2'}]";
     $bankingData[] = "[$date,{v:$bankInPerMo,f:'$bankInPerMo2'},{v:$bankOutPerMo,f:'$bankOutPerMo2'}]";
 
     $x2x = array();
@@ -1450,12 +1481,14 @@ EOF;
     $txData[] = "[$date,$x2x]";
   }
 
-  $accts = "{$pAccts} personal + {$bAccts} co = " . ($pAccts + $bAccts);
+  $accts = "{$pAccts} members + {$bAccts} co = " . ($pAccts + $bAccts);
+  $netUsdIn = u\fmtAmt($bankInPerMo - $bankOutPerMo) . t(' (net)');
   
   $js = <<<EOF
   var accts = '$accts';
   var funds = '$superTotal';
   var velocity = '$velocity';
+  var netUsdIn = '$netUsdIn';
   var issued = '$total';
   var fees = '(minus $fines in fees)';
   var txs = '$txs';
@@ -1472,11 +1505,32 @@ EOF;
   js($js, 'inline', 'header', 9);
 
   foreach($charts as $k => $help) {
-    $charts[$k] = "<div><a href=\"help/$help\"><div id=\"{$k}Chart\"></div></a></div>";
+    $one = "<div id=\"{$k}Chart\" class=\"onechart\"></div>";
+    if (count($charts) > 1) $one = "<a href=\"help/$help\">$one</a>";
+    $charts[$k] = "<div>$one</div>";
   }
-  return join('', $charts);
+  return t\est() ? $js : join('', $charts);
 }
 
+/**
+ * Connect a bank account to the given rCredits account.
+ */
+function connectBank($a) {
+  $secure = $a->secure;
+  if (!$bankAccount = @$secure['bankAccount']) return say(t('Member has not yet entered bank info.'), 'zot');
+  if ($a->country == US_COUNTRY_ID) {
+    $routingNumber = substr(@$bankAccount, 4, 9); // chop of USkk
+    $bankAccount = substr(@$bankAccount, 4 + 9); // everything after the routing number
+  }
+  if (!@$secure['auth']) return say(t('You must first set up the Dwolla account for this member.'), 'zot');
+  $us = new r\usd($a);
+  if (!$us->addBank($bankAccount, @$routingNumber, $secure['bankAccountType'], $err)) return say($err, 'zot');
+  say('info saved');
+}
+
+/**
+ * Create a menu entry (see rweb.module)
+ */
 function userMenuItem($router_path, $link_title) {
   $menu_name = 'user-menu';
   $link_path = $router_path;
@@ -1547,7 +1601,7 @@ function css($sheet, $weight = -99) {
  */
 function js($what, $type, $scope, $weight = 0) {
   global $rUrl;
-  if ($type == 'file') $what = "$rUrl/$what";
+  if ($type == 'file') $what = strpos($what, 'http') === FALSE ? "$rUrl/$what" : $what;
   return drupal_add_js($what, compact('type', 'scope', 'weight'));
 }
 

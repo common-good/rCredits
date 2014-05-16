@@ -104,7 +104,7 @@ function transactions($list) {return t\transactions($list);}
 function agentAsksDeviceToIdentify($agent, $device, $qr) {
   global $testOnly; if ($testOnly) return FALSE;
   list ($member, $code) = t\parseQr($qr);
-  $agent = $agent == '' ? '' : t\fullQid($agent);
+  $agent = $agent == '' ? '' : r\fullQid($agent);
   return t\hitServer('identify', compact(u\ray('member code')), $agent, $device);
 }
 

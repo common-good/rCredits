@@ -78,8 +78,14 @@ function tableDefs($schema = array()) {
   $fields = array(
     'id' => setupField('statistics record id', 'serial big'),
     'ctty' => setupField('community or region record id', 'int big'),
+    'created' => setupField('Unixtime record was created', 'int 11', 0),
     'r' => setupField('amount of rCredits issued to date', 'numeric 11,2', 0),
     'usd' => setupField('amount of US Dollars in the system', 'numeric 11,2', 0),
+    'purchases' => setupField('amount of purchases ever', 'numeric 11,2', 0),
+    'forCashs' => setupField('amount of exchanges for cash ever', 'numeric 11,2', 0),
+    'cttyIn' =>setupField('amount of transfers to this community from elsewhere', 'numeric 11,2', 0),
+    'cttyOut' =>setupField('amount of transfers from this community to elsewhere', 'numeric 11,2', 0), // including rCredits traded out for USD
+    'cttyBuys' => setupField('amount of community purchases ever', 'numeric 11,2', 0),
     'signups' => setupField('amount of signup bonuses ever', 'numeric 11,2', 0),
     'inflations' => setupField('amount of inflation adjustments ever', 'numeric 11,2', 0),
     'refunds' => setupField('amount of Dwolla fee reimbursements ever', 'numeric 11,2', 0),
@@ -87,13 +93,13 @@ function tableDefs($schema = array()) {
     'bonuss' => setupField('amount of transaction bonus rewards ever', 'numeric 11,2', 0),
     'grants' => setupField('amount of grants ever', 'numeric 11,2', 0), // drupal bug in addfield: this field cannot be named "grant" (gets "Duplicate column name" mysql error)
     'loans' => setupField('amount of loans ever', 'numeric 11,2', 0),
-    'transfers' => setupField('amount of purchases ever', 'numeric 11,2', 0),
     'invests' => setupField('amount of equity investments ever', 'numeric 11,2', 0),
-    'fines' => setupField('amount of fines ever', 'numeric 11,2', 0),
+    'fines' => setupField('amount of fines ever', 'numeric 11,2', 0), // <= 0
     'shared' => setupField('amount of rewards shared ever', 'numeric 11,2', 0),
     'pAccts' => setupField('number of personal accounts', 'int medium', 0),
     'bAccts' => setupField('number of company accounts', 'int medium', 0),
     'newbs' => setupField('number of not-yet-active accounts', 'int medium', 0),
+    'savings' => setupField('funds held for 30 days or more', 'numeric 11,2', 0),
     'bankInPerMo' => setupField('amount transferred into the system in the past month', 'numeric 11,2', 0),
     'bankOutPerMo' => setupField('amount transferred out of the system in the past month', 'numeric 11,2', 0),
     'xchPerMo' => setupField('exchange volume within system in the past month', 'numeric 11,2', 0),
@@ -110,7 +116,6 @@ function tableDefs($schema = array()) {
     'p2bTxsPerMo' => setupField('customer purchases in the past month', 'int medium', 0),
     'b2bTxsPerMo' => setupField('b2b purchases in the past month', 'int medium', 0),
     'b2pTxsPerMo' => setupField('payments to employees and sole proprietors in the past month', 'int medium', 0),
-    'created' => setupField('Unixtime record was created', 'int 11', 0),
   );
   $foreignKeys = foreignKey('ctty');
   $indexes = index('ctty');
@@ -346,8 +351,8 @@ function tableDefs($schema = array()) {
     'id' => setupField('record id', 'serial big'),
     'code' => setupField('secret invitation code', 'varchar 20'),
     'email' => setupField('email of invitee', 'varchar 60'),
-    'inviter' => setupField('uid of inviting member', 'int big'),
-    'invitee' => setupField('uid of invited new member', 'int big'), // null if not accepted yet
+    'inviter' => setupField('uid of inviting member', 'int big', 0),
+    'invitee' => setupField('uid of invited new member', 'int big', 0), // 0 if not accepted yet
     'invited' => setupField('date of invitation', 'int 11', 0),
     'subject' => setupField('email subject', 'varchar 255'),
     'message' => setupField('email message body', 'text medium'),
@@ -506,12 +511,17 @@ function makeGeoDropdowns() {
 
   $js .= u\SUBS(<<<EOF
 \n
+$ = jQuery;
+
+var USID = cs.indexOf('United States');
+var MAID = STs.indexOf('MA');
+
 function print_country(dft_country, dft_state){
   if (dft_country == "") {
-    dft_country = :R_COUNTRY_ID;
-    dft_state = :R_STATE_ID;
+    dft_country = USID; // 1228 is US
+    dft_state = 0; // 1020 is MA
   }
-  var options = document.getElementById('edit-country');
+  var options = $('#edit-country')[0];
   options.length=0; // zap any previous list items
   var x, i = 0;
   for(x in cs) {
@@ -523,14 +533,49 @@ function print_country(dft_country, dft_state){
 }
 
 function print_state(ci, dft_state){
-  var options = document.getElementById('edit-state');
+  var options = $('#edit-state')[0];
   options.length=0; // zap any previous list items
   var x, i = 0;
+  if (dft_state == 0) {options.options[i] = new Option('---', 0); i++;}
   for(x in ss[ci]) {
     options.options[i] = new Option(ss[ci][x], x);
     if (dft_state == x) options.selectedIndex = i;
     i++;
   }
+}
+
+function setPostalAddr() {
+	var country = $('#edit-country').val();
+	var state = $('#edit-state').val();
+	var city = $('#edit-city').val();
+	var address = $('#edit-address').val();
+	var postalCode = $('#edit-postalcode').val();
+	var postalAddr = $('#edit-postaladdr');
+	if (address != '' && postalCode != '' && city != '' && state != 0 && postalAddr.val() == '') {
+	  postalAddr.val(address + ', ' + city + ', ' + (country==USID ? STs[state] : ss[country][state]) + ' ' + postalCode + (country==USID ? '' : (' ' + cs[country])));
+	} // postalAddr.attr('selectionEnd',0); fails
+}
+
+function zipChange(z3s) {
+    $.zipLookupSettings.libDirPath = 'http://ziplookup.googlecode.com/git/public/ziplookup/'; 
+    $.zipLookup(
+      $('#edit-postalcode').val(),
+      function(cityName, stateName, stateShortName){ // success
+        $('#edit-city').val(cityName);
+//        $('#edit-state').val(stateName);
+//        $('#edit-state').val(stateShortName);
+        $('#edit-state').val(STs.indexOf(stateShortName));
+//        $('.message').html("Found Zipcode");
+      },
+      function(errMsg){ // zip couldn't be found,
+//	  alert(errMsg);
+//          $('.message').html("Error: " + errMsg);
+      }
+    );
+
+  var z3=$('#edit-postalcode').val().substr(0, 3);
+  if (z3s.indexOf(z3) >= 0) $('#edit-buysat').show();
+  setPostalAddr();
 }
 EOF
   );

@@ -483,6 +483,7 @@ function txEdit_validate($form, &$sta) {
     $action = $x_taking ? t('increase') : t('decrease');
     $date = u\fmtDate($x_created);
     $amount = u\fmtAmt($amount);
+    $purpose = urlencode($purpose);
     $a = "a href=\"$base_url/charge/who=$who&amount=$dif&goods=$goods&purpose=$purpose ($action amount of $date payment to $amount)\"";
     $amount = u\fmtAmt($x_amount);
     return say('illegal amount change', compact(u\ray('amount action a')), 'amount');

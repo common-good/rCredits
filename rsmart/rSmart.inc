@@ -167,7 +167,7 @@ function identify($args) {
     if (!@$deviceId) {
       if ($device) {
         if ($owner = db\lookup('uid', 'r_boxes', 'code=:device', compact('device')) and !r\acct($owner)->coCan(CO_REQUIRE_CASHIER)) return posErr('restricted');
-      } else $device = \user_password(R_CODE_LEN);
+      } else $device = u\code(R_CODE_LEN);
       r\makeDevice($a->id, $device, TX_SMART); // card is legit, so use device's code, if any (maybe from STAGE)
     }
 /*  $restricted = db\lookup('restricted', 'r_boxes', 'code=:device', compact('device')); // 1 or 0
@@ -298,17 +298,17 @@ function missingArg($expected, $args) {
 }
 
 /**
- * Return the agent's acct.
- * @param string $agent: the agent's qid or company's uid (if company is pro se).
+ * Return the agent's company acct.
+ * @param string $agent: the agent's company qid or company's uid (if company is pro se).
  * @param string $err: (returned) error message, if any
- * @return: the agent's acct object (false if error)
+ * @return: the agent's company acct object (false if error)
  */
 function getAgent($agent, &$err = '') {
   if (!$mya = r\acct($agent)) return !$err = 'bad agent'.$agent;
 //  if (r\foreignServer(r\uidRegion($mya->agentId))) return !$err = 'wrong server for agent';
   if (!$mya->ok) return !$err = 'company inactive';
 //  if (!$mya->can(B_SELL)) return !$err = 'agent cannot sell';
-  r\acct::setDefault($mya); // set current account temporarily to owner, so that error log has it right
+  r\acct::setDefault($mya);
   return $mya;
 }
 

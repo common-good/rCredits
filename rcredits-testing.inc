@@ -42,10 +42,12 @@ function doThing($info, $type) {
   global $testOnly;
   extract($info);
   if (@$id) $info['uid'] = t\uid($id); unset($info['id']);
+  foreach (u\ray('inviter invitee') as $one) if (@$$one) $info[$one] = t\uid($$one);
   $table = 'r_' . strtolower($type) . 's';
   return $testOnly ? verifyRecord($table, $info) : db\insert($table, $info);
 }
 
+function invites($list) {return doRecords($list, 'Invite');}
 function gifts($list) {return doRecords($list, 'Gift');}
 function notices($list) {return doRecords($list, 'Notice');}
 function members($list) {return doRecords($list, 'Account');}
@@ -99,11 +101,10 @@ function doAccount($info = array()) {
     u\setDft($country, 'US');
     $moneyFields = 'share committed floor r usd rewards'; // not minimum because NULL means not set, in Membership page
     foreach (u\ray($moneyFields) as $one) u\setDft($$one, 0);
-    foreach (u\ray('cc cc2') as $one) if (isset($$one)) {
-      $secure[str_replace('cc', 'cardCode', $one)] = $$one;
-      unset($info[$one]);
-    }
-    $fixFields = 'rebate fullName legalName name pass mail secure community postalCode country ' . $moneyFields;
+    if (@$cc) $cardCode = $cc;
+    if (@$cc2) $cardCode2 = $cc2;
+
+    $fixFields = 'rebate fullName legalName name pass mail secure community postalCode country cardCode cardCode2 ' . $moneyFields;
   } else $fixFields = '';
 
   $flags0 = @$flags;
@@ -113,7 +114,7 @@ function doAccount($info = array()) {
 
   if (isset($acctType)) $flags |= (($acctType === R_PERSONAL or $acctType == 'personal') ? 0 : u\bit(B_CO)); // === required
   
-  foreach (u\ray('id email acctType dw') as $one) unset($info[$one]);
+  foreach (u\ray('id email acctType dw cc cc2') as $one) unset($info[$one]);
   $info = compact(u\ray('uid flags ' . $fixFields)) + $info;
   fixValues($info, TRUE);
 
@@ -215,6 +216,7 @@ function doTx($info, $thing) {
  * Minimum parameters: main, agent (both are quids -- at least one must be local)
  */
 function doRelation($info) {
+  include_once __DIR__ . '/admin/admin-forms.inc';
   global $testOnly;
   extract($info);
   
@@ -227,9 +229,16 @@ function doRelation($info) {
   $info['permission'] = @$permission ? u\consta('b', $permission) - B_RELATED : 0;
   if (@$draw) $agtAcct->setBit(B_DRAWS);
   
-  foreach (u\ray('id main agent') as $one) unset($info[$one]);
+  foreach (u\ray('id main agent rCard') as $one) unset($info[$one]);
   $info += compact(u\ray('reid main other'));
-  return $testOnly ? verifyRecord('r_relations', $info) : db\insert('r_relations', $info);
+  
+  if ($testOnly) {
+    return verifyRecord('r_relations', $info);
+  } else {
+    db\insert('r_relations', $info);
+    if (@$rCard == 'yes') r\Web\memberId($id); // make a Company Agent rCard
+    return TRUE;
+  }
 }
 
 /**
@@ -351,7 +360,7 @@ function doBalance($one) {
     unset($one['dw/usd']);
   }
   extract(u\just('id r usd balance dwolla rewards minimum share committed', $one));
-  $a = r\acct($id = t\uid($id0 = $id));
+  if (!$a = r\acct($id = t\uid($id0 = $id))) return FALSE;
 /// print_r(compact('a','id','id0'));
 /// print_r(' unQuid=' . r\unQuid($id0));
   if ($hasdw = in_array($a->usdAccount, array(DW_TEST_ACCT, DW_TESTER_ACCT))) $us = new r\usd($a);
@@ -493,21 +502,14 @@ function uidCredit($uid) {
   return $info;
 }
 
+/**
+ * Interpret the given identifier (int, full quid, or local quid) as an account ID.
+ */
 function uid($id) {
   return is_numeric($id) ? $id
     : (($id == 'community' or $id == 'ctty') ? r\serverUid() 
     : ($id == 'cgf' ? r\cgfId()
     : r\unQuid($id)));
-}
-
-/**
- * Accept abbreviations of alphabetic ids for accounts, transactions, and relations
- * @param string $q: the possibly-abbreviated id
- * @return: the full id (if $q is numeric or an already-full alphabetic id, return it unchanged)
- */
-function fullQid($q) {
-  $c1 = substr($q, 0, 1);
-  return ($c1 == R_MEMBER_MARK or $c1 == R_AGENT_MARK) ? (R_SERVER_ID . $q) : $q;
 }
 
 function getErrors() {
@@ -526,19 +528,25 @@ function getErrors() {
 function findMessage($type, $fields, $message = '', $subject = '', $subs = array()) {
   global $channel;
 
+  $mya = r\acct();
   $fields = @$fields[0] ?: $fields;
   $subs = @$subs[0] ?: @$subs;
-  $myid = @r\acct()->id;
+  $agent = $mya ? $mya->agentId : 0;
+  $myid = $mya ? $mya->id : 0;
+/*  if (!$myid and $type == 'email' and $email = @$fields['email']) {
+    $myid = $agent = db\lookup('uid', 'users', 'mail=:email', compact('email'));
+  } */
+
   if ($message = ($message ?: @$fields['message'])) {
     if ($channel != TX_SMS and strlen($message < 30)) $message = u\tt($message, $subs);
     $fields['message'] = $message;
-    if ($subject) { // must be email
+/*    if ($subject) { // must be email
       $fields['message'] = str_replace("\r\n", '', $fields['message']);
       $fields['subject'] = $subject;
-    }
+    } */
   } else unset($fields['message']); // empty message in features means NO message
-  $agent = @r\acct()->agentId;
-  output(array('EXPECT' => '') + $fields, @$subject ? 'email' : 'output'); // keep this
+//  output(array('EXPECT' => '') + $fields, @$subject ? 'email' : 'output'); // keep this
+  output(array('EXPECT' => '') + $fields, 'output'); // keep this
   $info = u\jsonEncode($fields);
   $crit = "channel=:channel AND type=:type AND myid<=>:myid AND agent<=>:agent ORDER BY logid DESC";
 /// debug("info=:info AND $crit"); debug(compact(u\ray('info type myid agent channel')));
@@ -567,19 +575,64 @@ function weTellStaff($topic, $subs = array()) {
   return TRUE;
 }
 
-function findEmail($index, $email, $subs, $noBody = FALSE) {
+/**
+ * Say whether any such email has been sent to the specified address.
+ */
+function noSuchEmail($index, $email) {
   global $testOnly; if (!$testOnly) return FALSE;
+//  $subject = strtr($GLOBALS['emailSubjects'][$index], $esubs);
+  $pattern = strtr('%"index":"INDEX","email":"EMAIL"%', u\ray('INDEX EMAIL', $index, $email));
+  return !db\exists('r_log', 'info LIKE :pattern', compact('pattern'));
+}
+
+/** 
+ * See whether the specified email has been sent (by searching the log file)
+ */
+function findEmail($index, $email, $subs) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  global $testEmails; if (!@$testEmails) return FALSE;
+
   $subs = @$subs[0] ?: @$subs;
-  $esubs = array();
-  foreach ($subs as $k => $value) {
-    if (strpos($value, ',')) $value = '<li>' . join("</li>\n<li>", explode(',', $value)) . "</li>\n";
-    $esubs['{' . $k . '}'] = $value;
-  }
-  $message = strtr($noBody ? r\emailTemplate($index) : r\emailBody($index), $esubs);
-  $subject = strtr($GLOBALS['emailSubjects'][$index], $esubs);
   t\fixEmail($email);
-///  debug(compact('index','email','subs','esubs','message','subject'));
-  return findMessage('email', compact(u\ray('index email subject')), $message, $subject, $subs);
+  foreach ($subs as $k => $v) {
+    if (strpos($v, ',')) $subs[$k] = $v = '<li>' . join("</li>\n<li>", explode(',', $v)) . "</li>";
+    $esubs['{' . $k . '}'] = $v;
+  }
+  //foreach ($subs as $k => $v) $esubs[u\hug($k, '{}')] = $v;
+  $message = @$subs['noFrame'] ? r\emailTemplate($index) : r\emailBody($index);
+  $message = str_replace("\r\n", '', $message);
+  $messageDpy = t\showSubs($message, $esubs);
+  $message = strtr($message, $esubs);
+  $subject = @$info['subject'] ?: $GLOBALS['emailSubjects'][$index];
+  $subject = $GLOBALS['emailSubjects'][$index];
+  $subjectDpy = t\showSubs($subject, $esubs);
+  $subject = strtr($subject, $esubs);
+  $pattern = '/\{[A-Z]+[A-Z0-9]*\}/i';
+  if (preg_match($pattern, $message. $subject)) return FALSE; // no other subs
+  ksort($subs);
+  
+  foreach ($testEmails as $one) {
+    extract($one, EXTR_PREFIX_ALL, 't');
+    if ($t_index == $index and $t_email == $email) {
+      ksort($t_subs);
+      $keys = join(' ', array_keys($subs));
+      $t_keys = join(' ', array_keys($t_subs));
+      if (u\just($keys, $t_subs) == u\just($t_keys, $subs)) return TRUE; // has these subs
+    }
+  }
+  output(u\ray('EXPECT', '') + compact(u\ray('index email subjectDpy subs messageDpy')), 'email');
+  return FALSE;
+}
+
+/**
+ * Highlight the substitutions in a given text.
+ * @param string $s: the text
+ * @param assoc $subs: the substitutions
+ * @return the text with substitutions highlighted
+ */
+function showSubs($s, $subs) {
+  foreach ($subs as $k=>$v) $subs[$k] = "<span style=\"background-color:yellow;\">$v</span>";
+  return strtr($s, $subs);
 }
 
 /**
@@ -655,8 +708,8 @@ function subAgo($string, $fmt) {
  */
 function hitServer($op, $extra = array(), $agent, $device = '', $version = '999') {
   global $rposResult;
-  $agent = t\fullQid($agent);
-  if (@$extra['member']) $extra['member'] = t\fullQid($extra['member']);
+  $agent = r\fullQid($agent);
+  if (@$extra['member']) $extra['member'] = r\fullQid($extra['member']);
   $input = compact(u\ray('op agent device version')) + $extra;
 /**/ t\output('request: ' . print_r($input, 1), 'input'); // keep this
   $rposResult = r\Smart\pos($input);
@@ -673,7 +726,7 @@ function parseQr($qr) {
 
 function snapShot(&$form) { // (additional sta values have no effect at this stage)
   addAttribs($form);
-  return; // the rest is redundant
+  return $form; // the rest is redundant
   //global $formOut['text']; $zot = $form; $formOut['text'] = strip(\render($zot)); // for testing
   //output('ACTUAL or EXPECTED: ' . $formOut['text'], 'screen');
 }
@@ -696,7 +749,7 @@ function addAttribs(&$thing) {
 function logIn($id) {
   global $boxUser;
   if ($id != '?') {
-    r\acct::setDefault($a = r\acct(t\fullQid($id))); // fullQid not uid
+    r\acct::setDefault($a = r\acct(r\fullQid($id))); // fullQid not uid
     $boxUser = r\Web\boxUser(r\Web\box(), $a->id);
   }
   return TRUE;
@@ -705,6 +758,7 @@ function logIn($id) {
 /**
  * Compare the data to a corresponding record in the table.
  * Return TRUE if the record matches the data.
+ * Ignore fields with value "?".
  * Example call:
  *   $info = doRelation($info, TRUE);
  *   return verifyRecord('relations', $info);
@@ -715,6 +769,7 @@ function verifyRecord($table, $info) {
   
   unset($info['data']);
   foreach ($info as $key => $value) {
+    if ($value == '?') {unset($info[$key]); continue;}
     $crit[] = $value === '' ? "($key IS NULL or $key='')"
     : ((in_array($key, u\ray(R_DATE_FIELDS)) or stripos($key, 'date') !== FALSE) ? 
       "$key-($key%:DAY_SECS)<=>:$key-(:$key%:DAY_SECS)" 
@@ -746,13 +801,14 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
   global $fieldErr;
   global $testOp; $testOp = @$values[0]['op'];
   global $testConfirmation; // confirmation message output, if any
-  global $formSta;
-/// debug(compact(u\ray('id page values confirmed testOnly'))); // keep
+  global $formSta, $lastGo;
+  $xlastGo = @$lastGo; // notice whether a goto happens, so we can skip post-processing
+/// debug(compact(u\ray('id page values confirmed testOnly')));
 
   $values = @$values[0] ?: array();
   t\fixValues($values);
   if (isset($values['amount']) and !is_numeric($values['amount'])) {
-    $a = r\acct(t\fullQid($id));
+    $a = r\acct(r\fullQid($id));
     list ($values['amount']) = t\parseAmt($values['amount'], $a);
   }
   if (@$values['email']) $values = u\changeKey('email', 'mail', $values);
@@ -760,7 +816,7 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
   t\logIn($id);
 
   $validate = TRUE;
-  if (u\abbreviates('history/', $page) and $confirmed and !strpos($page, '&do=')) {
+  if (u\abbreviates('history/', $page) and $confirmed and !strpos($page, '&do=')) { // re-examine this
     $validate = FALSE;
     $formSta['confirm'] = TRUE;
   }
@@ -773,11 +829,9 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
     $page = 'Tx';
     if ($confirmed) $validate = FALSE;
   }
-  $errorsBefore = t\getErrors();
   
   $dfts = array();
   foreach ($form as $key => $field) if (substr($key, 0, 1) != '#') {
-//    u\setDft($dft, @$field['#default_value']);
     if (@$field['#type'] == 'hidden') $dfts[$key] = $field['#value'];
   }
   $sta['values'] = $sta['input'] = $values + $dfts; // add to whatever status the form left off in
@@ -785,18 +839,12 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
   
 //  $form_id = "rCredits\\Web\\
 //  if ($validate) drupal_validate_form($form_id, $form, $formSta);
-  if ($validate) foreach (t\postProcess($form, $page, 'validate') as $one) $one($form, $sta);
+  if ($validate and @$lastGo == $xlastGo) foreach (t\postProcess($form, $page, 'validate') as $one) $one($form, $sta);
   
-//  if (count($errors = t\getErrors()) > count($errorsBefore)) return TRUE;
-    // NO! if (!empty($errors)) return FALSE;
-/// debug(compact(u\ray('id page values confirmed one errors')));
-//    return FALSE; // ? (added 7/17/2013)
-//  } else {
-//    $testConfirmation = @$sta['confirm'];
   $lastIdentifierTag = '</div identifiers>';
   if ($i = strpos($testConfirmation, $lastIdentifierTag)) $testConfirmation = substr($testConfirmation, $i + strlen($lastIdentifierTag));
   if ($fieldErr) return TRUE; // no submit if field error
-  foreach (t\postProcess($form, $page, 'submit') as $one) $one($form, $sta);
+  if (@$lastGo == $xlastGo) foreach (t\postProcess($form, $page, 'submit') as $one) $one($form, $sta);
 
   if ($page == '/user/login') { // fudge this test until we can take over the login process from Drupal
     if (!$id = @$sta['uid']) return TRUE; // login failed, but test succeeded
@@ -815,16 +863,17 @@ function completeForm($id, $page, $values = '', $confirmed = FALSE) {
  * @return: the form before rendering
  */
 function pageForm($page, $msg = '', $field = '') {
-  global $formArray, $formSta;
-  
+  global $formArray, $formSta, $lastGo;
+
+  if (!$page) $page = 'summary';
   if ($msg) r\Web\say($msg, $field);
-  $login = (strpos($page, 'user/login') !== FALSE);
   t\SERVER('REQUEST_URI', $page);
   $args = basename($page);
+  $xlastGo = @$lastGo; // notice whether a goto happens. ignore all but the deepest (last).
 
   if (u\abbreviates('/user/', $page)) {
+    $login = (strpos($page, 'user/login') !== FALSE);
     $sta = @$formSta ?: array();
-//    list ($form, $function) = strpos($page, '/signup') ? array('user_register_form', 'formRegister')
     list ($form, $function) = FALSE ? array('user_register_form', 'formRegister')
       : ($login ? array('user_login', 'formLogin') : array());
     $function = 'rCredits\\Web\\' . $function;
@@ -833,16 +882,17 @@ function pageForm($page, $msg = '', $field = '') {
     $function($form, $sta, $args);
     if ($login and @$form['newPass']) $form['newPass'] = \form_process_password_confirm($form['newPass']);
     $form2 = $form; $rent = \drupal_render($form2);
-    getFormOut($rent);
+    if (@$lastGo == $xlastGo) getFormOut($rent);
     return $form;
-  }     
+  }
 
   $result = \menu_execute_active_handler($page, FALSE);
+
   if (is_numeric($result)) {
     $result = $result == MENU_NOT_FOUND ? 'not found' 
       : ($result == MENU_ACCESS_DENIED ? 'access error' : "error #$result");
     t\output("page \"$page\": $result in t\\pageForm()");
-  } else getFormOut($result);
+  } elseif (@$lastGo == $xlastGo) getFormOut($result);
   return $formArray;
 }
 
@@ -989,10 +1039,10 @@ function est() {return (@TESTING == 1 ? 't' . REQUEST_TIME : FALSE);}
  * @param int $ch: the channel (web, sms, etc.)
  */
 function clear($ch) {
-  global $formOut, $formArray, $formSta, $testOp, $testConfirmation;
+  global $lastGo, $formOut, $formArray, $formSta, $testOp, $testConfirmation;
   global $sms_devel; $sms_devel = TRUE;
     
-  $formOut = $formArray = $formSta = $testOp = $testConfirmation = NULL;
+  $lastGo = $formOut = $formArray = $formSta = $testOp = $testConfirmation = NULL;
   global $sms_devel; $sms_devel = TRUE;
   global $testSeq; $testSeq = NULL;
   global $channel; $channel = $ch;

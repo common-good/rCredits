@@ -8,7 +8,7 @@ input {-webkit-appearance:none;} /* prevent iPhone and Mac from using their stan
 legend {-webkit-padding-start: 2px; -webkit-padding-end: 2px;}
 select {font-size:.85em;}
 label.option {font-weight:bold;}
-.loud {font-weight:bold; color:red;}
+.loud {font-weight:bold; background-color:yellow;}
 /* #square{width:100em;height:100em} depends on setting font-size in misc.js */
 .form-item {margin-bottom:25px;}
 #saywait {
@@ -143,7 +143,7 @@ ul.tabs.primary {padding:0; margin-left:4em; margin-top:.8em; font-size:85%;}
 #rcreditswebformhelp h2 {font-weight:normal; color:darkblue;}
 #rcreditswebformhelp b {color:darkgreen;}
 #rcreditswebformhelp i {color:darkblue;}
-#rcreditswebformhelp a div {float:right} /* for charts */
+#rcreditswebformhelp .onechart {float:right} /* for charts */
 #rcreditswebformhelp .p2p {color:orange;}
 #rcreditswebformhelp .p2b {color:green;}
 #rcreditswebformhelp .b2b {color:blue;}
@@ -220,16 +220,21 @@ form.rweb  .form-no {color:red;}
 /* Menu */
 #menu {display:none;}
 
+/* Reset (first time or resetting password) */
+#rcreditswebformresetpassword {margin-left:30px;}
+#rcreditswebformresetpassword .password-strength {width:18em;}
+#rcreditswebformresetpassword #edit-tip label {font-weight:normal; width:100%; text-align:left;}
+#rcreditswebformresetpassword .password-suggestions {background-color:lightyellow; width:240px;}
+#rcreditswebformresetpassword .confirm-parent label,
+#rcreditswebformresetpassword .password-parent label {text-align:left; width:auto;}
+#rcreditswebformresetpassword .form-item-newPass label[for="edit-newpass"] {display:none;}
+#rcreditswebformresetpassword #edit-subtext {margin:5px 0;}
+#rcreditswebformresetpassword #edit-subtext em {font-style:normal; color:red;}
+
 /* Login */
-#user-login .form-item label {width:130px;}
-#user-login #edit-title {margin-left:133px;}
 #user-login #edit-tip label {font-weight:normal; width:100%; text-align:left;}
 #user-login #edit-name,
 #user-login #edit-pass {width:20em;}
-#user-login .confirm-parent, #user-login .password-parent, #user-login .password-suggestions {margin-left:133px;}
-#user-login .password-suggestions {background-color:lightyellow; width:240px;}
-#user-login .confirm-parent label, #user-login .password-parent label {text-align:left; width:auto;}
-#user-login .form-item-newPass label[for="edit-newpass"] {display:none;}
 #user-login #edit-forgot {display:inline-block; margin:5px 0 0 15px;}
 #user-login #edit-subtext {margin:5px 0;}
 #user-login #edit-subtext em {font-style:normal; color:red;}
@@ -596,6 +601,7 @@ html.js input.throbbing {background-position:right -2.4em;}
 #rcreditswebformmembership #edit-steps .done.state div {background-image:url(../images/NONE.gif);}
 #rcreditswebformmembership #edit-steps .done.state1 div {background-image:url(../images/checkmark.gif);}
 #rcreditswebformmembership #edit-steps .step div {font-size:0; width:38px; height:37px; margin-right:8px; margin-top:8px; background:url(../images/steps-green50.gif) no-repeat; background-position:99px 99px;}
+#rcreditswebformmembership #edit-steps .step0 div {background-image:url(../images/zero50.gif); background-position:0 0;}
 #rcreditswebformmembership #edit-steps .step1 div {background-position:left top;}
 #rcreditswebformmembership #edit-steps .step2 div {background-position:center top;}
 #rcreditswebformmembership #edit-steps .step3 div {background-position:right top;}

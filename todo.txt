@@ -1,7 +1,12 @@
 rCredits Software
 To Do
 
+. write david russell to talk to accountant or to get payments made to other businesses / employees
 . get a new device for GFM
+- (from mike) after we grow, might be nice to do newsletter features on:
+        • the person who’s successfully directly invited the most other people
+        • ditto, but directly-and-indirectly combined, sort of “most descendants”
+        • the longest chain of successful invites (probably not that long, so maybe more than one chain)
 
 Before growing fast:
 . ACH at TDBank (need EIN doc, cert from town, signers in person with ss#/dob/license/physAddr)
@@ -10,57 +15,59 @@ Before growing fast:
 . DONE economic circle(s)
 . 2 more new board members, including a business leader
 . ID verification
-. Software: invoices, sound admin tools, bal not r
+. Software: invoices, sound admin tools
+. $25 for inviting and helping (software and promo)
+. get GFM to pay suppliers and employees
 
 TASKS FOR NEXT UPDATE:
-after reinstall:
 (no other special tasks yet)
 
-. add something to the website that mentions Ann Arbor and directs people to that facebook page (https://www.facebook.com/A2rcredits) and their email address. Is that something to ask the board?
+. add something to rCredits.org website that mentions Ann Arbor and directs people to that facebook page (https://www.facebook.com/A2rcredits) and their email address.
 
-. fix EditTx test so it handles variable link ("?")
-. add tickler for invitations
+. give cAdmin2 people an Admin section with just memberlist and export
+. add legalName to input fields on Summary page for cAdmin
+. handle failed deposits/withdrawals (notify the member)
+. fix rSMS Transact and Undo tests
+. establish ways to prove we know who the member is (show photo, etc)
+. move question to secure
+. make sure there's a way to delete employees
+. LATER new company bit for sell cash (set it for GFM, test with CGF)
+. link on signup pages "Skip this step and return to Checklist"
+. graph improvements:
+  - (from mike) might be interesting to show on the statistics page not only the number of signed up users but also lines for how many have used their card in the last 30 days. Or any other way to measure activity.
+. for businesses: send them a customized QR with a "rCredits accepted here" sign (every member website should link to the rCredits promo site AND have a pay button)
+. The meaning of "cashing out" should include only: (1) trading rCredits for USD at an official rCredits exchange (a member business that has agreed to provide that service) and (2) transferring funds to one's connected bank account.
+. prevent foul codes from getting assigned to new members
+. when reversing a sharing in ws., reversed tx gets wrong tid in purpose and offsetting tx does not appear (BAD)
 . track buyers and sellers in stats: SELECT DISTINCT uid,fullName FROM r_txs t, users u WHERE uid IN (payer, payee) AND uid>1 AND payee<>26742000000002 AND payer>0
 . scatter graph: sector II x-axis buyers (primarily) pay y-axis sellers (primarily). sector I y-axis sellers pay x-axis buyers (mostly payroll), order by how extreme ($bought-$sold), with extremes on the top/outside
-. added a "I connected them to Dwolla" button on Member Info page
 . move photos to /sites/photos and rename them uid-photoCode.jpg (photoCode is null for companies)
 . tell newbs their bank's phone number (to make it easy to confirm the deposits)
-. if state lookup fails, member gets uid USA.AAA and the default community. Should give an error message and "retry".
-. The meaning of "cashing out" should include only: (1) trading rCredits for USD at an official rCredits exchange (a member business that has agreed to provide that service) and (2) transferring funds to one's connected bank account.
-. don't update the access field in the users table when admin or cadmin or cadmin2 accesses the account (similar for login)
-. don't allow a one-word use-name easily. Also, ask for full name first, then legal name (if different).
 . Adam: I've noticed the rcredits member site keeps me logged in long after I've stopped using it, even after I close the tab and then reopen it hours or days later. For a financial site where money can be moved, I'd recommend either auto-logout after 10-20 minutes of inactivity, or (better) requiring me to re-enter my password before doing certain things like paying people if it's been more than 10-20 min since I last entered it. 
 . on NSF for cash/loan/etc., explain that rewards cannot be cashed out
-. "connect bank" button on memberdetails page
 . implemented a FREEZE button for cttyadmins (disables transfers of USD out)
 . change cached "r" field in users to bal (total of r and usd)
 . tentatively implemented invoices as emails, as for "buy now with rCredits" buttons (a copy of the email goes to the sender, prefixed by "you sent this invoice to XXX on YYY:"). Invoices are permanent. Link has a weak security code -- maybe the account created date
 . use legalName on Relations page!!
 . now includes inviter in proxy list
-. implemented effective minimum for unbanked accounts that can draw on one or more others
 . Pay page does not figure shortfall properly (omits draw!)
 . If Matt leaves his phone untouched for X minutes and Sheila picks it up, should it insist that she sign in? Or at least say “Are you still Matt?” ?
 . Should we not allow you to undo the last transaction if it was more than Y minutes ago?
 . remade patch files
 . made "back to member list" link on member info page go to bookmark for the edited account
 . fixed messy security page for admins
-. added charts to Community page: live line graphs showing trends over the past month or year (separate for counts and for amounts), pie chart for type of transaction over the past month (p2p, etc.)
 . made some Preferences "advanced"
 . added "[?]" to "cash/loan/etc", linking to more info -- including an example of reimbursement
-- let user choose chunk size for automatic bank/draw transfers -- stored in "data" in the users table.
 . add a checkbox for "I don’t have a bank account" (and I can find another rCredits member to pay me in rCredits or trade rCredits for US Dollars or allow my account to draw from their account automatically) 
 . let other communities have a list of not-yet-members
 . added a users data field: require PIN for purchases over $x. (requires a change to App also)
 . option to send text message on purchase
-. let admin change goods status of a tx?
 . * add a Pay button to member company rCredits webpage
-. remind people to confirm their bank account (and say how -- call the bank, etc.) -- also other reminders based on how long after particular events, such as signing the agreement, first tx, last sign-in, last invite, etc. (SELECT max(), max()... from users left join this on uid=uid left join that...)
 . * hide advanced features on Transactions page (show either advanced or simple period selector, but not both)
 - * detailed membership tests: New Pass, Photo, Agreement, Donate, Proxies, Usd, proof of ID, Options
 
 . maybe change tx type from TX_SIGNUP to TX_PIONEER for early txs where payerFor='pioneer bonus'
-. Avoid "attempt was made to transfer from your bank" message by selecting only users with IS_BANK, BUT starting one day after signup, notify member what the next step is AND give them daily messages until they have completed the signup.
-. add the agreement to rCredits.org
+. add link to the agreement on rCredits.org
 . give admin tweak msg upon SHOWING bank form
 . *** txs should not show X on receipts, for non-buyers
 . *** monthly pdf statements
@@ -122,6 +129,7 @@ after reinstall:
 . company search on production server gets collation error (search for "food") (not critical)
 . hover help on relations page
 . committed amount can go negative (on a refund). make sure cron handles it right.
+. Fix this problem in tests: Too many args (11) in statement: next random code is ""dxCX>tz0Asz4@,8F=I6u6Ng_p}1U[6cZfitLjNd[X1WmC8BpD"" (maybe in test-defs.php? subargs are recognized by "=>", so it's not that...)
 
 . show the right thing for bank transfers for cadmin statistics page or hide them
 . have Gherkin always send us the whole array, which must still be rectangular. use t\hdrs() to make the first row or column keys/hdrs for the others

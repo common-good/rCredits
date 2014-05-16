@@ -259,11 +259,68 @@ function changeIt($a) {
   
 }
 
+/*
 function fixdw($a) {
   if ($a->ok and $a->can(B_DW)) {$a->stepDone('dw'); $a->stepDone('connect');}
+}*/
+
+/**
+ * Redo all the stats
+include __DIR__ . '/../rcredits/admin/admin.inc';
+rCredits\fixStats();
+ */
+function fixStats($keepUpto = 0) {
+  include_once __DIR__ . '/../rcron/rcron.inc';
+  
+  $sql = <<<EOF
+    SELECT community AS ctty, MIN(t.created) AS start
+    FROM users u LEFT JOIN r_txs t ON t.payee=u.uid 
+    WHERE uid>1 AND (t.created>=:R_LAUNCH OR t.created IS NULL) GROUP BY community ORDER BY -community
+EOF;
+  $cttys = db\q($sql)->fetchAllKeyed();
+  u\preray(array(0 => min($cttys)), $cttys); // show all dates overall
+
+  db\q($keepUpto ? "DELETE FROM r_stats WHERE id>$keepUpto" : 'TRUNCATE r_stats');
+  $start = $keepUpto ? strtotime('tomorrow', db\lookup('MAX(created)', 'r_stats')) : (@$cttys[0] ?: REQUEST_TIME);
+  $created = strtotime('today', $start); // use first moment of the day
+  
+  while ($created <= REQUEST_TIME) {
+    $acctQ = db\q('SELECT uid FROM users WHERE uid>1');
+    db\q('UPDATE users SET picture=0'); // clear temp field  
+    while ($row = $acctQ->fetchAssoc()) r\Cron\acctStats1($row, $created); // set individual account stats
+    foreach ($cttys as $ctty => $start) if ($created >= $start) {
+      r\getStats($ctty, $created); // set community stats
+      if ($ctty != 0) if (!checkStats($ctty, $created)) return; // verify
+    }
+    $created = strtotime('tomorrow', $created);
+  }
+}
+  
+/**
+ * Check consistency with individual stats
+ * @param int $ctty: record ID of community to check
+ * @param int $created: stats date to check
+ */
+function checkStats($ctty, $asof) {
+  $q = db\q('SELECT uid FROM users WHERE community=:ctty', compact('ctty'));
+  while ($row = $q->fetchAssoc()) {
+    extract(u\just('uid', $row));
+    $info = u\just('r usd', (array) be\creditInfo(compact('uid','asof')));
+//    unset($info['fancy']);
+    if ($uid < 0) $info['r'] = -$info['usd']; // don't include r for communities (it would cancel out the others)
+    if (@$totals) {
+      foreach($info as $k => $v) $totals[$k] += $v;
+    } else $totals = $info;
+  }
+  $stats = db\lookup('r,usd', 'r_stats', 'ctty=:ctty AND created=:asof', compact('ctty', 'asof'));
+  foreach (u\ray('r usd') as $k) if ($stats[$k] != round($totals[$k], 2)) {
+/**/ debug(u\ray('STATS_ERROR', compact(u\ray('k ctty asof stats totals')))); return FALSE;
+//      r\tellStaff(t('bad stats'), compact(u\ray('k ctty asof stats totals')));
+  }
+  return TRUE;
 }
 
-function fixStats() {
+/*
   $r = $usd = 0;
   $q = db\q("SELECT id, created, pAccts, bAccts FROM r_stats WHERE ctty<>0 ORDER BY created");
   $new = r\acct('NEW.AAA')->community;
@@ -280,8 +337,7 @@ function fixStats() {
     $id = db\lookup('id', 'r_stats', 'created=:created AND ctty<>0', compact('created'));
     db\update('r_stats', compact(u\ray('newbs id')), 'id');
   }
-}
-
+*/
 function pioneerBonus($a) {
   if (!$a->ok or !$a->can(B_BONA) or $a->co) return;
   if (db\exists('r_txs', "payee=:uid AND payer=-8915 AND amount=100", u\ray('uid', $a->id))) return;
@@ -292,7 +348,7 @@ function pioneerBonus($a) {
 /**
  * Re-setup the test cards on the STAGING server, after importing data from the PRODUCTION server.
   include __DIR__ . '/../rcredits/admin/admin.inc';
-  makeTestCards();
+  rCredits\makeTestCards();
  */
 function makeTestCards() {
   if (isPRODUCTION) return;
@@ -323,3 +379,16 @@ function makeTestCards() {
   $a->update(u\ray('fullName', 'Susan Shopper'));
   $a->upSecure('cardCode', 'ZzhWMCq0zcBowqw');
 }
+
+/* for changing archaic Dwolla info
+$a = a('nya.aaa');
+    $usdPass = f('u.code') . '*B2'; // satisfy Dwolla (and our own security)
+    $usdEmail = strtolower(f('u.code',4) . '.' . $a->mainQid . '@rc4.me');
+    //if (t\est()) $usdEmail = 'wspademan+' . strtolower(\user_password(4) . '.' . $this->mainQid) . '@gmail.com';
+    $usdPin = f('u.randomString', 4, 'digits');
+//    if (isDEV) list ($usdPass, $usdPin) = array('Password1', 9999);
+    $usdPhone = $a->phone;
+    $secure = compact(f('u.ray','usdPhone usdEmail usdPass usdPin')) + (@$a->secure ?: array());
+///debug($secure);
+    $a->update(compact('secure'));
+    */

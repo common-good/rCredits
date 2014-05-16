@@ -39,6 +39,7 @@ function extraSetup($feature) {
 function extraSubs(&$subs) {
 //  $subs += u\prefixKeys('%', compact(u\ray('chunk chunk2 chunk3 fancyYesterday')));
   $subs['%fancyYesterday'] = u\fmtDate(strtotime('yesterday'));
+  $subs['%fancyYesterweek'] = u\fmtDate(strtotime('-1 week'));
   $subs['%chunk'] = R_CHUNK;
   for ($i = 2; $i <= 5; $i++) $subs["%chunk$i"] = R_CHUNK * $i;
   for ($i = 1; $i <= 3; $i++) $subs["%id$i"] = mt_rand(r\cgfId() + R_REGION_MAX, PHP_INT_MAX);
@@ -66,6 +67,8 @@ function members($list) {return t\members($list);}
  * balances: (ARG)
  *
  * in: MAKE Bank AMemberIsBarelyBelowMinimum
+ *     MAKE Bank AnUnbankedMemberBarelyBelowMinimumDrawsOnAnotherAccount
+ *     MAKE Bank AnUnbankedMemberBarelyBelowMinimumCannotDrawOnAnotherAccount
  *     MAKE Bank AMemberIsAtMinimum
  *     MAKE Bank AMemberIsWellBelowMinimum
  *     MAKE Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank
@@ -88,6 +91,8 @@ function balances($list) {return t\balances($list);}
  * cron runs (ARG)
  *
  * in: MAKE Bank AMemberIsBarelyBelowMinimum
+ *     MAKE Bank AnUnbankedMemberBarelyBelowMinimumDrawsOnAnotherAccount
+ *     MAKE Bank AnUnbankedMemberBarelyBelowMinimumCannotDrawOnAnotherAccount
  *     MAKE Bank AMemberIsAtMinimum
  *     MAKE Bank AMemberIsWellBelowMinimum
  *     MAKE Bank AMemberIsUnderMinimumButAlreadyRequestedBarelyEnoughFundsFromTheBank
@@ -98,6 +103,7 @@ function balances($list) {return t\balances($list);}
  *     MAKE Inflation InflationAdjustmentsAreDistributed
  *     MAKE LostUsdTxs ASystemCrashLeavesATransactionIncomplete
  *     MAKE Notices AMemberGetsSomeNotices
+ *     MAKE Notices AMemberGetsSomeWeeklyNotices
  *     MAKE Pool NormalPoolingHappens
  *     MAKE Recache BalancesGetOutOfWhack
  *     MAKE Recache BalancesGetATinyBitOutOfWhack
@@ -105,6 +111,9 @@ function balances($list) {return t\balances($list);}
  *     MAKE Tickle ANewbieHasNotTakenTheFirstStep
  *     MAKE Tickle ANewbieHasTakenSomeStepsButNotAll
  *     MAKE Tickle ANewbieIsOnTheVerifyStep
+ *     MAKE Tickle ANonmemberHasNotAcceptedTheInvitation
+ *     MAKE Tickle ANonmemberHasAcceptedTheInvitation
+ *     MAKE Tickle ANonmemberHasAcceptedAnInvitationFromSomeoneElseInstead
  */
 function cronRuns($op) {return t\cronRuns($op);}
 
@@ -131,7 +140,7 @@ function bankTransferCountIs($count) {return (t\usdTransferCount('payee=0') == $
 /**
  * relations: (ARG)
  *
- * in: 
+ * in: MAKE Bank Setup
  */
 function relations($relations) {return t\relations($relations);}
 
@@ -139,7 +148,8 @@ function relations($relations) {return t\relations($relations);}
 /**
  * transactions: (ARG)
  *
- * in: TEST Gifts ADonationCanBeCompleted
+ * in: TEST Bank AnUnbankedMemberBarelyBelowMinimumDrawsOnAnotherAccount
+ *     TEST Gifts ADonationCanBeCompleted
  *     TEST Gifts ARecurringDonationCanBeCompleted
  *     MAKE Homogenize Setup
  *     MAKE Inflation Setup
@@ -156,6 +166,7 @@ function transactions($list) {return t\transactions($list);}
  * we notice (ARG) to member (ARG) with subs: (ARG)
  *
  * in: TEST Bank AMemberIsBarelyBelowMinimum
+ *     TEST Bank AnUnbankedMemberBarelyBelowMinimumDrawsOnAnotherAccount
  *     TEST Bank AMemberIsWellBelowMinimum
  *     TEST Gifts ADonationCanBeCompleted
  *     TEST Gifts ARecurringDonationCanBeCompleted
@@ -167,7 +178,8 @@ function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice,
 /**
  * we notice (ARG) to member (ARG)
  *
- * in: TEST Tickle ANewbieHasNotTakenTheFirstStep
+ * in: TEST Bank AnUnbankedMemberBarelyBelowMinimumCannotDrawOnAnotherAccount
+ *     TEST Tickle ANewbieHasNotTakenTheFirstStep
  *     TEST Tickle ANewbieHasTakenSomeStepsButNotAll
  */
 function weNoticeToMember($notice, $id) {return t\notice($notice, $id);}
@@ -225,6 +237,7 @@ function constants($list) {return t\constants($list);}
  * notices: (ARG)
  *
  * in: BOTH Notices AMemberGetsSomeNotices
+ *     BOTH Notices AMemberGetsSomeWeeklyNotices
  */
 function notices($list) {return t\notices($list);}
 
@@ -232,6 +245,8 @@ function notices($list) {return t\notices($list);}
  * we email (ARG) to member (ARG) with subs: (ARG)
  *
  * in: TEST Notices AMemberGetsSomeNotices
+ *     TEST Notices AMemberGetsSomeWeeklyNotices
+ *     TEST Tickle ANonmemberHasNotAcceptedTheInvitation
  */
 function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, $email, $subs);}
 
@@ -357,3 +372,30 @@ function thatHasLinkResults($thing, $info) {return t\hasLinkResults($thing, $inf
  *     MAKE Tickle ANewbieIsOnTheVerifyStep
  */
 function memberHasDoneStep($uid, $step) {return t\doneStep($uid, $step);}
+
+/**
+ * invites: (ARG)
+ *
+ * in: MAKE Tickle ANonmemberHasNotAcceptedTheInvitation
+ *     MAKE Tickle ANonmemberHasAcceptedTheInvitation
+ *     MAKE Tickle ANonmemberHasAcceptedAnInvitationFromSomeoneElseInstead
+ */
+function invites($list) {return t\invites($list);}
+
+/**
+ * we do not email (ARG) to member (ARG)
+ *
+ * in: TEST Tickle ANonmemberHasAcceptedTheInvitation
+ *     TEST Tickle ANonmemberHasAcceptedAnInvitationFromSomeoneElseInstead
+ */
+function weDoNotEmailToMember($index, $email) {return t\noSuchEmail($index, $email);}
+
+/**
+ * it's time for (ARG)
+ *
+ * in: MAKE Notices AMemberGetsSomeWeeklyNotices
+ */
+function itsTimeFor($what) {
+  global $testOnly, $timeFor;
+  return $testOnly ? $timeFor[$what] : ($timeFor[$what] = TRUE);
+}

@@ -32,16 +32,18 @@ Setup:
   | :ZZD | .ZZC | .ZZD  | read       |
   | :ZZE | .ZZF | .ZZE  | sell       |
   And transactions: 
-  | xid | created   | type   | amount | from | to   | purpose | taking |
-  | 1   | %today-6m | signup |    250 | ctty | .ZZA | signup  | 0      |
-  | 2   | %today-6m | signup |    250 | ctty | .ZZB | signup  | 0      |
-  | 3   | %today-6m | signup |    250 | ctty | .ZZC | signup  | 0      |
+  | xid | created   | type   | amount | from | to   | purpose |
+  | 1   | %today-6m | signup |    250 | ctty | .ZZA | signup  |
+  | 2   | %today-6m | signup |    250 | ctty | .ZZB | signup  |
+  | 3   | %today-6m | signup |    250 | ctty | .ZZC | signup  |
+  | 4   | %today-6m | grant  |    250 | ctty | .ZZF | stuff   |
   Then balances:
   | id   | balance |
-  | ctty |    -750 |
+  | ctty |   -1000 |
   | .ZZA |     250 |
   | .ZZB |     250 |
   | .ZZC |     250 |
+  | .ZZF |     250 |
 
 #Variants: with/without an agent
 #  | ".ZZB" asks device "devC" | ".ZZB" asks device "codeC" | ".ZZA" $ | ".ZZC" $ | # agent to member |
@@ -50,7 +52,7 @@ Setup:
 Scenario: A cashier asks to charge someone
   When agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": "food"
   # cash exchange would be for "cash": "cash out"
-  Then we respond ok with tx 4 and message "report transaction" with subs:
+  Then we respond ok with tx 5 and message "report transaction" with subs:
   | did     | otherName | amount | rewardType | rewardAmount |
   | charged | Bea Two   | $100   | reward     | $10          |
   And with balance
@@ -71,7 +73,7 @@ Scenario: A cashier asks to charge someone
 
 Scenario: A cashier asks to refund someone
   When agent ":ZZA" asks device "devC" to charge ".ZZB" $-100 for "goods": "food"
-  Then we respond ok with tx 4 and message "report transaction" with subs:
+  Then we respond ok with tx 5 and message "report transaction" with subs:
   | did      | otherName | amount | rewardType | rewardAmount |
   | refunded | Bea Two   | $100   | reward     | $-10         |
   And with balance

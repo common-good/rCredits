@@ -130,19 +130,20 @@ function rcredits_mail($index, &$msg_array, $info) {
     $index = str_replace('_', '-', $index); // correct Drupal template names to rCredits standard
 //    if (rcredits_im_send($index, $msg_array, $info)) return; // If we can send by instant-message, do not send by email.
     
-    $uid = (int) $info['uid'];
-    u\EXPECT($uid, 'bad uid in mail');
-    $acct = r\acct($uid);
-    $info += (array) $acct->account();
-    $info['quid'] = $acct->mainQid;
+    if ($uid = (int) @$info['uid']) {
+      //u\EXPECT($uid, 'bad uid in mail');
+      $acct = r\acct($uid);
+      $info += (array) $acct->account();
+      $info['quid'] = $acct->mainQid;
+      $langcode = $acct->language->language; // instead of $language = $msg_array['language']; 
+      $info['shortName'] = $acct->name;
+    }
 // NOT USED (by policy)  $info['oneTimeLoginUrl'] = \user_pass_reset_url($acct->account());
     $info['site'] = R_SITE_URL;
     $info['region'] = strtolower(R_SERVER_ID);
-    $info['shortName'] = $acct->name;
 
     $email = $info['email'];
     foreach ($info as $k => $value) $subs['{' . $k . '}'] = $value;
-    $langcode = $acct->language->language; // instead of $language = $msg_array['language']; 
     $msg_array['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed'; // default is plain text
     $message = @$info['noFrame'] ? r\emailTemplate($index) : r\emailBody($index);
 
@@ -151,16 +152,11 @@ function rcredits_mail($index, &$msg_array, $info) {
     $message = $msg_array['body'][] = strtr($message, $subs);
 
     $message = str_replace("\r\n", '', $message); // easier reading for log and tests
-    foreach (u\ray(R_NOLOG) as $one) $message = str_replace(@$info[$one], '(?)', $message);
     $fields = compact(u\ray('index email subject message'));
 /**/ t\output('Actual (in hook_mail) ' . print_r($fields, 1), 'email');
-    
-    if (!$mya = r\acct()) { // must be register/login/reset, so setup what u\loga needs
-      r\acct::setDefault($acct);      
-      global $channel; if (!$channel) $channel = TX_WEB;
-      r\acct::setDefault($mya); // put it back (required at least for testing
-    }
-    u\loga('email', $fields);
+
+    foreach (u\ray(R_NOLOG) as $one) $fields['message'] = str_replace(@$info[$one], '(?)', $message); // no secret
+    u\loga('email', $fields, @$acct);
 }
 
 /**
@@ -205,7 +201,7 @@ function bs($n) {
 } // keep here
 
 /**/ function tm($n) {debug($result = date('m-d-Y H:i:s a', $n)); return $result;}
-function a($id = 'ZZA') {global $lastA; return $lastA = r\acct(strtoupper(strlen($id) == 3 ? 'NEW.' . $id : $id));}
+function a($id = 'ZZA') {global $lastA; return $lastA = r\acct(r\fullQid(strlen($id) == 3 ? '.' . $id : $id));}
 function us($a = '') {global $lastA; return new r\usd($a ? (is_object($a) ? $a : a($a)) : $lastA);}
 /**/ function da($idfield) {list ($id, $field) = u\ray($idfield); debug(a($id)->$field);}
 /**/ function step($a) {debug(us($a)->step());}

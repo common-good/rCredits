@@ -75,20 +75,29 @@ Setup:
   | .AAB |    1.10 |     0.00 |    0.10 |
   
 Scenario: cron calculates the statistics
-  Given cron runs "stats"
+  Given cron runs "acctStats"
+  And cron runs "cttyStats"
   When member ".ZZA" visits page "community"
   Then we show "Statistics" with:
   | | for %R_REGION_NAME |
-  | Accounts        | 5 (3 personal, 2 companies) — up 5 from a month ago |
-  | rCredits issued | $835.90r — up $835.90r from a month ago |
-  | | signup: $750r, inflation adjustments: $6r, rebates/bonuses: $70.90r, grants: $4r, loans: $5r, fees: $-6r |
-  | Demand          | $5,999.75 — up $5,999.75 from a month ago |
-  | Total funds     | $835.90r + $5,999.75us = $6,835.65 |
-  | | including about $6,564.65 in savings = 109.4% of demand (important why?) |
-  | Banking / mo    | $6,050us (in) - $50us (out) - $0.25 (fees) = +$5,999.75us (net) |
-  | Purchases / mo  | 4 ($271) / mo = $54.20 / acct |
-  | p2p             | 0 ($0) / mo = $0 / acct |
-  | p2b             | 2 ($170) / mo = $56.67 / acct |
-  | b2b             | 1 ($1) / mo = $0.50 / acct |
-  | b2p             | 1 ($100) / mo = $50 / acct |
-  | Velocity        | 4.0% per month |
+  |_rCredits Accounts: | 2 members + 1 co = 3 |
+  |_Funds in the rCredits System: | $12,835.65 |
+  |_rCredits Circulation Velocity: | 4.0% per mo. |
+  |_Monthly Bank Transfers | $6,000 (net) |
+  |_Monthly Transactions | 4 @ $67.75 |
+  |_rCredits Issued To-Date | $6,835.65 |
+# only 2 members and 1 company -- CGF and WWS are not counted because they have no transactions before today
+  
+#  | Accounts        | 5 (3 personal, 2 companies) — up 5 from a month ago |
+#  | rCredits issued | $835.90r — up $835.90r from a month ago |
+#  | | signup: $750r, inflation adjustments: $6r, rebates/bonuses: $70.90r, grants: $4r, loans: $5r, fees: $-6r |
+#  | Demand          | $5,999.75 — up $5,999.75 from a month ago |
+#  | Total funds     | $835.90r + $5,999.75us = $6,835.65 |
+#  | | including about $6,564.65 in savings = 109.4% of demand (important why?) |
+#  | Banking / mo    | $6,050us (in) - $50us (out) - $0.25 (fees) = +$5,999.75us (net) |
+#  | Purchases / mo  | 4 ($271) / mo = $54.20 / acct |
+#  | p2p             | 0 ($0) / mo = $0 / acct |
+#  | p2b             | 2 ($170) / mo = $56.67 / acct |
+#  | b2b             | 1 ($1) / mo = $0.50 / acct |
+#  | b2p             | 1 ($100) / mo = $50 / acct |
+#  | Velocity        | 4.0% per month |

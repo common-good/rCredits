@@ -61,6 +61,13 @@ function tlog($msg, $type = 'test', $info = array()) {return u\log($msg, $type, 
  *     MAKE Gift AMemberDonates
  *     MAKE Gift AMemberDonatesWithInsufficientFunds
  *     MAKE Relations AMemberAddsARelation
+ *     MAKE Signin AMemberAsksForANewPasswordForUsername
+ *     MAKE Signin AMemberAsksForANewPasswordForAccountID
+ *     MAKE Signin AMemberAsksForANewPasswordForEmail
+ *     MAKE Signin AMemberAsksForANewPasswordForAnUnknownAccount
+ *     MAKE Signin AMemberClicksALinkToResetPassword
+ *     MAKE Signin AMemberClicksALinkToResetPasswordWithWrongCode
+ *     MAKE Signin AMemberClicksALinkToResetPasswordForUnknownAccount
  *     MAKE Transact AMemberAsksToChargeAnotherMember
  *     MAKE Transact AMemberAsksToPayAnotherMember
  *     MAKE TransactUsd AMemberAsksToChargeAnotherMember
@@ -78,18 +85,18 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     MAKE Contact AMemberUpdatesToADifferentName
  *     MAKE Flow AMemberOverdraws
  *     MAKE Flow AMemberOverdrawsAndDrawsFromBothRAndUSD
- *     MAKE Membership AMemberSignsInForTheFirstTime
- *     MAKE Membership AMemberGivesTheWrongPassword
- *     MAKE Membership AMemberDoesItAll
- *     MAKE Membership AMemberOpensABusinessAccount
- *     MAKE Membership AMemberTypesTheWrongAccountInfonameSsnOrDob
- *     MAKE Membership AMemberCompanyTypesTheWrongAccountInfonameEinOrBusinessStructure
  *     MAKE RealUsd AMixedRCreditsUSDTransactionHappens
  *     MAKE RealUsd AMemberConfirmsPaymentWithInsufficientUSDBalance
  *     MAKE RealUsd AMemberBuysSomethingWhenDwollaIsDown
+ *     MAKE Signin AMemberSignsInWithUsernameOnTheMemberSite
+ *     MAKE Signin AMemberSignsInWithAccountIDOnTheMemberSite
+ *     MAKE Signin AMemberSignsInWithEmailOnTheMemberSite
+ *     MAKE Signin AMemberTypesTheWrongPassword
+ *     MAKE Signin AMemberTypesAnUnknownUsernameID
+ *     MAKE Signin AMemberClicksALinkToResetPassword
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite
  *     MAKE Signup ANewbieRegistersInWesternMassachusetts
- *     MAKE Signup ANewbieRegistersWithAUseName
+ *     MAKE Signup ANewbieRegistersWithADifferentLegalName
  *     MAKE Signup ANewbieRegistersElsewhere
  *     MAKE Signup ANewbieRegistersWithNoCase
  *     MAKE Signup AMemberRegistersBadEmail
@@ -99,6 +106,10 @@ function memberCompletesFormWithValues($id, $page, $values) {return t\completeFo
  *     MAKE Signup AMemberRegistersWithAnExistingCompany
  *     MAKE Signup AMemberRegistersWithAnUnknownCompany
  *     MAKE Signup AMemberRegistersWithACompanyWithNoRelation
+ *     MAKE Signup AMemberRegistersWithABadCompany
+ *     MAKE Signup AMemberRegistersWithABadCompanyPhone
+ *     MAKE Signup AMemberRegistersACompany
+ *     MAKE Signup ANewbieRegistersFromElsewhere
  *     MAKE Transact AMemberConfirmsRequestToChargeAnotherMember
  *     MAKE Transact AMemberConfirmsRequestToPayAnotherMember
  *     MAKE Transact AMemberConfirmsRequestToPayAMemberCompany
@@ -160,17 +171,19 @@ function aMemberConfirmsFormwhichLogsOutWithValues($page, $values) {
  *     MAKE Get Setup
  *     MAKE Gift Setup
  *     MAKE Membership Setup
- *     TEST Membership AMemberSignsInForTheFirstTime
  *     MAKE RealUsd Setup
  *     MAKE Relations Setup
  *     MAKE ScanCard Setup
+ *     MAKE Signin Setup
  *     TEST Signup ANewbieRegistersInWesternMassachusetts
- *     TEST Signup ANewbieRegistersWithAUseName
+ *     TEST Signup ANewbieRegistersWithADifferentLegalName
  *     TEST Signup ANewbieRegistersElsewhere
  *     TEST Signup ANewbieRegistersWithNoCase
  *     MAKE Signup AMemberRegistersAgain
  *     BOTH Signup AMemberRegistersWithAnExistingCompany
  *     TEST Signup AMemberRegistersWithAnUnknownCompany
+ *     BOTH Signup AMemberRegistersACompany
+ *     TEST Signup ANewbieRegistersFromElsewhere
  *     MAKE Summary Setup
  *     MAKE Transact Setup
  *     MAKE Transactions Setup
@@ -220,6 +233,8 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Relations AMemberAddsARelation
  *     TEST Signup AMemberRegistersBadName
  *     TEST Signup AMemberRegistersAgain
+ *     TEST Signup AMemberRegistersWithABadCompany
+ *     TEST Signup AMemberRegistersWithABadCompanyPhone
  *     TEST Transact AMemberConfirmsRequestToChargeAnotherMember
  *     TEST Transact AMemberConfirmsRequestToPayAnotherMember
  *     TEST Transact AMemberConfirmsRequestToPayAMemberCompany
@@ -234,13 +249,21 @@ function weSayWithSubs($type, $index, $subs) {
   $subs = @$subs[0] ?: array();
   if (isset($subs['email'])) t\fixEmail($subs['email']);
   $msg0 = u\tt($index);
-  $msg = u\tt($index, $subs);
   foreach ($subs as $key => $value) {
+    if ($value == '?') $wild = $subs[$key] = \user_password(); // mark the wildcard spot
     if (strpos($msg0, "@$key") === FALSE) return t\output("missing sub '$key' in message '$index'");
   }
+  $msg = u\tt($index, $subs);
   $msgs = \drupal_get_messages($type ?: NULL, FALSE);
-  $result = (@$msgs[$type] and array_search($msg, $msgs[$type]) !== FALSE);
-///  if (!$result) debug(compact('msg','msgs')); // keep
+  if (@$wild) {
+    $i = strpos($msg, $wild);
+    $tailLen = strlen($msg) - $i - strlen($wild);
+    $result = FALSE;
+    foreach ($msgs[$type] as $actual) {
+      if (substr($actual, 0, $i) == substr($msg, 0, $i) and substr($actual, -$tailLen) == substr($msg, -$tailLen)) {$result = TRUE; break;}
+    }
+  } else $result = (@$msgs[$type] and array_search($msg, $msgs[$type]) !== FALSE);
+/**/  if (!$result) debug(u\ray('msg messages', $msg, \drupal_get_messages(NULL, FALSE)));
   t\output("EXPECT: $msg", 'output'); // this must come after array_search!
   return $result;
 }
@@ -257,16 +280,20 @@ function weSayWithSubs($type, $index, $subs) {
  *     TEST EditTx ABuyerChangesTheGoodsStatus
  *     TEST Get AMemberMovesTooLittleToTheBank
  *     TEST Get AMemberTriesToGoBelowTheirMinimum
- *     TEST Membership AMemberSignsInForTheFirstTime
- *     MAKE Membership AMemberGivesTheWrongPassword
- *     TEST Membership AMemberDoesItAll
- *     TEST Membership AMemberTypesTheWrongAccountInfonameSsnOrDob
- *     TEST Membership AMemberCompanyTypesTheWrongAccountInfonameEinOrBusinessStructure
+ *     TEST Signin AMemberTypesTheWrongPassword
+ *     TEST Signin AMemberTypesAnUnknownUsernameID
+ *     TEST Signin AMemberTypesTheWrongPasswordFromRCreditsorg
+ *     TEST Signin AMemberTypesAnUnknownUsernameIDFromRCreditsorg
+ *     TEST Signin AMemberAsksForANewPasswordForAnUnknownAccount
+ *     TEST Signin AMemberClicksALinkToResetPasswordWithWrongCode
+ *     TEST Signin AMemberClicksALinkToResetPasswordForUnknownAccount
  *     TEST Signup ANewbieRegistersInWesternMassachusetts
  *     TEST Signup ANewbieRegistersElsewhere
  *     TEST Signup AMemberRegistersBadEmail
  *     TEST Signup AMemberRegistersBadZip
  *     TEST Signup AMemberRegistersWithACompanyWithNoRelation
+ *     TEST Signup AMemberRegistersACompany
+ *     TEST Signup ANewbieRegistersFromElsewhere
  *     TEST Summary MembersAccountIsNotActive
  */
 function weSay($type, $index) {
@@ -277,8 +304,12 @@ function weSay($type, $index) {
 /**
  * we email (ARG) to member (ARG) with subs: (ARG)
  *
- * in: TEST Signup ANewbieRegistersInWesternMassachusetts
+ * in: TEST Signin AMemberAsksForANewPasswordForUsername
+ *     TEST Signin AMemberAsksForANewPasswordForAccountID
+ *     TEST Signin AMemberAsksForANewPasswordForEmail
+ *     TEST Signup ANewbieRegistersInWesternMassachusetts
  *     TEST Signup ANewbieRegistersElsewhere
+ *     TEST Signup ANewbieRegistersFromElsewhere
  */
 function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, $email, $subs);}
 
@@ -287,8 +318,6 @@ function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, 
  *
  * in: TEST Gift AMemberDonates
  *     TEST Gift AMemberDonatesWithInsufficientFunds
- *     TEST Membership AMemberDoesItAll
- *     TEST Membership AMemberOpensABusinessAccount
  */
 function weTellStaffWithSubs($topic, $subs) {return t\weTellStaff($topic, $subs);}
 
@@ -330,12 +359,6 @@ function weShowWithSubs($page, $subs) {
  *     TEST Community CronCalculatesTheStatistics
  *     TEST Contact AMemberVisitsTheContactInfoPage
  *     TEST Get AMemberAsksToDoTwoTransfersOutInOneDay
- *     TEST Membership AMemberSignsInForTheFirstTime
- *     TEST Membership AMemberClicksTheMembershipLink
- *     TEST Membership AMemberWithoutADwollaAccountClicksTheMembershipLink
- *     TEST Membership ACompanyAgentClicksOnTheMembershipLink
- *     TEST Membership AMemberDoesItAll
- *     TEST Membership AMemberOpensABusinessAccount
  *     TEST RealUsd AMixedRCreditsUSDTransactionHappens
  *     TEST Relations MemberHasAnEmployeeConfirmed
  *     TEST Relations MemberHasAnEmployeeUnconfirmed
@@ -349,12 +372,13 @@ function weShowWithSubs($page, $subs) {
  *     TEST Relations AMemberAddsARelation
  *     TEST ScanCard SomeoneScansACompanyAgentCard
  *     TEST ScanCard SomeoneScansAnOldCompanyAgentCard
+ *     TEST Signin AMemberVisitsTheMemberSite
  *     TEST Signup ANewbieVisitsTheRegistrationPageWithNoInvite
  *     TEST Signup ANewbieVisitsTheRegistrationPageWithBadInvite
  *     TEST Signup ANewbieVisitsTheRegistrationPageWithExpiredInvite
  *     TEST Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite
  *     TEST Signup AnInvitedNewbieVisitsTheRegistrationPage
- *     TEST Signup ANewbieRegistersInWesternMassachusetts
+ *     TEST Signup AMemberRegistersACompany
  *     TEST Summary AMemberClicksOnTheSummaryTab
  *     TEST Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage
  *     TEST Summary ACompanyAgentClicksOnTheSummaryTab
@@ -370,7 +394,7 @@ function weShowWith($title, $content = FALSE, $showDebugs = TRUE) {
 /**
  * with options: (ARG)
  *
- * in: 
+ * in: TEST Signup AMemberRegistersACompany
  */
 function withOptions($options, $showDebugs = TRUE) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -407,6 +431,7 @@ function withoutOptions($options) {
  *     MAKE Relations ItsComplicated
  *     MAKE ScanCard Setup
  *     TEST Signup AMemberRegistersWithAnExistingCompany
+ *     TEST Signup AMemberRegistersACompany
  *     MAKE Summary Setup
  *     MAKE Transact Setup
  *     MAKE Transactions Setup
@@ -433,6 +458,7 @@ function relations($relations) {return t\relations($relations);}
  *     TEST RealUsd AMemberBuysSomethingWhenDwollaIsDown
  *     TEST Relations Setup
  *     BOTH ScanCard Setup
+ *     TEST Signup AMemberRegistersACompany
  *     TEST Summary Setup
  *     TEST Transact Setup
  *     TEST Transact AMemberConfirmsRequestToChargeAnotherMember
@@ -461,15 +487,6 @@ function usd($list) {return t\usd($list);}
  *     MAKE Community CronCalculatesTheStatistics
  *     MAKE Contact AMemberVisitsTheContactInfoPage
  *     MAKE Download AMemberDownloadsTransactionsForThePastYear
- *     MAKE Membership AMemberSignsInForTheFirstTime
- *     MAKE Membership AMemberGivesTheWrongPassword
- *     MAKE Membership AMemberClicksTheMembershipLink
- *     MAKE Membership AMemberWithoutADwollaAccountClicksTheMembershipLink
- *     MAKE Membership ACompanyAgentClicksOnTheMembershipLink
- *     MAKE Membership AMemberDoesItAll
- *     MAKE Membership AMemberOpensABusinessAccount
- *     MAKE Membership AMemberTypesTheWrongAccountInfonameSsnOrDob
- *     MAKE Membership AMemberCompanyTypesTheWrongAccountInfonameEinOrBusinessStructure
  *     MAKE RealUsd AMixedRCreditsUSDTransactionHappens
  *     MAKE Relations MemberHasAnEmployeeConfirmed
  *     MAKE Relations MemberHasAnEmployeeUnconfirmed
@@ -484,11 +501,16 @@ function usd($list) {return t\usd($list);}
  *     MAKE ScanCard SomeoneScansACompanyAgentCard
  *     MAKE ScanCard SomeoneScansAnOldMemberCard
  *     MAKE ScanCard SomeoneScansAnOldCompanyAgentCard
+ *     MAKE Signin AMemberVisitsTheMemberSite
+ *     MAKE Signin AMemberClicksALinkToResetPassword
+ *     MAKE Signin AMemberClicksALinkToResetPasswordWithWrongCode
+ *     MAKE Signin AMemberClicksALinkToResetPasswordForUnknownAccount
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithNoInvite
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithBadInvite
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithExpiredInvite
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite
  *     MAKE Signup AnInvitedNewbieVisitsTheRegistrationPage
+ *     MAKE Signup AMemberRegistersACompany
  *     MAKE Summary AMemberClicksOnTheSummaryTab
  *     MAKE Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage
  *     MAKE Summary ACompanyAgentClicksOnTheSummaryTab
@@ -506,7 +528,8 @@ function memberVisitsPage($id, $page) { // pass options in URL
 /**
  * member is logged out
  *
- * in: MAKE Membership AMemberSignsInForTheFirstTime
+ * in: MAKE Signin Setup
+ *     MAKE Signin AMemberClicksALinkToResetPassword
  *     MAKE Signup Setup
  */
 function memberIsLoggedOut() {
@@ -520,14 +543,13 @@ function memberIsLoggedOut() {
 /**
  * invitation to email (ARG) is (ARG)
  *
- * in: MAKE Membership AMemberSignsInForTheFirstTime
- *     MAKE Signup ANewbieVisitsTheRegistrationPageWithNoInvite
+ * in: MAKE Signup ANewbieVisitsTheRegistrationPageWithNoInvite
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithBadInvite
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithExpiredInvite
  *     MAKE Signup ANewbieVisitsTheRegistrationPageWithAUsedInvite
  *     MAKE Signup AnInvitedNewbieVisitsTheRegistrationPage
  *     MAKE Signup ANewbieRegistersInWesternMassachusetts
- *     MAKE Signup ANewbieRegistersWithAUseName
+ *     MAKE Signup ANewbieRegistersWithADifferentLegalName
  *     MAKE Signup ANewbieRegistersElsewhere
  *     MAKE Signup ANewbieRegistersWithNoCase
  *     MAKE Signup AMemberRegistersBadEmail
@@ -537,6 +559,10 @@ function memberIsLoggedOut() {
  *     MAKE Signup AMemberRegistersWithAnExistingCompany
  *     MAKE Signup AMemberRegistersWithAnUnknownCompany
  *     MAKE Signup AMemberRegistersWithACompanyWithNoRelation
+ *     MAKE Signup AMemberRegistersWithABadCompany
+ *     MAKE Signup AMemberRegistersWithABadCompanyPhone
+ *     MAKE Signup AMemberRegistersACompany
+ *     MAKE Signup ANewbieRegistersFromElsewhere
  */
 function invitationToEmailIs($email, $code) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -574,7 +600,7 @@ function memberSignsInTheFirstTime($uid) {
  */
 function memberAccountIsNotActive($id) {
   global $testOnly; if ($testOnly) return FALSE;
-  list ($uid, $agent) = r\IA(t\fullQid($id)); // not unQuid
+  list ($uid, $agent) = r\IA(r\fullQid($id)); // not unQuid
   if (!$uid) return FALSE;
   r\acct($uid)->setBit(B_OK, FALSE);
   return TRUE;
@@ -583,13 +609,7 @@ function memberAccountIsNotActive($id) {
 /**
  * with done (ARG)
  *
- * in: TEST Membership AMemberClicksTheMembershipLink
- *     TEST Membership AMemberWithoutADwollaAccountClicksTheMembershipLink
- *     TEST Membership ACompanyAgentClicksOnTheMembershipLink
- *     TEST Membership AMemberDoesItAll
- *     TEST Membership AMemberOpensABusinessAccount
- *     TEST Membership AMemberTypesTheWrongAccountInfonameSsnOrDob
- *     TEST Membership AMemberCompanyTypesTheWrongAccountInfonameEinOrBusinessStructure
+ * in: 
  */
 function withDone($steps) {
   global $testOnly; if (!$testOnly) return FALSE;
@@ -600,19 +620,25 @@ function withDone($steps) {
 /**
  * member (ARG) has done step (ARG)
  *
- * in: MAKE Membership AMemberDoesItAll
- *     MAKE Membership AMemberOpensABusinessAccount
+ * in: 
  */
 function memberHasDoneStep($uid, $step) {return t\doneStep($uid, $step);}
 
 /**
  * we show (ARG)
  *
- * in: TEST Membership AMemberSignsInForTheFirstTime
- *     TEST Membership AMemberDoesItAll
- *     TEST Membership AMemberOpensABusinessAccount
- *     TEST Membership AMemberTypesTheWrongAccountInfonameSsnOrDob
- *     TEST Membership AMemberCompanyTypesTheWrongAccountInfonameEinOrBusinessStructure
+ * in: TEST Signin AMemberSignsInWithUsernameOnTheMemberSite
+ *     TEST Signin AMemberSignsInWithAccountIDOnTheMemberSite
+ *     TEST Signin AMemberSignsInWithEmailOnTheMemberSite
+ *     TEST Signin AMemberSignsInWithUsernameFromRCreditsorg
+ *     TEST Signin AMemberSignsInWithAccountIDFromRCreditsorg
+ *     TEST Signin AMemberSignsInWithEmailFromRCreditsorg
+ *     TEST Signin AMemberTypesTheWrongPasswordFromRCreditsorg
+ *     TEST Signin AMemberTypesAnUnknownUsernameIDFromRCreditsorg
+ *     TEST Signin AMemberClicksALinkToResetPassword
+ *     TEST Signin AMemberClicksALinkToResetPasswordWithWrongCode
+ *     TEST Signin AMemberClicksALinkToResetPasswordForUnknownAccount
+ *     TEST Signup AMemberRegistersACompany
  */
 function weShow($what, $show = TRUE) {return t\weShow($what, $show);}
 
@@ -630,8 +656,7 @@ function memberSupplies($uid, $field, $value) {
 /**
  * member (ARG) has permission (ARG)
  *
- * in: MAKE Membership AMemberDoesItAll
- *     MAKE Membership AMemberOpensABusinessAccount
+ * in: 
  */
 function memberHasPermission($uid, $permission) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -641,8 +666,7 @@ function memberHasPermission($uid, $permission) {
 /**
  * member (ARG) one-time password is set
  *
- * in: TEST Membership AMemberSignsInForTheFirstTime
- *     TEST Signup ANewbieRegistersInWesternMassachusetts
+ * in: TEST Signup ANewbieRegistersInWesternMassachusetts
  *     TEST Signup ANewbieRegistersElsewhere
  */
 function memberOnetimePasswordIsSet($id) {
@@ -654,8 +678,7 @@ function memberOnetimePasswordIsSet($id) {
 /**
  * member (ARG) one-time password is (ARG)
  *
- * in: MAKE Membership AMemberSignsInForTheFirstTime
- *     MAKE Membership AMemberGivesTheWrongPassword
+ * in: 
  */
 function memberOnetimePasswordIs($id, $pass) {
   global $testOnly;
@@ -712,7 +735,7 @@ function weDownloadWith($name, $rows) {
 ///    debug(compact('row','csvRow'));
       if (strpos($value, '%') !== FALSE) $value = t\lastMinuteSubs($value);
 ///      if (!isset($csvRow[$key])) debug(compact('key', 'csvRow', 'value'));
-      if (!t\eq($csvValue = $csvRow[$key], $value)) return t\output("key=$key csvValue<>expected value: $csvValue<>$value csvRow:" . print_r($csvRow, 1));
+/**/  if (!t\eq($csvValue = $csvRow[$key], $value)) return t\output("key=$key csvValue<>expected value: $csvValue<>$value csvRow:" . print_r($csvRow, 1));
     }
   }
   return TRUE;
@@ -787,7 +810,7 @@ function memberScansMemberCard($id1, $id2) {
  */
 function memberCardCodeIs($id, $cardCode) {
   global $testOnly; if ($testOnly) return FALSE;
-  $a = r\acct(t\fullQid($id));
+  $a = r\acct(r\fullQid($id));
   $secure = compact('cardCode') + ($a->secure ?: array());
   return $a->update(compact('secure'));
 }
@@ -799,7 +822,7 @@ function memberCardCodeIs($id, $cardCode) {
  */
 function agentCardCodeIs($id, $cardCode2) {
   global $testOnly; if ($testOnly) return FALSE;
-  $a = r\acct(t\fullQid($id));
+  $a = r\acct(r\fullQid($id));
   $secure = compact('cardCode2') + ($a->secure ?: array());
   return $a->update(compact('secure'));
 }
@@ -820,7 +843,7 @@ function cronRuns($op) {return t\cronRuns($op);}
  */
 function memberHasADwollaAccountStep($id, $step) {
   global $testOnly; if (!$testOnly) return FALSE;
-  $a = r\acct(t\fullQid($id));
+  $a = r\acct(r\fullQid($id));
   $us = new rCredits\usd($a);
   return ($us->step() == $step);
 }
@@ -828,8 +851,7 @@ function memberHasADwollaAccountStep($id, $step) {
 /**
  * without: (ARG)
  *
- * in: TEST Membership ACompanyAgentClicksOnTheMembershipLink
- *     TEST Relations MemberCompanyHasRelations
+ * in: TEST Relations MemberCompanyHasRelations
  *     TEST Relations ItsComplicated
  *     TEST Signup AnInvitedNewbieVisitsTheRegistrationPage
  *     TEST Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage
@@ -877,11 +899,7 @@ function with($content) {return weShow($content);}
 /**
  * members have: (ARG)
  *
- * in: MAKE Membership AMemberDoesItAll
- *     MAKE Membership AMemberOpensABusinessAccount
- *     MAKE Membership AMemberTypesTheWrongAccountInfonameSsnOrDob
- *     MAKE Membership AMemberCompanyTypesTheWrongAccountInfonameEinOrBusinessStructure
- *     MAKE Summary Setup
+ * in: MAKE Summary Setup
  */
 function membersHave($list) {return t\membersHave($list);}
 
@@ -915,8 +933,7 @@ function memberIsOnStepWithinSeconds($id, $step, $secs) {
 /**
  * member (ARG) chose to verify phone by (ARG)
  *
- * in: MAKE Membership AMemberTypesTheWrongAccountInfonameSsnOrDob
- *     MAKE Membership AMemberCompanyTypesTheWrongAccountInfonameEinOrBusinessStructure
+ * in: 
  */
 function memberChoseToVerifyPhoneBy($id, $verifyBy) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -927,7 +944,7 @@ function memberChoseToVerifyPhoneBy($id, $verifyBy) {
 /**
  * account (ARG) was set up by member (ARG)
  *
- * in: MAKE Membership AMemberOpensABusinessAccount
+ * in: 
  */
 function accountWasSetUpByMember($coId, $id) {
   global $testOnly; if ($testOnly) return FALSE;
@@ -989,7 +1006,7 @@ function signupCompanyInfoIsRemembered() {
  */
 function signupCompanyInfoForAccountIsRemembered($id) {
   global $testOnly; if (!$testOnly) return FALSE;
-  return (bool) r\acct(t\uid($id))->signupCo;
+  return (bool) @r\acct(t\uid($id))->signupCo;
 }
 
 /**
@@ -1008,6 +1025,47 @@ function thatHasLinkResults($thing, $info) {return t\hasLinkResults($thing, $inf
  *     MAKE EditTx ABuyerTriesToDecreaseAPaymentAmount
  */
 function memberEditsTransactionWithValues($id, $xid, $values) {
-  $page = "history/xid=$xid&do=edit";
-  return memberConfirmsFormWithValues($id, $page, $values);
+  return memberConfirmsFormWithValues($id, "history/xid=$xid&do=edit", $values);
 }
+
+/**
+ * a member posts to (ARG) with values: (ARG)
+ *
+ * in: MAKE Signin AMemberSignsInWithUsernameFromRCreditsorg
+ *     MAKE Signin AMemberSignsInWithAccountIDFromRCreditsorg
+ *     MAKE Signin AMemberSignsInWithEmailFromRCreditsorg
+ *     MAKE Signin AMemberTypesTheWrongPasswordFromRCreditsorg
+ *     MAKE Signin AMemberTypesAnUnknownUsernameIDFromRCreditsorg
+ */
+function aMemberPostsToWithValues($page, $values) {return memberConfirmsFormWithValues('?', $page, $values);}
+
+/**
+ * member (ARG) is logged in
+ *
+ * in: TEST Signin AMemberSignsInWithUsernameOnTheMemberSite
+ *     TEST Signin AMemberSignsInWithAccountIDOnTheMemberSite
+ *     TEST Signin AMemberSignsInWithEmailOnTheMemberSite
+ *     TEST Signin AMemberSignsInWithUsernameFromRCreditsorg
+ *     TEST Signin AMemberSignsInWithAccountIDFromRCreditsorg
+ *     TEST Signin AMemberSignsInWithEmailFromRCreditsorg
+ *     TEST Signin AMemberClicksALinkToResetPassword
+ */
+function memberIsLoggedIn($id) {
+  global $testOnly;
+  return $testOnly ? (\user_is_logged_in() and t\uid($id) == @r\acct()->id) : t\login($id);
+}
+
+/**
+ * next random code is (ARG)
+ *
+ * in: MAKE Signin AMemberAsksForANewPasswordForUsername
+ *     MAKE Signin AMemberAsksForANewPasswordForAccountID
+ *     MAKE Signin AMemberAsksForANewPasswordForEmail
+ *     MAKE Signin AMemberClicksALinkToResetPassword
+ *     MAKE Signin AMemberClicksALinkToResetPasswordWithWrongCode
+ *     MAKE Signin AMemberClicksALinkToResetPasswordForUnknownAccount
+ *     MAKE Signup ANewbieRegistersInWesternMassachusetts
+ *     MAKE Signup ANewbieRegistersElsewhere
+ *     MAKE Signup ANewbieRegistersFromElsewhere
+ */
+function nextRandomCodeIs($code) {global $nextCode; return $nextCode = $code;}
