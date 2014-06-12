@@ -10,7 +10,7 @@ SO I can charge customers on behalf of my company.
 
 Setup:
   Given members:
-  | id   | fullName   | email | city  | state | cc  | cc2  | flags      |
+  | id   | fullName   | email | city  | state | cc  | cc2  | flags      |*
   | .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 | ok,bona    |
   | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 | ok,bona    |
   | .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      | ok,co,bona |
@@ -19,22 +19,22 @@ Setup:
   | .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      | ok,co,bona |
   | .ZZG | Gil Seven  | g@    | Gtown | GA    | ccG |      |            |
   And devices:
-  | id   | code |
+  | id   | code |*
   | .ZZC | devC |
   And selling:
-  | id   | selling         |
+  | id   | selling         |*
   | .ZZC | this,that,other |
   And company flags:
-  | id   | flags            |
+  | id   | flags            |*
   | .ZZC | refund,sell cash |
   And relations:
-  | id   | main | agent | permission | rCard |
+  | id   | main | agent | permission | rCard |*
   | :ZZA | .ZZC | .ZZA  | buy        | yes   |
   | :ZZB | .ZZC | .ZZB  | scan       | yes   |
   | :ZZD | .ZZC | .ZZD  | read       |       |
   | :ZZE | .ZZF | .ZZE  | buy        |       |
   And transactions: 
-  | created   | type   | amount | from | to   | purpose |
+  | created   | type   | amount | from | to   | purpose |*
   | %today-6m | signup | 250    | ctty | .ZZA | signup  |
   | %today-6m | signup | 250    | ctty | .ZZB | signup  |
   | %today-6m | signup | 250    | ctty | .ZZC | signup  |
@@ -44,22 +44,22 @@ Setup:
 Scenario: a cashier signs in
   When agent "" asks device "devC" to identify "ZZB-ccB2"
   Then we respond with:
-  | ok | name    | logon | descriptions    | can | default | company    |
+  | ok | name    | logon | descriptions    | can | default | company    |*
   | 1  | Bea Two | 1     | this,that,other |     | NEW.ZZC | Corner Pub |
 
 Scenario: a cashier signs in as required
   Given company flags:
-  | id   | flags                            |
+  | id   | flags                            |*
   | .ZZC | refund,sell cash,require cashier |
   When agent "" asks device "devC" to identify "ZZB-ccB2"
   Then we respond with:
-  | ok | name    | logon | descriptions    | can | default | company    |
+  | ok | name    | logon | descriptions    | can | default | company    |*
   | 1  | Bea Two | 1     | this,that,other |     |         | Corner Pub |
   
 Scenario: Device has no identifier yet
   When agent "" asks device "" to identify "ZZB-ccB2"
   Then we respond with:
-  | ok | name    | logon | descriptions    | can | device | default | company    |
+  | ok | name    | logon | descriptions    | can | device | default | company    |*
   | 1  | Bea Two | 1     | this,that,other |     | ?      | NEW.ZZC | Corner Pub |
 
 Scenario: Device should have an identifier
@@ -69,31 +69,31 @@ Scenario: Device should have an identifier
 Scenario: a cashier signs in, signing another cashier out
   When agent ":ZZA" asks device "devC" to identify "ZZB-ccB2"
   Then we respond with:
-  | ok | name    | logon | descriptions    | can | default | company    |
+  | ok | name    | logon | descriptions    | can | default | company    |*
   | 1  | Bea Two | 1     | this,that,other |     | NEW.ZZC | Corner Pub |
 
 Scenario: a manager signs in
   When agent "" asks device "devC" to identify "ZZA-ccA2"
   Then we respond with:
-  | ok | name    | logon | descriptions    | can              | default | company    |
+  | ok | name    | logon | descriptions    | can              | default | company    |*
   | 1  | Abe One | 1     | this,that,other | refund,sell cash | NEW.ZZC | Corner Pub |
 
 Scenario: a cashier scans a customer card
   When agent ":ZZB" asks device "devC" to identify "ZZD.ccD"
   Then we respond with:
-  | ok | name     | place     | company | logon |
+  | ok | name     | place     | company | logon |*
   | 1  | Dee Four | Dtown, DE |         | 0     |
   And with balance
-  | name     | balance | spendable | cashable |
+  | name     | balance | spendable | cashable |*
   | Dee Four | $250    |           | $0       |
 
 Scenario: the default cashier scans a customer card
   When agent ".ZZC" asks device "devC" to identify "ZZD.ccD"
   Then we respond with:
-  | ok | name     | place     | company | logon |
+  | ok | name     | place     | company | logon |*
   | 1  | Dee Four | Dtown, DE |         | 0     |
   And with balance
-  | name     | balance | spendable | cashable |
+  | name     | balance | spendable | cashable |*
   | Dee Four | $250    |           | $0       |
   
 Scenario: an unauthorized cashier scans in
@@ -111,17 +111,17 @@ Scenario: a cashier asks us to identify the cashier's own card
 Scenario: a cashier scans a customer card whose balance is secret
   When agent ":ZZB" asks device "devC" to identify "ZZE.ccE"
   Then we respond with:
-  | ok | name     | place     | company | logon |
+  | ok | name     | place     | company | logon |*
   | 1  | Eve Five | Etown, IL |         | 0     |
   And with balance ""
 
 Scenario: a cashier scans a company customer card
   When agent ":ZZB" asks device "devC" to identify "ZZE-ccE2"
   Then we respond with:
-  | ok | name     | place     | company | logon |
+  | ok | name     | place     | company | logon |*
   | 1  | Eve Five | Ftown, FL | Far Co  | 0     |
   And with balance
-  | name                 | balance | spendable | cashable |
+  | name                 | balance | spendable | cashable |*
   | Eve Five, for Far Co | $0      |           | $0       |
 
 Scenario: Device asks for a picture to go with the QR
@@ -137,5 +137,5 @@ Scenario: Device asks for a picture but there isn't one
 Scenario: A non-yet-active member card is scanned
   When agent ":ZZB" asks device "devC" to identify "ZZG.ccG"
   Then we return error "member inactive" with subs:
-  | name      |
+  | name      |*
   | Gil Seven |

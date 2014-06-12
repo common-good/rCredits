@@ -19,6 +19,8 @@ extract((array) $dbs[$db_name], EXTR_PREFIX_ALL, 'db');
 define('R_WORD', hex2bin($db_word)); // hex2bin($db_word));
 define('DW_API_KEY', isPRODUCTION ? $db_dwollaKey :$db_dwSandKey);
 define('DW_API_SECRET', isPRODUCTION ? $db_dwollaSecret :$db_dwSandSecret);
+define('R_SSN_USER', @$db_ssnUser);
+define('R_SSN_PASS', @$db_ssnPass);
 define('R_SALTY_PASSWORD', $db_pass); // (Drupal's salt is too long for our encryption algorithm)
 // $db_salt is used further below
 // define('R_STAGE_WORD', @$db_stageWord); // password for staging (UNUSED)

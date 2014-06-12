@@ -5,7 +5,7 @@ SO I can make sound decisions about how much to pay and receive using the rCredi
 
 Setup:
   Given members:
-  | id   | fullName   | number   | flags           |
+  | id   | fullName   | number   | flags    |*
   | .ZZA | Abe One    | %number1 | ok,bona  |
   
 Scenario: Getting information

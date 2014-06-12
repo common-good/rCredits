@@ -6,7 +6,7 @@ SO I can complete my registration and/or make sure I can be contacted by system 
 
 Setup:
   Given members:
-  | id   | fullName   | address | city  | state  | postalCode | country | postalAddr | email | phone |
+  | id   | fullName   | address | city  | state  | postalCode | country | postalAddr | email | phone |*
   | .ZZA | Abe One    |         | Atown | Alaska | 99100      | US      |            | a@    |       |
 
 Scenario: A member visits the contact info page
@@ -17,39 +17,39 @@ Scenario: A member visits the contact info page
 
 Scenario: A member updates contact info
   When member ".ZZA" confirms form "account/contact" with values:
-  | fullName | phone        | country | postalCode | state | city    | address   | postalAddr | email |
+  | fullName | phone        | country | postalCode | state | city    | address   | postalAddr | email |*
   | Abe One  | 413-253-0001 | US      | 01002      | MA    | Amherst | 2 Elm St. | PO Box 1   | a@    |
   Then members:
-  | id   | fullName   | address   | city    | state | postalCode | country | postalAddr | phone       | email |
+  | id   | fullName   | address   | city    | state | postalCode | country | postalAddr | phone       | email |*
   | .ZZA | Abe One    | 2 Elm St. | Amherst | MA    | 01002      | US      | PO Box 1   | 14132530001 | a@    |
   And we say "status": "info saved"
   
 Scenario: A member gives a bad phone
   When member ".ZZA" confirms form "account/contact" with values:
-  | fullName | phone   | country | postalCode | state | city    | address   | postalAddr | email |
+  | fullName | phone   | country | postalCode | state | city    | address   | postalAddr | email |*
   | Abe One  | %random | US      | 01002      | MA    | Amherst | 2 Elm St. | PO Box 1   | a@    |
   Then we say "error": "bad phone"
 
 Scenario: A member gives a bad email
   When member ".ZZA" confirms form "account/contact" with values:
-  | fullName | phone        | country | postalCode | state | city    | address   | postalAddr | email   |
+  | fullName | phone        | country | postalCode | state | city    | address   | postalAddr | email   |*
   | Abe One  | 413-253-0002 | US      | 01002      | MA    | Amherst | 2 Elm St. | PO Box 1   | %random |
   Then we say "error": "bad email"
   
 Scenario: A member updates to a different state
   When member ".ZZA" confirms form "account/contact" with values:
-  | fullName | phone        | country | postalCode | state | city    | address   | postalAddr | email |
+  | fullName | phone        | country | postalCode | state | city    | address   | postalAddr | email |*
   | Abe One  | 413-253-0001 | US      | 01002      | MI    | Amherst | 2 Elm St. | PO Box 1   | a@    |
   Then members:
-  | id   | fullName   | address   | city    | state | postalCode | country | postalAddr | phone       | email |
+  | id   | fullName   | address   | city    | state | postalCode | country | postalAddr | phone       | email |*
   | .ZZA | Abe One    | 2 Elm St. | Amherst | MI    | 01002      | US      | PO Box 1   | 14132530001 | a@    |
   And we say "status": "info saved"
   
 Scenario: A member updates to a different name
   When member ".ZZA" confirms form "account/contact" with values:
-  | fullName  | phone        | country | postalCode | state | city    | address   | postalAddr | email |
+  | fullName  | phone        | country | postalCode | state | city    | address   | postalAddr | email |*
   | Abe Other | 413-253-0001 | US      | 01002      | MA    | Amherst | 2 Elm St. | PO Box 1   | a@    |
   Then members:
-  | id   | fullName  | legalName | address   | city    | state | postalCode | country | postalAddr |
+  | id   | fullName  | legalName | address   | city    | state | postalCode | country | postalAddr |*
   | .ZZA | Abe Other | Abe One   | 2 Elm St. | Amherst | MA    | 01002      | US      | PO Box 1   |
   And we say "status": "info saved"

@@ -43,16 +43,16 @@ class rwebFlow extends DrupalWebTestCase {
     switch ($variant) {
     default: // fall through to case(0)
     case(0):
-    Given('members: "DATA'
+    Given('members: "ASSOC'
     . '\\| id   | fullName   | email | flags      |'
     . '\\| .ZZA | Abe One    | a@    | ok,bona    |'
     . '\\| .ZZB | Bea Two    | b@    | ok,bona    |'
     . '\\| .ZZC | Corner Pub | c@    | ok,co,bona |"');
-    And__('relations: "DATA'
+    And__('relations: "ASSOC'
     . '\\| id      | main | agent | permission | draw |'
     . '\\| NEW.ZZA | .ZZC | .ZZA  | manage     |    1 |'
     . '\\| NEW.ZZB | .ZZC | .ZZB  | sell       |    0 |"');
-    And__('balances: "DATA'
+    And__('balances: "ASSOC'
     . '\\| id   | usd  | r   | rewards |'
     . '\\| .ZZA |    0 |  20 |      20 |'
     . '\\| .ZZB |  100 |  20 |      20 |'
@@ -66,10 +66,10 @@ class rwebFlow extends DrupalWebTestCase {
   // Scenario: A member overdraws
   public function testAMemberOverdraws_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ".ZZA" confirms form "pay" with values: "DATA'
+    When_('member ".ZZA" confirms form "pay" with values: "ASSOC'
     . '\\| op  | who  | amount | goods | purpose |'
     . '\\| pay | .ZZB |     30 |     1 | food    |"');
-    Then_('transactions: "DATA'
+    Then_('transactions: "ASSOC'
     . '\\| xid | type     | amount | from | to   | purpose      |'
     . '\\|   1 | transfer |     10 | .ZZC | .ZZA | automatic transfer to NEW.ZZA,automatic transfer from NEW.ZZC |'
     . '\\|   2 | transfer |     30 | .ZZA | .ZZB | food         |'
@@ -80,10 +80,10 @@ class rwebFlow extends DrupalWebTestCase {
   // Scenario: A member overdraws and draws from both r and USD
   public function testAMemberOverdrawsAndDrawsFromBothRAndUSD_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ".ZZA" confirms form "pay" with values: "DATA'
+    When_('member ".ZZA" confirms form "pay" with values: "ASSOC'
     . '\\| op  | who  | amount | goods | purpose |'
     . '\\| pay | .ZZB |    130 |     1 | food    |"');
-    Then_('transactions: "DATA'
+    Then_('transactions: "ASSOC'
     . '\\| xid | type     | amount | from | to   | purpose      |'
     . '\\|   1 | transfer |    110 | .ZZC | .ZZA | automatic transfer to NEW.ZZA,automatic transfer from NEW.ZZC |'
     . '\\|   2 | transfer |    130 | .ZZA | .ZZB | food         |'
@@ -94,10 +94,10 @@ class rwebFlow extends DrupalWebTestCase {
   // Scenario: A member overdraws with not enough to draw on
   public function testAMemberOverdrawsWithNotEnoughToDrawOn_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ".ZZA" completes form "pay" with values: "DATA'
+    When_('member ".ZZA" completes form "pay" with values: "ASSOC'
     . '\\| op  | who  | amount | goods | purpose |'
     . '\\| pay | .ZZB |    200 |     1 | food    |"');
-    Then_('we say "error": "short to" with subs: "DATA'
+    Then_('we say "error": "short to" with subs: "ASSOC'
     . '\\| short |'
     . '\\| $60   |"');
   }

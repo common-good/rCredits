@@ -43,18 +43,18 @@ class rwebTransactions extends DrupalWebTestCase {
     switch ($variant) {
     default: // fall through to case(0)
     case(0):
-    Given('members: "DATA'
+    Given('members: "ASSOC'
     . '\\| id   | fullName   | floor | acctType    | flags         |'
     . '\\| .ZZA | Abe One    | -100  | personal    | ok,dw,bona    |'
     . '\\| .ZZB | Bea Two    | -200  | personal    | ok,dw,co,bona |'
     . '\\| .ZZC | Corner Pub | -300  | corporation | ok,dw,co,bona |"');
-    And__('relations: "DATA'
+    And__('relations: "ASSOC'
     . '\\| id   | main | agent | permission |'
     . '\\| .ZZA | .ZZA | .ZZB  | buy        |'
     . '\\| .ZZB | .ZZB | .ZZA  | read       |'
     . '\\| .ZZC | .ZZC | .ZZB  | buy        |'
     . '\\| .ZZD | .ZZC | .ZZA  | sell       |"');
-    And__('usd transfers: "DATA'
+    And__('usd transfers: "ASSOC'
     . '\\| payer | payee | amount | tid | created    | completed  |'
     . '\\|  .ZZA |     0 |  -1000 |   1 | %today-13m | %today-13m |'
     . '\\|  .ZZB |     0 |  -2000 |   1 | %today-13m | %today-13m |'
@@ -62,13 +62,13 @@ class rwebTransactions extends DrupalWebTestCase {
     . '\\|  .ZZA |     0 |    -11 |   2 | %today-1w  |         0  |'
     . '\\|  .ZZA |     0 |     22 |   4 | %today-5d  |         0  |'
     . '\\|  .ZZA |     0 |     33 |   3 | %today-5d  |         0  |"');
-    And__('balances: "DATA'
+    And__('balances: "ASSOC'
     . '\\| id   | usd   |'
     . '\\| ctty | 10000 |'
     . '\\| .ZZA |  1000 |'
     . '\\| .ZZB |  2000 |'
     . '\\| .ZZC |  3000 |"');
-    And__('transactions: "DATA'
+    And__('transactions: "ASSOC'
     . '\\| xid   | created   | type     | amount | from | to   | purpose | taking |'
     . '\\| .AAAB | %today-7m | signup   |    250 | ctty | .ZZA | signup  | 0      |'
     . '\\| .AAAC | %today-6m | signup   |    250 | ctty | .ZZB | signup  | 0      |'
@@ -83,7 +83,7 @@ class rwebTransactions extends DrupalWebTestCase {
     . '\\| .AAAR | %today-1w | rebate   |      6 | ctty | .ZZA | rebate  | 0      |'
     . '\\| .AAAS | %today-1w | bonus    |     12 | ctty | .ZZC | bonus   | 0      |'
     . '\\| .AAAV | %today-6d | transfer |    100 | .ZZA | .ZZB | cash V  | 0      |"');
-    Then_('balances: "DATA'
+    Then_('balances: "ASSOC'
     . '\\| id   | balance | rewards | r    | usd   |'
     . '\\| ctty |    9196 |       0 | -804 | 10000 |'
     . '\\| .ZZA |    1918 |     268 |  918 |  1000 |'
@@ -99,14 +99,14 @@ class rwebTransactions extends DrupalWebTestCase {
   public function testAMemberLooksAtTransactionsForThePastYear_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" visits page "history/period=365"');
-    Then_('we show "Transaction History" with: "DATA'
+    Then_('we show "Transaction History" with: "ARRAY'
     . '\\|_Start Date |_End Date |'
     . '\\| %dmy-12m   | %dmy     |"');
-    And__('with: "DATA'
+    And__('with: "ARRAY'
     . '\\| Start     | From Bank | From You | To You   | Rewards | End       |'
     . '\\| $1,000.00 |      0.00 |   460.00 | 1,110.00 |  268.00 | $1,918.00 |'
     . '\\| PENDING   |    -44.00 |     0.00 |     0.00 |    0.00 |  - $44.00 |"');
-    And__('with: "DATA'
+    And__('with: "ARRAY'
     . '\\|_tid | Date   | Name       | From you | To you | Status  |_do   | Purpose    | Reward |'
     . '\\| 6   | %dm-6d | Bea Two    | 100.00   | --     | %chk    | X    | cash V     | --     |'
     . '\\| 5   | %dm-1w | Corner Pub | 120.00   | --     | %chk    | X    | this Q     | 6.00   |'
@@ -114,8 +114,7 @@ class rwebTransactions extends DrupalWebTestCase {
     . '\\| 3   | %dm-4m | Corner Pub | --       | 100.00 | %chk    | X    | usd F      | --     |'
     . '\\| 2   | %dm-5m | Bea Two    | --       | 10.00  | %chk    | X    | cash E     | --     |'
     . '\\| 1   | %dm-7m | %ctty      | --       | --     | %chk    |      | signup     | 250.00 |"');
-    And__('without: "DATA'
-    . '\\| Purpose |'
+    And__('without: "ARRAY'
     . '\\| rebate  |'
     . '\\| bonus   |"');
   }
@@ -124,19 +123,18 @@ class rwebTransactions extends DrupalWebTestCase {
   public function testAMemberLooksAtTransactionsForThePastFewDays_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" visits page "history/period=15"');
-    Then_('we show "Transaction History" with: "DATA'
+    Then_('we show "Transaction History" with: "ARRAY'
     . '\\|_Start Date |_End Date |'
     . '\\| %dmy-15d   | %dmy     |"');
-    And__('with: "DATA'
+    And__('with: "ARRAY'
     . '\\| Start     | From Bank | From You | To You | Rewards | End       |'
     . '\\| $2,132.00 |      0.00 |   220.00 |   0.00 |    6.00 | $1,918.00 |'
     . '\\| PENDING   |    -44.00 |     0.00 |   0.00 |    0.00 |  - $44.00 |"');
-    And__('with: "DATA'
+    And__('with: "ARRAY'
     . '\\|_tid | Date   | Name       | From you | To you | Status  | _    | Purpose    | Reward |'
     . '\\| 6   | %dm-6d | Bea Two    | 100.00   | --     | %chk    | X    | cash V     | --     |'
     . '\\| 5   | %dm-1w | Corner Pub | 120.00   | --     | %chk    | X    | this Q     | 6.00   |"');
-    And__('without: "DATA'
-    . '\\| Purpose  |'
+    And__('without: "ARRAY'
     . '\\| pie N    |'
     . '\\| whatever |'
     . '\\| usd F    |'

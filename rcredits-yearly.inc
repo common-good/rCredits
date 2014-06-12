@@ -68,7 +68,6 @@ function do1099b($year, $payee, &$total) {
 function recT($year) {
   //$region = r\acct(r\serverUid());
   $prior = pad('', 1); // P for prior year data, else ' '
-  $cgfTIN = '205280780';
   $TCC = '08C20';
   $testing = pad(TEST1099 ? 'T' : ' ', 1);
   $foreign = pad(FALSE, 1); // 1 for foreign
@@ -81,7 +80,7 @@ function recT($year) {
   $vendorContact = sp(40) . sp(15);
   $foreignVendor = pad(FALSE, 1);
   
-  return 'T' . $year . $prior . $cgfTIN . $TCC . sp(7) . $testing . $foreign . $transmitterName . $coName . $coAddr . sp(15) . $payees . $contact . sp(91) . seq() . sp(10) . $source . $vendor . $vendorContact . sp(35) . $foreignVendor . sp(8) . EOL;
+  return 'T' . $year . $prior . CGF_EIN . $TCC . sp(7) . $testing . $foreign . $transmitterName . $coName . $coAddr . sp(15) . $payees . $contact . sp(91) . seq() . sp(10) . $source . $vendor . $vendorContact . sp(35) . $foreignVendor . sp(8) . EOL;
 }
 
 function recA($year) {  
@@ -205,6 +204,6 @@ function breakup($s, $len = 10) {
 }
 
 function pad($s, $n) {return substr(str_pad($s, $n), 0, $n);}
-function lpad($s, $n) {return str_pad($s, $n, '0', STR_PAD_LEFT);}
+function lpad($s, $n) {return str_pad(substr($s, 0, $n), $n, '0', STR_PAD_LEFT);}
 function sp($n) {return pad('', $n);}
 function fmtAmt($n) {return preg_replace('/[\,\.]/', '', number_format($n, 2));}

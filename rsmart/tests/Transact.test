@@ -43,7 +43,7 @@ class rsmartTransact extends DrupalWebTestCase {
     switch ($variant) {
     default: // fall through to case(0)
     case(0):
-    Given('members: "DATA'
+    Given('members: "ASSOC'
     . '\\| id   | fullName   | email | city  | state | cc  | cc2  | rebate | flags      |'
     . '\\| .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 |     10 | ok,bona    |'
     . '\\| .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 |     10 | ok,bona    |'
@@ -51,28 +51,28 @@ class rsmartTransact extends DrupalWebTestCase {
     . '\\| .ZZD | Dee Four   | d@    | Dtown | DE    | ccD | ccD2 |     10 | ok,bona    |'
     . '\\| .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 |     10 | ok,bona,secret_bal |'
     . '\\| .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      |      5 | ok,co,bona |"');
-    And__('devices: "DATA'
+    And__('devices: "ASSOC'
     . '\\| id   | code |'
     . '\\| .ZZC | devC |"');
-    And__('selling: "DATA'
+    And__('selling: "ASSOC'
     . '\\| id   | selling         |'
     . '\\| .ZZC | this,that,other |"');
-    And__('company flags: "DATA'
+    And__('company flags: "ASSOC'
     . '\\| id   | flags            |'
     . '\\| .ZZC | refund,sell cash |"');
-    And__('relations: "DATA'
+    And__('relations: "ASSOC'
     . '\\| id   | main | agent | permission |'
     . '\\| :ZZA | .ZZC | .ZZA  | buy        |'
     . '\\| :ZZB | .ZZC | .ZZB  | scan       |'
     . '\\| :ZZD | .ZZC | .ZZD  | read       |'
     . '\\| :ZZE | .ZZF | .ZZE  | sell       |"');
-    And__('transactions: "DATA'
+    And__('transactions: "ASSOC'
     . '\\| xid | created   | type   | amount | from | to   | purpose |'
     . '\\| 1   | %today-6m | signup |    250 | ctty | .ZZA | signup  |'
     . '\\| 2   | %today-6m | signup |    250 | ctty | .ZZB | signup  |'
     . '\\| 3   | %today-6m | signup |    250 | ctty | .ZZC | signup  |'
     . '\\| 4   | %today-6m | grant  |    250 | ctty | .ZZF | stuff   |"');
-    Then_('balances: "DATA'
+    Then_('balances: "ASSOC'
     . '\\| id   | balance |'
     . '\\| ctty |   -1000 |'
     . '\\| .ZZA |     250 |'
@@ -89,19 +89,19 @@ class rsmartTransact extends DrupalWebTestCase {
   public function testACashierAsksToChargeSomeone_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": "food"');
-    Then_('we respond ok with tx 5 and message "report transaction" with subs: "DATA'
+    Then_('we respond ok with tx 5 and message "report transaction" with subs: "ASSOC'
     . '\\| did     | otherName | amount | rewardType | rewardAmount |'
     . '\\| charged | Bea Two   | $100   | reward     | $10          |"');
-    And__('with balance "DATA'
+    And__('with balance "ASSOC'
     . '\\| name    | balance | spendable | cashable | did     | amount | forCash |'
     . '\\| Bea Two | $160    |           | $0       | charged | $100   |         |"');
-    And__('with undo "DATA'
+    And__('with undo "ASSOC'
     . '\\| created | amount | tofrom | otherName |'
     . '\\| %dmy    | $100   | from   | Bea Two   |"');
-    And__('we notice "new charge|reward other" to member ".ZZB" with subs: "DATA'
+    And__('we notice "new charge|reward other" to member ".ZZB" with subs: "ASSOC'
     . '\\| created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |'
     . '\\| %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $10               |"');
-    And__('balances: "DATA'
+    And__('balances: "ASSOC'
     . '\\| id   | balance |'
     . '\\| ctty |    -770 |'
     . '\\| .ZZA |     250 |'
@@ -113,19 +113,19 @@ class rsmartTransact extends DrupalWebTestCase {
   public function testACashierAsksToRefundSomeone_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('agent ":ZZA" asks device "devC" to charge ".ZZB" $-100 for "goods": "food"');
-    Then_('we respond ok with tx 5 and message "report transaction" with subs: "DATA'
+    Then_('we respond ok with tx 5 and message "report transaction" with subs: "ASSOC'
     . '\\| did      | otherName | amount | rewardType | rewardAmount |'
     . '\\| refunded | Bea Two   | $100   | reward     | $-10         |"');
-    And__('with balance "DATA'
+    And__('with balance "ASSOC'
     . '\\| name    | balance | spendable | cashable | did      | amount | forCash |'
     . '\\| Bea Two | $340    |           | $100     | refunded | $100   |         |"');
-    And__('with undo "DATA'
+    And__('with undo "ASSOC'
     . '\\| created | amount | tofrom | otherName |'
     . '\\| %dmy    | $100   | to     | Bea Two   |"');
-    And__('we notice "new refund|reward other" to member ".ZZB" with subs: "DATA'
+    And__('we notice "new refund|reward other" to member ".ZZB" with subs: "ASSOC'
     . '\\| created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |'
     . '\\| %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $-10              |"');
-    And__('balances: "DATA'
+    And__('balances: "ASSOC'
     . '\\| id   | balance |'
     . '\\| ctty |    -730 |'
     . '\\| .ZZA |     250 |'
@@ -137,7 +137,7 @@ class rsmartTransact extends DrupalWebTestCase {
   public function testACashierAsksToChargeAnotherMemberWithInsufficientBalance_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('agent ":ZZA" asks device "devC" to charge ".ZZB" $300 for "goods": "food"');
-    Then_('we return error "short from" with subs: "DATA'
+    Then_('we return error "short from" with subs: "ASSOC'
     . '\\| otherName |'
     . '\\| Bea Two   |"');
   }
@@ -146,7 +146,7 @@ class rsmartTransact extends DrupalWebTestCase {
   public function testACashierAsksToRefundAnotherMemberWithInsufficientBalance_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('agent ":ZZA" asks device "devC" to charge ".ZZB" $-300 for "goods": "food"');
-    Then_('we return error "short to" with subs: "DATA'
+    Then_('we return error "short to" with subs: "ASSOC'
     . '\\| short |'
     . '\\| $50   |"');
   }
@@ -204,7 +204,7 @@ class rsmartTransact extends DrupalWebTestCase {
   public function testSellerAgentLacksPermissionToBuy_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('agent ":ZZB" asks device "devC" to charge ".ZZB" $-100 for "goods": "refund"');
-    Then_('we return error "no perm" with subs: "DATA'
+    Then_('we return error "no perm" with subs: "ASSOC'
     . '\\| what    |'
     . '\\| refunds |"');
   }
@@ -213,7 +213,7 @@ class rsmartTransact extends DrupalWebTestCase {
   public function testSellerAgentLacksPermissionToScanAndSell_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('agent ":ZZD" asks device "devC" to charge ".ZZA" $100 for "goods": "food"');
-    Then_('we return error "no perm" with subs: "DATA'
+    Then_('we return error "no perm" with subs: "ASSOC'
     . '\\| what  |'
     . '\\| sales |"');
   }
@@ -222,7 +222,7 @@ class rsmartTransact extends DrupalWebTestCase {
   public function testBuyerAgentLacksPermissionToBuy_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('agent ":ZZA" asks device "devC" to charge ":ZZE" $100 for "goods": "food"');
-    Then_('we return error "other no perm" with subs: "DATA'
+    Then_('we return error "other no perm" with subs: "ASSOC'
     . '\\| otherName | what      |'
     . '\\| Eve Five  | purchases |"');
   }
@@ -232,7 +232,7 @@ class rsmartTransact extends DrupalWebTestCase {
     $this->setUp2(__FUNCTION__, 0);
     Given('agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": "food"');
     When_('agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": "food"');
-    Then_('we return error "duplicate transaction" with subs: "DATA'
+    Then_('we return error "duplicate transaction" with subs: "ASSOC'
     . '\\| op      |'
     . '\\| charged |"');
   }

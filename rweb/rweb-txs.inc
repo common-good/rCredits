@@ -33,6 +33,8 @@ define('RUSD_BOTH', 2); // show both rCredits (0) and USD (1)
 
 define('TX_TID_MAX', 10000); // zero-filler
 
+$GLOBALS['TX_DAYS'] = array(1 => 'today', 7 => '7 days', 30 => '30 days', 90 => '90 days', 180 => '6 months', 365 => '12 months', -1 => 'Year to date', -2 => 'Ever');
+
 /**
  * List Transactions
  */
@@ -49,7 +51,7 @@ function formTxs($form, &$sta, $args = '') {
   if (!$report and @$do) if ($result = handleTx($do, $xid, $sta, $args)) return $result;
 
   $page = $report ? 'community' : 'history';
-  if (!@$period) $period = TX_DEFAULT_PERIOD;
+  u\setDft($period, TX_DEFAULT_PERIOD);
   if (strlen(@$options) != count($urlOpts = u\ray(TX_URL_OPTS))) $options = !$mya->co ? '2200001' : '2210001'; // defaults for TX_OPT_KEYS options (2=both)
   $options = array_combine($urlOpts, str_split($options));
   u\setDft($states, STATES_DONE);
@@ -67,14 +69,13 @@ function formTxs($form, &$sta, $args = '') {
   }
   
   list ($classes, $header, $downloadHeader) = txFields($report, @$download, @$agents, @$channels, @$boxes);
-  $txDays = array('1' => 'today', '4' => '4 days', '30' => '30 days', '90' => '90 days', '180' => '6 months', '365' => '12 months', '-1' => 'Year to date');
-  list ($starting, $ending) = txDates($txDays, @$period, @$starting, @$ending);
+  list ($starting, $ending) = txDates(@$period, @$starting, @$ending);
   $url0 = @"$base_url/$page/period=$period&starting=$starting&ending=$ending&options=$options&variety=$variety";
 
   $maxRows = @$download ? PHP_INT_MAX : TX_MAX_ROWS; // don't overwhelm the screen
   if (@$download) {
     $csv = setupDownload($starting, $ending);
-    csv($csv, $downloadHeader);
+    u\csv($downloadHeader);
     $totDone = $totPending = array_combine($classes, array_fill(0, count($classes), FALSE));
   } else $csv = FALSE;
 
@@ -105,7 +106,7 @@ function formTxs($form, &$sta, $args = '') {
     $totDone['name'] = 'TOTALS';
     foreach(u\just(TX_DOWNLOAD_MONEY_FIELDS, $totDone) as $key => $value) $totDone[$key] = round($value, 2);
     //if ($value === FALSE) $totDone[$key] = '-';
-    csv($csv, array_values($totDone)); // not STDOUT
+    u\csv(array_values($totDone));
     if (t\est()) return; else exit();
   } else sortRows($rows);
   
@@ -136,7 +137,7 @@ function formTxs($form, &$sta, $args = '') {
   // (NOT USED YET) $opts2 = boxesField('opts', t('Show:'), $opts2Desc, $optDefaults, $opts);
   
   $divider = item('<hr>');
-  $period = formField('select', t('For the past:'), '', dft($period), $txDays);
+  $period = formField('select', t('For the past:'), '', dft($period), $GLOBALS['TX_DAYS']);
   $submitPeriod = submit(t('Show ')); // label has to be different from submitDates (see below)
   $downloadPeriod = submit(t('Download '));
   $starting = textField(t('OR Starting:'), '', dft(u\fmtDate($starting)));
@@ -152,10 +153,9 @@ function formTxs($form, &$sta, $args = '') {
 }
 
 function formTxs_validate($form, &$sta) {
-  $txDays = @$form['period']['#options'];
   extract(u\just('period starting ending', $sta['input']));
   $op = op($sta);
-  list ($starting, $ending, $period) = ($op == 'submitPeriod' or $op == 'downloadPeriod') ? txDates($txDays, @$period) : txDates($txDays, '', @$starting, @$ending);
+  list ($starting, $ending, $period) = ($op == 'submitPeriod' or $op == 'downloadPeriod') ? txDates(@$period) : txDates('', @$starting, @$ending);
   u\preray(compact(u\ray('starting ending period')), $sta['input']);
 }
 
@@ -188,16 +188,10 @@ function sortRows(&$rows) {
 }
 
 function setupDownload($starting, $ending) {
-  global $testCSV, $testCSVname;
   $mya = r\acct();
-  $testCSV = array();
-  header('Content-type: text/plain');
   $dt1 = strftime('%Y%m%d', $starting);
   $dt2 = strftime('%Y%m%d', $ending);
-  $testCSVname = $filename = ($mya->admin ? $mya->mainQid : 'rcredits') . "$dt1-$dt2.csv";
-  header("Content-Disposition: attachment; filename=\"$filename\";");
-  header('Content-Type: application/csv; charset=UTF-8'); // tell the browser it's going to be a csv file
-  return fopen('php://output', 'w');
+  return u\csvStart(($mya->admin ? $mya->mainQid : 'rcredits') . "$dt1-$dt2.csv");
 }
 
 /**
@@ -209,10 +203,10 @@ function txFields($report, $download, $agents, $channels, $boxes) {
   $classes = 'tid date from to amount state purpose reward';
   $headHelp = array_combine(u\ray($classes . ' name fromyou toyou buttons net agent channel box'), u\ray($headHelp));
   if ($report) { // community transaction history
-    $headers = t('#,Date,From,To,Total,Status,Purpose,Rewards');
+    $headers = t('Tx#,Date,From,To,Total,Status,Purpose,Rewards');
   } else { // individual account transaction history
     $classes = 'tid date name fromyou toyou state buttons purpose reward net';
-    $headers = t('#,Date,Name,From you,To you,Status,Action,Purpose,Reward,Net');
+    $headers = t('Tx#,Date,Name,From you,To you,Status,Action,Purpose,Reward,Net');
   }
 
   $header = array_combine(u\ray($classes), u\ray($headers)); // make splices and additions easy and clear
@@ -320,7 +314,7 @@ function finishCsvRow($csv, $row, $tx, $amount, $toMe, &$tot) {
     $row[$key] = u\cleanAmount(@$row[$key]) + 0;
     $tot[$key] = (@$tot[$key] ?: 0) + $row[$key]; // formatting value is useless
   }
-  csv($csv, array_values($row)); // not STDOUT
+  u\csv(array_values($row)); // not STDOUT
   return TRUE;
 }
 
@@ -358,22 +352,21 @@ function handleTx($do, $xid, &$sta, $args) {
 }
  
 /**
- * Return usable starting and ending dates.
- * @param assoc $txDays: descriptions of time periods relative to now, for example "[the past] 30 days"
- * @param int $period: index into $txDays -- for calculating starting and ending if none explicitly specified
+ * Return usable starting and ending dates (inclusive).
+ * @param int $period: index into TX_DAYS -- for calculating starting and ending if none explicitly specified
  * @param int $starting: explicit starting date (optional)
  * @param int $ending: explicit ending date (optional)
  * @return array($starting, $ending, $period), where $starting is adjusted to start of day and $ending to end of day
  */
-function txDates($txDays, $period, $starting = '', $ending = '') {
+function txDates($period, $starting = '', $ending = '') {
   if (@$starting and !is_numeric($starting) and $err = u\badDate($starting)) say($err, 'starting');
   if (@$starting > REQUEST_TIME) say('beyond today', 'starting');
   if (@$ending and !is_numeric($ending) and $err = u\badDate($ending)) say($err, 'ending');
   if (!@$ending or $ending > REQUEST_TIME) $ending = REQUEST_TIME;
 
   $period = (int) @$starting ? ($ending - $starting) / DAY_SECS : (@$period ?: TX_DEFAULT_PERIOD);
-  $ago = @$txDays[$period] ?: ($period . ' days');
-  if (!@$starting) $starting = strtotime($period == '-1' ? '1jan' : "$ago ago");
+  $ago = @$GLOBALS['TX_DAYS'][$period] ?: ($period . ' days');
+  if (!@$starting) $starting = strtotime($period == '-1' ? '1jan' : ($period == '-2' ? '1/1/2013' : "$ago ago"));
   return array(strtotime('today', $starting), strtotime('tomorrow', $ending) - 1, $period);
 }  
 
@@ -417,24 +410,8 @@ function txAct($do, $state, $toMe, $byMe) {
  * Handle click 'OK' or 'NO' (approving or undoing a transaction)
  */
 function txOKorNO($task, $xid) {
-  $myid = r\acct()->id;
-  if (!$result = be\lastTx('xid=:xid', compact('xid'), TRUE)) return FALSE; // bail on hack attempt
-  extract(u\just('state amount payer toMe', $result));
-
-  /*
-  if ($task == 'ok') { // OK
-    u\EXPECT($state == TX_PENDING or $state == TX_DISPUTED, "bad state for #$xid: $state");
-    if ($toMe) { // accepting payment exchange offer (UNUSED)
-      u\EXPECT(FALSE, 'payment offer');
-      r\setTxState(TX_DONE, $xid); // accept the payment
-      list ($message, $args) = array('payment accepted', compact('amount'));
-    } elseif ($state != TX_PENDING) { // already done (probably disputed), so just change the state
-      r\setTxState(TX_DONE, $xid); // accept the charge
-      $who = r\acct($payer)->fullName;
-      list ($message, $args) = array('charge accepted', compact('who'));
-    } else list ($message, $args) = be\payInvoice($xid);
-  } else */
-  list ($message, $args) = be\undoTx($xid); // NO
+  if (!be\lastTx('xid=:xid', compact('xid'), TRUE)) return FALSE; // bail on hack attempt
+  list ($message, $args) = be\undoTx($xid); // X (reverse it)
   say($message, $args);
 }
 
@@ -583,10 +560,142 @@ function txSummary($starting, $ending, $currency) {
   return $summary_title . theme_table(compact(u\ray('header rows attributes caption colgroups sticky empty')));
 }
 
-function csv($csv, $a) {
-  global $testCSV; if (!@$testCSV) $testCSV = array();
-  fputcsv($csv, $a);
-  $testCSV[] = $a;
+function popHelp($text, $help) {return "<span title=\"$help\">$text</span>";}
+
+/**
+ * List Invoices
+ */
+function formInvoices($form, &$sta, $toFrom, $args = '') {
+  global $base_url;
+
+  $toMe = ($toFrom == 'to');
+  extract(u\just('period starting ending download downloaded states nvid do', $args)); 
+
+  $choices = array(t('open'), t('paid'), t('denied'));
+  u\setDft($states, $statesDft = '0,1,2');
+  foreach (u\ray($states) as $k) $stateDfts[] = $choices[$k];
+  
+  $showAdvJs = 'jQuery(\'#advanced\').show(); jQuery(\'#simple\').hide();';
+  if ($states != $statesDft or (@$ending and $ending != strtotime('tomorrow') - 1)) js($showAdvJs, 'inline', 'footer'); // showing advanced selection
+  u\setDft($period, TX_DEFAULT_PERIOD);
+  list ($starting, $ending) = txDates(@$period, @$starting, @$ending);
+  $url0 = @"$base_url/history/invoices-$toFrom/period=$period&starting=$starting&ending=$ending&states=$states";
+
+  if (@$do == 'ok') {$ok = be\payInvoice($nvid, $msg); say($msg, $ok ? '' : 'ERR');}
+  if (@$do == 'no') return r\go("handle-invoice/nvid=$nvid&toMe=$toMe&ret=" . u\urlify($url0));
+  
+  $period = formField('select', t('For the past:'), '', dft($period), $GLOBALS['TX_DAYS']);
+  $submitPeriod = submit(t('Show ')); // label has to be different from submitDates (see below)
+  $downloadPeriod = submit(t('Download '));
+  $showAdvanced = item('<a class="nospin" href="javascript:' . $showAdvJs . '">advanced</a>');
+  $simple = fieldSet('simple', compact(u\ray('period submitPeriod downloadPeriod showAdvanced')));
+  
+  $states2 = boxesField('states', t('Show:'), '', $stateDfts, $choices);
+  $list = item(invoiceList($toMe, $starting, $ending, $states, $url0, @$download)); // must precede starting & ending
+  $starting = textField(t('Starting:'), '', dft(u\fmtDate($starting)));
+  $ending = textField(t('Ending:'), '', dft(u\fmtDate($ending)));
+  $submitDates = submit(t(' Show')); // label has to be different (Drupal bug -- else can't tell which is clicked)
+  $downloadDates = submit(t(' Download'));
+  $showSimple = item('<a class="nospin" href="javascript:jQuery(\'#advanced\').hide(); jQuery(\'#simple\').show();">simpler</a>');
+  $advanced = fieldSet('advanced', compact(u\ray('states2 starting ending submitDates downloadDates showSimple')));
+
+  $title = item(t('Invoices ') . ($toMe ? t('TO You') : t('FROM You')));
+  $toFrom = hidField($toFrom);
+
+  $form = compact(u\ray('title subtext simple advanced list toFrom'));
+  if (@$downloaded) js("window.open(\"$url0&download=1\", \"download\");", 'inline', 'footer');
+  return labeled($form);
 }
 
-function popHelp($text, $help) {return "<span title=\"$help\">$text</span>";}
+/**
+ * Prepare the list of invoices
+ * @return string table-based HTML listing the relevant invoices
+ */
+function invoiceList($toMe, $starting, $ending, $states, $url, $download) {
+
+  $headHelp = t('Invoice number|Date invoice was created|Who sent you the invoice|What is the the invoice for|Total invoice amount|Click a symbol to approve or deny an invoice');
+  $classes = u\ray('nvid date name purpose amount buttons');
+  $headers = t('Inv#,Date,Name,Purpose,Amount,Status');
+  $headHelp = array_combine($classes, u\ray($headHelp));
+
+  $header = array_combine($classes, u\ray($headers)); // make splices and additions easy and clear
+  $downloadHeader = $header;
+  foreach ($header as $key => $value) $header[$key] = popHelp($value, $headHelp[$key]);
+
+  $maxRows = @$download ? PHP_INT_MAX : TX_MAX_ROWS; // don't overwhelm the screen
+  if (@$download) {
+    $csv = setupDownload($starting, $ending);
+    u\csv($downloadHeader);
+  } else $csv = FALSE;
+
+  $rows = array();
+  list ($yu, $me) = u\order($toMe, 'payee', 'payer');
+  $where = ":uid=i.$me AND i.created BETWEEN :starting AND :ending";
+  if (strpos($states, '0') === FALSE) $where .= ' AND i.status<>:TX_PENDING';
+  if (strpos($states, '1') === FALSE) $where .= ' AND i.status<=0';
+  if (strpos($states, '2') === FALSE) $where .= ' AND i.status<>:TX_DENIED';
+  
+  $sql = <<<EOF
+    SELECT nvid, i.created, u.fullName AS other, i.purpose, i.amount, i.status, t.{$me}Tid AS tid
+    FROM r_invoices i 
+    LEFT JOIN users u ON u.uid=i.$yu
+    LEFT JOIN r_txs t ON t.xid=i.status
+    WHERE $where
+    ORDER BY i.status=:TX_PENDING, nvid DESC
+EOF;
+
+  $q = db\q($sql, u\ray('uid starting ending', r\acct()->id, $starting, $ending));
+  while (count($rows) < $maxRows and $tx = $q->fetchAssoc()) {
+    extract($tx);
+    if (!@$download) $amount = number_format($amount, 2);
+    $row = array($nvid, u\fmtDate($created), $other, $purpose, $amount);
+    
+    $do = @"$url&nvid=$nvid&do";
+
+    if ($status > 0) {
+      $button1 = $button2 = $button3 = '';
+      $status = t('paid') . " (Tx#$tid)";
+    } else {
+      $button1 = $toMe ? button(t(' PAY '), "$do=ok", t('Pay this invoice')) : '';
+      $button2 = (!$toMe ?: $status == TX_PENDING) ? button(' X ', "$do=no", $toMe ? t('Deny this invoice') : t('Delete this invoice')) : '';
+//    $button3 = (!$toMe and $status == TX_PENDING) ? "<input type='image' title='Edit this invoice' src='$rUrl/images/icons/edit.png' />" : '';
+      $button3 = '';
+      $status = $status == TX_DENIED ? t('denied') : t('pending');
+    }
+
+    $buttons = "<div class='txs-buttons'><div>$status</div><div>$button1</div><div>$button2</div><div>$button3</div></div>";
+    
+    if (!@$download) $row[] = $buttons;
+    $rows[] = $row;
+  }
+  if ($tx and $q->fetchAssoc()) say('transaction list truncated'); // there was more than we could show
+
+  if (@$download) {if (t\est()) return; else exit();}
+
+  // prepare screen display
+  $classes = u\prefixValues('tx-', $classes);
+  $attributes = array('id' => 'txlist');
+  $cols = array();
+  foreach ($classes as $class) $cols[] = compact('class');
+  $colgroups = array($cols);
+  $caption = $sticky = '';
+  $empty = tt('no invoices');
+  return theme_table(compact(u\ray('header rows attributes caption colgroups sticky empty')));
+}
+
+function formInvoices_validate($form, &$sta) {return formTxs_validate($form, $sta);}
+
+function formInvoices_submit($form, &$sta) {
+  if (confirming_s($sta)) return;
+  extract(u\just('states period starting ending do xid toFrom', $sta['input']));
+
+  $states = @join(',', $states);
+  $url = @"history/invoices-$toFrom/period=$period&starting=$starting&ending=$ending&states=$states";
+  $op = op($sta);
+
+  if (u\abbreviates('download', $op)) {
+    say('downloading');
+    $url .= '&downloaded=1';    
+  }
+  $sta['redirect'] = $url;
+}

@@ -2,9 +2,9 @@
 /**
  * @file
  * rCredits admin
-   include __DIR__ . '/../rcredits/admin/admin.inc';
+   include_once __DIR__ . '/../rcredits/admin/admin.inc';
  */
-namespace rCredits;
+namespace rCredits\Admin;
 
 use rCredits as r;
 use rCredits\DB as db;
@@ -56,14 +56,14 @@ function setupBasicAccounts() {
  */
 function showSteps($a) {
   $steps = '';
-  if (!$a->ok) foreach ($a->stepsDone as $k => $done) {
+  if (!$a->ok) foreach ($a->stepsDone ?: r\stepsDone0() as $k => $done) { // :? for testing
     $color = $done ? 'silver' : 'red';
     if ($a->co) {
       if ($k == 'proxies') $color = 'white';
     } elseif ($k == 'company' or $k == 'relations') $color = 'white';
     $steps .= "<b style=\"color:$color;\">$k </b>";
   }
-  if (!$a->ok) $steps .= ' [Next step: <b style="color:red;">' . ($a->nextStep() ?: 'NONE!') . '</b>] ';
+// (Takes too long)  if (!$a->ok) $steps .= ' [Next step: <b style="color:red;">' . ($a->nextStep() ?: 'NONE!') . '</b>] ';
   return $steps;
 }
 
@@ -204,8 +204,50 @@ function showQuery($table, $where = '1', $order = '', $fields = '*', $joinFields
 }
 
 /**
+ * Show results of an SSN search, compared to personal data supplied by the member.
+ */
+function ssnCheck($a) {
+  if (!$ssnData = @$a->ssnData) {
+    $ssnData = u\ssnLookup($a->federalId);
+    $a->update(compact('ssnData'));
+  }
+  $xml = simplexml_load_string($ssnData);
+  $json = json_encode($xml);
+  $d = json_decode($json, TRUE);
+  $d = $d['searchResults'];
+  
+  $name = $a->fullName . ($a->legalName == $a->fullName ? '' : "<br>$a->legalName");
+  $rows[] = array(t('Data Given'), $name, u\fmtDate($a->dob), r\location($a, TRUE), '', '');
+  $name = ssnName($one = (object) $d['ssnnames']['ssnname']);
+  $rows[] = array(t('Found'), $name, u\fmtDate(strtotime($one->dob)), $d['deathsearchresults'] ? 'DEAD' : '', '', '');
+  
+  foreach($d['addresses']['address'] as $one) {
+    $one = (object) $one;
+    $rows[] = array(u\fmtDate(strtotime($one->datereported)), ssnName($one), u\fmtDate(strtotime($one->dob)), ssnAddr($one), ucwords(strtolower($one->county)));
+  }
+  
+  $lines = '';
+  foreach ($rows as $one) {
+    list ($head, $name, $dob, $address, $county) = $one;
+    $lines .= "<tr><th>$head</th><td>$name</td><td>$dob</td><td>$address</td><td>$county</td></tr>\n";
+  }
+  
+  return <<< EOF
+  <table>
+  <tr><th>SSN CHECK</th><th>Name</th><th>BDate</th><th>Address</th><th>County</th></tr>
+  $lines
+  </table>
+EOF;
+}  
+
+function ssnName($v) {
+  return ucWords(strtolower(str_replace('-', '', @"$v->firstname $v->middlename $v->lastname")));
+}
+function ssnAddr($v) {return ucWords(strtolower(@"$v->address, $v->city, $v->state $v->zip"));}
+
+/**
  * Utility to do something to each existing transaction
-  include __DIR__ . '/../rcredits/admin/admin.inc';
+  include_once __DIR__ . '/../rcredits/admin/admin.inc';
   eachTx();
  */
 function eachTx($func = 'changeIt') {
@@ -216,8 +258,8 @@ function eachTx($func = 'changeIt') {
 
 /**
  * Utility to do something to each member account (see example below)
-  include __DIR__ . '/../rcredits/admin/admin.inc';
-  eachAcct();
+  include_once __DIR__ . '/../rcredits/admin/admin.inc';
+  f('a.eachAcct');
  */
 function eachAcct($func = 'changeIt') {
   $result = db\q('SELECT uid FROM users WHERE uid>1')->fetchCol();
@@ -235,28 +277,15 @@ function eachAcct($func = 'changeIt') {
  *    $us = new r\usd($a);
  *    $us->each('rCredits\\Cron\\bankFollowup', 0, u\ray('deposit withdrawal'));
  
-  include __DIR__ . '/../rcredits/admin/admin.inc';
+  include_once __DIR__ . '/../rcredits/admin/admin.inc';
   foreach (array(3201932, 3244519, 3350610, 3510402) as $one) {
-  changeIt($one);
+  f('a.changeIt', $one);
 OR changeIt(a('aaa'));
 }
 
  */
 function changeIt($a) {
-  $a->setBit(B_u5, FALSE);
-  $stepsDone = array_fill_keys(u\ray(R_STEPS), FALSE);
-  $a->update(u\ray('data', compact('stepsDone') + $a->data));
-  if ($a->signed) $a->stepDone('sign');
-  if ($a->postalAddr) $a->stepDone('contact');
-  if (db\exists('r_gifts', 'uid=:uid', u\ray('uid', $a->id))) $a->stepDone('donate');
-  if (db\exists('r_proxies', 'person=:uid', u\ray('uid', $a->id))) $a->stepDone('proxies');
-  if (file_exists(DRUPAL_ROOT . $a->auxFilename('picture', TRUE))) $a->stepDone('photo');
-  if (!is_null($a->minimum)) $a->stepDone('prefs');
-  if (@$a->secure['bankAccount']) $a->stepDone('connect');
-  if ($a->can(B_BANK)) $a->stepDone('verify');
-  if ($a->selling) $a->stepDone('company');
-  if ($a->co and $a->member) $a->stepDone('relations');
-  
+///  if ($a->ok and $a->can(B_BANK) and !$a->secure['bankAccount']) debug($a->legalName);
 }
 
 /*
@@ -266,8 +295,8 @@ function fixdw($a) {
 
 /**
  * Redo all the stats
-include __DIR__ . '/../rcredits/admin/admin.inc';
-rCredits\fixStats();
+include_once __DIR__ . '/../rcredits/admin/admin.inc';
+f('a.fixStats');
  */
 function fixStats($keepUpto = 0) {
   include_once __DIR__ . '/../rcron/rcron.inc';
@@ -347,8 +376,8 @@ function pioneerBonus($a) {
 
 /**
  * Re-setup the test cards on the STAGING server, after importing data from the PRODUCTION server.
-  include __DIR__ . '/../rcredits/admin/admin.inc';
-  rCredits\makeTestCards();
+  include_once __DIR__ . '/../rcredits/admin/admin.inc';
+  f('a.makeTestCards');
  */
 function makeTestCards() {
   if (isPRODUCTION) return;
@@ -392,3 +421,32 @@ $a = a('nya.aaa');
 ///debug($secure);
     $a->update(compact('secure'));
     */
+// MEMBER LIST: SELECT fullName, city FROM users WHERE (postalCode LIKE '010%' OR postalCode LIKE '013%') AND NOT (flags&(1<<6)) AND NOT (flags&(1<<9)) ORDER BY city, fullName
+
+/**
+ * Read and parse an updated list of financial institution routing numbers into the r_banks table.
+ * Download from http://www.fededirectory.frb.org/agreement.cfm
+ * branch is o (main office) or B (branch)
+ * type is 0=fed bank 1=use routing 2=use newRouting
+  include_once __DIR__ . '/../rcredits/admin/admin.inc';
+  f('a.getBanks');
+ */
+function getBanks() {
+  $fieldNames = 'route branch fedRoute type modified newRoute name address city state zip phone status view';
+  $lens = u\ray('9 1 9 1 6 9 36 36 20 2 9 10 1 1'); // also 5 chars of filler at end
+  $fields = array_combine(u\ray($fieldNames), $lens);
+  db\q('TRUNCATE r_banks');
+  
+  $s = explode("\n", file_get_contents(__DIR__ . '/../FedACHdir.txt'));
+  foreach ($s as $line) {
+    if (!$line) continue; // handle possible blank line at end
+    $i = 0;
+    foreach ($fields as $field => $len) {
+      $$field = substr($line, $i, $len);
+      $i += $len;
+    }
+    $branch = $branch == 'B' ? 1 : 0;
+    foreach (u\ray('name address city') as $field) $$field = ucwords(strtolower(trim($$field)));
+    db\insert('r_banks', compact(u\ray($fieldNames)));
+  }
+}

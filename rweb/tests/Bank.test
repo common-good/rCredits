@@ -43,20 +43,20 @@ class rwebBank extends DrupalWebTestCase {
     switch ($variant) {
     default: // fall through to case(0)
     case(0):
-    Given('members: "DATA'
+    Given('members: "ASSOC'
     . '\\| id   | fullName | flags           |'
     . '\\| .ZZA | A Mem    | ok,dw,bona,bank |'
     . '\\| .ZZB | B Mem    | ok,dw,bona      |'
     . '\\| .ZZC | C Mem    | ok,dw,bona      |'
     . '\\| .ZZD | D Mem    | ok,dw,bona      |"');
-    And__('transactions: "DATA'
+    And__('transactions: "ASSOC'
     . '\\| xid | created   | type     | amount | from | to   | purpose |'
     . '\\| 1   | %today-7m | signup   |    100 | ctty | .ZZA | signup  |'
     . '\\| 2   | %today-7m | signup   |    100 | ctty | .ZZB | signup  |'
     . '\\| 3   | %today-7m | signup   |    100 | ctty | .ZZC | signup  |'
     . '\\| 4   | %today-7m | signup   |    100 | ctty | .ZZD | signup  |'
     . '\\| 8   | %today    | transfer |     80 | .ZZD | .ZZA | gift    |"');
-    And__('balances: "DATA'
+    And__('balances: "ASSOC'
     . '\\| id   | usd |'
     . '\\| .ZZA |  10 |'
     . '\\| .ZZB |  10 |'
@@ -71,13 +71,13 @@ class rwebBank extends DrupalWebTestCase {
   // Scenario: A member transfers funds to the bank
   public function testAMemberTransfersFundsToTheBank_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ".ZZA" completes form "get" with values: "DATA'
+    When_('member ".ZZA" completes form "get" with values: "ASSOC'
     . '\\| amount | op  |'
     . '\\|     40 | put |"');
-    Then_('we say "status": "banked" with subs: "DATA'
+    Then_('we say "status": "banked" with subs: "ASSOC'
     . '\\| action     | amount |'
     . '\\| deposit to | $40    |"');
-    And__('usd transfers: "DATA'
+    And__('usd transfers: "ASSOC'
     . '\\| payer | payee | amount |'
     . '\\| .ZZB  | .ZZA  |     10 |'
     . '\\| .ZZC  | .ZZA  |     10 |'

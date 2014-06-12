@@ -5,16 +5,16 @@ SO I can use it to charge customers through the rCredits system.
 
 Setup:
   Given members:
-  | id   | fullName   | phone  | email | cc  | cc2  | flags      |
+  | id   | fullName   | phone  | email | cc  | cc2  | flags      |*
   | .ZZA | Abe One    | +20001 | a@    | ccA | ccA2 | ok,bona    |
   | .ZZB | Bea Two    | +20002 | b@    | ccB |      | ok,bona    |
   | .ZZC | Corner Pub | +20003 | c@    | ccC |      | ok,co,bona |
   | .ZZF | For Co     | +20006 | f@    | ccF |      | co         |
   And devices:
-  | id   | code |
+  | id   | code |*
   | .ZZC | devC |
   And relations:
-  | id   | main | agent | permission |
+  | id   | main | agent | permission |*
   | :ZZA | .ZZC | .ZZA  | buy        |
   | :ZZB | .ZZC | .ZZB  | scan       |
   | :ZZE | .ZZF | .ZZA  | scan       |
@@ -25,13 +25,13 @@ Scenario: Device requests a bad op
 
 Scenario: Device should have an identifier
   When agent ":ZZA" asks device "" for op "charge" with:
-  | member | code |
+  | member | code |*
   | .ZZB   | ccB  |
   Then we return error "missing device"
   
 Scenario: Device gives a bad code
   When agent ":ZZA" asks device %random for op "identify" with:
-  | member | code |
+  | member | code |*
   | .ZZB   | ccB  |
   Then we return error "unknown device"
 

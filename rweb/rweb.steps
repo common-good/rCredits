@@ -322,6 +322,24 @@ function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, 
 function weTellStaffWithSubs($topic, $subs) {return t\weTellStaff($topic, $subs);}
 
 /**
+ * we show (ARG)
+ *
+ * in: TEST Signin AMemberSignsInWithUsernameOnTheMemberSite
+ *     TEST Signin AMemberSignsInWithAccountIDOnTheMemberSite
+ *     TEST Signin AMemberSignsInWithEmailOnTheMemberSite
+ *     TEST Signin AMemberSignsInWithUsernameFromRCreditsorg
+ *     TEST Signin AMemberSignsInWithAccountIDFromRCreditsorg
+ *     TEST Signin AMemberSignsInWithEmailFromRCreditsorg
+ *     TEST Signin AMemberTypesTheWrongPasswordFromRCreditsorg
+ *     TEST Signin AMemberTypesAnUnknownUsernameIDFromRCreditsorg
+ *     TEST Signin AMemberClicksALinkToResetPassword
+ *     TEST Signin AMemberClicksALinkToResetPasswordWithWrongCode
+ *     TEST Signin AMemberClicksALinkToResetPasswordForUnknownAccount
+ *     TEST Signup AMemberRegistersACompany
+ */
+function weShow($what, $show = TRUE) {return t\weShow($what, $show);}
+
+/**
  * we show (ARG) with subs: (ARG)
  *
  * in: TEST Transact AMemberAsksToChargeAnotherMember
@@ -389,6 +407,34 @@ function weShowWith($title, $content = FALSE, $showDebugs = TRUE) {
   global $testOnly; if (!$testOnly) return FALSE;
   if ($title and !weShow($title, $showDebugs)) return FALSE;
   return weShow($content, $showDebugs);
+}
+
+/**
+ * with: (ARG)
+ *
+ * in: TEST RealUsd AMixedRCreditsUSDTransactionHappens
+ *     TEST Relations ItsComplicated
+ *     TEST Transactions AMemberLooksAtTransactionsForThePastYear
+ *     TEST Transactions AMemberLooksAtTransactionsForThePastFewDays
+ */
+function with($content) {return weShow($content);}
+
+/**
+ * without: (ARG)
+ *
+ * in: TEST Relations MemberCompanyHasRelations
+ *     TEST Relations ItsComplicated
+ *     TEST Signup AnInvitedNewbieVisitsTheRegistrationPage
+ *     TEST Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage
+ *     TEST Summary ACompanyAgentClicksOnTheSummaryTab
+ *     TEST Transactions AMemberLooksAtTransactionsForThePastYear
+ *     TEST Transactions AMemberLooksAtTransactionsForThePastFewDays
+ */
+function without($content) {
+  global $testOnly; if (!$testOnly) return FALSE;
+  if (!is_array($content)) return !weShow($content, FALSE);
+  foreach ($content as $one) if (weShow(array($one), FALSE)) return FALSE;
+  return TRUE;
 }
 
 /**
@@ -625,24 +671,6 @@ function withDone($steps) {
 function memberHasDoneStep($uid, $step) {return t\doneStep($uid, $step);}
 
 /**
- * we show (ARG)
- *
- * in: TEST Signin AMemberSignsInWithUsernameOnTheMemberSite
- *     TEST Signin AMemberSignsInWithAccountIDOnTheMemberSite
- *     TEST Signin AMemberSignsInWithEmailOnTheMemberSite
- *     TEST Signin AMemberSignsInWithUsernameFromRCreditsorg
- *     TEST Signin AMemberSignsInWithAccountIDFromRCreditsorg
- *     TEST Signin AMemberSignsInWithEmailFromRCreditsorg
- *     TEST Signin AMemberTypesTheWrongPasswordFromRCreditsorg
- *     TEST Signin AMemberTypesAnUnknownUsernameIDFromRCreditsorg
- *     TEST Signin AMemberClicksALinkToResetPassword
- *     TEST Signin AMemberClicksALinkToResetPasswordWithWrongCode
- *     TEST Signin AMemberClicksALinkToResetPasswordForUnknownAccount
- *     TEST Signup AMemberRegistersACompany
- */
-function weShow($what, $show = TRUE) {return t\weShow($what, $show);}
-
-/**
  * member (ARG) supplies (ARG): (ARG)
  *
  * in: 
@@ -849,24 +877,6 @@ function memberHasADwollaAccountStep($id, $step) {
 }
 
 /**
- * without: (ARG)
- *
- * in: TEST Relations MemberCompanyHasRelations
- *     TEST Relations ItsComplicated
- *     TEST Signup AnInvitedNewbieVisitsTheRegistrationPage
- *     TEST Summary AnAgentClicksOnTheSummaryTabWithoutPermissionToManage
- *     TEST Summary ACompanyAgentClicksOnTheSummaryTab
- *     TEST Transactions AMemberLooksAtTransactionsForThePastYear
- *     TEST Transactions AMemberLooksAtTransactionsForThePastFewDays
- */
-function without($content) {
-  global $testOnly; if (!$testOnly) return FALSE;
-  if (!is_array($content)) return !weShow($content, FALSE);
-  foreach ($content as $one) if (weShow(array($one), FALSE)) return FALSE;
-  return TRUE;
-}
-
-/**
  * statistics get set (ARG)
  *
  * in: MAKE Community Setup
@@ -875,26 +885,6 @@ function statisticsGetSet($time) {
   global $testOnly; if ($testOnly) return FALSE;
   return r\getStats(r\serverUid(), $time) ? TRUE : FALSE;
 }
-
-/**
- * we show (ARG) without: (ARG)
- *
- * in: 
- */
-function weShowWithout($arg1, $arg2) {
-  global $testOnly;
-  todo;
-}
-
-/**
- * with: (ARG)
- *
- * in: TEST RealUsd AMixedRCreditsUSDTransactionHappens
- *     TEST Relations ItsComplicated
- *     TEST Transactions AMemberLooksAtTransactionsForThePastYear
- *     TEST Transactions AMemberLooksAtTransactionsForThePastFewDays
- */
-function with($content) {return weShow($content);}
 
 /**
  * members have: (ARG)
@@ -1012,8 +1002,7 @@ function signupCompanyInfoForAccountIsRemembered($id) {
 /**
  * that (ARG) has link results: (ARG)
  *
- * in: TEST Gift AMemberDonates
- *     TEST Transact AMemberConfirmsRequestToPayAMemberCompany
+ * in: 
  */
 function thatHasLinkResults($thing, $info) {return t\hasLinkResults($thing, $info);}
 

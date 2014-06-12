@@ -43,18 +43,18 @@ class rsmsExchange extends DrupalWebTestCase {
     switch ($variant) {
     default: // fall through to case(0)
     case(0):
-    Given('members: "DATA'
+    Given('members: "ASSOC'
     . '\\| id   | fullName   | number | flags           |'
     . '\\| .ZZA | Abe One    | +20001 | ok,bona  |'
     . '\\| .ZZB | Bea Two    | +20002 | ok,bona  |'
     . '\\| .ZZC | Corner Pub | +20003 | co,ok,bona |"');
-    And__('transactions: "DATA'
+    And__('transactions: "ASSOC'
     . '\\| type     | amount | from | to   | purpose |'
     . '\\| signup   | 250    | ctty | .ZZA | signup  |'
     . '\\| signup   | 250    | ctty | .ZZB | signup  |'
     . '\\| signup   | 250    | ctty | .ZZC | signup  |'
     . '\\| transfer | 100    | .ZZB | .ZZA | goodies |"');
-    Then_('balances: "DATA'
+    Then_('balances: "ASSOC'
     . '\\| id   | r    |'
     . '\\| ctty | -765 |'
     . '\\| .ZZA |  360 |'
@@ -70,13 +70,13 @@ class rsmsExchange extends DrupalWebTestCase {
   public function testTheCallerConfirmsATradeOfRCreditsForCash_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('phone +20001 confirms "100 to .ZZC for cash"');
-    Then_('balances: "DATA'
+    Then_('balances: "ASSOC'
     . '\\| id   | r    |'
     . '\\| ctty | -765 |'
     . '\\| .ZZA |  260 |'
     . '\\| .ZZB |  155 |'
     . '\\| .ZZC |  350 |"');
-    And__('we say to phone +20001 "report exchange" with subs: "DATA'
+    And__('we say to phone +20001 "report exchange" with subs: "ASSOC'
     . '\\| did    | otherName  | amount | balance | tid |'
     . '\\| paid   | Corner Pub | $100   | $260    | 3   |"');
   }
@@ -102,7 +102,7 @@ class rsmsExchange extends DrupalWebTestCase {
   public function testTheCallerRequestsAnImplicitTradeWithInsufficientBalance_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('phone +20001 says "150 to .ZZC"');
-    Then_('we say to phone +20001 "short cash to" with subs: "DATA'
+    Then_('we say to phone +20001 "short cash to" with subs: "ASSOC'
     . '\\| short |'
     . '\\| $50   |"');
   }

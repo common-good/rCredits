@@ -40,15 +40,17 @@ function usdCallback($type, $uid) {
  *   sql: do the database operation
  *   addr: show an address (for shipping or thank-you card)
  *   pay: pay an invoice
+ * Alternatively, code can be an error message (recognized by having a space in it).
  * @see also r\makeDo()
  */
 function rdo($code) {
   global $channel;
+  if (strpos($code, ' ')) return doSay($code);
   if (!$info = r\doCode($code)) return doSay(t('That link is archaic.'));
 
-  if ($once = is_numeric($op = @$info['op'])) {
-    if (!$result = db\lookup('uid,data', 'r_do', 'doid=:op', compact('op'))) return doSay(t('That link is no longer valid.')); // already used OR deleted because it expired
-    list ($uid, $data) = $result;
+  if ($once = is_numeric($doid = @$info['op'])) {
+    if (!$result = db\lookup('uid,data', 'r_do', 'doid=:doid', compact('doid'))) return doSay(t('That link is no longer valid.')); // already used OR deleted because it expired
+    extract(u\just('uid data', $result));
     $info = unserialize($data);
     $info['id'] = $uid; // id is always uid, for one-time operations (required for integrity of changeUid)
   }
@@ -68,16 +70,13 @@ function rdo($code) {
     $phone = $a->co ? t('Phone: ') . u\fmtPhone($a->phone) . "<br>" : '';
     $addr = t('Physical address: ') . r\location($a, TRUE);
     return doSay("$a->fullName<br>$a->postalAddr<br>$addr<br>$phone", 'status');
-  } elseif ($op == 'pay') { // pay an invoice ($once is irrelevant here)
-    $fields = 'nvid,status,amount,payer,payee,purpose';
-    if (!$invoice = db\lookup($fields, 'r_invoices', 'nvid=:nvid', compact('nvid'))) return doSay(t('There is no such invoice.'));
-    extract(u\just($fields, $invoice));
-    if ($status > 0) return doSay(t('You already paid that invoice.'));
-    return showForm('PayInvoice', compact(u\ray($fields)));
+  } elseif ($op == 'inv') { // pay or deny an invoice ($once is irrelevant here)
+    if ($err = r\badUnpaidInv($nvid = $id)) return doSay($err);
+    return r\go("handle-invoice/nvid=$id&toMe=1&code=$code");
   }
 
   if (!@$result) return doSay(t('Request failed.'));
-  if ($once) db\q('DELETE FROM r_do WHERE doid=:id', compact('id'));
+  if ($once) db\q('DELETE FROM r_do WHERE doid=:doid', compact('doid'));
 
   unset($DBTX);
 
@@ -201,7 +200,7 @@ function formDonate($form, &$sta) {
     'often' => formField('select', t('When:'), '', required(), $oftens),
     'honor' => formField('select', t('Honoring:'), '', '', $honors),
     'honored' => formField('textarea'),
-    'share' => textField(t('Share:'), t('What percentage of your ongoing rebates and bonuses would you like to donate to Common Good Finance (and/or the rCredits community), to support the rCredits system? This is another way to take responsibility for our community\'s future. You can put anything from 0% to 100%. The current average is sharePct%.', compact('sharePct')), required($mya->share)),
+    'share' => textField(t('Share:'), t('What percentage of your ongoing purchase rewards would you like to donate to Common Good Finance (and/or the rCredits community), to support the rCredits system? This is another way to take responsibility for our community\'s future. You can put anything from 0% to 100%. The current average is sharePct%.', compact('sharePct')), required($mya->share)),
     'submit' => submit('Donate'),
   );
 
@@ -247,7 +246,7 @@ function formDonate_submit($form, &$sta) {
 }
 
 function formHelp($form, &$sta, $what = '') {
-  require_once __DIR__ . '/rweb-help.inc';
+  include_once __DIR__ . '/rweb-help.inc';
   $title = item($what ? str_replace('Rcredits', 'rCredits', ucwords(str_replace('-', ' ', $what))) : t('General Help'));
   $text = formField('item', '', '', helpText($what ?: 'general'));
   return compact(u\ray('title text'));
@@ -526,7 +525,7 @@ function formInvite($form, &$sta) {
   global $base_url;
   $agent = r\agent();
   if ($admin = $agent->admin) $agent = r\acct('NEW.AAA'); // use William's info for admin invites
-  $cAdmin = $agent->cAdmin;
+  $cAdmin = ($admin or $agent->cAdmin);
   
   $title = item(t('Invite Someone to rCredits'));
   $stepsDone = (object) $agent->stepsDone;
@@ -584,134 +583,114 @@ function formUser($form, &$sta) {return \user_login($form, $sta);} // called fro
 /**
  * Show a summary of the current account.
  * This function uses jQuery code defined in misc.js
+ * @param string $qid: (optional) qid of the account to summarize and manage (for cAdmin)
  */
-function formSummary($form, &$sta) {
+function formSummary($form, &$sta, $qid = '') {
   global $base_url;
   if (!$mya = r\acct()) return r\go('/user/login'); // this cannot be '' (infinite redirect)
-///  debug($mya->can(B_ALL)); // keep
-  $agent = $mya->agent;
-  $mya->refreshCan(); // update any permissions that may have been set elsewhere (superfluous?)
-
-  if ($mem = $mya->admin ? $mya->can(B_MEMBER) : formMembership($mya)) {
-    if ($mem !== TRUE and t\est()) return $mem; // redirected to another page
-    if (!$mya->ok) say('setup complete');
-    say('adjust settings');
-    //if ($mya->can(B_DW) and !$mya->can(B_BANK)) say('verify bank');
-  } elseif ($mya->id != 1) say('take a step');
-
-  $name = $mya->name;
-  $floorDesc = t('Your balance can go this low') . ($mya->floor < 0 ? t(' for up to 30 days') : '')
-    . '. ' . t('See "Debt Okay" in') . " <a href=\"$base_url/account/preferences\">Preferences</a>.";
   
-  if ($mya->cAdmin and !$mya->proSe) {
-    $extras = '<br>' . u\fmtPhone($mya->phone) . " ($mya->faxetc)";
-    $idLink = 'href="print-rcard/' . $mya->mainQid . '" target="_blank"';
-    if (!$mya->co and $mya->id > 0) $extras .= " <a $idLink>" . t('Print ID Card') . '</a>';
-  } 
-  
-  $title = item(t('Account Summary'));
-//  'subtext = basic_account_info();
-  $accountName = item($mya->fullName . ' ' . u\hug($name), t('Name:'), $mya->postalAddr . @$extras);
-  
-  if ($mya->id > 0) {
-    $balance = u\fmtAmt($mya->r + $mya->usd);
-    //$usdBalance = u\fmtAmt($mya->usd);
-    //$total = u\fmtAmt($mya->r + $mya->usd);
-    $balance = item($balance . ($mya->rewards ? " (see <a href=\"$base_url/history\">" . t('Transaction History') . '</a>)' : ''), t('Balance:'));
-  //  $balance = item(tt("$balance@R + $usdBalance@US = $total") . ($mya->rewards ? " [<a href=\"$base_url/transactions\">" . t('see Transaction History') . '</a>]' : ''), t('Balance:'));
+  if ($mya->cAdmin or $mya->cAdmin2) { // ctty admin not administering own acct
+    include_once __DIR__ . '/../admin/admin-web.inc';  
+    if (!$a = r\acct($qid)) return r\go('member-list', t('Unrecognized Account Code.'), 'ERR');
+    $form = adminSummary($a, $mya->cAdmin and $a->id != $mya->agentId);
 
-    $acctType = $mya->co ? t('company account') : t('personal account');
-    if ($agent->can(B_MEMBER)) $another = submit(t('Open Another Account'));
+    $extras = '<br>' . u\fmtPhone($a->phone) . " ($a->faxetc)";
+    $idLink = 'href="print-rcard/' . $a->mainQid . '" target="_blank"';
+    if (!$a->co and !$a->ctty and $mya->cAdmin) $extras .= " <a $idLink>" . t('Print ID Card') . '</a>';
+  } else { // normal
+    $a = $mya; // non-cAdmin (or cAdmin managing own account)
+    $a->refreshCan(); // update any permissions that may have been set elsewhere (superfluous?)
 
-    $extra = $agent->cAdmin ? " id#$mya->id" : '';
-    $accountId = formField('item', t('ID:'), '', ($mya->mainQid ?: 'N/A') . ' (' . $acctType . ")$extra");
-    $floor = formField('item', t('Credit floor:'), $floorDesc, u\fmtAmt($mya->floor));
+    if ($mem = formMembership($a)) { // all steps complete
+      if (t\est() and $mem !== TRUE) return $mem; // redirected to another page
+      if (!$a->ok) say('setup complete');
+      say('adjust settings');
+      //if ($a->can(B_DW) and !$a->can(B_BANK)) say('verify bank');
+    } else say('take a step');
     
-    $rewards = formField('item', t('Rewards:'), t('to date'), u\fmtAmt($mya->rewards));
-    $committed = formField('item', t('Committed:'), t('rewards reserved for donation to Common Good Finance'), u\fmtAmt(max(0, $mya->committed)));
-  }
-
-  if ($agent->cAdmin and (!$mya->proSe or $mya->id == 1)) { // ctty admin not managing own account
-    $ctty = $mya->community;
-    if ($mya->id < 0) { // managing the community itself
-      $count = item(db\recCount('users', 'community=:ctty AND uid<>:ctty', compact('ctty')), t('Members:'));
-    } else { // managing some individual community member account
-      $uidSub = u\ray('uid', $mya->id);
-      $donations = db\lookup($mya->ok ? 'SUM(amount)' : 'amount', 'r_gifts', "uid=$mya->id") ?: 0;
-      if ($donationInfo = $mya->ok ? '' : db\lookup('honor,honored,share', 'r_gifts', "uid=$mya->id")) {
-        extract($donationInfo);
-        $donationInfo = " ($honor) $honored $share%";
-      }
-      $donations = item(u\fmtAmt($donations) . @$donationInfo, t('Donations:'));
-      $floor = textField(t('Credit floor:'), $floorDesc, dft(u\fmtAmt($mya->floor)));
-      $rTrader = boolField(t('rTrader?'), t('Is this account approved to use rCredits?'), $mya->ok + 0);
-
-      $bits = u\ray(B_ADMINABLE . ($mya->admin ? ' admin' : ''));
-      $adminableDefaults = array();
-      foreach ($bits as $bitName) {
-        $bit = u\consta('b', $bitName);
-        $adminables[$bit] = $bitName;
-        if ($mya->hasBit($bit)) $adminableDefaults[] = $bitName;
-      }
-      $adminable2 = boxesField('adminable', t('Other bits:'), '', $adminableDefaults, $adminables);
-
-      $notes = formField('textarea', t('Notes:'), '', dft($mya->notes));
-    }
-    $who = textField(t('Be who:'), t('Type a name, id, email, or phone of a (different) member account to manage.'), autocomplete($mya->admin ? '' : 'ctty'));
-
-    $submit1 = $submit2 = submit(t('Go'));
-  } else {
-    //extract(u\just('r usd pAccts', r\stats($mya->community)));
-    extract(u\just('returnMo return cttyBeneMo cttyBene', $mya->stats()));
+    if ($a->legalName != $a->fullName) $legalName = item($a->legalName, t('Legal Name:'));    
+    //extract(u\just('r usd pAccts', r\stats($a->community)));
+    extract(u\just('returnMo return cttyBeneMo cttyBene', $a->stats()));
     $returnMo = item("$returnMo% APR " . t('over the past month'), t('Your return:'));
     $return = item("$return% APR " . t('overall (ever)'), ' ', t('Your effective rate of return on your average balance [<@a>details</a>]', u\ray('@a', 'a href=help/your-return')));
     $cttyBeneMo = item("$cttyBeneMo " . t('over the past month'), t('Social return:'));
-    $cttyBene = item("$cttyBene " . t('overall (ever)'), ' ', t('How much your participation has benefited the community financially [<@a>details</a>]', u\ray('@a', 'a href=help/social-return')));
+    $cttyBene = item("$cttyBene " . t('overall (ever)'), ' ', t('How much your participation has benefited the community financially [<@a>details</a>]', u\ray('@a', 'a href=help/social-return')));    
+    $floorDesc = t('Your balance can go this low') . ($a->floor < 0 ? t(' for up to 30 days') : '')
+    . '. ' . t('See "Debt Okay" in') . " <a href=\"$base_url/account/preferences\">Preferences</a>.";
+    $floor = formField('item', t('Credit floor:'), $floorDesc, u\fmtAmt($a->floor));
+    if ($a->agent->can(B_MEMBER)) $another = submit(t('Open Another Account'));
+    $form = compact(u\ray('legalName returnMo return cttyBeneMo cttyBene floor'));
+  }
+  
+  $title = item(t('Account Summary'));
+  $accountName = item($a->fullName . ' ' . u\hug($a->name), t('Name:'), $a->postalAddr . @$extras);
+  if (isDEV) $agentName = item($a->agent->fullName, t('Agent:'));
+  
+  if (!$a->ctty) { // unless this is a community account
+    $acctType = $a->co ? t('company account') : t('personal account');
+    $extra = $mya->cAdmin ? " id#$a->id" : '';
+    $accountId = formField('item', t('ID:'), '', ($a->mainQid ?: 'N/A') . ' (' . $acctType . ")$extra");
+    $balance = u\fmtAmt($a->r + $a->usd);
+    $balance = item($balance . ($a->rewards ? " (see <a href=\"$base_url/history\">" . t('Transaction History') . '</a>)' : ''), t('Balance:'));
+
+    $rewards = formField('item', t('Rewards:'), t('to date'), u\fmtAmt($a->rewards));
+    $committed = formField('item', t('Committed:'), t('rewards reserved for donation to Common Good Finance'), u\fmtAmt(max(0, $a->committed)));
   }
 
-  $form = $mya->can(B_MANAGE) ? compact(u\ray('title another accountName accountId donations balance rewards committed returnMo return cttyBeneMo cttyBene floor canCharge rTrader adminable2 notes count submit2')) : compact(u\ray('title accountName accountId submit2'));
-
-  return labeled($form);
+  $fields = 'another title accountName agentName accountId';
+  if ($a->can(B_MANAGE)) $fields .= ' balance rewards committed';
+  return labeled(compact(u\ray($fields)) + $form);
 }
 
 function formSummary_validate($form, &$sta) {
-  $mya = r\acct();
+//  if (!r\acct()->cAdmin2) return hack('non-admin submitted summary form');
   if (op($sta) == 'another') return;
-  extract(u\just('who floor rTrader adminable', $sta['input']));
 
-  if ($rTrader and is_null(@$adminable[B_MEMBER])) return say(t('That account is not READY (not a member).'), 'zot'); // isnull because 0
+  extract(u\just('qid who legalName floor rTrader helper adminable', $sta['input']));
+  $a = r\acct(@$qid);
+  
+  if ($rTrader and !$a->ok) {
+    if (empty($helper)) return say(t('You must specify who gets the helper reward.'), 'helper');
+    if (!$aHelper = whois($helper, 'helper', $sta['input'])) return say(t('I don\'t know what helper account you mean.'), 'helper');
+    $sta['input']['helper'] = $aHelper;
+    if (is_null(@$adminable[B_MEMBER])) return say(t('That account is not READY (not a member).'), 'ERR'); // test "is_null" because 0 is the value when set
+  }
+  
   if (isset($floor)) {
     if ($error = u\badAmount($floor)) return say($error, 'floor'); 
     $sta['input']['floor'] = u\cleanAmount($floor);
   }
   if (@$who) {
-    if (!$acct = whois($who, 'who', $sta['input'])) return FALSE;
-    $sta['input']['who'] = $acct;
+    if (!$aNew = whois($who, 'who', $sta['input'])) return say(t('I don\'t know what account you mean to go to.'), 'who');
+    $sta['input']['who'] = $aNew;
   }
 }
 
 function formSummary_submit($form, &$sta) {
-  $mya = r\acct();
-  $agent = $mya->agent;
+  if (!r\acct()->cAdmin) return; // hack attempt
   if (op($sta) == 'another') return r\go('another');
 
-  if (!$agent->cAdmin) return; // hack attempt
-  extract(u\just('who floor notes canCharge rTrader adminable', $sta['input']));
+  extract(u\just('qid who legalName floor notes helper rTrader adminable', $sta['input']));
+  $a = r\acct(@$qid);
+  $aa = $a->agent;
 
-  $mya->stampNotes($notes);
-  if (@$who and ($who->community == $agent->community or $agent->id == 1)) {
+  $a->stampNotes($notes);
+  if (@$who and ($who->community == $aa->community or $aa->id == 1)) {
     svar('myid', $who->id); // make it the new current account
-    list ($newAcct, $oldAcct) = array($who->fullName, $mya->fullName);
+    list ($newAcct, $oldAcct) = array($who->fullName, $a->fullName);
     return say('changed account|lost old changes', compact('newAcct', 'oldAcct'));
   } 
   
-  if ($mya->id > 0) {
-//    $mya->setBit(B_CHARGE, @$canCharge, FALSE);
-    r\membershipEvent($mya, 'ok', $rTrader); // activate the account
-    $mya->setBit(B_OK, $rTrader, FALSE);
+  if ($a->id > 0) {
+//    $a->setBit(B_CHARGE, @$canCharge, FALSE);
+    $DBTX = \db_transaction();
+    r\membershipEvent($a, 'ok', $rTrader); // activate the account
+    $a->setBit(B_OK, $rTrader, TRUE);
 
-    $mya->setBits(B_ADMINABLE, $adminable, 'b');
-    $mya->update(compact(u\ray('floor notes')));
+    $a->setBits(B_ADMINABLE, $adminable, 'b');
+    $a->update(compact(u\ray('legalName floor notes helper')));
+    unset($DBTX);
+
     say('info saved');
   }
 }
@@ -882,7 +861,7 @@ function formChangePin_submit($form, &$sta) {
 function formAccounts($form, &$sta) {
   global $base_url, $rUrl;
   if (!$mya = r\acct()) return NULL; // no account selector before login
-  $myid = @$mya->id;
+  $myid = @$mya->id; // may be a non-existent account if tests are run while looking at .ZZA, for example
   if (!$accounts = be\accountChoices()) return FALSE;
   if (!in_array($myid, @$accounts) and $mya->can()) array_splice($accounts, 1, 0, $myid); // admin or cadmin
   $choices = array();
@@ -1158,7 +1137,17 @@ function formPayroll_submit($form, &$sta) {
 }
 
 function formMenu($form, &$sta) {return array('title' => item('Menu'));}
-function formEmpty($form, &$sta) {return formMenu($form, $sta);}
+
+/**
+ * Present an empty slate for status and error messages.
+ * @param bool $doSay: TRUE if called from the doSay function.
+ */
+function formEmpty($form, &$sta, $doSay = FALSE) {
+  $title = item(t('Miscellaneous')); // this is suppressed with CSS
+  if ($doSay) $subtext = item(t('To protect your account, no sign-in was required for this action. To sign in safely, always go to rCredits.org.'));
+// FAILS :(  if ($doSay == 'test') $testMessages = item(print_r(\drupal_get_messages(), 1));
+  return compact(u\ray('title testMessages subtext'));
+}
 
 function formSettings($form, &$sta) {
   $mya = r\acct();
@@ -1239,37 +1228,79 @@ function formBuy_submit($form, &$sta) {
 }
 
 /**
- * Pay an invoice, possibly by clicking a link without signing in (from rDo).
- * @param mixed $args: array of paramaters (from rDo) or invoice number (if signed in)
- * @todo: check status (complain if status>0 -- don't double pay)
- * @todo: record inv# in data field of tx and xid in status field of inv?
+ * Pay or deny an invoice, possibly by clicking a link without signing in (from rDo).
+ * If no user is signed in, $args must be include the do code (to prevent mischief)
+ * @param mixed $args: array of paramaters (from rDo) or invoice number (if signed in):
+ *   int nvid: invoice number
+ *   bool toMe: is the invoice for me to pay (or deny)? (FALSE if it is FROM me)
+ *   string ret: URL to return to
  */
-function formPayInvoice($form, &$sta, $args = '') {
-  extract(u\just($fields = 'nvid,status,amount,payer,payee,purpose', $args));
-  if (!@$payer) {
-    if (!$args = db\lookup($fields, 'r_invoices', 'nvid=:nvid', compact('nvid'))) return doSay(t('There is no such invoice.'));
-    extract(u\just($fields, $args));
-    if ($payer != r\acct()->id) return hack(t('bad payer in invoice payment'));
+function formHandleInvoice($form, &$sta, $args = '') {
+  $mya = r\acct();
+  extract(u\just('nvid ret code', $args));
+  $ret = @$ret ? @u\deurlify($ret) : 'empty/1';
+  
+  if ($err = r\badUnpaidInv(@$nvid, $inv)) return r\go($ret, $err, 'ERR');
+  extract(u\just('nvid amount payer payee purpose created data', $inv));
+  if ($mya) {
+    if ($payer != $mya->id) return hack(t('bad payer in invoice payment'));
+  } elseif (!$info = r\doCode($code) or $info['id'] != $nvid) return hack(t('fake doCode in handleInvoice'));
+
+  $subs = u\ray('amount what', u\fmtAmt($amount), $purpose);
+  
+  if (@$args['toMe']) {
+    $title = item(t('Confirm Payment'));
+    $subs += u\ray('who', r\acct($payee)->fullName);
+    $subtext = item(tt('Pay @amount to @who for @what?', $subs));
+    $pay = submit(t('Pay'));
+
+    $whyNot = textField(t('Why not:'));
+    $deny = submit(t('Deny'));
+    $denySet = fieldSet('denySet', compact('whyNot', 'deny'));
+    $toMe = hidField(TRUE);
+  } else { // confirming delete by originator
+    $title = item(t('Confirm Deletion'));
+    $subs += u\ray('who', r\acct($payer)->fullName);
+    $subtext = item(tt('Delete invoice charging @who @amount for @what?', $subs));
+    $delete = submit(t('Delete'));
+    $cancel = submit(t('Cancel'));
+    $delSet = fieldSet('delSet', compact('delete', 'cancel')); // separate it from subtext
   }
-  list ($a1, $a2) = array(r\acct($payer), r\acct($payee));
-
-  $title = item(t('Confirm Payment'));
-  $amountx = textField(t('Pay $'), '', disabled(number_format($amount, 2)));
-  $payeex = textField(t('To:'), '', disabled($a2->fullName));
-  $purpose = textField(t('For:'), '', dft($purpose));
-
-  $hid = hidField(serialize(compact(u\ray('amount payeeFor a1 a2'))));
-  $submit = submit(t('Pay'));
-
-  return labeled(compact(u\ray('title amountx payeex purpose hid submit')));
+  
+  $hid = hidFields(compact('ret') + $inv);
+  $form['#validate'] = array('rCredits\\Web\\formHandleInvoice_validate');
+  $form['#submit'] = array('rCredits\\Web\\formHandleInvoice_submit');
+  return labeled(compact(u\ray('title subtext pay denySet delSet toMe hid')) + $form);
 }
 
-function formPayInvoice_submit($form, &$sta) {
-  extract(u\just('hid payerFor', $sta['input']));
-  extract(u\just('amount payeeFor a1 a2', unserialize($hid)));
-  
-  list ($index, $subs) = be\transfer('payment', $a1, $a2, $amount, TRUE, $purpose);
-  return r\go('', tt($index, $subs), @$subs['success'] ? '' : 'zot');
+function formHandleInvoice_validate($form, &$sta) {
+  extract(u\just('whyNot toMe', $sta['input']));
+  if (@$toMe and op($sta) == 'deny' and !$whyNot) return say('say why not', 'whyNot');
+}
+
+function formHandleInvoice_submit($form, &$sta) {
+  extract(u\just('hid whyNot toMe', $sta['input']));
+  extract(u\just('ret nvid amount payer payee purpose created data', hidFields($hid)));
+
+  $subs = u\ray('amount payerName payeeName created purpose reason', u\fmtAmt($amount), r\acct($payer)->fullName, r\acct($payee)->fullName, u\fmtDate($created), $purpose, @$whyNot);
+
+  $op = op($sta);
+  $ok = TRUE;
+  if ($op == 'pay' and !$whyNot) {
+    $ok = be\payInvoice($nvid, $msg);
+  } elseif ($op == 'delete') {
+    db\q('DELETE FROM r_invoices WHERE nvid=:nvid', compact('nvid'));
+    r\notify($payer, 'invoice withdrawn', $subs);
+    $msg = 'invoice delete done';
+  } elseif ($op == 'deny' or $whyNot) {
+    $data = serialize(compact('whyNot') + (@$data ? unserialize($data) : array()));
+    db\q('UPDATE r_invoices SET status=:TX_DENIED, data=:data WHERE nvid=:nvid', compact('nvid', 'data'));
+    r\notify($payee, 'invoice denied', $subs);
+    $msg = 'denial done';
+  } else $msg = ''; // default: canceled
+
+//  if ($toMe and !r\acct()) return r\go('do/code=' . ($msg ?: 'nothing done', $ok ? 'status' : 'error');
+  return r\go($ret, $msg ?: 'nothing done', $ok ? '' : 'ERR');
 }
 
 /**
@@ -1287,11 +1318,13 @@ function formGet($form, &$sta) {
   $ray = (array) $mya->account(R_MONEY_FIELDS);
   $toSpend = u\fmtAmt(r\avail('buy', $ray));
   $waiting0 = $mya->waitingToBank();
+
   if (!db\exists('r_usd', 'payer=:myid AND payee=0 AND amount>0 AND created>:dayAgo', u\ray('myid dayAgo', $myid, strtotime('-1 day')))) { // limit to one withdrawal request per day
     $myAvail = r\avail('cash', $ray); // drawing from connected accounts not allowed here
     $avail = db\lookup('SUM(LEAST(usd, :DW_FEE_THRESHOLD))', 'users', 'community=:ctty and uid<>:myid', u\ray('ctty myid', $mya->community, $myid)); // remove this one-day limit if people complain (cost = 25 cents)
     $avail = min($myAvail, $mya->usd + $avail); // what i have or what USD is available, whichever is less
   } else $avail = 0;
+
   $toCash = u\fmtAmt(max(0, $avail));
   $waiting = u\fmtAmt(abs($waiting0));
   $way = $waiting0 < 0 ? 'from' : 'to';
@@ -1328,6 +1361,7 @@ function formGet_validate($form, &$sta) {
 }
   
 function formGet_submit($form, &$sta) {
+  //$mya = r\acct();
   $us = new r\usd($mya = r\acct());
   extract(u\just('amount', $sta['input']));
 
@@ -1339,11 +1373,12 @@ function formGet_submit($form, &$sta) {
     }
   } else list ($action, $amount) = array('draw from', -$amount);
   
+//  $mya->bank(-$amount);
   if ($us->bank($amount, $error) or isDEV) { // ignore lack of verified bank connection, if testing
     $amount = u\fmtAmt(abs(@$amount));
     say('banked', $subs = compact(u\ray('action amount')));
     r\tellStaff('banked', $subs);
-  } else return say('cannot bank', compact('action', 'error'), 'amount');
+  } else return say('cannot bank', compact('action', 'error'), 'amount'); // delete this when we ditch Dwolla
 }
 
 /**
@@ -1487,7 +1522,7 @@ EOF
       'companyPhon' => textField(t('<small>Company</small> Ph<span>&nbsp;</span>one:'), t('What is the company\'s phone number?')), // Google Chrome bug require obfuscation of "phone"
       'companyOptions' => boxesField('copts', '', '', @$copts, $companyOptions), 
     );
-    $companyInfo = formField('fieldset', '', '', array('id' => 'companyInfo')) + $companyInfo;
+    $companyInfo = fieldSet('companyInfo', $companyInfo);
   } else { // company
     $acctType = acctTypeField();
   }
@@ -1593,8 +1628,9 @@ function formSignup_submit($form, &$sta) {
   
   invitation($code, $myid); // mark the invitation used
   
-  if (@$company) {
-    if (suCompanyRelation($company, $myid, $signupCo)); else $mya->update(compact('signupCo'));
+  if (@$signupCo) {
+    suCompanyRelation($myid, $signupCo);
+    $mya->update(compact('signupCo'));
   }
   if (@$by and @$args and !r\acct($by)->cAdmin) suCreatorRelation($args, $myid);
   
@@ -1907,8 +1943,7 @@ function formBank($form, &$sta, $args = '') {
   $title = item(t('Bank Information'));
   
   if (@$bankAccount) {
-    if ($usa) $bankAccount = substr(@$bankAccount, 4 + 9); // everything after the routing number
-//      $routingNumber = substr(@$bankAccount, 4, 9); // chop of USkk
+    if ($usa) list ($route, $bankAccount) = u\parseBankAccount(@$bankAccount);
     $bankAccount = str_repeat('x', strlen($bankAccount) - 4) . substr($bankAccount, -4, 4);
 
     $us = new r\usd($mya);
@@ -1943,6 +1978,7 @@ function formBank_validate($form, &$sta) {
     if (!preg_match('/^(|[0-9]{9})$/', $routingNumber)) say('bad routing number', 'routingNumber');
     if (!preg_match('/^[0-9]{3,17}$/', $bankAccount)) say('bad account number', 'bankAccount'); // {3,20} ? Dwolla says 3-17
     if (!isset($bankAccountType)) say('missing field', u\ray('field', 'Account Type'), 'bankAccountType');
+    if (!db\exists('r_banks', 'route=:routingNumber', compact('routingNumber'))) return say('bad routing number', 'routingNumber');
   } elseif ($op == 'verify') {
     extract(u\just('deposit1 deposit2', $sta['input']));
     for ($i = 1; $i <= 2; $i++) {
@@ -2092,7 +2128,7 @@ Please upload a copy of your EIN documentation or Non-Profit Status documentatio
   
   $pw = item(t('<@a>Change your password</a>', u\ray('@a', 'a href=/account/change-password')), ' ');
   $pin = item(t('<@a>Change your PIN</a>', u\ray('@a', 'a href=/account/change-pin')), ' ');
-  $photo = item(t('<@a>Change your photo</a>', u\ray('@a', 'a href=/account/photo')), $mya->member ? tt('triggers new card', u\ray('field', 'photo')) : ' ');
+  $photo = item(t('<@a>Change your photo</a>', u\ray('@a', 'a href=/account/photo')), ' ', $mya->member ? tt('triggers new card', u\ray('field', 'photo')) : ' ');
   $question = $person ? textField(t('Question:'), t('Type a question that no one but you could guess the answer to.'), required($mya->question)) : NULL;
   $answer = $person ? textField(t('Answer:'), t('The answer to that question'), required(@$answer)) : NULL;
 /* KEEP   'idProof = $has ? 
@@ -2830,7 +2866,7 @@ function formOptions_submit($form, $sta) {
 function formReports($form, &$sta) {
   if ($mya = r\acct()) {
     $admin = $mya->admin;
-    $cadmin2 = $mya->can(B_CADMIN2);
+// (use Admin tab instead)    $cadmin2 = $mya->can(B_CADMIN2);
     $myCtty = $mya->community ?: 0;
   } else $myCtty = 0;
 
@@ -2985,10 +3021,11 @@ function formFooter() {
     <a href="$base_url/donate">Donate</a> |
     <a href="$base_url/invite">Invite Someone</a> |
 EOF
-  : (basename($_SERVER['REQUEST_URI']) == 'user' ? '' : <<<EOF
+  : '';
+/*  : (basename($_SERVER['REQUEST_URI']) == 'user' ? '' : <<<EOF
     <a href="$base_url/user">Sign in</a> |
 EOF
-  );
+  ); */
 
   $helpType = $mya ? '' : 'other';
   
@@ -3011,7 +3048,7 @@ EOF;
   $js = in_array(basename($_SERVER['REQUEST_URI']), u\ray('handy 1099-B')) ? '' : <<<EOF
 var aut=false;
 jQuery('.form-autocomplete').keydown(function(e) {aut=(e.which == 13);});
-jQuery('a, :submit').not('#help-link a, #help-close a, a[target="_blank"]').click(function() {
+jQuery('a, :submit').not('.nospin, #help-link a, #help-close a, a[target="_blank"]').click(function() {
   if (aut) aut=false; else jQuery('#saywait').show();
 });
 EOF;

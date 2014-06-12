@@ -47,26 +47,26 @@ class rwebScanCard extends DrupalWebTestCase {
     switch ($variant) {
     default: // fall through to case(0)
     case(0):
-    Given('members: "DATA'
+    Given('members: "ASSOC'
     . '\\| id   | fullName   | flags      | cc  | cc2  | address | city | phone        |'
     . '\\| .ZZA | Abe One    | ok,bona    | ccA | ccA2 | 1 A St. | Aton | +12000000001 |'
     . '\\| .ZZB | Bea Two    | ok,bona    | ccB | ccB2 | 2 B St. | Bton | +12000000002 |'
     . '\\| .ZZC | Corner Pub | ok,co,bona |     |      | 3 C St. | Cton | +12000000003 |"');
-    And__('relations: "DATA'
+    And__('relations: "ASSOC'
     . '\\| id   | main | agent | permission |'
     . '\\| :ZZB | .ZZC | .ZZB  | read       |"');
-    And__('transactions: "DATA'
+    And__('transactions: "ASSOC'
     . '\\| xid | created   | type   | amount | from | to   | purpose | taking |'
     . '\\|   1 | %today-6m | signup |    250 | ctty | .ZZA | signup  | 0      |'
     . '\\|   2 | %today-6m | signup |    250 | ctty | .ZZB | signup  | 0      |'
     . '\\|   3 | %today-6m | signup |    250 | ctty | .ZZC | signup  | 0      |"');
-    And__('balances: "DATA'
+    And__('balances: "ASSOC'
     . '\\| id   | usd  |'
     . '\\| ctty | 1000 |'
     . '\\| .ZZA |  100 |'
     . '\\| .ZZB |  200 |'
     . '\\| .ZZC |  300 |"');
-    Then_('balances: "DATA'
+    Then_('balances: "ASSOC'
     . '\\| id   | r    |'
     . '\\| ctty | -750 |'
     . '\\| .ZZA |  250 |'
@@ -89,7 +89,7 @@ class rwebScanCard extends DrupalWebTestCase {
   public function testSomeoneScansACompanyAgentCard_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member "?" visits page "I/ZZB-ccB2"');
-    Then_('we show "Corner Pub" with: "DATA'
+    Then_('we show "Corner Pub" with: "ARRAY'
     . '\\|_Address  |_phone        |'
     . '\\| Cton     | 200 000 0003 |"');
   }
@@ -105,7 +105,7 @@ class rwebScanCard extends DrupalWebTestCase {
   public function testSomeoneScansAnOldCompanyAgentCard_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member "?" visits page "I/NEW-ZZB-ccB2"');
-    Then_('we show "Corner Pub" with: "DATA'
+    Then_('we show "Corner Pub" with: "ARRAY'
     . '\\|_Address  |_phone        |'
     . '\\| Cton     | 200 000 0003 |"');
   }

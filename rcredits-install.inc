@@ -88,6 +88,7 @@ function tableDefs($schema = array()) {
     'cttyBuys' => setupField('amount of community purchases ever', 'numeric 11,2', 0),
     'signups' => setupField('amount of signup bonuses ever', 'numeric 11,2', 0),
     'inflations' => setupField('amount of inflation adjustments ever', 'numeric 11,2', 0),
+    'helpers' => setupField('amount of helper rewards ever', 'numeric 11,2', 0),
     'refunds' => setupField('amount of Dwolla fee reimbursements ever', 'numeric 11,2', 0),
     'rebates' => setupField('amount of rebate rewards ever', 'numeric 11,2', 0),
     'bonuss' => setupField('amount of transaction bonus rewards ever', 'numeric 11,2', 0),
@@ -212,7 +213,7 @@ function tableDefs($schema = array()) {
   // table r_invoices
   $fields = array(
     'nvid' => setupField('the unique invoice ID', 'serial big'), 
-    'status' => setupField('transaction record ID or status (pending or refused)', 'int 11', TX_PENDING), // positive values are record IDs in r_txs (for paid invoices), non-positive values are status
+    'status' => setupField('transaction record ID or status (pending or denied)', 'int 11', TX_PENDING), // positive values are record IDs in r_txs (for paid invoices), non-positive values are status
     'amount' => setupField('amount to charge', 'numeric 11,2'), 
     'payer' => setupField('user id of the payer', 'int big'), 
     'payee' => setupField('user id of the payee', 'int big'), 
@@ -252,7 +253,41 @@ function tableDefs($schema = array()) {
   $foreignKeys = array();
   $indexes = array();
   $schema['r_usderror'] = setupTable('USD error messages from USD gateway', $fields, 'id', $foreignKeys, $indexes);
-  
+
+  // table r_ach
+  $fields = array(
+    'txid' => setupField('record id', 'serial 11'),
+    'amount' => setupField('amount in rCredits', 'numeric 11,2'), 
+    'uid' => setupField('record ID of the account', 'int big'), 
+    'created' => setupField('Unixtime request was created', 'int 11', 0),
+    'completed' => setupField('Unixtime request was completed', 'int 11', 0), // <=0 means number of attempts made (set to -9 to give up early)
+    'tid' => setupField("account's transaction ID", 'int 11'),
+  );
+  $foreignKeys = foreignKey('uid');
+  $indexes = index('created') + index('completed') + index('uid');
+  $schema['r_ach'] = setupTable('Record of ACH requests', $fields, 'txid', $foreignKeys, $indexes);
+
+  // table r_banks
+  $fields = array(
+    'route' => setupField('routing number', 'int 9'),
+    'branch' => setupField('is this a branch office', 'int tiny'),
+    'fedRoute' => setupField('routing number of servicing Fed', 'int 9'),
+    'type' => setupField('bank type', 'int tiny'), // 0=fed bank 1=use routing 2=use newRouting
+    'modified' => setupField('date modified', 'char 6'),
+    'newRoute' => setupField('new routing number', 'int 9'),
+    'name' => setupField('bank name', 'varchar 36'),
+    'address' => setupField('bank address', 'varchar 36'),
+    'city' => setupField('bank city', 'varchar 20'),
+    'state' => setupField('bank state', 'char 2'),
+    'zip' => setupField('bank zipcode', 'char 9'),
+    'phone' => setupField('bank phone', 'char 10'),
+    'status' => setupField('status', 'char 1'), // 1
+    'view' => setupField('status', 'char 1'), // 1
+  );
+  $foreignKeys = [];
+  $indexes = index('newroute');
+  $schema['r_banks'] = setupTable('Bank routing numbers', $fields, 'route', $foreignKeys, $indexes);
+            
   // table r_gifts
   $fields = array(
     'donid' => setupField('gift record id', 'serial 11'),

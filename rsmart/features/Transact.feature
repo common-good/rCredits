@@ -9,7 +9,7 @@ SO my company can sell stuff and give refunds.
 
 Setup:
   Given members:
-  | id   | fullName   | email | city  | state | cc  | cc2  | rebate | flags      | 
+  | id   | fullName   | email | city  | state | cc  | cc2  | rebate | flags      | *
   | .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 |     10 | ok,bona    |
   | .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 |     10 | ok,bona    |
   | .ZZC | Corner Pub | c@    | Ctown | CA    | ccC |      |      5 | ok,co,bona |
@@ -17,28 +17,28 @@ Setup:
   | .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 |     10 | ok,bona,secret_bal |
   | .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      |      5 | ok,co,bona |
   And devices:
-  | id   | code |
+  | id   | code |*
   | .ZZC | devC |
   And selling:
-  | id   | selling         |
+  | id   | selling         |*
   | .ZZC | this,that,other |
   And company flags:
-  | id   | flags            |
+  | id   | flags            |*
   | .ZZC | refund,sell cash |
   And relations:
-  | id   | main | agent | permission |
+  | id   | main | agent | permission |*
   | :ZZA | .ZZC | .ZZA  | buy        |
   | :ZZB | .ZZC | .ZZB  | scan       |
   | :ZZD | .ZZC | .ZZD  | read       |
   | :ZZE | .ZZF | .ZZE  | sell       |
   And transactions: 
-  | xid | created   | type   | amount | from | to   | purpose |
+  | xid | created   | type   | amount | from | to   | purpose |*
   | 1   | %today-6m | signup |    250 | ctty | .ZZA | signup  |
   | 2   | %today-6m | signup |    250 | ctty | .ZZB | signup  |
   | 3   | %today-6m | signup |    250 | ctty | .ZZC | signup  |
   | 4   | %today-6m | grant  |    250 | ctty | .ZZF | stuff   |
   Then balances:
-  | id   | balance |
+  | id   | balance |*
   | ctty |   -1000 |
   | .ZZA |     250 |
   | .ZZB |     250 |
@@ -53,19 +53,19 @@ Scenario: A cashier asks to charge someone
   When agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": "food"
   # cash exchange would be for "cash": "cash out"
   Then we respond ok with tx 5 and message "report transaction" with subs:
-  | did     | otherName | amount | rewardType | rewardAmount |
+  | did     | otherName | amount | rewardType | rewardAmount |*
   | charged | Bea Two   | $100   | reward     | $10          |
   And with balance
-  | name    | balance | spendable | cashable | did     | amount | forCash |
+  | name    | balance | spendable | cashable | did     | amount | forCash |*
   | Bea Two | $160    |           | $0       | charged | $100   |         |
   And with undo
-  | created | amount | tofrom | otherName |
+  | created | amount | tofrom | otherName |*
   | %dmy    | $100   | from   | Bea Two   |
   And we notice "new charge|reward other" to member ".ZZB" with subs:
-  | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |
+  | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
   | %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $10               |
   And balances:
-  | id   | balance |
+  | id   | balance |*
   | ctty |    -770 |
   | .ZZA |     250 |
   | .ZZB |     160 |
@@ -74,19 +74,19 @@ Scenario: A cashier asks to charge someone
 Scenario: A cashier asks to refund someone
   When agent ":ZZA" asks device "devC" to charge ".ZZB" $-100 for "goods": "food"
   Then we respond ok with tx 5 and message "report transaction" with subs:
-  | did      | otherName | amount | rewardType | rewardAmount |
+  | did      | otherName | amount | rewardType | rewardAmount |*
   | refunded | Bea Two   | $100   | reward     | $-10         |
   And with balance
-  | name    | balance | spendable | cashable | did      | amount | forCash |
+  | name    | balance | spendable | cashable | did      | amount | forCash |*
   | Bea Two | $340    |           | $100     | refunded | $100   |         |
   And with undo
-  | created | amount | tofrom | otherName |
+  | created | amount | tofrom | otherName |*
   | %dmy    | $100   | to     | Bea Two   |
   And we notice "new refund|reward other" to member ".ZZB" with subs:
-  | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |
+  | created | fullName | otherName  | amount | payerPurpose | otherRewardType | otherRewardAmount |*
   | %today  | Bea Two  | Corner Pub | $100   | food         | reward          | $-10              |
   And balances:
-  | id   | balance |
+  | id   | balance |*
   | ctty |    -730 |
   | .ZZA |     250 |
   | .ZZB |     340 |
@@ -95,13 +95,13 @@ Scenario: A cashier asks to refund someone
 Scenario: A cashier asks to charge another member, with insufficient balance
   When agent ":ZZA" asks device "devC" to charge ".ZZB" $300 for "goods": "food"
   Then we return error "short from" with subs:
-  | otherName |
+  | otherName |*
   | Bea Two   |  
 
 Scenario: A cashier asks to refund another member, with insufficient balance
   When agent ":ZZA" asks device "devC" to charge ".ZZB" $-300 for "goods": "food"
   Then we return error "short to" with subs:
-  | short |
+  | short |*
   | $50   |
 
 Scenario: A cashier asks to pay self
@@ -135,24 +135,24 @@ Scenario: Device gives no purpose for goods and services
 Scenario: Seller agent lacks permission to buy
   When agent ":ZZB" asks device "devC" to charge ".ZZB" $-100 for "goods": "refund"
   Then we return error "no perm" with subs:
-  | what    |
+  | what    |*
   | refunds |
 
 Scenario: Seller agent lacks permission to scan and sell
   When agent ":ZZD" asks device "devC" to charge ".ZZA" $100 for "goods": "food"
   Then we return error "no perm" with subs:
-  | what  |
+  | what  |*
   | sales |
   
 Scenario: Buyer agent lacks permission to buy
   When agent ":ZZA" asks device "devC" to charge ":ZZE" $100 for "goods": "food"
   Then we return error "other no perm" with subs:
-  | otherName | what      |
+  | otherName | what      |*
   | Eve Five  | purchases |
 
 Scenario: Seller tries to charge the customer twice
   Given agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": "food"
   When agent ":ZZA" asks device "devC" to charge ".ZZB" $100 for "goods": "food"
   Then we return error "duplicate transaction" with subs:
-  | op      |
+  | op      |*
   | charged |

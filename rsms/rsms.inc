@@ -44,6 +44,9 @@ $GLOBALS[TX_SMS . ' messages'] = array(
 //  'report short payment' => t("SPLIT! You paid @otherName @amount (@short remains to be paid). Transaction #@tid"),
 //  'report short invoice' => t("SPLIT! You charged @otherName @amount (@short has been invoiced). Transaction #@tid, Invoice #@t2id"),
 //  'report short invoice' => t("SPLIT! You charged @otherName @amount (@short remains to be paid). Transaction #@tid"),
+  'denial done' => t('The invoice has been marked "denied".'),
+  'invoice delete done' => t('The invoice has been deleted.'),
+
    'report exchange' => t("You @did @otherName @amount for cash/loan/gift/etc."),
   'report exchange request' => t("You requested @amount from @otherName. Your balance is unchanged, pending approval."), //  Invoice #@tid
   'report funding' => t("You successfully @did @amount to @otherName."),
@@ -78,7 +81,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'account funded' => t('Funds have arrived in your rCredits account! You may now use your rCard for purchases.'),
   'transfer complete' => t('Your requested@auto transfer of @amount (into your rCredits account) has completed.'),
   'triggers new card' => t('<b>NOTE:</b> If you change your @field, a new rCard will be mailed to you and your account will be charged $@R_CARD_COST. '),
-  'call bank' => t('Remember to call your bank @when and ask them for the two tiny deposit amounts to your account (both under 20 cents). Then sign in to your account and follow the links to enter those amounts, so we can send you your rCard!'),
+  'call bank' => t('Remember to check your bank account online or call your bank @when and ask them for the two tiny deposit amounts to your account (both under 20 cents). Then sign in to your account and follow the links to enter those amounts, so we can send you your rCard!'),
   'do step one' => t('Remember to sign back in to rCredits, to complete your account setup (you have several steps left to go).'),
   'take another step' => t('Your rCredits account setup is not yet complete!'),
   'sign in' => t('Go to rCredits.org and click "Sign in" in the upper right corner.'),
@@ -87,17 +90,22 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'new charge' => t('<b>Charge:</b> @otherName charged you @amount for "@payerPurpose".'),
   'new refund' => t('<b>Refund:</b> @otherName refunded you @amount for "@payerPurpose".'),
   'new payment' => t('<b>Payment:</b> @otherName paid you @amount for "@payeePurpose".'),
-  'new invoice' => t('<b>Invoice:</b> @otherName invoiced you @amount for "@purpose". To pay (or deny) this invoice, go to rCredits.org, click "Members\' Site" and sign in.'),
+  'new invoice' => t('<b>Invoice:</b> @otherName invoiced you @amount for "@purpose". <@a>Click here to pay or deny this invoice</a>. Or sign in at rCredits.org and click "History", then "Invoices TO You".'),
 //  'new invoice' => t('<b>Invoice:</b> @otherName invoiced you @amount for "@purpose". To pay (or deny) this invoice, <@a>click here</a>.'),
-  'invoice denied' => t('<p><b>Invoice DENIED:</b> Your customer @otherName has declined to pay the following invoice:</p>
-  <blockquote>@created @amount for "@payerPurpose"</blockquote>
-  <p>You may want to contact the customer directly, to resolve any dispute.</p>'),
+
+  'invoice denied' => t('<p><b>Invoice DENIED:</b> Your customer @payerName has declined to pay the following invoice:</p>
+  <blockquote>@created @amount for "@purpose"</blockquote>
+  <p>Reason given: "@reason". You may want to contact the customer directly, to resolve any dispute.</p>'),
+  
+  'invoice withdrawn' => t('<p><b>Invoice WITHDRAWN:</b> @payeeName has withdrawn the following invoice:</p>
+  <blockquote>@created @amount for "@purpose"</blockquote>'),
+  
   'charge disputed' => t('<p><b>Charge DISPUTED:</b> Your customer @otherName disputes the following charge:</p>
   <blockquote>@created @amount for "@payeePurpose"</blockquote>
   <p>You may want to contact the customer directly, to resolve this dispute.</p>'),
   'invoice canceled' => t('<p><b>Invoice CANCELED:</b> Your invoice from @otherName has been canceled:</p>
   <blockquote>@created @amount for "@payerPurpose"</blockquote>
-  <p>This invoice will no longer appear in your list of transactions.'),
+  <p>This invoice will no longer appear in your list of invoices to you.'),
   'offer refused' => t('@otherName has declined to accept your @created offer of @amount for "@payerPurpose".'),
   'offer canceled' => t('NYI'),
   'over max' => t('Your balance is over the maximum you set.'),
@@ -148,6 +156,7 @@ $GLOBALS[TX_SMS . ' messages'] = array(
 //  'no company relations' => t("Only individuals can be related to this account."),
 // not used  'no self-undo' => t("You can't undo transactions with yourself."),
   'no matching invoice' => t('There is no such invoice to be paid. Type "helpme pay".'),
+  'already paid' => t('You already paid that invoice.'),
   'undo no match' => t("You have no matching transactions to undo."),
   'undo moving target' => t("Can't undo: the last matching transaction has changed."),
   'duplicate email' => t('There is already an account with that email address. Visit rCredits.org to add this cell number to your account.'),

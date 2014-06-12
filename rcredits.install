@@ -8,6 +8,7 @@ use rCredits as r;
 use rCredits\DB as db;
 use rCredits\Util as u;
 use rCredits\Backend as be;
+use rCredits\Admin as a;
 
 include_once __DIR__ . '/rcredits-install.inc'; // treat this as an extension of this file
 
@@ -22,7 +23,7 @@ function rcredits_install() {
   $oldVersion = substr(variable_get('site_slogan'), 8);
   r\oldVersion($oldVersion, 'before');
   r\make_fields();
-  r\setupBasicAccounts();
+  a\setupBasicAccounts();
 
   variable_set('date_default_timezone', 'America/New_York');
   variable_set('site_frontpage', 'summary');

@@ -5,7 +5,7 @@ SO we can do most transactions in rCredits and thereby avoid US Dollar transfers
 
 Setup:
   Given members:
-  | id   | fullName   | email | flags      | floor |
+  | id   | fullName   | email | flags      | floor |*
   | .ZZA | Abe One    | a@    | ok,dw,bona |     0 |
   | .ZZB | Bea Two    | b@    | ok,dw,bona |   -20 |
   | .ZZC | Corner Pub | c@    | ok,dw,co   |     0 |
@@ -16,7 +16,7 @@ Setup:
   | .ZZH | Hal Eight  | h@    | ok,dw      |     0 |
   | .ZZI | Ida Nine   | i@    | ok,dw      |     0 |
   And transactions: 
-  | xid | created   | type   | amount | from | to   | purpose |
+  | xid | created   | type   | amount | from | to   | purpose |*
   |   1 | %today-6m | signup |     11 | ctty | .ZZA | signup  |
   |   2 | %today-6m | signup |      2 | ctty | .ZZB | signup  |
   |   3 | %today-6m | signup |      5 | ctty | .ZZC | signup  |
@@ -25,7 +25,7 @@ Setup:
   |   6 | %today-6m | signup |     55 | ctty | .ZZH | signup  |
   |   7 | %today-6m | signup |     65 | ctty | .ZZI | signup  |
   And balances:
-  | id   | r    | usd |
+  | id   | r    | usd |*
   | ctty | -218 |   0 |
   | .AAA |    0 |   0 |
   | .AAB |    0 |   0 |
@@ -42,7 +42,7 @@ Setup:
 Scenario: Leveling happens
   When cron runs "homogenize"
   Then balances:
-  | id   | r    | usd |
+  | id   | r    | usd |*
   | ctty | -218 |   0 |
   | .AAA |    0 |   0 |
   | .AAB |    0 |   0 |
@@ -58,7 +58,7 @@ Scenario: Leveling happens
 
   When cron runs "homogenize"
   Then balances:
-  | id   | r   | usd |
+  | id   | r   | usd |*
   | ctty | -218 |   0 |
   | .AAA |    0 |   0 |
   | .AAB |    0 |   0 |
@@ -74,7 +74,7 @@ Scenario: Leveling happens
 
   When cron runs "homogenize"
   Then balances:
-  | id   | r   | usd |
+  | id   | r   | usd |*
   | ctty | -218 |   0 |
   | .AAA |    0 |   0 |
   | .AAB |    0 |   0 |

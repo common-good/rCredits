@@ -26,7 +26,7 @@ $GLOBALS[TX_WEB . ' messages'] = array(
   'report new relation' => t('@who is now related to this account. You will need to adjust the permissions or other settings.'),
   'report new cell' => t('Mobile number @number is now connected to this account.'),
   'report delete cell' => t('Mobile number @number has been removed from this account.'),
-  'your account is ready' => t('<p></p><p>Welcome to rCredits! We sent you an email with your user ID and password (if you don\'t see it within 60 seconds, check your spam folder). Come back here <b style="color:red;">within the next @R_SIGNIN_HOURS hours</b> to sign in and finish your account setup.</p>'),
+  'your account is ready' => t('<p></p><p>So far so good! We sent you an email with your user ID and a link to the next step. If you don\'t see it within 60 seconds, check your spam folder.</p>'),
   'company is ready' => t(<<<EOF
     <p></p><p>To finish setting up this company account:</p>
     <ol>
@@ -94,6 +94,7 @@ EOF
   'missing field0' => t('@field field is required.'), // Drupal's standard
   'missing field' => t('Missing a required field: @field'),
   'no txs' => t('There are no transactions in that period.'),
+  'no invoices' => t('There are no such invoices in that period.'),
   'no relations' => t('There are not yet any relations for this account.'),
   'no devices' => t('Surprisingly, this account has no related devices.'),
   'required field' => t('@field must not be blank.'),
@@ -205,6 +206,7 @@ EOF
   'bad payroll employee' => t('@employee is not listed as an employee on your Relations page. Click the Settings gear, then click "Relations".'),
   'illegal amount change' => t('You cannot @action the original amount (@amount). <@a>Send an invoice</a> instead.'),
   'bad achmin' => t('The minimum transfer amount must be at least $@R_ACHMIN.'),
+  'say why not' => t('You must say why you are denying the invoice.'),
 );
 $GLOBALS[TX_WEB . ' messages']['flooded'] = $GLOBALS[TX_WEB . ' messages']['bad login'];
 
@@ -224,12 +226,15 @@ function yesNo($yesURL, $noURL = '', $yesNext = 'empty', $noNext = 'empty') {
 EOF;
 }
 
-function button($value, $href = '', $title = '', $type = '') {
+/**
+ * Return HTML for a button.
+ */
+function button($value, $href = '', $title = '', $class = '', $id = '') {
   $title = htmlspecialchars($title);
-  $button_type = 'local form-submit' . ($type ? " $type" : ''); // Drupal prefixes this with 'form-'
-  $markup = array($value => formField('button', '', '', compact('value', 'button_type') + attrib(compact('title'))));
+  $button_type = trim('local form-submit ' . ($class ?: '')); // Drupal prefixes this with 'form-'
+  $markup = array($value => formField($id ? 'submit' : 'button', '', '', compact('value', 'button_type') + attrib(compact('id', 'title'))));
   $markup = render($markup);
-  $markup = str_replace('"submit"', '"button"', $markup); // compensate for Drupal pigheadedness
+  if (!$id) $markup = str_replace('"submit"', '"button"', $markup); // compensate for Drupal pigheadedness
   if ($href) { // href might be http or https or /...
     if (substr($href, 0, 4) == 'http' or substr($href, 0, 1) == '/') $href = "document.location.href='$href';";
     $name = 'name="op"';
@@ -248,7 +253,7 @@ function formField($type, $title = '', $description = '', $other = array(), $opt
   return $field;
 }
 
-function submit($title = '') {return formField('submit', '', '', $title ?: t('Save'));}
+function submit($title = '', $other = '') {return formField('submit', '', $other, $title ?: t('Save'));}
 function item($markup, $title = '', $desc = '', $other = array()) {return formField('item', $title, $desc, compact('markup') + $other);}
 function hidField($value = '', $options = array()) {return formField('hidden', '', '', compact('value') + $options);}
 function textField($title = '', $description = '', $other = array(), $options = NULL) {
@@ -257,6 +262,7 @@ function textField($title = '', $description = '', $other = array(), $options = 
 function boxField($title, $desc = '', $other = NULL) {
   return formField('checkbox', $title, '<div class="box"></div>' . $desc, $other);
 }
+function fieldSet($id, $flds, $prompt = '') {return formField('fieldset', $prompt, '', compact('id')) + $flds;}
 
 /**
  * Return a boolean (Yes / No) field.
@@ -328,7 +334,7 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
   try {
     $mya = r\acct();
 ///    global $zot; $zot = @$zot . ' ' . $function; if (strlen(@$zot) > 50) die($zot);
-    if (!$mya and !in_array($function, u\ray("$anonForms Signup Signin Pass Empty ChangePassword Help Agreement Reports Menu I ResetPassword Profile Accept Buy Summary"))) r\go('');
+    if (!$mya and !in_array($function, u\ray("$anonForms Signup Signin Pass Empty ChangePassword Help Agreement Reports Menu I ResetPassword Profile Accept Buy Summary HandleInvoice"))) r\go('');
     $args = 'arg1' . ($arg2 !== '' ? ' arg2' : '') . ($arg3 !== '' ? ' arg3' : '') . ($arg4 !== '' ? ' arg4' : '');
     $formName = substr($function, 0, 1) == '/' ? substr($function, 1) : "rCredits\\Web\\form$function";
     $specialForm = in_array($function, u\ray('Help Empty footer accounts Admin Login MemberList MemberInfo'));
@@ -346,9 +352,11 @@ function showForm($function, $arg1 = '', $arg2 = '', $arg3 = '', $arg4 = '') {
     
     if (!@$form['confirm']) $form += which(); // add the choices popup form, if any
     if (!$specialForm) {
+    /* User should not need explicit help with a page!
       $extras = array('#id' => 'help-link', '#weight' => @$form['title']['#weight']);
       $help_link = item(t('<a><div></div>Help with this page</a>')) + $extras; // add a help link at top of page
       $form = compact('help_link') + $form;
+      */
       js('inc/misc.js', 'file', 'footer');
       if (@$form['country']) {
         js('inc/countries.js', 'file', 'header');
@@ -484,7 +492,7 @@ function which($choices = '', $resultField = '', $info = '', $question = 'Which 
   $subtext = item($pop_question);
   $choice = formField('select', '', '', attrib(compact('onchange') + array('size' => 12)), $pop_choices);
   $close = popupCloser('which'); // this is needed in mobile layout
-  $popup = formField('fieldset', t('Which One?'), '', array('id' => 'which')) + compact(u\ray('subtext close choice'));
+  $popup = fieldSet('which', compact(u\ray('subtext close choice')), t('Which One?'));
   return compact('popup');
 }
 
@@ -510,11 +518,11 @@ function popupCloser($idHead) {
  * @todo: make it move right when "labeled"
  */
 function help($page, $class = '') {
-  require_once __DIR__ . '/rweb-help.inc';
+  include_once __DIR__ . '/rweb-help.inc';
 //  $subtext = item($question);
   $close = popupCloser('help');
   $text = formField('item', '', '', helpText($page));
-  $help = formField('fieldset', t('Help with this page'), '', array('id' => 'help')) + compact(u\ray('close subtext text'));
+  $help = fieldSet('help', compact(u\ray('close subtext text')), t('Help with this page'));
   return compact('help');
 }
 
@@ -592,7 +600,7 @@ EOF;
 }
 
 /**
- * Go to the button's destination if the permission requirement is met.
+ * Return a form element consisting of a button to redirect to a relative or absolute URL.
  * @param string $label: button label
  * @param string $goto: where to go when the button is pressed
  * @param string $title: what to say when hovering over the button
@@ -719,10 +727,10 @@ function acctType($acctType) {
 
 /**
  * Create relation for company relationship specified in registration form (if any)  
- * @return TRUE if their is a formal relationship
+ * @return TRUE if there is a formal relationship
  */
-function suCompanyRelation($company, $other, $data) {
-  extract(u\just('companyPhone isOwner employeeOk contractor', $data));
+function suCompanyRelation($other, $data) {
+  extract(u\just('company companyPhone isOwner employeeOk contractor', $data));
   $isOwner = (int) @$isOwner; // POSTed as "isOwner" when TRUE
   $employeeOk = (int) (@$employeeOk or @$contractor);
   if ($main = findCompany($company, @$companyPhone)) { // company account exists
@@ -1299,15 +1307,20 @@ function communityTransfer($type, $acct, $amount, $purpose, $confirmed) {
 
 /**
  * Output the No-signin result message and terminate.
+ * @param string $msg: the message or message index
  */
 function doSay($msg, $type = 'error') {
+  if (isDEV) file_put_contents(t\dosayFilename($type), $msg); // in case called from a test
+  return r\go('empty/1', $msg, $type == 'error');
+  /*
   $template = file_get_contents(DRUPAL_ROOT . R_PATH . '/templates/do.html');
   $map = u\ray('TITLE BASE_URL VERSION MSGTYPE MESSAGE SUBTEXT',
     t('No-signin Action ') . ($type == 'error' ? t('ERROR') : t('Success!')),
-    BASE_URL, R_VERSION, $type, $msg,
-    t('To protect your account, no sign-in was required for this action. To sign in safely, go to rCredits.org and click Members\' Site.')
+    BASE_URL, R_VERSION, $type, tt($msg),
+    t('To protect your account, no sign-in was required for this action. To sign in safely, always go to rCredits.org.')
   );
   exit(strtr($template, $map));
+  */
 }
 
 /**
@@ -1416,7 +1429,7 @@ function showCharts($whichChart) {
   list ($txRewards, $total) = array($rebates + $bonuss + $refunds + $fines, ($r + $usd) ?: .001);
   $velocity = number_format(100 * $perMo / $total, 1) . t('% per mo.');
 
-  foreach (u\ray('bankInPerMo bankOutPerMo r usd total signups inflations txRewards grants loans fines') as $one) {
+  foreach (u\ray('bankInPerMo bankOutPerMo r usd total signups inflations helpers txRewards grants loans fines') as $one) {
     ${$one . '0'} = $$one;
     $$one = u\fmtAmt($$one);
   }
@@ -1426,6 +1439,7 @@ function showCharts($whichChart) {
     "['inflation offset',{v:$inflations0,f:'$inflations'}]",
     "['signup bonuses',{v:$signups0,f:'$signups'}]",
     "['purchase rewards',{v:$txRewards0,f:'$txRewards'}]",
+    "['inviter/helper',{v:$helpers0,f:'$helpers'}]",
     "['grants',{v:$grants0,f:'$grants'}]",
     "['loans',{v:$loans0,f:'$loans'}]",
   );
@@ -1544,6 +1558,11 @@ function userMenuItem($router_path, $link_title) {
 }
 
 /**
+ * Consolidate or extract hidden fields.
+ */
+function hidfields($ray) {return is_array($ray) ? hidField(serialize($ray)) : unserialize($ray);}
+
+/**
  * Send an invitation to the email and optionally report it.
  */
 function sendInvite($email, $subject, $message, $dupsOk = TRUE) {
@@ -1634,6 +1653,6 @@ function prefix($prefix) {return compact('prefix');}
 function autocomplete($type = '') {return array('autocomplete_path' => "autocomplete/$type/" . @r\acct()->id);}
 function required($dft = NULL) {return array('required' => TRUE) + (isset($dft) ? dft($dft) : array());}
 // UNUSED function check($array, $type = 'plain') {return array_map("check_$type", $array);} // Check an array for plain or markup.
-function op($sta) {global $testOp; return t\est() ? $testOp : @$sta['clicked_button']['#parents'][0];}
+function op($sta) {global $testOp; return t\est() ? $testOp : (svar('button') ?: @$sta['clicked_button']['#parents'][0]);}
 function verifyBy($byVoice) {return $byVoice ? t('Voice') : t('SMS');}
 function blurbLink() {global $rUrl; return "<a href=\"$rUrl/templates/invite.html\" target=\"_blank\">description of rCredits</a>";}

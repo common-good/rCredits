@@ -5,19 +5,19 @@ SO I can buy the things I want, locally and elsewhere
 
 Setup:
   Given members:
-  | id   | fullName   | number | flags           |
+  | id   | fullName   | number | flags           |*
   | .ZZA | Abe One    | +20001 | ok,bona  |
   | .ZZB | Bea Two    | +20002 | ok,bona  |
   | .ZZC | Corner Pub | +20003 | co,ok,bona |
   # later and elsewhere: name, email, country, minimum, community
   And transactions: 
-  | type     | amount | from | to   | purpose |
+  | type     | amount | from | to   | purpose |*
   | signup   | 250    | ctty | .ZZA | signup  |
   | signup   | 250    | ctty | .ZZB | signup  |
   | signup   | 250    | ctty | .ZZC | signup  |
   | transfer | 100    | .ZZB | .ZZA | goodies |
   Then balances:
-  | id   | r    |
+  | id   | r    |*
   | ctty | -765 |
   | .ZZA |  360 |
   | .ZZB |  155 |
@@ -26,13 +26,13 @@ Setup:
 Scenario: The caller confirms a trade of rCredits for cash
   When phone +20001 confirms "100 to .ZZC for cash"
   Then balances:
-  | id   | r    |
+  | id   | r    |*
   | ctty | -765 |
   | .ZZA |  260 |
   | .ZZB |  155 |
   | .ZZC |  350 |
   And we say to phone +20001 "report exchange" with subs:
-  | did    | otherName  | amount | balance | tid |
+  | did    | otherName  | amount | balance | tid |*
   | paid   | Corner Pub | $100   | $260    | 3   |
   # "You gave Corner Pub $100 cash/loan/etc. Your new balance is $150. Transaction #2"
 
@@ -60,7 +60,7 @@ Scenario: The caller confirms a unilateral trade of cash for rCredits
   Then phone +20003 has r$350
   And phone +20001 has r$150
   And we say to phone +20003 "report exchange" with subs:
-  | did     | otherName | amount | balance | tid |
+  | did     | otherName | amount | balance | tid |*
   | charged | Abe One    | $100   | $350    | 2   |
   # "You charged Abe One $100 cash/loan/etc. Your new balance is $350. Transaction #2"
 Resume
@@ -68,7 +68,7 @@ Resume
 Scenario: The caller requests an implicit trade with insufficient balance
   When phone +20001 says "150 to .ZZC"
   Then we say to phone +20001 "short cash to" with subs:
-  | short |
+  | short |*
   | $50   |
   # "You are $50 short for that exchange."
   

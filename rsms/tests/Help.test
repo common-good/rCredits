@@ -111,7 +111,7 @@ class rsmsHelp extends DrupalWebTestCase {
     Given('phone %number1 is a member');
     And__('".ZZZ" is not an account id');
     When_('phone %number1 says "100 to .ZZZ"');
-    Then_('we say to phone %number1 "unknown member" with subs: "DATA'
+    Then_('we say to phone %number1 "unknown member" with subs: "ASSOC'
     . '\\| who  |'
     . '\\| .ZZZ |"');
   }

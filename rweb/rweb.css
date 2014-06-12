@@ -134,6 +134,9 @@ ul.tabs.primary {padding:0; margin-left:4em; margin-top:.8em; font-size:85%;}
 
 /* Empty */
 #rcreditswebformempty #edit-title {display:none;}
+#rcreditswebformempty #edit-subtext {margin:10px 0 0 0; font-size:80%; color:darkgray;}
+.page-empty div.status  {margin:20px; padding:10px; background-image:none;} 
+.page-empty div.error {margin:20px;} 
 
 /* Help */
 #help-link {width:100%;}
@@ -278,6 +281,7 @@ form.rweb  .form-no {color:red;}
 /*#rcreditswebformdraft #edit-cancel {margin-left:8em;} */
 
 /* Summary */
+#rcreditswebformsummary .form-item {margin-bottom:5px;}
 #rcreditswebformsummary #edit-floor .description,
 #rcreditswebformsummary #edit-committed .description,
 #rcreditswebformsummary #edit-rewards .description {display:inline-block; margin-left:.25em;}
@@ -286,7 +290,7 @@ form.rweb  .form-no {color:red;}
 
 #rcreditswebformsummary  .form-checkboxes {margin-left:8em;}
 #rcreditswebformsummary  .form-type-checkbox {max-width:110px;}
-#rcreditswebformsummary #edit-adminable {margin-left:0;}
+#rcreditswebformsummary #edit-adminable {margin-top:-24px;}
 #rcreditswebformsummary  label[for="edit-adminable"] {display:inline-block;}
 #rcreditswebformsummary #edit-returnmo,
 #rcreditswebformsummary #edit-cttybenemo {margin-bottom:0;}
@@ -449,13 +453,43 @@ form.rweb  .form-no {color:red;}
 /*#invitelist td:first-child +td {width:200px;} /* who */
 /*#invitelist td:first-child +td+td {width:100px;} /* account */
 
+/* Invoices */
+#rcreditswebforminvoices #edit-title,
+#rcreditswebforminvoices #edit-subtext {margin-left:0;}
+#rcreditswebforminvoices .virtual {color:LightSteelBlue; font-weight:normal;}
+
+#rcreditswebforminvoices .form-type-checkboxes {margin-bottom:0;}
+#rcreditswebforminvoices .form-type-checkbox {width:110px;}
+#rcreditswebforminvoices .form-item-period {display:inline-block;}
+#rcreditswebforminvoices .form-item-ending {display:inline-block;}
+#rcreditswebforminvoices .form-item-starting {margin-bottom:0;}
+#rcreditswebforminvoices input {max-width:110px;}
+#rcreditswebforminvoices .form-submit:not([value="Update"]) {margin-left:10px; max-width:120px;}
+#rcreditswebforminvoices .form-item-tx-period {display:inline-block;}
+#rcreditswebforminvoices .txs-buttons div {display:inline-block; text-align:center; vertical-align:middle;}
+#rcreditswebforminvoices .txs-buttons div:first-child {font-weight:bold;}
+#rcreditswebforminvoices .txs-buttons div:first-child +div input {color:green;}
+#rcreditswebforminvoices .txs-buttons div:first-child +div+div input {color:red;}
+#rcreditswebforminvoices #advanced {display:none;}
+#rcreditswebforminvoices #edit-showadvanced,
+#rcreditswebforminvoices #edit-showsimple {display:inline-block;}
+
+/* Handle Invoice */
+#rcreditswebformhandleinvoice #edit-title {margin-left:0;}
+#rcreditswebformhandleinvoice #edit-subtext {display:inline-block; margin:0;}
+#rcreditswebformhandleinvoice #denySet,
+#rcreditswebformhandleinvoice #delSet {border:0; padding:0; margin:0;}
+#rcreditswebformhandleinvoice .form-item-whyNot {display:inline-block;}
+#rcreditswebformhandleinvoice .form-item-whyNot label {width:auto;}
+#rcreditswebformhandleinvoice .form-submit {margin-left:10px; max-width:120px;}
+#rcreditswebformhandleinvoice .fieldset-wrapper {padding:0;}
+
 /* Transactions History */
 #rcreditswebformtxs #edit-title,
 #rcreditswebformtxs #edit-subtext {margin-left:0;}
 #rcreditswebformtxs .virtual {color:LightSteelBlue; font-weight:normal;}
 #rcreditswebformtxs #edit-reports {text-align:right;}
 
-/* #rcreditswebformtxs #edit-opts {max-width:248px;} /* force display in pairs */
 #rcreditswebformtxs .form-type-checkboxes {margin-bottom:0;}
 #rcreditswebformtxs .form-type-checkbox {width:110px;}
 #rcreditswebformtxs .form-type-radios {border:0;}
@@ -465,18 +499,9 @@ form.rweb  .form-no {color:red;}
 #rcreditswebformtxs .form-item-starting {margin-bottom:0;}
 #rcreditswebformtxs input {max-width:110px;}
 #rcreditswebformtxs .form-submit:not([value="Update"]) {margin-left:10px; max-width:120px;}
-/*#rcreditswebformtxs  input[value="Update"] {margin-left:125px;}*/
-/*#rcreditswebformtxs {display:inline-block; width:100%; text-align:left;}
-#rcreditswebformtxs .form-item-tx-period {margin-top:2em; display:inline-block;}*/
-#rcreditswebformtxs .form-item-x-task {display:inline-block;}
-/*#rcreditswebformtxs .form-type-select label {display:inline-block; width:15em;} */
-/*#rcreditswebformtxs  input[type="submit"] {margin:2em 0 0 1em;}*/
+#rcreditswebformtxs .form-item-tx-period {margin-top:2em; display:inline-block;}
 #rcreditswebformtxs .txs-buttons div {display:inline-block; width:2em; text-align:center; vertical-align:middle;}
 #rcreditswebformtxs .txs-buttons div:first-child +div input {color:red; font-weight:bold;}
-/* #rcreditswebformtxs .form-radios {margin-left:0px; display:inline-block;}
-#rcreditswebformtxs .form-type-radios label {display:inline-block;}
-#rcreditswebformtxs .form-type-radio {display:block;} /* less good for browser, better for mobile
-#rcreditswebformtxs .form-type-radio label {width:12em; height:17px;} */
 #rcreditswebformtxs .form-item-opts-4,
 #rcreditswebformtxs .form-item-opts-5 {display:none;}
 
@@ -802,8 +827,9 @@ and (max-device-width : 480px) { */
   #menu input, #settings input  {width:90%; font-size:1.2em; padding-top:.4em; padding-bottom:.4em;}
   #menu input#edit-help {margin-bottom:8em;}
   
-  #messages {position:absolute; left:0; top:72px; padding:0;}
-  #messages .messages {margin:4px; padding:8px 8px 8px 40px;} 
+/*  #messages {position:absolute; left:0; top:72px; padding:0;} */
+  #messages {padding:0;}
+  #messages .messages {margin:4px; padding:8px 8px 8px 8px;} 
   
   #user-login input#edit-name,
   #user-login input#edit-pass {width:17em;}

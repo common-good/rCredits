@@ -43,12 +43,12 @@ class rwebMembership extends DrupalWebTestCase {
     switch ($variant) {
     default: // fall through to case(0)
     case(0):
-    Given('members: "DATA'
+    Given('members: "ASSOC'
     . '\\| id  | fullName | phone | email | city  | state | postalCode | floor | flags   | pass |'
     . '\\| .ZZA | Abe One |     1 | a@    | Atown | AK    | 01000      |     0 | dw      | %whatever |'
     . '\\| .ZZB | Bea Two |     2 | b@    | Btown | UT    | 02000      |  -200 | member  | |'
     . '\\| .ZZC | Our Pub |     3 | c@    | Ctown | CA    | 03000      |     0 | co,dw   | |"');
-    And__('relations: "DATA'
+    And__('relations: "ASSOC'
     . '\\| id   | main | agent | permission |'
     . '\\| .ZZA | .ZZC | .ZZA  | manage     |"');
     break;

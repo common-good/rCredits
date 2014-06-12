@@ -28,6 +28,7 @@ define('R_MIN_REBATE', .05); // members get this even for a purchase with no rcr
 define('R_MAX_AMOUNT', 100000); // transaction request size limit (some smaller limits also apply)
 define('R_SIGNUP_GIFT', 5); // UNUSED how much to give people to play with, even before they are fully set up
 define('R_SIGNUP_BONUS', 20); // how much people start with at this time
+define('R_HELPER_BONUS', 20); // how much you get for inviting and assisting someone with account opening
 define('R_FLOOR', 0); // how low can user's balance go, by default
 define('R_DAILY_HOUR', isDEV ? '00' : '01'); // what time (2-digit 24-hour clock hour) to start intensive daily maintenance tasks
 define('R_WEEKLY_DAY', 'Sunday'); // what day of the week to do weekly tasks

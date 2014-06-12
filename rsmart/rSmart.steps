@@ -370,7 +370,8 @@ function withBalance($subs) {
 function withUndo($subs) {
   global $testOnly; if (!$testOnly) return FALSE;
   global $rposResult;
-  if (!$got = @$rposResult['undo']) return !$subs; else $subs = $subs[0];
+
+  if ($got = @$rposResult['undo']) $subs = $subs[0]; else return !$subs;
   $subs['created'] = t\lastMinuteSubs($subs['created']);
   $undo = u\tt('confirm undo', $subs);
 /**/  t\output('Expecting ' . print_r(compact('undo'), 1), 'expect');

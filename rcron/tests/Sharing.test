@@ -43,12 +43,12 @@ class rcronSharing extends DrupalWebTestCase {
     switch ($variant) {
     default: // fall through to case(0)
     case(0):
-    Given('members: "DATA'
+    Given('members: "ASSOC'
     . '\\| id   | fullName   | floor | acctType    | flags      | share |'
     . '\\| .ZZA | Abe One    | -100  | personal    | ok,bona    |    50 |'
     . '\\| .ZZB | Bea Two    | -200  | personal    | ok,co,bona |    10 |'
     . '\\| .ZZC | Corner Pub | -300  | corporation | ok,co,bona |     0 |"');
-    When_('transactions: "DATA'
+    When_('transactions: "ASSOC'
     . '\\| xid | created | type     | amount | from | to   | purpose |'
     . '\\|   1 | %today  | transfer |     40 | .ZZA | .ZZB | what G  |'
     . '\\|   2 | %today  | rebate   |      2 | ctty | .ZZA | rebate on #1 |'
@@ -63,29 +63,29 @@ class rcronSharing extends DrupalWebTestCase {
   public function testInflationAdjustmentsAreDistributed_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('cron runs "lessOften"');
-    Then_('gifts: "DATA'
+    Then_('gifts: "ASSOC'
     . '\\| id   | giftDate | amount | often | honor  | share |'
     . '\\| .ZZA | %today   |      1 |     1 | share  |    -1 |'
     . '\\| .ZZB | %today   |   0.40 |     1 | share  |    -1 |"');
-    And__('we notice "share gift" to member ".ZZA" with subs: "DATA'
+    And__('we notice "share gift" to member ".ZZA" with subs: "ASSOC'
     . '\\| share |'
     . '\\| 50    |"');
-    And__('we notice "share gift" to member ".ZZB" with subs: "DATA'
+    And__('we notice "share gift" to member ".ZZB" with subs: "ASSOC'
     . '\\| share |'
     . '\\| 10    |"');
-    And__('balances: "DATA'
+    And__('balances: "ASSOC'
     . '\\| id   | committed |'
     . '\\| .ZZA |         0 |'
     . '\\| .ZZB |         0 |"');
     When_('cron runs "gifts"');
-    Then_('transactions: "DATA'
+    Then_('transactions: "ASSOC'
     . '\\| xid | created| type     | amount | from | to   | purpose |'
     . '\\|   4 | %today | transfer |      1 | .ZZA | cgf | sharing rewards with CGF |'
     . '\\|   7 | %today | transfer |   0.40 | .ZZB | cgf | sharing rewards with CGF |"');
-    And__('we notice "gift sent" to member ".ZZA" with subs: "DATA'
+    And__('we notice "gift sent" to member ".ZZA" with subs: "ASSOC'
     . '\\| amount | rewardAmount |'
     . '\\| $1     | $0.05        |"');
-    And__('we notice "gift sent" to member ".ZZB" with subs: "DATA'
+    And__('we notice "gift sent" to member ".ZZB" with subs: "ASSOC'
     . '\\| amount | rewardAmount |'
     . '\\| $0.40  | $0.02        |"');
   }

@@ -46,19 +46,19 @@ class rwebGet extends DrupalWebTestCase {
     switch ($variant) {
     default: // fall through to case(0)
     case(0):
-    Given('members: "DATA'
+    Given('members: "ASSOC'
     . '\\| id   | fullName | floor | minimum | flags      |'
     . '\\| .ZZA | Abe One  |     0 |      10 | ok,dw,bank |'
     . '\\| .ZZB | Bea Two  |     0 |      10 | ok,dw,bank |'
     . '\\| .ZZC | Our Pub  |     0 |     100 | co,ok,dw   |'
     . '\\| .ZZD | Dee Four |     0 |     100 | ok,dw,bank |"');
-    And__('transactions: "DATA'
+    And__('transactions: "ASSOC'
     . '\\| xid | created    | type   | amount | from | to   | purpose |'
     . '\\| 1   | %today-10d | signup |     20 | ctty | .ZZA | signup  |'
     . '\\| 2   | %today-10d | grant  |    100 | ctty | .ZZB | grant   |'
     . '\\| 3   | %today-10d | signup |     10 | ctty | .ZZC | signup  |'
     . '\\| 4   | %today-10d | signup |     20 | ctty | .ZZD | signup  |"');
-    And__('usd transfers: "DATA'
+    And__('usd transfers: "ASSOC'
     . '\\| payer | payee | amount | tid | created   | completed |'
     . '\\|  .ZZA |     0 |    -99 |   1 | %today-7d | %today-5d |'
     . '\\|  .ZZA |     0 |   -100 |   2 | %today-5d |         0 |'
@@ -69,7 +69,7 @@ class rwebGet extends DrupalWebTestCase {
     . '\\|  .ZZC |     0 |    -30 |   1 | %today-2d | %today-2d |'
     . '\\|  .ZZD |     0 |   -140 |   1 | %today-2d | %today-2d |'
     . '\\|  .ZZC |  ctty |     10 |   2 | %today-2d | %today-2d |"');
-    Then_('balances: "DATA'
+    Then_('balances: "ASSOC'
     . '\\| id   | r    | usd | rewards |'
     . '\\| ctty | -160 |  10 |       0 |'
     . '\\| .ZZA |    6 | 100 |      20 |'
@@ -85,16 +85,16 @@ class rwebGet extends DrupalWebTestCase {
   // Scenario: a member moves credit to the bank
   public function testAMemberMovesCreditToTheBank_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ".ZZA" completes form "get" with values: "DATA'
+    When_('member ".ZZA" completes form "get" with values: "ASSOC'
     . '\\| op  | amount |'
     . '\\| put |     86 |"');
-    Then_('usd transfers: "DATA'
+    Then_('usd transfers: "ASSOC'
     . '\\| payer | payee | amount | tid | created   | completed |'
     . '\\|  .ZZA |     0 |     86 |   4 | %today    | %today    |"');
-    And__('we say "status": "banked" with subs: "DATA'
+    And__('we say "status": "banked" with subs: "ASSOC'
     . '\\| action     | amount |'
     . '\\| deposit to | $86    |"');
-    And__('balances: "DATA'
+    And__('balances: "ASSOC'
     . '\\| id   | usd | r |'
     . '\\| .ZZA |  14 | 6 |"');
   }
@@ -102,13 +102,13 @@ class rwebGet extends DrupalWebTestCase {
   // Scenario: a member draws credit from the bank
   public function testAMemberDrawsCreditFromTheBank_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ".ZZB" completes form "get" with values: "DATA'
+    When_('member ".ZZB" completes form "get" with values: "ASSOC'
     . '\\| op  | amount      |'
     . '\\| get | %R_ACHMIN |"');
-    Then_('usd transfers: "DATA'
+    Then_('usd transfers: "ASSOC'
     . '\\| payer | payee | amount       | tid | created | completed |'
     . '\\|  .ZZB |     0 | -%R_ACHMIN |   2 | %today  |         0 |"');
-    And__('we say "status": "banked" with subs: "DATA'
+    And__('we say "status": "banked" with subs: "ASSOC'
     . '\\| action     | amount       |'
     . '\\| draw from  | $%R_ACHMIN |"');
   }
@@ -116,8 +116,8 @@ class rwebGet extends DrupalWebTestCase {
   // Scenario: a member moves too little to the bank
   public function testAMemberMovesTooLittleToTheBank_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ".ZZA" completes form "get" with values: "DATA'
-    . '\\| op  | amount             |'
+    When_('member ".ZZA" completes form "get" with values: "ASSOC'
+    . '\\| op  | amount           |'
     . '\\| put | %(%R_ACHMIN-.01) |"');
     Then_('we say "error": "bank too little"');
   }
@@ -125,10 +125,10 @@ class rwebGet extends DrupalWebTestCase {
   // Scenario: a member tries to cash out rewards and/or pending withdrawals
   public function testAMemberTriesToCashOutRewardsAndorPendingWithdrawals_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ".ZZA" completes form "get" with values: "DATA'
+    When_('member ".ZZA" completes form "get" with values: "ASSOC'
     . '\\| op  | amount |'
     . '\\| put |     87 |"');
-    Then_('we say "error": "short put" with subs: "DATA'
+    Then_('we say "error": "short put" with subs: "ASSOC'
     . '\\| max |'
     . '\\| $86 |"');
   }
@@ -136,10 +136,10 @@ class rwebGet extends DrupalWebTestCase {
   // Scenario: a member moves inconveniently much to the bank
   public function testAMemberMovesInconvenientlyMuchToTheBank_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ".ZZB" completes form "get" with values: "DATA'
+    When_('member ".ZZB" completes form "get" with values: "ASSOC'
     . '\\| op  | amount |'
     . '\\| put |    200 |"');
-    Then_('we say "error": "short put" with subs: "DATA'
+    Then_('we say "error": "short put" with subs: "ASSOC'
     . '\\| max              |'
     . '\\| $%(3*%R_CHUNK+2) |"');
   }
@@ -147,7 +147,7 @@ class rwebGet extends DrupalWebTestCase {
   // Scenario: a member tries to go below their minimum
   public function testAMemberTriesToGoBelowTheirMinimum_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ".ZZD" completes form "get" with values: "DATA'
+    When_('member ".ZZD" completes form "get" with values: "ASSOC'
     . '\\| op  | amount |'
     . '\\| put |     61 |"');
     Then_('we say "error": "change min first"');
@@ -156,16 +156,16 @@ class rwebGet extends DrupalWebTestCase {
   // Scenario: a member asks to do two transfers out in one day
   public function testAMemberAsksToDoTwoTransfersOutInOneDay_0() {
     $this->setUp2(__FUNCTION__, 0);
-    Given('usd transfers: "DATA'
+    Given('usd transfers: "ASSOC'
     . '\\| payer | payee | amount | tid | created   |'
     . '\\|  .ZZD |     0 |      6 |   0 | %today    |"');
-    When_('member ".ZZD" completes form "get" with values: "DATA'
+    When_('member ".ZZD" completes form "get" with values: "ASSOC'
     . '\\| op  | amount |'
     . '\\| put |     10 |"');
-    Then_('we show "Bank Transfer" with: "DATA'
-    . '\\| Pending: |'
+    Then_('we show "Bank Transfer" with: "ARRAY'
+    . '\\|_Pending |'
     . '\\| You have total pending transfer requests of $6 to your bank account. |"');
-    And__('we say "error": "short put" with subs: "DATA'
+    And__('we say "error": "short put" with subs: "ASSOC'
     . '\\| max |'
     . '\\| $0  |"');
   }

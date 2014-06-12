@@ -33,16 +33,17 @@ define('CGF_EMAIL', isDEV ? 'wspademan+cgf@gmail.com' : 'info@CommonGoodFinance.
 define('CGF_PHONE', '+14136281723');
 define('CGF_ADDRESS', 'PO Box 21');
 define('CGF_CITY', 'Ashfield');
+define('CGF_EIN', '205280780');
 
 define('R', '<span class="r">r</span>');
 define('US', '<span class="us">us</span>');
 define('R_VERSION', '1.1'); // software version
 define('R_ROOT', DRUPAL_ROOT . '/sites/all/modules/rcredits');
 define('R_DATE_FIELDS', 'created completed sent invited giftDate signed login access yesterday'); // date field names for testing
-define('R_DATA_FIELDS', 'newAccount by calling wants legalName website description selling coFlags stats verifyBy oneTimePass signupCo stepsDone achMin pinThreshold lastTx'); // fields stored in the account's "data" array field (serialized)
+define('R_DATA_FIELDS', 'newAccount by calling wants legalName website description selling coFlags stats verifyBy oneTimePass signupCo stepsDone achMin pinThreshold lastTx helper'); // fields stored in the account's "data" array field (serialized)
 define('R_MONEY_FIELDS', 'usd r rewards floor committed'); // financial amount fields in account record
 define('R_SECURE_FIELDS', 'usdType usdPhone usdEmail usdPass usdPin auth bankAccount bankAccountType pin cardCode cardCode2'); // non-personal encrypted fields (must be complete list)
-define('R_SECRET_FIELDS', 'federalId dob idProof answer'); // personal identifying information
+define('R_SECRET_FIELDS', 'federalId dob idProof answer ssnData'); // personal identifying information
 define('R_SECRET_URL', isPRODUCTION ? 'http://rcredits.org' : (isDEV ? 'http://localhost/rcredits-promo' : 'http://' . STAGE)); // where to store secrets
 define('R_ADMIN_CAN_MANAGE_CTTYS', TRUE); // should be false once communities can manage themselves
 define('R_CRON_PERIOD', 5*60); // how many seconds between cron runs (must divide an hour evenly)
@@ -71,6 +72,7 @@ define('R_FOR_CASH', t('cash/loan/etc.')); // default purpose for non-goods
 define('R_CHUNK', 10); // chunk size for buying rCredits (sales amounts are a multiple of this)
 define('R_ACHMIN', 10); // minimum granularity of withdrawals from bank account
 define('R_ACHMIN_DEFAULT', 100); // suggested achMin
+define('R_ACH_TRIES', 3); // how many times to retry an ACH
 
 define('R_SUGGEST_BUMP', 1.25); // suggested minimum multiplier, so as not to unnecessarily sell rCredits
 define('R_VPAYMENT_MIN', 0.05); // minimum payment exchange (where bonus rounds to .01)
@@ -92,10 +94,10 @@ define('R_AGENT_URL_MARK', '-'); // use this as a substitute for R_AGENT_MARK in
 define('R_MARKS', '[\\' . R_MEMBER_MARK . '\\' . R_AGENT_MARK . '\\' . R_AGENT_URL_MARK . ']'); // any of those
 define('R_ANCIENT_EFT', 10); // how long, at most, an EFT might take (transferring funds to/from bank)
 define('R_REQUIRED', ' <span class="form-required" title="This field is required.">*</span>');
-define('R_CTTY_USD_SHARE', .5); // fraction of a community's total USD to hold in the community account
+define('R_CTTY_USD_SHARE', 1); // fraction of a community's total USD to hold in the community account
 define('R_CC_RATE', 2.5); // typical credit card percentage rate
 define('R_CODE_LEN', 20); // length of most random identifiers
-define('R_DUPTX_MINS', 2); // number of minutes before a duplicate transaction is allowed
+define('R_DUPTX_MINS', 10); // number of minutes before a duplicate transaction is allowed
 
 define('DW_SITE', isPRODUCTION ? 'https://www.dwolla.com' : 'https://uat.dwolla.com');
 //                               : 'http://new.rcredits.org/stage.php?stageWord=' . R_STAGE_WORD . '&request=');
@@ -117,10 +119,14 @@ define('R_USPS_WEB_TOOLS_ID', '921COMMO5331'); // USPS API credentials
 // Filenames
 define('R_TEMPLATE_DIR', '/templates');
 define('R_EMAIL_FRAME', 'email-frame');
-define('R_PICTURE_DIR', '/sites/default/files/pictures'); // precede this by DRUPAL_ROOT (file) or $base_url (url)
-define('R_PROOF_DIR', '/sites/default/files/proofs');
-define('R_DFT_PICTURE', R_PICTURE_DIR . '/no-photo-available.jpg'); // default profile picture
-define('R_DFT_PICTURE_WIDE', R_PICTURE_DIR . '/no-photo-available-wide.jpg'); // default profile picture
+
+define('R_PICTURE_DIR_OLD', '/sites/default/files/pictures');
+define('R_PROOF_DIR_OLD', '/sites/default/files/proofs');
+
+define('R_PICTURE_DIR', '/photos'); // precede this by DRUPAL_ROOT (file) or $base_url (url)
+define('R_PROOF_DIR', '/proofs');
+define('R_DFT_PICTURE', 'no-photo-available.jpg'); // default profile picture
+define('R_DFT_PICTURE_WIDE', 'no-photo-available-wide.jpg'); // default profile picture
 
 // account type bits
 define('R_PERSONAL', 0);
@@ -185,7 +191,7 @@ define('B_ADMIN', 30); // is a system administrator -- can manage server, includ
 define('B_CLOSED', 31); // account is closed (data[newAccount] has new qid)
 define('B_MAX', 31); // maximum bit number
 define('B_ADMINABLE', 'co member dw bona cadmin cadmin2 nonudge closed'); // for cAdmin to set
-define('B_LIST', 'member dw ok bona bank u5 co photoid charge nonudge u10 u11 payroll weekly monthly u15 sms paper secret u19 debt draws savings u23 u24 u25 u26 u27 u28 cadmin admin closed');
+define('B_LIST', 'member dw ok bona bank u5 co photoid charge nonudge u10 u11 payroll weekly monthly u15 sms paper secret u19 debt draws savings u23 u24 u25 u26 u27 cadmin2 cadmin admin closed');
 
 define('R_SHORTFALL', 'GREATEST(0, minimum-(r+usd))'); // sql for shortfall in account (to draw in)
 define('R_DEMAND', 'u.usd'); // definitely WANTS this many rCredits (was LEAST(u.usd, IFNULL(u.minimum,0)-u.r))
@@ -240,7 +246,7 @@ define('TX_TRANSFER', 0); // normal fund transfer (usually for actual goods and 
 define('TX_SIGNUP', 1); // signup incentive reward
 define('TX_u2', 2); // UNUSED pioneer reward (special early-stage rewards) -- might change later to TX_OTHER
 define('TX_INFLATION', 3); // reward to conpensate for inflation
-define('TX_u4', 4); //
+define('TX_HELPER', 4); // reward for inviting and assisting with account opening
 define('TX_REWARDS', 4); // above this, it's not "rewards"
 
 define('TX_GRANT', 5);
@@ -248,7 +254,7 @@ define('TX_LOAN', 6);
 define('TX_INVEST', 7); // equity investment (community purchase are TX_TRANSFER)
 define('TX_u8', 8);
 define('TX_FINE', 9);
-define('TX_TYPES', 'payment signup u2 inflation u4 grant loan investment u8 fine'); // this might need tweaks
+define('TX_TYPES', 'payment signup u2 inflation helper grant loan investment u8 fine'); // this might need tweaks
 
 define('TX_DEFAULT_PERIOD', 30); // number of days to show in transaction history, by default
 define('TX_MAX_ROWS', 100); // maximum number of transactions to show on one screen
@@ -332,6 +338,18 @@ function txReportArgs($acct, $tx, $getMyBalance = FALSE, $shortfall = 0) {
   $success = TRUE;
   foreach (u\ray('r payer payee') as $one) unset($tx[$one]); // else preempts all subs that start thus
   return compact(u\ray('created xid role payerPurpose payeePurpose toMe confirmAction amount tofrom balance otherUid myName otherName short success')) + $tx;
+}
+
+/**
+ * Return an error message if the given invoice is already paid or doesn't exist.
+ * @param int $nvid: record ID of invoice
+ * @param assoc $inv: (RETURNED) the invoice record
+ * @return the error message (FALSE if no error)
+ */
+function badUnpaidInv($nvid, &$inv = '') {
+  $fields = 'nvid,status,amount,payer,payee,purpose,data,created';
+  if (!$inv = db\lookup($fields, 'r_invoices', 'nvid=:nvid', compact('nvid'))) return 'no matching invoice';
+  if ($inv['status'] > 0) return 'already paid';
 }
 
 /**
@@ -718,17 +736,19 @@ function membershipEvent($a, $status, $do = TRUE) {
     if ($bit !== FALSE) $a->setBit($bit); // set the bit, if any
     if ($status == 'bona' and !$a->co) {
       be\fund($a->id, TX_SIGNUP, R_SIGNUP_BONUS, t('signup bonus'));
+      //if (@$a->helper) be\fund($a->helper, TX_HELPER, R_HELPER_BONUS, t('reward for inviting and assisting'));
       r\message($a->id, 'account funded');
+      $helper = t(' invited by: ') . r\acct($a->helper)->fullName . " ($a->mainQid)";
     }
     if ($status == 'ok') {
-      u\EXPECT($a->cAdmin, 'should be ctty admin'); // only ctty admin can approve an account
+      u\EXPECT(@r\acct()->cAdmin, 'should be ctty admin'); // only ctty admin can approve an account
       r\message($a->id, 'approved');
     }
     unset($DBTX);
     
     $fullName = $a->fullName;
     $quid = $a->mainQid;
-    tellStaff('event', compact(u\ray('fullName quid status')), $a->id);
+    tellStaff('event', compact(u\ray('fullName quid status helper')), $a->id);
 	  return TRUE;
   } else return FALSE;
 }
@@ -780,10 +800,9 @@ function acceptGift($info) {
  */
 function tellStaff($index, $subs = array(), $uid = TRUE) {
   if (empty($subs)) $subs = array(); // accept ''
-  unset($subs['secure']); unset($subs['pass']); // nobody should see these
+  foreach (u\ray('federalId dob answer secure pass') as $one) unset($subs[$one]); // secret stuff
   ksort($subs); // put the keys in a predictable order, for testing and easy reading
-  foreach (u\ray('federalId dob answer') as $one) unset($subs[$one]); // secret stuff
-  $message = strpos($raw = u\tt($index), '@') === FALSE ? ($raw . u\seeAssoc($subs)) : u\tt($index, $subs);
+  $message = u\tt($index, $subs) . u\seeAssoc($subs);
 
   $email = R_REGION_EMAIL; // default (tell sysAdmin)
   if ($uid) {
@@ -1240,6 +1259,7 @@ function changeUid($oldUid, $newUid = FALSE, $unusable = TRUE, $delete = FALSE) 
     $newUid = r\acct::nextId($region);
   }
   $subs = array( // all tables are listed, to be sure we don't leave any out
+    'r_ach:uid',
   // r_areas
     'r_boxes:uid',
   // r_countries
@@ -1317,10 +1337,10 @@ function checkBona($uid) {
  * @param string $email: email address to which the invite was sent
  * @param int $inviter: the inviter's account uid
  * @param string $code: proof of the invitation (that invitee must have, in order to sign up) (DEFAULT random)
- *
- * @param string $subject, $message: temporary params during MINI_LAUNCH
+ * @param string $subject, $message: temporary params (can be eliminated from the table at some point)
  *
  * @return string: the code
+ * @see also r\Web\invitation()
  */
 function invite($email, $inviter, $code = '', $subject = '', $message = '') {
   $code = $code ?: u\code();
@@ -1534,7 +1554,7 @@ EOF;
   // (@todo?)
     
   $sums = '';
-  foreach (u\ray('cttyBuy signup rebate bonus inflation refund grant loan invest fine') as $one) { // fine<=0
+  foreach (u\ray('cttyBuy signup rebate bonus inflation helper refund grant loan invest fine') as $one) { // fine<=0
     $type = $one == 'cttyBuy' ? TX_TRANSFER : u\consta('tx', $one);
 /*    if ($type == TX_TRANSFER) $type .= " AND $payerCrit AND amount<>0";
     $value = $type == TX_TRANSFER ? 
@@ -1543,7 +1563,7 @@ EOF;
 */
     $sums .= "SUM(IF(type=$type AND $payerCrit, amount, 0)) AS `{$one}s`, ";
   }
-  // get purchases, signups, rebates, bonuss, inflations, refunds, grants, loans, investments, fines, shared
+  // get purchases, signups, rebates, bonuss, inflations, helpers, refunds, grants, loans, investments, fines, shared
   $cttyInOut = $ctty == 0 ? '' : <<<EOF
     SUM(IF(u2.community=:ctty AND u.community<>:ctty, amount, 0)) AS cttyIn,
     SUM(IF(u.community=:ctty AND u2.community<>:ctty, amount, 0)) AS cttyOut,
@@ -1765,16 +1785,13 @@ function usdTransferDone($tx) {
 /**
  * Return the amount available for the given operation.
  * @param string $type: purpose of the draw (buy, cash, or exch -- see acct::shortfall())
- * @param assoc $ray: array of all relevant money fields (possibly including dwolla "fees")
- * @param bool $withUsd: whether to include usd amounts (if not, don't reserve "committed" amounts)
+ * @param assoc $ray: array of all relevant money fields
  */
-function avail($type, $ray, $withUsd = TRUE) {
+function avail($type, $ray) {
   extract($ray);
-  if ($type == 'exch' or !$withUsd) $usd = $committed = 0; // no exchanging USD credit for USD credit
+  if ($type == 'exch') $usd = $committed = 0; // no exchanging USD credit for USD credit
   if ($type != 'buy') $floor = max(0, $floor, $rewards); // no exchanging into debt
-//  u\setDft($fees, $usd > DW_FEE_THRESHOLD ? DW_FEE : 0);
-  u\setDft($fees, 0);
-  return $usd + $r - $committed - $floor - $fees;
+  return $usd + $r - $committed - $floor;
 }
 
 function passHash($pass) {
@@ -1856,3 +1873,4 @@ function makeDoCode($a) {return u\urlify(u\ezencrypt(serialize($a)));}
 function cgfId() {return \variable_get('cgf_uid');}
 function disputeTx($xid) {return db\setData('r_txs', $xid, u\ray('disputed', TRUE));}
 function denyInv($nvid) {return db\setData('r_invoices', $nvid, u\ray('denied', TRUE));}
+function stepsDone0() {return array_fill_keys(u\ray(R_STEPS), FALSE);}

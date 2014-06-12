@@ -498,7 +498,7 @@ function httpRequest($url, $content = FALSE, $responseFormat = 'raw', $extra_hea
     $response = stream_get_contents($fp);
   } else $response = FALSE;
 
-  if ($response === FALSE) throw new \Exception("$method $url failed: $php_errormsg");
+  if ($response === FALSE) throw new \Exception("$method $url failed: $php_errormsg"); // this happens, for example, when the hidden data server is unavailable. Probably death is the best solution.
   $result = $responseFormat == 'xml' ? simplexml_load_string($response)
     : ($responseFormat == 'json' ? json_decode(utf8_encode($response))
     : ($response) );
@@ -664,6 +664,27 @@ function seeAssoc($info) {
 }
 
 /**
+ * Look up the given SSN and return xml data.
+ */
+function ssnLookup($ssn) {
+  $xml = file_get_contents(dirname($_SERVER['DOCUMENT_ROOT']) . '/.ssncheck');
+  $xml = strtr($xml, u\ray('[ssnUser] [ssnPass] [ssn]', R_SSN_USER, R_SSN_PASS, $ssn));
+  return file_get_contents('ssnresult.txt'); // testing
+  return file_get_contents("https://www.nationalpublicdata.com/feeds/FDSFeed.cfm?xml=" . urlencode($xml));
+}
+
+/**
+ * Parse the bank ID number (BIN) into a US routing number and account number.
+ * @param string $bankAccount: the international bank account number
+ * @return array [$routing, $account]
+ */
+function parseBankAccount($bankAccount) {
+  $route = substr(@$bankAccount, 4, 9); // chop of USkk
+  $account = substr(@$bankAccount, 4 + 9); // everything after the routing number
+  return [$route, $account];
+}
+
+/**
  * Return the first unused id.
  * @param string $key: name of field to search
  * @param string $table: table name
@@ -810,6 +831,32 @@ function ezencrypt($data, $key = R_WORD, $encrypt = TRUE) {
 function ezdecrypt($data, $key = R_WORD) {return ezencrypt($data, $key, FALSE);}
 
 /**
+ * Initiate CSV download.
+ * @param string $filename: pathname of the file that will download itself upon exit()
+ * @return the CSV file object, ready for writing.
+ */
+function csvStart($filename) {
+  global $csvFile;
+  global $testCSVname; $testCSVname = $filename;
+  global $testCSV; $testCSV = array();
+  
+  header('Content-type: text/plain');
+  header("Content-Disposition: attachment; filename=\"$filename\";");
+  header('Content-Type: application/csv; charset=UTF-8'); // tell the browser it's going to be a csv file
+  return $csvFile = fopen('php://output', 'w');
+}
+
+/**
+ * Output to the csv file.
+ * @param array $a: the line to output
+ */
+function csv($a) {
+  global $csvFile, $testCSV;
+  fputcsv($csvFile, $a);
+  $testCSV[] = $a;
+}
+
+/**
  * Reword a Dwolla error message.
  * @param string $msg: the original message
  * @return string: the revised message
@@ -885,10 +932,28 @@ function parseName($name) {
   if ($i = strpos($name, ',')) {
     $suffix = substr($name, $i);
     $name = substr($name, 0, $i);
+  } elseif (preg_match('/( Jr?)$/', $name, $match)) { // handle common suffixes with no comma
+    $suffix = $match[1];
+    $name = preg_replace('/( Jr?)$/', '', $name);
   }
   $names = explode(' ', $name);
   $last = array_pop($names) . @$suffix;
   return array(join(' ', $names), $last);
+}
+
+/**
+ * Parse the mailing address into its constituent parts.
+ * @param string $address: the address to parse
+ * @return [address, city, state, zip] (one or more may be empty or "ERROR", if error)
+ */
+function parseAddr($address) {
+  $parts = explode(',', $address);
+  if (!$p = count($parts)) return array('ERROR', '', '', '');
+  list ($state, $zip) = explode(' ', strtoupper(@trim(array_pop($parts))) . ' ');
+  if (!preg_match('/^[A-Z][A-Z]$/', $state)) $state = 'ER';
+  $city = array_pop($parts);
+  $address = join(', ', $parts);
+  return array($address, $city, $state, $zip);
 }
 
 /**
@@ -988,6 +1053,24 @@ function formatNum($num, $format) {
   return preg_replace("|\\b$oldFormat\\b|", $newFormat, $num);
 }  
 
+/**
+ * Return a table display of an array.
+ * @param assoc $ray: the array
+ * @param bool $across: if TRUE (the default) show labels on top, otherwise on the left
+ * @return HTML for a table displaying the labeled values
+ */
+function rayTable($ray, $across = TRUE) {
+  $heads = $values = $lines = '';
+  if ($across) {
+    foreach ($ray as $k => $v) {
+      $heads .= "<th>$k</th>";
+      $values .= "<td>$v</td>";
+    }
+    $lines = "<tr>$heads</tr>\n<tr>$values</tr>";
+  } else foreach ($ray as $k => $v) $lines .= "<tr><th>$k</th><td>$v</td></tr>\n";
+  return "<table>\n$lines</table>\n";
+}
+    
 /**
  * Get State and City for a given postal code (using the USPS API)
  * @param string $zip: the US postal code to interpret

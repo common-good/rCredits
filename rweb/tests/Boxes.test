@@ -43,7 +43,7 @@ class rwebBoxes extends DrupalWebTestCase {
     switch ($variant) {
     default: // fall through to case(0)
     case(0):
-    Given('members: "DATA'
+    Given('members: "ASSOC'
     . '\\| id   | fullName   | flags |'
     . '\\| .ZZA | Abe One    | ok    |"');
     break;
@@ -56,7 +56,7 @@ class rwebBoxes extends DrupalWebTestCase {
   public function testAMemberVisitsTheDevicesPageWithNoDevicesYet_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" visits page "account/boxes"');
-    Then_('we show "Devices" with: "DATA'
+    Then_('we show "Devices" with: "ARRAY'
     . '\\|_# | Type | Device name | Last used |'
     . '\\| 1 | Web  | Browser #1  | %dmy      |"');
   }
@@ -64,13 +64,13 @@ class rwebBoxes extends DrupalWebTestCase {
   // Scenario: A member has all kinds of devices
   public function testAMemberHasAllKindsOfDevices_0() {
     $this->setUp2(__FUNCTION__, 0);
-    Given('devices: "DATA'
+    Given('devices: "ASSOC'
     . '\\| id   | channel | code         | boxnum | boxName   | access    |'
     . '\\| .ZZA | app     | A3           |      3 |           | %today-4w |'
     . '\\| .ZZA | sms     | +12002002000 |      2 |           | %today-2d |'
     . '\\| .ZZA | sms     | +14004004000 |      4 | whatEver  | %today-3w |"');
     When_('member ".ZZA" visits page "account/boxes"');
-    Then_('we show "Devices" with: "DATA'
+    Then_('we show "Devices" with: "ARRAY'
     . '\\|_# | Type | Device name     | Last used |'
     . '\\| 2 | SMS  | +1 200 200 2000 | %dmy-2d   |'
     . '\\| 3 | App  | POS Device #3   | %dmy-4w   |'

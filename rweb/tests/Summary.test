@@ -43,29 +43,29 @@ class rwebSummary extends DrupalWebTestCase {
     switch ($variant) {
     default: // fall through to case(0)
     case(0):
-    Given('members: "DATA'
+    Given('members: "ASSOC'
     . '\\| id   | fullName   | postalAddr                   | floor | flags         |'
     . '\\| .ZZA | Abe One    | 1 A St., Atown, AK 01000     | -100  | ok,dw,bona    |'
     . '\\| .ZZB | Bea Two    | 2 B St., Btown, UT 02000     | -200  | ok,dw,bona    |'
     . '\\| .ZZC | Corner Pub | 3 C St., Ctown, Cher, FRANCE | -300  | ok,dw,co,bona |"');
-    And__('members have: "DATA'
+    And__('members have: "ASSOC'
     . '\\| id   | created   | share |'
     . '\\| ctty | %today-9w |     0 |'
     . '\\| .ZZA | %today-7w |    10 |'
     . '\\| .ZZB | %today-6w |    20 |'
     . '\\| .ZZC | %today-6w |    30 |"');
-    And__('usd transfers: "DATA'
+    And__('usd transfers: "ASSOC'
     . '\\| payer | amount | completed |'
     . '\\| .ZZA  | -100   | %today-7w |'
     . '\\| .ZZB  | -200   | %today-6w |'
     . '\\| .ZZC  | -300   | %today-6w |"');
-    And__('relations: "DATA'
+    And__('relations: "ASSOC'
     . '\\| id   | main | agent | permission |'
     . '\\| :ZZA | .ZZA | .ZZB  | buy        |'
     . '\\| :ZZB | .ZZB | .ZZA  | read       |'
     . '\\| :ZZC | .ZZC | .ZZB  | buy        |'
     . '\\| :ZZD | .ZZC | .ZZA  | sell       |"');
-    And__('transactions: "DATA'
+    And__('transactions: "ASSOC'
     . '\\| xid   | created   | type     | amount | from | to   | purpose      |'
     . '\\| .AAAB | %today-7w | signup   |    250 | ctty | .ZZA | signup       |'
     . '\\| .AAAC | %today-6w | signup   |    250 | ctty | .ZZB | signup       |'
@@ -79,7 +79,7 @@ class rwebSummary extends DrupalWebTestCase {
     . '\\| .AAAK | %today-1d | transfer |     80 | .ZZA | .ZZC | whatever54   |'
     . '\\| .AAAL | %today-1d | rebate   |      4 | ctty | .ZZA | rebate on #5 |'
     . '\\| .AAAM | %today-1d | bonus    |      8 | ctty | .ZZC | bonus on #4  |"');
-    Then_('balances: "DATA'
+    Then_('balances: "ASSOC'
     . '\\| id   | balance | r    |'
     . '\\| ctty |    -768 | -768 |'
     . '\\| .ZZA |     266 |  166 |'
@@ -96,7 +96,7 @@ class rwebSummary extends DrupalWebTestCase {
   public function testAMemberClicksOnTheSummaryTab_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ".ZZA" visits page "summary"');
-    Then_('we show "Account Summary" with: "DATA'
+    Then_('we show "Account Summary" with: "ARRAY'
     . '\\| Name          | Abe One (abeone) |'
     . '\\| _Address      | 1 A St., Atown, AK 01000 |'
     . '\\| ID            | .ZZA (personal account) |'
@@ -114,10 +114,10 @@ class rwebSummary extends DrupalWebTestCase {
   public function testAnAgentClicksOnTheSummaryTabWithoutPermissionToManage_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ":ZZA" visits page "summary"');
-    Then_('we show "Account Summary" with: "DATA'
+    Then_('we show "Account Summary" with: "ARRAY'
     . '\\| Name | Abe One (abeone)   |'
     . '\\| ID   | NEW.ZZA (personal account) |"');
-    And__('without: "DATA'
+    And__('without: "ARRAY'
     . '\\| Balance | Rewards | Floor  |"');
   }
 
@@ -125,11 +125,11 @@ class rwebSummary extends DrupalWebTestCase {
   public function testACompanyAgentClicksOnTheSummaryTab_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('member ":ZZD" visits page "summary"');
-    Then_('we show "Account Summary" with: "DATA'
+    Then_('we show "Account Summary" with: "ARRAY'
     . '\\| Name         | Corner Pub (cornerpub) |'
     . '\\| _Address     | 3 C St., Ctown, Cher, FRANCE |'
     . '\\| ID           | .ZZC (company account) |"');
-    And__('without: "DATA'
+    And__('without: "ARRAY'
     . '\\| Balance      | $623 |"');
   }
 

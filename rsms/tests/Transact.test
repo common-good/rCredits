@@ -43,16 +43,16 @@ class rsmsTransact extends DrupalWebTestCase {
     switch ($variant) {
     default: // fall through to case(0)
     case(0):
-    Given('members: "DATA'
-    . '\\| id   | fullName   | number | flags           |'
+    Given('members: "ASSOC'
+    . '\\| id   | fullName   | number | flags      |'
     . '\\| .ZZA | Abe One    | +20001 | ok,bona  |'
     . '\\| .ZZB | Bea Two    | +20002 | ok,bona  |'
     . '\\| .ZZC | Corner Pub | +20003 | co,ok,bona |"');
-    And__('relations: "DATA'
+    And__('relations: "ASSOC'
     . '\\| id   | main | agent | permission |'
     . '\\| :ZZA | .ZZC | .ZZB  | buy        |'
     . '\\| :ZZB | .ZZC | .ZZA  | sell       |"');
-    And__('transactions: "DATA'
+    And__('transactions: "ASSOC'
     . '\\| created   | type   | amount | from | to   | purpose |'
     . '\\| %today-1d | signup | 250    | ctty | .ZZA | signup  |'
     . '\\| %today-1d | signup | 250    | ctty | .ZZB | signup  |'
@@ -67,7 +67,7 @@ class rsmsTransact extends DrupalWebTestCase {
   public function testTheCallerAsksToPayAMemberId_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('phone +20001 says "123.45 to .ZZB for pie"');
-    Then_('we say to phone +20001 "confirm payment|please confirm" with subs: "DATA'
+    Then_('we say to phone +20001 "confirm payment|please confirm" with subs: "ASSOC'
     . '\\| amount  | otherName |'
     . '\\| $123.45 | Bea Two    |"');
   }
@@ -76,7 +76,7 @@ class rsmsTransact extends DrupalWebTestCase {
   public function testTheCallerAsksToPayAPlayerByName_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('phone +20001 says "123.45 to cornerpub for groceries"');
-    Then_('we say to phone +20001 "confirm payment|please confirm" with subs: "DATA'
+    Then_('we say to phone +20001 "confirm payment|please confirm" with subs: "ASSOC'
     . '\\| amount  | otherName |'
     . '\\| $123.45 | Corner Pub |"');
   }
@@ -85,7 +85,7 @@ class rsmsTransact extends DrupalWebTestCase {
   public function testTheCallerAsksToChargeAMemberId_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('phone +20001 says "123.45 from .ZZC for labor"');
-    Then_('we say to phone +20001 "confirm charge|please confirm" with subs: "DATA'
+    Then_('we say to phone +20001 "confirm charge|please confirm" with subs: "ASSOC'
     . '\\| amount  | otherName |'
     . '\\| $123.45 | Corner Pub |"');
   }
@@ -96,7 +96,7 @@ class rsmsTransact extends DrupalWebTestCase {
     When_('phone +20001 confirms "100 to .ZZC for groceries"');
     Then_('the community has r$-765');
     And__('phone +20003 has r$360');
-    And__('we say to phone +20001 "report transaction" with subs: "DATA'
+    And__('we say to phone +20001 "report transaction" with subs: "ASSOC'
     . '\\| did    | otherName  | amount | rewardType | rewardAmount  | balance | tid |'
     . '\\| paid   | Corner Pub | $100   | reward     | $5            | $155    | 2   |"');
   }
@@ -107,12 +107,12 @@ class rsmsTransact extends DrupalWebTestCase {
     When_('phone +20001 confirms "100 from .ZZC for labor"');
     Then_('phone +20003 has r$250');
     And__('phone +20001 has r$250');
-    And__('we say to phone +20001 "report invoice" with subs: "DATA'
+    And__('we say to phone +20001 "report invoice" with subs: "ASSOC'
     . '\\| did     | otherName | amount | tid |'
     . '\\| charged | Corner Pub | $100   | 2   |"');
-    And__('we notice "new invoice" to member "c@" with subs: "DATA'
+    And__('we notice "new invoice" to member "c@" with subs: "ASSOC'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'
-    . '\\| %today  | Corner Pub | Abe One    | $100   | labor         |"');
+    . '\\| %today  | Corner Pub | Abe One    | $100   | labor       |"');
   }
 
   // Scenario: The caller confirms a unilateral charge
@@ -122,10 +122,10 @@ class rsmsTransact extends DrupalWebTestCase {
     When_('phone +20001 confirms "100 from .ZZC for labor"');
     Then_('the community has r$-765');
     And__('phone +20003 has r$155');
-    And__('we say to phone +20001 "report transaction" with subs: "DATA'
+    And__('we say to phone +20001 "report transaction" with subs: "ASSOC'
     . '\\| did     | otherName | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| charged | Corner Pub | $100   | bonus       | $10           | $360    | 2   |"');
-    And__('we notice "new charge" to member "c@" with subs: "DATA'
+    And__('we notice "new charge" to member "c@" with subs: "ASSOC'
     . '\\| created | fullName   | otherName | amount | payerPurpose |'
     . '\\| %today  | Corner Pub | Abe One    | $100   | labor         |"');
   }
@@ -136,7 +136,7 @@ class rsmsTransact extends DrupalWebTestCase {
     When_('phone +20001 confirms "300 to .ZZC for groceries"');
     Then_('the community has r$-787.50');
     And__('phone +20003 has r$525');
-    And__('we say to phone +20001 "report short payment" with subs: "DATA'
+    And__('we say to phone +20001 "report short payment" with subs: "ASSOC'
     . '\\| did    | otherName | amount | short | balance | tid |'
     . '\\| paid   | Corner Pub | $250   | $50   | $12.50  | 2   |"');
   }
@@ -144,11 +144,11 @@ class rsmsTransact extends DrupalWebTestCase {
   // Scenario: The caller asks to pay the latest invoice
   public function testTheCallerAsksToPayTheLatestInvoice_0() {
     $this->setUp2(__FUNCTION__, 0);
-    Given('invoices: "DATA'
+    Given('invoices: "ASSOC'
     . '\\| created   | state       | amount | from | to   | purpose| taking |'
     . '\\| %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  | 1      |"');
     When_('phone +20003 says "pay"');
-    Then_('we say to phone +20003 "confirm pay invoice|please confirm" with subs: "DATA'
+    Then_('we say to phone +20003 "confirm pay invoice|please confirm" with subs: "ASSOC'
     . '\\| amount | otherName | created   |'
     . '\\| $100   | Abe One    | %today-3d |"');
   }
@@ -156,13 +156,13 @@ class rsmsTransact extends DrupalWebTestCase {
   // Scenario: The caller confirms payment of the latest invoice
   public function testTheCallerConfirmsPaymentOfTheLatestInvoice_0() {
     $this->setUp2(__FUNCTION__, 0);
-    Given('invoices: "DATA'
+    Given('invoices: "ASSOC'
     . '\\| created   | state       | amount | from | to   | purpose| taking |'
     . '\\| %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  | 1      |"');
     When_('phone +20003 confirms "pay"');
     Then_('the community has r$-765');
     And__('phone +20001 has r$360');
-    And__('we say to phone +20003 "report transaction" with subs: "DATA'
+    And__('we say to phone +20003 "report transaction" with subs: "ASSOC'
     . '\\| did   | otherName | amount | rewardType | rewardAmount | balance | tid |'
     . '\\| paid  | Abe One    | $100   | rebate      | $5            | $155    | 3   |"');
   }
@@ -170,12 +170,12 @@ class rsmsTransact extends DrupalWebTestCase {
   // Scenario: The caller asks to pay the latest invoice from a particular member
   public function testTheCallerAsksToPayTheLatestInvoiceFromAParticularMember_0() {
     $this->setUp2(__FUNCTION__, 0);
-    Given('invoices: "DATA'
+    Given('invoices: "ASSOC'
     . '\\| created   | state       | amount | from | to   | purpose| taking |'
     . '\\| %today-3d | %TX_PENDING | 100    | .ZZC | .ZZA | labor  | 1      |'
     . '\\| %today-1d | %TX_PENDING | 100    | .ZZC | .ZZB | labor  | 1      |"');
     When_('phone +20003 says "pay .ZZA"');
-    Then_('we say to phone +20003 "confirm pay invoice|please confirm" with subs: "DATA'
+    Then_('we say to phone +20003 "confirm pay invoice|please confirm" with subs: "ASSOC'
     . '\\| amount | otherName | created   |'
     . '\\| $100   | Abe One    | %today-3d |"');
   }
@@ -184,7 +184,7 @@ class rsmsTransact extends DrupalWebTestCase {
   public function testTheCallerAsksToPayACompanyAgent_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('phone +20001 confirms "123.45 to :ZZA for pie"');
-    Then_('we say to phone +20001 "confirm payment|please confirm" with subs: "DATA'
+    Then_('we say to phone +20001 "confirm payment|please confirm" with subs: "ASSOC'
     . '\\| amount  | otherName |'
     . '\\| $123.45 | Corner Pub |"');
   }

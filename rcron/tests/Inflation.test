@@ -43,109 +43,109 @@ class rcronInflation extends DrupalWebTestCase {
     switch ($variant) {
     default: // fall through to case(0)
     case(0):
-    Given('members: "DATA'
+    Given('members: "ASSOC'
     . '\\| id   | fullName   | floor | acctType    | flags      |'
     . '\\| .ZZA | Abe One    | -100  | personal    | ok,bona    |'
     . '\\| .ZZB | Bea Two    | -200  | personal    | ok,co,bona |'
     . '\\| .ZZC | Corner Pub | -300  | corporation | ok,co,bona |"');
-    And__('transactions: "DATA'
+    And__('transactions: "ASSOC'
     . '\\| xid | created   | type     | amount | from | to   | purpose |'
     . '\\|   1 | %today-2m | signup   |    100 | ctty | .ZZA | signup  |'
     . '\\|   2 | %today-2m | signup   |    100 | ctty | .ZZB | signup  |'
     . '\\|   3 | %today-2m | signup   |    100 | ctty | .ZZC | signup  |"');
-    And__('usd transfers: "DATA'
+    And__('usd transfers: "ASSOC'
     . '\\| payer | payee | amount | completed |'
     . '\\| .ZZA  |     0 |   -400 | %today-2m |'
     . '\\| .ZZB  |     0 |   -100 | %today-2m |'
     . '\\| .ZZC  |     0 |   -300 | %today-2m |"');
-    Then_('balances: "DATA'
+    Then_('balances: "ASSOC'
     . '\\| id   | r   | usd |'
     . '\\| .ZZA | 100 | 400 |'
     . '\\| .ZZB | 100 | 100 |'
     . '\\| .ZZC | 100 | 300 |"');
-    When_('transactions: "DATA'
+    When_('transactions: "ASSOC'
     . '\\| xid | created   | type     | amount | from | to   | purpose |'
     . '\\|   4 | %today-9d | transfer |     10 | .ZZB | .ZZA | cash E  |"');
-    Then_('balances: "DATA'
+    Then_('balances: "ASSOC'
     . '\\| id   | r   | usd |'
     . '\\| .ZZA | 110 | 400 |'
     . '\\| .ZZB |  90 | 100 |'
     . '\\| .ZZC | 100 | 300 |"');
-    When_('transactions: "DATA'
+    When_('transactions: "ASSOC'
     . '\\| xid | created   | type     | amount | from | to   | purpose |'
     . '\\|   5 | %today-8d | transfer |    100 | .ZZC | .ZZA | usd F   |"');
-    And__('usd transfers: "DATA'
+    And__('usd transfers: "ASSOC'
     . '\\| payer | payee | amount | completed |'
     . '\\| .ZZC  | .ZZA  |     80 | %today-8d |"');
-    Then_('balances: "DATA'
+    Then_('balances: "ASSOC'
     . '\\| id   | r   | usd |'
     . '\\| .ZZA | 130 | 480 |'
     . '\\| .ZZB |  90 | 100 |'
     . '\\| .ZZC |  80 | 220 |"');
-    When_('transactions: "DATA'
+    When_('transactions: "ASSOC'
     . '\\| xid | created   | type     | amount | from | to   | purpose |'
     . '\\|   6 | %today-7d | transfer |    240 | .ZZA | .ZZB | what G  |'
     . '\\|   7 | %today-7d | rebate   |     12 | ctty | .ZZA | rebate on #4  |'
     . '\\|   8 | %today-7d | bonus    |     24 | ctty | .ZZB | bonus on #3  |"');
-    And__('usd transfers: "DATA'
+    And__('usd transfers: "ASSOC'
     . '\\| payer | payee | amount | completed |'
     . '\\| .ZZA  | .ZZB  |    200 | %today-7d |"');
-    Then_('balances: "DATA'
+    Then_('balances: "ASSOC'
     . '\\| id   | r   | usd |'
     . '\\| .ZZA | 102 | 280 |'
     . '\\| .ZZB | 154 | 300 |'
     . '\\| .ZZC |  80 | 220 |"');
-    When_('transactions: "DATA'
+    When_('transactions: "ASSOC'
     . '\\| xid | created   | type     | amount | from | to   | purpose |'
     . '\\|   9 | %today-6d | transfer |    100 | .ZZA | .ZZB | pie N   |'
     . '\\|  10 | %today-6d | rebate   |      5 | ctty | .ZZA | rebate on #5 |'
     . '\\|  11 | %today-6d | bonus    |     10 | ctty | .ZZB | bonus on #4  |"');
-    Then_('balances: "DATA'
+    Then_('balances: "ASSOC'
     . '\\| id   | r   | usd |'
     . '\\| .ZZA |   7 | 280 |'
     . '\\| .ZZB | 264 | 300 |'
     . '\\| .ZZC |  80 | 220 |"');
-    When_('transactions: "DATA'
+    When_('transactions: "ASSOC'
     . '\\| xid | created   | type     | amount | from | to   | purpose |'
     . '\\|  12 | %today-5d | transfer |    100 | .ZZC | .ZZA | labor M |'
     . '\\|  13 | %today-5d | rebate   |      5 | ctty | .ZZC | rebate on #3 |'
     . '\\|  14 | %today-5d | bonus    |     10 | ctty | .ZZA | bonus on #6  |"');
-    Then_('balances: "DATA'
+    Then_('balances: "ASSOC'
     . '\\| id   | r   | usd |'
     . '\\| .ZZA | 117 | 280 |'
     . '\\| .ZZB | 264 | 300 |'
     . '\\| .ZZC | -15 | 220 |"');
-    When_('transactions: "DATA'
+    When_('transactions: "ASSOC'
     . '\\| xid | created   | type     | amount | from | to   | purpose |'
     . '\\|  15 | %today-4d | transfer |     50 | .ZZB | .ZZC | cash P  |"');
-    And__('usd transfers: "DATA'
+    And__('usd transfers: "ASSOC'
     . '\\| payer | payee | amount | completed |'
     . '\\| .ZZB  | .ZZC  |     45 | %today-4d |"');
-    Then_('balances: "DATA'
+    Then_('balances: "ASSOC'
     . '\\| id   | r   | usd |'
     . '\\| .ZZA | 117 | 280 |'
     . '\\| .ZZB | 259 | 255 |'
     . '\\| .ZZC | -10 | 265 |"');
-    When_('transactions: "DATA'
+    When_('transactions: "ASSOC'
     . '\\| xid | created   | type     | amount | from | to   | purpose |'
     . '\\|  16 | %today-3d | transfer |    120 | .ZZA | .ZZC | this Q  |'
     . '\\|  17 | %today-3d | rebate   |      6 | ctty | .ZZA | rebate on #7 |'
     . '\\|  18 | %today-3d | bonus    |     12 | ctty | .ZZC | bonus on #5  |"');
-    And__('usd transfers: "DATA'
+    And__('usd transfers: "ASSOC'
     . '\\| payer | payee | amount | completed |'
     . '\\| .ZZA  | .ZZC  |     40 | %today-3d |"');
-    Then_('balances: "DATA'
+    Then_('balances: "ASSOC'
     . '\\| id   | r   | usd |'
     . '\\| .ZZA |  43 | 240 |'
     . '\\| .ZZB | 259 | 255 |'
     . '\\| .ZZC |  82 | 305 |"');
-    When_('transactions: "DATA'
+    When_('transactions: "ASSOC'
     . '\\| xid | created   | type     | amount | from | to   | purpose |'
     . '\\|  19 | %today-1d | transfer |    100 | .ZZA | .ZZB | cash V  |"');
-    And__('usd transfers: "DATA'
+    And__('usd transfers: "ASSOC'
     . '\\| payer | payee | amount | completed |'
     . '\\| .ZZA  | .ZZB  |    100 | %today-1d |"');
-    Then_('balances: "DATA'
+    Then_('balances: "ASSOC'
     . '\\| id   | r   | usd |'
     . '\\| .ZZA |  43 | 140 |'
     . '\\| .ZZB | 259 | 355 |'
@@ -160,7 +160,7 @@ class rcronInflation extends DrupalWebTestCase {
   public function testInflationAdjustmentsAreDistributed_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('cron runs "lessOften"');
-    Then_('transactions: "DATA'
+    Then_('transactions: "ASSOC'
     . '\\| xid| created| type      | amount                               | from | to   | purpose |'
     . '\\| 20 | %today | inflation | %(round(%R_INFLATION_RATE*38.42, 2)) | ctty | .ZZA | inflation adjustment |'
     . '\\| 21 | %today | inflation | %(round(%R_INFLATION_RATE*23.11, 2)) | ctty | .ZZB | inflation adjustment |'

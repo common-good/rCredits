@@ -14,8 +14,18 @@ use rCredits\Util as u;
  * Return a help message for the page.
  */
 function helpText($page) {
+  $page = strtolower($page);
+  $help = $page == 'charge' ? strtr(rawHelp('pay'), u\ray('pay', 'charge')) : rawHelp($page);
+  return u\SUBS(@$help) ?: tt('no help', compact('page'));
+}
+  
+/**
+ * Return the appropriate raw help text.
+ * @param string $i: identifier for the appropriate help text.
+ */
+function rawHelp($i) {
   global $rUrl, $base_url;
-
+  
   $site = str_replace('https://', '', R_SITE_URL);
   $mya = r\acct();
   $company = @$mya->co;
@@ -26,10 +36,7 @@ EOF
   );
   
   $back = '<p>' . u\backButton() . '</p>';
-
-  // the <a href="$base_url/help/smartphone">Android Smartphone Interface</a> and 
-  $helps = array(
-    'general' => tt(<<<EOF
+  if ($i == 'general') return tt(<<<EOF
     <p>Help is also available for the <a href="$base_url/help/sms">Text Messaging Interface</a>.
     Use the tabs above and the icons at the top right, to try all the features of the rCredits system. Here's an overview of what's where:</p>
     <h2>Tabs:</h2>
@@ -50,8 +57,9 @@ EOF
 
     <p>If you need help and can't find the answer here, please feel free to <a href="mailto:@R_REGION_EMAIL?subject=help with rCredits" target="_blank">email us</a>.</p>
 EOF
-    ),
-    'other' => t(<<<EOF
+  );
+
+  if ($i == 'other') return t(<<<EOF
     <h2>Need Help Signing In?</h2>
     <p>If your username and password aren't working, no worries. Just click "<a href="$base_url/account/password/$username">Forgot it</a>" here or on the sign-in page, to get an email for choosing a new password.</p>
     <h2>About rCredits&trade;</h2>
@@ -61,84 +69,96 @@ EOF
     <p>Participation in rCredits is by invitation. Ask a friend to invite you or <a href="http://rcredits.org/join-us/rcredits-signup">request an invitation here</a> and we will let you know when the Common Good Economy comes to your community.</p>
     <p>rCredits are a project of Common Good Finance&trade;, a 501(c)(3) Massachusetts-based nonprofit.</p>
 EOF
-    ),
-    'smartphone' => t(<<<EOF
+  );
+
+  if ($i == 'smartphone') return t(<<<EOF
     <p>To use the smartphone interface, you will need to install an app to read QR codes (for example QRDroid on Android phones or Qrafter for iPhones). You can pay participating businesses by scanning their QR code, then visiting the scanned URL.</p>
     <p>Your customers (or employer) can pay you by scanning the QR code on your member ID card. You can print an Advance ID card for your individual account, using the link on the Summary page.</p>
 EOF
-    ),
-    'sms' => t("The Text Message Interface is intended to be easy enough that you can just muddle your way through the first time. Give it a shot. You can even <i>sign up</i> with Text Messaging. Send your texts to +1 413.285.2867 OR use the <a href=\"$base_url/sms\">Test SMS form</a> to simulate sending a text."),
+  );
 
-    'summary' => tt(<<<EOF
+  if ($i == 'sms') return t("The Text Message Interface is intended to be easy enough that you can just muddle your way through the first time. Give it a shot. You can even <i>sign up</i> with Text Messaging. Send your texts to +1 413.285.2867 OR use the <a href=\"$base_url/sms\">Test SMS form</a> to simulate sending a text.");
+
+  if ($i == 'summary') return tt(<<<EOF
     <p>This page shows an overview of your rCredits account.</p>
     <p><b>Account ID</b> has two parts. The part before the period is a 3-character identifier for your region (@R_REGION_NAME). The part after the period uniquely identifies your account, within your region. If you have several accounts, this part will be different for each one.</p>
-  <p><b>Balance</b> is the sum of your rCredits (green) and your US Dollars (blue).</p>
-  <p><b>Rewards</b> totals your signup bonus, adjustments for inflation, and all your rebates and bonuses ever.</p>
+  <p><b>Balance</b> The total spendable amount in your rCredits account. You may also cash out all but the total amount of your rewards.</p>
+  <p><b>Rewards</b> are the total of your signup bonus, adjustments for inflation, purchase rewards, and any other bonuses ever.</p>
   <p><b>Credit floor</b> goes negative (meaning you can go into debt) a little at a time, based on your rCredits history.</p>
 EOF
-    ),
-    'txs' => t(<<<EOF
+  );
+
+  if ($i == 'txs') return t(<<<EOF
     <p>Select the period you want to see transactions for. Both the Summary and Transactions sections will reflect just the transactions in that period. However, the "Pending" line will reflect all your not-yet-accepted invoices and offers EVER. The Ending balance in the Summary is always your current balance.</p>
     <p>If the status is "pending", either you or the other party will need to click "OK" to complete the deal. click the "X" to reject an invoice, dispute a charge, reject an offer, or cancel or undo something you did. click the pencil to edit the description. The description is just for you &mdash; the other party will not see it.</p>
     <p>The Rewards column shows how much rCredits were added to your account as a reward for joining or for buying or selling real goods and services. Loans, exchanges for US Dollars, and other purely financial deals do not earn rewards.</p>
 EOF
-    ),
-    'pay' => t(<<<EOF
+  );
+
+  if ($i == 'pay') return t(<<<EOF
     <p><b>Whom:</b> Type all or part of the full name of the account you want to pay. You can leave out the punctuation, spaces, and capitals. Or you can type their phone number or email address or their account ID. Note that a period in the account ID (a regular account) is different from a colon (an agent acting on behalf of an account).</p>
     <p><b>Amount:</b> The amount of the transaction, measured in dollars, to be paid in rCredits.</p>
     <p><b>Purpose:</b> If this is a purely financial transaction, click "cash/loan/etc". Otherwise, a description is required (for purchases and sales of real goods and services). Donations to nonprofit organizations count as purchases of real services &mdash; services to society. For loans, cash exchanges, and other money deals, you can leave the purpose blank &mdash; your statements will call the purpose "cash".</p>
 EOF
-    ),
-    'directory' => t(<<<EOF
+  );
+
+  if ($i == 'directory') return t(<<<EOF
     <p>This is where you can find out who takes rCredits for what you want. click a business name to see its rCredits webpage.</p>
     <p>You can limit the results to a specific industry or a specific business by typing all or part of the industry or business name. Currently, if you limit the results geographically, there won't be any results unless you choose the United States "01" postal code region.</p>
 EOF
-    ),
-    'account/basic' => t(<<<EOF
+  );
+
+  if ($i == 'account/basic') return t(<<<EOF
     <p><b>Current password:</b> To change your email address or password, you must supply your current password, as a security precaution.</p>
 EOF
-    ),
-    'account/cells' => t(<<<EOF
+  );
+
+  if ($i == 'account/cells') return t(<<<EOF
     <p>Add one or more cell phones to your account so you can use Text Messaging to buy and sell things with rCredits. The form will send a secret word to your phone, which you can then enter here to confirm the connection.</p>
 EOF
-    ),
-    'account/relations' => t(<<<EOF
+  );
+
+  if ($i == 'account/relations') return t(<<<EOF
     <p>Relations let you connect individual rCredits participants to your account &mdash; as owners, employees, suppliers, or others, with limited or full access to the account. This is useful for authorizing sales clerks or setting up joint accounts. Or you might give your accountant "read" permission. Company accounts are managed only by an individual agent.</p>
     <p>Yellow highlights show settings that need to be confirmed &mdash; either by you or by the other party.</p>
     <p>To change settings in a Yes/No column, click + or -. To remove someone from the list, make them all "No"s, and no permissions (if they are already that way, change something and change it back). Be sure to "Save Changes".</p>
     <p>You can allow another account to "draw" from this one to avoid overdrafts (a 25 cent fee may apply).</p>
 EOF
-    ) . ($company ? t('<p>If you give the person at least "Sell" permission (and save the record), you can request a Member ID Card for them to use on behalf of this account.</p>') : ''),
+    ) . ($company ? t('<p>If you give the person at least "Sell" permission (and save the record), you can request a Member ID Card for them to use on behalf of this account.</p>') : '');
     
-    'account/contact' => t(<<<EOF
+  if ($i == 'account/contact') return t(<<<EOF
     <p><b>Full name</b> should be your full legal name. If you change the name on the account, you will need to buy a new rCard and your account will be disabled until you supply new proof of identity. For companies, your rCredits website address will also change.</p>
     <p><b>Postal code:</b> Your postal code determines what rCredits "Common Good Community" you are in.</p>
     <p><b>All other settings on this page</b> are private for individual accounts, public for company accounts.</p>
 EOF
-    ),
-    'account/photo' => tt(<<<EOF
+  );
+
+  if ($i == 'account/photo') return tt(<<<EOF
     <p>For an individual account you will need to upload a clear photo of your face, for identification. This is the photo that will appear on your Member ID card. If you have trouble coming up with a photo in a format that works, have a youngster take picture of you with their cell phone or tablet. Ask them to email you the picture, save that attachment to your desktop, then upload it here. If you still have trouble, email a description of your predicament to us at <a href="mailto:@R_REGION_EMAIL?subject=photo trouble" target="_blank">@R_REGION_EMAIL</a> and we will help.</p>
     $companyAccount
 EOF
-    ),
-    'account/company' => t(<<<EOF
+  );
+
+  if ($i == 'account/company') return t(<<<EOF
     <p>All of the information from this form goes automatically on your <a target="_blank" href="$base_url/member/$username">rCredits webpage</a>, along with your company name and profile picture. Your email address will not be included unless you put it in the description explicitly. click the link, to see the results (after saving your changes).</p>
 EOF
-    ),
-    'account/preferences' => t(<<<EOF
+  );
+
+  if ($i == 'account/preferences') return t(<<<EOF
     <p>These settings start out as what most people prefer. Feel free to adjust them as you like. You can always come back and change them again later.</p>
     <ul>
       <li><b>Minimum.</b> You will want to keep enough in your account to cover the total amount you expect to spend at rCredits member businesses in a typical 3-day period. Add to this however much you want to hold as inflation-protected savings (the inflation adjustment is a monthly credit to your account).</li>
       <li><b>Email notices.</b> We suggest you begin with daily notices, until you feel comfortable with the system. You will receive a "daily" notice only when there is something new that you will want to know about (such as a credit to your account).</li>
     </ul>
 EOF
-    ),
-/*    'account/usd' => t(<<<EOF
+    );
+/*    'account/usd') return t(<<<EOF
     <p>Open a Dwolla account and type your PIN number here, to connect it to your rCredits account. In partnership with Veridian Federal Credit Union, Dwolla communicates with your US Dollar bank account. Whenever you buy something, your rCredits (if any) are used first and the remainder is paid in US Dollars &mdash; just like a typical debit card.</p>
     <p>Just as for opening any other financial account, you need to supply identifying information and proof of identity. Your information is then stored doubly-encrypted on a separate server.</p>
 EOF
-    ),
-    'dwolla-account-setup' => u\SUBS(t(<<<EOF
+  );
+
+  if ($i == 'dwolla-account-setup' => u\SUBS(t(<<<EOF
     <p>In partnership with Veridian Federal Credit Union, Dwolla communicates with your US Dollar bank account. Whenever you buy something, any rCredits you have are used first and the remainder is paid in US Dollars &mdash; just like a typical debit card, but with rebates and bonuses!</p>
     <p>This help window will stay open while you set up your Dwolla account. So you can come back here for tips and next steps.  <a href=":R_DW_LINK" target="_blank"></p>
     <p>Click here now to set up your Dwolla account</a> (following the tips below). When you're done, <a href="$base_url/account/usd">click here to continue </a> your rCredits account setup.</p>
@@ -157,77 +177,84 @@ EOF
     </ol>
 EOF
     )),
-    'to-bank' => t(<<<EOF
+    'to-bank') return t(<<<EOF
     <p>This "To bank" setting is probably a good idea unless you use your Dwolla account outside the rCredits system. It can take up to 5 days for the bank to receive the funds, once they are sent.</p>
 EOF
     ),
     */
-    'issuing-rcredits' => showCharts('issued') . t(<<<EOF
+  if ($i == 'issuing-rcredits') return showCharts('issued') . t(<<<EOF
     <p>rCredits are a type of credit. Like any medium of exchange, they represent value. They make it possible for us to trade goods and services with each other in our community, without having to trade something directly with whoever has what we want, and without having to give them something of precisely the same value ("barter"). The medium of exchange lets us give any amount of our goods or services to any participant in the economy, then receive the same value of goods or services from some other participant(s). If everyone both buys and sells, the credits move through the community in interconnected circles of exchange.</p>
-    <p>Issuing rCredits is a community responsibility. This is the key to creating a Common Good Economy. We must issue as much credit as we need, to enable our exchanges of goods and services -- but no more than the value that we as a community are capable of producing.</p>
+    <p>Issuing rCredits is a community responsibility. This is the key to creating a Common Good Economy. We must issue as much credit as we need, to enable our exchanges of goods and services -- but no more than the value we as a community are capable of producing.</p>
     <p>Once rCredits become well-established and popular in a community, we can issue them together, with careful planning, as grants, loans, and equity investments. Together we can fund whatever enterprises and activities we decide would be best -- for our community, for communities elsewhere, and for the world.</p>
     <p>In the meantime, until then, rCredits are issued automatically:</p>
     <ol>
-      <li>as a standin for US Dollars, which are held unused in a separate account, and</li>
+      <li>as a stand-in for US Dollars, which are held unused in a separate account, and</li>
       <li>as incentives for doing what will strengthen and grow the system (signup bonuses, purchase rewards, and inflation adjustments).</li>
     </ol>
     $back
 EOF
-    ),
-    'common-good-community' => t(<<<EOF
+  );
+
+  if ($i == 'common-good-community') return t(<<<EOF
     <p>The purpose of the rCredits system is to create and fund community-centered participatory democracy. A community that has met the <a href='$base_url/help/common-good-community-requirements'>requirements</a> to become a Common Good Community may apply to Common Good Finance for certification. This certification permits the community to issue rCredits independently -- deciding for itself how many rCredits to issue (within safe limits) and what to fund with them.</p>
 
-    <p>A Common Good Community is in "good standing" when it is issuing rCredits responsibly so that they accurately represent the reality and potential of its members to produce goods and services to back those rCredits.  A Common Good Community may lose its good standing status if it runs up a trade deficit with other Common Good Communities that it fails to redeem in timely manner. Common Good Finance and the other communities will provide ongoing feedback, to prevent this from happening accidentally.</p>
+    <p>A Common Good Community is in "good standing" when it is issuing rCredits responsibly, so they accurately represent the potential of its members to produce corresponding goods and services in the short term.  A Common Good Community may lose its good standing if it runs a trade deficit with other Common Good Communities and fails to redeem it in timely manner. Common Good Finance and the other communities will provide ongoing feedback, to prevent this from happening accidentally.</p>
     $back
 EOF
-    ),
-    'cash-crunch' => t(<<<EOF
+  );
+
+  if ($i == 'cash-crunch') return t(<<<EOF
     <p>Once your geographic area becomes a Common Good Community, you can together decide to spend, grant, lend, and/or invest some of the US Dollars that members have put into their rCredits accounts and that are sitting unused. Of course you want to be careful not to use ALL of the US Dollars. From time to time, members will want to exchange some of their rCredits for US Dollars, to pay companies and individuals not yet participating in the rCredits system. There need to be enough US Dollars in reserve to cover the likely amount of those withdrawals.</p>
 
-    <p>If you and your community misjudge and use too much of your US Dollar reserve, you will have a cash crunch until more US Dollars come in. There are many ways to handle this situation. For example, you might ask members who can to add funds to their rCredits account. Or you might get a short-term loan from a traditional bank or credit union. It will be up to you and your community to choose what to do.</p>
+    <p>If you and your community misjudge and use too much of your US Dollar reserve, you will have a cash crunch until more US Dollars come in. There are many ways to handle this situation. For example, you might ask members who can, to add funds to their rCredits account. Or you might get a short-term loan from a traditional bank or credit union. It will be up to you and your community to choose what to do.</p>
     $back
 EOF
-    ),
-    'backing-rcredits' => t(<<<EOF
-    <p>rCredits are backed by all rCredits members together. Backing rCredits means that you will accept at least a limited amount of them as payment for your goods and services (or trade US Dollars for them) even if, at that time, you cannot easily spend them or easily exchange them for US Dollars. For example, if your average balance over the past six months is $200, you agree to back rCredits up to $200. Then if your community has a <a href="cash-crunch">cash crunch</a>, you have agreed to keep accepting rCredits as payment for your goods and services at least until your balance goes over $200.</p>
+  );
+
+  if ($i == 'backing-rcredits') return t(<<<EOF
+    <p>rCredits are backed by all rCredits members together. Backing rCredits means you will accept at least <i>a limited amount</i> of them as payment for your goods and services (or trade US Dollars for them) even if, at that time, you cannot easily spend them or easily exchange them for US Dollars. For example, if your average balance over the past six months is $200, you agree to back rCredits up to $200. Then if your community has a <a href="cash-crunch">cash crunch</a>, you have agreed to keep accepting rCredits as payment for your goods and services at least until your balance goes over $200.</p>
 
     <p>Like the Federal Reserve's backing for US Dollars held as bank deposits, backing for rCredits helps prevent unfounded fears from causing a "run on the bank". Since we all make this agreement together, we can rest assured that even in a crisis rCredits will maintain their value.</p>
     $back
 EOF
-    ),
-    'cashing-out' => t(<<<EOF
+  );
+
+  if ($i == 'cashing-out') return t(<<<EOF
     <p>rCredits have value and act like money because we agree to accept them as payment for our good and services, so they move from member to member to member as a token of exchange. When someone pays you in rCredits, you can spend those funds &mdash; OR you can "cash them out" by transferring them to your bank account or exchanging them for cash.</p>
     <p>You can cash out rCredits that someone <i>pays</i> you, but any rCredits you <i>receive free</i>, as Incentive Rewards, must continue to circulate within the rCredits system. You cannot cash them out &mdash; you can only spend them.</p>
     $back
 EOF
-    ),
-    'graceful-failure' => t(<<<EOF
-     <p>Common Good Finance has put great care into designing the rCredits system so that it will NOT fail. Paradoxically, one requirement for its success is a detailed plan for a graceful shutdown. In the unlikely event that the whole rCredits system proves to be unworkable, the rCredits Agreement gives us a way to end without leaving anyone "holding the bag".</p>
-     <p>As part of the rCredits Agreement, you promise to give back all the rCredits you received for free &mdash; as signup bonus, rebates, and sales bonuses. You can do that either by</p>
-     <ul><li>continuing to accept rCredits until your balance is equal to your total incentive rewards (then returning them to the community) OR</li>
+  );
+
+  if ($i == 'graceful-failure') return t(<<<EOF
+     <p>Common Good Finance has put great care into designing the rCredits system so that it will NOT fail. Paradoxically, one requirement for its success is a detailed plan for a graceful shutdown. In the unlikely event that the whole rCredits system proves unworkable, the rCredits Agreement gives us a way to end without leaving anyone "holding the bag".</p>
+     <p>As part of the rCredits Agreement, you promise to give back all the rCredits you received for free &mdash; as signup bonus, purchase rewards, etc. You can do that either</p>
+     <ul><li>by continuing to accept rCredits until your balance is equal to your total incentive rewards (then returning them to the community) OR</li>
          <li>by substituting US Dollars for any missing rCredits.</li>
      </ul>
      <p>Complementarily, if you have more rCredits than you received as incentive rewards, you will be able to</p>
-     <ul><li>continue to make purchases with them for a short time OR</li>
+     <ul><li>continue to make purchases with them for a limited time OR</li>
          <li>trade them for other members' US Dollars that <i>they</i> returned to the community.</li>
      </ul>
-     <p>We make this agreement &mdash; all of us &mdash; so that if the system fails, everyone is protected and no one is left holding the bag.</p>
-      <p>Once a Common Good Community has ongoing revenue to cover its expenses and any incentive rewards, it is no longer in any danger of ending abruptly. The system has been running successfully for many months now, to everyone's increasing benefit. So the long-term success of our pioneering Common Good Community in Greenfield, Massachusetts is looking more and more likely.</p>
+     <p>We ALL make this agreement so if the system fails, everyone is protected and no one is left holding the bag.</p>
+      <p>Once a Common Good Community has ongoing revenue to cover its expenses and any incentive rewards, it is no longer in any danger of ending abruptly. The system has been running successfully for many months now, to everyone's increasing benefit. So the long-term success of our pioneering Common Good Community in Greenfield, Massachusetts is looking more and more certain.</p>
     $back
 EOF
-    ),
-    'ethics' => t(<<<EOF
-    <p>A Common Good Community is relying on its members to exhibit a high level of ethical behaviour, as the basis for creating a culture of trust and possibility.  Of course it is always possible for someone to "game" the system and we will continue to develop software that brings such misbehavior to the attention of the community.</p>
+  );
+
+  if ($i == 'ethics') return t(<<<EOF
+    <p>A Common Good Community relies on its members to show a high level of ethical behavior, as the basis for creating a culture of trust and possibility. Of course it is always possible for someone to "game" the system and we will continue to develop software that brings such misbehavior to the attention of the community.</p>
     <p>Sometimes what looks like unethical behavior is in reality a desperate bid to escape from poverty. It is our responsibility as a community to think well about what our members need and want, and use the funding power of rCredits accordingly, so that such desperation is never necessary.</p>
     $back
 EOF
-    ),
-    'dispute-resolution-process' => t(<<<EOF
+  );
+
+  if ($i == 'dispute-resolution-process') return t(<<<EOF
     <p>Disputes between rCredits members will be resolved as follows:</p>
       <ol>
-        <li>The members will work together cooperatively in good faith to attempt to resolve the matter themselves, amicably.</li>
-        <li>If, after 30 days, the members have been unable to agree on a resolution, at the request of either member the members will attempt to resolve the matter creatively with the help of a mediator.</li>
-        <li>Failing such resolution, at the initiative of either member, the members will submit the matter to binding arbitration, as follows:
+        <li>The members work together cooperatively in good faith to attempt to resolve the matter themselves, amicably.</li>
+        <li>If, after 30 days, the members have been unable to agree on a resolution, at the request of either member the members attempt to resolve the matter creatively with the help of a mediator.</li>
+        <li>Failing such resolution, at the initiative of either member, the members submit the matter to binding arbitration, as follows:
           <ol style='list-style-type:lower-alpha;'>
             <li>Either member will initiate the dispute resolution process by sending a registered letter to the other at their address of record in which they appoint a representative and include the representative's full contact information. The representative should be familiar with Common Good Finance and agree to put in the time and good will necessary to resolve the dispute.</li>
             <li>Within 10 days of the postmark of the registered letter, the other Party will submit a registered letter naming their representative, again with full contact information, and including best times for a meeting.</li>
@@ -241,45 +268,53 @@ EOF
       </ol>
     $back
 EOF
-    ),
-    'paying-attention' => t(<<<EOF
-    <p>Common Good Finance and the rCredits system will give you regular feedback on how your actions impact on your finances and on the well being of the community. In order for this feedback to be effective, you have to pay attention to it. Please feel free to make suggestions to improve the quality or timing of the feedback.</p>
+  );
+
+  if ($i == 'paying-attention') return t(<<<EOF
+    <p>Common Good Finance and the rCredits system will give you regular feedback on how your actions impact your finances and the well being of the community. For this feedback to be effective, you have to pay attention to it. Please feel free to make suggestions to improve the quality or timing of the feedback.</p>
     $back
 EOF
-    ),
-    'decision-process' => t(<<<EOF
-    <p>Each Common Good Community will decide for itself how to manage its decision making, so that active participation by all members is valued and encouraged. Common Good Finance is developing recommendations for best practices.</p>
+  );
+
+  if ($i == 'decision-process') return t(<<<EOF
+    <p>Each Common Good Community must decide for itself how to manage its decision making. Common Good Finance is developing recommendations for best practices, so that active participation by all members is valued and encouraged.</p>
     $back
 EOF
-    ),
-    'other-decisions' => t(<<<EOF
-    <p>From time to time, members will need to make a variety of non-financial decisions. Trustees need to be elected. Policies and procedures ocasionally need to be revised. Other issues may arise.</p>
+  );
+
+  if ($i == 'other-decisions') return t(<<<EOF
+    <p>From time to time, members will need to make a variety of non-financial decisions. Trustees need to be elected. Policies and procedures occasionally need to be revised. Other issues may arise.</p>
     $back
 EOF
-    ),
-    'common-good-community-requirements' => t(<<<EOF
+  );
+
+  if ($i == 'common-good-community-requirements') return t(<<<EOF
     <p>Requirements for certification as a Common Good Community are not yet finalized. They may include such things as qualified leadership, minimum size, experience using the rCredits system, diversity of participants, and successful completion of a training program.</p>
     $back
 EOF
-    ),
-    'agreement' => t(<<<EOF
+  );
+
+  if ($i == 'agreement') return t(<<<EOF
     <p>The rCredits Agreement is at the heart of the the rCredits system. It is our agreement to accept rCredits from each other that gives them value. Please read each section carefully and click the checkboxes to indicate your agreement. For more specific information, click the hyperlinks in the text.</p>
 EOF
-    ),
-    'donate' => t(<<<EOF
+  );
+
+  if ($i == 'donate') return t(<<<EOF
     <p>Your donation helps fund administration and promotion of the rCredits system during the pilot phase. It is also a formal "sealing" of your signature on the rCredits agreement.</p>
 EOF
-    ),
-    'account/proxies' => t(<<<EOF
+  );
+
+  if ($i == 'account/proxies') return t(<<<EOF
     <p>During the pilot phase, it may be hard to choose two proxies from among the other members, unless you invite them to join first. You can change your selections at any time, so no worries.</p>
 EOF
-    ),
-    'invite' => t(<<<EOF
+  );
+
+  if ($i == 'invite') return t(<<<EOF
     <p>The rCredits system is designed to be community-centered, so our relationships with friends and neighbors in our own geographical community is important. We can work better together for the well being of everyone in our community and our region, if we know we can trust one another.</p>
     <p>Invite as many people as you like, but only people you trust.</p>
 EOF
-    ),
-/*    'payment-exchanges' => t(<<<EOF
+  );
+/*    'payment-exchanges') return t(<<<EOF
     <p>Payment exchanges are designed to make it easy for business owners and managers to use rCredits. Pay your employees and suppliers the usual way, on the usual schedule, in US Dollars, with no change to your payroll or accounting systems. Then they trade some of those US Dollars back to you for rCredits.</p>
     <p>Payments are automated, based on what you choose for your account settings. Here's how it works:</p>
     <img src="$rUrl/images/payment-exchanges-companies.png" align="right"><p>Every day, customers pay you with rCredits and US Dollars. You get a 10% bonus on the rCredits part. Then at night, all the rCredits you took in get traded automatically to your employees and suppliers, in exchange for US Dollars. You get a 5% rebate on the exchange.</p>
@@ -289,11 +324,12 @@ EOF
     $back
 EOF
     ),*/
-    'transactions' => t(<<<EOF
+  if ($i == 'transactions') return t(<<<EOF
     Hover over any option or column header for an explanation of what it means. Select some options, and the period or specific date range that interests you, then click either "Show" or "Download". The downloaded spreadsheet (in CSV format) has more complete information, including column totals.
 EOF
-    ),
-    'demand' => showCharts('banking') . t(<<<EOF
+  );
+
+  if ($i == 'demand') return showCharts('banking') . t(<<<EOF
     <p>The "demand" for rCredits is the net amount of US Dollars people want to trade for rCredits. As long as people have plenty of places to spend within the rCredits system, they will generally keep moving money in. So the demand gives us a pretty reliable measure of the system's soundness.</p>
     <p>We can keep issuing rCredits as long as there is a net inflow of US Dollars (more <b class="in">green</b> than <b class="out">orange</b> on the chart &mdash; an increasing demand). If members need to make more purchases outside the rCredits network and are taking more US Dollars <b class="out">out</b> of the system than they are putting <b class="in">in</b> (a decreasing demand), then we must temporarily stop <i>issuing</i> rCredits. Of course, we can keep <i>using</i> the rCredits already in circulation.</p>
     <p>Once people have more places to spend within the system (typically because more people and businesses have signed up) and they start moving money <b class="in">in</b> again, then we can begin again to issue additional rCredits.</p>
@@ -302,8 +338,9 @@ EOF
     <p>As an individual, you can help by finding ways to spend within the rCredits system, instead of transferring your funds to a bank account. For all the money that circulates within the system, we can use rCredits, freeing up that many US Dollars to use for something else. So, in effect, when you can keep money in the system, we are all that much richer.</p>
     $back
 EOF
-    ),
-    'growth' => showCharts('accts') . t(<<<EOF
+  );
+
+  if ($i == 'growth') return showCharts('accts') . t(<<<EOF
     <p>The real power and purpose of the rCredits system is in our gathering as a community to decide what our funding priorities should be &mdash;</p>
     <ul>
       <li>for sustainable agriculture and energy systems,</li>
@@ -316,8 +353,9 @@ EOF
     <p>You can help! <a href="$base_url/invite">Click here to invite</a> your friends and local businesses where you want to spend your rCredits. Sit with your friends while they sign up &mdash; it takes only half an hour, but without a nudge most people spend several weeks putting it off.</p>
     $back
 EOF
-    ),
-    'funds' => showCharts('funds') . t(<<<EOF
+  );
+
+  if ($i == 'funds') return showCharts('funds') . t(<<<EOF
     <p>There are two kinds of funds in the rCredits system:</p>
     <ol>
       <li><b style='color:white; background-color:darkgreen;'>rCredits</b>. These are the funds that we issue together as a community, by agreeing to accept them as payment for our goods and services. The chart distinguishes between two categories of rCredits*:
@@ -331,16 +369,18 @@ EOF
     <p>* The distinction between "savings" and rCredits that are actually being used is important. The value of rCredits, like any currency, is what you can get for them. When you save your rCredits funds for spending a month or more in the future, it probably means you are confident (1) that you will be able to spend them within the rCredits system OR (2) that you will be able to trade them for US Dollars because other members can spend them within the system. So savings are a <em>speculative</em> <a href="$base_url/help/demand">demand</a> for rCredits, rather than a demand based in current reality. The speculation may indeed be accurate, but <a href='velocity'>circulation velocity</a> and <a href='demand'>net monthly influx of US Dollars</a> are stronger measures of the system's capacity for additional rCredits.</p>
     $back
 EOF
-    ),
-    'velocity' => showCharts('velocity') . t(<<<EOF
+  );
+
+  if ($i == 'velocity') return showCharts('velocity') . t(<<<EOF
     <p>In our society at large, how fast the money moves is an indicator of the health of our economy. Faster velocity implies more people spending more money per month.</p>
     <p>More spending is not necessarily a good thing, if we all already have what we need. But when there are unmet needs, increased economic activity can be a sign of things getting better. In the rCredits system, economic activity means people are finding the rCredits system useful, which is always a good thing.</p>
     <p>Notice that the faster money circulates, the less money we need, to buy the same stuff. Velocity is a money-stretcher! For example, suppose there are $1 million worth of rCredits in circulation. Let's say the velocity is 1 in April (the whole million gets spent) and 2 in May (the whole million gets spent twice). In May we used the same amount of money to buy twice as much.</p>
     <p>For comparison, the velocity of M2 money stock in the United States over the past half century has fluctuated between .25 and .45 per month (as you can see on the chart, rCredits circulation velocity is in that same range).
     $back
 EOF
-    ),
-    'economic-circles' => showCharts('tx') . t(<<<EOF
+  );
+
+  if ($i == 'economic-circles') return showCharts('tx') . t(<<<EOF
     <p>Economic circles are crucial to a healthy regional economy. The more we can keep money circulating locally, the richer we are. Why? Because we can use that money over and over &mdash; in effect turning each dollar into millions.</p>
     <p>In a typical economic circle, you buy something from a local store or pay for local services. That business then pays its local suppliers and its local employees. Those employees in turn become consumers like you &mdash; they buy something from a local store, etc. When at any point in this circle we lose the "local" and pay someone or some company outside our region, that money is gone. It has leaked out of our community and we are that much poorer.</p>
     <p>The rCredits system gives us an easy way to track our economic circles and opportunities for improvement. For now, "local" means within the rCredits system, but we expect the definition to expand as rCredits membership continues to grow.</p>
@@ -348,13 +388,15 @@ EOF
     <p>The <a href="demand">Monthly Bank Transfers</a> chart also measures how well we are doing as a community, at keeping money in the system.</p>
      $back
 EOF
-    ),
-    'your-return' => tt(<<<EOF
+  );
+
+  if ($i == 'your-return') return tt(<<<EOF
     <p>Your effective return is calculated as your monthly inflation adjustment (currently based on @R_INFLATION_RATE% APR) plus any incentive rewards you got in the period, all divided by your average balance for the period. The result is then annualized to give you an APR (annual percentage rate). Regular financial institutions give you interest on your <em>minimum</em> balance for the month, which is nearly always lower than your <em>average</em> balance.</p>
     $back
 EOF
-    ),
-    'social-return' => tt(<<<EOF
+  );
+
+  if ($i == 'social-return') return tt(<<<EOF
     <p>The community's financial benefit from your participation is very loosely calculated as the sum of:</p>
     <ul>
       <li>Your gifts to Common Good Finance (including shared rewards).</li>
@@ -367,19 +409,13 @@ EOF
     <p>Of course the community benefits far more from your participation, by having (all of us together) greater control over our local economy, so we can plan and decide together how to use the power of money to make a better life for everyone.</p>
     $back
 EOF
-    ),
   );
-
-  $helps['charge'] = strtr($helps['pay'], u\ray('pay', 'charge'));  
-  return u\SUBS(@$helps[strtolower($page)]) ?: tt('no help', compact('page'));
-  //        <p>Download the app from <a href="http://rCredits.org/rc.apk">rCredits.org/rc.apk</a>, install, run. Try all the buttons.</p>
-
 }
 
 /*
 <p>"$/mo" is the most important column. Type the amount you pay each employee or supplier in a month &mdash; more or less. Then, if you select the payment exchange option on the preferences page, your rCredits will get distributed every night to those employees and suppliers in exchange for US Dollars.</p>
 
-    'why-wait' => t(<<<EOF
+    'why-wait') return t(<<<EOF
     <p>Exchanges of rCredits for US Dollars reflect an incomplete economic circle. That is, the individual or company selling the rCredits does not yet have enough places to spend them.</p>
     <p>The 2-week delay in spending rCredits that you buy takes that amount out of circulation temporarily, giving the seller time to find more places to spend rCredits, without meanwhile having to sell more and more of them.</p>
 EOF

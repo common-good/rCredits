@@ -43,18 +43,18 @@ class rwebRelations extends DrupalWebTestCase {
     switch ($variant) {
     default: // fall through to case(0)
     case(0):
-    Given('members: "DATA'
+    Given('members: "ASSOC'
     . '\\| id   | fullName   | acctType    | flags      |'
     . '\\| .ZZA | Abe One    | personal    | ok,bona    |'
     . '\\| .ZZB | Bea Two    | personal    | ok,bona    |'
     . '\\| .ZZC | Corner Pub | corporation | ok,co,bona |'
     . '\\| .ZZD | Dee Four   | personal    | ok,bona    |"');
-    And__('transactions: "DATA'
+    And__('transactions: "ASSOC'
     . '\\| xid | created   | type       | amount | from      | to   | purpose | taking |'
     . '\\|   1 | %today-6m | %TX_SIGNUP |    250 | community | .ZZA | signup  | 0      |'
     . '\\|   2 | %today-6m | %TX_SIGNUP |    250 | community | .ZZB | signup  | 0      |'
     . '\\|   3 | %today-6m | %TX_SIGNUP |    250 | community | .ZZC | signup  | 0      |"');
-    Then_('balances: "DATA'
+    Then_('balances: "ASSOC'
     . '\\| id        | balance |'
     . '\\| community |    -750 |'
     . '\\| .ZZA      |     250 |'
@@ -69,11 +69,11 @@ class rwebRelations extends DrupalWebTestCase {
   // Scenario: Member has an employee, confirmed
   public function testMemberHasAnEmployeeConfirmed_0() {
     $this->setUp2(__FUNCTION__, 0);
-    Given('relations: "DATA'
+    Given('relations: "ASSOC'
     . '\\| id | main | agent | permission   | employerOk | employeeOk | isOwner | draw |'
     . '\\| 1  | .ZZA | .ZZD  | scan         | 1          | 1          | 1       | 0    |"');
     When_('member ".ZZA" visits page "account/relations"');
-    Then_('we show "Relations" with: "DATA'
+    Then_('we show "Relations" with: "ARRAY'
     . '\\| Other      | Draw | My employer? | My employee? | Family? | Permission  |_requests      |'
     . '\\| Dee Four   | No   | No           | Yes          | Yes     | scan rCards | -- |"');
   }
@@ -81,11 +81,11 @@ class rwebRelations extends DrupalWebTestCase {
   // Scenario: Member has an employee, unconfirmed
   public function testMemberHasAnEmployeeUnconfirmed_0() {
     $this->setUp2(__FUNCTION__, 0);
-    Given('relations: "DATA'
+    Given('relations: "ASSOC'
     . '\\| id | main | agent | permission | employerOk | employeeOk | isOwner |'
     . '\\| 1  | .ZZA | .ZZD  | refund     | 1          | 0          | 0        |"');
     When_('member ".ZZA" visits page "account/relations"');
-    Then_('we show "Relations" with: "DATA'
+    Then_('we show "Relations" with: "ARRAY'
     . '\\| Other      | My employer? | My employee? | Family? | Permission   |_requests      |'
     . '\\| Dee Four   | No           | Yes          | No      | give refunds | request rCard |"');
   }
@@ -93,11 +93,11 @@ class rwebRelations extends DrupalWebTestCase {
   // Scenario: Member has a relation with a contractor
   public function testMemberHasARelationWithAContractor_0() {
     $this->setUp2(__FUNCTION__, 0);
-    Given('relations: "DATA'
+    Given('relations: "ASSOC'
     . '\\| id | main | agent | permission | employerOk | employeeOk | isOwner |'
     . '\\| 1  | .ZZA | .ZZB  | buy        | 0          | 0          | 0        |"');
     When_('member ".ZZA" visits page "account/relations"');
-    Then_('we show "Relations" with: "DATA'
+    Then_('we show "Relations" with: "ARRAY'
     . '\\| Other      | My employer? | My employee? | Family? | Permission   |_requests      |'
     . '\\| Bea Two    | No           | No           | No      | buy and sell | --            |"');
   }
@@ -105,11 +105,11 @@ class rwebRelations extends DrupalWebTestCase {
   // Scenario: Member has an employee, claimed
   public function testMemberHasAnEmployeeClaimed_0() {
     $this->setUp2(__FUNCTION__, 0);
-    Given('relations: "DATA'
+    Given('relations: "ASSOC'
     . '\\| id | main | agent | permission   | employerOk | employeeOk | isOwner |'
     . '\\| 1  | .ZZA | .ZZD  | sell         | 0          | 1          | 0       |"');
     When_('member ".ZZA" visits page "account/relations"');
-    Then_('we show "Relations" with: "DATA'
+    Then_('we show "Relations" with: "ARRAY'
     . '\\| Other      | My employer? | My employee? | Family? | Permission    |_requests      |'
     . '\\| Dee Four   | No           | No           | No      | send invoices | -- |"');
   }
@@ -117,11 +117,11 @@ class rwebRelations extends DrupalWebTestCase {
   // Scenario: Employee can only read
   public function testEmployeeCanOnlyRead_0() {
     $this->setUp2(__FUNCTION__, 0);
-    Given('relations: "DATA'
+    Given('relations: "ASSOC'
     . '\\| id | main | agent | permission | employerOk | employeeOk | isOwner |'
     . '\\| 1  | .ZZA | .ZZD  | read       | 1          | 1          | 1       |"');
     When_('member ".ZZA" visits page "account/relations"');
-    Then_('we show "Relations" with: "DATA'
+    Then_('we show "Relations" with: "ARRAY'
     . '\\| Other      | My employer? | My employee? | Family? | Permission        |_requests      |'
     . '\\| Dee Four   | No           | Yes          | Yes     | read transactions | --       |"');
   }
@@ -129,11 +129,11 @@ class rwebRelations extends DrupalWebTestCase {
   // Scenario: Member has an employer
   public function testMemberHasAnEmployer_0() {
     $this->setUp2(__FUNCTION__, 0);
-    Given('relations: "DATA'
+    Given('relations: "ASSOC'
     . '\\| id | main | agent | permission   | employerOk | employeeOk | isOwner |'
     . '\\| 1  | .ZZB | .ZZA  | sell         | 1          | 1          | 1        |"');
     When_('member ".ZZA" visits page "account/relations"');
-    Then_('we show "Relations" with: "DATA'
+    Then_('we show "Relations" with: "ARRAY'
     . '\\| Other      | My employer? | My employee? | Family? | Permission   |_requests      |'
     . '\\| Bea Two    | Yes          | No           | No      | no access    | --       |"');
   }
@@ -141,16 +141,16 @@ class rwebRelations extends DrupalWebTestCase {
   // Scenario: Member has access to employee account
   public function testMemberHasAccessToEmployeeAccount_0() {
     $this->setUp2(__FUNCTION__, 0);
-    Given('relations: "DATA'
+    Given('relations: "ASSOC'
     . '\\| id | main | agent | permission | employerOk | employeeOk | isOwner |'
     . '\\| 1  | .ZZA | .ZZD  |            | 1          | 1          | 1        |'
     . '\\| 2  | .ZZD | .ZZA  | sell       | 0          | 0          | 0        |"');
     When_('member ".ZZA" visits page "account/relations"');
-    Then_('we show "Relations" with: "DATA'
+    Then_('we show "Relations" with: "ARRAY'
     . '\\| Other      | My employer? | My employee? | Family? | Permission   |_requests      |'
     . '\\| Dee Four   | No           | Yes          | Yes     | no access    | --            |"');
     When_('member ".ZZD" visits page "account/relations"');
-    Then_('we show "Relations" with: "DATA'
+    Then_('we show "Relations" with: "ARRAY'
     . '\\| Other      | My employer? | My employee? | Family? | Permission    |_requests      |'
     . '\\| Abe One    | Yes          | No           | No      | send invoices | -- |"');
   }
@@ -158,18 +158,17 @@ class rwebRelations extends DrupalWebTestCase {
   // Scenario: Member company has relations
   public function testMemberCompanyHasRelations_0() {
     $this->setUp2(__FUNCTION__, 0);
-    Given('relations: "DATA'
+    Given('relations: "ASSOC'
     . '\\| id   | main | agent | permission | employerOk | employeeOk | isOwner |'
     . '\\| .ZZA | .ZZC | .ZZA  | manage     | 1          | 1          | 1        |"');
     When_('member ":ZZA" visits page "account/relations"');
-    Then_('we show "Relations" with: "DATA'
+    Then_('we show "Relations" with: "ARRAY'
     . '\\| Other   | My employee? | Owns | Permission     |_requests      |'
     . '\\| Abe One | Yes          | Yes  | manage account | request rCard |"');
-    And__('without: "DATA'
-    . '\\|_Header       |'
+    And__('without: "ARRAY'
     . '\\| My employer? |"');
     When_('member ".ZZA" visits page "account/relations"');
-    Then_('we show "Relations" with: "DATA'
+    Then_('we show "Relations" with: "ARRAY'
     . '\\| Other      | My employer? | My employee? | Family? | Permission   |_requests      |'
     . '\\| Corner Pub | Yes          | --           | No      | --           | --            |"');
   }
@@ -177,7 +176,7 @@ class rwebRelations extends DrupalWebTestCase {
   // Scenario: It's complicated
   public function testItsComplicated_0() {
     $this->setUp2(__FUNCTION__, 0);
-    Given('relations: "DATA'
+    Given('relations: "ASSOC'
     . '\\| id   | main | agent | permission | amount | employerOk | employeeOk | isOwner |'
     . '\\| .ZZA | .ZZA | .ZZD  | scan       |     10 | 1           | 0           | 1        |'
     . '\\| .ZZB | .ZZD | .ZZA  |            |     20 | 0           | 1           | 0        |'
@@ -186,41 +185,40 @@ class rwebRelations extends DrupalWebTestCase {
     . '\\| .ZZE | .ZZA | .ZZB  | sell       |     10 | 1           | 0           | 1        |'
     . '\\| .ZZF | .ZZB | .ZZA  |            |     20 | 1           | 1           | 0        |"');
     When_('member ".ZZA" visits page "account/relations"');
-    Then_('we show "Relations" with: "DATA'
+    Then_('we show "Relations" with: "ARRAY'
     . '\\| Other      | My employer? | My employee? | Family? | Permission    |_requests      |'
     . '\\| Bea Two    | Yes          | Yes          | Yes     | send invoices | request rCard |'
     . '\\| Corner Pub | No           | --           | No      | --            | --       |'
     . '\\| Dee Four   | Yes          | Yes          | Yes     | scan rCards   | -- |"');
     When_('member ".ZZB" visits page "account/relations"');
-    Then_('we show "Relations" with: "DATA'
+    Then_('we show "Relations" with: "ARRAY'
     . '\\| Other   | My employee? | Family? | Permission |_requests      |'
     . '\\| Abe One | Yes          | No      | no access  | --            |"');
     When_('member ".ZZD" visits page "account/relations"');
-    Then_('we show "Relations" with: "DATA'
+    Then_('we show "Relations" with: "ARRAY'
     . '\\| Other   | My employer? | My employee? | Family? | Permission |_requests      |'
     . '\\| Abe One | No           | No           | No      | no access  | --            |"');
-    And__('with: "DATA'
+    And__('with: "ARRAY'
     . '\\|_Header  |'
     . '\\| Family? |"');
     When_('member ":ZZD" visits page "account/relations"');
-    Then_('we show "Relations" with: "DATA'
+    Then_('we show "Relations" with: "ARRAY'
     . '\\| Other   | My employee? | Owns | Permission     |_requests      |'
     . '\\| Abe One | Yes          | No   | manage account | request rCard |"');
-    And__('without: "DATA'
-    . '\\|_Header    |'
+    And__('without: "ARRAY'
     . '\\| employer? |"');
   }
 
   // Scenario: A member adds a relation
   public function testAMemberAddsARelation_0() {
     $this->setUp2(__FUNCTION__, 0);
-    When_('member ".ZZA" completes form "account/relations" with values: "DATA'
+    When_('member ".ZZA" completes form "account/relations" with values: "ASSOC'
     . '\\| newPerson |'
     . '\\| beatwo    |"');
-    Then_('we say "status": "report new relation" with subs: "DATA'
+    Then_('we say "status": "report new relation" with subs: "ASSOC'
     . '\\| who     |'
     . '\\| Bea Two |"');
-    And__('we show "Relations" with: "DATA'
+    And__('we show "Relations" with: "ARRAY'
     . '\\| Other      | Draw | My employer? | My employee? | Family? | Permission   |_requests      |'
     . '\\| Bea Two    | No   | No           | No           | No      | no access    | --            |"');
   }

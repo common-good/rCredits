@@ -70,12 +70,12 @@ function rweb_menu() {
   $menu = array(
     'summary' => menuNorm(t('Summary'), 'Summary', 'anyone'),
     'history' => menuNorm(t('History'), 'Txs 1', 'read'),
-/*    'history/transactions' => menuLocal(t('Transactions'), '*Txs 1', 'read'),
-    'history/invoices-to' => menuLocal(t('Invoices TO You'), 'InvoicesTo', 'read'),
-    'history/invoices-from' => menuLocal(t('Invoices FROM You'), 'InvoicesFrom', 'read'),
+    'history/transactions' => menuLocal(t('Transactions'), '*Txs 1', 'read'),
+    'history/invoices-to' => menuLocal(t('Invoices TO You'), 'Invoices to', 'read'),
+    'history/invoices-from' => menuLocal(t('Invoices FROM You'), 'Invoices from', 'read'),
     'history/1099-B' => menuLocal(t('1099-B Forms'), '1099b', 'read'),
     'history/zot' => menuLocal('zot', '', 'anyone'), // Drupal bug: last choice is omitted
-*/
+
     'charge' => menuNorm(t('Charge'), 'Tx 1', 'sell ok'),
     'pay' => menuNorm(t('Pay'), 'Tx 1', 'buy ok'),
     'pay/one' => menuLocal(t('Pay One'), '*Tx', 'co buy ok'),
@@ -98,7 +98,7 @@ function rweb_menu() {
     'php' => isDEV ? menuNorm(t('PHP'), 'php', 'dev', 'util') : NULL,
     
     'menu' => callback(t('Menu'), 'Menu', 'anyone'),
-    'empty' => callback(t('Empty'), 'Empty', 'anyone'),
+    'empty' => callback(t('Empty'), 'Empty 1', 'anyone'),
 
     'request-employee-rcard' => callback(t('Request Employee rCard'), 'RequestRCard 1', 'manage'),
     
@@ -128,10 +128,12 @@ function rweb_menu() {
     'account/photo-id' => callback('Kba', 'PhotoId', 'manage'),
     
     'another' => callback(t('Open Another Account'), 'Another', 'manage'),
+    'handle-invoice' => callback(t('Handle Invoice'), 'HandleInvoice 1', 'anyone'),
 
-    'sadmin' => menuNorm(t('Admin'), 'Admin', 'cadmin'),
+    'sadmin' => menuNorm(t('Admin'), 'Admin', 'cadmin2'),
     'sadmin/panel' => menuLocal(t('Panel'), '*Admin', 'cadmin'),
     'sadmin/member-list' => menuLocal(t('Member List'), 'MemberList', 'cadmin2'),
+    'sadmin/export-list' => menuLocal(t('Export'), 'DownloadMemberList', 'cadmin2'),
     'sadmin/make-community' => menuLocal(t('Make Ctty'), 'MakeCtty', 'admin'),
     'sadmin/sms' => menuLocal(t('Test SMS'), 'SMS', 'admin'),
     'sadmin/reinstall' => menuLocal(t('Reinstall rCredits'), '', 'admin', 'reinstall'),
@@ -139,7 +141,7 @@ function rweb_menu() {
     'sadmin/tests' => menuLocal(t('Test'), '2', isDEV ? 'dev' : NULL, 'test'),
     'sadmin/php' => menuLocal(t('PHP'), 'php', 'dev', 'util'),
     'sadmin/zot' => menuLocal('zot', '', 'admin'), // Drupal bug: last choice is omitted
-    'sadmin/member-info' => callback('Member Info', 'MemberInfo 2', 'cadmin2'),
+    'sadmin/member-info' => callback('Member Info', 'Summary 2', 'cadmin2'),
     'print-rcard' => callback(t('Print ID Card'), '1 ', 'cadmin', 'memberID'),
 //    'rcredits/util' => callback('Util', '2', 'admin', 'util'),
 

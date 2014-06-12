@@ -43,14 +43,14 @@ class rcronLostUsdTxs extends DrupalWebTestCase {
     switch ($variant) {
     default: // fall through to case(0)
     case(0):
-    Given('members: "DATA'
+    Given('members: "ASSOC'
     . '\\| id   | fullName   | dw | country | email | flags      | rebate |'
     . '\\| %id1 | Abe One    |  1 | US      | a@    | ok,dw,bona |      5 |'
     . '\\| %id2 | Bea Two    |  0 | US      | b@    | ok,dw,bona |      5 |"');
-    And__('balances: "DATA'
+    And__('balances: "ASSOC'
     . '\\| id   | dw/usd |'
     . '\\| %id1 |      2 |"');
-    And__('transactions: "DATA'
+    And__('transactions: "ASSOC'
     . '\\| xid | created   | type     | amount | from | to   | purpose |'
     . '\\| 1   | %today-7m | signup   |   1000 | ctty | %id1 | signup  |'
     . '\\| 2   | %today-7m | signup   |   1000 | ctty | %id2 | signup  |"');
@@ -68,7 +68,7 @@ class rcronLostUsdTxs extends DrupalWebTestCase {
     Then_('usd transfer count is 1');
     Given('usd transfer count is 0');
     When_('cron runs "usdTxsThere"');
-    Then_('usd transfers: "DATA'
+    Then_('usd transfers: "ASSOC'
     . '\\| payer | payee | amount |'
     . '\\| %id1  |  %id2 |      1 |"');
   }

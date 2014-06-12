@@ -215,6 +215,7 @@ H. Notes on transaction record system:
   - Thus every inter-community transaction is stored in both communities. Both communities know their trade balance, which should be public through a RESTful query. Intra-community transactions should also be stored twice -- ideally in member's devices. Smartphones and desktop computers running an app should store all their own transactions. Encrypted backups of everything to the cloud too.
 
 I. Cron ops
+  - ACHs almost always take 3 days (5 if there is a weekend in there). sometimes an extra day.
   - 
 
 J. Handling USD

@@ -31,7 +31,7 @@ use rCredits\Testing as t;
  * undo:	[tx] => [ok, message, balance]
  *
  * To create json for app demo, do this from PHP window on STAGE server:
-   include __DIR__ . '/../rcredits/rsmart/rsmart.inc';
+   include_once __DIR__ . '/../rcredits/rsmart/rsmart.inc';
    $args = rCredits\Util\ray('op device agent version member code', 'identify', '3i2ifsapEjwev3CwBCV7', 'NEW.AAB', RPOS_VERSION, 'NEW.ABB', 'ZzhWMCq0zcBowqw'); // cust
    //$args = rCredits\Util\ray('op device agent version member code', 'identify', '3i2ifsapEjwev3CwBCV7', '', RPOS_VERSION, 'NEW:AAB', 'WeHlioM5JZv1O9G'); // agent login
    //$args = rCredits\Util\ray('op device agent version member amount goods description', 'charge', '3i2ifsapEjwev3CwBCV7', 'NEW:AAB', RPOS_VERSION, 'NEW.ABB', AMOUNT, 1, 'zot');
@@ -210,7 +210,7 @@ function photo($args) {
 
   if (!@$member) return photoReturn('missing member');
   if (!$a = getCustomer($member, $err)) return photoReturn($err);
-  $picFilename = @$a ? $a->agent->auxFilename('picture') : R_DFT_PICTURE;
+  $picFilename = $a->agent->auxFilename('picture');
   $pic = file_get_contents(DRUPAL_ROOT . $picFilename);
   return photoReturn($pic, $picFilename);
 }

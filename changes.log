@@ -1,3 +1,20 @@
+2014-06-11
+. added member list export option for cAdmin2
+. cAdmin2 people now have an Admin section with just memberlist and export
+. added lists of Invoices TO You and Invoices FROM You
+. email links to pay/deny invoice
+. no-sign-in form is now standard rather than template-based (to allow multi-step processing)
+. moved photos to /photos and changed naming convention from uid-created to uid-cardCode.jpg
+. MDIR /photos
+. moved proofs to /
+. added helper reward (TX_HELPER) to stats and charts
+. user stats are now rounded to the cent
+. combined MemberInfo form into Summary form
+. fixed bugs in rdo() that kept change-minimum links from working
+. gave admin its own namespace, abbreviated "a"
+. we now use an auxiliary file for testing link results (dosay-status.txt)
+. implemented NACHA format ACH origination file creation
+
 2014-05-15
 . UPDATE r_invites SET invitee=0 WHERE invitee IS NULL
 . fixed bug: summary balance omitted usd

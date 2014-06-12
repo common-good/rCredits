@@ -7,29 +7,29 @@ SO I know where it stands.
 
 Setup:
   Given members:
-  | id   | fullName   | postalAddr                   | floor | flags         |
+  | id   | fullName   | postalAddr                   | floor | flags         |*
   | .ZZA | Abe One    | 1 A St., Atown, AK 01000     | -100  | ok,dw,bona    |
   | .ZZB | Bea Two    | 2 B St., Btown, UT 02000     | -200  | ok,dw,bona    |
   | .ZZC | Corner Pub | 3 C St., Ctown, Cher, FRANCE | -300  | ok,dw,co,bona |
   And members have:
-  | id   | created   | share |
+  | id   | created   | share |*
   | ctty | %today-9w |     0 |
   | .ZZA | %today-7w |    10 |
   | .ZZB | %today-6w |    20 |
   | .ZZC | %today-6w |    30 |
   And usd transfers:
-  | payer | amount | completed |
+  | payer | amount | completed |*
   | .ZZA  | -100   | %today-7w |
   | .ZZB  | -200   | %today-6w |
   | .ZZC  | -300   | %today-6w |
   And relations:
-  | id   | main | agent | permission |
+  | id   | main | agent | permission |*
   | :ZZA | .ZZA | .ZZB  | buy        |
   | :ZZB | .ZZB | .ZZA  | read       |
   | :ZZC | .ZZC | .ZZB  | buy        |
   | :ZZD | .ZZC | .ZZA  | sell       |
   And transactions: 
-  | xid   | created   | type     | amount | from | to   | purpose      |
+  | xid   | created   | type     | amount | from | to   | purpose      |*
   | .AAAB | %today-7w | signup   |    250 | ctty | .ZZA | signup       |
   | .AAAC | %today-6w | signup   |    250 | ctty | .ZZB | signup       |
   | .AAAD | %today-6w | signup   |    250 | ctty | .ZZC | signup       |
@@ -43,7 +43,7 @@ Setup:
   | .AAAL | %today-1d | rebate   |      4 | ctty | .ZZA | rebate on #5 |
   | .AAAM | %today-1d | bonus    |      8 | ctty | .ZZC | bonus on #4  |
   Then balances:
-  | id   | balance | r    |
+  | id   | balance | r    |*
   | ctty |    -768 | -768 |
   | .ZZA |     266 |  166 |
   | .ZZB |     479 |  279 |

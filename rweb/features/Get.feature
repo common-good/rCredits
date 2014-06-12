@@ -8,19 +8,19 @@ SO I can spend it through the rCredits system or hold it in the rCredits system 
 
 Setup:
   Given members:
-  | id   | fullName | floor | minimum | flags      |
+  | id   | fullName | floor | minimum | flags      |*
   | .ZZA | Abe One  |     0 |      10 | ok,dw,bank |
   | .ZZB | Bea Two  |     0 |      10 | ok,dw,bank |
   | .ZZC | Our Pub  |     0 |     100 | co,ok,dw   |
   | .ZZD | Dee Four |     0 |     100 | ok,dw,bank |
   And transactions:
-  | xid | created    | type   | amount | from | to   | purpose |
+  | xid | created    | type   | amount | from | to   | purpose |*
   | 1   | %today-10d | signup |     20 | ctty | .ZZA | signup  |
   | 2   | %today-10d | grant  |    100 | ctty | .ZZB | grant   |
   | 3   | %today-10d | signup |     10 | ctty | .ZZC | signup  |
   | 4   | %today-10d | signup |     20 | ctty | .ZZD | signup  |
   And usd transfers:
-  | payer | payee | amount | tid | created   | completed |
+  | payer | payee | amount | tid | created   | completed |*
   |  .ZZA |     0 |    -99 |   1 | %today-7d | %today-5d |
   |  .ZZA |     0 |   -100 |   2 | %today-5d |         0 |
   |  .ZZA |  .ZZB |      4 |   0 | %today-3d | %today-3d |
@@ -31,7 +31,7 @@ Setup:
   |  .ZZD |     0 |   -140 |   1 | %today-2d | %today-2d |
   |  .ZZC |  ctty |     10 |   2 | %today-2d | %today-2d |
   Then balances:
-  | id   | r    | usd | rewards |
+  | id   | r    | usd | rewards |*
   | ctty | -160 |  10 |       0 |
   | .ZZA |    6 | 100 |      20 |
   | .ZZB |   96 |   0 |       0 |
@@ -40,68 +40,68 @@ Setup:
 
 Scenario: a member moves credit to the bank
   When member ".ZZA" completes form "get" with values:
-  | op  | amount |
+  | op  | amount |*
   | put |     86 |
   Then usd transfers:
-  | payer | payee | amount | tid | created   | completed |
+  | payer | payee | amount | tid | created   | completed |*
   |  .ZZA |     0 |     86 |   4 | %today    | %today    |
   And we say "status": "banked" with subs:
-  | action     | amount |
+  | action     | amount |*
   | deposit to | $86    |
   And balances:
-  | id   | usd | r |
+  | id   | usd | r |*
   | .ZZA |  14 | 6 |
 
 Scenario: a member draws credit from the bank
   When member ".ZZB" completes form "get" with values:
-  | op  | amount      |
+  | op  | amount      |*
   | get | %R_ACHMIN |
   Then usd transfers:
-  | payer | payee | amount       | tid | created | completed |
+  | payer | payee | amount       | tid | created | completed |*
   |  .ZZB |     0 | -%R_ACHMIN |   2 | %today  |         0 |
   And we say "status": "banked" with subs:
-  | action     | amount       |
+  | action     | amount       |*
   | draw from  | $%R_ACHMIN |
 
 Scenario: a member moves too little to the bank
   When member ".ZZA" completes form "get" with values:
-  | op  | amount             |
+  | op  | amount           |*
   | put | %(%R_ACHMIN-.01) |
   Then we say "error": "bank too little"
 
 Scenario: a member tries to cash out rewards and/or pending withdrawals
   When member ".ZZA" completes form "get" with values:
-  | op  | amount |
+  | op  | amount |*
   | put |     87 |
   Then we say "error": "short put" with subs:
-  | max |
+  | max |*
   | $86 |
 
 Scenario: a member moves inconveniently much to the bank
   When member ".ZZB" completes form "get" with values:
-  | op  | amount |
+  | op  | amount |*
   | put |    200 |
   Then we say "error": "short put" with subs:
-  | max              |
+  | max              |*
   | $%(3*%R_CHUNK+2) |
   # one chunk each from ctty, A, and D. Only $2 from C.
 
 Scenario: a member tries to go below their minimum
   When member ".ZZD" completes form "get" with values:
-  | op  | amount |
+  | op  | amount |*
   | put |     61 |
   Then we say "error": "change min first"
 
 Scenario: a member asks to do two transfers out in one day
   Given usd transfers:
-  | payer | payee | amount | tid | created   |
+  | payer | payee | amount | tid | created   |*
   |  .ZZD |     0 |      6 |   0 | %today    |
   When member ".ZZD" completes form "get" with values:
-  | op  | amount |
+  | op  | amount |*
   | put |     10 |
   Then we show "Bank Transfer" with:
-  | Pending: |
+  |_Pending |
   | You have total pending transfer requests of $6 to your bank account. |
   And we say "error": "short put" with subs:
-  | max |
+  | max |*
   | $0  |

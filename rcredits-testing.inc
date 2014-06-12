@@ -10,6 +10,7 @@ use rCredits as r;
 use rCredits\DB as db;
 use rCredits\Util as u;
 use rCredits\Backend as be;
+use rCredits\Admin as a;
 
 global $base_path;
 define('BASE_PATH', $base_path);
@@ -28,6 +29,7 @@ define('DW_TEST_AUTHS',
 function doRecords($list, $type) {
   global $testOnly;
 /**/    if ($testOnly) t\output("Expect $type: " . print_r($list, 1), 'expect');
+  u\EXPECT(!is_numeric(key($list[0])), 'doThing should be an assoc: ' . print_r($list, 1));
 
   $function = 'rCredits\\Testing\\do';
   $function .= function_exists($function . $type) ? $type : 'Thing';
@@ -1039,6 +1041,7 @@ function est() {return (@TESTING == 1 ? 't' . REQUEST_TIME : FALSE);}
  * @param int $ch: the channel (web, sms, etc.)
  */
 function clear($ch) {
+  include_once __DIR__ . '/admin/admin.inc';
   global $lastGo, $formOut, $formArray, $formSta, $testOp, $testConfirmation;
   global $sms_devel; $sms_devel = TRUE;
     
@@ -1052,7 +1055,7 @@ function clear($ch) {
 
   //db\q('DELETE FROM users WHERE uid>:cgfUid OR (uid>1 AND uid<:cgfUid-1)', compact('cgfUid'));
   db\q('DELETE FROM users WHERE uid>1 or uid<0');
-  r\setupBasicAccounts();
+  a\setupBasicAccounts();
 
   foreach (u\ray($tables) as $one) db\q("TRUNCATE $one");
   db\q('UPDATE users SET floor=0,minimum=NULL,r=0,usd=0,rewards=0,committed=0');
@@ -1132,26 +1135,13 @@ function badEq($type, $v1, $v2, $id) {
 function shownWith($content, $type = 'text', $showDebugs = TRUE) {
   global $formOut;
   $model = $formOut[$type];
+
   if (!$content) return FALSE; // probably an accidental single-row array with no labels
-
-  array_unshift($content, array_keys($content[0])); // look for labels, too (first line)
-
-  $new = array();
-  if ($vertical = (count($content) > 2 and count($content[1]) == 2)) { // keys on the left, so switch it
-    foreach ($content as $one) {
-      $one = array_values($one);
-      if (substr($one[0], 0, 1) == '_') $one[0] = ''; // ignore _label
-      foreach ($one as $oneV) if ($oneV !== '') $new[] = $oneV; // label and value(s)
-    }
-  } else {
-    foreach ($content[0] as $i => $k) {if (substr($k, 0, 1) == '_') $content[0][$i] = '';} // ignore _label
-    $new = array();
-    foreach ($content as $one) foreach ($one as $v) $new[] = $v;
-  }
-  
-  $content = $new;
+  u\EXPECT(is_numeric(key($content[0])), 'shown with should be an array, not an assoc: ' . print_r($content, 1));
+  $A = call_user_func_array('array_merge', $content);
   $xi = $i = 0;
-  foreach ($content as $one) {
+  foreach ($A as $one) {
+    if ($one === '' or substr($one, 0, 1) == '_') continue; // ignore _labels
     if (strpos($one, '%') !== FALSE) $one = t\lastMinuteSubs($one);
     if ($showDebugs) t\output("EXPECT page with " . u\purify($one, ''));
     if (($one = u\redash($one)) !== '') $i = strpos($model, $one, $xi = $i);
@@ -1175,17 +1165,22 @@ function constants($list) {
 function weShow($what, $show = TRUE) {
   global $testOnly; if (!$testOnly) return FALSE;
   if ($what === '') return TRUE;
-  return t\shownWith(is_array($what) ? $what : array(u\ray('_', $what)), 'text', $show);
+  return t\shownWith(is_array($what) ? $what : array(array($what)), 'text', $show);
 }
 
+/**
+ * Check the linked URL content and any Drupal messages (which don't show up in file_get_contents) against expectations.
+ */
 function hasLinkResults($thing, $info) {
   global $formOut;
   global $testOnly; if (!$testOnly) return FALSE;
 
-  if (preg_match('/ href="([^"]*)"/', t\that($thing), $matches)) {
-    $formOut['text'] = file_get_contents($matches[1]);
-    return t\shownWith($info, 'text', TRUE);
-  }
+  if (!preg_match('/ href="([^"]*)"/', t\that($thing), $matches)) return FALSE;
+  
+  $s = file_get_contents($matches[1]);
+  foreach (u\ray('error status') as $one) $$one = @file_get_contents(t\dosayFilename($one));
+  $formOut['text'] = str_replace($was = '#header -->', "$was$error$status", $s);
+  return t\shownWith($info, 'text', TRUE);
 }
 
 function seq($table = 'r_usd') {
@@ -1199,3 +1194,4 @@ function seq($table = 'r_usd') {
 
 function log($msg) {if (t\est()) u\log($msg, 'debug');}
 function that($thing) {global $thatThing; return $thatThing[$thing];}
+function dosayFilename($type) {return __DIR__ . "/../dosay-$type.txt";}

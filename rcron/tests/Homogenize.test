@@ -43,7 +43,7 @@ class rcronHomogenize extends DrupalWebTestCase {
     switch ($variant) {
     default: // fall through to case(0)
     case(0):
-    Given('members: "DATA'
+    Given('members: "ASSOC'
     . '\\| id   | fullName   | email | flags      | floor |'
     . '\\| .ZZA | Abe One    | a@    | ok,dw,bona |     0 |'
     . '\\| .ZZB | Bea Two    | b@    | ok,dw,bona |   -20 |'
@@ -54,7 +54,7 @@ class rcronHomogenize extends DrupalWebTestCase {
     . '\\| .ZZG | Guy Seven  | g@    | ok,dw      |     0 |'
     . '\\| .ZZH | Hal Eight  | h@    | ok,dw      |     0 |'
     . '\\| .ZZI | Ida Nine   | i@    | ok,dw      |     0 |"');
-    And__('transactions: "DATA'
+    And__('transactions: "ASSOC'
     . '\\| xid | created   | type   | amount | from | to   | purpose |'
     . '\\|   1 | %today-6m | signup |     11 | ctty | .ZZA | signup  |'
     . '\\|   2 | %today-6m | signup |      2 | ctty | .ZZB | signup  |'
@@ -63,7 +63,7 @@ class rcronHomogenize extends DrupalWebTestCase {
     . '\\|   5 | %today-6m | signup |     45 | ctty | .ZZG | signup  |'
     . '\\|   6 | %today-6m | signup |     55 | ctty | .ZZH | signup  |'
     . '\\|   7 | %today-6m | signup |     65 | ctty | .ZZI | signup  |"');
-    And__('balances: "DATA'
+    And__('balances: "ASSOC'
     . '\\| id   | r    | usd |'
     . '\\| ctty | -218 |   0 |'
     . '\\| .AAA |    0 |   0 |'
@@ -87,7 +87,7 @@ class rcronHomogenize extends DrupalWebTestCase {
   public function testLevelingHappens_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('cron runs "homogenize"');
-    Then_('balances: "DATA'
+    Then_('balances: "ASSOC'
     . '\\| id   | r    | usd |'
     . '\\| ctty | -218 |   0 |'
     . '\\| .AAA |    0 |   0 |'
@@ -102,7 +102,7 @@ class rcronHomogenize extends DrupalWebTestCase {
     . '\\| .ZZH |   45 |  16 |'
     . '\\| .ZZI |   55 |  17 |"');
     When_('cron runs "homogenize"');
-    Then_('balances: "DATA'
+    Then_('balances: "ASSOC'
     . '\\| id   | r   | usd |'
     . '\\| ctty | -218 |   0 |'
     . '\\| .AAA |    0 |   0 |'
@@ -117,7 +117,7 @@ class rcronHomogenize extends DrupalWebTestCase {
     . '\\| .ZZH |   35 |  26 |'
     . '\\| .ZZI |   55 |  17 |"');
     When_('cron runs "homogenize"');
-    Then_('balances: "DATA'
+    Then_('balances: "ASSOC'
     . '\\| id   | r   | usd |'
     . '\\| ctty | -218 |   0 |'
     . '\\| .AAA |    0 |   0 |'

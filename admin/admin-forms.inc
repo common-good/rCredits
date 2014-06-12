@@ -10,6 +10,7 @@ use rCredits\Backend as be;
 use rCredits\Util as u;
 use rCredits\Testing as t;
 use rCredits\db as db;
+use rCredits\Admin as a;
 
 include_once __DIR__ . '/admin.inc';
 include_once __DIR__ . '/admin-web.inc';
@@ -48,9 +49,11 @@ function formAdmin($form, &$sta, $args = '') {
   $connectBank = submit(t('Connect Bank'));
   $seeSecure = submit(t('See Secure'));
   $newUsdEmail = submit(t('New USD Email'));
-  $form = compact(u\ray('title stop start stopCtty startCtty'));
+  $acctSet = fieldSet('acctSet', compact(u\ray('account make printId seeSecure connectBank do1099b')));
+  
+  $form = compact('title');
   foreach (u\ray($tables) as $one) $form[$one] = submit($one);
-  $form += compact(u\ray('memberList inviteeStatus makeCtty account make printId seeSecure connectBank do1099b'));
+  $form += compact(u\ray('memberList inviteeStatus makeCtty stop start stopCtty startCtty acctSet'));
   return $form;
 }
 
@@ -85,13 +88,13 @@ function formAdmin_submit($form, &$sta) {
     return r\go('print-rcard/' . $a->qid);
   } elseif ($op == 'seeSecure') {
     if (@$a) {
-/**/  debug(u\ray('legalName dwAccount phone federalId dob physicalAddr', @$a->legalName, @$a->usdAccount, substr(@$a->phone, 2), @$a->federalId, u\fmtDate(@$a->dob), @$a->address . ' ' . $a->postalCode));
+      say(u\rayTable(u\ray('legalName dwAccount phone federalId dob physicalAddr', @$a->legalName, @$a->usdAccount, substr(@$a->phone, 2), @$a->federalId, u\fmtDate(@$a->dob), @$a->address . ' ' . $a->postalCode)));
       seeSecure($a);
     }
   } elseif ($op == 'connectBank') {
     $a->connectBank();
   } elseif ($op == 'do1099b') {
-    include __DIR__ . '/../rcredits/rcredits-yearly.inc';
+    include_once __DIR__ . '/../rcredits/rcredits-yearly.inc';
     r\Special\do1099bs();
   } elseif ($op == 'inviteeStatus') {
     return r\go('invited-whom');
@@ -100,22 +103,23 @@ function formAdmin_submit($form, &$sta) {
   // handle all other buttons with showQuery()
   if ($op == 'users') {
     $fields = 'uid, MID(phone,3) AS phone, flags, r, usd, rewards, minimum AS min, committed AS comit, share, floor, address, city, postalCode AS zip';
-    return say(r\showQuery('users', 1, 'name', $fields));
+    return say(a\showQuery('users', 1, 'name', $fields));
   }
   
   $logFields = "channel,type,myid,IF(agent=myid,'--',agent) AS agent, REPLACE(special, ',', ', ') AS special, REPLACE(info, ',', ', ') AS info";
 
-  if ($op == 'log') return say(r\showQuery('r_log', 1, 'logid DESC', $logFields));
-  if ($op == 'tells') return say(r\showQuery('r_log', "info LIKE '%tell-staff%' ORDER BY logid DESC LIMIT 50", 'logid DESC', $logFields));
+  if ($op == 'log') return say(a\showQuery('r_log', 1, 'logid DESC', $logFields));
+  if ($op == 'tells') return say(a\showQuery('r_log', "info LIKE '%tell-staff%' ORDER BY logid DESC LIMIT 50", 'logid DESC', $logFields));
 
-  if ($op == 'txs') return say(r\showQuery('r_txs', isDEV ? 1 : 'type NOT IN (:TX_REBATE,:TX_BONUS)', 'xid DESC', 'xid, t.created, type AS ty, goods AS gd, payer, payee, amount, payerFor AS for1, payeeFor AS for2, payerTid AS tid1, payeeTid AS tid2', array('payer', 'payee')));
+  if ($op == 'txs') return say(a\showQuery('r_txs', isDEV ? 1 : 'type NOT IN (:TX_REBATE,:TX_BONUS)', 'xid DESC', 'xid, t.created, type AS ty, goods AS gd, payer, payee, amount, payerFor AS for1, payeeFor AS for2, payerTid AS tid1, payeeTid AS tid2', array('payer', 'payee')));
 
-  if ($op == 'gifts') return say(r\showQuery('r_gifts', "honor<>'share'", 'donid DESC', 'donid,giftDate,t.uid,amount,often,honor,honored,t.share,completed', 'uid'));
-  if ($op == 'invites') return say(r\showQuery('r_invites', 1, 'invited DESC', 'invited, inviter, invitee, email', 'inviter'));
-  if ($op == 'notices') return say(r\showQuery('r_notices', 1, 'msgid DESC'));
-  if ($op == 'proxies') return say(r\showQuery('r_proxies', 1, 'id DESC', 'person, proxy, priority', 'person'));
-  if ($op == 'relations') return say(r\showQuery('r_relations', 1, 'main, reid', 'reid,main,other,draw,permission,employerOk,employeeOk,isOwner', 'main'));
-  foreach (u\ray('boxes do stats usd') as $one) if ($op == $one) return say(r\showQuery("r_$one"));
+  if ($op == 'gifts') return say(a\showQuery('r_gifts', "honor<>'share'", 'donid DESC', 'donid,giftDate,t.uid,amount,often,honor,honored,t.share,completed', 'uid'));
+  if ($op == 'invites') return say(a\showQuery('r_invites', 1, 'invited DESC', 'invited, inviter, invitee, email', 'inviter'));
+  if ($op == 'notices') return say(a\showQuery('r_notices', 1, 'msgid DESC'));
+  if ($op == 'proxies') return say(a\showQuery('r_proxies', 1, 'id DESC', 'person, proxy, priority', 'person'));
+  if ($op == 'relations') return say(a\showQuery('r_relations', 1, 'main, reid', 'reid,main,other,draw,permission,employerOk,employeeOk,isOwner', 'main'));
+  if ($op == 'usd') return say(a\showQuery('r_usd', 1, 'created DESC'));
+  foreach (u\ray('boxes do stats') as $one) if ($op == $one) return say(a\showQuery("r_$one"));
 }
 
 
@@ -198,42 +202,6 @@ function formMakeCtty_submit($form, &$sta) {
 }
 
 /**
- * Show customer support info about one member.
- * @param string $qid: what account to show (qid or uid)
- */
-function formMemberInfo($form, &$sta, $qid = '') {
-  global $base_url;
-  $a = r\acct($qid);
-  $title = item($a->legalName);
-  $subtext = item(u\fmtPhone($a->phone));
-  if ($showUsd = (r\acct()->cAdmin and !$a->stepsDone['dw'])) {
-    extract((array) $a->secure, EXTR_PREFIX_ALL, 's'); // dunno why (array) is required (indirect mod error)
-/**/ say(print_r(u\ray('usdEmail usdPass phone SSN address zip usdPIN', @$s_usdEmail, @$s_usdPass, @substr(@$s_usdPhone, 2), $a->federalId, $a->address, $a->postalCode, @$s_usdPin), 1));
-  }
-  $account = item($a->qid, t('Account code:'));
-  $username = item($a->name, t('User name:'));
-  $steps = $a->ok
-    ? item(r\showActivity($a), t('Activity:'))
-    : item(r\showSteps($a), t('To do (red):'), t('sign=agreement | contact=contact info | dw:for admin to do | connect=connect bank | verify=verify bank deposits'));
-  $date = $a->ok ? item(u\fmtDate($a->access), t('Last use:')) : item(u\fmtDate($a->login), t('Last signin'));
-  if ($rels = r\showRelations($a)) $relations = item($rels, t('Relations:'));
-  $notes = formField('textarea', t('Notes:'), '', dft($a->notes));
-  $submit = submit();
-  $back = item('<a href="' . $base_url . '/sadmin/member-list">Back to Member List</a>', ' ');
-  $qid = hidField($qid);
-  return labeled(compact(u\ray('qid title subtext account username date steps relations notes submit back')));
-}
-
-function formMemberInfo_submit($form, &$sta) {
-  extract(u\just('qid notes', $sta['input']));
-  $a = r\acct($qid);
-  $a->stampNotes($notes);
-  $a->update(compact('notes'));
-  say('info saved');
-//  return r\go('member-list');
-}
-
-/**
  * Show a list of members in the member's community (all members, for admin)
  */
 function formMemberList($form, &$sta) {
@@ -244,7 +212,7 @@ function formMemberList($form, &$sta) {
   $ctty = r\acct($mya->community);
 
   $title = item((($cAdmin and $ctty) ? $ctty->fullName : '') . t(' Member List'));
-  $sql = 'SELECT uid, login, access, fullName, notes, phone, mail AS email, postalAddr, :IS_CO AS co FROM users WHERE uid>1 AND community=:cttyId ORDER BY :IS_OK, IF(:IS_OK, fullName, -login)';
+  $sql = 'SELECT uid, login, access, fullName, notes, phone, mail AS email, postalAddr, :IS_CO AS co FROM users WHERE uid>1 AND community=:cttyId ORDER BY :IS_OK, IF(:IS_OK, fullName, 2000000000-login)'; // -login fails because it gets treated as a string
   $q = db\q($sql, u\ray('cttyId', $ctty->id));
   $list = "<table id='memberlist'>\n";
   $emails = '';
@@ -256,13 +224,13 @@ function formMemberList($form, &$sta) {
     $notes = str_replace('do:', '<b style="color:blue; font-size:130%;">do:</b>', $notes);
     $a = r\acct($uid);
     $fullName = "<a href=\"$base_url/sadmin/member-info/$a->mainQid\">$fullName</a>";
-    $steps = r\showSteps($a);
+    $steps = a\showSteps($a);
     $date = u\fmtDate($a->ok ? $access : $login);
 
     if ($cAdmin) {
       $bits = array(); // zap previous value
       foreach (u\ray('member ok dw bank') as $one) if ($a->can(u\consta('b', $one))) $bits[] = $one;
-      $bits = $bits ? ('<span style="color:darkgreen;">' . join(' ', $bits) . "</span><br>\n") : '';
+      $bits = $bits ? ('<span style="color:darkgreen;"> ' . join(' ', $bits) . "</span><br>\n") : '';
     } else $bits = '';
     
     $one = "<tr><td colspan=4 style='font-size:70%; font-weight:normal; padding-left:20px;'>$date: $steps$bits$notes</td></tr>\n";
@@ -282,6 +250,52 @@ EOF;
   $list = item($list);
   $emails = $cAdmin ? item($emails, t('All emails')) : NULL;
   return compact(u\ray('title list emails'));
+}
+
+/**
+ * Download the member list for the current community
+ */
+function formDownloadMemberList($form, &$sta) {
+  $mya = r\acct();
+  $ctty = r\acct($mya->community);
+
+  $title = item(t('Download Member List'));
+  $subtext = item(t('for ') . $ctty->fullName);
+  if ($ctty->name == 'NEW.') $allCttys = boxField(t('All communities:')); // temporary for CGF oversight
+  $onlyActive = boxField(t('Active only:'), tt('Export only active accounts'));
+  $onlyPeople = boxField(t('People only:'), tt('Export only individual accounts (especially when emailing)'), TRUE);
+  //$onlyCos = boxField(t('Companies only:'), tt('Export only company accounts'), FALSE);
+  $submit = submit(t('Download'));
+  return labeled(compact(u\ray('title subtext allCttys onlyActive onlyPeople submit')));
+}
+
+function formDownloadMemberList_submit($form, &$sta) {
+  $mya = r\acct();
+  $ctty = r\acct($mya->community);
+  extract(u\just('allCttys onlyActive onlyPeople', $sta['input']));
+
+  $filename = t('rCredits-')
+  . str_replace('.', '', $ctty->name)
+  . (@$onlyActive ? t('-active') : '')
+  . (@$onlyPeople ? t('-members') : t('-accounts'))
+  . '.csv';
+  u\csvStart($filename);
+  u\csv($fields = u\ray($fields = 'id first last phone email address city state zip'));
+
+  $where = @$allCttys ? '1' : 'community=:cttyId';
+  if (@$onlyActive) $where .= ' AND :IS_OK';
+  if (@$onlyPeople) $where .= ' AND NOT :IS_CO';
+  $sql = "SELECT uid AS id, fullName, phone, mail AS email, postalAddr FROM users WHERE uid>1 AND NOT :IS_NONUDGE AND $where ORDER BY :IS_OK, -signed, -created";
+  $q = db\q($sql, u\ray('cttyId', $ctty->id));
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    list ($first, $last) = u\parseName($fullName);
+    list ($address, $city, $state, $zip) = u\parseAddr($postalAddr);
+    if (is_numeric($zip)) $zip .= '-'; // prevent this from getting interpreted as a number
+    $phone = u\fmtPhone($phone);
+    u\csv(array_values(compact($fields)));
+  }
+  exit();
 }
 
 define('PHOTO_MAX', 90); // maximum height and width of photo
@@ -413,7 +427,7 @@ function formSMS_submit($form, $sta) {
 
 function test($arg = '') {
   global $user;
-  include __DIR__ . '/../../gherkin/test.php';
+  include_once __DIR__ . '/../../gherkin/test.php';
 /*  $adminPass = '123';
   $account = \user_authenticate('admin', $adminPass);
   $user = \user_load($account, TRUE);

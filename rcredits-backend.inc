@@ -10,6 +10,7 @@ use rCredits as r;
 use rCredits\DB as db;
 use rCredits\Util as u;
 use rCredits\Testing as t;
+use rCredits\Backend as be;
 
 define('REAL', @$_SERVER['SystemRoot'] != 'C:\\Windows');
 /*
@@ -108,7 +109,7 @@ function myTransactions($starting, $ending, $id = NULL) {
   
   $where = 't.created>=:starting AND t.created<=:ending'
   . ' AND t.type>=0'
-  . ' AND (amount>0 OR type=:TX_FINE)'
+// NO! . ' AND (amount>0 OR type=:TX_FINE)'
   . ' ORDER BY t.xid DESC';
   
   if (@$ctty) { // all transactions in the community or region
@@ -321,23 +322,23 @@ EOF;
 
 
 /**
- * Pay the given invoice
- * @param int $xid: id of invoice to pay
- * @return array(string $message, array $args)
+ * Pay the given invoice, possibly without being signed in.
+ * @param int $nvid: record ID of invoice to pay
+ * @param string $msg: success or error message
+ * @return TRUE if the payment was successful
  */
-function payInvoice($xid) {
-  $mya = r\acct();
-  if (!$mya->can(B_BUY)) return array('no perm', u\ray('what', t('purchases')));
-  if (!$result = lastTx('xid=:xid AND status IN (:TX_PENDING,:TX_DENIED)', compact('xid'))) return array('no such tx', array());
-  extract($result, EXTR_PREFIX_ALL, 'old');
-  $acct = r\acct($old_payee, $old_payeeAgent);
-  $undoes = $xid;
+function payInvoice($nvid, &$msg = '') {
+  if ($msg = r\badUnpaidInv($nvid, $inv)) return FALSE;
+  extract(u\just('payer payee amount purpose', $inv));
   
-  r\usd::beginAtom();
-  list ($message, $args, $confirm) = transfer('invoice payment', $mya, $acct, $old_amount, $old_payeeFor, $old_goods, TRUE, compact('undoes'));
-  r\usd::commit();
-
-  return array($message, $args);
+  $DBTX = \db_transaction();
+  $purpose .= " (inv#$nvid)";
+  list ($index, $subs) = be\transfer('payment', r\acct($payer), r\acct($payee), $amount, TRUE, $purpose);
+  if ($ok = @$subs['success']) db\q('UPDATE r_invoices SET status=:xid WHERE nvid=:nvid', u\ray('xid nvid', @$subs['xid'], $nvid));
+  unset($DBTX);
+  
+  $msg = u\tt($index, $subs);
+  return $ok;
 }
 
 /**
@@ -468,6 +469,9 @@ function invoice($a1, $a2, $amount, $goods = FALSE, $purpose = NULL, $confirmed 
     $info = compact(u\ray('amount payer payee goods purpose created'));
     $nvid = db\insert('r_invoices', $info);
     $a1->update(u\ray('lastTx', array($nvid, $payer - $payee, round(-$amount, 2), $created, 'inv')));
+
+    $href = r\makeDo('op id expires', 'inv', $nvid, 90 * DAY_SECS);
+    $subs['a'] = "a href=\"$href\""; // link to pay/deny
     //$a2->update(u\ray('lastTx', array($nvid, $payee - $payer, round($amount, 2), $created, 'inv')));
     r\notify($payer, 'new invoice', $subs); // notify other party by email about this invoice
     return array('report invoice', $subs + u\ray('success', TRUE), FALSE);
@@ -683,8 +687,7 @@ function accountChoices() {
   if (!$mya = r\acct()) return FALSE;
   $result = array($aid = $mya->agentId);
   if ($mya->admin) {
-    $result += @db\q('SELECT uid FROM users WHERE uid<:R_CTTY_UID0 ORDER BY fullName')->fetchAllKeyed(0, 0);
-    $result += @db\q('SELECT uid FROM users WHERE uid>1 ORDER BY fullName')->fetchAllKeyed(0, 0);
+    $result += @db\q('SELECT uid FROM users WHERE ABS(uid)>1 ORDER BY (uid<0) DESC, fullName')->fetchAllKeyed(0, 0);
   } elseif ($mya->cAdmin) {
     $result += @db\q('SELECT uid FROM users WHERE community=:ctty ORDER BY (uid<0) DESC, fullName', u\ray('ctty', $mya->community))->fetchAllKeyed(0, 0);
   } else $result += @db\q('SELECT main FROM r_relations WHERE other=:aid AND permission>0', compact('aid'))->fetchAllKeyed(0, 0);

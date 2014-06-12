@@ -312,6 +312,8 @@ class call {
   function do_payment() {
     $mya = r\acct();
     $myid = $mya->id;
+
+    if (!$mya->can(B_BUY)) return tt('no perm', u\ray('what', t('purchases')));
     extract($this->parms, EXTR_PREFIX_ALL, 'my'); // amount, who, what, and maybe xid
     if (isset($my_amount)) return $this->do_transfer('payment'); // complete syntax
     

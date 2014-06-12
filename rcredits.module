@@ -216,7 +216,7 @@ function f($func) {
   $func = array_shift($args);
   
   list ($n, $func) = explode('.', $func);
-  $funcs = u\ray('r w s u be db t p', '', 'Web', 'Smart', 'Util', 'Backend', 'DB', 'Testing', 'SMS');
+  $funcs = u\ray('r w s u be db t p a cr', '', 'Web', 'Smart', 'Util', 'Backend', 'DB', 'Testing', 'SMS', 'Admin', 'Cron');
   $func = 'rCredits\\' . ($funcs[$n] ? $funcs[$n] . '\\' : '') . $func;
   return call_user_func_array($func, $args);
 }

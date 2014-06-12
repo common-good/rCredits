@@ -43,7 +43,7 @@ class rsmartIdentify extends DrupalWebTestCase {
     switch ($variant) {
     default: // fall through to case(0)
     case(0):
-    Given('members: "DATA'
+    Given('members: "ASSOC'
     . '\\| id   | fullName   | email | city  | state | cc  | cc2  | flags      |'
     . '\\| .ZZA | Abe One    | a@    | Atown | AK    | ccA | ccA2 | ok,bona    |'
     . '\\| .ZZB | Bea Two    | b@    | Btown | UT    | ccB | ccB2 | ok,bona    |'
@@ -52,22 +52,22 @@ class rsmartIdentify extends DrupalWebTestCase {
     . '\\| .ZZE | Eve Five   | e@    | Etown | IL    | ccE | ccE2 | ok,bona,secret_bal |'
     . '\\| .ZZF | Far Co     | f@    | Ftown | FL    | ccF |      | ok,co,bona |'
     . '\\| .ZZG | Gil Seven  | g@    | Gtown | GA    | ccG |      |            |"');
-    And__('devices: "DATA'
+    And__('devices: "ASSOC'
     . '\\| id   | code |'
     . '\\| .ZZC | devC |"');
-    And__('selling: "DATA'
+    And__('selling: "ASSOC'
     . '\\| id   | selling         |'
     . '\\| .ZZC | this,that,other |"');
-    And__('company flags: "DATA'
+    And__('company flags: "ASSOC'
     . '\\| id   | flags            |'
     . '\\| .ZZC | refund,sell cash |"');
-    And__('relations: "DATA'
+    And__('relations: "ASSOC'
     . '\\| id   | main | agent | permission | rCard |'
     . '\\| :ZZA | .ZZC | .ZZA  | buy        | yes   |'
     . '\\| :ZZB | .ZZC | .ZZB  | scan       | yes   |'
     . '\\| :ZZD | .ZZC | .ZZD  | read       |       |'
     . '\\| :ZZE | .ZZF | .ZZE  | buy        |       |"');
-    And__('transactions: "DATA'
+    And__('transactions: "ASSOC'
     . '\\| created   | type   | amount | from | to   | purpose |'
     . '\\| %today-6m | signup | 250    | ctty | .ZZA | signup  |'
     . '\\| %today-6m | signup | 250    | ctty | .ZZB | signup  |'
@@ -84,7 +84,7 @@ class rsmartIdentify extends DrupalWebTestCase {
   public function testACashierSignsIn_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('agent "" asks device "devC" to identify "ZZB-ccB2"');
-    Then_('we respond with: "DATA'
+    Then_('we respond with: "ASSOC'
     . '\\| ok | name    | logon | descriptions    | can | default | company    |'
     . '\\| 1  | Bea Two | 1     | this,that,other |     | NEW.ZZC | Corner Pub |"');
   }
@@ -92,11 +92,11 @@ class rsmartIdentify extends DrupalWebTestCase {
   // Scenario: a cashier signs in as required
   public function testACashierSignsInAsRequired_0() {
     $this->setUp2(__FUNCTION__, 0);
-    Given('company flags: "DATA'
+    Given('company flags: "ASSOC'
     . '\\| id   | flags                            |'
     . '\\| .ZZC | refund,sell cash,require cashier |"');
     When_('agent "" asks device "devC" to identify "ZZB-ccB2"');
-    Then_('we respond with: "DATA'
+    Then_('we respond with: "ASSOC'
     . '\\| ok | name    | logon | descriptions    | can | default | company    |'
     . '\\| 1  | Bea Two | 1     | this,that,other |     |         | Corner Pub |"');
   }
@@ -105,7 +105,7 @@ class rsmartIdentify extends DrupalWebTestCase {
   public function testDeviceHasNoIdentifierYet_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('agent "" asks device "" to identify "ZZB-ccB2"');
-    Then_('we respond with: "DATA'
+    Then_('we respond with: "ASSOC'
     . '\\| ok | name    | logon | descriptions    | can | device | default | company    |'
     . '\\| 1  | Bea Two | 1     | this,that,other |     | ?      | NEW.ZZC | Corner Pub |"');
   }
@@ -121,7 +121,7 @@ class rsmartIdentify extends DrupalWebTestCase {
   public function testACashierSignsInSigningAnotherCashierOut_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('agent ":ZZA" asks device "devC" to identify "ZZB-ccB2"');
-    Then_('we respond with: "DATA'
+    Then_('we respond with: "ASSOC'
     . '\\| ok | name    | logon | descriptions    | can | default | company    |'
     . '\\| 1  | Bea Two | 1     | this,that,other |     | NEW.ZZC | Corner Pub |"');
   }
@@ -130,7 +130,7 @@ class rsmartIdentify extends DrupalWebTestCase {
   public function testAManagerSignsIn_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('agent "" asks device "devC" to identify "ZZA-ccA2"');
-    Then_('we respond with: "DATA'
+    Then_('we respond with: "ASSOC'
     . '\\| ok | name    | logon | descriptions    | can              | default | company    |'
     . '\\| 1  | Abe One | 1     | this,that,other | refund,sell cash | NEW.ZZC | Corner Pub |"');
   }
@@ -139,10 +139,10 @@ class rsmartIdentify extends DrupalWebTestCase {
   public function testACashierScansACustomerCard_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('agent ":ZZB" asks device "devC" to identify "ZZD.ccD"');
-    Then_('we respond with: "DATA'
+    Then_('we respond with: "ASSOC'
     . '\\| ok | name     | place     | company | logon |'
     . '\\| 1  | Dee Four | Dtown, DE |         | 0     |"');
-    And__('with balance "DATA'
+    And__('with balance "ASSOC'
     . '\\| name     | balance | spendable | cashable |'
     . '\\| Dee Four | $250    |           | $0       |"');
   }
@@ -151,10 +151,10 @@ class rsmartIdentify extends DrupalWebTestCase {
   public function testTheDefaultCashierScansACustomerCard_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('agent ".ZZC" asks device "devC" to identify "ZZD.ccD"');
-    Then_('we respond with: "DATA'
+    Then_('we respond with: "ASSOC'
     . '\\| ok | name     | place     | company | logon |'
     . '\\| 1  | Dee Four | Dtown, DE |         | 0     |"');
-    And__('with balance "DATA'
+    And__('with balance "ASSOC'
     . '\\| name     | balance | spendable | cashable |'
     . '\\| Dee Four | $250    |           | $0       |"');
   }
@@ -184,7 +184,7 @@ class rsmartIdentify extends DrupalWebTestCase {
   public function testACashierScansACustomerCardWhoseBalanceIsSecret_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('agent ":ZZB" asks device "devC" to identify "ZZE.ccE"');
-    Then_('we respond with: "DATA'
+    Then_('we respond with: "ASSOC'
     . '\\| ok | name     | place     | company | logon |'
     . '\\| 1  | Eve Five | Etown, IL |         | 0     |"');
     And__('with balance ""');
@@ -194,10 +194,10 @@ class rsmartIdentify extends DrupalWebTestCase {
   public function testACashierScansACompanyCustomerCard_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('agent ":ZZB" asks device "devC" to identify "ZZE-ccE2"');
-    Then_('we respond with: "DATA'
+    Then_('we respond with: "ASSOC'
     . '\\| ok | name     | place     | company | logon |'
     . '\\| 1  | Eve Five | Ftown, FL | Far Co  | 0     |"');
-    And__('with balance "DATA'
+    And__('with balance "ASSOC'
     . '\\| name                 | balance | spendable | cashable |'
     . '\\| Eve Five, for Far Co | $0      |           | $0       |"');
   }
@@ -222,7 +222,7 @@ class rsmartIdentify extends DrupalWebTestCase {
   public function testANonyetactiveMemberCardIsScanned_0() {
     $this->setUp2(__FUNCTION__, 0);
     When_('agent ":ZZB" asks device "devC" to identify "ZZG.ccG"');
-    Then_('we return error "member inactive" with subs: "DATA'
+    Then_('we return error "member inactive" with subs: "ASSOC'
     . '\\| name      |'
     . '\\| Gil Seven |"');
   }

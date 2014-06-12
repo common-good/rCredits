@@ -1,30 +1,71 @@
 rCredits Software
 To Do
 
-. write david russell to talk to accountant or to get payments made to other businesses / employees
-. get a new device for GFM
 - (from mike) after we grow, might be nice to do newsletter features on:
         • the person who’s successfully directly invited the most other people
         • ditto, but directly-and-indirectly combined, sort of “most descendants”
         • the longest chain of successful invites (probably not that long, so maybe more than one chain)
+- Once we have an office: apply to the MA Executive Office of Health and Human Services Dept. of Transitional Assistance for Community Service Volunteers (on site)
 
 Before growing fast:
-. ACH at TDBank (need EIN doc, cert from town, signers in person with ss#/dob/license/physAddr)
-  (treasury management)
+. ACH debits (need EIN doc, cert from town, signers in person with ss#/dob/license/physAddr)
+  (treasury management). The following accounts will need to re-supply a routing number and bank account number: Adam Konner, William Spademan, John G Root Jr, Janet Henderson, John F. Eichholz, Alden Booth, Barbara Ann Fingold, Julia Bond Ellingboe, Gary L. Schaefer, Diane C. Miller, Peter Robert Letson, Jennifer Atlee, Nancy Hazard, Denise M. Ward, Daniel S Rosenberg, Addie Rose Holland, Ellen Kaufmann, Rebecca Jane Meier, 
 . DONE emails and invites don't get marked as spam
 . DONE economic circle(s)
 . 2 more new board members, including a business leader
 . ID verification
-. Software: invoices, sound admin tools
+. Software:
+  - DONE invoices
+  - sound admin tools: 
 . $25 for inviting and helping (software and promo)
-. get GFM to pay suppliers and employees
+    select DISTINCT u.fullName as member, u.mail, i.id, u2.fullName as inviter from users u left join r_invites i ON i.invitee=u.uid LEFT JOIN users u2 ON u2.uid=i.inviter WHERE (u.flags & 2) AND NOT (u.flags & 64) ORDER BY u.uid
+. get GFM and Foster's to pay suppliers and/or employees at least half what they take in
+. after we get straight with the MA Attorney General's office (catch up on forms PC), redirect commongoodfinance.com to commongoodfinance.org and add a donate button to commongoodfinance.org
 
 TASKS FOR NEXT UPDATE:
+. reinstall
+. upload r_banks records
+
 (no other special tasks yet)
 
 . add something to rCredits.org website that mentions Ann Arbor and directs people to that facebook page (https://www.facebook.com/A2rcredits) and their email address.
 
-. give cAdmin2 people an Admin section with just memberlist and export
+. Jesse Seaver says: I think this summary would be better served in a table layout, with date, description, and amount, vs a string including this information as it is now. 
+
+Also, I feel that it’s important these kinds of statements are set up in a way in which people are used to. I would mimic a major banking statement as much as possible, but make it more lighthearted and fun. Like a real bank, but a bank that is unique in this was as well. Getting your monthly statement should be fun, and something I look forward to right? So, it needs to have a little more personality and feel like a real credit statement. 
+
+Attached is a quick example if what I would do with the monthly message below. 
+
+Also, a couple notes : 
+
+1. The first line of a new account shouldn’t say my account fell below the sufficient balance. Because I am a new user, it should say “Initial Deposit” or something like that. 
+
+2. Cant the link to the account be set up so that it has parameters that tell the server that after login it should goto the specified settings page? 
+
+3. Make your call to offer to help them ( email, phone, chat ) at the very top of the message. This immediately ( even if a little subconsciously ) implies that their satisfaction is the most important thing. 
+
+4. Attach it as a PDF as well, or offer a link so I Can print it easily. 
+
+5. Can I have a QR code that will pull up my Rcredit profile, or a way to pay me in credits via a mobile app / mobile site? 
+
+6. Add icons to the balance listing, or at least + and - signs in red or green depending on whether it’s a debit or credit. 
+. for rebates/bonuses, give xid# for ctty purpose (eg "rebate on #3847")
+. subtotals by purpose in downloaded PDFs (and CSV?)
+. notices should say to contact us at community admin's email address (not necessarily new@rcredits.org)
+. rdo for min needs expires date (all entries should have an expires date)
+. donations on Summary page: always show honors and howoften. show sum separately from first.
+. helper field on Summary page should be qid and (fullName)
+. when admin enters data from paper, remember it was paper (flag bit?), present the "Add Another Account" button, ask for inviter (accept an email or name), offer a single checkbox for "signed", etc.
+. add link to explanation of rCredits staying in the system on Summary and Bank pages
+. bug: memberInfo form shows "can ?" for Emily on Adam's record
+. hidable advanced settings for Txs
+. remove invoicing code from be\transfer (but crash if called inappropriately)
+. leave erroneous export fields blank and don't leave a dangling "-" on zip
+. add "Ever" to period choices in formTxs
+. unset bits u10, u15, u19
+. explain tax options on 1099-B page
+. add "check online" to the ticklers
+. put memberInfo in Summary?
 . add legalName to input fields on Summary page for cAdmin
 . handle failed deposits/withdrawals (notify the member)
 . fix rSMS Transact and Undo tests
@@ -41,13 +82,11 @@ TASKS FOR NEXT UPDATE:
 . when reversing a sharing in ws., reversed tx gets wrong tid in purpose and offsetting tx does not appear (BAD)
 . track buyers and sellers in stats: SELECT DISTINCT uid,fullName FROM r_txs t, users u WHERE uid IN (payer, payee) AND uid>1 AND payee<>26742000000002 AND payer>0
 . scatter graph: sector II x-axis buyers (primarily) pay y-axis sellers (primarily). sector I y-axis sellers pay x-axis buyers (mostly payroll), order by how extreme ($bought-$sold), with extremes on the top/outside
-. move photos to /sites/photos and rename them uid-photoCode.jpg (photoCode is null for companies)
 . tell newbs their bank's phone number (to make it easy to confirm the deposits)
 . Adam: I've noticed the rcredits member site keeps me logged in long after I've stopped using it, even after I close the tab and then reopen it hours or days later. For a financial site where money can be moved, I'd recommend either auto-logout after 10-20 minutes of inactivity, or (better) requiring me to re-enter my password before doing certain things like paying people if it's been more than 10-20 min since I last entered it. 
 . on NSF for cash/loan/etc., explain that rewards cannot be cashed out
 . implemented a FREEZE button for cttyadmins (disables transfers of USD out)
 . change cached "r" field in users to bal (total of r and usd)
-. tentatively implemented invoices as emails, as for "buy now with rCredits" buttons (a copy of the email goes to the sender, prefixed by "you sent this invoice to XXX on YYY:"). Invoices are permanent. Link has a weak security code -- maybe the account created date
 . use legalName on Relations page!!
 . now includes inviter in proxy list
 . Pay page does not figure shortfall properly (omits draw!)
@@ -74,7 +113,6 @@ TASKS FOR NEXT UPDATE:
 - ** implement r\suggest (use this for merchant invoices too. user gets an email invoice from rCredits, they can just click a link to accept or decline. merchant gets notified). test cron call to r\suggest (should just notify, for now)
 - for admin, put initial gift and share% on member's Summary page (attached to addr)
 . when opening "another account", pass type (personal or company) to signup form (already does?)
-. doing bank step out of order gives Dwolla error "User must be verified." Handle it or forbid form until then.
 
 . Suggestions from Mike:
 • I think I had to click “Upload and Save” twice, once to upload-and-display, once to save. Is that correct?
@@ -84,22 +122,16 @@ TASKS FOR NEXT UPDATE:
 • The full-contact-info page asked again whether to verify by text or voice. Does it really need to know that?
 • Instead of “Choose File” in the upload-photo page, how about “Choose Photo”? (make input an invisible overlay): http://stackoverflow.com/questions/5191375/a-file-input-button-for-all-browsers-is-this-possible/5191970#5191970
 
-. The software will need to provide an easy way for businesses to use rCredits for payroll. Adam suggests letting businesses upload a spreadsheet, for example.
 . To handle a “run” on rCredits, Community Admins should be able to freeze rCredits/USD exchanges until the community has an opportunity to meet to discuss solutions.
 • routing number and federal ID: could be nice to light up when I have the correct number of digits.
 . make proxy choices scrolling lists (with html size=20 ?), maybe the two choices side by side
-. write test or test procedure for updating usd cache when shortfall but funds have arrived in Dwolla (have to test it on production server)
 . create an rCredits charge&pay app (modify rPOS) for members to charge or pay other members (rather than be charged). It might be expanded later to include account features.
 . implement two-factor signin
 . write ajax to remember country and state in Contact form, on blank field error
  don't create account (in acct class) if email is a dup
-. when admin reactivates an account, member gets an email with a bad password (it should send a new temporary password without altering the saved real password) done?
-. on member list, click "dw" to get current step
 . handle cards reported stolen at POS (how? ask Visa)
 . on transaction page: action on far left, reward next to "to you"
 . cash/loan/etc vs. goods & services: provide a link to help the member decide which
-. advanced feature: see breakdown of USD/rCredits for one's account (with explanation of why it changes)
-. automate account deletion and make sure it deletes related records
 . sort transactions by date before download (already does, for display)
 . report proper balance on tellStaff about gift
 . withdrawal should disable minimum if necessary to avoid an automatic reversal of the withdrawal
@@ -107,7 +139,6 @@ TASKS FOR NEXT UPDATE:
 - * reduce picture size and make thumbnails (for upper right corner)
 . check and correct deposit/withdrawal status (and balance) when visiting bank tab
 . selecting a new account when site has timed out and signed the user out, should do something reasonable
-. fix community page transaction list for admin
 . take B_BONA off region and add B_CO
 . fix layout of member webpage (description gets jammed into narrow div)
 . send a statement to each member monthly. if it bounces, call, then shut down the account 7 days later (with a notice) and send a text immediately and/or US Mail pcard later, saying we need a new email address (with easy instructions for doing it, including what to do if they don't remember their password (first make an exchange of a certain amount of cash for rC at a member business, as an identity check?, then go online and use that as their temp pw)
@@ -131,7 +162,6 @@ TASKS FOR NEXT UPDATE:
 . committed amount can go negative (on a refund). make sure cron handles it right.
 . Fix this problem in tests: Too many args (11) in statement: next random code is ""dxCX>tz0Asz4@,8F=I6u6Ng_p}1U[6cZfitLjNd[X1WmC8BpD"" (maybe in test-defs.php? subargs are recognized by "=>", so it's not that...)
 
-. show the right thing for bank transfers for cadmin statistics page or hide them
 . have Gherkin always send us the whole array, which must still be rectangular. use t\hdrs() to make the first row or column keys/hdrs for the others
 . drive xml error from USPS on Signin, and handle it gracefully
 . rewrite form testing system to use just menu_execute_active_handler, drupal_validate_form, etc. (assuring official behavior). For example, be able to test required fields.
