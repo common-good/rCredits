@@ -44,10 +44,12 @@ class rcronTickle extends DrupalWebTestCase {
     default: // fall through to case(0)
     case(0):
     Given('members: "ASSOC'
-    . '\\| id   | fullName | email | flags | access    |'
-    . '\\| .ZZA | Abe One  | a@    |       | %today-1d |'
-    . '\\| .ZZB | Bea Two  | b@    |       | %today-2d |'
-    . '\\| .ZZD | Dee Four | d@    |       | %today-3d |"');
+    . '\\| id   | fullName | email | flags | access    | floor |'
+    . '\\| .ZZA | Abe One  | a@    |       | %today-1d |     0 |'
+    . '\\| .ZZB | Bea Two  | b@    |       | %today-2d |     0 |'
+    . '\\| .ZZD | Dee Four | d@    |       | %today-3d |     0 |'
+    . '\\| .ZZE | Eve Five | e@    | ok    | %today-3m |     0 |'
+    . '\\| .ZZF | Flo Six  | f@    | ok    | %today-3m |     0 |"');
     break;
 
 
@@ -115,6 +117,76 @@ class rcronTickle extends DrupalWebTestCase {
     . '\\| b@example.com | .ZZD    | codeA1 | %today-8d | .ZZB    |"');
     When_('cron runs "tickle"');
     Then_('we do not email "nonmember" to member "b@example.com"');
+  }
+
+  // Scenario: A member gets a credit line
+  public function testAMemberGetsACreditLine_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "ASSOC'
+    . '\\| id   | r   |'
+    . '\\| .ZZE | 500 |"');
+    And__('transactions: "ASSOC'
+    . '\\| created   | type     | amount | from | to   | purpose |'
+    . '\\| %today-1m | transfer |    300 | .ZZE | .ZZF | gift    |"');
+    When_('cron runs "tickle"');
+    Then_('members have: "ASSOC'
+    . '\\| id   | floor |'
+    . '\\| .ZZE |   -50 |"');
+    And__('we notice "new floor|no floor effect" to member ".ZZE" with subs: "ASSOC'
+    . '\\| floor |'
+    . '\\|  $-50 |"');
+  }
+
+  // Scenario: A member gets a bigger credit line after several months
+  public function testAMemberGetsABiggerCreditLineAfterSeveralMonths_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "ASSOC'
+    . '\\| id   | r    |'
+    . '\\| .ZZE | 5000 |"');
+    And__('transactions: "ASSOC'
+    . '\\| created   | type     | amount | from | to   | purpose |'
+    . '\\| %today-6m | transfer |    300 | .ZZE | .ZZF | gift    |'
+    . '\\| %today-5m | transfer |   1500 | .ZZE | .ZZF | gift    |"');
+    When_('cron runs "tickle"');
+    Then_('members have: "ASSOC'
+    . '\\| id   | floor |'
+    . '\\| .ZZE |  -300 |"');
+    And__('we notice "new floor|no floor effect" to member ".ZZE" with subs: "ASSOC'
+    . '\\| floor |'
+    . '\\| $-300 |"');
+  }
+
+  // Scenario: A member gets no new credit line because it's the wrong day
+  public function testAMemberGetsNoNewCreditLineBecauseItsTheWrongDay_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "ASSOC'
+    . '\\| id   | r   |'
+    . '\\| .ZZE | 500 |"');
+    And__('transactions: "ASSOC'
+    . '\\| created   | type     | amount | from | to   | purpose |'
+    . '\\| %today-5w | transfer |    300 | .ZZE | .ZZF | gift    |"');
+    When_('cron runs "tickle"');
+    Then_('members have: "ASSOC'
+    . '\\| id   | floor |'
+    . '\\| .ZZE |     0 |"');
+  }
+
+  // Scenario: A member gets no new credit line because the change would be minimal
+  public function testAMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal_0() {
+    $this->setUp2(__FUNCTION__, 0);
+    Given('balances: "ASSOC'
+    . '\\| id   | r   |'
+    . '\\| .ZZE | 500 |"');
+    And__('members have: "ASSOC'
+    . '\\| id   | floor |'
+    . '\\| .ZZE |    49 |"');
+    And__('transactions: "ASSOC'
+    . '\\| created   | type     | amount | from | to   | purpose |'
+    . '\\| %today-5w | transfer |    300 | .ZZE | .ZZF | gift    |"');
+    When_('cron runs "tickle"');
+    Then_('members have: "ASSOC'
+    . '\\| id   | floor |'
+    . '\\| .ZZE |    49 |"');
   }
 
 }

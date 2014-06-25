@@ -1,3 +1,15 @@
+2014-06-25
+. fixed bug: u\monthDay1 failed for other years
+. moved Txs utility functions to their own namespace (Txs aka x)
+. created a pdf class extending TCPDF
+. created function to show (calendar) monthly account statements
+. fixed bug in edit transaction description (was changing the wrong purpose field)
+. we now allow rewards and donations in not-yet-active communities
+. users are now given a revised credit line (floor) every month after their first payment transaction
+. changed TCPDF cache permissions to 777 (required for monthly statements)
+. added a "New Account" tab to admin section
+. gave region an email address (new@rCredits.org) and shortened its postal address to fit on the monthly statements
+
 2014-06-11
 . added member list export option for cAdmin2
 . cAdmin2 people now have an Admin section with just memberlist and export

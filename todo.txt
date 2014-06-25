@@ -23,13 +23,17 @@ Before growing fast:
 . after we get straight with the MA Attorney General's office (catch up on forms PC), redirect commongoodfinance.com to commongoodfinance.org and add a donate button to commongoodfinance.org
 
 TASKS FOR NEXT UPDATE:
-. reinstall
-. upload r_banks records
-
+. rebuild menus
+. chmod tcpdf/cache
 (no other special tasks yet)
 
-. add something to rCredits.org website that mentions Ann Arbor and directs people to that facebook page (https://www.facebook.com/A2rcredits) and their email address.
-
+. "no bank" option on signup!
+. alert staff on insufficient funds
+. activate automatic credit lines (average throughput over the past 6 months, prorated as 1/6 of monthly throughput for 30-day-old accounts, etc.)
+. accounts that draw on others are forbidden to cash out, but they can draw rewards from other accounts.
+. add graphs 2-4 to the account statements in a "Community" section, with short explanations of the significance.
+. give category totals on monthly statements (anything before ~*([{|\;:,.</ or end of string is a category)
+. handle separate USD balances for each community, without requiring a separate USD account (?) Better if we can open multiple accounts for ACH!
 . Jesse Seaver says: I think this summary would be better served in a table layout, with date, description, and amount, vs a string including this information as it is now. 
 
 Also, I feel that it’s important these kinds of statements are set up in a way in which people are used to. I would mimic a major banking statement as much as possible, but make it more lighthearted and fun. Like a real bank, but a bank that is unique in this was as well. Getting your monthly statement should be fun, and something I look forward to right? So, it needs to have a little more personality and feel like a real credit statement. 

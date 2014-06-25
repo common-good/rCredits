@@ -9,7 +9,7 @@ define('R_REGION_LEGALNAME', 'rCredits Western Massachusetts Region');
 define('R_SERVER_ID', 'NEW'); // qid header for this region's server (New England / Western MA)
 // other 3rd letters: M=ME H=NH V=VT C=CT R=RI P=PA B=Boston
 define('R_REGION_SHORTNAME', R_SERVER_ID . '.');
-define('R_REGION_ADDR', 'c/o Common Good Finance, PO Box 21, Ashfield, MA 01330');
+define('R_REGION_ADDR', 'c/o CGF, PO Box 21, Ashfield, MA 01330');
 define('R_REGION_PHONE', '+1 413.376.5021');
 define('R_TESTER_EMAIL', 'wspademan@gmail.com'); // tester's personal email
 define('R_REGION_EMAIL', strpos($_SERVER['HTTP_HOST'], '.') < 3 ? str_replace('@', '_cgf@', R_TESTER_EMAIL) : (strtolower(R_SERVER_ID) . '@rCredits.org'));
@@ -40,3 +40,4 @@ define('R_DEBT_DAYS', 30); // how long to pay back reserve credit
 define('R_STATEMENT_COST', 10); // how much member must pay (in rCredits dollars) for monthly and annual statements by mail
 define('R_INFLATION_RATE', .05); // annual USD inflation rate (but never less than zero) (extra big is okay)
 define('R_LAUNCH', strtotime('12/15/2013'));
+define('R_ADMIN_QID', 'NEW.AAA'); // William's account code

@@ -5,10 +5,10 @@ SO I can see what happened, accept or refuse offers, adjust descriptions, and co
 
 Setup:
   Given members:
-  | id   | fullName   | floor | acctType    | flags         |*
-  | .ZZA | Abe One    | -100  | personal    | ok,dw,bona    |
-  | .ZZB | Bea Two    | -200  | personal    | ok,dw,co,bona |
-  | .ZZC | Corner Pub | -300  | corporation | ok,dw,co,bona |
+  | id   | fullName   | floor | acctType    | flags         | created    |*
+  | .ZZA | Abe One    | -100  | personal    | ok,dw,bona    | %today-15m |
+  | .ZZB | Bea Two    | -200  | personal    | ok,dw,co,bona | %today-15m |
+  | .ZZC | Corner Pub | -300  | corporation | ok,dw,co,bona | %today-15m |
   And relations:
   | id   | main | agent | permission |*
   | .ZZA | .ZZA | .ZZB  | buy        |

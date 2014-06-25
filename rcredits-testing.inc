@@ -334,7 +334,7 @@ function doneStep($uid, $step) {
  */
 function doMemberFields($one) {
   global $testOnly;
-  $balFields = u\just('id dw/usd r usd balance dwolla rewards minimum share committed', $one);
+  $balFields = u\just('id dw/usd r usd balance dwolla floor rewards minimum share committed', $one);
   if (!doBalance($balFields, $testOnly)) return;
 
   $a = r\acct($id = t\uid($one['id']));
@@ -361,8 +361,8 @@ function doBalance($one) {
     $one['usd'] = $one['dwolla'] = $one['dw/usd'];
     unset($one['dw/usd']);
   }
-  extract(u\just('id r usd balance dwolla rewards minimum share committed', $one));
-  if (!$a = r\acct($id = t\uid($id0 = $id))) return FALSE;
+  extract(u\just('id r usd balance dwolla floor rewards minimum share committed', $one));
+  if (!$a = r\acct($id = t\uid($id0 = $id))) return t\output("account $id0 does not exist");
 /// print_r(compact('a','id','id0'));
 /// print_r(' unQuid=' . r\unQuid($id0));
   if ($hasdw = in_array($a->usdAccount, array(DW_TEST_ACCT, DW_TESTER_ACCT))) $us = new r\usd($a);
@@ -391,7 +391,7 @@ function doBalance($one) {
     }
   }
   if ($dodw and $dwolla != '?' and t\badEq('dwolla bal', $us->bal($err), $dwolla, $id)) return t\output("Dwolla err: $err");
-  foreach (u\ray('minimum share committed') as $one) {
+  foreach (u\ray('floor minimum share committed') as $one) {
     if (isset($$one) and $$one != '?' and $id > 0) if (t\badEq("db $one", $a->$one, $$one, $id)) return FALSE;
   }
   return TRUE;

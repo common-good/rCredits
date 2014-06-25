@@ -82,10 +82,14 @@ function adminSummary($a, $cAdmin = FALSE) {
 
   if ($cAdmin) {
     $legalName = textField(t('Legal Name:'), '', required($a->legalName));    
-    $rTrader = boolField(t('rTrader?'), t('Is this account approved to use rCredits? (member, good photo, ss# checks out)'), $a->ok + 0);
+    $rTrader = boolField(t('rTrader?'), t('Is this account approved to use rCredits? (member, <a href="' . $base_url . '/account/photo">good photo</a>, ss# checks out)'), $a->ok + 0);
     if (!$a->ok and !$a->co) {
       if ($a->member) $ssnCheck = item(a\ssnCheck($a));
-      $helper = textField(t('Helped by:'), t('Who gets the "inviter/helper" reward? Must be exactly one account.'), dft($a->helper ?: (db\lookup('inviter', 'r_invites', 'invitee=:myid', u\ray('myid', $uid)) ?: '')) + autocomplete());
+      if ($helper = $a->helper ?: (db\lookup('inviter', 'r_invites', 'invitee=:myid', u\ray('myid', $uid)) ?: '')) {
+        $hA = r\acct($helper);
+        $helper = "$hA->mainQid   $hA->fullName";
+      }
+      $helper = textField(t('Helped by:'), t('Who gets the "inviter/helper" reward? Must be exactly one account.'), dft($helper) + autocomplete());
     }
 
     $bits = u\ray(B_ADMINABLE . ($admin ? ' admin' : ''));

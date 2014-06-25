@@ -15,12 +15,11 @@ DAILY (every 5 mins for 5 mins, starting at 2am)
 - UNUSED ** payEmployees(): Each employee (and supplier) gets relieved of their excess rCredits immediately if they don't have enough USD to trade the employer for them.
 - ** gifts(): donations to CGF (not shares)
 - UNUSED * redistribute(): (selling of unwanted rCredits) looks at accounts over their maximum (maximum is ignored for companies that do payment exchanges)
-- homogenize: spread the USD out a little in the system
-- pool: hold some USD in the community account
+- ** homogenize(): spread the USD out a little in the system (just until we can do ACH debits)
+- ** pool(): hold some USD in the community account (just until we can do ACH debits)
 - ** bank(): automatic transfers from bank accounts
-- (later) calculate credit line (for overdrafts, Dwolla outage (eg 503), etc.): give the payer (r)credit up to the amount they earned or bought in the past 5 days if they have been a member for a month, 30 days for 6 months
 - [later] notify and maybe fine late borrowers (might figure interest at the same time, since it requires examining each balance -- but only actually credit the interest monthly, otherwise discard it)
-- tickle: things to do 2/30/60/90 (etc) days after login/access/created date
+- ** tickle(): things to do 2/30/60/90 (etc) days after login/access/created date
   . 1mo: notice - suggest sending invitations
       $email = $mya->mail;
       $invited = ($nonperson or db\lookup('COUNT(*)', 'r_invites', 'inviter=:myid AND email<>:email', compact('myid', 'email')) >= 1);
@@ -30,7 +29,7 @@ DAILY (every 5 mins for 5 mins, starting at 2am)
   . 6mo: allow cashing out rewards if system stable? Probably not.
 - [later] statements for those who want daily statements
 - weekly / monthly / quarterly / annual stuff
-- * notices(): send notices (daily, weekly, or monthly digest)
+- ** notices(): send notices (daily, weekly, or monthly digest)
 
 WEEKLY
 - soldOut() and missedOut() tell members what they did that was dumb (sold rC or missed a chance to buy them)
@@ -112,14 +111,16 @@ function everyDay() {
 }
 
 /**
- * Do things a certain number of days after the created, signed, invite, last login, or last access date:
+ * Do things a certain number of days after the created, signed, invite, firstTx, last login, or last access date.
  */
 function tickle() {
-  $delays = '1,2,3,5,8,13,21,34,55,89,144'; // Fibonacci progression of delays for account opening
+  // Remind newbie to take another step (or admin to activate it)
+  $delays = '1,2,3,5,8,13,21,34,55,89,144'; // Fibonacci progression of delays
   $elapsed = '(FLOOR((:REQUEST_TIME-access)/:DAY_SECS)+1)';
-  $sql = "SELECT uid, $elapsed AS elapsed FROM users WHERE $elapsed IN ($delays) AND uid>1 AND NOT :IS_NONUDGE";
+  $sql = "SELECT uid, $elapsed AS elapsed FROM users WHERE $elapsed IN ($delays) AND uid>1 AND NOT :IS_OK AND NOT :IS_NONUDGE";
   queueEach('tickleStep', $sql);
 
+  // Remind invitee to accept
   $delays = '3,8,21';
   $elapsed = str_replace('access', 'invited', $elapsed);
   $sql = <<<EOF
@@ -128,6 +129,22 @@ function tickle() {
     WHERE $elapsed IN ($delays) AND u.uid IS NULL AND invitee=0
 EOF;
   queueEach('tickleSignup', $sql);
+  
+  // Tickle sometime after first Tx (activation date)
+  $elapsed = str_replace('invited', 'firstTx', $elapsed);
+  $months = "ROUND($elapsed/:MONTH_DAYS)";
+  $start = REQUEST_TIME - YEAR_SECS / 2;
+  $sql = <<<EOF
+    SELECT uid, $months AS months, monthly
+    FROM users u LEFT JOIN (
+      SELECT payer, MIN(created) AS firstTx, SUM(IF(created<:start, 0, amount))/6 AS monthly
+      FROM r_txs GROUP BY payer
+    ) t ON t.payer=u.uid
+    WHERE $elapsed>15 AND uid > 1 AND :IS_BONA
+    AND DAY(NOW())=IF(DAY(FROM_UNIXTIME(firstTx))>28, 1, DAY(FROM_UNIXTIME(firstTx)))
+EOF;
+  queueEach('tickleActive', $sql, compact('start'));
+  
   queueNextAfter('tickle');
 }
 
@@ -154,6 +171,19 @@ function tickleSignup($item) {
   r\rMail('nonmember', $email, u\ray('inviterName nudge code noFrame', $inviterName, $nudge, $code, TRUE));
 }
 
+/**
+ * Calculate credit line (for overdrafts etc.): give the member (r)credit up to 1/6 their monthly throughput if they've been in for a month, 2/6 for 2 months, etc, up to 100% at 6 months
+ */
+function tickleActive($item) {
+  extract(u\just('uid months monthly', $item));
+  $a = r\acct($uid);
+  $ratio = $monthly ? $a->floor / $monthly : 0;
+  if ($ratio > 1.1 or $ratio < .9) {
+    $a->update(u\ray('floor', round(-$monthly, 2)));
+    $msg = 'new floor' . ($a->can(B_DEBT_OK) ? '' : '|no floor effect');
+    r\notify($uid, $msg, u\ray('floor', u\fmtAmt(-$monthly)));
+  }
+}
  
 /**
  * Do periodic activities where the period is longer than a day.
@@ -478,7 +508,7 @@ function homogenize1($item) {
 
 /**
  * Hold some of the community's USD in the community account.
- * Leave each contributing account with at least R_CHUNK so it can help someone cash out the next day.
+ * Leave each contributing account with at least R_CHUNK so it can help someone cash out the next day (NOPE -- not doing that anymore).
  */
 function pool() {
   $result = db\q('SELECT SUM(usd) AS total, SUM(1) AS sources, community FROM users GROUP BY community');
@@ -486,7 +516,10 @@ function pool() {
     extract($row); // total, sources, community
     $ctty = r\acct($community);
     if (!$ctty->usdAccount) continue; // not-yet-active region or community account
-    if ($ctty->usd / $total < R_CTTY_USD_SHARE) queueEach('pool1', 'SELECT uid, usd, community FROM users WHERE uid>1 AND :IS_OK AND community=:community AND usd>=2*:R_CHUNK ORDER BY usd DESC', compact('community')); // okay if ctty has a bit too much
+//    $sql = 'SELECT uid, usd, community FROM users WHERE uid>1 AND :IS_OK AND community=:community AND usd>=2*:R_CHUNK ORDER BY usd DESC';
+    $sql = 'SELECT uid, usd, community FROM users WHERE uid>1 AND :IS_OK AND :community=:community AND usd>0 ORDER BY usd DESC'; // just one community for now
+    //if ($ctty->usd / $total < R_CTTY_USD_SHARE) 
+    queueEach('pool1', $sql, compact('community')); // okay if ctty has a bit too much
   }
   queueNextAfter('pool');
 }
@@ -496,7 +529,9 @@ function pool() {
  */
 function pool1($item) {
   extract(u\just('uid usd community', $item));
-  if ($usd >= R_CHUNK) r\tradeR(R_CHUNK, $community, $uid); // might fail (gently) if a bank transfer goes through in between
+//  if ($usd >= R_CHUNK) r\tradeR(R_CHUNK, $community, $uid); // might fail (gently) if a bank transfer goes through in between
+  $community = r\serverUid(); // just one community for now
+  if ($usd > 0) r\tradeR(min($usd, R_CHUNK), $community, $uid); // might fail (gently) if a bank transfer goes through in between
 }
 
 /**

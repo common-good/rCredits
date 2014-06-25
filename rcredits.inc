@@ -21,7 +21,8 @@ define('MIN_SECS', 60);
 define('HOUR_SECS', 60 * MIN_SECS);
 define('DAY_SECS', 24 * HOUR_SECS);
 define('WEEK_SECS', 7 * DAY_SECS);
-define('YEAR_SECS', 365.25 * DAY_SECS);
+define('MONTH_DAYS', 30.4368);
+define('YEAR_SECS', 12 * MONTH_DAYS * DAY_SECS);
 define('US_COUNTRY_ID', 1228); // United States
 
 require_once __DIR__ . '/rcredits-settings.inc'; // secret settings for this community's rCredits server
@@ -1710,8 +1711,10 @@ function txPermErr($a1, $a2, $taking = TRUE, $neg = FALSE) {
 //  if (!$a1->can($myAccess)) return array("no $myAccessErr", array(), FALSE);
 //  if (!$a2->can($otherAccess)) return array("other no $otherAccessErr", u\ray('otherName', $a2->agent->fullName), FALSE);
 
-  if (!$a1->cttyActive) return array('community not active', u\ray('whose', t('Your')), FALSE);
-  if (!$a2->cttyActive) return array('community not active', u\ray('whose', t('That account\'s')), FALSE);
+  if ($a1->id > 0 and $a2->id != r\cgfId()) { // allow rewards and donations in not-yet-active communities
+    if (!$a1->cttyActive) return array('community not active', u\ray('whose', t('Your')), FALSE);
+    if (!$a2->cttyActive) return array('community not active', u\ray('whose', t('That account\'s')), FALSE);
+  }
   if (!$a1->cttyUp) return array('your community down', u\ray('contact', $a1->cAdminContact()), FALSE);
   if (!$a2->cttyUp) return array('other community down', array(), FALSE);
   if ($a1->id == $a2->id) return array('no self-trading', array(), FALSE);

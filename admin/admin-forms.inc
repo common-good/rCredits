@@ -92,7 +92,7 @@ function formAdmin_submit($form, &$sta) {
       seeSecure($a);
     }
   } elseif ($op == 'connectBank') {
-    $a->connectBank();
+    r\Web\connectBank($a);
   } elseif ($op == 'do1099b') {
     include_once __DIR__ . '/../rcredits/rcredits-yearly.inc';
     r\Special\do1099bs();
@@ -305,10 +305,9 @@ define('PHOTO_MAX', 90); // maximum height and width of photo
  * @param mixed $id: quid or uid of account to make a card for
  */
 function memberID($id) {
-  require_once(__DIR__ . "/../../tcpdf/config/lang/eng.php");
-  require_once(__DIR__ . "/../../tcpdf/tcpdf.php");
+  require_once __DIR__ . '/../pdf.class';
 
-  if (!$mya = r\acct()) exit('You must sign in first.');
+  if (!$mya = r\acct()) exit('You must first sign in.');
 /*  if ($scan) {
     $perm = r\relation('permission', $mya->id, $id);
     if ($perm < r\perm(B_SCAN)) exit('That is not an employee with scan permission.');
@@ -318,7 +317,6 @@ function memberID($id) {
   if (!$acct = a($id)) exit('No such account: ' . $id);
   
   $fullName = $acct->fullName;
-  $regionName = r\acct($acct->community)->fullName;
   $qid = $acct->qid;
   
   if ($proSe = $acct->proSe) {
@@ -344,7 +342,7 @@ function memberID($id) {
   $info = @getimagesize($photo);
   list ($photoW, $photoH) = is_array($info) ? $info : array(0, 0);
   list ($photoW, $photoH) = $photoW > $photoH ? array(PHOTO_MAX, '') : array('', PHOTO_MAX);
-  $pdf = new \TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+  $pdf = new r\pdf($acct);
   $pdf->setPrintHeader(FALSE);
   $pdf->setPrintFooter(FALSE);
   $pdf->AddPage();
@@ -381,7 +379,7 @@ function memberID($id) {
   $pdf->Image($photo, 0, 0, $photoW, $photoH, '', './account', '', true, 300, '', false, false, 1, false, false, false);
   $pdf->write2DBarcode($qrUrl, 'QRCODE,Q', 96, 35 + $lower, 50, 50, $style, 'N'); // L,M,Q,H are low-high error-correction
 
-  $html = strtr('<span style="font-size:44px;">@ROLE<br><span style="font-size:76px; color:darkred; font-weight:bold;">@CODE</span><br>@REGION</span>', array('@ROLE' => $roleName, '@CODE' => $qid, '@REGION' => $regionName));
+  $html = strtr('<span style="font-size:44px;">@ROLE<br><span style="font-size:76px; color:darkred; font-weight:bold;">@CODE</span><br>@REGION</span>', array('@ROLE' => $roleName, '@CODE' => $qid, '@REGION' => $pdf->regionName));
   $pdf->writeHTMLCell(100, 30, 94, 3 + $lower, $html); // w, h, x, y
   $pdf->writeHTMLCell(40, 10, 160, 84.5, '<div style="font-size:44px;">rCredits.org</div>');
   $pdf->writeHTMLCell(182, 40, 10, 100, "<div style=\"font-size:$nameSize; text-align:center; color:midnightblue; font-weight:bold;\">$fullName</div>");

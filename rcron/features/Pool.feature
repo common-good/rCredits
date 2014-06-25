@@ -22,11 +22,22 @@ Setup:
   | id   | usdAccount |*
   | ctty | cttyAcct   |
 
+# (no longer leaving anything unpooled)
+# Scenario: Normal pooling happens
+#   When cron runs "pool"
+#   Then balances:
+#   | id   | r   | usd |*
+#   | ctty | -45 |  20 |
+#   | .ZZA |  10 |  15 |
+#   | .ZZB |   0 |  10 |
+#   | .ZZC |  35 |  70 |
+
 Scenario: Normal pooling happens
   When cron runs "pool"
   Then balances:
   | id   | r   | usd |*
-  | ctty | -45 |  20 |
+  | ctty | -55 |  30 |
   | .ZZA |  10 |  15 |
-  | .ZZB |   0 |  10 |
+  | .ZZB |  10 |   0 |
   | .ZZC |  35 |  70 |
+  

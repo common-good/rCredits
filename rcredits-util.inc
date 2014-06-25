@@ -951,7 +951,7 @@ function parseAddr($address) {
   if (!$p = count($parts)) return array('ERROR', '', '', '');
   list ($state, $zip) = explode(' ', strtoupper(@trim(array_pop($parts))) . ' ');
   if (!preg_match('/^[A-Z][A-Z]$/', $state)) $state = 'ER';
-  $city = array_pop($parts);
+  $city = trim(array_pop($parts));
   $address = join(', ', $parts);
   return array($address, $city, $state, $zip);
 }
@@ -1157,7 +1157,7 @@ function fmtDate($time = REQUEST_TIME) {return strftime('%d-%b-%Y', $time);}
 function fmtTime($time = REQUEST_TIME) {return strtolower(strftime('%I:%M%p', $time));}
 function lastCall($far = 4) {$back = debug_backtrace(); return array_slice($back, 1, $far);}
 function digits(&$n) {return $n = preg_replace('/\D/', '', @$n);}
-function monthDay1($time = REQUEST_TIME) {return strtotime(strftime('%b01', $time));}
+function monthDay1($time = REQUEST_TIME) {return strtotime(strftime('1%b%Y', $time));}
 function prefix($prefix, &$var) {$var = $prefix . $var;}
 function preray($prefix, &$r0) {$r = $prefix + (array) $r0; $r0 = is_object($r0) ? (object) $r : $r;}
 function setDft(&$param, $value) {if (!isset($param)) $param = $value;}

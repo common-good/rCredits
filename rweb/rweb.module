@@ -73,8 +73,10 @@ function rweb_menu() {
     'history/transactions' => menuLocal(t('Transactions'), '*Txs 1', 'read'),
     'history/invoices-to' => menuLocal(t('Invoices TO You'), 'Invoices to', 'read'),
     'history/invoices-from' => menuLocal(t('Invoices FROM You'), 'Invoices from', 'read'),
+    'history/statements' => menuLocal(t('Statements'), 'Statements', 'read'),
     'history/1099-B' => menuLocal(t('1099-B Forms'), '1099b', 'read'),
     'history/zot' => menuLocal('zot', '', 'anyone'), // Drupal bug: last choice is omitted
+    'history/statement' => callback(t('Statement'), '2', 'read', 'statement'),
 
     'charge' => menuNorm(t('Charge'), 'Tx 1', 'sell ok'),
     'pay' => menuNorm(t('Pay'), 'Tx 1', 'buy ok'),
@@ -134,6 +136,7 @@ function rweb_menu() {
     'sadmin/panel' => menuLocal(t('Panel'), '*Admin', 'cadmin'),
     'sadmin/member-list' => menuLocal(t('Member List'), 'MemberList', 'cadmin2'),
     'sadmin/export-list' => menuLocal(t('Export'), 'DownloadMemberList', 'cadmin2'),
+    'sadmin/another' => menuLocal(t('New Account'), 'Another', 'cadmin'),
     'sadmin/make-community' => menuLocal(t('Make Ctty'), 'MakeCtty', 'admin'),
     'sadmin/sms' => menuLocal(t('Test SMS'), 'SMS', 'admin'),
     'sadmin/reinstall' => menuLocal(t('Reinstall rCredits'), '', 'admin', 'reinstall'),

@@ -26,7 +26,7 @@ function setupBasicAccounts() {
   $info += u\ray('legalName postalAddr', R_REGION_LEGALNAME, R_REGION_ADDR);
   new r\acct($info);
 
-  $values = array(r\unQuid('NEW.AAA'), $server, 'williamspademan', 'William Spademan', R_TESTER_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit(array(B_MEMBER, B_OK, B_DW)));
+  $values = array(r\unQuid('R_ADMIN_QID'), $server, 'williamspademan', 'William Spademan', R_TESTER_EMAIL, '01330', US_COUNTRY_ID, 0, R_REBATE, u\bit(array(B_MEMBER, B_OK, B_DW)));
   $info = array_combine($keys, $values);
   list ($phone, $address, $city, $state) = array('+14136281021', 'PO Box 305', 'Ashfield', R_STATE_ID);
   $info += compact(u\ray('mail phone address city state'));
@@ -88,6 +88,7 @@ function showActivity($a) {
  * Return a list of the account's relations.
  */
 function showRelations($a) {
+  global $base_url;
   $uid = $a->id;
   $ret = '';
   $sql = <<<EOF
@@ -120,7 +121,7 @@ EOF;
         : ($permission >= B_READ ? t('can read')
         : t('can ?'))))));
     }
-    $ret .= ($ret ? ', ' : '') . "$role <a href=\"$them\">$who</a>";
+    $ret .= ($ret ? ', ' : '') . "$role <a href=\"$base_url/sadmin/member-info/$them\">$who</a>";
   }
   return $ret;
 }
@@ -151,8 +152,7 @@ function usdAccts($where = "postalCode LIKE '013%'") {
 }*/
 
 function showRecords($ray) {
-  $cgfUid = r\cgfId();
-  $cgfLen = strlen(r\acct($cgfUid)->id);
+  $cgfLen = strlen(r\cgfId());
   if (!$ray or empty($ray)) return 'data set is empty';
   $lines[] = '<tr><th>' . join('</th><th>', array_keys((array) $ray[0])) . "</th></tr>\n";
   foreach ($ray as $row) {
@@ -352,7 +352,7 @@ function checkStats($ctty, $asof) {
 /*
   $r = $usd = 0;
   $q = db\q("SELECT id, created, pAccts, bAccts FROM r_stats WHERE ctty<>0 ORDER BY created");
-  $new = r\acct('NEW.AAA')->community;
+  $new = r\acct('R_ADMIN_QID')->community;
   while ($row = $q->fetchAssoc()) {
     extract($row);
     $crit = 'BETWEEN :created AND :created+:DAY_SECS-1';

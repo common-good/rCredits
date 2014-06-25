@@ -5,10 +5,13 @@ SO I don't get forgotten and miss out on stuff.
 
 Setup:
   Given members:
-  | id   | fullName | email | flags | access    |*
-  | .ZZA | Abe One  | a@    |       | %today-1d |
-  | .ZZB | Bea Two  | b@    |       | %today-2d |
-  | .ZZD | Dee Four | d@    |       | %today-3d |
+  | id   | fullName | email | flags | access    | floor |*
+  | .ZZA | Abe One  | a@    |       | %today-1d |     0 |
+  | .ZZB | Bea Two  | b@    |       | %today-2d |     0 |
+  | .ZZD | Dee Four | d@    |       | %today-3d |     0 |
+  | .ZZE | Eve Five | e@    | ok    | %today-3m |     0 |
+  | .ZZF | Flo Six  | f@    | ok    | %today-3m |     0 |
+
 Scenario: A newbie has not taken the first step
   When cron runs "tickle"
   Then we notice "do step one|sign in" to member ".ZZA"
@@ -57,3 +60,62 @@ Scenario: A nonmember has accepted an invitation from someone else instead
   | b@example.com | .ZZD    | codeA1 | %today-8d | .ZZB    |
   When cron runs "tickle"
   Then we do not email "nonmember" to member "b@example.com"
+
+Scenario: A member gets a credit line
+  Given balances:
+  | id   | r   |*
+  | .ZZE | 500 |
+  And transactions:
+  | created   | type     | amount | from | to   | purpose |*
+  | %today-1m | transfer |    300 | .ZZE | .ZZF | gift    |
+  When cron runs "tickle"
+  Then members have:
+  | id   | floor |*
+  | .ZZE |   -50 |
+  And we notice "new floor|no floor effect" to member ".ZZE" with subs:
+  | floor |*
+  |  $-50 |
+
+Scenario: A member gets a bigger credit line after several months
+  Given balances:
+  | id   | r    |*
+  | .ZZE | 5000 |
+  And transactions:
+  | created   | type     | amount | from | to   | purpose |*
+  | %today-6m | transfer |    300 | .ZZE | .ZZF | gift    |
+  | %today-5m | transfer |   1500 | .ZZE | .ZZF | gift    |
+  When cron runs "tickle"
+  Then members have:
+  | id   | floor |*
+  | .ZZE |  -300 |
+  And we notice "new floor|no floor effect" to member ".ZZE" with subs:
+  | floor |*
+  | $-300 |
+
+Scenario: A member gets no new credit line because it's the wrong day
+  Given balances:
+  | id   | r   |*
+  | .ZZE | 500 |
+  And transactions:
+  | created   | type     | amount | from | to   | purpose |*
+  | %today-5w | transfer |    300 | .ZZE | .ZZF | gift    |
+  When cron runs "tickle"
+  Then members have:
+  | id   | floor |*
+  | .ZZE |     0 |
+
+Scenario: A member gets no new credit line because the change would be minimal
+  Given balances:
+  | id   | r   |*
+  | .ZZE | 500 |
+  And members have:
+  | id   | floor |*
+  | .ZZE |    49 |  
+  And transactions:
+  | created   | type     | amount | from | to   | purpose |*
+  | %today-5w | transfer |    300 | .ZZE | .ZZF | gift    |
+  When cron runs "tickle"
+  Then members have:
+  | id   | floor |*
+  | .ZZE |    49 |
+  

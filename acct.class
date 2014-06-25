@@ -796,7 +796,7 @@ EOF;
       $can[B_ADMIN] = $aa->admin;
       $can[B_CADMIN] = $aa->cAdmin;
       $can[B_CADMIN2] = $aa->can(B_CADMIN2);
-    } else $can[B_CADMIN] = FALSE; // ctty admins cannot manage their own account (but cAdmin2s can)
+    }
     
     if ($can[B_CADMIN]) $can[B_CADMIN2] = TRUE; // community admin has subordinate powers also
     $can[B_PERSONISH] = !$can[B_CO] or $can[B_ADMIN];

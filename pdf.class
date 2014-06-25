@@ -1,0 +1,89 @@
+<?php
+namespace rCredits;
+use rCredits as r;
+use rCredits\Util as u;
+use rCredits\Testing as t;
+
+/**
+ * @file
+ * rCredits pdf class
+ * Extends the TCPDF class -- especially for custom headers and footer.
+ */
+
+require_once(__DIR__ . "/../tcpdf/config/lang/eng.php");
+require_once(__DIR__ . "/../tcpdf/tcpdf.php");
+define('R_LOGO', __DIR__ . '/images/rlogo150.png');
+
+class pdf extends \TCPDF {
+  public $regionName; // name of region
+  public $regionInfo; // addr, phone, email of region
+  public $qid; // rCredits account in header
+  public $month; // statement month
+  
+  /**
+   * Create a pdf object for the given rCredits account.
+   * @param acct $a: the rCredits account object
+   * @param int $month: month date (for account statements) (defaults to current month)
+   */
+	public function __construct($a, $month = REQUEST_TIME) {
+    $ctty = r\acct($a->community);
+    list ($this->regionName, $phone) = array($ctty->fullName, u\fmtPhone($ctty->phone));
+    $this->regionInfo = "$ctty->postalAddr<br>$phone &#8226; $ctty->mail";
+    $this->qid = $a->mainQid;
+    $this->month = strftime('%B %Y', $month);
+    parent::__construct();
+  }
+  
+  public function Header() {
+    $m = 5; // basic margin
+    $this->Image(R_LOGO, $m + 2, $m, 10, '', 'PNG', '', 'T', false, 300, '', false, false, 0, false, false, false);
+    $this->SetFont('helvetica', '', 9);
+    $this->writeHTMLCell(50, 0, $m + 15, $m + 2, 'empowering ourselves with<br>community-created credits<br>for the common good');
+    $this->writeHTMLCell(80, 0, $m + 65, $m + 2, "<b>$this->regionName</b><br>$this->regionInfo", 0, 0, FALSE, TRUE, 'C');
+    list ($page, $pages) = array($this->getAliasNumPage(), $this->getAliasNbPages());
+    $this->writeHTMLCell(50, 0, $m + 168, $m + 2, "<b>Account: $this->qid</b><br>$this->month<br>Page $page of $pages");
+    
+    $this->Line($m, $m + 17, $m + 200, $m + 17);
+  }
+
+  public function Footer() {
+    $h = $this->getPageHeight();
+    $this->Line(5, $h - 13, 5 + 200, $h - 13);
+    $this->SetFont('helvetica', '', 9);
+    $this->SetY(-13);
+		$this->Cell(0, 10, t('To manage your account, sign in at rCredits.org'), 0, '', 'C');
+  }
+
+  /**
+   * Output a solid-background section header bar.
+   * @param string $subtitle: section header text
+   */
+  function barHead($subtitle) {
+    $size = $this->getFontSizePt();
+    $this->SetTextColor(255,255,255);
+    $this->setFontSize(1.2 * $size);
+    $this->SetFillColor(0,0,128);
+    $this->Cell(0, 0, $subtitle, '', 1, 'C', TRUE);
+    $this->setFontSize(.5 * $size);
+    $this->newLine();
+    $this->setFontSize($size);
+    $this->SetTextColor();
+  }
+
+  /**
+   * Output column headers.
+   */
+  function colHeads($fields) {
+    $size = $this->getFontSizePt();
+    $this->SetTextColor(0,0,128);
+    foreach ($fields as $one) {
+      list ($head, $fieldName, $width, $align) = explode('/', $one);
+      $this->Cell($width, 0, $head, '', 0, $align);
+    }
+    $this->newLine();
+    $this->SetTextColor();
+  }
+
+  function newLine() {$this->Cell(0, 0, '', '', 1);}
+  
+}

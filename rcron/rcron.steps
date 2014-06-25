@@ -84,6 +84,10 @@ function members($list) {return t\members($list);}
  *     BOTH Recache BalancesGetOutOfWhack
  *     MAKE Recache BalancesGetATinyBitOutOfWhack
  *     TEST Sharing InflationAdjustmentsAreDistributed
+ *     MAKE Tickle AMemberGetsACreditLine
+ *     MAKE Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
+ *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseItsTheWrongDay
+ *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
  */
 function balances($list) {return t\balances($list);}
 
@@ -114,6 +118,10 @@ function balances($list) {return t\balances($list);}
  *     MAKE Tickle ANonmemberHasNotAcceptedTheInvitation
  *     MAKE Tickle ANonmemberHasAcceptedTheInvitation
  *     MAKE Tickle ANonmemberHasAcceptedAnInvitationFromSomeoneElseInstead
+ *     MAKE Tickle AMemberGetsACreditLine
+ *     MAKE Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
+ *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseItsTheWrongDay
+ *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
  */
 function cronRuns($op) {return t\cronRuns($op);}
 
@@ -159,6 +167,10 @@ function relations($relations) {return t\relations($relations);}
  *     MAKE Recache Setup
  *     MAKE Sharing Setup
  *     TEST Sharing InflationAdjustmentsAreDistributed
+ *     MAKE Tickle AMemberGetsACreditLine
+ *     MAKE Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
+ *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseItsTheWrongDay
+ *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
  */
 function transactions($list) {return t\transactions($list);}
 
@@ -172,6 +184,8 @@ function transactions($list) {return t\transactions($list);}
  *     TEST Gifts ARecurringDonationCanBeCompleted
  *     TEST Sharing InflationAdjustmentsAreDistributed
  *     TEST Tickle ANewbieIsOnTheVerifyStep
+ *     TEST Tickle AMemberGetsACreditLine
+ *     TEST Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
  */
 function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice, $id, $subs);}
 
@@ -354,6 +368,10 @@ function weMessageMemberWithTopicAndSubs($id, $topic, $subs) {
  * members have: (ARG)
  *
  * in: MAKE Pool Setup
+ *     TEST Tickle AMemberGetsACreditLine
+ *     TEST Tickle AMemberGetsABiggerCreditLineAfterSeveralMonths
+ *     TEST Tickle AMemberGetsNoNewCreditLineBecauseItsTheWrongDay
+ *     BOTH Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
  */
 function membersHave($list) {return t\membersHave($list);}
 

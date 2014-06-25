@@ -1567,7 +1567,7 @@ function hidfields($ray) {return is_array($ray) ? hidField(serialize($ray)) : un
  */
 function sendInvite($email, $subject, $message, $dupsOk = TRUE) {
   $agent = r\agent();
-  if ($admin = $agent->admin) $agent = r\agent('NEW.AAA'); // use William for admin invites
+  if ($admin = $agent->admin) $agent = r\agent(R_ADMIN_QID); // use William for admin invites
   
   if (!$dupsOk) {
     if (db\exists('r_invites', 'email=:email', compact('email'))) return say("NOT sent to $email (dup).");

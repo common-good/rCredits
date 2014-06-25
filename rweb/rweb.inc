@@ -5,6 +5,7 @@ use rCredits\Backend as be;
 use rCredits\Util as u;
 use rCredits\Testing as t;
 use rCredits\db as db;
+use rCredits\Txs as x;
 
 require_once __DIR__ . '/rweb-subs.inc';
 require_once __DIR__ . '/../rcredits-backend.inc';
@@ -166,6 +167,103 @@ EOF;
 //    return drupal_json_output(array('zot' => "display=$display"));
   }
   drupal_json_output($matches);
+}
+
+/**
+ * Generate an account statement for the given month.
+ * @param string $month: mmmyyyy
+ */
+function statement($month) {
+  include_once __DIR__ . '/../rcredits-txs.inc';
+
+  if (!$start = strtotime("1$month")) return r\go('empty', t('That is not a recognizable month.'), 'ERR');
+  $start = u\monthDay1($start);
+  $end = strtotime('+1 month', $start) - 1;
+  if (!$mya = r\acct()) return r\go('', t('You must first sign in.'), 'ERR');
+
+  include_once __DIR__ . '/../pdf.class';
+  
+  $pdf = new r\pdf($mya, $start);
+
+  $size = $pdf->getFontSizePt();
+  $m = 5; // left/right margin size
+  $pdf->SetMargins($m, PDF_MARGIN_TOP, $m);
+  $pdf->SetAutoPageBreak(TRUE, 15); // leave space at bottom
+  $pdf->setLanguageArray($l); // (eg "page" in footer)
+  $pdf->AddPage();
+  $pageWidth = $pdf->getPageWidth();
+
+/*  $pdf->SetLineStyle(array('width' => 0.5, 'cap' => 'butt', 'join' => 'miter', 'dash' => 0, 'color' => array(0, 0, 0)));
+  $pdf->RoundedRect(91, 30, 60, 60, 3.50, '1111', 'DF', NULL, array(255, 255, 255)); // x, y, w, h, ?, fill?
+  */
+  //$pdf->Cell(0, 0, 'Page ', 0, false, 'L', 0, '', 0, false, 'T', 'M');
+  //$pdf->writeHTMLCell(40, 10, 160, 84.5, '<div style="font-size:44px;">rCredits.org</div>');
+  list ($address, $city, $state, $zip) = u\parseAddr($mya->postalAddr);
+  $pdf->setX($m + 10);
+  $pdf->Cell(0, 0, $mya->legalName, '', 2);
+  $pdf->Cell(0, 0, $address, '', 2);
+  $pdf->Cell(0, 0, "$city, $state $zip", '', 2);
+  
+  //$pdf->Line($m, $y = $pdf->getY(), $pageWidth - $m, $y);
+  
+  $pdf->setX($m);
+  $pdf->setY($pdf->getY() + 10);
+
+  list ($header, $classes, $rows, $tot) = x\getTxRows($start, $end); // get the transaction data
+  extract(u\just('frombank fromyou toyou reward', $tot));
+  $bal0 = be\creditInfo(u\ray('asof', $start))->balance;
+  $info = be\creditInfo(u\ray('asof', $end));
+  list ($bal9, $rewardsEver) = array($info->balance, $info->rewards);
+//  u\EXPECT($bal9 == round($bal0 + @$frombank - @$fromyou + @$toyou + @$reward, 2), 'balance mismatch');
+  if (round($bal9, 2) != round($bal0 + @$frombank - @$fromyou + @$toyou + @$reward, 2)) return r\go('empty', 'balance mismatch: ' . $bal9 . ' ' . print_r(compact('tot', 'bal0', 'bal9'), 1));
+  
+  $pdf->barHead('SUMMARY');
+  $fields = explode('; ', 'Starting Balance/bal0/32/; /plus/7/R; From Bank/frombank/25/C; /minus/7/C; FROM You/fromyou/25/C; /plus/7/C; TO You/toyou/25/C; /plus/7/C/; Rewards/reward/25/C; /equals/7/R; Ending Balance/bal9/33/R');
+  $pdf->colHeads($fields);
+
+  list ($plus, $minus, $equals, $space) = array('+', '-', '=', ' ');
+  $committed = $mya->committed;
+  $avg = r\averageBalance($mya->id, $mya->created, $end);
+  $yield = number_format(100 * $rewardsEver / $avg, 1) . '%';
+  foreach (u\ray('bal0 frombank fromyou toyou reward bal9 rewardsEver committed') as $one) $$one = number_format(@$$one, 2);
+
+  $pdf->setFontSize(.9 * $size);
+  foreach ($fields as $one) {
+    list ($head, $fieldName, $width, $align) = explode('/', $one);
+    $pdf->Cell($width, 0, $$fieldName, '', $fieldName == 'bal9' ? 1 : 0, $align);
+  }
+
+  list ($labelWidth, $numWidth) = array(45, 25);
+  $pdf->newLine();
+  $pdf->Cell($labelWidth, 0, 'Incentive Rewards Ever:');  
+  $pdf->Cell($numWidth, 0, $rewardsEver, '', 0, 'R');
+  $pdf->Cell(0, 0, " (Effective yield $yield APR)", '', 1, 'L');
+  if ($start == u\monthDay1(REQUEST_TIME)) { // committed amount is not available retroactively
+    $pdf->Cell($labelWidth, 0, 'Reserved to donate to CGF:');  
+    $pdf->Cell($numWidth, 0, $committed, '', 1, 'R');
+  }
+  $pdf->newLine();
+
+  $pdf->setFontSize($size);
+  $pdf->barHead('DETAILS');
+  $fields = u\ray('Tx#/tid/10/C /space/1/ Date//17/ Name//55/ /space/1/ Purpose//75/ /space/1/ Amount//20/R Reward//20/R');
+  $pdf->colHeads($fields);
+
+  $pdf->setFontSize(.9 * $size);
+  foreach ($rows as $row) {
+    foreach ($row as $k => $v) $row[$k] = str_replace(',', '', strip_tags($v));
+    extract(u\just('tid date name fromyou toyou purpose reward', array_combine($classes, $row)));
+    $amount = number_format($toyou - $fromyou, 2);
+    foreach ($fields as $one) {
+      list ($head, $fieldName, $width, $align) = explode('/', $one);
+      if (!$fieldName) $fieldName = strtolower($head);
+      $debit = ($align == 'R' and is_numeric($n = str_replace(',', '', $$fieldName)) and $n < 0);
+      if ($debit) $pdf->SetTextColor(128, 0, 0); else $pdf->SetTextColor();
+      $pdf->Cell($width, 0, $$fieldName, '', $head == 'Reward' ? 1 : 0, $align, '', '', 1);
+    }
+  }
+  
+  if (t\est()) $pdf->Close(); else $pdf->Output('rCredits-ID-Card.pdf', 'I'); //Close and output PDF document
 }
 
 define('R_GIFT_SHOWHIDE', "var other = jQuery('.form-item-amount'); if(jQuery('#edit-gift').val() == 0) {other.show();} else other.hide();");
@@ -524,7 +622,7 @@ function formProxies_submit($form, &$sta) {
 function formInvite($form, &$sta) {
   global $base_url;
   $agent = r\agent();
-  if ($admin = $agent->admin) $agent = r\acct('NEW.AAA'); // use William's info for admin invites
+  if ($admin = $agent->admin) $agent = r\acct('R_ADMIN_QID'); // use admin's personal info for admin invites
   $cAdmin = ($admin or $agent->cAdmin);
   
   $title = item(t('Invite Someone to rCredits'));
@@ -589,7 +687,7 @@ function formSummary($form, &$sta, $qid = '') {
   global $base_url;
   if (!$mya = r\acct()) return r\go('/user/login'); // this cannot be '' (infinite redirect)
   
-  if ($mya->cAdmin or $mya->cAdmin2) { // ctty admin not administering own acct
+  if ($mya->cAdmin2) { // ctty admin not administering own acct
     include_once __DIR__ . '/../admin/admin-web.inc';  
     if (!$a = r\acct($qid)) return r\go('member-list', t('Unrecognized Account Code.'), 'ERR');
     $form = adminSummary($a, $mya->cAdmin and $a->id != $mya->agentId);
@@ -618,10 +716,10 @@ function formSummary($form, &$sta, $qid = '') {
     $floorDesc = t('Your balance can go this low') . ($a->floor < 0 ? t(' for up to 30 days') : '')
     . '. ' . t('See "Debt Okay" in') . " <a href=\"$base_url/account/preferences\">Preferences</a>.";
     $floor = formField('item', t('Credit floor:'), $floorDesc, u\fmtAmt($a->floor));
-    if ($a->agent->can(B_MEMBER)) $another = submit(t('Open Another Account'));
     $form = compact(u\ray('legalName returnMo return cttyBeneMo cttyBene floor'));
   }
   
+  if ($a->agent->can(B_MEMBER)) $another = submit(t('Open Another Account'));
   $title = item(t('Account Summary'));
   $accountName = item($a->fullName . ' ' . u\hug($a->name), t('Name:'), $a->postalAddr . @$extras);
   if (isDEV) $agentName = item($a->agent->fullName, t('Agent:'));
@@ -1421,16 +1519,18 @@ function formAgent_submit($form, &$sta) {
  */
 function formAnother($form, &$sta) {
   global $base_url;
-  if (!r\agent()->can(B_MEMBER)) return r\go('', 'members only', 'ERR');
+
+  $a = r\agent();
+  if (!$a->cAdmin and !$a->can(B_MEMBER)) return r\go('', 'members only', 'ERR');
   
   $title = item('Open Another Account');
-  $relations = array(t('a company and I own at least 10% of it'), t('a company or organization whose accounts I manage, but I am not a 10%-or-more owner'), t('an additional personal account that I will manage'), t('none of the above (send an <a href="' . $base_url . '/invite">invitation</a> instead!)'));
+  $relations = array(t('a company and I own at least 10% of it'), t('a company or organization whose accounts I manage, but I am not a 10%-or-more owner'), t('an additional personal account that I will manage'), t('none of the above') . ($a->cAdmin ? '' : t(' (send an <a href="' . $base_url . '/invite">invitation</a> instead!)')));
   $relationPrompt = item(t('What is the new account for?'));
-  $relation = formField('radios', t(''), '', '', $relations);
+  $relation = formField('radios', t(''), '', required(3), $relations);
   $flows = array(t('neither way (recommended in most cases)'), t('Your personal account can cover the new account\'s debts and overdrafts.'), t
 ('The new account can cover your personal account\'s debts and overdrafts.'), t('both ways'));
   $flowPrompt = item(t('Which way can the credit flow, when you need it to?'));
-  $flow = formField('radios', t(''), '', '', $flows);
+  $flow = formField('radios', t(''), '', required(0), $flows);
   $submit = submit(t('Open Account'));
   return labeled(compact(u\ray('title relationPrompt relation flowPrompt flow submit')));
 }
@@ -1440,15 +1540,19 @@ function formAnother_validate($form, &$sta) {
     $$field = $sta['input'][$field]; // values fails here (?!!)
     if (!is_numeric($$field)) say('required field', compact('field'), $field);
   }
-  if ($relation == 3) say('insufficient relation', 'relation');
+  if (!r\agent()->cAdmin and $relation == 3) say('insufficient relation', 'relation');
 }
 
 function formAnother_submit($form, &$sta) {
+  $mya = r\acct();
   $a = r\agent();
-  if (!$a->can(B_MEMBER)) return r\go('', 'members only', 'ERR');
+  if ($a->id == 1) $a = r\acct(R_ADMIN_QID); // use admin's personal account
+// UNNEEDED  if (!$a->cAdmin and !$a->can(B_MEMBER)) return r\go('', 'members only', 'ERR');
 
   extract(u\just('company companyPhone isOwner employeeOk', $a->signupCo));
   extract(u\just('relation flow', $sta['input']));
+
+  if ($a->cAdmin and $relation < 3 and !$mya->co) $a = $mya; // opening another on behalf of a member
   $by = $a->id;
   $code = r\invite($a->mail, $a->id);
   $flow += 0;
@@ -1725,7 +1829,7 @@ function formContact_submit($form, &$sta) {
  */
 function formInvitedWhom($form, &$sta) {
   $a = r\agent();
-  if ($a->admin) $a = r\acct('NEW.AAA');
+  if ($a->admin) $a = r\acct('R_ADMIN_QID');
   
   $title = item(t('Your Invitees'));
   $sql = <<<EOF
@@ -2870,10 +2974,8 @@ function formReports($form, &$sta) {
     $myCtty = $mya->community ?: 0;
   } else $myCtty = 0;
 
-  $membership = @$cadmin2 ? ' <a href="sadmin/member-list">member list</a>' : '';
-  
   $title = item(t('Community Statistics'));
-  $subheader = item($myCtty ? t('for ') . r\acct($myCtty)->fullName . $membership : ' ');
+  $subheader = item($myCtty ? t('for ') . r\acct($myCtty)->fullName : ' ');
   $subtext = item(t('This page helps us keep an eye on our economy so we can manage it effectively together. <b class="loud">Click</b> any chart for an explanation, or <b class="loud">hover</b> for the numbers.'));
   $charts = item(showCharts('all'));
 //  $shared = @$admin ? item(fundRpt($shared, @$lm_shared, '$'), t('Shared w CGF:')) : NULL;
@@ -3034,7 +3136,7 @@ EOF
 $loggedInLinks
     <a href="http://rCredits.org">About rCredits</a> |
     <a href="$base_url/agreement">The Agreement</a> |
-    <a href="$base_url/community">Statistics Charts</a> |
+    <a href="$base_url/community">Community Statistics</a> |
     <a href="$base_url/help/$helpType">Help</a>
 <br><br>
 website copyright &copy; $year <a href="http://CommonGoodFinance.org">Common Good Finance&trade;</a>, a 501(c)(3) nonprofit<br/>

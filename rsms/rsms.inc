@@ -117,6 +117,8 @@ $GLOBALS[TX_SMS . ' messages'] = array(
   'card ordered' => t('A Company Agent rCard will be US mailed to @name.'),
   'balances' => t('Your balance available to spend is @toSpend. You can move up to @toCash today to your bank account.'),
   'you sold out' => t('This week you traded @total worth of rCredits for US Dollars, missing an opportunity for @rebates worth of rebates. To keep this from happening so much, <@a1>click here</a> to change your settings to the recommended minimum balance of @suggested.'),
+  'new floor' => t('Your allowable minimum balance has been changed to @floor, based on your average use of rCredits over the past 6 months.'),
+  'no floor effect' => t('This currently has no effect, because you chose not to let your balance go negative. To change this setting, sign in at rCredits.org, click the Settings gear, then the Preferences tab. Put a check mark next to "Debt Okay" and save your preferences.'),
 
   // questions
   "what's your name?" => t("To set up your rCredits account, we need your full name and email address. First, what's your name?"),
